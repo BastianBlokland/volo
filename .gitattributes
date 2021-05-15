@@ -1,0 +1,12 @@
+# --------------------------------------------------------------------------------------------------
+# Special file attributes for git.
+# --------------------------------------------------------------------------------------------------
+
+# Use unix line-ending for all text files.
+* text eol=lf
+
+# Binary files.
+*.jpg binary
+*.png binary
+*.ppm binary
+*.tga binary

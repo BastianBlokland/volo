@@ -1,0 +1,15 @@
+# --------------------------------------------------------------------------------------------------
+# Files to ignore in git.
+# --------------------------------------------------------------------------------------------------
+
+# Build output.
+/[Bb]uild*
+
+# User settings (Except portable common settings).
+/.vscode/*
+!/.vscode/settings.json
+!/.vscode/extensions.json
+
+# Ide caches.
+/.clangd/index/*
+/.cache/
