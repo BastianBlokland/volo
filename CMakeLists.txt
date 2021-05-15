@@ -28,6 +28,7 @@ set_platform_defines()
 include(cmake/compiler.cmake)
 detect_compiler()
 set_compiler_defines()
+set_compile_options()
 
 # Generate a 'compile_commands.json' for use by clangd.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
