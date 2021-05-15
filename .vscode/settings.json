@@ -10,5 +10,9 @@
   "editor.tabSize": 2,
   "editor.rulers": [
     100
-  ]
+  ],
+  "files.associations": {
+    "*.h": "c",
+    "*.c": "c"
+  }
 }
