@@ -1,0 +1,22 @@
+# --------------------------------------------------------------------------------------------------
+# ClangFormat style configuration.
+# Helpful configurator for testing:
+# https://zed0.co.uk/clang-format-configurator/
+# --------------------------------------------------------------------------------------------------
+
+BasedOnStyle: LLVM
+IndentWidth: 2
+ColumnLimit: 100
+
+Language: Cpp
+PointerAlignment: Left
+AlignAfterOpenBracket: AlwaysBreak
+AlignConsecutiveAssignments: true
+AlignEscapedNewlines: Right
+AlignTrailingComments: true
+AlignOperands: false
+AllowAllParametersOfDeclarationOnNextLine: true
+AllowAllArgumentsOnNextLine: true
+IncludeBlocks: Merge
+BinPackArguments: false
+BinPackParameters: false
