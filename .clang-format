@@ -9,14 +9,15 @@ IndentWidth: 2
 ColumnLimit: 100
 
 Language: Cpp
-PointerAlignment: Left
+AlignConsecutiveDeclarations: true
 AlignAfterOpenBracket: AlwaysBreak
 AlignConsecutiveAssignments: true
 AlignEscapedNewlines: Right
-AlignTrailingComments: true
 AlignOperands: false
-AllowAllParametersOfDeclarationOnNextLine: true
+AlignTrailingComments: true
 AllowAllArgumentsOnNextLine: true
-IncludeBlocks: Merge
+AllowAllParametersOfDeclarationOnNextLine: true
 BinPackArguments: false
 BinPackParameters: false
+IncludeBlocks: Merge
+PointerAlignment: Left
