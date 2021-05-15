@@ -1,0 +1,14 @@
+{
+  "files.encoding": "utf8",
+  "files.eol": "\n",
+  "files.autoGuessEncoding": false,
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "editor.formatOnSave": true,
+  "editor.renderWhitespace": "all",
+  "editor.detectIndentation": false,
+  "editor.tabSize": 2,
+  "editor.rulers": [
+    100
+  ]
+}
