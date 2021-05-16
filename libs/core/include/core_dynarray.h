@@ -15,6 +15,15 @@ typedef struct {
 #define dynarray_at_t(array, idx, type) mem_as_t(dynarray_at(array, idx, 1), type)
 #define dynarray_push_t(array, type) mem_as_t(dynarray_push(array, 1), type)
 
+#define dynarray_for_t(array, type, var, ...)                                                      \
+  {                                                                                                \
+    DynArray* var##_array = (array);                                                               \
+    for (usize var##_i = 0; var##_i != var##_array->size; ++var##_i) {                             \
+      type* var = dynarray_at_t(var##_array, var##_i, type);                                       \
+      __VA_ARGS__                                                                                  \
+    }                                                                                              \
+  }
+
 DynArray dynarray_init(u16 stride, usize capacity);
 void     dynarray_free(DynArray*);
 void     dynarray_resize(DynArray*, usize size);

@@ -86,13 +86,12 @@ static void test_dynarray_remove_shifts_content(const u32 removeIdx, const u32 r
   dynarray_remove(&array, removeIdx, removeCount);
   diag_assert(array.size == array_elems(values) - removeCount);
 
-  for (u32 i = 0; i != array.size; ++i) {
-    const u64 valInArray = *dynarray_at_t(&array, i, u64);
-    if (i < removeIdx)
-      diag_assert(valInArray == values[i]);
+  dynarray_for_t(&array, u64, val, {
+    if (val_i < removeIdx)
+      diag_assert(*val == values[val_i]);
     else
-      diag_assert(valInArray == values[removeCount + i]);
-  }
+      diag_assert(*val == values[removeCount + val_i]);
+  });
 
   dynarray_free(&array);
 }
@@ -107,15 +106,14 @@ static void test_dynarray_insert_shifts_content(const u32 insertIdx, const u32 i
   mem_set(dynarray_insert(&array, insertIdx, insertCount), 0xBB);
   diag_assert(array.size == array_elems(values) + insertCount);
 
-  for (u32 i = 0; i != array.size; ++i) {
-    const u32 valInArray = *dynarray_at_t(&array, i, u32);
-    if (i < insertIdx)
-      diag_assert(valInArray == values[i]);
-    else if (i < insertIdx + insertCount)
-      diag_assert(valInArray == 0xBBBBBBBB);
+  dynarray_for_t(&array, u32, val, {
+    if (val_i < insertIdx)
+      diag_assert(*val == values[val_i]);
+    else if (val_i < insertIdx + insertCount)
+      diag_assert(*val == 0xBBBBBBBB);
     else
-      diag_assert(valInArray == values[i - insertCount]);
-  }
+      diag_assert(*val == values[val_i - insertCount]);
+  });
 
   dynarray_free(&array);
 }
