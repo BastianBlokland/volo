@@ -8,6 +8,7 @@
 # User settings (Except portable common settings).
 /.vscode/*
 !/.vscode/settings.json
+!/.vscode/launch.json
 !/.vscode/extensions.json
 
 # Ide caches.

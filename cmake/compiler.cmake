@@ -55,16 +55,22 @@ endmacro(set_compiler_defines)
 # Set gcc specific compile options
 macro(set_gcc_compile_options)
   add_compile_options(-Wall -Wextra -Werror)
+  # TODO: Tie these debug options to a configuration knob.
+  add_compile_options(-g -fno-omit-frame-pointer)
 endmacro(set_gcc_compile_options)
 
 # Set clang specific compile options
 macro(set_clang_compile_options)
   add_compile_options(-Wall -Wextra -Werror)
+  # TODO: Tie these debug options to a configuration knob.
+  add_compile_options(-g -fno-omit-frame-pointer)
 endmacro(set_clang_compile_options)
 
 # Set msvc specific compile options
 macro(set_msvc_compile_options)
   add_definitions(/W4 /WX)
+  # TODO: Tie these debug options to a configuration knob.
+  add_compile_options(/Z7)
 endmacro(set_msvc_compile_options)
 
 # Set compile options
