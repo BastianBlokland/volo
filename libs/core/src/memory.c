@@ -35,3 +35,21 @@ void* mem_as(Mem mem, const usize size) {
   diag_assert(mem.size >= size);
   return mem.ptr;
 }
+
+i32 mem_cmp(Mem a, Mem b) {
+  diag_assert(mem_valid(a));
+  diag_assert(mem_valid(b));
+  if (a.size < b.size) {
+    return -1;
+  }
+  if (a.size > b.size) {
+    return 1;
+  }
+  return memcmp(a.ptr, b.ptr, a.size);
+}
+
+bool mem_eq(Mem a, Mem b) {
+  diag_assert(mem_valid(a));
+  diag_assert(mem_valid(b));
+  return a.size == b.size && memcmp(a.ptr, b.ptr, a.size) == 0;
+}

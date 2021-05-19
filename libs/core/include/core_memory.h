@@ -1,6 +1,9 @@
 #pragma once
 #include "core_types.h"
 
+/**
+ * Non-owning view over memory.
+ */
 typedef struct {
   void* ptr;
   usize size;
@@ -16,3 +19,5 @@ void  mem_cpy(Mem dst, Mem src);
 void  mem_move(Mem dst, Mem src);
 Mem   mem_slice(Mem, usize offset, usize size);
 void* mem_as(Mem mem, usize size);
+i32   mem_cmp(Mem a, Mem b);
+bool  mem_eq(Mem a, Mem b);

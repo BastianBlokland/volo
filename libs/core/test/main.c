@@ -2,6 +2,7 @@
 
 void test_bits();
 void test_dynarray();
+void test_string();
 
 /**
  * Run basic unit tests.
@@ -10,6 +11,7 @@ void test_dynarray();
 int main() {
   test_bits();
   test_dynarray();
+  test_string();
   diag_log("volo_core_test: Passed\n");
   return 1;
 }

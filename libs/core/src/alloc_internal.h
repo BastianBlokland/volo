@@ -1,3 +1,4 @@
+#pragma once
 #include "core_alloc.h"
 
 struct sAllocator {
