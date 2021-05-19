@@ -8,6 +8,7 @@ add_library(volo_core STATIC
   core/src/bits.c
   core/src/diag.c
   core/src/dynarray.c
+  core/src/dynstring.c
   core/src/memory.c
   core/src/string.c)
 target_include_directories(volo_core PUBLIC core/include)
@@ -15,6 +16,7 @@ target_include_directories(volo_core PUBLIC core/include)
 add_executable(volo_core_test
   core/test/bits_test.c
   core/test/dynarray_test.c
+  core/test/dynstring_test.c
   core/test/main.c
   core/test/string_test.c)
 target_link_libraries(volo_core_test PRIVATE volo_core)

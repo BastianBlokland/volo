@@ -2,6 +2,7 @@
 #include "core_string.h"
 
 static void test_string_len() {
+  diag_assert(string_empty().size == 0);
   diag_assert(string_from_lit("").size == 0);
   diag_assert(string_from_lit("H").size == 1);
   diag_assert(string_from_lit("Hello World").size == 11);

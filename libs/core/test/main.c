@@ -2,6 +2,7 @@
 
 void test_bits();
 void test_dynarray();
+void test_dynstring();
 void test_string();
 
 /**
@@ -11,6 +12,7 @@ void test_string();
 int main() {
   test_bits();
   test_dynarray();
+  test_dynstring();
   test_string();
   diag_log("volo_core_test: Passed\n");
   return 1;

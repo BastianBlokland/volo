@@ -7,6 +7,8 @@
  */
 typedef Mem String;
 
+#define string_empty() string_from_lit("")
+
 #define string_from_lit(_LIT_)                                                                     \
   ((String){                                                                                       \
       .ptr  = (void*)(_LIT_),                                                                      \
