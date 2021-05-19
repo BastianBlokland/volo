@@ -1,4 +1,5 @@
 #pragma once
+#include "core_diag.h"
 #include "core_types.h"
 
 #ifdef VOLO_CLANG
@@ -8,5 +9,5 @@
 #elif defined(VOLO_MSVC)
 #define alignof(_TYPE_) ((u32) __alignof(_TYPE_))
 #else
-_Static_assert(false, "Unknown compiler");
+diag_static_assert(false, "Unknown compiler");
 #endif

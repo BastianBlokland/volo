@@ -26,6 +26,8 @@ typedef struct {
 
 #define diag_assert(_CONDITION_) diag_assert_msg(_CONDITION_, #_CONDITION_)
 
+#define diag_static_assert _Static_assert
+
 void diag_log(const char* format, ...);
 void diag_log_err(const char* format, ...);
 void diag_assert_fail(const CallSite*, const char* msg);
