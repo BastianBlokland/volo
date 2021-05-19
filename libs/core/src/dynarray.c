@@ -3,7 +3,7 @@
 #include "core_dynarray.h"
 #include "core_likely.h"
 
-DynArray dynarray_init(const u16 stride, const usize capacity) {
+DynArray dynarray_create(const u16 stride, const usize capacity) {
   diag_assert(stride);
   DynArray array = {
       .stride = stride,
@@ -16,7 +16,7 @@ DynArray dynarray_init(const u16 stride, const usize capacity) {
   return array;
 }
 
-void dynarray_free(DynArray* array) {
+void dynarray_destroy(DynArray* array) {
   diag_assert(array);
   if (likely(mem_valid(array->data))) {
     mem_free(array->data);
