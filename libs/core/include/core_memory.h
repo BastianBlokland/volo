@@ -16,10 +16,3 @@ void  mem_cpy(Mem dst, Mem src);
 void  mem_move(Mem dst, Mem src);
 Mem   mem_slice(Mem, usize offset, usize size);
 void* mem_as(Mem mem, usize size);
-
-/**
- * Memory management utilities.
- * TODO: Move these to an allocator api.
- */
-Mem  mem_alloc(usize size);
-void mem_free(Mem);

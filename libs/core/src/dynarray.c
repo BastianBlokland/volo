@@ -3,14 +3,15 @@
 #include "core_dynarray.h"
 #include "core_likely.h"
 
-DynArray dynarray_create(const u16 stride, const usize capacity) {
+DynArray dynarray_create(Allocator* alloc, const u16 stride, const usize capacity) {
   diag_assert(stride);
   DynArray array = {
       .stride = stride,
+      .alloc  = alloc,
   };
   if (capacity) {
     const usize capacityBytes = bits_nextpow2(capacity * stride);
-    array.data                = mem_alloc(capacityBytes);
+    array.data                = alloc_alloc(alloc, capacityBytes);
     diag_assert_msg(mem_valid(array.data), "Allocation failed");
   }
   return array;
@@ -19,19 +20,19 @@ DynArray dynarray_create(const u16 stride, const usize capacity) {
 void dynarray_destroy(DynArray* array) {
   diag_assert(array);
   if (likely(mem_valid(array->data))) {
-    mem_free(array->data);
+    alloc_free(array->alloc, array->data);
   }
 }
 
 void dynarray_resize(DynArray* array, const usize size) {
   diag_assert(array);
   if (size * array->stride > array->data.size) {
-    const Mem newMem = mem_alloc(bits_nextpow2(size * array->stride));
+    const Mem newMem = alloc_alloc(array->alloc, bits_nextpow2(size * array->stride));
     diag_assert_msg(mem_valid(newMem), "Allocation failed");
 
     if (likely(mem_valid(array->data))) {
       mem_cpy(newMem, array->data);
-      mem_free(array->data);
+      alloc_free(array->alloc, array->data);
     }
     array->data = newMem;
   }

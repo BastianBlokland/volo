@@ -1,6 +1,5 @@
 #include "core_diag.h"
 #include "core_memory.h"
-#include <stdlib.h>
 #include <string.h>
 
 void mem_set(const Mem mem, const u8 val) {
@@ -35,18 +34,4 @@ void* mem_as(Mem mem, const usize size) {
   diag_assert(mem_valid(mem));
   diag_assert(mem.size >= size);
   return mem.ptr;
-}
-
-Mem mem_alloc(const usize size) {
-  diag_assert(size);
-  return (Mem){
-      .ptr  = malloc(size),
-      .size = size,
-  };
-}
-
-void mem_free(Mem mem) {
-  diag_assert(mem_valid(mem));
-  mem_set(mem, 0xFF); // Basic tag to detect use-after-free.
-  free(mem.ptr);
 }

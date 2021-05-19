@@ -1,16 +1,17 @@
+#include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
 
 static void test_dynarray_new_array_is_empty() {
-  DynArray array = dynarray_create_t(u64, 8);
+  DynArray array = dynarray_create_t(&g_allocatorHeap, u64, 8);
   diag_assert(array.stride == sizeof(u64));
   diag_assert(array.size == 0);
   dynarray_destroy(&array);
 }
 
 static void test_dynarray_initial_capacity_can_be_zero() {
-  DynArray array = dynarray_create_t(u64, 0);
+  DynArray array = dynarray_create_t(&g_allocatorHeap, u64, 0);
   diag_assert(!mem_valid(array.data));
 
   dynarray_push(&array, 1);
@@ -20,7 +21,7 @@ static void test_dynarray_initial_capacity_can_be_zero() {
 }
 
 static void test_dynarray_resizing_changes_size() {
-  DynArray array = dynarray_create_t(u64, 8);
+  DynArray array = dynarray_create_t(&g_allocatorHeap, u64, 8);
 
   dynarray_resize(&array, 0);
   diag_assert(array.size == 0);
@@ -37,7 +38,7 @@ static void test_dynarray_resizing_changes_size() {
 static void test_dynarray_resizing_preserves_content() {
   const u32 entries = 33;
 
-  DynArray array = dynarray_create_t(u64, 8);
+  DynArray array = dynarray_create_t(&g_allocatorHeap, u64, 8);
 
   for (u32 i = 0; i != entries; ++i) {
     *dynarray_push_t(&array, u64) = i;
@@ -55,7 +56,7 @@ static void test_dynarray_resizing_preserves_content() {
 static void test_dynarray_pushing_increases_size() {
   const u32 amountToPush = 33;
 
-  DynArray array = dynarray_create_t(u64, 8);
+  DynArray array = dynarray_create_t(&g_allocatorHeap, u64, 8);
   for (u32 i = 0; i != amountToPush; ++i) {
     dynarray_push(&array, 1);
     diag_assert(array.size == i + 1);
@@ -66,7 +67,7 @@ static void test_dynarray_pushing_increases_size() {
 static void test_dynarray_popping_decreases_size() {
   const u32 startingSize = 33;
 
-  DynArray array = dynarray_create_t(u64, 8);
+  DynArray array = dynarray_create_t(&g_allocatorHeap, u64, 8);
   dynarray_resize(&array, startingSize);
 
   for (u32 i = startingSize; i-- > 0;) {
@@ -78,7 +79,7 @@ static void test_dynarray_popping_decreases_size() {
 
 static void test_dynarray_remove_shifts_content(const u32 removeIdx, const u32 removeCount) {
 
-  DynArray array = dynarray_create_t(u64, 8);
+  DynArray array = dynarray_create_t(&g_allocatorHeap, u64, 8);
 
   const u64 values[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
   mem_cpy(dynarray_push(&array, array_elems(values)), array_mem(values));
@@ -98,7 +99,7 @@ static void test_dynarray_remove_shifts_content(const u32 removeIdx, const u32 r
 
 static void test_dynarray_insert_shifts_content(const u32 insertIdx, const u32 insertCount) {
 
-  DynArray array = dynarray_create_t(u32, 8);
+  DynArray array = dynarray_create_t(&g_allocatorHeap, u32, 8);
 
   const u32 values[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
   mem_cpy(dynarray_push(&array, array_elems(values)), array_mem(values));

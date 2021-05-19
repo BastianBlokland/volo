@@ -3,6 +3,8 @@
 # --------------------------------------------------------------------------------------------------
 
 add_library(volo_core STATIC
+  core/src/alloc_heap.c
+  core/src/alloc.c
   core/src/bits.c
   core/src/diag.c
   core/src/dynarray.c
