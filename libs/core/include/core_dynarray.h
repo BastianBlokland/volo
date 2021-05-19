@@ -10,16 +10,16 @@ typedef struct {
   u16   stride;
 } DynArray;
 
-#define dynarray_init_t(type, capacity)                                                            \
-  dynarray_init(bits_align(sizeof(type), alignof(type)), capacity)
-#define dynarray_at_t(array, idx, type) mem_as_t(dynarray_at(array, idx, 1), type)
-#define dynarray_push_t(array, type) mem_as_t(dynarray_push(array, 1), type)
+#define dynarray_init_t(_TYPE_, _CAPACITY_)                                                        \
+  dynarray_init(bits_align(sizeof(_TYPE_), alignof(_TYPE_)), _CAPACITY_)
+#define dynarray_at_t(_ARRAY_, _IDX_, _TYPE_) mem_as_t(dynarray_at(_ARRAY_, _IDX_, 1), _TYPE_)
+#define dynarray_push_t(_ARRAY_, _TYPE_) mem_as_t(dynarray_push(_ARRAY_, 1), _TYPE_)
 
-#define dynarray_for_t(array, type, var, ...)                                                      \
+#define dynarray_for_t(_ARRAY_, _TYPE_, _VAR_, ...)                                                \
   {                                                                                                \
-    DynArray* var##_array = (array);                                                               \
-    for (usize var##_i = 0; var##_i != var##_array->size; ++var##_i) {                             \
-      type* var = dynarray_at_t(var##_array, var##_i, type);                                       \
+    DynArray* _VAR_##_array = (_ARRAY_);                                                           \
+    for (usize _VAR_##_i = 0; _VAR_##_i != _VAR_##_array->size; ++_VAR_##_i) {                     \
+      _TYPE_* _VAR_ = dynarray_at_t(_VAR_##_array, _VAR_##_i, _TYPE_);                             \
       __VA_ARGS__                                                                                  \
     }                                                                                              \
   }

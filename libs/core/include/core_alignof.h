@@ -2,11 +2,11 @@
 #include "core_types.h"
 
 #ifdef VOLO_CLANG
-#define alignof(type) ((u32) __alignof__(type))
+#define alignof(_TYPE_) ((u32) __alignof__(_TYPE_))
 #elif defined(VOLO_GCC)
-#define alignof(type) ((u32) __alignof__(type))
+#define alignof(_TYPE_) ((u32) __alignof__(_TYPE_))
 #elif defined(VOLO_MSVC)
-#define alignof(type) ((u32) __alignof(type))
+#define alignof(_TYPE_) ((u32) __alignof(_TYPE_))
 #else
 _Static_assert(false, "Unknown compiler");
 #endif

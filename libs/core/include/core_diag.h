@@ -16,15 +16,15 @@ typedef struct {
       .line = diag_line(),                                                                         \
   })
 
-#define diag_assert_msg(condition, msg)                                                            \
+#define diag_assert_msg(_CONDITION_, _MSG_)                                                        \
   do {                                                                                             \
-    if (unlikely(!(condition))) {                                                                  \
+    if (unlikely(!(_CONDITION_))) {                                                                \
       static CallSite callsite = diag_callsite_init();                                             \
-      diag_assert_fail(&callsite, msg);                                                            \
+      diag_assert_fail(&callsite, _MSG_);                                                          \
     }                                                                                              \
   } while (false)
 
-#define diag_assert(condition) diag_assert_msg(condition, #condition)
+#define diag_assert(_CONDITION_) diag_assert_msg(_CONDITION_, #_CONDITION_)
 
 void diag_log(const char* format, ...);
 void diag_log_err(const char* format, ...);

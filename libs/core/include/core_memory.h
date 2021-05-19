@@ -6,10 +6,10 @@ typedef struct {
   usize size;
 } Mem;
 
-#define mem_valid(mem) (mem.ptr != null)
-#define mem_itr(mem) ((char*)mem.ptr)
-#define mem_end(mem) ((char*)mem.ptr + mem.size)
-#define mem_as_t(mem, type) ((type*)mem_as(mem, sizeof(type)))
+#define mem_valid(_MEM_) ((_MEM_).ptr != null)
+#define mem_itr(_MEM_) ((char*)(_MEM_).ptr)
+#define mem_end(_MEM_) ((char*)(_MEM_).ptr + (_MEM_).size)
+#define mem_as_t(_MEM_, _TYPE_) ((_TYPE_*)mem_as(_MEM_, sizeof(_TYPE_)))
 
 void  mem_set(Mem, u8 val);
 void  mem_cpy(Mem dst, Mem src);

@@ -2,9 +2,9 @@
 #include "core_types.h"
 
 #if defined(VOLO_CLANG) || defined(VOLO_GCC)
-#define likely(x) __builtin_expect(!!(x), true)
-#define unlikely(x) __builtin_expect(!!(x), false)
+#define likely(_CONDITION_) __builtin_expect(!!(_CONDITION_), true)
+#define unlikely(_CONDITION_) __builtin_expect(!!(_CONDITION_), false)
 #else
-#define likely(x) x
-#define unlikely(x) x
+#define likely(_CONDITION_) _CONDITION_
+#define unlikely(_CONDITION_) _CONDITION_
 #endif
