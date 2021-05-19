@@ -10,14 +10,17 @@ static void test_dynstring_new_string_is_empty() {
 static void test_dynstring_append() {
   DynString string = dynstring_create(&g_allocatorHeap, 8);
 
-  dynstring_append(&string, string_from_lit("Hello"));
-  diag_assert(string_eq(dynstring_view(&string), string_from_lit("Hello")));
+  dynstring_append(&string, string_lit("Hello"));
+  diag_assert(string_eq(dynstring_view(&string), string_lit("Hello")));
 
-  dynstring_append(&string, string_from_lit(" "));
-  diag_assert(string_eq(dynstring_view(&string), string_from_lit("Hello ")));
+  dynstring_append(&string, string_lit(" "));
+  diag_assert(string_eq(dynstring_view(&string), string_lit("Hello ")));
 
-  dynstring_append(&string, string_from_lit("World"));
-  diag_assert(string_eq(dynstring_view(&string), string_from_lit("Hello World")));
+  dynstring_append(&string, string_lit("World"));
+  diag_assert(string_eq(dynstring_view(&string), string_lit("Hello World")));
+
+  dynstring_append(&string, string_empty());
+  diag_assert(string_eq(dynstring_view(&string), string_lit("Hello World")));
 
   dynstring_destroy(&string);
 }

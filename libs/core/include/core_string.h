@@ -7,9 +7,9 @@
  */
 typedef Mem String;
 
-#define string_empty() string_from_lit("")
+#define string_empty() string_lit("")
 
-#define string_from_lit(_LIT_)                                                                     \
+#define string_lit(_LIT_)                                                                          \
   ((String){                                                                                       \
       .ptr  = (void*)(_LIT_),                                                                      \
       .size = sizeof(_LIT_) - 1u,                                                                  \
