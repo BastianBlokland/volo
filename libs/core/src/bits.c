@@ -45,7 +45,7 @@ u32 bits_hash32(const Mem mem) {
   const u32 prime = 16777619u;
   u32       hash  = 2166136261U;
 
-  for (const char* itr = mem_itr(mem); itr != mem_end(mem); ++itr) {
+  for (const u8* itr = mem_itr(mem); itr != mem_end(mem); ++itr) {
     hash ^= *itr;
     hash *= prime;
   }

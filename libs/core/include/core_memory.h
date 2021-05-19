@@ -10,8 +10,8 @@ typedef struct {
 } Mem;
 
 #define mem_valid(_MEM_) ((_MEM_).ptr != null)
-#define mem_itr(_MEM_) ((char*)(_MEM_).ptr)
-#define mem_end(_MEM_) ((char*)(_MEM_).ptr + (_MEM_).size)
+#define mem_itr(_MEM_) ((u8*)(_MEM_).ptr)
+#define mem_end(_MEM_) ((u8*)(_MEM_).ptr + (_MEM_).size)
 #define mem_as_t(_MEM_, _TYPE_) ((_TYPE_*)mem_as(_MEM_, sizeof(_TYPE_)))
 
 void  mem_set(Mem, u8 val);
