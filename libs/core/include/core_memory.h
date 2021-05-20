@@ -14,6 +14,15 @@ typedef struct {
 #define mem_end(_MEM_) ((u8*)(_MEM_).ptr + (_MEM_).size)
 #define mem_as_t(_MEM_, _TYPE_) ((_TYPE_*)mem_as(_MEM_, sizeof(_TYPE_)))
 
+#define mem_for_u8(_MEM_, _VAR_, ...)                                                              \
+  {                                                                                                \
+    const u8* _VAR_##_end = mem_end(_MEM_);                                                        \
+    for (u8* _VAR_##_itr = mem_itr(_MEM_); _VAR_##_itr != _VAR_##_end; ++_VAR_##_itr) {            \
+      const u8 _VAR_ = *_VAR_##_itr;                                                               \
+      __VA_ARGS__                                                                                  \
+    }                                                                                              \
+  }
+
 void  mem_set(Mem, u8 val);
 void  mem_cpy(Mem dst, Mem src);
 void  mem_move(Mem dst, Mem src);
