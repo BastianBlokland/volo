@@ -1,7 +1,7 @@
+#include "core_annotation.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
-#include "core_likely.h"
 
 DynArray dynarray_create(Allocator* alloc, const u16 stride, const usize capacity) {
   diag_assert(stride);

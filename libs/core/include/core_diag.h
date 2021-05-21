@@ -1,5 +1,5 @@
 #pragma once
-#include "core_likely.h"
+#include "core_annotation.h"
 #include "core_types.h"
 
 typedef struct {
