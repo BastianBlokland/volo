@@ -37,15 +37,3 @@ typedef u8 bool;
 #define usize_max SIZE_MAX
 #define iptr_max INTPTR_MAX
 #define uptr_max UINTPTR_MAX
-
-#define i8_sentinel INT8_MAX
-#define i16_sentinel INT16_MAX
-#define i32_sentinel INT32_MAX
-#define i64_sentinel INT64_MAX
-#define u8_sentinel UINT8_MAX
-#define u16_sentinel UINT16_MAX
-#define u32_sentinel UINT32_MAX
-#define u64_sentinel UINT64_MAX
-#define usize_sentinel SIZE_MAX
-#define iptr_sentinel INTPTR_MAX
-#define uptr_sentinel UINTPTR_MAX
