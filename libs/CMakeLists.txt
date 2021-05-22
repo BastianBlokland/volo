@@ -9,6 +9,7 @@ add_library(volo_core STATIC
   core/src/bitset.c
   core/src/diag.c
   core/src/dynarray.c
+  core/src/dynbitset.c
   core/src/dynstring.c
   core/src/memory.c
   core/src/string.c)
@@ -19,6 +20,7 @@ add_executable(volo_core_test
   core/test/test_bits.c
   core/test/test_bitset.c
   core/test/test_dynarray.c
+  core/test/test_dynbitset.c
   core/test/test_dynstring.c
   core/test/test_string.c)
 target_link_libraries(volo_core_test PRIVATE volo_core)
