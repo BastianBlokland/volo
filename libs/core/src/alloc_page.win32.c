@@ -1,8 +1,7 @@
 #include "alloc_internal.h"
 #include "core_bits.h"
 #include "core_diag.h"
-#include <sys/mman.h>
-#include <unistd.h>
+#include <Windows.h>
 
 struct AllocatorPage {
   Allocator api;
@@ -15,9 +14,8 @@ static Mem alloc_page_alloc(Allocator* allocator, const usize size) {
   const usize pageSize    = ((struct AllocatorPage*)allocator)->pageSize;
   const usize alignedSize = bits_align(size, pageSize);
 
-  void* res = mmap(null, alignedSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
   return (Mem){
-      .ptr  = res == MAP_FAILED ? null : res,
+      .ptr  = VirtualAlloc(null, alignedSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE),
       .size = alignedSize,
   };
 }
@@ -27,9 +25,9 @@ static void alloc_page_free(Allocator* allocator, Mem mem) {
 
   diag_assert(mem_valid(mem));
 
-  const int res = munmap(mem.ptr, mem.size);
-  diag_assert_msg(res == 0, "munmap() failed");
-  (void)res;
+  const bool success = VirtualFree(mem.ptr, 0, MEM_RELEASE);
+  diag_assert_msg(success, "VirtualFree() failed");
+  (void)success;
 }
 
 static usize alloc_heap_min_size(Allocator* allocator) {
@@ -39,7 +37,10 @@ static usize alloc_heap_min_size(Allocator* allocator) {
 static struct AllocatorPage g_allocatorIntern;
 
 Allocator* alloc_init_page() {
-  const size_t pageSize = getpagesize();
+  SYSTEM_INFO si;
+  GetSystemInfo(&si);
+  const size_t pageSize = si.dwPageSize;
+
   g_allocatorIntern     = (struct AllocatorPage){
       (Allocator){
           &alloc_page_alloc,
