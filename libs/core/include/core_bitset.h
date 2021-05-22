@@ -4,6 +4,7 @@
 
 /**
  * Non-owning view over memory containing bit flags.
+ * Note: BitSets are always byte aligned, meaning size is always a multiple of 8.
  */
 typedef Mem BitSet;
 

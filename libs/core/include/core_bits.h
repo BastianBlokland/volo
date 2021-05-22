@@ -3,6 +3,21 @@
 #include "core_types.h"
 
 /**
+ * Convert number of bits to number of bytes. Divide by 8.
+ */
+#define bits_to_bytes(_BITS_) ((_BITS_) >> 3)
+
+/**
+ * Convert number of bytes to bits. Multiply by 8.
+ */
+#define bytes_to_bits(_BITS_) ((_BITS_)*8)
+
+/**
+ * Retrieve the index of the given bit in its byte. Modulo 8.
+ */
+#define bit_in_byte(_BIT_) ((_BIT_)&0b111)
+
+/**
  * Count how many bits are set in a mask.
  */
 u32 bits_popcnt(u32);

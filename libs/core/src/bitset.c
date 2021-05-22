@@ -4,14 +4,11 @@
 #include "core_math.h"
 #include "core_types.h"
 
-#define bitset_byte_idx(_IDX_) ((_IDX_) >> 3)     // divide by 8.
-#define bitset_bit_in_byte(_IDX_) ((_IDX_)&0b111) // modulo 8.
-
-usize bitset_size(BitSet bits) { return bits.size * 8u; }
+usize bitset_size(BitSet bits) { return bytes_to_bits(bits.size); }
 
 bool bitset_test(BitSet bits, usize idx) {
   diag_assert(idx < bitset_size(bits));
-  return (*mem_at_u8(bits, bitset_byte_idx(idx)) & (1u << bitset_bit_in_byte(idx))) != 0;
+  return (*mem_at_u8(bits, bits_to_bytes(idx)) & (1u << bit_in_byte(idx))) != 0;
 }
 
 bool bitset_count(BitSet bits) {
@@ -55,15 +52,15 @@ bool bitset_all_of(BitSet bits, BitSet other) {
 
 usize bitset_next(BitSet bits, usize idx) {
   diag_assert(idx < bitset_size(bits));
-  usize    byteIdx = bitset_byte_idx(idx);
-  const u8 byte    = *mem_at_u8(bits, byteIdx) >> bitset_bit_in_byte(idx);
+  usize    byteIdx = bits_to_bytes(idx);
+  const u8 byte    = *mem_at_u8(bits, byteIdx) >> bit_in_byte(idx);
   if (byte) {
     return idx + bits_ctz(byte);
   }
   for (++byteIdx; byteIdx != bits.size; ++byteIdx) {
     const u8 byte = *mem_at_u8(bits, byteIdx);
     if (byte) {
-      return (byteIdx * 8) + bits_ctz(byte);
+      return bytes_to_bits(byteIdx) + bits_ctz(byte);
     }
   }
   return sentinel_usize;
@@ -71,8 +68,8 @@ usize bitset_next(BitSet bits, usize idx) {
 
 usize bitset_index(BitSet bits, usize idx) {
   diag_assert(bitset_test(bits, idx));
-  usize    byteIdx = bitset_byte_idx(idx);
-  const u8 byte    = *mem_at_u8(bits, byteIdx) << (8 - bitset_bit_in_byte(idx));
+  usize    byteIdx = bits_to_bytes(idx);
+  const u8 byte    = *mem_at_u8(bits, byteIdx) << (8 - bit_in_byte(idx));
   usize    result  = bits_popcnt(byte);
   while (byteIdx) {
     --byteIdx;
@@ -83,12 +80,12 @@ usize bitset_index(BitSet bits, usize idx) {
 
 void bitset_set(BitSet bits, usize idx) {
   diag_assert(idx < bitset_size(bits));
-  *mem_at_u8(bits, bitset_byte_idx(idx)) |= 1u << bitset_bit_in_byte(idx);
+  *mem_at_u8(bits, bits_to_bytes(idx)) |= 1u << bit_in_byte(idx);
 }
 
 void bitset_clear(BitSet bits, usize idx) {
   diag_assert(idx < bitset_size(bits));
-  *mem_at_u8(bits, bitset_byte_idx(idx)) &= ~(1u << bitset_bit_in_byte(idx));
+  *mem_at_u8(bits, bits_to_bytes(idx)) &= ~(1u << bit_in_byte(idx));
 }
 
 void bitset_clear_all(BitSet bits) { mem_set(bits, 0); }
