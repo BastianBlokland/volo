@@ -23,6 +23,12 @@ DynString dynstring_create(Allocator*, usize capacity);
 void dynstring_destroy(DynString*);
 
 /**
+ * Retrieve the current size (in characters) of the dynamic-string.
+ * Note: Identical to checking .size on the struct, but provided for consistency with other apis.
+ */
+usize dynstring_size(const DynString*);
+
+/**
  * Retreive a string-view over the entire dynamic-string.
  * Note: This string is invalidated when using any of the mutating dynamic-string apis.
  */

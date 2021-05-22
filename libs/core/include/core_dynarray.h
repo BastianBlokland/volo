@@ -67,6 +67,12 @@ DynArray dynarray_create(Allocator*, u16 stride, usize capacity);
 void dynarray_destroy(DynArray*);
 
 /**
+ * Retrieve the current size (in elements) of the array.
+ * Note: Identical to checking .size on the struct, but provided for consistency with other apis.
+ */
+usize dynarray_size(const DynArray*);
+
+/**
  * Change the size of the dynamic-array, will allocate when size is bigger then the current
  * capacity.
  */

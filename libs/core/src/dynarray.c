@@ -24,6 +24,11 @@ void dynarray_destroy(DynArray* array) {
   }
 }
 
+usize dynarray_size(const DynArray* array) {
+  diag_assert(array);
+  return array->size;
+}
+
 void dynarray_resize(DynArray* array, const usize size) {
   diag_assert(array);
   if (size * array->stride > array->data.size) {

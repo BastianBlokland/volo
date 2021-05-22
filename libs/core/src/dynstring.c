@@ -6,6 +6,8 @@ DynString dynstring_create(Allocator* alloc, usize capacity) {
 
 void dynstring_destroy(DynString* dynstring) { dynarray_destroy(dynstring); }
 
+usize dynstring_size(const DynString* dynstring) { return dynarray_size(dynstring); }
+
 String dynstring_view(const DynString* dynstring) {
   return dynarray_at(dynstring, 0, dynstring->size);
 }
