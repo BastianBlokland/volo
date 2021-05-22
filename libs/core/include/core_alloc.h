@@ -9,7 +9,13 @@ typedef struct sAllocator Allocator;
 /**
  * 'Normal' heap allocator, semantics similar to 'malloc'.
  */
-extern Allocator g_allocatorHeap;
+extern Allocator* g_allocatorHeap;
+
+/**
+ * Initialize the global allocators.
+ * Should be called once at application startup.
+ */
+void alloc_init();
 
 /**
  * Allocate new memory.

@@ -2,6 +2,10 @@
 #include "core_diag.h"
 #include <stdlib.h>
 
+struct AllocatorHeap {
+  Allocator api;
+};
+
 static Mem alloc_heap_alloc(Allocator* allocator, const usize size) {
   (void)allocator;
 
@@ -20,7 +24,11 @@ static void alloc_heap_free(Allocator* allocator, Mem mem) {
   free(mem.ptr);
 }
 
-Allocator g_allocatorHeap = {
-    &alloc_heap_alloc,
-    &alloc_heap_free,
+static struct AllocatorHeap g_allocatorIntern = {
+    (Allocator){
+        &alloc_heap_alloc,
+        &alloc_heap_free,
+    },
 };
+
+Allocator* alloc_init_heap() { return (Allocator*)&g_allocatorIntern; }

@@ -5,3 +5,5 @@ struct sAllocator {
   Mem (*alloc)(Allocator*, usize);
   void (*free)(Allocator*, Mem);
 };
+
+Allocator* alloc_init_heap();

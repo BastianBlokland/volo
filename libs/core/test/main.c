@@ -1,3 +1,4 @@
+#include "core_alloc.h"
 #include "core_diag.h"
 
 void test_bits();
@@ -12,6 +13,8 @@ void test_string();
  * TODO: Should be moved to an actual unit testing framework at some point.
  */
 int main() {
+  alloc_init();
+
   test_bits();
   test_bitset();
   test_dynarray();
