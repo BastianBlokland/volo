@@ -37,4 +37,4 @@ static struct AllocatorHeap g_allocatorIntern = {
     },
 };
 
-Allocator* alloc_init_heap() { return (Allocator*)&g_allocatorIntern; }
+Allocator* alloc_heap_init() { return (Allocator*)&g_allocatorIntern; }

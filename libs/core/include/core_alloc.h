@@ -24,6 +24,12 @@ extern Allocator* g_allocatorPage;
 void alloc_init();
 
 /**
+ * Create a new bump allocator. Will allocate from the given memory region, once the region is empty
+ * allocations will fail. Memory region needs to contain atleast 32 bytes for internal book-keeping.
+ */
+Allocator* alloc_bump_create(Mem);
+
+/**
  * Allocate new memory.
  * Note: Has to be explicitly freed using 'alloc_free'.
  */

@@ -8,8 +8,8 @@ Allocator* g_allocatorPage;
 
 void alloc_init() {
   if (!g_intialized) {
-    g_allocatorHeap = alloc_init_heap();
-    g_allocatorPage = alloc_init_page();
+    g_allocatorHeap = alloc_heap_init();
+    g_allocatorPage = alloc_page_init();
   }
   g_intialized = true;
 }
@@ -22,4 +22,9 @@ Mem alloc_alloc(Allocator* allocator, usize size) {
 void alloc_free(Allocator* allocator, Mem mem) {
   diag_assert_msg(allocator, "Allocator is not initialized");
   return allocator->free(allocator, mem);
+}
+
+usize alloc_min_size(Allocator* allocator) {
+  diag_assert_msg(allocator, "Allocator is not initialized");
+  return allocator->minSize(allocator);
 }

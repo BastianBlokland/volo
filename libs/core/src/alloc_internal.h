@@ -4,8 +4,8 @@
 struct sAllocator {
   Mem (*alloc)(Allocator*, usize);
   void (*free)(Allocator*, Mem);
-  usize (*min_size)(Allocator*);
+  usize (*minSize)(Allocator*);
 };
 
-Allocator* alloc_init_heap();
-Allocator* alloc_init_page();
+Allocator* alloc_heap_init();
+Allocator* alloc_page_init();

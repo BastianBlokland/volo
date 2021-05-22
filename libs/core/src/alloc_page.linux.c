@@ -38,7 +38,7 @@ static usize alloc_heap_min_size(Allocator* allocator) {
 
 static struct AllocatorPage g_allocatorIntern;
 
-Allocator* alloc_init_page() {
+Allocator* alloc_page_init() {
   const size_t pageSize = getpagesize();
   g_allocatorIntern     = (struct AllocatorPage){
       (Allocator){
