@@ -1,5 +1,17 @@
 #pragma once
+#include "core_array.h"
 #include "core_memory.h"
+
+/**
+ * Create a bump allocator backed by a buffer on the stack, a pointer to the allocator will be
+ * available under the name '_VAR_'. Allocations will fail once the buffer has been filled up.
+ * Note: Neither the allocator nor any allocations made from it are valid after the allocator goes
+ * out of scope.
+ * Note: Care must be taken not to overflow the stack by using too high _SIZE_ values.
+ */
+#define alloc_bump_create_stack(_VAR_, _SIZE_)                                                     \
+  u8         _VAR_##_buffer[_SIZE_];                                                               \
+  Allocator* _VAR_ = alloc_bump_create(array_mem(_VAR_##_buffer))
 
 /**
  * Allocator handle.
