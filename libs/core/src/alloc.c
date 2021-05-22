@@ -4,10 +4,12 @@
 static bool g_intialized = false;
 
 Allocator* g_allocatorHeap;
+Allocator* g_allocatorPage;
 
 void alloc_init() {
   if (!g_intialized) {
     g_allocatorHeap = alloc_init_heap();
+    g_allocatorPage = alloc_init_page();
   }
   g_intialized = true;
 }

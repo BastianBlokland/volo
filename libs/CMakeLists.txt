@@ -4,6 +4,7 @@
 
 add_library(volo_core STATIC
   core/src/alloc_heap.c
+  core/src/alloc_page.c
   core/src/alloc.c
   core/src/bits.c
   core/src/bitset.c

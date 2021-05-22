@@ -24,10 +24,16 @@ static void alloc_heap_free(Allocator* allocator, Mem mem) {
   free(mem.ptr);
 }
 
+static usize alloc_heap_min_size(Allocator* allocator) {
+  (void)allocator;
+  return 1;
+}
+
 static struct AllocatorHeap g_allocatorIntern = {
     (Allocator){
         &alloc_heap_alloc,
         &alloc_heap_free,
+        &alloc_heap_min_size,
     },
 };
 
