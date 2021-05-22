@@ -17,7 +17,10 @@ void diag_log_err(const char* format, ...) {
 
 void diag_assert_fail(const CallSite* callsite, const char* msg) {
   diag_log_err("Assertion failed: '%s' [file: %s line: %i]\n", msg, callsite->file, callsite->line);
-  diag_exit();
+  diag_crash();
 }
 
-void diag_exit() { exit(1); }
+void diag_crash() {
+  VOLO_DEBUG_BREAK();
+  exit(1);
+}

@@ -61,11 +61,11 @@ void diag_log(const char* format, ...);
 void diag_log_err(const char* format, ...);
 
 /**
- * Indicate that an assertion has failed, logs the given message and exits the program.
+ * Indicate that an assertion has failed, logs the given message and crashes the program.
  */
 void diag_assert_fail(const CallSite*, const char* msg);
 
 /**
- * Exit the program with exit code '1'.
+ * Crash the program, will halt if running in a debugger.
  */
-void diag_exit();
+void diag_crash();
