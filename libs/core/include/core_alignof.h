@@ -2,6 +2,9 @@
 #include "core_diag.h"
 #include "core_types.h"
 
+/**
+ * Return the alignment required for the given type.
+ */
 #ifdef VOLO_CLANG
 #define alignof(_TYPE_) ((u32) __alignof__(_TYPE_))
 #elif defined(VOLO_GCC)

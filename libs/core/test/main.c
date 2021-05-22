@@ -1,6 +1,7 @@
 #include "core_diag.h"
 
 void test_bits();
+void test_bitset();
 void test_dynarray();
 void test_dynstring();
 void test_string();
@@ -11,6 +12,7 @@ void test_string();
  */
 int main() {
   test_bits();
+  test_bitset();
   test_dynarray();
   test_dynstring();
   test_string();

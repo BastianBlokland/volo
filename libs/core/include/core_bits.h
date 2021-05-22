@@ -21,13 +21,13 @@ u32 bits_clz(u32);
 
 /**
  * Check if the given value is a power of two.
- * Undefined for val == 0.
+ * Pre-condition: val != 0.
  */
 bool bits_ispow2(u32);
 
 /**
  * Return the next power of two greater or equal to val.
- * Undefined for val == 0 and val > 2147483648
+ * Pre-condition: val > 0 && val <= 2147483648.
  */
 u32 bits_nextpow2(u32);
 
@@ -38,7 +38,7 @@ u32 bits_hash32(Mem);
 
 /**
  * Calculate the amount of padding required to reach the requested alignment.
- * Undefined if align is not a power of 2.
+ * Pre-condition: bits_ispow2(val) (value has to be a power of two).
  */
 u32 bits_padding(u32 val, u32 align);
 
