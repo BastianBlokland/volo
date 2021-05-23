@@ -2,6 +2,7 @@
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
+#include "core_math.h"
 
 DynArray dynarray_create(Allocator* alloc, const u16 stride, const usize capacity) {
   diag_assert(stride);
@@ -73,6 +74,19 @@ void dynarray_remove(DynArray* array, const usize idx, const usize count) {
     mem_move(dst, src);
   }
   array->size = newSize;
+}
+
+void dynarray_remove_unordered(DynArray* array, const usize idx, const usize count) {
+  diag_assert(array);
+  diag_assert(array->size >= idx + count);
+
+  const usize entriesToMove = math_min(count, array->size - (idx + count));
+  if (entriesToMove) {
+    const Mem dst = dynarray_at(array, idx, count);
+    const Mem src = dynarray_at(array, array->size - entriesToMove, entriesToMove);
+    mem_cpy(dst, src);
+  }
+  array->size -= count;
 }
 
 Mem dynarray_insert(DynArray* array, const usize idx, const usize count) {

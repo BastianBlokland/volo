@@ -103,6 +103,13 @@ void dynarray_pop(DynArray*, usize count);
 void dynarray_remove(DynArray*, usize idx, usize count);
 
 /**
+ * Remove 'count' items at index 'idx' from the dynamic-array.
+ * Elements from the end of the array will be moved into the created hole.
+ * Pre-condition: idx + count < array.size
+ */
+void dynarray_remove_unordered(DynArray*, usize idx, usize count);
+
+/**
  * Insert 'count' items at index 'idx' in the dynamic-array. Returns a memory-view over the new
  * items.
  * Pre-condition: idx <= array.size

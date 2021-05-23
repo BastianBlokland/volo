@@ -89,7 +89,7 @@ static void test_dynarray_popping_decreases_size() {
   dynarray_destroy(&array);
 }
 
-static void test_dynarray_remove_shifts_content(const u32 removeIdx, const u32 removeCount) {
+static void test_dynarray_remove(const u32 removeIdx, const u32 removeCount) {
   alloc_bump_create_stack(alloc, 512);
 
   DynArray array = dynarray_create_t(alloc, u64, 8);
@@ -110,7 +110,26 @@ static void test_dynarray_remove_shifts_content(const u32 removeIdx, const u32 r
   dynarray_destroy(&array);
 }
 
-static void test_dynarray_insert_shifts_content(const u32 insertIdx, const u32 insertCount) {
+static void test_dynarray_remove_unordered(
+    const u16*  initial,
+    const usize initialSize,
+    const u32   removeIdx,
+    const u32   removeCount,
+    const u16*  expected) {
+  alloc_bump_create_stack(alloc, 128);
+
+  DynArray array = dynarray_create_t(alloc, u16, 8);
+  mem_cpy(dynarray_push(&array, initialSize), mem_create(initial, sizeof(u16) * initialSize));
+
+  dynarray_remove_unordered(&array, removeIdx, removeCount);
+  diag_assert(array.size == initialSize - removeCount);
+
+  dynarray_for_t(&array, u16, val, { diag_assert(*val == expected[val_i]); });
+
+  dynarray_destroy(&array);
+}
+
+static void test_dynarray_insert(const u32 insertIdx, const u32 insertCount) {
   alloc_bump_create_stack(alloc, 512);
 
   DynArray array = dynarray_create_t(alloc, u32, 8);
@@ -141,15 +160,26 @@ void test_dynarray() {
   test_dynarray_pushing_increases_size();
   test_dynarray_popping_decreases_size();
 
-  test_dynarray_remove_shifts_content(0, 3);
-  test_dynarray_remove_shifts_content(1, 3);
-  test_dynarray_remove_shifts_content(5, 3);
-  test_dynarray_remove_shifts_content(7, 3);
-  test_dynarray_remove_shifts_content(9, 1);
-  test_dynarray_remove_shifts_content(0, 10);
+  test_dynarray_remove(0, 3);
+  test_dynarray_remove(1, 3);
+  test_dynarray_remove(5, 3);
+  test_dynarray_remove(7, 3);
+  test_dynarray_remove(9, 1);
+  test_dynarray_remove(0, 10);
 
-  test_dynarray_insert_shifts_content(0, 3);
-  test_dynarray_insert_shifts_content(1, 3);
-  test_dynarray_insert_shifts_content(5, 5);
-  test_dynarray_insert_shifts_content(10, 10);
+  test_dynarray_remove_unordered((u16[]){1, 2, 3, 4, 5}, 5, 0, 1, (u16[]){5, 2, 3, 4});
+  test_dynarray_remove_unordered((u16[]){1, 2, 3, 4, 5}, 5, 1, 1, (u16[]){1, 5, 3, 4});
+  test_dynarray_remove_unordered((u16[]){1, 2, 3, 4, 5}, 5, 0, 2, (u16[]){4, 5, 3});
+  test_dynarray_remove_unordered((u16[]){1, 2, 3, 4, 5}, 5, 0, 3, (u16[]){4, 5});
+  test_dynarray_remove_unordered((u16[]){1, 2, 3, 4, 5}, 5, 0, 4, (u16[]){5});
+  test_dynarray_remove_unordered((u16[]){1, 2, 3, 4, 5}, 5, 0, 5, null);
+  test_dynarray_remove_unordered((u16[]){1, 2, 3, 4, 5, 6}, 6, 2, 1, (u16[]){1, 2, 6, 4, 5});
+  test_dynarray_remove_unordered((u16[]){1, 2, 3, 4, 5, 6}, 6, 2, 2, (u16[]){1, 2, 5, 6, 4});
+  test_dynarray_remove_unordered((u16[]){1, 2, 3, 4, 5, 6}, 6, 5, 1, (u16[]){1, 2, 3, 4, 5});
+  test_dynarray_remove_unordered((u16[]){1, 2, 3, 4, 5, 6}, 6, 4, 2, (u16[]){1, 2, 3, 4});
+
+  test_dynarray_insert(0, 3);
+  test_dynarray_insert(1, 3);
+  test_dynarray_insert(5, 5);
+  test_dynarray_insert(10, 10);
 }
