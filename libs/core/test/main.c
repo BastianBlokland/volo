@@ -3,6 +3,7 @@
 
 void test_bits();
 void test_bitset();
+void test_compare();
 void test_dynarray();
 void test_dynbitset();
 void test_dynstring();
@@ -18,6 +19,7 @@ int main() {
 
   test_bits();
   test_bitset();
+  test_compare();
   test_dynarray();
   test_dynbitset();
   test_dynstring();

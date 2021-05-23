@@ -9,6 +9,7 @@ add_library(volo_core STATIC
   core/src/alloc.c
   core/src/bits.c
   core/src/bitset.c
+  core/src/compare.c
   core/src/diag.c
   core/src/dynarray.c
   core/src/dynbitset.c
@@ -21,6 +22,7 @@ add_executable(volo_core_test
   core/test/main.c
   core/test/test_bits.c
   core/test/test_bitset.c
+  core/test/test_compare.c
   core/test/test_dynarray.c
   core/test/test_dynbitset.c
   core/test/test_dynstring.c
