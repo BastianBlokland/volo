@@ -29,7 +29,7 @@ typedef struct {
 /**
  * Retrieve a u8 pointer to the start of the memory.
  */
-#define mem_itr(_MEM_) ((u8*)(_MEM_).ptr)
+#define mem_begin(_MEM_) ((u8*)(_MEM_).ptr)
 
 /**
  * Retrieve a u8 pointer to the end of the memory (1 past the last valid byte).
@@ -54,7 +54,7 @@ typedef struct {
 #define mem_for_u8(_MEM_, _VAR_, ...)                                                              \
   {                                                                                                \
     const u8* _VAR_##_end = mem_end(_MEM_);                                                        \
-    for (u8* _VAR_##_itr = mem_itr(_MEM_); _VAR_##_itr != _VAR_##_end; ++_VAR_##_itr) {            \
+    for (u8* _VAR_##_itr = mem_begin(_MEM_); _VAR_##_itr != _VAR_##_end; ++_VAR_##_itr) {          \
       const u8 _VAR_ = *_VAR_##_itr;                                                               \
       __VA_ARGS__                                                                                  \
     }                                                                                              \

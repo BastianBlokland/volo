@@ -49,7 +49,7 @@ Allocator* alloc_bump_create(Mem mem) {
   allocatorBump->api.alloc            = &alloc_bump_alloc;
   allocatorBump->api.free             = &alloc_bump_free;
   allocatorBump->api.minSize          = &alloc_bump_min_size;
-  allocatorBump->head                 = mem_itr(mem) + sizeof(struct AllocatorBump);
+  allocatorBump->head                 = mem_begin(mem) + sizeof(struct AllocatorBump);
   allocatorBump->tail                 = mem_end(mem);
   return (Allocator*)allocatorBump;
 }
