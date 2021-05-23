@@ -24,5 +24,6 @@ add_executable(volo_core_test
   core/test/test_dynarray.c
   core/test/test_dynbitset.c
   core/test/test_dynstring.c
+  core/test/test_math.c
   core/test/test_string.c)
 target_link_libraries(volo_core_test PRIVATE volo_core)
