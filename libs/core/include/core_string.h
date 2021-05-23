@@ -25,7 +25,7 @@ typedef Mem String;
  * Compare strings a and b character wise.
  * Returns -1, 1 or 1.
  */
-i32 string_cmp(String a, String b);
+i8 string_cmp(String a, String b);
 
 /**
  * Check if strings a and b are equal.

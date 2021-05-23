@@ -96,7 +96,7 @@ void* mem_as(Mem mem, usize size);
  * If a.size > b.size then 1 is returned.
  * Otherwise it will compare a and b byte-wise and return -1, 0 or 1.
  */
-i32 mem_cmp(Mem a, Mem b);
+i8 mem_cmp(Mem a, Mem b);
 
 /**
  * Check if all bytes in memory a and b are equal.s

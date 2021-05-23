@@ -33,7 +33,7 @@ void* mem_as(Mem mem, const usize size) {
   return mem.ptr;
 }
 
-i32 mem_cmp(Mem a, Mem b) {
+i8 mem_cmp(Mem a, Mem b) {
   diag_assert(mem_valid(a));
   diag_assert(mem_valid(b));
   if (a.size < b.size) {
