@@ -14,18 +14,12 @@ static Mem alloc_bump_alloc(Allocator* allocator, const usize size) {
   struct AllocatorBump* allocatorBump = (struct AllocatorBump*)allocator;
   if ((usize)(allocatorBump->tail - allocatorBump->head) < size) {
     // Too little space remaining.
-    return (Mem){
-        .ptr  = null,
-        .size = size,
-    };
+    return mem_create(null, size);
   }
 
   void* res = allocatorBump->head;
   allocatorBump->head += size;
-  return (Mem){
-      .ptr  = res,
-      .size = size,
-  };
+  return mem_create(res, size);
 }
 
 static void alloc_bump_free(Allocator* allocator, Mem mem) {

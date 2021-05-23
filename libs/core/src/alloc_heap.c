@@ -10,10 +10,7 @@ static Mem alloc_heap_alloc(Allocator* allocator, const usize size) {
   (void)allocator;
 
   diag_assert(size);
-  return (Mem){
-      .ptr  = malloc(size),
-      .size = size,
-  };
+  return mem_create(malloc(size), size);
 }
 
 static void alloc_heap_free(Allocator* allocator, Mem mem) {

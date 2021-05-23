@@ -10,6 +10,16 @@ typedef struct {
 } Mem;
 
 /**
+ * Create a view over the given memory.
+ * Note: The memory view is only valid as long as the underlying memory remains valid.
+ */
+#define mem_create(_PTR_, _SIZE_)                                                                  \
+  ((Mem){                                                                                          \
+      .ptr  = (void*)(_PTR_),                                                                      \
+      .size = _SIZE_,                                                                              \
+  })
+
+/**
  * Check if the memory view is valid.
  * Note: Only checks if it was initialized properly, does NOT check if there is actually memory
  * backing it.

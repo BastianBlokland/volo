@@ -14,10 +14,8 @@ static Mem alloc_page_alloc(Allocator* allocator, const usize size) {
   const usize pageSize    = ((struct AllocatorPage*)allocator)->pageSize;
   const usize alignedSize = bits_align(size, pageSize);
 
-  return (Mem){
-      .ptr  = VirtualAlloc(null, alignedSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE),
-      .size = alignedSize,
-  };
+  void* ptr = VirtualAlloc(null, alignedSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+  return mem_create(ptr, alignedSize);
 }
 
 static void alloc_page_free(Allocator* allocator, Mem mem) {

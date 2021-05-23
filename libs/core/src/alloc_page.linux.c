@@ -16,10 +16,7 @@ static Mem alloc_page_alloc(Allocator* allocator, const usize size) {
   const usize alignedSize = bits_align(size, pageSize);
 
   void* res = mmap(null, alignedSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-  return (Mem){
-      .ptr  = res == MAP_FAILED ? null : res,
-      .size = alignedSize,
-  };
+  return mem_create(res == MAP_FAILED ? null : res, alignedSize);
 }
 
 static void alloc_page_free(Allocator* allocator, Mem mem) {

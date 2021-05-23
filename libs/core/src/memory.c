@@ -24,10 +24,7 @@ void mem_move(const Mem dst, const Mem src) {
 Mem mem_slice(Mem mem, const usize offset, const usize size) {
   diag_assert(mem_valid(mem));
   diag_assert(mem.size >= offset + size);
-  return (Mem){
-      .ptr  = mem.ptr + offset,
-      .size = size,
-  };
+  return mem_create(mem.ptr + offset, size);
 }
 
 void* mem_as(Mem mem, const usize size) {

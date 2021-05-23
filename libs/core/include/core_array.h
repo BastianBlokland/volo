@@ -9,11 +9,7 @@
 /**
  * Creates a memory view over the given array.
  */
-#define array_mem(_ARRAY_)                                                                         \
-  ((Mem){                                                                                          \
-      .ptr  = (void*)(_ARRAY_),                                                                    \
-      .size = sizeof(_ARRAY_),                                                                     \
-  })
+#define array_mem(_ARRAY_) mem_create((void*)(_ARRAY_), sizeof(_ARRAY_))
 
 /**
  * Iterate of all values in the given array.
