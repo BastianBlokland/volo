@@ -15,6 +15,7 @@ add_library(volo_core STATIC
   core/src/dynbitset.c
   core/src/dynstring.c
   core/src/memory.c
+  core/src/quicksort.c
   core/src/string.c)
 target_include_directories(volo_core PUBLIC core/include)
 
@@ -27,5 +28,6 @@ add_executable(volo_core_test
   core/test/test_dynbitset.c
   core/test/test_dynstring.c
   core/test/test_math.c
+  core/test/test_sort.c
   core/test/test_string.c)
 target_link_libraries(volo_core_test PRIVATE volo_core)
