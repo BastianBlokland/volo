@@ -3,7 +3,7 @@
 #include "core_dynbitset.h"
 
 static void test_dynbitset_new_is_empty() {
-  alloc_bump_create_stack(alloc, 128);
+  Allocator* alloc = alloc_bump_create_stack(128);
 
   DynBitSet bitset = dynbitset_create(alloc, 8);
   diag_assert(dynbitset_size(&bitset) == 0);
@@ -11,7 +11,7 @@ static void test_dynbitset_new_is_empty() {
 }
 
 static void test_dynbitset_size_is_a_multiple_of_8() {
-  alloc_bump_create_stack(alloc, 128);
+  Allocator* alloc = alloc_bump_create_stack(128);
 
   DynBitSet bitset = dynbitset_create(alloc, 8);
   dynbitset_set(&bitset, 1);
@@ -22,7 +22,7 @@ static void test_dynbitset_size_is_a_multiple_of_8() {
 }
 
 static void test_dynbitset_or() {
-  alloc_bump_create_stack(alloc, 128);
+  Allocator* alloc = alloc_bump_create_stack(128);
 
   DynBitSet bitset = dynbitset_create(alloc, 8);
 

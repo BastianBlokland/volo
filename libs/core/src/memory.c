@@ -1,4 +1,5 @@
 #include "core_diag.h"
+#include "core_math.h"
 #include "core_memory.h"
 #include <string.h>
 
@@ -36,17 +37,28 @@ void* mem_as(Mem mem, const usize size) {
 i8 mem_cmp(Mem a, Mem b) {
   diag_assert(mem_valid(a));
   diag_assert(mem_valid(b));
-  if (a.size < b.size) {
-    return -1;
-  }
-  if (a.size > b.size) {
-    return 1;
-  }
-  return memcmp(a.ptr, b.ptr, a.size);
+  return math_sign(memcmp(a.ptr, b.ptr, math_min(a.size, b.size)));
 }
 
 bool mem_eq(Mem a, Mem b) {
   diag_assert(mem_valid(a));
   diag_assert(mem_valid(b));
   return a.size == b.size && memcmp(a.ptr, b.ptr, a.size) == 0;
+}
+
+void mem_swap(Mem a, Mem b) {
+  diag_assert(mem_valid(a));
+  diag_assert(mem_valid(b));
+  diag_assert(a.size == b.size);
+
+  mem_swap_raw(a.ptr, b.ptr, a.size);
+}
+
+void mem_swap_raw(void* a, void* b, const u16 size) {
+  diag_assert(size <= 1024);
+
+  u8 buffer[size];
+  memcpy(buffer, a, size);
+  memcpy(a, b, size);
+  memcpy(b, buffer, size);
 }

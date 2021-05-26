@@ -1,17 +1,13 @@
 #pragma once
-#include "core_array.h"
 #include "core_memory.h"
 
 /**
- * Create a bump allocator backed by a buffer on the stack, a pointer to the allocator will be
- * available under the name '_VAR_'. Allocations will fail once the buffer has been filled up.
- * Note: Neither the allocator nor any allocations made from it are valid after the allocator goes
- * out of scope.
- * Note: Care must be taken not to overflow the stack by using too high _SIZE_ values.
+ * Create a bump allocator backed by a buffer on the stack. Allocations will fail once the buffer
+ * has been filled up. Note: Allocations made from the allocator are not valid after the allocator
+ * goes out of scope. Note: Care must be taken not to overflow the stack by using too high _SIZE_
+ * values.
  */
-#define alloc_bump_create_stack(_VAR_, _SIZE_)                                                     \
-  u8         _VAR_##_buffer[_SIZE_];                                                               \
-  Allocator* _VAR_ = alloc_bump_create(array_mem(_VAR_##_buffer))
+#define alloc_bump_create_stack(_SIZE_) alloc_bump_create(mem_stack(_SIZE_))
 
 /**
  * Allocator handle.
@@ -37,7 +33,7 @@ void alloc_init();
 
 /**
  * Create a new bump allocator. Will allocate from the given memory region, once the region is empty
- * allocations will fail. Memory region needs to contain atleast 32 bytes for internal book-keeping.
+ * allocations will fail. Memory region needs to contain atleast 64 bytes for internal book-keeping.
  */
 Allocator* alloc_bump_create(Mem);
 

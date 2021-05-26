@@ -1,6 +1,5 @@
 #include "alloc_internal.h"
 #include "core_diag.h"
-#include <stdlib.h>
 
 struct AllocatorBump {
   Allocator api;

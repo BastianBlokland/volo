@@ -61,6 +61,20 @@ typedef struct {
   }
 
 /**
+ * Create a memory buffer on the stack.
+ * Note: Care must be taken not to overflow the stack by using too high _SIZE_ values.
+ */
+#ifdef VOLO_CLANG
+#define mem_stack(_SIZE_) mem_create(__builtin_alloca(_SIZE_), _SIZE_)
+#elif defined(VOLO_GCC)
+#define mem_stack(_SIZE_) mem_create(__builtin_alloca(_SIZE_), _SIZE_)
+#elif defined(VOLO_MSVC)
+#define mem_stack(_SIZE_) mem_create(_alloca(_SIZE_), _SIZE_)
+#else
+diag_static_assert(false, "Unsupported compiler");
+#endif
+
+/**
  * Set each byte equal to the given value.
  */
 void mem_set(Mem, u8 val);
@@ -92,9 +106,7 @@ void* mem_as(Mem mem, usize size);
 
 /**
  * Compare memory a and b.
- * If a.size < b.size then -1 is returned.
- * If a.size > b.size then 1 is returned.
- * Otherwise it will compare a and b byte-wise and return -1, 0 or 1.
+ * Byte-wise compare and return -1, 0 or 1.
  */
 i8 mem_cmp(Mem a, Mem b);
 
@@ -102,3 +114,16 @@ i8 mem_cmp(Mem a, Mem b);
  * Check if all bytes in memory a and b are equal.s
  */
 bool mem_eq(Mem a, Mem b);
+
+/**
+ * Swap the memory contents.
+ * Pre-condition: a.size == b.size
+ * Pre-condition: a.size <= 1024.
+ */
+void mem_swap(Mem a, Mem b);
+
+/**
+ * Swap the memory contents.
+ * Pre-condition: size <= 1024.
+ */
+void mem_swap_raw(void* a, void* b, const u16 size);

@@ -15,7 +15,8 @@ add_library(volo_core STATIC
   core/src/dynbitset.c
   core/src/dynstring.c
   core/src/memory.c
-  core/src/quicksort.c
+  core/src/sort_bubblesort.c
+  core/src/sort_quicksort.c
   core/src/string.c)
 target_include_directories(volo_core PUBLIC core/include)
 

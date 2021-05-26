@@ -8,7 +8,7 @@
 typedef struct {
   const char* file;
   u32         line;
-} CallSite;
+} DiagCallSite;
 
 /**
  * Return a 'const char*' containing the current source-file path.
@@ -21,10 +21,10 @@ typedef struct {
 #define diag_line() ((u32)(__LINE__))
 
 /**
- * Create a 'CallSite' structure for the current source-location.
+ * Create a 'DiagCallSite' structure for the current source-location.
  */
 #define diag_callsite_create()                                                                     \
-  ((CallSite){                                                                                     \
+  ((DiagCallSite){                                                                                 \
       .file = diag_file(),                                                                         \
       .line = diag_line(),                                                                         \
   })
@@ -35,7 +35,7 @@ typedef struct {
 #define diag_assert_msg(_CONDITION_, _MSG_)                                                        \
   do {                                                                                             \
     if (unlikely(!(_CONDITION_))) {                                                                \
-      static CallSite callsite = diag_callsite_create();                                           \
+      static DiagCallSite callsite = diag_callsite_create();                                       \
       diag_assert_fail(&callsite, _MSG_);                                                          \
     }                                                                                              \
   } while (false)
@@ -63,7 +63,7 @@ void diag_log_err(const char* format, ...);
 /**
  * Indicate that an assertion has failed, logs the given message and crashes the program.
  */
-void diag_assert_fail(const CallSite*, const char* msg);
+void diag_assert_fail(const DiagCallSite*, const char* msg);
 
 /**
  * Crash the program, will halt if running in a debugger.

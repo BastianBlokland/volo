@@ -12,5 +12,5 @@
 #elif defined(VOLO_MSVC)
 #define alignof(_TYPE_) ((u32) __alignof(_TYPE_))
 #else
-diag_static_assert(false, "Unknown compiler");
+diag_static_assert(false, "Unsupported compiler");
 #endif

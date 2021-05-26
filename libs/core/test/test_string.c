@@ -9,12 +9,11 @@ static void test_string_len() {
 }
 
 static void test_string_cmp() {
-  diag_assert(string_cmp(string_lit(""), string_lit("")) == 0);
-  diag_assert(string_cmp(string_lit("a"), string_lit("")) > 0);
-  diag_assert(string_cmp(string_lit(""), string_lit("a")) < 0);
   diag_assert(string_cmp(string_lit("a"), string_lit("a")) == 0);
-  diag_assert(string_cmp(string_lit("a"), string_lit("b")) < 0);
-  diag_assert(string_cmp(string_lit("b"), string_lit("a")) > 0);
+  diag_assert(string_cmp(string_lit("a"), string_lit("b")) == -1);
+  diag_assert(string_cmp(string_lit("b"), string_lit("a")) == 1);
+  diag_assert(string_cmp(string_lit("April"), string_lit("March")) == -1);
+  diag_assert(string_cmp(string_lit("March"), string_lit("December")) == 1);
 }
 
 static void test_string_eq() {

@@ -2,7 +2,7 @@
 #include "core_dynstring.h"
 
 static void test_dynstring_new_string_is_empty() {
-  alloc_bump_create_stack(alloc, 128);
+  Allocator* alloc = alloc_bump_create_stack(128);
 
   DynString string = dynstring_create(alloc, 8);
   diag_assert(string.size == 0);
@@ -10,7 +10,7 @@ static void test_dynstring_new_string_is_empty() {
 }
 
 static void test_dynstring_append() {
-  alloc_bump_create_stack(alloc, 128);
+  Allocator* alloc = alloc_bump_create_stack(128);
 
   DynString string = dynstring_create(alloc, 8);
 

@@ -4,7 +4,7 @@
 #include "core_dynarray.h"
 
 static void test_dynarray_new_array_is_empty() {
-  alloc_bump_create_stack(alloc, 128);
+  Allocator* alloc = alloc_bump_create_stack(128);
 
   DynArray array = dynarray_create_t(alloc, u64, 8);
   diag_assert(array.stride == sizeof(u64));
@@ -13,7 +13,7 @@ static void test_dynarray_new_array_is_empty() {
 }
 
 static void test_dynarray_initial_capacity_can_be_zero() {
-  alloc_bump_create_stack(alloc, 128);
+  Allocator* alloc = alloc_bump_create_stack(128);
 
   DynArray array = dynarray_create_t(alloc, u64, 0);
   diag_assert(!mem_valid(array.data));
@@ -25,7 +25,7 @@ static void test_dynarray_initial_capacity_can_be_zero() {
 }
 
 static void test_dynarray_resizing_changes_size() {
-  alloc_bump_create_stack(alloc, 1024);
+  Allocator* alloc = alloc_bump_create_stack(1024);
 
   DynArray array = dynarray_create_t(alloc, u64, 8);
 
@@ -42,7 +42,7 @@ static void test_dynarray_resizing_changes_size() {
 }
 
 static void test_dynarray_resizing_preserves_content() {
-  alloc_bump_create_stack(alloc, 1024);
+  Allocator* alloc = alloc_bump_create_stack(1024);
 
   const u32 entries = 33;
 
@@ -62,7 +62,7 @@ static void test_dynarray_resizing_preserves_content() {
 }
 
 static void test_dynarray_pushing_increases_size() {
-  alloc_bump_create_stack(alloc, 1024);
+  Allocator* alloc = alloc_bump_create_stack(1024);
 
   const u32 amountToPush = 33;
 
@@ -75,7 +75,7 @@ static void test_dynarray_pushing_increases_size() {
 }
 
 static void test_dynarray_popping_decreases_size() {
-  alloc_bump_create_stack(alloc, 1024);
+  Allocator* alloc = alloc_bump_create_stack(1024);
 
   const u32 startingSize = 33;
 
@@ -90,7 +90,7 @@ static void test_dynarray_popping_decreases_size() {
 }
 
 static void test_dynarray_remove(const u32 removeIdx, const u32 removeCount) {
-  alloc_bump_create_stack(alloc, 512);
+  Allocator* alloc = alloc_bump_create_stack(512);
 
   DynArray array = dynarray_create_t(alloc, u64, 8);
 
@@ -116,7 +116,7 @@ static void test_dynarray_remove_unordered(
     const u32   removeIdx,
     const u32   removeCount,
     const u16*  expected) {
-  alloc_bump_create_stack(alloc, 128);
+  Allocator* alloc = alloc_bump_create_stack(128);
 
   DynArray array = dynarray_create_t(alloc, u16, 8);
   mem_cpy(dynarray_push(&array, initialSize), mem_create(initial, sizeof(u16) * initialSize));
@@ -130,7 +130,7 @@ static void test_dynarray_remove_unordered(
 }
 
 static void test_dynarray_insert(const u32 insertIdx, const u32 insertCount) {
-  alloc_bump_create_stack(alloc, 512);
+  Allocator* alloc = alloc_bump_create_stack(512);
 
   DynArray array = dynarray_create_t(alloc, u32, 8);
 

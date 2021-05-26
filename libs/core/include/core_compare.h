@@ -1,4 +1,5 @@
 #pragma once
+#include "core_string.h"
 #include "core_types.h"
 
 /**
@@ -7,11 +8,13 @@
  * Returns 0 if a is equal to b.
  * Returns 1 if a is greater then b.
  */
-typedef i8 (*Compare)(const void* a, const void* b);
+typedef i8 (*CompareFunc)(const void* a, const void* b);
 
-#define COMPARE_DECLARE(_TYPE_)                                                                    \
-  i8 compare_##_TYPE_(const void*, const void*);                                                   \
-  i8 compare_##_TYPE_##_reverse(const void*, const void*);
+#define COMPARE_DECLARE_WITH_NAME(_TYPE_, _NAME_)                                                  \
+  i8 compare_##_NAME_(const void*, const void*);                                                   \
+  i8 compare_##_NAME_##_reverse(const void*, const void*);
+
+#define COMPARE_DECLARE(_TYPE_) COMPARE_DECLARE_WITH_NAME(_TYPE_, _TYPE_)
 
 /**
  * Basic comparison functions for primitive types.
@@ -28,3 +31,4 @@ COMPARE_DECLARE(u32)
 COMPARE_DECLARE(u64)
 COMPARE_DECLARE(size_t)
 COMPARE_DECLARE(float)
+COMPARE_DECLARE_WITH_NAME(String, string)
