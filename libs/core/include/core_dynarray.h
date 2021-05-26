@@ -2,6 +2,7 @@
 #include "core_alignof.h"
 #include "core_alloc.h"
 #include "core_bits.h"
+#include "core_compare.h"
 #include "core_memory.h"
 #include "core_types.h"
 
@@ -115,3 +116,8 @@ void dynarray_remove_unordered(DynArray*, usize idx, usize count);
  * Pre-condition: idx <= array.size
  */
 Mem dynarray_insert(DynArray*, usize idx, usize count);
+
+/**
+ * Sort the array according to the given compare function.
+ */
+void dynarray_sort(DynArray*, CompareFunc);

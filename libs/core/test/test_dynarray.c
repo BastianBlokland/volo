@@ -152,6 +152,22 @@ static void test_dynarray_insert(const u32 insertIdx, const u32 insertCount) {
   dynarray_destroy(&array);
 }
 
+static void test_dynarray_sort() {
+  Allocator* alloc = alloc_bump_create_stack(512);
+
+  const u32 values[]   = {3, 6, 5, 9, 15, 10, 4, 13, 7, 1, 8, 12, 14, 11, 2};
+  const u32 expected[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+
+  DynArray array = dynarray_create_t(alloc, u32, 8);
+  mem_cpy(dynarray_push(&array, array_elems(values)), array_mem(values));
+
+  dynarray_sort(&array, compare_u32);
+
+  dynarray_for_t(&array, u32, val, { diag_assert(*val == expected[val_i]); });
+
+  dynarray_destroy(&array);
+}
+
 void test_dynarray() {
   test_dynarray_initial_capacity_can_be_zero();
   test_dynarray_new_array_is_empty();
@@ -182,4 +198,6 @@ void test_dynarray() {
   test_dynarray_insert(1, 3);
   test_dynarray_insert(5, 5);
   test_dynarray_insert(10, 10);
+
+  test_dynarray_sort();
 }

@@ -3,6 +3,7 @@
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_math.h"
+#include "core_sort.h"
 
 DynArray dynarray_create(Allocator* alloc, const u16 stride, const usize capacity) {
   diag_assert(stride);
@@ -101,4 +102,9 @@ Mem dynarray_insert(DynArray* array, const usize idx, const usize count) {
     mem_move(dst, src);
   }
   return dynarray_at(array, idx, count);
+}
+
+void dynarray_sort(DynArray* array, CompareFunc compare) {
+  const Mem mem = dynarray_at(array, 0, array->size);
+  sort_bubblesort(mem_begin(mem), mem_end(mem), array->stride, compare);
 }
