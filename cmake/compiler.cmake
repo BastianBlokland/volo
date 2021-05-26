@@ -9,17 +9,17 @@
 # * msvc
 #
 macro(detect_compiler)
-  if(${CMAKE_C_COMPILER_ID} STREQUAL "GNU")
+  if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
     message(STATUS "Detected gcc compiler")
     set(VOLO_COMPILER "gcc")
-  elseif(${CMAKE_C_COMPILER_ID} STREQUAL "Clang")
+  elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
     message(STATUS "Detected clang compiler")
     set(VOLO_COMPILER "clang")
-  elseif(${CMAKE_C_COMPILER_ID} STREQUAL "MSVC")
+  elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
     message(STATUS "Detected msvc compiler")
     set(VOLO_COMPILER "msvc")
   else()
-    message(FATAL_ERROR "Unsupported compiler")
+    message(FATAL_ERROR "Unsupported compiler: '${CMAKE_C_COMPILER_ID}'")
   endif()
 endmacro(detect_compiler)
 
@@ -68,14 +68,28 @@ endmacro(set_clang_compile_options)
 
 # Set msvc specific compile options
 macro(set_msvc_compile_options)
-  add_definitions(/W4 /WX)
-  # TODO: Tie these debug options to a configuration knob.
-  add_compile_options(/Z7)
+  # Use the c11 standard.
+  add_compile_options(/TC /std:c11)
+
+  # Setup warning flags.
+  add_compile_options(/W4 /WX /wd4127 /wd5105)
+
+  # Use syncronous pdb writes, reason is Ninja spawns multiple compiler processes that can end up
+  # writing to the same pdb.
+  add_compile_options(/FS)
 endmacro(set_msvc_compile_options)
 
 # Set compile options
 # Requires 'VOLO_COMPILER' to be configured
 macro(set_compile_options)
+
+  # Clear the default compiler options.
+  set(CMAKE_C_FLAGS_DEBUG "")
+  set(CMAKE_C_FLAGS_RELEASE "")
+  set(CMAKE_C_FLAGS_RELWITHDEBINFO "")
+  set(CMAKE_C_FLAGS_MINSIZEREL "")
+
+  # Set our custom compiler options.
   if(${VOLO_COMPILER} STREQUAL "gcc")
     set_gcc_compile_options()
   elseif(${VOLO_COMPILER} STREQUAL "clang")
