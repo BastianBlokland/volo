@@ -14,14 +14,14 @@ void alloc_init() {
   g_intialized = true;
 }
 
-Mem alloc_alloc(Allocator* allocator, usize size) {
+Mem alloc_alloc(Allocator* allocator, const usize size) {
   diag_assert_msg(allocator, "Allocator is not initialized");
   return allocator->alloc(allocator, size);
 }
 
 void alloc_free(Allocator* allocator, Mem mem) {
   diag_assert_msg(allocator, "Allocator is not initialized");
-  return allocator->free(allocator, mem);
+  allocator->free(allocator, mem);
 }
 
 usize alloc_min_size(Allocator* allocator) {

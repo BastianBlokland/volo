@@ -25,7 +25,7 @@ void mem_move(const Mem dst, const Mem src) {
 Mem mem_slice(Mem mem, const usize offset, const usize size) {
   diag_assert(mem_valid(mem));
   diag_assert(mem.size >= offset + size);
-  return mem_create(mem.ptr + offset, size);
+  return mem_create((u8*)mem.ptr + offset, size);
 }
 
 void* mem_as(Mem mem, const usize size) {
@@ -51,14 +51,14 @@ void mem_swap(Mem a, Mem b) {
   diag_assert(mem_valid(b));
   diag_assert(a.size == b.size);
 
-  mem_swap_raw(a.ptr, b.ptr, a.size);
+  mem_swap_raw(a.ptr, b.ptr, (u16)a.size);
 }
 
 void mem_swap_raw(void* a, void* b, const u16 size) {
   diag_assert(size <= 1024);
 
-  u8 buffer[size];
-  memcpy(buffer, a, size);
+  Mem buffer = mem_stack(size);
+  memcpy(buffer.ptr, a, size);
   memcpy(a, b, size);
-  memcpy(b, buffer, size);
+  memcpy(b, buffer.ptr, size);
 }

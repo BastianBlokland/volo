@@ -11,7 +11,7 @@ bool bitset_test(BitSet bits, usize idx) {
   return (*mem_at_u8(bits, bits_to_bytes(idx)) & (1u << bit_in_byte(idx))) != 0;
 }
 
-bool bitset_count(BitSet bits) {
+usize bitset_count(BitSet bits) {
   usize result = 0;
   mem_for_u8(bits, byte, { result += bits_popcnt(byte); });
   return result;
@@ -52,13 +52,13 @@ bool bitset_all_of(BitSet bits, BitSet other) {
 
 usize bitset_next(BitSet bits, usize idx) {
   diag_assert(idx < bitset_size(bits));
-  usize    byteIdx = bits_to_bytes(idx);
-  const u8 byte    = *mem_at_u8(bits, byteIdx) >> bit_in_byte(idx);
+  usize byteIdx = bits_to_bytes(idx);
+  u8    byte    = *mem_at_u8(bits, byteIdx) >> bit_in_byte(idx);
   if (byte) {
     return idx + bits_ctz(byte);
   }
   for (++byteIdx; byteIdx != bits.size; ++byteIdx) {
-    const u8 byte = *mem_at_u8(bits, byteIdx);
+    byte = *mem_at_u8(bits, byteIdx);
     if (byte) {
       return bytes_to_bits(byteIdx) + bits_ctz(byte);
     }

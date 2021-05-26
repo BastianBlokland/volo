@@ -23,7 +23,7 @@ static void test_bitset_test_all_bits_set() {
 }
 
 static void test_bitset_test_finds_set_bit() {
-  u64    val[32] = {};
+  u64    val[32] = {0};
   BitSet bits    = bitset_from_array(val);
 
   diag_assert(bitset_size(bits) == 64 * 32);
@@ -135,7 +135,7 @@ static void test_bitset_index_matches_iteration_n(const u32 mask) {
 }
 
 static void test_bitset_iterate_returns_all_set_bits() {
-  u64    val[32] = {};
+  u64    val[32] = {0};
   BitSet bits    = bitset_from_array(val);
 
   usize indices[] = {0, 13, 42, 137, 1337, 64 * 32 - 1};

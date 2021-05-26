@@ -55,7 +55,7 @@ bool bitset_test(BitSet, usize idx);
 /**
  * Count all the set bits.
  */
-bool bitset_count(BitSet);
+usize bitset_count(BitSet);
 
 /**
  * Are any bits set?

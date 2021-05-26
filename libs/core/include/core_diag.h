@@ -35,8 +35,7 @@ typedef struct {
 #define diag_assert_msg(_CONDITION_, _MSG_)                                                        \
   do {                                                                                             \
     if (unlikely(!(_CONDITION_))) {                                                                \
-      static DiagCallSite callsite = diag_callsite_create();                                       \
-      diag_assert_fail(&callsite, _MSG_);                                                          \
+      diag_assert_fail(&diag_callsite_create(), _MSG_);                                            \
     }                                                                                              \
   } while (false)
 

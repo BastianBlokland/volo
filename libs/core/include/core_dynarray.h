@@ -9,7 +9,7 @@
 /**
  * Owning array of items.
  * Dynamically allocates memory when more items get added.
- * Note: Any pointers / memory-views retreived over DynArray are invalidated on any mutating api.
+ * Note: Any pointers / memory-views retrieved over DynArray are invalidated on any mutating api.
  */
 typedef struct {
   Mem        data;
@@ -25,7 +25,7 @@ typedef struct {
  * until required.
  */
 #define dynarray_create_t(_ALLOCATOR_, _TYPE_, _CAPACITY_)                                         \
-  dynarray_create(_ALLOCATOR_, bits_align(sizeof(_TYPE_), alignof(_TYPE_)), _CAPACITY_)
+  dynarray_create(_ALLOCATOR_, (u16)bits_align(sizeof(_TYPE_), alignof(_TYPE_)), _CAPACITY_)
 
 /**
  * Retreive a pointer to an item in the array at index '_IDX_'.

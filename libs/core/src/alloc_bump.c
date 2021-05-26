@@ -3,8 +3,8 @@
 
 struct AllocatorBump {
   Allocator api;
-  void*     head;
-  void*     tail;
+  u8*       head;
+  u8*       tail;
 };
 
 static Mem alloc_bump_alloc(Allocator* allocator, const usize size) {

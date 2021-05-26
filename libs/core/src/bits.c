@@ -2,20 +2,44 @@
 #include "core_diag.h"
 #include <immintrin.h>
 
-u32 bits_popcnt(const u32 mask) { return __builtin_popcount(mask); }
+#ifdef VOLO_MSVC
+#include "intrin.h"
+#pragma intrinsic(_BitScanForward)
+#pragma intrinsic(_BitScanReverse)
+#endif
+
+u32 bits_popcnt(const u32 mask) {
+#ifdef VOLO_MSVC
+  return __popcnt(mask);
+#else
+  return __builtin_popcount(mask);
+#endif
+}
 
 u32 bits_ctz(const u32 mask) {
   if (mask == 0u) {
     return 32;
   }
+#ifdef VOLO_MSVC
+  unsigned long result;
+  _BitScanForward(&result, mask);
+  return (u32)result;
+#else
   return __builtin_ctz(mask);
+#endif
 }
 
 u32 bits_clz(const u32 mask) {
   if (mask == 0u) {
     return 32u;
   }
+#ifdef VOLO_MSVC
+  unsigned long result;
+  _BitScanReverse(&result, mask);
+  return (u32)(31u - result);
+#else
   return __builtin_clz(mask);
+#endif
 }
 
 bool bits_ispow2(const u32 val) {

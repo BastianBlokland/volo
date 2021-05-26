@@ -26,12 +26,15 @@ static usize alloc_heap_min_size(Allocator* allocator) {
   return 1;
 }
 
-static struct AllocatorHeap g_allocatorIntern = {
+static struct AllocatorHeap g_allocatorIntern;
+
+Allocator* alloc_heap_init() {
+  g_allocatorIntern = (struct AllocatorHeap){
     (Allocator){
         &alloc_heap_alloc,
         &alloc_heap_free,
         &alloc_heap_min_size,
     },
-};
-
-Allocator* alloc_heap_init() { return (Allocator*)&g_allocatorIntern; }
+  };
+  return (Allocator*)&g_allocatorIntern;
+}
