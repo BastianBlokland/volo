@@ -1,5 +1,5 @@
-#include "core_alloc.h"
 #include "core_diag.h"
+#include "core_init.h"
 
 void test_bits();
 void test_bitset();
@@ -10,13 +10,14 @@ void test_dynstring();
 void test_math();
 void test_sort();
 void test_string();
+void test_time();
 
 /**
  * Run basic unit tests.
  * TODO: Should be moved to an actual unit testing framework at some point.
  */
 int main() {
-  alloc_init();
+  core_init();
 
   test_bits();
   test_bitset();
@@ -27,6 +28,8 @@ int main() {
   test_math();
   test_sort();
   test_string();
+  test_time();
+
   diag_log("volo_core_test: Passed\n");
   return 1;
 }

@@ -1,8 +1,8 @@
-#include "core_alloc.h"
 #include "core_diag.h"
+#include "core_init.h"
 
 int main() {
-  alloc_init();
+  core_init();
 
   diag_log("Hello world\n");
   return 0;

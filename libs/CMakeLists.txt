@@ -14,10 +14,13 @@ add_library(volo_core STATIC
   core/src/dynarray.c
   core/src/dynbitset.c
   core/src/dynstring.c
+  core/src/init.c
   core/src/memory.c
   core/src/sort_bubblesort.c
   core/src/sort_quicksort.c
-  core/src/string.c)
+  core/src/string.c
+  core/src/time_pal.c
+  core/src/time.c)
 target_include_directories(volo_core PUBLIC core/include)
 
 add_executable(volo_core_test
@@ -30,5 +33,6 @@ add_executable(volo_core_test
   core/test/test_dynstring.c
   core/test/test_math.c
   core/test/test_sort.c
-  core/test/test_string.c)
+  core/test/test_string.c
+  core/test/test_time.c)
 target_link_libraries(volo_core_test PRIVATE volo_core)

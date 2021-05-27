@@ -26,12 +26,6 @@ extern Allocator* g_allocatorHeap;
 extern Allocator* g_allocatorPage;
 
 /**
- * Initialize the global allocators.
- * Should be called once at application startup.
- */
-void alloc_init();
-
-/**
  * Create a new bump allocator. Will allocate from the given memory region, once the region is empty
  * allocations will fail. Memory region needs to contain atleast 64 bytes for internal book-keeping.
  */
