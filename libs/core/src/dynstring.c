@@ -15,3 +15,5 @@ String dynstring_view(const DynString* dynstring) {
 void dynstring_append(DynString* dynstring, String value) {
   mem_cpy(dynarray_push(dynstring, value.size), value);
 }
+
+void dynstring_append_char(DynString* dynstring, u8 val) { *dynarray_push_t(dynstring, u8) = val; }
