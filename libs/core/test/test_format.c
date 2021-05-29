@@ -5,7 +5,7 @@ static void test_format_write_u64(const u64 val, const u8 base, String expected)
   Allocator* alloc = alloc_bump_create_stack(128);
 
   DynString string = dynstring_create(alloc, 32);
-  format_write(&string, val, .base = base);
+  format_write_int(&string, val, .base = base);
 
   diag_assert(string_eq(dynstring_view(&string), expected));
 
@@ -16,7 +16,7 @@ static void test_format_write_i64(const i64 val, const u8 base, String expected)
   Allocator* alloc = alloc_bump_create_stack(128);
 
   DynString string = dynstring_create(alloc, 32);
-  format_write(&string, val, .base = base);
+  format_write_int(&string, val, .base = base);
 
   diag_assert(string_eq(dynstring_view(&string), expected));
 
