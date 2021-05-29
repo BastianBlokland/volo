@@ -7,6 +7,7 @@ void test_compare();
 void test_dynarray();
 void test_dynbitset();
 void test_dynstring();
+void test_format();
 void test_math();
 void test_sort();
 void test_string();
@@ -25,6 +26,7 @@ int main() {
   test_dynarray();
   test_dynbitset();
   test_dynstring();
+  test_format();
   test_math();
   test_sort();
   test_string();

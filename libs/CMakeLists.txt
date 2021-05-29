@@ -14,6 +14,7 @@ add_library(volo_core STATIC
   core/src/dynarray.c
   core/src/dynbitset.c
   core/src/dynstring.c
+  core/src/format.c
   core/src/init.c
   core/src/memory.c
   core/src/sort_bubblesort.c
@@ -31,6 +32,7 @@ add_executable(volo_core_test
   core/test/test_dynarray.c
   core/test/test_dynbitset.c
   core/test/test_dynstring.c
+  core/test/test_format.c
   core/test/test_math.c
   core/test/test_sort.c
   core/test/test_string.c
