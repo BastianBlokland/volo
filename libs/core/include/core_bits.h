@@ -61,3 +61,23 @@ u32 bits_padding(u32 val, u32 align);
  * Pad the given value to reach the requested alignment.
  */
 u32 bits_align(u32 val, u32 align);
+
+/**
+ * Reinterpret the 32 bit integer as a floating point value.
+ */
+f32 bits_u32_as_f32(u32);
+
+/**
+ * Reinterpret the 32 bit floating point value as an integer value.
+ */
+u32 bits_f32_as_u32(f32);
+
+/**
+ * Reinterpret the 64 bit integer as a floating point value.
+ */
+f64 bits_u64_as_f64(u64);
+
+/**
+ * Reinterpret the 64 bit floating point value as an integer value.
+ */
+u64 bits_f64_as_u64(f64);

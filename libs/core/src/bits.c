@@ -92,3 +92,8 @@ u32 bits_padding(const u32 val, const u32 align) {
 }
 
 u32 bits_align(const u32 val, const u32 align) { return val + bits_padding(val, align); }
+
+f32 bits_u32_as_f32(u32 val) { return *(f32*)(&val); }
+u32 bits_f32_as_u32(f32 val) { return *(u32*)(&val); }
+f64 bits_u64_as_f64(u64 val) { return *(f64*)(&val); }
+u64 bits_f64_as_u64(f64 val) { return *(u64*)(&val); }

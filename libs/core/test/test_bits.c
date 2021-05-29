@@ -91,6 +91,14 @@ static void test_bits_align() {
   diag_assert(bits_align(31, 4) == 32);
 }
 
+static void test_bits_float_conversions() {
+  diag_assert(bits_u32_as_f32(bits_f32_as_u32(1.337f)) == 1.337f);
+  diag_assert(bits_f32_as_u32(bits_u32_as_f32(42)) == 42);
+
+  diag_assert(bits_u64_as_f64(bits_f64_as_u64(1.337)) == 1.337);
+  diag_assert(bits_f64_as_u64(bits_u64_as_f64(42)) == 42);
+}
+
 void test_bits() {
   test_bits_ctz();
   test_bits_popcnt();
@@ -99,4 +107,5 @@ void test_bits() {
   test_bits_nextpow2();
   test_bits_padding();
   test_bits_align();
+  test_bits_float_conversions();
 }
