@@ -21,13 +21,13 @@ static void test_compare_primitive_types() {
   diag_assert(compare_u32_reverse(&(u32){42}, &(u32){1337}) == 1);
   diag_assert(compare_u32_reverse(&(u32){1337}, &(u32){42}) == -1);
 
-  diag_assert(compare_float(&(float){1.1f}, &(float){1.3f}) == -1);
-  diag_assert(compare_float(&(float){1.3f}, &(float){1.1f}) == 1);
-  diag_assert(compare_float(&(float){1.3f}, &(float){1.3f}) == 0);
+  diag_assert(compare_f32(&(f32){1.1f}, &(f32){1.3f}) == -1);
+  diag_assert(compare_f32(&(f32){1.3f}, &(f32){1.1f}) == 1);
+  diag_assert(compare_f32(&(f32){1.3f}, &(f32){1.3f}) == 0);
 
-  diag_assert(compare_float_reverse(&(float){1.1f}, &(float){1.3f}) == 1);
-  diag_assert(compare_float_reverse(&(float){1.3f}, &(float){1.1f}) == -1);
-  diag_assert(compare_float_reverse(&(float){1.3f}, &(float){1.3f}) == 0);
+  diag_assert(compare_f32_reverse(&(f32){1.1f}, &(f32){1.3f}) == 1);
+  diag_assert(compare_f32_reverse(&(f32){1.3f}, &(f32){1.1f}) == -1);
+  diag_assert(compare_f32_reverse(&(f32){1.3f}, &(f32){1.3f}) == 0);
 
   diag_assert(compare_string(&string_lit("a"), &string_lit("b")) == -1);
   diag_assert(compare_string(&string_lit("a"), &string_lit("a")) == 0);
