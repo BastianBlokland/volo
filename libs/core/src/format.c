@@ -160,3 +160,9 @@ void format_write_f64(DynString* str, f64 val, const FormatOptsFloat* opts) {
 void format_write_bool(DynString* str, bool val) {
   dynstring_append(str, val ? string_lit("true") : string_lit("false"));
 }
+
+void format_write_bitset(DynString* str, BitSet val) {
+  for (usize i = bitset_size(val); i-- > 0;) {
+    dynstring_append_char(str, bitset_test(val, i) ? '1' : '0');
+  }
+}

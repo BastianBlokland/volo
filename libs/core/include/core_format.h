@@ -1,4 +1,5 @@
 #pragma once
+#include "core_bitset.h"
 #include "core_dynstring.h"
 
 /**
@@ -107,3 +108,8 @@ void format_write_f64(DynString*, f64 val, const FormatOptsFloat*);
  * Write a boolean value as ascii characters.
  */
 void format_write_bool(DynString*, bool val);
+
+/**
+ * Write a bitset value as ascii characters (0 for unset bits or 1 for set bits).
+ */
+void format_write_bitset(DynString*, BitSet val);

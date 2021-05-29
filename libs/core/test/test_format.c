@@ -2,7 +2,7 @@
 #include "core_float.h"
 #include "core_format.h"
 
-static void test_format_write_u64(const u64 val, const FormatOptsInt opts, String expected) {
+static void test_format_write_u64(const u64 val, const FormatOptsInt opts, const String expected) {
   Allocator* alloc  = alloc_bump_create_stack(128);
   DynString  string = dynstring_create(alloc, 32);
 
@@ -12,7 +12,7 @@ static void test_format_write_u64(const u64 val, const FormatOptsInt opts, Strin
   dynstring_destroy(&string);
 }
 
-static void test_format_write_i64(const i64 val, const FormatOptsInt opts, String expected) {
+static void test_format_write_i64(const i64 val, const FormatOptsInt opts, const String expected) {
   Allocator* alloc  = alloc_bump_create_stack(128);
   DynString  string = dynstring_create(alloc, 32);
 
@@ -22,7 +22,8 @@ static void test_format_write_i64(const i64 val, const FormatOptsInt opts, Strin
   dynstring_destroy(&string);
 }
 
-static void test_format_write_f64(const f64 val, const FormatOptsFloat opts, String expected) {
+static void
+test_format_write_f64(const f64 val, const FormatOptsFloat opts, const String expected) {
   Allocator* alloc  = alloc_bump_create_stack(128);
   DynString  string = dynstring_create(alloc, 32);
 
@@ -32,11 +33,21 @@ static void test_format_write_f64(const f64 val, const FormatOptsFloat opts, Str
   dynstring_destroy(&string);
 }
 
-static void test_format_write_bool(const bool val, String expected) {
+static void test_format_write_bool(const bool val, const String expected) {
   Allocator* alloc  = alloc_bump_create_stack(128);
   DynString  string = dynstring_create(alloc, 32);
 
   format_write_bool(&string, val);
+  diag_assert(string_eq(dynstring_view(&string), expected));
+
+  dynstring_destroy(&string);
+}
+
+static void test_format_write_bitset(const BitSet val, const String expected) {
+  Allocator* alloc  = alloc_bump_create_stack(128);
+  DynString  string = dynstring_create(alloc, 32);
+
+  format_write_bitset(&string, val);
   diag_assert(string_eq(dynstring_view(&string), expected));
 
   dynstring_destroy(&string);
@@ -112,4 +123,9 @@ void test_format() {
 
   test_format_write_bool(true, string_lit("true"));
   test_format_write_bool(false, string_lit("false"));
+
+  test_format_write_bitset(bitset_from_var((u8){0}), string_lit("00000000"));
+  test_format_write_bitset(bitset_from_var((u8){0b01011101}), string_lit("01011101"));
+  test_format_write_bitset(
+      bitset_from_var((u16){0b0101110101011101}), string_lit("0101110101011101"));
 }
