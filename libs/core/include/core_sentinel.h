@@ -1,10 +1,11 @@
 #pragma once
 #include "core_annotation.h"
+#include "core_float.h"
 #include "core_types.h"
 
 /**
  * Sentinel values can be used to mark a value as being special. For example a function returning a
- * u32 can return u32_sentinel to indiate it failed.
+ * u32 can return u32_sentinel to indicate it failed.
  */
 
 #define sentinel_i8 i8_max
@@ -16,12 +17,14 @@
 #define sentinel_u32 u32_max
 #define sentinel_u64 u64_max
 #define sentinel_usize usize_max
+#define sentinel_f32 f32_nan
+#define sentinel_f64 f64_nan
 
 // clang-format off
 
 /**
  * Check if the given value is equal to its sentinel value.
- * Pre-condition: '_VAL_' is a primitive integer type.
+ * Pre-condition: '_VAL_' is a primitive integer / floating-point type.
  */
 #define sentinel_check(_VAL_) _Generic((_VAL_),                                                    \
     i8:   (_VAL_) == sentinel_i8,                                                                  \
@@ -31,7 +34,9 @@
     u8:   (_VAL_) == sentinel_u8,                                                                  \
     u16:  (_VAL_) == sentinel_u16,                                                                 \
     u32:  (_VAL_) == sentinel_u32,                                                                 \
-    u64:  (_VAL_) == sentinel_u64                                                                  \
+    u64:  (_VAL_) == sentinel_u64,                                                                 \
+    f32:  float_isnan(_VAL_),                                                                      \
+    f64:  float_isnan(_VAL_)                                                                       \
   )
 
 // clang-format on
