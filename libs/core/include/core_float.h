@@ -23,6 +23,9 @@
 #define f32_max bits_u32_as_f32(0x7f7fffffu)
 #define f64_max bits_u64_as_f64(0x7fefffffffffffffull)
 
+#define f32_epsilon 1.401298E-45
+#define f64_epsilon 4.94065645841247E-324
+
 /**
  * Returns true if the given floating point number is 'Not A Number'.
  */

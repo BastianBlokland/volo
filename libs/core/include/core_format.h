@@ -25,8 +25,27 @@ typedef struct {
  * Configuration struct for floating point formatting.
  */
 typedef struct {
+
+  /**
+   * Minimum amount of digits after the decimal place.
+   */
+  u8 minDecDigits;
+
+  /**
+   * Maximum amount of digits after the decimal place (will apply rounding to the remainder).
+   */
+  u8 maxDecDigits;
+
+  /**
+   * Use scientific notation for values bigger then this.
+   */
   f64 expThresholdPos;
+
+  /**
+   * Use scientific notation for values closer to 0 then this.
+   */
   f64 expThresholdNeg;
+
 } FormatOptsFloat;
 
 // clang-format off
@@ -40,8 +59,10 @@ typedef struct {
 
 #define format_opts_float(...)                                                                     \
   ((FormatOptsFloat){                                                                              \
-    .expThresholdPos = 1e7,                                                                        \
-    .expThresholdNeg = 1e-5,                                                                       \
+    .minDecDigits     = 0,                                                                         \
+    .maxDecDigits     = 7,                                                                         \
+    .expThresholdPos  = 1e7,                                                                       \
+    .expThresholdNeg  = 1e-5,                                                                      \
     __VA_ARGS__                                                                                    \
   })
 
@@ -50,15 +71,18 @@ typedef struct {
  */
 #define format_write_int(_DYNSTRING_, _VAL_, ...)                                                  \
   _Generic(+(_VAL_),                                                                               \
+    u32: format_write_u64(_DYNSTRING_, (u64)(_VAL_), &format_opts_int(__VA_ARGS__)),               \
+    i32: format_write_i64(_DYNSTRING_, (i64)(_VAL_), &format_opts_int(__VA_ARGS__)),               \
     u64: format_write_u64(_DYNSTRING_, _VAL_, &format_opts_int(__VA_ARGS__)),                      \
     i64: format_write_i64(_DYNSTRING_, _VAL_, &format_opts_int(__VA_ARGS__))                       \
   )
 
 /**
- * Write a float point number as ascii characters to the given dynamic-string.
+ * Write a floating point number as ascii characters to the given dynamic-string.
  */
 #define format_write_float(_DYNSTRING_, _VAL_, ...)                                                \
   _Generic(+(_VAL_),                                                                               \
+    f32: format_write_f64(_DYNSTRING_, (f64)(_VAL_), &format_opts_float(__VA_ARGS__))              \
     f64: format_write_f64(_DYNSTRING_, _VAL_, &format_opts_float(__VA_ARGS__))                     \
   )
 
