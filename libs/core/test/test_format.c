@@ -3,33 +3,40 @@
 #include "core_format.h"
 
 static void test_format_write_u64(const u64 val, const FormatOptsInt opts, String expected) {
-  Allocator* alloc = alloc_bump_create_stack(128);
+  Allocator* alloc  = alloc_bump_create_stack(128);
+  DynString  string = dynstring_create(alloc, 32);
 
-  DynString string = dynstring_create(alloc, 32);
   format_write_u64(&string, val, &opts);
-
   diag_assert(string_eq(dynstring_view(&string), expected));
 
   dynstring_destroy(&string);
 }
 
 static void test_format_write_i64(const i64 val, const FormatOptsInt opts, String expected) {
-  Allocator* alloc = alloc_bump_create_stack(128);
+  Allocator* alloc  = alloc_bump_create_stack(128);
+  DynString  string = dynstring_create(alloc, 32);
 
-  DynString string = dynstring_create(alloc, 32);
   format_write_i64(&string, val, &opts);
-
   diag_assert(string_eq(dynstring_view(&string), expected));
 
   dynstring_destroy(&string);
 }
 
 static void test_format_write_f64(const f64 val, const FormatOptsFloat opts, String expected) {
-  Allocator* alloc = alloc_bump_create_stack(128);
+  Allocator* alloc  = alloc_bump_create_stack(128);
+  DynString  string = dynstring_create(alloc, 32);
 
-  DynString string = dynstring_create(alloc, 32);
   format_write_f64(&string, val, &opts);
+  diag_assert(string_eq(dynstring_view(&string), expected));
 
+  dynstring_destroy(&string);
+}
+
+static void test_format_write_bool(const bool val, String expected) {
+  Allocator* alloc  = alloc_bump_create_stack(128);
+  DynString  string = dynstring_create(alloc, 32);
+
+  format_write_bool(&string, val);
   diag_assert(string_eq(dynstring_view(&string), expected));
 
   dynstring_destroy(&string);
@@ -102,4 +109,7 @@ void test_format() {
   test_format_write_f64(1e-255, format_opts_float(), string_lit("1e-255"));
 
   test_format_write_f64(f64_epsilon, format_opts_float(), string_lit("4.9406565e-324"));
+
+  test_format_write_bool(true, string_lit("true"));
+  test_format_write_bool(false, string_lit("false"));
 }

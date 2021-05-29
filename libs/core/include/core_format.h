@@ -102,3 +102,8 @@ void format_write_i64(DynString*, i64 val, const FormatOptsInt*);
  * Write a floating point value as ascii characters.
  */
 void format_write_f64(DynString*, f64 val, const FormatOptsFloat*);
+
+/**
+ * Write a boolean value as ascii characters.
+ */
+void format_write_bool(DynString*, bool val);

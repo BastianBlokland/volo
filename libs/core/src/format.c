@@ -156,3 +156,7 @@ void format_write_f64(DynString* str, f64 val, const FormatOptsFloat* opts) {
     format_write_int(str, parts.expPart);
   }
 }
+
+void format_write_bool(DynString* str, bool val) {
+  dynstring_append(str, val ? string_lit("true") : string_lit("false"));
+}
