@@ -53,6 +53,19 @@ static void test_format_write_bitset(const BitSet val, const String expected) {
   dynstring_destroy(&string);
 }
 
+static void test_format_write_mem() {
+  Allocator* alloc  = alloc_bump_create_stack(128);
+  DynString  string = dynstring_create(alloc, 32);
+
+  u64 testData = 0x8BADF00DDEADBEEF;
+  Mem testMem  = mem_create(&testData, sizeof(testData));
+
+  format_write_mem(&string, testMem);
+  diag_assert(string_eq(dynstring_view(&string), string_lit("8BADF00DDEADBEEF")));
+
+  dynstring_destroy(&string);
+}
+
 void test_format() {
   test_format_write_u64(0, format_opts_int(), string_lit("0"));
   test_format_write_u64(0, format_opts_int(.minDigits = 4), string_lit("0000"));
@@ -128,4 +141,6 @@ void test_format() {
   test_format_write_bitset(bitset_from_var((u8){0b01011101}), string_lit("01011101"));
   test_format_write_bitset(
       bitset_from_var((u16){0b0101110101011101}), string_lit("0101110101011101"));
+
+  test_format_write_mem();
 }

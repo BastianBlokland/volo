@@ -113,3 +113,8 @@ void format_write_bool(DynString*, bool val);
  * Write a bitset value as ascii characters (0 for unset bits or 1 for set bits).
  */
 void format_write_bitset(DynString*, BitSet val);
+
+/**
+ * Write a mem value as hexadecimal ascii characters.
+ */
+void format_write_mem(DynString*, BitSet val);
