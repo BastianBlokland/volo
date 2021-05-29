@@ -8,11 +8,12 @@ void format_write_u64(DynString* str, u64 val, const FormatOptsInt* opts) {
   Mem buffer = mem_stack(64);
   u8* ptr    = mem_end(buffer);
 
-  const char* chars = "0123456789ABCDEF";
+  const char* chars         = "0123456789ABCDEF";
+  u8          digitsWritten = 0;
   do {
     *--ptr = chars[val % opts->base];
     val /= opts->base;
-  } while (val);
+  } while (++digitsWritten < opts->minDigits || val);
 
   const u8 numDigits = mem_end(buffer) - ptr;
   dynstring_append(str, mem_create(ptr, numDigits));

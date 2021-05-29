@@ -13,6 +13,12 @@ typedef struct {
    */
   u8 base;
 
+  /**
+   * Minimum amount of digits to write.
+   * For example writing 42 with minDigits of 4 results in: '0042'.
+   */
+  u8 minDigits;
+
 } FormatOptsInt;
 
 /**
@@ -27,7 +33,8 @@ typedef struct {
 
 #define format_opts_int(...)                                                                       \
   ((FormatOptsInt){                                                                                \
-    .base = 10,                                                                                    \
+    .base      = 10,                                                                               \
+    .minDigits = 0,                                                                                \
     __VA_ARGS__                                                                                    \
   })
 
