@@ -28,6 +28,8 @@ static FileResult file_result_from_errno() {
   return File_UnknownError;
 }
 
+void file_pal_init() {}
+
 FileResult file_write_sync(File* file, const String data) {
   diag_assert(file);
 

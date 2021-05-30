@@ -11,3 +11,5 @@ diag_static_assert(false, "Unsupported platform");
 struct sFile {
   FileHandle handle;
 };
+
+void file_pal_init();

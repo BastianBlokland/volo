@@ -7,7 +7,7 @@
  */
 typedef struct sFile File;
 
-typedef enum : u16 {
+typedef enum {
   File_Success = 0,
   File_NoDataAvailable,
   File_DiskFull,

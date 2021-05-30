@@ -1,6 +1,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_file.h"
+#include "file_internal.h"
 
 static const String g_file_result_strs[] = {
     string_lit("File_Success"),
@@ -19,4 +20,8 @@ diag_static_assert(
 String file_result_str(FileResult result) {
   diag_assert(result < File_ResultCount);
   return g_file_result_strs[result];
+}
+
+void file_init() {
+  file_pal_init();
 }
