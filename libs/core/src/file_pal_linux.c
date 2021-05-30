@@ -4,6 +4,7 @@
 #include "linux/limits.h"
 #include <errno.h>
 #include <fcntl.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 File* g_file_stdin  = &(File){.handle = 0};
@@ -75,6 +76,31 @@ file_create(Allocator* alloc, String path, FileMode mode, FileAccessFlags access
   if (fd < 0) {
     return fileresult_from_errno();
   }
+
+  Mem allocation = alloc_alloc(alloc, sizeof(File));
+  *file          = mem_as_t(allocation, File);
+  **file         = (File){
+      .handle     = fd,
+      .alloc      = alloc,
+      .allocation = allocation,
+  };
+  return FileResult_Success;
+}
+
+FileResult file_temp(Allocator* alloc, File** file) {
+  // Create a null terminated string on the stack that will be modifed by mkstemp to contain the
+  // unique name.
+  String nameTemplate = string_lit("volo_tmp_XXXXXX");
+  Mem    nameBuffer   = mem_stack(PATH_MAX);
+  mem_cpy(nameBuffer, nameTemplate);
+  *mem_at_u8(nameBuffer, nameTemplate.size) = '\0'; // Null-terminate.
+
+  int fd = mkstemp(nameBuffer.ptr);
+  if (fd < 0) {
+    return fileresult_from_errno();
+  }
+
+  unlink(nameBuffer.ptr); // Immediately unlink the file, so it will be deleted on close.
 
   Mem allocation = alloc_alloc(alloc, sizeof(File));
   *file          = mem_as_t(allocation, File);

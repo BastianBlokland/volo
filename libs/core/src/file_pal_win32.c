@@ -93,7 +93,7 @@ file_create(Allocator* alloc, String path, FileMode mode, FileAccessFlags access
     desiredAccess |= GENERIC_WRITE;
   }
 
-  HANDLE handle = CreateFileW(
+  HANDLE handle = CreateFile(
       (const wchar_t*)pathBufferMem.ptr,
       desiredAccess,
       shareMode,
@@ -107,6 +107,43 @@ file_create(Allocator* alloc, String path, FileMode mode, FileAccessFlags access
   if (handle == INVALID_HANDLE_VALUE) {
     return fileresult_from_lasterror();
   }
+  Mem allocation = alloc_alloc(alloc, sizeof(File));
+  *file          = mem_as_t(allocation, File);
+  **file         = (File){
+      .handle     = handle,
+      .alloc      = alloc,
+      .allocation = allocation,
+  };
+  return FileResult_Success;
+}
+
+FileResult file_temp(Allocator* alloc, File** file) {
+  // Use 'GetTempPath' and 'GetTempFileName' to generate a unique filename in a temporary directory.
+  Mem   tempDirPath  = mem_stack(MAX_PATH * sizeof(wchar_t) + 1); // +1 for null-terminator.
+  DWORD tempDirChars = GetTempPath(MAX_PATH, (wchar_t*)tempDirPath.ptr);
+  if (!tempDirChars) {
+    return fileresult_from_lasterror();
+  }
+
+  Mem tempFilePath = mem_stack(MAX_PATH * sizeof(wchar_t));
+  if (GetTempFileName(
+          (const wchar_t*)tempDirPath.ptr, TEXT("vol"), 0, (wchar_t*)tempFilePath.ptr) == 0) {
+    return fileresult_from_lasterror();
+  }
+
+  HANDLE handle = CreateFile(
+      (const wchar_t*)tempFilePath.ptr,
+      GENERIC_READ | GENERIC_WRITE,
+      0,
+      null,
+      CREATE_ALWAYS,
+      FILE_ATTRIBUTE_NORMAL | FILE_FLAG_DELETE_ON_CLOSE,
+      null);
+
+  if (handle == INVALID_HANDLE_VALUE) {
+    return fileresult_from_lasterror();
+  }
+
   Mem allocation = alloc_alloc(alloc, sizeof(File));
   *file          = mem_as_t(allocation, File);
   **file         = (File){
@@ -162,7 +199,7 @@ FileResult file_delete_sync(String path) {
   Mem pathBufferMem = alloc_alloc(g_allocator_heap, pathBufferSize);
   winutils_to_widestr(pathBufferMem, path);
 
-  BOOL success = DeleteFileW(pathBufferMem.ptr);
+  BOOL success = DeleteFile(pathBufferMem.ptr);
 
   alloc_free(g_allocator_heap, pathBufferMem);
 

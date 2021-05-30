@@ -63,10 +63,17 @@ String file_result_str(FileResult);
 
 /**
  * Create a file handle.
- * On success a file pointer will be assigned to the file pointer. Retrieved file pointer should be
+ * On success a file will be assigned to the file pointer. Retrieved file pointer should be
  * destroyed with 'file_destroy'.
  */
 FileResult file_create(Allocator*, String path, FileMode, FileAccessFlags, File** file);
+
+/**
+ * Create a temporary file.
+ * On success a file will be assigned to the file pointer. Retrieved file pointer should be
+ * destroyed with 'file_destroy'.
+ */
+FileResult file_temp(Allocator*, File** file);
 
 /**
  * Destroy a file handle.
