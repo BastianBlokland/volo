@@ -14,6 +14,8 @@ add_library(volo_core STATIC
   core/src/dynarray.c
   core/src/dynbitset.c
   core/src/dynstring.c
+  core/src/file_pal.c
+  core/src/file.c
   core/src/format.c
   core/src/init.c
   core/src/math.c

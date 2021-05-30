@@ -1,9 +1,13 @@
-#include "core_diag.h"
+#pragma once
 
 #ifdef VOLO_LINUX
-#include "alloc_page_pal_linux.c"
+typedef int FileHandle;
 #elif defined(VOLO_WIN32)
-#include "alloc_page_pal_win32.c"
+typedef void* FileHandle;
 #else
 diag_static_assert(false, "Unsupported platform");
 #endif
+
+struct sFile {
+  FileHandle handle;
+};
