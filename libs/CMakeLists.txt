@@ -25,6 +25,8 @@ add_library(volo_core STATIC
   core/src/string.c
   core/src/time_pal.c
   core/src/time.c
+  core/src/tty_pal.c
+  core/src/tty.c
   core/src/utf8.c
   core/src/winutils.c)
 target_include_directories(volo_core PUBLIC core/include)
