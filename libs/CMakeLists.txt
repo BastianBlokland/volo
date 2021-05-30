@@ -24,7 +24,9 @@ add_library(volo_core STATIC
   core/src/sort_quicksort.c
   core/src/string.c
   core/src/time_pal.c
-  core/src/time.c)
+  core/src/time.c
+  core/src/utf8.c
+  core/src/winutils.c)
 target_include_directories(volo_core PUBLIC core/include)
 
 add_executable(volo_core_test
@@ -40,5 +42,7 @@ add_executable(volo_core_test
   core/test/test_math.c
   core/test/test_sort.c
   core/test/test_string.c
-  core/test/test_time.c)
+  core/test/test_time.c
+  core/test/test_utf8.c
+  core/test/test_winutils.c)
 target_link_libraries(volo_core_test PRIVATE volo_core)

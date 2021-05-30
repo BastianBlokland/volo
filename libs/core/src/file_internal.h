@@ -1,4 +1,5 @@
 #pragma once
+#include "core_file.h"
 
 #ifdef VOLO_LINUX
 typedef int FileHandle;
@@ -10,6 +11,8 @@ diag_static_assert(false, "Unsupported platform");
 
 struct sFile {
   FileHandle handle;
+  Allocator* alloc;
+  Mem        allocation;
 };
 
 void file_pal_init();

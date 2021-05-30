@@ -1,4 +1,5 @@
 #pragma once
+#include "core_alloc.h"
 #include "core_dynstring.h"
 #include "core_string.h"
 
@@ -7,18 +8,49 @@
  */
 typedef struct sFile File;
 
+/**
+ * File Result code.
+ */
 typedef enum {
-  File_Success = 0,
-  File_NoDataAvailable,
-  File_DiskFull,
-  File_NotFound,
-  File_NoAccess,
-  File_Locked,
-  File_TooManyOpenFiles,
-  File_UnknownError,
+  FileResult_Success = 0,
+  FileResult_AlreadyExists,
+  FileResult_DiskFull,
+  FileResult_InvalidFilename,
+  FileResult_Locked,
+  FileResult_NoAccess,
+  FileResult_NoDataAvailable,
+  FileResult_NotFound,
+  FileResult_PathTooLong,
+  FileResult_PathInvalid,
+  FileResult_TooManyOpenFiles,
+  FileResult_UnknownError,
 
-  File_ResultCount,
+  FileResult_Count,
 } FileResult;
+
+/**
+ * Mode to open a file with.
+ * - Open: Open an existing file.
+ *    > fails if the file does not exist.
+ *    > Head is at the start.
+ * - Append: Append to an existing file or create a new file.
+ *    > Head is at the end.
+ * - Create: Open an existing file or create a new file.
+ *    > Head is at the start.
+ */
+typedef enum {
+  FileMode_Open,
+  FileMode_Append,
+  FileMode_Create,
+} FileMode;
+
+/**
+ * Access to request when opening a file.
+ */
+typedef enum {
+  FileAccess_Read  = 1 << 0,
+  FileAccess_Write = 1 << 1,
+} FileAccessFlags;
 
 extern File* g_file_stdin;
 extern File* g_file_stdout;
@@ -28,6 +60,19 @@ extern File* g_file_stderr;
  * Return a textual result message for a given FileResult.
  */
 String file_result_str(FileResult);
+
+/**
+ * Create a file handle.
+ * On success a file pointer will be assigned to the file pointer. Retrieved file pointer should be
+ * destroyed with 'file_destroy'.
+ */
+FileResult file_create(Allocator*, String path, FileMode, FileAccessFlags, File** file);
+
+/**
+ * Destroy a file handle.
+ * Note: Does not destroy the file from the file-system.
+ */
+void file_destroy(File*);
 
 /**
  * Synchronously write a string to a file.

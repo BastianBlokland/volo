@@ -3,7 +3,8 @@
 
 /**
  * Non-owning view over memory containing characters.
- * Note: NOT guaranteed to be null-terminated.
+ * Encoding is assumed to be utf8.
+ * Note: NOT null-terminated.
  */
 typedef Mem String;
 

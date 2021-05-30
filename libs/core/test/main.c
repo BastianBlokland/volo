@@ -13,6 +13,8 @@ void test_math();
 void test_sort();
 void test_string();
 void test_time();
+void test_utf8();
+void test_winutils();
 
 /**
  * Run basic unit tests.
@@ -33,6 +35,8 @@ int main() {
   test_sort();
   test_string();
   test_time();
+  test_utf8();
+  test_winutils();
 
   diag_log("volo_core_test: Passed\n");
   return 1;

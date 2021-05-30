@@ -4,24 +4,26 @@
 #include "file_internal.h"
 
 static const String g_file_result_strs[] = {
-    string_lit("File_Success"),
-    string_lit("File_NoDataAvailable"),
-    string_lit("File_DiskFull"),
-    string_lit("File_NotFound"),
-    string_lit("File_NoAccess"),
-    string_lit("File_Locked"),
-    string_lit("File_TooManyOpenFiles"),
-    string_lit("File_UnknownError"),
+    string_lit("FileSuccess"),
+    string_lit("FileAlreadyExists"),
+    string_lit("FileDiskFull"),
+    string_lit("FileInvalidFilename"),
+    string_lit("FileLocked"),
+    string_lit("FileNoAccess"),
+    string_lit("FileNoDataAvailable"),
+    string_lit("FileNotFound"),
+    string_lit("FilePathTooLong"),
+    string_lit("FilePathInvalid"),
+    string_lit("FileTooManyOpen"),
+    string_lit("FileUnknownError"),
 };
 
 diag_static_assert(
-    array_elems(g_file_result_strs) == File_ResultCount, "Incorrect number of FileResult strings");
+    array_elems(g_file_result_strs) == FileResult_Count, "Incorrect number of FileResult strings");
 
 String file_result_str(FileResult result) {
-  diag_assert(result < File_ResultCount);
+  diag_assert(result < FileResult_Count);
   return g_file_result_strs[result];
 }
 
-void file_init() {
-  file_pal_init();
-}
+void file_init() { file_pal_init(); }
