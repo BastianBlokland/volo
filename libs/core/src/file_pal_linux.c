@@ -40,7 +40,6 @@ void file_pal_init() {}
 
 FileResult
 file_create(Allocator* alloc, String path, FileMode mode, FileAccessFlags access, File** file) {
-
   // Copy the path on the stack and null-terminate it.
   if (path.size >= PATH_MAX) {
     return FileResult_PathTooLong;
@@ -131,4 +130,19 @@ FileResult file_read_sync(File* file, DynString* dynstr) {
     }
     return fileresult_from_errno();
   }
+}
+
+FileResult file_delete_sync(String path) {
+  // Copy the path on the stack and null-terminate it.
+  if (path.size >= PATH_MAX) {
+    return FileResult_PathTooLong;
+  }
+  Mem pathBuffer = mem_stack(PATH_MAX);
+  mem_cpy(pathBuffer, path);
+  *mem_at_u8(pathBuffer, path.size) = '\0';
+
+  if (unlink((const char*)pathBuffer.ptr)) {
+    return fileresult_from_errno();
+  }
+  return FileResult_Success;
 }

@@ -81,6 +81,11 @@ FileResult file_write_sync(File*, String);
 
 /**
  * Synchronously read a block of available data in the dynamic-string.
- * Note: returns 'File_NoDataAvailable' when the end of the file has been reached.
+ * Note: returns 'FileResult_NoDataAvailable' when the end of the file has been reached.
  */
 FileResult file_read_sync(File*, DynString*);
+
+/**
+ * Synchronously delete a file from the file-system.
+ */
+FileResult file_delete_sync(String path);

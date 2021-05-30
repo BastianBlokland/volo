@@ -57,12 +57,12 @@ static FileResult fileresult_from_lasterror() {
 
 FileResult
 file_create(Allocator* alloc, String path, FileMode mode, FileAccessFlags access, File** file) {
-
+  // Convert the path to a null-terminated wide-char string.
   usize pathBufferSize = winutils_to_widestr_size(path);
   if (sentinel_check(pathBufferSize)) {
     return FileResult_PathInvalid;
   }
-  Mem pathBufferMem = alloc_alloc(alloc, pathBufferSize);
+  Mem pathBufferMem = alloc_alloc(g_allocator_heap, pathBufferSize);
   winutils_to_widestr(pathBufferMem, path);
 
   DWORD shareMode =
@@ -102,7 +102,7 @@ file_create(Allocator* alloc, String path, FileMode mode, FileAccessFlags access
       flags,
       null);
 
-  alloc_free(alloc, pathBufferMem);
+  alloc_free(g_allocator_heap, pathBufferMem);
 
   if (handle == INVALID_HANDLE_VALUE) {
     return fileresult_from_lasterror();
@@ -151,4 +151,20 @@ FileResult file_read_sync(File* file, DynString* dynstr) {
     return FileResult_NoDataAvailable;
   }
   return fileresult_from_lasterror();
+}
+
+FileResult file_delete_sync(String path) {
+  // Convert the path to a null-terminated wide-char string.
+  usize pathBufferSize = winutils_to_widestr_size(path);
+  if (sentinel_check(pathBufferSize)) {
+    return FileResult_PathInvalid;
+  }
+  Mem pathBufferMem = alloc_alloc(g_allocator_heap, pathBufferSize);
+  winutils_to_widestr(pathBufferMem, path);
+
+  BOOL success = DeleteFileW(pathBufferMem.ptr);
+
+  alloc_free(g_allocator_heap, pathBufferMem);
+
+  return success ? FileResult_Success : fileresult_from_lasterror();
 }
