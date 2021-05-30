@@ -93,6 +93,11 @@ FileResult file_write_sync(File*, String);
 FileResult file_read_sync(File*, DynString*);
 
 /**
+ * Synchronously seek an open file to the specified position.
+ */
+FileResult file_seek_sync(File*, usize position);
+
+/**
  * Synchronously delete a file from the file-system.
  */
 FileResult file_delete_sync(String path);

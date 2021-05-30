@@ -190,6 +190,16 @@ FileResult file_read_sync(File* file, DynString* dynstr) {
   return fileresult_from_lasterror();
 }
 
+FileResult file_seek_sync(File* file, usize position) {
+  LARGE_INTEGER li;
+  li.QuadPart = position;
+  li.LowPart  = SetFilePointer(file->handle, li.LowPart, &li.HighPart, FILE_BEGIN);
+  if (li.LowPart == INVALID_SET_FILE_POINTER && GetLastError() != NO_ERROR) {
+    return fileresult_from_lasterror();
+  }
+  return FileResult_Success;
+}
+
 FileResult file_delete_sync(String path) {
   // Convert the path to a null-terminated wide-char string.
   usize pathBufferSize = winutils_to_widestr_size(path);

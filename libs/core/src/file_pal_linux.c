@@ -158,6 +158,13 @@ FileResult file_read_sync(File* file, DynString* dynstr) {
   }
 }
 
+FileResult file_seek_sync(File* file, usize position) {
+  if (lseek(file->handle, position, SEEK_SET) < 0) {
+    return fileresult_from_errno();
+  }
+  return FileResult_Success;
+}
+
 FileResult file_delete_sync(String path) {
   // Copy the path on the stack and null-terminate it.
   if (path.size >= PATH_MAX) {

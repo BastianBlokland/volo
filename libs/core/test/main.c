@@ -7,6 +7,7 @@ void test_compare();
 void test_dynarray();
 void test_dynbitset();
 void test_dynstring();
+void test_file();
 void test_float();
 void test_format();
 void test_math();
@@ -29,6 +30,7 @@ int main() {
   test_dynarray();
   test_dynbitset();
   test_dynstring();
+  test_file();
   test_float();
   test_format();
   test_math();
