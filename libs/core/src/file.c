@@ -4,6 +4,7 @@
 
 static const String g_file_result_strs[] = {
     string_lit("File_Success"),
+    string_lit("File_NoDataAvailable"),
     string_lit("File_DiskFull"),
     string_lit("File_NotFound"),
     string_lit("File_NoAccess"),

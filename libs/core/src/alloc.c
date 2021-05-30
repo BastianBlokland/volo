@@ -1,12 +1,12 @@
 #include "alloc_internal.h"
 #include "core_diag.h"
 
-Allocator* g_allocatorHeap;
-Allocator* g_allocatorPage;
+Allocator* g_allocator_heap;
+Allocator* g_allocator_page;
 
 void alloc_init() {
-  g_allocatorHeap = alloc_heap_init();
-  g_allocatorPage = alloc_page_init();
+  g_allocator_heap = alloc_heap_init();
+  g_allocator_page = alloc_page_init();
 }
 
 Mem alloc_alloc(Allocator* allocator, const usize size) {

@@ -28,7 +28,7 @@ static FileResult file_result_from_errno() {
   return File_UnknownError;
 }
 
-FileResult file_write_sync(File* file, String data) {
+FileResult file_write_sync(File* file, const String data) {
   diag_assert(file);
 
   for (u8* itr = mem_begin(data); itr != mem_end(data);) {
@@ -40,9 +40,30 @@ FileResult file_write_sync(File* file, String data) {
     switch (errno) {
     case EAGAIN:
     case EINTR:
-      continue; // Retry.
+      continue; // Retry on interupt.
     }
     return file_result_from_errno();
   }
   return File_Success;
+}
+
+FileResult file_read_sync(File* file, DynString* dynstr) {
+  diag_assert(file);
+
+  Mem readBuffer = mem_stack(1024);
+  while (true) {
+    const ssize_t res = read(file->handle, readBuffer.ptr, readBuffer.size);
+    if (res > 0) {
+      dynstring_append(dynstr, mem_slice(readBuffer, 0, res));
+      return File_Success;
+    }
+    if (res == 0) {
+      return File_NoDataAvailable;
+    }
+    switch (errno) {
+    case EINTR:
+      continue; // Retry on interupt.
+    }
+    return file_result_from_errno();
+  }
 }
