@@ -1,3 +1,4 @@
+#include "core_diag.h"
 
 #ifdef VOLO_LINUX
 #include "time_pal_linux.c"

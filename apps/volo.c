@@ -1,9 +1,10 @@
 #include "core_diag.h"
+#include "core_file.h"
 #include "core_init.h"
 
 int main() {
   core_init();
 
-  diag_log("Hello world\n");
+  file_write_sync(g_file_stdout, string_lit("Hello World\n"));
   return 0;
 }
