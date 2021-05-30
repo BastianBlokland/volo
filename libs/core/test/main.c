@@ -41,5 +41,7 @@ int main() {
   test_winutils();
 
   diag_log("volo_core_test: Passed\n");
+
+  core_teardown();
   return 1;
 }

@@ -8,6 +8,8 @@ void time_init();
 void file_init();
 void tty_init();
 
+void tty_teardown();
+
 void core_init() {
   if (!g_intialized) {
     g_intialized = true;
@@ -16,5 +18,12 @@ void core_init() {
     time_init();
     file_init();
     tty_init();
+  }
+}
+
+void core_teardown() {
+  if (g_intialized) {
+    g_intialized = false;
+    tty_teardown();
   }
 }
