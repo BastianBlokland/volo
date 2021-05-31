@@ -1,4 +1,5 @@
 #include "core_diag.h"
+#include "core_file.h"
 #include "core_float.h"
 #include "core_format.h"
 
@@ -62,6 +63,16 @@ static void test_format_write_mem() {
 
   format_write_mem(&string, testMem);
   diag_assert(string_eq(dynstring_view(&string), string_lit("8BADF00DDEADBEEF")));
+
+  dynstring_destroy(&string);
+}
+
+static void test_format_write_duration_pretty(const Duration dur, const String expected) {
+  Allocator* alloc  = alloc_bump_create_stack(128);
+  DynString  string = dynstring_create(alloc, 32);
+
+  format_write_duration_pretty(&string, dur);
+  diag_assert(string_eq(dynstring_view(&string), expected));
 
   dynstring_destroy(&string);
 }
@@ -143,4 +154,20 @@ void test_format() {
       bitset_from_var((u16){0b0101110101011101}), string_lit("0101110101011101"));
 
   test_format_write_mem();
+
+  test_format_write_duration_pretty(time_nanosecond, string_lit("1ns"));
+  test_format_write_duration_pretty(time_nanoseconds(42), string_lit("42ns"));
+  test_format_write_duration_pretty(time_microsecond, string_lit("1us"));
+  test_format_write_duration_pretty(time_microseconds(42), string_lit("42us"));
+  test_format_write_duration_pretty(time_millisecond, string_lit("1ms"));
+  test_format_write_duration_pretty(time_milliseconds(42), string_lit("42ms"));
+  test_format_write_duration_pretty(time_second, string_lit("1s"));
+  test_format_write_duration_pretty(time_seconds(42), string_lit("42s"));
+  test_format_write_duration_pretty(time_minute, string_lit("1m"));
+  test_format_write_duration_pretty(time_minutes(42), string_lit("42m"));
+  test_format_write_duration_pretty(time_hour, string_lit("1h"));
+  test_format_write_duration_pretty(time_hours(13), string_lit("13h"));
+  test_format_write_duration_pretty(time_day, string_lit("1d"));
+  test_format_write_duration_pretty(time_days(42), string_lit("42d"));
+  test_format_write_duration_pretty(time_millisecond + time_microseconds(300), string_lit("1.3ms"));
 }

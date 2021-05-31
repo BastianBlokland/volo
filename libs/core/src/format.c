@@ -172,3 +172,23 @@ void format_write_mem(DynString* str, const Mem val) {
     format_write_int(str, *mem_at_u8(val, i), .minDigits = 2, .base = 16);
   }
 }
+
+void format_write_duration_pretty(DynString* str, Duration val) {
+  static struct {
+    Duration val;
+    String   str;
+  } units[] = {
+      {time_nanosecond, string_lit("ns")},
+      {time_microsecond, string_lit("us")},
+      {time_millisecond, string_lit("ms")},
+      {time_second, string_lit("s")},
+      {time_minute, string_lit("m")},
+      {time_hour, string_lit("h")},
+      {time_day, string_lit("d")},
+  };
+  size_t i = 0;
+  for (; (i + 1) != array_elems(units) && val >= units[i + 1].val; ++i)
+    ;
+  format_write_float(str, (f64)val / (f64)units[i].val, .maxDecDigits = 1);
+  dynstring_append(str, units[i].str);
+}

@@ -1,6 +1,7 @@
 #pragma once
 #include "core_bitset.h"
 #include "core_dynstring.h"
+#include "core_time.h"
 
 /**
  * Configuration struct for integer formatting.
@@ -83,7 +84,7 @@ typedef struct {
  */
 #define format_write_float(_DYNSTRING_, _VAL_, ...)                                                \
   _Generic(+(_VAL_),                                                                               \
-    f32: format_write_f64(_DYNSTRING_, (f64)(_VAL_), &format_opts_float(__VA_ARGS__))              \
+    f32: format_write_f64(_DYNSTRING_, (f64)(_VAL_), &format_opts_float(__VA_ARGS__)),             \
     f64: format_write_f64(_DYNSTRING_, _VAL_, &format_opts_float(__VA_ARGS__))                     \
   )
 
@@ -118,3 +119,9 @@ void format_write_bitset(DynString*, BitSet val);
  * Write a mem value as hexadecimal ascii characters.
  */
 void format_write_mem(DynString*, BitSet val);
+
+/**
+ * Write a duration as human readable ascii characters.
+ * Example output: '42.3s'.
+ */
+void format_write_duration_pretty(DynString*, Duration val);
