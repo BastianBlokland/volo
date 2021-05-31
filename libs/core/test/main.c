@@ -48,11 +48,12 @@ int main() {
   const Duration duration = time_steady_duration(timeStart, time_steady_clock());
 
   DynString outBuffer = dynstring_create(g_allocator_heap, 512);
-  dynstring_append(&outBuffer, string_lit("volo_core_test: Passed, time: "));
+  dynstring_append(&outBuffer, string_lit("volo_core_test: passed, time: "));
   format_write_duration_pretty(&outBuffer, duration);
   dynstring_append(&outBuffer, string_lit("\n"));
   file_write_sync(g_file_stdout, dynstring_view(&outBuffer));
   dynstring_destroy(&outBuffer);
 
+  core_teardown();
   return 1;
 }
