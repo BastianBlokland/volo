@@ -1,5 +1,8 @@
-#include "core_diag.h"
+#include "core_dynstring.h"
+#include "core_file.h"
+#include "core_format.h"
 #include "core_init.h"
+#include "core_time.h"
 
 void test_bits();
 void test_bitset();
@@ -24,6 +27,8 @@ void test_winutils();
 int main() {
   core_init();
 
+  const TimeSteady timeStart = time_steady_clock();
+
   test_bits();
   test_bitset();
   test_compare();
@@ -40,6 +45,14 @@ int main() {
   test_utf8();
   test_winutils();
 
-  diag_log("volo_core_test: Passed\n");
+  const Duration duration = time_steady_duration(timeStart, time_steady_clock());
+
+  DynString outBuffer = dynstring_create(g_allocator_heap, 512);
+  dynstring_append(&outBuffer, string_lit("volo_core_test: Passed, time: "));
+  format_write_duration_pretty(&outBuffer, duration);
+  dynstring_append(&outBuffer, string_lit("\n"));
+  file_write_sync(g_file_stdout, dynstring_view(&outBuffer));
+  dynstring_destroy(&outBuffer);
+
   return 1;
 }

@@ -9,7 +9,9 @@ void time_init() {
   g_intialized = true;
 }
 
-TimeSteady time_clocksteady() {
+Duration time_steady_duration(const TimeSteady from, const TimeSteady to) { return to - from; }
+
+TimeSteady time_steady_clock() {
   diag_assert_msg(g_intialized, "Time subsystem is not initialized, call core_init() at startup");
   return time_pal_clocksteady();
 }

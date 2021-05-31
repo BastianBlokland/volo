@@ -1,6 +1,6 @@
 #include "core_diag.h"
 #include "core_time.h"
 
-static void test_time_clocksteady() { diag_assert(time_clocksteady() > 0); }
+static void test_time_steady_clock() { diag_assert(time_steady_clock() > 0); }
 
-void test_time() { test_time_clocksteady(); }
+void test_time() { test_time_steady_clock(); }

@@ -30,7 +30,12 @@ typedef i64 Duration;
 typedef i64 TimeSteady;
 
 /**
+ * Return the time duration between two steady measurements.
+ */
+Duration time_steady_duration(const TimeSteady from, const TimeSteady to);
+
+/**
  * Observe the current steady clock.
  * The steady clock is guaranteed to only go forward and is meant for precise time measurements.
  */
-TimeSteady time_clocksteady();
+TimeSteady time_steady_clock();
