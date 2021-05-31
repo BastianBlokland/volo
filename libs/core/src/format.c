@@ -173,7 +173,7 @@ void format_write_mem(DynString* str, const Mem val) {
   }
 }
 
-void format_write_duration_pretty(DynString* str, Duration val) {
+void format_write_duration_pretty(DynString* str, const Duration val) {
   static struct {
     Duration val;
     String   str;
@@ -186,8 +186,9 @@ void format_write_duration_pretty(DynString* str, Duration val) {
       {time_hour, string_lit("h")},
       {time_day, string_lit("d")},
   };
-  size_t i = 0;
-  for (; (i + 1) != array_elems(units) && val >= units[i + 1].val; ++i)
+  const Duration absVal = math_abs(val);
+  size_t         i      = 0;
+  for (; (i + 1) != array_elems(units) && absVal >= units[i + 1].val; ++i)
     ;
   format_write_float(str, (f64)val / (f64)units[i].val, .maxDecDigits = 1);
   dynstring_append(str, units[i].str);

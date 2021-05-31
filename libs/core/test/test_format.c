@@ -1,5 +1,4 @@
 #include "core_diag.h"
-#include "core_file.h"
 #include "core_float.h"
 #include "core_format.h"
 
@@ -156,6 +155,7 @@ void test_format() {
   test_format_write_mem();
 
   test_format_write_duration_pretty(time_nanosecond, string_lit("1ns"));
+  test_format_write_duration_pretty(-time_nanosecond, string_lit("-1ns"));
   test_format_write_duration_pretty(time_nanoseconds(42), string_lit("42ns"));
   test_format_write_duration_pretty(time_microsecond, string_lit("1us"));
   test_format_write_duration_pretty(time_microseconds(42), string_lit("42us"));
@@ -169,5 +169,7 @@ void test_format() {
   test_format_write_duration_pretty(time_hours(13), string_lit("13h"));
   test_format_write_duration_pretty(time_day, string_lit("1d"));
   test_format_write_duration_pretty(time_days(42), string_lit("42d"));
+  test_format_write_duration_pretty(-time_days(42), string_lit("-42d"));
+  test_format_write_duration_pretty(time_days(-42), string_lit("-42d"));
   test_format_write_duration_pretty(time_millisecond + time_microseconds(300), string_lit("1.3ms"));
 }

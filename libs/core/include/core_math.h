@@ -17,6 +17,11 @@
 #define math_sign(_A_) (((_A_) > 0) - ((_A_) < 0))
 
 /**
+ * Return the absolute (positive) of the value.
+ */
+#define math_abs(_A_) ((_A_) < 0 ? -(_A_) : (_A_))
+
+/**
  * Raise the given value to the power of 10.
  */
 u64 math_pow10_u64(u8);
