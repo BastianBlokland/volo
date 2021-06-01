@@ -66,7 +66,7 @@ static void test_format_write_mem() {
   dynstring_destroy(&string);
 }
 
-static void test_format_write_duration_pretty(const Duration dur, const String expected) {
+static void test_format_write_duration_pretty(const TimeDuration dur, const String expected) {
   Allocator* alloc  = alloc_bump_create_stack(128);
   DynString  string = dynstring_create(alloc, 32);
 

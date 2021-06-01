@@ -4,9 +4,9 @@
 /**
  * Time delta in nano-seconds, can be negative.
  */
-typedef i64 Duration;
+typedef i64 TimeDuration;
 
-#define time_nanosecond ((Duration)1)
+#define time_nanosecond ((TimeDuration)1)
 #define time_microsecond (time_nanosecond * 1000)
 #define time_millisecond (time_microsecond * 1000)
 #define time_second (time_millisecond * 1000)
@@ -32,7 +32,7 @@ typedef i64 TimeSteady;
 /**
  * Return the time duration between two steady measurements.
  */
-Duration time_steady_duration(const TimeSteady from, const TimeSteady to);
+TimeDuration time_steady_duration(const TimeSteady from, const TimeSteady to);
 
 /**
  * Observe the current steady clock.

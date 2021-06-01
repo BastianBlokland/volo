@@ -45,7 +45,7 @@ int main() {
   test_utf8();
   test_winutils();
 
-  const Duration duration = time_steady_duration(timeStart, time_steady_clock());
+  const TimeDuration duration = time_steady_duration(timeStart, time_steady_clock());
 
   DynString outBuffer = dynstring_create(g_allocator_heap, 512);
   dynstring_append(&outBuffer, string_lit("volo_core_test: passed, time: "));
