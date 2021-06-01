@@ -72,7 +72,9 @@ TimeReal time_date_to_real(const TimeDate date) {
   return (i64)daysSinceEpoch * (time_day / time_microsecond);
 }
 
-TimeZoneOffset time_zone_offset() {
+TimeZone time_zone_current() {
   diag_assert_msg(g_intialized, "Time subsystem is not initialized, call core_init() at startup");
-  return time_pal_zone_offset();
+  return time_pal_zone_current();
 }
+
+TimeDuration time_zone_to_duration(const TimeZone timezone) { return time_minutes(timezone); }

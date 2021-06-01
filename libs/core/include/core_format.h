@@ -124,4 +124,4 @@ void format_write_mem(DynString*, BitSet val);
  * Write a duration as human readable ascii characters.
  * Example output: '42.3s'.
  */
-void format_write_duration_pretty(DynString*, TimeDuration val);
+void format_write_time_duration_pretty(DynString*, TimeDuration val);

@@ -21,9 +21,10 @@ typedef i64 TimeSteady;
 typedef i64 TimeReal;
 
 /**
- * TimeZone offset from UTC in minutes.
+ * TimeZone
+ * Value is encoded in offset from UTC in minutes.
  */
-typedef i16 TimeZoneOffset;
+typedef i16 TimeZone;
 
 /**
  * Day of the week.
@@ -88,7 +89,12 @@ typedef struct {
 /**
  * Jan 1 1970 (Unix time)
  */
-#define time_epoch ((TimeReal)0LL)
+#define time_real_epoch ((TimeReal)0LL)
+
+/**
+ * Coordinated Universal Time (+00:00).
+ */
+#define time_zone_utc ((TimeZone)0)
 
 /**
  * Observe the current steady clock.
@@ -132,6 +138,11 @@ TimeDate time_real_to_date(TimeReal);
 TimeReal time_date_to_real(TimeDate);
 
 /**
- * Retrieve the current system timezone offset.
+ * Retrieve the current system timezone.
  */
-TimeZoneOffset time_zone_offset();
+TimeZone time_zone_current();
+
+/**
+ * Convert a timezone-offset to a duration.
+ */
+TimeDuration time_zone_to_duration(TimeZone);

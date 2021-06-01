@@ -173,7 +173,7 @@ void format_write_mem(DynString* str, const Mem val) {
   }
 }
 
-void format_write_duration_pretty(DynString* str, const TimeDuration val) {
+void format_write_time_duration_pretty(DynString* str, const TimeDuration val) {
   static struct {
     TimeDuration val;
     String       str;

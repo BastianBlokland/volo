@@ -4,7 +4,7 @@
 static void test_time_steady_clock() { diag_assert(time_steady_clock() > 0); }
 
 static void test_time_weekday() {
-  const TimeReal e = time_epoch;
+  const TimeReal e = time_real_epoch;
 
   diag_assert(time_real_to_weekday(e) == TimeWeekDay_Thursday);
   diag_assert(time_real_to_weekday(time_real_offset(e, time_day)) == TimeWeekDay_Friday);
@@ -17,17 +17,18 @@ static void test_time_weekday() {
 }
 
 static void test_time_real_to_date() {
-  const TimeDate epochDate = time_real_to_date(time_epoch);
+  const TimeDate epochDate = time_real_to_date(time_real_epoch);
   diag_assert(epochDate.year == 1970);
   diag_assert(epochDate.month == TimeMonth_January);
   diag_assert(epochDate.day == 1);
 
-  const TimeDate testDate1 = time_real_to_date(time_real_offset(time_epoch, time_days(42424)));
+  const TimeDate testDate1 = time_real_to_date(time_real_offset(time_real_epoch, time_days(42424)));
   diag_assert(testDate1.year == 2086);
   diag_assert(testDate1.month == TimeMonth_February);
   diag_assert(testDate1.day == 25);
 
-  const TimeDate testDate2 = time_real_to_date(time_real_offset(time_epoch, -time_days(42424)));
+  const TimeDate testDate2 =
+      time_real_to_date(time_real_offset(time_real_epoch, -time_days(42424)));
   diag_assert(testDate2.year == 1853);
   diag_assert(testDate2.month == TimeMonth_November);
   diag_assert(testDate2.day == 6);

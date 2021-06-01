@@ -20,10 +20,10 @@ TimeReal time_pal_real_clock() {
   return ts.tv_sec * 1000000LL + ts.tv_nsec / 1000LL;
 }
 
-TimeZoneOffset time_pal_zone_offset() {
+TimeZone time_pal_zone_current() {
   const time_t utcSeconds            = time(null);
   const time_t localSeconds          = timegm(localtime(&utcSeconds));
   const time_t timezoneOffsetSeconds = localSeconds - utcSeconds;
   const time_t timezoneOffsetMinutes = timezoneOffsetSeconds / 60;
-  return (i16)timezoneOffsetMinutes;
+  return (TimeZone)timezoneOffsetMinutes;
 }
