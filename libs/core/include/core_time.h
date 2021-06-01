@@ -51,3 +51,13 @@ typedef i64 TimeReal;
  * Observe the system clock.
  */
 TimeReal time_real_clock();
+
+/**
+ * TimeZone offset from UTC in minutes.
+ */
+typedef i16 TimeZoneOffset;
+
+/**
+ * Retrieve the current system timezone offset.
+ */
+TimeZoneOffset time_zone_offset();

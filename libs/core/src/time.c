@@ -20,3 +20,8 @@ TimeReal time_real_clock() {
   diag_assert_msg(g_intialized, "Time subsystem is not initialized, call core_init() at startup");
   return time_pal_real_clock();
 }
+
+TimeZoneOffset time_zone_offset() {
+  diag_assert_msg(g_intialized, "Time subsystem is not initialized, call core_init() at startup");
+  return time_pal_zone_offset();
+}

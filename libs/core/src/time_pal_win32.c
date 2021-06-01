@@ -38,3 +38,17 @@ TimeReal time_pal_real_clock() {
   GetSystemTimePreciseAsFileTime(&fileTime);
   return time_pal_filetime_to_microsinceepoch(&fileTime);
 }
+
+TimeZoneOffset time_pal_zone_offset() {
+  TIME_ZONE_INFORMATION timeZoneInfo;
+  switch (GetTimeZoneInformation(&timeZoneInfo)) {
+  case TIME_ZONE_ID_STANDARD:
+    return -(i16)(timeZoneInfo.Bias + timeZoneInfo.StandardBias);
+  case TIME_ZONE_ID_DAYLIGHT:
+    return -(i16)(timeZoneInfo.Bias + timeZoneInfo.DaylightBias);
+  case TIME_ZONE_ID_INVALID:
+  default:
+    diag_assert_msg(false, "GetTimeZoneInformation() failed");
+    return 0;
+  }
+}
