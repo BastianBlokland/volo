@@ -29,8 +29,43 @@ TimeReal time_real_offset(const TimeReal time, const TimeDuration duration) {
   return time + (duration / time_microsecond);
 }
 
-TimeWeekDay time_real_weekday(TimeReal time) {
+TimeWeekDay time_real_to_weekday(const TimeReal time) {
   return (time_days_since_epoch(time) + TimeWeekDay_Thursday) % 7;
+}
+
+TimeDate time_real_to_date(const TimeReal time) {
+  /**
+   * Construct a Gregorian calendar date from micro-seconds since epoch.
+   * Implementation based on: http://howardhinnant.github.io/date_algorithms.html#civil_from_days
+   */
+  const i64 z           = time_days_since_epoch(time) + 719468;
+  const i32 era         = (z >= 0 ? z : z - 146096) / 146097;
+  const i32 dayOfEra    = z - era * 146097;
+  const i32 yearOfEra   = (dayOfEra - dayOfEra / 1460 + dayOfEra / 36524 - dayOfEra / 146096) / 365;
+  const i32 year        = yearOfEra + era * 400;
+  const i32 dayOfYear   = dayOfEra - (365 * yearOfEra + yearOfEra / 4 - yearOfEra / 100);
+  const i32 mp          = (5 * dayOfYear + 2) / 153;
+  const i32 day         = dayOfYear - (153 * mp + 2) / 5 + 1;
+  const TimeMonth month = mp + (mp < 10 ? 3 : -9);
+  return (TimeDate){
+      .year  = year + (month <= 2),
+      .month = month,
+      .day   = day,
+  };
+}
+
+TimeReal time_date_to_real(const TimeDate date) {
+  /**
+   * Convert a Gregorian calendar date to micro-seconds since epoch.
+   * Implementation based on: http://howardhinnant.github.io/date_algorithms.html#days_from_civil
+   */
+  const i32 year      = date.year - (date.month <= 2);
+  const i32 era       = (year >= 0 ? year : year - 399) / 400;
+  const i32 yearOfEra = year - era * 400;
+  const i32 dayOfYear = (153 * (date.month + (date.month > 2 ? -3 : 9)) + 2) / 5 + (date.day - 1);
+  const i32 dayOfEra  = yearOfEra * 365 + yearOfEra / 4 - yearOfEra / 100 + dayOfYear;
+  const i32 daysSinceEpoch = era * 146097 + dayOfEra - 719468;
+  return (i64)daysSinceEpoch * (time_day / time_microsecond);
 }
 
 TimeZoneOffset time_zone_offset() {

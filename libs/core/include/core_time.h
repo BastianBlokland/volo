@@ -25,8 +25,11 @@ typedef i64 TimeReal;
  */
 typedef i16 TimeZoneOffset;
 
+/**
+ * Day of the week.
+ */
 typedef enum {
-  TimeWeekDay_Monday,
+  TimeWeekDay_Monday = 0,
   TimeWeekDay_Tuesday,
   TimeWeekDay_Wednesday,
   TimeWeekDay_Thursday,
@@ -34,6 +37,37 @@ typedef enum {
   TimeWeekDay_Saturday,
   TimeWeekDay_Sunday,
 } TimeWeekDay;
+
+/**
+ * Calendar Month.
+ */
+typedef enum {
+  TimeMonth_January = 1,
+  TimeMonth_February,
+  TimeMonth_March,
+  TimeMonth_April,
+  TimeMonth_May,
+  TimeMonth_June,
+  TimeMonth_July,
+  TimeMonth_August,
+  TimeMonth_September,
+  TimeMonth_October,
+  TimeMonth_November,
+  TimeMonth_December,
+} TimeMonth;
+
+/**
+ * Calendar Date in the Gregorian calendar (without leap seconds).
+ */
+typedef struct {
+  i32       year;
+  TimeMonth month;
+  u8        day;
+} TimeDate;
+
+/**
+ * Duration constants.
+ */
 
 #define time_nanosecond ((TimeDuration)1)
 #define time_microsecond (time_nanosecond * 1000)
@@ -80,7 +114,17 @@ TimeReal time_real_offset(TimeReal, TimeDuration);
 /**
  * Return which day of the week it is at the specified time.
  */
-TimeWeekDay time_real_weekday(TimeReal);
+TimeWeekDay time_real_to_weekday(TimeReal);
+
+/**
+ * Return the Gregorian calender date at the specified time
+ */
+TimeDate time_real_to_date(TimeReal);
+
+/**
+ * Return the time at the specified Gregorian calender date.
+ */
+TimeReal time_date_to_real(TimeDate);
 
 /**
  * Retrieve the current system timezone offset.
