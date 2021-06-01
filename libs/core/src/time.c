@@ -13,5 +13,10 @@ TimeDuration time_steady_duration(const TimeSteady from, const TimeSteady to) { 
 
 TimeSteady time_steady_clock() {
   diag_assert_msg(g_intialized, "Time subsystem is not initialized, call core_init() at startup");
-  return time_pal_clocksteady();
+  return time_pal_steady_clock();
+}
+
+TimeReal time_real_clock() {
+  diag_assert_msg(g_intialized, "Time subsystem is not initialized, call core_init() at startup");
+  return time_pal_real_clock();
 }

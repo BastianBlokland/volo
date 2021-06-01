@@ -39,3 +39,15 @@ TimeDuration time_steady_duration(const TimeSteady from, const TimeSteady to);
  * The steady clock is guaranteed to only go forward and is meant for precise time measurements.
  */
 TimeSteady time_steady_clock();
+
+/**
+ * Absolute moment in time.
+ * Based on the system clock, can go backwards if the user changes the system clock.
+ * Value is encoded in microseconds since epoch.
+ */
+typedef i64 TimeReal;
+
+/**
+ * Observe the system clock.
+ */
+TimeReal time_real_clock();

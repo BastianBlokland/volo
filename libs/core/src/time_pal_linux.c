@@ -4,10 +4,18 @@
 
 void time_pal_init() {}
 
-TimeSteady time_pal_clocksteady() {
+TimeSteady time_pal_steady_clock() {
   struct timespec ts;
   const int       res = clock_gettime(CLOCK_MONOTONIC, &ts);
   diag_assert_msg(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
   (void)res;
   return ts.tv_sec * 1000000000LL + ts.tv_nsec;
+}
+
+TimeReal time_pal_real_clock() {
+  struct timespec ts;
+  const int       res = clock_gettime(CLOCK_REALTIME, &ts);
+  diag_assert_msg(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
+  (void)res;
+  return ts.tv_sec * 1000000LL + ts.tv_nsec / 1000LL;
 }
