@@ -49,10 +49,28 @@ static void test_time_real_clock() {
   diag_assert(today.year >= 2021 && today.year < 2200);
 }
 
+static void test_time_duration() {
+  const TimeDate     a       = (TimeDate){.year = 1700, .month = TimeMonth_April, .day = 13};
+  const TimeDate     b       = (TimeDate){.year = 1992, .month = TimeMonth_June, .day = 9};
+  const TimeDuration dur     = time_real_duration(time_date_to_real(a), time_date_to_real(b));
+  const i32          durDays = dur / time_day;
+  diag_assert(durDays == 106708);
+}
+
+static void test_time_duration_year_below_zero() {
+  const TimeDate     a       = (TimeDate){.year = -84, .month = TimeMonth_June, .day = 9};
+  const TimeDate     b       = (TimeDate){.year = -42, .month = TimeMonth_April, .day = 13};
+  const TimeDuration dur     = time_real_duration(time_date_to_real(a), time_date_to_real(b));
+  const i32          durDays = dur / time_day;
+  diag_assert(durDays == 15283);
+}
+
 void test_time() {
   test_time_steady_clock();
   test_time_weekday();
   test_time_real_to_date();
   test_time_date_to_real();
   test_time_real_clock();
+  test_time_duration();
+  test_time_duration_year_below_zero();
 }

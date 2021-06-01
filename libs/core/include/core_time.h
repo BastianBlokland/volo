@@ -99,12 +99,17 @@ TimeSteady time_steady_clock();
 /**
  * Return the time duration between two steady measurements.
  */
-TimeDuration time_steady_duration(const TimeSteady from, const TimeSteady to);
+TimeDuration time_steady_duration(TimeSteady from, TimeSteady to);
 
 /**
  * Observe the system clock.
  */
 TimeReal time_real_clock();
+
+/**
+ * Return the duration between two real times.
+ */
+TimeDuration time_real_duration(TimeReal from, TimeReal to);
 
 /**
  * Offset a real-time by a duration.

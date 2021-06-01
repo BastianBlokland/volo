@@ -25,6 +25,10 @@ TimeReal time_real_clock() {
   return time_pal_real_clock();
 }
 
+TimeDuration time_real_duration(const TimeReal from, const TimeReal to) {
+  return time_microseconds(to - from);
+}
+
 TimeReal time_real_offset(const TimeReal time, const TimeDuration duration) {
   return time + (duration / time_microsecond);
 }
