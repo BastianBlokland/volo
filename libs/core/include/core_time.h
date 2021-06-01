@@ -6,6 +6,35 @@
  */
 typedef i64 TimeDuration;
 
+/**
+ * Nano-seconds since the start of the process steady clock.
+ * Guaranteed to go forward (even if system clock changes).
+ * Meant for precise time measurements, not for representing absolute moments in time.
+ */
+typedef i64 TimeSteady;
+
+/**
+ * Absolute moment in time.
+ * Based on the system clock, can go backwards if the user changes the system clock.
+ * Value is encoded in microseconds since epoch.
+ */
+typedef i64 TimeReal;
+
+/**
+ * TimeZone offset from UTC in minutes.
+ */
+typedef i16 TimeZoneOffset;
+
+typedef enum {
+  TimeWeekDay_Monday,
+  TimeWeekDay_Tuesday,
+  TimeWeekDay_Wednesday,
+  TimeWeekDay_Thursday,
+  TimeWeekDay_Friday,
+  TimeWeekDay_Saturday,
+  TimeWeekDay_Sunday,
+} TimeWeekDay;
+
 #define time_nanosecond ((TimeDuration)1)
 #define time_microsecond (time_nanosecond * 1000)
 #define time_millisecond (time_microsecond * 1000)
@@ -23,16 +52,9 @@ typedef i64 TimeDuration;
 #define time_days(_COUNT_) (time_day * (_COUNT_))
 
 /**
- * Nano-seconds since the start of the process steady clock.
- * Guaranteed to go forward (even if system clock changes).
- * Meant for precise time measurements, not for representing absolute moments in time.
+ * Jan 1 1970 (Unix time)
  */
-typedef i64 TimeSteady;
-
-/**
- * Return the time duration between two steady measurements.
- */
-TimeDuration time_steady_duration(const TimeSteady from, const TimeSteady to);
+#define time_epoch ((TimeReal)0LL)
 
 /**
  * Observe the current steady clock.
@@ -41,11 +63,9 @@ TimeDuration time_steady_duration(const TimeSteady from, const TimeSteady to);
 TimeSteady time_steady_clock();
 
 /**
- * Absolute moment in time.
- * Based on the system clock, can go backwards if the user changes the system clock.
- * Value is encoded in microseconds since epoch.
+ * Return the time duration between two steady measurements.
  */
-typedef i64 TimeReal;
+TimeDuration time_steady_duration(const TimeSteady from, const TimeSteady to);
 
 /**
  * Observe the system clock.
@@ -53,9 +73,14 @@ typedef i64 TimeReal;
 TimeReal time_real_clock();
 
 /**
- * TimeZone offset from UTC in minutes.
+ * Offset a real-time by a duration.
  */
-typedef i16 TimeZoneOffset;
+TimeReal time_real_offset(TimeReal, TimeDuration);
+
+/**
+ * Return which day of the week it is at the specified time.
+ */
+TimeWeekDay time_real_weekday(TimeReal);
 
 /**
  * Retrieve the current system timezone offset.
