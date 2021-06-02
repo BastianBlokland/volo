@@ -32,6 +32,11 @@ static void test_time_real_to_date() {
   diag_assert(testDate2.year == 1853);
   diag_assert(testDate2.month == TimeMonth_November);
   diag_assert(testDate2.day == 6);
+
+  const TimeDate testDate3 = time_real_to_date(time_real_offset(time_real_epoch, time_days(13)));
+  diag_assert(testDate3.year == 1970);
+  diag_assert(testDate3.month == TimeMonth_January);
+  diag_assert(testDate3.day == 14);
 }
 
 static void test_time_date_to_real() {

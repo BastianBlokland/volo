@@ -76,6 +76,16 @@ static void test_format_write_time_duration_pretty(const TimeDuration dur, const
   dynstring_destroy(&string);
 }
 
+static void test_format_write_time_iso8601(const TimeReal time, const String expected) {
+  Allocator* alloc  = alloc_bump_create_stack(128);
+  DynString  string = dynstring_create(alloc, 64);
+
+  format_write_time_iso8601(&string, time, &format_opts_time());
+  diag_assert(string_eq(dynstring_view(&string), expected));
+
+  dynstring_destroy(&string);
+}
+
 void test_format() {
   test_format_write_u64(0, format_opts_int(), string_lit("0"));
   test_format_write_u64(0, format_opts_int(.minDigits = 4), string_lit("0000"));
@@ -173,4 +183,14 @@ void test_format() {
   test_format_write_time_duration_pretty(time_days(-42), string_lit("-42d"));
   test_format_write_time_duration_pretty(
       time_millisecond + time_microseconds(300), string_lit("1.3ms"));
+
+  test_format_write_time_iso8601(time_real_epoch, string_lit("1970-01-01T00:00:00.000Z"));
+  test_format_write_time_iso8601(
+      time_real_offset(time_real_epoch, time_days(13)), string_lit("1970-01-14T00:00:00.000Z"));
+  test_format_write_time_iso8601(
+      time_real_offset(time_real_epoch, time_hours(13) + time_milliseconds(42)),
+      string_lit("1970-01-01T13:00:00.042Z"));
+  test_format_write_time_iso8601(
+      time_real_offset(time_real_epoch, time_days(40) + time_hours(13) + time_milliseconds(42)),
+      string_lit("1970-02-10T13:00:00.042Z"));
 }

@@ -50,6 +50,23 @@ typedef struct {
 
 } FormatOptsFloat;
 
+/**
+ * Configuration struct for time formatting.
+ */
+typedef struct {
+
+  /**
+   * Local timezone to format the time for.
+   */
+  TimeZone timezone;
+
+  /**
+   * Include milliseconds.
+   */
+  bool milliseconds;
+
+} FormatOptsTime;
+
 // clang-format off
 
 #define format_opts_int(...)                                                                       \
@@ -65,6 +82,13 @@ typedef struct {
     .maxDecDigits     = 7,                                                                         \
     .expThresholdPos  = 1e7,                                                                       \
     .expThresholdNeg  = 1e-5,                                                                      \
+    __VA_ARGS__                                                                                    \
+  })
+
+#define format_opts_time(...)                                                                  \
+  ((FormatOptsTime){                                                                           \
+    .timezone     = time_zone_utc,                                                               \
+    .milliseconds = true,                                                                          \
     __VA_ARGS__                                                                                    \
   })
 
@@ -125,3 +149,11 @@ void format_write_mem(DynString*, BitSet val);
  * Example output: '42.3s'.
  */
 void format_write_time_duration_pretty(DynString*, TimeDuration val);
+
+/**
+ * Date and time in iso-8601 format (https://en.wikipedia.org/wiki/ISO_8601).
+ * Example output: 1920-03-19T07:11:23+02:00.
+ * Example output: 1920-03-19T07:11:23Z (utc timezone).
+ * Example output: 1920-03-19T07:11:23.323+02:00. (including milliseconds)
+ */
+void format_write_time_iso8601(DynString*, TimeReal val, const FormatOptsTime*);

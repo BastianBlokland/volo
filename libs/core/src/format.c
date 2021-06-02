@@ -193,3 +193,44 @@ void format_write_time_duration_pretty(DynString* str, const TimeDuration val) {
   format_write_float(str, (f64)val / (f64)units[i].val, .maxDecDigits = 1);
   dynstring_append(str, units[i].str);
 }
+
+void format_write_time_iso8601(DynString* str, const TimeReal val, const FormatOptsTime* opts) {
+
+  const TimeReal localTime = time_real_offset(val, time_zone_to_duration(opts->timezone));
+  const TimeDate date      = time_real_to_date(localTime);
+  const u8       hours     = (localTime / (time_hour / time_microsecond)) % 24;
+  const u8       minutes   = (localTime / (time_minute / time_microsecond)) % 60;
+  const u8       seconds   = (localTime / (time_second / time_microsecond)) % 60;
+
+  // Date.
+  format_write_int(str, date.year, .minDigits = 4);
+  dynstring_append_char(str, '-');
+  format_write_int(str, date.month, .minDigits = 2);
+  dynstring_append_char(str, '-');
+  format_write_int(str, date.day, .minDigits = 2);
+
+  // Time.
+  dynstring_append_char(str, 'T');
+  format_write_int(str, hours, .minDigits = 2);
+  dynstring_append_char(str, ':');
+  format_write_int(str, minutes, .minDigits = 2);
+  dynstring_append_char(str, ':');
+  format_write_int(str, seconds, .minDigits = 2);
+  if (opts->milliseconds) {
+    const u16 milliseconds = (localTime / (time_millisecond / time_microsecond)) % 1000;
+    dynstring_append_char(str, '.');
+    format_write_int(str, milliseconds, .minDigits = 3);
+  }
+
+  // Timezone.
+  if (opts->timezone == time_zone_utc) {
+    dynstring_append_char(str, 'Z');
+  } else {
+    if (opts->timezone > 0) {
+      dynstring_append_char(str, '+');
+    }
+    format_write_int(str, opts->timezone / 60, .minDigits = 2);
+    dynstring_append_char(str, ':');
+    format_write_int(str, opts->timezone % 60, .minDigits = 2);
+  }
+}
