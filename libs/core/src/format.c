@@ -203,34 +203,40 @@ void format_write_time_iso8601(DynString* str, const TimeReal val, const FormatO
   const u8       seconds   = (localTime / (time_second / time_microsecond)) % 60;
 
   // Date.
-  format_write_int(str, date.year, .minDigits = 4);
-  dynstring_append_char(str, '-');
-  format_write_int(str, date.month, .minDigits = 2);
-  dynstring_append_char(str, '-');
-  format_write_int(str, date.day, .minDigits = 2);
+  if (opts->terms & FormatTimeTerms_Date) {
+    format_write_int(str, date.year, .minDigits = 4);
+    dynstring_append_char(str, '-');
+    format_write_int(str, date.month, .minDigits = 2);
+    dynstring_append_char(str, '-');
+    format_write_int(str, date.day, .minDigits = 2);
+  }
 
   // Time.
-  dynstring_append_char(str, 'T');
-  format_write_int(str, hours, .minDigits = 2);
-  dynstring_append_char(str, ':');
-  format_write_int(str, minutes, .minDigits = 2);
-  dynstring_append_char(str, ':');
-  format_write_int(str, seconds, .minDigits = 2);
-  if (opts->milliseconds) {
+  if (opts->terms & FormatTimeTerms_Time) {
+    dynstring_append_char(str, 'T');
+    format_write_int(str, hours, .minDigits = 2);
+    dynstring_append_char(str, ':');
+    format_write_int(str, minutes, .minDigits = 2);
+    dynstring_append_char(str, ':');
+    format_write_int(str, seconds, .minDigits = 2);
+  }
+  if (opts->terms & FormatTimeTerms_Milliseconds) {
     const u16 milliseconds = (localTime / (time_millisecond / time_microsecond)) % 1000;
     dynstring_append_char(str, '.');
     format_write_int(str, milliseconds, .minDigits = 3);
   }
 
   // Timezone.
-  if (opts->timezone == time_zone_utc) {
-    dynstring_append_char(str, 'Z');
-  } else {
-    if (opts->timezone > 0) {
-      dynstring_append_char(str, '+');
+  if (opts->terms & FormatTimeTerms_Timezone) {
+    if (opts->timezone == time_zone_utc) {
+      dynstring_append_char(str, 'Z');
+    } else {
+      if (opts->timezone > 0) {
+        dynstring_append_char(str, '+');
+      }
+      format_write_int(str, opts->timezone / 60, .minDigits = 2);
+      dynstring_append_char(str, ':');
+      format_write_int(str, opts->timezone % 60, .minDigits = 2);
     }
-    format_write_int(str, opts->timezone / 60, .minDigits = 2);
-    dynstring_append_char(str, ':');
-    format_write_int(str, opts->timezone % 60, .minDigits = 2);
   }
 }

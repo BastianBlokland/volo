@@ -51,6 +51,18 @@ typedef struct {
 } FormatOptsFloat;
 
 /**
+ * Bit field of time terms.
+ */
+typedef enum {
+  FormatTimeTerms_None         = 0,
+  FormatTimeTerms_Date         = 1 << 0,
+  FormatTimeTerms_Time         = 1 << 1,
+  FormatTimeTerms_Milliseconds = 1 << 2,
+  FormatTimeTerms_Timezone     = 1 << 3,
+  FormatTimeTerms_All          = ~FormatTimeTerms_None,
+} FormatTimeTerms;
+
+/**
  * Configuration struct for time formatting.
  */
 typedef struct {
@@ -61,9 +73,9 @@ typedef struct {
   TimeZone timezone;
 
   /**
-   * Include milliseconds.
+   * Which terms to include.
    */
-  bool milliseconds;
+  FormatTimeTerms terms;
 
 } FormatOptsTime;
 
@@ -85,10 +97,10 @@ typedef struct {
     __VA_ARGS__                                                                                    \
   })
 
-#define format_opts_time(...)                                                                  \
-  ((FormatOptsTime){                                                                           \
-    .timezone     = time_zone_utc,                                                               \
-    .milliseconds = true,                                                                          \
+#define format_opts_time(...)                                                                      \
+  ((FormatOptsTime){                                                                               \
+    .timezone   = time_zone_utc,                                                                   \
+    .terms      = FormatTimeTerms_All,                                                             \
     __VA_ARGS__                                                                                    \
   })
 
