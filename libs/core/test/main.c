@@ -4,6 +4,7 @@
 #include "core_init.h"
 #include "core_time.h"
 
+void test_ascii();
 void test_bits();
 void test_bitset();
 void test_compare();
@@ -29,6 +30,7 @@ int main() {
 
   const TimeSteady timeStart = time_steady_clock();
 
+  test_ascii();
   test_bits();
   test_bitset();
   test_compare();
