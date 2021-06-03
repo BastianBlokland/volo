@@ -67,17 +67,27 @@ typedef enum {
  */
 typedef struct {
 
-  /**
-   * Local timezone to format the time for.
-   */
-  TimeZone timezone;
-
-  /**
-   * Which terms to include.
-   */
+  TimeZone        timezone;
   FormatTimeTerms terms;
 
 } FormatOptsTime;
+
+/**
+ * Configuration flags for text formatting.
+ */
+typedef enum {
+  FormatTextFlags_None                = 0,
+  FormatTextFlags_EscapeNonPrintAscii = 1 << 0,
+} FormatTextFlags;
+
+/**
+ * Configuration struct for text formatting.
+ */
+typedef struct {
+
+  FormatTextFlags flags;
+
+} FormatOptsText;
 
 // clang-format off
 
@@ -101,6 +111,12 @@ typedef struct {
   ((FormatOptsTime){                                                                               \
     .timezone   = time_zone_utc,                                                                   \
     .terms      = FormatTimeTerms_All,                                                             \
+    __VA_ARGS__                                                                                    \
+  })
+
+#define format_opts_text(...)                                                                      \
+  ((FormatOptsText){                                                                               \
+    .flags   = FormatTextFlags_EscapeNonPrintAscii,                                                \
     __VA_ARGS__                                                                                    \
   })
 
@@ -169,3 +185,8 @@ void format_write_time_duration_pretty(DynString*, TimeDuration val);
  * Example output: 1920-03-19T07:11:23.323+02:00. (including milliseconds)
  */
 void format_write_time_iso8601(DynString*, TimeReal val, const FormatOptsTime*);
+
+/**
+ * Write the text string.
+ */
+void format_write_text(DynString*, String val, const FormatOptsText*);

@@ -1,4 +1,5 @@
 #include "core_array.h"
+#include "core_ascii.h"
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_format.h"
@@ -239,4 +240,41 @@ void format_write_time_iso8601(DynString* str, const TimeReal val, const FormatO
       format_write_int(str, opts->timezone % 60, .minDigits = 2);
     }
   }
+}
+
+void format_write_text(DynString* str, String val, const FormatOptsText* opts) {
+
+  static struct {
+    u8     byte;
+    String escapeSeq;
+  } escapes[] = {
+      {'"', string_lit("\\\"")},
+      {'\\', string_lit("\\\\")},
+      {'\r', string_lit("\\r")},
+      {'\n', string_lit("\\n")},
+      {'\t', string_lit("\\t")},
+      {'\b', string_lit("\\b")},
+      {'\f', string_lit("\\f")},
+      {'\0', string_lit("\\0")},
+  };
+
+  mem_for_u8(val, byte, {
+    if (opts->flags & FormatTextFlags_EscapeNonPrintAscii && !ascii_is_printable(byte)) {
+      // If we have a well-known sequence for this byte we apply it.
+      for (size_t i = 0; i != array_elems(escapes); ++i) {
+        if (escapes[i].byte == byte) {
+          dynstring_append(str, escapes[i].escapeSeq);
+          goto byte_end;
+        }
+      }
+      // Otherwise escape it as \hex.
+      dynstring_append_char(str, '\\');
+      format_write_int(str, byte, .base = 16, .minDigits = 2);
+      goto byte_end;
+    }
+    // No escape needed: write verbatim.
+    dynstring_append_char(str, byte);
+  byte_end:
+    continue;
+  });
 }

@@ -86,6 +86,16 @@ static void test_format_write_time_iso8601(const TimeReal time, const String exp
   dynstring_destroy(&string);
 }
 
+static void test_format_write_text(const String val, const String expected) {
+  Allocator* alloc  = alloc_bump_create_stack(128);
+  DynString  string = dynstring_create(alloc, 64);
+
+  format_write_text(&string, val, &format_opts_text());
+  diag_assert(string_eq(dynstring_view(&string), expected));
+
+  dynstring_destroy(&string);
+}
+
 void test_format() {
   test_format_write_u64(0, format_opts_int(), string_lit("0"));
   test_format_write_u64(0, format_opts_int(.minDigits = 4), string_lit("0000"));
@@ -193,4 +203,10 @@ void test_format() {
   test_format_write_time_iso8601(
       time_real_offset(time_real_epoch, time_days(40) + time_hours(13) + time_milliseconds(42)),
       string_lit("1970-02-10T13:00:00.042Z"));
+
+  test_format_write_text(string_lit(""), string_lit(""));
+  test_format_write_text(string_lit("\fHello\nWorld\\b"), string_lit("\\fHello\\nWorld\\b"));
+  test_format_write_text(string_lit("Hello\0World"), string_lit("Hello\\0World"));
+  test_format_write_text(
+      string_lit("\xFFHello\xFBWorld\xFA"), string_lit("\\FFHello\\FBWorld\\FA"));
 }
