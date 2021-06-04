@@ -242,6 +242,25 @@ void format_write_time_iso8601(DynString* str, const TimeReal val, const FormatO
   }
 }
 
+void format_write_size_pretty(DynString* str, const usize val) {
+  static String units[] = {
+      string_lit("B"),
+      string_lit("KiB"),
+      string_lit("MiB"),
+      string_lit("GiB"),
+      string_lit("TiB"),
+      string_lit("PiB"),
+  };
+
+  u8  unit       = 0;
+  f64 scaledSize = val;
+  for (; scaledSize >= 1024.0 && unit != array_elems(units) - 1; ++unit) {
+    scaledSize /= 1024.0;
+  }
+  format_write_float(str, scaledSize, .maxDecDigits = 1);
+  dynstring_append(str, units[unit]);
+}
+
 void format_write_text(DynString* str, String val, const FormatOptsText* opts) {
 
   static struct {

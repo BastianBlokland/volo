@@ -177,7 +177,7 @@ FileResult file_write_sync(File* file, const String data) {
 FileResult file_read_sync(File* file, DynString* dynstr) {
   diag_assert(file);
 
-  Mem   readBuffer = mem_stack(1024);
+  Mem   readBuffer = mem_stack(usize_kibibyte);
   DWORD bytesRead;
   BOOL  success = ReadFile(file->handle, readBuffer.ptr, readBuffer.size, &bytesRead, null);
   if (success && bytesRead) {

@@ -86,6 +86,16 @@ static void test_format_write_time_iso8601(const TimeReal time, const String exp
   dynstring_destroy(&string);
 }
 
+static void test_format_write_size_pretty(const usize val, const String expected) {
+  Allocator* alloc  = alloc_bump_create_stack(128);
+  DynString  string = dynstring_create(alloc, 64);
+
+  format_write_size_pretty(&string, val);
+  diag_assert(string_eq(dynstring_view(&string), expected));
+
+  dynstring_destroy(&string);
+}
+
 static void test_format_write_text(const String val, const String expected) {
   Allocator* alloc  = alloc_bump_create_stack(128);
   DynString  string = dynstring_create(alloc, 64);
@@ -203,6 +213,15 @@ void test_format() {
   test_format_write_time_iso8601(
       time_real_offset(time_real_epoch, time_days(40) + time_hours(13) + time_milliseconds(42)),
       string_lit("1970-02-10T13:00:00.042Z"));
+
+  test_format_write_size_pretty(42, string_lit("42B"));
+  test_format_write_size_pretty(42 * usize_kibibyte, string_lit("42KiB"));
+  test_format_write_size_pretty(42 * usize_mebibyte, string_lit("42MiB"));
+  test_format_write_size_pretty(42 * usize_gibibyte, string_lit("42GiB"));
+  test_format_write_size_pretty(42 * usize_tebibyte, string_lit("42TiB"));
+  test_format_write_size_pretty(42 * usize_pebibyte, string_lit("42PiB"));
+  test_format_write_size_pretty(42 * usize_mebibyte + 200 * usize_kibibyte, string_lit("42.2MiB"));
+  test_format_write_size_pretty(2048 * usize_pebibyte, string_lit("2048PiB"));
 
   test_format_write_text(string_lit(""), string_lit(""));
   test_format_write_text(string_lit("\fHello\nWorld\\b"), string_lit("\\fHello\\nWorld\\b"));

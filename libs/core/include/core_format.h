@@ -2,6 +2,7 @@
 #include "core_bitset.h"
 #include "core_dynstring.h"
 #include "core_time.h"
+#include "core_types.h"
 
 /**
  * Configuration struct for integer formatting.
@@ -185,6 +186,12 @@ void format_write_time_duration_pretty(DynString*, TimeDuration val);
  * Example output: 1920-03-19T07:11:23.323+02:00. (including milliseconds)
  */
 void format_write_time_iso8601(DynString*, TimeReal val, const FormatOptsTime*);
+
+/**
+ * Write a size (in bytes) as human readable ascii characters.
+ * Example output: '42.1MiB'.
+ */
+void format_write_size_pretty(DynString*, usize val);
 
 /**
  * Write the text string.

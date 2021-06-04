@@ -40,3 +40,10 @@ typedef u8 bool;
 #define usize_max SIZE_MAX
 #define iptr_max INTPTR_MAX
 #define uptr_max UINTPTR_MAX
+
+#define usize_byte ((usize)1)
+#define usize_kibibyte (usize_byte * 1024)
+#define usize_mebibyte (usize_kibibyte * 1024)
+#define usize_gibibyte (usize_mebibyte * 1024)
+#define usize_tebibyte (usize_gibibyte * 1024)
+#define usize_pebibyte (usize_tebibyte * 1024)

@@ -140,7 +140,7 @@ FileResult file_write_sync(File* file, const String data) {
 FileResult file_read_sync(File* file, DynString* dynstr) {
   diag_assert(file);
 
-  Mem readBuffer = mem_stack(1024);
+  Mem readBuffer = mem_stack(usize_kibibyte);
   while (true) {
     const ssize_t res = read(file->handle, readBuffer.ptr, readBuffer.size);
     if (res > 0) {
