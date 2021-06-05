@@ -45,6 +45,7 @@ add_executable(volo_core_test
   core/test/test_float.c
   core/test/test_format.c
   core/test/test_math.c
+  core/test/test_memory.c
   core/test/test_sort.c
   core/test/test_string.c
   core/test/test_time.c

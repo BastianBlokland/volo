@@ -46,6 +46,15 @@ bool mem_eq(Mem a, Mem b) {
   return a.size == b.size && memcmp(a.ptr, b.ptr, a.size) == 0;
 }
 
+bool mem_contains(Mem mem, const u8 byte) {
+  mem_for_u8(mem, b, {
+    if (b == byte) {
+      return true;
+    }
+  });
+  return false;
+}
+
 void mem_swap(Mem a, Mem b) {
   diag_assert(mem_valid(a));
   diag_assert(mem_valid(b));

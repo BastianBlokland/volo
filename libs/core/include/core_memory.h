@@ -112,6 +112,11 @@ i8 mem_cmp(Mem a, Mem b);
 bool mem_eq(Mem a, Mem b);
 
 /**
+ * Check if the given memory region contains a specific byte.
+ */
+bool mem_contains(Mem, u8 byte);
+
+/**
  * Swap the memory contents.
  * Pre-condition: a.size == b.size
  * Pre-condition: a.size <= 1024.
