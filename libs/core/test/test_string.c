@@ -1,4 +1,5 @@
 #include "core_diag.h"
+#include "core_sentinel.h"
 #include "core_string.h"
 
 static void test_string_len() {
@@ -30,9 +31,32 @@ static void test_string_slice() {
   diag_assert(string_eq(string_slice(string_lit("Hello World"), 6, 5), string_lit("World")));
 }
 
+static void test_string_find_first_any() {
+  diag_assert(string_find_first_any(string_lit(""), string_lit(" ")) == sentinel_usize);
+  diag_assert(string_find_first_any(string_lit(""), string_lit("\0")) == sentinel_usize);
+  diag_assert(string_find_first_any(string_lit("\0"), string_lit("\n\r\0")) == 0);
+  diag_assert(string_find_first_any(string_lit("Hello World"), string_lit(" ")) == 5);
+  diag_assert(string_find_first_any(string_lit("Hello World"), string_lit("or")) == 4);
+  diag_assert(
+      string_find_first_any(string_lit("Hello World"), string_lit("zqx")) == sentinel_usize);
+}
+
+static void test_string_find_last_any() {
+  diag_assert(string_find_last_any(string_lit(""), string_lit(" ")) == sentinel_usize);
+  diag_assert(string_find_last_any(string_lit(""), string_lit("\0")) == sentinel_usize);
+  diag_assert(string_find_last_any(string_lit("\0"), string_lit("\n\r\0")) == 0);
+  diag_assert(string_find_last_any(string_lit("Hello World"), string_lit(" ")) == 5);
+  diag_assert(string_find_last_any(string_lit("Hello World"), string_lit("or")) == 8);
+  diag_assert(string_find_last_any(string_lit("Hello World"), string_lit("d")) == 10);
+  diag_assert(string_find_last_any(string_lit("Hello World"), string_lit("hH")) == 0);
+  diag_assert(string_find_last_any(string_lit("Hello World"), string_lit("zqx")) == sentinel_usize);
+}
+
 void test_string() {
   test_string_len();
   test_string_eq();
   test_string_cmp();
   test_string_slice();
+  test_string_find_first_any();
+  test_string_find_last_any();
 }

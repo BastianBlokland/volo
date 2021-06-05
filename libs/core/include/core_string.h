@@ -59,3 +59,15 @@ bool string_eq(String a, String b);
  * Pre-condition: string.size >= offset + size
  */
 String string_slice(String, usize offset, usize size);
+
+/**
+ * Find the first occurrence of any of the given characters.
+ * Note: Returns 'sentinel_usize' if none of the characters could be found.
+ */
+usize string_find_first_any(String, String chars);
+
+/**
+ * Find the last occurrence of any of the given characters.
+ * Note: Returns 'sentinel_usize' if none of the characters could be found.
+ */
+usize string_find_last_any(String, String chars);
