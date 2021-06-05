@@ -30,11 +30,11 @@ static struct AllocatorHeap g_allocatorIntern;
 
 Allocator* alloc_heap_init() {
   g_allocatorIntern = (struct AllocatorHeap){
-    (Allocator){
-        &alloc_heap_alloc,
-        &alloc_heap_free,
-        &alloc_heap_min_size,
-    },
+      (Allocator){
+          &alloc_heap_alloc,
+          &alloc_heap_free,
+          &alloc_heap_min_size,
+      },
   };
   return (Allocator*)&g_allocatorIntern;
 }

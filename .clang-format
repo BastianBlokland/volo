@@ -13,7 +13,7 @@ AlignConsecutiveDeclarations: true
 AlignAfterOpenBracket: AlwaysBreak
 AlignConsecutiveAssignments: true
 AlignEscapedNewlines: Right
-AlignOperands: false
+AlignOperands: true
 AlignTrailingComments: true
 AllowAllArgumentsOnNextLine: true
 AllowAllParametersOfDeclarationOnNextLine: true
