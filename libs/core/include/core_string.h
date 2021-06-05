@@ -50,6 +50,11 @@ typedef Mem String;
 #define string_last(_STRING_) ((u8*)(_STRING_).ptr + (_STRING_).size - 1)
 
 /**
+ * Create a string from a null-terminated character pointer.
+ */
+String string_from_null_term(const char*);
+
+/**
  * Compare strings a and b character wise.
  * Returns -1, 1 or 1.
  */

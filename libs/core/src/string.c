@@ -4,6 +4,13 @@
 #include "core_string.h"
 #include <string.h>
 
+String string_from_null_term(const char* ptr) {
+  return (String){
+      .ptr  = (void*)ptr,
+      .size = strlen(ptr),
+  };
+}
+
 i8 string_cmp(String a, String b) {
   return math_sign(strncmp((const char*)a.ptr, (const char*)b.ptr, math_min(a.size, b.size)));
 }

@@ -2,6 +2,12 @@
 #include "core_sentinel.h"
 #include "core_string.h"
 
+static void test_string_from_null_term() {
+  diag_assert(string_eq(string_from_null_term("Hello World"), string_lit("Hello World")));
+  diag_assert(string_eq(string_from_null_term("Hello\0World"), string_lit("Hello")));
+  diag_assert(string_eq(string_from_null_term("\0World"), string_lit("")));
+}
+
 static void test_string_len() {
   diag_assert(string_empty.size == 0);
   diag_assert(string_lit("").size == 0);
@@ -87,6 +93,7 @@ static void test_string_find_last_any() {
 }
 
 void test_string() {
+  test_string_from_null_term();
   test_string_len();
   test_string_is_empty();
   test_string_last();
