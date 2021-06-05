@@ -3,10 +3,21 @@
 #include "core_string.h"
 
 static void test_string_len() {
-  diag_assert(string_empty().size == 0);
+  diag_assert(string_empty.size == 0);
   diag_assert(string_lit("").size == 0);
   diag_assert(string_lit("H").size == 1);
   diag_assert(string_lit("Hello World").size == 11);
+}
+
+static void test_string_is_empty() {
+  diag_assert(string_is_empty(string_empty));
+  diag_assert(string_is_empty(string_lit("")));
+  diag_assert(!string_is_empty(string_lit("Hello World")));
+}
+
+static void test_string_last() {
+  diag_assert(*string_last(string_lit("Hello World")) == 'd');
+  diag_assert(*string_last(string_lit(" ")) == ' ');
 }
 
 static void test_string_cmp() {
@@ -24,6 +35,22 @@ static void test_string_eq() {
   diag_assert(!string_eq(string_lit(""), string_lit("H")));
   diag_assert(!string_eq(string_lit("Hello Worl"), string_lit("Hello World")));
   diag_assert(!string_eq(string_lit("ello World"), string_lit("Hello World")));
+}
+
+static void test_string_starts_with() {
+  diag_assert(string_starts_with(string_lit(""), string_lit("")));
+  diag_assert(string_starts_with(string_lit("Hello World"), string_lit("Hello")));
+  diag_assert(string_starts_with(string_lit("Hello"), string_lit("Hello")));
+  diag_assert(!string_starts_with(string_lit("Hell"), string_lit("Hello")));
+  diag_assert(!string_starts_with(string_lit("Hello World"), string_lit("Stuff")));
+}
+
+static void test_string_ends_with() {
+  diag_assert(string_ends_with(string_lit(""), string_lit("")));
+  diag_assert(string_ends_with(string_lit("Hello World"), string_lit("World")));
+  diag_assert(string_ends_with(string_lit("Hello"), string_lit("Hello")));
+  diag_assert(!string_ends_with(string_lit("Hell"), string_lit("ello")));
+  diag_assert(!string_ends_with(string_lit("Hello World"), string_lit("Stuff")));
 }
 
 static void test_string_slice() {
@@ -54,7 +81,11 @@ static void test_string_find_last_any() {
 
 void test_string() {
   test_string_len();
+  test_string_is_empty();
+  test_string_last();
   test_string_eq();
+  test_string_starts_with();
+  test_string_ends_with();
   test_string_cmp();
   test_string_slice();
   test_string_find_first_any();

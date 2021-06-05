@@ -9,6 +9,14 @@ i8 string_cmp(String a, String b) {
 
 bool string_eq(String a, String b) { return mem_eq(a, b); }
 
+bool string_starts_with(String str, String start) {
+  return str.size >= start.size && string_eq(string_slice(str, 0, start.size), start);
+}
+
+bool string_ends_with(String str, String end) {
+  return str.size >= end.size && string_eq(string_slice(str, str.size - end.size, end.size), end);
+}
+
 String string_slice(String str, usize offset, usize size) { return mem_slice(str, offset, size); }
 
 usize string_find_first_any(String string, String chars) {

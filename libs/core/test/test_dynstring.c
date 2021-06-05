@@ -19,7 +19,7 @@ static void test_dynstring_append() {
   dynstring_append(&string, string_lit("World"));
   diag_assert(string_eq(dynstring_view(&string), string_lit("Hello World")));
 
-  dynstring_append(&string, string_empty());
+  dynstring_append(&string, string_empty);
   diag_assert(string_eq(dynstring_view(&string), string_lit("Hello World")));
 
   dynstring_destroy(&string);

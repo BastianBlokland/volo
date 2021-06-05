@@ -11,7 +11,7 @@ typedef Mem String;
 /**
  * Create an empty (0 characters) string.
  */
-#define string_empty() string_lit("")
+#define string_empty string_lit("")
 
 /**
  * Check if a string is empty (has 0 characters).
@@ -44,6 +44,12 @@ typedef Mem String;
 #define string_end(_STRING_) ((u8*)(_STRING_).ptr + (_STRING_).size)
 
 /**
+ * Retrieve a u8 pointer to the last character in the string.
+ * Pre-condition: string.size > 0
+ */
+#define string_last(_STRING_) ((u8*)(_STRING_).ptr + (_STRING_).size - 1)
+
+/**
  * Compare strings a and b character wise.
  * Returns -1, 1 or 1.
  */
@@ -53,6 +59,16 @@ i8 string_cmp(String a, String b);
  * Check if strings a and b are equal.
  */
 bool string_eq(String a, String b);
+
+/**
+ * Check if a string starts with a specific sub-string.
+ */
+bool string_starts_with(String, String start);
+
+/**
+ * Check if a string ends with a specific sub-string.
+ */
+bool string_ends_with(String, String start);
 
 /**
  * Create a view to a sub-section of this string.
