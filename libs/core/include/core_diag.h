@@ -62,9 +62,9 @@ void diag_log_err(const char* format, ...);
 /**
  * Indicate that an assertion has failed, logs the given message and crashes the program.
  */
-void diag_assert_fail(const DiagCallSite*, const char* msg);
+VOLO_NORETURN void diag_assert_fail(const DiagCallSite*, const char* msg);
 
 /**
  * Crash the program, will halt if running in a debugger.
  */
-void diag_crash();
+VOLO_NORETURN void diag_crash();

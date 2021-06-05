@@ -3,8 +3,7 @@
 #include "core_format.h"
 
 static void test_format_write_u64(const u64 val, const FormatOptsInt opts, const String expected) {
-  Allocator* alloc  = alloc_bump_create_stack(128);
-  DynString  string = dynstring_create(alloc, 32);
+  DynString string = dynstring_create_over(mem_stack(128));
 
   format_write_u64(&string, val, &opts);
   diag_assert(string_eq(dynstring_view(&string), expected));
@@ -13,8 +12,7 @@ static void test_format_write_u64(const u64 val, const FormatOptsInt opts, const
 }
 
 static void test_format_write_i64(const i64 val, const FormatOptsInt opts, const String expected) {
-  Allocator* alloc  = alloc_bump_create_stack(128);
-  DynString  string = dynstring_create(alloc, 32);
+  DynString string = dynstring_create_over(mem_stack(128));
 
   format_write_i64(&string, val, &opts);
   diag_assert(string_eq(dynstring_view(&string), expected));
@@ -24,8 +22,7 @@ static void test_format_write_i64(const i64 val, const FormatOptsInt opts, const
 
 static void
 test_format_write_f64(const f64 val, const FormatOptsFloat opts, const String expected) {
-  Allocator* alloc  = alloc_bump_create_stack(128);
-  DynString  string = dynstring_create(alloc, 32);
+  DynString string = dynstring_create_over(mem_stack(128));
 
   format_write_f64(&string, val, &opts);
   diag_assert(string_eq(dynstring_view(&string), expected));
@@ -34,8 +31,7 @@ test_format_write_f64(const f64 val, const FormatOptsFloat opts, const String ex
 }
 
 static void test_format_write_bool(const bool val, const String expected) {
-  Allocator* alloc  = alloc_bump_create_stack(128);
-  DynString  string = dynstring_create(alloc, 32);
+  DynString string = dynstring_create_over(mem_stack(128));
 
   format_write_bool(&string, val);
   diag_assert(string_eq(dynstring_view(&string), expected));
@@ -44,8 +40,7 @@ static void test_format_write_bool(const bool val, const String expected) {
 }
 
 static void test_format_write_bitset(const BitSet val, const String expected) {
-  Allocator* alloc  = alloc_bump_create_stack(128);
-  DynString  string = dynstring_create(alloc, 32);
+  DynString string = dynstring_create_over(mem_stack(128));
 
   format_write_bitset(&string, val);
   diag_assert(string_eq(dynstring_view(&string), expected));
@@ -54,8 +49,7 @@ static void test_format_write_bitset(const BitSet val, const String expected) {
 }
 
 static void test_format_write_mem() {
-  Allocator* alloc  = alloc_bump_create_stack(128);
-  DynString  string = dynstring_create(alloc, 32);
+  DynString string = dynstring_create_over(mem_stack(128));
 
   u64 testData = 0x8BADF00DDEADBEEF;
   Mem testMem  = mem_create(&testData, sizeof(testData));
@@ -67,8 +61,7 @@ static void test_format_write_mem() {
 }
 
 static void test_format_write_time_duration_pretty(const TimeDuration dur, const String expected) {
-  Allocator* alloc  = alloc_bump_create_stack(128);
-  DynString  string = dynstring_create(alloc, 32);
+  DynString string = dynstring_create_over(mem_stack(128));
 
   format_write_time_duration_pretty(&string, dur);
   diag_assert(string_eq(dynstring_view(&string), expected));
@@ -77,8 +70,7 @@ static void test_format_write_time_duration_pretty(const TimeDuration dur, const
 }
 
 static void test_format_write_time_iso8601(const TimeReal time, const String expected) {
-  Allocator* alloc  = alloc_bump_create_stack(128);
-  DynString  string = dynstring_create(alloc, 64);
+  DynString string = dynstring_create_over(mem_stack(128));
 
   format_write_time_iso8601(&string, time, &format_opts_time());
   diag_assert(string_eq(dynstring_view(&string), expected));
@@ -87,8 +79,7 @@ static void test_format_write_time_iso8601(const TimeReal time, const String exp
 }
 
 static void test_format_write_size_pretty(const usize val, const String expected) {
-  Allocator* alloc  = alloc_bump_create_stack(128);
-  DynString  string = dynstring_create(alloc, 64);
+  DynString string = dynstring_create_over(mem_stack(128));
 
   format_write_size_pretty(&string, val);
   diag_assert(string_eq(dynstring_view(&string), expected));
@@ -97,8 +88,7 @@ static void test_format_write_size_pretty(const usize val, const String expected
 }
 
 static void test_format_write_text(const String val, const String expected) {
-  Allocator* alloc  = alloc_bump_create_stack(128);
-  DynString  string = dynstring_create(alloc, 64);
+  DynString string = dynstring_create_over(mem_stack(128));
 
   format_write_text(&string, val, &format_opts_text());
   diag_assert(string_eq(dynstring_view(&string), expected));

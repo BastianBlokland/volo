@@ -25,7 +25,14 @@ typedef struct {
  * until required.
  */
 #define dynarray_create_t(_ALLOCATOR_, _TYPE_, _CAPACITY_)                                         \
-  dynarray_create(_ALLOCATOR_, (u16)bits_align(sizeof(_TYPE_), alignof(_TYPE_)), _CAPACITY_)
+  dynarray_create((_ALLOCATOR_), (u16)bits_align(sizeof(_TYPE_), alignof(_TYPE_)), _CAPACITY_)
+
+/**
+ * Create a new dynamic array for items of type '_TYPE_' over the given memory.
+ * Will not allocate any memory, pushing more entries then (mem.size / stride) is not supported.
+ */
+#define dynarray_create_over_t(_MEM_, _TYPE_)                                                      \
+  dynarray_create_over((_MEM_), (u16)bits_align(sizeof(_TYPE_), alignof(_TYPE_)))
 
 /**
  * Retreive a pointer to an item in the array at index '_IDX_'.
@@ -61,6 +68,13 @@ typedef struct {
  * until required.
  */
 DynArray dynarray_create(Allocator*, u16 stride, usize capacity);
+
+/**
+ * Create a new dynamic array over the given memory, 'stride' determines the space each item
+ * occupies.
+ * Will not allocate any memory, pushing more entries then (mem.size / stride) is not supported.
+ */
+DynArray dynarray_create_over(Mem, u16 stride);
 
 /**
  * Free resources held by the dynamic-array.

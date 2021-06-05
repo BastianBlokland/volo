@@ -36,3 +36,8 @@
 #else
 #define VOLO_DEBUG_BREAK()
 #endif
+
+/**
+ * Indicates to the compiler that this function does not return.
+ */
+#define VOLO_NORETURN _Noreturn

@@ -4,6 +4,8 @@ DynString dynstring_create(Allocator* alloc, usize capacity) {
   return dynarray_create(alloc, 1u, capacity);
 }
 
+DynString dynstring_create_over(Mem memory) { return dynarray_create_over(memory, 1u); }
+
 void dynstring_destroy(DynString* dynstring) { dynarray_destroy(dynstring); }
 
 usize dynstring_size(const DynString* dynstring) { return dynarray_size(dynstring); }

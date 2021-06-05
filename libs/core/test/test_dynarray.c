@@ -75,11 +75,9 @@ static void test_dynarray_pushing_increases_size() {
 }
 
 static void test_dynarray_popping_decreases_size() {
-  Allocator* alloc = alloc_bump_create_stack(1024);
-
   const u32 startingSize = 33;
 
-  DynArray array = dynarray_create_t(alloc, u64, 8);
+  DynArray array = dynarray_create_over_t(mem_stack(512), u64);
   dynarray_resize(&array, startingSize);
 
   for (u32 i = startingSize; i-- > 0;) {
@@ -90,9 +88,7 @@ static void test_dynarray_popping_decreases_size() {
 }
 
 static void test_dynarray_remove(const u32 removeIdx, const u32 removeCount) {
-  Allocator* alloc = alloc_bump_create_stack(512);
-
-  DynArray array = dynarray_create_t(alloc, u64, 8);
+  DynArray array = dynarray_create_over_t(mem_stack(256), u64);
 
   const u64 values[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
   mem_cpy(dynarray_push(&array, array_elems(values)), array_mem(values));
@@ -116,9 +112,8 @@ static void test_dynarray_remove_unordered(
     const u32   removeIdx,
     const u32   removeCount,
     const u16*  expected) {
-  Allocator* alloc = alloc_bump_create_stack(128);
 
-  DynArray array = dynarray_create_t(alloc, u16, 8);
+  DynArray array = dynarray_create_over_t(mem_stack(256), u16);
   mem_cpy(dynarray_push(&array, initialSize), mem_create(initial, sizeof(u16) * initialSize));
 
   dynarray_remove_unordered(&array, removeIdx, removeCount);
@@ -130,9 +125,7 @@ static void test_dynarray_remove_unordered(
 }
 
 static void test_dynarray_insert(const u32 insertIdx, const u32 insertCount) {
-  Allocator* alloc = alloc_bump_create_stack(512);
-
-  DynArray array = dynarray_create_t(alloc, u32, 8);
+  DynArray array = dynarray_create_over_t(mem_stack(256), u32);
 
   const u32 values[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
   mem_cpy(dynarray_push(&array, array_elems(values)), array_mem(values));
@@ -153,12 +146,11 @@ static void test_dynarray_insert(const u32 insertIdx, const u32 insertCount) {
 }
 
 static void test_dynarray_sort() {
-  Allocator* alloc = alloc_bump_create_stack(512);
 
   const u32 values[]   = {3, 6, 5, 9, 15, 10, 4, 13, 7, 1, 8, 12, 14, 11, 2};
   const u32 expected[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
 
-  DynArray array = dynarray_create_t(alloc, u32, 8);
+  DynArray array = dynarray_create_over_t(mem_stack(256), u32);
   mem_cpy(dynarray_push(&array, array_elems(values)), array_mem(values));
 
   dynarray_sort(&array, compare_u32);

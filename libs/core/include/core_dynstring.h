@@ -18,6 +18,12 @@ typedef DynArray DynString;
 DynString dynstring_create(Allocator*, usize capacity);
 
 /**
+ * Create a new dynamic string over the given memory.
+ * Will not allocate any memory, pushing more character then mem.size is not supported.
+ */
+DynString dynstring_create_over(Mem);
+
+/**
  * Free resources held by the dynamic-string.
  */
 void dynstring_destroy(DynString*);
