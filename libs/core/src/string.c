@@ -7,3 +7,5 @@ i8 string_cmp(String a, String b) {
 }
 
 bool string_eq(String a, String b) { return mem_eq(a, b); }
+
+String string_slice(String str, usize offset, usize size) { return mem_slice(str, offset, size); }

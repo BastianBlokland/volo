@@ -25,8 +25,14 @@ static void test_string_eq() {
   diag_assert(!string_eq(string_lit("ello World"), string_lit("Hello World")));
 }
 
+static void test_string_slice() {
+  diag_assert(string_eq(string_slice(string_lit("Hello World"), 0, 5), string_lit("Hello")));
+  diag_assert(string_eq(string_slice(string_lit("Hello World"), 6, 5), string_lit("World")));
+}
+
 void test_string() {
   test_string_len();
   test_string_eq();
   test_string_cmp();
+  test_string_slice();
 }
