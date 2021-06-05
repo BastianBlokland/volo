@@ -2,6 +2,18 @@
 #include "core_dynstring.h"
 
 /**
+ * Working directory of the process.
+ * Note: Cached at startup
+ */
+extern String g_path_workingdir;
+
+/**
+ * Path to the running executable.
+ * Note: Cached at startup
+ */
+extern String g_path_executable;
+
+/**
  * Check if the given path is absolute (starts from a root directory).
  */
 bool path_is_absolute(String);

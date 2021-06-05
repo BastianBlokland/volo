@@ -21,6 +21,7 @@ add_library(volo_core STATIC
   core/src/init.c
   core/src/math.c
   core/src/memory.c
+  core/src/path_pal.c
   core/src/path.c
   core/src/sort_bubblesort.c
   core/src/sort_quicksort.c

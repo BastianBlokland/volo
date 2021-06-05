@@ -1,11 +1,12 @@
+#include "core_array.h"
 #include "core_ascii.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_path.h"
 #include "core_sentinel.h"
+#include "path_internal.h"
 
-static String g_path_seperators = string_lit("/"
-                                             "\\");
+static String g_path_seperators = string_lit("/\\");
 
 static bool path_ends_with_seperator(String str) {
   return mem_contains(g_path_seperators, *string_last(str));
@@ -25,6 +26,17 @@ static bool path_starts_with_win32_root(String path) {
   String postDriveLetter = string_slice(path, 1, 2);
   return string_eq(postDriveLetter, string_lit(":/")) ||
          string_eq(postDriveLetter, string_lit(":\\"));
+}
+
+static u8 g_path_workingdir_buffer[path_pal_max_size];
+String    g_path_workingdir = string_empty;
+
+static u8 g_path_executable_buffer[path_pal_max_size];
+String    g_path_executable = string_empty;
+
+void path_init() {
+  g_path_workingdir = path_pal_workingdir(array_mem(g_path_workingdir_buffer));
+  g_path_executable = path_pal_executable(array_mem(g_path_executable_buffer));
 }
 
 bool path_is_absolute(String path) {

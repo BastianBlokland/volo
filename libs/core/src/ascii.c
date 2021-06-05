@@ -14,7 +14,7 @@ bool ascii_is_lower(const u8 c) { return c >= 'a' && c <= 'z'; }
 
 bool ascii_is_upper(const u8 c) { return c >= 'A' && c <= 'Z'; }
 
-bool ascii_is_control(const u8 c) { return (c >= 0x00 && c <= 0x1f) || c == 0x7f; }
+bool ascii_is_control(const u8 c) { return c <= 0x1f || c == 0x7f; }
 
 bool ascii_is_whitespace(const u8 c) { return c == ' ' || c == '\t' || (c >= 0x0A && c <= 0x0D); }
 

@@ -7,6 +7,7 @@ void alloc_init();
 void time_init();
 void file_init();
 void tty_init();
+void path_init();
 
 void tty_teardown();
 
@@ -18,6 +19,7 @@ void core_init() {
     time_init();
     file_init();
     tty_init();
+    path_init();
   }
 }
 
