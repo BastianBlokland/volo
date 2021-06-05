@@ -16,6 +16,7 @@ void test_float();
 void test_format();
 void test_math();
 void test_memory();
+void test_path();
 void test_sort();
 void test_string();
 void test_time();
@@ -43,6 +44,7 @@ int main() {
   test_format();
   test_math();
   test_memory();
+  test_path();
   test_sort();
   test_string();
   test_time();
