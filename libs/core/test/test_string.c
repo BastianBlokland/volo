@@ -58,6 +58,13 @@ static void test_string_slice() {
   diag_assert(string_eq(string_slice(string_lit("Hello World"), 6, 5), string_lit("World")));
 }
 
+static void test_string_consume() {
+  diag_assert(string_eq(string_consume(string_lit("Hello World"), 5), string_lit(" World")));
+  diag_assert(string_eq(string_consume(string_lit(" "), 1), string_lit("")));
+  diag_assert(string_eq(string_consume(string_lit(""), 0), string_lit("")));
+  diag_assert(string_eq(string_consume(string_lit("Hello"), 0), string_lit("Hello")));
+}
+
 static void test_string_find_first_any() {
   diag_assert(string_find_first_any(string_lit(""), string_lit(" ")) == sentinel_usize);
   diag_assert(string_find_first_any(string_lit(""), string_lit("\0")) == sentinel_usize);
@@ -88,6 +95,7 @@ void test_string() {
   test_string_ends_with();
   test_string_cmp();
   test_string_slice();
+  test_string_consume();
   test_string_find_first_any();
   test_string_find_last_any();
 }

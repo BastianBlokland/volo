@@ -1,3 +1,4 @@
+#include "core_diag.h"
 #include "core_math.h"
 #include "core_sentinel.h"
 #include "core_string.h"
@@ -18,6 +19,14 @@ bool string_ends_with(String str, String end) {
 }
 
 String string_slice(String str, usize offset, usize size) { return mem_slice(str, offset, size); }
+
+String string_consume(String str, usize amount) {
+  diag_assert(str.size >= amount);
+  return (String){
+      .ptr  = (u8*)str.ptr + amount,
+      .size = str.size - amount,
+  };
+}
 
 usize string_find_first_any(String string, String chars) {
   mem_for_u8(string, c, {

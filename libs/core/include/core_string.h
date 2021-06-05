@@ -77,6 +77,12 @@ bool string_ends_with(String, String start);
 String string_slice(String, usize offset, usize size);
 
 /**
+ * Create a view 'amount' characters into the string.
+ * Pre-condition: string.size >= amount.
+ */
+String string_consume(String, usize amount);
+
+/**
  * Find the first occurrence of any of the given characters.
  * Note: Returns 'sentinel_usize' if none of the characters could be found.
  */
