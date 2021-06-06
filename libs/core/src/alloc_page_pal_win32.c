@@ -24,7 +24,7 @@ static void alloc_page_free(Allocator* allocator, Mem mem) {
   diag_assert(mem_valid(mem));
 
   const bool success = VirtualFree(mem.ptr, 0, MEM_RELEASE) == TRUE;
-  diag_assert_msg(success, "VirtualFree() failed");
+  diag_assert_msg(success, string_lit("VirtualFree() failed"));
   (void)success;
 }
 

@@ -1,6 +1,4 @@
-#include "core_dynstring.h"
-#include "core_file.h"
-#include "core_format.h"
+#include "core_diag.h"
 #include "core_init.h"
 #include "core_path.h"
 #include "core_time.h"
@@ -54,16 +52,11 @@ int main() {
   test_utf8();
   test_winutils();
 
-  const TimeDuration duration = time_steady_duration(timeStart, time_steady_clock());
-
-  DynString outBuffer = dynstring_create(g_allocator_heap, 512);
-  dynstring_append(&outBuffer, path_stem(g_path_executable));
-  dynstring_append(&outBuffer, string_lit(": passed, time: "));
-  format_write_time_duration_pretty(&outBuffer, duration);
-  dynstring_append(&outBuffer, string_lit("\n"));
-  file_write_sync(g_file_stdout, dynstring_view(&outBuffer));
-  dynstring_destroy(&outBuffer);
+  diag_log(
+      "{}: passed, time: {}\n",
+      fmt_text(path_stem(g_path_executable)),
+      fmt_duration(time_steady_duration(timeStart, time_steady_clock())));
 
   core_teardown();
-  return 1;
+  return 0;
 }

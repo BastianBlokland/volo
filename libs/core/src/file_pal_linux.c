@@ -61,7 +61,7 @@ file_create(Allocator* alloc, String path, FileMode mode, FileAccessFlags access
     flags |= O_CREAT | O_TRUNC;
     break;
   default:
-    diag_assert_msg(false, "Invalid FileMode");
+    diag_assert_msg(false, string_lit("Invalid FileMode"));
   }
 
   if (access & FileAccess_Read) {
@@ -113,7 +113,7 @@ FileResult file_temp(Allocator* alloc, File** file) {
 }
 
 void file_destroy(File* file) {
-  diag_assert_msg(file->alloc, "Invalid file");
+  diag_assert_msg(file->alloc, string_lit("Invalid file"));
   close(file->handle);
   alloc_free(file->alloc, file->allocation);
 }

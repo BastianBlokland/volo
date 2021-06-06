@@ -28,7 +28,7 @@ void time_pal_init() {
 TimeSteady time_pal_steady_clock() {
   LARGE_INTEGER prefTicks;
   const BOOL    res = QueryPerformanceCounter(&prefTicks);
-  diag_assert_msg(res, "QueryPerformanceCounter() failed");
+  diag_assert_msg(res, string_lit("QueryPerformanceCounter() failed"));
   (void)res;
   return prefTicks.QuadPart * 1000000LL / g_perfCounterFrequency * 1000LL;
 }
@@ -48,7 +48,7 @@ TimeZone time_pal_zone_current() {
     return -(TimeZone)(timeZoneInfo.Bias + timeZoneInfo.DaylightBias);
   case TIME_ZONE_ID_INVALID:
   default:
-    diag_assert_msg(false, "GetTimeZoneInformation() failed");
+    diag_assert_msg(false, string_lit("GetTimeZoneInformation() failed"));
     return 0;
   }
 }

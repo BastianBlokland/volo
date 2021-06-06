@@ -1,19 +1,20 @@
 #pragma once
 #include "core_annotation.h"
+#include "core_format.h"
 #include "core_types.h"
 
 /**
  * Information to identify a callsite in the source-code.
  */
 typedef struct {
-  const char* file;
-  u32         line;
+  String file;
+  u32    line;
 } DiagCallSite;
 
 /**
- * Return a 'const char*' containing the current source-file path.
+ * Return a String containing the current source-file path.
  */
-#define diag_file() (__FILE__)
+#define diag_file() string_lit(__FILE__)
 
 /**
  * Return a 'u32' containing the current source line number.
@@ -42,22 +43,36 @@ typedef struct {
 /**
  * Fail the program if the given condition evaluates to false.
  */
-#define diag_assert(_CONDITION_) diag_assert_msg(_CONDITION_, #_CONDITION_)
+#define diag_assert(_CONDITION_) diag_assert_msg(_CONDITION_, string_lit(#_CONDITION_))
 
 /**
  * Log a message to the stdout stream.
  */
-void diag_log(const char* format, ...);
+#define diag_log(_FORMAT_LIT_, ...)                                                                \
+  diag_log_formatted(                                                                              \
+      string_lit(_FORMAT_LIT_), (const FormatArg[]){__VA_ARGS__}, COUNT_VA_ARGS(__VA_ARGS__))
 
 /**
  * Log a message to the stderr stream.
  */
-void diag_log_err(const char* format, ...);
+#define diag_log_err(_FORMAT_LIT_, ...)                                                            \
+  diag_log_err_formatted(                                                                          \
+      string_lit(_FORMAT_LIT_), (const FormatArg[]){__VA_ARGS__}, COUNT_VA_ARGS(__VA_ARGS__))
+
+/**
+ * Log a message to the stdout stream.
+ */
+void diag_log_formatted(String format, const FormatArg* args, usize argsCount);
+
+/**
+ * Log a message to the stderr stream.
+ */
+void diag_log_err_formatted(String format, const FormatArg* args, usize argsCount);
 
 /**
  * Indicate that an assertion has failed, logs the given message and crashes the program.
  */
-VOLO_NORETURN void diag_assert_fail(const DiagCallSite*, const char* msg);
+VOLO_NORETURN void diag_assert_fail(const DiagCallSite*, String msg);
 
 /**
  * Crash the program, will halt if running in a debugger.

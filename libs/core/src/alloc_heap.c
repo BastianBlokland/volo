@@ -1,6 +1,9 @@
 #include "alloc_internal.h"
 #include "core_diag.h"
-#include <stdlib.h>
+
+// Forward declare libc malloc(size_t) and free(void*).
+void* malloc(size_t);
+void  free(void*);
 
 struct AllocatorHeap {
   Allocator api;

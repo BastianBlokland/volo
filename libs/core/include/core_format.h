@@ -1,6 +1,7 @@
 #pragma once
 #include "core_bitset.h"
 #include "core_dynstring.h"
+#include "core_macro.h"
 #include "core_time.h"
 #include "core_types.h"
 
@@ -128,6 +129,14 @@ typedef struct {
  * Create text formatting argument from a string literal.
  */
 #define fmt_text_lit(_VAL_) fmt_text(string_lit(_VAL_))
+
+/**
+ * Write a format string with arguments.
+ * '{}' entries are replaced by arguments in order of appearance.
+ */
+#define format_write(_DYNSTRING_, _FORMAT_LIT_, ...)                                               \
+  format_write_formatted( (_DYNSTRING_),                                                           \
+      string_lit(_FORMAT_LIT_), (const FormatArg[]){__VA_ARGS__}, COUNT_VA_ARGS(__VA_ARGS__))
 
 // clang-format on
 
