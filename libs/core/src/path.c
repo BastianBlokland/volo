@@ -6,7 +6,7 @@
 #include "core_sentinel.h"
 #include "path_internal.h"
 
-static String g_path_seperators = string_lit("/\\");
+static String g_path_seperators = string_static("/\\");
 
 static bool path_ends_with_seperator(String str) {
   return mem_contains(g_path_seperators, *string_last(str));
@@ -29,10 +29,10 @@ static bool path_starts_with_win32_root(String path) {
 }
 
 static u8 g_path_workingdir_buffer[path_pal_max_size];
-String    g_path_workingdir = string_empty;
+String    g_path_workingdir = {0};
 
 static u8 g_path_executable_buffer[path_pal_max_size];
-String    g_path_executable = string_empty;
+String    g_path_executable = {0};
 
 void path_init() {
   g_path_workingdir = path_pal_workingdir(array_mem(g_path_workingdir_buffer));

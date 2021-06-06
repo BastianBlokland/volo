@@ -71,8 +71,20 @@ macro(set_msvc_compile_options)
   # Use the c11 standard.
   add_compile_options(/TC /std:c11)
 
+  # Use utf8 for both the source and the executable format.
+  add_compile_options(/utf-8)
+
   # Setup warning flags.
-  add_compile_options(/W4 /WX /wd4127 /wd5105)
+  add_compile_options(/W4 /WX /wd4127 /wd5105 /wd4244)
+
+  # Ignore unused local variable warning,
+  # Current MSVC version (19.29.30037) reports allot of false positives on compiler generated
+  # temporaries ($SXX variables).
+  add_compile_options(/wd4189)
+
+  # Enabling the conformant pre-preprocessor. More info:
+  # https://devblogs.microsoft.com/cppblog/announcing-full-support-for-a-c-c-conformant-preprocessor-in-msvc/
+  add_compile_options(/Zc:preprocessor)
 
   # Use syncronous pdb writes, reason is Ninja spawns multiple compiler processes that can end up
   # writing to the same pdb.

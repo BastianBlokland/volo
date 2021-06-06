@@ -18,7 +18,7 @@ void format_write_u64(DynString* str, u64 val, const FormatOptsInt* opts) {
     val /= opts->base;
   } while (++digitsWritten < opts->minDigits || val);
 
-  const u8 numDigits = mem_end(buffer) - ptr;
+  const u8 numDigits = (u8)(mem_end(buffer) - ptr);
   dynstring_append(str, mem_create(ptr, numDigits));
 }
 
@@ -27,7 +27,7 @@ void format_write_i64(DynString* str, i64 val, const FormatOptsInt* opts) {
     dynstring_append_char(str, '-');
     val = -val;
   }
-  return format_write_u64(str, val, opts);
+  format_write_u64(str, val, opts);
 }
 
 struct FormatF64Exp {
@@ -179,13 +179,13 @@ void format_write_time_duration_pretty(DynString* str, const TimeDuration val) {
     TimeDuration val;
     String       str;
   } units[] = {
-      {time_nanosecond, string_lit("ns")},
-      {time_microsecond, string_lit("us")},
-      {time_millisecond, string_lit("ms")},
-      {time_second, string_lit("s")},
-      {time_minute, string_lit("m")},
-      {time_hour, string_lit("h")},
-      {time_day, string_lit("d")},
+      {time_nanosecond, string_static("ns")},
+      {time_microsecond, string_static("us")},
+      {time_millisecond, string_static("ms")},
+      {time_second, string_static("s")},
+      {time_minute, string_static("m")},
+      {time_hour, string_static("h")},
+      {time_day, string_static("d")},
   };
   const TimeDuration absVal = math_abs(val);
   size_t             i      = 0;
@@ -244,12 +244,12 @@ void format_write_time_iso8601(DynString* str, const TimeReal val, const FormatO
 
 void format_write_size_pretty(DynString* str, const usize val) {
   static String units[] = {
-      string_lit("B"),
-      string_lit("KiB"),
-      string_lit("MiB"),
-      string_lit("GiB"),
-      string_lit("TiB"),
-      string_lit("PiB"),
+      string_static("B"),
+      string_static("KiB"),
+      string_static("MiB"),
+      string_static("GiB"),
+      string_static("TiB"),
+      string_static("PiB"),
   };
 
   u8  unit       = 0;
@@ -267,14 +267,14 @@ void format_write_text(DynString* str, String val, const FormatOptsText* opts) {
     u8     byte;
     String escapeSeq;
   } escapes[] = {
-      {'"', string_lit("\\\"")},
-      {'\\', string_lit("\\\\")},
-      {'\r', string_lit("\\r")},
-      {'\n', string_lit("\\n")},
-      {'\t', string_lit("\\t")},
-      {'\b', string_lit("\\b")},
-      {'\f', string_lit("\\f")},
-      {'\0', string_lit("\\0")},
+      {'"', string_static("\\\"")},
+      {'\\', string_static("\\\\")},
+      {'\r', string_static("\\r")},
+      {'\n', string_static("\\n")},
+      {'\t', string_static("\\t")},
+      {'\b', string_static("\\b")},
+      {'\f', string_static("\\f")},
+      {'\0', string_static("\\0")},
   };
 
   mem_for_u8(val, byte, {

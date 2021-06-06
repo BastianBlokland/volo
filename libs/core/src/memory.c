@@ -10,7 +10,7 @@ void mem_set(const Mem mem, const u8 val) {
 
 void mem_cpy(const Mem dst, const Mem src) {
   diag_assert(mem_valid(dst));
-  diag_assert(mem_valid(src));
+  diag_assert(!src.size || mem_valid(src));
   diag_assert(dst.size >= src.size);
   memcpy(dst.ptr, src.ptr, src.size);
 }
@@ -41,8 +41,8 @@ i8 mem_cmp(Mem a, Mem b) {
 }
 
 bool mem_eq(Mem a, Mem b) {
-  diag_assert(mem_valid(a));
-  diag_assert(mem_valid(b));
+  diag_assert(!a.size || mem_valid(a));
+  diag_assert(!b.size || mem_valid(b));
   return a.size == b.size && memcmp(a.ptr, b.ptr, a.size) == 0;
 }
 

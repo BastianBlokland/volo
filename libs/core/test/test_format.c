@@ -207,11 +207,15 @@ void test_format() {
   test_format_write_size_pretty(42, string_lit("42B"));
   test_format_write_size_pretty(42 * usize_kibibyte, string_lit("42KiB"));
   test_format_write_size_pretty(42 * usize_mebibyte, string_lit("42MiB"));
-  test_format_write_size_pretty(42 * usize_gibibyte, string_lit("42GiB"));
-  test_format_write_size_pretty(42 * usize_tebibyte, string_lit("42TiB"));
-  test_format_write_size_pretty(42 * usize_pebibyte, string_lit("42PiB"));
-  test_format_write_size_pretty(42 * usize_mebibyte + 200 * usize_kibibyte, string_lit("42.2MiB"));
-  test_format_write_size_pretty(2048 * usize_pebibyte, string_lit("2048PiB"));
+  test_format_write_size_pretty(3 * usize_gibibyte, string_lit("3GiB"));
+  if (sizeof(usize) == 8) { // 64 bit only sizes.
+    test_format_write_size_pretty(42 * usize_gibibyte, string_lit("42GiB"));
+    test_format_write_size_pretty(42 * usize_tebibyte, string_lit("42TiB"));
+    test_format_write_size_pretty(42 * usize_pebibyte, string_lit("42PiB"));
+    test_format_write_size_pretty(
+        42 * usize_mebibyte + 200 * usize_kibibyte, string_lit("42.2MiB"));
+    test_format_write_size_pretty(2048 * usize_pebibyte, string_lit("2048PiB"));
+  }
 
   test_format_write_text(string_lit(""), string_lit(""));
   test_format_write_text(string_lit("\fHello\nWorld\\b"), string_lit("\\fHello\\nWorld\\b"));

@@ -4,18 +4,18 @@
 #include "file_internal.h"
 
 static const String g_file_result_strs[] = {
-    string_lit("FileSuccess"),
-    string_lit("FileAlreadyExists"),
-    string_lit("FileDiskFull"),
-    string_lit("FileInvalidFilename"),
-    string_lit("FileLocked"),
-    string_lit("FileNoAccess"),
-    string_lit("FileNoDataAvailable"),
-    string_lit("FileNotFound"),
-    string_lit("FilePathTooLong"),
-    string_lit("FilePathInvalid"),
-    string_lit("FileTooManyOpen"),
-    string_lit("FileUnknownError"),
+    string_static("FileSuccess"),
+    string_static("FileAlreadyExists"),
+    string_static("FileDiskFull"),
+    string_static("FileInvalidFilename"),
+    string_static("FileLocked"),
+    string_static("FileNoAccess"),
+    string_static("FileNoDataAvailable"),
+    string_static("FileNotFound"),
+    string_static("FilePathTooLong"),
+    string_static("FilePathInvalid"),
+    string_static("FileTooManyOpen"),
+    string_static("FileUnknownError"),
 };
 
 diag_static_assert(

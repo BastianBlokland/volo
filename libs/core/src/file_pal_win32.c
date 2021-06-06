@@ -10,19 +10,19 @@ File* g_file_stdout;
 File* g_file_stderr;
 
 void file_pal_init() {
-  static File stdIn = {};
+  static File stdIn = {0};
   stdIn.handle      = GetStdHandle(STD_INPUT_HANDLE);
   if (stdIn.handle != INVALID_HANDLE_VALUE) {
     g_file_stdin = &stdIn;
   }
 
-  static File stdOut = {};
+  static File stdOut = {0};
   stdOut.handle      = GetStdHandle(STD_OUTPUT_HANDLE);
   if (stdOut.handle != INVALID_HANDLE_VALUE) {
     g_file_stdout = &stdOut;
   }
 
-  static File stdErr = {};
+  static File stdErr = {0};
   stdErr.handle      = GetStdHandle(STD_ERROR_HANDLE);
   if (stdErr.handle != INVALID_HANDLE_VALUE) {
     g_file_stderr = &stdErr;

@@ -11,7 +11,7 @@ typedef Mem String;
 /**
  * Create an empty (0 characters) string.
  */
-#define string_empty string_lit("")
+#define string_empty ((String){0})
 
 /**
  * Check if a string is empty (has 0 characters).
@@ -21,11 +21,13 @@ typedef Mem String;
 /**
  * Create a string over a character literal.
  */
-#define string_lit(_LIT_)                                                                          \
-  ((String){                                                                                       \
-      .ptr  = (void*)(_LIT_),                                                                      \
-      .size = sizeof(_LIT_) - 1u,                                                                  \
-  })
+#define string_static(_LIT_)                                                                       \
+  { .ptr = (void*)(_LIT_), .size = sizeof(_LIT_) - 1u, }
+
+/**
+ * Create a string over a character literal.
+ */
+#define string_lit(_LIT_) ((String)string_static(_LIT_))
 
 /**
  * Retrieve a u8 pointer to a specific character.
