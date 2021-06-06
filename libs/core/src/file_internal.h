@@ -6,7 +6,7 @@ typedef int FileHandle;
 #elif defined(VOLO_WIN32)
 typedef void* FileHandle;
 #else
-diag_static_assert(false, "Unsupported platform");
+_Static_assert(false, "Unsupported platform");
 #endif
 
 struct sFile {

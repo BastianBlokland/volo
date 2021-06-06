@@ -1,5 +1,4 @@
 #pragma once
-#include "core_diag.h"
 #include "core_types.h"
 
 /**
@@ -12,5 +11,5 @@
 #elif defined(VOLO_MSVC)
 #define alignof(_TYPE_) ((u32) __alignof(_TYPE_))
 #else
-diag_static_assert(false, "Unsupported compiler");
+_Static_assert(false, "Unsupported compiler");
 #endif

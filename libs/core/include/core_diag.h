@@ -45,11 +45,6 @@ typedef struct {
 #define diag_assert(_CONDITION_) diag_assert_msg(_CONDITION_, #_CONDITION_)
 
 /**
- * Fail the compilation if given condition evaluates to false.
- */
-#define diag_static_assert(_CONDITION_, _MSG_) _Static_assert(_CONDITION_, _MSG_)
-
-/**
  * Log a message to the stdout stream.
  */
 void diag_log(const char* format, ...);
