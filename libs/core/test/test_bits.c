@@ -17,26 +17,42 @@ static void test_bits_popcnt_64() {
   diag_assert(bits_popcnt_64(0xFFFFFFFFFFFFFFFF) == 64);
 }
 
-static void test_bits_ctz() {
-  diag_assert(bits_ctz(0b01000100010001000100010011000111) == 0);
-  diag_assert(bits_ctz(0b01000100010001000100010011000110) == 1);
-  diag_assert(bits_ctz(0b01000100010001000100010011000100) == 2);
-  diag_assert(bits_ctz(0b01000100010001000100010011000000) == 6);
-  diag_assert(bits_ctz(0b01000100010001000100010010000000) == 7);
-  diag_assert(bits_ctz(0b01000100010001000100010000000000) == 10);
-  diag_assert(bits_ctz(0b10000000000000000000000000000000) == 31);
-  diag_assert(bits_ctz(0b00000000000000000000000000000000) == 32);
+static void test_bits_ctz_32() {
+  diag_assert(bits_ctz_32(0b01000100010001000100010011000111) == 0);
+  diag_assert(bits_ctz_32(0b01000100010001000100010011000110) == 1);
+  diag_assert(bits_ctz_32(0b01000100010001000100010011000100) == 2);
+  diag_assert(bits_ctz_32(0b01000100010001000100010011000000) == 6);
+  diag_assert(bits_ctz_32(0b01000100010001000100010010000000) == 7);
+  diag_assert(bits_ctz_32(0b01000100010001000100010000000000) == 10);
+  diag_assert(bits_ctz_32(0b10000000000000000000000000000000) == 31);
+  diag_assert(bits_ctz_32(0b00000000000000000000000000000000) == 32);
 }
 
-static void test_bits_clz() {
-  diag_assert(bits_clz(0b11000100010001000100010011000100) == 0);
-  diag_assert(bits_clz(0b01000100010001000100010011000101) == 1);
-  diag_assert(bits_clz(0b00111100010001000100010011000100) == 2);
-  diag_assert(bits_clz(0b00000010011001000100010011001100) == 6);
-  diag_assert(bits_clz(0b00000001110001000100010010000011) == 7);
-  diag_assert(bits_clz(0b00000000001101000100010000010000) == 10);
-  diag_assert(bits_clz(0b00000000000000000000000000000001) == 31);
-  diag_assert(bits_clz(0b00000000000000000000000000000000) == 32);
+static void test_bits_ctz_64() {
+  diag_assert(bits_ctz_64(0xFFFFFFFFFFFFFFFF) == 0);
+  diag_assert(bits_ctz_64(1) == 0);
+  diag_assert(bits_ctz_64(0b0100010001000100010001001100000001000100010001000100010011000000) == 6);
+  diag_assert(
+      bits_ctz_64(0b0100010001000100010001001000000000000000000000000000000000000000) == 39);
+  diag_assert(bits_ctz_64(0) == 64);
+}
+
+static void test_bits_clz_32() {
+  diag_assert(bits_clz_32(0b11000100010001000100010011000100) == 0);
+  diag_assert(bits_clz_32(0b01000100010001000100010011000101) == 1);
+  diag_assert(bits_clz_32(0b00111100010001000100010011000100) == 2);
+  diag_assert(bits_clz_32(0b00000010011001000100010011001100) == 6);
+  diag_assert(bits_clz_32(0b00000001110001000100010010000011) == 7);
+  diag_assert(bits_clz_32(0b00000000001101000100010000010000) == 10);
+  diag_assert(bits_clz_32(0b00000000000000000000000000000001) == 31);
+  diag_assert(bits_clz_32(0b00000000000000000000000000000000) == 32);
+}
+
+static void test_bits_clz_64() {
+  diag_assert(bits_clz_64(0xFFFFFFFFFFFFFFFF) == 0);
+  diag_assert(bits_clz_64(1) == 63);
+  diag_assert(bits_clz_64(0b010001000100010001) == 47);
+  diag_assert(bits_clz_64(0) == 64);
 }
 
 static void test_bits_ispow2() {
@@ -106,10 +122,12 @@ static void test_bits_float_conversions() {
 }
 
 void test_bits() {
-  test_bits_ctz();
   test_bits_popcnt_32();
   test_bits_popcnt_64();
-  test_bits_clz();
+  test_bits_ctz_32();
+  test_bits_ctz_64();
+  test_bits_clz_32();
+  test_bits_clz_64();
   test_bits_ispow2();
   test_bits_nextpow2();
   test_bits_padding();

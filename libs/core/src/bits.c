@@ -24,20 +24,33 @@ u8 bits_popcnt_64(const u64 mask) {
 #endif
 }
 
-u32 bits_ctz(const u32 mask) {
+u8 bits_ctz_32(const u32 mask) {
   if (mask == 0u) {
     return 32;
   }
 #ifdef VOLO_MSVC
   unsigned long result;
   _BitScanForward(&result, mask);
-  return (u32)result;
+  return (u8)result;
 #else
   return __builtin_ctz(mask);
 #endif
 }
 
-u32 bits_clz(const u32 mask) {
+u8 bits_ctz_64(const u64 mask) {
+  if (mask == 0u) {
+    return 64;
+  }
+#ifdef VOLO_MSVC
+  unsigned long result;
+  _BitScanForward64(&result, mask);
+  return (u8)result;
+#else
+  return __builtin_ctzll(mask);
+#endif
+}
+
+u8 bits_clz_32(const u32 mask) {
   if (mask == 0u) {
     return 32u;
   }
@@ -50,6 +63,19 @@ u32 bits_clz(const u32 mask) {
 #endif
 }
 
+u8 bits_clz_64(const u64 mask) {
+  if (mask == 0u) {
+    return 64u;
+  }
+#ifdef VOLO_MSVC
+  unsigned long result;
+  _BitScanReverse64(&result, mask);
+  return (u8)(63u - result);
+#else
+  return __builtin_clzll(mask);
+#endif
+}
+
 bool bits_ispow2(const u32 val) {
   diag_assert(val != 0);
   // Ref: https://graphics.stanford.edu/~seander/bithacks.html#DetermineIfPowerOf2.
@@ -59,7 +85,7 @@ bool bits_ispow2(const u32 val) {
 u32 bits_nextpow2(const u32 val) {
   diag_assert(val != 0u);
   diag_assert(val <= 2147483648u);
-  return 1u << (32u - bits_clz(val - 1u));
+  return 1u << (32u - bits_clz_32(val - 1u));
 }
 
 u32 bits_hash32(const Mem mem) {

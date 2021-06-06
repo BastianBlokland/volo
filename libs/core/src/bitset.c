@@ -55,12 +55,12 @@ usize bitset_next(BitSet bits, usize idx) {
   usize byteIdx = bits_to_bytes(idx);
   u8    byte    = *mem_at_u8(bits, byteIdx) >> bit_in_byte(idx);
   if (byte) {
-    return idx + bits_ctz(byte);
+    return idx + bits_ctz_32(byte);
   }
   for (++byteIdx; byteIdx != bits.size; ++byteIdx) {
     byte = *mem_at_u8(bits, byteIdx);
     if (byte) {
-      return bytes_to_bits(byteIdx) + bits_ctz(byte);
+      return bytes_to_bits(byteIdx) + bits_ctz_32(byte);
     }
   }
   return sentinel_usize;
