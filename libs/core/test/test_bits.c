@@ -76,18 +76,6 @@ static void test_bits_ispow2_32() {
 
 static void test_bits_ispow2_64() {
   // Undefined for val == 0.
-  diag_assert(bits_ispow2_64(1));
-  diag_assert(bits_ispow2_64(2));
-  diag_assert(!bits_ispow2_64(3));
-  diag_assert(bits_ispow2_64(4));
-  diag_assert(!bits_ispow2_64(5));
-  diag_assert(!bits_ispow2_64(6));
-  diag_assert(!bits_ispow2_64(7));
-  diag_assert(bits_ispow2_64(8));
-  diag_assert(!bits_ispow2_64(9));
-  diag_assert(bits_ispow2_64(16));
-  diag_assert(bits_ispow2_64(32));
-  diag_assert(!bits_ispow2_64(63));
   diag_assert(bits_ispow2_64(128));
   diag_assert(!bits_ispow2_64(2147483647));
   diag_assert(bits_ispow2_64(2147483648));
@@ -97,29 +85,44 @@ static void test_bits_ispow2_64() {
   diag_assert(bits_ispow2_64(34359738368));
   diag_assert(!bits_ispow2_64(68719476735));
   diag_assert(bits_ispow2_64(68719476736));
+  diag_assert(bits_ispow2_64(9223372036854775808ull));
 }
 
-static void test_bits_nextpow2() {
+static void test_bits_nextpow2_32() {
   // Undefined for val == 0.
-  diag_assert(bits_nextpow2(1) == 1);
-  diag_assert(bits_nextpow2(2) == 2);
-  diag_assert(bits_nextpow2(3) == 4);
-  diag_assert(bits_nextpow2(4) == 4);
-  diag_assert(bits_nextpow2(5) == 8);
-  diag_assert(bits_nextpow2(6) == 8);
-  diag_assert(bits_nextpow2(7) == 8);
-  diag_assert(bits_nextpow2(8) == 8);
-  diag_assert(bits_nextpow2(9) == 16);
-  diag_assert(bits_nextpow2(16) == 16);
-  diag_assert(bits_nextpow2(32) == 32);
-  diag_assert(bits_nextpow2(63) == 64);
-  diag_assert(bits_nextpow2(128) == 128);
-  diag_assert(bits_nextpow2(255) == 256);
-  diag_assert(bits_nextpow2(257) == 512);
-  diag_assert(bits_nextpow2(4096) == 4096);
-  diag_assert(bits_nextpow2(2147483647) == 2147483648);
-  diag_assert(bits_nextpow2(2147483648) == 2147483648);
+  diag_assert(bits_nextpow2_32(1) == 1);
+  diag_assert(bits_nextpow2_32(2) == 2);
+  diag_assert(bits_nextpow2_32(3) == 4);
+  diag_assert(bits_nextpow2_32(4) == 4);
+  diag_assert(bits_nextpow2_32(5) == 8);
+  diag_assert(bits_nextpow2_32(6) == 8);
+  diag_assert(bits_nextpow2_32(7) == 8);
+  diag_assert(bits_nextpow2_32(8) == 8);
+  diag_assert(bits_nextpow2_32(9) == 16);
+  diag_assert(bits_nextpow2_32(16) == 16);
+  diag_assert(bits_nextpow2_32(32) == 32);
+  diag_assert(bits_nextpow2_32(63) == 64);
+  diag_assert(bits_nextpow2_32(128) == 128);
+  diag_assert(bits_nextpow2_32(255) == 256);
+  diag_assert(bits_nextpow2_32(257) == 512);
+  diag_assert(bits_nextpow2_32(4096) == 4096);
+  diag_assert(bits_nextpow2_32(2147483647) == 2147483648);
+  diag_assert(bits_nextpow2_32(2147483648) == 2147483648);
   // Undefined for val > 2147483648.
+}
+
+static void test_bits_nextpow2_64() {
+  // Undefined for val == 0.
+  diag_assert(bits_nextpow2_64(128) == 128);
+  diag_assert(bits_nextpow2_64(255) == 256);
+  diag_assert(bits_nextpow2_64(257) == 512);
+  diag_assert(bits_nextpow2_64(4096) == 4096);
+  diag_assert(bits_nextpow2_64(2147483647) == 2147483648);
+  diag_assert(bits_nextpow2_64(68719476735) == 68719476736);
+  diag_assert(bits_nextpow2_64(68719476736) == 68719476736);
+  diag_assert(bits_nextpow2_64(9223372036854775807ull) == 9223372036854775808ull);
+  diag_assert(bits_nextpow2_64(9223372036854775808ull) == 9223372036854775808ull);
+  // Undefined for val > 9223372036854775808ull.
 }
 
 static void test_bits_padding() {
@@ -155,7 +158,8 @@ void test_bits() {
   test_bits_clz_64();
   test_bits_ispow2_32();
   test_bits_ispow2_64();
-  test_bits_nextpow2();
+  test_bits_nextpow2_32();
+  test_bits_nextpow2_64();
   test_bits_padding();
   test_bits_align();
   test_bits_float_conversions();

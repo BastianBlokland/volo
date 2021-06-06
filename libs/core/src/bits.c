@@ -88,13 +88,19 @@ bool bits_ispow2_64(const u64 val) {
   return (val & (val - 1u)) == 0;
 }
 
-u32 bits_nextpow2(const u32 val) {
+u32 bits_nextpow2_32(const u32 val) {
   diag_assert(val != 0u);
   diag_assert(val <= 2147483648u);
   return 1u << (32u - bits_clz_32(val - 1u));
 }
 
-u32 bits_hash32(const Mem mem) {
+u64 bits_nextpow2_64(const u64 val) {
+  diag_assert(val != 0u);
+  diag_assert(val <= 9223372036854775808ull);
+  return 1ull << (64ull - bits_clz_64(val - 1ull));
+}
+
+u32 bits_hash_32(const Mem mem) {
   /**
    * Fowler–Noll–Vo hash function.
    * Ref: http://www.isthe.com/chongo/tech/comp/fnv/index.html

@@ -12,7 +12,7 @@ DynArray dynarray_create(Allocator* alloc, const u16 stride, const usize capacit
       .alloc  = alloc,
   };
   if (capacity) {
-    const usize capacityBytes = bits_nextpow2(capacity * stride);
+    const usize capacityBytes = bits_nextpow2_64(capacity * stride);
     array.data                = alloc_alloc(alloc, capacityBytes);
     diag_assert_msg(mem_valid(array.data), "Allocation failed");
   }
@@ -49,7 +49,7 @@ void dynarray_resize(DynArray* array, const usize size) {
       diag_assert_fail(&diag_callsite_create(), "DynArray without an allocator ran out of memory");
     }
 
-    const Mem newMem = alloc_alloc(array->alloc, bits_nextpow2(size * array->stride));
+    const Mem newMem = alloc_alloc(array->alloc, bits_nextpow2_64(size * array->stride));
     diag_assert_msg(mem_valid(newMem), "Allocation failed");
 
     if (likely(mem_valid(array->data))) {

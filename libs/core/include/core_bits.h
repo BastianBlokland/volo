@@ -46,14 +46,17 @@ bool bits_ispow2_64(u64);
 
 /**
  * Return the next power of two greater or equal to val.
- * Pre-condition: val > 0 && val <= 2147483648.
+ * Pre-condition: val > 0
+ * Pre-condition for 32 bit: val <= 2147483648.
+ * Pre-condition for 64 bit: val <= 9223372036854775808.
  */
-u32 bits_nextpow2(u32);
+u32 bits_nextpow2_32(u32);
+u64 bits_nextpow2_64(u64);
 
 /**
  * Create a (non cryptographic) hash of the input data.
  */
-u32 bits_hash32(Mem);
+u32 bits_hash_32(Mem);
 
 /**
  * Calculate the amount of padding required to reach the requested alignment.
