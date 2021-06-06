@@ -165,7 +165,7 @@ FileResult file_write_sync(File* file, const String data) {
 
   for (u8* itr = mem_begin(data); itr != mem_end(data);) {
     DWORD bytesWritten;
-    if (WriteFile(file->handle, itr, mem_end(data) - itr, &bytesWritten, null)) {
+    if (WriteFile(file->handle, itr, (DWORD)(mem_end(data) - itr), &bytesWritten, null)) {
       itr += bytesWritten;
       continue;
     }
@@ -179,7 +179,7 @@ FileResult file_read_sync(File* file, DynString* dynstr) {
 
   Mem   readBuffer = mem_stack(usize_kibibyte);
   DWORD bytesRead;
-  BOOL  success = ReadFile(file->handle, readBuffer.ptr, readBuffer.size, &bytesRead, null);
+  BOOL  success = ReadFile(file->handle, readBuffer.ptr, (DWORD)readBuffer.size, &bytesRead, null);
   if (success && bytesRead) {
     dynstring_append(dynstr, mem_slice(readBuffer, 0, bytesRead));
     return FileResult_Success;

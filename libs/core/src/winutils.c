@@ -7,7 +7,7 @@
 
 usize winutils_to_widestr_size(String input) {
   const int wideChars = MultiByteToWideChar(
-      CP_UTF8, MB_ERR_INVALID_CHARS, (const char*)input.ptr, input.size, null, 0);
+      CP_UTF8, MB_ERR_INVALID_CHARS, (const char*)input.ptr, (int)input.size, null, 0);
   if (wideChars <= 0) {
     return sentinel_usize;
   }
@@ -22,9 +22,9 @@ usize winutils_to_widestr(Mem output, String input) {
       CP_UTF8,
       MB_ERR_INVALID_CHARS,
       (const char*)input.ptr,
-      input.size,
+      (int)input.size,
       (wchar_t*)output.ptr,
-      output.size / sizeof(wchar_t));
+      (int)(output.size / sizeof(wchar_t)));
   if (wideChars <= 0) {
     return sentinel_usize;
   }
@@ -34,7 +34,14 @@ usize winutils_to_widestr(Mem output, String input) {
 
 usize winutils_from_widestr_size(void* input, usize inputCharCount) {
   const int chars = WideCharToMultiByte(
-      CP_UTF8, WC_ERR_INVALID_CHARS, (const wchar_t*)input, inputCharCount, null, 0, null, null);
+      CP_UTF8,
+      WC_ERR_INVALID_CHARS,
+      (const wchar_t*)input,
+      (int)inputCharCount,
+      null,
+      0,
+      null,
+      null);
   if (chars <= 0) {
     return sentinel_usize;
   }
@@ -46,9 +53,9 @@ usize winutils_from_widestr(String output, void* input, usize inputCharCount) {
       CP_UTF8,
       WC_ERR_INVALID_CHARS,
       (const wchar_t*)input,
-      inputCharCount,
+      (int)inputCharCount,
       (char*)output.ptr,
-      output.size,
+      (int)output.size,
       null,
       null);
   if (chars <= 0) {
