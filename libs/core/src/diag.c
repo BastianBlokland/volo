@@ -25,7 +25,7 @@ void diag_assert_fail(const DiagCallSite* callsite, String msg) {
   diag_log_err(
       "Assertion failed: '{}' [file: {} line: {}]\n",
       fmt_text(msg),
-      fmt_text(callsite->file),
+      fmt_path(callsite->file),
       fmt_int(callsite->line));
   diag_crash();
 }

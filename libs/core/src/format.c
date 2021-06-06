@@ -4,6 +4,7 @@
 #include "core_float.h"
 #include "core_format.h"
 #include "core_math.h"
+#include "core_path.h"
 
 void format_write_formatted(DynString* str, String format, const FormatArg* args, usize argsCount) {
   usize argIdx = 0;
@@ -55,6 +56,9 @@ void format_write_arg(DynString* str, const FormatArg* arg) {
     break;
   case FormatArgType_text:
     format_write_text(str, arg->value_text, arg->settings);
+    break;
+  case FormatArgType_path:
+    path_canonize(str, arg->value_path);
     break;
   }
 }

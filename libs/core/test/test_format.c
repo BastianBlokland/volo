@@ -125,6 +125,7 @@ void test_format() {
   test_format_write_arg(&fmt_duration(time_minute), string_lit("1m"));
   test_format_write_arg(&fmt_size(usize_mebibyte), string_lit("1MiB"));
   test_format_write_arg(&fmt_text_lit("Hello World"), string_lit("Hello World"));
+  test_format_write_arg(&fmt_path(string_lit("c:\\hello")), string_lit("C:/hello"));
 
   test_format_write_formatted(string_lit("Value {}"), &fmt_int(42), 1, string_lit("Value 42"));
   test_format_write_formatted(

@@ -16,6 +16,7 @@ typedef enum {
   FormatArgType_time,
   FormatArgType_size,
   FormatArgType_text,
+  FormatArgType_path,
 } FormatArgType;
 
 /**
@@ -35,6 +36,7 @@ typedef struct {
     TimeReal     value_time;
     usize        value_size;
     String       value_text;
+    String       value_path;
   };
   void* settings;
 } FormatArg;
@@ -129,6 +131,11 @@ typedef struct {
  * Create text formatting argument from a string literal.
  */
 #define fmt_text_lit(_VAL_) fmt_text(string_lit(_VAL_))
+
+/**
+ * Create file path formatting argument.
+ */
+#define fmt_path(_VAL_)  ((FormatArg){ .type = FormatArgType_path, .value_path = (_VAL_) })
 
 /**
  * Write a format string with arguments.
