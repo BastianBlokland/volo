@@ -35,12 +35,30 @@ String string_consume(String str, usize amount) {
   };
 }
 
-usize string_find_first_any(String string, String chars) {
-  mem_for_u8(string, c, {
+usize string_find_first(String str, String subStr) {
+  for (u8* itr = mem_begin(str); itr <= string_end(str) - subStr.size; ++itr) {
+    if (mem_eq(mem_create(itr, subStr.size), subStr)) {
+      return itr - string_begin(str);
+    }
+  }
+  return sentinel_usize;
+}
+
+usize string_find_first_any(String str, String chars) {
+  mem_for_u8(str, c, {
     if (mem_contains(chars, c)) {
-      return c_itr - string_begin(string);
+      return c_itr - string_begin(str);
     }
   });
+  return sentinel_usize;
+}
+
+usize string_find_last(String str, String subStr) {
+  for (u8* itr = mem_end(str) - subStr.size + 1; itr-- > string_begin(str);) {
+    if (mem_eq(mem_create(itr, subStr.size), subStr)) {
+      return itr - string_begin(str);
+    }
+  }
   return sentinel_usize;
 }
 

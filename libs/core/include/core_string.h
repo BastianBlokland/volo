@@ -88,10 +88,22 @@ String string_slice(String, usize offset, usize size);
 String string_consume(String, usize amount);
 
 /**
+ * Find the first occurrence of the given substring.
+ * Note: Returns 'sentinel_usize' if the substring could not be found.
+ */
+usize string_find_first(String, String subStr);
+
+/**
  * Find the first occurrence of any of the given characters.
  * Note: Returns 'sentinel_usize' if none of the characters could be found.
  */
 usize string_find_first_any(String, String chars);
+
+/**
+ * Find the last occurrence of the given substring.
+ * Note: Returns 'sentinel_usize' if the substring could not be found.
+ */
+usize string_find_last(String, String subStr);
 
 /**
  * Find the last occurrence of any of the given characters.

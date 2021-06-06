@@ -71,6 +71,22 @@ static void test_string_consume() {
   diag_assert(string_eq(string_consume(string_lit("Hello"), 0), string_lit("Hello")));
 }
 
+static void test_string_find_first() {
+  diag_assert(string_find_first(string_lit("Hello World"), string_lit("Hello")) == 0);
+  diag_assert(string_find_first(string_lit("Hello World"), string_lit("Hello World")) == 0);
+  diag_assert(string_find_first(string_lit("Hello World"), string_lit("World")) == 6);
+  diag_assert(string_find_first(string_lit("Hello World"), string_lit("lo")) == 3);
+  diag_assert(string_find_first(string_lit(" Hi Hi Hi "), string_lit("Hi")) == 1);
+  diag_assert(string_find_first(string_lit("Hello World"), string_lit("d")) == 10);
+  diag_assert(string_find_first(string_lit("Hello World"), string_lit("ld")) == 9);
+  diag_assert(string_find_first(string_lit("Hello World"), string_lit("H")) == 0);
+  diag_assert(string_find_first(string_lit("Hello World"), string_lit("H")) == 0);
+  diag_assert(string_find_first(string_lit("Hello World"), string_lit("He")) == 0);
+  diag_assert(string_find_first(string_lit("Hello World"), string_lit("q")) == sentinel_usize);
+  diag_assert(
+      string_find_first(string_lit("Hello World"), string_lit("Hello World!")) == sentinel_usize);
+}
+
 static void test_string_find_first_any() {
   diag_assert(string_find_first_any(string_lit(""), string_lit(" ")) == sentinel_usize);
   diag_assert(string_find_first_any(string_lit(""), string_lit("\0")) == sentinel_usize);
@@ -79,6 +95,22 @@ static void test_string_find_first_any() {
   diag_assert(string_find_first_any(string_lit("Hello World"), string_lit("or")) == 4);
   diag_assert(
       string_find_first_any(string_lit("Hello World"), string_lit("zqx")) == sentinel_usize);
+}
+
+static void test_string_find_last() {
+  diag_assert(string_find_last(string_lit("Hello World"), string_lit("Hello")) == 0);
+  diag_assert(string_find_last(string_lit("Hello World"), string_lit("Hello World")) == 0);
+  diag_assert(string_find_last(string_lit("Hello World"), string_lit("World")) == 6);
+  diag_assert(string_find_last(string_lit("Hello World"), string_lit("lo")) == 3);
+  diag_assert(string_find_last(string_lit(" Hi Hi Hi "), string_lit("Hi")) == 7);
+  diag_assert(string_find_last(string_lit("Hello World"), string_lit("d")) == 10);
+  diag_assert(string_find_last(string_lit("Hello World"), string_lit("ld")) == 9);
+  diag_assert(string_find_last(string_lit("Hello World"), string_lit("H")) == 0);
+  diag_assert(string_find_last(string_lit("Hello World"), string_lit("H")) == 0);
+  diag_assert(string_find_last(string_lit("Hello World"), string_lit("He")) == 0);
+  diag_assert(string_find_last(string_lit("Hello World"), string_lit("q")) == sentinel_usize);
+  diag_assert(
+      string_find_last(string_lit("Hello World"), string_lit("Hello World!")) == sentinel_usize);
 }
 
 static void test_string_find_last_any() {
@@ -103,6 +135,8 @@ void test_string() {
   test_string_cmp();
   test_string_slice();
   test_string_consume();
+  test_string_find_first();
   test_string_find_first_any();
+  test_string_find_last();
   test_string_find_last_any();
 }
