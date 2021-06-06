@@ -20,7 +20,8 @@
 /**
  * Count how many bits are set in a mask.
  */
-u32 bits_popcnt(u32);
+u8 bits_popcnt_32(u32);
+u8 bits_popcnt_64(u64);
 
 /**
  * Count the trailing zeroes in a mask.

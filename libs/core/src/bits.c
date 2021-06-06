@@ -8,11 +8,19 @@
 #pragma intrinsic(_BitScanReverse)
 #endif
 
-u32 bits_popcnt(const u32 mask) {
+u8 bits_popcnt_32(const u32 mask) {
 #ifdef VOLO_MSVC
   return __popcnt(mask);
 #else
   return __builtin_popcount(mask);
+#endif
+}
+
+u8 bits_popcnt_64(const u64 mask) {
+#ifdef VOLO_MSVC
+  return __popcnt64(mask);
+#else
+  return __builtin_popcountll(mask);
 #endif
 }
 
