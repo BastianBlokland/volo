@@ -44,18 +44,26 @@ typedef struct {
  * Create an integer formatting argument.
  */
 #define fmt_int(_VAL_, ...)                                                                        \
-  _Generic(+(_VAL_),                                                                               \
+  _Generic((_VAL_),                                                                                \
     u32: ((FormatArg){                                                                             \
-      .type = FormatArgType_u64, .value_u64 = (_VAL_), .settings = &format_opts_int(__VA_ARGS__)   \
+      .type = FormatArgType_u64,                                                                   \
+      .value_u64 = (u64)(_VAL_),                                                                   \
+      .settings = &format_opts_int(__VA_ARGS__)                                                    \
     }),                                                                                            \
     i32: ((FormatArg){                                                                             \
-      .type = FormatArgType_i64, .value_i64 = (_VAL_), .settings = &format_opts_int(__VA_ARGS__)   \
+      .type = FormatArgType_i64,                                                                   \
+      .value_i64 = (i64)(_VAL_),                                                                   \
+      .settings = &format_opts_int(__VA_ARGS__)                                                    \
     }),                                                                                            \
     u64: ((FormatArg){                                                                             \
-      .type = FormatArgType_u64, .value_u64 = (_VAL_), .settings = &format_opts_int(__VA_ARGS__)   \
+      .type = FormatArgType_u64,                                                                   \
+      .value_u64 = (u64)(_VAL_),                                                                   \
+      .settings = &format_opts_int(__VA_ARGS__)                                                    \
     }),                                                                                            \
     i64: ((FormatArg){                                                                             \
-      .type = FormatArgType_i64, .value_i64 = (_VAL_), .settings = &format_opts_int(__VA_ARGS__)   \
+      .type = FormatArgType_i64,                                                                   \
+      .value_i64 = (i64)(_VAL_),                                                                   \
+      .settings = &format_opts_int(__VA_ARGS__)                                                    \
     })                                                                                             \
   )
 
