@@ -15,6 +15,7 @@ void test_dynstring();
 void test_file();
 void test_float();
 void test_format();
+void test_macro();
 void test_math();
 void test_memory();
 void test_path();
@@ -43,6 +44,7 @@ int main() {
   test_file();
   test_float();
   test_format();
+  test_macro();
   test_math();
   test_memory();
   test_path();

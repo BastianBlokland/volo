@@ -46,6 +46,7 @@ add_executable(volo_core_test
   core/test/test_file.c
   core/test/test_float.c
   core/test/test_format.c
+  core/test/test_macro.c
   core/test/test_math.c
   core/test/test_memory.c
   core/test/test_path.c
