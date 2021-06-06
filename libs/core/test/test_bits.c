@@ -125,20 +125,20 @@ static void test_bits_nextpow2_64() {
   // Undefined for val > 9223372036854775808ull.
 }
 
-static void test_bits_padding() {
-  diag_assert(bits_padding(0, 4) == 0);
-  diag_assert(bits_padding(4, 4) == 0);
-  diag_assert(bits_padding(1, 4) == 3);
-  diag_assert(bits_padding(2, 4) == 2);
-  diag_assert(bits_padding(3, 4) == 1);
+static void test_bits_padding_32() {
+  diag_assert(bits_padding_32(0, 4) == 0);
+  diag_assert(bits_padding_32(4, 4) == 0);
+  diag_assert(bits_padding_32(1, 4) == 3);
+  diag_assert(bits_padding_32(2, 4) == 2);
+  diag_assert(bits_padding_32(3, 4) == 1);
 }
 
-static void test_bits_align() {
-  diag_assert(bits_align(0, 4) == 0);
-  diag_assert(bits_align(1, 4) == 4);
-  diag_assert(bits_align(4, 4) == 4);
-  diag_assert(bits_align(5, 4) == 8);
-  diag_assert(bits_align(31, 4) == 32);
+static void test_bits_align_32() {
+  diag_assert(bits_align_32(0, 4) == 0);
+  diag_assert(bits_align_32(1, 4) == 4);
+  diag_assert(bits_align_32(4, 4) == 4);
+  diag_assert(bits_align_32(5, 4) == 8);
+  diag_assert(bits_align_32(31, 4) == 32);
 }
 
 static void test_bits_float_conversions() {
@@ -160,7 +160,7 @@ void test_bits() {
   test_bits_ispow2_64();
   test_bits_nextpow2_32();
   test_bits_nextpow2_64();
-  test_bits_padding();
-  test_bits_align();
+  test_bits_padding_32();
+  test_bits_align_32();
   test_bits_float_conversions();
 }

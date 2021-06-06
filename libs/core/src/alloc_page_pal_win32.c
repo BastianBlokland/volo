@@ -12,7 +12,7 @@ static Mem alloc_page_alloc(Allocator* allocator, const usize size) {
   diag_assert(size);
 
   const usize pageSize    = ((struct AllocatorPage*)allocator)->pageSize;
-  const usize alignedSize = bits_align(size, pageSize);
+  const usize alignedSize = bits_align_64(size, pageSize);
 
   void* ptr = VirtualAlloc(null, alignedSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
   return mem_create(ptr, alignedSize);

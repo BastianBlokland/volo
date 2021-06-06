@@ -129,7 +129,7 @@ u32 bits_hash_32(const Mem mem) {
   return hash;
 }
 
-u32 bits_padding(const u32 val, const u32 align) {
+u32 bits_padding_32(const u32 val, const u32 align) {
   diag_assert(align != 0);
   diag_assert(bits_ispow2_32(align));
 
@@ -137,7 +137,16 @@ u32 bits_padding(const u32 val, const u32 align) {
   return rem ? align - rem : 0;
 }
 
-u32 bits_align(const u32 val, const u32 align) { return val + bits_padding(val, align); }
+u64 bits_padding_64(const u64 val, const u64 align) {
+  diag_assert(align != 0);
+  diag_assert(bits_ispow2_64(align));
+
+  const u64 rem = val & (align - 1);
+  return rem ? align - rem : 0;
+}
+
+u32 bits_align_32(const u32 val, const u32 align) { return val + bits_padding_32(val, align); }
+u64 bits_align_64(const u64 val, const u64 align) { return val + bits_padding_64(val, align); }
 
 f32 bits_u32_as_f32(u32 val) { return *(f32*)(&val); }
 u32 bits_f32_as_u32(f32 val) { return *(u32*)(&val); }
