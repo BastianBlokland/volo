@@ -2,6 +2,25 @@
 #include "core_float.h"
 #include "core_format.h"
 
+static void test_format_write_arg(const FormatArg* arg, const String expected) {
+  DynString string = dynstring_create_over(mem_stack(128));
+
+  format_write_arg(&string, arg);
+  diag_assert(string_eq(dynstring_view(&string), expected));
+
+  dynstring_destroy(&string);
+}
+
+static void test_format_write_formatted(
+    String format, const FormatArg* args, const usize argsCount, const String expected) {
+  DynString string = dynstring_create_over(mem_stack(128));
+
+  format_write_formatted(&string, format, args, argsCount);
+  diag_assert(string_eq(dynstring_view(&string), expected));
+
+  dynstring_destroy(&string);
+}
+
 static void test_format_write_u64(const u64 val, const FormatOptsInt opts, const String expected) {
   DynString string = dynstring_create_over(mem_stack(128));
 
@@ -90,13 +109,34 @@ static void test_format_write_size_pretty(const usize val, const String expected
 static void test_format_write_text(const String val, const String expected) {
   DynString string = dynstring_create_over(mem_stack(128));
 
-  format_write_text(&string, val, &format_opts_text());
+  format_write_text(&string, val, &format_opts_text(.flags = FormatTextFlags_EscapeNonPrintAscii));
   diag_assert(string_eq(dynstring_view(&string), expected));
 
   dynstring_destroy(&string);
 }
 
 void test_format() {
+  test_format_write_arg(&fmt_int(42), string_lit("42"));
+  test_format_write_arg(&fmt_int(-42), string_lit("-42"));
+  test_format_write_arg(&fmt_int(42, .base = 16), string_lit("2A"));
+  test_format_write_arg(&fmt_float(42.42), string_lit("42.42"));
+  test_format_write_arg(&fmt_bool(true), string_lit("true"));
+  test_format_write_arg(&fmt_mem(string_lit("Hello")), string_lit("6F6C6C6548"));
+  test_format_write_arg(&fmt_duration(time_minute), string_lit("1m"));
+  test_format_write_arg(&fmt_size(usize_mebibyte), string_lit("1MiB"));
+  test_format_write_arg(&fmt_text_lit("Hello World"), string_lit("Hello World"));
+
+  test_format_write_formatted(string_lit("Value {}"), &fmt_int(42), 1, string_lit("Value 42"));
+  test_format_write_formatted(
+      string_lit("{} hello world {}-{}"),
+      (FormatArg[]){
+          fmt_bool(false),
+          fmt_int(42),
+          fmt_bool(true),
+      },
+      3,
+      string_lit("false hello world 42-true"));
+
   test_format_write_u64(0, format_opts_int(), string_lit("0"));
   test_format_write_u64(0, format_opts_int(.minDigits = 4), string_lit("0000"));
   test_format_write_u64(1, format_opts_int(), string_lit("1"));

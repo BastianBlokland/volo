@@ -5,6 +5,60 @@
 #include "core_format.h"
 #include "core_math.h"
 
+void format_write_formatted(DynString* str, String format, const FormatArg* args, usize argsCount) {
+  usize argIdx = 0;
+  while (format.size) {
+    const usize replIdx = string_find_first(format, string_lit("{}"));
+    if (sentinel_check(replIdx)) {
+      // No replacement, append the text raw.
+      dynstring_append(str, format);
+      break;
+    }
+    // Append the text before the replacement followed by the replacement argument.
+    dynstring_append(str, string_slice(format, 0, replIdx));
+    if (argIdx != argsCount) {
+      format_write_arg(str, &args[argIdx]);
+      ++argIdx;
+    }
+    format = string_consume(format, replIdx + 2);
+  }
+}
+
+void format_write_arg(DynString* str, const FormatArg* arg) {
+  switch (arg->type) {
+  case FormatArgType_i64:
+    format_write_i64(str, arg->value_i64, arg->settings);
+    break;
+  case FormatArgType_u64:
+    format_write_u64(str, arg->value_u64, arg->settings);
+    break;
+  case FormatArgType_f64:
+    format_write_f64(str, arg->value_f64, arg->settings);
+    break;
+  case FormatArgType_bool:
+    format_write_bool(str, arg->value_bool);
+    break;
+  case FormatArgType_bitset:
+    format_write_bitset(str, arg->value_bitset);
+    break;
+  case FormatArgType_mem:
+    format_write_mem(str, arg->value_mem);
+    break;
+  case FormatArgType_duration:
+    format_write_time_duration_pretty(str, arg->value_duration);
+    break;
+  case FormatArgType_time:
+    format_write_time_iso8601(str, arg->value_time, arg->settings);
+    break;
+  case FormatArgType_size:
+    format_write_size_pretty(str, arg->value_size);
+    break;
+  case FormatArgType_text:
+    format_write_text(str, arg->value_text, arg->settings);
+    break;
+  }
+}
+
 void format_write_u64(DynString* str, u64 val, const FormatOptsInt* opts) {
   diag_assert(opts->base > 1 && opts->base <= 16);
 

@@ -4,6 +4,125 @@
 #include "core_time.h"
 #include "core_types.h"
 
+typedef enum {
+  FormatArgType_i64,
+  FormatArgType_u64,
+  FormatArgType_f64,
+  FormatArgType_bool,
+  FormatArgType_bitset,
+  FormatArgType_mem,
+  FormatArgType_duration,
+  FormatArgType_time,
+  FormatArgType_size,
+  FormatArgType_text,
+} FormatArgType;
+
+/**
+ * Type erased formatting argument.
+ * Can be created with various helper macros, for example: 'fmt_int' or 'fmt_time'.
+ */
+typedef struct {
+  FormatArgType type;
+  union {
+    i64          value_i64;
+    u64          value_u64;
+    f64          value_f64;
+    bool         value_bool;
+    BitSet       value_bitset;
+    Mem          value_mem;
+    TimeDuration value_duration;
+    TimeReal     value_time;
+    usize        value_size;
+    String       value_text;
+  };
+  void* settings;
+} FormatArg;
+
+// clang-format off
+
+/**
+ * Create an integer formatting argument.
+ */
+#define fmt_int(_VAL_, ...)                                                                        \
+  _Generic(+(_VAL_),                                                                               \
+    u32: ((FormatArg){                                                                             \
+      .type = FormatArgType_u64, .value_u64 = (_VAL_), .settings = &format_opts_int(__VA_ARGS__)   \
+    }),                                                                                            \
+    i32: ((FormatArg){                                                                             \
+      .type = FormatArgType_i64, .value_i64 = (_VAL_), .settings = &format_opts_int(__VA_ARGS__)   \
+    }),                                                                                            \
+    u64: ((FormatArg){                                                                             \
+      .type = FormatArgType_u64, .value_u64 = (_VAL_), .settings = &format_opts_int(__VA_ARGS__)   \
+    }),                                                                                            \
+    i64: ((FormatArg){                                                                             \
+      .type = FormatArgType_i64, .value_i64 = (_VAL_), .settings = &format_opts_int(__VA_ARGS__)   \
+    })                                                                                             \
+  )
+
+/**
+ * Create an float formatting argument.
+ */
+#define fmt_float(_VAL_, ...)                                                                      \
+  _Generic((_VAL_),                                                                                \
+    f32: ((FormatArg){                                                                             \
+      .type = FormatArgType_f64, .value_f64 = (_VAL_), .settings = &format_opts_float(__VA_ARGS__) \
+    }),                                                                                            \
+    f64: ((FormatArg){                                                                             \
+      .type = FormatArgType_f64, .value_f64 = (_VAL_), .settings = &format_opts_float(__VA_ARGS__) \
+    })                                                                                             \
+  )
+
+/**
+ * Create an boolean formatting argument.
+ */
+#define fmt_bool(_VAL_) ((FormatArg){ .type = FormatArgType_bool, .value_bool = (_VAL_) })
+
+/**
+ * Create an bitset formatting argument.
+ */
+#define fmt_bitset(_VAL_) ((FormatArg){ .type = FormatArgType_bitset, .value_bitset = (_VAL_) })
+
+/**
+ * Create an memory formatting argument.
+ */
+#define fmt_mem(_VAL_) ((FormatArg){ .type = FormatArgType_mem, .value_mem = (_VAL_) })
+
+/**
+ * Create an byte size formatting argument.
+ */
+#define fmt_size(_VAL_) ((FormatArg){ .type = FormatArgType_size, .value_size = (_VAL_) })
+
+/**
+ * Create an time duration formatting argument.
+ */
+#define fmt_duration(_VAL_) ((FormatArg){                                                          \
+    .type = FormatArgType_duration, .value_duration = (_VAL_)                                      \
+  })
+
+/**
+ * Create an time real formatting argument.
+ */
+#define fmt_time(_VAL_, ...)                                                                       \
+  ((FormatArg){                                                                                    \
+      .type       = FormatArgType_time,                                                            \
+      .value_time = (_VAL_),                                                                       \
+      .settings   = &format_opts_time(__VA_ARGS__)                                                 \
+  })
+
+/**
+ * Create text formatting argument.
+ */
+#define fmt_text(_VAL_, ...) ((FormatArg){                                                         \
+      .type = FormatArgType_text, .value_text = (_VAL_), .settings = &format_opts_text(__VA_ARGS__)\
+  })
+
+/**
+ * Create text formatting argument from a string literal.
+ */
+#define fmt_text_lit(_VAL_) fmt_text(string_lit(_VAL_))
+
+// clang-format on
+
 /**
  * Configuration struct for integer formatting.
  */
@@ -117,7 +236,7 @@ typedef struct {
 
 #define format_opts_text(...)                                                                      \
   ((FormatOptsText){                                                                               \
-    .flags   = FormatTextFlags_EscapeNonPrintAscii,                                                \
+    .flags   = FormatTextFlags_None,                                                               \
     __VA_ARGS__                                                                                    \
   })
 
@@ -136,12 +255,23 @@ typedef struct {
  * Write a floating point number as ascii characters to the given dynamic-string.
  */
 #define format_write_float(_DYNSTRING_, _VAL_, ...)                                                \
-  _Generic(+(_VAL_),                                                                               \
+  _Generic((_VAL_),                                                                                \
     f32: format_write_f64(_DYNSTRING_, (f64)(_VAL_), &format_opts_float(__VA_ARGS__)),             \
     f64: format_write_f64(_DYNSTRING_, _VAL_, &format_opts_float(__VA_ARGS__))                     \
   )
 
 // clang-format on
+
+/**
+ * Write a type-erased argument.
+ */
+void format_write_arg(DynString*, const FormatArg*);
+
+/**
+ * Write a format string with arguments.
+ * '{}' entries are replaced by arguments in order of appearance.
+ */
+void format_write_formatted(DynString*, String format, const FormatArg* args, usize argsCount);
 
 /**
  * Write a unsigned value as ascii characters.
@@ -171,7 +301,7 @@ void format_write_bitset(DynString*, BitSet val);
 /**
  * Write a mem value as hexadecimal ascii characters.
  */
-void format_write_mem(DynString*, BitSet val);
+void format_write_mem(DynString*, Mem val);
 
 /**
  * Write a duration as human readable ascii characters.
