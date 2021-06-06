@@ -41,7 +41,8 @@ u8 bits_clz_64(u64);
  * Check if the given value is a power of two.
  * Pre-condition: val != 0.
  */
-bool bits_ispow2(u32);
+bool bits_ispow2_32(u32);
+bool bits_ispow2_64(u64);
 
 /**
  * Return the next power of two greater or equal to val.

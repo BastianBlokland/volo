@@ -55,23 +55,48 @@ static void test_bits_clz_64() {
   diag_assert(bits_clz_64(0) == 64);
 }
 
-static void test_bits_ispow2() {
+static void test_bits_ispow2_32() {
   // Undefined for val == 0.
-  diag_assert(bits_ispow2(1));
-  diag_assert(bits_ispow2(2));
-  diag_assert(!bits_ispow2(3));
-  diag_assert(bits_ispow2(4));
-  diag_assert(!bits_ispow2(5));
-  diag_assert(!bits_ispow2(6));
-  diag_assert(!bits_ispow2(7));
-  diag_assert(bits_ispow2(8));
-  diag_assert(!bits_ispow2(9));
-  diag_assert(bits_ispow2(16));
-  diag_assert(bits_ispow2(32));
-  diag_assert(!bits_ispow2(63));
-  diag_assert(bits_ispow2(128));
-  diag_assert(!bits_ispow2(2147483647));
-  diag_assert(bits_ispow2(2147483648));
+  diag_assert(bits_ispow2_32(1));
+  diag_assert(bits_ispow2_32(2));
+  diag_assert(!bits_ispow2_32(3));
+  diag_assert(bits_ispow2_32(4));
+  diag_assert(!bits_ispow2_32(5));
+  diag_assert(!bits_ispow2_32(6));
+  diag_assert(!bits_ispow2_32(7));
+  diag_assert(bits_ispow2_32(8));
+  diag_assert(!bits_ispow2_32(9));
+  diag_assert(bits_ispow2_32(16));
+  diag_assert(bits_ispow2_32(32));
+  diag_assert(!bits_ispow2_32(63));
+  diag_assert(bits_ispow2_32(128));
+  diag_assert(!bits_ispow2_32(2147483647));
+  diag_assert(bits_ispow2_32(2147483648));
+}
+
+static void test_bits_ispow2_64() {
+  // Undefined for val == 0.
+  diag_assert(bits_ispow2_64(1));
+  diag_assert(bits_ispow2_64(2));
+  diag_assert(!bits_ispow2_64(3));
+  diag_assert(bits_ispow2_64(4));
+  diag_assert(!bits_ispow2_64(5));
+  diag_assert(!bits_ispow2_64(6));
+  diag_assert(!bits_ispow2_64(7));
+  diag_assert(bits_ispow2_64(8));
+  diag_assert(!bits_ispow2_64(9));
+  diag_assert(bits_ispow2_64(16));
+  diag_assert(bits_ispow2_64(32));
+  diag_assert(!bits_ispow2_64(63));
+  diag_assert(bits_ispow2_64(128));
+  diag_assert(!bits_ispow2_64(2147483647));
+  diag_assert(bits_ispow2_64(2147483648));
+  diag_assert(!bits_ispow2_64(4294967295));
+  diag_assert(bits_ispow2_64(4294967296));
+  diag_assert(!bits_ispow2_64(34359738367));
+  diag_assert(bits_ispow2_64(34359738368));
+  diag_assert(!bits_ispow2_64(68719476735));
+  diag_assert(bits_ispow2_64(68719476736));
 }
 
 static void test_bits_nextpow2() {
@@ -128,7 +153,8 @@ void test_bits() {
   test_bits_ctz_64();
   test_bits_clz_32();
   test_bits_clz_64();
-  test_bits_ispow2();
+  test_bits_ispow2_32();
+  test_bits_ispow2_64();
   test_bits_nextpow2();
   test_bits_padding();
   test_bits_align();

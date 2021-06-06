@@ -76,7 +76,13 @@ u8 bits_clz_64(const u64 mask) {
 #endif
 }
 
-bool bits_ispow2(const u32 val) {
+bool bits_ispow2_32(const u32 val) {
+  diag_assert(val != 0);
+  // Ref: https://graphics.stanford.edu/~seander/bithacks.html#DetermineIfPowerOf2.
+  return (val & (val - 1u)) == 0;
+}
+
+bool bits_ispow2_64(const u64 val) {
   diag_assert(val != 0);
   // Ref: https://graphics.stanford.edu/~seander/bithacks.html#DetermineIfPowerOf2.
   return (val & (val - 1u)) == 0;
@@ -119,7 +125,7 @@ u32 bits_hash32(const Mem mem) {
 
 u32 bits_padding(const u32 val, const u32 align) {
   diag_assert(align != 0);
-  diag_assert(bits_ispow2(align));
+  diag_assert(bits_ispow2_32(align));
 
   const u32 rem = val & (align - 1);
   return rem ? align - rem : 0;
