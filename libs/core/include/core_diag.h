@@ -46,31 +46,31 @@ typedef struct {
 #define diag_assert(_CONDITION_) diag_assert_msg(_CONDITION_, string_lit(#_CONDITION_))
 
 /**
- * Log a message to the stdout stream.
+ * Print a message to the stdout stream.
  */
-#define diag_log(_FORMAT_LIT_, ...)                                                                \
-  diag_log_formatted(                                                                              \
+#define diag_print(_FORMAT_LIT_, ...)                                                              \
+  diag_print_formatted(                                                                            \
       string_lit(_FORMAT_LIT_), (const FormatArg[]){__VA_ARGS__}, COUNT_VA_ARGS(__VA_ARGS__))
 
 /**
- * Log a message to the stderr stream.
+ * Print a message to the stderr stream.
  */
-#define diag_log_err(_FORMAT_LIT_, ...)                                                            \
-  diag_log_err_formatted(                                                                          \
+#define diag_print_err(_FORMAT_LIT_, ...)                                                          \
+  diag_print_err_formatted(                                                                        \
       string_lit(_FORMAT_LIT_), (const FormatArg[]){__VA_ARGS__}, COUNT_VA_ARGS(__VA_ARGS__))
 
 /**
- * Log a message to the stdout stream.
+ * Print a message to the stdout stream.
  */
-void diag_log_formatted(String format, const FormatArg* args, usize argsCount);
+void diag_print_formatted(String format, const FormatArg* args, usize argsCount);
 
 /**
- * Log a message to the stderr stream.
+ * Print a message to the stderr stream.
  */
-void diag_log_err_formatted(String format, const FormatArg* args, usize argsCount);
+void diag_print_err_formatted(String format, const FormatArg* args, usize argsCount);
 
 /**
- * Indicate that an assertion has failed, logs the given message and crashes the program.
+ * Indicate that an assertion has failed, print the given message and crashes the program.
  */
 VOLO_NORETURN void diag_assert_fail(const DiagCallSite*, String msg);
 

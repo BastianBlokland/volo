@@ -52,7 +52,7 @@ int main() {
   test_utf8();
   test_winutils();
 
-  diag_log(
+  diag_print(
       "{}: passed, time: {}\n",
       fmt_text(path_stem(g_path_executable)),
       fmt_duration(time_steady_duration(timeStart, time_steady_clock())));
