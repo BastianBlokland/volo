@@ -63,7 +63,7 @@ file_create(Allocator* alloc, String path, FileMode mode, FileAccessFlags access
   if (sentinel_check(pathBufferSize)) {
     return FileResult_PathInvalid;
   }
-  if (pathbufferSize > path_pal_max_size) {
+  if (pathBufferSize > path_pal_max_size) {
     return FileResult_PathTooLong;
   }
   Mem pathBufferMem = mem_stack(pathBufferSize);
@@ -208,7 +208,7 @@ FileResult file_delete_sync(String path) {
   if (sentinel_check(pathBufferSize)) {
     return FileResult_PathInvalid;
   }
-  if (pathbufferSize > path_pal_max_size) {
+  if (pathBufferSize > path_pal_max_size) {
     return FileResult_PathTooLong;
   }
   Mem pathBufferMem = mem_stack(pathBufferSize);
