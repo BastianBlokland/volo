@@ -17,13 +17,13 @@ typedef struct sAllocator Allocator;
 /**
  * 'Normal' heap allocator, semantics similar to 'malloc'.
  */
-extern Allocator* g_allocator_heap;
+extern Allocator* g_alloc_heap;
 
 /**
  * Page allocator, allocates memory pages directly from the OS.
  * Note: All allocations will be rounded up to a multiple of the system page size.
  */
-extern Allocator* g_allocator_page;
+extern Allocator* g_alloc_page;
 
 /**
  * Create a new bump allocator. Will allocate from the given memory region, once the region is empty

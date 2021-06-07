@@ -13,16 +13,16 @@ static void diag_write_sync(File* file, String format, const FormatArg* args, us
   dynstring_destroy(&buffer);
 }
 
-void diag_log_formatted(String format, const FormatArg* args, usize argsCount) {
+void diag_print_formatted(String format, const FormatArg* args, usize argsCount) {
   diag_write_sync(g_file_stdout, format, args, argsCount);
 }
 
-void diag_log_err_formatted(String format, const FormatArg* args, usize argsCount) {
+void diag_print_err_formatted(String format, const FormatArg* args, usize argsCount) {
   diag_write_sync(g_file_stderr, format, args, argsCount);
 }
 
 void diag_assert_fail(const DiagCallSite* callsite, String msg) {
-  diag_log_err(
+  diag_print_err(
       "Assertion failed: '{}' [file: {} line: {}]\n",
       fmt_text(msg),
       fmt_path(callsite->file),
