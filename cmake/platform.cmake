@@ -30,6 +30,7 @@ macro(set_win32_defines)
   add_definitions(-DWINVER=0x0602 -D_WIN32_WINNT=0x0602) # Target windows '8'
   add_definitions(-DWIN32_LEAN_AND_MEAN) # Use a subset of the windows header.
   add_definitions(-DNOMINMAX) # Avoid the windows header defining the min / max macros.
+  add_definitions(-DUNICODE) # Enable unicode support.
 endmacro(set_win32_defines)
 
 # Set platform specific defines

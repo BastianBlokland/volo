@@ -9,17 +9,17 @@
 # * msvc
 #
 macro(detect_compiler)
-  if(${CMAKE_C_COMPILER_ID} STREQUAL "GNU")
+  if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
     message(STATUS "Detected gcc compiler")
     set(VOLO_COMPILER "gcc")
-  elseif(${CMAKE_C_COMPILER_ID} STREQUAL "Clang")
+  elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
     message(STATUS "Detected clang compiler")
     set(VOLO_COMPILER "clang")
-  elseif(${CMAKE_C_COMPILER_ID} STREQUAL "MSVC")
+  elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
     message(STATUS "Detected msvc compiler")
     set(VOLO_COMPILER "msvc")
   else()
-    message(FATAL_ERROR "Unsupported compiler")
+    message(FATAL_ERROR "Unsupported compiler: '${CMAKE_C_COMPILER_ID}'")
   endif()
 endmacro(detect_compiler)
 
@@ -54,22 +54,54 @@ endmacro(set_compiler_defines)
 
 # Set gcc specific compile options
 macro(set_gcc_compile_options)
-  add_compile_options(-Wall -Wextra -Werror)
+  add_compile_options(-Wall -Wextra -Werror -Wno-override-init)
+  # TODO: Tie these debug options to a configuration knob.
+  add_compile_options(-g -fno-omit-frame-pointer)
 endmacro(set_gcc_compile_options)
 
 # Set clang specific compile options
 macro(set_clang_compile_options)
-  add_compile_options(-Wall -Wextra -Werror)
+  add_compile_options(-Wall -Wextra -Werror -Wno-initializer-overrides)
+  # TODO: Tie these debug options to a configuration knob.
+  add_compile_options(-g -fno-omit-frame-pointer)
 endmacro(set_clang_compile_options)
 
 # Set msvc specific compile options
 macro(set_msvc_compile_options)
-  add_definitions(/W4 /WX)
+  # Use the c11 standard.
+  add_compile_options(/TC /std:c11)
+
+  # Use utf8 for both the source and the executable format.
+  add_compile_options(/utf-8)
+
+  # Setup warning flags.
+  add_compile_options(/W4 /WX /wd4127 /wd5105 /wd4244 /wd4201)
+
+  # Ignore unused local variable warning,
+  # Current MSVC version (19.29.30037) reports allot of false positives on compiler generated
+  # temporaries ($SXX variables).
+  add_compile_options(/wd4189)
+
+  # Enabling the conformant pre-preprocessor. More info:
+  # https://devblogs.microsoft.com/cppblog/announcing-full-support-for-a-c-c-conformant-preprocessor-in-msvc/
+  add_compile_options(/Zc:preprocessor)
+
+  # Use syncronous pdb writes, reason is Ninja spawns multiple compiler processes that can end up
+  # writing to the same pdb.
+  add_compile_options(/FS)
 endmacro(set_msvc_compile_options)
 
 # Set compile options
 # Requires 'VOLO_COMPILER' to be configured
 macro(set_compile_options)
+
+  # Clear the default compiler options.
+  set(CMAKE_C_FLAGS_DEBUG "")
+  set(CMAKE_C_FLAGS_RELEASE "")
+  set(CMAKE_C_FLAGS_RELWITHDEBINFO "")
+  set(CMAKE_C_FLAGS_MINSIZEREL "")
+
+  # Set our custom compiler options.
   if(${VOLO_COMPILER} STREQUAL "gcc")
     set_gcc_compile_options()
   elseif(${VOLO_COMPILER} STREQUAL "clang")

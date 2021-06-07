@@ -1,0 +1,15 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "volo_core_test",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/libs/volo_core_test",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "terminal": "integrated",
+      "stopOnEntry": false
+    }
+  ]
+}
