@@ -26,6 +26,8 @@ add_library(volo_core STATIC
   core/src/sort_bubblesort.c
   core/src/sort_quicksort.c
   core/src/string.c
+  core/src/thread_pal.c
+  core/src/thread.c
   core/src/time_pal.c
   core/src/time.c
   core/src/tty_pal.c
