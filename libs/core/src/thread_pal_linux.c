@@ -1,6 +1,9 @@
 #include "core_diag.h"
 #include "thread_internal.h"
 #include <pthread.h>
+#include <unistd.h>
+
+i64 thread_pal_pid() { return getpid(); }
 
 void thread_pal_name_current(const String str) {
   static const usize maxNameLen = 15;

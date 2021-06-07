@@ -3,6 +3,8 @@
 #include "thread_internal.h"
 #include <Windows.h>
 
+i64 thread_pal_pid() { return GetCurrentProcessId(); }
+
 void thread_pal_name_current(const String str) {
   static const usize maxNameLen = 15;
   if (str.size > maxNameLen) {

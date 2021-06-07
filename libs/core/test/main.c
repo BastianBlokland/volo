@@ -1,6 +1,7 @@
 #include "core_diag.h"
 #include "core_init.h"
 #include "core_path.h"
+#include "core_thread.h"
 #include "core_time.h"
 
 void test_ascii();
@@ -29,6 +30,11 @@ void test_winutils();
  */
 int main() {
   core_init();
+
+  diag_print(
+      "{}: running tests... (pid: {})\n",
+      fmt_text(path_stem(g_path_executable)),
+      fmt_int(g_thread_pid));
 
   const TimeSteady timeStart = time_steady_clock();
 
