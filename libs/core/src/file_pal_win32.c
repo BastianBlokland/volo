@@ -59,7 +59,7 @@ static FileResult fileresult_from_lasterror() {
 FileResult
 file_create(Allocator* alloc, String path, FileMode mode, FileAccessFlags access, File** file) {
   // Convert the path to a null-terminated wide-char string.
-  usize pathBufferSize = winutils_to_widestr_size(path);
+  const usize pathBufferSize = winutils_to_widestr_size(path);
   if (sentinel_check(pathBufferSize)) {
     return FileResult_PathInvalid;
   }
@@ -121,8 +121,8 @@ file_create(Allocator* alloc, String path, FileMode mode, FileAccessFlags access
 
 FileResult file_temp(Allocator* alloc, File** file) {
   // Use 'GetTempPath' and 'GetTempFileName' to generate a unique filename in a temporary directory.
-  Mem   tempDirPath  = mem_stack(MAX_PATH * sizeof(wchar_t) + 1); // +1 for null-terminator.
-  DWORD tempDirChars = GetTempPath(MAX_PATH, (wchar_t*)tempDirPath.ptr);
+  Mem         tempDirPath  = mem_stack(MAX_PATH * sizeof(wchar_t) + 1); // +1 for null-terminator.
+  const DWORD tempDirChars = GetTempPath(MAX_PATH, (wchar_t*)tempDirPath.ptr);
   if (!tempDirChars) {
     return fileresult_from_lasterror();
   }
@@ -204,7 +204,7 @@ FileResult file_seek_sync(File* file, usize position) {
 
 FileResult file_delete_sync(String path) {
   // Convert the path to a null-terminated wide-char string.
-  usize pathBufferSize = winutils_to_widestr_size(path);
+  const usize pathBufferSize = winutils_to_widestr_size(path);
   if (sentinel_check(pathBufferSize)) {
     return FileResult_PathInvalid;
   }
@@ -214,6 +214,6 @@ FileResult file_delete_sync(String path) {
   Mem pathBufferMem = mem_stack(pathBufferSize);
   winutils_to_widestr(pathBufferMem, path);
 
-  BOOL success = DeleteFile(pathBufferMem.ptr);
+  const BOOL success = DeleteFile(pathBufferMem.ptr);
   return success ? FileResult_Success : fileresult_from_lasterror();
 }

@@ -54,14 +54,26 @@ endmacro(set_compiler_defines)
 
 # Set gcc specific compile options
 macro(set_gcc_compile_options)
+  # Setup warning flags.
   add_compile_options(-Wall -Wextra -Werror -Wno-override-init)
+
+  # Enable pthread threading.
+  add_compile_options(-pthread)
+  add_link_options(-pthread)
+
   # TODO: Tie these debug options to a configuration knob.
   add_compile_options(-g -fno-omit-frame-pointer)
 endmacro(set_gcc_compile_options)
 
 # Set clang specific compile options
 macro(set_clang_compile_options)
+  # Setup warning flags.
   add_compile_options(-Wall -Wextra -Werror -Wno-initializer-overrides)
+
+  # Enable pthread threading.
+  add_compile_options(-pthread)
+  add_link_options(-pthread)
+
   # TODO: Tie these debug options to a configuration knob.
   add_compile_options(-g -fno-omit-frame-pointer)
 endmacro(set_clang_compile_options)

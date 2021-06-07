@@ -22,6 +22,7 @@ endmacro(detect_platform)
 # Set linux specific defines
 macro(set_linux_defines)
   add_definitions(-DVOLO_LINUX)
+  add_definitions(-D_GNU_SOURCE) # Enable GNU extensions.
 endmacro(set_linux_defines)
 
 # Set linux windows defines

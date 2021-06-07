@@ -8,6 +8,7 @@ void time_init();
 void file_init();
 void tty_init();
 void path_init();
+void thread_init();
 
 void tty_teardown();
 
@@ -20,6 +21,7 @@ void core_init() {
     file_init();
     tty_init();
     path_init();
+    thread_init();
   }
 }
 
