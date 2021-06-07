@@ -3,6 +3,7 @@
 #include "core_sentinel.h"
 #include "core_winutils.h"
 #include "file_internal.h"
+#include "path_internal.h"
 #include <Windows.h>
 
 File* g_file_stdin;
@@ -62,7 +63,10 @@ file_create(Allocator* alloc, String path, FileMode mode, FileAccessFlags access
   if (sentinel_check(pathBufferSize)) {
     return FileResult_PathInvalid;
   }
-  Mem pathBufferMem = alloc_alloc(g_allocator_heap, pathBufferSize);
+  if (pathbufferSize > path_pal_max_size) {
+    return FileResult_PathTooLong;
+  }
+  Mem pathBufferMem = mem_stack(pathBufferSize);
   winutils_to_widestr(pathBufferMem, path);
 
   DWORD shareMode =
@@ -101,8 +105,6 @@ file_create(Allocator* alloc, String path, FileMode mode, FileAccessFlags access
       creationDisposition,
       flags,
       null);
-
-  alloc_free(g_allocator_heap, pathBufferMem);
 
   if (handle == INVALID_HANDLE_VALUE) {
     return fileresult_from_lasterror();
@@ -206,12 +208,12 @@ FileResult file_delete_sync(String path) {
   if (sentinel_check(pathBufferSize)) {
     return FileResult_PathInvalid;
   }
-  Mem pathBufferMem = alloc_alloc(g_allocator_heap, pathBufferSize);
+  if (pathbufferSize > path_pal_max_size) {
+    return FileResult_PathTooLong;
+  }
+  Mem pathBufferMem = mem_stack(pathBufferSize);
   winutils_to_widestr(pathBufferMem, path);
 
   BOOL success = DeleteFile(pathBufferMem.ptr);
-
-  alloc_free(g_allocator_heap, pathBufferMem);
-
   return success ? FileResult_Success : fileresult_from_lasterror();
 }
