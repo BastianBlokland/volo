@@ -6,7 +6,7 @@
 i64 thread_pal_pid() { return GetCurrentProcessId(); }
 i64 thread_pal_tid() { return GetCurrentThreadId(); }
 
-void thread_pal_name_current(const String str) {
+void thread_pal_set_name(const String str) {
   static const usize maxNameLen = 15;
   if (str.size > maxNameLen) {
     diag_assert_fail(

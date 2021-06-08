@@ -20,6 +20,7 @@ void test_memory();
 void test_path();
 void test_sort();
 void test_string();
+void test_thread();
 void test_time();
 void test_utf8();
 void test_winutils();
@@ -55,6 +56,7 @@ int main() {
   test_path();
   test_sort();
   test_string();
+  test_thread();
   test_time();
   test_utf8();
   test_winutils();

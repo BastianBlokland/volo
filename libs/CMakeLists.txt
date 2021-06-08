@@ -54,6 +54,7 @@ add_executable(volo_core_test
   core/test/test_path.c
   core/test/test_sort.c
   core/test/test_string.c
+  core/test/test_thread.c
   core/test/test_time.c
   core/test/test_utf8.c
   core/test/test_winutils.c)
