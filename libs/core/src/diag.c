@@ -31,6 +31,6 @@ void diag_assert_fail(const DiagCallSite* callsite, String msg) {
 }
 
 void diag_crash() {
-  VOLO_DEBUG_BREAK();
+  DEBUG_BREAK();
   exit(1);
 }

@@ -35,7 +35,7 @@ typedef struct {
  */
 #define diag_assert_msg(_CONDITION_, _MSG_)                                                        \
   do {                                                                                             \
-    if (unlikely(!(_CONDITION_))) {                                                                \
+    if (UNLIKELY(!(_CONDITION_))) {                                                                \
       diag_assert_fail(&diag_callsite_create(), _MSG_);                                            \
     }                                                                                              \
   } while (false)
@@ -72,9 +72,9 @@ void diag_print_err_formatted(String format, const FormatArg* args, usize argsCo
 /**
  * Indicate that an assertion has failed, print the given message and crashes the program.
  */
-VOLO_NORETURN void diag_assert_fail(const DiagCallSite*, String msg);
+NORETURN void diag_assert_fail(const DiagCallSite*, String msg);
 
 /**
  * Crash the program, will halt if running in a debugger.
  */
-VOLO_NORETURN void diag_crash();
+NORETURN void diag_crash();

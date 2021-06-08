@@ -30,7 +30,7 @@ DynArray dynarray_create_over(Mem memory, u16 stride) {
 
 void dynarray_destroy(DynArray* array) {
   diag_assert(array);
-  if (array->alloc && likely(mem_valid(array->data))) {
+  if (array->alloc && LIKELY(mem_valid(array->data))) {
     // Having a allocator pointer (and a valid allocation) means we should free the backing memory.
     alloc_free(array->alloc, array->data);
   }
@@ -45,7 +45,7 @@ void dynarray_resize(DynArray* array, const usize size) {
   diag_assert(array);
   if (size * array->stride > array->data.size) {
 
-    if (unlikely(!array->alloc)) {
+    if (UNLIKELY(!array->alloc)) {
       diag_assert_fail(
           &diag_callsite_create(), string_lit("DynArray without an allocator ran out of memory"));
     }
@@ -53,7 +53,7 @@ void dynarray_resize(DynArray* array, const usize size) {
     const Mem newMem = alloc_alloc(array->alloc, bits_nextpow2_64(size * array->stride));
     diag_assert_msg(mem_valid(newMem), string_lit("Allocation failed"));
 
-    if (likely(mem_valid(array->data))) {
+    if (LIKELY(mem_valid(array->data))) {
       mem_cpy(newMem, array->data);
       alloc_free(array->alloc, array->data);
     }

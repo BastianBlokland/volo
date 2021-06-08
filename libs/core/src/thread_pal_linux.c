@@ -4,6 +4,7 @@
 #include <unistd.h>
 
 i64 thread_pal_pid() { return getpid(); }
+i64 thread_pal_tid() { return gettid(); }
 
 void thread_pal_name_current(const String str) {
   static const usize maxNameLen = 15;
