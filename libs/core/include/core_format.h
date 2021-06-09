@@ -47,7 +47,7 @@ typedef struct {
  * Create an integer formatting argument.
  */
 #define fmt_int(_VAL_, ...)                                                                        \
-  _Generic((_VAL_),                                                                                \
+  _Generic(+(_VAL_),                                                                               \
     u32: ((FormatArg){                                                                             \
       .type = FormatArgType_u64,                                                                   \
       .value_u64 = (u64)(_VAL_),                                                                   \

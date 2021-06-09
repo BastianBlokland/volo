@@ -1,10 +1,20 @@
 #include "core_diag.h"
 #include "thread_internal.h"
 #include <pthread.h>
+#include <sched.h>
 #include <unistd.h>
 
 i64 thread_pal_pid() { return getpid(); }
 i64 thread_pal_tid() { return gettid(); }
+
+u16 thread_pal_processor_count() {
+  cpu_set_t cpuSet;
+  CPU_ZERO(&cpuSet);
+  const int res = sched_getaffinity(0, sizeof(cpuSet), &cpuSet);
+  diag_assert_msg(res == 0, string_lit("sched_getaffinity() failed"));
+  (void)res;
+  return CPU_COUNT(&cpuSet);
+}
 
 void thread_pal_set_name(const String str) {
   static const usize maxNameLen = 15;
