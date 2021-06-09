@@ -15,7 +15,7 @@ int main() {
       "Hello from main! (pid: {}, tid: {}, cpus: {}, name: {})\n",
       fmt_int(g_thread_pid),
       fmt_int(g_thread_tid),
-      fmt_int(g_thread_cpu_count),
+      fmt_int(g_thread_core_count),
       fmt_text(g_thread_name));
 
   ThreadHandle exec = thread_start(test_thread, null, string_lit("volo_executor"));

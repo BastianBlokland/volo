@@ -6,6 +6,12 @@
 i64 thread_pal_pid() { return GetCurrentProcessId(); }
 i64 thread_pal_tid() { return GetCurrentThreadId(); }
 
+u16 thread_pal_core_count() {
+  SYSTEM_INFO sysInfo;
+  GetSystemInfo(&sysInfo);
+  return sysInfo.dwNumberOfProcessors;
+}
+
 void thread_pal_set_name(const String str) {
   static const usize maxNameLen = 15;
   if (str.size > maxNameLen) {
@@ -24,4 +30,22 @@ void thread_pal_set_name(const String str) {
   const HRESULT res       = SetThreadDescription(curThread, buffer.ptr);
   diag_assert_msg(SUCCEEDED(res), string_lit("SetThreadDescription() failed"));
   (void)res;
+}
+
+ThreadHandle thread_pal_start(thread_pal_rettype (*routine)(void*), void* data) {
+  HANDLE handle = CreateThread(null, thread_pal_stacksize, routine, data, 0, null);
+  diag_assert_msg(handle, string_lit("CreateThread() failed"));
+
+  _Static_assert(sizeof(ThreadHandle) >= sizeof(HANDLE), "'HANDLE' type too big");
+  return (ThreadHandle)handle;
+}
+
+void thread_pal_join(ThreadHandle thread) {
+  DWORD waitRes = WaitForSingleObject((HANDLE)thread, INFINITE);
+  diag_assert_msg(waitRes != WAIT_FAILED, string_lit("WaitForSingleObject() failed"));
+  (void)waitRes;
+
+  BOOL closeRes = CloseHandle((HANDLE)thread);
+  diag_assert_msg(closeRes, string_lit("CloseHandle() failed"));
+  (void)closeRes;
 }

@@ -26,9 +26,9 @@ extern THREAD_LOCAL i64 g_thread_tid;
 extern THREAD_LOCAL String g_thread_name;
 
 /**
- * Number of cpu cores available to this process.
+ * Number of logical cpu cores available to this process.
  */
-extern u16 g_thread_cpu_count;
+extern u16 g_thread_core_count;
 
 /**
  * Function to run on an execution thread.

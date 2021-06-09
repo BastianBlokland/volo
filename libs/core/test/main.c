@@ -37,7 +37,7 @@ int main() {
       fmt_text(path_stem(g_path_executable)),
       fmt_int(g_thread_pid),
       fmt_int(g_thread_tid),
-      fmt_int(g_thread_cpu_count));
+      fmt_int(g_thread_core_count));
 
   const TimeSteady timeStart = time_steady_clock();
 

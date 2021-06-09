@@ -7,7 +7,7 @@
 i64 thread_pal_pid() { return getpid(); }
 i64 thread_pal_tid() { return gettid(); }
 
-u16 thread_pal_processor_count() {
+u16 thread_pal_core_count() {
   cpu_set_t cpuSet;
   CPU_ZERO(&cpuSet);
   const int res = sched_getaffinity(0, sizeof(cpuSet), &cpuSet);
