@@ -1,5 +1,6 @@
 #include "core_diag.h"
 #include "thread_internal.h"
+#include <errno.h>
 #include <pthread.h>
 #include <sched.h>
 #include <unistd.h>
@@ -61,4 +62,21 @@ void thread_pal_join(ThreadHandle thread) {
   const int res = pthread_join((pthread_t)thread, &retData);
   diag_assert_msg(res == 0, string_lit("pthread_join() failed"));
   (void)res;
+}
+
+void thread_pal_yield() {
+  const int res = sched_yield();
+  diag_assert_msg(res == 0, string_lit("sched_yield() failed"));
+  (void)res;
+}
+
+void thread_pal_sleep(const TimeDuration duration) {
+  struct timespec ts = {
+      .tv_sec  = duration / time_second,
+      .tv_nsec = duration % time_second,
+  };
+  int res = 0;
+  while ((res = nanosleep(&ts, &ts)) == -1 && errno == EINTR) // Resume waiting after interupt.
+    ;
+  diag_assert_msg(res == 0, string_lit("nanosleep() failed"));
 }

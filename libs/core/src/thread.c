@@ -55,3 +55,7 @@ ThreadHandle thread_start(ThreadRoutine routine, void* data, String threadName) 
 }
 
 void thread_join(ThreadHandle thread) { thread_pal_join(thread); }
+
+void thread_yield() { thread_pal_yield(); }
+
+void thread_sleep(const TimeDuration duration) { thread_pal_sleep(duration); }

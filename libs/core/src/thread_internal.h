@@ -17,3 +17,5 @@ u16          thread_pal_core_count();
 void         thread_pal_set_name(String);
 ThreadHandle thread_pal_start(thread_pal_rettype (*)(void*), void*);
 void         thread_pal_join(ThreadHandle);
+void         thread_pal_yield();
+void         thread_pal_sleep(TimeDuration);

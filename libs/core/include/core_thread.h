@@ -1,6 +1,7 @@
 #pragma once
 #include "core_annotation.h"
 #include "core_string.h"
+#include "core_time.h"
 #include "core_types.h"
 
 /**
@@ -56,3 +57,13 @@ ThreadHandle thread_start(ThreadRoutine, void* data, String threadName);
  * Note: Should be called exactly once per started thread.
  */
 void thread_join(ThreadHandle);
+
+/**
+ * Stop executing the current thread and move it to the bottom of the run queue.
+ */
+void thread_yield();
+
+/**
+ * Sleep the current thread.
+ */
+void thread_sleep(TimeDuration);

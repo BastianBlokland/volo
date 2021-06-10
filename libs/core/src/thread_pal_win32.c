@@ -49,3 +49,10 @@ void thread_pal_join(ThreadHandle thread) {
   diag_assert_msg(closeRes, string_lit("CloseHandle() failed"));
   (void)closeRes;
 }
+
+void thread_pal_yield() { SwitchToThread(); }
+
+void thread_pal_sleep(const TimeDuration duration) {
+  // TODO: This only has milliseconds resolution, investigate alternatives with better resolution.
+  Sleep(duration / time_millisecond);
+}
