@@ -56,3 +56,49 @@ void thread_pal_sleep(const TimeDuration duration) {
   // TODO: This only has milliseconds resolution, investigate alternatives with better resolution.
   Sleep(duration / time_millisecond);
 }
+
+typedef struct {
+  Allocator* alloc;
+  Mem        allocation;
+} ThreadMutexExtraData;
+
+ThreadMutex thread_pal_mutex_create(Allocator* alloc) {
+  Mem allocation = alloc_alloc(alloc, sizeof(CRITICAL_SECTION) + sizeof(ThreadMutexExtraData));
+  CRITICAL_SECTION* critSection = mem_as_t(allocation, CRITICAL_SECTION);
+
+  *mem_as_t(mem_consume(allocation, sizeof(CRITICAL_SECTION)), ThreadMutexExtraData) =
+      (ThreadMutexExtraData){
+          .alloc      = alloc,
+          .allocation = allocation,
+      };
+
+  InitializeCriticalSection(critSection);
+  return (ThreadMutex)allocation.ptr;
+}
+
+void thread_pal_mutex_destroy(ThreadMutex handle) {
+  CRITICAL_SECTION* critSection = (CRITICAL_SECTION*)handle;
+
+  DeleteCriticalSection(critSection);
+
+  ThreadMutexExtraData* extraData = (ThreadMutexExtraData*)((u8*)handle + sizeof(CRITICAL_SECTION));
+  alloc_free(extraData->alloc, extraData->allocation);
+}
+
+void thread_pal_mutex_lock(ThreadMutex handle) {
+  CRITICAL_SECTION* critSection = (CRITICAL_SECTION*)handle;
+
+  EnterCriticalSection(critSection);
+}
+
+bool thread_pal_mutex_trylock(ThreadMutex handle) {
+  CRITICAL_SECTION* critSection = (CRITICAL_SECTION*)handle;
+
+ return TryEnterCriticalSection(critSection);
+}
+
+void thread_pal_mutex_unlock(ThreadMutex handle) {
+  CRITICAL_SECTION* critSection = (CRITICAL_SECTION*)handle;
+
+  LeaveCriticalSection(critSection);
+}

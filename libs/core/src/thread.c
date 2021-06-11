@@ -59,3 +59,13 @@ void thread_join(ThreadHandle thread) { thread_pal_join(thread); }
 void thread_yield() { thread_pal_yield(); }
 
 void thread_sleep(const TimeDuration duration) { thread_pal_sleep(duration); }
+
+ThreadMutex thread_mutex_create(Allocator* alloc) { return thread_pal_mutex_create(alloc); }
+
+void thread_mutex_destroy(ThreadMutex mutex) { thread_pal_mutex_destroy(mutex); }
+
+void thread_mutex_lock(ThreadMutex mutex) { thread_pal_mutex_lock(mutex); }
+
+bool thread_mutex_trylock(ThreadMutex mutex) { return thread_pal_mutex_trylock(mutex); }
+
+void thread_mutex_unlock(ThreadMutex mutex) { thread_pal_mutex_unlock(mutex); }

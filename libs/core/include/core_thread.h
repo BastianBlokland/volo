@@ -1,9 +1,9 @@
 #pragma once
+#include "core_alloc.h"
 #include "core_annotation.h"
 #include "core_string.h"
 #include "core_time.h"
 #include "core_types.h"
-#include <stdatomic.h>
 
 /**
  * Process identifier (aka 'thread group id').
@@ -33,22 +33,6 @@ extern THREAD_LOCAL String g_thread_name;
 extern u16 g_thread_core_count;
 
 /**
- * Atomic data types.
- * Read and writes will be atomic and can be used with operations which provide ordering guarantees.
- *
- * For atomic operations see the C11 <stdatomic.h> library.
- */
-#define atomic_i8 _Atomic i8
-#define atomic_i16 _Atomic i16
-#define atomic_i32 _Atomic i32
-#define atomic_i64 _Atomic i64
-#define atomic_u8 _Atomic u8
-#define atomic_u16 _Atomic u16
-#define atomic_u32 _Atomic u32
-#define atomic_u64 _Atomic u64
-#define atomic_usize _Atomic usize
-
-/**
  * Function to run on an execution thread.
  */
 typedef void (*ThreadRoutine)(void*);
@@ -58,6 +42,12 @@ typedef void (*ThreadRoutine)(void*);
  * Note: Thread resources should be cleaned up by calling 'thread_join'.
  */
 typedef iptr ThreadHandle;
+
+/**
+ * Handle to a mutex.
+ * Note: Should be cleaned up by calling 'thread_mutex_destroy()'.
+ */
+typedef iptr ThreadMutex;
 
 /**
  * Start a new execution thread.
@@ -84,3 +74,37 @@ void thread_yield();
  * Sleep the current thread.
  */
 void thread_sleep(TimeDuration);
+
+/**
+ * Create a new mutex.
+ * Should be cleaned up using 'thread_mutex_destroy'.
+ */
+ThreadMutex thread_mutex_create(Allocator*);
+
+/**
+ * Free all resources associated with a mutex.
+ * Pre-condition: Mutex is unlocked (not locked).
+ */
+void thread_mutex_destroy(ThreadMutex);
+
+/**
+ * Lock a mutex.
+ * if the mutex is currently unlocked then this returns immediately, if the mutex is currently
+ * locked by another thread then this blocks until that thread unlocks the mutex.
+ * Pre-condition: Mutex is not being held by this thread.
+ */
+void thread_mutex_lock(ThreadMutex);
+
+/**
+ * Attempt to lock a mutex.
+ * if the mutex is currently unlocked then 'true' is returned and the mutex is locked,
+ * otherwise 'false' is returned.
+ * Pre-condition: Mutex is not being held by this thread.
+ */
+bool thread_mutex_trylock(ThreadMutex);
+
+/**
+ * Unlock a mutex.
+ * Pre-condition: Mutex is being held by this thread.
+ */
+void thread_mutex_unlock(ThreadMutex);

@@ -27,17 +27,55 @@ static void test_thread_new_thread_has_name() {
   thread_join(exec);
 }
 
-static void test_thread_store_value_exec(void* data) {
-  atomic_i32* result = (atomic_i32*)data;
-  atomic_store_explicit(result, 1337, memory_order_release);
+// static void test_thread_store_value_exec(void* data) {
+//   atomic_i32* result = (atomic_i32*)data;
+//   atomic_store_explicit(result, 1337, memory_order_release);
+// }
+
+// static void test_thread_store_value() {
+//   atomic_i32   value = 42;
+//   ThreadHandle exec =
+//       thread_start(test_thread_store_value_exec, &value, string_lit("volo_test_exec"));
+//   thread_join(exec);
+//   diag_assert(atomic_load_explicit(&value, memory_order_acquire) == 1337);
+// }
+
+static void test_thread_mutex_lock_succeeds_when_unlocked() {
+  ThreadMutex mutex = thread_mutex_create(g_alloc_heap);
+
+  thread_mutex_lock(mutex);
+  thread_mutex_unlock(mutex);
+
+  thread_mutex_destroy(mutex);
 }
 
-static void test_thread_store_value() {
-  atomic_i32   value = 42;
-  ThreadHandle exec =
-      thread_start(test_thread_store_value_exec, &value, string_lit("volo_test_exec"));
+static void test_thread_mutex_trylock_succeeds_when_unlocked() {
+  ThreadMutex mutex = thread_mutex_create(g_alloc_heap);
+
+  diag_assert(thread_mutex_trylock(mutex));
+  thread_mutex_unlock(mutex);
+
+  thread_mutex_destroy(mutex);
+}
+
+static void test_thread_mutex_trylock_fail_when_when_locked_exec(void* data) {
+  ThreadMutex mutex = (ThreadMutex)data;
+  diag_assert(!thread_mutex_trylock(mutex));
+}
+
+static void test_thread_mutex_trylock_fails_when_locked() {
+  ThreadMutex mutex = thread_mutex_create(g_alloc_heap);
+
+  thread_mutex_lock(mutex);
+
+  ThreadHandle exec = thread_start(
+      test_thread_mutex_trylock_fail_when_when_locked_exec,
+      (void*)mutex,
+      string_lit("volo_test_exec"));
   thread_join(exec);
-  diag_assert(atomic_load_explicit(&value, memory_order_acquire) == 1337);
+
+  thread_mutex_unlock(mutex);
+  thread_mutex_destroy(mutex);
 }
 
 void test_thread() {
@@ -47,5 +85,8 @@ void test_thread() {
   test_thread_has_name();
   test_thread_new_thread_has_different_tid();
   test_thread_new_thread_has_name();
-  test_thread_store_value();
+  // test_thread_store_value();
+  test_thread_mutex_lock_succeeds_when_unlocked();
+  test_thread_mutex_trylock_succeeds_when_unlocked();
+  test_thread_mutex_trylock_fails_when_locked();
 }

@@ -19,3 +19,8 @@ ThreadHandle thread_pal_start(thread_pal_rettype (*)(void*), void*);
 void         thread_pal_join(ThreadHandle);
 void         thread_pal_yield();
 void         thread_pal_sleep(TimeDuration);
+ThreadMutex  thread_pal_mutex_create(Allocator*);
+void         thread_pal_mutex_destroy(ThreadMutex);
+void         thread_pal_mutex_lock(ThreadMutex);
+bool         thread_pal_mutex_trylock(ThreadMutex);
+void         thread_pal_mutex_unlock(ThreadMutex);

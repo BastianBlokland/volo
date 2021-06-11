@@ -3,10 +3,11 @@
 #include <errno.h>
 #include <pthread.h>
 #include <sched.h>
+#include <sys/syscall.h>
 #include <unistd.h>
 
-i64 thread_pal_pid() { return getpid(); }
-i64 thread_pal_tid() { return gettid(); }
+i64 thread_pal_pid() { return syscall(SYS_getpid); }
+i64 thread_pal_tid() { return syscall(SYS_gettid); }
 
 u16 thread_pal_core_count() {
   cpu_set_t cpuSet;
@@ -79,4 +80,74 @@ void thread_pal_sleep(const TimeDuration duration) {
   while ((res = nanosleep(&ts, &ts)) == -1 && errno == EINTR) // Resume waiting after interupt.
     ;
   diag_assert_msg(res == 0, string_lit("nanosleep() failed"));
+}
+
+typedef struct {
+  Allocator* alloc;
+  Mem        allocation;
+} ThreadMutexExtraData;
+
+ThreadMutex thread_pal_mutex_create(Allocator* alloc) {
+  pthread_mutexattr_t attr;
+  int                 res = pthread_mutexattr_init(&attr);
+  diag_assert_msg(res == 0, string_lit("pthread_mutexattr_init() failed"));
+
+  res = pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
+  diag_assert_msg(res == 0, string_lit("pthread_mutexattr_settype() failed"));
+
+  res = pthread_mutexattr_setrobust(&attr, PTHREAD_MUTEX_STALLED);
+  diag_assert_msg(res == 0, string_lit("pthread_mutexattr_setrobust() failed"));
+
+  Mem allocation = alloc_alloc(alloc, sizeof(pthread_mutex_t) + sizeof(ThreadMutexExtraData));
+  pthread_mutex_t* mutex = mem_as_t(allocation, pthread_mutex_t);
+
+  *mem_as_t(mem_consume(allocation, sizeof(pthread_mutex_t)), ThreadMutexExtraData) =
+      (ThreadMutexExtraData){
+          .alloc      = alloc,
+          .allocation = allocation,
+      };
+
+  res = pthread_mutex_init(mutex, &attr);
+  diag_assert_msg(res == 0, string_lit("pthread_mutex_init() failed"));
+
+  res = pthread_mutexattr_destroy(&attr);
+  diag_assert_msg(res == 0, string_lit("pthread_mutexattr_destroy() failed"));
+
+  (void)res;
+  return (ThreadMutex)allocation.ptr;
+}
+
+void thread_pal_mutex_destroy(ThreadMutex handle) {
+  pthread_mutex_t* mutex = (pthread_mutex_t*)handle;
+
+  const int res = pthread_mutex_destroy(mutex);
+  diag_assert_msg(res == 0, string_lit("pthread_mutex_destroy() failed"));
+  (void)res;
+
+  ThreadMutexExtraData* extraData = (ThreadMutexExtraData*)((u8*)handle + sizeof(pthread_mutex_t));
+  alloc_free(extraData->alloc, extraData->allocation);
+}
+
+void thread_pal_mutex_lock(ThreadMutex handle) {
+  pthread_mutex_t* mutex = (pthread_mutex_t*)handle;
+
+  const int res = pthread_mutex_lock(mutex);
+  diag_assert_msg(res == 0, string_lit("pthread_mutex_lock() failed"));
+  (void)res;
+}
+
+bool thread_pal_mutex_trylock(ThreadMutex handle) {
+  pthread_mutex_t* mutex = (pthread_mutex_t*)handle;
+
+  const int res = pthread_mutex_trylock(mutex);
+  diag_assert_msg(res == 0 || res == EBUSY, string_lit("pthread_mutex_trylock() failed"));
+  return res == 0;
+}
+
+void thread_pal_mutex_unlock(ThreadMutex handle) {
+  pthread_mutex_t* mutex = (pthread_mutex_t*)handle;
+
+  const int res = pthread_mutex_unlock(mutex);
+  diag_assert_msg(res == 0, string_lit("pthread_mutex_unlock() failed"));
+  (void)res;
 }
