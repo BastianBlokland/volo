@@ -39,7 +39,7 @@ typedef void (*ThreadRoutine)(void*);
 
 /**
  * Handle to a started thread.
- * Note: Thread resources should be cleaned up by calling 'thread_join'.
+ * Note: Thread resources should be cleaned up by calling 'thread_join()'.
  */
 typedef iptr ThreadHandle;
 
@@ -74,6 +74,20 @@ i64 thread_atomic_exchange_i64(i64*, i64 value);
  * This includes a general memory barrier.
  */
 bool thread_atomic_compare_exchange_i64(i64* ptr, i64* expected, i64 value);
+
+/**
+ * Atomically store the result of adding the value to the content of the given pointer at the
+ * pointer address and returns the old value.
+ * This includes a general memory barrier.
+ */
+i64 thread_atomic_add_i64(i64*, i64 value);
+
+/**
+ * Atomically store the result of substracting the value to the content of the given pointer at the
+ * pointer address and returns the old value.
+ * This includes a general memory barrier.
+ */
+i64 thread_atomic_sub_i64(i64*, i64 value);
 
 /**
  * Start a new execution thread.

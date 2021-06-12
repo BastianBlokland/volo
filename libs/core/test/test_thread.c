@@ -75,6 +75,42 @@ static void test_thread_atomic_compare_exchange_value() {
   diag_assert(thread_atomic_load_i64(&value) == 1337 || thread_atomic_load_i64(&value) == 42);
 }
 
+static void test_thread_atomic_add_value_exec(void* data) {
+  i64* valPtr = (i64*)data;
+  for (i32 i = 0; i != 10000; ++i) {
+    thread_atomic_add_i64(valPtr, 1);
+  }
+}
+
+static void test_thread_atomic_add_value() {
+  i64          value = 0;
+  ThreadHandle exec =
+      thread_start(test_thread_atomic_add_value_exec, &value, string_lit("volo_test_exec"));
+  for (i32 i = 0; i != 10000; ++i) {
+    thread_atomic_add_i64(&value, 1);
+  }
+  thread_join(exec);
+  diag_assert(thread_atomic_load_i64(&value) == 20000);
+}
+
+static void test_thread_atomic_sub_value_exec(void* data) {
+  i64* valPtr = (i64*)data;
+  for (i32 i = 0; i != 10000; ++i) {
+    thread_atomic_sub_i64(valPtr, 1);
+  }
+}
+
+static void test_thread_atomic_sub_value() {
+  i64          value = 20000;
+  ThreadHandle exec =
+      thread_start(test_thread_atomic_sub_value_exec, &value, string_lit("volo_test_exec"));
+  for (i32 i = 0; i != 10000; ++i) {
+    thread_atomic_sub_i64(&value, 1);
+  }
+  thread_join(exec);
+  diag_assert(thread_atomic_load_i64(&value) == 0);
+}
+
 static void test_thread_mutex_lock_succeeds_when_unlocked() {
   ThreadMutex mutex = thread_mutex_create(g_alloc_heap);
 
@@ -123,6 +159,8 @@ void test_thread() {
   test_thread_atomic_store_value();
   test_thread_atomic_exchange_value();
   test_thread_atomic_compare_exchange_value();
+  test_thread_atomic_add_value();
+  test_thread_atomic_sub_value();
   test_thread_mutex_lock_succeeds_when_unlocked();
   test_thread_mutex_trylock_succeeds_when_unlocked();
   test_thread_mutex_trylock_fails_when_locked();

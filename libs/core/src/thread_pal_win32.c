@@ -53,6 +53,26 @@ bool thread_pal_atomic_compare_exchange_i64(i64* ptr, i64* expected, i64 value) 
   return false;
 }
 
+i64 thread_pal_atomic_add_i64(i64* ptr, i64 value) {
+  i64 current;
+  i64 add;
+  do {
+    current = *ptr;
+    add     = current + value;
+  } while (InterlockedCompareExchange64(ptr, add, current) != current);
+  return current;
+}
+
+i64 thread_pal_atomic_sub_i64(i64* ptr, i64 value) {
+  i64 current;
+  i64 sub;
+  do {
+    current = *ptr;
+    sub     = current - value;
+  } while (InterlockedCompareExchange64(ptr, sub, current) != current);
+  return current;
+}
+
 ThreadHandle thread_pal_start(thread_pal_rettype (*routine)(void*), void* data) {
   HANDLE handle = CreateThread(null, thread_pal_stacksize, routine, data, 0, null);
   diag_assert_msg(handle, string_lit("CreateThread() failed"));

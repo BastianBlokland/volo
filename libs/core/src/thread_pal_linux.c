@@ -51,6 +51,14 @@ bool thread_pal_atomic_compare_exchange_i64(i64* ptr, i64* expected, i64 value) 
       ptr, expected, value, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
 }
 
+i64 thread_pal_atomic_add_i64(i64* ptr, i64 value) {
+  return __atomic_fetch_add(ptr, value, __ATOMIC_SEQ_CST);
+}
+
+i64 thread_pal_atomic_sub_i64(i64* ptr, i64 value) {
+  return __atomic_fetch_sub(ptr, value, __ATOMIC_SEQ_CST);
+}
+
 ThreadHandle thread_pal_start(thread_pal_rettype (*routine)(void*), void* data) {
   pthread_attr_t attr;
   pthread_t      handle;

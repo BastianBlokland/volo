@@ -53,6 +53,10 @@ bool thread_atomic_compare_exchange_i64(i64* ptr, i64* expected, i64 value) {
   return thread_pal_atomic_compare_exchange_i64(ptr, expected, value);
 }
 
+i64 thread_atomic_add_i64(i64* ptr, i64 value) { return thread_pal_atomic_add_i64(ptr, value); }
+
+i64 thread_atomic_sub_i64(i64* ptr, i64 value) { return thread_pal_atomic_sub_i64(ptr, value); }
+
 ThreadHandle thread_start(ThreadRoutine routine, void* data, String threadName) {
   Mem allocation = alloc_alloc(g_alloc_heap, sizeof(ThreadRunData) + threadName.size);
   *(ThreadRunData*)allocation.ptr = (ThreadRunData){
