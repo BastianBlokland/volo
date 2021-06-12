@@ -32,6 +32,27 @@ void thread_pal_set_name(const String str) {
   (void)res;
 }
 
+i64 thread_pal_atomic_load_i64(i64* ptr) {
+  return InterlockedCompareExchange64((volatile i64*)ptr, 0, 0);
+}
+
+void thread_pal_atomic_store_i64(i64* ptr, i64 value) {
+  InterlockedExchange64((volatile i64*)ptr, value);
+}
+
+i64 thread_pal_atomic_exchange_i64(i64* ptr, i64 value) {
+  return InterlockedExchange64((volatile i64*)ptr, value);
+}
+
+bool thread_pal_atomic_compare_exchange_i64(i64* ptr, i64* expected, i64 value) {
+  const i64 read = (i64)InterlockedCompareExchange64((volatile i64*)ptr, value, *expected);
+  if (read == *expected) {
+    return true;
+  }
+  *expected = read;
+  return false;
+}
+
 ThreadHandle thread_pal_start(thread_pal_rettype (*routine)(void*), void* data) {
   HANDLE handle = CreateThread(null, thread_pal_stacksize, routine, data, 0, null);
   diag_assert_msg(handle, string_lit("CreateThread() failed"));
@@ -94,7 +115,7 @@ void thread_pal_mutex_lock(ThreadMutex handle) {
 bool thread_pal_mutex_trylock(ThreadMutex handle) {
   CRITICAL_SECTION* critSection = (CRITICAL_SECTION*)handle;
 
- return TryEnterCriticalSection(critSection);
+  return TryEnterCriticalSection(critSection);
 }
 
 void thread_pal_mutex_unlock(ThreadMutex handle) {

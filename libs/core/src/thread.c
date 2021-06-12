@@ -41,6 +41,18 @@ void thread_init() {
   thread_pal_set_name(g_thread_name);
 }
 
+i64 thread_atomic_load_i64(i64* ptr) { return thread_pal_atomic_load_i64(ptr); }
+
+void thread_atomic_store_i64(i64* ptr, i64 value) { thread_pal_atomic_store_i64(ptr, value); }
+
+i64 thread_atomic_exchange_i64(i64* ptr, i64 value) {
+  return thread_pal_atomic_exchange_i64(ptr, value);
+}
+
+bool thread_atomic_compare_exchange_i64(i64* ptr, i64* expected, i64 value) {
+  return thread_pal_atomic_compare_exchange_i64(ptr, expected, value);
+}
+
 ThreadHandle thread_start(ThreadRoutine routine, void* data, String threadName) {
   Mem allocation = alloc_alloc(g_alloc_heap, sizeof(ThreadRunData) + threadName.size);
   *(ThreadRunData*)allocation.ptr = (ThreadRunData){

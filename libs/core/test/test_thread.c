@@ -27,18 +27,53 @@ static void test_thread_new_thread_has_name() {
   thread_join(exec);
 }
 
-// static void test_thread_store_value_exec(void* data) {
-//   atomic_i32* result = (atomic_i32*)data;
-//   atomic_store_explicit(result, 1337, memory_order_release);
-// }
+static void test_thread_atomic_store_value_exec(void* data) {
+  thread_atomic_store_i64((i64*)data, 1337);
+}
 
-// static void test_thread_store_value() {
-//   atomic_i32   value = 42;
-//   ThreadHandle exec =
-//       thread_start(test_thread_store_value_exec, &value, string_lit("volo_test_exec"));
-//   thread_join(exec);
-//   diag_assert(atomic_load_explicit(&value, memory_order_acquire) == 1337);
-// }
+static void test_thread_atomic_store_value() {
+  i64          value = 0;
+  ThreadHandle exec =
+      thread_start(test_thread_atomic_store_value_exec, &value, string_lit("volo_test_exec"));
+  thread_join(exec);
+  diag_assert(thread_atomic_load_i64(&value) == 1337);
+}
+
+static void test_thread_atomic_exchange_value_exec(void* data) {
+  diag_assert(thread_atomic_exchange_i64((i64*)data, 1337) == 42);
+}
+
+static void test_thread_atomic_exchange_value() {
+  i64          value = 42;
+  ThreadHandle exec =
+      thread_start(test_thread_atomic_exchange_value_exec, &value, string_lit("volo_test_exec"));
+  thread_join(exec);
+  diag_assert(thread_atomic_load_i64(&value) == 1337);
+}
+
+static void test_thread_atomic_compare_exchange_value_exec(void* data) {
+  i64* valPtr = (i64*)data;
+  for (i32 i = 0; i != 1000; ++i) {
+    i64 expected = 42;
+    if (!thread_atomic_compare_exchange_i64(valPtr, &expected, 1337)) {
+      diag_assert(expected == 1337);
+    }
+  }
+}
+
+static void test_thread_atomic_compare_exchange_value() {
+  i64          value = 42;
+  ThreadHandle exec  = thread_start(
+      test_thread_atomic_compare_exchange_value_exec, &value, string_lit("volo_test_exec"));
+  for (i32 i = 0; i != 1000; ++i) {
+    i64 expected = 1337;
+    if (!thread_atomic_compare_exchange_i64(&value, &expected, 42)) {
+      diag_assert(expected == 42);
+    }
+  }
+  thread_join(exec);
+  diag_assert(thread_atomic_load_i64(&value) == 1337 || thread_atomic_load_i64(&value) == 42);
+}
 
 static void test_thread_mutex_lock_succeeds_when_unlocked() {
   ThreadMutex mutex = thread_mutex_create(g_alloc_heap);
@@ -85,7 +120,9 @@ void test_thread() {
   test_thread_has_name();
   test_thread_new_thread_has_different_tid();
   test_thread_new_thread_has_name();
-  // test_thread_store_value();
+  test_thread_atomic_store_value();
+  test_thread_atomic_exchange_value();
+  test_thread_atomic_compare_exchange_value();
   test_thread_mutex_lock_succeeds_when_unlocked();
   test_thread_mutex_trylock_succeeds_when_unlocked();
   test_thread_mutex_trylock_fails_when_locked();

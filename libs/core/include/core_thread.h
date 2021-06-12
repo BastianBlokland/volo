@@ -50,6 +50,32 @@ typedef iptr ThreadHandle;
 typedef iptr ThreadMutex;
 
 /**
+ * Atomically reads the value at the given pointer.
+ * This includes a general memory barrier.
+ */
+i64 thread_atomic_load_i64(i64*);
+
+/**
+ * Atomically stores the value at the given pointer.
+ * This includes a general memory barrier.
+ */
+void thread_atomic_store_i64(i64*, i64 value);
+
+/**
+ * Atomically stores the value at the given pointer and returns the old value.
+ * This includes a general memory barrier.
+ */
+i64 thread_atomic_exchange_i64(i64*, i64 value);
+
+/**
+ * Compares the content of 'ptr' with the content of 'expected'. If equal the 'value' is stored into
+ * 'ptr' and 'true' is returned. If not equal, the contents of 'ptr' are written into 'expected' and
+ * 'false' is returned.
+ * This includes a general memory barrier.
+ */
+bool thread_atomic_compare_exchange_i64(i64* ptr, i64* expected, i64 value);
+
+/**
  * Start a new execution thread.
  * - 'data' is provided as an argument to the ThreadRoutine.
  * - 'threadName' can be retrieved as 'g_thread_name' in the new thread.
