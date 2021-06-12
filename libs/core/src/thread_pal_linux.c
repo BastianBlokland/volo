@@ -174,3 +174,62 @@ void thread_pal_mutex_unlock(ThreadMutex handle) {
   diag_assert_msg(res == 0, string_lit("pthread_mutex_unlock() failed"));
   (void)res;
 }
+
+typedef struct {
+  Allocator* alloc;
+  Mem        allocation;
+} ThreadConditionExtraData;
+
+ThreadCondition thread_pal_cond_create(Allocator* alloc) {
+  Mem allocation = alloc_alloc(alloc, sizeof(pthread_cond_t) + sizeof(ThreadConditionExtraData));
+  pthread_cond_t* cond = mem_as_t(allocation, pthread_cond_t);
+
+  *mem_as_t(mem_consume(allocation, sizeof(pthread_cond_t)), ThreadConditionExtraData) =
+      (ThreadConditionExtraData){
+          .alloc      = alloc,
+          .allocation = allocation,
+      };
+
+  int res = pthread_cond_init(cond, null);
+  diag_assert_msg(res == 0, string_lit("pthread_cond_init() failed"));
+
+  (void)res;
+  return (ThreadCondition)allocation.ptr;
+}
+
+void thread_pal_cond_destroy(ThreadCondition handle) {
+  pthread_cond_t* cond = (pthread_cond_t*)handle;
+
+  const int res = pthread_cond_destroy(cond);
+  diag_assert_msg(res == 0, string_lit("pthread_cond_destroy() failed"));
+  (void)res;
+
+  ThreadConditionExtraData* extraData =
+      (ThreadConditionExtraData*)((u8*)handle + sizeof(pthread_cond_t));
+  alloc_free(extraData->alloc, extraData->allocation);
+}
+
+void thread_pal_cond_wait(ThreadCondition condHandle, ThreadMutex mutexHandle) {
+  pthread_cond_t*  cond  = (pthread_cond_t*)condHandle;
+  pthread_mutex_t* mutex = (pthread_mutex_t*)mutexHandle;
+
+  const int res = pthread_cond_wait(cond, mutex);
+  diag_assert_msg(res == 0, string_lit("pthread_cond_wait() failed"));
+  (void)res;
+}
+
+void thread_pal_cond_signal(ThreadCondition handle) {
+  pthread_cond_t* cond = (pthread_cond_t*)handle;
+
+  const int res = pthread_cond_signal(cond);
+  diag_assert_msg(res == 0, string_lit("pthread_cond_signal() failed"));
+  (void)res;
+}
+
+void thread_pal_cond_broadcast(ThreadCondition handle) {
+  pthread_cond_t* cond = (pthread_cond_t*)handle;
+
+  const int res = pthread_cond_broadcast(cond);
+  diag_assert_msg(res == 0, string_lit("pthread_cond_broadcast() failed"));
+  (void)res;
+}

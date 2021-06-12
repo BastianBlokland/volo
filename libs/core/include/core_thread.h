@@ -50,6 +50,12 @@ typedef iptr ThreadHandle;
 typedef iptr ThreadMutex;
 
 /**
+ * Handle to a condition.
+ * Note: Should be cleaned up by calling 'thread_cond_destroy()'.
+ */
+typedef iptr ThreadCondition;
+
+/**
  * Atomically reads the value at the given pointer.
  * This includes a general memory barrier.
  */
@@ -117,7 +123,7 @@ void thread_sleep(TimeDuration);
 
 /**
  * Create a new mutex.
- * Should be cleaned up using 'thread_mutex_destroy'.
+ * Should be cleaned up using 'thread_mutex_destroy()'.
  */
 ThreadMutex thread_mutex_create(Allocator*);
 
@@ -148,3 +154,42 @@ bool thread_mutex_trylock(ThreadMutex);
  * Pre-condition: Mutex is being held by this thread.
  */
 void thread_mutex_unlock(ThreadMutex);
+
+/**
+ * Create a new condition.
+ * Should be cleaned up using 'thread_cond_destroy()'.
+ */
+ThreadCondition thread_cond_create(Allocator*);
+
+/**
+ * Free all resources associated with a condition.
+ * Pre-condition: No threads are waiting on this condition.
+ */
+void thread_cond_destroy(ThreadCondition);
+
+/**
+ * Wait for the condition to be signaled by another thread. The mutex is automatically unlocked
+ * before the wait and re-locked after returning from the wait.
+ *
+ * Example usaage:
+ * '
+ *  thread_mutex_lock(&myMutex);
+ *  while (!myPredicate()) {
+ *    thread_cond_wait(&myCond, &myMutex);
+ *  }
+ *  thread_mutex_unlock(&myMutex);
+ * '
+ * Pre-condition: This thread is currently holding the mutex.
+ */
+void thread_cond_wait(ThreadCondition, ThreadMutex);
+
+/**
+ * Unblock atleast one thread waiting for the given condition.
+ * Note: It is possible that more then one thread is woken up, often called 'spurious wakeup'.
+ */
+void thread_cond_signal(ThreadCondition);
+
+/**
+ * Unblock all threads waiting for the given condition.
+ */
+void thread_cond_broadcast(ThreadCondition);

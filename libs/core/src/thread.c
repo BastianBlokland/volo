@@ -85,3 +85,15 @@ void thread_mutex_lock(ThreadMutex mutex) { thread_pal_mutex_lock(mutex); }
 bool thread_mutex_trylock(ThreadMutex mutex) { return thread_pal_mutex_trylock(mutex); }
 
 void thread_mutex_unlock(ThreadMutex mutex) { thread_pal_mutex_unlock(mutex); }
+
+ThreadCondition thread_cond_create(Allocator* alloc) { return thread_pal_cond_create(alloc); }
+
+void thread_cond_destroy(ThreadCondition cond) { thread_pal_cond_destroy(cond); }
+
+void thread_cond_wait(ThreadCondition cond, ThreadMutex mutex) {
+  thread_pal_cond_wait(cond, mutex);
+}
+
+void thread_cond_signal(ThreadCondition cond) { thread_pal_cond_signal(cond); }
+
+void thread_cond_broadcast(ThreadCondition cond) { thread_pal_cond_broadcast(cond); }

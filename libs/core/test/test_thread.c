@@ -1,3 +1,4 @@
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_thread.h"
 
@@ -149,6 +150,96 @@ static void test_thread_mutex_trylock_fails_when_locked() {
   thread_mutex_destroy(mutex);
 }
 
+static void test_thread_cond_signal_unblocks_atleast_one_exec(void* rawData) {
+  struct {
+    bool            started;
+    i64             value;
+    ThreadCondition cond;
+    ThreadMutex     mutex;
+  }* data = rawData;
+
+  thread_mutex_lock(data->mutex);
+  data->started = true;
+  while (data->value != 1337) {
+    thread_cond_wait(data->cond, data->mutex);
+  }
+  data->value = 42;
+  thread_mutex_unlock(data->mutex);
+}
+
+static void test_thread_cond_signal_unblocks_atleast_one() {
+  struct {
+    bool            started;
+    i64             value;
+    ThreadCondition cond;
+    ThreadMutex     mutex;
+  } data;
+
+  data.started = false;
+  data.value   = 0;
+  data.mutex   = thread_mutex_create(g_alloc_heap);
+  data.cond    = thread_cond_create(g_alloc_heap);
+
+  ThreadHandle exec = thread_start(
+      test_thread_cond_signal_unblocks_atleast_one_exec, &data, string_lit("volo_test_exec"));
+
+  while (!data.started) {
+    thread_yield();
+  }
+
+  thread_mutex_lock(data.mutex);
+  data.value = 1337;
+  thread_cond_signal(data.cond);
+  thread_mutex_unlock(data.mutex);
+
+  thread_join(exec);
+  thread_mutex_destroy(data.mutex);
+  thread_cond_destroy(data.cond);
+}
+
+static void test_thread_cond_broadcast_unblocks_all_exec(void* rawData) {
+  struct {
+    u16             startedExecs;
+    ThreadCondition cond;
+    ThreadMutex     mutex;
+  }* data = rawData;
+
+  thread_mutex_lock(data->mutex);
+  ++data->startedExecs;
+  thread_cond_wait(data->cond, data->mutex);
+  thread_mutex_unlock(data->mutex);
+}
+
+static void test_thread_cond_broadcast_unblocks_all() {
+  struct {
+    u16             startedExecs;
+    ThreadCondition cond;
+    ThreadMutex     mutex;
+  } data;
+
+  data.startedExecs = 0;
+  data.mutex        = thread_mutex_create(g_alloc_heap);
+  data.cond         = thread_cond_create(g_alloc_heap);
+
+  ThreadHandle threads[4];
+  for (usize i = 0; i != array_elems(threads); ++i) {
+    threads[i] = thread_start(
+        test_thread_cond_broadcast_unblocks_all_exec, &data, string_lit("volo_test_exec"));
+  }
+
+  while (data.startedExecs < array_elems(threads)) {
+    thread_yield();
+  }
+
+  thread_cond_broadcast(data.cond);
+
+  for (usize i = 0; i != array_elems(threads); ++i) {
+    thread_join(threads[i]);
+  }
+  thread_mutex_destroy(data.mutex);
+  thread_cond_destroy(data.cond);
+}
+
 void test_thread() {
 
   diag_assert(g_thread_tid == g_thread_main_tid);
@@ -164,4 +255,6 @@ void test_thread() {
   test_thread_mutex_lock_succeeds_when_unlocked();
   test_thread_mutex_trylock_succeeds_when_unlocked();
   test_thread_mutex_trylock_fails_when_locked();
+  test_thread_cond_signal_unblocks_atleast_one();
+  test_thread_cond_broadcast_unblocks_all();
 }

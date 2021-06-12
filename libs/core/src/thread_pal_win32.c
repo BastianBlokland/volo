@@ -143,3 +143,52 @@ void thread_pal_mutex_unlock(ThreadMutex handle) {
 
   LeaveCriticalSection(critSection);
 }
+
+typedef struct {
+  Allocator* alloc;
+  Mem        allocation;
+} ThreadConditionExtraData;
+
+ThreadCondition thread_pal_cond_create(Allocator* alloc) {
+  Mem allocation = alloc_alloc(alloc, sizeof(CONDITION_VARIABLE) + sizeof(ThreadMutexExtraData));
+  CONDITION_VARIABLE* condVar = mem_as_t(allocation, CONDITION_VARIABLE);
+
+  *mem_as_t(mem_consume(allocation, sizeof(CONDITION_VARIABLE)), ThreadMutexExtraData) =
+      (ThreadMutexExtraData){
+          .alloc      = alloc,
+          .allocation = allocation,
+      };
+
+  InitializeConditionVariable(condVar);
+  return (ThreadMutex)allocation.ptr;
+}
+
+void thread_pal_cond_destroy(ThreadCondition handle) {
+
+  // win32 'CONDITION_VARIABLE' objects do not need to be deleted.
+
+  ThreadMutexExtraData* extraData =
+      (ThreadMutexExtraData*)((u8*)handle + sizeof(CONDITION_VARIABLE));
+  alloc_free(extraData->alloc, extraData->allocation);
+}
+
+void thread_pal_cond_wait(ThreadCondition condHandle, ThreadMutex mutexHandle) {
+  CONDITION_VARIABLE* condVar     = (CONDITION_VARIABLE*)condHandle;
+  CRITICAL_SECTION*   critSection = (CRITICAL_SECTION*)mutexHandle;
+
+  BOOL sleepRes = SleepConditionVariableCS(condVar, critSection, INFINITE);
+  diag_assert_msg(sleepRes, string_lit("SleepConditionVariableCS() failed"));
+  (void)sleepRes;
+}
+
+void thread_pal_cond_signal(ThreadCondition handle) {
+  CONDITION_VARIABLE* condVar = (CONDITION_VARIABLE*)handle;
+
+  WakeConditionVariable(condVar);
+}
+
+void thread_pal_cond_broadcast(ThreadCondition handle) {
+  CONDITION_VARIABLE* condVar = (CONDITION_VARIABLE*)handle;
+
+  WakeAllConditionVariable(condVar);
+}
