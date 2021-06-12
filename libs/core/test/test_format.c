@@ -11,11 +11,11 @@ static void test_format_write_arg(const FormatArg* arg, const String expected) {
   dynstring_destroy(&string);
 }
 
-static void test_format_write_formatted(
-    String format, const FormatArg* args, const usize argsCount, const String expected) {
+static void
+test_format_write_formatted(String format, const FormatArg* args, const String expected) {
   DynString string = dynstring_create_over(mem_stack(128));
 
-  format_write_formatted(&string, format, args, argsCount);
+  format_write_formatted(&string, format, args);
   diag_assert(string_eq(dynstring_view(&string), expected));
 
   dynstring_destroy(&string);
@@ -127,15 +127,12 @@ void test_format() {
   test_format_write_arg(&fmt_text_lit("Hello World"), string_lit("Hello World"));
   test_format_write_arg(&fmt_path(string_lit("c:\\hello")), string_lit("C:/hello"));
 
-  test_format_write_formatted(string_lit("Value {}"), &fmt_int(42), 1, string_lit("Value 42"));
+  test_format_write_formatted(
+      string_lit("Value {}"), fmt_args(fmt_int(42)), string_lit("Value 42"));
+  test_format_write_formatted(string_lit("hello world"), fmt_args(), string_lit("hello world"));
   test_format_write_formatted(
       string_lit("{} hello world {}-{}"),
-      (FormatArg[]){
-          fmt_bool(false),
-          fmt_int(42),
-          fmt_bool(true),
-      },
-      3,
+      fmt_args(fmt_bool(false), fmt_int(42), fmt_bool(true)),
       string_lit("false hello world 42-true"));
 
   test_format_write_u64(0, format_opts_int(), string_lit("0"));

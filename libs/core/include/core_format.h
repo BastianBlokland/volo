@@ -6,6 +6,7 @@
 #include "core_types.h"
 
 typedef enum {
+  FormatArgType_None = 0,
   FormatArgType_i64,
   FormatArgType_u64,
   FormatArgType_f64,
@@ -135,15 +136,20 @@ typedef struct {
 /**
  * Create file path formatting argument.
  */
-#define fmt_path(_VAL_)  ((FormatArg){ .type = FormatArgType_path, .value_path = (_VAL_) })
+#define fmt_path(_VAL_) ((FormatArg){ .type = FormatArgType_path, .value_path = (_VAL_) })
+
+/**
+ * Create a array of format arguments.
+ * Ends with with '0' (FormatArgType_None) argument.
+ */
+#define fmt_args(...) (const FormatArg[]){VA_ARGS_SKIP_FIRST(0, ##__VA_ARGS__, (FormatArg){0})}
 
 /**
  * Write a format string with arguments.
  * '{}' entries are replaced by arguments in order of appearance.
  */
 #define format_write(_DYNSTRING_, _FORMAT_LIT_, ...)                                               \
-  format_write_formatted( (_DYNSTRING_),                                                           \
-      string_lit(_FORMAT_LIT_), (const FormatArg[]){__VA_ARGS__}, COUNT_VA_ARGS(__VA_ARGS__))
+  format_write_formatted((_DYNSTRING_), string_lit(_FORMAT_LIT_), fmt_args(__VA_ARGS__))
 
 // clang-format on
 
@@ -295,7 +301,7 @@ void format_write_arg(DynString*, const FormatArg*);
  * Write a format string with arguments.
  * '{}' entries are replaced by arguments in order of appearance.
  */
-void format_write_formatted(DynString*, String format, const FormatArg* args, usize argsCount);
+void format_write_formatted(DynString*, String format, const FormatArg* args);
 
 /**
  * Write a unsigned value as ascii characters.

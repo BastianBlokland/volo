@@ -16,4 +16,11 @@ static void test_macro_count_va_args() {
   _Static_assert(COUNT_VA_ARGS(((1, 3, 4)), ("hello", {2})) == 2, "test_macro failed");
 }
 
-void test_macro() { test_macro_count_va_args(); }
+static void test_macro_skip_first() {
+  _Static_assert(VA_ARGS_SKIP_FIRST(1, 2) == 2, "test_macro failed");
+}
+
+void test_macro() {
+  test_macro_count_va_args();
+  test_macro_skip_first();
+}
