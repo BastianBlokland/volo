@@ -17,7 +17,7 @@ void format_write_formatted(DynString* str, String format, const FormatArg* argH
     }
     // Append the text before the replacement followed by the replacement argument.
     dynstring_append(str, string_slice(format, 0, replIdx));
-    if (argHead->type != FormatArgType_None) {
+    if (argHead->type != FormatArgType_End) {
       format_write_arg(str, argHead);
       ++argHead;
     }
@@ -38,7 +38,8 @@ String format_write_formatted_scratch(String format, const FormatArg* args) {
 
 void format_write_arg(DynString* str, const FormatArg* arg) {
   switch (arg->type) {
-  case FormatArgType_None:
+  case FormatArgType_End:
+  case FormatArgType_Nop:
     break;
   case FormatArgType_i64:
     format_write_i64(str, arg->value_i64, arg->settings);

@@ -7,7 +7,8 @@
 #include "core_types.h"
 
 typedef enum {
-  FormatArgType_None = 0,
+  FormatArgType_End = 0,
+  FormatArgType_Nop,
   FormatArgType_i64,
   FormatArgType_u64,
   FormatArgType_f64,
@@ -46,6 +47,11 @@ typedef struct {
 } FormatArg;
 
 // clang-format off
+
+/**
+ * Create No-Op formatting argument, will not output any characters.
+ */
+#define fmt_nop() ((FormatArg){ .type = FormatArgType_Nop })
 
 /**
  * Create an integer formatting argument.
@@ -149,7 +155,7 @@ typedef struct {
 
 /**
  * Create a array of format arguments.
- * Ends with with '0' (FormatArgType_None) argument.
+ * Ends with with '0' (FormatArgType_End) argument.
  */
 #define fmt_args(...) (const FormatArg[]){VA_ARGS_SKIP_FIRST(0, ##__VA_ARGS__, (FormatArg){0})}
 
