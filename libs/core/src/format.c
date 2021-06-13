@@ -372,3 +372,50 @@ void format_write_text(DynString* str, String val, const FormatOptsText* opts) {
     continue;
   });
 }
+
+String format_read_whitespace(const String input, String* output) {
+  usize idx = 0;
+  for (; idx != input.size && ascii_is_whitespace(*string_at(input, idx)); ++idx)
+    ;
+  if (output) {
+    *output = string_slice(input, 0, idx);
+  }
+  return string_consume(input, idx);
+}
+
+String format_read_u64(const String input, u64* output, const u8 base) {
+  usize idx = 0;
+  u64   res = 0;
+  for (; idx != input.size; ++idx) {
+    const u8 val = ascii_to_integer(*string_at(input, idx));
+    if (sentinel_check(val) || val >= base) {
+      break; // Not a digit, stop reading.
+    }
+    // TODO: Consider how to report overflow.
+    res = res * base + val;
+  }
+  if (output) {
+    *output = res;
+  }
+  return string_consume(input, idx);
+}
+
+String format_read_i64(String input, i64* output, u8 base) {
+  i64 sign = 1;
+  if (input.size) {
+    switch (*string_begin(input)) {
+    case '-':
+      sign = -1;
+    case '+':
+      input = string_consume(input, 1);
+      break;
+    }
+  }
+  u64          unsignedPart;
+  const String rem = format_read_u64(input, &unsignedPart, base);
+  if (output) {
+    // TODO: Consider how to report overflow.
+    *output = (i64)unsignedPart * sign;
+  }
+  return rem;
+}

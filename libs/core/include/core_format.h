@@ -387,3 +387,24 @@ void format_write_size_pretty(DynString*, usize val);
  * Write the text string.
  */
 void format_write_text(DynString*, String val, const FormatOptsText*);
+
+/**
+ * Read all ascii whitespace at the beginning of the given string.
+ * Returns the remaining input.
+ * The whitespace slice is written to the output pointer, pass 'null' to ignore the output.
+ */
+String format_read_whitespace(String input, String* output);
+
+/**
+ * Read an unsigned 64 bit integer in the given base.
+ * Returns the remaining input.
+ * The value is written to the output pointer, pass 'null' to ignore the output.
+ */
+String format_read_u64(String input, u64* output, u8 base);
+
+/**
+ * Read a signed 64 bit integer in the given base.
+ * Returns the remaining input.
+ * The value is written to the output pointer, pass 'null' to ignore the output.
+ */
+String format_read_i64(String input, i64* output, u8 base);
