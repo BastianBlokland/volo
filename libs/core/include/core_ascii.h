@@ -65,3 +65,10 @@ u8 ascii_to_upper(u8);
  * Convert the given ascii character to lowercase.
  */
 u8 ascii_to_lower(u8);
+
+/**
+ * Convert a ascii character to an integer.
+ * Supports 0-9, a-f, A-F.
+ * Returns 'sentinel_u8' if the given character does not represent an integer.
+ */
+u8 ascii_to_integer(u8);

@@ -1,4 +1,5 @@
 #include "core_ascii.h"
+#include "core_sentinel.h"
 
 bool ascii_is_valid(const u8 c) { return (c & 0b10000000) == 0; }
 
@@ -27,3 +28,16 @@ u8 ascii_toggle_case(const u8 c) { return c ^ 0x20; }
 u8 ascii_to_upper(const u8 c) { return ascii_is_lower(c) ? ascii_toggle_case(c) : c; }
 
 u8 ascii_to_lower(const u8 c) { return ascii_is_upper(c) ? ascii_toggle_case(c) : c; }
+
+u8 ascii_to_integer(const u8 c) {
+  if (ascii_is_digit(c)) {
+    return c - '0';
+  }
+  if (c >= 'a' && c <= 'f') {
+    return c - ('a' - 10);
+  }
+  if (c >= 'A' && c <= 'F') {
+    return c - ('A' - 10);
+  }
+  return sentinel_u8;
+}
