@@ -162,7 +162,9 @@ void test_format() {
   test_format_write_formatted(
       string_lit("{>4}|{<4}|"), fmt_args(fmt_int(1), fmt_int(20)), string_lit("   1|20  |"));
   test_format_write_formatted(
-      string_lit("{ >4 }|{ >4}|"), fmt_args(fmt_int(1), fmt_int(20)), string_lit("   1|  20|"));
+      string_lit("{ >4 }|{ >4}|{:4}|{:4}|"),
+      fmt_args(fmt_int(1), fmt_int(20), fmt_int(1), fmt_int(42)),
+      string_lit("   1|  20| 1  | 42 |"));
 
   test_format_write_u64(0, format_opts_int(), string_lit("0"));
   test_format_write_u64(0, format_opts_int(.minDigits = 4), string_lit("0000"));

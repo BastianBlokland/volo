@@ -11,6 +11,7 @@ typedef enum {
   FormatReplOptKind_None = 0,
   FormatReplOptKind_PadLeft,
   FormatReplOptKind_PadRight,
+  FormatReplOptKind_PadCenter,
 } FormatReplOptKind;
 
 typedef struct {
@@ -25,8 +26,8 @@ typedef struct {
 
 /**
  * Parse option for a format replacement.
- * At the moment a single option is supported. Either '>x' for pad left or '<x' for pad right. But
- * can be expanded to a comma seperated list of options when the need arises.
+ * At the moment a single option is supported. But can be expanded to a comma seperated list of
+ * options when the need arises.
  */
 static FormatReplOpt format_replacement_parse_opt(String str) {
   str                  = format_read_whitespace(str, null); // Ignore leading whitespace.
@@ -40,6 +41,10 @@ static FormatReplOpt format_replacement_parse_opt(String str) {
     case '<':
       result.kind = FormatReplOptKind_PadRight;
       str         = string_consume(str, 1); // Consume the '<'.
+      break;
+    case ':':
+      result.kind = FormatReplOptKind_PadCenter;
+      str         = string_consume(str, 1); // Consume the ':'.
       break;
     }
     if (result.kind) {
@@ -100,15 +105,19 @@ void format_write_formatted(DynString* str, String format, const FormatArg* argH
       switch (repl.opt.kind) {
       case FormatReplOptKind_None:
         break;
-      case FormatReplOptKind_PadLeft:
-        // Pad using space characters until the requested width is reached.
-        dynstring_insert_chars(
-            str, ' ', argStart, math_max(0, repl.opt.value - (i32)(argEnd - argStart)));
-        break;
-      case FormatReplOptKind_PadRight:
-        // Pad using space characters until the requested width is reached.
-        dynstring_append_chars(str, ' ', math_max(0, repl.opt.value - (i32)(argEnd - argStart)));
-        break;
+      case FormatReplOptKind_PadLeft: {
+        const usize padding = math_max(0, repl.opt.value - (i32)(argEnd - argStart));
+        dynstring_insert_chars(str, ' ', argStart, padding);
+      } break;
+      case FormatReplOptKind_PadRight: {
+        const usize padding = math_max(0, repl.opt.value - (i32)(argEnd - argStart));
+        dynstring_append_chars(str, ' ', padding);
+      } break;
+      case FormatReplOptKind_PadCenter: {
+        const usize padding = math_max(0, repl.opt.value - (i32)(argEnd - argStart));
+        dynstring_insert_chars(str, ' ', argStart, padding / 2);
+        dynstring_append_chars(str, ' ', padding / 2 + padding % 2);
+      } break;
       }
 
       ++argHead;
