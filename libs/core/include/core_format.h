@@ -162,6 +162,9 @@ typedef struct {
 /**
  * Write a format string with arguments.
  * '{}' entries are replaced by arguments in order of appearance.
+ * Supported format specifiers:
+ * - '{>4}': Pad with spaces on the left side until a width of 4 chars is reached.
+ * - '{<4}': Pad with spaces on the right side until a width of 4 chars is reached.
  */
 #define fmt_write(_DYNSTRING_, _FORMAT_LIT_, ...)                                                  \
   format_write_formatted((_DYNSTRING_), string_lit(_FORMAT_LIT_), fmt_args(__VA_ARGS__))
@@ -323,6 +326,9 @@ void format_write_arg(DynString*, const FormatArg*);
 /**
  * Write a format string with arguments.
  * '{}' entries are replaced by arguments in order of appearance.
+ * Supported format specifiers:
+ * - '{>4}': Pad with spaces on the left side until a width of 4 chars is reached.
+ * - '{<4}': Pad with spaces on the right side until a width of 4 chars is reached.
  */
 void format_write_formatted(DynString*, String format, const FormatArg* args);
 

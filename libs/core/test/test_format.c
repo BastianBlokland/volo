@@ -156,9 +156,13 @@ void test_format() {
       string_lit("Value {}"), fmt_args(fmt_int(42)), string_lit("Value 42"));
   test_format_write_formatted(string_lit("hello world"), fmt_args(), string_lit("hello world"));
   test_format_write_formatted(
-      string_lit("{} hello world {}-{}"),
+      string_lit("{} hello world {  }-{ \t }"),
       fmt_args(fmt_bool(false), fmt_int(42), fmt_bool(true)),
       string_lit("false hello world 42-true"));
+  test_format_write_formatted(
+      string_lit("{>4}|{<4}|"), fmt_args(fmt_int(1), fmt_int(20)), string_lit("   1|20  |"));
+  test_format_write_formatted(
+      string_lit("{ >4 }|{ >4}|"), fmt_args(fmt_int(1), fmt_int(20)), string_lit("   1|  20|"));
 
   test_format_write_u64(0, format_opts_int(), string_lit("0"));
   test_format_write_u64(0, format_opts_int(.minDigits = 4), string_lit("0000"));

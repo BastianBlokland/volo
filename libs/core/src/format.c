@@ -7,21 +7,113 @@
 #include "core_math.h"
 #include "core_path.h"
 
+typedef enum {
+  FormatReplOptKind_None = 0,
+  FormatReplOptKind_PadLeft,
+  FormatReplOptKind_PadRight,
+} FormatReplOptKind;
+
+typedef struct {
+  FormatReplOptKind kind;
+  i32               value;
+} FormatReplOpt;
+
+typedef struct {
+  usize         start, end;
+  FormatReplOpt opt;
+} FormatRepl;
+
+/**
+ * Parse option for a format replacement.
+ * At the moment a single option is supported. Either '>x' for pad left or '<x' for pad right. But
+ * can be expanded to a comma seperated list of options when the need arises.
+ */
+static FormatReplOpt format_replacement_parse_opt(String str) {
+  str                  = format_read_whitespace(str, null); // Ignore leading whitespace.
+  FormatReplOpt result = (FormatReplOpt){.kind = FormatReplOptKind_None};
+  if (str.size) {
+    switch (*string_begin(str)) {
+    case '>':
+      result.kind = FormatReplOptKind_PadLeft;
+      str         = string_consume(str, 1); // Consume the '>'.
+      break;
+    case '<':
+      result.kind = FormatReplOptKind_PadRight;
+      str         = string_consume(str, 1); // Consume the '<'.
+      break;
+    }
+    if (result.kind) {
+      u64 amount;
+      str          = format_read_u64(str, &amount, 10);
+      result.value = (i32)amount;
+    }
+  }
+  str = format_read_whitespace(str, null); // Ignore trailing whitespace.
+
+  diag_assert_msg(
+      !str.size,
+      fmt_write_scratch(
+          "Unsupported format option: '{}'",
+          fmt_text(str, .flags = FormatTextFlags_EscapeNonPrintAscii)));
+  return result;
+}
+
+/**
+ * Find a format replacement '{}'.
+ */
+static bool format_replacement_find(String str, FormatRepl* result) {
+  const usize startIdx = string_find_first(str, string_lit("{"));
+  if (sentinel_check(startIdx)) {
+    return false;
+  }
+  const usize len = string_find_first(string_consume(str, startIdx), string_lit("}"));
+  if (sentinel_check(len)) {
+    return false;
+  }
+  *result = (FormatRepl){
+      .start = startIdx,
+      .end   = startIdx + len + 1,
+      .opt   = format_replacement_parse_opt(string_slice(str, startIdx + 1, len - 1)),
+  };
+  return true;
+}
+
 void format_write_formatted(DynString* str, String format, const FormatArg* argHead) {
   while (format.size) {
-    const usize replIdx = string_find_first(format, string_lit("{}"));
-    if (sentinel_check(replIdx)) {
-      // No replacement, append the text raw.
+    FormatRepl repl;
+    if (!format_replacement_find(format, &repl)) {
+      // No replacement, append the text verbatim.
       dynstring_append(str, format);
       break;
     }
-    // Append the text before the replacement followed by the replacement argument.
-    dynstring_append(str, string_slice(format, 0, replIdx));
+
+    // Append the text before the replacement verbatim.
+    dynstring_append(str, string_slice(format, 0, repl.start));
+
+    // Append the replacement argument.
     if (argHead->type != FormatArgType_End) {
+      const usize argStart = str->size;
       format_write_arg(str, argHead);
+      const usize argEnd = str->size;
+
+      // Apply the formatting option.
+      switch (repl.opt.kind) {
+      case FormatReplOptKind_None:
+        break;
+      case FormatReplOptKind_PadLeft:
+        // Pad using space characters until the requested width is reached.
+        dynstring_insert_chars(
+            str, ' ', argStart, math_max(0, repl.opt.value - (i32)(argEnd - argStart)));
+        break;
+      case FormatReplOptKind_PadRight:
+        // Pad using space characters until the requested width is reached.
+        dynstring_append_chars(str, ' ', math_max(0, repl.opt.value - (i32)(argEnd - argStart)));
+        break;
+      }
+
       ++argHead;
     }
-    format = string_consume(format, replIdx + 2);
+    format = string_consume(format, repl.end);
   }
 }
 
