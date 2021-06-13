@@ -12,8 +12,8 @@ static void test_thread_new_thread_has_different_tid_exec(void* data) {
 }
 
 static void test_thread_new_thread_has_different_tid() {
-  ThreadHandle exec = thread_start(
-      test_thread_new_thread_has_different_tid_exec, null, string_lit("volo_test_exec"));
+  ThreadHandle exec =
+      thread_start(test_thread_new_thread_has_different_tid_exec, null, string_lit("volo_test"));
   thread_join(exec);
 }
 
@@ -35,7 +35,7 @@ static void test_thread_atomic_store_value_exec(void* data) {
 static void test_thread_atomic_store_value() {
   i64          value = 0;
   ThreadHandle exec =
-      thread_start(test_thread_atomic_store_value_exec, &value, string_lit("volo_test_exec"));
+      thread_start(test_thread_atomic_store_value_exec, &value, string_lit("volo_test"));
   thread_join(exec);
   diag_assert(thread_atomic_load_i64(&value) == 1337);
 }
@@ -47,7 +47,7 @@ static void test_thread_atomic_exchange_value_exec(void* data) {
 static void test_thread_atomic_exchange_value() {
   i64          value = 42;
   ThreadHandle exec =
-      thread_start(test_thread_atomic_exchange_value_exec, &value, string_lit("volo_test_exec"));
+      thread_start(test_thread_atomic_exchange_value_exec, &value, string_lit("volo_test"));
   thread_join(exec);
   diag_assert(thread_atomic_load_i64(&value) == 1337);
 }
@@ -64,8 +64,8 @@ static void test_thread_atomic_compare_exchange_value_exec(void* data) {
 
 static void test_thread_atomic_compare_exchange_value() {
   i64          value = 42;
-  ThreadHandle exec  = thread_start(
-      test_thread_atomic_compare_exchange_value_exec, &value, string_lit("volo_test_exec"));
+  ThreadHandle exec =
+      thread_start(test_thread_atomic_compare_exchange_value_exec, &value, string_lit("volo_test"));
   for (i32 i = 0; i != 1000; ++i) {
     i64 expected = 1337;
     if (!thread_atomic_compare_exchange_i64(&value, &expected, 42)) {
@@ -86,7 +86,7 @@ static void test_thread_atomic_add_value_exec(void* data) {
 static void test_thread_atomic_add_value() {
   i64          value = 0;
   ThreadHandle exec =
-      thread_start(test_thread_atomic_add_value_exec, &value, string_lit("volo_test_exec"));
+      thread_start(test_thread_atomic_add_value_exec, &value, string_lit("volo_test"));
   for (i32 i = 0; i != 10000; ++i) {
     thread_atomic_add_i64(&value, 1);
   }
@@ -104,7 +104,7 @@ static void test_thread_atomic_sub_value_exec(void* data) {
 static void test_thread_atomic_sub_value() {
   i64          value = 20000;
   ThreadHandle exec =
-      thread_start(test_thread_atomic_sub_value_exec, &value, string_lit("volo_test_exec"));
+      thread_start(test_thread_atomic_sub_value_exec, &value, string_lit("volo_test"));
   for (i32 i = 0; i != 10000; ++i) {
     thread_atomic_sub_i64(&value, 1);
   }
@@ -113,7 +113,7 @@ static void test_thread_atomic_sub_value() {
 }
 
 static void test_thread_mutex_lock_succeeds_when_unlocked() {
-  ThreadMutex mutex = thread_mutex_create(g_alloc_heap);
+  ThreadMutex mutex = thread_mutex_create(g_alloc_scratch);
 
   thread_mutex_lock(mutex);
   thread_mutex_unlock(mutex);
@@ -122,7 +122,7 @@ static void test_thread_mutex_lock_succeeds_when_unlocked() {
 }
 
 static void test_thread_mutex_trylock_succeeds_when_unlocked() {
-  ThreadMutex mutex = thread_mutex_create(g_alloc_heap);
+  ThreadMutex mutex = thread_mutex_create(g_alloc_scratch);
 
   diag_assert(thread_mutex_trylock(mutex));
   thread_mutex_unlock(mutex);
@@ -136,14 +136,12 @@ static void test_thread_mutex_trylock_fail_when_when_locked_exec(void* data) {
 }
 
 static void test_thread_mutex_trylock_fails_when_locked() {
-  ThreadMutex mutex = thread_mutex_create(g_alloc_heap);
+  ThreadMutex mutex = thread_mutex_create(g_alloc_scratch);
 
   thread_mutex_lock(mutex);
 
   ThreadHandle exec = thread_start(
-      test_thread_mutex_trylock_fail_when_when_locked_exec,
-      (void*)mutex,
-      string_lit("volo_test_exec"));
+      test_thread_mutex_trylock_fail_when_when_locked_exec, (void*)mutex, string_lit("volo_test"));
   thread_join(exec);
 
   thread_mutex_unlock(mutex);
@@ -177,11 +175,11 @@ static void test_thread_cond_signal_unblocks_atleast_one() {
 
   data.started = false;
   data.value   = 0;
-  data.mutex   = thread_mutex_create(g_alloc_heap);
-  data.cond    = thread_cond_create(g_alloc_heap);
+  data.mutex   = thread_mutex_create(g_alloc_scratch);
+  data.cond    = thread_cond_create(g_alloc_scratch);
 
   ThreadHandle exec = thread_start(
-      test_thread_cond_signal_unblocks_atleast_one_exec, &data, string_lit("volo_test_exec"));
+      test_thread_cond_signal_unblocks_atleast_one_exec, &data, string_lit("volo_test"));
 
   while (!data.started) {
     thread_yield();
@@ -218,13 +216,15 @@ static void test_thread_cond_broadcast_unblocks_all() {
   } data;
 
   data.startedExecs = 0;
-  data.mutex        = thread_mutex_create(g_alloc_heap);
-  data.cond         = thread_cond_create(g_alloc_heap);
+  data.mutex        = thread_mutex_create(g_alloc_scratch);
+  data.cond         = thread_cond_create(g_alloc_scratch);
 
   ThreadHandle threads[4];
   for (usize i = 0; i != array_elems(threads); ++i) {
     threads[i] = thread_start(
-        test_thread_cond_broadcast_unblocks_all_exec, &data, string_lit("volo_test_exec"));
+        test_thread_cond_broadcast_unblocks_all_exec,
+        &data,
+        fmt_write_scratch("volo_test_{}", fmt_int(i)));
   }
 
   while (data.startedExecs < array_elems(threads)) {

@@ -1,3 +1,4 @@
+#include "core_alloc.h"
 #include "core_array.h"
 #include "core_ascii.h"
 #include "core_diag.h"
@@ -22,6 +23,17 @@ void format_write_formatted(DynString* str, String format, const FormatArg* argH
     }
     format = string_consume(format, replIdx + 2);
   }
+}
+
+String format_write_formatted_scratch(String format, const FormatArg* args) {
+  Mem       scratchMem = alloc_alloc(g_alloc_scratch, usize_kibibyte * 2);
+  DynString str        = dynstring_create_over(scratchMem);
+
+  format_write_formatted(&str, format, args);
+
+  String res = dynstring_view(&str);
+  dynstring_destroy(&str);
+  return res;
 }
 
 void format_write_arg(DynString* str, const FormatArg* arg) {

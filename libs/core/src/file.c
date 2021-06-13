@@ -2,6 +2,7 @@
 #include "core_diag.h"
 #include "core_file.h"
 #include "file_internal.h"
+#include "init_internal.h"
 
 static const String g_file_result_strs[] = {
     string_static("FileSuccess"),

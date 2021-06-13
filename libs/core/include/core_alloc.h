@@ -1,4 +1,5 @@
 #pragma once
+#include "core_annotation.h"
 #include "core_memory.h"
 
 /**
@@ -26,6 +27,14 @@ extern Allocator* g_alloc_heap;
 extern Allocator* g_alloc_page;
 
 /**
+ * Scratch allocator, allocates from a fixed size thread-local circular heap buffer.
+ * Meant for very short lived allocations. As its backed by a fixed-size buffer allocations will be
+ * overwritten once X new allocations have been made (where X is determined by the size of the
+ * allocations and the size of the scratch buffer).
+ */
+extern THREAD_LOCAL Allocator* g_alloc_scratch;
+
+/**
  * Create a new bump allocator. Will allocate from the given memory region, once the region is empty
  * allocations will fail. Memory region needs to contain atleast 64 bytes for internal book-keeping.
  */
@@ -48,3 +57,8 @@ void alloc_free(Allocator*, Mem);
  * For example the page-allocator will return the page size.
  */
 usize alloc_min_size(Allocator*);
+
+/**
+ * Return the maximum allocation size (in bytes) for this allocator.
+ */
+usize alloc_max_size(Allocator*);

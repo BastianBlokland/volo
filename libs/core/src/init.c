@@ -1,17 +1,11 @@
+#include "core_annotation.h"
 #include "core_init.h"
+#include "core_thread.h"
 #include "core_types.h"
+#include "init_internal.h"
 
-static bool g_intialized;
-
-void alloc_init();
-void time_init();
-void file_init();
-void tty_init();
-void path_init();
-void thread_init();
-void signal_init();
-
-void tty_teardown();
+static bool              g_intialized;
+static THREAD_LOCAL bool g_initialized_thread;
 
 void core_init() {
   if (!g_intialized) {
@@ -25,11 +19,21 @@ void core_init() {
     thread_init();
     signal_init();
   }
+
+  if (!g_initialized_thread) {
+    alloc_init_thread();
+    thread_init_thread();
+    g_initialized_thread = true;
+  }
 }
 
 void core_teardown() {
-  if (g_intialized) {
+  if (g_thread_tid == g_thread_main_tid && g_intialized) {
     g_intialized = false;
     tty_teardown();
+  }
+  if (g_initialized_thread) {
+    alloc_teardown_thread();
+    g_initialized_thread = false;
   }
 }

@@ -1,3 +1,4 @@
+#include "init_internal.h"
 #include "signal_internal.h"
 
 void signal_init() { signal_pal_setup_handlers(); }

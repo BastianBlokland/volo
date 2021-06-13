@@ -148,8 +148,16 @@ typedef struct {
  * Write a format string with arguments.
  * '{}' entries are replaced by arguments in order of appearance.
  */
-#define format_write(_DYNSTRING_, _FORMAT_LIT_, ...)                                               \
+#define fmt_write(_DYNSTRING_, _FORMAT_LIT_, ...)                                                  \
   format_write_formatted((_DYNSTRING_), string_lit(_FORMAT_LIT_), fmt_args(__VA_ARGS__))
+
+/**
+ * Create a formatted string in scratch memory. Meant for very short lived strings as the scratch
+ * memory will be overwritten eventually.
+ * Pre-condition: Formatted string fits in 2KiB.
+ */
+#define fmt_write_scratch(_FORMAT_LIT_, ...)                                                       \
+  format_write_formatted_scratch(string_lit(_FORMAT_LIT_), fmt_args(__VA_ARGS__))
 
 // clang-format on
 
@@ -302,6 +310,13 @@ void format_write_arg(DynString*, const FormatArg*);
  * '{}' entries are replaced by arguments in order of appearance.
  */
 void format_write_formatted(DynString*, String format, const FormatArg* args);
+
+/**
+ * Create a formatted string in scratch memory. Meant for very short lived strings as the scratch
+ * memory will be overwritten eventually.
+ * Pre-condition: Formatted string fits in 2KiB.
+ */
+String format_write_formatted_scratch(String format, const FormatArg* args);
 
 /**
  * Write a unsigned value as ascii characters.

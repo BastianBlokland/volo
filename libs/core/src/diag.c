@@ -5,12 +5,7 @@
 void exit(int);
 
 static void diag_write_sync(File* file, String format, const FormatArg* args) {
-  DynString buffer = dynstring_create_over(mem_stack(1 * usize_kibibyte));
-
-  format_write_formatted(&buffer, format, args);
-
-  file_write_sync(file, dynstring_view(&buffer));
-  dynstring_destroy(&buffer);
+  file_write_sync(file, format_write_formatted_scratch(format, args));
 }
 
 void diag_print_formatted(String format, const FormatArg* args) {

@@ -1,7 +1,7 @@
 #pragma once
 #include "core_thread.h"
 
-#define thread_pal_stacksize (4 * usize_mebibyte)
+#define thread_pal_stacksize (usize_mebibyte * 2)
 
 #if defined(VOLO_LINUX)
 #define thread_pal_rettype void*

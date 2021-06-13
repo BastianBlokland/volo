@@ -4,6 +4,7 @@
 #include "core_thread.h"
 #include "core_time.h"
 
+void test_alloc_bump();
 void test_ascii();
 void test_bits();
 void test_bitset();
@@ -41,6 +42,7 @@ int main() {
 
   const TimeSteady timeStart = time_steady_clock();
 
+  test_alloc_bump();
   test_ascii();
   test_bits();
   test_bitset();

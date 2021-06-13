@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_thread.h"
+#include "init_internal.h"
 #include "thread_internal.h"
 
 typedef struct {
@@ -12,13 +13,18 @@ typedef struct {
 static thread_pal_rettype thread_runner(void* data) {
   ThreadRunData* runData = (ThreadRunData*)data;
 
-  // Initialize thread data.
-  g_thread_tid  = thread_pal_tid();
+  // Initialize the core library for this thread.
+  core_init();
+
+  // Initialize the thread name.
   g_thread_name = runData->threadName;
   thread_pal_set_name(g_thread_name);
 
   // Invoke the user routine.
   runData->userRoutine(runData->userData);
+
+  // Tear-down the core library for this thread.
+  core_teardown();
 
   // Cleanup thread data.
   alloc_free(g_alloc_heap, runData->allocation);
@@ -34,12 +40,13 @@ u16                 g_thread_core_count;
 
 void thread_init() {
   g_thread_pid        = thread_pal_pid();
-  g_thread_tid        = thread_pal_tid();
-  g_thread_main_tid   = g_thread_tid;
+  g_thread_main_tid   = thread_pal_tid();
   g_thread_name       = string_lit("volo_main");
   g_thread_core_count = thread_pal_core_count();
   thread_pal_set_name(g_thread_name);
 }
+
+void thread_init_thread() { g_thread_tid = thread_pal_tid(); }
 
 i64 thread_atomic_load_i64(i64* ptr) { return thread_pal_atomic_load_i64(ptr); }
 

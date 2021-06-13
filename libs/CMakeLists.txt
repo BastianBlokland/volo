@@ -6,6 +6,7 @@ add_library(volo_core STATIC
   core/src/alloc_bump.c
   core/src/alloc_heap.c
   core/src/alloc_page_pal.c
+  core/src/alloc_scratch.c
   core/src/alloc.c
   core/src/ascii.c
   core/src/bits.c
@@ -40,6 +41,7 @@ target_include_directories(volo_core PUBLIC core/include)
 
 add_executable(volo_core_test
   core/test/main.c
+  core/test/test_alloc_bump.c
   core/test/test_ascii.c
   core/test/test_bits.c
   core/test/test_bitset.c

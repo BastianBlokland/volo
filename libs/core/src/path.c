@@ -4,6 +4,7 @@
 #include "core_dynarray.h"
 #include "core_path.h"
 #include "core_sentinel.h"
+#include "init_internal.h"
 #include "path_internal.h"
 
 static String g_path_seperators = string_static("/\\");
