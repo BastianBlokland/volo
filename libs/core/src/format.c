@@ -73,6 +73,9 @@ void format_write_arg(DynString* str, const FormatArg* arg) {
   case FormatArgType_path:
     path_canonize(str, arg->value_path);
     break;
+  case FormatArgType_ttystyle:
+    tty_write_style_sequence(str, arg->value_ttystyle);
+    break;
   }
 }
 

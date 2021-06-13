@@ -1,3 +1,4 @@
+#include "core_alloc.h"
 #include "core_diag.h"
 #include "core_init.h"
 #include "core_path.h"
@@ -34,11 +35,12 @@ int main() {
   core_init();
 
   diag_print(
-      "{}: running tests... (pid: {}, tid: {}, cpus: {})\n",
+      "{}: running tests... (pid: {}, tid: {}, cpus: {}, pagesize: {})\n",
       fmt_text(path_stem(g_path_executable)),
       fmt_int(g_thread_pid),
       fmt_int(g_thread_tid),
-      fmt_int(g_thread_core_count));
+      fmt_int(g_thread_core_count),
+      fmt_int(alloc_min_size(g_alloc_page)));
 
   const TimeSteady timeStart = time_steady_clock();
 

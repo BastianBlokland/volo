@@ -3,6 +3,7 @@
 #include "core_dynstring.h"
 #include "core_macro.h"
 #include "core_time.h"
+#include "core_tty.h"
 #include "core_types.h"
 
 typedef enum {
@@ -18,6 +19,7 @@ typedef enum {
   FormatArgType_size,
   FormatArgType_text,
   FormatArgType_path,
+  FormatArgType_ttystyle,
 } FormatArgType;
 
 /**
@@ -38,6 +40,7 @@ typedef struct {
     usize        value_size;
     String       value_text;
     String       value_path;
+    TtyStyle     value_ttystyle;
   };
   void* settings;
 } FormatArg;
@@ -137,6 +140,12 @@ typedef struct {
  * Create file path formatting argument.
  */
 #define fmt_path(_VAL_) ((FormatArg){ .type = FormatArgType_path, .value_path = (_VAL_) })
+
+/**
+ * Create TtyStyle formatting argument.
+ */
+#define fmt_ttystyle(...)                                                                          \
+  ((FormatArg){ .type = FormatArgType_ttystyle, .value_ttystyle = (ttystyle(__VA_ARGS__)) })
 
 /**
  * Create a array of format arguments.
