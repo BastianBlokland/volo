@@ -115,6 +115,31 @@ static void test_format_write_text(const String val, const String expected) {
   dynstring_destroy(&string);
 }
 
+static void test_format_read_whitespace(
+    const String val, const String expected, const String expectedRemaining) {
+  String       out;
+  const String rem = format_read_whitespace(val, &out);
+  diag_assert(string_eq(out, expected));
+  diag_assert(string_eq(rem, expectedRemaining));
+}
+
+static void test_format_read_u64(
+    const String val, const u8 base, const u64 expected, const String expectedRemaining) {
+  u64          out;
+  const String rem = format_read_u64(val, &out, base);
+  diag_assert(out == expected);
+  diag_assert(string_eq(rem, expectedRemaining));
+}
+
+static void test_format_read_i64(
+    const String val, const u8 base, const i64 expected, const String expectedRemaining) {
+  i64          out;
+  const String rem = format_read_i64(val, &out, base);
+
+  diag_assert(out == expected);
+  diag_assert(string_eq(rem, expectedRemaining));
+}
+
 void test_format() {
   test_format_write_arg(&fmt_int(42), string_lit("42"));
   test_format_write_arg(&fmt_int(-42), string_lit("-42"));
@@ -131,9 +156,15 @@ void test_format() {
       string_lit("Value {}"), fmt_args(fmt_int(42)), string_lit("Value 42"));
   test_format_write_formatted(string_lit("hello world"), fmt_args(), string_lit("hello world"));
   test_format_write_formatted(
-      string_lit("{} hello world {}-{}"),
+      string_lit("{} hello world {  }-{ \t }"),
       fmt_args(fmt_bool(false), fmt_int(42), fmt_bool(true)),
       string_lit("false hello world 42-true"));
+  test_format_write_formatted(
+      string_lit("{>4}|{<4}|"), fmt_args(fmt_int(1), fmt_int(20)), string_lit("   1|20  |"));
+  test_format_write_formatted(
+      string_lit("{ >4 }|{ >4}|{:4}|{:4}|"),
+      fmt_args(fmt_int(1), fmt_int(20), fmt_int(1), fmt_int(42)),
+      string_lit("   1|  20| 1  | 42 |"));
 
   test_format_write_u64(0, format_opts_int(), string_lit("0"));
   test_format_write_u64(0, format_opts_int(.minDigits = 4), string_lit("0000"));
@@ -260,4 +291,30 @@ void test_format() {
   test_format_write_text(string_lit("Hello\0World"), string_lit("Hello\\0World"));
   test_format_write_text(
       string_lit("\xFFHello\xFBWorld\xFA"), string_lit("\\FFHello\\FBWorld\\FA"));
+
+  test_format_read_whitespace(string_empty, string_empty, string_empty);
+  test_format_read_whitespace(string_lit(" \t \n"), string_lit(" \t \n"), string_empty);
+  test_format_read_whitespace(string_lit(" \t \nHello"), string_lit(" \t \n"), string_lit("Hello"));
+
+  test_format_read_u64(string_empty, 10, 0, string_empty);
+  test_format_read_u64(string_lit("1"), 10, 1, string_empty);
+  test_format_read_u64(string_lit("1337"), 10, 1337, string_empty);
+  test_format_read_u64(
+      string_lit("18446744073709551615"), 10, 18446744073709551615ull, string_empty);
+  test_format_read_u64(string_lit("1337-hello"), 10, 1337, string_lit("-hello"));
+  test_format_read_u64(string_lit("42abc"), 10, 42, string_lit("abc"));
+  test_format_read_u64(string_lit("Hello"), 10, 0, string_lit("Hello"));
+  test_format_read_u64(string_lit("abcdef"), 16, 0xABCDEF, string_empty);
+  test_format_read_u64(string_lit("123abcdef"), 16, 0x123ABCDEF, string_empty);
+  test_format_read_u64(string_lit("123abcdef-hello"), 16, 0x123ABCDEF, string_lit("-hello"));
+
+  test_format_read_i64(string_empty, 10, 0, string_empty);
+  test_format_read_i64(string_lit("-42"), 10, -42, string_empty);
+  test_format_read_i64(string_lit("+42"), 10, 42, string_empty);
+  test_format_read_i64(string_lit("42"), 10, 42, string_empty);
+  test_format_read_i64(string_lit("9223372036854775807"), 10, 9223372036854775807ll, string_empty);
+  test_format_read_i64(string_lit("+9223372036854775807"), 10, 9223372036854775807ll, string_empty);
+  test_format_read_i64(
+      string_lit("-9223372036854775807"), 10, -9223372036854775807ll, string_empty);
+  test_format_read_i64(string_lit("-123abcdef-hello"), 16, -0x123ABCDEF, string_lit("-hello"));
 }

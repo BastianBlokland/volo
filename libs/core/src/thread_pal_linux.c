@@ -13,7 +13,7 @@ u16 thread_pal_core_count() {
   cpu_set_t cpuSet;
   CPU_ZERO(&cpuSet);
   const int res = sched_getaffinity(0, sizeof(cpuSet), &cpuSet);
-  diag_assert_msg(res == 0, string_lit("sched_getaffinity() failed"));
+  diag_assert_msg(res == 0, fmt_write_scratch("sched_getaffinity() failed: {}", fmt_int(res)));
   (void)res;
   return CPU_COUNT(&cpuSet);
 }
@@ -22,7 +22,11 @@ void thread_pal_set_name(const String str) {
   static const usize maxNameLen = 15;
   if (str.size > maxNameLen) {
     diag_assert_fail(
-        &diag_callsite_create(), string_lit("Thread name too long, maximum is 15 chars"));
+        &diag_callsite_create(),
+        fmt_write_scratch(
+            "Thread name '{}' is too long, maximum is {} chars",
+            fmt_text(str),
+            fmt_int(maxNameLen)));
   }
 
   // Copy the string on the stack and null-terminate it.
@@ -64,16 +68,17 @@ ThreadHandle thread_pal_start(thread_pal_rettype (*routine)(void*), void* data) 
   pthread_t      handle;
 
   int res = pthread_attr_init(&attr);
-  diag_assert_msg(res == 0, string_lit("pthread_attr_init() failed"));
+  diag_assert_msg(res == 0, fmt_write_scratch("pthread_attr_init() failed: {}", fmt_int(res)));
 
   res = pthread_attr_setstacksize(&attr, thread_pal_stacksize);
-  diag_assert_msg(res == 0, string_lit("pthread_attr_setstacksize() failed"));
+  diag_assert_msg(
+      res == 0, fmt_write_scratch("pthread_attr_setstacksize() failed: {}", fmt_int(res)));
 
   res = pthread_create(&handle, &attr, routine, data);
-  diag_assert_msg(res == 0, string_lit("pthread_create() failed"));
+  diag_assert_msg(res == 0, fmt_write_scratch("pthread_create() failed: {}", fmt_int(res)));
 
   res = pthread_attr_destroy(&attr);
-  diag_assert_msg(res == 0, string_lit("pthread_attr_destroy() failed"));
+  diag_assert_msg(res == 0, fmt_write_scratch("pthread_attr_destroy() failed: {}", fmt_int(res)));
 
   (void)res;
 
@@ -84,13 +89,13 @@ ThreadHandle thread_pal_start(thread_pal_rettype (*routine)(void*), void* data) 
 void thread_pal_join(ThreadHandle thread) {
   void*     retData;
   const int res = pthread_join((pthread_t)thread, &retData);
-  diag_assert_msg(res == 0, string_lit("pthread_join() failed"));
+  diag_assert_msg(res == 0, fmt_write_scratch("pthread_join() failed: {}", fmt_int(res)));
   (void)res;
 }
 
 void thread_pal_yield() {
   const int res = sched_yield();
-  diag_assert_msg(res == 0, string_lit("sched_yield() failed"));
+  diag_assert_msg(res == 0, fmt_write_scratch("sched_yield() failed: {}", fmt_int(res)));
   (void)res;
 }
 
@@ -102,7 +107,7 @@ void thread_pal_sleep(const TimeDuration duration) {
   int res = 0;
   while ((res = nanosleep(&ts, &ts)) == -1 && errno == EINTR) // Resume waiting after interupt.
     ;
-  diag_assert_msg(res == 0, string_lit("nanosleep() failed"));
+  diag_assert_msg(res == 0, fmt_write_scratch("nanosleep() failed: {}", fmt_int(res)));
 }
 
 typedef struct {
@@ -113,13 +118,15 @@ typedef struct {
 ThreadMutex thread_pal_mutex_create(Allocator* alloc) {
   pthread_mutexattr_t attr;
   int                 res = pthread_mutexattr_init(&attr);
-  diag_assert_msg(res == 0, string_lit("pthread_mutexattr_init() failed"));
+  diag_assert_msg(res == 0, fmt_write_scratch("pthread_mutexattr_init() failed: {}", fmt_int(res)));
 
   res = pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
-  diag_assert_msg(res == 0, string_lit("pthread_mutexattr_settype() failed"));
+  diag_assert_msg(
+      res == 0, fmt_write_scratch("pthread_mutexattr_settype() failed: {}", fmt_int(res)));
 
   res = pthread_mutexattr_setrobust(&attr, PTHREAD_MUTEX_STALLED);
-  diag_assert_msg(res == 0, string_lit("pthread_mutexattr_setrobust() failed"));
+  diag_assert_msg(
+      res == 0, fmt_write_scratch("pthread_mutexattr_setrobust() failed: {}", fmt_int(res)));
 
   Mem allocation = alloc_alloc(alloc, sizeof(pthread_mutex_t) + sizeof(ThreadMutexExtraData));
   pthread_mutex_t* mutex = mem_as_t(allocation, pthread_mutex_t);
@@ -131,10 +138,11 @@ ThreadMutex thread_pal_mutex_create(Allocator* alloc) {
       };
 
   res = pthread_mutex_init(mutex, &attr);
-  diag_assert_msg(res == 0, string_lit("pthread_mutex_init() failed"));
+  diag_assert_msg(res == 0, fmt_write_scratch("pthread_mutex_init() failed: {}", fmt_int(res)));
 
   res = pthread_mutexattr_destroy(&attr);
-  diag_assert_msg(res == 0, string_lit("pthread_mutexattr_destroy() failed"));
+  diag_assert_msg(
+      res == 0, fmt_write_scratch("pthread_mutexattr_destroy() failed: {}", fmt_int(res)));
 
   (void)res;
   return (ThreadMutex)allocation.ptr;
@@ -144,7 +152,7 @@ void thread_pal_mutex_destroy(ThreadMutex handle) {
   pthread_mutex_t* mutex = (pthread_mutex_t*)handle;
 
   const int res = pthread_mutex_destroy(mutex);
-  diag_assert_msg(res == 0, string_lit("pthread_mutex_destroy() failed"));
+  diag_assert_msg(res == 0, fmt_write_scratch("pthread_mutex_destroy() failed: {}", fmt_int(res)));
   (void)res;
 
   ThreadMutexExtraData* extraData = (ThreadMutexExtraData*)((u8*)handle + sizeof(pthread_mutex_t));
@@ -155,7 +163,7 @@ void thread_pal_mutex_lock(ThreadMutex handle) {
   pthread_mutex_t* mutex = (pthread_mutex_t*)handle;
 
   const int res = pthread_mutex_lock(mutex);
-  diag_assert_msg(res == 0, string_lit("pthread_mutex_lock() failed"));
+  diag_assert_msg(res == 0, fmt_write_scratch("pthread_mutex_lock() failed: {}", fmt_int(res)));
   (void)res;
 }
 
@@ -163,7 +171,9 @@ bool thread_pal_mutex_trylock(ThreadMutex handle) {
   pthread_mutex_t* mutex = (pthread_mutex_t*)handle;
 
   const int res = pthread_mutex_trylock(mutex);
-  diag_assert_msg(res == 0 || res == EBUSY, string_lit("pthread_mutex_trylock() failed"));
+  diag_assert_msg(
+      res == 0 || res == EBUSY,
+      fmt_write_scratch("pthread_mutex_trylock() failed: {}", fmt_int(res)));
   return res == 0;
 }
 
@@ -171,7 +181,7 @@ void thread_pal_mutex_unlock(ThreadMutex handle) {
   pthread_mutex_t* mutex = (pthread_mutex_t*)handle;
 
   const int res = pthread_mutex_unlock(mutex);
-  diag_assert_msg(res == 0, string_lit("pthread_mutex_unlock() failed"));
+  diag_assert_msg(res == 0, fmt_write_scratch("pthread_mutex_unlock() failed: {}", fmt_int(res)));
   (void)res;
 }
 
@@ -191,7 +201,7 @@ ThreadCondition thread_pal_cond_create(Allocator* alloc) {
       };
 
   int res = pthread_cond_init(cond, null);
-  diag_assert_msg(res == 0, string_lit("pthread_cond_init() failed"));
+  diag_assert_msg(res == 0, fmt_write_scratch("pthread_cond_init() failed: {}", fmt_int(res)));
 
   (void)res;
   return (ThreadCondition)allocation.ptr;
@@ -201,7 +211,7 @@ void thread_pal_cond_destroy(ThreadCondition handle) {
   pthread_cond_t* cond = (pthread_cond_t*)handle;
 
   const int res = pthread_cond_destroy(cond);
-  diag_assert_msg(res == 0, string_lit("pthread_cond_destroy() failed"));
+  diag_assert_msg(res == 0, fmt_write_scratch("pthread_cond_destroy() failed: {}", fmt_int(res)));
   (void)res;
 
   ThreadConditionExtraData* extraData =
@@ -214,7 +224,7 @@ void thread_pal_cond_wait(ThreadCondition condHandle, ThreadMutex mutexHandle) {
   pthread_mutex_t* mutex = (pthread_mutex_t*)mutexHandle;
 
   const int res = pthread_cond_wait(cond, mutex);
-  diag_assert_msg(res == 0, string_lit("pthread_cond_wait() failed"));
+  diag_assert_msg(res == 0, fmt_write_scratch("pthread_cond_wait() failed: {}", fmt_int(res)));
   (void)res;
 }
 
@@ -222,7 +232,7 @@ void thread_pal_cond_signal(ThreadCondition handle) {
   pthread_cond_t* cond = (pthread_cond_t*)handle;
 
   const int res = pthread_cond_signal(cond);
-  diag_assert_msg(res == 0, string_lit("pthread_cond_signal() failed"));
+  diag_assert_msg(res == 0, fmt_write_scratch("pthread_cond_signal() failed: {}", fmt_int(res)));
   (void)res;
 }
 
@@ -230,6 +240,6 @@ void thread_pal_cond_broadcast(ThreadCondition handle) {
   pthread_cond_t* cond = (pthread_cond_t*)handle;
 
   const int res = pthread_cond_broadcast(cond);
-  diag_assert_msg(res == 0, string_lit("pthread_cond_broadcast() failed"));
+  diag_assert_msg(res == 0, fmt_write_scratch("pthread_cond_broadcast() failed: {}", fmt_int(res)));
   (void)res;
 }

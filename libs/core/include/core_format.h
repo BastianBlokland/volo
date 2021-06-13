@@ -3,10 +3,12 @@
 #include "core_dynstring.h"
 #include "core_macro.h"
 #include "core_time.h"
+#include "core_tty.h"
 #include "core_types.h"
 
 typedef enum {
-  FormatArgType_None = 0,
+  FormatArgType_End = 0,
+  FormatArgType_Nop,
   FormatArgType_i64,
   FormatArgType_u64,
   FormatArgType_f64,
@@ -18,6 +20,7 @@ typedef enum {
   FormatArgType_size,
   FormatArgType_text,
   FormatArgType_path,
+  FormatArgType_ttystyle,
 } FormatArgType;
 
 /**
@@ -38,11 +41,17 @@ typedef struct {
     usize        value_size;
     String       value_text;
     String       value_path;
+    TtyStyle     value_ttystyle;
   };
   void* settings;
 } FormatArg;
 
 // clang-format off
+
+/**
+ * Create No-Op formatting argument, will not output any characters.
+ */
+#define fmt_nop() ((FormatArg){ .type = FormatArgType_Nop })
 
 /**
  * Create an integer formatting argument.
@@ -139,14 +148,24 @@ typedef struct {
 #define fmt_path(_VAL_) ((FormatArg){ .type = FormatArgType_path, .value_path = (_VAL_) })
 
 /**
+ * Create TtyStyle formatting argument.
+ */
+#define fmt_ttystyle(...)                                                                          \
+  ((FormatArg){ .type = FormatArgType_ttystyle, .value_ttystyle = (ttystyle(__VA_ARGS__)) })
+
+/**
  * Create a array of format arguments.
- * Ends with with '0' (FormatArgType_None) argument.
+ * Ends with with '0' (FormatArgType_End) argument.
  */
 #define fmt_args(...) (const FormatArg[]){VA_ARGS_SKIP_FIRST(0, ##__VA_ARGS__, (FormatArg){0})}
 
 /**
  * Write a format string with arguments.
  * '{}' entries are replaced by arguments in order of appearance.
+ * Supported format specifiers:
+ * - '{>4}': Pad with spaces on the left side until a width of 4 chars is reached.
+ * - '{<4}': Pad with spaces on the right side until a width of 4 chars is reached.
+ * - '{:4}': Pad with spaces on both sides until a width of 4 chars is reached.
  */
 #define fmt_write(_DYNSTRING_, _FORMAT_LIT_, ...)                                                  \
   format_write_formatted((_DYNSTRING_), string_lit(_FORMAT_LIT_), fmt_args(__VA_ARGS__))
@@ -308,6 +327,10 @@ void format_write_arg(DynString*, const FormatArg*);
 /**
  * Write a format string with arguments.
  * '{}' entries are replaced by arguments in order of appearance.
+ * Supported format specifiers:
+ * - '{>4}': Pad with spaces on the left side until a width of 4 chars is reached.
+ * - '{<4}': Pad with spaces on the right side until a width of 4 chars is reached.
+ * - '{:4}': Pad with spaces on both sides until a width of 4 chars is reached.
  */
 void format_write_formatted(DynString*, String format, const FormatArg* args);
 
@@ -372,3 +395,24 @@ void format_write_size_pretty(DynString*, usize val);
  * Write the text string.
  */
 void format_write_text(DynString*, String val, const FormatOptsText*);
+
+/**
+ * Read all ascii whitespace at the beginning of the given string.
+ * Returns the remaining input.
+ * The whitespace slice is written to the output pointer, pass 'null' to ignore the output.
+ */
+String format_read_whitespace(String input, String* output);
+
+/**
+ * Read an unsigned 64 bit integer in the given base.
+ * Returns the remaining input.
+ * The value is written to the output pointer, pass 'null' to ignore the output.
+ */
+String format_read_u64(String input, u64* output, u8 base);
+
+/**
+ * Read a signed 64 bit integer in the given base.
+ * Returns the remaining input.
+ * The value is written to the output pointer, pass 'null' to ignore the output.
+ */
+String format_read_i64(String input, i64* output, u8 base);

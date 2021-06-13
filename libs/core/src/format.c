@@ -7,21 +7,122 @@
 #include "core_math.h"
 #include "core_path.h"
 
+typedef enum {
+  FormatReplOptKind_None = 0,
+  FormatReplOptKind_PadLeft,
+  FormatReplOptKind_PadRight,
+  FormatReplOptKind_PadCenter,
+} FormatReplOptKind;
+
+typedef struct {
+  FormatReplOptKind kind;
+  i32               value;
+} FormatReplOpt;
+
+typedef struct {
+  usize         start, end;
+  FormatReplOpt opt;
+} FormatRepl;
+
+/**
+ * Parse option for a format replacement.
+ * At the moment a single option is supported. But can be expanded to a comma seperated list of
+ * options when the need arises.
+ */
+static FormatReplOpt format_replacement_parse_opt(String str) {
+  str                  = format_read_whitespace(str, null); // Ignore leading whitespace.
+  FormatReplOpt result = (FormatReplOpt){.kind = FormatReplOptKind_None};
+  if (str.size) {
+    switch (*string_begin(str)) {
+    case '>':
+      result.kind = FormatReplOptKind_PadLeft;
+      str         = string_consume(str, 1); // Consume the '>'.
+      break;
+    case '<':
+      result.kind = FormatReplOptKind_PadRight;
+      str         = string_consume(str, 1); // Consume the '<'.
+      break;
+    case ':':
+      result.kind = FormatReplOptKind_PadCenter;
+      str         = string_consume(str, 1); // Consume the ':'.
+      break;
+    }
+    if (result.kind) {
+      u64 amount;
+      str          = format_read_u64(str, &amount, 10);
+      result.value = (i32)amount;
+    }
+  }
+  str = format_read_whitespace(str, null); // Ignore trailing whitespace.
+
+  diag_assert_msg(
+      !str.size,
+      fmt_write_scratch(
+          "Unsupported format option: '{}'",
+          fmt_text(str, .flags = FormatTextFlags_EscapeNonPrintAscii)));
+  return result;
+}
+
+/**
+ * Find a format replacement '{}'.
+ */
+static bool format_replacement_find(String str, FormatRepl* result) {
+  const usize startIdx = string_find_first(str, string_lit("{"));
+  if (sentinel_check(startIdx)) {
+    return false;
+  }
+  const usize len = string_find_first(string_consume(str, startIdx), string_lit("}"));
+  if (sentinel_check(len)) {
+    return false;
+  }
+  *result = (FormatRepl){
+      .start = startIdx,
+      .end   = startIdx + len + 1,
+      .opt   = format_replacement_parse_opt(string_slice(str, startIdx + 1, len - 1)),
+  };
+  return true;
+}
+
 void format_write_formatted(DynString* str, String format, const FormatArg* argHead) {
   while (format.size) {
-    const usize replIdx = string_find_first(format, string_lit("{}"));
-    if (sentinel_check(replIdx)) {
-      // No replacement, append the text raw.
+    FormatRepl repl;
+    if (!format_replacement_find(format, &repl)) {
+      // No replacement, append the text verbatim.
       dynstring_append(str, format);
       break;
     }
-    // Append the text before the replacement followed by the replacement argument.
-    dynstring_append(str, string_slice(format, 0, replIdx));
-    if (argHead->type != FormatArgType_None) {
+
+    // Append the text before the replacement verbatim.
+    dynstring_append(str, string_slice(format, 0, repl.start));
+
+    // Append the replacement argument.
+    if (argHead->type != FormatArgType_End) {
+      const usize argStart = str->size;
       format_write_arg(str, argHead);
+      const usize argEnd = str->size;
+
+      // Apply the formatting option.
+      switch (repl.opt.kind) {
+      case FormatReplOptKind_None:
+        break;
+      case FormatReplOptKind_PadLeft: {
+        const usize padding = math_max(0, repl.opt.value - (i32)(argEnd - argStart));
+        dynstring_insert_chars(str, ' ', argStart, padding);
+      } break;
+      case FormatReplOptKind_PadRight: {
+        const usize padding = math_max(0, repl.opt.value - (i32)(argEnd - argStart));
+        dynstring_append_chars(str, ' ', padding);
+      } break;
+      case FormatReplOptKind_PadCenter: {
+        const usize padding = math_max(0, repl.opt.value - (i32)(argEnd - argStart));
+        dynstring_insert_chars(str, ' ', argStart, padding / 2);
+        dynstring_append_chars(str, ' ', padding / 2 + padding % 2);
+      } break;
+      }
+
       ++argHead;
     }
-    format = string_consume(format, replIdx + 2);
+    format = string_consume(format, repl.end);
   }
 }
 
@@ -38,7 +139,8 @@ String format_write_formatted_scratch(String format, const FormatArg* args) {
 
 void format_write_arg(DynString* str, const FormatArg* arg) {
   switch (arg->type) {
-  case FormatArgType_None:
+  case FormatArgType_End:
+  case FormatArgType_Nop:
     break;
   case FormatArgType_i64:
     format_write_i64(str, arg->value_i64, arg->settings);
@@ -72,6 +174,9 @@ void format_write_arg(DynString* str, const FormatArg* arg) {
     break;
   case FormatArgType_path:
     path_canonize(str, arg->value_path);
+    break;
+  case FormatArgType_ttystyle:
+    tty_write_style_sequence(str, arg->value_ttystyle);
     break;
   }
 }
@@ -367,4 +472,51 @@ void format_write_text(DynString* str, String val, const FormatOptsText* opts) {
   byte_end:
     continue;
   });
+}
+
+String format_read_whitespace(const String input, String* output) {
+  usize idx = 0;
+  for (; idx != input.size && ascii_is_whitespace(*string_at(input, idx)); ++idx)
+    ;
+  if (output) {
+    *output = string_slice(input, 0, idx);
+  }
+  return string_consume(input, idx);
+}
+
+String format_read_u64(const String input, u64* output, const u8 base) {
+  usize idx = 0;
+  u64   res = 0;
+  for (; idx != input.size; ++idx) {
+    const u8 val = ascii_to_integer(*string_at(input, idx));
+    if (sentinel_check(val) || val >= base) {
+      break; // Not a digit, stop reading.
+    }
+    // TODO: Consider how to report overflow.
+    res = res * base + val;
+  }
+  if (output) {
+    *output = res;
+  }
+  return string_consume(input, idx);
+}
+
+String format_read_i64(String input, i64* output, u8 base) {
+  i64 sign = 1;
+  if (input.size) {
+    switch (*string_begin(input)) {
+    case '-':
+      sign = -1;
+    case '+':
+      input = string_consume(input, 1);
+      break;
+    }
+  }
+  u64          unsignedPart;
+  const String rem = format_read_u64(input, &unsignedPart, base);
+  if (output) {
+    // TODO: Consider how to report overflow.
+    *output = (i64)unsignedPart * sign;
+  }
+  return rem;
 }

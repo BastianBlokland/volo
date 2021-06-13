@@ -19,3 +19,11 @@ void dynstring_append(DynString* dynstring, String value) {
 }
 
 void dynstring_append_char(DynString* dynstring, u8 val) { *dynarray_push_t(dynstring, u8) = val; }
+
+void dynstring_append_chars(DynString* dynstring, u8 val, usize amount) {
+  mem_set(dynarray_push(dynstring, amount), val);
+}
+
+void dynstring_insert_chars(DynString* dynstring, u8 val, usize idx, usize amount) {
+  mem_set(dynarray_insert(dynstring, idx, amount), val);
+}

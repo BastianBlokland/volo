@@ -87,7 +87,7 @@ file_create(Allocator* alloc, String path, FileMode mode, FileAccessFlags access
     creationDisposition = CREATE_ALWAYS;
     break;
   default:
-    diag_assert_msg(false, string_lit("Invalid FileMode"));
+    diag_assert_msg(false, fmt_write_scratch("Invalid FileMode: {}", fmt_int(mode)));
   }
 
   if (access & FileAccess_Read) {

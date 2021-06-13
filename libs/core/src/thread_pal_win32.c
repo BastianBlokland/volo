@@ -16,7 +16,11 @@ void thread_pal_set_name(const String str) {
   static const usize maxNameLen = 15;
   if (str.size > maxNameLen) {
     diag_assert_fail(
-        &diag_callsite_create(), string_lit("Thread name too long, maximum is 15 chars"));
+        &diag_callsite_create(),
+        fmt_write_scratch(
+            "Thread name '{}' is too long, maximum is {} chars",
+            fmt_text(str),
+            fmt_int(maxNameLen)));
   }
 
   const usize bufferSize = winutils_to_widestr_size(str);

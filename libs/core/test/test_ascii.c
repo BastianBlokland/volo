@@ -94,6 +94,20 @@ static void test_ascii_to_lower() {
   diag_assert(ascii_to_lower('a') == 'a');
 }
 
+static void test_ascii_to_integer() {
+  diag_assert(ascii_to_integer('0') == 0);
+  diag_assert(ascii_to_integer('5') == 5);
+  diag_assert(ascii_to_integer('9') == 9);
+  diag_assert(ascii_to_integer('a') == 10);
+  diag_assert(ascii_to_integer('A') == 10);
+  diag_assert(ascii_to_integer('c') == 12);
+  diag_assert(ascii_to_integer('C') == 12);
+  diag_assert(ascii_to_integer('f') == 15);
+  diag_assert(ascii_to_integer('F') == 15);
+  diag_assert(sentinel_check(ascii_to_integer(' ')));
+  diag_assert(sentinel_check(ascii_to_integer('\b')));
+}
+
 void test_ascii() {
   test_ascii_is_valid();
   test_ascii_is_digit();
@@ -108,4 +122,5 @@ void test_ascii() {
   test_ascii_toggle_case();
   test_ascii_to_upper();
   test_ascii_to_lower();
+  test_ascii_to_integer();
 }
