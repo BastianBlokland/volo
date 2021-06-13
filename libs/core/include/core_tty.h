@@ -110,6 +110,17 @@ u16 tty_width(File*);
 u16 tty_height(File*);
 
 /**
- * Write a TtyStyle ANSI escape sequence to the provided dynamic-string.
+ * Write a ANSI escape sequence for setting the terminal window title to stdout.
+ */
+void tty_set_window_title(String title);
+
+/**
+ * Write a ANSI escape sequence to the provided dynamic-string for setting the terminal style.
  */
 void tty_write_style_sequence(DynString*, TtyStyle);
+
+/**
+ * Write a ANSI escape sequence to the provided dynamic-string for setting the terminal window
+ * title..
+ */
+void tty_write_window_title_sequence(DynString*, String title);

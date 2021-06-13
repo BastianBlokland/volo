@@ -4,6 +4,7 @@
 #include "core_path.h"
 #include "core_thread.h"
 #include "core_time.h"
+#include "core_tty.h"
 
 void test_alloc_bump();
 void test_ascii();
@@ -33,6 +34,9 @@ void test_winutils();
  */
 int main() {
   core_init();
+
+  tty_set_window_title(
+      fmt_write_scratch("{}: running tests...", fmt_text(path_stem(g_path_executable))));
 
   diag_print(
       "{}: running tests... (pid: {}, tid: {}, cpus: {}, pagesize: {})\n",
