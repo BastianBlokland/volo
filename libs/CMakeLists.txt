@@ -6,6 +6,7 @@ add_library(volo_core STATIC
   core/src/alloc_bump.c
   core/src/alloc_heap.c
   core/src/alloc_page_pal.c
+  core/src/alloc_scratch.c
   core/src/alloc.c
   core/src/ascii.c
   core/src/bits.c
@@ -23,9 +24,13 @@ add_library(volo_core STATIC
   core/src/memory.c
   core/src/path_pal.c
   core/src/path.c
+  core/src/signal_pal.c
+  core/src/signal.c
   core/src/sort_bubblesort.c
   core/src/sort_quicksort.c
   core/src/string.c
+  core/src/thread_pal.c
+  core/src/thread.c
   core/src/time_pal.c
   core/src/time.c
   core/src/tty_pal.c
@@ -36,6 +41,7 @@ target_include_directories(volo_core PUBLIC core/include)
 
 add_executable(volo_core_test
   core/test/main.c
+  core/test/test_alloc_bump.c
   core/test/test_ascii.c
   core/test/test_bits.c
   core/test/test_bitset.c
@@ -52,6 +58,7 @@ add_executable(volo_core_test
   core/test/test_path.c
   core/test/test_sort.c
   core/test/test_string.c
+  core/test/test_thread.c
   core/test/test_time.c
   core/test/test_utf8.c
   core/test/test_winutils.c)

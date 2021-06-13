@@ -1,3 +1,4 @@
+#include "core_alloc.h"
 #include "core_array.h"
 #include "core_ascii.h"
 #include "core_diag.h"
@@ -6,8 +7,7 @@
 #include "core_math.h"
 #include "core_path.h"
 
-void format_write_formatted(DynString* str, String format, const FormatArg* args, usize argsCount) {
-  usize argIdx = 0;
+void format_write_formatted(DynString* str, String format, const FormatArg* argHead) {
   while (format.size) {
     const usize replIdx = string_find_first(format, string_lit("{}"));
     if (sentinel_check(replIdx)) {
@@ -17,16 +17,29 @@ void format_write_formatted(DynString* str, String format, const FormatArg* args
     }
     // Append the text before the replacement followed by the replacement argument.
     dynstring_append(str, string_slice(format, 0, replIdx));
-    if (argIdx != argsCount) {
-      format_write_arg(str, &args[argIdx]);
-      ++argIdx;
+    if (argHead->type != FormatArgType_None) {
+      format_write_arg(str, argHead);
+      ++argHead;
     }
     format = string_consume(format, replIdx + 2);
   }
 }
 
+String format_write_formatted_scratch(String format, const FormatArg* args) {
+  Mem       scratchMem = alloc_alloc(g_alloc_scratch, usize_kibibyte * 2);
+  DynString str        = dynstring_create_over(scratchMem);
+
+  format_write_formatted(&str, format, args);
+
+  String res = dynstring_view(&str);
+  dynstring_destroy(&str);
+  return res;
+}
+
 void format_write_arg(DynString* str, const FormatArg* arg) {
   switch (arg->type) {
+  case FormatArgType_None:
+    break;
   case FormatArgType_i64:
     format_write_i64(str, arg->value_i64, arg->settings);
     break;

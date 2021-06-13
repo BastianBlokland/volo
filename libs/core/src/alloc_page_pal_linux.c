@@ -29,8 +29,13 @@ static void alloc_page_free(Allocator* allocator, Mem mem) {
   (void)res;
 }
 
-static usize alloc_heap_min_size(Allocator* allocator) {
+static usize alloc_page_min_size(Allocator* allocator) {
   return ((struct AllocatorPage*)allocator)->pageSize;
+}
+
+static usize alloc_page_max_size(Allocator* allocator) {
+  (void)allocator;
+  return usize_max;
 }
 
 static struct AllocatorPage g_allocatorIntern;
@@ -39,9 +44,10 @@ Allocator* alloc_page_init() {
   const size_t pageSize = getpagesize();
   g_allocatorIntern     = (struct AllocatorPage){
       (Allocator){
-          &alloc_page_alloc,
-          &alloc_page_free,
-          &alloc_heap_min_size,
+          .alloc   = alloc_page_alloc,
+          .free    = alloc_page_free,
+          .minSize = alloc_page_min_size,
+          .maxSize = alloc_page_max_size,
       },
       pageSize,
   };

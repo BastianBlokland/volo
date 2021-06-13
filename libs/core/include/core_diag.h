@@ -35,7 +35,7 @@ typedef struct {
  */
 #define diag_assert_msg(_CONDITION_, _MSG_)                                                        \
   do {                                                                                             \
-    if (unlikely(!(_CONDITION_))) {                                                                \
+    if (UNLIKELY(!(_CONDITION_))) {                                                                \
       diag_assert_fail(&diag_callsite_create(), _MSG_);                                            \
     }                                                                                              \
   } while (false)
@@ -49,32 +49,30 @@ typedef struct {
  * Print a message to the stdout stream.
  */
 #define diag_print(_FORMAT_LIT_, ...)                                                              \
-  diag_print_formatted(                                                                            \
-      string_lit(_FORMAT_LIT_), (const FormatArg[]){__VA_ARGS__}, COUNT_VA_ARGS(__VA_ARGS__))
+  diag_print_formatted(string_lit(_FORMAT_LIT_), fmt_args(__VA_ARGS__))
 
 /**
  * Print a message to the stderr stream.
  */
 #define diag_print_err(_FORMAT_LIT_, ...)                                                          \
-  diag_print_err_formatted(                                                                        \
-      string_lit(_FORMAT_LIT_), (const FormatArg[]){__VA_ARGS__}, COUNT_VA_ARGS(__VA_ARGS__))
+  diag_print_err_formatted(string_lit(_FORMAT_LIT_), fmt_args(__VA_ARGS__))
 
 /**
  * Print a message to the stdout stream.
  */
-void diag_print_formatted(String format, const FormatArg* args, usize argsCount);
+void diag_print_formatted(String format, const FormatArg*);
 
 /**
  * Print a message to the stderr stream.
  */
-void diag_print_err_formatted(String format, const FormatArg* args, usize argsCount);
+void diag_print_err_formatted(String format, const FormatArg*);
 
 /**
  * Indicate that an assertion has failed, print the given message and crashes the program.
  */
-VOLO_NORETURN void diag_assert_fail(const DiagCallSite*, String msg);
+NORETURN void diag_assert_fail(const DiagCallSite*, String msg);
 
 /**
  * Crash the program, will halt if running in a debugger.
  */
-VOLO_NORETURN void diag_crash();
+NORETURN void diag_crash();

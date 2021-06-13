@@ -27,13 +27,7 @@ bool string_ends_with(String str, String end) {
 
 String string_slice(String str, usize offset, usize size) { return mem_slice(str, offset, size); }
 
-String string_consume(String str, usize amount) {
-  diag_assert(str.size >= amount);
-  return (String){
-      .ptr  = (u8*)str.ptr + amount,
-      .size = str.size - amount,
-  };
-}
+String string_consume(String str, usize amount) { return mem_consume(str, amount); }
 
 usize string_find_first(String str, String subStr) {
   for (u8* itr = mem_begin(str); itr <= string_end(str) - subStr.size; ++itr) {

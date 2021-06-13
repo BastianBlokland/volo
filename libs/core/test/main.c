@@ -1,8 +1,10 @@
 #include "core_diag.h"
 #include "core_init.h"
 #include "core_path.h"
+#include "core_thread.h"
 #include "core_time.h"
 
+void test_alloc_bump();
 void test_ascii();
 void test_bits();
 void test_bitset();
@@ -19,6 +21,7 @@ void test_memory();
 void test_path();
 void test_sort();
 void test_string();
+void test_thread();
 void test_time();
 void test_utf8();
 void test_winutils();
@@ -30,8 +33,16 @@ void test_winutils();
 int main() {
   core_init();
 
+  diag_print(
+      "{}: running tests... (pid: {}, tid: {}, cpus: {})\n",
+      fmt_text(path_stem(g_path_executable)),
+      fmt_int(g_thread_pid),
+      fmt_int(g_thread_tid),
+      fmt_int(g_thread_core_count));
+
   const TimeSteady timeStart = time_steady_clock();
 
+  test_alloc_bump();
   test_ascii();
   test_bits();
   test_bitset();
@@ -48,6 +59,7 @@ int main() {
   test_path();
   test_sort();
   test_string();
+  test_thread();
   test_time();
   test_utf8();
   test_winutils();

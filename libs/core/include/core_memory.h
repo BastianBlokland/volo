@@ -95,6 +95,12 @@ void mem_move(Mem dst, Mem src);
 Mem mem_slice(Mem, usize offset, usize size);
 
 /**
+ * Create a view 'amount' bytes into the memory.
+ * Pre-condition: size >= amount.
+ */
+Mem mem_consume(Mem, usize amount);
+
+/**
  * Interpret this memory as an object with the given size.
  * Only performs diagnostic size validation, should be considered a no-op for non-debug builds.
  */

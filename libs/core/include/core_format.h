@@ -6,6 +6,7 @@
 #include "core_types.h"
 
 typedef enum {
+  FormatArgType_None = 0,
   FormatArgType_i64,
   FormatArgType_u64,
   FormatArgType_f64,
@@ -47,7 +48,7 @@ typedef struct {
  * Create an integer formatting argument.
  */
 #define fmt_int(_VAL_, ...)                                                                        \
-  _Generic((_VAL_),                                                                                \
+  _Generic(+(_VAL_),                                                                               \
     u32: ((FormatArg){                                                                             \
       .type = FormatArgType_u64,                                                                   \
       .value_u64 = (u64)(_VAL_),                                                                   \
@@ -135,15 +136,28 @@ typedef struct {
 /**
  * Create file path formatting argument.
  */
-#define fmt_path(_VAL_)  ((FormatArg){ .type = FormatArgType_path, .value_path = (_VAL_) })
+#define fmt_path(_VAL_) ((FormatArg){ .type = FormatArgType_path, .value_path = (_VAL_) })
+
+/**
+ * Create a array of format arguments.
+ * Ends with with '0' (FormatArgType_None) argument.
+ */
+#define fmt_args(...) (const FormatArg[]){VA_ARGS_SKIP_FIRST(0, ##__VA_ARGS__, (FormatArg){0})}
 
 /**
  * Write a format string with arguments.
  * '{}' entries are replaced by arguments in order of appearance.
  */
-#define format_write(_DYNSTRING_, _FORMAT_LIT_, ...)                                               \
-  format_write_formatted( (_DYNSTRING_),                                                           \
-      string_lit(_FORMAT_LIT_), (const FormatArg[]){__VA_ARGS__}, COUNT_VA_ARGS(__VA_ARGS__))
+#define fmt_write(_DYNSTRING_, _FORMAT_LIT_, ...)                                                  \
+  format_write_formatted((_DYNSTRING_), string_lit(_FORMAT_LIT_), fmt_args(__VA_ARGS__))
+
+/**
+ * Create a formatted string in scratch memory. Meant for very short lived strings as the scratch
+ * memory will be overwritten eventually.
+ * Pre-condition: Formatted string fits in 2KiB.
+ */
+#define fmt_write_scratch(_FORMAT_LIT_, ...)                                                       \
+  format_write_formatted_scratch(string_lit(_FORMAT_LIT_), fmt_args(__VA_ARGS__))
 
 // clang-format on
 
@@ -295,7 +309,14 @@ void format_write_arg(DynString*, const FormatArg*);
  * Write a format string with arguments.
  * '{}' entries are replaced by arguments in order of appearance.
  */
-void format_write_formatted(DynString*, String format, const FormatArg* args, usize argsCount);
+void format_write_formatted(DynString*, String format, const FormatArg* args);
+
+/**
+ * Create a formatted string in scratch memory. Meant for very short lived strings as the scratch
+ * memory will be overwritten eventually.
+ * Pre-condition: Formatted string fits in 2KiB.
+ */
+String format_write_formatted_scratch(String format, const FormatArg* args);
 
 /**
  * Write a unsigned value as ascii characters.

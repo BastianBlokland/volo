@@ -18,7 +18,7 @@ static TimeReal time_pal_filetime_to_microsinceepoch(const FILETIME* fileTime) {
 
 void time_pal_init() {
   LARGE_INTEGER freq;
-  if (likely(QueryPerformanceFrequency(&freq))) {
+  if (LIKELY(QueryPerformanceFrequency(&freq))) {
     g_perfCounterFrequency = freq.QuadPart;
   } else {
     g_perfCounterFrequency = 1;

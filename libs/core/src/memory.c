@@ -28,6 +28,14 @@ Mem mem_slice(Mem mem, const usize offset, const usize size) {
   return mem_create((u8*)mem.ptr + offset, size);
 }
 
+Mem mem_consume(Mem mem, usize amount) {
+  diag_assert(mem.size >= amount);
+  return (Mem){
+      .ptr  = (u8*)mem.ptr + amount,
+      .size = mem.size - amount,
+  };
+}
+
 void* mem_as(Mem mem, const usize size) {
   diag_assert(mem_valid(mem));
   diag_assert(mem.size >= size);
