@@ -49,3 +49,13 @@ void dynstring_append(DynString*, String);
  * Append a single character to the end of the given dynamic-string.
  */
 void dynstring_append_char(DynString*, u8);
+
+/**
+ * Append 'amount' characters to the end of the given dynamic-string.
+ */
+void dynstring_append_chars(DynString*, u8, usize amount);
+
+/**
+ * Insert 'amount' characters at a specific index in the given dynamic-string.
+ */
+void dynstring_insert_chars(DynString*, u8, usize idx, usize amount);

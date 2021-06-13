@@ -39,8 +39,34 @@ static void test_dynstring_append_char() {
   dynstring_destroy(&string);
 }
 
+static void test_dynstring_append_chars() {
+  DynString string = dynstring_create_over(mem_stack(128));
+
+  dynstring_append_chars(&string, '*', 3);
+  dynstring_append_chars(&string, '-', 5);
+  dynstring_append_chars(&string, '*', 3);
+
+  diag_assert(string_eq(dynstring_view(&string), string_lit("***-----***")));
+
+  dynstring_destroy(&string);
+}
+
+static void test_dynstring_insert_chars() {
+  DynString string = dynstring_create_over(mem_stack(128));
+
+  dynstring_insert_chars(&string, '*', 0, 5);
+  dynstring_insert_chars(&string, '-', 0, 3);
+  dynstring_insert_chars(&string, '-', 8, 3);
+
+  diag_assert(string_eq(dynstring_view(&string), string_lit("---*****---")));
+
+  dynstring_destroy(&string);
+}
+
 void test_dynstring() {
   test_dynstring_new_string_is_empty();
   test_dynstring_append();
   test_dynstring_append_char();
+  test_dynstring_append_chars();
+  test_dynstring_insert_chars();
 }
