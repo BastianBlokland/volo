@@ -142,6 +142,16 @@ void format_write_arg(DynString* str, const FormatArg* arg) {
   case FormatArgType_End:
   case FormatArgType_Nop:
     break;
+  case FormatArgType_List:
+    dynstring_append(str, ((const FormatOptsList*)arg->settings)->prefix);
+    for (const FormatArg* child = arg->value_list; child->type != FormatArgType_End; ++child) {
+      if (child != arg->value_list) {
+        dynstring_append(str, ((const FormatOptsList*)arg->settings)->seperator);
+      }
+      format_write_arg(str, child);
+    }
+    dynstring_append(str, ((const FormatOptsList*)arg->settings)->suffix);
+    break;
   case FormatArgType_i64:
     format_write_i64(str, arg->value_i64, arg->settings);
     break;
@@ -154,28 +164,28 @@ void format_write_arg(DynString* str, const FormatArg* arg) {
   case FormatArgType_bool:
     format_write_bool(str, arg->value_bool);
     break;
-  case FormatArgType_bitset:
+  case FormatArgType_BitSet:
     format_write_bitset(str, arg->value_bitset);
     break;
-  case FormatArgType_mem:
+  case FormatArgType_Mem:
     format_write_mem(str, arg->value_mem);
     break;
-  case FormatArgType_duration:
+  case FormatArgType_Duration:
     format_write_time_duration_pretty(str, arg->value_duration);
     break;
-  case FormatArgType_time:
+  case FormatArgType_Time:
     format_write_time_iso8601(str, arg->value_time, arg->settings);
     break;
-  case FormatArgType_size:
+  case FormatArgType_Size:
     format_write_size_pretty(str, arg->value_size);
     break;
-  case FormatArgType_text:
+  case FormatArgType_Text:
     format_write_text(str, arg->value_text, arg->settings);
     break;
-  case FormatArgType_path:
+  case FormatArgType_Path:
     path_canonize(str, arg->value_path);
     break;
-  case FormatArgType_ttystyle:
+  case FormatArgType_TtyStyle:
     tty_write_style_sequence(str, arg->value_ttystyle);
     break;
   }
