@@ -171,7 +171,7 @@ void thread_cond_destroy(ThreadCondition);
  * Wait for the condition to be signaled by another thread. The mutex is automatically unlocked
  * before the wait and re-locked after returning from the wait.
  *
- * Example usaage:
+ * Example usage:
  * '
  *  thread_mutex_lock(&myMutex);
  *  while (!myPredicate()) {
