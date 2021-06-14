@@ -53,3 +53,29 @@
 #else
 _Static_assert(false, "Unsupported compiler");
 #endif
+
+/**
+ * Mark a structure or enum to be packed, meaning it will use as little memory as possible.
+ * Note: Behaviour differs per compiler, MSVC does not support this on enums at all for example.
+ *
+ * Example usage:
+ * '
+ *   PACKED(typedef enum {
+ *     MyEnum_A,
+ *     MyEnum_B,
+ *   }) MyEnum;
+ * '
+ * '
+ *   PACKED(typedef struct {
+ *     int a;
+ *     float b;
+ *   }) MyStruct;
+ * '
+ */
+#if defined(VOLO_CLANG) || defined(VOLO_GCC)
+#define PACKED(...) __VA_ARGS__ __attribute__((__packed__))
+#elif defined(VOLO_MSVC)
+#define PACKED(...) __pragma(pack(push, 1)) __VA_ARGS__ __pragma(pack(pop))
+#else
+#define PACKED(...) __VA_ARGS__
+#endif
