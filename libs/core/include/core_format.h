@@ -9,49 +9,83 @@
 typedef enum {
   FormatArgType_End = 0,
   FormatArgType_Nop,
+  FormatArgType_List,
   FormatArgType_i64,
   FormatArgType_u64,
   FormatArgType_f64,
   FormatArgType_bool,
-  FormatArgType_bitset,
-  FormatArgType_mem,
-  FormatArgType_duration,
-  FormatArgType_time,
-  FormatArgType_size,
-  FormatArgType_text,
-  FormatArgType_path,
-  FormatArgType_ttystyle,
+  FormatArgType_BitSet,
+  FormatArgType_Mem,
+  FormatArgType_Duration,
+  FormatArgType_Time,
+  FormatArgType_Size,
+  FormatArgType_Text,
+  FormatArgType_Path,
+  FormatArgType_TtyStyle,
 } FormatArgType;
 
 /**
  * Type erased formatting argument.
  * Can be created with various helper macros, for example: 'fmt_int' or 'fmt_time'.
  */
-typedef struct {
+typedef struct sFormatArg FormatArg;
+
+struct sFormatArg {
   FormatArgType type;
   union {
-    i64          value_i64;
-    u64          value_u64;
-    f64          value_f64;
-    bool         value_bool;
-    BitSet       value_bitset;
-    Mem          value_mem;
-    TimeDuration value_duration;
-    TimeReal     value_time;
-    usize        value_size;
-    String       value_text;
-    String       value_path;
-    TtyStyle     value_ttystyle;
+    const FormatArg* value_list;
+    i64              value_i64;
+    u64              value_u64;
+    f64              value_f64;
+    bool             value_bool;
+    BitSet           value_bitset;
+    Mem              value_mem;
+    TimeDuration     value_duration;
+    TimeReal         value_time;
+    usize            value_size;
+    String           value_text;
+    String           value_path;
+    TtyStyle         value_ttystyle;
   };
   void* settings;
-} FormatArg;
+};
 
 // clang-format off
 
 /**
- * Create No-Op formatting argument, will not output any characters.
+ * Create a No-Op formatting argument, will not output any characters.
  */
 #define fmt_nop() ((FormatArg){ .type = FormatArgType_Nop })
+
+/**
+ * Create a tag argument to indicate the end of an argument list.
+ */
+#define fmt_end() ((FormatArg){0})
+
+/**
+ * Create a list formatting argument, takes a pointer to a FormatArg array that ends with with a
+ * '0' (FormatArgType_End) argument.
+ */
+#define fmt_list(_CHILD_ARGS_, ...)                                                                \
+  ((FormatArg){                                                                                    \
+    .type       = FormatArgType_List,                                                              \
+    .value_list = (_CHILD_ARGS_),                                                                  \
+    .settings   = &format_opts_list(__VA_ARGS__)                                                   \
+  })
+
+/**
+ * Create a list formatting argument.
+ * Example usage:
+ * '
+ *  const FormatArg arg = fmt_list_lit(fmt_int(42), fmt_bool(true));
+ * '
+ */
+#define fmt_list_lit(...)                                                                          \
+  ((FormatArg){                                                                                    \
+    .type       = FormatArgType_List,                                                              \
+    .value_list = (const FormatArg[]){VA_ARGS_SKIP_FIRST(0, ##__VA_ARGS__, (FormatArg){0})},       \
+    .settings   = &format_opts_list()                                                              \
+  })
 
 /**
  * Create an integer formatting argument.
@@ -101,23 +135,23 @@ typedef struct {
 /**
  * Create an bitset formatting argument.
  */
-#define fmt_bitset(_VAL_) ((FormatArg){ .type = FormatArgType_bitset, .value_bitset = (_VAL_) })
+#define fmt_bitset(_VAL_) ((FormatArg){ .type = FormatArgType_BitSet, .value_bitset = (_VAL_) })
 
 /**
  * Create an memory formatting argument.
  */
-#define fmt_mem(_VAL_) ((FormatArg){ .type = FormatArgType_mem, .value_mem = (_VAL_) })
+#define fmt_mem(_VAL_) ((FormatArg){ .type = FormatArgType_Mem, .value_mem = (_VAL_) })
 
 /**
  * Create an byte size formatting argument.
  */
-#define fmt_size(_VAL_) ((FormatArg){ .type = FormatArgType_size, .value_size = (_VAL_) })
+#define fmt_size(_VAL_) ((FormatArg){ .type = FormatArgType_Size, .value_size = (_VAL_) })
 
 /**
  * Create an time duration formatting argument.
  */
 #define fmt_duration(_VAL_) ((FormatArg){                                                          \
-    .type = FormatArgType_duration, .value_duration = (_VAL_)                                      \
+    .type = FormatArgType_Duration, .value_duration = (_VAL_)                                      \
   })
 
 /**
@@ -125,7 +159,7 @@ typedef struct {
  */
 #define fmt_time(_VAL_, ...)                                                                       \
   ((FormatArg){                                                                                    \
-      .type       = FormatArgType_time,                                                            \
+      .type       = FormatArgType_Time,                                                            \
       .value_time = (_VAL_),                                                                       \
       .settings   = &format_opts_time(__VA_ARGS__)                                                 \
   })
@@ -133,8 +167,11 @@ typedef struct {
 /**
  * Create text formatting argument.
  */
-#define fmt_text(_VAL_, ...) ((FormatArg){                                                         \
-      .type = FormatArgType_text, .value_text = (_VAL_), .settings = &format_opts_text(__VA_ARGS__)\
+#define fmt_text(_VAL_, ...)                                                                       \
+  ((FormatArg){                                                                                    \
+      .type       = FormatArgType_Text,                                                            \
+      .value_text = (_VAL_),                                                                       \
+      .settings   = &format_opts_text(__VA_ARGS__)                                                 \
   })
 
 /**
@@ -145,13 +182,13 @@ typedef struct {
 /**
  * Create file path formatting argument.
  */
-#define fmt_path(_VAL_) ((FormatArg){ .type = FormatArgType_path, .value_path = (_VAL_) })
+#define fmt_path(_VAL_) ((FormatArg){ .type = FormatArgType_Path, .value_path = (_VAL_) })
 
 /**
  * Create TtyStyle formatting argument.
  */
 #define fmt_ttystyle(...)                                                                          \
-  ((FormatArg){ .type = FormatArgType_ttystyle, .value_ttystyle = (ttystyle(__VA_ARGS__)) })
+  ((FormatArg){ .type = FormatArgType_TtyStyle, .value_ttystyle = (ttystyle(__VA_ARGS__)) })
 
 /**
  * Create a array of format arguments.
@@ -181,10 +218,18 @@ typedef struct {
 // clang-format on
 
 /**
+ * Configuration struct for formatting lists of arguments.
+ */
+typedef struct {
+  String prefix;
+  String suffix;
+  String seperator;
+} FormatOptsList;
+
+/**
  * Configuration struct for integer formatting.
  */
 typedef struct {
-
   /**
    * Base to write integers in. Eg. 10 for decimal, 2 for binary, 16 for hex.
    * Condition: base > 1
@@ -197,14 +242,12 @@ typedef struct {
    * For example writing 42 with minDigits of 4 results in: '0042'.
    */
   u8 minDigits;
-
 } FormatOptsInt;
 
 /**
  * Configuration struct for floating point formatting.
  */
 typedef struct {
-
   /**
    * Minimum amount of digits after the decimal place.
    */
@@ -224,7 +267,6 @@ typedef struct {
    * Use scientific notation for values closer to 0 then this.
    */
   f64 expThresholdNeg;
-
 } FormatOptsFloat;
 
 /**
@@ -243,10 +285,8 @@ typedef enum {
  * Configuration struct for time formatting.
  */
 typedef struct {
-
   TimeZone        timezone;
   FormatTimeTerms terms;
-
 } FormatOptsTime;
 
 /**
@@ -261,12 +301,18 @@ typedef enum {
  * Configuration struct for text formatting.
  */
 typedef struct {
-
   FormatTextFlags flags;
-
 } FormatOptsText;
 
 // clang-format off
+
+#define format_opts_list(...)                                                                      \
+  ((FormatOptsList){                                                                               \
+    .prefix     = string_empty,                                                                    \
+    .suffix     = string_empty,                                                                    \
+    .seperator  = string_lit(", "),                                                                \
+    __VA_ARGS__                                                                                    \
+  })
 
 #define format_opts_int(...)                                                                       \
   ((FormatOptsInt){                                                                                \

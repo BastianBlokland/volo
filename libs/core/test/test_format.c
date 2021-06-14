@@ -165,6 +165,13 @@ void test_format() {
       string_lit("{ >4 }|{ >4}|{:4}|{:4}|"),
       fmt_args(fmt_int(1), fmt_int(20), fmt_int(1), fmt_int(42)),
       string_lit("   1|  20| 1  | 42 |"));
+  test_format_write_formatted(
+      string_lit("{}"),
+      fmt_args(fmt_list_lit(fmt_int(1), fmt_int(2), fmt_int(3))),
+      string_lit("1, 2, 3"));
+  test_format_write_formatted(string_lit("{}"), fmt_args(fmt_list_lit()), string_lit(""));
+  test_format_write_formatted(
+      string_lit("{}"), fmt_args(fmt_list_lit(fmt_int(1))), string_lit("1"));
 
   test_format_write_u64(0, format_opts_int(), string_lit("0"));
   test_format_write_u64(0, format_opts_int(.minDigits = 4), string_lit("0000"));
