@@ -21,12 +21,16 @@ endmacro(detect_platform)
 
 # Set linux specific defines
 macro(set_linux_defines)
+  message(STATUS "Configuring linux platform defines")
+
   add_definitions(-DVOLO_LINUX)
   add_definitions(-D_GNU_SOURCE) # Enable GNU extensions.
 endmacro(set_linux_defines)
 
 # Set linux windows defines
 macro(set_win32_defines)
+  message(STATUS "Configuring win32 platform defines")
+
   add_definitions(-DVOLO_WIN32)
   add_definitions(-DWINVER=0x0602 -D_WIN32_WINNT=0x0602) # Target windows '8'
   add_definitions(-DWIN32_LEAN_AND_MEAN) # Use a subset of the windows header.

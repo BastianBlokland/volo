@@ -54,12 +54,10 @@ endmacro(set_compiler_defines)
 
 # Set gcc specific compile options
 macro(set_gcc_compile_options)
+  message(STATUS "Configuring gcc compile options")
+
   # Setup warning flags.
   add_compile_options(-Wall -Wextra -Werror -Wno-override-init -Wgnu-empty-initializer)
-
-  # Enable pthread threading.
-  add_compile_options(-pthread)
-  add_link_options(-pthread)
 
   # TODO: Tie these debug options to a configuration knob.
   add_compile_options(-g -fno-omit-frame-pointer)
@@ -67,19 +65,30 @@ endmacro(set_gcc_compile_options)
 
 # Set clang specific compile options
 macro(set_clang_compile_options)
+  message(STATUS "Configuring clang compile options")
+
   # Setup warning flags.
   add_compile_options(-Wall -Wextra -Werror -Wno-initializer-overrides -Wgnu-empty-initializer)
 
-  # Enable pthread threading.
-  add_compile_options(-pthread)
-  add_link_options(-pthread)
-
   # TODO: Tie these debug options to a configuration knob.
   add_compile_options(-g -fno-omit-frame-pointer)
+
+  # Enable various clang sanitizers on supported platforms.
+  # TODO: Add a configuration knob to enable / disable sanitizers.
+  if(${VOLO_PLATFORM} STREQUAL "linux")
+    set(SANITIZERS "address,alignment,builtin,bounds,integer-divide-by-zero")
+
+    message(STATUS "Configuring clang sanitizers: ${SANITIZERS}")
+    add_compile_options(-fsanitize=${SANITIZERS})
+    add_link_options(-fsanitize=${SANITIZERS})
+  endif()
+
 endmacro(set_clang_compile_options)
 
 # Set msvc specific compile options
 macro(set_msvc_compile_options)
+  message(STATUS "Configuring msvc compile options")
+
   # Use the c11 standard.
   add_compile_options(/TC /std:c11)
 
@@ -112,6 +121,13 @@ macro(set_compile_options)
   set(CMAKE_C_FLAGS_RELEASE "")
   set(CMAKE_C_FLAGS_RELWITHDEBINFO "")
   set(CMAKE_C_FLAGS_MINSIZEREL "")
+
+  # Enable pthread threading on linux.
+  if(${VOLO_PLATFORM} STREQUAL "linux")
+    message(STATUS "Configuring pthread threading")
+    add_compile_options(-pthread)
+    add_link_options(-pthread)
+  endif()
 
   # Set our custom compiler options.
   if(${VOLO_COMPILER} STREQUAL "gcc")
