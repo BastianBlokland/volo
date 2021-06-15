@@ -41,19 +41,19 @@ typedef void (*ThreadRoutine)(void*);
  * Handle to a started thread.
  * Note: Thread resources should be cleaned up by calling 'thread_join()'.
  */
-typedef iptr ThreadHandle;
+typedef uptr ThreadHandle;
 
 /**
  * Handle to a mutex.
  * Note: Should be cleaned up by calling 'thread_mutex_destroy()'.
  */
-typedef iptr ThreadMutex;
+typedef uptr ThreadMutex;
 
 /**
  * Handle to a condition.
  * Note: Should be cleaned up by calling 'thread_cond_destroy()'.
  */
-typedef iptr ThreadCondition;
+typedef uptr ThreadCondition;
 
 /**
  * Atomically reads the value at the given pointer.

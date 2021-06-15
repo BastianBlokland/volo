@@ -65,11 +65,39 @@ u32 bits_hash_32(Mem);
 u32 bits_padding_32(u32 val, u32 align);
 u64 bits_padding_64(u64 val, u64 align);
 
+// clang-format off
+
+#define bits_padding(_VAL_, _ALIGN_)                                                               \
+  _Generic(+(_VAL_),                                                                               \
+    u32 : bits_padding_32((_VAL_), (_ALIGN_)),                                                     \
+    u64 : bits_padding_64((_VAL_), (_ALIGN_))                                                      \
+  )
+
+// clang-format on
+
 /**
  * Pad the given value to reach the requested alignment.
  */
 u32 bits_align_32(u32 val, u32 align);
 u64 bits_align_64(u64 val, u64 align);
+
+// clang-format off
+
+/**
+ * Pad the given value to reach the requested alignment.
+ */
+#define bits_align(_VAL_, _ALIGN_)                                                                 \
+  _Generic(+(_VAL_),                                                                               \
+    u32 : bits_align_32((_VAL_), (_ALIGN_)),                                                       \
+    u64 : bits_align_64((_VAL_), (_ALIGN_))                                                        \
+  )
+
+/**
+ * Pad the given value to pointer alignment (32 / 64 bit).
+ */
+#define bits_align_ptr(_VAL_) bits_align(_VAL_, sizeof(void*))
+
+// clang-format on
 
 /**
  * Reinterpret the 32 bit integer as a floating point value.

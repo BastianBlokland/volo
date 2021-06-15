@@ -141,6 +141,12 @@ static void test_bits_align_32() {
   diag_assert(bits_align_32(31, 4) == 32);
 }
 
+static void test_bits_align_ptr() {
+  diag_assert(bits_align_ptr(1u) == 8);
+  diag_assert(bits_align_ptr(7u) == 8);
+  diag_assert(bits_align_ptr(11u) == 16);
+}
+
 static void test_bits_float_conversions() {
   diag_assert(bits_u32_as_f32(bits_f32_as_u32(1.337f)) == 1.337f);
   diag_assert(bits_f32_as_u32(bits_u32_as_f32(42)) == 42);
@@ -162,5 +168,6 @@ void test_bits() {
   test_bits_nextpow2_64();
   test_bits_padding_32();
   test_bits_align_32();
+  test_bits_align_ptr();
   test_bits_float_conversions();
 }
