@@ -4,19 +4,11 @@
 // Forward declare libc exit(code).
 void exit(int);
 
-static void diag_write_sync(File* file, String format, const FormatArg* args) {
-  file_write_sync(file, format_write_formatted_scratch(format, args));
-}
+void diag_print_raw(String msg) { file_write_sync(g_file_stdout, msg); }
 
-void diag_print_formatted(String format, const FormatArg* args) {
-  diag_write_sync(g_file_stdout, format, args);
-}
+void diag_print_err_raw(String msg) { file_write_sync(g_file_stderr, msg); }
 
-void diag_print_err_formatted(String format, const FormatArg* args) {
-  diag_write_sync(g_file_stderr, format, args);
-}
-
-void diag_assert_fail(const DiagCallSite* callsite, String msg) {
+void diag_assert_fail_raw(const DiagCallSite* callsite, String msg) {
   diag_print_err(
       "Assertion failed: '{}' [file: {} line: {}]\n",
       fmt_text(msg),

@@ -1,10 +1,11 @@
 #pragma once
 #include "core_alignof.h"
-#include "core_alloc.h"
-#include "core_bits.h"
 #include "core_compare.h"
 #include "core_memory.h"
 #include "core_types.h"
+
+// Forward declare from 'core_alloc.h'.
+typedef struct sAllocator Allocator;
 
 /**
  * Owning array of items.
@@ -16,6 +17,7 @@ typedef struct {
   Allocator* alloc;
   usize      size;
   u16        stride;
+  u16        align;
 } DynArray;
 
 /**
@@ -25,14 +27,13 @@ typedef struct {
  * until required.
  */
 #define dynarray_create_t(_ALLOCATOR_, _TYPE_, _CAPACITY_)                                         \
-  dynarray_create((_ALLOCATOR_), (u16)bits_align_32(sizeof(_TYPE_), alignof(_TYPE_)), _CAPACITY_)
+  dynarray_create((_ALLOCATOR_), (u16)sizeof(_TYPE_), (u16)alignof(_TYPE_), _CAPACITY_)
 
 /**
  * Create a new dynamic array for items of type '_TYPE_' over the given memory.
  * Will not allocate any memory, pushing more entries then (mem.size / stride) is not supported.
  */
-#define dynarray_create_over_t(_MEM_, _TYPE_)                                                      \
-  dynarray_create_over((_MEM_), (u16)bits_align_32(sizeof(_TYPE_), alignof(_TYPE_)))
+#define dynarray_create_over_t(_MEM_, _TYPE_) dynarray_create_over((_MEM_), (u16)sizeof(_TYPE_))
 
 /**
  * Retreive a pointer to an item in the array at index '_IDX_'.
@@ -62,12 +63,12 @@ typedef struct {
   }
 
 /**
- * Create a new dynamic array, 'stride' determines the space each item occupies.
- * 'capacity' determines the size of the initial allocation, further allocations will be made
- * automatically when more memory is needed. 'capacity' of 0 is valid and won't allocate memory
- * until required.
+ * Create a new dynamic array. 'stride' determines the space each item occupies and 'align'
+ * specifies the required alignment for the memory allocation. 'capacity' determines the size of the
+ * initial allocation, further allocations will be made automatically when more memory is needed.
+ * 'capacity' of 0 is valid and won't allocate memory until required.
  */
-DynArray dynarray_create(Allocator*, u16 stride, usize capacity);
+DynArray dynarray_create(Allocator*, u16 stride, u16 align, usize capacity);
 
 /**
  * Create a new dynamic array over the given memory, 'stride' determines the space each item

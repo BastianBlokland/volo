@@ -1,21 +1,23 @@
 #include "alloc_internal.h"
 #include "core_diag.h"
+#include <stdlib.h>
 
 #define freed_mem_tag 0xFF
-
-// Forward declare libc malloc(size_t) and free(void*).
-void* malloc(size_t);
-void  free(void*);
 
 struct AllocatorHeap {
   Allocator api;
 };
 
-static Mem alloc_heap_alloc(Allocator* allocator, const usize size) {
+static Mem alloc_heap_alloc(Allocator* allocator, const usize size, const usize align) {
   (void)allocator;
 
-  diag_assert(size);
-  return mem_create(malloc(size), size);
+#if defined(VOLO_LINUX)
+  return mem_create(aligned_alloc(align, size), size);
+#elif defined(VOLO_WIN32)
+  return mem_create(_aligned_malloc(size, align), size);
+#else
+  _Static_assert(false, "Unsupported platform");
+#endif
 }
 
 static void alloc_heap_free(Allocator* allocator, Mem mem) {
@@ -23,7 +25,14 @@ static void alloc_heap_free(Allocator* allocator, Mem mem) {
 
   diag_assert(mem_valid(mem));
   mem_set(mem, freed_mem_tag); // Tag to detect use-after-free.
+
+#if defined(VOLO_LINUX)
   free(mem.ptr);
+#elif defined(VOLO_WIN32)
+  _aligned_free(mem.ptr);
+#else
+  _Static_assert(false, "Unsupported platform");
+#endif
 }
 
 static usize alloc_heap_min_size(Allocator* allocator) {

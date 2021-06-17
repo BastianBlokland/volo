@@ -59,21 +59,21 @@ void tty_pal_teardown() {
 bool tty_pal_isatty(File* file) { return GetFileType(file->handle) == FILE_TYPE_CHAR; }
 
 u16 tty_pal_width(File* file) {
-  diag_assert_msg(tty_pal_isatty(file), string_lit("Given file is not a tty"));
+  diag_assert_msg(tty_pal_isatty(file), "Given file is not a tty");
 
   CONSOLE_SCREEN_BUFFER_INFO csbi;
   const BOOL                 res = GetConsoleScreenBufferInfo(file->handle, &csbi);
-  diag_assert_msg(res, string_lit("GetConsoleScreenBufferInfo() failed"));
+  diag_assert_msg(res, "GetConsoleScreenBufferInfo() failed");
   (void)res;
   return (u16)(1 + csbi.srWindow.Right - csbi.srWindow.Left);
 }
 
 u16 tty_pal_height(File* file) {
-  diag_assert_msg(tty_pal_isatty(file), string_lit("Given file is not a tty"));
+  diag_assert_msg(tty_pal_isatty(file), "Given file is not a tty");
 
   CONSOLE_SCREEN_BUFFER_INFO csbi;
   const BOOL                 res = GetConsoleScreenBufferInfo(file->handle, &csbi);
-  diag_assert_msg(res, string_lit("GetConsoleScreenBufferInfo() failed"));
+  diag_assert_msg(res, "GetConsoleScreenBufferInfo() failed");
   (void)res;
   return (u16)(1 + csbi.srWindow.Bottom - csbi.srWindow.Top);
 }

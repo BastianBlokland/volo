@@ -20,7 +20,8 @@ void tty_set_window_title(String title) {
   static const usize maxTitleLen = 128;
   diag_assert_msg(
       title.size <= maxTitleLen,
-      fmt_write_scratch("Tty window-title is too long, maximum is {} chars", fmt_int(maxTitleLen)));
+      "Tty window-title is too long, maximum is {} chars",
+      fmt_int(maxTitleLen));
 
   DynString str = dynstring_create_over(mem_stack(maxTitleLen));
   tty_write_window_title_sequence(&str, title);

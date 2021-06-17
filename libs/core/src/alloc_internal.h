@@ -2,7 +2,7 @@
 #include "core_alloc.h"
 
 struct sAllocator {
-  Mem (*alloc)(Allocator*, usize);
+  Mem (*alloc)(Allocator*, usize size, usize align);
   void (*free)(Allocator*, Mem);
   usize (*minSize)(Allocator*);
   usize (*maxSize)(Allocator*);

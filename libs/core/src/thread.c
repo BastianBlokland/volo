@@ -4,7 +4,6 @@
 #include "thread_internal.h"
 
 typedef struct {
-  Mem           allocation;
   String        threadName;
   ThreadRoutine userRoutine;
   void*         userData;
@@ -27,7 +26,8 @@ static thread_pal_rettype thread_runner(void* data) {
   core_teardown();
 
   // Cleanup thread data.
-  alloc_free(g_alloc_heap, runData->allocation);
+  string_free(g_alloc_heap, runData->threadName);
+  alloc_free_t(g_alloc_heap, runData);
 
   return null;
 }
@@ -65,16 +65,11 @@ i64 thread_atomic_add_i64(i64* ptr, i64 value) { return thread_pal_atomic_add_i6
 i64 thread_atomic_sub_i64(i64* ptr, i64 value) { return thread_pal_atomic_sub_i64(ptr, value); }
 
 ThreadHandle thread_start(ThreadRoutine routine, void* data, String threadName) {
-  Mem allocation = alloc_alloc(g_alloc_heap, sizeof(ThreadRunData) + threadName.size);
-  *(ThreadRunData*)allocation.ptr = (ThreadRunData){
-      .allocation  = allocation,
-      .threadName  = mem_create((u8*)allocation.ptr + sizeof(ThreadRunData), threadName.size),
-      .userRoutine = routine,
-      .userData    = data,
-  };
-  mem_cpy(((ThreadRunData*)allocation.ptr)->threadName, threadName);
-
-  return thread_pal_start(thread_runner, allocation.ptr);
+  ThreadRunData* threadRunData = alloc_alloc_t(g_alloc_heap, ThreadRunData);
+  threadRunData->threadName    = string_dup(g_alloc_heap, threadName);
+  threadRunData->userRoutine   = routine;
+  threadRunData->userData      = data;
+  return thread_pal_start(thread_runner, threadRunData);
 }
 
 void thread_join(ThreadHandle thread) { thread_pal_join(thread); }

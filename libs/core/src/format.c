@@ -57,9 +57,8 @@ static FormatReplOpt format_replacement_parse_opt(String str) {
 
   diag_assert_msg(
       !str.size,
-      fmt_write_scratch(
-          "Unsupported format option: '{}'",
-          fmt_text(str, .flags = FormatTextFlags_EscapeNonPrintAscii)));
+      "Unsupported format option: '{}'",
+      fmt_text(str, .flags = FormatTextFlags_EscapeNonPrintAscii));
   return result;
 }
 
@@ -127,7 +126,7 @@ void format_write_formatted(DynString* str, String format, const FormatArg* argH
 }
 
 String format_write_formatted_scratch(String format, const FormatArg* args) {
-  Mem       scratchMem = alloc_alloc(g_alloc_scratch, usize_kibibyte * 2);
+  Mem       scratchMem = alloc_alloc(g_alloc_scratch, usize_kibibyte * 2, 1);
   DynString str        = dynstring_create_over(scratchMem);
 
   format_write_formatted(&str, format, args);

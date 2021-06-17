@@ -18,7 +18,7 @@ static void signal_pal_setup_interupt_handler() {
   sigemptyset(&action.sa_mask);
 
   int res = sigaction(SIGINT, &action, null);
-  diag_assert_msg(res == 0, fmt_write_scratch("sigaction() failed: {}", fmt_int(res)));
+  diag_assert_msg(res == 0, "sigaction() failed: {}", fmt_int(res));
   (void)res;
 }
 

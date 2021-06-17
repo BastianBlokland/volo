@@ -14,7 +14,7 @@ static void dynbitset_ensure(DynBitSet* dynbitset, usize bit) {
 }
 
 DynBitSet dynbitset_create(Allocator* alloc, usize capacity) {
-  return dynarray_create(alloc, 1u, bitset_required_bytes(capacity));
+  return dynarray_create(alloc, 1, 1, bitset_required_bytes(capacity));
 }
 
 void dynbitset_destroy(DynBitSet* dynbitset) { dynarray_destroy(dynbitset); }

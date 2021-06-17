@@ -12,7 +12,6 @@ _Static_assert(false, "Unsupported platform");
 struct sFile {
   FileHandle handle;
   Allocator* alloc;
-  Mem        allocation;
 };
 
 void file_pal_init();
