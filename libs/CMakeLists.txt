@@ -9,6 +9,7 @@ add_library(volo_core STATIC
   core/src/alloc_scratch.c
   core/src/alloc.c
   core/src/ascii.c
+  core/src/base64.c
   core/src/bits.c
   core/src/bitset.c
   core/src/compare.c
@@ -45,6 +46,7 @@ add_executable(volo_core_test
   core/test/test_alloc_page.c
   core/test/test_alloc_scratch.c
   core/test/test_ascii.c
+  core/test/test_base64.c
   core/test/test_bits.c
   core/test/test_bitset.c
   core/test/test_compare.c

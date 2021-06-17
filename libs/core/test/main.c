@@ -10,6 +10,7 @@ void test_alloc_bump();
 void test_alloc_page();
 void test_alloc_scratch();
 void test_ascii();
+void test_base64();
 void test_bits();
 void test_bitset();
 void test_compare();
@@ -54,6 +55,7 @@ int main() {
   test_alloc_page();
   test_alloc_scratch();
   test_ascii();
+  test_base64();
   test_bits();
   test_bitset();
   test_compare();
