@@ -1,6 +1,9 @@
 #pragma once
 #include "core_memory.h"
 
+// Forward declare from 'core_alloc.h'.
+typedef struct sAllocator Allocator;
+
 /**
  * Non-owning view over memory containing characters.
  * Encoding is assumed to be utf8.
@@ -55,6 +58,19 @@ typedef Mem String;
  * Create a string from a null-terminated character pointer.
  */
 String string_from_null_term(const char*);
+
+/**
+ * Duplicate the given string in memory allocated from the allocator.
+ * Note: Has to be explicitly freed using 'string_free'.
+ */
+String string_dup(Allocator*, String);
+
+/**
+ * Free previously allocated string.
+ * Pre-condition: Given string was allocated from the same allocator.
+ * Pre-condition: Given string has to be the full allocated string, not a substring.
+ */
+void string_free(Allocator*, String);
 
 /**
  * Compare strings a and b character wise.

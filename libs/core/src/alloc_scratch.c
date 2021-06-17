@@ -25,7 +25,7 @@ static void alloc_scratch_write_guard(struct AllocatorScratch* allocator) {
   }
 }
 
-static Mem alloc_scratch_alloc(Allocator* allocator, const usize size) {
+static Mem alloc_scratch_alloc(Allocator* allocator, const usize size, const usize align) {
 
   struct AllocatorScratch* allocatorScratch = (struct AllocatorScratch*)allocator;
 
@@ -35,20 +35,21 @@ static Mem alloc_scratch_alloc(Allocator* allocator, const usize size) {
     return mem_create(null, size);
   }
 
-  if (UNLIKELY(allocatorScratch->head + size > mem_end(allocatorScratch->memory))) {
+  u8* alignedHead = (u8*)bits_align((uptr)allocatorScratch->head, align);
+
+  if (UNLIKELY(alignedHead + size > mem_end(allocatorScratch->memory))) {
     // Wrap around the scratch buffer.
-    allocatorScratch->head = mem_begin(allocatorScratch->memory);
+    alignedHead = (u8*)bits_align((uptr)mem_begin(allocatorScratch->memory), align);
   }
 
-  void* res = allocatorScratch->head;
-  allocatorScratch->head += size;
+  allocatorScratch->head = alignedHead + size;
 
   // TODO: Create special compiler define to enable / disable the guard region.
   // Write a special tag to the memory ahead of the head, usefull to detect cases where the
   // application is holding on to scratch memory that is about to be overwritten.
   alloc_scratch_write_guard(allocatorScratch);
 
-  return mem_create(res, size);
+  return mem_create(alignedHead, size);
 }
 
 static void alloc_scratch_free(Allocator* allocator, Mem mem) {
@@ -73,7 +74,7 @@ static usize alloc_scratch_max_size(Allocator* allocator) {
 static THREAD_LOCAL struct AllocatorScratch g_allocatorIntern;
 
 Allocator* alloc_scratch_init() {
-  Mem scratchPages  = alloc_alloc(g_alloc_page, alloc_scratch_heap_size);
+  Mem scratchPages  = alloc_alloc(g_alloc_page, alloc_scratch_heap_size, sizeof(void*));
   g_allocatorIntern = (struct AllocatorScratch){
       (Allocator){
           .alloc   = alloc_scratch_alloc,

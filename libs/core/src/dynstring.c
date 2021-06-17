@@ -1,7 +1,7 @@
 #include "core_dynstring.h"
 
 DynString dynstring_create(Allocator* alloc, usize capacity) {
-  return dynarray_create(alloc, 1u, capacity);
+  return dynarray_create(alloc, 1, 1, capacity);
 }
 
 DynString dynstring_create_over(Mem memory) { return dynarray_create_over(memory, 1u); }

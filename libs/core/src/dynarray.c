@@ -5,16 +5,18 @@
 #include "core_math.h"
 #include "core_sort.h"
 
-DynArray dynarray_create(Allocator* alloc, const u16 stride, const usize capacity) {
+DynArray
+dynarray_create(Allocator* alloc, const u16 stride, const u16 align, const usize capacity) {
   diag_assert(stride);
   DynArray array = {
       .stride = stride,
+      .align  = align,
       .alloc  = alloc,
   };
   if (capacity) {
     const usize capacityBytes = bits_nextpow2_64(capacity * stride);
-    array.data                = alloc_alloc(alloc, capacityBytes);
-    diag_assert_msg(mem_valid(array.data), string_lit("Allocation failed"));
+    array.data                = alloc_alloc(alloc, capacityBytes, align);
+    diag_assert_msg(mem_valid(array.data), "Allocation failed");
   }
   return array;
 }
@@ -23,6 +25,7 @@ DynArray dynarray_create_over(Mem memory, u16 stride) {
   diag_assert(stride);
   DynArray array = {
       .stride = stride,
+      .align  = 1,
       .data   = memory,
   };
   return array;
@@ -46,12 +49,12 @@ void dynarray_resize(DynArray* array, const usize size) {
   if (size * array->stride > array->data.size) {
 
     if (UNLIKELY(!array->alloc)) {
-      diag_assert_fail(
-          &diag_callsite_create(), string_lit("DynArray without an allocator ran out of memory"));
+      diag_assert_fail("DynArray without an allocator ran out of memory");
     }
 
-    const Mem newMem = alloc_alloc(array->alloc, bits_nextpow2_64(size * array->stride));
-    diag_assert_msg(mem_valid(newMem), string_lit("Allocation failed"));
+    const Mem newMem =
+        alloc_alloc(array->alloc, bits_nextpow2_64(size * array->stride), array->align);
+    diag_assert_msg(mem_valid(newMem), "Allocation failed");
 
     if (LIKELY(mem_valid(array->data))) {
       mem_cpy(newMem, array->data);

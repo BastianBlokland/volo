@@ -9,18 +9,18 @@ struct AllocatorBump {
   u8*       tail;
 };
 
-static Mem alloc_bump_alloc(Allocator* allocator, const usize size) {
-  diag_assert(size);
-
+static Mem alloc_bump_alloc(Allocator* allocator, const usize size, const usize align) {
   struct AllocatorBump* allocatorBump = (struct AllocatorBump*)allocator;
-  if (UNLIKELY((usize)(allocatorBump->tail - allocatorBump->head) < size)) {
+
+  u8* alignedHead = (u8*)bits_align((uptr)allocatorBump->head, align);
+
+  if (UNLIKELY((usize)(allocatorBump->tail - alignedHead) < size)) {
     // Too little space remaining.
     return mem_create(null, size);
   }
 
-  void* res = allocatorBump->head;
-  allocatorBump->head += size;
-  return mem_create(res, size);
+  allocatorBump->head = alignedHead + size;
+  return mem_create(alignedHead, size);
 }
 
 static void alloc_bump_free(Allocator* allocator, Mem mem) {

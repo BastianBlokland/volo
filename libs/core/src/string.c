@@ -11,6 +11,14 @@ String string_from_null_term(const char* ptr) {
   };
 }
 
+String string_dup(Allocator* alloc, String str) {
+  Mem mem = alloc_alloc(alloc, str.size, 1);
+  mem_cpy(mem, str);
+  return mem;
+}
+
+void string_free(Allocator* alloc, String str) { alloc_free(alloc, str); }
+
 i8 string_cmp(String a, String b) {
   return math_sign(strncmp((const char*)a.ptr, (const char*)b.ptr, math_min(a.size, b.size)));
 }

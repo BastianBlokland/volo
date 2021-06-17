@@ -18,7 +18,7 @@ static BOOL signal_pal_interupt_handler(DWORD dwCtrlType) {
 
 static void signal_pal_setup_interupt_handler() {
   BOOL success = SetConsoleCtrlHandler(signal_pal_interupt_handler, true);
-  diag_assert_msg(success, string_lit("SetConsoleCtrlHandler() failed"));
+  diag_assert_msg(success, "SetConsoleCtrlHandler() failed");
   (void)success;
 }
 

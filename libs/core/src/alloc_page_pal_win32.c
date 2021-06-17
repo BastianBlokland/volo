@@ -8,14 +8,16 @@ struct AllocatorPage {
   usize     pageSize;
 };
 
-static Mem alloc_page_alloc(Allocator* allocator, const usize size) {
-  diag_assert(size);
+static Mem alloc_page_alloc(Allocator* allocator, const usize size, const usize align) {
+  const usize pageSize = ((struct AllocatorPage*)allocator)->pageSize;
+  diag_assert_msg(
+      (pageSize & (align - 1)) == 0,
+      "alloc_page_alloc: Alignment '{}' cannot be satisfied (stronger then pageSize alignment)",
+      fmt_int(align));
+  (void)pageSize;
 
-  const usize pageSize    = ((struct AllocatorPage*)allocator)->pageSize;
-  const usize alignedSize = bits_align_64(size, pageSize);
-
-  void* ptr = VirtualAlloc(null, alignedSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-  return mem_create(ptr, alignedSize);
+  void* ptr = VirtualAlloc(null, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+  return mem_create(ptr, size);
 }
 
 static void alloc_page_free(Allocator* allocator, Mem mem) {
@@ -24,7 +26,7 @@ static void alloc_page_free(Allocator* allocator, Mem mem) {
   diag_assert(mem_valid(mem));
 
   const bool success = VirtualFree(mem.ptr, 0, MEM_RELEASE) == TRUE;
-  diag_assert_msg(success, string_lit("VirtualFree() failed"));
+  diag_assert_msg(success, "VirtualFree() failed");
   (void)success;
 }
 

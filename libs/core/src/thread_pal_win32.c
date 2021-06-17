@@ -16,23 +16,19 @@ void thread_pal_set_name(const String str) {
   static const usize maxNameLen = 15;
   if (str.size > maxNameLen) {
     diag_assert_fail(
-        &diag_callsite_create(),
-        fmt_write_scratch(
-            "Thread name '{}' is too long, maximum is {} chars",
-            fmt_text(str),
-            fmt_int(maxNameLen)));
+        "Thread name '{}' is too long, maximum is {} chars", fmt_text(str), fmt_int(maxNameLen));
   }
 
   const usize bufferSize = winutils_to_widestr_size(str);
   if (sentinel_check(bufferSize)) {
-    diag_assert_fail(&diag_callsite_create(), string_lit("Thread name contains invalid utf8"));
+    diag_assert_fail("Thread name contains invalid utf8");
   }
   Mem buffer = mem_stack(bufferSize);
   winutils_to_widestr(buffer, str);
 
   const HANDLE  curThread = GetCurrentThread();
   const HRESULT res       = SetThreadDescription(curThread, buffer.ptr);
-  diag_assert_msg(SUCCEEDED(res), string_lit("SetThreadDescription() failed"));
+  diag_assert_msg(SUCCEEDED(res), "SetThreadDescription() failed");
   (void)res;
 }
 
@@ -79,7 +75,7 @@ i64 thread_pal_atomic_sub_i64(i64* ptr, i64 value) {
 
 ThreadHandle thread_pal_start(thread_pal_rettype (*routine)(void*), void* data) {
   HANDLE handle = CreateThread(null, thread_pal_stacksize, routine, data, 0, null);
-  diag_assert_msg(handle, string_lit("CreateThread() failed"));
+  diag_assert_msg(handle, "CreateThread() failed");
 
   _Static_assert(sizeof(ThreadHandle) >= sizeof(HANDLE), "'HANDLE' type too big");
   return (ThreadHandle)handle;
@@ -87,11 +83,11 @@ ThreadHandle thread_pal_start(thread_pal_rettype (*routine)(void*), void* data) 
 
 void thread_pal_join(ThreadHandle thread) {
   DWORD waitRes = WaitForSingleObject((HANDLE)thread, INFINITE);
-  diag_assert_msg(waitRes != WAIT_FAILED, string_lit("WaitForSingleObject() failed"));
+  diag_assert_msg(waitRes != WAIT_FAILED, "WaitForSingleObject() failed");
   (void)waitRes;
 
   BOOL closeRes = CloseHandle((HANDLE)thread);
-  diag_assert_msg(closeRes, string_lit("CloseHandle() failed"));
+  diag_assert_msg(closeRes, "CloseHandle() failed");
   (void)closeRes;
 }
 
@@ -103,96 +99,82 @@ void thread_pal_sleep(const TimeDuration duration) {
 }
 
 typedef struct {
-  Allocator* alloc;
-  Mem        allocation;
-} ThreadMutexExtraData;
+  CRITICAL_SECTION impl;
+  Allocator*       alloc;
+} ThreadMutexData;
 
 ThreadMutex thread_pal_mutex_create(Allocator* alloc) {
-  Mem allocation = alloc_alloc(alloc, sizeof(CRITICAL_SECTION) + sizeof(ThreadMutexExtraData));
-  CRITICAL_SECTION* critSection = mem_as_t(allocation, CRITICAL_SECTION);
+  ThreadMutexData* data = alloc_alloc_t(alloc, ThreadMutexData);
+  data->alloc           = alloc;
 
-  *mem_as_t(mem_consume(allocation, sizeof(CRITICAL_SECTION)), ThreadMutexExtraData) =
-      (ThreadMutexExtraData){
-          .alloc      = alloc,
-          .allocation = allocation,
-      };
-
-  InitializeCriticalSection(critSection);
-  return (ThreadMutex)allocation.ptr;
+  InitializeCriticalSection(&data->impl);
+  return (ThreadMutex)data;
 }
 
 void thread_pal_mutex_destroy(ThreadMutex handle) {
-  CRITICAL_SECTION* critSection = (CRITICAL_SECTION*)handle;
+  ThreadMutexData* data = (ThreadMutexData*)handle;
 
-  DeleteCriticalSection(critSection);
+  DeleteCriticalSection(&data->impl);
 
-  ThreadMutexExtraData* extraData = (ThreadMutexExtraData*)((u8*)handle + sizeof(CRITICAL_SECTION));
-  alloc_free(extraData->alloc, extraData->allocation);
+  alloc_free_t(data->alloc, data);
 }
 
 void thread_pal_mutex_lock(ThreadMutex handle) {
-  CRITICAL_SECTION* critSection = (CRITICAL_SECTION*)handle;
+  ThreadMutexData* data = (ThreadMutexData*)handle;
 
-  EnterCriticalSection(critSection);
+  EnterCriticalSection(&data->impl);
 }
 
 bool thread_pal_mutex_trylock(ThreadMutex handle) {
-  CRITICAL_SECTION* critSection = (CRITICAL_SECTION*)handle;
+  ThreadMutexData* data = (ThreadMutexData*)handle;
 
-  return TryEnterCriticalSection(critSection);
+  return TryEnterCriticalSection(&data->impl);
 }
 
 void thread_pal_mutex_unlock(ThreadMutex handle) {
-  CRITICAL_SECTION* critSection = (CRITICAL_SECTION*)handle;
+  ThreadMutexData* data = (ThreadMutexData*)handle;
 
-  LeaveCriticalSection(critSection);
+  LeaveCriticalSection(&data->impl);
 }
 
 typedef struct {
-  Allocator* alloc;
-  Mem        allocation;
-} ThreadConditionExtraData;
+  CONDITION_VARIABLE impl;
+  Allocator*         alloc;
+} ThreadConditionData;
 
 ThreadCondition thread_pal_cond_create(Allocator* alloc) {
-  Mem allocation = alloc_alloc(alloc, sizeof(CONDITION_VARIABLE) + sizeof(ThreadMutexExtraData));
-  CONDITION_VARIABLE* condVar = mem_as_t(allocation, CONDITION_VARIABLE);
+  ThreadConditionData* data = alloc_alloc_t(alloc, ThreadConditionData);
+  data->alloc               = alloc;
 
-  *mem_as_t(mem_consume(allocation, sizeof(CONDITION_VARIABLE)), ThreadMutexExtraData) =
-      (ThreadMutexExtraData){
-          .alloc      = alloc,
-          .allocation = allocation,
-      };
-
-  InitializeConditionVariable(condVar);
-  return (ThreadMutex)allocation.ptr;
+  InitializeConditionVariable(&data->impl);
+  return (ThreadMutex)data;
 }
 
 void thread_pal_cond_destroy(ThreadCondition handle) {
+  ThreadConditionData* data = (ThreadConditionData*)handle;
 
   // win32 'CONDITION_VARIABLE' objects do not need to be deleted.
 
-  ThreadMutexExtraData* extraData =
-      (ThreadMutexExtraData*)((u8*)handle + sizeof(CONDITION_VARIABLE));
-  alloc_free(extraData->alloc, extraData->allocation);
+  alloc_free_t(data->alloc, data);
 }
 
 void thread_pal_cond_wait(ThreadCondition condHandle, ThreadMutex mutexHandle) {
-  CONDITION_VARIABLE* condVar     = (CONDITION_VARIABLE*)condHandle;
-  CRITICAL_SECTION*   critSection = (CRITICAL_SECTION*)mutexHandle;
+  ThreadConditionData* condData  = (ThreadConditionData*)condHandle;
+  ThreadMutexData*     mutexData = (ThreadMutexData*)mutexHandle;
 
-  BOOL sleepRes = SleepConditionVariableCS(condVar, critSection, INFINITE);
-  diag_assert_msg(sleepRes, string_lit("SleepConditionVariableCS() failed"));
+  BOOL sleepRes = SleepConditionVariableCS(&condData->impl, &mutexData->impl, INFINITE);
+  diag_assert_msg(sleepRes, "SleepConditionVariableCS() failed");
   (void)sleepRes;
 }
 
 void thread_pal_cond_signal(ThreadCondition handle) {
-  CONDITION_VARIABLE* condVar = (CONDITION_VARIABLE*)handle;
+  ThreadConditionData* data = (ThreadConditionData*)handle;
 
-  WakeConditionVariable(condVar);
+  WakeConditionVariable(&data->impl);
 }
 
 void thread_pal_cond_broadcast(ThreadCondition handle) {
-  CONDITION_VARIABLE* condVar = (CONDITION_VARIABLE*)handle;
+  ThreadConditionData* data = (ThreadConditionData*)handle;
 
-  WakeAllConditionVariable(condVar);
+  WakeAllConditionVariable(&data->impl);
 }

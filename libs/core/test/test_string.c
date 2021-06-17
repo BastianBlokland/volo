@@ -1,5 +1,6 @@
 #include "core_diag.h"
 #include "core_sentinel.h"
+#include "core_sort.h"
 #include "core_string.h"
 
 static void test_string_from_null_term() {
@@ -124,6 +125,41 @@ static void test_string_find_last_any() {
   diag_assert(string_find_last_any(string_lit("Hello World"), string_lit("zqx")) == sentinel_usize);
 }
 
+static void test_string_add_to_dynarray() {
+  Allocator* alloc = alloc_bump_create_stack(1024);
+  DynArray   array = dynarray_create_t(alloc, String, 4);
+
+  for (i32 i = 0; i != 4; ++i) {
+    *dynarray_push_t(&array, String) = string_dup(alloc, fmt_write_scratch("Hello {}", fmt_int(i)));
+  }
+
+  diag_assert(string_eq(*dynarray_at_t(&array, 0, String), string_lit("Hello 0")));
+  diag_assert(string_eq(*dynarray_at_t(&array, 1, String), string_lit("Hello 1")));
+  diag_assert(string_eq(*dynarray_at_t(&array, 2, String), string_lit("Hello 2")));
+  diag_assert(string_eq(*dynarray_at_t(&array, 3, String), string_lit("Hello 3")));
+
+  dynarray_for_t(&array, String, str, { string_free(alloc, *str); });
+  dynarray_destroy(&array);
+}
+
+static void test_string_sort() {
+  Allocator* alloc = alloc_bump_create_stack(1024);
+  DynArray   array = dynarray_create_t(alloc, String, 4);
+
+  *dynarray_push_t(&array, String) = string_dup(alloc, string_lit("May"));
+  *dynarray_push_t(&array, String) = string_dup(alloc, string_lit("November"));
+  *dynarray_push_t(&array, String) = string_dup(alloc, string_lit("April"));
+
+  dynarray_sort(&array, compare_string);
+
+  diag_assert(string_eq(*dynarray_at_t(&array, 0, String), string_lit("April")));
+  diag_assert(string_eq(*dynarray_at_t(&array, 1, String), string_lit("May")));
+  diag_assert(string_eq(*dynarray_at_t(&array, 2, String), string_lit("November")));
+
+  dynarray_for_t(&array, String, str, { string_free(alloc, *str); });
+  dynarray_destroy(&array);
+}
+
 void test_string() {
   test_string_from_null_term();
   test_string_len();
@@ -139,4 +175,6 @@ void test_string() {
   test_string_find_first_any();
   test_string_find_last();
   test_string_find_last_any();
+  test_string_add_to_dynarray();
+  test_string_sort();
 }

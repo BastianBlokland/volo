@@ -87,7 +87,7 @@ file_create(Allocator* alloc, String path, FileMode mode, FileAccessFlags access
     creationDisposition = CREATE_ALWAYS;
     break;
   default:
-    diag_assert_msg(false, fmt_write_scratch("Invalid FileMode: {}", fmt_int(mode)));
+    diag_assert_fail("Invalid FileMode: {}", fmt_int(mode));
   }
 
   if (access & FileAccess_Read) {
@@ -109,12 +109,11 @@ file_create(Allocator* alloc, String path, FileMode mode, FileAccessFlags access
   if (handle == INVALID_HANDLE_VALUE) {
     return fileresult_from_lasterror();
   }
-  Mem allocation = alloc_alloc(alloc, sizeof(File));
-  *file          = mem_as_t(allocation, File);
-  **file         = (File){
-      .handle     = handle,
-      .alloc      = alloc,
-      .allocation = allocation,
+
+  *file  = alloc_alloc_t(alloc, File);
+  **file = (File){
+      .handle = handle,
+      .alloc  = alloc,
   };
   return FileResult_Success;
 }
@@ -146,20 +145,18 @@ FileResult file_temp(Allocator* alloc, File** file) {
     return fileresult_from_lasterror();
   }
 
-  Mem allocation = alloc_alloc(alloc, sizeof(File));
-  *file          = mem_as_t(allocation, File);
-  **file         = (File){
-      .handle     = handle,
-      .alloc      = alloc,
-      .allocation = allocation,
+  *file  = alloc_alloc_t(alloc, File);
+  **file = (File){
+      .handle = handle,
+      .alloc  = alloc,
   };
   return FileResult_Success;
 }
 
 void file_destroy(File* file) {
-  diag_assert_msg(file->alloc, string_lit("Invalid file"));
+  diag_assert_msg(file->alloc, "Invalid file");
   CloseHandle(file->handle);
-  alloc_free(file->alloc, file->allocation);
+  alloc_free_t(file->alloc, file);
 }
 
 FileResult file_write_sync(File* file, const String data) {

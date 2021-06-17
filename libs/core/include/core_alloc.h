@@ -1,4 +1,5 @@
 #pragma once
+#include "core_alignof.h"
 #include "core_annotation.h"
 #include "core_memory.h"
 
@@ -11,18 +12,31 @@
 #define alloc_bump_create_stack(_SIZE_) alloc_bump_create(mem_stack(_SIZE_))
 
 /**
+ * Allocate new memory that satisfies the size and alignment required for the given type.
+ * Note: Has to be explicitly freed using 'alloc_free'.
+ */
+#define alloc_alloc_t(_ALLOCATOR_, _TYPE_)                                                         \
+  ((_TYPE_*)alloc_alloc((_ALLOCATOR_), sizeof(_TYPE_), alignof(_TYPE_)).ptr)
+
+/**
+ * Free previously allocated memory.
+ * Pre-condition: Given memory was allocated from the same allocator and with the same size.
+ */
+#define alloc_free_t(_ALLOCATOR_, _PTR_)                                                           \
+  alloc_free((_ALLOCATOR_), mem_create((_PTR_), sizeof(*(_PTR_))))
+
+/**
  * Allocator handle.
  */
 typedef struct sAllocator Allocator;
 
 /**
- * 'Normal' heap allocator, semantics similar to 'malloc'.
+ * 'Normal' heap allocator.
  */
 extern Allocator* g_alloc_heap;
 
 /**
  * Page allocator, allocates memory pages directly from the OS.
- * Note: All allocations will be rounded up to a multiple of the system page size.
  */
 extern Allocator* g_alloc_page;
 
@@ -43,8 +57,11 @@ Allocator* alloc_bump_create(Mem);
 /**
  * Allocate new memory.
  * Note: Has to be explicitly freed using 'alloc_free'.
+ * Pre-condition: size > 0.
+ * Pre-condition: align is a power-of-two.
+ * Pre-condition: size is a multiple of align.
  */
-Mem alloc_alloc(Allocator*, usize);
+Mem alloc_alloc(Allocator*, usize size, usize align);
 
 /**
  * Free previously allocated memory.
