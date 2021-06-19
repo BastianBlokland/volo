@@ -25,6 +25,8 @@ add_library(volo_core STATIC
   core/src/memory.c
   core/src/path_pal.c
   core/src/path.c
+  core/src/rng.c
+  core/src/shuffle.c
   core/src/signal_pal.c
   core/src/signal.c
   core/src/sort_bubblesort.c
@@ -60,6 +62,8 @@ add_executable(volo_core_test
   core/test/test_math.c
   core/test/test_memory.c
   core/test/test_path.c
+  core/test/test_rng.c
+  core/test/test_shuffle.c
   core/test/test_sort.c
   core/test/test_string.c
   core/test/test_thread.c
