@@ -1,4 +1,5 @@
 #include "core_diag.h"
+#include "core_math.h"
 #include "core_rng.h"
 #include "core_time.h"
 
@@ -72,10 +73,27 @@ void rng_init_thread() {
   g_rng = (Rng*)&g_rng_xorwow;
 }
 
-float rng_sample_float(Rng* rng) {
+f32 rng_sample_f32(Rng* rng) {
   diag_assert_msg(rng, "rng_next: Rng is not initialized");
-  const static float toFloat = 1.0f / ((float)u32_max + 1.0f); // +1 to never return 1.0.
+  const static f32 toFloat = 1.0f / ((f32)u32_max + 1.0f); // +1 to never return 1.0.
   return rng->next(rng) * toFloat;
+}
+
+RngGaussPairF32 rng_sample_gauss_f32(Rng* rng) {
+  f32 a, b;
+  do {
+    a = rng_sample_f32(rng);
+    b = rng_sample_f32(rng);
+    // Guard against a value very close to zero as we will feed it into std::log.
+  } while (a <= 1e-8f);
+  /**
+   * BoxMuller transform.
+   * Source: https://en.wikipedia.org/wiki/Box%E2%80%93Muller_transform
+   */
+  return (RngGaussPairF32){
+      .a = math_sqrt_f32(-2.0f * math_log_f32(a)) * math_cos_f32(math_pi_f32 * 2.0f * b),
+      .b = math_sqrt_f32(-2.0f * math_log_f32(a)) * math_sin_f32(math_pi_f32 * 2.0f * b),
+  };
 }
 
 Rng* rng_create_xorwow(Allocator* alloc, u64 seed) {
