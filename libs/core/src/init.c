@@ -23,6 +23,7 @@ void core_init() {
   if (!g_initialized_thread) {
     alloc_init_thread();
     thread_init_thread();
+    rng_init_thread();
     g_initialized_thread = true;
   }
 }

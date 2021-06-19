@@ -19,6 +19,7 @@ void signal_init();
  */
 void alloc_init_thread();
 void thread_init_thread();
+void rng_init_thread();
 
 /**
  * Global teardown routines.

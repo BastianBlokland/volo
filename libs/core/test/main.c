@@ -24,6 +24,7 @@ void test_macro();
 void test_math();
 void test_memory();
 void test_path();
+void test_rng();
 void test_sort();
 void test_string();
 void test_thread();
@@ -67,6 +68,7 @@ int main() {
   test_format();
   test_macro();
   test_math();
+  test_rng();
   test_memory();
   test_path();
   test_sort();
