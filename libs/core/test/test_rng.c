@@ -13,6 +13,22 @@ static void test_rng_sample_between_0_and_1() {
   }
 }
 
+static void test_rng_sample_range() {
+  const static usize iterations = 100;
+  const static u64   seed       = 42;
+
+  Allocator* alloc = alloc_bump_create_stack(256);
+  Rng*       rng   = rng_create_xorwow(alloc, seed);
+
+  for (i32 i = 0; i != iterations; ++i) {
+    i32 val = rng_sample_range(g_rng, -10, 20);
+    diag_assert(val >= -10);
+    diag_assert(val < 20);
+  }
+
+  rng_destroy(rng);
+}
+
 static void test_rng_xorwow_fixed_seed_returns_consistent_samples() {
   Allocator* alloc = alloc_bump_create_stack(256);
 
@@ -37,5 +53,6 @@ static void test_rng_xorwow_fixed_seed_returns_consistent_samples() {
 
 void test_rng() {
   test_rng_sample_between_0_and_1();
+  test_rng_sample_range();
   test_rng_xorwow_fixed_seed_returns_consistent_samples();
 }

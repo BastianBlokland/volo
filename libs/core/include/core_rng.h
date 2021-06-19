@@ -2,6 +2,13 @@
 #include "core_annotation.h"
 #include "core_types.h"
 
+/**
+ * Get the next value in the random sequence.
+ * Returns a value between min (inclusive) and max (exclusive) with a uniform distribution.
+ */
+#define rng_sample_range(_RNG_, _MIN_, _MAX_)                                                      \
+  ((_MIN_) + ((_MAX_) - (_MIN_)) * rng_sample_float(_RNG_))
+
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;
 
