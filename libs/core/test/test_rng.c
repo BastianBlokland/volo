@@ -12,7 +12,7 @@ static void test_rng_sample_f32() {
 
   float sum = 0.0f;
   for (i32 i = 0; i != iterations; ++i) {
-    const f32 rnd = rng_sample_f32(g_rng);
+    const f32 rnd = rng_sample_f32(rng);
     diag_assert(rnd >= 0.0f);
     diag_assert(rnd < 1.0f);
     sum += rnd;
@@ -21,7 +21,7 @@ static void test_rng_sample_f32() {
 
   // Uniform distribution should average out to 0.5.
   // Note: Adding more iterations would allow a tighter tolerance here.
-  diag_assert(math_abs(avg - 0.5f) < 1e-3f);
+  diag_assert(math_abs(avg - 0.5f) < 1e-2f);
 
   rng_destroy(rng);
 }
@@ -56,7 +56,7 @@ static void test_rng_sample_range() {
   Rng*       rng   = rng_create_xorwow(alloc, seed);
 
   for (i32 i = 0; i != iterations; ++i) {
-    i32 val = rng_sample_range(g_rng, -10, 20);
+    i32 val = rng_sample_range(rng, -10, 20);
     diag_assert(val >= -10);
     diag_assert(val < 20);
   }

@@ -7,7 +7,7 @@ void sort_bubblesort(u8* begin, u8* end, u16 stride, CompareFunc compare) {
    * Basic BubbleSort implementation.
    * - https://en.wikipedia.org/wiki/Bubble_sort
    *
-   * Not an effiecient algorithm, but it usefull for testing other sorting algorithms against.
+   * Not an efficient algorithm, but it usefull for testing other sorting algorithms against.
    */
 
   usize len = (end - begin) / stride;

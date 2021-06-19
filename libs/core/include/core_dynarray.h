@@ -7,6 +7,9 @@
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;
 
+// Forward declare from 'core_rng.h'.
+typedef struct sRng Rng;
+
 /**
  * Owning array of items.
  * Dynamically allocates memory when more items get added.
@@ -136,3 +139,8 @@ Mem dynarray_insert(DynArray*, usize idx, usize count);
  * Sort the array according to the given compare function.
  */
 void dynarray_sort(DynArray*, CompareFunc);
+
+/**
+ * Shuffle the array using the given RandomNumberGenerator.
+ */
+void dynarray_shuffle(DynArray*, Rng*);
