@@ -7,7 +7,8 @@ typedef struct sAllocator Allocator;
 
 /**
  * Opaque identifier to a task in a job.
- * Unique inside a single job.
+ * Note: Are assigned starting from 0.
+ * Iteration from 0 to 'jobdef_task_count()' is a valid way to lookup tasks.
  */
 typedef u32 JobTaskId;
 
@@ -31,6 +32,28 @@ typedef void (*JobTaskRoutine)(void* context);
  * Note: JobDefintion should not be modified or destroyed while its running on the job system.
  */
 typedef struct sJobDef JobDef;
+
+/**
+ * Iterate over all tasks in the Job Definition.
+ */
+#define jobdef_for_task(_JOBDEF_, _VAR_, ...)                                                      \
+  {                                                                                                \
+    for (JobTaskId _VAR_ = 0; _VAR_ != jobdef_task_count(_JOBDEF_); ++_VAR_) {                     \
+      __VA_ARGS__                                                                                  \
+    }                                                                                              \
+  }
+
+/**
+ * Iterate over all child tasks for a task in the given Job Definition.
+ */
+#define jobdef_for_task_child(_JOBDEF_, _TASK_, _VAR_, ...)                                        \
+  {                                                                                                \
+    for (JobTaskChildItr _VAR_ = jobdef_task_child_begin(job, _TASK_);                             \
+         !sentinel_check(_VAR_.task);                                                              \
+         _VAR_ = jobdef_task_child_next(job, _VAR_)) {                                             \
+      __VA_ARGS__                                                                                  \
+    }                                                                                              \
+  }
 
 /**
  * Create a new job definition.

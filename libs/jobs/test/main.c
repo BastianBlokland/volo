@@ -4,6 +4,7 @@
 #include "core_tty.h"
 #include "jobs_init.h"
 
+void test_dot();
 void test_jobdef();
 
 /**
@@ -21,6 +22,7 @@ int main() {
 
   const TimeSteady timeStart = time_steady_clock();
 
+  test_dot();
   test_jobdef();
 
   diag_print(
