@@ -15,11 +15,21 @@
       "name": "volo_core_test",
       "type": "lldb",
       "request": "launch",
-      "program": "${workspaceFolder}/build/libs/volo_core_test",
+      "program": "${workspaceFolder}/build/libs/core/volo_core_test",
       "args": [],
       "cwd": "${workspaceFolder}",
       "terminal": "integrated",
       "stopOnEntry": false
-    }
+    },
+    {
+      "name": "volo_jobs_test",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/libs/jobs/volo_jobs_test",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "terminal": "integrated",
+      "stopOnEntry": false
+    },
   ]
 }
