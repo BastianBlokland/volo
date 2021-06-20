@@ -48,9 +48,9 @@ typedef struct sJobDef JobDef;
  */
 #define jobdef_for_task_child(_JOBDEF_, _TASK_, _VAR_, ...)                                        \
   {                                                                                                \
-    for (JobTaskChildItr _VAR_ = jobdef_task_child_begin(job, _TASK_);                             \
+    for (JobTaskChildItr _VAR_ = jobdef_task_child_begin(_JOBDEF_, _TASK_);                        \
          !sentinel_check(_VAR_.task);                                                              \
-         _VAR_ = jobdef_task_child_next(job, _VAR_)) {                                             \
+         _VAR_ = jobdef_task_child_next(_JOBDEF_, _VAR_)) {                                        \
       __VA_ARGS__                                                                                  \
     }                                                                                              \
   }
@@ -85,38 +85,45 @@ JobTaskId jobdef_add_task(JobDef*, String name, JobTaskRoutine, void* context);
 void jobdef_task_depend(JobDef*, JobTaskId parent, JobTaskId child);
 
 /**
+ * Validate the given job definition.
+ * Checks:
+ * - Definition does not contain cycles.
+ */
+bool jobdef_validate(const JobDef*);
+
+/**
  * Return the number of tasks registered to the given job.
  */
-usize jobdef_task_count(JobDef*);
+usize jobdef_task_count(const JobDef*);
 
 /**
  * Retrieve the name of a job-definition.
  */
-String jobdef_job_name(JobDef*);
+String jobdef_job_name(const JobDef*);
 
 /**
  * Retrieve the name of a task in a job-defintion.
  */
-String jobdef_task_name(JobDef*, JobTaskId);
+String jobdef_task_name(const JobDef*, JobTaskId);
 
 /**
  * Check if the task has a parent dependency.
  */
-bool jobdef_task_has_parent(JobDef*, JobTaskId);
+bool jobdef_task_has_parent(const JobDef*, JobTaskId);
 
 /**
  * Check if the task has a child depending on it.
  */
-bool jobdef_task_has_child(JobDef*, JobTaskId);
+bool jobdef_task_has_child(const JobDef*, JobTaskId);
 
 /**
  * Create an iterator for iterating over the children of the given task.
  * Note: Returns an interator with 'task' set to 'sentinel_u32' when the given task has no children.
  */
-JobTaskChildItr jobdef_task_child_begin(JobDef*, JobTaskId);
+JobTaskChildItr jobdef_task_child_begin(const JobDef*, JobTaskId);
 
 /**
  * Advance the task child iterator.
  * Note: Returns an interator with 'task' set to 'sentinel_u32' when there is no next child.
  */
-JobTaskChildItr jobdef_task_child_next(JobDef*, JobTaskChildItr);
+JobTaskChildItr jobdef_task_child_next(const JobDef*, JobTaskChildItr);

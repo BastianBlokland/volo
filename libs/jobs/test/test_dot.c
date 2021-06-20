@@ -12,7 +12,7 @@ static void test_dot_jobdef_graph() {
   const JobTaskId e = jobdef_add_task(job, string_lit("E"), null, null);
   const JobTaskId f = jobdef_add_task(job, string_lit("F"), null, null);
   const JobTaskId g = jobdef_add_task(job, string_lit("G"), null, null);
-  jobdef_add_task(job, string_lit("E"), null, null);
+  jobdef_add_task(job, string_lit("H"), null, null);
 
   jobdef_task_depend(job, a, b);
   jobdef_task_depend(job, a, c);
@@ -21,6 +21,8 @@ static void test_dot_jobdef_graph() {
   jobdef_task_depend(job, d, e);
   jobdef_task_depend(job, f, e);
   jobdef_task_depend(job, g, d);
+
+  diag_assert(jobdef_validate(job));
 
   DynString buffer = dynstring_create(alloc, 1024);
   jobs_dot_write_jobdef(&buffer, job);
@@ -37,7 +39,7 @@ static void test_dot_jobdef_graph() {
                  "  task_4 [label=\"E\", shape=box];\n"
                  "  task_5 [label=\"F\", shape=box];\n"
                  "  task_6 [label=\"G\", shape=box];\n"
-                 "  task_7 [label=\"E\", shape=box];\n"
+                 "  task_7 [label=\"H\", shape=box];\n"
                  "\n"
                  "  start -> {task_0, task_5, task_6, task_7}\n"
                  "\n"

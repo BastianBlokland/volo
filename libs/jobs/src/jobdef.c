@@ -1,9 +1,11 @@
 #include "core_alloc.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_sentinel.h"
 #include "jobdef_internal.h"
+#include "jobs_jobdef.h"
 
-static JobTaskLink* jobdef_task_link(JobDef* jobDef, JobTaskLinkId id) {
+static JobTaskLink* jobdef_task_link(const JobDef* jobDef, JobTaskLinkId id) {
   return dynarray_at_t(&jobDef->childLinks, id, JobTaskLink);
 }
 
@@ -32,6 +34,59 @@ jobdef_add_task_child_link(JobDef* jobDef, const JobTaskId childTask, JobTaskLin
     jobdef_task_link(jobDef, lastLink)->next = newLinkIdx;
   }
   return newLinkIdx;
+}
+
+static bool jobdef_has_task_cycle(
+    const JobDef* jobDef, const JobTaskId task, BitSet processed, BitSet processing) {
+  if (bitset_test(processed, task)) {
+    return false; // Already processed; no cycle.
+  }
+  if (bitset_test(processing, task)) {
+    return true; // Currently processing this task; cycle.
+  }
+  bitset_set(processing, task); // Mark the task as currently being processed.
+
+  jobdef_for_task_child(jobDef, task, child, {
+    if (bitset_test(processed, task)) {
+      continue; // Already processed.
+    }
+    if (jobdef_has_task_cycle(jobDef, child.task, processed, processing)) {
+      return true;
+    }
+  });
+
+  bitset_clear(processing, task);
+  bitset_set(processed, task);
+  return false;
+}
+
+static bool jobdef_has_cycle(const JobDef* jobDef) {
+  /**
+   * Do a 'Depth First Search' to find cycles.
+   * More info: https://en.wikipedia.org/wiki/Depth-first_search
+   *
+   * Current implementation uses recursion to go down the branches, meaning its not stack safe for
+   * very long task chains. We might have to refactor this to avoid recursion in the future, however
+   * my current assumption is that we won't have that long task chains (which would be bad for
+   * performance anyway).
+   */
+
+  // Using scratch memory here limits us to 65536 tasks (with the current scratch budgets).
+  BitSet processed  = alloc_alloc(g_alloc_scratch, bits_to_bytes(jobDef->tasks.size) + 1, 1);
+  BitSet processing = alloc_alloc(g_alloc_scratch, bits_to_bytes(jobDef->tasks.size) + 1, 1);
+
+  mem_set(processed, 0);
+  mem_set(processing, 0);
+
+  jobdef_for_task(jobDef, taskId, {
+    if (bitset_test(processed, taskId)) {
+      continue; // Already processed.
+    }
+    if (jobdef_has_task_cycle(jobDef, taskId, processed, processing)) {
+      return true;
+    }
+  });
+  return false;
 }
 
 JobDef* jobdef_create(Allocator* alloc, const String name, const usize taskCapacity) {
@@ -87,30 +142,32 @@ void jobdef_task_depend(JobDef* jobDef, const JobTaskId parent, const JobTaskId 
   }
 }
 
-usize jobdef_task_count(JobDef* jobDef) { return jobDef->tasks.size; }
+bool jobdef_validate(const JobDef* jobDef) { return !jobdef_has_cycle(jobDef); }
 
-String jobdef_job_name(JobDef* jobDef) { return jobDef->name; }
+usize jobdef_task_count(const JobDef* jobDef) { return jobDef->tasks.size; }
 
-String jobdef_task_name(JobDef* jobDef, JobTaskId id) {
+String jobdef_job_name(const JobDef* jobDef) { return jobDef->name; }
+
+String jobdef_task_name(const JobDef* jobDef, JobTaskId id) {
   return dynarray_at_t(&jobDef->tasks, id, JobTask)->name;
 }
 
-bool jobdef_task_has_parent(JobDef* jobDef, const JobTaskId task) {
+bool jobdef_task_has_parent(const JobDef* jobDef, const JobTaskId task) {
   const u32 parentCount = *dynarray_at_t(&jobDef->parentCounts, task, u32);
   return parentCount != 0;
 }
 
-bool jobdef_task_has_child(JobDef* jobDef, const JobTaskId task) {
+bool jobdef_task_has_child(const JobDef* jobDef, const JobTaskId task) {
   const JobTaskLinkId childSetHead = *dynarray_at_t(&jobDef->childSetHeads, task, JobTaskLinkId);
   return !sentinel_check(childSetHead);
 }
 
-JobTaskChildItr jobdef_task_child_begin(JobDef* jobDef, const JobTaskId task) {
+JobTaskChildItr jobdef_task_child_begin(const JobDef* jobDef, const JobTaskId task) {
   const JobTaskLinkId childSetHead = *dynarray_at_t(&jobDef->childSetHeads, task, JobTaskLinkId);
   return jobdef_task_child_next(jobDef, (JobTaskChildItr){.next = childSetHead});
 }
 
-JobTaskChildItr jobdef_task_child_next(JobDef* jobDef, const JobTaskChildItr itr) {
+JobTaskChildItr jobdef_task_child_next(const JobDef* jobDef, const JobTaskChildItr itr) {
   if (sentinel_check(itr.next)) {
     return (JobTaskChildItr){.task = sentinel_u32, .next = sentinel_u32};
   }

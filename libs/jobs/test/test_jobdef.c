@@ -40,6 +40,8 @@ static void test_jobdef_many_to_one_dependency() {
   jobdef_task_depend(job, b, d);
   jobdef_task_depend(job, c, d);
 
+  diag_assert(jobdef_validate(job));
+
   // Meaning only D has a parent.
   diag_assert(jobdef_task_has_parent(job, d));
   diag_assert(!jobdef_task_has_parent(job, a));
@@ -76,6 +78,8 @@ static void test_jobdef_one_to_many_dependency() {
   jobdef_task_depend(job, a, c);
   jobdef_task_depend(job, a, d);
 
+  diag_assert(jobdef_validate(job));
+
   // Meaning B, C, D have a parent.
   diag_assert(!jobdef_task_has_parent(job, a));
   diag_assert(jobdef_task_has_parent(job, b));
@@ -103,9 +107,53 @@ static void test_jobdef_one_to_many_dependency() {
   jobdef_destroy(job);
 }
 
+static void test_jobdef_validate_fails_if_cycle() {
+  Allocator* alloc = alloc_bump_create_stack(1024);
+  JobDef*    job   = jobdef_create(alloc, string_lit("TestJob"), 2);
+
+  const JobTaskId a = jobdef_add_task(job, string_lit("A"), null, null);
+  const JobTaskId b = jobdef_add_task(job, string_lit("B"), null, null);
+
+  // Setup cycle between A and B.
+  jobdef_task_depend(job, a, b);
+  jobdef_task_depend(job, b, a);
+
+  diag_assert(!jobdef_validate(job));
+
+  jobdef_destroy(job);
+}
+
+static void test_jobdef_validate_fails_if_indirect_cycle() {
+  Allocator* alloc = alloc_bump_create_stack(1024);
+  JobDef*    job   = jobdef_create(alloc, string_lit("TestJob"), 2);
+
+  const JobTaskId a = jobdef_add_task(job, string_lit("A"), null, null);
+  const JobTaskId b = jobdef_add_task(job, string_lit("B"), null, null);
+  const JobTaskId c = jobdef_add_task(job, string_lit("C"), null, null);
+  const JobTaskId d = jobdef_add_task(job, string_lit("D"), null, null);
+  const JobTaskId e = jobdef_add_task(job, string_lit("E"), null, null);
+  const JobTaskId f = jobdef_add_task(job, string_lit("F"), null, null);
+  const JobTaskId g = jobdef_add_task(job, string_lit("G"), null, null);
+
+  jobdef_task_depend(job, a, b);
+  jobdef_task_depend(job, a, c);
+  jobdef_task_depend(job, b, d);
+  jobdef_task_depend(job, c, d);
+  jobdef_task_depend(job, d, e);
+  jobdef_task_depend(job, f, e);
+  jobdef_task_depend(job, g, d);
+  jobdef_task_depend(job, e, c);
+
+  diag_assert(!jobdef_validate(job));
+
+  jobdef_destroy(job);
+}
+
 void test_jobdef() {
   test_jobdef_job_name_can_be_retrieved();
   test_jobdef_task_name_can_be_retrieved();
   test_jobdef_many_to_one_dependency();
   test_jobdef_one_to_many_dependency();
+  test_jobdef_validate_fails_if_cycle();
+  test_jobdef_validate_fails_if_indirect_cycle();
 }
