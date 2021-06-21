@@ -23,6 +23,7 @@ static void test_dot_jobdef_graph() {
   jobdef_task_depend(job, g, d);
 
   diag_assert(jobdef_validate(job));
+  diag_assert(jobdef_task_span(job) == 4);
 
   DynString buffer = dynstring_create(alloc, 1024);
   jobs_dot_write_jobdef(&buffer, job);

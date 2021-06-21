@@ -127,3 +127,16 @@ JobTaskChildItr jobdef_task_child_begin(const JobDef*, JobTaskId);
  * Note: Returns an interator with 'task' set to 'sentinel_u32' when there is no next child.
  */
 JobTaskChildItr jobdef_task_child_next(const JobDef*, JobTaskChildItr);
+
+/**
+ * Calculate the job span (longest serial path through the graph).
+ * aka 'Critical-Path Length' / 'Computational Depth'.
+ */
+usize jobdef_task_span(const JobDef*);
+
+/**
+ * Maximum theoretical speedup when using an infinite number of processors.
+ * Defined as jobdef_task_count() / jobdef_task_span(). Each task is considered equal in this
+ * calculation.
+ */
+f32 jobdef_task_parallelism(const JobDef*);

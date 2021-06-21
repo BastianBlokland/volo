@@ -348,13 +348,13 @@ void format_write_bool(DynString* str, const bool val) {
 }
 
 void format_write_bitset(DynString* str, const BitSet val) {
-  for (usize i = bitset_size(val); i-- > 0;) {
+  for (usize i = bitset_size(val); i-- != 0;) {
     dynstring_append_char(str, bitset_test(val, i) ? '1' : '0');
   }
 }
 
 void format_write_mem(DynString* str, const Mem val) {
-  for (usize i = val.size; i-- > 0;) {
+  for (usize i = val.size; i-- != 0;) {
     format_write_int(str, *mem_at_u8(val, i), .minDigits = 2, .base = 16);
   }
 }
