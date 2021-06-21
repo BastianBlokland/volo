@@ -97,6 +97,16 @@ bool jobdef_validate(const JobDef*);
 usize jobdef_task_count(const JobDef*);
 
 /**
+ * Return the number of root tasks registered to the given job.
+ */
+usize jobdef_task_root_count(const JobDef*);
+
+/**
+ * Return the number of leaf tasks registered to the given job.
+ */
+usize jobdef_task_leaf_count(const JobDef*);
+
+/**
  * Retrieve the name of a job-definition.
  */
 String jobdef_job_name(const JobDef*);
@@ -115,6 +125,11 @@ bool jobdef_task_has_parent(const JobDef*, JobTaskId);
  * Check if the task has a child depending on it.
  */
 bool jobdef_task_has_child(const JobDef*, JobTaskId);
+
+/**
+ * Count how many parents (dependencies) a job has.
+ */
+usize jobdef_task_parent_count(const JobDef*, JobTaskId);
 
 /**
  * Create an iterator for iterating over the children of the given task.

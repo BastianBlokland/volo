@@ -43,6 +43,8 @@ static void test_jobdef_many_to_one_dependency() {
 
   diag_assert(jobdef_task_span(job) == 2);
   diag_assert(jobdef_validate(job));
+  diag_assert(jobdef_task_root_count(job) == 3);
+  diag_assert(jobdef_task_leaf_count(job) == 1);
 
   // Meaning only D has a parent.
   diag_assert(jobdef_task_has_parent(job, d));
@@ -82,6 +84,8 @@ static void test_jobdef_one_to_many_dependency() {
 
   diag_assert(jobdef_validate(job));
   diag_assert(jobdef_task_span(job) == 2);
+  diag_assert(jobdef_task_root_count(job) == 1);
+  diag_assert(jobdef_task_leaf_count(job) == 3);
 
   // Meaning B, C, D have a parent.
   diag_assert(!jobdef_task_has_parent(job, a));
@@ -173,6 +177,8 @@ static void test_jobdef_task_span_serial_chain() {
 
   diag_assert(jobdef_validate(job));
   diag_assert(jobdef_task_span(job) == 7);
+  diag_assert(jobdef_task_root_count(job) == 1);
+  diag_assert(jobdef_task_leaf_count(job) == 1);
 
   jobdef_destroy(job);
 }
@@ -191,6 +197,8 @@ static void test_jobdef_task_span_parallel_chain() {
 
   diag_assert(jobdef_validate(job));
   diag_assert(jobdef_task_span(job) == 1);
+  diag_assert(jobdef_task_root_count(job) == 7);
+  diag_assert(jobdef_task_leaf_count(job) == 7);
 
   jobdef_destroy(job);
 }
@@ -242,6 +250,8 @@ static void test_jobdef_task_span_complex_chain() {
   diag_assert(jobdef_validate(job));
   diag_assert(jobdef_task_span(job) == 9);
   diag_assert(jobdef_task_parallelism(job) == 2.0f);
+  diag_assert(jobdef_task_root_count(job) == 1);
+  diag_assert(jobdef_task_leaf_count(job) == 1);
 
   jobdef_destroy(job);
 }

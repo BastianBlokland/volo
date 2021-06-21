@@ -231,6 +231,18 @@ bool jobdef_validate(const JobDef* jobDef) { return !jobdef_has_cycle(jobDef); }
 
 usize jobdef_task_count(const JobDef* jobDef) { return jobDef->tasks.size; }
 
+usize jobdef_task_root_count(const JobDef* jobDef) {
+  usize count = 0;
+  jobdef_for_task(jobDef, taskId, { count += !jobdef_task_has_parent(jobDef, taskId); });
+  return count;
+}
+
+usize jobdef_task_leaf_count(const JobDef* jobDef) {
+  usize count = 0;
+  jobdef_for_task(jobDef, taskId, { count += !jobdef_task_has_child(jobDef, taskId); });
+  return count;
+}
+
 String jobdef_job_name(const JobDef* jobDef) { return jobDef->name; }
 
 String jobdef_task_name(const JobDef* jobDef, JobTaskId id) {
@@ -238,13 +250,16 @@ String jobdef_task_name(const JobDef* jobDef, JobTaskId id) {
 }
 
 bool jobdef_task_has_parent(const JobDef* jobDef, const JobTaskId task) {
-  const u32 parentCount = *dynarray_at_t(&jobDef->parentCounts, task, u32);
-  return parentCount != 0;
+  return jobdef_task_parent_count(jobDef, task) != 0;
 }
 
 bool jobdef_task_has_child(const JobDef* jobDef, const JobTaskId task) {
   const JobTaskLinkId childSetHead = *dynarray_at_t(&jobDef->childSetHeads, task, JobTaskLinkId);
   return !sentinel_check(childSetHead);
+}
+
+usize jobdef_task_parent_count(const JobDef* jobDef, const JobTaskId task) {
+  return *dynarray_at_t(&jobDef->parentCounts, task, u32);
 }
 
 JobTaskChildItr jobdef_task_child_begin(const JobDef* jobDef, const JobTaskId task) {
