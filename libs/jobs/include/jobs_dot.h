@@ -1,6 +1,6 @@
 #pragma once
 #include "core_dynstring.h"
-#include "jobs_jobdef.h"
+#include "jobs_graph.h"
 
 /**
  * DOT (Graph Description Language) utilities.
@@ -15,11 +15,11 @@
 typedef struct sFile File;
 
 /**
- * Write a DOT (Graph Description Language) digraph for the given Job Definition.
+ * Write a DOT (Graph Description Language) digraph for the given JobGraph.
  */
-void jobs_dot_write_jobdef(DynString*, JobDef*);
+void jobs_dot_write_graph(DynString*, JobGraph*);
 
 /**
- * Dump a DOT (Graph Description Language) digraph for the given Job Definition to a file.
+ * Dump a DOT (Graph Description Language) digraph for the given JobGraph to a file.
  */
-void jobs_dot_dump_jobdef(File*, JobDef*);
+void jobs_dot_dump_graph(File*, JobGraph*);

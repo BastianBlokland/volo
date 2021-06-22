@@ -7,19 +7,19 @@
 #define dot_end_shape "octagon"
 #define dot_task_shape "box"
 
-static void dot_write_task_node(DynString* str, JobDef* job, const JobTaskId taskId) {
+static void dot_write_task_node(DynString* str, JobGraph* graph, const JobTaskId taskId) {
   fmt_write(
       str,
       "  task_{} [label=\"{}\", shape=" dot_task_shape "];\n",
       fmt_int(taskId),
-      fmt_text(jobdef_task_name(job, taskId)));
+      fmt_text(jobs_graph_task_name(graph, taskId)));
 }
 
-static void dot_write_task_child_edges(DynString* str, JobDef* job, const JobTaskId taskId) {
+static void dot_write_task_child_edges(DynString* str, JobGraph* graph, const JobTaskId taskId) {
   fmt_write(str, "  task_{} -> {", fmt_int(taskId));
 
   bool elemWritten = false;
-  jobdef_for_task_child(job, taskId, child, {
+  jobs_graph_for_task_child(graph, taskId, child, {
     fmt_write(str, "{}task_{}", elemWritten ? fmt_text_lit(", ") : fmt_nop(), fmt_int(child.task));
     elemWritten = true;
   });
@@ -30,11 +30,11 @@ static void dot_write_task_child_edges(DynString* str, JobDef* job, const JobTas
   fmt_write(str, "};\n", fmt_int(taskId));
 }
 
-static void dot_write_start_task_edges(DynString* str, JobDef* job) {
+static void dot_write_start_task_edges(DynString* str, JobGraph* graph) {
   fmt_write(str, "  start -> {");
   bool elemWritten = false;
-  jobdef_for_task(job, taskId, {
-    if (jobdef_task_has_parent(job, taskId)) {
+  jobs_graph_for_task(graph, taskId, {
+    if (jobs_graph_task_has_parent(graph, taskId)) {
       continue;
     }
     fmt_write(str, "{}task_{}", elemWritten ? fmt_text_lit(", ") : fmt_nop(), fmt_int(taskId));
@@ -43,30 +43,30 @@ static void dot_write_start_task_edges(DynString* str, JobDef* job) {
   fmt_write(str, "}\n");
 }
 
-void jobs_dot_write_jobdef(DynString* str, JobDef* job) {
+void jobs_dot_write_graph(DynString* str, JobGraph* graph) {
   fmt_write(
       str,
       "digraph {} {\n"
       "  start [label=\"JobStart\", shape=" dot_start_shape "];\n"
       "  end [label=\"JobEnd\", shape=" dot_end_shape "];\n\n",
-      fmt_text(jobdef_job_name(job)));
+      fmt_text(jobs_graph_name(graph)));
 
   // Write task nodes.
-  jobdef_for_task(job, taskId, { dot_write_task_node(str, job, taskId); });
+  jobs_graph_for_task(graph, taskId, { dot_write_task_node(str, graph, taskId); });
   fmt_write(str, "\n");
 
   // Add edges from the start node to tasks without parents.
-  dot_write_start_task_edges(str, job);
+  dot_write_start_task_edges(str, graph);
   fmt_write(str, "\n");
 
   // Add edges from tasks to other task nodes (or the end node).
-  jobdef_for_task(job, taskId, { dot_write_task_child_edges(str, job, taskId); });
+  jobs_graph_for_task(graph, taskId, { dot_write_task_child_edges(str, graph, taskId); });
   fmt_write(str, "}\n");
 }
 
-void jobs_dot_dump_jobdef(File* file, JobDef* job) {
+void jobs_dot_dump_graph(File* file, JobGraph* graph) {
   DynString buffer = dynstring_create(g_alloc_heap, usize_kibibyte);
-  jobs_dot_write_jobdef(&buffer, job);
+  jobs_dot_write_graph(&buffer, graph);
   file_write_sync(file, dynstring_view(&buffer));
   dynstring_destroy(&buffer);
 }

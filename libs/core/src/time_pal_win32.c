@@ -30,7 +30,7 @@ TimeSteady time_pal_steady_clock() {
   const BOOL    res = QueryPerformanceCounter(&prefTicks);
   diag_assert_msg(res, "QueryPerformanceCounter() failed");
   (void)res;
-  return prefTicks.QuadPart * 1000000LL / g_perfCounterFrequency * 1000LL;
+  return prefTicks.QuadPart * 100000LL / g_perfCounterFrequency * 10000LL;
 }
 
 TimeReal time_pal_real_clock() {

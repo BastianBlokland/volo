@@ -1,32 +1,32 @@
 #include "core_diag.h"
 #include "jobs_dot.h"
 
-static void test_dot_jobdef_graph() {
+static void test_dot_graph() {
   Allocator* alloc = alloc_bump_create_stack(2048);
-  JobDef*    job   = jobdef_create(alloc, string_lit("TestJob"), 2);
+  JobGraph*  graph = jobs_graph_create(alloc, string_lit("TestJob"), 2);
 
-  const JobTaskId a = jobdef_add_task(job, string_lit("A"), null, null);
-  const JobTaskId b = jobdef_add_task(job, string_lit("B"), null, null);
-  const JobTaskId c = jobdef_add_task(job, string_lit("C"), null, null);
-  const JobTaskId d = jobdef_add_task(job, string_lit("D"), null, null);
-  const JobTaskId e = jobdef_add_task(job, string_lit("E"), null, null);
-  const JobTaskId f = jobdef_add_task(job, string_lit("F"), null, null);
-  const JobTaskId g = jobdef_add_task(job, string_lit("G"), null, null);
-  jobdef_add_task(job, string_lit("H"), null, null);
+  const JobTaskId a = jobs_graph_add_task(graph, string_lit("A"), null, null);
+  const JobTaskId b = jobs_graph_add_task(graph, string_lit("B"), null, null);
+  const JobTaskId c = jobs_graph_add_task(graph, string_lit("C"), null, null);
+  const JobTaskId d = jobs_graph_add_task(graph, string_lit("D"), null, null);
+  const JobTaskId e = jobs_graph_add_task(graph, string_lit("E"), null, null);
+  const JobTaskId f = jobs_graph_add_task(graph, string_lit("F"), null, null);
+  const JobTaskId g = jobs_graph_add_task(graph, string_lit("G"), null, null);
+  jobs_graph_add_task(graph, string_lit("H"), null, null);
 
-  jobdef_task_depend(job, a, b);
-  jobdef_task_depend(job, a, c);
-  jobdef_task_depend(job, b, d);
-  jobdef_task_depend(job, c, d);
-  jobdef_task_depend(job, d, e);
-  jobdef_task_depend(job, f, e);
-  jobdef_task_depend(job, g, d);
+  jobs_graph_task_depend(graph, a, b);
+  jobs_graph_task_depend(graph, a, c);
+  jobs_graph_task_depend(graph, b, d);
+  jobs_graph_task_depend(graph, c, d);
+  jobs_graph_task_depend(graph, d, e);
+  jobs_graph_task_depend(graph, f, e);
+  jobs_graph_task_depend(graph, g, d);
 
-  diag_assert(jobdef_validate(job));
-  diag_assert(jobdef_task_span(job) == 4);
+  diag_assert(jobs_graph_validate(graph));
+  diag_assert(jobs_graph_task_span(graph) == 4);
 
   DynString buffer = dynstring_create(alloc, 1024);
-  jobs_dot_write_jobdef(&buffer, job);
+  jobs_dot_write_graph(&buffer, graph);
   diag_assert(string_eq(
       dynstring_view(&buffer),
       string_lit("digraph TestJob {\n"
@@ -55,7 +55,7 @@ static void test_dot_jobdef_graph() {
                  "}\n")));
   dynstring_destroy(&buffer);
 
-  jobdef_destroy(job);
+  jobs_graph_destroy(graph);
 }
 
-void test_dot() { test_dot_jobdef_graph(); }
+void test_dot() { test_dot_graph(); }

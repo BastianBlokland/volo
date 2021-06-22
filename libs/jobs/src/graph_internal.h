@@ -1,5 +1,5 @@
 #include "core_dynarray.h"
-#include "jobs_jobdef.h"
+#include "jobs_graph.h"
 
 typedef u32 JobTaskLinkId;
 
@@ -14,7 +14,7 @@ typedef struct {
   JobTaskLinkId next;
 } JobTaskLink;
 
-struct sJobDef {
+struct sJobGraph {
   DynArray   tasks;         // JobTask[]
   DynArray   parentCounts;  // u32[]
   DynArray   childSetHeads; // JobTaskLinkId[]

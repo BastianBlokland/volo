@@ -2,10 +2,11 @@
 #include "core_init.h"
 #include "core_path.h"
 #include "core_tty.h"
+#include "jobs_executor.h"
 #include "jobs_init.h"
 
 void test_dot();
-void test_jobdef();
+void test_graph();
 
 /**
  * Run basic unit tests.
@@ -15,15 +16,20 @@ int main() {
   core_init();
   jobs_init();
 
-  tty_set_window_title(
-      fmt_write_scratch("{}: running tests...", fmt_text(path_stem(g_path_executable))));
+  tty_set_window_title(fmt_write_scratch(
+      "{}: running tests... (workers: {})",
+      fmt_text(path_stem(g_path_executable)),
+      fmt_int(g_jobsWorkerCount)));
 
-  diag_print("{}: running tests...\n", fmt_text(path_stem(g_path_executable)));
+  diag_print(
+      "{}: running tests... (workers: {})\n",
+      fmt_text(path_stem(g_path_executable)),
+      fmt_int(g_jobsWorkerCount));
 
   const TimeSteady timeStart = time_steady_clock();
 
   test_dot();
-  test_jobdef();
+  test_graph();
 
   diag_print(
       "{}: passed, time: {}\n",
