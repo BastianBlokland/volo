@@ -25,3 +25,8 @@ extern THREAD_LOCAL JobWorkerId g_jobsWorkerId;
  * Note: The main-thread is also considered a worker.
  */
 extern THREAD_LOCAL bool g_jobsIsWorker;
+
+/**
+ * True if the current thread is currently performing work for the job system.
+ */
+extern THREAD_LOCAL bool g_jobsIsWorking;

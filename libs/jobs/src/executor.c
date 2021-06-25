@@ -28,6 +28,7 @@ static ThreadCondition g_wakeCondition;
 u16                      g_jobsWorkerCount;
 THREAD_LOCAL JobWorkerId g_jobsWorkerId;
 THREAD_LOCAL bool        g_jobsIsWorker;
+THREAD_LOCAL bool        g_jobsIsWorking;
 
 static WorkItem executor_steal_desperately() {
   /**
@@ -85,7 +86,9 @@ static void executor_perform_work(WorkItem item) {
   JobTask* jobTaskDef = dynarray_at_t(&item.job->graph->tasks, item.task, JobTask);
 
   // Invoke the user routine.
+  g_jobsIsWorking = true;
   jobTaskDef->routine(jobTaskDef->context);
+  g_jobsIsWorking = false;
 
   // Update the tasks that are depending on this work.
   if (jobs_graph_task_has_child(item.job->graph, item.task)) {

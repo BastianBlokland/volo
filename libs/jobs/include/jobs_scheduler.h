@@ -22,5 +22,6 @@ bool jobs_scheduler_is_finished(JobId);
 /**
  * Wait for the given job to finished.
  * Note: Calling thread will be put to sleep until the job has finished.
+ * Pre-condition: g_jobsIsWorking == false
  */
 void jobs_scheduler_wait(JobId);

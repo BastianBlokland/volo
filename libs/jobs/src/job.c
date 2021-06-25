@@ -21,5 +21,5 @@ Job* job_create(Allocator* alloc, const JobId id, const JobGraph* graph) {
 
 void job_destroy(Allocator* alloc, Job* job) {
   const usize size = sizeof(Job) + sizeof(JobTaskData) * jobs_graph_task_count(job->graph);
-  alloc_free(alloc, mem_create(alloc, size));
+  alloc_free(alloc, mem_create(job, size));
 }
