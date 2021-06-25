@@ -8,6 +8,7 @@
 
 void test_dot();
 void test_graph();
+void test_scheduler();
 
 /**
  * Run basic unit tests.
@@ -30,6 +31,7 @@ int main() {
 
   test_dot();
   test_graph();
+  test_scheduler();
 
   diag_print(
       "{}: passed, time: {}\n",
