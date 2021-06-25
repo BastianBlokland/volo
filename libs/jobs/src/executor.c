@@ -87,7 +87,7 @@ static void executor_perform_work(WorkItem item) {
 
   // Invoke the user routine.
   g_jobsIsWorking = true;
-  jobTaskDef->routine(jobTaskDef->context);
+  jobTaskDef->routine((u8*)jobTaskDef + sizeof(JobTask));
   g_jobsIsWorking = false;
 
   // Update the tasks that are depending on this work.

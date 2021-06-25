@@ -71,10 +71,13 @@ void jobs_graph_destroy(JobGraph*);
 
 /**
  * Add a new task to the graph.
- * Context is provided to the 'JobTaskRoutine' when the task is executed.
+ * 'ctx' is provided to the 'JobTaskRoutine' when the task is executed.
+ * Note: 'ctx' is copied into the graph and has the same lifetime as the graph.
+ *
  * Pre-condition: JobGraph is not running at the moment.
+ * Pre-condition: ctx.size <= (64 - sizeof(void*) * 3).
  */
-JobTaskId jobs_graph_add_task(JobGraph*, String name, JobTaskRoutine, void* context);
+JobTaskId jobs_graph_add_task(JobGraph*, String name, JobTaskRoutine, Mem ctx);
 
 /**
  * Register a dependency between two tasks. The child task will only be started after the parent

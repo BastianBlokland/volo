@@ -18,6 +18,7 @@ target_link_libraries(volo_jobs PUBLIC volo_core)
 add_executable(volo_jobs_test
   test/main.c
   test/test_dot.c
+  test/test_executor.c
   test/test_graph.c
   test/test_scheduler.c)
 target_link_libraries(volo_jobs_test PRIVATE volo_jobs)

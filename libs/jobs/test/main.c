@@ -7,6 +7,7 @@
 #include "jobs_init.h"
 
 void test_dot();
+void test_executor();
 void test_graph();
 void test_scheduler();
 
@@ -30,6 +31,7 @@ int main() {
   const TimeSteady timeStart = time_steady_clock();
 
   test_dot();
+  test_executor();
   test_graph();
   test_scheduler();
 

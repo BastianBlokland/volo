@@ -10,6 +10,20 @@ typedef struct {
 } Mem;
 
 /**
+ * Zero sized memory block.
+ */
+#define mem_empty ((Mem){0})
+
+/**
+ * Create a memory view over a stack allocated struct.
+ */
+#define mem_struct(_TYPE_, ...)                                                                    \
+  ((Mem){                                                                                          \
+      .ptr  = &(_TYPE_){__VA_ARGS__},                                                              \
+      .size = sizeof(_TYPE_),                                                                      \
+  })
+
+/**
  * Create a view over the given memory.
  * Note: The memory view is only valid as long as the underlying memory remains valid.
  */

@@ -177,7 +177,7 @@ static usize jobs_graph_longestpath(const JobGraph* graph) {
 JobGraph* jobs_graph_create(Allocator* alloc, const String name, const usize taskCapacity) {
   JobGraph* graph = alloc_alloc_t(alloc, JobGraph);
   *graph          = (JobGraph){
-      .tasks         = dynarray_create_t(alloc, JobTask, taskCapacity),
+      .tasks         = dynarray_create(alloc, 64, alignof(JobTask), taskCapacity),
       .parentCounts  = dynarray_create_t(alloc, u32, taskCapacity),
       .childSetHeads = dynarray_create_t(alloc, JobTaskLinkId, taskCapacity),
       .childLinks    = dynarray_create_t(alloc, JobTaskLink, taskCapacity),
@@ -199,14 +199,17 @@ void jobs_graph_destroy(JobGraph* graph) {
   alloc_free_t(graph->alloc, graph);
 }
 
-JobTaskId jobs_graph_add_task(
-    JobGraph* graph, const String name, const JobTaskRoutine routine, void* context) {
-  const JobTaskId id                       = (JobTaskId)graph->tasks.size;
-  *dynarray_push_t(&graph->tasks, JobTask) = (JobTask){
-      .name    = string_dup(graph->alloc, name),
+JobTaskId
+jobs_graph_add_task(JobGraph* graph, const String name, const JobTaskRoutine routine, Mem ctx) {
+  const JobTaskId id = (JobTaskId)graph->tasks.size;
+
+  Mem taskStorage              = dynarray_push(&graph->tasks, 1);
+  *((JobTask*)taskStorage.ptr) = (JobTask){
       .routine = routine,
-      .context = context,
+      .name    = string_dup(graph->alloc, name),
   };
+  mem_cpy(mem_consume(taskStorage, sizeof(JobTask)), ctx);
+
   *dynarray_push_t(&graph->parentCounts, u32)            = 0;
   *dynarray_push_t(&graph->childSetHeads, JobTaskLinkId) = sentinel_u32;
   return id;

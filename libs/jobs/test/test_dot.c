@@ -2,17 +2,16 @@
 #include "jobs_dot.h"
 
 static void test_dot_graph() {
-  Allocator* alloc = alloc_bump_create_stack(2048);
-  JobGraph*  graph = jobs_graph_create(alloc, string_lit("TestJob"), 2);
+  JobGraph* graph = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 2);
 
-  const JobTaskId a = jobs_graph_add_task(graph, string_lit("A"), null, null);
-  const JobTaskId b = jobs_graph_add_task(graph, string_lit("B"), null, null);
-  const JobTaskId c = jobs_graph_add_task(graph, string_lit("C"), null, null);
-  const JobTaskId d = jobs_graph_add_task(graph, string_lit("D"), null, null);
-  const JobTaskId e = jobs_graph_add_task(graph, string_lit("E"), null, null);
-  const JobTaskId f = jobs_graph_add_task(graph, string_lit("F"), null, null);
-  const JobTaskId g = jobs_graph_add_task(graph, string_lit("G"), null, null);
-  jobs_graph_add_task(graph, string_lit("H"), null, null);
+  const JobTaskId a = jobs_graph_add_task(graph, string_lit("A"), null, mem_empty);
+  const JobTaskId b = jobs_graph_add_task(graph, string_lit("B"), null, mem_empty);
+  const JobTaskId c = jobs_graph_add_task(graph, string_lit("C"), null, mem_empty);
+  const JobTaskId d = jobs_graph_add_task(graph, string_lit("D"), null, mem_empty);
+  const JobTaskId e = jobs_graph_add_task(graph, string_lit("E"), null, mem_empty);
+  const JobTaskId f = jobs_graph_add_task(graph, string_lit("F"), null, mem_empty);
+  const JobTaskId g = jobs_graph_add_task(graph, string_lit("G"), null, mem_empty);
+  jobs_graph_add_task(graph, string_lit("H"), null, mem_empty);
 
   jobs_graph_task_depend(graph, a, b);
   jobs_graph_task_depend(graph, a, c);
@@ -25,7 +24,7 @@ static void test_dot_graph() {
   diag_assert(jobs_graph_validate(graph));
   diag_assert(jobs_graph_task_span(graph) == 4);
 
-  DynString buffer = dynstring_create(alloc, 1024);
+  DynString buffer = dynstring_create(g_alloc_heap, 1024);
   jobs_dot_write_graph(&buffer, graph);
   diag_assert(string_eq(
       dynstring_view(&buffer),

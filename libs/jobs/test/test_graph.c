@@ -3,8 +3,7 @@
 #include "jobs_graph.h"
 
 static void test_jobs_graph_name_can_be_retrieved() {
-  Allocator* alloc = alloc_bump_create_stack(256);
-  JobGraph*  job   = jobs_graph_create(alloc, string_lit("TestJob"), 0);
+  JobGraph* job = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 0);
 
   diag_assert(string_eq(jobs_graph_name(job), string_lit("TestJob")));
 
@@ -12,11 +11,10 @@ static void test_jobs_graph_name_can_be_retrieved() {
 }
 
 static void test_jobs_graph_task_name_can_be_retrieved() {
-  Allocator* alloc = alloc_bump_create_stack(512);
-  JobGraph*  job   = jobs_graph_create(alloc, string_lit("TestJob"), 2);
+  JobGraph* job = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 2);
 
-  const JobTaskId taskA = jobs_graph_add_task(job, string_lit("TestTaskA"), null, null);
-  const JobTaskId taskB = jobs_graph_add_task(job, string_lit("TestTaskB"), null, null);
+  const JobTaskId taskA = jobs_graph_add_task(job, string_lit("TestTaskA"), null, mem_empty);
+  const JobTaskId taskB = jobs_graph_add_task(job, string_lit("TestTaskB"), null, mem_empty);
 
   diag_assert(jobs_graph_task_count(job) == 2);
   diag_assert(string_eq(jobs_graph_task_name(job, taskA), string_lit("TestTaskA")));
@@ -26,13 +24,12 @@ static void test_jobs_graph_task_name_can_be_retrieved() {
 }
 
 static void test_jobs_graph_many_to_one_dependency() {
-  Allocator* alloc = alloc_bump_create_stack(1024);
-  JobGraph*  job   = jobs_graph_create(alloc, string_lit("TestJob"), 2);
+  JobGraph* job = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 2);
 
-  const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, null);
-  const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, null);
-  const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, null);
-  const JobTaskId d = jobs_graph_add_task(job, string_lit("D"), null, null);
+  const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
+  const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
+  const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, mem_empty);
+  const JobTaskId d = jobs_graph_add_task(job, string_lit("D"), null, mem_empty);
 
   diag_assert(jobs_graph_task_count(job) == 4);
 
@@ -67,13 +64,12 @@ static void test_jobs_graph_many_to_one_dependency() {
 }
 
 static void test_jobs_graph_one_to_many_dependency() {
-  Allocator* alloc = alloc_bump_create_stack(1024);
-  JobGraph*  job   = jobs_graph_create(alloc, string_lit("TestJob"), 2);
+  JobGraph* job = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 2);
 
-  const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, null);
-  const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, null);
-  const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, null);
-  const JobTaskId d = jobs_graph_add_task(job, string_lit("D"), null, null);
+  const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
+  const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
+  const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, mem_empty);
+  const JobTaskId d = jobs_graph_add_task(job, string_lit("D"), null, mem_empty);
 
   diag_assert(jobs_graph_task_count(job) == 4);
 
@@ -115,11 +111,10 @@ static void test_jobs_graph_one_to_many_dependency() {
 }
 
 static void test_jobs_graph_validate_fails_if_cycle() {
-  Allocator* alloc = alloc_bump_create_stack(1024);
-  JobGraph*  job   = jobs_graph_create(alloc, string_lit("TestJob"), 2);
+  JobGraph* job = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 2);
 
-  const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, null);
-  const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, null);
+  const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
+  const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
 
   // Setup cycle between A and B.
   jobs_graph_task_depend(job, a, b);
@@ -131,16 +126,15 @@ static void test_jobs_graph_validate_fails_if_cycle() {
 }
 
 static void test_jobs_graph_validate_fails_if_indirect_cycle() {
-  Allocator* alloc = alloc_bump_create_stack(1024);
-  JobGraph*  job   = jobs_graph_create(alloc, string_lit("TestJob"), 2);
+  JobGraph* job = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 2);
 
-  const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, null);
-  const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, null);
-  const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, null);
-  const JobTaskId d = jobs_graph_add_task(job, string_lit("D"), null, null);
-  const JobTaskId e = jobs_graph_add_task(job, string_lit("E"), null, null);
-  const JobTaskId f = jobs_graph_add_task(job, string_lit("F"), null, null);
-  const JobTaskId g = jobs_graph_add_task(job, string_lit("G"), null, null);
+  const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
+  const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
+  const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, mem_empty);
+  const JobTaskId d = jobs_graph_add_task(job, string_lit("D"), null, mem_empty);
+  const JobTaskId e = jobs_graph_add_task(job, string_lit("E"), null, mem_empty);
+  const JobTaskId f = jobs_graph_add_task(job, string_lit("F"), null, mem_empty);
+  const JobTaskId g = jobs_graph_add_task(job, string_lit("G"), null, mem_empty);
 
   jobs_graph_task_depend(job, a, b);
   jobs_graph_task_depend(job, a, c);
@@ -157,16 +151,15 @@ static void test_jobs_graph_validate_fails_if_indirect_cycle() {
 }
 
 static void test_jobs_graph_task_span_serial_chain() {
-  Allocator* alloc = alloc_bump_create_stack(1024);
-  JobGraph*  job   = jobs_graph_create(alloc, string_lit("TestJob"), 2);
+  JobGraph* job = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 2);
 
-  const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, null);
-  const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, null);
-  const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, null);
-  const JobTaskId d = jobs_graph_add_task(job, string_lit("D"), null, null);
-  const JobTaskId e = jobs_graph_add_task(job, string_lit("E"), null, null);
-  const JobTaskId f = jobs_graph_add_task(job, string_lit("F"), null, null);
-  const JobTaskId g = jobs_graph_add_task(job, string_lit("G"), null, null);
+  const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
+  const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
+  const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, mem_empty);
+  const JobTaskId d = jobs_graph_add_task(job, string_lit("D"), null, mem_empty);
+  const JobTaskId e = jobs_graph_add_task(job, string_lit("E"), null, mem_empty);
+  const JobTaskId f = jobs_graph_add_task(job, string_lit("F"), null, mem_empty);
+  const JobTaskId g = jobs_graph_add_task(job, string_lit("G"), null, mem_empty);
 
   jobs_graph_task_depend(job, a, b);
   jobs_graph_task_depend(job, b, c);
@@ -184,16 +177,15 @@ static void test_jobs_graph_task_span_serial_chain() {
 }
 
 static void test_jobs_graph_task_span_parallel_chain() {
-  Allocator* alloc = alloc_bump_create_stack(1024);
-  JobGraph*  job   = jobs_graph_create(alloc, string_lit("TestJob"), 2);
+  JobGraph* job = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 2);
 
-  jobs_graph_add_task(job, string_lit("A"), null, null);
-  jobs_graph_add_task(job, string_lit("B"), null, null);
-  jobs_graph_add_task(job, string_lit("C"), null, null);
-  jobs_graph_add_task(job, string_lit("D"), null, null);
-  jobs_graph_add_task(job, string_lit("E"), null, null);
-  jobs_graph_add_task(job, string_lit("F"), null, null);
-  jobs_graph_add_task(job, string_lit("G"), null, null);
+  jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
+  jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
+  jobs_graph_add_task(job, string_lit("C"), null, mem_empty);
+  jobs_graph_add_task(job, string_lit("D"), null, mem_empty);
+  jobs_graph_add_task(job, string_lit("E"), null, mem_empty);
+  jobs_graph_add_task(job, string_lit("F"), null, mem_empty);
+  jobs_graph_add_task(job, string_lit("G"), null, mem_empty);
 
   diag_assert(jobs_graph_validate(job));
   diag_assert(jobs_graph_task_span(job) == 1);
@@ -206,24 +198,24 @@ static void test_jobs_graph_task_span_parallel_chain() {
 static void test_jobs_graph_task_span_complex_chain() {
   JobGraph* job = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 2);
 
-  const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, null);
-  const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, null);
-  const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, null);
-  const JobTaskId d = jobs_graph_add_task(job, string_lit("D"), null, null);
-  const JobTaskId e = jobs_graph_add_task(job, string_lit("E"), null, null);
-  const JobTaskId f = jobs_graph_add_task(job, string_lit("F"), null, null);
-  const JobTaskId g = jobs_graph_add_task(job, string_lit("G"), null, null);
-  const JobTaskId h = jobs_graph_add_task(job, string_lit("H"), null, null);
-  const JobTaskId i = jobs_graph_add_task(job, string_lit("I"), null, null);
-  const JobTaskId j = jobs_graph_add_task(job, string_lit("J"), null, null);
-  const JobTaskId k = jobs_graph_add_task(job, string_lit("K"), null, null);
-  const JobTaskId l = jobs_graph_add_task(job, string_lit("L"), null, null);
-  const JobTaskId m = jobs_graph_add_task(job, string_lit("M"), null, null);
-  const JobTaskId n = jobs_graph_add_task(job, string_lit("N"), null, null);
-  const JobTaskId o = jobs_graph_add_task(job, string_lit("O"), null, null);
-  const JobTaskId p = jobs_graph_add_task(job, string_lit("P"), null, null);
-  const JobTaskId q = jobs_graph_add_task(job, string_lit("Q"), null, null);
-  const JobTaskId r = jobs_graph_add_task(job, string_lit("R"), null, null);
+  const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
+  const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
+  const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, mem_empty);
+  const JobTaskId d = jobs_graph_add_task(job, string_lit("D"), null, mem_empty);
+  const JobTaskId e = jobs_graph_add_task(job, string_lit("E"), null, mem_empty);
+  const JobTaskId f = jobs_graph_add_task(job, string_lit("F"), null, mem_empty);
+  const JobTaskId g = jobs_graph_add_task(job, string_lit("G"), null, mem_empty);
+  const JobTaskId h = jobs_graph_add_task(job, string_lit("H"), null, mem_empty);
+  const JobTaskId i = jobs_graph_add_task(job, string_lit("I"), null, mem_empty);
+  const JobTaskId j = jobs_graph_add_task(job, string_lit("J"), null, mem_empty);
+  const JobTaskId k = jobs_graph_add_task(job, string_lit("K"), null, mem_empty);
+  const JobTaskId l = jobs_graph_add_task(job, string_lit("L"), null, mem_empty);
+  const JobTaskId m = jobs_graph_add_task(job, string_lit("M"), null, mem_empty);
+  const JobTaskId n = jobs_graph_add_task(job, string_lit("N"), null, mem_empty);
+  const JobTaskId o = jobs_graph_add_task(job, string_lit("O"), null, mem_empty);
+  const JobTaskId p = jobs_graph_add_task(job, string_lit("P"), null, mem_empty);
+  const JobTaskId q = jobs_graph_add_task(job, string_lit("Q"), null, mem_empty);
+  const JobTaskId r = jobs_graph_add_task(job, string_lit("R"), null, mem_empty);
 
   jobs_graph_task_depend(job, a, b);
   jobs_graph_task_depend(job, b, c);

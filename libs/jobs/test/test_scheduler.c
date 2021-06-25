@@ -8,7 +8,7 @@ static void test_scheduler_single_task_job_finishes() {
   Allocator* alloc = alloc_bump_create_stack(1024);
 
   JobGraph* jobGraph = jobs_graph_create(alloc, string_lit("TestJob"), 1);
-  jobs_graph_add_task(jobGraph, string_lit("TestTask"), test_task_nop, null);
+  jobs_graph_add_task(jobGraph, string_lit("TestTask"), test_task_nop, mem_empty);
 
   JobId id = jobs_scheduler_run(jobGraph);
   jobs_scheduler_wait(id);
@@ -23,7 +23,7 @@ static void test_scheduler_single_graph_can_be_run_multiple_times() {
   Allocator* alloc = alloc_bump_create_stack(2048);
 
   JobGraph* jobGraph = jobs_graph_create(alloc, string_lit("TestJob"), 1);
-  jobs_graph_add_task(jobGraph, string_lit("TestTask"), test_task_nop, null);
+  jobs_graph_add_task(jobGraph, string_lit("TestTask"), test_task_nop, mem_empty);
 
   DynArray jobIds = dynarray_create_t(alloc, JobId, numRuns);
 
