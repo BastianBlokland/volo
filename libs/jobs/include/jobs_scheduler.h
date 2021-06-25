@@ -25,3 +25,11 @@ bool jobs_scheduler_is_finished(JobId);
  * Pre-condition: g_jobsIsWorking == false
  */
 void jobs_scheduler_wait(JobId);
+
+/**
+ * Help with executing tasks until the given job is finished.
+ * Note: Calling thread will help out with any queued tasks, not only tasks for the given job.
+ * Pre-condition: g_jobsIsWorker == true
+ * Pre-condition: g_jobsIsWorking == false
+ */
+void jobs_scheduler_wait_help(JobId);

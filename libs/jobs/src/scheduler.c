@@ -65,6 +65,24 @@ void jobs_scheduler_wait(const JobId job) {
   thread_mutex_unlock(g_jobMutex);
 }
 
+void jobs_scheduler_wait_help(const JobId job) {
+  diag_assert_msg(g_jobsIsWorker, "Only job-workers can help out");
+  diag_assert_msg(!g_jobsIsWorking, "Waiting for a job to finish is not allowed inside a task");
+
+  while (true) {
+    // Execute all currently available tasks.
+    while (executor_help())
+      ;
+
+    if (jobs_scheduler_is_finished(job)) {
+      return; // The given job is finished.
+    }
+
+    // No tasks more available but the job is not finished; yield our time-slice.
+    thread_yield();
+  }
+}
+
 /**
  * Internal api to notify the scheduler that a job has finished.
  */
