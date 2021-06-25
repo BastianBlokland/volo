@@ -21,8 +21,13 @@ jobs_graph_add_task_child_link(JobGraph* graph, const JobTaskId childTask, JobTa
   // TODO: Consider storing an end link to avoid having to walk this each time.
   JobTaskLinkId lastLink = sentinel_u32;
   while (!sentinel_check(linkHead)) {
-    lastLink = linkHead;
-    linkHead = jobs_graph_task_link(graph, linkHead)->next;
+    lastLink                = linkHead;
+    const JobTaskLink* link = jobs_graph_task_link(graph, linkHead);
+    diag_assert_msg(
+        link->task != childTask,
+        "Duplicate dependency for task '{}' is not supported",
+        fmt_int(childTask));
+    linkHead = link->next;
   }
   // Create a new link.
   const JobTaskLinkId newLinkIdx                    = (JobTaskLinkId)graph->childLinks.size;
