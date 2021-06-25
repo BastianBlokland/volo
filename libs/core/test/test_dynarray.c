@@ -80,7 +80,7 @@ static void test_dynarray_popping_decreases_size() {
   DynArray array = dynarray_create_over_t(mem_stack(512), u64);
   dynarray_resize(&array, startingSize);
 
-  for (u32 i = startingSize; i-- > 0;) {
+  for (u32 i = startingSize; i-- != 0;) {
     dynarray_pop(&array, 1);
     diag_assert(array.size == i);
   }
