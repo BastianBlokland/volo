@@ -2,6 +2,7 @@
 #include "core_math.h"
 #include "core_sentinel.h"
 #include "core_string.h"
+
 #include <string.h>
 
 String string_from_null_term(const char* ptr) {

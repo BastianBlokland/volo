@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_diag.h"
+
 #include "jobs_graph.h"
 
 static void test_jobs_graph_name_can_be_retrieved() {

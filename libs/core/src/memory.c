@@ -1,6 +1,7 @@
 #include "core_diag.h"
 #include "core_math.h"
 #include "core_memory.h"
+
 #include <string.h>
 
 void mem_set(const Mem mem, const u8 val) {

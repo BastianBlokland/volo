@@ -1,7 +1,9 @@
 #include "core_diag.h"
 #include "core_thread.h"
-#include "signal_internal.h"
+
 #include <Windows.h>
+
+#include "signal_internal.h"
 
 static i64 g_signal_states[Signal_Count];
 

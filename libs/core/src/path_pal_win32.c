@@ -1,8 +1,10 @@
 #include "core_diag.h"
 #include "core_sentinel.h"
 #include "core_winutils.h"
-#include "path_internal.h"
+
 #include <Windows.h>
+
+#include "path_internal.h"
 
 String path_pal_workingdir(Mem outputBuffer) {
   // Retrieve the working directory from win32 into a utf16 buffer on the stack.

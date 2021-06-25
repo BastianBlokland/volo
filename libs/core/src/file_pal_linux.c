@@ -1,11 +1,13 @@
 #include "core_diag.h"
 #include "core_file.h"
-#include "file_internal.h"
+
 #include "linux/limits.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <unistd.h>
+
+#include "file_internal.h"
 
 File* g_file_stdin  = &(File){.handle = 0};
 File* g_file_stdout = &(File){.handle = 1};

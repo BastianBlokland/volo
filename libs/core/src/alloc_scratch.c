@@ -1,6 +1,7 @@
-#include "alloc_internal.h"
 #include "core_alloc.h"
 #include "core_diag.h"
+
+#include "alloc_internal.h"
 
 #define alloc_scratch_heap_size (usize_mebibyte * 2)
 #define alloc_scratch_max_alloc_size (usize_kibibyte * 8)

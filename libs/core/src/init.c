@@ -2,6 +2,7 @@
 #include "core_init.h"
 #include "core_thread.h"
 #include "core_types.h"
+
 #include "init_internal.h"
 
 static bool              g_intialized;

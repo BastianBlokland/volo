@@ -1,5 +1,6 @@
-#include "alloc_internal.h"
 #include "core_diag.h"
+
+#include "alloc_internal.h"
 #include "init_internal.h"
 
 Allocator*   g_alloc_heap;

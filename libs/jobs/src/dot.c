@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_file.h"
 #include "core_format.h"
+
 #include "jobs_dot.h"
 
 #define dot_start_shape "octagon"

@@ -1,5 +1,6 @@
-#include "job.h"
 #include "jobs_executor.h"
+
+#include "job.h"
 
 void executor_run(Job*);
 

@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_diag.h"
+
 #include "jobs_scheduler.h"
 
 static void test_task_nop(void* ctx) { (void)ctx; }

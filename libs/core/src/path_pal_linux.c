@@ -1,8 +1,10 @@
 #include "core_diag.h"
-#include "path_internal.h"
+
 #include <limits.h>
 #include <stdlib.h>
 #include <unistd.h>
+
+#include "path_internal.h"
 
 String path_pal_workingdir(Mem outputBuffer) {
   Mem tmp = mem_stack(path_pal_max_size);

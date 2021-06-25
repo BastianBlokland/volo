@@ -1,5 +1,6 @@
-#include "alloc_internal.h"
 #include "core_diag.h"
+
+#include "alloc_internal.h"
 
 #define freed_mem_tag 0xFF
 

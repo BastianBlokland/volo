@@ -1,5 +1,6 @@
 #include "core_diag.h"
 #include "core_thread.h"
+
 #include "init_internal.h"
 #include "jobs_init.h"
 

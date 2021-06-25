@@ -2,9 +2,11 @@
 #include "core_file.h"
 #include "core_sentinel.h"
 #include "core_winutils.h"
+
+#include <Windows.h>
+
 #include "file_internal.h"
 #include "path_internal.h"
-#include <Windows.h>
 
 File* g_file_stdin;
 File* g_file_stdout;

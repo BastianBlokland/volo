@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_thread.h"
+
 #include "jobs_graph.h"
 #include "jobs_scheduler.h"
 

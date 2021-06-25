@@ -1,7 +1,8 @@
-#include "work_queue.h"
 #include "core_alignof.h"
 #include "core_diag.h"
 #include "core_thread.h"
+
+#include "work_queue.h"
 
 /**
  * The current implementation inserts way more memory barriers then are required (especially on

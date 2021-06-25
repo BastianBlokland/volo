@@ -1,6 +1,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_math.h"
+
 #include <math.h>
 
 u64 math_pow10_u64(const u8 val) {

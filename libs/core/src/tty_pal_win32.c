@@ -1,8 +1,10 @@
 #include "core_diag.h"
 #include "core_file.h"
+
+#include <Windows.h>
+
 #include "file_internal.h"
 #include "tty_internal.h"
-#include <Windows.h>
 
 struct ConsoleModeOverride {
   bool  enabled;

@@ -19,5 +19,5 @@ AllowAllArgumentsOnNextLine: true
 AllowAllParametersOfDeclarationOnNextLine: true
 BinPackArguments: false
 BinPackParameters: false
-IncludeBlocks: Merge
+IncludeBlocks: Preserve
 PointerAlignment: Left

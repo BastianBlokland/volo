@@ -1,4 +1,5 @@
 #include "core_diag.h"
+
 #include "jobs_dot.h"
 
 static void test_dot_graph() {
