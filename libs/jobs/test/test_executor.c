@@ -48,7 +48,7 @@ static void test_executor_linear_chain_of_tasks() {
         test_task_increment_counter,
         mem_struct(TestExecutorCounterData, .counter = &counter));
     if (i) {
-      jobs_graph_task_depend(jobGraph, i - 1, i);
+      jobs_graph_task_depend(jobGraph, (JobTaskId)(i - 1), (JobTaskId)i);
     }
   }
 
@@ -82,7 +82,7 @@ static void test_executor_linear_binary_counter() {
           mem_struct(TestExecutorCounterData, .counter = &counter));
     }
     if (i) {
-      jobs_graph_task_depend(jobGraph, i - 1, i);
+      jobs_graph_task_depend(jobGraph, (JobTaskId)i - 1, (JobTaskId)i);
     }
   }
 
