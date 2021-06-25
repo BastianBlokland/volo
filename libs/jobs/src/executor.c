@@ -1,9 +1,12 @@
 #include "core_diag.h"
-#include "core_dynarray.h"
-#include "core_format.h"
 #include "core_math.h"
+#include "core_rng.h"
 #include "core_thread.h"
 #include "executor_internal.h"
+#include "graph_internal.h"
+#include "jobs_graph.h"
+#include "scheduler_internal.h"
+#include "work_queue.h"
 
 // Amounts of cores reserved for OS and other applications on the system.
 #define worker_reserved_core_count 1
@@ -15,13 +18,10 @@ typedef enum {
   ExecMode_Teardown,
 } ExecMode;
 
-typedef struct {
-  int placeholder;
-} WorkerData;
-
 static ExecMode        g_mode = ExecMode_Running; // Change only while holding 'g_mutex'.
 static ThreadHandle    g_workerThreads[worker_max_count];
-static WorkerData      g_workerData[worker_max_count];
+static WorkQueue       g_workerQueues[worker_max_count];
+static i64             g_sleepingWorkers;
 static ThreadMutex     g_mutex;
 static ThreadCondition g_wakeCondition;
 
@@ -29,20 +29,124 @@ u16                      g_jobsWorkerCount;
 THREAD_LOCAL JobWorkerId g_jobsWorkerId;
 THREAD_LOCAL bool        g_jobsIsWorker;
 
-static void executor_thread(void* data) {
+static WorkItem executor_steal_desperately() {
+  /**
+   * Perform a single scan over all other workers and attempt to steal.
+   */
+  for (u16 i = 0; i != g_jobsWorkerCount; ++i) {
+    if (i == g_jobsWorkerId) {
+      continue; // Don't steal from ourselves.
+    }
+    WorkItem stolenItem = workqueue_steal(&g_workerQueues[i]);
+    if (workitem_valid(stolenItem)) {
+      return stolenItem;
+    }
+  }
+  return (WorkItem){0};
+}
+
+static WorkItem executor_steal() {
+  /**
+   * Every time-slice attempt to steal work any other worker, starting from a random worker to
+   * reduce contention.
+   *
+   * There is allot of experimentation that could be done here:
+   * - Keeping track of the last victim we successfully stole from could reduce the amount of
+   *   iterations needed.
+   * - Spinning (perhaps using pause cpu intrinsics) instead of yielding (or some combo of both) to
+   *   reduce the context switching when there isn't any work for a very brief moment.
+   * - Fully random picking of workers to steal from (instead of linear with random offset) could
+   *   reduce contention.
+   */
+  const static usize maxIterations = 1000;
+  for (usize itr = 0; itr != maxIterations; ++itr) {
+
+    JobWorkerId prefVictim = (JobWorkerId)rng_sample_range(g_rng, 0, g_jobsWorkerCount);
+    for (u16 i = 0; i != g_jobsWorkerCount; ++i) {
+      JobWorkerId victim = (prefVictim + i) % g_jobsWorkerCount;
+      if (victim == g_jobsWorkerId) {
+        continue; // Don't steal from ourselves.
+      }
+      WorkItem stolenItem = workqueue_steal(&g_workerQueues[victim]);
+      if (workitem_valid(stolenItem)) {
+        return stolenItem;
+      }
+    }
+
+    // No work found this iteration; yield our timeslice.
+    thread_yield();
+  }
+  // No work found after 'maxIterations' timeslices; time to go to sleep.
+  return (WorkItem){0};
+}
+
+static void executor_perform_work(WorkItem item) {
+  // Get the JobTask definition from the graph.
+  JobTask* jobTaskDef = dynarray_at_t(&item.job->graph->tasks, item.task, JobTask);
+
+  // Invoke the user routine.
+  jobTaskDef->routine(jobTaskDef->context);
+
+  // Update the tasks that are depending on this work.
+  if (jobs_graph_task_has_child(item.job->graph, item.task)) {
+    bool taskPushed = false;
+    jobs_graph_for_task_child(item.job->graph, item.task, child, {
+      // Decrement the dependency counter for the child task.
+      if (thread_atomic_sub_i64(&item.job->taskData[child.task].dependencies, 1) == 1) {
+        // All dependencies have been met for child task; push it to the task queue.
+        workqueue_push(&g_workerQueues[g_jobsWorkerId], item.job, child.task);
+        taskPushed = true;
+      }
+    });
+    if (taskPushed && g_sleepingWorkers) {
+      // Some workers are sleeping: Wake them.
+      thread_cond_broadcast(g_wakeCondition);
+    }
+    return;
+  }
+
+  // Task has no children; decrement the job depedency counter.
+  if (thread_atomic_sub_i64(&item.job->dependencies, 1) == 1) {
+    // All dependencies for the job have been finished; Finish the job.
+    jobs_scheduler_finish(item.job);
+  }
+}
+
+/**
+ * Thread routine for a worker.
+ */
+static void executor_worker_thread(void* data) {
   g_jobsWorkerId = (JobWorkerId)(usize)data;
   g_jobsIsWorker = true;
 
-  while (true) {
-    thread_mutex_lock(g_mutex);
-
-  Sleep:
-    if (UNLIKELY(g_mode != ExecMode_Running)) {
-      thread_mutex_unlock(g_mutex);
-      break;
+  WorkItem work = (WorkItem){0};
+  while (LIKELY(g_mode == ExecMode_Running)) {
+    // Perform work if we found some on the previous iteration.
+    if (workitem_valid(work)) {
+      executor_perform_work(work);
     }
-    thread_cond_wait(g_wakeCondition, g_mutex);
-    goto Sleep;
+
+    // Attempt get a work item from our own queue.
+    work = workqueue_pop(&g_workerQueues[g_jobsWorkerId]);
+    if (!workitem_valid(work)) {
+      // No work on our own queue; attemp to steal some.
+      work = executor_steal();
+    }
+
+    if (workitem_valid(work)) {
+      continue; // Perform the work on the next iteration.
+    }
+
+    // No work found; go to sleep.
+    thread_mutex_lock(g_mutex);
+    work = executor_steal_desperately(); // One last attempt to find work while holding the mutex.
+    if (!workitem_valid(work) && LIKELY(g_mode == ExecMode_Running)) {
+      // We don't have any work to perform and we are not cancelled; sleep until woken.
+      ++g_sleepingWorkers; // No atomic operation as we are holding the lock atm.
+      thread_cond_wait(g_wakeCondition, g_mutex);
+      --g_sleepingWorkers; // No atomic operation as we are holding the lock atm.
+    }
+    thread_mutex_unlock(g_mutex);
   }
 }
 
@@ -54,7 +158,7 @@ void executor_init() {
   g_wakeCondition = thread_cond_create(g_alloc_heap);
 
   for (u16 i = 0; i != g_jobsWorkerCount; ++i) {
-    // Init resources: g_workerData[i]
+    g_workerQueues[i] = workqueue_create(g_alloc_heap);
   }
 
   // Setup worker info for the main-thread.
@@ -64,7 +168,7 @@ void executor_init() {
   // Start threads for the other workers.
   for (u16 i = 1; i != g_jobsWorkerCount; ++i) {
     g_workerThreads[i] = thread_start(
-        executor_thread, (void*)(usize)i, fmt_write_scratch("jobs_exec_{}", fmt_int(i)));
+        executor_worker_thread, (void*)(usize)i, fmt_write_scratch("jobs_exec_{}", fmt_int(i)));
   }
 }
 
@@ -85,7 +189,13 @@ void executor_teardown() {
   }
 
   for (u16 i = 0; i != g_jobsWorkerCount; ++i) {
-    // Cleanup resources: g_workerData[i]
+    if (workqueue_size(&g_workerQueues[i])) {
+      diag_print_err(
+          "jobs_executor: Worker {} has {} unfinished tasks.\n",
+          fmt_int(i),
+          fmt_int(workqueue_size(&g_workerQueues[i])));
+    }
+    workqueue_destroy(g_alloc_heap, &g_workerQueues[i]);
   }
 
   thread_cond_destroy(g_wakeCondition);
@@ -94,5 +204,17 @@ void executor_teardown() {
 
 void executor_run(Job* job) {
   diag_assert_msg(g_jobsIsWorker, "Only job-workers can run jobs");
-  (void)job;
+
+  // Push work items for all root tasks in the job.
+  jobs_graph_for_task(job->graph, taskId, {
+    if (jobs_graph_task_has_parent(job->graph, taskId)) {
+      continue; // Not a root task.
+    }
+    workqueue_push(&g_workerQueues[g_jobsWorkerId], job, taskId);
+  });
+
+  if (g_sleepingWorkers) {
+    // Some workers are sleeping: Wake them.
+    thread_cond_broadcast(g_wakeCondition);
+  }
 }

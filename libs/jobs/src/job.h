@@ -11,7 +11,7 @@ typedef u64 JobId;
  * performance.
  */
 typedef struct {
-  u64 dependencies; // Remaining dependencies (parent tasks).
+  i64 dependencies; // Remaining dependencies (parent tasks).
 } JobTaskData;
 
 /**
@@ -20,7 +20,7 @@ typedef struct {
 typedef struct {
   JobId           id;
   const JobGraph* graph;
-  u64             dependencies; // Remaining dependencies (leaf tasks).
+  i64             dependencies; // Remaining dependencies (leaf tasks).
   JobTaskData     taskData[];   // Allocated after this struct.
 } Job;
 

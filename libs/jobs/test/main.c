@@ -1,6 +1,7 @@
 #include "core_diag.h"
 #include "core_init.h"
 #include "core_path.h"
+#include "core_thread.h"
 #include "core_tty.h"
 #include "jobs_executor.h"
 #include "jobs_init.h"
@@ -16,14 +17,13 @@ int main() {
   core_init();
   jobs_init();
 
-  tty_set_window_title(fmt_write_scratch(
-      "{}: running tests... (workers: {})",
-      fmt_text(path_stem(g_path_executable)),
-      fmt_int(g_jobsWorkerCount)));
+  tty_set_window_title(
+      fmt_write_scratch("{}: running tests...", fmt_text(path_stem(g_path_executable))));
 
   diag_print(
-      "{}: running tests... (workers: {})\n",
+      "{}: running tests... (pid: {}, workers: {})\n",
       fmt_text(path_stem(g_path_executable)),
+      fmt_int(g_thread_pid),
       fmt_int(g_jobsWorkerCount));
 
   const TimeSteady timeStart = time_steady_clock();

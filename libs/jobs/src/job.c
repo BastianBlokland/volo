@@ -9,11 +9,11 @@ Job* job_create(Allocator* alloc, const JobId id, const JobGraph* graph) {
   // Initialize per-job data.
   data->id           = id;
   data->graph        = graph;
-  data->dependencies = jobs_graph_task_leaf_count(graph);
+  data->dependencies = (i64)jobs_graph_task_leaf_count(graph);
 
   // Initialize per-task data.
   jobs_graph_for_task(graph, taskId, {
-    data->taskData[taskId].dependencies = jobs_graph_task_parent_count(graph, taskId);
+    data->taskData[taskId].dependencies = (i64)jobs_graph_task_parent_count(graph, taskId);
   });
 
   return data;

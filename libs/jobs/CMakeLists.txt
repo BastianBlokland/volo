@@ -10,7 +10,8 @@ add_library(volo_jobs STATIC
   src/init.c
   src/job.c
   src/executor.c
-  src/scheduler.c)
+  src/scheduler.c
+  src/work_queue.c)
 target_include_directories(volo_jobs PUBLIC include)
 target_link_libraries(volo_jobs PUBLIC volo_core)
 
