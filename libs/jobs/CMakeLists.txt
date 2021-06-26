@@ -22,3 +22,4 @@ add_executable(volo_jobs_test
   test/test_graph.c
   test/test_scheduler.c)
 target_link_libraries(volo_jobs_test PRIVATE volo_jobs)
+target_link_libraries(volo_jobs_test PRIVATE volo_check)

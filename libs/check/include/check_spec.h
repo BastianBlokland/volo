@@ -1,6 +1,7 @@
 #pragma once
 #include "core_annotation.h"
 #include "core_format.h"
+#include "core_math.h"
 #include "core_sourceloc.h"
 #include "core_string.h"
 
@@ -53,7 +54,7 @@ typedef struct {
     fmt_write_scratch(_MSG_FORMAT_LIT_, __VA_ARGS__),                                              \
     source_location())
 
-#define check(_CONDITION_, _MSG_FORMAT_LIT_, ...)                                                  \
+#define check_msg(_CONDITION_, _MSG_FORMAT_LIT_, ...)                                              \
   do {                                                                                             \
     if (UNLIKELY(!(_CONDITION_))) {                                                                \
       check_error(_MSG_FORMAT_LIT_, __VA_ARGS__);                                                  \
@@ -61,11 +62,16 @@ typedef struct {
     }                                                                                              \
   } while (false)
 
+#define check(_CONDITION_) check_msg(_CONDITION_, #_CONDITION_)
+
 #define check_eq_int(_A_, _B_)                                                                     \
-  check(_A_ == _B_, "{} == {}", fmt_int(_A_), fmt_int(_B_))
+  check_msg(_A_ == _B_, "{} == {}", fmt_int(_A_), fmt_int(_B_))
+
+#define check_eq_float(_A_, _B_, _THRESHOLD_)                                                      \
+  check_msg(math_abs(_A_ - _B_) < (_THRESHOLD_), "{} == {}", fmt_float(_A_), fmt_float(_B_))
 
 #define check_eq_string(_A_, _B_)                                                                  \
-  check(                                                                                           \
+  check_msg(                                                                                       \
     string_eq(_A_, _B_),                                                                           \
     "'{}' == '{}'",                                                                                \
     fmt_text(_A_, .flags = FormatTextFlags_EscapeNonPrintAscii),                                   \

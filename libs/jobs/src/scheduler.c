@@ -69,7 +69,6 @@ void jobs_scheduler_wait(const JobId job) {
 
 void jobs_scheduler_wait_help(const JobId job) {
   diag_assert_msg(g_jobsIsWorker, "Only job-workers can help out");
-  diag_assert_msg(!g_jobsIsWorking, "Waiting for a job to finish is not allowed inside a task");
 
   while (true) {
     // Execute all currently available tasks.

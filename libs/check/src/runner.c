@@ -32,7 +32,7 @@ check_write_result(const CheckSpec* spec, const CheckBlock* block, CheckResult* 
 
   fmt_write(
       &str,
-      "[ {}{<7}{} {<6} ] ",
+      "[ {}{<7}{} {<7} ] ",
       styleColor,
       fail ? fmt_text_lit("Failed") : fmt_text_lit("Passed"),
       styleReset,
