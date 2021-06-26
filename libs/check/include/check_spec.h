@@ -62,12 +62,12 @@ typedef struct {
   } while (false)
 
 #define check_eq_int(_A_, _B_)                                                                     \
-  check(_A_ == _B_, "{} != {}", fmt_int(_A_), fmt_int(_B_))
+  check(_A_ == _B_, "{} == {}", fmt_int(_A_), fmt_int(_B_))
 
 #define check_eq_string(_A_, _B_)                                                                  \
   check(                                                                                           \
     string_eq(_A_, _B_),                                                                           \
-    "'{}' != '{}'",                                                                                \
+    "'{}' == '{}'",                                                                                \
     fmt_text(_A_, .flags = FormatTextFlags_EscapeNonPrintAscii),                                   \
     fmt_text(_B_, .flags = FormatTextFlags_EscapeNonPrintAscii))
 
