@@ -31,5 +31,15 @@
       "terminal": "integrated",
       "stopOnEntry": false
     },
+    {
+      "name": "volo_check_test",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/libs/check/volo_check_test",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "terminal": "integrated",
+      "stopOnEntry": false
+    },
   ]
 }
