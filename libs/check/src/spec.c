@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_diag.h"
+#include "core_time.h"
 
 #include "spec_internal.h"
 
@@ -58,13 +59,18 @@ void check_spec_destroy(CheckSpec* spec) { dynarray_destroy(&spec->blocks); }
 
 CheckResult* check_exec_block(Allocator* alloc, const CheckSpec* spec, const CheckBlockId id) {
 
-  CheckResult*      result   = check_result_create(alloc);
-  CheckBlockContext blockCtx = {.result = result};
+  CheckResult*      result    = check_result_create(alloc);
+  CheckBlockContext blockCtx  = {.result = result};
+  const TimeSteady  startTime = time_steady_clock();
 
   // Finishing an exec block will longjmp here.
-  CheckResultType resultType = setjmp(blockCtx.finishJumpDest);
+  const CheckResultType resultType = setjmp(blockCtx.finishJumpDest);
   if (resultType != CheckResultType_None) {
-    check_result_finish(result, resultType);
+
+    const TimeSteady   endTime  = time_steady_clock();
+    const TimeDuration duration = time_steady_duration(startTime, endTime);
+
+    check_result_finish(result, resultType, duration);
     return result;
   }
 

@@ -16,10 +16,11 @@ typedef struct {
 typedef struct {
   Allocator*      alloc;
   CheckResultType type;
+  TimeDuration    duration;
   DynArray        errors; // CheckError[]
 } CheckResult;
 
 CheckResult* check_result_create(Allocator*);
 void         check_result_destroy(CheckResult*);
 void         check_result_error(CheckResult*, String msg, DiagCallSite);
-void         check_result_finish(CheckResult*, CheckResultType);
+void         check_result_finish(CheckResult*, CheckResultType, TimeDuration);

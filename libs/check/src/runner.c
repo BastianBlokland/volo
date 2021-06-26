@@ -18,7 +18,7 @@ CheckRunResult check_run(CheckDef* check) {
       diag_print(" {} - {}\n", fmt_int(block->id, .minDigits = 2), fmt_text(block->description));
 
       CheckResult* result = check_exec_block(g_alloc_heap, &spec, block->id);
-      diag_print("  > {}\n", fmt_int(result->type));
+      diag_print("  > {} ({})\n", fmt_int(result->type), fmt_duration(result->duration));
 
       dynarray_for_t(&result->errors, CheckError, err, {
         diag_print(

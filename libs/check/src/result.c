@@ -23,12 +23,18 @@ void check_result_error(CheckResult* result, String msg, DiagCallSite callSite) 
   };
 }
 
-void check_result_finish(CheckResult* result, const CheckResultType type) {
+void check_result_finish(
+    CheckResult* result, const CheckResultType type, const TimeDuration duration) {
+
   diag_assert_msg(
       type == CheckResultType_Success || type == CheckResultType_Failure,
       "Type {} is not a valid finish type (has to be success or failure)",
       fmt_int(type));
+
   diag_assert_msg(result->type == CheckResultType_None, "Result is already finished");
 
-  result->type = type;
+  diag_assert_msg(duration > 0, "Duration {} is not valid", fmt_duration(duration));
+
+  result->type     = type;
+  result->duration = duration;
 }
