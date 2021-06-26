@@ -1,3 +1,6 @@
+#include "core_alloc.h"
+#include "core_diag.h"
+
 #include "result.h"
 
 CheckResult* check_result_create(Allocator* alloc) {
@@ -16,10 +19,10 @@ void check_result_destroy(CheckResult* result) {
   alloc_free_t(result->alloc, result);
 }
 
-void check_result_error(CheckResult* result, String msg, DiagCallSite callSite) {
+void check_result_error(CheckResult* result, String msg, const SourceLoc source) {
   *dynarray_push_t(&result->errors, CheckError) = (CheckError){
-      .msg      = string_dup(result->alloc, msg),
-      .callSite = callSite,
+      .msg    = string_dup(result->alloc, msg),
+      .source = source,
   };
 }
 

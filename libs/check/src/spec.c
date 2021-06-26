@@ -83,8 +83,8 @@ CheckResult* check_exec_block(Allocator* alloc, const CheckSpec* spec, const Che
   check_finish_success(&blockCtx);
 }
 
-void check_report_error(CheckBlockContext* ctx, String msg, DiagCallSite callSite) {
-  check_result_error(ctx->result, msg, callSite);
+void check_report_error(CheckBlockContext* ctx, String msg, const SourceLoc source) {
+  check_result_error(ctx->result, msg, source);
 }
 
 NORETURN void check_finish_failure(CheckBlockContext* ctx) {

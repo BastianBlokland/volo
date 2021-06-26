@@ -1,5 +1,7 @@
 #pragma once
-#include "core_diag.h"
+#include "core_annotation.h"
+#include "core_format.h"
+#include "core_sourceloc.h"
 #include "core_string.h"
 
 typedef u32 CheckBlockId;
@@ -10,7 +12,7 @@ typedef struct sCheckBlockContext CheckBlockContext;
 typedef struct {
   CheckBlockId id;
   String       description;
-  DiagCallSite callSite;
+  SourceLoc    source;
 } CheckBlock;
 
 // clang-format off
@@ -34,7 +36,7 @@ typedef struct {
            (CheckBlock){                                                                           \
              .id          = (CheckBlockId)(__COUNTER__),                                           \
              .description = string_lit(_DESCRIPTION_),                                             \
-             .callSite    = diag_callsite_create(),                                                \
+             .source      = source_location(),                                                     \
            });                                                                                     \
        _block_ctx;                                                                                 \
        _block_ctx = null)
@@ -49,7 +51,7 @@ typedef struct {
   check_report_error(                                                                              \
     _block_ctx,                                                                                    \
     fmt_write_scratch(_MSG_FORMAT_LIT_, __VA_ARGS__),                                              \
-    diag_callsite_create())
+    source_location())
 
 #define check(_CONDITION_, _MSG_FORMAT_LIT_, ...)                                                  \
   do {                                                                                             \
@@ -72,6 +74,6 @@ typedef struct {
 // clang-format on
 
 CheckBlockContext* check_visit_block(CheckSpecContext*, CheckBlock);
-void               check_report_error(CheckBlockContext*, String msg, DiagCallSite);
+void               check_report_error(CheckBlockContext*, String msg, SourceLoc);
 NORETURN void      check_finish_failure(CheckBlockContext*);
 NORETURN void      check_finish_success(CheckBlockContext*);

@@ -8,12 +8,12 @@ void diag_print_raw(String msg) { file_write_sync(g_file_stdout, msg); }
 
 void diag_print_err_raw(String msg) { file_write_sync(g_file_stderr, msg); }
 
-void diag_assert_fail_raw(const DiagCallSite* callsite, String msg) {
+void diag_assert_fail_raw(String msg, const SourceLoc sourceLoc) {
   diag_print_err(
       "Assertion failed: '{}' [file: {} line: {}]\n",
       fmt_text(msg),
-      fmt_path(callsite->file),
-      fmt_int(callsite->line));
+      fmt_path(sourceLoc.file),
+      fmt_int(sourceLoc.line));
   diag_crash();
 }
 
