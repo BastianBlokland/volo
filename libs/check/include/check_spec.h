@@ -7,8 +7,8 @@
 
 typedef u32 CheckBlockId;
 
-typedef struct sCheckSpecContext  CheckSpecContext;
-typedef struct sCheckBlockContext CheckBlockContext;
+typedef struct sCheckSpecContext CheckSpecContext;
+typedef struct sCheckTestContext CheckTestContext;
 
 typedef struct {
   CheckBlockId id;
@@ -26,31 +26,31 @@ typedef struct {
 /**
  * TODO: Document
  */
-#define spec(_NAME_) void spec_name(_NAME_)(MAYBE_UNUSED CheckSpecContext* _spec_ctx)
+#define spec(_NAME_) void spec_name(_NAME_)(MAYBE_UNUSED CheckSpecContext* _specCtx)
 
 /**
  * TODO: Document
  */
 #define it(_DESCRIPTION_)                                                                          \
-  for (CheckBlockContext* _block_ctx = check_visit_block(                                          \
-           _spec_ctx,                                                                              \
+  for (CheckTestContext* _testCtx = check_visit_block(                                             \
+           _specCtx,                                                                               \
            (CheckBlock){                                                                           \
              .id          = (CheckBlockId)(__COUNTER__),                                           \
              .description = string_lit(_DESCRIPTION_),                                             \
              .source      = source_location(),                                                     \
            });                                                                                     \
-       _block_ctx;                                                                                 \
-       _block_ctx = null)
+       _testCtx;                                                                                   \
+       _testCtx = null)
 
 #define check_success()                                                                            \
-  check_finish_success(_block_ctx)
+  check_finish_success(_testCtx)
 
 #define check_failure()                                                                            \
-  check_finish_failure(_block_ctx)
+  check_finish_failure(_testCtx)
 
 #define check_error(_MSG_FORMAT_LIT_, ...)                                                         \
   check_report_error(                                                                              \
-    _block_ctx,                                                                                    \
+    _testCtx,                                                                                      \
     fmt_write_scratch(_MSG_FORMAT_LIT_, __VA_ARGS__),                                              \
     source_location())
 
@@ -79,7 +79,7 @@ typedef struct {
 
 // clang-format on
 
-CheckBlockContext* check_visit_block(CheckSpecContext*, CheckBlock);
-void               check_report_error(CheckBlockContext*, String msg, SourceLoc);
-NORETURN void      check_finish_failure(CheckBlockContext*);
-NORETURN void      check_finish_success(CheckBlockContext*);
+CheckTestContext* check_visit_block(CheckSpecContext*, CheckBlock);
+void              check_report_error(CheckTestContext*, String msg, SourceLoc);
+NORETURN void     check_finish_failure(CheckTestContext*);
+NORETURN void     check_finish_success(CheckTestContext*);

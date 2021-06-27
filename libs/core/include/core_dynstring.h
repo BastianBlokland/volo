@@ -41,6 +41,11 @@ usize dynstring_size(const DynString*);
 String dynstring_view(const DynString*);
 
 /**
+ * Resizes the dynstring to be 0 length.
+ */
+void dynstring_clear(DynString*);
+
+/**
  * Append all characters to the end of the given dynamic-string.
  */
 void dynstring_append(DynString*, String);

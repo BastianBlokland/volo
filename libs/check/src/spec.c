@@ -10,15 +10,15 @@ typedef struct {
 } ContextDiscover;
 
 typedef struct {
-  CheckSpecContext   api;
-  CheckBlockId       blockToExec;
-  CheckBlockContext* blockCtx;
+  CheckSpecContext  api;
+  CheckBlockId      blockToExec;
+  CheckTestContext* blockCtx;
 } ContextExec;
 
 /**
  * Discovers all spec-blocks without executing them.
  */
-static CheckBlockContext* check_spec_block_discover(CheckSpecContext* ctx, CheckBlock block) {
+static CheckTestContext* check_spec_block_discover(CheckSpecContext* ctx, CheckBlock block) {
   ContextDiscover* discoverCtx = (ContextDiscover*)ctx;
 
   *dynarray_push_t(&discoverCtx->spec->blocks, CheckBlock) = block;
@@ -28,7 +28,7 @@ static CheckBlockContext* check_spec_block_discover(CheckSpecContext* ctx, Check
 /**
  * Execute a specific block in the spec.
  */
-static CheckBlockContext* check_spec_block_exec(CheckSpecContext* ctx, CheckBlock block) {
+static CheckTestContext* check_spec_block_exec(CheckSpecContext* ctx, CheckBlock block) {
   ContextExec* execCtx = (ContextExec*)ctx;
 
   if (block.id != execCtx->blockToExec) {
@@ -38,7 +38,7 @@ static CheckBlockContext* check_spec_block_exec(CheckSpecContext* ctx, CheckBloc
   return execCtx->blockCtx;
 }
 
-CheckBlockContext* check_visit_block(CheckSpecContext* ctx, CheckBlock block) {
+CheckTestContext* check_visit_block(CheckSpecContext* ctx, CheckBlock block) {
   return ctx->visitBlock(ctx, block);
 }
 
@@ -59,9 +59,9 @@ void check_spec_destroy(CheckSpec* spec) { dynarray_destroy(&spec->blocks); }
 
 CheckResult* check_exec_block(Allocator* alloc, const CheckSpec* spec, const CheckBlockId id) {
 
-  CheckResult*      result    = check_result_create(alloc);
-  CheckBlockContext blockCtx  = {.result = result};
-  const TimeSteady  startTime = time_steady_clock();
+  CheckResult*     result    = check_result_create(alloc);
+  CheckTestContext blockCtx  = {.result = result};
+  const TimeSteady startTime = time_steady_clock();
 
   // Finishing an exec block will longjmp here.
   const CheckResultType resultType = setjmp(blockCtx.finishJumpDest);
@@ -83,14 +83,14 @@ CheckResult* check_exec_block(Allocator* alloc, const CheckSpec* spec, const Che
   check_finish_success(&blockCtx);
 }
 
-void check_report_error(CheckBlockContext* ctx, String msg, const SourceLoc source) {
+void check_report_error(CheckTestContext* ctx, String msg, const SourceLoc source) {
   check_result_error(ctx->result, msg, source);
 }
 
-NORETURN void check_finish_failure(CheckBlockContext* ctx) {
+NORETURN void check_finish_failure(CheckTestContext* ctx) {
   longjmp(ctx->finishJumpDest, CheckResultType_Failure);
 }
 
-NORETURN void check_finish_success(CheckBlockContext* ctx) {
+NORETURN void check_finish_success(CheckTestContext* ctx) {
   longjmp(ctx->finishJumpDest, CheckResultType_Success);
 }

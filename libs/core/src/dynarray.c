@@ -66,6 +66,11 @@ void dynarray_resize(DynArray* array, const usize size) {
   array->size = size;
 }
 
+void dynarray_clear(DynArray* array) {
+  diag_assert(array);
+  array->size = 0;
+}
+
 Mem dynarray_at(const DynArray* array, const usize idx, const usize count) {
   diag_assert(array);
   diag_assert(idx + count <= array->size);

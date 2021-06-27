@@ -7,10 +7,10 @@
 #include "result.h"
 
 struct sCheckSpecContext {
-  CheckBlockContext* (*visitBlock)(CheckSpecContext*, CheckBlock);
+  CheckTestContext* (*visitBlock)(CheckSpecContext*, CheckBlock);
 };
 
-struct sCheckBlockContext {
+struct sCheckTestContext {
   bool         started;
   CheckResult* result;
   jmp_buf      finishJumpDest; // Spec blocks can longjmp here to early out, arg: CheckBlockResult.

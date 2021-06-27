@@ -1,90 +1,47 @@
 #include "core_alloc.h"
-#include "core_diag.h"
 #include "core_init.h"
-#include "core_path.h"
-#include "core_thread.h"
-#include "core_time.h"
-#include "core_tty.h"
 
-void test_alloc_bump();
-void test_alloc_page();
-void test_alloc_scratch();
-void test_ascii();
-void test_base64();
-void test_bits();
-void test_bitset();
-void test_compare();
-void test_dynarray();
-void test_dynbitset();
-void test_dynstring();
-void test_file();
-void test_float();
-void test_format();
-void test_macro();
-void test_math();
-void test_memory();
-void test_path();
-void test_rng();
-void test_shuffle();
-void test_sort();
-void test_string();
-void test_thread();
-void test_time();
-void test_utf8();
-void test_winutils();
+#include "jobs_init.h"
 
-/**
- * Run basic unit tests.
- * TODO: Should be moved to an actual unit testing framework at some point.
- */
+#include "check_runner.h"
+
 int main() {
   core_init();
+  jobs_init();
 
-  tty_set_window_title(
-      fmt_write_scratch("{}: running tests...", fmt_text(path_stem(g_path_executable))));
+  CheckDef* check = check_create(g_alloc_heap);
 
-  diag_print(
-      "{}: running tests... (pid: {}, tid: {}, cpus: {}, pagesize: {})\n",
-      fmt_text(path_stem(g_path_executable)),
-      fmt_int(g_thread_pid),
-      fmt_int(g_thread_tid),
-      fmt_int(g_thread_core_count),
-      fmt_int(alloc_min_size(g_alloc_page)));
+  register_spec(check, alloc_bump);
+  register_spec(check, alloc_page);
+  register_spec(check, alloc_scratch);
+  register_spec(check, ascii);
+  register_spec(check, base64);
+  register_spec(check, bits);
+  register_spec(check, bitset);
+  register_spec(check, compare);
+  register_spec(check, dynarray);
+  register_spec(check, dynbitset);
+  register_spec(check, dynstring);
+  register_spec(check, file);
+  register_spec(check, float);
+  register_spec(check, format);
+  register_spec(check, macro);
+  register_spec(check, math);
+  register_spec(check, memory);
+  register_spec(check, path);
+  register_spec(check, rng);
+  register_spec(check, shuffle);
+  register_spec(check, sort);
+  register_spec(check, string);
+  register_spec(check, thread);
+  register_spec(check, time);
+  register_spec(check, utf8);
+  register_spec(check, winutils);
 
-  const TimeSteady timeStart = time_steady_clock();
+  const CheckRunResult res = check_run(check);
+  check_destroy(check);
 
-  test_alloc_bump();
-  test_alloc_page();
-  test_alloc_scratch();
-  test_ascii();
-  test_base64();
-  test_bits();
-  test_bitset();
-  test_compare();
-  test_dynarray();
-  test_dynbitset();
-  test_dynstring();
-  test_file();
-  test_float();
-  test_format();
-  test_macro();
-  test_math();
-  test_rng();
-  test_shuffle();
-  test_memory();
-  test_path();
-  test_sort();
-  test_string();
-  test_thread();
-  test_time();
-  test_utf8();
-  test_winutils();
-
-  diag_print(
-      "{}: passed, time: {}\n",
-      fmt_text(path_stem(g_path_executable)),
-      fmt_duration(time_steady_duration(timeStart, time_steady_clock())));
-
+  jobs_teardown();
   core_teardown();
-  return 0;
+  return res;
 }
