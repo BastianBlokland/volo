@@ -7,8 +7,10 @@
 #include "output.pretty.h"
 
 typedef enum {
-  CheckOutputFlags_None  = 0,
-  CheckOutputFlags_Style = 1 << 0,
+  CheckOutputFlags_None      = 0,
+  CheckOutputFlags_Style     = 1 << 0,
+  CheckOutputFlags_OnlyFails = 1 << 1,
+  CheckOutputFlags_Tty       = CheckOutputFlags_Style | CheckOutputFlags_OnlyFails,
 } CheckOutputFlags;
 
 typedef struct {
@@ -82,10 +84,13 @@ static void output_test_finished(
     const CheckTest*      test,
     const CheckResultType type,
     CheckResult*          result) {
-
   CheckOutputPretty* prettyOut = (CheckOutputPretty*)out;
-  DynString          str       = dynstring_create(g_alloc_heap, 1024);
 
+  if (prettyOut->flags & CheckOutputFlags_OnlyFails && type != CheckResultType_Fail) {
+    return;
+  }
+
+  DynString str = dynstring_create(g_alloc_heap, 1024);
   fmt_write(
       &str,
       "* {}{}{}: ",
@@ -164,8 +169,7 @@ CheckOutput* check_output_pretty_create(Allocator* alloc, File* file) {
       .alloc     = alloc,
       .file      = file,
       .suiteName = path_stem(g_path_executable),
-      .flags     = CheckOutputFlags_None |
-               (tty_isatty(file) ? CheckOutputFlags_Style : CheckOutputFlags_None),
+      .flags     = tty_isatty(file) ? CheckOutputFlags_Tty : CheckOutputFlags_None,
   };
   return (CheckOutput*)prettyOut;
 }
