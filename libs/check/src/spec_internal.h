@@ -19,6 +19,7 @@ struct sCheckTestContext {
 typedef struct {
   const CheckSpecDef* def;
   DynArray            blocks; // CheckBlock[].
+  bool                focus;  // Indicates that one or more tests has focus.
 } CheckSpec;
 
 CheckSpec    check_spec_create(Allocator*, const CheckSpecDef*);

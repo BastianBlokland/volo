@@ -55,9 +55,11 @@ CheckResultType check_run(CheckDef* check) {
 
   // Discover all tests.
   DynArray specs    = dynarray_create_t(g_alloc_heap, CheckSpec, 64);
+  bool     focus    = false;
   usize    numTests = 0;
   dynarray_for_t(&check->specs, CheckSpecDef, specDef, {
     CheckSpec spec = check_spec_create(g_alloc_heap, specDef);
+    focus |= spec.focus;
     numTests += spec.blocks.size;
     *dynarray_push_t(&specs, CheckSpec) = spec;
   });
@@ -72,7 +74,7 @@ CheckResultType check_run(CheckDef* check) {
   dynarray_for_t(&specs, CheckSpec, spec, {
     // Create tasks to execute all blocks in the spec.
     dynarray_for_t(&spec->blocks, CheckBlock, block, {
-      if (block->flags & CheckTestFlags_Skip) {
+      if (block->flags & CheckTestFlags_Skip || (focus && !(block->flags & CheckTestFlags_Focus))) {
         ++numSkipped;
         continue;
       }

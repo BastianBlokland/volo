@@ -22,6 +22,8 @@ typedef struct {
 static CheckTestContext* check_spec_block_discover(CheckSpecContext* ctx, CheckBlock block) {
   ContextDiscover* discoverCtx = (ContextDiscover*)ctx;
 
+  discoverCtx->spec->focus |= block.flags & CheckTestFlags_Focus;
+
   *dynarray_push_t(&discoverCtx->spec->blocks, CheckBlock) = block;
   return null;
 }

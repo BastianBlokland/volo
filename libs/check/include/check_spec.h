@@ -6,8 +6,9 @@
 #include "core_string.h"
 
 typedef enum {
-  CheckTestFlags_None = 0,
-  CheckTestFlags_Skip = 1 << 0,
+  CheckTestFlags_None  = 0,
+  CheckTestFlags_Skip  = 1 << 0,
+  CheckTestFlags_Focus = 1 << 1,
 } CheckTestFlags;
 
 typedef u32 CheckBlockId;
@@ -33,6 +34,10 @@ typedef struct {
  * TODO: Document
  */
 #define spec(_NAME_) void spec_name(_NAME_)(MAYBE_UNUSED CheckSpecContext* _specCtx)
+
+#define skip_it(_DESCRIPTION_, ...) it(_DESCRIPTION_, .flags = CheckTestFlags_Skip, __VA_ARGS__)
+
+#define focus_it(_DESCRIPTION_, ...) it(_DESCRIPTION_, .flags = CheckTestFlags_Focus, __VA_ARGS__)
 
 /**
  * TODO: Document
