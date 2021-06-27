@@ -43,6 +43,17 @@
 #define NORETURN _Noreturn
 
 /**
+ * Hint to the compiler that its okay for a variable or function to be unused.
+ */
+#if defined(VOLO_CLANG) || defined(VOLO_GCC)
+#define MAYBE_UNUSED __attribute__((unused))
+#elif defined(VOLO_MSVC)
+#define MAYBE_UNUSED __pragma(warning(suppress : 4100))
+#else
+#define MAYBE_UNUSED
+#endif
+
+/**
  * Mark a variable as having thread storage duration.
  * Which means it is created when the thread starts and cleaned up when the thread ends.
  */

@@ -98,6 +98,11 @@ usize dynarray_size(const DynArray*);
 void dynarray_resize(DynArray*, usize size);
 
 /**
+ * Resizes the dynamic-array to be 0 length.
+ */
+void dynarray_clear(DynArray*);
+
+/**
  * Retrieve a memory view over the 'count' elements at index 'idx'
  * Pre-condition: idx + count <= array.size
  */

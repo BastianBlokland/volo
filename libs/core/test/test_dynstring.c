@@ -1,72 +1,68 @@
-#include "core_diag.h"
 #include "core_dynstring.h"
 
-static void test_dynstring_new_string_is_empty() {
-  DynString string = dynstring_create_over(mem_stack(128));
-  diag_assert(string.size == 0);
-  dynstring_destroy(&string);
-}
+#include "check_spec.h"
 
-static void test_dynstring_append() {
-  DynString string = dynstring_create_over(mem_stack(128));
+spec(dynstring) {
 
-  dynstring_append(&string, string_lit("Hello"));
-  diag_assert(string_eq(dynstring_view(&string), string_lit("Hello")));
+  it("can create an empty Dynamic-String") {
+    DynString string = dynstring_create_over(mem_stack(128));
+    check_eq_int(string.size, 0);
+    dynstring_destroy(&string);
+  }
 
-  dynstring_append(&string, string_lit(" "));
-  diag_assert(string_eq(dynstring_view(&string), string_lit("Hello ")));
+  it("can append strings") {
+    DynString string = dynstring_create_over(mem_stack(128));
 
-  dynstring_append(&string, string_lit("World"));
-  diag_assert(string_eq(dynstring_view(&string), string_lit("Hello World")));
+    dynstring_append(&string, string_lit("Hello"));
+    check_eq_string(dynstring_view(&string), string_lit("Hello"));
 
-  dynstring_append(&string, string_empty);
-  diag_assert(string_eq(dynstring_view(&string), string_lit("Hello World")));
+    dynstring_append(&string, string_lit(" "));
+    check_eq_string(dynstring_view(&string), string_lit("Hello "));
 
-  dynstring_destroy(&string);
-}
+    dynstring_append(&string, string_lit("World"));
+    check_eq_string(dynstring_view(&string), string_lit("Hello World"));
 
-static void test_dynstring_append_char() {
-  DynString string = dynstring_create_over(mem_stack(128));
+    dynstring_append(&string, string_empty);
+    check_eq_string(dynstring_view(&string), string_lit("Hello World"));
 
-  dynstring_append_char(&string, 'H');
-  dynstring_append_char(&string, 'e');
-  dynstring_append_char(&string, 'l');
-  dynstring_append_char(&string, 'l');
-  dynstring_append_char(&string, 'o');
+    dynstring_destroy(&string);
+  }
 
-  diag_assert(string_eq(dynstring_view(&string), string_lit("Hello")));
+  it("can append characters") {
+    DynString string = dynstring_create_over(mem_stack(128));
 
-  dynstring_destroy(&string);
-}
+    dynstring_append_char(&string, 'H');
+    dynstring_append_char(&string, 'e');
+    dynstring_append_char(&string, 'l');
+    dynstring_append_char(&string, 'l');
+    dynstring_append_char(&string, 'o');
 
-static void test_dynstring_append_chars() {
-  DynString string = dynstring_create_over(mem_stack(128));
+    check_eq_string(dynstring_view(&string), string_lit("Hello"));
 
-  dynstring_append_chars(&string, '*', 3);
-  dynstring_append_chars(&string, '-', 5);
-  dynstring_append_chars(&string, '*', 3);
+    dynstring_destroy(&string);
+  }
 
-  diag_assert(string_eq(dynstring_view(&string), string_lit("***-----***")));
+  it("can append sequences of characters") {
+    DynString string = dynstring_create_over(mem_stack(128));
 
-  dynstring_destroy(&string);
-}
+    dynstring_append_chars(&string, '*', 3);
+    dynstring_append_chars(&string, '-', 5);
+    dynstring_append_chars(&string, '*', 3);
 
-static void test_dynstring_insert_chars() {
-  DynString string = dynstring_create_over(mem_stack(128));
+    check_eq_string(dynstring_view(&string), string_lit("***-----***"));
 
-  dynstring_insert_chars(&string, '*', 0, 5);
-  dynstring_insert_chars(&string, '-', 0, 3);
-  dynstring_insert_chars(&string, '-', 8, 3);
+    dynstring_destroy(&string);
+  }
 
-  diag_assert(string_eq(dynstring_view(&string), string_lit("---*****---")));
+  it("can insert character sequences at specific indices") {
+    DynString string = dynstring_create_over(mem_stack(128));
 
-  dynstring_destroy(&string);
-}
+    dynstring_insert_chars(&string, '*', 0, 5);
+    dynstring_insert_chars(&string, '-', 0, 3);
+    dynstring_insert_chars(&string, '-', 8, 3);
 
-void test_dynstring() {
-  test_dynstring_new_string_is_empty();
-  test_dynstring_append();
-  test_dynstring_append_char();
-  test_dynstring_append_chars();
-  test_dynstring_insert_chars();
+    check_eq_string(dynstring_view(&string), string_lit("---*****---"));
+
+    dynstring_destroy(&string);
+  }
 }

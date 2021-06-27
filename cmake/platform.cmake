@@ -25,6 +25,7 @@ macro(set_linux_defines)
 
   add_definitions(-DVOLO_LINUX)
   add_definitions(-D_GNU_SOURCE) # Enable GNU extensions.
+  add_definitions(-DNDEBUG) # Disable lib-c assertions (our own assertions are independent of this).
 endmacro(set_linux_defines)
 
 # Set linux windows defines
@@ -36,6 +37,7 @@ macro(set_win32_defines)
   add_definitions(-DWIN32_LEAN_AND_MEAN) # Use a subset of the windows header.
   add_definitions(-DNOMINMAX) # Avoid the windows header defining the min / max macros.
   add_definitions(-DUNICODE) # Enable unicode support.
+  add_definitions(-DNDEBUG) # Disable lib-c assertions (our own assertions are independent of this).
 endmacro(set_win32_defines)
 
 # Set platform specific defines

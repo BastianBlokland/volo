@@ -1,123 +1,122 @@
-#include "core_diag.h"
+#include "core_array.h"
 #include "core_path.h"
 
-static void test_path_is_absolute() {
-  diag_assert(path_is_absolute(string_lit("/")));
-  diag_assert(path_is_absolute(string_lit("c:/")));
-  diag_assert(path_is_absolute(string_lit("C:/")));
-  diag_assert(path_is_absolute(string_lit("C:\\")));
+#include "check_spec.h"
 
-  diag_assert(!path_is_absolute(string_lit("Hello")));
-  diag_assert(!path_is_absolute(string_lit("./")));
-  diag_assert(!path_is_absolute(string_lit("../")));
-  diag_assert(!path_is_absolute(string_lit("\\")));
-}
+spec(path) {
 
-static void test_path_is_root() {
-  diag_assert(path_is_root(string_lit("/")));
-  diag_assert(path_is_root(string_lit("c:/")));
-  diag_assert(path_is_root(string_lit("C:/")));
-  diag_assert(path_is_root(string_lit("C:\\")));
+  it("can check if a path is absolute") {
+    check(path_is_absolute(string_lit("/")));
+    check(path_is_absolute(string_lit("c:/")));
+    check(path_is_absolute(string_lit("C:/")));
+    check(path_is_absolute(string_lit("C:\\")));
 
-  diag_assert(!path_is_root(string_lit("Hello")));
-  diag_assert(!path_is_root(string_lit("/Hello")));
-  diag_assert(!path_is_root(string_lit("c:/Hello")));
-}
+    check(!path_is_absolute(string_lit("Hello")));
+    check(!path_is_absolute(string_lit("./")));
+    check(!path_is_absolute(string_lit("../")));
+    check(!path_is_absolute(string_lit("\\")));
+  }
 
-static void test_path_filename() {
-  diag_assert(string_eq(path_filename(string_lit("note.txt")), string_lit("note.txt")));
-  diag_assert(string_eq(path_filename(string_lit("/stuff/note.txt")), string_lit("note.txt")));
-  diag_assert(string_eq(path_filename(string_lit("c:/stuff/note.txt")), string_lit("note.txt")));
-  diag_assert(string_eq(path_filename(string_lit("c:/stuff/")), string_empty));
-  diag_assert(string_eq(path_filename(string_lit("/")), string_empty));
-}
+  it("can check if a path is a root") {
+    check(path_is_root(string_lit("/")));
+    check(path_is_root(string_lit("c:/")));
+    check(path_is_root(string_lit("C:/")));
+    check(path_is_root(string_lit("C:\\")));
 
-static void test_path_extension() {
-  diag_assert(string_eq(path_extension(string_lit("note.txt")), string_lit("txt")));
-  diag_assert(string_eq(path_extension(string_lit("note.txt.back")), string_lit("back")));
-  diag_assert(string_eq(path_extension(string_lit("c:/.stuff/note.txt")), string_lit("txt")));
-  diag_assert(string_eq(path_extension(string_lit("c:/.stuff/note")), string_empty));
-  diag_assert(string_eq(path_extension(string_lit("c:/.stuff/note.")), string_empty));
-  diag_assert(string_eq(path_extension(string_lit("c:/.stuff/.")), string_empty));
-  diag_assert(string_eq(path_extension(string_lit("c:/.stuff/..")), string_empty));
-}
+    check(!path_is_root(string_lit("Hello")));
+    check(!path_is_root(string_lit("/Hello")));
+    check(!path_is_root(string_lit("c:/Hello")));
+  }
 
-static void test_path_stem() {
-  diag_assert(string_eq(path_stem(string_lit("note.txt")), string_lit("note")));
-  diag_assert(string_eq(path_stem(string_lit("note.txt.back")), string_lit("note")));
-  diag_assert(string_eq(path_stem(string_lit("note")), string_lit("note")));
-  diag_assert(string_eq(path_stem(string_lit("note.")), string_lit("note")));
-  diag_assert(string_eq(path_stem(string_lit("c:/.stuff/note.txt")), string_lit("note")));
-  diag_assert(string_eq(path_stem(string_lit("c:/.stuff/.")), string_empty));
-}
+  it("can retrieve the file-name of a path") {
+    check_eq_string(path_filename(string_lit("note.txt")), string_lit("note.txt"));
+    check_eq_string(path_filename(string_lit("/stuff/note.txt")), string_lit("note.txt"));
+    check_eq_string(path_filename(string_lit("c:/stuff/note.txt")), string_lit("note.txt"));
+    check_eq_string(path_filename(string_lit("c:/stuff/")), string_empty);
+    check_eq_string(path_filename(string_lit("/")), string_empty);
+  }
 
-static void test_path_parent() {
-  diag_assert(string_eq(path_parent(string_lit("How/You/Doing")), string_lit("How/You")));
-  diag_assert(string_eq(path_parent(string_lit("stuff")), string_lit("")));
-  diag_assert(string_eq(path_parent(string_lit("stuff/")), string_lit("stuff")));
-  diag_assert(string_eq(path_parent(string_lit("c:/stuff")), string_lit("c:/")));
-  diag_assert(string_eq(path_parent(string_lit("c:/stuff/note.txt")), string_lit("c:/stuff")));
-  diag_assert(string_eq(path_parent(string_lit("c:/")), string_lit("c:/")));
-  diag_assert(string_eq(path_parent(string_lit("/")), string_lit("/")));
-  diag_assert(string_eq(path_parent(string_lit("/Stuff")), string_lit("/")));
-}
+  it("can retrieve the extension of a path") {
+    check_eq_string(path_extension(string_lit("note.txt")), string_lit("txt"));
+    check_eq_string(path_extension(string_lit("note.txt.back")), string_lit("back"));
+    check_eq_string(path_extension(string_lit("c:/.stuff/note.txt")), string_lit("txt"));
+    check_eq_string(path_extension(string_lit("c:/.stuff/note")), string_empty);
+    check_eq_string(path_extension(string_lit("c:/.stuff/note.")), string_empty);
+    check_eq_string(path_extension(string_lit("c:/.stuff/.")), string_empty);
+    check_eq_string(path_extension(string_lit("c:/.stuff/..")), string_empty);
+  }
 
-static void test_path_canonize(const String path, const String expected) {
-  DynString string = dynstring_create_over(mem_stack(128));
+  it("can retrieve the stem of a path") {
+    check_eq_string(path_stem(string_lit("note.txt")), string_lit("note"));
+    check_eq_string(path_stem(string_lit("note.txt.back")), string_lit("note"));
+    check_eq_string(path_stem(string_lit("note")), string_lit("note"));
+    check_eq_string(path_stem(string_lit("note.")), string_lit("note"));
+    check_eq_string(path_stem(string_lit("c:/.stuff/note.txt")), string_lit("note"));
+    check_eq_string(path_stem(string_lit("c:/.stuff/.")), string_empty);
+  }
 
-  path_canonize(&string, path);
-  diag_assert(string_eq(dynstring_view(&string), expected));
+  it("can retrieve the parent of a path") {
+    check_eq_string(path_parent(string_lit("How/You/Doing")), string_lit("How/You"));
+    check_eq_string(path_parent(string_lit("stuff")), string_lit(""));
+    check_eq_string(path_parent(string_lit("stuff/")), string_lit("stuff"));
+    check_eq_string(path_parent(string_lit("c:/stuff")), string_lit("c:/"));
+    check_eq_string(path_parent(string_lit("c:/stuff/note.txt")), string_lit("c:/stuff"));
+    check_eq_string(path_parent(string_lit("c:/")), string_lit("c:/"));
+    check_eq_string(path_parent(string_lit("/")), string_lit("/"));
+    check_eq_string(path_parent(string_lit("/Stuff")), string_lit("/"));
+  }
 
-  dynstring_destroy(&string);
-}
+  it("can canonize paths") {
+    struct {
+      String path;
+      String expected;
+    } const data[] = {
+        {string_lit("/"), string_lit("/")},
+        {string_lit("/Hello World"), string_lit("/Hello World")},
+        {string_lit("C:\\"), string_lit("C:/")},
+        {string_lit("C:/"), string_lit("C:/")},
+        {string_lit("c:\\"), string_lit("C:/")},
+        {string_lit("c:/"), string_lit("C:/")},
+        {string_lit("c:\\Hello World"), string_lit("C:/Hello World")},
+        {string_lit("/How/You/Doing"), string_lit("/How/You/Doing")},
+        {string_lit("How/You/Doing"), string_lit("How/You/Doing")},
+        {string_lit("How/You/Doing/"), string_lit("How/You/Doing")},
+        {string_lit("How/You/Doing//"), string_lit("How/You/Doing")},
+        {string_lit(".How/..You/...Doing/."), string_lit(".How/..You/...Doing")},
+        {string_lit("How/./Doing"), string_lit("How/Doing")},
+        {string_lit("How/././././Doing"), string_lit("How/Doing")},
+        {string_lit("How///Doing"), string_lit("How/Doing")},
+        {string_lit("How/You/../Doing/../You/Doing"), string_lit("How/You/Doing")},
+        {string_lit("/How/You/../Doing/../You/Doing"), string_lit("/How/You/Doing")},
+        {string_lit("c:/How/You/../Doing/../You/Doing"), string_lit("C:/How/You/Doing")},
+        {string_lit("Hello/How/.//.//../You"), string_lit("Hello/You")},
+        {string_lit("How/../You/../Doing"), string_lit("Doing")},
+        {string_lit("How/../..\\../Doing"), string_lit("Doing")},
+        {string_lit("../..\\.."), string_lit("")},
+        {string_lit("/..\\../.."), string_lit("/")},
+        {string_lit("C:\\..\\..\\.."), string_lit("C:/")},
+        {string_lit("\\Hello"), string_lit("Hello")},
+    };
 
-static void test_path_append() {
-  DynString string = dynstring_create_over(mem_stack(128));
+    DynString string = dynstring_create_over(mem_stack(128));
+    for (usize i = 0; i != array_elems(data); ++i) {
+      dynstring_clear(&string);
+      path_canonize(&string, data[i].path);
+      check_eq_string(dynstring_view(&string), data[i].expected);
+    }
+    dynstring_destroy(&string);
+  }
 
-  path_append(&string, string_lit("Hello"));
-  path_append(&string, string_lit("How"));
-  path_append(&string, string_lit("You"));
-  path_append(&string, string_lit("Doing?"));
+  it("can append paths together") {
+    DynString string = dynstring_create_over(mem_stack(128));
 
-  diag_assert(string_eq(dynstring_view(&string), string_lit("Hello/How/You/Doing?")));
+    path_append(&string, string_lit("Hello"));
+    path_append(&string, string_lit("How"));
+    path_append(&string, string_lit("You"));
+    path_append(&string, string_lit("Doing?"));
 
-  dynstring_destroy(&string);
-}
+    check_eq_string(dynstring_view(&string), string_lit("Hello/How/You/Doing?"));
 
-void test_path() {
-  test_path_is_absolute();
-  test_path_is_root();
-  test_path_filename();
-  test_path_extension();
-  test_path_stem();
-  test_path_parent();
-
-  test_path_canonize(string_lit("/"), string_lit("/"));
-  test_path_canonize(string_lit("/Hello World"), string_lit("/Hello World"));
-  test_path_canonize(string_lit("C:\\"), string_lit("C:/"));
-  test_path_canonize(string_lit("C:/"), string_lit("C:/"));
-  test_path_canonize(string_lit("c:\\"), string_lit("C:/"));
-  test_path_canonize(string_lit("c:/"), string_lit("C:/"));
-  test_path_canonize(string_lit("c:\\Hello World"), string_lit("C:/Hello World"));
-  test_path_canonize(string_lit("/How/You/Doing"), string_lit("/How/You/Doing"));
-  test_path_canonize(string_lit("How/You/Doing"), string_lit("How/You/Doing"));
-  test_path_canonize(string_lit("How/You/Doing/"), string_lit("How/You/Doing"));
-  test_path_canonize(string_lit("How/You/Doing//"), string_lit("How/You/Doing"));
-  test_path_canonize(string_lit(".How/..You/...Doing/."), string_lit(".How/..You/...Doing"));
-  test_path_canonize(string_lit("How/./Doing"), string_lit("How/Doing"));
-  test_path_canonize(string_lit("How/././././Doing"), string_lit("How/Doing"));
-  test_path_canonize(string_lit("How///Doing"), string_lit("How/Doing"));
-  test_path_canonize(string_lit("How/You/../Doing/../You/Doing"), string_lit("How/You/Doing"));
-  test_path_canonize(string_lit("/How/You/../Doing/../You/Doing"), string_lit("/How/You/Doing"));
-  test_path_canonize(
-      string_lit("c:/How/You/../Doing/../You/Doing"), string_lit("C:/How/You/Doing"));
-  test_path_canonize(string_lit("Hello/How/.//.//../You"), string_lit("Hello/You"));
-  test_path_canonize(string_lit("How/../You/../Doing"), string_lit("Doing"));
-  test_path_canonize(string_lit("How/../..\\../Doing"), string_lit("Doing"));
-  test_path_canonize(string_lit("../..\\.."), string_lit(""));
-  test_path_canonize(string_lit("/..\\../.."), string_lit("/"));
-  test_path_canonize(string_lit("C:\\..\\..\\.."), string_lit("C:/"));
-  test_path_canonize(string_lit("\\Hello"), string_lit("Hello"));
-
-  test_path_append();
+    dynstring_destroy(&string);
+  }
 }

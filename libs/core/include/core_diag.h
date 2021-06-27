@@ -1,37 +1,18 @@
 #pragma once
 #include "core_annotation.h"
 #include "core_format.h"
+#include "core_sourceloc.h"
 #include "core_types.h"
 
 /**
- * Information to identify a callsite in the source-code.
+ * Handler to be invoked when an assertion fails.
+ * If 'true' is returned the assertion is ignored.
+ * if 'false' is returned the application is terminated.
  */
-typedef struct {
-  String file;
-  u32    line;
-} DiagCallSite;
+typedef bool (*AssertHandler)(String msg, SourceLoc, void* context);
 
 /**
- * Return a String containing the current source-file path.
- */
-#define diag_file() string_lit(__FILE__)
-
-/**
- * Return a 'u32' containing the current source line number.
- */
-#define diag_line() ((u32)(__LINE__))
-
-/**
- * Create a 'DiagCallSite' structure for the current source-location.
- */
-#define diag_callsite_create()                                                                     \
-  ((DiagCallSite){                                                                                 \
-      .file = diag_file(),                                                                         \
-      .line = diag_line(),                                                                         \
-  })
-
-/**
- * Fail the program with the message '_MSG_' if the given condition evaluates to false.
+ * Assert the given condition evaluates to true.
  */
 #define diag_assert_msg(_CONDITION_, _MSG_FORMAT_LIT_, ...)                                        \
   do {                                                                                             \
@@ -41,7 +22,7 @@ typedef struct {
   } while (false)
 
 /**
- * Fail the program if the given condition evaluates to false.
+ * Assert the given condition evaluates to true.
  */
 #define diag_assert(_CONDITION_) diag_assert_msg(_CONDITION_, #_CONDITION_)
 
@@ -58,10 +39,10 @@ typedef struct {
   diag_print_err_raw(fmt_write_scratch(_MSG_FORMAT_LIT_, __VA_ARGS__))
 
 /**
- * Indicate that an assertion has failed, print the given message and crashes the program.
+ * Report that an assertion has failed.
  */
 #define diag_assert_fail(_MSG_FORMAT_LIT_, ...)                                                    \
-  diag_assert_fail_raw(&diag_callsite_create(), fmt_write_scratch(_MSG_FORMAT_LIT_, __VA_ARGS__))
+  diag_assert_report_fail(fmt_write_scratch(_MSG_FORMAT_LIT_, __VA_ARGS__), source_location())
 
 /**
  * Print a message to the stdout stream.
@@ -74,11 +55,21 @@ void diag_print_raw(String msg);
 void diag_print_err_raw(String msg);
 
 /**
- * Indicate that an assertion has failed, print the given message and crashes the program.
+ * Report that an assertion has failed.
  */
-NORETURN void diag_assert_fail_raw(const DiagCallSite*, String msg);
+void diag_assert_report_fail(String msg, SourceLoc);
 
 /**
  * Crash the program, will halt if running in a debugger.
  */
 NORETURN void diag_crash();
+
+/**
+ * Set the assert handler for the current thread.
+ * If a assert handler is registered it is invoked whenever an assert is tripped.
+ * 'context' is provided to the assert handler when its invoked.
+ *
+ * Note: Only a single assert handler can be registered per thread, the previous will be replaced.
+ * Note: Invoke with 'null' to clear the current assert handler for this thread.
+ */
+void diag_set_assert_handler(AssertHandler, void* context);

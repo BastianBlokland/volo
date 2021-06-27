@@ -14,6 +14,8 @@ String dynstring_view(const DynString* dynstring) {
   return dynarray_at(dynstring, 0, dynstring->size);
 }
 
+void dynstring_clear(DynString* dynstring) { dynarray_clear(dynstring); }
+
 void dynstring_append(DynString* dynstring, String value) {
   mem_cpy(dynarray_push(dynstring, value.size), value);
 }

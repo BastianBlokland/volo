@@ -39,8 +39,12 @@ JobId jobs_scheduler_run(JobGraph* graph) {
   diag_assert_msg(jobs_graph_validate(graph), "Given job graph is invalid");
   diag_assert_msg(g_jobsIsWorker, "Only job-workers can run jobs");
 
-  JobId id  = (JobId)thread_atomic_add_i64(&g_jobIdCounter, 1);
-  Job*  job = job_create(g_alloc_heap, id, graph);
+  JobId id = (JobId)thread_atomic_add_i64(&g_jobIdCounter, 1);
+  if (UNLIKELY(jobs_graph_task_root_count(graph) == 0)) {
+    return id; // Job has no roots tasks; nothing to do.
+  }
+
+  Job* job = job_create(g_alloc_heap, id, graph);
   thread_mutex_lock(g_jobMutex);
   *dynarray_push_t(&g_runningJobs, Job*) = job;
   thread_mutex_unlock(g_jobMutex);
@@ -69,7 +73,6 @@ void jobs_scheduler_wait(const JobId job) {
 
 void jobs_scheduler_wait_help(const JobId job) {
   diag_assert_msg(g_jobsIsWorker, "Only job-workers can help out");
-  diag_assert_msg(!g_jobsIsWorking, "Waiting for a job to finish is not allowed inside a task");
 
   while (true) {
     // Execute all currently available tasks.
