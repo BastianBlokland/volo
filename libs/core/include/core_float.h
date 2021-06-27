@@ -12,16 +12,16 @@
 #define f64_exponent_max 308
 
 #define f32_nan bits_u32_as_f32(0x7fc00000u)
-#define f64_nan bits_u64_as_f64(u64_c(0x7ff8000000000000))
+#define f64_nan bits_u64_as_f64(u64_lit(0x7ff8000000000000))
 
 #define f32_inf bits_u32_as_f32(0x7f800000u)
-#define f64_inf bits_u64_as_f64(u64_c(0x7ff0000000000000))
+#define f64_inf bits_u64_as_f64(u64_lit(0x7ff0000000000000))
 
 #define f32_min bits_u32_as_f32(0xff7fffffu)
-#define f64_min bits_u64_as_f64(u64_c(0xffefffffffffffff))
+#define f64_min bits_u64_as_f64(u64_lit(0xffefffffffffffff))
 
 #define f32_max bits_u32_as_f32(0x7f7fffffu)
-#define f64_max bits_u64_as_f64(u64_c(0x7fefffffffffffff))
+#define f64_max bits_u64_as_f64(u64_lit(0x7fefffffffffffff))
 
 #define f32_epsilon 1.401298E-45
 #define f64_epsilon 4.94065645841247E-324

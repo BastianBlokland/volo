@@ -11,7 +11,7 @@ TimeSteady time_pal_steady_clock() {
   const int       res = clock_gettime(CLOCK_MONOTONIC, &ts);
   diag_assert_msg(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed: {}", fmt_int(res));
   (void)res;
-  return ts.tv_sec * i64_c(1000000000) + ts.tv_nsec;
+  return ts.tv_sec * i64_lit(1000000000) + ts.tv_nsec;
 }
 
 TimeReal time_pal_real_clock() {
@@ -19,7 +19,7 @@ TimeReal time_pal_real_clock() {
   const int       res = clock_gettime(CLOCK_REALTIME, &ts);
   diag_assert_msg(res == 0, "clock_gettime(CLOCK_REALTIME) failed: {}", fmt_int(res));
   (void)res;
-  return ts.tv_sec * i64_c(1000000) + ts.tv_nsec / i64_c(1000);
+  return ts.tv_sec * i64_lit(1000000) + ts.tv_nsec / i64_lit(1000);
 }
 
 TimeZone time_pal_zone_current() {

@@ -89,7 +89,7 @@ spec(bits) {
     check(bits_ispow2_64(34359738368));
     check(!bits_ispow2_64(68719476735));
     check(bits_ispow2_64(68719476736));
-    check(bits_ispow2_64(u64_c(9223372036854775808)));
+    check(bits_ispow2_64(u64_lit(9223372036854775808)));
   }
 
   it("can compute the next power-of-two for a 32 bit integer") {
@@ -110,22 +110,22 @@ spec(bits) {
     check_eq_int(bits_nextpow2_32(255), 256);
     check_eq_int(bits_nextpow2_32(257), 512);
     check_eq_int(bits_nextpow2_32(4096), 4096);
-    check_eq_int(bits_nextpow2_32(u32_c(2147483647)), u32_c(2147483648));
-    check_eq_int(bits_nextpow2_32(u32_c(2147483648)), u32_c(2147483648));
+    check_eq_int(bits_nextpow2_32(u32_lit(2147483647)), u32_lit(2147483648));
+    check_eq_int(bits_nextpow2_32(u32_lit(2147483648)), u32_lit(2147483648));
     // Undefined for val > 2147483648.
   }
 
   it("can compute the next power-of-two for a 64 bit integer") {
     // Undefined for val,0.
-    check_eq_int(bits_nextpow2_64(u64_c(128)), u64_c(128));
-    check_eq_int(bits_nextpow2_64(u64_c(255)), u64_c(256));
-    check_eq_int(bits_nextpow2_64(u64_c(257)), u64_c(512));
-    check_eq_int(bits_nextpow2_64(u64_c(4096)), u64_c(4096));
-    check_eq_int(bits_nextpow2_64(u64_c(2147483647)), u64_c(2147483648));
-    check_eq_int(bits_nextpow2_64(u64_c(68719476735)), u64_c(68719476736));
-    check_eq_int(bits_nextpow2_64(u64_c(68719476736)), u64_c(68719476736));
-    check_eq_int(bits_nextpow2_64(u64_c(9223372036854775807)), u64_c(9223372036854775808));
-    check_eq_int(bits_nextpow2_64(u64_c(9223372036854775808)), u64_c(9223372036854775808));
+    check_eq_int(bits_nextpow2_64(u64_lit(128)), u64_lit(128));
+    check_eq_int(bits_nextpow2_64(u64_lit(255)), u64_lit(256));
+    check_eq_int(bits_nextpow2_64(u64_lit(257)), u64_lit(512));
+    check_eq_int(bits_nextpow2_64(u64_lit(4096)), u64_lit(4096));
+    check_eq_int(bits_nextpow2_64(u64_lit(2147483647)), u64_lit(2147483648));
+    check_eq_int(bits_nextpow2_64(u64_lit(68719476735)), u64_lit(68719476736));
+    check_eq_int(bits_nextpow2_64(u64_lit(68719476736)), u64_lit(68719476736));
+    check_eq_int(bits_nextpow2_64(u64_lit(9223372036854775807)), u64_lit(9223372036854775808));
+    check_eq_int(bits_nextpow2_64(u64_lit(9223372036854775808)), u64_lit(9223372036854775808));
     // Undefined for val > 9223372036854775808.
   }
 
