@@ -126,7 +126,7 @@ spec(bits) {
     check_eq_int(bits_nextpow2_64(u64_c(68719476736)), u64_c(68719476736));
     check_eq_int(bits_nextpow2_64(u64_c(9223372036854775807)), u64_c(9223372036854775808));
     check_eq_int(bits_nextpow2_64(u64_c(9223372036854775808)), u64_c(9223372036854775808));
-    // Undefined for val > 9223372036854775808ull.
+    // Undefined for val > 9223372036854775808.
   }
 
   it("can compute the amount of padding required to align a 32 bit integer") {

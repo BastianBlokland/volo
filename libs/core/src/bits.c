@@ -97,8 +97,8 @@ u32 bits_nextpow2_32(const u32 val) {
 
 u64 bits_nextpow2_64(const u64 val) {
   diag_assert(val != 0u);
-  diag_assert(val <= 9223372036854775808ull);
-  return 1ull << (64ull - bits_clz_64(val - 1ull));
+  diag_assert(val <= u64_c(9223372036854775808));
+  return u64_c(1) << (u64_c(64) - bits_clz_64(val - u64_c(1)));
 }
 
 u32 bits_hash_32(const Mem mem) {

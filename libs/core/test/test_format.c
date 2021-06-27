@@ -351,7 +351,7 @@ spec(format) {
         {string_empty, 10, 0, string_empty},
         {string_lit("1"), 10, 1, string_empty},
         {string_lit("1337"), 10, 1337, string_empty},
-        {string_lit("18446744073709551615"), 10, 18446744073709551615ull, string_empty},
+        {string_lit("18446744073709551615"), 10, u64_c(18446744073709551615), string_empty},
         {string_lit("1337-hello"), 10, 1337, string_lit("-hello")},
         {string_lit("42abc"), 10, 42, string_lit("abc")},
         {string_lit("Hello"), 10, 0, string_lit("Hello")},

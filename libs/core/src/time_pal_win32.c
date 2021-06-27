@@ -9,8 +9,8 @@ static i64 g_perfCounterFrequency;
 
 static TimeReal time_pal_filetime_to_microsinceepoch(const FILETIME* fileTime) {
   // Windows FILETIME is in 100 ns ticks since January 1 1601.
-  const i64 winEpochToUnixEpoch = 116444736000000000LL;
-  const i64 winTickToMicro      = 10LL;
+  const i64 winEpochToUnixEpoch = i64_c(116444736000000000);
+  const i64 winTickToMicro      = i64_c(10);
 
   LARGE_INTEGER winTicks;
   winTicks.LowPart  = fileTime->dwLowDateTime;
@@ -32,7 +32,7 @@ TimeSteady time_pal_steady_clock() {
   const BOOL    res = QueryPerformanceCounter(&prefTicks);
   diag_assert_msg(res, "QueryPerformanceCounter() failed");
   (void)res;
-  return prefTicks.QuadPart * 100000LL / g_perfCounterFrequency * 10000LL;
+  return prefTicks.QuadPart * i64_c(100000) / g_perfCounterFrequency * i64_c(10000);
 }
 
 TimeReal time_pal_real_clock() {
