@@ -5,15 +5,21 @@
 #include "core_sourceloc.h"
 #include "core_string.h"
 
+typedef enum {
+  CheckTestFlags_None = 0,
+  CheckTestFlags_Skip = 1 << 0,
+} CheckTestFlags;
+
 typedef u32 CheckBlockId;
 
 typedef struct sCheckSpecContext CheckSpecContext;
 typedef struct sCheckTestContext CheckTestContext;
 
 typedef struct {
-  CheckBlockId id;
-  String       description;
-  SourceLoc    source;
+  CheckBlockId   id;
+  String         description;
+  SourceLoc      source;
+  CheckTestFlags flags;
 } CheckBlock;
 
 // clang-format off
@@ -31,13 +37,14 @@ typedef struct {
 /**
  * TODO: Document
  */
-#define it(_DESCRIPTION_)                                                                          \
+#define it(_DESCRIPTION_, ...)                                                                     \
   for (CheckTestContext* _testCtx = check_visit_block(                                             \
            _specCtx,                                                                               \
            (CheckBlock){                                                                           \
              .id          = (CheckBlockId)(__COUNTER__),                                           \
              .description = string_lit(_DESCRIPTION_),                                             \
              .source      = source_location(),                                                     \
+             __VA_ARGS__                                                                           \
            });                                                                                     \
        _testCtx;                                                                                   \
        _testCtx = null)

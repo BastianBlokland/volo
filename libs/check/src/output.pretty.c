@@ -33,7 +33,7 @@ static FormatArg arg_style_reset(CheckOutputPretty* prettyOut) {
   return prettyOut->flags & CheckOutputFlags_Style ? fmt_ttystyle() : fmt_nop();
 }
 
-static FormatArg arg_style_result(CheckOutputPretty* prettyOut, CheckResultType result) {
+static FormatArg arg_style_result(CheckOutputPretty* prettyOut, const CheckResultType result) {
   const TtyFgColor color =
       result == CheckResultType_Pass ? TtyFgColor_BrightGreen : TtyFgColor_BrightRed;
   return prettyOut->flags & CheckOutputFlags_Style
@@ -41,7 +41,7 @@ static FormatArg arg_style_result(CheckOutputPretty* prettyOut, CheckResultType 
              : fmt_nop();
 }
 
-static void output_write(CheckOutputPretty* prettyOut, String str) {
+static void output_write(CheckOutputPretty* prettyOut, const String str) {
   file_write_sync(prettyOut->file, str);
 }
 
@@ -61,7 +61,7 @@ static void output_run_started(CheckOutput* out) {
   output_write(prettyOut, str);
 }
 
-static void output_tests_discovered(CheckOutput* out, usize count, TimeDuration dur) {
+static void output_tests_discovered(CheckOutput* out, const usize count, const TimeDuration dur) {
   CheckOutputPretty* prettyOut = (CheckOutputPretty*)out;
 
   const String str = fmt_write_scratch(
@@ -77,11 +77,11 @@ static void output_tests_discovered(CheckOutput* out, usize count, TimeDuration 
 }
 
 static void output_test_finished(
-    CheckOutput*      out,
-    const CheckSpec*  spec,
-    const CheckBlock* block,
-    CheckResultType   type,
-    CheckResult*      result) {
+    CheckOutput*          out,
+    const CheckSpec*      spec,
+    const CheckBlock*     block,
+    const CheckResultType type,
+    CheckResult*          result) {
 
   CheckOutputPretty* prettyOut = (CheckOutputPretty*)out;
   DynString str = dynstring_create_over(alloc_alloc(g_alloc_scratch, usize_kibibyte * 2, 1));
@@ -121,17 +121,22 @@ static void output_test_finished(
 }
 
 static void output_run_finished(
-    CheckOutput* out, CheckResultType type, TimeDuration dur, usize numFailed, usize numPassed) {
-
+    CheckOutput*          out,
+    const CheckResultType type,
+    const TimeDuration    dur,
+    const usize           numPassed,
+    const usize           numFailed,
+    const usize           numSkipped) {
   CheckOutputPretty* prettyOut = (CheckOutputPretty*)out;
 
   const String str = fmt_write_scratch(
-      "> Finished: {}{}{} [Passed: {} Failed: {}] {}({}){}\n",
+      "> Finished: {}{}{} [Passed: {} Failed: {} Skipped: {}] {}({}){}\n",
       arg_style_result(prettyOut, type),
       type == CheckResultType_Pass ? fmt_text_lit("PASS") : fmt_text_lit("FAIL"),
       arg_style_reset(prettyOut),
       fmt_int(numPassed),
       fmt_int(numFailed),
+      fmt_int(numSkipped),
       arg_style_dim(prettyOut),
       fmt_duration(dur),
       arg_style_reset(prettyOut));

@@ -14,7 +14,12 @@ struct sCheckOutput {
       CheckOutput*, const CheckSpec*, const CheckBlock*, CheckResultType, CheckResult*);
 
   void (*runFinished)(
-      CheckOutput*, CheckResultType, TimeDuration, usize numFailed, usize numPassed);
+      CheckOutput*,
+      CheckResultType,
+      TimeDuration,
+      usize numPassed,
+      usize numFailed,
+      usize numSkipped);
 
   void (*destroy)(CheckOutput*);
 };

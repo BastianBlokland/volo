@@ -44,7 +44,7 @@ static bool check_assert_handler(String msg, const SourceLoc source, void* conte
   return true; // Indicate that we've handled the assertion (so the application keeps going).
 }
 
-CheckTestContext* check_visit_block(CheckSpecContext* ctx, CheckBlock block) {
+CheckTestContext* check_visit_block(CheckSpecContext* ctx, const CheckBlock block) {
   return ctx->visitBlock(ctx, block);
 }
 
