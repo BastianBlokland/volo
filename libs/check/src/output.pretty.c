@@ -84,7 +84,7 @@ static void output_test_finished(
     CheckResult*          result) {
 
   CheckOutputPretty* prettyOut = (CheckOutputPretty*)out;
-  DynString str = dynstring_create_over(alloc_alloc(g_alloc_scratch, usize_kibibyte * 2, 1));
+  DynString          str       = dynstring_create(g_alloc_heap, 1024);
 
   fmt_write(
       &str,
@@ -118,6 +118,7 @@ static void output_test_finished(
   });
 
   output_write(prettyOut, dynstring_view(&str));
+  dynstring_destroy(&str);
 }
 
 static void output_run_finished(

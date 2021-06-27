@@ -46,8 +46,16 @@ static bool check_assert_handler(String msg, const SourceLoc source, void* conte
   return true; // Indicate that we've handled the assertion (so the application keeps going).
 }
 
-CheckTestContext* check_test(CheckSpecContext* ctx, const CheckTest test) {
-  return ctx->visitTest(ctx, test);
+bool check_visit_setup(CheckSpecContext* ctx) {
+  return (ctx->flags & CheckSpecContextFlags_Setup) != 0;
+}
+
+bool check_visit_teardown(CheckSpecContext* ctx) {
+  return (ctx->flags & CheckSpecContextFlags_Teardown) != 0;
+}
+
+CheckTestContext* check_visit_test(CheckSpecContext* ctx, const CheckTest test) {
+  return ctx->visitTest ? ctx->visitTest(ctx, test) : null;
 }
 
 CheckSpec check_spec_create(Allocator* alloc, const CheckSpecDef* def) {
@@ -57,7 +65,7 @@ CheckSpec check_spec_create(Allocator* alloc, const CheckSpecDef* def) {
   };
 
   // Discover all tests in this spec-routine.
-  ContextDiscover ctx = {.api = {check_spec_test_discover}, .spec = &spec};
+  ContextDiscover ctx = {.api = {.visitTest = check_spec_test_discover}, .spec = &spec};
   def->routine(&ctx.api);
 
   return spec;
@@ -91,7 +99,12 @@ FinishLabel:
   diag_set_assert_handler(check_assert_handler, &testCtx);
 
   // Execute the specific test.
-  ContextExec ctx = {.api = {check_spec_test_exec}, .testToExec = id, .testCtx = &testCtx};
+  ContextExec ctx = {
+      .api =
+          {.visitTest = check_spec_test_exec,
+           .flags     = CheckSpecContextFlags_Setup | CheckSpecContextFlags_Teardown},
+      .testToExec = id,
+      .testCtx    = &testCtx};
   spec->def->routine(&ctx.api);
   diag_assert_msg(testCtx.started, "Unable to find a test with id: {}", fmt_int(id));
 

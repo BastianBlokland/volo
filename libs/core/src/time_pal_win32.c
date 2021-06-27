@@ -51,5 +51,6 @@ TimeZone time_pal_zone_current() {
   case TIME_ZONE_ID_INVALID:
   default:
     diag_assert_fail("GetTimeZoneInformation() failed");
+    return 0;
   }
 }

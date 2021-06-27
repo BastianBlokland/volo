@@ -2,33 +2,29 @@
 #include "check_spec.h"
 
 /**
- * TODO: Document
+ * Definition for a TestSuite.
  */
 typedef struct sCheckDef CheckDef;
 
-/**
- * TODO: Document
- */
 typedef void (*CheckSpecRoutine)(CheckSpecContext*);
 
 /**
- * TODO: Document
+ * Register a specification to a 'CheckDef' TestSuite definition.
+ * Define specifications using the 'spec(name)' macro.
  */
 #define register_spec(_CTX_, _NAME_)                                                               \
   void spec_name(_NAME_)(CheckSpecContext*);                                                       \
   check_register_spec(_CTX_, string_lit(#_NAME_), &spec_name(_NAME_))
 
 /**
- * TODO: Document
+ * Create a new (empty) TestSuite definition.
+ * Destroy using 'check_destroy()'.
  */
 CheckDef* check_create(Allocator*);
 
 /**
- * TODO: Document
+ * Destroy a TestSuite definition.
  */
 void check_destroy(CheckDef*);
 
-/**
- * TODO: Document
- */
 void check_register_spec(CheckDef*, String name, CheckSpecRoutine);

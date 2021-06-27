@@ -11,8 +11,8 @@ int main() {
 
   CheckDef* check = check_create(g_alloc_heap);
 
-  register_spec(check, a);
-  register_spec(check, b);
+  register_spec(check, dynarray);
+  register_spec(check, fizzbuzz);
 
   const CheckResultType res = check_run(check);
   check_destroy(check);

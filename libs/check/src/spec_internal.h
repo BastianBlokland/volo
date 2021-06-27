@@ -6,8 +6,15 @@
 #include "def_internal.h"
 #include "result.h"
 
+typedef enum {
+  CheckSpecContextFlags_None     = 0,
+  CheckSpecContextFlags_Setup    = 1 << 0,
+  CheckSpecContextFlags_Teardown = 1 << 1,
+} CheckSpecContextFlags;
+
 struct sCheckSpecContext {
   CheckTestContext* (*visitTest)(CheckSpecContext*, CheckTest);
+  CheckSpecContextFlags flags;
 };
 
 struct sCheckTestContext {
