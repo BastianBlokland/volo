@@ -5,7 +5,14 @@
 #include "core_types.h"
 
 /**
- * Fail the program with the message '_MSG_' if the given condition evaluates to false.
+ * Handler to be invoked when an assertion fails.
+ * If 'true' is returned the assertion is ignored.
+ * if 'false' is returned the application is terminated.
+ */
+typedef bool (*AssertHandler)(String msg, SourceLoc, void* context);
+
+/**
+ * Assert the given condition evaluates to true.
  */
 #define diag_assert_msg(_CONDITION_, _MSG_FORMAT_LIT_, ...)                                        \
   do {                                                                                             \
@@ -15,7 +22,7 @@
   } while (false)
 
 /**
- * Fail the program if the given condition evaluates to false.
+ * Assert the given condition evaluates to true.
  */
 #define diag_assert(_CONDITION_) diag_assert_msg(_CONDITION_, #_CONDITION_)
 
@@ -32,10 +39,10 @@
   diag_print_err_raw(fmt_write_scratch(_MSG_FORMAT_LIT_, __VA_ARGS__))
 
 /**
- * Indicate that an assertion has failed, print the given message and crashes the program.
+ * Report that an assertion has failed.
  */
 #define diag_assert_fail(_MSG_FORMAT_LIT_, ...)                                                    \
-  diag_assert_fail_raw(fmt_write_scratch(_MSG_FORMAT_LIT_, __VA_ARGS__), source_location())
+  diag_assert_report_fail(fmt_write_scratch(_MSG_FORMAT_LIT_, __VA_ARGS__), source_location())
 
 /**
  * Print a message to the stdout stream.
@@ -48,11 +55,21 @@ void diag_print_raw(String msg);
 void diag_print_err_raw(String msg);
 
 /**
- * Indicate that an assertion has failed, print the given message and crashes the program.
+ * Report that an assertion has failed.
  */
-NORETURN void diag_assert_fail_raw(String msg, SourceLoc);
+void diag_assert_report_fail(String msg, SourceLoc);
 
 /**
  * Crash the program, will halt if running in a debugger.
  */
 NORETURN void diag_crash();
+
+/**
+ * Set the assert handler for the current thread.
+ * If a assert handler is registered it is invoked whenever an assert is tripped.
+ * 'context' is provided to the assert handler when its invoked.
+ *
+ * Note: Only a single assert handler can be registered per thread, the previous will be replaced.
+ * Note: Invoke with 'null' to clear the current assert handler for this thread.
+ */
+void diag_set_assert_handler(AssertHandler, void* context);

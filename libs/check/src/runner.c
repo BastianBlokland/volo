@@ -21,7 +21,7 @@ static void
 check_write_result(const CheckSpec* spec, const CheckBlock* block, CheckResult* result) {
   DynString str = dynstring_create_over(alloc_alloc(g_alloc_scratch, usize_kibibyte * 2, 1));
 
-  const bool      fail       = result->type == CheckResultType_Failure;
+  const bool      fail       = result->errors.size != 0;
   File*           outputFile = fail ? g_file_stderr : g_file_stdout;
   const FormatArg styleColor = tty_isatty(outputFile)
                                    ? fmt_ttystyle(
@@ -64,7 +64,7 @@ static void check_run_block(void* context) {
   CheckResult* result = check_exec_block(g_alloc_heap, runCtx->spec, runCtx->block->id);
   check_write_result(runCtx->spec, runCtx->block, result);
 
-  if (result->type == CheckResultType_Failure) {
+  if (result->errors.size) {
     // If one block fails mark the entire run as failed.
     *runCtx->totalResult = CheckRunResult_Failure;
   }

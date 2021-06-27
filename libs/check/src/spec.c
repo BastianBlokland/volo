@@ -1,3 +1,4 @@
+#include "check_spec.h"
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_time.h"
@@ -38,6 +39,11 @@ static CheckTestContext* check_spec_block_exec(CheckSpecContext* ctx, CheckBlock
   return execCtx->blockCtx;
 }
 
+static bool check_assert_handler(String msg, const SourceLoc source, void* context) {
+  check_report_error(context, msg, source);
+  return true; // Indicate that we've handled the assertion (so the application keeps going).
+}
+
 CheckTestContext* check_visit_block(CheckSpecContext* ctx, CheckBlock block) {
   return ctx->visitBlock(ctx, block);
 }
@@ -60,37 +66,39 @@ void check_spec_destroy(CheckSpec* spec) { dynarray_destroy(&spec->blocks); }
 CheckResult* check_exec_block(Allocator* alloc, const CheckSpec* spec, const CheckBlockId id) {
 
   CheckResult*     result    = check_result_create(alloc);
-  CheckTestContext blockCtx  = {.result = result};
+  CheckTestContext testCtx   = {.result = result};
   const TimeSteady startTime = time_steady_clock();
 
-  // Finishing an exec block will longjmp here.
-  const CheckResultType resultType = setjmp(blockCtx.finishJumpDest);
-  if (resultType != CheckResultType_None) {
+  // Early-out in an exec block will longjmp here.
+  bool finished = setjmp(testCtx.finishJumpDest);
+FinishLabel:
+  if (finished) {
+
+    // Clear our registered assertion handler.
+    diag_set_assert_handler(null, null);
 
     const TimeSteady   endTime  = time_steady_clock();
     const TimeDuration duration = time_steady_duration(startTime, endTime);
 
-    check_result_finish(result, resultType, duration);
+    check_result_finish(result, duration);
     return result;
   }
 
-  // Execute the specific block.
-  ContextExec ctx = {.api = {check_spec_block_exec}, .blockToExec = id, .blockCtx = &blockCtx};
-  spec->def->routine(&ctx.api);
-  diag_assert_msg(blockCtx.started, "Unable to find a block with id: {}", fmt_int(id));
+  // Register an assertion handler to report assertion failures as test errors instead of
+  // terminating the program.
+  diag_set_assert_handler(check_assert_handler, &testCtx);
 
-  // Not calling 'check_finish_failure' or 'check_finish_success' is considered a success too.
-  check_finish_success(&blockCtx);
+  // Execute the specific block.
+  ContextExec ctx = {.api = {check_spec_block_exec}, .blockToExec = id, .blockCtx = &testCtx};
+  spec->def->routine(&ctx.api);
+  diag_assert_msg(testCtx.started, "Unable to find a block with id: {}", fmt_int(id));
+
+  finished = true;
+  goto FinishLabel;
 }
 
 void check_report_error(CheckTestContext* ctx, String msg, const SourceLoc source) {
   check_result_error(ctx->result, msg, source);
 }
 
-NORETURN void check_finish_failure(CheckTestContext* ctx) {
-  longjmp(ctx->finishJumpDest, CheckResultType_Failure);
-}
-
-NORETURN void check_finish_success(CheckTestContext* ctx) {
-  longjmp(ctx->finishJumpDest, CheckResultType_Success);
-}
+NORETURN void check_finish(CheckTestContext* ctx) { longjmp(ctx->finishJumpDest, true); }

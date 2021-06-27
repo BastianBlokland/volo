@@ -42,11 +42,7 @@ typedef struct {
        _testCtx;                                                                                   \
        _testCtx = null)
 
-#define check_success()                                                                            \
-  check_finish_success(_testCtx)
-
-#define check_failure()                                                                            \
-  check_finish_failure(_testCtx)
+#define check_early_out() check_finish(_testCtx)
 
 #define check_error(_MSG_FORMAT_LIT_, ...)                                                         \
   check_report_error(                                                                              \
@@ -58,7 +54,7 @@ typedef struct {
   do {                                                                                             \
     if (UNLIKELY(!(_CONDITION_))) {                                                                \
       check_error(_MSG_FORMAT_LIT_, __VA_ARGS__);                                                  \
-      check_failure();                                                                             \
+      check_early_out();                                                                           \
     }                                                                                              \
   } while (false)
 
@@ -81,5 +77,4 @@ typedef struct {
 
 CheckTestContext* check_visit_block(CheckSpecContext*, CheckBlock);
 void              check_report_error(CheckTestContext*, String msg, SourceLoc);
-NORETURN void     check_finish_failure(CheckTestContext*);
-NORETURN void     check_finish_success(CheckTestContext*);
+NORETURN void     check_finish(CheckTestContext*);
