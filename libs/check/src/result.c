@@ -36,7 +36,7 @@ void check_result_finish(
 
   diag_assert_msg(result->type == CheckResultType_None, "Result is already finished");
 
-  diag_assert_msg(duration > 0, "Duration {} is not valid", fmt_duration(duration));
+  diag_assert_msg(duration >= 0, "Negative duration {} is not valid", fmt_duration(duration));
 
   result->type     = type;
   result->duration = duration;
