@@ -79,7 +79,7 @@ static void output_tests_discovered(CheckOutput* out, const usize count, const T
 static void output_test_finished(
     CheckOutput*          out,
     const CheckSpec*      spec,
-    const CheckBlock*     block,
+    const CheckTest*      test,
     const CheckResultType type,
     CheckResult*          result) {
 
@@ -99,7 +99,7 @@ static void output_test_finished(
       arg_style_bold(prettyOut),
       fmt_text(spec->def->name),
       arg_style_reset(prettyOut),
-      fmt_text(block->description),
+      fmt_text(test->description),
       arg_style_dim(prettyOut),
       fmt_duration(result->duration),
       arg_style_reset(prettyOut));

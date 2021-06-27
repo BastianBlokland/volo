@@ -11,7 +11,7 @@ struct sCheckOutput {
   void (*testsDiscovered)(CheckOutput*, usize count, TimeDuration);
 
   void (*testFinished)(
-      CheckOutput*, const CheckSpec*, const CheckBlock*, CheckResultType, CheckResult*);
+      CheckOutput*, const CheckSpec*, const CheckTest*, CheckResultType, CheckResult*);
 
   void (*runFinished)(
       CheckOutput*,

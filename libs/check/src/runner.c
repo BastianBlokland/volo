@@ -18,22 +18,22 @@ typedef struct {
 } CheckRunContext;
 
 typedef struct {
-  const CheckSpec*  spec;
-  const CheckBlock* block;
-  CheckRunContext*  ctx;
+  const CheckSpec* spec;
+  const CheckTest* test;
+  CheckRunContext* ctx;
 } CheckTaskData;
 
 static void check_test_task(void* context) {
   CheckTaskData* data = context;
 
   // Execute the test.
-  CheckResult*          result = check_exec_block(g_alloc_heap, data->spec, data->block->id);
+  CheckResult*          result = check_exec_test(g_alloc_heap, data->spec, data->test->id);
   const CheckResultType type   = result->errors.size ? CheckResultType_Fail : CheckResultType_Pass;
 
   // Report the result.
   for (usize i = 0; i != data->ctx->outputsCount; ++i) {
     CheckOutput* out = data->ctx->outputs[i];
-    out->testFinished(out, data->spec, data->block, type, result);
+    out->testFinished(out, data->spec, data->test, type, result);
   }
   if (type == CheckResultType_Fail) {
     thread_atomic_add_i64(&data->ctx->numFailedTests, 1);
@@ -60,7 +60,7 @@ CheckResultType check_run(CheckDef* check) {
   dynarray_for_t(&check->specs, CheckSpecDef, specDef, {
     CheckSpec spec = check_spec_create(g_alloc_heap, specDef);
     focus |= spec.focus;
-    numTests += spec.blocks.size;
+    numTests += spec.tests.size;
     *dynarray_push_t(&specs, CheckSpec) = spec;
   });
 
@@ -72,17 +72,17 @@ CheckResultType check_run(CheckDef* check) {
   JobGraph* graph      = jobs_graph_create(g_alloc_heap, string_lit("tests"), numTests);
   usize     numSkipped = 0;
   dynarray_for_t(&specs, CheckSpec, spec, {
-    // Create tasks to execute all blocks in the spec.
-    dynarray_for_t(&spec->blocks, CheckBlock, block, {
-      if (block->flags & CheckTestFlags_Skip || (focus && !(block->flags & CheckTestFlags_Focus))) {
+    // Create tasks to execute all tests in the spec.
+    dynarray_for_t(&spec->tests, CheckTest, test, {
+      if (test->flags & CheckTestFlags_Skip || (focus && !(test->flags & CheckTestFlags_Focus))) {
         ++numSkipped;
         continue;
       }
       jobs_graph_add_task(
           graph,
-          fmt_write_scratch("{}-{}", fmt_text(spec->def->name), fmt_int(block->id)),
+          fmt_write_scratch("{}-{}", fmt_text(spec->def->name), fmt_int(test->id)),
           check_test_task,
-          mem_struct(CheckTaskData, .spec = spec, .block = block, .ctx = &ctx));
+          mem_struct(CheckTaskData, .spec = spec, .test = test, .ctx = &ctx));
     });
   });
 

@@ -11,17 +11,17 @@ typedef enum {
   CheckTestFlags_Focus = 1 << 1,
 } CheckTestFlags;
 
-typedef u32 CheckBlockId;
+typedef u32 CheckTestId;
 
 typedef struct sCheckSpecContext CheckSpecContext;
 typedef struct sCheckTestContext CheckTestContext;
 
 typedef struct {
-  CheckBlockId   id;
+  CheckTestId    id;
   String         description;
   SourceLoc      source;
   CheckTestFlags flags;
-} CheckBlock;
+} CheckTest;
 
 // clang-format off
 
@@ -43,10 +43,10 @@ typedef struct {
  * TODO: Document
  */
 #define it(_DESCRIPTION_, ...)                                                                     \
-  for (CheckTestContext* _testCtx = check_visit_block(                                             \
+  for (CheckTestContext* _testCtx = check_test(                                                    \
            _specCtx,                                                                               \
-           (CheckBlock){                                                                           \
-             .id          = (CheckBlockId)(__COUNTER__),                                           \
+           (CheckTest){                                                                            \
+             .id          = (CheckTestId)(__COUNTER__),                                            \
              .description = string_lit(_DESCRIPTION_),                                             \
              .source      = source_location(),                                                     \
              __VA_ARGS__                                                                           \
@@ -87,6 +87,6 @@ typedef struct {
 
 // clang-format on
 
-CheckTestContext* check_visit_block(CheckSpecContext*, CheckBlock);
+CheckTestContext* check_test(CheckSpecContext*, CheckTest);
 void              check_report_error(CheckTestContext*, String msg, SourceLoc);
 NORETURN void     check_finish(CheckTestContext*);

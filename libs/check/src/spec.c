@@ -12,33 +12,33 @@ typedef struct {
 
 typedef struct {
   CheckSpecContext  api;
-  CheckBlockId      blockToExec;
-  CheckTestContext* blockCtx;
+  CheckTestId       testToExec;
+  CheckTestContext* testCtx;
 } ContextExec;
 
 /**
- * Discovers all spec-blocks without executing them.
+ * Discovers all tests without executing them.
  */
-static CheckTestContext* check_spec_block_discover(CheckSpecContext* ctx, CheckBlock block) {
+static CheckTestContext* check_spec_test_discover(CheckSpecContext* ctx, CheckTest test) {
   ContextDiscover* discoverCtx = (ContextDiscover*)ctx;
 
-  discoverCtx->spec->focus |= block.flags & CheckTestFlags_Focus;
+  discoverCtx->spec->focus |= test.flags & CheckTestFlags_Focus;
 
-  *dynarray_push_t(&discoverCtx->spec->blocks, CheckBlock) = block;
+  *dynarray_push_t(&discoverCtx->spec->tests, CheckTest) = test;
   return null;
 }
 
 /**
- * Execute a specific block in the spec.
+ * Execute a specific test in the spec.
  */
-static CheckTestContext* check_spec_block_exec(CheckSpecContext* ctx, CheckBlock block) {
+static CheckTestContext* check_spec_test_exec(CheckSpecContext* ctx, CheckTest test) {
   ContextExec* execCtx = (ContextExec*)ctx;
 
-  if (block.id != execCtx->blockToExec) {
+  if (test.id != execCtx->testToExec) {
     return null;
   }
-  execCtx->blockCtx->started = true;
-  return execCtx->blockCtx;
+  execCtx->testCtx->started = true;
+  return execCtx->testCtx;
 }
 
 static bool check_assert_handler(String msg, const SourceLoc source, void* context) {
@@ -46,32 +46,32 @@ static bool check_assert_handler(String msg, const SourceLoc source, void* conte
   return true; // Indicate that we've handled the assertion (so the application keeps going).
 }
 
-CheckTestContext* check_visit_block(CheckSpecContext* ctx, const CheckBlock block) {
-  return ctx->visitBlock(ctx, block);
+CheckTestContext* check_test(CheckSpecContext* ctx, const CheckTest test) {
+  return ctx->visitTest(ctx, test);
 }
 
 CheckSpec check_spec_create(Allocator* alloc, const CheckSpecDef* def) {
   CheckSpec spec = {
-      .def    = def,
-      .blocks = dynarray_create_t(alloc, CheckBlock, 64),
+      .def   = def,
+      .tests = dynarray_create_t(alloc, CheckTest, 64),
   };
 
-  // Discover all blocks in this spec-routine.
-  ContextDiscover ctx = {.api = {check_spec_block_discover}, .spec = &spec};
+  // Discover all tests in this spec-routine.
+  ContextDiscover ctx = {.api = {check_spec_test_discover}, .spec = &spec};
   def->routine(&ctx.api);
 
   return spec;
 }
 
-void check_spec_destroy(CheckSpec* spec) { dynarray_destroy(&spec->blocks); }
+void check_spec_destroy(CheckSpec* spec) { dynarray_destroy(&spec->tests); }
 
-CheckResult* check_exec_block(Allocator* alloc, const CheckSpec* spec, const CheckBlockId id) {
+CheckResult* check_exec_test(Allocator* alloc, const CheckSpec* spec, const CheckTestId id) {
 
   CheckResult*     result    = check_result_create(alloc);
   CheckTestContext testCtx   = {.result = result};
   const TimeSteady startTime = time_steady_clock();
 
-  // Early-out in an exec block will longjmp here.
+  // Early-out in a test will longjmp here.
   bool finished = setjmp(testCtx.finishJumpDest);
 FinishLabel:
   if (finished) {
@@ -90,10 +90,10 @@ FinishLabel:
   // terminating the program.
   diag_set_assert_handler(check_assert_handler, &testCtx);
 
-  // Execute the specific block.
-  ContextExec ctx = {.api = {check_spec_block_exec}, .blockToExec = id, .blockCtx = &testCtx};
+  // Execute the specific test.
+  ContextExec ctx = {.api = {check_spec_test_exec}, .testToExec = id, .testCtx = &testCtx};
   spec->def->routine(&ctx.api);
-  diag_assert_msg(testCtx.started, "Unable to find a block with id: {}", fmt_int(id));
+  diag_assert_msg(testCtx.started, "Unable to find a test with id: {}", fmt_int(id));
 
   finished = true;
   goto FinishLabel;

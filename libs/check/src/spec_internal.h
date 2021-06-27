@@ -7,21 +7,21 @@
 #include "result.h"
 
 struct sCheckSpecContext {
-  CheckTestContext* (*visitBlock)(CheckSpecContext*, CheckBlock);
+  CheckTestContext* (*visitTest)(CheckSpecContext*, CheckTest);
 };
 
 struct sCheckTestContext {
   bool         started;
   CheckResult* result;
-  jmp_buf      finishJumpDest; // Spec blocks can longjmp here to early out, arg: CheckBlockResult.
+  jmp_buf      finishJumpDest; // Tests can longjmp here to early out.
 };
 
 typedef struct {
   const CheckSpecDef* def;
-  DynArray            blocks; // CheckBlock[].
-  bool                focus;  // Indicates that one or more tests has focus.
+  DynArray            tests; // CheckTest[].
+  bool                focus; // Indicates that one or more tests has focus.
 } CheckSpec;
 
 CheckSpec    check_spec_create(Allocator*, const CheckSpecDef*);
 void         check_spec_destroy(CheckSpec*);
-CheckResult* check_exec_block(Allocator*, const CheckSpec*, CheckBlockId);
+CheckResult* check_exec_test(Allocator*, const CheckSpec*, CheckTestId);
