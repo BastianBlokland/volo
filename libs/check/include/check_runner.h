@@ -5,11 +5,11 @@
  * Test run result code.
  */
 typedef enum {
-  CheckRunResult_Success = 0,
-  CheckRunResult_Failure = 1,
-} CheckRunResult;
+  CheckResultType_Pass = 0,
+  CheckResultType_Fail = 1,
+} CheckResultType;
 
 /**
  * TODO: Document
  */
-CheckRunResult check_run(CheckDef*);
+CheckResultType check_run(CheckDef*);

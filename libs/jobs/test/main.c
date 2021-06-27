@@ -16,7 +16,7 @@ int main() {
   register_spec(check, graph);
   register_spec(check, scheduler);
 
-  const CheckRunResult res = check_run(check);
+  const CheckResultType res = check_run(check);
   check_destroy(check);
 
   jobs_teardown();

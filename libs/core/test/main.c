@@ -38,7 +38,7 @@ int main() {
   register_spec(check, utf8);
   register_spec(check, winutils);
 
-  const CheckRunResult res = check_run(check);
+  const CheckResultType res = check_run(check);
   check_destroy(check);
 
   jobs_teardown();

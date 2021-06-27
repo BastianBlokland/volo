@@ -14,7 +14,7 @@ int main() {
   register_spec(check, a);
   register_spec(check, b);
 
-  const CheckRunResult res = check_run(check);
+  const CheckResultType res = check_run(check);
   check_destroy(check);
 
   jobs_teardown();

@@ -6,6 +6,8 @@ message(STATUS "Configuring check library")
 
 add_library(volo_check STATIC
   src/def.c
+  src/output.c
+  src/output.pretty.c
   src/result.c
   src/runner.c
   src/spec.c)

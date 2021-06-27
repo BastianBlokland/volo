@@ -1,7 +1,6 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_file.h"
-#include "core_format.h"
-#include "core_path.h"
 #include "core_thread.h"
 
 #include "jobs_graph.h"
@@ -9,116 +8,95 @@
 
 #include "check_runner.h"
 
+#include "output.pretty.h"
 #include "spec_internal.h"
+
+typedef struct {
+  CheckOutput** outputs;
+  usize         outputsCount;
+  i64           numFailedTests;
+} CheckRunContext;
 
 typedef struct {
   const CheckSpec*  spec;
   const CheckBlock* block;
-  CheckRunResult*   totalResult;
-} CheckRunBlockContext;
+  CheckRunContext*  ctx;
+} CheckTaskData;
 
-static void
-check_write_result(const CheckSpec* spec, const CheckBlock* block, CheckResult* result) {
-  DynString str = dynstring_create_over(alloc_alloc(g_alloc_scratch, usize_kibibyte * 2, 1));
+static void check_test_task(void* context) {
+  CheckTaskData* data = context;
 
-  const bool      fail       = result->errors.size != 0;
-  File*           outputFile = fail ? g_file_stderr : g_file_stdout;
-  const FormatArg styleColor = tty_isatty(outputFile)
-                                   ? fmt_ttystyle(
-                                             .fgColor = fail ? TtyFgColor_Red : TtyFgColor_Green,
-                                             .flags   = TtyStyleFlags_Bold)
-                                   : fmt_nop();
-  const FormatArg styleReset = tty_isatty(outputFile) ? fmt_ttystyle() : fmt_nop();
+  // Execute the test.
+  CheckResult*          result = check_exec_block(g_alloc_heap, data->spec, data->block->id);
+  const CheckResultType type   = result->errors.size ? CheckResultType_Fail : CheckResultType_Pass;
 
-  fmt_write(
-      &str,
-      "[ {}{<7}{} {<7} ] ",
-      styleColor,
-      fail ? fmt_text_lit("Failed") : fmt_text_lit("Passed"),
-      styleReset,
-      fmt_duration(result->duration));
-
-  fmt_write(&str, "{}: {}\n", fmt_text(spec->def->name), fmt_text(block->description));
-
-  dynarray_for_t(&result->errors, CheckError, err, {
-    fmt_write(
-        &str,
-        "{<19}{}->{} {}:{}: {}{}{}\n",
-        fmt_nop(),
-        styleColor,
-        styleReset,
-        fmt_path(err->source.file),
-        fmt_int(err->source.line),
-        styleColor,
-        fmt_text(err->msg),
-        styleReset);
-  });
-
-  file_write_sync(outputFile, dynstring_view(&str));
-  dynstring_destroy(&str);
-}
-
-static void check_run_block(void* context) {
-  CheckRunBlockContext* runCtx = context;
-
-  CheckResult* result = check_exec_block(g_alloc_heap, runCtx->spec, runCtx->block->id);
-  check_write_result(runCtx->spec, runCtx->block, result);
-
-  if (result->errors.size) {
-    // If one block fails mark the entire run as failed.
-    *runCtx->totalResult = CheckRunResult_Failure;
+  // Report the result.
+  for (usize i = 0; i != data->ctx->outputsCount; ++i) {
+    CheckOutput* out = data->ctx->outputs[i];
+    out->testFinished(out, data->spec, data->block, type, result);
+  }
+  if (type == CheckResultType_Fail) {
+    thread_atomic_add_i64(&data->ctx->numFailedTests, 1);
   }
 
   check_result_destroy(result);
 }
 
-CheckRunResult check_run(CheckDef* check) {
+CheckResultType check_run(CheckDef* check) {
+  const TimeSteady startTime = time_steady_clock();
 
-  String   testSuiteName = path_stem(g_path_executable);
-  DynArray specs         = dynarray_create_t(g_alloc_heap, CheckSpec, 64);
+  // Setup outputs.
+  CheckOutput* outputs[] = {
+      check_output_pretty_create(g_alloc_heap, g_file_stdout),
+  };
+  CheckRunContext ctx = {.outputs = outputs, .outputsCount = array_elems(outputs)};
 
-  // Gather all test blocks.
-  usize totalBlocks = 0;
+  array_for_t(outputs, CheckOutput*, out, { (*out)->runStarted(*out); });
+
+  // Discover all tests.
+  DynArray specs      = dynarray_create_t(g_alloc_heap, CheckSpec, 64);
+  usize    totalTests = 0;
   dynarray_for_t(&check->specs, CheckSpecDef, specDef, {
     CheckSpec spec = check_spec_create(g_alloc_heap, specDef);
-    totalBlocks += spec.blocks.size;
+    totalTests += spec.blocks.size;
     *dynarray_push_t(&specs, CheckSpec) = spec;
   });
 
-  file_write_sync(
-      g_file_stdout,
-      fmt_write_scratch(
-          "{}: Running {} tests... (pid: {}) \n",
-          fmt_text(testSuiteName),
-          fmt_int(totalBlocks),
-          fmt_int(g_thread_pid)));
+  const TimeDuration discoveryTime = time_steady_duration(startTime, time_steady_clock());
+  array_for_t(
+      outputs, CheckOutput*, out, { (*out)->testsDiscovered(*out, totalTests, discoveryTime); });
 
-  CheckRunResult result = CheckRunResult_Success;
-
-  // Create a job graph with tasks to execute all blocks.
-  JobGraph* graph = jobs_graph_create(g_alloc_heap, testSuiteName, totalBlocks);
+  // Create a job graph with tasks to execute all tests.
+  JobGraph* graph = jobs_graph_create(g_alloc_heap, string_lit("tests"), totalTests);
   dynarray_for_t(&specs, CheckSpec, spec, {
+    // Create tasks to execute all blocks in the spec.
     dynarray_for_t(&spec->blocks, CheckBlock, block, {
       jobs_graph_add_task(
           graph,
           fmt_write_scratch("{}-{}", fmt_text(spec->def->name), fmt_int(block->id)),
-          check_run_block,
-          mem_struct(CheckRunBlockContext, .spec = spec, .block = block, .totalResult = &result));
+          check_test_task,
+          mem_struct(CheckTaskData, .spec = spec, .block = block, .ctx = &ctx));
     });
   });
 
   // Execute all tasks.
   jobs_scheduler_wait_help(jobs_scheduler_run(graph));
 
-  file_write_sync(
-      g_file_stdout,
-      fmt_write_scratch(
-          "Finished: {}\n",
-          result == CheckRunResult_Failure ? fmt_text_lit("Failed") : fmt_text_lit("Passed")));
+  // Observe the results.
+  const usize           numFailed  = ctx.numFailedTests;
+  const usize           numPassed  = totalTests - numFailed;
+  const CheckResultType resultType = numFailed ? CheckResultType_Fail : CheckResultType_Pass;
+  const TimeDuration    runTime    = time_steady_duration(startTime, time_steady_clock());
+
+  array_for_t(outputs, CheckOutput*, out, {
+    (*out)->runFinished(*out, resultType, runTime, numFailed, numPassed);
+  });
 
   // Cleanup.
   jobs_graph_destroy(graph);
   dynarray_for_t(&specs, CheckSpec, spec, { check_spec_destroy(spec); });
   dynarray_destroy(&specs);
-  return result;
+
+  array_for_t(outputs, CheckOutput*, out, { (*out)->destroy(*out); });
+  return resultType;
 }
