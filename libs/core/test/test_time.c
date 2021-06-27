@@ -4,8 +4,6 @@
 
 spec(time) {
 
-  it("returns a positive integer from the steady-clock") { check(time_steady_clock() > 0); }
-
   it("can compute the day-of-the-week from a real-time") {
     const TimeReal e = time_real_epoch;
 
