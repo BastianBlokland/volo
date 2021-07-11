@@ -75,7 +75,7 @@ void rng_init_thread() {
 
 f32 rng_sample_f32(Rng* rng) {
   diag_assert_msg(rng, "rng_next: Rng is not initialized");
-  const static f32 toFloat = 1.0f / ((f32)u32_max + 1.0f); // +1 to never return 1.0.
+  static const f32 toFloat = 1.0f / ((f32)u32_max + 1.0f); // +1 to never return 1.0.
   return rng->next(rng) * toFloat;
 }
 
