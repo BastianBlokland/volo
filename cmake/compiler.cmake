@@ -57,7 +57,8 @@ macro(set_gcc_compile_options)
   message(STATUS "Configuring gcc compile options")
 
   # Setup warning flags.
-  add_compile_options(-Wall -Wextra -Werror -Wno-override-init -Wgnu-empty-initializer -Wshadow)
+  add_compile_options(-Wall -Wextra -Werror -Wno-override-init -Wno-missing-field-initializers
+                      -Wno-type-limits -Wno-implicit-fallthrough -Wno-clobbered -Wshadow)
 
   # TODO: Tie these debug options to a configuration knob.
   add_compile_options(-g -fno-omit-frame-pointer)

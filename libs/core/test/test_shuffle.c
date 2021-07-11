@@ -7,7 +7,7 @@
 spec(shuffle) {
 
   it("can shuffle values using the fisheryates algorithm") {
-    const static u64 seed = 42;
+    static const u64 seed = 42;
 
     Allocator* alloc = alloc_bump_create_stack(256);
     Rng*       rng   = rng_create_xorwow(alloc, seed);

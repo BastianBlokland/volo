@@ -7,14 +7,14 @@
 spec(rng) {
 
   it("can sample floats with a uniform distribution") {
-    const static usize iterations = 10000;
-    const static u64   seed       = 42;
+    static const usize iterations = 10000;
+    static const u64   seed       = 42;
 
     Allocator* alloc = alloc_bump_create_stack(256);
     Rng*       rng   = rng_create_xorwow(alloc, seed);
 
     float sum = 0.0f;
-    for (i32 i = 0; i != iterations; ++i) {
+    for (usize i = 0; i != iterations; ++i) {
       const f32 rnd = rng_sample_f32(rng);
       check(rnd >= 0.0f);
       check(rnd < 1.0f);
@@ -30,14 +30,14 @@ spec(rng) {
   }
 
   it("can sample floats with a gaussian distribution") {
-    const static usize iterations = 10000;
-    const static u64   seed       = 42;
+    static const usize iterations = 10000;
+    static const u64   seed       = 42;
 
     Allocator* alloc = alloc_bump_create_stack(256);
     Rng*       rng   = rng_create_xorwow(alloc, seed);
 
     float sum = 0.0f;
-    for (i32 i = 0; i != iterations; ++i) {
+    for (usize i = 0; i != iterations; ++i) {
       const RngGaussPairF32 rnd = rng_sample_gauss_f32(rng);
       sum += rnd.a;
       sum += rnd.b;
@@ -52,13 +52,13 @@ spec(rng) {
   }
 
   it("can sample random values in a specific range") {
-    const static usize iterations = 100;
-    const static u64   seed       = 42;
+    static const usize iterations = 100;
+    static const u64   seed       = 42;
 
     Allocator* alloc = alloc_bump_create_stack(256);
     Rng*       rng   = rng_create_xorwow(alloc, seed);
 
-    for (i32 i = 0; i != iterations; ++i) {
+    for (usize i = 0; i != iterations; ++i) {
       i32 val = rng_sample_range(rng, -10, 20);
       check(val >= -10);
       check(val < 20);
@@ -70,7 +70,7 @@ spec(rng) {
   it("returns consistent sample results using xorwow with a fixed seed") {
     Allocator* alloc = alloc_bump_create_stack(256);
 
-    const static u64 seed = 42;
+    static const u64 seed = 42;
     Rng*             rng  = rng_create_xorwow(alloc, seed);
     f32              rnd;
 

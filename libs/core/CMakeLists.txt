@@ -43,6 +43,10 @@ add_library(volo_core STATIC
   src/utf8.c
   src/winutils.c)
 target_include_directories(volo_core PUBLIC include)
+if(${VOLO_PLATFORM} STREQUAL "linux")
+  # Link against the math library on linux.
+  target_link_libraries(volo_core PRIVATE m)
+endif()
 
 add_executable(volo_core_test
   test/main.c
