@@ -124,6 +124,12 @@ typedef struct {
   check_msg(_A_ == _B_, "{} == {}", fmt_int(_A_), fmt_int(_B_))
 
 /**
+ * Check if two integers are not equal.
+ */
+#define check_neq_int(_A_, _B_)                                                                     \
+  check_msg(_A_ != _B_, "{} != {}", fmt_int(_A_), fmt_int(_B_))
+
+/**
  * Check if two floats are within a certain threshold of eachother.
  */
 #define check_eq_float(_A_, _B_, _THRESHOLD_)                                                      \

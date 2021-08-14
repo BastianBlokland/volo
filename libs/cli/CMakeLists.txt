@@ -12,5 +12,5 @@ target_link_libraries(volo_cli PUBLIC volo_core)
 add_executable(volo_cli_test
   test/main.c
   test/test_app.c)
-target_link_libraries(volo_cli_test PRIVATE volo_jobs)
+target_link_libraries(volo_cli_test PRIVATE volo_cli)
 target_link_libraries(volo_cli_test PRIVATE volo_check)
