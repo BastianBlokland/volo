@@ -20,6 +20,7 @@ spec(format) {
         {&fmt_duration(time_minute), string_lit("1m")},
         {&fmt_size(usize_mebibyte), string_lit("1MiB")},
         {&fmt_text_lit("Hello World"), string_lit("Hello World")},
+        {&fmt_char('a'), string_lit("a")},
         {&fmt_path(string_lit("c:\\hello")), string_lit("C:/hello")},
     };
 

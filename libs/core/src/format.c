@@ -181,6 +181,9 @@ void format_write_arg(DynString* str, const FormatArg* arg) {
   case FormatArgType_Text:
     format_write_text(str, arg->value_text, arg->settings);
     break;
+  case FormatArgType_Char:
+    format_write_char(str, arg->value_char, arg->settings);
+    break;
   case FormatArgType_Path:
     path_canonize(str, arg->value_path);
     break;
@@ -447,7 +450,10 @@ void format_write_size_pretty(DynString* str, const usize val) {
 }
 
 void format_write_text(DynString* str, String val, const FormatOptsText* opts) {
+  mem_for_u8(val, byte, { format_write_char(str, byte, opts); });
+}
 
+void format_write_char(DynString* str, const u8 val, const FormatOptsText* opts) {
   static struct {
     u8     byte;
     String escapeSeq;
@@ -462,25 +468,21 @@ void format_write_text(DynString* str, String val, const FormatOptsText* opts) {
       {'\0', string_static("\\0")},
   };
 
-  mem_for_u8(val, byte, {
-    if (opts->flags & FormatTextFlags_EscapeNonPrintAscii && !ascii_is_printable(byte)) {
-      // If we have a well-known sequence for this byte we apply it.
-      for (size_t i = 0; i != array_elems(escapes); ++i) {
-        if (escapes[i].byte == byte) {
-          dynstring_append(str, escapes[i].escapeSeq);
-          goto byte_end;
-        }
+  if (opts->flags & FormatTextFlags_EscapeNonPrintAscii && !ascii_is_printable(val)) {
+    // If we have a well-known sequence for this byte we apply it.
+    for (size_t i = 0; i != array_elems(escapes); ++i) {
+      if (escapes[i].byte == val) {
+        dynstring_append(str, escapes[i].escapeSeq);
+        return;
       }
-      // Otherwise escape it as \hex.
-      dynstring_append_char(str, '\\');
-      format_write_int(str, byte, .base = 16, .minDigits = 2);
-      goto byte_end;
     }
-    // No escape needed: write verbatim.
-    dynstring_append_char(str, byte);
-  byte_end:
-    continue;
-  });
+    // Otherwise escape it as \hex.
+    dynstring_append_char(str, '\\');
+    format_write_int(str, val, .base = 16, .minDigits = 2);
+    return;
+  }
+  // No escape needed: write verbatim.
+  dynstring_append_char(str, val);
 }
 
 String format_read_whitespace(const String input, String* output) {

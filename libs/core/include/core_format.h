@@ -19,6 +19,7 @@ typedef enum {
   FormatArgType_Duration,
   FormatArgType_Time,
   FormatArgType_Size,
+  FormatArgType_Char,
   FormatArgType_Text,
   FormatArgType_Path,
   FormatArgType_TtyStyle,
@@ -44,6 +45,7 @@ struct sFormatArg {
     TimeReal         value_time;
     usize            value_size;
     String           value_text;
+    u8               value_char;
     String           value_path;
     TtyStyle         value_ttystyle;
   };
@@ -178,6 +180,17 @@ struct sFormatArg {
  * Create text formatting argument from a string literal.
  */
 #define fmt_text_lit(_VAL_) fmt_text(string_lit(_VAL_))
+
+/**
+ * Create char formatting argument.
+ */
+#define fmt_char(_VAL_, ...)                                                                       \
+  ((FormatArg){                                                                                    \
+      .type       = FormatArgType_Char,                                                            \
+      .value_char = (_VAL_),                                                                       \
+      .settings   = &format_opts_text(__VA_ARGS__)                                                 \
+  })
+
 
 /**
  * Create file path formatting argument.
@@ -441,6 +454,11 @@ void format_write_size_pretty(DynString*, usize val);
  * Write the text string.
  */
 void format_write_text(DynString*, String val, const FormatOptsText*);
+
+/**
+ * Write a character.
+ */
+void format_write_char(DynString*, u8 val, const FormatOptsText*);
 
 /**
  * Read all ascii whitespace at the beginning of the given string.
