@@ -20,12 +20,12 @@ void cli_app_destroy(CliApp* app) {
   dynarray_for_t(&app->options, CliOption, opt, {
     switch (opt->type) {
     case CliOptionType_Flag:
-      string_free(app->alloc, opt->dataFlag.longName);
+      string_free(app->alloc, opt->dataFlag.name);
       break;
     case CliOptionType_Arg:
+      string_free(app->alloc, opt->dataArg.name);
       break;
     }
-    string_free(app->alloc, opt->desc);
   });
   dynarray_destroy(&app->options);
 
@@ -33,31 +33,32 @@ void cli_app_destroy(CliApp* app) {
 }
 
 CliId cli_register_flag(
-    CliApp*              app,
-    const u8             shortName,
-    const String         longName,
-    const String         desc,
-    const CliOptionFlags flags) {
+    CliApp* app, const u8 character, const String name, const CliOptionFlags flags) {
 
-  diag_assert_msg(longName.size, "Flag needs a long name");
-  diag_assert_msg(desc.size, "Flag needs a description");
+  diag_assert_msg(!string_is_empty(name), "Flag needs a name");
+
+  diag_assert_msg(
+      character == '\0' || sentinel_check(cli_find_by_character(app, character)),
+      "Duplicate flag with character '{}' ",
+      fmt_char(character, .flags = FormatTextFlags_EscapeNonPrintAscii));
+
+  diag_assert_msg(
+      sentinel_check(cli_find_by_name(app, name)), "Duplicate flag with name '{}'", fmt_text(name));
 
   const CliId id = (CliId)app->options.size;
 
   *dynarray_push_t(&app->options, CliOption) = (CliOption){
       .type     = CliOptionType_Flag,
-      .desc     = string_dup(app->alloc, desc),
       .flags    = flags,
       .dataFlag = {
-          .shortName = shortName,
-          .longName  = string_dup(app->alloc, longName),
+          .character = character,
+          .name      = string_dup(app->alloc, name),
       }};
   return id;
 }
 
-CliId cli_register_arg(CliApp* app, const String desc, const CliOptionFlags flags) {
-
-  diag_assert_msg(desc.size, "Arg needs a description");
+CliId cli_register_arg(CliApp* app, const String name, const CliOptionFlags flags) {
+  diag_assert_msg(!string_is_empty(name), "Argument needs a description");
 
   u16 position = 0;
   dynarray_for_t(&app->options, CliOption, opt, {
@@ -70,9 +71,57 @@ CliId cli_register_arg(CliApp* app, const String desc, const CliOptionFlags flag
 
   *dynarray_push_t(&app->options, CliOption) = (CliOption){
       .type    = CliOptionType_Arg,
-      .desc    = string_dup(app->alloc, desc),
       .flags   = flags,
-      .dataArg = {.position = position},
-  };
+      .dataArg = {
+          .position = position,
+          .name     = string_dup(app->alloc, name),
+      }};
   return id;
+}
+
+CliOption* cli_option(const CliApp* app, const CliId id) {
+  diag_assert_msg(id < app->options.size, "Out of bounds CliId");
+  return dynarray_at_t(&app->options, id, CliOption);
+}
+
+String cli_option_name(const CliApp* app, const CliId id) {
+  const CliOption* opt = cli_option(app, id);
+  switch (opt->type) {
+  case CliOptionType_Flag:
+    return opt->dataFlag.name;
+  case CliOptionType_Arg:
+    return opt->dataArg.name;
+  }
+  diag_assert_fail("Unsupported option type");
+}
+
+CliId cli_find_by_character(const CliApp* app, const u8 character) {
+  diag_assert_msg(character, "Null is not a valid flag character");
+
+  dynarray_for_t((DynArray*)&app->options, CliOption, opt, {
+    if (opt->type == CliOptionType_Flag && opt->dataFlag.character == character) {
+      return (CliId)opt_i;
+    }
+  });
+  return sentinel_u16;
+}
+
+CliId cli_find_by_name(const CliApp* app, const String name) {
+  diag_assert_msg(!string_is_empty(name), "Empty string is not a valid flag name");
+
+  dynarray_for_t((DynArray*)&app->options, CliOption, opt, {
+    if (opt->type == CliOptionType_Flag && string_eq(opt->dataFlag.name, name)) {
+      return (CliId)opt_i;
+    }
+  });
+  return sentinel_u16;
+}
+
+CliId cli_find_by_position(const CliApp* app, const u16 position) {
+  dynarray_for_t((DynArray*)&app->options, CliOption, opt, {
+    if (opt->type == CliOptionType_Arg && opt->dataArg.position == position) {
+      return (CliId)opt_i;
+    }
+  });
+  return sentinel_u16;
 }

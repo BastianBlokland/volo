@@ -10,17 +10,17 @@ typedef enum {
 } CliOptionType;
 
 typedef struct {
-  u8     shortName;
-  String longName;
+  u8     character;
+  String name;
 } CliFlag;
 
 typedef struct {
-  u16 position;
+  u16    position;
+  String name;
 } CliArg;
 
 typedef struct {
   CliOptionType  type;
-  String         desc;
   CliOptionFlags flags;
   union {
     CliFlag dataFlag;
@@ -33,3 +33,24 @@ struct sCliApp {
   DynArray   options; // CliOption[]
   Allocator* alloc;
 };
+
+CliOption* cli_option(const CliApp*, CliId);
+String     cli_option_name(const CliApp* app, CliId);
+
+/**
+ * Find an option by its character
+ * Note: Returns 'sentinel_u16' if no option was found with the given character
+ */
+CliId cli_find_by_character(const CliApp*, u8 character);
+
+/**
+ * Find an option by its name.
+ * Note: Returns 'sentinel_u16' if no option was found with the given name.
+ */
+CliId cli_find_by_name(const CliApp*, String name);
+
+/**
+ * Find an option by its position.
+ * Note: Returns 'sentinel_u16' if no option was found at the given position.
+ */
+CliId cli_find_by_position(const CliApp*, u16 position);

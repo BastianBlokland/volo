@@ -2,7 +2,7 @@
 #include "core_alloc.h"
 #include "core_string.h"
 
-typedef u32 CliId;
+typedef u16 CliId;
 
 typedef enum {
   CliOptionFlags_None           = 0,
@@ -29,9 +29,9 @@ void cli_app_destroy(CliApp*);
 /**
  * TODO.
  */
-CliId cli_register_flag(CliApp*, u8 shortName, String longName, String desc, CliOptionFlags);
+CliId cli_register_flag(CliApp*, u8 character, String name, CliOptionFlags);
 
 /**
  * TODO.
  */
-CliId cli_register_arg(CliApp*, String desc, CliOptionFlags);
+CliId cli_register_arg(CliApp*, String name, CliOptionFlags);
