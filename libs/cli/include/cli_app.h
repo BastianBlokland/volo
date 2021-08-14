@@ -5,10 +5,10 @@
 typedef u16 CliId;
 
 typedef enum {
-  CliOptionFlags_None           = 0,
-  CliOptionFlags_Optional       = 1 << 0,
-  CliOptionFlags_WithValue      = 1 << 1,
-  CliOptionFlags_WithMultiValue = (1 << 2) | CliOptionFlags_WithValue,
+  CliOptionFlags_None       = 0,
+  CliOptionFlags_Value      = 1 << 0,
+  CliOptionFlags_MultiValue = (1 << 1) | CliOptionFlags_Value,
+  CliOptionFlags_Required   = (1 << 2) | CliOptionFlags_Value,
 } CliOptionFlags;
 
 /**

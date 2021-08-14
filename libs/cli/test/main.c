@@ -11,6 +11,7 @@ int main() {
   CheckDef* check = check_create(g_alloc_heap);
 
   register_spec(check, app);
+  register_spec(check, parse);
 
   const CheckResultType res = check_run(check);
   check_destroy(check);

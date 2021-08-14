@@ -2,7 +2,6 @@
 #include "core_dynarray.h"
 
 #include "cli_app.h"
-#include "core_types.h"
 
 typedef enum {
   CliOptionType_Flag,

@@ -1,7 +1,5 @@
 #include "core_diag.h"
 
-#include "cli_app.h"
-
 #include "app_internal.h"
 
 CliApp* cli_app_create(Allocator* alloc, const String desc) {
@@ -58,7 +56,7 @@ CliId cli_register_flag(
 }
 
 CliId cli_register_arg(CliApp* app, const String name, const CliOptionFlags flags) {
-  diag_assert_msg(!string_is_empty(name), "Argument needs a description");
+  diag_assert_msg(!string_is_empty(name), "Argument needs a name");
 
   u16 position = 0;
   dynarray_for_t(&app->options, CliOption, opt, {
@@ -71,7 +69,7 @@ CliId cli_register_arg(CliApp* app, const String name, const CliOptionFlags flag
 
   *dynarray_push_t(&app->options, CliOption) = (CliOption){
       .type    = CliOptionType_Arg,
-      .flags   = flags,
+      .flags   = flags | CliOptionFlags_Value,
       .dataArg = {
           .position = position,
           .name     = string_dup(app->alloc, name),

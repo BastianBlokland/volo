@@ -376,7 +376,7 @@ void format_write_time_duration_pretty(DynString* str, const TimeDuration val) {
       {time_day, string_static("d")},
   };
   const TimeDuration absVal = math_abs(val);
-  size_t             i      = 0;
+  usize              i      = 0;
   for (; (i + 1) != array_elems(units) && absVal >= units[i + 1].val; ++i)
     ;
   format_write_float(str, (f64)val / (f64)units[i].val, .maxDecDigits = 1);
