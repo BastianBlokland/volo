@@ -1,3 +1,4 @@
+#include "core_ascii.h"
 #include "core_diag.h"
 
 #include "app_internal.h"
@@ -54,9 +55,14 @@ CliId cli_register_flag(
   diag_assert_msg(!string_is_empty(name), "Flag needs a name");
 
   diag_assert_msg(
-      character == '\0' || sentinel_check(cli_find_by_character(app, character)),
-      "Duplicate flag with character '{}' ",
+      character == '\0' || ascii_is_printable(character),
+      "Character '{}' is not printable ascii",
       fmt_char(character, .flags = FormatTextFlags_EscapeNonPrintAscii));
+
+  diag_assert_msg(
+      character == '\0' || sentinel_check(cli_find_by_character(app, character)),
+      "Duplicate flag with character '{}'",
+      fmt_char(character));
 
   diag_assert_msg(
       sentinel_check(cli_find_by_name(app, name)), "Duplicate flag with name '{}'", fmt_text(name));
