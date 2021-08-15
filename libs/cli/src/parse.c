@@ -180,7 +180,7 @@ static void cli_parse_options(CliParseCtx* ctx) {
         cli_parse_short_flag(ctx, *string_at(head, 1));
       } else {
         cli_parse_consume_arg(ctx);
-        cli_parse_short_flag_block(ctx, string_consume(head, 2));
+        cli_parse_short_flag_block(ctx, string_consume(head, 1));
       }
       continue;
     }
@@ -264,7 +264,7 @@ bool cli_parse_provided(CliInvocation* invoc, const CliId id) {
 CliParseValues cli_parse_values(CliInvocation* invoc, const CliId id) {
   const CliInvocationOption* opt = cli_invocation_option(invoc, id);
   return (CliParseValues){
-      .head  = dynarray_at_t(&opt->values, 0, String),
+      .head  = opt->values.size ? dynarray_at_t(&opt->values, 0, String) : null,
       .count = opt->values.size,
   };
 }
