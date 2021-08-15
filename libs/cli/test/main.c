@@ -12,6 +12,7 @@ int main() {
 
   register_spec(check, app);
   register_spec(check, parse);
+  register_spec(check, validate);
 
   const CheckResultType res = check_run(check);
   check_destroy(check);

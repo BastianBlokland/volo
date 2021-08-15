@@ -77,6 +77,22 @@ CliId cli_register_arg(CliApp* app, const String name, const CliOptionFlags flag
   return id;
 }
 
+void cli_register_validator(CliApp* app, const CliId id, CliValidateFunc validator) {
+  CliOption* opt = cli_option(app, id);
+
+  diag_assert_msg(
+      !opt->validator,
+      "Option '{}' already has a validator registered",
+      fmt_text(cli_option_name(app, id)));
+
+  diag_assert_msg(
+      opt->flags & CliOptionFlags_Value,
+      "Option '{}' doesn't take a value and thus cannot register a validator",
+      fmt_text(cli_option_name(app, id)));
+
+  opt->validator = validator;
+}
+
 CliOption* cli_option(const CliApp* app, const CliId id) {
   diag_assert_msg(id < app->options.size, "Out of bounds CliId");
   return dynarray_at_t(&app->options, id, CliOption);

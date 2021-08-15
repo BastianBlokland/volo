@@ -204,7 +204,31 @@ static void cli_parse_options(CliParseCtx* ctx) {
   }
 }
 
-static void cli_parse_validate_required_options(CliParseCtx* ctx) {
+static void cli_parse_check_validator(CliParseCtx* ctx, const CliId optId) {
+  CliOption* opt = cli_option(ctx->app, optId);
+  if (!opt->validator) {
+    return;
+  }
+  CliInvocationOption* invocOpt = dynarray_at_t(&ctx->options, optId, CliInvocationOption);
+
+  dynarray_for_t(&invocOpt->values, String, val, {
+    if (!opt->validator(*val)) {
+      const String err = fmt_write_scratch(
+          "Invalid input '{}' for option '{}'",
+          fmt_text(*val, .flags = FormatTextFlags_EscapeNonPrintAscii),
+          fmt_text(cli_option_name(ctx->app, optId)));
+      cli_parse_add_error(ctx, err);
+    }
+  });
+}
+
+static void cli_parse_check_validators(CliParseCtx* ctx) {
+  for (CliId optId = 0; optId != ctx->options.size; ++optId) {
+    cli_parse_check_validator(ctx, optId);
+  }
+}
+
+static void cli_parse_check_required_options(CliParseCtx* ctx) {
   for (CliId optId = 0; optId != ctx->options.size; ++optId) {
     CliOption* opt        = cli_option(ctx->app, optId);
     const bool isRequired = (opt->flags & CliOptionFlags_Required) == CliOptionFlags_Required;
@@ -239,7 +263,8 @@ CliInvocation* cli_parse(const CliApp* app, const int argc, const char** argv) {
   }
 
   cli_parse_options(&ctx);
-  cli_parse_validate_required_options(&ctx);
+  cli_parse_check_validators(&ctx);
+  cli_parse_check_required_options(&ctx);
 
   CliInvocation* invoc = alloc_alloc_t(app->alloc, CliInvocation);
   *invoc               = (CliInvocation){
@@ -251,7 +276,6 @@ CliInvocation* cli_parse(const CliApp* app, const int argc, const char** argv) {
 }
 
 void cli_parse_destroy(CliInvocation* invoc) {
-
   dynarray_for_t(&invoc->errors, String, err, { string_free(invoc->alloc, *err); });
   dynarray_destroy(&invoc->errors);
 

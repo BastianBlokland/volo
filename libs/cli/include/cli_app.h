@@ -2,6 +2,9 @@
 #include "core_alloc.h"
 #include "core_string.h"
 
+// Forward declare from 'cli_validate.h'.
+typedef bool (*CliValidateFunc)(const String input);
+
 typedef u16 CliId;
 
 typedef enum {
@@ -35,3 +38,8 @@ CliId cli_register_flag(CliApp*, u8 character, String name, CliOptionFlags);
  * TODO.
  */
 CliId cli_register_arg(CliApp*, String name, CliOptionFlags);
+
+/**
+ * TODO.
+ */
+void cli_register_validator(CliApp*, CliId, CliValidateFunc);

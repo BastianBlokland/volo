@@ -25,6 +25,7 @@ typedef struct {
     CliFlag dataFlag;
     CliArg  dataArg;
   };
+  CliValidateFunc validator;
 } CliOption;
 
 struct sCliApp {
