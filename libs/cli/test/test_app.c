@@ -26,5 +26,13 @@ spec(app) {
     check_neq_int(a, b);
   }
 
+  it("supports registering descriptions for options") {
+    const CliId a = cli_register_flag(app, 'a', string_lit("opt-a"), CliOptionFlags_None);
+    const CliId b = cli_register_arg(app, string_lit("arg"), CliOptionFlags_None);
+
+    cli_register_desc(app, a, string_lit("A nice flag"));
+    cli_register_desc(app, b, string_lit("A nice argument"));
+  }
+
   teardown() { cli_app_destroy(app); }
 }

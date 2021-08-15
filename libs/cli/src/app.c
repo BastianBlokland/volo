@@ -29,6 +29,9 @@ void cli_app_destroy(CliApp* app) {
   string_free(app->alloc, app->desc);
 
   dynarray_for_t(&app->options, CliOption, opt, {
+    if (opt->desc.ptr) {
+      string_free(app->alloc, opt->desc);
+    }
     switch (opt->type) {
     case CliOptionType_Flag:
       string_free(app->alloc, opt->dataFlag.name);
@@ -63,6 +66,7 @@ CliId cli_register_flag(
   *dynarray_push_t(&app->options, CliOption) = (CliOption){
       .type     = CliOptionType_Flag,
       .flags    = flags,
+      .desc     = string_empty,
       .dataFlag = {
           .character = character,
           .name      = string_dup(app->alloc, name),
@@ -85,6 +89,7 @@ CliId cli_register_arg(CliApp* app, const String name, const CliOptionFlags flag
   *dynarray_push_t(&app->options, CliOption) = (CliOption){
       .type    = CliOptionType_Arg,
       .flags   = flags | CliOptionFlags_Value,
+      .desc    = string_empty,
       .dataArg = {
           .position = position,
           .name     = string_dup(app->alloc, name),
@@ -116,6 +121,22 @@ void cli_register_exclusion(CliApp* app, const CliId a, const CliId b) {
       fmt_text(cli_option_name(app, b)));
 
   *dynarray_push_t(&app->exclusions, CliExclusion) = (CliExclusion){a, b};
+}
+
+void cli_register_desc(CliApp* app, const CliId id, String desc) {
+  diag_assert_msg(!string_is_empty(desc), "Empty descriptions are not supported");
+
+  CliOption* opt = cli_option(app, id);
+
+  diag_assert_msg(
+      string_is_empty(opt->desc),
+      "Option '{}' already has a description registered",
+      fmt_text(cli_option_name(app, id)));
+
+  if (opt->desc.ptr) {
+    string_free(app->alloc, opt->desc);
+  }
+  opt->desc = string_dup(app->alloc, desc);
 }
 
 CliOption* cli_option(const CliApp* app, const CliId id) {

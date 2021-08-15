@@ -26,6 +26,7 @@ typedef struct {
   CliOptionType   type;
   CliOptionFlags  flags;
   CliValidateFunc validator;
+  String          desc;
   union {
     CliFlag dataFlag;
     CliArg  dataArg;

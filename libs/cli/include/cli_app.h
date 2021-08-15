@@ -48,3 +48,8 @@ void cli_register_validator(CliApp*, CliId, CliValidateFunc);
  * TODO.
  */
 void cli_register_exclusion(CliApp*, CliId a, CliId b);
+
+/**
+ * TODO.
+ */
+void cli_register_desc(CliApp*, CliId, String desc);
