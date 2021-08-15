@@ -161,6 +161,20 @@ spec(parse) {
     cli_parse_destroy(invoc);
   }
 
+  it("ignores empty values") {
+    CliInvocation* invoc = cli_parse(
+        app,
+        12,
+        (const char*[]){
+            "", "-a", "", "Hello", "", "ArgVal1", "", "ArgVal2", "", "", "ArgVal3", ""});
+    parse_check_success(_testCtx, invoc);
+    parse_check_values(_testCtx, invoc, flagA, (String[]){string_lit("Hello")}, 1);
+    parse_check_values(_testCtx, invoc, argA, (String[]){string_lit("ArgVal1")}, 1);
+    parse_check_values(
+        _testCtx, invoc, argB, (String[]){string_lit("ArgVal2"), string_lit("ArgVal3")}, 2);
+    cli_parse_destroy(invoc);
+  }
+
   it("fails when passing the same flag twice in short form") {
     CliInvocation* invoc =
         cli_parse(app, 5, (const char*[]){"-a", "Hello", "-a", "World", "ArgVal"});

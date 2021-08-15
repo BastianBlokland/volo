@@ -67,6 +67,11 @@ static void cli_parse_add_values(CliParseCtx* ctx, CliId optId) {
     return; // Option does not support passing values.
   }
 
+  // Skip any empty arguments.
+  while (cli_parse_args_remaining(ctx) && string_is_empty(cli_parse_peek_arg(ctx))) {
+    cli_parse_consume_arg(ctx);
+  }
+
   if (!cli_parse_args_remaining(ctx)) {
     cli_parse_add_error(
         ctx,
@@ -83,6 +88,10 @@ static void cli_parse_add_values(CliParseCtx* ctx, CliId optId) {
   const bool multiValue = (flags & CliOptionFlags_MultiValue) == CliOptionFlags_MultiValue;
   while (multiValue && cli_parse_args_remaining(ctx)) {
     String head = cli_parse_peek_arg(ctx);
+    if (string_is_empty(head)) {
+      cli_parse_consume_arg(ctx);
+      continue;
+    }
     if (ctx->acceptFlags && string_starts_with(head, string_lit("-"))) {
       // Stop when a flag is encountered.
       break;
@@ -155,6 +164,12 @@ static void cli_parse_arg(CliParseCtx* ctx) {
 static void cli_parse_options(CliParseCtx* ctx) {
   while (cli_parse_args_remaining(ctx)) {
     const String head = cli_parse_peek_arg(ctx);
+
+    if (string_is_empty(head)) {
+      // Ignore empty arguments.
+      cli_parse_consume_arg(ctx);
+      continue;
+    }
 
     if (ctx->acceptFlags && string_eq(head, string_lit("--"))) {
       cli_parse_consume_arg(ctx);
