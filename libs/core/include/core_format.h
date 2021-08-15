@@ -191,7 +191,6 @@ struct sFormatArg {
       .settings   = &format_opts_text(__VA_ARGS__)                                                 \
   })
 
-
 /**
  * Create file path formatting argument.
  */
@@ -454,6 +453,15 @@ void format_write_size_pretty(DynString*, usize val);
  * Write the text string.
  */
 void format_write_text(DynString*, String val, const FormatOptsText*);
+
+/**
+ * Write the text string as lines of at most 'maxWidth' columns.
+ * If possible whole words are preserved. Each time a newline is inserted a 'linePrefix' is also
+ * inserted (pass an empty string if no prefix is needed).
+ *
+ * Pre-condition: maxWidth > 0.
+ */
+void format_write_text_wrapped(DynString*, String val, usize maxWidth, String linePrefix);
 
 /**
  * Write a character.

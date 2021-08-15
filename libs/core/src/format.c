@@ -453,6 +453,63 @@ void format_write_text(DynString* str, String val, const FormatOptsText* opts) {
   mem_for_u8(val, byte, { format_write_char(str, byte, opts); });
 }
 
+void format_write_text_wrapped(
+    DynString* str, String val, const usize maxWidth, String linePrefix) {
+  diag_assert_msg(maxWidth, "'maxWidth' of zero is not supported");
+
+  usize column = 0;
+  while (true) {
+    // Process all the whitespace before the next word.
+    while (!string_is_empty(val)) {
+      switch (*string_begin(val)) {
+      case '\r':
+        break;
+      case '\n':
+        column = 0;
+        dynstring_append_char(str, '\n');
+        dynstring_append(str, linePrefix);
+        break;
+      case '\t':
+      case ' ':
+        if (column >= maxWidth) {
+          column = 0;
+          dynstring_append_char(str, '\n');
+          dynstring_append(str, linePrefix);
+        } else {
+          dynstring_append_char(str, ' ');
+          ++column;
+        }
+        break;
+      default:
+        goto WhitespaceProcessed; // Non-whitespace character.
+      }
+      val = string_consume(val, 1);
+    }
+  WhitespaceProcessed:
+
+    if (string_is_empty(val)) {
+      break; // Finished processing the entire input.
+    }
+
+    // Process the next word.
+    const usize  wordEnd = string_find_first_any(val, string_lit("\r\n\t "));
+    const String word =
+        string_slice(val, 0, math_min(sentinel_check(wordEnd) ? val.size : wordEnd, maxWidth));
+
+    if ((column + word.size) > maxWidth) {
+      // Word doesn't fit; insert newline.
+      dynstring_append_char(str, '\n');
+      dynstring_append(str, linePrefix);
+      column = 0;
+    }
+
+    // Write word to output.
+    dynstring_append(str, word);
+    column += word.size;
+    val = string_consume(val, word.size);
+  }
+}
+
 void format_write_char(DynString* str, const u8 val, const FormatOptsText* opts) {
   static struct {
     u8     byte;
