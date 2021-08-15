@@ -5,6 +5,7 @@
 // Forward declare from 'cli_app.h'.
 typedef struct sCliApp CliApp;
 
+// Forward declare from 'cli_app.h'.
 typedef u16 CliId;
 
 typedef enum {

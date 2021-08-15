@@ -13,7 +13,3 @@ bool cli_validate_u64(const String input) {
   const String rem  = format_read_u64(input, null, base);
   return string_is_empty(rem);
 }
-
-bool cli_validate_bool(const String input) {
-  return string_eq(input, string_lit("true")) || string_eq(input, string_lit("false"));
-}
