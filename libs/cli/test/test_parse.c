@@ -40,7 +40,7 @@ static void parse_check_values(
 spec(parse) {
 
   CliApp* app;
-  CliId   flagA, flagB, flagC, flagD, flagE, argA, argB;
+  CliId   flagA, flagB, flagC, flagD, flagE, flagF, argA, argB;
 
   setup() {
     app   = cli_app_create(g_alloc_heap, string_lit("My test app"));
@@ -48,7 +48,8 @@ spec(parse) {
     flagB = cli_register_flag(app, 'b', string_lit("flag-b-opt"), CliOptionFlags_None);
     flagC = cli_register_flag(app, 'c', string_lit("flag-c-opt"), CliOptionFlags_None);
     flagD = cli_register_flag(app, 'd', string_lit("flag-d-val"), CliOptionFlags_Value);
-    flagE = cli_register_flag(app, 'e', string_lit("flag-e-multival"), CliOptionFlags_MultiValue);
+    flagE = cli_register_flag(app, '\0', string_lit("flag-e-multival"), CliOptionFlags_MultiValue);
+    flagF = cli_register_flag(app, '\0', string_lit("flag-f"), CliOptionFlags_None);
     argA  = cli_register_arg(app, string_lit("arg-a-req"), CliOptionFlags_Required);
     argB  = cli_register_arg(app, string_lit("arg-b-opt"), CliOptionFlags_MultiValue);
 
@@ -56,6 +57,7 @@ spec(parse) {
     cli_register_validator(app, argB, cli_validate_i64);
 
     cli_register_exclusion(app, flagD, flagE);
+    cli_register_exclusion(app, flagE, flagF);
     cli_register_exclusion(app, argB, flagE);
   }
 
@@ -121,7 +123,10 @@ spec(parse) {
 
   it("supports value flags with multiple values") {
     CliInvocation* invoc = cli_parse(
-        app, 7, (const char*[]){"-e", "Hello", "Beautifull", "World", "-a", "Hello", "ArgVal"});
+        app,
+        7,
+        (const char*[]){
+            "--flag-e-multival", "Hello", "Beautifull", "World", "-a", "Hello", "ArgVal"});
     parse_check_values(
         _testCtx,
         invoc,
@@ -147,7 +152,8 @@ spec(parse) {
     CliInvocation* invoc = cli_parse(
         app,
         9,
-        (const char*[]){"-a", "Hello", "ArgVal", "-e", "Some", "Values", "-", "Hello", "World"});
+        (const char*[]){
+            "-a", "Hello", "ArgVal", "--flag-e-multival", "Some", "Values", "-", "Hello", "World"});
     parse_check_values(
         _testCtx, invoc, flagE, (String[]){string_lit("Some"), string_lit("Values")}, 2);
     parse_check_values(
@@ -265,8 +271,8 @@ spec(parse) {
   }
 
   it("fails when violating an exclusion") {
-    CliInvocation* invoc =
-        cli_parse(app, 7, (const char*[]){"-d", "42", "-e", "B", "-a", "Hello", "ArgVal"});
+    CliInvocation* invoc = cli_parse(
+        app, 7, (const char*[]){"-d", "42", "--flag-e-multival", "B", "-a", "Hello", "ArgVal"});
     parse_check_fail(
         _testCtx,
         invoc,
