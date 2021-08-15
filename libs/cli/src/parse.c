@@ -205,14 +205,10 @@ static void cli_parse_options(CliParseCtx* ctx) {
 }
 
 static void cli_parse_check_validator(CliParseCtx* ctx, const CliId optId) {
-  CliOption* opt = cli_option(ctx->app, optId);
-  if (!opt->validator) {
-    return;
-  }
-  CliInvocationOption* invocOpt = dynarray_at_t(&ctx->options, optId, CliInvocationOption);
 
+  CliInvocationOption* invocOpt = dynarray_at_t(&ctx->options, optId, CliInvocationOption);
   dynarray_for_t(&invocOpt->values, String, val, {
-    if (!opt->validator(*val)) {
+    if (!cli_option(ctx->app, optId)->validator(*val)) {
       const String err = fmt_write_scratch(
           "Invalid input '{}' for option '{}'",
           fmt_text(*val, .flags = FormatTextFlags_EscapeNonPrintAscii),
@@ -224,8 +220,23 @@ static void cli_parse_check_validator(CliParseCtx* ctx, const CliId optId) {
 
 static void cli_parse_check_validators(CliParseCtx* ctx) {
   for (CliId optId = 0; optId != ctx->options.size; ++optId) {
-    cli_parse_check_validator(ctx, optId);
+    if (cli_option(ctx->app, optId)->validator) {
+      cli_parse_check_validator(ctx, optId);
+    }
   }
+}
+
+static void cli_parse_check_exclusions(CliParseCtx* ctx) {
+  dynarray_for_t((DynArray*)&ctx->app->exclusions, CliExclusion, ex, {
+    if (cli_parse_already_provided(ctx, ex->a) && cli_parse_already_provided(ctx, ex->b)) {
+      cli_parse_add_error(
+          ctx,
+          fmt_write_scratch(
+              "Options '{}' and '{}' cannot be used together",
+              fmt_text(cli_option_name(ctx->app, ex->a)),
+              fmt_text(cli_option_name(ctx->app, ex->b))));
+    }
+  });
 }
 
 static void cli_parse_check_required_options(CliParseCtx* ctx) {
@@ -264,6 +275,7 @@ CliInvocation* cli_parse(const CliApp* app, const int argc, const char** argv) {
 
   cli_parse_options(&ctx);
   cli_parse_check_validators(&ctx);
+  cli_parse_check_exclusions(&ctx);
   cli_parse_check_required_options(&ctx);
 
   CliInvocation* invoc = alloc_alloc_t(app->alloc, CliInvocation);

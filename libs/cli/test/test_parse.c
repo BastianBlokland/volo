@@ -54,6 +54,9 @@ spec(parse) {
 
     cli_register_validator(app, flagD, cli_validate_i64);
     cli_register_validator(app, argB, cli_validate_i64);
+
+    cli_register_exclusion(app, flagD, flagE);
+    cli_register_exclusion(app, argB, flagE);
   }
 
   it("succeeds when passing the required options") {
@@ -258,6 +261,18 @@ spec(parse) {
             string_lit("Invalid input 'Hello' for option 'arg-b-opt'"),
             string_lit("Invalid input 'World' for option 'arg-b-opt'")},
         2);
+    cli_parse_destroy(invoc);
+  }
+
+  it("fails when violating an exclusion") {
+    CliInvocation* invoc =
+        cli_parse(app, 7, (const char*[]){"-d", "42", "-e", "B", "-a", "Hello", "ArgVal"});
+    parse_check_fail(
+        _testCtx,
+        invoc,
+        (String[]){
+            string_lit("Options 'flag-d-val' and 'flag-e-multival' cannot be used together")},
+        1);
     cli_parse_destroy(invoc);
   }
 

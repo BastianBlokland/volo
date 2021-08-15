@@ -2,12 +2,25 @@
 
 #include "app_internal.h"
 
+static bool cli_app_excludes(CliApp* app, const CliId a, const CliId b) {
+  dynarray_for_t(&app->exclusions, CliExclusion, ex, {
+    if (ex->a == a && ex->b == b) {
+      return true;
+    }
+    if (ex->b == a && ex->a == b) {
+      return true;
+    }
+  });
+  return false;
+}
+
 CliApp* cli_app_create(Allocator* alloc, const String desc) {
   CliApp* app = alloc_alloc_t(alloc, CliApp);
   *app        = (CliApp){
-      .desc    = string_dup(alloc, desc),
-      .options = dynarray_create_t(alloc, CliOption, 16),
-      .alloc   = alloc,
+      .desc       = string_dup(alloc, desc),
+      .options    = dynarray_create_t(alloc, CliOption, 16),
+      .exclusions = dynarray_create_t(alloc, CliExclusion, 8),
+      .alloc      = alloc,
   };
   return app;
 }
@@ -25,7 +38,9 @@ void cli_app_destroy(CliApp* app) {
       break;
     }
   });
+
   dynarray_destroy(&app->options);
+  dynarray_destroy(&app->exclusions);
 
   alloc_free_t(app->alloc, app);
 }
@@ -91,6 +106,16 @@ void cli_register_validator(CliApp* app, const CliId id, CliValidateFunc validat
       fmt_text(cli_option_name(app, id)));
 
   opt->validator = validator;
+}
+
+void cli_register_exclusion(CliApp* app, const CliId a, const CliId b) {
+  diag_assert_msg(
+      !cli_app_excludes(app, a, b),
+      "There is already a exclusion between '{}' and '{}'",
+      fmt_text(cli_option_name(app, a)),
+      fmt_text(cli_option_name(app, b)));
+
+  *dynarray_push_t(&app->exclusions, CliExclusion) = (CliExclusion){a, b};
 }
 
 CliOption* cli_option(const CliApp* app, const CliId id) {

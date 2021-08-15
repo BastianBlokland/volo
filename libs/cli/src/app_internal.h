@@ -19,18 +19,23 @@ typedef struct {
 } CliArg;
 
 typedef struct {
-  CliOptionType  type;
-  CliOptionFlags flags;
+  CliId a, b;
+} CliExclusion;
+
+typedef struct {
+  CliOptionType   type;
+  CliOptionFlags  flags;
+  CliValidateFunc validator;
   union {
     CliFlag dataFlag;
     CliArg  dataArg;
   };
-  CliValidateFunc validator;
 } CliOption;
 
 struct sCliApp {
   String     desc;
-  DynArray   options; // CliOption[]
+  DynArray   options;    // CliOption[]
+  DynArray   exclusions; // CliExclusion[]
   Allocator* alloc;
 };
 

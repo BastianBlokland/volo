@@ -43,3 +43,8 @@ CliId cli_register_arg(CliApp*, String name, CliOptionFlags);
  * TODO.
  */
 void cli_register_validator(CliApp*, CliId, CliValidateFunc);
+
+/**
+ * TODO.
+ */
+void cli_register_exclusion(CliApp*, CliId a, CliId b);
