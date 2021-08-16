@@ -22,6 +22,7 @@ spec(format) {
         {&fmt_text_lit("Hello World"), string_lit("Hello World")},
         {&fmt_char('a'), string_lit("a")},
         {&fmt_path(string_lit("c:\\hello")), string_lit("C:/hello")},
+        {&fmt_padding(5), string_lit("     ")},
     };
 
     DynString string = dynstring_create_over(mem_stack(128));

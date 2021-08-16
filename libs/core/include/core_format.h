@@ -23,6 +23,7 @@ typedef enum {
   FormatArgType_Text,
   FormatArgType_Path,
   FormatArgType_TtyStyle,
+  FormatArgType_Padding,
 } FormatArgType;
 
 /**
@@ -48,6 +49,7 @@ struct sFormatArg {
     u8               value_char;
     String           value_path;
     TtyStyle         value_ttystyle;
+    u16              value_padding;
   };
   void* settings;
 };
@@ -201,6 +203,12 @@ struct sFormatArg {
  */
 #define fmt_ttystyle(...)                                                                          \
   ((FormatArg){ .type = FormatArgType_TtyStyle, .value_ttystyle = (ttystyle(__VA_ARGS__)) })
+
+/**
+ * Create padding formatting argument.
+ */
+#define fmt_padding(_AMOUNT_)                                                                      \
+  ((FormatArg){ .type = FormatArgType_Padding, .value_padding = (_AMOUNT_) })
 
 /**
  * Create a array of format arguments.

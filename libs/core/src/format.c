@@ -190,6 +190,9 @@ void format_write_arg(DynString* str, const FormatArg* arg) {
   case FormatArgType_TtyStyle:
     tty_write_style_sequence(str, arg->value_ttystyle);
     break;
+  case FormatArgType_Padding:
+    dynstring_append_chars(str, ' ', arg->value_padding);
+    break;
   }
 }
 
