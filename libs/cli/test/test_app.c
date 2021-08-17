@@ -4,7 +4,7 @@
 
 spec(app) {
 
-  CliApp* app;
+  CliApp* app = null;
 
   setup() { app = cli_app_create(g_alloc_heap, string_lit("My test app")); }
 
