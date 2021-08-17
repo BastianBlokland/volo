@@ -39,7 +39,7 @@ static void parse_check_values(
 
 spec(parse) {
 
-  CliApp* app;
+  CliApp* app = null;
   CliId   flagA, flagB, flagC, flagD, flagE, flagF, argA, argB;
 
   setup() {

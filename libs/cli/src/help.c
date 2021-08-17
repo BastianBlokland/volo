@@ -75,7 +75,7 @@ static void cli_help_write_usage(DynString* dynStr, CliApp* app, const CliHelpFl
     const String optStr = cli_help_option_usage(opt);
     if ((column + optStr.size + 1) > cli_help_max_width) {
       column = startColumn;
-      fmt_write(dynStr, "\n{}", fmt_padding(startColumn));
+      fmt_write(dynStr, "\n{}", fmt_padding((u16)startColumn));
     }
     fmt_write(dynStr, " {}", fmt_text(optStr));
     column += optStr.size + 1;
@@ -101,7 +101,7 @@ static void cli_help_write_args(DynString* dynStr, CliApp* app, const CliHelpFla
 
     dynstring_append(dynStr, line);
 
-    const String linePrefix = fmt_write_scratch("{}", fmt_padding(line.size));
+    const String linePrefix = fmt_write_scratch("{}", fmt_padding((u16)line.size));
     format_write_text_wrapped(dynStr, opt->desc, cli_help_max_width - linePrefix.size, linePrefix);
 
     fmt_write(dynStr, "\n");
@@ -131,7 +131,7 @@ static void cli_help_write_flags(DynString* dynStr, CliApp* app, const CliHelpFl
 
     dynstring_append(dynStr, line);
 
-    const String linePrefix = fmt_write_scratch("{}", fmt_padding(line.size));
+    const String linePrefix = fmt_write_scratch("{}", fmt_padding((u16)line.size));
     format_write_text_wrapped(dynStr, opt->desc, cli_help_max_width - line.size, linePrefix);
 
     fmt_write(dynStr, "\n");
