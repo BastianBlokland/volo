@@ -8,11 +8,13 @@ typedef struct sCliInvocation CliInvocation;
 typedef u16 CliId;
 
 /**
- * TODO.
+ * Read a i64 integer that was provided to the given option.
+ * If the option was not provided then 'defaultVal' is returned.
  */
 i64 cli_read_i64(CliInvocation*, CliId, i64 defaultVal);
 
 /**
- * TODO.
+ * Read a u64 integer that was provided to the given option.
+ * If the option was not provided then 'defaultVal' is returned.
  */
 u64 cli_read_u64(CliInvocation*, CliId, u64 defaultVal);

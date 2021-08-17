@@ -16,11 +16,11 @@ typedef enum {
 } CliFailureFlags;
 
 /**
- * TODO.
+ * Write a failure page showing the invocation errors.
  */
 void cli_failure_write(DynString*, CliInvocation*, CliFailureFlags);
 
 /**
- * TODO.
+ * Write a failure page showing the invocation errors to the given file.
  */
 void cli_failure_write_file(CliInvocation*, File* out);

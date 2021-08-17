@@ -24,36 +24,44 @@ typedef struct {
 } CliParseValues;
 
 /**
- * TODO.
+ * Command-Line-Interface invocation.
+ *
+ * Contains the result of parsing a set of input strings for a specific application.
  */
 typedef struct sCliInvocation CliInvocation;
 
 /**
- * TODO.
+ * Parse a set of input strings for the given application.
+ *
+ * Note: Does not strip off the initial invocation-path that (many?) operating systems pass as the
+ * first argument.
+ *
+ * Destroy using 'cli_parse_destroy()'.
  */
 CliInvocation* cli_parse(const CliApp*, int argc, const char** argv);
 
 /**
- * TODO.
+ * Destroy a CliInvocation.
  */
 void cli_parse_destroy(CliInvocation*);
 
 /**
- * TODO.
+ * Retrieve the result of parsing the given invocation.
  */
 CliParseResult cli_parse_result(CliInvocation*);
 
 /**
- * TODO.
+ * Retrieve the errors that occurred during the parsing of the given invocation.
  */
 CliParseErrors cli_parse_errors(CliInvocation*);
 
 /**
- * TODO.
+ * Check if a specific option is provided in the given invocation.
  */
 bool cli_parse_provided(CliInvocation*, CliId);
 
 /**
- * TODO.
+ * Retrieve the values that where provided to the specific option in this invocation.
+ * Note: Returns an empty set of values if the given option was not provided.
  */
 CliParseValues cli_parse_values(CliInvocation*, CliId);

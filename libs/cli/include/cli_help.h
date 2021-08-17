@@ -13,11 +13,11 @@ typedef enum {
 } CliHelpFlags;
 
 /**
- * TODO.
+ * Write a help page showing the available flags and arguments.
  */
 void cli_help_write(DynString*, CliApp*, CliHelpFlags);
 
 /**
- * TODO.
+ * Write a help page showing the available flags and arguments to the given file.
  */
 void cli_help_write_file(CliApp*, File* out);
