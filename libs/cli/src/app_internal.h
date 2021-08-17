@@ -34,6 +34,7 @@ typedef struct {
 } CliOption;
 
 struct sCliApp {
+  String     name;
   String     desc;
   DynArray   options;    // CliOption[]
   DynArray   exclusions; // CliExclusion[]

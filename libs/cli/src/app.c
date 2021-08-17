@@ -1,7 +1,10 @@
 #include "core_ascii.h"
 #include "core_diag.h"
+#include "core_path.h"
 
 #include "app_internal.h"
+
+#define cli_app_option_name_max_len 64
 
 static bool cli_app_excludes(CliApp* app, const CliId a, const CliId b) {
   dynarray_for_t(&app->exclusions, CliExclusion, ex, {
@@ -18,7 +21,8 @@ static bool cli_app_excludes(CliApp* app, const CliId a, const CliId b) {
 CliApp* cli_app_create(Allocator* alloc, const String desc) {
   CliApp* app = alloc_alloc_t(alloc, CliApp);
   *app        = (CliApp){
-      .desc       = string_dup(alloc, desc),
+      .name       = path_stem(g_path_executable),
+      .desc       = string_is_empty(desc) ? string_empty : string_dup(alloc, desc),
       .options    = dynarray_create_t(alloc, CliOption, 16),
       .exclusions = dynarray_create_t(alloc, CliExclusion, 8),
       .alloc      = alloc,
@@ -27,7 +31,9 @@ CliApp* cli_app_create(Allocator* alloc, const String desc) {
 }
 
 void cli_app_destroy(CliApp* app) {
-  string_free(app->alloc, app->desc);
+  if (!string_is_empty(app->desc)) {
+    string_free(app->alloc, app->desc);
+  }
 
   dynarray_for_t(&app->options, CliOption, opt, {
     if (opt->desc.ptr) {
@@ -53,6 +59,7 @@ CliId cli_register_flag(
     CliApp* app, const u8 character, const String name, const CliOptionFlags flags) {
 
   diag_assert_msg(!string_is_empty(name), "Flag needs a name");
+  diag_assert_msg(name.size <= cli_app_option_name_max_len, "Flag name too long");
 
   diag_assert_msg(
       character == '\0' || ascii_is_printable(character),
@@ -82,6 +89,7 @@ CliId cli_register_flag(
 
 CliId cli_register_arg(CliApp* app, const String name, const CliOptionFlags flags) {
   diag_assert_msg(!string_is_empty(name), "Argument needs a name");
+  diag_assert_msg(name.size <= cli_app_option_name_max_len, "Argument name too long");
 
   u16 position = 0;
   dynarray_for_t(&app->options, CliOption, opt, {
