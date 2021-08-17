@@ -7,6 +7,7 @@ message(STATUS "Configuring cli library")
 add_library(volo_cli STATIC
   src/app.c
   src/help.c
+  src/failure.c
   src/parse.c
   src/read.c
   src/validate.c)
@@ -16,6 +17,7 @@ target_link_libraries(volo_cli PUBLIC volo_core)
 add_executable(volo_cli_test
   test/main.c
   test/test_app.c
+  test/test_failure.c
   test/test_help.c
   test/test_parse.c
   test/test_read.c

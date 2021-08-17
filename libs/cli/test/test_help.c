@@ -9,7 +9,7 @@ spec(help) {
     CliApp* app = cli_app_create(g_alloc_heap, string_empty);
 
     DynString string = dynstring_create_over(mem_stack(1024));
-    cli_write_help(&string, app, CliHelpFlags_None);
+    cli_help_write(&string, app, CliHelpFlags_None);
 
     check_eq_string(dynstring_view(&string), string_lit("usage: volo_cli_test\n"));
 
@@ -21,7 +21,7 @@ spec(help) {
     CliApp* app = cli_app_create(g_alloc_heap, string_lit("Hello world\nMy test app"));
 
     DynString string = dynstring_create_over(mem_stack(1024));
-    cli_write_help(&string, app, CliHelpFlags_None);
+    cli_help_write(&string, app, CliHelpFlags_None);
 
     check_eq_string(
         dynstring_view(&string),
@@ -43,7 +43,7 @@ spec(help) {
     cli_register_desc(app, dst, string_lit("Path to copy to"));
 
     DynString string = dynstring_create_over(mem_stack(1024));
-    cli_write_help(&string, app, CliHelpFlags_None);
+    cli_help_write(&string, app, CliHelpFlags_None);
 
     check_eq_string(
         dynstring_view(&string),
@@ -66,7 +66,7 @@ spec(help) {
     cli_register_desc(app, count, string_lit("How many interations to run"));
 
     DynString string = dynstring_create_over(mem_stack(1024));
-    cli_write_help(&string, app, CliHelpFlags_None);
+    cli_help_write(&string, app, CliHelpFlags_None);
 
     check_eq_string(
         dynstring_view(&string),
@@ -93,7 +93,7 @@ spec(help) {
     cli_register_desc(app, dst, string_lit("Path to copy to"));
 
     DynString string = dynstring_create_over(mem_stack(1024));
-    cli_write_help(&string, app, CliHelpFlags_None);
+    cli_help_write(&string, app, CliHelpFlags_None);
 
     check_eq_string(
         dynstring_view(&string),

@@ -1,5 +1,6 @@
 #include "core_dynstring.h"
 #include "core_format.h"
+#include "core_tty.h"
 
 #include "cli_help.h"
 
@@ -137,7 +138,7 @@ static void cli_help_write_flags(DynString* dynStr, CliApp* app, const CliHelpFl
   });
 }
 
-void cli_write_help(DynString* dynStr, CliApp* app, const CliHelpFlags flags) {
+void cli_help_write(DynString* dynStr, CliApp* app, const CliHelpFlags flags) {
 
   cli_help_write_usage(dynStr, app, flags);
 
@@ -156,4 +157,14 @@ void cli_write_help(DynString* dynStr, CliApp* app, const CliHelpFlags flags) {
     fmt_write(dynStr, "\n");
     cli_help_write_flags(dynStr, app, flags);
   }
+}
+
+void cli_help_write_file(CliApp* app, File* out) {
+  DynString str = dynstring_create(g_alloc_heap, 1024);
+
+  const CliHelpFlags flags = tty_isatty(out) ? CliHelpFlags_Style : CliHelpFlags_None;
+  cli_help_write(&str, app, flags);
+
+  file_write_sync(out, dynstring_view(&str));
+  dynstring_destroy(&str);
 }
