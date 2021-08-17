@@ -10,32 +10,12 @@
 static int run_tests() {
   CheckDef* check = check_create(g_alloc_heap);
 
-  register_spec(check, alloc_bump);
-  register_spec(check, alloc_page);
-  register_spec(check, alloc_scratch);
-  register_spec(check, ascii);
-  register_spec(check, base64);
-  register_spec(check, bits);
-  register_spec(check, bitset);
-  register_spec(check, compare);
-  register_spec(check, dynarray);
-  register_spec(check, dynbitset);
-  register_spec(check, dynstring);
-  register_spec(check, file);
-  register_spec(check, float);
-  register_spec(check, format);
-  register_spec(check, macro);
-  register_spec(check, math);
-  register_spec(check, memory);
-  register_spec(check, path);
-  register_spec(check, rng);
-  register_spec(check, shuffle);
-  register_spec(check, sort);
-  register_spec(check, string);
-  register_spec(check, thread);
-  register_spec(check, time);
-  register_spec(check, utf8);
-  register_spec(check, winutils);
+  register_spec(check, app);
+  register_spec(check, failure);
+  register_spec(check, help);
+  register_spec(check, parse);
+  register_spec(check, read);
+  register_spec(check, validate);
 
   const CheckResultType result = check_run(check);
 
@@ -49,7 +29,7 @@ int main(const int argc, const char** argv) {
 
   int exitCode = 0;
 
-  CliApp* app = cli_app_create(g_alloc_heap, string_lit("Test harness for the volo core library."));
+  CliApp* app = cli_app_create(g_alloc_heap, string_lit("Test harness for the volo cli library."));
 
   const CliId helpFlag = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
   cli_register_desc(app, helpFlag, string_lit("Display this help page."));

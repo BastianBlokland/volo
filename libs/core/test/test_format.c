@@ -20,7 +20,9 @@ spec(format) {
         {&fmt_duration(time_minute), string_lit("1m")},
         {&fmt_size(usize_mebibyte), string_lit("1MiB")},
         {&fmt_text_lit("Hello World"), string_lit("Hello World")},
+        {&fmt_char('a'), string_lit("a")},
         {&fmt_path(string_lit("c:\\hello")), string_lit("C:/hello")},
+        {&fmt_padding(5), string_lit("     ")},
     };
 
     DynString string = dynstring_create_over(mem_stack(128));
@@ -317,6 +319,89 @@ spec(format) {
       dynstring_clear(&string);
       format_write_text(
           &string, data[i].val, &format_opts_text(.flags = FormatTextFlags_EscapeNonPrintAscii));
+      check_eq_string(dynstring_view(&string), data[i].expected);
+    }
+    dynstring_destroy(&string);
+  }
+
+  it("can write wrapped text") {
+    struct {
+      String linePrefix;
+      usize  maxWidth;
+      String val;
+      String expected;
+    } const data[] = {
+        {
+            .linePrefix = string_lit(""),
+            .maxWidth   = 1,
+            .val        = string_lit(""),
+            .expected   = string_lit(""),
+        },
+        {
+            .linePrefix = string_lit(""),
+            .maxWidth   = 1,
+            .val        = string_lit("Hello"),
+            .expected   = string_lit("H\ne\nl\nl\no"),
+        },
+        {
+            .linePrefix = string_lit("> "),
+            .maxWidth   = 30,
+            .val        = string_lit("pulvinar pellentesque habitant"),
+            .expected   = string_lit("> pulvinar pellentesque habitant"),
+        },
+        {
+            .linePrefix = string_lit("> "),
+            .maxWidth   = 30,
+            .val        = string_lit("pulvinar\tpellentesque\thabitant"),
+            .expected   = string_lit("> pulvinar pellentesque habitant"),
+        },
+        {
+            .linePrefix = string_lit(""),
+            .maxWidth   = 30,
+            .val        = string_lit("nisl condimentum\r\n\r\nid venenatis a condimentum vitae"),
+            .expected   = string_lit("nisl condimentum\n\n"
+                                   "id venenatis a condimentum \n"
+                                   "vitae"),
+        },
+        {
+            .linePrefix = string_lit("> "),
+            .maxWidth   = 30,
+            .val        = string_lit("nisl condimentum\r\n\r\nid venenatis a condimentum vitae"),
+            .expected   = string_lit("> nisl condimentum\n"
+                                   "> \n"
+                                   "> id venenatis a condimentum \n"
+                                   "> vitae"),
+        },
+        {
+            .linePrefix = string_lit("> "),
+            .maxWidth   = 30,
+            .val        = string_lit("cursuseuismodquisviverranibhcraspulvinar "
+                              "cursuseuismodquisviverranibhcraspulvinar"),
+            .expected   = string_lit("> cursuseuismodquisviverranibhcr\n"
+                                   "> aspulvinar \n"
+                                   "> cursuseuismodquisviverranibhcr\n"
+                                   "> aspulvinar"),
+        },
+        {
+            .linePrefix = string_lit("> "),
+            .maxWidth   = 30,
+            .val =
+                string_lit("porttitor lacus luctus accumsan tortor posuere ac ut consequat semper "
+                           "viverra nam libero justo laoreet sit amet cursus sit amet"),
+            .expected = string_lit("> porttitor lacus luctus \n"
+                                   "> accumsan tortor posuere ac ut \n"
+                                   "> consequat semper viverra nam \n"
+                                   "> libero justo laoreet sit amet \n"
+                                   "> cursus sit amet"),
+        },
+
+    };
+
+    DynString string = dynstring_create(g_alloc_scratch, 1024);
+    for (usize i = 0; i != array_elems(data); ++i) {
+      dynstring_clear(&string);
+      dynstring_append(&string, data[i].linePrefix);
+      format_write_text_wrapped(&string, data[i].val, data[i].maxWidth, data[i].linePrefix);
       check_eq_string(dynstring_view(&string), data[i].expected);
     }
     dynstring_destroy(&string);

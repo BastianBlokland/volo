@@ -12,6 +12,26 @@
       "stopOnEntry": false
     },
     {
+      "name": "volo_check_test",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/libs/check/volo_check_test",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "terminal": "integrated",
+      "stopOnEntry": false
+    },
+    {
+      "name": "volo_cli_test",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/libs/cli/volo_cli_test",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "terminal": "integrated",
+      "stopOnEntry": false
+    },
+    {
       "name": "volo_core_test",
       "type": "lldb",
       "request": "launch",
@@ -26,16 +46,6 @@
       "type": "lldb",
       "request": "launch",
       "program": "${workspaceFolder}/build/libs/jobs/volo_jobs_test",
-      "args": [],
-      "cwd": "${workspaceFolder}",
-      "terminal": "integrated",
-      "stopOnEntry": false
-    },
-    {
-      "name": "volo_check_test",
-      "type": "lldb",
-      "request": "launch",
-      "program": "${workspaceFolder}/build/libs/check/volo_check_test",
       "args": [],
       "cwd": "${workspaceFolder}",
       "terminal": "integrated",

@@ -181,11 +181,17 @@ void format_write_arg(DynString* str, const FormatArg* arg) {
   case FormatArgType_Text:
     format_write_text(str, arg->value_text, arg->settings);
     break;
+  case FormatArgType_Char:
+    format_write_char(str, arg->value_char, arg->settings);
+    break;
   case FormatArgType_Path:
     path_canonize(str, arg->value_path);
     break;
   case FormatArgType_TtyStyle:
     tty_write_style_sequence(str, arg->value_ttystyle);
+    break;
+  case FormatArgType_Padding:
+    dynstring_append_chars(str, ' ', arg->value_padding);
     break;
   }
 }
@@ -373,7 +379,7 @@ void format_write_time_duration_pretty(DynString* str, const TimeDuration val) {
       {time_day, string_static("d")},
   };
   const TimeDuration absVal = math_abs(val);
-  size_t             i      = 0;
+  usize              i      = 0;
   for (; (i + 1) != array_elems(units) && absVal >= units[i + 1].val; ++i)
     ;
   format_write_float(str, (f64)val / (f64)units[i].val, .maxDecDigits = 1);
@@ -447,7 +453,67 @@ void format_write_size_pretty(DynString* str, const usize val) {
 }
 
 void format_write_text(DynString* str, String val, const FormatOptsText* opts) {
+  mem_for_u8(val, byte, { format_write_char(str, byte, opts); });
+}
 
+void format_write_text_wrapped(
+    DynString* str, String val, const usize maxWidth, String linePrefix) {
+  diag_assert_msg(maxWidth, "'maxWidth' of zero is not supported");
+
+  usize column = 0;
+  while (true) {
+    // Process all the whitespace before the next word.
+    while (!string_is_empty(val)) {
+      switch (*string_begin(val)) {
+      case '\r':
+        break;
+      case '\n':
+        column = 0;
+        dynstring_append_char(str, '\n');
+        dynstring_append(str, linePrefix);
+        break;
+      case '\t':
+      case ' ':
+        if (column >= maxWidth) {
+          column = 0;
+          dynstring_append_char(str, '\n');
+          dynstring_append(str, linePrefix);
+        } else {
+          dynstring_append_char(str, ' ');
+          ++column;
+        }
+        break;
+      default:
+        goto WhitespaceProcessed; // Non-whitespace character.
+      }
+      val = string_consume(val, 1);
+    }
+  WhitespaceProcessed:
+
+    if (string_is_empty(val)) {
+      break; // Finished processing the entire input.
+    }
+
+    // Process the next word.
+    const usize  wordEnd = string_find_first_any(val, string_lit("\r\n\t "));
+    const String word =
+        string_slice(val, 0, math_min(sentinel_check(wordEnd) ? val.size : wordEnd, maxWidth));
+
+    if ((column + word.size) > maxWidth) {
+      // Word doesn't fit; insert newline.
+      dynstring_append_char(str, '\n');
+      dynstring_append(str, linePrefix);
+      column = 0;
+    }
+
+    // Write word to output.
+    dynstring_append(str, word);
+    column += word.size;
+    val = string_consume(val, word.size);
+  }
+}
+
+void format_write_char(DynString* str, const u8 val, const FormatOptsText* opts) {
   static struct {
     u8     byte;
     String escapeSeq;
@@ -462,25 +528,21 @@ void format_write_text(DynString* str, String val, const FormatOptsText* opts) {
       {'\0', string_static("\\0")},
   };
 
-  mem_for_u8(val, byte, {
-    if (opts->flags & FormatTextFlags_EscapeNonPrintAscii && !ascii_is_printable(byte)) {
-      // If we have a well-known sequence for this byte we apply it.
-      for (size_t i = 0; i != array_elems(escapes); ++i) {
-        if (escapes[i].byte == byte) {
-          dynstring_append(str, escapes[i].escapeSeq);
-          goto byte_end;
-        }
+  if (opts->flags & FormatTextFlags_EscapeNonPrintAscii && !ascii_is_printable(val)) {
+    // If we have a well-known sequence for this byte we apply it.
+    for (size_t i = 0; i != array_elems(escapes); ++i) {
+      if (escapes[i].byte == val) {
+        dynstring_append(str, escapes[i].escapeSeq);
+        return;
       }
-      // Otherwise escape it as \hex.
-      dynstring_append_char(str, '\\');
-      format_write_int(str, byte, .base = 16, .minDigits = 2);
-      goto byte_end;
     }
-    // No escape needed: write verbatim.
-    dynstring_append_char(str, byte);
-  byte_end:
-    continue;
-  });
+    // Otherwise escape it as \hex.
+    dynstring_append_char(str, '\\');
+    format_write_int(str, val, .base = 16, .minDigits = 2);
+    return;
+  }
+  // No escape needed: write verbatim.
+  dynstring_append_char(str, val);
 }
 
 String format_read_whitespace(const String input, String* output) {

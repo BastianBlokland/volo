@@ -19,9 +19,11 @@ typedef enum {
   FormatArgType_Duration,
   FormatArgType_Time,
   FormatArgType_Size,
+  FormatArgType_Char,
   FormatArgType_Text,
   FormatArgType_Path,
   FormatArgType_TtyStyle,
+  FormatArgType_Padding,
 } FormatArgType;
 
 /**
@@ -44,8 +46,10 @@ struct sFormatArg {
     TimeReal         value_time;
     usize            value_size;
     String           value_text;
+    u8               value_char;
     String           value_path;
     TtyStyle         value_ttystyle;
+    u16              value_padding;
   };
   void* settings;
 };
@@ -180,6 +184,16 @@ struct sFormatArg {
 #define fmt_text_lit(_VAL_) fmt_text(string_lit(_VAL_))
 
 /**
+ * Create char formatting argument.
+ */
+#define fmt_char(_VAL_, ...)                                                                       \
+  ((FormatArg){                                                                                    \
+      .type       = FormatArgType_Char,                                                            \
+      .value_char = (_VAL_),                                                                       \
+      .settings   = &format_opts_text(__VA_ARGS__)                                                 \
+  })
+
+/**
  * Create file path formatting argument.
  */
 #define fmt_path(_VAL_) ((FormatArg){ .type = FormatArgType_Path, .value_path = (_VAL_) })
@@ -189,6 +203,12 @@ struct sFormatArg {
  */
 #define fmt_ttystyle(...)                                                                          \
   ((FormatArg){ .type = FormatArgType_TtyStyle, .value_ttystyle = (ttystyle(__VA_ARGS__)) })
+
+/**
+ * Create padding formatting argument.
+ */
+#define fmt_padding(_AMOUNT_)                                                                      \
+  ((FormatArg){ .type = FormatArgType_Padding, .value_padding = (_AMOUNT_) })
 
 /**
  * Create a array of format arguments.
@@ -441,6 +461,20 @@ void format_write_size_pretty(DynString*, usize val);
  * Write the text string.
  */
 void format_write_text(DynString*, String val, const FormatOptsText*);
+
+/**
+ * Write the text string as lines of at most 'maxWidth' columns.
+ * If possible whole words are preserved. Each time a newline is inserted a 'linePrefix' is also
+ * inserted (pass an empty string if no prefix is needed).
+ *
+ * Pre-condition: maxWidth > 0.
+ */
+void format_write_text_wrapped(DynString*, String val, usize maxWidth, String linePrefix);
+
+/**
+ * Write a character.
+ */
+void format_write_char(DynString*, u8 val, const FormatOptsText*);
 
 /**
  * Read all ascii whitespace at the beginning of the given string.
