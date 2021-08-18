@@ -6,41 +6,31 @@
 
 #include "output.pretty.h"
 
-typedef enum {
-  CheckOutputFlags_None      = 0,
-  CheckOutputFlags_Style     = 1 << 0,
-  CheckOutputFlags_OnlyFails = 1 << 1,
-  CheckOutputFlags_Tty       = CheckOutputFlags_Style | CheckOutputFlags_OnlyFails,
-} CheckOutputFlags;
-
 typedef struct {
-  CheckOutput      api;
-  Allocator*       alloc;
-  File*            file;
-  String           suiteName;
-  CheckOutputFlags flags;
+  CheckOutput   api;
+  Allocator*    alloc;
+  File*         file;
+  String        suiteName;
+  CheckRunFlags runFlags;
+  bool          style;
 } CheckOutputPretty;
 
 static FormatArg arg_style_bold(CheckOutputPretty* prettyOut) {
-  return prettyOut->flags & CheckOutputFlags_Style ? fmt_ttystyle(.flags = TtyStyleFlags_Bold)
-                                                   : fmt_nop();
+  return prettyOut->style ? fmt_ttystyle(.flags = TtyStyleFlags_Bold) : fmt_nop();
 }
 
 static FormatArg arg_style_dim(CheckOutputPretty* prettyOut) {
-  return prettyOut->flags & CheckOutputFlags_Style ? fmt_ttystyle(.flags = TtyStyleFlags_Faint)
-                                                   : fmt_nop();
+  return prettyOut->style ? fmt_ttystyle(.flags = TtyStyleFlags_Faint) : fmt_nop();
 }
 
 static FormatArg arg_style_reset(CheckOutputPretty* prettyOut) {
-  return prettyOut->flags & CheckOutputFlags_Style ? fmt_ttystyle() : fmt_nop();
+  return prettyOut->style ? fmt_ttystyle() : fmt_nop();
 }
 
 static FormatArg arg_style_result(CheckOutputPretty* prettyOut, const CheckResultType result) {
   const TtyFgColor color =
       result == CheckResultType_Pass ? TtyFgColor_BrightGreen : TtyFgColor_BrightRed;
-  return prettyOut->flags & CheckOutputFlags_Style
-             ? fmt_ttystyle(.fgColor = color, .flags = TtyStyleFlags_Bold)
-             : fmt_nop();
+  return prettyOut->style ? fmt_ttystyle(.fgColor = color, .flags = TtyStyleFlags_Bold) : fmt_nop();
 }
 
 static void output_write(CheckOutputPretty* prettyOut, const String str) {
@@ -86,7 +76,7 @@ static void output_test_finished(
     CheckResult*          result) {
   CheckOutputPretty* prettyOut = (CheckOutputPretty*)out;
 
-  if (prettyOut->flags & CheckOutputFlags_OnlyFails && type != CheckResultType_Fail) {
+  if (!(prettyOut->runFlags & CheckRunFlags_OutputPassingTests) && type != CheckResultType_Fail) {
     return;
   }
 
@@ -155,7 +145,8 @@ static void output_destroy(CheckOutput* out) {
   alloc_free_t(prettyOut->alloc, prettyOut);
 }
 
-CheckOutput* check_output_pretty_create(Allocator* alloc, File* file) {
+CheckOutput*
+check_output_pretty_create(Allocator* alloc, File* file, const CheckRunFlags runFlags) {
   CheckOutputPretty* prettyOut = alloc_alloc_t(alloc, CheckOutputPretty);
   *prettyOut                   = (CheckOutputPretty){
       .api =
@@ -169,7 +160,8 @@ CheckOutput* check_output_pretty_create(Allocator* alloc, File* file) {
       .alloc     = alloc,
       .file      = file,
       .suiteName = path_stem(g_path_executable),
-      .flags     = tty_isatty(file) ? CheckOutputFlags_Tty : CheckOutputFlags_None,
+      .runFlags  = runFlags,
+      .style     = tty_isatty(file),
   };
   return (CheckOutput*)prettyOut;
 }

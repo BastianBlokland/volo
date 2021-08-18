@@ -7,7 +7,7 @@
 
 #include "check_runner.h"
 
-static int run_tests() {
+static int run_tests(const bool outputPassingTests) {
   CheckDef* check = check_create(g_alloc_heap);
 
   register_spec(check, alloc_bump);
@@ -37,7 +37,9 @@ static int run_tests() {
   register_spec(check, utf8);
   register_spec(check, winutils);
 
-  const CheckResultType result = check_run(check);
+  const CheckRunFlags flags =
+      outputPassingTests ? CheckRunFlags_OutputPassingTests : CheckRunFlags_None;
+  const CheckResultType result = check_run(check, flags);
 
   check_destroy(check);
   return result;
@@ -54,6 +56,10 @@ int main(const int argc, const char** argv) {
   const CliId helpFlag = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
   cli_register_desc(app, helpFlag, string_lit("Display this help page."));
 
+  const CliId outputPassingTestsFlag =
+      cli_register_flag(app, 'o', string_lit("output-passing"), CliOptionFlags_None);
+  cli_register_desc(app, outputPassingTestsFlag, string_lit("Display passing tests."));
+
   CliInvocation* invoc = cli_parse(app, argc - 1, argv + 1);
   if (cli_parse_result(invoc) == CliParseResult_Fail) {
     cli_failure_write_file(invoc, g_file_stderr);
@@ -66,7 +72,8 @@ int main(const int argc, const char** argv) {
     goto exit;
   }
 
-  exitCode = run_tests();
+  const bool outputPassingTests = cli_parse_provided(invoc, outputPassingTestsFlag);
+  exitCode                      = run_tests(outputPassingTests);
 
 exit:
   cli_parse_destroy(invoc);
