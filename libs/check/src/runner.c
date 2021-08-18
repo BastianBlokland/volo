@@ -42,12 +42,12 @@ static void check_test_task(void* context) {
   check_result_destroy(result);
 }
 
-CheckResultType check_run(CheckDef* check) {
+CheckResultType check_run(CheckDef* check, const CheckRunFlags flags) {
   const TimeSteady startTime = time_steady_clock();
 
   // Setup outputs.
   CheckOutput* outputs[] = {
-      check_output_pretty_create(g_alloc_heap, g_file_stdout),
+      check_output_pretty_create(g_alloc_heap, g_file_stdout, flags),
   };
   CheckRunContext ctx = {.outputs = outputs, .outputsCount = array_elems(outputs)};
 
