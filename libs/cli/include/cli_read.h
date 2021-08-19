@@ -18,3 +18,9 @@ i64 cli_read_i64(CliInvocation*, CliId, i64 defaultVal);
  * If the option was not provided then 'defaultVal' is returned.
  */
 u64 cli_read_u64(CliInvocation*, CliId, u64 defaultVal);
+
+/**
+ * Read a f64 floating point number that was provided to the given option.
+ * If the option was not provided then 'defaultVal' is returned.
+ */
+f64 cli_read_f64(CliInvocation*, CliId, f64 defaultVal);

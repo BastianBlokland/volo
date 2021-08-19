@@ -16,3 +16,8 @@ bool cli_validate_i64(const String input);
  * Validate if the given input is a valid u64 integer.
  */
 bool cli_validate_u64(const String input);
+
+/**
+ * Validate if the given input is a valid f64 floating point number.
+ */
+bool cli_validate_f64(const String input);

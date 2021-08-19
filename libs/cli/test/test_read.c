@@ -53,4 +53,16 @@ spec(read) {
     cli_parse_destroy(invoc);
     cli_app_destroy(app);
   }
+
+  it("returns the provided f64") {
+    CliApp*     app  = cli_app_create(g_alloc_heap, string_lit("My test app"));
+    const CliId flag = cli_register_flag(app, 'f', string_lit("float"), CliOptionFlags_Value);
+
+    CliInvocation* invoc = cli_parse(app, 2, (const char*[]){"-f", "42.1337e-2"});
+
+    check_eq_float(cli_read_f64(invoc, flag, 999.999), 42.1337e-2, 1e-32);
+
+    cli_parse_destroy(invoc);
+    cli_app_destroy(app);
+  }
 }
