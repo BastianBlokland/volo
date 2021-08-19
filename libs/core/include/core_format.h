@@ -122,14 +122,9 @@ struct sFormatArg {
  * Create an float formatting argument.
  */
 #define fmt_float(_VAL_, ...)                                                                      \
-  _Generic((_VAL_),                                                                                \
-    f32: ((FormatArg){                                                                             \
+  ((FormatArg){                                                                                    \
       .type = FormatArgType_f64, .value_f64 = (_VAL_), .settings = &format_opts_float(__VA_ARGS__) \
-    }),                                                                                            \
-    f64: ((FormatArg){                                                                             \
-      .type = FormatArgType_f64, .value_f64 = (_VAL_), .settings = &format_opts_float(__VA_ARGS__) \
-    })                                                                                             \
-  )
+  })
 
 /**
  * Create an boolean formatting argument.
@@ -378,10 +373,7 @@ typedef struct {
  * Write a floating point number as ascii characters to the given dynamic-string.
  */
 #define format_write_float(_DYNSTRING_, _VAL_, ...)                                                \
-  _Generic((_VAL_),                                                                                \
-    f32: format_write_f64(_DYNSTRING_, (f64)(_VAL_), &format_opts_float(__VA_ARGS__)),             \
-    f64: format_write_f64(_DYNSTRING_, _VAL_, &format_opts_float(__VA_ARGS__))                     \
-  )
+  format_write_f64(_DYNSTRING_, (f64)(_VAL_), &format_opts_float(__VA_ARGS__))
 
 // clang-format on
 
@@ -496,3 +488,10 @@ String format_read_u64(String input, u64* output, u8 base);
  * The value is written to the output pointer, pass 'null' to ignore the output.
  */
 String format_read_i64(String input, i64* output, u8 base);
+
+/**
+ * Read a 64 bit floating point number.
+ * Returns the remaining input.
+ * The value is written to the output pointer, pass 'null' to ignore the output.
+ */
+String format_read_f64(String input, f64* output);

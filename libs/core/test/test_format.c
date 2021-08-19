@@ -477,4 +477,55 @@ spec(format) {
       check_eq_string(rem, data[i].expectedRemaining);
     }
   }
+
+  it("can read f64 floating point numbers") {
+    struct {
+      String val;
+      f64    expected;
+      String expectedRemaining;
+    } const data[] = {
+        {string_empty, 0.0, string_empty},
+        {string_lit("-42"), -42.0, string_empty},
+        {string_lit("+42"), 42.0, string_empty},
+        {string_lit("42"), 42.0, string_empty},
+        {string_lit("-42.1337"), -42.1337, string_empty},
+        {string_lit("+42.1337"), 42.1337, string_empty},
+        {string_lit("42.1337"), 42.1337, string_empty},
+        {string_lit("0.421337"), .421337, string_empty},
+        {string_lit(".421337"), .421337, string_empty},
+        {string_lit("421337.421337"), 421337.421337, string_empty},
+        {string_lit("1.0e+3"), 1e+3, string_empty},
+        {string_lit("1E+6"), 1e+6, string_empty},
+        {string_lit("1e-14"), 1e-14, string_empty},
+        {string_lit("1E-18"), 1e-18, string_empty},
+        {string_lit("1E-20"), 1e-19, string_empty},
+        {string_lit("1E+20"), 1e+19, string_empty},
+        {string_lit("-1e+7"), -1e+7, string_empty},
+        {string_lit("-1e-0"), -1e-0, string_empty},
+        {string_lit("-1e+0"), -1e+0, string_empty},
+        {string_lit("0.17976931348623157"), 0.17976931348623157, string_empty},
+        {string_lit("17976931348623157"), 17976931348623157.0, string_empty},
+        {string_lit("1797693.1348623157"), 1797693.1348623157, string_empty},
+        {string_lit("-0.17976931348623157"), -0.17976931348623157, string_empty},
+        {string_lit("-17976931348623157"), -17976931348623157.0, string_empty},
+        {string_lit("-1797693.1348623157"), -1797693.1348623157, string_empty},
+        {string_lit("0.00000000000000000000000000000001"), 1e-32, string_empty},
+        {string_lit("100000000000000000000000000000.0"), 1e+29, string_empty},
+        {string_lit("100000000000000000000000000.00000000000000000000000000"), 1e+26, string_empty},
+        {string_lit("1Hello"), 1.0, string_lit("Hello")},
+        {string_lit("1.0Hello"), 1.0, string_lit("Hello")},
+        {string_lit(".0Hello"), .0, string_lit("Hello")},
+        {string_lit("1e+10Hello"), 1.0e+10, string_lit("Hello")},
+        {string_lit("1a"), 1.0, string_lit("a")},
+        {string_lit("1.a"), 1.0, string_lit("a")},
+        {string_lit("1.."), 1.0, string_lit(".")},
+    };
+
+    for (usize i = 0; i != array_elems(data); ++i) {
+      f64          out;
+      const String rem = format_read_f64(data[i].val, &out);
+      check_eq_float(out, data[i].expected, 1e-32);
+      check_eq_string(rem, data[i].expectedRemaining);
+    }
+  }
 }

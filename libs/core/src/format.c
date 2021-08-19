@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_annotation.h"
 #include "core_array.h"
 #include "core_ascii.h"
 #include "core_diag.h"
@@ -555,6 +556,23 @@ String format_read_whitespace(const String input, String* output) {
   return string_consume(input, idx);
 }
 
+static String format_read_sign(String input, i8* output) {
+  i8 sign = 1;
+  if (LIKELY(!string_is_empty(input))) {
+    switch (*string_begin(input)) {
+    case '-':
+      sign = -1;
+    case '+':
+      input = string_consume(input, 1);
+      break;
+    }
+  }
+  if (LIKELY(output)) {
+    *output = sign;
+  }
+  return input;
+}
+
 String format_read_u64(const String input, u64* output, const u8 base) {
   usize idx = 0;
   u64   res = 0;
@@ -573,16 +591,9 @@ String format_read_u64(const String input, u64* output, const u8 base) {
 }
 
 String format_read_i64(String input, i64* output, u8 base) {
-  i64 sign = 1;
-  if (input.size) {
-    switch (*string_begin(input)) {
-    case '-':
-      sign = -1;
-    case '+':
-      input = string_consume(input, 1);
-      break;
-    }
-  }
+  i8 sign;
+  input = format_read_sign(input, &sign);
+
   u64          unsignedPart;
   const String rem = format_read_u64(input, &unsignedPart, base);
   if (output) {
@@ -590,4 +601,48 @@ String format_read_i64(String input, i64* output, u8 base) {
     *output = (i64)unsignedPart * sign;
   }
   return rem;
+}
+
+String format_read_f64(String input, f64* output) {
+  i8 sign;
+  input = format_read_sign(input, &sign);
+
+  f64  mantissa       = 0.0;
+  f64  divider        = 1.0;
+  bool passedDecPoint = false;
+
+  while (!string_is_empty(input)) {
+    const char ch = *string_begin(input);
+    if (ch == '.' && !passedDecPoint) {
+      passedDecPoint = true;
+      input          = string_consume(input, 1);
+      continue;
+    }
+    if (!ascii_is_digit(ch)) {
+      break;
+    }
+
+    mantissa = mantissa * 10.0 + ch - '0';
+    if (passedDecPoint) {
+      divider *= 10.0;
+    }
+    input = string_consume(input, 1);
+  }
+
+  // Optionally read an exponent.
+  if (!string_is_empty(input) && (*string_begin(input) == 'e' || *string_begin(input) == 'E')) {
+    i64 exp = 0;
+    input   = format_read_i64(string_consume(input, 1), &exp, 10);
+    // TODO: Consider how to report too big / too small exponents.
+    if (exp >= 0) {
+      divider /= math_pow10_u64(math_min((u8)exp, 19));
+    } else {
+      divider *= math_pow10_u64(math_min((u8)-exp, 19));
+    }
+  }
+
+  if (output) {
+    *output = mantissa / divider * (f64)sign;
+  }
+  return input;
 }
