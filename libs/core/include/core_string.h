@@ -11,6 +11,11 @@ typedef struct sAllocator Allocator;
  */
 typedef Mem String;
 
+typedef enum {
+  StringMatchFlags_None       = 0,
+  StringMatchFlags_IgnoreCase = 1 << 0,
+} StringMatchFlags;
+
 /**
  * Create an empty (0 characters) string.
  */
@@ -128,3 +133,12 @@ usize string_find_last(String, String subStr);
  * Note: Returns 'sentinel_usize' if none of the characters could be found.
  */
 usize string_find_last_any(String, String chars);
+
+/**
+ * Match the given string to a glob pattern.
+ *
+ * Supported pattern syntax:
+ * '?' matches any single character.
+ * '*' matches any number of any characters including none.
+ */
+bool string_match_glob(String, String pattern, StringMatchFlags);
