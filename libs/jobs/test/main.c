@@ -31,12 +31,12 @@ int main(const int argc, const char** argv) {
 
   CliApp* app = cli_app_create(g_alloc_heap, string_lit("Test harness for the volo jobs library."));
 
-  const CliId helpFlag = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
-  cli_register_desc(app, helpFlag, string_lit("Display this help page."));
-
   const CliId outputPassingTestsFlag =
       cli_register_flag(app, 'o', string_lit("output-passing"), CliOptionFlags_None);
   cli_register_desc(app, outputPassingTestsFlag, string_lit("Display passing tests."));
+
+  const CliId helpFlag = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
+  cli_register_desc(app, helpFlag, string_lit("Display this help page."));
 
   CliInvocation* invoc = cli_parse(app, argc - 1, argv + 1);
   if (cli_parse_result(invoc) == CliParseResult_Fail) {
