@@ -6,6 +6,30 @@
 
 spec(read) {
 
+  it("returns the provided string") {
+    CliApp*     app  = cli_app_create(g_alloc_heap, string_lit("My test app"));
+    const CliId flag = cli_register_flag(app, 's', string_lit("string"), CliOptionFlags_Value);
+
+    CliInvocation* invoc = cli_parse(app, 2, (const char*[]){"-s", "Hello World"});
+
+    check_eq_string(cli_read_string(invoc, flag, string_lit("Backup")), string_lit("Hello World"));
+
+    cli_parse_destroy(invoc);
+    cli_app_destroy(app);
+  }
+
+  it("returns the default when not providing a string") {
+    CliApp*     app  = cli_app_create(g_alloc_heap, string_lit("My test app"));
+    const CliId flag = cli_register_flag(app, 's', string_lit("string"), CliOptionFlags_Value);
+
+    CliInvocation* invoc = cli_parse(app, 0, null);
+
+    check_eq_string(cli_read_string(invoc, flag, string_lit("Goodbye")), string_lit("Goodbye"));
+
+    cli_parse_destroy(invoc);
+    cli_app_destroy(app);
+  }
+
   it("returns the provided i64") {
     CliApp*     app  = cli_app_create(g_alloc_heap, string_lit("My test app"));
     const CliId flag = cli_register_flag(app, 'i', string_lit("int"), CliOptionFlags_Value);

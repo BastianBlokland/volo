@@ -1,4 +1,5 @@
 #pragma once
+#include "core_string.h"
 #include "core_types.h"
 
 // Forward declare from 'cli_parse.h'.
@@ -6,6 +7,12 @@ typedef struct sCliInvocation CliInvocation;
 
 // Forward declare from 'cli_app.h'.
 typedef u16 CliId;
+
+/**
+ * Read a string that was provided to the given option.
+ * If the option was not provided then 'defaultVal' is returned.
+ */
+String cli_read_string(CliInvocation*, CliId, String defaultVal);
 
 /**
  * Read a i64 integer that was provided to the given option.

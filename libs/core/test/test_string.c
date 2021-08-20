@@ -147,6 +147,48 @@ spec(string) {
     dynarray_destroy(&array);
   }
 
+  it("can match glob patterns") {
+    const StringMatchFlags f = StringMatchFlags_None;
+    check(string_match_glob(string_lit("hello"), string_lit("*"), f));
+    check(string_match_glob(string_lit("world"), string_lit("*world"), f));
+    check(string_match_glob(string_lit(" world"), string_lit("*world"), f));
+    check(string_match_glob(string_lit("helloworld"), string_lit("*world"), f));
+    check(string_match_glob(string_lit("helloworld"), string_lit("hello*world"), f));
+    check(string_match_glob(string_lit("hello world"), string_lit("hello*world"), f));
+    check(string_match_glob(string_lit("hellostuffworld"), string_lit("hello*world"), f));
+    check(string_match_glob(
+        string_lit("hellostuffworldsomemore"), string_lit("hello*world*more"), f));
+    check(string_match_glob(string_lit("hellostuffworldmore"), string_lit("hello*world*more"), f));
+    check(string_match_glob(string_lit("world"), string_lit("*world*"), f));
+    check(string_match_glob(string_lit("helloworldmore"), string_lit("*world*"), f));
+    check(string_match_glob(string_lit("world"), string_lit("**"), f));
+    check(string_match_glob(string_lit(""), string_lit("*"), f));
+    check(string_match_glob(string_lit(""), string_lit(""), f));
+    check(string_match_glob(string_lit("a"), string_lit("?"), f));
+    check(string_match_glob(string_lit(" "), string_lit("?"), f));
+    check(string_match_glob(string_lit("hello world"), string_lit("h??lo?w?rld"), f));
+    check(string_match_glob(string_lit("hello"), string_lit("hello"), f));
+
+    check(!string_match_glob(string_lit("hello"), string_lit("*world"), f));
+    check(!string_match_glob(string_lit("worldhello"), string_lit("*world"), f));
+    check(!string_match_glob(string_lit(""), string_lit("hello"), f));
+    check(!string_match_glob(string_lit("world"), string_lit("hello"), f));
+    check(!string_match_glob(string_lit("helloworld"), string_lit("hello"), f));
+    check(!string_match_glob(string_lit("worldhello"), string_lit("hello"), f));
+    check(!string_match_glob(string_lit("hello"), string_lit(""), f));
+    check(!string_match_glob(string_lit("hellostuffworl"), string_lit("hello*world"), f));
+    check(!string_match_glob(string_lit("hellstuffworl"), string_lit("hello*world"), f));
+    check(!string_match_glob(string_lit("hellostuffworld"), string_lit("hello*world*more"), f));
+    check(!string_match_glob(string_lit(""), string_lit("?"), f));
+    check(!string_match_glob(string_lit("ello world"), string_lit("h??lo?w?rld?"), f));
+    check(!string_match_glob(string_lit("helloworld"), string_lit("h??lo?w?rld?"), f));
+    check(!string_match_glob(string_lit("hello world"), string_lit("h??lo?w?rld?"), f));
+
+    check(string_match_glob(string_lit("HeLlO"), string_lit("hello"), StringMatchFlags_IgnoreCase));
+    check(
+        !string_match_glob(string_lit("HeLlOZ"), string_lit("hello"), StringMatchFlags_IgnoreCase));
+  }
+
   it("can be sorted") {
     Allocator* alloc = alloc_bump_create_stack(1024);
     DynArray   array = dynarray_create_t(alloc, String, 4);
