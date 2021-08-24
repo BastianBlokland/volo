@@ -24,3 +24,5 @@ add_executable(volo_cli_test
   test/test_validate.c)
 target_link_libraries(volo_cli_test PRIVATE volo_cli)
 target_link_libraries(volo_cli_test PRIVATE volo_check)
+
+configure_test(volo_cli_test cli)
