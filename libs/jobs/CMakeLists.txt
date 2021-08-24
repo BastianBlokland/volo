@@ -24,3 +24,5 @@ add_executable(volo_jobs_test
 target_link_libraries(volo_jobs_test PRIVATE volo_check)
 target_link_libraries(volo_jobs_test PRIVATE volo_cli)
 target_link_libraries(volo_jobs_test PRIVATE volo_jobs)
+
+configure_test(volo_jobs_test jobs)

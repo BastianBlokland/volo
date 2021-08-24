@@ -21,3 +21,5 @@ add_executable(volo_check_test
   test/test_fizzbuzz.c)
 target_link_libraries(volo_check_test PRIVATE volo_check)
 target_link_libraries(volo_check_test PRIVATE volo_cli)
+
+configure_test(volo_check_test check)

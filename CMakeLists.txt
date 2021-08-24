@@ -19,6 +19,10 @@ message(STATUS "* Generator: ${CMAKE_GENERATOR}")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
+# Setup test target.
+include(cmake/test.cmake)
+configure_test_target()
+
 # Setup global platform specific defines.
 include(cmake/platform.cmake)
 detect_platform()
