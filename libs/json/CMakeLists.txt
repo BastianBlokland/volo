@@ -5,7 +5,8 @@
 message(STATUS "Configuring json library")
 
 add_library(volo_json STATIC
-  src/doc.c)
+  src/doc.c
+  src/lexer.c)
 target_include_directories(volo_json PUBLIC include)
 target_link_libraries(volo_json PUBLIC volo_core)
 
