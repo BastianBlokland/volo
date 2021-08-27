@@ -3,6 +3,8 @@
 #include "alloc_internal.h"
 #include "init_internal.h"
 
+#define alloc_max_alloc_size (usize_mebibyte * 128)
+
 Allocator*   g_alloc_heap;
 Allocator*   g_alloc_page;
 THREAD_LOCAL Allocator* g_alloc_scratch;
@@ -27,8 +29,13 @@ INLINE_HINT Mem alloc_alloc(Allocator* allocator, const usize size, const usize 
   diag_assert_msg(
       (size & (align - 1)) == 0,
       "alloc_alloc: Size '{}' is not a multiple of the alignment '{}'",
-      fmt_int(size),
+      fmt_size(size),
       fmt_int(align));
+  diag_assert_msg(
+      size < alloc_max_alloc_size,
+      "alloc_alloc: Size '{}' is bigger then the maximum of '{}'",
+      fmt_size(size),
+      fmt_size(alloc_max_alloc_size));
 
   return allocator->alloc(allocator, size, align);
 }
