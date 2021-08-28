@@ -72,55 +72,55 @@ spec(eq) {
 
   it("returns true for objects with equal fields") {
     const JsonVal x = json_add_object(doc);
-    json_add_field(doc, x, string_lit("a"), json_add_number(doc, 1.0));
-    json_add_field(doc, x, string_lit("b"), json_add_number(doc, 2.0));
-    json_add_field(doc, x, string_lit("c"), json_add_number(doc, 3.0));
+    json_add_field_str(doc, x, string_lit("a"), json_add_number(doc, 1.0));
+    json_add_field_str(doc, x, string_lit("b"), json_add_number(doc, 2.0));
+    json_add_field_str(doc, x, string_lit("c"), json_add_number(doc, 3.0));
 
     const JsonVal y = json_add_object(doc);
-    json_add_field(doc, y, string_lit("a"), json_add_number(doc, 1.0));
-    json_add_field(doc, y, string_lit("b"), json_add_number(doc, 2.0));
-    json_add_field(doc, y, string_lit("c"), json_add_number(doc, 3.0));
+    json_add_field_str(doc, y, string_lit("a"), json_add_number(doc, 1.0));
+    json_add_field_str(doc, y, string_lit("b"), json_add_number(doc, 2.0));
+    json_add_field_str(doc, y, string_lit("c"), json_add_number(doc, 3.0));
 
     check(json_eq(doc, x, y));
   }
 
   it("returns false for objects with different field counts") {
     const JsonVal x = json_add_object(doc);
-    json_add_field(doc, x, string_lit("a"), json_add_number(doc, 1.0));
-    json_add_field(doc, x, string_lit("b"), json_add_number(doc, 2.0));
-    json_add_field(doc, x, string_lit("c"), json_add_number(doc, 3.0));
+    json_add_field_str(doc, x, string_lit("a"), json_add_number(doc, 1.0));
+    json_add_field_str(doc, x, string_lit("b"), json_add_number(doc, 2.0));
+    json_add_field_str(doc, x, string_lit("c"), json_add_number(doc, 3.0));
 
     const JsonVal y = json_add_object(doc);
-    json_add_field(doc, y, string_lit("a"), json_add_number(doc, 1.0));
-    json_add_field(doc, y, string_lit("b"), json_add_number(doc, 2.0));
+    json_add_field_str(doc, y, string_lit("a"), json_add_number(doc, 1.0));
+    json_add_field_str(doc, y, string_lit("b"), json_add_number(doc, 2.0));
 
     check(!json_eq(doc, x, y));
   }
 
   it("returns false for objects with inequal field values") {
     const JsonVal x = json_add_object(doc);
-    json_add_field(doc, x, string_lit("a"), json_add_number(doc, 1.0));
-    json_add_field(doc, x, string_lit("b"), json_add_number(doc, 2.0));
-    json_add_field(doc, x, string_lit("c"), json_add_number(doc, 3.0));
+    json_add_field_str(doc, x, string_lit("a"), json_add_number(doc, 1.0));
+    json_add_field_str(doc, x, string_lit("b"), json_add_number(doc, 2.0));
+    json_add_field_str(doc, x, string_lit("c"), json_add_number(doc, 3.0));
 
     const JsonVal y = json_add_object(doc);
-    json_add_field(doc, y, string_lit("a"), json_add_number(doc, 1.0));
-    json_add_field(doc, y, string_lit("b"), json_add_number(doc, 2.1));
-    json_add_field(doc, y, string_lit("c"), json_add_number(doc, 3.0));
+    json_add_field_str(doc, y, string_lit("a"), json_add_number(doc, 1.0));
+    json_add_field_str(doc, y, string_lit("b"), json_add_number(doc, 2.1));
+    json_add_field_str(doc, y, string_lit("c"), json_add_number(doc, 3.0));
 
     check(!json_eq(doc, x, y));
   }
 
   it("returns false for objects with inequal field names") {
     const JsonVal x = json_add_object(doc);
-    json_add_field(doc, x, string_lit("a"), json_add_number(doc, 1.0));
-    json_add_field(doc, x, string_lit("b"), json_add_number(doc, 2.0));
-    json_add_field(doc, x, string_lit("c"), json_add_number(doc, 3.0));
+    json_add_field_str(doc, x, string_lit("a"), json_add_number(doc, 1.0));
+    json_add_field_str(doc, x, string_lit("b"), json_add_number(doc, 2.0));
+    json_add_field_str(doc, x, string_lit("c"), json_add_number(doc, 3.0));
 
     const JsonVal y = json_add_object(doc);
-    json_add_field(doc, y, string_lit("a"), json_add_number(doc, 1.0));
-    json_add_field(doc, y, string_lit("b"), json_add_number(doc, 2.0));
-    json_add_field(doc, y, string_lit("d"), json_add_number(doc, 3.0));
+    json_add_field_str(doc, y, string_lit("a"), json_add_number(doc, 1.0));
+    json_add_field_str(doc, y, string_lit("b"), json_add_number(doc, 2.0));
+    json_add_field_str(doc, y, string_lit("d"), json_add_number(doc, 3.0));
 
     check(!json_eq(doc, x, y));
   }

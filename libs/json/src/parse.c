@@ -99,7 +99,7 @@ static String json_read_object(JsonDoc* doc, String input, JsonResult* res) {
           token.type == JsonTokenType_End ? JsonError_Truncated : JsonError_InvalidFieldName);
       return input;
     }
-    const String fieldName = token.val_string;
+    const JsonVal fieldName = json_add_string(doc, token.val_string);
 
     // Read seperator (colon).
     input = json_lex(input, &token);

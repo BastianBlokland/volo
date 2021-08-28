@@ -125,7 +125,22 @@ JsonVal json_add_null(JsonDoc*);
 void json_add_elem(JsonDoc*, JsonVal array, JsonVal elem);
 
 /**
- * Add new field to an object.
+ * Add a new field to an object.
+ * Returns 'false' if the object already contains a field with the given name.
+ * Note: When 'false' is returned the state of the object is not modified.
+ *
+ * Pre-condition: object is a value of type JsonType_Object in the given document.
+ * Pre-condition: name is a value of type JsonType_String in the given document.
+ * Pre-condition: name doesn't have a parent yet.
+ * Pre-condition: string value of name is not empty.
+ * Pre-condition: val is valid in the given document.
+ * Pre-condition: val doesn't have a parent yet.
+ * Pre-condition: Adding val to object does not create cycles.
+ */
+bool json_add_field(JsonDoc*, JsonVal object, JsonVal name, JsonVal val);
+
+/**
+ * Add a new field to an object.
  * Returns 'false' if the object already contains a field with the given name.
  * Note: When 'false' is returned the state of the object is not modified.
  *
@@ -135,7 +150,7 @@ void json_add_elem(JsonDoc*, JsonVal array, JsonVal elem);
  * Pre-condition: val doesn't have a parent yet.
  * Pre-condition: Adding val to object does not create cycles.
  */
-bool json_add_field(JsonDoc*, JsonVal object, String name, JsonVal val);
+bool json_add_field_str(JsonDoc*, JsonVal object, String name, JsonVal val);
 
 /**
  * Retrieve the type of a value.

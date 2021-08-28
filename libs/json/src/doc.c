@@ -147,34 +147,39 @@ void json_add_elem(JsonDoc* doc, const JsonVal array, const JsonVal elem) {
   ++arrayData->val_array.elemCount;
 }
 
-bool json_add_field(JsonDoc* doc, const JsonVal object, const String name, const JsonVal val) {
-  diag_assert_msg(json_parent(doc, val) == JsonParent_None, "Given value is already parented");
+bool json_add_field(JsonDoc* doc, const JsonVal object, const JsonVal name, const JsonVal val) {
   diag_assert_msg(json_type(doc, object) == JsonType_Object, "Invalid object value");
-  diag_assert_msg(!string_is_empty(name), "Field name cannot be empty");
-  diag_assert_msg(val != object, "Objects cannot contain cycles"); // TODO: Detect indirect cycles.
+  diag_assert_msg(
+      object != name && object != val,
+      "Objects cannot contain cycles"); // TODO: Detect indirect cycles.
+  diag_assert_msg(json_parent(doc, name) == JsonParent_None, "Given name is already parented");
+  diag_assert_msg(!string_is_empty(json_string(doc, name)), "Field name cannot be empty");
+  diag_assert_msg(json_parent(doc, val) == JsonParent_None, "Given value is already parented");
 
-  // Add the name as a value to the document.
-  // Note: Adding first to avoid invalidating pointers during the linked-list walk.
-  const JsonVal newNameVal = json_add_string(doc, name);
-
+  const String nameStr    = json_string(doc, name);
   JsonValData* objectData = json_val_data(doc, object);
 
   // Walk the linked-list of fields to check for duplicate names and to find the last link.
   JsonVal* link = &objectData->val_object.fieldHead;
   while (!sentinel_check(*link)) {
     const JsonValData* nameValData = json_val_data(doc, *link);
-    if (string_eq(nameValData->val_string, name)) {
+    if (string_eq(nameValData->val_string, nameStr)) {
       // Existing field found with the same name.
       return false;
     }
     link = &json_val_data(doc, nameValData->next)->next;
   }
 
-  *link = newNameVal;
+  *link = name;
   ++objectData->val_object.fieldCount;
-  json_val_data(doc, newNameVal)->next = val;
+  json_val_data(doc, name)->next = val;
+  json_val_data(doc, name)->typeAndParent |= (u32)JsonParent_Object << 16;
   json_val_data(doc, val)->typeAndParent |= (u32)JsonParent_Object << 16;
   return true;
+}
+
+bool json_add_field_str(JsonDoc* doc, const JsonVal object, const String name, const JsonVal val) {
+  return json_add_field(doc, object, json_add_string(doc, name), val);
 }
 
 JsonType json_type(const JsonDoc* doc, const JsonVal val) {

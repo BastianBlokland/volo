@@ -128,14 +128,14 @@ spec(doc) {
 
     check_eq_int(json_parent(doc, field), JsonParent_None);
 
-    const bool res = json_add_field(doc, val, string_lit("test field"), field);
+    const bool res = json_add_field_str(doc, val, string_lit("a"), field);
     check(res);
 
     check_eq_int(json_parent(doc, field), JsonParent_Object);
 
     check_eq_int(json_type(doc, val), JsonType_Object);
     check_eq_int(json_field_count(doc, val), 1);
-    check_eq_string(json_field_begin(doc, val).name, string_lit("test field"));
+    check_eq_string(json_field_begin(doc, val).name, string_lit("a"));
     check_eq_int(json_field_begin(doc, val).value, field);
     check(
         sentinel_check(json_field_next(doc, field).value)); // Check that there is no second field.
@@ -148,14 +148,14 @@ spec(doc) {
     const JsonVal fieldVal2 = json_add_bool(doc, true);
     const JsonVal fieldVal3 = json_add_null(doc);
 
-    json_add_field(doc, val, string_lit("f1"), fieldVal1);
-    json_add_field(doc, val, string_lit("f2"), fieldVal2);
-    json_add_field(doc, val, string_lit("f3"), fieldVal3);
+    json_add_field_str(doc, val, string_lit("a"), fieldVal1);
+    json_add_field_str(doc, val, string_lit("b"), fieldVal2);
+    json_add_field_str(doc, val, string_lit("c"), fieldVal3);
 
-    check_eq_int(json_field(doc, val, string_lit("f1")), fieldVal1);
-    check_eq_int(json_field(doc, val, string_lit("f2")), fieldVal2);
-    check_eq_int(json_field(doc, val, string_lit("f3")), fieldVal3);
-    check(sentinel_check(json_field(doc, val, string_lit("f4"))));
+    check_eq_int(json_field(doc, val, string_lit("a")), fieldVal1);
+    check_eq_int(json_field(doc, val, string_lit("b")), fieldVal2);
+    check_eq_int(json_field(doc, val, string_lit("c")), fieldVal3);
+    check(sentinel_check(json_field(doc, val, string_lit("d"))));
     check(sentinel_check(json_field(doc, val, string_lit(""))));
   }
 
@@ -163,24 +163,24 @@ spec(doc) {
     const JsonVal val = json_add_object(doc);
 
     bool res = true;
-    res &= json_add_field(doc, val, string_lit("f1"), json_add_string(doc, string_lit("Hello")));
-    res &= json_add_field(doc, val, string_lit("f2"), json_add_bool(doc, true));
-    res &= json_add_field(doc, val, string_lit("f3"), json_add_null(doc));
+    res &= json_add_field_str(doc, val, string_lit("a"), json_add_string(doc, string_lit("Hello")));
+    res &= json_add_field_str(doc, val, string_lit("b"), json_add_bool(doc, true));
+    res &= json_add_field_str(doc, val, string_lit("c"), json_add_null(doc));
     check(res);
 
     i32 i = 0;
     json_for_fields(doc, val, itr, {
       switch (i++) {
       case 0:
-        check_eq_string(itr.name, string_lit("f1"));
+        check_eq_string(itr.name, string_lit("a"));
         check_eq_int(json_type(doc, itr.value), JsonType_String);
         break;
       case 1:
-        check_eq_string(itr.name, string_lit("f2"));
+        check_eq_string(itr.name, string_lit("b"));
         check_eq_int(json_type(doc, itr.value), JsonType_Bool);
         break;
       case 2:
-        check_eq_string(itr.name, string_lit("f3"));
+        check_eq_string(itr.name, string_lit("c"));
         check_eq_int(json_type(doc, itr.value), JsonType_Null);
         break;
       default:
@@ -194,16 +194,16 @@ spec(doc) {
   it("returns false when adding two fields with the same name to an object") {
     const JsonVal val = json_add_object(doc);
 
-    check(json_add_field(doc, val, string_lit("f1"), json_add_null(doc)));
-    check(!json_add_field(doc, val, string_lit("f1"), json_add_null(doc)));
-    check(!json_add_field(doc, val, string_lit("f1"), json_add_number(doc, 42)));
-    check(json_add_field(doc, val, string_lit("f3"), json_add_null(doc)));
+    check(json_add_field_str(doc, val, string_lit("a"), json_add_null(doc)));
+    check(!json_add_field_str(doc, val, string_lit("a"), json_add_null(doc)));
+    check(!json_add_field_str(doc, val, string_lit("a"), json_add_number(doc, 42)));
+    check(json_add_field_str(doc, val, string_lit("b"), json_add_null(doc)));
   }
 
   it("can store complex structures") {
     const JsonVal obj1 = json_add_object(doc);
-    json_add_field(doc, obj1, string_lit("a"), json_add_null(doc));
-    json_add_field(doc, obj1, string_lit("b"), json_add_string(doc, string_lit("Hello")));
+    json_add_field_str(doc, obj1, string_lit("a"), json_add_null(doc));
+    json_add_field_str(doc, obj1, string_lit("b"), json_add_string(doc, string_lit("Hello")));
 
     const JsonVal arr = json_add_array(doc);
     json_add_elem(doc, arr, json_add_bool(doc, true));
@@ -211,12 +211,12 @@ spec(doc) {
     json_add_elem(doc, arr, obj1);
 
     const JsonVal obj2 = json_add_object(doc);
-    json_add_field(doc, obj2, string_lit("a"), json_add_null(doc));
+    json_add_field_str(doc, obj2, string_lit("a"), json_add_null(doc));
 
     const JsonVal root = json_add_object(doc);
-    json_add_field(doc, root, string_lit("array"), arr);
-    json_add_field(doc, root, string_lit("num"), json_add_number(doc, 42.0));
-    json_add_field(doc, root, string_lit("subObj"), obj2);
+    json_add_field_str(doc, root, string_lit("array"), arr);
+    json_add_field_str(doc, root, string_lit("num"), json_add_number(doc, 42.0));
+    json_add_field_str(doc, root, string_lit("subObj"), obj2);
 
     i32 i = 0;
     json_for_fields(doc, root, rootItr, {
