@@ -14,6 +14,7 @@
   (JsonResult) { .type = JsonResultType_Success, .val = (_VAL_) }
 
 static const String g_error_strs[] = {
+    string_static("DuplicateField"),
     string_static("InvalidChar"),
     string_static("InvalidCharInFalse"),
     string_static("InvalidCharInNull"),
@@ -23,11 +24,10 @@ static const String g_error_strs[] = {
     string_static("InvalidFieldName"),
     string_static("InvalidFieldSeperator"),
     string_static("MaximumDepthExceeded"),
-    string_static("UnterminatedString"),
     string_static("TooLongString"),
     string_static("Truncated"),
     string_static("UnexpectedToken"),
-    string_static("DuplicateField"),
+    string_static("UnterminatedString"),
 };
 
 _Static_assert(
@@ -94,7 +94,7 @@ static String json_read_object(JsonDoc* doc, String input, JsonResult* res) {
       // NOTE: Not fully spec compliant but we accept objects with trailing comma's.
       goto Success;
     }
-    if (token.type != JsonTokenType_String) {
+    if (token.type != JsonTokenType_String || string_is_empty(token.val_string)) {
       *res = json_err(
           token.type == JsonTokenType_End ? JsonError_Truncated : JsonError_InvalidFieldName);
       return input;

@@ -239,6 +239,7 @@ spec(parse) {
         {string_lit("[^]"), string_lit("InvalidChar")},
         {string_lit("{\"a\":^}"), string_lit("InvalidChar")},
         {string_lit("{\"a\":1,\"a\":2}"), string_lit("DuplicateField")},
+        {string_lit("{\"\":1}"), string_lit("InvalidFieldName")},
     };
 
     JsonResult res;

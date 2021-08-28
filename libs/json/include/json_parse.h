@@ -9,6 +9,7 @@ typedef enum {
 } JsonResultType;
 
 typedef enum {
+  JsonError_DuplicateField,
   JsonError_InvalidChar,
   JsonError_InvalidCharInFalse,
   JsonError_InvalidCharInNull,
@@ -18,11 +19,10 @@ typedef enum {
   JsonError_InvalidFieldName,
   JsonError_InvalidFieldSeperator,
   JsonError_MaximumDepthExceeded,
-  JsonError_UnterminatedString,
   JsonError_TooLongString,
   JsonError_Truncated,
   JsonError_UnexpectedToken,
-  JsonError_DuplicateField,
+  JsonError_UnterminatedString,
 
   JsonError_Count,
 } JsonError;
