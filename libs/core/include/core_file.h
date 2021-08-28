@@ -23,6 +23,7 @@ typedef enum {
   FileResult_PathTooLong,
   FileResult_PathInvalid,
   FileResult_TooManyOpenFiles,
+  FileResult_IsDirectory,
   FileResult_UnknownError,
 
   FileResult_Count,

@@ -35,6 +35,8 @@ static FileResult fileresult_from_errno() {
     return FileResult_AlreadyExists;
   case EINVAL:
     return FileResult_InvalidFilename;
+  case EISDIR:
+    return FileResult_IsDirectory;
   }
   return FileResult_UnknownError;
 }
