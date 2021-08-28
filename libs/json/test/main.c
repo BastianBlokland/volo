@@ -11,6 +11,7 @@ static int run_tests(const bool outputPassingTests) {
   CheckDef* check = check_create(g_alloc_heap);
 
   register_spec(check, doc);
+  register_spec(check, eq);
 
   const CheckRunFlags flags =
       outputPassingTests ? CheckRunFlags_OutputPassingTests : CheckRunFlags_None;
