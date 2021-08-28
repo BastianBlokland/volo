@@ -4,9 +4,12 @@
 #include "core_format.h"
 #include "core_utf8.h"
 
-#include "lexer.h"
+#include "lex.h"
 
 #define json_string_max_size 2048
+
+#define json_token_err(_ERR_)                                                                      \
+  (JsonToken) { .type = JsonTokenType_Error, .val_error = (_ERR_) }
 
 static String json_lex_number(String str, JsonToken* out) {
   out->type = JsonTokenType_Number;
@@ -19,20 +22,18 @@ static String json_lex_string(String str, JsonToken* out) {
   diag_assert(*string_begin(str) == '"');
   str = string_consume(str, 1);
 
-  DynString result = dynstring_create(g_alloc_scratch, json_string_max_size);
+  DynString result = dynstring_create_over(alloc_alloc(g_alloc_scratch, json_string_max_size, 1));
 
   bool escaped = false;
   while (true) {
 
     if (UNLIKELY(result.size >= json_string_max_size)) {
-      out->type      = JsonTokenType_Error;
-      out->val_error = JsonTokenError_TooLongString;
+      *out = json_token_err(JsonError_TooLongString);
       goto Ret;
     }
 
     if (UNLIKELY(string_is_empty(str))) {
-      out->type      = JsonTokenType_Error;
-      out->val_error = JsonTokenError_MissingQuoteInString;
+      *out = json_token_err(JsonError_UnterminatedString);
       goto Ret;
     }
 
@@ -71,9 +72,12 @@ static String json_lex_string(String str, JsonToken* out) {
         str = format_read_u64(str, &unicodePoint, 16);
         utf8_cp_write(&result, (Utf8Codepoint)unicodePoint);
       } break;
+      default:
+        *out = json_token_err(JsonError_InvalidEscapeSequence);
+        goto Ret;
       }
       escaped = false;
-      break;
+      continue;
     }
 
     switch (ch) {
@@ -86,8 +90,7 @@ static String json_lex_string(String str, JsonToken* out) {
       goto Ret;
     default:
       if (ascii_is_control(ch)) {
-        out->type      = JsonTokenType_Error;
-        out->val_error = JsonTokenError_InvalidCharInString;
+        *out = json_token_err(JsonError_InvalidCharInString);
         goto Ret;
       }
       dynstring_append_char(&result, ch);
@@ -104,8 +107,7 @@ static String json_lex_true(String str, JsonToken* out) {
     out->type = JsonTokenType_True;
     return string_consume(str, 4);
   }
-  out->type      = JsonTokenType_Error;
-  out->val_error = JsonTokenError_InvalidCharInTrue;
+  *out = json_token_err(JsonError_InvalidCharInTrue);
   return string_consume(str, 1);
 }
 
@@ -114,8 +116,7 @@ static String json_lex_false(String str, JsonToken* out) {
     out->type = JsonTokenType_False;
     return string_consume(str, 5);
   }
-  out->type      = JsonTokenType_Error;
-  out->val_error = JsonTokenError_InvalidCharInFalse;
+  *out = json_token_err(JsonError_InvalidCharInFalse);
   return string_consume(str, 1);
 }
 
@@ -124,25 +125,24 @@ static String json_lex_null(String str, JsonToken* out) {
     out->type = JsonTokenType_Null;
     return string_consume(str, 4);
   }
-  out->type      = JsonTokenType_Error;
-  out->val_error = JsonTokenError_InvalidCharInNull;
+  *out = json_token_err(JsonError_InvalidCharInNull);
   return string_consume(str, 1);
 }
 
 String json_lex(String str, JsonToken* out) {
   while (!string_is_empty(str)) {
     switch (*string_begin(str)) {
-    case '{':
-      out->type = JsonTokenType_CurlyOpen;
-      return string_consume(str, 1);
-    case '}':
-      out->type = JsonTokenType_CurlyClose;
-      return string_consume(str, 1);
     case '[':
       out->type = JsonTokenType_BracketOpen;
       return string_consume(str, 1);
     case ']':
       out->type = JsonTokenType_BracketClose;
+      return string_consume(str, 1);
+    case '{':
+      out->type = JsonTokenType_CurlyOpen;
+      return string_consume(str, 1);
+    case '}':
+      out->type = JsonTokenType_CurlyClose;
       return string_consume(str, 1);
     case ',':
       out->type = JsonTokenType_Comma;
@@ -178,8 +178,7 @@ String json_lex(String str, JsonToken* out) {
       str = string_consume(str, 1);
       continue;
     default:
-      out->type      = JsonTokenType_Error;
-      out->val_error = JsonTokenError_InvalidChar;
+      *out = json_token_err(JsonError_InvalidChar);
       return string_consume(str, 1);
     }
   }

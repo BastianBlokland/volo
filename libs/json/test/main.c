@@ -12,6 +12,7 @@ static int run_tests(const bool outputPassingTests) {
 
   register_spec(check, doc);
   register_spec(check, eq);
+  register_spec(check, parse);
 
   const CheckRunFlags flags =
       outputPassingTests ? CheckRunFlags_OutputPassingTests : CheckRunFlags_None;

@@ -57,7 +57,7 @@ extern File* g_file_stdout;
 extern File* g_file_stderr;
 
 /**
- * Return a textual result message for a given FileResult.
+ * Return a textual representation of the given FileResult.
  */
 String file_result_str(FileResult);
 
