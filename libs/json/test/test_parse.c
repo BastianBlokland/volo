@@ -238,6 +238,7 @@ spec(parse) {
         {string_lit("{\"a\":1 \"b\"}"), string_lit("UnexpectedToken")},
         {string_lit("[^]"), string_lit("InvalidChar")},
         {string_lit("{\"a\":^}"), string_lit("InvalidChar")},
+        {string_lit("{\"a\":1,\"a\":2}"), string_lit("DuplicateField")},
     };
 
     JsonResult res;

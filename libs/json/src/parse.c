@@ -27,6 +27,7 @@ static const String g_error_strs[] = {
     string_static("TooLongString"),
     string_static("Truncated"),
     string_static("UnexpectedToken"),
+    string_static("DuplicateField"),
 };
 
 _Static_assert(
@@ -113,7 +114,10 @@ static String json_read_object(JsonDoc* doc, String input, JsonResult* res) {
       *res = json_err(valRes.error);
       return input;
     }
-    json_add_field(doc, object, fieldName, valRes.val);
+    if (!json_add_field(doc, object, fieldName, valRes.val)) {
+      *res = json_err(JsonError_DuplicateField);
+      return input;
+    }
 
     // Read seperator (comma).
     input = json_lex(input, &token);

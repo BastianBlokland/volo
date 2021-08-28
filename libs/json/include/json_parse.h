@@ -22,6 +22,7 @@ typedef enum {
   JsonError_TooLongString,
   JsonError_Truncated,
   JsonError_UnexpectedToken,
+  JsonError_DuplicateField,
 
   JsonError_Count,
 } JsonError;
