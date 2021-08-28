@@ -8,7 +8,8 @@ add_library(volo_json STATIC
   src/doc.c
   src/eq.c
   src/lex.c
-  src/parse.c)
+  src/parse.c
+  src/write.c)
 target_include_directories(volo_json PUBLIC include)
 target_link_libraries(volo_json PUBLIC volo_core)
 

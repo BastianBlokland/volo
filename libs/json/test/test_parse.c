@@ -252,9 +252,9 @@ spec(parse) {
   }
 
   it("fails when input contains a too long string") {
-    DynString input = dynstring_create(g_alloc_heap, 4096);
+    DynString input = dynstring_create(g_alloc_heap, usize_kibibyte * 128);
     dynstring_append_char(&input, '"');
-    dynstring_append_chars(&input, 'a', 2049);
+    dynstring_append_chars(&input, 'a', usize_kibibyte * 65);
     dynstring_append_char(&input, '"');
 
     JsonResult res;

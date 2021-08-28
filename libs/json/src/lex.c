@@ -6,7 +6,7 @@
 
 #include "lex.h"
 
-#define json_string_max_size 2048
+#define json_string_max_size (usize_kibibyte * 64)
 
 #define json_token_err(_ERR_)                                                                      \
   (JsonToken) { .type = JsonTokenType_Error, .val_error = (_ERR_) }
@@ -89,7 +89,7 @@ static String json_lex_string(String str, JsonToken* out) {
       out->val_string = dynstring_view(&result);
       goto Ret;
     default:
-      if (ascii_is_control(ch)) {
+      if (UNLIKELY(ascii_is_control(ch))) {
         *out = json_token_err(JsonError_InvalidCharInString);
         goto Ret;
       }
