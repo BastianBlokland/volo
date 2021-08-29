@@ -51,5 +51,15 @@
       "terminal": "integrated",
       "stopOnEntry": false
     },
+    {
+      "name": "volo_json_test",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/libs/json/volo_json_test",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "terminal": "integrated",
+      "stopOnEntry": false
+    },
   ]
 }
