@@ -1,7 +1,7 @@
 #include "core_diag.h"
 #include "core_file.h"
 
-#include <stdlib.h>
+#include "diag_internal.h"
 
 THREAD_LOCAL AssertHandler g_assertHandler;
 THREAD_LOCAL void*         g_assertHandlerContext;
@@ -32,9 +32,11 @@ void diag_assert_report_fail(String msg, const SourceLoc sourceLoc) {
   }
 }
 
+void diag_break() { diag_pal_break(); }
+
 void diag_crash() {
-  DEBUG_BREAK();
-  exit(1);
+  diag_break();
+  diag_pal_crash();
 }
 
 void diag_crash_msg_raw(String msg) {

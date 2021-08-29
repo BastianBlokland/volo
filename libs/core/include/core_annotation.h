@@ -27,17 +27,6 @@
 #endif
 
 /**
- * Raises a breakpoint if the program is running under a debugger.
- */
-#if defined(VOLO_LINUX)
-#define DEBUG_BREAK() __builtin_trap()
-#elif defined(VOLO_WIN32)
-#define DEBUG_BREAK() __debugbreak()
-#else
-#define DEBUG_BREAK()
-#endif
-
-/**
  * Indicates to the compiler that this function does not return.
  */
 #define NORETURN _Noreturn
@@ -70,8 +59,6 @@ _Static_assert(false, "Unsupported compiler");
  */
 #if defined(VOLO_CLANG) || defined(VOLO_GCC)
 #define INLINE_HINT __attribute__((always_inline))
-#elif defined(VOLO_MSVC)
-#define INLINE_HINT __forceinline
 #else
 #define INLINE_HINT
 #endif

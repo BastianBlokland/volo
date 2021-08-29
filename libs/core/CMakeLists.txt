@@ -15,6 +15,7 @@ add_library(volo_core STATIC
   src/bits.c
   src/bitset.c
   src/compare.c
+  src/diag_pal.c
   src/diag.c
   src/dynarray.c
   src/dynbitset.c

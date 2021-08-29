@@ -113,6 +113,7 @@ FinishLabel:
 }
 
 void check_report_error(CheckTestContext* ctx, String msg, const SourceLoc source) {
+  diag_break(); // Halt when running in a debugger.
   check_result_error(ctx->result, msg, source);
 }
 
