@@ -59,8 +59,6 @@ _Static_assert(false, "Unsupported compiler");
  */
 #if defined(VOLO_CLANG) || defined(VOLO_GCC)
 #define INLINE_HINT __attribute__((always_inline))
-#elif defined(VOLO_MSVC)
-#define INLINE_HINT __forceinline
 #else
 #define INLINE_HINT
 #endif

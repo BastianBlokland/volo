@@ -111,6 +111,10 @@ macro(set_msvc_compile_options)
   # Use syncronous pdb writes, reason is Ninja spawns multiple compiler processes that can end up
   # writing to the same pdb.
   add_compile_options(/FS)
+
+  # TODO: Tie these debug options to a configuration knob.
+  # Output debug symbols in seperate pdb files.
+  add_compile_options(/Zi)
 endmacro(set_msvc_compile_options)
 
 # Set compile options

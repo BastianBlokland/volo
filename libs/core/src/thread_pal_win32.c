@@ -78,7 +78,7 @@ INLINE_HINT i64 thread_pal_atomic_sub_i64(i64* ptr, i64 value) {
 
 ThreadHandle thread_pal_start(thread_pal_rettype (*routine)(void*), void* data) {
   HANDLE handle = CreateThread(null, thread_pal_stacksize, routine, data, 0, null);
-  if (UNLIKLEY(!handle)) {
+  if (UNLIKELY(!handle)) {
     diag_crash_msg("CreateThread() failed");
   }
   _Static_assert(sizeof(ThreadHandle) >= sizeof(HANDLE), "'HANDLE' type too big");
