@@ -12,6 +12,8 @@ struct AllocatorPage {
 };
 
 static Mem alloc_page_alloc(Allocator* allocator, const usize size, const usize align) {
+  (void)align;
+
   const usize pageSize = ((struct AllocatorPage*)allocator)->pageSize;
   diag_assert_msg(
       (pageSize & (align - 1)) == 0,

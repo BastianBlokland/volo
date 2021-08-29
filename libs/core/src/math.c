@@ -31,10 +31,10 @@ u64 math_pow10_u64(const u8 val) {
   return table[val];
 }
 
-f32 math_sqrt_f32(const f32 val) { return sqrtf(val); }
+INLINE_HINT f32 math_sqrt_f32(const f32 val) { return sqrtf(val); }
 
-f32 math_log_f32(const f32 val) { return logf(val); }
+INLINE_HINT f32 math_log_f32(const f32 val) { return logf(val); }
 
-f32 math_sin_f32(const f32 val) { return sinf(val); }
+INLINE_HINT f32 math_sin_f32(const f32 val) { return sinf(val); }
 
-f32 math_cos_f32(const f32 val) { return cosf(val); }
+INLINE_HINT f32 math_cos_f32(const f32 val) { return cosf(val); }

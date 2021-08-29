@@ -6,7 +6,7 @@
 
 #define cli_app_option_name_max_len 64
 
-static bool cli_app_excludes(CliApp* app, const CliId a, const CliId b) {
+MAYBE_UNUSED static bool cli_app_excludes(CliApp* app, const CliId a, const CliId b) {
   dynarray_for_t(&app->exclusions, CliExclusion, ex, {
     if (ex->a == a && ex->b == b) {
       return true;

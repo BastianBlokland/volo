@@ -9,7 +9,7 @@
 #pragma intrinsic(_BitScanReverse)
 #endif
 
-u8 bits_popcnt_32(const u32 mask) {
+INLINE_HINT u8 bits_popcnt_32(const u32 mask) {
 #ifdef VOLO_MSVC
   return __popcnt(mask);
 #else
@@ -17,7 +17,7 @@ u8 bits_popcnt_32(const u32 mask) {
 #endif
 }
 
-u8 bits_popcnt_64(const u64 mask) {
+INLINE_HINT u8 bits_popcnt_64(const u64 mask) {
 #ifdef VOLO_MSVC
   return __popcnt64(mask);
 #else
@@ -25,7 +25,7 @@ u8 bits_popcnt_64(const u64 mask) {
 #endif
 }
 
-u8 bits_ctz_32(const u32 mask) {
+INLINE_HINT u8 bits_ctz_32(const u32 mask) {
   if (mask == 0u) {
     return 32;
   }
@@ -38,7 +38,7 @@ u8 bits_ctz_32(const u32 mask) {
 #endif
 }
 
-u8 bits_ctz_64(const u64 mask) {
+INLINE_HINT u8 bits_ctz_64(const u64 mask) {
   if (mask == 0u) {
     return 64;
   }
@@ -51,7 +51,7 @@ u8 bits_ctz_64(const u64 mask) {
 #endif
 }
 
-u8 bits_clz_32(const u32 mask) {
+INLINE_HINT u8 bits_clz_32(const u32 mask) {
   if (mask == 0u) {
     return 32u;
   }
@@ -64,7 +64,7 @@ u8 bits_clz_32(const u32 mask) {
 #endif
 }
 
-u8 bits_clz_64(const u64 mask) {
+INLINE_HINT u8 bits_clz_64(const u64 mask) {
   if (mask == 0u) {
     return 64u;
   }
@@ -77,25 +77,25 @@ u8 bits_clz_64(const u64 mask) {
 #endif
 }
 
-bool bits_ispow2_32(const u32 val) {
+INLINE_HINT bool bits_ispow2_32(const u32 val) {
   diag_assert(val != 0);
   // Ref: https://graphics.stanford.edu/~seander/bithacks.html#DetermineIfPowerOf2.
   return (val & (val - 1u)) == 0;
 }
 
-bool bits_ispow2_64(const u64 val) {
+INLINE_HINT bool bits_ispow2_64(const u64 val) {
   diag_assert(val != 0);
   // Ref: https://graphics.stanford.edu/~seander/bithacks.html#DetermineIfPowerOf2.
   return (val & (val - 1u)) == 0;
 }
 
-u32 bits_nextpow2_32(const u32 val) {
+INLINE_HINT u32 bits_nextpow2_32(const u32 val) {
   diag_assert(val != 0u);
   diag_assert(val <= 2147483648u);
   return 1u << (32u - bits_clz_32(val - 1u));
 }
 
-u64 bits_nextpow2_64(const u64 val) {
+INLINE_HINT u64 bits_nextpow2_64(const u64 val) {
   diag_assert(val != 0u);
   diag_assert(val <= u64_lit(9223372036854775808));
   return u64_lit(1) << (u64_lit(64) - bits_clz_64(val - u64_lit(1)));
@@ -130,7 +130,7 @@ u32 bits_hash_32(const Mem mem) {
   return hash;
 }
 
-u32 bits_padding_32(const u32 val, const u32 align) {
+INLINE_HINT u32 bits_padding_32(const u32 val, const u32 align) {
   diag_assert(align != 0);
   diag_assert(bits_ispow2_32(align));
 
@@ -138,7 +138,7 @@ u32 bits_padding_32(const u32 val, const u32 align) {
   return rem ? align - rem : 0;
 }
 
-u64 bits_padding_64(const u64 val, const u64 align) {
+INLINE_HINT u64 bits_padding_64(const u64 val, const u64 align) {
   diag_assert(align != 0);
   diag_assert(bits_ispow2_64(align));
 
@@ -146,10 +146,14 @@ u64 bits_padding_64(const u64 val, const u64 align) {
   return rem ? align - rem : 0;
 }
 
-u32 bits_align_32(const u32 val, const u32 align) { return val + bits_padding_32(val, align); }
-u64 bits_align_64(const u64 val, const u64 align) { return val + bits_padding_64(val, align); }
+INLINE_HINT u32 bits_align_32(const u32 val, const u32 align) {
+  return val + bits_padding_32(val, align);
+}
+INLINE_HINT u64 bits_align_64(const u64 val, const u64 align) {
+  return val + bits_padding_64(val, align);
+}
 
-f32 bits_u32_as_f32(u32 val) { return *(f32*)(&val); }
-u32 bits_f32_as_u32(f32 val) { return *(u32*)(&val); }
-f64 bits_u64_as_f64(u64 val) { return *(f64*)(&val); }
-u64 bits_f64_as_u64(f64 val) { return *(u64*)(&val); }
+INLINE_HINT f32 bits_u32_as_f32(u32 val) { return *(f32*)(&val); }
+INLINE_HINT u32 bits_f32_as_u32(f32 val) { return *(u32*)(&val); }
+INLINE_HINT f64 bits_u64_as_f64(u64 val) { return *(f64*)(&val); }
+INLINE_HINT u64 bits_f64_as_u64(f64 val) { return *(u64*)(&val); }

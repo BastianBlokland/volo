@@ -66,6 +66,17 @@ _Static_assert(false, "Unsupported compiler");
 #endif
 
 /**
+ * Hint to the compiler that this function should be inlined.
+ */
+#if defined(VOLO_CLANG) || defined(VOLO_GCC)
+#define INLINE_HINT __attribute__((always_inline))
+#elif defined(VOLO_MSVC)
+#define INLINE_HINT __forceinline
+#else
+#define INLINE_HINT
+#endif
+
+/**
  * Mark a structure or enum to be packed, meaning it will use as little memory as possible.
  * Note: Behaviour differs per compiler, MSVC does not support this on enums at all for example.
  *

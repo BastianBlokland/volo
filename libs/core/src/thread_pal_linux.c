@@ -38,26 +38,28 @@ void thread_pal_set_name(const String str) {
   (void)res;
 }
 
-i64 thread_pal_atomic_load_i64(i64* ptr) { return __atomic_load_n(ptr, __ATOMIC_SEQ_CST); }
+INLINE_HINT i64 thread_pal_atomic_load_i64(i64* ptr) {
+  return __atomic_load_n(ptr, __ATOMIC_SEQ_CST);
+}
 
-void thread_pal_atomic_store_i64(i64* ptr, i64 value) {
+INLINE_HINT void thread_pal_atomic_store_i64(i64* ptr, i64 value) {
   __atomic_store(ptr, &value, __ATOMIC_SEQ_CST);
 }
 
-i64 thread_pal_atomic_exchange_i64(i64* ptr, i64 value) {
+INLINE_HINT i64 thread_pal_atomic_exchange_i64(i64* ptr, i64 value) {
   return __atomic_exchange_n(ptr, value, __ATOMIC_SEQ_CST);
 }
 
-bool thread_pal_atomic_compare_exchange_i64(i64* ptr, i64* expected, i64 value) {
+INLINE_HINT bool thread_pal_atomic_compare_exchange_i64(i64* ptr, i64* expected, i64 value) {
   return __atomic_compare_exchange_n(
       ptr, expected, value, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
 }
 
-i64 thread_pal_atomic_add_i64(i64* ptr, i64 value) {
+INLINE_HINT i64 thread_pal_atomic_add_i64(i64* ptr, i64 value) {
   return __atomic_fetch_add(ptr, value, __ATOMIC_SEQ_CST);
 }
 
-i64 thread_pal_atomic_sub_i64(i64* ptr, i64 value) {
+INLINE_HINT i64 thread_pal_atomic_sub_i64(i64* ptr, i64 value) {
   return __atomic_fetch_sub(ptr, value, __ATOMIC_SEQ_CST);
 }
 

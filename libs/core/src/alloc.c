@@ -19,7 +19,7 @@ void alloc_teardown_thread() {
   g_alloc_scratch = null;
 }
 
-Mem alloc_alloc(Allocator* allocator, const usize size, const usize align) {
+INLINE_HINT Mem alloc_alloc(Allocator* allocator, const usize size, const usize align) {
   diag_assert_msg(allocator, "alloc_alloc: Allocator is not initialized");
   diag_assert_msg(size, "alloc_alloc: 0 byte allocations are not valid");
   diag_assert_msg(
@@ -33,17 +33,17 @@ Mem alloc_alloc(Allocator* allocator, const usize size, const usize align) {
   return allocator->alloc(allocator, size, align);
 }
 
-void alloc_free(Allocator* allocator, Mem mem) {
+INLINE_HINT void alloc_free(Allocator* allocator, Mem mem) {
   diag_assert_msg(allocator, "alloc_free: Allocator is not initialized");
   allocator->free(allocator, mem);
 }
 
-usize alloc_min_size(Allocator* allocator) {
+INLINE_HINT usize alloc_min_size(Allocator* allocator) {
   diag_assert_msg(allocator, "alloc_min_size: Allocator is not initialized");
   return allocator->minSize(allocator);
 }
 
-usize alloc_max_size(Allocator* allocator) {
+INLINE_HINT usize alloc_max_size(Allocator* allocator) {
   diag_assert_msg(allocator, "alloc_max_size: Allocator is not initialized");
   return allocator->maxSize(allocator);
 }

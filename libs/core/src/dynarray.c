@@ -40,49 +40,52 @@ void dynarray_destroy(DynArray* array) {
   }
 }
 
-usize dynarray_size(const DynArray* array) {
+INLINE_HINT usize dynarray_size(const DynArray* array) {
   diag_assert(array);
   return array->size;
 }
 
-void dynarray_resize(DynArray* array, const usize size) {
+static void dynarray_resize_grow(DynArray* array, const usize size) {
+  if (UNLIKELY(!array->alloc)) {
+    diag_assert_fail("DynArray without an allocator ran out of memory");
+  }
+
+  const Mem newMem =
+      alloc_alloc(array->alloc, bits_nextpow2_64(size * array->stride), array->align);
+  diag_assert_msg(mem_valid(newMem), "Allocation failed");
+
+  if (LIKELY(mem_valid(array->data))) {
+    mem_cpy(newMem, array->data);
+    alloc_free(array->alloc, array->data);
+  }
+  array->data = newMem;
+}
+
+INLINE_HINT void dynarray_resize(DynArray* array, const usize size) {
   diag_assert(array);
   if (size * array->stride > array->data.size) {
-
-    if (UNLIKELY(!array->alloc)) {
-      diag_assert_fail("DynArray without an allocator ran out of memory");
-    }
-
-    const Mem newMem =
-        alloc_alloc(array->alloc, bits_nextpow2_64(size * array->stride), array->align);
-    diag_assert_msg(mem_valid(newMem), "Allocation failed");
-
-    if (LIKELY(mem_valid(array->data))) {
-      mem_cpy(newMem, array->data);
-      alloc_free(array->alloc, array->data);
-    }
-    array->data = newMem;
+    dynarray_resize_grow(array, size);
   }
   array->size = size;
 }
 
-void dynarray_clear(DynArray* array) {
+INLINE_HINT void dynarray_clear(DynArray* array) {
   diag_assert(array);
   array->size = 0;
 }
 
-Mem dynarray_at(const DynArray* array, const usize idx, const usize count) {
+INLINE_HINT Mem dynarray_at(const DynArray* array, const usize idx, const usize count) {
   diag_assert(array);
   diag_assert(idx + count <= array->size);
   return mem_slice(array->data, array->stride * idx, array->stride * count);
 }
 
-Mem dynarray_push(DynArray* array, const usize count) {
+INLINE_HINT Mem dynarray_push(DynArray* array, const usize count) {
   dynarray_resize(array, array->size + count);
   return mem_slice(array->data, array->stride * (array->size - count), array->stride * count);
 }
 
-void dynarray_pop(DynArray* array, usize count) {
+INLINE_HINT void dynarray_pop(DynArray* array, usize count) {
   diag_assert(array);
   diag_assert(count <= array->size);
   dynarray_resize(array, array->size - count);

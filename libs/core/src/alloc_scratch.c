@@ -16,7 +16,7 @@ struct AllocatorScratch {
   u8*       head;
 };
 
-static void alloc_scratch_write_guard(struct AllocatorScratch* allocator) {
+MAYBE_UNUSED static void alloc_scratch_write_guard(struct AllocatorScratch* allocator) {
   const usize memUntilEnd = mem_end(allocator->memory) - allocator->head;
   if (memUntilEnd > alloc_scratch_guard_size) {
     mem_set(mem_create(allocator->head, alloc_scratch_guard_size), guard_mem_tag);
@@ -54,12 +54,13 @@ static Mem alloc_scratch_alloc(Allocator* allocator, const usize size, const usi
 }
 
 static void alloc_scratch_free(Allocator* allocator, Mem mem) {
+  (void)allocator;
+  (void)mem;
+
   diag_assert(mem_valid(mem));
 
   // TODO: Create special compiler define to enable / disable tagging of freed mem.
   mem_set(mem, freed_mem_tag); // Tag to detect use-after-free.
-
-  (void)allocator;
 }
 
 static usize alloc_scratch_min_size(Allocator* allocator) {
