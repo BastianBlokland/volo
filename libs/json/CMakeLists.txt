@@ -17,7 +17,8 @@ add_executable(volo_json_test
   test/main.c
   test/test_doc.c
   test/test_eq.c
-  test/test_parse.c)
+  test/test_parse.c
+  test/test_write.c)
 target_link_libraries(volo_json_test PRIVATE volo_check)
 target_link_libraries(volo_json_test PRIVATE volo_cli)
 target_link_libraries(volo_json_test PRIVATE volo_json)
