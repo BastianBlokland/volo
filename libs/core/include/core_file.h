@@ -94,6 +94,11 @@ FileResult file_write_sync(File*, String);
 FileResult file_read_sync(File*, DynString*);
 
 /**
+ * Keep reading synchronously into the dynamic-string until the end of the file is reached.
+ */
+FileResult file_read_to_end_sync(File*, DynString*);
+
+/**
  * Synchronously seek an open file to the specified position.
  */
 FileResult file_seek_sync(File*, usize position);

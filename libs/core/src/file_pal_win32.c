@@ -122,7 +122,7 @@ file_create(Allocator* alloc, String path, FileMode mode, FileAccessFlags access
 
 FileResult file_temp(Allocator* alloc, File** file) {
   // Use 'GetTempPath' and 'GetTempFileName' to generate a unique filename in a temporary directory.
-  Mem         tempDirPath  = mem_stack(MAX_PATH * sizeof(wchar_t) + 1); // +1 for null-terminator.
+  Mem         tempDirPath  = mem_stack((MAX_PATH + 1) * sizeof(wchar_t)); // +1 for null-terminator.
   const DWORD tempDirChars = GetTempPath(MAX_PATH, (wchar_t*)tempDirPath.ptr);
   if (!tempDirChars) {
     return fileresult_from_lasterror();
@@ -177,6 +177,11 @@ FileResult file_write_sync(File* file, const String data) {
 
 FileResult file_read_sync(File* file, DynString* dynstr) {
   diag_assert(file);
+
+  /**
+   * TODO: Consider reserving space in the output DynString and directly reading into that to avoid
+   * the copy. Downside is for small reads we would grow the DynString unnecessarily.
+   */
 
   Mem   readBuffer = mem_stack(usize_kibibyte);
   DWORD bytesRead;

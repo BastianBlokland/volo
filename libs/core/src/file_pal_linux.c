@@ -140,6 +140,11 @@ FileResult file_write_sync(File* file, const String data) {
 FileResult file_read_sync(File* file, DynString* dynstr) {
   diag_assert(file);
 
+  /**
+   * TODO: Consider reserving space in the output DynString and directly reading into that to avoid
+   * the copy. Downside is for small reads we would grow the DynString unnecessarily.
+   */
+
   Mem readBuffer = mem_stack(usize_kibibyte);
   while (true) {
     const ssize_t res = read(file->handle, readBuffer.ptr, readBuffer.size);
