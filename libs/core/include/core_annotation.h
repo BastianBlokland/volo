@@ -27,17 +27,6 @@
 #endif
 
 /**
- * Raises a breakpoint if the program is running under a debugger.
- */
-#if defined(VOLO_LINUX)
-#define DEBUG_BREAK() __builtin_trap()
-#elif defined(VOLO_WIN32)
-#define DEBUG_BREAK() __debugbreak()
-#else
-#define DEBUG_BREAK()
-#endif
-
-/**
  * Indicates to the compiler that this function does not return.
  */
 #define NORETURN _Noreturn

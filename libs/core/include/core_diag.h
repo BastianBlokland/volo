@@ -66,12 +66,17 @@ void diag_print_err_raw(String msg);
 void diag_assert_report_fail(String msg, SourceLoc);
 
 /**
- * Crash the program, will halt when running in a debugger.
+ * Halt the program when running with a debugger attached.
+ */
+void diag_break();
+
+/**
+ * Crash the program.
  */
 NORETURN void diag_crash();
 
 /**
- * Crash the program, will halt when running in a debugger.
+ * Crash the program.
  */
 NORETURN void diag_crash_msg_raw(String msg);
 
