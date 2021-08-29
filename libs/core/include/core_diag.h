@@ -45,6 +45,12 @@ typedef bool (*AssertHandler)(String msg, SourceLoc, void* context);
   diag_assert_report_fail(fmt_write_scratch(_MSG_FORMAT_LIT_, __VA_ARGS__), source_location())
 
 /**
+ * Crash the program, will halt when running in a debugger.
+ */
+#define diag_crash_msg(_MSG_FORMAT_LIT_, ...)                                                      \
+  diag_crash_msg_raw(fmt_write_scratch(_MSG_FORMAT_LIT_, __VA_ARGS__))
+
+/**
  * Print a message to the stdout stream.
  */
 void diag_print_raw(String msg);
@@ -63,6 +69,11 @@ void diag_assert_report_fail(String msg, SourceLoc);
  * Crash the program, will halt when running in a debugger.
  */
 NORETURN void diag_crash();
+
+/**
+ * Crash the program, will halt when running in a debugger.
+ */
+NORETURN void diag_crash_msg_raw(String msg);
 
 /**
  * Set the assert handler for the current thread.

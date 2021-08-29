@@ -65,8 +65,9 @@ u16 tty_pal_width(File* file) {
 
   CONSOLE_SCREEN_BUFFER_INFO csbi;
   const BOOL                 res = GetConsoleScreenBufferInfo(file->handle, &csbi);
-  diag_assert_msg(res, "GetConsoleScreenBufferInfo() failed");
-  (void)res;
+  if (UNLIKELY(!res)) {
+    diag_crash_msg("GetConsoleScreenBufferInfo() failed");
+  }
   return (u16)(1 + csbi.srWindow.Right - csbi.srWindow.Left);
 }
 
@@ -75,7 +76,8 @@ u16 tty_pal_height(File* file) {
 
   CONSOLE_SCREEN_BUFFER_INFO csbi;
   const BOOL                 res = GetConsoleScreenBufferInfo(file->handle, &csbi);
-  diag_assert_msg(res, "GetConsoleScreenBufferInfo() failed");
-  (void)res;
+  if (UNLIKELY(!res)) {
+    diag_crash_msg("GetConsoleScreenBufferInfo() failed");
+  }
   return (u16)(1 + csbi.srWindow.Bottom - csbi.srWindow.Top);
 }

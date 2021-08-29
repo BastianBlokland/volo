@@ -16,8 +16,9 @@ u16 tty_pal_width(File* file) {
 
   struct winsize ws;
   const int      res = ioctl(file->handle, TIOCGWINSZ, &ws);
-  diag_assert_msg(res == 0, "ioctl() failed: {}", fmt_int(res));
-  (void)res;
+  if (UNLIKELY(res != 0)) {
+    diag_crash_msg("ioctl() failed: {}", fmt_int(res));
+  }
   return ws.ws_col;
 }
 
@@ -26,7 +27,8 @@ u16 tty_pal_height(File* file) {
 
   struct winsize ws;
   const int      res = ioctl(file->handle, TIOCGWINSZ, &ws);
-  diag_assert_msg(res == 0, "ioctl() failed: {}", fmt_int(res));
-  (void)res;
+  if (UNLIKELY(res != 0)) {
+    diag_crash_msg("ioctl() failed: {}", fmt_int(res));
+  }
   return ws.ws_row;
 }

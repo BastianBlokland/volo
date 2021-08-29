@@ -166,8 +166,7 @@ String cli_option_name(const CliApp* app, const CliId id) {
   case CliOptionType_Arg:
     return opt->dataArg.name;
   }
-  diag_assert_fail("Unsupported option type");
-  diag_crash();
+  diag_crash_msg("Unsupported option type");
 }
 
 CliId cli_find_by_character(const CliApp* app, const u8 character) {

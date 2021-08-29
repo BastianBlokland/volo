@@ -30,8 +30,9 @@ void thread_pal_set_name(const String str) {
 
   const HANDLE  curThread = GetCurrentThread();
   const HRESULT res       = SetThreadDescription(curThread, buffer.ptr);
-  diag_assert_msg(SUCCEEDED(res), "SetThreadDescription() failed");
-  (void)res;
+  if (UNLIKELY(!SUCCEEDED(res))) {
+    diag_crash_msg("SetThreadDescription() failed");
+  }
 }
 
 INLINE_HINT i64 thread_pal_atomic_load_i64(i64* ptr) {
@@ -77,20 +78,23 @@ INLINE_HINT i64 thread_pal_atomic_sub_i64(i64* ptr, i64 value) {
 
 ThreadHandle thread_pal_start(thread_pal_rettype (*routine)(void*), void* data) {
   HANDLE handle = CreateThread(null, thread_pal_stacksize, routine, data, 0, null);
-  diag_assert_msg(handle, "CreateThread() failed");
-
+  if (UNLIKLEY(!handle)) {
+    diag_crash_msg("CreateThread() failed");
+  }
   _Static_assert(sizeof(ThreadHandle) >= sizeof(HANDLE), "'HANDLE' type too big");
   return (ThreadHandle)handle;
 }
 
 void thread_pal_join(ThreadHandle thread) {
   DWORD waitRes = WaitForSingleObject((HANDLE)thread, INFINITE);
-  diag_assert_msg(waitRes != WAIT_FAILED, "WaitForSingleObject() failed");
-  (void)waitRes;
+  if (UNLIKELY(waitRes == WAIT_FAILED)) {
+    diag_crash_msg("WaitForSingleObject() failed");
+  }
 
   BOOL closeRes = CloseHandle((HANDLE)thread);
-  diag_assert_msg(closeRes, "CloseHandle() failed");
-  (void)closeRes;
+  if (UNLIKELY(!closeRes)) {
+    diag_crash_msg("CloseHandle() failed");
+  }
 }
 
 void thread_pal_yield() { SwitchToThread(); }
@@ -164,9 +168,10 @@ void thread_pal_cond_wait(ThreadCondition condHandle, ThreadMutex mutexHandle) {
   ThreadConditionData* condData  = (ThreadConditionData*)condHandle;
   ThreadMutexData*     mutexData = (ThreadMutexData*)mutexHandle;
 
-  BOOL sleepRes = SleepConditionVariableCS(&condData->impl, &mutexData->impl, INFINITE);
-  diag_assert_msg(sleepRes, "SleepConditionVariableCS() failed");
-  (void)sleepRes;
+  const BOOL sleepRes = SleepConditionVariableCS(&condData->impl, &mutexData->impl, INFINITE);
+  if (UNLIKELY(!sleepRes)) {
+    diag_crash_msg("SleepConditionVariableCS() failed");
+  }
 }
 
 void thread_pal_cond_signal(ThreadCondition handle) {

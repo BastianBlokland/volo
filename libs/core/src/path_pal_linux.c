@@ -9,7 +9,7 @@
 String path_pal_workingdir(Mem outputBuffer) {
   Mem tmp = mem_stack(path_pal_max_size);
   if (!getcwd(tmp.ptr, tmp.size)) {
-    diag_assert_fail("getcwd() failed");
+    diag_crash_msg("getcwd() failed");
   }
 
   DynString writer = dynstring_create_over(outputBuffer);
@@ -23,7 +23,7 @@ String path_pal_workingdir(Mem outputBuffer) {
 String path_pal_executable(Mem outputBuffer) {
   Mem tmp = mem_stack(PATH_MAX);
   if (!realpath("/proc/self/exe", tmp.ptr)) {
-    diag_assert_fail("failed to resolve '/proc/self/exe'");
+    diag_crash_msg("failed to resolve '/proc/self/exe'");
   }
 
   DynString writer = dynstring_create_over(outputBuffer);

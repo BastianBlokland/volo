@@ -6,13 +6,17 @@
 
 static void test_thread_has_name(void* data) {
   (void)data;
-  diag_assert(string_eq(g_thread_name, string_lit("my_custom_name")));
+  if (!string_eq(g_thread_name, string_lit("my_custom_name"))) {
+    diag_crash_msg("Test 'test_thread_has_name' failed");
+  }
 }
 
 static void test_atomic_store_value(void* data) { thread_atomic_store_i64((i64*)data, 1337); }
 
 static void test_atomic_exchange_value(void* data) {
-  diag_assert(thread_atomic_exchange_i64((i64*)data, 1337) == 42);
+  if (thread_atomic_exchange_i64((i64*)data, 1337) != 42) {
+    diag_crash_msg("Test 'test_atomic_exchange_value' failed");
+  }
 }
 
 static void test_atomic_compare_exchange_value(void* data) {
@@ -20,7 +24,9 @@ static void test_atomic_compare_exchange_value(void* data) {
   for (i32 i = 0; i != 1000; ++i) {
     i64 expected = 42;
     if (!thread_atomic_compare_exchange_i64(valPtr, &expected, 1337)) {
-      diag_assert(expected == 1337);
+      if (expected != 1337) {
+        diag_crash_msg("Test 'test_atomic_compare_exchange_value' failed");
+      }
     }
   }
 }
@@ -41,7 +47,9 @@ static void test_atomic_sub_value(void* data) {
 
 static void test_mutex_trylock_fails(void* data) {
   ThreadMutex mutex = (ThreadMutex)data;
-  diag_assert(!thread_mutex_trylock(mutex));
+  if (thread_mutex_trylock(mutex)) {
+    diag_crash_msg("Test 'test_mutex_trylock_fails' failed");
+  }
 }
 
 static void test_cond_broadcast_unblocks_all(void* rawData) {
@@ -102,7 +110,7 @@ spec(thread) {
     for (i32 i = 0; i != 1000; ++i) {
       i64 expected = 1337;
       if (!thread_atomic_compare_exchange_i64(&value, &expected, 42)) {
-        diag_assert(expected == 42);
+        check_eq_int(expected, 42);
       }
     }
     thread_join(exec);

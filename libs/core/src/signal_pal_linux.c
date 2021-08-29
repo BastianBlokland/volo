@@ -19,9 +19,10 @@ static void signal_pal_setup_interupt_handler() {
   };
   sigemptyset(&action.sa_mask);
 
-  int res = sigaction(SIGINT, &action, null);
-  diag_assert_msg(res == 0, "sigaction() failed: {}", fmt_int(res));
-  (void)res;
+  const int res = sigaction(SIGINT, &action, null);
+  if (UNLIKELY(res != 0)) {
+    diag_crash_msg("sigaction() failed: {}", fmt_int(res));
+  }
 }
 
 void signal_pal_setup_handlers() { signal_pal_setup_interupt_handler(); }

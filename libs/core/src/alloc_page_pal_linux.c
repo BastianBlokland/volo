@@ -31,8 +31,9 @@ static void alloc_page_free(Allocator* allocator, Mem mem) {
   diag_assert(mem_valid(mem));
 
   const int res = munmap(mem.ptr, mem.size);
-  diag_assert_msg(res == 0, "munmap() failed: {}", fmt_int(res));
-  (void)res;
+  if (UNLIKELY(res != 0)) {
+    diag_crash_msg("munmap() failed: {}", fmt_int(res));
+  }
 }
 
 static usize alloc_page_min_size(Allocator* allocator) {

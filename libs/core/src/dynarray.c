@@ -46,9 +46,7 @@ INLINE_HINT usize dynarray_size(const DynArray* array) {
 }
 
 static void dynarray_resize_grow(DynArray* array, const usize size) {
-  if (UNLIKELY(!array->alloc)) {
-    diag_assert_fail("DynArray without an allocator ran out of memory");
-  }
+  diag_assert_msg(array->alloc, "DynArray without an allocator ran out of memory");
 
   const Mem newMem =
       alloc_alloc(array->alloc, bits_nextpow2_64(size * array->stride), array->align);

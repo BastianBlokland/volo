@@ -37,6 +37,11 @@ void diag_crash() {
   exit(1);
 }
 
+void diag_crash_msg_raw(String msg) {
+  diag_print_err("Crash: '{}'\n", fmt_text(msg));
+  diag_crash();
+}
+
 void diag_set_assert_handler(AssertHandler handler, void* context) {
   g_assertHandler        = handler;
   g_assertHandlerContext = context;
