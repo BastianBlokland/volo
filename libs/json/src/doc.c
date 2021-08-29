@@ -5,7 +5,7 @@
 #include "json_doc.h"
 
 typedef struct {
-  JsonVal elemHead;
+  JsonVal elemHead, elemTail;
   u32     elemCount;
 } JsonArrayData;
 
@@ -75,7 +75,7 @@ JsonVal json_add_array(JsonDoc* doc) {
       (JsonValData){
           .typeAndParent = JsonType_Array,
           .next          = sentinel_u32,
-          .val_array     = {.elemHead = sentinel_u32, .elemCount = 0},
+          .val_array     = {.elemHead = sentinel_u32, .elemTail = sentinel_u32, .elemCount = 0},
       });
 }
 
@@ -137,11 +137,13 @@ void json_add_elem(JsonDoc* doc, const JsonVal array, const JsonVal elem) {
   JsonValData* elemData  = json_val_data(doc, elem);
 
   // Add the element to the end of the array linked-list.
-  JsonVal* link = &arrayData->val_array.elemHead;
-  while (!sentinel_check(*link)) {
-    link = &json_val_data(doc, *link)->next;
+  if (sentinel_check(arrayData->val_array.elemTail)) {
+    arrayData->val_array.elemHead = elem;
+    arrayData->val_array.elemTail = elem;
+  } else {
+    json_val_data(doc, arrayData->val_array.elemTail)->next = elem;
+    arrayData->val_array.elemTail                           = elem;
   }
-  *link = elem;
 
   elemData->typeAndParent |= (u32)JsonParent_Array << 16;
   ++arrayData->val_array.elemCount;
