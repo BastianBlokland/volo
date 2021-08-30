@@ -5,7 +5,7 @@
 
 spec(winutils) {
 
-#ifdef VOLO_WIN32
+#if defined(VOLO_WIN32)
   it("can convert a widestr to utf8") {
     static String testStr = string_static(
         "STARGΛ̊TE,Hello world,Καλημέρα κόσμε,コンニチハ,⡌⠁⠧⠑ ⠼⠁⠒,ᚻᛖ ᚳᚹᚫᚦ ᚦᚫᛏ,ሰማይ አይታረስ "

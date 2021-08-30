@@ -4,7 +4,7 @@
 /**
  * Return the alignment required for the given type.
  */
-#ifdef VOLO_CLANG
+#if defined(VOLO_CLANG)
 #define alignof(_TYPE_) ((u32) __alignof__(_TYPE_))
 #elif defined(VOLO_GCC)
 #define alignof(_TYPE_) ((u32) __alignof__(_TYPE_))

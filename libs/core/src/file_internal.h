@@ -1,7 +1,7 @@
 #pragma once
 #include "core_file.h"
 
-#ifdef VOLO_LINUX
+#if defined(VOLO_LINUX)
 typedef int FileHandle;
 #elif defined(VOLO_WIN32)
 typedef void* FileHandle;

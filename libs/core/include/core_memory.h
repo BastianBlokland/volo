@@ -78,7 +78,7 @@ typedef struct {
  * Create a memory buffer on the stack.
  * Note: Care must be taken not to overflow the stack by using too high _SIZE_ values.
  */
-#ifdef VOLO_MSVC
+#if defined(VOLO_MSVC)
 #define mem_stack(_SIZE_) mem_create(_alloca(_SIZE_), _SIZE_)
 #else
 #define mem_stack(_SIZE_) mem_create(__builtin_alloca(_SIZE_), _SIZE_)

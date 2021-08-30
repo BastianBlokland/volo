@@ -1,7 +1,7 @@
 #pragma once
 #include "core_string.h"
 
-#ifdef VOLO_WIN32
+#if defined(VOLO_WIN32)
 
 /**
  * Returns the size (in bytes) required to store the input string (assumed to be utf8) as a

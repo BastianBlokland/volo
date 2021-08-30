@@ -1,6 +1,6 @@
 #include "core_diag.h"
 
-#ifdef VOLO_LINUX
+#if defined(VOLO_LINUX)
 #include "alloc_page_pal_linux.c"
 #elif defined(VOLO_WIN32)
 #include "alloc_page_pal_win32.c"

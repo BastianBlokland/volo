@@ -3,14 +3,14 @@
 
 #include <immintrin.h>
 
-#ifdef VOLO_MSVC
+#if defined(VOLO_MSVC)
 #include "intrin.h"
 #pragma intrinsic(_BitScanForward)
 #pragma intrinsic(_BitScanReverse)
 #endif
 
 INLINE_HINT u8 bits_popcnt_32(const u32 mask) {
-#ifdef VOLO_MSVC
+#if defined(VOLO_MSVC)
   return __popcnt(mask);
 #else
   return __builtin_popcount(mask);
@@ -18,7 +18,7 @@ INLINE_HINT u8 bits_popcnt_32(const u32 mask) {
 }
 
 INLINE_HINT u8 bits_popcnt_64(const u64 mask) {
-#ifdef VOLO_MSVC
+#if defined(VOLO_MSVC)
   return __popcnt64(mask);
 #else
   return __builtin_popcountll(mask);
@@ -29,7 +29,7 @@ INLINE_HINT u8 bits_ctz_32(const u32 mask) {
   if (mask == 0u) {
     return 32;
   }
-#ifdef VOLO_MSVC
+#if defined(VOLO_MSVC)
   unsigned long result;
   _BitScanForward(&result, mask);
   return (u8)result;
@@ -42,7 +42,7 @@ INLINE_HINT u8 bits_ctz_64(const u64 mask) {
   if (mask == 0u) {
     return 64;
   }
-#ifdef VOLO_MSVC
+#if defined(VOLO_MSVC)
   unsigned long result;
   _BitScanForward64(&result, mask);
   return (u8)result;
@@ -55,7 +55,7 @@ INLINE_HINT u8 bits_clz_32(const u32 mask) {
   if (mask == 0u) {
     return 32u;
   }
-#ifdef VOLO_MSVC
+#if defined(VOLO_MSVC)
   unsigned long result;
   _BitScanReverse(&result, mask);
   return (u32)(31u - result);
@@ -68,7 +68,7 @@ INLINE_HINT u8 bits_clz_64(const u64 mask) {
   if (mask == 0u) {
     return 64u;
   }
-#ifdef VOLO_MSVC
+#if defined(VOLO_MSVC)
   unsigned long result;
   _BitScanReverse64(&result, mask);
   return (u8)(63u - result);

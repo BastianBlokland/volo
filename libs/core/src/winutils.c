@@ -2,7 +2,7 @@
 #include "core_sentinel.h"
 #include "core_winutils.h"
 
-#ifdef VOLO_WIN32
+#if defined(VOLO_WIN32)
 
 #include <Windows.h>
 
