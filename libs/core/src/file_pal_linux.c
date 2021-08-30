@@ -68,10 +68,11 @@ file_create(Allocator* alloc, String path, FileMode mode, FileAccessFlags access
     diag_assert_fail("Invalid FileMode: {}", fmt_int(flags));
   }
 
-  if (access & FileAccess_Read) {
+  if ((access & FileAccess_Read) && (access & FileAccess_Write)) {
+    flags |= O_RDWR;
+  } else if (access & FileAccess_Read) {
     flags |= O_RDONLY;
-  }
-  if (access & FileAccess_Write) {
+  } else if (access & FileAccess_Write) {
     flags |= O_WRONLY;
   }
 
