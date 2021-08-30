@@ -7,6 +7,7 @@
 
 #include "file_internal.h"
 #include "path_internal.h"
+#include "time_internal.h"
 
 File* g_file_stdin;
 File* g_file_stdout;
@@ -204,6 +205,22 @@ FileResult file_seek_sync(File* file, usize position) {
     return fileresult_from_lasterror();
   }
   return FileResult_Success;
+}
+
+FileInfo file_stat_sync(File* file) {
+  BY_HANDLE_FILE_INFORMATION info;
+  const BOOL                 success = GetFileInformationByHandle(file->handle, &info);
+  if (UNLIKELY(!success)) {
+    diag_crash_msg("GetFileInformationByHandle() failed");
+  }
+  LARGE_INTEGER fileSize;
+  fileSize.LowPart  = info.nFileSizeLow;
+  fileSize.HighPart = info.nFileSizeHigh;
+  return (FileInfo){
+      .size       = (usize)fileSize.QuadPart,
+      .accessTime = time_pal_native_to_real(&info.ftLastAccessTime),
+      .modTime    = time_pal_native_to_real(&info.ftLastWriteTime),
+  };
 }
 
 FileResult file_delete_sync(String path) {

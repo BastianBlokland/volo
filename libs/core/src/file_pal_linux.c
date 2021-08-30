@@ -5,9 +5,11 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #include "file_internal.h"
+#include "time_internal.h"
 
 File* g_file_stdin  = &(File){.handle = 0};
 File* g_file_stdout = &(File){.handle = 1};
@@ -169,6 +171,19 @@ FileResult file_seek_sync(File* file, usize position) {
     return fileresult_from_errno();
   }
   return FileResult_Success;
+}
+
+FileInfo file_stat_sync(File* file) {
+  struct stat statOutput;
+  const int   res = fstat(file->handle, &statOutput);
+  if (UNLIKELY(res != 0)) {
+    diag_crash_msg("fstat() failed: {}", fmt_int(res));
+  }
+  return (FileInfo){
+      .size       = statOutput.st_size,
+      .accessTime = time_pal_native_to_real(statOutput.st_atim),
+      .modTime    = time_pal_native_to_real(statOutput.st_mtim),
+  };
 }
 
 FileResult file_delete_sync(String path) {
