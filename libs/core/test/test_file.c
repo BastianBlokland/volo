@@ -1,4 +1,5 @@
 #include "core_file.h"
+#include "core_time.h"
 
 #include "check_spec.h"
 
@@ -47,6 +48,37 @@ spec(file) {
     // Verify that all data was retrieved.
     check_eq_int(buffer.size, testDataSize);
     test_file_verify_data(_testCtx, dynstring_view(&buffer));
+  }
+
+  it("can retrieve the file size") {
+    check_eq_int(file_stat_sync(file).size, 0);
+
+    file_write_sync(file, string_lit("Hello World!"));
+    check_eq_int(file_stat_sync(file).size, 12);
+  }
+
+  it("can retrieve the last access and last modification times") {
+    const FileInfo info = file_stat_sync(file);
+    check(time_real_duration(info.accessTime, time_real_clock()) < time_minute);
+    check(time_real_duration(info.modTime, time_real_clock()) < time_minute);
+  }
+
+  it("can read file contents through a memory map") {
+    file_write_sync(file, string_lit("Hello World!"));
+
+    String mapping;
+    check_eq_int(file_map(file, &mapping), FileResult_Success);
+    check_eq_string(mapping, string_lit("Hello World!"));
+  }
+
+  it("can write file contents through a memory map") {
+    file_write_sync(file, string_lit("            "));
+
+    String mapping;
+    check_eq_int(file_map(file, &mapping), FileResult_Success);
+    mem_cpy(mapping, string_lit("Hello World!"));
+
+    check_eq_string(mapping, string_lit("Hello World!"));
   }
 
   teardown() {

@@ -7,6 +7,12 @@
 
 #include "file_internal.h"
 #include "path_internal.h"
+#include "time_internal.h"
+
+typedef struct {
+  HANDLE mappingObj;
+  void*  addr;
+} FileMapping;
 
 File* g_file_stdin;
 File* g_file_stdout;
@@ -15,18 +21,21 @@ File* g_file_stderr;
 void file_pal_init() {
   static File stdIn = {0};
   stdIn.handle      = GetStdHandle(STD_INPUT_HANDLE);
+  stdIn.access      = FileAccess_Read;
   if (stdIn.handle != INVALID_HANDLE_VALUE) {
     g_file_stdin = &stdIn;
   }
 
   static File stdOut = {0};
   stdOut.handle      = GetStdHandle(STD_OUTPUT_HANDLE);
+  stdOut.access      = FileAccess_Write;
   if (stdOut.handle != INVALID_HANDLE_VALUE) {
     g_file_stdout = &stdOut;
   }
 
   static File stdErr = {0};
   stdErr.handle      = GetStdHandle(STD_ERROR_HANDLE);
+  stdErr.access      = FileAccess_Write;
   if (stdErr.handle != INVALID_HANDLE_VALUE) {
     g_file_stderr = &stdErr;
   }
@@ -115,6 +124,7 @@ file_create(Allocator* alloc, String path, FileMode mode, FileAccessFlags access
   *file  = alloc_alloc_t(alloc, File);
   **file = (File){
       .handle = handle,
+      .access = access,
       .alloc  = alloc,
   };
   return FileResult_Success;
@@ -150,6 +160,7 @@ FileResult file_temp(Allocator* alloc, File** file) {
   *file  = alloc_alloc_t(alloc, File);
   **file = (File){
       .handle = handle,
+      .access = FileAccess_Read | FileAccess_Write,
       .alloc  = alloc,
   };
   return FileResult_Success;
@@ -157,12 +168,23 @@ FileResult file_temp(Allocator* alloc, File** file) {
 
 void file_destroy(File* file) {
   diag_assert_msg(file->alloc, "Invalid file");
+
+  if (file->mapping) {
+    FileMapping* mapping = file->mapping;
+    const bool   success = UnmapViewOfFile(mapping->addr) && CloseHandle(mapping->mappingObj);
+    if (UNLIKELY(!success)) {
+      diag_crash_msg("UnmapViewOfFile() or CloseHandle() failed");
+    }
+    alloc_free_t(file->alloc, mapping);
+  }
+
   CloseHandle(file->handle);
   alloc_free_t(file->alloc, file);
 }
 
 FileResult file_write_sync(File* file, const String data) {
   diag_assert(file);
+  diag_assert_msg(file->access & FileAccess_Write, "File handle does not have write access");
 
   for (u8* itr = mem_begin(data); itr != mem_end(data);) {
     DWORD bytesWritten;
@@ -177,6 +199,7 @@ FileResult file_write_sync(File* file, const String data) {
 
 FileResult file_read_sync(File* file, DynString* dynstr) {
   diag_assert(file);
+  diag_assert_msg(file->access & FileAccess_Read, "File handle does not have read access");
 
   /**
    * TODO: Consider reserving space in the output DynString and directly reading into that to avoid
@@ -206,6 +229,22 @@ FileResult file_seek_sync(File* file, usize position) {
   return FileResult_Success;
 }
 
+FileInfo file_stat_sync(File* file) {
+  BY_HANDLE_FILE_INFORMATION info;
+  const BOOL                 success = GetFileInformationByHandle(file->handle, &info);
+  if (UNLIKELY(!success)) {
+    diag_crash_msg("GetFileInformationByHandle() failed");
+  }
+  LARGE_INTEGER fileSize;
+  fileSize.LowPart  = info.nFileSizeLow;
+  fileSize.HighPart = info.nFileSizeHigh;
+  return (FileInfo){
+      .size       = (usize)fileSize.QuadPart,
+      .accessTime = time_pal_native_to_real(&info.ftLastAccessTime),
+      .modTime    = time_pal_native_to_real(&info.ftLastWriteTime),
+  };
+}
+
 FileResult file_delete_sync(String path) {
   // Convert the path to a null-terminated wide-char string.
   const usize pathBufferSize = winutils_to_widestr_size(path);
@@ -220,4 +259,41 @@ FileResult file_delete_sync(String path) {
 
   const BOOL success = DeleteFile(pathBufferMem.ptr);
   return success ? FileResult_Success : fileresult_from_lasterror();
+}
+
+FileResult file_map(File* file, String* output) {
+  diag_assert_msg(!file->mapping, "File is already mapped");
+
+  LARGE_INTEGER size;
+  size.QuadPart = file_stat_sync(file).size;
+
+  const DWORD  protect = (file->access & FileAccess_Write) ? PAGE_READWRITE : PAGE_READONLY;
+  const HANDLE mappingObj =
+      CreateFileMapping(file->handle, null, protect, size.HighPart, size.LowPart, null);
+  if (UNLIKELY(!mappingObj)) {
+    return fileresult_from_lasterror();
+  }
+
+  const DWORD access = (file->access & FileAccess_Write) ? FILE_MAP_WRITE : FILE_MAP_READ;
+  void*       addr   = MapViewOfFile(mappingObj, access, 0, 0, size.QuadPart);
+  if (UNLIKELY(!addr)) {
+    const bool success = CloseHandle(mappingObj);
+    if (UNLIKELY(!success)) {
+      diag_crash_msg("CloseHandle() failed");
+    }
+    return fileresult_from_lasterror();
+  }
+
+  file->mapping = alloc_alloc_t(file->alloc, FileMapping);
+  if (UNLIKELY(!file->mapping)) {
+    const bool success = UnmapViewOfFile(addr) && CloseHandle(mappingObj);
+    if (UNLIKELY(!success)) {
+      diag_crash_msg("UnmapViewOfFile() or CloseHandle() failed");
+    }
+    return FileResult_AllocationFailed;
+  }
+
+  *(FileMapping*)file->mapping = (FileMapping){.mappingObj = mappingObj, .addr = addr};
+  *output                      = mem_create(addr, (usize)size.QuadPart);
+  return FileResult_Success;
 }

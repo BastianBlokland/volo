@@ -3,6 +3,9 @@
 #include "core_dynstring.h"
 #include "core_string.h"
 
+// Forward declare from 'core_time.h'.
+typedef i64 TimeReal;
+
 /**
  * Handle to an open os file.
  */
@@ -24,6 +27,7 @@ typedef enum {
   FileResult_PathInvalid,
   FileResult_TooManyOpenFiles,
   FileResult_IsDirectory,
+  FileResult_AllocationFailed,
   FileResult_UnknownError,
 
   FileResult_Count,
@@ -52,6 +56,14 @@ typedef enum {
   FileAccess_Read  = 1 << 0,
   FileAccess_Write = 1 << 1,
 } FileAccessFlags;
+
+/**
+ * Output structure for 'file_stat_sync'.
+ */
+typedef struct {
+  usize    size;
+  TimeReal accessTime, modTime;
+} FileInfo;
 
 extern File* g_file_stdin;
 extern File* g_file_stdout;
@@ -104,6 +116,20 @@ FileResult file_read_to_end_sync(File*, DynString*);
 FileResult file_seek_sync(File*, usize position);
 
 /**
+ * Synchronously retrieve information about a file.
+ */
+FileInfo file_stat_sync(File*);
+
+/**
  * Synchronously delete a file from the file-system.
  */
 FileResult file_delete_sync(String path);
+
+/**
+ * Memory map the given file.
+ * On success the mapped memory will be assigned to the output pointer. Memory mappings are
+ * automatically closed when the file-handle is destroyed.
+ *
+ * Pre-condition: file has not been mapped yet.
+ */
+FileResult file_map(File*, String* output);

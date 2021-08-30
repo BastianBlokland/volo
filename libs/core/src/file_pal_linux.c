@@ -5,13 +5,21 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #include "file_internal.h"
+#include "time_internal.h"
 
-File* g_file_stdin  = &(File){.handle = 0};
-File* g_file_stdout = &(File){.handle = 1};
-File* g_file_stderr = &(File){.handle = 2};
+typedef struct {
+  void* addr;
+  usize size;
+} FileMapping;
+
+File* g_file_stdin  = &(File){.handle = 0, .access = FileAccess_Read};
+File* g_file_stdout = &(File){.handle = 1, .access = FileAccess_Write};
+File* g_file_stderr = &(File){.handle = 2, .access = FileAccess_Write};
 
 static FileResult fileresult_from_errno() {
   switch (errno) {
@@ -85,6 +93,7 @@ file_create(Allocator* alloc, String path, FileMode mode, FileAccessFlags access
   *file  = alloc_alloc_t(alloc, File);
   **file = (File){
       .handle = fd,
+      .access = access,
       .alloc  = alloc,
   };
   return FileResult_Success;
@@ -108,6 +117,7 @@ FileResult file_temp(Allocator* alloc, File** file) {
   *file  = alloc_alloc_t(alloc, File);
   **file = (File){
       .handle = fd,
+      .access = FileAccess_Read | FileAccess_Write,
       .alloc  = alloc,
   };
   return FileResult_Success;
@@ -115,12 +125,23 @@ FileResult file_temp(Allocator* alloc, File** file) {
 
 void file_destroy(File* file) {
   diag_assert_msg(file->alloc, "Invalid file");
+
+  if (file->mapping) {
+    FileMapping* mapping = file->mapping;
+    const int    res     = munmap(mapping->addr, mapping->size);
+    if (UNLIKELY(res != 0)) {
+      diag_crash_msg("munmap() failed: {}", fmt_int(res));
+    }
+    alloc_free_t(file->alloc, mapping);
+  }
+
   close(file->handle);
   alloc_free_t(file->alloc, file);
 }
 
 FileResult file_write_sync(File* file, const String data) {
   diag_assert(file);
+  diag_assert_msg(file->access & FileAccess_Write, "File handle does not have write access");
 
   for (u8* itr = mem_begin(data); itr != mem_end(data);) {
     const int res = write(file->handle, itr, mem_end(data) - itr);
@@ -140,6 +161,7 @@ FileResult file_write_sync(File* file, const String data) {
 
 FileResult file_read_sync(File* file, DynString* dynstr) {
   diag_assert(file);
+  diag_assert_msg(file->access & FileAccess_Read, "File handle does not have read access");
 
   /**
    * TODO: Consider reserving space in the output DynString and directly reading into that to avoid
@@ -171,6 +193,19 @@ FileResult file_seek_sync(File* file, usize position) {
   return FileResult_Success;
 }
 
+FileInfo file_stat_sync(File* file) {
+  struct stat statOutput;
+  const int   res = fstat(file->handle, &statOutput);
+  if (UNLIKELY(res != 0)) {
+    diag_crash_msg("fstat() failed: {}", fmt_int(res));
+  }
+  return (FileInfo){
+      .size       = statOutput.st_size,
+      .accessTime = time_pal_native_to_real(statOutput.st_atim),
+      .modTime    = time_pal_native_to_real(statOutput.st_mtim),
+  };
+}
+
 FileResult file_delete_sync(String path) {
   // Copy the path on the stack and null-terminate it.
   if (path.size >= PATH_MAX) {
@@ -183,5 +218,36 @@ FileResult file_delete_sync(String path) {
   if (unlink((const char*)pathBuffer.ptr)) {
     return fileresult_from_errno();
   }
+  return FileResult_Success;
+}
+
+FileResult file_map(File* file, String* output) {
+  diag_assert_msg(!file->mapping, "File is already mapped");
+
+  const usize size = file_stat_sync(file).size;
+
+  int prot = 0;
+  if (file->access & FileAccess_Read) {
+    prot |= PROT_READ;
+  }
+  if (file->access & FileAccess_Write) {
+    prot |= PROT_WRITE;
+  }
+  void* addr = mmap(null, size, prot, MAP_SHARED, file->handle, 0);
+  if (UNLIKELY(!addr)) {
+    return fileresult_from_errno();
+  }
+
+  file->mapping = alloc_alloc_t(file->alloc, FileMapping);
+  if (UNLIKELY(!file->mapping)) {
+    const int res = munmap(addr, size);
+    if (UNLIKELY(res != 0)) {
+      diag_crash_msg("munmap() failed: {}", fmt_int(res));
+    }
+    return FileResult_AllocationFailed;
+  }
+
+  *(FileMapping*)file->mapping = (FileMapping){.addr = addr, .size = size};
+  *output                      = mem_create(addr, size);
   return FileResult_Success;
 }

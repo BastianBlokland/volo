@@ -21,7 +21,7 @@ TimeReal time_pal_real_clock() {
   if (UNLIKELY(res != 0)) {
     diag_crash_msg("clock_gettime(CLOCK_REALTIME) failed: {}", fmt_int(res));
   }
-  return ts.tv_sec * i64_lit(1000000) + ts.tv_nsec / i64_lit(1000);
+  return time_pal_native_to_real(ts);
 }
 
 TimeZone time_pal_zone_current() {
@@ -30,4 +30,8 @@ TimeZone time_pal_zone_current() {
   const time_t timezoneOffsetSeconds = localSeconds - utcSeconds;
   const time_t timezoneOffsetMinutes = timezoneOffsetSeconds / 60;
   return (TimeZone)timezoneOffsetMinutes;
+}
+
+TimeReal time_pal_native_to_real(struct timespec ts) {
+  return ts.tv_sec * i64_lit(1000000) + ts.tv_nsec / i64_lit(1000);
 }

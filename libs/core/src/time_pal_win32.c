@@ -7,17 +7,6 @@
 
 static i64 g_perfCounterFrequency;
 
-static TimeReal time_pal_filetime_to_microsinceepoch(const FILETIME* fileTime) {
-  // Windows FILETIME is in 100 ns ticks since January 1 1601.
-  const i64 winEpochToUnixEpoch = i64_lit(116444736000000000);
-  const i64 winTickToMicro      = i64_lit(10);
-
-  LARGE_INTEGER winTicks;
-  winTicks.LowPart  = fileTime->dwLowDateTime;
-  winTicks.HighPart = fileTime->dwHighDateTime;
-  return (winTicks.QuadPart - winEpochToUnixEpoch) / winTickToMicro;
-}
-
 void time_pal_init() {
   LARGE_INTEGER freq;
   if (LIKELY(QueryPerformanceFrequency(&freq))) {
@@ -39,7 +28,7 @@ TimeSteady time_pal_steady_clock() {
 TimeReal time_pal_real_clock() {
   FILETIME fileTime;
   GetSystemTimePreciseAsFileTime(&fileTime);
-  return time_pal_filetime_to_microsinceepoch(&fileTime);
+  return time_pal_native_to_real(&fileTime);
 }
 
 TimeZone time_pal_zone_current() {
@@ -53,4 +42,15 @@ TimeZone time_pal_zone_current() {
   default:
     diag_crash_msg("GetTimeZoneInformation() failed");
   }
+}
+
+TimeReal time_pal_native_to_real(const FILETIME* fileTime) {
+  // Windows FILETIME is in 100 ns ticks since January 1 1601.
+  const i64 winEpochToUnixEpoch = i64_lit(116444736000000000);
+  const i64 winTickToMicro      = i64_lit(10);
+
+  LARGE_INTEGER winTicks;
+  winTicks.LowPart  = fileTime->dwLowDateTime;
+  winTicks.HighPart = fileTime->dwHighDateTime;
+  return (winTicks.QuadPart - winEpochToUnixEpoch) / winTickToMicro;
 }

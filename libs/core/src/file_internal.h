@@ -10,8 +10,10 @@ _Static_assert(false, "Unsupported platform");
 #endif
 
 struct sFile {
-  FileHandle handle;
-  Allocator* alloc;
+  FileHandle      handle;
+  FileAccessFlags access;
+  void*           mapping;
+  Allocator*      alloc;
 };
 
 void file_pal_init();
