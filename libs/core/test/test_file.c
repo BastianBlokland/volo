@@ -63,6 +63,24 @@ spec(file) {
     check(time_real_duration(info.modTime, time_real_clock()) < time_minute);
   }
 
+  it("can read file contents through a memory map") {
+    file_write_sync(file, string_lit("Hello World!"));
+
+    String mapping;
+    check_eq_int(file_map(file, &mapping), FileResult_Success);
+    check_eq_string(mapping, string_lit("Hello World!"));
+  }
+
+  it("can write file contents through a memory map") {
+    file_write_sync(file, string_lit("            "));
+
+    String mapping;
+    check_eq_int(file_map(file, &mapping), FileResult_Success);
+    mem_cpy(mapping, string_lit("Hello World!"));
+
+    check_eq_string(mapping, string_lit("Hello World!"));
+  }
+
   teardown() {
     file_destroy(file);
     dynstring_destroy(&buffer);

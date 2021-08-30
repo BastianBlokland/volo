@@ -18,6 +18,7 @@ static const String g_file_result_strs[] = {
     string_static("FilePathInvalid"),
     string_static("FileTooManyOpen"),
     string_static("FileIsDirectory"),
+    string_static("FileAllocationFailed"),
     string_static("FileUnknownError"),
 };
 
