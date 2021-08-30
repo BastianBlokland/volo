@@ -1,4 +1,5 @@
 #include "core_file.h"
+#include "core_path.h"
 #include "core_time.h"
 
 #include "check_spec.h"
@@ -79,6 +80,33 @@ spec(file) {
     mem_cpy(mapping, string_lit("Hello World!"));
 
     check_eq_string(mapping, string_lit("Hello World!"));
+  }
+
+  it("can check if a file exists") {
+    File* nonExistingFile = null;
+    check_eq_int(
+        file_create(
+            g_alloc_heap,
+            string_lit("path_to_non_existent_file_42"),
+            FileMode_Open,
+            FileAccess_Read,
+            &nonExistingFile),
+        FileResult_NotFound);
+    check(nonExistingFile == null);
+  }
+
+  it("can read its own executable") {
+    File* ownExecutable = null;
+    check_eq_int(
+        file_create(
+            g_alloc_heap, g_path_executable, FileMode_Open, FileAccess_Read, &ownExecutable),
+        FileResult_Success);
+    check(ownExecutable != null);
+
+    check_eq_int(file_read_sync(ownExecutable, &buffer), FileResult_Success);
+    check(buffer.size > 0);
+
+    file_destroy(ownExecutable);
   }
 
   teardown() {
