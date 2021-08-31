@@ -199,8 +199,17 @@ FileInfo file_stat_sync(File* file) {
   if (UNLIKELY(res != 0)) {
     diag_crash_msg("fstat() failed: {}", fmt_int(res));
   }
+
+  FileType fileType = FileType_Unknown;
+  if (S_ISREG(statOutput.st_mode)) {
+    fileType = FileType_Regular;
+  } else if (S_ISDIR(statOutput.st_mode)) {
+    fileType = FileType_Directory;
+  }
+
   return (FileInfo){
       .size       = statOutput.st_size,
+      .type       = fileType,
       .accessTime = time_pal_native_to_real(statOutput.st_atim),
       .modTime    = time_pal_native_to_real(statOutput.st_mtim),
   };
