@@ -53,15 +53,26 @@ typedef enum {
  * Access to request when opening a file.
  */
 typedef enum {
+  FileAccess_None  = 0,
   FileAccess_Read  = 1 << 0,
   FileAccess_Write = 1 << 1,
 } FileAccessFlags;
+
+/**
+ * File Type code.
+ */
+typedef enum {
+  FileType_Regular,
+  FileType_Directory,
+  FileType_Unknown,
+} FileType;
 
 /**
  * Output structure for 'file_stat_sync'.
  */
 typedef struct {
   usize    size;
+  FileType type;
   TimeReal accessTime, modTime;
 } FileInfo;
 

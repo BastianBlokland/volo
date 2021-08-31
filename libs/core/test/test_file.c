@@ -58,6 +58,22 @@ spec(file) {
     check_eq_int(file_stat_sync(file).size, 12);
   }
 
+  it("can check the file-type of regular files") {
+    check_eq_int(file_stat_sync(file).type, FileType_Regular);
+  }
+
+  it("can check the file-type of directories") {
+    File* workingDir = null;
+    check_eq_int(
+        file_create(g_alloc_heap, g_path_workingdir, FileMode_Open, FileAccess_None, &workingDir),
+        FileResult_Success);
+
+    if (workingDir) {
+      check_eq_int(file_stat_sync(workingDir).type, FileType_Directory);
+      file_destroy(workingDir);
+    }
+  }
+
   it("can retrieve the last access and last modification times") {
     const FileInfo info = file_stat_sync(file);
     check(time_real_duration(info.accessTime, time_real_clock()) < time_minute);
@@ -102,11 +118,14 @@ spec(file) {
             g_alloc_heap, g_path_executable, FileMode_Open, FileAccess_Read, &ownExecutable),
         FileResult_Success);
     check(ownExecutable != null);
+    check_eq_int(file_stat_sync(ownExecutable).type, FileType_Regular);
 
     check_eq_int(file_read_sync(ownExecutable, &buffer), FileResult_Success);
     check(buffer.size > 0);
 
-    file_destroy(ownExecutable);
+    if (ownExecutable) {
+      file_destroy(ownExecutable);
+    }
   }
 
   teardown() {

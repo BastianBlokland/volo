@@ -84,7 +84,7 @@ file_create(Allocator* alloc, String path, FileMode mode, FileAccessFlags access
       FILE_SHARE_READ | FILE_SHARE_WRITE; // Consider a flag for specifying no concurrent writes?
   DWORD desiredAccess       = 0;
   DWORD creationDisposition = 0;
-  DWORD flags               = FILE_ATTRIBUTE_NORMAL | FILE_FLAG_POSIX_SEMANTICS;
+  DWORD flags = FILE_ATTRIBUTE_NORMAL | FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_POSIX_SEMANTICS;
 
   switch (mode) {
   case FileMode_Open:
@@ -235,11 +235,16 @@ FileInfo file_stat_sync(File* file) {
   if (UNLIKELY(!success)) {
     diag_crash_msg("GetFileInformationByHandle() failed");
   }
+
+  const FileType fileType =
+      (info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ? FileType_Directory : FileType_Regular;
+
   LARGE_INTEGER fileSize;
   fileSize.LowPart  = info.nFileSizeLow;
   fileSize.HighPart = info.nFileSizeHigh;
   return (FileInfo){
       .size       = (usize)fileSize.QuadPart,
+      .type       = fileType,
       .accessTime = time_pal_native_to_real(&info.ftLastAccessTime),
       .modTime    = time_pal_native_to_real(&info.ftLastWriteTime),
   };
