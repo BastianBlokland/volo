@@ -36,9 +36,13 @@ String    g_path_workingdir = {0};
 static u8 g_path_executable_buffer[path_pal_max_size];
 String    g_path_executable = {0};
 
+static u8 g_path_tempdir_buffer[path_pal_max_size];
+String    g_path_tempdir = {0};
+
 void path_init() {
   g_path_workingdir = path_pal_workingdir(array_mem(g_path_workingdir_buffer));
   g_path_executable = path_pal_executable(array_mem(g_path_executable_buffer));
+  g_path_tempdir    = path_pal_tempdir(array_mem(g_path_tempdir_buffer));
 }
 
 bool path_is_absolute(String path) {
