@@ -155,3 +155,29 @@ void path_append(DynString* str, String path) {
   }
   dynstring_append(str, path);
 }
+
+void path_build_raw(DynString* str, const String* segments) {
+  DynString tmpWriter = dynstring_create_over(mem_stack(path_pal_max_size));
+
+  const bool prependWorkingDir = !segments->ptr || !path_is_absolute(*segments);
+  if (prependWorkingDir) {
+    dynstring_append(&tmpWriter, g_path_workingdir);
+  }
+  for (; segments->ptr && !string_is_empty(*segments); ++segments) {
+    path_append(&tmpWriter, *segments);
+  }
+
+  path_canonize(str, dynstring_view(&tmpWriter));
+  dynstring_destroy(&tmpWriter);
+}
+
+String path_build_scratch_raw(const String* segments) {
+  Mem       scratchMem = alloc_alloc(g_alloc_scratch, usize_kibibyte * 8, 1);
+  DynString str        = dynstring_create_over(scratchMem);
+
+  path_build_raw(&str, segments);
+
+  String res = dynstring_view(&str);
+  dynstring_destroy(&str);
+  return res;
+}

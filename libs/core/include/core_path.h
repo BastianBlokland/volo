@@ -1,5 +1,21 @@
 #pragma once
 #include "core_dynstring.h"
+#include "core_macro.h"
+
+/**
+ * Build an absolute path by combining the given segment strings.
+ * If the first segment does not start from a filesystem root then the working dir is prepended.
+ */
+#define path_build(_DYNSTRING_, ...)                                                               \
+  path_build_raw(                                                                                  \
+      (_DYNSTRING_), (const String[]){VA_ARGS_SKIP_FIRST(0, ##__VA_ARGS__, string_empty)})
+
+/**
+ * Build an absolute path by combining the given segment strings.
+ * If the first segment does not start from a filesystem root then the working dir is prepended.
+ */
+#define path_build_scratch(...)                                                                    \
+  path_build_scratch_raw((const String[]){VA_ARGS_SKIP_FIRST(0, ##__VA_ARGS__, string_empty)})
 
 /**
  * Working directory of the process.
@@ -67,3 +83,21 @@ bool path_canonize(DynString*, String path);
  * Append a new segment to a path. Will insert a '/' seperator if required.
  */
 void path_append(DynString*, String path);
+
+/**
+ * Build an absolute path by combining a list of segments.
+ * If the first segment does not start from a filesystem root then the working dir is prepended.
+ *
+ * Pre-condition: 'segments' array should be terminated with an empty string (at least an pointer
+ * sized section of 0 bytes).
+ */
+void path_build_raw(DynString*, const String* segments);
+
+/**
+ * Build an absolute path in scratch memory by combining a list of segments.
+ * If the first segment does not start from a filesystem root then the working dir is prepended.
+ *
+ * Pre-condition: 'segments' array should be terminated with an empty string (at least an pointer
+ * sized section of 0 bytes).
+ */
+String path_build_scratch_raw(const String* segments);

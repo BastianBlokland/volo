@@ -1,4 +1,5 @@
 #include "core_array.h"
+#include "core_format.h"
 #include "core_path.h"
 
 #include "check_spec.h"
@@ -118,6 +119,26 @@ spec(path) {
     check_eq_string(dynstring_view(&string), string_lit("Hello/How/You/Doing?"));
 
     dynstring_destroy(&string);
+  }
+
+  it("returns the working-dir when building a path from 0 segments") {
+    check_eq_string(path_build_scratch(), g_path_workingdir);
+  }
+
+  it("prepends the working-dir when building a path starting from a relative segment") {
+    check_eq_string(
+        path_build_scratch(string_lit("hello")),
+        fmt_write_scratch("{}/hello", fmt_text(g_path_workingdir)));
+  }
+
+  it("doesn't prepend the working-dir when building a path starting from an absolute segment") {
+    check_eq_string(path_build_scratch(string_lit("/hello")), string_lit("/hello"));
+  }
+
+  it("supports building paths from a collection of segments") {
+    check_eq_string(
+        path_build_scratch(string_lit("how\\are/you"), string_lit("doing")),
+        fmt_write_scratch("{}/how/are/you/doing", fmt_text(g_path_workingdir)));
   }
 
   it("can retrieve the executable path") {
