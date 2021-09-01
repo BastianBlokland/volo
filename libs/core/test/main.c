@@ -21,6 +21,7 @@ static int run_tests(const bool outputPassingTests) {
   register_spec(check, dynarray);
   register_spec(check, dynbitset);
   register_spec(check, dynstring);
+  register_spec(check, env);
   register_spec(check, file);
   register_spec(check, float);
   register_spec(check, format);
