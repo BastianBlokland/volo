@@ -32,3 +32,7 @@ INLINE_HINT void dynstring_append_chars(DynString* dynstring, u8 val, usize amou
 INLINE_HINT void dynstring_insert_chars(DynString* dynstring, u8 val, usize idx, usize amount) {
   mem_set(dynarray_insert(dynstring, idx, amount), val);
 }
+
+INLINE_HINT String dynstring_push(DynString* dynstring, usize amount) {
+  return dynarray_push(dynstring, amount);
+}

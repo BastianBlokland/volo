@@ -65,4 +65,14 @@ spec(dynstring) {
 
     dynstring_destroy(&string);
   }
+
+  it("can push space to the end") {
+    DynString string = dynstring_create_over(mem_stack(128));
+
+    mem_set(dynstring_push(&string, 3), '!');
+
+    check_eq_string(dynstring_view(&string), string_lit("!!!"));
+
+    dynstring_destroy(&string);
+  }
 }
