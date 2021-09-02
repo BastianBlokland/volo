@@ -13,10 +13,10 @@ spec(string) {
   }
 
   it("can retrieve the length of a string") {
-    check_eq_int(string_empty.size, 0);
-    check_eq_int(string_lit("").size, 0);
-    check_eq_int(string_lit("H").size, 1);
-    check_eq_int(string_lit("Hello World").size, 11);
+    check_eq_u64(string_empty.size, 0);
+    check_eq_u64(string_lit("").size, 0);
+    check_eq_u64(string_lit("H").size, 1);
+    check_eq_u64(string_lit("Hello World").size, 11);
   }
 
   it("can check if a string is empty") {
@@ -26,16 +26,16 @@ spec(string) {
   }
 
   it("can retrieve the last character") {
-    check_eq_int(*string_last(string_lit("Hello World")), 'd');
-    check_eq_int(*string_last(string_lit(" ")), ' ');
+    check_eq_u64(*string_last(string_lit("Hello World")), 'd');
+    check_eq_u64(*string_last(string_lit(" ")), ' ');
   }
 
   it("can compare strings") {
-    check_eq_int(string_cmp(string_lit("a"), string_lit("a")), 0);
-    check_eq_int(string_cmp(string_lit("a"), string_lit("b")), -1);
-    check_eq_int(string_cmp(string_lit("b"), string_lit("a")), 1);
-    check_eq_int(string_cmp(string_lit("April"), string_lit("March")), -1);
-    check_eq_int(string_cmp(string_lit("March"), string_lit("December")), 1);
+    check_eq_u64(string_cmp(string_lit("a"), string_lit("a")), 0);
+    check_eq_u64(string_cmp(string_lit("a"), string_lit("b")), -1);
+    check_eq_u64(string_cmp(string_lit("b"), string_lit("a")), 1);
+    check_eq_u64(string_cmp(string_lit("April"), string_lit("March")), -1);
+    check_eq_u64(string_cmp(string_lit("March"), string_lit("December")), 1);
   }
 
   it("can check if strings are equal") {
@@ -76,56 +76,56 @@ spec(string) {
   }
 
   it("can find the first occurrence of a sub-string") {
-    check_eq_int(string_find_first(string_lit("Hello World"), string_lit("Hello")), 0);
-    check_eq_int(string_find_first(string_lit("Hello World"), string_lit("Hello World")), 0);
-    check_eq_int(string_find_first(string_lit("Hello World"), string_lit("World")), 6);
-    check_eq_int(string_find_first(string_lit("Hello World"), string_lit("lo")), 3);
-    check_eq_int(string_find_first(string_lit(" Hi Hi Hi "), string_lit("Hi")), 1);
-    check_eq_int(string_find_first(string_lit("Hello World"), string_lit("d")), 10);
-    check_eq_int(string_find_first(string_lit("Hello World"), string_lit("ld")), 9);
-    check_eq_int(string_find_first(string_lit("Hello World"), string_lit("H")), 0);
-    check_eq_int(string_find_first(string_lit("Hello World"), string_lit("H")), 0);
-    check_eq_int(string_find_first(string_lit("Hello World"), string_lit("He")), 0);
-    check_eq_int(string_find_first(string_lit("Hello World"), string_lit("q")), sentinel_usize);
-    check_eq_int(
+    check_eq_u64(string_find_first(string_lit("Hello World"), string_lit("Hello")), 0);
+    check_eq_u64(string_find_first(string_lit("Hello World"), string_lit("Hello World")), 0);
+    check_eq_u64(string_find_first(string_lit("Hello World"), string_lit("World")), 6);
+    check_eq_u64(string_find_first(string_lit("Hello World"), string_lit("lo")), 3);
+    check_eq_u64(string_find_first(string_lit(" Hi Hi Hi "), string_lit("Hi")), 1);
+    check_eq_u64(string_find_first(string_lit("Hello World"), string_lit("d")), 10);
+    check_eq_u64(string_find_first(string_lit("Hello World"), string_lit("ld")), 9);
+    check_eq_u64(string_find_first(string_lit("Hello World"), string_lit("H")), 0);
+    check_eq_u64(string_find_first(string_lit("Hello World"), string_lit("H")), 0);
+    check_eq_u64(string_find_first(string_lit("Hello World"), string_lit("He")), 0);
+    check_eq_u64(string_find_first(string_lit("Hello World"), string_lit("q")), sentinel_usize);
+    check_eq_u64(
         string_find_first(string_lit("Hello World"), string_lit("Hello World!")), sentinel_usize);
   }
 
   it("can find the first occurrence of any of the specified characters") {
-    check_eq_int(string_find_first_any(string_lit(""), string_lit(" ")), sentinel_usize);
-    check_eq_int(string_find_first_any(string_lit(""), string_lit("\0")), sentinel_usize);
-    check_eq_int(string_find_first_any(string_lit("\0"), string_lit("\n\r\0")), 0);
-    check_eq_int(string_find_first_any(string_lit("Hello World"), string_lit(" ")), 5);
-    check_eq_int(string_find_first_any(string_lit("Hello World"), string_lit("or")), 4);
-    check_eq_int(
+    check_eq_u64(string_find_first_any(string_lit(""), string_lit(" ")), sentinel_usize);
+    check_eq_u64(string_find_first_any(string_lit(""), string_lit("\0")), sentinel_usize);
+    check_eq_u64(string_find_first_any(string_lit("\0"), string_lit("\n\r\0")), 0);
+    check_eq_u64(string_find_first_any(string_lit("Hello World"), string_lit(" ")), 5);
+    check_eq_u64(string_find_first_any(string_lit("Hello World"), string_lit("or")), 4);
+    check_eq_u64(
         string_find_first_any(string_lit("Hello World"), string_lit("zqx")), sentinel_usize);
   }
 
   it("can find the last occurrence of a sub-string") {
-    check_eq_int(string_find_last(string_lit("Hello World"), string_lit("Hello")), 0);
-    check_eq_int(string_find_last(string_lit("Hello World"), string_lit("Hello World")), 0);
-    check_eq_int(string_find_last(string_lit("Hello World"), string_lit("World")), 6);
-    check_eq_int(string_find_last(string_lit("Hello World"), string_lit("lo")), 3);
-    check_eq_int(string_find_last(string_lit(" Hi Hi Hi "), string_lit("Hi")), 7);
-    check_eq_int(string_find_last(string_lit("Hello World"), string_lit("d")), 10);
-    check_eq_int(string_find_last(string_lit("Hello World"), string_lit("ld")), 9);
-    check_eq_int(string_find_last(string_lit("Hello World"), string_lit("H")), 0);
-    check_eq_int(string_find_last(string_lit("Hello World"), string_lit("H")), 0);
-    check_eq_int(string_find_last(string_lit("Hello World"), string_lit("He")), 0);
-    check_eq_int(string_find_last(string_lit("Hello World"), string_lit("q")), sentinel_usize);
-    check_eq_int(
+    check_eq_u64(string_find_last(string_lit("Hello World"), string_lit("Hello")), 0);
+    check_eq_u64(string_find_last(string_lit("Hello World"), string_lit("Hello World")), 0);
+    check_eq_u64(string_find_last(string_lit("Hello World"), string_lit("World")), 6);
+    check_eq_u64(string_find_last(string_lit("Hello World"), string_lit("lo")), 3);
+    check_eq_u64(string_find_last(string_lit(" Hi Hi Hi "), string_lit("Hi")), 7);
+    check_eq_u64(string_find_last(string_lit("Hello World"), string_lit("d")), 10);
+    check_eq_u64(string_find_last(string_lit("Hello World"), string_lit("ld")), 9);
+    check_eq_u64(string_find_last(string_lit("Hello World"), string_lit("H")), 0);
+    check_eq_u64(string_find_last(string_lit("Hello World"), string_lit("H")), 0);
+    check_eq_u64(string_find_last(string_lit("Hello World"), string_lit("He")), 0);
+    check_eq_u64(string_find_last(string_lit("Hello World"), string_lit("q")), sentinel_usize);
+    check_eq_u64(
         string_find_last(string_lit("Hello World"), string_lit("Hello World!")), sentinel_usize);
   }
 
   it("can find the last occurrence of any of the specified characters") {
-    check_eq_int(string_find_last_any(string_lit(""), string_lit(" ")), sentinel_usize);
-    check_eq_int(string_find_last_any(string_lit(""), string_lit("\0")), sentinel_usize);
-    check_eq_int(string_find_last_any(string_lit("\0"), string_lit("\n\r\0")), 0);
-    check_eq_int(string_find_last_any(string_lit("Hello World"), string_lit(" ")), 5);
-    check_eq_int(string_find_last_any(string_lit("Hello World"), string_lit("or")), 8);
-    check_eq_int(string_find_last_any(string_lit("Hello World"), string_lit("d")), 10);
-    check_eq_int(string_find_last_any(string_lit("Hello World"), string_lit("hH")), 0);
-    check_eq_int(
+    check_eq_u64(string_find_last_any(string_lit(""), string_lit(" ")), sentinel_usize);
+    check_eq_u64(string_find_last_any(string_lit(""), string_lit("\0")), sentinel_usize);
+    check_eq_u64(string_find_last_any(string_lit("\0"), string_lit("\n\r\0")), 0);
+    check_eq_u64(string_find_last_any(string_lit("Hello World"), string_lit(" ")), 5);
+    check_eq_u64(string_find_last_any(string_lit("Hello World"), string_lit("or")), 8);
+    check_eq_u64(string_find_last_any(string_lit("Hello World"), string_lit("d")), 10);
+    check_eq_u64(string_find_last_any(string_lit("Hello World"), string_lit("hH")), 0);
+    check_eq_u64(
         string_find_last_any(string_lit("Hello World"), string_lit("zqx")), sentinel_usize);
   }
 

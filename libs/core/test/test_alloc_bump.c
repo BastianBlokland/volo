@@ -13,10 +13,10 @@ spec(alloc_bump) {
 
     alloc_alloc(alloc, 32, sizeof(void*));
 
-    check_eq_int(alloc_max_size(alloc), startingSize - 32);
+    check_eq_u64(alloc_max_size(alloc), startingSize - 32);
 
     alloc_alloc(alloc, alloc_max_size(alloc), sizeof(void*));
-    check_eq_int(alloc_max_size(alloc), 0);
+    check_eq_u64(alloc_max_size(alloc), 0);
   }
 
   it("respects the requested alignment") {
@@ -27,14 +27,14 @@ spec(alloc_bump) {
 
     alloc_alloc(alloc, 6, 1);
 
-    check_eq_int(alloc_max_size(alloc), startingSize - 6);
+    check_eq_u64(alloc_max_size(alloc), startingSize - 6);
 
     alloc_alloc(alloc, 8, 8);
 
-    check_eq_int(alloc_max_size(alloc), startingSize - 16);
+    check_eq_u64(alloc_max_size(alloc), startingSize - 16);
 
     alloc_alloc(alloc, 64, 32);
 
-    check_eq_int(alloc_max_size(alloc), startingSize - 96);
+    check_eq_u64(alloc_max_size(alloc), startingSize - 96);
   }
 }

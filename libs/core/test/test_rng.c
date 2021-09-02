@@ -24,7 +24,7 @@ spec(rng) {
 
     // Uniform distribution should average out to 0.5.
     // Note: Adding more iterations would allow a tighter tolerance here.
-    check_eq_float(avg, 0.5f, 1e-2f);
+    check_eq_f64(avg, 0.5f, 1e-2f);
 
     rng_destroy(rng);
   }
@@ -46,7 +46,7 @@ spec(rng) {
 
     // Gaussian distribution should average out to 0.
     // Note: Adding more iterations would allow a tighter tolerance here.
-    check_eq_float(avg, 0.0f, 1e-2f);
+    check_eq_f64(avg, 0.0f, 1e-2f);
 
     rng_destroy(rng);
   }
@@ -75,16 +75,16 @@ spec(rng) {
     f32              rnd;
 
     rnd = rng_sample_f32(rng);
-    check_eq_float(rnd, 0.711535692215f, 1e-8f);
+    check_eq_f64(rnd, 0.711535692215f, 1e-8f);
 
     rnd = rng_sample_f32(rng);
-    check_eq_float(rnd, 0.465909004211f, 1e-8f);
+    check_eq_f64(rnd, 0.465909004211f, 1e-8f);
 
     rnd = rng_sample_f32(rng);
-    check_eq_float(rnd, 0.701208055019f, 1e-8f);
+    check_eq_f64(rnd, 0.701208055019f, 1e-8f);
 
     rnd = rng_sample_f32(rng);
-    check_eq_float(rnd, 0.908043026924f, 1e-8f);
+    check_eq_f64(rnd, 0.908043026924f, 1e-8f);
 
     rng_destroy(rng);
   }

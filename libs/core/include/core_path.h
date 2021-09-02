@@ -2,6 +2,9 @@
 #include "core_dynstring.h"
 #include "core_macro.h"
 
+// Forward declare from 'core_rng.h'.
+typedef struct sRng Rng;
+
 /**
  * Build an absolute path by combining the given segment strings.
  * If the first segment does not start from a filesystem root then the working dir is prepended.
@@ -101,3 +104,17 @@ void path_build_raw(DynString*, const String* segments);
  * sized section of 0 bytes).
  */
 String path_build_scratch_raw(const String* segments);
+
+/**
+ * Generate a random file name.
+ * Usefull for avoiding name collisions, should not be used for anything security related.
+ * Note: Prefix is optional.
+ */
+void path_random_name(DynString*, Rng*, String prefix);
+
+/**
+ * Generate a random file name.
+ * Usefull for avoiding name collisions, should not be used for anything security related.
+ * Note: Prefix is optional.
+ */
+String path_random_name_scratch(Rng*, String prefix);

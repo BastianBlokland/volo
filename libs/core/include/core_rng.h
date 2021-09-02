@@ -25,6 +25,12 @@ extern THREAD_LOCAL Rng* g_rng;
 
 /**
  * Get the next value in the random sequence.
+ * Returns a u32 with a uniform distribution.
+ */
+u32 rng_sample_u32(Rng*);
+
+/**
+ * Get the next value in the random sequence.
  * Returns a f32 between 0.0 (inclusive) and 1.0 (exclusive) with a uniform distribution.
  */
 f32 rng_sample_f32(Rng*);

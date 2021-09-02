@@ -33,7 +33,7 @@ spec(sort) {
           compare_i32);
 
       for (u32 j = 0; j != i32Data[i].size; ++j) {
-        check_eq_int(i32Data[i].values[j], i32Data[i].expected[j]);
+        check_eq_i64(i32Data[i].values[j], i32Data[i].expected[j]);
       }
     }
   }
