@@ -230,6 +230,21 @@ FileResult file_delete_sync(String path) {
   return FileResult_Success;
 }
 
+FileResult file_delete_dir_sync(String path) {
+  // Copy the path on the stack and null-terminate it.
+  if (path.size >= PATH_MAX) {
+    return FileResult_PathTooLong;
+  }
+  Mem pathBuffer = mem_stack(PATH_MAX);
+  mem_cpy(pathBuffer, path);
+  *mem_at_u8(pathBuffer, path.size) = '\0';
+
+  if (rmdir((const char*)pathBuffer.ptr)) {
+    return fileresult_from_errno();
+  }
+  return FileResult_Success;
+}
+
 FileResult file_map(File* file, String* output) {
   diag_assert_msg(!file->mapping, "File is already mapped");
 
@@ -259,4 +274,19 @@ FileResult file_map(File* file, String* output) {
   *(FileMapping*)file->mapping = (FileMapping){.addr = addr, .size = size};
   *output                      = mem_create(addr, size);
   return FileResult_Success;
+}
+
+FileResult file_pal_create_dir_single_sync(String path) {
+  // Copy the path on the stack and null-terminate it.
+  if (path.size >= PATH_MAX) {
+    return FileResult_PathTooLong;
+  }
+  Mem pathBuffer = mem_stack(PATH_MAX);
+  mem_cpy(pathBuffer, path);
+  *mem_at_u8(pathBuffer, path.size) = '\0';
+
+  // RWX for owner and group, RX for others.
+  const int perms = S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IXOTH;
+  const int res   = mkdir((const char*)pathBuffer.ptr, perms);
+  return res != 0 ? fileresult_from_errno() : FileResult_Success;
 }

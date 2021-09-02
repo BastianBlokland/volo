@@ -31,11 +31,11 @@ spec(string) {
   }
 
   it("can compare strings") {
-    check_eq_u64(string_cmp(string_lit("a"), string_lit("a")), 0);
-    check_eq_u64(string_cmp(string_lit("a"), string_lit("b")), -1);
-    check_eq_u64(string_cmp(string_lit("b"), string_lit("a")), 1);
-    check_eq_u64(string_cmp(string_lit("April"), string_lit("March")), -1);
-    check_eq_u64(string_cmp(string_lit("March"), string_lit("December")), 1);
+    check_eq_i64(string_cmp(string_lit("a"), string_lit("a")), 0);
+    check_eq_i64(string_cmp(string_lit("a"), string_lit("b")), -1);
+    check_eq_i64(string_cmp(string_lit("b"), string_lit("a")), 1);
+    check_eq_i64(string_cmp(string_lit("April"), string_lit("March")), -1);
+    check_eq_i64(string_cmp(string_lit("March"), string_lit("December")), 1);
   }
 
   it("can check if strings are equal") {

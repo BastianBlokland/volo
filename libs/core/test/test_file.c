@@ -4,8 +4,6 @@
 #include "core_rng.h"
 #include "core_time.h"
 
-#include "core_diag.h"
-
 #include "check_spec.h"
 
 static void test_file_write_data(DynString* str, usize size) {
@@ -133,8 +131,8 @@ spec(file) {
   }
 
   it("can create a new file by opening a file-handle with 'Create' mode") {
-    String path = path_build_scratch(
-        g_path_tempdir, path_random_name_scratch(g_rng, string_lit("test-create")));
+    String path =
+        path_build_scratch(g_path_tempdir, path_random_name_scratch(g_rng, string_lit("volo")));
 
     // Create a new file containing 'Hello World'.
     File* file;
@@ -153,6 +151,24 @@ spec(file) {
 
     // Destroy the file.
     file_delete_sync(path);
+  }
+
+  it("can create a new directory") {
+    String path =
+        path_build_scratch(g_path_tempdir, path_random_name_scratch(g_rng, string_lit("volo")));
+
+    check_eq_u64(file_create_dir_sync(path), FileResult_Success);
+
+    // Verify that the directory exists.
+    File* dirHandle;
+    check_eq_u64(
+        file_create(g_alloc_scratch, path, FileMode_Open, FileAccess_None, &dirHandle),
+        FileResult_Success);
+    if (dirHandle) {
+      file_destroy(dirHandle);
+    }
+
+    check_eq_u64(file_delete_dir_sync(path), FileResult_Success);
   }
 
   teardown() {
