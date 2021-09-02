@@ -1,6 +1,10 @@
+#include "core_alloc.h"
 #include "core_file.h"
 #include "core_path.h"
+#include "core_rng.h"
 #include "core_time.h"
+
+#include "core_diag.h"
 
 #include "check_spec.h"
 
@@ -126,6 +130,29 @@ spec(file) {
     if (ownExecutable) {
       file_destroy(ownExecutable);
     }
+  }
+
+  it("can create a new file by opening a file-handle with 'Create' mode") {
+    String path = path_build_scratch(
+        g_path_tempdir, path_random_name_scratch(g_rng, string_lit("test-create")));
+
+    // Create a new file containing 'Hello World'.
+    File* file;
+    check_eq_u64(
+        file_create(g_alloc_heap, path, FileMode_Create, FileAccess_Write, &file),
+        FileResult_Success);
+    check_eq_u64(file_write_sync(file, string_lit("Hello World!")), FileResult_Success);
+    file_destroy(file);
+
+    // Open the new file and read its content.
+    check_eq_u64(
+        file_create(g_alloc_heap, path, FileMode_Open, FileAccess_Read, &file), FileResult_Success);
+    check_eq_u64(file_read_sync(file, &buffer), FileResult_Success);
+    check_eq_string(dynstring_view(&buffer), string_lit("Hello World!"));
+    file_destroy(file);
+
+    // Destroy the file.
+    file_delete_sync(path);
   }
 
   teardown() {
