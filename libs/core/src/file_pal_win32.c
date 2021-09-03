@@ -332,5 +332,5 @@ FileResult file_pal_create_dir_single_sync(String path) {
   winutils_to_widestr(pathBufferMem, path);
 
   const BOOL success = CreateDirectory((const wchar_t*)pathBufferMem.ptr, null);
-  return success ? FileResult_Success : fileresult_from_errno();
+  return success ? FileResult_Success : fileresult_from_lasterror();
 }

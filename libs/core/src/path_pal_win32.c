@@ -1,4 +1,5 @@
 #include "core_diag.h"
+#include "core_env.h"
 #include "core_sentinel.h"
 #include "core_winutils.h"
 
@@ -54,7 +55,7 @@ String path_pal_executable(Mem outputBuffer) {
 }
 
 String path_pal_tempdir(Mem outputBuffer) {
-  DynString tmpWriter = dynstring_create_over(mem_stack(PATH_MAX));
+  DynString tmpWriter = dynstring_create_over(mem_stack(path_pal_max_size));
   String    result;
 
   if (env_var(string_lit("TMPDIR"), &tmpWriter)) {
