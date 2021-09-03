@@ -3,8 +3,11 @@
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_path.h"
+#include "core_rng.h"
 #include "core_sentinel.h"
 
+#include "core_string.h"
+#include "core_types.h"
 #include "init_internal.h"
 #include "path_internal.h"
 
@@ -36,9 +39,13 @@ String    g_path_workingdir = {0};
 static u8 g_path_executable_buffer[path_pal_max_size];
 String    g_path_executable = {0};
 
+static u8 g_path_tempdir_buffer[path_pal_max_size];
+String    g_path_tempdir = {0};
+
 void path_init() {
   g_path_workingdir = path_pal_workingdir(array_mem(g_path_workingdir_buffer));
   g_path_executable = path_pal_executable(array_mem(g_path_executable_buffer));
+  g_path_tempdir    = path_pal_tempdir(array_mem(g_path_tempdir_buffer));
 }
 
 bool path_is_absolute(String path) {
@@ -150,4 +157,63 @@ void path_append(DynString* str, String path) {
     dynstring_append_char(str, '/');
   }
   dynstring_append(str, path);
+}
+
+void path_build_raw(DynString* str, const String* segments) {
+  DynString tmpWriter = dynstring_create_over(mem_stack(path_pal_max_size));
+
+  const bool prependWorkingDir = !segments->ptr || !path_is_absolute(*segments);
+  if (prependWorkingDir) {
+    dynstring_append(&tmpWriter, g_path_workingdir);
+  }
+  for (; segments->ptr && !string_is_empty(*segments); ++segments) {
+    path_append(&tmpWriter, *segments);
+  }
+
+  path_canonize(str, dynstring_view(&tmpWriter));
+  dynstring_destroy(&tmpWriter);
+}
+
+String path_build_scratch_raw(const String* segments) {
+  Mem       scratchMem = alloc_alloc(g_alloc_scratch, path_pal_max_size, 1);
+  DynString str        = dynstring_create_over(scratchMem);
+
+  path_build_raw(&str, segments);
+
+  String res = dynstring_view(&str);
+  dynstring_destroy(&str);
+  return res;
+}
+
+void path_random_name(DynString* str, Rng* rng, String prefix) {
+  static const u8 chars[] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
+                             'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+                             'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
+                             'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+                             '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+
+  if (!string_is_empty(prefix)) {
+    dynstring_append(str, prefix);
+    dynstring_append_char(str, '_');
+  }
+
+  static const usize nameSize = 12; // Note: Only multiples of 4 are supported atm.
+  for (usize i = 0; i < nameSize; i += 4) {
+    const u32 rngVal = rng_sample_u32(rng);
+    dynstring_append_char(str, chars[((rngVal >> 0) & 255) % array_elems(chars)]);
+    dynstring_append_char(str, chars[((rngVal >> 1) & 255) % array_elems(chars)]);
+    dynstring_append_char(str, chars[((rngVal >> 2) & 255) % array_elems(chars)]);
+    dynstring_append_char(str, chars[((rngVal >> 3) & 255) % array_elems(chars)]);
+  }
+}
+
+String path_random_name_scratch(Rng* rng, String prefix) {
+  Mem       scratchMem = alloc_alloc(g_alloc_scratch, prefix.size + 13, 1);
+  DynString str        = dynstring_create_over(scratchMem);
+
+  path_random_name(&str, rng, prefix);
+
+  String res = dynstring_view(&str);
+  dynstring_destroy(&str);
+  return res;
 }

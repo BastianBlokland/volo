@@ -137,6 +137,11 @@ FileInfo file_stat_sync(File*);
 FileResult file_delete_sync(String path);
 
 /**
+ * Synchronously delete a directory from the file-system.
+ */
+FileResult file_delete_dir_sync(String path);
+
+/**
  * Memory map the given file.
  * On success the mapped memory will be assigned to the output pointer. Memory mappings are
  * automatically closed when the file-handle is destroyed.
@@ -144,3 +149,9 @@ FileResult file_delete_sync(String path);
  * Pre-condition: file has not been mapped yet.
  */
 FileResult file_map(File*, String* output);
+
+/**
+ * Synchronously create a new file-system directory.
+ * Note: Will also create the parent directory if its missing.
+ */
+FileResult file_create_dir_sync(String path);

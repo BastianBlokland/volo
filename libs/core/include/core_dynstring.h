@@ -5,7 +5,7 @@
 /**
  * Owning array of characters.
  * Dynamically allocates memory when more characters get added.
- * Note: Any pointers / strings retreived over DynString are invalidated on any mutating api.
+ * Note: Any pointers / strings retrieved over DynString are invalidated on any mutating api.
  */
 typedef DynArray DynString;
 
@@ -64,3 +64,9 @@ void dynstring_append_chars(DynString*, u8, usize amount);
  * Insert 'amount' characters at a specific index in the given dynamic-string.
  */
 void dynstring_insert_chars(DynString*, u8, usize idx, usize amount);
+
+/**
+ * .Append 'amount' empty space at the end of the dynamic-string.
+ * Note: the new space is NOT initialized and its up to the caller to write to it.
+ */
+String dynstring_push(DynString*, usize amount);

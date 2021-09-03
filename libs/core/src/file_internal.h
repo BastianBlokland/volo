@@ -17,3 +17,9 @@ struct sFile {
 };
 
 void file_pal_init();
+
+/**
+ * Synchonously create a single directory.
+ * Pre-condition: Parent directory must exist.
+ */
+FileResult file_pal_create_dir_single_sync(String path);

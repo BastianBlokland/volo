@@ -93,14 +93,14 @@ spec(thread) {
     i64          value = 0;
     ThreadHandle exec  = thread_start(test_atomic_store_value, &value, string_lit("volo_test"));
     thread_join(exec);
-    check_eq_int(thread_atomic_load_i64(&value), 1337);
+    check_eq_u64(thread_atomic_load_i64(&value), 1337);
   }
 
   it("can exchange integers atomically") {
     i64          value = 42;
     ThreadHandle exec  = thread_start(test_atomic_exchange_value, &value, string_lit("volo_test"));
     thread_join(exec);
-    check_eq_int(thread_atomic_load_i64(&value), 1337);
+    check_eq_u64(thread_atomic_load_i64(&value), 1337);
   }
 
   it("can compare and exchange integers atomically") {
@@ -110,7 +110,7 @@ spec(thread) {
     for (i32 i = 0; i != 1000; ++i) {
       i64 expected = 1337;
       if (!thread_atomic_compare_exchange_i64(&value, &expected, 42)) {
-        check_eq_int(expected, 42);
+        check_eq_u64(expected, 42);
       }
     }
     thread_join(exec);
@@ -124,7 +124,7 @@ spec(thread) {
       thread_atomic_add_i64(&value, 1);
     }
     thread_join(exec);
-    check_eq_int(thread_atomic_load_i64(&value), 20000);
+    check_eq_u64(thread_atomic_load_i64(&value), 20000);
   }
 
   it("can substract integers atomically") {
@@ -134,7 +134,7 @@ spec(thread) {
       thread_atomic_sub_i64(&value, 1);
     }
     thread_join(exec);
-    check_eq_int(thread_atomic_load_i64(&value), 0);
+    check_eq_u64(thread_atomic_load_i64(&value), 0);
   }
 
   it("can lock a mutex when its currently unlocked") {

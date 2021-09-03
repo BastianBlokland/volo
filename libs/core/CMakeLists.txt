@@ -20,6 +20,7 @@ add_library(volo_core STATIC
   src/dynarray.c
   src/dynbitset.c
   src/dynstring.c
+  src/env_pal.c
   src/file_pal.c
   src/file.c
   src/format.c
@@ -62,6 +63,7 @@ add_executable(volo_core_test
   test/test_dynarray.c
   test/test_dynbitset.c
   test/test_dynstring.c
+  test/test_env.c
   test/test_file.c
   test/test_float.c
   test/test_format.c

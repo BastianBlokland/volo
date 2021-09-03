@@ -225,7 +225,7 @@ struct sFormatArg {
 /**
  * Create a formatted string in scratch memory. Meant for very short lived strings as the scratch
  * memory will be overwritten eventually.
- * Pre-condition: Formatted string fits in 2KiB.
+ * Pre-condition: Formatted string fits in 8KiB.
  */
 #define fmt_write_scratch(_FORMAT_LIT_, ...)                                                       \
   format_write_formatted_scratch(string_lit(_FORMAT_LIT_), fmt_args(__VA_ARGS__))
@@ -395,7 +395,7 @@ void format_write_formatted(DynString*, String format, const FormatArg* args);
 /**
  * Create a formatted string in scratch memory. Meant for very short lived strings as the scratch
  * memory will be overwritten eventually.
- * Pre-condition: Formatted string fits in 2KiB.
+ * Pre-condition: Formatted string fits in 8KiB.
  */
 String format_write_formatted_scratch(String format, const FormatArg* args);
 

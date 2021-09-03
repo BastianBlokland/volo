@@ -43,7 +43,7 @@ static CheckTestContext* check_spec_test_exec(CheckSpecContext* ctx, CheckTest t
 
 static bool check_assert_handler(String msg, const SourceLoc source, void* context) {
   check_report_error(context, msg, source);
-  return true; // Indicate that we've handled the assertion (so the application keeps going).
+  check_finish(context);
 }
 
 bool check_visit_setup(CheckSpecContext* ctx) {

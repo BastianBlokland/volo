@@ -5,7 +5,7 @@
 
 #define alloc_scratch_heap_size (usize_mebibyte * 4)
 #define alloc_scratch_max_alloc_size (usize_kibibyte * 64)
-#define alloc_scratch_guard_size (usize_kibibyte * 8)
+#define alloc_scratch_guard_size (usize_kibibyte * 128)
 
 #define freed_mem_tag 0xFF
 #define guard_mem_tag 0xAA

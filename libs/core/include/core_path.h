@@ -1,17 +1,42 @@
 #pragma once
 #include "core_dynstring.h"
+#include "core_macro.h"
+
+// Forward declare from 'core_rng.h'.
+typedef struct sRng Rng;
+
+/**
+ * Build an absolute path by combining the given segment strings.
+ * If the first segment does not start from a filesystem root then the working dir is prepended.
+ */
+#define path_build(_DYNSTRING_, ...)                                                               \
+  path_build_raw(                                                                                  \
+      (_DYNSTRING_), (const String[]){VA_ARGS_SKIP_FIRST(0, ##__VA_ARGS__, string_empty)})
+
+/**
+ * Build an absolute path by combining the given segment strings.
+ * If the first segment does not start from a filesystem root then the working dir is prepended.
+ */
+#define path_build_scratch(...)                                                                    \
+  path_build_scratch_raw((const String[]){VA_ARGS_SKIP_FIRST(0, ##__VA_ARGS__, string_empty)})
 
 /**
  * Working directory of the process.
- * Note: Cached at startup
+ * Note: Cached at startup.
  */
 extern String g_path_workingdir;
 
 /**
  * Path to the running executable.
- * Note: Cached at startup
+ * Note: Cached at startup.
  */
 extern String g_path_executable;
+
+/**
+ * Path to the system's temporary directory.
+ * Note: Cached at startup.
+ */
+extern String g_path_tempdir;
 
 /**
  * Check if the given path is absolute (starts from a root directory).
@@ -61,3 +86,35 @@ bool path_canonize(DynString*, String path);
  * Append a new segment to a path. Will insert a '/' seperator if required.
  */
 void path_append(DynString*, String path);
+
+/**
+ * Build an absolute path by combining a list of segments.
+ * If the first segment does not start from a filesystem root then the working dir is prepended.
+ *
+ * Pre-condition: 'segments' array should be terminated with an empty string (at least an pointer
+ * sized section of 0 bytes).
+ */
+void path_build_raw(DynString*, const String* segments);
+
+/**
+ * Build an absolute path in scratch memory by combining a list of segments.
+ * If the first segment does not start from a filesystem root then the working dir is prepended.
+ *
+ * Pre-condition: 'segments' array should be terminated with an empty string (at least an pointer
+ * sized section of 0 bytes).
+ */
+String path_build_scratch_raw(const String* segments);
+
+/**
+ * Generate a random file name.
+ * Usefull for avoiding name collisions, should not be used for anything security related.
+ * Note: Prefix is optional.
+ */
+void path_random_name(DynString*, Rng*, String prefix);
+
+/**
+ * Generate a random file name.
+ * Usefull for avoiding name collisions, should not be used for anything security related.
+ * Note: Prefix is optional.
+ */
+String path_random_name_scratch(Rng*, String prefix);

@@ -6,7 +6,7 @@ spec(dynstring) {
 
   it("can create an empty Dynamic-String") {
     DynString string = dynstring_create_over(mem_stack(128));
-    check_eq_int(string.size, 0);
+    check_eq_u64(string.size, 0);
     dynstring_destroy(&string);
   }
 
@@ -62,6 +62,16 @@ spec(dynstring) {
     dynstring_insert_chars(&string, '-', 8, 3);
 
     check_eq_string(dynstring_view(&string), string_lit("---*****---"));
+
+    dynstring_destroy(&string);
+  }
+
+  it("can push space to the end") {
+    DynString string = dynstring_create_over(mem_stack(128));
+
+    mem_set(dynstring_push(&string, 3), '!');
+
+    check_eq_string(dynstring_view(&string), string_lit("!!!"));
 
     dynstring_destroy(&string);
   }

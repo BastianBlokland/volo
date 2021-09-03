@@ -118,32 +118,48 @@ typedef struct {
 #define check_require(_CONDITION_) check_require_msg(_CONDITION_, #_CONDITION_)
 
 /**
- * Check if two integers are equal.
+  * Check if two unsigned integers are equal.
  */
-#define check_eq_int(_A_, _B_)                                                                     \
-  check_msg(_A_ == _B_, "{} == {}", fmt_int(_A_), fmt_int(_B_))
+#define check_eq_u64(_A_, _B_)                                                                     \
+  do {                                                                                             \
+    const u64 _a_ = (_A_);                                                                         \
+    const u64 _b_ = (_B_);                                                                         \
+    check_msg(_a_ == _b_, "{} == {}", fmt_int(_a_), fmt_int(_b_));                                 \
+  } while(false)
 
 /**
- * Check if two integers are not equal.
+  * Check if two signed integers are equal.
  */
-#define check_neq_int(_A_, _B_)                                                                     \
-  check_msg(_A_ != _B_, "{} != {}", fmt_int(_A_), fmt_int(_B_))
+#define check_eq_i64(_A_, _B_)                                                                     \
+  do {                                                                                             \
+    const i64 _a_ = (_A_);                                                                         \
+    const i64 _b_ = (_B_);                                                                         \
+    check_msg(_a_ == _b_, "{} == {}", fmt_int(_a_), fmt_int(_b_));                                 \
+  } while(false)
 
 /**
  * Check if two floats are within a certain threshold of eachother.
  */
-#define check_eq_float(_A_, _B_, _THRESHOLD_)                                                      \
-  check_msg(math_abs(_A_ - _B_) <= (_THRESHOLD_), "{} == {}", fmt_float(_A_), fmt_float(_B_))
+#define check_eq_f64(_A_, _B_, _THRESHOLD_)                                                      \
+  do {                                                                                             \
+    const f64 _a_ = (_A_);                                                                         \
+    const f64 _b_ = (_B_);                                                                         \
+    check_msg(math_abs(_a_ - _b_) <= (_THRESHOLD_), "{} == {}", fmt_float(_a_), fmt_float(_b_));   \
+  } while(false)
 
 /**
  * Check if two strings are equal.
  */
 #define check_eq_string(_A_, _B_)                                                                  \
-  check_msg(                                                                                       \
-    string_eq(_A_, _B_),                                                                           \
-    "'{}' == '{}'",                                                                                \
-    fmt_text(_A_, .flags = FormatTextFlags_EscapeNonPrintAscii),                                   \
-    fmt_text(_B_, .flags = FormatTextFlags_EscapeNonPrintAscii))
+  do {                                                                                             \
+    const String _a_ = (_A_);                                                                      \
+    const String _b_ = (_B_);                                                                      \
+    check_msg(                                                                                     \
+      string_eq(_a_, _b_),                                                                         \
+      "'{}' == '{}'",                                                                              \
+      fmt_text(_a_, .flags = FormatTextFlags_EscapeNonPrintAscii),                                                \
+      fmt_text(_b_, .flags = FormatTextFlags_EscapeNonPrintAscii));                                               \
+  } while(false)
 
 // clang-format on
 

@@ -56,10 +56,10 @@ spec(executor) {
     }
 
     jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph));
-    check_eq_int((usize)counter, numTasks);
+    check_eq_u64((usize)counter, numTasks);
 
     jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph));
-    check_eq_int((usize)counter, numTasks * 2);
+    check_eq_u64((usize)counter, numTasks * 2);
 
     jobs_graph_destroy(jobGraph);
   }
@@ -90,10 +90,10 @@ spec(executor) {
     }
 
     jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph));
-    check_eq_int((usize)counter, 0);
+    check_eq_u64((usize)counter, 0);
 
     jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph));
-    check_eq_int((usize)counter, 0);
+    check_eq_u64((usize)counter, 0);
 
     jobs_graph_destroy(jobGraph);
   }
@@ -113,10 +113,10 @@ spec(executor) {
     }
 
     jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph));
-    check_eq_int((usize)counter, numTasks);
+    check_eq_u64((usize)counter, numTasks);
 
     jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph));
-    check_eq_int((usize)counter, numTasks * 2);
+    check_eq_u64((usize)counter, numTasks * 2);
 
     jobs_graph_destroy(jobGraph);
   }
@@ -152,7 +152,7 @@ spec(executor) {
     }
 
     jobs_scheduler_wait_help(jobs_scheduler_run(graph));
-    check_eq_int(data[0], sum);
+    check_eq_u64(data[0], sum);
 
     dynarray_destroy(&dependencies);
     jobs_graph_destroy(graph);
