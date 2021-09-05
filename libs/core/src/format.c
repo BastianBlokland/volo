@@ -197,6 +197,17 @@ void format_write_arg(DynString* str, const FormatArg* arg) {
   }
 }
 
+String format_write_arg_scratch(const FormatArg* arg) {
+  Mem       scratchMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
+  DynString str        = dynstring_create_over(scratchMem);
+
+  format_write_arg(&str, arg);
+
+  String res = dynstring_view(&str);
+  dynstring_destroy(&str);
+  return res;
+}
+
 void format_write_u64(DynString* str, u64 val, const FormatOptsInt* opts) {
   diag_assert(opts->base > 1 && opts->base <= 16);
 
@@ -399,11 +410,11 @@ void format_write_time_iso8601(DynString* str, const TimeReal val, const FormatO
   if (opts->terms & FormatTimeTerms_Date) {
     format_write_int(str, date.year, .minDigits = 4);
     if (opts->flags & FormatTimeFlags_HumanReadable) {
-    dynstring_append_char(str, '-');
+      dynstring_append_char(str, '-');
     }
     format_write_int(str, date.month, .minDigits = 2);
     if (opts->flags & FormatTimeFlags_HumanReadable) {
-    dynstring_append_char(str, '-');
+      dynstring_append_char(str, '-');
     }
     format_write_int(str, date.day, .minDigits = 2);
   }
@@ -413,18 +424,18 @@ void format_write_time_iso8601(DynString* str, const TimeReal val, const FormatO
     dynstring_append_char(str, 'T');
     format_write_int(str, hours, .minDigits = 2);
     if (opts->flags & FormatTimeFlags_HumanReadable) {
-    dynstring_append_char(str, ':');
+      dynstring_append_char(str, ':');
     }
     format_write_int(str, minutes, .minDigits = 2);
     if (opts->flags & FormatTimeFlags_HumanReadable) {
-    dynstring_append_char(str, ':');
+      dynstring_append_char(str, ':');
     }
     format_write_int(str, seconds, .minDigits = 2);
   }
   if (opts->terms & FormatTimeTerms_Milliseconds) {
     const u16 milliseconds = (localTime / (time_millisecond / time_microsecond)) % 1000;
     if (opts->flags & FormatTimeFlags_HumanReadable) {
-    dynstring_append_char(str, '.');
+      dynstring_append_char(str, '.');
     }
     format_write_int(str, milliseconds, .minDigits = 3);
   }
@@ -438,7 +449,9 @@ void format_write_time_iso8601(DynString* str, const TimeReal val, const FormatO
         dynstring_append_char(str, '+');
       }
       format_write_int(str, opts->timezone / 60, .minDigits = 2);
-      dynstring_append_char(str, ':');
+      if (opts->flags & FormatTimeFlags_HumanReadable) {
+        dynstring_append_char(str, ':');
+      }
       format_write_int(str, opts->timezone % 60, .minDigits = 2);
     }
   }
