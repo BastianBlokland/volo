@@ -297,11 +297,20 @@ typedef enum {
 } FormatTimeTerms;
 
 /**
+ * Configuration flags for time formatting.
+ */
+typedef enum {
+  FormatTimeFlags_None          = 0,
+  FormatTimeFlags_HumanReadable = 1 << 0,
+} FormatTimeFlags;
+
+/**
  * Configuration struct for time formatting.
  */
 typedef struct {
   TimeZone        timezone;
   FormatTimeTerms terms;
+  FormatTimeFlags flags;
 } FormatOptsTime;
 
 /**
@@ -349,6 +358,7 @@ typedef struct {
   ((FormatOptsTime){                                                                               \
     .timezone   = time_zone_utc,                                                                   \
     .terms      = FormatTimeTerms_All,                                                             \
+    .flags      = FormatTimeFlags_HumanReadable,                                                            \
     __VA_ARGS__                                                                                    \
   })
 
@@ -381,6 +391,13 @@ typedef struct {
  * Write a type-erased argument.
  */
 void format_write_arg(DynString*, const FormatArg*);
+
+/**
+ * Write a type-erased argument to a scratch buffer.
+ *
+ * Pre-condition: Formatted string fits in 1KiB.
+ */
+String format_write_arg_scratch(const FormatArg*);
 
 /**
  * Write a format string with arguments.

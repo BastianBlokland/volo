@@ -398,9 +398,13 @@ void format_write_time_iso8601(DynString* str, const TimeReal val, const FormatO
   // Date.
   if (opts->terms & FormatTimeTerms_Date) {
     format_write_int(str, date.year, .minDigits = 4);
+    if (opts->flags & FormatTimeFlags_HumanReadable) {
     dynstring_append_char(str, '-');
+    }
     format_write_int(str, date.month, .minDigits = 2);
+    if (opts->flags & FormatTimeFlags_HumanReadable) {
     dynstring_append_char(str, '-');
+    }
     format_write_int(str, date.day, .minDigits = 2);
   }
 
@@ -408,14 +412,20 @@ void format_write_time_iso8601(DynString* str, const TimeReal val, const FormatO
   if (opts->terms & FormatTimeTerms_Time) {
     dynstring_append_char(str, 'T');
     format_write_int(str, hours, .minDigits = 2);
+    if (opts->flags & FormatTimeFlags_HumanReadable) {
     dynstring_append_char(str, ':');
+    }
     format_write_int(str, minutes, .minDigits = 2);
+    if (opts->flags & FormatTimeFlags_HumanReadable) {
     dynstring_append_char(str, ':');
+    }
     format_write_int(str, seconds, .minDigits = 2);
   }
   if (opts->terms & FormatTimeTerms_Milliseconds) {
     const u16 milliseconds = (localTime / (time_millisecond / time_microsecond)) % 1000;
+    if (opts->flags & FormatTimeFlags_HumanReadable) {
     dynstring_append_char(str, '.');
+    }
     format_write_int(str, milliseconds, .minDigits = 3);
   }
 

@@ -8,7 +8,7 @@
 
 #include "check_runner.h"
 
-#include "output.pretty.h"
+#include "output_pretty.h"
 #include "spec_internal.h"
 
 typedef struct {
