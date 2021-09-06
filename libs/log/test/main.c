@@ -10,7 +10,9 @@
 static int run_tests(const bool outputPassingTests) {
   CheckDef* check = check_create(g_alloc_heap);
 
-  register_spec(check, api);
+  register_spec(check, logger);
+  register_spec(check, sink_json);
+  register_spec(check, sink_pretty);
 
   const CheckRunFlags flags =
       outputPassingTests ? CheckRunFlags_OutputPassingTests : CheckRunFlags_None;
