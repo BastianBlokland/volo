@@ -85,7 +85,7 @@ static void log_sink_pretty_write(
         &str,
         "  {}: {}{}{}{}\n",
         fmt_text(itr->name),
-        fmt_padding(maxParamNameWidth - itr->name.size),
+        fmt_padding((u16)(maxParamNameWidth - itr->name.size)),
         arg_style_bold(prettySink),
         fmt_text(format_write_arg_scratch(&itr->arg)),
         arg_style_reset(prettySink));
