@@ -8,7 +8,7 @@
 void jobs_init();
 
 /**
- * Teardown all the jobs subsystem.
+ * Teardown the jobs subsystem.
  * Should be called once at application shutdown.
  * Pre-condition: Should only be called from the main-thread.
  */
