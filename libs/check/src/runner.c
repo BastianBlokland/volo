@@ -6,8 +6,11 @@
 #include "jobs_graph.h"
 #include "jobs_scheduler.h"
 
+#include "log_logger.h"
+
 #include "check_runner.h"
 
+#include "output_log.h"
 #include "output_pretty.h"
 #include "spec_internal.h"
 
@@ -48,6 +51,7 @@ CheckResultType check_run(CheckDef* check, const CheckRunFlags flags) {
   // Setup outputs.
   CheckOutput* outputs[] = {
       check_output_pretty_create(g_alloc_heap, g_file_stdout, flags),
+      check_output_log_create(g_alloc_heap, g_logger),
   };
   CheckRunContext ctx = {.outputs = outputs, .outputsCount = array_elems(outputs)};
 
