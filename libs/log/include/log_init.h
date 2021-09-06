@@ -1,15 +1,15 @@
 #pragma once
 
 /**
- * Initialize the jobs system.
+ * Initialize the logging system.
  * Should be called once at application startup.
  * Pre-condition: Should only be called from the main-thread.
  */
-void jobs_init();
+void log_init();
 
 /**
- * Teardown the jobs subsystem.
+ * Teardown the log subsystem.
  * Should be called once at application shutdown.
  * Pre-condition: Should only be called from the main-thread.
  */
-void jobs_teardown();
+void log_teardown();

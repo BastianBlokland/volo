@@ -2,6 +2,7 @@
 #include "core_ascii.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
+#include "core_format.h"
 #include "core_path.h"
 #include "core_rng.h"
 #include "core_sentinel.h"
@@ -185,7 +186,7 @@ String path_build_scratch_raw(const String* segments) {
   return res;
 }
 
-void path_random_name(DynString* str, Rng* rng, String prefix) {
+void path_name_random(DynString* str, Rng* rng, String prefix) {
   static const u8 chars[] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
                              'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
                              'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
@@ -207,11 +208,34 @@ void path_random_name(DynString* str, Rng* rng, String prefix) {
   }
 }
 
-String path_random_name_scratch(Rng* rng, String prefix) {
-  Mem       scratchMem = alloc_alloc(g_alloc_scratch, prefix.size + 13, 1);
+String path_name_random_scratch(Rng* rng, String prefix) {
+  Mem       scratchMem = alloc_alloc(g_alloc_scratch, prefix.size + 16, 1);
   DynString str        = dynstring_create_over(scratchMem);
 
-  path_random_name(&str, rng, prefix);
+  path_name_random(&str, rng, prefix);
+
+  String res = dynstring_view(&str);
+  dynstring_destroy(&str);
+  return res;
+}
+
+void path_name_timestamp(DynString* str, String prefix) {
+  if (!string_is_empty(prefix)) {
+    dynstring_append(str, prefix);
+    dynstring_append_char(str, '_');
+  }
+  format_write_time_iso8601(
+      str,
+      time_real_clock(),
+      &format_opts_time(
+              .terms = FormatTimeTerms_Date | FormatTimeTerms_Time, .flags = FormatTimeFlags_None));
+}
+
+String path_name_timestamp_scratch(String prefix) {
+  Mem       scratchMem = alloc_alloc(g_alloc_scratch, prefix.size + 32, 1);
+  DynString str        = dynstring_create_over(scratchMem);
+
+  path_name_timestamp(&str, prefix);
 
   String res = dynstring_view(&str);
   dynstring_destroy(&str);

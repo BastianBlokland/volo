@@ -148,9 +148,16 @@ spec(path) {
     Allocator* alloc = alloc_bump_create_stack(256);
     Rng*       rng   = rng_create_xorwow(alloc, seed);
 
-    check_eq_string(path_random_name_scratch(rng, string_empty), string_lit("nkOZrR4b15bJ"));
+    check_eq_string(path_name_random_scratch(rng, string_empty), string_lit("nkOZrR4b15bJ"));
     check_eq_string(
-        path_random_name_scratch(rng, string_lit("hello")), string_lit("hello_ecfcmkK1mPyR"));
+        path_name_random_scratch(rng, string_lit("hello")), string_lit("hello_ecfcmkK1mPyR"));
+  }
+
+  it("can generate a timestampped file-name") {
+    const String nameWithoutPrefix = path_name_timestamp_scratch(string_empty);
+    check_eq_u64(nameWithoutPrefix.size, 15);
+    const String nameWithPrefix = path_name_timestamp_scratch(string_lit("hello"));
+    check_eq_u64(nameWithPrefix.size, 21);
   }
 
   it("can retrieve the executable path") {
