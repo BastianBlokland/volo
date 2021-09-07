@@ -50,11 +50,15 @@ typedef enum {
 
 /**
  * Retrieve a u8 pointer to the end of the string (1 past the last valid character).
+ * NOTE: _STRING_ is expanded multiple times, so care must be taken when providing complex
+ * expressions.
  */
 #define string_end(_STRING_) ((u8*)(_STRING_).ptr + (_STRING_).size)
 
 /**
  * Retrieve a u8 pointer to the last character in the string.
+ * NOTE: _STRING_ is expanded multiple times, so care must be taken when providing complex
+ * expressions.
  * Pre-condition: string.size > 0
  */
 #define string_last(_STRING_) ((u8*)(_STRING_).ptr + (_STRING_).size - 1)

@@ -5,6 +5,7 @@
 /**
  * Get the next value in the random sequence.
  * Returns a value between min (inclusive) and max (exclusive) with a uniform distribution.
+ * NOTE: _MIN_ is expanded multiple times, so care must be taken when providing complex expressions.
  */
 #define rng_sample_range(_RNG_, _MIN_, _MAX_)                                                      \
   ((_MIN_) + ((_MAX_) - (_MIN_)) * rng_sample_f32(_RNG_))

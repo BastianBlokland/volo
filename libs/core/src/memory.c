@@ -48,7 +48,8 @@ INLINE_HINT void* mem_as(Mem mem, const usize size) {
 INLINE_HINT i8 mem_cmp(Mem a, Mem b) {
   diag_assert(mem_valid(a));
   diag_assert(mem_valid(b));
-  return math_sign(memcmp(a.ptr, b.ptr, math_min(a.size, b.size)));
+  const int cmp = memcmp(a.ptr, b.ptr, math_min(a.size, b.size));
+  return math_sign(cmp);
 }
 
 INLINE_HINT bool mem_eq(Mem a, Mem b) {

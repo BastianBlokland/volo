@@ -22,7 +22,8 @@ String string_dup(Allocator* alloc, String str) {
 void string_free(Allocator* alloc, String str) { alloc_free(alloc, str); }
 
 i8 string_cmp(String a, String b) {
-  return math_sign(strncmp((const char*)a.ptr, (const char*)b.ptr, math_min(a.size, b.size)));
+  const int cmp = strncmp((const char*)a.ptr, (const char*)b.ptr, math_min(a.size, b.size));
+  return math_sign(cmp);
 }
 
 bool string_eq(String a, String b) { return mem_eq(a, b); }

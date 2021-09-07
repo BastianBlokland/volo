@@ -5,7 +5,7 @@
 /**
  * Owning collection of bit-flags.
  * Dynamically allocates memory when required.
- * Note: Any pointers / bitsets retreived over DynBitSet are invalidated on any mutating api.
+ * Note: Any pointers / bitsets retrieved over DynBitSet are invalidated on any mutating api.
  * Note: DynBitSets are always byte aligned, meaning size is always a multiple of 8.
  */
 typedef DynArray DynBitSet;

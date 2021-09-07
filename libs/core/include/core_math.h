@@ -3,21 +3,27 @@
 
 /**
  * Return the smallest of the two values.
+ * NOTE: _A_ and _B_ are expanded multiple times, so care must be taken when providing complex
+ * expressions.
  */
 #define math_min(_A_, _B_) ((_A_) < (_B_) ? (_A_) : (_B_))
 
 /**
  * Return the biggest of the two values.
+ * NOTE: _A_ and _B_ are expanded multiple times, so care must be taken when providing complex
+ * expressions.
  */
 #define math_max(_A_, _B_) ((_A_) > (_B_) ? (_A_) : (_B_))
 
 /**
  * Returns the sign of the value (-1, 0, or 1).
+ * NOTE: _A_ is expanded multiple times, so care must be taken when providing complex expressions.
  */
 #define math_sign(_A_) (((_A_) > 0) - ((_A_) < 0))
 
 /**
  * Return the absolute (positive) of the value.
+ * NOTE: _A_ is expanded multiple times, so care must be taken when providing complex expressions.
  */
 #define math_abs(_A_) ((_A_) < 0 ? -(_A_) : (_A_))
 

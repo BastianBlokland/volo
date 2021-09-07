@@ -28,10 +28,12 @@
 
 /**
  * Returns true if the given floating point number is 'Not A Number'.
+ * NOTE: _VAL_ is expanded multiple times, so care must be taken when providing complex expressions.
  */
 #define float_isnan(_VAL_) ((_VAL_) != (_VAL_))
 
 /**
  * Returns true if the given floating point number is equal to infinity.
+ * NOTE: _VAL_ is expanded multiple times, so care must be taken when providing complex expressions.
  */
 #define float_isinf(_VAL_) ((_VAL_) != 0.0 && (_VAL_)*2 == (_VAL_))

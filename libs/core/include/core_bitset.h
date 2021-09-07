@@ -10,6 +10,7 @@ typedef Mem BitSet;
 
 /**
  * Create bitset view over a variable.
+ * NOTE: _VAR_ is expanded multiple times, so care must be taken when providing complex expressions.
  */
 #define bitset_from_var(_VAR_)                                                                     \
   ((BitSet){                                                                                       \
@@ -28,6 +29,8 @@ typedef Mem BitSet;
 
 /**
  * Iterate over all the set bits in a bitset.
+ * NOTE: _BITSET_ is expanded multiple times, so care must be taken when providing complex
+ * expressions.
  */
 #define bitset_for(_BITSET_, _VAR_, ...)                                                           \
   {                                                                                                \
