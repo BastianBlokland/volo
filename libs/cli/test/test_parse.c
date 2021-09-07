@@ -5,7 +5,7 @@
 #include "check_spec.h"
 
 static void parse_check_success(CheckTestContext* _testCtx, CliInvocation* invoc) {
-  check_eq_u64(cli_parse_result(invoc), CliParseResult_Success);
+  check_eq_int(cli_parse_result(invoc), CliParseResult_Success);
 
   for (usize i = 0; i != cli_parse_errors(invoc).count; ++i) {
     check_eq_string(cli_parse_errors(invoc).head[i], string_empty);
@@ -14,9 +14,9 @@ static void parse_check_success(CheckTestContext* _testCtx, CliInvocation* invoc
 
 static void parse_check_fail(
     CheckTestContext* _testCtx, CliInvocation* invoc, const String* errHead, const usize errCount) {
-  check_eq_u64(cli_parse_result(invoc), CliParseResult_Fail);
+  check_eq_int(cli_parse_result(invoc), CliParseResult_Fail);
 
-  check_eq_u64(cli_parse_errors(invoc).count, errCount);
+  check_eq_int(cli_parse_errors(invoc).count, errCount);
   const usize errsToCheck = math_min(errCount, cli_parse_errors(invoc).count);
   for (usize i = 0; i != errsToCheck; ++i) {
     check_eq_string(cli_parse_errors(invoc).head[i], errHead[i]);
@@ -30,7 +30,7 @@ static void parse_check_values(
     const String*     valHead,
     const usize       valCount) {
 
-  check_eq_u64(cli_parse_values(invoc, id).count, valCount);
+  check_eq_int(cli_parse_values(invoc, id).count, valCount);
   const usize valsToCheck = math_min(valCount, cli_parse_values(invoc, id).count);
   for (usize i = 0; i != valsToCheck; ++i) {
     check_eq_string(cli_parse_values(invoc, id).head[i], valHead[i]);

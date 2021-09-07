@@ -118,48 +118,31 @@ typedef struct {
 #define check_require(_CONDITION_) check_require_msg(_CONDITION_, #_CONDITION_)
 
 /**
-  * Check if two unsigned integers are equal.
+  * Check if two integers are equal.
  */
-#define check_eq_u64(_A_, _B_)                                                                     \
-  do {                                                                                             \
-    const u64 _a_ = (_A_);                                                                         \
-    const u64 _b_ = (_B_);                                                                         \
-    check_msg(_a_ == _b_, "{} == {}", fmt_int(_a_), fmt_int(_b_));                                 \
-  } while(false)
-
-/**
-  * Check if two signed integers are equal.
- */
-#define check_eq_i64(_A_, _B_)                                                                     \
-  do {                                                                                             \
-    const i64 _a_ = (_A_);                                                                         \
-    const i64 _b_ = (_B_);                                                                         \
-    check_msg(_a_ == _b_, "{} == {}", fmt_int(_a_), fmt_int(_b_));                                 \
-  } while(false)
+#define check_eq_int(_A_, _B_)                                                                     \
+  _Generic((_A_),                                                                                  \
+    u8  : check_eq_u64_raw(_testCtx, (_A_), (_B_), source_location()),                             \
+    u16 : check_eq_u64_raw(_testCtx, (_A_), (_B_), source_location()),                             \
+    u32 : check_eq_u64_raw(_testCtx, (_A_), (_B_), source_location()),                             \
+    u64 : check_eq_u64_raw(_testCtx, (_A_), (_B_), source_location()),                             \
+    i8  : check_eq_i64_raw(_testCtx, (_A_), (_B_), source_location()),                             \
+    i16 : check_eq_i64_raw(_testCtx, (_A_), (_B_), source_location()),                             \
+    i32 : check_eq_i64_raw(_testCtx, (_A_), (_B_), source_location()),                             \
+    i64 : check_eq_i64_raw(_testCtx, (_A_), (_B_), source_location())                              \
+  )
 
 /**
  * Check if two floats are within a certain threshold of eachother.
  */
-#define check_eq_f64(_A_, _B_, _THRESHOLD_)                                                      \
-  do {                                                                                             \
-    const f64 _a_ = (_A_);                                                                         \
-    const f64 _b_ = (_B_);                                                                         \
-    check_msg(math_abs(_a_ - _b_) <= (_THRESHOLD_), "{} == {}", fmt_float(_a_), fmt_float(_b_));   \
-  } while(false)
+#define check_eq_float(_A_, _B_, _THRESHOLD_)                                                      \
+  check_eq_f64_raw(_testCtx, (_A_), (_B_), (_THRESHOLD_), source_location())
 
 /**
  * Check if two strings are equal.
  */
 #define check_eq_string(_A_, _B_)                                                                  \
-  do {                                                                                             \
-    const String _a_ = (_A_);                                                                      \
-    const String _b_ = (_B_);                                                                      \
-    check_msg(                                                                                     \
-      string_eq(_a_, _b_),                                                                         \
-      "'{}' == '{}'",                                                                              \
-      fmt_text(_a_, .flags = FormatTextFlags_EscapeNonPrintAscii),                                                \
-      fmt_text(_b_, .flags = FormatTextFlags_EscapeNonPrintAscii));                                               \
-  } while(false)
+  check_eq_string_raw(_testCtx, (_A_), (_B_), source_location())
 
 // clang-format on
 
@@ -167,4 +150,8 @@ bool              check_visit_setup(CheckSpecContext*);
 bool              check_visit_teardown(CheckSpecContext*);
 CheckTestContext* check_visit_test(CheckSpecContext*, CheckTest);
 void              check_report_error(CheckTestContext*, String msg, SourceLoc);
+void              check_eq_u64_raw(CheckTestContext*, u64 a, u64 b, SourceLoc);
+void              check_eq_i64_raw(CheckTestContext*, i64 a, i64 b, SourceLoc);
+void              check_eq_f64_raw(CheckTestContext*, f64 a, f64 b, f64 threshold, SourceLoc);
+void              check_eq_string_raw(CheckTestContext*, String a, String b, SourceLoc);
 NORETURN void     check_finish(CheckTestContext*);

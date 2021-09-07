@@ -155,9 +155,9 @@ spec(path) {
 
   it("can generate a timestampped file-name") {
     const String nameWithoutPrefix = path_name_timestamp_scratch(string_empty);
-    check_eq_u64(nameWithoutPrefix.size, 15);
+    check_eq_int(nameWithoutPrefix.size, 15);
     const String nameWithPrefix = path_name_timestamp_scratch(string_lit("hello"));
-    check_eq_u64(nameWithPrefix.size, 21);
+    check_eq_int(nameWithPrefix.size, 21);
   }
 
   it("can retrieve the executable path") {

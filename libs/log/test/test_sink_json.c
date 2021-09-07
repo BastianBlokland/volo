@@ -33,7 +33,7 @@ spec(sink_json) {
 
     JsonResult result;
     json_read(jsonDoc, dynstring_view(&buffer), &result);
-    check_eq_u64(result.type, JsonResultType_Success);
+    check_eq_int(result.type, JsonResultType_Success);
 
     check_eq_string(
         json_string(jsonDoc, json_field(jsonDoc, result.val, string_lit("message"))),
@@ -41,7 +41,7 @@ spec(sink_json) {
     check_eq_string(
         json_string(jsonDoc, json_field(jsonDoc, result.val, string_lit("level"))),
         string_lit("inf"));
-    check_eq_f64(
+    check_eq_float(
         json_number(jsonDoc, json_field(jsonDoc, result.val, string_lit("line"))), 29, 1e-6);
   }
 
@@ -53,10 +53,10 @@ spec(sink_json) {
 
     JsonResult result;
     json_read(jsonDoc, dynstring_view(&buffer), &result);
-    check_eq_u64(result.type, JsonResultType_Success);
+    check_eq_int(result.type, JsonResultType_Success);
 
     JsonVal extraObj = json_field(jsonDoc, result.val, string_lit("extra"));
-    check_eq_f64(
+    check_eq_float(
         json_number(jsonDoc, json_field(jsonDoc, extraObj, string_lit("param"))), 42, 1e-6);
   }
 
@@ -71,14 +71,14 @@ spec(sink_json) {
 
     JsonResult result;
     json_read(jsonDoc, dynstring_view(&buffer), &result);
-    check_eq_u64(result.type, JsonResultType_Success);
+    check_eq_int(result.type, JsonResultType_Success);
 
     JsonVal extraObj = json_field(jsonDoc, result.val, string_lit("extra"));
     JsonVal paramArr = json_field(jsonDoc, extraObj, string_lit("param"));
-    check_eq_u64(json_elem_count(jsonDoc, paramArr), 3);
-    check_eq_f64(json_number(jsonDoc, json_elem(jsonDoc, paramArr, 0)), 1, 1e-6);
-    check_eq_f64(json_number(jsonDoc, json_elem(jsonDoc, paramArr, 1)), 2, 1e-6);
-    check_eq_f64(json_number(jsonDoc, json_elem(jsonDoc, paramArr, 2)), 3, 1e-6);
+    check_eq_int(json_elem_count(jsonDoc, paramArr), 3);
+    check_eq_float(json_number(jsonDoc, json_elem(jsonDoc, paramArr, 0)), 1, 1e-6);
+    check_eq_float(json_number(jsonDoc, json_elem(jsonDoc, paramArr, 1)), 2, 1e-6);
+    check_eq_float(json_number(jsonDoc, json_elem(jsonDoc, paramArr, 2)), 3, 1e-6);
   }
 
   it("supports formatted messages") {
@@ -89,7 +89,7 @@ spec(sink_json) {
 
     JsonResult result;
     json_read(jsonDoc, dynstring_view(&buffer), &result);
-    check_eq_u64(result.type, JsonResultType_Success);
+    check_eq_int(result.type, JsonResultType_Success);
 
     check_eq_string(
         json_string(jsonDoc, json_field(jsonDoc, result.val, string_lit("message"))),

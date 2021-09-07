@@ -129,7 +129,7 @@ spec(parse) {
 
       check(string_is_empty(rem));
       check_require(res.type == JsonResultType_Success);
-      check_eq_f64(json_number(doc, res.val), data[i].expected, 1e-32);
+      check_eq_float(json_number(doc, res.val), data[i].expected, 1e-32);
     }
   }
 
@@ -189,7 +189,7 @@ spec(parse) {
 
     check(string_is_empty(rem));
     check_require(res.type == JsonResultType_Success);
-    check_eq_u64(json_type(doc, res.val), JsonType_Null);
+    check_eq_int(json_type(doc, res.val), JsonType_Null);
   }
 
   it("can parse sequences of multiple values") {
@@ -206,11 +206,11 @@ spec(parse) {
 
     dynarray_destroy(&values);
 
-    check_eq_u64(json_type(doc, *dynarray_at_t(&values, 0, JsonVal)), JsonType_Number);
-    check_eq_u64(json_type(doc, *dynarray_at_t(&values, 1, JsonVal)), JsonType_Bool);
-    check_eq_u64(json_type(doc, *dynarray_at_t(&values, 2, JsonVal)), JsonType_Null);
-    check_eq_u64(json_type(doc, *dynarray_at_t(&values, 3, JsonVal)), JsonType_Array);
-    check_eq_u64(json_type(doc, *dynarray_at_t(&values, 4, JsonVal)), JsonType_Object);
+    check_eq_int(json_type(doc, *dynarray_at_t(&values, 0, JsonVal)), JsonType_Number);
+    check_eq_int(json_type(doc, *dynarray_at_t(&values, 1, JsonVal)), JsonType_Bool);
+    check_eq_int(json_type(doc, *dynarray_at_t(&values, 2, JsonVal)), JsonType_Null);
+    check_eq_int(json_type(doc, *dynarray_at_t(&values, 3, JsonVal)), JsonType_Array);
+    check_eq_int(json_type(doc, *dynarray_at_t(&values, 4, JsonVal)), JsonType_Object);
   }
 
   it("fails on invalid input") {

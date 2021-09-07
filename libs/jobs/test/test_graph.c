@@ -17,7 +17,7 @@ spec(graph) {
     const JobTaskId taskA = jobs_graph_add_task(job, string_lit("TestTaskA"), null, mem_empty);
     const JobTaskId taskB = jobs_graph_add_task(job, string_lit("TestTaskB"), null, mem_empty);
 
-    check_eq_u64(jobs_graph_task_count(job), 2);
+    check_eq_int(jobs_graph_task_count(job), 2);
     check_eq_string(jobs_graph_task_name(job, taskA), string_lit("TestTaskA"));
     check_eq_string(jobs_graph_task_name(job, taskB), string_lit("TestTaskB"));
 
@@ -32,17 +32,17 @@ spec(graph) {
     const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, mem_empty);
     const JobTaskId d = jobs_graph_add_task(job, string_lit("D"), null, mem_empty);
 
-    check_eq_u64(jobs_graph_task_count(job), 4);
+    check_eq_int(jobs_graph_task_count(job), 4);
 
     // Setup D to depend on A, B and C.
     jobs_graph_task_depend(job, a, d);
     jobs_graph_task_depend(job, b, d);
     jobs_graph_task_depend(job, c, d);
 
-    check_eq_u64(jobs_graph_task_span(job), 2);
+    check_eq_int(jobs_graph_task_span(job), 2);
     check(jobs_graph_validate(job));
-    check_eq_u64(jobs_graph_task_root_count(job), 3);
-    check_eq_u64(jobs_graph_task_leaf_count(job), 1);
+    check_eq_int(jobs_graph_task_root_count(job), 3);
+    check_eq_int(jobs_graph_task_leaf_count(job), 1);
 
     // Meaning only D has a parent.
     check(jobs_graph_task_has_parent(job, d));
@@ -56,9 +56,9 @@ spec(graph) {
     check(jobs_graph_task_has_child(job, c));
     check(!jobs_graph_task_has_child(job, d));
 
-    check_eq_u64(jobs_graph_task_child_begin(job, a).task, d);
-    check_eq_u64(jobs_graph_task_child_begin(job, b).task, d);
-    check_eq_u64(jobs_graph_task_child_begin(job, c).task, d);
+    check_eq_int(jobs_graph_task_child_begin(job, a).task, d);
+    check_eq_int(jobs_graph_task_child_begin(job, b).task, d);
+    check_eq_int(jobs_graph_task_child_begin(job, c).task, d);
     check(sentinel_check(jobs_graph_task_child_begin(job, d).task));
 
     jobs_graph_destroy(job);
@@ -72,7 +72,7 @@ spec(graph) {
     const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, mem_empty);
     const JobTaskId d = jobs_graph_add_task(job, string_lit("D"), null, mem_empty);
 
-    check_eq_u64(jobs_graph_task_count(job), 4);
+    check_eq_int(jobs_graph_task_count(job), 4);
 
     // Setup B, C, D to depend on A.
     jobs_graph_task_depend(job, a, b);
@@ -80,9 +80,9 @@ spec(graph) {
     jobs_graph_task_depend(job, a, d);
 
     check(jobs_graph_validate(job));
-    check_eq_u64(jobs_graph_task_span(job), 2);
-    check_eq_u64(jobs_graph_task_root_count(job), 1);
-    check_eq_u64(jobs_graph_task_leaf_count(job), 3);
+    check_eq_int(jobs_graph_task_span(job), 2);
+    check_eq_int(jobs_graph_task_root_count(job), 1);
+    check_eq_int(jobs_graph_task_leaf_count(job), 3);
 
     // Meaning B, C, D have a parent.
     check(!jobs_graph_task_has_parent(job, a));
@@ -100,11 +100,11 @@ spec(graph) {
     // TODO: Should we guarantee the order of dependencies like this? The current implementation
     // does keep the order but there is no real reason we need to.
     JobTaskChildItr itr = jobs_graph_task_child_begin(job, a);
-    check_eq_u64(itr.task, b);
+    check_eq_int(itr.task, b);
     itr = jobs_graph_task_child_next(job, itr);
-    check_eq_u64(itr.task, c);
+    check_eq_int(itr.task, c);
     itr = jobs_graph_task_child_next(job, itr);
-    check_eq_u64(itr.task, d);
+    check_eq_int(itr.task, d);
     itr = jobs_graph_task_child_next(job, itr);
     check(sentinel_check(itr.task));
 
@@ -170,9 +170,9 @@ spec(graph) {
     jobs_graph_task_depend(job, f, g);
 
     check(jobs_graph_validate(job));
-    check_eq_u64(jobs_graph_task_span(job), 7);
-    check_eq_u64(jobs_graph_task_root_count(job), 1);
-    check_eq_u64(jobs_graph_task_leaf_count(job), 1);
+    check_eq_int(jobs_graph_task_span(job), 7);
+    check_eq_int(jobs_graph_task_root_count(job), 1);
+    check_eq_int(jobs_graph_task_leaf_count(job), 1);
 
     jobs_graph_destroy(job);
   }
@@ -189,9 +189,9 @@ spec(graph) {
     jobs_graph_add_task(job, string_lit("G"), null, mem_empty);
 
     check(jobs_graph_validate(job));
-    check_eq_u64(jobs_graph_task_span(job), 1);
-    check_eq_u64(jobs_graph_task_root_count(job), 7);
-    check_eq_u64(jobs_graph_task_leaf_count(job), 7);
+    check_eq_int(jobs_graph_task_span(job), 1);
+    check_eq_int(jobs_graph_task_root_count(job), 7);
+    check_eq_int(jobs_graph_task_leaf_count(job), 7);
 
     jobs_graph_destroy(job);
   }
@@ -241,10 +241,10 @@ spec(graph) {
     jobs_graph_task_depend(job, p, m);
 
     check(jobs_graph_validate(job));
-    check_eq_u64(jobs_graph_task_span(job), 9);
-    check_eq_f64(jobs_graph_task_parallelism(job), 2.0f, 1e-6f);
-    check_eq_u64(jobs_graph_task_root_count(job), 1);
-    check_eq_u64(jobs_graph_task_leaf_count(job), 1);
+    check_eq_int(jobs_graph_task_span(job), 9);
+    check_eq_float(jobs_graph_task_parallelism(job), 2.0f, 1e-6f);
+    check_eq_int(jobs_graph_task_root_count(job), 1);
+    check_eq_int(jobs_graph_task_leaf_count(job), 1);
 
     jobs_graph_destroy(job);
   }

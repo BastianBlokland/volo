@@ -117,4 +117,36 @@ void check_report_error(CheckTestContext* ctx, String msg, const SourceLoc sourc
   check_result_error(ctx->result, msg, source);
 }
 
+void check_eq_u64_raw(CheckTestContext* ctx, const u64 a, const u64 b, const SourceLoc source) {
+  if (UNLIKELY(a != b)) {
+    check_report_error(ctx, fmt_write_scratch("{} == {}", fmt_int(a), fmt_int(b)), source);
+  }
+}
+
+void check_eq_i64_raw(CheckTestContext* ctx, const i64 a, const i64 b, const SourceLoc source) {
+  if (UNLIKELY(a != b)) {
+    check_report_error(ctx, fmt_write_scratch("{} == {}", fmt_int(a), fmt_int(b)), source);
+  }
+}
+
+void check_eq_f64_raw(
+    CheckTestContext* ctx, const f64 a, const f64 b, const f64 threshold, const SourceLoc source) {
+  if (UNLIKELY(math_abs(a - b) > threshold)) {
+    check_report_error(ctx, fmt_write_scratch("{} == {}", fmt_float(a), fmt_float(b)), source);
+  }
+}
+
+void check_eq_string_raw(
+    CheckTestContext* ctx, const String a, const String b, const SourceLoc source) {
+  if (UNLIKELY(!string_eq(a, b))) {
+    check_report_error(
+        ctx,
+        fmt_write_scratch(
+            "'{}' == '{}'",
+            fmt_text(a, .flags = FormatTextFlags_EscapeNonPrintAscii),
+            fmt_text(b, .flags = FormatTextFlags_EscapeNonPrintAscii)),
+        source);
+  }
+}
+
 NORETURN void check_finish(CheckTestContext* ctx) { longjmp(ctx->finishJumpDest, true); }

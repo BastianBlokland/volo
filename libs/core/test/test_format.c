@@ -455,7 +455,7 @@ spec(format) {
     for (usize i = 0; i != array_elems(data); ++i) {
       u64          out;
       const String rem = format_read_u64(data[i].val, &out, data[i].base);
-      check_eq_u64(out, data[i].expected);
+      check_eq_int(out, data[i].expected);
       check_eq_string(rem, data[i].expectedRemaining);
     }
   }
@@ -480,7 +480,7 @@ spec(format) {
     for (usize i = 0; i != array_elems(data); ++i) {
       i64          out;
       const String rem = format_read_i64(data[i].val, &out, data[i].base);
-      check_eq_u64(out, data[i].expected);
+      check_eq_int(out, data[i].expected);
       check_eq_string(rem, data[i].expectedRemaining);
     }
   }
@@ -531,7 +531,7 @@ spec(format) {
     for (usize i = 0; i != array_elems(data); ++i) {
       f64          out;
       const String rem = format_read_f64(data[i].val, &out);
-      check_eq_f64(out, data[i].expected, 1e-32);
+      check_eq_float(out, data[i].expected, 1e-32);
       check_eq_string(rem, data[i].expectedRemaining);
     }
   }

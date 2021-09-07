@@ -36,7 +36,7 @@ spec(read) {
 
     CliInvocation* invoc = cli_parse(app, 2, (const char*[]){"-i", "-42"});
 
-    check_eq_i64(cli_read_i64(invoc, flag, -1), -42);
+    check_eq_int(cli_read_i64(invoc, flag, -1), -42);
 
     cli_parse_destroy(invoc);
     cli_app_destroy(app);
@@ -48,7 +48,7 @@ spec(read) {
 
     CliInvocation* invoc = cli_parse(app, 0, null);
 
-    check_eq_i64(cli_read_i64(invoc, flag, -1), -1);
+    check_eq_int(cli_read_i64(invoc, flag, -1), -1);
 
     cli_parse_destroy(invoc);
     cli_app_destroy(app);
@@ -60,7 +60,7 @@ spec(read) {
 
     CliInvocation* invoc = cli_parse(app, 2, (const char*[]){"-i", "42"});
 
-    check_eq_u64(cli_read_u64(invoc, flag, 999), 42);
+    check_eq_int(cli_read_u64(invoc, flag, 999), 42);
 
     cli_parse_destroy(invoc);
     cli_app_destroy(app);
@@ -72,7 +72,7 @@ spec(read) {
 
     CliInvocation* invoc = cli_parse(app, 0, null);
 
-    check_eq_u64(cli_read_u64(invoc, flag, 999), 999);
+    check_eq_int(cli_read_u64(invoc, flag, 999), 999);
 
     cli_parse_destroy(invoc);
     cli_app_destroy(app);
@@ -84,7 +84,7 @@ spec(read) {
 
     CliInvocation* invoc = cli_parse(app, 2, (const char*[]){"-f", "42.1337e-2"});
 
-    check_eq_f64(cli_read_f64(invoc, flag, 999.999), 42.1337e-2, 1e-32);
+    check_eq_float(cli_read_f64(invoc, flag, 999.999), 42.1337e-2, 1e-32);
 
     cli_parse_destroy(invoc);
     cli_app_destroy(app);

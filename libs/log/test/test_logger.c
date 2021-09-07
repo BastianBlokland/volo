@@ -56,7 +56,7 @@ spec(logger) {
     log(logger, LogLevel_Error, "Hello World");
 
     SinkTestMsg* msg = dynarray_at_t(&sink.messages, 0, SinkTestMsg);
-    check_eq_u64(msg->lvl, LogLevel_Error);
+    check_eq_int(msg->lvl, LogLevel_Error);
     check_eq_string(msg->message, string_lit("Hello World"));
   }
 

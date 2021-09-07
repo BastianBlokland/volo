@@ -9,7 +9,7 @@ spec(dynbitset) {
     Allocator* alloc = alloc_bump_create_stack(128);
 
     DynBitSet bitset = dynbitset_create(alloc, 8);
-    check_eq_u64(dynbitset_size(&bitset), 0);
+    check_eq_int(dynbitset_size(&bitset), 0);
     dynbitset_destroy(&bitset);
   }
 
@@ -18,9 +18,9 @@ spec(dynbitset) {
 
     DynBitSet bitset = dynbitset_create(alloc, 8);
     dynbitset_set(&bitset, 1);
-    check_eq_u64(dynbitset_size(&bitset), 8);
+    check_eq_int(dynbitset_size(&bitset), 8);
     dynbitset_set(&bitset, 42);
-    check_eq_u64(dynbitset_size(&bitset), 48);
+    check_eq_int(dynbitset_size(&bitset), 48);
     dynbitset_destroy(&bitset);
   }
 
