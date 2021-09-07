@@ -9,7 +9,7 @@ on:
 
 jobs:
   test:
-    name: test-${{matrix.config.image}}-${{matrix.config.arch}}-${{matrix.config.cc}}
+    name: test-${{matrix.config.image}}-${{matrix.config.cc}}
     runs-on: ${{matrix.config.image}}
     strategy:
       fail-fast: false
@@ -17,12 +17,16 @@ jobs:
         config:
         - {
             image: ubuntu-20.04,
-            arch: x86_64,
             cc: gcc-9,
           }
     env:
       CC: ${{matrix.config.cc}}
     steps:
+    - name: setup-unix
+      if: matrix.config.os != 'windows'
+      run: |
+        echo "Installing ninja..."; sudo apt install ninja-build; ninja --version
+
     - name: checkout
       uses: actions/checkout@v2
       with:
