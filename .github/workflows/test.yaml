@@ -21,7 +21,15 @@ jobs:
           }
         - {
             image: ubuntu-20.04,
+            cc: gcc-10,
+          }
+        - {
+            image: ubuntu-20.04,
             cc: clang-10,
+          }
+        - {
+            image: ubuntu-20.04,
+            cc: clang-12,
           }
     env:
       CC: ${{matrix.config.cc}}
