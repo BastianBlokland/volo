@@ -1,0 +1,34 @@
+name: test
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+jobs:
+  test:
+    name: test-${{matrix.config.image}}-${{matrix.config.arch}}-${{matrix.config.cc}}
+    runs-on: ${{matrix.config.image}}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+        - {
+            image: ubuntu-20.04,
+            arch: x86_64,
+            cc: gcc-9,
+          }
+    env:
+      CC: ${{matrix.config.cc}}
+    steps:
+    - name: checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: configure
+      run: cmake -B build -G Ninja
+    - name: build
+      run: ninja -C build
+    - name: test
+      run: ninja -C build test
