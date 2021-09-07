@@ -65,4 +65,4 @@ jobs:
       run: ninja -C build
 
     - name: test
-      run: ninja -C build test
+      run: ninja -C build -k 0 test
