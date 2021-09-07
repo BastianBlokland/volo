@@ -52,7 +52,7 @@ typedef struct sLogSink LogSink;
  * Construct a collection of logging parameters.
  */
 #define log_params(...)                                                                            \
-  (const LogParam[]) { VA_ARGS_SKIP_FIRST(0, ##__VA_ARGS__, (LogParam){0}) }
+  (const LogParam[]) { VA_ARGS_SKIP_FIRST(0, ##__VA_ARGS__, (LogParam){.name = {0}, .arg = {0}}) }
 
 /**
  * Append a log message to the given logger object.
