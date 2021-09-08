@@ -111,8 +111,35 @@ static void output_test_finished(
   json_add_field_str(doc, testObj, string_lit("err"), errObj);
 
   if (result->errors.size) {
+    // Note: Unfortunately Mocha's format only supports one error per test, so we take the first.
     const CheckError* err = dynarray_at_t(&result->errors, 0, CheckError);
     json_add_field_str(doc, errObj, string_lit("message"), json_add_string(doc, err->msg));
+
+    /**
+     * Emulate the nodejs stack-trace format that consumers of the Mocha json format expect.
+     * Example nodejs stack-trace:
+     * ```
+     * This program demonstrates stack trace in Node.js
+     * Error
+     *   at Object. (/home/cg/root/2523129/main.js:20:11)
+     *   at Module._compile (module.js:570:32)
+     * ```
+     *
+     * We don't capture stack-traces for errors at the moment, but we do know the top-most
+     * stack-frame which triggered the error.
+     */
+    json_add_field_str(
+        doc,
+        errObj,
+        string_lit("stack"),
+        json_add_string(
+            doc,
+            fmt_write_scratch(
+                "{}\nat {} ({}:{}:0)",
+                fmt_text(err->msg),
+                fmt_text(spec->def->name),
+                fmt_path(err->source.file),
+                fmt_int(err->source.line))));
   }
 
   switch (type) {

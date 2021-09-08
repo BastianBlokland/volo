@@ -85,7 +85,6 @@ jobs:
       if: success() || failure()
       with:
         name: archive-${{matrix.config.name}}
-        if-no-files-found: error
         path: |
           build/**/logs/*.log
           build/**/logs/*.mocha
@@ -95,5 +94,6 @@ jobs:
       if: success() || failure()
       with:
         name: test-results-${{matrix.config.name}}
+        fail-on-error: false
         path: build/**/logs/*.mocha
         reporter: mocha-json
