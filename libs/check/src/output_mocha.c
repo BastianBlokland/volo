@@ -17,6 +17,7 @@ typedef struct {
   JsonVal     statsObj;
   JsonVal     passesArr;
   JsonVal     failuresArr;
+  JsonVal     pendingArr;
   File*       file;
 } CheckOutputMocha;
 
@@ -32,6 +33,22 @@ static void mocha_write_json(JsonDoc* doc, JsonVal rootObj, File* file) {
   }
 
   dynstring_destroy(&dynString);
+}
+
+static JsonVal mocha_add_test_obj(JsonDoc* doc, const CheckSpec* spec, const CheckTest* test) {
+  const JsonVal testObj = json_add_object(doc);
+  json_add_field_str(doc, testObj, string_lit("title"), json_add_string(doc, test->description));
+
+  json_add_field_str(
+      doc,
+      testObj,
+      string_lit("fullTitle"),
+      json_add_string(
+          doc, fmt_write_scratch("{} {}", fmt_text(spec->def->name), fmt_text(test->description))));
+
+  json_add_field_str(doc, testObj, string_lit("file"), json_add_string(doc, test->source.file));
+
+  return testObj;
 }
 
 static void output_run_started(CheckOutput* out) {
@@ -59,6 +76,13 @@ static void output_tests_discovered(
   json_add_field_str(doc, mochaOut->statsObj, string_lit("tests"), json_add_number(doc, testCount));
 }
 
+static void output_test_skipped(CheckOutput* out, const CheckSpec* spec, const CheckTest* test) {
+  CheckOutputMocha* mochaOut = (CheckOutputMocha*)out;
+
+  const JsonVal testObj = mocha_add_test_obj(mochaOut->doc, spec, test);
+  json_add_elem(mochaOut->doc, mochaOut->pendingArr, testObj);
+}
+
 static void output_test_finished(
     CheckOutput*          out,
     const CheckSpec*      spec,
@@ -70,17 +94,7 @@ static void output_test_finished(
 
   thread_mutex_lock(mochaOut->mutex);
 
-  const JsonVal testObj = json_add_object(doc);
-  json_add_field_str(doc, testObj, string_lit("title"), json_add_string(doc, test->description));
-
-  json_add_field_str(
-      doc,
-      testObj,
-      string_lit("fullTitle"),
-      json_add_string(
-          doc, fmt_write_scratch("{} {}", fmt_text(spec->def->name), fmt_text(test->description))));
-
-  json_add_field_str(doc, testObj, string_lit("file"), json_add_string(doc, test->source.file));
+  const JsonVal testObj = mocha_add_test_obj(mochaOut->doc, spec, test);
 
   json_add_field_str(
       doc,
@@ -119,13 +133,15 @@ static void output_run_finished(
   JsonDoc*          doc      = mochaOut->doc;
 
   (void)type;
-  (void)numSkipped;
 
   json_add_field_str(
       doc, mochaOut->statsObj, string_lit("passes"), json_add_number(doc, numPassed));
 
   json_add_field_str(
       doc, mochaOut->statsObj, string_lit("failures"), json_add_number(doc, numFailed));
+
+  json_add_field_str(
+      doc, mochaOut->statsObj, string_lit("pending"), json_add_number(doc, numSkipped));
 
   const TimeReal endTime = time_real_clock();
   json_add_field_str(
@@ -159,10 +175,12 @@ CheckOutput* check_output_mocha(Allocator* alloc, File* file) {
   const JsonVal statsObj    = json_add_object(doc);
   const JsonVal passesArr   = json_add_array(doc);
   const JsonVal failuresArr = json_add_array(doc);
+  const JsonVal pendingArr  = json_add_array(doc);
 
   json_add_field_str(doc, rootObj, string_lit("stats"), statsObj);
   json_add_field_str(doc, rootObj, string_lit("passes"), passesArr);
   json_add_field_str(doc, rootObj, string_lit("failures"), failuresArr);
+  json_add_field_str(doc, rootObj, string_lit("pending"), pendingArr);
 
   CheckOutputMocha* mochaOut = alloc_alloc_t(alloc, CheckOutputMocha);
   *mochaOut                  = (CheckOutputMocha){
@@ -170,6 +188,7 @@ CheckOutput* check_output_mocha(Allocator* alloc, File* file) {
           {
               .runStarted      = output_run_started,
               .testsDiscovered = output_tests_discovered,
+              .testSkipped     = output_test_skipped,
               .testFinished    = output_test_finished,
               .runFinished     = output_run_finished,
               .destroy         = output_destroy,
@@ -181,6 +200,7 @@ CheckOutput* check_output_mocha(Allocator* alloc, File* file) {
       .statsObj    = statsObj,
       .passesArr   = passesArr,
       .failuresArr = failuresArr,
+      .pendingArr  = pendingArr,
       .file        = file,
   };
   return (CheckOutput*)mochaOut;

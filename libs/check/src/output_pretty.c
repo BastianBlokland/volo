@@ -70,6 +70,12 @@ static void output_tests_discovered(
   output_write(prettyOut, str);
 }
 
+static void output_test_skipped(CheckOutput* out, const CheckSpec* spec, const CheckTest* test) {
+  (void)out;
+  (void)spec;
+  (void)test;
+}
+
 static void output_test_finished(
     CheckOutput*          out,
     const CheckSpec*      spec,
@@ -154,6 +160,7 @@ CheckOutput* check_output_pretty(Allocator* alloc, File* file, const CheckRunFla
           {
               .runStarted      = output_run_started,
               .testsDiscovered = output_tests_discovered,
+              .testSkipped     = output_test_skipped,
               .testFinished    = output_test_finished,
               .runFinished     = output_run_finished,
               .destroy         = output_destroy,

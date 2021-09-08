@@ -83,6 +83,7 @@ CheckResultType check_run(CheckDef* check, const CheckRunFlags flags) {
     dynarray_for_t(&spec->tests, CheckTest, test, {
       if (test->flags & CheckTestFlags_Skip || (focus && !(test->flags & CheckTestFlags_Focus))) {
         ++numSkipped;
+        array_for_t(outputs, CheckOutput*, out, { (*out)->testSkipped(*out, spec, test); });
         continue;
       }
       jobs_graph_add_task(

@@ -36,6 +36,16 @@ static void output_tests_discovered(
       log_param("duration", fmt_duration(dur)));
 }
 
+static void output_test_skipped(CheckOutput* out, const CheckSpec* spec, const CheckTest* test) {
+  CheckOutputLog* logOut = (CheckOutputLog*)out;
+
+  log(logOut->logger,
+      LogLevel_Info,
+      "Test skipped",
+      log_param("spec", fmt_text(spec->def->name)),
+      log_param("test", fmt_text(test->description)));
+}
+
 static void output_test_finished(
     CheckOutput*          out,
     const CheckSpec*      spec,
@@ -95,6 +105,7 @@ CheckOutput* check_output_log(Allocator* alloc, Logger* logger) {
           {
               .runStarted      = output_run_started,
               .testsDiscovered = output_tests_discovered,
+              .testSkipped     = output_test_skipped,
               .testFinished    = output_test_finished,
               .runFinished     = output_run_finished,
               .destroy         = output_destroy,

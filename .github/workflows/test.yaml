@@ -94,6 +94,6 @@ jobs:
       uses: dorny/test-reporter@v1
       if: success() || failure()
       with:
-        name: tests-${{matrix.config.name}}
+        name: test-results-${{matrix.config.name}}
         path: build/**/logs/*.mocha
         reporter: mocha-json
