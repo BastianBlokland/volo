@@ -88,12 +88,12 @@ static void output_test_finished(
       string_lit("duration"),
       json_add_number(doc, result->duration / (f64)time_millisecond));
 
+  const JsonVal errObj = json_add_object(doc);
+  json_add_field_str(doc, testObj, string_lit("err"), errObj);
+
   if (result->errors.size) {
     const CheckError* err = dynarray_at_t(&result->errors, 0, CheckError);
-
-    const JsonVal errObj = json_add_object(doc);
     json_add_field_str(doc, errObj, string_lit("message"), json_add_string(doc, err->msg));
-    json_add_field_str(doc, testObj, string_lit("err"), errObj);
   }
 
   switch (type) {
