@@ -82,6 +82,7 @@ jobs:
 
     - name: archive-logs
       uses: actions/upload-artifact@v2
+      if: success() || failure()
       with:
         name: logs-${{matrix.config.name}}
         path: build/**/logs/*.log
