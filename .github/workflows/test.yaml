@@ -30,6 +30,11 @@ jobs:
             os: windows,
             cc: cl,
           }
+        - {
+            image: windows-2019,
+            os: windows,
+            cc: clang,
+          }
     env:
       CC: ${{matrix.config.cc}}
     steps:
@@ -45,8 +50,8 @@ jobs:
         cd build        &&
         make -k test
 
-    - name: test-windows-cl
-      if: matrix.config.os == 'windows' && matrix.config.cc == 'cl'
+    - name: test-windows
+      if: matrix.config.os == 'windows'
       run: |
         ./scripts/msvc-env.ps1              &&
         cmake -B build -G 'NMake Makefiles' &&
