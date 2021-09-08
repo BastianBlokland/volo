@@ -9,7 +9,7 @@ on:
 
 jobs:
   test:
-    name: test-${{matrix.config.image}}-${{matrix.config.cc}}
+    name: test-${{matrix.config.os}}-${{matrix.config.cc-name}}
     runs-on: ${{matrix.config.image}}
     strategy:
       fail-fast: false
@@ -18,51 +18,24 @@ jobs:
         - {
             image: ubuntu-20.04,
             os: linux,
+            cc-name: gcc,
             cc: gcc-9,
           }
         - {
             image: ubuntu-20.04,
             os: linux,
-            cc: gcc-10,
-          }
-        - {
-            image: ubuntu-20.04,
-            os: linux,
+            cc-name: clang,
             cc: clang-10,
-          }
-        - {
-            image: ubuntu-20.04,
-            os: linux,
-            cc: clang-12,
-          }
-        - {
-            image: windows-2019,
-            os: windows,
-            cc: cl.exe,
           }
     env:
       CC: ${{matrix.config.cc}}
     steps:
-    - name: setup-linux
-      if: matrix.config.os == 'linux'
-      run: |
-        echo "Installing ninja..."; sudo apt install ninja-build
-
-    - name: setup-windows
-      if: matrix.config.os == 'windows'
-      run: |
-        echo "Installing ninja..."; choco install ninja
-
     - name: checkout
       uses: actions/checkout@v2
       with:
         fetch-depth: 0
 
-    - name: configure
-      run: cmake -B build -G Ninja
-
-    - name: build
-      run: ninja -C build
-
-    - name: test
-      run: ninja -C build -k 0 test
+    - name: test-linux
+      if: matrix.config.os == 'linux'
+      run: |
+        cmake -B build && make -C build --keep-going --no-print-directory test
