@@ -53,13 +53,15 @@ static void output_run_started(CheckOutput* out) {
   output_write(prettyOut, str);
 }
 
-static void output_tests_discovered(CheckOutput* out, const usize count, const TimeDuration dur) {
+static void output_tests_discovered(
+    CheckOutput* out, const usize specCount, const usize testCount, const TimeDuration dur) {
   CheckOutputPretty* prettyOut = (CheckOutputPretty*)out;
+  (void)specCount;
 
   const String str = fmt_write_scratch(
       "> Discovered {}{}{} tests. {}({}){}\n",
       arg_style_bold(prettyOut),
-      fmt_int(count),
+      fmt_int(testCount),
       arg_style_reset(prettyOut),
       arg_style_dim(prettyOut),
       fmt_duration(dur),

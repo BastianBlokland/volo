@@ -24,13 +24,15 @@ static void output_run_started(CheckOutput* out) {
       log_param("executable", fmt_path(g_path_executable)));
 }
 
-static void output_tests_discovered(CheckOutput* out, const usize count, const TimeDuration dur) {
+static void output_tests_discovered(
+    CheckOutput* out, const usize specCount, const usize testCount, const TimeDuration dur) {
   CheckOutputLog* logOut = (CheckOutputLog*)out;
 
   log(logOut->logger,
       LogLevel_Debug,
       "Test discovery complete",
-      log_param("count", fmt_int(count)),
+      log_param("spec-count", fmt_int(specCount)),
+      log_param("test-count", fmt_int(testCount)),
       log_param("duration", fmt_duration(dur)));
 }
 

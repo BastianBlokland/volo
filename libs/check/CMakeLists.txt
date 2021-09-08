@@ -8,6 +8,7 @@ add_library(volo_check STATIC
   src/def.c
   src/output.c
   src/output_log.c
+  src/output_mocha.c
   src/output_pretty.c
   src/result.c
   src/runner.c
@@ -16,6 +17,7 @@ target_include_directories(volo_check PUBLIC include)
 target_link_libraries(volo_check PUBLIC volo_core)
 target_link_libraries(volo_check PUBLIC volo_jobs)
 target_link_libraries(volo_check PUBLIC volo_log)
+target_link_libraries(volo_check PUBLIC volo_json)
 
 add_executable(volo_check_test
   test/main.c

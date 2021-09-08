@@ -11,6 +11,7 @@
 #include "check_runner.h"
 
 #include "output_log.h"
+#include "output_mocha.h"
 #include "output_pretty.h"
 #include "spec_internal.h"
 
@@ -51,6 +52,7 @@ CheckResultType check_run(CheckDef* check, const CheckRunFlags flags) {
   // Setup outputs.
   CheckOutput* outputs[] = {
       check_output_pretty(g_alloc_heap, g_file_stdout, flags),
+      check_output_mocha_default(g_alloc_heap),
       check_output_log(g_alloc_heap, g_logger),
   };
   CheckRunContext ctx = {.outputs = outputs, .outputsCount = array_elems(outputs)};
@@ -69,8 +71,9 @@ CheckResultType check_run(CheckDef* check, const CheckRunFlags flags) {
   });
 
   const TimeDuration discoveryTime = time_steady_duration(startTime, time_steady_clock());
-  array_for_t(
-      outputs, CheckOutput*, out, { (*out)->testsDiscovered(*out, numTests, discoveryTime); });
+  array_for_t(outputs, CheckOutput*, out, {
+    (*out)->testsDiscovered(*out, specs.size, numTests, discoveryTime);
+  });
 
   // Create a job graph with tasks to execute all tests.
   JobGraph* graph      = jobs_graph_create(g_alloc_heap, string_lit("tests"), numTests);
