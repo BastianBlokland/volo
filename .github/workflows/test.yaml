@@ -9,7 +9,7 @@ on:
 
 jobs:
   test:
-    name: test-${{matrix.config.name}}
+    name: ${{matrix.config.name}}
     runs-on: ${{matrix.config.image}}
     strategy:
       fail-fast: false
