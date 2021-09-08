@@ -145,8 +145,7 @@ static void output_destroy(CheckOutput* out) {
   alloc_free_t(prettyOut->alloc, prettyOut);
 }
 
-CheckOutput*
-check_output_pretty_create(Allocator* alloc, File* file, const CheckRunFlags runFlags) {
+CheckOutput* check_output_pretty(Allocator* alloc, File* file, const CheckRunFlags runFlags) {
   CheckOutputPretty* prettyOut = alloc_alloc_t(alloc, CheckOutputPretty);
   *prettyOut                   = (CheckOutputPretty){
       .api =

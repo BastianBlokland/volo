@@ -86,7 +86,7 @@ static void output_destroy(CheckOutput* out) {
   alloc_free_t(logOut->alloc, logOut);
 }
 
-CheckOutput* check_output_log_create(Allocator* alloc, Logger* logger) {
+CheckOutput* check_output_log(Allocator* alloc, Logger* logger) {
   CheckOutputLog* logOut = alloc_alloc_t(alloc, CheckOutputLog);
   *logOut                = (CheckOutputLog){
       .api =

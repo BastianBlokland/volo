@@ -50,8 +50,8 @@ CheckResultType check_run(CheckDef* check, const CheckRunFlags flags) {
 
   // Setup outputs.
   CheckOutput* outputs[] = {
-      check_output_pretty_create(g_alloc_heap, g_file_stdout, flags),
-      check_output_log_create(g_alloc_heap, g_logger),
+      check_output_pretty(g_alloc_heap, g_file_stdout, flags),
+      check_output_log(g_alloc_heap, g_logger),
   };
   CheckRunContext ctx = {.outputs = outputs, .outputsCount = array_elems(outputs)};
 
