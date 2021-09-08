@@ -9,40 +9,45 @@ on:
 
 jobs:
   test:
-    name: test-${{matrix.config.os}}-${{matrix.config.toolchain}}
+    name: test-${{matrix.config.name}}
     runs-on: ${{matrix.config.image}}
     strategy:
       fail-fast: false
       matrix:
         config:
         - {
+            name: linux-gcc,
             image: ubuntu-20.04,
             os: linux,
-            toolchain: "gcc",
+            toolchain: unix,
             cc: gcc-9,
           }
         - {
+            name: linux-clang,
             image: ubuntu-20.04,
             os: linux,
-            toolchain: "msvc",
+            toolchain: unix,
             cc: clang-10,
           }
         - {
+            name: windows-msvc,
             image: windows-2019,
             os: windows,
-            toolchain: "msvc",
+            toolchain: msvc,
             cc: cl,
           }
         - {
+            name: windows-clang,
             image: windows-2019,
             os: windows,
-            toolchain: "clang",
+            toolchain: msvc,
             cc: clang,
           }
         - {
+            name: windows-mingw,
             image: windows-2019,
             os: windows,
-            toolchain: "mingw",
+            toolchain: mingw,
             cc: gcc,
           }
     env:
@@ -53,17 +58,24 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: test-linux
-      if: matrix.config.os == 'linux'
+    - name: test-unix
+      if: matrix.config.toolchain == 'unix'
       run: |
         cmake -B build  &&
         cd build        &&
         make -k test
 
-    - name: test-windows
-      if: matrix.config.os == 'windows'
+    - name: test-msvc
+      if: matrix.config.toolchain == 'msvc'
       run: |
         ./scripts/msvc-env.ps1              &&
         cmake -B build -G 'NMake Makefiles' &&
         cd build                            &&
         nmake /C /K test
+
+    - name: test-mingw
+      if: matrix.config.toolchain == 'mingw'
+      run: |
+        cmake -B build -G 'MinGW Makefiles' &&
+        cd build                            &&
+        mingw32-make -k test
