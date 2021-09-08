@@ -122,14 +122,15 @@ typedef struct {
  */
 #define check_eq_int(_A_, _B_)                                                                     \
   _Generic((_A_),                                                                                  \
-    u8  : check_eq_u64_raw(_testCtx, (_A_), (_B_), source_location()),                             \
-    u16 : check_eq_u64_raw(_testCtx, (_A_), (_B_), source_location()),                             \
-    u32 : check_eq_u64_raw(_testCtx, (_A_), (_B_), source_location()),                             \
-    u64 : check_eq_u64_raw(_testCtx, (_A_), (_B_), source_location()),                             \
-    i8  : check_eq_i64_raw(_testCtx, (_A_), (_B_), source_location()),                             \
-    i16 : check_eq_i64_raw(_testCtx, (_A_), (_B_), source_location()),                             \
-    i32 : check_eq_i64_raw(_testCtx, (_A_), (_B_), source_location()),                             \
-    i64 : check_eq_i64_raw(_testCtx, (_A_), (_B_), source_location())                              \
+    u8      : check_eq_u64_raw(_testCtx, (u64)(_A_), (u64)(_B_), source_location()),               \
+    u16     : check_eq_u64_raw(_testCtx, (u64)(_A_), (u64)(_B_), source_location()),               \
+    u32     : check_eq_u64_raw(_testCtx, (u64)(_A_), (u64)(_B_), source_location()),               \
+    u64     : check_eq_u64_raw(_testCtx, (u64)(_A_), (u64)(_B_), source_location()),               \
+    i8      : check_eq_i64_raw(_testCtx, (i64)(_A_), (i64)(_B_), source_location()),               \
+    i16     : check_eq_i64_raw(_testCtx, (i64)(_A_), (i64)(_B_), source_location()),               \
+    i32     : check_eq_i64_raw(_testCtx, (i64)(_A_), (i64)(_B_), source_location()),               \
+    i64     : check_eq_i64_raw(_testCtx, (i64)(_A_), (i64)(_B_), source_location()),               \
+    default : check_eq_i64_raw(_testCtx, (i64)(_A_), (i64)(_B_), source_location())                \
   )
 
 /**
