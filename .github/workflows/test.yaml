@@ -9,7 +9,7 @@ on:
 
 jobs:
   test:
-    name: test-${{matrix.config.os}}-${{matrix.config.cc}}
+    name: test-${{matrix.config.os}}-${{matrix.config.toolchain}}
     runs-on: ${{matrix.config.image}}
     strategy:
       fail-fast: false
@@ -18,22 +18,32 @@ jobs:
         - {
             image: ubuntu-20.04,
             os: linux,
+            toolchain: "gcc",
             cc: gcc-9,
           }
         - {
             image: ubuntu-20.04,
             os: linux,
+            toolchain: "msvc",
             cc: clang-10,
           }
         - {
             image: windows-2019,
             os: windows,
+            toolchain: "msvc",
             cc: cl,
           }
         - {
             image: windows-2019,
             os: windows,
+            toolchain: "clang",
             cc: clang,
+          }
+        - {
+            image: windows-2019,
+            os: windows,
+            toolchain: "mingw",
+            cc: gcc,
           }
     env:
       CC: ${{matrix.config.cc}}
