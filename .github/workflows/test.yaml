@@ -9,7 +9,7 @@ on:
 
 jobs:
   test:
-    name: test-${{matrix.config.os}}-${{matrix.config.cc-name}}
+    name: test-${{matrix.config.os}}-${{matrix.config.cc}}
     runs-on: ${{matrix.config.image}}
     strategy:
       fail-fast: false
@@ -18,14 +18,17 @@ jobs:
         - {
             image: ubuntu-20.04,
             os: linux,
-            cc-name: gcc,
             cc: gcc-9,
           }
         - {
             image: ubuntu-20.04,
             os: linux,
-            cc-name: clang,
             cc: clang-10,
+          }
+        - {
+            image: windows-2019,
+            os: windows,
+            cc: cl,
           }
     env:
       CC: ${{matrix.config.cc}}
@@ -38,4 +41,14 @@ jobs:
     - name: test-linux
       if: matrix.config.os == 'linux'
       run: |
-        cmake -B build && make -C build --keep-going --no-print-directory test
+        cmake -B build  &&
+        cd build        &&
+        make -k test
+
+    - name: test-windows-cl
+      if: matrix.config.os == 'windows' && matrix.config.cc == 'cl'
+      run: |
+        ./scripts/msvc-env.ps1              &&
+        cmake -B build -G 'NMake Makefiles' &&
+        cd build                            &&
+        nmake /C /K test
