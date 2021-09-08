@@ -131,8 +131,8 @@ spec(file) {
   }
 
   it("can create a new file by opening a file-handle with 'Create' mode") {
-    String path =
-        path_build_scratch(g_path_tempdir, path_name_random_scratch(g_rng, string_lit("volo")));
+    String path = path_build_scratch(
+        g_path_tempdir, path_name_random_scratch(g_rng, string_lit("volo"), string_empty));
 
     // Create a new file containing 'Hello World'.
     File* file;
@@ -154,8 +154,8 @@ spec(file) {
   }
 
   it("can create a new directory") {
-    String path =
-        path_build_scratch(g_path_tempdir, path_name_random_scratch(g_rng, string_lit("volo")));
+    String path = path_build_scratch(
+        g_path_tempdir, path_name_random_scratch(g_rng, string_lit("volo"), string_empty));
 
     check_eq_int(file_create_dir_sync(path), FileResult_Success);
 
