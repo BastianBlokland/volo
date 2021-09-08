@@ -1,0 +1,90 @@
+name: test
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: ${{matrix.config.name}}
+    runs-on: ${{matrix.config.image}}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+        - {
+            name: linux-gcc,
+            image: ubuntu-20.04,
+            os: linux,
+            toolchain: unix,
+            cc: gcc-9,
+          }
+        - {
+            name: linux-clang,
+            image: ubuntu-20.04,
+            os: linux,
+            toolchain: unix,
+            cc: clang-10,
+          }
+        - {
+            name: windows-msvc,
+            image: windows-2019,
+            os: windows,
+            toolchain: msvc,
+            cc: cl,
+          }
+        - {
+            name: windows-clang,
+            image: windows-2019,
+            os: windows,
+            toolchain: msvc,
+            cc: clang,
+          }
+        - {
+            name: windows-mingw,
+            image: windows-2019,
+            os: windows,
+            toolchain: mingw,
+            cc: gcc,
+          }
+    env:
+      CC: ${{matrix.config.cc}}
+    steps:
+    - name: checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: test-unix
+      if: matrix.config.toolchain == 'unix'
+      run: |
+        cmake -B build  &&
+        cd build        &&
+        make -k test
+
+    - name: test-msvc
+      if: matrix.config.toolchain == 'msvc'
+      run: |
+        ./scripts/msvc-env.ps1              &&
+        cmake -B build -G 'NMake Makefiles' &&
+        cd build                            &&
+        nmake /C /K test
+
+    - name: test-mingw
+      if: matrix.config.toolchain == 'mingw'
+      run: |
+        cmake -B build -G 'MinGW Makefiles' &&
+        cd build                            &&
+        mingw32-make -k test
+
+    - name: archive-logs
+      uses: actions/upload-artifact@v2
+      if: success() || failure()
+      with:
+        name: logs-${{matrix.config.name}}
+        path: build/**/logs/*.log
+        if-no-files-found: error
+

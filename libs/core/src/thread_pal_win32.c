@@ -14,6 +14,17 @@ u16 thread_pal_core_count() {
   return sysInfo.dwNumberOfProcessors;
 }
 
+#if defined(__MINGW32__)
+void thread_pal_set_name(const String str) {
+  /**
+   * Under MinGW (Minimalist GNU for Windows) (GNU gcc + GNU binutils port to windows), the
+   * 'SetThreadDescription' win32 api is current not supported. Seeing that 'thread_pal_set_name()'
+   * is a convenience api for use during debugging / profiling we can simply stub it out without
+   * affecting the program behaviour.
+   */
+  (void)str;
+}
+#else
 void thread_pal_set_name(const String str) {
   static const usize maxNameLen = 15;
   if (str.size > maxNameLen) {
@@ -34,6 +45,7 @@ void thread_pal_set_name(const String str) {
     diag_crash_msg("SetThreadDescription() failed");
   }
 }
+#endif // !defined(__MINGW32__)
 
 INLINE_HINT i64 thread_pal_atomic_load_i64(i64* ptr) {
   return InterlockedCompareExchange64((volatile i64*)ptr, 0, 0);

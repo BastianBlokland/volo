@@ -108,25 +108,25 @@ String path_build_scratch_raw(const String* segments);
 /**
  * Generate a random file name.
  * Usefull for avoiding name collisions, should not be used for anything security related.
- * Note: Prefix is optional.
+ * Note: Prefix and extension are optional.
  */
-void path_name_random(DynString*, Rng*, String prefix);
+void path_name_random(DynString*, Rng*, String prefix, String extension);
 
 /**
  * Generate a random file name into a scratch buffer.
  * Usefull for avoiding name collisions, should not be used for anything security related.
- * Note: Prefix is optional.
+ * Note: Prefix and extension are optional.
  */
-String path_name_random_scratch(Rng*, String prefix);
+String path_name_random_scratch(Rng*, String prefix, String extension);
 
 /**
  * Generate a timestampped file name.
- * Note: Prefix is optional.
+ * Note: Prefix and extension are optional.
  */
-void path_name_timestamp(DynString*, String prefix);
+void path_name_timestamp(DynString*, String prefix, String extension);
 
 /**
  * Generate a timestampped file name into a scratch buffer.
- * Note: Prefix is optional.
+ * Note: Prefix and extension are optional.
  */
-String path_name_timestamp_scratch(String prefix);
+String path_name_timestamp_scratch(String prefix, String extension);
