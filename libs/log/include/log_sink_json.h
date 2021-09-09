@@ -22,15 +22,17 @@ typedef enum {
  * Or follow a 'live' log:
  * $ tail --follow app.log | jq '.message'
  *
- * Output format (without the newlines):
- *
- * { "message": "Example",
+ * Example output (without the newlines and the spaces):
+ * ```
+ * {
+ *   "message": "Example",
  *   "level": "info",
  *   "timestamp": "2020-06-29T05:49:07.401231Z",
  *   "file": "/path/main.cpp",
  *   "line": 16,
  *   "extra": { "val": 42 }
  * }
+ * ```
  */
 
 /**
@@ -48,8 +50,8 @@ LogSink* log_sink_json(Allocator*, File*, LogMask, LogSinkJsonFlags);
 LogSink* log_sink_json_to_path(Allocator*, LogMask, String path);
 
 /**
- * Create a json log sink that writes a file called '[executable-name]_[timestamp]' in a directory
- * called 'logs' next to the executable.
+ * Create a json log sink that writes a file called '[executable-name]_[timestamp].log' in a
+ * directory called 'logs' next to the executable.
  *
  * Note: Should be added to a logger using 'log_add_sink()'.
  * Note: Is automatically cleaned up when its parent logger is destroyed.

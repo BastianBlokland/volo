@@ -90,7 +90,7 @@ static void output_test_skipped(CheckOutput* out, const CheckSpec* spec, const C
   const JsonVal testObj = mocha_add_test_obj(doc, spec, test);
   json_add_elem(doc, mochaOut->pendingArr, testObj);
 
-  // Note: Add an empty 'err' object as a few consumers depend on this existing.
+  // Note: Add an empty 'err' object as some consumers depend on this existing.
   const JsonVal errObj = json_add_object(doc);
   json_add_field_str(doc, testObj, string_lit("err"), errObj);
 }
