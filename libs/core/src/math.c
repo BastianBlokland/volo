@@ -38,3 +38,32 @@ INLINE_HINT f32 math_log_f32(const f32 val) { return logf(val); }
 INLINE_HINT f32 math_sin_f32(const f32 val) { return sinf(val); }
 
 INLINE_HINT f32 math_cos_f32(const f32 val) { return cosf(val); }
+
+INLINE_HINT f64 math_trunc_f64(const f64 val) { return (i64)val; }
+
+INLINE_HINT f64 math_floor_f64(const f64 val) {
+  const f64 trunc = math_trunc_f64(val);
+  return trunc > val ? (trunc - 1) : trunc;
+}
+
+INLINE_HINT f64 math_ceil_f64(const f64 val) {
+  const f64 trunc = math_trunc_f64(val);
+  return trunc < val ? (trunc + 1) : trunc;
+}
+
+f64 math_round_f64(const f64 val) {
+  const f64 trunc = math_trunc_f64(val);
+  const f64 frac  = math_abs(val - trunc);
+  if (frac < 0.5) {
+    return trunc;
+  }
+  if (UNLIKELY(frac == 0.5)) {
+    /**
+     * Round-to-even (aka bankers rounding).
+     * Given a number exactly halfway between two values, round to the even value (zero is
+     * considered even here).
+     */
+    return ((i64)trunc % 2) ? (trunc + math_sign(val)) : trunc;
+  }
+  return trunc + math_sign(val);
+}
