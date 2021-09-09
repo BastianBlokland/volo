@@ -46,9 +46,18 @@ static JsonVal mocha_add_test_obj(JsonDoc* doc, const CheckSpec* spec, const Che
       json_add_string(
           doc, fmt_write_scratch("{} {}", fmt_text(spec->def->name), fmt_text(test->description))));
 
-  json_add_field_str(doc, testObj, string_lit("file"), json_add_string(doc, test->source.file));
+  json_add_field_str(
+      doc,
+      testObj,
+      string_lit("file"),
+      json_add_string(doc, format_write_arg_scratch(&fmt_path(test->source.file))));
 
   return testObj;
+}
+
+static f64 mocha_to_ms(const TimeDuration dur) {
+  // Surprisingly most Mocha json consumers expect whole numbers here.
+  return math_round_f64(dur / (f64)time_millisecond);
 }
 
 static void output_run_started(CheckOutput* out) {
@@ -69,9 +78,7 @@ static void output_tests_discovered(
   JsonDoc*          doc      = mochaOut->doc;
 
   (void)dur;
-
-  json_add_field_str(
-      doc, mochaOut->statsObj, string_lit("suites"), json_add_number(doc, specCount));
+  (void)specCount;
 
   json_add_field_str(doc, mochaOut->statsObj, string_lit("tests"), json_add_number(doc, testCount));
 }
@@ -102,10 +109,7 @@ static void output_test_finished(
   const JsonVal testObj = mocha_add_test_obj(mochaOut->doc, spec, test);
 
   json_add_field_str(
-      doc,
-      testObj,
-      string_lit("duration"),
-      json_add_number(doc, result->duration / (f64)time_millisecond));
+      doc, testObj, string_lit("duration"), json_add_number(doc, mocha_to_ms(result->duration)));
 
   const JsonVal errObj = json_add_object(doc);
   json_add_field_str(doc, testObj, string_lit("err"), errObj);
@@ -183,10 +187,7 @@ static void output_run_finished(
       json_add_string(doc, format_write_arg_scratch(&fmt_time(endTime))));
 
   json_add_field_str(
-      doc,
-      mochaOut->statsObj,
-      string_lit("duration"),
-      json_add_number(doc, dur / (f64)time_millisecond));
+      doc, mochaOut->statsObj, string_lit("duration"), json_add_number(doc, mocha_to_ms(dur)));
 }
 
 static void output_destroy(CheckOutput* out) {
