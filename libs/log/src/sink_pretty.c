@@ -120,3 +120,7 @@ log_sink_pretty(Allocator* alloc, File* file, const LogMask mask, const LogSinkP
   };
   return (LogSink*)sink;
 }
+
+LogSink* log_sink_pretty_default(Allocator* alloc, const LogMask mask) {
+  return log_sink_pretty(alloc, g_file_stdout, mask, LogSinkPrettyFlags_None);
+}
