@@ -80,11 +80,20 @@ jobs:
         cd build                            &&
         mingw32-make -k test
 
-    - name: archive-logs
+    - name: archive
       uses: actions/upload-artifact@v2
       if: success() || failure()
       with:
-        name: logs-${{matrix.config.name}}
-        path: build/**/logs/*.log
-        if-no-files-found: error
+        name: archive-${{matrix.config.name}}
+        path: |
+          build/**/logs/*.log
+          build/**/logs/*.mocha
 
+    - name: report
+      uses: dorny/test-reporter@v1
+      if: success() || failure()
+      with:
+        name: test-results-${{matrix.config.name}}
+        fail-on-error: false
+        path: build/**/logs/*.mocha
+        reporter: mocha-json

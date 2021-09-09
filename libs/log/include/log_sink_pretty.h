@@ -10,11 +10,12 @@ typedef enum {
  * PrettySink - sink that outputs as (styled) pretty printed text.
  * Especially usefull for logging to the console.
  *
- * Output format (including newlines):
- *
+ * Example output::
+ * ```
  * 2020-06-30T06:38:59.780823Z [info] Window openend
  *   width:  512
  *   height: 512
+ * ```
  */
 
 /**

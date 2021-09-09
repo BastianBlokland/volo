@@ -53,19 +53,27 @@ static void output_run_started(CheckOutput* out) {
   output_write(prettyOut, str);
 }
 
-static void output_tests_discovered(CheckOutput* out, const usize count, const TimeDuration dur) {
+static void output_tests_discovered(
+    CheckOutput* out, const usize specCount, const usize testCount, const TimeDuration dur) {
   CheckOutputPretty* prettyOut = (CheckOutputPretty*)out;
+  (void)specCount;
 
   const String str = fmt_write_scratch(
       "> Discovered {}{}{} tests. {}({}){}\n",
       arg_style_bold(prettyOut),
-      fmt_int(count),
+      fmt_int(testCount),
       arg_style_reset(prettyOut),
       arg_style_dim(prettyOut),
       fmt_duration(dur),
       arg_style_reset(prettyOut));
 
   output_write(prettyOut, str);
+}
+
+static void output_test_skipped(CheckOutput* out, const CheckSpec* spec, const CheckTest* test) {
+  (void)out;
+  (void)spec;
+  (void)test;
 }
 
 static void output_test_finished(
@@ -145,14 +153,14 @@ static void output_destroy(CheckOutput* out) {
   alloc_free_t(prettyOut->alloc, prettyOut);
 }
 
-CheckOutput*
-check_output_pretty_create(Allocator* alloc, File* file, const CheckRunFlags runFlags) {
+CheckOutput* check_output_pretty(Allocator* alloc, File* file, const CheckRunFlags runFlags) {
   CheckOutputPretty* prettyOut = alloc_alloc_t(alloc, CheckOutputPretty);
   *prettyOut                   = (CheckOutputPretty){
       .api =
           {
               .runStarted      = output_run_started,
               .testsDiscovered = output_tests_discovered,
+              .testSkipped     = output_test_skipped,
               .testFinished    = output_test_finished,
               .runFinished     = output_run_finished,
               .destroy         = output_destroy,

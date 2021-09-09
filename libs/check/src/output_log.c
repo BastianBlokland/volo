@@ -24,14 +24,26 @@ static void output_run_started(CheckOutput* out) {
       log_param("executable", fmt_path(g_path_executable)));
 }
 
-static void output_tests_discovered(CheckOutput* out, const usize count, const TimeDuration dur) {
+static void output_tests_discovered(
+    CheckOutput* out, const usize specCount, const usize testCount, const TimeDuration dur) {
   CheckOutputLog* logOut = (CheckOutputLog*)out;
 
   log(logOut->logger,
       LogLevel_Debug,
       "Test discovery complete",
-      log_param("count", fmt_int(count)),
+      log_param("spec-count", fmt_int(specCount)),
+      log_param("test-count", fmt_int(testCount)),
       log_param("duration", fmt_duration(dur)));
+}
+
+static void output_test_skipped(CheckOutput* out, const CheckSpec* spec, const CheckTest* test) {
+  CheckOutputLog* logOut = (CheckOutputLog*)out;
+
+  log(logOut->logger,
+      LogLevel_Info,
+      "Test skipped",
+      log_param("spec", fmt_text(spec->def->name)),
+      log_param("test", fmt_text(test->description)));
 }
 
 static void output_test_finished(
@@ -86,13 +98,14 @@ static void output_destroy(CheckOutput* out) {
   alloc_free_t(logOut->alloc, logOut);
 }
 
-CheckOutput* check_output_log_create(Allocator* alloc, Logger* logger) {
+CheckOutput* check_output_log(Allocator* alloc, Logger* logger) {
   CheckOutputLog* logOut = alloc_alloc_t(alloc, CheckOutputLog);
   *logOut                = (CheckOutputLog){
       .api =
           {
               .runStarted      = output_run_started,
               .testsDiscovered = output_tests_discovered,
+              .testSkipped     = output_test_skipped,
               .testFinished    = output_test_finished,
               .runFinished     = output_run_finished,
               .destroy         = output_destroy,

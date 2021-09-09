@@ -8,8 +8,11 @@ typedef struct sCheckOutput CheckOutput;
 struct sCheckOutput {
   void (*runStarted)(CheckOutput*);
 
-  void (*testsDiscovered)(CheckOutput*, usize count, TimeDuration);
+  void (*testsDiscovered)(CheckOutput*, usize specCount, usize testCount, TimeDuration);
 
+  void (*testSkipped)(CheckOutput*, const CheckSpec*, const CheckTest*);
+
+  // NOTE: Will be called in parallel.
   void (*testFinished)(
       CheckOutput*, const CheckSpec*, const CheckTest*, CheckResultType, CheckResult*);
 

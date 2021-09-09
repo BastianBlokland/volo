@@ -54,3 +54,25 @@ f32 math_sin_f32(f32);
  * Computes the cosine of the given value (in radians).
  */
 f32 math_cos_f32(f32);
+
+/**
+ * Compute the integer part of the given value (removes the fractional part).
+ */
+f64 math_trunc_f64(f64);
+
+/**
+ * Compute the floor (round-down) of the given value.
+ */
+f64 math_floor_f64(f64);
+
+/**
+ * Compute the ceiling (round-up) of the given value.
+ */
+f64 math_ceil_f64(f64);
+
+/**
+ * Compute the rounded version of the given value.
+ * Note: Uses round-to-even for values exactly half-way between two values (also known as 'Bankers
+ * rounding').
+ */
+f64 math_round_f64(f64);
