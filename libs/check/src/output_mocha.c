@@ -78,9 +78,14 @@ static void output_tests_discovered(
 
 static void output_test_skipped(CheckOutput* out, const CheckSpec* spec, const CheckTest* test) {
   CheckOutputMocha* mochaOut = (CheckOutputMocha*)out;
+  JsonDoc*          doc      = mochaOut->doc;
 
-  const JsonVal testObj = mocha_add_test_obj(mochaOut->doc, spec, test);
-  json_add_elem(mochaOut->doc, mochaOut->pendingArr, testObj);
+  const JsonVal testObj = mocha_add_test_obj(doc, spec, test);
+  json_add_elem(doc, mochaOut->pendingArr, testObj);
+
+  // Note: Add an empty 'err' object as a few consumers depend on this existing.
+  const JsonVal errObj = json_add_object(doc);
+  json_add_field_str(doc, testObj, string_lit("err"), errObj);
 }
 
 static void output_test_finished(
