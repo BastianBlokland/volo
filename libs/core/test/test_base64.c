@@ -37,7 +37,7 @@ spec(base64) {
   }
 
   it("returns an empty string when decoding an empty string") {
-    const String decoded = base64_decode_scratch(string_lit(""));
-    check_eq_string(decoded, string_lit(""));
+    const String decoded = base64_decode_scratch(string_empty);
+    check_eq_string(decoded, string_empty);
   }
 }

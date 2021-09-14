@@ -156,7 +156,7 @@ spec(doc) {
     check_eq_int(json_field(doc, val, string_lit("b")), fieldVal2);
     check_eq_int(json_field(doc, val, string_lit("c")), fieldVal3);
     check(sentinel_check(json_field(doc, val, string_lit("d"))));
-    check(sentinel_check(json_field(doc, val, string_lit(""))));
+    check(sentinel_check(json_field(doc, val, string_empty)));
   }
 
   it("can iterate object fields") {
