@@ -153,6 +153,41 @@ void cli_register_desc(CliApp* app, const CliId id, String desc) {
   opt->desc = string_dup(app->alloc, desc);
 }
 
+void cli_register_desc_choice(
+    CliApp*       app,
+    const CliId   id,
+    String        desc,
+    const String* choiceStrs,
+    usize         choiceCount,
+    usize         defaultChoice) {
+  diag_assert_msg(choiceCount <= 1024, "Too many choices provided");
+
+  DynString str = dynstring_create_over(alloc_alloc(g_alloc_scratch, usize_kibibyte, 1));
+  if (!string_is_empty(desc)) {
+    dynstring_append(&str, desc);
+    dynstring_append_char(&str, ' ');
+  }
+
+  dynstring_append(&str, string_lit("Options: "));
+  for (usize i = 0; i != choiceCount; ++i) {
+    if (i) {
+      dynstring_append(&str, string_lit(", "));
+    }
+    fmt_write(&str, "'{}'", fmt_text(choiceStrs[i]));
+  }
+  dynstring_append_char(&str, '.');
+
+  if (!sentinel_check(defaultChoice)) {
+    diag_assert_msg(defaultChoice < choiceCount, "Out of bound default choice");
+    fmt_write(&str, " Default: '{}'.", fmt_text(choiceStrs[defaultChoice]));
+  }
+
+  cli_register_desc(app, id, dynstring_view(&str));
+  dynstring_destroy(&str);
+}
+
+String cli_desc(const CliApp* app, const CliId id) { return cli_option(app, id)->desc; }
+
 CliOption* cli_option(const CliApp* app, const CliId id) {
   diag_assert_msg(id < app->options.size, "Out of bounds CliId");
   return dynarray_at_t(&app->options, id, CliOption);

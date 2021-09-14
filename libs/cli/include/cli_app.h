@@ -1,5 +1,6 @@
 #pragma once
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_string.h"
 
 // Forward declare from 'cli_validate.h'.
@@ -99,3 +100,44 @@ void cli_register_exclusion(CliApp*, CliId a, CliId b);
  * Pre-condition: desc.size > 0.
  */
 void cli_register_desc(CliApp*, CliId, String desc);
+
+/**
+ * Add a description including the possible choices to a registered option.
+ * Note: provide 'sentinel_usize' to 'defaultChoice' to indicate that there is no default choice.
+ *
+ * Pre-condition: CliId is a valid option registered to the given application.
+ * Pre-condition: There is no description registered yet for this option.
+ * Pre-condition: choiceCount <= 1024.
+ * Pre-condition: defaultChoice < choiceCount || sentinel_check(defaultChoice).
+ * Pre-condition: Formatted description fits in 1KiB.
+ */
+#define cli_register_desc_choice_array(                                                            \
+    _CLI_APP_, _CLI_ID_, _DESC_, _CHOICES_ARRAY_, _DEFAULT_CHOICE_)                                \
+  cli_register_desc_choice(                                                                        \
+      (_CLI_APP_),                                                                                 \
+      (_CLI_ID_),                                                                                  \
+      (_DESC_),                                                                                    \
+      (_CHOICES_ARRAY_),                                                                           \
+      array_elems(_CHOICES_ARRAY_),                                                                \
+      (_DEFAULT_CHOICE_))
+
+/**
+ * Add a description including the possible choices to a registered option.
+ * Note: provide 'sentinel_usize' to 'defaultChoice' to indicate that there is no default choice.
+ *
+ * Pre-condition: CliId is a valid option registered to the given application.
+ * Pre-condition: There is no description registered yet for this option.
+ * Pre-condition: choiceCount <= 1024.
+ * Pre-condition: defaultChoice < choiceCount || sentinel_check(defaultChoice).
+ * Pre-condition: Formatted description fits in 1KiB.
+ */
+void cli_register_desc_choice(
+    CliApp*, CliId, String desc, const String* choiceStrs, usize choiceCount, usize defaultChoice);
+
+/**
+ * Retrieve the description for the given option.
+ * Returns 'string_empty' when no description was registered for the given option.
+ *
+ * Pre-condition: CliId is a valid option registered to the given application.
+ */
+String cli_desc(const CliApp*, CliId);
