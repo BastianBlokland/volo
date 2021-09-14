@@ -56,9 +56,30 @@ static void cli_parse_set_provided(CliParseCtx* ctx, CliId id) {
   dynarray_at_t(&ctx->options, id, CliInvocationOption)->provided = true;
 }
 
-static void cli_parse_add_value(CliParseCtx* ctx, const CliId id, const String value) {
-  CliInvocationOption* opt               = dynarray_at_t(&ctx->options, id, CliInvocationOption);
-  *dynarray_push_t(&opt->values, String) = value;
+static void
+cli_parse_add_value(CliParseCtx* ctx, const CliId id, const CliOptionFlags flags, String value) {
+  CliInvocationOption* opt = dynarray_at_t(&ctx->options, id, CliInvocationOption);
+
+  /**
+   * For 'multiValue' options we split on comma's.
+   * This supports passing multiple values as a single string.
+   * For example: '--some-option valueA,valueB,valueC --another-option'.
+   */
+
+  if ((flags & CliOptionFlags_MultiValue) == CliOptionFlags_MultiValue) {
+    usize commaPos;
+    while (!sentinel_check(commaPos = string_find_first(value, string_lit(",")))) {
+      const String partBeforeComma = string_slice(value, 0, commaPos);
+      if (LIKELY(!string_is_empty(partBeforeComma))) {
+        *dynarray_push_t(&opt->values, String) = partBeforeComma;
+      }
+      value = string_consume(value, commaPos + 1);
+    }
+  }
+
+  if (LIKELY(!string_is_empty(value))) {
+    *dynarray_push_t(&opt->values, String) = value;
+  }
 }
 
 static void cli_parse_add_values(CliParseCtx* ctx, CliId optId) {
@@ -81,10 +102,15 @@ static void cli_parse_add_values(CliParseCtx* ctx, CliId optId) {
   }
 
   // Consume the next argument.
-  cli_parse_add_value(ctx, optId, cli_parse_peek_arg(ctx));
+  cli_parse_add_value(ctx, optId, flags, cli_parse_peek_arg(ctx));
   cli_parse_consume_arg(ctx);
 
-  // For 'multiValue' options we keep consuming args until the next flag is found.
+  /**
+   * For 'multiValue' options we keep consuming args until the next flag is found.
+   * This supports passing multiple values as separate strings.
+   * For example: '--some-option valueA valueB valueC --another-option'.
+   */
+
   const bool multiValue = (flags & CliOptionFlags_MultiValue) == CliOptionFlags_MultiValue;
   while (multiValue && cli_parse_args_remaining(ctx)) {
     String head = cli_parse_peek_arg(ctx);
@@ -96,7 +122,7 @@ static void cli_parse_add_values(CliParseCtx* ctx, CliId optId) {
       // Stop when a flag is encountered.
       break;
     }
-    cli_parse_add_value(ctx, optId, cli_parse_peek_arg(ctx));
+    cli_parse_add_value(ctx, optId, flags, cli_parse_peek_arg(ctx));
     cli_parse_consume_arg(ctx);
   }
 }

@@ -123,7 +123,7 @@ spec(parse) {
     cli_parse_destroy(invoc);
   }
 
-  it("supports value flags with multiple values") {
+  it("supports value flags with multiple values as separate strings") {
     CliInvocation* invoc = cli_parse(
         app,
         7,
@@ -138,7 +138,36 @@ spec(parse) {
     cli_parse_destroy(invoc);
   }
 
-  it("supports arguments with multiple values") {
+  it("supports value flags with multiple values as a single string") {
+    CliInvocation* invoc = cli_parse(
+        app,
+        5,
+        (const char*[]){"--flag-e-multival", "Hello,Beautifull,World", "-a", "Hello", "ArgVal"});
+    parse_check_values(
+        _testCtx,
+        invoc,
+        flagE,
+        (String[]){string_lit("Hello"), string_lit("Beautifull"), string_lit("World")},
+        3);
+    cli_parse_destroy(invoc);
+  }
+
+  it("supports value flags with multiple values as a mix of single and multiple strings") {
+    CliInvocation* invoc = cli_parse(
+        app,
+        7,
+        (const char*[]){"--flag-e-multival", "A,,,B", "C,,", "D,E", "-a", "Hello", "ArgVal"});
+    parse_check_values(
+        _testCtx,
+        invoc,
+        flagE,
+        (String[]){
+            string_lit("A"), string_lit("B"), string_lit("C"), string_lit("D"), string_lit("E")},
+        5);
+    cli_parse_destroy(invoc);
+  }
+
+  it("supports arguments with multiple values as separate strings") {
     CliInvocation* invoc =
         cli_parse(app, 6, (const char*[]){"-a", "Hello", "ArgVal", "Hello", "Beautifull", "World"});
     parse_check_values(
@@ -147,6 +176,31 @@ spec(parse) {
         argB,
         (String[]){string_lit("Hello"), string_lit("Beautifull"), string_lit("World")},
         3);
+    cli_parse_destroy(invoc);
+  }
+
+  it("supports arguments with multiple values as a single string") {
+    CliInvocation* invoc =
+        cli_parse(app, 4, (const char*[]){"-a", "Hello", "ArgVal", "Hello,Beautifull,World"});
+    parse_check_values(
+        _testCtx,
+        invoc,
+        argB,
+        (String[]){string_lit("Hello"), string_lit("Beautifull"), string_lit("World")},
+        3);
+    cli_parse_destroy(invoc);
+  }
+
+  it("supports arguments with multiple values as a mix of single and multiple strings") {
+    CliInvocation* invoc =
+        cli_parse(app, 6, (const char*[]){"-a", "Hello", "ArgVal", ",A,B,", "C", "D,E"});
+    parse_check_values(
+        _testCtx,
+        invoc,
+        argB,
+        (String[]){
+            string_lit("A"), string_lit("B"), string_lit("C"), string_lit("D"), string_lit("E")},
+        5);
     cli_parse_destroy(invoc);
   }
 
