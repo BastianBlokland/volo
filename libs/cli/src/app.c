@@ -121,6 +121,7 @@ void cli_register_exclusion(CliApp* app, const CliId a, const CliId b) {
       "There is already a exclusion between '{}' and '{}'",
       fmt_text(cli_option_name(app, a)),
       fmt_text(cli_option_name(app, b)));
+  diag_assert_msg(a != b, "An option cannot exclude itself");
 
   *dynarray_push_t(&app->exclusions, CliExclusion) = (CliExclusion){a, b};
 }

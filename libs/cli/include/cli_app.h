@@ -89,6 +89,7 @@ void cli_register_validator(CliApp*, CliId, CliValidateFunc);
 
  * Pre-condition: CliId's are valid options registered to the given application.
  * Pre-condition: No exclusion has been registered yet between the same options.
+ * Pre-condition: a != b.
  */
 void cli_register_exclusion(CliApp*, CliId a, CliId b);
 
