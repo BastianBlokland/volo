@@ -1,6 +1,7 @@
 #pragma once
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_macro.h"
 #include "core_string.h"
 
 // Forward declare from 'cli_validate.h'.
@@ -92,6 +93,18 @@ void cli_register_validator(CliApp*, CliId, CliValidateFunc);
  * Pre-condition: a != b.
  */
 void cli_register_exclusion(CliApp*, CliId a, CliId b);
+
+/**
+ * Indicates that an option cannot be used together with any of the given other options.
+
+ * Pre-condition: CliId's are valid options registered to the given application.
+ * Pre-condition: No exclusion has been registered yet between the same options.
+ */
+#define cli_register_exclusions(_CLI_APP_, _CLI_ID_, ...)                                          \
+  cli_register_exclusions_raw(                                                                     \
+      (_CLI_APP_), (_CLI_ID_), (const CliId[]){__VA_ARGS__}, COUNT_VA_ARGS(__VA_ARGS__))
+
+void cli_register_exclusions_raw(CliApp*, CliId id, const CliId* otherIds, usize otherCount);
 
 /**
  * Add a description to a registered option.

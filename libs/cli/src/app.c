@@ -126,6 +126,13 @@ void cli_register_exclusion(CliApp* app, const CliId a, const CliId b) {
   *dynarray_push_t(&app->exclusions, CliExclusion) = (CliExclusion){a, b};
 }
 
+void cli_register_exclusions_raw(
+    CliApp* app, const CliId id, const CliId* otherIds, const usize otherCount) {
+  for (usize i = 0; i != otherCount; ++i) {
+    cli_register_exclusion(app, id, otherIds[i]);
+  }
+}
+
 void cli_register_desc(CliApp* app, const CliId id, String desc) {
   diag_assert_msg(!string_is_empty(desc), "Empty descriptions are not supported");
 
