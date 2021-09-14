@@ -189,6 +189,23 @@ spec(string) {
         !string_match_glob(string_lit("HeLlOZ"), string_lit("hello"), StringMatchFlags_IgnoreCase));
   }
 
+  it("can be trimmed") {
+    const String trimChars = string_lit("-.");
+    check_eq_string(string_trim(string_lit("-.hello.-"), trimChars), string_lit("hello"));
+    check_eq_string(string_trim(string_lit("-.h.e-l.l-o.-"), trimChars), string_lit("h.e-l.l-o"));
+    check_eq_string(string_trim(string_lit("----"), trimChars), string_lit(""));
+    check_eq_string(string_trim(string_lit(""), trimChars), string_lit(""));
+  }
+
+  it("can be trimmed of whitespace") {
+    check_eq_string(string_trim_whitespace(string_lit("  hello ")), string_lit("hello"));
+    check_eq_string(string_trim_whitespace(string_lit("\r\n\thello\t")), string_lit("hello"));
+    check_eq_string(string_trim_whitespace(string_lit("\vhello")), string_lit("hello"));
+    check_eq_string(string_trim_whitespace(string_lit("hello world")), string_lit("hello world"));
+    check_eq_string(string_trim_whitespace(string_lit(" \t\n")), string_lit(""));
+    check_eq_string(string_trim_whitespace(string_lit("")), string_lit(""));
+  }
+
   it("can be sorted") {
     Allocator* alloc = alloc_bump_create_stack(1024);
     DynArray   array = dynarray_create_t(alloc, String, 4);

@@ -146,3 +146,13 @@ usize string_find_last_any(String, String chars);
  * '*' matches any number of any characters including none.
  */
 bool string_match_glob(String, String pattern, StringMatchFlags);
+
+/**
+ * Trim any characters contained in 'chars' from the beginning and ending of the string.
+ */
+String string_trim(String, String chars);
+
+/**
+ * Trim any whitespace from the beginning and ending of the string.
+ */
+String string_trim_whitespace(String);
