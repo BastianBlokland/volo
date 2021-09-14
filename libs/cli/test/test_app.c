@@ -26,6 +26,18 @@ spec(app) {
     check(a != b);
   }
 
+  it("supports registering exclusions") {
+    const CliId a = cli_register_flag(app, 'a', string_lit("opt-a"), CliOptionFlags_None);
+    const CliId b = cli_register_flag(app, 'b', string_lit("opt-b"), CliOptionFlags_None);
+    const CliId c = cli_register_flag(app, 'c', string_lit("opt-c"), CliOptionFlags_None);
+
+    cli_register_exclusion(app, a, b);
+
+    check(cli_excludes(app, a, b));
+    check(!cli_excludes(app, a, c));
+    check(!cli_excludes(app, b, c));
+  }
+
   it("supports registering descriptions for options") {
     const CliId a = cli_register_flag(app, 'a', string_lit("opt-a"), CliOptionFlags_None);
     const CliId b = cli_register_arg(app, string_lit("arg-1"), CliOptionFlags_None);

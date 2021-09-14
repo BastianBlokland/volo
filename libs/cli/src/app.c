@@ -6,18 +6,6 @@
 
 #define cli_app_option_name_max_len 64
 
-MAYBE_UNUSED static bool cli_app_excludes(CliApp* app, const CliId a, const CliId b) {
-  dynarray_for_t(&app->exclusions, CliExclusion, ex, {
-    if (ex->a == a && ex->b == b) {
-      return true;
-    }
-    if (ex->b == a && ex->a == b) {
-      return true;
-    }
-  });
-  return false;
-}
-
 CliApp* cli_app_create(Allocator* alloc, const String desc) {
   CliApp* app = alloc_alloc_t(alloc, CliApp);
   *app        = (CliApp){
@@ -129,7 +117,7 @@ void cli_register_validator(CliApp* app, const CliId id, CliValidateFunc validat
 
 void cli_register_exclusion(CliApp* app, const CliId a, const CliId b) {
   diag_assert_msg(
-      !cli_app_excludes(app, a, b),
+      !cli_excludes(app, a, b),
       "There is already a exclusion between '{}' and '{}'",
       fmt_text(cli_option_name(app, a)),
       fmt_text(cli_option_name(app, b)));
@@ -187,6 +175,15 @@ void cli_register_desc_choice(
 }
 
 String cli_desc(const CliApp* app, const CliId id) { return cli_option(app, id)->desc; }
+
+bool cli_excludes(const CliApp* app, const CliId a, const CliId b) {
+  dynarray_for_t((DynArray*)&app->exclusions, CliExclusion, ex, {
+    if ((ex->a == a && ex->b == b) || (ex->b == a && ex->a == b)) {
+      return true;
+    }
+  });
+  return false;
+}
 
 CliOption* cli_option(const CliApp* app, const CliId id) {
   diag_assert_msg(id < app->options.size, "Out of bounds CliId");

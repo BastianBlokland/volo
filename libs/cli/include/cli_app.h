@@ -141,3 +141,11 @@ void cli_register_desc_choice(
  * Pre-condition: CliId is a valid option registered to the given application.
  */
 String cli_desc(const CliApp*, CliId);
+
+/**
+ * Check if either option excludes the other.
+ *
+ * Pre-condition: a is a valid option registered to the given application.
+ * Pre-condition: b is a valid option registered to the given application.
+ */
+bool cli_excludes(const CliApp*, CliId a, CliId b);
