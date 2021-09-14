@@ -239,16 +239,34 @@ static void cli_parse_check_exclusions(CliParseCtx* ctx) {
   });
 }
 
+static void cli_parse_check_required_option(CliParseCtx* ctx, const CliId optId) {
+  CliOption* opt        = cli_option(ctx->app, optId);
+  const bool isRequired = (opt->flags & CliOptionFlags_Required) == CliOptionFlags_Required;
+  if (!isRequired || cli_parse_already_provided(ctx, optId)) {
+    return; // Option was not required or was actually provided; Success.
+  }
+
+  /**
+   * Option was not provided, check if an exclusion option was provided.
+   * This supports two mutually exclusive required options (meaning either one has to be provided).
+   */
+  dynarray_for_t((DynArray*)&ctx->app->exclusions, CliExclusion, ex, {
+    if (ex->a == optId && cli_parse_already_provided(ctx, ex->b)) {
+      return; // Alternative option was provided; Success.
+    }
+    if (ex->b == optId && cli_parse_already_provided(ctx, ex->a)) {
+      return; // Alternative option was provided; Success.
+    }
+  });
+  cli_parse_add_error(
+      ctx,
+      fmt_write_scratch(
+          "Required option '{}' was not provided", fmt_text(cli_option_name(ctx->app, optId))));
+}
+
 static void cli_parse_check_required_options(CliParseCtx* ctx) {
   for (CliId optId = 0; optId != ctx->options.size; ++optId) {
-    CliOption* opt        = cli_option(ctx->app, optId);
-    const bool isRequired = (opt->flags & CliOptionFlags_Required) == CliOptionFlags_Required;
-    if (isRequired && !cli_parse_already_provided(ctx, optId)) {
-      cli_parse_add_error(
-          ctx,
-          fmt_write_scratch(
-              "Required option '{}' was not provided", fmt_text(cli_option_name(ctx->app, optId))));
-    }
+    cli_parse_check_required_option(ctx, optId);
   }
 }
 

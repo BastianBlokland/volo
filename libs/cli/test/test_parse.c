@@ -40,7 +40,7 @@ static void parse_check_values(
 spec(parse) {
 
   CliApp* app = null;
-  CliId   flagA, flagB, flagC, flagD, flagE, flagF, argA, argB;
+  CliId   flagA, flagB, flagC, flagD, flagE, flagF, flagG, argA, argB;
 
   setup() {
     app   = cli_app_create(g_alloc_heap, string_lit("My test app"));
@@ -50,12 +50,14 @@ spec(parse) {
     flagD = cli_register_flag(app, 'd', string_lit("flag-d-val"), CliOptionFlags_Value);
     flagE = cli_register_flag(app, '\0', string_lit("flag-e-multival"), CliOptionFlags_MultiValue);
     flagF = cli_register_flag(app, '\0', string_lit("flag-f"), CliOptionFlags_None);
+    flagG = cli_register_flag(app, '\0', string_lit("flag-g"), CliOptionFlags_None);
     argA  = cli_register_arg(app, string_lit("arg-a-req"), CliOptionFlags_Required);
     argB  = cli_register_arg(app, string_lit("arg-b-opt"), CliOptionFlags_MultiValue);
 
     cli_register_validator(app, flagD, cli_validate_i64);
     cli_register_validator(app, argB, cli_validate_i64);
 
+    cli_register_exclusion(app, flagA, flagG);
     cli_register_exclusion(app, flagD, flagE);
     cli_register_exclusion(app, flagE, flagF);
     cli_register_exclusion(app, argB, flagE);
@@ -279,6 +281,13 @@ spec(parse) {
         (String[]){
             string_lit("Options 'flag-d-val' and 'flag-e-multival' cannot be used together")},
         1);
+    cli_parse_destroy(invoc);
+  }
+
+  it("succeeds when providing an alternative instead of a required option") {
+    CliInvocation* invoc = cli_parse(app, 2, (const char*[]){"ArgVal", "--flag-g"});
+    parse_check_success(_testCtx, invoc);
+    parse_check_values(_testCtx, invoc, argA, (String[]){string_lit("ArgVal")}, 1);
     cli_parse_destroy(invoc);
   }
 
