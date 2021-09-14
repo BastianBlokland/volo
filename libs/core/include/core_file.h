@@ -111,6 +111,11 @@ void file_destroy(File*);
 FileResult file_write_sync(File*, String);
 
 /**
+ * Synchronously write a string to a new file at the given path.
+ */
+FileResult file_write_to_path_sync(String path, String data);
+
+/**
  * Synchronously read a block of available data in the dynamic-string.
  * Note: returns 'FileResult_NoDataAvailable' when the end of the file has been reached.
  */
