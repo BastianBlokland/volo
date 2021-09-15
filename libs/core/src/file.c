@@ -35,7 +35,7 @@ String file_result_str(FileResult result) {
 void file_init() { file_pal_init(); }
 
 FileResult file_write_to_path_sync(const String path, const String data) {
-  File*      file;
+  File*      file = null;
   FileResult res;
   if ((res = file_create(g_alloc_scratch, path, FileMode_Create, FileAccess_Write, &file))) {
     goto ret;
@@ -44,7 +44,9 @@ FileResult file_write_to_path_sync(const String path, const String data) {
     goto ret;
   }
 ret:
-  file_destroy(file);
+  if (file) {
+    file_destroy(file);
+  }
   return res;
 }
 
