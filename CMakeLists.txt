@@ -22,7 +22,6 @@ include(cmake/debug.cmake)
 include(cmake/platform.cmake)
 include(cmake/test.cmake)
 
-
 # Setup global platform specific defines.
 detect_platform()
 set_platform_defines()
