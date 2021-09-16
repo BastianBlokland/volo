@@ -2,8 +2,8 @@
 # Files to ignore in git.
 # --------------------------------------------------------------------------------------------------
 
-# Build output.
-/[Bb]uild*
+# Common build path.
+/build/
 
 # User settings (Except portable common settings).
 /.vscode/*
@@ -11,5 +11,5 @@
 !/.vscode/extensions.json
 
 # Ide caches.
-/.clangd/index/*
+/.clangd/
 /.cache/
