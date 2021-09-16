@@ -35,6 +35,8 @@ TimeZone time_pal_zone_current() {
   TIME_ZONE_INFORMATION timeZoneInfo;
   const DWORD           retCode = GetTimeZoneInformation(&timeZoneInfo);
   switch (retCode) {
+  case TIME_ZONE_ID_UNKNOWN:
+    return -(TimeZone)(timeZoneInfo.Bias);
   case TIME_ZONE_ID_STANDARD:
     return -(TimeZone)(timeZoneInfo.Bias + timeZoneInfo.StandardBias);
   case TIME_ZONE_ID_DAYLIGHT:
