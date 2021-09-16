@@ -1,6 +1,7 @@
 #include "core_file.h"
 #include "core_init.h"
 #include "core_path.h"
+#include "core_sort.h"
 
 #include "cli.h"
 
@@ -170,6 +171,9 @@ static int dbgsetup_app_run(DbgSetupApp* app, const int argc, const char** argv)
       .targets     = cli_parse_values(invoc, app->targetsFlag).head,
       .targetCount = cli_parse_values(invoc, app->targetsFlag).count,
   };
+
+  // Sort targets alphabetically.
+  sort_quicksort_t(ctx.targets, ctx.targets + ctx.targetCount, String, compare_string);
 
   log_i(
       "Generating debugger setup",
