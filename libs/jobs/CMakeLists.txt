@@ -27,3 +27,4 @@ target_link_libraries(volo_jobs_test PRIVATE volo_jobs)
 target_link_libraries(volo_jobs_test PRIVATE volo_log)
 
 configure_test(volo_jobs_test jobs)
+configure_debuggable(volo_jobs_test)

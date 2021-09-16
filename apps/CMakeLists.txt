@@ -4,6 +4,7 @@
 
 add_executable(volo volo.c)
 target_link_libraries(volo PRIVATE volo_core)
+configure_debuggable(volo)
 
 add_executable(volo_dbgsetup dbgsetup.c)
 target_link_libraries(volo_dbgsetup PRIVATE volo_core)

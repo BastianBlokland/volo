@@ -2,6 +2,7 @@
 # CMake platform utilities.
 # --------------------------------------------------------------------------------------------------
 
+#
 # Detect the current platform
 # Sets 'VOLO_PLATFORM' to either:
 # * linux
@@ -19,7 +20,9 @@ macro(detect_platform)
   endif()
 endmacro(detect_platform)
 
+#
 # Set linux specific defines
+#
 macro(set_linux_defines)
   message(STATUS "Configuring linux platform defines")
 
@@ -28,7 +31,9 @@ macro(set_linux_defines)
   add_definitions(-DNDEBUG) # Disable lib-c assertions (our own assertions are independent of this).
 endmacro(set_linux_defines)
 
+#
 # Set linux windows defines
+#
 macro(set_win32_defines)
   message(STATUS "Configuring win32 platform defines")
 
@@ -40,8 +45,10 @@ macro(set_win32_defines)
   add_definitions(-DNDEBUG) # Disable lib-c assertions (our own assertions are independent of this).
 endmacro(set_win32_defines)
 
+#
 # Set platform specific defines
 # Requires 'VOLO_PLATFORM' to be configured
+#
 macro(set_platform_defines)
   if(${VOLO_PLATFORM} STREQUAL "linux")
     set_linux_defines()
