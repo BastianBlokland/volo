@@ -33,14 +33,14 @@ TimeReal time_pal_real_clock() {
 
 TimeZone time_pal_zone_current() {
   TIME_ZONE_INFORMATION timeZoneInfo;
-  switch (GetTimeZoneInformation(&timeZoneInfo)) {
+  const DWORD           retCode = GetTimeZoneInformation(&timeZoneInfo);
+  switch (retCode) {
   case TIME_ZONE_ID_STANDARD:
     return -(TimeZone)(timeZoneInfo.Bias + timeZoneInfo.StandardBias);
   case TIME_ZONE_ID_DAYLIGHT:
     return -(TimeZone)(timeZoneInfo.Bias + timeZoneInfo.DaylightBias);
-  case TIME_ZONE_ID_INVALID:
   default:
-    diag_crash_msg("GetTimeZoneInformation() failed");
+    diag_crash_msg("GetTimeZoneInformation() failed, code: {}", fmt_int((u32)retCode));
   }
 }
 
