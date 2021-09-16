@@ -24,3 +24,10 @@ typedef enum {
  * Note: Is automatically cleaned up when its parent logger is destroyed.
  */
 LogSink* log_sink_pretty(Allocator*, File*, LogMask, LogSinkPrettyFlags);
+
+/**
+ * Create a pretty log sink that outputs to the stdout pipe.
+ * Note: Should be added to a logger using 'log_add_sink()'.
+ * Note: Is automatically cleaned up when its parent logger is destroyed.
+ */
+LogSink* log_sink_pretty_default(Allocator*, LogMask);

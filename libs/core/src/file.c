@@ -34,6 +34,22 @@ String file_result_str(FileResult result) {
 
 void file_init() { file_pal_init(); }
 
+FileResult file_write_to_path_sync(const String path, const String data) {
+  File*      file = null;
+  FileResult res;
+  if ((res = file_create(g_alloc_scratch, path, FileMode_Create, FileAccess_Write, &file))) {
+    goto ret;
+  }
+  if ((res = file_write_sync(file, data))) {
+    goto ret;
+  }
+ret:
+  if (file) {
+    file_destroy(file);
+  }
+  return res;
+}
+
 FileResult file_read_to_end_sync(File* file, DynString* output) {
   FileResult res;
   while ((res = file_read_sync(file, output)) == FileResult_Success)

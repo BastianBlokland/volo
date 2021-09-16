@@ -48,20 +48,20 @@ void cli_parse_destroy(CliInvocation*);
 /**
  * Retrieve the result of parsing the given invocation.
  */
-CliParseResult cli_parse_result(CliInvocation*);
+CliParseResult cli_parse_result(const CliInvocation*);
 
 /**
  * Retrieve the errors that occurred during the parsing of the given invocation.
  */
-CliParseErrors cli_parse_errors(CliInvocation*);
+CliParseErrors cli_parse_errors(const CliInvocation*);
 
 /**
  * Check if a specific option is provided in the given invocation.
  */
-bool cli_parse_provided(CliInvocation*, CliId);
+bool cli_parse_provided(const CliInvocation*, CliId);
 
 /**
  * Retrieve the values that where provided to the specific option in this invocation.
  * Note: Returns an empty set of values if the given option was not provided.
  */
-CliParseValues cli_parse_values(CliInvocation*, CliId);
+CliParseValues cli_parse_values(const CliInvocation*, CliId);

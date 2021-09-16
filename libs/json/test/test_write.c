@@ -19,7 +19,7 @@ spec(write) {
     const JsonVal val = json_add_array(doc);
     json_add_elem(doc, val, json_add_null(doc));
     json_add_elem(doc, val, json_add_bool(doc, true));
-    json_add_elem(doc, val, json_add_string(doc, string_lit("Hello")));
+    json_add_elem(doc, val, json_add_string_lit(doc, "Hello"));
 
     json_write(&buffer, doc, val, &json_write_opts(.flags = JsonWriteFlags_None));
     check_eq_string(dynstring_view(&buffer), string_lit("[null,true,\"Hello\"]"));
@@ -29,7 +29,7 @@ spec(write) {
     const JsonVal val = json_add_array(doc);
     json_add_elem(doc, val, json_add_null(doc));
     json_add_elem(doc, val, json_add_bool(doc, true));
-    json_add_elem(doc, val, json_add_string(doc, string_lit("Hello")));
+    json_add_elem(doc, val, json_add_string_lit(doc, "Hello"));
 
     json_write(&buffer, doc, val, &json_write_opts(.flags = JsonWriteFlags_Pretty));
     check_eq_string(
@@ -45,7 +45,7 @@ spec(write) {
     const JsonVal val = json_add_object(doc);
     json_add_field_str(doc, val, string_lit("a"), json_add_null(doc));
     json_add_field_str(doc, val, string_lit("b"), json_add_bool(doc, true));
-    json_add_field_str(doc, val, string_lit("c"), json_add_string(doc, string_lit("Hello")));
+    json_add_field_str(doc, val, string_lit("c"), json_add_string_lit(doc, "Hello"));
 
     json_write(&buffer, doc, val, &json_write_opts(.flags = JsonWriteFlags_None));
     check_eq_string(dynstring_view(&buffer), string_lit("{\"a\":null,\"b\":true,\"c\":\"Hello\"}"));
@@ -55,7 +55,7 @@ spec(write) {
     const JsonVal val = json_add_object(doc);
     json_add_field_str(doc, val, string_lit("a"), json_add_null(doc));
     json_add_field_str(doc, val, string_lit("b"), json_add_bool(doc, true));
-    json_add_field_str(doc, val, string_lit("c"), json_add_string(doc, string_lit("Hello")));
+    json_add_field_str(doc, val, string_lit("c"), json_add_string_lit(doc, "Hello"));
 
     json_write(&buffer, doc, val, &json_write_opts(.flags = JsonWriteFlags_Pretty));
     check_eq_string(
@@ -68,14 +68,14 @@ spec(write) {
   }
 
   it("can write strings") {
-    const JsonVal val = json_add_string(doc, string_lit("Hello World"));
+    const JsonVal val = json_add_string_lit(doc, "Hello World");
 
     json_write(&buffer, doc, val, &json_write_opts(.flags = JsonWriteFlags_None));
     check_eq_string(dynstring_view(&buffer), string_lit("\"Hello World\""));
   }
 
   it("can write strings with escape sequences") {
-    const JsonVal val = json_add_string(doc, string_lit("\bHello\tWorld\n"));
+    const JsonVal val = json_add_string_lit(doc, "\bHello\tWorld\n");
 
     json_write(&buffer, doc, val, &json_write_opts(.flags = JsonWriteFlags_None));
     check_eq_string(dynstring_view(&buffer), string_lit("\"\\bHello\\tWorld\\n\""));
@@ -116,12 +116,12 @@ spec(write) {
     const JsonVal arr = json_add_array(doc);
     json_add_elem(doc, arr, json_add_null(doc));
     json_add_elem(doc, arr, obj);
-    json_add_elem(doc, arr, json_add_string(doc, string_lit("Hello")));
+    json_add_elem(doc, arr, json_add_string_lit(doc, "Hello"));
 
     const JsonVal obj2 = json_add_object(doc);
     json_add_field_str(doc, obj2, string_lit("a"), json_add_null(doc));
     json_add_field_str(doc, obj2, string_lit("b"), json_add_bool(doc, true));
-    json_add_field_str(doc, obj2, string_lit("c"), json_add_string(doc, string_lit("Hello")));
+    json_add_field_str(doc, obj2, string_lit("c"), json_add_string_lit(doc, "Hello"));
 
     const JsonVal root = json_add_object(doc);
     json_add_field_str(doc, root, string_lit("arr"), arr);

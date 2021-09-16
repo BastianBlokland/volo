@@ -52,7 +52,7 @@ spec(format) {
         {string_lit("{}"),
          fmt_args(fmt_list_lit(fmt_int(1), fmt_int(2), fmt_int(3))),
          string_lit("1, 2, 3")},
-        {string_lit("{}"), fmt_args(fmt_list_lit()), string_lit("")},
+        {string_lit("{}"), fmt_args(fmt_list_lit()), string_empty},
         {string_lit("{}"), fmt_args(fmt_list_lit(fmt_int(1))), string_lit("1")},
     };
 
@@ -315,7 +315,7 @@ spec(format) {
       String val;
       String expected;
     } const data[] = {
-        {string_lit(""), string_lit("")},
+        {string_empty, string_empty},
         {string_lit("\fHello\nWorld\\b"), string_lit("\\fHello\\nWorld\\b")},
         {string_lit("Hello\0World"), string_lit("Hello\\0World")},
         {string_lit("\xFFHello\xFBWorld\xFA"), string_lit("\\FFHello\\FBWorld\\FA")},
@@ -339,13 +339,13 @@ spec(format) {
       String expected;
     } const data[] = {
         {
-            .linePrefix = string_lit(""),
+            .linePrefix = string_empty,
             .maxWidth   = 1,
-            .val        = string_lit(""),
-            .expected   = string_lit(""),
+            .val        = string_empty,
+            .expected   = string_empty,
         },
         {
-            .linePrefix = string_lit(""),
+            .linePrefix = string_empty,
             .maxWidth   = 1,
             .val        = string_lit("Hello"),
             .expected   = string_lit("H\ne\nl\nl\no"),
@@ -363,7 +363,7 @@ spec(format) {
             .expected   = string_lit("> pulvinar pellentesque habitant"),
         },
         {
-            .linePrefix = string_lit(""),
+            .linePrefix = string_empty,
             .maxWidth   = 30,
             .val        = string_lit("nisl condimentum\r\n\r\nid venenatis a condimentum vitae"),
             .expected   = string_lit("nisl condimentum\n\n"

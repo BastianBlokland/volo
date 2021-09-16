@@ -2,6 +2,7 @@
 # CMake compiler utilities.
 # --------------------------------------------------------------------------------------------------
 
+#
 # Detect the current compiler
 # Sets 'VOLO_COMPILER' to either:
 # * gcc
@@ -23,23 +24,31 @@ macro(detect_compiler)
   endif()
 endmacro(detect_compiler)
 
+#
 # Set gcc specific defines
+#
 macro(set_gcc_defines)
   add_definitions(-DVOLO_GCC)
 endmacro(set_gcc_defines)
 
+#
 # Set clang specific defines
+#
 macro(set_clang_defines)
   add_definitions(-DVOLO_CLANG)
 endmacro(set_clang_defines)
 
+#
 # Set msvc specific defines
+#
 macro(set_msvc_defines)
   add_definitions(-DVOLO_MSVC)
 endmacro(set_msvc_defines)
 
+#
 # Set compiler specific defines
 # Requires 'VOLO_COMPILER' to be configured
+#
 macro(set_compiler_defines)
   if(${VOLO_COMPILER} STREQUAL "gcc")
     set_gcc_defines()
@@ -52,7 +61,9 @@ macro(set_compiler_defines)
   endif()
 endmacro(set_compiler_defines)
 
+#
 # Set gcc specific compile options
+#
 macro(set_gcc_compile_options)
   message(STATUS "Configuring gcc compile options")
 
@@ -65,7 +76,9 @@ macro(set_gcc_compile_options)
   add_compile_options(-g -fno-omit-frame-pointer)
 endmacro(set_gcc_compile_options)
 
+#
 # Set clang specific compile options
+#
 macro(set_clang_compile_options)
   message(STATUS "Configuring clang compile options")
 
@@ -88,7 +101,9 @@ macro(set_clang_compile_options)
 
 endmacro(set_clang_compile_options)
 
+#
 # Set msvc specific compile options
+#
 macro(set_msvc_compile_options)
   message(STATUS "Configuring msvc compile options")
 
@@ -99,7 +114,7 @@ macro(set_msvc_compile_options)
   add_compile_options(/utf-8)
 
   # Setup warning flags.
-  add_compile_options(/W4 /WX /wd4127 /wd5105 /wd4200 /wd4244 /wd4201 /wd4210 /wd4701)
+  add_compile_options(/W4 /WX /wd4127 /wd5105 /wd4200 /wd4244 /wd4201 /wd4210 /wd4701 /wd4706)
 
   # Ignore unused local variable warning,
   # Current MSVC version (19.29.30037) reports allot of false positives on compiler generated
@@ -119,8 +134,10 @@ macro(set_msvc_compile_options)
   add_compile_options(/Zi)
 endmacro(set_msvc_compile_options)
 
+#
 # Set compile options
 # Requires 'VOLO_COMPILER' to be configured
+#
 macro(set_compile_options)
 
   # Clear the default compiler options.

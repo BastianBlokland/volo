@@ -443,6 +443,8 @@ void format_write_bitset(DynString*, BitSet val);
 
 /**
  * Write a mem value as hexadecimal ascii characters.
+ *
+ * Pre-condition: val.size <= usize_gibibyte.
  */
 void format_write_mem(DynString*, Mem val);
 
@@ -468,6 +470,8 @@ void format_write_size_pretty(DynString*, usize val);
 
 /**
  * Write the text string.
+ *
+ * Pre-condition: val.size <= usize_gibibyte.
  */
 void format_write_text(DynString*, String val, const FormatOptsText*);
 
@@ -477,6 +481,7 @@ void format_write_text(DynString*, String val, const FormatOptsText*);
  * inserted (pass an empty string if no prefix is needed).
  *
  * Pre-condition: maxWidth > 0.
+ * Pre-condition: val.size <= usize_gibibyte.
  */
 void format_write_text_wrapped(DynString*, String val, usize maxWidth, String linePrefix);
 

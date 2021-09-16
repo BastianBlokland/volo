@@ -40,6 +40,7 @@ int main(const int argc, const char** argv) {
 
   const CliId helpFlag = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
   cli_register_desc(app, helpFlag, string_lit("Display this help page."));
+  cli_register_exclusion(app, helpFlag, outputPassingTestsFlag);
 
   CliInvocation* invoc = cli_parse(app, argc - 1, argv + 1);
   if (cli_parse_result(invoc) == CliParseResult_Fail) {

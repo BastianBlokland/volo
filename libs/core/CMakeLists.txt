@@ -85,3 +85,4 @@ target_link_libraries(volo_core_test PRIVATE volo_core)
 target_link_libraries(volo_core_test PRIVATE volo_log)
 
 configure_test(volo_core_test core)
+configure_debuggable(volo_core_test)

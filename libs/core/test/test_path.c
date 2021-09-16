@@ -59,7 +59,7 @@ spec(path) {
 
   it("can retrieve the parent of a path") {
     check_eq_string(path_parent(string_lit("How/You/Doing")), string_lit("How/You"));
-    check_eq_string(path_parent(string_lit("stuff")), string_lit(""));
+    check_eq_string(path_parent(string_lit("stuff")), string_empty);
     check_eq_string(path_parent(string_lit("stuff/")), string_lit("stuff"));
     check_eq_string(path_parent(string_lit("c:/stuff")), string_lit("c:/"));
     check_eq_string(path_parent(string_lit("c:/stuff/note.txt")), string_lit("c:/stuff"));
@@ -94,7 +94,7 @@ spec(path) {
         {string_lit("Hello/How/.//.//../You"), string_lit("Hello/You")},
         {string_lit("How/../You/../Doing"), string_lit("Doing")},
         {string_lit("How/../..\\../Doing"), string_lit("Doing")},
-        {string_lit("../..\\.."), string_lit("")},
+        {string_lit("../..\\.."), string_empty},
         {string_lit("/..\\../.."), string_lit("/")},
         {string_lit("C:\\..\\..\\.."), string_lit("C:/")},
         {string_lit("\\Hello"), string_lit("Hello")},

@@ -23,3 +23,4 @@ target_link_libraries(volo_log_test PRIVATE volo_cli)
 target_link_libraries(volo_log_test PRIVATE volo_log)
 
 configure_test(volo_log_test log)
+configure_debuggable(volo_log_test)

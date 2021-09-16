@@ -6,18 +6,6 @@
 
 #define cli_app_option_name_max_len 64
 
-MAYBE_UNUSED static bool cli_app_excludes(CliApp* app, const CliId a, const CliId b) {
-  dynarray_for_t(&app->exclusions, CliExclusion, ex, {
-    if (ex->a == a && ex->b == b) {
-      return true;
-    }
-    if (ex->b == a && ex->a == b) {
-      return true;
-    }
-  });
-  return false;
-}
-
 CliApp* cli_app_create(Allocator* alloc, const String desc) {
   CliApp* app = alloc_alloc_t(alloc, CliApp);
   *app        = (CliApp){
@@ -129,12 +117,20 @@ void cli_register_validator(CliApp* app, const CliId id, CliValidateFunc validat
 
 void cli_register_exclusion(CliApp* app, const CliId a, const CliId b) {
   diag_assert_msg(
-      !cli_app_excludes(app, a, b),
+      !cli_excludes(app, a, b),
       "There is already a exclusion between '{}' and '{}'",
       fmt_text(cli_option_name(app, a)),
       fmt_text(cli_option_name(app, b)));
+  diag_assert_msg(a != b, "An option cannot exclude itself");
 
   *dynarray_push_t(&app->exclusions, CliExclusion) = (CliExclusion){a, b};
+}
+
+void cli_register_exclusions_raw(
+    CliApp* app, const CliId id, const CliId* otherIds, const usize otherCount) {
+  for (usize i = 0; i != otherCount; ++i) {
+    cli_register_exclusion(app, id, otherIds[i]);
+  }
 }
 
 void cli_register_desc(CliApp* app, const CliId id, String desc) {
@@ -151,6 +147,50 @@ void cli_register_desc(CliApp* app, const CliId id, String desc) {
     string_free(app->alloc, opt->desc);
   }
   opt->desc = string_dup(app->alloc, desc);
+}
+
+void cli_register_desc_choice(
+    CliApp*       app,
+    const CliId   id,
+    String        desc,
+    const String* choiceStrs,
+    usize         choiceCount,
+    usize         defaultChoice) {
+  diag_assert_msg(choiceCount <= 1024, "Too many choices provided");
+
+  DynString str = dynstring_create_over(alloc_alloc(g_alloc_scratch, usize_kibibyte, 1));
+  if (!string_is_empty(desc)) {
+    dynstring_append(&str, desc);
+    dynstring_append_char(&str, ' ');
+  }
+
+  dynstring_append(&str, string_lit("Options: "));
+  for (usize i = 0; i != choiceCount; ++i) {
+    if (i) {
+      dynstring_append(&str, string_lit(", "));
+    }
+    fmt_write(&str, "'{}'", fmt_text(choiceStrs[i]));
+  }
+  dynstring_append_char(&str, '.');
+
+  if (!sentinel_check(defaultChoice)) {
+    diag_assert_msg(defaultChoice < choiceCount, "Out of bound default choice");
+    fmt_write(&str, " Default: '{}'.", fmt_text(choiceStrs[defaultChoice]));
+  }
+
+  cli_register_desc(app, id, dynstring_view(&str));
+  dynstring_destroy(&str);
+}
+
+String cli_desc(const CliApp* app, const CliId id) { return cli_option(app, id)->desc; }
+
+bool cli_excludes(const CliApp* app, const CliId a, const CliId b) {
+  dynarray_for_t((DynArray*)&app->exclusions, CliExclusion, ex, {
+    if ((ex->a == a && ex->b == b) || (ex->b == a && ex->a == b)) {
+      return true;
+    }
+  });
+  return false;
 }
 
 CliOption* cli_option(const CliApp* app, const CliId id) {

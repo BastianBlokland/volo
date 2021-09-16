@@ -9,7 +9,7 @@ spec(string) {
   it("can create a string from a null-terminated character array") {
     check_eq_string(string_from_null_term("Hello World"), string_lit("Hello World"));
     check_eq_string(string_from_null_term("Hello\0World"), string_lit("Hello"));
-    check_eq_string(string_from_null_term("\0World"), string_lit(""));
+    check_eq_string(string_from_null_term("\0World"), string_empty);
   }
 
   it("can retrieve the length of a string") {
@@ -39,16 +39,16 @@ spec(string) {
   }
 
   it("can check if strings are equal") {
-    check_eq_string(string_lit(""), string_lit(""));
+    check_eq_string(string_empty, string_empty);
     check_eq_string(string_lit("Hello World"), string_lit("Hello World"));
 
-    check(!string_eq(string_lit(""), string_lit("H")));
+    check(!string_eq(string_empty, string_lit("H")));
     check(!string_eq(string_lit("Hello Worl"), string_lit("Hello World")));
     check(!string_eq(string_lit("ello World"), string_lit("Hello World")));
   }
 
   it("can check if a string starts with a sub-string") {
-    check(string_starts_with(string_lit(""), string_lit("")));
+    check(string_starts_with(string_empty, string_empty));
     check(string_starts_with(string_lit("Hello World"), string_lit("Hello")));
     check(string_starts_with(string_lit("Hello"), string_lit("Hello")));
     check(!string_starts_with(string_lit("Hell"), string_lit("Hello")));
@@ -56,7 +56,7 @@ spec(string) {
   }
 
   it("can check if a string ends with a sub-string") {
-    check(string_ends_with(string_lit(""), string_lit("")));
+    check(string_ends_with(string_empty, string_empty));
     check(string_ends_with(string_lit("Hello World"), string_lit("World")));
     check(string_ends_with(string_lit("Hello"), string_lit("Hello")));
     check(!string_ends_with(string_lit("Hell"), string_lit("ello")));
@@ -70,8 +70,8 @@ spec(string) {
 
   it("can consume characters from a string") {
     check_eq_string(string_consume(string_lit("Hello World"), 5), string_lit(" World"));
-    check_eq_string(string_consume(string_lit(" "), 1), string_lit(""));
-    check_eq_string(string_consume(string_lit(""), 0), string_lit(""));
+    check_eq_string(string_consume(string_lit(" "), 1), string_empty);
+    check_eq_string(string_consume(string_empty, 0), string_empty);
     check_eq_string(string_consume(string_lit("Hello"), 0), string_lit("Hello"));
   }
 
@@ -92,8 +92,8 @@ spec(string) {
   }
 
   it("can find the first occurrence of any of the specified characters") {
-    check_eq_int(string_find_first_any(string_lit(""), string_lit(" ")), sentinel_usize);
-    check_eq_int(string_find_first_any(string_lit(""), string_lit("\0")), sentinel_usize);
+    check_eq_int(string_find_first_any(string_empty, string_lit(" ")), sentinel_usize);
+    check_eq_int(string_find_first_any(string_empty, string_lit("\0")), sentinel_usize);
     check_eq_int(string_find_first_any(string_lit("\0"), string_lit("\n\r\0")), 0);
     check_eq_int(string_find_first_any(string_lit("Hello World"), string_lit(" ")), 5);
     check_eq_int(string_find_first_any(string_lit("Hello World"), string_lit("or")), 4);
@@ -118,8 +118,8 @@ spec(string) {
   }
 
   it("can find the last occurrence of any of the specified characters") {
-    check_eq_int(string_find_last_any(string_lit(""), string_lit(" ")), sentinel_usize);
-    check_eq_int(string_find_last_any(string_lit(""), string_lit("\0")), sentinel_usize);
+    check_eq_int(string_find_last_any(string_empty, string_lit(" ")), sentinel_usize);
+    check_eq_int(string_find_last_any(string_empty, string_lit("\0")), sentinel_usize);
     check_eq_int(string_find_last_any(string_lit("\0"), string_lit("\n\r\0")), 0);
     check_eq_int(string_find_last_any(string_lit("Hello World"), string_lit(" ")), 5);
     check_eq_int(string_find_last_any(string_lit("Hello World"), string_lit("or")), 8);
@@ -162,8 +162,8 @@ spec(string) {
     check(string_match_glob(string_lit("world"), string_lit("*world*"), f));
     check(string_match_glob(string_lit("helloworldmore"), string_lit("*world*"), f));
     check(string_match_glob(string_lit("world"), string_lit("**"), f));
-    check(string_match_glob(string_lit(""), string_lit("*"), f));
-    check(string_match_glob(string_lit(""), string_lit(""), f));
+    check(string_match_glob(string_empty, string_lit("*"), f));
+    check(string_match_glob(string_empty, string_empty, f));
     check(string_match_glob(string_lit("a"), string_lit("?"), f));
     check(string_match_glob(string_lit(" "), string_lit("?"), f));
     check(string_match_glob(string_lit("hello world"), string_lit("h??lo?w?rld"), f));
@@ -171,15 +171,15 @@ spec(string) {
 
     check(!string_match_glob(string_lit("hello"), string_lit("*world"), f));
     check(!string_match_glob(string_lit("worldhello"), string_lit("*world"), f));
-    check(!string_match_glob(string_lit(""), string_lit("hello"), f));
+    check(!string_match_glob(string_empty, string_lit("hello"), f));
     check(!string_match_glob(string_lit("world"), string_lit("hello"), f));
     check(!string_match_glob(string_lit("helloworld"), string_lit("hello"), f));
     check(!string_match_glob(string_lit("worldhello"), string_lit("hello"), f));
-    check(!string_match_glob(string_lit("hello"), string_lit(""), f));
+    check(!string_match_glob(string_lit("hello"), string_empty, f));
     check(!string_match_glob(string_lit("hellostuffworl"), string_lit("hello*world"), f));
     check(!string_match_glob(string_lit("hellstuffworl"), string_lit("hello*world"), f));
     check(!string_match_glob(string_lit("hellostuffworld"), string_lit("hello*world*more"), f));
-    check(!string_match_glob(string_lit(""), string_lit("?"), f));
+    check(!string_match_glob(string_empty, string_lit("?"), f));
     check(!string_match_glob(string_lit("ello world"), string_lit("h??lo?w?rld?"), f));
     check(!string_match_glob(string_lit("helloworld"), string_lit("h??lo?w?rld?"), f));
     check(!string_match_glob(string_lit("hello world"), string_lit("h??lo?w?rld?"), f));
@@ -187,6 +187,23 @@ spec(string) {
     check(string_match_glob(string_lit("HeLlO"), string_lit("hello"), StringMatchFlags_IgnoreCase));
     check(
         !string_match_glob(string_lit("HeLlOZ"), string_lit("hello"), StringMatchFlags_IgnoreCase));
+  }
+
+  it("can be trimmed") {
+    const String trimChars = string_lit("-.");
+    check_eq_string(string_trim(string_lit("-.hello.-"), trimChars), string_lit("hello"));
+    check_eq_string(string_trim(string_lit("-.h.e-l.l-o.-"), trimChars), string_lit("h.e-l.l-o"));
+    check_eq_string(string_trim(string_lit("----"), trimChars), string_empty);
+    check_eq_string(string_trim(string_empty, trimChars), string_empty);
+  }
+
+  it("can be trimmed of whitespace") {
+    check_eq_string(string_trim_whitespace(string_lit("  hello ")), string_lit("hello"));
+    check_eq_string(string_trim_whitespace(string_lit("\r\n\thello\t")), string_lit("hello"));
+    check_eq_string(string_trim_whitespace(string_lit("\vhello")), string_lit("hello"));
+    check_eq_string(string_trim_whitespace(string_lit("hello world")), string_lit("hello world"));
+    check_eq_string(string_trim_whitespace(string_lit(" \t\n")), string_empty);
+    check_eq_string(string_trim_whitespace(string_empty), string_empty);
   }
 
   it("can be sorted") {

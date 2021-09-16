@@ -17,6 +17,7 @@ typedef struct {
   LogMask            mask;
   bool               style;
   LogSinkPrettyFlags flags;
+  TimeZone           timezone;
 } LogSinkPretty;
 
 static FormatArg arg_style_bold(LogSinkPretty* sink) {
@@ -68,7 +69,10 @@ static void log_sink_pretty_write(
       &str,
       "{}{} {}{}[{}] {}{}\n",
       arg_style_dim(prettySink),
-      fmt_time(timestamp),
+      fmt_time(
+          timestamp,
+          .terms    = FormatTimeTerms_Time | FormatTimeTerms_Milliseconds,
+          .timezone = prettySink->timezone),
       arg_style_reset(prettySink),
       arg_style_loglevel(prettySink, lvl),
       fmt_text(log_level_str(lvl)),
@@ -112,11 +116,16 @@ log_sink_pretty(Allocator* alloc, File* file, const LogMask mask, const LogSinkP
               .write   = log_sink_pretty_write,
               .destroy = log_sink_pretty_destroy,
           },
-      .alloc = alloc,
-      .file  = file,
-      .mask  = mask,
-      .style = tty_isatty(file),
-      .flags = flags,
+      .alloc    = alloc,
+      .file     = file,
+      .mask     = mask,
+      .style    = tty_isatty(file),
+      .flags    = flags,
+      .timezone = time_zone_current(),
   };
   return (LogSink*)sink;
+}
+
+LogSink* log_sink_pretty_default(Allocator* alloc, const LogMask mask) {
+  return log_sink_pretty(alloc, g_file_stdout, mask, LogSinkPrettyFlags_None);
 }

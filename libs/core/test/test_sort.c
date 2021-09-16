@@ -26,11 +26,7 @@ spec(sort) {
 
   it("can sort i32 integers") {
     for (usize i = 0; i != array_elems(i32Data); ++i) {
-      sort_quicksort(
-          (u8*)i32Data[i].values,
-          (u8*)(i32Data[i].values + i32Data[i].size),
-          sizeof(i32),
-          compare_i32);
+      sort_quicksort_t(i32Data[i].values, i32Data[i].values + i32Data[i].size, i32, compare_i32);
 
       for (u32 j = 0; j != i32Data[i].size; ++j) {
         check_eq_int(i32Data[i].values[j], i32Data[i].expected[j]);
@@ -79,11 +75,8 @@ spec(sort) {
 
   it("can sort strings") {
     for (usize i = 0; i != array_elems(stringData); ++i) {
-      sort_quicksort(
-          (u8*)stringData[i].values,
-          (u8*)(stringData[i].values + stringData[i].size),
-          sizeof(String),
-          compare_string);
+      sort_quicksort_t(
+          stringData[i].values, stringData[i].values + stringData[i].size, String, compare_string);
 
       for (u32 j = 0; j != stringData[i].size; ++j) {
         check_eq_string(stringData[i].values[j], stringData[i].expected[j]);

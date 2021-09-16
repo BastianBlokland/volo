@@ -101,14 +101,19 @@ bool string_match_glob(String str, String pattern, const StringMatchFlags flags)
         nextStrIdx     = strIdx + 1;
         continue;
       default:
-        if (strIdx < str.size && flags & StringMatchFlags_IgnoreCase
-                ? ascii_to_lower(*string_at(str, strIdx)) == ascii_to_lower(patternChar)
-                : *string_at(str, strIdx) == patternChar) {
-          ++patternIdx;
-          ++strIdx;
-          continue;
+        if (strIdx >= str.size || string_is_empty(str)) {
+          break;
         }
-        break;
+        const bool charMatches =
+            flags & StringMatchFlags_IgnoreCase
+                ? ascii_to_lower(*string_at(str, strIdx)) == ascii_to_lower(patternChar)
+                : *string_at(str, strIdx) == patternChar;
+        if (!charMatches) {
+          break;
+        }
+        ++patternIdx;
+        ++strIdx;
+        continue;
       }
     }
     // End of pattern segment; resume the previous segment if any, otherwise fail.
@@ -121,4 +126,18 @@ bool string_match_glob(String str, String pattern, const StringMatchFlags flags)
   }
   // Entire pattern matched.
   return true;
+}
+
+String string_trim(const String value, const String chars) {
+  usize offset = 0;
+  for (; offset != value.size && mem_contains(chars, *string_at(value, offset)); ++offset)
+    ;
+  usize size = value.size;
+  for (; size && mem_contains(chars, *string_at(value, size - 1)); --size)
+    ;
+  return UNLIKELY(offset >= size) ? string_empty : string_slice(value, offset, size - offset);
+}
+
+String string_trim_whitespace(const String value) {
+  return string_trim(value, string_lit(" \t\r\n\v\f"));
 }

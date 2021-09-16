@@ -138,7 +138,7 @@ spec(parse) {
       String input;
       String expected;
     } const data[] = {
-        {string_lit("\"\""), string_lit("")},
+        {string_lit("\"\""), string_empty},
         {string_lit("\"Hello\""), string_lit("Hello")},
         {string_lit("\"Hello World\""), string_lit("Hello World")},
         {string_lit("\"Hello\\nWorld\""), string_lit("Hello\nWorld")},
@@ -218,7 +218,7 @@ spec(parse) {
       String input;
       String error;
     } const data[] = {
-        {string_lit(""), string_lit("Truncated")},
+        {string_empty, string_lit("Truncated")},
         {string_lit("^"), string_lit("InvalidChar")},
         {string_lit("Hello"), string_lit("InvalidChar")},
         {string_lit("fAlse"), string_lit("InvalidCharInFalse")},

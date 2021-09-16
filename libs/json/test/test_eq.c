@@ -126,15 +126,15 @@ spec(eq) {
   }
 
   it("returns true for equal strings") {
-    const JsonVal x = json_add_string(doc, string_lit("Hello World"));
-    const JsonVal y = json_add_string(doc, string_lit("Hello World"));
+    const JsonVal x = json_add_string_lit(doc, "Hello World");
+    const JsonVal y = json_add_string_lit(doc, "Hello World");
 
     check(json_eq(doc, x, y));
   }
 
   it("returns false for inequal strings") {
-    const JsonVal x = json_add_string(doc, string_lit("Hello"));
-    const JsonVal y = json_add_string(doc, string_lit("World"));
+    const JsonVal x = json_add_string_lit(doc, "Hello");
+    const JsonVal y = json_add_string_lit(doc, "World");
 
     check(!json_eq(doc, x, y));
   }

@@ -25,3 +25,4 @@ target_link_libraries(volo_json_test PRIVATE volo_json)
 target_link_libraries(volo_json_test PRIVATE volo_log)
 
 configure_test(volo_json_test json)
+configure_debuggable(volo_json_test)
