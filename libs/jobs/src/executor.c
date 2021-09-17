@@ -7,7 +7,7 @@
 #include "graph_internal.h"
 #include "jobs_graph.h"
 #include "scheduler_internal.h"
-#include "work_queue.h"
+#include "work_queue_internal.h"
 
 // Amounts of cores reserved for OS and other applications on the system.
 #define worker_reserved_core_count 1

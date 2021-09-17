@@ -6,7 +6,7 @@
 
 #include "json.h"
 
-#include "output_mocha.h"
+#include "output_mocha_internal.h"
 
 typedef struct {
   CheckOutput api;

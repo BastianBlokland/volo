@@ -5,7 +5,7 @@
 
 #include "log_logger.h"
 
-#include "output_log.h"
+#include "output_log_internal.h"
 
 typedef struct {
   CheckOutput api;

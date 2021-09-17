@@ -6,7 +6,7 @@
 
 #include "executor_internal.h"
 #include "init_internal.h"
-#include "job.h"
+#include "job_internal.h"
 
 static i64             g_jobIdCounter;
 static ThreadMutex     g_jobMutex;

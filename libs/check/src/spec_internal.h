@@ -4,7 +4,7 @@
 #include <setjmp.h>
 
 #include "def_internal.h"
-#include "result.h"
+#include "result_internal.h"
 
 typedef enum {
   CheckSpecContextFlags_None     = 0,

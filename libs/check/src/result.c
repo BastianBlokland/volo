@@ -1,7 +1,7 @@
 #include "core_alloc.h"
 #include "core_diag.h"
 
-#include "result.h"
+#include "result_internal.h"
 
 CheckResult* check_result_create(Allocator* alloc) {
   CheckResult* result = alloc_alloc_t(alloc, CheckResult);

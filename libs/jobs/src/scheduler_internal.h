@@ -1,6 +1,6 @@
 #include "jobs_scheduler.h"
 
-#include "job.h"
+#include "job_internal.h"
 
 /**
  * Internal api to notify the scheduler that a job has finished.

@@ -1,6 +1,6 @@
 #include "core_file.h"
 
-#include "output.h"
+#include "output_internal.h"
 
 /**
  * Mocha json reporter output.

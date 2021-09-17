@@ -1,6 +1,6 @@
 #include "jobs_executor.h"
 
-#include "job.h"
+#include "job_internal.h"
 
 void executor_run(Job*);
 

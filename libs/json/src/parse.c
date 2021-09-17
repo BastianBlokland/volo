@@ -3,7 +3,7 @@
 
 #include "json_parse.h"
 
-#include "lex.h"
+#include "lex_internal.h"
 
 #define json_depth_max 100
 

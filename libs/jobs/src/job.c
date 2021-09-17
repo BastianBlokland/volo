@@ -2,7 +2,7 @@
 
 #include "jobs_graph.h"
 
-#include "job.h"
+#include "job_internal.h"
 
 Job* job_create(Allocator* alloc, const JobId id, const JobGraph* graph) {
   const usize size = sizeof(Job) + sizeof(JobTaskData) * jobs_graph_task_count(graph);
