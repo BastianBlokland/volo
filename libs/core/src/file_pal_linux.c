@@ -1,16 +1,16 @@
 #include "core_diag.h"
 #include "core_file.h"
 
-#include "linux/limits.h"
+#include "file_internal.h"
+#include "time_internal.h"
+
 #include <errno.h>
 #include <fcntl.h>
+#include <linux/limits.h>
 #include <stdlib.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
-
-#include "file_internal.h"
-#include "time_internal.h"
 
 typedef struct {
   void* addr;

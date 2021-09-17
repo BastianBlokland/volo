@@ -1,10 +1,10 @@
 #include "core_diag.h"
 
-#include <sys/ioctl.h>
-#include <unistd.h>
-
 #include "file_internal.h"
 #include "tty_internal.h"
+
+#include <sys/ioctl.h>
+#include <unistd.h>
 
 void tty_pal_init() {}
 void tty_pal_teardown() {}

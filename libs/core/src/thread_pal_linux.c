@@ -1,12 +1,12 @@
 #include "core_diag.h"
 
+#include "thread_internal.h"
+
 #include <errno.h>
 #include <pthread.h>
 #include <sched.h>
 #include <sys/syscall.h>
 #include <unistd.h>
-
-#include "thread_internal.h"
 
 i64 thread_pal_pid() { return syscall(SYS_getpid); }
 i64 thread_pal_tid() { return syscall(SYS_gettid); }

@@ -1,7 +1,6 @@
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_thread.h"
-
 #include "jobs_scheduler.h"
 
 #include "executor_internal.h"

@@ -1,6 +1,5 @@
-#include "core_dynstring.h"
-
 #include "check_spec.h"
+#include "core_dynstring.h"
 
 spec(dynstring) {
 

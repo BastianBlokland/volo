@@ -1,8 +1,7 @@
+#include "check_spec.h"
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_thread.h"
-
-#include "check_spec.h"
 
 static void test_thread_has_name(void* data) {
   (void)data;

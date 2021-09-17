@@ -1,9 +1,9 @@
 #include "core_diag.h"
 #include "core_winutils.h"
 
-#include <Windows.h>
-
 #include "thread_internal.h"
+
+#include <Windows.h>
 
 i64 thread_pal_pid() { return GetCurrentProcessId(); }
 i64 thread_pal_tid() { return GetCurrentThreadId(); }

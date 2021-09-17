@@ -1,8 +1,7 @@
+#include "check_spec.h"
 #include "core_array.h"
 #include "core_math.h"
 #include "core_sort.h"
-
-#include "check_spec.h"
 
 spec(sort) {
 

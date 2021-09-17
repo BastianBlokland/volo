@@ -1,8 +1,8 @@
 #include "core_diag.h"
 
-#include <time.h>
-
 #include "time_internal.h"
+
+#include <time.h>
 
 void time_pal_init() {}
 

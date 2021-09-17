@@ -1,7 +1,6 @@
+#include "check_spec.h"
 #include "cli_app.h"
 #include "cli_help.h"
-
-#include "check_spec.h"
 
 spec(help) {
 

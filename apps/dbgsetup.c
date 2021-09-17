@@ -1,12 +1,9 @@
+#include "cli.h"
 #include "core_file.h"
 #include "core_init.h"
 #include "core_path.h"
 #include "core_sort.h"
-
-#include "cli.h"
-
 #include "json.h"
-
 #include "log.h"
 
 /**

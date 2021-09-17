@@ -1,6 +1,5 @@
 #pragma once
 #include "core_string.h"
-
 #include "json_doc.h"
 
 typedef enum {

@@ -3,9 +3,9 @@
 #include "core_sentinel.h"
 #include "core_winutils.h"
 
-#include <Windows.h>
-
 #include "path_internal.h"
+
+#include <Windows.h>
 
 static String path_canonize_to_output_buffer(Mem outputBuffer, String path) {
   DynString writer = dynstring_create_over(outputBuffer);

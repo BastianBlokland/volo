@@ -1,7 +1,6 @@
 #include "core_diag.h"
 
 #include "alloc_internal.h"
-
 #include "init_internal.h"
 
 #define alloc_max_alloc_size (usize_mebibyte * 128)

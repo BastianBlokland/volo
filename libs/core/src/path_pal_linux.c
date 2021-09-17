@@ -1,11 +1,11 @@
 #include "core_diag.h"
 #include "core_env.h"
 
+#include "path_internal.h"
+
 #include <limits.h>
 #include <stdlib.h>
 #include <unistd.h>
-
-#include "path_internal.h"
 
 static String path_canonize_to_output_buffer(Mem outputBuffer, String path) {
   DynString writer = dynstring_create_over(outputBuffer);

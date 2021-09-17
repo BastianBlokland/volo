@@ -1,5 +1,4 @@
 #include "core_alloc.h"
-
 #include "jobs_graph.h"
 
 #include "job_internal.h"

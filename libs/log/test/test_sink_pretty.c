@@ -1,8 +1,6 @@
+#include "check_spec.h"
 #include "core_alloc.h"
 #include "core_file.h"
-
-#include "check_spec.h"
-
 #include "log.h"
 
 spec(sink_pretty) {

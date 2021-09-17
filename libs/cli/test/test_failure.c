@@ -1,8 +1,7 @@
+#include "check_spec.h"
 #include "cli_app.h"
 #include "cli_failure.h"
 #include "cli_parse.h"
-
-#include "check_spec.h"
 
 spec(failure) {
 

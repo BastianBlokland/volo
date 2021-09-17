@@ -1,6 +1,5 @@
-#include "core_time.h"
-
 #include "check_spec.h"
+#include "core_time.h"
 
 spec(time) {
 

@@ -1,8 +1,7 @@
+#include "check_spec.h"
 #include "core_sentinel.h"
 #include "core_sort.h"
 #include "core_string.h"
-
-#include "check_spec.h"
 
 spec(string) {
 

@@ -1,6 +1,5 @@
 #include "check_app.h"
 #include "check_runner.h"
-
 #include "cli.h"
 
 typedef struct {

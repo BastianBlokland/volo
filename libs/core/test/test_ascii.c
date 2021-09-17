@@ -1,6 +1,5 @@
-#include "core_ascii.h"
-
 #include "check_spec.h"
+#include "core_ascii.h"
 
 spec(ascii) {
 

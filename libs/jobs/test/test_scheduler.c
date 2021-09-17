@@ -1,8 +1,6 @@
-#include "core_alloc.h"
-
-#include "jobs_scheduler.h"
-
 #include "check_spec.h"
+#include "core_alloc.h"
+#include "jobs_scheduler.h"
 
 static void test_task_nop(void* ctx) { (void)ctx; }
 

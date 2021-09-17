@@ -3,9 +3,9 @@
 #include "core_diag.h"
 #include "core_math.h"
 #include "core_sentinel.h"
+#include "jobs_graph.h"
 
 #include "graph_internal.h"
-#include "jobs_graph.h"
 
 static JobTaskLink* jobs_graph_task_link(const JobGraph* graph, JobTaskLinkId id) {
   return dynarray_at_t(&graph->childLinks, id, JobTaskLink);

@@ -1,8 +1,7 @@
+#include "cli_help.h"
 #include "core_dynstring.h"
 #include "core_format.h"
 #include "core_tty.h"
-
-#include "cli_help.h"
 
 #include "app_internal.h"
 

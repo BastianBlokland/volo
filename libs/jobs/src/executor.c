@@ -2,10 +2,10 @@
 #include "core_math.h"
 #include "core_rng.h"
 #include "core_thread.h"
+#include "jobs_graph.h"
 
 #include "executor_internal.h"
 #include "graph_internal.h"
-#include "jobs_graph.h"
 #include "scheduler_internal.h"
 #include "work_queue_internal.h"
 

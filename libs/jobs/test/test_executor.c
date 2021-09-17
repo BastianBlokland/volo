@@ -1,11 +1,9 @@
+#include "check_spec.h"
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_thread.h"
-
 #include "jobs_graph.h"
 #include "jobs_scheduler.h"
-
-#include "check_spec.h"
 
 typedef struct {
   i64* counter;

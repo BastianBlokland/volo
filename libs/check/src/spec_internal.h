@@ -1,10 +1,10 @@
 #pragma once
 #include "check_spec.h"
 
-#include <setjmp.h>
-
 #include "def_internal.h"
 #include "result_internal.h"
+
+#include <setjmp.h>
 
 typedef enum {
   CheckSpecContextFlags_None     = 0,

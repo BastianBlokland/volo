@@ -1,7 +1,6 @@
+#include "check_spec.h"
 #include "core_array.h"
 #include "core_memory.h"
-
-#include "check_spec.h"
 
 spec(memory) {
 

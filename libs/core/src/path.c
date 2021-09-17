@@ -6,9 +6,9 @@
 #include "core_path.h"
 #include "core_rng.h"
 #include "core_sentinel.h"
-
 #include "core_string.h"
 #include "core_types.h"
+
 #include "init_internal.h"
 #include "path_internal.h"
 

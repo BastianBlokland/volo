@@ -1,8 +1,6 @@
 #include "core_path.h"
 #include "core_thread.h"
-
 #include "jobs_executor.h"
-
 #include "log_logger.h"
 
 #include "output_log_internal.h"
