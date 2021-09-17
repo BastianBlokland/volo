@@ -1,9 +1,9 @@
 #include "core_bits.h"
 #include "core_diag.h"
 
-#include <Windows.h>
-
 #include "alloc_internal.h"
+
+#include <Windows.h>
 
 struct AllocatorPage {
   Allocator api;

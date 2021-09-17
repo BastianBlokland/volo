@@ -1,6 +1,5 @@
-#include "core_bits.h"
-
 #include "check_spec.h"
+#include "core_bits.h"
 
 spec(bits) {
 

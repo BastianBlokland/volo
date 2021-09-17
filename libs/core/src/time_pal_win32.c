@@ -1,9 +1,9 @@
 #include "core_annotation.h"
 #include "core_diag.h"
 
-#include <Windows.h>
-
 #include "time_internal.h"
+
+#include <Windows.h>
 
 static i64 g_perfCounterFrequency;
 

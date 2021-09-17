@@ -1,8 +1,6 @@
-#include "core_alloc.h"
-
-#include "jobs_graph.h"
-
 #include "check_spec.h"
+#include "core_alloc.h"
+#include "jobs_graph.h"
 
 spec(graph) {
   it("stores a graph name") {

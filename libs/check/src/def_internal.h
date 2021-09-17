@@ -1,8 +1,7 @@
 #pragma once
+#include "check_def.h"
 #include "core_dynarray.h"
 #include "core_string.h"
-
-#include "check_def.h"
 
 typedef struct {
   String           name;

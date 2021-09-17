@@ -2,7 +2,7 @@
 #include "core_diag.h"
 #include "core_thread.h"
 
-#include "work_queue.h"
+#include "work_queue_internal.h"
 
 /**
  * The current implementation inserts way more memory barriers then are required (especially on

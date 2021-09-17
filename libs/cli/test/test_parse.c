@@ -1,8 +1,7 @@
+#include "check_spec.h"
 #include "cli_app.h"
 #include "cli_parse.h"
 #include "cli_validate.h"
-
-#include "check_spec.h"
 
 static void parse_check_success(CheckTestContext* _testCtx, CliInvocation* invoc) {
   check_eq_int(cli_parse_result(invoc), CliParseResult_Success);

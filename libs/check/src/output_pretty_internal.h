@@ -1,6 +1,6 @@
 #include "core_file.h"
 
-#include "output.h"
+#include "output_internal.h"
 
 /**
  * Create a CheckOutput that writes pretty formatted text to the given file.

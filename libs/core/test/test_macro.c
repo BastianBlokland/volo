@@ -1,6 +1,5 @@
-#include "core_macro.h"
-
 #include "check_spec.h"
+#include "core_macro.h"
 
 spec(macro) {
 

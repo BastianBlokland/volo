@@ -1,6 +1,5 @@
-#include "json_doc.h"
-
 #include "check_spec.h"
+#include "json_doc.h"
 
 spec(doc) {
 

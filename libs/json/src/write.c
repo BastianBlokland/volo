@@ -1,6 +1,5 @@
 #include "core_diag.h"
 #include "core_format.h"
-
 #include "json_write.h"
 
 typedef struct {

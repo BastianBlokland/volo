@@ -1,9 +1,8 @@
+#include "check_spec.h"
 #include "core_array.h"
 #include "core_format.h"
 #include "core_path.h"
 #include "core_rng.h"
-
-#include "check_spec.h"
 
 spec(path) {
 

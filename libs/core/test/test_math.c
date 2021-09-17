@@ -1,6 +1,5 @@
-#include "core_math.h"
-
 #include "check_spec.h"
+#include "core_math.h"
 
 spec(math) {
 

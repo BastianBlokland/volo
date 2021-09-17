@@ -1,8 +1,7 @@
+#include "check_spec.h"
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_shuffle.h"
-
-#include "check_spec.h"
 
 spec(shuffle) {
 

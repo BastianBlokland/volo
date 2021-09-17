@@ -1,6 +1,5 @@
 #include "core_diag.h"
 #include "core_thread.h"
-
 #include "log_init.h"
 
 #include "logger_internal.h"

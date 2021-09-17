@@ -1,6 +1,5 @@
-#include "core_format.h"
-
 #include "cli_validate.h"
+#include "core_format.h"
 
 bool cli_validate_i64(const String input) {
   const u8     base = 10;

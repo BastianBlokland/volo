@@ -1,6 +1,6 @@
 #include "log_logger.h"
 
-#include "output.h"
+#include "output_internal.h"
 
 /**
  * Create a CheckOutput that writes log messages to the given logger.

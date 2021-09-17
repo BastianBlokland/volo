@@ -1,7 +1,7 @@
 #pragma once
 #include "core_alloc.h"
 
-#include "job.h"
+#include "job_internal.h"
 
 /**
  * Lock free single-producer multiple-consumer queue.

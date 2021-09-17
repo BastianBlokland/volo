@@ -19,5 +19,8 @@ AllowAllArgumentsOnNextLine: true
 AllowAllParametersOfDeclarationOnNextLine: true
 BinPackArguments: false
 BinPackParameters: false
-IncludeBlocks: Preserve
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '^".*_internal.h"$'
+    SortPriority: 2
 PointerAlignment: Left

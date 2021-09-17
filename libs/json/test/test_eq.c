@@ -1,6 +1,5 @@
-#include "json_eq.h"
-
 #include "check_spec.h"
+#include "json_eq.h"
 
 spec(eq) {
 

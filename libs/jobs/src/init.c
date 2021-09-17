@@ -1,8 +1,8 @@
 #include "core_diag.h"
 #include "core_thread.h"
+#include "jobs_init.h"
 
 #include "init_internal.h"
-#include "jobs_init.h"
 
 static bool g_intialized;
 

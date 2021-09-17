@@ -1,6 +1,5 @@
-#include "jobs_dot.h"
-
 #include "check_spec.h"
+#include "jobs_dot.h"
 
 spec(dot) {
   it("writes a Graph-Description-Language digraph based on a job-graph") {

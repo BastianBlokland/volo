@@ -1,7 +1,6 @@
-#include "core_format.h"
-
 #include "cli_parse.h"
 #include "cli_read.h"
+#include "core_format.h"
 
 String cli_read_string(const CliInvocation* invoc, const CliId id, const String defaultVal) {
   CliParseValues values = cli_parse_values(invoc, id);

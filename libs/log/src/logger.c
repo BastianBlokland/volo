@@ -2,7 +2,6 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
-
 #include "log_sink.h"
 
 #include "logger_internal.h"

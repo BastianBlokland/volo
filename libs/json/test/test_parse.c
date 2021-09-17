@@ -1,10 +1,8 @@
+#include "check_spec.h"
 #include "core_array.h"
 #include "core_dynstring.h"
-
 #include "json_eq.h"
 #include "json_parse.h"
-
-#include "check_spec.h"
 
 spec(parse) {
 

@@ -1,6 +1,5 @@
 #pragma once
 #include "core_dynstring.h"
-
 #include "jobs_graph.h"
 
 /**

@@ -1,6 +1,5 @@
-#include "core_float.h"
-
 #include "check_spec.h"
+#include "core_float.h"
 
 spec(float) {
 

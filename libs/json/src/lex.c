@@ -4,7 +4,7 @@
 #include "core_format.h"
 #include "core_utf8.h"
 
-#include "lex.h"
+#include "lex_internal.h"
 
 #define json_string_max_size (usize_kibibyte * 64)
 

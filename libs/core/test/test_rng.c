@@ -1,8 +1,7 @@
+#include "check_spec.h"
 #include "core_alloc.h"
 #include "core_math.h"
 #include "core_rng.h"
-
-#include "check_spec.h"
 
 spec(rng) {
 

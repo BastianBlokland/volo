@@ -1,6 +1,5 @@
-#include "core_array.h"
-
 #include "check_spec.h"
+#include "core_array.h"
 
 spec(dynarray) {
 

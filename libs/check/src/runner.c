@@ -1,18 +1,15 @@
+#include "check_runner.h"
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_file.h"
 #include "core_thread.h"
-
 #include "jobs_graph.h"
 #include "jobs_scheduler.h"
-
 #include "log_logger.h"
 
-#include "check_runner.h"
-
-#include "output_log.h"
-#include "output_mocha.h"
-#include "output_pretty.h"
+#include "output_log_internal.h"
+#include "output_mocha_internal.h"
+#include "output_pretty_internal.h"
 #include "spec_internal.h"
 
 typedef struct {

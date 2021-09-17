@@ -1,7 +1,6 @@
+#include "check_spec.h"
 #include "core_utf8.h"
 #include "core_winutils.h"
-
-#include "check_spec.h"
 
 spec(winutils) {
 
