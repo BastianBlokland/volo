@@ -80,7 +80,6 @@ add_executable(volo_core_test
   test/test_utf8.c
   test/test_winutils.c)
 target_link_libraries(volo_core_test PRIVATE volo_check)
-target_link_libraries(volo_core_test PRIVATE volo_cli)
 target_link_libraries(volo_core_test PRIVATE volo_core)
 target_link_libraries(volo_core_test PRIVATE volo_log)
 

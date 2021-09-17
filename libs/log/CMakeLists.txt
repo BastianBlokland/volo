@@ -19,7 +19,6 @@ add_executable(volo_log_test
   test/test_sink_json.c
   test/test_sink_pretty.c)
 target_link_libraries(volo_log_test PRIVATE volo_check)
-target_link_libraries(volo_log_test PRIVATE volo_cli)
 target_link_libraries(volo_log_test PRIVATE volo_log)
 
 configure_test(volo_log_test log)
