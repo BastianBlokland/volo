@@ -83,6 +83,36 @@ INLINE_HINT void bitset_set(BitSet bits, usize idx) {
   *mem_at_u8(bits, bits_to_bytes(idx)) |= 1u << bit_in_byte(idx);
 }
 
+void bitset_set_all(BitSet bits, usize idx) {
+  diag_assert(idx < bitset_size(bits));
+  const usize byteIdx = bits_to_bytes(idx);
+
+  // Set all bytes before the last byte to all ones.
+  mem_set(mem_slice(bits, 0, byteIdx), u8_lit(0b11111111));
+
+  // Set the remaining bits in the last byte.
+  switch (idx - bytes_to_bits(byteIdx)) {
+  case 7:
+    *mem_at_u8(bits, byteIdx) |= 0b1111111;
+  case 6:
+    *mem_at_u8(bits, byteIdx) |= 0b111111;
+  case 5:
+    *mem_at_u8(bits, byteIdx) |= 0b11111;
+  case 4:
+    *mem_at_u8(bits, byteIdx) |= 0b1111;
+  case 3:
+    *mem_at_u8(bits, byteIdx) |= 0b111;
+  case 2:
+    *mem_at_u8(bits, byteIdx) |= 0b11;
+  case 1:
+    *mem_at_u8(bits, byteIdx) |= 0b1;
+  case 0:
+    break;
+  default:
+    diag_crash_msg("Invalid state");
+  }
+}
+
 INLINE_HINT void bitset_clear(BitSet bits, usize idx) {
   diag_assert(idx < bitset_size(bits));
   *mem_at_u8(bits, bits_to_bytes(idx)) &= ~(1u << bit_in_byte(idx));

@@ -99,6 +99,12 @@ usize bitset_index(BitSet, usize idx);
 void bitset_set(BitSet, usize idx);
 
 /**
+ * Set all the bits up to (and including) the given index.
+ * Pre-condition: idx < bitset_size
+ */
+void bitset_set_all(BitSet, usize idx);
+
+/**
  * Unset the bit at the given index.
  * Pre-condition: idx < bitset_size
  */

@@ -40,6 +40,11 @@ BitSet dynbitset_view(const DynBitSet*);
 void dynbitset_set(DynBitSet*, usize idx);
 
 /**
+ * Set all the bits up to (and including) the given index.
+ */
+void dynbitset_set_all(DynBitSet*, usize idx);
+
+/**
  * Set all bits which are set in the other bitset.
  */
 void dynbitset_or(DynBitSet*, BitSet other);

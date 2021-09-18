@@ -151,6 +151,22 @@ spec(bitset) {
     bitset_for(bits, setIdx, { check_eq_int(setIdx, indices[i++]); });
   }
 
+  it("can set all bits up to a certain index") {
+    usize testSizes[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 42, 55};
+
+    u64    val[8] = {0};
+    BitSet bits   = bitset_from_array(val);
+
+    array_for_t(testSizes, usize, testSize, {
+      bitset_clear_all(bits);
+
+      bitset_set_all(bits, *testSize);
+      for (usize i = 0; i != bytes_to_bits(8); ++i) {
+        check(i < *testSize ? bitset_test(bits, i) : !bitset_test(bits, i));
+      }
+    })
+  }
+
   it("can bitwise 'or' two bitsets") {
     BitSet evenBits64   = bitset_from_var((u64){0});
     BitSet unevenBits64 = bitset_from_var((u64){0});

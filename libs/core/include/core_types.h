@@ -23,6 +23,10 @@ typedef u8 bool;
 
 #define null 0
 
+#define u8_lit(_LITERAL_) UINT8_C(_LITERAL_)
+#define i8_lit(_LITERAL_) INT8_C(_LITERAL_)
+#define u16_lit(_LITERAL_) UINT16_C(_LITERAL_)
+#define i16_lit(_LITERAL_) INT16_C(_LITERAL_)
 #define u32_lit(_LITERAL_) UINT32_C(_LITERAL_)
 #define i32_lit(_LITERAL_) INT32_C(_LITERAL_)
 #define u64_lit(_LITERAL_) UINT64_C(_LITERAL_)
