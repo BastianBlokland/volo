@@ -39,6 +39,9 @@ spec(dynbitset) {
     check(!dynbitset_test(&bitset, 48));
     check(!dynbitset_test(&bitset, 49));
 
+    dynbitset_clear(&bitset, 42);
+    check(!dynbitset_test(&bitset, 42));
+
     dynbitset_destroy(&bitset);
   }
 

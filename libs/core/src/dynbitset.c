@@ -38,7 +38,12 @@ INLINE_HINT void dynbitset_set(DynBitSet* dynbitset, usize idx) {
 
 void dynbitset_set_all(DynBitSet* dynbitset, usize idx) {
   dynbitset_ensure(dynbitset, idx);
-  bitset_set_all(dynarray_at(dynbitset, 0, bitset_required_bytes(idx)), idx);
+  bitset_set_all(dynarray_at(dynbitset, 0, bits_to_bytes(idx) + 1), idx);
+}
+
+void dynbitset_clear(DynBitSet* dynbitset, usize idx) {
+  dynbitset_ensure(dynbitset, idx);
+  bitset_clear(dynbitset_view(dynbitset), idx);
 }
 
 void dynbitset_or(DynBitSet* dynbitset, BitSet other) {

@@ -51,6 +51,11 @@ void dynbitset_set(DynBitSet*, usize idx);
 void dynbitset_set_all(DynBitSet*, usize idx);
 
 /**
+ * Clear the bit at the given index.
+ */
+void dynbitset_clear(DynBitSet*, usize idx);
+
+/**
  * Set all bits which are set in the other bitset.
  */
 void dynbitset_or(DynBitSet*, BitSet other);
