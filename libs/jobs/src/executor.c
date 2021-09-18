@@ -10,9 +10,13 @@
 #include "work_queue_internal.h"
 
 // Amounts of cores reserved for OS and other applications on the system.
+// Note: the main-thread is also a worker, so worker count of 1 won't start any additional threads.
 #define worker_reserved_core_count 1
 #define worker_min_count 1
 #define worker_max_count 64
+
+// Maximum amount of tasks that can depend on a single task.
+#define job_max_task_children 512
 
 typedef enum {
   ExecMode_Running,
@@ -88,17 +92,36 @@ static void executor_perform_work(WorkItem item) {
   jobTaskDef->routine((u8*)jobTaskDef + sizeof(JobTask));
   g_jobsIsWorking = false;
 
+  /**
+   * Update the tasks that are depending on this work.
+   *
+   * Note: Makes a copy of the child task-ids on the stack before updating any child tasks. The
+   * reason is that as soon as we notify a child-task it could finish the entire job while we are
+   * still in this function. And thus accessing any WorkItem memory is unsafe after notifying a
+   * child.
+   */
+
+  JobTaskId childTasks[job_max_task_children];
+  usize     childCount = 0;
+  jobs_graph_for_task_child(item.job->graph, item.task, child, {
+    diag_assert_msg(
+        childCount < job_max_task_children,
+        "Task has too many children (max: {})",
+        fmt_int(job_max_task_children));
+    childTasks[childCount++] = child.task;
+  });
+
   // Update the tasks that are depending on this work.
-  if (jobs_graph_task_has_child(item.job->graph, item.task)) {
+  if (childCount) {
     bool taskPushed = false;
-    jobs_graph_for_task_child(item.job->graph, item.task, child, {
+    for (usize i = 0; i != childCount; ++i) {
       // Decrement the dependency counter for the child task.
-      if (thread_atomic_sub_i64(&item.job->taskData[child.task].dependencies, 1) == 1) {
+      if (thread_atomic_sub_i64(&item.job->taskData[childTasks[i]].dependencies, 1) == 1) {
         // All dependencies have been met for child task; push it to the task queue.
-        workqueue_push(&g_workerQueues[g_jobsWorkerId], item.job, child.task);
+        workqueue_push(&g_workerQueues[g_jobsWorkerId], item.job, childTasks[i]);
         taskPushed = true;
       }
-    });
+    }
     if (taskPushed && g_sleepingWorkers) {
       // Some workers are sleeping: Wake them.
       thread_cond_broadcast(g_wakeCondition);
@@ -207,13 +230,23 @@ void executor_run(Job* job) {
   diag_assert_msg(g_jobsIsWorker, "Only job-workers can run jobs");
   diag_assert_msg(g_jobsWorkerCount, "Job system has to be initialized jobs_init() first.");
 
-  // Push work items for all root tasks in the job.
-  jobs_graph_for_task(job->graph, taskId, {
+  const usize rootTaskCount = jobs_graph_task_root_count(job->graph);
+
+  /**
+   * Push work items for all root tasks in the job.
+   *
+   * Note: Its important that we don't touch the job memory after pushing the last root-task. Reason
+   * is that another executor could actually finish the job while we are still inside this function.
+   */
+
+  JobTaskId taskId = 0;
+  for (usize pushedRootTaskCount = 0; pushedRootTaskCount != rootTaskCount; ++taskId) {
     if (jobs_graph_task_has_parent(job->graph, taskId)) {
       continue; // Not a root task.
     }
     workqueue_push(&g_workerQueues[g_jobsWorkerId], job, taskId);
-  });
+    ++pushedRootTaskCount;
+  }
 
   if (g_sleepingWorkers) {
     // Some workers are sleeping: Wake them.

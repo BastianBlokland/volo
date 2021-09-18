@@ -69,7 +69,8 @@ THREAD_LOCAL struct RngXorWow g_rng_xorwow = {.api = {.next = rng_xorwow_next}};
 THREAD_LOCAL Rng* g_rng;
 
 void rng_init_thread() {
-  rng_xorwow_init(&g_rng_xorwow, time_real_clock());
+  const TimeReal clock = time_real_clock();
+  rng_xorwow_init(&g_rng_xorwow, clock ? clock : 42);
   g_rng = (Rng*)&g_rng_xorwow;
 }
 
