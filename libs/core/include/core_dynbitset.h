@@ -35,6 +35,12 @@ usize dynbitset_size(const DynBitSet*);
 BitSet dynbitset_view(const DynBitSet*);
 
 /**
+ * Test if the bit at the given index is set.
+ * Note: Out of bounds bits are considered unset.
+ */
+bool dynbitset_test(const DynBitSet*, usize idx);
+
+/**
  * Set the bit at the given index.
  */
 void dynbitset_set(DynBitSet*, usize idx);
