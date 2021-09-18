@@ -13,11 +13,7 @@ String string_from_null_term(const char* ptr) {
   };
 }
 
-String string_dup(Allocator* alloc, String str) {
-  Mem mem = alloc_alloc(alloc, str.size, 1);
-  mem_cpy(mem, str);
-  return mem;
-}
+String string_dup(Allocator* alloc, String str) { return alloc_dup(alloc, str, 1); }
 
 void string_free(Allocator* alloc, String str) { alloc_free(alloc, str); }
 

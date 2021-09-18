@@ -70,6 +70,12 @@ Mem alloc_alloc(Allocator*, usize size, usize align);
 void alloc_free(Allocator*, Mem);
 
 /**
+ * Duplicate the given memory with memory alloced from the given allocator.
+ * Note: Has to be explicitly freed using 'alloc_free'.
+ */
+Mem alloc_dup(Allocator*, Mem, usize align);
+
+/**
  * Return the minimum allocation size (in bytes) for this allocator.
  * For example the page-allocator will return the page size.
  */

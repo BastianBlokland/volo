@@ -54,6 +54,12 @@ INLINE_HINT void alloc_free(Allocator* allocator, Mem mem) {
   allocator->free(allocator, mem);
 }
 
+Mem alloc_dup(Allocator* alloc, Mem mem, usize align) {
+  Mem newMem = alloc_alloc(alloc, mem.size, align);
+  mem_cpy(newMem, mem);
+  return newMem;
+}
+
 INLINE_HINT usize alloc_min_size(Allocator* allocator) {
   alloc_verify_allocator(allocator);
   return allocator->minSize(allocator);
