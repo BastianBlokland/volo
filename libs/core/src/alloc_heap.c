@@ -4,7 +4,7 @@
 
 #include <stdlib.h>
 
-#define freed_mem_tag 0xFF
+#define freed_mem_tag 0xFA
 
 struct AllocatorHeap {
   Allocator api;

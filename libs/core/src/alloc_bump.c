@@ -2,7 +2,7 @@
 
 #include "alloc_internal.h"
 
-#define freed_mem_tag 0xFF
+#define freed_mem_tag 0xFB
 
 struct AllocatorBump {
   Allocator api;
