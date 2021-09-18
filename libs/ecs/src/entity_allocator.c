@@ -2,7 +2,8 @@
 
 #include "entity_allocator_internal.h"
 
-#define ecs_starting_free_indices (10 * 1024)
+// Note: Not a hard limit, will grow beyond this if needed.
+#define ecs_starting_free_indices 1024
 
 _Static_assert(
     (ecs_starting_free_indices % 8) == 0, "ecs_starting_free_indices should be byte aligned");

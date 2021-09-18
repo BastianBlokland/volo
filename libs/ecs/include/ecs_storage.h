@@ -10,6 +10,11 @@ typedef struct sAllocator Allocator;
 typedef u64 EcsEntityId;
 
 /**
+ * Identifer for an Archetype.
+ */
+typedef u32 EcsArchetypeId;
+
+/**
  * Structure storing ecs entities and components.
  */
 typedef struct sEcsStorage EcsStorage;
@@ -30,3 +35,8 @@ void ecs_storage_destroy(EcsStorage*);
  * Pre-condition: g_ecsRunningSystem == true
  */
 EcsEntityId ecs_storage_entity_create(EcsStorage*);
+
+/**
+ * Check if the given entity exists in the storage.
+ */
+bool ecs_storage_entity_exists(EcsStorage*, EcsEntityId);

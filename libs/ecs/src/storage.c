@@ -5,21 +5,68 @@
 #include "entity_allocator_internal.h"
 #include "storage_internal.h"
 
+// Note: Not a hard limit, will grow beyond this if needed.
+#define ecs_starting_entities_capacity 1024
+
 EcsStorage* ecs_storage_create(Allocator* alloc) {
   EcsStorage* storage = alloc_alloc_t(alloc, EcsStorage);
   *storage            = (EcsStorage){
       .entityAllocator = entity_allocator_create(alloc),
+      .entities        = dynarray_create_t(alloc, EcsEntityInfo, ecs_starting_entities_capacity),
+      .newEntities     = dynarray_create_t(alloc, EcsEntityId, 1024),
       .memoryAllocator = alloc,
   };
+
+  // Precreate the entities array, clearing the memory is enough initialization as 0 is an invalid
+  // entity serial number.
+  Mem entities = dynarray_push(&storage->entities, ecs_starting_entities_capacity);
+  mem_set(entities, 0);
+
   return storage;
 }
 
 void ecs_storage_destroy(EcsStorage* storage) {
   entity_allocator_destroy(&storage->entityAllocator);
+  dynarray_destroy(&storage->entities);
+  dynarray_destroy(&storage->newEntities);
   alloc_free_t(storage->memoryAllocator, storage);
 }
 
 EcsEntityId ecs_storage_entity_create(EcsStorage* storage) {
   // diag_assert(g_ecsRunningSystem); // TODO: Enable this once ecs systems api is in place.
-  return entity_allocator_alloc(&storage->entityAllocator);
+
+  const EcsEntityId id = entity_allocator_alloc(&storage->entityAllocator);
+
+  if (ecs_entity_id_index(id) < storage->entities.size) {
+    EcsEntityInfo* info = dynarray_at_t(&storage->entities, ecs_entity_id_index(id), EcsEntityInfo);
+    diag_assert(!info->serial);
+    *info = (EcsEntityInfo){
+        .serial    = ecs_entity_id_serial(id),
+        .archetype = sentinel_u32,
+    };
+  } else {
+    // Entity out of bounds, resizing the entities array here would require syncronization, so
+    // instead we defer the resizing until the end of the tick.
+  }
+
+  thread_spinlock_lock(&storage->newEntitiesLock);
+  *dynarray_push_t(&storage->newEntities, EcsEntityId) = id;
+  thread_spinlock_unlock(&storage->newEntitiesLock);
+  return id;
+}
+
+EcsEntityInfo* ecs_storage_entity_info(EcsStorage* storage, EcsEntityId id) {
+  if (ecs_entity_id_index(id) >= storage->entities.size) {
+    return null;
+  }
+  EcsEntityInfo* info = dynarray_at_t(&storage->entities, ecs_entity_id_index(id), EcsEntityInfo);
+  return info->serial == ecs_entity_id_serial(id) ? info : null;
+}
+
+bool ecs_storage_entity_exists(EcsStorage* storage, const EcsEntityId id) {
+  if (ecs_entity_id_index(id) >= storage->entities.size) {
+    // Out of bounds entity means it was created in this tick.
+    return true;
+  }
+  return ecs_storage_entity_info(storage, id) != null;
 }
