@@ -48,7 +48,10 @@ JobId jobs_scheduler_run(JobGraph* graph) {
   *dynarray_push_t(&g_runningJobs, Job*) = job;
   thread_mutex_unlock(g_jobMutex);
 
+  // Note: We cannot touch the 'job' memory anymore after 'executor_run' returns, reason is the job
+  // could actually finish while we are still inside this function.
   executor_run(job);
+
   return id;
 }
 

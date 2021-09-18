@@ -207,13 +207,23 @@ void executor_run(Job* job) {
   diag_assert_msg(g_jobsIsWorker, "Only job-workers can run jobs");
   diag_assert_msg(g_jobsWorkerCount, "Job system has to be initialized jobs_init() first.");
 
-  // Push work items for all root tasks in the job.
-  jobs_graph_for_task(job->graph, taskId, {
+  const usize rootTaskCount = jobs_graph_task_root_count(job->graph);
+
+  /**
+   * Push work items for all root tasks in the job.
+   *
+   * Note: Its important that we don't touch the job memory after pushing the last root-task. Reason
+   * is that another executor could actually finish the job while we are still inside this function.
+   */
+
+  JobTaskId taskId = 0;
+  for (usize pushedRootTaskCount = 0; pushedRootTaskCount != rootTaskCount; ++taskId) {
     if (jobs_graph_task_has_parent(job->graph, taskId)) {
       continue; // Not a root task.
     }
     workqueue_push(&g_workerQueues[g_jobsWorkerId], job, taskId);
-  });
+    ++pushedRootTaskCount;
+  }
 
   if (g_sleepingWorkers) {
     // Some workers are sleeping: Wake them.
