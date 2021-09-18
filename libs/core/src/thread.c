@@ -4,6 +4,8 @@
 #include "init_internal.h"
 #include "thread_internal.h"
 
+#include <immintrin.h>
+
 typedef struct {
   String        threadName;
   ThreadRoutine userRoutine;
@@ -106,3 +108,17 @@ void thread_cond_wait(ThreadCondition cond, ThreadMutex mutex) {
 void thread_cond_signal(ThreadCondition cond) { thread_pal_cond_signal(cond); }
 
 void thread_cond_broadcast(ThreadCondition cond) { thread_pal_cond_broadcast(cond); }
+
+void thread_spinlock_lock(ThreadSpinLock* lock) {
+  /**
+   * Naive implemenation of a general-purpose spin-lock using atomic operations. If required a much
+   * faster architecture specific routine can be implemented.
+   */
+  i64 expected = 0;
+  while (!thread_atomic_compare_exchange_i64(lock, &expected, 1)) {
+    _mm_pause();
+    expected = 0;
+  }
+}
+
+void thread_spinlock_unlock(ThreadSpinLock* lock) { thread_atomic_store_i64(lock, 0); }

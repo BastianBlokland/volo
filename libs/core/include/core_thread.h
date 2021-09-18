@@ -56,6 +56,14 @@ typedef uptr ThreadMutex;
 typedef uptr ThreadCondition;
 
 /**
+ * SpinLock semaphore.
+ * Usefull for very short locks where the cost of context switching would be too high.
+ * Lock using 'thread_spinlock_lock()', and unlock using 'thread_spinlock_unlock()'.
+ * Note: Should be zero initialized.
+ */
+typedef i64 ThreadSpinLock;
+
+/**
  * Atomically reads the value at the given pointer.
  * This includes a general memory barrier.
  */
@@ -193,3 +201,16 @@ void thread_cond_signal(ThreadCondition);
  * Unblock all threads waiting for the given condition.
  */
 void thread_cond_broadcast(ThreadCondition);
+
+/**
+ * Acquire the spinlink.
+ * In order to avoid wasting resources this lock should be held for a short as possible.
+ * Pre-condition: SpinLock is not being held by this thread.
+ */
+void thread_spinlock_lock(ThreadSpinLock*);
+
+/**
+ * Release the spinlink.
+ * Pre-condition: Spinlock is being held by this thread.
+ */
+void thread_spinlock_unlock(ThreadSpinLock*);

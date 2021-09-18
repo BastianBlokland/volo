@@ -228,4 +228,10 @@ spec(thread) {
     thread_mutex_destroy(data.mutex);
     thread_cond_destroy(data.cond);
   }
+
+  it("can lock and unlock a spinlock") {
+    ThreadSpinLock lock = 0;
+    thread_spinlock_lock(&lock);
+    thread_spinlock_unlock(&lock);
+  }
 }
