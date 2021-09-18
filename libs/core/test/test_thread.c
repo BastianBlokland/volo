@@ -218,7 +218,9 @@ spec(thread) {
       thread_yield();
     }
 
+    thread_mutex_lock(data.mutex);
     thread_cond_broadcast(data.cond);
+    thread_mutex_unlock(data.mutex);
 
     for (usize i = 0; i != array_elems(threads); ++i) {
       thread_join(threads[i]);
