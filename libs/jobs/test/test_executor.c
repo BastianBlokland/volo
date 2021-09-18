@@ -10,7 +10,7 @@ typedef struct {
 } TestExecutorCounterData;
 
 typedef struct {
-  i32*  values;
+  i64*  values;
   usize idxA, idxB;
 } TestExecutorSumData;
 
@@ -22,6 +22,11 @@ static void test_task_increment_counter(void* ctx) {
 static void test_task_decrement_counter(void* ctx) {
   TestExecutorCounterData* data = ctx;
   --*data->counter;
+}
+
+static void test_task_counter_to_42(void* ctx) {
+  TestExecutorCounterData* data = ctx;
+  *data->counter                = 42;
 }
 
 static void test_task_increment_counter_atomic(void* ctx) {
@@ -120,10 +125,10 @@ spec(executor) {
   }
 
   it("can compute a parallel sum of integers") {
-    i32   data[1024 * 8];
+    i64   data[1024 * 8];
     usize dataCount = array_elems(data);
-    i32   sum       = 0;
-    for (i32 i = 0; i != (i32)dataCount; ++i) {
+    i64   sum       = 0;
+    for (i64 i = 0; i != (i64)dataCount; ++i) {
       sum += data[i] = i;
     }
 
@@ -153,6 +158,34 @@ spec(executor) {
     check_eq_int(data[0], sum);
 
     dynarray_destroy(&dependencies);
+    jobs_graph_destroy(graph);
+  }
+
+  it("suports one-to-many task dependencies") {
+    const usize tasks = 128;
+
+    i64 data[tasks + 1];
+    mem_set(array_mem(data), 0);
+
+    JobGraph*       graph    = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 1);
+    const JobTaskId initTask = jobs_graph_add_task(
+        graph,
+        string_lit("Init"),
+        test_task_counter_to_42,
+        mem_struct(TestExecutorCounterData, .counter = &data[0]));
+
+    for (usize i = 0; i != tasks; ++i) {
+      const JobTaskId task = jobs_graph_add_task(
+          graph,
+          string_lit("SetVal"),
+          test_task_sum,
+          mem_struct(TestExecutorSumData, .values = data, .idxA = i + 1, .idxB = 0));
+      jobs_graph_task_depend(graph, initTask, task);
+    }
+
+    jobs_scheduler_wait_help(jobs_scheduler_run(graph));
+    array_for_t(data, i64, val, { check_eq_int(*val, 42); });
+
     jobs_graph_destroy(graph);
   }
 }
