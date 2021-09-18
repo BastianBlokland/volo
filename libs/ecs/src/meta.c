@@ -29,7 +29,7 @@ ecs_register_comp_id(EcsMeta* meta, const String name, const usize size, const u
   return id;
 }
 
-EcsCompMeta* ecs_comp_meta(EcsMeta* meta, EcsCompId id) {
+const EcsCompMeta* ecs_comp_meta(EcsMeta* meta, EcsCompId id) {
   return dynarray_at_t(&meta->components, (usize)id, EcsCompMeta);
 }
 

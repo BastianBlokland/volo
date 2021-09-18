@@ -1,5 +1,6 @@
 #pragma once
 #include "core_types.h"
+#include "ecs_meta.h"
 
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;
@@ -23,7 +24,7 @@ typedef struct sEcsStorage EcsStorage;
  * Create a new EcsStorage structure.
  * Note: Should be destroyed using 'ecs_storage_destroy()'.
  */
-EcsStorage* ecs_storage_create(Allocator*);
+EcsStorage* ecs_storage_create(Allocator*, EcsMeta*);
 
 /**
  * Destroy the given EcsStorage structure.

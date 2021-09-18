@@ -2,6 +2,7 @@
 #include "core_thread.h"
 #include "ecs_storage.h"
 
+#include "archetype_internal.h"
 #include "entity_allocator_internal.h"
 
 typedef struct {
@@ -11,11 +12,15 @@ typedef struct {
 } EcsEntityInfo;
 
 struct sEcsStorage {
+  EcsMeta* meta;
+
   EntityAllocator entityAllocator;
   DynArray        entities; // EcsEntityInfo[].
 
   ThreadSpinLock newEntitiesLock;
   DynArray       newEntities; // EcsEntityId[].
+
+  DynArray archetypes; // EcsArchetype[].
 
   Allocator* memoryAllocator;
 };
@@ -25,3 +30,15 @@ struct sEcsStorage {
  * Returns null if the entity cannot be found.
  */
 EcsEntityInfo* ecs_storage_entity_info(EcsStorage*, EcsEntityId);
+
+/**
+ * Find the archetype with the given component mask.
+ * Returns sentinel_u32 if no archtype could be found with the given mask.
+ */
+EcsArchetypeId ecs_storage_achetype_find(EcsStorage*, BitSet mask);
+
+/**
+ * Find the archetype with the given component mask.
+ * Creates a new archetype if none could be found.
+ */
+EcsArchetypeId ecs_storage_archtype_find_or_create(EcsStorage*, BitSet mask);

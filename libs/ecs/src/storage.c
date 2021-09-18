@@ -8,12 +8,16 @@
 // Note: Not a hard limit, will grow beyond this if needed.
 #define ecs_starting_entities_capacity 1024
 
-EcsStorage* ecs_storage_create(Allocator* alloc) {
+EcsStorage* ecs_storage_create(Allocator* alloc, EcsMeta* meta) {
+  diag_assert(alloc && meta);
+
   EcsStorage* storage = alloc_alloc_t(alloc, EcsStorage);
   *storage            = (EcsStorage){
+      .meta            = meta,
       .entityAllocator = entity_allocator_create(alloc),
       .entities        = dynarray_create_t(alloc, EcsEntityInfo, ecs_starting_entities_capacity),
-      .newEntities     = dynarray_create_t(alloc, EcsEntityId, 1024),
+      .newEntities     = dynarray_create_t(alloc, EcsEntityId, 128),
+      .archetypes      = dynarray_create_t(alloc, EcsArchetype, 128),
       .memoryAllocator = alloc,
   };
 
@@ -26,9 +30,14 @@ EcsStorage* ecs_storage_create(Allocator* alloc) {
 }
 
 void ecs_storage_destroy(EcsStorage* storage) {
+  dynarray_for_t(&storage->archetypes, EcsArchetype, arch, { ecs_archetype_destroy(arch); });
+  dynarray_destroy(&storage->archetypes);
+
   entity_allocator_destroy(&storage->entityAllocator);
+
   dynarray_destroy(&storage->entities);
   dynarray_destroy(&storage->newEntities);
+
   alloc_free_t(storage->memoryAllocator, storage);
 }
 
@@ -69,4 +78,23 @@ bool ecs_storage_entity_exists(EcsStorage* storage, const EcsEntityId id) {
     return true;
   }
   return ecs_storage_entity_info(storage, id) != null;
+}
+
+EcsArchetypeId ecs_storage_achetype_find(EcsStorage* storage, const BitSet mask) {
+  dynarray_for_t(&storage->archetypes, EcsArchetype, arch, {
+    if (mem_eq(arch->mask, mask)) {
+      return (EcsArchetypeId)arch_i;
+    }
+  });
+  return sentinel_u32;
+}
+
+EcsArchetypeId ecs_storage_archtype_find_or_create(EcsStorage* storage, const BitSet mask) {
+  EcsArchetypeId res = ecs_storage_achetype_find(storage, mask);
+  if (sentinel_check(res)) {
+    res = (EcsArchetypeId)storage->archetypes.size;
+    *dynarray_push_t(&storage->archetypes, EcsArchetype) =
+        ecs_archetype_create(storage->meta, mask);
+  }
+  return res;
 }

@@ -15,4 +15,4 @@ struct sEcsMeta {
 /*
  * Pointer only remains stable while no new components are registered.
  */
-EcsCompMeta* ecs_comp_meta(EcsMeta*, EcsCompId);
+const EcsCompMeta* ecs_comp_meta(EcsMeta*, EcsCompId);
