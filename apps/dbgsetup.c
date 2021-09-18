@@ -76,9 +76,13 @@ static bool dbgsetup_write_json(String path, const JsonDoc* jsonDoc, const JsonV
   return res == FileResult_Success;
 }
 
-static JsonVal dbgsetup_vscode_generate_json_entry(DbgSetupCtx* ctx, JsonDoc* doc, String target) {
+static JsonVal dbgsetup_vscode_gen_launch_entry(DbgSetupCtx* ctx, JsonDoc* doc, String target) {
   const JsonVal obj = json_add_object(doc);
-  json_add_field_str(doc, obj, string_lit("name"), json_add_string(doc, path_stem(target)));
+  json_add_field_str(
+      doc,
+      obj,
+      string_lit("name"),
+      json_add_string(doc, fmt_write_scratch("{} (Launch)", fmt_text(path_stem(target)))));
   json_add_field_str(doc, obj, string_lit("type"), json_add_string(doc, g_dbg_strs[ctx->dbg]));
   json_add_field_str(doc, obj, string_lit("request"), json_add_string_lit(doc, "launch"));
   json_add_field_str(doc, obj, string_lit("program"), json_add_string(doc, target));
@@ -89,6 +93,21 @@ static JsonVal dbgsetup_vscode_generate_json_entry(DbgSetupCtx* ctx, JsonDoc* do
   return obj;
 }
 
+static JsonVal dbgsetup_vscode_gen_attach_entry(DbgSetupCtx* ctx, JsonDoc* doc, String target) {
+  const JsonVal obj = json_add_object(doc);
+  json_add_field_str(
+      doc,
+      obj,
+      string_lit("name"),
+      json_add_string(doc, fmt_write_scratch("{} (Attach)", fmt_text(path_stem(target)))));
+  json_add_field_str(doc, obj, string_lit("type"), json_add_string(doc, g_dbg_strs[ctx->dbg]));
+  json_add_field_str(doc, obj, string_lit("request"), json_add_string_lit(doc, "attach"));
+  json_add_field_str(doc, obj, string_lit("program"), json_add_string(doc, target));
+  json_add_field_str(
+      doc, obj, string_lit("pid"), json_add_string_lit(doc, "${command:pickMyProcess}"));
+  return obj;
+}
+
 static JsonVal dbgsetup_vscode_generate_json(DbgSetupCtx* ctx, JsonDoc* doc) {
   const JsonVal root = json_add_object(doc);
   json_add_field_str(doc, root, string_lit("version"), json_add_string_lit(doc, "0.2.0"));
@@ -96,7 +115,8 @@ static JsonVal dbgsetup_vscode_generate_json(DbgSetupCtx* ctx, JsonDoc* doc) {
   const JsonVal configs = json_add_array(doc);
   json_add_field_str(doc, root, string_lit("configurations"), configs);
   for (usize i = 0; i != ctx->targetCount; ++i) {
-    json_add_elem(doc, configs, dbgsetup_vscode_generate_json_entry(ctx, doc, ctx->targets[i]));
+    json_add_elem(doc, configs, dbgsetup_vscode_gen_launch_entry(ctx, doc, ctx->targets[i]));
+    json_add_elem(doc, configs, dbgsetup_vscode_gen_attach_entry(ctx, doc, ctx->targets[i]));
   }
   return root;
 }
