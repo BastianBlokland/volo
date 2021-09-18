@@ -15,6 +15,9 @@
 #define worker_min_count 1
 #define worker_max_count 64
 
+// Maximum amount of tasks that can depend on a single task.
+#define job_max_task_children 512
+
 typedef enum {
   ExecMode_Running,
   ExecMode_Teardown,
@@ -89,17 +92,36 @@ static void executor_perform_work(WorkItem item) {
   jobTaskDef->routine((u8*)jobTaskDef + sizeof(JobTask));
   g_jobsIsWorking = false;
 
+  /**
+   * Update the tasks that are depending on this work.
+   *
+   * Note: Makes a copy of the child task-ids on the stack before updating any child tasks. The
+   * reason is that as soon as we notify a child-task it could finish the entire job while we are
+   * still in this function. And thus accessing any WorkItem memory is unsafe after notifying a
+   * child.
+   */
+
+  JobTaskId childTasks[job_max_task_children];
+  usize     childCount = 0;
+  jobs_graph_for_task_child(item.job->graph, item.task, child, {
+    diag_assert_msg(
+        childCount < job_max_task_children,
+        "Task has too many children (max: {})",
+        fmt_int(job_max_task_children));
+    childTasks[childCount++] = child.task;
+  });
+
   // Update the tasks that are depending on this work.
-  if (jobs_graph_task_has_child(item.job->graph, item.task)) {
+  if (childCount) {
     bool taskPushed = false;
-    jobs_graph_for_task_child(item.job->graph, item.task, child, {
+    for (usize i = 0; i != childCount; ++i) {
       // Decrement the dependency counter for the child task.
-      if (thread_atomic_sub_i64(&item.job->taskData[child.task].dependencies, 1) == 1) {
+      if (thread_atomic_sub_i64(&item.job->taskData[childTasks[i]].dependencies, 1) == 1) {
         // All dependencies have been met for child task; push it to the task queue.
-        workqueue_push(&g_workerQueues[g_jobsWorkerId], item.job, child.task);
+        workqueue_push(&g_workerQueues[g_jobsWorkerId], item.job, childTasks[i]);
         taskPushed = true;
       }
-    });
+    }
     if (taskPushed && g_sleepingWorkers) {
       // Some workers are sleeping: Wake them.
       thread_cond_broadcast(g_wakeCondition);
