@@ -44,6 +44,10 @@ void ecs_def_register_module(EcsDef* def, const String name, const EcsModuleInit
   *dynarray_push_t(&def->modules, EcsModuleDef) = ecs_module_create(def, name, initRoutine);
 }
 
+usize ecs_def_comp_count(const EcsDef* def) { return def->components.size; }
+
+usize ecs_def_view_count(const EcsDef* def) { return def->views.size; }
+
 String ecs_def_comp_name(const EcsDef* def, const EcsCompId id) {
   return ecs_def_comp(def, id)->name;
 }

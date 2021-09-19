@@ -34,6 +34,16 @@ void ecs_def_destroy(EcsDef*);
 void ecs_def_register_module(EcsDef*, String name, EcsModuleInit);
 
 /**
+ * Retrieve the amount of registered components.
+ */
+usize ecs_def_comp_count(const EcsDef*);
+
+/**
+ * Retrieve the amount of registered views.
+ */
+usize ecs_def_view_count(const EcsDef*);
+
+/**
  * Retrieve the name of a component.
  *
  * Pre-condition: EcsCompId is a valid component-id registered to the given EcsDef.

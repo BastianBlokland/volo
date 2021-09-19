@@ -29,6 +29,12 @@ spec(def) {
     ecs_register_module(def, def_test_module);
   }
 
+  it("can retrieve the amount of registered components") {
+    check_eq_int(ecs_def_comp_count(def), 2);
+  }
+
+  it("can retrieve the amount of registered views") { check_eq_int(ecs_def_view_count(def), 1); }
+
   it("can retrieve the name of registered components") {
     check_eq_string(ecs_def_comp_name(def, ecs_comp_id(DefTestCompA)), string_lit("DefTestCompA"));
     check_eq_string(ecs_def_comp_name(def, ecs_comp_id(DefTestCompB)), string_lit("DefTestCompB"));
