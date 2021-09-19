@@ -2,29 +2,16 @@
 #include "core_annotation.h"
 #include "core_string.h"
 
-/**
- * Identifier of a component. Unique within a Ecs definition.
- */
 typedef u16 EcsCompId;
-
-/**
- * Identifier of a view. Unique within a Ecs definition.
- */
 typedef u16 EcsViewId;
+typedef u16 EcsSystemId;
 
 typedef struct sEcsModuleBuilder EcsModuleBuilder;
 typedef struct sEcsViewBuilder   EcsViewBuilder;
 
-/**
- * Module initialization routine.
- * Components, Views, and Systems used by a module should be registed within this routine.
- */
 typedef void (*EcsModuleInit)(EcsModuleBuilder*);
-
-/**
- * View initialization routine.
- */
 typedef void (*EcsViewInit)(EcsViewBuilder*);
+typedef void (*EcsSystem)();
 
 // clang-format off
 
@@ -51,7 +38,12 @@ typedef void (*EcsViewInit)(EcsViewBuilder*);
 #define ecs_view_id(_NAME_) g_ecs_view_##_NAME_
 
 /**
- * Define a component struct and a variable for storing the EcsCompId.
+ * Variable that stores the EcsSystemId for a system with the given name.
+ */
+#define ecs_system_id(_NAME_) g_ecs_system_##_NAME_
+
+/**
+ * Define a component struct.
  * Should only be used inside compilation-units.
  *
  * Example usage:
@@ -66,12 +58,12 @@ typedef void (*EcsViewInit)(EcsViewBuilder*);
   EcsCompId ecs_comp_id(_NAME_)
 
 /**
- * Define a view initialization routine and a variable for storing EcsViewId.
+ * Define a view initialization routine.
  * Should only be used inside compilation-units.
  *
  * Example usage:
  * ```
- * ecs_view_define(ApplyVelocityView, {
+ * ecs_view_define(ApplyVelocity, {
  *   ecs_view_read(VelocityComp);
  *   ecs_view_write(PositionComp);
  * });
@@ -87,6 +79,21 @@ typedef void (*EcsViewInit)(EcsViewBuilder*);
 #define ecs_view_write(_COMP_)       ecs_module_view_write(_builder, ecs_comp_id(_COMP_))
 #define ecs_view_maybe_read(_COMP_)  ecs_module_view_maybe_read(_builder, ecs_comp_id(_COMP_))
 #define ecs_view_maybe_write(_COMP_) ecs_module_view_maybe_write(_builder, ecs_comp_id(_COMP_))
+
+/**
+ * Define a system routine.
+ * Should only be used inside compilation-units.
+ *
+ * Example usage:
+ * ```
+ * ecs_system_define(ApplyVelocity, {
+ *   TODO:
+ * });
+ * ```
+ */
+#define ecs_system_define(_NAME_, ...)                                                             \
+  static void _ecs_system_##_NAME_() __VA_ARGS__                                                   \
+  static EcsSystemId ecs_system_id(_NAME_)
 
 /**
  * Register a new component type.
@@ -108,10 +115,19 @@ typedef void (*EcsViewInit)(EcsViewBuilder*);
   ecs_view_id(_NAME_) =                                                                            \
       ecs_module_register_view(_builder, string_lit(#_NAME_), &_ecs_view_init_##_NAME_)
 
+/**
+ * Register a new system.
+ * Note: Can only be used inside a module-init function.
+ */
+#define ecs_register_system(_NAME_)                                                                \
+  ecs_system_id(_NAME_) =                                                                          \
+    ecs_module_register_system(_builder, string_lit(#_NAME_), &_ecs_system_##_NAME_)
+
 // clang-format on
 
-EcsCompId ecs_module_register_comp(EcsModuleBuilder*, String name, usize size, usize align);
-EcsViewId ecs_module_register_view(EcsModuleBuilder*, String name, EcsViewInit);
+EcsCompId   ecs_module_register_comp(EcsModuleBuilder*, String name, usize size, usize align);
+EcsViewId   ecs_module_register_view(EcsModuleBuilder*, String name, EcsViewInit);
+EcsSystemId ecs_module_register_system(EcsModuleBuilder*, String name, EcsSystem);
 
 void ecs_module_view_with(EcsViewBuilder*, EcsCompId);
 void ecs_module_view_without(EcsViewBuilder*, EcsCompId);

@@ -14,12 +14,18 @@ static const EcsViewDef* ecs_def_view(const EcsDef* def, const EcsViewId id) {
   return dynarray_at_t(&def->views, (usize)id, EcsViewDef);
 }
 
+static const EcsSystemDef* ecs_def_system(const EcsDef* def, const EcsSystemId id) {
+  diag_assert_msg(id < def->systems.size, "Invalid system id '{}'", fmt_int(id));
+  return dynarray_at_t(&def->systems, (usize)id, EcsSystemDef);
+}
+
 EcsDef* ecs_def_create(Allocator* alloc) {
   EcsDef* def = alloc_alloc_t(alloc, EcsDef);
   *def        = (EcsDef){
       .modules    = dynarray_create_t(alloc, EcsModuleDef, 64),
       .components = dynarray_create_t(alloc, EcsCompDef, 128),
       .views      = dynarray_create_t(alloc, EcsViewDef, 128),
+      .systems    = dynarray_create_t(alloc, EcsSystemDef, 128),
       .alloc      = alloc,
   };
   return def;
@@ -35,6 +41,9 @@ void ecs_def_destroy(EcsDef* def) {
 
   dynarray_for_t(&def->views, EcsViewDef, view, { string_free(def->alloc, view->name); });
   dynarray_destroy(&def->views);
+
+  dynarray_for_t(&def->systems, EcsSystemDef, system, { string_free(def->alloc, system->name); });
+  dynarray_destroy(&def->systems);
 
   alloc_free_t(def->alloc, def);
 }
@@ -62,6 +71,10 @@ usize ecs_def_comp_align(const EcsDef* def, const EcsCompId id) {
 
 String ecs_def_view_name(const EcsDef* def, const EcsViewId id) {
   return ecs_def_view(def, id)->name;
+}
+
+String ecs_def_system_name(const EcsDef* def, const EcsSystemId id) {
+  return ecs_def_system(def, id)->name;
 }
 
 const EcsModuleDef* ecs_def_module_by_name(const EcsDef* def, const String name) {
@@ -108,6 +121,15 @@ EcsViewId ecs_def_register_view(EcsDef* def, const String name, const EcsViewIni
   *dynarray_push_t(&def->views, EcsViewDef) = (EcsViewDef){
       .name        = string_dup(def->alloc, name),
       .initRoutine = initRoutine,
+  };
+  return id;
+}
+
+EcsSystemId ecs_def_register_system(EcsDef* def, const String name, const EcsSystem routine) {
+  EcsSystemId id                                = (EcsSystemId)def->systems.size;
+  *dynarray_push_t(&def->systems, EcsSystemDef) = (EcsSystemDef){
+      .name    = string_dup(def->alloc, name),
+      .routine = routine,
   };
   return id;
 }

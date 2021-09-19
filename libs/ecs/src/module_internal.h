@@ -7,6 +7,7 @@ typedef struct {
   String   name;
   DynArray componentIds; // EcsCompId[]
   DynArray viewIds;      // EcsViewId[]
+  DynArray systemIds;    // EcsSystemId[]
 } EcsModuleDef;
 
 struct sEcsViewBuilder {

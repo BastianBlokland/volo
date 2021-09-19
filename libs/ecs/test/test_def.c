@@ -8,16 +8,20 @@ ecs_comp_define(DefTestCompB, {
   bool fieldB;
 });
 
-ecs_view_define(DefTestView, {
+ecs_view_define(ReadAWriteB, {
   ecs_view_read(DefTestCompA);
   ecs_view_write(DefTestCompB);
 });
+
+ecs_system_define(Update, {});
 
 ecs_module_init(def_test_module) {
   ecs_register_comp(DefTestCompA);
   ecs_register_comp(DefTestCompB);
 
-  ecs_register_view(DefTestView);
+  ecs_register_view(ReadAWriteB);
+
+  ecs_register_system(Update);
 }
 
 spec(def) {
@@ -51,7 +55,11 @@ spec(def) {
   }
 
   it("can retrieve the name of registered views") {
-    check_eq_string(ecs_def_view_name(def, ecs_view_id(DefTestView)), string_lit("DefTestView"));
+    check_eq_string(ecs_def_view_name(def, ecs_view_id(ReadAWriteB)), string_lit("ReadAWriteB"));
+  }
+
+  it("can retrieve the name of registered systems") {
+    check_eq_string(ecs_def_system_name(def, ecs_system_id(Update)), string_lit("Update"));
   }
 
   teardown() { ecs_def_destroy(def); }

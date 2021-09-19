@@ -12,6 +12,7 @@ EcsModuleDef ecs_module_create(EcsDef* def, const String name, const EcsModuleIn
       .name         = string_dup(def->alloc, name),
       .componentIds = dynarray_create_t(def->alloc, EcsCompId, 8),
       .viewIds      = dynarray_create_t(def->alloc, EcsViewId, 8),
+      .systemIds    = dynarray_create_t(def->alloc, EcsSystemId, 8),
   };
   EcsModuleBuilder builder = {.def = def, .module = &module};
   initRoutine(&builder);
@@ -22,6 +23,7 @@ void ecs_module_destroy(EcsDef* def, EcsModuleDef* module) {
   string_free(def->alloc, module->name);
   dynarray_destroy(&module->componentIds);
   dynarray_destroy(&module->viewIds);
+  dynarray_destroy(&module->systemIds);
 }
 
 EcsCompId ecs_module_register_comp(
@@ -100,4 +102,11 @@ void ecs_module_view_maybe_write(EcsViewBuilder* builder, const EcsCompId comp) 
 
   bitset_set(builder->accessRead, comp);
   bitset_set(builder->accessWrite, comp);
+}
+
+EcsSystemId
+ecs_module_register_system(EcsModuleBuilder* builder, const String name, const EcsSystem routine) {
+  const EcsSystemId id = ecs_def_register_system(builder->def, name, routine);
+  *dynarray_push_t(&builder->module->systemIds, EcsSystemId) = id;
+  return id;
 }

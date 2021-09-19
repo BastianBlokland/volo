@@ -15,10 +15,16 @@ typedef struct {
   EcsViewInit initRoutine;
 } EcsViewDef;
 
+typedef struct {
+  String    name;
+  EcsSystem routine;
+} EcsSystemDef;
+
 struct sEcsDef {
   DynArray   modules;    // EcsModuleDef[]
   DynArray   components; // EcsCompDef[]
   DynArray   views;      // EcsViewDef[]
+  DynArray   systems;    // EcsSystemDef[]
   Allocator* alloc;
 };
 
@@ -34,12 +40,6 @@ const EcsModuleDef* ecs_def_module_by_name(const EcsDef*, String name);
  */
 const EcsCompDef* ecs_def_comp_by_name(const EcsDef*, String name);
 
-/**
- * Register a new component definition.
- */
-EcsCompId ecs_def_register_comp(EcsDef*, String name, usize size, usize align);
-
-/**
- * Register a new view definition.
- */
-EcsViewId ecs_def_register_view(EcsDef*, String name, EcsViewInit);
+EcsCompId   ecs_def_register_comp(EcsDef*, String name, usize size, usize align);
+EcsViewId   ecs_def_register_view(EcsDef*, String name, EcsViewInit);
+EcsSystemId ecs_def_register_system(EcsDef*, String name, EcsSystem);
