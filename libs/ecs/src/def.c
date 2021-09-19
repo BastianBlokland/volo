@@ -42,7 +42,10 @@ void ecs_def_destroy(EcsDef* def) {
   dynarray_for_t(&def->views, EcsViewDef, view, { string_free(def->alloc, view->name); });
   dynarray_destroy(&def->views);
 
-  dynarray_for_t(&def->systems, EcsSystemDef, system, { string_free(def->alloc, system->name); });
+  dynarray_for_t(&def->systems, EcsSystemDef, system, {
+    string_free(def->alloc, system->name);
+    dynarray_destroy(&system->viewIds);
+  });
   dynarray_destroy(&def->systems);
 
   alloc_free_t(def->alloc, def);
@@ -75,6 +78,14 @@ String ecs_def_view_name(const EcsDef* def, const EcsViewId id) {
 
 String ecs_def_system_name(const EcsDef* def, const EcsSystemId id) {
   return ecs_def_system(def, id)->name;
+}
+
+EcsDefSystemViews ecs_def_system_views(const EcsDef* def, const EcsSystemId id) {
+  const EcsSystemDef* sysDef = ecs_def_system(def, id);
+  return (EcsDefSystemViews){
+      .head  = sysDef->viewIds.data.ptr,
+      .count = sysDef->viewIds.size,
+  };
 }
 
 const EcsModuleDef* ecs_def_module_by_name(const EcsDef* def, const String name) {
@@ -125,11 +136,24 @@ EcsViewId ecs_def_register_view(EcsDef* def, const String name, const EcsViewIni
   return id;
 }
 
-EcsSystemId ecs_def_register_system(EcsDef* def, const String name, const EcsSystem routine) {
-  EcsSystemId id                                = (EcsSystemId)def->systems.size;
-  *dynarray_push_t(&def->systems, EcsSystemDef) = (EcsSystemDef){
+EcsSystemId ecs_def_register_system(
+    EcsDef*          def,
+    const String     name,
+    const EcsSystem  routine,
+    const EcsViewId* views,
+    const usize      viewCount) {
+
+  EcsSystemId   id        = (EcsSystemId)def->systems.size;
+  EcsSystemDef* systemDef = dynarray_push_t(&def->systems, EcsSystemDef);
+  *systemDef              = (EcsSystemDef){
       .name    = string_dup(def->alloc, name),
       .routine = routine,
+      .viewIds = dynarray_create_t(def->alloc, EcsViewId, viewCount),
   };
+
+  mem_cpy(
+      dynarray_push(&systemDef->viewIds, viewCount),
+      mem_create(views, sizeof(EcsViewId) * viewCount));
+
   return id;
 }

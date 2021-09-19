@@ -14,6 +14,7 @@ ecs_view_define(ReadAWriteB, {
 });
 
 ecs_system_define(Update, {});
+ecs_system_define(Cleanup, {});
 
 ecs_module_init(def_test_module) {
   ecs_register_comp(DefTestCompA);
@@ -21,7 +22,8 @@ ecs_module_init(def_test_module) {
 
   ecs_register_view(ReadAWriteB);
 
-  ecs_register_system(Update);
+  ecs_register_system(Update, ecs_view_id(ReadAWriteB));
+  ecs_register_system(Cleanup);
 }
 
 spec(def) {
@@ -60,6 +62,15 @@ spec(def) {
 
   it("can retrieve the name of registered systems") {
     check_eq_string(ecs_def_system_name(def, ecs_system_id(Update)), string_lit("Update"));
+    check_eq_string(ecs_def_system_name(def, ecs_system_id(Cleanup)), string_lit("Cleanup"));
+  }
+
+  it("can retrieve the views of a registered system") {
+    check_eq_int(ecs_def_system_views(def, ecs_system_id(Update)).count, 1);
+    check(ecs_def_system_views(def, ecs_system_id(Update)).head[0] == ecs_view_id(ReadAWriteB));
+
+    check_eq_int(ecs_def_system_views(def, ecs_system_id(Cleanup)).count, 0);
+    check(ecs_def_system_views(def, ecs_system_id(Cleanup)).head == null);
   }
 
   teardown() { ecs_def_destroy(def); }

@@ -104,9 +104,14 @@ void ecs_module_view_maybe_write(EcsViewBuilder* builder, const EcsCompId comp) 
   bitset_set(builder->accessWrite, comp);
 }
 
-EcsSystemId
-ecs_module_register_system(EcsModuleBuilder* builder, const String name, const EcsSystem routine) {
-  const EcsSystemId id = ecs_def_register_system(builder->def, name, routine);
+EcsSystemId ecs_module_register_system(
+    EcsModuleBuilder* builder,
+    const String      name,
+    const EcsSystem   routine,
+    const EcsViewId*  views,
+    const usize       viewCount) {
+
+  const EcsSystemId id = ecs_def_register_system(builder->def, name, routine, views, viewCount);
   *dynarray_push_t(&builder->module->systemIds, EcsSystemId) = id;
   return id;
 }

@@ -79,3 +79,15 @@ String ecs_def_view_name(const EcsDef*, EcsViewId);
  * Pre-condition: EcsSystemId is a valid system-id registered to the given EcsDef.
  */
 String ecs_def_system_name(const EcsDef*, EcsSystemId);
+
+typedef struct {
+  EcsViewId* head;
+  usize      count;
+} EcsDefSystemViews;
+
+/**
+ * Retrieve the registered views of a system.
+ *
+ * Pre-condition: EcsSystemId is a valid system-id registered to the given EcsDef.
+ */
+EcsDefSystemViews ecs_def_system_views(const EcsDef*, EcsSystemId);

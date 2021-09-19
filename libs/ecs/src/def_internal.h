@@ -18,6 +18,7 @@ typedef struct {
 typedef struct {
   String    name;
   EcsSystem routine;
+  DynArray  viewIds; // EcsViewId[]
 } EcsSystemDef;
 
 struct sEcsDef {
@@ -40,6 +41,7 @@ const EcsModuleDef* ecs_def_module_by_name(const EcsDef*, String name);
  */
 const EcsCompDef* ecs_def_comp_by_name(const EcsDef*, String name);
 
-EcsCompId   ecs_def_register_comp(EcsDef*, String name, usize size, usize align);
-EcsViewId   ecs_def_register_view(EcsDef*, String name, EcsViewInit);
-EcsSystemId ecs_def_register_system(EcsDef*, String name, EcsSystem);
+EcsCompId ecs_def_register_comp(EcsDef*, String name, usize size, usize align);
+EcsViewId ecs_def_register_view(EcsDef*, String name, EcsViewInit);
+EcsSystemId
+ecs_def_register_system(EcsDef*, String name, EcsSystem, const EcsViewId* views, usize viewCount);

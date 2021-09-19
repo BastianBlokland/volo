@@ -117,18 +117,27 @@ typedef void (*EcsSystem)();
       ecs_module_register_view(_builder, string_lit(#_NAME_), &_ecs_view_init_##_NAME_)
 
 /**
- * Register a new system.
+ * Register a new system with a list of view-ids as dependencies.
  * Note: Can only be used inside a module-init function.
+ *
+ * Example usage:
+ * ```
+ * ecs_register_system(ApplyVelocity, ecs_view_id(ReadVeloWritePos));
+ * ```
  */
-#define ecs_register_system(_NAME_)                                                                \
-  ecs_system_id(_NAME_) =                                                                          \
-    ecs_module_register_system(_builder, string_lit(#_NAME_), &_ecs_system_##_NAME_)
+#define ecs_register_system(_NAME_, ...)                                                           \
+  ecs_system_id(_NAME_) = ecs_module_register_system(                                              \
+      _builder,                                                                                    \
+      string_lit(#_NAME_),                                                                         \
+      &_ecs_system_##_NAME_,                                                                       \
+      (const EcsViewId[]){ VA_ARGS_SKIP_FIRST(0, ##__VA_ARGS__, 0) }, COUNT_VA_ARGS(__VA_ARGS__))
 
 // clang-format on
 
 EcsCompId   ecs_module_register_comp(EcsModuleBuilder*, String name, usize size, usize align);
 EcsViewId   ecs_module_register_view(EcsModuleBuilder*, String name, EcsViewInit);
-EcsSystemId ecs_module_register_system(EcsModuleBuilder*, String name, EcsSystem);
+EcsSystemId ecs_module_register_system(
+    EcsModuleBuilder*, String name, EcsSystem, const EcsViewId* views, usize viewCount);
 
 void ecs_module_view_with(EcsViewBuilder*, EcsCompId);
 void ecs_module_view_without(EcsViewBuilder*, EcsCompId);
