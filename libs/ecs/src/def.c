@@ -9,11 +9,17 @@ static const EcsCompDef* ecs_def_comp(const EcsDef* def, const EcsCompId id) {
   return dynarray_at_t(&def->components, (usize)id, EcsCompDef);
 }
 
+static const EcsViewDef* ecs_def_view(const EcsDef* def, const EcsViewId id) {
+  diag_assert_msg(id < def->views.size, "Invalid view id '{}'", fmt_int(id));
+  return dynarray_at_t(&def->views, (usize)id, EcsViewDef);
+}
+
 EcsDef* ecs_def_create(Allocator* alloc) {
   EcsDef* def = alloc_alloc_t(alloc, EcsDef);
   *def        = (EcsDef){
       .modules    = dynarray_create_t(alloc, EcsModuleDef, 64),
       .components = dynarray_create_t(alloc, EcsCompDef, 128),
+      .views      = dynarray_create_t(alloc, EcsViewDef, 128),
       .alloc      = alloc,
   };
   return def;
@@ -26,6 +32,9 @@ void ecs_def_destroy(EcsDef* def) {
 
   dynarray_for_t(&def->components, EcsCompDef, comp, { string_free(def->alloc, comp->name); });
   dynarray_destroy(&def->components);
+
+  dynarray_for_t(&def->views, EcsViewDef, view, { string_free(def->alloc, view->name); });
+  dynarray_destroy(&def->views);
 
   alloc_free_t(def->alloc, def);
 }
@@ -45,6 +54,10 @@ usize ecs_def_comp_size(const EcsDef* def, const EcsCompId id) {
 
 usize ecs_def_comp_align(const EcsDef* def, const EcsCompId id) {
   return ecs_def_comp(def, id)->align;
+}
+
+String ecs_def_view_name(const EcsDef* def, const EcsViewId id) {
+  return ecs_def_view(def, id)->name;
 }
 
 const EcsModuleDef* ecs_def_module_by_name(const EcsDef* def, const String name) {
@@ -82,6 +95,15 @@ ecs_def_register_comp(EcsDef* def, const String name, const usize size, const us
       .name  = string_dup(def->alloc, name),
       .size  = size,
       .align = align,
+  };
+  return id;
+}
+
+EcsViewId ecs_def_register_view(EcsDef* def, const String name, const EcsViewInit initRoutine) {
+  EcsViewId id                              = (EcsViewId)def->views.size;
+  *dynarray_push_t(&def->views, EcsViewDef) = (EcsViewDef){
+      .name        = string_dup(def->alloc, name),
+      .initRoutine = initRoutine,
   };
   return id;
 }

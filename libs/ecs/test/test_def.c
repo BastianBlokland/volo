@@ -8,9 +8,16 @@ ecs_comp_define(DefTestCompB, {
   bool fieldB;
 });
 
+ecs_view_define(DefTestView, {
+  ecs_view_read(DefTestCompA);
+  ecs_view_write(DefTestCompB);
+});
+
 ecs_module_init(def_test_module) {
   ecs_register_comp(DefTestCompA);
   ecs_register_comp(DefTestCompB);
+
+  ecs_register_view(DefTestView);
 }
 
 spec(def) {
@@ -35,6 +42,10 @@ spec(def) {
   it("can retrieve the alignment requirement of registered components") {
     check_eq_int(ecs_def_comp_align(def, ecs_comp_id(DefTestCompA)), alignof(DefTestCompA));
     check_eq_int(ecs_def_comp_align(def, ecs_comp_id(DefTestCompB)), alignof(DefTestCompB));
+  }
+
+  it("can retrieve the name of registered views") {
+    check_eq_string(ecs_def_view_name(def, ecs_view_id(DefTestView)), string_lit("DefTestView"));
   }
 
   teardown() { ecs_def_destroy(def); }

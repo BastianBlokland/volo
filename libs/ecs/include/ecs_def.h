@@ -53,3 +53,11 @@ usize ecs_def_comp_size(const EcsDef*, EcsCompId);
  * Pre-condition: EcsCompId is a valid component-id registered to the given EcsDef.
  */
 usize ecs_def_comp_align(const EcsDef*, EcsCompId);
+
+/**
+ * Retrieve the name of a view.
+ * Note: View-names are not required to be unique.
+ *
+ * Pre-condition: EcsViewId is a valid view-id registered to the given EcsDef.
+ */
+String ecs_def_view_name(const EcsDef*, EcsViewId);
