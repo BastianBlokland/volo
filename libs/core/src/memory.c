@@ -10,7 +10,7 @@ INLINE_HINT void mem_set(const Mem mem, const u8 val) {
 }
 
 INLINE_HINT void mem_cpy(const Mem dst, const Mem src) {
-  diag_assert(mem_valid(dst));
+  diag_assert(!src.size || mem_valid(dst));
   diag_assert(!src.size || mem_valid(src));
   diag_assert(dst.size >= src.size);
   memcpy(dst.ptr, src.ptr, src.size);
