@@ -1,7 +1,7 @@
 #include "check_spec.h"
 #include "ecs_def.h"
 
-ecs_comp_define(DefTestCompA, {});
+ecs_comp_define(DefTestCompA, { u32 fieldA; });
 
 ecs_comp_define(DefTestCompB, {
   u32  fieldA;

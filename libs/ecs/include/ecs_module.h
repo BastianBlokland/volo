@@ -55,6 +55,7 @@ typedef void (*EcsSystem)();
  */
 #define ecs_comp_define(_NAME_, ...)                                                               \
   typedef struct __VA_ARGS__ _NAME_;                                                               \
+  _Static_assert(sizeof(_NAME_) != 0, "Components are not allowed to be empty");                   \
   EcsCompId ecs_comp_id(_NAME_)
 
 /**
