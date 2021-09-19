@@ -8,7 +8,6 @@ add_library(volo_ecs STATIC
   src/archetype.c
   src/def.c
   src/entity_allocator.c
-  src/meta.c
   src/module.c
   src/storage.c)
 target_include_directories(volo_ecs PUBLIC include)
@@ -17,7 +16,6 @@ target_link_libraries(volo_ecs PUBLIC volo_core)
 add_executable(volo_ecs_test
   test/main.c
   test/test_def.c
-  test/test_meta.c
   test/test_storage.c)
 target_link_libraries(volo_ecs_test PRIVATE volo_check)
 target_link_libraries(volo_ecs_test PRIVATE volo_ecs)

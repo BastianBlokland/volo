@@ -8,12 +8,12 @@
 // Note: Not a hard limit, will grow beyond this if needed.
 #define ecs_starting_entities_capacity 1024
 
-EcsStorage* ecs_storage_create(Allocator* alloc, EcsMeta* meta) {
-  diag_assert(alloc && meta);
+EcsStorage* ecs_storage_create(Allocator* alloc, EcsDef* def) {
+  diag_assert(alloc && def);
 
   EcsStorage* storage = alloc_alloc_t(alloc, EcsStorage);
   *storage            = (EcsStorage){
-      .meta            = meta,
+      .def             = def,
       .entityAllocator = entity_allocator_create(alloc),
       .entities        = dynarray_create_t(alloc, EcsEntityInfo, ecs_starting_entities_capacity),
       .newEntities     = dynarray_create_t(alloc, EcsEntityId, 128),
@@ -92,9 +92,8 @@ EcsArchetypeId ecs_storage_achetype_find(EcsStorage* storage, const BitSet mask)
 EcsArchetypeId ecs_storage_archtype_find_or_create(EcsStorage* storage, const BitSet mask) {
   EcsArchetypeId res = ecs_storage_achetype_find(storage, mask);
   if (sentinel_check(res)) {
-    res = (EcsArchetypeId)storage->archetypes.size;
-    *dynarray_push_t(&storage->archetypes, EcsArchetype) =
-        ecs_archetype_create(storage->meta, mask);
+    res                                                  = (EcsArchetypeId)storage->archetypes.size;
+    *dynarray_push_t(&storage->archetypes, EcsArchetype) = ecs_archetype_create(storage->def, mask);
   }
   return res;
 }

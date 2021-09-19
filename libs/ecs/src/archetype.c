@@ -3,7 +3,7 @@
 #include "ecs_storage.h"
 
 #include "archetype_internal.h"
-#include "meta_internal.h"
+#include "def_internal.h"
 
 #define ecs_archetype_chunk_size 8192
 #define ecs_archetype_max_chunks 128
@@ -21,15 +21,16 @@ static usize ecs_archetype_comp_idx(EcsArchetype* archetype, const EcsCompId id)
   return bitset_index(archetype->mask, id);
 }
 
-EcsArchetype ecs_archetype_create(EcsMeta* meta, BitSet mask) {
+EcsArchetype ecs_archetype_create(EcsDef* def, BitSet mask) {
   usize compCount      = 0;
   usize entityDataSize = sizeof(EcsEntityId);
   usize padding        = 0;
   bitset_for(mask, compId, {
     ++compCount;
-    const EcsCompMeta* compMeta = ecs_comp_meta(meta, (EcsCompId)compId);
-    padding += bits_padding(entityDataSize + padding, compMeta->align);
-    entityDataSize += compMeta->size;
+    const usize compSize  = ecs_def_comp_size(def, (EcsCompId)compId);
+    const usize compAlign = ecs_def_comp_align(def, (EcsCompId)compId);
+    padding += bits_padding(entityDataSize + padding, compAlign);
+    entityDataSize += compSize;
   });
 
   const usize entitiesPerChunk = (ecs_archetype_chunk_size - padding) / entityDataSize;
@@ -41,11 +42,12 @@ EcsArchetype ecs_archetype_create(EcsMeta* meta, BitSet mask) {
   usize offset  = sizeof(EcsEntityId) * entitiesPerChunk;
   usize compIdx = 0;
   bitset_for(mask, compId, {
-    const EcsCompMeta* compMeta = ecs_comp_meta(meta, (EcsCompId)compId);
-    offset                      = bits_align(offset, compMeta->align);
-    compOffsets[compIdx]        = (u16)offset;
-    compStrides[compIdx]        = (u16)compMeta->size;
-    offset += compMeta->size * entitiesPerChunk;
+    const usize compSize  = ecs_def_comp_size(def, (EcsCompId)compId);
+    const usize compAlign = ecs_def_comp_align(def, (EcsCompId)compId);
+    offset                = bits_align(offset, compAlign);
+    compOffsets[compIdx]  = (u16)offset;
+    compStrides[compIdx]  = (u16)compSize;
+    offset += compSize * entitiesPerChunk;
   });
 
   return (EcsArchetype){

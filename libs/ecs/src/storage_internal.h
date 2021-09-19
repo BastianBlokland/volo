@@ -12,7 +12,7 @@ typedef struct {
 } EcsEntityInfo;
 
 struct sEcsStorage {
-  EcsMeta* meta;
+  EcsDef* def;
 
   EntityAllocator entityAllocator;
   DynArray        entities; // EcsEntityInfo[].

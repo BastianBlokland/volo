@@ -13,7 +13,7 @@ typedef struct {
   usize  entityCount;
 } EcsArchetype;
 
-EcsArchetype ecs_archetype_create(EcsMeta*, BitSet mask);
+EcsArchetype ecs_archetype_create(EcsDef*, BitSet mask);
 void         ecs_archetype_destroy(EcsArchetype*);
 u32          ecs_archetype_add(EcsArchetype*, EcsEntityId);
 EcsEntityId* ecs_archetype_get_entity(EcsArchetype*, u32 index);

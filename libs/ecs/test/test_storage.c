@@ -3,12 +3,12 @@
 
 spec(storage) {
 
-  EcsMeta*    meta    = null;
+  EcsDef*     def     = null;
   EcsStorage* storage = null;
 
   setup() {
-    meta    = ecs_meta_create(g_alloc_heap);
-    storage = ecs_storage_create(g_alloc_heap, meta);
+    def     = ecs_def_create(g_alloc_heap);
+    storage = ecs_storage_create(g_alloc_heap, def);
   }
 
   it("can create new entities") {
@@ -17,7 +17,7 @@ spec(storage) {
   }
 
   teardown() {
-    ecs_meta_destroy(meta);
+    ecs_def_destroy(def);
     ecs_storage_destroy(storage);
   }
 }
