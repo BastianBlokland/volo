@@ -11,7 +11,7 @@ typedef struct sAllocator Allocator;
 typedef u64 EcsEntityId;
 
 /**
- * Identifer for an Archetype.
+ * Identifier for an Archetype.
  */
 typedef u32 EcsArchetypeId;
 

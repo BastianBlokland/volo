@@ -21,12 +21,18 @@ typedef struct {
   DynArray  viewIds; // EcsViewId[]
 } EcsSystemDef;
 
+typedef enum {
+  EcsDefFlags_None,
+  EcsDefFlags_Frozen = 1 << 0,
+} EcsDefFlags;
+
 struct sEcsDef {
-  DynArray   modules;    // EcsModuleDef[]
-  DynArray   components; // EcsCompDef[]
-  DynArray   views;      // EcsViewDef[]
-  DynArray   systems;    // EcsSystemDef[]
-  Allocator* alloc;
+  DynArray    modules;    // EcsModuleDef[]
+  DynArray    components; // EcsCompDef[]
+  DynArray    views;      // EcsViewDef[]
+  DynArray    systems;    // EcsSystemDef[]
+  EcsDefFlags flags;
+  Allocator*  alloc;
 };
 
 /**
@@ -45,3 +51,8 @@ EcsCompId ecs_def_register_comp(EcsDef*, String name, usize size, usize align);
 EcsViewId ecs_def_register_view(EcsDef*, String name, EcsViewInit);
 EcsSystemId
 ecs_def_register_system(EcsDef*, String name, EcsSystem, const EcsViewId* views, usize viewCount);
+
+/**
+ * Dissallow any further modications to this definition.
+ */
+void ecs_def_freeze(EcsDef*);
