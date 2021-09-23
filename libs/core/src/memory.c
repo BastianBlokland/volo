@@ -2,7 +2,22 @@
 #include "core_math.h"
 #include "core_memory.h"
 
+#if defined(VOLO_MSVC)
+
 #include <string.h>
+#pragma intrinsic(memset)
+#pragma intrinsic(memcpy)
+#pragma intrinsic(memmove)
+#pragma intrinsic(memcmp)
+
+#else
+
+#define memset __builtin_memset
+#define memcpy __builtin_memcpy
+#define memmove __builtin_memmove
+#define memcmp __builtin_memcmp
+
+#endif
 
 INLINE_HINT void mem_set(const Mem mem, const u8 val) {
   diag_assert(mem_valid(mem));
