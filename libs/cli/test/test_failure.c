@@ -2,6 +2,7 @@
 #include "cli_app.h"
 #include "cli_failure.h"
 #include "cli_parse.h"
+#include "core_alloc.h"
 
 spec(failure) {
 

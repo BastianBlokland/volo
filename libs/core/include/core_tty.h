@@ -1,6 +1,8 @@
 #pragma once
-#include "core_file.h"
 #include "core_types.h"
+
+// Forward declare from 'core_file.h'.
+typedef struct sFile File;
 
 /**
  * TTY - TeleTypeWriter.

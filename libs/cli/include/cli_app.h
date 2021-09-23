@@ -1,8 +1,10 @@
 #pragma once
-#include "core_alloc.h"
 #include "core_array.h"
 #include "core_macro.h"
 #include "core_string.h"
+
+// Forward declare from 'core_alloc.h'.
+typedef struct sAllocator Allocator;
 
 // Forward declare from 'cli_validate.h'.
 typedef bool (*CliValidateFunc)(const String input);

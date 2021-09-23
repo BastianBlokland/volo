@@ -1,4 +1,5 @@
 #include "cli_parse.h"
+#include "core_alloc.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_string.h"

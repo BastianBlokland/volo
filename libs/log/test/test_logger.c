@@ -1,5 +1,6 @@
 #include "check_spec.h"
 #include "core_alloc.h"
+#include "core_time.h"
 #include "log.h"
 #include "log_sink.h"
 

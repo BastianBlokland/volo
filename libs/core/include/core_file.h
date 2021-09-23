@@ -1,7 +1,9 @@
 #pragma once
-#include "core_alloc.h"
 #include "core_dynstring.h"
 #include "core_string.h"
+
+// Forward declare from 'core_alloc.h'.
+typedef struct sAllocator Allocator;
 
 // Forward declare from 'core_time.h'.
 typedef i64 TimeReal;

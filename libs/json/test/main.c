@@ -1,4 +1,5 @@
 #include "check_app.h"
+#include "core_alloc.h"
 #include "core_init.h"
 #include "jobs_init.h"
 #include "log.h"

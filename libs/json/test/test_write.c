@@ -1,4 +1,5 @@
 #include "check_spec.h"
+#include "core_alloc.h"
 #include "core_array.h"
 #include "core_dynstring.h"
 #include "json_write.h"

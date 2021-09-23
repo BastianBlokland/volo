@@ -3,6 +3,7 @@
 #include "core_file.h"
 #include "core_format.h"
 #include "core_math.h"
+#include "core_time.h"
 #include "core_tty.h"
 #include "log_sink.h"
 #include "log_sink_pretty.h"

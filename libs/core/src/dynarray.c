@@ -1,3 +1,4 @@
+#include "core_alloc.h"
 #include "core_annotation.h"
 #include "core_bits.h"
 #include "core_diag.h"

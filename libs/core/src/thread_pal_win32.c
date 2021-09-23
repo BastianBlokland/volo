@@ -1,4 +1,6 @@
+#include "core_alloc.h"
 #include "core_diag.h"
+#include "core_time.h"
 #include "core_winutils.h"
 
 #include "thread_internal.h"

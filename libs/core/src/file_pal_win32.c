@@ -1,3 +1,4 @@
+#include "core_alloc.h"
 #include "core_diag.h"
 #include "core_file.h"
 #include "core_sentinel.h"

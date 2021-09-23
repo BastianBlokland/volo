@@ -1,4 +1,5 @@
 #include "check_spec.h"
+#include "core_alloc.h"
 #include "ecs_def.h"
 #include "ecs_world.h"
 
