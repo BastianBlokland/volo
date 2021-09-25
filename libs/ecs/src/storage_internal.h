@@ -1,9 +1,10 @@
 #include "core_dynarray.h"
 #include "core_thread.h"
-#include "ecs_storage.h"
 
 #include "archetype_internal.h"
 #include "entity_allocator_internal.h"
+
+typedef u32 EcsArchetypeId;
 
 typedef struct {
   u32            serial;
@@ -11,8 +12,8 @@ typedef struct {
   u32            archetypeIndex;
 } EcsEntityInfo;
 
-struct sEcsStorage {
-  EcsDef* def;
+typedef struct {
+  const EcsDef* def;
 
   EntityAllocator entityAllocator;
   DynArray        entities; // EcsEntityInfo[].
@@ -21,24 +22,13 @@ struct sEcsStorage {
   DynArray       newEntities; // EcsEntityId[].
 
   DynArray archetypes; // EcsArchetype[].
+} EcsStorage;
 
-  Allocator* memoryAllocator;
-};
+EcsStorage ecs_storage_create(Allocator*, const EcsDef*);
+void       ecs_storage_destroy(EcsStorage*);
 
-/**
- * Internal api for accessing entity information.
- * Returns null if the entity cannot be found.
- */
+EcsEntityId    ecs_storage_entity_create(EcsStorage*);
+bool           ecs_storage_entity_exists(const EcsStorage*, EcsEntityId);
 EcsEntityInfo* ecs_storage_entity_info(EcsStorage*, EcsEntityId);
-
-/**
- * Find the archetype with the given component mask.
- * Returns sentinel_u32 if no archtype could be found with the given mask.
- */
 EcsArchetypeId ecs_storage_achetype_find(EcsStorage*, BitSet mask);
-
-/**
- * Find the archetype with the given component mask.
- * Creates a new archetype if none could be found.
- */
 EcsArchetypeId ecs_storage_archtype_find_or_create(EcsStorage*, BitSet mask);

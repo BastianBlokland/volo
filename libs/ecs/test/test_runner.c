@@ -1,5 +1,6 @@
 #include "check_spec.h"
 #include "core_alloc.h"
+#include "core_diag.h"
 #include "core_thread.h"
 #include "ecs_def.h"
 #include "ecs_runner.h"
@@ -9,8 +10,15 @@
 // the same process.
 static i64 test_sys1_counter, test_sys2_counter;
 
-ecs_system_define(TestSys1) { thread_atomic_add_i64(&test_sys1_counter, 1); };
-ecs_system_define(TestSys2) { thread_atomic_add_i64(&test_sys2_counter, 1); };
+ecs_system_define(TestSys1) {
+  diag_assert(g_ecsRunningSystem);
+  thread_atomic_add_i64(&test_sys1_counter, 1);
+}
+
+ecs_system_define(TestSys2) {
+  diag_assert(g_ecsRunningSystem);
+  thread_atomic_add_i64(&test_sys2_counter, 1);
+}
 
 ecs_module_init(runner_test_module) {
   ecs_register_system(TestSys1);
@@ -32,6 +40,8 @@ spec(runner) {
   }
 
   it("executes every system once") {
+    check(!g_ecsRunningSystem);
+
     ecs_run_sync(runner);
     check_eq_int(thread_atomic_load_i64(&test_sys1_counter), 1);
     check_eq_int(thread_atomic_load_i64(&test_sys2_counter), 1);

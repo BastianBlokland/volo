@@ -1,6 +1,5 @@
 #include "core_alloc.h"
 #include "core_diag.h"
-#include "ecs_storage.h"
 
 #include "archetype_internal.h"
 #include "def_internal.h"
@@ -21,7 +20,7 @@ static usize ecs_archetype_comp_idx(EcsArchetype* archetype, const EcsCompId id)
   return bitset_index(archetype->mask, id);
 }
 
-EcsArchetype ecs_archetype_create(EcsDef* def, BitSet mask) {
+EcsArchetype ecs_archetype_create(const EcsDef* def, BitSet mask) {
   usize compCount      = 0;
   usize entityDataSize = sizeof(EcsEntityId);
   usize padding        = 0;

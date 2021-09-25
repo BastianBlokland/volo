@@ -1,4 +1,3 @@
-#include "core_alloc.h"
 #include "core_diag.h"
 #include "ecs_runner.h"
 
@@ -8,22 +7,19 @@
 // Note: Not a hard limit, will grow beyond this if needed.
 #define ecs_starting_entities_capacity 1024
 
-EcsStorage* ecs_storage_create(Allocator* alloc, EcsDef* def) {
+EcsStorage ecs_storage_create(Allocator* alloc, const EcsDef* def) {
   diag_assert(alloc && def);
 
-  EcsStorage* storage = alloc_alloc_t(alloc, EcsStorage);
-  *storage            = (EcsStorage){
+  EcsStorage storage = (EcsStorage){
       .def             = def,
       .entityAllocator = entity_allocator_create(alloc),
       .entities        = dynarray_create_t(alloc, EcsEntityInfo, ecs_starting_entities_capacity),
       .newEntities     = dynarray_create_t(alloc, EcsEntityId, 128),
       .archetypes      = dynarray_create_t(alloc, EcsArchetype, 128),
-      .memoryAllocator = alloc,
   };
 
-  // Precreate the entities array, clearing the memory is enough initialization as 0 is an invalid
-  // entity serial number.
-  Mem entities = dynarray_push(&storage->entities, ecs_starting_entities_capacity);
+  // Precreate the entities array, mem_set() as 0 is an invalid entity serial number.
+  Mem entities = dynarray_push(&storage.entities, ecs_starting_entities_capacity);
   mem_set(entities, 0);
 
   return storage;
@@ -37,13 +33,9 @@ void ecs_storage_destroy(EcsStorage* storage) {
 
   dynarray_destroy(&storage->entities);
   dynarray_destroy(&storage->newEntities);
-
-  alloc_free_t(storage->memoryAllocator, storage);
 }
 
 EcsEntityId ecs_storage_entity_create(EcsStorage* storage) {
-  // diag_assert(g_ecsRunningSystem); // TODO: Enable this once ecs systems api is in place.
-
   const EcsEntityId id = entity_allocator_alloc(&storage->entityAllocator);
 
   if (ecs_entity_id_index(id) < storage->entities.size) {
@@ -72,12 +64,12 @@ EcsEntityInfo* ecs_storage_entity_info(EcsStorage* storage, EcsEntityId id) {
   return info->serial == ecs_entity_id_serial(id) ? info : null;
 }
 
-bool ecs_storage_entity_exists(EcsStorage* storage, const EcsEntityId id) {
+bool ecs_storage_entity_exists(const EcsStorage* storage, const EcsEntityId id) {
   if (ecs_entity_id_index(id) >= storage->entities.size) {
     // Out of bounds entity means it was created in this tick.
     return true;
   }
-  return ecs_storage_entity_info(storage, id) != null;
+  return ecs_storage_entity_info((EcsStorage*)storage, id) != null;
 }
 
 EcsArchetypeId ecs_storage_achetype_find(EcsStorage* storage, const BitSet mask) {

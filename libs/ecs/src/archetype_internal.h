@@ -1,7 +1,10 @@
 #pragma once
 #include "core_bitset.h"
 #include "core_dynarray.h"
-#include "ecs_storage.h"
+#include "ecs_def.h"
+
+// Forward declare from 'ecs_world.h'.
+typedef u64 EcsEntityId;
 
 typedef struct {
   BitSet mask;
@@ -13,7 +16,7 @@ typedef struct {
   usize  entityCount;
 } EcsArchetype;
 
-EcsArchetype ecs_archetype_create(EcsDef*, BitSet mask);
+EcsArchetype ecs_archetype_create(const EcsDef*, BitSet mask);
 void         ecs_archetype_destroy(EcsArchetype*);
 u32          ecs_archetype_add(EcsArchetype*, EcsEntityId);
 EcsEntityId* ecs_archetype_get_entity(EcsArchetype*, u32 index);

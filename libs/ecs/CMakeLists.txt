@@ -21,7 +21,6 @@ add_executable(volo_ecs_test
   test/main.c
   test/test_def.c
   test/test_runner.c
-  test/test_storage.c
   test/test_world.c)
 target_link_libraries(volo_ecs_test PRIVATE volo_check)
 target_link_libraries(volo_ecs_test PRIVATE volo_ecs)

@@ -28,6 +28,9 @@ EcsEntityId entity_allocator_alloc(EntityAllocator* entityAllocator) {
   u32 serial, index;
   thread_spinlock_lock(&entityAllocator->lock);
   {
+    // Note: 'thread_spinlock_lock()' includes a general memory barrier, so any writes done by other
+    // 'entity_allocator_alloc' invocations on other threads are flushed.
+
     serial = ++entityAllocator->serialCounter;
 
     // Try to find a free index.

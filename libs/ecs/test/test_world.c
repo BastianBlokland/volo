@@ -19,6 +19,11 @@ spec(world) {
 
   it("stores the definition") { check(ecs_world_def(world) == def); }
 
+  it("can create a new entity") {
+    const EcsEntityId entity = ecs_world_entity_create(world);
+    check(ecs_world_entity_exists(world, entity));
+  }
+
   teardown() {
     ecs_world_destroy(world);
     ecs_def_destroy(def);

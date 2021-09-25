@@ -1,7 +1,9 @@
 #pragma once
 #include "core_dynbitset.h"
 #include "core_thread.h"
-#include "ecs_storage.h"
+
+// Forward declare from 'ecs_world.h'.
+typedef u64 EcsEntityId;
 
 /**
  * Entity index, assigned in a first-free manor. Unique within all alive entities.
