@@ -97,6 +97,18 @@ void jobs_graph_task_depend(JobGraph*, JobTaskId parent, JobTaskId child);
 bool jobs_graph_task_undepend(JobGraph*, JobTaskId parent, JobTaskId child);
 
 /**
+ * Remove all unnecessary dependencies
+ * This performs a 'Transitive Reduction' to remove dependencies while still keeping an equivalent
+ * graph. More info: https://en.wikipedia.org/wiki/Transitive_reduction
+ * Returns the amount of dependencies removed.
+ *
+ * Note: This is a relatively expensive operation (at least O(tasks * dependencies)).
+ *
+ * Pre-condition: JobGraph is not running at the moment.
+ */
+usize jobs_graph_reduce_dependencies(JobGraph*);
+
+/**
  * Validate the given JobGraph.
  * Checks:
  * - Graph does not contain cycles.

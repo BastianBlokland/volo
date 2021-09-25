@@ -175,6 +175,80 @@ spec(graph) {
     check(sentinel_check(itr.task));
   }
 
+  it("can reduce unnecessary dependencies in a linear graph") {
+    const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
+    const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
+    const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, mem_empty);
+    const JobTaskId d = jobs_graph_add_task(job, string_lit("D"), null, mem_empty);
+
+    jobs_graph_task_depend(job, a, b);
+    jobs_graph_task_depend(job, a, c);
+    jobs_graph_task_depend(job, a, d);
+
+    jobs_graph_task_depend(job, b, c);
+    jobs_graph_task_depend(job, b, d);
+
+    jobs_graph_task_depend(job, c, d);
+
+    check_eq_int(jobs_graph_task_span(job), 4); // Span of this graph is 4.
+
+    // Three of these dependencies are unnecessary.
+    check_eq_int(jobs_graph_reduce_dependencies(job), 3);
+
+    check_eq_int(jobs_graph_task_span(job), 4); // Span is still 4.
+
+    // A simple linear chain remains: A -> B -> C -> D.
+    check_eq_int(jobs_graph_task_parent_count(job, a), 0);
+    check_eq_int(jobs_graph_task_parent_count(job, b), 1);
+    check_eq_int(jobs_graph_task_parent_count(job, c), 1);
+    check_eq_int(jobs_graph_task_parent_count(job, d), 1);
+
+    check_eq_int(jobs_graph_task_child_begin(job, a).task, b);
+    check_eq_int(jobs_graph_task_child_begin(job, b).task, c);
+    check_eq_int(jobs_graph_task_child_begin(job, c).task, d);
+    check(sentinel_check(jobs_graph_task_child_begin(job, d).task));
+  }
+
+  it("can reduce unnecessary dependencies in a graph") {
+    const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
+    const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
+    const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, mem_empty);
+    const JobTaskId d = jobs_graph_add_task(job, string_lit("D"), null, mem_empty);
+    const JobTaskId e = jobs_graph_add_task(job, string_lit("E"), null, mem_empty);
+
+    jobs_graph_task_depend(job, a, b);
+    jobs_graph_task_depend(job, a, c);
+    jobs_graph_task_depend(job, b, c);
+    jobs_graph_task_depend(job, d, b);
+    jobs_graph_task_depend(job, d, e);
+    jobs_graph_task_depend(job, d, c);
+    jobs_graph_task_depend(job, e, c);
+
+    check_eq_int(jobs_graph_task_span(job), 3); // Span of this graph is 3.
+
+    // Two of these dependencies are unnecessary.
+    check_eq_int(jobs_graph_reduce_dependencies(job), 2);
+
+    check_eq_int(jobs_graph_task_span(job), 3); // Span of this graph is still 3.
+  }
+
+  it("cant reduce dependencies in a fully parallel graph") {
+    jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
+    jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
+    jobs_graph_add_task(job, string_lit("C"), null, mem_empty);
+    jobs_graph_add_task(job, string_lit("D"), null, mem_empty);
+    jobs_graph_add_task(job, string_lit("E"), null, mem_empty);
+    jobs_graph_add_task(job, string_lit("F"), null, mem_empty);
+    jobs_graph_add_task(job, string_lit("G"), null, mem_empty);
+
+    check_eq_int(jobs_graph_task_span(job), 1); // Span of this graph is 1.
+
+    // There are no dependencies to reduce.
+    check_eq_int(jobs_graph_reduce_dependencies(job), 0);
+
+    check_eq_int(jobs_graph_task_span(job), 1); // Span of this graph is still 1.
+  }
+
   it("can detect cycles") {
     const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
     const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
@@ -207,7 +281,7 @@ spec(graph) {
     check(!jobs_graph_validate(job));
   }
 
-  it("can compute the span of a serial chain") {
+  it("can compute the span of a serial graph") {
     const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
     const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
     const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, mem_empty);
@@ -229,7 +303,7 @@ spec(graph) {
     check_eq_int(jobs_graph_task_leaf_count(job), 1);
   }
 
-  it("can compute the span of a parallel chain") {
+  it("can compute the span of a parallel graph") {
     jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
     jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
     jobs_graph_add_task(job, string_lit("C"), null, mem_empty);
@@ -244,7 +318,7 @@ spec(graph) {
     check_eq_int(jobs_graph_task_leaf_count(job), 7);
   }
 
-  it("can compute the span of a complex chain") {
+  it("can compute the span of a complex graph") {
     const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
     const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
     const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, mem_empty);
@@ -285,6 +359,9 @@ spec(graph) {
     jobs_graph_task_depend(job, r, p);
     jobs_graph_task_depend(job, o, m);
     jobs_graph_task_depend(job, p, m);
+
+    // Verify that there are no redundant dependencies.
+    check_eq_int(jobs_graph_reduce_dependencies(job), 0);
 
     check(jobs_graph_validate(job));
     check_eq_int(jobs_graph_task_span(job), 9);
