@@ -209,12 +209,16 @@ void thread_cond_broadcast(ThreadCondition);
 /**
  * Acquire the spinlink.
  * In order to avoid wasting resources this lock should be held for a short as possible.
+ * This includes a general memory barrier that synchronizes with 'thread_spinlock_unlock()'.
+ *
  * Pre-condition: SpinLock is not being held by this thread.
  */
 void thread_spinlock_lock(ThreadSpinLock*);
 
 /**
  * Release the spinlink.
+ * This includes a general memory barrier that synchronizes with 'thread_spinlock_lock()'.
+ *
  * Pre-condition: Spinlock is being held by this thread.
  */
 void thread_spinlock_unlock(ThreadSpinLock*);
