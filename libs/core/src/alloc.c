@@ -36,7 +36,7 @@ INLINE_HINT Mem alloc_alloc(Allocator* allocator, const usize size, const usize 
   diag_assert_msg(
       bits_ispow2(align), "alloc_alloc: Alignment '{}' is not a power-of-two", fmt_int(align));
   diag_assert_msg(
-      (size & (align - 1)) == 0,
+      bits_aligned(size, align),
       "alloc_alloc: Size '{}' is not a multiple of the alignment '{}'",
       fmt_size(size),
       fmt_int(align));

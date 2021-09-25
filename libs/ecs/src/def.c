@@ -116,7 +116,7 @@ ecs_def_register_comp(EcsDef* def, const String name, const usize size, const us
   diag_assert_msg(
       bits_ispow2(align), "Component alignment '{}' is not a power-of-two", fmt_int(align));
   diag_assert_msg(
-      (size & (align - 1)) == 0,
+      bits_aligned(size, align),
       "Component size '{}' is not a multiple of the alignment '{}'",
       fmt_size(size),
       fmt_int(align));

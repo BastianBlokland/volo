@@ -13,7 +13,7 @@ struct AllocatorPage {
 static Mem alloc_page_alloc(Allocator* allocator, const usize size, const usize align) {
   const usize pageSize = ((struct AllocatorPage*)allocator)->pageSize;
   diag_assert_msg(
-      (pageSize & (align - 1)) == 0,
+      bits_aligned(pageSize, align),
       "alloc_page_alloc: Alignment '{}' cannot be satisfied (stronger then pageSize alignment)",
       fmt_int(align));
   (void)pageSize;

@@ -144,6 +144,12 @@ u64 bits_align_64(u64 val, u64 align);
  */
 #define bits_align_ptr(_VAL_) bits_align(_VAL_, sizeof(void*))
 
+/**
+ * Check if the value satisfies the given alignment.
+ * Pre-condition: bits_ispow2(_ALIGN_)
+ */
+#define bits_aligned(_VAL_, _ALIGN_) (((_VAL_) & ((_ALIGN_) - 1)) == 0)
+
 // clang-format on
 
 /**

@@ -150,6 +150,19 @@ spec(bits) {
     check_eq_int(bits_align_ptr(11u), 16);
   }
 
+  it("can check if a value satisfies given alignment") {
+    check(bits_aligned(0u, 8u));
+    check(bits_aligned(8u, 8u));
+    check(bits_aligned(16u, 8u));
+    check(bits_aligned(32u, 8u));
+    check(bits_aligned(bits_align_ptr(1u), sizeof(void*)));
+
+    check(!bits_aligned(1u, 8u));
+    check(!bits_aligned(7u, 8u));
+    check(!bits_aligned(9u, 8u));
+    check(!bits_aligned(31u, 8u));
+  }
+
   it("can alias unsigned integers and floats") {
     check_eq_float(bits_u32_as_f32(bits_f32_as_u32(1.337f)), 1.337f, 1e-6f);
     check_eq_int(bits_f32_as_u32(bits_u32_as_f32(42)), 42);
