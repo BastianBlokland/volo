@@ -30,7 +30,19 @@ typedef struct {
 #define mem_create(_PTR_, _SIZE_)                                                                  \
   ((Mem){                                                                                          \
       .ptr  = (void*)(_PTR_),                                                                      \
-      .size = _SIZE_,                                                                              \
+      .size = (_SIZE_),                                                                            \
+  })
+
+/**
+ * Create a view over the given memory.
+ * NOTE: _BEGIN_ is expanded multiple times, so care must be taken when providing complex
+ * expressions.
+ * NOTE: The memory view is only valid as long as the underlying memory remains valid.
+ */
+#define mem_from_to(_BEGIN_, _END_)                                                                \
+  ((Mem){                                                                                          \
+      .ptr  = (void*)(_BEGIN_),                                                                    \
+      .size = (u8*)(_END_) - (u8*)(_BEGIN_),                                                       \
   })
 
 /**
