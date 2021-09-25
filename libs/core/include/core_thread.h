@@ -17,7 +17,7 @@ extern i64 g_thread_pid;
 
 /**
  * Thread identifier of the main thread.
- * Note: The thread that calls 'core_init()' is considered the main thread.
+ * NOTE: The thread that calls 'core_init()' is considered the main thread.
  */
 extern i64 g_thread_main_tid;
 
@@ -43,19 +43,19 @@ typedef void (*ThreadRoutine)(void*);
 
 /**
  * Handle to a started thread.
- * Note: Thread resources should be cleaned up by calling 'thread_join()'.
+ * NOTE: Thread resources should be cleaned up by calling 'thread_join()'.
  */
 typedef uptr ThreadHandle;
 
 /**
  * Handle to a mutex.
- * Note: Should be cleaned up by calling 'thread_mutex_destroy()'.
+ * NOTE: Should be cleaned up by calling 'thread_mutex_destroy()'.
  */
 typedef uptr ThreadMutex;
 
 /**
  * Handle to a condition.
- * Note: Should be cleaned up by calling 'thread_cond_destroy()'.
+ * NOTE: Should be cleaned up by calling 'thread_cond_destroy()'.
  */
 typedef uptr ThreadCondition;
 
@@ -63,7 +63,7 @@ typedef uptr ThreadCondition;
  * SpinLock semaphore.
  * Usefull for very short locks where the cost of context switching would be too high.
  * Lock using 'thread_spinlock_lock()', and unlock using 'thread_spinlock_unlock()'.
- * Note: Should be zero initialized.
+ * NOTE: Should be zero initialized.
  */
 typedef i64 ThreadSpinLock;
 
@@ -119,7 +119,7 @@ ThreadHandle thread_start(ThreadRoutine, void* data, String threadName);
 
 /**
  * Wait for the given thread to finish and clean up its resources.
- * Note: Should be called exactly once per started thread.
+ * NOTE: Should be called exactly once per started thread.
  */
 void thread_join(ThreadHandle);
 
@@ -197,7 +197,7 @@ void thread_cond_wait(ThreadCondition, ThreadMutex);
 
 /**
  * Unblock atleast one thread waiting for the given condition.
- * Note: It is possible that more then one thread is woken up, often called 'spurious wakeup'.
+ * NOTE: It is possible that more then one thread is woken up, often called 'spurious wakeup'.
  */
 void thread_cond_signal(ThreadCondition);
 

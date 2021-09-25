@@ -39,18 +39,18 @@ usize workqueue_size(const WorkQueue*);
 
 /**
  * Push a new item to the queue.
- * Note: Can only be called by the owning thread.
+ * NOTE: Can only be called by the owning thread.
  */
 void workqueue_push(WorkQueue*, Job*, JobTaskId);
 
 /**
  * Pop an item from the queue in a LIFO manner.
- * Note: Can only be called by the owning thread.
+ * NOTE: Can only be called by the owning thread.
  */
 WorkItem workqueue_pop(WorkQueue*);
 
 /**
  * Pop an item from the queue in a FIFO manner.
- * Note: Can be called by any thread.
+ * NOTE: Can be called by any thread.
  */
 WorkItem workqueue_steal(WorkQueue*);

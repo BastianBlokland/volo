@@ -4,7 +4,7 @@
 
 /**
  * Non-owning view over memory containing bit flags.
- * Note: BitSets are always byte aligned, meaning size is always a multiple of 8.
+ * NOTE: BitSets are always byte aligned, meaning size is always a multiple of 8.
  */
 typedef Mem BitSet;
 
@@ -79,7 +79,7 @@ bool bitset_all_of(BitSet, BitSet other);
 /**
  * Return the next set bit starting from the given index.
  * Pre-condition: idx < bitset_size
- * Note: Returns 'sentinel_usize' if there are no more set bits.
+ * NOTE: Returns 'sentinel_usize' if there are no more set bits.
  */
 usize bitset_next(BitSet, usize idx);
 

@@ -94,7 +94,7 @@ bool path_canonize(DynString* str, String path) {
 
   /**
    * Canonize the root in case of an absolute path.
-   * Note: Windows drive letters are canonized to uppercase.
+   * NOTE: Windows drive letters are canonized to uppercase.
    */
 
   if (path_starts_with_posix_root(path)) {

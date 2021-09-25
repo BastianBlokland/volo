@@ -25,7 +25,7 @@ typedef struct {
 
 /**
  * Create a view over the given memory.
- * Note: The memory view is only valid as long as the underlying memory remains valid.
+ * NOTE: The memory view is only valid as long as the underlying memory remains valid.
  */
 #define mem_create(_PTR_, _SIZE_)                                                                  \
   ((Mem){                                                                                          \
@@ -47,7 +47,7 @@ typedef struct {
 
 /**
  * Check if the memory view is valid.
- * Note: Only checks if it was initialized properly, does NOT check if there is actually memory
+ * NOTE: Only checks if it was initialized properly, does NOT check if there is actually memory
  * backing it.
  */
 #define mem_valid(_MEM_) ((_MEM_).ptr != null)
@@ -90,7 +90,7 @@ typedef struct {
 
 /**
  * Create a memory buffer on the stack.
- * Note: Care must be taken not to overflow the stack by using too high _SIZE_ values.
+ * NOTE: Care must be taken not to overflow the stack by using too high _SIZE_ values.
  * NOTE: _SIZE_ is expanded multiple times, so care must be taken when providing complex
  * expressions.
  */

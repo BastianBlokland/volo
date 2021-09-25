@@ -5,7 +5,7 @@
 /**
  * Owning array of characters.
  * Dynamically allocates memory when more characters get added.
- * Note: Any pointers / strings retrieved over DynString are invalidated on any mutating api.
+ * NOTE: Any pointers / strings retrieved over DynString are invalidated on any mutating api.
  */
 typedef DynArray DynString;
 
@@ -30,13 +30,13 @@ void dynstring_destroy(DynString*);
 
 /**
  * Retrieve the current size (in characters) of the dynamic-string.
- * Note: Identical to checking .size on the struct, but provided for consistency with other apis.
+ * NOTE: Identical to checking .size on the struct, but provided for consistency with other apis.
  */
 usize dynstring_size(const DynString*);
 
 /**
  * Retreive a string-view over the entire dynamic-string.
- * Note: This string is invalidated when using any of the mutating dynamic-string apis.
+ * NOTE: This string is invalidated when using any of the mutating dynamic-string apis.
  */
 String dynstring_view(const DynString*);
 
@@ -67,6 +67,6 @@ void dynstring_insert_chars(DynString*, u8, usize idx, usize amount);
 
 /**
  * .Append 'amount' empty space at the end of the dynamic-string.
- * Note: the new space is NOT initialized and its up to the caller to write to it.
+ * NOTE: the new space is NOT initialized and its up to the caller to write to it.
  */
 String dynstring_push(DynString*, usize amount);

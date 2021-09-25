@@ -66,7 +66,7 @@ usize ecs_def_comp_align(const EcsDef*, EcsCompId);
 
 /**
  * Retrieve the name of a view.
- * Note: View names are not required to be unique.
+ * NOTE: View names are not required to be unique.
  *
  * Pre-condition: EcsViewId is a valid view-id registered to the given EcsDef.
  */
@@ -74,7 +74,7 @@ String ecs_def_view_name(const EcsDef*, EcsViewId);
 
 /**
  * Retrieve the name of a system.
- * Note: System names are not required to be unique.
+ * NOTE: System names are not required to be unique.
  *
  * Pre-condition: EcsSystemId is a valid system-id registered to the given EcsDef.
  */

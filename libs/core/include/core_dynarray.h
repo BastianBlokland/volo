@@ -13,7 +13,7 @@ typedef struct sRng Rng;
 /**
  * Owning array of items.
  * Dynamically allocates memory when more items get added.
- * Note: Any pointers / memory-views retrieved over DynArray are invalidated on any mutating api.
+ * NOTE: Any pointers / memory-views retrieved over DynArray are invalidated on any mutating api.
  */
 typedef struct {
   Mem        data;
@@ -47,7 +47,7 @@ typedef struct {
 
 /**
  * Push memory for new item to the array. Returns a pointer to the new item.
- * Note: The memory for the new item is NOT initialized.
+ * NOTE: The memory for the new item is NOT initialized.
  * Pre-condition: sizeof(_TYPE_) <= '_ARRAY_'.stride
  */
 #define dynarray_push_t(_ARRAY_, _TYPE_) mem_as_t(dynarray_push(_ARRAY_, 1), _TYPE_)
@@ -87,7 +87,7 @@ void dynarray_destroy(DynArray*);
 
 /**
  * Retrieve the current size (in elements) of the array.
- * Note: Identical to checking .size on the struct, but provided for consistency with other apis.
+ * NOTE: Identical to checking .size on the struct, but provided for consistency with other apis.
  */
 usize dynarray_size(const DynArray*);
 
@@ -110,7 +110,7 @@ Mem dynarray_at(const DynArray*, usize idx, usize count);
 
 /**
  * Push memory for new items to the array. Returns a memory-view over the new items.
- * Note: The memory for the new items is NOT initialized.
+ * NOTE: The memory for the new items is NOT initialized.
  */
 Mem dynarray_push(DynArray*, usize count);
 

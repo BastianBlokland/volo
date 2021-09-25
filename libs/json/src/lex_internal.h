@@ -32,7 +32,7 @@ typedef struct {
  * Returns the remaining input.
  * The token is written to the output pointer.
  *
- * Note: String tokens are allocated in scratch memory, the caller is responsible for copying them
+ * NOTE: String tokens are allocated in scratch memory, the caller is responsible for copying them
  * if they wish to persist them.
  */
 String json_lex(String, JsonToken*);

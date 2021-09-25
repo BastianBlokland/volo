@@ -7,7 +7,7 @@ typedef struct sAllocator Allocator;
 /**
  * Non-owning view over memory containing characters.
  * Encoding is assumed to be utf8.
- * Note: NOT null-terminated.
+ * NOTE: NOT null-terminated.
  */
 typedef Mem String;
 
@@ -70,7 +70,7 @@ String string_from_null_term(const char*);
 
 /**
  * Duplicate the given string in memory allocated from the allocator.
- * Note: Has to be explicitly freed using 'string_free'.
+ * NOTE: Has to be explicitly freed using 'string_free'.
  */
 String string_dup(Allocator*, String);
 
@@ -116,25 +116,25 @@ String string_consume(String, usize amount);
 
 /**
  * Find the first occurrence of the given substring.
- * Note: Returns 'sentinel_usize' if the substring could not be found.
+ * NOTE: Returns 'sentinel_usize' if the substring could not be found.
  */
 usize string_find_first(String, String subStr);
 
 /**
  * Find the first occurrence of any of the given characters.
- * Note: Returns 'sentinel_usize' if none of the characters could be found.
+ * NOTE: Returns 'sentinel_usize' if none of the characters could be found.
  */
 usize string_find_first_any(String, String chars);
 
 /**
  * Find the last occurrence of the given substring.
- * Note: Returns 'sentinel_usize' if the substring could not be found.
+ * NOTE: Returns 'sentinel_usize' if the substring could not be found.
  */
 usize string_find_last(String, String subStr);
 
 /**
  * Find the last occurrence of any of the given characters.
- * Note: Returns 'sentinel_usize' if none of the characters could be found.
+ * NOTE: Returns 'sentinel_usize' if none of the characters could be found.
  */
 usize string_find_last_any(String, String chars);
 

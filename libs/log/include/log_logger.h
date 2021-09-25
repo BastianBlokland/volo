@@ -89,7 +89,7 @@ void log_destroy(Logger*);
 
 /**
  * Add a new sink to the specified logger object.
- * Note: Sinks are automatically destroyed when the logger object is destroyed.
+ * NOTE: Sinks are automatically destroyed when the logger object is destroyed.
  */
 void log_add_sink(Logger*, LogSink*);
 

@@ -52,7 +52,7 @@ static void jobs_graph_add_task_child_link(
  * Remove a task from the linked list of task children that starts at 'linkHead'.
  * Returns if the task existed in the linked-list (and thus was removed).
  *
- * Note: Does not free up space in the 'childLinks' array as that would require updating the
+ * NOTE: Does not free up space in the 'childLinks' array as that would require updating the
  * indices of all registred dependencies.
  */
 static bool jobs_graph_remove_task_child_link(

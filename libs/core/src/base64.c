@@ -5,7 +5,7 @@
 /**
  * Mapping of ascii characters, starting at '+' and ending with 'z' to the base64 table.
  * The base64 table can be found on the wiki page: https://en.wikipedia.org/wiki/Base64
- * Note: value of 255 indicates the ascii character is not a valid base64 char.
+ * NOTE: value of 255 indicates the ascii character is not a valid base64 char.
  */
 static u8 g_decodeTable[] = {62,  255, 255, 255, 63,  52,  53, 54, 55, 56, 57, 58, 59, 60, 61, 255,
                              255, 255, 255, 255, 255, 255, 0,  1,  2,  3,  4,  5,  6,  7,  8,  9,

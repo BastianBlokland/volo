@@ -101,8 +101,8 @@ typedef void (*EcsSystemRoutine)(EcsWorld*);
 
 /**
  * Register a new component type.
- * Note: Can only be used inside a module-init function.
- * Note: The component has to be defined using 'ecs_comp_define()' in exactly one compilation unit.
+ * NOTE: Can only be used inside a module-init function.
+ * NOTE: The component has to be defined using 'ecs_comp_define()' in exactly one compilation unit.
  *
  * Pre-condition: No other component with the same name has been registered already.
  */
@@ -113,8 +113,8 @@ typedef void (*EcsSystemRoutine)(EcsWorld*);
 
 /**
  * Register a new view.
- * Note: Can only be used inside a module-init function.
- * Note: The view has to be defined using 'ecs_view_define()' in the same compilation unit.
+ * NOTE: Can only be used inside a module-init function.
+ * NOTE: The view has to be defined using 'ecs_view_define()' in the same compilation unit.
  */
 #define ecs_register_view(_NAME_)                                                                  \
   ecs_view_id(_NAME_) =                                                                            \
@@ -122,7 +122,7 @@ typedef void (*EcsSystemRoutine)(EcsWorld*);
 
 /**
  * Register a new system with a list of view-ids as dependencies.
- * Note: Can only be used inside a module-init function.
+ * NOTE: Can only be used inside a module-init function.
  *
  * Example usage:
  * ```

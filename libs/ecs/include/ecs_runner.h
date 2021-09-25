@@ -24,7 +24,7 @@ extern THREAD_LOCAL bool g_ecsRunningSystem;
 
 /**
  * Create a new Ecs runner for the given world.
- * Note: The world must remain valid while this runner exists.
+ * NOTE: The world must remain valid while this runner exists.
  * Destroy using 'ecs_runner_destroy()'.
  */
 EcsRunner* ecs_runner_create(Allocator*, EcsWorld*);

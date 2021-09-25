@@ -20,7 +20,7 @@ typedef struct sEcsWorld EcsWorld;
 
 /**
  * Create a new (empty) world.
- * Note: The given definition can no longer be changed after creating a world from it.
+ * NOTE: The given definition can no longer be changed after creating a world from it.
  *
  * Destroy using 'ecs_world_destroy()'.
  */

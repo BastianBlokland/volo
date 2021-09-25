@@ -42,7 +42,7 @@ typedef struct {
 
 /**
  * Get the next two values in the random sequence.
- * Note: Returns two values the used Box–Muller transform yields two values, if only one is needed
+ * NOTE: Returns two values the used Box–Muller transform yields two values, if only one is needed
  * then the other can be discarded.
  *
  * Returns two f32's between 0.0 (inclusive) and 1.0 (exclusive) with a gaussian (normal)

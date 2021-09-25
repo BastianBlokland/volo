@@ -35,7 +35,7 @@ u8 bits_popcnt_64(u64);
 
 /**
  * Count the trailing zeroes in a mask.
- * Note: returns 32 / 64 for a mask with 0 set bits.
+ * NOTE: returns 32 / 64 for a mask with 0 set bits.
  */
 u8 bits_ctz_32(u32);
 u8 bits_ctz_64(u64);
@@ -52,7 +52,7 @@ u8 bits_ctz_64(u64);
 
 /**
  * Count the leading zeroes in a mask.
- * Note: returns 32 / 64 for a mask with 0 set bits.
+ * NOTE: returns 32 / 64 for a mask with 0 set bits.
  */
 u8 bits_clz_32(u32);
 u8 bits_clz_64(u64);

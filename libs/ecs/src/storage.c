@@ -8,7 +8,7 @@
 #define ecs_starting_entities_capacity 1024
 
 /**
- * Note: Only safe during a flush or the ecs_storage_create() function.
+ * NOTE: Only safe during a flush or the ecs_storage_create() function.
  */
 static void ecs_storage_entity_ensure(EcsStorage* storage, const u32 index) {
   if (UNLIKELY(index >= storage->entities.size)) {
@@ -28,7 +28,7 @@ static void ecs_storage_entity_init(EcsStorage* storage, const EcsEntityId id) {
 }
 
 /**
- * Note: Only safe to be called during a flush.
+ * NOTE: Only safe to be called during a flush.
  */
 static void ecs_storage_flush_new_entities(EcsStorage* storage) {
   dynarray_for_t(&storage->newEntities, EcsEntityId, newEntityId, {

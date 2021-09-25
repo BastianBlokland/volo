@@ -13,7 +13,7 @@
 
 /**
  * Allocate new memory that satisfies the size and alignment required for the given type.
- * Note: Has to be explicitly freed using 'alloc_free'.
+ * NOTE: Has to be explicitly freed using 'alloc_free'.
  */
 #define alloc_alloc_t(_ALLOCATOR_, _TYPE_)                                                         \
   ((_TYPE_*)alloc_alloc((_ALLOCATOR_), sizeof(_TYPE_), alignof(_TYPE_)).ptr)
@@ -56,7 +56,7 @@ Allocator* alloc_bump_create(Mem);
 
 /**
  * Allocate new memory.
- * Note: Has to be explicitly freed using 'alloc_free'.
+ * NOTE: Has to be explicitly freed using 'alloc_free'.
  * Pre-condition: size > 0.
  * Pre-condition: align is a power-of-two.
  * Pre-condition: size is a multiple of align.
@@ -71,7 +71,7 @@ void alloc_free(Allocator*, Mem);
 
 /**
  * Duplicate the given memory with memory alloced from the given allocator.
- * Note: Has to be explicitly freed using 'alloc_free'.
+ * NOTE: Has to be explicitly freed using 'alloc_free'.
  */
 Mem alloc_dup(Allocator*, Mem, usize align);
 
