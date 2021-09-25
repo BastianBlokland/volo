@@ -37,11 +37,20 @@ void ecs_world_destroy(EcsWorld*);
 const EcsDef* ecs_world_def(EcsWorld*);
 
 /**
+ * Check if the world is currently busy (being used by a runner for example).
+ */
+bool ecs_world_busy(const EcsWorld*);
+
+/**
  * Synchonously create a new entity.
+ *
+ * Pre-condition: !ecs_world_busy() || g_ecsRunningSystem
  */
 EcsEntityId ecs_world_entity_create(EcsWorld*);
 
 /**
  * Check if the given entity exists in the world.
+ *
+ * Pre-condition: !ecs_world_busy() || g_ecsRunningSystem
  */
 bool ecs_world_entity_exists(const EcsWorld*, EcsEntityId);

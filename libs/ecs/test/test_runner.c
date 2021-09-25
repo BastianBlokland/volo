@@ -12,11 +12,15 @@ static i64 test_sys1_counter, test_sys2_counter;
 
 ecs_system_define(TestSys1) {
   diag_assert(g_ecsRunningSystem);
+  diag_assert(ecs_world_busy(_world));
+
   thread_atomic_add_i64(&test_sys1_counter, 1);
 }
 
 ecs_system_define(TestSys2) {
   diag_assert(g_ecsRunningSystem);
+  diag_assert(ecs_world_busy(_world));
+
   thread_atomic_add_i64(&test_sys2_counter, 1);
 }
 
@@ -41,6 +45,7 @@ spec(runner) {
 
   it("executes every system once") {
     check(!g_ecsRunningSystem);
+    check(!ecs_world_busy(world));
 
     ecs_run_sync(runner);
     check_eq_int(thread_atomic_load_i64(&test_sys1_counter), 1);

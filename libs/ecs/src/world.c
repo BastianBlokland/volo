@@ -1,12 +1,20 @@
 #include "core_alloc.h"
+#include "core_diag.h"
+#include "ecs_runner.h"
 
 #include "def_internal.h"
 #include "storage_internal.h"
 #include "world_internal.h"
 
+typedef enum {
+  EcsWorldFlags_None,
+  EcsWorldFlags_Busy = 1 << 0, // For example set when a runner is active on this world.
+} EcsWorldFlags;
+
 struct sEcsWorld {
   const EcsDef* def;
   EcsStorage    storage;
+  EcsWorldFlags flags;
   Allocator*    alloc;
 };
 
@@ -33,11 +41,25 @@ void ecs_world_destroy(EcsWorld* world) {
 const EcsDef* ecs_world_def(EcsWorld* world) { return world->def; }
 
 EcsEntityId ecs_world_entity_create(EcsWorld* world) {
+  diag_assert(!ecs_world_busy(world) || g_ecsRunningSystem);
   return ecs_storage_entity_create(&world->storage);
 }
 
 bool ecs_world_entity_exists(const EcsWorld* world, const EcsEntityId id) {
+  diag_assert(!ecs_world_busy(world) || g_ecsRunningSystem);
   return ecs_storage_entity_exists(&world->storage, id);
+}
+
+bool ecs_world_busy(const EcsWorld* world) { return (world->flags & EcsWorldFlags_Busy) != 0; }
+
+void ecs_world_busy_set(EcsWorld* world) {
+  diag_assert_msg(!ecs_world_busy(world), "World is already busy");
+  world->flags |= EcsWorldFlags_Busy;
+}
+
+void ecs_world_busy_unset(EcsWorld* world) {
+  diag_assert_msg(ecs_world_busy(world), "World is not busy");
+  world->flags &= ~EcsWorldFlags_Busy;
 }
 
 void ecs_world_flush(EcsWorld* world) { (void)world; }

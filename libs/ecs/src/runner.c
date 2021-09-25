@@ -43,6 +43,7 @@ static void graph_runner_finalize_task(void* context) {
   ecs_world_flush(data->runner->world);
 
   data->runner->flags &= ~EcsRunnerFlags_Running;
+  ecs_world_busy_unset(data->runner->world);
 }
 
 static void graph_system_task(void* context) {
@@ -138,6 +139,7 @@ JobId ecs_run_async(EcsRunner* runner) {
   diag_assert_msg(!ecs_running(runner), "Runner is currently already running");
 
   runner->flags |= EcsRunnerFlags_Running;
+  ecs_world_busy_set(runner->world);
   return jobs_scheduler_run(runner->graph);
 }
 
