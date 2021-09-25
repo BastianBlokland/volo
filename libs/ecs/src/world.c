@@ -62,4 +62,7 @@ void ecs_world_busy_unset(EcsWorld* world) {
   world->flags &= ~EcsWorldFlags_Busy;
 }
 
-void ecs_world_flush(EcsWorld* world) { (void)world; }
+void ecs_world_flush(EcsWorld* world) {
+  diag_assert_msg(!g_ecsRunningSystem, "World cannot be flushed from a system");
+  ecs_storage_flush(&world->storage);
+}

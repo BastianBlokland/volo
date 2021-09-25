@@ -7,6 +7,37 @@
 // Note: Not a hard limit, will grow beyond this if needed.
 #define ecs_starting_entities_capacity 1024
 
+/**
+ * Note: Only safe during a flush or the ecs_storage_create() function.
+ */
+static void ecs_storage_entity_ensure(EcsStorage* storage, const u32 index) {
+  if (UNLIKELY(index >= storage->entities.size)) {
+    Mem entities = dynarray_push(&storage->entities, (index + 1) - storage->entities.size);
+    mem_set(entities, 0); // mem_set() as 0 is an invalid entity serial number
+  }
+}
+
+static void ecs_storage_entity_init(EcsStorage* storage, const EcsEntityId id) {
+  EcsEntityInfo* info = dynarray_at_t(&storage->entities, ecs_entity_id_index(id), EcsEntityInfo);
+  if (info->serial != ecs_entity_id_serial(id)) {
+    *info = (EcsEntityInfo){
+        .serial    = ecs_entity_id_serial(id),
+        .archetype = sentinel_u32,
+    };
+  }
+}
+
+/**
+ * Note: Only safe to be called during a flush.
+ */
+static void ecs_storage_flush_new_entities(EcsStorage* storage) {
+  dynarray_for_t(&storage->newEntities, EcsEntityId, newEntityId, {
+    ecs_storage_entity_ensure(storage, ecs_entity_id_index(*newEntityId));
+    ecs_storage_entity_init(storage, *newEntityId);
+  });
+  dynarray_clear(&storage->newEntities);
+}
+
 EcsStorage ecs_storage_create(Allocator* alloc, const EcsDef* def) {
   diag_assert(alloc && def);
 
@@ -18,10 +49,7 @@ EcsStorage ecs_storage_create(Allocator* alloc, const EcsDef* def) {
       .archetypes      = dynarray_create_t(alloc, EcsArchetype, 128),
   };
 
-  // Precreate the entities array, mem_set() as 0 is an invalid entity serial number.
-  Mem entities = dynarray_push(&storage.entities, ecs_starting_entities_capacity);
-  mem_set(entities, 0);
-
+  ecs_storage_entity_ensure(&storage, ecs_starting_entities_capacity);
   return storage;
 }
 
@@ -39,12 +67,7 @@ EcsEntityId ecs_storage_entity_create(EcsStorage* storage) {
   const EcsEntityId id = entity_allocator_alloc(&storage->entityAllocator);
 
   if (ecs_entity_id_index(id) < storage->entities.size) {
-    EcsEntityInfo* info = dynarray_at_t(&storage->entities, ecs_entity_id_index(id), EcsEntityInfo);
-    diag_assert(!info->serial);
-    *info = (EcsEntityInfo){
-        .serial    = ecs_entity_id_serial(id),
-        .archetype = sentinel_u32,
-    };
+    ecs_storage_entity_init(storage, id);
   } else {
     // Entity out of bounds, resizing the entities array here would require syncronization, so
     // instead we defer the resizing until the end of the tick.
@@ -57,7 +80,7 @@ EcsEntityId ecs_storage_entity_create(EcsStorage* storage) {
 }
 
 EcsEntityInfo* ecs_storage_entity_info(EcsStorage* storage, EcsEntityId id) {
-  if (ecs_entity_id_index(id) >= storage->entities.size) {
+  if (UNLIKELY(ecs_entity_id_index(id) >= storage->entities.size)) {
     return null;
   }
   EcsEntityInfo* info = dynarray_at_t(&storage->entities, ecs_entity_id_index(id), EcsEntityInfo);
@@ -66,7 +89,7 @@ EcsEntityInfo* ecs_storage_entity_info(EcsStorage* storage, EcsEntityId id) {
 
 bool ecs_storage_entity_exists(const EcsStorage* storage, const EcsEntityId id) {
   if (ecs_entity_id_index(id) >= storage->entities.size) {
-    // Out of bounds entity means it was created in this tick.
+    // Out of bounds entity means it was created but not flushed yet.
     return true;
   }
   return ecs_storage_entity_info((EcsStorage*)storage, id) != null;
@@ -89,3 +112,5 @@ EcsArchetypeId ecs_storage_archtype_find_or_create(EcsStorage* storage, const Bi
   }
   return res;
 }
+
+void ecs_storage_flush(EcsStorage* storage) { ecs_storage_flush_new_entities(storage); }

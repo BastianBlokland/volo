@@ -1,3 +1,4 @@
+#pragma once
 #include "core_dynarray.h"
 #include "core_thread.h"
 
@@ -32,3 +33,4 @@ bool           ecs_storage_entity_exists(const EcsStorage*, EcsEntityId);
 EcsEntityInfo* ecs_storage_entity_info(EcsStorage*, EcsEntityId);
 EcsArchetypeId ecs_storage_achetype_find(EcsStorage*, BitSet mask);
 EcsArchetypeId ecs_storage_archtype_find_or_create(EcsStorage*, BitSet mask);
+void           ecs_storage_flush(EcsStorage*);
