@@ -16,9 +16,9 @@ typedef struct {
 } EcsViewDef;
 
 typedef struct {
-  String    name;
-  EcsSystem routine;
-  DynArray  viewIds; // EcsViewId[]
+  String           name;
+  EcsSystemRoutine routine;
+  DynArray         viewIds; // EcsViewId[]
 } EcsSystemDef;
 
 typedef enum {
@@ -47,12 +47,17 @@ const EcsModuleDef* ecs_def_module_by_name(const EcsDef*, String name);
  */
 const EcsCompDef* ecs_def_comp_by_name(const EcsDef*, String name);
 
-EcsCompId ecs_def_register_comp(EcsDef*, String name, usize size, usize align);
-EcsViewId ecs_def_register_view(EcsDef*, String name, EcsViewInit);
-EcsSystemId
-ecs_def_register_system(EcsDef*, String name, EcsSystem, const EcsViewId* views, usize viewCount);
+EcsCompId   ecs_def_register_comp(EcsDef*, String name, usize size, usize align);
+EcsViewId   ecs_def_register_view(EcsDef*, String name, EcsViewInit);
+EcsSystemId ecs_def_register_system(
+    EcsDef*, String name, EcsSystemRoutine, const EcsViewId* views, usize viewCount);
 
 /**
  * Dissallow any further modications to this definition.
  */
 void ecs_def_freeze(EcsDef*);
+
+/**
+ * Reallow further modications to this definition.
+ */
+void ecs_def_unfreeze(EcsDef*);

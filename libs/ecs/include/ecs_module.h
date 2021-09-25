@@ -2,6 +2,9 @@
 #include "core_annotation.h"
 #include "core_string.h"
 
+// Forward declare from 'ecs_world.h'.
+typedef struct sEcsWorld EcsWorld;
+
 typedef u16 EcsCompId;
 typedef u16 EcsViewId;
 typedef u16 EcsSystemId;
@@ -11,7 +14,7 @@ typedef struct sEcsViewBuilder   EcsViewBuilder;
 
 typedef void (*EcsModuleInit)(EcsModuleBuilder*);
 typedef void (*EcsViewInit)(EcsViewBuilder*);
-typedef void (*EcsSystem)();
+typedef void (*EcsSystemRoutine)(EcsWorld*);
 
 // clang-format off
 
@@ -48,15 +51,15 @@ typedef void (*EcsSystem)();
  *
  * Example usage:
  * ```
- * ecs_comp_define(PositionComp, {
+ * ecs_comp_define(PositionComp) {
  *   f32 x, y;
- * });
+ * };
  * ```
  */
-#define ecs_comp_define(_NAME_, ...)                                                               \
-  typedef struct __VA_ARGS__ _NAME_;                                                               \
-  _Static_assert(sizeof(_NAME_) != 0, "Components are not allowed to be empty");                   \
-  EcsCompId ecs_comp_id(_NAME_)
+#define ecs_comp_define(_NAME_)                                                                    \
+  typedef struct s##_NAME_ _NAME_;                                                                 \
+  EcsCompId ecs_comp_id(_NAME_);                                                                   \
+  struct s##_NAME_
 
 /**
  * Define a view initialization routine.
@@ -64,15 +67,15 @@ typedef void (*EcsSystem)();
  *
  * Example usage:
  * ```
- * ecs_view_define(ApplyVelocity, {
+ * ecs_view_define(ApplyVelocity) {
  *   ecs_view_read(VelocityComp);
  *   ecs_view_write(PositionComp);
- * });
+ * }
  * ```
  */
-#define ecs_view_define(_NAME_, ...)                                                               \
-  static void _ecs_view_init_##_NAME_(MAYBE_UNUSED EcsViewBuilder* _builder) __VA_ARGS__           \
-  static EcsViewId ecs_view_id(_NAME_)
+#define ecs_view_define(_NAME_)                                                                    \
+  static EcsViewId ecs_view_id(_NAME_);                                                            \
+  static void _ecs_view_init_##_NAME_(MAYBE_UNUSED EcsViewBuilder* _builder)
 
 #define ecs_view_with(_COMP_)        ecs_module_view_with(_builder, ecs_comp_id(_COMP_))
 #define ecs_view_without(_COMP_)     ecs_module_view_without(_builder, ecs_comp_id(_COMP_))
@@ -87,14 +90,14 @@ typedef void (*EcsSystem)();
  *
  * Example usage:
  * ```
- * ecs_system_define(ApplyVelocity, {
+ * ecs_system_define(ApplyVelocity) {
  *   TODO:
- * });
+ * }
  * ```
  */
-#define ecs_system_define(_NAME_, ...)                                                             \
-  static void _ecs_system_##_NAME_() __VA_ARGS__                                                   \
-  static EcsSystemId ecs_system_id(_NAME_)
+#define ecs_system_define(_NAME_)                                                                  \
+  static EcsSystemId ecs_system_id(_NAME_);                                                        \
+  static void _ecs_system_##_NAME_(MAYBE_UNUSED EcsWorld* _world)
 
 /**
  * Register a new component type.
@@ -104,6 +107,7 @@ typedef void (*EcsSystem)();
  * Pre-condition: No other component with the same name has been registered already.
  */
 #define ecs_register_comp(_NAME_)                                                                  \
+  _Static_assert(sizeof(_NAME_) != 0, "Components are not allowed to be empty");                   \
   ecs_comp_id(_NAME_) =                                                                            \
       ecs_module_register_comp(_builder, string_lit(#_NAME_), sizeof(_NAME_), alignof(_NAME_))
 
@@ -137,7 +141,7 @@ typedef void (*EcsSystem)();
 EcsCompId   ecs_module_register_comp(EcsModuleBuilder*, String name, usize size, usize align);
 EcsViewId   ecs_module_register_view(EcsModuleBuilder*, String name, EcsViewInit);
 EcsSystemId ecs_module_register_system(
-    EcsModuleBuilder*, String name, EcsSystem, const EcsViewId* views, usize viewCount);
+    EcsModuleBuilder*, String name, EcsSystemRoutine, const EcsViewId* views, usize viewCount);
 
 void ecs_module_view_with(EcsViewBuilder*, EcsCompId);
 void ecs_module_view_without(EcsViewBuilder*, EcsCompId);

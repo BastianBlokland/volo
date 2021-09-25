@@ -1,7 +1,7 @@
 #include "core_alloc.h"
-#include "ecs_world.h"
 
 #include "def_internal.h"
+#include "world_internal.h"
 
 struct sEcsWorld {
   const EcsDef* def;
@@ -19,6 +19,11 @@ EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
   return world;
 }
 
-void ecs_world_destroy(EcsWorld* world) { alloc_free_t(world->alloc, world); }
+void ecs_world_destroy(EcsWorld* world) {
+  ecs_def_unfreeze((EcsDef*)world->def);
+  alloc_free_t(world->alloc, world);
+}
 
 const EcsDef* ecs_world_def(EcsWorld* world) { return world->def; }
+
+void ecs_world_flush(EcsWorld* world) { (void)world; }

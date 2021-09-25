@@ -1,0 +1,130 @@
+#include "core_alloc.h"
+#include "core_diag.h"
+#include "core_time.h"
+#include "ecs_runner.h"
+#include "jobs_graph.h"
+#include "jobs_scheduler.h"
+#include "log_logger.h"
+
+#include "def_internal.h"
+#include "world_internal.h"
+
+/**
+ * Meta systems:
+ * - Finalize (flushes the world).
+ */
+#define graph_meta_task_count 1
+
+typedef struct {
+  EcsWorld*        world;
+  EcsSystemRoutine routine;
+} SystemTaskData;
+
+typedef struct {
+  EcsWorld* world;
+} FinalizeTaskData;
+
+struct sEcsRunner {
+  EcsWorld*  world;
+  JobGraph*  graph;
+  Allocator* alloc;
+};
+
+THREAD_LOCAL bool g_ecsRunningSystem;
+
+static void graph_system_task(void* context) {
+  SystemTaskData* data = context;
+
+  g_ecsRunningSystem = true;
+  data->routine(data->world);
+  g_ecsRunningSystem = false;
+}
+
+static void graph_runner_finalize_task(void* context) {
+  FinalizeTaskData* data = context;
+  ecs_world_flush(data->world);
+}
+
+static JobTaskId graph_insert_system(EcsRunner* runner, const EcsSystemDef* systemDef) {
+  return jobs_graph_add_task(
+      runner->graph,
+      systemDef->name,
+      graph_system_task,
+      mem_struct(SystemTaskData, .world = runner->world, .routine = systemDef->routine));
+};
+
+static JobTaskId graph_insert_finalize(EcsRunner* runner) {
+  return jobs_graph_add_task(
+      runner->graph,
+      string_lit("finalize"),
+      graph_runner_finalize_task,
+      mem_struct(FinalizeTaskData, .world = runner->world));
+}
+
+static JobTaskId graph_system_to_task(const EcsSystemId system) {
+  /**
+   * Currently systems are added to the JobGraph linearly right after the meta tasks. So to lookup a
+   * task-id we only need to offset.
+   */
+  return (JobTaskId)(graph_meta_task_count + system);
+}
+
+static void graph_reduce(const EcsRunner* runner) {
+  MAYBE_UNUSED const TimeSteady startTime = time_steady_clock();
+
+  const usize depsRemoved = jobs_graph_reduce_dependencies(runner->graph);
+
+  MAYBE_UNUSED const TimeDuration duration = time_steady_duration(startTime, time_steady_clock());
+  log_d(
+      "Ecs system-graph reduced",
+      log_param("deps-removed", fmt_int(depsRemoved)),
+      log_param("duration", fmt_duration(duration)));
+}
+
+EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world) {
+  const EcsDef* def       = ecs_world_def(world);
+  const usize   taskCount = def->systems.size + graph_meta_task_count;
+
+  EcsRunner* runner = alloc_alloc_t(alloc, EcsRunner);
+  *runner           = (EcsRunner){
+      .world = world,
+      .graph = jobs_graph_create(alloc, string_lit("ecs_runner"), taskCount),
+      .alloc = alloc,
+  };
+
+  const JobTaskId finalizeTask = graph_insert_finalize(runner);
+
+  dynarray_for_t((DynArray*)&def->systems, EcsSystemDef, sys, {
+    const JobTaskId sysTaskId = graph_insert_system(runner, sys);
+    jobs_graph_task_depend(runner->graph, sysTaskId, finalizeTask);
+
+    if (sys_i) {
+      // TODO: At the moment systems are executed serially, instead we should generate proper
+      // dependencies based on the reads / writes of the system.
+      jobs_graph_task_depend(runner->graph, graph_system_to_task(sys_i - 1), sysTaskId);
+    }
+  });
+
+  diag_assert(jobs_graph_task_count(runner->graph) == taskCount);
+
+  log_i(
+      "Ecs system-graph created",
+      log_param("tasks", fmt_int(taskCount)),
+      log_param("span", fmt_int(jobs_graph_task_span(runner->graph))),
+      log_param("parallelism", fmt_float(jobs_graph_task_parallelism(runner->graph))));
+
+  graph_reduce(runner);
+  return runner;
+}
+
+void ecs_runner_destroy(EcsRunner* runner) {
+  jobs_graph_destroy(runner->graph);
+  alloc_free_t(runner->alloc, runner);
+}
+
+JobId ecs_run_async(const EcsRunner* runner) { return jobs_scheduler_run(runner->graph); }
+
+void ecs_run_sync(const EcsRunner* runner) {
+  const JobId job = ecs_run_async(runner);
+  return jobs_scheduler_wait_help(job);
+}

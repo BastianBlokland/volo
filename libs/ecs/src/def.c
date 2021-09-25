@@ -32,6 +32,7 @@ EcsDef* ecs_def_create(Allocator* alloc) {
 }
 
 void ecs_def_destroy(EcsDef* def) {
+  diag_assert_msg(!(def->flags & EcsDefFlags_Frozen), "Unable to destroy a frozen definition");
 
   dynarray_for_t(&def->modules, EcsModuleDef, module, { ecs_module_destroy(def, module); });
   dynarray_destroy(&def->modules);
@@ -52,7 +53,7 @@ void ecs_def_destroy(EcsDef* def) {
 }
 
 void ecs_def_register_module(EcsDef* def, const String name, const EcsModuleInit initRoutine) {
-  diag_assert_msg(!(def->flags & EcsDefFlags_Frozen), "Unable to modify a frozen defintion");
+  diag_assert_msg(!(def->flags & EcsDefFlags_Frozen), "Unable to modify a frozen definition");
   diag_assert_msg(!ecs_def_module_by_name(def, name), "Duplicate module name '{}'", fmt_text(name));
   *dynarray_push_t(&def->modules, EcsModuleDef) = ecs_module_create(def, name, initRoutine);
 }
@@ -109,7 +110,7 @@ const EcsCompDef* ecs_def_comp_by_name(const EcsDef* def, const String name) {
 
 EcsCompId
 ecs_def_register_comp(EcsDef* def, const String name, const usize size, const usize align) {
-  diag_assert_msg(!(def->flags & EcsDefFlags_Frozen), "Unable to modify a frozen defintion");
+  diag_assert_msg(!(def->flags & EcsDefFlags_Frozen), "Unable to modify a frozen definition");
   diag_assert_msg(
       !ecs_def_comp_by_name(def, name), "Duplicate component name '{}'", fmt_text(name));
   diag_assert_msg(
@@ -130,7 +131,7 @@ ecs_def_register_comp(EcsDef* def, const String name, const usize size, const us
 }
 
 EcsViewId ecs_def_register_view(EcsDef* def, const String name, const EcsViewInit initRoutine) {
-  diag_assert_msg(!(def->flags & EcsDefFlags_Frozen), "Unable to modify a frozen defintion");
+  diag_assert_msg(!(def->flags & EcsDefFlags_Frozen), "Unable to modify a frozen definition");
 
   EcsViewId id                              = (EcsViewId)def->views.size;
   *dynarray_push_t(&def->views, EcsViewDef) = (EcsViewDef){
@@ -141,12 +142,12 @@ EcsViewId ecs_def_register_view(EcsDef* def, const String name, const EcsViewIni
 }
 
 EcsSystemId ecs_def_register_system(
-    EcsDef*          def,
-    const String     name,
-    const EcsSystem  routine,
-    const EcsViewId* views,
-    const usize      viewCount) {
-  diag_assert_msg(!(def->flags & EcsDefFlags_Frozen), "Unable to modify a frozen defintion");
+    EcsDef*                def,
+    const String           name,
+    const EcsSystemRoutine routine,
+    const EcsViewId*       views,
+    const usize            viewCount) {
+  diag_assert_msg(!(def->flags & EcsDefFlags_Frozen), "Unable to modify a frozen definition");
 
   EcsSystemId   id        = (EcsSystemId)def->systems.size;
   EcsSystemDef* systemDef = dynarray_push_t(&def->systems, EcsSystemDef);
@@ -164,3 +165,5 @@ EcsSystemId ecs_def_register_system(
 }
 
 void ecs_def_freeze(EcsDef* def) { def->flags |= EcsDefFlags_Frozen; }
+
+void ecs_def_unfreeze(EcsDef* def) { def->flags &= ~EcsDefFlags_Frozen; }

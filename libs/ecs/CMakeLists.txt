@@ -9,15 +9,18 @@ add_library(volo_ecs STATIC
   src/def.c
   src/entity_allocator.c
   src/module.c
+  src/runner.c
   src/storage.c
   src/world.c)
 target_include_directories(volo_ecs PUBLIC include)
 target_link_libraries(volo_ecs PUBLIC volo_core)
 target_link_libraries(volo_ecs PUBLIC volo_jobs)
+target_link_libraries(volo_ecs PUBLIC volo_log)
 
 add_executable(volo_ecs_test
   test/main.c
   test/test_def.c
+  test/test_runner.c
   test/test_storage.c
   test/test_world.c)
 target_link_libraries(volo_ecs_test PRIVATE volo_check)

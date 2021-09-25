@@ -2,20 +2,20 @@
 #include "core_alloc.h"
 #include "ecs_def.h"
 
-ecs_comp_define(DefTestCompA, { u32 fieldA; });
+ecs_comp_define(DefTestCompA) { u32 fieldA; };
 
-ecs_comp_define(DefTestCompB, {
+ecs_comp_define(DefTestCompB) {
   u32  fieldA;
   bool fieldB;
-});
+};
 
-ecs_view_define(ReadAWriteB, {
+ecs_view_define(ReadAWriteB) {
   ecs_view_read(DefTestCompA);
   ecs_view_write(DefTestCompB);
-});
+}
 
-ecs_system_define(Update, {});
-ecs_system_define(Cleanup, {});
+ecs_system_define(Update) {}
+ecs_system_define(Cleanup) {}
 
 ecs_module_init(def_test_module) {
   ecs_register_comp(DefTestCompA);
