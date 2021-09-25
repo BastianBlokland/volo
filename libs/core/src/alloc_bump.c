@@ -13,7 +13,7 @@ struct AllocatorBump {
 static Mem alloc_bump_alloc(Allocator* allocator, const usize size, const usize align) {
   struct AllocatorBump* allocatorBump = (struct AllocatorBump*)allocator;
 
-  u8* alignedHead = (u8*)bits_align((uptr)allocatorBump->head, align);
+  u8* alignedHead = bits_align_ptr(allocatorBump->head, align);
 
   if (UNLIKELY((usize)(allocatorBump->tail - alignedHead) < size)) {
     // Too little space remaining.

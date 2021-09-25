@@ -140,15 +140,21 @@ u64 bits_align_64(u64 val, u64 align);
   )
 
 /**
- * Pad the given value to pointer alignment (32 / 64 bit).
+ * Pad the given pointer to reach the requested alignment.
  */
-#define bits_align_ptr(_VAL_) bits_align(_VAL_, sizeof(void*))
+#define bits_align_ptr(_VAL_, _ALIGN_) ((void*)bits_align((uptr)(_VAL_), (_ALIGN_)))
 
 /**
  * Check if the value satisfies the given alignment.
  * Pre-condition: bits_ispow2(_ALIGN_)
  */
 #define bits_aligned(_VAL_, _ALIGN_) (((_VAL_) & ((_ALIGN_) - 1)) == 0)
+
+/**
+ * Check if the pointer satisfies the given alignment.
+ * Pre-condition: bits_ispow2(_ALIGN_)
+ */
+ #define bits_aligned_ptr(_VAL_, _ALIGN_) bits_aligned((uptr)(_VAL_), (_ALIGN_))
 
 // clang-format on
 

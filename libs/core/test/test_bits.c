@@ -144,10 +144,10 @@ spec(bits) {
     check_eq_int(bits_align_32(31, 4), 32);
   }
 
-  it("can align an integer to pointer alignment") {
-    check_eq_int(bits_align_ptr(1u), 8);
-    check_eq_int(bits_align_ptr(7u), 8);
-    check_eq_int(bits_align_ptr(11u), 16);
+  it("can align a pointer") {
+    u8  val;
+    u8* ptr = &val;
+    check(bits_aligned_ptr(bits_align_ptr(ptr, 128), 128));
   }
 
   it("can check if a value satisfies given alignment") {
@@ -155,7 +155,7 @@ spec(bits) {
     check(bits_aligned(8u, 8u));
     check(bits_aligned(16u, 8u));
     check(bits_aligned(32u, 8u));
-    check(bits_aligned(bits_align_ptr(1u), sizeof(void*)));
+    check(bits_aligned(bits_align_32(1u, alignof(void*)), sizeof(void*)));
 
     check(!bits_aligned(1u, 8u));
     check(!bits_aligned(7u, 8u));

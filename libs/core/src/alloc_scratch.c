@@ -36,11 +36,11 @@ static Mem alloc_scratch_alloc(Allocator* allocator, const usize size, const usi
     return mem_create(null, size);
   }
 
-  u8* alignedHead = (u8*)bits_align((uptr)allocatorScratch->head, align);
+  u8* alignedHead = bits_align_ptr(allocatorScratch->head, align);
 
   if (UNLIKELY(alignedHead + size > mem_end(allocatorScratch->memory))) {
     // Wrap around the scratch buffer.
-    alignedHead = (u8*)bits_align((uptr)mem_begin(allocatorScratch->memory), align);
+    alignedHead = bits_align_ptr(mem_begin(allocatorScratch->memory), align);
   }
 
   allocatorScratch->head = alignedHead + size;

@@ -104,13 +104,14 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world) {
   const JobTaskId finalizeTask = graph_insert_finalize(runner);
 
   dynarray_for_t((DynArray*)&def->systems, EcsSystemDef, sys, {
-    const JobTaskId sysTaskId = graph_insert_system(runner, sys);
+    const EcsSystemId sysId     = (EcsSystemId)sys_i;
+    const JobTaskId   sysTaskId = graph_insert_system(runner, sys);
     jobs_graph_task_depend(runner->graph, sysTaskId, finalizeTask);
 
     if (sys_i) {
       // TODO: At the moment systems are executed serially, instead we should generate proper
       // dependencies based on the reads / writes of the system.
-      jobs_graph_task_depend(runner->graph, graph_system_to_task(sys_i - 1), sysTaskId);
+      jobs_graph_task_depend(runner->graph, graph_system_to_task(sysId - 1), sysTaskId);
     }
   });
 
@@ -145,5 +146,5 @@ JobId ecs_run_async(EcsRunner* runner) {
 
 void ecs_run_sync(EcsRunner* runner) {
   const JobId job = ecs_run_async(runner);
-  return jobs_scheduler_wait_help(job);
+  jobs_scheduler_wait_help(job);
 }
