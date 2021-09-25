@@ -15,22 +15,35 @@
  */
 #define graph_meta_task_count 1
 
+typedef enum {
+  EcsRunnerFlags_None,
+  EcsRunnerFlags_Running = 1 << 0,
+} EcsRunnerFlags;
+
+typedef struct {
+  EcsRunner* runner;
+} MetaTaskData;
+
 typedef struct {
   EcsWorld*        world;
   EcsSystemRoutine routine;
 } SystemTaskData;
 
-typedef struct {
-  EcsWorld* world;
-} FinalizeTaskData;
-
 struct sEcsRunner {
-  EcsWorld*  world;
-  JobGraph*  graph;
-  Allocator* alloc;
+  EcsWorld*      world;
+  JobGraph*      graph;
+  EcsRunnerFlags flags;
+  Allocator*     alloc;
 };
 
 THREAD_LOCAL bool g_ecsRunningSystem;
+
+static void graph_runner_finalize_task(void* context) {
+  MetaTaskData* data = context;
+  ecs_world_flush(data->runner->world);
+
+  data->runner->flags &= ~EcsRunnerFlags_Running;
+}
 
 static void graph_system_task(void* context) {
   SystemTaskData* data = context;
@@ -40,9 +53,12 @@ static void graph_system_task(void* context) {
   g_ecsRunningSystem = false;
 }
 
-static void graph_runner_finalize_task(void* context) {
-  FinalizeTaskData* data = context;
-  ecs_world_flush(data->world);
+static JobTaskId graph_insert_finalize(EcsRunner* runner) {
+  return jobs_graph_add_task(
+      runner->graph,
+      string_lit("finalize"),
+      graph_runner_finalize_task,
+      mem_struct(MetaTaskData, .runner = runner));
 }
 
 static JobTaskId graph_insert_system(EcsRunner* runner, const EcsSystemDef* systemDef) {
@@ -52,14 +68,6 @@ static JobTaskId graph_insert_system(EcsRunner* runner, const EcsSystemDef* syst
       graph_system_task,
       mem_struct(SystemTaskData, .world = runner->world, .routine = systemDef->routine));
 };
-
-static JobTaskId graph_insert_finalize(EcsRunner* runner) {
-  return jobs_graph_add_task(
-      runner->graph,
-      string_lit("finalize"),
-      graph_runner_finalize_task,
-      mem_struct(FinalizeTaskData, .world = runner->world));
-}
 
 static JobTaskId graph_system_to_task(const EcsSystemId system) {
   /**
@@ -118,13 +126,22 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world) {
 }
 
 void ecs_runner_destroy(EcsRunner* runner) {
+  diag_assert_msg(!ecs_running(runner), "Runner is still running");
+
   jobs_graph_destroy(runner->graph);
   alloc_free_t(runner->alloc, runner);
 }
 
-JobId ecs_run_async(const EcsRunner* runner) { return jobs_scheduler_run(runner->graph); }
+bool ecs_running(const EcsRunner* runner) { return (runner->flags & EcsRunnerFlags_Running) != 0; }
 
-void ecs_run_sync(const EcsRunner* runner) {
+JobId ecs_run_async(EcsRunner* runner) {
+  diag_assert_msg(!ecs_running(runner), "Runner is currently already running");
+
+  runner->flags |= EcsRunnerFlags_Running;
+  return jobs_scheduler_run(runner->graph);
+}
+
+void ecs_run_sync(EcsRunner* runner) {
   const JobId job = ecs_run_async(runner);
   return jobs_scheduler_wait_help(job);
 }

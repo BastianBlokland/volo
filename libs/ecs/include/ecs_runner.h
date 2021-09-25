@@ -31,18 +31,29 @@ EcsRunner* ecs_runner_create(Allocator*, EcsWorld*);
 
 /**
  * Destroy a Ecs runner.
+ *
+ * Pre-condition: !ecs_running().
  */
 void ecs_runner_destroy(EcsRunner*);
+
+/**
+ * Check if the given runner is currently running.
+ */
+bool ecs_running(const EcsRunner*);
 
 /**
  * Start executing this runner asynchronously.
  * Use 'jobs_scheduler_is_finished()' to check if the job is finished.
  * Use 'jobs_scheduler_wait()' to wait for the job to be finished.
  * Use 'jobs_scheduler_wait_help()' to help finishing the job.
+ *
+ * Pre-condition: !ecs_running().
  */
-JobId ecs_run_async(const EcsRunner*);
+JobId ecs_run_async(EcsRunner*);
 
 /**
- * Synchronously execute this runner.
+ * Synchronously execute this runner
+ *
+ * Pre-condition: !ecs_running().
  */
-void ecs_run_sync(const EcsRunner*);
+void ecs_run_sync(EcsRunner*);
