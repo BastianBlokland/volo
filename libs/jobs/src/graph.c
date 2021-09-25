@@ -48,6 +48,42 @@ static void jobs_graph_add_task_child_link(
   }
 }
 
+/**
+ * Remove a task from the linked list of task children that starts at 'linkHead'.
+ * Returns if the task existed in the linked-list (and thus was removed).
+ *
+ * Note: Does not free up space in the 'childLinks' array as that would require updating the
+ * indices of all registred dependencies.
+ */
+static bool jobs_graph_remove_task_child_link(
+    JobGraph* graph, const JobTaskId childTask, JobTaskLinkId* linkHead) {
+
+  JobTaskLink*  prevLink = null;
+  JobTaskLinkId itr      = *linkHead;
+  while (!sentinel_check(itr)) {
+    JobTaskLink* link = jobs_graph_task_link(graph, itr);
+    if (link->task != childTask) {
+      // Not the element we are looking for; keep walking the sibling chain.
+      prevLink = link;
+      itr      = link->next;
+      continue;
+    }
+
+    // Found the link to remove.
+    if (prevLink) {
+      // link the previous to the next to skip this element.
+      prevLink->next = link->next;
+    } else {
+      // This was the first link; set it as the new headLink.
+      *linkHead = link->next;
+    }
+    return true;
+  }
+
+  // Child not found in the list.
+  return false;
+}
+
 static bool jobs_graph_has_task_cycle(
     const JobGraph* graph, const JobTaskId task, BitSet processed, BitSet processing) {
   if (bitset_test(processed, task)) {
@@ -235,6 +271,21 @@ void jobs_graph_task_depend(JobGraph* graph, const JobTaskId parent, const JobTa
   // Add the child to the 'childSet' of the parent.
   JobTaskLinkId* parentChildSetHead = dynarray_at_t(&graph->childSetHeads, parent, JobTaskLinkId);
   jobs_graph_add_task_child_link(graph, child, parentChildSetHead);
+}
+
+bool jobs_graph_task_undepend(JobGraph* graph, JobTaskId parent, JobTaskId child) {
+  diag_assert(parent != child);
+
+  // Try to remove the child from the 'childSet' of the parent.
+  JobTaskLinkId* parentChildSetHead = dynarray_at_t(&graph->childSetHeads, parent, JobTaskLinkId);
+  if (jobs_graph_remove_task_child_link(graph, child, parentChildSetHead)) {
+
+    // Decrement the parent count of the child.
+    --(*dynarray_at_t(&graph->parentCounts, child, u32));
+
+    return true;
+  }
+  return false; // No dependency existed between parent and child.
 }
 
 bool jobs_graph_validate(const JobGraph* graph) { return !jobs_graph_has_cycle(graph); }

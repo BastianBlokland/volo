@@ -3,28 +3,100 @@
 #include "jobs_graph.h"
 
 spec(graph) {
-  it("stores a graph name") {
-    JobGraph* job = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 0);
-    check_eq_string(jobs_graph_name(job), string_lit("TestJob"));
-    jobs_graph_destroy(job);
-  }
+
+  JobGraph* job = null;
+
+  setup() { job = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 0); }
+
+  it("stores a graph name") { check_eq_string(jobs_graph_name(job), string_lit("TestJob")); }
 
   it("stores task names") {
-    JobGraph* job = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 2);
-
     const JobTaskId taskA = jobs_graph_add_task(job, string_lit("TestTaskA"), null, mem_empty);
     const JobTaskId taskB = jobs_graph_add_task(job, string_lit("TestTaskB"), null, mem_empty);
 
     check_eq_int(jobs_graph_task_count(job), 2);
     check_eq_string(jobs_graph_task_name(job, taskA), string_lit("TestTaskA"));
     check_eq_string(jobs_graph_task_name(job, taskB), string_lit("TestTaskB"));
+  }
 
-    jobs_graph_destroy(job);
+  it("supports registering dependencies between tasks") {
+    const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
+    const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
+
+    // Setup B to depend on A.
+    jobs_graph_task_depend(job, a, b);
+
+    // Meaning B has a parent and A does not.
+    check(jobs_graph_task_has_parent(job, b));
+    check(!jobs_graph_task_has_parent(job, a));
+
+    // And A has a child while B does not.
+    check(jobs_graph_task_has_child(job, a));
+    check(!jobs_graph_task_has_child(job, b));
+
+    check_eq_int(jobs_graph_task_child_begin(job, a).task, b);
+    check(sentinel_check(jobs_graph_task_child_begin(job, b).task));
+  }
+
+  it("supports unregistering a dependency between tasks") {
+    const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
+    const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
+
+    // Setup B to depend on A.
+    jobs_graph_task_depend(job, a, b);
+
+    // Remove the dependency from A to B.
+    check(jobs_graph_task_undepend(job, a, b));
+
+    // So it cannot be removed again.
+    check(!jobs_graph_task_undepend(job, a, b));
+
+    // Meaning neither have a parent.
+    check(!jobs_graph_task_has_parent(job, b));
+    check(!jobs_graph_task_has_parent(job, a));
+
+    // And neither have a child.
+    check(!jobs_graph_task_has_child(job, a));
+    check(!jobs_graph_task_has_child(job, b));
+
+    check(sentinel_check(jobs_graph_task_child_begin(job, a).task));
+    check(sentinel_check(jobs_graph_task_child_begin(job, b).task));
+  }
+
+  it("supports unregistering multiple dependencies") {
+    const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
+    const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
+    const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, mem_empty);
+
+    // Setup B and C to depend on A.
+    jobs_graph_task_depend(job, a, b);
+    jobs_graph_task_depend(job, a, c);
+
+    // Remove the dependencies.
+    check(jobs_graph_task_undepend(job, a, b));
+    check(jobs_graph_task_undepend(job, a, c));
+
+    // Meaning neither have a parent.
+    check(!jobs_graph_task_has_parent(job, b));
+    check(!jobs_graph_task_has_parent(job, a));
+
+    // And neither have a child.
+    check(!jobs_graph_task_has_child(job, a));
+    check(!jobs_graph_task_has_child(job, b));
+
+    check(sentinel_check(jobs_graph_task_child_begin(job, a).task));
+    check(sentinel_check(jobs_graph_task_child_begin(job, b).task));
+  }
+
+  it("cannot remove dependencies that do not exist") {
+    const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
+    const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
+
+    check(!jobs_graph_task_undepend(job, a, b));
+    check(!jobs_graph_task_undepend(job, b, a));
   }
 
   it("supports graphs with many-to-one dependencies") {
-    JobGraph* job = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 2);
-
     const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
     const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
     const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, mem_empty);
@@ -58,13 +130,9 @@ spec(graph) {
     check_eq_int(jobs_graph_task_child_begin(job, b).task, d);
     check_eq_int(jobs_graph_task_child_begin(job, c).task, d);
     check(sentinel_check(jobs_graph_task_child_begin(job, d).task));
-
-    jobs_graph_destroy(job);
   }
 
   it("supports graphs with one-to-many dependencies") {
-    JobGraph* job = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 2);
-
     const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
     const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
     const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, mem_empty);
@@ -105,13 +173,9 @@ spec(graph) {
     check_eq_int(itr.task, d);
     itr = jobs_graph_task_child_next(job, itr);
     check(sentinel_check(itr.task));
-
-    jobs_graph_destroy(job);
   }
 
   it("can detect cycles") {
-    JobGraph* job = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 2);
-
     const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
     const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
 
@@ -120,13 +184,9 @@ spec(graph) {
     jobs_graph_task_depend(job, b, a);
 
     check(!jobs_graph_validate(job));
-
-    jobs_graph_destroy(job);
   }
 
   it("can detect indirect cycles") {
-    JobGraph* job = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 2);
-
     const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
     const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
     const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, mem_empty);
@@ -145,13 +205,9 @@ spec(graph) {
     jobs_graph_task_depend(job, e, c);
 
     check(!jobs_graph_validate(job));
-
-    jobs_graph_destroy(job);
   }
 
   it("can compute the span of a serial chain") {
-    JobGraph* job = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 2);
-
     const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
     const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
     const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, mem_empty);
@@ -171,13 +227,9 @@ spec(graph) {
     check_eq_int(jobs_graph_task_span(job), 7);
     check_eq_int(jobs_graph_task_root_count(job), 1);
     check_eq_int(jobs_graph_task_leaf_count(job), 1);
-
-    jobs_graph_destroy(job);
   }
 
   it("can compute the span of a parallel chain") {
-    JobGraph* job = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 2);
-
     jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
     jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
     jobs_graph_add_task(job, string_lit("C"), null, mem_empty);
@@ -190,13 +242,9 @@ spec(graph) {
     check_eq_int(jobs_graph_task_span(job), 1);
     check_eq_int(jobs_graph_task_root_count(job), 7);
     check_eq_int(jobs_graph_task_leaf_count(job), 7);
-
-    jobs_graph_destroy(job);
   }
 
   it("can compute the span of a complex chain") {
-    JobGraph* job = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 2);
-
     const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
     const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
     const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, mem_empty);
@@ -243,7 +291,7 @@ spec(graph) {
     check_eq_float(jobs_graph_task_parallelism(job), 2.0f, 1e-6f);
     check_eq_int(jobs_graph_task_root_count(job), 1);
     check_eq_int(jobs_graph_task_leaf_count(job), 1);
-
-    jobs_graph_destroy(job);
   }
+
+  teardown() { jobs_graph_destroy(job); }
 }

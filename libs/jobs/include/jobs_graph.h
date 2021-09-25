@@ -88,6 +88,15 @@ JobTaskId jobs_graph_add_task(JobGraph*, String name, JobTaskRoutine, Mem ctx);
 void jobs_graph_task_depend(JobGraph*, JobTaskId parent, JobTaskId child);
 
 /**
+ * Remove a dependency between two tasks if it exists.
+ * Returns if a dependency was found (and removed) between parent and child.
+ *
+ * Pre-condition: JobGraph is not running at the moment.
+ * Pre-condition: parent != child.
+ */
+bool jobs_graph_task_undepend(JobGraph*, JobTaskId parent, JobTaskId child);
+
+/**
  * Validate the given JobGraph.
  * Checks:
  * - Graph does not contain cycles.
