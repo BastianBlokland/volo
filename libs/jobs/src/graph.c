@@ -13,34 +13,39 @@ static JobTaskLink* jobs_graph_task_link(const JobGraph* graph, JobTaskLinkId id
 
 /**
  * Add a new task to the end of the linked list of task children that starts at 'linkHead'.
- * Pass 'sentinel_u32' as 'linkHead' to create a new list.
- * Returns an identifier to the newly created node.
+ * Pass a pointer to 'sentinel_u32' as 'linkHead' to create a new list.
  */
-static JobTaskLinkId
-jobs_graph_add_task_child_link(JobGraph* graph, const JobTaskId childTask, JobTaskLinkId linkHead) {
-  // Walk to the end of the sibling chain.
-  // TODO: Consider storing an end link to avoid having to walk this each time.
-  JobTaskLinkId lastLink = sentinel_u32;
-  while (!sentinel_check(linkHead)) {
-    lastLink                = linkHead;
-    const JobTaskLink* link = jobs_graph_task_link(graph, linkHead);
-    diag_assert_msg(
-        link->task != childTask,
-        "Duplicate dependency for task '{}' is not supported",
-        fmt_int(childTask));
-    linkHead = link->next;
-  }
+static void jobs_graph_add_task_child_link(
+    JobGraph* graph, const JobTaskId childTask, JobTaskLinkId* linkHead) {
+
   // Create a new link.
-  const JobTaskLinkId newLinkIdx                    = (JobTaskLinkId)graph->childLinks.size;
+  const JobTaskLinkId newLinkId                     = (JobTaskLinkId)graph->childLinks.size;
   *dynarray_push_t(&graph->childLinks, JobTaskLink) = (JobTaskLink){
       .task = childTask,
       .next = sentinel_u32,
   };
-  // Add the new link to the last sibling.
-  if (!sentinel_check(lastLink)) {
-    jobs_graph_task_link(graph, lastLink)->next = newLinkIdx;
+
+  if (sentinel_check(*linkHead)) {
+    // There was no head link yet; Make the new link the head-link.
+    *linkHead = newLinkId;
+    return;
   }
-  return newLinkIdx;
+
+  // Find the link to attach it to by walking the sibling chain.
+  // TODO: Consider storing an end link to avoid having to walk this each time.
+  for (JobTaskLink* link = jobs_graph_task_link(graph, *linkHead);;
+       link              = jobs_graph_task_link(graph, link->next)) {
+    diag_assert_msg(
+        link->task != childTask,
+        "Duplicate dependency for task '{}' is not supported",
+        fmt_int(childTask));
+
+    if (sentinel_check(link->next)) {
+      // Found the end of the sibling chain.
+      link->next = newLinkId;
+      return;
+    }
+  }
 }
 
 static bool jobs_graph_has_task_cycle(
@@ -229,11 +234,7 @@ void jobs_graph_task_depend(JobGraph* graph, const JobTaskId parent, const JobTa
 
   // Add the child to the 'childSet' of the parent.
   JobTaskLinkId* parentChildSetHead = dynarray_at_t(&graph->childSetHeads, parent, JobTaskLinkId);
-  if (sentinel_check(*parentChildSetHead)) {
-    *parentChildSetHead = jobs_graph_add_task_child_link(graph, child, sentinel_u32);
-  } else {
-    jobs_graph_add_task_child_link(graph, child, *parentChildSetHead);
-  }
+  jobs_graph_add_task_child_link(graph, child, parentChildSetHead);
 }
 
 bool jobs_graph_validate(const JobGraph* graph) { return !jobs_graph_has_cycle(graph); }
