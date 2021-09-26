@@ -164,7 +164,7 @@ spec(executor) {
   it("suports one-to-many task dependencies") {
     const usize tasks = 128;
 
-    i64 data[tasks + 1];
+    i64 data[128 + 1];
     mem_set(array_mem(data), 0);
 
     JobGraph*       graph    = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 1);
