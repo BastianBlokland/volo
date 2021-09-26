@@ -1,16 +1,12 @@
 #pragma once
 #include "core_types.h"
+#include "ecs_entity.h"
 
 // Forward declare from 'ecs_def.h'.
 typedef struct sEcsDef EcsDef;
 
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;
-
-/**
- * Identifier for an Entity, unique throughout application lifetime.
- */
-typedef u64 EcsEntityId;
 
 /**
  * Ecs world.
