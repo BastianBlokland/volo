@@ -31,3 +31,25 @@ void* search_binary(u8* begin, u8* end, const u16 stride, CompareFunc compare, c
   }
   return null; // Not found.
 }
+
+void* search_binary_greater(
+    u8* begin, u8* end, u16 stride, CompareFunc compare, const void* target) {
+  /**
+   * Find the first element that is greater then the given target using a binary scan.
+   */
+  usize count = (end - begin) / stride;
+  while (count > 0) {
+    const usize step   = count / 2;
+    u8*         middle = begin + step * stride;
+    if (compare(middle, target) < 0) {
+      begin = middle + stride;
+      count -= step + 1;
+    } else {
+      count = step;
+    }
+  }
+  if (begin == end) {
+    return null; // None was greater.
+  }
+  return begin;
+}

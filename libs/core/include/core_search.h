@@ -2,25 +2,19 @@
 #include "core_compare.h"
 
 /**
- * Search for an element matching the given target using a linear-scan.
+ * Returns an element matching the given target or null if none matched.
  */
 #define search_linear_t(_BEGIN_, _END_, _TYPE_, _COMPARE_FUNC_, _TARGET_)                          \
   ((_TYPE_*)search_linear(                                                                         \
       (u8*)(_BEGIN_), (u8*)(_END_), sizeof(_TYPE_), (_COMPARE_FUNC_), (_TARGET_)))
 
 /**
- * Search for an element matching a struct using a linear-scan.
- */
-#define search_linear_struct_t(_BEGIN_, _END_, _TYPE_, _COMPARE_FUNC_, ...)                        \
-  search_linear_t((_BEGIN_), (_END_), _TYPE_, (_COMPARE_FUNC_), mem_struct(_TYPE_, __VA_ARGS__).ptr)
-
-/**
- * Search for an element matching the given target using a linear-scan.
+ * Returns an element matching the given target or null if none matched.
  */
 void* search_linear(u8* begin, u8* end, u16 stride, CompareFunc, const void* target);
 
 /**
- * Search for an element matching the given target in sorted data using a binary scan.
+ * Returns an element matching the given target or null if none matched.
  * Pre-condition: data is sorted.
  */
 #define search_binary_t(_BEGIN_, _END_, _TYPE_, _COMPARE_FUNC_, _TARGET_)                          \
@@ -28,14 +22,21 @@ void* search_linear(u8* begin, u8* end, u16 stride, CompareFunc, const void* tar
       (u8*)(_BEGIN_), (u8*)(_END_), sizeof(_TYPE_), (_COMPARE_FUNC_), (_TARGET_)))
 
 /**
- * Search for an element matching the given target in sorted data using a binary scan.
- * Pre-condition: data is sorted.
- */
-#define search_binary_struct_t(_BEGIN_, _END_, _TYPE_, _COMPARE_FUNC_, ...)                        \
-  search_binary_t((_BEGIN_), (_END_), _TYPE_, (_COMPARE_FUNC_), mem_struct(_TYPE_, __VA_ARGS__).ptr)
-
-/**
- * Search for an element matching the given target in ordered data using a binary scan.
+ * Returns an element matching the given target or null if none matched.
  * Pre-condition: data is sorted.
  */
 void* search_binary(u8* begin, u8* end, u16 stride, CompareFunc, const void* target);
+
+/**
+ * Returns the first element greater then the given target (or null if none was greater).
+ * Pre-condition: data is sorted.
+ */
+#define search_binary_greater_t(_BEGIN_, _END_, _TYPE_, _COMPARE_FUNC_, _TARGET_)                  \
+  ((_TYPE_*)search_binary_greater(                                                                 \
+      (u8*)(_BEGIN_), (u8*)(_END_), sizeof(_TYPE_), (_COMPARE_FUNC_), (_TARGET_)))
+
+/**
+ * Returns the first element greater then the given target (or null if none was greater).
+ * Pre-condition: data is sorted.
+ */
+void* search_binary_greater(u8* begin, u8* end, u16 stride, CompareFunc, const void* target);
