@@ -196,9 +196,8 @@ spec(dynarray) {
 
     DynArray array = dynarray_create_over_t(mem_stack(256), u32);
 
-    array_for_t(values, u32, val, {
-      // TODO: It might make sense to add an helper macro to 'core_dynarray.h' to avoid the casting?
-      *mem_as_t(dynarray_insert_sorted(&array, 1, compare_u32, val), u32) = *val;
+    array_for_t(values, u32, valPtr, {
+      *dynarray_insert_sorted_t(&array, u32, compare_u32, valPtr) = *valPtr;
     });
 
     check_eq_int(array.size, array_elems(values));
