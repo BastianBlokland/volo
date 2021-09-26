@@ -3,6 +3,7 @@
 #include "alloc_internal.h"
 
 #define freed_mem_tag 0xFB
+#define guard_mem_tag 0xAB
 
 struct AllocatorBump {
   Allocator api;
@@ -48,6 +49,14 @@ static usize alloc_bump_max_size(Allocator* allocator) {
   return allocatorBump->tail - allocatorBump->head;
 }
 
+static void alloc_bump_reset(Allocator* allocator) {
+  struct AllocatorBump* allocatorBump = (struct AllocatorBump*)allocator;
+  allocatorBump->head                 = bits_ptr_offset(allocator, sizeof(struct AllocatorBump));
+
+  // TODO: Create special compiler define to enable / disable tagging of reset mem.
+  mem_set(mem_from_to(allocatorBump->head, allocatorBump->tail), guard_mem_tag);
+}
+
 Allocator* alloc_bump_create(Mem mem) {
   if (mem.size <= sizeof(struct AllocatorBump)) {
     return null; // Too little space for our internal bookkeeping.
@@ -59,6 +68,7 @@ Allocator* alloc_bump_create(Mem mem) {
       .free    = alloc_bump_free,
       .minSize = alloc_bump_min_size,
       .maxSize = alloc_bump_max_size,
+      .reset   = alloc_bump_reset,
   };
   allocatorBump->head = mem_begin(mem) + sizeof(struct AllocatorBump);
   allocatorBump->tail = mem_end(mem);

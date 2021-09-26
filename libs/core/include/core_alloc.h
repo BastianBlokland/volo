@@ -85,3 +85,9 @@ usize alloc_min_size(Allocator*);
  * Return the maximum allocation size (in bytes) for this allocator.
  */
 usize alloc_max_size(Allocator*);
+
+/**
+ * Reset the given allocator.
+ * NOTE: Will invalidate all memory allocated from this allocator.
+ */
+void alloc_reset(Allocator*);

@@ -6,6 +6,7 @@ struct sAllocator {
   void (*free)(Allocator*, Mem);
   usize (*minSize)(Allocator*);
   usize (*maxSize)(Allocator*);
+  void (*reset)(Allocator*);
 };
 
 Allocator* alloc_heap_init();

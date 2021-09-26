@@ -69,3 +69,8 @@ INLINE_HINT usize alloc_max_size(Allocator* allocator) {
   alloc_verify_allocator(allocator);
   return allocator->maxSize(allocator);
 }
+
+INLINE_HINT void alloc_reset(Allocator* allocator) {
+  alloc_verify_allocator(allocator);
+  allocator->reset(allocator);
+}
