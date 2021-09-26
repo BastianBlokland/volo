@@ -31,6 +31,7 @@ int main(const int argc, const char** argv) {
   register_spec(check, memory);
   register_spec(check, path);
   register_spec(check, rng);
+  register_spec(check, search);
   register_spec(check, shuffle);
   register_spec(check, sort);
   register_spec(check, string);

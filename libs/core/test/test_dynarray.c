@@ -190,6 +190,23 @@ spec(dynarray) {
     dynarray_destroy(&array);
   }
 
+  it("can insert elements sorted") {
+    const u32 values[]   = {3, 6, 5, 9, 15, 10, 4, 13, 7, 1, 8, 12, 14, 11, 2};
+    const u32 expected[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+
+    DynArray array = dynarray_create_over_t(mem_stack(256), u32);
+
+    array_for_t(values, u32, val, {
+      // TODO: It might make sense to add an helper macro to 'core_dynarray.h' to avoid the casting?
+      *mem_as_t(dynarray_insert_sorted(&array, 1, compare_u32, val), u32) = *val;
+    });
+
+    check_eq_int(array.size, array_elems(values));
+    dynarray_for_t(&array, u32, val, { check_eq_int(*val, expected[val_i]); });
+
+    dynarray_destroy(&array);
+  }
+
   it("can be sorted") {
     const u32 values[]   = {3, 6, 5, 9, 15, 10, 4, 13, 7, 1, 8, 12, 14, 11, 2};
     const u32 expected[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
@@ -200,6 +217,58 @@ spec(dynarray) {
     dynarray_sort(&array, compare_u32);
 
     dynarray_for_t(&array, u32, val, { check_eq_int(*val, expected[val_i]); });
+
+    dynarray_destroy(&array);
+  }
+
+  it("can be searched using a linear scan") {
+    const u32 values[] = {3, 6, 5, 15, 10, 4, 13, 7, 1, 8, 12, 14, 11, 2};
+
+    DynArray array = dynarray_create_over_t(mem_stack(256), u32);
+    mem_cpy(dynarray_push(&array, array_elems(values)), array_mem(values));
+
+    u32        target = 0;
+    const u32* found  = null;
+
+    target = 4;
+    found  = dynarray_search_linear(&array, compare_u32, &target);
+    check_require(found != null);
+    check_eq_int(*found, 4);
+
+    target = 2;
+    found  = dynarray_search_linear(&array, compare_u32, &target);
+    check_require(found != null);
+    check_eq_int(*found, 2);
+
+    target = 9;
+    found  = dynarray_search_linear(&array, compare_u32, &target);
+    check(found == null);
+
+    dynarray_destroy(&array);
+  }
+
+  it("can be searched using a binary scan") {
+    const u32 values[] = {1, 2, 5, 7, 8, 9, 10, 12, 13, 15};
+
+    DynArray array = dynarray_create_over_t(mem_stack(256), u32);
+    mem_cpy(dynarray_push(&array, array_elems(values)), array_mem(values));
+
+    u32        target = 0;
+    const u32* found  = null;
+
+    target = 5;
+    found  = dynarray_search_binary(&array, compare_u32, &target);
+    check_require(found != null);
+    check_eq_int(*found, 5);
+
+    target = 15;
+    found  = dynarray_search_binary(&array, compare_u32, &target);
+    check_require(found != null);
+    check_eq_int(*found, 15);
+
+    target = 6;
+    found  = dynarray_search_binary(&array, compare_u32, &target);
+    check(found == null);
 
     dynarray_destroy(&array);
   }
