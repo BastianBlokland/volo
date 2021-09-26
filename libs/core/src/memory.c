@@ -41,13 +41,13 @@ INLINE_HINT void mem_move(const Mem dst, const Mem src) {
 INLINE_HINT Mem mem_slice(Mem mem, const usize offset, const usize size) {
   diag_assert(!size || mem_valid(mem));
   diag_assert(mem.size >= offset + size);
-  return mem_create((u8*)mem.ptr + offset, size);
+  return mem_create(bits_ptr_offset(mem.ptr, offset), size);
 }
 
 INLINE_HINT Mem mem_consume(Mem mem, usize amount) {
   diag_assert(mem.size >= amount);
   return (Mem){
-      .ptr  = (u8*)mem.ptr + amount,
+      .ptr  = bits_ptr_offset(mem.ptr, amount),
       .size = mem.size - amount,
   };
 }

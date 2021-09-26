@@ -7,7 +7,7 @@ spec(memory) {
   it("can create a memory view from two pointers") {
     u8    rawMem[128] = {0};
     void* rawMemHead  = rawMem;
-    void* rawMemTail  = (u8*)rawMemHead + sizeof(rawMem);
+    void* rawMemTail  = bits_ptr_offset(rawMemHead, sizeof(rawMem));
 
     Mem mem = mem_from_to(rawMemHead, rawMemTail);
     check_eq_int(mem.size, 128);

@@ -89,7 +89,7 @@ static void executor_perform_work(WorkItem item) {
 
   // Invoke the user routine.
   g_jobsIsWorking = true;
-  jobTaskDef->routine((u8*)jobTaskDef + sizeof(JobTask));
+  jobTaskDef->routine(bits_ptr_offset(jobTaskDef, sizeof(JobTask)));
   g_jobsIsWorking = false;
 
   /**

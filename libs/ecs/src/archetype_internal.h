@@ -3,8 +3,7 @@
 #include "core_dynarray.h"
 #include "ecs_def.h"
 
-// Forward declare from 'ecs_world.h'.
-typedef u64 EcsEntityId;
+#include "entity_internal.h"
 
 typedef struct {
   BitSet mask;

@@ -108,6 +108,6 @@ void* ecs_archetype_get_comp(EcsArchetype* archetype, const u32 index, const Ecs
   const usize chunkIdx      = index / archetype->entitiesPerChunk;
   const usize indexInChunk  = index - (chunkIdx * archetype->entitiesPerChunk);
   u8*         chunk         = archetype->chunks[chunkIdx];
-  u8*         chunkCompData = (u8*)chunk + compOffsets[compIdx];
+  u8*         chunkCompData = bits_ptr_offset(chunk, compOffsets[compIdx]);
   return chunkCompData + compStrides[compIdx] * indexInChunk;
 }

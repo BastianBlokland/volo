@@ -154,7 +154,12 @@ u64 bits_align_64(u64 val, u64 align);
  * Check if the pointer satisfies the given alignment.
  * Pre-condition: bits_ispow2(_ALIGN_)
  */
- #define bits_aligned_ptr(_VAL_, _ALIGN_) bits_aligned((uptr)(_VAL_), (_ALIGN_))
+#define bits_aligned_ptr(_VAL_, _ALIGN_) bits_aligned((uptr)(_VAL_), (_ALIGN_))
+
+/**
+ * Offset a pointer by a given number of bytes.
+ */
+#define bits_ptr_offset(_VAL_, _OFFSET_) ((void*)((u8*)(_VAL_) + (_OFFSET_)))
 
 // clang-format on
 
