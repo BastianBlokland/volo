@@ -31,6 +31,11 @@
 typedef struct sAllocator Allocator;
 
 /**
+ * Routine to build an allocator to manage a memory region.
+ */
+typedef Allocator* (*AllocatorBuilder)(Mem);
+
+/**
  * 'Normal' heap allocator.
  */
 extern Allocator* g_alloc_heap;
@@ -51,8 +56,29 @@ extern THREAD_LOCAL Allocator* g_alloc_scratch;
 /**
  * Create a new bump allocator. Will allocate from the given memory region, once the region is empty
  * allocations will fail. Memory region needs to contain atleast 64 bytes for internal book-keeping.
+ * NOTE: Does not need explicit destruction as all book-keeping is stored within the given mem.
  */
 Allocator* alloc_bump_create(Mem);
+
+/**
+ * Create a chunked allocator.
+ * Allocates chunks of memory from the parent allocator and uses AllocatorBuilder to create
+ * sub-allocators for those chunks.
+ *
+ * NOTE: Chunks are only freed when the allocator is destroyed.
+ * NOTE: Destroy using 'alloc_chunked_destroy()'.
+ * NOTE: Only 32 chunks are supported, after that allocations will fail.
+ *
+ * Pre-condition: chunkSize >= 128.
+ * Pre-condition: chunkSize is a power-of-two.
+ */
+Allocator* alloc_chunked_create(Allocator* parent, AllocatorBuilder, usize chunkSize);
+
+/**
+ * Destroy a chunked allocator.
+ * Pre-condition: Given allocator was created using 'alloc_chunked_create()'.
+ */
+void alloc_chunked_destroy(Allocator*);
 
 /**
  * Allocate new memory.
