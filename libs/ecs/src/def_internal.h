@@ -4,6 +4,8 @@
 
 #include "module_internal.h"
 
+#define ecs_comp_max_size 1024
+
 typedef struct {
   String name;
   usize  size;

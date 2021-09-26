@@ -120,6 +120,11 @@ ecs_def_register_comp(EcsDef* def, const String name, const usize size, const us
       "Component size '{}' is not a multiple of the alignment '{}'",
       fmt_size(size),
       fmt_int(align));
+  diag_assert_msg(
+      size <= ecs_comp_max_size,
+      "Component size '{}' is bigger then the maximum of '{}'",
+      fmt_size(size),
+      fmt_size(ecs_comp_max_size));
 
   EcsCompId id                                   = (EcsCompId)def->components.size;
   *dynarray_push_t(&def->components, EcsCompDef) = (EcsCompDef){
