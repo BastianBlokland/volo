@@ -141,6 +141,13 @@ void dynarray_remove_unordered(DynArray*, usize idx, usize count);
 Mem dynarray_insert(DynArray*, usize idx, usize count);
 
 /**
+ * Insert 'count' items into the dynamic-array at an index that would maintain sorting with target.
+ * Returns a memory-view over the new items.
+ * Pre-condition: array is sorted.
+ */
+Mem dynarray_insert_sorted(DynArray*, usize count, CompareFunc, const void* target);
+
+/**
  * Sort the array according to the given compare function.
  */
 void dynarray_sort(DynArray*, CompareFunc);

@@ -190,6 +190,23 @@ spec(dynarray) {
     dynarray_destroy(&array);
   }
 
+  it("can insert elements sorted") {
+    const u32 values[]   = {3, 6, 5, 9, 15, 10, 4, 13, 7, 1, 8, 12, 14, 11, 2};
+    const u32 expected[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+
+    DynArray array = dynarray_create_over_t(mem_stack(256), u32);
+
+    array_for_t(values, u32, val, {
+      // TODO: It might make sense to add an helper macro to 'core_dynarray.h' to avoid the casting?
+      *mem_as_t(dynarray_insert_sorted(&array, 1, compare_u32, val), u32) = *val;
+    });
+
+    check_eq_int(array.size, array_elems(values));
+    dynarray_for_t(&array, u32, val, { check_eq_int(*val, expected[val_i]); });
+
+    dynarray_destroy(&array);
+  }
+
   it("can be sorted") {
     const u32 values[]   = {3, 6, 5, 9, 15, 10, 4, 13, 7, 1, 8, 12, 14, 11, 2};
     const u32 expected[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
