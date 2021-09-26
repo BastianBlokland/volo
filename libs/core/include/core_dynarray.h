@@ -146,6 +146,17 @@ Mem dynarray_insert(DynArray*, usize idx, usize count);
 void dynarray_sort(DynArray*, CompareFunc);
 
 /**
+ * Search the array for an element matching the given target using a linear scan.
+ */
+void* dynarray_search_linear(DynArray*, CompareFunc, const void* target);
+
+/**
+ * Search the array for an element matching the given target using a binary scan.
+ * Pre-condition: array is sorted.
+ */
+void* dynarray_search_binary(DynArray*, CompareFunc, const void* target);
+
+/**
  * Shuffle the array using the given RandomNumberGenerator.
  */
 void dynarray_shuffle(DynArray*, Rng*);

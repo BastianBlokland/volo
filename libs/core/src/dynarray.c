@@ -3,6 +3,7 @@
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_math.h"
+#include "core_search.h"
 #include "core_shuffle.h"
 #include "core_sort.h"
 
@@ -132,7 +133,17 @@ Mem dynarray_insert(DynArray* array, const usize idx, const usize count) {
 
 void dynarray_sort(DynArray* array, CompareFunc compare) {
   const Mem mem = dynarray_at(array, 0, array->size);
-  sort_bubblesort(mem_begin(mem), mem_end(mem), array->stride, compare);
+  sort_quicksort(mem_begin(mem), mem_end(mem), array->stride, compare);
+}
+
+void* dynarray_search_linear(DynArray* array, CompareFunc compare, const void* target) {
+  const Mem mem = dynarray_at(array, 0, array->size);
+  return search_linear(mem_begin(mem), mem_end(mem), array->stride, compare, target);
+}
+
+void* dynarray_search_binary(DynArray* array, CompareFunc compare, const void* target) {
+  const Mem mem = dynarray_at(array, 0, array->size);
+  return search_binary(mem_begin(mem), mem_end(mem), array->stride, compare, target);
 }
 
 void dynarray_shuffle(DynArray* array, Rng* rng) {
