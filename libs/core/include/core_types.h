@@ -52,3 +52,13 @@ typedef u8 bool;
 #define usize_gibibyte (usize_mebibyte * 1024)
 #define usize_tebibyte (usize_gibibyte * 1024)
 #define usize_pebibyte (usize_tebibyte * 1024)
+
+/**
+ * Retrieve a pointer to a field inside the given value.
+ * Example usage:
+ * ```
+ * void* myVal = ...
+ * void* myValField = field_ptr(myVal, MyStructType, fieldA);
+ * ```
+ */
+#define field_ptr(_VAL_, _TYPE_, _FIELD_) (&((_TYPE_*)(_VAL_))->_FIELD_)

@@ -30,11 +30,11 @@ add_library(volo_core STATIC
   src/path_pal.c
   src/path.c
   src/rng.c
+  src/search.c
   src/shuffle.c
   src/signal_pal.c
   src/signal.c
-  src/sort_bubblesort.c
-  src/sort_quicksort.c
+  src/sort.c
   src/string.c
   src/thread_pal.c
   src/thread.c
@@ -72,6 +72,7 @@ add_executable(volo_core_test
   test/test_memory.c
   test/test_path.c
   test/test_rng.c
+  test/test_search.c
   test/test_shuffle.c
   test/test_sort.c
   test/test_string.c
