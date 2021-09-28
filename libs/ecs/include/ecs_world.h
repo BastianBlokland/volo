@@ -1,5 +1,6 @@
 #pragma once
 #include "core_types.h"
+#include "ecs_comp.h"
 #include "ecs_entity.h"
 
 // Forward declare from 'ecs_def.h'.

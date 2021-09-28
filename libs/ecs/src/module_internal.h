@@ -2,6 +2,7 @@
 #include "core_bitset.h"
 #include "core_dynarray.h"
 #include "ecs_def.h"
+#include "ecs_module.h"
 
 typedef struct {
   String   name;

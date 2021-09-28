@@ -1,11 +1,11 @@
 #pragma once
 #include "core_annotation.h"
 #include "core_string.h"
+#include "ecs_comp.h"
 
 // Forward declare from 'ecs_world.h'.
 typedef struct sEcsWorld EcsWorld;
 
-typedef u16 EcsCompId;
 typedef u16 EcsViewId;
 typedef u16 EcsSystemId;
 
