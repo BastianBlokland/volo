@@ -28,9 +28,21 @@ typedef struct {
 EcsStorage ecs_storage_create(Allocator*, const EcsDef*);
 void       ecs_storage_destroy(EcsStorage*);
 
-EcsEntityId    ecs_storage_entity_create(EcsStorage*);
+/**
+ * Register a new entity.
+ * NOTE: Created entities may not have a 'EcsEntityInfo' until 'ecs_storage_flush_new_entities()' is
+ * called (meaning 'ecs_storage_entity_info()' will return null). 'ecs_storage_entity_exists()' will
+ * however immediately recognize the entities.
+ */
+EcsEntityId ecs_storage_entity_create(EcsStorage*);
+
 bool           ecs_storage_entity_exists(const EcsStorage*, EcsEntityId);
 EcsEntityInfo* ecs_storage_entity_info(EcsStorage*, EcsEntityId);
+void           ecs_storage_entity_destroy(EcsStorage*, EcsEntityId);
 EcsArchetypeId ecs_storage_achetype_find(EcsStorage*, BitSet mask);
 EcsArchetypeId ecs_storage_archtype_find_or_create(EcsStorage*, BitSet mask);
-void           ecs_storage_flush(EcsStorage*);
+
+/**
+ * Flush any entities that where created since the last call.
+ */
+void ecs_storage_flush_new_entities(EcsStorage*);

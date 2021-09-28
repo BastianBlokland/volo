@@ -6,6 +6,7 @@ message(STATUS "Configuring ecs library")
 
 add_library(volo_ecs STATIC
   src/archetype.c
+  src/buffer.c
   src/def.c
   src/entity_allocator.c
   src/entity.c

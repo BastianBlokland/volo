@@ -7,9 +7,6 @@
 // Note: Not a hard limit, will grow beyond this if needed.
 #define ecs_starting_entities_capacity 1024
 
-/**
- * NOTE: Only safe during a flush or the ecs_storage_create() function.
- */
 static void ecs_storage_entity_ensure(EcsStorage* storage, const u32 index) {
   if (UNLIKELY(index >= storage->entities.size)) {
     Mem entities = dynarray_push(&storage->entities, (index + 1) - storage->entities.size);
@@ -25,17 +22,6 @@ static void ecs_storage_entity_init(EcsStorage* storage, const EcsEntityId id) {
         .archetype = sentinel_u32,
     };
   }
-}
-
-/**
- * NOTE: Only safe to be called during a flush.
- */
-static void ecs_storage_flush_new_entities(EcsStorage* storage) {
-  dynarray_for_t(&storage->newEntities, EcsEntityId, newEntityId, {
-    ecs_storage_entity_ensure(storage, ecs_entity_id_index(*newEntityId));
-    ecs_storage_entity_init(storage, *newEntityId);
-  });
-  dynarray_clear(&storage->newEntities);
 }
 
 EcsStorage ecs_storage_create(Allocator* alloc, const EcsDef* def) {
@@ -95,6 +81,16 @@ bool ecs_storage_entity_exists(const EcsStorage* storage, const EcsEntityId id) 
   return ecs_storage_entity_info((EcsStorage*)storage, id) != null;
 }
 
+void ecs_storage_entity_destroy(EcsStorage* storage, const EcsEntityId id) {
+  // TODO: If the entity belonged to a archetype we should remove it from there.
+
+  EcsEntityInfo* info = ecs_storage_entity_info(storage, id);
+  diag_assert_msg(info, "Missing entity-info for entity '{}'", fmt_int(id));
+
+  info->serial = 0;
+  entity_allocator_free(&storage->entityAllocator, id);
+}
+
 EcsArchetypeId ecs_storage_achetype_find(EcsStorage* storage, const BitSet mask) {
   dynarray_for_t(&storage->archetypes, EcsArchetype, arch, {
     if (mem_eq(arch->mask, mask)) {
@@ -113,4 +109,10 @@ EcsArchetypeId ecs_storage_archtype_find_or_create(EcsStorage* storage, const Bi
   return res;
 }
 
-void ecs_storage_flush(EcsStorage* storage) { ecs_storage_flush_new_entities(storage); }
+void ecs_storage_flush_new_entities(EcsStorage* storage) {
+  dynarray_for_t(&storage->newEntities, EcsEntityId, newEntityId, {
+    ecs_storage_entity_ensure(storage, ecs_entity_id_index(*newEntityId));
+    ecs_storage_entity_init(storage, *newEntityId);
+  });
+  dynarray_clear(&storage->newEntities);
+}

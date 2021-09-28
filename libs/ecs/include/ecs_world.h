@@ -47,6 +47,16 @@ EcsEntityId ecs_world_entity_create(EcsWorld*);
 /**
  * Check if the given entity exists in the world.
  *
+ * Pre-condition: EcsEntityId is created with 'ecs_world_entity_create()'
  * Pre-condition: !ecs_world_busy() || g_ecsRunningSystem
  */
 bool ecs_world_entity_exists(const EcsWorld*, EcsEntityId);
+
+/**
+ * Schedule an entity to be destroyed at the next flush.
+ *
+ * Pre-condition: ecs_world_entity_exists(world, entity).
+ * Pre-condition: EcsEntityId is created with 'ecs_world_entity_create()'
+ * Pre-condition: !ecs_world_busy() || g_ecsRunningSystem
+ */
+void ecs_world_entity_destroy_async(EcsWorld*, EcsEntityId);

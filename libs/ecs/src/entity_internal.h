@@ -13,3 +13,9 @@
  * 32 bits).
  */
 #define ecs_entity_id_serial(_ENTITY_ID_) ((u32)((_ENTITY_ID_) >> 32))
+
+/**
+ * Check if the given entity-id is valid.
+ * NOTE: Does not mean that the entity actually exists in a world.
+ */
+#define ecs_entity_valid(_ENTITY_ID_) (ecs_entity_id_serial(_ENTITY_ID_) != 0)
