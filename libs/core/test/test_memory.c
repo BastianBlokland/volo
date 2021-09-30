@@ -1,6 +1,8 @@
 #include "check_spec.h"
+#include "core_alloc.h"
 #include "core_array.h"
 #include "core_memory.h"
+#include "core_rng.h"
 
 typedef struct {
   u32 a, b;
@@ -57,5 +59,17 @@ spec(memory) {
 
     check(!mem_contains(mem, 7));
     check(!mem_contains(mem, 0));
+  }
+
+  it("can create a dynamicly sized allocation on the stack") {
+    Rng* rng = rng_create_xorwow(g_alloc_scratch, 42);
+
+    const usize size     = rng_sample_range(rng, 0, 2) ? 1234 : 1337;
+    Mem         stackMem = mem_stack(size);
+
+    mem_set(stackMem, 0xAF);
+    for (usize i = 0; i != size; ++i) {
+      check(*mem_at_u8(stackMem, i) == 0xAF);
+    }
   }
 }
