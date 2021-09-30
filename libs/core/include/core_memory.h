@@ -19,7 +19,7 @@ typedef struct {
  */
 #define mem_struct(_TYPE_, ...)                                                                    \
   ((Mem){                                                                                          \
-      .ptr  = &(_TYPE_){__VA_ARGS__},                                                              \
+      .ptr  = &(_TYPE_){0, ##__VA_ARGS__},                                                         \
       .size = sizeof(_TYPE_),                                                                      \
   })
 

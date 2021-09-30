@@ -2,7 +2,35 @@
 #include "core_array.h"
 #include "core_memory.h"
 
+typedef struct {
+  u32 a, b;
+} TestMemStruct;
+
 spec(memory) {
+
+  it("can create a memory view over a stack allocated struct") {
+    Mem mem = mem_empty;
+
+    mem = mem_struct(TestMemStruct);
+    check_require(mem_valid(mem));
+    check(mem_as_t(mem, u32)[0] == 0);
+    check(mem_as_t(mem, u32)[1] == 0);
+
+    mem = mem_struct(TestMemStruct, .a = 42);
+    check_require(mem_valid(mem));
+    check(mem_as_t(mem, u32)[0] == 42);
+    check(mem_as_t(mem, u32)[1] == 0);
+
+    mem = mem_struct(TestMemStruct, .b = 42);
+    check_require(mem_valid(mem));
+    check(mem_as_t(mem, u32)[0] == 0);
+    check(mem_as_t(mem, u32)[1] == 42);
+
+    mem = mem_struct(TestMemStruct, .a = 1337, .b = 42);
+    check_require(mem_valid(mem));
+    check(mem_as_t(mem, u32)[0] == 1337);
+    check(mem_as_t(mem, u32)[1] == 42);
+  }
 
   it("can create a memory view from two pointers") {
     u8    rawMem[128] = {0};
