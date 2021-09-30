@@ -2,24 +2,24 @@
 #include "core_alloc.h"
 #include "ecs_def.h"
 
-ecs_comp_define(DefTestCompA) { u32 fieldA; };
+ecs_comp_define(DefCompA) { u32 fieldA; };
 
-ecs_comp_define(DefTestCompB) {
+ecs_comp_define(DefCompB) {
   u32  fieldA;
   bool fieldB;
 };
 
 ecs_view_define(ReadAWriteB) {
-  ecs_view_read(DefTestCompA);
-  ecs_view_write(DefTestCompB);
+  ecs_view_read(DefCompA);
+  ecs_view_write(DefCompB);
 }
 
 ecs_system_define(Update) {}
 ecs_system_define(Cleanup) {}
 
 ecs_module_init(def_test_module) {
-  ecs_register_comp(DefTestCompA);
-  ecs_register_comp(DefTestCompB);
+  ecs_register_comp(DefCompA);
+  ecs_register_comp(DefCompB);
 
   ecs_register_view(ReadAWriteB);
 
@@ -43,18 +43,18 @@ spec(def) {
   it("can retrieve the amount of registered views") { check_eq_int(ecs_def_view_count(def), 1); }
 
   it("can retrieve the name of registered components") {
-    check_eq_string(ecs_def_comp_name(def, ecs_comp_id(DefTestCompA)), string_lit("DefTestCompA"));
-    check_eq_string(ecs_def_comp_name(def, ecs_comp_id(DefTestCompB)), string_lit("DefTestCompB"));
+    check_eq_string(ecs_def_comp_name(def, ecs_comp_id(DefCompA)), string_lit("DefCompA"));
+    check_eq_string(ecs_def_comp_name(def, ecs_comp_id(DefCompB)), string_lit("DefCompB"));
   }
 
   it("can retrieve the size of registered components") {
-    check_eq_int(ecs_def_comp_size(def, ecs_comp_id(DefTestCompA)), sizeof(DefTestCompA));
-    check_eq_int(ecs_def_comp_size(def, ecs_comp_id(DefTestCompB)), sizeof(DefTestCompB));
+    check_eq_int(ecs_def_comp_size(def, ecs_comp_id(DefCompA)), sizeof(DefCompA));
+    check_eq_int(ecs_def_comp_size(def, ecs_comp_id(DefCompB)), sizeof(DefCompB));
   }
 
   it("can retrieve the alignment requirement of registered components") {
-    check_eq_int(ecs_def_comp_align(def, ecs_comp_id(DefTestCompA)), alignof(DefTestCompA));
-    check_eq_int(ecs_def_comp_align(def, ecs_comp_id(DefTestCompB)), alignof(DefTestCompB));
+    check_eq_int(ecs_def_comp_align(def, ecs_comp_id(DefCompA)), alignof(DefCompA));
+    check_eq_int(ecs_def_comp_align(def, ecs_comp_id(DefCompB)), alignof(DefCompB));
   }
 
   it("can retrieve the name of registered views") {

@@ -142,7 +142,7 @@ static EcsBufferCompData* ecs_buffer_compdata_add(
 
   const usize align   = ecs_buffer_compdata_align(compAlign);
   const usize padding = ecs_buffer_compdata_padding(compAlign);
-  const usize size    = sizeof(EcsBufferCompData) + padding + compSize;
+  const usize size    = bits_align(sizeof(EcsBufferCompData) + padding + compSize, align);
 
   Mem                storage = alloc_alloc(buffer->compDataAllocator, size, align);
   EcsBufferCompData* res     = mem_as_t(storage, EcsBufferCompData);
@@ -190,7 +190,8 @@ void ecs_buffer_destroy_entity(EcsBuffer* buffer, const EcsEntityId entityId) {
   entity->flags |= EcsBufferEntityFlags_Destroy;
 }
 
-Mem ecs_buffer_add_comp(EcsBuffer* buffer, const EcsEntityId entityId, const EcsCompId compId) {
+void* ecs_buffer_comp_add(
+    EcsBuffer* buffer, const EcsEntityId entityId, const EcsCompId compId, const Mem data) {
 
   EcsBufferEntity* entity  = ecs_buffer_entity_get(buffer, entityId);
   BitSet           addMask = ecs_buffer_mask(buffer, entity->addMask);
@@ -217,10 +218,12 @@ Mem ecs_buffer_add_comp(EcsBuffer* buffer, const EcsEntityId entityId, const Ecs
   const usize compSize  = ecs_def_comp_size(buffer->def, compId);
   const usize compAlign = ecs_def_comp_align(buffer->def, compId);
   *last                 = ecs_buffer_compdata_add(buffer, compId, compSize, compAlign);
-  return ecs_buffer_compdata_payload(*last, compSize, compAlign);
+  Mem payload           = ecs_buffer_compdata_payload(*last, compSize, compAlign);
+  mem_cpy(payload, data);
+  return payload.ptr;
 }
 
-void ecs_buffer_remove_comp(EcsBuffer* buffer, const EcsEntityId entityId, const EcsCompId compId) {
+void ecs_buffer_comp_remove(EcsBuffer* buffer, const EcsEntityId entityId, const EcsCompId compId) {
   EcsBufferEntity* entity     = ecs_buffer_entity_get(buffer, entityId);
   BitSet           removeMask = ecs_buffer_mask(buffer, entity->removeMask);
 

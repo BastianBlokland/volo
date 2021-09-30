@@ -4,7 +4,20 @@
 #include "ecs_runner.h"
 #include "ecs_world.h"
 
-ecs_module_init(world_test_module) {}
+ecs_comp_define(WorldCompA) {
+  u32  f1;
+  bool f2;
+};
+
+ecs_comp_define(WorldCompB) { u32 f1; };
+
+ecs_comp_define(WorldCompC) { String f1; };
+
+ecs_module_init(world_test_module) {
+  ecs_register_comp(WorldCompA);
+  ecs_register_comp(WorldCompB);
+  ecs_register_comp(WorldCompC);
+}
 
 spec(world) {
 
@@ -14,7 +27,7 @@ spec(world) {
 
   setup() {
     def = ecs_def_create(g_alloc_heap);
-    ecs_register_module(def, def_test_module);
+    ecs_register_module(def, world_test_module);
 
     world  = ecs_world_create(g_alloc_heap, def);
     runner = ecs_runner_create(g_alloc_heap, world);
@@ -44,13 +57,63 @@ spec(world) {
 
     check(ecs_world_entity_exists(world, entity)); // Exists before destroying,
 
-    ecs_world_entity_destroy_async(world, entity);
+    ecs_world_entity_destroy(world, entity);
 
     check(ecs_world_entity_exists(world, entity)); // Still exists until the next flush.
 
     ecs_run_sync(runner); // Causes a flush to happen in the world.
 
     check(!ecs_world_entity_exists(world, entity)); // No longer exists.
+  }
+
+  it("zero initializes new components") {
+    const EcsEntityId entity = ecs_world_entity_create(world);
+
+    const WorldCompA* comp = ecs_world_comp_add_t(world, entity, WorldCompA);
+    check_eq_int(comp->f1, 0);
+    check(!comp->f2);
+  }
+
+  it("can override component fields for new components") {
+    const EcsEntityId entity = ecs_world_entity_create(world);
+
+    const WorldCompA* comp = ecs_world_comp_add_t(world, entity, WorldCompA, .f1 = 42, .f2 = true);
+    check_eq_int(comp->f1, 42);
+    check(comp->f2);
+  }
+
+  it("can add multiple components for the same entity") {
+    const EcsEntityId entity = ecs_world_entity_create(world);
+
+    WorldCompA* a = ecs_world_comp_add_t(world, entity, WorldCompA, .f1 = 42, .f2 = true);
+    WorldCompB* b = ecs_world_comp_add_t(world, entity, WorldCompB, .f1 = 1337);
+    WorldCompC* c = ecs_world_comp_add_t(world, entity, WorldCompC, .f1 = string_lit("Hello"));
+
+    check_eq_int(a->f1, 42);
+    check(a->f2);
+    check_eq_int(b->f1, 1337);
+    check_eq_string(c->f1, string_lit("Hello"));
+  }
+
+  it("can add components for many entities") {
+    static const usize entitiesToCreate = 1234;
+    DynArray           entities         = dynarray_create_t(g_alloc_heap, EcsEntityId, 2048);
+
+    for (usize i = 0; i != entitiesToCreate; ++i) {
+      *dynarray_push_t(&entities, EcsEntityId) = ecs_world_entity_create(world);
+    }
+
+    dynarray_for_t(&entities, EcsEntityId, id, {
+      const WorldCompA* comp = ecs_world_comp_add_t(world, *id, WorldCompA, .f1 = 42, .f2 = true);
+      check_eq_int(comp->f1, 42);
+      check(comp->f2);
+    });
+
+    dynarray_destroy(&entities);
+  }
+
+  it("can remove a component") {
+    // TODO: Add test.
   }
 
   teardown() {

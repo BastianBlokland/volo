@@ -1,7 +1,7 @@
 #pragma once
-#include "core_types.h"
-#include "ecs_comp.h"
+#include "core_memory.h"
 #include "ecs_entity.h"
+#include "ecs_module.h"
 
 // Forward declare from 'ecs_def.h'.
 typedef struct sEcsDef EcsDef;
@@ -60,4 +60,29 @@ bool ecs_world_entity_exists(const EcsWorld*, EcsEntityId);
  * Pre-condition: EcsEntityId is created with 'ecs_world_entity_create()'
  * Pre-condition: !ecs_world_busy() || g_ecsRunningSystem
  */
-void ecs_world_entity_destroy_async(EcsWorld*, EcsEntityId);
+void ecs_world_entity_destroy(EcsWorld*, EcsEntityId);
+
+/**
+ * Schedule a component to be added at the next flush.
+ *
+ * Pre-condition: ecs_world_entity_exists(world, entity).
+ * Pre-condition: EcsEntityId is created with 'ecs_world_entity_create()'
+ * Pre-condition: !ecs_world_busy() || g_ecsRunningSystem
+ */
+#define ecs_world_comp_add_t(_WORLD_, _ENTITY_, _TYPE_, ...)                                       \
+  ((_TYPE_*)ecs_world_comp_add(                                                                    \
+      (_WORLD_), (_ENTITY_), ecs_comp_id(_TYPE_), mem_struct(_TYPE_, __VA_ARGS__)))
+
+void* ecs_world_comp_add(EcsWorld*, EcsEntityId, EcsCompId, Mem data);
+
+/**
+ * Schedule a component to be removed at the next flush.
+ *
+ * Pre-condition: ecs_world_entity_exists(world, entity).
+ * Pre-condition: EcsEntityId is created with 'ecs_world_entity_create()'
+ * Pre-condition: !ecs_world_busy() || g_ecsRunningSystem
+ */
+#define ecs_world_comp_remove_t(_WORLD_, _ENTITY_, _TYPE_)                                         \
+  ecs_world_comp_remove((_WORLD_), (_ENTITY_), ecs_comp_id(_TYPE_))
+
+void ecs_world_comp_remove(EcsWorld*, EcsEntityId, EcsCompId);

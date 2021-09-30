@@ -25,9 +25,9 @@ EcsBuffer ecs_buffer_create(Allocator*, const EcsDef* def);
 void      ecs_buffer_destroy(EcsBuffer*);
 void      ecs_buffer_clear(EcsBuffer*);
 
-void ecs_buffer_destroy_entity(EcsBuffer*, EcsEntityId);
-Mem  ecs_buffer_add_comp(EcsBuffer*, EcsEntityId, EcsCompId);
-void ecs_buffer_remove_comp(EcsBuffer*, EcsEntityId, EcsCompId);
+void  ecs_buffer_destroy_entity(EcsBuffer*, EcsEntityId);
+void* ecs_buffer_comp_add(EcsBuffer*, EcsEntityId, EcsCompId, Mem data);
+void  ecs_buffer_comp_remove(EcsBuffer*, EcsEntityId, EcsCompId);
 
 usize                ecs_buffer_count(const EcsBuffer*);
 EcsEntityId          ecs_buffer_entity(const EcsBuffer*, usize index);

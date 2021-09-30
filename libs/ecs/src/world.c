@@ -54,24 +54,60 @@ EcsEntityId ecs_world_entity_create(EcsWorld* world) {
   return ecs_storage_entity_create(&world->storage);
 }
 
-bool ecs_world_entity_exists(const EcsWorld* world, const EcsEntityId id) {
+bool ecs_world_entity_exists(const EcsWorld* world, const EcsEntityId entity) {
   diag_assert(!ecs_world_busy(world) || g_ecsRunningSystem);
-  diag_assert_msg(ecs_entity_valid(id), "{} is an invalid entity", fmt_int(id));
+  diag_assert_msg(ecs_entity_valid(entity), "{} is an invalid entity", fmt_int(entity));
 
-  return ecs_storage_entity_exists(&world->storage, id);
+  return ecs_storage_entity_exists(&world->storage, entity);
 }
 
-void ecs_world_entity_destroy_async(EcsWorld* world, const EcsEntityId id) {
+void ecs_world_entity_destroy(EcsWorld* world, const EcsEntityId entity) {
   diag_assert(!ecs_world_busy(world) || g_ecsRunningSystem);
-  diag_assert_msg(ecs_entity_valid(id), "{} is an invalid entity", fmt_int(id));
+  diag_assert_msg(ecs_entity_valid(entity), "{} is an invalid entity", fmt_int(entity));
 
   diag_assert_msg(
-      ecs_world_entity_exists(world, id),
+      ecs_world_entity_exists(world, entity),
       "Unable to enqueue destruction of entity '{}', reason: entity does not exist",
-      fmt_int(id));
+      fmt_int(entity));
 
   thread_spinlock_lock(&world->bufferLock);
-  ecs_buffer_destroy_entity(&world->buffer, id);
+  ecs_buffer_destroy_entity(&world->buffer, entity);
+  thread_spinlock_unlock(&world->bufferLock);
+}
+
+void* ecs_world_comp_add(
+    EcsWorld* world, const EcsEntityId entity, const EcsCompId comp, const Mem data) {
+  diag_assert(!ecs_world_busy(world) || g_ecsRunningSystem);
+  diag_assert_msg(ecs_entity_valid(entity), "{} is an invalid entity", fmt_int(entity));
+
+  diag_assert_msg(
+      ecs_world_entity_exists(world, entity),
+      "Unable to add component '{}' to entity '{}', reason: entity does not exist",
+      fmt_text(ecs_def_comp_name(world->def, comp)),
+      fmt_int(entity));
+
+  // TODO: Assert that the entity doesn't have the component yet.
+
+  thread_spinlock_lock(&world->bufferLock);
+  void* result = ecs_buffer_comp_add(&world->buffer, entity, comp, data);
+  thread_spinlock_unlock(&world->bufferLock);
+  return result;
+}
+
+void ecs_world_comp_remove(EcsWorld* world, const EcsEntityId entity, const EcsCompId comp) {
+  diag_assert(!ecs_world_busy(world) || g_ecsRunningSystem);
+  diag_assert_msg(ecs_entity_valid(entity), "{} is an invalid entity", fmt_int(entity));
+
+  diag_assert_msg(
+      ecs_world_entity_exists(world, entity),
+      "Unable to remove component '{}' from entity '{}', reason: entity does not exist",
+      fmt_text(ecs_def_comp_name(world->def, comp)),
+      fmt_int(entity));
+
+  // TODO: Assert that the entity has the component.
+
+  thread_spinlock_lock(&world->bufferLock);
+  ecs_buffer_comp_remove(&world->buffer, entity, comp);
   thread_spinlock_unlock(&world->bufferLock);
 }
 
