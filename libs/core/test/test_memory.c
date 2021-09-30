@@ -72,4 +72,24 @@ spec(memory) {
       check(*mem_at_u8(stackMem, i) == 0xAF);
     }
   }
+
+  it("can swap the contents of two memory locations") {
+    Mem memA = mem_stack(64);
+    Mem memB = mem_stack(64);
+
+    mem_set(memA, 0xAA);
+    mem_set(memB, 0xAB);
+
+    check_require(mem_contains(memA, 0xAA));
+    check_require(mem_contains(memB, 0xAB));
+    check_require(!mem_contains(memA, 0xAB));
+    check_require(!mem_contains(memB, 0xAA));
+
+    mem_swap(memA, memB);
+
+    check_require(!mem_contains(memA, 0xAA));
+    check_require(!mem_contains(memB, 0xAB));
+    check_require(mem_contains(memA, 0xAB));
+    check_require(mem_contains(memB, 0xAA));
+  }
 }

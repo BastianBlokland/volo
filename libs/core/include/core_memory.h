@@ -2,7 +2,7 @@
 #include "core_types.h"
 
 /**
- * Non-owning view over memory with a specified size.
+ * Non-owning view over a memory block.
  */
 typedef struct {
   void* ptr;
