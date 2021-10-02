@@ -7,6 +7,8 @@
 // Note: Not a hard limit, will grow beyond this if needed.
 #define ecs_starting_entities_capacity 1024
 
+#define ecs_comp_mask_stack(_DEF_) mem_stack(bits_to_bytes(ecs_def_comp_count(_DEF_)) + 1)
+
 static void ecs_storage_entity_ensure(EcsStorage* storage, const u32 index) {
   if (UNLIKELY(index >= storage->entities.size)) {
     Mem entities = dynarray_push(&storage->entities, (index + 1) - storage->entities.size);
@@ -109,24 +111,35 @@ void* ecs_storage_entity_comp(EcsStorage* storage, const EcsEntityId id, const E
 void ecs_storage_entity_move(
     EcsStorage* storage, const EcsEntityId id, const EcsArchetypeId newArchetypeId) {
 
-  EcsEntityInfo* info         = ecs_storage_entity_info(storage, id);
-  EcsArchetype*  oldArchetype = ecs_storage_archetype(storage, info->archetype);
+  EcsEntityInfo* info              = ecs_storage_entity_info(storage, id);
+  EcsArchetype*  oldArchetype      = ecs_storage_archetype(storage, info->archetype);
+  const u32      oldArchetypeIndex = info->archetypeIndex;
+
+  EcsArchetype* newArchetype = ecs_storage_archetype(storage, newArchetypeId);
+  diag_assert_msg(newArchetype != oldArchetype, "Entity cannot be moved to the same archetype");
+
+  if (newArchetype) {
+    const u32 newArchetypeIndex = ecs_archetype_add(newArchetype, id);
+    if (oldArchetype) {
+      // Copy the components that both archetypes have in common.
+      BitSet overlapping = ecs_comp_mask_stack(storage->def);
+      mem_cpy(overlapping, oldArchetype->mask);
+      bitset_and(overlapping, newArchetype->mask);
+
+      ecs_archetype_copy_across(
+          overlapping, newArchetype, newArchetypeIndex, oldArchetype, info->archetypeIndex);
+    }
+    info->archetype      = newArchetypeId;
+    info->archetypeIndex = newArchetypeIndex;
+  } else {
+    info->archetype = sentinel_u32;
+  }
+
   if (oldArchetype) {
-    const EcsEntityId movedEntity = ecs_archetype_remove(oldArchetype, info->archetypeIndex);
+    const EcsEntityId movedEntity = ecs_archetype_remove(oldArchetype, oldArchetypeIndex);
     if (ecs_entity_valid(movedEntity)) {
       ecs_storage_entity_info(storage, movedEntity)->archetypeIndex = oldArchetype->entityCount - 1;
     }
-  }
-
-  EcsArchetype* newArchetype = ecs_storage_archetype(storage, newArchetypeId);
-
-  diag_assert_msg(oldArchetype != newArchetype, "Entity cannot be moved to the same archetype");
-
-  if (!newArchetype) {
-    info->archetype = sentinel_u32;
-  } else {
-    info->archetype      = newArchetypeId;
-    info->archetypeIndex = ecs_archetype_add(newArchetype, id);
   }
 }
 
