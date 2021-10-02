@@ -40,6 +40,12 @@ static usize ecs_archetype_comp_idx(EcsArchetype* archetype, const EcsCompId id)
   return bitset_index(archetype->mask, id);
 }
 
+static EcsEntityId* ecs_archetype_entity_ptr(EcsArchetype* archetype, const u32 index) {
+  const usize chunkIdx     = index / archetype->entitiesPerChunk;
+  const usize indexInChunk = index - (chunkIdx * archetype->entitiesPerChunk);
+  return (EcsEntityId*)archetype->chunks[chunkIdx] + indexInChunk;
+}
+
 static EcsArchetypeLoc ecs_archetype_location(EcsArchetype* archetype, const u32 index) {
   const usize chunkIdx     = index / archetype->entitiesPerChunk;
   const usize indexInChunk = index - (chunkIdx * archetype->entitiesPerChunk);
@@ -126,8 +132,8 @@ u32 ecs_archetype_add(EcsArchetype* archetype, const EcsEntityId id) {
     archetype->chunks[archetype->chunkCount++] = ecs_archetype_chunk_create();
   }
   // TODO: Add check to detect overflowing a u32 entity-index.
-  const u32 entityIdx                         = (u32)(archetype->entityCount++);
-  *ecs_archetype_entity(archetype, entityIdx) = id;
+  const u32 entityIdx                             = (u32)(archetype->entityCount++);
+  *ecs_archetype_entity_ptr(archetype, entityIdx) = id;
   return entityIdx;
 }
 
@@ -143,16 +149,10 @@ EcsEntityId ecs_archetype_remove(EcsArchetype* archetype, const u32 index) {
    * To fix this up we copy the last entity into that hole.
    */
 
-  const EcsEntityId entityToMove = *ecs_archetype_entity(archetype, lastIndex);
+  const EcsEntityId entityToMove = *ecs_archetype_entity_ptr(archetype, lastIndex);
   ecs_archetype_copy_internal(archetype, index, lastIndex);
   --archetype->entityCount;
   return entityToMove;
-}
-
-EcsEntityId* ecs_archetype_entity(EcsArchetype* archetype, const u32 index) {
-  const usize chunkIdx     = index / archetype->entitiesPerChunk;
-  const usize indexInChunk = index - (chunkIdx * archetype->entitiesPerChunk);
-  return (EcsEntityId*)archetype->chunks[chunkIdx] + indexInChunk;
 }
 
 void* ecs_archetype_comp(EcsArchetype* archetype, const u32 index, const EcsCompId id) {

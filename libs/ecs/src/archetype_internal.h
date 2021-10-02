@@ -30,7 +30,6 @@ EcsArchetype ecs_archetype_create(const EcsDef*, BitSet mask);
 void         ecs_archetype_destroy(EcsArchetype*);
 u32          ecs_archetype_add(EcsArchetype*, EcsEntityId);
 EcsEntityId  ecs_archetype_remove(EcsArchetype*, u32 index);
-EcsEntityId* ecs_archetype_entity(EcsArchetype*, u32 index);
 void*        ecs_archetype_comp(EcsArchetype*, u32 index, EcsCompId);
 void         ecs_archetype_copy_across(
             BitSet mask, EcsArchetype* dst, u32 dstIdx, EcsArchetype* src, u32 srcIdx);
