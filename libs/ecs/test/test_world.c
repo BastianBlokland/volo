@@ -13,10 +13,16 @@ ecs_comp_define(WorldCompB) { u32 f1; };
 
 ecs_comp_define(WorldCompC) { String f1; };
 
+ecs_comp_define(WorldCompAligned) {
+  u32             a;
+  ALIGNAS(64) u32 b;
+};
+
 ecs_module_init(world_test_module) {
   ecs_register_comp(WorldCompA);
   ecs_register_comp(WorldCompB);
   ecs_register_comp(WorldCompC);
+  ecs_register_comp(WorldCompAligned);
 }
 
 spec(world) {
@@ -72,6 +78,13 @@ spec(world) {
     const WorldCompA* comp = ecs_world_comp_add_t(world, entity, WorldCompA);
     check_eq_int(comp->f1, 0);
     check(!comp->f2);
+  }
+
+  it("respects the alignment for added components") {
+    const EcsEntityId entity = ecs_world_entity_create(world);
+
+    const WorldCompAligned* comp = ecs_world_comp_add_t(world, entity, WorldCompAligned);
+    check(bits_aligned_ptr(comp, 64));
   }
 
   it("can override component fields for new components") {
