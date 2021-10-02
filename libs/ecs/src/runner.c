@@ -26,6 +26,7 @@ typedef struct {
 
 typedef struct {
   EcsWorld*        world;
+  EcsSystemId      id;
   EcsSystemRoutine routine;
 } SystemTaskData;
 
@@ -36,7 +37,8 @@ struct sEcsRunner {
   Allocator*     alloc;
 };
 
-THREAD_LOCAL bool g_ecsRunningSystem;
+THREAD_LOCAL bool        g_ecsRunningSystem;
+THREAD_LOCAL EcsSystemId g_ecsRunningSystemId = sentinel_u16;
 
 static void graph_runner_finalize_task(void* context) {
   MetaTaskData* data = context;
@@ -49,9 +51,13 @@ static void graph_runner_finalize_task(void* context) {
 static void graph_system_task(void* context) {
   SystemTaskData* data = context;
 
-  g_ecsRunningSystem = true;
+  g_ecsRunningSystem   = true;
+  g_ecsRunningSystemId = data->id;
+
   data->routine(data->world);
-  g_ecsRunningSystem = false;
+
+  g_ecsRunningSystem   = false;
+  g_ecsRunningSystemId = sentinel_u16;
 }
 
 static JobTaskId graph_insert_finalize(EcsRunner* runner) {
@@ -62,12 +68,14 @@ static JobTaskId graph_insert_finalize(EcsRunner* runner) {
       mem_struct(MetaTaskData, .runner = runner));
 }
 
-static JobTaskId graph_insert_system(EcsRunner* runner, const EcsSystemDef* systemDef) {
+static JobTaskId
+graph_insert_system(EcsRunner* runner, const EcsSystemId systemId, const EcsSystemDef* systemDef) {
   return jobs_graph_add_task(
       runner->graph,
       systemDef->name,
       graph_system_task,
-      mem_struct(SystemTaskData, .world = runner->world, .routine = systemDef->routine));
+      mem_struct(
+          SystemTaskData, .world = runner->world, .id = systemId, .routine = systemDef->routine));
 };
 
 static JobTaskId graph_system_to_task(const EcsSystemId system) {
@@ -105,7 +113,7 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world) {
 
   dynarray_for_t((DynArray*)&def->systems, EcsSystemDef, sys, {
     const EcsSystemId sysId     = (EcsSystemId)sys_i;
-    const JobTaskId   sysTaskId = graph_insert_system(runner, sys);
+    const JobTaskId   sysTaskId = graph_insert_system(runner, sysId, sys);
     jobs_graph_task_depend(runner->graph, sysTaskId, finalizeTask);
 
     if (sys_i) {

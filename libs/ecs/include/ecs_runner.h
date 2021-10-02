@@ -8,7 +8,10 @@ typedef struct sAllocator Allocator;
 // Forward declare from 'ecs_world.h'.
 typedef struct sEcsWorld EcsWorld;
 
-// Forward declare from 'jos_scheduler.h'.
+// Forward declare from 'ecs_module.h'.
+typedef u16 EcsSystemId;
+
+// Forward declare from 'jobs_scheduler.h'.
 typedef u64 JobId;
 
 /**
@@ -20,7 +23,8 @@ typedef struct sEcsRunner EcsRunner;
 /**
  * True while the current thread is running an ecs system.
  */
-extern THREAD_LOCAL bool g_ecsRunningSystem;
+extern THREAD_LOCAL bool        g_ecsRunningSystem;
+extern THREAD_LOCAL EcsSystemId g_ecsRunningSystemId;
 
 /**
  * Create a new Ecs runner for the given world.

@@ -138,7 +138,7 @@ u32 ecs_archetype_add(EcsArchetype* archetype, const EcsEntityId id) {
 }
 
 EcsEntityId ecs_archetype_remove(EcsArchetype* archetype, const u32 index) {
-  const u32 lastIndex = archetype->entityCount - 1;
+  const u32 lastIndex = (u32)archetype->entityCount - 1;
   if (index == lastIndex) {
     --archetype->entityCount;
     return 0;
