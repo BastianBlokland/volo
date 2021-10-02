@@ -1,5 +1,4 @@
 #pragma once
-#include "core_alignof.h"
 #include "core_annotation.h"
 #include "core_memory.h"
 

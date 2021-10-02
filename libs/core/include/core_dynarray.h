@@ -1,5 +1,4 @@
 #pragma once
-#include "core_alignof.h"
 #include "core_compare.h"
 #include "core_memory.h"
 #include "core_types.h"

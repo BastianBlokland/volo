@@ -58,6 +58,15 @@ typedef u8 bool;
 #define usize_pebibyte (usize_tebibyte * 1024)
 
 /**
+ * Return the alignment required for the given type.
+ */
+#if defined(VOLO_MSVC)
+#define alignof(_TYPE_) __alignof(_TYPE_)
+#else
+#define alignof(_TYPE_) __alignof__(_TYPE_)
+#endif
+
+/**
  * Retrieve a pointer to a field inside the given value.
  * Example usage:
  * ```
