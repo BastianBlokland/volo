@@ -138,6 +138,18 @@ typedef void (*EcsSystemRoutine)(EcsWorld*);
 
 // clang-format on
 
+/**
+ * Compare two EcsViewId's.
+ * Signature is compatible with the 'CompareFunc' from 'core_compare.h'.
+ */
+i8 ecs_compare_view(const void* a, const void* b);
+
+/**
+ * Compare two EcsSystemId's.
+ * Signature is compatible with the 'CompareFunc' from 'core_compare.h'.
+ */
+i8 ecs_compare_system(const void* a, const void* b);
+
 EcsCompId   ecs_module_register_comp(EcsModuleBuilder*, String name, usize size, usize align);
 EcsViewId   ecs_module_register_view(EcsModuleBuilder*, String name, EcsViewInit);
 EcsSystemId ecs_module_register_system(

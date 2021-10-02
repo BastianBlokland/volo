@@ -20,7 +20,7 @@ typedef struct {
 typedef struct {
   String           name;
   EcsSystemRoutine routine;
-  DynArray         viewIds; // EcsViewId[]
+  DynArray         viewIds; // EcsViewId[] (NOTE: kept sorted)
 } EcsSystemDef;
 
 typedef enum {

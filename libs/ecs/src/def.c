@@ -90,6 +90,11 @@ EcsDefSystemViews ecs_def_system_views(const EcsDef* def, const EcsSystemId id) 
   };
 }
 
+bool ecs_def_system_has_access(const EcsDef* def, const EcsSystemId sysId, const EcsViewId id) {
+  const EcsSystemDef* system = ecs_def_system(def, sysId);
+  return dynarray_search_binary((DynArray*)&system->viewIds, ecs_compare_view, &id) != null;
+}
+
 const EcsModuleDef* ecs_def_module_by_name(const EcsDef* def, const String name) {
   dynarray_for_t((DynArray*)&def->modules, EcsModuleDef, module, {
     if (string_eq(module->name, name)) {
@@ -110,6 +115,7 @@ const EcsCompDef* ecs_def_comp_by_name(const EcsDef* def, const String name) {
 
 EcsCompId
 ecs_def_register_comp(EcsDef* def, const String name, const usize size, const usize align) {
+
   diag_assert_msg(!(def->flags & EcsDefFlags_Frozen), "Unable to modify a frozen definition");
   diag_assert_msg(
       !ecs_def_comp_by_name(def, name), "Duplicate component name '{}'", fmt_text(name));
@@ -162,9 +168,10 @@ EcsSystemId ecs_def_register_system(
       .viewIds = dynarray_create_t(def->alloc, EcsViewId, viewCount),
   };
 
-  mem_cpy(
-      dynarray_push(&systemDef->viewIds, viewCount),
-      mem_create(views, sizeof(EcsViewId) * viewCount));
+  for (usize i = 0; i != viewCount; ++i) {
+    *dynarray_insert_sorted_t(&systemDef->viewIds, EcsViewId, ecs_compare_view, &views[i]) =
+        views[i];
+  }
 
   return id;
 }

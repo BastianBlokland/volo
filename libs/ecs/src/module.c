@@ -7,6 +7,9 @@ struct sEcsModuleBuilder {
   EcsModuleDef* module;
 };
 
+i8 ecs_compare_view(const void* a, const void* b) { return compare_u16(a, b); }
+i8 ecs_compare_system(const void* a, const void* b) { return compare_u16(a, b); }
+
 EcsModuleDef ecs_module_create(EcsDef* def, const String name, const EcsModuleInit initRoutine) {
   EcsModuleDef module = {
       .name         = string_dup(def->alloc, name),

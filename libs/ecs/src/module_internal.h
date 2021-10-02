@@ -12,9 +12,9 @@ typedef struct {
 } EcsModuleDef;
 
 struct sEcsViewBuilder {
-  EcsDef* def;
-  BitSet  filterWith, filterWithout;
-  BitSet  accessRead, accessWrite;
+  const EcsDef* def;
+  BitSet        filterWith, filterWithout;
+  BitSet        accessRead, accessWrite;
 };
 
 EcsModuleDef ecs_module_create(EcsDef*, String name, EcsModuleInit);

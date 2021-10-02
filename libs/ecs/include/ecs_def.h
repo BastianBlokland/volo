@@ -91,3 +91,11 @@ typedef struct {
  * Pre-condition: EcsSystemId is a valid system-id registered to the given EcsDef.
  */
 EcsDefSystemViews ecs_def_system_views(const EcsDef*, EcsSystemId);
+
+/**
+ * Check if the given system has access to the view.
+ *
+ * Pre-condition: EcsSystemId is a valid system-id registered to the given EcsDef.
+ * Pre-condition: EcsViewId is a valid view-id registered to the given EcsDef.
+ */
+bool ecs_def_system_has_access(const EcsDef*, EcsSystemId, EcsViewId);
