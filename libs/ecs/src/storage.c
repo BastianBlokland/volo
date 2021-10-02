@@ -1,6 +1,7 @@
 #include "core_diag.h"
 #include "ecs_runner.h"
 
+#include "archetype_internal.h"
 #include "entity_allocator_internal.h"
 #include "storage_internal.h"
 
@@ -8,6 +9,12 @@
 #define ecs_starting_entities_capacity 1024
 
 #define ecs_comp_mask_stack(_DEF_) mem_stack(bits_to_bytes(ecs_def_comp_count(_DEF_)) + 1)
+
+typedef struct {
+  u32            serial;
+  EcsArchetypeId archetype;
+  u32            archetypeIndex;
+} EcsEntityInfo;
 
 static void ecs_storage_entity_ensure(EcsStorage* storage, const u32 index) {
   if (UNLIKELY(index >= storage->entities.size)) {
@@ -26,11 +33,19 @@ static void ecs_storage_entity_init(EcsStorage* storage, const EcsEntityId id) {
   }
 }
 
-static EcsArchetype* ecs_storage_archetype(EcsStorage* storage, const EcsArchetypeId id) {
+static EcsArchetype* ecs_storage_archetype_ptr(EcsStorage* storage, const EcsArchetypeId id) {
   if (sentinel_check(id)) {
     return null;
   }
   return dynarray_at_t(&storage->archetypes, id, EcsArchetype);
+}
+
+static EcsEntityInfo* ecs_storage_entity_info_ptr(EcsStorage* storage, const EcsEntityId id) {
+  if (UNLIKELY(ecs_entity_id_index(id) >= storage->entities.size)) {
+    return null;
+  }
+  EcsEntityInfo* info = dynarray_at_t(&storage->entities, ecs_entity_id_index(id), EcsEntityInfo);
+  return info->serial == ecs_entity_id_serial(id) ? info : null;
 }
 
 EcsStorage ecs_storage_create(Allocator* alloc, const EcsDef* def) {
@@ -79,23 +94,15 @@ bool ecs_storage_entity_exists(const EcsStorage* storage, const EcsEntityId id) 
     // Out of bounds entity means it was created but not flushed yet.
     return true;
   }
-  return ecs_storage_entity_info((EcsStorage*)storage, id) != null;
-}
-
-EcsEntityInfo* ecs_storage_entity_info(EcsStorage* storage, const EcsEntityId id) {
-  if (UNLIKELY(ecs_entity_id_index(id) >= storage->entities.size)) {
-    return null;
-  }
-  EcsEntityInfo* info = dynarray_at_t(&storage->entities, ecs_entity_id_index(id), EcsEntityInfo);
-  return info->serial == ecs_entity_id_serial(id) ? info : null;
+  return ecs_storage_entity_info_ptr((EcsStorage*)storage, id) != null;
 }
 
 BitSet ecs_storage_entity_mask(EcsStorage* storage, const EcsEntityId id) {
-  EcsEntityInfo* info = ecs_storage_entity_info(storage, id);
+  EcsEntityInfo* info = ecs_storage_entity_info_ptr(storage, id);
   if (!info) {
     return mem_empty;
   }
-  EcsArchetype* archetype = ecs_storage_archetype(storage, info->archetype);
+  EcsArchetype* archetype = ecs_storage_archetype_ptr(storage, info->archetype);
   if (!archetype) {
     return mem_empty;
   }
@@ -103,19 +110,19 @@ BitSet ecs_storage_entity_mask(EcsStorage* storage, const EcsEntityId id) {
 }
 
 void* ecs_storage_entity_comp(EcsStorage* storage, const EcsEntityId id, const EcsCompId comp) {
-  EcsEntityInfo* info      = ecs_storage_entity_info(storage, id);
-  EcsArchetype*  archetype = ecs_storage_archetype(storage, info->archetype);
+  EcsEntityInfo* info      = ecs_storage_entity_info_ptr(storage, id);
+  EcsArchetype*  archetype = ecs_storage_archetype_ptr(storage, info->archetype);
   return ecs_archetype_comp(archetype, info->archetypeIndex, comp);
 }
 
 void ecs_storage_entity_move(
     EcsStorage* storage, const EcsEntityId id, const EcsArchetypeId newArchetypeId) {
 
-  EcsEntityInfo* info              = ecs_storage_entity_info(storage, id);
-  EcsArchetype*  oldArchetype      = ecs_storage_archetype(storage, info->archetype);
+  EcsEntityInfo* info              = ecs_storage_entity_info_ptr(storage, id);
+  EcsArchetype*  oldArchetype      = ecs_storage_archetype_ptr(storage, info->archetype);
   const u32      oldArchetypeIndex = info->archetypeIndex;
 
-  EcsArchetype* newArchetype = ecs_storage_archetype(storage, newArchetypeId);
+  EcsArchetype* newArchetype = ecs_storage_archetype_ptr(storage, newArchetypeId);
   diag_assert_msg(newArchetype != oldArchetype, "Entity cannot be moved to the same archetype");
 
   if (newArchetype) {
@@ -138,21 +145,23 @@ void ecs_storage_entity_move(
   if (oldArchetype) {
     const EcsEntityId movedEntity = ecs_archetype_remove(oldArchetype, oldArchetypeIndex);
     if (ecs_entity_valid(movedEntity)) {
-      ecs_storage_entity_info(storage, movedEntity)->archetypeIndex = oldArchetype->entityCount - 1;
+      ecs_storage_entity_info_ptr(storage, movedEntity)->archetypeIndex =
+          oldArchetype->entityCount - 1;
     }
   }
 }
 
 void ecs_storage_entity_destroy(EcsStorage* storage, const EcsEntityId id) {
 
-  EcsEntityInfo* info = ecs_storage_entity_info(storage, id);
+  EcsEntityInfo* info = ecs_storage_entity_info_ptr(storage, id);
   diag_assert_msg(info, "Missing entity-info for entity '{}'", fmt_int(id));
 
-  EcsArchetype* archetype = ecs_storage_archetype(storage, info->archetype);
+  EcsArchetype* archetype = ecs_storage_archetype_ptr(storage, info->archetype);
   if (archetype) {
     const EcsEntityId movedEntity = ecs_archetype_remove(archetype, info->archetypeIndex);
     if (ecs_entity_valid(movedEntity)) {
-      ecs_storage_entity_info(storage, movedEntity)->archetypeIndex = archetype->entityCount - 1;
+      ecs_storage_entity_info_ptr(storage, movedEntity)->archetypeIndex =
+          archetype->entityCount - 1;
     }
   }
 
