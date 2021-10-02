@@ -23,19 +23,17 @@
  *
  * Reasons for storing it in a chunked allocator is to have components relatively close in memory
  * (as sequential component additions end up in the same chunk) while also being to return a stable
- * pointer to the caller (stable until the buffer is cleared). Having to walk the linked-list is
- * unfortunate but there should be relatively few added components per entity. Again this seems like
- * a reasonable strategy but alternatives could be explorered.
+ * pointer to the caller (stable until the buffer is cleared).
  */
 
 #define ecs_buffer_compdata_chunk_size (8 * usize_kibibyte)
 
 typedef u32 EcsBufferMaskId;
 
-typedef struct sEcsBufferCompData {
+struct sEcsBufferCompData {
   EcsCompId                  id;
   struct sEcsBufferCompData* next; // Next added component for the same entity.
-} EcsBufferCompData;
+};
 
 typedef struct {
   EcsEntityId          id;
@@ -117,8 +115,9 @@ static usize ecs_buffer_compdata_padding(usize compAlign) {
   return 0;
 }
 
-static Mem
-ecs_buffer_compdata_payload(EcsBufferCompData* data, const usize compSize, const usize compAlign) {
+static Mem ecs_buffer_compdata_payload(
+    const EcsBufferCompData* data, const usize compSize, const usize compAlign) {
+
   const usize padding = ecs_buffer_compdata_padding(compAlign);
   void*       res     = bits_ptr_offset(data, sizeof(EcsBufferCompData) + padding);
 
@@ -258,20 +257,17 @@ BitSet ecs_buffer_entity_removed(const EcsBuffer* buffer, const usize index) {
   return ecs_buffer_mask((EcsBuffer*)buffer, id);
 }
 
-Mem ecs_buffer_entity_comp(const EcsBuffer* buffer, const usize index, const EcsCompId compId) {
-  const usize compSize  = ecs_def_comp_size(buffer->def, compId);
-  const usize compAlign = ecs_def_comp_align(buffer->def, compId);
-
+EcsBufferCompData* ecs_buffer_entity_comp_begin(const EcsBuffer* buffer, const usize index) {
   const EcsBufferEntity* entity = dynarray_at_t(&buffer->entities, index, EcsBufferEntity);
-  EcsBufferCompData*     itr    = entity->compHead;
-  for (; itr; itr = itr->next) {
-    if (itr->id == compId) {
-      return ecs_buffer_compdata_payload(itr, compSize, compAlign);
-    }
-  }
+  return entity->compHead;
+}
 
-  diag_crash_msg(
-      "Buffer does not contain component {} on entity {}",
-      fmt_text(ecs_def_comp_name(buffer->def, compId)),
-      fmt_int(entity->id));
+EcsBufferCompData* ecs_buffer_entity_comp_next(const EcsBufferCompData* data) { return data->next; }
+
+EcsCompId ecs_buffer_entity_comp_id(const EcsBufferCompData* data) { return data->id; }
+
+Mem ecs_buffer_entity_comp_data(const EcsBuffer* buffer, const EcsBufferCompData* data) {
+  const usize compSize  = ecs_def_comp_size(buffer->def, data->id);
+  const usize compAlign = ecs_def_comp_align(buffer->def, data->id);
+  return ecs_buffer_compdata_payload(data, compSize, compAlign);
 }

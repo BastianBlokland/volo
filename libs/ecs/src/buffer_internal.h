@@ -21,6 +21,8 @@ typedef struct {
   Allocator*    compDataAllocator;
 } EcsBuffer;
 
+typedef struct sEcsBufferCompData EcsBufferCompData;
+
 EcsBuffer ecs_buffer_create(Allocator*, const EcsDef* def);
 void      ecs_buffer_destroy(EcsBuffer*);
 void      ecs_buffer_clear(EcsBuffer*);
@@ -34,4 +36,7 @@ EcsEntityId          ecs_buffer_entity(const EcsBuffer*, usize index);
 EcsBufferEntityFlags ecs_buffer_entity_flags(const EcsBuffer*, usize index);
 BitSet               ecs_buffer_entity_added(const EcsBuffer*, usize index);
 BitSet               ecs_buffer_entity_removed(const EcsBuffer*, usize index);
-Mem                  ecs_buffer_entity_comp(const EcsBuffer*, usize index, EcsCompId);
+EcsBufferCompData*   ecs_buffer_entity_comp_begin(const EcsBuffer*, usize index);
+EcsBufferCompData*   ecs_buffer_entity_comp_next(const EcsBufferCompData*);
+EcsCompId            ecs_buffer_entity_comp_id(const EcsBufferCompData*);
+Mem                  ecs_buffer_entity_comp_data(const EcsBuffer*, const EcsBufferCompData*);

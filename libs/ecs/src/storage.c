@@ -24,7 +24,7 @@ static void ecs_storage_entity_init(EcsStorage* storage, const EcsEntityId id) {
   }
 }
 
-static EcsArchetype* ecs_storage_archetype_ptr(EcsStorage* storage, const EcsArchetypeId id) {
+static EcsArchetype* ecs_storage_archetype(EcsStorage* storage, const EcsArchetypeId id) {
   if (sentinel_check(id)) {
     return null;
   }
@@ -93,7 +93,7 @@ BitSet ecs_storage_entity_mask(EcsStorage* storage, const EcsEntityId id) {
   if (!info) {
     return mem_empty;
   }
-  EcsArchetype* archetype = ecs_storage_archetype_ptr(storage, info->archetype);
+  EcsArchetype* archetype = ecs_storage_archetype(storage, info->archetype);
   if (!archetype) {
     return mem_empty;
   }
@@ -103,16 +103,18 @@ BitSet ecs_storage_entity_mask(EcsStorage* storage, const EcsEntityId id) {
 void ecs_storage_entity_move(
     EcsStorage* storage, const EcsEntityId id, const EcsArchetypeId newArchetypeId) {
 
-  EcsArchetype* newArchetype = ecs_storage_archetype_ptr(storage, newArchetypeId);
-  diag_assert_msg(newArchetype, "Invalid archetype-id '{}'", fmt_int(newArchetypeId));
-
   EcsEntityInfo* info = ecs_storage_entity_info(storage, id);
   if (!sentinel_check(info->archetype)) {
     // TODO: Remove entity from old archetype.
   }
 
-  info->archetype      = newArchetypeId;
-  info->archetypeIndex = ecs_archetype_add(newArchetype, id);
+  EcsArchetype* newArchetype = ecs_storage_archetype(storage, newArchetypeId);
+  if (!newArchetype) {
+    info->archetype = sentinel_u32;
+  } else {
+    info->archetype      = newArchetypeId;
+    info->archetypeIndex = ecs_archetype_add(newArchetype, id);
+  }
 }
 
 void ecs_storage_entity_destroy(EcsStorage* storage, const EcsEntityId id) {
@@ -135,6 +137,9 @@ EcsArchetypeId ecs_storage_achetype_find(EcsStorage* storage, const BitSet mask)
 }
 
 EcsArchetypeId ecs_storage_archtype_find_or_create(EcsStorage* storage, const BitSet mask) {
+  if (!bitset_any(mask)) {
+    return sentinel_u32;
+  }
   EcsArchetypeId res = ecs_storage_achetype_find(storage, mask);
   if (sentinel_check(res)) {
     res                                                  = (EcsArchetypeId)storage->archetypes.size;
