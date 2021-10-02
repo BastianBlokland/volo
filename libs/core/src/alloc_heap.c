@@ -18,7 +18,7 @@ static Mem alloc_heap_alloc(Allocator* allocator, const usize size, const usize 
 #elif defined(VOLO_WIN32)
   return mem_create(_aligned_malloc(size, align), size);
 #else
-  _Static_assert(false, "Unsupported platform");
+  ASSERT(false, "Unsupported platform");
 #endif
 }
 
@@ -33,7 +33,7 @@ static void alloc_heap_free(Allocator* allocator, Mem mem) {
 #elif defined(VOLO_WIN32)
   _aligned_free(mem.ptr);
 #else
-  _Static_assert(false, "Unsupported platform");
+  ASSERT(false, "Unsupported platform");
 #endif
 }
 

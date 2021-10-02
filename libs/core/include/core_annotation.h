@@ -1,6 +1,11 @@
 #pragma once
 
 /**
+ * Compile-time assert the given condition.
+ */
+#define ASSERT(_CONDITION_, _MSG_LIT_) _Static_assert(_CONDITION_, _MSG_LIT_);
+
+/**
  * Compiler hints to indicate if a branch is likely or unlikely to be taken. Helps the compiler
  * determine which parts of the code are hot vs cold.
  */
@@ -51,7 +56,7 @@
 #elif defined(VOLO_MSVC)
 #define THREAD_LOCAL __declspec(thread)
 #else
-_Static_assert(false, "Unsupported compiler");
+ASSERT(false, "Unsupported compiler");
 #endif
 
 /**

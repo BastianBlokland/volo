@@ -107,7 +107,7 @@ typedef void (*EcsSystemRoutine)(EcsWorld*);
  * Pre-condition: No other component with the same name has been registered already.
  */
 #define ecs_register_comp(_NAME_)                                                                  \
-  _Static_assert(sizeof(_NAME_) != 0, "Components are not allowed to be empty");                   \
+  ASSERT(sizeof(_NAME_) != 0, "Components are not allowed to be empty");                           \
   ecs_comp_id(_NAME_) =                                                                            \
       ecs_module_register_comp(_builder, string_lit(#_NAME_), sizeof(_NAME_), alignof(_NAME_))
 

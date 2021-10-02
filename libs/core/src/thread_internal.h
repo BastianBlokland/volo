@@ -8,7 +8,7 @@
 #elif defined(VOLO_WIN32)
 #define thread_pal_rettype unsigned long
 #else
-_Static_assert(false, "Unsupported platform");
+ASSERT(false, "Unsupported platform");
 #endif
 
 i64  thread_pal_pid();

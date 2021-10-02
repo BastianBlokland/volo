@@ -95,7 +95,7 @@ ThreadHandle thread_pal_start(thread_pal_rettype (*routine)(void*), void* data) 
   if (UNLIKELY(!handle)) {
     diag_crash_msg("CreateThread() failed");
   }
-  _Static_assert(sizeof(ThreadHandle) >= sizeof(HANDLE), "'HANDLE' type too big");
+  ASSERT(sizeof(ThreadHandle) >= sizeof(HANDLE), "'HANDLE' type too big");
   return (ThreadHandle)handle;
 }
 

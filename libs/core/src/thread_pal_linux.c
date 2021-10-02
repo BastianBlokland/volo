@@ -91,7 +91,7 @@ ThreadHandle thread_pal_start(thread_pal_rettype (*routine)(void*), void* data) 
     diag_crash_msg("pthread_attr_destroy() failed: {}", fmt_int(res));
   }
 
-  _Static_assert(sizeof(ThreadHandle) >= sizeof(pthread_t), "'pthread_t' type too big");
+  ASSERT(sizeof(ThreadHandle) >= sizeof(pthread_t), "'pthread_t' type too big");
   return (ThreadHandle)handle;
 }
 

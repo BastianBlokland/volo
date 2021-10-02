@@ -29,8 +29,7 @@ static const String g_error_strs[] = {
     string_static("UnterminatedString"),
 };
 
-_Static_assert(
-    array_elems(g_error_strs) == JsonError_Count, "Incorrect number of JsonError strings");
+ASSERT(array_elems(g_error_strs) == JsonError_Count, "Incorrect number of JsonError strings");
 
 String json_error_str(JsonError error) {
   diag_assert(error < JsonError_Count);

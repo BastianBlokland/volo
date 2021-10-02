@@ -5,8 +5,7 @@
 // Note: Not a hard limit, will grow beyond this if needed.
 #define ecs_starting_free_indices 1024
 
-_Static_assert(
-    (ecs_starting_free_indices % 8) == 0, "ecs_starting_free_indices should be byte aligned");
+ASSERT((ecs_starting_free_indices % 8) == 0, "ecs_starting_free_indices should be byte aligned");
 
 EntityAllocator entity_allocator_create(Allocator* alloc) {
 
