@@ -4,11 +4,26 @@
 #include "archetype_internal.h"
 #include "def_internal.h"
 
+/**
+ * An archetype is a chunked container, where every chunk contains a tightly packed component-data
+ * array for each component.
+ * Chunks are created on-demand as more entities get added, but only destroyed when the archetype is
+ * destroyed.
+ *
+ * Chunk memory layout:
+ * ```
+ * | EcsEntityId | [ALIGN PADDING] HealthComp | [ALIGN PADDING] PositionComp |
+ * |-------------|----------------------------|------------------------------|
+ * | 1           | { health = 42 }            | { x: 2, y: -34 }             |
+ * | 2           | { health = 1337 }          | { x: 1, y: 9 }               |
+ * ```
+ */
+
 #define ecs_archetype_chunk_size 8192
 #define ecs_archetype_max_chunks 128
 
 static void* ecs_archetype_chunk_create() {
-  const usize align = 512; // Note: In practice the page allocator will align to page sizes.
+  const usize align = 512; // Note: In practice the page allocator will align to the page size.
   return alloc_alloc(g_alloc_page, ecs_archetype_chunk_size, align).ptr;
 }
 
@@ -21,6 +36,8 @@ static usize ecs_archetype_comp_idx(EcsArchetype* archetype, const EcsCompId id)
 }
 
 EcsArchetype ecs_archetype_create(const EcsDef* def, BitSet mask) {
+  diag_assert_msg(bitset_any(mask), "Archetype needs to contain atleast a single component");
+
   usize compCount      = 0;
   usize entityDataSize = sizeof(EcsEntityId);
   usize padding        = 0;

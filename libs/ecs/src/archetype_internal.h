@@ -5,8 +5,17 @@
 
 #include "entity_internal.h"
 
+/**
+ * An Archetype is a container that stores entities with a specific set of components.
+ * When an Entity's layout is changed (a component added or removed) it is moved to a different
+ * archtype.
+ */
+
+// 64 bytes to fit in a single cacheline on x86.
+#define ecs_archetype_size 64
+
 typedef struct {
-  BitSet mask;
+  ALIGNAS(ecs_archetype_size) BitSet mask;
   usize  entitiesPerChunk;
   u16*   compOffsetsAndStrides; // u16 offsets[compCount], u16 strides[compCount].
   usize  compCount;
@@ -14,6 +23,8 @@ typedef struct {
   usize  chunkCount;
   usize  entityCount;
 } EcsArchetype;
+
+ASSERT(sizeof(EcsArchetype) == ecs_archetype_size, "Invalid archetype size");
 
 EcsArchetype ecs_archetype_create(const EcsDef*, BitSet mask);
 void         ecs_archetype_destroy(EcsArchetype*);
