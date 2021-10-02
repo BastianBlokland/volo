@@ -35,6 +35,31 @@ static usize ecs_archetype_comp_idx(EcsArchetype* archetype, const EcsCompId id)
   return bitset_index(archetype->mask, id);
 }
 
+static void ecs_archetype_copy(EcsArchetype* archetype, const u32 dst, const u32 src) {
+  const u16* compOffsets = archetype->compOffsetsAndStrides;
+  const u16* compStrides = archetype->compOffsetsAndStrides + archetype->compCount;
+
+  const usize dstChunkIdx     = dst / archetype->entitiesPerChunk;
+  const usize dstIndexInChunk = dst - (dstChunkIdx * archetype->entitiesPerChunk);
+  u8*         dstChunk        = archetype->chunks[dstChunkIdx];
+
+  const usize srcChunkIdx     = src / archetype->entitiesPerChunk;
+  const usize srcIndexInChunk = src - (srcChunkIdx * archetype->entitiesPerChunk);
+  u8*         srcChunk        = archetype->chunks[srcChunkIdx];
+
+  for (usize compIdx = 0; compIdx != archetype->compCount; ++compIdx) {
+    const usize compOffset       = compOffsets[compIdx];
+    const usize compSize         = compStrides[compIdx];
+    u8*         dstChunkCompData = bits_ptr_offset(dstChunk, compOffset);
+    u8*         srcChunkCompData = bits_ptr_offset(srcChunk, compOffset);
+
+    Mem dstCompMem = mem_create(dstChunkCompData + compSize * dstIndexInChunk, compSize);
+    Mem srcCompMem = mem_create(srcChunkCompData + compSize * srcIndexInChunk, compSize);
+
+    mem_cpy(dstCompMem, srcCompMem);
+  }
+}
+
 EcsArchetype ecs_archetype_create(const EcsDef* def, BitSet mask) {
   diag_assert_msg(bitset_any(mask), "Archetype needs to contain atleast a single component");
 
@@ -101,6 +126,24 @@ u32 ecs_archetype_add(EcsArchetype* archetype, const EcsEntityId id) {
   return entityIdx;
 }
 
+EcsEntityId ecs_archetype_remove(EcsArchetype* archetype, const u32 index) {
+  const u32 lastIndex = archetype->entityCount - 1;
+  if (index == lastIndex) {
+    --archetype->entityCount;
+    return 0;
+  }
+
+  /**
+   * This is not the last entry meaning we get a hole when we remove it.
+   * To fix this up we copy the last entity into that hole.
+   */
+
+  const EcsEntityId entityToMove = *ecs_archetype_entity(archetype, lastIndex);
+  ecs_archetype_copy(archetype, index, lastIndex);
+  --archetype->entityCount;
+  return entityToMove;
+}
+
 EcsEntityId* ecs_archetype_entity(EcsArchetype* archetype, const u32 index) {
   const usize chunkIdx     = index / archetype->entitiesPerChunk;
   const usize indexInChunk = index - (chunkIdx * archetype->entitiesPerChunk);
@@ -116,8 +159,8 @@ void* ecs_archetype_comp(EcsArchetype* archetype, const u32 index, const EcsComp
    * - Find the offset into this chunk where the requested component array starts.
    * - Return a pointer into the component array at 'indexInChunk'.
    */
-  u16* compOffsets = archetype->compOffsetsAndStrides;
-  u16* compStrides = archetype->compOffsetsAndStrides + archetype->compCount;
+  const u16* compOffsets = archetype->compOffsetsAndStrides;
+  const u16* compStrides = archetype->compOffsetsAndStrides + archetype->compCount;
 
   const usize compIdx       = ecs_archetype_comp_idx(archetype, id);
   const usize chunkIdx      = index / archetype->entitiesPerChunk;

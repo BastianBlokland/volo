@@ -109,12 +109,19 @@ void* ecs_storage_entity_comp(EcsStorage* storage, const EcsEntityId id, const E
 void ecs_storage_entity_move(
     EcsStorage* storage, const EcsEntityId id, const EcsArchetypeId newArchetypeId) {
 
-  EcsEntityInfo* info = ecs_storage_entity_info(storage, id);
-  if (!sentinel_check(info->archetype)) {
-    // TODO: Remove entity from old archetype.
+  EcsEntityInfo* info         = ecs_storage_entity_info(storage, id);
+  EcsArchetype*  oldArchetype = ecs_storage_archetype(storage, info->archetype);
+  if (oldArchetype) {
+    const EcsEntityId movedEntity = ecs_archetype_remove(oldArchetype, info->archetypeIndex);
+    if (ecs_entity_valid(movedEntity)) {
+      ecs_storage_entity_info(storage, movedEntity)->archetypeIndex = oldArchetype->entityCount - 1;
+    }
   }
 
   EcsArchetype* newArchetype = ecs_storage_archetype(storage, newArchetypeId);
+
+  diag_assert_msg(oldArchetype != newArchetype, "Entity cannot be moved to the same archetype");
+
   if (!newArchetype) {
     info->archetype = sentinel_u32;
   } else {
@@ -124,10 +131,17 @@ void ecs_storage_entity_move(
 }
 
 void ecs_storage_entity_destroy(EcsStorage* storage, const EcsEntityId id) {
-  // TODO: If the entity belonged to a archetype we should remove it from there.
 
   EcsEntityInfo* info = ecs_storage_entity_info(storage, id);
   diag_assert_msg(info, "Missing entity-info for entity '{}'", fmt_int(id));
+
+  EcsArchetype* archetype = ecs_storage_archetype(storage, info->archetype);
+  if (archetype) {
+    const EcsEntityId movedEntity = ecs_archetype_remove(archetype, info->archetypeIndex);
+    if (ecs_entity_valid(movedEntity)) {
+      ecs_storage_entity_info(storage, movedEntity)->archetypeIndex = archetype->entityCount - 1;
+    }
+  }
 
   info->serial = 0;
   entity_allocator_free(&storage->entityAllocator, id);
