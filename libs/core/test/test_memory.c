@@ -8,6 +8,10 @@ typedef struct {
   u32 a, b;
 } TestMemStruct;
 
+typedef struct {
+  ALIGNAS(128) u32 val;
+} TestMemAlignedStruct;
+
 spec(memory) {
 
   it("can create a memory view over a stack allocated struct") {
@@ -71,6 +75,8 @@ spec(memory) {
     for (usize i = 0; i != size; ++i) {
       check(*mem_at_u8(stackMem, i) == 0xAF);
     }
+
+    rng_destroy(rng);
   }
 
   it("can swap the contents of two memory locations") {
@@ -91,5 +97,13 @@ spec(memory) {
     check_require(!mem_contains(memB, 0xAB));
     check_require(mem_contains(memA, 0xAB));
     check_require(mem_contains(memB, 0xAA));
+  }
+
+  it("respects struct alignment") {
+    TestMemAlignedStruct data = {0};
+    check(bits_aligned_ptr(&data.val, 128));
+
+    Mem m = mem_struct(TestMemAlignedStruct, .val = 42);
+    check(bits_aligned_ptr(m.ptr, 128));
   }
 }

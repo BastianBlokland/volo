@@ -93,3 +93,16 @@ _Static_assert(false, "Unsupported compiler");
 #else
 #define PACKED(...) __VA_ARGS__
 #endif
+
+/**
+ * Specify a specific alignment for a field instead of its natural alignment.
+ *
+ * Example usage:
+ * ```
+ * struct MyStruct {
+ *   u32 fieldA;
+ *   ALIGNAS(8) u32 fieldB;
+ * }
+ * ```
+ */
+#define ALIGNAS(_ALIGNMENT_) _Alignas(_ALIGNMENT_)
