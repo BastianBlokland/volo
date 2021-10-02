@@ -100,6 +100,12 @@ BitSet ecs_storage_entity_mask(EcsStorage* storage, const EcsEntityId id) {
   return archetype->mask;
 }
 
+void* ecs_storage_entity_comp(EcsStorage* storage, const EcsEntityId id, const EcsCompId comp) {
+  EcsEntityInfo* info      = ecs_storage_entity_info(storage, id);
+  EcsArchetype*  archetype = ecs_storage_archetype(storage, info->archetype);
+  return ecs_archetype_comp(archetype, info->archetypeIndex, comp);
+}
+
 void ecs_storage_entity_move(
     EcsStorage* storage, const EcsEntityId id, const EcsArchetypeId newArchetypeId) {
 

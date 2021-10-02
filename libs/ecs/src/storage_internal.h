@@ -39,6 +39,7 @@ EcsEntityId ecs_storage_entity_create(EcsStorage*);
 bool           ecs_storage_entity_exists(const EcsStorage*, EcsEntityId);
 EcsEntityInfo* ecs_storage_entity_info(EcsStorage*, EcsEntityId);
 BitSet         ecs_storage_entity_mask(EcsStorage*, EcsEntityId);
+void*          ecs_storage_entity_comp(EcsStorage*, EcsEntityId, EcsCompId);
 void           ecs_storage_entity_move(EcsStorage*, EcsEntityId, EcsArchetypeId newArchetypeId);
 void           ecs_storage_entity_destroy(EcsStorage*, EcsEntityId);
 EcsArchetypeId ecs_storage_achetype_find(EcsStorage*, BitSet mask);

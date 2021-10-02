@@ -257,16 +257,16 @@ BitSet ecs_buffer_entity_removed(const EcsBuffer* buffer, const usize index) {
   return ecs_buffer_mask((EcsBuffer*)buffer, id);
 }
 
-EcsBufferCompData* ecs_buffer_entity_comp_begin(const EcsBuffer* buffer, const usize index) {
+EcsBufferCompData* ecs_buffer_comp_begin(const EcsBuffer* buffer, const usize index) {
   const EcsBufferEntity* entity = dynarray_at_t(&buffer->entities, index, EcsBufferEntity);
   return entity->compHead;
 }
 
-EcsBufferCompData* ecs_buffer_entity_comp_next(const EcsBufferCompData* data) { return data->next; }
+EcsBufferCompData* ecs_buffer_comp_next(const EcsBufferCompData* data) { return data->next; }
 
-EcsCompId ecs_buffer_entity_comp_id(const EcsBufferCompData* data) { return data->id; }
+EcsCompId ecs_buffer_comp_id(const EcsBufferCompData* data) { return data->id; }
 
-Mem ecs_buffer_entity_comp_data(const EcsBuffer* buffer, const EcsBufferCompData* data) {
+Mem ecs_buffer_comp_data(const EcsBuffer* buffer, const EcsBufferCompData* data) {
   const usize compSize  = ecs_def_comp_size(buffer->def, data->id);
   const usize compAlign = ecs_def_comp_align(buffer->def, data->id);
   return ecs_buffer_compdata_payload(data, compSize, compAlign);

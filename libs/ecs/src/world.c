@@ -161,20 +161,24 @@ void ecs_world_flush(EcsWorld* world) {
       continue;
     }
 
-    const BitSet addedComps   = ecs_buffer_entity_added(&world->buffer, i);
-    const BitSet removedComps = ecs_buffer_entity_removed(&world->buffer, i);
-
     bitset_clear_all(newCompMask);
     bitset_or(newCompMask, ecs_storage_entity_mask(&world->storage, entity));
-    bitset_or(newCompMask, addedComps);
-    bitset_xor(newCompMask, removedComps);
+    bitset_or(newCompMask, ecs_buffer_entity_added(&world->buffer, i));
+    bitset_xor(newCompMask, ecs_buffer_entity_removed(&world->buffer, i));
 
     const EcsArchetypeId newArchetype =
         ecs_storage_archtype_find_or_create(&world->storage, newCompMask);
 
     ecs_storage_entity_move(&world->storage, entity, newArchetype);
 
-    // TODO: Set added components.
+    // Initialize the added components.
+    for (EcsBufferCompData* itr = ecs_buffer_comp_begin(&world->buffer, i); itr;
+         itr                    = ecs_buffer_comp_next(itr)) {
+      const EcsCompId compId        = ecs_buffer_comp_id(itr);
+      const Mem       compData      = ecs_buffer_comp_data(&world->buffer, itr);
+      void*           archetypeComp = ecs_storage_entity_comp(&world->storage, entity, compId);
+      mem_cpy(mem_create(archetypeComp, compData.size), compData);
+    }
   }
 
   ecs_buffer_clear(&world->buffer);

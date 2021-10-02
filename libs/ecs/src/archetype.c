@@ -79,18 +79,18 @@ u32 ecs_archetype_add(EcsArchetype* archetype, const EcsEntityId id) {
     archetype->chunks[archetype->chunkCount++] = ecs_archetype_chunk_create();
   }
   // TODO: Add check to detect overflowing a u32 entity-index.
-  const u32 entityIdx                             = (u32)(archetype->entityCount++);
-  *ecs_archetype_get_entity(archetype, entityIdx) = id;
+  const u32 entityIdx                         = (u32)(archetype->entityCount++);
+  *ecs_archetype_entity(archetype, entityIdx) = id;
   return entityIdx;
 }
 
-EcsEntityId* ecs_archetype_get_entity(EcsArchetype* archetype, const u32 index) {
+EcsEntityId* ecs_archetype_entity(EcsArchetype* archetype, const u32 index) {
   const usize chunkIdx     = index / archetype->entitiesPerChunk;
   const usize indexInChunk = index - (chunkIdx * archetype->entitiesPerChunk);
   return (EcsEntityId*)archetype->chunks[chunkIdx] + indexInChunk;
 }
 
-void* ecs_archetype_get_comp(EcsArchetype* archetype, const u32 index, const EcsCompId id) {
+void* ecs_archetype_comp(EcsArchetype* archetype, const u32 index, const EcsCompId id) {
   /**
    * Random access to a specific component on the entity at the given index.
    *

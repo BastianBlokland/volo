@@ -18,5 +18,5 @@ typedef struct {
 EcsArchetype ecs_archetype_create(const EcsDef*, BitSet mask);
 void         ecs_archetype_destroy(EcsArchetype*);
 u32          ecs_archetype_add(EcsArchetype*, EcsEntityId);
-EcsEntityId* ecs_archetype_get_entity(EcsArchetype*, u32 index);
-void*        ecs_archetype_get_comp(EcsArchetype*, u32 index, EcsCompId);
+EcsEntityId* ecs_archetype_entity(EcsArchetype*, u32 index);
+void*        ecs_archetype_comp(EcsArchetype*, u32 index, EcsCompId);
