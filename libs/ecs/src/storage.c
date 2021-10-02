@@ -160,7 +160,7 @@ void ecs_storage_entity_destroy(EcsStorage* storage, const EcsEntityId id) {
   entity_allocator_free(&storage->entityAllocator, id);
 }
 
-EcsArchetypeId ecs_storage_achetype_find(EcsStorage* storage, const BitSet mask) {
+EcsArchetypeId ecs_storage_archetype_find(EcsStorage* storage, const BitSet mask) {
   dynarray_for_t(&storage->archetypes, EcsArchetype, arch, {
     if (mem_eq(arch->mask, mask)) {
       return (EcsArchetypeId)arch_i;
@@ -169,16 +169,15 @@ EcsArchetypeId ecs_storage_achetype_find(EcsStorage* storage, const BitSet mask)
   return sentinel_u32;
 }
 
-EcsArchetypeId ecs_storage_archtype_find_or_create(EcsStorage* storage, const BitSet mask) {
-  if (!bitset_any(mask)) {
-    return sentinel_u32;
-  }
-  EcsArchetypeId res = ecs_storage_achetype_find(storage, mask);
-  if (sentinel_check(res)) {
-    res                                                  = (EcsArchetypeId)storage->archetypes.size;
-    *dynarray_push_t(&storage->archetypes, EcsArchetype) = ecs_archetype_create(storage->def, mask);
-  }
-  return res;
+EcsArchetypeId ecs_storage_archetype_create(EcsStorage* storage, const BitSet mask) {
+  diag_assert_msg(bitset_any(mask), "Archetype needs atleast one component");
+  diag_assert_msg(
+      sentinel_check(ecs_storage_archetype_find(storage, mask)),
+      "An archetype already exists with the same components");
+
+  const EcsArchetypeId id                              = (EcsArchetypeId)storage->archetypes.size;
+  *dynarray_push_t(&storage->archetypes, EcsArchetype) = ecs_archetype_create(storage->def, mask);
+  return id;
 }
 
 void ecs_storage_flush_new_entities(EcsStorage* storage) {

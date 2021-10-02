@@ -25,6 +25,17 @@ struct sEcsWorld {
 
 #define ecs_comp_mask_stack(_DEF_) mem_stack(bits_to_bytes(ecs_def_comp_count(_DEF_)) + 1)
 
+static EcsArchetypeId ecs_world_archetype_find_or_create(EcsWorld* world, const BitSet mask) {
+  if (!bitset_any(mask)) {
+    return sentinel_u32;
+  }
+  const EcsArchetypeId existing = ecs_storage_archetype_find(&world->storage, mask);
+  if (!sentinel_check(existing)) {
+    return existing;
+  }
+  return ecs_storage_archetype_create(&world->storage, mask);
+}
+
 EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
   ecs_def_freeze((EcsDef*)def);
 
@@ -172,9 +183,7 @@ void ecs_world_flush_internal(EcsWorld* world) {
     bitset_or(newCompMask, ecs_buffer_entity_added(&world->buffer, i));
     bitset_xor(newCompMask, ecs_buffer_entity_removed(&world->buffer, i));
 
-    const EcsArchetypeId newArchetype =
-        ecs_storage_archtype_find_or_create(&world->storage, newCompMask);
-
+    const EcsArchetypeId newArchetype = ecs_world_archetype_find_or_create(world, newCompMask);
     ecs_storage_entity_move(&world->storage, entity, newArchetype);
 
     // Initialize the added components.

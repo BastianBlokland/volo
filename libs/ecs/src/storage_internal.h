@@ -42,8 +42,8 @@ BitSet         ecs_storage_entity_mask(EcsStorage*, EcsEntityId);
 void*          ecs_storage_entity_comp(EcsStorage*, EcsEntityId, EcsCompId);
 void           ecs_storage_entity_move(EcsStorage*, EcsEntityId, EcsArchetypeId newArchetypeId);
 void           ecs_storage_entity_destroy(EcsStorage*, EcsEntityId);
-EcsArchetypeId ecs_storage_achetype_find(EcsStorage*, BitSet mask);
-EcsArchetypeId ecs_storage_archtype_find_or_create(EcsStorage*, BitSet mask);
+EcsArchetypeId ecs_storage_archetype_find(EcsStorage*, BitSet mask);
+EcsArchetypeId ecs_storage_archetype_create(EcsStorage*, BitSet mask);
 
 /**
  * Flush any entities that where created since the last call.
