@@ -137,3 +137,12 @@ void bitset_and(BitSet bits, BitSet other) {
     *byte         = *byte & *otherByte;
   }
 }
+
+void bitset_xor(BitSet bits, BitSet other) {
+  diag_assert(bits.size <= other.size);
+  for (usize i = 0; i != bits.size; ++i) {
+    u8* byte      = mem_at_u8(bits, i);
+    u8* otherByte = mem_at_u8(other, i);
+    *byte         = *byte ^ *otherByte;
+  }
+}

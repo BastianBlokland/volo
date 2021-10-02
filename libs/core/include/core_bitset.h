@@ -116,13 +116,19 @@ void bitset_clear(BitSet, usize idx);
 void bitset_clear_all(BitSet);
 
 /**
- * Set all bits which are set in the other bitset.
+ * Perform a bit-wise 'or' operation over all the bits.
  * Pre-condition: bitset_size(other) <= bitset_size
  */
 void bitset_or(BitSet, BitSet other);
 
 /**
- * Clear all bits which are not set in the other bitset.
+ * Perform a bit-wise 'and' operation over all the bits.
  * Pre-condition: bitset_size(other) >= bitset_size
  */
 void bitset_and(BitSet, BitSet other);
+
+/**
+ * Perform a bit-wise 'exclusive-or' operation over all the bits.
+ * Pre-condition: bitset_size(other) >= bitset_size
+ */
+void bitset_xor(BitSet, BitSet other);

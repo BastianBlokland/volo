@@ -202,4 +202,27 @@ spec(bitset) {
     check_eq_int(bitset_count(evenBits64), 1);
     check_eq_int(bitset_next(evenBits64, 0), 42);
   }
+
+  it("can bitwise 'xor' two bitsets") {
+    BitSet evenBits64   = bitset_from_var((u64){0});
+    BitSet unevenBits64 = bitset_from_var((u64){0});
+    for (u32 i = 0; i != 64; ++i) {
+      bitset_set(i % 2 ? unevenBits64 : evenBits64, i);
+    }
+
+    check_eq_int(bitset_count(evenBits64), 32);
+    check_eq_int(bitset_count(unevenBits64), 32);
+
+    BitSet bits64 = bitset_from_var((u64){0});
+    bitset_xor(bits64, evenBits64);
+    bitset_xor(bits64, unevenBits64);
+
+    check_eq_int(bitset_count(bits64), 64);
+
+    bitset_xor(bits64, evenBits64);
+    check_eq_int(bitset_count(bits64), 32);
+
+    bitset_xor(bits64, unevenBits64);
+    check_eq_int(bitset_count(bits64), 0);
+  }
 }
