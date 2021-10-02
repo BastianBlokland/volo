@@ -24,6 +24,17 @@ spec(bitset) {
     }
   }
 
+  it("treats out-of-bounds bits as unset") {
+    const BitSet ones64 = bitset_from_var((u64){~(u64)0});
+
+    check(bitset_test(ones64, 63));
+
+    check(!bitset_test(ones64, 64));
+    check(!bitset_test(ones64, 65));
+    check(!bitset_test(ones64, 1337));
+    check(!bitset_test(ones64, usize_max));
+  }
+
   it("can find set bits") {
     u64    val[32] = {0};
     BitSet bits    = bitset_from_array(val);

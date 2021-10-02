@@ -7,8 +7,11 @@
 INLINE_HINT usize bitset_size(BitSet bits) { return bytes_to_bits(bits.size); }
 
 INLINE_HINT bool bitset_test(BitSet bits, usize idx) {
-  diag_assert(idx < bitset_size(bits));
-  return (*mem_at_u8(bits, bits_to_bytes(idx)) & (1u << bit_in_byte(idx))) != 0;
+  const usize byteIdx = bits_to_bytes(idx);
+  if (byteIdx >= bits.size) {
+    return false;
+  }
+  return (*mem_at_u8(bits, byteIdx) & (1u << bit_in_byte(idx))) != 0;
 }
 
 usize bitset_count(BitSet bits) {

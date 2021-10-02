@@ -51,7 +51,7 @@ usize bitset_size(BitSet);
 
 /**
  * Test if the bit at the given index is set.
- * Pre-condition: idx < bitset_size
+ * NOTE: Out of bounds bits are considered 0.
  */
 bool bitset_test(BitSet, usize idx);
 
