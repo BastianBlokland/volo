@@ -122,11 +122,43 @@ spec(world) {
       check(comp->f2);
     });
 
+    ecs_run_sync(runner); // Causes a flush to happen in the world.
+
+    dynarray_for_t(
+        &entities, EcsEntityId, id, { check(ecs_world_comp_has_t(world, *id, WorldCompA)); });
+
     dynarray_destroy(&entities);
   }
 
-  it("can remove a component") {
-    // TODO: Add test.
+  it("can check for component existence") {
+    const EcsEntityId entity = ecs_world_entity_create(world);
+
+    check(!ecs_world_comp_has_t(world, entity, WorldCompA));
+    check(!ecs_world_comp_has_t(world, entity, WorldCompB));
+    check(!ecs_world_comp_has_t(world, entity, WorldCompC));
+
+    ecs_world_comp_add_t(world, entity, WorldCompA);
+    ecs_world_comp_add_t(world, entity, WorldCompB);
+
+    // Component addition is processed at the next flush.
+    check(!ecs_world_comp_has_t(world, entity, WorldCompA));
+    check(!ecs_world_comp_has_t(world, entity, WorldCompB));
+    check(!ecs_world_comp_has_t(world, entity, WorldCompC));
+
+    ecs_run_sync(runner); // Causes a flush to happen in the world.
+
+    check(ecs_world_comp_has_t(world, entity, WorldCompA));
+    check(ecs_world_comp_has_t(world, entity, WorldCompB));
+    check(!ecs_world_comp_has_t(world, entity, WorldCompC));
+
+    ecs_world_comp_remove_t(world, entity, WorldCompA);
+    ecs_world_comp_remove_t(world, entity, WorldCompB);
+
+    ecs_run_sync(runner); // Causes a flush to happen in the world.
+
+    check(!ecs_world_comp_has_t(world, entity, WorldCompA));
+    check(!ecs_world_comp_has_t(world, entity, WorldCompB));
+    check(!ecs_world_comp_has_t(world, entity, WorldCompC));
   }
 
   teardown() {

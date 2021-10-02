@@ -70,8 +70,6 @@ void ecs_archetype_destroy(EcsArchetype* archetype) {
     ecs_archetype_chunk_destroy(archetype->chunks[chunkIdx]);
   }
   alloc_free(g_alloc_heap, mem_create(archetype->chunks, sizeof(void*) * ecs_archetype_max_chunks));
-
-  alloc_free_t(g_alloc_heap, archetype->chunks);
 }
 
 u32 ecs_archetype_add(EcsArchetype* archetype, const EcsEntityId id) {

@@ -122,11 +122,7 @@ ecs_buffer_compdata_payload(EcsBufferCompData* data, const usize compSize, const
   const usize padding = ecs_buffer_compdata_padding(compAlign);
   void*       res     = bits_ptr_offset(data, sizeof(EcsBufferCompData) + padding);
 
-  diag_assert_msg(
-      bits_aligned_ptr(res, compAlign),
-      "Pointer does not satisfy the required component alignment '{}'",
-      fmt_int(compAlign));
-
+  diag_assert(bits_aligned_ptr(res, compAlign));
   return mem_create(res, compSize);
 }
 
@@ -180,11 +176,11 @@ void ecs_buffer_destroy_entity(EcsBuffer* buffer, const EcsEntityId entityId) {
 
   diag_assert_msg(
       !bitset_any(addMask) && !bitset_any(removeMask),
-      "Unable to enqueue destruction of entity '{}', reason: modifications present",
+      "Unable to enqueue destruction of entity {}, reason: modifications present",
       fmt_int(entityId));
   diag_assert_msg(
       (entity->flags & EcsBufferEntityFlags_Destroy) == 0,
-      "Unable to enqueue destruction of entity '{}', reason: duplicate destruction",
+      "Unable to enqueue destruction of entity {}, reason: duplicate destruction",
       fmt_int(entityId));
 
   entity->flags |= EcsBufferEntityFlags_Destroy;
@@ -198,13 +194,13 @@ void* ecs_buffer_comp_add(
 
   diag_assert_msg(
       !bitset_test(addMask, compId),
-      "Unable to enqueue addition of '{}' to entity '{}', reason: duplicate addition",
+      "Unable to enqueue addition of {} to entity {}, reason: duplicate addition",
       fmt_text(ecs_def_comp_name(buffer->def, compId)),
       fmt_int(entityId));
 
   diag_assert_msg(
       (entity->flags & EcsBufferEntityFlags_Destroy) == 0,
-      "Unable to enqueue addition of '{}' to entity '{}', reason: destruction present",
+      "Unable to enqueue addition of {} to entity {}, reason: destruction present",
       fmt_text(ecs_def_comp_name(buffer->def, compId)),
       fmt_int(entityId));
 
@@ -229,13 +225,13 @@ void ecs_buffer_comp_remove(EcsBuffer* buffer, const EcsEntityId entityId, const
 
   diag_assert_msg(
       !bitset_test(removeMask, compId),
-      "Unable to enqueue removal of '{}' from entity '{}', reason: duplicate removal",
+      "Unable to enqueue removal of {} from entity {}, reason: duplicate removal",
       fmt_text(ecs_def_comp_name(buffer->def, compId)),
       fmt_int(entityId));
 
   diag_assert_msg(
       (entity->flags & EcsBufferEntityFlags_Destroy) == 0,
-      "Unable to enqueue removal of '{}' from entity '{}', reason: destruction present",
+      "Unable to enqueue removal of {} from entity {}, reason: destruction present",
       fmt_text(ecs_def_comp_name(buffer->def, compId)),
       fmt_int(entityId));
 
@@ -275,7 +271,7 @@ Mem ecs_buffer_entity_comp(const EcsBuffer* buffer, const usize index, const Ecs
   }
 
   diag_crash_msg(
-      "Buffer does not contain component '{}' on entity '{}'",
+      "Buffer does not contain component {} on entity {}",
       fmt_text(ecs_def_comp_name(buffer->def, compId)),
       fmt_int(entity->id));
 }

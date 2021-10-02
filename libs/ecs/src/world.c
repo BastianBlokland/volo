@@ -23,6 +23,8 @@ struct sEcsWorld {
   Allocator*    alloc;
 };
 
+#define ecs_comp_mask_stack(_DEF_) mem_stack(bits_to_bytes(ecs_def_comp_count(_DEF_)) + 1)
+
 EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
   ecs_def_freeze((EcsDef*)def);
 
@@ -67,12 +69,26 @@ void ecs_world_entity_destroy(EcsWorld* world, const EcsEntityId entity) {
 
   diag_assert_msg(
       ecs_world_entity_exists(world, entity),
-      "Unable to enqueue destruction of entity '{}', reason: entity does not exist",
+      "Unable to enqueue destruction of entity {}, reason: entity does not exist",
       fmt_int(entity));
 
   thread_spinlock_lock(&world->bufferLock);
   ecs_buffer_destroy_entity(&world->buffer, entity);
   thread_spinlock_unlock(&world->bufferLock);
+}
+
+bool ecs_world_comp_has(EcsWorld* world, const EcsEntityId entity, const EcsCompId comp) {
+  diag_assert(!ecs_world_busy(world) || g_ecsRunningSystem);
+  diag_assert_msg(ecs_entity_valid(entity), "{} is an invalid entity", fmt_int(entity));
+
+  diag_assert_msg(
+      ecs_world_entity_exists(world, entity),
+      "Unable to check for {} on entity {}, reason: entity does not exist",
+      fmt_text(ecs_def_comp_name(world->def, comp)),
+      fmt_int(entity));
+
+  const BitSet entityMask = ecs_storage_entity_mask(&world->storage, entity);
+  return bitset_test(entityMask, comp);
 }
 
 void* ecs_world_comp_add(
@@ -82,11 +98,15 @@ void* ecs_world_comp_add(
 
   diag_assert_msg(
       ecs_world_entity_exists(world, entity),
-      "Unable to add component '{}' to entity '{}', reason: entity does not exist",
+      "Unable to add {} to entity {}, reason: entity does not exist",
       fmt_text(ecs_def_comp_name(world->def, comp)),
       fmt_int(entity));
 
-  // TODO: Assert that the entity doesn't have the component yet.
+  diag_assert_msg(
+      !ecs_world_comp_has(world, entity, comp),
+      "Unable to add {} to entity {}, reason: entity allready has the specified component",
+      fmt_text(ecs_def_comp_name(world->def, comp)),
+      fmt_int(entity));
 
   thread_spinlock_lock(&world->bufferLock);
   void* result = ecs_buffer_comp_add(&world->buffer, entity, comp, data);
@@ -100,11 +120,15 @@ void ecs_world_comp_remove(EcsWorld* world, const EcsEntityId entity, const EcsC
 
   diag_assert_msg(
       ecs_world_entity_exists(world, entity),
-      "Unable to remove component '{}' from entity '{}', reason: entity does not exist",
+      "Unable to remove {} from entity {}, reason: entity does not exist",
       fmt_text(ecs_def_comp_name(world->def, comp)),
       fmt_int(entity));
 
-  // TODO: Assert that the entity has the component.
+  diag_assert_msg(
+      ecs_world_comp_has(world, entity, comp),
+      "Unable to remove {} from entity {}, reason: entity does not have the specified component",
+      fmt_text(ecs_def_comp_name(world->def, comp)),
+      fmt_int(entity));
 
   thread_spinlock_lock(&world->bufferLock);
   ecs_buffer_comp_remove(&world->buffer, entity, comp);
@@ -126,7 +150,9 @@ void ecs_world_flush(EcsWorld* world) {
 
   ecs_storage_flush_new_entities(&world->storage);
 
+  BitSet      newCompMask = ecs_comp_mask_stack(world->def);
   const usize bufferCount = ecs_buffer_count(&world->buffer);
+
   for (usize i = 0; i != bufferCount; ++i) {
     const EcsEntityId entity = ecs_buffer_entity(&world->buffer, i);
 
@@ -135,8 +161,20 @@ void ecs_world_flush(EcsWorld* world) {
       continue;
     }
 
-    // TODO: Handle component addition.
-    // TODO: Handle component removal.
+    const BitSet addedComps   = ecs_buffer_entity_added(&world->buffer, i);
+    const BitSet removedComps = ecs_buffer_entity_removed(&world->buffer, i);
+
+    bitset_clear_all(newCompMask);
+    bitset_or(newCompMask, ecs_storage_entity_mask(&world->storage, entity));
+    bitset_or(newCompMask, addedComps);
+    bitset_xor(newCompMask, removedComps);
+
+    const EcsArchetypeId newArchetype =
+        ecs_storage_archtype_find_or_create(&world->storage, newCompMask);
+
+    ecs_storage_entity_move(&world->storage, entity, newArchetype);
+
+    // TODO: Set added components.
   }
 
   ecs_buffer_clear(&world->buffer);

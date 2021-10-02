@@ -24,6 +24,13 @@ static void ecs_storage_entity_init(EcsStorage* storage, const EcsEntityId id) {
   }
 }
 
+static EcsArchetype* ecs_storage_archetype_ptr(EcsStorage* storage, const EcsArchetypeId id) {
+  if (sentinel_check(id)) {
+    return null;
+  }
+  return dynarray_at_t(&storage->archetypes, id, EcsArchetype);
+}
+
 EcsStorage ecs_storage_create(Allocator* alloc, const EcsDef* def) {
   diag_assert(alloc && def);
 
@@ -65,7 +72,15 @@ EcsEntityId ecs_storage_entity_create(EcsStorage* storage) {
   return id;
 }
 
-EcsEntityInfo* ecs_storage_entity_info(EcsStorage* storage, EcsEntityId id) {
+bool ecs_storage_entity_exists(const EcsStorage* storage, const EcsEntityId id) {
+  if (ecs_entity_id_index(id) >= storage->entities.size) {
+    // Out of bounds entity means it was created but not flushed yet.
+    return true;
+  }
+  return ecs_storage_entity_info((EcsStorage*)storage, id) != null;
+}
+
+EcsEntityInfo* ecs_storage_entity_info(EcsStorage* storage, const EcsEntityId id) {
   if (UNLIKELY(ecs_entity_id_index(id) >= storage->entities.size)) {
     return null;
   }
@@ -73,12 +88,31 @@ EcsEntityInfo* ecs_storage_entity_info(EcsStorage* storage, EcsEntityId id) {
   return info->serial == ecs_entity_id_serial(id) ? info : null;
 }
 
-bool ecs_storage_entity_exists(const EcsStorage* storage, const EcsEntityId id) {
-  if (ecs_entity_id_index(id) >= storage->entities.size) {
-    // Out of bounds entity means it was created but not flushed yet.
-    return true;
+BitSet ecs_storage_entity_mask(EcsStorage* storage, const EcsEntityId id) {
+  EcsEntityInfo* info = ecs_storage_entity_info(storage, id);
+  if (!info) {
+    return mem_empty;
   }
-  return ecs_storage_entity_info((EcsStorage*)storage, id) != null;
+  EcsArchetype* archetype = ecs_storage_archetype_ptr(storage, info->archetype);
+  if (!archetype) {
+    return mem_empty;
+  }
+  return archetype->mask;
+}
+
+void ecs_storage_entity_move(
+    EcsStorage* storage, const EcsEntityId id, const EcsArchetypeId newArchetypeId) {
+
+  EcsArchetype* newArchetype = ecs_storage_archetype_ptr(storage, newArchetypeId);
+  diag_assert_msg(newArchetype, "Invalid archetype-id '{}'", fmt_int(newArchetypeId));
+
+  EcsEntityInfo* info = ecs_storage_entity_info(storage, id);
+  if (!sentinel_check(info->archetype)) {
+    // TODO: Remove entity from old archetype.
+  }
+
+  info->archetype      = newArchetypeId;
+  info->archetypeIndex = ecs_archetype_add(newArchetype, id);
 }
 
 void ecs_storage_entity_destroy(EcsStorage* storage, const EcsEntityId id) {
