@@ -52,11 +52,13 @@ INLINE_HINT Mem mem_consume(Mem mem, usize amount) {
   };
 }
 
-INLINE_HINT void* mem_as(Mem mem, const usize size) {
+INLINE_HINT void* mem_as(Mem mem, const usize size, const usize align) {
   (void)size;
+  (void)align;
 
   diag_assert(mem_valid(mem));
   diag_assert(mem.size >= size);
+  diag_assert(bits_aligned_ptr(mem.ptr, align));
   return mem.ptr;
 }
 

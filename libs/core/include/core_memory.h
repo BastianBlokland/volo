@@ -73,7 +73,7 @@ typedef struct {
  * Interpret this memory as type '_TYPE_'.
  * Pre-condition: sizeof(_TYPE_) <= mem.size
  */
-#define mem_as_t(_MEM_, _TYPE_) ((_TYPE_*)mem_as(_MEM_, sizeof(_TYPE_)))
+#define mem_as_t(_MEM_, _TYPE_) ((_TYPE_*)mem_as(_MEM_, sizeof(_TYPE_), alignof(_TYPE_)))
 
 /**
  * Iterate over each byte.
@@ -132,9 +132,9 @@ Mem mem_consume(Mem, usize amount);
 
 /**
  * Interpret this memory as an object with the given size.
- * Only performs diagnostic size validation, should be considered a no-op for non-debug builds.
+ * Only performs diagnostic size / align validation, no-op in non-debug builds.
  */
-void* mem_as(Mem mem, usize size);
+void* mem_as(Mem mem, usize size, usize align);
 
 /**
  * Compare memory a and b.
