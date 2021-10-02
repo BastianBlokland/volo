@@ -1,7 +1,6 @@
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "ecs_def.h"
-#include "ecs_runner.h"
 #include "ecs_world.h"
 
 ecs_comp_define(WorldCompA) {
@@ -27,16 +26,14 @@ ecs_module_init(world_test_module) {
 
 spec(world) {
 
-  EcsDef*    def    = null;
-  EcsWorld*  world  = null;
-  EcsRunner* runner = null;
+  EcsDef*   def   = null;
+  EcsWorld* world = null;
 
   setup() {
     def = ecs_def_create(g_alloc_heap);
     ecs_register_module(def, world_test_module);
 
-    world  = ecs_world_create(g_alloc_heap, def);
-    runner = ecs_runner_create(g_alloc_heap, world);
+    world = ecs_world_create(g_alloc_heap, def);
   }
 
   it("stores the definition") { check(ecs_world_def(world) == def); }
@@ -51,7 +48,7 @@ spec(world) {
 
     dynarray_for_t(&entities, EcsEntityId, id, { check(ecs_world_entity_exists(world, *id)); });
 
-    ecs_run_sync(runner); // Causes a flush to happen in the world.
+    ecs_world_flush(world);
 
     dynarray_for_t(&entities, EcsEntityId, id, { check(ecs_world_entity_exists(world, *id)); });
 
@@ -67,7 +64,7 @@ spec(world) {
 
     check(ecs_world_entity_exists(world, entity)); // Still exists until the next flush.
 
-    ecs_run_sync(runner); // Causes a flush to happen in the world.
+    ecs_world_flush(world);
 
     check(!ecs_world_entity_exists(world, entity)); // No longer exists.
   }
@@ -122,7 +119,7 @@ spec(world) {
       check(comp->f2);
     });
 
-    ecs_run_sync(runner); // Causes a flush to happen in the world.
+    ecs_world_flush(world);
 
     dynarray_for_t(
         &entities, EcsEntityId, id, { check(ecs_world_comp_has_t(world, *id, WorldCompA)); });
@@ -145,7 +142,7 @@ spec(world) {
     check(!ecs_world_comp_has_t(world, entity, WorldCompB));
     check(!ecs_world_comp_has_t(world, entity, WorldCompC));
 
-    ecs_run_sync(runner); // Causes a flush to happen in the world.
+    ecs_world_flush(world);
 
     check(ecs_world_comp_has_t(world, entity, WorldCompA));
     check(ecs_world_comp_has_t(world, entity, WorldCompB));
@@ -154,7 +151,7 @@ spec(world) {
     ecs_world_comp_remove_t(world, entity, WorldCompA);
     ecs_world_comp_remove_t(world, entity, WorldCompB);
 
-    ecs_run_sync(runner); // Causes a flush to happen in the world.
+    ecs_world_flush(world);
 
     check(!ecs_world_comp_has_t(world, entity, WorldCompA));
     check(!ecs_world_comp_has_t(world, entity, WorldCompB));
@@ -162,7 +159,6 @@ spec(world) {
   }
 
   teardown() {
-    ecs_runner_destroy(runner);
     ecs_world_destroy(world);
     ecs_def_destroy(def);
   }

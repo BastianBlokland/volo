@@ -94,3 +94,11 @@ void* ecs_world_comp_add(EcsWorld*, EcsEntityId, EcsCompId, Mem data);
   ecs_world_comp_remove((_WORLD_), (_ENTITY_), ecs_comp_id(_TYPE_))
 
 void ecs_world_comp_remove(EcsWorld*, EcsEntityId, EcsCompId);
+
+/**
+ * Flush any queued layout modifications.
+ * NOTE: Not valid to be called from inside systems.
+ *
+ * Pre-condition: !ecs_world_busy()
+ */
+void ecs_world_flush(EcsWorld*);

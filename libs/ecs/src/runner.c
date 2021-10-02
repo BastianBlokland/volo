@@ -40,7 +40,7 @@ THREAD_LOCAL bool g_ecsRunningSystem;
 
 static void graph_runner_finalize_task(void* context) {
   MetaTaskData* data = context;
-  ecs_world_flush(data->runner->world);
+  ecs_world_flush_internal(data->runner->world);
 
   data->runner->flags &= ~EcsRunnerFlags_Running;
   ecs_world_busy_unset(data->runner->world);

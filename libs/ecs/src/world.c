@@ -135,6 +135,13 @@ void ecs_world_comp_remove(EcsWorld* world, const EcsEntityId entity, const EcsC
   thread_spinlock_unlock(&world->bufferLock);
 }
 
+void ecs_world_flush(EcsWorld* world) {
+  diag_assert_msg(!g_ecsRunningSystem, "World cannot be flushed from a system");
+  diag_assert(!ecs_world_busy(world));
+
+  ecs_world_flush_internal(world);
+}
+
 void ecs_world_busy_set(EcsWorld* world) {
   diag_assert_msg(!ecs_world_busy(world), "World is already busy");
   world->flags |= EcsWorldFlags_Busy;
@@ -145,8 +152,7 @@ void ecs_world_busy_unset(EcsWorld* world) {
   world->flags &= ~EcsWorldFlags_Busy;
 }
 
-void ecs_world_flush(EcsWorld* world) {
-  diag_assert_msg(!g_ecsRunningSystem, "World cannot be flushed from a system");
+void ecs_world_flush_internal(EcsWorld* world) {
 
   ecs_storage_flush_new_entities(&world->storage);
 
