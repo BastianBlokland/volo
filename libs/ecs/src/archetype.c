@@ -27,6 +27,22 @@ typedef struct {
   usize indexInChunk;
 } EcsArchetypeLoc;
 
+static usize ecs_archetype_entities_per_chunk(const EcsDef* def, BitSet mask) {
+  /**
+   * Calculate how much total array space each entity will take + how much padding there will need
+   * to be between the arrays to satisfy the component alignments.
+   */
+  usize entityDataSize = sizeof(EcsEntityId);
+  usize padding        = 0;
+  bitset_for(mask, compId, {
+    const usize compSize  = ecs_def_comp_size(def, (EcsCompId)compId);
+    const usize compAlign = ecs_def_comp_align(def, (EcsCompId)compId);
+    padding += bits_padding(entityDataSize + padding, compAlign);
+    entityDataSize += compSize;
+  });
+  return (ecs_archetype_chunk_size - padding) / entityDataSize;
+}
+
 static void* ecs_archetype_chunk_create() {
   const usize align = 512; // Note: In practice the page allocator will align to the page size.
   return alloc_alloc(g_alloc_page, ecs_archetype_chunk_size, align).ptr;
@@ -74,18 +90,8 @@ static void ecs_archetype_copy_internal(EcsArchetype* archetype, const u32 dst, 
 EcsArchetype ecs_archetype_create(const EcsDef* def, BitSet mask) {
   diag_assert_msg(bitset_any(mask), "Archetype needs to contain atleast a single component");
 
-  usize compCount      = 0;
-  usize entityDataSize = sizeof(EcsEntityId);
-  usize padding        = 0;
-  bitset_for(mask, compId, {
-    ++compCount;
-    const usize compSize  = ecs_def_comp_size(def, (EcsCompId)compId);
-    const usize compAlign = ecs_def_comp_align(def, (EcsCompId)compId);
-    padding += bits_padding(entityDataSize + padding, compAlign);
-    entityDataSize += compSize;
-  });
-
-  const usize entitiesPerChunk = (ecs_archetype_chunk_size - padding) / entityDataSize;
+  const usize compCount        = bitset_count(mask);
+  const usize entitiesPerChunk = ecs_archetype_entities_per_chunk(def, mask);
   diag_assert_msg(entitiesPerChunk, "At least one entity has to fit in an archetype chunk");
 
   u16* compOffsets = alloc_alloc(g_alloc_heap, sizeof(u16) * compCount * 2, alignof(u16)).ptr;
