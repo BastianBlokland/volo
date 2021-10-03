@@ -14,6 +14,7 @@ add_library(volo_ecs STATIC
   src/module.c
   src/runner.c
   src/storage.c
+  src/view.c
   src/world.c)
 target_include_directories(volo_ecs PUBLIC include)
 target_link_libraries(volo_ecs PUBLIC volo_core)

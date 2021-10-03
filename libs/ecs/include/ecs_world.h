@@ -2,6 +2,7 @@
 #include "core_memory.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
+#include "ecs_view.h"
 
 // Forward declare from 'ecs_def.h'.
 typedef struct sEcsDef EcsDef;
@@ -37,6 +38,16 @@ const EcsDef* ecs_world_def(EcsWorld*);
  * Check if the world is currently busy (being used by a runner for example).
  */
 bool ecs_world_busy(const EcsWorld*);
+
+/**
+ * Retrieve a view for accessing component data.
+ * NOTE: In an Ecs System this is only valid if your system has declared access to the view.
+ * NOTE: View pointers should not be stored.
+ *
+ * Pre-condition: !ecs_world_busy() ||
+ *                (g_ecsRunningSystem && ecs_def_system_has_access(g_ecsRunningSystemId, view)
+ */
+EcsView* ecs_world_view(EcsWorld*, EcsViewId);
 
 /**
  * Synchonously create a new entity.
