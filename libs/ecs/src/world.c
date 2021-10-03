@@ -57,7 +57,8 @@ EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
   };
 
   dynarray_for_t((DynArray*)&def->views, EcsViewDef, viewDef, {
-    *dynarray_push_t(&world->views, EcsView) = ecs_view_create(alloc, def, viewDef);
+    *dynarray_push_t(&world->views, EcsView) =
+        ecs_view_create(alloc, &world->storage, def, viewDef);
   });
 
   return world;

@@ -47,6 +47,8 @@ bool ecs_world_busy(const EcsWorld*);
  * Pre-condition: !ecs_world_busy() ||
  *                (g_ecsRunningSystem && ecs_def_system_has_access(g_ecsRunningSystemId, view)
  */
+#define ecs_world_view_t(_WORLD_, _VIEW_) ecs_world_view((_WORLD_), ecs_view_id(_VIEW_))
+
 EcsView* ecs_world_view(EcsWorld*, EcsViewId);
 
 /**

@@ -15,6 +15,7 @@ int main(const int argc, const char** argv) {
   register_spec(check, def);
   register_spec(check, entity);
   register_spec(check, runner);
+  register_spec(check, view);
   register_spec(check, world);
 
   const int exitCode = check_app(check, argc, argv);

@@ -10,13 +10,16 @@ static usize ecs_view_bytes_per_mask(const EcsDef* def) {
   return bits_to_bytes(compCount) + 1;
 }
 
-EcsView ecs_view_create(Allocator* alloc, const EcsDef* def, const EcsViewDef* viewDef) {
+EcsView ecs_view_create(
+    Allocator* alloc, EcsStorage* storage, const EcsDef* def, const EcsViewDef* viewDef) {
   diag_assert(alloc && def);
 
   const usize bytesPerMask = ecs_view_bytes_per_mask(def);
   Mem         masksMem     = alloc_alloc(alloc, bytesPerMask * 4, 1);
+  mem_set(masksMem, 0);
 
   EcsView view = (EcsView){
+      .storage       = storage,
       .filterWith    = mem_slice(masksMem, bytesPerMask * 0, bytesPerMask),
       .filterWithout = mem_slice(masksMem, bytesPerMask * 1, bytesPerMask),
       .accessRead    = mem_slice(masksMem, bytesPerMask * 2, bytesPerMask),
@@ -51,4 +54,9 @@ bool ecs_view_maybe_track(EcsView* view, const EcsArchetypeId id, BitSet mask) {
     return true;
   }
   return false;
+}
+
+bool ecs_view_contains(EcsView* view, const EcsEntityId entity) {
+  const BitSet entityMask = ecs_storage_entity_mask(view->storage, entity);
+  return ecs_view_matches(view, entityMask);
 }
