@@ -70,7 +70,7 @@ macro(set_gcc_compile_options)
   # Setup warning flags.
   add_compile_options(-Wall -Wextra -Werror -Wshadow)
   add_compile_options(-Wno-override-init -Wno-missing-field-initializers -Wno-type-limits
-                      -Wno-implicit-fallthrough -Wno-clobbered)
+                      -Wno-implicit-fallthrough -Wno-clobbered -Wno-missing-braces)
 
   # TODO: Tie these debug options to a configuration knob.
   add_compile_options(-g -fno-omit-frame-pointer)

@@ -6,7 +6,11 @@
 
 typedef struct {
   u32 a, b;
-} TestMemStruct;
+} TestMemStructA;
+
+typedef struct {
+  String a;
+} TestMemStructB;
 
 typedef struct {
   ALIGNAS(128) u32 val;
@@ -17,25 +21,33 @@ spec(memory) {
   it("can create a memory view over a stack allocated struct") {
     Mem mem = mem_empty;
 
-    mem = mem_struct(TestMemStruct);
+    mem = mem_struct(TestMemStructA);
     check_require(mem_valid(mem));
     check(mem_as_t(mem, u32)[0] == 0);
     check(mem_as_t(mem, u32)[1] == 0);
 
-    mem = mem_struct(TestMemStruct, .a = 42);
+    mem = mem_struct(TestMemStructA, .a = 42);
     check_require(mem_valid(mem));
     check(mem_as_t(mem, u32)[0] == 42);
     check(mem_as_t(mem, u32)[1] == 0);
 
-    mem = mem_struct(TestMemStruct, .b = 42);
+    mem = mem_struct(TestMemStructA, .b = 42);
     check_require(mem_valid(mem));
     check(mem_as_t(mem, u32)[0] == 0);
     check(mem_as_t(mem, u32)[1] == 42);
 
-    mem = mem_struct(TestMemStruct, .a = 1337, .b = 42);
+    mem = mem_struct(TestMemStructA, .a = 1337, .b = 42);
     check_require(mem_valid(mem));
     check(mem_as_t(mem, u32)[0] == 1337);
     check(mem_as_t(mem, u32)[1] == 42);
+
+    mem = mem_struct(TestMemStructB);
+    check_require(mem_valid(mem));
+    check(string_is_empty(*mem_as_t(mem, String)));
+
+    mem = mem_struct(TestMemStructB, .a = string_lit("Hello World"));
+    check_require(mem_valid(mem));
+    check_eq_string(*mem_as_t(mem, String), string_lit("Hello World"));
   }
 
   it("can create a memory view from two pointers") {
