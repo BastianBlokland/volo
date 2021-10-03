@@ -100,6 +100,7 @@ EcsArchetype ecs_archetype_create(const EcsDef* def, BitSet mask) {
     compOffsets[compIdx]  = (u16)offset;
     compStrides[compIdx]  = (u16)compSize;
     offset += compSize * entitiesPerChunk;
+    ++compIdx;
   });
 
   return (EcsArchetype){
@@ -156,6 +157,9 @@ EcsEntityId ecs_archetype_remove(EcsArchetype* archetype, const u32 index) {
 }
 
 void* ecs_archetype_comp(EcsArchetype* archetype, const u32 index, const EcsCompId id) {
+  diag_assert_msg(
+      bitset_test(archetype->mask, id), "Archetype does not contain component {}", fmt_int(id));
+
   /**
    * Random access to a specific component on the entity at the given index.
    *
