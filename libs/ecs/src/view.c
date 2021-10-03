@@ -63,15 +63,15 @@ bool ecs_view_matches(const EcsView* view, BitSet mask) {
 
 bool ecs_view_maybe_track(EcsView* view, const EcsArchetypeId id, const BitSet mask) {
   if (ecs_view_matches(view, mask)) {
-    *dynarray_push_t(&view->archetypes, EcsArchetypeId) = id;
+    *dynarray_insert_sorted_t(&view->archetypes, EcsArchetypeId, ecs_compare_archetype, &id) = id;
     return true;
   }
   return false;
 }
 
 bool ecs_view_contains(EcsView* view, const EcsEntityId entity) {
-  const BitSet entityMask = ecs_storage_entity_mask(view->storage, entity);
-  return ecs_view_matches(view, entityMask);
+  const EcsArchetypeId archetype = ecs_storage_entity_archetype(view->storage, entity);
+  return dynarray_search_binary(&view->archetypes, ecs_compare_archetype, &archetype) != null;
 }
 
 const void* ecs_view_comp_read(EcsView* view, const EcsEntityId entity, const EcsCompId comp) {

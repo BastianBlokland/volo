@@ -48,6 +48,8 @@ static EcsEntityInfo* ecs_storage_entity_info_ptr(EcsStorage* storage, const Ecs
   return info->serial == ecs_entity_id_serial(id) ? info : null;
 }
 
+i8 ecs_compare_archetype(const void* a, const void* b) { return compare_u32(a, b); }
+
 EcsStorage ecs_storage_create(Allocator* alloc, const EcsDef* def) {
   diag_assert(alloc && def);
 
@@ -107,6 +109,11 @@ BitSet ecs_storage_entity_mask(EcsStorage* storage, const EcsEntityId id) {
     return mem_empty;
   }
   return archetype->mask;
+}
+
+EcsArchetypeId ecs_storage_entity_archetype(EcsStorage* storage, const EcsEntityId id) {
+  EcsEntityInfo* info = ecs_storage_entity_info_ptr(storage, id);
+  return !info ? sentinel_u32 : info->archetype;
 }
 
 void* ecs_storage_entity_comp(EcsStorage* storage, const EcsEntityId id, const EcsCompId comp) {

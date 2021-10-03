@@ -14,6 +14,8 @@ ecs_view_define(ReadAB) {
 
 ecs_view_define(WriteC) { ecs_view_write(ViewCompC); }
 
+ecs_view_define(MaybeReadC) { ecs_view_maybe_read(ViewCompC); }
+
 ecs_module_init(view_test_module) {
   ecs_register_comp(ViewCompA);
   ecs_register_comp(ViewCompB);
@@ -21,6 +23,7 @@ ecs_module_init(view_test_module) {
 
   ecs_register_view(ReadAB);
   ecs_register_view(WriteC);
+  ecs_register_view(MaybeReadC);
 }
 
 spec(view) {
@@ -84,6 +87,38 @@ spec(view) {
 
     check_eq_int(comp->f1, 1337);
     comp->f1 = 42;
+  }
+
+  it("can conditionally read components") {
+    const EcsEntityId entityA = ecs_world_entity_create(world);
+    const EcsEntityId entityB = ecs_world_entity_create(world);
+
+    ecs_world_comp_add_t(world, entityA, ViewCompC, .f1 = 1337);
+    ecs_world_comp_add_t(world, entityB, ViewCompB);
+
+    ecs_world_flush(world);
+
+    EcsView* view = ecs_world_view_t(world, MaybeReadC);
+
+    check(ecs_view_contains(view, entityA));
+    check(ecs_world_comp_has_t(world, entityA, ViewCompC));
+
+    check(ecs_view_contains(view, entityB));
+    check(!ecs_world_comp_has_t(world, entityB, ViewCompC));
+  }
+
+  it("never matches entities without components") {
+    const EcsEntityId entity = ecs_world_entity_create(world);
+
+    EcsView* view = null;
+
+    view = ecs_world_view_t(world, MaybeReadC);
+    check(!ecs_view_contains(view, entity));
+
+    ecs_world_flush(world);
+
+    view = ecs_world_view_t(world, MaybeReadC);
+    check(!ecs_view_contains(view, entity));
   }
 
   teardown() {

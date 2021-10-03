@@ -11,7 +11,7 @@ struct sEcsView {
   EcsStorage*       storage;
   BitSet            filterWith, filterWithout;
   BitSet            accessRead, accessWrite;
-  DynArray          archetypes; // EcsArchetypeId[].
+  DynArray          archetypes; // EcsArchetypeId[] (NOTE: kept sorted)
 };
 
 EcsView ecs_view_create(Allocator*, EcsStorage*, const EcsDef*, const EcsViewDef*);

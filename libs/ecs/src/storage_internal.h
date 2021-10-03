@@ -19,12 +19,15 @@ typedef struct {
   DynArray archetypes; // EcsArchetype[].
 } EcsStorage;
 
+i8 ecs_compare_archetype(const void* a, const void* b);
+
 EcsStorage ecs_storage_create(Allocator*, const EcsDef*);
 void       ecs_storage_destroy(EcsStorage*);
 
 EcsEntityId    ecs_storage_entity_create(EcsStorage*);
 bool           ecs_storage_entity_exists(const EcsStorage*, EcsEntityId);
 BitSet         ecs_storage_entity_mask(EcsStorage*, EcsEntityId);
+EcsArchetypeId ecs_storage_entity_archetype(EcsStorage*, EcsEntityId);
 void*          ecs_storage_entity_comp(EcsStorage*, EcsEntityId, EcsCompId);
 void           ecs_storage_entity_move(EcsStorage*, EcsEntityId, EcsArchetypeId newArchetypeId);
 void           ecs_storage_entity_destroy(EcsStorage*, EcsEntityId);
