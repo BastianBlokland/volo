@@ -38,6 +38,19 @@ spec(view) {
     world = ecs_world_create(g_alloc_heap, def);
   }
 
+  it("can get the count of components it reads / writes") {
+    EcsView* view = null;
+
+    view = ecs_world_view_t(world, ReadAB);
+    check_eq_int(ecs_view_comp_count(view), 2);
+
+    view = ecs_world_view_t(world, WriteC);
+    check_eq_int(ecs_view_comp_count(view), 1);
+
+    view = ecs_world_view_t(world, MaybeReadC);
+    check_eq_int(ecs_view_comp_count(view), 0);
+  }
+
   it("can check if an entity is contained in the view") {
     const EcsEntityId entity1 = ecs_world_entity_create(world);
     const EcsEntityId entity2 = ecs_world_entity_create(world);

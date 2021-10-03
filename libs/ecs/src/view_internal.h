@@ -9,8 +9,7 @@ struct sEcsView {
   const EcsDef*     def;
   const EcsViewDef* viewDef;
   EcsStorage*       storage;
-  BitSet            filterWith, filterWithout;
-  BitSet            accessRead, accessWrite;
+  Mem               masks;
   DynArray          archetypes; // EcsArchetypeId[] (NOTE: kept sorted)
 };
 

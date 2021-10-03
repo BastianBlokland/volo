@@ -9,6 +9,12 @@
 typedef struct sEcsView EcsView;
 
 /**
+ * Returns how many components this view reads / writes.
+ * NOTE: Does not include maybeRead / maybeWrite.
+ */
+usize ecs_view_comp_count(EcsView*);
+
+/**
  * Check if this view contains the given entity.
  */
 bool ecs_view_contains(EcsView*, EcsEntityId);
