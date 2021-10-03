@@ -6,10 +6,12 @@
 #include "storage_internal.h"
 
 struct sEcsView {
-  EcsStorage* storage;
-  BitSet      filterWith, filterWithout;
-  BitSet      accessRead, accessWrite;
-  DynArray    archetypes; // EcsArchetypeId[].
+  const EcsDef*     def;
+  const EcsViewDef* viewDef;
+  EcsStorage*       storage;
+  BitSet            filterWith, filterWithout;
+  BitSet            accessRead, accessWrite;
+  DynArray          archetypes; // EcsArchetypeId[].
 };
 
 EcsView ecs_view_create(Allocator*, EcsStorage*, const EcsDef*, const EcsViewDef*);
