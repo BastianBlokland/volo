@@ -23,7 +23,7 @@
 #define ecs_archetype_max_chunks 128
 
 typedef struct {
-  u8*   chunk;
+  usize chunkIdx;
   usize indexInChunk;
 } EcsArchetypeLoc;
 
@@ -65,7 +65,27 @@ static EcsEntityId* ecs_archetype_entity_ptr(EcsArchetype* archetype, const u32 
 static EcsArchetypeLoc ecs_archetype_location(EcsArchetype* archetype, const u32 index) {
   const usize chunkIdx     = index / archetype->entitiesPerChunk;
   const usize indexInChunk = index - (chunkIdx * archetype->entitiesPerChunk);
-  return (EcsArchetypeLoc){.chunk = archetype->chunks[chunkIdx], .indexInChunk = indexInChunk};
+  return (EcsArchetypeLoc){.chunkIdx = chunkIdx, .indexInChunk = indexInChunk};
+}
+
+static void ecs_archetype_itr_init_pointers(EcsIterator* itr, EcsArchetypeLoc loc) {
+  EcsArchetype* archetype   = itr->archetype.ptr;
+  const u16*    compOffsets = archetype->compOffsetsAndStrides;
+  const u16*    compStrides = archetype->compOffsetsAndStrides + archetype->compCount;
+  u8*           chunkData   = archetype->chunks[loc.chunkIdx];
+
+  itr->archetype.chunkIdx = loc.chunkIdx;
+  itr->entity             = ((EcsEntityId*)chunkData) + loc.indexInChunk;
+
+  EcsCompId compId = 0;
+  for (usize i = 0; i != itr->compCount; ++i, ++compId) {
+    compId                 = bitset_next(itr->mask, compId);
+    const usize compIdx    = ecs_archetype_comp_idx(archetype, compId);
+    const usize compOffset = compOffsets[compIdx];
+    const usize compStride = compStrides[compIdx];
+    itr->comps[i].ptr      = bits_ptr_offset(chunkData, compOffset + compStride * loc.indexInChunk);
+    itr->comps[i].size     = compStride;
+  }
 }
 
 static void ecs_archetype_copy_internal(EcsArchetype* archetype, const u32 dst, const u32 src) {
@@ -76,12 +96,13 @@ static void ecs_archetype_copy_internal(EcsArchetype* archetype, const u32 dst, 
   const EcsArchetypeLoc srcLoc = ecs_archetype_location(archetype, src);
 
   for (usize compIdx = 0; compIdx != archetype->compCount; ++compIdx) {
-    const usize compSize         = compStrides[compIdx];
-    u8*         dstChunkCompData = bits_ptr_offset(dstLoc.chunk, compOffsets[compIdx]);
-    u8*         srcChunkCompData = bits_ptr_offset(srcLoc.chunk, compOffsets[compIdx]);
+    const usize compSize = compStrides[compIdx];
 
-    const Mem dstCompMem = mem_create(dstChunkCompData + compSize * dstLoc.indexInChunk, compSize);
-    const Mem srcCompMem = mem_create(srcChunkCompData + compSize * srcLoc.indexInChunk, compSize);
+    u8* dstChunkData = bits_ptr_offset(archetype->chunks[dstLoc.chunkIdx], compOffsets[compIdx]);
+    u8* srcChunkData = bits_ptr_offset(archetype->chunks[srcLoc.chunkIdx], compOffsets[compIdx]);
+
+    const Mem dstCompMem = mem_create(dstChunkData + compSize * dstLoc.indexInChunk, compSize);
+    const Mem srcCompMem = mem_create(srcChunkData + compSize * srcLoc.indexInChunk, compSize);
 
     mem_cpy(dstCompMem, srcCompMem);
   }
@@ -162,27 +183,48 @@ EcsEntityId ecs_archetype_remove(EcsArchetype* archetype, const u32 index) {
   return entityToMove;
 }
 
-void* ecs_archetype_comp(EcsArchetype* archetype, const u32 index, const EcsCompId id) {
+void ecs_archetype_itr_init(EcsIterator* itr, EcsArchetype* archetype) {
   diag_assert_msg(
-      bitset_test(archetype->mask, id), "Archetype does not contain component {}", fmt_int(id));
+      bitset_all_of(archetype->mask, itr->mask), "Archetype does not contain all itr components");
 
-  /**
-   * Random access to a specific component on the entity at the given index.
-   *
-   * Steps:
-   * - Find the chunk this entity is in (and the index it has in that chunk).
-   * - Find the offset into this chunk where the requested component array starts.
-   * - Return a pointer into the component array at 'indexInChunk'.
-   */
-  const u16* compOffsets = archetype->compOffsetsAndStrides;
-  const u16* compStrides = archetype->compOffsetsAndStrides + archetype->compCount;
+  itr->archetype.ptr      = archetype;
+  itr->archetype.chunkIdx = u32_max; // Calling 'next' will advance to index 0.
+  itr->archetype.chunkRem = 0;
+}
 
-  const usize compIdx       = ecs_archetype_comp_idx(archetype, id);
-  const usize chunkIdx      = index / archetype->entitiesPerChunk;
-  const usize indexInChunk  = index - (chunkIdx * archetype->entitiesPerChunk);
-  u8*         chunk         = archetype->chunks[chunkIdx];
-  u8*         chunkCompData = bits_ptr_offset(chunk, compOffsets[compIdx]);
-  return chunkCompData + compStrides[compIdx] * indexInChunk;
+bool ecs_archetype_itr_next(EcsIterator* itr) {
+  if (LIKELY(itr->archetype.chunkRem)) {
+    ++itr->entity;
+    --itr->archetype.chunkRem;
+    for (usize i = 0; i != itr->compCount; ++i) {
+      itr->comps[i].ptr = bits_ptr_offset(itr->comps[i].ptr, itr->comps[i].size);
+    }
+    return true;
+  }
+
+  // No more entries in the current chunk; jump to the next chunk.
+  EcsArchetype* archetype          = itr->archetype.ptr;
+  const usize   chunksWithEntities = archetype->entityCount / archetype->entitiesPerChunk;
+  if (++itr->archetype.chunkIdx >= chunksWithEntities) {
+    return false; // Reached the end of the chunks with entities in them.
+  }
+
+  const bool isLastChunk  = itr->archetype.chunkIdx == (chunksWithEntities - 1);
+  itr->archetype.chunkRem = isLastChunk ? (archetype->entityCount % archetype->entitiesPerChunk)
+                                        : archetype->entitiesPerChunk;
+
+  ecs_archetype_itr_init_pointers(itr, (EcsArchetypeLoc){.chunkIdx = itr->archetype.chunkIdx});
+  return true;
+}
+
+void ecs_archetype_itr_jump(EcsIterator* itr, EcsArchetype* archetype, const u32 index) {
+  diag_assert_msg(
+      bitset_all_of(archetype->mask, itr->mask), "Archetype does not contain all itr components");
+
+  itr->archetype.ptr      = archetype;
+  itr->archetype.chunkRem = 0;
+
+  ecs_archetype_itr_init_pointers(itr, ecs_archetype_location(archetype, index));
 }
 
 void ecs_archetype_copy_across(
@@ -201,11 +243,11 @@ void ecs_archetype_copy_across(
     const usize srcCompIdx = ecs_archetype_comp_idx(dst, (EcsCompId)comp);
     const usize compSize   = dstCompStrides[dstCompIdx];
 
-    u8* dstChunkCompData = bits_ptr_offset(dstLoc.chunk, dstCompOffsets[dstCompIdx]);
-    u8* srcChunkCompData = bits_ptr_offset(srcLoc.chunk, srcCompOffsets[srcCompIdx]);
+    u8* dstChunkData = bits_ptr_offset(dst->chunks[dstLoc.chunkIdx], dstCompOffsets[dstCompIdx]);
+    u8* srcChunkData = bits_ptr_offset(src->chunks[srcLoc.chunkIdx], srcCompOffsets[srcCompIdx]);
 
-    const Mem dstCompMem = mem_create(dstChunkCompData + compSize * dstLoc.indexInChunk, compSize);
-    const Mem srcCompMem = mem_create(srcChunkCompData + compSize * srcLoc.indexInChunk, compSize);
+    const Mem dstCompMem = mem_create(dstChunkData + compSize * dstLoc.indexInChunk, compSize);
+    const Mem srcCompMem = mem_create(srcChunkData + compSize * srcLoc.indexInChunk, compSize);
 
     mem_cpy(dstCompMem, srcCompMem);
   });

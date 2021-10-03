@@ -44,6 +44,27 @@ static EcsArchetypeId ecs_world_archetype_find_or_create(EcsWorld* world, const 
   return newId;
 }
 
+static void ecs_world_cpy_added_comps(EcsStorage* storage, EcsBuffer* buffer, const usize idx) {
+
+  const EcsEntityId entity     = ecs_buffer_entity(buffer, idx);
+  const BitSet      addedComps = ecs_buffer_entity_added(buffer, idx);
+  if (!bitset_any(addedComps)) {
+    return;
+  }
+
+  EcsIterator* storageItr = ecs_iterator_impl_stack(addedComps);
+  ecs_storage_itr_jump(storageItr, storage, entity);
+
+  for (EcsBufferCompData* bufferItr = ecs_buffer_comp_begin(buffer, idx); bufferItr;
+       bufferItr                    = ecs_buffer_comp_next(bufferItr)) {
+
+    const EcsCompId compId   = ecs_buffer_comp_id(bufferItr);
+    const Mem       compData = ecs_buffer_comp_data(buffer, bufferItr);
+
+    mem_cpy(ecs_storage_itr_access(storageItr, compId), compData);
+  }
+}
+
 EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
   ecs_def_freeze((EcsDef*)def);
 
@@ -215,15 +236,7 @@ void ecs_world_flush_internal(EcsWorld* world) {
 
     const EcsArchetypeId newArchetype = ecs_world_archetype_find_or_create(world, newCompMask);
     ecs_storage_entity_move(&world->storage, entity, newArchetype);
-
-    // Initialize the added components.
-    for (EcsBufferCompData* itr = ecs_buffer_comp_begin(&world->buffer, i); itr;
-         itr                    = ecs_buffer_comp_next(itr)) {
-      const EcsCompId compId        = ecs_buffer_comp_id(itr);
-      const Mem       compData      = ecs_buffer_comp_data(&world->buffer, itr);
-      void*           archetypeComp = ecs_storage_entity_comp(&world->storage, entity, compId);
-      mem_cpy(mem_create(archetypeComp, compData.size), compData);
-    }
+    ecs_world_cpy_added_comps(&world->storage, &world->buffer, i);
   }
 
   ecs_buffer_clear(&world->buffer);

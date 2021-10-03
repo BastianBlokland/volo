@@ -116,12 +116,6 @@ EcsArchetypeId ecs_storage_entity_archetype(EcsStorage* storage, const EcsEntity
   return !info ? sentinel_u32 : info->archetype;
 }
 
-void* ecs_storage_entity_comp(EcsStorage* storage, const EcsEntityId id, const EcsCompId comp) {
-  EcsEntityInfo* info      = ecs_storage_entity_info_ptr(storage, id);
-  EcsArchetype*  archetype = ecs_storage_archetype_ptr(storage, info->archetype);
-  return ecs_archetype_comp(archetype, info->archetypeIndex, comp);
-}
-
 void ecs_storage_entity_move(
     EcsStorage* storage, const EcsEntityId id, const EcsArchetypeId newArchetypeId) {
 
@@ -194,6 +188,22 @@ EcsArchetypeId ecs_storage_archetype_create(EcsStorage* storage, const BitSet ma
   const EcsArchetypeId id                              = (EcsArchetypeId)storage->archetypes.size;
   *dynarray_push_t(&storage->archetypes, EcsArchetype) = ecs_archetype_create(storage->def, mask);
   return id;
+}
+
+void ecs_storage_itr_init(EcsIterator* itr, EcsStorage* storage, const EcsArchetypeId id) {
+  ecs_archetype_itr_init(itr, ecs_storage_archetype_ptr(storage, id));
+}
+
+bool ecs_storage_itr_next(EcsIterator* itr) { return ecs_archetype_itr_next(itr); }
+
+void ecs_storage_itr_jump(EcsIterator* itr, EcsStorage* storage, const EcsEntityId id) {
+  EcsEntityInfo* info      = ecs_storage_entity_info_ptr(storage, id);
+  EcsArchetype*  archetype = ecs_storage_archetype_ptr(storage, info->archetype);
+  ecs_archetype_itr_jump(itr, archetype, info->archetypeIndex);
+}
+
+Mem ecs_storage_itr_access(EcsIterator* itr, const EcsCompId id) {
+  return itr->comps[bitset_index(itr->mask, id)];
 }
 
 void ecs_storage_flush_new_entities(EcsStorage* storage) {

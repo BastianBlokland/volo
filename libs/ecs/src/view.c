@@ -18,16 +18,16 @@ static usize ecs_view_bytes_per_mask(const EcsDef* def) {
   return bits_to_bytes(compCount) + 1;
 }
 
-static void* ecs_view_comp(EcsView* view, const EcsEntityId entity, const EcsCompId comp) {
+// static void* ecs_view_comp(EcsView* view, const EcsEntityId entity, const EcsCompId comp) {
 
-  diag_assert_msg(
-      ecs_view_contains(view, entity),
-      "View {} does not contain entity {}",
-      fmt_text(view->viewDef->name),
-      fmt_int(entity));
+//   diag_assert_msg(
+//       ecs_view_contains(view, entity),
+//       "View {} does not contain entity {}",
+//       fmt_text(view->viewDef->name),
+//       fmt_int(entity));
 
-  return ecs_storage_entity_comp(view->storage, entity, comp);
-}
+//   return ecs_storage_entity_comp(view->storage, entity, comp);
+// }
 
 static BitSet ecs_view_mask(const EcsView* view, EcsViewMaskType type) {
   const usize bytesPerMask = ecs_view_bytes_per_mask(view->def);
@@ -95,22 +95,22 @@ bool ecs_view_contains(EcsView* view, const EcsEntityId entity) {
   return dynarray_search_binary(&view->archetypes, ecs_compare_archetype, &archetype) != null;
 }
 
-const void* ecs_view_comp_read(EcsView* view, const EcsEntityId entity, const EcsCompId comp) {
-  diag_assert_msg(
-      bitset_test(ecs_view_mask(view, EcsViewMask_AccessRead), comp),
-      "View {} does not have read-access to component {}",
-      fmt_text(view->viewDef->name),
-      fmt_text(ecs_def_comp_name(view->def, comp)));
+// const void* ecs_view_comp_read(EcsView* view, const EcsEntityId entity, const EcsCompId comp) {
+//   diag_assert_msg(
+//       bitset_test(ecs_view_mask(view, EcsViewMask_AccessRead), comp),
+//       "View {} does not have read-access to component {}",
+//       fmt_text(view->viewDef->name),
+//       fmt_text(ecs_def_comp_name(view->def, comp)));
 
-  return ecs_view_comp(view, entity, comp);
-}
+//   return ecs_view_comp(view, entity, comp);
+// }
 
-void* ecs_view_comp_write(EcsView* view, const EcsEntityId entity, const EcsCompId comp) {
-  diag_assert_msg(
-      bitset_test(ecs_view_mask(view, EcsViewMask_AccessWrite), comp),
-      "View {} does not have write-access to component {}",
-      fmt_text(view->viewDef->name),
-      fmt_text(ecs_def_comp_name(view->def, comp)));
+// void* ecs_view_comp_write(EcsView* view, const EcsEntityId entity, const EcsCompId comp) {
+//   diag_assert_msg(
+//       bitset_test(ecs_view_mask(view, EcsViewMask_AccessWrite), comp),
+//       "View {} does not have write-access to component {}",
+//       fmt_text(view->viewDef->name),
+//       fmt_text(ecs_def_comp_name(view->def, comp)));
 
-  return ecs_view_comp(view, entity, comp);
-}
+//   return ecs_view_comp(view, entity, comp);
+// }
