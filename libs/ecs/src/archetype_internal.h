@@ -2,9 +2,9 @@
 #include "core_bitset.h"
 #include "core_dynarray.h"
 #include "ecs_def.h"
-#include "ecs_iterator.h"
 
 #include "entity_internal.h"
+#include "iterator_internal.h"
 
 /**
  * An Archetype is a container that stores entities with a specific set of components.
@@ -32,9 +32,8 @@ void         ecs_archetype_destroy(EcsArchetype*);
 u32          ecs_archetype_add(EcsArchetype*, EcsEntityId);
 EcsEntityId  ecs_archetype_remove(EcsArchetype*, u32 index);
 
-void ecs_archetype_itr_init(EcsIterator*, EcsArchetype*);
-bool ecs_archetype_itr_next(EcsIterator*);
-void ecs_archetype_itr_jump(EcsIterator*, EcsArchetype*, u32 index);
+bool ecs_archetype_itr_walk(EcsArchetype*, EcsIterator*);
+void ecs_archetype_itr_jump(EcsArchetype*, EcsIterator*, u32 index);
 
 void ecs_archetype_copy_across(
     BitSet mask, EcsArchetype* dst, u32 dstIdx, EcsArchetype* src, u32 srcIdx);

@@ -190,20 +190,14 @@ EcsArchetypeId ecs_storage_archetype_create(EcsStorage* storage, const BitSet ma
   return id;
 }
 
-void ecs_storage_itr_init(EcsIterator* itr, EcsStorage* storage, const EcsArchetypeId id) {
-  ecs_archetype_itr_init(itr, ecs_storage_archetype_ptr(storage, id));
+bool ecs_storage_itr_walk(EcsStorage* storage, EcsIterator* itr, const EcsArchetypeId id) {
+  return ecs_archetype_itr_walk(ecs_storage_archetype_ptr(storage, id), itr);
 }
 
-bool ecs_storage_itr_next(EcsIterator* itr) { return ecs_archetype_itr_next(itr); }
-
-void ecs_storage_itr_jump(EcsIterator* itr, EcsStorage* storage, const EcsEntityId id) {
+void ecs_storage_itr_jump(EcsStorage* storage, EcsIterator* itr, const EcsEntityId id) {
   EcsEntityInfo* info      = ecs_storage_entity_info_ptr(storage, id);
   EcsArchetype*  archetype = ecs_storage_archetype_ptr(storage, info->archetype);
-  ecs_archetype_itr_jump(itr, archetype, info->archetypeIndex);
-}
-
-Mem ecs_storage_itr_access(EcsIterator* itr, const EcsCompId id) {
-  return itr->comps[bitset_index(itr->mask, id)];
+  ecs_archetype_itr_jump(archetype, itr, info->archetypeIndex);
 }
 
 void ecs_storage_flush_new_entities(EcsStorage* storage) {

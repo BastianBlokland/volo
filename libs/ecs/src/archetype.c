@@ -68,14 +68,14 @@ static EcsArchetypeLoc ecs_archetype_location(EcsArchetype* archetype, const u32
   return (EcsArchetypeLoc){.chunkIdx = chunkIdx, .indexInChunk = indexInChunk};
 }
 
-static void ecs_archetype_itr_init_pointers(EcsIterator* itr, EcsArchetypeLoc loc) {
-  EcsArchetype* archetype   = itr->archetype.ptr;
-  const u16*    compOffsets = archetype->compOffsetsAndStrides;
-  const u16*    compStrides = archetype->compOffsetsAndStrides + archetype->compCount;
-  u8*           chunkData   = archetype->chunks[loc.chunkIdx];
+static void
+ecs_archetype_itr_init_pointers(EcsArchetype* archetype, EcsIterator* itr, EcsArchetypeLoc loc) {
+  const u16* compOffsets = archetype->compOffsetsAndStrides;
+  const u16* compStrides = archetype->compOffsetsAndStrides + archetype->compCount;
+  u8*        chunkData   = archetype->chunks[loc.chunkIdx];
 
-  itr->archetype.chunkIdx = loc.chunkIdx;
-  itr->entity             = ((EcsEntityId*)chunkData) + loc.indexInChunk;
+  itr->chunkIdx = loc.chunkIdx;
+  itr->entity   = ((EcsEntityId*)chunkData) + loc.indexInChunk;
 
   EcsCompId compId = 0;
   for (usize i = 0; i != itr->compCount; ++i, ++compId) {
@@ -183,19 +183,12 @@ EcsEntityId ecs_archetype_remove(EcsArchetype* archetype, const u32 index) {
   return entityToMove;
 }
 
-void ecs_archetype_itr_init(EcsIterator* itr, EcsArchetype* archetype) {
-  diag_assert_msg(
-      bitset_all_of(archetype->mask, itr->mask), "Archetype does not contain all itr components");
+bool ecs_archetype_itr_walk(EcsArchetype* archetype, EcsIterator* itr) {
+  diag_assert_msg(bitset_all_of(archetype->mask, itr->mask), "Archetype is missing components");
 
-  itr->archetype.ptr      = archetype;
-  itr->archetype.chunkIdx = u32_max; // Calling 'next' will advance to index 0.
-  itr->archetype.chunkRem = 0;
-}
-
-bool ecs_archetype_itr_next(EcsIterator* itr) {
-  if (LIKELY(itr->archetype.chunkRem)) {
+  if (LIKELY(itr->chunkRemaining)) {
     ++itr->entity;
-    --itr->archetype.chunkRem;
+    --itr->chunkRemaining;
     for (usize i = 0; i != itr->compCount; ++i) {
       itr->comps[i].ptr = bits_ptr_offset(itr->comps[i].ptr, itr->comps[i].size);
     }
@@ -203,28 +196,24 @@ bool ecs_archetype_itr_next(EcsIterator* itr) {
   }
 
   // No more entries in the current chunk; jump to the next chunk.
-  EcsArchetype* archetype          = itr->archetype.ptr;
-  const usize   chunksWithEntities = archetype->entityCount / archetype->entitiesPerChunk;
-  if (++itr->archetype.chunkIdx >= chunksWithEntities) {
+  const usize chunksWithEntities = archetype->entityCount / archetype->entitiesPerChunk;
+  if (++itr->chunkIdx >= chunksWithEntities) {
     return false; // Reached the end of the chunks with entities in them.
   }
 
-  const bool isLastChunk  = itr->archetype.chunkIdx == (chunksWithEntities - 1);
-  itr->archetype.chunkRem = isLastChunk ? (archetype->entityCount % archetype->entitiesPerChunk)
-                                        : archetype->entitiesPerChunk;
+  const bool isLastChunk = itr->chunkIdx == (chunksWithEntities - 1);
+  itr->chunkRemaining    = isLastChunk ? (archetype->entityCount % archetype->entitiesPerChunk)
+                                       : archetype->entitiesPerChunk;
 
-  ecs_archetype_itr_init_pointers(itr, (EcsArchetypeLoc){.chunkIdx = itr->archetype.chunkIdx});
+  ecs_archetype_itr_init_pointers(archetype, itr, (EcsArchetypeLoc){.chunkIdx = itr->chunkIdx});
   return true;
 }
 
-void ecs_archetype_itr_jump(EcsIterator* itr, EcsArchetype* archetype, const u32 index) {
-  diag_assert_msg(
-      bitset_all_of(archetype->mask, itr->mask), "Archetype does not contain all itr components");
+void ecs_archetype_itr_jump(EcsArchetype* archetype, EcsIterator* itr, const u32 index) {
+  diag_assert_msg(bitset_all_of(archetype->mask, itr->mask), "Archetype is missing components");
 
-  itr->archetype.ptr      = archetype;
-  itr->archetype.chunkRem = 0;
-
-  ecs_archetype_itr_init_pointers(itr, ecs_archetype_location(archetype, index));
+  itr->chunkRemaining = 0;
+  ecs_archetype_itr_init_pointers(archetype, itr, ecs_archetype_location(archetype, index));
 }
 
 void ecs_archetype_copy_across(

@@ -1,16 +1,27 @@
 #include "core_diag.h"
-#include "ecs_iterator.h"
 
-EcsIterator* ecs_iterator_impl_create(Mem itrMem, BitSet mask) {
-  const usize extraMem  = itrMem.size - sizeof(EcsIterator);
-  const usize compCount = extraMem / sizeof(Mem);
+#include "iterator_internal.h"
 
-  diag_assert(bitset_count(mask) == compCount);
+EcsIterator* ecs_iterator_create(Mem mem, BitSet mask) {
+  const usize compCount = bitset_count(mask);
 
-  EcsIterator* itr = mem_as_t(itrMem, EcsIterator);
+  diag_assert(mem.size >= (sizeof(EcsIterator) + compCount * sizeof(Mem)));
+
+  EcsIterator* itr = mem_as_t(mem, EcsIterator);
   *itr             = (EcsIterator){
-      .mask      = mask,
-      .compCount = compCount,
+      .mask           = mask,
+      .compCount      = compCount,
+      .chunkIdx       = u32_max,
+      .chunkRemaining = 0,
   };
   return itr;
+}
+
+void ecs_iterator_reset(EcsIterator* itr) {
+  itr->chunkIdx       = u32_max;
+  itr->chunkRemaining = 0;
+}
+
+Mem ecs_iterator_access(EcsIterator* itr, const EcsCompId id) {
+  return itr->comps[bitset_index(itr->mask, id)];
 }

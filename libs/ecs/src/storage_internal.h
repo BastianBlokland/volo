@@ -2,9 +2,9 @@
 #include "core_dynarray.h"
 #include "core_thread.h"
 #include "ecs_def.h"
-#include "ecs_iterator.h"
 
 #include "entity_allocator_internal.h"
+#include "iterator_internal.h"
 
 typedef u32 EcsArchetypeId;
 
@@ -35,10 +35,8 @@ void           ecs_storage_entity_destroy(EcsStorage*, EcsEntityId);
 EcsArchetypeId ecs_storage_archetype_find(EcsStorage*, BitSet mask);
 EcsArchetypeId ecs_storage_archetype_create(EcsStorage*, BitSet mask);
 
-void ecs_storage_itr_init(EcsIterator*, EcsStorage*, EcsArchetypeId);
-bool ecs_storage_itr_next(EcsIterator*);
-void ecs_storage_itr_jump(EcsIterator*, EcsStorage*, EcsEntityId);
-Mem  ecs_storage_itr_access(EcsIterator*, EcsCompId);
+bool ecs_storage_itr_walk(EcsStorage*, EcsIterator*, EcsArchetypeId);
+void ecs_storage_itr_jump(EcsStorage*, EcsIterator*, EcsEntityId);
 
 /**
  * Flush any entities that where created since the last call.

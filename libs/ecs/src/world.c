@@ -52,8 +52,8 @@ static void ecs_world_cpy_added_comps(EcsStorage* storage, EcsBuffer* buffer, co
     return;
   }
 
-  EcsIterator* storageItr = ecs_iterator_impl_stack(addedComps);
-  ecs_storage_itr_jump(storageItr, storage, entity);
+  EcsIterator* storageItr = ecs_iterator_stack(addedComps);
+  ecs_storage_itr_jump(storage, storageItr, entity);
 
   for (EcsBufferCompData* bufferItr = ecs_buffer_comp_begin(buffer, idx); bufferItr;
        bufferItr                    = ecs_buffer_comp_next(bufferItr)) {
@@ -61,7 +61,7 @@ static void ecs_world_cpy_added_comps(EcsStorage* storage, EcsBuffer* buffer, co
     const EcsCompId compId   = ecs_buffer_comp_id(bufferItr);
     const Mem       compData = ecs_buffer_comp_data(buffer, bufferItr);
 
-    mem_cpy(ecs_storage_itr_access(storageItr, compId), compData);
+    mem_cpy(ecs_iterator_access(storageItr, compId), compData);
   }
 }
 
