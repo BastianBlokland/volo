@@ -45,7 +45,7 @@ EcsViewId ecs_module_register_view(
   return id;
 }
 
-void ecs_module_view_with(EcsViewBuilder* builder, const EcsCompId comp) {
+void ecs_module_filter_with(EcsViewBuilder* builder, const EcsCompId comp) {
   diag_assert_msg(
       !bitset_test(builder->filterWithout, comp),
       "Unable to apply 'with' filter as component '{}' is allready marked as 'without'",
@@ -54,7 +54,7 @@ void ecs_module_view_with(EcsViewBuilder* builder, const EcsCompId comp) {
   bitset_set(builder->filterWith, comp);
 }
 
-void ecs_module_view_without(EcsViewBuilder* builder, const EcsCompId comp) {
+void ecs_module_filter_without(EcsViewBuilder* builder, const EcsCompId comp) {
   diag_assert_msg(
       !bitset_test(builder->filterWith, comp),
       "Unable to apply 'without' filter as component '{}' is allready marked as 'with'",
@@ -67,7 +67,7 @@ void ecs_module_view_without(EcsViewBuilder* builder, const EcsCompId comp) {
   bitset_set(builder->filterWithout, comp);
 }
 
-void ecs_module_view_read(EcsViewBuilder* builder, const EcsCompId comp) {
+void ecs_module_access_read(EcsViewBuilder* builder, const EcsCompId comp) {
   diag_assert_msg(
       !bitset_test(builder->filterWithout, comp),
       "Unable to apply 'read' access as component '{}' is allready marked as 'without'",
@@ -77,32 +77,13 @@ void ecs_module_view_read(EcsViewBuilder* builder, const EcsCompId comp) {
   bitset_set(builder->accessRead, comp);
 }
 
-void ecs_module_view_write(EcsViewBuilder* builder, const EcsCompId comp) {
+void ecs_module_access_write(EcsViewBuilder* builder, const EcsCompId comp) {
   diag_assert_msg(
       !bitset_test(builder->filterWithout, comp),
       "Unable to apply 'write' access as component '{}' is allready marked as 'without'",
       fmt_text(ecs_def_comp_name(builder->def, comp)));
 
   bitset_set(builder->filterWith, comp);
-  bitset_set(builder->accessRead, comp);
-  bitset_set(builder->accessWrite, comp);
-}
-
-void ecs_module_view_maybe_read(EcsViewBuilder* builder, const EcsCompId comp) {
-  diag_assert_msg(
-      !bitset_test(builder->filterWithout, comp),
-      "Unable to apply 'maybe-read' access as component '{}' is allready marked as 'without'",
-      fmt_text(ecs_def_comp_name(builder->def, comp)));
-
-  bitset_set(builder->accessRead, comp);
-}
-
-void ecs_module_view_maybe_write(EcsViewBuilder* builder, const EcsCompId comp) {
-  diag_assert_msg(
-      !bitset_test(builder->filterWithout, comp),
-      "Unable to apply 'maybe-write' access as component '{}' is allready marked as 'without'",
-      fmt_text(ecs_def_comp_name(builder->def, comp)));
-
   bitset_set(builder->accessRead, comp);
   bitset_set(builder->accessWrite, comp);
 }

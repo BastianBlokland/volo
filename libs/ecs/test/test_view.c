@@ -8,13 +8,11 @@ ecs_comp_define(ViewCompB) { String f1; };
 ecs_comp_define(ViewCompC) { ALIGNAS(64) u32 f1; };
 
 ecs_view_define(ReadAB) {
-  ecs_view_read(ViewCompA);
-  ecs_view_read(ViewCompB);
+  ecs_access_read(ViewCompA);
+  ecs_access_read(ViewCompB);
 }
 
-ecs_view_define(WriteC) { ecs_view_write(ViewCompC); }
-
-ecs_view_define(MaybeReadC) { ecs_view_maybe_read(ViewCompC); }
+ecs_view_define(WriteC) { ecs_access_write(ViewCompC); }
 
 ecs_module_init(view_test_module) {
   ecs_register_comp(ViewCompA);
@@ -23,7 +21,6 @@ ecs_module_init(view_test_module) {
 
   ecs_register_view(ReadAB);
   ecs_register_view(WriteC);
-  ecs_register_view(MaybeReadC);
 }
 
 spec(view) {
@@ -46,9 +43,6 @@ spec(view) {
 
     view = ecs_world_view_t(world, WriteC);
     check_eq_int(ecs_view_comp_count(view), 1);
-
-    view = ecs_world_view_t(world, MaybeReadC);
-    check_eq_int(ecs_view_comp_count(view), 0);
   }
 
   it("can check if an entity is contained in the view") {
@@ -120,20 +114,6 @@ spec(view) {
   //   check(ecs_view_contains(view, entityB));
   //   check(!ecs_world_comp_has_t(world, entityB, ViewCompC));
   // }
-
-  it("never matches entities without components") {
-    const EcsEntityId entity = ecs_world_entity_create(world);
-
-    EcsView* view = null;
-
-    view = ecs_world_view_t(world, MaybeReadC);
-    check(!ecs_view_contains(view, entity));
-
-    ecs_world_flush(world);
-
-    view = ecs_world_view_t(world, MaybeReadC);
-    check(!ecs_view_contains(view, entity));
-  }
 
   teardown() {
     ecs_world_destroy(world);

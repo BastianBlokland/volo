@@ -10,13 +10,13 @@ ecs_comp_define(DefCompB) {
 };
 
 ecs_view_define(ReadAWriteB) {
-  ecs_view_read(DefCompA);
-  ecs_view_write(DefCompB);
+  ecs_access_read(DefCompA);
+  ecs_access_write(DefCompB);
 }
 
 ecs_view_define(ReadAReadB) {
-  ecs_view_read(DefCompA);
-  ecs_view_read(DefCompB);
+  ecs_access_read(DefCompA);
+  ecs_access_read(DefCompB);
 }
 
 ecs_view_define(Empty) {}
