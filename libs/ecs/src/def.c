@@ -19,6 +19,24 @@ static const EcsSystemDef* ecs_def_system(const EcsDef* def, const EcsSystemId i
   return dynarray_at_t(&def->systems, (usize)id, EcsSystemDef);
 }
 
+static const EcsModuleDef* ecs_def_module_by_name(const EcsDef* def, const String name) {
+  dynarray_for_t((DynArray*)&def->modules, EcsModuleDef, module, {
+    if (string_eq(module->name, name)) {
+      return module;
+    }
+  });
+  return null;
+}
+
+static const EcsCompDef* ecs_def_comp_by_name(const EcsDef* def, const String name) {
+  dynarray_for_t((DynArray*)&def->components, EcsCompDef, comp, {
+    if (string_eq(comp->name, name)) {
+      return comp;
+    }
+  });
+  return null;
+}
+
 EcsDef* ecs_def_create(Allocator* alloc) {
   EcsDef* def = alloc_alloc_t(alloc, EcsDef);
   *def        = (EcsDef){
@@ -93,24 +111,6 @@ EcsDefSystemViews ecs_def_system_views(const EcsDef* def, const EcsSystemId id) 
 bool ecs_def_system_has_access(const EcsDef* def, const EcsSystemId sysId, const EcsViewId id) {
   const EcsSystemDef* system = ecs_def_system(def, sysId);
   return dynarray_search_binary((DynArray*)&system->viewIds, ecs_compare_view, &id) != null;
-}
-
-const EcsModuleDef* ecs_def_module_by_name(const EcsDef* def, const String name) {
-  dynarray_for_t((DynArray*)&def->modules, EcsModuleDef, module, {
-    if (string_eq(module->name, name)) {
-      return module;
-    }
-  });
-  return null;
-}
-
-const EcsCompDef* ecs_def_comp_by_name(const EcsDef* def, const String name) {
-  dynarray_for_t((DynArray*)&def->components, EcsCompDef, comp, {
-    if (string_eq(comp->name, name)) {
-      return comp;
-    }
-  });
-  return null;
 }
 
 EcsCompId

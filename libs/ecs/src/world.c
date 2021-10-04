@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "ecs_runner.h"
+#include "log_logger.h"
 
 #include "buffer_internal.h"
 #include "def_internal.h"
@@ -27,8 +28,15 @@ struct sEcsWorld {
 
 #define ecs_comp_mask_stack(_DEF_) mem_stack(bits_to_bytes(ecs_def_comp_count(_DEF_)) + 1)
 
-static void ecs_world_archetype_track(EcsWorld* world, const EcsArchetypeId id, const BitSet mask) {
-  dynarray_for_t(&world->views, EcsView, view, { ecs_view_maybe_track(view, id, mask); });
+static usize
+ecs_world_archetype_track(EcsWorld* world, const EcsArchetypeId id, const BitSet mask) {
+  usize trackingViews = 0;
+  dynarray_for_t(&world->views, EcsView, view, {
+    if (ecs_view_maybe_track(view, id, mask)) {
+      ++trackingViews;
+    }
+  });
+  return trackingViews;
 }
 
 static EcsArchetypeId ecs_world_archetype_find_or_create(EcsWorld* world, const BitSet mask) {
@@ -39,8 +47,15 @@ static EcsArchetypeId ecs_world_archetype_find_or_create(EcsWorld* world, const 
   if (!sentinel_check(existingId)) {
     return existingId;
   }
-  const EcsArchetypeId newId = ecs_storage_archetype_create(&world->storage, mask);
-  ecs_world_archetype_track(world, newId, mask);
+  const EcsArchetypeId newId         = ecs_storage_archetype_create(&world->storage, mask);
+  const usize          trackingViews = ecs_world_archetype_track(world, newId, mask);
+
+  log_d(
+      "Ecs archetype created",
+      log_param("components", fmt_int(bitset_count(mask))),
+      log_param("tracking-views", fmt_int(trackingViews)));
+
+  (void)trackingViews;
   return newId;
 }
 
@@ -82,10 +97,19 @@ EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
         ecs_view_create(alloc, &world->storage, def, viewDef);
   });
 
+  log_d(
+      "Ecs world created",
+      log_param("modules", fmt_int(def->modules.size)),
+      log_param("components", fmt_int(def->components.size)),
+      log_param("systems", fmt_int(def->systems.size)),
+      log_param("views", fmt_int(def->views.size)));
+
   return world;
 }
 
 void ecs_world_destroy(EcsWorld* world) {
+  diag_assert(!ecs_world_busy(world));
+
   ecs_def_unfreeze((EcsDef*)world->def);
 
   ecs_storage_destroy(&world->storage);

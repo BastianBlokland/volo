@@ -23,11 +23,11 @@
 #define ecs_archetype_max_chunks 128
 
 typedef struct {
-  usize chunkIdx;
-  usize indexInChunk;
+  u32 chunkIdx;
+  u32 indexInChunk;
 } EcsArchetypeLoc;
 
-static usize ecs_archetype_entities_per_chunk(const EcsDef* def, BitSet mask) {
+static u32 ecs_archetype_entities_per_chunk(const EcsDef* def, BitSet mask) {
   /**
    * Calculate how much total array space each entity will take + how much padding there will need
    * to be between the arrays to satisfy the component alignments.
@@ -40,7 +40,7 @@ static usize ecs_archetype_entities_per_chunk(const EcsDef* def, BitSet mask) {
     padding += bits_padding(entityDataSize + padding, compAlign);
     entityDataSize += compSize;
   });
-  return (ecs_archetype_chunk_size - padding) / entityDataSize;
+  return (u32)((ecs_archetype_chunk_size - padding) / entityDataSize);
 }
 
 static void* ecs_archetype_chunk_create() {
@@ -63,8 +63,8 @@ static EcsEntityId* ecs_archetype_entity_ptr(EcsArchetype* archetype, const u32 
 }
 
 static EcsArchetypeLoc ecs_archetype_location(EcsArchetype* archetype, const u32 index) {
-  const usize chunkIdx     = index / archetype->entitiesPerChunk;
-  const usize indexInChunk = index - (chunkIdx * archetype->entitiesPerChunk);
+  const u32 chunkIdx     = index / archetype->entitiesPerChunk;
+  const u32 indexInChunk = index - (chunkIdx * archetype->entitiesPerChunk);
   return (EcsArchetypeLoc){.chunkIdx = chunkIdx, .indexInChunk = indexInChunk};
 }
 
@@ -79,7 +79,7 @@ ecs_archetype_itr_init_pointers(EcsArchetype* archetype, EcsIterator* itr, EcsAr
 
   EcsCompId compId = 0;
   for (usize i = 0; i != itr->compCount; ++i, ++compId) {
-    compId                 = bitset_next(itr->mask, compId);
+    compId                 = (EcsCompId)bitset_next(itr->mask, compId);
     const usize compIdx    = ecs_archetype_comp_idx(archetype, compId);
     const usize compOffset = compOffsets[compIdx];
     const usize compSize   = compSizes[compIdx];
@@ -111,8 +111,8 @@ static void ecs_archetype_copy_internal(EcsArchetype* archetype, const u32 dst, 
 EcsArchetype ecs_archetype_create(const EcsDef* def, BitSet mask) {
   diag_assert_msg(bitset_any(mask), "Archetype needs to contain atleast a single component");
 
-  const usize compCount        = bitset_count(mask);
-  const usize entitiesPerChunk = ecs_archetype_entities_per_chunk(def, mask);
+  const u32 compCount        = (u32)bitset_count(mask);
+  const u32 entitiesPerChunk = ecs_archetype_entities_per_chunk(def, mask);
   diag_assert_msg(entitiesPerChunk, "At least one entity has to fit in an archetype chunk");
 
   u16* compOffsets = alloc_alloc(g_alloc_heap, sizeof(u16) * compCount * 2, alignof(u16)).ptr;

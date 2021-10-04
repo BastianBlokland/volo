@@ -10,10 +10,6 @@ typedef struct sEcsDef EcsDef;
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;
 
-/**
- * Ecs world.
- * Containers that stores component-data and provides views for reading / writing that data.
- */
 typedef struct sEcsWorld EcsWorld;
 
 /**
@@ -26,6 +22,8 @@ EcsWorld* ecs_world_create(Allocator*, const EcsDef*);
 
 /**
  * Destroy a Ecs world.
+ *
+ * Pre-condition: !ecs_world_busy()
  */
 void ecs_world_destroy(EcsWorld*);
 
@@ -86,6 +84,7 @@ bool ecs_world_comp_has(EcsWorld*, EcsEntityId, EcsCompId);
 
 /**
  * Schedule a component to be added at the next flush.
+ * NOTE: The returned pointer is valid until the next flush.
  *
  * Pre-condition: ecs_world_entity_exists(world, entity).
  * Pre-condition: !ecs_world_busy() || g_ecsRunningSystem

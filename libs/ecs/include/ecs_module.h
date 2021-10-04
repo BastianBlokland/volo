@@ -90,13 +90,19 @@ typedef void (*EcsSystemRoutine)(EcsWorld*);
  * Example usage:
  * ```
  * ecs_system_define(ApplyVelocity) {
- *   TODO:
+ *   EcsView* view = ecs_world_view_t(world, ReadVeloWritePosView);
+ *   EcsIterator itr = ecs_view_itr_stack(view);
+ *   while(ecs_view_itr_walk(itr)) {
+ *     const Velocity* velo = ecs_view_read_t(itr, Velocity);
+ *     Position* pos = ecs_view_write_t(itr, Position);
+ *     ...
+ *   }
  * }
  * ```
  */
 #define ecs_system_define(_NAME_)                                                                  \
   static EcsSystemId ecs_system_id(_NAME_);                                                        \
-  static void _ecs_system_##_NAME_(MAYBE_UNUSED EcsWorld* _world)
+  static void _ecs_system_##_NAME_(MAYBE_UNUSED EcsWorld* world)
 
 /**
  * Register a new component type.

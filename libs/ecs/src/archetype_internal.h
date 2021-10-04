@@ -17,10 +17,10 @@
 
 typedef struct {
   ALIGNAS(ecs_archetype_size) BitSet mask;
-  usize  entitiesPerChunk;
+  u32    entitiesPerChunk;
+  u32    compCount;
   u16*   compOffsetsAndSizes; // u16 offsets[compCount], u16 sizes[compCount].
-  usize  compCount;
-  void** chunks; // void* chunks[chunkCount].
+  void** chunks;              // void* chunks[chunkCount].
   usize  chunkCount;
   usize  entityCount;
 } EcsArchetype;

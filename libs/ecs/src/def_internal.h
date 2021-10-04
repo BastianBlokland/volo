@@ -37,18 +37,6 @@ struct sEcsDef {
   Allocator*  alloc;
 };
 
-/**
- * Look-up a module definition by name.
- * NOTE: returns 'null' when no module was found with the given name.
- */
-const EcsModuleDef* ecs_def_module_by_name(const EcsDef*, String name);
-
-/**
- * Look-up a component definition by name.
- * NOTE: returns 'null' when no component was found with the given name.
- */
-const EcsCompDef* ecs_def_comp_by_name(const EcsDef*, String name);
-
 EcsCompId   ecs_def_register_comp(EcsDef*, String name, usize size, usize align);
 EcsViewId   ecs_def_register_view(EcsDef*, String name, EcsViewInit);
 EcsSystemId ecs_def_register_system(

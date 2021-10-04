@@ -16,13 +16,11 @@ void            entity_allocator_destroy(EntityAllocator*);
 
 /**
  * Acquire a new entity-id.
- * NOTE: Thread-safe.
  * Should be freed with: 'entity_allocator_free()'.
  */
 EcsEntityId entity_allocator_alloc(EntityAllocator*);
 
 /**
  * Release an entity-id.
- * NOTE: Thread-safe.
  */
 void entity_allocator_free(EntityAllocator*, EcsEntityId);

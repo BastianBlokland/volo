@@ -82,7 +82,7 @@ EcsEntityId ecs_storage_entity_create(EcsStorage* storage) {
     ecs_storage_entity_init(storage, id);
   } else {
     // Entity out of bounds, resizing the entities array here would require syncronization, so
-    // instead we defer the resizing until the end of the tick.
+    // instead we defer the resizing until the next flush.
   }
 
   thread_spinlock_lock(&storage->newEntitiesLock);

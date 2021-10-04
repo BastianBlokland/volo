@@ -14,10 +14,6 @@ typedef u16 EcsSystemId;
 // Forward declare from 'jobs_scheduler.h'.
 typedef u64 JobId;
 
-/**
- * Ecs runner.
- * Responsible for executing ecs systems.
- */
 typedef struct sEcsRunner EcsRunner;
 
 /**

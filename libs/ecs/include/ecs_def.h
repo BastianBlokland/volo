@@ -1,10 +1,6 @@
 #pragma once
 #include "ecs_module.h"
 
-/**
- * Ecs definition.
- * Contains definitions for modules, components, views and systems.
- */
 typedef struct sEcsDef EcsDef;
 
 /**

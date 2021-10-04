@@ -13,7 +13,7 @@ static i64 test_sys1_counter, test_sys2_counter;
 ecs_system_define(TestSys1) {
   diag_assert(g_ecsRunningSystem);
   diag_assert(g_ecsRunningSystemId == ecs_system_id(TestSys1));
-  diag_assert(ecs_world_busy(_world));
+  diag_assert(ecs_world_busy(world));
 
   thread_atomic_add_i64(&test_sys1_counter, 1);
 }
@@ -21,7 +21,7 @@ ecs_system_define(TestSys1) {
 ecs_system_define(TestSys2) {
   diag_assert(g_ecsRunningSystem);
   diag_assert(g_ecsRunningSystemId == ecs_system_id(TestSys2));
-  diag_assert(ecs_world_busy(_world));
+  diag_assert(ecs_world_busy(world));
 
   thread_atomic_add_i64(&test_sys2_counter, 1);
 }
