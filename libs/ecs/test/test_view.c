@@ -68,52 +68,37 @@ spec(view) {
     check(ecs_view_contains(view, entity3));
   }
 
-  // it("can read component values on entities") {
-  //   const EcsEntityId entity = ecs_world_entity_create(world);
+  it("can read component values on entities") {
+    const EcsEntityId entity = ecs_world_entity_create(world);
 
-  //   ecs_world_comp_add_t(world, entity, ViewCompA, .f1 = 42);
-  //   ecs_world_comp_add_t(world, entity, ViewCompB, .f1 = string_lit("Hello World"));
-  //   ecs_world_comp_add_t(world, entity, ViewCompC, .f1 = 1337);
+    ecs_world_comp_add_t(world, entity, ViewCompA, .f1 = 42);
+    ecs_world_comp_add_t(world, entity, ViewCompB, .f1 = string_lit("Hello World"));
+    ecs_world_comp_add_t(world, entity, ViewCompC, .f1 = 1337);
 
-  //   ecs_world_flush(world);
+    ecs_world_flush(world);
 
-  //   EcsView* view = ecs_world_view_t(world, ReadAB);
-  //   check_eq_int(ecs_view_comp_read_t(view, entity, ViewCompA)->f1, 42);
-  //   check_eq_string(ecs_view_comp_read_t(view, entity, ViewCompB)->f1, string_lit("Hello
-  //   World"));
-  // }
+    EcsIterator* itr = ecs_view_itr_stack(ecs_world_view_t(world, ReadAB));
+    ecs_view_itr_jump(itr, entity);
 
-  // it("can write component values on entities") {
-  //   const EcsEntityId entity = ecs_world_entity_create(world);
+    check_eq_int(ecs_view_read_t(itr, ViewCompA)->f1, 42);
+    check_eq_string(ecs_view_read_t(itr, ViewCompB)->f1, string_lit("Hello World"));
+  }
 
-  //   ecs_world_comp_add_t(world, entity, ViewCompC, .f1 = 1337);
+  it("can write component values on entities") {
+    const EcsEntityId entity = ecs_world_entity_create(world);
 
-  //   ecs_world_flush(world);
+    ecs_world_comp_add_t(world, entity, ViewCompC, .f1 = 1337);
 
-  //   EcsView*   view = ecs_world_view_t(world, WriteC);
-  //   ViewCompC* comp = ecs_view_comp_write_t(view, entity, ViewCompC);
+    ecs_world_flush(world);
 
-  //   check_eq_int(comp->f1, 1337);
-  //   comp->f1 = 42;
-  // }
+    EcsIterator* itr = ecs_view_itr_stack(ecs_world_view_t(world, WriteC));
+    ecs_view_itr_jump(itr, entity);
 
-  // it("can conditionally read components") {
-  //   const EcsEntityId entityA = ecs_world_entity_create(world);
-  //   const EcsEntityId entityB = ecs_world_entity_create(world);
+    ViewCompC* comp = ecs_view_write_t(itr, ViewCompC);
 
-  //   ecs_world_comp_add_t(world, entityA, ViewCompC, .f1 = 1337);
-  //   ecs_world_comp_add_t(world, entityB, ViewCompB);
-
-  //   ecs_world_flush(world);
-
-  //   EcsView* view = ecs_world_view_t(world, MaybeReadC);
-
-  //   check(ecs_view_contains(view, entityA));
-  //   check(ecs_world_comp_has_t(world, entityA, ViewCompC));
-
-  //   check(ecs_view_contains(view, entityB));
-  //   check(!ecs_world_comp_has_t(world, entityB, ViewCompC));
-  // }
+    check_eq_int(comp->f1, 1337);
+    comp->f1 = 42;
+  }
 
   teardown() {
     ecs_world_destroy(world);

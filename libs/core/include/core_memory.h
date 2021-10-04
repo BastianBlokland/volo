@@ -91,8 +91,9 @@ typedef struct {
 /**
  * Create a memory buffer on the stack.
  * NOTE: Care must be taken not to overflow the stack by using too high _SIZE_ values.
- * NOTE: _SIZE_ is expanded multiple times, so care must be taken when providing complex
- * expressions.
+ * NOTE: The memory is not scoped, instead it always belongs to the function. So usage in a loop
+ * will accumulates memory that is only freed when the function returns.
+ * NOTE: _SIZE_ is expanded twice, so care must be taken when providing complex expressions.
  */
 #if defined(VOLO_MSVC)
 #define mem_stack(_SIZE_) mem_create(_alloca(_SIZE_), _SIZE_)

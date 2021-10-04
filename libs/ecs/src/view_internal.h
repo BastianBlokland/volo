@@ -10,10 +10,10 @@ struct sEcsView {
   const EcsViewDef* viewDef;
   EcsStorage*       storage;
   Mem               masks;
+  usize             compCount;
   DynArray          archetypes; // EcsArchetypeId[] (NOTE: kept sorted)
 };
 
 EcsView ecs_view_create(Allocator*, EcsStorage*, const EcsDef*, const EcsViewDef*);
 void    ecs_view_destroy(Allocator*, const EcsDef*, EcsView*);
-bool    ecs_view_matches(const EcsView*, BitSet mask);
 bool    ecs_view_maybe_track(EcsView*, EcsArchetypeId, BitSet mask);
