@@ -70,8 +70,8 @@ static EcsArchetypeLoc ecs_archetype_location(EcsArchetype* archetype, const u32
 
 static void
 ecs_archetype_itr_init_pointers(EcsArchetype* archetype, EcsIterator* itr, EcsArchetypeLoc loc) {
-  const u16* compOffsets = archetype->compOffsetsAndStrides;
-  const u16* compStrides = archetype->compOffsetsAndStrides + archetype->compCount;
+  const u16* compOffsets = archetype->compOffsetsAndSizes;
+  const u16* compSizes   = archetype->compOffsetsAndSizes + archetype->compCount;
   u8*        chunkData   = archetype->chunks[loc.chunkIdx];
 
   itr->chunkIdx = loc.chunkIdx;
@@ -82,21 +82,21 @@ ecs_archetype_itr_init_pointers(EcsArchetype* archetype, EcsIterator* itr, EcsAr
     compId                 = bitset_next(itr->mask, compId);
     const usize compIdx    = ecs_archetype_comp_idx(archetype, compId);
     const usize compOffset = compOffsets[compIdx];
-    const usize compStride = compStrides[compIdx];
-    itr->comps[i].ptr      = bits_ptr_offset(chunkData, compOffset + compStride * loc.indexInChunk);
-    itr->comps[i].size     = compStride;
+    const usize compSize   = compSizes[compIdx];
+    itr->comps[i].ptr      = bits_ptr_offset(chunkData, compOffset + compSize * loc.indexInChunk);
+    itr->comps[i].size     = compSize;
   }
 }
 
 static void ecs_archetype_copy_internal(EcsArchetype* archetype, const u32 dst, const u32 src) {
-  const u16* compOffsets = archetype->compOffsetsAndStrides;
-  const u16* compStrides = archetype->compOffsetsAndStrides + archetype->compCount;
+  const u16* compOffsets = archetype->compOffsetsAndSizes;
+  const u16* compSizes   = archetype->compOffsetsAndSizes + archetype->compCount;
 
   const EcsArchetypeLoc dstLoc = ecs_archetype_location(archetype, dst);
   const EcsArchetypeLoc srcLoc = ecs_archetype_location(archetype, src);
 
   for (usize compIdx = 0; compIdx != archetype->compCount; ++compIdx) {
-    const usize compSize = compStrides[compIdx];
+    const usize compSize = compSizes[compIdx];
 
     u8* dstChunkData = bits_ptr_offset(archetype->chunks[dstLoc.chunkIdx], compOffsets[compIdx]);
     u8* srcChunkData = bits_ptr_offset(archetype->chunks[srcLoc.chunkIdx], compOffsets[compIdx]);
@@ -116,7 +116,7 @@ EcsArchetype ecs_archetype_create(const EcsDef* def, BitSet mask) {
   diag_assert_msg(entitiesPerChunk, "At least one entity has to fit in an archetype chunk");
 
   u16* compOffsets = alloc_alloc(g_alloc_heap, sizeof(u16) * compCount * 2, alignof(u16)).ptr;
-  u16* compStrides = compOffsets + compCount;
+  u16* compSizes   = compOffsets + compCount;
 
   usize offset  = sizeof(EcsEntityId) * entitiesPerChunk;
   usize compIdx = 0;
@@ -125,16 +125,16 @@ EcsArchetype ecs_archetype_create(const EcsDef* def, BitSet mask) {
     const usize compAlign = ecs_def_comp_align(def, (EcsCompId)compId);
     offset                = bits_align(offset, compAlign);
     compOffsets[compIdx]  = (u16)offset;
-    compStrides[compIdx]  = (u16)compSize;
+    compSizes[compIdx]    = (u16)compSize;
     offset += compSize * entitiesPerChunk;
     ++compIdx;
   });
 
   return (EcsArchetype){
-      .mask                  = alloc_dup(g_alloc_heap, mask, 1),
-      .entitiesPerChunk      = entitiesPerChunk,
-      .compOffsetsAndStrides = compOffsets,
-      .compCount             = compCount,
+      .mask                = alloc_dup(g_alloc_heap, mask, 1),
+      .entitiesPerChunk    = entitiesPerChunk,
+      .compOffsetsAndSizes = compOffsets,
+      .compCount           = compCount,
       .chunks =
           alloc_alloc(g_alloc_heap, sizeof(void*) * ecs_archetype_max_chunks, alignof(void*)).ptr,
   };
@@ -145,7 +145,7 @@ void ecs_archetype_destroy(EcsArchetype* archetype) {
 
   alloc_free(
       g_alloc_heap,
-      mem_create(archetype->compOffsetsAndStrides, sizeof(u16) * archetype->compCount * 2));
+      mem_create(archetype->compOffsetsAndSizes, sizeof(u16) * archetype->compCount * 2));
 
   for (usize chunkIdx = 0; chunkIdx != archetype->chunkCount; ++chunkIdx) {
     ecs_archetype_chunk_destroy(archetype->chunks[chunkIdx]);
@@ -219,10 +219,10 @@ void ecs_archetype_itr_jump(EcsArchetype* archetype, EcsIterator* itr, const u32
 void ecs_archetype_copy_across(
     const BitSet mask, EcsArchetype* dst, const u32 dstIdx, EcsArchetype* src, const u32 srcIdx) {
 
-  const u16* dstCompOffsets = dst->compOffsetsAndStrides;
-  const u16* dstCompStrides = dst->compOffsetsAndStrides + dst->compCount;
+  const u16* dstCompOffsets = dst->compOffsetsAndSizes;
+  const u16* dstCompSizes   = dst->compOffsetsAndSizes + dst->compCount;
 
-  const u16* srcCompOffsets = src->compOffsetsAndStrides;
+  const u16* srcCompOffsets = src->compOffsetsAndSizes;
 
   const EcsArchetypeLoc dstLoc = ecs_archetype_location(dst, dstIdx);
   const EcsArchetypeLoc srcLoc = ecs_archetype_location(src, srcIdx);
@@ -230,7 +230,7 @@ void ecs_archetype_copy_across(
   bitset_for(mask, comp, {
     const usize dstCompIdx = ecs_archetype_comp_idx(dst, (EcsCompId)comp);
     const usize srcCompIdx = ecs_archetype_comp_idx(dst, (EcsCompId)comp);
-    const usize compSize   = dstCompStrides[dstCompIdx];
+    const usize compSize   = dstCompSizes[dstCompIdx];
 
     u8* dstChunkData = bits_ptr_offset(dst->chunks[dstLoc.chunkIdx], dstCompOffsets[dstCompIdx]);
     u8* srcChunkData = bits_ptr_offset(src->chunks[srcLoc.chunkIdx], srcCompOffsets[srcCompIdx]);
