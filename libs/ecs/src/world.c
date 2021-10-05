@@ -53,6 +53,9 @@ static EcsArchetypeId ecs_world_archetype_find_or_create(EcsWorld* world, const 
   log_d(
       "Ecs archetype created",
       log_param("components", fmt_int(bitset_count(mask))),
+      log_param(
+          "entities-per-chunk",
+          fmt_int(ecs_storage_archetype_entities_per_chunk(&world->storage, newId))),
       log_param("tracking-views", fmt_int(trackingViews)));
 
   (void)trackingViews;

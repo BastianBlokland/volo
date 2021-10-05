@@ -170,6 +170,10 @@ void ecs_storage_entity_destroy(EcsStorage* storage, const EcsEntityId id) {
   entity_allocator_free(&storage->entityAllocator, id);
 }
 
+usize ecs_storage_archetype_entities_per_chunk(EcsStorage* storage, const EcsArchetypeId id) {
+  return ecs_storage_archetype_ptr(storage, id)->entitiesPerChunk;
+}
+
 EcsArchetypeId ecs_storage_archetype_find(EcsStorage* storage, const BitSet mask) {
   dynarray_for_t(&storage->archetypes, EcsArchetype, arch, {
     if (mem_eq(arch->mask, mask)) {
