@@ -68,7 +68,7 @@ typedef void (*EcsSystemRoutine)(EcsWorld*);
  * Example usage:
  * ```
  * ecs_view_define(ApplyCharacterVelocity) {
- *   ecs_filter_with(CharacterComp);
+ *   ecs_access_with(CharacterComp);
  *   ecs_access_read(VelocityComp);
  *   ecs_access_write(PositionComp);
  * }
@@ -78,10 +78,12 @@ typedef void (*EcsSystemRoutine)(EcsWorld*);
   static EcsViewId ecs_view_id(_NAME_);                                                            \
   static void _ecs_view_init_##_NAME_(MAYBE_UNUSED EcsViewBuilder* _builder)
 
-#define ecs_filter_with(_COMP_)    ecs_module_filter_with(_builder, ecs_comp_id(_COMP_))
-#define ecs_filter_without(_COMP_) ecs_module_filter_without(_builder, ecs_comp_id(_COMP_))
-#define ecs_access_read(_COMP_)    ecs_module_access_read(_builder, ecs_comp_id(_COMP_))
-#define ecs_access_write(_COMP_)   ecs_module_access_write(_builder, ecs_comp_id(_COMP_))
+#define ecs_access_with(_COMP_)         ecs_module_access_with(_builder, ecs_comp_id(_COMP_))
+#define ecs_access_without(_COMP_)      ecs_module_access_without(_builder, ecs_comp_id(_COMP_))
+#define ecs_access_read(_COMP_)         ecs_module_access_read(_builder, ecs_comp_id(_COMP_))
+#define ecs_access_write(_COMP_)        ecs_module_access_write(_builder, ecs_comp_id(_COMP_))
+#define ecs_access_maybe_read(_COMP_)   ecs_module_access_maybe_read(_builder, ecs_comp_id(_COMP_))
+#define ecs_access_maybe_write(_COMP_)  ecs_module_access_maybe_write(_builder, ecs_comp_id(_COMP_))
 
 /**
  * Define a system routine.
@@ -160,7 +162,9 @@ EcsViewId   ecs_module_register_view(EcsModuleBuilder*, String name, EcsViewInit
 EcsSystemId ecs_module_register_system(
     EcsModuleBuilder*, String name, EcsSystemRoutine, const EcsViewId* views, usize viewCount);
 
-void ecs_module_filter_with(EcsViewBuilder*, EcsCompId);
-void ecs_module_filter_without(EcsViewBuilder*, EcsCompId);
+void ecs_module_access_with(EcsViewBuilder*, EcsCompId);
+void ecs_module_access_without(EcsViewBuilder*, EcsCompId);
 void ecs_module_access_read(EcsViewBuilder*, EcsCompId);
 void ecs_module_access_write(EcsViewBuilder*, EcsCompId);
+void ecs_module_access_maybe_read(EcsViewBuilder*, EcsCompId);
+void ecs_module_access_maybe_write(EcsViewBuilder*, EcsCompId);

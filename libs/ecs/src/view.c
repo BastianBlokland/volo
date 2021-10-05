@@ -10,7 +10,6 @@ typedef enum {
   EcsViewMask_FilterWithout,
   EcsViewMask_AccessRead,
   EcsViewMask_AccessWrite,
-  EcsViewMask_CompMask,
 } EcsViewMaskType;
 
 static usize ecs_view_bytes_per_mask(const EcsDef* def) {
@@ -36,7 +35,7 @@ bool ecs_view_contains(EcsView* view, const EcsEntityId entity) {
 }
 
 EcsIterator* ecs_view_itr_create(Mem mem, EcsView* view) {
-  const BitSet mask = ecs_view_mask(view, EcsViewMask_CompMask);
+  const BitSet mask = ecs_view_mask(view, EcsViewMask_AccessRead);
   EcsIterator* itr  = ecs_iterator_create_with_count(mem, mask, view->compCount);
   itr->context      = view;
   return itr;
@@ -103,7 +102,7 @@ EcsView ecs_view_create(
   diag_assert(alloc && def);
 
   const usize bytesPerMask = ecs_view_bytes_per_mask(def);
-  Mem         masksMem     = alloc_alloc(alloc, bytesPerMask * 5, 1);
+  Mem         masksMem     = alloc_alloc(alloc, bytesPerMask * 4, 1);
   mem_set(masksMem, 0);
 
   EcsView view = (EcsView){
@@ -124,17 +123,12 @@ EcsView ecs_view_create(
 
   viewDef->initRoutine(&viewBuilder);
 
-  BitSet compMask = ecs_view_mask(&view, EcsViewMask_CompMask);
-  bitset_or(compMask, ecs_view_mask(&view, EcsViewMask_AccessRead));
-  bitset_or(compMask, ecs_view_mask(&view, EcsViewMask_AccessWrite));
-  bitset_and(compMask, ecs_view_mask(&view, EcsViewMask_FilterWith));
-
-  view.compCount = bitset_count(compMask);
+  view.compCount = bitset_count(ecs_view_mask(&view, EcsViewMask_AccessRead));
   return view;
 }
 
 void ecs_view_destroy(Allocator* alloc, const EcsDef* def, EcsView* view) {
-  alloc_free(alloc, mem_create(view->masks.ptr, ecs_view_bytes_per_mask(def) * 5));
+  alloc_free(alloc, mem_create(view->masks.ptr, ecs_view_bytes_per_mask(def) * 4));
   dynarray_destroy(&view->archetypes);
 }
 

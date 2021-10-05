@@ -79,7 +79,15 @@ ecs_archetype_itr_init_pointers(EcsArchetype* archetype, EcsIterator* itr, EcsAr
 
   EcsCompId compId = 0;
   for (usize i = 0; i != itr->compCount; ++i, ++compId) {
-    compId                 = (EcsCompId)bitset_next(itr->mask, compId);
+    compId = (EcsCompId)bitset_next(itr->mask, compId);
+
+    if (UNLIKELY(!bitset_test(archetype->mask, compId))) {
+      // Requested component is not present on the archetype; set the pointer to null.
+      // NOTE: The null pointer can still be 'advanced' while walking as the stride is also 0.
+      itr->comps[i] = mem_empty;
+      continue;
+    }
+
     const usize compIdx    = ecs_archetype_comp_idx(archetype, compId);
     const usize compOffset = compOffsets[compIdx];
     const usize compSize   = compSizes[compIdx];
@@ -184,7 +192,6 @@ EcsEntityId ecs_archetype_remove(EcsArchetype* archetype, const u32 index) {
 }
 
 bool ecs_archetype_itr_walk(EcsArchetype* archetype, EcsIterator* itr) {
-  diag_assert_msg(bitset_all_of(archetype->mask, itr->mask), "Archetype is missing components");
 
   if (LIKELY(itr->chunkRemaining)) {
     ++itr->entity;
@@ -210,7 +217,6 @@ bool ecs_archetype_itr_walk(EcsArchetype* archetype, EcsIterator* itr) {
 }
 
 void ecs_archetype_itr_jump(EcsArchetype* archetype, EcsIterator* itr, const u32 index) {
-  diag_assert_msg(bitset_all_of(archetype->mask, itr->mask), "Archetype is missing components");
 
   itr->chunkRemaining = 0;
   ecs_archetype_itr_init_pointers(archetype, itr, ecs_archetype_location(archetype, index));
