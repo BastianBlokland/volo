@@ -39,6 +39,13 @@ bool ecs_view_itr_walk(EcsIterator*);
 void ecs_view_itr_jump(EcsIterator*, EcsEntityId);
 
 /**
+ * Get the current entity for the given iterator.
+ *
+ * Pre-condition: iterator has been intialized using ecs_view_itr_walk() / ecs_view_itr_jump().
+ */
+EcsEntityId ecs_view_entity(EcsIterator*);
+
+/**
  * Get a read-only pointer to a component.
  *
  * Pre-condition: iterator has been intialized using ecs_view_itr_walk() / ecs_view_itr_jump().

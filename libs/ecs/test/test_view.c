@@ -80,6 +80,7 @@ spec(view) {
     EcsIterator* itr = ecs_view_itr_stack(ecs_world_view_t(world, ReadAB));
     ecs_view_itr_jump(itr, entity);
 
+    check(ecs_view_entity(itr) == entity);
     check_eq_int(ecs_view_read_t(itr, ViewCompA)->f1, 42);
     check_eq_string(ecs_view_read_t(itr, ViewCompB)->f1, string_lit("Hello World"));
   }
@@ -96,6 +97,7 @@ spec(view) {
 
     ViewCompC* comp = ecs_view_write_t(itr, ViewCompC);
 
+    check(ecs_view_entity(itr) == entity);
     check_eq_int(comp->f1, 1337);
     comp->f1 = 42;
   }
