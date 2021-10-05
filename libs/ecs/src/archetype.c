@@ -43,6 +43,10 @@ static u32 ecs_archetype_entities_per_chunk(const EcsDef* def, BitSet mask) {
   return (u32)((ecs_archetype_chunk_size - padding) / entityDataSize);
 }
 
+static usize ecs_archetype_chunks_non_empty(EcsArchetype* archetype) {
+  return (archetype->entityCount + archetype->entitiesPerChunk - 1) / archetype->entitiesPerChunk;
+}
+
 static void* ecs_archetype_chunk_create() {
   const usize align = 512; // Note: In practice the page allocator will align to the page size.
   return alloc_alloc(g_alloc_page, ecs_archetype_chunk_size, align).ptr;
@@ -203,14 +207,15 @@ bool ecs_archetype_itr_walk(EcsArchetype* archetype, EcsIterator* itr) {
   }
 
   // No more entries in the current chunk; jump to the next chunk.
-  const usize chunksWithEntities = archetype->entityCount / archetype->entitiesPerChunk;
+  const usize chunksWithEntities = ecs_archetype_chunks_non_empty(archetype);
   if (++itr->chunkIdx >= chunksWithEntities) {
+    itr->chunkIdx = u32_max;
     return false; // Reached the end of the chunks with entities in them.
   }
 
   const bool isLastChunk = itr->chunkIdx == (chunksWithEntities - 1);
-  itr->chunkRemaining    = isLastChunk ? (archetype->entityCount % archetype->entitiesPerChunk)
-                                       : archetype->entitiesPerChunk;
+  itr->chunkRemaining = isLastChunk ? ((archetype->entityCount - 1) % archetype->entitiesPerChunk)
+                                    : (archetype->entitiesPerChunk - 1);
 
   ecs_archetype_itr_init_pointers(archetype, itr, (EcsArchetypeLoc){.chunkIdx = itr->chunkIdx});
   return true;

@@ -102,6 +102,43 @@ spec(view) {
     comp->f1 = 42;
   }
 
+  it("can iterate over entities with required components from different archetypes") {
+    const EcsEntityId entityA = ecs_world_entity_create(world);
+    const EcsEntityId entityB = ecs_world_entity_create(world);
+    const EcsEntityId entityC = ecs_world_entity_create(world);
+    const EcsEntityId entityD = ecs_world_entity_create(world);
+    const EcsEntityId entityE = ecs_world_entity_create(world);
+    const EcsEntityId entityF = ecs_world_entity_create(world);
+
+    ecs_world_comp_add_t(world, entityA, ViewCompA, .f1 = 1337);
+    ecs_world_comp_add_t(world, entityA, ViewCompB, .f1 = string_lit("Hello World"));
+    ecs_world_comp_add_t(world, entityA, ViewCompC, .f1 = 1337);
+
+    ecs_world_comp_add_t(world, entityB, ViewCompA, .f1 = 1337);
+    ecs_world_comp_add_t(world, entityB, ViewCompB, .f1 = string_lit("Hello World"));
+
+    ecs_world_comp_add_t(world, entityC, ViewCompA, .f1 = 1337);
+    ecs_world_comp_add_t(world, entityC, ViewCompC, .f1 = 1337);
+
+    ecs_world_comp_add_t(world, entityD, ViewCompA, .f1 = 1337);
+    ecs_world_comp_add_t(world, entityD, ViewCompB, .f1 = string_lit("Hello World"));
+
+    ecs_world_comp_add_t(world, entityE, ViewCompA, .f1 = 1337);
+    ecs_world_comp_add_t(world, entityE, ViewCompB, .f1 = string_lit("Hello World"));
+
+    ecs_world_comp_add_t(world, entityF, ViewCompB, .f1 = string_lit("Hello World"));
+    ecs_world_comp_add_t(world, entityF, ViewCompC, .f1 = 1337);
+
+    ecs_world_flush(world);
+
+    EcsIterator* itr = ecs_view_itr_stack(ecs_world_view_t(world, ReadAB));
+    check_require(ecs_view_itr_walk(itr) && ecs_view_entity(itr) == entityA);
+    check_require(ecs_view_itr_walk(itr) && ecs_view_entity(itr) == entityB);
+    check_require(ecs_view_itr_walk(itr) && ecs_view_entity(itr) == entityD);
+    check_require(ecs_view_itr_walk(itr) && ecs_view_entity(itr) == entityE);
+    check(!ecs_view_itr_walk(itr));
+  }
+
   teardown() {
     ecs_world_destroy(world);
     ecs_def_destroy(def);
