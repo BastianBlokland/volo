@@ -94,6 +94,29 @@ spec(view) {
     check_eq_string(ecs_view_read_t(itr, ViewCompB)->f1, string_lit("Hello World"));
   }
 
+  it("can optionally read component values on entities using maybe-read") {
+    const EcsEntityId entityA = ecs_world_entity_create(world);
+    const EcsEntityId entityB = ecs_world_entity_create(world);
+
+    ecs_world_comp_add_t(world, entityA, ViewCompA, .f1 = 42);
+    ecs_world_comp_add_t(world, entityA, ViewCompC, .f1 = 1337);
+
+    ecs_world_comp_add_t(world, entityB, ViewCompA, .f1 = 42);
+    ecs_world_comp_add_t(world, entityB, ViewCompB, .f1 = string_lit("Hello World"));
+
+    ecs_world_flush(world);
+
+    EcsIterator* itr = ecs_view_itr_stack(ecs_world_view_t(world, ReadAMaybeC));
+
+    ecs_view_itr_jump(itr, entityA);
+    check(ecs_view_entity(itr) == entityA);
+    check_eq_int(ecs_view_read_t(itr, ViewCompA)->f1, 42);
+
+    ecs_view_itr_jump(itr, entityB);
+    check(ecs_view_entity(itr) == entityB);
+    check(ecs_view_read_t(itr, ViewCompC) == null);
+  }
+
   it("can write component values on entities") {
     const EcsEntityId entity = ecs_world_entity_create(world);
 
