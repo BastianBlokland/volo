@@ -107,6 +107,13 @@ static void ecs_archetype_copy_internal(EcsArchetype* archetype, const u32 dst, 
   const EcsArchetypeLoc dstLoc = ecs_archetype_location(archetype, dst);
   const EcsArchetypeLoc srcLoc = ecs_archetype_location(archetype, src);
 
+  EcsEntityId* dstEntity = ((EcsEntityId*)archetype->chunks[dstLoc.chunkIdx]) + dstLoc.indexInChunk;
+  EcsEntityId* srcEntity = ((EcsEntityId*)archetype->chunks[srcLoc.chunkIdx]) + srcLoc.indexInChunk;
+
+  // Copy the entity id.
+  *dstEntity = *srcEntity;
+
+  // Copy the component data.
   for (usize compIdx = 0; compIdx != archetype->compCount; ++compIdx) {
     const usize compSize = compSizes[compIdx];
 
