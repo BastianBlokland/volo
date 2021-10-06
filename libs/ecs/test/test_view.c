@@ -19,6 +19,12 @@ ecs_view_define(ReadAMaybeC) {
   ecs_access_maybe_read(ViewCompC);
 }
 
+ecs_view_define(ReadMaybeAMaybeBMaybeC) {
+  ecs_access_maybe_read(ViewCompA);
+  ecs_access_maybe_read(ViewCompB);
+  ecs_access_maybe_read(ViewCompC);
+}
+
 ecs_module_init(view_test_module) {
   ecs_register_comp(ViewCompA);
   ecs_register_comp(ViewCompB);
@@ -27,6 +33,7 @@ ecs_module_init(view_test_module) {
   ecs_register_view(ReadAB);
   ecs_register_view(WriteC);
   ecs_register_view(ReadAMaybeC);
+  ecs_register_view(ReadMaybeAMaybeBMaybeC);
 }
 
 spec(view) {
@@ -41,7 +48,7 @@ spec(view) {
     world = ecs_world_create(g_alloc_heap, def);
   }
 
-  it("can get the count of components it reads") {
+  it("can return the count of components it can read") {
     EcsView* view = null;
 
     view = ecs_world_view_t(world, ReadAB);
@@ -115,6 +122,43 @@ spec(view) {
     ecs_view_itr_jump(itr, entityB);
     check(ecs_view_entity(itr) == entityB);
     check(ecs_view_read_t(itr, ViewCompC) == null);
+  }
+
+  it("matches all entities that are in an archetype when defining only maybe-reads") {
+    ecs_world_entity_create(world); // No component on it, so not in an archetype.
+    const EcsEntityId entityA = ecs_world_entity_create(world);
+    const EcsEntityId entityB = ecs_world_entity_create(world);
+    const EcsEntityId entityC = ecs_world_entity_create(world);
+    ecs_world_entity_create(world); // No component on it, so not in an archetype.
+
+    ecs_world_comp_add_t(world, entityA, ViewCompA, .f1 = 1337);
+    ecs_world_comp_add_t(world, entityA, ViewCompB, .f1 = string_lit("Hello World"));
+    ecs_world_comp_add_t(world, entityA, ViewCompC, .f1 = 42);
+
+    ecs_world_comp_add_t(world, entityB, ViewCompA, .f1 = 1337);
+    ecs_world_comp_add_t(world, entityB, ViewCompB, .f1 = string_lit("Hello World"));
+
+    ecs_world_comp_add_t(world, entityC, ViewCompC, .f1 = 42);
+
+    ecs_world_flush(world);
+
+    EcsIterator* itr = ecs_view_itr_stack(ecs_world_view_t(world, ReadMaybeAMaybeBMaybeC));
+    check_require(ecs_view_itr_walk(itr) && ecs_view_entity(itr) == entityA);
+    check(ecs_view_read_t(itr, ViewCompA) != null);
+    check(ecs_view_read_t(itr, ViewCompB) != null);
+    check(ecs_view_read_t(itr, ViewCompC) != null);
+
+    check_require(ecs_view_itr_walk(itr) && ecs_view_entity(itr) == entityB);
+    check(ecs_view_read_t(itr, ViewCompA) != null);
+    check(ecs_view_read_t(itr, ViewCompB) != null);
+    check(ecs_view_read_t(itr, ViewCompC) == null);
+
+    check_require(ecs_view_itr_walk(itr) && ecs_view_entity(itr) == entityC);
+    check(ecs_view_read_t(itr, ViewCompA) == null);
+    check(ecs_view_read_t(itr, ViewCompB) == null);
+    check(ecs_view_read_t(itr, ViewCompC) != null);
+
+    check(!ecs_view_itr_walk(itr));
   }
 
   it("can write component values on entities") {
