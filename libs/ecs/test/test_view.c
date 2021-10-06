@@ -41,7 +41,7 @@ spec(view) {
     world = ecs_world_create(g_alloc_heap, def);
   }
 
-  it("can get the count of components it reads / writes") {
+  it("can get the count of components it reads") {
     EcsView* view = null;
 
     view = ecs_world_view_t(world, ReadAB);
@@ -150,7 +150,7 @@ spec(view) {
 
   it("can iterate over entities from multiple chunks in an archetype") {
     static const usize entitiesToCreate = 1234;
-    DynArray           entities         = dynarray_create_t(g_alloc_heap, EcsEntityId, 2048);
+    DynArray           entities = dynarray_create_t(g_alloc_heap, EcsEntityId, entitiesToCreate);
 
     for (usize i = 0; i != entitiesToCreate; ++i) {
       const EcsEntityId newEntity = ecs_world_entity_create(world);
@@ -206,6 +206,29 @@ spec(view) {
     check(ecs_view_read_t(itr, ViewCompC) == null);
 
     check(!ecs_view_itr_walk(itr));
+  }
+
+  it("skips empty archetypes") {
+    static const usize entitiesToCreate = 1234;
+    DynArray           entities = dynarray_create_t(g_alloc_heap, EcsEntityId, entitiesToCreate);
+
+    for (usize i = 0; i != entitiesToCreate; ++i) {
+      const EcsEntityId newEntity = ecs_world_entity_create(world);
+      ecs_world_comp_add_t(world, newEntity, ViewCompA, .f1 = (u32)i);
+      ecs_world_comp_add_t(world, newEntity, ViewCompB, .f1 = string_lit("Hello World"));
+      *dynarray_push_t(&entities, EcsEntityId) = newEntity;
+    }
+
+    ecs_world_flush(world);
+
+    dynarray_for_t(&entities, EcsEntityId, entity, { ecs_world_entity_destroy(world, *entity); });
+
+    ecs_world_flush(world);
+
+    EcsIterator* itr = ecs_view_itr_stack(ecs_world_view_t(world, ReadAB));
+    check(!ecs_view_itr_walk(itr));
+
+    dynarray_destroy(&entities);
   }
 
   teardown() {
