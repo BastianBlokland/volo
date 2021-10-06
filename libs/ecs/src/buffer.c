@@ -26,7 +26,7 @@
  * pointer to the caller (stable until the buffer is cleared).
  */
 
-#define ecs_buffer_compdata_chunk_size (8 * usize_kibibyte)
+#define ecs_buffer_compdata_chunk_size (32 * usize_kibibyte)
 
 typedef u32 EcsBufferMaskId;
 
