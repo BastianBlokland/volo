@@ -41,6 +41,8 @@ EcsIterator* ecs_view_itr_create(Mem mem, EcsView* view) {
   return itr;
 }
 
+void ecs_view_itr_reset(EcsIterator* itr) { ecs_iterator_reset(itr); }
+
 bool ecs_view_itr_walk(EcsIterator* itr) {
   EcsView* view = itr->context;
 

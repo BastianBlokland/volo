@@ -229,7 +229,6 @@ bool ecs_archetype_itr_walk(EcsArchetype* archetype, EcsIterator* itr) {
 }
 
 void ecs_archetype_itr_jump(EcsArchetype* archetype, EcsIterator* itr, const u32 index) {
-
   itr->chunkRemaining = 0;
   ecs_archetype_itr_init_pointers(archetype, itr, ecs_archetype_location(archetype, index));
 }

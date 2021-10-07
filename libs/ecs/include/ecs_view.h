@@ -25,6 +25,7 @@ bool ecs_view_contains(EcsView*, EcsEntityId);
   ecs_view_itr_create(mem_stack(64 + sizeof(Mem) * ecs_view_comp_count(_VIEW_)), (_VIEW_))
 
 EcsIterator* ecs_view_itr_create(Mem, EcsView*);
+void         ecs_view_itr_reset(EcsIterator*);
 
 /**
  * Advance the iterator to the next entity in the view.
