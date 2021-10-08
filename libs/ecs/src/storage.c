@@ -161,8 +161,7 @@ void ecs_storage_entity_destroy(EcsStorage* storage, const EcsEntityId id) {
   if (archetype) {
     const EcsEntityId movedEntity = ecs_archetype_remove(archetype, info->archetypeIndex);
     if (ecs_entity_valid(movedEntity)) {
-      ecs_storage_entity_info_ptr(storage, movedEntity)->archetypeIndex =
-          (u32)archetype->entityCount - 1;
+      ecs_storage_entity_info_ptr(storage, movedEntity)->archetypeIndex = info->archetypeIndex;
     }
   }
 

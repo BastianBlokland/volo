@@ -8,7 +8,7 @@ ecs_comp_define(StorageCompA) { u32 f1; };
 ecs_comp_define(StorageCompB) { u32 f1, f2; };
 ecs_comp_define(StorageCompC) { u32 f1, f2, f3; };
 ecs_comp_define(StorageCompD) { u32 f1, f2, f3, f4; };
-ecs_comp_define(StorageCompE) { ALIGNAS(128) u32 f1; };
+ecs_comp_define(StorageCompE) { ALIGNAS(64) u32 f1; };
 
 ecs_view_define(ReadABC) {
   ecs_access_read(StorageCompA);
@@ -267,6 +267,46 @@ spec(storage) {
 
     check((ecs_view_itr_jump(itr, entityB), ecs_view_read_t(itr, StorageCompC)->f3 == 12));
     check((ecs_view_itr_jump(itr, entityC), ecs_view_read_t(itr, StorageCompC)->f3 == 18));
+  }
+
+  it("keeps component data consistent when destroying many entities in the same archetype") {
+    static const usize entitiesToCreate = 1234;
+    DynArray           entities = dynarray_create_t(g_alloc_heap, EcsEntityId, entitiesToCreate);
+
+    for (usize i = 0; i != entitiesToCreate; ++i) {
+      const EcsEntityId newEntity = ecs_world_entity_create(world);
+      ecs_world_comp_add_t(world, newEntity, StorageCompA, .f1 = (u32)i);
+      ecs_world_comp_add_t(world, newEntity, StorageCompB, .f1 = (u32)i * 2, (u32)i / 2);
+      ecs_world_comp_add_t(world, newEntity, StorageCompE, .f1 = (u32)i % 255);
+      *dynarray_push_t(&entities, EcsEntityId) = newEntity;
+    }
+
+    ecs_world_flush(world);
+
+    // Delete all even entities.
+    dynarray_for_t(&entities, EcsEntityId, entity, {
+      if ((entity_i % 2) == 0) {
+        ecs_world_entity_destroy(world, *entity);
+      }
+    });
+
+    ecs_world_flush(world);
+
+    EcsIterator* itr = ecs_view_itr_stack(ecs_world_view_t(world, ReadABE));
+    dynarray_for_t(&entities, EcsEntityId, entity, {
+      if (entity_i % 2) {
+        check_require(ecs_world_entity_exists(world, *entity));
+        ecs_view_itr_jump(itr, *entity);
+        check_eq_int(ecs_view_read_t(itr, StorageCompA)->f1, entity_i);
+        check_eq_int(ecs_view_read_t(itr, StorageCompB)->f1, entity_i * 2);
+        check_eq_int(ecs_view_read_t(itr, StorageCompB)->f2, entity_i / 2);
+        check_eq_int(ecs_view_read_t(itr, StorageCompE)->f1, entity_i % 255);
+      } else {
+        check_require(!ecs_world_entity_exists(world, *entity));
+      }
+    });
+
+    dynarray_destroy(&entities);
   }
 
   teardown() {
