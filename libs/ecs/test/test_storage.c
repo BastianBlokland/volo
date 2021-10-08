@@ -270,14 +270,14 @@ spec(storage) {
   }
 
   it("keeps component data consistent when destroying many entities in the same archetype") {
-    static const usize entitiesToCreate = 1234;
+    static const usize entitiesToCreate = 567;
     DynArray           entities = dynarray_create_t(g_alloc_heap, EcsEntityId, entitiesToCreate);
 
     for (usize i = 0; i != entitiesToCreate; ++i) {
       const EcsEntityId newEntity = ecs_world_entity_create(world);
       ecs_world_comp_add_t(world, newEntity, StorageCompA, .f1 = (u32)i);
       ecs_world_comp_add_t(world, newEntity, StorageCompB, .f1 = (u32)i * 2, (u32)i / 2);
-      ecs_world_comp_add_t(world, newEntity, StorageCompE, .f1 = (u32)i % 255);
+      ecs_world_comp_add_t(world, newEntity, StorageCompE, .f1 = (u32)i % 123);
       *dynarray_push_t(&entities, EcsEntityId) = newEntity;
     }
 
@@ -300,9 +300,58 @@ spec(storage) {
         check_eq_int(ecs_view_read_t(itr, StorageCompA)->f1, entity_i);
         check_eq_int(ecs_view_read_t(itr, StorageCompB)->f1, entity_i * 2);
         check_eq_int(ecs_view_read_t(itr, StorageCompB)->f2, entity_i / 2);
-        check_eq_int(ecs_view_read_t(itr, StorageCompE)->f1, entity_i % 255);
+        check_eq_int(ecs_view_read_t(itr, StorageCompE)->f1, entity_i % 123);
       } else {
         check_require(!ecs_world_entity_exists(world, *entity));
+      }
+    });
+
+    dynarray_destroy(&entities);
+  }
+
+  it("keeps component data consistent when splitting an archetype in two") {
+    static const usize entitiesToCreate = 567;
+    DynArray           entities = dynarray_create_t(g_alloc_heap, EcsEntityId, entitiesToCreate);
+
+    for (usize i = 0; i != entitiesToCreate; ++i) {
+      const EcsEntityId newEntity = ecs_world_entity_create(world);
+      ecs_world_comp_add_t(world, newEntity, StorageCompA, .f1 = (u32)i);
+      ecs_world_comp_add_t(world, newEntity, StorageCompB, .f1 = (u32)i * 2, (u32)i / 2);
+      ecs_world_comp_add_t(world, newEntity, StorageCompC, .f1 = (u32)i % 123);
+      *dynarray_push_t(&entities, EcsEntityId) = newEntity;
+    }
+
+    ecs_world_flush(world);
+
+    // Move all even entities to another archetype.
+    dynarray_for_t(&entities, EcsEntityId, entity, {
+      if ((entity_i % 2) == 0) {
+        ecs_world_comp_remove_t(world, *entity, StorageCompC);
+        ecs_world_comp_add_t(world, *entity, StorageCompE, .f1 = 1337);
+      }
+    });
+
+    ecs_world_flush(world);
+
+    EcsView*     viewEven   = ecs_world_view_t(world, ReadABE);
+    EcsIterator* itrEven    = ecs_view_itr_stack(viewEven);
+    EcsView*     viewUneven = ecs_world_view_t(world, ReadABC);
+    EcsIterator* itrUneven  = ecs_view_itr_stack(viewUneven);
+    dynarray_for_t(&entities, EcsEntityId, entity, {
+      if (entity_i % 2) {
+        check_require(ecs_view_contains(viewUneven, *entity));
+        ecs_view_itr_jump(itrUneven, *entity);
+        check_eq_int(ecs_view_read_t(itrUneven, StorageCompA)->f1, entity_i);
+        check_eq_int(ecs_view_read_t(itrUneven, StorageCompB)->f1, entity_i * 2);
+        check_eq_int(ecs_view_read_t(itrUneven, StorageCompB)->f2, entity_i / 2);
+        check_eq_int(ecs_view_read_t(itrUneven, StorageCompC)->f1, entity_i % 123);
+      } else {
+        check_require(ecs_view_contains(viewEven, *entity));
+        ecs_view_itr_jump(itrEven, *entity);
+        check_eq_int(ecs_view_read_t(itrEven, StorageCompA)->f1, entity_i);
+        check_eq_int(ecs_view_read_t(itrEven, StorageCompB)->f1, entity_i * 2);
+        check_eq_int(ecs_view_read_t(itrEven, StorageCompB)->f2, entity_i / 2);
+        check_eq_int(ecs_view_read_t(itrEven, StorageCompE)->f1, 1337);
       }
     });
 

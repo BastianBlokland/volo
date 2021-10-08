@@ -39,17 +39,19 @@ spec(world) {
   it("stores the definition") { check(ecs_world_def(world) == def); }
 
   it("considers created entities as existing") {
-    static const usize entitiesToCreate = 1234;
+    static const usize entitiesToCreate = 567;
     DynArray           entities         = dynarray_create_t(g_alloc_heap, EcsEntityId, 2048);
 
     for (usize i = 0; i != entitiesToCreate; ++i) {
       *dynarray_push_t(&entities, EcsEntityId) = ecs_world_entity_create(world);
     }
 
+    // Newly created entities exists before the first flush.
     dynarray_for_t(&entities, EcsEntityId, id, { check(ecs_world_entity_exists(world, *id)); });
 
     ecs_world_flush(world);
 
+    // Newly created entities still exists after the first flush.
     dynarray_for_t(&entities, EcsEntityId, id, { check(ecs_world_entity_exists(world, *id)); });
 
     dynarray_destroy(&entities);
@@ -106,7 +108,7 @@ spec(world) {
   }
 
   it("can add components for many entities") {
-    static const usize entitiesToCreate = 1234;
+    static const usize entitiesToCreate = 567;
     DynArray           entities         = dynarray_create_t(g_alloc_heap, EcsEntityId, 2048);
 
     for (usize i = 0; i != entitiesToCreate; ++i) {

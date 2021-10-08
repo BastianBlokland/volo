@@ -146,8 +146,7 @@ void ecs_storage_entity_move(
   if (oldArchetype) {
     const EcsEntityId movedEntity = ecs_archetype_remove(oldArchetype, oldArchetypeIndex);
     if (ecs_entity_valid(movedEntity)) {
-      ecs_storage_entity_info_ptr(storage, movedEntity)->archetypeIndex =
-          (u32)oldArchetype->entityCount - 1;
+      ecs_storage_entity_info_ptr(storage, movedEntity)->archetypeIndex = oldArchetypeIndex;
     }
   }
 }

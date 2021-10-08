@@ -216,7 +216,7 @@ spec(view) {
   }
 
   it("can iterate over entities from multiple chunks in an archetype") {
-    static const usize entitiesToCreate = 1234;
+    static const usize entitiesToCreate = 999;
     DynArray           entities = dynarray_create_t(g_alloc_heap, EcsEntityId, entitiesToCreate);
 
     for (usize i = 0; i != entitiesToCreate; ++i) {
@@ -276,7 +276,7 @@ spec(view) {
   }
 
   it("skips empty archetypes") {
-    static const usize entitiesToCreate = 1234;
+    static const usize entitiesToCreate = 567;
     DynArray           entities = dynarray_create_t(g_alloc_heap, EcsEntityId, entitiesToCreate);
 
     for (usize i = 0; i != entitiesToCreate; ++i) {
