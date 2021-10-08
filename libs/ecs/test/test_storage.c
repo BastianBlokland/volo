@@ -8,6 +8,7 @@ ecs_comp_define(StorageCompA) { u32 f1; };
 ecs_comp_define(StorageCompB) { u32 f1, f2; };
 ecs_comp_define(StorageCompC) { u32 f1, f2, f3; };
 ecs_comp_define(StorageCompD) { u32 f1, f2, f3, f4; };
+ecs_comp_define(StorageCompE) { ALIGNAS(128) u32 f1; };
 
 ecs_view_define(ReadABC) {
   ecs_access_read(StorageCompA);
@@ -15,13 +16,21 @@ ecs_view_define(ReadABC) {
   ecs_access_read(StorageCompC);
 }
 
+ecs_view_define(ReadABE) {
+  ecs_access_read(StorageCompA);
+  ecs_access_read(StorageCompB);
+  ecs_access_read(StorageCompE);
+}
+
 ecs_module_init(storage_test_module) {
   ecs_register_comp(StorageCompA);
   ecs_register_comp(StorageCompB);
   ecs_register_comp(StorageCompC);
   ecs_register_comp(StorageCompD);
+  ecs_register_comp(StorageCompE);
 
   ecs_register_view(ReadABC);
+  ecs_register_view(ReadABE);
 }
 
 spec(storage) {
@@ -56,6 +65,23 @@ spec(storage) {
     check_eq_int(ecs_view_read_t(itr, StorageCompC)->f1, 4);
     check_eq_int(ecs_view_read_t(itr, StorageCompC)->f2, 5);
     check_eq_int(ecs_view_read_t(itr, StorageCompC)->f3, 6);
+  }
+
+  it("respects component alignment") {
+    const EcsEntityId entity = ecs_world_entity_create(world);
+
+    ecs_world_comp_add_t(world, entity, StorageCompA, .f1 = 1);
+    ecs_world_comp_add_t(world, entity, StorageCompE, .f1 = 2);
+    ecs_world_comp_add_t(world, entity, StorageCompB, .f1 = 3, .f2 = 4);
+
+    ecs_world_flush(world);
+
+    EcsIterator* itr = ecs_view_itr_stack(ecs_world_view_t(world, ReadABE));
+    ecs_view_itr_jump(itr, entity);
+
+    check(bits_aligned_ptr(ecs_view_read_t(itr, StorageCompA), alignof(StorageCompA)));
+    check(bits_aligned_ptr(ecs_view_read_t(itr, StorageCompE), alignof(StorageCompE)));
+    check(bits_aligned_ptr(ecs_view_read_t(itr, StorageCompB), alignof(StorageCompB)));
   }
 
   it("moves component data when moving entities between archetypes") {
