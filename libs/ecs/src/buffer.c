@@ -205,12 +205,16 @@ void* ecs_buffer_comp_add(
 
   bitset_set(addMask, compId);
 
+  const usize compSize = ecs_def_comp_size(buffer->def, compId);
+  if (!compSize) {
+    return null; // There is no need to store payload for empty components.
+  }
+
   // Find the last comp-data in the linked-list.
   EcsBufferCompData** last = &entity->compHead;
   for (; *last; last = &(*last)->next)
     ;
 
-  const usize compSize  = ecs_def_comp_size(buffer->def, compId);
   const usize compAlign = ecs_def_comp_align(buffer->def, compId);
   *last                 = ecs_buffer_compdata_add(buffer, compId, compSize, compAlign);
   Mem payload           = ecs_buffer_compdata_payload(*last, compSize, compAlign);

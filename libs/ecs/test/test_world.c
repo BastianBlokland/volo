@@ -135,8 +135,7 @@ spec(world) {
   it("can add empty components") {
     const EcsEntityId entity = ecs_world_entity_create(world);
 
-    void* ptr = ecs_world_comp_add_empty_t(world, entity, WorldCompEmpty);
-    check(ptr);
+    ecs_world_comp_add_empty_t(world, entity, WorldCompEmpty);
 
     ecs_world_flush(world);
 

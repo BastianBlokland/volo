@@ -94,7 +94,7 @@ bool ecs_world_comp_has(EcsWorld*, EcsEntityId, EcsCompId);
       (_WORLD_), (_ENTITY_), ecs_comp_id(_TYPE_), mem_struct(_TYPE_, __VA_ARGS__)))
 
 #define ecs_world_comp_add_empty_t(_WORLD_, _ENTITY_, _TYPE_)                                      \
-  ecs_world_comp_add((_WORLD_), (_ENTITY_), ecs_comp_id(_TYPE_), mem_empty)
+  ((void)ecs_world_comp_add((_WORLD_), (_ENTITY_), ecs_comp_id(_TYPE_), mem_empty))
 
 void* ecs_world_comp_add(EcsWorld*, EcsEntityId, EcsCompId, Mem data);
 

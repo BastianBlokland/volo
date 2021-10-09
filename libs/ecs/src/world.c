@@ -70,6 +70,11 @@ static void ecs_world_cpy_added_comps(EcsStorage* storage, EcsBuffer* buffer, co
     return;
   }
 
+  /**
+   * NOTE: 'addedComps' can contain empty components which are not present in the
+   * 'ecs_buffer_comp_begin' / 'ecs_buffer_comp_next' iteration.
+   */
+
   EcsIterator* storageItr = ecs_iterator_stack(addedComps);
   ecs_storage_itr_jump(storage, storageItr, entity);
 
