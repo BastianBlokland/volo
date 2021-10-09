@@ -128,7 +128,7 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world) {
     jobs_graph_task_depend(runner->graph, sysTaskId, finalizeTask);
 
     // Insert required dependencies on the earlier systems.
-    for (usize otherSysId = 0; otherSysId != sys_i; ++otherSysId) {
+    for (EcsSystemId otherSysId = 0; otherSysId != sys_i; ++otherSysId) {
       EcsSystemDef* otherSystem = dynarray_at_t((DynArray*)&def->systems, otherSysId, EcsSystemDef);
       if (graph_system_conflict(world, sys, otherSystem)) {
         jobs_graph_task_depend(runner->graph, ecs_runner_graph_task(runner, otherSysId), sysTaskId);
