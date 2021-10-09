@@ -93,10 +93,9 @@ typedef void (*EcsSystemRoutine)(EcsWorld*);
  * ```
  * ecs_system_define(ApplyVelocity) {
  *   EcsView* view = ecs_world_view_t(world, ReadVeloWritePosView);
- *   EcsIterator itr = ecs_view_itr_stack(view);
- *   while(ecs_view_itr_walk(itr)) {
+ *   for (EcsIterator* itr = ecs_view_itr_stack(view); ecs_view_itr_walk(itr);) {
  *     const Velocity* velo = ecs_view_read_t(itr, Velocity);
- *     Position* pos = ecs_view_write_t(itr, Position);
+ *     Position*       pos  = ecs_view_write_t(itr, Position);
  *     ...
  *   }
  * }
