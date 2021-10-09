@@ -9,7 +9,7 @@
 # Note: Call this after configuring all debuggable targets with 'configure_debuggable()'.
 #
 function(configure_dbgsetup_target)
-  message(STATUS "Configuring dbgsetup target")
+  message(STATUS "> target: dbgsetup")
 
   if(TARGET dbgsetup)
     message(FATAL_ERROR "dbgsetup target already configured")
@@ -44,7 +44,7 @@ endfunction(configure_dbgsetup_target)
 # Mark a target as debuggable (adds it to the 'DEBUGGABLE_TARGETS' global property).
 #
 function(configure_debuggable target)
-  message(STATUS "Configuring debuggable: ${target}")
+  message(STATUS "> debuggable: ${target}")
 
   if(NOT TARGET ${target})
     message(FATAL_ERROR "Unknown target")

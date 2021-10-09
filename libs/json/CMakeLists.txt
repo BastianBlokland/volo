@@ -2,7 +2,7 @@
 # Json library cmake file.
 # --------------------------------------------------------------------------------------------------
 
-message(STATUS "Configuring json library")
+message(STATUS "> library: json")
 
 add_library(volo_json STATIC
   src/doc.c

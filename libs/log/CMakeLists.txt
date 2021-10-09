@@ -2,7 +2,7 @@
 # Log library cmake file.
 # --------------------------------------------------------------------------------------------------
 
-message(STATUS "Configuring log library")
+message(STATUS "> library: log")
 
 add_library(volo_log STATIC
   src/init.c

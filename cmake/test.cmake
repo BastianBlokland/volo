@@ -8,7 +8,7 @@
 # This allows running all tests by invoking the 'test' target.
 #
 function(configure_test_target)
-  message(STATUS "Configuring test target")
+  message(STATUS "> target: test")
 
   if(TARGET test)
     message(FATAL_ERROR "test target already configured")
@@ -27,7 +27,7 @@ endfunction(configure_test_target)
 # Also adds it to the 'TEST_TARGETS' global property.
 #
 function(configure_test target shortName)
-  message(STATUS "Configuring test: ${target}")
+  message(STATUS "> test: ${target}")
 
   if(NOT TARGET ${target})
     message(FATAL_ERROR "Unknown target")

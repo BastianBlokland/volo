@@ -2,7 +2,7 @@
 # EntityComponentSystem library cmake file.
 # --------------------------------------------------------------------------------------------------
 
-message(STATUS "Configuring ecs library")
+message(STATUS "> library: ecs")
 
 add_library(volo_ecs STATIC
   src/archetype.c

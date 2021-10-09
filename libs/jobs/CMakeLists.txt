@@ -2,7 +2,7 @@
 # Jobs library cmake file.
 # --------------------------------------------------------------------------------------------------
 
-message(STATUS "Configuring jobs library")
+message(STATUS "> library: jobs")
 
 add_library(volo_jobs STATIC
   src/dot.c

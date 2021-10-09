@@ -2,6 +2,8 @@
 # Tools cmake file.
 # --------------------------------------------------------------------------------------------------
 
+message(STATUS "> tool: dbgsetup")
+
 add_executable(volo_dbgsetup dbgsetup.c)
 target_link_libraries(volo_dbgsetup PRIVATE volo_core)
 target_link_libraries(volo_dbgsetup PRIVATE volo_cli)

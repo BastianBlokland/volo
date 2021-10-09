@@ -2,7 +2,7 @@
 # Cli library cmake file.
 # --------------------------------------------------------------------------------------------------
 
-message(STATUS "Configuring cli library")
+message(STATUS "> library: cli")
 
 add_library(volo_cli STATIC
   src/app.c

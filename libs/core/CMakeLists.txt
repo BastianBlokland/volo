@@ -2,7 +2,7 @@
 # Core library cmake file.
 # --------------------------------------------------------------------------------------------------
 
-message(STATUS "Configuring core library")
+message(STATUS "> library: core")
 
 add_library(volo_core STATIC
   src/alloc_bump.c

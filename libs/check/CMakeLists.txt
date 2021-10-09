@@ -2,7 +2,7 @@
 # Check library cmake file.
 # --------------------------------------------------------------------------------------------------
 
-message(STATUS "Configuring check library")
+message(STATUS "> library: check")
 
 add_library(volo_check STATIC
   src/app.c
