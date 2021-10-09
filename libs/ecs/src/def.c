@@ -113,8 +113,12 @@ bool ecs_def_system_has_access(const EcsDef* def, const EcsSystemId sysId, const
   return dynarray_search_binary((DynArray*)&system->viewIds, ecs_compare_view, &id) != null;
 }
 
-EcsCompId
-ecs_def_register_comp(EcsDef* def, const String name, const usize size, const usize align) {
+EcsCompId ecs_def_register_comp(
+    EcsDef*           def,
+    const String      name,
+    const usize       size,
+    const usize       align,
+    EcsCompDestructor destructor) {
 
   diag_assert_msg(!(def->flags & EcsDefFlags_Frozen), "Unable to modify a frozen definition");
   diag_assert_msg(
@@ -134,9 +138,10 @@ ecs_def_register_comp(EcsDef* def, const String name, const usize size, const us
 
   EcsCompId id                                   = (EcsCompId)def->components.size;
   *dynarray_push_t(&def->components, EcsCompDef) = (EcsCompDef){
-      .name  = string_dup(def->alloc, name),
-      .size  = size,
-      .align = align,
+      .name       = string_dup(def->alloc, name),
+      .size       = size,
+      .align      = align,
+      .destructor = destructor,
   };
   return id;
 }
@@ -174,6 +179,10 @@ EcsSystemId ecs_def_register_system(
   }
 
   return id;
+}
+
+EcsCompDestructor ecs_def_comp_destructor(EcsDef* def, const EcsCompId id) {
+  return ecs_def_comp(def, id)->destructor;
 }
 
 void ecs_def_freeze(EcsDef* def) { def->flags |= EcsDefFlags_Frozen; }

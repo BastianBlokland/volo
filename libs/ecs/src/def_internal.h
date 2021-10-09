@@ -7,9 +7,10 @@
 #define ecs_comp_max_size 1024
 
 typedef struct {
-  String name;
-  usize  size;
-  usize  align;
+  String            name;
+  usize             size;
+  usize             align;
+  EcsCompDestructor destructor;
 } EcsCompDef;
 
 typedef struct {
@@ -37,10 +38,12 @@ struct sEcsDef {
   Allocator*  alloc;
 };
 
-EcsCompId   ecs_def_register_comp(EcsDef*, String name, usize size, usize align);
+EcsCompId   ecs_def_register_comp(EcsDef*, String name, usize size, usize align, EcsCompDestructor);
 EcsViewId   ecs_def_register_view(EcsDef*, String name, EcsViewInit);
 EcsSystemId ecs_def_register_system(
     EcsDef*, String name, EcsSystemRoutine, const EcsViewId* views, usize viewCount);
+
+EcsCompDestructor ecs_def_comp_destructor(EcsDef*, EcsCompId);
 
 /**
  * Dissallow any further modications to this definition.
