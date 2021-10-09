@@ -26,6 +26,7 @@ add_executable(volo_ecs_test
   test/main.c
   test/test_def.c
   test/test_entity.c
+  test/test_graph.c
   test/test_runner.c
   test/test_storage.c
   test/test_view.c

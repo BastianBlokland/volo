@@ -15,15 +15,15 @@
 /**
  * Write a DOT (Graph Description Language) digraph for the given JobGraph.
  */
-void jobs_dot_write_graph(DynString*, JobGraph*);
+void jobs_dot_write_graph(DynString*, const JobGraph*);
 
 /**
  * Dump a DOT (Graph Description Language) digraph for the given JobGraph to a file.
  */
-FileResult jobs_dot_dump_graph(File*, JobGraph*);
+FileResult jobs_dot_dump_graph(File*, const JobGraph*);
 
 /**
  * Dump a DOT (Graph Description Language) digraph for the given JobGraph to a file at the given
  * path.
  */
-FileResult jobs_dot_dump_graph_to_path(String path, JobGraph*);
+FileResult jobs_dot_dump_graph_to_path(String path, const JobGraph*);

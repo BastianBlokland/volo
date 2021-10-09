@@ -7,7 +7,7 @@
 #define dot_end_shape "octagon"
 #define dot_task_shape "box"
 
-static void dot_write_task_node(DynString* str, JobGraph* graph, const JobTaskId taskId) {
+static void dot_write_task_node(DynString* str, const JobGraph* graph, const JobTaskId taskId) {
   fmt_write(
       str,
       "  task_{} [label=\"{}\", shape=" dot_task_shape "];\n",
@@ -15,7 +15,8 @@ static void dot_write_task_node(DynString* str, JobGraph* graph, const JobTaskId
       fmt_text(jobs_graph_task_name(graph, taskId)));
 }
 
-static void dot_write_task_child_edges(DynString* str, JobGraph* graph, const JobTaskId taskId) {
+static void
+dot_write_task_child_edges(DynString* str, const JobGraph* graph, const JobTaskId taskId) {
   fmt_write(str, "  task_{} -> {", fmt_int(taskId));
 
   bool elemWritten = false;
@@ -30,7 +31,7 @@ static void dot_write_task_child_edges(DynString* str, JobGraph* graph, const Jo
   fmt_write(str, "};\n", fmt_int(taskId));
 }
 
-static void dot_write_start_task_edges(DynString* str, JobGraph* graph) {
+static void dot_write_start_task_edges(DynString* str, const JobGraph* graph) {
   fmt_write(str, "  start -> {");
   bool elemWritten = false;
   jobs_graph_for_task(graph, taskId, {
@@ -43,7 +44,7 @@ static void dot_write_start_task_edges(DynString* str, JobGraph* graph) {
   fmt_write(str, "}\n");
 }
 
-void jobs_dot_write_graph(DynString* str, JobGraph* graph) {
+void jobs_dot_write_graph(DynString* str, const JobGraph* graph) {
   fmt_write(
       str,
       "digraph {} {\n"
@@ -64,7 +65,7 @@ void jobs_dot_write_graph(DynString* str, JobGraph* graph) {
   fmt_write(str, "}\n");
 }
 
-FileResult jobs_dot_dump_graph(File* file, JobGraph* graph) {
+FileResult jobs_dot_dump_graph(File* file, const JobGraph* graph) {
   DynString buffer = dynstring_create(g_alloc_heap, usize_kibibyte);
   jobs_dot_write_graph(&buffer, graph);
 
@@ -74,7 +75,7 @@ FileResult jobs_dot_dump_graph(File* file, JobGraph* graph) {
   return result;
 }
 
-FileResult jobs_dot_dump_graph_to_path(String path, JobGraph* graph) {
+FileResult jobs_dot_dump_graph_to_path(String path, const JobGraph* graph) {
   DynString buffer = dynstring_create(g_alloc_heap, usize_kibibyte);
   jobs_dot_write_graph(&buffer, graph);
 

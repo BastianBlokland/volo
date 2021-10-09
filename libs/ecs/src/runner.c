@@ -7,6 +7,7 @@
 #include "log_logger.h"
 
 #include "def_internal.h"
+#include "view_internal.h"
 #include "world_internal.h"
 
 /**
@@ -78,12 +79,20 @@ graph_insert_system(EcsRunner* runner, const EcsSystemId systemId, const EcsSyst
           SystemTaskData, .world = runner->world, .id = systemId, .routine = systemDef->routine));
 };
 
-static JobTaskId graph_system_to_task(const EcsSystemId system) {
+static bool graph_system_conflict(EcsWorld* world, const EcsSystemDef* a, const EcsSystemDef* b) {
   /**
-   * Currently systems are added to the JobGraph linearly right after the meta tasks. So to lookup a
-   * task-id we only need to offset.
+   * Check if two systems have conflicting views meaning they cannot be run in parallel.
    */
-  return (JobTaskId)(graph_meta_task_count + system);
+  dynarray_for_t((DynArray*)&a->viewIds, EcsViewId, aViewId, {
+    EcsView* aView = ecs_world_view(world, *aViewId);
+
+    dynarray_for_t((DynArray*)&b->viewIds, EcsViewId, bViewId, {
+      if (ecs_view_conflict(aView, ecs_world_view(world, *bViewId))) {
+        return true;
+      }
+    });
+  });
+  return false;
 }
 
 static void graph_reduce(const EcsRunner* runner) {
@@ -114,12 +123,16 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world) {
   dynarray_for_t((DynArray*)&def->systems, EcsSystemDef, sys, {
     const EcsSystemId sysId     = (EcsSystemId)sys_i;
     const JobTaskId   sysTaskId = graph_insert_system(runner, sysId, sys);
+
+    // Insert a finalize dependency (so finalize only happens when all systems are done).
     jobs_graph_task_depend(runner->graph, sysTaskId, finalizeTask);
 
-    if (sys_i) {
-      // TODO: At the moment systems are executed serially, instead we should generate proper
-      // dependencies based on the reads / writes of the system.
-      jobs_graph_task_depend(runner->graph, graph_system_to_task(sysId - 1), sysTaskId);
+    // Insert required dependencies on the earlier systems.
+    for (usize otherSysId = 0; otherSysId != sys_i; ++otherSysId) {
+      EcsSystemDef* otherSystem = dynarray_at_t((DynArray*)&def->systems, otherSysId, EcsSystemDef);
+      if (graph_system_conflict(world, sys, otherSystem)) {
+        jobs_graph_task_depend(runner->graph, ecs_runner_graph_task(runner, otherSysId), sysTaskId);
+      }
     }
   });
 
@@ -140,6 +153,17 @@ void ecs_runner_destroy(EcsRunner* runner) {
 
   jobs_graph_destroy(runner->graph);
   alloc_free_t(runner->alloc, runner);
+}
+
+const JobGraph* ecs_runner_graph(const EcsRunner* runner) { return runner->graph; }
+
+JobTaskId ecs_runner_graph_task(const EcsRunner* runner, const EcsSystemId systemId) {
+  (void)runner;
+  /**
+   * Currently systems are added to the JobGraph linearly right after the meta tasks. So to lookup a
+   * task-id we only need to offset.
+   */
+  return (JobTaskId)(graph_meta_task_count + systemId);
 }
 
 bool ecs_running(const EcsRunner* runner) { return (runner->flags & EcsRunnerFlags_Running) != 0; }
