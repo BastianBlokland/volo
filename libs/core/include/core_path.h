@@ -22,19 +22,19 @@ typedef struct sRng Rng;
 
 /**
  * Working directory of the process.
- * Note: Cached at startup.
+ * NOTE: Cached at startup.
  */
 extern String g_path_workingdir;
 
 /**
  * Path to the running executable.
- * Note: Cached at startup.
+ * NOTE: Cached at startup.
  */
 extern String g_path_executable;
 
 /**
  * Path to the system's temporary directory.
- * Note: Cached at startup.
+ * NOTE: Cached at startup.
  */
 extern String g_path_tempdir;
 
@@ -76,7 +76,7 @@ String path_parent(String);
  * - Flattens any '.' and '..' segments.
  * - Removes trailing seperators.
  *
- * Note: Only performs basic lexical canonization, does NOT resolve symlinks, or validate that the
+ * NOTE: Only performs basic lexical canonization, does NOT resolve symlinks, or validate that the
  * path is compatible with the underlying filesystem.
  * Return false if there was no canonical form possible.
  */
@@ -108,25 +108,25 @@ String path_build_scratch_raw(const String* segments);
 /**
  * Generate a random file name.
  * Usefull for avoiding name collisions, should not be used for anything security related.
- * Note: Prefix and extension are optional.
+ * NOTE: Prefix and extension are optional.
  */
 void path_name_random(DynString*, Rng*, String prefix, String extension);
 
 /**
  * Generate a random file name into a scratch buffer.
  * Usefull for avoiding name collisions, should not be used for anything security related.
- * Note: Prefix and extension are optional.
+ * NOTE: Prefix and extension are optional.
  */
 String path_name_random_scratch(Rng*, String prefix, String extension);
 
 /**
  * Generate a timestampped file name.
- * Note: Prefix and extension are optional.
+ * NOTE: Prefix and extension are optional.
  */
 void path_name_timestamp(DynString*, String prefix, String extension);
 
 /**
  * Generate a timestampped file name into a scratch buffer.
- * Note: Prefix and extension are optional.
+ * NOTE: Prefix and extension are optional.
  */
 String path_name_timestamp_scratch(String prefix, String extension);

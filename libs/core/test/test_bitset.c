@@ -24,6 +24,17 @@ spec(bitset) {
     }
   }
 
+  it("treats out-of-bounds bits as unset") {
+    const BitSet ones64 = bitset_from_var((u64){~(u64)0});
+
+    check(bitset_test(ones64, 63));
+
+    check(!bitset_test(ones64, 64));
+    check(!bitset_test(ones64, 65));
+    check(!bitset_test(ones64, 1337));
+    check(!bitset_test(ones64, usize_max));
+  }
+
   it("can find set bits") {
     u64    val[32] = {0};
     BitSet bits    = bitset_from_array(val);
@@ -151,6 +162,22 @@ spec(bitset) {
     bitset_for(bits, setIdx, { check_eq_int(setIdx, indices[i++]); });
   }
 
+  it("can set all bits up to a certain index") {
+    usize testSizes[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 42, 55};
+
+    u64    val[8] = {0};
+    BitSet bits   = bitset_from_array(val);
+
+    array_for_t(testSizes, usize, testSize, {
+      bitset_clear_all(bits);
+
+      bitset_set_all(bits, *testSize);
+      for (usize i = 0; i != bytes_to_bits(8); ++i) {
+        check(i < *testSize ? bitset_test(bits, i) : !bitset_test(bits, i));
+      }
+    })
+  }
+
   it("can bitwise 'or' two bitsets") {
     BitSet evenBits64   = bitset_from_var((u64){0});
     BitSet unevenBits64 = bitset_from_var((u64){0});
@@ -185,5 +212,28 @@ spec(bitset) {
     bitset_and(evenBits64, unevenBits64);
     check_eq_int(bitset_count(evenBits64), 1);
     check_eq_int(bitset_next(evenBits64, 0), 42);
+  }
+
+  it("can bitwise 'xor' two bitsets") {
+    BitSet evenBits64   = bitset_from_var((u64){0});
+    BitSet unevenBits64 = bitset_from_var((u64){0});
+    for (u32 i = 0; i != 64; ++i) {
+      bitset_set(i % 2 ? unevenBits64 : evenBits64, i);
+    }
+
+    check_eq_int(bitset_count(evenBits64), 32);
+    check_eq_int(bitset_count(unevenBits64), 32);
+
+    BitSet bits64 = bitset_from_var((u64){0});
+    bitset_xor(bits64, evenBits64);
+    bitset_xor(bits64, unevenBits64);
+
+    check_eq_int(bitset_count(bits64), 64);
+
+    bitset_xor(bits64, evenBits64);
+    check_eq_int(bitset_count(bits64), 32);
+
+    bitset_xor(bits64, unevenBits64);
+    check_eq_int(bitset_count(bits64), 0);
   }
 }

@@ -89,13 +89,13 @@ static void executor_perform_work(WorkItem item) {
 
   // Invoke the user routine.
   g_jobsIsWorking = true;
-  jobTaskDef->routine((u8*)jobTaskDef + sizeof(JobTask));
+  jobTaskDef->routine(bits_ptr_offset(jobTaskDef, sizeof(JobTask)));
   g_jobsIsWorking = false;
 
   /**
    * Update the tasks that are depending on this work.
    *
-   * Note: Makes a copy of the child task-ids on the stack before updating any child tasks. The
+   * NOTE: Makes a copy of the child task-ids on the stack before updating any child tasks. The
    * reason is that as soon as we notify a child-task it could finish the entire job while we are
    * still in this function. And thus accessing any WorkItem memory is unsafe after notifying a
    * child.
@@ -235,7 +235,7 @@ void executor_run(Job* job) {
   /**
    * Push work items for all root tasks in the job.
    *
-   * Note: Its important that we don't touch the job memory after pushing the last root-task. Reason
+   * NOTE: Its important that we don't touch the job memory after pushing the last root-task. Reason
    * is that another executor could actually finish the job while we are still inside this function.
    */
 

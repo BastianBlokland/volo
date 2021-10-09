@@ -1,9 +1,13 @@
 #pragma once
-#include "core_alloc.h"
 #include "core_annotation.h"
 #include "core_string.h"
-#include "core_time.h"
 #include "core_types.h"
+
+// Forward declare from 'core_alloc.h'.
+typedef struct sAllocator Allocator;
+
+// Forward declare from 'core_time.h'.
+typedef i64 TimeDuration;
 
 /**
  * Process identifier (aka 'thread group id').
@@ -13,7 +17,7 @@ extern i64 g_thread_pid;
 
 /**
  * Thread identifier of the main thread.
- * Note: The thread that calls 'core_init()' is considered the main thread.
+ * NOTE: The thread that calls 'core_init()' is considered the main thread.
  */
 extern i64 g_thread_main_tid;
 
@@ -39,21 +43,29 @@ typedef void (*ThreadRoutine)(void*);
 
 /**
  * Handle to a started thread.
- * Note: Thread resources should be cleaned up by calling 'thread_join()'.
+ * NOTE: Thread resources should be cleaned up by calling 'thread_join()'.
  */
 typedef uptr ThreadHandle;
 
 /**
  * Handle to a mutex.
- * Note: Should be cleaned up by calling 'thread_mutex_destroy()'.
+ * NOTE: Should be cleaned up by calling 'thread_mutex_destroy()'.
  */
 typedef uptr ThreadMutex;
 
 /**
  * Handle to a condition.
- * Note: Should be cleaned up by calling 'thread_cond_destroy()'.
+ * NOTE: Should be cleaned up by calling 'thread_cond_destroy()'.
  */
 typedef uptr ThreadCondition;
+
+/**
+ * SpinLock semaphore.
+ * Usefull for very short locks where the cost of context switching would be too high.
+ * Lock using 'thread_spinlock_lock()', and unlock using 'thread_spinlock_unlock()'.
+ * NOTE: Should be zero initialized.
+ */
+typedef i64 ThreadSpinLock;
 
 /**
  * Atomically reads the value at the given pointer.
@@ -107,7 +119,7 @@ ThreadHandle thread_start(ThreadRoutine, void* data, String threadName);
 
 /**
  * Wait for the given thread to finish and clean up its resources.
- * Note: Should be called exactly once per started thread.
+ * NOTE: Should be called exactly once per started thread.
  */
 void thread_join(ThreadHandle);
 
@@ -185,7 +197,7 @@ void thread_cond_wait(ThreadCondition, ThreadMutex);
 
 /**
  * Unblock atleast one thread waiting for the given condition.
- * Note: It is possible that more then one thread is woken up, often called 'spurious wakeup'.
+ * NOTE: It is possible that more then one thread is woken up, often called 'spurious wakeup'.
  */
 void thread_cond_signal(ThreadCondition);
 
@@ -193,3 +205,20 @@ void thread_cond_signal(ThreadCondition);
  * Unblock all threads waiting for the given condition.
  */
 void thread_cond_broadcast(ThreadCondition);
+
+/**
+ * Acquire the spinlink.
+ * In order to avoid wasting resources this lock should be held for a short as possible.
+ * This includes a general memory barrier that synchronizes with 'thread_spinlock_unlock()'.
+ *
+ * Pre-condition: SpinLock is not being held by this thread.
+ */
+void thread_spinlock_lock(ThreadSpinLock*);
+
+/**
+ * Release the spinlink.
+ * This includes a general memory barrier that synchronizes with 'thread_spinlock_lock()'.
+ *
+ * Pre-condition: Spinlock is being held by this thread.
+ */
+void thread_spinlock_unlock(ThreadSpinLock*);

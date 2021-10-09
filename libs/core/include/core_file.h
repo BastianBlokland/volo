@@ -1,7 +1,9 @@
 #pragma once
-#include "core_alloc.h"
 #include "core_dynstring.h"
 #include "core_string.h"
+
+// Forward declare from 'core_alloc.h'.
+typedef struct sAllocator Allocator;
 
 // Forward declare from 'core_time.h'.
 typedef i64 TimeReal;
@@ -101,7 +103,7 @@ FileResult file_temp(Allocator*, File** file);
 
 /**
  * Destroy a file handle.
- * Note: Does not destroy the file from the file-system.
+ * NOTE: Does not destroy the file from the file-system.
  */
 void file_destroy(File*);
 
@@ -117,7 +119,7 @@ FileResult file_write_to_path_sync(String path, String data);
 
 /**
  * Synchronously read a block of available data in the dynamic-string.
- * Note: returns 'FileResult_NoDataAvailable' when the end of the file has been reached.
+ * NOTE: returns 'FileResult_NoDataAvailable' when the end of the file has been reached.
  */
 FileResult file_read_sync(File*, DynString*);
 
@@ -157,6 +159,6 @@ FileResult file_map(File*, String* output);
 
 /**
  * Synchronously create a new file-system directory.
- * Note: Will also create the parent directory if its missing.
+ * NOTE: Will also create the parent directory if its missing.
  */
 FileResult file_create_dir_sync(String path);

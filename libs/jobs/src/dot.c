@@ -64,9 +64,22 @@ void jobs_dot_write_graph(DynString* str, JobGraph* graph) {
   fmt_write(str, "}\n");
 }
 
-void jobs_dot_dump_graph(File* file, JobGraph* graph) {
+FileResult jobs_dot_dump_graph(File* file, JobGraph* graph) {
   DynString buffer = dynstring_create(g_alloc_heap, usize_kibibyte);
   jobs_dot_write_graph(&buffer, graph);
-  file_write_sync(file, dynstring_view(&buffer));
+
+  const FileResult result = file_write_sync(file, dynstring_view(&buffer));
+
   dynstring_destroy(&buffer);
+  return result;
+}
+
+FileResult jobs_dot_dump_graph_to_path(String path, JobGraph* graph) {
+  DynString buffer = dynstring_create(g_alloc_heap, usize_kibibyte);
+  jobs_dot_write_graph(&buffer, graph);
+
+  const FileResult result = file_write_to_path_sync(path, dynstring_view(&buffer));
+
+  dynstring_destroy(&buffer);
+  return result;
 }

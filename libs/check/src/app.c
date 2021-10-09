@@ -1,6 +1,8 @@
 #include "check_app.h"
 #include "check_runner.h"
 #include "cli.h"
+#include "core_alloc.h"
+#include "core_file.h"
 
 typedef struct {
   CliApp* cliApp;

@@ -1,6 +1,8 @@
 #pragma once
-#include "core_file.h"
 #include "core_types.h"
+
+// Forward declare from 'core_file.h'.
+typedef struct sFile File;
 
 /**
  * TTY - TeleTypeWriter.
@@ -58,7 +60,7 @@ TtyBgColor;
 
 /**
  * Special terminal style flags.
- * Note: Not all terminals support all options.
+ * NOTE: Not all terminals support all options.
  * Maps closely to the ANSI SGR (Select Graphic Rendition) parameters.
  */
 PACKED(typedef enum {
@@ -74,7 +76,7 @@ TtyStyleFlags;
 
 /**
  * Structure representing a terminal style.
- * Note: A default constructed TtyStyle (all zeroes) will create a reset-to-default style.
+ * NOTE: A default constructed TtyStyle (all zeroes) will create a reset-to-default style.
  * Maps closely to the ANSI SGR (Select Graphic Rendition) parameters.
  */
 typedef struct {
@@ -85,7 +87,7 @@ typedef struct {
 
 /**
  * Construct a TtyStyle structure.
- * Note: Providing no arguments will create a reset-to-default style.
+ * NOTE: Providing no arguments will create a reset-to-default style.
  */
 #define ttystyle(...)                                                                              \
   ((TtyStyle){                                                                                     \

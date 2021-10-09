@@ -1,4 +1,5 @@
 #include "check_app.h"
+#include "core_alloc.h"
 #include "core_init.h"
 #include "jobs_init.h"
 #include "log.h"
@@ -12,6 +13,7 @@ int main(const int argc, const char** argv) {
 
   CheckDef* check = check_create(g_alloc_heap);
   register_spec(check, alloc_bump);
+  register_spec(check, alloc_chunked);
   register_spec(check, alloc_page);
   register_spec(check, alloc_scratch);
   register_spec(check, ascii);

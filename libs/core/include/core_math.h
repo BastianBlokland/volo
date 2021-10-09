@@ -72,7 +72,7 @@ f64 math_ceil_f64(f64);
 
 /**
  * Compute the rounded version of the given value.
- * Note: Uses round-to-even for values exactly half-way between two values (also known as 'Bankers
+ * NOTE: Uses round-to-even for values exactly half-way between two values (also known as 'Bankers
  * rounding').
  */
 f64 math_round_f64(f64);

@@ -2,7 +2,22 @@
 #include "core_diag.h"
 #include "core_math.h"
 
+#if defined(VOLO_MSVC)
+
 #include <math.h>
+#pragma intrinsic(sqrtf)
+#pragma intrinsic(logf)
+#pragma intrinsic(sinf)
+#pragma intrinsic(cosf)
+
+#else
+
+#define sqrtf __builtin_sqrtf
+#define logf __builtin_logf
+#define sinf __builtin_sinf
+#define cosf __builtin_cosf
+
+#endif
 
 u64 math_pow10_u64(const u8 val) {
   static u64 table[] = {

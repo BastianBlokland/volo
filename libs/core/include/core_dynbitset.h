@@ -5,8 +5,8 @@
 /**
  * Owning collection of bit-flags.
  * Dynamically allocates memory when required.
- * Note: Any pointers / bitsets retrieved over DynBitSet are invalidated on any mutating api.
- * Note: DynBitSets are always byte aligned, meaning size is always a multiple of 8.
+ * NOTE: Any pointers / bitsets retrieved over DynBitSet are invalidated on any mutating api.
+ * NOTE: DynBitSets are always byte aligned, meaning size is always a multiple of 8.
  */
 typedef DynArray DynBitSet;
 
@@ -30,14 +30,30 @@ usize dynbitset_size(const DynBitSet*);
 
 /**
  * Retreive a bitset-view over the entire dynamic-bitset.
- * Note: This bitset is invalidated when using any of the mutating dynamic-bitset apis.
+ * NOTE: This bitset is invalidated when using any of the mutating dynamic-bitset apis.
  */
 BitSet dynbitset_view(const DynBitSet*);
+
+/**
+ * Test if the bit at the given index is set.
+ * NOTE: Out of bounds bits are considered unset.
+ */
+bool dynbitset_test(const DynBitSet*, usize idx);
 
 /**
  * Set the bit at the given index.
  */
 void dynbitset_set(DynBitSet*, usize idx);
+
+/**
+ * Set all the bits up to (and including) the given index.
+ */
+void dynbitset_set_all(DynBitSet*, usize idx);
+
+/**
+ * Clear the bit at the given index.
+ */
+void dynbitset_clear(DynBitSet*, usize idx);
 
 /**
  * Set all bits which are set in the other bitset.

@@ -36,11 +36,11 @@ static Mem alloc_scratch_alloc(Allocator* allocator, const usize size, const usi
     return mem_create(null, size);
   }
 
-  u8* alignedHead = (u8*)bits_align((uptr)allocatorScratch->head, align);
+  u8* alignedHead = bits_align_ptr(allocatorScratch->head, align);
 
   if (UNLIKELY(alignedHead + size > mem_end(allocatorScratch->memory))) {
     // Wrap around the scratch buffer.
-    alignedHead = (u8*)bits_align((uptr)mem_begin(allocatorScratch->memory), align);
+    alignedHead = bits_align_ptr(mem_begin(allocatorScratch->memory), align);
   }
 
   allocatorScratch->head = alignedHead + size;
@@ -73,6 +73,11 @@ static usize alloc_scratch_max_size(Allocator* allocator) {
   return alloc_scratch_max_alloc_size;
 }
 
+static void alloc_scratch_reset(Allocator* allocator) {
+  (void)allocator;
+  diag_crash_msg("Scratch-allocator cannot be reset");
+}
+
 static THREAD_LOCAL struct AllocatorScratch g_allocatorIntern;
 
 Allocator* alloc_scratch_init() {
@@ -83,6 +88,7 @@ Allocator* alloc_scratch_init() {
           .free    = alloc_scratch_free,
           .minSize = alloc_scratch_min_size,
           .maxSize = alloc_scratch_max_size,
+          .reset   = alloc_scratch_reset,
       },
       .memory = scratchPages,
       .head   = mem_begin(scratchPages),

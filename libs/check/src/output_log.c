@@ -1,3 +1,4 @@
+#include "core_alloc.h"
 #include "core_path.h"
 #include "core_thread.h"
 #include "jobs_executor.h"

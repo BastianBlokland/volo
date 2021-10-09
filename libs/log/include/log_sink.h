@@ -9,7 +9,7 @@ struct sLogSink {
 
   /**
    * Function to call when the sink is destroyed.
-   * Note: Can be 'null' when the sink doesn't need special destruction logic.
+   * NOTE: Can be 'null' when the sink doesn't need special destruction logic.
    */
   void (*destroy)(LogSink*);
 };

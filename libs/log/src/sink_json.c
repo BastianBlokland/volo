@@ -3,6 +3,7 @@
 #include "core_file.h"
 #include "core_format.h"
 #include "core_path.h"
+#include "core_time.h"
 #include "json_doc.h"
 #include "json_write.h"
 #include "log_sink.h"

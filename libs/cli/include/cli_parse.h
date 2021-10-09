@@ -33,7 +33,7 @@ typedef struct sCliInvocation CliInvocation;
 /**
  * Parse a set of input strings for the given application.
  *
- * Note: Does not strip off the initial invocation-path that (many?) operating systems pass as the
+ * NOTE: Does not strip off the initial invocation-path that (many?) operating systems pass as the
  * first argument.
  *
  * Destroy using 'cli_parse_destroy()'.
@@ -62,6 +62,6 @@ bool cli_parse_provided(const CliInvocation*, CliId);
 
 /**
  * Retrieve the values that where provided to the specific option in this invocation.
- * Note: Returns an empty set of values if the given option was not provided.
+ * NOTE: Returns an empty set of values if the given option was not provided.
  */
 CliParseValues cli_parse_values(const CliInvocation*, CliId);

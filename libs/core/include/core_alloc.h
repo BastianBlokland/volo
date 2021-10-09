@@ -1,5 +1,4 @@
 #pragma once
-#include "core_alignof.h"
 #include "core_annotation.h"
 #include "core_memory.h"
 
@@ -13,7 +12,7 @@
 
 /**
  * Allocate new memory that satisfies the size and alignment required for the given type.
- * Note: Has to be explicitly freed using 'alloc_free'.
+ * NOTE: Has to be explicitly freed using 'alloc_free'.
  */
 #define alloc_alloc_t(_ALLOCATOR_, _TYPE_)                                                         \
   ((_TYPE_*)alloc_alloc((_ALLOCATOR_), sizeof(_TYPE_), alignof(_TYPE_)).ptr)
@@ -29,6 +28,11 @@
  * Allocator handle.
  */
 typedef struct sAllocator Allocator;
+
+/**
+ * Routine to build an allocator to manage a memory region.
+ */
+typedef Allocator* (*AllocatorBuilder)(Mem);
 
 /**
  * 'Normal' heap allocator.
@@ -51,12 +55,33 @@ extern THREAD_LOCAL Allocator* g_alloc_scratch;
 /**
  * Create a new bump allocator. Will allocate from the given memory region, once the region is empty
  * allocations will fail. Memory region needs to contain atleast 64 bytes for internal book-keeping.
+ * NOTE: Does not need explicit destruction as all book-keeping is stored within the given mem.
  */
 Allocator* alloc_bump_create(Mem);
 
 /**
+ * Create a chunked allocator.
+ * Allocates chunks of memory from the parent allocator and uses AllocatorBuilder to create
+ * sub-allocators for those chunks.
+ *
+ * NOTE: Chunks are only freed when the allocator is destroyed.
+ * NOTE: Destroy using 'alloc_chunked_destroy()'.
+ * NOTE: Only 32 chunks are supported, after that allocations will fail.
+ *
+ * Pre-condition: chunkSize >= 128.
+ * Pre-condition: chunkSize is a power-of-two.
+ */
+Allocator* alloc_chunked_create(Allocator* parent, AllocatorBuilder, usize chunkSize);
+
+/**
+ * Destroy a chunked allocator.
+ * Pre-condition: Given allocator was created using 'alloc_chunked_create()'.
+ */
+void alloc_chunked_destroy(Allocator*);
+
+/**
  * Allocate new memory.
- * Note: Has to be explicitly freed using 'alloc_free'.
+ * NOTE: Has to be explicitly freed using 'alloc_free'.
  * Pre-condition: size > 0.
  * Pre-condition: align is a power-of-two.
  * Pre-condition: size is a multiple of align.
@@ -70,6 +95,12 @@ Mem alloc_alloc(Allocator*, usize size, usize align);
 void alloc_free(Allocator*, Mem);
 
 /**
+ * Duplicate the given memory with memory alloced from the given allocator.
+ * NOTE: Has to be explicitly freed using 'alloc_free'.
+ */
+Mem alloc_dup(Allocator*, Mem, usize align);
+
+/**
  * Return the minimum allocation size (in bytes) for this allocator.
  * For example the page-allocator will return the page size.
  */
@@ -79,3 +110,9 @@ usize alloc_min_size(Allocator*);
  * Return the maximum allocation size (in bytes) for this allocator.
  */
 usize alloc_max_size(Allocator*);
+
+/**
+ * Reset the given allocator.
+ * NOTE: Will invalidate all memory allocated from this allocator.
+ */
+void alloc_reset(Allocator*);

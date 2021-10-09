@@ -37,15 +37,15 @@ typedef enum {
 
 /**
  * Create a json log sink that outputs to the given file.
- * Note: Should be added to a logger using 'log_add_sink()'.
- * Note: Is automatically cleaned up when its parent logger is destroyed.
+ * NOTE: Should be added to a logger using 'log_add_sink()'.
+ * NOTE: Is automatically cleaned up when its parent logger is destroyed.
  */
 LogSink* log_sink_json(Allocator*, File*, LogMask, LogSinkJsonFlags);
 
 /**
  * Create a json log sink that writes a file at the given path.
- * Note: Should be added to a logger using 'log_add_sink()'.
- * Note: Is automatically cleaned up when its parent logger is destroyed.
+ * NOTE: Should be added to a logger using 'log_add_sink()'.
+ * NOTE: Is automatically cleaned up when its parent logger is destroyed.
  */
 LogSink* log_sink_json_to_path(Allocator*, LogMask, String path);
 
@@ -53,7 +53,7 @@ LogSink* log_sink_json_to_path(Allocator*, LogMask, String path);
  * Create a json log sink that writes a file called '[executable-name]_[timestamp].log' in a
  * directory called 'logs' next to the executable.
  *
- * Note: Should be added to a logger using 'log_add_sink()'.
- * Note: Is automatically cleaned up when its parent logger is destroyed.
+ * NOTE: Should be added to a logger using 'log_add_sink()'.
+ * NOTE: Is automatically cleaned up when its parent logger is destroyed.
  */
 LogSink* log_sink_json_default(Allocator*, LogMask);

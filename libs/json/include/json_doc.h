@@ -78,7 +78,7 @@ typedef struct {
 
 /**
  * Create a new Json document.
- * Note: 'valueCapacity' is only the initial capacity, more space is automatically allocated when
+ * NOTE: 'valueCapacity' is only the initial capacity, more space is automatically allocated when
  * required. Capacity of 0 is legal and will allocate memory when the first value is added.
  * Should be destroyed using 'json_destroy()'.
  */
@@ -132,7 +132,7 @@ void json_add_elem(JsonDoc*, JsonVal array, JsonVal elem);
 /**
  * Add a new field to an object.
  * Returns 'false' if the object already contains a field with the given name.
- * Note: When 'false' is returned the state of the object is not modified.
+ * NOTE: When 'false' is returned the state of the object is not modified.
  *
  * Pre-condition: object is a value of type JsonType_Object in the given document.
  * Pre-condition: name is a value of type JsonType_String in the given document.
@@ -147,7 +147,7 @@ bool json_add_field(JsonDoc*, JsonVal object, JsonVal name, JsonVal val);
 /**
  * Add a new field to an object.
  * Returns 'false' if the object already contains a field with the given name.
- * Note: When 'false' is returned the state of the object is not modified.
+ * NOTE: When 'false' is returned the state of the object is not modified.
  *
  * Pre-condition: object is a value of type JsonType_Object in the given document.
  * Pre-condition: !string_is_empty(name).

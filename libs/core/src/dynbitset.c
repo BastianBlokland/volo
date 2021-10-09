@@ -8,7 +8,7 @@ static usize bitset_required_bytes(usize bit) {
 static void dynbitset_ensure(DynBitSet* dynbitset, usize bit) {
   const usize byte = bits_to_bytes(bit);
   if (byte >= dynbitset->size) {
-    // Out of bounds, add new bytes and intiialize them to 0.
+    // Out of bounds, add new bytes and initialize them to 0.
     mem_set(dynarray_push(dynbitset, 1 + byte - dynbitset->size), 0);
   }
 }
@@ -27,9 +27,23 @@ BitSet dynbitset_view(const DynBitSet* dynbitset) {
   return dynarray_at(dynbitset, 0, dynbitset->size);
 }
 
+INLINE_HINT bool dynbitset_test(const DynBitSet* dynbitset, usize idx) {
+  return bits_to_bytes(idx) < dynbitset->size && bitset_test(dynbitset_view(dynbitset), idx);
+}
+
 INLINE_HINT void dynbitset_set(DynBitSet* dynbitset, usize idx) {
   dynbitset_ensure(dynbitset, idx);
   bitset_set(dynbitset_view(dynbitset), idx);
+}
+
+void dynbitset_set_all(DynBitSet* dynbitset, usize idx) {
+  dynbitset_ensure(dynbitset, idx);
+  bitset_set_all(dynarray_at(dynbitset, 0, bits_to_bytes(idx) + 1), idx);
+}
+
+void dynbitset_clear(DynBitSet* dynbitset, usize idx) {
+  dynbitset_ensure(dynbitset, idx);
+  bitset_clear(dynbitset_view(dynbitset), idx);
 }
 
 void dynbitset_or(DynBitSet* dynbitset, BitSet other) {

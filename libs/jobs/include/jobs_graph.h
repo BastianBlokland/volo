@@ -7,7 +7,7 @@ typedef struct sAllocator Allocator;
 
 /**
  * Opaque identifier to a task in a job.
- * Note: Are assigned starting from 0.
+ * NOTE: Are assigned starting from 0.
  * Iteration from 0 to 'jobs_graph_task_count()' is a valid way to lookup tasks.
  */
 typedef u32 JobTaskId;
@@ -29,7 +29,7 @@ typedef void (*JobTaskRoutine)(void* context);
  * JobGraph data structure.
  * Contains all tasks and dependencies between them.
  * Can be scheduled one or multiple times on the job system.
- * Note: JobGraph should not be modified or destroyed while its running on the job system.
+ * NOTE: JobGraph should not be modified or destroyed while its running on the job system.
  */
 typedef struct sJobGraph JobGraph;
 
@@ -57,7 +57,7 @@ typedef struct sJobGraph JobGraph;
 
 /**
  * Create a new JobGraph.
- * Note: 'taskCapacity' is only the initial capacity, more space is automatically allocated when
+ * NOTE: 'taskCapacity' is only the initial capacity, more space is automatically allocated when
  * required. Capacity of 0 is legal and will allocate memory when the first task is added.
  * Should be destroyed using 'jobgraph_destroy()'.
  */
@@ -72,7 +72,7 @@ void jobs_graph_destroy(JobGraph*);
 /**
  * Add a new task to the graph.
  * 'ctx' is provided to the 'JobTaskRoutine' when the task is executed.
- * Note: 'ctx' is copied into the graph and has the same lifetime as the graph.
+ * NOTE: 'ctx' is copied into the graph and has the same lifetime as the graph.
  *
  * Pre-condition: JobGraph is not running at the moment.
  * Pre-condition: ctx.size <= (64 - sizeof(void*) * 3).
@@ -86,6 +86,27 @@ JobTaskId jobs_graph_add_task(JobGraph*, String name, JobTaskRoutine, Mem ctx);
  * Pre-condition: parent != child.
  */
 void jobs_graph_task_depend(JobGraph*, JobTaskId parent, JobTaskId child);
+
+/**
+ * Remove a dependency between two tasks if it exists.
+ * Returns if a dependency was found (and removed) between parent and child.
+ *
+ * Pre-condition: JobGraph is not running at the moment.
+ * Pre-condition: parent != child.
+ */
+bool jobs_graph_task_undepend(JobGraph*, JobTaskId parent, JobTaskId child);
+
+/**
+ * Remove all unnecessary dependencies
+ * This performs a 'Transitive Reduction' to remove dependencies while still keeping an equivalent
+ * graph. More info: https://en.wikipedia.org/wiki/Transitive_reduction
+ * Returns the amount of dependencies removed.
+ *
+ * NOTE: This is a relatively expensive operation (at least O(tasks * dependencies)).
+ *
+ * Pre-condition: JobGraph is not running at the moment.
+ */
+usize jobs_graph_reduce_dependencies(JobGraph*);
 
 /**
  * Validate the given JobGraph.
@@ -136,13 +157,13 @@ usize jobs_graph_task_parent_count(const JobGraph*, JobTaskId);
 
 /**
  * Create an iterator for iterating over the children of the given task.
- * Note: Returns an interator with 'task' set to 'sentinel_u32' when the given task has no children.
+ * NOTE: Returns an interator with 'task' set to 'sentinel_u32' when the given task has no children.
  */
 JobTaskChildItr jobs_graph_task_child_begin(const JobGraph*, JobTaskId);
 
 /**
  * Advance the task child iterator.
- * Note: Returns an interator with 'task' set to 'sentinel_u32' when there is no next child.
+ * NOTE: Returns an interator with 'task' set to 'sentinel_u32' when there is no next child.
  */
 JobTaskChildItr jobs_graph_task_child_next(const JobGraph*, JobTaskChildItr);
 

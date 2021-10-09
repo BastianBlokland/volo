@@ -4,7 +4,7 @@
 
 /**
  * Non-owning view over memory containing bit flags.
- * Note: BitSets are always byte aligned, meaning size is always a multiple of 8.
+ * NOTE: BitSets are always byte aligned, meaning size is always a multiple of 8.
  */
 typedef Mem BitSet;
 
@@ -51,7 +51,7 @@ usize bitset_size(BitSet);
 
 /**
  * Test if the bit at the given index is set.
- * Pre-condition: idx < bitset_size
+ * NOTE: Out of bounds bits are considered 0.
  */
 bool bitset_test(BitSet, usize idx);
 
@@ -79,7 +79,7 @@ bool bitset_all_of(BitSet, BitSet other);
 /**
  * Return the next set bit starting from the given index.
  * Pre-condition: idx < bitset_size
- * Note: Returns 'sentinel_usize' if there are no more set bits.
+ * NOTE: Returns 'sentinel_usize' if there are no more set bits.
  */
 usize bitset_next(BitSet, usize idx);
 
@@ -99,6 +99,12 @@ usize bitset_index(BitSet, usize idx);
 void bitset_set(BitSet, usize idx);
 
 /**
+ * Set all the bits up to (and including) the given index.
+ * Pre-condition: idx < bitset_size
+ */
+void bitset_set_all(BitSet, usize idx);
+
+/**
  * Unset the bit at the given index.
  * Pre-condition: idx < bitset_size
  */
@@ -110,13 +116,19 @@ void bitset_clear(BitSet, usize idx);
 void bitset_clear_all(BitSet);
 
 /**
- * Set all bits which are set in the other bitset.
+ * Perform a bit-wise 'or' operation over all the bits.
  * Pre-condition: bitset_size(other) <= bitset_size
  */
 void bitset_or(BitSet, BitSet other);
 
 /**
- * Clear all bits which are not set in the other bitset.
+ * Perform a bit-wise 'and' operation over all the bits.
  * Pre-condition: bitset_size(other) >= bitset_size
  */
 void bitset_and(BitSet, BitSet other);
+
+/**
+ * Perform a bit-wise 'exclusive-or' operation over all the bits.
+ * Pre-condition: bitset_size(other) >= bitset_size
+ */
+void bitset_xor(BitSet, BitSet other);

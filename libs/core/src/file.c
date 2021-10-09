@@ -24,7 +24,7 @@ static const String g_file_result_strs[] = {
     string_static("FileUnknownError"),
 };
 
-_Static_assert(
+ASSERT(
     array_elems(g_file_result_strs) == FileResult_Count, "Incorrect number of FileResult strings");
 
 String file_result_str(FileResult result) {

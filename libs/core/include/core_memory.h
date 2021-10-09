@@ -2,7 +2,7 @@
 #include "core_types.h"
 
 /**
- * Non-owning view over memory with a specified size.
+ * Non-owning view over a memory block.
  */
 typedef struct {
   void* ptr;
@@ -19,23 +19,35 @@ typedef struct {
  */
 #define mem_struct(_TYPE_, ...)                                                                    \
   ((Mem){                                                                                          \
-      .ptr  = &(_TYPE_){__VA_ARGS__},                                                              \
+      .ptr  = &(_TYPE_){0, ##__VA_ARGS__},                                                         \
       .size = sizeof(_TYPE_),                                                                      \
   })
 
 /**
  * Create a view over the given memory.
- * Note: The memory view is only valid as long as the underlying memory remains valid.
+ * NOTE: The memory view is only valid as long as the underlying memory remains valid.
  */
 #define mem_create(_PTR_, _SIZE_)                                                                  \
   ((Mem){                                                                                          \
       .ptr  = (void*)(_PTR_),                                                                      \
-      .size = _SIZE_,                                                                              \
+      .size = (_SIZE_),                                                                            \
+  })
+
+/**
+ * Create a view over the given memory.
+ * NOTE: _BEGIN_ is expanded multiple times, so care must be taken when providing complex
+ * expressions.
+ * NOTE: The memory view is only valid as long as the underlying memory remains valid.
+ */
+#define mem_from_to(_BEGIN_, _END_)                                                                \
+  ((Mem){                                                                                          \
+      .ptr  = (void*)(_BEGIN_),                                                                    \
+      .size = (u8*)(_END_) - (u8*)(_BEGIN_),                                                       \
   })
 
 /**
  * Check if the memory view is valid.
- * Note: Only checks if it was initialized properly, does NOT check if there is actually memory
+ * NOTE: Only checks if it was initialized properly, does NOT check if there is actually memory
  * backing it.
  */
 #define mem_valid(_MEM_) ((_MEM_).ptr != null)
@@ -61,7 +73,7 @@ typedef struct {
  * Interpret this memory as type '_TYPE_'.
  * Pre-condition: sizeof(_TYPE_) <= mem.size
  */
-#define mem_as_t(_MEM_, _TYPE_) ((_TYPE_*)mem_as(_MEM_, sizeof(_TYPE_)))
+#define mem_as_t(_MEM_, _TYPE_) ((_TYPE_*)mem_as(_MEM_, sizeof(_TYPE_), alignof(_TYPE_)))
 
 /**
  * Iterate over each byte.
@@ -78,9 +90,10 @@ typedef struct {
 
 /**
  * Create a memory buffer on the stack.
- * Note: Care must be taken not to overflow the stack by using too high _SIZE_ values.
- * NOTE: _SIZE_ is expanded multiple times, so care must be taken when providing complex
- * expressions.
+ * NOTE: Care must be taken not to overflow the stack by using too high _SIZE_ values.
+ * NOTE: The memory is not scoped, instead it always belongs to the function. So usage in a loop
+ * will accumulates memory that is only freed when the function returns.
+ * NOTE: _SIZE_ is expanded twice, so care must be taken when providing complex expressions.
  */
 #if defined(VOLO_MSVC)
 #define mem_stack(_SIZE_) mem_create(_alloca(_SIZE_), _SIZE_)
@@ -120,9 +133,9 @@ Mem mem_consume(Mem, usize amount);
 
 /**
  * Interpret this memory as an object with the given size.
- * Only performs diagnostic size validation, should be considered a no-op for non-debug builds.
+ * Only performs diagnostic size / align validation, no-op in non-debug builds.
  */
-void* mem_as(Mem mem, usize size);
+void* mem_as(Mem mem, usize size, usize align);
 
 /**
  * Compare memory a and b.

@@ -1,8 +1,10 @@
 #pragma once
-#include "core_alloc.h"
 #include "core_array.h"
 #include "core_macro.h"
 #include "core_string.h"
+
+// Forward declare from 'core_alloc.h'.
+typedef struct sAllocator Allocator;
 
 // Forward declare from 'cli_validate.h'.
 typedef bool (*CliValidateFunc)(const String input);
@@ -38,7 +40,7 @@ typedef struct sCliApp CliApp;
 
 /**
  * Create a new CliApp.
- * Note: 'string_empty' can be passed as the desc if no description is available.
+ * NOTE: 'string_empty' can be passed as the desc if no description is available.
  *
  * Destroy using 'cli_app_destroy()'.
  */
@@ -51,7 +53,7 @@ void cli_app_destroy(CliApp*);
 
 /**
  * Register a new flag to the given application.
- * Note: 0 can be passed as the 'character' to indicate that this flag has no short-form.
+ * NOTE: 0 can be passed as the 'character' to indicate that this flag has no short-form.
  *
  * Flags can be passed with both a short and a long form:
  * '-[character]'
@@ -69,8 +71,8 @@ CliId cli_register_flag(CliApp*, u8 character, String name, CliOptionFlags);
  * Register a new argument to the given application.
  * Position of arguments are derived from the order in which they are registered.
  *
- * Note: name is only used for display purposes and has no effect on parsing.
- * Note: name does not need to be unique.
+ * NOTE: name is only used for display purposes and has no effect on parsing.
+ * NOTE: name does not need to be unique.
  *
  * Pre-condition: name.size > 0.
  * Pre-condition: name.size <= 64.
@@ -121,7 +123,7 @@ void cli_register_desc(CliApp*, CliId, String desc);
 
 /**
  * Add a description including the possible choices to a registered option.
- * Note: provide 'sentinel_usize' to 'defaultChoice' to indicate that there is no default choice.
+ * NOTE: provide 'sentinel_usize' to 'defaultChoice' to indicate that there is no default choice.
  *
  * Pre-condition: CliId is a valid option registered to the given application.
  * Pre-condition: There is no description registered yet for this option.
@@ -141,7 +143,7 @@ void cli_register_desc(CliApp*, CliId, String desc);
 
 /**
  * Add a description including the possible choices to a registered option.
- * Note: provide 'sentinel_usize' to 'defaultChoice' to indicate that there is no default choice.
+ * NOTE: provide 'sentinel_usize' to 'defaultChoice' to indicate that there is no default choice.
  *
  * Pre-condition: CliId is a valid option registered to the given application.
  * Pre-condition: There is no description registered yet for this option.

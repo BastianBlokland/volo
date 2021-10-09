@@ -32,16 +32,16 @@
  *   "pending": []
  * }
  * ```
- * Note: Durations are in whole milliseconds.
- * Note: Skipped tests are categorized as 'pending' in the Mocha json format.
+ * NOTE: Durations are in whole milliseconds.
+ * NOTE: Skipped tests are categorized as 'pending' in the Mocha json format.
  *
  * Aims for compatiblity with the Mocha json reporter from v7.2.0 or higher.
  */
 
 /**
  * Create a mocha json output that writes to the given file.
- * Note: the given file handle is automatically destroyed when the output is destroyed.
- * Note: Destroy using 'check_output_destroy()'.
+ * NOTE: the given file handle is automatically destroyed when the output is destroyed.
+ * NOTE: Destroy using 'check_output_destroy()'.
  */
 CheckOutput* check_output_mocha(Allocator*, File*);
 

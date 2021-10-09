@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
+#include "core_time.h"
 #include "log_sink.h"
 
 #include "logger_internal.h"
@@ -20,7 +21,7 @@ static const String g_level_strs[] = {
     string_static("err"),
 };
 
-_Static_assert(array_elems(g_level_strs) == LogLevel_Count, "Incorrect number of LogLevel strings");
+ASSERT(array_elems(g_level_strs) == LogLevel_Count, "Incorrect number of LogLevel strings");
 
 static void log_destroy_sinks(Logger* logger) {
   dynarray_for_t(&logger->sinks, LogSink*, sink, {

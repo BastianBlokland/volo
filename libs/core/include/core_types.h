@@ -23,6 +23,10 @@ typedef u8 bool;
 
 #define null 0
 
+#define u8_lit(_LITERAL_) UINT8_C(_LITERAL_)
+#define i8_lit(_LITERAL_) INT8_C(_LITERAL_)
+#define u16_lit(_LITERAL_) UINT16_C(_LITERAL_)
+#define i16_lit(_LITERAL_) INT16_C(_LITERAL_)
 #define u32_lit(_LITERAL_) UINT32_C(_LITERAL_)
 #define i32_lit(_LITERAL_) INT32_C(_LITERAL_)
 #define u64_lit(_LITERAL_) UINT64_C(_LITERAL_)
@@ -52,6 +56,15 @@ typedef u8 bool;
 #define usize_gibibyte (usize_mebibyte * 1024)
 #define usize_tebibyte (usize_gibibyte * 1024)
 #define usize_pebibyte (usize_tebibyte * 1024)
+
+/**
+ * Return the alignment required for the given type.
+ */
+#if defined(VOLO_MSVC)
+#define alignof(_TYPE_) __alignof(_TYPE_)
+#else
+#define alignof(_TYPE_) __alignof__(_TYPE_)
+#endif
 
 /**
  * Retrieve a pointer to a field inside the given value.

@@ -13,7 +13,7 @@ struct AllocatorPage {
 static Mem alloc_page_alloc(Allocator* allocator, const usize size, const usize align) {
   const usize pageSize = ((struct AllocatorPage*)allocator)->pageSize;
   diag_assert_msg(
-      (pageSize & (align - 1)) == 0,
+      bits_aligned(pageSize, align),
       "alloc_page_alloc: Alignment '{}' cannot be satisfied (stronger then pageSize alignment)",
       fmt_int(align));
   (void)pageSize;
@@ -42,6 +42,11 @@ static usize alloc_page_max_size(Allocator* allocator) {
   return usize_max;
 }
 
+static void alloc_page_reset(Allocator* allocator) {
+  (void)allocator;
+  diag_crash_msg("Page-allocator cannot be reset");
+}
+
 static struct AllocatorPage g_allocatorIntern;
 
 Allocator* alloc_page_init() {
@@ -55,6 +60,7 @@ Allocator* alloc_page_init() {
           .free    = alloc_page_free,
           .minSize = alloc_page_min_size,
           .maxSize = alloc_page_max_size,
+          .reset   = alloc_page_reset,
       },
       pageSize,
   };

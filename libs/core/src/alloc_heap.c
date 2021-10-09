@@ -18,7 +18,7 @@ static Mem alloc_heap_alloc(Allocator* allocator, const usize size, const usize 
 #elif defined(VOLO_WIN32)
   return mem_create(_aligned_malloc(size, align), size);
 #else
-  _Static_assert(false, "Unsupported platform");
+  ASSERT(false, "Unsupported platform");
 #endif
 }
 
@@ -33,7 +33,7 @@ static void alloc_heap_free(Allocator* allocator, Mem mem) {
 #elif defined(VOLO_WIN32)
   _aligned_free(mem.ptr);
 #else
-  _Static_assert(false, "Unsupported platform");
+  ASSERT(false, "Unsupported platform");
 #endif
 }
 
@@ -47,6 +47,11 @@ static usize alloc_heap_max_size(Allocator* allocator) {
   return usize_max;
 }
 
+static void alloc_heap_reset(Allocator* allocator) {
+  (void)allocator;
+  diag_crash_msg("Heap-allocator cannot be reset");
+}
+
 static struct AllocatorHeap g_allocatorIntern;
 
 Allocator* alloc_heap_init() {
@@ -56,6 +61,7 @@ Allocator* alloc_heap_init() {
           .free    = alloc_heap_free,
           .minSize = alloc_heap_min_size,
           .maxSize = alloc_heap_max_size,
+          .reset   = alloc_heap_reset,
       },
   };
   return (Allocator*)&g_allocatorIntern;

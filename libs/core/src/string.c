@@ -1,10 +1,20 @@
+#include "core_alloc.h"
 #include "core_ascii.h"
 #include "core_diag.h"
 #include "core_math.h"
 #include "core_sentinel.h"
 #include "core_string.h"
 
+#if defined(VOLO_MSVC)
+
 #include <string.h>
+#pragma intrinsic(strlen)
+
+#else
+
+#define strlen __builtin_strlen
+
+#endif
 
 String string_from_null_term(const char* ptr) {
   return (String){
@@ -13,18 +23,11 @@ String string_from_null_term(const char* ptr) {
   };
 }
 
-String string_dup(Allocator* alloc, String str) {
-  Mem mem = alloc_alloc(alloc, str.size, 1);
-  mem_cpy(mem, str);
-  return mem;
-}
+String string_dup(Allocator* alloc, String str) { return alloc_dup(alloc, str, 1); }
 
 void string_free(Allocator* alloc, String str) { alloc_free(alloc, str); }
 
-i8 string_cmp(String a, String b) {
-  const int cmp = strncmp((const char*)a.ptr, (const char*)b.ptr, math_min(a.size, b.size));
-  return math_sign(cmp);
-}
+i8 string_cmp(String a, String b) { return mem_cmp(a, b); }
 
 bool string_eq(String a, String b) { return mem_eq(a, b); }
 

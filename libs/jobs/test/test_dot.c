@@ -1,4 +1,5 @@
 #include "check_spec.h"
+#include "core_alloc.h"
 #include "jobs_dot.h"
 
 spec(dot) {

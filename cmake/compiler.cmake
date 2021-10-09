@@ -70,7 +70,7 @@ macro(set_gcc_compile_options)
   # Setup warning flags.
   add_compile_options(-Wall -Wextra -Werror -Wshadow)
   add_compile_options(-Wno-override-init -Wno-missing-field-initializers -Wno-type-limits
-                      -Wno-implicit-fallthrough -Wno-clobbered)
+                      -Wno-implicit-fallthrough -Wno-clobbered -Wno-missing-braces)
 
   # TODO: Tie these debug options to a configuration knob.
   add_compile_options(-g -fno-omit-frame-pointer)
@@ -84,7 +84,7 @@ macro(set_clang_compile_options)
 
   # Setup warning flags.
   add_compile_options(-Wall -Wextra -Werror -Wshadow -Wgnu-empty-initializer)
-  add_compile_options(-Wno-initializer-overrides)
+  add_compile_options(-Wno-initializer-overrides -Wno-unused-value)
 
   # TODO: Tie these debug options to a configuration knob.
   add_compile_options(-g -fno-omit-frame-pointer)
@@ -114,14 +114,14 @@ macro(set_msvc_compile_options)
   add_compile_options(/utf-8)
 
   # Setup warning flags.
-  add_compile_options(/W4 /WX /wd4127 /wd5105 /wd4200 /wd4244 /wd4201 /wd4210 /wd4701 /wd4706)
+  add_compile_options(/W4 /WX /wd4127 /wd5105 /wd4200 /wd4244 /wd4201 /wd4210 /wd4701 /wd4706 /wd4324)
 
   # Ignore unused local variable warning,
   # Current MSVC version (19.29.30037) reports allot of false positives on compiler generated
   # temporaries ($SXX variables).
   add_compile_options(/wd4189)
 
-  # Enabling the conformant pre-preprocessor. More info:
+  # Enabling the conformant c-preprocessor. More info:
   # https://devblogs.microsoft.com/cppblog/announcing-full-support-for-a-c-c-conformant-preprocessor-in-msvc/
   add_compile_options(/Zc:preprocessor)
 

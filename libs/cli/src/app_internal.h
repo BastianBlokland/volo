@@ -45,18 +45,18 @@ String     cli_option_name(const CliApp* app, CliId);
 
 /**
  * Find an option by its character
- * Note: Returns 'sentinel_u16' if no option was found with the given character
+ * NOTE: Returns 'sentinel_u16' if no option was found with the given character
  */
 CliId cli_find_by_character(const CliApp*, u8 character);
 
 /**
  * Find an option by its name.
- * Note: Returns 'sentinel_u16' if no option was found with the given name.
+ * NOTE: Returns 'sentinel_u16' if no option was found with the given name.
  */
 CliId cli_find_by_name(const CliApp*, String name);
 
 /**
  * Find an option by its position.
- * Note: Returns 'sentinel_u16' if no option was found at the given position.
+ * NOTE: Returns 'sentinel_u16' if no option was found at the given position.
  */
 CliId cli_find_by_position(const CliApp*, u16 position);

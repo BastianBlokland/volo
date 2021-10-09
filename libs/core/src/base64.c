@@ -5,14 +5,14 @@
 /**
  * Mapping of ascii characters, starting at '+' and ending with 'z' to the base64 table.
  * The base64 table can be found on the wiki page: https://en.wikipedia.org/wiki/Base64
- * Note: value of 255 indicates the ascii character is not a valid base64 char.
+ * NOTE: value of 255 indicates the ascii character is not a valid base64 char.
  */
 static u8 g_decodeTable[] = {62,  255, 255, 255, 63,  52,  53, 54, 55, 56, 57, 58, 59, 60, 61, 255,
                              255, 255, 255, 255, 255, 255, 0,  1,  2,  3,  4,  5,  6,  7,  8,  9,
                              10,  11,  12,  13,  14,  15,  16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
                              255, 255, 255, 255, 255, 255, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35,
                              36,  37,  38,  39,  40,  41,  42, 43, 44, 45, 46, 47, 48, 49, 50, 51};
-_Static_assert(sizeof(g_decodeTable) == 'z' - '+' + 1, "Incorrect decode table size");
+ASSERT(sizeof(g_decodeTable) == 'z' - '+' + 1, "Incorrect decode table size");
 
 usize base64_decoded_size(String encoded) {
   if (encoded.size < 2) {

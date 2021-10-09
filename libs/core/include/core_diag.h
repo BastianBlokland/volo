@@ -85,7 +85,7 @@ NORETURN void diag_crash_msg_raw(String msg);
  * If a assert handler is registered it is invoked whenever an assert is tripped.
  * 'context' is provided to the assert handler when its invoked.
  *
- * Note: Only a single assert handler can be registered per thread, the previous will be replaced.
- * Note: Invoke with 'null' to clear the current assert handler for this thread.
+ * NOTE: Only a single assert handler can be registered per thread, the previous will be replaced.
+ * NOTE: Invoke with 'null' to clear the current assert handler for this thread.
  */
 void diag_set_assert_handler(AssertHandler, void* context);

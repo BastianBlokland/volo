@@ -1,5 +1,6 @@
 #pragma once
 #include "core_dynstring.h"
+#include "core_file.h"
 #include "jobs_graph.h"
 
 /**
@@ -11,9 +12,6 @@
  * 'dot -Tsvg -O graph.dot'
  */
 
-// Forward declare from 'core_file.h'.
-typedef struct sFile File;
-
 /**
  * Write a DOT (Graph Description Language) digraph for the given JobGraph.
  */
@@ -22,4 +20,10 @@ void jobs_dot_write_graph(DynString*, JobGraph*);
 /**
  * Dump a DOT (Graph Description Language) digraph for the given JobGraph to a file.
  */
-void jobs_dot_dump_graph(File*, JobGraph*);
+FileResult jobs_dot_dump_graph(File*, JobGraph*);
+
+/**
+ * Dump a DOT (Graph Description Language) digraph for the given JobGraph to a file at the given
+ * path.
+ */
+FileResult jobs_dot_dump_graph_to_path(String path, JobGraph*);

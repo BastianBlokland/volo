@@ -7,6 +7,7 @@
 #include "core_format.h"
 #include "core_math.h"
 #include "core_path.h"
+#include "core_time.h"
 
 typedef enum {
   FormatReplOptKind_None = 0,

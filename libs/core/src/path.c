@@ -1,12 +1,12 @@
+#include "core_alloc.h"
 #include "core_array.h"
 #include "core_ascii.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
-#include "core_format.h"
 #include "core_path.h"
 #include "core_rng.h"
 #include "core_sentinel.h"
-#include "core_string.h"
+#include "core_time.h"
 #include "core_types.h"
 
 #include "init_internal.h"
@@ -94,7 +94,7 @@ bool path_canonize(DynString* str, String path) {
 
   /**
    * Canonize the root in case of an absolute path.
-   * Note: Windows drive letters are canonized to uppercase.
+   * NOTE: Windows drive letters are canonized to uppercase.
    */
 
   if (path_starts_with_posix_root(path)) {

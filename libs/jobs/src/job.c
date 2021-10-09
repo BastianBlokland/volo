@@ -5,7 +5,7 @@
 
 Job* job_create(Allocator* alloc, const JobId id, const JobGraph* graph) {
   const usize size = sizeof(Job) + sizeof(JobTaskData) * jobs_graph_task_count(graph);
-  Job*        data = alloc_alloc(alloc, size, alignof(Job)).ptr;
+  Job*        data = alloc_alloc(alloc, size, job_size).ptr;
 
   // Initialize per-job data.
   data->id           = id;

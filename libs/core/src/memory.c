@@ -2,7 +2,22 @@
 #include "core_math.h"
 #include "core_memory.h"
 
+#if defined(VOLO_MSVC)
+
 #include <string.h>
+#pragma intrinsic(memset)
+#pragma intrinsic(memcpy)
+#pragma intrinsic(memmove)
+#pragma intrinsic(memcmp)
+
+#else
+
+#define memset __builtin_memset
+#define memcpy __builtin_memcpy
+#define memmove __builtin_memmove
+#define memcmp __builtin_memcmp
+
+#endif
 
 INLINE_HINT void mem_set(const Mem mem, const u8 val) {
   diag_assert(mem_valid(mem));
@@ -10,7 +25,7 @@ INLINE_HINT void mem_set(const Mem mem, const u8 val) {
 }
 
 INLINE_HINT void mem_cpy(const Mem dst, const Mem src) {
-  diag_assert(mem_valid(dst));
+  diag_assert(!src.size || mem_valid(dst));
   diag_assert(!src.size || mem_valid(src));
   diag_assert(dst.size >= src.size);
   memcpy(dst.ptr, src.ptr, src.size);
@@ -26,22 +41,24 @@ INLINE_HINT void mem_move(const Mem dst, const Mem src) {
 INLINE_HINT Mem mem_slice(Mem mem, const usize offset, const usize size) {
   diag_assert(!size || mem_valid(mem));
   diag_assert(mem.size >= offset + size);
-  return mem_create((u8*)mem.ptr + offset, size);
+  return mem_create(bits_ptr_offset(mem.ptr, offset), size);
 }
 
 INLINE_HINT Mem mem_consume(Mem mem, usize amount) {
   diag_assert(mem.size >= amount);
   return (Mem){
-      .ptr  = (u8*)mem.ptr + amount,
+      .ptr  = bits_ptr_offset(mem.ptr, amount),
       .size = mem.size - amount,
   };
 }
 
-INLINE_HINT void* mem_as(Mem mem, const usize size) {
+INLINE_HINT void* mem_as(Mem mem, const usize size, const usize align) {
   (void)size;
+  (void)align;
 
   diag_assert(mem_valid(mem));
   diag_assert(mem.size >= size);
+  diag_assert(bits_aligned_ptr(mem.ptr, align));
   return mem.ptr;
 }
 
