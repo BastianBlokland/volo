@@ -142,6 +142,8 @@ void ecs_runner_destroy(EcsRunner* runner) {
   alloc_free_t(runner->alloc, runner);
 }
 
+const JobGraph* ecs_runner_graph(const EcsRunner* runner) { return runner->graph; }
+
 bool ecs_running(const EcsRunner* runner) { return (runner->flags & EcsRunnerFlags_Running) != 0; }
 
 JobId ecs_run_async(EcsRunner* runner) {

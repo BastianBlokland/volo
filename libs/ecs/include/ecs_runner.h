@@ -14,6 +14,9 @@ typedef u16 EcsSystemId;
 // Forward declare from 'jobs_scheduler.h'.
 typedef u64 JobId;
 
+// Forward declare from 'jobs_graph.h'.
+typedef struct sJobGraph JobGraph;
+
 typedef struct sEcsRunner EcsRunner;
 
 /**
@@ -35,6 +38,11 @@ EcsRunner* ecs_runner_create(Allocator*, EcsWorld*);
  * Pre-condition: !ecs_running().
  */
 void ecs_runner_destroy(EcsRunner*);
+
+/**
+ * Get the JobGraph created by this runner for debugging purposes.
+ */
+const JobGraph* ecs_runner_graph(const EcsRunner*);
 
 /**
  * Check if the given runner is currently running.
