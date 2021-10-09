@@ -9,6 +9,9 @@ ecs_comp_define(StorageCompB) { u32 f1, f2; };
 ecs_comp_define(StorageCompC) { u32 f1, f2, f3; };
 ecs_comp_define(StorageCompD) { u32 f1, f2, f3, f4; };
 ecs_comp_define(StorageCompE) { ALIGNAS(64) u32 f1; };
+ecs_comp_define(StorageCompF);
+ecs_comp_define(StorageCompG);
+ecs_comp_define(StorageCompH);
 
 ecs_view_define(ReadABC) {
   ecs_access_read(StorageCompA);
@@ -22,15 +25,24 @@ ecs_view_define(ReadABE) {
   ecs_access_read(StorageCompE);
 }
 
+ecs_view_define(ReadFG) {
+  ecs_access_read(StorageCompF);
+  ecs_access_read(StorageCompG);
+}
+
 ecs_module_init(storage_test_module) {
   ecs_register_comp(StorageCompA);
   ecs_register_comp(StorageCompB);
   ecs_register_comp(StorageCompC);
   ecs_register_comp(StorageCompD);
   ecs_register_comp(StorageCompE);
+  ecs_register_comp_empty(StorageCompF);
+  ecs_register_comp_empty(StorageCompG);
+  ecs_register_comp_empty(StorageCompH);
 
   ecs_register_view(ReadABC);
   ecs_register_view(ReadABE);
+  ecs_register_view(ReadFG);
 }
 
 spec(storage) {
@@ -356,6 +368,38 @@ spec(storage) {
     });
 
     dynarray_destroy(&entities);
+  }
+
+  it("can store entities with only empty components") {
+    const EcsEntityId entity = ecs_world_entity_create(world);
+
+    ecs_world_comp_add_empty_t(world, entity, StorageCompF);
+    ecs_world_comp_add_empty_t(world, entity, StorageCompG);
+
+    ecs_world_flush(world);
+
+    check(ecs_world_comp_has_t(world, entity, StorageCompF));
+    check(ecs_world_comp_has_t(world, entity, StorageCompG));
+    check(!ecs_world_comp_has_t(world, entity, StorageCompH));
+
+    EcsView* view = ecs_world_view_t(world, ReadFG);
+    check_require(ecs_view_contains(view, entity));
+
+    EcsIterator* itr = ecs_view_itr_stack(view);
+    check(ecs_view_itr_walk(itr));
+    check(ecs_view_read_t(itr, StorageCompF));
+    check(ecs_view_read_t(itr, StorageCompG));
+
+    ecs_world_comp_remove_t(world, entity, StorageCompG);
+    ecs_world_comp_add_empty_t(world, entity, StorageCompH);
+
+    ecs_world_flush(world);
+
+    check(ecs_world_comp_has_t(world, entity, StorageCompF));
+    check(!ecs_world_comp_has_t(world, entity, StorageCompG));
+    check(ecs_world_comp_has_t(world, entity, StorageCompH));
+
+    check_require(!ecs_view_contains(view, entity));
   }
 
   teardown() {

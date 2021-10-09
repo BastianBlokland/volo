@@ -9,6 +9,8 @@ ecs_comp_define(DefCompB) {
   bool fieldB;
 };
 
+ecs_comp_define(DefCompEmpty);
+
 ecs_view_define(ReadAWriteB) {
   ecs_access_read(DefCompA);
   ecs_access_write(DefCompB);
@@ -27,6 +29,7 @@ ecs_system_define(Cleanup) {}
 ecs_module_init(def_test_module) {
   ecs_register_comp(DefCompA);
   ecs_register_comp(DefCompB);
+  ecs_register_comp_empty(DefCompEmpty);
 
   ecs_register_view(ReadAWriteB);
   ecs_register_view(ReadAReadB);
@@ -46,7 +49,7 @@ spec(def) {
   }
 
   it("can retrieve the amount of registered components") {
-    check_eq_int(ecs_def_comp_count(def), 2);
+    check_eq_int(ecs_def_comp_count(def), 3);
   }
 
   it("can retrieve the amount of registered views") { check_eq_int(ecs_def_view_count(def), 3); }
@@ -54,16 +57,19 @@ spec(def) {
   it("can retrieve the name of registered components") {
     check_eq_string(ecs_def_comp_name(def, ecs_comp_id(DefCompA)), string_lit("DefCompA"));
     check_eq_string(ecs_def_comp_name(def, ecs_comp_id(DefCompB)), string_lit("DefCompB"));
+    check_eq_string(ecs_def_comp_name(def, ecs_comp_id(DefCompEmpty)), string_lit("DefCompEmpty"));
   }
 
   it("can retrieve the size of registered components") {
     check_eq_int(ecs_def_comp_size(def, ecs_comp_id(DefCompA)), sizeof(DefCompA));
     check_eq_int(ecs_def_comp_size(def, ecs_comp_id(DefCompB)), sizeof(DefCompB));
+    check_eq_int(ecs_def_comp_size(def, ecs_comp_id(DefCompEmpty)), 0);
   }
 
   it("can retrieve the alignment requirement of registered components") {
     check_eq_int(ecs_def_comp_align(def, ecs_comp_id(DefCompA)), alignof(DefCompA));
     check_eq_int(ecs_def_comp_align(def, ecs_comp_id(DefCompB)), alignof(DefCompB));
+    check_eq_int(ecs_def_comp_align(def, ecs_comp_id(DefCompEmpty)), 1);
   }
 
   it("can retrieve the name of registered views") {
