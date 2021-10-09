@@ -16,6 +16,7 @@ typedef u64 JobId;
 
 // Forward declare from 'jobs_graph.h'.
 typedef struct sJobGraph JobGraph;
+typedef u32              JobTaskId;
 
 typedef struct sEcsRunner EcsRunner;
 
@@ -43,6 +44,7 @@ void ecs_runner_destroy(EcsRunner*);
  * Get the JobGraph created by this runner for debugging purposes.
  */
 const JobGraph* ecs_runner_graph(const EcsRunner*);
+JobTaskId       ecs_runner_graph_task(const EcsRunner*, EcsSystemId);
 
 /**
  * Check if the given runner is currently running.

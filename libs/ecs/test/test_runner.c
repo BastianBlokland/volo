@@ -72,13 +72,13 @@ ecs_system_define(RunnerSys3) {
 }
 
 ecs_module_init(runner_test_module) {
-  ecs_register_view(ReadA);
-  ecs_register_view(ReadAWriteBC);
 
   ecs_register_comp(RunnerCompA);
   ecs_register_comp(RunnerCompB);
   ecs_register_comp(RunnerCompC);
 
+  ecs_register_view(ReadA);
+  ecs_register_view(ReadAWriteBC);
   ecs_register_view(ReadBWriteA);
   ecs_register_view(ReadCWriteA);
 

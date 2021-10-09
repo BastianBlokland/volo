@@ -1,25 +1,14 @@
 #include "core_alloc.h"
+#include "core_bitset.h"
 #include "core_diag.h"
 #include "ecs_def.h"
 
 #include "storage_internal.h"
 #include "view_internal.h"
 
-typedef enum {
-  EcsViewMask_FilterWith,
-  EcsViewMask_FilterWithout,
-  EcsViewMask_AccessRead,
-  EcsViewMask_AccessWrite,
-} EcsViewMaskType;
-
 static usize ecs_view_bytes_per_mask(const EcsDef* def) {
   const usize compCount = ecs_def_comp_count(def);
   return bits_to_bytes(compCount) + 1;
-}
-
-static BitSet ecs_view_mask(const EcsView* view, EcsViewMaskType type) {
-  const usize bytesPerMask = ecs_view_bytes_per_mask(view->def);
-  return mem_slice(view->masks, bytesPerMask * type, ecs_view_bytes_per_mask(view->def));
 }
 
 static bool ecs_view_matches(const EcsView* view, BitSet mask) {
@@ -137,6 +126,39 @@ EcsView ecs_view_create(
 void ecs_view_destroy(Allocator* alloc, const EcsDef* def, EcsView* view) {
   alloc_free(alloc, mem_create(view->masks.ptr, ecs_view_bytes_per_mask(def) * 4));
   dynarray_destroy(&view->archetypes);
+}
+
+BitSet ecs_view_mask(const EcsView* view, EcsViewMaskType type) {
+  const usize bytesPerMask = ecs_view_bytes_per_mask(view->def);
+  return mem_slice(view->masks, bytesPerMask * type, ecs_view_bytes_per_mask(view->def));
+}
+
+bool ecs_view_conflict(const EcsView* a, const EcsView* b) {
+  /**
+   * Check if 'A' conflicts with 'B'.
+   * Meaning 'A' reads a component that 'B' writes or writes a component that the 'B' reads.
+   */
+  const BitSet aRequired = ecs_view_mask(a, EcsViewMask_FilterWith);
+  const BitSet bRequired = ecs_view_mask(b, EcsViewMask_FilterWith);
+
+  if (bitset_any_of(aRequired, ecs_view_mask(b, EcsViewMask_FilterWithout))) {
+    return false; // 'A' requires something that 'B' excludes; no conflict.
+  }
+  if (bitset_any_of(bRequired, ecs_view_mask(a, EcsViewMask_FilterWithout))) {
+    return false; // 'B' requires something that 'A' excludes; no conflict.
+  }
+
+  const BitSet aReads  = ecs_view_mask(a, EcsViewMask_AccessRead);
+  const BitSet aWrites = ecs_view_mask(a, EcsViewMask_AccessWrite);
+
+  if (bitset_any_of(aReads, ecs_view_mask(b, EcsViewMask_AccessWrite))) {
+    return true; // 'A' reads something that 'B' writes; conflict.
+  }
+  if (bitset_any_of(aWrites, ecs_view_mask(b, EcsViewMask_AccessRead))) {
+    return true; // 'A' writes something the 'B' reads; conflict.
+  }
+
+  return false; // No conflict.
 }
 
 bool ecs_view_maybe_track(EcsView* view, const EcsArchetypeId id, const BitSet mask) {
