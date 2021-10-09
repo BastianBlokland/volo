@@ -181,7 +181,7 @@ EcsSystemId ecs_def_register_system(
   return id;
 }
 
-EcsCompDestructor ecs_def_comp_destructor(EcsDef* def, const EcsCompId id) {
+EcsCompDestructor ecs_def_comp_destructor(const EcsDef* def, const EcsCompId id) {
   return ecs_def_comp(def, id)->destructor;
 }
 

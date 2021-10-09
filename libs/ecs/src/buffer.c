@@ -6,6 +6,7 @@
 #include "log_logger.h"
 
 #include "buffer_internal.h"
+#include "def_internal.h"
 
 /**
  * Modifications are stored per entity. Entity data is kept sorted so a binary-search can be
@@ -156,6 +157,19 @@ EcsBuffer ecs_buffer_create(Allocator* alloc, const EcsDef* def) {
 }
 
 void ecs_buffer_destroy(EcsBuffer* buffer) {
+
+  // Call the destructors for any added components still in the buffer.
+  for (usize i = 0; i != buffer->entities.size; ++i) {
+    for (EcsBufferCompData* bufferItr = ecs_buffer_comp_begin(buffer, i); bufferItr;
+         bufferItr                    = ecs_buffer_comp_next(bufferItr)) {
+
+      EcsCompDestructor destructor = ecs_def_comp_destructor(buffer->def, bufferItr->id);
+      if (destructor) {
+        destructor(ecs_buffer_comp_data(buffer, bufferItr).ptr);
+      }
+    }
+  }
+
   dynarray_destroy(&buffer->masks);
   dynarray_destroy(&buffer->entities);
   alloc_chunked_destroy(buffer->compDataAllocator);

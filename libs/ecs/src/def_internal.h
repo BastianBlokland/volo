@@ -43,7 +43,7 @@ EcsViewId   ecs_def_register_view(EcsDef*, String name, EcsViewInit);
 EcsSystemId ecs_def_register_system(
     EcsDef*, String name, EcsSystemRoutine, const EcsViewId* views, usize viewCount);
 
-EcsCompDestructor ecs_def_comp_destructor(EcsDef*, EcsCompId);
+EcsCompDestructor ecs_def_comp_destructor(const EcsDef*, EcsCompId);
 
 /**
  * Dissallow any further modications to this definition.

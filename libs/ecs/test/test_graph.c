@@ -74,7 +74,7 @@ spec(graph) {
     runner = ecs_runner_create(g_alloc_heap, world);
   }
 
-  focus_it("inserts job-graph tasks for all systems") {
+  it("inserts job-graph tasks for all systems") {
     const JobGraph* graph = ecs_runner_graph(runner);
 
     const JobTaskId sys1Task = ecs_runner_graph_task(runner, ecs_system_id(GraphSys1));
@@ -98,7 +98,7 @@ spec(graph) {
         jobs_graph_task_name(graph, sys5Task), ecs_def_system_name(def, ecs_system_id(GraphSys5)));
   }
 
-  focus_it("creates task dependencies based on the system views") {
+  it("creates task dependencies based on the system views") {
     const JobGraph* graph = ecs_runner_graph(runner);
 
     const JobTaskId sys1Task = ecs_runner_graph_task(runner, ecs_system_id(GraphSys1));
