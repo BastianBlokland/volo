@@ -17,11 +17,14 @@ ecs_comp_define(WorldCompAligned) {
   ALIGNAS(64) u32 b;
 };
 
+ecs_comp_define(WorldCompEmpty);
+
 ecs_module_init(world_test_module) {
   ecs_register_comp(WorldCompA);
   ecs_register_comp(WorldCompB);
   ecs_register_comp(WorldCompC);
   ecs_register_comp(WorldCompAligned);
+  ecs_register_comp_empty(WorldCompEmpty);
 }
 
 spec(world) {
@@ -127,6 +130,17 @@ spec(world) {
         &entities, EcsEntityId, id, { check(ecs_world_comp_has_t(world, *id, WorldCompA)); });
 
     dynarray_destroy(&entities);
+  }
+
+  it("can add empty components") {
+    const EcsEntityId entity = ecs_world_entity_create(world);
+
+    void* ptr = ecs_world_comp_add_empty_t(world, entity, WorldCompEmpty);
+    check(ptr);
+
+    ecs_world_flush(world);
+
+    check(ecs_world_comp_has_t(world, entity, WorldCompEmpty));
   }
 
   it("can check for component existence") {
