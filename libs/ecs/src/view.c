@@ -60,12 +60,12 @@ void ecs_view_itr_jump(EcsIterator* itr, const EcsEntityId entity) {
   ecs_storage_itr_jump(view->storage, itr, entity);
 }
 
-EcsEntityId ecs_view_entity(EcsIterator* itr) {
+EcsEntityId ecs_view_entity(const EcsIterator* itr) {
   diag_assert_msg(itr->entity, "Iterator has not been initialized");
   return *itr->entity;
 }
 
-const void* ecs_view_read(EcsIterator* itr, const EcsCompId comp) {
+const void* ecs_view_read(const EcsIterator* itr, const EcsCompId comp) {
   EcsView* view = itr->context;
 
   diag_assert_msg(itr->entity, "Iterator has not been initialized");
@@ -79,7 +79,7 @@ const void* ecs_view_read(EcsIterator* itr, const EcsCompId comp) {
   return ecs_iterator_access(itr, comp).ptr;
 }
 
-void* ecs_view_write(EcsIterator* itr, const EcsCompId comp) {
+void* ecs_view_write(const EcsIterator* itr, const EcsCompId comp) {
   EcsView* view = itr->context;
 
   diag_assert_msg(itr->entity, "Iterator has not been initialized");
