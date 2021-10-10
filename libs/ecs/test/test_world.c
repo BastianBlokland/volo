@@ -82,6 +82,14 @@ spec(world) {
     check(!comp->f2);
   }
 
+  it("zero initializes new components when providing empty initial mem") {
+    const EcsEntityId entity = ecs_world_entity_create(world);
+
+    const WorldCompA* comp = ecs_world_comp_add(world, entity, ecs_comp_id(WorldCompA), mem_empty);
+    check_eq_int(comp->f1, 0);
+    check(!comp->f2);
+  }
+
   it("respects the alignment for added components") {
     const EcsEntityId entity = ecs_world_entity_create(world);
 

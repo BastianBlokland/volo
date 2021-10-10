@@ -2,6 +2,7 @@
 #include "ecs_runner.h"
 
 #include "archetype_internal.h"
+#include "def_internal.h"
 #include "entity_allocator_internal.h"
 #include "storage_internal.h"
 
@@ -48,6 +49,34 @@ static EcsEntityInfo* ecs_storage_entity_info_ptr(EcsStorage* storage, const Ecs
   return info->serial == ecs_entity_id_serial(id) ? info : null;
 }
 
+static void ecs_storage_destruct_comps(EcsStorage* storage, EcsIterator* itr) {
+  EcsCompId compId = 0;
+  for (usize i = 0; i != itr->compCount; ++i, ++compId) {
+    compId = (EcsCompId)bitset_next(itr->mask, compId);
+
+    const EcsCompDestructor destructor = ecs_def_comp_destructor(storage->def, compId);
+    if (destructor) {
+      destructor(itr->comps[i].ptr);
+    }
+  }
+}
+
+static void ecs_storage_destruct_archetype_comps(EcsStorage* storage, const EcsArchetypeId id) {
+  EcsArchetype* archetype = ecs_storage_archetype_ptr(storage, id);
+  EcsIterator*  itr       = ecs_iterator_stack(archetype->mask);
+  while (ecs_storage_itr_walk(storage, itr, id)) {
+    ecs_storage_destruct_comps(storage, itr);
+  }
+}
+
+static void ecs_storage_destruct_entity_comps(
+    EcsStorage* storage, EcsArchetype* archetype, const u32 archetypeIndex, const BitSet mask) {
+
+  EcsIterator* itr = ecs_iterator_stack(mask);
+  ecs_archetype_itr_jump(archetype, itr, archetypeIndex);
+  ecs_storage_destruct_comps(storage, itr);
+}
+
 i8 ecs_compare_archetype(const void* a, const void* b) { return compare_u32(a, b); }
 
 EcsStorage ecs_storage_create(Allocator* alloc, const EcsDef* def) {
@@ -66,7 +95,10 @@ EcsStorage ecs_storage_create(Allocator* alloc, const EcsDef* def) {
 }
 
 void ecs_storage_destroy(EcsStorage* storage) {
-  dynarray_for_t(&storage->archetypes, EcsArchetype, arch, { ecs_archetype_destroy(arch); });
+  dynarray_for_t(&storage->archetypes, EcsArchetype, arch, {
+    ecs_storage_destruct_archetype_comps(storage, (EcsArchetypeId)arch_i);
+    ecs_archetype_destroy(arch);
+  });
   dynarray_destroy(&storage->archetypes);
 
   entity_allocator_destroy(&storage->entityAllocator);
@@ -144,6 +176,15 @@ void ecs_storage_entity_move(
   }
 
   if (oldArchetype) {
+    // Destroy the components that are no longer present on the new archetype.
+    BitSet missing = ecs_comp_mask_stack(storage->def);
+    mem_cpy(missing, oldArchetype->mask);
+    if (newArchetype) {
+      bitset_xor(missing, newArchetype->mask);
+      bitset_and(missing, oldArchetype->mask);
+    }
+    ecs_storage_destruct_entity_comps(storage, oldArchetype, oldArchetypeIndex, missing);
+
     const EcsEntityId movedEntity = ecs_archetype_remove(oldArchetype, oldArchetypeIndex);
     if (ecs_entity_valid(movedEntity)) {
       ecs_storage_entity_info_ptr(storage, movedEntity)->archetypeIndex = oldArchetypeIndex;
@@ -158,6 +199,8 @@ void ecs_storage_entity_destroy(EcsStorage* storage, const EcsEntityId id) {
 
   EcsArchetype* archetype = ecs_storage_archetype_ptr(storage, info->archetype);
   if (archetype) {
+    ecs_storage_destruct_entity_comps(storage, archetype, info->archetypeIndex, archetype->mask);
+
     const EcsEntityId movedEntity = ecs_archetype_remove(archetype, info->archetypeIndex);
     if (ecs_entity_valid(movedEntity)) {
       ecs_storage_entity_info_ptr(storage, movedEntity)->archetypeIndex = info->archetypeIndex;

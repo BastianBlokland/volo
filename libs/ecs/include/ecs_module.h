@@ -15,6 +15,26 @@ typedef struct sEcsViewBuilder   EcsViewBuilder;
 typedef void (*EcsModuleInit)(EcsModuleBuilder*);
 typedef void (*EcsViewInit)(EcsViewBuilder*);
 typedef void (*EcsSystemRoutine)(EcsWorld*);
+typedef void (*EcsCompDestructor)(void*);
+
+typedef struct {
+  String            name;
+  usize             size;
+  usize             align;
+  EcsCompDestructor destructor;
+} EcsCompConfig;
+
+typedef struct {
+  String      name;
+  EcsViewInit initRoutine;
+} EcsViewConfig;
+
+typedef struct {
+  String           name;
+  EcsSystemRoutine routine;
+  const EcsViewId* views;
+  usize            viewCount;
+} EcsSystemConfig;
 
 // clang-format off
 
@@ -112,13 +132,14 @@ typedef void (*EcsSystemRoutine)(EcsWorld*);
  *
  * Pre-condition: No other component with the same name has been registered already.
  */
-#define ecs_register_comp(_NAME_)                                                                  \
+#define ecs_register_comp(_NAME_, ...)                                                             \
   ASSERT(sizeof(_NAME_) != 0, "Use 'ecs_register_comp_empty' for empty components");               \
-  ecs_comp_id(_NAME_) =                                                                            \
-      ecs_module_register_comp(_builder, string_lit(#_NAME_), sizeof(_NAME_), alignof(_NAME_))
+  ecs_comp_id(_NAME_) = ecs_module_register_comp(_builder, &(EcsCompConfig){                       \
+      .name = string_lit(#_NAME_), .size = sizeof(_NAME_), .align = alignof(_NAME_), ##__VA_ARGS__})
 
-#define ecs_register_comp_empty(_NAME_)                                                            \
-  ecs_comp_id(_NAME_) = ecs_module_register_comp(_builder, string_lit(#_NAME_), 0, 1)
+#define ecs_register_comp_empty(_NAME_, ...)                                                       \
+  ecs_comp_id(_NAME_) = ecs_module_register_comp(_builder, &(EcsCompConfig){                       \
+      .name = string_lit(#_NAME_), .size = 0, .align = 1, ##__VA_ARGS__})
 
 /**
  * Register a new view.
@@ -126,8 +147,8 @@ typedef void (*EcsSystemRoutine)(EcsWorld*);
  * NOTE: The view has to be defined using 'ecs_view_define()' in the same compilation unit.
  */
 #define ecs_register_view(_NAME_)                                                                  \
-  ecs_view_id(_NAME_) =                                                                            \
-      ecs_module_register_view(_builder, string_lit(#_NAME_), &_ecs_view_init_##_NAME_)
+  ecs_view_id(_NAME_) = ecs_module_register_view(_builder, &(EcsViewConfig){                       \
+      .name = string_lit(#_NAME_), .initRoutine = &_ecs_view_init_##_NAME_})
 
 /**
  * Register a new system with a list of view-ids as dependencies.
@@ -139,11 +160,11 @@ typedef void (*EcsSystemRoutine)(EcsWorld*);
  * ```
  */
 #define ecs_register_system(_NAME_, ...)                                                           \
-  ecs_system_id(_NAME_) = ecs_module_register_system(                                              \
-      _builder,                                                                                    \
-      string_lit(#_NAME_),                                                                         \
-      &_ecs_system_##_NAME_,                                                                       \
-      (const EcsViewId[]){ VA_ARGS_SKIP_FIRST(0, ##__VA_ARGS__, 0) }, COUNT_VA_ARGS(__VA_ARGS__))
+  ecs_system_id(_NAME_) = ecs_module_register_system(_builder, &(EcsSystemConfig){                 \
+      .name      = string_lit(#_NAME_),                                                            \
+      .routine   = &_ecs_system_##_NAME_,                                                          \
+      .views     = (const EcsViewId[]){ VA_ARGS_SKIP_FIRST(0, ##__VA_ARGS__, 0) },                 \
+      .viewCount = COUNT_VA_ARGS(__VA_ARGS__)})
 
 // clang-format on
 
@@ -159,10 +180,9 @@ i8 ecs_compare_view(const void* a, const void* b);
  */
 i8 ecs_compare_system(const void* a, const void* b);
 
-EcsCompId   ecs_module_register_comp(EcsModuleBuilder*, String name, usize size, usize align);
-EcsViewId   ecs_module_register_view(EcsModuleBuilder*, String name, EcsViewInit);
-EcsSystemId ecs_module_register_system(
-    EcsModuleBuilder*, String name, EcsSystemRoutine, const EcsViewId* views, usize viewCount);
+EcsCompId   ecs_module_register_comp(EcsModuleBuilder*, const EcsCompConfig*);
+EcsViewId   ecs_module_register_view(EcsModuleBuilder*, const EcsViewConfig*);
+EcsSystemId ecs_module_register_system(EcsModuleBuilder*, const EcsSystemConfig*);
 
 void ecs_module_access_with(EcsViewBuilder*, EcsCompId);
 void ecs_module_access_without(EcsViewBuilder*, EcsCompId);
