@@ -2,6 +2,7 @@
 #include "ecs_runner.h"
 
 #include "archetype_internal.h"
+#include "def_internal.h"
 #include "entity_allocator_internal.h"
 #include "storage_internal.h"
 
@@ -48,6 +49,26 @@ static EcsEntityInfo* ecs_storage_entity_info_ptr(EcsStorage* storage, const Ecs
   return info->serial == ecs_entity_id_serial(id) ? info : null;
 }
 
+static void ecs_storage_destruct_comps(EcsStorage* storage, EcsIterator* itr) {
+  EcsCompId compId = 0;
+  for (usize i = 0; i != itr->compCount; ++i, ++compId) {
+    compId = (EcsCompId)bitset_next(itr->mask, compId);
+
+    const EcsCompDestructor destructor = ecs_def_comp_destructor(storage->def, compId);
+    if (destructor) {
+      destructor(itr->comps[i].ptr);
+    }
+  }
+}
+
+static void ecs_storage_destruct_archetype(EcsStorage* storage, const EcsArchetypeId id) {
+  EcsArchetype* archetype = ecs_storage_archetype_ptr(storage, id);
+  EcsIterator*  itr       = ecs_iterator_stack(archetype->mask);
+  while (ecs_storage_itr_walk(storage, itr, id)) {
+    ecs_storage_destruct_comps(storage, itr);
+  }
+}
+
 i8 ecs_compare_archetype(const void* a, const void* b) { return compare_u32(a, b); }
 
 EcsStorage ecs_storage_create(Allocator* alloc, const EcsDef* def) {
@@ -66,7 +87,10 @@ EcsStorage ecs_storage_create(Allocator* alloc, const EcsDef* def) {
 }
 
 void ecs_storage_destroy(EcsStorage* storage) {
-  dynarray_for_t(&storage->archetypes, EcsArchetype, arch, { ecs_archetype_destroy(arch); });
+  dynarray_for_t(&storage->archetypes, EcsArchetype, arch, {
+    ecs_storage_destruct_archetype(storage, arch_i);
+    ecs_archetype_destroy(arch);
+  });
   dynarray_destroy(&storage->archetypes);
 
   entity_allocator_destroy(&storage->entityAllocator);
