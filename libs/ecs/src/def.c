@@ -135,6 +135,7 @@ EcsCompId ecs_def_register_comp(
       "Component size '{}' is bigger then the maximum of '{}'",
       fmt_size(size),
       fmt_size(ecs_comp_max_size));
+  diag_assert_msg(!destructor || size > 0, "Empty components do not support destructors");
 
   EcsCompId id                                   = (EcsCompId)def->components.size;
   *dynarray_push_t(&def->components, EcsCompDef) = (EcsCompDef){
