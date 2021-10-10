@@ -25,4 +25,4 @@ ASSERT(sizeof(EcsIterator) < ecs_iterator_size_max, "EcsIterator size exceeds th
 EcsIterator* ecs_iterator_create(Mem mem, BitSet mask);
 EcsIterator* ecs_iterator_create_with_count(Mem mem, BitSet mask, usize compCount);
 void         ecs_iterator_reset(EcsIterator*);
-Mem          ecs_iterator_access(EcsIterator*, EcsCompId);
+Mem          ecs_iterator_access(const EcsIterator*, EcsCompId);

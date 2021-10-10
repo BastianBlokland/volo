@@ -15,6 +15,7 @@ add_library(volo_ecs STATIC
   src/module.c
   src/runner.c
   src/storage.c
+  src/utils.c
   src/view.c
   src/world.c)
 target_include_directories(volo_ecs PUBLIC include)
@@ -30,6 +31,7 @@ add_executable(volo_ecs_test
   test/test_graph.c
   test/test_runner.c
   test/test_storage.c
+  test/test_utils.c
   test/test_view.c
   test/test_world.c)
 target_link_libraries(volo_ecs_test PRIVATE volo_check)

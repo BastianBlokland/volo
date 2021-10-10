@@ -44,7 +44,7 @@ void ecs_view_itr_jump(EcsIterator*, EcsEntityId);
  *
  * Pre-condition: iterator has been intialized using ecs_view_itr_walk() / ecs_view_itr_jump().
  */
-EcsEntityId ecs_view_entity(EcsIterator*);
+EcsEntityId ecs_view_entity(const EcsIterator*);
 
 /**
  * Get a read-only pointer to a component.
@@ -54,7 +54,7 @@ EcsEntityId ecs_view_entity(EcsIterator*);
  */
 #define ecs_view_read_t(_ITR_, _TYPE_) ((const _TYPE_*)ecs_view_read((_ITR_), ecs_comp_id(_TYPE_)))
 
-const void* ecs_view_read(EcsIterator*, EcsCompId);
+const void* ecs_view_read(const EcsIterator*, EcsCompId);
 
 /**
  * Get a read-write pointer to a component.
@@ -64,4 +64,4 @@ const void* ecs_view_read(EcsIterator*, EcsCompId);
  */
 #define ecs_view_write_t(_ITR_, _TYPE_) ((_TYPE_*)ecs_view_write((_ITR_), ecs_comp_id(_TYPE_)))
 
-void* ecs_view_write(EcsIterator*, EcsCompId);
+void* ecs_view_write(const EcsIterator*, EcsCompId);

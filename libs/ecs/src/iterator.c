@@ -26,6 +26,6 @@ void ecs_iterator_reset(EcsIterator* itr) {
   itr->chunkRemaining = 0;
 }
 
-Mem ecs_iterator_access(EcsIterator* itr, const EcsCompId id) {
+Mem ecs_iterator_access(const EcsIterator* itr, const EcsCompId id) {
   return itr->comps[bitset_index(itr->mask, id)];
 }
