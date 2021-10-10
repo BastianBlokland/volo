@@ -61,12 +61,20 @@ static void ecs_storage_destruct_comps(EcsStorage* storage, EcsIterator* itr) {
   }
 }
 
-static void ecs_storage_destruct_archetype(EcsStorage* storage, const EcsArchetypeId id) {
+static void ecs_storage_destruct_comps_archetype(EcsStorage* storage, const EcsArchetypeId id) {
   EcsArchetype* archetype = ecs_storage_archetype_ptr(storage, id);
   EcsIterator*  itr       = ecs_iterator_stack(archetype->mask);
   while (ecs_storage_itr_walk(storage, itr, id)) {
     ecs_storage_destruct_comps(storage, itr);
   }
+}
+
+static void ecs_storage_destruct_comps_entity(
+    EcsStorage* storage, EcsArchetype* archetype, const u32 archetypeIndex, const BitSet mask) {
+
+  EcsIterator* itr = ecs_iterator_stack(mask);
+  ecs_archetype_itr_jump(archetype, itr, archetypeIndex);
+  ecs_storage_destruct_comps(storage, itr);
 }
 
 i8 ecs_compare_archetype(const void* a, const void* b) { return compare_u32(a, b); }
@@ -88,7 +96,7 @@ EcsStorage ecs_storage_create(Allocator* alloc, const EcsDef* def) {
 
 void ecs_storage_destroy(EcsStorage* storage) {
   dynarray_for_t(&storage->archetypes, EcsArchetype, arch, {
-    ecs_storage_destruct_archetype(storage, arch_i);
+    ecs_storage_destruct_comps_archetype(storage, arch_i);
     ecs_archetype_destroy(arch);
   });
   dynarray_destroy(&storage->archetypes);
@@ -182,6 +190,8 @@ void ecs_storage_entity_destroy(EcsStorage* storage, const EcsEntityId id) {
 
   EcsArchetype* archetype = ecs_storage_archetype_ptr(storage, info->archetype);
   if (archetype) {
+    ecs_storage_destruct_comps_entity(storage, archetype, info->archetypeIndex, archetype->mask);
+
     const EcsEntityId movedEntity = ecs_archetype_remove(archetype, info->archetypeIndex);
     if (ecs_entity_valid(movedEntity)) {
       ecs_storage_entity_info_ptr(storage, movedEntity)->archetypeIndex = info->archetypeIndex;
