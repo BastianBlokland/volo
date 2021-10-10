@@ -139,5 +139,34 @@ spec(destruct) {
     ecs_world_destroy(world);
   }
 
+  it("destroys components when removing them from entities") {
+    EcsWorld*         world   = ecs_world_create(g_alloc_heap, def);
+    const EcsEntityId entity1 = ecs_world_entity_create(world);
+    const EcsEntityId entity2 = ecs_world_entity_create(world);
+
+    g_destructorCountA = 0;
+    g_destructorCountB = 0;
+
+    ecs_world_comp_add_t(world, entity1, DestructCompA, .state = CompDataState_Normal);
+
+    ecs_world_comp_add_t(world, entity2, DestructCompA, .state = CompDataState_Normal);
+    ecs_world_comp_add_t(world, entity2, DestructCompB, .state = CompDataState_Normal);
+
+    ecs_world_flush(world);
+
+    ecs_world_comp_remove_t(world, entity1, DestructCompA);
+    ecs_world_comp_add_t(world, entity1, DestructCompB, .state = CompDataState_Normal);
+
+    ecs_world_comp_remove_t(world, entity2, DestructCompA);
+    ecs_world_comp_remove_t(world, entity2, DestructCompB);
+
+    ecs_world_flush(world);
+
+    check_eq_int(g_destructorCountA, 2);
+    check_eq_int(g_destructorCountB, 1);
+
+    ecs_world_destroy(world);
+  }
+
   teardown() { ecs_def_destroy(def); }
 }

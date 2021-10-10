@@ -61,7 +61,7 @@ static void ecs_storage_destruct_comps(EcsStorage* storage, EcsIterator* itr) {
   }
 }
 
-static void ecs_storage_destruct_comps_archetype(EcsStorage* storage, const EcsArchetypeId id) {
+static void ecs_storage_destruct_archetype_comps(EcsStorage* storage, const EcsArchetypeId id) {
   EcsArchetype* archetype = ecs_storage_archetype_ptr(storage, id);
   EcsIterator*  itr       = ecs_iterator_stack(archetype->mask);
   while (ecs_storage_itr_walk(storage, itr, id)) {
@@ -69,7 +69,7 @@ static void ecs_storage_destruct_comps_archetype(EcsStorage* storage, const EcsA
   }
 }
 
-static void ecs_storage_destruct_comps_entity(
+static void ecs_storage_destruct_entity_comps(
     EcsStorage* storage, EcsArchetype* archetype, const u32 archetypeIndex, const BitSet mask) {
 
   EcsIterator* itr = ecs_iterator_stack(mask);
@@ -96,7 +96,7 @@ EcsStorage ecs_storage_create(Allocator* alloc, const EcsDef* def) {
 
 void ecs_storage_destroy(EcsStorage* storage) {
   dynarray_for_t(&storage->archetypes, EcsArchetype, arch, {
-    ecs_storage_destruct_comps_archetype(storage, arch_i);
+    ecs_storage_destruct_archetype_comps(storage, (EcsArchetypeId)arch_i);
     ecs_archetype_destroy(arch);
   });
   dynarray_destroy(&storage->archetypes);
@@ -176,6 +176,15 @@ void ecs_storage_entity_move(
   }
 
   if (oldArchetype) {
+    // Destroy the components that are no longer present on the new archetype.
+    BitSet missing = ecs_comp_mask_stack(storage->def);
+    mem_cpy(missing, oldArchetype->mask);
+    if (newArchetype) {
+      bitset_xor(missing, newArchetype->mask);
+      bitset_and(missing, oldArchetype->mask);
+    }
+    ecs_storage_destruct_entity_comps(storage, oldArchetype, oldArchetypeIndex, missing);
+
     const EcsEntityId movedEntity = ecs_archetype_remove(oldArchetype, oldArchetypeIndex);
     if (ecs_entity_valid(movedEntity)) {
       ecs_storage_entity_info_ptr(storage, movedEntity)->archetypeIndex = oldArchetypeIndex;
@@ -190,7 +199,7 @@ void ecs_storage_entity_destroy(EcsStorage* storage, const EcsEntityId id) {
 
   EcsArchetype* archetype = ecs_storage_archetype_ptr(storage, info->archetype);
   if (archetype) {
-    ecs_storage_destruct_comps_entity(storage, archetype, info->archetypeIndex, archetype->mask);
+    ecs_storage_destruct_entity_comps(storage, archetype, info->archetypeIndex, archetype->mask);
 
     const EcsEntityId movedEntity = ecs_archetype_remove(archetype, info->archetypeIndex);
     if (ecs_entity_valid(movedEntity)) {
