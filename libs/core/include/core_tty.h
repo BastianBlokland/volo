@@ -141,11 +141,6 @@ typedef enum {
 bool tty_read(File*, DynString*, TtyReadFlags);
 
 /**
- * Write a ANSI escape sequence for setting the terminal window title to stdout.
- */
-void tty_set_window_title(String title);
-
-/**
  * Write a ANSI escape sequence to the provided dynamic-string for setting the terminal style.
  */
 void tty_write_style_sequence(DynString*, TtyStyle);
@@ -155,3 +150,30 @@ void tty_write_style_sequence(DynString*, TtyStyle);
  * title..
  */
 void tty_write_window_title_sequence(DynString*, String title);
+
+/**
+ * Write a ANSI escape sequence to the provided dynamic-string for enabling / disabling the cursor.
+ */
+void tty_write_cursor_show_sequence(DynString*, bool show);
+
+typedef enum {
+  TtyClearMode_CursorToEnd   = 0,
+  TtyClearMode_CursorToStart = 1,
+  TtyClearMode_All           = 2,
+} TtyClearMode;
+
+/**
+ * Write a ANSI escape sequence to the provided dynamic-string for clearing the display.
+ */
+void tty_write_clear_sequence(DynString*, TtyClearMode);
+
+/**
+ * Write a ANSI escape sequence to the provided dynamic-string for clearing the line.
+ */
+void tty_write_clear_line_sequence(DynString*, TtyClearMode);
+
+/**
+ * Write a ANSI escape sequence to the provided dynamic-string for enabling alternative screen
+ * buffer.
+ */
+void tty_write_alt_screen_sequence(DynString*, bool enable);
