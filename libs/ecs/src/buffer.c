@@ -221,6 +221,7 @@ void* ecs_buffer_comp_add(
 
   const usize compSize = ecs_def_comp_size(buffer->def, compId);
   if (!compSize) {
+    diag_assert(data.size == 0);
     return null; // There is no need to store payload for empty components.
   }
 
@@ -232,7 +233,12 @@ void* ecs_buffer_comp_add(
   const usize compAlign = ecs_def_comp_align(buffer->def, compId);
   *last                 = ecs_buffer_compdata_add(buffer, compId, compSize, compAlign);
   Mem payload           = ecs_buffer_compdata_payload(*last, compSize, compAlign);
-  mem_cpy(payload, data);
+  if (data.size) {
+    diag_assert(data.size == payload.size);
+    mem_cpy(payload, data);
+  } else {
+    mem_set(payload, 0);
+  }
   return payload.ptr;
 }
 
