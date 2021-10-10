@@ -13,6 +13,10 @@ void tty_teardown() { tty_pal_teardown(); }
 bool tty_isatty(File* file) { return tty_pal_isatty(file); }
 u16  tty_width(File* file) { return tty_pal_width(file); }
 u16  tty_height(File* file) { return tty_pal_height(file); }
+void tty_opts_set(File* file, const TtyOpts opts) { tty_pal_opts_set(file, opts); }
+bool tty_read(File* file, DynString* dynstr, const TtyReadFlags flags) {
+  return tty_pal_read(file, dynstr, flags);
+}
 
 void tty_set_window_title(String title) {
   if (!tty_isatty(g_file_stdout)) {
