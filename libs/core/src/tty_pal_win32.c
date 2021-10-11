@@ -24,7 +24,7 @@ static void tty_pal_override_input_mode(File* file, struct ConsoleModeOverride* 
   if (GetConsoleMode(file->handle, &override->original)) {
     DWORD newMode = override->original;
     newMode |= ENABLE_PROCESSED_INPUT;
-    newMode |= ENABLE_VIRTUAL_TERMINAL_INPUT;
+    newMode |= 0x0200; // ENABLE_VIRTUAL_TERMINAL_INPUT
 
     SetConsoleMode(file->handle, newMode);
     override->enabled = true;
@@ -35,7 +35,7 @@ static void tty_pal_override_output_mode(File* file, struct ConsoleModeOverride*
   if (GetConsoleMode(file->handle, &override->original)) {
     DWORD newMode = override->original;
     newMode |= ENABLE_PROCESSED_OUTPUT;
-    newMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    newMode |= 0x0004; // ENABLE_VIRTUAL_TERMINAL_PROCESSING
 
     SetConsoleMode(file->handle, newMode);
     override->enabled = true;
