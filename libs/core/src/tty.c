@@ -74,6 +74,17 @@ void tty_write_window_title_sequence(DynString* str, String title) {
   dynstring_append_char(str, '\a');
 }
 
+void tty_write_set_cursor_sequence(DynString* str, const u32 row, const u32 col) {
+  /**
+   * 'CSI' sequence: 'Cursor Position'.
+   */
+  dynstring_append(str, string_lit(tty_esc "["));
+  format_write_int(str, row);
+  dynstring_append_char(str, ';');
+  format_write_int(str, col);
+  dynstring_append_char(str, 'H');
+}
+
 void tty_write_cursor_show_sequence(DynString* str, const bool show) {
   /**
    * Private 'CSI' sequence.

@@ -147,9 +147,15 @@ void tty_write_style_sequence(DynString*, TtyStyle);
 
 /**
  * Write a ANSI escape sequence to the provided dynamic-string for setting the terminal window
- * title..
+ * title.
  */
 void tty_write_window_title_sequence(DynString*, String title);
+
+/**
+ * Write a ANSI escape sequence to the provided dynamic-string for setting the cursor position.
+ * NOTE: The values are 1-based.
+ */
+void tty_write_set_cursor_sequence(DynString*, u32 row, u32 col);
 
 /**
  * Write a ANSI escape sequence to the provided dynamic-string for enabling / disabling the cursor.
