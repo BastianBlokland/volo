@@ -33,6 +33,11 @@ void ecs_world_destroy(EcsWorld*);
 const EcsDef* ecs_world_def(EcsWorld*);
 
 /**
+ * Retrieve the global entity.
+ */
+EcsEntityId ecs_world_global(EcsWorld*);
+
+/**
  * Check if the world is currently busy (being used by a runner for example).
  */
 bool ecs_world_busy(const EcsWorld*);
@@ -66,15 +71,16 @@ bool ecs_world_entity_exists(const EcsWorld*, EcsEntityId);
 /**
  * Schedule an entity to be destroyed at the next flush.
  *
- * Pre-condition: ecs_world_entity_exists(world, entity).
+ * Pre-condition: ecs_world_entity_exists(world, entity)
  * Pre-condition: !ecs_world_busy() || g_ecsRunningSystem
+ * Pre-condition: entity != ecs_world_global()
  */
 void ecs_world_entity_destroy(EcsWorld*, EcsEntityId);
 
 /**
  * Check if an entity has the specified component.
  *
- * Pre-condition: ecs_world_entity_exists(world, entity).
+ * Pre-condition: ecs_world_entity_exists(world, entity)
  * Pre-condition: !ecs_world_busy() || g_ecsRunningSystem
  */
 #define ecs_world_comp_has_t(_WORLD_, _ENTITY_, _TYPE_)                                            \
@@ -86,7 +92,7 @@ bool ecs_world_comp_has(EcsWorld*, EcsEntityId, EcsCompId);
  * Schedule a component to be added at the next flush.
  * NOTE: The returned pointer is valid until the next flush.
  *
- * Pre-condition: ecs_world_entity_exists(world, entity).
+ * Pre-condition: ecs_world_entity_exists(world, entity)
  * Pre-condition: !ecs_world_busy() || g_ecsRunningSystem
  */
 #define ecs_world_comp_add_t(_WORLD_, _ENTITY_, _TYPE_, ...)                                       \

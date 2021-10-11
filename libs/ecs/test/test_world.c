@@ -181,6 +181,30 @@ spec(world) {
     check(!ecs_world_comp_has_t(world, entity, WorldCompC));
   }
 
+  it("can add / remove components from / to the global entity") {
+    check(!ecs_world_comp_has_t(world, ecs_world_global(world), WorldCompA));
+    check(!ecs_world_comp_has_t(world, ecs_world_global(world), WorldCompB));
+    check(!ecs_world_comp_has_t(world, ecs_world_global(world), WorldCompC));
+
+    ecs_world_comp_add_t(world, ecs_world_global(world), WorldCompA);
+    ecs_world_comp_add_t(world, ecs_world_global(world), WorldCompB);
+
+    ecs_world_flush(world);
+
+    check(ecs_world_comp_has_t(world, ecs_world_global(world), WorldCompA));
+    check(ecs_world_comp_has_t(world, ecs_world_global(world), WorldCompB));
+    check(!ecs_world_comp_has_t(world, ecs_world_global(world), WorldCompC));
+
+    ecs_world_comp_remove_t(world, ecs_world_global(world), WorldCompA);
+    ecs_world_comp_remove_t(world, ecs_world_global(world), WorldCompB);
+
+    ecs_world_flush(world);
+
+    check(!ecs_world_comp_has_t(world, ecs_world_global(world), WorldCompA));
+    check(!ecs_world_comp_has_t(world, ecs_world_global(world), WorldCompB));
+    check(!ecs_world_comp_has_t(world, ecs_world_global(world), WorldCompC));
+  }
+
   teardown() {
     ecs_world_destroy(world);
     ecs_def_destroy(def);
