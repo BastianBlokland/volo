@@ -18,7 +18,7 @@ bool ecs_view_contains(EcsView*, EcsEntityId);
 
 /**
  * Create a new iterator for the given view.
- * NOTE: Allocates memory in the function scope, meaning iterators should not be created in a loop.
+ * NOTE: Allocates memory in the function scope, meaning iterators should not be created in loops.
  * NOTE: _VIEW_ is expanded twice, so care must be taken when providing a complex expression.
  */
 #define ecs_view_itr(_VIEW_)                                                                       \
@@ -26,25 +26,30 @@ bool ecs_view_contains(EcsView*, EcsEntityId);
 
 /**
  * Create a new iterator for the given view at the specified entity.
- * NOTE: Allocates memory in the function scope, meaning iterators should not be created in a loop.
+ * NOTE: Allocates memory in the function scope, meaning iterators should not be created in loops.
  * NOTE: _VIEW_ is expanded twice, so care must be taken when providing a complex expression.
  */
-#define ecs_view_itr_at(_VIEW_, _ENTITY_)                                                          \
-  ecs_view_jump(                                                                                   \
-      ecs_view_itr_create(mem_stack(64 + sizeof(Mem) * ecs_view_comp_count(_VIEW_)), (_VIEW_)),    \
-      (_ENTITY_))
+#define ecs_view_itr_at(_VIEW_, _ENTITY_) ecs_view_jump(ecs_view_itr(_VIEW_), (_ENTITY_))
+
+/**
+ * Create a new iterator for the given view at the first entity.
+ * NOTE: Allocates memory in the function scope, meaning iterators should not be created in loops.
+ * NOTE: _VIEW_ is expanded twice, so care must be taken when providing a complex expression.
+ */
+#define ecs_view_itr_first(_VIEW_) ecs_view_walk(ecs_view_itr(_VIEW_))
 
 EcsIterator* ecs_view_itr_create(Mem, EcsView*);
 EcsIterator* ecs_view_itr_reset(EcsIterator*);
 
 /**
  * Advance the iterator to the next entity in the view.
+ * NOTE: On success it will return the same the iterator pointer, otherwise null.
  */
-bool ecs_view_walk(EcsIterator*);
+EcsIterator* ecs_view_walk(EcsIterator*);
 
 /**
  * Jump to a specific entity in the view.
- * NOTE: Returns the same iterator pointer as was provided as input, usefull for func chaining.
+ * NOTE: Returns the same iterator pointer.
  *
  * Pre-condition: ecs_view_contains(view, entity)
  */

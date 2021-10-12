@@ -35,16 +35,16 @@ EcsIterator* ecs_view_itr_reset(EcsIterator* itr) {
   return itr;
 }
 
-bool ecs_view_walk(EcsIterator* itr) {
+EcsIterator* ecs_view_walk(EcsIterator* itr) {
   EcsView* view = itr->context;
 
   if (UNLIKELY(itr->archetypeIdx >= view->archetypes.size)) {
-    return false;
+    return null;
   }
 
   const EcsArchetypeId id = *dynarray_at_t(&view->archetypes, itr->archetypeIdx, EcsArchetypeId);
   if (LIKELY(ecs_storage_itr_walk(view->storage, itr, id))) {
-    return true;
+    return itr;
   }
 
   ++itr->archetypeIdx;
