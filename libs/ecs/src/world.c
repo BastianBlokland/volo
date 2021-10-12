@@ -23,7 +23,6 @@ struct sEcsWorld {
   EcsBuffer      buffer;
 
   EcsWorldFlags flags;
-  EcsEntityId   globalEntity;
   Allocator*    alloc;
 };
 
@@ -101,8 +100,6 @@ EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
       .alloc   = alloc,
   };
 
-  world->globalEntity = ecs_storage_entity_create(&world->storage);
-
   dynarray_for_t((DynArray*)&def->views, EcsViewDef, viewDef, {
     *dynarray_push_t(&world->views, EcsView) =
         ecs_view_create(alloc, &world->storage, def, viewDef);
@@ -136,8 +133,6 @@ void ecs_world_destroy(EcsWorld* world) {
 
 const EcsDef* ecs_world_def(EcsWorld* world) { return world->def; }
 
-EcsEntityId ecs_world_global(EcsWorld* world) { return world->globalEntity; }
-
 bool ecs_world_busy(const EcsWorld* world) { return (world->flags & EcsWorldFlags_Busy) != 0; }
 
 EcsView* ecs_world_view(EcsWorld* world, const EcsViewId view) {
@@ -159,7 +154,6 @@ EcsEntityId ecs_world_entity_create(EcsWorld* world) {
 void ecs_world_entity_destroy(EcsWorld* world, const EcsEntityId entity) {
   diag_assert(!ecs_world_busy(world) || g_ecsRunningSystem);
   diag_assert_msg(ecs_entity_valid(entity), "{} is an invalid entity", fmt_int(entity));
-  diag_assert_msg(entity != world->globalEntity, "The global-entity cannot be destroyed");
 
   diag_assert_msg(
       ecs_world_exists(world, entity),

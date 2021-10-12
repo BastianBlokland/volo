@@ -33,11 +33,6 @@ void ecs_world_destroy(EcsWorld*);
 const EcsDef* ecs_world_def(EcsWorld*);
 
 /**
- * Retrieve the global entity.
- */
-EcsEntityId ecs_world_global(EcsWorld*);
-
-/**
  * Check if the world is currently busy (being used by a runner for example).
  */
 bool ecs_world_busy(const EcsWorld*);
@@ -66,7 +61,6 @@ EcsEntityId ecs_world_entity_create(EcsWorld*);
  *
  * Pre-condition: ecs_world_exists(world, entity)
  * Pre-condition: !ecs_world_busy() || g_ecsRunningSystem
- * Pre-condition: entity != ecs_world_global()
  */
 void ecs_world_entity_destroy(EcsWorld*, EcsEntityId);
 
