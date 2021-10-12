@@ -93,8 +93,7 @@ spec(view) {
 
     ecs_world_flush(world);
 
-    EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ReadAB));
-    ecs_view_jump(itr, entity);
+    EcsIterator* itr = ecs_view_itr_at(ecs_world_view_t(world, ReadAB), entity);
 
     check(ecs_view_entity(itr) == entity);
     check_eq_int(ecs_view_read_t(itr, ViewCompA)->f1, 42);
@@ -168,8 +167,7 @@ spec(view) {
 
     ecs_world_flush(world);
 
-    EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, WriteC));
-    ecs_view_jump(itr, entity);
+    EcsIterator* itr = ecs_view_itr_at(ecs_world_view_t(world, WriteC), entity);
 
     ViewCompC* comp = ecs_view_write_t(itr, ViewCompC);
 

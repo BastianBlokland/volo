@@ -30,7 +30,10 @@ EcsIterator* ecs_view_itr_create(Mem mem, EcsView* view) {
   return itr;
 }
 
-void ecs_view_itr_reset(EcsIterator* itr) { ecs_iterator_reset(itr); }
+EcsIterator* ecs_view_itr_reset(EcsIterator* itr) {
+  ecs_iterator_reset(itr);
+  return itr;
+}
 
 bool ecs_view_walk(EcsIterator* itr) {
   EcsView* view = itr->context;
@@ -48,7 +51,7 @@ bool ecs_view_walk(EcsIterator* itr) {
   return ecs_view_walk(itr);
 }
 
-void ecs_view_jump(EcsIterator* itr, const EcsEntityId entity) {
+EcsIterator* ecs_view_jump(EcsIterator* itr, const EcsEntityId entity) {
   EcsView* view = itr->context;
 
   diag_assert_msg(
@@ -58,6 +61,7 @@ void ecs_view_jump(EcsIterator* itr, const EcsEntityId entity) {
       fmt_int(entity));
 
   ecs_storage_itr_jump(view->storage, itr, entity);
+  return itr;
 }
 
 EcsEntityId ecs_view_entity(const EcsIterator* itr) {

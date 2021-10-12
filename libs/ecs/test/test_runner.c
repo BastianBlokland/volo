@@ -114,8 +114,7 @@ spec(runner) {
 
     ecs_run_sync(runner);
 
-    EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ReadA));
-    ecs_view_jump(itr, entity);
+    EcsIterator* itr = ecs_view_itr_at(ecs_world_view_t(world, ReadA), entity);
     check_eq_int(ecs_view_read_t(itr, RunnerCompA)->f1, 819);
 
     ecs_run_sync(runner);

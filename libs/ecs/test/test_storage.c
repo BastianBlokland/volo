@@ -66,8 +66,7 @@ spec(storage) {
 
     ecs_world_flush(world);
 
-    EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ReadABC));
-    ecs_view_jump(itr, entity);
+    EcsIterator* itr = ecs_view_itr_at(ecs_world_view_t(world, ReadABC), entity);
 
     check_eq_int(ecs_view_read_t(itr, StorageCompA)->f1, 1);
 
@@ -88,8 +87,7 @@ spec(storage) {
 
     ecs_world_flush(world);
 
-    EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ReadABE));
-    ecs_view_jump(itr, entity);
+    EcsIterator* itr = ecs_view_itr_at(ecs_world_view_t(world, ReadABE), entity);
 
     check(bits_aligned_ptr(ecs_view_read_t(itr, StorageCompA), alignof(StorageCompA)));
     check(bits_aligned_ptr(ecs_view_read_t(itr, StorageCompE), alignof(StorageCompE)));
@@ -109,8 +107,7 @@ spec(storage) {
 
     ecs_world_flush(world);
 
-    EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ReadABC));
-    ecs_view_jump(itr, entity);
+    EcsIterator* itr = ecs_view_itr_at(ecs_world_view_t(world, ReadABC), entity);
 
     check(ecs_view_entity(itr) == entity);
 
