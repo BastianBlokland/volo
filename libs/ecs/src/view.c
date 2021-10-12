@@ -32,7 +32,7 @@ EcsIterator* ecs_view_itr_create(Mem mem, EcsView* view) {
 
 void ecs_view_itr_reset(EcsIterator* itr) { ecs_iterator_reset(itr); }
 
-bool ecs_view_itr_walk(EcsIterator* itr) {
+bool ecs_view_walk(EcsIterator* itr) {
   EcsView* view = itr->context;
 
   if (UNLIKELY(itr->archetypeIdx >= view->archetypes.size)) {
@@ -45,10 +45,10 @@ bool ecs_view_itr_walk(EcsIterator* itr) {
   }
 
   ++itr->archetypeIdx;
-  return ecs_view_itr_walk(itr);
+  return ecs_view_walk(itr);
 }
 
-void ecs_view_itr_jump(EcsIterator* itr, const EcsEntityId entity) {
+void ecs_view_jump(EcsIterator* itr, const EcsEntityId entity) {
   EcsView* view = itr->context;
 
   diag_assert_msg(

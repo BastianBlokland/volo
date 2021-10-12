@@ -39,19 +39,19 @@ spec(utils) {
     const EcsEntityId entity1 = ecs_world_entity_create(world);
     const EcsEntityId entity2 = ecs_world_entity_create(world);
 
-    ecs_world_comp_add_t(world, entity1, UtilsCompA, .f1 = 42, .f2 = 1337);
-    ecs_world_comp_add_t(world, entity2, UtilsCompB, .f1 = 1337);
+    ecs_world_add_t(world, entity1, UtilsCompA, .f1 = 42, .f2 = 1337);
+    ecs_world_add_t(world, entity2, UtilsCompB, .f1 = 1337);
 
     ecs_world_flush(world);
 
-    EcsIterator* itr = ecs_view_itr_stack(ecs_world_view_t(world, MaybeReadA));
+    EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, MaybeReadA));
 
-    ecs_view_itr_jump(itr, entity1);
+    ecs_view_jump(itr, entity1);
     const UtilsCompA* comp1 = ecs_utils_read_or_add_t(world, itr, UtilsCompA);
     check_eq_int(comp1->f1, 42);
     check_eq_int(comp1->f2, 1337);
 
-    ecs_view_itr_jump(itr, entity2);
+    ecs_view_jump(itr, entity2);
     const UtilsCompA* comp2 = ecs_utils_read_or_add_t(world, itr, UtilsCompA);
     check_eq_int(comp2->f1, 0);
     check_eq_int(comp2->f2, 0);
@@ -61,19 +61,19 @@ spec(utils) {
     const EcsEntityId entity1 = ecs_world_entity_create(world);
     const EcsEntityId entity2 = ecs_world_entity_create(world);
 
-    ecs_world_comp_add_t(world, entity1, UtilsCompA, .f1 = 42, .f2 = 1337);
-    ecs_world_comp_add_t(world, entity2, UtilsCompB, .f1 = 1337);
+    ecs_world_add_t(world, entity1, UtilsCompA, .f1 = 42, .f2 = 1337);
+    ecs_world_add_t(world, entity2, UtilsCompB, .f1 = 1337);
 
     ecs_world_flush(world);
 
-    EcsIterator* itr = ecs_view_itr_stack(ecs_world_view_t(world, MaybeWriteA));
+    EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, MaybeWriteA));
 
-    ecs_view_itr_jump(itr, entity1);
+    ecs_view_jump(itr, entity1);
     UtilsCompA* comp1 = ecs_utils_write_or_add_t(world, itr, UtilsCompA);
     check_eq_int(comp1->f1, 42);
     check_eq_int(comp1->f2, 1337);
 
-    ecs_view_itr_jump(itr, entity2);
+    ecs_view_jump(itr, entity2);
     UtilsCompA* comp2 = ecs_utils_write_or_add_t(world, itr, UtilsCompA);
     check_eq_int(comp2->f1, 0);
     check_eq_int(comp2->f2, 0);

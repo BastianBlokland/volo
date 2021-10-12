@@ -66,15 +66,15 @@ spec(view) {
     const EcsEntityId entity2 = ecs_world_entity_create(world);
     const EcsEntityId entity3 = ecs_world_entity_create(world);
 
-    ecs_world_comp_add_t(world, entity1, ViewCompA);
-    ecs_world_comp_add_t(world, entity1, ViewCompB);
+    ecs_world_add_t(world, entity1, ViewCompA);
+    ecs_world_add_t(world, entity1, ViewCompB);
 
-    ecs_world_comp_add_t(world, entity2, ViewCompA);
-    ecs_world_comp_add_t(world, entity2, ViewCompC);
+    ecs_world_add_t(world, entity2, ViewCompA);
+    ecs_world_add_t(world, entity2, ViewCompC);
 
-    ecs_world_comp_add_t(world, entity3, ViewCompA);
-    ecs_world_comp_add_t(world, entity3, ViewCompB);
-    ecs_world_comp_add_t(world, entity3, ViewCompC);
+    ecs_world_add_t(world, entity3, ViewCompA);
+    ecs_world_add_t(world, entity3, ViewCompB);
+    ecs_world_add_t(world, entity3, ViewCompC);
 
     ecs_world_flush(world);
 
@@ -87,14 +87,14 @@ spec(view) {
   it("can read component values on entities") {
     const EcsEntityId entity = ecs_world_entity_create(world);
 
-    ecs_world_comp_add_t(world, entity, ViewCompA, .f1 = 42);
-    ecs_world_comp_add_t(world, entity, ViewCompB, .f1 = string_lit("Hello World"));
-    ecs_world_comp_add_t(world, entity, ViewCompC, .f1 = 1337);
+    ecs_world_add_t(world, entity, ViewCompA, .f1 = 42);
+    ecs_world_add_t(world, entity, ViewCompB, .f1 = string_lit("Hello World"));
+    ecs_world_add_t(world, entity, ViewCompC, .f1 = 1337);
 
     ecs_world_flush(world);
 
-    EcsIterator* itr = ecs_view_itr_stack(ecs_world_view_t(world, ReadAB));
-    ecs_view_itr_jump(itr, entity);
+    EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ReadAB));
+    ecs_view_jump(itr, entity);
 
     check(ecs_view_entity(itr) == entity);
     check_eq_int(ecs_view_read_t(itr, ViewCompA)->f1, 42);
@@ -105,21 +105,21 @@ spec(view) {
     const EcsEntityId entityA = ecs_world_entity_create(world);
     const EcsEntityId entityB = ecs_world_entity_create(world);
 
-    ecs_world_comp_add_t(world, entityA, ViewCompA, .f1 = 42);
-    ecs_world_comp_add_t(world, entityA, ViewCompC, .f1 = 1337);
+    ecs_world_add_t(world, entityA, ViewCompA, .f1 = 42);
+    ecs_world_add_t(world, entityA, ViewCompC, .f1 = 1337);
 
-    ecs_world_comp_add_t(world, entityB, ViewCompA, .f1 = 42);
-    ecs_world_comp_add_t(world, entityB, ViewCompB, .f1 = string_lit("Hello World"));
+    ecs_world_add_t(world, entityB, ViewCompA, .f1 = 42);
+    ecs_world_add_t(world, entityB, ViewCompB, .f1 = string_lit("Hello World"));
 
     ecs_world_flush(world);
 
-    EcsIterator* itr = ecs_view_itr_stack(ecs_world_view_t(world, ReadAMaybeC));
+    EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ReadAMaybeC));
 
-    ecs_view_itr_jump(itr, entityA);
+    ecs_view_jump(itr, entityA);
     check(ecs_view_entity(itr) == entityA);
     check_eq_int(ecs_view_read_t(itr, ViewCompA)->f1, 42);
 
-    ecs_view_itr_jump(itr, entityB);
+    ecs_view_jump(itr, entityB);
     check(ecs_view_entity(itr) == entityB);
     check(ecs_view_read_t(itr, ViewCompC) == null);
   }
@@ -131,45 +131,45 @@ spec(view) {
     const EcsEntityId entityC = ecs_world_entity_create(world);
     ecs_world_entity_create(world); // No component on it, so not in an archetype.
 
-    ecs_world_comp_add_t(world, entityA, ViewCompA, .f1 = 1337);
-    ecs_world_comp_add_t(world, entityA, ViewCompB, .f1 = string_lit("Hello World"));
-    ecs_world_comp_add_t(world, entityA, ViewCompC, .f1 = 42);
+    ecs_world_add_t(world, entityA, ViewCompA, .f1 = 1337);
+    ecs_world_add_t(world, entityA, ViewCompB, .f1 = string_lit("Hello World"));
+    ecs_world_add_t(world, entityA, ViewCompC, .f1 = 42);
 
-    ecs_world_comp_add_t(world, entityB, ViewCompA, .f1 = 1337);
-    ecs_world_comp_add_t(world, entityB, ViewCompB, .f1 = string_lit("Hello World"));
+    ecs_world_add_t(world, entityB, ViewCompA, .f1 = 1337);
+    ecs_world_add_t(world, entityB, ViewCompB, .f1 = string_lit("Hello World"));
 
-    ecs_world_comp_add_t(world, entityC, ViewCompC, .f1 = 42);
+    ecs_world_add_t(world, entityC, ViewCompC, .f1 = 42);
 
     ecs_world_flush(world);
 
-    EcsIterator* itr = ecs_view_itr_stack(ecs_world_view_t(world, ReadMaybeAMaybeBMaybeC));
-    check_require(ecs_view_itr_walk(itr) && ecs_view_entity(itr) == entityA);
+    EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ReadMaybeAMaybeBMaybeC));
+    check_require(ecs_view_walk(itr) && ecs_view_entity(itr) == entityA);
     check(ecs_view_read_t(itr, ViewCompA) != null);
     check(ecs_view_read_t(itr, ViewCompB) != null);
     check(ecs_view_read_t(itr, ViewCompC) != null);
 
-    check_require(ecs_view_itr_walk(itr) && ecs_view_entity(itr) == entityB);
+    check_require(ecs_view_walk(itr) && ecs_view_entity(itr) == entityB);
     check(ecs_view_read_t(itr, ViewCompA) != null);
     check(ecs_view_read_t(itr, ViewCompB) != null);
     check(ecs_view_read_t(itr, ViewCompC) == null);
 
-    check_require(ecs_view_itr_walk(itr) && ecs_view_entity(itr) == entityC);
+    check_require(ecs_view_walk(itr) && ecs_view_entity(itr) == entityC);
     check(ecs_view_read_t(itr, ViewCompA) == null);
     check(ecs_view_read_t(itr, ViewCompB) == null);
     check(ecs_view_read_t(itr, ViewCompC) != null);
 
-    check(!ecs_view_itr_walk(itr));
+    check(!ecs_view_walk(itr));
   }
 
   it("can write component values on entities") {
     const EcsEntityId entity = ecs_world_entity_create(world);
 
-    ecs_world_comp_add_t(world, entity, ViewCompC, .f1 = 1337);
+    ecs_world_add_t(world, entity, ViewCompC, .f1 = 1337);
 
     ecs_world_flush(world);
 
-    EcsIterator* itr = ecs_view_itr_stack(ecs_world_view_t(world, WriteC));
-    ecs_view_itr_jump(itr, entity);
+    EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, WriteC));
+    ecs_view_jump(itr, entity);
 
     ViewCompC* comp = ecs_view_write_t(itr, ViewCompC);
 
@@ -186,33 +186,33 @@ spec(view) {
     const EcsEntityId entityE = ecs_world_entity_create(world);
     const EcsEntityId entityF = ecs_world_entity_create(world);
 
-    ecs_world_comp_add_t(world, entityA, ViewCompA, .f1 = 1337);
-    ecs_world_comp_add_t(world, entityA, ViewCompB, .f1 = string_lit("Hello World"));
-    ecs_world_comp_add_t(world, entityA, ViewCompC, .f1 = 1337);
+    ecs_world_add_t(world, entityA, ViewCompA, .f1 = 1337);
+    ecs_world_add_t(world, entityA, ViewCompB, .f1 = string_lit("Hello World"));
+    ecs_world_add_t(world, entityA, ViewCompC, .f1 = 1337);
 
-    ecs_world_comp_add_t(world, entityB, ViewCompA, .f1 = 1337);
-    ecs_world_comp_add_t(world, entityB, ViewCompB, .f1 = string_lit("Hello World"));
+    ecs_world_add_t(world, entityB, ViewCompA, .f1 = 1337);
+    ecs_world_add_t(world, entityB, ViewCompB, .f1 = string_lit("Hello World"));
 
-    ecs_world_comp_add_t(world, entityC, ViewCompA, .f1 = 1337);
-    ecs_world_comp_add_t(world, entityC, ViewCompC, .f1 = 1337);
+    ecs_world_add_t(world, entityC, ViewCompA, .f1 = 1337);
+    ecs_world_add_t(world, entityC, ViewCompC, .f1 = 1337);
 
-    ecs_world_comp_add_t(world, entityD, ViewCompA, .f1 = 1337);
-    ecs_world_comp_add_t(world, entityD, ViewCompB, .f1 = string_lit("Hello World"));
+    ecs_world_add_t(world, entityD, ViewCompA, .f1 = 1337);
+    ecs_world_add_t(world, entityD, ViewCompB, .f1 = string_lit("Hello World"));
 
-    ecs_world_comp_add_t(world, entityE, ViewCompA, .f1 = 1337);
-    ecs_world_comp_add_t(world, entityE, ViewCompB, .f1 = string_lit("Hello World"));
+    ecs_world_add_t(world, entityE, ViewCompA, .f1 = 1337);
+    ecs_world_add_t(world, entityE, ViewCompB, .f1 = string_lit("Hello World"));
 
-    ecs_world_comp_add_t(world, entityF, ViewCompB, .f1 = string_lit("Hello World"));
-    ecs_world_comp_add_t(world, entityF, ViewCompC, .f1 = 1337);
+    ecs_world_add_t(world, entityF, ViewCompB, .f1 = string_lit("Hello World"));
+    ecs_world_add_t(world, entityF, ViewCompC, .f1 = 1337);
 
     ecs_world_flush(world);
 
-    EcsIterator* itr = ecs_view_itr_stack(ecs_world_view_t(world, ReadAB));
-    check_require(ecs_view_itr_walk(itr) && ecs_view_entity(itr) == entityA);
-    check_require(ecs_view_itr_walk(itr) && ecs_view_entity(itr) == entityB);
-    check_require(ecs_view_itr_walk(itr) && ecs_view_entity(itr) == entityD);
-    check_require(ecs_view_itr_walk(itr) && ecs_view_entity(itr) == entityE);
-    check(!ecs_view_itr_walk(itr));
+    EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ReadAB));
+    check_require(ecs_view_walk(itr) && ecs_view_entity(itr) == entityA);
+    check_require(ecs_view_walk(itr) && ecs_view_entity(itr) == entityB);
+    check_require(ecs_view_walk(itr) && ecs_view_entity(itr) == entityD);
+    check_require(ecs_view_walk(itr) && ecs_view_entity(itr) == entityE);
+    check(!ecs_view_walk(itr));
   }
 
   it("can iterate over entities from multiple chunks in an archetype") {
@@ -221,8 +221,8 @@ spec(view) {
 
     for (usize i = 0; i != entitiesToCreate; ++i) {
       const EcsEntityId newEntity = ecs_world_entity_create(world);
-      ecs_world_comp_add_t(world, newEntity, ViewCompA, .f1 = (u32)i);
-      ecs_world_comp_add_t(world, newEntity, ViewCompB, .f1 = string_lit("Hello World"));
+      ecs_world_add_t(world, newEntity, ViewCompA, .f1 = (u32)i);
+      ecs_world_add_t(world, newEntity, ViewCompB, .f1 = string_lit("Hello World"));
       *dynarray_push_t(&entities, EcsEntityId) = newEntity;
     }
 
@@ -230,7 +230,7 @@ spec(view) {
 
     EcsView* view  = ecs_world_view_t(world, ReadAB);
     usize    count = 0;
-    for (EcsIterator* itr = ecs_view_itr_stack(view); ecs_view_itr_walk(itr); ++count) {
+    for (EcsIterator* itr = ecs_view_itr(view); ecs_view_walk(itr); ++count) {
       check(ecs_view_entity(itr) == *dynarray_at_t(&entities, count, EcsEntityId));
       check(ecs_view_contains(view, ecs_view_entity(itr)));
       check_eq_int(ecs_view_read_t(itr, ViewCompA)->f1, count);
@@ -247,32 +247,32 @@ spec(view) {
     const EcsEntityId entityC = ecs_world_entity_create(world);
     const EcsEntityId entityD = ecs_world_entity_create(world);
 
-    ecs_world_comp_add_t(world, entityA, ViewCompA, .f1 = 1337);
-    ecs_world_comp_add_t(world, entityA, ViewCompC, .f1 = 42);
+    ecs_world_add_t(world, entityA, ViewCompA, .f1 = 1337);
+    ecs_world_add_t(world, entityA, ViewCompC, .f1 = 42);
 
-    ecs_world_comp_add_t(world, entityB, ViewCompA, .f1 = 1338);
-    ecs_world_comp_add_t(world, entityB, ViewCompB);
+    ecs_world_add_t(world, entityB, ViewCompA, .f1 = 1338);
+    ecs_world_add_t(world, entityB, ViewCompB);
 
-    ecs_world_comp_add_t(world, entityC, ViewCompA, .f1 = 1339);
+    ecs_world_add_t(world, entityC, ViewCompA, .f1 = 1339);
 
-    ecs_world_comp_add_t(world, entityD, ViewCompC, .f1 = 1340);
+    ecs_world_add_t(world, entityD, ViewCompC, .f1 = 1340);
 
     ecs_world_flush(world);
 
-    EcsIterator* itr = ecs_view_itr_stack(ecs_world_view_t(world, ReadAMaybeC));
-    check_require(ecs_view_itr_walk(itr) && ecs_view_entity(itr) == entityA);
+    EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ReadAMaybeC));
+    check_require(ecs_view_walk(itr) && ecs_view_entity(itr) == entityA);
     check_eq_int(ecs_view_read_t(itr, ViewCompA)->f1, 1337);
     check_eq_int(ecs_view_read_t(itr, ViewCompC)->f1, 42);
 
-    check_require(ecs_view_itr_walk(itr) && ecs_view_entity(itr) == entityB);
+    check_require(ecs_view_walk(itr) && ecs_view_entity(itr) == entityB);
     check_eq_int(ecs_view_read_t(itr, ViewCompA)->f1, 1338);
     check(ecs_view_read_t(itr, ViewCompC) == null);
 
-    check_require(ecs_view_itr_walk(itr) && ecs_view_entity(itr) == entityC);
+    check_require(ecs_view_walk(itr) && ecs_view_entity(itr) == entityC);
     check_eq_int(ecs_view_read_t(itr, ViewCompA)->f1, 1339);
     check(ecs_view_read_t(itr, ViewCompC) == null);
 
-    check(!ecs_view_itr_walk(itr));
+    check(!ecs_view_walk(itr));
   }
 
   it("skips empty archetypes") {
@@ -281,8 +281,8 @@ spec(view) {
 
     for (usize i = 0; i != entitiesToCreate; ++i) {
       const EcsEntityId newEntity = ecs_world_entity_create(world);
-      ecs_world_comp_add_t(world, newEntity, ViewCompA, .f1 = (u32)i);
-      ecs_world_comp_add_t(world, newEntity, ViewCompB, .f1 = string_lit("Hello World"));
+      ecs_world_add_t(world, newEntity, ViewCompA, .f1 = (u32)i);
+      ecs_world_add_t(world, newEntity, ViewCompB, .f1 = string_lit("Hello World"));
       *dynarray_push_t(&entities, EcsEntityId) = newEntity;
     }
 
@@ -292,8 +292,8 @@ spec(view) {
 
     ecs_world_flush(world);
 
-    EcsIterator* itr = ecs_view_itr_stack(ecs_world_view_t(world, ReadAB));
-    check(!ecs_view_itr_walk(itr));
+    EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ReadAB));
+    check(!ecs_view_walk(itr));
 
     dynarray_destroy(&entities);
   }

@@ -156,20 +156,13 @@ EcsEntityId ecs_world_entity_create(EcsWorld* world) {
   return ecs_storage_entity_create(&world->storage);
 }
 
-bool ecs_world_entity_exists(const EcsWorld* world, const EcsEntityId entity) {
-  diag_assert(!ecs_world_busy(world) || g_ecsRunningSystem);
-  diag_assert_msg(ecs_entity_valid(entity), "{} is an invalid entity", fmt_int(entity));
-
-  return ecs_storage_entity_exists(&world->storage, entity);
-}
-
 void ecs_world_entity_destroy(EcsWorld* world, const EcsEntityId entity) {
   diag_assert(!ecs_world_busy(world) || g_ecsRunningSystem);
   diag_assert_msg(ecs_entity_valid(entity), "{} is an invalid entity", fmt_int(entity));
   diag_assert_msg(entity != world->globalEntity, "The global-entity cannot be destroyed");
 
   diag_assert_msg(
-      ecs_world_entity_exists(world, entity),
+      ecs_world_exists(world, entity),
       "Unable to enqueue destruction of entity {}, reason: entity does not exist",
       fmt_int(entity));
 
@@ -178,12 +171,19 @@ void ecs_world_entity_destroy(EcsWorld* world, const EcsEntityId entity) {
   thread_spinlock_unlock(&world->bufferLock);
 }
 
-bool ecs_world_comp_has(EcsWorld* world, const EcsEntityId entity, const EcsCompId comp) {
+bool ecs_world_exists(const EcsWorld* world, const EcsEntityId entity) {
+  diag_assert(!ecs_world_busy(world) || g_ecsRunningSystem);
+  diag_assert_msg(ecs_entity_valid(entity), "{} is an invalid entity", fmt_int(entity));
+
+  return ecs_storage_entity_exists(&world->storage, entity);
+}
+
+bool ecs_world_has(EcsWorld* world, const EcsEntityId entity, const EcsCompId comp) {
   diag_assert(!ecs_world_busy(world) || g_ecsRunningSystem);
   diag_assert_msg(ecs_entity_valid(entity), "{} is an invalid entity", fmt_int(entity));
 
   diag_assert_msg(
-      ecs_world_entity_exists(world, entity),
+      ecs_world_exists(world, entity),
       "Unable to check for {} on entity {}, reason: entity does not exist",
       fmt_text(ecs_def_comp_name(world->def, comp)),
       fmt_int(entity));
@@ -192,19 +192,19 @@ bool ecs_world_comp_has(EcsWorld* world, const EcsEntityId entity, const EcsComp
   return bitset_test(entityMask, comp);
 }
 
-void* ecs_world_comp_add(
+void* ecs_world_add(
     EcsWorld* world, const EcsEntityId entity, const EcsCompId comp, const Mem data) {
   diag_assert(!ecs_world_busy(world) || g_ecsRunningSystem);
   diag_assert_msg(ecs_entity_valid(entity), "{} is an invalid entity", fmt_int(entity));
 
   diag_assert_msg(
-      ecs_world_entity_exists(world, entity),
+      ecs_world_exists(world, entity),
       "Unable to add {} to entity {}, reason: entity does not exist",
       fmt_text(ecs_def_comp_name(world->def, comp)),
       fmt_int(entity));
 
   diag_assert_msg(
-      !ecs_world_comp_has(world, entity, comp),
+      !ecs_world_has(world, entity, comp),
       "Unable to add {} to entity {}, reason: entity allready has the specified component",
       fmt_text(ecs_def_comp_name(world->def, comp)),
       fmt_int(entity));
@@ -215,18 +215,18 @@ void* ecs_world_comp_add(
   return result;
 }
 
-void ecs_world_comp_remove(EcsWorld* world, const EcsEntityId entity, const EcsCompId comp) {
+void ecs_world_remove(EcsWorld* world, const EcsEntityId entity, const EcsCompId comp) {
   diag_assert(!ecs_world_busy(world) || g_ecsRunningSystem);
   diag_assert_msg(ecs_entity_valid(entity), "{} is an invalid entity", fmt_int(entity));
 
   diag_assert_msg(
-      ecs_world_entity_exists(world, entity),
+      ecs_world_exists(world, entity),
       "Unable to remove {} from entity {}, reason: entity does not exist",
       fmt_text(ecs_def_comp_name(world->def, comp)),
       fmt_int(entity));
 
   diag_assert_msg(
-      ecs_world_comp_has(world, entity, comp),
+      ecs_world_has(world, entity, comp),
       "Unable to remove {} from entity {}, reason: entity does not have the specified component",
       fmt_text(ecs_def_comp_name(world->def, comp)),
       fmt_int(entity));

@@ -33,7 +33,7 @@ ecs_system_define(RunnerSys1) {
   diag_assert(ecs_world_busy(world));
 
   EcsView* view = ecs_world_view_t(world, ReadAWriteBC);
-  for (EcsIterator* itr = ecs_view_itr_stack(view); ecs_view_itr_walk(itr);) {
+  for (EcsIterator* itr = ecs_view_itr(view); ecs_view_walk(itr);) {
     const RunnerCompA* compA = ecs_view_read_t(itr, RunnerCompA);
     RunnerCompB*       compB = ecs_view_write_t(itr, RunnerCompB);
     RunnerCompC*       compC = ecs_view_write_t(itr, RunnerCompC);
@@ -49,7 +49,7 @@ ecs_system_define(RunnerSys2) {
   diag_assert(ecs_world_busy(world));
 
   EcsView* view = ecs_world_view_t(world, ReadBWriteA);
-  for (EcsIterator* itr = ecs_view_itr_stack(view); ecs_view_itr_walk(itr);) {
+  for (EcsIterator* itr = ecs_view_itr(view); ecs_view_walk(itr);) {
     const RunnerCompB* compB = ecs_view_read_t(itr, RunnerCompB);
     RunnerCompA*       compA = ecs_view_write_t(itr, RunnerCompA);
 
@@ -63,7 +63,7 @@ ecs_system_define(RunnerSys3) {
   diag_assert(ecs_world_busy(world));
 
   EcsView* view = ecs_world_view_t(world, ReadCWriteA);
-  for (EcsIterator* itr = ecs_view_itr_stack(view); ecs_view_itr_walk(itr);) {
+  for (EcsIterator* itr = ecs_view_itr(view); ecs_view_walk(itr);) {
     const RunnerCompC* compC = ecs_view_read_t(itr, RunnerCompC);
     RunnerCompA*       compA = ecs_view_write_t(itr, RunnerCompA);
 
@@ -107,21 +107,21 @@ spec(runner) {
     check(!ecs_world_busy(world));
 
     const EcsEntityId entity = ecs_world_entity_create(world);
-    ecs_world_comp_add_t(world, entity, RunnerCompA, .f1 = 42);
-    ecs_world_comp_add_t(world, entity, RunnerCompB);
-    ecs_world_comp_add_t(world, entity, RunnerCompC);
+    ecs_world_add_t(world, entity, RunnerCompA, .f1 = 42);
+    ecs_world_add_t(world, entity, RunnerCompB);
+    ecs_world_add_t(world, entity, RunnerCompC);
     ecs_world_flush(world);
 
     ecs_run_sync(runner);
 
-    EcsIterator* itr = ecs_view_itr_stack(ecs_world_view_t(world, ReadA));
-    ecs_view_itr_jump(itr, entity);
+    EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ReadA));
+    ecs_view_jump(itr, entity);
     check_eq_int(ecs_view_read_t(itr, RunnerCompA)->f1, 819);
 
     ecs_run_sync(runner);
 
     ecs_view_itr_reset(itr);
-    ecs_view_itr_jump(itr, entity);
+    ecs_view_jump(itr, entity);
     check_eq_int(ecs_view_read_t(itr, RunnerCompA)->f1, 174652);
   }
 

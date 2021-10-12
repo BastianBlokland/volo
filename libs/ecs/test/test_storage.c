@@ -60,14 +60,14 @@ spec(storage) {
   it("copies added components into the entities archetype") {
     const EcsEntityId entity = ecs_world_entity_create(world);
 
-    ecs_world_comp_add_t(world, entity, StorageCompA, .f1 = 1);
-    ecs_world_comp_add_t(world, entity, StorageCompB, .f1 = 2, .f2 = 3);
-    ecs_world_comp_add_t(world, entity, StorageCompC, .f1 = 4, .f2 = 5, .f3 = 6);
+    ecs_world_add_t(world, entity, StorageCompA, .f1 = 1);
+    ecs_world_add_t(world, entity, StorageCompB, .f1 = 2, .f2 = 3);
+    ecs_world_add_t(world, entity, StorageCompC, .f1 = 4, .f2 = 5, .f3 = 6);
 
     ecs_world_flush(world);
 
-    EcsIterator* itr = ecs_view_itr_stack(ecs_world_view_t(world, ReadABC));
-    ecs_view_itr_jump(itr, entity);
+    EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ReadABC));
+    ecs_view_jump(itr, entity);
 
     check_eq_int(ecs_view_read_t(itr, StorageCompA)->f1, 1);
 
@@ -82,14 +82,14 @@ spec(storage) {
   it("respects component alignment") {
     const EcsEntityId entity = ecs_world_entity_create(world);
 
-    ecs_world_comp_add_t(world, entity, StorageCompA, .f1 = 1);
-    ecs_world_comp_add_t(world, entity, StorageCompE, .f1 = 2);
-    ecs_world_comp_add_t(world, entity, StorageCompB, .f1 = 3, .f2 = 4);
+    ecs_world_add_t(world, entity, StorageCompA, .f1 = 1);
+    ecs_world_add_t(world, entity, StorageCompE, .f1 = 2);
+    ecs_world_add_t(world, entity, StorageCompB, .f1 = 3, .f2 = 4);
 
     ecs_world_flush(world);
 
-    EcsIterator* itr = ecs_view_itr_stack(ecs_world_view_t(world, ReadABE));
-    ecs_view_itr_jump(itr, entity);
+    EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ReadABE));
+    ecs_view_jump(itr, entity);
 
     check(bits_aligned_ptr(ecs_view_read_t(itr, StorageCompA), alignof(StorageCompA)));
     check(bits_aligned_ptr(ecs_view_read_t(itr, StorageCompE), alignof(StorageCompE)));
@@ -99,18 +99,18 @@ spec(storage) {
   it("moves component data when moving entities between archetypes") {
     const EcsEntityId entity = ecs_world_entity_create(world);
 
-    ecs_world_comp_add_t(world, entity, StorageCompA, .f1 = 1);
-    ecs_world_comp_add_t(world, entity, StorageCompB, .f1 = 2, .f2 = 3);
-    ecs_world_comp_add_t(world, entity, StorageCompC, .f1 = 4, .f2 = 5, .f3 = 6);
+    ecs_world_add_t(world, entity, StorageCompA, .f1 = 1);
+    ecs_world_add_t(world, entity, StorageCompB, .f1 = 2, .f2 = 3);
+    ecs_world_add_t(world, entity, StorageCompC, .f1 = 4, .f2 = 5, .f3 = 6);
 
     ecs_world_flush(world);
 
-    ecs_world_comp_add_t(world, entity, StorageCompD, .f1 = 7, .f2 = 8, .f3 = 9, .f4 = 10);
+    ecs_world_add_t(world, entity, StorageCompD, .f1 = 7, .f2 = 8, .f3 = 9, .f4 = 10);
 
     ecs_world_flush(world);
 
-    EcsIterator* itr = ecs_view_itr_stack(ecs_world_view_t(world, ReadABC));
-    ecs_view_itr_jump(itr, entity);
+    EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ReadABC));
+    ecs_view_jump(itr, entity);
 
     check(ecs_view_entity(itr) == entity);
 
@@ -127,18 +127,18 @@ spec(storage) {
   it("moves entity metadata when moving entities between archetypes") {
     const EcsEntityId entity = ecs_world_entity_create(world);
 
-    ecs_world_comp_add_t(world, entity, StorageCompA, .f1 = 1);
-    ecs_world_comp_add_t(world, entity, StorageCompB, .f1 = 2, .f2 = 3);
-    ecs_world_comp_add_t(world, entity, StorageCompC, .f1 = 4, .f2 = 5, .f3 = 6);
+    ecs_world_add_t(world, entity, StorageCompA, .f1 = 1);
+    ecs_world_add_t(world, entity, StorageCompB, .f1 = 2, .f2 = 3);
+    ecs_world_add_t(world, entity, StorageCompC, .f1 = 4, .f2 = 5, .f3 = 6);
 
     ecs_world_flush(world);
 
-    ecs_world_comp_add_t(world, entity, StorageCompD, .f1 = 7, .f2 = 8, .f3 = 9, .f4 = 10);
+    ecs_world_add_t(world, entity, StorageCompD, .f1 = 7, .f2 = 8, .f3 = 9, .f4 = 10);
 
     ecs_world_flush(world);
 
-    EcsIterator* itr = ecs_view_itr_stack(ecs_world_view_t(world, ReadABC));
-    check(ecs_view_itr_walk(itr));
+    EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ReadABC));
+    check(ecs_view_walk(itr));
 
     check(ecs_view_entity(itr) == entity);
 
@@ -151,56 +151,56 @@ spec(storage) {
     check_eq_int(ecs_view_read_t(itr, StorageCompC)->f2, 5);
     check_eq_int(ecs_view_read_t(itr, StorageCompC)->f3, 6);
 
-    check(!ecs_view_itr_walk(itr));
+    check(!ecs_view_walk(itr));
   }
 
   it("can move entities out of an archetype") {
     const EcsEntityId entity = ecs_world_entity_create(world);
 
-    check(!ecs_world_comp_has_t(world, entity, StorageCompA));
+    check(!ecs_world_has_t(world, entity, StorageCompA));
 
-    ecs_world_comp_add_t(world, entity, StorageCompA, .f1 = 1);
-    ecs_world_comp_add_t(world, entity, StorageCompB, .f1 = 2, .f2 = 3);
-    ecs_world_comp_add_t(world, entity, StorageCompC, .f1 = 4, .f2 = 5, .f3 = 6);
-
-    ecs_world_flush(world);
-
-    check(ecs_world_comp_has_t(world, entity, StorageCompA));
-
-    EcsIterator* itr = ecs_view_itr_stack(ecs_world_view_t(world, ReadABC));
-    check(ecs_view_itr_walk(itr));
-
-    ecs_world_comp_remove_t(world, entity, StorageCompA);
-    ecs_world_comp_remove_t(world, entity, StorageCompB);
-    ecs_world_comp_remove_t(world, entity, StorageCompC);
+    ecs_world_add_t(world, entity, StorageCompA, .f1 = 1);
+    ecs_world_add_t(world, entity, StorageCompB, .f1 = 2, .f2 = 3);
+    ecs_world_add_t(world, entity, StorageCompC, .f1 = 4, .f2 = 5, .f3 = 6);
 
     ecs_world_flush(world);
 
-    check(!ecs_world_comp_has_t(world, entity, StorageCompA));
+    check(ecs_world_has_t(world, entity, StorageCompA));
+
+    EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ReadABC));
+    check(ecs_view_walk(itr));
+
+    ecs_world_remove_t(world, entity, StorageCompA);
+    ecs_world_remove_t(world, entity, StorageCompB);
+    ecs_world_remove_t(world, entity, StorageCompC);
+
+    ecs_world_flush(world);
+
+    check(!ecs_world_has_t(world, entity, StorageCompA));
 
     ecs_view_itr_reset(itr);
-    check(!ecs_view_itr_walk(itr));
+    check(!ecs_view_walk(itr));
   }
 
   it("can move new entities into an existing archetype") {
     const EcsEntityId entityA = ecs_world_entity_create(world);
 
-    ecs_world_comp_add_t(world, entityA, StorageCompA, .f1 = 1);
-    ecs_world_comp_add_t(world, entityA, StorageCompB, .f1 = 2, .f2 = 3);
-    ecs_world_comp_add_t(world, entityA, StorageCompC, .f1 = 4, .f2 = 5, .f3 = 6);
+    ecs_world_add_t(world, entityA, StorageCompA, .f1 = 1);
+    ecs_world_add_t(world, entityA, StorageCompB, .f1 = 2, .f2 = 3);
+    ecs_world_add_t(world, entityA, StorageCompC, .f1 = 4, .f2 = 5, .f3 = 6);
 
     ecs_world_flush(world);
 
     const EcsEntityId entityB = ecs_world_entity_create(world);
 
-    ecs_world_comp_add_t(world, entityB, StorageCompA, .f1 = 7);
-    ecs_world_comp_add_t(world, entityB, StorageCompB, .f1 = 8, .f2 = 9);
-    ecs_world_comp_add_t(world, entityB, StorageCompC, .f1 = 10, .f2 = 11, .f3 = 12);
+    ecs_world_add_t(world, entityB, StorageCompA, .f1 = 7);
+    ecs_world_add_t(world, entityB, StorageCompB, .f1 = 8, .f2 = 9);
+    ecs_world_add_t(world, entityB, StorageCompC, .f1 = 10, .f2 = 11, .f3 = 12);
 
     ecs_world_flush(world);
 
-    EcsIterator* itr = ecs_view_itr_stack(ecs_world_view_t(world, ReadABC));
-    check(ecs_view_itr_walk(itr));
+    EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ReadABC));
+    check(ecs_view_walk(itr));
     check(ecs_view_entity(itr) == entityA);
     check_eq_int(ecs_view_read_t(itr, StorageCompA)->f1, 1);
     check_eq_int(ecs_view_read_t(itr, StorageCompB)->f1, 2);
@@ -209,7 +209,7 @@ spec(storage) {
     check_eq_int(ecs_view_read_t(itr, StorageCompC)->f2, 5);
     check_eq_int(ecs_view_read_t(itr, StorageCompC)->f3, 6);
 
-    check(ecs_view_itr_walk(itr));
+    check(ecs_view_walk(itr));
     check(ecs_view_entity(itr) == entityB);
     check_eq_int(ecs_view_read_t(itr, StorageCompA)->f1, 7);
     check_eq_int(ecs_view_read_t(itr, StorageCompB)->f1, 8);
@@ -218,67 +218,67 @@ spec(storage) {
     check_eq_int(ecs_view_read_t(itr, StorageCompC)->f2, 11);
     check_eq_int(ecs_view_read_t(itr, StorageCompC)->f3, 12);
 
-    check(!ecs_view_itr_walk(itr));
+    check(!ecs_view_walk(itr));
   }
 
   it("fills the hole in an archetype when moving the non-last entity out") {
     const EcsEntityId entityA = ecs_world_entity_create(world);
-    ecs_world_comp_add_t(world, entityA, StorageCompA, .f1 = 1);
-    ecs_world_comp_add_t(world, entityA, StorageCompB, .f1 = 2, .f2 = 3);
-    ecs_world_comp_add_t(world, entityA, StorageCompC, .f1 = 4, .f2 = 5, .f3 = 6);
+    ecs_world_add_t(world, entityA, StorageCompA, .f1 = 1);
+    ecs_world_add_t(world, entityA, StorageCompB, .f1 = 2, .f2 = 3);
+    ecs_world_add_t(world, entityA, StorageCompC, .f1 = 4, .f2 = 5, .f3 = 6);
 
     const EcsEntityId entityB = ecs_world_entity_create(world);
-    ecs_world_comp_add_t(world, entityB, StorageCompA, .f1 = 7);
-    ecs_world_comp_add_t(world, entityB, StorageCompB, .f1 = 8, .f2 = 9);
-    ecs_world_comp_add_t(world, entityB, StorageCompC, .f1 = 10, .f2 = 11, .f3 = 12);
+    ecs_world_add_t(world, entityB, StorageCompA, .f1 = 7);
+    ecs_world_add_t(world, entityB, StorageCompB, .f1 = 8, .f2 = 9);
+    ecs_world_add_t(world, entityB, StorageCompC, .f1 = 10, .f2 = 11, .f3 = 12);
 
     ecs_world_flush(world);
 
-    EcsIterator* itr = ecs_view_itr_stack(ecs_world_view_t(world, ReadABC));
-    check((ecs_view_itr_jump(itr, entityA), ecs_view_read_t(itr, StorageCompC)->f3 == 6));
-    check((ecs_view_itr_jump(itr, entityB), ecs_view_read_t(itr, StorageCompC)->f3 == 12));
+    EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ReadABC));
+    check((ecs_view_jump(itr, entityA), ecs_view_read_t(itr, StorageCompC)->f3 == 6));
+    check((ecs_view_jump(itr, entityB), ecs_view_read_t(itr, StorageCompC)->f3 == 12));
 
-    ecs_world_comp_remove_t(world, entityA, StorageCompC);
+    ecs_world_remove_t(world, entityA, StorageCompC);
 
     const EcsEntityId entityC = ecs_world_entity_create(world);
-    ecs_world_comp_add_t(world, entityC, StorageCompA, .f1 = 13);
-    ecs_world_comp_add_t(world, entityC, StorageCompB, .f1 = 14, .f2 = 15);
-    ecs_world_comp_add_t(world, entityC, StorageCompC, .f1 = 16, .f2 = 17, .f3 = 18);
+    ecs_world_add_t(world, entityC, StorageCompA, .f1 = 13);
+    ecs_world_add_t(world, entityC, StorageCompB, .f1 = 14, .f2 = 15);
+    ecs_world_add_t(world, entityC, StorageCompC, .f1 = 16, .f2 = 17, .f3 = 18);
 
     ecs_world_flush(world);
 
-    check((ecs_view_itr_jump(itr, entityB), ecs_view_read_t(itr, StorageCompC)->f3 == 12));
-    check((ecs_view_itr_jump(itr, entityC), ecs_view_read_t(itr, StorageCompC)->f3 == 18));
+    check((ecs_view_jump(itr, entityB), ecs_view_read_t(itr, StorageCompC)->f3 == 12));
+    check((ecs_view_jump(itr, entityC), ecs_view_read_t(itr, StorageCompC)->f3 == 18));
   }
 
   it("fills the hole in an archetype when destroying the non-last entity") {
     const EcsEntityId entityA = ecs_world_entity_create(world);
-    ecs_world_comp_add_t(world, entityA, StorageCompA, .f1 = 1);
-    ecs_world_comp_add_t(world, entityA, StorageCompB, .f1 = 2, .f2 = 3);
-    ecs_world_comp_add_t(world, entityA, StorageCompC, .f1 = 4, .f2 = 5, .f3 = 6);
+    ecs_world_add_t(world, entityA, StorageCompA, .f1 = 1);
+    ecs_world_add_t(world, entityA, StorageCompB, .f1 = 2, .f2 = 3);
+    ecs_world_add_t(world, entityA, StorageCompC, .f1 = 4, .f2 = 5, .f3 = 6);
 
     const EcsEntityId entityB = ecs_world_entity_create(world);
-    ecs_world_comp_add_t(world, entityB, StorageCompA, .f1 = 7);
-    ecs_world_comp_add_t(world, entityB, StorageCompB, .f1 = 8, .f2 = 9);
-    ecs_world_comp_add_t(world, entityB, StorageCompC, .f1 = 10, .f2 = 11, .f3 = 12);
+    ecs_world_add_t(world, entityB, StorageCompA, .f1 = 7);
+    ecs_world_add_t(world, entityB, StorageCompB, .f1 = 8, .f2 = 9);
+    ecs_world_add_t(world, entityB, StorageCompC, .f1 = 10, .f2 = 11, .f3 = 12);
 
     ecs_world_flush(world);
 
-    EcsIterator* itr = ecs_view_itr_stack(ecs_world_view_t(world, ReadABC));
-    check((ecs_view_itr_jump(itr, entityA), ecs_view_read_t(itr, StorageCompC)->f3 == 6));
-    check((ecs_view_itr_jump(itr, entityB), ecs_view_read_t(itr, StorageCompC)->f3 == 12));
+    EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ReadABC));
+    check((ecs_view_jump(itr, entityA), ecs_view_read_t(itr, StorageCompC)->f3 == 6));
+    check((ecs_view_jump(itr, entityB), ecs_view_read_t(itr, StorageCompC)->f3 == 12));
 
     ecs_world_entity_destroy(world, entityA);
 
     const EcsEntityId entityC = ecs_world_entity_create(world);
-    ecs_world_comp_add_t(world, entityC, StorageCompA, .f1 = 13);
-    ecs_world_comp_add_t(world, entityC, StorageCompB, .f1 = 14, .f2 = 15);
-    ecs_world_comp_add_t(world, entityC, StorageCompC, .f1 = 16, .f2 = 17, .f3 = 18);
+    ecs_world_add_t(world, entityC, StorageCompA, .f1 = 13);
+    ecs_world_add_t(world, entityC, StorageCompB, .f1 = 14, .f2 = 15);
+    ecs_world_add_t(world, entityC, StorageCompC, .f1 = 16, .f2 = 17, .f3 = 18);
 
     ecs_world_flush(world);
 
-    check((ecs_view_itr_jump(itr, entityB), ecs_view_read_t(itr, StorageCompC)->f3 == 12));
-    check((ecs_view_itr_jump(itr, entityC), ecs_view_read_t(itr, StorageCompC)->f3 == 18));
+    check((ecs_view_jump(itr, entityB), ecs_view_read_t(itr, StorageCompC)->f3 == 12));
+    check((ecs_view_jump(itr, entityC), ecs_view_read_t(itr, StorageCompC)->f3 == 18));
   }
 
   it("keeps component data consistent when destroying many entities in the same archetype") {
@@ -287,9 +287,9 @@ spec(storage) {
 
     for (usize i = 0; i != entitiesToCreate; ++i) {
       const EcsEntityId newEntity = ecs_world_entity_create(world);
-      ecs_world_comp_add_t(world, newEntity, StorageCompA, .f1 = (u32)i);
-      ecs_world_comp_add_t(world, newEntity, StorageCompB, .f1 = (u32)i * 2, (u32)i / 2);
-      ecs_world_comp_add_t(world, newEntity, StorageCompE, .f1 = (u32)i % 123);
+      ecs_world_add_t(world, newEntity, StorageCompA, .f1 = (u32)i);
+      ecs_world_add_t(world, newEntity, StorageCompB, .f1 = (u32)i * 2, (u32)i / 2);
+      ecs_world_add_t(world, newEntity, StorageCompE, .f1 = (u32)i % 123);
       *dynarray_push_t(&entities, EcsEntityId) = newEntity;
     }
 
@@ -304,17 +304,17 @@ spec(storage) {
 
     ecs_world_flush(world);
 
-    EcsIterator* itr = ecs_view_itr_stack(ecs_world_view_t(world, ReadABE));
+    EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ReadABE));
     dynarray_for_t(&entities, EcsEntityId, entity, {
       if (entity_i % 2) {
-        check_require(ecs_world_entity_exists(world, *entity));
-        ecs_view_itr_jump(itr, *entity);
+        check_require(ecs_world_exists(world, *entity));
+        ecs_view_jump(itr, *entity);
         check_eq_int(ecs_view_read_t(itr, StorageCompA)->f1, entity_i);
         check_eq_int(ecs_view_read_t(itr, StorageCompB)->f1, entity_i * 2);
         check_eq_int(ecs_view_read_t(itr, StorageCompB)->f2, entity_i / 2);
         check_eq_int(ecs_view_read_t(itr, StorageCompE)->f1, entity_i % 123);
       } else {
-        check_require(!ecs_world_entity_exists(world, *entity));
+        check_require(!ecs_world_exists(world, *entity));
       }
     });
 
@@ -327,9 +327,9 @@ spec(storage) {
 
     for (usize i = 0; i != entitiesToCreate; ++i) {
       const EcsEntityId newEntity = ecs_world_entity_create(world);
-      ecs_world_comp_add_t(world, newEntity, StorageCompA, .f1 = (u32)i);
-      ecs_world_comp_add_t(world, newEntity, StorageCompB, .f1 = (u32)i * 2, (u32)i / 2);
-      ecs_world_comp_add_t(world, newEntity, StorageCompC, .f1 = (u32)i % 123);
+      ecs_world_add_t(world, newEntity, StorageCompA, .f1 = (u32)i);
+      ecs_world_add_t(world, newEntity, StorageCompB, .f1 = (u32)i * 2, (u32)i / 2);
+      ecs_world_add_t(world, newEntity, StorageCompC, .f1 = (u32)i % 123);
       *dynarray_push_t(&entities, EcsEntityId) = newEntity;
     }
 
@@ -338,28 +338,28 @@ spec(storage) {
     // Move all even entities to another archetype.
     dynarray_for_t(&entities, EcsEntityId, entity, {
       if ((entity_i % 2) == 0) {
-        ecs_world_comp_remove_t(world, *entity, StorageCompC);
-        ecs_world_comp_add_t(world, *entity, StorageCompE, .f1 = 1337);
+        ecs_world_remove_t(world, *entity, StorageCompC);
+        ecs_world_add_t(world, *entity, StorageCompE, .f1 = 1337);
       }
     });
 
     ecs_world_flush(world);
 
     EcsView*     viewEven   = ecs_world_view_t(world, ReadABE);
-    EcsIterator* itrEven    = ecs_view_itr_stack(viewEven);
+    EcsIterator* itrEven    = ecs_view_itr(viewEven);
     EcsView*     viewUneven = ecs_world_view_t(world, ReadABC);
-    EcsIterator* itrUneven  = ecs_view_itr_stack(viewUneven);
+    EcsIterator* itrUneven  = ecs_view_itr(viewUneven);
     dynarray_for_t(&entities, EcsEntityId, entity, {
       if (entity_i % 2) {
         check_require(ecs_view_contains(viewUneven, *entity));
-        ecs_view_itr_jump(itrUneven, *entity);
+        ecs_view_jump(itrUneven, *entity);
         check_eq_int(ecs_view_read_t(itrUneven, StorageCompA)->f1, entity_i);
         check_eq_int(ecs_view_read_t(itrUneven, StorageCompB)->f1, entity_i * 2);
         check_eq_int(ecs_view_read_t(itrUneven, StorageCompB)->f2, entity_i / 2);
         check_eq_int(ecs_view_read_t(itrUneven, StorageCompC)->f1, entity_i % 123);
       } else {
         check_require(ecs_view_contains(viewEven, *entity));
-        ecs_view_itr_jump(itrEven, *entity);
+        ecs_view_jump(itrEven, *entity);
         check_eq_int(ecs_view_read_t(itrEven, StorageCompA)->f1, entity_i);
         check_eq_int(ecs_view_read_t(itrEven, StorageCompB)->f1, entity_i * 2);
         check_eq_int(ecs_view_read_t(itrEven, StorageCompB)->f2, entity_i / 2);
@@ -373,31 +373,31 @@ spec(storage) {
   it("can store entities with only empty components") {
     const EcsEntityId entity = ecs_world_entity_create(world);
 
-    ecs_world_comp_add_empty_t(world, entity, StorageCompF);
-    ecs_world_comp_add_empty_t(world, entity, StorageCompG);
+    ecs_world_add_empty_t(world, entity, StorageCompF);
+    ecs_world_add_empty_t(world, entity, StorageCompG);
 
     ecs_world_flush(world);
 
-    check(ecs_world_comp_has_t(world, entity, StorageCompF));
-    check(ecs_world_comp_has_t(world, entity, StorageCompG));
-    check(!ecs_world_comp_has_t(world, entity, StorageCompH));
+    check(ecs_world_has_t(world, entity, StorageCompF));
+    check(ecs_world_has_t(world, entity, StorageCompG));
+    check(!ecs_world_has_t(world, entity, StorageCompH));
 
     EcsView* view = ecs_world_view_t(world, ReadFG);
     check_require(ecs_view_contains(view, entity));
 
-    EcsIterator* itr = ecs_view_itr_stack(view);
-    check(ecs_view_itr_walk(itr));
+    EcsIterator* itr = ecs_view_itr(view);
+    check(ecs_view_walk(itr));
     check(ecs_view_read_t(itr, StorageCompF));
     check(ecs_view_read_t(itr, StorageCompG));
 
-    ecs_world_comp_remove_t(world, entity, StorageCompG);
-    ecs_world_comp_add_empty_t(world, entity, StorageCompH);
+    ecs_world_remove_t(world, entity, StorageCompG);
+    ecs_world_add_empty_t(world, entity, StorageCompH);
 
     ecs_world_flush(world);
 
-    check(ecs_world_comp_has_t(world, entity, StorageCompF));
-    check(!ecs_world_comp_has_t(world, entity, StorageCompG));
-    check(ecs_world_comp_has_t(world, entity, StorageCompH));
+    check(ecs_world_has_t(world, entity, StorageCompF));
+    check(!ecs_world_has_t(world, entity, StorageCompG));
+    check(ecs_world_has_t(world, entity, StorageCompH));
 
     check_require(!ecs_view_contains(view, entity));
   }

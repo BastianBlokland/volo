@@ -113,7 +113,7 @@ typedef struct {
  * ```
  * ecs_system_define(ApplyVelocity) {
  *   EcsView* view = ecs_world_view_t(world, ReadVeloWritePosView);
- *   for (EcsIterator* itr = ecs_view_itr_stack(view); ecs_view_itr_walk(itr);) {
+ *   for (EcsIterator* itr = ecs_view_itr(view); ecs_view_walk(itr);) {
  *     const Velocity* velo = ecs_view_read_t(itr, Velocity);
  *     Position*       pos  = ecs_view_write_t(itr, Position);
  *     ...
