@@ -5,8 +5,6 @@
 #include "init_internal.h"
 #include "tty_internal.h"
 
-#define tty_esc "\33"
-
 void tty_init() { tty_pal_init(); }
 void tty_teardown() { tty_pal_teardown(); }
 

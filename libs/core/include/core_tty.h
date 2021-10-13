@@ -5,6 +5,8 @@
 // Forward declare from 'core_file.h'.
 typedef struct sFile File;
 
+#define tty_esc "\33"
+
 /**
  * TTY - TeleTypeWriter.
  * Contains utilities for interacting with the terminal.
