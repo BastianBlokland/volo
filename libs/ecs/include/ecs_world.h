@@ -87,6 +87,7 @@ bool ecs_world_has(EcsWorld*, EcsEntityId, EcsCompId);
  * NOTE: The returned pointer is valid until the next flush.
  *
  * Pre-condition: ecs_world_exists(world, entity)
+ * Pre-condition: !ecs_world_has(world, entity, comp)
  * Pre-condition: !ecs_world_busy() || g_ecsRunningSystem
  */
 #define ecs_world_add_t(_WORLD_, _ENTITY_, _TYPE_, ...)                                            \

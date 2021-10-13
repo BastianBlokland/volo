@@ -24,3 +24,27 @@ const void* ecs_utils_read_or_add(EcsWorld*, const EcsIterator*, EcsCompId);
   ((_TYPE_*)ecs_utils_write_or_add((_WORLD_), (_ITR_), ecs_comp_id(_TYPE_)))
 
 void* ecs_utils_write_or_add(EcsWorld*, const EcsIterator*, EcsCompId);
+
+/**
+ * Add the component if the entity does not have the component yet.
+ * Returns a pointer to the added component or null if the component already existed.
+ *
+ * Pre-condition: ecs_world_exists(world, entity)
+ * Pre-condition: !ecs_world_busy() || g_ecsRunningSystem
+ */
+#define ecs_utils_maybe_add_t(_WORLD_, _ENTITY_, _TYPE_)                                           \
+  ((_TYPE_*)ecs_utils_maybe_add((_WORLD_), (_ENTITY_), ecs_comp_id(_TYPE_)))
+
+void* ecs_utils_maybe_add(EcsWorld*, EcsEntityId, EcsCompId);
+
+/**
+ * Remove the component if the entity has the specified component.
+ * Returns true if the component was removed, otherwise false.
+ *
+ * Pre-condition: ecs_world_exists(world, entity)
+ * Pre-condition: !ecs_world_busy() || g_ecsRunningSystem
+ */
+#define ecs_utils_maybe_remove_t(_WORLD_, _ENTITY_, _TYPE_)                                        \
+  ecs_utils_maybe_remove((_WORLD_), (_ENTITY_), ecs_comp_id(_TYPE_))
+
+bool ecs_utils_maybe_remove(EcsWorld*, EcsEntityId, EcsCompId);

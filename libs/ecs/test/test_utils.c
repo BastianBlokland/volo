@@ -79,6 +79,40 @@ spec(utils) {
     check_eq_int(comp2->f2, 0);
   }
 
+  it("can optionally add a component") {
+    const EcsEntityId entity1 = ecs_world_entity_create(world);
+    const EcsEntityId entity2 = ecs_world_entity_create(world);
+
+    ecs_world_add_t(world, entity1, UtilsCompA);
+
+    ecs_world_flush(world);
+
+    check(!ecs_utils_maybe_add_t(world, entity1, UtilsCompA));
+    check(ecs_utils_maybe_add_t(world, entity2, UtilsCompA));
+
+    ecs_world_flush(world);
+
+    check(ecs_world_has_t(world, entity1, UtilsCompA));
+    check(ecs_world_has_t(world, entity2, UtilsCompA));
+  }
+
+  it("can optionally remove a component") {
+    const EcsEntityId entity1 = ecs_world_entity_create(world);
+    const EcsEntityId entity2 = ecs_world_entity_create(world);
+
+    ecs_world_add_t(world, entity1, UtilsCompA);
+
+    ecs_world_flush(world);
+
+    check(ecs_utils_maybe_remove_t(world, entity1, UtilsCompA));
+    check(!ecs_utils_maybe_remove_t(world, entity2, UtilsCompA));
+
+    ecs_world_flush(world);
+
+    check(!ecs_world_has_t(world, entity1, UtilsCompA));
+    check(!ecs_world_has_t(world, entity2, UtilsCompA));
+  }
+
   teardown() {
     ecs_world_destroy(world);
     ecs_def_destroy(def);
