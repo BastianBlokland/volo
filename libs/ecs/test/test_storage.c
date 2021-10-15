@@ -19,6 +19,13 @@ ecs_view_define(ReadABC) {
   ecs_access_read(StorageCompC);
 }
 
+ecs_view_define(ReadABCD) {
+  ecs_access_read(StorageCompA);
+  ecs_access_read(StorageCompB);
+  ecs_access_read(StorageCompC);
+  ecs_access_read(StorageCompD);
+}
+
 ecs_view_define(ReadABE) {
   ecs_access_read(StorageCompA);
   ecs_access_read(StorageCompB);
@@ -41,6 +48,7 @@ ecs_module_init(storage_test_module) {
   ecs_register_comp_empty(StorageCompH);
 
   ecs_register_view(ReadABC);
+  ecs_register_view(ReadABCD);
   ecs_register_view(ReadABE);
   ecs_register_view(ReadFG);
 }
@@ -97,28 +105,33 @@ spec(storage) {
   it("moves component data when moving entities between archetypes") {
     const EcsEntityId entity = ecs_world_entity_create(world);
 
-    ecs_world_add_t(world, entity, StorageCompA, .f1 = 1);
-    ecs_world_add_t(world, entity, StorageCompB, .f1 = 2, .f2 = 3);
-    ecs_world_add_t(world, entity, StorageCompC, .f1 = 4, .f2 = 5, .f3 = 6);
+    ecs_world_add_t(world, entity, StorageCompB, .f1 = 1, .f2 = 2);
+    ecs_world_add_t(world, entity, StorageCompC, .f1 = 3, .f2 = 4, .f3 = 5);
 
     ecs_world_flush(world);
 
+    ecs_world_add_t(world, entity, StorageCompA, .f1 = 6);
     ecs_world_add_t(world, entity, StorageCompD, .f1 = 7, .f2 = 8, .f3 = 9, .f4 = 10);
 
     ecs_world_flush(world);
 
-    EcsIterator* itr = ecs_view_itr_at(ecs_world_view_t(world, ReadABC), entity);
+    EcsIterator* itr = ecs_view_itr_at(ecs_world_view_t(world, ReadABCD), entity);
 
     check(ecs_view_entity(itr) == entity);
 
-    check_eq_int(ecs_view_read_t(itr, StorageCompA)->f1, 1);
+    check_eq_int(ecs_view_read_t(itr, StorageCompA)->f1, 6);
 
-    check_eq_int(ecs_view_read_t(itr, StorageCompB)->f1, 2);
-    check_eq_int(ecs_view_read_t(itr, StorageCompB)->f2, 3);
+    check_eq_int(ecs_view_read_t(itr, StorageCompB)->f1, 1);
+    check_eq_int(ecs_view_read_t(itr, StorageCompB)->f2, 2);
 
-    check_eq_int(ecs_view_read_t(itr, StorageCompC)->f1, 4);
-    check_eq_int(ecs_view_read_t(itr, StorageCompC)->f2, 5);
-    check_eq_int(ecs_view_read_t(itr, StorageCompC)->f3, 6);
+    check_eq_int(ecs_view_read_t(itr, StorageCompC)->f1, 3);
+    check_eq_int(ecs_view_read_t(itr, StorageCompC)->f2, 4);
+    check_eq_int(ecs_view_read_t(itr, StorageCompC)->f3, 5);
+
+    check_eq_int(ecs_view_read_t(itr, StorageCompD)->f1, 7);
+    check_eq_int(ecs_view_read_t(itr, StorageCompD)->f2, 8);
+    check_eq_int(ecs_view_read_t(itr, StorageCompD)->f3, 9);
+    check_eq_int(ecs_view_read_t(itr, StorageCompD)->f4, 10);
   }
 
   it("moves entity metadata when moving entities between archetypes") {

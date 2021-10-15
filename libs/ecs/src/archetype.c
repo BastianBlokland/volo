@@ -246,7 +246,7 @@ void ecs_archetype_copy_across(
 
   bitset_for(mask, comp, {
     const usize dstCompIdx = ecs_archetype_comp_idx(dst, (EcsCompId)comp);
-    const usize srcCompIdx = ecs_archetype_comp_idx(dst, (EcsCompId)comp);
+    const usize srcCompIdx = ecs_archetype_comp_idx(src, (EcsCompId)comp);
     const usize compSize   = dstCompSizes[dstCompIdx];
 
     u8* dstChunkData = bits_ptr_offset(dst->chunks[dstLoc.chunkIdx], dstCompOffsets[dstCompIdx]);
