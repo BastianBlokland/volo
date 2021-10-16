@@ -442,38 +442,30 @@ ecs_module_init(snake_module) {
   ecs_register_comp(TailComp);
   ecs_register_comp(VelocityComp);
 
-  ecs_register_view(InputGlobalView);
-  ecs_register_view(InitializeGlobalView);
-  ecs_register_view(InitializeResettableView);
-  ecs_register_view(SteerGlobalView);
-  ecs_register_view(SteerPlayerView);
-  ecs_register_view(MoveGlobalView);
-  ecs_register_view(MoveEntitiesView);
-  ecs_register_view(SpawnPickupsGlobalView);
-  ecs_register_view(SpawnPickupsPickupView);
-  ecs_register_view(UpdateTailPlayerView);
-  ecs_register_view(UpdateTailTailView);
-  ecs_register_view(RenderGlobalView);
-  ecs_register_view(RenderEntityView);
-  ecs_register_view(CollisionGlobalView);
-  ecs_register_view(CollisionPlayerView);
-  ecs_register_view(CollisionCollidableView);
-
-  ecs_register_system(InputSys, ecs_view_id(InputGlobalView));
+  ecs_register_system(InputSys, ecs_register_view(InputGlobalView));
   ecs_register_system(
-      InitializeSys, ecs_view_id(InitializeGlobalView), ecs_view_id(InitializeResettableView));
-  ecs_register_system(SteerSys, ecs_view_id(SteerGlobalView), ecs_view_id(SteerPlayerView));
-  ecs_register_system(MoveSys, ecs_view_id(MoveGlobalView), ecs_view_id(MoveEntitiesView));
+      InitializeSys,
+      ecs_register_view(InitializeGlobalView),
+      ecs_register_view(InitializeResettableView));
   ecs_register_system(
-      SpawnPickupsSys, ecs_view_id(SpawnPickupsGlobalView), ecs_view_id(SpawnPickupsPickupView));
+      SteerSys, ecs_register_view(SteerGlobalView), ecs_register_view(SteerPlayerView));
   ecs_register_system(
-      UpdateTailSys, ecs_view_id(UpdateTailPlayerView), ecs_view_id(UpdateTailTailView));
-  ecs_register_system(RenderSys, ecs_view_id(RenderGlobalView), ecs_view_id(RenderEntityView));
+      MoveSys, ecs_register_view(MoveGlobalView), ecs_register_view(MoveEntitiesView));
+  ecs_register_system(
+      SpawnPickupsSys,
+      ecs_register_view(SpawnPickupsGlobalView),
+      ecs_register_view(SpawnPickupsPickupView));
+  ecs_register_system(
+      UpdateTailSys,
+      ecs_register_view(UpdateTailPlayerView),
+      ecs_register_view(UpdateTailTailView));
+  ecs_register_system(
+      RenderSys, ecs_register_view(RenderGlobalView), ecs_register_view(RenderEntityView));
   ecs_register_system(
       CollisionSys,
-      ecs_view_id(CollisionGlobalView),
-      ecs_view_id(CollisionPlayerView),
-      ecs_view_id(CollisionCollidableView));
+      ecs_register_view(CollisionGlobalView),
+      ecs_register_view(CollisionPlayerView),
+      ecs_register_view(CollisionCollidableView));
 }
 
 static int run_snake() {
