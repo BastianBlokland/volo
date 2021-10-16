@@ -53,6 +53,7 @@ static const InputMapping g_inputMappings[] = {
     {Input_TurnRight, string_static("d")},
     {Input_TurnLeft, string_static("a")},
     {Input_Restart, string_static("r")},
+    {Input_Restart, string_static(" ")},
     {Input_Quit, string_static(tty_esc)},
 };
 
@@ -125,57 +126,16 @@ static i32 wrap(i32 val, const i32 max) {
   return val;
 }
 
-ecs_view_define(GlobalView) {
-  ecs_access_read(ResultComp);
-  ecs_access_read(InputComp);
-}
-
-ecs_view_define(MoveEntitiesView) {
-  ecs_access_read(VelocityComp);
-  ecs_access_write(PositionComp);
-}
-
-ecs_view_define(ResetableView) { ecs_access_with(ResetableComp); }
-
-ecs_view_define(UpdateResultView) { ecs_access_write(ResultComp); }
-
-ecs_view_define(RenderablesView) {
-  ecs_access_read(PositionComp);
-  ecs_access_read(GraphicsComp);
-}
-
-ecs_view_define(CollidablesView) {
-  ecs_access_with(ColliderComp);
-  ecs_access_read(PositionComp);
-  ecs_access_maybe_read(PickupComp);
-}
-
-ecs_view_define(PickupView) { ecs_access_with(PickupComp); }
-
-ecs_view_define(WriteInputView) { ecs_access_write(InputComp); }
-
-ecs_view_define(SteerPlayerView) {
-  ecs_access_with(PlayerComp);
-  ecs_access_write(VelocityComp);
-  ecs_access_write(GraphicsComp);
-}
-
-ecs_view_define(PlayerPosView) {
-  ecs_access_without(DeadComp);
-  ecs_access_write(PlayerComp);
-  ecs_access_read(PositionComp);
-}
-
-ecs_view_define(TailView) { ecs_access_read(TailComp); }
-
-ecs_view_define(InitializeView) {
+ecs_view_define(InitializeGlobalView) {
   ecs_access_with(InitializeComp);
   ecs_access_read(InputComp);
   ecs_access_write(ResultComp);
 }
 
+ecs_view_define(InitializeResettableView) { ecs_access_with(ResetableComp); }
+
 ecs_system_define(InitializeSys) {
-  EcsIterator* initializeItr = ecs_view_itr_first(ecs_world_view_t(world, InitializeView));
+  EcsIterator* initializeItr = ecs_view_itr_first(ecs_world_view_t(world, InitializeGlobalView));
   if (!initializeItr) {
     return;
   }
@@ -187,7 +147,7 @@ ecs_system_define(InitializeSys) {
   resultComp->state           = GameState_Playing;
 
   // Cleanup entities from the previous session.
-  EcsView* resetableView = ecs_world_view_t(world, ResetableView);
+  EcsView* resetableView = ecs_world_view_t(world, InitializeResettableView);
   for (EcsIterator* itr = ecs_view_itr(resetableView); ecs_view_walk(itr);) {
     ecs_world_entity_destroy(world, ecs_view_entity(itr));
   }
@@ -202,12 +162,16 @@ ecs_system_define(InitializeSys) {
   ecs_world_add_empty_t(world, player, ResetableComp);
 }
 
+ecs_view_define(SpawnPickupsGlobalView) { ecs_access_read(InputComp); }
+
+ecs_view_define(SpawnPickupsPickupView) { ecs_access_with(PickupComp); }
+
 ecs_system_define(SpawnPickupsSys) {
-  EcsIterator*     globalItr = ecs_view_itr_first(ecs_world_view_t(world, GlobalView));
+  EcsIterator*     globalItr = ecs_view_itr_first(ecs_world_view_t(world, SpawnPickupsGlobalView));
   const InputComp* inputComp = ecs_view_read_t(globalItr, InputComp);
 
   usize    pickupCount = 0;
-  EcsView* pickupView  = ecs_world_view_t(world, PickupView);
+  EcsView* pickupView  = ecs_world_view_t(world, SpawnPickupsPickupView);
   for (EcsIterator* itr = ecs_view_itr(pickupView); ecs_view_walk(itr); ++pickupCount)
     ;
 
@@ -232,11 +196,13 @@ ecs_system_define(SpawnPickupsSys) {
   }
 }
 
+ecs_view_define(InputGlobalView) { ecs_access_write(InputComp); }
+
 ecs_system_define(InputSys) {
   DynString inputBuffer = dynstring_create(g_alloc_scratch, usize_kibibyte);
   tty_read(g_file_stdin, &inputBuffer, TtyReadFlags_NoBlock);
 
-  EcsIterator* itr       = ecs_view_itr_first(ecs_world_view_t(world, WriteInputView));
+  EcsIterator* itr       = ecs_view_itr_first(ecs_world_view_t(world, InputGlobalView));
   InputComp*   inputComp = ecs_view_write_t(itr, InputComp);
   inputComp->termHeight  = tty_height(g_file_stdout);
   inputComp->termWidth   = tty_width(g_file_stdout);
@@ -250,8 +216,16 @@ ecs_system_define(InputSys) {
   }
 }
 
+ecs_view_define(SteerGlobalView) { ecs_access_read(InputComp); }
+
+ecs_view_define(SteerPlayerView) {
+  ecs_access_with(PlayerComp);
+  ecs_access_write(VelocityComp);
+  ecs_access_write(GraphicsComp);
+}
+
 ecs_system_define(SteerSys) {
-  EcsIterator*     globalItr = ecs_view_itr_first(ecs_world_view_t(world, GlobalView));
+  EcsIterator*     globalItr = ecs_view_itr_first(ecs_world_view_t(world, SteerGlobalView));
   const InputComp* inputComp = ecs_view_read_t(globalItr, InputComp);
 
   EcsIterator* playerItr = ecs_view_itr_first(ecs_world_view_t(world, SteerPlayerView));
@@ -278,8 +252,16 @@ ecs_system_define(SteerSys) {
   }
 }
 
+ecs_view_define(UpdateTailPlayerView) {
+  ecs_access_without(DeadComp);
+  ecs_access_write(PlayerComp);
+  ecs_access_read(PositionComp);
+}
+
+ecs_view_define(UpdateTailTailView) { ecs_access_read(TailComp); }
+
 ecs_system_define(UpdateTailSys) {
-  EcsIterator* playerItr = ecs_view_itr_first(ecs_world_view_t(world, PlayerPosView));
+  EcsIterator* playerItr = ecs_view_itr_first(ecs_world_view_t(world, UpdateTailPlayerView));
   if (!playerItr) {
     return;
   }
@@ -295,7 +277,7 @@ ecs_system_define(UpdateTailSys) {
   ecs_world_add_empty_t(world, seg, ColliderComp);
   ecs_world_add_empty_t(world, seg, ResetableComp);
 
-  EcsView* tailView = ecs_world_view_t(world, TailView);
+  EcsView* tailView = ecs_world_view_t(world, UpdateTailTailView);
   for (EcsIterator* tailItr = ecs_view_itr(tailView); ecs_view_walk(tailItr);) {
     const TailComp* tailComp = ecs_view_read_t(tailItr, TailComp);
     const i64       serial   = tailComp->serial;
@@ -305,8 +287,15 @@ ecs_system_define(UpdateTailSys) {
   }
 }
 
+ecs_view_define(MoveGlobalView) { ecs_access_write(InputComp); }
+
+ecs_view_define(MoveEntitiesView) {
+  ecs_access_read(VelocityComp);
+  ecs_access_write(PositionComp);
+}
+
 ecs_system_define(MoveSys) {
-  EcsIterator*     globalItr = ecs_view_itr_first(ecs_world_view_t(world, GlobalView));
+  EcsIterator*     globalItr = ecs_view_itr_first(ecs_world_view_t(world, MoveGlobalView));
   const InputComp* inputComp = ecs_view_read_t(globalItr, InputComp);
 
   EcsView* moveEntitiesView = ecs_world_view_t(world, MoveEntitiesView);
@@ -324,18 +313,32 @@ ecs_system_define(MoveSys) {
   }
 }
 
+ecs_view_define(CollisionGlobalView) { ecs_access_write(ResultComp); }
+
+ecs_view_define(CollisionPlayerView) {
+  ecs_access_without(DeadComp);
+  ecs_access_write(PlayerComp);
+  ecs_access_read(PositionComp);
+}
+
+ecs_view_define(CollisionCollidableView) {
+  ecs_access_with(ColliderComp);
+  ecs_access_read(PositionComp);
+  ecs_access_maybe_read(PickupComp);
+}
+
 ecs_system_define(CollisionSys) {
-  EcsIterator* globalItr  = ecs_view_itr_first(ecs_world_view_t(world, UpdateResultView));
+  EcsIterator* globalItr  = ecs_view_itr_first(ecs_world_view_t(world, CollisionGlobalView));
   ResultComp*  resultComp = ecs_view_write_t(globalItr, ResultComp);
 
-  EcsIterator* playerItr = ecs_view_itr_first(ecs_world_view_t(world, PlayerPosView));
+  EcsIterator* playerItr = ecs_view_itr_first(ecs_world_view_t(world, CollisionPlayerView));
   if (!playerItr) {
     return;
   }
   PlayerComp*         playerComp = ecs_view_write_t(playerItr, PlayerComp);
   const PositionComp* playerPos  = ecs_view_read_t(playerItr, PositionComp);
 
-  EcsView* collidablesView = ecs_world_view_t(world, CollidablesView);
+  EcsView* collidablesView = ecs_world_view_t(world, CollisionCollidableView);
   for (EcsIterator* itr = ecs_view_itr(collidablesView); ecs_view_walk(itr);) {
     const EcsEntityId   colliderEntity = ecs_view_entity(itr);
     const PositionComp* colliderPos    = ecs_view_read_t(itr, PositionComp);
@@ -381,12 +384,22 @@ static void tty_draw_border(DynString* str, const i32 width, const i32 height) {
   }
 }
 
+ecs_view_define(RenderGlobalView) {
+  ecs_access_read(InputComp);
+  ecs_access_read(ResultComp);
+}
+
+ecs_view_define(RenderEntityView) {
+  ecs_access_read(PositionComp);
+  ecs_access_read(GraphicsComp);
+}
+
 ecs_system_define(RenderSys) {
   DynString str = dynstring_create(g_alloc_scratch, usize_kibibyte);
   tty_write_clear_sequence(&str, TtyClearMode_All);
   tty_write_cursor_show_sequence(&str, false);
 
-  EcsIterator*      globalItr  = ecs_view_itr_first(ecs_world_view_t(world, GlobalView));
+  EcsIterator*      globalItr  = ecs_view_itr_first(ecs_world_view_t(world, RenderGlobalView));
   const InputComp*  inputComp  = ecs_view_read_t(globalItr, InputComp);
   const ResultComp* resultComp = ecs_view_read_t(globalItr, ResultComp);
 
@@ -400,7 +413,7 @@ ecs_system_define(RenderSys) {
 
   tty_write_style_sequence(&str, ttystyle());
 
-  EcsView* renderablesView = ecs_world_view_t(world, RenderablesView);
+  EcsView* renderablesView = ecs_world_view_t(world, RenderEntityView);
   for (EcsIterator* itr = ecs_view_itr(renderablesView); ecs_view_walk(itr);) {
     const PositionComp* pos = ecs_view_read_t(itr, PositionComp);
     const GraphicsComp* gfx = ecs_view_read_t(itr, GraphicsComp);
@@ -429,31 +442,38 @@ ecs_module_init(snake_module) {
   ecs_register_comp(TailComp);
   ecs_register_comp(VelocityComp);
 
-  ecs_register_view(CollidablesView);
-  ecs_register_view(GlobalView);
-  ecs_register_view(InitializeView);
-  ecs_register_view(MoveEntitiesView);
-  ecs_register_view(PickupView);
-  ecs_register_view(PlayerPosView);
-  ecs_register_view(RenderablesView);
-  ecs_register_view(ResetableView);
+  ecs_register_view(InputGlobalView);
+  ecs_register_view(InitializeGlobalView);
+  ecs_register_view(InitializeResettableView);
+  ecs_register_view(SteerGlobalView);
   ecs_register_view(SteerPlayerView);
-  ecs_register_view(TailView);
-  ecs_register_view(UpdateResultView);
-  ecs_register_view(WriteInputView);
+  ecs_register_view(MoveGlobalView);
+  ecs_register_view(MoveEntitiesView);
+  ecs_register_view(SpawnPickupsGlobalView);
+  ecs_register_view(SpawnPickupsPickupView);
+  ecs_register_view(UpdateTailPlayerView);
+  ecs_register_view(UpdateTailTailView);
+  ecs_register_view(RenderGlobalView);
+  ecs_register_view(RenderEntityView);
+  ecs_register_view(CollisionGlobalView);
+  ecs_register_view(CollisionPlayerView);
+  ecs_register_view(CollisionCollidableView);
 
-  ecs_register_system(InputSys, ecs_view_id(WriteInputView));
-  ecs_register_system(InitializeSys, ecs_view_id(InitializeView), ecs_view_id(ResetableView));
-  ecs_register_system(SteerSys, ecs_view_id(GlobalView), ecs_view_id(SteerPlayerView));
-  ecs_register_system(MoveSys, ecs_view_id(GlobalView), ecs_view_id(MoveEntitiesView));
-  ecs_register_system(SpawnPickupsSys, ecs_view_id(GlobalView), ecs_view_id(PickupView));
-  ecs_register_system(UpdateTailSys, ecs_view_id(PlayerPosView), ecs_view_id(TailView));
-  ecs_register_system(RenderSys, ecs_view_id(RenderablesView), ecs_view_id(GlobalView));
+  ecs_register_system(InputSys, ecs_view_id(InputGlobalView));
+  ecs_register_system(
+      InitializeSys, ecs_view_id(InitializeGlobalView), ecs_view_id(InitializeResettableView));
+  ecs_register_system(SteerSys, ecs_view_id(SteerGlobalView), ecs_view_id(SteerPlayerView));
+  ecs_register_system(MoveSys, ecs_view_id(MoveGlobalView), ecs_view_id(MoveEntitiesView));
+  ecs_register_system(
+      SpawnPickupsSys, ecs_view_id(SpawnPickupsGlobalView), ecs_view_id(SpawnPickupsPickupView));
+  ecs_register_system(
+      UpdateTailSys, ecs_view_id(UpdateTailPlayerView), ecs_view_id(UpdateTailTailView));
+  ecs_register_system(RenderSys, ecs_view_id(RenderGlobalView), ecs_view_id(RenderEntityView));
   ecs_register_system(
       CollisionSys,
-      ecs_view_id(PlayerPosView),
-      ecs_view_id(CollidablesView),
-      ecs_view_id(UpdateResultView));
+      ecs_view_id(CollisionGlobalView),
+      ecs_view_id(CollisionPlayerView),
+      ecs_view_id(CollisionCollidableView));
 }
 
 static int run_snake() {
