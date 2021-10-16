@@ -461,7 +461,7 @@ static int run_snake() {
   ecs_register_module(def, snake_module);
 
   EcsWorld*  world  = ecs_world_create(g_alloc_heap, def);
-  EcsRunner* runner = ecs_runner_create(g_alloc_heap, world);
+  EcsRunner* runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_DumpGraphDot);
 
   const EcsEntityId global = ecs_world_entity_create(world);
   ecs_world_add_t(world, global, ResultComp);

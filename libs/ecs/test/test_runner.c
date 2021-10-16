@@ -98,7 +98,7 @@ spec(runner) {
     ecs_register_module(def, runner_test_module);
 
     world  = ecs_world_create(g_alloc_heap, def);
-    runner = ecs_runner_create(g_alloc_heap, world);
+    runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_None);
   }
 
   it("executes every system once in registration order") {

@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_file.h"
 #include "core_format.h"
+#include "core_path.h"
 #include "jobs_dot.h"
 
 #define dot_start_shape "octagon"
@@ -76,11 +77,15 @@ FileResult jobs_dot_dump_graph(File* file, const JobGraph* graph) {
 }
 
 FileResult jobs_dot_dump_graph_to_path(String path, const JobGraph* graph) {
+  FileResult res;
+  if ((res = file_create_dir_sync(path_parent(path))) != FileResult_Success) {
+    return res;
+  }
   DynString buffer = dynstring_create(g_alloc_heap, usize_kibibyte);
   jobs_dot_write_graph(&buffer, graph);
 
-  const FileResult result = file_write_to_path_sync(path, dynstring_view(&buffer));
+  res = file_write_to_path_sync(path, dynstring_view(&buffer));
 
   dynstring_destroy(&buffer);
-  return result;
+  return res;
 }

@@ -20,6 +20,13 @@ typedef u32              JobTaskId;
 
 typedef struct sEcsRunner EcsRunner;
 
+typedef enum {
+  EcsRunnerFlags_None         = 0,
+  EcsRunnerFlags_DumpGraphDot = 1 << 0,
+
+  EcsRunnerFlags_Count = 1,
+} EcsRunnerFlags;
+
 /**
  * True while the current thread is running an ecs system.
  */
@@ -31,7 +38,7 @@ extern THREAD_LOCAL EcsSystemId g_ecsRunningSystemId;
  * NOTE: The world must remain valid while this runner exists.
  * Destroy using 'ecs_runner_destroy()'.
  */
-EcsRunner* ecs_runner_create(Allocator*, EcsWorld*);
+EcsRunner* ecs_runner_create(Allocator*, EcsWorld*, EcsRunnerFlags flags);
 
 /**
  * Destroy a Ecs runner.

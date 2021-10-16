@@ -1,7 +1,9 @@
 #include "core_alloc.h"
 #include "core_diag.h"
+#include "core_path.h"
 #include "core_time.h"
 #include "ecs_runner.h"
+#include "jobs_dot.h"
 #include "jobs_graph.h"
 #include "jobs_scheduler.h"
 #include "log_logger.h"
@@ -17,9 +19,10 @@
 #define graph_meta_task_count 1
 
 typedef enum {
-  EcsRunnerFlags_None,
-  EcsRunnerFlags_Running = 1 << 0,
-} EcsRunnerFlags;
+  EcsRunnerPrivateFlags_Running = 1 << (EcsRunnerFlags_Count + 1),
+
+  EcsRunnerPrivateFlags_Count = EcsRunnerFlags_Count + 1,
+} EcsRunnerPrivateFlags;
 
 typedef struct {
   EcsRunner* runner;
@@ -32,10 +35,10 @@ typedef struct {
 } SystemTaskData;
 
 struct sEcsRunner {
-  EcsWorld*      world;
-  JobGraph*      graph;
-  EcsRunnerFlags flags;
-  Allocator*     alloc;
+  EcsWorld*  world;
+  JobGraph*  graph;
+  u32        flags;
+  Allocator* alloc;
 };
 
 THREAD_LOCAL bool        g_ecsRunningSystem;
@@ -45,7 +48,7 @@ static void graph_runner_finalize_task(void* context) {
   MetaTaskData* data = context;
   ecs_world_flush_internal(data->runner->world);
 
-  data->runner->flags &= ~EcsRunnerFlags_Running;
+  data->runner->flags &= ~EcsRunnerPrivateFlags_Running;
   ecs_world_busy_unset(data->runner->world);
 }
 
@@ -107,7 +110,22 @@ static void graph_reduce(const EcsRunner* runner) {
       log_param("duration", fmt_duration(duration)));
 }
 
-EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world) {
+static void graph_dump_dot(const EcsRunner* runner) {
+  const String fileName =
+      fmt_write_scratch("{}_ecs_graph.dot", fmt_text(path_stem(g_path_executable)));
+
+  const String path =
+      path_build_scratch(path_parent(g_path_executable), string_lit("logs"), fileName);
+
+  const FileResult res = jobs_dot_dump_graph_to_path(path, runner->graph);
+  if (res == FileResult_Success) {
+    log_i("Ecs system-graph dumped", log_param("path", fmt_path(path)));
+  } else {
+    log_e("Ecs system-graph dump failed", log_param("error", fmt_text(file_result_str(res))));
+  }
+}
+
+EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerFlags flags) {
   const EcsDef* def       = ecs_world_def(world);
   const usize   taskCount = def->systems.size + graph_meta_task_count;
 
@@ -115,6 +133,7 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world) {
   *runner           = (EcsRunner){
       .world = world,
       .graph = jobs_graph_create(alloc, string_lit("ecs_runner"), taskCount),
+      .flags = flags,
       .alloc = alloc,
   };
 
@@ -145,6 +164,10 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world) {
       log_param("parallelism", fmt_float(jobs_graph_task_parallelism(runner->graph))));
 
   graph_reduce(runner);
+
+  if (flags & EcsRunnerFlags_DumpGraphDot) {
+    graph_dump_dot(runner);
+  }
   return runner;
 }
 
@@ -166,12 +189,14 @@ JobTaskId ecs_runner_graph_task(const EcsRunner* runner, const EcsSystemId syste
   return (JobTaskId)(graph_meta_task_count + systemId);
 }
 
-bool ecs_running(const EcsRunner* runner) { return (runner->flags & EcsRunnerFlags_Running) != 0; }
+bool ecs_running(const EcsRunner* runner) {
+  return (runner->flags & EcsRunnerPrivateFlags_Running) != 0;
+}
 
 JobId ecs_run_async(EcsRunner* runner) {
   diag_assert_msg(!ecs_running(runner), "Runner is currently already running");
 
-  runner->flags |= EcsRunnerFlags_Running;
+  runner->flags |= EcsRunnerPrivateFlags_Running;
   ecs_world_busy_set(runner->world);
   return jobs_scheduler_run(runner->graph);
 }
