@@ -299,7 +299,7 @@ ecs_system_define(UpdateTailSys) {
   }
 }
 
-ecs_view_define(MoveSysGlobal) { ecs_access_write(InputComp); }
+ecs_view_define(MoveSysGlobal) { ecs_access_read(InputComp); }
 
 ecs_view_define(MoveSysEntity) {
   ecs_access_read(VelocityComp);
