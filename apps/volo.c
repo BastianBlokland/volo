@@ -1,5 +1,5 @@
+#include "core.h"
 #include "core_diag.h"
-#include "core_init.h"
 #include "core_thread.h"
 
 static void test_thread(void* data) {
