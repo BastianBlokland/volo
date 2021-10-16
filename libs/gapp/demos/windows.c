@@ -1,24 +1,43 @@
 #include "cli.h"
-#include "core_alloc.h"
+#include "core.h"
 #include "core_file.h"
-#include "core_init.h"
 #include "core_signal.h"
 #include "core_thread.h"
 #include "core_time.h"
 #include "ecs.h"
+#include "gapp.h"
 #include "jobs.h"
 #include "log.h"
 
+#define app_frequency 30
+
 static int run_app() {
   EcsDef* def = def = ecs_def_create(g_alloc_heap);
+  gapp_register(def);
 
   EcsWorld*  world  = ecs_world_create(g_alloc_heap, def);
   EcsRunner* runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_DumpGraphDot);
 
-  while (!signal_is_received(Signal_Interupt)) {
+  log_i("App loop running", log_param("frequency", fmt_int(app_frequency)));
+
+  const TimeSteady startTimestamp = time_steady_clock();
+  TimeDuration     time           = 0;
+  u64              tickCount      = 0;
+
+  const EcsEntityId window = gapp_window_open(world, GappWindowFlags_Default);
+
+  while (ecs_world_exists(world, window)) {
     ecs_run_sync(runner);
-    thread_sleep(time_second / 30);
+
+    thread_sleep(time_second / app_frequency);
+    ++tickCount;
+    time = time_steady_duration(startTimestamp, time_steady_clock());
   }
+
+  log_i(
+      "App loop stopped",
+      log_param("ticks", fmt_int(tickCount)),
+      log_param("time", fmt_duration(time)));
 
   ecs_runner_destroy(runner);
   ecs_world_destroy(world);
@@ -36,7 +55,7 @@ int main(const int argc, const char** argv) {
 
   int exitCode = 0;
 
-  CliApp*        app   = cli_app_create(g_alloc_heap, string_lit("Volo Multi-Windows Demo"));
+  CliApp*        app   = cli_app_create(g_alloc_heap, string_lit("Volo Windows Demo"));
   CliInvocation* invoc = cli_parse(app, argc - 1, argv + 1);
   if (cli_parse_result(invoc) == CliParseResult_Fail) {
     cli_failure_write_file(invoc, g_file_stderr);
@@ -44,11 +63,14 @@ int main(const int argc, const char** argv) {
     goto exit;
   }
 
-  log_i("App startup");
+  log_i(
+      "App startup",
+      log_param("pid", fmt_int(g_thread_pid)),
+      log_param("cpus", fmt_int(g_thread_core_count)));
 
   exitCode = run_app();
 
-  log_i("App shutdown");
+  log_i("App shutdown", log_param("exit-code", fmt_int(exitCode)));
 
 exit:
   cli_parse_destroy(invoc);
