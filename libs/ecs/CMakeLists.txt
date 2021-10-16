@@ -1,5 +1,5 @@
 # --------------------------------------------------------------------------------------------------
-# EntityComponentSystem library cmake file.
+# Ecs library cmake file.
 # --------------------------------------------------------------------------------------------------
 
 message(STATUS "> library: ecs")
@@ -40,3 +40,6 @@ target_link_libraries(volo_ecs_test PRIVATE volo_log)
 
 configure_test(volo_ecs_test ecs)
 configure_debuggable(volo_ecs_test)
+
+message(STATUS "> demos: ecs")
+add_subdirectory(demos)

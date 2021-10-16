@@ -30,25 +30,28 @@ EcsIterator* ecs_view_itr_create(Mem mem, EcsView* view) {
   return itr;
 }
 
-void ecs_view_itr_reset(EcsIterator* itr) { ecs_iterator_reset(itr); }
+EcsIterator* ecs_view_itr_reset(EcsIterator* itr) {
+  ecs_iterator_reset(itr);
+  return itr;
+}
 
-bool ecs_view_itr_walk(EcsIterator* itr) {
+EcsIterator* ecs_view_walk(EcsIterator* itr) {
   EcsView* view = itr->context;
 
   if (UNLIKELY(itr->archetypeIdx >= view->archetypes.size)) {
-    return false;
+    return null;
   }
 
   const EcsArchetypeId id = *dynarray_at_t(&view->archetypes, itr->archetypeIdx, EcsArchetypeId);
   if (LIKELY(ecs_storage_itr_walk(view->storage, itr, id))) {
-    return true;
+    return itr;
   }
 
   ++itr->archetypeIdx;
-  return ecs_view_itr_walk(itr);
+  return ecs_view_walk(itr);
 }
 
-void ecs_view_itr_jump(EcsIterator* itr, const EcsEntityId entity) {
+EcsIterator* ecs_view_jump(EcsIterator* itr, const EcsEntityId entity) {
   EcsView* view = itr->context;
 
   diag_assert_msg(
@@ -58,6 +61,7 @@ void ecs_view_itr_jump(EcsIterator* itr, const EcsEntityId entity) {
       fmt_int(entity));
 
   ecs_storage_itr_jump(view->storage, itr, entity);
+  return itr;
 }
 
 EcsEntityId ecs_view_entity(const EcsIterator* itr) {
@@ -66,9 +70,9 @@ EcsEntityId ecs_view_entity(const EcsIterator* itr) {
 }
 
 const void* ecs_view_read(const EcsIterator* itr, const EcsCompId comp) {
-  EcsView* view = itr->context;
+  diag_assert_msg(itr && itr->entity, "Iterator has not been initialized");
 
-  diag_assert_msg(itr->entity, "Iterator has not been initialized");
+  EcsView* view = itr->context;
 
   diag_assert_msg(
       bitset_test(ecs_view_mask(view, EcsViewMask_AccessRead), comp),
@@ -80,9 +84,9 @@ const void* ecs_view_read(const EcsIterator* itr, const EcsCompId comp) {
 }
 
 void* ecs_view_write(const EcsIterator* itr, const EcsCompId comp) {
-  EcsView* view = itr->context;
+  diag_assert_msg(itr && itr->entity, "Iterator has not been initialized");
 
-  diag_assert_msg(itr->entity, "Iterator has not been initialized");
+  EcsView* view = itr->context;
 
   diag_assert_msg(
       bitset_test(ecs_view_mask(view, EcsViewMask_AccessWrite), comp),

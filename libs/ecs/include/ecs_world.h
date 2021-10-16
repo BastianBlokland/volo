@@ -57,58 +57,59 @@ EcsView* ecs_world_view(EcsWorld*, EcsViewId);
 EcsEntityId ecs_world_entity_create(EcsWorld*);
 
 /**
- * Check if the given entity exists in the world.
- *
- * Pre-condition: !ecs_world_busy() || g_ecsRunningSystem
- */
-bool ecs_world_entity_exists(const EcsWorld*, EcsEntityId);
-
-/**
  * Schedule an entity to be destroyed at the next flush.
  *
- * Pre-condition: ecs_world_entity_exists(world, entity).
+ * Pre-condition: ecs_world_exists(world, entity)
  * Pre-condition: !ecs_world_busy() || g_ecsRunningSystem
  */
 void ecs_world_entity_destroy(EcsWorld*, EcsEntityId);
 
 /**
- * Check if an entity has the specified component.
+ * Check if the given entity exists in the world.
  *
- * Pre-condition: ecs_world_entity_exists(world, entity).
  * Pre-condition: !ecs_world_busy() || g_ecsRunningSystem
  */
-#define ecs_world_comp_has_t(_WORLD_, _ENTITY_, _TYPE_)                                            \
-  ecs_world_comp_has((_WORLD_), (_ENTITY_), ecs_comp_id(_TYPE_))
+bool ecs_world_exists(const EcsWorld*, EcsEntityId);
 
-bool ecs_world_comp_has(EcsWorld*, EcsEntityId, EcsCompId);
+/**
+ * Check if an entity has the specified component.
+ *
+ * Pre-condition: ecs_world_exists(world, entity)
+ * Pre-condition: !ecs_world_busy() || g_ecsRunningSystem
+ */
+#define ecs_world_has_t(_WORLD_, _ENTITY_, _TYPE_)                                                 \
+  ecs_world_has((_WORLD_), (_ENTITY_), ecs_comp_id(_TYPE_))
+
+bool ecs_world_has(EcsWorld*, EcsEntityId, EcsCompId);
 
 /**
  * Schedule a component to be added at the next flush.
  * NOTE: The returned pointer is valid until the next flush.
  *
- * Pre-condition: ecs_world_entity_exists(world, entity).
+ * Pre-condition: ecs_world_exists(world, entity)
+ * Pre-condition: !ecs_world_has(world, entity, comp)
  * Pre-condition: !ecs_world_busy() || g_ecsRunningSystem
  */
-#define ecs_world_comp_add_t(_WORLD_, _ENTITY_, _TYPE_, ...)                                       \
-  ((_TYPE_*)ecs_world_comp_add(                                                                    \
+#define ecs_world_add_t(_WORLD_, _ENTITY_, _TYPE_, ...)                                            \
+  ((_TYPE_*)ecs_world_add(                                                                         \
       (_WORLD_), (_ENTITY_), ecs_comp_id(_TYPE_), mem_struct(_TYPE_, __VA_ARGS__)))
 
-#define ecs_world_comp_add_empty_t(_WORLD_, _ENTITY_, _TYPE_)                                      \
-  ((void)ecs_world_comp_add((_WORLD_), (_ENTITY_), ecs_comp_id(_TYPE_), mem_empty))
+#define ecs_world_add_empty_t(_WORLD_, _ENTITY_, _TYPE_)                                           \
+  ((void)ecs_world_add((_WORLD_), (_ENTITY_), ecs_comp_id(_TYPE_), mem_empty))
 
-void* ecs_world_comp_add(EcsWorld*, EcsEntityId, EcsCompId, Mem data);
+void* ecs_world_add(EcsWorld*, EcsEntityId, EcsCompId, Mem data);
 
 /**
  * Schedule a component to be removed at the next flush.
  *
- * Pre-condition: ecs_world_entity_exists(world, entity)
- * Pre-condition: ecs_world_comp_has(world, entity, comp)
+ * Pre-condition: ecs_world_exists(world, entity)
+ * Pre-condition: ecs_world_has(world, entity, comp)
  * Pre-condition: !ecs_world_busy() || g_ecsRunningSystem
  */
-#define ecs_world_comp_remove_t(_WORLD_, _ENTITY_, _TYPE_)                                         \
-  ecs_world_comp_remove((_WORLD_), (_ENTITY_), ecs_comp_id(_TYPE_))
+#define ecs_world_remove_t(_WORLD_, _ENTITY_, _TYPE_)                                              \
+  ecs_world_remove((_WORLD_), (_ENTITY_), ecs_comp_id(_TYPE_))
 
-void ecs_world_comp_remove(EcsWorld*, EcsEntityId, EcsCompId);
+void ecs_world_remove(EcsWorld*, EcsEntityId, EcsCompId);
 
 /**
  * Flush any queued layout modifications.

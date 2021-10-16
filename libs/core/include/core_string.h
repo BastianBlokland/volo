@@ -100,7 +100,7 @@ bool string_starts_with(String, String start);
 /**
  * Check if a string ends with a specific sub-string.
  */
-bool string_ends_with(String, String start);
+bool string_ends_with(String, String end);
 
 /**
  * Create a view to a sub-section of this string.

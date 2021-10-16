@@ -57,10 +57,10 @@ spec(destruct) {
     g_destructorCountA = 0;
     g_destructorCountB = 0;
 
-    ecs_world_comp_add_t(world, entity1, DestructCompA, .state = CompDataState_Normal);
+    ecs_world_add_t(world, entity1, DestructCompA, .state = CompDataState_Normal);
 
-    ecs_world_comp_add_t(world, entity2, DestructCompA, .state = CompDataState_Normal);
-    ecs_world_comp_add_t(world, entity2, DestructCompB, .state = CompDataState_Normal);
+    ecs_world_add_t(world, entity2, DestructCompA, .state = CompDataState_Normal);
+    ecs_world_add_t(world, entity2, DestructCompB, .state = CompDataState_Normal);
 
     ecs_world_destroy(world);
 
@@ -76,10 +76,10 @@ spec(destruct) {
     g_destructorCountA = 0;
     g_destructorCountB = 0;
 
-    ecs_world_comp_add_t(world, entity1, DestructCompA, .state = CompDataState_Normal);
+    ecs_world_add_t(world, entity1, DestructCompA, .state = CompDataState_Normal);
 
-    ecs_world_comp_add_t(world, entity2, DestructCompA, .state = CompDataState_Normal);
-    ecs_world_comp_add_t(world, entity2, DestructCompB, .state = CompDataState_Normal);
+    ecs_world_add_t(world, entity2, DestructCompA, .state = CompDataState_Normal);
+    ecs_world_add_t(world, entity2, DestructCompB, .state = CompDataState_Normal);
 
     ecs_world_flush(world); // Move the components into archetypes.
 
@@ -99,7 +99,7 @@ spec(destruct) {
 
     for (usize i = 0; i != entitiesToCreate; ++i) {
       const EcsEntityId newEntity = ecs_world_entity_create(world);
-      ecs_world_comp_add_t(world, newEntity, DestructCompA, .state = CompDataState_Normal);
+      ecs_world_add_t(world, newEntity, DestructCompA, .state = CompDataState_Normal);
       *dynarray_push_t(&entities, EcsEntityId) = newEntity;
     }
 
@@ -121,10 +121,10 @@ spec(destruct) {
     g_destructorCountA = 0;
     g_destructorCountB = 0;
 
-    ecs_world_comp_add_t(world, entity1, DestructCompA, .state = CompDataState_Normal);
+    ecs_world_add_t(world, entity1, DestructCompA, .state = CompDataState_Normal);
 
-    ecs_world_comp_add_t(world, entity2, DestructCompA, .state = CompDataState_Normal);
-    ecs_world_comp_add_t(world, entity2, DestructCompB, .state = CompDataState_Normal);
+    ecs_world_add_t(world, entity2, DestructCompA, .state = CompDataState_Normal);
+    ecs_world_add_t(world, entity2, DestructCompB, .state = CompDataState_Normal);
 
     ecs_world_flush(world);
 
@@ -147,18 +147,18 @@ spec(destruct) {
     g_destructorCountA = 0;
     g_destructorCountB = 0;
 
-    ecs_world_comp_add_t(world, entity1, DestructCompA, .state = CompDataState_Normal);
+    ecs_world_add_t(world, entity1, DestructCompA, .state = CompDataState_Normal);
 
-    ecs_world_comp_add_t(world, entity2, DestructCompA, .state = CompDataState_Normal);
-    ecs_world_comp_add_t(world, entity2, DestructCompB, .state = CompDataState_Normal);
+    ecs_world_add_t(world, entity2, DestructCompA, .state = CompDataState_Normal);
+    ecs_world_add_t(world, entity2, DestructCompB, .state = CompDataState_Normal);
 
     ecs_world_flush(world);
 
-    ecs_world_comp_remove_t(world, entity1, DestructCompA);
-    ecs_world_comp_add_t(world, entity1, DestructCompB, .state = CompDataState_Normal);
+    ecs_world_remove_t(world, entity1, DestructCompA);
+    ecs_world_add_t(world, entity1, DestructCompB, .state = CompDataState_Normal);
 
-    ecs_world_comp_remove_t(world, entity2, DestructCompA);
-    ecs_world_comp_remove_t(world, entity2, DestructCompB);
+    ecs_world_remove_t(world, entity2, DestructCompA);
+    ecs_world_remove_t(world, entity2, DestructCompB);
 
     ecs_world_flush(world);
 

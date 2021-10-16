@@ -1,5 +1,8 @@
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_file.h"
+#include "core_math.h"
+#include "core_winutils.h"
 
 #include "file_internal.h"
 #include "tty_internal.h"
@@ -14,13 +17,15 @@ struct ConsoleModeOverride {
 static struct ConsoleModeOverride g_consoleModeInputOverride;
 static struct ConsoleModeOverride g_consoleModeOutputOverride;
 static struct ConsoleModeOverride g_consoleModeErrorOverride;
-static UINT                       g_consoleCodePageOriginal;
+static UINT                       g_consoleInputCodePageOriginal;
+static UINT                       g_consoleOutputCodePageOriginal;
 
 static void tty_pal_override_input_mode(File* file, struct ConsoleModeOverride* override) {
   if (GetConsoleMode(file->handle, &override->original)) {
     DWORD newMode = override->original;
-    newMode |= 0x0001; // ENABLE_PROCESSED_INPUT 0x0001
-    newMode |= 0x0200; // ENABLE_VIRTUAL_TERMINAL_INPUT 0x0200
+    newMode |= ENABLE_PROCESSED_INPUT;
+    newMode |= 0x0200; // ENABLE_VIRTUAL_TERMINAL_INPUT
+
     SetConsoleMode(file->handle, newMode);
     override->enabled = true;
   }
@@ -29,7 +34,9 @@ static void tty_pal_override_input_mode(File* file, struct ConsoleModeOverride* 
 static void tty_pal_override_output_mode(File* file, struct ConsoleModeOverride* override) {
   if (GetConsoleMode(file->handle, &override->original)) {
     DWORD newMode = override->original;
-    newMode |= 0x0004; // ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
+    newMode |= ENABLE_PROCESSED_OUTPUT;
+    newMode |= 0x0004; // ENABLE_VIRTUAL_TERMINAL_PROCESSING
+
     SetConsoleMode(file->handle, newMode);
     override->enabled = true;
   }
@@ -41,21 +48,64 @@ static void tty_pal_restore_mode(File* file, struct ConsoleModeOverride* overrid
   }
 }
 
+static bool tty_pal_has_key_input(File* file) {
+  DWORD      eventCount;
+  const BOOL getNumRes = GetNumberOfConsoleInputEvents(file->handle, &eventCount);
+  if (UNLIKELY(!getNumRes)) {
+    diag_crash_msg("GetNumberOfConsoleInputEvents() failed: {}", fmt_int((u64)GetLastError()));
+  }
+
+  if (!eventCount) {
+    return false; // No events at all.
+  }
+
+  INPUT_RECORD records[256];
+  DWORD        peekCount;
+  const BOOL   peekRes = PeekConsoleInput(file->handle, records, array_elems(records), &peekCount);
+  if (UNLIKELY(!peekRes)) {
+    diag_crash_msg("PeekConsoleInput() failed: {}", fmt_int((u64)GetLastError()));
+  }
+
+  // Search in the peeked events for a key-down event.
+  for (usize i = 0; i != peekCount; ++i) {
+    switch (records[i].EventType) {
+    case KEY_EVENT:
+      if (!records[i].Event.KeyEvent.bKeyDown) {
+        break; // Ignore 'KeyUp' events.
+      }
+      return true;
+    case MOUSE_EVENT:
+    case WINDOW_BUFFER_SIZE_EVENT:
+    case FOCUS_EVENT:
+    case MENU_EVENT:
+      break; // Unsupported event.
+    default:
+      diag_crash_msg("Unkown console event-type: {}", fmt_int((u32)records[i].EventType));
+    }
+  }
+  return false; // No key events found.
+}
+
 void tty_pal_init() {
   tty_pal_override_input_mode(g_file_stdin, &g_consoleModeInputOverride);
   tty_pal_override_output_mode(g_file_stdout, &g_consoleModeOutputOverride);
   tty_pal_override_output_mode(g_file_stderr, &g_consoleModeErrorOverride);
 
   // Setup the console to use the utf8 code-page.
-  g_consoleCodePageOriginal = GetConsoleCP();
+  g_consoleInputCodePageOriginal  = GetConsoleCP();
+  g_consoleOutputCodePageOriginal = GetConsoleOutputCP();
+
   SetConsoleCP(CP_UTF8);
+  SetConsoleOutputCP(CP_UTF8);
 }
 
 void tty_pal_teardown() {
   tty_pal_restore_mode(g_file_stdin, &g_consoleModeInputOverride);
   tty_pal_restore_mode(g_file_stdout, &g_consoleModeOutputOverride);
   tty_pal_restore_mode(g_file_stderr, &g_consoleModeErrorOverride);
-  SetConsoleCP(g_consoleCodePageOriginal);
+
+  SetConsoleCP(g_consoleInputCodePageOriginal);
+  SetConsoleOutputCP(g_consoleOutputCodePageOriginal);
 }
 
 bool tty_pal_isatty(File* file) { return GetFileType(file->handle) == FILE_TYPE_CHAR; }
@@ -80,4 +130,63 @@ u16 tty_pal_height(File* file) {
     diag_crash_msg("GetConsoleScreenBufferInfo() failed");
   }
   return (u16)(1 + csbi.srWindow.Bottom - csbi.srWindow.Top);
+}
+
+void tty_pal_opts_set(File* file, const TtyOpts opts) {
+  diag_assert_msg(tty_pal_isatty(file), "Given file is not a tty");
+  diag_assert_msg(file->access & FileAccess_Read, "Tty handle does not have read access");
+
+  DWORD      mode   = 0;
+  const BOOL getRes = GetConsoleMode(file->handle, &mode);
+  if (UNLIKELY(!getRes)) {
+    diag_crash_msg("GetConsoleMode() failed");
+  }
+
+  if (opts & TtyOpts_NoEcho) {
+    mode &= ~ENABLE_ECHO_INPUT;
+  } else {
+    mode |= ENABLE_ECHO_INPUT;
+  }
+
+  if (opts & TtyOpts_NoBuffer) {
+    mode &= ~ENABLE_LINE_INPUT;
+  } else {
+    mode |= ENABLE_LINE_INPUT;
+  }
+
+  const BOOL setRes = SetConsoleMode(file->handle, mode);
+  if (UNLIKELY(!setRes)) {
+    diag_crash_msg("SetConsoleMode() failed");
+  }
+}
+
+bool tty_pal_read(File* file, DynString* dynstr, const TtyReadFlags flags) {
+  diag_assert_msg(tty_pal_isatty(file), "Given file is not a tty");
+  diag_assert_msg(file->access & FileAccess_Read, "Tty handle does not have read access");
+
+  if ((flags & TtyReadFlags_NoBlock) && !tty_pal_has_key_input(file)) {
+    return false; // No keyboard input is available for reading at the given console.
+  }
+
+  static const DWORD maxChars = 512;
+
+  Mem        wideBuffer = mem_stack(maxChars * sizeof(wchar_t));
+  DWORD      wideCharsRead;
+  const BOOL readRes = ReadConsole(file->handle, wideBuffer.ptr, maxChars, &wideCharsRead, null);
+  if (UNLIKELY(!readRes)) {
+    diag_crash_msg("ReadConsole() failed: {}", fmt_int((u64)GetLastError()));
+  }
+  if (!wideCharsRead) {
+    return false;
+  }
+
+  const usize utf8TmpSize = winutils_from_widestr_size(wideBuffer.ptr, wideCharsRead);
+  if (sentinel_check(utf8TmpSize)) {
+    diag_crash_msg("ReadConsole() malformed output");
+  }
+  Mem utf8Tmp = mem_stack(utf8TmpSize);
+  winutils_from_widestr(utf8Tmp, wideBuffer.ptr, wideCharsRead);
+
+  dynstring_append(dynstr, utf8Tmp);
+  return true;
 }

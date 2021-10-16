@@ -87,7 +87,7 @@ typedef struct {
  *
  * Example usage:
  * ```
- * ecs_view_define(ApplyCharacterVelocity) {
+ * ecs_view_define(ApplyCharacterVelocityView) {
  *   ecs_access_with(CharacterComp);
  *   ecs_access_read(VelocityComp);
  *   ecs_access_write(PositionComp);
@@ -111,9 +111,9 @@ typedef struct {
  *
  * Example usage:
  * ```
- * ecs_system_define(ApplyVelocity) {
+ * ecs_system_define(ApplyVelocitySys) {
  *   EcsView* view = ecs_world_view_t(world, ReadVeloWritePosView);
- *   for (EcsIterator* itr = ecs_view_itr_stack(view); ecs_view_itr_walk(itr);) {
+ *   for (EcsIterator* itr = ecs_view_itr(view); ecs_view_walk(itr);) {
  *     const Velocity* velo = ecs_view_read_t(itr, Velocity);
  *     Position*       pos  = ecs_view_write_t(itr, Position);
  *     ...
@@ -133,12 +133,12 @@ typedef struct {
  * Pre-condition: No other component with the same name has been registered already.
  */
 #define ecs_register_comp(_NAME_, ...)                                                             \
-  ASSERT(sizeof(_NAME_) != 0, "Use 'ecs_register_comp_empty' for empty components");               \
-  ecs_comp_id(_NAME_) = ecs_module_register_comp(_builder, &(EcsCompConfig){                       \
+  ASSERT(sizeof(_NAME_) != 0, "Use 'ecs_register_comp_empty' for empty components")                \
+  ecs_module_register_comp(_builder, &ecs_comp_id(_NAME_), &(EcsCompConfig){                       \
       .name = string_lit(#_NAME_), .size = sizeof(_NAME_), .align = alignof(_NAME_), ##__VA_ARGS__})
 
 #define ecs_register_comp_empty(_NAME_, ...)                                                       \
-  ecs_comp_id(_NAME_) = ecs_module_register_comp(_builder, &(EcsCompConfig){                       \
+  ecs_module_register_comp(_builder, &ecs_comp_id(_NAME_), &(EcsCompConfig){                       \
       .name = string_lit(#_NAME_), .size = 0, .align = 1, ##__VA_ARGS__})
 
 /**
@@ -147,7 +147,7 @@ typedef struct {
  * NOTE: The view has to be defined using 'ecs_view_define()' in the same compilation unit.
  */
 #define ecs_register_view(_NAME_)                                                                  \
-  ecs_view_id(_NAME_) = ecs_module_register_view(_builder, &(EcsViewConfig){                       \
+  ecs_module_register_view(_builder, &ecs_view_id(_NAME_), &(EcsViewConfig){                       \
       .name = string_lit(#_NAME_), .initRoutine = &_ecs_view_init_##_NAME_})
 
 /**
@@ -156,11 +156,11 @@ typedef struct {
  *
  * Example usage:
  * ```
- * ecs_register_system(ApplyVelocity, ecs_view_id(ReadVeloWritePos));
+ * ecs_register_system(ApplyVelocity, ecs_view_id(ReadVeloWritePosView));
  * ```
  */
 #define ecs_register_system(_NAME_, ...)                                                           \
-  ecs_system_id(_NAME_) = ecs_module_register_system(_builder, &(EcsSystemConfig){                 \
+  ecs_module_register_system(_builder, &ecs_system_id(_NAME_), &(EcsSystemConfig){                 \
       .name      = string_lit(#_NAME_),                                                            \
       .routine   = &_ecs_system_##_NAME_,                                                          \
       .views     = (const EcsViewId[]){ VA_ARGS_SKIP_FIRST(0, ##__VA_ARGS__, 0) },                 \
@@ -180,9 +180,9 @@ i8 ecs_compare_view(const void* a, const void* b);
  */
 i8 ecs_compare_system(const void* a, const void* b);
 
-EcsCompId   ecs_module_register_comp(EcsModuleBuilder*, const EcsCompConfig*);
-EcsViewId   ecs_module_register_view(EcsModuleBuilder*, const EcsViewConfig*);
-EcsSystemId ecs_module_register_system(EcsModuleBuilder*, const EcsSystemConfig*);
+EcsCompId   ecs_module_register_comp(EcsModuleBuilder*, EcsCompId*, const EcsCompConfig*);
+EcsViewId   ecs_module_register_view(EcsModuleBuilder*, EcsViewId*, const EcsViewConfig*);
+EcsSystemId ecs_module_register_system(EcsModuleBuilder*, EcsSystemId*, const EcsSystemConfig*);
 
 void ecs_module_access_with(EcsViewBuilder*, EcsCompId);
 void ecs_module_access_without(EcsViewBuilder*, EcsCompId);

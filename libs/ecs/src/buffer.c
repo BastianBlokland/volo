@@ -191,10 +191,6 @@ void ecs_buffer_destroy_entity(EcsBuffer* buffer, const EcsEntityId entityId) {
       !bitset_any(addMask) && !bitset_any(removeMask),
       "Unable to enqueue destruction of entity {}, reason: modifications present",
       fmt_int(entityId));
-  diag_assert_msg(
-      (entity->flags & EcsBufferEntityFlags_Destroy) == 0,
-      "Unable to enqueue destruction of entity {}, reason: duplicate destruction",
-      fmt_int(entityId));
 
   entity->flags |= EcsBufferEntityFlags_Destroy;
 }

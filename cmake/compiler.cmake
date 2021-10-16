@@ -84,7 +84,7 @@ macro(set_clang_compile_options)
 
   # Setup warning flags.
   add_compile_options(-Wall -Wextra -Werror -Wshadow -Wgnu-empty-initializer)
-  add_compile_options(-Wno-initializer-overrides -Wno-unused-value)
+  add_compile_options(-Wno-initializer-overrides -Wno-unused-value -Wno-missing-braces)
 
   # TODO: Tie these debug options to a configuration knob.
   add_compile_options(-g -fno-omit-frame-pointer)
