@@ -1,5 +1,6 @@
 #pragma once
 #include "core_annotation.h"
+#include "core_macro.h"
 #include "core_string.h"
 #include "ecs_comp.h"
 
@@ -91,6 +92,14 @@ typedef struct {
   typedef struct s##_NAME_ _NAME_;                                                                 \
   EcsCompId ecs_comp_id(_NAME_);                                                                   \
   struct s##_NAME_
+
+/**
+ * Declare an externally defined component.
+ * NOTE: Needs to be defined in exactly one compilation unit.
+ */
+#define ecs_comp_extern(_NAME_)                                                                    \
+  typedef struct s##_NAME_ _NAME_;                                                                 \
+  extern EcsCompId ecs_comp_id(_NAME_)
 
 /**
  * Define a view initialization routine.
