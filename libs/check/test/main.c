@@ -1,7 +1,7 @@
 #include "check_app.h"
 #include "core_alloc.h"
 #include "core_init.h"
-#include "jobs_init.h"
+#include "jobs.h"
 #include "log.h"
 
 int main(const int argc, const char** argv) {
