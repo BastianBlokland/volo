@@ -3,19 +3,19 @@
 #include "ecs_module.h"
 
 typedef enum {
-  GappWindowEvents_None   = 0,
-  GappWindowEvents_Closed = 1 << 0,
-} GappWindowEvents;
+  GAppWindowEvents_None   = 0,
+  GAppWindowEvents_Closed = 1 << 0,
+} GAppWindowEvents;
 
 typedef enum {
-  GappWindowFlags_None            = 0,
-  GappWindowFlags_CloseOnInterupt = 1 << 0,
+  GAppWindowFlags_None            = 0,
+  GAppWindowFlags_CloseOnInterupt = 1 << 0,
 
-  GappWindowFlags_Default = GappWindowFlags_CloseOnInterupt,
-} GappWindowFlags;
+  GAppWindowFlags_Default = GAppWindowFlags_CloseOnInterupt,
+} GAppWindowFlags;
 
-ecs_comp_extern(GappWindow);
+ecs_comp_extern(GAppWindowComp);
 
-EcsEntityId      gapp_window_open(EcsWorld*, GappWindowFlags);
-void             gapp_window_close(GappWindow*);
-GappWindowEvents gapp_window_events(const GappWindow*);
+EcsEntityId      gapp_window_open(EcsWorld*, GAppWindowFlags);
+void             gapp_window_close(GAppWindowComp*);
+GAppWindowEvents gapp_window_events(const GAppWindowComp*);
