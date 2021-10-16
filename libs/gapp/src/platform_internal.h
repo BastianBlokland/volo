@@ -1,0 +1,7 @@
+#pragma once
+#include "ecs_entity.h"
+#include "ecs_module.h"
+
+ecs_comp_extern(GAppPlatformComp);
+
+EcsEntityId gapp_platform_create(EcsWorld*);

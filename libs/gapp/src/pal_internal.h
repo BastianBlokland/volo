@@ -1,5 +1,6 @@
 #pragma once
 #include "core_alloc.h"
+#include "core_string.h"
 
 typedef struct sGAppPal GAppPal;
 

@@ -5,8 +5,8 @@
 message(STATUS "> library: gapp")
 
 add_library(volo_gapp STATIC
-  src/app.c
   src/pal.c
+  src/platform.c
   src/register.c
   src/window.c)
 target_include_directories(volo_gapp PUBLIC include)

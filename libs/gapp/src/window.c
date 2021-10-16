@@ -2,6 +2,8 @@
 #include "ecs_world.h"
 #include "gapp_window.h"
 
+#include "platform_internal.h"
+
 typedef enum {
   GAppWindowRequests_None   = 0,
   GAppWindowRequests_Create = 1 << 0,
@@ -37,9 +39,17 @@ static void window_update(EcsWorld* world, GAppWindowComp* window, const EcsEnti
   window->requests = GAppWindowRequests_None;
 }
 
+ecs_view_define(GAppPlatformView) { ecs_access_write(GAppPlatformComp); };
 ecs_view_define(GAppWindowView) { ecs_access_write(GAppWindowComp); };
 
 ecs_system_define(GAppUpdateSys) {
+  EcsIterator* platformItr = ecs_view_itr_first(ecs_world_view_t(world, GAppPlatformView));
+  if (!platformItr) {
+    gapp_platform_create(world);
+    return;
+  }
+  GAppPlatformComp* platform = ecs_view_write_t(platformItr, GAppPlatformComp);
+  (void)platform;
 
   EcsView* windowView = ecs_world_view_t(world, GAppWindowView);
   for (EcsIterator* itr = ecs_view_itr(windowView); ecs_view_walk(itr);) {
@@ -53,9 +63,10 @@ ecs_system_define(GAppUpdateSys) {
 ecs_module_init(gapp_window_module) {
   ecs_register_comp(GAppWindowComp);
 
+  ecs_register_view(GAppPlatformView);
   ecs_register_view(GAppWindowView);
 
-  ecs_register_system(GAppUpdateSys, ecs_view_id(GAppWindowView));
+  ecs_register_system(GAppUpdateSys, ecs_view_id(GAppPlatformView), ecs_view_id(GAppWindowView));
 }
 
 EcsEntityId gapp_window_open(EcsWorld* world, const GAppWindowFlags flags) {
