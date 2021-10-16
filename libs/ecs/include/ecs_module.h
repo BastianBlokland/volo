@@ -133,7 +133,7 @@ typedef struct {
  * Pre-condition: No other component with the same name has been registered already.
  */
 #define ecs_register_comp(_NAME_, ...)                                                             \
-  ASSERT(sizeof(_NAME_) != 0, "Use 'ecs_register_comp_empty' for empty components");               \
+  ASSERT(sizeof(_NAME_) != 0, "Use 'ecs_register_comp_empty' for empty components")                \
   ecs_module_register_comp(_builder, &ecs_comp_id(_NAME_), &(EcsCompConfig){                       \
       .name = string_lit(#_NAME_), .size = sizeof(_NAME_), .align = alignof(_NAME_), ##__VA_ARGS__})
 

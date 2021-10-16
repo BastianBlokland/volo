@@ -3,6 +3,7 @@
 #include "core_diag.h"
 #include "core_file.h"
 #include "core_init.h"
+#include "core_math.h"
 #include "core_rng.h"
 #include "core_signal.h"
 #include "core_thread.h"
@@ -10,6 +11,10 @@
 #include "ecs.h"
 #include "jobs_init.h"
 #include "log.h"
+
+/**
+ * Volo Snake Demo - Simple terminal snake game implemented using the ECS library.
+ */
 
 typedef enum {
   Direction_Up,
@@ -58,6 +63,7 @@ static const InputMapping g_inputMappings[] = {
 };
 
 ecs_comp_define(InputComp) {
+  u64       pickupDensity;
   i32       termWidth, termHeight;
   InputType input;
 };
@@ -126,16 +132,16 @@ static i32 wrap(i32 val, const i32 max) {
   return val;
 }
 
-ecs_view_define(InitializeGlobalView) {
+ecs_view_define(InitSysGlobal) {
   ecs_access_with(InitializeComp);
   ecs_access_read(InputComp);
   ecs_access_write(ResultComp);
 }
 
-ecs_view_define(InitializeResettableView) { ecs_access_with(ResetableComp); }
+ecs_view_define(InitSysResettable) { ecs_access_with(ResetableComp); }
 
-ecs_system_define(InitializeSys) {
-  EcsIterator* initializeItr = ecs_view_itr_first(ecs_world_view_t(world, InitializeGlobalView));
+ecs_system_define(InitSys) {
+  EcsIterator* initializeItr = ecs_view_itr_first(ecs_world_view_t(world, InitSysGlobal));
   if (!initializeItr) {
     return;
   }
@@ -147,7 +153,7 @@ ecs_system_define(InitializeSys) {
   resultComp->state           = GameState_Playing;
 
   // Cleanup entities from the previous session.
-  EcsView* resetableView = ecs_world_view_t(world, InitializeResettableView);
+  EcsView* resetableView = ecs_world_view_t(world, InitSysResettable);
   for (EcsIterator* itr = ecs_view_itr(resetableView); ecs_view_walk(itr);) {
     ecs_world_entity_destroy(world, ecs_view_entity(itr));
   }
@@ -162,20 +168,24 @@ ecs_system_define(InitializeSys) {
   ecs_world_add_empty_t(world, player, ResetableComp);
 }
 
-ecs_view_define(SpawnPickupsGlobalView) { ecs_access_read(InputComp); }
+ecs_view_define(SpawnPickupsSysGlobal) { ecs_access_read(InputComp); }
 
-ecs_view_define(SpawnPickupsPickupView) { ecs_access_with(PickupComp); }
+ecs_view_define(SpawnPickupsSysPickup) { ecs_access_with(PickupComp); }
 
 ecs_system_define(SpawnPickupsSys) {
-  EcsIterator*     globalItr = ecs_view_itr_first(ecs_world_view_t(world, SpawnPickupsGlobalView));
+  EcsIterator*     globalItr = ecs_view_itr_first(ecs_world_view_t(world, SpawnPickupsSysGlobal));
   const InputComp* inputComp = ecs_view_read_t(globalItr, InputComp);
 
+  const usize desiredPickups = (usize)math_round_f64(
+      inputComp->termWidth * inputComp->termHeight * (inputComp->pickupDensity * .001f));
+
+  // Count the number of current pickups.
   usize    pickupCount = 0;
-  EcsView* pickupView  = ecs_world_view_t(world, SpawnPickupsPickupView);
+  EcsView* pickupView  = ecs_world_view_t(world, SpawnPickupsSysPickup);
   for (EcsIterator* itr = ecs_view_itr(pickupView); ecs_view_walk(itr); ++pickupCount)
     ;
 
-  const usize desiredPickups = inputComp->termWidth * inputComp->termHeight / 200;
+  // Spawn additional pickups if required.
   for (usize i = pickupCount; i < desiredPickups; ++i) {
     const EcsEntityId pickup        = ecs_world_entity_create(world);
     const bool        specialPickup = rng_sample_f32(g_rng) > 0.9f;
@@ -196,13 +206,13 @@ ecs_system_define(SpawnPickupsSys) {
   }
 }
 
-ecs_view_define(InputGlobalView) { ecs_access_write(InputComp); }
+ecs_view_define(InputSysGlobal) { ecs_access_write(InputComp); }
 
 ecs_system_define(InputSys) {
   DynString inputBuffer = dynstring_create(g_alloc_scratch, usize_kibibyte);
   tty_read(g_file_stdin, &inputBuffer, TtyReadFlags_NoBlock);
 
-  EcsIterator* itr       = ecs_view_itr_first(ecs_world_view_t(world, InputGlobalView));
+  EcsIterator* itr       = ecs_view_itr_first(ecs_world_view_t(world, InputSysGlobal));
   InputComp*   inputComp = ecs_view_write_t(itr, InputComp);
   inputComp->termHeight  = tty_height(g_file_stdout);
   inputComp->termWidth   = tty_width(g_file_stdout);
@@ -216,19 +226,19 @@ ecs_system_define(InputSys) {
   }
 }
 
-ecs_view_define(SteerGlobalView) { ecs_access_read(InputComp); }
+ecs_view_define(SteerSysGlobal) { ecs_access_read(InputComp); }
 
-ecs_view_define(SteerPlayerView) {
+ecs_view_define(SteerSysPlayer) {
   ecs_access_with(PlayerComp);
   ecs_access_write(VelocityComp);
   ecs_access_write(GraphicsComp);
 }
 
 ecs_system_define(SteerSys) {
-  EcsIterator*     globalItr = ecs_view_itr_first(ecs_world_view_t(world, SteerGlobalView));
+  EcsIterator*     globalItr = ecs_view_itr_first(ecs_world_view_t(world, SteerSysGlobal));
   const InputComp* inputComp = ecs_view_read_t(globalItr, InputComp);
 
-  EcsIterator* playerItr = ecs_view_itr_first(ecs_world_view_t(world, SteerPlayerView));
+  EcsIterator* playerItr = ecs_view_itr_first(ecs_world_view_t(world, SteerSysPlayer));
   if (playerItr) {
     VelocityComp* velocityComp = ecs_view_write_t(playerItr, VelocityComp);
     velocityComp->dir          = input_steer(velocityComp->dir, inputComp->input);
@@ -252,16 +262,16 @@ ecs_system_define(SteerSys) {
   }
 }
 
-ecs_view_define(UpdateTailPlayerView) {
+ecs_view_define(UpdateTailSysPlayer) {
   ecs_access_without(DeadComp);
   ecs_access_write(PlayerComp);
   ecs_access_read(PositionComp);
 }
 
-ecs_view_define(UpdateTailTailView) { ecs_access_read(TailComp); }
+ecs_view_define(UpdateTailSysEntity) { ecs_access_read(TailComp); }
 
 ecs_system_define(UpdateTailSys) {
-  EcsIterator* playerItr = ecs_view_itr_first(ecs_world_view_t(world, UpdateTailPlayerView));
+  EcsIterator* playerItr = ecs_view_itr_first(ecs_world_view_t(world, UpdateTailSysPlayer));
   if (!playerItr) {
     return;
   }
@@ -270,6 +280,7 @@ ecs_system_define(UpdateTailSys) {
   PlayerComp*         playerComp = ecs_view_write_t(playerItr, PlayerComp);
   ++playerComp->serial;
 
+  // Spawn a new tail segment at the player position.
   const EcsEntityId seg = ecs_world_entity_create(world);
   ecs_world_add_t(world, seg, PositionComp, .x = posComp->x, .y = posComp->y);
   ecs_world_add_t(world, seg, GraphicsComp, .text = string_lit("●"));
@@ -277,29 +288,30 @@ ecs_system_define(UpdateTailSys) {
   ecs_world_add_empty_t(world, seg, ColliderComp);
   ecs_world_add_empty_t(world, seg, ResetableComp);
 
-  EcsView* tailView = ecs_world_view_t(world, UpdateTailTailView);
+  // Delete too old tail segments.
+  EcsView* tailView = ecs_world_view_t(world, UpdateTailSysEntity);
   for (EcsIterator* tailItr = ecs_view_itr(tailView); ecs_view_walk(tailItr);) {
     const TailComp* tailComp = ecs_view_read_t(tailItr, TailComp);
     const i64       serial   = tailComp->serial;
-    if (serial > playerComp->serial || serial < playerComp->serial - playerComp->tailLength) {
+    if (serial > playerComp->serial || serial <= playerComp->serial - playerComp->tailLength) {
       ecs_world_entity_destroy(world, ecs_view_entity(tailItr));
     }
   }
 }
 
-ecs_view_define(MoveGlobalView) { ecs_access_write(InputComp); }
+ecs_view_define(MoveSysGlobal) { ecs_access_write(InputComp); }
 
-ecs_view_define(MoveEntitiesView) {
+ecs_view_define(MoveSysEntity) {
   ecs_access_read(VelocityComp);
   ecs_access_write(PositionComp);
 }
 
 ecs_system_define(MoveSys) {
-  EcsIterator*     globalItr = ecs_view_itr_first(ecs_world_view_t(world, MoveGlobalView));
+  EcsIterator*     globalItr = ecs_view_itr_first(ecs_world_view_t(world, MoveSysGlobal));
   const InputComp* inputComp = ecs_view_read_t(globalItr, InputComp);
 
-  EcsView* moveEntitiesView = ecs_world_view_t(world, MoveEntitiesView);
-  for (EcsIterator* itr = ecs_view_itr(moveEntitiesView); ecs_view_walk(itr);) {
+  EcsView* moveSysEntity = ecs_world_view_t(world, MoveSysEntity);
+  for (EcsIterator* itr = ecs_view_itr(moveSysEntity); ecs_view_walk(itr);) {
 
     const VelocityComp* velo = ecs_view_read_t(itr, VelocityComp);
     PositionComp*       pos  = ecs_view_write_t(itr, PositionComp);
@@ -313,32 +325,33 @@ ecs_system_define(MoveSys) {
   }
 }
 
-ecs_view_define(CollisionGlobalView) { ecs_access_write(ResultComp); }
+ecs_view_define(CollisionSysGlobal) { ecs_access_write(ResultComp); }
 
-ecs_view_define(CollisionPlayerView) {
+ecs_view_define(CollisionSysPlayer) {
   ecs_access_without(DeadComp);
   ecs_access_write(PlayerComp);
   ecs_access_read(PositionComp);
 }
 
-ecs_view_define(CollisionCollidableView) {
+ecs_view_define(CollisionSysCollidable) {
   ecs_access_with(ColliderComp);
   ecs_access_read(PositionComp);
   ecs_access_maybe_read(PickupComp);
 }
 
 ecs_system_define(CollisionSys) {
-  EcsIterator* globalItr  = ecs_view_itr_first(ecs_world_view_t(world, CollisionGlobalView));
+  EcsIterator* globalItr  = ecs_view_itr_first(ecs_world_view_t(world, CollisionSysGlobal));
   ResultComp*  resultComp = ecs_view_write_t(globalItr, ResultComp);
 
-  EcsIterator* playerItr = ecs_view_itr_first(ecs_world_view_t(world, CollisionPlayerView));
+  EcsIterator* playerItr = ecs_view_itr_first(ecs_world_view_t(world, CollisionSysPlayer));
   if (!playerItr) {
     return;
   }
   PlayerComp*         playerComp = ecs_view_write_t(playerItr, PlayerComp);
   const PositionComp* playerPos  = ecs_view_read_t(playerItr, PositionComp);
 
-  EcsView* collidablesView = ecs_world_view_t(world, CollisionCollidableView);
+  // Test if the player hits any collidables.
+  EcsView* collidablesView = ecs_world_view_t(world, CollisionSysCollidable);
   for (EcsIterator* itr = ecs_view_itr(collidablesView); ecs_view_walk(itr);) {
     const EcsEntityId   colliderEntity = ecs_view_entity(itr);
     const PositionComp* colliderPos    = ecs_view_read_t(itr, PositionComp);
@@ -347,9 +360,11 @@ ecs_system_define(CollisionSys) {
       ecs_world_entity_destroy(world, colliderEntity);
       const PickupComp* pickup = ecs_view_read_t(itr, PickupComp);
       if (pickup) {
+        // Hit a pickup; gain points.
         playerComp->tailLength += pickup->score;
         resultComp->score += pickup->score;
       } else {
+        // Hit something else then a pickup; gameover.
         ecs_world_add_empty_t(world, ecs_view_entity(playerItr), DeadComp);
         ecs_world_remove_t(world, ecs_view_entity(playerItr), VelocityComp);
         resultComp->state = GameState_GameOver;
@@ -384,12 +399,12 @@ static void tty_draw_border(DynString* str, const i32 width, const i32 height) {
   }
 }
 
-ecs_view_define(RenderGlobalView) {
+ecs_view_define(RenderSysGlobal) {
   ecs_access_read(InputComp);
   ecs_access_read(ResultComp);
 }
 
-ecs_view_define(RenderEntityView) {
+ecs_view_define(RenderSysEntity) {
   ecs_access_read(PositionComp);
   ecs_access_read(GraphicsComp);
 }
@@ -399,7 +414,7 @@ ecs_system_define(RenderSys) {
   tty_write_clear_sequence(&str, TtyClearMode_All);
   tty_write_cursor_show_sequence(&str, false);
 
-  EcsIterator*      globalItr  = ecs_view_itr_first(ecs_world_view_t(world, RenderGlobalView));
+  EcsIterator*      globalItr  = ecs_view_itr_first(ecs_world_view_t(world, RenderSysGlobal));
   const InputComp*  inputComp  = ecs_view_read_t(globalItr, InputComp);
   const ResultComp* resultComp = ecs_view_read_t(globalItr, ResultComp);
 
@@ -413,7 +428,7 @@ ecs_system_define(RenderSys) {
 
   tty_write_style_sequence(&str, ttystyle());
 
-  EcsView* renderablesView = ecs_world_view_t(world, RenderEntityView);
+  EcsView* renderablesView = ecs_world_view_t(world, RenderSysEntity);
   for (EcsIterator* itr = ecs_view_itr(renderablesView); ecs_view_walk(itr);) {
     const PositionComp* pos = ecs_view_read_t(itr, PositionComp);
     const GraphicsComp* gfx = ecs_view_read_t(itr, GraphicsComp);
@@ -442,33 +457,30 @@ ecs_module_init(snake_module) {
   ecs_register_comp(TailComp);
   ecs_register_comp(VelocityComp);
 
-  ecs_register_system(InputSys, ecs_register_view(InputGlobalView));
+  ecs_register_system(InputSys, ecs_register_view(InputSysGlobal));
   ecs_register_system(
-      InitializeSys,
-      ecs_register_view(InitializeGlobalView),
-      ecs_register_view(InitializeResettableView));
+      InitSys, ecs_register_view(InitSysGlobal), ecs_register_view(InitSysResettable));
   ecs_register_system(
-      SteerSys, ecs_register_view(SteerGlobalView), ecs_register_view(SteerPlayerView));
-  ecs_register_system(
-      MoveSys, ecs_register_view(MoveGlobalView), ecs_register_view(MoveEntitiesView));
+      SteerSys, ecs_register_view(SteerSysGlobal), ecs_register_view(SteerSysPlayer));
+  ecs_register_system(MoveSys, ecs_register_view(MoveSysGlobal), ecs_register_view(MoveSysEntity));
   ecs_register_system(
       SpawnPickupsSys,
-      ecs_register_view(SpawnPickupsGlobalView),
-      ecs_register_view(SpawnPickupsPickupView));
+      ecs_register_view(SpawnPickupsSysGlobal),
+      ecs_register_view(SpawnPickupsSysPickup));
   ecs_register_system(
       UpdateTailSys,
-      ecs_register_view(UpdateTailPlayerView),
-      ecs_register_view(UpdateTailTailView));
+      ecs_register_view(UpdateTailSysPlayer),
+      ecs_register_view(UpdateTailSysEntity));
   ecs_register_system(
-      RenderSys, ecs_register_view(RenderGlobalView), ecs_register_view(RenderEntityView));
+      RenderSys, ecs_register_view(RenderSysGlobal), ecs_register_view(RenderSysEntity));
   ecs_register_system(
       CollisionSys,
-      ecs_register_view(CollisionGlobalView),
-      ecs_register_view(CollisionPlayerView),
-      ecs_register_view(CollisionCollidableView));
+      ecs_register_view(CollisionSysGlobal),
+      ecs_register_view(CollisionSysPlayer),
+      ecs_register_view(CollisionSysCollidable));
 }
 
-static int run_snake() {
+static int run_snake(const u64 frequency, const u64 pickupDensity) {
   EcsDef* def = def = ecs_def_create(g_alloc_heap);
   ecs_register_module(def, snake_module);
 
@@ -477,14 +489,14 @@ static int run_snake() {
 
   const EcsEntityId global = ecs_world_entity_create(world);
   ecs_world_add_t(world, global, ResultComp);
-  ecs_world_add_t(world, global, InputComp);
+  ecs_world_add_t(world, global, InputComp, .pickupDensity = pickupDensity);
   ecs_world_add_empty_t(world, global, InitializeComp);
 
   ecs_world_flush(world);
 
   while (!signal_is_received(Signal_Interupt) && !ecs_world_has_t(world, global, QuitComp)) {
     ecs_run_sync(runner);
-    thread_sleep(time_second / 15);
+    thread_sleep(time_second / frequency);
   }
 
   ecs_runner_destroy(runner);
@@ -525,8 +537,23 @@ int main(const int argc, const char** argv) {
 
   int exitCode = 0;
 
-  CliApp*     app      = cli_app_create(g_alloc_heap, string_lit("Volo Snake Demo"));
+  static const String appDesc = string_static("Volo Snake Demo\n"
+                                              "\n"
+                                              "Controls:\n"
+                                              "- Steering: arrows / wasd\n"
+                                              "- Restart: r / space\n"
+                                              "- Quit: esc / interupt");
+
+  CliApp*     app      = cli_app_create(g_alloc_heap, appDesc);
+  const CliId freqFlag = cli_register_flag(app, 'f', string_lit("frequency"), CliOptionFlags_Value);
+  const CliId pickupsFlag =
+      cli_register_flag(app, 'p', string_lit("pickups"), CliOptionFlags_Value);
   const CliId helpFlag = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
+
+  cli_register_desc(app, helpFlag, string_lit("Display this help page."));
+  cli_register_desc(app, freqFlag, string_lit("Simulation frequency (in hertz)."));
+  cli_register_desc(app, pickupsFlag, string_lit("Density of pickups."));
+  cli_register_exclusions(app, helpFlag, freqFlag, pickupsFlag);
 
   CliInvocation* invoc = cli_parse(app, argc - 1, argv + 1);
   if (cli_parse_result(invoc) == CliParseResult_Fail) {
@@ -548,7 +575,9 @@ int main(const int argc, const char** argv) {
 
   tty_setup();
 
-  exitCode = run_snake();
+  const u64 frequency     = cli_read_u64(invoc, freqFlag, 15);
+  const u64 pickupDensity = cli_read_u64(invoc, pickupsFlag, 5);
+  exitCode                = run_snake(frequency, pickupDensity);
 
   tty_reset();
 
