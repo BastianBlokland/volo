@@ -41,8 +41,8 @@ static int run_app() {
         fmt_write_scratch(
             "Hello world - {} (size: {}, cursor: {}, click: {})",
             fmt_int(tickCount),
-            gap_vector_fmt(gap_window_size(windowComp)),
-            gap_vector_fmt(gap_window_cursor(windowComp)),
+            gap_vector_fmt(gap_window_param(windowComp, GapParam_WindowSize)),
+            gap_vector_fmt(gap_window_param(windowComp, GapParam_CursorPos)),
             fmt_bool(gap_window_down(windowComp, GapKey_MouseLeft))));
 
     if (gap_window_pressed(windowComp, GapKey_Escape)) {

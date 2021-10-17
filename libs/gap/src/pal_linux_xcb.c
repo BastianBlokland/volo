@@ -8,7 +8,7 @@
 
 typedef struct {
   GapWindowId       id;
-  GapVector         size, cursor;
+  GapParamSet       params;
   GapPalWindowFlags flags : 16;
   GapKeySet         keysPressed, keysReleased;
 } GapPalWindow;
@@ -247,10 +247,10 @@ static void gap_pal_event_close(GapPal* pal, const GapWindowId windowId) {
 
 static void gap_pal_event_resize(GapPal* pal, const GapWindowId windowId, const GapVector newSize) {
   GapPalWindow* window = pal_window(pal, windowId);
-  if (gap_vector_equal(window->size, newSize)) {
+  if (gap_vector_equal(window->params.values[GapParam_WindowSize], newSize)) {
     return;
   }
-  window->size = newSize;
+  window->params.values[GapParam_WindowSize] = newSize;
   window->flags |= GapPalWindowFlags_Resized;
 
   log_d("Window resized", log_param("size", gap_vector_fmt(newSize)));
@@ -258,10 +258,10 @@ static void gap_pal_event_resize(GapPal* pal, const GapWindowId windowId, const 
 
 static void gap_pal_event_cursor(GapPal* pal, const GapWindowId windowId, const GapVector newPos) {
   GapPalWindow* window = pal_window(pal, windowId);
-  if (gap_vector_equal(window->cursor, newPos)) {
+  if (gap_vector_equal(window->params.values[GapParam_CursorPos], newPos)) {
     return;
   }
-  window->cursor = newPos;
+  window->params.values[GapParam_CursorPos] = newPos;
   window->flags |= GapPalWindowFlags_CursorMoved;
 }
 
@@ -372,8 +372,8 @@ void gap_pal_update(GapPal* pal) {
 }
 
 GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
-  xcb_connection_t* con    = pal->xcbConnection;
-  const GapWindowId window = xcb_generate_id(con);
+  xcb_connection_t* con = pal->xcbConnection;
+  const GapWindowId id  = xcb_generate_id(con);
 
   if (!size.width) {
     size.width = pal->xcbScreen->width_in_pixels;
@@ -391,7 +391,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   xcb_create_window(
       con,
       XCB_COPY_FROM_PARENT,
-      window,
+      id,
       pal->xcbScreen->root,
       0,
       0,
@@ -405,20 +405,20 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 
   // Register a custom delete message atom.
   xcb_change_property(
-      con, XCB_PROP_MODE_REPLACE, window, pal->xcbProtoMsgAtom, 4, 32, 1, &pal->xcbDeleteMsgAtom);
+      con, XCB_PROP_MODE_REPLACE, id, pal->xcbProtoMsgAtom, 4, 32, 1, &pal->xcbDeleteMsgAtom);
 
-  xcb_map_window(con, window);
+  xcb_map_window(con, id);
   xcb_flush(con);
 
-  *dynarray_push_t(&pal->windows, GapPalWindow) = (GapPalWindow){
-      .id   = window,
-      .size = size,
+  GapPalWindow* window = dynarray_push_t(&pal->windows, GapPalWindow);
+  *window              = (GapPalWindow){
+      .id = id,
   };
+  window->params.values[GapParam_WindowSize] = size;
 
-  log_i(
-      "Window created", log_param("id", fmt_int(window)), log_param("size", gap_vector_fmt(size)));
+  log_i("Window created", log_param("id", fmt_int(id)), log_param("size", gap_vector_fmt(size)));
 
-  return window;
+  return id;
 }
 
 void gap_pal_window_destroy(GapPal* pal, const GapWindowId window) {
@@ -440,12 +440,9 @@ GapPalWindowFlags gap_pal_window_flags(const GapPal* pal, const GapWindowId wind
   return pal_window((GapPal*)pal, windowId)->flags;
 }
 
-GapVector gap_pal_window_size(const GapPal* pal, const GapWindowId windowId) {
-  return pal_window((GapPal*)pal, windowId)->size;
-}
-
-GapVector gap_pal_window_cursor(const GapPal* pal, const GapWindowId windowId) {
-  return pal_window((GapPal*)pal, windowId)->cursor;
+GapVector
+gap_pal_window_param(const GapPal* pal, const GapWindowId windowId, const GapParam param) {
+  return pal_window((GapPal*)pal, windowId)->params.values[param];
 }
 
 const GapKeySet* gap_pal_window_keys_pressed(const GapPal* pal, const GapWindowId windowId) {

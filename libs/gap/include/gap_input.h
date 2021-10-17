@@ -62,7 +62,20 @@ typedef enum {
   GapKey_Count,
 } GapKey;
 
+typedef enum {
+  GapParam_None       = -1,
+  GapParam_WindowSize = 0,
+  GapParam_CursorPos,
+
+  GapParam_Count,
+} GapParam;
+
 /**
  * Textual representation of a key.
  */
 String gap_key_str(GapKey);
+
+/**
+ * Textual representation of a parameter.
+ */
+String gap_param_str(GapParam);

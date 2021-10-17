@@ -15,7 +15,7 @@ ecs_comp_define(GapPlatformComp) { GapPal* pal; };
 
 ecs_comp_define(GapWindowComp) {
   GapWindowId       id;
-  GapVector         size, cursor;
+  GapParamSet       params;
   GapWindowFlags    flags : 16;
   GapWindowEvents   events : 16;
   GapWindowRequests requests : 16;
@@ -59,7 +59,7 @@ static void window_update(
   window->events = 0;
 
   if (window->requests & GapWindowRequests_Create) {
-    window->id = gap_pal_window_create(platform->pal, window->size);
+    window->id = gap_pal_window_create(platform->pal, window->params.values[GapParam_WindowSize]);
   }
   if (window->requests & GapWindowRequests_UpdateTitle) {
     gap_pal_window_title_set(platform->pal, window->id, window->title);
@@ -71,12 +71,13 @@ static void window_update(
     window->events |= GapWindowEvents_CloseRequested;
   }
   if (palFlags & GapPalWindowFlags_Resized) {
-    window->size = gap_pal_window_size(platform->pal, window->id);
+    window->params.values[GapParam_WindowSize] =
+        gap_pal_window_param(platform->pal, window->id, GapParam_WindowSize);
     window->events |= GapWindowEvents_Resized;
   }
   if (palFlags & GapPalWindowFlags_CursorMoved) {
-    window->cursor = gap_pal_window_cursor(platform->pal, window->id);
-    window->events |= GapWindowEvents_CursorMoved;
+    window->params.values[GapParam_CursorPos] =
+        gap_pal_window_param(platform->pal, window->id, GapParam_CursorPos);
   }
   if (palFlags & GapPalWindowFlags_KeyPressed) {
     window->keysPressed = *gap_pal_window_keys_pressed(platform->pal, window->id);
@@ -144,14 +145,15 @@ ecs_module_init(gap_window_module) {
 
 EcsEntityId gap_window_open(EcsWorld* world, const GapWindowFlags flags, const GapVector size) {
   const EcsEntityId windowEntity = ecs_world_entity_create(world);
-  ecs_world_add_t(
+  GapWindowComp*    comp         = ecs_world_add_t(
       world,
       windowEntity,
       GapWindowComp,
       .id       = sentinel_u32,
-      .size     = size,
       .flags    = flags,
       .requests = GapWindowRequests_Create);
+
+  comp->params.values[GapParam_WindowSize] = size;
   return windowEntity;
 }
 
@@ -169,9 +171,9 @@ void gap_window_title_set(GapWindowComp* window, const String newTitle) {
   window->requests |= GapWindowRequests_UpdateTitle;
 }
 
-GapVector gap_window_size(const GapWindowComp* comp) { return comp->size; }
-
-GapVector gap_window_cursor(const GapWindowComp* comp) { return comp->cursor; }
+GapVector gap_window_param(const GapWindowComp* comp, const GapParam param) {
+  return comp->params.values[param];
+}
 
 bool gap_window_pressed(const GapWindowComp* comp, const GapKey key) {
   return gap_keyset_test(&comp->keysPressed, key);

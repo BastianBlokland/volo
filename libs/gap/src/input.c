@@ -32,6 +32,18 @@ String gap_key_str(const GapKey key) {
   return g_key_strs[key];
 }
 
+static const String g_param_strs[] = {
+    string_static("window-size"),
+    string_static("cursor-pos"),
+};
+
+ASSERT(array_elems(g_param_strs) == GapParam_Count, "Incorrect number of GapParam strings");
+
+String gap_param_str(const GapParam param) {
+  diag_assert(param < GapParam_Count);
+  return g_param_strs[param];
+}
+
 void gap_keyset_clear(GapKeySet* set) { mem_set(array_mem(set->data), 0); }
 
 BitSet gap_keyset_bits(GapKeySet* set) { return bitset_from_array(set->data); }
