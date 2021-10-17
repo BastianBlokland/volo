@@ -3,7 +3,7 @@
 #include "ecs_world.h"
 #include "gap_window.h"
 
-#include "platform_internal.h"
+#include "pal_internal.h"
 
 typedef enum {
   GapWindowRequests_None   = 0,
@@ -11,12 +11,19 @@ typedef enum {
   GapWindowRequests_Close  = 1 << 1,
 } GapWindowRequests;
 
+ecs_comp_define(GapPlatformComp) { GapPal* pal; };
+
 ecs_comp_define(GapWindowComp) {
   GapWindowId       id;
   GapWindowFlags    flags;
   GapWindowEvents   events;
   GapWindowRequests requests;
 };
+
+static void ecs_destruct_platform_comp(void* data) {
+  GapPlatformComp* comp = data;
+  gap_pal_destroy(comp->pal);
+}
 
 static bool window_should_close(GapWindowComp* window) {
   if (window->requests & GapWindowRequests_Close) {
@@ -38,11 +45,11 @@ static void window_update(
   window->events = GapWindowEvents_None;
 
   if (window->requests & GapWindowRequests_Create) {
-    window->id = gap_platform_window_create(platform, 640, 480);
+    window->id = gap_pal_window_create(platform->pal, 640, 480);
   }
 
   if (window_should_close(window)) {
-    gap_platform_window_destroy(platform, window->id);
+    gap_pal_window_destroy(platform->pal, window->id);
     window->events |= GapWindowEvents_Closed;
     ecs_world_entity_destroy(world, windowEntity);
   }
@@ -55,12 +62,16 @@ ecs_view_define(GapPlatformView) { ecs_access_write(GapPlatformComp); };
 ecs_view_define(GapWindowView) { ecs_access_write(GapWindowComp); };
 
 ecs_system_define(GapUpdateSys) {
-  EcsIterator* platformItr = ecs_view_itr_first(ecs_world_view_t(world, GapPlatformView));
-  if (!platformItr) {
-    gap_platform_create(world);
-    return;
+  EcsIterator*     platformItr = ecs_view_itr_first(ecs_world_view_t(world, GapPlatformView));
+  GapPlatformComp* platform;
+
+  if (platformItr) {
+    platform = ecs_view_write_t(platformItr, GapPlatformComp);
+  } else {
+    const EcsEntityId platformEntity = ecs_world_entity_create(world);
+    platform                         = ecs_world_add_t(
+        world, platformEntity, GapPlatformComp, .pal = gap_pal_create(g_alloc_heap));
   }
-  GapPlatformComp* platform = ecs_view_write_t(platformItr, GapPlatformComp);
 
   EcsView* windowView = ecs_world_view_t(world, GapWindowView);
   for (EcsIterator* itr = ecs_view_itr(windowView); ecs_view_walk(itr);) {
@@ -73,6 +84,7 @@ ecs_system_define(GapUpdateSys) {
 
 ecs_module_init(gap_window_module) {
   ecs_register_comp(GapWindowComp);
+  ecs_register_comp(GapPlatformComp, .destructor = ecs_destruct_platform_comp);
 
   ecs_register_view(GapPlatformView);
   ecs_register_view(GapWindowView);
