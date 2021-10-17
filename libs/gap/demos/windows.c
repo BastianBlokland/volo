@@ -36,7 +36,13 @@ static int run_app() {
 
   while (ecs_world_exists(world, window)) {
     GapWindowComp* windowComp = ecs_view_write_t(ecs_view_jump(windowItr, window), GapWindowComp);
-    gap_window_title_set(windowComp, fmt_write_scratch("Hello world - {}", fmt_int(tickCount)));
+    gap_window_title_set(
+        windowComp,
+        fmt_write_scratch(
+            "Hello world - {} ({}x{})",
+            fmt_int(tickCount),
+            fmt_int(gap_window_width(windowComp)),
+            fmt_int(gap_window_height(windowComp))));
 
     ecs_run_sync(runner);
 

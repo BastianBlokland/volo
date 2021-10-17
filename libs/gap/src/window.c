@@ -16,7 +16,7 @@ ecs_comp_define(GapPlatformComp) { GapPal* pal; };
 
 ecs_comp_define(GapWindowComp) {
   GapWindowId       id;
-  u32               initialWidth, initialHeight;
+  u32               width, height;
   String            title;
   GapWindowFlags    flags;
   GapWindowEvents   events;
@@ -59,7 +59,7 @@ static void window_update(
   window->events = GapWindowEvents_None;
 
   if (window->requests & GapWindowRequests_Create) {
-    window->id = gap_pal_window_create(platform->pal, window->initialWidth, window->initialHeight);
+    window->id = gap_pal_window_create(platform->pal, window->width, window->height);
   }
   if (window->requests & GapWindowRequests_UpdateTitle) {
     gap_pal_window_title_set(platform->pal, window->id, window->title);
@@ -69,6 +69,11 @@ static void window_update(
   const GapPalWindowFlags palFlags = gap_pal_window_flags(platform->pal, window->id);
   if (palFlags & GapPalWindowFlags_CloseRequested) {
     window->events |= GapWindowEvents_CloseRequested;
+  }
+  if (palFlags & GapPalWindowFlags_Resized) {
+    window->width  = gap_pal_window_width(platform->pal, window->id);
+    window->height = gap_pal_window_height(platform->pal, window->id);
+    window->events |= GapWindowEvents_Resized;
   }
 
   if (window_should_close(window)) {
@@ -127,11 +132,11 @@ gap_window_open(EcsWorld* world, const GapWindowFlags flags, const u32 width, co
       world,
       windowEntity,
       GapWindowComp,
-      .id            = sentinel_u32,
-      .initialWidth  = width,
-      .initialHeight = height,
-      .flags         = flags,
-      .requests      = GapWindowRequests_Create);
+      .id       = sentinel_u32,
+      .width    = width,
+      .height   = height,
+      .flags    = flags,
+      .requests = GapWindowRequests_Create);
   return windowEntity;
 }
 
@@ -148,3 +153,6 @@ void gap_window_title_set(GapWindowComp* window, const String newTitle) {
   window->title = string_is_empty(newTitle) ? string_empty : string_dup(g_alloc_heap, newTitle);
   window->requests |= GapWindowRequests_UpdateTitle;
 }
+
+u32 gap_window_width(const GapWindowComp* comp) { return comp->width; }
+u32 gap_window_height(const GapWindowComp* comp) { return comp->height; }
