@@ -21,12 +21,19 @@ typedef enum {
   GapWindowFlags_Default = GapWindowFlags_CloseOnInterupt | GapWindowFlags_CloseOnRequest,
 } GapWindowFlags;
 
+typedef enum {
+  GapWindowMode_Windowed   = 0,
+  GapWindowMode_Fullscreen = 1,
+} GapWindowMode;
+
 ecs_comp_extern(GapWindowComp);
 
 EcsEntityId     gap_window_open(EcsWorld*, GapWindowFlags, GapVector size);
 void            gap_window_close(GapWindowComp*);
 GapWindowEvents gap_window_events(const GapWindowComp*);
-String          gap_window_title_get(GapWindowComp*);
+GapWindowMode   gap_window_mode(const GapWindowComp*);
+void            gap_window_resize(GapWindowComp*, GapVector size, GapWindowMode);
+String          gap_window_title_get(const GapWindowComp*);
 void            gap_window_title_set(GapWindowComp*, String newTitle);
 GapVector       gap_window_param(const GapWindowComp*, GapParam);
 bool            gap_window_key_pressed(const GapWindowComp*, GapKey);

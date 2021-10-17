@@ -239,18 +239,40 @@ static void pal_xcb_connect(GapPal* pal) {
       log_param("screen-size", gap_vector_fmt(screenSize)));
 }
 
-static void pal_xkb_enable_flag(GapPal* pal, const xcb_xkb_per_client_flag_t flag) {
-  xcb_generic_error_t*              err = null;
-  xcb_xkb_per_client_flags_cookie_t cookie =
-      xcb_xkb_per_client_flags(pal->xcbConnection, XCB_XKB_ID_USE_CORE_KBD, flag, flag, 0, 0, 0);
+static void pal_xcb_wm_state_update(
+    GapPal* pal, const GapWindowId windowId, const xcb_atom_t stateAtom, const bool active) {
+  const xcb_client_message_event_t evt = {
+      .response_type  = XCB_CLIENT_MESSAGE,
+      .format         = 32,
+      .window         = windowId,
+      .type           = pal->xcbWmStateAtom,
+      .data.data32[0] = active ? 1 : 0,
+      .data.data32[1] = stateAtom,
+  };
+  xcb_send_event(
+      pal->xcbConnection,
+      false,
+      pal->xcbScreen->root,
+      XCB_EVENT_MASK_STRUCTURE_NOTIFY | XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT,
+      (const char*)&evt);
+}
 
-  free(xcb_xkb_per_client_flags_reply(pal->xcbConnection, cookie, &err));
-  if (UNLIKELY(err)) {
-    log_e(
-        "Failed to set xkb flag",
-        log_param("flag", fmt_int(flag)),
-        log_param("error", fmt_int(err->error_code)));
-  }
+static void pal_xcb_bypass_compositor(GapPal* pal, const GapWindowId windowId, const bool active) {
+  const u64 value = active ? 1 : 0;
+  xcb_change_property(
+      pal->xcbConnection,
+      XCB_PROP_MODE_REPLACE,
+      windowId,
+      pal->xcbWmStateBypassCompositorAtom,
+      XCB_ATOM_CARDINAL,
+      32,
+      1,
+      (const char*)&value);
+}
+
+static void pal_xkb_enable_flag(GapPal* pal, const xcb_xkb_per_client_flag_t flag) {
+  xcb_xkb_per_client_flags_unchecked(
+      pal->xcbConnection, XCB_XKB_ID_USE_CORE_KBD, flag, flag, 0, 0, 0);
 }
 
 /**
@@ -350,6 +372,10 @@ GapPal* gap_pal_create(Allocator* alloc) {
      */
     pal_xkb_enable_flag(pal, XCB_XKB_PER_CLIENT_FLAG_DETECTABLE_AUTO_REPEAT);
   }
+
+  xcb_flush(pal->xcbConnection);
+  pal_xcb_check_con(pal);
+
   return pal;
 }
 
@@ -486,11 +512,10 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   xcb_map_window(con, id);
   xcb_flush(con);
 
-  GapPalWindow* window = dynarray_push_t(&pal->windows, GapPalWindow);
-  *window              = (GapPalWindow){
-      .id = id,
+  *dynarray_push_t(&pal->windows, GapPalWindow) = (GapPalWindow){
+      .id                          = id,
+      .params[GapParam_WindowSize] = size,
   };
-  window->params[GapParam_WindowSize] = size;
 
   log_i("Window created", log_param("id", fmt_int(id)), log_param("size", gap_vector_fmt(size)));
 
@@ -544,4 +569,38 @@ void gap_pal_window_title_set(GapPal* pal, const GapWindowId windowId, const Str
       title.size,
       title.ptr);
   xcb_flush(pal->xcbConnection);
+}
+
+void gap_pal_window_resize(
+    GapPal* pal, const GapWindowId windowId, GapVector size, const bool fullscreen) {
+
+  if (size.width <= 0) {
+    size.width = pal->xcbScreen->width_in_pixels;
+  }
+  if (size.height <= 0) {
+    size.height = pal->xcbScreen->height_in_pixels;
+  }
+
+  log_d(
+      "Updating window size",
+      log_param("id", fmt_int(windowId)),
+      log_param("size", gap_vector_fmt(size)),
+      log_param("fullscreen", fmt_bool(fullscreen)));
+
+  if (fullscreen) {
+    // TODO: Investigate supporting different sizes in fullscreen, requires actually changing the
+    // system display-adapter settings.
+    pal_xcb_wm_state_update(pal, windowId, pal->xcbWmStateFullscreenAtom, true);
+    pal_xcb_bypass_compositor(pal, windowId, true);
+  } else {
+    pal_xcb_wm_state_update(pal, windowId, pal->xcbWmStateFullscreenAtom, false);
+    pal_xcb_bypass_compositor(pal, windowId, false);
+
+    const u32 values[2] = {size.x, size.y};
+    xcb_configure_window(
+        pal->xcbConnection, windowId, XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT, values);
+  }
+
+  xcb_flush(pal->xcbConnection);
+  pal_xcb_check_con(pal);
 }

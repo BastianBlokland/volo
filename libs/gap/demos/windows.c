@@ -35,13 +35,14 @@ static int run_app() {
   EcsIterator* windowItr = ecs_view_itr(ecs_world_view_t(world, UpdateWindowView));
 
   while (ecs_world_exists(world, window)) {
-    GapWindowComp* windowComp = ecs_view_write_t(ecs_view_jump(windowItr, window), GapWindowComp);
+    GapWindowComp*  windowComp = ecs_view_write_t(ecs_view_jump(windowItr, window), GapWindowComp);
+    const GapVector windowSize = gap_window_param(windowComp, GapParam_WindowSize);
     gap_window_title_set(
         windowComp,
         fmt_write_scratch(
             "tick: {} size: {} cursor: {}, space: {}, click: {}, scroll: {}",
             fmt_int(tickCount),
-            gap_vector_fmt(gap_window_param(windowComp, GapParam_WindowSize)),
+            gap_vector_fmt(windowSize),
             gap_vector_fmt(gap_window_param(windowComp, GapParam_CursorPos)),
             fmt_bool(gap_window_key_down(windowComp, GapKey_Space)),
             fmt_bool(gap_window_key_pressed(windowComp, GapKey_MouseLeft)),
@@ -49,6 +50,22 @@ static int run_app() {
 
     if (gap_window_key_pressed(windowComp, GapKey_Escape)) {
       gap_window_close(windowComp);
+    }
+
+    if (gap_window_key_pressed(windowComp, GapKey_F)) {
+      if (gap_window_mode(windowComp) == GapWindowMode_Fullscreen) {
+        gap_window_resize(windowComp, gap_vector(1024, 768), GapWindowMode_Windowed);
+      } else {
+        gap_window_resize(windowComp, gap_vector(0, 0), GapWindowMode_Fullscreen);
+      }
+    }
+
+    const GapVector scrollDelta = gap_window_param(windowComp, GapParam_ScrollDelta);
+    if (scrollDelta.y) {
+      gap_window_resize(
+          windowComp,
+          gap_vector(windowSize.x + scrollDelta.y, windowSize.y + scrollDelta.y),
+          GapWindowMode_Windowed);
     }
 
     ecs_run_sync(runner);
