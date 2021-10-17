@@ -47,8 +47,6 @@ String gap_param_str(const GapParam param) {
 
 void gap_keyset_clear(GapKeySet* set) { mem_set(array_mem(set->data), 0); }
 
-BitSet gap_keyset_bits(GapKeySet* set) { return bitset_from_array(set->data); }
-
 bool gap_keyset_test(const GapKeySet* set, const GapKey key) {
   return bitset_test(bitset_from_array(set->data), key);
 }
@@ -57,16 +55,6 @@ void gap_keyset_set(GapKeySet* set, const GapKey key) {
   bitset_set(bitset_from_array(set->data), key);
 }
 
-void gap_keyset_set_all(GapKeySet* set, const GapKeySet* other) {
-  bitset_or(bitset_from_array(set->data), bitset_from_array(other->data));
-}
-
 void gap_keyset_unset(GapKeySet* set, const GapKey key) {
   bitset_clear(bitset_from_array(set->data), key);
-}
-
-void gap_keyset_unset_all(GapKeySet* set, const GapKeySet* other) {
-  GapKeySet tmp = *set;
-  bitset_xor(bitset_from_array(set->data), bitset_from_array(other->data));
-  bitset_and(bitset_from_array(set->data), bitset_from_array(tmp.data));
 }

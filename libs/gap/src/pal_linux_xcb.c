@@ -5,12 +5,13 @@
 
 #include <stdlib.h>
 #include <xcb/xcb.h>
+#include <xcb/xkb.h>
 
 typedef struct {
   GapWindowId       id;
   GapVector         params[GapParam_Count];
   GapPalWindowFlags flags : 16;
-  GapKeySet         keysPressed, keysReleased;
+  GapKeySet         keysPressed, keysReleased, keysDown;
 } GapPalWindow;
 
 struct sGapPal {
@@ -207,7 +208,7 @@ static xcb_atom_t pal_xcb_atom_sync(GapPal* pal, const String name) {
   return result;
 }
 
-static void gap_pal_xcb_connect(GapPal* pal) {
+static void pal_xcb_connect(GapPal* pal) {
   // Establish a connection with the x-server.
   int screen         = 0;
   pal->xcbConnection = xcb_connect(null, &screen);
@@ -236,6 +237,49 @@ static void gap_pal_xcb_connect(GapPal* pal) {
       log_param("fd", fmt_int(xcb_get_file_descriptor(pal->xcbConnection))),
       log_param("screen-num", fmt_int(screen)),
       log_param("screen-size", gap_vector_fmt(screenSize)));
+}
+
+static void pal_xkb_enable_flag(GapPal* pal, const xcb_xkb_per_client_flag_t flag) {
+  xcb_generic_error_t*              err = null;
+  xcb_xkb_per_client_flags_cookie_t cookie =
+      xcb_xkb_per_client_flags(pal->xcbConnection, XCB_XKB_ID_USE_CORE_KBD, flag, flag, 0, 0, 0);
+
+  free(xcb_xkb_per_client_flags_reply(pal->xcbConnection, cookie, &err));
+  if (UNLIKELY(err)) {
+    log_e(
+        "Failed to set xkb flag",
+        log_param("flag", fmt_int(flag)),
+        log_param("error", fmt_int(err->error_code)));
+  }
+}
+
+/**
+ * Initialize xkb (X keyboard extension), gives us additional control over keyboard input.
+ * More info: https://en.wikipedia.org/wiki/X_keyboard_extension
+ */
+static bool pal_xkb_init(GapPal* pal) {
+  xcb_generic_error_t*           err = null;
+  xcb_xkb_use_extension_cookie_t cookie =
+      xcb_xkb_use_extension(pal->xcbConnection, XCB_XKB_MAJOR_VERSION, XCB_XKB_MINOR_VERSION);
+  xcb_xkb_use_extension_reply_t* useExtReply =
+      xcb_xkb_use_extension_reply(pal->xcbConnection, cookie, &err);
+
+  if (UNLIKELY(err)) {
+    // TODO(bastian): Decide if we should throw here, the program still runs however the keyboard
+    // input wont work correctly.
+    log_e("Failed to initialize xkb extension", log_param("error", fmt_int(err->error_code)));
+    free(useExtReply);
+    return false;
+  }
+
+  MAYBE_UNUSED const u16 versionMajor = useExtReply->serverMajor;
+  MAYBE_UNUSED const u16 versionMinor = useExtReply->serverMinor;
+  free(useExtReply);
+
+  log_i(
+      "Initialized xkb extension",
+      log_param("version", fmt_list_lit(fmt_int(versionMajor), fmt_int(versionMinor))));
+  return true;
 }
 
 static void gap_pal_xcb_disconnect(GapPal* pal) {
@@ -270,16 +314,18 @@ static void gap_pal_event_cursor(GapPal* pal, const GapWindowId windowId, const 
 
 static void gap_pal_event_press(GapPal* pal, const GapWindowId windowId, const GapKey key) {
   GapPalWindow* window = pal_window(pal, windowId);
-  if (key != GapKey_None) {
+  if (key != GapKey_None && !gap_keyset_test(&window->keysDown, key)) {
     gap_keyset_set(&window->keysPressed, key);
+    gap_keyset_set(&window->keysDown, key);
     window->flags |= GapPalWindowFlags_KeyPressed;
   }
 }
 
 static void gap_pal_event_release(GapPal* pal, const GapWindowId windowId, const GapKey key) {
   GapPalWindow* window = pal_window(pal, windowId);
-  if (key != GapKey_None) {
+  if (key != GapKey_None && gap_keyset_test(&window->keysDown, key)) {
     gap_keyset_set(&window->keysReleased, key);
+    gap_keyset_unset(&window->keysDown, key);
     window->flags |= GapPalWindowFlags_KeyReleased;
   }
 }
@@ -295,7 +341,15 @@ GapPal* gap_pal_create(Allocator* alloc) {
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){.alloc = alloc, .windows = dynarray_create_t(alloc, GapPalWindow, 4)};
 
-  gap_pal_xcb_connect(pal);
+  pal_xcb_connect(pal);
+  if (pal_xkb_init(pal)) {
+    /**
+     * Enable the 'detectableAutoRepeat' xkb flag.
+     * By default x-server will send repeated press and release when holding a key, making it
+     * impossible to detect 'true' presses and releases. This flag disables that behaviour.
+     */
+    pal_xkb_enable_flag(pal, XCB_XKB_PER_CLIENT_FLAG_DETECTABLE_AUTO_REPEAT);
+  }
   return pal;
 }
 
@@ -473,6 +527,10 @@ const GapKeySet* gap_pal_window_keys_pressed(const GapPal* pal, const GapWindowI
 
 const GapKeySet* gap_pal_window_keys_released(const GapPal* pal, const GapWindowId windowId) {
   return &pal_window((GapPal*)pal, windowId)->keysReleased;
+}
+
+const GapKeySet* gap_pal_window_keys_down(const GapPal* pal, const GapWindowId windowId) {
+  return &pal_window((GapPal*)pal, windowId)->keysDown;
 }
 
 void gap_pal_window_title_set(GapPal* pal, const GapWindowId windowId, const String title) {

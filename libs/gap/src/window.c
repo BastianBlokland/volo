@@ -85,14 +85,14 @@ static void window_update(
 
   if (palFlags & GapPalWindowFlags_KeyPressed) {
     window->keysPressed = *gap_pal_window_keys_pressed(platform->pal, window->id);
-    gap_keyset_set_all(&window->keysDown, &window->keysPressed);
+    window->keysDown    = *gap_pal_window_keys_down(platform->pal, window->id);
     window->events |= GapWindowEvents_KeyPressed;
   } else {
     gap_keyset_clear(&window->keysPressed);
   }
   if (palFlags & GapPalWindowFlags_KeyReleased) {
     window->keysReleased = *gap_pal_window_keys_released(platform->pal, window->id);
-    gap_keyset_unset_all(&window->keysDown, &window->keysReleased);
+    window->keysDown     = *gap_pal_window_keys_down(platform->pal, window->id);
     window->events |= GapWindowEvents_KeyReleased;
   } else {
     gap_keyset_clear(&window->keysReleased);
@@ -181,14 +181,14 @@ GapVector gap_window_param(const GapWindowComp* comp, const GapParam param) {
   return comp->params[param];
 }
 
-bool gap_window_pressed(const GapWindowComp* comp, const GapKey key) {
+bool gap_window_key_pressed(const GapWindowComp* comp, const GapKey key) {
   return gap_keyset_test(&comp->keysPressed, key);
 }
 
-bool gap_window_released(const GapWindowComp* comp, const GapKey key) {
+bool gap_window_key_released(const GapWindowComp* comp, const GapKey key) {
   return gap_keyset_test(&comp->keysReleased, key);
 }
 
-bool gap_window_down(const GapWindowComp* comp, const GapKey key) {
+bool gap_window_key_down(const GapWindowComp* comp, const GapKey key) {
   return gap_keyset_test(&comp->keysDown, key);
 }
