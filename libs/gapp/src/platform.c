@@ -19,3 +19,12 @@ EcsEntityId gapp_platform_create(EcsWorld* world) {
   ecs_world_add_t(world, appEntity, GAppPlatformComp, .pal = gapp_pal_create(g_alloc_heap));
   return appEntity;
 }
+
+GAppWindowId
+gapp_platform_window_create(GAppPlatformComp* platform, const u32 width, const u32 height) {
+  return gapp_pal_window_create(platform->pal, width, height);
+}
+
+void gapp_platform_window_destroy(GAppPlatformComp* platform, const GAppWindowId window) {
+  gapp_pal_window_destroy(platform->pal, window);
+}

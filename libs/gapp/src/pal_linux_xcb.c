@@ -6,8 +6,15 @@
 #include <stdlib.h>
 #include <xcb/xcb.h>
 
+typedef struct {
+  GAppWindowId id;
+  u32          width, height;
+} GAppPalWindow;
+
 struct sGAppPal {
-  Allocator*        alloc;
+  Allocator* alloc;
+  DynArray   windows; // GAppPalWindow[]
+
   xcb_connection_t* xcbConnection;
   xcb_screen_t*     xcbScreen;
 
@@ -17,6 +24,19 @@ struct sGAppPal {
   xcb_atom_t xcbWmStateFullscreenAtom;
   xcb_atom_t xcbWmStateBypassCompositorAtom;
 };
+
+static const xcb_event_mask_t g_xcbWindowEventMask =
+    XCB_EVENT_MASK_STRUCTURE_NOTIFY | XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE |
+    XCB_EVENT_MASK_POINTER_MOTION | XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_KEY_RELEASE;
+
+// static GAppPalWindow* pal_window(GAppPal* pal, const GAppWindowId id) {
+//   dynarray_for_t(&pal->windows, GAppPalWindow, window, {
+//     if (window->id == id) {
+//       return window;
+//     }
+//   });
+//   return null;
+// }
 
 static String pal_xcb_err_str(const int xcbErrCode) {
   switch (xcbErrCode) {
@@ -96,26 +116,94 @@ static void gapp_pal_xcb_connect(GAppPal* pal) {
 }
 
 static void gapp_pal_xcb_disconnect(GAppPal* pal) {
-  MAYBE_UNUSED const u64 totalRead    = xcb_total_read(pal->xcbConnection);
-  MAYBE_UNUSED const u64 totalWritten = xcb_total_written(pal->xcbConnection);
-
   xcb_disconnect(pal->xcbConnection);
-  log_i(
-      "Xcb disconnected",
-      log_param("total-read", fmt_int(totalRead)),
-      log_param("total-written", fmt_int(totalWritten)));
+  log_i("Xcb disconnected");
 }
 
 GAppPal* gapp_pal_create(Allocator* alloc) {
   GAppPal* pal = alloc_alloc_t(alloc, GAppPal);
-  *pal         = (GAppPal){.alloc = alloc};
+  *pal         = (GAppPal){.alloc = alloc, .windows = dynarray_create_t(alloc, GAppPalWindow, 4)};
 
   gapp_pal_xcb_connect(pal);
   return pal;
 }
 
 void gapp_pal_destroy(GAppPal* pal) {
+  while (pal->windows.size) {
+    gapp_pal_window_destroy(pal, dynarray_at_t(&pal->windows, 0, GAppPalWindow)->id);
+  }
+
   gapp_pal_xcb_disconnect(pal);
 
+  dynarray_destroy(&pal->windows);
   alloc_free_t(pal->alloc, pal);
+}
+
+GAppWindowId gapp_pal_window_create(GAppPal* pal, u32 width, u32 height) {
+  xcb_connection_t*  con    = pal->xcbConnection;
+  const GAppWindowId window = xcb_generate_id(con);
+
+  if (!width) {
+    width = pal->xcbScreen->width_in_pixels;
+  }
+  if (!height) {
+    height = pal->xcbScreen->height_in_pixels;
+  }
+
+  const xcb_cw_t valuesMask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
+  const u32      values[2]  = {
+      pal->xcbScreen->black_pixel,
+      g_xcbWindowEventMask,
+  };
+
+  xcb_create_window(
+      con,
+      XCB_COPY_FROM_PARENT,
+      window,
+      pal->xcbScreen->root,
+      0,
+      0,
+      width,
+      height,
+      0,
+      XCB_WINDOW_CLASS_INPUT_OUTPUT,
+      pal->xcbScreen->root_visual,
+      valuesMask,
+      values);
+
+  // Register a custom delete message atom.
+  xcb_change_property(
+      con, XCB_PROP_MODE_REPLACE, window, pal->xcbProtoMsgAtom, 4, 32, 1, &pal->xcbDeleteMsgAtom);
+
+  xcb_map_window(con, window);
+  xcb_flush(con);
+
+  *dynarray_push_t(&pal->windows, GAppPalWindow) = (GAppPalWindow){
+      .id     = window,
+      .width  = width,
+      .height = height,
+  };
+
+  log_i(
+      "Window created",
+      log_param("id", fmt_int(window)),
+      log_param("width", fmt_int(width)),
+      log_param("height", fmt_int(height)));
+
+  return window;
+}
+
+void gapp_pal_window_destroy(GAppPal* pal, const GAppWindowId window) {
+
+  xcb_destroy_window(pal->xcbConnection, window);
+  xcb_flush(pal->xcbConnection);
+
+  for (usize i = 0; i != pal->windows.size; ++i) {
+    if (dynarray_at_t(&pal->windows, i, GAppPalWindow)->id == window) {
+      dynarray_remove_unordered(&pal->windows, i, 1);
+      break;
+    }
+  }
+
+  log_i("Window destroyed", log_param("id", fmt_int(window)));
 }

@@ -1,3 +1,4 @@
+#include "core_sentinel.h"
 #include "core_signal.h"
 #include "ecs_world.h"
 #include "gapp_window.h"
@@ -11,6 +12,7 @@ typedef enum {
 } GAppWindowRequests;
 
 ecs_comp_define(GAppWindowComp) {
+  GAppWindowId       id;
   GAppWindowFlags    flags;
   GAppWindowEvents   events;
   GAppWindowRequests requests;
@@ -26,11 +28,21 @@ static bool window_should_close(GAppWindowComp* window) {
   return false;
 }
 
-static void window_update(EcsWorld* world, GAppWindowComp* window, const EcsEntityId windowEntity) {
+static void window_update(
+    EcsWorld*         world,
+    GAppPlatformComp* platform,
+    GAppWindowComp*   window,
+    const EcsEntityId windowEntity) {
+
   // Clear the events of the previous tick.
   window->events = GAppWindowEvents_None;
 
+  if (window->requests & GAppWindowRequests_Create) {
+    window->id = gapp_platform_window_create(platform, 640, 480);
+  }
+
   if (window_should_close(window)) {
+    gapp_platform_window_destroy(platform, window->id);
     window->events |= GAppWindowEvents_Closed;
     ecs_world_entity_destroy(world, windowEntity);
   }
@@ -49,14 +61,13 @@ ecs_system_define(GAppUpdateSys) {
     return;
   }
   GAppPlatformComp* platform = ecs_view_write_t(platformItr, GAppPlatformComp);
-  (void)platform;
 
   EcsView* windowView = ecs_world_view_t(world, GAppWindowView);
   for (EcsIterator* itr = ecs_view_itr(windowView); ecs_view_walk(itr);) {
 
     const EcsEntityId windowEntity = ecs_view_entity(itr);
     GAppWindowComp*   window       = ecs_view_write_t(itr, GAppWindowComp);
-    window_update(world, window, windowEntity);
+    window_update(world, platform, window, windowEntity);
   }
 }
 
@@ -72,7 +83,12 @@ ecs_module_init(gapp_window_module) {
 EcsEntityId gapp_window_open(EcsWorld* world, const GAppWindowFlags flags) {
   const EcsEntityId windowEntity = ecs_world_entity_create(world);
   ecs_world_add_t(
-      world, windowEntity, GAppWindowComp, .flags = flags, .requests = GAppWindowRequests_Create);
+      world,
+      windowEntity,
+      GAppWindowComp,
+      .id       = sentinel_u32,
+      .flags    = flags,
+      .requests = GAppWindowRequests_Create);
   return windowEntity;
 }
 
