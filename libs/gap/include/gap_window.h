@@ -1,6 +1,7 @@
 #pragma once
 #include "ecs_entity.h"
 #include "ecs_module.h"
+#include "gap_vector.h"
 
 typedef enum {
   GapWindowEvents_None           = 0,
@@ -20,10 +21,9 @@ typedef enum {
 
 ecs_comp_extern(GapWindowComp);
 
-EcsEntityId     gap_window_open(EcsWorld*, GapWindowFlags, u32 width, u32 height);
+EcsEntityId     gap_window_open(EcsWorld*, GapWindowFlags, GapVector size);
 void            gap_window_close(GapWindowComp*);
 GapWindowEvents gap_window_events(const GapWindowComp*);
 String          gap_window_title_get(GapWindowComp*);
 void            gap_window_title_set(GapWindowComp*, String newTitle);
-u32             gap_window_width(const GapWindowComp*);
-u32             gap_window_height(const GapWindowComp*);
+GapVector       gap_window_size(const GapWindowComp*);

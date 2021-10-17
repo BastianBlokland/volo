@@ -16,7 +16,7 @@ ecs_comp_define(GapPlatformComp) { GapPal* pal; };
 
 ecs_comp_define(GapWindowComp) {
   GapWindowId       id;
-  u32               width, height;
+  GapVector         size;
   String            title;
   GapWindowFlags    flags;
   GapWindowEvents   events;
@@ -59,7 +59,7 @@ static void window_update(
   window->events = GapWindowEvents_None;
 
   if (window->requests & GapWindowRequests_Create) {
-    window->id = gap_pal_window_create(platform->pal, window->width, window->height);
+    window->id = gap_pal_window_create(platform->pal, window->size);
   }
   if (window->requests & GapWindowRequests_UpdateTitle) {
     gap_pal_window_title_set(platform->pal, window->id, window->title);
@@ -71,8 +71,7 @@ static void window_update(
     window->events |= GapWindowEvents_CloseRequested;
   }
   if (palFlags & GapPalWindowFlags_Resized) {
-    window->width  = gap_pal_window_width(platform->pal, window->id);
-    window->height = gap_pal_window_height(platform->pal, window->id);
+    window->size = gap_pal_window_size(platform->pal, window->id);
     window->events |= GapWindowEvents_Resized;
   }
 
@@ -125,16 +124,14 @@ ecs_module_init(gap_window_module) {
   ecs_register_system(GapUpdateSys, ecs_view_id(GapPlatformView), ecs_view_id(GapWindowView));
 }
 
-EcsEntityId
-gap_window_open(EcsWorld* world, const GapWindowFlags flags, const u32 width, const u32 height) {
+EcsEntityId gap_window_open(EcsWorld* world, const GapWindowFlags flags, const GapVector size) {
   const EcsEntityId windowEntity = ecs_world_entity_create(world);
   ecs_world_add_t(
       world,
       windowEntity,
       GapWindowComp,
       .id       = sentinel_u32,
-      .width    = width,
-      .height   = height,
+      .size     = size,
       .flags    = flags,
       .requests = GapWindowRequests_Create);
   return windowEntity;
@@ -154,5 +151,4 @@ void gap_window_title_set(GapWindowComp* window, const String newTitle) {
   window->requests |= GapWindowRequests_UpdateTitle;
 }
 
-u32 gap_window_width(const GapWindowComp* comp) { return comp->width; }
-u32 gap_window_height(const GapWindowComp* comp) { return comp->height; }
+GapVector gap_window_size(const GapWindowComp* comp) { return comp->size; }

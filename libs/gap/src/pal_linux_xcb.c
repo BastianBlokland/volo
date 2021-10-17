@@ -8,7 +8,7 @@
 
 typedef struct {
   GapWindowId       id;
-  u32               width, height;
+  GapVector         size;
   GapPalWindowFlags flags;
 } GapPalWindow;
 
@@ -108,12 +108,14 @@ static void gap_pal_xcb_connect(GapPal* pal) {
   pal->xcbWmStateBypassCompositorAtom =
       pal_xcb_atom_sync(pal, string_lit("_NET_WM_BYPASS_COMPOSITOR"));
 
+  MAYBE_UNUSED const GapVector screenSize =
+      gap_vector(pal->xcbScreen->width_in_pixels, pal->xcbScreen->height_in_pixels);
+
   log_i(
       "Xcb connected",
       log_param("fd", fmt_int(xcb_get_file_descriptor(pal->xcbConnection))),
       log_param("screen-num", fmt_int(screen)),
-      log_param("screen-width", fmt_int(pal->xcbScreen->width_in_pixels)),
-      log_param("screen-height", fmt_int(pal->xcbScreen->height_in_pixels)));
+      log_param("screen-size", gap_vector_fmt(screenSize)));
 }
 
 static void gap_pal_xcb_disconnect(GapPal* pal) {
@@ -127,23 +129,18 @@ static void gap_pal_event_close(GapPal* pal, const GapWindowId windowId) {
   window->flags |= GapPalWindowFlags_CloseRequested;
 }
 
-static void gap_pal_event_resize(
-    GapPal* pal, const GapWindowId windowId, const u32 newWidth, const u32 newHeight) {
+static void gap_pal_event_resize(GapPal* pal, const GapWindowId windowId, const GapVector newSize) {
 
   GapPalWindow* window = pal_window(pal, windowId);
   diag_assert_msg(window, "Unknown window: {}", fmt_int(windowId));
 
-  if (window->width == newWidth && window->width == newHeight) {
+  if (gap_vector_equal(window->size, newSize)) {
     return;
   }
-  window->width  = newWidth;
-  window->height = newHeight;
+  window->size = newSize;
   window->flags |= GapPalWindowFlags_Resized;
 
-  log_d(
-      "Window resized",
-      log_param("width", fmt_int(newWidth)),
-      log_param("height", fmt_int(newHeight)));
+  log_d("Window resized", log_param("size", gap_vector_fmt(newSize)));
 }
 
 GapPal* gap_pal_create(Allocator* alloc) {
@@ -176,21 +173,22 @@ void gap_pal_update(GapPal* pal) {
     } break;
     case XCB_CONFIGURE_NOTIFY: {
       const xcb_configure_notify_event_t* configureMsg = (const void*)evt;
-      gap_pal_event_resize(pal, configureMsg->window, configureMsg->width, configureMsg->height);
+      const GapVector newSize = gap_vector(configureMsg->width, configureMsg->height);
+      gap_pal_event_resize(pal, configureMsg->window, newSize);
     } break;
     }
   }
 }
 
-GapWindowId gap_pal_window_create(GapPal* pal, u32 width, u32 height) {
+GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   xcb_connection_t* con    = pal->xcbConnection;
   const GapWindowId window = xcb_generate_id(con);
 
-  if (!width) {
-    width = pal->xcbScreen->width_in_pixels;
+  if (!size.width) {
+    size.width = pal->xcbScreen->width_in_pixels;
   }
-  if (!height) {
-    height = pal->xcbScreen->height_in_pixels;
+  if (!size.height) {
+    size.height = pal->xcbScreen->height_in_pixels;
   }
 
   const xcb_cw_t valuesMask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
@@ -206,8 +204,8 @@ GapWindowId gap_pal_window_create(GapPal* pal, u32 width, u32 height) {
       pal->xcbScreen->root,
       0,
       0,
-      width,
-      height,
+      size.width,
+      size.height,
       0,
       XCB_WINDOW_CLASS_INPUT_OUTPUT,
       pal->xcbScreen->root_visual,
@@ -222,16 +220,12 @@ GapWindowId gap_pal_window_create(GapPal* pal, u32 width, u32 height) {
   xcb_flush(con);
 
   *dynarray_push_t(&pal->windows, GapPalWindow) = (GapPalWindow){
-      .id     = window,
-      .width  = width,
-      .height = height,
+      .id   = window,
+      .size = size,
   };
 
   log_i(
-      "Window created",
-      log_param("id", fmt_int(window)),
-      log_param("width", fmt_int(width)),
-      log_param("height", fmt_int(height)));
+      "Window created", log_param("id", fmt_int(window)), log_param("size", gap_vector_fmt(size)));
 
   return window;
 }
@@ -257,16 +251,10 @@ GapPalWindowFlags gap_pal_window_flags(const GapPal* pal, const GapWindowId wind
   return window->flags;
 }
 
-u32 gap_pal_window_width(const GapPal* pal, const GapWindowId windowId) {
+GapVector gap_pal_window_size(const GapPal* pal, const GapWindowId windowId) {
   const GapPalWindow* window = pal_window((GapPal*)pal, windowId);
   diag_assert_msg(window, "Unknown window: {}", fmt_int(windowId));
-  return window->width;
-}
-
-u32 gap_pal_window_height(const GapPal* pal, const GapWindowId windowId) {
-  const GapPalWindow* window = pal_window((GapPal*)pal, windowId);
-  diag_assert_msg(window, "Unknown window: {}", fmt_int(windowId));
-  return window->height;
+  return window->size;
 }
 
 void gap_pal_window_title_set(GapPal* pal, const GapWindowId windowId, const String title) {
