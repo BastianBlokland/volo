@@ -66,6 +66,7 @@ typedef enum {
   GapParam_None       = -1,
   GapParam_WindowSize = 0,
   GapParam_CursorPos,
+  GapParam_ScrollDelta,
 
   GapParam_Count,
 } GapParam;

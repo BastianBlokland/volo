@@ -15,7 +15,7 @@ ecs_comp_define(GapPlatformComp) { GapPal* pal; };
 
 ecs_comp_define(GapWindowComp) {
   GapWindowId       id;
-  GapParamSet       params;
+  GapVector         params[GapParam_Count];
   GapWindowFlags    flags : 16;
   GapWindowEvents   events : 16;
   GapWindowRequests requests : 16;
@@ -55,11 +55,13 @@ static void window_update(
     GapWindowComp*    window,
     const EcsEntityId windowEntity) {
 
+#define copy_param(_P_) window->params[_P_] = gap_pal_window_param(platform->pal, window->id, _P_)
+
   // Clear the events of the previous tick.
   window->events = 0;
 
   if (window->requests & GapWindowRequests_Create) {
-    window->id = gap_pal_window_create(platform->pal, window->params.values[GapParam_WindowSize]);
+    window->id = gap_pal_window_create(platform->pal, window->params[GapParam_WindowSize]);
   }
   if (window->requests & GapWindowRequests_UpdateTitle) {
     gap_pal_window_title_set(platform->pal, window->id, window->title);
@@ -71,14 +73,16 @@ static void window_update(
     window->events |= GapWindowEvents_CloseRequested;
   }
   if (palFlags & GapPalWindowFlags_Resized) {
-    window->params.values[GapParam_WindowSize] =
-        gap_pal_window_param(platform->pal, window->id, GapParam_WindowSize);
+    copy_param(GapParam_WindowSize);
     window->events |= GapWindowEvents_Resized;
   }
   if (palFlags & GapPalWindowFlags_CursorMoved) {
-    window->params.values[GapParam_CursorPos] =
-        gap_pal_window_param(platform->pal, window->id, GapParam_CursorPos);
+    copy_param(GapParam_CursorPos);
   }
+  if (palFlags & GapPalWindowFlags_Scrolled) {
+    copy_param(GapParam_ScrollDelta);
+  }
+
   if (palFlags & GapPalWindowFlags_KeyPressed) {
     window->keysPressed = *gap_pal_window_keys_pressed(platform->pal, window->id);
     gap_keyset_set_all(&window->keysDown, &window->keysPressed);
@@ -102,6 +106,8 @@ static void window_update(
 
   // All requests have been handled.
   window->requests = 0;
+
+#undef copy_param
 }
 
 ecs_view_define(GapPlatformView) { ecs_access_write(GapPlatformComp); };
@@ -153,7 +159,7 @@ EcsEntityId gap_window_open(EcsWorld* world, const GapWindowFlags flags, const G
       .flags    = flags,
       .requests = GapWindowRequests_Create);
 
-  comp->params.values[GapParam_WindowSize] = size;
+  comp->params[GapParam_WindowSize] = size;
   return windowEntity;
 }
 
@@ -172,7 +178,7 @@ void gap_window_title_set(GapWindowComp* window, const String newTitle) {
 }
 
 GapVector gap_window_param(const GapWindowComp* comp, const GapParam param) {
-  return comp->params.values[param];
+  return comp->params[param];
 }
 
 bool gap_window_pressed(const GapWindowComp* comp, const GapKey key) {

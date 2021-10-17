@@ -8,10 +8,10 @@
  */
 typedef union {
   struct {
-    u32 x, y;
+    i32 x, y;
   };
   struct {
-    u32 width, height;
+    i32 width, height;
   };
   u64 data;
 } GapVector;

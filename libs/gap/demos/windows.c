@@ -39,11 +39,12 @@ static int run_app() {
     gap_window_title_set(
         windowComp,
         fmt_write_scratch(
-            "Hello world - {} (size: {}, cursor: {}, click: {})",
+            "Hello world - {} (size: {}, cursor: {}, click: {}, scroll: {})",
             fmt_int(tickCount),
             gap_vector_fmt(gap_window_param(windowComp, GapParam_WindowSize)),
             gap_vector_fmt(gap_window_param(windowComp, GapParam_CursorPos)),
-            fmt_bool(gap_window_down(windowComp, GapKey_MouseLeft))));
+            fmt_bool(gap_window_down(windowComp, GapKey_MouseLeft)),
+            gap_vector_fmt(gap_window_param(windowComp, GapParam_ScrollDelta))));
 
     if (gap_window_pressed(windowComp, GapKey_Escape)) {
       gap_window_close(windowComp);

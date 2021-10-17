@@ -35,6 +35,7 @@ String gap_key_str(const GapKey key) {
 static const String g_param_strs[] = {
     string_static("window-size"),
     string_static("cursor-pos"),
+    string_static("scroll-delta"),
 };
 
 ASSERT(array_elems(g_param_strs) == GapParam_Count, "Incorrect number of GapParam strings");
