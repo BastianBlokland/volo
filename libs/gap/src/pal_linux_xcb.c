@@ -191,7 +191,7 @@ static void pal_xcb_check_con(GapPal* pal) {
  * Synchonously retrieve an xcb atom by name.
  * Xcb atoms are named tokens that are used in the x11 specification.
  */
-static xcb_atom_t pal_xcb_atom_sync(GapPal* pal, const String name) {
+static xcb_atom_t pal_xcb_atom(GapPal* pal, const String name) {
   /**
    * NOTE: An asynchronous version of this could be implemented by making all requests first and
    * then blocking using 'xcb_intern_atom_reply' only when we actually need the atom.
@@ -222,12 +222,11 @@ static void pal_xcb_connect(GapPal* pal) {
   pal->xcbScreen = screenItr.data;
 
   // Retreive atoms to use while communicating with the x-server.
-  pal->xcbProtoMsgAtom          = pal_xcb_atom_sync(pal, string_lit("WM_PROTOCOLS"));
-  pal->xcbDeleteMsgAtom         = pal_xcb_atom_sync(pal, string_lit("WM_DELETE_WINDOW"));
-  pal->xcbWmStateAtom           = pal_xcb_atom_sync(pal, string_lit("_NET_WM_STATE"));
-  pal->xcbWmStateFullscreenAtom = pal_xcb_atom_sync(pal, string_lit("_NET_WM_STATE_FULLSCREEN"));
-  pal->xcbWmStateBypassCompositorAtom =
-      pal_xcb_atom_sync(pal, string_lit("_NET_WM_BYPASS_COMPOSITOR"));
+  pal->xcbProtoMsgAtom                = pal_xcb_atom(pal, string_lit("WM_PROTOCOLS"));
+  pal->xcbDeleteMsgAtom               = pal_xcb_atom(pal, string_lit("WM_DELETE_WINDOW"));
+  pal->xcbWmStateAtom                 = pal_xcb_atom(pal, string_lit("_NET_WM_STATE"));
+  pal->xcbWmStateFullscreenAtom       = pal_xcb_atom(pal, string_lit("_NET_WM_STATE_FULLSCREEN"));
+  pal->xcbWmStateBypassCompositorAtom = pal_xcb_atom(pal, string_lit("_NET_WM_BYPASS_COMPOSITOR"));
 
   MAYBE_UNUSED const GapVector screenSize =
       gap_vector(pal->xcbScreen->width_in_pixels, pal->xcbScreen->height_in_pixels);
@@ -276,7 +275,7 @@ static void pal_xkb_enable_flag(GapPal* pal, const xcb_xkb_per_client_flag_t fla
 }
 
 /**
- * Initialize xkb (X keyboard extension), gives us additional control over keyboard input.
+ * Initialize xkb (X keyboard extension), which gives us additional control over keyboard input.
  * More info: https://en.wikipedia.org/wiki/X_keyboard_extension
  */
 static bool pal_xkb_init(GapPal* pal) {
@@ -287,9 +286,7 @@ static bool pal_xkb_init(GapPal* pal) {
       xcb_xkb_use_extension_reply(pal->xcbConnection, cookie, &err);
 
   if (UNLIKELY(err)) {
-    // TODO(bastian): Decide if we should throw here, the program still runs however the keyboard
-    // input wont work correctly.
-    log_e("Failed to initialize xkb extension", log_param("error", fmt_int(err->error_code)));
+    log_w("Failed to initialize xkb extension", log_param("error", fmt_int(err->error_code)));
     free(useExtReply);
     return false;
   }
@@ -302,11 +299,6 @@ static bool pal_xkb_init(GapPal* pal) {
       "Initialized xkb extension",
       log_param("version", fmt_list_lit(fmt_int(versionMajor), fmt_int(versionMinor))));
   return true;
-}
-
-static void gap_pal_xcb_disconnect(GapPal* pal) {
-  xcb_disconnect(pal->xcbConnection);
-  log_i("Xcb disconnected");
 }
 
 static void gap_pal_event_close(GapPal* pal, const GapWindowId windowId) {
@@ -384,7 +376,8 @@ void gap_pal_destroy(GapPal* pal) {
     gap_pal_window_destroy(pal, dynarray_at_t(&pal->windows, 0, GapPalWindow)->id);
   }
 
-  gap_pal_xcb_disconnect(pal);
+  xcb_disconnect(pal->xcbConnection);
+  log_i("Xcb disconnected");
 
   dynarray_destroy(&pal->windows);
   alloc_free_t(pal->alloc, pal);
@@ -588,8 +581,8 @@ void gap_pal_window_resize(
       log_param("fullscreen", fmt_bool(fullscreen)));
 
   if (fullscreen) {
-    // TODO: Investigate supporting different sizes in fullscreen, requires actually changing the
-    // system display-adapter settings.
+    // TODO: Investigate supporting different sizes in fullscreen, this requires actually changing
+    // the system display-adapter settings.
     pal_xcb_wm_state_update(pal, windowId, pal->xcbWmStateFullscreenAtom, true);
     pal_xcb_bypass_compositor(pal, windowId, true);
   } else {

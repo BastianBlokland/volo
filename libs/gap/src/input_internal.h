@@ -1,11 +1,9 @@
 #pragma once
-#include "core_bitset.h"
+#include "core_bits.h"
 #include "gap_input.h"
 
-#define gap_key_mask_size bits_to_bytes(GapKey_Count)
-
 typedef struct {
-  u8 data[gap_key_mask_size];
+  u8 data[bits_to_bytes(GapKey_Count)];
 } GapKeySet;
 
 void gap_keyset_clear(GapKeySet*);
