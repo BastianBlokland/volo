@@ -5,7 +5,7 @@
 #include "core_thread.h"
 #include "core_time.h"
 #include "ecs.h"
-#include "gapp.h"
+#include "gap.h"
 #include "jobs.h"
 #include "log.h"
 
@@ -13,7 +13,7 @@
 
 static int run_app() {
   EcsDef* def = def = ecs_def_create(g_alloc_heap);
-  gapp_register(def);
+  gap_register(def);
 
   EcsWorld*  world  = ecs_world_create(g_alloc_heap, def);
   EcsRunner* runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_DumpGraphDot);
@@ -24,7 +24,7 @@ static int run_app() {
   TimeDuration     time           = 0;
   u64              tickCount      = 0;
 
-  const EcsEntityId window = gapp_window_open(world, GAppWindowFlags_Default);
+  const EcsEntityId window = gap_window_open(world, GapWindowFlags_Default);
 
   while (ecs_world_exists(world, window)) {
     ecs_run_sync(runner);
@@ -55,7 +55,7 @@ int main(const int argc, const char** argv) {
 
   int exitCode = 0;
 
-  CliApp*        app   = cli_app_create(g_alloc_heap, string_lit("Volo GApp Windows Demo"));
+  CliApp*        app   = cli_app_create(g_alloc_heap, string_lit("Volo Gap Windows Demo"));
   CliInvocation* invoc = cli_parse(app, argc - 1, argv + 1);
   if (cli_parse_result(invoc) == CliParseResult_Fail) {
     cli_failure_write_file(invoc, g_file_stderr);

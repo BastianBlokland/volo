@@ -7,13 +7,13 @@
 #include <xcb/xcb.h>
 
 typedef struct {
-  GAppWindowId id;
-  u32          width, height;
-} GAppPalWindow;
+  GapWindowId id;
+  u32         width, height;
+} GapPalWindow;
 
-struct sGAppPal {
+struct sGapPal {
   Allocator* alloc;
-  DynArray   windows; // GAppPalWindow[]
+  DynArray   windows; // GapPalWindow[]
 
   xcb_connection_t* xcbConnection;
   xcb_screen_t*     xcbScreen;
@@ -29,8 +29,8 @@ static const xcb_event_mask_t g_xcbWindowEventMask =
     XCB_EVENT_MASK_STRUCTURE_NOTIFY | XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE |
     XCB_EVENT_MASK_POINTER_MOTION | XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_KEY_RELEASE;
 
-// static GAppPalWindow* pal_window(GAppPal* pal, const GAppWindowId id) {
-//   dynarray_for_t(&pal->windows, GAppPalWindow, window, {
+// static GapPalWindow* pal_window(GapPal* pal, const GapWindowId id) {
+//   dynarray_for_t(&pal->windows, GapPalWindow, window, {
 //     if (window->id == id) {
 //       return window;
 //     }
@@ -57,7 +57,7 @@ static String pal_xcb_err_str(const int xcbErrCode) {
   }
 }
 
-static void pal_xcb_check_con(GAppPal* pal) {
+static void pal_xcb_check_con(GapPal* pal) {
   const int error = xcb_connection_has_error(pal->xcbConnection);
   if (UNLIKELY(error)) {
     diag_crash_msg(
@@ -69,7 +69,7 @@ static void pal_xcb_check_con(GAppPal* pal) {
  * Synchonously retrieve an xcb atom by name.
  * Xcb atoms are named tokens that are used in the x11 specification.
  */
-static xcb_atom_t pal_xcb_atom_sync(GAppPal* pal, const String name) {
+static xcb_atom_t pal_xcb_atom_sync(GapPal* pal, const String name) {
   /**
    * NOTE: An asynchronous version of this could be implemented by making all requests first and
    * then blocking using 'xcb_intern_atom_reply' only when we actually need the atom.
@@ -86,7 +86,7 @@ static xcb_atom_t pal_xcb_atom_sync(GAppPal* pal, const String name) {
   return result;
 }
 
-static void gapp_pal_xcb_connect(GAppPal* pal) {
+static void gap_pal_xcb_connect(GapPal* pal) {
   // Establish a connection with the x-server.
   int screen         = 0;
   pal->xcbConnection = xcb_connect(null, &screen);
@@ -115,33 +115,33 @@ static void gapp_pal_xcb_connect(GAppPal* pal) {
       log_param("screen-height", fmt_int(pal->xcbScreen->height_in_pixels)));
 }
 
-static void gapp_pal_xcb_disconnect(GAppPal* pal) {
+static void gap_pal_xcb_disconnect(GapPal* pal) {
   xcb_disconnect(pal->xcbConnection);
   log_i("Xcb disconnected");
 }
 
-GAppPal* gapp_pal_create(Allocator* alloc) {
-  GAppPal* pal = alloc_alloc_t(alloc, GAppPal);
-  *pal         = (GAppPal){.alloc = alloc, .windows = dynarray_create_t(alloc, GAppPalWindow, 4)};
+GapPal* gap_pal_create(Allocator* alloc) {
+  GapPal* pal = alloc_alloc_t(alloc, GapPal);
+  *pal        = (GapPal){.alloc = alloc, .windows = dynarray_create_t(alloc, GapPalWindow, 4)};
 
-  gapp_pal_xcb_connect(pal);
+  gap_pal_xcb_connect(pal);
   return pal;
 }
 
-void gapp_pal_destroy(GAppPal* pal) {
+void gap_pal_destroy(GapPal* pal) {
   while (pal->windows.size) {
-    gapp_pal_window_destroy(pal, dynarray_at_t(&pal->windows, 0, GAppPalWindow)->id);
+    gap_pal_window_destroy(pal, dynarray_at_t(&pal->windows, 0, GapPalWindow)->id);
   }
 
-  gapp_pal_xcb_disconnect(pal);
+  gap_pal_xcb_disconnect(pal);
 
   dynarray_destroy(&pal->windows);
   alloc_free_t(pal->alloc, pal);
 }
 
-GAppWindowId gapp_pal_window_create(GAppPal* pal, u32 width, u32 height) {
-  xcb_connection_t*  con    = pal->xcbConnection;
-  const GAppWindowId window = xcb_generate_id(con);
+GapWindowId gap_pal_window_create(GapPal* pal, u32 width, u32 height) {
+  xcb_connection_t* con    = pal->xcbConnection;
+  const GapWindowId window = xcb_generate_id(con);
 
   if (!width) {
     width = pal->xcbScreen->width_in_pixels;
@@ -178,7 +178,7 @@ GAppWindowId gapp_pal_window_create(GAppPal* pal, u32 width, u32 height) {
   xcb_map_window(con, window);
   xcb_flush(con);
 
-  *dynarray_push_t(&pal->windows, GAppPalWindow) = (GAppPalWindow){
+  *dynarray_push_t(&pal->windows, GapPalWindow) = (GapPalWindow){
       .id     = window,
       .width  = width,
       .height = height,
@@ -193,13 +193,13 @@ GAppWindowId gapp_pal_window_create(GAppPal* pal, u32 width, u32 height) {
   return window;
 }
 
-void gapp_pal_window_destroy(GAppPal* pal, const GAppWindowId window) {
+void gap_pal_window_destroy(GapPal* pal, const GapWindowId window) {
 
   xcb_destroy_window(pal->xcbConnection, window);
   xcb_flush(pal->xcbConnection);
 
   for (usize i = 0; i != pal->windows.size; ++i) {
-    if (dynarray_at_t(&pal->windows, i, GAppPalWindow)->id == window) {
+    if (dynarray_at_t(&pal->windows, i, GapPalWindow)->id == window) {
       dynarray_remove_unordered(&pal->windows, i, 1);
       break;
     }
