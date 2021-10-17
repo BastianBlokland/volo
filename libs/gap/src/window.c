@@ -17,10 +17,10 @@ ecs_comp_define(GapPlatformComp) { GapPal* pal; };
 ecs_comp_define(GapWindowComp) {
   GapWindowId       id;
   GapVector         size, cursor;
+  GapWindowFlags    flags : 16;
+  GapWindowEvents   events : 16;
+  GapWindowRequests requests : 16;
   String            title;
-  GapWindowFlags    flags;
-  GapWindowEvents   events;
-  GapWindowRequests requests;
 };
 
 static void ecs_destruct_platform_comp(void* data) {

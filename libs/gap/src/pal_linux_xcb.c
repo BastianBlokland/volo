@@ -9,7 +9,7 @@
 typedef struct {
   GapWindowId       id;
   GapVector         size, cursor;
-  GapPalWindowFlags flags;
+  GapPalWindowFlags flags : 16;
 } GapPalWindow;
 
 struct sGapPal {
@@ -37,6 +37,11 @@ static GapPalWindow* pal_window(GapPal* pal, const GapWindowId id) {
     }
   });
   return null;
+}
+
+static void pal_clear_volatile_flags(GapPal* pal) {
+  dynarray_for_t(
+      &pal->windows, GapPalWindow, window, { window->flags &= ~GapPalWindowFlags_Volatile; });
 }
 
 static String pal_xcb_err_str(const int xcbErrCode) {
@@ -173,6 +178,9 @@ void gap_pal_destroy(GapPal* pal) {
 }
 
 void gap_pal_update(GapPal* pal) {
+
+  pal_clear_volatile_flags(pal);
+
   for (xcb_generic_event_t* evt; (evt = xcb_poll_for_event(pal->xcbConnection)); free(evt)) {
     switch (evt->response_type & ~0x80) {
     case XCB_CLIENT_MESSAGE: {

@@ -9,6 +9,9 @@ typedef enum {
   GapPalWindowFlags_CloseRequested = 1 << 0,
   GapPalWindowFlags_Resized        = 1 << 1,
   GapPalWindowFlags_CursorMoved    = 1 << 2,
+
+  GapPalWindowFlags_Volatile =
+      GapPalWindowFlags_CloseRequested | GapPalWindowFlags_Resized | GapPalWindowFlags_CursorMoved,
 } GapPalWindowFlags;
 
 typedef struct sGapPal GapPal;
