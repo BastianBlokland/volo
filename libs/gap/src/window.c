@@ -42,6 +42,10 @@ static bool window_should_close(GapWindowComp* window) {
   if (window->flags & GapWindowFlags_CloseOnInterupt && signal_is_received(Signal_Interupt)) {
     return true;
   }
+  if (window->flags & GapWindowFlags_CloseOnRequest &&
+      window->events & GapWindowEvents_CloseRequested) {
+    return true;
+  }
   return false;
 }
 
@@ -62,6 +66,11 @@ static void window_update(
     window->events |= GapWindowEvents_TitleUpdated;
   }
 
+  const GapPalWindowFlags palFlags = gap_pal_window_flags(platform->pal, window->id);
+  if (palFlags & GapPalWindowFlags_CloseRequested) {
+    window->events |= GapWindowEvents_CloseRequested;
+  }
+
   if (window_should_close(window)) {
     gap_pal_window_destroy(platform->pal, window->id);
     window->events |= GapWindowEvents_Closed;
@@ -76,9 +85,10 @@ ecs_view_define(GapPlatformView) { ecs_access_write(GapPlatformComp); };
 ecs_view_define(GapWindowView) { ecs_access_write(GapWindowComp); };
 
 ecs_system_define(GapUpdateSys) {
+
+  // Retrieve or create the global platform component.
   EcsIterator*     platformItr = ecs_view_itr_first(ecs_world_view_t(world, GapPlatformView));
   GapPlatformComp* platform;
-
   if (platformItr) {
     platform = ecs_view_write_t(platformItr, GapPlatformComp);
   } else {
@@ -87,6 +97,10 @@ ecs_system_define(GapUpdateSys) {
         world, platformEntity, GapPlatformComp, .pal = gap_pal_create(g_alloc_heap));
   }
 
+  // Process all os window events.
+  gap_pal_update(platform->pal);
+
+  // Update all windows.
   EcsView* windowView = ecs_world_view_t(world, GapWindowView);
   for (EcsIterator* itr = ecs_view_itr(windowView); ecs_view_walk(itr);) {
 

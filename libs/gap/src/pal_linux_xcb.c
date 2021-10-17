@@ -7,8 +7,9 @@
 #include <xcb/xcb.h>
 
 typedef struct {
-  GapWindowId id;
-  u32         width, height;
+  GapWindowId       id;
+  u32               width, height;
+  GapPalWindowFlags flags;
 } GapPalWindow;
 
 struct sGapPal {
@@ -29,14 +30,14 @@ static const xcb_event_mask_t g_xcbWindowEventMask =
     XCB_EVENT_MASK_STRUCTURE_NOTIFY | XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE |
     XCB_EVENT_MASK_POINTER_MOTION | XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_KEY_RELEASE;
 
-// static GapPalWindow* pal_window(GapPal* pal, const GapWindowId id) {
-//   dynarray_for_t(&pal->windows, GapPalWindow, window, {
-//     if (window->id == id) {
-//       return window;
-//     }
-//   });
-//   return null;
-// }
+static GapPalWindow* pal_window(GapPal* pal, const GapWindowId id) {
+  dynarray_for_t(&pal->windows, GapPalWindow, window, {
+    if (window->id == id) {
+      return window;
+    }
+  });
+  return null;
+}
 
 static String pal_xcb_err_str(const int xcbErrCode) {
   switch (xcbErrCode) {
@@ -120,6 +121,12 @@ static void gap_pal_xcb_disconnect(GapPal* pal) {
   log_i("Xcb disconnected");
 }
 
+static void gap_pal_event_handle_close(GapPal* pal, const GapWindowId windowId) {
+  GapPalWindow* window = pal_window(pal, windowId);
+  diag_assert_msg(window, "Unknown window: {}", fmt_int(windowId));
+  window->flags |= GapPalWindowFlags_CloseRequested;
+}
+
 GapPal* gap_pal_create(Allocator* alloc) {
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){.alloc = alloc, .windows = dynarray_create_t(alloc, GapPalWindow, 4)};
@@ -137,6 +144,19 @@ void gap_pal_destroy(GapPal* pal) {
 
   dynarray_destroy(&pal->windows);
   alloc_free_t(pal->alloc, pal);
+}
+
+void gap_pal_update(GapPal* pal) {
+  for (xcb_generic_event_t* evt; (evt = xcb_poll_for_event(pal->xcbConnection)); free(evt)) {
+    switch (evt->response_type & ~0x80) {
+    case XCB_CLIENT_MESSAGE: {
+      const xcb_client_message_event_t* clientMsg = (const void*)evt;
+      if (clientMsg->data.data32[0] == pal->xcbDeleteMsgAtom) {
+        gap_pal_event_handle_close(pal, clientMsg->window);
+      }
+    } break;
+    }
+  }
 }
 
 GapWindowId gap_pal_window_create(GapPal* pal, u32 width, u32 height) {
@@ -208,11 +228,17 @@ void gap_pal_window_destroy(GapPal* pal, const GapWindowId window) {
   log_i("Window destroyed", log_param("id", fmt_int(window)));
 }
 
-void gap_pal_window_title_set(GapPal* pal, const GapWindowId window, const String title) {
+GapPalWindowFlags gap_pal_window_flags(const GapPal* pal, const GapWindowId windowId) {
+  const GapPalWindow* window = pal_window((GapPal*)pal, windowId);
+  diag_assert_msg(window, "Unknown window: {}", fmt_int(windowId));
+  return window->flags;
+}
+
+void gap_pal_window_title_set(GapPal* pal, const GapWindowId windowId, const String title) {
   xcb_change_property(
       pal->xcbConnection,
       XCB_PROP_MODE_REPLACE,
-      window,
+      windowId,
       XCB_ATOM_WM_NAME,
       XCB_ATOM_STRING,
       8,
