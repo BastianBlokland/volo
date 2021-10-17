@@ -6,9 +6,10 @@
 typedef enum {
   GapWindowEvents_None           = 0,
   GapWindowEvents_Resized        = 1 << 1,
-  GapWindowEvents_CloseRequested = 1 << 2,
-  GapWindowEvents_Closed         = 1 << 3,
-  GapWindowEvents_TitleUpdated   = 1 << 4,
+  GapWindowEvents_CursorMoved    = 1 << 2,
+  GapWindowEvents_TitleUpdated   = 1 << 3,
+  GapWindowEvents_CloseRequested = 1 << 4,
+  GapWindowEvents_Closed         = 1 << 5,
 } GapWindowEvents;
 
 typedef enum {
@@ -27,3 +28,4 @@ GapWindowEvents gap_window_events(const GapWindowComp*);
 String          gap_window_title_get(GapWindowComp*);
 void            gap_window_title_set(GapWindowComp*, String newTitle);
 GapVector       gap_window_size(const GapWindowComp*);
+GapVector       gap_window_cursor(const GapWindowComp*);

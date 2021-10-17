@@ -8,7 +8,7 @@
 
 typedef struct {
   GapWindowId       id;
-  GapVector         size;
+  GapVector         size, cursor;
   GapPalWindowFlags flags;
 } GapPalWindow;
 
@@ -130,7 +130,6 @@ static void gap_pal_event_close(GapPal* pal, const GapWindowId windowId) {
 }
 
 static void gap_pal_event_resize(GapPal* pal, const GapWindowId windowId, const GapVector newSize) {
-
   GapPalWindow* window = pal_window(pal, windowId);
   diag_assert_msg(window, "Unknown window: {}", fmt_int(windowId));
 
@@ -141,6 +140,17 @@ static void gap_pal_event_resize(GapPal* pal, const GapWindowId windowId, const 
   window->flags |= GapPalWindowFlags_Resized;
 
   log_d("Window resized", log_param("size", gap_vector_fmt(newSize)));
+}
+
+static void gap_pal_event_cursor(GapPal* pal, const GapWindowId windowId, const GapVector newPos) {
+  GapPalWindow* window = pal_window(pal, windowId);
+  diag_assert_msg(window, "Unknown window: {}", fmt_int(windowId));
+
+  if (gap_vector_equal(window->cursor, newPos)) {
+    return;
+  }
+  window->cursor = newPos;
+  window->flags |= GapPalWindowFlags_CursorMoved;
 }
 
 GapPal* gap_pal_create(Allocator* alloc) {
@@ -175,6 +185,11 @@ void gap_pal_update(GapPal* pal) {
       const xcb_configure_notify_event_t* configureMsg = (const void*)evt;
       const GapVector newSize = gap_vector(configureMsg->width, configureMsg->height);
       gap_pal_event_resize(pal, configureMsg->window, newSize);
+    } break;
+    case XCB_MOTION_NOTIFY: {
+      const xcb_motion_notify_event_t* motionMsg = (const void*)evt;
+      const GapVector                  newPos = gap_vector(motionMsg->event_x, motionMsg->event_y);
+      gap_pal_event_cursor(pal, motionMsg->event, newPos);
     } break;
     }
   }
@@ -255,6 +270,12 @@ GapVector gap_pal_window_size(const GapPal* pal, const GapWindowId windowId) {
   const GapPalWindow* window = pal_window((GapPal*)pal, windowId);
   diag_assert_msg(window, "Unknown window: {}", fmt_int(windowId));
   return window->size;
+}
+
+GapVector gap_pal_window_cursor(const GapPal* pal, const GapWindowId windowId) {
+  const GapPalWindow* window = pal_window((GapPal*)pal, windowId);
+  diag_assert_msg(window, "Unknown window: {}", fmt_int(windowId));
+  return window->cursor;
 }
 
 void gap_pal_window_title_set(GapPal* pal, const GapWindowId windowId, const String title) {

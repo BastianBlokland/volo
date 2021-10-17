@@ -16,7 +16,7 @@ ecs_comp_define(GapPlatformComp) { GapPal* pal; };
 
 ecs_comp_define(GapWindowComp) {
   GapWindowId       id;
-  GapVector         size;
+  GapVector         size, cursor;
   String            title;
   GapWindowFlags    flags;
   GapWindowEvents   events;
@@ -73,6 +73,10 @@ static void window_update(
   if (palFlags & GapPalWindowFlags_Resized) {
     window->size = gap_pal_window_size(platform->pal, window->id);
     window->events |= GapWindowEvents_Resized;
+  }
+  if (palFlags & GapPalWindowFlags_CursorMoved) {
+    window->cursor = gap_pal_window_cursor(platform->pal, window->id);
+    window->events |= GapWindowEvents_CursorMoved;
   }
 
   if (window_should_close(window)) {
@@ -152,3 +156,5 @@ void gap_window_title_set(GapWindowComp* window, const String newTitle) {
 }
 
 GapVector gap_window_size(const GapWindowComp* comp) { return comp->size; }
+
+GapVector gap_window_cursor(const GapWindowComp* comp) { return comp->cursor; }

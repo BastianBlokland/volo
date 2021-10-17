@@ -39,9 +39,10 @@ static int run_app() {
     gap_window_title_set(
         windowComp,
         fmt_write_scratch(
-            "Hello world - {} ({})",
+            "Hello world - {} (size: {}, cursor: {})",
             fmt_int(tickCount),
-            gap_vector_fmt(gap_window_size(windowComp))));
+            gap_vector_fmt(gap_window_size(windowComp)),
+            gap_vector_fmt(gap_window_cursor(windowComp))));
 
     ecs_run_sync(runner);
 
