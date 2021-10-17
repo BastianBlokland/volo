@@ -3,15 +3,20 @@
 #include "core_string.h"
 #include "gap_vector.h"
 
+#include "input_internal.h"
+
 typedef u32 GapWindowId;
 
 typedef enum {
   GapPalWindowFlags_CloseRequested = 1 << 0,
   GapPalWindowFlags_Resized        = 1 << 1,
   GapPalWindowFlags_CursorMoved    = 1 << 2,
+  GapPalWindowFlags_KeyPressed     = 1 << 3,
+  GapPalWindowFlags_KeyReleased    = 1 << 4,
 
-  GapPalWindowFlags_Volatile =
-      GapPalWindowFlags_CloseRequested | GapPalWindowFlags_Resized | GapPalWindowFlags_CursorMoved,
+  GapPalWindowFlags_Volatile = GapPalWindowFlags_CloseRequested | GapPalWindowFlags_Resized |
+                               GapPalWindowFlags_CursorMoved | GapPalWindowFlags_KeyPressed |
+                               GapPalWindowFlags_KeyReleased,
 } GapPalWindowFlags;
 
 typedef struct sGapPal GapPal;
@@ -24,4 +29,6 @@ void              gap_pal_window_destroy(GapPal*, GapWindowId);
 GapPalWindowFlags gap_pal_window_flags(const GapPal*, GapWindowId);
 GapVector         gap_pal_window_size(const GapPal*, GapWindowId);
 GapVector         gap_pal_window_cursor(const GapPal*, GapWindowId);
+const GapKeySet*  gap_pal_window_keys_pressed(const GapPal*, GapWindowId);
+const GapKeySet*  gap_pal_window_keys_released(const GapPal*, GapWindowId);
 void              gap_pal_window_title_set(GapPal*, GapWindowId, String);

@@ -6,7 +6,6 @@
 #include "pal_internal.h"
 
 typedef enum {
-  GapWindowRequests_None        = 0,
   GapWindowRequests_Create      = 1 << 0,
   GapWindowRequests_Close       = 1 << 1,
   GapWindowRequests_UpdateTitle = 1 << 2,
@@ -20,6 +19,7 @@ ecs_comp_define(GapWindowComp) {
   GapWindowFlags    flags : 16;
   GapWindowEvents   events : 16;
   GapWindowRequests requests : 16;
+  GapKeySet         keysPressed, keysReleased, keysDown;
   String            title;
 };
 
@@ -56,7 +56,7 @@ static void window_update(
     const EcsEntityId windowEntity) {
 
   // Clear the events of the previous tick.
-  window->events = GapWindowEvents_None;
+  window->events = 0;
 
   if (window->requests & GapWindowRequests_Create) {
     window->id = gap_pal_window_create(platform->pal, window->size);
@@ -78,6 +78,20 @@ static void window_update(
     window->cursor = gap_pal_window_cursor(platform->pal, window->id);
     window->events |= GapWindowEvents_CursorMoved;
   }
+  if (palFlags & GapPalWindowFlags_KeyPressed) {
+    window->keysPressed = *gap_pal_window_keys_pressed(platform->pal, window->id);
+    gap_keyset_set_all(&window->keysDown, &window->keysPressed);
+    window->events |= GapWindowEvents_KeyPressed;
+  } else {
+    gap_keyset_clear(&window->keysPressed);
+  }
+  if (palFlags & GapPalWindowFlags_KeyReleased) {
+    window->keysReleased = *gap_pal_window_keys_released(platform->pal, window->id);
+    gap_keyset_unset_all(&window->keysDown, &window->keysReleased);
+    window->events |= GapWindowEvents_KeyReleased;
+  } else {
+    gap_keyset_clear(&window->keysReleased);
+  }
 
   if (window_should_close(window)) {
     gap_pal_window_destroy(platform->pal, window->id);
@@ -86,7 +100,7 @@ static void window_update(
   }
 
   // All requests have been handled.
-  window->requests = GapWindowRequests_None;
+  window->requests = 0;
 }
 
 ecs_view_define(GapPlatformView) { ecs_access_write(GapPlatformComp); };
@@ -158,3 +172,15 @@ void gap_window_title_set(GapWindowComp* window, const String newTitle) {
 GapVector gap_window_size(const GapWindowComp* comp) { return comp->size; }
 
 GapVector gap_window_cursor(const GapWindowComp* comp) { return comp->cursor; }
+
+bool gap_window_pressed(const GapWindowComp* comp, const GapKey key) {
+  return gap_keyset_test(&comp->keysPressed, key);
+}
+
+bool gap_window_released(const GapWindowComp* comp, const GapKey key) {
+  return gap_keyset_test(&comp->keysReleased, key);
+}
+
+bool gap_window_down(const GapWindowComp* comp, const GapKey key) {
+  return gap_keyset_test(&comp->keysDown, key);
+}

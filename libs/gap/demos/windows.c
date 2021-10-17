@@ -29,7 +29,7 @@ static int run_app() {
   TimeDuration     time           = 0;
   u64              tickCount      = 0;
 
-  const EcsEntityId window = gap_window_open(world, GapWindowFlags_Default, gap_vector(640, 480));
+  const EcsEntityId window = gap_window_open(world, GapWindowFlags_Default, gap_vector(800, 600));
   ecs_world_flush(world);
 
   EcsIterator* windowItr = ecs_view_itr(ecs_world_view_t(world, UpdateWindowView));
@@ -39,10 +39,15 @@ static int run_app() {
     gap_window_title_set(
         windowComp,
         fmt_write_scratch(
-            "Hello world - {} (size: {}, cursor: {})",
+            "Hello world - {} (size: {}, cursor: {}, click: {})",
             fmt_int(tickCount),
             gap_vector_fmt(gap_window_size(windowComp)),
-            gap_vector_fmt(gap_window_cursor(windowComp))));
+            gap_vector_fmt(gap_window_cursor(windowComp)),
+            fmt_bool(gap_window_down(windowComp, GapKey_MouseLeft))));
+
+    if (gap_window_pressed(windowComp, GapKey_Escape)) {
+      gap_window_close(windowComp);
+    }
 
     ecs_run_sync(runner);
 

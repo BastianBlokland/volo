@@ -10,6 +10,7 @@ typedef struct {
   GapWindowId       id;
   GapVector         size, cursor;
   GapPalWindowFlags flags : 16;
+  GapKeySet         keysPressed, keysReleased;
 } GapPalWindow;
 
 struct sGapPal {
@@ -36,12 +37,15 @@ static GapPalWindow* pal_window(GapPal* pal, const GapWindowId id) {
       return window;
     }
   });
-  return null;
+  diag_crash_msg("Unknown window: {}", fmt_int(id));
 }
 
-static void pal_clear_volatile_flags(GapPal* pal) {
-  dynarray_for_t(
-      &pal->windows, GapPalWindow, window, { window->flags &= ~GapPalWindowFlags_Volatile; });
+static void pal_clear_volatile(GapPal* pal) {
+  dynarray_for_t(&pal->windows, GapPalWindow, window, {
+    gap_keyset_clear(&window->keysPressed);
+    gap_keyset_clear(&window->keysReleased);
+    window->flags &= ~GapPalWindowFlags_Volatile;
+  });
 }
 
 static String pal_xcb_err_str(const int xcbErrCode) {
@@ -61,6 +65,114 @@ static String pal_xcb_err_str(const int xcbErrCode) {
   default:
     return string_lit("Unknown error");
   }
+}
+
+static GapKey pal_xcb_translate_key(const xcb_keycode_t key) {
+  switch (key) {
+  case 0x32:
+  case 0x3E:
+    return GapKey_Shift;
+  case 0x25:
+  case 0x69:
+    return GapKey_Control;
+  case 0x16:
+    return GapKey_Backspace;
+  case 0x77:
+    return GapKey_Delete;
+  case 0x17:
+    return GapKey_Tab;
+  case 0x31:
+    return GapKey_Tilde;
+  case 0x24:
+    return GapKey_Return;
+  case 0x9:
+    return GapKey_Escape;
+  case 0x41:
+    return GapKey_Space;
+  case 0x6F:
+    return GapKey_ArrowUp;
+  case 0x74:
+    return GapKey_ArrowDown;
+  case 0x72:
+    return GapKey_ArrowRight;
+  case 0x71:
+    return GapKey_ArrowLeft;
+
+  case 0x26:
+    return GapKey_A;
+  case 0x38:
+    return GapKey_B;
+  case 0x36:
+    return GapKey_C;
+  case 0x28:
+    return GapKey_D;
+  case 0x1A:
+    return GapKey_E;
+  case 0x29:
+    return GapKey_F;
+  case 0x2A:
+    return GapKey_G;
+  case 0x2B:
+    return GapKey_H;
+  case 0x1F:
+    return GapKey_I;
+  case 0x2C:
+    return GapKey_J;
+  case 0x2D:
+    return GapKey_K;
+  case 0x2E:
+    return GapKey_L;
+  case 0x3A:
+    return GapKey_M;
+  case 0x39:
+    return GapKey_N;
+  case 0x20:
+    return GapKey_O;
+  case 0x21:
+    return GapKey_P;
+  case 0x18:
+    return GapKey_Q;
+  case 0x1B:
+    return GapKey_R;
+  case 0x27:
+    return GapKey_S;
+  case 0x1C:
+    return GapKey_T;
+  case 0x1E:
+    return GapKey_U;
+  case 0x37:
+    return GapKey_V;
+  case 0x19:
+    return GapKey_W;
+  case 0x35:
+    return GapKey_X;
+  case 0x1D:
+    return GapKey_Y;
+  case 0x34:
+    return GapKey_Z;
+
+  case 0x13:
+    return GapKey_Alpha0;
+  case 0xA:
+    return GapKey_Alpha1;
+  case 0xB:
+    return GapKey_Alpha2;
+  case 0xC:
+    return GapKey_Alpha3;
+  case 0xD:
+    return GapKey_Alpha4;
+  case 0xE:
+    return GapKey_Alpha5;
+  case 0xF:
+    return GapKey_Alpha6;
+  case 0x10:
+    return GapKey_Alpha7;
+  case 0x11:
+    return GapKey_Alpha8;
+  case 0x12:
+    return GapKey_Alpha9;
+  }
+  return GapKey_None;
 }
 
 static void pal_xcb_check_con(GapPal* pal) {
@@ -130,14 +242,11 @@ static void gap_pal_xcb_disconnect(GapPal* pal) {
 
 static void gap_pal_event_close(GapPal* pal, const GapWindowId windowId) {
   GapPalWindow* window = pal_window(pal, windowId);
-  diag_assert_msg(window, "Unknown window: {}", fmt_int(windowId));
   window->flags |= GapPalWindowFlags_CloseRequested;
 }
 
 static void gap_pal_event_resize(GapPal* pal, const GapWindowId windowId, const GapVector newSize) {
   GapPalWindow* window = pal_window(pal, windowId);
-  diag_assert_msg(window, "Unknown window: {}", fmt_int(windowId));
-
   if (gap_vector_equal(window->size, newSize)) {
     return;
   }
@@ -149,13 +258,27 @@ static void gap_pal_event_resize(GapPal* pal, const GapWindowId windowId, const 
 
 static void gap_pal_event_cursor(GapPal* pal, const GapWindowId windowId, const GapVector newPos) {
   GapPalWindow* window = pal_window(pal, windowId);
-  diag_assert_msg(window, "Unknown window: {}", fmt_int(windowId));
-
   if (gap_vector_equal(window->cursor, newPos)) {
     return;
   }
   window->cursor = newPos;
   window->flags |= GapPalWindowFlags_CursorMoved;
+}
+
+static void gap_pal_event_press(GapPal* pal, const GapWindowId windowId, const GapKey key) {
+  GapPalWindow* window = pal_window(pal, windowId);
+  if (key != GapKey_None) {
+    gap_keyset_set(&window->keysPressed, key);
+    window->flags |= GapPalWindowFlags_KeyPressed;
+  }
+}
+
+static void gap_pal_event_release(GapPal* pal, const GapWindowId windowId, const GapKey key) {
+  GapPalWindow* window = pal_window(pal, windowId);
+  if (key != GapKey_None) {
+    gap_keyset_set(&window->keysReleased, key);
+    window->flags |= GapPalWindowFlags_KeyReleased;
+  }
 }
 
 GapPal* gap_pal_create(Allocator* alloc) {
@@ -179,25 +302,70 @@ void gap_pal_destroy(GapPal* pal) {
 
 void gap_pal_update(GapPal* pal) {
 
-  pal_clear_volatile_flags(pal);
+  // Clear volatile state, like the key-presses from the previous update.
+  pal_clear_volatile(pal);
 
+  // Handle all xcb events in the buffer.
   for (xcb_generic_event_t* evt; (evt = xcb_poll_for_event(pal->xcbConnection)); free(evt)) {
     switch (evt->response_type & ~0x80) {
+
     case XCB_CLIENT_MESSAGE: {
       const xcb_client_message_event_t* clientMsg = (const void*)evt;
       if (clientMsg->data.data32[0] == pal->xcbDeleteMsgAtom) {
         gap_pal_event_close(pal, clientMsg->window);
       }
     } break;
+
     case XCB_CONFIGURE_NOTIFY: {
       const xcb_configure_notify_event_t* configureMsg = (const void*)evt;
       const GapVector newSize = gap_vector(configureMsg->width, configureMsg->height);
       gap_pal_event_resize(pal, configureMsg->window, newSize);
     } break;
+
     case XCB_MOTION_NOTIFY: {
       const xcb_motion_notify_event_t* motionMsg = (const void*)evt;
       const GapVector                  newPos = gap_vector(motionMsg->event_x, motionMsg->event_y);
       gap_pal_event_cursor(pal, motionMsg->event, newPos);
+    } break;
+
+    case XCB_BUTTON_PRESS: {
+      const xcb_button_press_event_t* pressMsg = (const void*)evt;
+      switch (pressMsg->detail) {
+      case XCB_BUTTON_INDEX_1:
+        gap_pal_event_press(pal, pressMsg->event, GapKey_MouseLeft);
+        break;
+      case XCB_BUTTON_INDEX_2:
+        gap_pal_event_press(pal, pressMsg->event, GapKey_MouseMiddle);
+        break;
+      case XCB_BUTTON_INDEX_3:
+        gap_pal_event_press(pal, pressMsg->event, GapKey_MouseRight);
+        break;
+      }
+    } break;
+
+    case XCB_BUTTON_RELEASE: {
+      const xcb_button_release_event_t* releaseMsg = (const void*)evt;
+      switch (releaseMsg->detail) {
+      case XCB_BUTTON_INDEX_1:
+        gap_pal_event_release(pal, releaseMsg->event, GapKey_MouseLeft);
+        break;
+      case XCB_BUTTON_INDEX_2:
+        gap_pal_event_release(pal, releaseMsg->event, GapKey_MouseMiddle);
+        break;
+      case XCB_BUTTON_INDEX_3:
+        gap_pal_event_release(pal, releaseMsg->event, GapKey_MouseRight);
+        break;
+      }
+    } break;
+
+    case XCB_KEY_PRESS: {
+      const xcb_key_press_event_t* pressMsg = (const void*)evt;
+      gap_pal_event_press(pal, pressMsg->event, pal_xcb_translate_key(pressMsg->detail));
+    } break;
+
+    case XCB_KEY_RELEASE: {
+      const xcb_key_release_event_t* releaseMsg = (const void*)evt;
+      gap_pal_event_release(pal, releaseMsg->event, pal_xcb_translate_key(releaseMsg->detail));
     } break;
     }
   }
@@ -269,21 +437,23 @@ void gap_pal_window_destroy(GapPal* pal, const GapWindowId window) {
 }
 
 GapPalWindowFlags gap_pal_window_flags(const GapPal* pal, const GapWindowId windowId) {
-  const GapPalWindow* window = pal_window((GapPal*)pal, windowId);
-  diag_assert_msg(window, "Unknown window: {}", fmt_int(windowId));
-  return window->flags;
+  return pal_window((GapPal*)pal, windowId)->flags;
 }
 
 GapVector gap_pal_window_size(const GapPal* pal, const GapWindowId windowId) {
-  const GapPalWindow* window = pal_window((GapPal*)pal, windowId);
-  diag_assert_msg(window, "Unknown window: {}", fmt_int(windowId));
-  return window->size;
+  return pal_window((GapPal*)pal, windowId)->size;
 }
 
 GapVector gap_pal_window_cursor(const GapPal* pal, const GapWindowId windowId) {
-  const GapPalWindow* window = pal_window((GapPal*)pal, windowId);
-  diag_assert_msg(window, "Unknown window: {}", fmt_int(windowId));
-  return window->cursor;
+  return pal_window((GapPal*)pal, windowId)->cursor;
+}
+
+const GapKeySet* gap_pal_window_keys_pressed(const GapPal* pal, const GapWindowId windowId) {
+  return &pal_window((GapPal*)pal, windowId)->keysPressed;
+}
+
+const GapKeySet* gap_pal_window_keys_released(const GapPal* pal, const GapWindowId windowId) {
+  return &pal_window((GapPal*)pal, windowId)->keysReleased;
 }
 
 void gap_pal_window_title_set(GapPal* pal, const GapWindowId windowId, const String title) {

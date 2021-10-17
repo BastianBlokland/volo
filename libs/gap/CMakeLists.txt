@@ -5,6 +5,7 @@
 message(STATUS "> library: gap")
 
 add_library(volo_gap STATIC
+  src/input.c
   src/pal.c
   src/register.c
   src/window.c)
