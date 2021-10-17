@@ -11,9 +11,14 @@
 
 #define app_frequency 30
 
+ecs_view_define(UpdateWindowView) { ecs_access_write(GapWindowComp); }
+
+ecs_module_init(app_module) { ecs_register_view(UpdateWindowView); }
+
 static int run_app() {
   EcsDef* def = def = ecs_def_create(g_alloc_heap);
   gap_register(def);
+  ecs_register_module(def, app_module);
 
   EcsWorld*  world  = ecs_world_create(g_alloc_heap, def);
   EcsRunner* runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_DumpGraphDot);
@@ -24,9 +29,15 @@ static int run_app() {
   TimeDuration     time           = 0;
   u64              tickCount      = 0;
 
-  const EcsEntityId window = gap_window_open(world, GapWindowFlags_Default);
+  const EcsEntityId window = gap_window_open(world, GapWindowFlags_Default, 640, 480);
+  ecs_world_flush(world);
+
+  EcsIterator* windowItr = ecs_view_itr(ecs_world_view_t(world, UpdateWindowView));
 
   while (ecs_world_exists(world, window)) {
+    GapWindowComp* windowComp = ecs_view_write_t(ecs_view_jump(windowItr, window), GapWindowComp);
+    gap_window_title_set(windowComp, fmt_write_scratch("Hello world - {}", fmt_int(tickCount)));
+
     ecs_run_sync(runner);
 
     thread_sleep(time_second / app_frequency);

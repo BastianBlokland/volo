@@ -207,3 +207,16 @@ void gap_pal_window_destroy(GapPal* pal, const GapWindowId window) {
 
   log_i("Window destroyed", log_param("id", fmt_int(window)));
 }
+
+void gap_pal_window_title_set(GapPal* pal, const GapWindowId window, const String title) {
+  xcb_change_property(
+      pal->xcbConnection,
+      XCB_PROP_MODE_REPLACE,
+      window,
+      XCB_ATOM_WM_NAME,
+      XCB_ATOM_STRING,
+      8,
+      title.size,
+      title.ptr);
+  xcb_flush(pal->xcbConnection);
+}

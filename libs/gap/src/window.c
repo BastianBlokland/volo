@@ -6,15 +6,18 @@
 #include "pal_internal.h"
 
 typedef enum {
-  GapWindowRequests_None   = 0,
-  GapWindowRequests_Create = 1 << 0,
-  GapWindowRequests_Close  = 1 << 1,
+  GapWindowRequests_None        = 0,
+  GapWindowRequests_Create      = 1 << 0,
+  GapWindowRequests_Close       = 1 << 1,
+  GapWindowRequests_UpdateTitle = 1 << 2,
 } GapWindowRequests;
 
 ecs_comp_define(GapPlatformComp) { GapPal* pal; };
 
 ecs_comp_define(GapWindowComp) {
   GapWindowId       id;
+  u32               initialWidth, initialHeight;
+  String            title;
   GapWindowFlags    flags;
   GapWindowEvents   events;
   GapWindowRequests requests;
@@ -23,6 +26,13 @@ ecs_comp_define(GapWindowComp) {
 static void ecs_destruct_platform_comp(void* data) {
   GapPlatformComp* comp = data;
   gap_pal_destroy(comp->pal);
+}
+
+static void ecs_destruct_window_comp(void* data) {
+  GapWindowComp* comp = data;
+  if (!string_is_empty(comp->title)) {
+    string_free(g_alloc_heap, comp->title);
+  }
 }
 
 static bool window_should_close(GapWindowComp* window) {
@@ -45,7 +55,11 @@ static void window_update(
   window->events = GapWindowEvents_None;
 
   if (window->requests & GapWindowRequests_Create) {
-    window->id = gap_pal_window_create(platform->pal, 640, 480);
+    window->id = gap_pal_window_create(platform->pal, window->initialWidth, window->initialHeight);
+  }
+  if (window->requests & GapWindowRequests_UpdateTitle) {
+    gap_pal_window_title_set(platform->pal, window->id, window->title);
+    window->events |= GapWindowEvents_TitleUpdated;
   }
 
   if (window_should_close(window)) {
@@ -83,7 +97,7 @@ ecs_system_define(GapUpdateSys) {
 }
 
 ecs_module_init(gap_window_module) {
-  ecs_register_comp(GapWindowComp);
+  ecs_register_comp(GapWindowComp, .destructor = ecs_destruct_window_comp);
   ecs_register_comp(GapPlatformComp, .destructor = ecs_destruct_platform_comp);
 
   ecs_register_view(GapPlatformView);
@@ -92,18 +106,31 @@ ecs_module_init(gap_window_module) {
   ecs_register_system(GapUpdateSys, ecs_view_id(GapPlatformView), ecs_view_id(GapWindowView));
 }
 
-EcsEntityId gap_window_open(EcsWorld* world, const GapWindowFlags flags) {
+EcsEntityId
+gap_window_open(EcsWorld* world, const GapWindowFlags flags, const u32 width, const u32 height) {
   const EcsEntityId windowEntity = ecs_world_entity_create(world);
   ecs_world_add_t(
       world,
       windowEntity,
       GapWindowComp,
-      .id       = sentinel_u32,
-      .flags    = flags,
-      .requests = GapWindowRequests_Create);
+      .id            = sentinel_u32,
+      .initialWidth  = width,
+      .initialHeight = height,
+      .flags         = flags,
+      .requests      = GapWindowRequests_Create);
   return windowEntity;
 }
 
 void gap_window_close(GapWindowComp* window) { window->requests |= GapWindowRequests_Close; }
 
 GapWindowEvents gap_window_events(const GapWindowComp* window) { return window->events; }
+
+String gap_window_title_get(GapWindowComp* window) { return window->title; }
+
+void gap_window_title_set(GapWindowComp* window, const String newTitle) {
+  if (!string_is_empty(window->title)) {
+    string_free(g_alloc_heap, window->title);
+  }
+  window->title = string_is_empty(newTitle) ? string_empty : string_dup(g_alloc_heap, newTitle);
+  window->requests |= GapWindowRequests_UpdateTitle;
+}
