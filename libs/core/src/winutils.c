@@ -103,7 +103,7 @@ String winutils_error_msg_scratch(unsigned long errCode) {
       errCode,
       MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
       (wchar_t*)buffer.ptr,
-      buffer.size / sizeof(wchar_t),
+      (DWORD)(buffer.size / sizeof(wchar_t)),
       null);
   if (UNLIKELY(chars == 0)) {
     diag_crash_msg("Failed to format win32 error-code: {}", fmt_int((u64)errCode));

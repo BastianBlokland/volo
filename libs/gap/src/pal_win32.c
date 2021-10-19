@@ -519,11 +519,16 @@ const GapKeySet* gap_pal_window_keys_down(const GapPal* pal, const GapWindowId w
 }
 
 void gap_pal_window_title_set(GapPal* pal, const GapWindowId windowId, const String title) {
-
-  // SetWindowText(windowId, title.data());
   (void)pal;
-  (void)windowId;
-  (void)title;
+
+  const Mem titleWideStr = winutils_to_widestr_scratch(title);
+  if (UNLIKELY(!SetWindowText((HWND)windowId, (const wchar_t*)titleWideStr.ptr))) {
+    const DWORD err = GetLastError();
+    diag_crash_msg(
+        "Failed to update window-title, error: {}, {}",
+        fmt_int((u64)err),
+        fmt_text(winutils_error_msg_scratch(err)));
+  }
 }
 
 void gap_pal_window_resize(
