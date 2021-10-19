@@ -517,7 +517,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 
 void gap_pal_window_destroy(GapPal* pal, const GapWindowId windowId) {
 
-  xcb_destroy_window(pal->xcbConnection, window);
+  xcb_destroy_window(pal->xcbConnection, windowId);
   xcb_flush(pal->xcbConnection);
 
   for (usize i = 0; i != pal->windows.size; ++i) {
