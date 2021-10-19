@@ -104,7 +104,7 @@ static JsonVal dbgsetup_vscode_gen_attach_entry(DbgSetupCtx* ctx, JsonDoc* doc, 
   json_add_field_str(doc, obj, string_lit("request"), json_add_string_lit(doc, "attach"));
   json_add_field_str(doc, obj, string_lit("program"), json_add_string(doc, target));
   json_add_field_str(
-      doc, obj, string_lit("pid"), json_add_string_lit(doc, "${command:pickMyProcess}"));
+      doc, obj, string_lit("processId"), json_add_string_lit(doc, "${command:pickProcess}"));
   return obj;
 }
 
