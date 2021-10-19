@@ -378,9 +378,8 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 
   // Generate a unique class name for the window and convert it to a unicode string.
   const String classNameUtf8 = fmt_write_scratch("volo_{}", fmt_int(rng_sample_u32(g_rng)));
-  const usize  classNameSize = winutils_to_widestr_size(classNameUtf8);
-  const Mem    className     = alloc_alloc(pal->alloc, classNameSize, 1);
-  winutils_to_widestr(className, classNameUtf8);
+  const Mem    className =
+      alloc_dup(pal->alloc, winutils_to_widestr_scratch(classNameUtf8), alignof(wchar_t));
 
   const i32 screenWidth  = GetSystemMetrics(SM_CXSCREEN);
   const i32 screenHeight = GetSystemMetrics(SM_CYSCREEN);

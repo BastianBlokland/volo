@@ -1,3 +1,4 @@
+#include "core_alloc.h"
 #include "core_diag.h"
 #include "core_sentinel.h"
 #include "core_winutils.h"
@@ -37,6 +38,16 @@ usize winutils_to_widestr(Mem output, String input) {
   return wideChars;
 }
 
+Mem winutils_to_widestr_scratch(String input) {
+  const usize size = winutils_to_widestr_size(input);
+  if (UNLIKELY(sentinel_check(size))) {
+    diag_crash_msg("winutils_to_widestr_scratch: Input is not valid utf8");
+  }
+  Mem result = alloc_alloc(g_alloc_scratch, size, 1);
+  winutils_to_widestr(result, input);
+  return result;
+}
+
 usize winutils_from_widestr_size(void* input, usize inputCharCount) {
   diag_assert_msg(inputCharCount, "Zero characters provided to winutils_from_widestr_size");
 
@@ -71,6 +82,16 @@ usize winutils_from_widestr(String output, void* input, usize inputCharCount) {
     return sentinel_usize;
   }
   return chars;
+}
+
+String winutils_from_widestr_scratch(void* input, usize inputCharCount) {
+  const usize size = winutils_from_widestr_size(input, inputCharCount);
+  if (UNLIKELY(sentinel_check(size))) {
+    diag_crash_msg("winutils_from_widestr_scratch: Input cannot be represented as utf8");
+  }
+  String result = alloc_alloc(g_alloc_scratch, size, 1);
+  winutils_from_widestr(result, input, inputCharCount);
+  return result;
 }
 
 #endif

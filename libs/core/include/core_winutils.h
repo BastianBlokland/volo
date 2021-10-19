@@ -23,6 +23,15 @@ usize winutils_to_widestr_size(String input);
 usize winutils_to_widestr(Mem output, String input);
 
 /**
+ * Convert a string (assumed to be utf8) to a null-terminated wide string (as is commonly used in
+ * win32 apis) allocated in scratch memory.
+ *
+ * Pre-condition: !string_is_empty(input)
+ * Pre-condition: input is valid utf8.
+ */
+Mem winutils_to_widestr_scratch(String input);
+
+/**
  * Returns the size (in bytes) required to store the input wide string (as is commonly used in
  * win32 apis) as utf8.
  * NOTE: Returns 'sentinel_usize' if the input cannot be represented as utf8.
@@ -40,5 +49,14 @@ usize winutils_from_widestr_size(void* input, usize inputCharCount);
  * Pre-condition: inputCharCount != 0
  */
 usize winutils_from_widestr(String output, void* input, usize inputCharCount);
+
+/**
+ * Convert a wide string (as is commonly used in win32 apis) to a string (encoded as utf8) allocated
+ * in scratch memory.
+ *
+ * Pre-condition: inputCharCount != 0
+ * Pre-condition: input can be represented as utf8.
+ */
+String winutils_from_widestr_scratch(void* input, usize inputCharCount);
 
 #endif
