@@ -75,7 +75,11 @@ static RECT pal_client_to_window_rect(const GapVector clientSize, const DWORD st
 static RECT pal_client_rect(const GapWindowId windowId) {
   RECT clientRect;
   if (!GetClientRect((HWND)windowId, &clientRect)) {
-    diag_crash_msg("Failed to retrieve the client rect, error: {}", fmt_int((u64)GetLastError()));
+    const DWORD err = GetLastError();
+    diag_crash_msg(
+        "Failed to retrieve the client rect, error: {}, {}",
+        fmt_int((u64)err),
+        fmt_text(winutils_error_msg_scratch(err)));
   }
   return clientRect;
 }
@@ -83,7 +87,11 @@ static RECT pal_client_rect(const GapWindowId windowId) {
 static RECT pal_window_rect(const GapWindowId windowId) {
   RECT windowRect;
   if (!GetWindowRect((HWND)windowId, &windowRect)) {
-    diag_crash_msg("Failed to retrieve the window rect, error: {}", fmt_int((u64)GetLastError()));
+    const DWORD err = GetLastError();
+    diag_crash_msg(
+        "Failed to retrieve the window rect, error: {}, {}",
+        fmt_int((u64)err),
+        fmt_text(winutils_error_msg_scratch(err)));
   }
   return windowRect;
 }
@@ -333,8 +341,11 @@ GapPal* gap_pal_create(Allocator* alloc) {
 
   HMODULE instance = GetModuleHandle(null);
   if (!instance) {
+    const DWORD err = GetLastError();
     diag_crash_msg(
-        "Failed to retrieve the win32 module-handle, error: {}", fmt_int((u64)GetLastError()));
+        "Failed to retrieve the win32 module-handle, error: {}, {}",
+        fmt_int((u64)err),
+        fmt_text(winutils_error_msg_scratch(err)));
   }
 
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
@@ -404,8 +415,11 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   };
 
   if (!RegisterClassEx(&winClass)) {
+    const DWORD err = GetLastError();
     diag_crash_msg(
-        "Failed to register a win32 window-class, error: {}", fmt_int((u64)GetLastError()));
+        "Failed to register a win32 window-class, error: {}, {}",
+        fmt_int((u64)err),
+        fmt_text(winutils_error_msg_scratch(err)));
   }
 
   const RECT desiredWindowRect = pal_client_to_window_rect(size, g_winStyle);
@@ -423,7 +437,11 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       (void*)pal);
 
   if (!windowHandle) {
-    diag_crash_msg("Failed to create a win32 window, error: {}", fmt_int((u64)GetLastError()));
+    const DWORD err = GetLastError();
+    diag_crash_msg(
+        "Failed to create a win32 window, error: {}, {}",
+        fmt_int((u64)err),
+        fmt_text(winutils_error_msg_scratch(err)));
   }
 
   const GapWindowId id = (GapWindowId)windowHandle;

@@ -94,4 +94,21 @@ String winutils_from_widestr_scratch(void* input, usize inputCharCount) {
   return result;
 }
 
+String winutils_error_msg_scratch(unsigned long errCode) {
+  Mem buffer = alloc_alloc(g_alloc_scratch, 2 * usize_kibibyte, 1);
+
+  const DWORD chars = FormatMessage(
+      FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+      null,
+      errCode,
+      MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+      (wchar_t*)buffer.ptr,
+      buffer.size / sizeof(wchar_t),
+      null);
+  if (UNLIKELY(chars == 0)) {
+    diag_crash_msg("Failed to format win32 error-code: {}", fmt_int((u64)errCode));
+  }
+  return winutils_from_widestr_scratch(buffer.ptr, chars);
+}
+
 #endif
