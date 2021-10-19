@@ -1,11 +1,14 @@
 #pragma once
 #include "core_alloc.h"
+#include "core_annotation.h"
 #include "core_string.h"
 #include "gap_vector.h"
 
 #include "input_internal.h"
 
-typedef u32 GapWindowId;
+typedef u64 GapWindowId;
+
+ASSERT(sizeof(GapWindowId) >= sizeof(uptr), "GapWindowId needs to be capable of storing pointers")
 
 typedef enum {
   GapPalWindowFlags_CloseRequested = 1 << 0,

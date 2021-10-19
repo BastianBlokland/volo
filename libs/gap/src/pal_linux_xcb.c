@@ -301,12 +301,12 @@ static bool pal_xkb_init(GapPal* pal) {
   return true;
 }
 
-static void gap_pal_event_close(GapPal* pal, const GapWindowId windowId) {
+static void pal_event_close(GapPal* pal, const GapWindowId windowId) {
   GapPalWindow* window = pal_window(pal, windowId);
   window->flags |= GapPalWindowFlags_CloseRequested;
 }
 
-static void gap_pal_event_resize(GapPal* pal, const GapWindowId windowId, const GapVector newSize) {
+static void pal_event_resize(GapPal* pal, const GapWindowId windowId, const GapVector newSize) {
   GapPalWindow* window = pal_window(pal, windowId);
   if (gap_vector_equal(window->params[GapParam_WindowSize], newSize)) {
     return;
@@ -317,7 +317,7 @@ static void gap_pal_event_resize(GapPal* pal, const GapWindowId windowId, const 
   log_d("Window resized", log_param("size", gap_vector_fmt(newSize)));
 }
 
-static void gap_pal_event_cursor(GapPal* pal, const GapWindowId windowId, const GapVector newPos) {
+static void pal_event_cursor(GapPal* pal, const GapWindowId windowId, const GapVector newPos) {
   GapPalWindow* window = pal_window(pal, windowId);
   if (gap_vector_equal(window->params[GapParam_CursorPos], newPos)) {
     return;
@@ -326,7 +326,7 @@ static void gap_pal_event_cursor(GapPal* pal, const GapWindowId windowId, const 
   window->flags |= GapPalWindowFlags_CursorMoved;
 }
 
-static void gap_pal_event_press(GapPal* pal, const GapWindowId windowId, const GapKey key) {
+static void pal_event_press(GapPal* pal, const GapWindowId windowId, const GapKey key) {
   GapPalWindow* window = pal_window(pal, windowId);
   if (key != GapKey_None && !gap_keyset_test(&window->keysDown, key)) {
     gap_keyset_set(&window->keysPressed, key);
@@ -335,7 +335,7 @@ static void gap_pal_event_press(GapPal* pal, const GapWindowId windowId, const G
   }
 }
 
-static void gap_pal_event_release(GapPal* pal, const GapWindowId windowId, const GapKey key) {
+static void pal_event_release(GapPal* pal, const GapWindowId windowId, const GapKey key) {
   GapPalWindow* window = pal_window(pal, windowId);
   if (key != GapKey_None && gap_keyset_test(&window->keysDown, key)) {
     gap_keyset_set(&window->keysReleased, key);
@@ -344,7 +344,7 @@ static void gap_pal_event_release(GapPal* pal, const GapWindowId windowId, const
   }
 }
 
-static void gap_pal_event_scroll(GapPal* pal, const GapWindowId windowId, const GapVector delta) {
+static void pal_event_scroll(GapPal* pal, const GapWindowId windowId, const GapVector delta) {
   GapPalWindow* window = pal_window(pal, windowId);
   window->params[GapParam_ScrollDelta].x += delta.x;
   window->params[GapParam_ScrollDelta].y += delta.y;
@@ -395,45 +395,45 @@ void gap_pal_update(GapPal* pal) {
     case XCB_CLIENT_MESSAGE: {
       const xcb_client_message_event_t* clientMsg = (const void*)evt;
       if (clientMsg->data.data32[0] == pal->xcbDeleteMsgAtom) {
-        gap_pal_event_close(pal, clientMsg->window);
+        pal_event_close(pal, clientMsg->window);
       }
     } break;
 
     case XCB_CONFIGURE_NOTIFY: {
       const xcb_configure_notify_event_t* configureMsg = (const void*)evt;
       const GapVector newSize = gap_vector(configureMsg->width, configureMsg->height);
-      gap_pal_event_resize(pal, configureMsg->window, newSize);
+      pal_event_resize(pal, configureMsg->window, newSize);
     } break;
 
     case XCB_MOTION_NOTIFY: {
       const xcb_motion_notify_event_t* motionMsg = (const void*)evt;
       const GapVector                  newPos = gap_vector(motionMsg->event_x, motionMsg->event_y);
-      gap_pal_event_cursor(pal, motionMsg->event, newPos);
+      pal_event_cursor(pal, motionMsg->event, newPos);
     } break;
 
     case XCB_BUTTON_PRESS: {
       const xcb_button_press_event_t* pressMsg = (const void*)evt;
       switch (pressMsg->detail) {
       case XCB_BUTTON_INDEX_1:
-        gap_pal_event_press(pal, pressMsg->event, GapKey_MouseLeft);
+        pal_event_press(pal, pressMsg->event, GapKey_MouseLeft);
         break;
       case XCB_BUTTON_INDEX_2:
-        gap_pal_event_press(pal, pressMsg->event, GapKey_MouseMiddle);
+        pal_event_press(pal, pressMsg->event, GapKey_MouseMiddle);
         break;
       case XCB_BUTTON_INDEX_3:
-        gap_pal_event_press(pal, pressMsg->event, GapKey_MouseRight);
+        pal_event_press(pal, pressMsg->event, GapKey_MouseRight);
         break;
       case XCB_BUTTON_INDEX_4: // Mouse-wheel scroll up.
-        gap_pal_event_scroll(pal, pressMsg->event, gap_vector(0, 1));
+        pal_event_scroll(pal, pressMsg->event, gap_vector(0, 1));
         break;
       case XCB_BUTTON_INDEX_5: // Mouse-wheel scroll down.
-        gap_pal_event_scroll(pal, pressMsg->event, gap_vector(0, -1));
+        pal_event_scroll(pal, pressMsg->event, gap_vector(0, -1));
         break;
       case 6: // XCB_BUTTON_INDEX_6 // Mouse-wheel scroll right.
-        gap_pal_event_scroll(pal, pressMsg->event, gap_vector(1, 0));
+        pal_event_scroll(pal, pressMsg->event, gap_vector(1, 0));
         break;
       case 7: // XCB_BUTTON_INDEX_7 // Mouse-wheel scroll left.
-        gap_pal_event_scroll(pal, pressMsg->event, gap_vector(-1, 0));
+        pal_event_scroll(pal, pressMsg->event, gap_vector(-1, 0));
         break;
       }
     } break;
@@ -442,25 +442,25 @@ void gap_pal_update(GapPal* pal) {
       const xcb_button_release_event_t* releaseMsg = (const void*)evt;
       switch (releaseMsg->detail) {
       case XCB_BUTTON_INDEX_1:
-        gap_pal_event_release(pal, releaseMsg->event, GapKey_MouseLeft);
+        pal_event_release(pal, releaseMsg->event, GapKey_MouseLeft);
         break;
       case XCB_BUTTON_INDEX_2:
-        gap_pal_event_release(pal, releaseMsg->event, GapKey_MouseMiddle);
+        pal_event_release(pal, releaseMsg->event, GapKey_MouseMiddle);
         break;
       case XCB_BUTTON_INDEX_3:
-        gap_pal_event_release(pal, releaseMsg->event, GapKey_MouseRight);
+        pal_event_release(pal, releaseMsg->event, GapKey_MouseRight);
         break;
       }
     } break;
 
     case XCB_KEY_PRESS: {
       const xcb_key_press_event_t* pressMsg = (const void*)evt;
-      gap_pal_event_press(pal, pressMsg->event, pal_xcb_translate_key(pressMsg->detail));
+      pal_event_press(pal, pressMsg->event, pal_xcb_translate_key(pressMsg->detail));
     } break;
 
     case XCB_KEY_RELEASE: {
       const xcb_key_release_event_t* releaseMsg = (const void*)evt;
-      gap_pal_event_release(pal, releaseMsg->event, pal_xcb_translate_key(releaseMsg->detail));
+      pal_event_release(pal, releaseMsg->event, pal_xcb_translate_key(releaseMsg->detail));
     } break;
     }
   }
@@ -515,19 +515,19 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   return id;
 }
 
-void gap_pal_window_destroy(GapPal* pal, const GapWindowId window) {
+void gap_pal_window_destroy(GapPal* pal, const GapWindowId windowId) {
 
   xcb_destroy_window(pal->xcbConnection, window);
   xcb_flush(pal->xcbConnection);
 
   for (usize i = 0; i != pal->windows.size; ++i) {
-    if (dynarray_at_t(&pal->windows, i, GapPalWindow)->id == window) {
+    if (dynarray_at_t(&pal->windows, i, GapPalWindow)->id == windowId) {
       dynarray_remove_unordered(&pal->windows, i, 1);
       break;
     }
   }
 
-  log_i("Window destroyed", log_param("id", fmt_int(window)));
+  log_i("Window destroyed", log_param("id", fmt_int(windowId)));
 }
 
 GapPalWindowFlags gap_pal_window_flags(const GapPal* pal, const GapWindowId windowId) {

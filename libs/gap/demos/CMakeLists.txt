@@ -11,4 +11,4 @@ target_link_libraries(volo_gap_multi_window PRIVATE volo_gap)
 configure_debuggable(volo_gap_multi_window)
 
 # Register convenience targets for launching the demos.
-add_custom_target(demo.gap.windows COMMAND volo_gap_multi_window VERBATIM USES_TERMINAL)
+add_custom_target(demo.gap.multi_window COMMAND volo_gap_multi_window VERBATIM USES_TERMINAL)
