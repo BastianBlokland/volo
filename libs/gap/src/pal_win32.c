@@ -358,7 +358,7 @@ GapPal* gap_pal_create(Allocator* alloc) {
   MAYBE_UNUSED const GapVector screenSize =
       gap_vector(GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
 
-  log_i("Win32 init", log_param("screen-size", gap_vector_fmt(screenSize)));
+  log_i("Win32 platform init", log_param("screen-size", gap_vector_fmt(screenSize)));
 
   return pal;
 }

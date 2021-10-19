@@ -69,6 +69,9 @@ static void window_update(EcsWorld* world, GapWindowComp* window, const u64 tick
 }
 
 static int run_app() {
+
+  log_i("App starting", log_param("pid", fmt_int(g_thread_pid)));
+
   EcsDef* def = def = ecs_def_create(g_alloc_heap);
   gap_register(def);
   ecs_register_module(def, app_module);
@@ -96,6 +99,9 @@ static int run_app() {
   ecs_runner_destroy(runner);
   ecs_world_destroy(world);
   ecs_def_destroy(def);
+
+  log_i("App shutdown");
+
   return 0;
 }
 
