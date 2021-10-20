@@ -8,6 +8,7 @@ typedef u32 JobTaskLinkId;
 typedef struct {
   JobTaskRoutine routine;
   String         name;
+  JobTaskFlags   flags;
 } JobTask;
 
 typedef struct {

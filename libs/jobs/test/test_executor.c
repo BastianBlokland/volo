@@ -5,6 +5,8 @@
 #include "jobs_graph.h"
 #include "jobs_scheduler.h"
 
+#define task_flags JobTaskFlags_None
+
 typedef struct {
   i64* counter;
 } TestExecutorCounterData;
@@ -52,7 +54,8 @@ spec(executor) {
           jobGraph,
           string_lit("Increment"),
           test_task_increment_counter,
-          mem_struct(TestExecutorCounterData, .counter = &counter));
+          mem_struct(TestExecutorCounterData, .counter = &counter),
+          task_flags);
       if (i) {
         jobs_graph_task_depend(jobGraph, (JobTaskId)(i - 1), (JobTaskId)i);
       }
@@ -79,13 +82,15 @@ spec(executor) {
             jobGraph,
             string_lit("Decrement"),
             test_task_decrement_counter,
-            mem_struct(TestExecutorCounterData, .counter = &counter));
+            mem_struct(TestExecutorCounterData, .counter = &counter),
+            task_flags);
       } else {
         jobs_graph_add_task(
             jobGraph,
             string_lit("Increment"),
             test_task_increment_counter,
-            mem_struct(TestExecutorCounterData, .counter = &counter));
+            mem_struct(TestExecutorCounterData, .counter = &counter),
+            task_flags);
       }
       if (i) {
         jobs_graph_task_depend(jobGraph, (JobTaskId)i - 1, (JobTaskId)i);
@@ -112,7 +117,8 @@ spec(executor) {
           jobGraph,
           string_lit("Increment"),
           test_task_increment_counter_atomic,
-          mem_struct(TestExecutorCounterData, .counter = &counter));
+          mem_struct(TestExecutorCounterData, .counter = &counter),
+          task_flags);
     }
 
     jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph));
@@ -144,7 +150,8 @@ spec(executor) {
             graph,
             string_lit("Sum"),
             test_task_sum,
-            mem_struct(TestExecutorSumData, .values = data, .idxA = i, .idxB = halfSize + i));
+            mem_struct(TestExecutorSumData, .values = data, .idxA = i, .idxB = halfSize + i),
+            task_flags);
         if (!rootLayer) {
           jobs_graph_task_depend(graph, *dynarray_at_t(&dependencies, i, JobTaskId), id);
           jobs_graph_task_depend(graph, *dynarray_at_t(&dependencies, halfSize + i, JobTaskId), id);
@@ -172,14 +179,16 @@ spec(executor) {
         graph,
         string_lit("Init"),
         test_task_counter_to_42,
-        mem_struct(TestExecutorCounterData, .counter = &data[0]));
+        mem_struct(TestExecutorCounterData, .counter = &data[0]),
+        task_flags);
 
     for (usize i = 0; i != tasks; ++i) {
       const JobTaskId task = jobs_graph_add_task(
           graph,
           string_lit("SetVal"),
           test_task_sum,
-          mem_struct(TestExecutorSumData, .values = data, .idxA = i + 1, .idxB = 0));
+          mem_struct(TestExecutorSumData, .values = data, .idxA = i + 1, .idxB = 0),
+          task_flags);
       jobs_graph_task_depend(graph, initTask, task);
     }
 

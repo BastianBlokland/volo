@@ -87,7 +87,8 @@ CheckResultType check_run(CheckDef* check, const CheckRunFlags flags) {
           graph,
           fmt_write_scratch("{}-{}", fmt_text(spec->def->name), fmt_int(test->id)),
           check_test_task,
-          mem_struct(CheckTaskData, .spec = spec, .test = test, .ctx = &ctx));
+          mem_struct(CheckTaskData, .spec = spec, .test = test, .ctx = &ctx),
+          JobTaskFlags_None);
     });
   });
 

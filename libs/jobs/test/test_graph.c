@@ -2,6 +2,8 @@
 #include "core_alloc.h"
 #include "jobs_graph.h"
 
+#define task_flags JobTaskFlags_None
+
 spec(graph) {
 
   JobGraph* job = null;
@@ -11,8 +13,10 @@ spec(graph) {
   it("stores a graph name") { check_eq_string(jobs_graph_name(job), string_lit("TestJob")); }
 
   it("stores task names") {
-    const JobTaskId taskA = jobs_graph_add_task(job, string_lit("TestTaskA"), null, mem_empty);
-    const JobTaskId taskB = jobs_graph_add_task(job, string_lit("TestTaskB"), null, mem_empty);
+    const JobTaskId taskA =
+        jobs_graph_add_task(job, string_lit("TestTaskA"), null, mem_empty, task_flags);
+    const JobTaskId taskB =
+        jobs_graph_add_task(job, string_lit("TestTaskB"), null, mem_empty, task_flags);
 
     check_eq_int(jobs_graph_task_count(job), 2);
     check_eq_string(jobs_graph_task_name(job, taskA), string_lit("TestTaskA"));
@@ -20,8 +24,8 @@ spec(graph) {
   }
 
   it("supports registering dependencies between tasks") {
-    const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
-    const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
+    const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty, task_flags);
+    const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty, task_flags);
 
     // Setup B to depend on A.
     jobs_graph_task_depend(job, a, b);
@@ -39,8 +43,8 @@ spec(graph) {
   }
 
   it("supports unregistering a dependency between tasks") {
-    const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
-    const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
+    const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty, task_flags);
+    const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty, task_flags);
 
     // Setup B to depend on A.
     jobs_graph_task_depend(job, a, b);
@@ -64,9 +68,9 @@ spec(graph) {
   }
 
   it("supports unregistering multiple dependencies") {
-    const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
-    const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
-    const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, mem_empty);
+    const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty, task_flags);
+    const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty, task_flags);
+    const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, mem_empty, task_flags);
 
     // Setup B and C to depend on A.
     jobs_graph_task_depend(job, a, b);
@@ -89,18 +93,18 @@ spec(graph) {
   }
 
   it("cannot remove dependencies that do not exist") {
-    const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
-    const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
+    const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty, task_flags);
+    const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty, task_flags);
 
     check(!jobs_graph_task_undepend(job, a, b));
     check(!jobs_graph_task_undepend(job, b, a));
   }
 
   it("supports graphs with many-to-one dependencies") {
-    const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
-    const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
-    const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, mem_empty);
-    const JobTaskId d = jobs_graph_add_task(job, string_lit("D"), null, mem_empty);
+    const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty, task_flags);
+    const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty, task_flags);
+    const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, mem_empty, task_flags);
+    const JobTaskId d = jobs_graph_add_task(job, string_lit("D"), null, mem_empty, task_flags);
 
     check_eq_int(jobs_graph_task_count(job), 4);
 
@@ -133,10 +137,10 @@ spec(graph) {
   }
 
   it("supports graphs with one-to-many dependencies") {
-    const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
-    const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
-    const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, mem_empty);
-    const JobTaskId d = jobs_graph_add_task(job, string_lit("D"), null, mem_empty);
+    const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty, task_flags);
+    const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty, task_flags);
+    const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, mem_empty, task_flags);
+    const JobTaskId d = jobs_graph_add_task(job, string_lit("D"), null, mem_empty, task_flags);
 
     check_eq_int(jobs_graph_task_count(job), 4);
 
@@ -176,10 +180,10 @@ spec(graph) {
   }
 
   it("can reduce unnecessary dependencies in a linear graph") {
-    const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
-    const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
-    const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, mem_empty);
-    const JobTaskId d = jobs_graph_add_task(job, string_lit("D"), null, mem_empty);
+    const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty, task_flags);
+    const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty, task_flags);
+    const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, mem_empty, task_flags);
+    const JobTaskId d = jobs_graph_add_task(job, string_lit("D"), null, mem_empty, task_flags);
 
     jobs_graph_task_depend(job, a, b);
     jobs_graph_task_depend(job, a, c);
@@ -210,11 +214,11 @@ spec(graph) {
   }
 
   it("can reduce unnecessary dependencies in a graph") {
-    const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
-    const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
-    const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, mem_empty);
-    const JobTaskId d = jobs_graph_add_task(job, string_lit("D"), null, mem_empty);
-    const JobTaskId e = jobs_graph_add_task(job, string_lit("E"), null, mem_empty);
+    const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty, task_flags);
+    const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty, task_flags);
+    const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, mem_empty, task_flags);
+    const JobTaskId d = jobs_graph_add_task(job, string_lit("D"), null, mem_empty, task_flags);
+    const JobTaskId e = jobs_graph_add_task(job, string_lit("E"), null, mem_empty, task_flags);
 
     jobs_graph_task_depend(job, a, b);
     jobs_graph_task_depend(job, a, c);
@@ -233,13 +237,13 @@ spec(graph) {
   }
 
   it("cant reduce dependencies in a fully parallel graph") {
-    jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
-    jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
-    jobs_graph_add_task(job, string_lit("C"), null, mem_empty);
-    jobs_graph_add_task(job, string_lit("D"), null, mem_empty);
-    jobs_graph_add_task(job, string_lit("E"), null, mem_empty);
-    jobs_graph_add_task(job, string_lit("F"), null, mem_empty);
-    jobs_graph_add_task(job, string_lit("G"), null, mem_empty);
+    jobs_graph_add_task(job, string_lit("A"), null, mem_empty, task_flags);
+    jobs_graph_add_task(job, string_lit("B"), null, mem_empty, task_flags);
+    jobs_graph_add_task(job, string_lit("C"), null, mem_empty, task_flags);
+    jobs_graph_add_task(job, string_lit("D"), null, mem_empty, task_flags);
+    jobs_graph_add_task(job, string_lit("E"), null, mem_empty, task_flags);
+    jobs_graph_add_task(job, string_lit("F"), null, mem_empty, task_flags);
+    jobs_graph_add_task(job, string_lit("G"), null, mem_empty, task_flags);
 
     check_eq_int(jobs_graph_task_span(job), 1); // Span of this graph is 1.
 
@@ -250,8 +254,8 @@ spec(graph) {
   }
 
   it("can detect cycles") {
-    const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
-    const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
+    const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty, task_flags);
+    const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty, task_flags);
 
     // Setup cycle between A and B.
     jobs_graph_task_depend(job, a, b);
@@ -261,13 +265,13 @@ spec(graph) {
   }
 
   it("can detect indirect cycles") {
-    const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
-    const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
-    const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, mem_empty);
-    const JobTaskId d = jobs_graph_add_task(job, string_lit("D"), null, mem_empty);
-    const JobTaskId e = jobs_graph_add_task(job, string_lit("E"), null, mem_empty);
-    const JobTaskId f = jobs_graph_add_task(job, string_lit("F"), null, mem_empty);
-    const JobTaskId g = jobs_graph_add_task(job, string_lit("G"), null, mem_empty);
+    const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty, task_flags);
+    const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty, task_flags);
+    const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, mem_empty, task_flags);
+    const JobTaskId d = jobs_graph_add_task(job, string_lit("D"), null, mem_empty, task_flags);
+    const JobTaskId e = jobs_graph_add_task(job, string_lit("E"), null, mem_empty, task_flags);
+    const JobTaskId f = jobs_graph_add_task(job, string_lit("F"), null, mem_empty, task_flags);
+    const JobTaskId g = jobs_graph_add_task(job, string_lit("G"), null, mem_empty, task_flags);
 
     jobs_graph_task_depend(job, a, b);
     jobs_graph_task_depend(job, a, c);
@@ -282,13 +286,13 @@ spec(graph) {
   }
 
   it("can compute the span of a serial graph") {
-    const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
-    const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
-    const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, mem_empty);
-    const JobTaskId d = jobs_graph_add_task(job, string_lit("D"), null, mem_empty);
-    const JobTaskId e = jobs_graph_add_task(job, string_lit("E"), null, mem_empty);
-    const JobTaskId f = jobs_graph_add_task(job, string_lit("F"), null, mem_empty);
-    const JobTaskId g = jobs_graph_add_task(job, string_lit("G"), null, mem_empty);
+    const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty, task_flags);
+    const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty, task_flags);
+    const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, mem_empty, task_flags);
+    const JobTaskId d = jobs_graph_add_task(job, string_lit("D"), null, mem_empty, task_flags);
+    const JobTaskId e = jobs_graph_add_task(job, string_lit("E"), null, mem_empty, task_flags);
+    const JobTaskId f = jobs_graph_add_task(job, string_lit("F"), null, mem_empty, task_flags);
+    const JobTaskId g = jobs_graph_add_task(job, string_lit("G"), null, mem_empty, task_flags);
 
     jobs_graph_task_depend(job, a, b);
     jobs_graph_task_depend(job, b, c);
@@ -304,13 +308,13 @@ spec(graph) {
   }
 
   it("can compute the span of a parallel graph") {
-    jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
-    jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
-    jobs_graph_add_task(job, string_lit("C"), null, mem_empty);
-    jobs_graph_add_task(job, string_lit("D"), null, mem_empty);
-    jobs_graph_add_task(job, string_lit("E"), null, mem_empty);
-    jobs_graph_add_task(job, string_lit("F"), null, mem_empty);
-    jobs_graph_add_task(job, string_lit("G"), null, mem_empty);
+    jobs_graph_add_task(job, string_lit("A"), null, mem_empty, task_flags);
+    jobs_graph_add_task(job, string_lit("B"), null, mem_empty, task_flags);
+    jobs_graph_add_task(job, string_lit("C"), null, mem_empty, task_flags);
+    jobs_graph_add_task(job, string_lit("D"), null, mem_empty, task_flags);
+    jobs_graph_add_task(job, string_lit("E"), null, mem_empty, task_flags);
+    jobs_graph_add_task(job, string_lit("F"), null, mem_empty, task_flags);
+    jobs_graph_add_task(job, string_lit("G"), null, mem_empty, task_flags);
 
     check(jobs_graph_validate(job));
     check_eq_int(jobs_graph_task_span(job), 1);
@@ -319,24 +323,24 @@ spec(graph) {
   }
 
   it("can compute the span of a complex graph") {
-    const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty);
-    const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty);
-    const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, mem_empty);
-    const JobTaskId d = jobs_graph_add_task(job, string_lit("D"), null, mem_empty);
-    const JobTaskId e = jobs_graph_add_task(job, string_lit("E"), null, mem_empty);
-    const JobTaskId f = jobs_graph_add_task(job, string_lit("F"), null, mem_empty);
-    const JobTaskId g = jobs_graph_add_task(job, string_lit("G"), null, mem_empty);
-    const JobTaskId h = jobs_graph_add_task(job, string_lit("H"), null, mem_empty);
-    const JobTaskId i = jobs_graph_add_task(job, string_lit("I"), null, mem_empty);
-    const JobTaskId j = jobs_graph_add_task(job, string_lit("J"), null, mem_empty);
-    const JobTaskId k = jobs_graph_add_task(job, string_lit("K"), null, mem_empty);
-    const JobTaskId l = jobs_graph_add_task(job, string_lit("L"), null, mem_empty);
-    const JobTaskId m = jobs_graph_add_task(job, string_lit("M"), null, mem_empty);
-    const JobTaskId n = jobs_graph_add_task(job, string_lit("N"), null, mem_empty);
-    const JobTaskId o = jobs_graph_add_task(job, string_lit("O"), null, mem_empty);
-    const JobTaskId p = jobs_graph_add_task(job, string_lit("P"), null, mem_empty);
-    const JobTaskId q = jobs_graph_add_task(job, string_lit("Q"), null, mem_empty);
-    const JobTaskId r = jobs_graph_add_task(job, string_lit("R"), null, mem_empty);
+    const JobTaskId a = jobs_graph_add_task(job, string_lit("A"), null, mem_empty, task_flags);
+    const JobTaskId b = jobs_graph_add_task(job, string_lit("B"), null, mem_empty, task_flags);
+    const JobTaskId c = jobs_graph_add_task(job, string_lit("C"), null, mem_empty, task_flags);
+    const JobTaskId d = jobs_graph_add_task(job, string_lit("D"), null, mem_empty, task_flags);
+    const JobTaskId e = jobs_graph_add_task(job, string_lit("E"), null, mem_empty, task_flags);
+    const JobTaskId f = jobs_graph_add_task(job, string_lit("F"), null, mem_empty, task_flags);
+    const JobTaskId g = jobs_graph_add_task(job, string_lit("G"), null, mem_empty, task_flags);
+    const JobTaskId h = jobs_graph_add_task(job, string_lit("H"), null, mem_empty, task_flags);
+    const JobTaskId i = jobs_graph_add_task(job, string_lit("I"), null, mem_empty, task_flags);
+    const JobTaskId j = jobs_graph_add_task(job, string_lit("J"), null, mem_empty, task_flags);
+    const JobTaskId k = jobs_graph_add_task(job, string_lit("K"), null, mem_empty, task_flags);
+    const JobTaskId l = jobs_graph_add_task(job, string_lit("L"), null, mem_empty, task_flags);
+    const JobTaskId m = jobs_graph_add_task(job, string_lit("M"), null, mem_empty, task_flags);
+    const JobTaskId n = jobs_graph_add_task(job, string_lit("N"), null, mem_empty, task_flags);
+    const JobTaskId o = jobs_graph_add_task(job, string_lit("O"), null, mem_empty, task_flags);
+    const JobTaskId p = jobs_graph_add_task(job, string_lit("P"), null, mem_empty, task_flags);
+    const JobTaskId q = jobs_graph_add_task(job, string_lit("Q"), null, mem_empty, task_flags);
+    const JobTaskId r = jobs_graph_add_task(job, string_lit("R"), null, mem_empty, task_flags);
 
     jobs_graph_task_depend(job, a, b);
     jobs_graph_task_depend(job, b, c);

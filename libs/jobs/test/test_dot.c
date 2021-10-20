@@ -2,19 +2,21 @@
 #include "core_alloc.h"
 #include "jobs_dot.h"
 
+#define task_flags JobTaskFlags_None
+
 spec(dot) {
   it("writes a Graph-Description-Language digraph based on a job-graph") {
 
     JobGraph* graph = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 2);
 
-    const JobTaskId a = jobs_graph_add_task(graph, string_lit("A"), null, mem_empty);
-    const JobTaskId b = jobs_graph_add_task(graph, string_lit("B"), null, mem_empty);
-    const JobTaskId c = jobs_graph_add_task(graph, string_lit("C"), null, mem_empty);
-    const JobTaskId d = jobs_graph_add_task(graph, string_lit("D"), null, mem_empty);
-    const JobTaskId e = jobs_graph_add_task(graph, string_lit("E"), null, mem_empty);
-    const JobTaskId f = jobs_graph_add_task(graph, string_lit("F"), null, mem_empty);
-    const JobTaskId g = jobs_graph_add_task(graph, string_lit("G"), null, mem_empty);
-    jobs_graph_add_task(graph, string_lit("H"), null, mem_empty);
+    const JobTaskId a = jobs_graph_add_task(graph, string_lit("A"), null, mem_empty, task_flags);
+    const JobTaskId b = jobs_graph_add_task(graph, string_lit("B"), null, mem_empty, task_flags);
+    const JobTaskId c = jobs_graph_add_task(graph, string_lit("C"), null, mem_empty, task_flags);
+    const JobTaskId d = jobs_graph_add_task(graph, string_lit("D"), null, mem_empty, task_flags);
+    const JobTaskId e = jobs_graph_add_task(graph, string_lit("E"), null, mem_empty, task_flags);
+    const JobTaskId f = jobs_graph_add_task(graph, string_lit("F"), null, mem_empty, task_flags);
+    const JobTaskId g = jobs_graph_add_task(graph, string_lit("G"), null, mem_empty, task_flags);
+    jobs_graph_add_task(graph, string_lit("H"), null, mem_empty, task_flags);
 
     jobs_graph_task_depend(graph, a, b);
     jobs_graph_task_depend(graph, a, c);
