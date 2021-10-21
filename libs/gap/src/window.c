@@ -155,7 +155,11 @@ ecs_module_init(gap_window_module) {
   ecs_register_view(GapPlatformView);
   ecs_register_view(GapWindowView);
 
-  ecs_register_system(GapUpdateSys, ecs_view_id(GapPlatformView), ecs_view_id(GapWindowView));
+  ecs_register_system_with_flags(
+      GapUpdateSys,
+      EcsSystemFlags_ThreadAffinity,
+      ecs_view_id(GapPlatformView),
+      ecs_view_id(GapWindowView));
 }
 
 EcsEntityId gap_window_open(EcsWorld* world, const GapWindowFlags flags, const GapVector size) {
