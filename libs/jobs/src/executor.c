@@ -1,9 +1,11 @@
+#include "core_annotation.h"
 #include "core_diag.h"
 #include "core_math.h"
 #include "core_rng.h"
 #include "core_thread.h"
 #include "jobs_graph.h"
 
+#include "affinity_queue_internal.h"
 #include "executor_internal.h"
 #include "graph_internal.h"
 #include "scheduler_internal.h"
@@ -30,12 +32,48 @@ static i64             g_sleepingWorkers;
 static ThreadMutex     g_mutex;
 static ThreadCondition g_wakeCondition;
 
+/**
+ * The affinity queue is a special work-queue for tasks that always need to be executed on the same
+ * thread. All threads are allowed to push new work into the queue but only the 'g_affinityWorker'
+ * is allowed to pop (and execute) items from it.
+ *
+ * NOTE: Work in the affinity-queue takes priority over work in the normal work-queue because other
+ * threads cannot help out and thus all theads could be waiting for this work to finnish.
+ */
+static JobWorkerId g_affinityWorker;
+static AffQueue    g_affinityQueue;
+
 u16                      g_jobsWorkerCount;
 THREAD_LOCAL JobWorkerId g_jobsWorkerId;
 THREAD_LOCAL bool        g_jobsIsWorker;
 THREAD_LOCAL bool        g_jobsIsWorking;
 
-static WorkItem executor_steal() {
+static void executor_work_push(Job* job, const JobTaskId task) {
+  JobTask* jobTaskDef = dynarray_at_t(&job->graph->tasks, task, JobTask);
+  if (UNLIKELY(jobTaskDef->flags & JobTaskFlags_ThreadAffinity)) {
+    // Task requires to be run on the affinity worker; push it to the affinity queue.
+    affqueue_push(&g_affinityQueue, job, task);
+  } else {
+    // Task can run on any thread; push it into our own queue.
+    workqueue_push(&g_workerQueues[g_jobsWorkerId], job, task);
+  }
+}
+
+static WorkItem executor_work_pop() {
+  if (UNLIKELY(g_jobsWorkerId == g_affinityWorker)) {
+    /**
+     * This worker is the assigned 'Affinity worker' and thus we need to serve the affinity-queue
+     * first before taking from our normal queue.
+     */
+    const WorkItem item = affqueue_pop(&g_affinityQueue);
+    if (UNLIKELY(workitem_valid(item))) {
+      return item;
+    }
+  }
+  return workqueue_pop(&g_workerQueues[g_jobsWorkerId]);
+}
+
+static WorkItem executor_work_steal() {
   /**
    * Attempt to steal work from any other worker, starting from a random worker to reduce
    * contention.
@@ -46,7 +84,7 @@ static WorkItem executor_steal() {
     if (victim == g_jobsWorkerId) {
       continue; // Don't steal from ourselves.
     }
-    WorkItem stolenItem = workqueue_steal(&g_workerQueues[victim]);
+    const WorkItem stolenItem = workqueue_steal(&g_workerQueues[victim]);
     if (workitem_valid(stolenItem)) {
       return stolenItem;
     }
@@ -55,9 +93,9 @@ static WorkItem executor_steal() {
   return (WorkItem){0};
 }
 
-static WorkItem executor_steal_loop() {
+static WorkItem executor_work_steal_loop() {
   /**
-   * Every time-slice attempt to steal work any other worker, starting from a random worker to
+   * Every time-slice attempt to steal work from any other worker, starting from a random worker to
    * reduce contention.
    *
    * There is allot of experimentation that could be done here:
@@ -71,7 +109,7 @@ static WorkItem executor_steal_loop() {
   static const usize maxIterations = 25;
   for (usize itr = 0; itr != maxIterations; ++itr) {
 
-    WorkItem stolenItem = executor_steal();
+    WorkItem stolenItem = executor_work_steal();
     if (workitem_valid(stolenItem)) {
       return stolenItem;
     }
@@ -118,7 +156,7 @@ static void executor_perform_work(WorkItem item) {
       // Decrement the dependency counter for the child task.
       if (thread_atomic_sub_i64(&item.job->taskData[childTasks[i]].dependencies, 1) == 1) {
         // All dependencies have been met for child task; push it to the task queue.
-        workqueue_push(&g_workerQueues[g_jobsWorkerId], item.job, childTasks[i]);
+        executor_work_push(item.job, childTasks[i]);
         taskPushed = true;
       }
     }
@@ -150,11 +188,11 @@ static void executor_worker_thread(void* data) {
       executor_perform_work(work);
     }
 
-    // Attempt get a work item from our own queue.
-    work = workqueue_pop(&g_workerQueues[g_jobsWorkerId]);
+    // Attempt get a work item from our own queues.
+    work = executor_work_pop();
     if (!workitem_valid(work)) {
       // No work on our own queue; attemp to steal some.
-      work = executor_steal_loop();
+      work = executor_work_steal_loop();
     }
 
     if (workitem_valid(work)) {
@@ -163,7 +201,7 @@ static void executor_worker_thread(void* data) {
 
     // No work found; go to sleep.
     thread_mutex_lock(g_mutex);
-    work = executor_steal(); // One last attempt to find work while holding the mutex.
+    work = executor_work_steal(); // One last attempt to find work while holding the mutex.
     if (!workitem_valid(work) && LIKELY(g_mode == ExecMode_Running)) {
       // We don't have any work to perform and we are not cancelled; sleep until woken.
       ++g_sleepingWorkers; // No atomic operation as we are holding the lock atm.
@@ -184,6 +222,14 @@ void executor_init() {
   for (u16 i = 0; i != g_jobsWorkerCount; ++i) {
     g_workerQueues[i] = workqueue_create(g_alloc_heap);
   }
+
+  /**
+   * Elect the 'affinity worker'.
+   * Prefer worker 1 because the main-thread could have other duties that prevent the swift
+   * execution of affinity tasks and potentially forcing all workers to wait.
+   */
+  g_affinityWorker = math_min(g_jobsWorkerCount - 1, 1);
+  g_affinityQueue  = affqueue_create(g_alloc_heap);
 
   // Setup worker info for the main-thread.
   g_jobsWorkerId = 0;
@@ -222,6 +268,12 @@ void executor_teardown() {
     workqueue_destroy(g_alloc_heap, &g_workerQueues[i]);
   }
 
+  if (affqueue_size(&g_affinityQueue)) {
+    diag_print_err(
+        "jobs_executor: {} unfinished affinity tasks.\n", fmt_int(affqueue_size(&g_affinityQueue)));
+  }
+  affqueue_destroy(g_alloc_heap, &g_affinityQueue);
+
   thread_cond_destroy(g_wakeCondition);
   thread_mutex_destroy(g_mutex);
 }
@@ -244,7 +296,7 @@ void executor_run(Job* job) {
     if (jobs_graph_task_has_parent(job->graph, taskId)) {
       continue; // Not a root task.
     }
-    workqueue_push(&g_workerQueues[g_jobsWorkerId], job, taskId);
+    executor_work_push(job, taskId);
     ++pushedRootTaskCount;
   }
 
@@ -255,15 +307,15 @@ void executor_run(Job* job) {
 }
 
 bool executor_help() {
-  // Attempt get a work item from our own queue.
-  WorkItem work = workqueue_pop(&g_workerQueues[g_jobsWorkerId]);
+  // Attempt get a work item from our own queues.
+  WorkItem work = executor_work_pop();
   if (workitem_valid(work)) {
     executor_perform_work(work);
     return true;
   }
 
   // Otherwise attempt to steal a work item.
-  work = executor_steal();
+  work = executor_work_steal();
   if (workitem_valid(work)) {
     executor_perform_work(work);
     return true;

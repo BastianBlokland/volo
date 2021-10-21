@@ -1,7 +1,7 @@
 #pragma once
 #include "core_alloc.h"
 
-#include "job_internal.h"
+#include "work_internal.h"
 
 /**
  * Lock free single-producer multiple-consumer queue.
@@ -14,19 +14,12 @@
  * - https://github.com/taskflow/work-stealing-queue
  */
 
-#define workqueue_max_items 8192
-
-typedef struct {
-  Job*      job;
-  JobTaskId task;
-} WorkItem;
+#define workqueue_max_items 2048
 
 typedef struct {
   i64       top, bottom;
   WorkItem* items;
 } WorkQueue;
-
-#define workitem_valid(_WORKITEM_) ((_WORKITEM_).job != null)
 
 WorkQueue workqueue_create(Allocator*);
 void      workqueue_destroy(Allocator*, WorkQueue*);

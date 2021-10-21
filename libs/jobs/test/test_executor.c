@@ -131,7 +131,7 @@ spec(executor) {
   }
 
   it("can compute a parallel sum of integers") {
-    i64   data[1024 * 8];
+    i64   data[1024 * 2];
     usize dataCount = array_elems(data);
     i64   sum       = 0;
     for (i64 i = 0; i != (i64)dataCount; ++i) {

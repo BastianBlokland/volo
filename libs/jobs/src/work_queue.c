@@ -1,3 +1,4 @@
+#include "core_annotation.h"
 #include "core_diag.h"
 #include "core_thread.h"
 
@@ -11,6 +12,8 @@
  */
 
 #define item_wrap(_IDX_) ((_IDX_) & (workqueue_max_items - 1))
+
+ASSERT((workqueue_max_items & (workqueue_max_items - 1u)) == 0, "Max size has to be a power-of-two")
 
 WorkQueue workqueue_create(Allocator* alloc) {
   return (WorkQueue){
@@ -32,7 +35,7 @@ usize workqueue_size(const WorkQueue* wq) {
 
 void workqueue_push(WorkQueue* wq, Job* job, const JobTaskId task) {
   diag_assert_msg(
-      workqueue_size(wq) != workqueue_max_items,
+      workqueue_size(wq) < workqueue_max_items,
       "Maximum number of work-queue items ({}) has been exceeded",
       fmt_int(workqueue_max_items));
 
