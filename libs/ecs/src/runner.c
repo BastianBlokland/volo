@@ -44,6 +44,14 @@ struct sEcsRunner {
 THREAD_LOCAL bool        g_ecsRunningSystem;
 THREAD_LOCAL EcsSystemId g_ecsRunningSystemId = sentinel_u16;
 
+static JobTaskFlags graph_system_task_flags(const EcsSystemDef* systemDef) {
+  JobTaskFlags flags = JobTaskFlags_None;
+  if (systemDef->flags & EcsSystemFlags_ThreadAffinity) {
+    flags |= JobTaskFlags_ThreadAffinity;
+  }
+  return flags;
+}
+
 static void graph_runner_finalize_task(void* context) {
   MetaTaskData* data = context;
   ecs_world_flush_internal(data->runner->world);
@@ -81,7 +89,7 @@ graph_insert_system(EcsRunner* runner, const EcsSystemId systemId, const EcsSyst
       graph_system_task,
       mem_struct(
           SystemTaskData, .world = runner->world, .id = systemId, .routine = systemDef->routine),
-      JobTaskFlags_None);
+      graph_system_task_flags(systemDef));
 };
 
 static bool graph_system_conflict(EcsWorld* world, const EcsSystemDef* a, const EcsSystemDef* b) {

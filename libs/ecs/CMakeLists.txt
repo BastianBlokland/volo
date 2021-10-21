@@ -25,6 +25,7 @@ target_link_libraries(volo_ecs PUBLIC volo_log)
 
 add_executable(volo_ecs_test
   test/main.c
+  test/test_affinity.c
   test/test_def.c
   test/test_destruct.c
   test/test_entity.c

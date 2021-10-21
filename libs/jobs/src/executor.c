@@ -48,6 +48,12 @@ THREAD_LOCAL JobWorkerId g_jobsWorkerId;
 THREAD_LOCAL bool        g_jobsIsWorker;
 THREAD_LOCAL bool        g_jobsIsWorking;
 
+static void executor_wake_workers() {
+  thread_mutex_lock(g_mutex);
+  thread_cond_broadcast(g_wakeCondition);
+  thread_mutex_unlock(g_mutex);
+}
+
 static void executor_work_push(Job* job, const JobTaskId task) {
   JobTask* jobTaskDef = dynarray_at_t(&job->graph->tasks, task, JobTask);
   if (UNLIKELY(jobTaskDef->flags & JobTaskFlags_ThreadAffinity)) {
@@ -93,6 +99,21 @@ static WorkItem executor_work_steal() {
   return (WorkItem){0};
 }
 
+static WorkItem executor_work_affinity_or_steal() {
+  /**
+   * The 'Affinity Worker' is special as it can also receive work from other threads, so while
+   * looking for work it also needs to check the affinity-queue.
+   */
+  if (UNLIKELY(g_jobsWorkerId == g_affinityWorker)) {
+    const WorkItem affinityItem = affqueue_pop(&g_affinityQueue);
+    if (UNLIKELY(workitem_valid(affinityItem))) {
+      return affinityItem;
+    }
+  }
+
+  return executor_work_steal();
+}
+
 static WorkItem executor_work_steal_loop() {
   /**
    * Every time-slice attempt to steal work from any other worker, starting from a random worker to
@@ -109,7 +130,7 @@ static WorkItem executor_work_steal_loop() {
   static const usize maxIterations = 25;
   for (usize itr = 0; itr != maxIterations; ++itr) {
 
-    WorkItem stolenItem = executor_work_steal();
+    WorkItem stolenItem = executor_work_affinity_or_steal();
     if (workitem_valid(stolenItem)) {
       return stolenItem;
     }
@@ -160,9 +181,8 @@ static void executor_perform_work(WorkItem item) {
         taskPushed = true;
       }
     }
-    if (taskPushed && g_sleepingWorkers) {
-      // Some workers are sleeping: Wake them.
-      thread_cond_broadcast(g_wakeCondition);
+    if (taskPushed && thread_atomic_load_i64(&g_sleepingWorkers)) {
+      executor_wake_workers();
     }
     return;
   }
@@ -201,7 +221,7 @@ static void executor_worker_thread(void* data) {
 
     // No work found; go to sleep.
     thread_mutex_lock(g_mutex);
-    work = executor_work_steal(); // One last attempt to find work while holding the mutex.
+    work = executor_work_steal_loop(); // One last attempt before sleeping.
     if (!workitem_valid(work) && LIKELY(g_mode == ExecMode_Running)) {
       // We don't have any work to perform and we are not cancelled; sleep until woken.
       ++g_sleepingWorkers; // No atomic operation as we are holding the lock atm.
@@ -300,9 +320,8 @@ void executor_run(Job* job) {
     ++pushedRootTaskCount;
   }
 
-  if (g_sleepingWorkers) {
-    // Some workers are sleeping: Wake them.
-    thread_cond_broadcast(g_wakeCondition);
+  if (thread_atomic_load_i64(&g_sleepingWorkers)) {
+    executor_wake_workers();
   }
 }
 

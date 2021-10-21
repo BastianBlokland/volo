@@ -119,7 +119,7 @@ EcsSystemId ecs_module_register_system(
     EcsModuleBuilder* builder, EcsSystemId* var, const EcsSystemConfig* config) {
 
   const EcsSystemId id = ecs_def_register_system(
-      builder->def, config->name, config->routine, config->views, config->viewCount);
+      builder->def, config->name, config->routine, config->flags, config->views, config->viewCount);
   *dynarray_push_t(&builder->module->systemIds, EcsSystemId) = id;
 
   if (var) {
