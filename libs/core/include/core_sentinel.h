@@ -30,7 +30,7 @@
     i8:   (_VAL_) == sentinel_i8,                                                                  \
     i16:  (_VAL_) == sentinel_i16,                                                                 \
     i32:  (_VAL_) == sentinel_i32,                                                                 \
-    i64:  (_VAL_) == sentinel_i8,                                                                  \
+    i64:  (_VAL_) == sentinel_i64,                                                                  \
     u8:   (_VAL_) == sentinel_u8,                                                                  \
     u16:  (_VAL_) == sentinel_u16,                                                                 \
     u32:  (_VAL_) == sentinel_u32,                                                                 \
