@@ -289,14 +289,19 @@ void jobs_graph_destroy(JobGraph* graph) {
   alloc_free_t(graph->alloc, graph);
 }
 
-JobTaskId
-jobs_graph_add_task(JobGraph* graph, const String name, const JobTaskRoutine routine, Mem ctx) {
+JobTaskId jobs_graph_add_task(
+    JobGraph*            graph,
+    const String         name,
+    const JobTaskRoutine routine,
+    Mem                  ctx,
+    const JobTaskFlags   flags) {
   const JobTaskId id = (JobTaskId)graph->tasks.size;
 
   Mem taskStorage              = dynarray_push(&graph->tasks, 1);
   *((JobTask*)taskStorage.ptr) = (JobTask){
       .routine = routine,
       .name    = string_dup(graph->alloc, name),
+      .flags   = flags,
   };
   mem_cpy(mem_consume(taskStorage, sizeof(JobTask)), ctx);
 

@@ -2,13 +2,15 @@
 #include "core_alloc.h"
 #include "jobs_scheduler.h"
 
+#define task_flags JobTaskFlags_None
+
 static void test_task_nop(void* ctx) { (void)ctx; }
 
 spec(scheduler) {
 
   it("can run a single-task job-graph") {
     JobGraph* jobGraph = jobs_graph_create(g_alloc_scratch, string_lit("TestJob"), 1);
-    jobs_graph_add_task(jobGraph, string_lit("TestTask"), test_task_nop, mem_empty);
+    jobs_graph_add_task(jobGraph, string_lit("TestTask"), test_task_nop, mem_empty, task_flags);
 
     JobId id = jobs_scheduler_run(jobGraph);
     jobs_scheduler_wait_help(id);
@@ -21,7 +23,7 @@ spec(scheduler) {
     static const usize numRuns = 128;
 
     JobGraph* jobGraph = jobs_graph_create(g_alloc_scratch, string_lit("TestJob"), 1);
-    jobs_graph_add_task(jobGraph, string_lit("TestTask"), test_task_nop, mem_empty);
+    jobs_graph_add_task(jobGraph, string_lit("TestTask"), test_task_nop, mem_empty, task_flags);
 
     DynArray jobIds = dynarray_create_t(g_alloc_scratch, JobId, numRuns);
 

@@ -5,6 +5,7 @@
 message(STATUS "> library: jobs")
 
 add_library(volo_jobs STATIC
+  src/affinity_queue.c
   src/dot.c
   src/graph.c
   src/init.c

@@ -1,9 +1,12 @@
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_diag.h"
 #include "core_thread.h"
 #include "jobs_graph.h"
 #include "jobs_scheduler.h"
+
+#define task_flags JobTaskFlags_None
 
 typedef struct {
   i64* counter;
@@ -13,6 +16,10 @@ typedef struct {
   i64*  values;
   usize idxA, idxB;
 } TestExecutorSumData;
+
+typedef struct {
+  i64 tid;
+} TestExecutorAffinityData;
 
 static void test_task_increment_counter(void* ctx) {
   TestExecutorCounterData* data = ctx;
@@ -39,6 +46,15 @@ static void test_task_sum(void* ctx) {
   data->values[data->idxA] += data->values[data->idxB];
 }
 
+static void test_task_require_affinity(void* ctx) {
+  TestExecutorAffinityData* data = ctx;
+  if (sentinel_check(data->tid)) {
+    data->tid = g_thread_tid;
+    return;
+  }
+  diag_assert_msg(data->tid == g_thread_tid, "Affinity task was executed on multiple threads");
+}
+
 spec(executor) {
 
   it("can execute a linear chain of tasks") {
@@ -52,7 +68,8 @@ spec(executor) {
           jobGraph,
           string_lit("Increment"),
           test_task_increment_counter,
-          mem_struct(TestExecutorCounterData, .counter = &counter));
+          mem_struct(TestExecutorCounterData, .counter = &counter),
+          task_flags);
       if (i) {
         jobs_graph_task_depend(jobGraph, (JobTaskId)(i - 1), (JobTaskId)i);
       }
@@ -79,13 +96,15 @@ spec(executor) {
             jobGraph,
             string_lit("Decrement"),
             test_task_decrement_counter,
-            mem_struct(TestExecutorCounterData, .counter = &counter));
+            mem_struct(TestExecutorCounterData, .counter = &counter),
+            task_flags);
       } else {
         jobs_graph_add_task(
             jobGraph,
             string_lit("Increment"),
             test_task_increment_counter,
-            mem_struct(TestExecutorCounterData, .counter = &counter));
+            mem_struct(TestExecutorCounterData, .counter = &counter),
+            task_flags);
       }
       if (i) {
         jobs_graph_task_depend(jobGraph, (JobTaskId)i - 1, (JobTaskId)i);
@@ -112,7 +131,8 @@ spec(executor) {
           jobGraph,
           string_lit("Increment"),
           test_task_increment_counter_atomic,
-          mem_struct(TestExecutorCounterData, .counter = &counter));
+          mem_struct(TestExecutorCounterData, .counter = &counter),
+          task_flags);
     }
 
     jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph));
@@ -125,7 +145,7 @@ spec(executor) {
   }
 
   it("can compute a parallel sum of integers") {
-    i64   data[1024 * 8];
+    i64   data[1024 * 2];
     usize dataCount = array_elems(data);
     i64   sum       = 0;
     for (i64 i = 0; i != (i64)dataCount; ++i) {
@@ -144,7 +164,8 @@ spec(executor) {
             graph,
             string_lit("Sum"),
             test_task_sum,
-            mem_struct(TestExecutorSumData, .values = data, .idxA = i, .idxB = halfSize + i));
+            mem_struct(TestExecutorSumData, .values = data, .idxA = i, .idxB = halfSize + i),
+            task_flags);
         if (!rootLayer) {
           jobs_graph_task_depend(graph, *dynarray_at_t(&dependencies, i, JobTaskId), id);
           jobs_graph_task_depend(graph, *dynarray_at_t(&dependencies, halfSize + i, JobTaskId), id);
@@ -172,14 +193,16 @@ spec(executor) {
         graph,
         string_lit("Init"),
         test_task_counter_to_42,
-        mem_struct(TestExecutorCounterData, .counter = &data[0]));
+        mem_struct(TestExecutorCounterData, .counter = &data[0]),
+        task_flags);
 
     for (usize i = 0; i != tasks; ++i) {
       const JobTaskId task = jobs_graph_add_task(
           graph,
           string_lit("SetVal"),
           test_task_sum,
-          mem_struct(TestExecutorSumData, .values = data, .idxA = i + 1, .idxB = 0));
+          mem_struct(TestExecutorSumData, .values = data, .idxA = i + 1, .idxB = 0),
+          task_flags);
       jobs_graph_task_depend(graph, initTask, task);
     }
 
@@ -187,5 +210,49 @@ spec(executor) {
     array_for_t(data, i64, val, { check_eq_int(*val, 42); });
 
     jobs_graph_destroy(graph);
+  }
+
+  it("executes a parallel set affinity tasks always on the same thread") {
+    static const usize numTasks = 100;
+
+    JobGraph* jobGraph = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 1);
+
+    for (usize i = 0; i != numTasks; ++i) {
+
+      jobs_graph_add_task(
+          jobGraph,
+          string_lit("RequireAffinity"),
+          test_task_require_affinity,
+          mem_struct(TestExecutorAffinityData, .tid = sentinel_i64),
+          task_flags | JobTaskFlags_ThreadAffinity);
+    }
+
+    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph));
+    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph));
+
+    jobs_graph_destroy(jobGraph);
+  }
+
+  it("executes a linear set affinity tasks always on the same thread") {
+    static const usize numTasks = 1000;
+
+    JobGraph* jobGraph = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 1);
+
+    for (usize i = 0; i != numTasks; ++i) {
+      jobs_graph_add_task(
+          jobGraph,
+          string_lit("RequireAffinity"),
+          test_task_require_affinity,
+          mem_struct(TestExecutorAffinityData, .tid = sentinel_i64),
+          task_flags | JobTaskFlags_ThreadAffinity);
+      if (i) {
+        jobs_graph_task_depend(jobGraph, (JobTaskId)(i - 1), (JobTaskId)i);
+      }
+    }
+
+    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph));
+    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph));
+
+    jobs_graph_destroy(jobGraph);
   }
 }

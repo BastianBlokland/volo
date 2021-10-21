@@ -27,14 +27,14 @@
  * Pre-condition: '_VAL_' is a primitive integer / floating-point type.
  */
 #define sentinel_check(_VAL_) _Generic((_VAL_),                                                    \
-    i8:   (_VAL_) == sentinel_i8,                                                                  \
-    i16:  (_VAL_) == sentinel_i16,                                                                 \
-    i32:  (_VAL_) == sentinel_i32,                                                                 \
-    i64:  (_VAL_) == sentinel_i8,                                                                  \
-    u8:   (_VAL_) == sentinel_u8,                                                                  \
-    u16:  (_VAL_) == sentinel_u16,                                                                 \
-    u32:  (_VAL_) == sentinel_u32,                                                                 \
-    u64:  (_VAL_) == sentinel_u64,                                                                 \
+    i8:   (i8)(_VAL_)   == sentinel_i8,                                                            \
+    i16:  (i16)(_VAL_)  == sentinel_i16,                                                           \
+    i32:  (i32)(_VAL_)  == sentinel_i32,                                                           \
+    i64:  (i64)(_VAL_)  == sentinel_i64,                                                           \
+    u8:   (u8)(_VAL_)   == sentinel_u8,                                                            \
+    u16:  (u16)(_VAL_)  == sentinel_u16,                                                           \
+    u32:  (u32)(_VAL_)  == sentinel_u32,                                                           \
+    u64:  (u64)(_VAL_)  == sentinel_u64,                                                           \
     f32:  float_isnan(_VAL_),                                                                      \
     f64:  float_isnan(_VAL_)                                                                       \
   )

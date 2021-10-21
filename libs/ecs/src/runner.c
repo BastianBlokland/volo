@@ -69,7 +69,8 @@ static JobTaskId graph_insert_finalize(EcsRunner* runner) {
       runner->graph,
       string_lit("finalize"),
       graph_runner_finalize_task,
-      mem_struct(MetaTaskData, .runner = runner));
+      mem_struct(MetaTaskData, .runner = runner),
+      JobTaskFlags_None);
 }
 
 static JobTaskId
@@ -79,7 +80,8 @@ graph_insert_system(EcsRunner* runner, const EcsSystemId systemId, const EcsSyst
       systemDef->name,
       graph_system_task,
       mem_struct(
-          SystemTaskData, .world = runner->world, .id = systemId, .routine = systemDef->routine));
+          SystemTaskData, .world = runner->world, .id = systemId, .routine = systemDef->routine),
+      JobTaskFlags_None);
 };
 
 static bool graph_system_conflict(EcsWorld* world, const EcsSystemDef* a, const EcsSystemDef* b) {

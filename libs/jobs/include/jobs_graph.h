@@ -12,6 +12,16 @@ typedef struct sAllocator Allocator;
  */
 typedef u32 JobTaskId;
 
+typedef enum {
+  JobTaskFlags_None = 0,
+
+  /**
+   * The task should always be run on the same thread.
+   * NOTE: Incurs an additional scheduling overhead.
+   */
+  JobTaskFlags_ThreadAffinity = 1 << 0,
+} JobTaskFlags;
+
 /**
  * Iterator for iterating task children.
  */
@@ -75,9 +85,9 @@ void jobs_graph_destroy(JobGraph*);
  * NOTE: 'ctx' is copied into the graph and has the same lifetime as the graph.
  *
  * Pre-condition: JobGraph is not running at the moment.
- * Pre-condition: ctx.size <= (64 - sizeof(void*) * 3).
+ * Pre-condition: ctx.size <= 32.
  */
-JobTaskId jobs_graph_add_task(JobGraph*, String name, JobTaskRoutine, Mem ctx);
+JobTaskId jobs_graph_add_task(JobGraph*, String name, JobTaskRoutine, Mem ctx, JobTaskFlags);
 
 /**
  * Register a dependency between two tasks. The child task will only be started after the parent
