@@ -160,7 +160,7 @@ static void executor_perform_work(WorkItem item) {
         taskPushed = true;
       }
     }
-    if (taskPushed && g_sleepingWorkers) {
+    if (taskPushed && thread_atomic_load_i64(&g_sleepingWorkers)) {
       // Some workers are sleeping: Wake them.
       thread_cond_broadcast(g_wakeCondition);
     }
@@ -300,7 +300,7 @@ void executor_run(Job* job) {
     ++pushedRootTaskCount;
   }
 
-  if (g_sleepingWorkers) {
+  if (thread_atomic_load_i64(&g_sleepingWorkers)) {
     // Some workers are sleeping: Wake them.
     thread_cond_broadcast(g_wakeCondition);
   }
