@@ -162,6 +162,7 @@ EcsSystemId ecs_def_register_system(
     EcsDef*                def,
     const String           name,
     const EcsSystemRoutine routine,
+    const EcsSystemFlags   flags,
     const EcsViewId*       views,
     const usize            viewCount) {
   diag_assert_msg(!(def->flags & EcsDefFlags_Frozen), "Unable to modify a frozen definition");
@@ -171,6 +172,7 @@ EcsSystemId ecs_def_register_system(
   *systemDef              = (EcsSystemDef){
       .name    = string_dup(def->alloc, name),
       .routine = routine,
+      .flags   = flags,
       .viewIds = dynarray_create_t(def->alloc, EcsViewId, viewCount),
   };
 

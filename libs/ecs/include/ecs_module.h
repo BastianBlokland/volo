@@ -29,9 +29,20 @@ typedef struct {
   EcsViewInit initRoutine;
 } EcsViewConfig;
 
+typedef enum {
+  EcsSystemFlags_None = 0,
+
+  /**
+   * The system should always be run on the same thread.
+   * NOTE: Incurs an additional scheduling overhead.
+   */
+  EcsSystemFlags_ThreadAffinity = 1 << 0,
+} EcsSystemFlags;
+
 typedef struct {
   String           name;
   EcsSystemRoutine routine;
+  EcsSystemFlags   flags;
   const EcsViewId* views;
   usize            viewCount;
 } EcsSystemConfig;
@@ -160,9 +171,13 @@ typedef struct {
  * ```
  */
 #define ecs_register_system(_NAME_, ...)                                                           \
+  ecs_register_system_with_flags(_NAME_, EcsSystemFlags_None, __VA_ARGS__)
+
+#define ecs_register_system_with_flags(_NAME_, _FLAGS_, ...)                                       \
   ecs_module_register_system(_builder, &ecs_system_id(_NAME_), &(EcsSystemConfig){                 \
       .name      = string_lit(#_NAME_),                                                            \
       .routine   = &_ecs_system_##_NAME_,                                                          \
+      .flags     = (_FLAGS_),                                                                      \
       .views     = (const EcsViewId[]){ VA_ARGS_SKIP_FIRST(0, ##__VA_ARGS__, 0) },                 \
       .viewCount = COUNT_VA_ARGS(__VA_ARGS__)})
 

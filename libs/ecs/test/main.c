@@ -12,6 +12,7 @@ int main(const int argc, const char** argv) {
   log_add_sink(g_logger, log_sink_json_default(g_alloc_heap, LogMask_All));
 
   CheckDef* check = check_create(g_alloc_heap);
+  register_spec(check, affinity);
   register_spec(check, def);
   register_spec(check, destruct);
   register_spec(check, entity);
