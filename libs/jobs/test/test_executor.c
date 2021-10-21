@@ -1,6 +1,7 @@
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_diag.h"
 #include "core_thread.h"
 #include "jobs_graph.h"
 #include "jobs_scheduler.h"
@@ -15,6 +16,10 @@ typedef struct {
   i64*  values;
   usize idxA, idxB;
 } TestExecutorSumData;
+
+typedef struct {
+  i64 tid;
+} TestExecutorAffinityData;
 
 static void test_task_increment_counter(void* ctx) {
   TestExecutorCounterData* data = ctx;
@@ -39,6 +44,15 @@ static void test_task_increment_counter_atomic(void* ctx) {
 static void test_task_sum(void* ctx) {
   TestExecutorSumData* data = ctx;
   data->values[data->idxA] += data->values[data->idxB];
+}
+
+static void test_task_require_affinity(void* ctx) {
+  TestExecutorAffinityData* data = ctx;
+  if (sentinel_check(data->tid)) {
+    data->tid = g_thread_tid;
+    return;
+  }
+  diag_assert_msg(data->tid == g_thread_tid, "Affinity task was executed on multiple threads");
 }
 
 spec(executor) {
@@ -196,5 +210,49 @@ spec(executor) {
     array_for_t(data, i64, val, { check_eq_int(*val, 42); });
 
     jobs_graph_destroy(graph);
+  }
+
+  it("executes a parallel set affinity tasks always on the same thread") {
+    static const usize numTasks = 100;
+
+    JobGraph* jobGraph = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 1);
+
+    for (usize i = 0; i != numTasks; ++i) {
+
+      jobs_graph_add_task(
+          jobGraph,
+          string_lit("RequireAffinity"),
+          test_task_require_affinity,
+          mem_struct(TestExecutorAffinityData, .tid = sentinel_i64),
+          task_flags | JobTaskFlags_ThreadAffinity);
+    }
+
+    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph));
+    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph));
+
+    jobs_graph_destroy(jobGraph);
+  }
+
+  it("executes a linear set affinity tasks always on the same thread") {
+    static const usize numTasks = 1000;
+
+    JobGraph* jobGraph = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 1);
+
+    for (usize i = 0; i != numTasks; ++i) {
+      jobs_graph_add_task(
+          jobGraph,
+          string_lit("RequireAffinity"),
+          test_task_require_affinity,
+          mem_struct(TestExecutorAffinityData, .tid = sentinel_i64),
+          task_flags | JobTaskFlags_ThreadAffinity);
+      if (i) {
+        jobs_graph_task_depend(jobGraph, (JobTaskId)(i - 1), (JobTaskId)i);
+      }
+    }
+
+    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph));
+    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph));
+
+    jobs_graph_destroy(jobGraph);
   }
 }
