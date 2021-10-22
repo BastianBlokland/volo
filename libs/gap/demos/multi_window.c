@@ -39,7 +39,7 @@ static void window_update(EcsWorld* world, GapWindowComp* window, const u64 tick
           fmt_bool(gap_window_key_pressed(window, GapKey_MouseLeft)),
           gap_vector_fmt(gap_window_param(window, GapParam_ScrollDelta))));
 
-  // Close when pressing escape.
+  // Close with 'Escape'.
   if (gap_window_key_pressed(window, GapKey_Escape)) {
     gap_window_close(window);
   }

@@ -1,11 +1,11 @@
 # --------------------------------------------------------------------------------------------------
-# CMake utility to find the xkb extension for xcb (https://xcb.freedesktop.org/) library.
+# CMake utility to find the xfixes extension for xcb (https://xcb.freedesktop.org/).
 # --------------------------------------------------------------------------------------------------
 
 #
 # Available for (most?) linux distributions that are using the x window-server.
-# For debian based distributions: apt install libxcb-xkb-dev
+# For debian based distributions: apt install libxcb-xfixes0-dev
 # More info: https://xcb.freedesktop.org/
 #
 
-findpkg("xcb-xkb" "xcb/xkb.h")
+findpkg("xcb-xfixes0" "xcb/xfixes.h")

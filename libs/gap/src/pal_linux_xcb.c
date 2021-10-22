@@ -5,7 +5,19 @@
 
 #include <stdlib.h>
 #include <xcb/xcb.h>
+#include <xcb/xfixes.h>
 #include <xcb/xkb.h>
+
+/**
+ * Utility to make synchronous xcb calls.
+ */
+#define pal_xcb_call(_CON_, _FUNC_, _ERR_, ...)                                                    \
+  _FUNC_##_reply((_CON_), _FUNC_((_CON_), __VA_ARGS__), (_ERR_))
+
+typedef enum {
+  GapPalXcbExtFlags_Xkb    = 1 << 0,
+  GapPalXcbExtFlags_XFixes = 1 << 1,
+} GapPalXcbExtFlags;
 
 typedef struct {
   GapWindowId       id;
@@ -20,6 +32,8 @@ struct sGapPal {
 
   xcb_connection_t* xcbConnection;
   xcb_screen_t*     xcbScreen;
+  GapPalXcbExtFlags extensions;
+  bool              cursorHidden;
 
   xcb_atom_t xcbProtoMsgAtom;
   xcb_atom_t xcbDeleteMsgAtom;
@@ -192,19 +206,15 @@ static void pal_xcb_check_con(GapPal* pal) {
  * Xcb atoms are named tokens that are used in the x11 specification.
  */
 static xcb_atom_t pal_xcb_atom(GapPal* pal, const String name) {
-  /**
-   * NOTE: An asynchronous version of this could be implemented by making all requests first and
-   * then blocking using 'xcb_intern_atom_reply' only when we actually need the atom.
-   */
-  xcb_intern_atom_cookie_t cookie = xcb_intern_atom(pal->xcbConnection, 0, name.size, name.ptr);
-  xcb_generic_error_t*     err    = null;
-  xcb_intern_atom_reply_t* reply  = xcb_intern_atom_reply(pal->xcbConnection, cookie, &err);
+  xcb_generic_error_t*     err = null;
+  xcb_intern_atom_reply_t* reply =
+      pal_xcb_call(pal->xcbConnection, xcb_intern_atom, &err, 0, name.size, name.ptr);
   if (UNLIKELY(err)) {
     diag_crash_msg(
         "xcb failed to retrieve atom: {}, err: {}", fmt_text(name), fmt_int(err->error_code));
   }
   const xcb_atom_t result = reply->atom;
-  free(reply); // TODO: Investigate if we can tell xcb to use our memory allocator.
+  free(reply);
   return result;
 }
 
@@ -275,28 +285,59 @@ static void pal_xkb_enable_flag(GapPal* pal, const xcb_xkb_per_client_flag_t fla
 }
 
 /**
- * Initialize xkb (X keyboard extension), which gives us additional control over keyboard input.
+ * Initialize the xkb extension, gives us additional control over keyboard input.
  * More info: https://en.wikipedia.org/wiki/X_keyboard_extension
  */
 static bool pal_xkb_init(GapPal* pal) {
-  xcb_generic_error_t*           err = null;
-  xcb_xkb_use_extension_cookie_t cookie =
-      xcb_xkb_use_extension(pal->xcbConnection, XCB_XKB_MAJOR_VERSION, XCB_XKB_MINOR_VERSION);
-  xcb_xkb_use_extension_reply_t* useExtReply =
-      xcb_xkb_use_extension_reply(pal->xcbConnection, cookie, &err);
+  xcb_generic_error_t*           err   = null;
+  xcb_xkb_use_extension_reply_t* reply = pal_xcb_call(
+      pal->xcbConnection,
+      xcb_xkb_use_extension,
+      &err,
+      XCB_XKB_MAJOR_VERSION,
+      XCB_XKB_MINOR_VERSION);
 
   if (UNLIKELY(err)) {
-    log_w("Failed to initialize xkb extension", log_param("error", fmt_int(err->error_code)));
-    free(useExtReply);
+    log_w("Failed to initialize the xkb extension", log_param("error", fmt_int(err->error_code)));
+    free(reply);
     return false;
   }
 
-  MAYBE_UNUSED const u16 versionMajor = useExtReply->serverMajor;
-  MAYBE_UNUSED const u16 versionMinor = useExtReply->serverMinor;
-  free(useExtReply);
+  MAYBE_UNUSED const u16 versionMajor = reply->serverMajor;
+  MAYBE_UNUSED const u16 versionMinor = reply->serverMinor;
+  free(reply);
 
   log_i(
       "Initialized xkb extension",
+      log_param("version", fmt_list_lit(fmt_int(versionMajor), fmt_int(versionMinor))));
+  return true;
+}
+
+/**
+ * Initialize xfixes extension, contains various cursor utilities.
+ */
+static bool pal_xfixes_init(GapPal* pal) {
+  xcb_generic_error_t*              err   = null;
+  xcb_xfixes_query_version_reply_t* reply = pal_xcb_call(
+      pal->xcbConnection,
+      xcb_xfixes_query_version,
+      &err,
+      XCB_XFIXES_MAJOR_VERSION,
+      XCB_XFIXES_MINOR_VERSION);
+
+  if (UNLIKELY(err)) {
+    log_w(
+        "Failed to initialize the xfixes extension", log_param("error", fmt_int(err->error_code)));
+    free(reply);
+    return false;
+  }
+
+  MAYBE_UNUSED const u32 versionMajor = reply->major_version;
+  MAYBE_UNUSED const u32 versionMinor = reply->minor_version;
+  free(reply);
+
+  log_i(
+      "Initialized xfixes extension",
       log_param("version", fmt_list_lit(fmt_int(versionMajor), fmt_int(versionMinor))));
   return true;
 }
@@ -357,6 +398,13 @@ GapPal* gap_pal_create(Allocator* alloc) {
 
   pal_xcb_connect(pal);
   if (pal_xkb_init(pal)) {
+    pal->extensions |= GapPalXcbExtFlags_Xkb;
+  }
+  if (pal_xfixes_init(pal)) {
+    pal->extensions |= GapPalXcbExtFlags_XFixes;
+  }
+
+  if (pal->extensions & GapPalXcbExtFlags_Xkb) {
     /**
      * Enable the 'detectableAutoRepeat' xkb flag.
      * By default x-server will send repeated press and release when holding a key, making it
@@ -596,6 +644,23 @@ void gap_pal_window_resize(
 
   xcb_flush(pal->xcbConnection);
   pal_xcb_check_con(pal);
+}
+
+void gap_pal_window_cursor_hide(GapPal* pal, const GapWindowId windowId, const bool hidden) {
+  if (!(pal->extensions & GapPalXcbExtFlags_XFixes)) {
+    log_w("Failed to update cursor visibility: XFixes extension not available");
+    return;
+  }
+
+  log_d("Updating cursor visibility", log_param("hidden", fmt_bool(hidden)));
+
+  if (hidden && !pal->cursorHidden) {
+    xcb_xfixes_hide_cursor(pal->xcbConnection, windowId);
+    pal->cursorHidden = true;
+  } else if (!hidden && pal->cursorHidden) {
+    xcb_xfixes_show_cursor(pal->xcbConnection, windowId);
+    pal->cursorHidden = false;
+  }
 }
 
 GapNativeWm gap_pal_native_wm() { return GapNativeWm_Xcb; }
