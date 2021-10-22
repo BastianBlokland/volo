@@ -5,8 +5,12 @@
 
 #include <stdlib.h>
 #include <xcb/xcb.h>
+#include <xcb/xcb_icccm.h>
 #include <xcb/xfixes.h>
 #include <xcb/xkb.h>
+
+#define pal_window_min_width 128
+#define pal_window_min_height 128
 
 /**
  * Utility to make synchronous xcb calls.
@@ -17,6 +21,7 @@
 typedef enum {
   GapPalXcbExtFlags_Xkb    = 1 << 0,
   GapPalXcbExtFlags_XFixes = 1 << 1,
+  GapPalXcbExtFlags_Icccm  = 1 << 2,
 } GapPalXcbExtFlags;
 
 typedef struct {
@@ -342,6 +347,26 @@ static bool pal_xfixes_init(GapPal* pal) {
   return true;
 }
 
+static void pal_init_extensions(GapPal* pal) {
+  if (pal_xkb_init(pal)) {
+    pal->extensions |= GapPalXcbExtFlags_Xkb;
+  }
+  if (pal_xfixes_init(pal)) {
+    pal->extensions |= GapPalXcbExtFlags_XFixes;
+  }
+  pal->extensions |= GapPalXcbExtFlags_Icccm; // NOTE: No initialization is needed for ICCCM.
+}
+
+static void
+pal_set_window_min_size(GapPal* pal, const GapWindowId windowId, const GapVector minSize) {
+  diag_assert(pal->extensions & GapPalXcbExtFlags_Icccm);
+
+  xcb_size_hints_t hints = {0};
+  xcb_icccm_size_hints_set_min_size(&hints, minSize.x, minSize.y);
+
+  xcb_icccm_set_wm_size_hints(pal->xcbConnection, windowId, XCB_ATOM_WM_NORMAL_HINTS, &hints);
+}
+
 static void pal_event_close(GapPal* pal, const GapWindowId windowId) {
   GapPalWindow* window = pal_window(pal, windowId);
   window->flags |= GapPalWindowFlags_CloseRequested;
@@ -397,12 +422,7 @@ GapPal* gap_pal_create(Allocator* alloc) {
   *pal        = (GapPal){.alloc = alloc, .windows = dynarray_create_t(alloc, GapPalWindow, 4)};
 
   pal_xcb_connect(pal);
-  if (pal_xkb_init(pal)) {
-    pal->extensions |= GapPalXcbExtFlags_Xkb;
-  }
-  if (pal_xfixes_init(pal)) {
-    pal->extensions |= GapPalXcbExtFlags_XFixes;
-  }
+  pal_init_extensions(pal);
 
   if (pal->extensions & GapPalXcbExtFlags_Xkb) {
     /**
@@ -551,6 +571,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       con, XCB_PROP_MODE_REPLACE, id, pal->xcbProtoMsgAtom, 4, 32, 1, &pal->xcbDeleteMsgAtom);
 
   xcb_map_window(con, id);
+  pal_set_window_min_size(pal, id, gap_vector(pal_window_min_width, pal_window_min_height));
   xcb_flush(con);
 
   *dynarray_push_t(&pal->windows, GapPalWindow) = (GapPalWindow){
@@ -617,9 +638,14 @@ void gap_pal_window_resize(
 
   if (size.width <= 0) {
     size.width = pal->xcbScreen->width_in_pixels;
+  } else if (size.width < pal_window_min_width) {
+    size.width = pal_window_min_width;
   }
+
   if (size.height <= 0) {
     size.height = pal->xcbScreen->height_in_pixels;
+  } else if (size.width < pal_window_min_height) {
+    size.width = pal_window_min_height;
   }
 
   log_d(

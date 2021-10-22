@@ -540,9 +540,14 @@ void gap_pal_window_resize(
 
   if (size.width <= 0) {
     size.width = GetSystemMetrics(SM_CXSCREEN);
+  } else if (size.width < pal_window_min_width) {
+    size.width = pal_window_min_width;
   }
+
   if (size.height <= 0) {
     size.height = GetSystemMetrics(SM_CYSCREEN);
+  } else if (size.width < pal_window_min_height) {
+    size.width = pal_window_min_height;
   }
 
   log_d(
