@@ -15,7 +15,9 @@ typedef enum {
 ecs_comp_define(GapPlatformComp) { GapPal* pal; };
 
 ecs_comp_define(GapWindowComp) {
-  String            title;
+  String title;
+  uptr   nativeAppHandle;
+
   GapWindowId       id;
   GapWindowEvents   events : 16;
   GapWindowFlags    flags : 8;
@@ -58,6 +60,8 @@ static void window_update(
     const EcsEntityId windowEntity) {
 
 #define copy_param(_P_) window->params[_P_] = gap_pal_window_param(platform->pal, window->id, _P_)
+
+  window->nativeAppHandle = gap_pal_native_app_handle(platform->pal);
 
   // Clear the events of the previous tick.
   window->events = 0;
@@ -212,3 +216,12 @@ bool gap_window_key_released(const GapWindowComp* comp, const GapKey key) {
 bool gap_window_key_down(const GapWindowComp* comp, const GapKey key) {
   return gap_keyset_test(&comp->keysDown, key);
 }
+
+GapNativeWm gap_window_native_wm(const GapWindowComp* comp) {
+  (void)comp;
+  return gap_pal_native_wm();
+}
+
+uptr gap_native_window_handle(const GapWindowComp* comp) { return (uptr)comp->id; }
+
+uptr gap_native_platform_handle(const GapWindowComp* comp) { return comp->nativeAppHandle; }

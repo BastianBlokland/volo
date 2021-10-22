@@ -571,3 +571,7 @@ void gap_pal_window_resize(
     ShowWindow((HWND)windowId, SW_RESTORE);
   }
 }
+
+GapNativeWm gap_pal_native_wm() { return GapNativeWm_Win32; }
+
+uptr gap_pal_native_app_handle(GapPal* pal) { return (uptr)pal->moduleInstance; }

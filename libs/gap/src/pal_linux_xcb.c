@@ -597,3 +597,7 @@ void gap_pal_window_resize(
   xcb_flush(pal->xcbConnection);
   pal_xcb_check_con(pal);
 }
+
+GapNativeWm gap_pal_native_wm() { return GapNativeWm_Xcb; }
+
+uptr gap_pal_native_app_handle(GapPal* pal) { return (uptr)pal->xcbConnection; }

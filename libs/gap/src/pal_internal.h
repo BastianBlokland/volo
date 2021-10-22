@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "core_annotation.h"
 #include "core_string.h"
+#include "gap_native.h"
 #include "gap_vector.h"
 
 #include "input_internal.h"
@@ -37,3 +38,6 @@ const GapKeySet*  gap_pal_window_keys_released(const GapPal*, GapWindowId);
 const GapKeySet*  gap_pal_window_keys_down(const GapPal*, GapWindowId);
 void              gap_pal_window_title_set(GapPal*, GapWindowId, String);
 void              gap_pal_window_resize(GapPal*, GapWindowId, GapVector size, bool fullscreen);
+
+GapNativeWm gap_pal_native_wm();
+uptr        gap_pal_native_app_handle(GapPal*);
