@@ -146,13 +146,6 @@ macro(set_compile_options)
   set(CMAKE_C_FLAGS_RELWITHDEBINFO "")
   set(CMAKE_C_FLAGS_MINSIZEREL "")
 
-  # Enable pthread threading on linux.
-  if(${VOLO_PLATFORM} STREQUAL "linux")
-    message(STATUS "Configuring pthread threading")
-    add_compile_options(-pthread)
-    add_link_options(-pthread)
-  endif()
-
   # Set our custom compiler options.
   if(${VOLO_COMPILER} STREQUAL "gcc")
     set_gcc_compile_options()

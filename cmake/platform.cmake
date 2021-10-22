@@ -51,9 +51,17 @@ endmacro(set_win32_defines)
 #
 macro(set_platform_defines)
   if(${VOLO_PLATFORM} STREQUAL "linux")
+
     set_linux_defines()
+
+    # Enable pthread threading.
+    add_compile_options(-pthread)
+    add_link_options(-pthread)
+
   elseif(${VOLO_PLATFORM} STREQUAL "win32")
+
     set_win32_defines()
+
   else()
     message(FATAL_ERROR "Unknown platform")
   endif()

@@ -16,9 +16,10 @@ message(STATUS "* Build path: ${PROJECT_BINARY_DIR}")
 message(STATUS "* Compiler: ${CMAKE_C_COMPILER_ID}")
 message(STATUS "* Generator: ${CMAKE_GENERATOR}")
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules")
 include(cmake/compiler.cmake)
 include(cmake/debug.cmake)
+include(cmake/findpkg.cmake)
 include(cmake/platform.cmake)
 include(cmake/test.cmake)
 

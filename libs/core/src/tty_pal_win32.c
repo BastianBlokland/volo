@@ -52,7 +52,11 @@ static bool tty_pal_has_key_input(File* file) {
   DWORD      eventCount;
   const BOOL getNumRes = GetNumberOfConsoleInputEvents(file->handle, &eventCount);
   if (UNLIKELY(!getNumRes)) {
-    diag_crash_msg("GetNumberOfConsoleInputEvents() failed: {}", fmt_int((u64)GetLastError()));
+    const DWORD err = GetLastError();
+    diag_crash_msg(
+        "GetNumberOfConsoleInputEvents() failed: {}, {}",
+        fmt_int((u64)err),
+        fmt_text(winutils_error_msg_scratch(err)));
   }
 
   if (!eventCount) {
@@ -63,7 +67,11 @@ static bool tty_pal_has_key_input(File* file) {
   DWORD        peekCount;
   const BOOL   peekRes = PeekConsoleInput(file->handle, records, array_elems(records), &peekCount);
   if (UNLIKELY(!peekRes)) {
-    diag_crash_msg("PeekConsoleInput() failed: {}", fmt_int((u64)GetLastError()));
+    const DWORD err = GetLastError();
+    diag_crash_msg(
+        "PeekConsoleInput() failed: {}, {}",
+        fmt_int((u64)err),
+        fmt_text(winutils_error_msg_scratch(err)));
   }
 
   // Search in the peeked events for a key-down event.
@@ -174,19 +182,16 @@ bool tty_pal_read(File* file, DynString* dynstr, const TtyReadFlags flags) {
   DWORD      wideCharsRead;
   const BOOL readRes = ReadConsole(file->handle, wideBuffer.ptr, maxChars, &wideCharsRead, null);
   if (UNLIKELY(!readRes)) {
-    diag_crash_msg("ReadConsole() failed: {}", fmt_int((u64)GetLastError()));
+    const DWORD err = GetLastError();
+    diag_crash_msg(
+        "ReadConsole() failed: {}, {}",
+        fmt_int((u64)err),
+        fmt_text(winutils_error_msg_scratch(err)));
   }
   if (!wideCharsRead) {
     return false;
   }
 
-  const usize utf8TmpSize = winutils_from_widestr_size(wideBuffer.ptr, wideCharsRead);
-  if (sentinel_check(utf8TmpSize)) {
-    diag_crash_msg("ReadConsole() malformed output");
-  }
-  Mem utf8Tmp = mem_stack(utf8TmpSize);
-  winutils_from_widestr(utf8Tmp, wideBuffer.ptr, wideCharsRead);
-
-  dynstring_append(dynstr, utf8Tmp);
+  dynstring_append(dynstr, winutils_from_widestr_scratch(wideBuffer.ptr, wideCharsRead));
   return true;
 }

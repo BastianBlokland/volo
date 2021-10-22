@@ -1,7 +1,6 @@
 #include "cli.h"
-#include "core_alloc.h"
+#include "core.h"
 #include "core_file.h"
-#include "core_init.h"
 #include "core_path.h"
 #include "core_sort.h"
 #include "json.h"
@@ -105,7 +104,7 @@ static JsonVal dbgsetup_vscode_gen_attach_entry(DbgSetupCtx* ctx, JsonDoc* doc, 
   json_add_field_str(doc, obj, string_lit("request"), json_add_string_lit(doc, "attach"));
   json_add_field_str(doc, obj, string_lit("program"), json_add_string(doc, target));
   json_add_field_str(
-      doc, obj, string_lit("pid"), json_add_string_lit(doc, "${command:pickMyProcess}"));
+      doc, obj, string_lit("processId"), json_add_string_lit(doc, "${command:pickProcess}"));
   return obj;
 }
 

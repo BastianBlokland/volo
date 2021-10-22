@@ -58,12 +58,16 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: prepare-linux
+      if: matrix.config.os == 'linux'
+      run: sudo apt install libxcb1-dev libxcb-xkb-dev libxcb-xfixes0-dev libxcb-icccm4-dev
+
     - name: test-unix
       if: matrix.config.toolchain == 'unix'
       run: |
-        cmake -B build  &&
-        cd build        &&
-        make -k test
+        cmake -B build   &&
+        cd build         &&
+        make -k all test
 
     - name: test-msvc
       if: matrix.config.toolchain == 'msvc'
@@ -71,14 +75,14 @@ jobs:
         ./scripts/msvc-env.ps1              &&
         cmake -B build -G 'NMake Makefiles' &&
         cd build                            &&
-        nmake /C /K test
+        nmake /C /K all test
 
     - name: test-mingw
       if: matrix.config.toolchain == 'mingw'
       run: |
         cmake -B build -G 'MinGW Makefiles' &&
         cd build                            &&
-        mingw32-make -k test
+        mingw32-make -k all test
 
     - name: archive
       uses: actions/upload-artifact@v2
