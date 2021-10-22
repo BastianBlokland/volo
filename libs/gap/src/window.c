@@ -60,8 +60,6 @@ static void window_update(
     GapWindowComp*    window,
     const EcsEntityId windowEntity) {
 
-#define copy_param(_P_) window->params[_P_] = gap_pal_window_param(platform->pal, window->id, _P_)
-
   window->nativeAppHandle = gap_pal_native_app_handle(platform->pal);
 
   // Clear the events of the previous tick.
@@ -89,14 +87,21 @@ static void window_update(
     window->events |= GapWindowEvents_CloseRequested;
   }
   if (palFlags & GapPalWindowFlags_Resized) {
-    copy_param(GapParam_WindowSize);
+    const GapVector size = gap_pal_window_param(platform->pal, window->id, GapParam_WindowSize);
+    window->params[GapParam_WindowSize] = size;
     window->events |= GapWindowEvents_Resized;
   }
   if (palFlags & GapPalWindowFlags_CursorMoved) {
-    copy_param(GapParam_CursorPos);
+    const GapVector oldPos = window->params[GapParam_CursorPos];
+    const GapVector newPos = gap_pal_window_param(platform->pal, window->id, GapParam_CursorPos);
+    window->params[GapParam_CursorDelta] = gap_vector_sub(newPos, oldPos);
+    window->params[GapParam_CursorPos]   = newPos;
+  } else {
+    window->params[GapParam_CursorDelta] = gap_vector(0, 0);
   }
   if (palFlags & GapPalWindowFlags_Scrolled) {
-    copy_param(GapParam_ScrollDelta);
+    const GapVector delta = gap_pal_window_param(platform->pal, window->id, GapParam_ScrollDelta);
+    window->params[GapParam_ScrollDelta] = delta;
   } else {
     window->params[GapParam_ScrollDelta] = gap_vector(0, 0);
   }
@@ -117,9 +122,9 @@ static void window_update(
   }
 
   if (window->flags & GapWindowFlags_CursorLock) {
-    const i16 tgtX = window->params[GapParam_WindowSize].x / 2;
-    const i16 tgtY = window->params[GapParam_WindowSize].y / 2;
-    gap_pal_window_cursor_set(platform->pal, window->id, gap_vector(tgtX, tgtY));
+    const GapVector tgtPos = gap_vector_div(window->params[GapParam_WindowSize], 2);
+    gap_pal_window_cursor_set(platform->pal, window->id, tgtPos);
+    window->params[GapParam_CursorPos] = tgtPos;
   }
 
   if (window_should_close(window)) {
@@ -130,8 +135,6 @@ static void window_update(
 
   // All requests have been handled.
   window->requests = 0;
-
-#undef copy_param
 }
 
 ecs_view_define(GapPlatformView) { ecs_access_write(GapPlatformComp); };

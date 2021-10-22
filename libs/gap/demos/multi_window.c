@@ -31,10 +31,11 @@ static void window_update(EcsWorld* world, GapWindowComp* window, const u64 tick
   gap_window_title_set(
       window,
       fmt_write_scratch(
-          "tick: {} size: {} cursor: {}, space: {}, click: {}, scroll: {}",
+          "tick: {} size: {} cursor-pos: {}, cursor-delta: {}, space: {}, click: {}, scroll: {}",
           fmt_int(tickCount),
           gap_vector_fmt(windowSize),
           gap_vector_fmt(gap_window_param(window, GapParam_CursorPos)),
+          gap_vector_fmt(gap_window_param(window, GapParam_CursorDelta)),
           fmt_bool(gap_window_key_down(window, GapKey_Space)),
           fmt_bool(gap_window_key_pressed(window, GapKey_MouseLeft)),
           gap_vector_fmt(gap_window_param(window, GapParam_ScrollDelta))));
