@@ -80,7 +80,7 @@ static void window_update(
         platform->pal, window->id, window->params[GapParam_WindowSize], fullscreen);
   }
   if (window->requests & GapWindowRequests_UpdateCursorHide) {
-    const bool hidden = (window->flags & GapWindowFlags_HideCursor) != 0;
+    const bool hidden = (window->flags & GapWindowFlags_CursorHide) != 0;
     gap_pal_window_cursor_hide(platform->pal, window->id, hidden);
   }
 
@@ -120,6 +120,12 @@ static void window_update(
     gap_pal_window_destroy(platform->pal, window->id);
     window->events |= GapWindowEvents_Closed;
     ecs_world_entity_destroy(world, windowEntity);
+  }
+
+  if (window->flags & GapWindowFlags_CursorLock) {
+    const i16 tgtX = window->params[GapParam_WindowSize].x / 2;
+    const i16 tgtY = window->params[GapParam_WindowSize].y / 2;
+    gap_pal_window_cursor_set(platform->pal, window->id, gap_vector(tgtX, tgtY));
   }
 
   // All requests have been handled.
@@ -187,10 +193,12 @@ EcsEntityId gap_window_open(EcsWorld* world, const GapWindowFlags flags, const G
 
 void gap_window_close(GapWindowComp* window) { window->requests |= GapWindowRequests_Close; }
 
+GapWindowFlags gap_window_flags(GapWindowComp* window) { return window->flags; }
+
 void gap_window_flags_set(GapWindowComp* comp, const GapWindowFlags flags) {
   comp->flags |= flags;
 
-  if (flags & GapWindowFlags_HideCursor) {
+  if (flags & GapWindowFlags_CursorHide) {
     comp->requests |= GapWindowRequests_UpdateCursorHide;
   }
 }
@@ -198,7 +206,7 @@ void gap_window_flags_set(GapWindowComp* comp, const GapWindowFlags flags) {
 void gap_window_flags_unset(GapWindowComp* comp, const GapWindowFlags flags) {
   comp->flags &= ~flags;
 
-  if (flags & GapWindowFlags_HideCursor) {
+  if (flags & GapWindowFlags_CursorHide) {
     comp->requests |= GapWindowRequests_UpdateCursorHide;
   }
 }

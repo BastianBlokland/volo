@@ -53,14 +53,22 @@ static void window_update(EcsWorld* world, GapWindowComp* window, const u64 tick
     }
   }
 
-  // Hide cursor with 'H'.
+  // Toggle cursor hide with 'H'.
   if (gap_window_key_pressed(window, GapKey_H)) {
-    gap_window_flags_set(window, GapWindowFlags_HideCursor);
+    if (gap_window_flags(window) & GapWindowFlags_CursorHide) {
+      gap_window_flags_unset(window, GapWindowFlags_CursorHide);
+    } else {
+      gap_window_flags_set(window, GapWindowFlags_CursorHide);
+    }
   }
 
-  // Show cursor with 'S'.
-  if (gap_window_key_pressed(window, GapKey_S)) {
-    gap_window_flags_unset(window, GapWindowFlags_HideCursor);
+  // Toggle cursor lock with 'L'.
+  if (gap_window_key_pressed(window, GapKey_L)) {
+    if (gap_window_flags(window) & GapWindowFlags_CursorLock) {
+      gap_window_flags_unset(window, GapWindowFlags_CursorLock);
+    } else {
+      gap_window_flags_set(window, GapWindowFlags_CursorLock);
+    }
   }
 
   // Open a new window with 'Return'.

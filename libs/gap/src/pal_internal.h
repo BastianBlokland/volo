@@ -39,6 +39,7 @@ const GapKeySet*  gap_pal_window_keys_down(const GapPal*, GapWindowId);
 void              gap_pal_window_title_set(GapPal*, GapWindowId, String);
 void              gap_pal_window_resize(GapPal*, GapWindowId, GapVector size, bool fullscreen);
 void              gap_pal_window_cursor_hide(GapPal*, GapWindowId, bool hidden);
+void              gap_pal_window_cursor_set(GapPal*, GapWindowId, GapVector position);
 
 GapNativeWm gap_pal_native_wm();
 uptr        gap_pal_native_app_handle(GapPal*);

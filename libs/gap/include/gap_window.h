@@ -23,7 +23,8 @@ typedef enum {
   GapWindowFlags_None            = 0,
   GapWindowFlags_CloseOnInterupt = 1 << 0,
   GapWindowFlags_CloseOnRequest  = 1 << 1,
-  GapWindowFlags_HideCursor      = 1 << 2,
+  GapWindowFlags_CursorHide      = 1 << 2,
+  GapWindowFlags_CursorLock      = 1 << 3,
 
   GapWindowFlags_Default = GapWindowFlags_CloseOnInterupt | GapWindowFlags_CloseOnRequest,
 } GapWindowFlags;
@@ -49,11 +50,9 @@ EcsEntityId gap_window_open(EcsWorld*, GapWindowFlags, GapVector size);
  */
 void gap_window_close(GapWindowComp*);
 
-/**
- * Update the configuration flags of the given window.
- */
-void gap_window_flags_set(GapWindowComp*, GapWindowFlags);
-void gap_window_flags_unset(GapWindowComp*, GapWindowFlags);
+GapWindowFlags gap_window_flags(GapWindowComp*);
+void           gap_window_flags_set(GapWindowComp*, GapWindowFlags);
+void           gap_window_flags_unset(GapWindowComp*, GapWindowFlags);
 
 /**
  * Retrieve the events that occurred this tick.
