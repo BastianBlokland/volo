@@ -49,6 +49,12 @@ EcsEntityId gap_window_open(EcsWorld*, GapWindowFlags, GapVector size);
 void gap_window_close(GapWindowComp*);
 
 /**
+ * Update the configuration flags of the given window.
+ */
+void gap_window_flags_set(GapWindowComp*, GapWindowFlags);
+void gap_window_flags_unset(GapWindowComp*, GapWindowFlags);
+
+/**
  * Retrieve the events that occurred this tick.
  */
 GapWindowEvents gap_window_events(const GapWindowComp*);
