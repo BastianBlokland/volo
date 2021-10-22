@@ -587,6 +587,13 @@ void gap_pal_window_cursor_hide(GapPal* pal, const GapWindowId windowId, const b
   }
 }
 
+void gap_pal_window_cursor_set(GapPal* pal, const GapWindowId windowId, GapVector position) {
+  (void)pal;
+
+  const RECT windowRect = pal_window_rect(windowId);
+  SetCursorPos((int)(windowRect.left + position.x), (int)(windowRect.top + position.y));
+}
+
 GapNativeWm gap_pal_native_wm() { return GapNativeWm_Win32; }
 
 uptr gap_pal_native_app_handle(GapPal* pal) { return (uptr)pal->moduleInstance; }

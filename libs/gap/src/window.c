@@ -116,16 +116,16 @@ static void window_update(
     gap_keyset_clear(&window->keysReleased);
   }
 
-  if (window_should_close(window)) {
-    gap_pal_window_destroy(platform->pal, window->id);
-    window->events |= GapWindowEvents_Closed;
-    ecs_world_entity_destroy(world, windowEntity);
-  }
-
   if (window->flags & GapWindowFlags_CursorLock) {
     const i16 tgtX = window->params[GapParam_WindowSize].x / 2;
     const i16 tgtY = window->params[GapParam_WindowSize].y / 2;
     gap_pal_window_cursor_set(platform->pal, window->id, gap_vector(tgtX, tgtY));
+  }
+
+  if (window_should_close(window)) {
+    gap_pal_window_destroy(platform->pal, window->id);
+    window->events |= GapWindowEvents_Closed;
+    ecs_world_entity_destroy(world, windowEntity);
   }
 
   // All requests have been handled.
