@@ -20,9 +20,7 @@ static const DWORD g_winFullscreenStyle = WS_POPUP | WS_CLIPSIBLINGS | WS_CLIPCH
 typedef struct {
   GapWindowId id;
 
-  Mem   className;
-  DWORD style;
-  DWORD fullscreenStyle;
+  Mem className;
 
   GapVector         params[GapParam_Count];
   GapPalWindowFlags flags : 16;
@@ -472,8 +470,6 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   *dynarray_push_t(&pal->windows, GapPalWindow) = (GapPalWindow){
       .id                          = id,
       .className                   = className,
-      .style                       = g_winStyle,
-      .fullscreenStyle             = g_winFullscreenStyle,
       .params[GapParam_WindowSize] = realClientSize,
   };
 
@@ -541,14 +537,37 @@ void gap_pal_window_resize(
     GapPal* pal, const GapWindowId windowId, GapVector size, const bool fullscreen) {
   pal_check_thread_ownership(pal);
 
+  if (size.width <= 0) {
+    size.width = GetSystemMetrics(SM_CXSCREEN);
+  }
+  if (size.height <= 0) {
+    size.height = GetSystemMetrics(SM_CYSCREEN);
+  }
+
   log_d(
       "Updating window size",
       log_param("id", fmt_int(windowId)),
       log_param("size", gap_vector_fmt(size)),
       log_param("fullscreen", fmt_bool(fullscreen)));
 
-  (void)pal;
-  (void)windowId;
-  (void)size;
-  (void)fullscreen;
+  if (fullscreen) {
+    // TODO: Investigate supporting different sizes in fullscreen, this requires actually changing
+    // the system display-adapter settings.
+    SetWindowLongPtr((HWND)windowId, GWL_STYLE, g_winFullscreenStyle);
+    ShowWindow((HWND)windowId, SW_MAXIMIZE);
+  } else {
+    SetWindowLongPtr((HWND)windowId, GWL_STYLE, g_winStyle);
+    const RECT rect = pal_client_to_window_rect(size, g_winStyle);
+    if (!SetWindowPos(
+            (HWND)windowId,
+            null,
+            0,
+            0,
+            rect.right - rect.left,
+            rect.bottom - rect.top,
+            SWP_NOCOPYBITS | SWP_NOMOVE | SWP_NOZORDER)) {
+      pal_crash_with_win32_err(string_lit("SetWindowPos"));
+    }
+    ShowWindow((HWND)windowId, SW_RESTORE);
+  }
 }
