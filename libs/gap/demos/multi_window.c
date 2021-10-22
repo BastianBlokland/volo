@@ -53,6 +53,16 @@ static void window_update(EcsWorld* world, GapWindowComp* window, const u64 tick
     }
   }
 
+  // Hide cursor with 'H'.
+  if (gap_window_key_pressed(window, GapKey_H)) {
+    gap_window_flags_set(window, GapWindowFlags_HideCursor);
+  }
+
+  // Show cursor with 'S'.
+  if (gap_window_key_pressed(window, GapKey_S)) {
+    gap_window_flags_unset(window, GapWindowFlags_HideCursor);
+  }
+
   // Open a new window with 'Return'.
   if (gap_window_key_pressed(window, GapKey_Return)) {
     gap_window_open(world, GapWindowFlags_Default, gap_vector(1024, 768));

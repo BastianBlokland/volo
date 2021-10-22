@@ -33,6 +33,7 @@ struct sGapPal {
 
   HINSTANCE moduleInstance;
   i64       owningThreadId;
+  bool      cursorHidden;
 };
 
 static void pal_check_thread_ownership(GapPal* pal) {
@@ -569,6 +570,20 @@ void gap_pal_window_resize(
       pal_crash_with_win32_err(string_lit("SetWindowPos"));
     }
     ShowWindow((HWND)windowId, SW_RESTORE);
+  }
+}
+
+void gap_pal_window_cursor_hide(GapPal* pal, const GapWindowId windowId, const bool hidden) {
+  (void)windowId;
+
+  log_d("Updating cursor visibility", log_param("hidden", fmt_bool(hidden)));
+
+  if (hidden && !pal->cursorHidden) {
+    ShowCursor(false);
+    pal->cursorHidden = true;
+  } else if (!hidden && pal->cursorHidden) {
+    ShowCursor(true);
+    pal->cursorHidden = false;
   }
 }
 

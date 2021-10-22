@@ -23,6 +23,7 @@ typedef enum {
   GapWindowFlags_None            = 0,
   GapWindowFlags_CloseOnInterupt = 1 << 0,
   GapWindowFlags_CloseOnRequest  = 1 << 1,
+  GapWindowFlags_HideCursor      = 1 << 2,
 
   GapWindowFlags_Default = GapWindowFlags_CloseOnInterupt | GapWindowFlags_CloseOnRequest,
 } GapWindowFlags;

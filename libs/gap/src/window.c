@@ -6,10 +6,11 @@
 #include "pal_internal.h"
 
 typedef enum {
-  GapWindowRequests_Create      = 1 << 0,
-  GapWindowRequests_Close       = 1 << 1,
-  GapWindowRequests_Resize      = 1 << 2,
-  GapWindowRequests_UpdateTitle = 1 << 3,
+  GapWindowRequests_Create           = 1 << 0,
+  GapWindowRequests_Close            = 1 << 1,
+  GapWindowRequests_Resize           = 1 << 2,
+  GapWindowRequests_UpdateTitle      = 1 << 3,
+  GapWindowRequests_UpdateCursorHide = 1 << 4,
 } GapWindowRequests;
 
 ecs_comp_define(GapPlatformComp) { GapPal* pal; };
@@ -77,6 +78,10 @@ static void window_update(
     const bool fullscreen = window->mode == GapWindowMode_Fullscreen;
     gap_pal_window_resize(
         platform->pal, window->id, window->params[GapParam_WindowSize], fullscreen);
+  }
+  if (window->requests & GapWindowRequests_UpdateCursorHide) {
+    const bool hidden = (window->flags & GapWindowFlags_HideCursor) != 0;
+    gap_pal_window_cursor_hide(platform->pal, window->id, hidden);
   }
 
   const GapPalWindowFlags palFlags = gap_pal_window_flags(platform->pal, window->id);
@@ -168,23 +173,34 @@ ecs_module_init(gap_window_module) {
 
 EcsEntityId gap_window_open(EcsWorld* world, const GapWindowFlags flags, const GapVector size) {
   const EcsEntityId windowEntity = ecs_world_entity_create(world);
-  ecs_world_add_t(
+  GapWindowComp*    comp         = ecs_world_add_t(
       world,
       windowEntity,
       GapWindowComp,
       .id                          = sentinel_u32,
-      .flags                       = flags,
       .requests                    = GapWindowRequests_Create,
       .params[GapParam_WindowSize] = size);
+
+  gap_window_flags_set(comp, flags);
   return windowEntity;
 }
 
 void gap_window_close(GapWindowComp* window) { window->requests |= GapWindowRequests_Close; }
 
-void gap_window_flags_set(GapWindowComp* comp, const GapWindowFlags flags) { comp->flags |= flags; }
+void gap_window_flags_set(GapWindowComp* comp, const GapWindowFlags flags) {
+  comp->flags |= flags;
+
+  if (flags & GapWindowFlags_HideCursor) {
+    comp->requests |= GapWindowRequests_UpdateCursorHide;
+  }
+}
 
 void gap_window_flags_unset(GapWindowComp* comp, const GapWindowFlags flags) {
   comp->flags &= ~flags;
+
+  if (flags & GapWindowFlags_HideCursor) {
+    comp->requests |= GapWindowRequests_UpdateCursorHide;
+  }
 }
 
 GapWindowEvents gap_window_events(const GapWindowComp* window) { return window->events; }
