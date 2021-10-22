@@ -1,6 +1,7 @@
 #include "core_diag.h"
 #include "core_path.h"
 #include "core_rng.h"
+#include "core_thread.h"
 #include "core_winutils.h"
 #include "log_logger.h"
 
@@ -33,7 +34,23 @@ struct sGapPal {
   DynArray   windows; // GapPalWindow[]
 
   HINSTANCE moduleInstance;
+  i64       owningThreadId;
 };
+
+static void pal_check_thread_ownership(GapPal* pal) {
+  if (g_thread_tid != pal->owningThreadId) {
+    diag_crash_msg("Called from non-owning thread: {}", fmt_int(g_thread_tid));
+  }
+}
+
+static void pal_crash_with_win32_err(String api) {
+  const DWORD err = GetLastError();
+  diag_crash_msg(
+      "Win32 api call failed, api: {}, error: {}, {}",
+      fmt_text(api),
+      fmt_int((u64)err),
+      fmt_text(winutils_error_msg_scratch(err)));
+}
 
 static GapPalWindow* pal_maybe_window(GapPal* pal, const GapWindowId id) {
   dynarray_for_t(&pal->windows, GapPalWindow, window, {
@@ -68,18 +85,16 @@ static RECT pal_client_to_window_rect(const GapVector clientSize, const DWORD st
       .right  = (long)clientSize.x,
       .bottom = (long)clientSize.y,
   };
-  AdjustWindowRect(&rect, style, false);
+  if (!AdjustWindowRect(&rect, style, false)) {
+    pal_crash_with_win32_err(string_lit("AdjustWindowRect"));
+  }
   return rect;
 }
 
 static RECT pal_client_rect(const GapWindowId windowId) {
   RECT clientRect;
   if (!GetClientRect((HWND)windowId, &clientRect)) {
-    const DWORD err = GetLastError();
-    diag_crash_msg(
-        "Failed to retrieve the client rect, error: {}, {}",
-        fmt_int((u64)err),
-        fmt_text(winutils_error_msg_scratch(err)));
+    pal_crash_with_win32_err(string_lit("GetClientRect"));
   }
   return clientRect;
 }
@@ -87,11 +102,7 @@ static RECT pal_client_rect(const GapWindowId windowId) {
 static RECT pal_window_rect(const GapWindowId windowId) {
   RECT windowRect;
   if (!GetWindowRect((HWND)windowId, &windowRect)) {
-    const DWORD err = GetLastError();
-    diag_crash_msg(
-        "Failed to retrieve the window rect, error: {}, {}",
-        fmt_int((u64)err),
-        fmt_text(winutils_error_msg_scratch(err)));
+    pal_crash_with_win32_err(string_lit("pal_window_rect"));
   }
   return windowRect;
 }
@@ -251,8 +262,8 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
   GapPalWindow* window = pal_maybe_window(pal, (GapWindowId)wnd);
   if (!window) {
     /**
-     * The window procedure is already invoced before the win32 CreateWindow call returns, so its
-     * possible to get here wihtout awindow object being created yet.
+     * The window procedure is already invoked before the win32 CreateWindow call returns, so its
+     * possible to get here without a window object being created yet.
      */
     return false;
   }
@@ -341,11 +352,7 @@ GapPal* gap_pal_create(Allocator* alloc) {
 
   HMODULE instance = GetModuleHandle(null);
   if (!instance) {
-    const DWORD err = GetLastError();
-    diag_crash_msg(
-        "Failed to retrieve the win32 module-handle, error: {}, {}",
-        fmt_int((u64)err),
-        fmt_text(winutils_error_msg_scratch(err)));
+    pal_crash_with_win32_err(string_lit("GetModuleHandle"));
   }
 
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
@@ -353,12 +360,16 @@ GapPal* gap_pal_create(Allocator* alloc) {
       .alloc          = alloc,
       .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
       .moduleInstance = instance,
+      .owningThreadId = g_thread_tid,
   };
 
   MAYBE_UNUSED const GapVector screenSize =
       gap_vector(GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
 
-  log_i("Win32 platform init", log_param("screen-size", gap_vector_fmt(screenSize)));
+  log_i(
+      "Win32 platform init",
+      log_param("screen-size", gap_vector_fmt(screenSize)),
+      log_param("owning-thread", fmt_int(pal->owningThreadId)));
 
   return pal;
 }
@@ -373,6 +384,7 @@ void gap_pal_destroy(GapPal* pal) {
 }
 
 void gap_pal_update(GapPal* pal) {
+  pal_check_thread_ownership(pal);
 
   // Clear volatile state, like the key-presses from the previous update.
   pal_clear_volatile(pal);
@@ -386,8 +398,9 @@ void gap_pal_update(GapPal* pal) {
 }
 
 GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
+  pal_check_thread_ownership(pal);
 
-  // Generate a unique class name for the window and convert it to a unicode string.
+  // Generate a unique class name for the window and convert it to a wide-string.
   const String classNameUtf8 = fmt_write_scratch("volo_{}", fmt_int(rng_sample_u32(g_rng)));
   const Mem    className =
       alloc_dup(pal->alloc, winutils_to_widestr_scratch(classNameUtf8), alignof(wchar_t));
@@ -415,11 +428,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   };
 
   if (!RegisterClassEx(&winClass)) {
-    const DWORD err = GetLastError();
-    diag_crash_msg(
-        "Failed to register a win32 window-class, error: {}, {}",
-        fmt_int((u64)err),
-        fmt_text(winutils_error_msg_scratch(err)));
+    pal_crash_with_win32_err(string_lit("RegisterClassEx"));
   }
 
   const RECT desiredWindowRect = pal_client_to_window_rect(size, g_winStyle);
@@ -437,11 +446,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       (void*)pal);
 
   if (!windowHandle) {
-    const DWORD err = GetLastError();
-    diag_crash_msg(
-        "Failed to create a win32 window, error: {}, {}",
-        fmt_int((u64)err),
-        fmt_text(winutils_error_msg_scratch(err)));
+    pal_crash_with_win32_err(string_lit("CreateWindow"));
   }
 
   const GapWindowId id = (GapWindowId)windowHandle;
@@ -481,13 +486,18 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 }
 
 void gap_pal_window_destroy(GapPal* pal, const GapWindowId windowId) {
+  pal_check_thread_ownership(pal);
 
-  DestroyWindow((HWND)windowId);
+  if (!DestroyWindow((HWND)windowId)) {
+    pal_crash_with_win32_err(string_lit("DestroyWindow"));
+  }
 
   for (usize i = 0; i != pal->windows.size; ++i) {
     GapPalWindow* window = dynarray_at_t(&pal->windows, i, GapPalWindow);
     if (window->id == windowId) {
-      UnregisterClass(window->className.ptr, pal->moduleInstance);
+      if (!UnregisterClass(window->className.ptr, pal->moduleInstance)) {
+        pal_crash_with_win32_err(string_lit("UnregisterClass"));
+      }
       alloc_free(pal->alloc, window->className);
       dynarray_remove_unordered(&pal->windows, i, 1);
       break;
@@ -519,20 +529,17 @@ const GapKeySet* gap_pal_window_keys_down(const GapPal* pal, const GapWindowId w
 }
 
 void gap_pal_window_title_set(GapPal* pal, const GapWindowId windowId, const String title) {
-  (void)pal;
+  pal_check_thread_ownership(pal);
 
   const Mem titleWideStr = winutils_to_widestr_scratch(title);
-  if (UNLIKELY(!SetWindowText((HWND)windowId, (const wchar_t*)titleWideStr.ptr))) {
-    const DWORD err = GetLastError();
-    diag_crash_msg(
-        "Failed to update window-title, error: {}, {}",
-        fmt_int((u64)err),
-        fmt_text(winutils_error_msg_scratch(err)));
+  if (!SetWindowText((HWND)windowId, (const wchar_t*)titleWideStr.ptr)) {
+    pal_crash_with_win32_err(string_lit("SetWindowText"));
   }
 }
 
 void gap_pal_window_resize(
     GapPal* pal, const GapWindowId windowId, GapVector size, const bool fullscreen) {
+  pal_check_thread_ownership(pal);
 
   log_d(
       "Updating window size",
