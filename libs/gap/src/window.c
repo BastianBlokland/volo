@@ -239,10 +239,7 @@ bool gap_window_key_down(const GapWindowComp* comp, const GapKey key) {
   return gap_keyset_test(&comp->keysDown, key);
 }
 
-GapNativeWm gap_window_native_wm(const GapWindowComp* comp) {
-  (void)comp;
-  return gap_pal_native_wm();
-}
+GapNativeWm gap_native_wm() { return gap_pal_native_wm(); }
 
 uptr gap_native_window_handle(const GapWindowComp* comp) { return (uptr)comp->id; }
 

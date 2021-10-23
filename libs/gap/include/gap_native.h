@@ -18,9 +18,9 @@ typedef enum {
 } GapNativeWm;
 
 /**
- * Check what window-manager connection the given window uses.
+ * Check the window-manager connection type.
  */
-GapNativeWm gap_native_wm(const GapWindowComp*);
+GapNativeWm gap_native_wm();
 
 /**
  * Retrieve the native handle to the given window.
