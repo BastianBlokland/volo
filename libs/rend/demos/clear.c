@@ -27,6 +27,7 @@ static int run_app() {
   log_i("App loop running");
 
   const EcsEntityId window = gap_window_open(world, GapWindowFlags_Default, gap_vector(1024, 768));
+  rend_canvas_create(world, window);
 
   u64 tickCount = 0;
   while (ecs_world_exists(world, window)) {
