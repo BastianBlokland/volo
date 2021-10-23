@@ -45,11 +45,6 @@ static usize alloc_page_max_size(Allocator* allocator) {
   return usize_max;
 }
 
-static void alloc_page_reset(Allocator* allocator) {
-  (void)allocator;
-  diag_crash_msg("Page-allocator cannot be reset");
-}
-
 static struct AllocatorPage g_allocatorIntern;
 
 Allocator* alloc_page_init() {
@@ -60,7 +55,7 @@ Allocator* alloc_page_init() {
           .free    = alloc_page_free,
           .minSize = alloc_page_min_size,
           .maxSize = alloc_page_max_size,
-          .reset   = alloc_page_reset,
+          .reset   = null,
       },
       pageSize,
   };

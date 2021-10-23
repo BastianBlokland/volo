@@ -72,5 +72,7 @@ INLINE_HINT usize alloc_max_size(Allocator* allocator) {
 
 INLINE_HINT void alloc_reset(Allocator* allocator) {
   alloc_verify_allocator(allocator);
+
+  diag_assert_msg(allocator->reset, "alloc_reset: Allocator does not support resetting");
   allocator->reset(allocator);
 }

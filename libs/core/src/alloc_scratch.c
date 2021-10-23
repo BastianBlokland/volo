@@ -73,11 +73,6 @@ static usize alloc_scratch_max_size(Allocator* allocator) {
   return alloc_scratch_max_alloc_size;
 }
 
-static void alloc_scratch_reset(Allocator* allocator) {
-  (void)allocator;
-  diag_crash_msg("Scratch-allocator cannot be reset");
-}
-
 static THREAD_LOCAL struct AllocatorScratch g_allocatorIntern;
 
 Allocator* alloc_scratch_init() {
@@ -88,7 +83,7 @@ Allocator* alloc_scratch_init() {
           .free    = alloc_scratch_free,
           .minSize = alloc_scratch_min_size,
           .maxSize = alloc_scratch_max_size,
-          .reset   = alloc_scratch_reset,
+          .reset   = null,
       },
       .memory = scratchPages,
       .head   = mem_begin(scratchPages),
