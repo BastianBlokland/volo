@@ -180,7 +180,7 @@ typedef struct {
  * ```
  */
 #define ecs_register_system(_NAME_, ...)                                                           \
-  ecs_register_system_with_flags(_NAME_, EcsSystemFlags_None, __VA_ARGS__)
+  ecs_register_system_with_flags(_NAME_, EcsSystemFlags_None, ##__VA_ARGS__)
 
 #define ecs_register_system_with_flags(_NAME_, _FLAGS_, ...)                                       \
   ecs_module_register_system(_builder, &ecs_system_id(_NAME_), &(EcsSystemConfig){                 \

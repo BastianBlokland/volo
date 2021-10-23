@@ -21,10 +21,11 @@ ecs_view_define(ReadAReadB) {
   ecs_access_read(DefCompB);
 }
 
-ecs_view_define(Empty) {}
+ecs_view_define(EmptyView) {}
 
-ecs_system_define(Update) {}
-ecs_system_define(Cleanup) {}
+ecs_system_define(EmptySys) {}
+ecs_system_define(UpdateSys) {}
+ecs_system_define(CleanupSys) {}
 
 ecs_module_init(def_test_module) {
   ecs_register_comp(DefCompA);
@@ -33,10 +34,11 @@ ecs_module_init(def_test_module) {
 
   ecs_register_view(ReadAWriteB);
   ecs_register_view(ReadAReadB);
-  ecs_register_view(Empty);
+  ecs_register_view(EmptyView);
 
-  ecs_register_system(Update, ecs_view_id(ReadAWriteB), ecs_view_id(ReadAReadB));
-  ecs_register_system(Cleanup, ecs_view_id(ReadAReadB));
+  ecs_register_system(EmptySys);
+  ecs_register_system(UpdateSys, ecs_view_id(ReadAWriteB), ecs_view_id(ReadAReadB));
+  ecs_register_system(CleanupSys, ecs_view_id(ReadAReadB));
 }
 
 spec(def) {
@@ -77,25 +79,27 @@ spec(def) {
   }
 
   it("can retrieve the name of registered systems") {
-    check_eq_string(ecs_def_system_name(def, ecs_system_id(Update)), string_lit("Update"));
-    check_eq_string(ecs_def_system_name(def, ecs_system_id(Cleanup)), string_lit("Cleanup"));
+    check_eq_string(ecs_def_system_name(def, ecs_system_id(UpdateSys)), string_lit("UpdateSys"));
+    check_eq_string(ecs_def_system_name(def, ecs_system_id(CleanupSys)), string_lit("CleanupSys"));
   }
 
   it("can retrieve the views of a registered system") {
-    check_eq_int(ecs_def_system_views(def, ecs_system_id(Update)).count, 2);
-    check(ecs_def_system_views(def, ecs_system_id(Update)).head[0] == ecs_view_id(ReadAWriteB));
-    check(ecs_def_system_views(def, ecs_system_id(Update)).head[1] == ecs_view_id(ReadAReadB));
+    check_eq_int(ecs_def_system_views(def, ecs_system_id(EmptySys)).count, 0);
 
-    check_eq_int(ecs_def_system_views(def, ecs_system_id(Cleanup)).count, 1);
-    check(ecs_def_system_views(def, ecs_system_id(Cleanup)).head[0] == ecs_view_id(ReadAReadB));
+    check_eq_int(ecs_def_system_views(def, ecs_system_id(UpdateSys)).count, 2);
+    check(ecs_def_system_views(def, ecs_system_id(UpdateSys)).head[0] == ecs_view_id(ReadAWriteB));
+    check(ecs_def_system_views(def, ecs_system_id(UpdateSys)).head[1] == ecs_view_id(ReadAReadB));
+
+    check_eq_int(ecs_def_system_views(def, ecs_system_id(CleanupSys)).count, 1);
+    check(ecs_def_system_views(def, ecs_system_id(CleanupSys)).head[0] == ecs_view_id(ReadAReadB));
   }
 
   it("can check if a system has access to a view") {
-    check(ecs_def_system_has_access(def, ecs_system_id(Update), ecs_view_id(ReadAWriteB)));
-    check(ecs_def_system_has_access(def, ecs_system_id(Update), ecs_view_id(ReadAReadB)));
+    check(ecs_def_system_has_access(def, ecs_system_id(UpdateSys), ecs_view_id(ReadAWriteB)));
+    check(ecs_def_system_has_access(def, ecs_system_id(UpdateSys), ecs_view_id(ReadAReadB)));
 
-    check(!ecs_def_system_has_access(def, ecs_system_id(Cleanup), ecs_view_id(ReadAWriteB)));
-    check(ecs_def_system_has_access(def, ecs_system_id(Cleanup), ecs_view_id(ReadAReadB)));
+    check(!ecs_def_system_has_access(def, ecs_system_id(CleanupSys), ecs_view_id(ReadAWriteB)));
+    check(ecs_def_system_has_access(def, ecs_system_id(CleanupSys), ecs_view_id(ReadAReadB)));
   }
 
   teardown() { ecs_def_destroy(def); }
