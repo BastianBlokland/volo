@@ -1,7 +1,6 @@
 #include "cli.h"
 #include "core.h"
 #include "core_file.h"
-#include "core_signal.h"
 #include "core_thread.h"
 #include "core_time.h"
 #include "ecs.h"
