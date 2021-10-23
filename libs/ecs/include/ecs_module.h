@@ -87,19 +87,56 @@ typedef struct {
  *   f32 x, y;
  * };
  * ```
+ * NOTE: Can optionally be declared using ecs_comp_extern().
  */
-#define ecs_comp_define(_NAME_)                                                                    \
+#define ecs_comp_define(_NAME_)                                                            \
   typedef struct s##_NAME_ _NAME_;                                                                 \
   EcsCompId ecs_comp_id(_NAME_);                                                                   \
   struct s##_NAME_
 
 /**
- * Declare an externally defined component.
- * NOTE: Needs to be defined in exactly one compilation unit.
+ * Declare an external component struct.
+ *
+ * Example usage:
+ * ```
+ * ecs_comp_extern(PositionComp);
+ * ```
+ * NOTE: Needs to be defined using ecs_comp_define().
  */
-#define ecs_comp_extern(_NAME_)                                                                    \
+#define ecs_comp_extern(_NAME_)                                                            \
   typedef struct s##_NAME_ _NAME_;                                                                 \
   extern EcsCompId ecs_comp_id(_NAME_)
+
+/**
+ * Define a public component struct.
+ * Should only be used inside compilation-units.
+ *
+ * Example usage:
+ * ```
+ * ecs_comp_define_public(PositionComp);
+ * ```
+ * NOTE: The component body should be declared using ecs_comp_extern_public().
+ */
+#define ecs_comp_define_public(_NAME_)                                                             \
+  typedef struct s##_NAME_ _NAME_;                                                                 \
+  EcsCompId ecs_comp_id(_NAME_);                                                                   \
+  struct s##_NAME_
+
+/**
+ * Declare a external public component struct
+ *
+ * Example usage:
+ * ```
+ * ecs_comp_extern_public(PositionComp) {
+ *   f32 x, y;
+ * };
+ * NOTE: Needs to be defined using ecs_comp_define_public().
+ * ```
+ */
+#define ecs_comp_extern_public(_NAME_)                                                             \
+  typedef struct s##_NAME_ _NAME_;                                                                 \
+  extern EcsCompId ecs_comp_id(_NAME_);                                                            \
+  struct s##_NAME_
 
 /**
  * Define a view initialization routine.

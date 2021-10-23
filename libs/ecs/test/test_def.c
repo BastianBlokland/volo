@@ -2,12 +2,23 @@
 #include "core_alloc.h"
 #include "ecs_def.h"
 
+/**
+ * Private components can be shared between compilation units using 'ecs_comp_extern' but the other
+ * compilation-units wont have the definition so they cannot access its fields.
+ */
+ecs_comp_extern(DefCompA);
 ecs_comp_define(DefCompA) { u32 fieldA; };
 
-ecs_comp_define(DefCompB) {
+/**
+ * Public components can share their struct definition between compilation units using
+ * 'ecs_comp_extern_public' this means other compilation-units will be able to acces the component
+ * fields also.
+ */
+ecs_comp_extern_public(DefCompB) {
   u32  fieldA;
   bool fieldB;
 };
+ecs_comp_define_public(DefCompB);
 
 ecs_comp_define(DefCompEmpty);
 
