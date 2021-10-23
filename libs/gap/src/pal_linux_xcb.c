@@ -51,13 +51,21 @@ static const xcb_event_mask_t g_xcbWindowEventMask =
     XCB_EVENT_MASK_STRUCTURE_NOTIFY | XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE |
     XCB_EVENT_MASK_POINTER_MOTION | XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_KEY_RELEASE;
 
-static GapPalWindow* pal_window(GapPal* pal, const GapWindowId id) {
+static GapPalWindow* pal_maybe_window(GapPal* pal, const GapWindowId id) {
   dynarray_for_t(&pal->windows, GapPalWindow, window, {
     if (window->id == id) {
       return window;
     }
   });
-  diag_crash_msg("Unknown window: {}", fmt_int(id));
+  return null;
+}
+
+static GapPalWindow* pal_window(GapPal* pal, const GapWindowId id) {
+  GapPalWindow* window = pal_maybe_window(pal, id);
+  if (UNLIKELY(!window)) {
+    diag_crash_msg("Unknown window: {}", fmt_int(id));
+  }
+  return window;
 }
 
 static void pal_clear_volatile(GapPal* pal) {
@@ -368,13 +376,15 @@ pal_set_window_min_size(GapPal* pal, const GapWindowId windowId, const GapVector
 }
 
 static void pal_event_close(GapPal* pal, const GapWindowId windowId) {
-  GapPalWindow* window = pal_window(pal, windowId);
-  window->flags |= GapPalWindowFlags_CloseRequested;
+  GapPalWindow* window = pal_maybe_window(pal, windowId);
+  if (window) {
+    window->flags |= GapPalWindowFlags_CloseRequested;
+  }
 }
 
 static void pal_event_resize(GapPal* pal, const GapWindowId windowId, const GapVector newSize) {
-  GapPalWindow* window = pal_window(pal, windowId);
-  if (gap_vector_equal(window->params[GapParam_WindowSize], newSize)) {
+  GapPalWindow* window = pal_maybe_window(pal, windowId);
+  if (!window || gap_vector_equal(window->params[GapParam_WindowSize], newSize)) {
     return;
   }
   window->params[GapParam_WindowSize] = newSize;
@@ -384,8 +394,8 @@ static void pal_event_resize(GapPal* pal, const GapWindowId windowId, const GapV
 }
 
 static void pal_event_cursor(GapPal* pal, const GapWindowId windowId, const GapVector newPos) {
-  GapPalWindow* window = pal_window(pal, windowId);
-  if (gap_vector_equal(window->params[GapParam_CursorPos], newPos)) {
+  GapPalWindow* window = pal_maybe_window(pal, windowId);
+  if (!window || gap_vector_equal(window->params[GapParam_CursorPos], newPos)) {
     return;
   }
   window->params[GapParam_CursorPos] = newPos;
@@ -393,8 +403,8 @@ static void pal_event_cursor(GapPal* pal, const GapWindowId windowId, const GapV
 }
 
 static void pal_event_press(GapPal* pal, const GapWindowId windowId, const GapKey key) {
-  GapPalWindow* window = pal_window(pal, windowId);
-  if (key != GapKey_None && !gap_keyset_test(&window->keysDown, key)) {
+  GapPalWindow* window = pal_maybe_window(pal, windowId);
+  if (window && key != GapKey_None && !gap_keyset_test(&window->keysDown, key)) {
     gap_keyset_set(&window->keysPressed, key);
     gap_keyset_set(&window->keysDown, key);
     window->flags |= GapPalWindowFlags_KeyPressed;
@@ -402,8 +412,8 @@ static void pal_event_press(GapPal* pal, const GapWindowId windowId, const GapKe
 }
 
 static void pal_event_release(GapPal* pal, const GapWindowId windowId, const GapKey key) {
-  GapPalWindow* window = pal_window(pal, windowId);
-  if (key != GapKey_None && gap_keyset_test(&window->keysDown, key)) {
+  GapPalWindow* window = pal_maybe_window(pal, windowId);
+  if (window && key != GapKey_None && gap_keyset_test(&window->keysDown, key)) {
     gap_keyset_set(&window->keysReleased, key);
     gap_keyset_unset(&window->keysDown, key);
     window->flags |= GapPalWindowFlags_KeyReleased;
@@ -411,10 +421,12 @@ static void pal_event_release(GapPal* pal, const GapWindowId windowId, const Gap
 }
 
 static void pal_event_scroll(GapPal* pal, const GapWindowId windowId, const GapVector delta) {
-  GapPalWindow* window = pal_window(pal, windowId);
-  window->params[GapParam_ScrollDelta].x += delta.x;
-  window->params[GapParam_ScrollDelta].y += delta.y;
-  window->flags |= GapPalWindowFlags_Scrolled;
+  GapPalWindow* window = pal_maybe_window(pal, windowId);
+  if (window) {
+    window->params[GapParam_ScrollDelta].x += delta.x;
+    window->params[GapParam_ScrollDelta].y += delta.y;
+    window->flags |= GapPalWindowFlags_Scrolled;
+  }
 }
 
 GapPal* gap_pal_create(Allocator* alloc) {
