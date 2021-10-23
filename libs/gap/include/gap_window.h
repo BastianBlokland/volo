@@ -40,9 +40,9 @@ typedef enum {
 ecs_comp_extern(GapWindowComp);
 
 /**
- * Open a new window at the given size.
+ * Create a new window with the given size.
  */
-EcsEntityId gap_window_open(EcsWorld*, GapWindowFlags, GapVector size);
+EcsEntityId gap_window_create(EcsWorld*, GapWindowFlags, GapVector size);
 
 /**
  * Close a currently open window.

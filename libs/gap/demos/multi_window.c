@@ -16,7 +16,7 @@
  * - 'F':               Toggle fullscreen.
  * - 'H':               Toggle cursor hide.
  * - 'L':               Toggle cursor lock.
- * - 'Return':          Open a new window.
+ * - 'Return':          Create a new window.
  * - Scrolling:         Resize the focussed window.
  * - Process interupt:  Close all windows.
  */
@@ -73,9 +73,9 @@ static void window_update(EcsWorld* world, GapWindowComp* window, const u64 tick
     }
   }
 
-  // Open a new window with 'Return'.
+  // Create a new window with 'Return'.
   if (gap_window_key_pressed(window, GapKey_Return)) {
-    gap_window_open(world, GapWindowFlags_Default, gap_vector(1024, 768));
+    gap_window_create(world, GapWindowFlags_Default, gap_vector(1024, 768));
   }
 
   // Resize the window by scrolling.
@@ -101,7 +101,7 @@ static int run_app() {
 
   log_i("App loop running");
 
-  gap_window_open(world, GapWindowFlags_Default, gap_vector(1024, 768));
+  gap_window_create(world, GapWindowFlags_Default, gap_vector(1024, 768));
 
   u64          tickCount = 0;
   EcsIterator* windowItr = ecs_view_itr(ecs_world_view_t(world, UpdateWindowView));

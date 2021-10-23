@@ -180,7 +180,7 @@ ecs_module_init(gap_window_module) {
       ecs_view_id(GapWindowView));
 }
 
-EcsEntityId gap_window_open(EcsWorld* world, const GapWindowFlags flags, const GapVector size) {
+EcsEntityId gap_window_create(EcsWorld* world, const GapWindowFlags flags, const GapVector size) {
   const EcsEntityId windowEntity = ecs_world_entity_create(world);
   GapWindowComp*    comp         = ecs_world_add_t(
       world,
