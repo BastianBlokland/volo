@@ -11,22 +11,18 @@ static void ecs_destruct_platform_comp(void* data) {
 
 ecs_view_define(GapPlatformView) { ecs_access_write(GapPlatformComp); };
 
-ecs_system_define(GapPlatformUpdateSys) {
-
-  // Retrieve or create the global platform component.
-  EcsIterator*     platformItr = ecs_view_itr_first(ecs_world_view_t(world, GapPlatformView));
-  GapPlatformComp* platform;
-  if (platformItr) {
-    platform = ecs_view_write_t(platformItr, GapPlatformComp);
-  } else {
-    platform = ecs_world_add_t(
-        world,
-        ecs_world_entity_create(world),
-        GapPlatformComp,
-        .pal = gap_pal_create(g_alloc_heap));
+static GapPlatformComp* gap_platform_get_or_create(EcsWorld* world) {
+  EcsView*     view = ecs_world_view_t(world, GapPlatformView);
+  EcsIterator* itr  = ecs_view_itr_first(view);
+  if (itr) {
+    return ecs_view_write_t(itr, GapPlatformComp);
   }
+  return ecs_world_add_t(
+      world, ecs_world_entity_create(world), GapPlatformComp, .pal = gap_pal_create(g_alloc_heap));
+}
 
-  // Process all os events.
+ecs_system_define(GapPlatformUpdateSys) {
+  GapPlatformComp* platform = gap_platform_get_or_create(world);
   gap_pal_update(platform->pal);
 }
 

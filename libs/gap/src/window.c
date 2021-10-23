@@ -135,21 +135,20 @@ static void window_update(
 ecs_view_define(GapPlatformView) { ecs_access_write(GapPlatformComp); };
 ecs_view_define(GapWindowView) { ecs_access_write(GapWindowComp); };
 
+static GapPlatformComp* gap_platform_get(EcsWorld* world) {
+  EcsIterator* itr = ecs_view_itr_first(ecs_world_view_t(world, GapPlatformView));
+  return itr ? ecs_view_write_t(itr, GapPlatformComp) : null;
+}
+
 ecs_system_define(GapWindowUpdateSys) {
+  GapPlatformComp* platform = gap_platform_get(world);
+  if (!platform) {
+    return;
+  }
 
-  // Retrieve the global platform component.
-  EcsIterator* platformItr = ecs_view_itr_first(ecs_world_view_t(world, GapPlatformView));
-  if (platformItr) {
-    GapPlatformComp* platform = ecs_view_write_t(platformItr, GapPlatformComp);
-
-    // Update all windows.
-    EcsView* windowView = ecs_world_view_t(world, GapWindowView);
-    for (EcsIterator* itr = ecs_view_itr(windowView); ecs_view_walk(itr);) {
-
-      const EcsEntityId windowEntity = ecs_view_entity(itr);
-      GapWindowComp*    window       = ecs_view_write_t(itr, GapWindowComp);
-      window_update(world, platform, window, windowEntity);
-    }
+  EcsView* windowView = ecs_world_view_t(world, GapWindowView);
+  for (EcsIterator* itr = ecs_view_itr(windowView); ecs_view_walk(itr);) {
+    window_update(world, platform, ecs_view_write_t(itr, GapWindowComp), ecs_view_entity(itr));
   }
 }
 
