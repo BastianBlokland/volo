@@ -12,7 +12,7 @@
  * Demo application for testing window management.
  *
  * Controls:
- * - 'Escape':          Close the focussed window.
+ * - 'Escape / 'Q':     Close the focussed window.
  * - 'F':               Toggle fullscreen.
  * - 'H':               Toggle cursor hide.
  * - 'L':               Toggle cursor lock.
@@ -41,8 +41,8 @@ static void window_update(EcsWorld* world, GapWindowComp* window, const u64 tick
           fmt_bool(gap_window_key_pressed(window, GapKey_MouseLeft)),
           gap_vector_fmt(gap_window_param(window, GapParam_ScrollDelta))));
 
-  // Close with 'Escape'.
-  if (gap_window_key_pressed(window, GapKey_Escape)) {
+  // Close with 'Q'.
+  if (gap_window_key_pressed(window, GapKey_Q)) {
     gap_window_close(window);
   }
 

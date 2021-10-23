@@ -40,15 +40,17 @@ static void ecs_destruct_window_comp(void* data) {
   }
 }
 
-static bool window_should_close(GapWindowComp* window) {
-  if (window->requests & GapWindowRequests_Close) {
+static bool window_should_close(GapWindowComp* win) {
+  if (win->requests & GapWindowRequests_Close) {
     return true;
   }
-  if (window->flags & GapWindowFlags_CloseOnInterupt && signal_is_received(Signal_Interupt)) {
+  if (win->flags & GapWindowFlags_CloseOnInterupt && signal_is_received(Signal_Interupt)) {
     return true;
   }
-  if (window->flags & GapWindowFlags_CloseOnRequest &&
-      window->events & GapWindowEvents_CloseRequested) {
+  if (win->flags & GapWindowFlags_CloseOnRequest && win->events & GapWindowEvents_CloseRequested) {
+    return true;
+  }
+  if (win->flags & GapWindowFlags_CloseOnEscape && gap_window_key_pressed(win, GapKey_Escape)) {
     return true;
   }
   return false;
