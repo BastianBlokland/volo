@@ -10,8 +10,6 @@ typedef enum {
 
 ecs_comp_define(RendCanvasComp) { RendCanvasRequests requests; };
 
-static void ecs_destruct_canvas_comp(void* data) { (void)data; }
-
 static void canvas_update(
     EcsWorld*            world,
     RendPlatformComp*    platform,
@@ -54,7 +52,7 @@ ecs_system_define(RendCanvasUpdateSys) {
 }
 
 ecs_module_init(rend_canvas_module) {
-  ecs_register_comp(RendCanvasComp, .destructor = ecs_destruct_canvas_comp);
+  ecs_register_comp(RendCanvasComp);
 
   ecs_register_view(RendPlatformView);
   ecs_register_view(RendCanvasView);

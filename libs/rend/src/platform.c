@@ -1,10 +1,14 @@
+#include "core_alloc.h"
 #include "ecs_world.h"
 
 #include "platform_internal.h"
 
 ecs_comp_define_public(RendPlatformComp);
 
-static void ecs_destruct_platform_comp(void* data) { (void)data; }
+static void ecs_destruct_platform_comp(void* data) {
+  RendPlatformComp* comp = data;
+  rend_vk_context_destroy(comp->vulkan);
+}
 
 ecs_view_define(RendPlatformView) { ecs_access_write(RendPlatformComp); };
 
@@ -14,7 +18,11 @@ static RendPlatformComp* rend_platform_get_or_create(EcsWorld* world) {
   if (itr) {
     return ecs_view_write_t(itr, RendPlatformComp);
   }
-  return ecs_world_add_t(world, ecs_world_entity_create(world), RendPlatformComp);
+  return ecs_world_add_t(
+      world,
+      ecs_world_entity_create(world),
+      RendPlatformComp,
+      .vulkan = rend_vk_context_create(g_alloc_heap));
 }
 
 ecs_system_define(RendPlatformUpdateSys) {
