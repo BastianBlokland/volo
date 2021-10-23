@@ -15,5 +15,12 @@ target_link_libraries(volo_rend PUBLIC volo_ecs)
 target_link_libraries(volo_rend PRIVATE volo_gap)
 target_link_libraries(volo_rend PRIVATE volo_log)
 
+message(STATUS "> Configuring vulkan sdk")
+find_package(Vulkan REQUIRED)
+message(STATUS ">> Vulkan lib: ${Vulkan_LIBRARIES}")
+message(STATUS ">> Vulkan headers: ${Vulkan_INCLUDE_DIRS}")
+message(STATUS ">> Vulkan glslc: ${Vulkan_GLSLC_EXECUTABLE}")
+target_link_libraries(volo_rend PRIVATE vulkan)
+
 message(STATUS "> demos: rend")
 add_subdirectory(demos)
