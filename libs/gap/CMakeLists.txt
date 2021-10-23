@@ -12,7 +12,7 @@ add_library(volo_gap STATIC
 target_include_directories(volo_gap PUBLIC include)
 target_link_libraries(volo_gap PUBLIC volo_core)
 target_link_libraries(volo_gap PUBLIC volo_ecs)
-target_link_libraries(volo_gap PUBLIC volo_log)
+target_link_libraries(volo_gap PRIVATE volo_log)
 
 # On linux use the xcb (https://xcb.freedesktop.org/) bindings for the x window server.
 # For debian based systems: apt install libxcb1-dev libxcb-xkb-dev libxcb-xfixes0-dev libxcb-icccm4-dev
