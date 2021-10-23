@@ -15,6 +15,8 @@
  * Controls:
  * - 'Escape':          Close the focussed window.
  * - 'F':               Toggle fullscreen.
+ * - 'H':               Toggle cursor hide.
+ * - 'L':               Toggle cursor lock.
  * - 'Return':          Open a new window.
  * - Scrolling:         Resize the focussed window.
  * - Process interupt:  Close all windows.
