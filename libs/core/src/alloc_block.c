@@ -15,11 +15,11 @@
  */
 
 #define main_align alignof(AllocatorBlock)
-#define main_size_total 4096
+#define main_size_total (16 * usize_kibibyte)
 #define main_size_useable (main_size_total - sizeof(AllocatorBlock))
 
 #define chunk_align alignof(BlockChunk)
-#define chunk_size_total 4096
+#define chunk_size_total (16 * usize_kibibyte)
 #define chunk_size_useable (chunk_size_total - sizeof(BlockChunk))
 
 typedef struct sBlockNode {

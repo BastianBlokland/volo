@@ -4,7 +4,7 @@
 
 spec(alloc_block) {
 
-  static const usize memSize   = 16 * usize_kibibyte;
+  static const usize memSize   = 32 * usize_kibibyte;
   static const usize blockSize = 32;
 
   Mem        memTotal       = mem_empty;
