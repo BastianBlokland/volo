@@ -5,6 +5,7 @@
 message(STATUS "> library: rend")
 
 add_library(volo_rend STATIC
+  src/vulkan/alloc_host.c
   src/vulkan/context.c
   src/canvas.c
   src/platform.c
