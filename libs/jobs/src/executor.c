@@ -224,9 +224,9 @@ static void executor_worker_thread(void* data) {
     work = executor_work_steal_loop(); // One last attempt before sleeping.
     if (!workitem_valid(work) && LIKELY(g_mode == ExecMode_Running)) {
       // We don't have any work to perform and we are not cancelled; sleep until woken.
-      ++g_sleepingWorkers; // No atomic operation as we are holding the lock atm.
+      thread_atomic_add_i64(&g_sleepingWorkers, 1);
       thread_cond_wait(g_wakeCondition, g_mutex);
-      --g_sleepingWorkers; // No atomic operation as we are holding the lock atm.
+      thread_atomic_sub_i64(&g_sleepingWorkers, 1);
     }
     thread_mutex_unlock(g_mutex);
   }
