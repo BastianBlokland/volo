@@ -83,6 +83,7 @@ spec(alloc_block) {
   }
 
   teardown() {
+    alloc_reset(allocBlock); // Suppress leak-detection complaining.
     alloc_block_destroy(allocBlock);
 
     // Verify that all memory was returned to the parent.
