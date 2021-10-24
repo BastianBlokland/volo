@@ -124,6 +124,10 @@ static void output_test_finished(
   dynstring_destroy(&str);
 }
 
+static String output_run_stats_str(const TimeDuration dur) {
+  return fmt_write_scratch("{}, {}", fmt_duration(dur), fmt_size(alloc_stats_total()));
+}
+
 static void output_run_finished(
     CheckOutput*          out,
     const CheckResultType type,
@@ -142,7 +146,7 @@ static void output_run_finished(
       fmt_int(numFailed),
       fmt_int(numSkipped),
       arg_style_dim(prettyOut),
-      fmt_duration(dur),
+      fmt_text(output_run_stats_str(dur)),
       arg_style_reset(prettyOut));
 
   output_write(prettyOut, str);

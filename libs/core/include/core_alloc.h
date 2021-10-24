@@ -123,3 +123,9 @@ usize alloc_max_size(Allocator*);
  * NOTE: Will invalidate all memory allocated from this allocator.
  */
 void alloc_reset(Allocator*);
+
+/**
+ * Retrieve the total amount of bytes allocated from the OS.
+ * NOTE: Does not include global memory, stacks and memory allocated by external apis.
+ */
+usize alloc_stats_total();

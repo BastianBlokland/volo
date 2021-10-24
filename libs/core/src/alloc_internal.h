@@ -20,6 +20,8 @@ Allocator* alloc_heap_init();
 void       alloc_heap_teardown();
 
 Allocator* alloc_page_init();
+u32        alloc_page_allocated_pages();
+usize      alloc_page_allocated_size();
 
 Allocator* alloc_scratch_init();
 void       alloc_scratch_teardown();

@@ -113,7 +113,10 @@ static int run_app() {
     thread_sleep(time_second / 30);
   } while (ecs_view_walk(ecs_view_itr_reset(windowItr)));
 
-  log_i("App loop stopped", log_param("ticks", fmt_int(tickCount)));
+  log_i(
+      "App loop stopped",
+      log_param("ticks", fmt_int(tickCount)),
+      log_param("mem", fmt_size(alloc_stats_total())));
 
   ecs_runner_destroy(runner);
   ecs_world_destroy(world);
