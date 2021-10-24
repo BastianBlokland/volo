@@ -209,3 +209,12 @@ void alloc_block_destroy(Allocator* allocator) {
   alloc_unpoison(mem_create(allocator, main_size_total));
   alloc_free(allocBlock->parent, mem_create(allocator, main_size_total));
 }
+
+usize alloc_block_allocated_blocks(Allocator* allocator) {
+  AllocatorBlock* allocBlock = (AllocatorBlock*)allocator;
+
+  alloc_block_lock(allocBlock);
+  const usize result = allocBlock->allocatedBlocks;
+  alloc_block_unlock(allocBlock);
+  return result;
+}

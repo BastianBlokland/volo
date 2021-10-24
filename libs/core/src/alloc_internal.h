@@ -1,6 +1,7 @@
 #pragma once
 #include "core_alloc.h"
-#include "core_dynstring.h"
+#include "core_diag.h"
+#include "core_format.h"
 
 /**
  * Special crash-routine that does not allocate any memory.
@@ -38,6 +39,8 @@ usize      alloc_page_allocated_size();
 
 Allocator* alloc_scratch_init();
 void       alloc_scratch_teardown();
+
+usize alloc_block_allocated_blocks(Allocator*);
 
 /**
  * Diagnostic apis that write tag values to memory locations.

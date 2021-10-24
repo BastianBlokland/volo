@@ -79,6 +79,16 @@ Allocator* alloc_heap_init() {
 
 void alloc_heap_teardown() {
   for (usize i = 0; i != block_bucket_count; ++i) {
-    alloc_block_destroy(g_allocatorIntern.blockBuckets[i]);
+    Allocator* allocBlock = g_allocatorIntern.blockBuckets[i];
+
+    const usize leakedBlocks = alloc_block_allocated_blocks(allocBlock);
+    if (leakedBlocks) {
+      alloc_crash_with_msg(
+          "heap: {} allocations leaked in size-class {} during app runtime",
+          fmt_int(leakedBlocks),
+          fmt_size(alloc_max_size(allocBlock)));
+    }
+
+    alloc_block_destroy(allocBlock);
   }
 }
