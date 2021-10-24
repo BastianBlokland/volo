@@ -36,6 +36,7 @@ void core_teardown() {
   if (g_thread_tid == g_thread_main_tid && g_intialized) {
     g_intialized = false;
     tty_teardown();
+    alloc_teardown();
   }
   if (g_initialized_thread) {
     alloc_teardown_thread();

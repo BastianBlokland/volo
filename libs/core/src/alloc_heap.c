@@ -1,45 +1,55 @@
-#include "core_diag.h"
+#include "core_alloc.h"
+#include "core_annotation.h"
+#include "core_bits.h"
 
 #include "alloc_internal.h"
 
-#include <stdlib.h>
+#define block_bucket_pow_min 4
+#define block_bucket_pow_max 11
+#define block_bucket_size_min (1 << block_bucket_pow_min)
+#define block_bucket_size_max (1 << block_bucket_pow_max)
+#define block_bucket_count (block_bucket_pow_max - block_bucket_pow_min + 1)
 
-#define freed_mem_tag 0xFA
+ASSERT(block_bucket_size_min == 16, "Unexpected bucket min size");
+ASSERT(block_bucket_size_max == 2048, "Unexpected bucket max size");
+ASSERT(block_bucket_count == 8, "Unexpected bucket count");
 
-struct AllocatorHeap {
-  Allocator api;
-};
+typedef struct {
+  Allocator  api;
+  Allocator* blockBuckets[block_bucket_count];
+} AllocatorHeap;
+
+static usize alloc_heap_pow_index(const usize size) {
+  const usize sizePow2 = bits_nextpow2(size);
+  return bits_ctz(sizePow2);
+}
+
+static Allocator* alloc_heap_sub_allocator(AllocatorHeap* allocHeap, const usize size) {
+  const usize powIdx = alloc_heap_pow_index(size);
+  if (UNLIKELY(powIdx < block_bucket_pow_min)) {
+    return allocHeap->blockBuckets[0];
+  }
+  if (UNLIKELY(powIdx > block_bucket_pow_max)) {
+    return g_alloc_page;
+  }
+  return allocHeap->blockBuckets[powIdx - block_bucket_pow_min];
+}
 
 static Mem alloc_heap_alloc(Allocator* allocator, const usize size, const usize align) {
-  (void)allocator;
-
-#if defined(VOLO_LINUX)
-  return mem_create(aligned_alloc(align, size), size);
-#elif defined(VOLO_WIN32)
-  return mem_create(_aligned_malloc(size, align), size);
-#else
-  ASSERT(false, "Unsupported platform");
-#endif
+  AllocatorHeap* allocHeap = (AllocatorHeap*)allocator;
+  Allocator*     allocSub  = alloc_heap_sub_allocator(allocHeap, size);
+  return alloc_alloc(allocSub, size, align);
 }
 
 static void alloc_heap_free(Allocator* allocator, Mem mem) {
-  (void)allocator;
-
-  diag_assert(mem_valid(mem));
-  mem_set(mem, freed_mem_tag); // Tag to detect use-after-free.
-
-#if defined(VOLO_LINUX)
-  free(mem.ptr);
-#elif defined(VOLO_WIN32)
-  _aligned_free(mem.ptr);
-#else
-  ASSERT(false, "Unsupported platform");
-#endif
+  AllocatorHeap* allocHeap = (AllocatorHeap*)allocator;
+  Allocator*     allocSub  = alloc_heap_sub_allocator(allocHeap, mem.size);
+  return alloc_free(allocSub, mem);
 }
 
 static usize alloc_heap_min_size(Allocator* allocator) {
   (void)allocator;
-  return 1;
+  return block_bucket_size_min;
 }
 
 static usize alloc_heap_max_size(Allocator* allocator) {
@@ -47,10 +57,10 @@ static usize alloc_heap_max_size(Allocator* allocator) {
   return usize_max;
 }
 
-static struct AllocatorHeap g_allocatorIntern;
+static AllocatorHeap g_allocatorIntern;
 
 Allocator* alloc_heap_init() {
-  g_allocatorIntern = (struct AllocatorHeap){
+  g_allocatorIntern = (AllocatorHeap){
       (Allocator){
           .alloc   = alloc_heap_alloc,
           .free    = alloc_heap_free,
@@ -58,6 +68,17 @@ Allocator* alloc_heap_init() {
           .maxSize = alloc_heap_max_size,
           .reset   = null,
       },
+      .blockBuckets = {0},
   };
+  for (usize i = 0; i != block_bucket_count; ++i) {
+    const usize blockSize             = 1 << (i + block_bucket_pow_min);
+    g_allocatorIntern.blockBuckets[i] = alloc_block_create(g_alloc_page, blockSize);
+  }
   return (Allocator*)&g_allocatorIntern;
+}
+
+void alloc_heap_teardown() {
+  for (usize i = 0; i != block_bucket_count; ++i) {
+    alloc_block_destroy(g_allocatorIntern.blockBuckets[i]);
+  }
 }

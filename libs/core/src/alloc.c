@@ -18,9 +18,11 @@ static void alloc_verify_allocator(const Allocator* allocator) {
 }
 
 void alloc_init() {
-  g_alloc_heap = alloc_heap_init();
   g_alloc_page = alloc_page_init();
+  g_alloc_heap = alloc_heap_init();
 }
+
+void alloc_teardown() { alloc_heap_teardown(); }
 
 void alloc_init_thread() { g_alloc_scratch = alloc_scratch_init(); }
 

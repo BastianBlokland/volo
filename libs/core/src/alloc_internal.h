@@ -10,6 +10,7 @@ struct sAllocator {
 };
 
 Allocator* alloc_heap_init();
+void       alloc_heap_teardown();
 
 Allocator* alloc_page_init();
 
