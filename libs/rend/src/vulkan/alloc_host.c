@@ -31,13 +31,13 @@ typedef struct {
 #define alloc_meta_size sizeof(RendVkAllocMeta)
 
 static RendVkAllocMeta* vk_alloc_meta_ptr(void* ptr) {
-  return (RendVkAllocMeta*)bits_ptr_offset(ptr, -alloc_meta_size);
+  return (RendVkAllocMeta*)bits_ptr_offset(ptr, -(iptr)alloc_meta_size);
 }
 
 static Mem vk_alloc_mem_total(void* ptr) {
   const RendVkAllocMeta* meta      = vk_alloc_meta_ptr(ptr);
   const usize            totalSize = meta->padding + alloc_meta_size + meta->size;
-  return mem_create(bits_ptr_offset(meta, -meta->padding), totalSize);
+  return mem_create(bits_ptr_offset(meta, -(iptr)meta->padding), totalSize);
 }
 
 static Mem vk_alloc_mem_payload(void* ptr) {

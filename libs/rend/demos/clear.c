@@ -37,7 +37,10 @@ static int run_app() {
     ++tickCount;
   }
 
-  log_i("App loop stopped", log_param("ticks", fmt_int(tickCount)));
+  log_i(
+      "App loop stopped",
+      log_param("ticks", fmt_int(tickCount)),
+      log_param("mem", fmt_size(alloc_stats_total())));
 
   ecs_runner_destroy(runner);
   ecs_world_destroy(world);

@@ -19,7 +19,7 @@ struct sRendContextVk {
   RendVkContextFlags    flags;
 };
 
-static String g_validationLayer = string_lit("VK_LAYER_KHRONOS_validation");
+static String g_validationLayer = string_static("VK_LAYER_KHRONOS_validation");
 
 static VkApplicationInfo rend_vk_app_info() {
   return (VkApplicationInfo){
@@ -45,16 +45,16 @@ static bool rend_vk_layer_supported(const String layer) {
   return false;
 }
 
-static usize rend_vk_required_layers(const char** output, const RendVkContextFlags flags) {
-  usize i = 0;
+static u32 rend_vk_required_layers(const char** output, const RendVkContextFlags flags) {
+  u32 i = 0;
   if (flags & RendVkContextFlags_Validation) {
     output[i++] = g_validationLayer.ptr;
   }
   return i;
 }
 
-static usize rend_vk_required_extensions(const char** output) {
-  usize i     = 0;
+static u32 rend_vk_required_extensions(const char** output) {
+  u32 i     = 0;
   output[i++] = VK_KHR_SURFACE_EXTENSION_NAME;
   switch (gap_native_wm()) {
   case GapNativeWm_Xcb:
@@ -71,10 +71,10 @@ static void rend_vk_instance_create(RendContextVk* ctx) {
   VkApplicationInfo appInfo = rend_vk_app_info();
 
   const char* layerNames[16];
-  const usize layerCount = rend_vk_required_layers(layerNames, ctx->flags);
+  const u32 layerCount = rend_vk_required_layers(layerNames, ctx->flags);
 
   const char* extensionNames[16];
-  const usize extensionCount = rend_vk_required_extensions(extensionNames);
+  const u32 extensionCount = rend_vk_required_extensions(extensionNames);
 
   VkInstanceCreateInfo createInfo = {
       .sType                   = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
