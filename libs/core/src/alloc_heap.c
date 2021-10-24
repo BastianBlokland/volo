@@ -49,7 +49,7 @@ static void alloc_heap_free(Allocator* allocator, Mem mem) {
 
 static usize alloc_heap_max_size(Allocator* allocator) {
   (void)allocator;
-  return usize_max;
+  return alloc_max_alloc_size;
 }
 
 static AllocatorHeap g_allocatorIntern;

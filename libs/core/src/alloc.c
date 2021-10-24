@@ -8,8 +8,6 @@
 #include <sanitizer/asan_interface.h>
 #endif
 
-#define alloc_max_alloc_size (usize_mebibyte * 128)
-
 Allocator*   g_alloc_heap;
 Allocator*   g_alloc_page;
 THREAD_LOCAL Allocator* g_alloc_scratch;
@@ -53,7 +51,7 @@ INLINE_HINT Mem alloc_alloc(Allocator* allocator, const usize size, const usize 
       fmt_size(size),
       fmt_int(align));
   diag_assert_msg(
-      size < alloc_max_alloc_size,
+      size <= alloc_max_alloc_size,
       "alloc_alloc: Size '{}' is bigger then the maximum of '{}'",
       fmt_size(size),
       fmt_size(alloc_max_alloc_size));

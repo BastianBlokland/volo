@@ -54,7 +54,7 @@ static void alloc_page_free(Allocator* allocator, Mem mem) {
 
 static usize alloc_page_max_size(Allocator* allocator) {
   (void)allocator;
-  return usize_max;
+  return alloc_max_alloc_size;
 }
 
 static AllocatorPage g_allocatorIntern;

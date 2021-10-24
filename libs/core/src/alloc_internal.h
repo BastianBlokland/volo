@@ -3,6 +3,8 @@
 #include "core_diag.h"
 #include "core_format.h"
 
+#define alloc_max_alloc_size (usize_mebibyte * 128)
+
 /**
  * Special crash-routine that does not allocate any memory.
  * Which is needed as probably allocations are failing when we want to crash in an allocator.
