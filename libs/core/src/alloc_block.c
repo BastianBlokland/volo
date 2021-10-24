@@ -148,11 +148,13 @@ static void alloc_block_reset(Allocator* allocator) {
   // Free all blocks on the chunks.
   for (BlockChunk* page = allocBlock->chunkHead; page; page = page->next) {
     const Mem chunkMem = mem_create(page, chunk_size_total);
+    alloc_unpoison(chunkMem); // Unpoison so we can write to it again.
     alloc_block_freelist_push_many(allocBlock, mem_consume(chunkMem, sizeof(BlockChunk)));
   }
 
   // Free all blocks on the main allocation.
   const Mem mainMem = mem_create(allocator, main_size_total);
+  alloc_unpoison(mainMem); // Unpoison so we can write to it again.
   alloc_block_freelist_push_many(allocBlock, mem_consume(mainMem, sizeof(AllocatorBlock)));
 
   alloc_block_unlock(allocBlock);
