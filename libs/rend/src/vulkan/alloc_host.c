@@ -51,7 +51,7 @@ static RendVkAllocInfo vk_alloc_internal(
   (void)scope;
 
   const usize padding   = bits_padding(alloc_meta_size, align);
-  const usize totalSize = alloc_meta_size + padding + size;
+  const usize totalSize = bits_align(alloc_meta_size + padding + size, align);
 
   Mem mem = alloc_alloc(alloc, totalSize, align);
   if (UNLIKELY(!mem_valid(mem))) {
@@ -114,7 +114,7 @@ static void vk_free_func(void* userData, void* memory) {
   alloc_free(alloc, vk_alloc_mem_total(memory));
 }
 
-VkAllocationCallbacks rend_vk_alloc_host(Allocator* alloc) {
+VkAllocationCallbacks rend_vk_alloc_host_create(Allocator* alloc) {
   return (VkAllocationCallbacks){
       .pUserData       = alloc,
       .pfnAllocation   = vk_alloc_func,
