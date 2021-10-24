@@ -1,3 +1,4 @@
+#include "core_array.h"
 #include "core_diag.h"
 
 #include "alloc_internal.h"
@@ -13,11 +14,26 @@ Allocator*   g_alloc_heap;
 Allocator*   g_alloc_page;
 THREAD_LOCAL Allocator* g_alloc_scratch;
 
+/**
+ * Buffer to format crash messages without needing to allocate.
+ * Which is needed as probably allocations are failing when we want to crash in the allocator.
+ */
+static DynString alloc_crash_msg_buffer() {
+  static u8 buffer[128];
+  return dynstring_create_over(array_mem(buffer));
+}
+
+#define alloc_crash_with_msg(_MSG_, ...)                                                           \
+  do {                                                                                             \
+    DynString buffer = alloc_crash_msg_buffer();                                                   \
+    fmt_write(&buffer, "Crash: " _MSG_ "\n", __VA_ARGS__);                                         \
+    diag_print_err_raw(dynstring_view(&buffer));                                                   \
+    diag_crash();                                                                                  \
+  } while (false)
+
 static void alloc_verify_allocator(const Allocator* allocator) {
   if (UNLIKELY(allocator == null)) {
-    // NOTE: Important to use non-allocating crash routine here to avoid infinite recursion.
-    diag_print_err_raw(string_lit("Crash: Allocator is not initialized\n"));
-    diag_crash();
+    alloc_crash_with_msg("Allocator is not initialized");
   }
 }
 
@@ -26,7 +42,14 @@ void alloc_init() {
   g_alloc_heap = alloc_heap_init();
 }
 
-void alloc_teardown() { alloc_heap_teardown(); }
+void alloc_teardown() {
+  alloc_heap_teardown();
+
+  const u32 leakedPages = alloc_page_allocated_pages();
+  if (leakedPages) {
+    alloc_crash_with_msg("alloc: {} pages leaked during app runtime", fmt_int(leakedPages));
+  }
+}
 
 void alloc_init_thread() { g_alloc_scratch = alloc_scratch_init(); }
 
