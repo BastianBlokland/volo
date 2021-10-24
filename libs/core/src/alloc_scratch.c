@@ -63,11 +63,6 @@ static void alloc_scratch_free(Allocator* allocator, Mem mem) {
   alloc_tag_free(mem, AllocMemType_Scratch);
 }
 
-static usize alloc_scratch_min_size(Allocator* allocator) {
-  (void)allocator;
-  return 1;
-}
-
 static usize alloc_scratch_max_size(Allocator* allocator) {
   (void)allocator;
   return scratch_max_alloc_size;
@@ -81,7 +76,6 @@ Allocator* alloc_scratch_init() {
       (Allocator){
           .alloc   = alloc_scratch_alloc,
           .free    = alloc_scratch_free,
-          .minSize = alloc_scratch_min_size,
           .maxSize = alloc_scratch_max_size,
           .reset   = null,
       },

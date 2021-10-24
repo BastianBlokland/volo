@@ -72,11 +72,6 @@ Mem alloc_dup(Allocator* alloc, Mem mem, usize align) {
   return newMem;
 }
 
-INLINE_HINT usize alloc_min_size(Allocator* allocator) {
-  alloc_verify_allocator(allocator);
-  return allocator->minSize(allocator);
-}
-
 INLINE_HINT usize alloc_max_size(Allocator* allocator) {
   alloc_verify_allocator(allocator);
   return allocator->maxSize(allocator);

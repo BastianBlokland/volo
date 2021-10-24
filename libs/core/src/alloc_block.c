@@ -123,11 +123,6 @@ static void alloc_block_free(Allocator* allocator, Mem mem) {
   alloc_block_unlock(allocBlock);
 }
 
-static usize alloc_block_min_size(Allocator* allocator) {
-  AllocatorBlock* allocBlock = (AllocatorBlock*)allocator;
-  return allocBlock->blockSize;
-}
-
 static usize alloc_block_max_size(Allocator* allocator) {
   AllocatorBlock* allocBlock = (AllocatorBlock*)allocator;
   return allocBlock->blockSize;
@@ -174,7 +169,6 @@ Allocator* alloc_block_create(Allocator* parent, const usize blockSize) {
           {
               .alloc   = alloc_block_alloc,
               .free    = alloc_block_free,
-              .minSize = alloc_block_min_size,
               .maxSize = alloc_block_max_size,
               .reset   = alloc_block_reset,
           },

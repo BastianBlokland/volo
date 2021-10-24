@@ -36,11 +36,6 @@ static void alloc_bump_free(Allocator* allocator, Mem mem) {
   }
 }
 
-static usize alloc_bump_min_size(Allocator* allocator) {
-  (void)allocator;
-  return 1;
-}
-
 static usize alloc_bump_max_size(Allocator* allocator) {
   struct AllocatorBump* allocatorBump = (struct AllocatorBump*)allocator;
   return allocatorBump->tail - allocatorBump->head;
@@ -63,7 +58,6 @@ Allocator* alloc_bump_create(Mem mem) {
   allocatorBump->api = (Allocator){
       .alloc   = alloc_bump_alloc,
       .free    = alloc_bump_free,
-      .minSize = alloc_bump_min_size,
       .maxSize = alloc_bump_max_size,
       .reset   = alloc_bump_reset,
   };

@@ -47,11 +47,6 @@ static void alloc_heap_free(Allocator* allocator, Mem mem) {
   return alloc_free(allocSub, mem);
 }
 
-static usize alloc_heap_min_size(Allocator* allocator) {
-  (void)allocator;
-  return block_bucket_size_min;
-}
-
 static usize alloc_heap_max_size(Allocator* allocator) {
   (void)allocator;
   return usize_max;
@@ -64,7 +59,6 @@ Allocator* alloc_heap_init() {
       (Allocator){
           .alloc   = alloc_heap_alloc,
           .free    = alloc_heap_free,
-          .minSize = alloc_heap_min_size,
           .maxSize = alloc_heap_max_size,
           .reset   = null,
       },

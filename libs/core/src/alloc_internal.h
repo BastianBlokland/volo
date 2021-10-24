@@ -25,7 +25,6 @@ typedef enum {
 struct sAllocator {
   Mem (*alloc)(Allocator*, usize size, usize align);
   void (*free)(Allocator*, Mem);
-  usize (*minSize)(Allocator*);
   usize (*maxSize)(Allocator*);
   void (*reset)(Allocator*);
 };

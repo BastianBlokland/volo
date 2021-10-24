@@ -77,9 +77,8 @@ spec(alloc_block) {
     }
   }
 
-  it("returns the block-size as the min and max size") {
-    check_eq_int(alloc_min_size(allocBlock), blockSize);
-    check_eq_int(alloc_min_size(allocBlock), blockSize);
+  it("returns the block-size as the max size") {
+    check_eq_int(alloc_max_size(allocBlock), blockSize);
   }
 
   teardown() {

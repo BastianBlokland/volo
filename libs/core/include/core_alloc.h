@@ -108,12 +108,6 @@ void alloc_free(Allocator*, Mem);
 Mem alloc_dup(Allocator*, Mem, usize align);
 
 /**
- * Return the minimum allocation size (in bytes) for this allocator.
- * For example the page-allocator will return the page size.
- */
-usize alloc_min_size(Allocator*);
-
-/**
  * Return the maximum allocation size (in bytes) for this allocator.
  */
 usize alloc_max_size(Allocator*);

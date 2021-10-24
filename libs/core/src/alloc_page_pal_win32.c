@@ -52,11 +52,6 @@ static void alloc_page_free(Allocator* allocator, Mem mem) {
   thread_atomic_sub_i64(&allocPage->allocatedPages, pages);
 }
 
-static usize alloc_page_min_size(Allocator* allocator) {
-  AllocatorPage* allocPage = (AllocatorPage*)allocator;
-  return allocPage->pageSize;
-}
-
 static usize alloc_page_max_size(Allocator* allocator) {
   (void)allocator;
   return usize_max;
@@ -74,7 +69,6 @@ Allocator* alloc_page_init() {
           (Allocator){
               .alloc   = alloc_page_alloc,
               .free    = alloc_page_free,
-              .minSize = alloc_page_min_size,
               .maxSize = alloc_page_max_size,
               .reset   = null,
           },

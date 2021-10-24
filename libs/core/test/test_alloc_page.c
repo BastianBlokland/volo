@@ -4,7 +4,7 @@
 spec(alloc_page) {
 
   it("ensures alignment of allocation matches page-size") {
-    const usize pageSize = alloc_min_size(g_alloc_page);
+    const usize pageSize = 4096;
 
     Mem alloc = alloc_alloc(g_alloc_page, 8, 2);
     check_eq_int(((uptr)alloc.ptr & (pageSize - 1)), 0);
