@@ -117,21 +117,11 @@ spec(alloc_chunked) {
     alloc_chunked_destroy(alloc);
   }
 
-  it("always returns 1 as the minimum size") {
-    Allocator* alloc = alloc_chunked_create(g_alloc_heap, alloc_bump_create, 512);
-
-    // NOTE: Does this semantic actually make sense?
-    check_eq_int(alloc_min_size(alloc), 1);
-
-    alloc_chunked_destroy(alloc);
-  }
-
   it("can use os memory pages as chunks") {
-    usize      pageSize = alloc_min_size(g_alloc_page);
-    Allocator* alloc    = alloc_chunked_create(g_alloc_page, alloc_bump_create, pageSize);
+    Allocator* alloc = alloc_chunked_create(g_alloc_page, alloc_bump_create, 4096);
 
     // NOTE: '- 64' as the bump-allocator needs space for its internal book-keeping.
-    Mem page = alloc_alloc(alloc, pageSize - 64, 64);
+    Mem page = alloc_alloc(alloc, 4096 - 64, 64);
     check(mem_valid(page));
 
     alloc_chunked_destroy(alloc);

@@ -2,9 +2,6 @@
 
 #include "alloc_internal.h"
 
-#define freed_mem_tag 0xFB
-#define guard_mem_tag 0xAB
-
 struct AllocatorBump {
   Allocator api;
   u8*       head;
@@ -30,18 +27,13 @@ static void alloc_bump_free(Allocator* allocator, Mem mem) {
 
   struct AllocatorBump* allocatorBump = (struct AllocatorBump*)allocator;
 
-  // TODO: Create special compiler define to enable / disable tagging of freed mem.
-  mem_set(mem, freed_mem_tag); // Tag to detect use-after-free.
+  // NOTE: Tag the memory to detect UAF, could be tied to a define in the future.
+  alloc_tag_free(mem, AllocMemType_Normal);
 
   if (mem_end(mem) == allocatorBump->head) {
     // This was the last allocation made, we can 'unbump' it.
     allocatorBump->head -= mem.size;
   }
-}
-
-static usize alloc_bump_min_size(Allocator* allocator) {
-  (void)allocator;
-  return 1;
 }
 
 static usize alloc_bump_max_size(Allocator* allocator) {
@@ -53,8 +45,8 @@ static void alloc_bump_reset(Allocator* allocator) {
   struct AllocatorBump* allocatorBump = (struct AllocatorBump*)allocator;
   allocatorBump->head                 = bits_ptr_offset(allocator, sizeof(struct AllocatorBump));
 
-  // TODO: Create special compiler define to enable / disable tagging of reset mem.
-  mem_set(mem_from_to(allocatorBump->head, allocatorBump->tail), guard_mem_tag);
+  // NOTE: Tag the memory to detect UAF, could be tied to a define in the future.
+  alloc_tag_guard(mem_from_to(allocatorBump->head, allocatorBump->tail), AllocMemType_Normal);
 }
 
 Allocator* alloc_bump_create(Mem mem) {
@@ -66,7 +58,6 @@ Allocator* alloc_bump_create(Mem mem) {
   allocatorBump->api = (Allocator){
       .alloc   = alloc_bump_alloc,
       .free    = alloc_bump_free,
-      .minSize = alloc_bump_min_size,
       .maxSize = alloc_bump_max_size,
       .reset   = alloc_bump_reset,
   };

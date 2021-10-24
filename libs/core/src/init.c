@@ -34,11 +34,14 @@ void core_init() {
 
 void core_teardown() {
   if (g_thread_tid == g_thread_main_tid && g_intialized) {
-    g_intialized = false;
     tty_teardown();
   }
   if (g_initialized_thread) {
     alloc_teardown_thread();
     g_initialized_thread = false;
+  }
+  if (g_thread_tid == g_thread_main_tid && g_intialized) {
+    alloc_teardown();
+    g_intialized = false;
   }
 }

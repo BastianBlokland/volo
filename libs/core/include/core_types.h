@@ -31,6 +31,7 @@ typedef u8 bool;
 #define i32_lit(_LITERAL_) INT32_C(_LITERAL_)
 #define u64_lit(_LITERAL_) UINT64_C(_LITERAL_)
 #define i64_lit(_LITERAL_) INT64_C(_LITERAL_)
+#define usize_lit(_LITERAL_) ((usize)UINT64_C(_LITERAL_))
 
 #define i8_min INT8_MIN
 #define i16_min INT16_MIN

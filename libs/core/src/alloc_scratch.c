@@ -3,52 +3,52 @@
 
 #include "alloc_internal.h"
 
-#define alloc_scratch_heap_size (usize_mebibyte * 4)
-#define alloc_scratch_max_alloc_size (usize_kibibyte * 64)
-#define alloc_scratch_guard_size (usize_kibibyte * 128)
+#define scratch_heap_size (usize_mebibyte * 4)
+#define scratch_max_alloc_size (usize_kibibyte * 64)
+#define scratch_guard_size (usize_kibibyte * 128)
 
-#define freed_mem_tag 0xFC
-#define guard_mem_tag 0xAA
-
-struct AllocatorScratch {
+typedef struct {
   Allocator api;
   Mem       memory;
   u8*       head;
-};
+} AllocatorScratch;
 
-MAYBE_UNUSED static void alloc_scratch_write_guard(struct AllocatorScratch* allocator) {
-  const usize memUntilEnd = mem_end(allocator->memory) - allocator->head;
-  if (memUntilEnd > alloc_scratch_guard_size) {
-    mem_set(mem_create(allocator->head, alloc_scratch_guard_size), guard_mem_tag);
+/**
+ * Tag a fixed-size region in-front of the scratch write head. This aids in detecting when the
+ * application holds onto scratch memory for too long (and thus is about to be overwritten).
+ *
+ * NOTE: In the future this could be enabled / disabled through a special define.
+ */
+static void alloc_scratch_tag_guard(AllocatorScratch* allocScratch, const usize size) {
+  const usize memUntilEnd = mem_end(allocScratch->memory) - allocScratch->head;
+  if (memUntilEnd > size) {
+    alloc_tag_guard(mem_create(allocScratch->head, size), AllocMemType_Scratch);
   } else {
-    mem_set(mem_create(allocator->head, memUntilEnd), guard_mem_tag);
-    mem_set(mem_create(mem_begin(allocator->memory), alloc_scratch_guard_size), guard_mem_tag);
+    alloc_tag_guard(mem_create(allocScratch->head, memUntilEnd), AllocMemType_Scratch);
+    alloc_tag_guard(mem_create(mem_begin(allocScratch->memory), size), AllocMemType_Scratch);
   }
 }
 
 static Mem alloc_scratch_alloc(Allocator* allocator, const usize size, const usize align) {
 
-  struct AllocatorScratch* allocatorScratch = (struct AllocatorScratch*)allocator;
+  AllocatorScratch* allocScratch = (AllocatorScratch*)allocator;
 
-  if (UNLIKELY(size > alloc_scratch_max_alloc_size)) {
+  if (UNLIKELY(size > scratch_max_alloc_size)) {
     // Too big allocation, we limit the maximum allocation size to avoid 'invalidating' too many
     // other scratch allocations at once.
     return mem_create(null, size);
   }
 
-  u8* alignedHead = bits_align_ptr(allocatorScratch->head, align);
+  u8* alignedHead = bits_align_ptr(allocScratch->head, align);
 
-  if (UNLIKELY(alignedHead + size > mem_end(allocatorScratch->memory))) {
+  if (UNLIKELY(alignedHead + size > mem_end(allocScratch->memory))) {
     // Wrap around the scratch buffer.
-    alignedHead = bits_align_ptr(mem_begin(allocatorScratch->memory), align);
+    alignedHead = bits_align_ptr(mem_begin(allocScratch->memory), align);
   }
 
-  allocatorScratch->head = alignedHead + size;
+  allocScratch->head = alignedHead + size;
 
-  // TODO: Create special compiler define to enable / disable the guard region.
-  // Write a special tag to the memory ahead of the head, usefull to detect cases where the
-  // application is holding on to scratch memory that is about to be overwritten.
-  alloc_scratch_write_guard(allocatorScratch);
+  alloc_scratch_tag_guard(allocScratch, scratch_guard_size);
 
   return mem_create(alignedHead, size);
 }
@@ -59,36 +59,25 @@ static void alloc_scratch_free(Allocator* allocator, Mem mem) {
 
   diag_assert(mem_valid(mem));
 
-  // TODO: Create special compiler define to enable / disable tagging of freed mem.
-  mem_set(mem, freed_mem_tag); // Tag to detect use-after-free.
-}
-
-static usize alloc_scratch_min_size(Allocator* allocator) {
-  (void)allocator;
-  return 1;
+  // NOTE: Tag the remaining memory to detect UAF, could be tied to a define in the future.
+  alloc_tag_free(mem, AllocMemType_Scratch);
 }
 
 static usize alloc_scratch_max_size(Allocator* allocator) {
   (void)allocator;
-  return alloc_scratch_max_alloc_size;
+  return scratch_max_alloc_size;
 }
 
-static void alloc_scratch_reset(Allocator* allocator) {
-  (void)allocator;
-  diag_crash_msg("Scratch-allocator cannot be reset");
-}
-
-static THREAD_LOCAL struct AllocatorScratch g_allocatorIntern;
+static THREAD_LOCAL AllocatorScratch g_allocatorIntern;
 
 Allocator* alloc_scratch_init() {
-  Mem scratchPages  = alloc_alloc(g_alloc_page, alloc_scratch_heap_size, sizeof(void*));
-  g_allocatorIntern = (struct AllocatorScratch){
+  Mem scratchPages  = alloc_alloc(g_alloc_page, scratch_heap_size, sizeof(void*));
+  g_allocatorIntern = (AllocatorScratch){
       (Allocator){
           .alloc   = alloc_scratch_alloc,
           .free    = alloc_scratch_free,
-          .minSize = alloc_scratch_min_size,
           .maxSize = alloc_scratch_max_size,
-          .reset   = alloc_scratch_reset,
+          .reset   = null,
       },
       .memory = scratchPages,
       .head   = mem_begin(scratchPages),

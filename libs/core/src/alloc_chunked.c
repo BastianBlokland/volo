@@ -88,11 +88,6 @@ static void alloc_chunked_free(Allocator* allocator, Mem mem) {
   }
 }
 
-static usize alloc_chunked_min_size(Allocator* allocator) {
-  (void)allocator;
-  return 1;
-}
-
 static usize alloc_chunked_max_size(Allocator* allocator) {
   AllocatorChunked* alloc = (AllocatorChunked*)allocator;
 
@@ -132,7 +127,6 @@ Allocator* alloc_chunked_create(Allocator* parent, AllocatorBuilder builder, usi
           {
               .alloc   = alloc_chunked_alloc,
               .free    = alloc_chunked_free,
-              .minSize = alloc_chunked_min_size,
               .maxSize = alloc_chunked_max_size,
               .reset   = alloc_chunked_reset,
           },
