@@ -33,10 +33,11 @@ typedef struct sBlockChunk {
 typedef struct {
   Allocator      api;
   Allocator*     parent;
-  usize          blockSize;
+  ThreadSpinLock spinLock;
   BlockNode*     freeHead;
   BlockChunk*    chunkHead;
-  ThreadSpinLock spinLock;
+  usize          blockSize;
+  usize          allocatedBlocks;
 } AllocatorBlock;
 
 static void alloc_block_lock(AllocatorBlock* allocBlock) {
@@ -104,6 +105,7 @@ static Mem alloc_block_alloc(Allocator* allocator, const usize size, const usize
     }
   }
   result = alloc_block_freelist_pop(allocBlock);
+  ++allocBlock->allocatedBlocks;
 
 ret:
   alloc_block_unlock(allocBlock);
@@ -117,6 +119,7 @@ static void alloc_block_free(Allocator* allocator, Mem mem) {
 
   alloc_block_lock(allocBlock);
   alloc_block_freelist_push(allocBlock, mem.ptr);
+  --allocBlock->allocatedBlocks;
   alloc_block_unlock(allocBlock);
 }
 
@@ -139,7 +142,8 @@ static void alloc_block_reset(Allocator* allocator) {
    * Recreate the free-list by free-ing all blocks on all pages.
    */
 
-  allocBlock->freeHead = null;
+  allocBlock->freeHead        = null;
+  allocBlock->allocatedBlocks = 0;
 
   // Free all blocks on the chunks.
   for (BlockChunk* page = allocBlock->chunkHead; page; page = page->next) {
@@ -184,6 +188,13 @@ Allocator* alloc_block_create(Allocator* parent, const usize blockSize) {
 
 void alloc_block_destroy(Allocator* allocator) {
   AllocatorBlock* allocBlock = (AllocatorBlock*)allocator;
+
+  if (allocBlock->allocatedBlocks) {
+    alloc_crash_with_msg(
+        "alloc: {} blocks of size {} leaked during in block-allocator",
+        fmt_int(allocBlock->allocatedBlocks),
+        fmt_size(allocBlock->blockSize));
+  }
 
   allocBlock->freeHead = null;
   for (BlockChunk* chunk = allocBlock->chunkHead; chunk;) {

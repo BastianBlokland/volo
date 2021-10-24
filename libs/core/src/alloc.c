@@ -14,23 +14,6 @@ Allocator*   g_alloc_heap;
 Allocator*   g_alloc_page;
 THREAD_LOCAL Allocator* g_alloc_scratch;
 
-/**
- * Buffer to format crash messages without needing to allocate.
- * Which is needed as probably allocations are failing when we want to crash in the allocator.
- */
-static DynString alloc_crash_msg_buffer() {
-  static u8 buffer[128];
-  return dynstring_create_over(array_mem(buffer));
-}
-
-#define alloc_crash_with_msg(_MSG_, ...)                                                           \
-  do {                                                                                             \
-    DynString buffer = alloc_crash_msg_buffer();                                                   \
-    fmt_write(&buffer, "Crash: " _MSG_ "\n", __VA_ARGS__);                                         \
-    diag_print_err_raw(dynstring_view(&buffer));                                                   \
-    diag_crash();                                                                                  \
-  } while (false)
-
 static void alloc_verify_allocator(const Allocator* allocator) {
   if (UNLIKELY(allocator == null)) {
     alloc_crash_with_msg("Allocator is not initialized");

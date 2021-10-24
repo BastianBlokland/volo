@@ -1,5 +1,18 @@
 #pragma once
 #include "core_alloc.h"
+#include "core_dynstring.h"
+
+/**
+ * Special crash-routine that does not allocate any memory.
+ * Which is needed as probably allocations are failing when we want to crash in an allocator.
+ */
+#define alloc_crash_with_msg(_MSG_, ...)                                                           \
+  do {                                                                                             \
+    DynString buffer = dynstring_create_over(mem_stack(256));                                      \
+    fmt_write(&buffer, "Crash: " _MSG_ "\n", __VA_ARGS__);                                         \
+    diag_print_err_raw(dynstring_view(&buffer));                                                   \
+    diag_crash();                                                                                  \
+  } while (false)
 
 typedef enum {
   AllocMemType_Normal = 0,
