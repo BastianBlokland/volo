@@ -14,8 +14,6 @@
  * NOTE: Memory pages are only freed to the system on destruction of the block allocator.
  */
 
-#define freed_mem_tag 0xFD
-
 #define main_align alignof(AllocatorBlock)
 #define main_size_total 4096
 #define main_size_useable (main_size_total - sizeof(AllocatorBlock))
@@ -54,10 +52,10 @@ static void alloc_block_freelist_push(AllocatorBlock* allocBlock, void* blockHea
   *node                = (BlockNode){.next = allocBlock->freeHead};
   allocBlock->freeHead = node;
 
-  // TODO: Create special compiler define to enable / disable tagging of freed mem.
+  // NOTE: Tag the remaining memory to detect UAF, could be tied to a define in the future.
   const Mem remainingMem = mem_create(
       bits_ptr_offset(blockHead, sizeof(BlockNode)), allocBlock->blockSize - sizeof(BlockNode));
-  mem_set(remainingMem, freed_mem_tag); // Tag to detect use-after-free.
+  alloc_tag_free(remainingMem, AllocMemType_Normal);
 }
 
 static void alloc_block_freelist_push_many(AllocatorBlock* allocBlock, Mem chunk) {

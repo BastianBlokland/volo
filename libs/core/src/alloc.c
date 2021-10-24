@@ -78,3 +78,13 @@ INLINE_HINT void alloc_reset(Allocator* allocator) {
   diag_assert_msg(allocator->reset, "alloc_reset: Allocator does not support resetting");
   allocator->reset(allocator);
 }
+
+void alloc_tag_free(Mem mem, const AllocMemType type) {
+  static const u8 tags[AllocMemType_Count] = {0xFB, 0xFC};
+  mem_set(mem, tags[type]);
+}
+
+void alloc_tag_guard(Mem mem, const AllocMemType type) {
+  static const u8 tags[AllocMemType_Count] = {0xAB, 0xAC};
+  mem_set(mem, tags[type]);
+}
