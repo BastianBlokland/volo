@@ -6,8 +6,8 @@
 
 #define block_bucket_pow_min 4
 #define block_bucket_pow_max 11
-#define block_bucket_size_min (1 << block_bucket_pow_min)
-#define block_bucket_size_max (1 << block_bucket_pow_max)
+#define block_bucket_size_min (usize_lit(1) << block_bucket_pow_min)
+#define block_bucket_size_max (usize_lit(1) << block_bucket_pow_max)
 #define block_bucket_count (block_bucket_pow_max - block_bucket_pow_min + 1)
 
 ASSERT(block_bucket_size_min == 16, "Unexpected bucket min size");
@@ -44,7 +44,7 @@ static Mem alloc_heap_alloc(Allocator* allocator, const usize size, const usize 
 static void alloc_heap_free(Allocator* allocator, Mem mem) {
   AllocatorHeap* allocHeap = (AllocatorHeap*)allocator;
   Allocator*     allocSub  = alloc_heap_sub_allocator(allocHeap, mem.size);
-  return alloc_free(allocSub, mem);
+  alloc_free(allocSub, mem);
 }
 
 static usize alloc_heap_max_size(Allocator* allocator) {
@@ -65,7 +65,7 @@ Allocator* alloc_heap_init() {
       .blockBuckets = {0},
   };
   for (usize i = 0; i != block_bucket_count; ++i) {
-    const usize blockSize             = 1 << (i + block_bucket_pow_min);
+    const usize blockSize             = usize_lit(1) << (i + block_bucket_pow_min);
     g_allocatorIntern.blockBuckets[i] = alloc_block_create(g_alloc_page, blockSize);
   }
   return (Allocator*)&g_allocatorIntern;

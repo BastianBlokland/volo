@@ -14,7 +14,7 @@ typedef struct {
 } AllocatorPage;
 
 static u32 alloc_page_num_pages(AllocatorPage* allocPage, const usize size) {
-  return (size + allocPage->pageSize - 1) / allocPage->pageSize;
+  return (u32)((size + allocPage->pageSize - 1) / allocPage->pageSize);
 }
 
 static Mem alloc_page_alloc(Allocator* allocator, const usize size, const usize align) {
@@ -35,7 +35,7 @@ static Mem alloc_page_alloc(Allocator* allocator, const usize size, const usize 
   }
 
   thread_atomic_add_i64(&allocPage->allocatedPages, pages);
-  return mem_create(res, size);
+  return mem_create(ptr, size);
 }
 
 static void alloc_page_free(Allocator* allocator, Mem mem) {
