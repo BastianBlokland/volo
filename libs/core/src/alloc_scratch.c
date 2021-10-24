@@ -17,7 +17,7 @@ typedef struct {
  * Tag a fixed-size region in-front of the scratch write head. This aids in detecting when the
  * application holds onto scratch memory for too long (and thus is about to be overwritten).
  *
- * NOTE:In the future this could be enabled / disabled through a special define.
+ * NOTE: In the future this could be enabled / disabled through a special define.
  */
 static void alloc_scratch_tag_guard(AllocatorScratch* allocScratch, const usize size) {
   const usize memUntilEnd = mem_end(allocScratch->memory) - allocScratch->head;

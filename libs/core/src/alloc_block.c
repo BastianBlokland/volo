@@ -52,10 +52,7 @@ static void alloc_block_freelist_push(AllocatorBlock* allocBlock, void* blockHea
   *node                = (BlockNode){.next = allocBlock->freeHead};
   allocBlock->freeHead = node;
 
-  // NOTE: Tag the remaining memory to detect UAF, could be tied to a define in the future.
-  const Mem remainingMem = mem_create(
-      bits_ptr_offset(blockHead, sizeof(BlockNode)), allocBlock->blockSize - sizeof(BlockNode));
-  alloc_tag_free(remainingMem, AllocMemType_Normal);
+  alloc_poison(mem_create(node, allocBlock->blockSize));
 }
 
 static void alloc_block_freelist_push_many(AllocatorBlock* allocBlock, Mem chunk) {
@@ -66,7 +63,9 @@ static void alloc_block_freelist_push_many(AllocatorBlock* allocBlock, Mem chunk
 }
 
 static void* alloc_block_freelist_pop(AllocatorBlock* allocBlock) {
-  BlockNode* node      = allocBlock->freeHead;
+  BlockNode* node = allocBlock->freeHead;
+
+  alloc_unpoison(mem_create(node, allocBlock->blockSize));
   allocBlock->freeHead = node->next;
   return node;
 }
@@ -190,9 +189,12 @@ void alloc_block_destroy(Allocator* allocator) {
   for (BlockChunk* chunk = allocBlock->chunkHead; chunk;) {
     BlockChunk* toFree = chunk;
     chunk              = chunk->next;
+
+    alloc_unpoison(mem_create(toFree, chunk_size_total));
     alloc_free(allocBlock->parent, mem_create(toFree, chunk_size_total));
   }
   allocBlock->chunkHead = null;
 
+  alloc_unpoison(mem_create(allocator, main_size_total));
   alloc_free(allocBlock->parent, mem_create(allocator, main_size_total));
 }

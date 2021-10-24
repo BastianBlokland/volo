@@ -25,7 +25,15 @@ Allocator* alloc_scratch_init();
 void       alloc_scratch_teardown();
 
 /**
- * Diagnostic apis that tag memory to detect uaf and buffer-overflows.
+ * Diagnostic apis that write tag values to memory locations.
+ * The tags are a low-tech solution for detecting UAF and buffer-overflows.
  */
 void alloc_tag_free(Mem, AllocMemType);
 void alloc_tag_guard(Mem, AllocMemType);
+
+/**
+ * Diagnostic api for marking memory as poisonned.
+ * Poisoned memory is not allowed to be read from / written to.
+ */
+void alloc_poison(Mem);
+void alloc_unpoison(Mem);

@@ -97,6 +97,7 @@ macro(set_clang_compile_options)
     message(STATUS "Configuring clang sanitizers: ${SANITIZERS}")
     add_compile_options(-fsanitize=${SANITIZERS})
     add_link_options(-fsanitize=${SANITIZERS})
+    add_definitions(-DVOLO_ASAN)
   endif()
 
 endmacro(set_clang_compile_options)

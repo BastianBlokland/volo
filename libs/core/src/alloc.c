@@ -3,6 +3,10 @@
 #include "alloc_internal.h"
 #include "init_internal.h"
 
+#ifdef VOLO_ASAN
+#include <sanitizer/asan_interface.h>
+#endif
+
 #define alloc_max_alloc_size (usize_mebibyte * 128)
 
 Allocator*   g_alloc_heap;
@@ -80,11 +84,25 @@ INLINE_HINT void alloc_reset(Allocator* allocator) {
 }
 
 void alloc_tag_free(Mem mem, const AllocMemType type) {
-  static const u8 tags[AllocMemType_Count] = {0xFB, 0xFC};
+  static const u8 tags[AllocMemType_Count] = {0xAA, 0xAB};
   mem_set(mem, tags[type]);
 }
 
 void alloc_tag_guard(Mem mem, const AllocMemType type) {
-  static const u8 tags[AllocMemType_Count] = {0xAB, 0xAC};
+  static const u8 tags[AllocMemType_Count] = {0xBA, 0xBB};
   mem_set(mem, tags[type]);
+}
+
+void alloc_poison(Mem mem) {
+  (void)mem;
+#if defined(VOLO_ASAN)
+  __asan_poison_memory_region(mem.ptr, mem.size);
+#endif
+}
+
+void alloc_unpoison(Mem mem) {
+  (void)mem;
+#if defined(VOLO_ASAN)
+  __asan_unpoison_memory_region(mem.ptr, mem.size);
+#endif
 }
