@@ -72,12 +72,19 @@ Allocator* alloc_bump_create(Mem);
  * Pre-condition: chunkSize is a power-of-two.
  */
 Allocator* alloc_chunked_create(Allocator* parent, AllocatorBuilder, usize chunkSize);
+void       alloc_chunked_destroy(Allocator*);
 
 /**
- * Destroy a chunked allocator.
- * Pre-condition: Given allocator was created using 'alloc_chunked_create()'.
+ * Create a fixed-size block allocator.
+ * Allocates chunks of memory from the parent allocator and splits them into fixed size blocks.
+ *
+ * NOTE: Chunks are only freed when the allocator is destroyed.
+ * NOTE: Destroy using 'alloc_block_destroy()'
+ *
+ * Pre-condition: chunkSize >= 8
  */
-void alloc_chunked_destroy(Allocator*);
+Allocator* alloc_block_create(Allocator* parent, usize blockSize);
+void       alloc_block_destroy(Allocator*);
 
 /**
  * Allocate new memory.

@@ -5,6 +5,7 @@
 message(STATUS "> library: core")
 
 add_library(volo_core STATIC
+  src/alloc_block.c
   src/alloc_bump.c
   src/alloc_chunked.c
   src/alloc_heap.c
@@ -53,6 +54,7 @@ endif()
 
 add_executable(volo_core_test
   test/main.c
+  test/test_alloc_block.c
   test/test_alloc_bump.c
   test/test_alloc_chunked.c
   test/test_alloc_page.c
