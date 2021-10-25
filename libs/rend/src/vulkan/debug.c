@@ -4,12 +4,22 @@
 #include "debug_internal.h"
 
 struct sRendVkDebug {
-  Logger*                  logger;
-  VkInstance               vkInstance;
-  VkAllocationCallbacks*   vkAllocHost;
-  VkDebugUtilsMessengerEXT vkMessenger;
-  RendVkDebugFlags         flags;
+  RendVkDebugFlags                 flags;
+  Logger*                          logger;
+  VkInstance                       vkInstance;
+  VkAllocationCallbacks*           vkAllocHost;
+  VkDebugUtilsMessengerEXT         vkMessenger;
+  PFN_vkSetDebugUtilsObjectNameEXT vkObjectNameFunc;
+  PFN_vkCmdBeginDebugUtilsLabelEXT vkLabelBeginFunc;
+  PFN_vkCmdEndDebugUtilsLabelEXT   vkLabelEndFunc;
 };
+
+static const char* rend_to_null_term_scratch(String api) {
+  const Mem scratchMem = alloc_alloc(g_alloc_scratch, api.size + 1, 1);
+  mem_cpy(scratchMem, api);
+  *mem_at_u8(scratchMem, api.size) = '\0';
+  return scratchMem.ptr;
+}
 
 static int rend_messenger_severity_mask(const RendVkDebugFlags flags) {
   int severity = 0;
@@ -95,22 +105,50 @@ RendVkDebug* rend_vk_debug_create(
 
   RendVkDebug* debug = alloc_alloc_t(g_alloc_heap, RendVkDebug);
   *debug             = (RendVkDebug){
-      .logger      = g_logger,
-      .vkInstance  = vkInstance,
-      .vkAllocHost = vkAllocHost,
-      .flags       = flags,
+      .flags            = flags,
+      .logger           = g_logger,
+      .vkInstance       = vkInstance,
+      .vkAllocHost      = vkAllocHost,
+      .vkObjectNameFunc = rend_vk_func_load_instance(vkInstance, vkSetDebugUtilsObjectNameEXT),
+      .vkLabelBeginFunc = rend_vk_func_load_instance(vkInstance, vkCmdBeginDebugUtilsLabelEXT),
+      .vkLabelEndFunc   = rend_vk_func_load_instance(vkInstance, vkCmdEndDebugUtilsLabelEXT),
   };
   rend_vk_messenger_create(debug);
-
-  log_i("Vulkan debug handler", log_param("verbose", fmt_bool(flags & RendVkDebugFlags_Verbose)));
 
   return debug;
 }
 
 void rend_vk_debug_destroy(RendVkDebug* debug) {
   rend_vk_messenger_destroy(debug);
-
-  log_i("Vulkan debug destroyed");
-
   alloc_free_t(g_alloc_heap, debug);
+}
+
+void rend_vk_debug_name_set(
+    RendVkDebug*       debug,
+    VkDevice           vkDevice,
+    const VkObjectType vkType,
+    const u64          vkHandle,
+    const String       name) {
+
+  VkDebugUtilsObjectNameInfoEXT nameInfo = {
+      .sType        = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
+      .objectType   = vkType,
+      .objectHandle = vkHandle,
+      .pObjectName  = rend_to_null_term_scratch(name),
+  };
+  const VkResult result = debug->vkObjectNameFunc(vkDevice, &nameInfo);
+  rend_vk_check(string_lit("vkSetDebugUtilsObjectNameEXT"), result);
+}
+
+void rend_vk_debug_label_begin(RendVkDebug* debug, VkCommandBuffer vkCmdBuffer, const String name) {
+  VkDebugUtilsLabelEXT label = {
+      .sType      = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
+      .pLabelName = rend_to_null_term_scratch(name),
+      .color      = {0.0f, 1.0f, 0.0f, 1.0f}, // TODO: Support overriding the color.
+  };
+  debug->vkLabelBeginFunc(vkCmdBuffer, &label);
+}
+
+void rend_vk_debug_label_end(RendVkDebug* debug, VkCommandBuffer vkCmdBuffer) {
+  debug->vkLabelEndFunc(vkCmdBuffer);
 }
