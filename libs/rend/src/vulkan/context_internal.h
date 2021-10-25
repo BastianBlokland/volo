@@ -1,7 +1,7 @@
 #pragma once
 #include "core_alloc.h"
 
-typedef struct sRendContextVk RendContextVk;
+typedef struct sRendVkContext RendVkContext;
 
-RendContextVk* rend_vk_context_create(Allocator*);
-void           rend_vk_context_destroy(RendContextVk*);
+RendVkContext* rend_vk_context_create();
+void           rend_vk_context_destroy(RendVkContext*);

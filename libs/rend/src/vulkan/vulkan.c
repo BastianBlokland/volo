@@ -1,6 +1,30 @@
+#include "core_alloc.h"
 #include "core_diag.h"
 
 #include "vulkan_internal.h"
+
+static const char* rend_to_null_term_scratch(String api) {
+  const Mem scratchMem = alloc_alloc(g_alloc_scratch, api.size + 1, 1);
+  mem_cpy(scratchMem, api);
+  *mem_at_u8(scratchMem, api.size) = '\0';
+  return scratchMem.ptr;
+}
+
+void* rend_vk_func_load_instance_internal(VkInstance instance, String api) {
+  const PFN_vkVoidFunction res = vkGetInstanceProcAddr(instance, rend_to_null_term_scratch(api));
+  if (UNLIKELY(!res)) {
+    diag_crash_msg("Vulkan failed to load instance api: {}", fmt_text(api));
+  }
+  return res;
+}
+
+void* rend_vk_func_load_device_internal(VkDevice device, String api) {
+  const PFN_vkVoidFunction res = vkGetDeviceProcAddr(device, rend_to_null_term_scratch(api));
+  if (UNLIKELY(!res)) {
+    diag_crash_msg("Vulkan failed to load device api: {}", fmt_text(api));
+  }
+  return res;
+}
 
 void rend_vk_check(const String api, const VkResult result) {
   if (UNLIKELY(result)) {

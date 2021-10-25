@@ -3,4 +3,4 @@
 
 #include "vulkan/context_internal.h"
 
-ecs_comp_extern_public(RendPlatformComp) { RendContextVk* vulkan; };
+ecs_comp_extern_public(RendPlatformComp) { RendVkContext* vulkan; };
