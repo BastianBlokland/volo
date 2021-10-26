@@ -6,9 +6,13 @@
 #include "device_internal.h"
 
 struct sRendVkDevice {
-  VkInstance             vkInstance;
-  VkAllocationCallbacks* vkAllocHost;
-  VkPhysicalDevice       vkPhysicalDevice;
+  VkInstance                       vkInstance;
+  VkAllocationCallbacks*           vkAllocHost;
+  VkPhysicalDevice                 vkPhysicalDevice;
+  VkPhysicalDeviceProperties       vkProperties;
+  VkPhysicalDeviceFeatures         vkFeatures;
+  VkPhysicalDeviceMemoryProperties vkMemProperties;
+  u32                              graphicsQueueIndex;
 };
 
 static String g_requiredExts[] = {
@@ -37,6 +41,19 @@ static i32 rend_vk_devicetype_score_value(const VkPhysicalDeviceType device) {
   default:
     return 0;
   }
+}
+
+static u32 rend_vk_pick_graphics_queue(VkPhysicalDevice vkPhysicalDevice) {
+  VkQueueFamilyProperties queueFamilies[32];
+  u32                     queueFamilyCount = array_elems(queueFamilies);
+  vkGetPhysicalDeviceQueueFamilyProperties(vkPhysicalDevice, &queueFamilyCount, queueFamilies);
+
+  for (u32 i = 0; i != queueFamilyCount; ++i) {
+    if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+      return i;
+    }
+  }
+  diag_crash_msg("No graphics queue found");
 }
 
 static VkPhysicalDevice rend_vk_pick_physical_device(VkInstance vkInstance) {
@@ -85,13 +102,24 @@ static VkPhysicalDevice rend_vk_pick_physical_device(VkInstance vkInstance) {
 }
 
 RendVkDevice* rend_vk_device_create(VkInstance vkInstance, VkAllocationCallbacks* vkAllocHost) {
-
-  RendVkDevice* device = alloc_alloc_t(g_alloc_heap, RendVkDevice);
-  *device              = (RendVkDevice){
-      .vkInstance       = vkInstance,
-      .vkAllocHost      = vkAllocHost,
-      .vkPhysicalDevice = rend_vk_pick_physical_device(vkInstance),
+  VkPhysicalDevice vkPhysicalDevice = rend_vk_pick_physical_device(vkInstance);
+  RendVkDevice*    device           = alloc_alloc_t(g_alloc_heap, RendVkDevice);
+  *device                           = (RendVkDevice){
+      .vkInstance         = vkInstance,
+      .vkAllocHost        = vkAllocHost,
+      .vkPhysicalDevice   = vkPhysicalDevice,
+      .graphicsQueueIndex = rend_vk_pick_graphics_queue(vkPhysicalDevice),
   };
+
+  vkGetPhysicalDeviceProperties(device->vkPhysicalDevice, &device->vkProperties);
+  vkGetPhysicalDeviceFeatures(device->vkPhysicalDevice, &device->vkFeatures);
+  vkGetPhysicalDeviceMemoryProperties(device->vkPhysicalDevice, &device->vkMemProperties);
+
+  log_i(
+      "Vulkan device created",
+      log_param("deviceName", fmt_text(string_from_null_term(device->vkProperties.deviceName))),
+      log_param("graphicsQueueIdx", fmt_int(device->graphicsQueueIndex)));
+
   return device;
 }
 
