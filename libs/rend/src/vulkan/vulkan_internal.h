@@ -24,3 +24,5 @@ void*  rend_vk_func_load_instance_internal(VkInstance, String api);
 void*  rend_vk_func_load_device_internal(VkDevice, String api);
 void   rend_vk_check(String api, VkResult);
 String rend_vk_result_str(VkResult);
+String rend_vk_devicetype_str(VkPhysicalDeviceType);
+String rend_vk_vendor_str(uint32_t vendorId);

@@ -6,6 +6,7 @@
 #include "alloc_host_internal.h"
 #include "context_internal.h"
 #include "debug_internal.h"
+#include "device_internal.h"
 #include "vulkan_internal.h"
 
 typedef enum {
@@ -18,10 +19,14 @@ struct sRendVkContext {
   VkInstance            vkInstance;
   RendVkContextFlags    flags;
   RendVkDebug*          debug;
+  RendVkDevice*         device;
 };
 
-static String g_validationLayer = string_static("VK_LAYER_KHRONOS_validation");
-static String g_validationExt   = string_static("VK_EXT_debug_utils");
+#define rend_debug_verbose false
+
+static const RendVkDebugFlags g_debugFlags      = rend_debug_verbose ? RendVkDebugFlags_Verbose : 0;
+static const String           g_validationLayer = string_static("VK_LAYER_KHRONOS_validation");
+static const String           g_validationExt   = string_static("VK_EXT_debug_utils");
 
 static VkApplicationInfo rend_vk_app_info() {
   return (VkApplicationInfo){
@@ -110,14 +115,16 @@ RendVkContext* rend_vk_context_create() {
   rend_vk_instance_create(ctx);
 
   if (validation) {
-    ctx->debug = rend_vk_debug_create(ctx->vkInstance, &ctx->vkAllocHost, RendVkDebugFlags_Verbose);
+    ctx->debug = rend_vk_debug_create(ctx->vkInstance, &ctx->vkAllocHost, g_debugFlags);
   }
+  ctx->device = rend_vk_device_create(ctx->vkInstance, &ctx->vkAllocHost);
 
   log_i("Vulkan context created", log_param("validation", fmt_bool(validation)));
   return ctx;
 }
 
 void rend_vk_context_destroy(RendVkContext* ctx) {
+  rend_vk_device_destroy(ctx->device);
   if (ctx->debug) {
     rend_vk_debug_destroy(ctx->debug);
   }

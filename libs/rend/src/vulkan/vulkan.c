@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_diag.h"
+#include "log_logger.h"
 
 #include "vulkan_internal.h"
 
@@ -27,10 +28,16 @@ void* rend_vk_func_load_device_internal(VkDevice device, String api) {
 }
 
 void rend_vk_check(const String api, const VkResult result) {
-  if (UNLIKELY(result)) {
-    diag_crash_msg(
-        "Vulkan {}: [{}] {}", fmt_text(api), fmt_int(result), fmt_text(rend_vk_result_str(result)));
+  if (LIKELY(result == VK_SUCCESS)) {
+    return;
   }
+  if (result == VK_INCOMPLETE) {
+    log_w(
+        "Vulkan {}: Result truncacted (output buffer too small)", log_param("api", fmt_text(api)));
+    return;
+  }
+  diag_crash_msg(
+      "Vulkan {}: [{}] {}", fmt_text(api), fmt_int(result), fmt_text(rend_vk_result_str(result)));
 }
 
 String rend_vk_result_str(const VkResult result) {
@@ -81,4 +88,38 @@ String rend_vk_result_str(const VkResult result) {
     return string_lit("UNKNOWN");
   }
 #undef ERROR_STR
+}
+
+String rend_vk_devicetype_str(const VkPhysicalDeviceType type) {
+  switch (type) {
+  case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
+    return string_lit("integrated");
+  case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
+    return string_lit("discrete");
+  case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
+    return string_lit("virtual");
+  case VK_PHYSICAL_DEVICE_TYPE_CPU:
+    return string_lit("cpu");
+  default:
+    return string_lit("other");
+  }
+}
+
+String rend_vk_vendor_str(const uint32_t vendorId) {
+  switch (vendorId) {
+  case 0x1002:
+    return string_lit("AMD");
+  case 0x1010:
+    return string_lit("ImgTec");
+  case 0x10DE:
+    return string_lit("NVIDIA");
+  case 0x13B5:
+    return string_lit("ARM");
+  case 0x5143:
+    return string_lit("Qualcomm");
+  case 0x8086:
+    return string_lit("INTEL");
+  default:
+    return string_lit("other");
+  }
 }
