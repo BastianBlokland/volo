@@ -19,9 +19,26 @@ static String g_requiredExts[] = {
     string_static("VK_KHR_swapchain"),
 };
 
-static bool rend_vk_has_extension(VkExtensionProperties* props, const u32 propCount, String ext) {
-  for (u32 i = 0; i != propCount; ++i) {
-    if (string_eq(ext, string_from_null_term(props[i].extensionName))) {
+typedef struct {
+  VkExtensionProperties* head;
+  u32                    count;
+} RendDeviceExts;
+
+static RendDeviceExts rend_vk_exts_query(VkPhysicalDevice vkPhysicalDevice) {
+  u32 count;
+  rend_vk_call(vkEnumerateDeviceExtensionProperties, vkPhysicalDevice, null, &count, null);
+  VkExtensionProperties* props = alloc_alloc_array_t(g_alloc_heap, VkExtensionProperties, count);
+  rend_vk_call(vkEnumerateDeviceExtensionProperties, vkPhysicalDevice, null, &count, props);
+  return (RendDeviceExts){.head = props, .count = count};
+}
+
+static void rend_vk_exts_free(RendDeviceExts extensions) {
+  alloc_free_array_t(g_alloc_heap, extensions.head, extensions.count);
+}
+
+static bool rend_vk_has_ext(RendDeviceExts availableExts, String ext) {
+  for (u32 i = 0; i != availableExts.count; ++i) {
+    if (string_eq(ext, string_from_null_term(availableExts.head[i].extensionName))) {
       return true;
     }
   }
@@ -61,17 +78,15 @@ static VkPhysicalDevice rend_vk_pick_physical_device(VkInstance vkInstance) {
   u32              devicesCount = array_elems(devices);
   rend_vk_call(vkEnumeratePhysicalDevices, vkInstance, &devicesCount, devices);
 
-  VkPhysicalDevice      bestVkDevice = null;
-  i32                   bestScore    = -1;
-  VkExtensionProperties exts[64];
+  VkPhysicalDevice bestVkDevice = null;
+  i32              bestScore    = -1;
 
   for (usize i = 0; i != devicesCount; ++i) {
-    u32 extsCount = array_elems(exts);
-    rend_vk_call(vkEnumerateDeviceExtensionProperties, devices[i], null, &extsCount, exts);
+    const RendDeviceExts exts = rend_vk_exts_query(devices[i]);
 
     i32 score = 0;
     array_for_t(g_requiredExts, String, reqExt, {
-      if (!rend_vk_has_extension(exts, extsCount, *reqExt)) {
+      if (!rend_vk_has_ext(exts, *reqExt)) {
         score = -1;
         goto detectionDone;
       }
@@ -83,6 +98,8 @@ static VkPhysicalDevice rend_vk_pick_physical_device(VkInstance vkInstance) {
     score += rend_vk_devicetype_score_value(properties.deviceType);
 
   detectionDone:
+    rend_vk_exts_free(exts);
+
     log_d(
         "Vulkan physical device detected",
         log_param("deviceName", fmt_text(string_from_null_term(properties.deviceName))),
