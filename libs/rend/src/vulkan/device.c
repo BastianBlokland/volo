@@ -13,6 +13,7 @@ struct sRendVkDevice {
   VkPhysicalDeviceFeatures         vkSupportedFeatures;
   VkPhysicalDeviceMemoryProperties vkMemProperties;
   VkDevice                         vkDevice;
+  VkCommandPool                    vkMainCommandPool;
   u32                              mainQueueIndex;
 };
 
@@ -169,6 +170,21 @@ static void rend_vk_device_init(RendVkDevice* device) {
       &device->vkDevice);
 }
 
+static void rend_vk_commandpool_init(RendVkDevice* device) {
+  VkCommandPoolCreateInfo createInfo = {
+      .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+      .queueFamilyIndex = device->mainQueueIndex,
+      .flags =
+          VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+  };
+  rend_vk_call(
+      vkCreateCommandPool,
+      device->vkDevice,
+      &createInfo,
+      device->vkAllocHost,
+      &device->vkMainCommandPool);
+}
+
 RendVkDevice* rend_vk_device_create(VkInstance vkInstance, VkAllocationCallbacks* vkAllocHost) {
   VkPhysicalDevice vkPhysicalDevice = rend_vk_pick_physical_device(vkInstance);
   RendVkDevice*    device           = alloc_alloc_t(g_alloc_heap, RendVkDevice);
@@ -184,6 +200,7 @@ RendVkDevice* rend_vk_device_create(VkInstance vkInstance, VkAllocationCallbacks
   vkGetPhysicalDeviceMemoryProperties(device->vkPhysicalDevice, &device->vkMemProperties);
 
   rend_vk_device_init(device);
+  rend_vk_commandpool_init(device);
 
   log_i(
       "Vulkan device created",
@@ -198,6 +215,7 @@ void rend_vk_device_destroy(RendVkDevice* device) {
   // Wait for device activity be done before destroying the device.
   rend_vk_call(vkDeviceWaitIdle, device->vkDevice);
 
+  vkDestroyCommandPool(device->vkDevice, device->vkMainCommandPool, device->vkAllocHost);
   vkDestroyDevice(device->vkDevice, device->vkAllocHost);
 
   alloc_free_t(g_alloc_heap, device);
