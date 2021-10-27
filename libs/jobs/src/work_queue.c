@@ -19,12 +19,12 @@ WorkQueue workqueue_create(Allocator* alloc) {
   return (WorkQueue){
       .bottom = 0,
       .top    = 0,
-      .items  = alloc_alloc(alloc, sizeof(WorkItem) * workqueue_max_items, alignof(WorkItem)).ptr,
+      .items  = alloc_alloc_array_t(alloc, WorkItem, workqueue_max_items),
   };
 }
 
 void workqueue_destroy(Allocator* alloc, WorkQueue* wq) {
-  alloc_free(alloc, mem_create(wq->items, sizeof(WorkItem) * workqueue_max_items));
+  alloc_free_array_t(alloc, wq->items, workqueue_max_items);
 }
 
 usize workqueue_size(const WorkQueue* wq) {
