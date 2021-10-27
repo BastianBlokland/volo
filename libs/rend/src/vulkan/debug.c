@@ -123,7 +123,7 @@ void rend_vk_debug_destroy(RendVkDebug* debug) {
   alloc_free_t(g_alloc_heap, debug);
 }
 
-void rend_vk_debug_name_set(
+void rend_vk_debug_name(
     RendVkDebug*       debug,
     VkDevice           vkDevice,
     const VkObjectType vkType,

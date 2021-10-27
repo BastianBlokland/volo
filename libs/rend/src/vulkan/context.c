@@ -117,7 +117,7 @@ RendVkContext* rend_vk_context_create() {
   if (validation) {
     ctx->debug = rend_vk_debug_create(ctx->vkInstance, &ctx->vkAllocHost, g_debugFlags);
   }
-  ctx->device = rend_vk_device_create(ctx->vkInstance, &ctx->vkAllocHost);
+  ctx->device = rend_vk_device_create(ctx->vkInstance, &ctx->vkAllocHost, ctx->debug);
 
   log_i("Vulkan context created", log_param("validation", fmt_bool(validation)));
   return ctx;

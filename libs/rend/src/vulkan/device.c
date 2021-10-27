@@ -6,6 +6,7 @@
 #include "device_internal.h"
 
 struct sRendVkDevice {
+  RendVkDebug*                     debug;
   VkInstance                       vkInstance;
   VkAllocationCallbacks*           vkAllocHost;
   VkPhysicalDevice                 vkPhysicalDevice;
@@ -13,8 +14,9 @@ struct sRendVkDevice {
   VkPhysicalDeviceFeatures         vkSupportedFeatures;
   VkPhysicalDeviceMemoryProperties vkMemProperties;
   VkDevice                         vkDevice;
-  VkCommandPool                    vkMainCommandPool;
   u32                              mainQueueIndex;
+  VkQueue                          vkMainQueue;
+  VkCommandPool                    vkMainCommandPool;
 };
 
 static String g_requiredExts[] = {
@@ -139,6 +141,7 @@ static VkPhysicalDeviceFeatures rend_vk_pick_features(RendVkDevice* device) {
 }
 
 static void rend_vk_device_init(RendVkDevice* device) {
+  // Request our main queue (both graphics and transfer) to be created on the device.
   const float             queuePriority   = 1.0f;
   VkDeviceQueueCreateInfo queueCreateInfo = {
       .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
@@ -168,6 +171,9 @@ static void rend_vk_device_init(RendVkDevice* device) {
       &createInfo,
       device->vkAllocHost,
       &device->vkDevice);
+
+  // Retrive our created main-queue.
+  vkGetDeviceQueue(device->vkDevice, device->mainQueueIndex, 0, &device->vkMainQueue);
 }
 
 static void rend_vk_commandpool_init(RendVkDevice* device) {
@@ -185,10 +191,12 @@ static void rend_vk_commandpool_init(RendVkDevice* device) {
       &device->vkMainCommandPool);
 }
 
-RendVkDevice* rend_vk_device_create(VkInstance vkInstance, VkAllocationCallbacks* vkAllocHost) {
+RendVkDevice* rend_vk_device_create(
+    VkInstance vkInstance, VkAllocationCallbacks* vkAllocHost, RendVkDebug* debug) {
   VkPhysicalDevice vkPhysicalDevice = rend_vk_pick_physical_device(vkInstance);
   RendVkDevice*    device           = alloc_alloc_t(g_alloc_heap, RendVkDevice);
   *device                           = (RendVkDevice){
+      .debug            = debug,
       .vkInstance       = vkInstance,
       .vkAllocHost      = vkAllocHost,
       .vkPhysicalDevice = vkPhysicalDevice,
@@ -201,6 +209,11 @@ RendVkDevice* rend_vk_device_create(VkInstance vkInstance, VkAllocationCallbacks
 
   rend_vk_device_init(device);
   rend_vk_commandpool_init(device);
+
+  if (debug) {
+    dbg_name_queue(device->debug, device->vkDevice, device->vkMainQueue, "main");
+    dbg_name_commandpool(device->debug, device->vkDevice, device->vkMainCommandPool, "main");
+  }
 
   log_i(
       "Vulkan device created",
