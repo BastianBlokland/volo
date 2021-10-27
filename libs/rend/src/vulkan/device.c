@@ -12,7 +12,7 @@ struct sRendVkDevice {
   VkPhysicalDeviceProperties       vkProperties;
   VkPhysicalDeviceFeatures         vkFeatures;
   VkPhysicalDeviceMemoryProperties vkMemProperties;
-  u32                              graphicsQueueIndex;
+  u32                              mainQueueIndex;
 };
 
 static String g_requiredExts[] = {
@@ -60,17 +60,18 @@ static i32 rend_vk_devicetype_score_value(const VkPhysicalDeviceType device) {
   }
 }
 
-static u32 rend_vk_pick_graphics_queue(VkPhysicalDevice vkPhysicalDevice) {
-  VkQueueFamilyProperties queueFamilies[32];
-  u32                     queueFamilyCount = array_elems(queueFamilies);
-  vkGetPhysicalDeviceQueueFamilyProperties(vkPhysicalDevice, &queueFamilyCount, queueFamilies);
+static u32 rend_vk_pick_main_queue(VkPhysicalDevice vkPhysicalDevice) {
+  VkQueueFamilyProperties families[32];
+  u32                     familyCount = array_elems(families);
+  vkGetPhysicalDeviceQueueFamilyProperties(vkPhysicalDevice, &familyCount, families);
 
-  for (u32 i = 0; i != queueFamilyCount; ++i) {
-    if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+  for (u32 i = 0; i != familyCount; ++i) {
+    if (families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT &&
+        families[i].queueFlags & VK_QUEUE_TRANSFER_BIT) {
       return i;
     }
   }
-  diag_crash_msg("No graphics queue found");
+  diag_crash_msg("No main queue found");
 }
 
 static VkPhysicalDevice rend_vk_pick_physical_device(VkInstance vkInstance) {
@@ -122,10 +123,10 @@ RendVkDevice* rend_vk_device_create(VkInstance vkInstance, VkAllocationCallbacks
   VkPhysicalDevice vkPhysicalDevice = rend_vk_pick_physical_device(vkInstance);
   RendVkDevice*    device           = alloc_alloc_t(g_alloc_heap, RendVkDevice);
   *device                           = (RendVkDevice){
-      .vkInstance         = vkInstance,
-      .vkAllocHost        = vkAllocHost,
-      .vkPhysicalDevice   = vkPhysicalDevice,
-      .graphicsQueueIndex = rend_vk_pick_graphics_queue(vkPhysicalDevice),
+      .vkInstance       = vkInstance,
+      .vkAllocHost      = vkAllocHost,
+      .vkPhysicalDevice = vkPhysicalDevice,
+      .mainQueueIndex   = rend_vk_pick_main_queue(vkPhysicalDevice),
   };
 
   vkGetPhysicalDeviceProperties(device->vkPhysicalDevice, &device->vkProperties);
@@ -135,7 +136,7 @@ RendVkDevice* rend_vk_device_create(VkInstance vkInstance, VkAllocationCallbacks
   log_i(
       "Vulkan device created",
       log_param("deviceName", fmt_text(string_from_null_term(device->vkProperties.deviceName))),
-      log_param("graphicsQueueIdx", fmt_int(device->graphicsQueueIndex)));
+      log_param("mainQueueIdx", fmt_int(device->mainQueueIndex)));
 
   return device;
 }
