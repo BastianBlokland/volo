@@ -10,8 +10,9 @@ struct sRendVkDevice {
   VkAllocationCallbacks*           vkAllocHost;
   VkPhysicalDevice                 vkPhysicalDevice;
   VkPhysicalDeviceProperties       vkProperties;
-  VkPhysicalDeviceFeatures         vkFeatures;
+  VkPhysicalDeviceFeatures         vkSupportedFeatures;
   VkPhysicalDeviceMemoryProperties vkMemProperties;
+  VkDevice                         vkDevice;
   u32                              mainQueueIndex;
 };
 
@@ -119,6 +120,55 @@ static VkPhysicalDevice rend_vk_pick_physical_device(VkInstance vkInstance) {
   return bestVkDevice;
 }
 
+static VkPhysicalDeviceFeatures rend_vk_pick_features(RendVkDevice* device) {
+  VkPhysicalDeviceFeatures result = {0};
+  if (device->vkSupportedFeatures.pipelineStatisticsQuery) {
+    result.pipelineStatisticsQuery = true;
+  }
+  if (device->vkSupportedFeatures.samplerAnisotropy) {
+    result.samplerAnisotropy = true;
+  }
+  if (device->vkSupportedFeatures.fillModeNonSolid) {
+    result.fillModeNonSolid = true;
+  }
+  if (device->vkSupportedFeatures.wideLines) {
+    result.wideLines = true;
+  }
+  return result;
+}
+
+static void rend_vk_device_init(RendVkDevice* device) {
+  const float             queuePriority   = 1.0f;
+  VkDeviceQueueCreateInfo queueCreateInfo = {
+      .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+      .queueFamilyIndex = device->mainQueueIndex,
+      .queueCount       = 1,
+      .pQueuePriorities = &queuePriority,
+  };
+
+  VkPhysicalDeviceFeatures featuresToEnable = rend_vk_pick_features(device);
+
+  const char* extensionsToEnabled[array_elems(g_requiredExts)];
+  for (u32 i = 0; i != array_elems(g_requiredExts); ++i) {
+    extensionsToEnabled[i] = g_requiredExts[i].ptr;
+  }
+
+  VkDeviceCreateInfo createInfo = {
+      .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+      .pQueueCreateInfos       = &queueCreateInfo,
+      .queueCreateInfoCount    = 1,
+      .enabledExtensionCount   = array_elems(extensionsToEnabled),
+      .ppEnabledExtensionNames = extensionsToEnabled,
+      .pEnabledFeatures        = &featuresToEnable,
+  };
+  rend_vk_call(
+      vkCreateDevice,
+      device->vkPhysicalDevice,
+      &createInfo,
+      device->vkAllocHost,
+      &device->vkDevice);
+}
+
 RendVkDevice* rend_vk_device_create(VkInstance vkInstance, VkAllocationCallbacks* vkAllocHost) {
   VkPhysicalDevice vkPhysicalDevice = rend_vk_pick_physical_device(vkInstance);
   RendVkDevice*    device           = alloc_alloc_t(g_alloc_heap, RendVkDevice);
@@ -130,8 +180,10 @@ RendVkDevice* rend_vk_device_create(VkInstance vkInstance, VkAllocationCallbacks
   };
 
   vkGetPhysicalDeviceProperties(device->vkPhysicalDevice, &device->vkProperties);
-  vkGetPhysicalDeviceFeatures(device->vkPhysicalDevice, &device->vkFeatures);
+  vkGetPhysicalDeviceFeatures(device->vkPhysicalDevice, &device->vkSupportedFeatures);
   vkGetPhysicalDeviceMemoryProperties(device->vkPhysicalDevice, &device->vkMemProperties);
+
+  rend_vk_device_init(device);
 
   log_i(
       "Vulkan device created",
@@ -141,4 +193,12 @@ RendVkDevice* rend_vk_device_create(VkInstance vkInstance, VkAllocationCallbacks
   return device;
 }
 
-void rend_vk_device_destroy(RendVkDevice* device) { alloc_free_t(g_alloc_heap, device); }
+void rend_vk_device_destroy(RendVkDevice* device) {
+
+  // Wait for device activity be done before destroying the device.
+  rend_vk_call(vkDeviceWaitIdle, device->vkDevice);
+
+  vkDestroyDevice(device->vkDevice, device->vkAllocHost);
+
+  alloc_free_t(g_alloc_heap, device);
+}
