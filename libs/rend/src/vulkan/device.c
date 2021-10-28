@@ -107,8 +107,8 @@ static VkPhysicalDevice rend_vk_pick_physical_device(VkInstance vkInstance) {
 
     log_d(
         "Vulkan physical device detected",
-        log_param("deviceName", fmt_text(string_from_null_term(properties.deviceName))),
-        log_param("deviceType", fmt_text(rend_vk_devicetype_str(properties.deviceType))),
+        log_param("device-name", fmt_text(string_from_null_term(properties.deviceName))),
+        log_param("device-type", fmt_text(rend_vk_devicetype_str(properties.deviceType))),
         log_param("vendor", fmt_text(rend_vk_vendor_str(properties.vendorID))),
         log_param("score", fmt_int(score)));
 
@@ -217,8 +217,8 @@ RendVkDevice* rend_vk_device_create(
 
   log_i(
       "Vulkan device created",
-      log_param("deviceName", fmt_text(string_from_null_term(device->vkProperties.deviceName))),
-      log_param("mainQueueIdx", fmt_int(device->mainQueueIndex)));
+      log_param("device-name", fmt_text(string_from_null_term(device->vkProperties.deviceName))),
+      log_param("main-queue-idx", fmt_int(device->mainQueueIndex)));
 
   return device;
 }

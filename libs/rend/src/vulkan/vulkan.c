@@ -32,8 +32,7 @@ void rend_vk_check(const String api, const VkResult result) {
     return;
   }
   if (result == VK_INCOMPLETE) {
-    log_w(
-        "Vulkan {}: Result truncacted (output buffer too small)", log_param("api", fmt_text(api)));
+    log_w("Vulkan {}: Result incomplete", log_param("api", fmt_text(api)));
     return;
   }
   diag_crash_msg(
