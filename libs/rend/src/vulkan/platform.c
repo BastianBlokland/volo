@@ -4,20 +4,20 @@
 #include "log_logger.h"
 
 #include "alloc_host_internal.h"
-#include "context_internal.h"
 #include "debug_internal.h"
 #include "device_internal.h"
+#include "platform_internal.h"
 #include "vulkan_internal.h"
 
 typedef enum {
-  RendVkContextFlags_None       = 0,
-  RendVkContextFlags_Validation = 1 << 0,
-} RendVkContextFlags;
+  RendVkPlatformFlags_None       = 0,
+  RendVkPlatformFlags_Validation = 1 << 0,
+} RendVkPlatformFlags;
 
-struct sRendVkContext {
+struct sRendVkPlatform {
   VkAllocationCallbacks vkAllocHost;
   VkInstance            vkInstance;
-  RendVkContextFlags    flags;
+  RendVkPlatformFlags   flags;
   RendVkDebug*          debug;
   RendVkDevice*         device;
 };
@@ -52,15 +52,15 @@ static bool rend_vk_layer_supported(const String layer) {
   return false;
 }
 
-static u32 rend_vk_required_layers(const char** output, const RendVkContextFlags flags) {
+static u32 rend_vk_required_layers(const char** output, const RendVkPlatformFlags flags) {
   u32 i = 0;
-  if (flags & RendVkContextFlags_Validation) {
+  if (flags & RendVkPlatformFlags_Validation) {
     output[i++] = g_validationLayer.ptr;
   }
   return i;
 }
 
-static u32 rend_vk_required_extensions(const char** output, const RendVkContextFlags flags) {
+static u32 rend_vk_required_extensions(const char** output, const RendVkPlatformFlags flags) {
   u32 i       = 0;
   output[i++] = VK_KHR_SURFACE_EXTENSION_NAME;
   switch (gap_native_wm()) {
@@ -71,13 +71,13 @@ static u32 rend_vk_required_extensions(const char** output, const RendVkContextF
     output[i++] = "VK_KHR_win32_surface";
     break;
   }
-  if (flags & RendVkContextFlags_Validation) {
+  if (flags & RendVkPlatformFlags_Validation) {
     output[i++] = g_validationExt.ptr;
   }
   return i;
 }
 
-static void rend_vk_instance_create(RendVkContext* ctx) {
+static void rend_vk_instance_create(RendVkPlatform* ctx) {
   VkApplicationInfo appInfo = rend_vk_app_info();
 
   const char* layerNames[16];
@@ -98,19 +98,19 @@ static void rend_vk_instance_create(RendVkContext* ctx) {
   rend_vk_call(vkCreateInstance, &createInfo, &ctx->vkAllocHost, &ctx->vkInstance);
 }
 
-static void rend_vk_instance_destroy(RendVkContext* ctx) {
+static void rend_vk_instance_destroy(RendVkPlatform* ctx) {
   vkDestroyInstance(ctx->vkInstance, &ctx->vkAllocHost);
 }
 
-RendVkContext* rend_vk_context_create() {
-  RendVkContext* ctx = alloc_alloc_t(g_alloc_heap, RendVkContext);
-  *ctx               = (RendVkContext){
+RendVkPlatform* rend_vk_platform_create() {
+  RendVkPlatform* ctx = alloc_alloc_t(g_alloc_heap, RendVkPlatform);
+  *ctx                = (RendVkPlatform){
       .vkAllocHost = rend_vk_alloc_host_create(g_alloc_heap),
   };
 
   const bool validation = rend_vk_layer_supported(g_validationLayer);
   if (validation) {
-    ctx->flags |= RendVkContextFlags_Validation;
+    ctx->flags |= RendVkPlatformFlags_Validation;
   }
   rend_vk_instance_create(ctx);
 
@@ -119,18 +119,18 @@ RendVkContext* rend_vk_context_create() {
   }
   ctx->device = rend_vk_device_create(ctx->vkInstance, &ctx->vkAllocHost, ctx->debug);
 
-  log_i("Vulkan context created", log_param("validation", fmt_bool(validation)));
+  log_i("Vulkan platform created", log_param("validation", fmt_bool(validation)));
   return ctx;
 }
 
-void rend_vk_context_destroy(RendVkContext* ctx) {
+void rend_vk_platform_destroy(RendVkPlatform* ctx) {
   rend_vk_device_destroy(ctx->device);
   if (ctx->debug) {
     rend_vk_debug_destroy(ctx->debug);
   }
   rend_vk_instance_destroy(ctx);
 
-  log_i("Vulkan context destroyed");
+  log_i("Vulkan platform destroyed");
 
   alloc_free_t(g_alloc_heap, ctx);
 }
