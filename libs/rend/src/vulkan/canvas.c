@@ -1,4 +1,6 @@
 #include "core_alloc.h"
+#include "core_array.h"
+#include "core_diag.h"
 #include "gap_native.h"
 #include "log_logger.h"
 
@@ -15,11 +17,12 @@ ASSERT(false, "Unsupported platform");
 #endif
 
 struct sRendVkCanvas {
-  RendVkDevice* device;
-  VkSurfaceKHR  vkSurface;
+  RendVkDevice*      device;
+  VkSurfaceKHR       vkSurface;
+  VkSurfaceFormatKHR vkSurfaceFormat;
 };
 
-static VkSurfaceKHR rend_vk_surface_create(RendVkDevice* device, const GapWindowComp* window) {
+static VkSurfaceKHR rend_vk_surface_create(RendVkDevice* dev, const GapWindowComp* window) {
   VkSurfaceKHR result;
 #if defined(VOLO_LINUX)
   VkXcbSurfaceCreateInfoKHR createInfo = {
@@ -34,22 +37,52 @@ static VkSurfaceKHR rend_vk_surface_create(RendVkDevice* device, const GapWindow
       .hinstance = (HINSTANCE)gap_native_app_handle(window),
       .hwnd      = (HWND)gap_native_window_handle(window),
   };
-  rend_vk_call(
-      vkCreateWin32SurfaceKHR, device->vkInstance, &createInfo, device->vkAllocHost, &result);
+  rend_vk_call(vkCreateWin32SurfaceKHR, dev->vkInstance, &createInfo, dev->vkAllocHost, &result);
 #endif
   return result;
 }
 
-RendVkCanvas* rend_vk_canvas_create(RendVkDevice* device, const GapWindowComp* window) {
+static VkSurfaceFormatKHR rend_vk_pick_surface_format(RendVkDevice* dev, VkSurfaceKHR vkSurface) {
+  VkSurfaceFormatKHR availableFormats[64];
+  u32                availableFormatCount = array_elems(availableFormats);
+  rend_vk_call(
+      vkGetPhysicalDeviceSurfaceFormatsKHR,
+      dev->vkPhysicalDevice,
+      vkSurface,
+      &availableFormatCount,
+      availableFormats);
+
+  if (!availableFormatCount) {
+    diag_crash_msg("No Vulkan surface formats available");
+  }
+
+  // Prefer srgb, so the gpu can itself perform the linear to srgb conversion.
+  for (u32 i = 0; i != availableFormatCount; ++i) {
+    if (availableFormats[i].format == VK_FORMAT_B8G8R8A8_SRGB) {
+      return availableFormats[i];
+    }
+  }
+
+  log_w("No SRGB surface format available");
+  return availableFormats[0];
+}
+
+RendVkCanvas* rend_vk_canvas_create(RendVkDevice* dev, const GapWindowComp* window) {
   const GapVector size = gap_window_param(window, GapParam_WindowSize);
 
-  RendVkCanvas* platform = alloc_alloc_t(g_alloc_heap, RendVkCanvas);
-  *platform              = (RendVkCanvas){
-      .device    = device,
-      .vkSurface = rend_vk_surface_create(device, window),
+  VkSurfaceKHR  vkSurface = rend_vk_surface_create(dev, window);
+  RendVkCanvas* platform  = alloc_alloc_t(g_alloc_heap, RendVkCanvas);
+  *platform               = (RendVkCanvas){
+      .device          = dev,
+      .vkSurface       = vkSurface,
+      .vkSurfaceFormat = rend_vk_pick_surface_format(dev, vkSurface),
   };
 
-  log_i("Vulkan canvas created", log_param("size", gap_vector_fmt(size)));
+  log_i(
+      "Vulkan canvas created",
+      log_param("format", fmt_text(rend_vk_format_info(platform->vkSurfaceFormat.format).name)),
+      log_param("color", fmt_text(rend_vk_colorspace_str(platform->vkSurfaceFormat.colorSpace))),
+      log_param("size", gap_vector_fmt(size)));
   return platform;
 }
 

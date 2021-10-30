@@ -25,4 +25,12 @@ void*  rend_vk_func_load_device_internal(VkDevice, String api);
 void   rend_vk_check(String api, VkResult);
 String rend_vk_result_str(VkResult);
 String rend_vk_devicetype_str(VkPhysicalDeviceType);
-String rend_vk_vendor_str(uint32_t vendorId);
+String rend_vk_vendor_str(u32 vendorId);
+String rend_vk_colorspace_str(VkColorSpaceKHR);
+
+typedef struct {
+  String name;
+  u32    size, channels;
+} RendVkFormatInfo;
+
+RendVkFormatInfo rend_vk_format_info(VkFormat format);
