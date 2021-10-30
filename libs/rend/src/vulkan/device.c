@@ -5,20 +5,6 @@
 
 #include "device_internal.h"
 
-struct sRendVkDevice {
-  RendVkDebug*                     debug;
-  VkInstance                       vkInstance;
-  VkAllocationCallbacks*           vkAllocHost;
-  VkPhysicalDevice                 vkPhysicalDevice;
-  VkPhysicalDeviceProperties       vkProperties;
-  VkPhysicalDeviceFeatures         vkSupportedFeatures;
-  VkPhysicalDeviceMemoryProperties vkMemProperties;
-  VkDevice                         vkDevice;
-  u32                              mainQueueIndex;
-  VkQueue                          vkMainQueue;
-  VkCommandPool                    vkMainCommandPool;
-};
-
 static String g_requiredExts[] = {
     string_static("VK_KHR_swapchain"),
 };

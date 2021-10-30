@@ -160,13 +160,13 @@ void rend_vk_platform_destroy(RendVkPlatform* plat) {
   alloc_free_t(g_alloc_heap, plat);
 }
 
-RendVkCanvasId rend_vk_platform_canvas_create(RendVkPlatform* plat, const GapVector size) {
+RendVkCanvasId rend_vk_platform_canvas_create(RendVkPlatform* plat, const GapWindowComp* window) {
   static i64 nextCanvasId = 0;
 
   RendVkCanvasId id = (RendVkCanvasId)thread_atomic_add_i64(&nextCanvasId, 1);
   *dynarray_push_t(&plat->canvases, RendVkCanvasInfo) = (RendVkCanvasInfo){
       .id     = id,
-      .canvas = rend_vk_canvas_create(size),
+      .canvas = rend_vk_canvas_create(plat->device, window),
   };
   return id;
 }

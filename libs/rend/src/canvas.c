@@ -20,8 +20,7 @@ canvas_update(RendPlatformComp* platform, const GapWindowComp* window, RendCanva
   GapWindowEvents winEvents = gap_window_events(window);
 
   if (canvas->requests & RendCanvasRequests_Create) {
-    const GapVector winSize = gap_window_param(window, GapParam_WindowSize);
-    canvas->id              = rend_vk_platform_canvas_create(platform->vulkan, winSize);
+    canvas->id = rend_vk_platform_canvas_create(platform->vulkan, window);
   }
   if (winEvents & GapWindowEvents_Resized) {
     const GapVector winSize = gap_window_param(window, GapParam_WindowSize);
