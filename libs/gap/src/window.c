@@ -243,4 +243,4 @@ GapNativeWm gap_native_wm() { return gap_pal_native_wm(); }
 
 uptr gap_native_window_handle(const GapWindowComp* comp) { return (uptr)comp->id; }
 
-uptr gap_native_platform_handle(const GapWindowComp* comp) { return comp->nativeAppHandle; }
+uptr gap_native_app_handle(const GapWindowComp* comp) { return comp->nativeAppHandle; }
