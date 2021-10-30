@@ -1,23 +1,35 @@
 #include "ecs_world.h"
+#include "gap_input.h"
 #include "gap_window.h"
 #include "rend_canvas.h"
 
 #include "platform_internal.h"
+#include "vulkan/platform_internal.h"
 
 typedef enum {
   RendCanvasRequests_Create = 1 << 0,
 } RendCanvasRequests;
 
-ecs_comp_define(RendCanvasComp) { RendCanvasRequests requests; };
+ecs_comp_define(RendCanvasComp) {
+  RendVkCanvasId     id;
+  RendCanvasRequests requests;
+};
 
-static void canvas_update(
-    EcsWorld*            world,
-    RendPlatformComp*    platform,
-    const GapWindowComp* window,
-    RendCanvasComp*      canvas) {
-  (void)world;
-  (void)platform;
-  (void)window;
+static void
+canvas_update(RendPlatformComp* platform, const GapWindowComp* window, RendCanvasComp* canvas) {
+  GapWindowEvents winEvents = gap_window_events(window);
+
+  if (canvas->requests & RendCanvasRequests_Create) {
+    const GapVector winSize = gap_window_param(window, GapParam_WindowSize);
+    canvas->id              = rend_vk_platform_canvas_create(platform->vulkan, winSize);
+  }
+  if (winEvents & GapWindowEvents_Resized) {
+    const GapVector winSize = gap_window_param(window, GapParam_WindowSize);
+    rend_vk_platform_canvas_resize(platform->vulkan, canvas->id, winSize);
+  }
+  if (winEvents & GapWindowEvents_Closed) {
+    rend_vk_platform_canvas_destroy(platform->vulkan, canvas->id);
+  }
 
   // All requests have been handled.
   canvas->requests = 0;
@@ -44,10 +56,7 @@ ecs_system_define(RendCanvasUpdateSys) {
   EcsView* canvasView = ecs_world_view_t(world, RendCanvasView);
   for (EcsIterator* itr = ecs_view_itr(canvasView); ecs_view_walk(itr);) {
     canvas_update(
-        world,
-        platform,
-        ecs_view_read_t(itr, GapWindowComp),
-        ecs_view_write_t(itr, RendCanvasComp));
+        platform, ecs_view_read_t(itr, GapWindowComp), ecs_view_write_t(itr, RendCanvasComp));
   }
 }
 

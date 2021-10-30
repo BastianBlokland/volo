@@ -1,9 +1,12 @@
 #include "core_array.h"
+#include "core_diag.h"
 #include "core_path.h"
+#include "core_thread.h"
 #include "gap_native.h"
 #include "log_logger.h"
 
 #include "alloc_host_internal.h"
+#include "canvas_internal.h"
 #include "debug_internal.h"
 #include "device_internal.h"
 #include "platform_internal.h"
@@ -14,12 +17,18 @@ typedef enum {
   RendVkPlatformFlags_Validation = 1 << 0,
 } RendVkPlatformFlags;
 
+typedef struct {
+  RendVkCanvasId id;
+  RendVkCanvas*  canvas;
+} RendVkCanvasInfo;
+
 struct sRendVkPlatform {
   VkAllocationCallbacks vkAllocHost;
   VkInstance            vkInstance;
   RendVkPlatformFlags   flags;
   RendVkDebug*          debug;
   RendVkDevice*         device;
+  DynArray              canvases; // RendVkCanvasInfo[]
 };
 
 #define rend_debug_verbose false
@@ -77,14 +86,14 @@ static u32 rend_vk_required_extensions(const char** output, const RendVkPlatform
   return i;
 }
 
-static void rend_vk_instance_create(RendVkPlatform* ctx) {
+static void rend_vk_instance_create(RendVkPlatform* plat) {
   VkApplicationInfo appInfo = rend_vk_app_info();
 
   const char* layerNames[16];
-  const u32   layerCount = rend_vk_required_layers(layerNames, ctx->flags);
+  const u32   layerCount = rend_vk_required_layers(layerNames, plat->flags);
 
   const char* extensionNames[16];
-  const u32   extensionCount = rend_vk_required_extensions(extensionNames, ctx->flags);
+  const u32   extensionCount = rend_vk_required_extensions(extensionNames, plat->flags);
 
   VkInstanceCreateInfo createInfo = {
       .sType                   = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
@@ -95,42 +104,85 @@ static void rend_vk_instance_create(RendVkPlatform* ctx) {
       .ppEnabledLayerNames     = layerNames,
   };
 
-  rend_vk_call(vkCreateInstance, &createInfo, &ctx->vkAllocHost, &ctx->vkInstance);
+  rend_vk_call(vkCreateInstance, &createInfo, &plat->vkAllocHost, &plat->vkInstance);
 }
 
-static void rend_vk_instance_destroy(RendVkPlatform* ctx) {
-  vkDestroyInstance(ctx->vkInstance, &ctx->vkAllocHost);
+static void rend_vk_instance_destroy(RendVkPlatform* plat) {
+  vkDestroyInstance(plat->vkInstance, &plat->vkAllocHost);
+}
+
+static RendVkCanvas* rend_vk_canvas_lookup(RendVkPlatform* plat, const RendVkCanvasId id) {
+  dynarray_for_t(&plat->canvases, RendVkCanvasInfo, info, {
+    if (info->id == id) {
+      return info->canvas;
+    }
+  });
+  diag_crash_msg("No canvas found with id: {}", fmt_int(id));
 }
 
 RendVkPlatform* rend_vk_platform_create() {
-  RendVkPlatform* ctx = alloc_alloc_t(g_alloc_heap, RendVkPlatform);
-  *ctx                = (RendVkPlatform){
+  RendVkPlatform* plat = alloc_alloc_t(g_alloc_heap, RendVkPlatform);
+  *plat                = (RendVkPlatform){
       .vkAllocHost = rend_vk_alloc_host_create(g_alloc_heap),
+      .canvases    = dynarray_create_t(g_alloc_heap, RendVkCanvasInfo, 4),
   };
 
   const bool validation = rend_vk_layer_supported(g_validationLayer);
   if (validation) {
-    ctx->flags |= RendVkPlatformFlags_Validation;
+    plat->flags |= RendVkPlatformFlags_Validation;
   }
-  rend_vk_instance_create(ctx);
+  rend_vk_instance_create(plat);
 
   if (validation) {
-    ctx->debug = rend_vk_debug_create(ctx->vkInstance, &ctx->vkAllocHost, g_debugFlags);
+    plat->debug = rend_vk_debug_create(plat->vkInstance, &plat->vkAllocHost, g_debugFlags);
   }
-  ctx->device = rend_vk_device_create(ctx->vkInstance, &ctx->vkAllocHost, ctx->debug);
+  plat->device = rend_vk_device_create(plat->vkInstance, &plat->vkAllocHost, plat->debug);
 
   log_i("Vulkan platform created", log_param("validation", fmt_bool(validation)));
-  return ctx;
+  return plat;
 }
 
-void rend_vk_platform_destroy(RendVkPlatform* ctx) {
-  rend_vk_device_destroy(ctx->device);
-  if (ctx->debug) {
-    rend_vk_debug_destroy(ctx->debug);
+void rend_vk_platform_destroy(RendVkPlatform* plat) {
+
+  while (plat->canvases.size) {
+    rend_vk_platform_canvas_destroy(plat, dynarray_at_t(&plat->canvases, 0, RendVkCanvasInfo)->id);
   }
-  rend_vk_instance_destroy(ctx);
+
+  rend_vk_device_destroy(plat->device);
+  if (plat->debug) {
+    rend_vk_debug_destroy(plat->debug);
+  }
+  rend_vk_instance_destroy(plat);
 
   log_i("Vulkan platform destroyed");
 
-  alloc_free_t(g_alloc_heap, ctx);
+  dynarray_destroy(&plat->canvases);
+  alloc_free_t(g_alloc_heap, plat);
+}
+
+RendVkCanvasId rend_vk_platform_canvas_create(RendVkPlatform* plat, const GapVector size) {
+  static i64 nextCanvasId = 0;
+
+  RendVkCanvasId id = (RendVkCanvasId)thread_atomic_add_i64(&nextCanvasId, 1);
+  *dynarray_push_t(&plat->canvases, RendVkCanvasInfo) = (RendVkCanvasInfo){
+      .id     = id,
+      .canvas = rend_vk_canvas_create(size),
+  };
+  return id;
+}
+
+void rend_vk_platform_canvas_destroy(RendVkPlatform* plat, const RendVkCanvasId id) {
+  for (usize i = 0; i != plat->canvases.size; ++i) {
+    RendVkCanvasInfo* canvasInfo = dynarray_at_t(&plat->canvases, i, RendVkCanvasInfo);
+    if (canvasInfo->id == id) {
+      rend_vk_canvas_destroy(canvasInfo->canvas);
+      dynarray_remove_unordered(&plat->canvases, i, 1);
+      break;
+    }
+  }
+}
+
+void rend_vk_platform_canvas_resize(
+    RendVkPlatform* plat, const RendVkCanvasId id, const GapVector size) {
+  rend_vk_canvas_resize(rend_vk_canvas_lookup(plat, id), size);
 }
