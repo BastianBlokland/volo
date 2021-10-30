@@ -16,12 +16,6 @@
 ASSERT(false, "Unsupported platform");
 #endif
 
-struct sRendVkCanvas {
-  RendVkDevice*      device;
-  VkSurfaceKHR       vkSurface;
-  VkSurfaceFormatKHR vkSurfaceFormat;
-};
-
 static VkSurfaceKHR rend_vk_surface_create(RendVkDevice* dev, const GapWindowComp* window) {
   VkSurfaceKHR result;
 #if defined(VOLO_LINUX)
@@ -67,6 +61,19 @@ static VkSurfaceFormatKHR rend_vk_pick_surface_format(RendVkDevice* dev, VkSurfa
   return availableFormats[0];
 }
 
+static VkFormat rend_vk_pick_depth_format(RendVkDevice* dev) {
+  static const VkFormat             desiredFormat = VK_FORMAT_D32_SFLOAT;
+  static const VkFormatFeatureFlags features      = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+
+  VkFormatProperties properties;
+  vkGetPhysicalDeviceFormatProperties(dev->vkPhysicalDevice, desiredFormat, &properties);
+
+  if ((properties.optimalTilingFeatures & features) == features) {
+    return desiredFormat;
+  }
+  diag_crash_msg("No suitable depth-format found");
+}
+
 RendVkCanvas* rend_vk_canvas_create(RendVkDevice* dev, const GapWindowComp* window) {
   const GapVector size = gap_window_param(window, GapParam_WindowSize);
 
@@ -76,12 +83,14 @@ RendVkCanvas* rend_vk_canvas_create(RendVkDevice* dev, const GapWindowComp* wind
       .device          = dev,
       .vkSurface       = vkSurface,
       .vkSurfaceFormat = rend_vk_pick_surface_format(dev, vkSurface),
+      .vkDepthFormat   = rend_vk_pick_depth_format(dev),
   };
 
   log_i(
       "Vulkan canvas created",
       log_param("format", fmt_text(rend_vk_format_info(platform->vkSurfaceFormat.format).name)),
       log_param("color", fmt_text(rend_vk_colorspace_str(platform->vkSurfaceFormat.colorSpace))),
+      log_param("depth", fmt_text(rend_vk_format_info(platform->vkDepthFormat).name)),
       log_param("size", gap_vector_fmt(size)));
   return platform;
 }
