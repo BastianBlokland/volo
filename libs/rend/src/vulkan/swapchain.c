@@ -1,3 +1,4 @@
+#include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
 #include "gap_native.h"
@@ -168,6 +169,7 @@ static bool rend_vk_swapchain_init(RendVkSwapchain* swapchain, const GapVector s
   }
 
   swapchain->flags &= ~RendVkSwapchainFlags_OutOfDate;
+  swapchain->size = size;
   ++swapchain->version;
 
   log_i(
@@ -184,15 +186,15 @@ static bool rend_vk_swapchain_init(RendVkSwapchain* swapchain, const GapVector s
 
 RendVkSwapchain* rend_vk_swapchain_create(RendVkDevice* dev, const GapWindowComp* window) {
   VkSurfaceKHR     vkSurface = rend_vk_surface_create(dev, window);
-  RendVkSwapchain* platform  = alloc_alloc_t(g_alloc_heap, RendVkSwapchain);
-  *platform                  = (RendVkSwapchain){
+  RendVkSwapchain* swapchain = alloc_alloc_t(g_alloc_heap, RendVkSwapchain);
+  *swapchain                 = (RendVkSwapchain){
       .device          = dev,
       .vkSurface       = vkSurface,
       .vkSurfaceFormat = rend_vk_pick_surface_format(dev, vkSurface),
       .vkPresentMode   = rend_vk_pick_presentmode(dev, vkSurface),
       .images          = dynarray_create_t(g_alloc_heap, RendVkImage, 2),
   };
-  return platform;
+  return swapchain;
 }
 
 void rend_vk_swapchain_destroy(RendVkSwapchain* swapchain) {

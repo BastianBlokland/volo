@@ -11,6 +11,7 @@ add_library(volo_rend STATIC
   src/vulkan/device.c
   src/vulkan/image.c
   src/vulkan/platform.c
+  src/vulkan/renderer.c
   src/vulkan/swapchain.c
   src/vulkan/vulkan.c
   src/canvas.c

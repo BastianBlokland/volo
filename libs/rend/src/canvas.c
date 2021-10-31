@@ -1,3 +1,5 @@
+#include "core_thread.h"
+#include "core_time.h"
 #include "ecs_world.h"
 #include "gap_input.h"
 #include "gap_window.h"
@@ -15,23 +17,27 @@ ecs_comp_define(RendCanvasComp) {
   RendCanvasRequests requests;
 };
 
-static void
-canvas_update(RendPlatformComp* platform, const GapWindowComp* window, RendCanvasComp* canvas) {
+static bool
+canvas_render(RendPlatformComp* plat, const GapWindowComp* window, RendCanvasComp* canvas) {
   GapWindowEvents winEvents = gap_window_events(window);
 
   if (canvas->requests & RendCanvasRequests_Create) {
-    canvas->id = rend_vk_platform_canvas_create(platform->vulkan, window);
-  }
-  if (winEvents & GapWindowEvents_Resized) {
-    const GapVector winSize = gap_window_param(window, GapParam_WindowSize);
-    rend_vk_platform_canvas_resize(platform->vulkan, canvas->id, winSize);
+    canvas->id = rend_vk_platform_canvas_create(plat->vulkan, window);
   }
   if (winEvents & GapWindowEvents_Closed) {
-    rend_vk_platform_canvas_destroy(platform->vulkan, canvas->id);
+    rend_vk_platform_canvas_destroy(plat->vulkan, canvas->id);
+    canvas->requests = 0;
+    return false;
   }
 
-  // All requests have been handled.
+  const GapVector winSize = gap_window_param(window, GapParam_WindowSize);
+  const bool      draw    = rend_vk_platform_draw_begin(plat->vulkan, canvas->id, winSize);
+  if (draw) {
+    rend_vk_platform_draw_end(plat->vulkan, canvas->id);
+  }
+
   canvas->requests = 0;
+  return draw;
 }
 
 ecs_view_define(RendPlatformView) { ecs_access_write(RendPlatformComp); };
@@ -53,9 +59,19 @@ ecs_system_define(RendCanvasUpdateSys) {
   }
 
   EcsView* canvasView = ecs_world_view_t(world, RendCanvasView);
+
+  bool anyCanvasRendered = false;
   for (EcsIterator* itr = ecs_view_itr(canvasView); ecs_view_walk(itr);) {
-    canvas_update(
+    anyCanvasRendered |= canvas_render(
         platform, ecs_view_read_t(itr, GapWindowComp), ecs_view_write_t(itr, RendCanvasComp));
+  }
+
+  if (!anyCanvasRendered) {
+    /**
+     * If no canvas was rendered this frame (for example because they are all minimized) we sleep
+     * the thread to avoid wasting cpu cycles.
+     */
+    thread_sleep(time_second / 30);
   }
 }
 

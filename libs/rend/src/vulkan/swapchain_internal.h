@@ -1,6 +1,4 @@
 #pragma once
-#include "core_alloc.h"
-#include "core_types.h"
 #include "gap_window.h"
 
 #include "device_internal.h"
