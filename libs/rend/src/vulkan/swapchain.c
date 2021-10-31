@@ -127,6 +127,7 @@ rend_vk_surface_capabilities(RendVkDevice* dev, VkSurfaceKHR vkSurface) {
 
 static bool rend_vk_swapchain_init(RendVkSwapchain* swapchain, const GapVector size) {
   if (!size.x || !size.y) {
+    swapchain->size = size;
     return false;
   }
 
@@ -159,8 +160,9 @@ static bool rend_vk_swapchain_init(RendVkSwapchain* swapchain, const GapVector s
   rend_vk_call(vkCreateSwapchainKHR, vkDevice, &createInfo, vkAllocHost, &swapchain->vkSwapchain);
   vkDestroySwapchainKHR(vkDevice, oldSwapchain, swapchain->device->vkAllocHost);
 
-  VkImage images[8];
-  u32     imageCount = array_elems(images);
+  u32 imageCount;
+  rend_vk_call(vkGetSwapchainImagesKHR, vkDevice, swapchain->vkSwapchain, &imageCount, null);
+  VkImage images[imageCount];
   rend_vk_call(vkGetSwapchainImagesKHR, vkDevice, swapchain->vkSwapchain, &imageCount, images);
 
   for (u32 i = 0; i != imageCount; ++i) {
