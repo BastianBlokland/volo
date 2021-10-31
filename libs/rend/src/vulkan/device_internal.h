@@ -11,6 +11,7 @@ typedef struct {
   VkPhysicalDeviceFeatures         vkSupportedFeatures;
   VkPhysicalDeviceMemoryProperties vkMemProperties;
   VkDevice                         vkDevice;
+  VkFormat                         vkDepthFormat;
   u32                              mainQueueIndex;
   VkQueue                          vkMainQueue;
   VkCommandPool                    vkMainCommandPool;

@@ -27,6 +27,7 @@ String rend_vk_result_str(VkResult);
 String rend_vk_devicetype_str(VkPhysicalDeviceType);
 String rend_vk_vendor_str(u32 vendorId);
 String rend_vk_colorspace_str(VkColorSpaceKHR);
+String rend_vk_presentmode_str(VkPresentModeKHR);
 
 typedef struct {
   String name;

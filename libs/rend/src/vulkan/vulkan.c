@@ -151,6 +151,24 @@ String rend_vk_colorspace_str(const VkColorSpaceKHR colorSpace) {
 #undef RET_STR
 }
 
+String rend_vk_presentmode_str(const VkPresentModeKHR mode) {
+#define RET_STR(NAME)                                                                              \
+  case VK_PRESENT_MODE_##NAME:                                                                     \
+    return string_lit(#NAME)
+
+  switch (mode) {
+    RET_STR(IMMEDIATE_KHR);
+    RET_STR(MAILBOX_KHR);
+    RET_STR(FIFO_KHR);
+    RET_STR(FIFO_RELAXED_KHR);
+    RET_STR(SHARED_DEMAND_REFRESH_KHR);
+    RET_STR(SHARED_CONTINUOUS_REFRESH_KHR);
+  default:
+    return string_lit("unknown");
+  }
+#undef RET_STR
+}
+
 RendVkFormatInfo rend_vk_format_info(const VkFormat format) {
 #define RET_INFO(NAME, SIZE, CHANNEL_COUNT)                                                        \
   case VK_FORMAT_##NAME:                                                                           \

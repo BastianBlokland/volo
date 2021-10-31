@@ -177,6 +177,19 @@ static void rend_vk_commandpool_init(RendVkDevice* device) {
       &device->vkMainCommandPool);
 }
 
+static VkFormat rend_vk_pick_depthformat(RendVkDevice* device) {
+  static const VkFormat             desiredFormat = VK_FORMAT_D32_SFLOAT;
+  static const VkFormatFeatureFlags features      = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+
+  VkFormatProperties properties;
+  vkGetPhysicalDeviceFormatProperties(device->vkPhysicalDevice, desiredFormat, &properties);
+
+  if ((properties.optimalTilingFeatures & features) == features) {
+    return desiredFormat;
+  }
+  diag_crash_msg("No suitable depth-format found");
+}
+
 RendVkDevice* rend_vk_device_create(
     VkInstance vkInstance, VkAllocationCallbacks* vkAllocHost, RendVkDebug* debug) {
   VkPhysicalDevice vkPhysicalDevice = rend_vk_pick_physical_device(vkInstance);
@@ -195,6 +208,7 @@ RendVkDevice* rend_vk_device_create(
 
   rend_vk_device_init(device);
   rend_vk_commandpool_init(device);
+  device->vkDepthFormat = rend_vk_pick_depthformat(device);
 
   if (debug) {
     dbg_name_queue(device->debug, device->vkDevice, device->vkMainQueue, "main");
@@ -204,7 +218,8 @@ RendVkDevice* rend_vk_device_create(
   log_i(
       "Vulkan device created",
       log_param("device-name", fmt_text(string_from_null_term(device->vkProperties.deviceName))),
-      log_param("main-queue-idx", fmt_int(device->mainQueueIndex)));
+      log_param("main-queue-idx", fmt_int(device->mainQueueIndex)),
+      log_param("depth-format", fmt_text(rend_vk_format_info(device->vkDepthFormat).name)));
 
   return device;
 }
