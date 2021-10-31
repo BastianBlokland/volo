@@ -194,6 +194,17 @@ RendVkSwapchain* rend_vk_swapchain_create(RendVkDevice* dev, const GapWindowComp
       .vkPresentMode   = rend_vk_pick_presentmode(dev, vkSurface),
       .images          = dynarray_create_t(g_alloc_heap, RendVkImage, 2),
   };
+
+  VkBool32 presentationSupported;
+  rend_vk_call(
+      vkGetPhysicalDeviceSurfaceSupportKHR,
+      dev->vkPhysicalDevice,
+      dev->mainQueueIndex,
+      vkSurface,
+      &presentationSupported);
+  if (!presentationSupported) {
+    diag_crash_msg("Vulkan device does not support presenting to the given surface");
+  }
   return swapchain;
 }
 
