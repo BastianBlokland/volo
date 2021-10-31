@@ -145,8 +145,8 @@ static bool rend_vk_swapchain_init(RendVkSwapchain* swapchain, const GapVector s
       .minImageCount      = rend_vk_pick_imagecount(&vkCapabilities),
       .imageFormat        = swapchain->vkSurfaceFormat.format,
       .imageColorSpace    = swapchain->vkSurfaceFormat.colorSpace,
-      .imageExtent.width  = size.x,
-      .imageExtent.height = size.y,
+      .imageExtent.width  = (u32)size.x,
+      .imageExtent.height = (u32)size.y,
       .imageArrayLayers   = 1,
       .imageUsage         = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
       .imageSharingMode   = VK_SHARING_MODE_EXCLUSIVE,
@@ -209,6 +209,10 @@ void rend_vk_swapchain_destroy(RendVkSwapchain* swapchain) {
   vkDestroySurfaceKHR(
       swapchain->device->vkInstance, swapchain->vkSurface, swapchain->device->vkAllocHost);
   alloc_free_t(g_alloc_heap, swapchain);
+}
+
+VkFormat rend_vk_swapchain_format(const RendVkSwapchain* swapchain) {
+  return swapchain->vkSurfaceFormat.format;
 }
 
 u64 rend_vk_swapchain_version(const RendVkSwapchain* swapchain) { return swapchain->version; }

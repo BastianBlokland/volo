@@ -13,6 +13,7 @@ RendVkCanvas* rend_vk_canvas_create(RendVkDevice* dev, const GapWindowComp* wind
   *canvas                    = (RendVkCanvas){
       .device       = dev,
       .swapchain    = swapchain,
+      .technique    = rend_vk_technique_create(dev, swapchain),
       .renderers[0] = rend_vk_renderer_create(dev, swapchain),
       .renderers[1] = rend_vk_renderer_create(dev, swapchain),
   };
@@ -25,6 +26,7 @@ void rend_vk_canvas_destroy(RendVkCanvas* canvas) {
 
   array_for_t(canvas->renderers, RendVkRenderer*, rend, { rend_vk_renderer_destroy(*rend); });
 
+  rend_vk_technique_destroy(canvas->technique);
   rend_vk_swapchain_destroy(canvas->swapchain);
 
   alloc_free_t(g_alloc_heap, canvas);
@@ -39,14 +41,14 @@ bool rend_vk_canvas_draw_begin(RendVkCanvas* canvas, const GapVector size) {
     return false;
   }
 
-  rend_vk_renderer_draw_begin(renderer, canvas->curSwapchainIdx);
+  rend_vk_renderer_draw_begin(renderer, canvas->technique, canvas->curSwapchainIdx);
   return true;
 }
 
 void rend_vk_canvas_draw_end(RendVkCanvas* canvas) {
   RendVkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
 
-  rend_vk_renderer_draw_end(renderer);
+  rend_vk_renderer_draw_end(renderer, canvas->technique);
 
   rend_vk_swapchain_present(
       canvas->swapchain, rend_vk_renderer_image_ready(renderer), canvas->curSwapchainIdx);

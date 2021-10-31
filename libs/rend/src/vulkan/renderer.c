@@ -28,11 +28,6 @@ static VkFence rend_vk_fence_create(RendVkDevice* dev, const bool initialState) 
   return result;
 }
 
-static void rend_vk_renderer_wait_for_done(const RendVkRenderer* renderer) {
-  rend_vk_call(
-      vkWaitForFences, renderer->device->vkDevice, 1, &renderer->renderDone, true, u64_max);
-}
-
 static VkCommandBuffer rend_vk_commandbuffer_create(RendVkDevice* dev) {
   VkCommandBufferAllocateInfo allocInfo = {
       .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -87,8 +82,8 @@ static void rend_vk_viewport_set(VkCommandBuffer vkCommandBuffer, const GapVecto
 static void rend_vk_scissor_set(VkCommandBuffer vkCommandBuffer, const GapVector size) {
   VkRect2D scissor = {
       .offset        = {0, 0},
-      .extent.width  = size.x,
-      .extent.height = size.y,
+      .extent.width  = (u32)size.x,
+      .extent.height = (u32)size.y,
   };
   vkCmdSetScissor(vkCommandBuffer, 0, 1, &scissor);
 }
@@ -124,18 +119,27 @@ VkSemaphore rend_vk_renderer_image_available(RendVkRenderer* renderer) {
 
 VkSemaphore rend_vk_renderer_image_ready(RendVkRenderer* renderer) { return renderer->imageReady; }
 
-void rend_vk_renderer_draw_begin(RendVkRenderer* renderer, const RendSwapchainIdx swapchainIdx) {
+void rend_vk_renderer_wait_for_done(const RendVkRenderer* renderer) {
+  rend_vk_call(
+      vkWaitForFences, renderer->device->vkDevice, 1, &renderer->renderDone, true, u64_max);
+}
+
+void rend_vk_renderer_draw_begin(
+    RendVkRenderer* renderer, RendVkTechnique* technique, const RendSwapchainIdx swapchainIdx) {
 
   rend_vk_renderer_wait_for_done(renderer);
   rend_vk_commandbuffer_begin(renderer->vkDrawBuffer);
+
+  rend_vk_technique_begin(technique, renderer->vkDrawBuffer, swapchainIdx);
 
   RendVkImage* targetImage = rend_vk_swapchain_image(renderer->swapchain, swapchainIdx);
   rend_vk_viewport_set(renderer->vkDrawBuffer, targetImage->size);
   rend_vk_scissor_set(renderer->vkDrawBuffer, targetImage->size);
 }
 
-void rend_vk_renderer_draw_end(RendVkRenderer* renderer) {
+void rend_vk_renderer_draw_end(RendVkRenderer* renderer, RendVkTechnique* technique) {
 
+  rend_vk_technique_end(technique, renderer->vkDrawBuffer);
   rend_vk_commandbuffer_end(renderer->vkDrawBuffer);
 
   rend_vk_call(vkResetFences, renderer->device->vkDevice, 1, &renderer->renderDone);

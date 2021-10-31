@@ -10,6 +10,7 @@ typedef struct sRendVkSwapchain RendVkSwapchain;
 
 RendVkSwapchain* rend_vk_swapchain_create(RendVkDevice*, const GapWindowComp*);
 void             rend_vk_swapchain_destroy(RendVkSwapchain*);
+VkFormat         rend_vk_swapchain_format(const RendVkSwapchain*);
 u64              rend_vk_swapchain_version(const RendVkSwapchain*);
 u32              rend_vk_swapchain_imagecount(const RendVkSwapchain*);
 RendVkImage*     rend_vk_swapchain_image(const RendVkSwapchain*, RendSwapchainIdx);

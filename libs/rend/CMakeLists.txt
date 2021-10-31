@@ -13,6 +13,7 @@ add_library(volo_rend STATIC
   src/vulkan/platform.c
   src/vulkan/renderer.c
   src/vulkan/swapchain.c
+  src/vulkan/technique.c
   src/vulkan/vulkan.c
   src/canvas.c
   src/platform.c
