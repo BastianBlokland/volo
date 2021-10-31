@@ -7,10 +7,14 @@
 #include "canvas_internal.h"
 
 #if defined(VOLO_LINUX)
-#include <vulkan/vulkan_xcb.h>
 #include <xcb/xcb.h>
 #elif defined(VOLO_WIN32)
 #include <Windows.h>
+#endif
+
+#if defined(VOLO_LINUX)
+#include <vulkan/vulkan_xcb.h>
+#elif defined(VOLO_WIN32)
 #include <vulkan/vulkan_win32.h>
 #else
 ASSERT(false, "Unsupported platform");
@@ -24,7 +28,7 @@ static VkSurfaceKHR rend_vk_surface_create(RendVkDevice* dev, const GapWindowCom
       .connection = (xcb_connection_t*)gap_native_app_handle(window),
       .window     = (xcb_window_t)gap_native_window_handle(window),
   };
-  rend_vk_call(vkCreateXcbSurfaceKHR, vkInstance, &createInfo, vkAllocHost, &result);
+  rend_vk_call(vkCreateXcbSurfaceKHR, dev->vkInstance, &createInfo, dev->vkAllocHost, &result);
 #elif defined(VOLO_WIN32)
   VkWin32SurfaceCreateInfoKHR createInfo = {
       .sType     = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
