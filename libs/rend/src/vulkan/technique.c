@@ -126,7 +126,8 @@ void rend_vk_technique_destroy(RendVkTechnique* technique) {
 void rend_vk_technique_begin(
     RendVkTechnique*       technique,
     VkCommandBuffer        vkCommandBuffer,
-    const RendSwapchainIdx swapchainIdx) {
+    const RendSwapchainIdx swapchainIdx,
+    const RendColor        clearColor) {
 
   if (technique->swapchainVersion != rend_vk_swapchain_version(technique->swapchain)) {
     rend_vk_resource_init(technique);
@@ -135,7 +136,7 @@ void rend_vk_technique_begin(
   RendVkImage* swapchainImage = rend_vk_swapchain_image(technique->swapchain, swapchainIdx);
 
   VkClearValue clearValues[] = {
-      (VkClearColorValue){.float32 = {0.188f, 0.039f, 0.141f, 1.0f}},
+      *(VkClearColorValue*)&clearColor,
   };
   VkRenderPassBeginInfo renderPassInfo = {
       .sType             = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,

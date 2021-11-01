@@ -16,6 +16,7 @@ add_library(volo_rend STATIC
   src/vulkan/technique.c
   src/vulkan/vulkan.c
   src/canvas.c
+  src/color.c
   src/platform.c
   src/register.c)
 target_include_directories(volo_rend PUBLIC include)

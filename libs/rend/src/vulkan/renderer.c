@@ -125,12 +125,15 @@ void rend_vk_renderer_wait_for_done(const RendVkRenderer* renderer) {
 }
 
 void rend_vk_renderer_draw_begin(
-    RendVkRenderer* renderer, RendVkTechnique* technique, const RendSwapchainIdx swapchainIdx) {
+    RendVkRenderer*        renderer,
+    RendVkTechnique*       technique,
+    const RendSwapchainIdx swapchainIdx,
+    const RendColor        clearColor) {
 
   rend_vk_renderer_wait_for_done(renderer);
   rend_vk_commandbuffer_begin(renderer->vkDrawBuffer);
 
-  rend_vk_technique_begin(technique, renderer->vkDrawBuffer, swapchainIdx);
+  rend_vk_technique_begin(technique, renderer->vkDrawBuffer, swapchainIdx, clearColor);
 
   RendVkImage* targetImage = rend_vk_swapchain_image(renderer->swapchain, swapchainIdx);
   rend_vk_viewport_set(renderer->vkDrawBuffer, targetImage->size);

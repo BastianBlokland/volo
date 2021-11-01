@@ -1,4 +1,6 @@
 #pragma once
+#include "rend_color.h"
+
 #include "vulkan_internal.h"
 
 typedef enum {
@@ -11,7 +13,7 @@ typedef struct sRendVkDebug RendVkDebug;
 RendVkDebug* rend_vk_debug_create(VkInstance, VkAllocationCallbacks*, RendVkDebugFlags);
 void         rend_vk_debug_destroy(RendVkDebug*);
 void         rend_vk_debug_name(RendVkDebug*, VkDevice, VkObjectType, u64 vkHandle, String name);
-void         rend_vk_debug_label_begin(RendVkDebug*, VkCommandBuffer, String name);
+void         rend_vk_debug_label_begin(RendVkDebug*, VkCommandBuffer, String name, RendColor);
 void         rend_vk_debug_label_end(RendVkDebug*, VkCommandBuffer);
 
 #define dbg_name_queue(_DBG_, _DEV_, _OBJ_, _NAME_)                                                \

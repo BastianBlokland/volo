@@ -183,8 +183,11 @@ void rend_vk_platform_canvas_destroy(RendVkPlatform* plat, const RendVkCanvasId 
 }
 
 bool rend_vk_platform_draw_begin(
-    RendVkPlatform* plat, const RendVkCanvasId id, const GapVector size) {
-  return rend_vk_canvas_draw_begin(rend_vk_canvas_lookup(plat, id), size);
+    RendVkPlatform*      plat,
+    const RendVkCanvasId id,
+    const GapVector      size,
+    const RendColor      clearColor) {
+  return rend_vk_canvas_draw_begin(rend_vk_canvas_lookup(plat, id), size, clearColor);
 }
 
 void rend_vk_platform_draw_end(RendVkPlatform* plat, const RendVkCanvasId id) {

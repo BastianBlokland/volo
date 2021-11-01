@@ -140,11 +140,12 @@ void rend_vk_debug_name(
   rend_vk_check(string_lit("vkSetDebugUtilsObjectNameEXT"), result);
 }
 
-void rend_vk_debug_label_begin(RendVkDebug* debug, VkCommandBuffer vkCmdBuffer, const String name) {
+void rend_vk_debug_label_begin(
+    RendVkDebug* debug, VkCommandBuffer vkCmdBuffer, const String name, const RendColor color) {
   VkDebugUtilsLabelEXT label = {
       .sType      = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
       .pLabelName = rend_to_null_term_scratch(name),
-      .color      = {0.0f, 1.0f, 0.0f, 1.0f}, // TODO: Support overriding the color.
+      .color      = {color.r, color.g, color.b, color.a},
   };
   debug->vkLabelBeginFunc(vkCmdBuffer, &label);
 }

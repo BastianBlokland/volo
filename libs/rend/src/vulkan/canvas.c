@@ -32,7 +32,8 @@ void rend_vk_canvas_destroy(RendVkCanvas* canvas) {
   alloc_free_t(g_alloc_heap, canvas);
 }
 
-bool rend_vk_canvas_draw_begin(RendVkCanvas* canvas, const GapVector size) {
+bool rend_vk_canvas_draw_begin(
+    RendVkCanvas* canvas, const GapVector size, const RendColor clearColor) {
   RendVkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
 
   canvas->curSwapchainIdx = rend_vk_swapchain_acquire(
@@ -41,7 +42,7 @@ bool rend_vk_canvas_draw_begin(RendVkCanvas* canvas, const GapVector size) {
     return false;
   }
 
-  rend_vk_renderer_draw_begin(renderer, canvas->technique, canvas->curSwapchainIdx);
+  rend_vk_renderer_draw_begin(renderer, canvas->technique, canvas->curSwapchainIdx, clearColor);
   return true;
 }
 

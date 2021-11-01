@@ -1,5 +1,6 @@
 #pragma once
 #include "core_alloc.h"
+#include "rend_color.h"
 
 #include "device_internal.h"
 #include "renderer_internal.h"
@@ -17,5 +18,5 @@ typedef struct {
 
 RendVkCanvas* rend_vk_canvas_create(RendVkDevice*, const GapWindowComp*);
 void          rend_vk_canvas_destroy(RendVkCanvas*);
-bool          rend_vk_canvas_draw_begin(RendVkCanvas*, GapVector size);
+bool          rend_vk_canvas_draw_begin(RendVkCanvas*, GapVector size, RendColor clearColor);
 void          rend_vk_canvas_draw_end(RendVkCanvas*);

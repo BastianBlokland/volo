@@ -15,6 +15,7 @@ typedef enum {
 ecs_comp_define(RendCanvasComp) {
   RendVkCanvasId     id;
   RendCanvasRequests requests;
+  RendColor          clearColor;
 };
 
 static bool
@@ -31,7 +32,8 @@ canvas_render(RendPlatformComp* plat, const GapWindowComp* window, RendCanvasCom
   }
 
   const GapVector winSize = gap_window_param(window, GapParam_WindowSize);
-  const bool      draw    = rend_vk_platform_draw_begin(plat->vulkan, canvas->id, winSize);
+  const bool      draw =
+      rend_vk_platform_draw_begin(plat->vulkan, canvas->id, winSize, canvas->clearColor);
   if (draw) {
     rend_vk_platform_draw_end(plat->vulkan, canvas->id);
   }
@@ -85,6 +87,12 @@ ecs_module_init(rend_canvas_module) {
       RendCanvasUpdateSys, ecs_view_id(RendPlatformView), ecs_view_id(RendCanvasView));
 }
 
-void rend_canvas_create(EcsWorld* world, EcsEntityId windowEntity) {
-  ecs_world_add_t(world, windowEntity, RendCanvasComp, .requests = RendCanvasRequests_Create);
+void rend_canvas_create(
+    EcsWorld* world, const EcsEntityId windowEntity, const RendColor clearColor) {
+  ecs_world_add_t(
+      world,
+      windowEntity,
+      RendCanvasComp,
+      .requests   = RendCanvasRequests_Create,
+      .clearColor = clearColor);
 }
