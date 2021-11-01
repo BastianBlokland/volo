@@ -31,9 +31,10 @@ canvas_render(RendPlatformComp* plat, const GapWindowComp* window, RendCanvasCom
     return false;
   }
 
-  const GapVector winSize = gap_window_param(window, GapParam_WindowSize);
+  const GapVector winSize  = gap_window_param(window, GapParam_WindowSize);
+  const RendSize  rendSize = rend_size((u32)winSize.width, (u32)winSize.height);
   const bool      draw =
-      rend_vk_platform_draw_begin(plat->vulkan, canvas->id, winSize, canvas->clearColor);
+      rend_vk_platform_draw_begin(plat->vulkan, canvas->id, rendSize, canvas->clearColor);
   if (draw) {
     rend_vk_platform_draw_end(plat->vulkan, canvas->id);
   }

@@ -40,7 +40,7 @@ static VkImageView rend_vk_imageview_create(
 }
 
 RendVkImage rend_vk_image_create_swapchain(
-    RendVkDevice* dev, VkImage vkImage, VkFormat vkFormat, const GapVector size) {
+    RendVkDevice* dev, VkImage vkImage, VkFormat vkFormat, const RendSize size) {
 
   const RendVkImageType    type      = RendVkImageType_Swapchain;
   const VkImageAspectFlags vkAspect  = rend_vk_image_aspect(type);

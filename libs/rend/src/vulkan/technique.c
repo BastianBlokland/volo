@@ -70,8 +70,8 @@ rend_vk_framebuffer_create(RendVkTechnique* technique, const RendSwapchainIdx sw
       .renderPass      = technique->vkRenderPass,
       .attachmentCount = 1,
       .pAttachments    = &swapchainImage->vkImageView,
-      .width           = swapchainImage->size.x,
-      .height          = swapchainImage->size.y,
+      .width           = swapchainImage->size.width,
+      .height          = swapchainImage->size.height,
       .layers          = 1,
   };
   VkFramebuffer result;
@@ -143,8 +143,8 @@ void rend_vk_technique_begin(
       .renderPass        = technique->vkRenderPass,
       .framebuffer       = *dynarray_at_t(&technique->frameBuffers, swapchainIdx, VkFramebuffer),
       .renderArea.offset = {0, 0},
-      .renderArea.extent.width  = (u32)swapchainImage->size.x,
-      .renderArea.extent.height = (u32)swapchainImage->size.y,
+      .renderArea.extent.width  = swapchainImage->size.width,
+      .renderArea.extent.height = swapchainImage->size.height,
       .clearValueCount          = array_elems(clearValues),
       .pClearValues             = clearValues,
   };

@@ -31,7 +31,7 @@ struct sRendVkSwapchain {
   VkSwapchainKHR       vkSwapchain;
   VkPresentModeKHR     vkPresentMode;
   RendVkSwapchainFlags flags;
-  GapVector            size;
+  RendSize             size;
   DynArray             images; // RendVkImage[]
   u64                  version;
 };
@@ -125,8 +125,8 @@ rend_vk_surface_capabilities(RendVkDevice* dev, VkSurfaceKHR vkSurface) {
   return result;
 }
 
-static bool rend_vk_swapchain_init(RendVkSwapchain* swapchain, const GapVector size) {
-  if (!size.x || !size.y) {
+static bool rend_vk_swapchain_init(RendVkSwapchain* swapchain, const RendSize size) {
+  if (!size.width || !size.height) {
     swapchain->size = size;
     return false;
   }
@@ -146,8 +146,8 @@ static bool rend_vk_swapchain_init(RendVkSwapchain* swapchain, const GapVector s
       .minImageCount      = rend_vk_pick_imagecount(&vkCapabilities),
       .imageFormat        = swapchain->vkSurfaceFormat.format,
       .imageColorSpace    = swapchain->vkSurfaceFormat.colorSpace,
-      .imageExtent.width  = (u32)size.x,
-      .imageExtent.height = (u32)size.y,
+      .imageExtent.width  = size.width,
+      .imageExtent.height = size.height,
       .imageArrayLayers   = 1,
       .imageUsage         = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
       .imageSharingMode   = VK_SHARING_MODE_EXCLUSIVE,
@@ -176,7 +176,7 @@ static bool rend_vk_swapchain_init(RendVkSwapchain* swapchain, const GapVector s
 
   log_i(
       "Vulkan swapchain created",
-      log_param("size", gap_vector_fmt(size)),
+      log_param("size", rend_size_fmt(size)),
       log_param("format", fmt_text(rend_vk_format_info(swapchain->vkSurfaceFormat.format).name)),
       log_param("color", fmt_text(rend_vk_colorspace_str(swapchain->vkSurfaceFormat.colorSpace))),
       log_param("present-mode", fmt_text(rend_vk_presentmode_str(swapchain->vkPresentMode))),
@@ -240,10 +240,10 @@ RendVkImage* rend_vk_swapchain_image(const RendVkSwapchain* swapchain, const Ren
 }
 
 RendSwapchainIdx
-rend_vk_swapchain_acquire(RendVkSwapchain* swapchain, VkSemaphore available, const GapVector size) {
+rend_vk_swapchain_acquire(RendVkSwapchain* swapchain, VkSemaphore available, const RendSize size) {
 
   const bool outOfDate = (swapchain->flags & RendVkSwapchainFlags_OutOfDate) != 0;
-  if (!swapchain->vkSwapchain || outOfDate || !gap_vector_equal(size, swapchain->size)) {
+  if (!swapchain->vkSwapchain || outOfDate || !rend_size_equal(size, swapchain->size)) {
     /**
      * Synchronize swapchain (re)creation by waiting for all rendering to be done. This a very
      * course way of synchronizing and causes stalls when resizing the window. In the future we can
@@ -257,7 +257,7 @@ rend_vk_swapchain_acquire(RendVkSwapchain* swapchain, VkSemaphore available, con
     }
   }
 
-  if (!swapchain->size.x || !swapchain->size.y) {
+  if (!swapchain->size.width || !swapchain->size.height) {
     return sentinel_u32;
   }
 

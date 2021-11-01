@@ -33,7 +33,7 @@ void rend_vk_canvas_destroy(RendVkCanvas* canvas) {
 }
 
 bool rend_vk_canvas_draw_begin(
-    RendVkCanvas* canvas, const GapVector size, const RendColor clearColor) {
+    RendVkCanvas* canvas, const RendSize size, const RendColor clearColor) {
   RendVkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
 
   canvas->curSwapchainIdx = rend_vk_swapchain_acquire(

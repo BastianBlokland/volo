@@ -1,5 +1,5 @@
 #pragma once
-#include "gap_vector.h"
+#include "rend_size.h"
 
 #include "device_internal.h"
 #include "vulkan_internal.h"
@@ -16,13 +16,13 @@ typedef enum {
 typedef struct {
   RendVkDevice*   device;
   RendVkImageType type;
-  GapVector       size;
+  RendSize        size;
   u32             mipLevels;
   VkFormat        vkFormat;
   VkImage         vkImage;
   VkImageView     vkImageView;
 } RendVkImage;
 
-RendVkImage rend_vk_image_create_swapchain(RendVkDevice*, VkImage, VkFormat, GapVector size);
+RendVkImage rend_vk_image_create_swapchain(RendVkDevice*, VkImage, VkFormat, RendSize size);
 void        rend_vk_image_destroy(RendVkImage*);
 String      rend_vk_image_type_str(RendVkImageType);

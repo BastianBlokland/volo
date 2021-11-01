@@ -1,5 +1,5 @@
 #include "core_alloc.h"
-#include "gap_vector.h"
+#include "rend_size.h"
 
 #include "renderer_internal.h"
 
@@ -67,23 +67,23 @@ static void rend_vk_renderer_submit(RendVkRenderer* renderer) {
   rend_vk_call(vkQueueSubmit, renderer->device->vkMainQueue, 1, &submitInfo, renderer->renderDone);
 }
 
-static void rend_vk_viewport_set(VkCommandBuffer vkCommandBuffer, const GapVector size) {
+static void rend_vk_viewport_set(VkCommandBuffer vkCommandBuffer, const RendSize size) {
   VkViewport viewport = {
       .x        = 0.0f,
       .y        = 0.0f,
-      .width    = (float)size.x,
-      .height   = (float)size.y,
+      .width    = (float)size.width,
+      .height   = (float)size.height,
       .minDepth = 0.0f,
       .maxDepth = 1.0f,
   };
   vkCmdSetViewport(vkCommandBuffer, 0, 1, &viewport);
 }
 
-static void rend_vk_scissor_set(VkCommandBuffer vkCommandBuffer, const GapVector size) {
+static void rend_vk_scissor_set(VkCommandBuffer vkCommandBuffer, const RendSize size) {
   VkRect2D scissor = {
       .offset        = {0, 0},
-      .extent.width  = (u32)size.x,
-      .extent.height = (u32)size.y,
+      .extent.width  = size.width,
+      .extent.height = size.height,
   };
   vkCmdSetScissor(vkCommandBuffer, 0, 1, &scissor);
 }

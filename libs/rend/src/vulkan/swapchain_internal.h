@@ -20,7 +20,7 @@ RendVkImage*     rend_vk_swapchain_image(const RendVkSwapchain*, RendSwapchainId
  * The provided semaphore will be signaled when the image is available.
  * NOTE: Returns sentinel_u32 on failure (for example because the window was minimized).
  */
-RendSwapchainIdx rend_vk_swapchain_acquire(RendVkSwapchain*, VkSemaphore, GapVector size);
+RendSwapchainIdx rend_vk_swapchain_acquire(RendVkSwapchain*, VkSemaphore, RendSize);
 
 /**
  * Present an image to the surface.
