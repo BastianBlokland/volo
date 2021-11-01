@@ -35,7 +35,7 @@ static VkImageView rend_vk_imageview_create(
       .subresourceRange.layerCount     = 1,
   };
   VkImageView result;
-  rend_vk_call(vkCreateImageView, dev->vkDevice, &createInfo, dev->vkAllocHost, &result);
+  rend_vk_call(vkCreateImageView, dev->vkDevice, &createInfo, &dev->vkAllocHost, &result);
   return result;
 }
 
@@ -60,9 +60,9 @@ RendVkImage rend_vk_image_create_swapchain(
 
 void rend_vk_image_destroy(RendVkImage* img) {
   if (img->type != RendVkImageType_Swapchain) {
-    vkDestroyImage(img->device->vkDevice, img->vkImage, img->device->vkAllocHost);
+    vkDestroyImage(img->device->vkDevice, img->vkImage, &img->device->vkAllocHost);
   }
-  vkDestroyImageView(img->device->vkDevice, img->vkImageView, img->device->vkAllocHost);
+  vkDestroyImageView(img->device->vkDevice, img->vkImageView, &img->device->vkAllocHost);
 }
 
 String rend_vk_image_type_str(const RendVkImageType type) {

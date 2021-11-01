@@ -7,6 +7,7 @@ struct sRendVkDebug {
   RendVkDebugFlags                 flags;
   Logger*                          logger;
   VkInstance                       vkInstance;
+  VkDevice                         vkDevice;
   VkAllocationCallbacks*           vkAllocHost;
   VkDebugUtilsMessengerEXT         vkMessenger;
   PFN_vkSetDebugUtilsObjectNameEXT vkObjectNameFunc;
@@ -101,13 +102,17 @@ static void rend_vk_messenger_destroy(RendVkDebug* dbg) {
 }
 
 RendVkDebug* rend_vk_debug_create(
-    VkInstance vkInstance, VkAllocationCallbacks* vkAllocHost, const RendVkDebugFlags flags) {
+    VkInstance             vkInstance,
+    VkDevice               vkDevice,
+    VkAllocationCallbacks* vkAllocHost,
+    const RendVkDebugFlags flags) {
 
   RendVkDebug* debug = alloc_alloc_t(g_alloc_heap, RendVkDebug);
   *debug             = (RendVkDebug){
       .flags            = flags,
       .logger           = g_logger,
       .vkInstance       = vkInstance,
+      .vkDevice         = vkDevice,
       .vkAllocHost      = vkAllocHost,
       .vkObjectNameFunc = rend_vk_func_load_instance(vkInstance, vkSetDebugUtilsObjectNameEXT),
       .vkLabelBeginFunc = rend_vk_func_load_instance(vkInstance, vkCmdBeginDebugUtilsLabelEXT),
@@ -124,11 +129,7 @@ void rend_vk_debug_destroy(RendVkDebug* debug) {
 }
 
 void rend_vk_debug_name(
-    RendVkDebug*       debug,
-    VkDevice           vkDevice,
-    const VkObjectType vkType,
-    const u64          vkHandle,
-    const String       name) {
+    RendVkDebug* debug, const VkObjectType vkType, const u64 vkHandle, const String name) {
 
   VkDebugUtilsObjectNameInfoEXT nameInfo = {
       .sType        = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
@@ -136,12 +137,13 @@ void rend_vk_debug_name(
       .objectHandle = vkHandle,
       .pObjectName  = rend_to_null_term_scratch(name),
   };
-  const VkResult result = debug->vkObjectNameFunc(vkDevice, &nameInfo);
+  const VkResult result = debug->vkObjectNameFunc(debug->vkDevice, &nameInfo);
   rend_vk_check(string_lit("vkSetDebugUtilsObjectNameEXT"), result);
 }
 
 void rend_vk_debug_label_begin(
     RendVkDebug* debug, VkCommandBuffer vkCmdBuffer, const String name, const RendColor color) {
+
   VkDebugUtilsLabelEXT label = {
       .sType      = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
       .pLabelName = rend_to_null_term_scratch(name),

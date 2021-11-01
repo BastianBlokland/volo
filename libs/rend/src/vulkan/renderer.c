@@ -14,7 +14,7 @@ struct sRendVkRenderer {
 static VkSemaphore rend_vk_semaphore_create(RendVkDevice* dev) {
   VkSemaphoreCreateInfo semaphoreInfo = {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
   VkSemaphore           result;
-  rend_vk_call(vkCreateSemaphore, dev->vkDevice, &semaphoreInfo, dev->vkAllocHost, &result);
+  rend_vk_call(vkCreateSemaphore, dev->vkDevice, &semaphoreInfo, &dev->vkAllocHost, &result);
   return result;
 }
 
@@ -24,7 +24,7 @@ static VkFence rend_vk_fence_create(RendVkDevice* dev, const bool initialState) 
       .flags = initialState ? VK_FENCE_CREATE_SIGNALED_BIT : 0,
   };
   VkFence result;
-  rend_vk_call(vkCreateFence, dev->vkDevice, &fenceInfo, dev->vkAllocHost, &result);
+  rend_vk_call(vkCreateFence, dev->vkDevice, &fenceInfo, &dev->vkAllocHost, &result);
   return result;
 }
 
@@ -105,10 +105,10 @@ void rend_vk_renderer_destroy(RendVkRenderer* renderer) {
   vkFreeCommandBuffers(
       renderer->device->vkDevice, renderer->device->vkMainCommandPool, 1, &renderer->vkDrawBuffer);
   vkDestroySemaphore(
-      renderer->device->vkDevice, renderer->imageAvailable, renderer->device->vkAllocHost);
+      renderer->device->vkDevice, renderer->imageAvailable, &renderer->device->vkAllocHost);
   vkDestroySemaphore(
-      renderer->device->vkDevice, renderer->imageReady, renderer->device->vkAllocHost);
-  vkDestroyFence(renderer->device->vkDevice, renderer->renderDone, renderer->device->vkAllocHost);
+      renderer->device->vkDevice, renderer->imageReady, &renderer->device->vkAllocHost);
+  vkDestroyFence(renderer->device->vkDevice, renderer->renderDone, &renderer->device->vkAllocHost);
 
   alloc_free_t(g_alloc_heap, renderer);
 }

@@ -57,7 +57,7 @@ static VkRenderPass rend_vk_renderpass_create(RendVkDevice* dev, RendVkSwapchain
       .pDependencies   = &dependency,
   };
   VkRenderPass result;
-  rend_vk_call(vkCreateRenderPass, dev->vkDevice, &renderPassInfo, dev->vkAllocHost, &result);
+  rend_vk_call(vkCreateRenderPass, dev->vkDevice, &renderPassInfo, &dev->vkAllocHost, &result);
   return result;
 }
 
@@ -79,7 +79,7 @@ rend_vk_framebuffer_create(RendVkTechnique* technique, const RendSwapchainIdx sw
       vkCreateFramebuffer,
       technique->device->vkDevice,
       &framebufferInfo,
-      technique->device->vkAllocHost,
+      &technique->device->vkAllocHost,
       &result);
   return result;
 }
@@ -87,7 +87,7 @@ rend_vk_framebuffer_create(RendVkTechnique* technique, const RendSwapchainIdx sw
 static void rend_vk_resource_init(RendVkTechnique* technique) {
 
   dynarray_for_t(&technique->frameBuffers, VkFramebuffer, fb, {
-    vkDestroyFramebuffer(technique->device->vkDevice, *fb, technique->device->vkAllocHost);
+    vkDestroyFramebuffer(technique->device->vkDevice, *fb, &technique->device->vkAllocHost);
   });
   dynarray_clear(&technique->frameBuffers);
 
@@ -113,10 +113,10 @@ RendVkTechnique* rend_vk_technique_create(RendVkDevice* dev, RendVkSwapchain* sw
 
 void rend_vk_technique_destroy(RendVkTechnique* technique) {
   vkDestroyRenderPass(
-      technique->device->vkDevice, technique->vkRenderPass, technique->device->vkAllocHost);
+      technique->device->vkDevice, technique->vkRenderPass, &technique->device->vkAllocHost);
 
   dynarray_for_t(&technique->frameBuffers, VkFramebuffer, fb, {
-    vkDestroyFramebuffer(technique->device->vkDevice, *fb, technique->device->vkAllocHost);
+    vkDestroyFramebuffer(technique->device->vkDevice, *fb, &technique->device->vkAllocHost);
   });
   dynarray_destroy(&technique->frameBuffers);
 

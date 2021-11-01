@@ -44,14 +44,14 @@ static VkSurfaceKHR rend_vk_surface_create(RendVkDevice* dev, const GapWindowCom
       .connection = (xcb_connection_t*)gap_native_app_handle(window),
       .window     = (xcb_window_t)gap_native_window_handle(window),
   };
-  rend_vk_call(vkCreateXcbSurfaceKHR, dev->vkInstance, &createInfo, dev->vkAllocHost, &result);
+  rend_vk_call(vkCreateXcbSurfaceKHR, dev->vkInstance, &createInfo, &dev->vkAllocHost, &result);
 #elif defined(VOLO_WIN32)
   VkWin32SurfaceCreateInfoKHR createInfo = {
       .sType     = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
       .hinstance = (HINSTANCE)gap_native_app_handle(window),
       .hwnd      = (HWND)gap_native_window_handle(window),
   };
-  rend_vk_call(vkCreateWin32SurfaceKHR, dev->vkInstance, &createInfo, dev->vkAllocHost, &result);
+  rend_vk_call(vkCreateWin32SurfaceKHR, dev->vkInstance, &createInfo, &dev->vkAllocHost, &result);
 #endif
   return result;
 }
@@ -135,7 +135,7 @@ static bool rend_vk_swapchain_init(RendVkSwapchain* swapchain, const RendSize si
   dynarray_clear(&swapchain->images);
 
   VkDevice                 vkDevice    = swapchain->device->vkDevice;
-  VkAllocationCallbacks*   vkAllocHost = swapchain->device->vkAllocHost;
+  VkAllocationCallbacks*   vkAllocHost = &swapchain->device->vkAllocHost;
   VkSurfaceCapabilitiesKHR vkCapabilities =
       rend_vk_surface_capabilities(swapchain->device, swapchain->vkSurface);
 
@@ -158,7 +158,7 @@ static bool rend_vk_swapchain_init(RendVkSwapchain* swapchain, const RendSize si
       .oldSwapchain       = oldSwapchain,
   };
   rend_vk_call(vkCreateSwapchainKHR, vkDevice, &createInfo, vkAllocHost, &swapchain->vkSwapchain);
-  vkDestroySwapchainKHR(vkDevice, oldSwapchain, swapchain->device->vkAllocHost);
+  vkDestroySwapchainKHR(vkDevice, oldSwapchain, &swapchain->device->vkAllocHost);
 
   u32 imageCount;
   rend_vk_call(vkGetSwapchainImagesKHR, vkDevice, swapchain->vkSwapchain, &imageCount, null);
@@ -216,11 +216,11 @@ void rend_vk_swapchain_destroy(RendVkSwapchain* swapchain) {
 
   if (swapchain->vkSwapchain) {
     vkDestroySwapchainKHR(
-        swapchain->device->vkDevice, swapchain->vkSwapchain, swapchain->device->vkAllocHost);
+        swapchain->device->vkDevice, swapchain->vkSwapchain, &swapchain->device->vkAllocHost);
   }
 
   vkDestroySurfaceKHR(
-      swapchain->device->vkInstance, swapchain->vkSurface, swapchain->device->vkAllocHost);
+      swapchain->device->vkInstance, swapchain->vkSurface, &swapchain->device->vkAllocHost);
   alloc_free_t(g_alloc_heap, swapchain);
 }
 
