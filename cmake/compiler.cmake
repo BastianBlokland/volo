@@ -90,8 +90,7 @@ macro(set_clang_compile_options)
   add_compile_options(-g -fno-omit-frame-pointer)
 
   # Enable various clang sanitizers on supported platforms.
-  # TODO: Add a configuration knob to enable / disable sanitizers.
-  if(${VOLO_PLATFORM} STREQUAL "linux")
+  if(${SANITIZE} AND ${VOLO_PLATFORM} STREQUAL "linux")
     set(SANITIZERS "address,alignment,builtin,bounds,integer-divide-by-zero")
 
     message(STATUS "Configuring clang sanitizers: ${SANITIZERS}")

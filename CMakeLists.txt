@@ -6,6 +6,9 @@ cmake_minimum_required(VERSION 3.19)
 
 project(Volo VERSION 0.1.0 LANGUAGES C)
 
+# Custom options.
+set(SANITIZE "Off" CACHE BOOL "Should santiser instrumentation be enabled")
+
 # Diagnostic information.
 message(STATUS "Configuring Volo")
 message(STATUS "* Host system: ${CMAKE_HOST_SYSTEM}")
@@ -15,6 +18,7 @@ message(STATUS "* Source path: ${PROJECT_SOURCE_DIR}")
 message(STATUS "* Build path: ${PROJECT_BINARY_DIR}")
 message(STATUS "* Compiler: ${CMAKE_C_COMPILER_ID}")
 message(STATUS "* Generator: ${CMAKE_GENERATOR}")
+message(STATUS "* Sanitize: ${SANITIZE}")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules")
 include(cmake/compiler.cmake)
