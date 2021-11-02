@@ -162,7 +162,7 @@ static bool rend_vk_swapchain_init(RendVkSwapchain* swapchain, const RendSize si
 
   u32 imageCount;
   rend_vk_call(vkGetSwapchainImagesKHR, vkDevice, swapchain->vkSwapchain, &imageCount, null);
-  VkImage images[imageCount];
+  VkImage* images = mem_stack(sizeof(VkImage) * imageCount).ptr;
   rend_vk_call(vkGetSwapchainImagesKHR, vkDevice, swapchain->vkSwapchain, &imageCount, images);
 
   for (u32 i = 0; i != imageCount; ++i) {
@@ -231,7 +231,7 @@ VkFormat rend_vk_swapchain_format(const RendVkSwapchain* swapchain) {
 u64 rend_vk_swapchain_version(const RendVkSwapchain* swapchain) { return swapchain->version; }
 
 u32 rend_vk_swapchain_imagecount(const RendVkSwapchain* swapchain) {
-  return swapchain->images.size;
+  return (u32)swapchain->images.size;
 }
 
 RendVkImage* rend_vk_swapchain_image(const RendVkSwapchain* swapchain, const RendSwapchainIdx idx) {

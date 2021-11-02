@@ -16,7 +16,7 @@ void* rend_vk_func_load_instance_internal(VkInstance instance, String api) {
   if (UNLIKELY(!res)) {
     diag_crash_msg("Vulkan failed to load instance api: {}", fmt_text(api));
   }
-  return res;
+  return (void*)res;
 }
 
 void* rend_vk_func_load_device_internal(VkDevice device, String api) {
@@ -24,7 +24,7 @@ void* rend_vk_func_load_device_internal(VkDevice device, String api) {
   if (UNLIKELY(!res)) {
     diag_crash_msg("Vulkan failed to load device api: {}", fmt_text(api));
   }
-  return res;
+  return (void*)res;
 }
 
 void rend_vk_check(const String api, const VkResult result) {
