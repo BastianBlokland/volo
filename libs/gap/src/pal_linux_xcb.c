@@ -707,4 +707,4 @@ void gap_pal_window_cursor_set(GapPal* pal, const GapWindowId windowId, GapVecto
 
 GapNativeWm gap_pal_native_wm() { return GapNativeWm_Xcb; }
 
-uptr gap_pal_native_app_handle(GapPal* pal) { return (uptr)pal->xcbConnection; }
+uptr gap_pal_native_app_handle(const GapPal* pal) { return (uptr)pal->xcbConnection; }

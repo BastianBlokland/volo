@@ -23,10 +23,12 @@ typedef enum {
   GapWindowFlags_None            = 0,
   GapWindowFlags_CloseOnInterupt = 1 << 0,
   GapWindowFlags_CloseOnRequest  = 1 << 1,
-  GapWindowFlags_CursorHide      = 1 << 2,
-  GapWindowFlags_CursorLock      = 1 << 3,
+  GapWindowFlags_CloseOnEscape   = 1 << 2,
+  GapWindowFlags_CursorHide      = 1 << 3,
+  GapWindowFlags_CursorLock      = 1 << 4,
 
-  GapWindowFlags_Default = GapWindowFlags_CloseOnInterupt | GapWindowFlags_CloseOnRequest,
+  GapWindowFlags_Default =
+      GapWindowFlags_CloseOnInterupt | GapWindowFlags_CloseOnRequest | GapWindowFlags_CloseOnEscape,
 } GapWindowFlags;
 
 typedef enum {
@@ -40,9 +42,9 @@ typedef enum {
 ecs_comp_extern(GapWindowComp);
 
 /**
- * Open a new window at the given size.
+ * Create a new window with the given size.
  */
-EcsEntityId gap_window_open(EcsWorld*, GapWindowFlags, GapVector size);
+EcsEntityId gap_window_create(EcsWorld*, GapWindowFlags, GapVector size);
 
 /**
  * Close a currently open window.

@@ -42,4 +42,4 @@ void              gap_pal_window_cursor_hide(GapPal*, GapWindowId, bool hidden);
 void              gap_pal_window_cursor_set(GapPal*, GapWindowId, GapVector position);
 
 GapNativeWm gap_pal_native_wm();
-uptr        gap_pal_native_app_handle(GapPal*);
+uptr        gap_pal_native_app_handle(const GapPal*);

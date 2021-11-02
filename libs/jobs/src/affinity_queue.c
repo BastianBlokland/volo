@@ -12,12 +12,12 @@ AffQueue affqueue_create(Allocator* alloc) {
   return (AffQueue){
       .bottom = 0,
       .top    = 0,
-      .items = alloc_alloc(alloc, sizeof(AffQueueItem) * affqueue_max_items, alignof(WorkItem)).ptr,
+      .items  = alloc_alloc_array_t(alloc, AffQueueItem, affqueue_max_items),
   };
 }
 
 void affqueue_destroy(Allocator* alloc, AffQueue* aq) {
-  alloc_free(alloc, mem_create(aq->items, sizeof(AffQueueItem) * affqueue_max_items));
+  alloc_free_array_t(alloc, aq->items, affqueue_max_items);
 }
 
 usize affqueue_size(const AffQueue* aq) { return (usize)(aq->top - aq->bottom); }

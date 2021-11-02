@@ -1,0 +1,21 @@
+name: prepare-windows
+
+description: 'Prepare a Windows build environment'
+
+inputs:
+  vulkan-version:
+    description: 'Vulkan SDK version'
+    default: '1.2.182'
+
+runs:
+  using: composite
+  steps:
+    - name: install-vulkan
+      shell: pwsh
+      run: |
+        choco install vulkan-sdk --version=$env:VULKAN_VERSION --force --no-progress                        &&
+        echo "VULKAN_SDK=$env:VULKAN_SDK_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append  &&
+        echo "$env:VULKAN_SDK_ROOT\\Bin"       | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      env:
+        VULKAN_VERSION: "${{ inputs.vulkan-version }}.0"
+        VULKAN_SDK_ROOT: "C:\\VulkanSDK\\${{ inputs.vulkan-version }}.0"

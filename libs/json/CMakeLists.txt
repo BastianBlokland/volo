@@ -21,6 +21,7 @@ add_executable(volo_json_test
   test/test_write.c)
 target_link_libraries(volo_json_test PRIVATE volo_check)
 target_link_libraries(volo_json_test PRIVATE volo_json)
+target_link_libraries(volo_json_test PRIVATE volo_jobs)
 target_link_libraries(volo_json_test PRIVATE volo_log)
 
 configure_test(volo_json_test json)

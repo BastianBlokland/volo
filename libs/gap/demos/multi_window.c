@@ -1,7 +1,6 @@
 #include "cli.h"
 #include "core.h"
 #include "core_file.h"
-#include "core_signal.h"
 #include "core_thread.h"
 #include "core_time.h"
 #include "ecs.h"
@@ -13,9 +12,11 @@
  * Demo application for testing window management.
  *
  * Controls:
- * - 'Escape':          Close the focussed window.
+ * - 'Escape / 'Q':     Close the focussed window.
  * - 'F':               Toggle fullscreen.
- * - 'Return':          Open a new window.
+ * - 'H':               Toggle cursor hide.
+ * - 'L':               Toggle cursor lock.
+ * - 'Return':          Create a new window.
  * - Scrolling:         Resize the focussed window.
  * - Process interupt:  Close all windows.
  */
@@ -40,8 +41,8 @@ static void window_update(EcsWorld* world, GapWindowComp* window, const u64 tick
           fmt_bool(gap_window_key_pressed(window, GapKey_MouseLeft)),
           gap_vector_fmt(gap_window_param(window, GapParam_ScrollDelta))));
 
-  // Close with 'Escape'.
-  if (gap_window_key_pressed(window, GapKey_Escape)) {
+  // Close with 'Q'.
+  if (gap_window_key_pressed(window, GapKey_Q)) {
     gap_window_close(window);
   }
 
@@ -72,9 +73,9 @@ static void window_update(EcsWorld* world, GapWindowComp* window, const u64 tick
     }
   }
 
-  // Open a new window with 'Return'.
+  // Create a new window with 'Return'.
   if (gap_window_key_pressed(window, GapKey_Return)) {
-    gap_window_open(world, GapWindowFlags_Default, gap_vector(1024, 768));
+    gap_window_create(world, GapWindowFlags_Default, gap_vector(1024, 768));
   }
 
   // Resize the window by scrolling.
@@ -100,7 +101,7 @@ static int run_app() {
 
   log_i("App loop running");
 
-  gap_window_open(world, GapWindowFlags_Default, gap_vector(1024, 768));
+  gap_window_create(world, GapWindowFlags_Default, gap_vector(1024, 768));
 
   u64          tickCount = 0;
   EcsIterator* windowItr = ecs_view_itr(ecs_world_view_t(world, UpdateWindowView));

@@ -86,6 +86,7 @@ add_executable(volo_core_test
   test/test_winutils.c)
 target_link_libraries(volo_core_test PRIVATE volo_check)
 target_link_libraries(volo_core_test PRIVATE volo_core)
+target_link_libraries(volo_core_test PRIVATE volo_jobs)
 target_link_libraries(volo_core_test PRIVATE volo_log)
 
 configure_test(volo_core_test core)

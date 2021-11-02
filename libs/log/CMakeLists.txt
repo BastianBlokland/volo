@@ -11,7 +11,7 @@ add_library(volo_log STATIC
   src/sink_pretty.c)
 target_include_directories(volo_log PUBLIC include)
 target_link_libraries(volo_log PUBLIC volo_core)
-target_link_libraries(volo_log PUBLIC volo_json)
+target_link_libraries(volo_log PRIVATE volo_json)
 
 add_executable(volo_log_test
   test/main.c
@@ -20,6 +20,8 @@ add_executable(volo_log_test
   test/test_sink_pretty.c)
 target_link_libraries(volo_log_test PRIVATE volo_check)
 target_link_libraries(volo_log_test PRIVATE volo_log)
+target_link_libraries(volo_log_test PRIVATE volo_json)
+target_link_libraries(volo_log_test PRIVATE volo_jobs)
 
 configure_test(volo_log_test log)
 configure_debuggable(volo_log_test)
