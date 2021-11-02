@@ -1,0 +1,29 @@
+name: prepare-ubuntu
+
+description: 'Prepare an Ubuntu build environment'
+
+inputs:
+  dist:
+    description: 'Ubuntu distribution identifier'
+    default: 'focal'
+  vulkan-version:
+    description: 'Vulkan SDK version'
+    default: '1.2.182'
+
+runs:
+  using: composite
+  steps:
+    - name: install-xcb
+      shell: bash
+      run: sudo apt install libxcb1-dev libxcb-xkb-dev libxcb-xfixes0-dev libxcb-icccm4-dev
+
+    - name: install-vulkan
+      shell: bash
+      run: |
+        wget -qO - $LUNARG_KEY_URL | sudo apt-key add -   &&
+        sudo wget -qO $VULKAN_SOURCE_PATH $VULKAN_PPA_URL &&
+        sudo apt update && sudo apt install vulkan-sdk
+      env:
+        LUNARG_KEY_URL: 'https://packages.lunarg.com/lunarg-signing-key-pub.asc'
+        VULKAN_SOURCE_PATH: "/etc/apt/sources.list.d/lunarg-vulkan-${{ inputs.vulkan-version }}-${{ inputs.dist }}.list"
+        VULKAN_PPA_URL: "https://packages.lunarg.com/vulkan/${{ inputs.vulkan-version }}/lunarg-vulkan-${{ inputs.vulkan-version }}-${{ inputs.dist }}.list"

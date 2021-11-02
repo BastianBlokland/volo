@@ -58,9 +58,17 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: prepare-linux
+    - name: prepare-ubuntu
       if: matrix.config.os == 'linux'
-      run: sudo apt install libxcb1-dev libxcb-xkb-dev libxcb-xfixes0-dev libxcb-icccm4-dev
+      uses: ./.github/actions/prepare-ubuntu
+      id: prepare-ubuntu
+      with:
+        dist: focal
+
+    - name: prepare-windows
+      if: matrix.config.os == 'windows'
+      uses: ./.github/actions/prepare-windows
+      id: prepare-windows
 
     - name: test-unix
       if: matrix.config.toolchain == 'unix'
