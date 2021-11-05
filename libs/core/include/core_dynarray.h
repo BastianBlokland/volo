@@ -52,6 +52,14 @@ typedef struct {
 #define dynarray_push_t(_ARRAY_, _TYPE_) mem_as_t(dynarray_push((_ARRAY_), 1), _TYPE_)
 
 /**
+ * Insert an item at the given index in the dynamic-array.
+ * NOTE: The memory for the new item is NOT initialized.
+ * Pre-condition: _IDX_ <= array.size
+ */
+#define dynarray_insert_t(_ARRAY_, _IDX_, _TYPE_)                                                  \
+  mem_as_t(dynarray_insert((_ARRAY_), (_IDX_), 1), _TYPE_)
+
+/**
  * Insert an item into the dynamic-array at an index that would maintain sorting with target.
  * NOTE: The memory for the new item is NOT initialized.
  * Pre-condition: sizeof(_TYPE_) <= '_ARRAY_'.stride

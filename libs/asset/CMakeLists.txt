@@ -5,7 +5,8 @@
 message(STATUS "> library: asset")
 
 add_library(volo_asset STATIC
-  src/dummy.c)
+  src/manager.c
+  src/register.c)
 target_include_directories(volo_asset PUBLIC include)
 target_link_libraries(volo_asset PUBLIC volo_core)
 target_link_libraries(volo_asset PUBLIC volo_ecs)
