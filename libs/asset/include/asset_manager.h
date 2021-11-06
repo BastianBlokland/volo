@@ -20,4 +20,14 @@ EcsEntityId asset_manager_create_fs(EcsWorld*, String rootPath);
 /**
  * TODO:.
  */
-EcsEntityId asset_manager_lookup(AssetManagerComp*, String id);
+EcsEntityId asset_lookup(EcsWorld*, AssetManagerComp*, String id);
+
+/**
+ * TODO:.
+ */
+void asset_acquire(EcsWorld*, AssetComp*);
+
+/**
+ * TODO:.
+ */
+void asset_release(EcsWorld*, AssetComp*);
