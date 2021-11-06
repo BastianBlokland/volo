@@ -6,6 +6,8 @@
 #include "core_search.h"
 #include "ecs_world.h"
 
+#include "repo_internal.h"
+
 typedef struct {
   u32         idHash;
   EcsEntityId asset;
@@ -17,7 +19,8 @@ typedef enum {
 } AssetFlags;
 
 ecs_comp_define(AssetManagerComp) {
-  DynArray lookup; // AssetEntry[], kept sorted on the idHash.
+  AssetRepo* repo;
+  DynArray   lookup; // AssetEntry[], kept sorted on the idHash.
 };
 
 ecs_comp_define(AssetComp) {
@@ -31,6 +34,7 @@ ecs_comp_define(AssetDirtyComp);
 
 static void ecs_destruct_manager_comp(void* data) {
   AssetManagerComp* comp = data;
+  asset_repo_destroy(comp->repo);
   dynarray_destroy(&comp->lookup);
 }
 
@@ -43,10 +47,14 @@ static i8 asset_compare_entry(const void* a, const void* b) {
   return compare_u32(field_ptr(a, AssetEntry, idHash), field_ptr(b, AssetEntry, idHash));
 }
 
-static EcsEntityId asset_manager_create(EcsWorld* world) {
+static EcsEntityId asset_manager_create_internal(EcsWorld* world, AssetRepo* repo) {
   const EcsEntityId entity = ecs_world_entity_create(world);
   ecs_world_add_t(
-      world, entity, AssetManagerComp, .lookup = dynarray_create_t(g_alloc_heap, AssetEntry, 128));
+      world,
+      entity,
+      AssetManagerComp,
+      .repo   = repo,
+      .lookup = dynarray_create_t(g_alloc_heap, AssetEntry, 128));
   return entity;
 }
 
@@ -83,8 +91,11 @@ ecs_module_init(asset_manager_module) {
 }
 
 EcsEntityId asset_manager_create_fs(EcsWorld* world, String rootPath) {
-  (void)rootPath;
-  return asset_manager_create(world);
+  return asset_manager_create_internal(world, asset_repo_create_fs(rootPath));
+}
+
+EcsEntityId asset_manager_create_mem(EcsWorld* world, AssetMemRecord* records, usize recordCount) {
+  return asset_manager_create_internal(world, asset_repo_create_mem(records, recordCount));
 }
 
 EcsEntityId asset_manager_lookup(EcsWorld* world, AssetManagerComp* manager, String id) {

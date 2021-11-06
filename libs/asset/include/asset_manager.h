@@ -1,6 +1,11 @@
 #pragma once
+#include "core_string.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
+
+typedef struct {
+  String id, data;
+} AssetMemRecord;
 
 /**
  * TODO:.
@@ -16,6 +21,11 @@ ecs_comp_extern(AssetComp);
  * TODO:.
  */
 EcsEntityId asset_manager_create_fs(EcsWorld*, String rootPath);
+
+/**
+ * TODO:.
+ */
+EcsEntityId asset_manager_create_mem(EcsWorld*, AssetMemRecord* records, usize recordCount);
 
 /**
  * TODO:.
