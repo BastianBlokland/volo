@@ -218,10 +218,10 @@ ecs_system_define(InputSys) {
   input_read(inputComp, dynstring_view(&inputBuffer));
 
   if (inputComp->input & Input_Quit) {
-    ecs_utils_maybe_add_t(world, ecs_view_entity(itr), QuitComp);
+    ecs_world_add_empty_t(world, ecs_view_entity(itr), QuitComp);
   }
   if (inputComp->input & Input_Restart) {
-    ecs_utils_maybe_add_t(world, ecs_view_entity(itr), InitializeComp);
+    ecs_world_add_empty_t(world, ecs_view_entity(itr), InitializeComp);
   }
 }
 
