@@ -180,6 +180,45 @@ spec(world) {
     check(!ecs_world_has_t(world, entity, WorldCompC));
   }
 
+  it("supports multiple additions for empty components") {
+    const EcsEntityId entity = ecs_world_entity_create(world);
+
+    ecs_world_add_empty_t(world, entity, WorldCompEmpty);
+    ecs_world_add_empty_t(world, entity, WorldCompEmpty);
+
+    ecs_world_flush(world);
+    check(ecs_world_has_t(world, entity, WorldCompEmpty));
+
+    ecs_world_add_empty_t(world, entity, WorldCompEmpty);
+    ecs_world_add_empty_t(world, entity, WorldCompEmpty);
+
+    ecs_world_flush(world);
+    check(ecs_world_has_t(world, entity, WorldCompEmpty));
+  }
+
+  it("supports cancelling empty component removal") {
+    const EcsEntityId entity = ecs_world_entity_create(world);
+
+    ecs_world_add_empty_t(world, entity, WorldCompEmpty);
+
+    ecs_world_flush(world);
+    check(ecs_world_has_t(world, entity, WorldCompEmpty));
+
+    // Order of add / remove does not matter, add wins.
+    ecs_world_remove_t(world, entity, WorldCompEmpty);
+    ecs_world_add_empty_t(world, entity, WorldCompEmpty);
+
+    ecs_world_flush(world);
+    check(ecs_world_has_t(world, entity, WorldCompEmpty));
+
+    // Order of add / remove does not matter, add wins.
+    ecs_world_add_empty_t(world, entity, WorldCompEmpty);
+    ecs_world_remove_t(world, entity, WorldCompEmpty);
+
+    ecs_world_flush(world);
+    check(ecs_world_has_t(world, entity, WorldCompEmpty));
+  }
+
   teardown() {
     ecs_world_destroy(world);
     ecs_def_destroy(def);

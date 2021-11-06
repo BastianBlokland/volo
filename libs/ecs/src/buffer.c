@@ -198,14 +198,11 @@ void ecs_buffer_destroy_entity(EcsBuffer* buffer, const EcsEntityId entityId) {
 void* ecs_buffer_comp_add(
     EcsBuffer* buffer, const EcsEntityId entityId, const EcsCompId compId, const Mem data) {
 
-  EcsBufferEntity* entity  = ecs_buffer_entity_get(buffer, entityId);
-  BitSet           addMask = ecs_buffer_mask(buffer, entity->addMask);
-
-  diag_assert_msg(
-      !bitset_test(addMask, compId),
-      "Unable to enqueue addition of {} to entity {}, reason: duplicate addition",
-      fmt_text(ecs_def_comp_name(buffer->def, compId)),
-      fmt_int(entityId));
+  EcsBufferEntity*        entity       = ecs_buffer_entity_get(buffer, entityId);
+  BitSet                  addMask      = ecs_buffer_mask(buffer, entity->addMask);
+  BitSet                  removeMask   = ecs_buffer_mask(buffer, entity->removeMask);
+  MAYBE_UNUSED const bool duplicateAdd = bitset_test(addMask, compId);
+  const usize             compSize     = ecs_def_comp_size(buffer->def, compId);
 
   diag_assert_msg(
       (entity->flags & EcsBufferEntityFlags_Destroy) == 0,
@@ -214,12 +211,21 @@ void* ecs_buffer_comp_add(
       fmt_int(entityId));
 
   bitset_set(addMask, compId);
-
-  const usize compSize = ecs_def_comp_size(buffer->def, compId);
+  bitset_clear(removeMask, compId); // Addition overrules any previous remove request.
   if (!compSize) {
     diag_assert(data.size == 0);
     return null; // There is no need to store payload for empty components.
   }
+
+  /**
+   * For empty components double addition is allowed (as no data is lost) but for non-empty its not.
+   */
+
+  diag_assert_msg(
+      !duplicateAdd,
+      "Unable to enqueue addition of {} to entity {}, reason: duplicate addition",
+      fmt_text(ecs_def_comp_name(buffer->def, compId)),
+      fmt_int(entityId));
 
   // Find the last comp-data in the linked-list.
   EcsBufferCompData** last = &entity->compHead;
@@ -240,7 +246,15 @@ void* ecs_buffer_comp_add(
 
 void ecs_buffer_comp_remove(EcsBuffer* buffer, const EcsEntityId entityId, const EcsCompId compId) {
   EcsBufferEntity* entity     = ecs_buffer_entity_get(buffer, entityId);
+  BitSet           addMask    = ecs_buffer_mask(buffer, entity->addMask);
   BitSet           removeMask = ecs_buffer_mask(buffer, entity->removeMask);
+  if (bitset_test(addMask, compId)) {
+    /**
+     * Addition for this component is already present in the buffer, additions are considered more
+     * important and thus we discard this removal.
+     */
+    return;
+  }
 
   diag_assert_msg(
       !bitset_test(removeMask, compId),

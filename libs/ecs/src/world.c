@@ -198,7 +198,7 @@ void* ecs_world_add(
       fmt_int(entity));
 
   diag_assert_msg(
-      !ecs_world_has(world, entity, comp),
+      !data.size || !ecs_world_has(world, entity, comp),
       "Unable to add {} to entity {}, reason: entity allready has the specified component",
       fmt_text(ecs_def_comp_name(world->def, comp)),
       fmt_int(entity));
@@ -267,8 +267,10 @@ void ecs_world_flush_internal(EcsWorld* world) {
     bitset_xor(newCompMask, ecs_buffer_entity_removed(&world->buffer, i));
 
     const EcsArchetypeId newArchetype = ecs_world_archetype_find_or_create(world, newCompMask);
-    ecs_storage_entity_move(&world->storage, entity, newArchetype);
-    ecs_world_cpy_added_comps(&world->storage, &world->buffer, i);
+    if (ecs_storage_entity_archetype(&world->storage, entity) != newArchetype) {
+      ecs_storage_entity_move(&world->storage, entity, newArchetype);
+      ecs_world_cpy_added_comps(&world->storage, &world->buffer, i);
+    }
   }
 
   ecs_buffer_clear(&world->buffer);
