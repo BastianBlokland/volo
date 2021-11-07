@@ -14,8 +14,10 @@ typedef struct {
 } AssetEntry;
 
 typedef enum {
-  AssetFlags_None  = 0,
-  AssetFlags_Dirty = 1 << 0,
+  AssetFlags_Loading        = 1 << 0,
+  AssetFlags_Loaded         = 1 << 1,
+  AssetFlags_Active         = AssetFlags_Loading | AssetFlags_Loaded,
+  AssetFlags_UpdateRequired = AssetFlags_Loading,
 } AssetFlags;
 
 ecs_comp_define(AssetManagerComp) {
@@ -24,13 +26,13 @@ ecs_comp_define(AssetManagerComp) {
 };
 
 ecs_comp_define(AssetComp) {
-  String      id;
-  EcsEntityId entity;
-  u32         refCount;
-  AssetFlags  flags;
+  String     id;
+  u32        refCount;
+  AssetFlags flags;
 };
 
-ecs_comp_define(AssetDirtyComp);
+ecs_comp_define(AssetLoadedComp);
+ecs_comp_define(AssetDirtyComp) { u32 numAcquire, numRelease; };
 
 static void ecs_destruct_manager_comp(void* data) {
   AssetManagerComp* comp = data;
@@ -41,6 +43,13 @@ static void ecs_destruct_manager_comp(void* data) {
 static void ecs_destruct_asset_comp(void* data) {
   AssetComp* comp = data;
   string_free(g_alloc_heap, comp->id);
+}
+
+static void ecs_combine_asset_dirty(void* dataA, void* dataB) {
+  AssetDirtyComp* compA = dataA;
+  AssetDirtyComp* compB = dataB;
+  compA->numAcquire += compB->numAcquire;
+  compA->numRelease += compB->numRelease;
 }
 
 static i8 asset_compare_entry(const void* a, const void* b) {
@@ -60,34 +69,88 @@ static EcsEntityId asset_manager_create_internal(EcsWorld* world, AssetRepo* rep
 
 static EcsEntityId asset_entity_create(EcsWorld* world, String id) {
   const EcsEntityId entity = ecs_world_entity_create(world);
-  ecs_world_add_t(world, entity, AssetComp, .id = string_dup(g_alloc_heap, id), .entity = entity);
+  ecs_world_add_t(world, entity, AssetComp, .id = string_dup(g_alloc_heap, id));
   return entity;
+}
+
+static void asset_manager_load_start(
+    const AssetManagerComp* manager, AssetComp* asset, const EcsEntityId assetEntity) {
+  (void)manager;
+  (void)asset;
+  (void)assetEntity;
 }
 
 ecs_view_define(DirtyAssetView) {
   ecs_access_write(AssetComp);
-  ecs_access_with(AssetDirtyComp);
+  ecs_access_write(AssetDirtyComp);
 };
 
+ecs_view_define(ManagerView) { ecs_access_read(AssetManagerComp); };
+
+static const AssetManagerComp* asset_manager_get(EcsWorld* world) {
+  EcsIterator* itr = ecs_view_itr_first(ecs_world_view_t(world, ManagerView));
+  return itr ? ecs_view_read_t(itr, AssetManagerComp) : null;
+}
+
 ecs_system_define(UpdateDirtyAssetsSys) {
+  const AssetManagerComp* manager = asset_manager_get(world);
+  if (!manager) {
+    /**
+     * The manager has not been created yet, we delay the processing of asset requests until a
+     * manager has been created.
+     * NOTE: No requests get lost, they just stay unprocessed.
+     */
+    return;
+  }
+
   EcsView* assetsView = ecs_world_view_t(world, DirtyAssetView);
-
   for (EcsIterator* itr = ecs_view_itr(assetsView); ecs_view_walk(itr);) {
-    AssetComp* comp = ecs_view_write_t(itr, AssetComp);
+    const EcsEntityId entity    = ecs_view_entity(itr);
+    AssetComp*        assetComp = ecs_view_write_t(itr, AssetComp);
+    AssetDirtyComp*   dirtyComp = ecs_view_write_t(itr, AssetDirtyComp);
 
-    comp->flags &= ~AssetFlags_Dirty;
-    ecs_world_remove_t(world, comp->entity, AssetDirtyComp);
+    assetComp->refCount += dirtyComp->numAcquire;
+    diag_assert_msg(assetComp->refCount >= dirtyComp->numRelease, "Unbalanced Acquire / Release");
+    assetComp->refCount -= dirtyComp->numRelease;
+
+    // Load if the ref-count is non-zero.
+    if (assetComp->refCount && !(assetComp->flags & AssetFlags_Active)) {
+      asset_manager_load_start(manager, assetComp, entity);
+      assetComp->flags |= AssetFlags_Loading;
+      goto updateComplete;
+    }
+
+    // Check if loading is done.
+    if (assetComp->flags & AssetFlags_Loading && ecs_world_has_t(world, entity, AssetLoadedComp)) {
+      assetComp->flags &= ~AssetFlags_Loading;
+      assetComp->flags |= AssetFlags_Loaded;
+    }
+
+    // Unload if the refcount is zero.
+    if (!assetComp->refCount && assetComp->flags & AssetFlags_Loaded) {
+      ecs_world_remove_t(world, entity, AssetLoadedComp);
+      assetComp->flags &= ~AssetFlags_Loaded;
+    }
+
+  updateComplete:
+    dirtyComp->numAcquire = 0;
+    dirtyComp->numRelease = 0;
+    if (!(assetComp->flags & AssetFlags_UpdateRequired)) {
+      ecs_world_remove_t(world, entity, AssetDirtyComp);
+    }
   }
 }
 
 ecs_module_init(asset_manager_module) {
   ecs_register_comp(AssetManagerComp, .destructor = ecs_destruct_manager_comp);
   ecs_register_comp(AssetComp, .destructor = ecs_destruct_asset_comp);
-  ecs_register_comp_empty(AssetDirtyComp);
+  ecs_register_comp_empty(AssetLoadedComp);
+  ecs_register_comp(AssetDirtyComp, .combinator = ecs_combine_asset_dirty);
 
   ecs_register_view(DirtyAssetView);
+  ecs_register_view(ManagerView);
 
-  ecs_register_system(UpdateDirtyAssetsSys, ecs_view_id(DirtyAssetView));
+  ecs_register_system(UpdateDirtyAssetsSys, ecs_view_id(DirtyAssetView), ecs_view_id(ManagerView));
 }
 
 EcsEntityId asset_manager_create_fs(EcsWorld* world, String rootPath) {
@@ -123,18 +186,10 @@ EcsEntityId asset_manager_lookup(EcsWorld* world, AssetManagerComp* manager, Str
   return newAsset;
 }
 
-void asset_acquire(EcsWorld* world, AssetComp* asset) {
-  if (asset->refCount++ == 0 && !(asset->flags & AssetFlags_Dirty)) {
-    asset->flags |= AssetFlags_Dirty;
-    ecs_world_add_empty_t(world, asset->entity, AssetDirtyComp);
-  }
+void asset_acquire(EcsWorld* world, const EcsEntityId assetEntity) {
+  ecs_world_add_t(world, assetEntity, AssetDirtyComp, .numAcquire = 1);
 }
 
-void asset_release(EcsWorld* world, AssetComp* asset) {
-  diag_assert_msg(asset->refCount, "Unable to release, refCount already zero");
-
-  if (--asset->refCount == 0 && !(asset->flags & AssetFlags_Dirty)) {
-    asset->flags |= AssetFlags_Dirty;
-    ecs_world_add_empty_t(world, asset->entity, AssetDirtyComp);
-  }
+void asset_release(EcsWorld* world, const EcsEntityId assetEntity) {
+  ecs_world_add_t(world, assetEntity, AssetDirtyComp, .numRelease = 1);
 }

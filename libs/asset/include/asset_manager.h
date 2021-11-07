@@ -16,6 +16,7 @@ ecs_comp_extern(AssetManagerComp);
  * TODO:.
  */
 ecs_comp_extern(AssetComp);
+ecs_comp_extern(AssetLoadedComp);
 
 /**
  * TODO:.
@@ -35,9 +36,9 @@ EcsEntityId asset_lookup(EcsWorld*, AssetManagerComp*, String id);
 /**
  * TODO:.
  */
-void asset_acquire(EcsWorld*, AssetComp*);
+void asset_acquire(EcsWorld*, EcsEntityId assetEntity);
 
 /**
  * TODO:.
  */
-void asset_release(EcsWorld*, AssetComp*);
+void asset_release(EcsWorld*, EcsEntityId assetEntity);
