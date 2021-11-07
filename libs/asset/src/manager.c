@@ -10,16 +10,20 @@
 #include "loader_internal.h"
 #include "repo_internal.h"
 
+/**
+ * Maximum number of new assets to load per tick.
+ */
+#define asset_manager_max_loads_per_tick 2
+
 typedef struct {
   u32         idHash;
   EcsEntityId asset;
 } AssetEntry;
 
 typedef enum {
-  AssetFlags_Loading        = 1 << 0,
-  AssetFlags_Loaded         = 1 << 1,
-  AssetFlags_Active         = AssetFlags_Loading | AssetFlags_Loaded,
-  AssetFlags_UpdateRequired = AssetFlags_Loading,
+  AssetFlags_Loading = 1 << 0,
+  AssetFlags_Loaded  = 1 << 1,
+  AssetFlags_Active  = AssetFlags_Loading | AssetFlags_Loaded,
 } AssetFlags;
 
 ecs_comp_define(AssetManagerComp) {
@@ -124,7 +128,9 @@ ecs_system_define(UpdateDirtyAssetsSys) {
     return;
   }
 
-  EcsView* assetsView = ecs_world_view_t(world, DirtyAssetView);
+  u32      startedLoads = 0;
+  EcsView* assetsView   = ecs_world_view_t(world, DirtyAssetView);
+
   for (EcsIterator* itr = ecs_view_itr(assetsView); ecs_view_walk(itr);) {
     const EcsEntityId entity    = ecs_view_entity(itr);
     AssetComp*        assetComp = ecs_view_write_t(itr, AssetComp);
@@ -134,15 +140,20 @@ ecs_system_define(UpdateDirtyAssetsSys) {
     diag_assert_msg(assetComp->refCount >= dirtyComp->numRelease, "Unbalanced Acquire / Release");
     assetComp->refCount -= dirtyComp->numRelease;
 
+    // Loading assets should be continuously updated to track their progress.
+    bool updateRequired = (assetComp->flags & AssetFlags_Loading) != 0;
+
     if (assetComp->refCount && !(assetComp->flags & AssetFlags_Active)) {
       /**
        * Asset ref-count is non-zero; start loading.
        * NOTE: Loading can fail to start, for example the asset doesn't exist in the manager's repo.
        */
-      if (asset_manager_load(world, manager, assetComp, entity)) {
+      const bool canLoad = startedLoads < asset_manager_max_loads_per_tick;
+      if (canLoad && asset_manager_load(world, manager, assetComp, entity)) {
         assetComp->flags |= AssetFlags_Loading;
+        startedLoads++;
       }
-      goto updateComplete;
+      updateRequired = true;
     }
 
     if (assetComp->flags & AssetFlags_Loading && ecs_world_has_t(world, entity, AssetLoadedComp)) {
@@ -151,6 +162,7 @@ ecs_system_define(UpdateDirtyAssetsSys) {
        */
       assetComp->flags &= ~AssetFlags_Loading;
       assetComp->flags |= AssetFlags_Loaded;
+      updateRequired = false;
     }
 
     if (!assetComp->refCount && assetComp->flags & AssetFlags_Loaded) {
@@ -160,12 +172,12 @@ ecs_system_define(UpdateDirtyAssetsSys) {
        */
       ecs_world_remove_t(world, entity, AssetLoadedComp);
       assetComp->flags &= ~AssetFlags_Loaded;
+      updateRequired = false;
     }
 
-  updateComplete:
     dirtyComp->numAcquire = 0;
     dirtyComp->numRelease = 0;
-    if (!(assetComp->flags & AssetFlags_UpdateRequired)) {
+    if (!updateRequired) {
       ecs_world_remove_t(world, entity, AssetDirtyComp);
     }
   }
