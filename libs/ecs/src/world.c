@@ -88,6 +88,20 @@ static void ecs_world_cpy_added_comps(EcsStorage* storage, EcsBuffer* buffer, co
   }
 }
 
+static void ecs_world_destroy_added_comps(const EcsDef* def, EcsBuffer* buffer, const usize idx) {
+
+  for (EcsBufferCompData* bufferItr = ecs_buffer_comp_begin(buffer, idx); bufferItr;
+       bufferItr                    = ecs_buffer_comp_next(bufferItr)) {
+
+    const EcsCompId         compId     = ecs_buffer_comp_id(bufferItr);
+    const Mem               compData   = ecs_buffer_comp_data(buffer, bufferItr);
+    const EcsCompDestructor destructor = ecs_def_comp_destructor(def, compId);
+    if (destructor) {
+      destructor(compData.ptr);
+    }
+  }
+}
+
 EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
   ecs_def_freeze((EcsDef*)def);
 
@@ -257,6 +271,11 @@ void ecs_world_flush_internal(EcsWorld* world) {
     const EcsEntityId entity = ecs_buffer_entity(&world->buffer, i);
 
     if (ecs_buffer_entity_flags(&world->buffer, i) & EcsBufferEntityFlags_Destroy) {
+      /**
+       * Discard any component additions for the same entity in the buffer.
+       */
+      ecs_world_destroy_added_comps(world->def, &world->buffer, i);
+
       ecs_storage_entity_destroy(&world->storage, entity);
       continue;
     }

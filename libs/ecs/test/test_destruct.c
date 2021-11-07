@@ -68,6 +68,33 @@ spec(destruct) {
     check_eq_int(g_destructorCountB, 1);
   }
 
+  it("destroys pending component additions for a destroyed entity") {
+    EcsWorld*         world   = ecs_world_create(g_alloc_heap, def);
+    const EcsEntityId entity1 = ecs_world_entity_create(world);
+    const EcsEntityId entity2 = ecs_world_entity_create(world);
+
+    g_destructorCountA = 0;
+    g_destructorCountB = 0;
+
+    ecs_world_add_t(world, entity1, DestructCompA, .state = CompDataState_Normal);
+
+    ecs_world_add_t(world, entity2, DestructCompA, .state = CompDataState_Normal);
+    ecs_world_add_t(world, entity2, DestructCompB, .state = CompDataState_Normal);
+
+    ecs_world_entity_destroy(world, entity1);
+    ecs_world_entity_destroy(world, entity2);
+
+    ecs_world_flush(world);
+
+    check_eq_int(g_destructorCountA, 2);
+    check_eq_int(g_destructorCountB, 1);
+
+    ecs_world_destroy(world);
+
+    check_eq_int(g_destructorCountA, 2);
+    check_eq_int(g_destructorCountB, 1);
+  }
+
   it("destroys stored components when the world is destroyed") {
     EcsWorld*         world   = ecs_world_create(g_alloc_heap, def);
     const EcsEntityId entity1 = ecs_world_entity_create(world);

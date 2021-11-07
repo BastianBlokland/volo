@@ -183,15 +183,6 @@ void ecs_buffer_clear(EcsBuffer* buffer) {
 
 void ecs_buffer_destroy_entity(EcsBuffer* buffer, const EcsEntityId entityId) {
   EcsBufferEntity* entity = ecs_buffer_entity_get(buffer, entityId);
-
-  MAYBE_UNUSED BitSet addMask    = ecs_buffer_mask(buffer, entity->addMask);
-  MAYBE_UNUSED BitSet removeMask = ecs_buffer_mask(buffer, entity->removeMask);
-
-  diag_assert_msg(
-      !bitset_any(addMask) && !bitset_any(removeMask),
-      "Unable to enqueue destruction of entity {}, reason: modifications present",
-      fmt_int(entityId));
-
   entity->flags |= EcsBufferEntityFlags_Destroy;
 }
 
@@ -203,12 +194,6 @@ void* ecs_buffer_comp_add(
   BitSet                  removeMask   = ecs_buffer_mask(buffer, entity->removeMask);
   MAYBE_UNUSED const bool duplicateAdd = bitset_test(addMask, compId);
   const usize             compSize     = ecs_def_comp_size(buffer->def, compId);
-
-  diag_assert_msg(
-      (entity->flags & EcsBufferEntityFlags_Destroy) == 0,
-      "Unable to enqueue addition of {} to entity {}, reason: destruction present",
-      fmt_text(ecs_def_comp_name(buffer->def, compId)),
-      fmt_int(entityId));
 
   bitset_set(addMask, compId);
   bitset_clear(removeMask, compId); // Addition overrules any previous remove request.
@@ -255,13 +240,6 @@ void ecs_buffer_comp_remove(EcsBuffer* buffer, const EcsEntityId entityId, const
      */
     return;
   }
-
-  diag_assert_msg(
-      (entity->flags & EcsBufferEntityFlags_Destroy) == 0,
-      "Unable to enqueue removal of {} from entity {}, reason: destruction present",
-      fmt_text(ecs_def_comp_name(buffer->def, compId)),
-      fmt_int(entityId));
-
   bitset_set(removeMask, compId);
 }
 
