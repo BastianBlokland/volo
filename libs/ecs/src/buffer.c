@@ -257,12 +257,6 @@ void ecs_buffer_comp_remove(EcsBuffer* buffer, const EcsEntityId entityId, const
   }
 
   diag_assert_msg(
-      !bitset_test(removeMask, compId),
-      "Unable to enqueue removal of {} from entity {}, reason: duplicate removal",
-      fmt_text(ecs_def_comp_name(buffer->def, compId)),
-      fmt_int(entityId));
-
-  diag_assert_msg(
       (entity->flags & EcsBufferEntityFlags_Destroy) == 0,
       "Unable to enqueue removal of {} from entity {}, reason: destruction present",
       fmt_text(ecs_def_comp_name(buffer->def, compId)),
