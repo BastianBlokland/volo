@@ -52,6 +52,35 @@ INLINE_HINT Mem mem_consume(Mem mem, usize amount) {
   };
 }
 
+INLINE_HINT Mem mem_consume_le_u8(Mem mem, u8* out) {
+  diag_assert(mem.size >= 1);
+  *out = *mem_begin(mem);
+  return mem_consume(mem, 1);
+}
+
+INLINE_HINT Mem mem_consume_le_u16(Mem mem, u16* out) {
+  diag_assert(mem.size >= 2);
+  u8* data = mem_begin(mem);
+  *out     = (u16)data[0] | (u16)data[1] << 8;
+  return mem_consume(mem, 2);
+}
+
+INLINE_HINT Mem mem_consume_le_u32(Mem mem, u32* out) {
+  diag_assert(mem.size >= 4);
+  u8* data = mem_begin(mem);
+  *out     = (u32)data[0] | (u32)data[1] << 8 | (u32)data[2] << 16 | (u32)data[3] << 24;
+  return mem_consume(mem, 4);
+}
+
+INLINE_HINT Mem mem_consume_le_u64(Mem mem, u64* out) {
+  diag_assert(mem.size >= 8);
+  u8* data = mem_begin(mem);
+  *out =
+      ((u64)data[0] | (u64)data[1] << 8 | (u64)data[2] << 16 | (u64)data[3] << 24 |
+       (u64)data[4] << 32 | (u64)data[5] << 40 | (u64)data[6] << 48 | (u64)data[7] << 56);
+  return mem_consume(mem, 8);
+}
+
 INLINE_HINT void* mem_as(Mem mem, const usize size, const usize align) {
   (void)size;
   (void)align;
