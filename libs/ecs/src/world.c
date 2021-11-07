@@ -282,8 +282,8 @@ void ecs_world_flush_internal(EcsWorld* world) {
 
     bitset_clear_all(newCompMask);
     bitset_or(newCompMask, ecs_storage_entity_mask(&world->storage, entity));
-    bitset_or(newCompMask, ecs_buffer_entity_added(&world->buffer, i));
     bitset_xor(newCompMask, ecs_buffer_entity_removed(&world->buffer, i));
+    bitset_or(newCompMask, ecs_buffer_entity_added(&world->buffer, i));
 
     const EcsArchetypeId newArchetype = ecs_world_archetype_find_or_create(world, newCompMask);
     if (ecs_storage_entity_archetype(&world->storage, entity) != newArchetype) {

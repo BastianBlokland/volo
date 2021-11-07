@@ -191,12 +191,10 @@ void* ecs_buffer_comp_add(
 
   EcsBufferEntity*        entity       = ecs_buffer_entity_get(buffer, entityId);
   BitSet                  addMask      = ecs_buffer_mask(buffer, entity->addMask);
-  BitSet                  removeMask   = ecs_buffer_mask(buffer, entity->removeMask);
   MAYBE_UNUSED const bool duplicateAdd = bitset_test(addMask, compId);
   const usize             compSize     = ecs_def_comp_size(buffer->def, compId);
 
   bitset_set(addMask, compId);
-  bitset_clear(removeMask, compId); // Addition overrules any previous remove request.
   if (!compSize) {
     diag_assert(data.size == 0);
     return null; // There is no need to store payload for empty components.
@@ -231,15 +229,7 @@ void* ecs_buffer_comp_add(
 
 void ecs_buffer_comp_remove(EcsBuffer* buffer, const EcsEntityId entityId, const EcsCompId compId) {
   EcsBufferEntity* entity     = ecs_buffer_entity_get(buffer, entityId);
-  BitSet           addMask    = ecs_buffer_mask(buffer, entity->addMask);
   BitSet           removeMask = ecs_buffer_mask(buffer, entity->removeMask);
-  if (bitset_test(addMask, compId)) {
-    /**
-     * Addition for this component is already present in the buffer, additions are considered more
-     * important and thus we discard this removal.
-     */
-    return;
-  }
   bitset_set(removeMask, compId);
 }
 
