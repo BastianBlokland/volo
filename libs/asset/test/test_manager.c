@@ -4,6 +4,8 @@
 #include "core_array.h"
 #include "ecs.h"
 
+#include "utils_internal.h"
+
 static const AssetMemRecord records[] = {
     {.id = string_static("a.raw"), .data = string_static("Hello")},
     {.id = string_static("b.raw"), .data = string_static("World")},
@@ -14,17 +16,6 @@ ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
 static AssetManagerComp* asset_manager_get(EcsWorld* world) {
   EcsIterator* itr = ecs_view_itr_first(ecs_world_view_t(world, ManagerView));
   return ecs_view_write_t(itr, AssetManagerComp);
-}
-
-static void asset_manager_wait(EcsRunner* runner) {
-  /**
-   * Due to the asynchronous nature of asset-loading we give the asset-system a set number of ticks
-   * to process requests.
-   */
-  static const u32 numTicks = 3;
-  for (u32 i = 0; i != numTicks; ++i) {
-    ecs_run_sync(runner);
-  }
 }
 
 ecs_module_init(manager_test_module) { ecs_register_view(ManagerView); }
@@ -65,7 +56,7 @@ spec(manager) {
     const EcsEntityId asset   = asset_lookup(world, manager, string_lit("a.raw"));
     asset_acquire(world, asset);
 
-    asset_manager_wait(runner);
+    asset_test_wait(runner);
 
     check(ecs_world_has_t(world, asset, AssetLoadedComp));
     check(ecs_world_has_t(world, asset, AssetRawComp));
@@ -76,7 +67,7 @@ spec(manager) {
     const EcsEntityId asset   = asset_lookup(world, manager, string_lit("a.raw"));
     asset_acquire(world, asset);
 
-    asset_manager_wait(runner);
+    asset_test_wait(runner);
 
     check(ecs_world_has_t(world, asset, AssetComp));
     check(ecs_world_has_t(world, asset, AssetLoadedComp));
@@ -84,7 +75,7 @@ spec(manager) {
 
     asset_release(world, asset);
 
-    asset_manager_wait(runner);
+    asset_test_wait(runner);
 
     ecs_run_sync(runner);
     check(ecs_world_has_t(world, asset, AssetComp));
@@ -98,7 +89,7 @@ spec(manager) {
     asset_acquire(world, asset);
     asset_acquire(world, asset);
 
-    asset_manager_wait(runner);
+    asset_test_wait(runner);
 
     asset_release(world, asset);
 
@@ -108,7 +99,7 @@ spec(manager) {
 
     asset_release(world, asset);
 
-    asset_manager_wait(runner);
+    asset_test_wait(runner);
 
     check(!ecs_world_has_t(world, asset, AssetLoadedComp));
     check(!ecs_world_has_t(world, asset, AssetRawComp));
