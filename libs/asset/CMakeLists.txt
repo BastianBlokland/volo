@@ -5,6 +5,8 @@
 message(STATUS "> library: asset")
 
 add_library(volo_asset STATIC
+  src/loader_raw.c
+  src/loader.c
   src/manager.c
   src/register.c
   src/repo_fs.c

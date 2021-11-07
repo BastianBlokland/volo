@@ -3,7 +3,6 @@
 
 typedef enum {
   AssetFormat_Raw,
-  AssetFormat_Tga,
 
   AssetFormat_Count,
 } AssetFormat;
@@ -27,4 +26,5 @@ AssetRepo*   asset_repo_create_mem(AssetMemRecord* records, usize recordCount);
 void         asset_repo_destroy(AssetRepo*);
 AssetSource* asset_source_open(AssetRepo*, String id);
 void         asset_source_close(AssetSource*);
+String       asset_format_str(AssetFormat);
 AssetFormat  asset_format_from_ext(String ext);

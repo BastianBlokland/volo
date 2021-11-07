@@ -5,7 +5,9 @@
 #include "core_dynarray.h"
 #include "core_search.h"
 #include "ecs_world.h"
+#include "log_logger.h"
 
+#include "loader_internal.h"
 #include "repo_internal.h"
 
 typedef struct {
@@ -73,11 +75,30 @@ static EcsEntityId asset_entity_create(EcsWorld* world, String id) {
   return entity;
 }
 
-static void asset_manager_load_start(
-    const AssetManagerComp* manager, AssetComp* asset, const EcsEntityId assetEntity) {
-  (void)manager;
-  (void)asset;
-  (void)assetEntity;
+static bool asset_manager_load(
+    EcsWorld*               world,
+    const AssetManagerComp* manager,
+    AssetComp*              asset,
+    const EcsEntityId       assetEntity) {
+
+  AssetSource* source = asset_source_open(manager->repo, asset->id);
+  if (!source) {
+    log_e(
+        "Failed to load asset",
+        log_param("id", fmt_path(asset->id)),
+        log_param("msg", fmt_text("Asset not found in repository")));
+    return false;
+  }
+
+  log_d(
+      "Asset load started",
+      log_param("id", fmt_path(asset->id)),
+      log_param("format", fmt_text(asset_format_str(source->format))),
+      log_param("size", fmt_size(source->data.size)));
+
+  AssetLoader loader = asset_loader(source->format);
+  loader(world, assetEntity, source);
+  return true;
 }
 
 ecs_view_define(DirtyAssetView) {
@@ -113,21 +134,30 @@ ecs_system_define(UpdateDirtyAssetsSys) {
     diag_assert_msg(assetComp->refCount >= dirtyComp->numRelease, "Unbalanced Acquire / Release");
     assetComp->refCount -= dirtyComp->numRelease;
 
-    // Load if the ref-count is non-zero.
     if (assetComp->refCount && !(assetComp->flags & AssetFlags_Active)) {
-      asset_manager_load_start(manager, assetComp, entity);
-      assetComp->flags |= AssetFlags_Loading;
+      /**
+       * Asset ref-count is non-zero; start loading.
+       * NOTE: Loading can fail to start, for example the asset doesn't exist in the manager's repo.
+       */
+      if (asset_manager_load(world, manager, assetComp, entity)) {
+        assetComp->flags |= AssetFlags_Loading;
+      }
       goto updateComplete;
     }
 
-    // Check if loading is done.
     if (assetComp->flags & AssetFlags_Loading && ecs_world_has_t(world, entity, AssetLoadedComp)) {
+      /**
+       * Asset has finished loading.
+       */
       assetComp->flags &= ~AssetFlags_Loading;
       assetComp->flags |= AssetFlags_Loaded;
     }
 
-    // Unload if the refcount is zero.
     if (!assetComp->refCount && assetComp->flags & AssetFlags_Loaded) {
+      /**
+       * Asset should be unloaded.
+       * Actual data cleanup will be performed by the loader responsible for this asset-type.
+       */
       ecs_world_remove_t(world, entity, AssetLoadedComp);
       assetComp->flags &= ~AssetFlags_Loaded;
     }

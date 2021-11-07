@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_array.h"
 
 #include "repo_internal.h"
 
@@ -12,9 +13,15 @@ void asset_source_close(AssetSource* src) {
   }
 }
 
+String asset_format_str(AssetFormat fmt) {
+  static const String names[] = {
+      string_static("Raw"),
+  };
+  ASSERT(array_elems(names) == AssetFormat_Count, "Incorrect number of asset-format names");
+  return names[fmt];
+}
+
 AssetFormat asset_format_from_ext(String ext) {
-  if (string_eq(ext, string_lit("tga"))) {
-    return AssetFormat_Tga;
-  }
+  (void)ext;
   return AssetFormat_Raw;
 }
