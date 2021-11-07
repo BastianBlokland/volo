@@ -25,6 +25,26 @@ String string_from_null_term(const char* ptr) {
 
 String string_dup(Allocator* alloc, String str) { return alloc_dup(alloc, str, 1); }
 
+String string_combine_raw(Allocator* alloc, const String* parts) {
+  usize size = 0;
+  for (const String* itr = parts; itr->ptr; ++itr) {
+    size += itr->size;
+  }
+
+  if (UNLIKELY(!size)) {
+    return string_empty;
+  }
+  String result = alloc_alloc(alloc, size, 1);
+
+  usize offset = 0;
+  for (const String* itr = parts; itr->ptr; ++itr) {
+    String part = *itr;
+    mem_cpy(mem_consume(result, offset), part);
+    offset += part.size;
+  }
+  return result;
+}
+
 void string_free(Allocator* alloc, String str) { alloc_free(alloc, str); }
 
 i8 string_cmp(String a, String b) { return mem_cmp(a, b); }
