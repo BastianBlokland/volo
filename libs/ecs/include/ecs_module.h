@@ -17,12 +17,14 @@ typedef void (*EcsModuleInit)(EcsModuleBuilder*);
 typedef void (*EcsViewInit)(EcsViewBuilder*);
 typedef void (*EcsSystemRoutine)(EcsWorld*);
 typedef void (*EcsCompDestructor)(void*);
+typedef void (*EcsCompCombinator)(void*, void*);
 
 typedef struct {
   String            name;
   usize             size;
   usize             align;
   EcsCompDestructor destructor;
+  EcsCompCombinator combinator;
 } EcsCompConfig;
 
 typedef struct {

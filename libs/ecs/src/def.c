@@ -113,72 +113,69 @@ bool ecs_def_system_has_access(const EcsDef* def, const EcsSystemId sysId, const
   return dynarray_search_binary((DynArray*)&system->viewIds, ecs_compare_view, &id) != null;
 }
 
-EcsCompId ecs_def_register_comp(
-    EcsDef*           def,
-    const String      name,
-    const usize       size,
-    const usize       align,
-    EcsCompDestructor destructor) {
+EcsCompId ecs_def_register_comp(EcsDef* def, const EcsCompConfig* config) {
 
   diag_assert_msg(!(def->flags & EcsDefFlags_Frozen), "Unable to modify a frozen definition");
   diag_assert_msg(
-      !ecs_def_comp_by_name(def, name), "Duplicate component name '{}'", fmt_text(name));
+      !ecs_def_comp_by_name(def, config->name),
+      "Duplicate component name '{}'",
+      fmt_text(config->name));
   diag_assert_msg(
-      bits_ispow2(align), "Component alignment '{}' is not a power-of-two", fmt_int(align));
+      bits_ispow2(config->align),
+      "Component alignment '{}' is not a power-of-two",
+      fmt_int(config->align));
   diag_assert_msg(
-      bits_aligned(size, align),
+      bits_aligned(config->size, config->align),
       "Component size '{}' is not a multiple of the alignment '{}'",
-      fmt_size(size),
-      fmt_int(align));
+      fmt_size(config->size),
+      fmt_int(config->align));
   diag_assert_msg(
-      size <= ecs_comp_max_size,
+      config->size <= ecs_comp_max_size,
       "Component size '{}' is bigger then the maximum of '{}'",
-      fmt_size(size),
+      fmt_size(config->size),
       fmt_size(ecs_comp_max_size));
-  diag_assert_msg(!destructor || size > 0, "Empty components do not support destructors");
+  diag_assert_msg(
+      !config->destructor || config->size > 0, "Empty components do not support destructors");
+  diag_assert_msg(
+      !config->combinator || config->size > 0, "Empty components do not support combinators");
 
   EcsCompId id                                   = (EcsCompId)def->components.size;
   *dynarray_push_t(&def->components, EcsCompDef) = (EcsCompDef){
-      .name       = string_dup(def->alloc, name),
-      .size       = size,
-      .align      = align,
-      .destructor = destructor,
+      .name       = string_dup(def->alloc, config->name),
+      .size       = config->size,
+      .align      = config->align,
+      .destructor = config->destructor,
+      .combinator = config->combinator,
   };
   return id;
 }
 
-EcsViewId ecs_def_register_view(EcsDef* def, const String name, const EcsViewInit initRoutine) {
+EcsViewId ecs_def_register_view(EcsDef* def, const EcsViewConfig* config) {
   diag_assert_msg(!(def->flags & EcsDefFlags_Frozen), "Unable to modify a frozen definition");
 
   EcsViewId id                              = (EcsViewId)def->views.size;
   *dynarray_push_t(&def->views, EcsViewDef) = (EcsViewDef){
-      .name        = string_dup(def->alloc, name),
-      .initRoutine = initRoutine,
+      .name        = string_dup(def->alloc, config->name),
+      .initRoutine = config->initRoutine,
   };
   return id;
 }
 
-EcsSystemId ecs_def_register_system(
-    EcsDef*                def,
-    const String           name,
-    const EcsSystemRoutine routine,
-    const EcsSystemFlags   flags,
-    const EcsViewId*       views,
-    const usize            viewCount) {
+EcsSystemId ecs_def_register_system(EcsDef* def, const EcsSystemConfig* config) {
   diag_assert_msg(!(def->flags & EcsDefFlags_Frozen), "Unable to modify a frozen definition");
 
   EcsSystemId   id        = (EcsSystemId)def->systems.size;
   EcsSystemDef* systemDef = dynarray_push_t(&def->systems, EcsSystemDef);
   *systemDef              = (EcsSystemDef){
-      .name    = string_dup(def->alloc, name),
-      .routine = routine,
-      .flags   = flags,
-      .viewIds = dynarray_create_t(def->alloc, EcsViewId, viewCount),
+      .name    = string_dup(def->alloc, config->name),
+      .routine = config->routine,
+      .flags   = config->flags,
+      .viewIds = dynarray_create_t(def->alloc, EcsViewId, config->viewCount),
   };
 
-  for (usize i = 0; i != viewCount; ++i) {
-    *dynarray_insert_sorted_t(&systemDef->viewIds, EcsViewId, ecs_compare_view, &views[i]) =
-        views[i];
+  for (usize i = 0; i != config->viewCount; ++i) {
+    *dynarray_insert_sorted_t(&systemDef->viewIds, EcsViewId, ecs_compare_view, &config->views[i]) =
+        config->views[i];
   }
 
   return id;
@@ -186,6 +183,10 @@ EcsSystemId ecs_def_register_system(
 
 EcsCompDestructor ecs_def_comp_destructor(const EcsDef* def, const EcsCompId id) {
   return ecs_def_comp(def, id)->destructor;
+}
+
+EcsCompCombinator ecs_def_comp_combinator(const EcsDef* def, const EcsCompId id) {
+  return ecs_def_comp(def, id)->combinator;
 }
 
 void ecs_def_freeze(EcsDef* def) { def->flags |= EcsDefFlags_Frozen; }

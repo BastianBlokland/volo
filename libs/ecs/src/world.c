@@ -92,12 +92,19 @@ static void ecs_world_apply_added_comps(
     if (!bitset_test(initializedComps, compId)) {
       mem_cpy(ecs_iterator_access(storageItr, compId), compData);
       bitset_set(initializedComps, compId);
-    } else {
-      diag_assert_fail(
-          "Duplicate addition of {} to entity {}",
-          fmt_text(ecs_def_comp_name(buffer->def, compId)),
-          fmt_int(entity));
+      continue;
     }
+
+    EcsCompCombinator combinator = ecs_def_comp_combinator(storage->def, compId);
+    if (combinator) {
+      combinator(ecs_iterator_access(storageItr, compId).ptr, compData.ptr);
+      continue;
+    }
+
+    diag_assert_fail(
+        "Duplicate addition of {} to entity {}",
+        fmt_text(ecs_def_comp_name(buffer->def, compId)),
+        fmt_int(entity));
   }
 }
 
@@ -221,12 +228,6 @@ void* ecs_world_add(
   diag_assert_msg(
       ecs_world_exists(world, entity),
       "Unable to add {} to entity {}, reason: entity does not exist",
-      fmt_text(ecs_def_comp_name(world->def, comp)),
-      fmt_int(entity));
-
-  diag_assert_msg(
-      !data.size || !ecs_world_has(world, entity, comp),
-      "Unable to add {} to entity {}, reason: entity allready has the specified component",
       fmt_text(ecs_def_comp_name(world->def, comp)),
       fmt_int(entity));
 

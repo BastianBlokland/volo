@@ -85,9 +85,9 @@ bool ecs_world_has(EcsWorld*, EcsEntityId, EcsCompId);
 /**
  * Schedule a component to be added at the next flush.
  * NOTE: The returned pointer is valid until the next flush.
+ * NOTE: Non-empty components without a combinator can only be added if the entity doesn't have it.
  *
  * Pre-condition: ecs_world_exists(world, entity)
- * Pre-condition: !ecs_world_has(world, entity, comp) || ecs_def_comp_size(comp) == 0
  * Pre-condition: !ecs_world_busy() || g_ecsRunningSystem
  */
 #define ecs_world_add_t(_WORLD_, _ENTITY_, _TYPE_, ...)                                            \
