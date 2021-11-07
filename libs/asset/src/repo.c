@@ -18,6 +18,7 @@ void asset_repo_destroy(AssetRepo* repo) { repo->destroy(repo); }
 String asset_format_str(AssetFormat fmt) {
   static const String names[] = {
       string_static("Raw"),
+      string_static("Tga"),
   };
   ASSERT(array_elems(names) == AssetFormat_Count, "Incorrect number of asset-format names");
   return names[fmt];

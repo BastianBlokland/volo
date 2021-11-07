@@ -2,7 +2,7 @@
 #include "core_alloc.h"
 #include "ecs_world.h"
 
-#include "loader_internal.h"
+#include "repo_internal.h"
 
 ecs_comp_define_public(AssetRawComp);
 ecs_comp_define(AssetRawSourceComp) { AssetSource* src; };
@@ -18,7 +18,7 @@ ecs_view_define(UnloadView) {
   ecs_access_without(AssetLoadedComp);
 };
 
-ecs_system_define(UnloadRawAssetsSys) {
+ecs_system_define(UnloadRawAssetSys) {
   /**
    * Remove any raw-asset components for unloaded assets.
    */
@@ -36,7 +36,7 @@ ecs_module_init(asset_raw_module) {
 
   ecs_register_view(UnloadView);
 
-  ecs_register_system(UnloadRawAssetsSys, ecs_view_id(UnloadView));
+  ecs_register_system(UnloadRawAssetSys, ecs_view_id(UnloadView));
 }
 
 void asset_load_raw(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) {

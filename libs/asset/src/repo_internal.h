@@ -3,6 +3,7 @@
 
 typedef enum {
   AssetFormat_Raw,
+  AssetFormat_Tga,
 
   AssetFormat_Count,
 } AssetFormat;
