@@ -94,7 +94,8 @@ spec(search) {
         {.key = -42, .value = string_lit("A")},
         {.key = 2, .value = string_lit("B")},
         {.key = 8, .value = string_lit("C")},
-        {.key = 9, .value = string_lit("D")},
+        {.key = 9, .value = string_lit("D1")},
+        {.key = 9, .value = string_lit("D2")},
         {.key = 12, .value = string_lit("E")},
         {.key = 60, .value = string_lit("F")},
         {.key = 256, .value = string_lit("G")},
@@ -103,6 +104,14 @@ spec(search) {
     const TestElem* found = null;
 
     found = test_search_binary_greater(data, data + array_elems(data), 10);
+    check_require(found != null);
+    check_eq_string(found->value, string_lit("E"));
+
+    found = test_search_binary_greater(data, data + array_elems(data), 8);
+    check_require(found != null);
+    check_eq_string(found->value, string_lit("D1"));
+
+    found = test_search_binary_greater(data, data + array_elems(data), 9);
     check_require(found != null);
     check_eq_string(found->value, string_lit("E"));
 
@@ -115,8 +124,7 @@ spec(search) {
     check_eq_string(found->value, string_lit("G"));
 
     found = test_search_binary_greater(data, data + array_elems(data), 256);
-    check_require(found != null);
-    check_eq_string(found->value, string_lit("G"));
+    check(found == null);
 
     found = test_search_binary_greater(data, data + array_elems(data), 257);
     check(found == null);
