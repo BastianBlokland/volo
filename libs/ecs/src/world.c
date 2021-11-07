@@ -62,7 +62,8 @@ static EcsArchetypeId ecs_world_archetype_find_or_create(EcsWorld* world, const 
   return newId;
 }
 
-static void ecs_world_cpy_added_comps(EcsStorage* storage, EcsBuffer* buffer, const usize idx) {
+static void ecs_world_apply_added_comps(
+    EcsStorage* storage, EcsBuffer* buffer, const usize idx, const BitSet currentMask) {
 
   const EcsEntityId entity     = ecs_buffer_entity(buffer, idx);
   const BitSet      addedComps = ecs_buffer_entity_added(buffer, idx);
@@ -75,6 +76,10 @@ static void ecs_world_cpy_added_comps(EcsStorage* storage, EcsBuffer* buffer, co
    * 'ecs_buffer_comp_begin' / 'ecs_buffer_comp_next' iteration.
    */
 
+  BitSet initializedComps = ecs_comp_mask_stack(storage->def);
+  mem_set(initializedComps, 0);
+  mem_cpy(initializedComps, currentMask);
+
   EcsIterator* storageItr = ecs_iterator_stack(addedComps);
   ecs_storage_itr_jump(storage, storageItr, entity);
 
@@ -84,7 +89,15 @@ static void ecs_world_cpy_added_comps(EcsStorage* storage, EcsBuffer* buffer, co
     const EcsCompId compId   = ecs_buffer_comp_id(bufferItr);
     const Mem       compData = ecs_buffer_comp_data(buffer, bufferItr);
 
-    mem_cpy(ecs_iterator_access(storageItr, compId), compData);
+    if (!bitset_test(initializedComps, compId)) {
+      mem_cpy(ecs_iterator_access(storageItr, compId), compData);
+      bitset_set(initializedComps, compId);
+    } else {
+      diag_assert_fail(
+          "Duplicate addition of {} to entity {}",
+          fmt_text(ecs_def_comp_name(buffer->def, compId)),
+          fmt_int(entity));
+    }
   }
 }
 
@@ -285,11 +298,10 @@ void ecs_world_flush_internal(EcsWorld* world) {
     bitset_xor(newCompMask, ecs_buffer_entity_removed(&world->buffer, i));
     bitset_or(newCompMask, ecs_buffer_entity_added(&world->buffer, i));
 
+    const BitSet         curCompMask  = ecs_storage_entity_mask(&world->storage, entity);
     const EcsArchetypeId newArchetype = ecs_world_archetype_find_or_create(world, newCompMask);
-    if (ecs_storage_entity_archetype(&world->storage, entity) != newArchetype) {
-      ecs_storage_entity_move(&world->storage, entity, newArchetype);
-      ecs_world_cpy_added_comps(&world->storage, &world->buffer, i);
-    }
+    ecs_storage_entity_move(&world->storage, entity, newArchetype);
+    ecs_world_apply_added_comps(&world->storage, &world->buffer, i, curCompMask);
   }
 
   ecs_buffer_clear(&world->buffer);
