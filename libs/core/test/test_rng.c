@@ -12,14 +12,14 @@ spec(rng) {
     Allocator* alloc = alloc_bump_create_stack(256);
     Rng*       rng   = rng_create_xorwow(alloc, seed);
 
-    float sum = 0.0f;
+    f32 sum = 0.0f;
     for (usize i = 0; i != iterations; ++i) {
       const f32 rnd = rng_sample_f32(rng);
       check(rnd >= 0.0f);
       check(rnd < 1.0f);
       sum += rnd;
     }
-    const float avg = sum / iterations;
+    const f32 avg = sum / iterations;
 
     // Uniform distribution should average out to 0.5.
     // Note: Adding more iterations would allow a tighter tolerance here.
@@ -35,13 +35,13 @@ spec(rng) {
     Allocator* alloc = alloc_bump_create_stack(256);
     Rng*       rng   = rng_create_xorwow(alloc, seed);
 
-    float sum = 0.0f;
+    f32 sum = 0.0f;
     for (usize i = 0; i != iterations; ++i) {
       const RngGaussPairF32 rnd = rng_sample_gauss_f32(rng);
       sum += rnd.a;
       sum += rnd.b;
     }
-    const float avg = sum / iterations;
+    const f32 avg = sum / iterations;
 
     // Gaussian distribution should average out to 0.
     // Note: Adding more iterations would allow a tighter tolerance here.

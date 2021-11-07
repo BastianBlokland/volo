@@ -224,7 +224,7 @@ static VkPhysicalDeviceFeatures rend_vk_device_pick_features(RendVkDevice* devic
 
 static VkDevice rend_vk_device_create_internal(RendVkDevice* device) {
   // Request our main queue (both graphics and transfer) to be created on the device.
-  const float             queuePriority   = 1.0f;
+  const f32               queuePriority   = 1.0f;
   VkDeviceQueueCreateInfo queueCreateInfo = {
       .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
       .queueFamilyIndex = device->mainQueueIndex,

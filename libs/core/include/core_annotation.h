@@ -86,8 +86,8 @@ ASSERT(false, "Unsupported compiler");
  * '
  * '
  *   PACKED(typedef struct {
- *     int a;
- *     float b;
+ *     i32 a;
+ *     f32 b;
  *   }) MyStruct;
  * '
  */

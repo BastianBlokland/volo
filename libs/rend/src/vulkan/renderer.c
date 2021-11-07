@@ -71,8 +71,8 @@ static void rend_vk_viewport_set(VkCommandBuffer vkCommandBuffer, const RendSize
   VkViewport viewport = {
       .x        = 0.0f,
       .y        = 0.0f,
-      .width    = (float)size.width,
-      .height   = (float)size.height,
+      .width    = (f32)size.width,
+      .height   = (f32)size.height,
       .minDepth = 0.0f,
       .maxDepth = 1.0f,
   };

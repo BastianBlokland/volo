@@ -5,9 +5,9 @@
 
 typedef union {
   struct {
-    float r, g, b, a;
+    f32 r, g, b, a;
   };
-  float data[4];
+  f32 data[4];
 } RendColor;
 
 ASSERT(sizeof(RendColor) == 16, "RendColor has to be 128 bits");
