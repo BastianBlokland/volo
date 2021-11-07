@@ -29,7 +29,7 @@ EcsEntityId asset_manager_create_fs(EcsWorld*, String rootPath);
  * Create a asset-manager that loads assets from a set of pre-loaded in-memory sources.
  * For example usefull for unit-testing.
  */
-EcsEntityId asset_manager_create_mem(EcsWorld*, AssetMemRecord* records, usize recordCount);
+EcsEntityId asset_manager_create_mem(EcsWorld*, const AssetMemRecord* records, usize recordCount);
 
 /**
  * Lookup a asset-entity by its id.

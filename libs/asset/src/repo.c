@@ -13,6 +13,8 @@ void asset_source_close(AssetSource* src) {
   }
 }
 
+void asset_repo_destroy(AssetRepo* repo) { repo->destroy(repo); }
+
 String asset_format_str(AssetFormat fmt) {
   static const String names[] = {
       string_static("Raw"),

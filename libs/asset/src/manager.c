@@ -195,15 +195,16 @@ ecs_module_init(asset_manager_module) {
   ecs_register_system(UpdateDirtyAssetsSys, ecs_view_id(DirtyAssetView), ecs_view_id(ManagerView));
 }
 
-EcsEntityId asset_manager_create_fs(EcsWorld* world, String rootPath) {
+EcsEntityId asset_manager_create_fs(EcsWorld* world, const String rootPath) {
   return asset_manager_create_internal(world, asset_repo_create_fs(rootPath));
 }
 
-EcsEntityId asset_manager_create_mem(EcsWorld* world, AssetMemRecord* records, usize recordCount) {
+EcsEntityId
+asset_manager_create_mem(EcsWorld* world, const AssetMemRecord* records, const usize recordCount) {
   return asset_manager_create_internal(world, asset_repo_create_mem(records, recordCount));
 }
 
-EcsEntityId asset_manager_lookup(EcsWorld* world, AssetManagerComp* manager, String id) {
+EcsEntityId asset_lookup(EcsWorld* world, AssetManagerComp* manager, const String id) {
   /**
    * Find or create an asset entity.
    * Do a binary-search for the first entry with a greater id hash, which means our asset has to be
@@ -211,7 +212,7 @@ EcsEntityId asset_manager_lookup(EcsWorld* world, AssetManagerComp* manager, Str
    * inserted at the position of that greater element.
    */
   const u32   idHash  = bits_hash_32(id);
-  AssetEntry* begin   = dynarray_at_t(&manager->lookup, 0, AssetEntry);
+  AssetEntry* begin   = manager->lookup.data.ptr;
   AssetEntry* end     = begin + manager->lookup.size;
   AssetEntry* greater = search_binary_greater_t(
       begin, end, AssetEntry, asset_compare_entry, mem_struct(AssetEntry, .idHash = idHash).ptr);

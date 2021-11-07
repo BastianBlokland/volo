@@ -47,7 +47,7 @@ static void asset_repo_mem_destroy(AssetRepo* repo) {
   alloc_free_t(g_alloc_heap, repoMem);
 }
 
-AssetRepo* asset_repo_create_mem(AssetMemRecord* records, usize recordCount) {
+AssetRepo* asset_repo_create_mem(const AssetMemRecord* records, const usize recordCount) {
   AssetRepoMem* repo = alloc_alloc_t(g_alloc_heap, AssetRepoMem);
   *repo              = (AssetRepoMem){
       .api     = {.open = asset_source_mem_open, .destroy = asset_repo_mem_destroy},

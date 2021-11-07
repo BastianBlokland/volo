@@ -22,7 +22,7 @@ struct sAssetSource {
 };
 
 AssetRepo*   asset_repo_create_fs(String rootPath);
-AssetRepo*   asset_repo_create_mem(AssetMemRecord* records, usize recordCount);
+AssetRepo*   asset_repo_create_mem(const AssetMemRecord* records, usize recordCount);
 void         asset_repo_destroy(AssetRepo*);
 AssetSource* asset_source_open(AssetRepo*, String id);
 void         asset_source_close(AssetSource*);
