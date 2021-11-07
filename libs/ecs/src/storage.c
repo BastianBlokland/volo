@@ -34,7 +34,7 @@ static void ecs_storage_entity_init(EcsStorage* storage, const EcsEntityId id) {
   }
 }
 
-static EcsArchetype* ecs_storage_archetype_ptr(EcsStorage* storage, const EcsArchetypeId id) {
+static EcsArchetype* ecs_storage_archetype_ptr(const EcsStorage* storage, const EcsArchetypeId id) {
   if (sentinel_check(id)) {
     return null;
   }
@@ -154,9 +154,11 @@ void ecs_storage_entity_move(
   EcsEntityInfo* info              = ecs_storage_entity_info_ptr(storage, id);
   EcsArchetype*  oldArchetype      = ecs_storage_archetype_ptr(storage, info->archetype);
   const u32      oldArchetypeIndex = info->archetypeIndex;
+  EcsArchetype*  newArchetype      = ecs_storage_archetype_ptr(storage, newArchetypeId);
 
-  EcsArchetype* newArchetype = ecs_storage_archetype_ptr(storage, newArchetypeId);
-  diag_assert_msg(newArchetype != oldArchetype, "Entity cannot be moved to the same archetype");
+  if (newArchetype == oldArchetype) {
+    return; // Same archetype; no need to move.
+  }
 
   if (newArchetype) {
     const u32 newArchetypeIndex = ecs_archetype_add(newArchetype, id);
@@ -211,7 +213,7 @@ void ecs_storage_entity_destroy(EcsStorage* storage, const EcsEntityId id) {
   entity_allocator_free(&storage->entityAllocator, id);
 }
 
-usize ecs_storage_archetype_entities_per_chunk(EcsStorage* storage, const EcsArchetypeId id) {
+usize ecs_storage_archetype_entities_per_chunk(const EcsStorage* storage, const EcsArchetypeId id) {
   return ecs_storage_archetype_ptr(storage, id)->entitiesPerChunk;
 }
 

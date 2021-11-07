@@ -64,6 +64,14 @@ typedef enum {
 #define string_last(_STRING_) ((u8*)(_STRING_).ptr + (_STRING_).size - 1)
 
 /**
+ * Allocate a new string that contains the contents of all the given strings.
+ * NOTE: Has to be explicitly freed using 'string_free'.
+ */
+#define string_combine(_ALLOC_, ...)                                                               \
+  string_combine_raw(                                                                              \
+      (_ALLOC_), (const String[]){VA_ARGS_SKIP_FIRST(0, ##__VA_ARGS__, string_empty)})
+
+/**
  * Create a string from a null-terminated character pointer.
  */
 String string_from_null_term(const char*);
@@ -73,6 +81,15 @@ String string_from_null_term(const char*);
  * NOTE: Has to be explicitly freed using 'string_free'.
  */
 String string_dup(Allocator*, String);
+
+/**
+ * Allocate a new string that contains the contents of all the given strings.
+ * NOTE: Has to be explicitly freed using 'string_free'.
+ *
+ * Pre-condition: 'parts' array should be terminated with an empty string (at least an pointer sized
+ * section of 0 bytes).
+ */
+String string_combine_raw(Allocator*, const String* parts);
 
 /**
  * Free previously allocated string.

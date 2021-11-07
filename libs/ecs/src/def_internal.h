@@ -11,6 +11,7 @@ typedef struct {
   usize             size;
   usize             align;
   EcsCompDestructor destructor;
+  EcsCompCombinator combinator;
 } EcsCompDef;
 
 typedef struct {
@@ -39,17 +40,12 @@ struct sEcsDef {
   Allocator*  alloc;
 };
 
-EcsCompId   ecs_def_register_comp(EcsDef*, String name, usize size, usize align, EcsCompDestructor);
-EcsViewId   ecs_def_register_view(EcsDef*, String name, EcsViewInit);
-EcsSystemId ecs_def_register_system(
-    EcsDef*,
-    String name,
-    EcsSystemRoutine,
-    EcsSystemFlags,
-    const EcsViewId* views,
-    usize            viewCount);
+EcsCompId   ecs_def_register_comp(EcsDef*, const EcsCompConfig*);
+EcsViewId   ecs_def_register_view(EcsDef*, const EcsViewConfig*);
+EcsSystemId ecs_def_register_system(EcsDef*, const EcsSystemConfig*);
 
 EcsCompDestructor ecs_def_comp_destructor(const EcsDef*, EcsCompId);
+EcsCompCombinator ecs_def_comp_combinator(const EcsDef*, EcsCompId);
 
 /**
  * Dissallow any further modications to this definition.

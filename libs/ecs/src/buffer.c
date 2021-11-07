@@ -183,39 +183,17 @@ void ecs_buffer_clear(EcsBuffer* buffer) {
 
 void ecs_buffer_destroy_entity(EcsBuffer* buffer, const EcsEntityId entityId) {
   EcsBufferEntity* entity = ecs_buffer_entity_get(buffer, entityId);
-
-  MAYBE_UNUSED BitSet addMask    = ecs_buffer_mask(buffer, entity->addMask);
-  MAYBE_UNUSED BitSet removeMask = ecs_buffer_mask(buffer, entity->removeMask);
-
-  diag_assert_msg(
-      !bitset_any(addMask) && !bitset_any(removeMask),
-      "Unable to enqueue destruction of entity {}, reason: modifications present",
-      fmt_int(entityId));
-
   entity->flags |= EcsBufferEntityFlags_Destroy;
 }
 
 void* ecs_buffer_comp_add(
     EcsBuffer* buffer, const EcsEntityId entityId, const EcsCompId compId, const Mem data) {
 
-  EcsBufferEntity* entity  = ecs_buffer_entity_get(buffer, entityId);
-  BitSet           addMask = ecs_buffer_mask(buffer, entity->addMask);
-
-  diag_assert_msg(
-      !bitset_test(addMask, compId),
-      "Unable to enqueue addition of {} to entity {}, reason: duplicate addition",
-      fmt_text(ecs_def_comp_name(buffer->def, compId)),
-      fmt_int(entityId));
-
-  diag_assert_msg(
-      (entity->flags & EcsBufferEntityFlags_Destroy) == 0,
-      "Unable to enqueue addition of {} to entity {}, reason: destruction present",
-      fmt_text(ecs_def_comp_name(buffer->def, compId)),
-      fmt_int(entityId));
+  EcsBufferEntity* entity   = ecs_buffer_entity_get(buffer, entityId);
+  BitSet           addMask  = ecs_buffer_mask(buffer, entity->addMask);
+  const usize      compSize = ecs_def_comp_size(buffer->def, compId);
 
   bitset_set(addMask, compId);
-
-  const usize compSize = ecs_def_comp_size(buffer->def, compId);
   if (!compSize) {
     diag_assert(data.size == 0);
     return null; // There is no need to store payload for empty components.
@@ -241,19 +219,6 @@ void* ecs_buffer_comp_add(
 void ecs_buffer_comp_remove(EcsBuffer* buffer, const EcsEntityId entityId, const EcsCompId compId) {
   EcsBufferEntity* entity     = ecs_buffer_entity_get(buffer, entityId);
   BitSet           removeMask = ecs_buffer_mask(buffer, entity->removeMask);
-
-  diag_assert_msg(
-      !bitset_test(removeMask, compId),
-      "Unable to enqueue removal of {} from entity {}, reason: duplicate removal",
-      fmt_text(ecs_def_comp_name(buffer->def, compId)),
-      fmt_int(entityId));
-
-  diag_assert_msg(
-      (entity->flags & EcsBufferEntityFlags_Destroy) == 0,
-      "Unable to enqueue removal of {} from entity {}, reason: destruction present",
-      fmt_text(ecs_def_comp_name(buffer->def, compId)),
-      fmt_int(entityId));
-
   bitset_set(removeMask, compId);
 }
 

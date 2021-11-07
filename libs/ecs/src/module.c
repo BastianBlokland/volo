@@ -31,8 +31,7 @@ void ecs_module_destroy(EcsDef* def, EcsModuleDef* module) {
 
 EcsCompId
 ecs_module_register_comp(EcsModuleBuilder* builder, EcsCompId* var, const EcsCompConfig* config) {
-  const EcsCompId id = ecs_def_register_comp(
-      builder->def, config->name, config->size, config->align, config->destructor);
+  const EcsCompId id = ecs_def_register_comp(builder->def, config);
 
   *dynarray_push_t(&builder->module->componentIds, EcsCompId) = id;
 
@@ -44,7 +43,7 @@ ecs_module_register_comp(EcsModuleBuilder* builder, EcsCompId* var, const EcsCom
 
 EcsViewId
 ecs_module_register_view(EcsModuleBuilder* builder, EcsViewId* var, const EcsViewConfig* config) {
-  const EcsViewId id = ecs_def_register_view(builder->def, config->name, config->initRoutine);
+  const EcsViewId id = ecs_def_register_view(builder->def, config);
   *dynarray_push_t(&builder->module->viewIds, EcsViewId) = id;
 
   if (var) {
@@ -118,8 +117,7 @@ void ecs_module_access_maybe_write(EcsViewBuilder* builder, const EcsCompId comp
 EcsSystemId ecs_module_register_system(
     EcsModuleBuilder* builder, EcsSystemId* var, const EcsSystemConfig* config) {
 
-  const EcsSystemId id = ecs_def_register_system(
-      builder->def, config->name, config->routine, config->flags, config->views, config->viewCount);
+  const EcsSystemId id = ecs_def_register_system(builder->def, config);
   *dynarray_push_t(&builder->module->systemIds, EcsSystemId) = id;
 
   if (var) {

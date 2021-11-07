@@ -62,7 +62,8 @@ static EcsArchetypeId ecs_world_archetype_find_or_create(EcsWorld* world, const 
   return newId;
 }
 
-static void ecs_world_cpy_added_comps(EcsStorage* storage, EcsBuffer* buffer, const usize idx) {
+static void ecs_world_apply_added_comps(
+    EcsStorage* storage, EcsBuffer* buffer, const usize idx, const BitSet currentMask) {
 
   const EcsEntityId entity     = ecs_buffer_entity(buffer, idx);
   const BitSet      addedComps = ecs_buffer_entity_added(buffer, idx);
@@ -75,6 +76,10 @@ static void ecs_world_cpy_added_comps(EcsStorage* storage, EcsBuffer* buffer, co
    * 'ecs_buffer_comp_begin' / 'ecs_buffer_comp_next' iteration.
    */
 
+  BitSet initializedComps = ecs_comp_mask_stack(storage->def);
+  mem_set(initializedComps, 0);
+  mem_cpy(initializedComps, currentMask);
+
   EcsIterator* storageItr = ecs_iterator_stack(addedComps);
   ecs_storage_itr_jump(storage, storageItr, entity);
 
@@ -84,7 +89,36 @@ static void ecs_world_cpy_added_comps(EcsStorage* storage, EcsBuffer* buffer, co
     const EcsCompId compId   = ecs_buffer_comp_id(bufferItr);
     const Mem       compData = ecs_buffer_comp_data(buffer, bufferItr);
 
-    mem_cpy(ecs_iterator_access(storageItr, compId), compData);
+    if (!bitset_test(initializedComps, compId)) {
+      mem_cpy(ecs_iterator_access(storageItr, compId), compData);
+      bitset_set(initializedComps, compId);
+      continue;
+    }
+
+    EcsCompCombinator combinator = ecs_def_comp_combinator(storage->def, compId);
+    if (combinator) {
+      combinator(ecs_iterator_access(storageItr, compId).ptr, compData.ptr);
+      continue;
+    }
+
+    diag_assert_fail(
+        "Duplicate addition of {} to entity {}",
+        fmt_text(ecs_def_comp_name(buffer->def, compId)),
+        fmt_int(entity));
+  }
+}
+
+static void ecs_world_destroy_added_comps(const EcsDef* def, EcsBuffer* buffer, const usize idx) {
+
+  for (EcsBufferCompData* bufferItr = ecs_buffer_comp_begin(buffer, idx); bufferItr;
+       bufferItr                    = ecs_buffer_comp_next(bufferItr)) {
+
+    const EcsCompId         compId     = ecs_buffer_comp_id(bufferItr);
+    const Mem               compData   = ecs_buffer_comp_data(buffer, bufferItr);
+    const EcsCompDestructor destructor = ecs_def_comp_destructor(def, compId);
+    if (destructor) {
+      destructor(compData.ptr);
+    }
   }
 }
 
@@ -197,12 +231,6 @@ void* ecs_world_add(
       fmt_text(ecs_def_comp_name(world->def, comp)),
       fmt_int(entity));
 
-  diag_assert_msg(
-      !ecs_world_has(world, entity, comp),
-      "Unable to add {} to entity {}, reason: entity allready has the specified component",
-      fmt_text(ecs_def_comp_name(world->def, comp)),
-      fmt_int(entity));
-
   thread_spinlock_lock(&world->bufferLock);
   void* result = ecs_buffer_comp_add(&world->buffer, entity, comp, data);
   thread_spinlock_unlock(&world->bufferLock);
@@ -257,18 +285,24 @@ void ecs_world_flush_internal(EcsWorld* world) {
     const EcsEntityId entity = ecs_buffer_entity(&world->buffer, i);
 
     if (ecs_buffer_entity_flags(&world->buffer, i) & EcsBufferEntityFlags_Destroy) {
+      /**
+       * Discard any component additions for the same entity in the buffer.
+       */
+      ecs_world_destroy_added_comps(world->def, &world->buffer, i);
+
       ecs_storage_entity_destroy(&world->storage, entity);
       continue;
     }
 
     bitset_clear_all(newCompMask);
     bitset_or(newCompMask, ecs_storage_entity_mask(&world->storage, entity));
-    bitset_or(newCompMask, ecs_buffer_entity_added(&world->buffer, i));
     bitset_xor(newCompMask, ecs_buffer_entity_removed(&world->buffer, i));
+    bitset_or(newCompMask, ecs_buffer_entity_added(&world->buffer, i));
 
+    const BitSet         curCompMask  = ecs_storage_entity_mask(&world->storage, entity);
     const EcsArchetypeId newArchetype = ecs_world_archetype_find_or_create(world, newCompMask);
     ecs_storage_entity_move(&world->storage, entity, newArchetype);
-    ecs_world_cpy_added_comps(&world->storage, &world->buffer, i);
+    ecs_world_apply_added_comps(&world->storage, &world->buffer, i, curCompMask);
   }
 
   ecs_buffer_clear(&world->buffer);
