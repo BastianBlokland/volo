@@ -158,7 +158,9 @@ static bool rend_vk_swapchain_init(RendVkSwapchain* swapchain, const RendSize si
       .oldSwapchain       = oldSwapchain,
   };
   rend_vk_call(vkCreateSwapchainKHR, vkDevice, &createInfo, vkAllocHost, &swapchain->vkSwapchain);
-  vkDestroySwapchainKHR(vkDevice, oldSwapchain, &swapchain->device->vkAllocHost);
+  if (oldSwapchain) {
+    vkDestroySwapchainKHR(vkDevice, oldSwapchain, &swapchain->device->vkAllocHost);
+  }
 
   u32 imageCount;
   rend_vk_call(vkGetSwapchainImagesKHR, vkDevice, swapchain->vkSwapchain, &imageCount, null);
