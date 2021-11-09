@@ -54,7 +54,7 @@ typedef struct {
 
 typedef struct {
   u16                origin[2];
-  u16                size[2];
+  u16                width, height;
   u8                 bitsPerPixel;
   TgaImageDescriptor descriptor;
 } TgaImageSpec;
@@ -105,31 +105,33 @@ static String tga_error_str(TgaError res) {
   return msgs[res];
 }
 
-static TgaError tga_read_header(Mem* data, TgaHeader* out) {
-  if (UNLIKELY(data->size < 18)) {
-    return TgaError_MalformedHeader;
+static Mem tga_read_header(Mem input, TgaHeader* out, TgaError* err) {
+  if (UNLIKELY(input.size < 18)) {
+    *err = TgaError_MalformedHeader;
+    return input;
   }
   *out  = (TgaHeader){0};
-  *data = mem_consume_le_u8(*data, &out->idLength);
-  *data = mem_consume_le_u8(*data, (u8*)&out->colorMapType);
-  *data = mem_consume_le_u8(*data, (u8*)&out->imageType);
-  *data = mem_consume_le_u16(*data, &out->colorMapSpec.mapStart);
-  *data = mem_consume_le_u16(*data, &out->colorMapSpec.mapLength);
-  *data = mem_consume_le_u8(*data, &out->colorMapSpec.entrySize);
-  *data = mem_consume_le_u16(*data, &out->imageSpec.origin[0]);
-  *data = mem_consume_le_u16(*data, &out->imageSpec.origin[1]);
-  *data = mem_consume_le_u16(*data, &out->imageSpec.size[0]);
-  *data = mem_consume_le_u16(*data, &out->imageSpec.size[1]);
-  *data = mem_consume_le_u8(*data, &out->imageSpec.bitsPerPixel);
+  input = mem_consume_le_u8(input, &out->idLength);
+  input = mem_consume_le_u8(input, (u8*)&out->colorMapType);
+  input = mem_consume_le_u8(input, (u8*)&out->imageType);
+  input = mem_consume_le_u16(input, &out->colorMapSpec.mapStart);
+  input = mem_consume_le_u16(input, &out->colorMapSpec.mapLength);
+  input = mem_consume_le_u8(input, &out->colorMapSpec.entrySize);
+  input = mem_consume_le_u16(input, &out->imageSpec.origin[0]);
+  input = mem_consume_le_u16(input, &out->imageSpec.origin[1]);
+  input = mem_consume_le_u16(input, &out->imageSpec.width);
+  input = mem_consume_le_u16(input, &out->imageSpec.height);
+  input = mem_consume_le_u8(input, &out->imageSpec.bitsPerPixel);
 
   u8 imageSpecDescriptorRaw;
-  *data                     = mem_consume_le_u8(*data, &imageSpecDescriptorRaw);
+  input                     = mem_consume_le_u8(input, &imageSpecDescriptorRaw);
   out->imageSpec.descriptor = (TgaImageDescriptor){
       .attributeDepth = imageSpecDescriptorRaw & u8_lit(0b1111),
       .origin         = (TgaOrigin)((imageSpecDescriptorRaw & u8_lit(0b110000)) >> 4),
       .interleave     = (TgaInterleave)((imageSpecDescriptorRaw & u8_lit(0b11000000)) >> 6),
   };
-  return TgaError_Success;
+  *err = TgaError_Success;
+  return input;
 }
 
 static u32 tga_index(const u32 x, const u32 y, const u32 width, const u32 height, TgaFlags flags) {
@@ -148,28 +150,39 @@ static void tga_read_pixel_unchecked(u8* data, const TgaFlags flags, AssetTextur
   }
 }
 
-static TgaError tga_read_pixels_uncompressed(
-    Mem* data, const u32 width, const u32 height, const TgaFlags flags, AssetTexturePixel* out) {
+static Mem tga_read_pixels_uncompressed(
+    Mem                input,
+    const u32          width,
+    const u32          height,
+    const TgaFlags     flags,
+    AssetTexturePixel* out,
+    TgaError*          err) {
 
   const u32 pixelCount = width * height;
   const u32 pixelSize  = flags & TgaFlags_Alpha ? 4 : 3;
 
-  if (data->size < pixelCount * pixelSize) {
-    return TgaError_MalformedPixels;
+  if (input.size < pixelCount * pixelSize) {
+    *err = TgaError_MalformedPixels;
+    return input;
   }
-  u8* src = mem_begin(*data);
+  u8* src = mem_begin(input);
   for (u32 y = 0; y != height; ++y) {
     for (u32 x = 0; x != width; ++x) {
       tga_read_pixel_unchecked(src, flags, &out[tga_index(x, y, width, height, flags)]);
       src += pixelSize;
     }
   }
-  *data = mem_consume(*data, pixelCount * pixelSize);
-  return TgaError_Success;
+  *err = TgaError_Success;
+  return mem_consume(input, pixelCount * pixelSize);
 }
 
-static TgaError tga_read_pixels_rle(
-    Mem* data, const u32 width, const u32 height, const TgaFlags flags, AssetTexturePixel* out) {
+static Mem tga_read_pixels_rle(
+    Mem                input,
+    const u32          width,
+    const u32          height,
+    const TgaFlags     flags,
+    AssetTexturePixel* out,
+    TgaError*          err) {
 
   const u32 pixelSize      = flags & TgaFlags_Alpha ? 4 : 3;
   u32       packetRem      = 0; // How many pixels are left in the current rle packet.
@@ -188,17 +201,19 @@ static TgaError tga_read_pixels_rle(
         /**
          * No pixels are remaining; Read a new packet header.
          */
-        if (UNLIKELY(data->size <= pixelSize)) {
-          return TgaError_MalformedRlePixels;
+        if (UNLIKELY(input.size <= pixelSize)) {
+          *err = TgaError_MalformedRlePixels;
+          return input;
         }
         u8 packetHeader;
-        *data                  = mem_consume_le_u8(*data, &packetHeader);
+        input                  = mem_consume_le_u8(input, &packetHeader);
         const bool isRlePacket = (packetHeader & 0b10000000) != 0; // Msb indicates packet type.
         packetRefPixel         = isRlePacket ? i : u32_max;
         packetRem              = packetHeader & 0b01111111; // Remaining 7 bits are the rep count.
 
-        if (UNLIKELY(!isRlePacket && data->size < (packetRem + 1) * pixelSize)) {
-          return TgaError_MalformedRlePixels;
+        if (UNLIKELY(!isRlePacket && input.size < (packetRem + 1) * pixelSize)) {
+          *err = TgaError_MalformedRlePixels;
+          return input;
         }
       } else {
         // This pixel is still part of the same packet.
@@ -210,21 +225,27 @@ static TgaError tga_read_pixels_rle(
         out[i] = out[packetRefPixel];
       } else {
         // No reference pixel; Read a new pixel value.
-        tga_read_pixel_unchecked(mem_begin(*data), flags, &out[i]);
-        *data = mem_consume(*data, pixelSize);
+        tga_read_pixel_unchecked(mem_begin(input), flags, &out[i]);
+        input = mem_consume(input, pixelSize);
       }
     }
   }
-  return TgaError_Success;
+  *err = TgaError_Success;
+  return input;
 }
 
-static TgaError tga_read_pixels(
-    Mem* data, const u32 width, const u32 height, const TgaFlags flags, AssetTexturePixel* out) {
+static Mem tga_read_pixels(
+    Mem                input,
+    const u32          width,
+    const u32          height,
+    const TgaFlags     flags,
+    AssetTexturePixel* out,
+    TgaError*          err) {
 
   if (flags & TgaFlags_Rle) {
-    return tga_read_pixels_rle(data, width, height, flags, out);
+    return tga_read_pixels_rle(input, width, height, flags, out, err);
   }
-  return tga_read_pixels_uncompressed(data, width, height, flags, out);
+  return tga_read_pixels_uncompressed(input, width, height, flags, out, err);
 }
 
 NORETURN static void tga_report_error(const TgaError err) {
@@ -237,7 +258,8 @@ void asset_load_tga(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
   TgaFlags flags = 0;
 
   TgaHeader header;
-  if ((res = tga_read_header(&data, &header))) {
+  data = tga_read_header(data, &header, &res);
+  if (res) {
     tga_report_error(res);
   }
   if (header.colorMapType == TgaColorMapType_Present) {
@@ -258,7 +280,7 @@ void asset_load_tga(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
   if (header.imageType != TgaImageType_TrueColor && header.imageType != TgaImageType_RleTrueColor) {
     tga_report_error(TgaError_UnsupportedNonTrueColor);
   }
-  if (!header.imageSpec.size[0] || !header.imageSpec.size[1]) {
+  if (!header.imageSpec.width || !header.imageSpec.height) {
     tga_report_error(TgaError_Malformed);
   }
   if (header.imageType == TgaImageType_RleTrueColor) {
@@ -274,10 +296,11 @@ void asset_load_tga(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
   }
   data = mem_consume(data, header.idLength); // Skip over the id field.
 
-  const u32          width  = header.imageSpec.size[0];
-  const u32          height = header.imageSpec.size[1];
+  const u32          width  = header.imageSpec.width;
+  const u32          height = header.imageSpec.height;
   AssetTexturePixel* pixels = alloc_alloc_array_t(g_alloc_heap, AssetTexturePixel, width * height);
-  if ((res = tga_read_pixels(&data, width, height, flags, pixels))) {
+  data                      = tga_read_pixels(data, width, height, flags, pixels, &res);
+  if (res) {
     tga_report_error(res);
   }
 
