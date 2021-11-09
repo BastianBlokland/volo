@@ -13,6 +13,7 @@ int main(const int argc, const char** argv) {
   CheckDef* check = check_create(g_alloc_heap);
   register_spec(check, manager);
   register_spec(check, loader_raw);
+  register_spec(check, loader_texture_tga);
 
   const int exitCode = check_app(check, argc, argv);
 

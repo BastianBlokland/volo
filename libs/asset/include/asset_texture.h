@@ -2,8 +2,10 @@
 #include "ecs_module.h"
 
 typedef struct {
-  float r, g, b, a;
+  u8 r, g, b, a;
 } AssetTexturePixel;
+
+ASSERT(sizeof(AssetTexturePixel) == 4, "Pixels are 4 bytes");
 
 ecs_comp_extern_public(AssetTextureComp) {
   const AssetTexturePixel* pixels;

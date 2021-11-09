@@ -25,6 +25,8 @@ String asset_format_str(AssetFormat fmt) {
 }
 
 AssetFormat asset_format_from_ext(String ext) {
-  (void)ext;
+  if (string_eq(ext, string_lit("tga"))) {
+    return AssetFormat_Tga;
+  }
   return AssetFormat_Raw;
 }
