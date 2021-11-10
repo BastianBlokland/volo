@@ -17,14 +17,18 @@ void asset_repo_destroy(AssetRepo* repo) { repo->destroy(repo); }
 
 String asset_format_str(AssetFormat fmt) {
   static const String names[] = {
-      string_static("Raw"),
-      string_static("Tga"),
+      string_static("raw"),
+      string_static("ppm"),
+      string_static("tga"),
   };
   ASSERT(array_elems(names) == AssetFormat_Count, "Incorrect number of asset-format names");
   return names[fmt];
 }
 
 AssetFormat asset_format_from_ext(String ext) {
+  if (string_eq(ext, string_lit("ppm"))) {
+    return AssetFormat_Ppm;
+  }
   if (string_eq(ext, string_lit("tga"))) {
     return AssetFormat_Tga;
   }
