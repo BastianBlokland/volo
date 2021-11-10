@@ -14,6 +14,9 @@
  * Color info: http://www.ryanjuckett.com/programming/parsing-colors-in-a-tga-file/
  */
 
+#define tga_max_width (1024 * 16)
+#define tga_max_height (1024 * 16)
+
 typedef enum {
   TgaColorMapType_Absent  = 0,
   TgaColorMapType_Present = 1,
@@ -84,6 +87,7 @@ typedef enum {
   TgaError_UnsupportedAlphaChannelDepth,
   TgaError_UnsupportedInterleaved,
   TgaError_UnsupportedNonTrueColor,
+  TgaError_UnsupportedSize,
 
   TgaError_Count,
 } TgaError;
@@ -99,7 +103,8 @@ static String tga_error_str(TgaError res) {
       string_static("Unsupported bit depth, only 24 bit (RGB) and 32 bit (RGBA) are supported"),
       string_static("Only an 8 bit alpha channel is supported"),
       string_static("Interleaved tga files are not supported"),
-      string_static("Unsupported image-type, only TrueColor is supported"),
+      string_static("Unsupported image type, only TrueColor is supported"),
+      string_static("Unsupported image size"),
   };
   ASSERT(array_elems(msgs) == TgaError_Count, "Incorrect number of tga-error messages");
   return msgs[res];
@@ -281,7 +286,10 @@ void asset_load_tga(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
     tga_report_error(TgaError_UnsupportedNonTrueColor);
   }
   if (!header.imageSpec.width || !header.imageSpec.height) {
-    tga_report_error(TgaError_Malformed);
+    tga_report_error(TgaError_UnsupportedSize);
+  }
+  if (header.imageSpec.width > tga_max_width || header.imageSpec.height > tga_max_height) {
+    tga_report_error(TgaError_UnsupportedSize);
   }
   if (header.imageType == TgaImageType_RleTrueColor) {
     flags |= TgaFlags_Rle;
