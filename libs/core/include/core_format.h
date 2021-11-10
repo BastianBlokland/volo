@@ -499,6 +499,14 @@ void format_write_text_wrapped(DynString*, String val, usize maxWidth, String li
 void format_write_char(DynString*, u8 val, const FormatOptsText*);
 
 /**
+ * Read a character from the beginning of the given string.
+ * Returns the remaining input.
+ * The character is written to the output pointer, pass 'null' to ignore the output.
+ * NOTE: Character is \0 when the input string is empty.
+ */
+String format_read_char(String input, u8* output);
+
+/**
  * Read all ascii whitespace at the beginning of the given string.
  * Returns the remaining input.
  * The whitespace slice is written to the output pointer, pass 'null' to ignore the output.

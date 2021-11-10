@@ -415,6 +415,25 @@ spec(format) {
     dynstring_destroy(&string);
   }
 
+  it("can read characters") {
+    struct {
+      String val;
+      u8     expected;
+      String expectedRemaining;
+    } const data[] = {
+        {string_empty, '\0', string_empty},
+        {string_lit("a"), 'a', string_empty},
+        {string_lit("abc"), 'a', string_lit("bc")},
+    };
+
+    for (usize i = 0; i != array_elems(data); ++i) {
+      u8           out;
+      const String rem = format_read_char(data[i].val, &out);
+      check_eq_int(out, data[i].expected);
+      check_eq_string(rem, data[i].expectedRemaining);
+    }
+  }
+
   it("can read whitespace") {
     struct {
       String val;

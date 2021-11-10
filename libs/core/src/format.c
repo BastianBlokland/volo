@@ -573,6 +573,18 @@ void format_write_char(DynString* str, const u8 val, const FormatOptsText* opts)
   dynstring_append_char(str, val);
 }
 
+String format_read_char(String input, u8* output) {
+  u8 result = '\0';
+  if (LIKELY(!string_is_empty(input))) {
+    result = *string_begin(input);
+    input  = string_consume(input, 1);
+  }
+  if (LIKELY(output)) {
+    *output = result;
+  }
+  return input;
+}
+
 String format_read_whitespace(const String input, String* output) {
   usize idx = 0;
   for (; idx != input.size && ascii_is_whitespace(*string_at(input, idx)); ++idx)
