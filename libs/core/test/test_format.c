@@ -434,6 +434,36 @@ spec(format) {
     }
   }
 
+  it("can read lines") {
+    struct {
+      String val;
+      String expected;
+      String expectedRemaining;
+    } const data[] = {
+        {string_empty, string_empty, string_empty},
+        {string_lit("Hello world"), string_lit("Hello world"), string_empty},
+        {string_lit("Hello world\n"), string_lit("Hello world"), string_empty},
+        {string_lit("Hello world\r"), string_lit("Hello world"), string_empty},
+        {string_lit("Hello world\r\n"), string_lit("Hello world"), string_empty},
+        {string_lit("Hello\nWorld"), string_lit("Hello"), string_lit("World")},
+        {string_lit("Hello\rWorld"), string_lit("Hello"), string_lit("World")},
+        {string_lit("Hello \r\nWorld"), string_lit("Hello "), string_lit("World")},
+        {string_lit("Hello \n World"), string_lit("Hello "), string_lit(" World")},
+        {string_lit("Hello \r World"), string_lit("Hello "), string_lit(" World")},
+        {string_lit("Hello \r\n World"), string_lit("Hello "), string_lit(" World")},
+        {string_lit("Hello world\n\n"), string_lit("Hello world"), string_lit("\n")},
+        {string_lit("Hello world\r\r"), string_lit("Hello world"), string_lit("\r")},
+        {string_lit("Hello world\r\n\r\n"), string_lit("Hello world"), string_lit("\r\n")},
+    };
+
+    for (usize i = 0; i != array_elems(data); ++i) {
+      String       out;
+      const String rem = format_read_line(data[i].val, &out);
+      check_eq_string(out, data[i].expected);
+      check_eq_string(rem, data[i].expectedRemaining);
+    }
+  }
+
   it("can read whitespace") {
     struct {
       String val;
