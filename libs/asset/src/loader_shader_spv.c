@@ -78,7 +78,7 @@ typedef struct {
 } SpvProgram;
 
 typedef enum {
-  SpvError_Success = 0,
+  SpvError_None = 0,
   SpvError_Malformed,
   SpvError_MalformedIdOutOfBounds,
   SpvError_MalformedDuplicateId,
@@ -285,7 +285,7 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
     }
     data = spv_consume(data, header.opSize);
   }
-  *err = SpvError_Success;
+  *err = SpvError_None;
   return data;
 }
 
@@ -325,16 +325,16 @@ static AssetShaderResKind spv_resource_kind(
   case SpvIdKind_TypePointer:
     return spv_resource_kind(program, id->typeId, varStorageClass, err);
   case SpvIdKind_TypeSampledImage:
-    *err = SpvError_Success;
+    *err = SpvError_None;
     return AssetShaderResKind_Texture;
   case SpvIdKind_TypeStruct:
     switch (varStorageClass) {
     case SpvStorageClass_Uniform:
     case SpvStorageClass_UniformConstant:
-      *err = SpvError_Success;
+      *err = SpvError_None;
       return AssetShaderResKind_UniformBuffer;
     case SpvStorageClass_StorageBuffer:
-      *err = SpvError_Success;
+      *err = SpvError_None;
       return AssetShaderResKind_StorageBuffer;
     default:
       break;
@@ -390,7 +390,7 @@ static void spv_asset_shader_create(
         .binding = id->binding,
     };
   }
-  *err = SpvError_Success;
+  *err = SpvError_None;
 }
 
 NORETURN static void spv_report_error(const SpvError err) {

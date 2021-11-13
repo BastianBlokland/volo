@@ -28,7 +28,7 @@ typedef struct {
 } PixmapHeader;
 
 typedef enum {
-  PixmapError_Success = 0,
+  PixmapError_None = 0,
   PixmapError_MalformedPixels,
   PixmapError_MalformedType,
   PixmapError_UnsupportedBitDepth,
@@ -106,7 +106,7 @@ static String ppm_read_pixels_ascii(
     input  = format_read_u64(input, &b, 10);
     out[i] = (AssetTexturePixel){(u8)r, (u8)g, (u8)b, 255};
   }
-  *err = PixmapError_Success;
+  *err = PixmapError_None;
   return input;
 }
 
@@ -134,7 +134,7 @@ static String ppm_read_pixels_binary(
     out[i].a = 255;
     data += 3;
   }
-  *err = PixmapError_Success;
+  *err = PixmapError_None;
   return string_consume(input, pixelCount * 3);
 }
 
@@ -152,7 +152,7 @@ NORETURN static void ppm_report_error(const PixmapError err) {
 
 void asset_load_ppm(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) {
   String      input = src->data;
-  PixmapError res   = PixmapError_Success;
+  PixmapError res   = PixmapError_None;
 
   PixmapHeader header;
   input = ppm_read_header(input, &header);

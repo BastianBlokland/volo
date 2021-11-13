@@ -77,7 +77,7 @@ typedef enum {
 } TgaFlags;
 
 typedef enum {
-  TgaError_Success = 0,
+  TgaError_None = 0,
   TgaError_MalformedHeader,
   TgaError_MalformedPixels,
   TgaError_MalformedRlePixels,
@@ -135,7 +135,7 @@ static Mem tga_read_header(Mem input, TgaHeader* out, TgaError* err) {
       .origin         = (TgaOrigin)((imageSpecDescriptorRaw & u8_lit(0b110000)) >> 4),
       .interleave     = (TgaInterleave)((imageSpecDescriptorRaw & u8_lit(0b11000000)) >> 6),
   };
-  *err = TgaError_Success;
+  *err = TgaError_None;
   return input;
 }
 
@@ -177,7 +177,7 @@ static Mem tga_read_pixels_uncompressed(
       src += pixelSize;
     }
   }
-  *err = TgaError_Success;
+  *err = TgaError_None;
   return mem_consume(input, pixelCount * pixelSize);
 }
 
@@ -235,7 +235,7 @@ static Mem tga_read_pixels_rle(
       }
     }
   }
-  *err = TgaError_Success;
+  *err = TgaError_None;
   return input;
 }
 
@@ -259,7 +259,7 @@ NORETURN static void tga_report_error(const TgaError err) {
 
 void asset_load_tga(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) {
   Mem      data  = src->data;
-  TgaError res   = TgaError_Success;
+  TgaError res   = TgaError_None;
   TgaFlags flags = 0;
 
   TgaHeader header;
