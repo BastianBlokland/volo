@@ -136,7 +136,7 @@ static SpvData spv_read_string(const SpvData data, const u32 maxWordSize, String
   for (; strItr != strMax && *strItr != '\0'; ++strItr)
     ;
   *out = mem_from_to(strBegin, strItr);
-  return spv_consume(data, (out->size + 1 + 3) / sizeof(u32)); // +1 null-term, +3 round up.
+  return spv_consume(data, ((u32)out->size + 1 + 3) / sizeof(u32)); // +1 null-term, +3 round up.
 }
 
 static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, SpvError* err) {
@@ -405,7 +405,7 @@ void asset_load_spv(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
   if (!bits_aligned(src->data.size, sizeof(u32))) {
     spv_report_error(SpvError_Malformed);
   }
-  SpvData data = {.ptr = src->data.ptr, .size = src->data.size / sizeof(u32)};
+  SpvData data = {.ptr = src->data.ptr, .size = (u32)src->data.size / sizeof(u32)};
   if (data.size < 5) {
     spv_report_error(SpvError_Malformed);
   }
