@@ -3,7 +3,7 @@
 
 #include "alloc_internal.h"
 
-#define scratch_heap_size (usize_mebibyte * 4)
+#define scratch_heap_size (usize_mebibyte * 1)
 #define scratch_max_alloc_size (usize_kibibyte * 64)
 #define scratch_guard_size (usize_kibibyte * 128)
 
