@@ -41,7 +41,7 @@ void* search_binary_greater(
   while (count > 0) {
     const usize step   = count / 2;
     u8*         middle = begin + step * stride;
-    if (compare(middle, target) < 0) {
+    if (compare(middle, target) <= 0) {
       begin = middle + stride;
       count -= step + 1;
     } else {

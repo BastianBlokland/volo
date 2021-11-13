@@ -2,6 +2,7 @@
 # Libaries cmake file.
 # --------------------------------------------------------------------------------------------------
 
+add_subdirectory(asset)
 add_subdirectory(check)
 add_subdirectory(cli)
 add_subdirectory(core)

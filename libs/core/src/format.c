@@ -573,6 +573,36 @@ void format_write_char(DynString* str, const u8 val, const FormatOptsText* opts)
   dynstring_append_char(str, val);
 }
 
+String format_read_char(String input, u8* output) {
+  u8 result = '\0';
+  if (LIKELY(!string_is_empty(input))) {
+    result = *string_begin(input);
+    input  = string_consume(input, 1);
+  }
+  if (LIKELY(output)) {
+    *output = result;
+  }
+  return input;
+}
+
+String format_read_line(const String input, String* output) {
+  usize lineEnd = string_find_first_any(input, string_lit("\r\n"));
+  if (sentinel_check(lineEnd)) {
+    if (LIKELY(output)) {
+      *output = input;
+    }
+    return string_empty;
+  }
+  if (LIKELY(output)) {
+    *output = string_slice(input, 0, lineEnd);
+  }
+  if (*string_at(input, lineEnd) == '\r' && input.size > lineEnd + 1 &&
+      *string_at(input, lineEnd + 1) == '\n') {
+    ++lineEnd;
+  }
+  return string_consume(input, lineEnd + 1);
+}
+
 String format_read_whitespace(const String input, String* output) {
   usize idx = 0;
   for (; idx != input.size && ascii_is_whitespace(*string_at(input, idx)); ++idx)

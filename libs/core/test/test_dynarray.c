@@ -191,8 +191,8 @@ spec(dynarray) {
   }
 
   it("can insert elements sorted") {
-    const u32 values[]   = {3, 6, 5, 9, 15, 10, 4, 13, 7, 1, 8, 12, 14, 11, 2};
-    const u32 expected[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+    const u32 values[]   = {3, 6, 5, 9, 15, 10, 4, 13, 6, 7, 1, 8, 12, 6, 14, 11, 2};
+    const u32 expected[] = {1, 2, 3, 4, 5, 6, 6, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
 
     DynArray array = dynarray_create_over_t(mem_stack(256), u32);
 

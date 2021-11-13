@@ -61,6 +61,55 @@ spec(memory) {
     check(mem_end(mem) == rawMemTail);
   }
 
+  it("can read a little-endian encoded 8bit unsigned integer") {
+    const u8 val = 42;
+    Mem      mem = array_mem(((u8[]){val}));
+    u8       out;
+    check(mem_consume_le_u8(mem, &out).size == 0);
+    check_eq_int(out, val);
+  }
+
+  it("can read a little-endian encoded 16bit unsigned integer") {
+    const u16 val = 1337;
+    Mem       mem = array_mem(((u8[]){
+        (u8)val,
+        (u8)(val >> 8),
+    }));
+    u16       out;
+    check(mem_consume_le_u16(mem, &out).size == 0);
+    check_eq_int(out, val);
+  }
+
+  it("can read a little-endian encoded 32bit unsigned integer") {
+    const u32 val = 1337133742;
+    Mem       mem = array_mem(((u8[]){
+        (u8)val,
+        (u8)(val >> 8),
+        (u8)(val >> 16),
+        (u8)(val >> 24),
+    }));
+    u32       out;
+    check(mem_consume_le_u32(mem, &out).size == 0);
+    check_eq_int(out, val);
+  }
+
+  it("can read a little-endian encoded 64bit unsigned integer") {
+    const u64 val = u64_lit(12345678987654321234);
+    Mem       mem = array_mem(((u8[]){
+        (u8)val,
+        (u8)(val >> 8),
+        (u8)(val >> 16),
+        (u8)(val >> 24),
+        (u8)(val >> 32),
+        (u8)(val >> 40),
+        (u8)(val >> 48),
+        (u8)(val >> 56),
+    }));
+    u64       out;
+    check(mem_consume_le_u64(mem, &out).size == 0);
+    check_eq_int(out, val);
+  }
+
   it("can check if it contains a specific byte") {
     Mem mem = array_mem(((u8[]){
         42,
