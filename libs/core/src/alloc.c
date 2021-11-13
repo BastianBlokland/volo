@@ -10,6 +10,7 @@
 
 Allocator*   g_alloc_heap;
 Allocator*   g_alloc_page;
+Allocator*   g_alloc_persist;
 THREAD_LOCAL Allocator* g_alloc_scratch;
 
 static void alloc_verify_allocator(const Allocator* allocator) {
@@ -19,11 +20,13 @@ static void alloc_verify_allocator(const Allocator* allocator) {
 }
 
 void alloc_init() {
-  g_alloc_page = alloc_page_init();
-  g_alloc_heap = alloc_heap_init();
+  g_alloc_page    = alloc_page_init();
+  g_alloc_heap    = alloc_heap_init();
+  g_alloc_persist = alloc_persist_init();
 }
 
 void alloc_teardown() {
+  alloc_persist_teardown();
   alloc_heap_teardown();
 
   const u32 leakedPages = alloc_page_allocated_pages();

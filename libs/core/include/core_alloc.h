@@ -49,6 +49,13 @@ extern Allocator* g_alloc_heap;
 extern Allocator* g_alloc_page;
 
 /**
+ * Persitent allocator.
+ * Allocator for memory that needs to persist over the whole application lifetime.
+ * Memory cannot be manually freed, its automatically freed at application shutdown.
+ */
+extern Allocator* g_alloc_persist;
+
+/**
  * Scratch allocator, allocates from a fixed size thread-local circular heap buffer.
  * Meant for very short lived allocations. As its backed by a fixed-size buffer allocations will be
  * overwritten once X new allocations have been made (where X is determined by the size of the
