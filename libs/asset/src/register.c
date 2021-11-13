@@ -5,5 +5,6 @@
 void asset_register(EcsDef* def) {
   ecs_register_module(def, asset_manager_module);
   ecs_register_module(def, asset_raw_module);
+  ecs_register_module(def, asset_shader_module);
   ecs_register_module(def, asset_texture_module);
 }

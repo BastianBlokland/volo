@@ -3,6 +3,7 @@
 
 typedef enum {
   AssetFormat_Raw,
+  AssetFormat_Spv,
   AssetFormat_Ppm,
   AssetFormat_Tga,
 

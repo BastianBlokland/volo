@@ -13,6 +13,9 @@ AssetLoader asset_loader(const AssetFormat format) {
   case AssetFormat_Raw: {
     RET_LOADER(raw);
   }
+  case AssetFormat_Spv: {
+    RET_LOADER(spv);
+  }
   case AssetFormat_Ppm: {
     RET_LOADER(ppm);
   }
