@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "ecs_utils.h"
 #include "ecs_world.h"
 
 #include "loader_shader_internal.h"
@@ -23,17 +24,15 @@ ecs_view_define(UnloadView) {
   ecs_access_without(AssetLoadedComp);
 };
 
+/**
+ * Remove any shader-asset components for unloaded assets.
+ */
 ecs_system_define(UnloadShaderAssetSys) {
-  /**
-   * Remove any shader-asset components for unloaded assets.
-   */
   EcsView* unloadView = ecs_world_view_t(world, UnloadView);
   for (EcsIterator* itr = ecs_view_itr(unloadView); ecs_view_walk(itr);) {
     const EcsEntityId entity = ecs_view_entity(itr);
     ecs_world_remove_t(world, entity, AssetShaderComp);
-    if (ecs_world_has_t(world, entity, AssetShaderSourceComp)) {
-      ecs_world_remove_t(world, entity, AssetShaderSourceComp);
-    }
+    ecs_utils_maybe_remove_t(world, entity, AssetShaderSourceComp);
   }
 }
 

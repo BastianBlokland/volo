@@ -20,7 +20,6 @@ add_library(volo_asset STATIC
 target_include_directories(volo_asset PUBLIC include)
 target_link_libraries(volo_asset PUBLIC volo_core)
 target_link_libraries(volo_asset PUBLIC volo_ecs)
-target_link_libraries(volo_asset PRIVATE volo_gap)
 target_link_libraries(volo_asset PRIVATE volo_log)
 
 add_executable(volo_asset_test

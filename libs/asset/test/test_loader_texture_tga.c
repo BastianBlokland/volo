@@ -148,16 +148,11 @@ static const struct {
 };
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
-ecs_view_define(AssetTextureView) { ecs_access_read(AssetTextureComp); }
-
-static const AssetTextureComp* asset_texture_get(EcsWorld* world, const EcsEntityId assetEntity) {
-  EcsIterator* itr = ecs_view_itr_at(ecs_world_view_t(world, AssetTextureView), assetEntity);
-  return ecs_view_read_t(itr, AssetTextureComp);
-}
+ecs_view_define(AssetView) { ecs_access_read(AssetTextureComp); }
 
 ecs_module_init(loader_texture_tga_test_module) {
   ecs_register_view(ManagerView);
-  ecs_register_view(AssetTextureView);
+  ecs_register_view(AssetView);
 }
 
 spec(loader_texture_tga) {
@@ -193,7 +188,7 @@ spec(loader_texture_tga) {
 
       asset_test_wait(runner);
 
-      const AssetTextureComp* tex = asset_texture_get(world, asset);
+      const AssetTextureComp* tex = ecs_utils_read_t(world, AssetView, asset, AssetTextureComp);
       check_require(tex->height * tex->height == g_testData[i].pixelCount);
       for (usize p = 0; p != g_testData[i].pixelCount; ++p) {
         check_eq_int(tex->pixels[p].r, g_testData[i].pixels[p].r);

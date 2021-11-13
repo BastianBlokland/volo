@@ -17,10 +17,10 @@ ecs_view_define(UnloadView) {
   ecs_access_without(AssetLoadedComp);
 };
 
+/**
+ * Remove any texture-asset components for unloaded assets.
+ */
 ecs_system_define(UnloadTextureAssetSys) {
-  /**
-   * Remove any texture-asset components for unloaded assets.
-   */
   EcsView* unloadView = ecs_world_view_t(world, UnloadView);
   for (EcsIterator* itr = ecs_view_itr(unloadView); ecs_view_walk(itr);) {
     const EcsEntityId entity = ecs_view_entity(itr);

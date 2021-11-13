@@ -64,6 +64,39 @@ spec(utils) {
     check_eq_int(comp->f1, 4242);
   }
 
+  it("can read a component on an entity") {
+    const EcsEntityId entity1 = ecs_world_entity_create(world);
+    ecs_world_add_t(world, entity1, UtilsCompB, .f1 = 1337);
+    ecs_world_flush(world);
+
+    check(ecs_utils_read_t(world, MaybeReadA, entity1, UtilsCompA) == null);
+
+    ecs_world_add_t(world, entity1, UtilsCompA, .f1 = 42, .f2 = 1337);
+    ecs_world_flush(world);
+
+    const UtilsCompA* comp = ecs_utils_read_t(world, MaybeReadA, entity1, UtilsCompA);
+    check_eq_int(comp->f1, 42);
+    check_eq_int(comp->f2, 1337);
+  }
+
+  it("can write a component on an entity") {
+    const EcsEntityId entity1 = ecs_world_entity_create(world);
+    ecs_world_add_t(world, entity1, UtilsCompB, .f1 = 1337);
+    ecs_world_flush(world);
+
+    check(ecs_utils_write_t(world, MaybeWriteA, entity1, UtilsCompA) == null);
+
+    ecs_world_add_t(world, entity1, UtilsCompA, .f1 = 42, .f2 = 1337);
+    ecs_world_flush(world);
+
+    UtilsCompA* comp = ecs_utils_write_t(world, MaybeWriteA, entity1, UtilsCompA);
+    check_eq_int(comp->f1, 42);
+    check_eq_int(comp->f2, 1337);
+
+    comp->f1 = 4242;
+    check_eq_int(comp->f1, 4242);
+  }
+
   it("can read or add a component from a maybe-read iterator") {
     const EcsEntityId entity1 = ecs_world_entity_create(world);
     const EcsEntityId entity2 = ecs_world_entity_create(world);

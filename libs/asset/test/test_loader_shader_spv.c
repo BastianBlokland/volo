@@ -150,16 +150,11 @@ static const struct {
 };
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
-ecs_view_define(AssetShaderView) { ecs_access_read(AssetShaderComp); }
-
-static const AssetShaderComp* asset_shader_get(EcsWorld* world, const EcsEntityId assetEntity) {
-  EcsIterator* itr = ecs_view_itr_at(ecs_world_view_t(world, AssetShaderView), assetEntity);
-  return ecs_view_read_t(itr, AssetShaderComp);
-}
+ecs_view_define(AssetView) { ecs_access_read(AssetShaderComp); }
 
 ecs_module_init(loader_shader_spv_test_module) {
   ecs_register_view(ManagerView);
-  ecs_register_view(AssetShaderView);
+  ecs_register_view(AssetView);
 }
 
 spec(loader_shader_spv) {
@@ -195,7 +190,7 @@ spec(loader_shader_spv) {
 
       asset_test_wait(runner);
 
-      const AssetShaderComp* shader = asset_shader_get(world, asset);
+      const AssetShaderComp* shader = ecs_utils_read_t(world, AssetView, asset, AssetShaderComp);
       check_eq_int(shader->kind, g_testData[i].kind);
       check_eq_string(shader->entryPointName, g_testData[i].entryPoint);
       check_eq_string(shader->data, records[i].data);
