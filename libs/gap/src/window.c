@@ -1,5 +1,6 @@
 #include "core_sentinel.h"
 #include "core_signal.h"
+#include "ecs_utils.h"
 #include "ecs_world.h"
 #include "gap_window.h"
 
@@ -135,13 +136,8 @@ static void window_update(
 ecs_view_define(GapPlatformView) { ecs_access_write(GapPlatformComp); };
 ecs_view_define(GapWindowView) { ecs_access_write(GapWindowComp); };
 
-static GapPlatformComp* gap_platform_get(EcsWorld* world) {
-  EcsIterator* itr = ecs_view_itr_first(ecs_world_view_t(world, GapPlatformView));
-  return itr ? ecs_view_write_t(itr, GapPlatformComp) : null;
-}
-
 ecs_system_define(GapWindowUpdateSys) {
-  GapPlatformComp* platform = gap_platform_get(world);
+  GapPlatformComp* platform = ecs_utils_write_first_t(world, GapPlatformView, GapPlatformComp);
   if (!platform) {
     return;
   }

@@ -13,11 +13,6 @@ static const AssetMemRecord records[] = {
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
 
-static AssetManagerComp* asset_manager_get(EcsWorld* world) {
-  EcsIterator* itr = ecs_view_itr_first(ecs_world_view_t(world, ManagerView));
-  return ecs_view_write_t(itr, AssetManagerComp);
-}
-
 ecs_module_init(manager_test_module) { ecs_register_view(ManagerView); }
 
 spec(manager) {
@@ -39,7 +34,7 @@ spec(manager) {
   }
 
   it("can lookup assets by name") {
-    AssetManagerComp* manager = asset_manager_get(world);
+    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
 
     const EcsEntityId assetA = asset_lookup(world, manager, string_lit("a.raw"));
     check(assetA != 0);
@@ -52,7 +47,7 @@ spec(manager) {
   }
 
   it("loads assets when they are acquired") {
-    AssetManagerComp* manager = asset_manager_get(world);
+    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
     const EcsEntityId asset   = asset_lookup(world, manager, string_lit("a.raw"));
     asset_acquire(world, asset);
 
@@ -63,7 +58,7 @@ spec(manager) {
   }
 
   it("unloads assets when they are released") {
-    AssetManagerComp* manager = asset_manager_get(world);
+    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
     const EcsEntityId asset   = asset_lookup(world, manager, string_lit("a.raw"));
     asset_acquire(world, asset);
 
@@ -84,7 +79,7 @@ spec(manager) {
   }
 
   it("keeps assets loaded as long as any acquire is still active") {
-    AssetManagerComp* manager = asset_manager_get(world);
+    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
     const EcsEntityId asset   = asset_lookup(world, manager, string_lit("a.raw"));
     asset_acquire(world, asset);
     asset_acquire(world, asset);
@@ -106,7 +101,7 @@ spec(manager) {
   }
 
   it("ignores acquires immediately followed by releases") {
-    AssetManagerComp* manager = asset_manager_get(world);
+    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
     const EcsEntityId asset   = asset_lookup(world, manager, string_lit("a.raw"));
     asset_acquire(world, asset);
     asset_acquire(world, asset);
@@ -120,7 +115,7 @@ spec(manager) {
   }
 
   it("supports multiple simultaneous loads") {
-    AssetManagerComp* manager = asset_manager_get(world);
+    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
     const EcsEntityId assetA  = asset_lookup(world, manager, string_lit("a.raw"));
     const EcsEntityId assetB  = asset_lookup(world, manager, string_lit("b.raw"));
 

@@ -13,11 +13,6 @@ static const AssetMemRecord records[] = {
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
 ecs_view_define(AssetRawView) { ecs_access_read(AssetRawComp); }
 
-static AssetManagerComp* asset_manager_get(EcsWorld* world) {
-  EcsIterator* itr = ecs_view_itr_first(ecs_world_view_t(world, ManagerView));
-  return ecs_view_write_t(itr, AssetManagerComp);
-}
-
 static const AssetRawComp* asset_raw_get(EcsWorld* world, const EcsEntityId assetEntity) {
   EcsIterator* itr = ecs_view_itr_at(ecs_world_view_t(world, AssetRawView), assetEntity);
   return ecs_view_read_t(itr, AssetRawComp);
@@ -47,7 +42,7 @@ spec(loader_raw) {
   }
 
   it("can load raw assets") {
-    AssetManagerComp* manager = asset_manager_get(world);
+    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
 
     const EcsEntityId asset = asset_lookup(world, manager, string_lit("a.raw"));
     asset_acquire(world, asset);
@@ -58,7 +53,7 @@ spec(loader_raw) {
   }
 
   it("can unload raw assets") {
-    AssetManagerComp* manager = asset_manager_get(world);
+    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
 
     const EcsEntityId asset = asset_lookup(world, manager, string_lit("a.raw"));
 

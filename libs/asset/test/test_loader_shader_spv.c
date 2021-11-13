@@ -152,11 +152,6 @@ static const struct {
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
 ecs_view_define(AssetShaderView) { ecs_access_read(AssetShaderComp); }
 
-static AssetManagerComp* asset_manager_get(EcsWorld* world) {
-  EcsIterator* itr = ecs_view_itr_first(ecs_world_view_t(world, ManagerView));
-  return ecs_view_write_t(itr, AssetManagerComp);
-}
-
 static const AssetShaderComp* asset_shader_get(EcsWorld* world, const EcsEntityId assetEntity) {
   EcsIterator* itr = ecs_view_itr_at(ecs_world_view_t(world, AssetShaderView), assetEntity);
   return ecs_view_read_t(itr, AssetShaderComp);
@@ -194,7 +189,7 @@ spec(loader_shader_spv) {
     ecs_world_flush(world);
 
     for (usize i = 0; i != array_elems(g_testData); ++i) {
-      AssetManagerComp* manager = asset_manager_get(world);
+      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
       const EcsEntityId asset   = asset_lookup(world, manager, records[i].id);
       asset_acquire(world, asset);
 
@@ -224,7 +219,7 @@ spec(loader_shader_spv) {
     asset_manager_create_mem(world, &record, 1);
     ecs_world_flush(world);
 
-    AssetManagerComp* manager = asset_manager_get(world);
+    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
     const EcsEntityId asset   = asset_lookup(world, manager, string_lit("shader.spv"));
 
     asset_acquire(world, asset);

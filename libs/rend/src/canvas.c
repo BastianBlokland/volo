@@ -1,5 +1,6 @@
 #include "core_thread.h"
 #include "core_time.h"
+#include "ecs_utils.h"
 #include "ecs_world.h"
 #include "gap_input.h"
 #include "gap_window.h"
@@ -50,13 +51,8 @@ ecs_view_define(RendCanvasView) {
   ecs_access_write(RendCanvasComp);
 };
 
-static RendPlatformComp* rend_platform_get(EcsWorld* world) {
-  EcsIterator* itr = ecs_view_itr_first(ecs_world_view_t(world, RendPlatformView));
-  return itr ? ecs_view_write_t(itr, RendPlatformComp) : null;
-}
-
 ecs_system_define(RendCanvasUpdateSys) {
-  RendPlatformComp* platform = rend_platform_get(world);
+  RendPlatformComp* platform = ecs_utils_write_first_t(world, RendPlatformView, RendPlatformComp);
   if (!platform) {
     return;
   }

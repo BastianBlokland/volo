@@ -35,6 +35,35 @@ spec(utils) {
     world = ecs_world_create(g_alloc_heap, def);
   }
 
+  it("can read the first component from a view") {
+    check(ecs_utils_read_first_t(world, MaybeReadA, UtilsCompA) == null);
+
+    const EcsEntityId entity1 = ecs_world_entity_create(world);
+    ecs_world_add_t(world, entity1, UtilsCompA, .f1 = 42, .f2 = 1337);
+
+    ecs_world_flush(world);
+
+    const UtilsCompA* comp = ecs_utils_read_first_t(world, MaybeReadA, UtilsCompA);
+    check_eq_int(comp->f1, 42);
+    check_eq_int(comp->f2, 1337);
+  }
+
+  it("can write the first component from a view") {
+    check(ecs_utils_write_first_t(world, MaybeReadA, UtilsCompA) == null);
+
+    const EcsEntityId entity1 = ecs_world_entity_create(world);
+    ecs_world_add_t(world, entity1, UtilsCompA, .f1 = 42, .f2 = 1337);
+
+    ecs_world_flush(world);
+
+    UtilsCompA* comp = ecs_utils_write_first_t(world, MaybeWriteA, UtilsCompA);
+    check_eq_int(comp->f1, 42);
+    check_eq_int(comp->f2, 1337);
+
+    comp->f1 = 4242;
+    check_eq_int(comp->f1, 4242);
+  }
+
   it("can read or add a component from a maybe-read iterator") {
     const EcsEntityId entity1 = ecs_world_entity_create(world);
     const EcsEntityId entity2 = ecs_world_entity_create(world);

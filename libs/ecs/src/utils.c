@@ -1,5 +1,15 @@
 #include "ecs_utils.h"
 
+const void* ecs_utils_read_first(EcsView* view, const EcsCompId comp) {
+  EcsIterator* itr = ecs_view_itr_first(view);
+  return itr ? ecs_view_read(itr, comp) : null;
+}
+
+void* ecs_utils_write_first(EcsView* view, const EcsCompId comp) {
+  EcsIterator* itr = ecs_view_itr_first(view);
+  return itr ? ecs_view_write(itr, comp) : null;
+}
+
 const void* ecs_utils_read_or_add(EcsWorld* world, const EcsIterator* itr, const EcsCompId comp) {
   const void* res = ecs_view_read(itr, comp);
   return res ? res : ecs_world_add(world, ecs_view_entity(itr), comp, mem_empty);

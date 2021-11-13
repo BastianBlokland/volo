@@ -150,11 +150,6 @@ static const struct {
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
 ecs_view_define(AssetTextureView) { ecs_access_read(AssetTextureComp); }
 
-static AssetManagerComp* asset_manager_get(EcsWorld* world) {
-  EcsIterator* itr = ecs_view_itr_first(ecs_world_view_t(world, ManagerView));
-  return ecs_view_write_t(itr, AssetManagerComp);
-}
-
 static const AssetTextureComp* asset_texture_get(EcsWorld* world, const EcsEntityId assetEntity) {
   EcsIterator* itr = ecs_view_itr_at(ecs_world_view_t(world, AssetTextureView), assetEntity);
   return ecs_view_read_t(itr, AssetTextureComp);
@@ -192,7 +187,7 @@ spec(loader_texture_tga) {
     ecs_world_flush(world);
 
     for (usize i = 0; i != array_elems(g_testData); ++i) {
-      AssetManagerComp* manager = asset_manager_get(world);
+      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
       const EcsEntityId asset   = asset_lookup(world, manager, records[i].id);
       asset_acquire(world, asset);
 
@@ -219,7 +214,7 @@ spec(loader_texture_tga) {
     asset_manager_create_mem(world, &record, 1);
     ecs_world_flush(world);
 
-    AssetManagerComp* manager = asset_manager_get(world);
+    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
     const EcsEntityId asset   = asset_lookup(world, manager, string_lit("tex.tga"));
 
     asset_acquire(world, asset);

@@ -4,6 +4,7 @@
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_search.h"
+#include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 
@@ -112,13 +113,8 @@ ecs_view_define(DirtyAssetView) {
 
 ecs_view_define(ManagerView) { ecs_access_read(AssetManagerComp); };
 
-static const AssetManagerComp* asset_manager_get(EcsWorld* world) {
-  EcsIterator* itr = ecs_view_itr_first(ecs_world_view_t(world, ManagerView));
-  return itr ? ecs_view_read_t(itr, AssetManagerComp) : null;
-}
-
 ecs_system_define(UpdateDirtyAssetsSys) {
-  const AssetManagerComp* manager = asset_manager_get(world);
+  const AssetManagerComp* manager = ecs_utils_read_first_t(world, ManagerView, AssetManagerComp);
   if (!manager) {
     /**
      * The manager has not been created yet, we delay the processing of asset requests until a
