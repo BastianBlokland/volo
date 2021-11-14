@@ -141,7 +141,7 @@ static SpvData spv_read_string(const SpvData data, const u32 maxWordSize, String
 
 static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, SpvError* err) {
   *out = (SpvProgram){
-      .ids     = alloc_alloc_array_t(g_alloc_scratch, SpvId, maxId),
+      .ids     = alloc_array_t(g_alloc_scratch, SpvId, maxId),
       .idCount = maxId,
   };
   mem_set(mem_from_to(out->ids, out->ids + out->idCount), 0);
@@ -351,8 +351,8 @@ static void spv_asset_shader_create(
   *out = (AssetShaderComp){
       .kind           = spv_shader_kind(program->execModel),
       .entryPointName = program->entryPointName,
-      .resources = alloc_alloc_array_t(g_alloc_heap, AssetShaderRes, asset_shader_max_resources),
-      .data      = src->data,
+      .resources      = alloc_array_t(g_alloc_heap, AssetShaderRes, asset_shader_max_resources),
+      .data           = src->data,
   };
 
   ASSERT(sizeof(u32) == asset_shader_max_bindings / 8, "Unsupported max shader bindings");

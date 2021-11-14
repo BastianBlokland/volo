@@ -70,15 +70,11 @@ void data_register_struct(DataTypeStructInit init, DataType** var, const DataTyp
   data_registry_init();
 
   DataType type = {
-      .kind  = DataKind_Struct,
-      .name  = string_dup(g_alloc_persist, cfg->name),
-      .size  = (u16)cfg->size,
-      .align = (u16)cfg->align,
-      .val_struct =
-          {
-              .fields =
-                  alloc_alloc_array_t(g_alloc_persist, DataStructField, data_struct_max_fields),
-          },
+      .kind       = DataKind_Struct,
+      .name       = string_dup(g_alloc_persist, cfg->name),
+      .size       = (u16)cfg->size,
+      .align      = (u16)cfg->align,
+      .val_struct = {},
   };
   *var = data_register_type(type);
 }

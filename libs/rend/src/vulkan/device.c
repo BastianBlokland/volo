@@ -110,7 +110,7 @@ typedef struct {
 static RendDeviceExts rend_vk_device_exts_query(VkPhysicalDevice vkPhysicalDevice) {
   u32 count;
   rend_vk_call(vkEnumerateDeviceExtensionProperties, vkPhysicalDevice, null, &count, null);
-  VkExtensionProperties* props = alloc_alloc_array_t(g_alloc_heap, VkExtensionProperties, count);
+  VkExtensionProperties* props = alloc_array_t(g_alloc_heap, VkExtensionProperties, count);
   rend_vk_call(vkEnumerateDeviceExtensionProperties, vkPhysicalDevice, null, &count, props);
   return (RendDeviceExts){.head = props, .count = count};
 }

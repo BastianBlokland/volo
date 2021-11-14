@@ -14,9 +14,9 @@
  * Allocate new memory that satisfies the size and alignment required for the given type.
  * NOTE: Has to be explicitly freed using 'alloc_free'.
  */
-#define alloc_alloc_t(_ALLOCATOR_, _TYPE_) alloc_alloc_array_t(_ALLOCATOR_, _TYPE_, 1)
+#define alloc_alloc_t(_ALLOCATOR_, _TYPE_) alloc_array_t(_ALLOCATOR_, _TYPE_, 1)
 
-#define alloc_alloc_array_t(_ALLOCATOR_, _TYPE_, _COUNT_)                                          \
+#define alloc_array_t(_ALLOCATOR_, _TYPE_, _COUNT_)                                                \
   ((_TYPE_*)alloc_alloc((_ALLOCATOR_), sizeof(_TYPE_) * (_COUNT_), alignof(_TYPE_)).ptr)
 
 /**
