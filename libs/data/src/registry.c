@@ -1,133 +1,159 @@
 #include "core_alloc.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_thread.h"
+#include "data_registry.h"
 
 #include "registry_internal.h"
 
-#define data_type_max 256
-#define data_type_id_start 1
-#define data_type_index(_ID_) ((_ID_)-data_type_id_start)
+#define data_max_types 256
+#define data_max_fields 32
+#define data_max_consts 64
 
-static bool           g_init;
-static ThreadSpinLock g_registryLock;
-static DataTypeDecl   g_types[data_type_max];
+static i64 g_nextIdCounter = DataPrim_Count;
 
-#define X(_NAME_) data_type_define(_NAME_);
-DATA_PRIMS
-#undef X
-
-static void data_registry_lock() { thread_spinlock_lock(&g_registryLock); }
-static void data_registry_unlock() { thread_spinlock_unlock(&g_registryLock); }
-
-static DataType data_register_type(const DataTypeDecl decl) {
-  static i64     g_idCounter = data_type_id_start;
-  const DataType id          = (DataType)thread_atomic_add_i64(&g_idCounter, 1);
-  diag_assert_msg(
-      id < data_type_max, "More then '{}' data types are not supported", fmt_int(data_type_max));
-
-  diag_assert_msg(
-      bits_ispow2(decl.align), "Type alignment '{}' is not a power-of-two", fmt_int(decl.align));
-
-  diag_assert_msg(
-      bits_aligned(decl.size, decl.align),
-      "Data size '{}' is not a multiple of the alignment '{}'",
-      fmt_size(decl.size),
-      fmt_int(decl.align));
-
-  g_types[id] = decl;
-  return id;
+static DataDecl* data_decl(const DataType type) {
+  static DataDecl g_types[data_max_types];
+  return &g_types[type];
 }
 
-static void data_register_prims() {
+static DataType data_alloc_type() {
+  const DataType type = (DataType)thread_atomic_add_i64(&g_nextIdCounter, 1);
+  diag_assert_msg(
+      type < data_max_types, "More then '{}' types are not supported", fmt_int(data_max_types));
+  return type;
+}
+
+DataType data_type_prim(const DataPrim prim) {
+  const DataType type = (DataType)prim;
+  if (LIKELY(data_decl(type)->kind != DataKind_Invalid)) {
+    return type;
+  }
+  switch (prim) {
 #define X(_T_)                                                                                     \
-  *data_type_ptr(_T_) = data_register_type((DataTypeDecl){                                         \
-      .kind  = DataKind_Primitive,                                                                 \
-      .name  = string_lit(#_T_),                                                                   \
-      .size  = sizeof(_T_),                                                                        \
-      .align = alignof(_T_),                                                                       \
-  });
-  DATA_PRIMS
+  case DataPrim_##_T_:                                                                             \
+    *data_decl(type) = (DataDecl){                                                                 \
+        .kind  = DataKind_Prim,                                                                    \
+        .size  = sizeof(_T_),                                                                      \
+        .align = alignof(_T_),                                                                     \
+        .id    = {.name = string_lit(#_T_), .hash = bits_hash_32(string_lit(#_T_))},               \
+    };                                                                                             \
+    break;
+    DATA_PRIMS
 #undef X
+  case DataPrim_Count:
+    diag_crash_msg("Out of bound DataPrim");
+  }
+  return type;
 }
 
-static void data_registry_init() {
-  if (LIKELY(g_init)) {
-    return;
+DataType data_type_by_name(const String name) { return data_type_by_hash(bits_hash_32(name)); }
+
+DataType data_type_by_hash(const u32 nameHash) {
+  const usize typeCount = (usize)thread_atomic_load_i64(&g_nextIdCounter);
+  for (DataType i = 0; i != typeCount; ++i) {
+    if (data_decl(i)->id.hash == nameHash) {
+      return i;
+    }
   }
-  data_registry_lock();
-  if (!g_init) {
-    data_register_prims();
-    g_init = true;
-  }
-  data_registry_unlock();
+  return sentinel_u32;
 }
 
-static DataTypeDecl* data_type_decl(const DataType type) {
-  data_registry_init();
-  diag_assert_msg(type, "Data-type has not been initialized");
-  return &g_types[data_type_index(type)];
+DataId data_type_id(const DataType type) { return data_decl(type)->id; }
+usize  data_type_size(const DataType type) { return data_decl(type)->size; }
+usize  data_type_align(const DataType type) { return data_decl(type)->size; }
+
+usize data_type_fields(const DataType type) {
+  if (LIKELY(data_decl(type)->kind == DataKind_Struct)) {
+    return data_decl(type)->val_struct.count;
+  }
+  return 0;
 }
 
-DataKind data_type_kind(const DataType type) { return data_type_decl(type)->kind; }
-String   data_type_name(const DataType type) { return data_type_decl(type)->name; }
-usize    data_type_size(const DataType type) { return data_type_decl(type)->size; }
-usize    data_type_align(const DataType type) { return data_type_decl(type)->align; }
-
-DataType data_type_register_struct(
-    DataType*                    var,
-    const DataTypeConfig*        cfg,
-    const DataStructFieldConfig* fieldConfigs,
-    const usize                  fieldCount) {
-
-  diag_assert(var);
-  if (*var) {
-    return *var; // Type has already been registered.
+usize data_type_consts(const DataType type) {
+  if (LIKELY(data_decl(type)->kind == DataKind_Enum)) {
+    return data_decl(type)->val_enum.count;
   }
-  data_registry_init();
+  return 0;
+}
 
-  DataStructField* fields = alloc_array_t(g_alloc_persist, DataStructField, fieldCount);
-  for (usize i = 0; i != fieldCount; ++i) {
-    fields[i] = (DataStructField){
-        .name   = string_dup(g_alloc_persist, fieldConfigs[i].name),
-        .offset = fieldConfigs[i].offset,
-        .type   = fieldConfigs[i].type,
-    };
-  }
-  DataTypeDecl decl = {
+DataType data_register_struct(const String name, const usize size, const usize align) {
+  const u32 nameHash = bits_hash_32(name);
+
+  diag_assert_msg(bits_ispow2(align), "Alignment '{}' is not a power-of-two", fmt_int(align));
+  diag_assert_msg(
+      bits_aligned(size, align),
+      "Size '{}' is not a multiple of alignment '{}'",
+      fmt_size(size),
+      fmt_int(align));
+  diag_assert_msg(
+      sentinel_check(data_type_by_hash(nameHash)), "Duplicate type with name '{}'", fmt_text(name));
+
+  const DataType type = data_alloc_type();
+  *data_decl(type)    = (DataDecl){
       .kind       = DataKind_Struct,
-      .name       = string_dup(g_alloc_persist, cfg->name),
-      .size       = cfg->size,
-      .align      = cfg->align,
-      .val_struct = {.fields = fields, .fieldCount = fieldCount},
-  };
-  return *var = data_register_type(decl);
+      .size       = size,
+      .align      = align,
+      .id         = {.name = string_dup(g_alloc_persist, name), .hash = nameHash},
+      .val_struct = {.fields = alloc_array_t(g_alloc_persist, DataDeclField, data_max_fields)}};
+  return type;
 }
 
-DataType data_type_register_enum(
-    DataType*                  var,
-    const DataTypeConfig*      cfg,
-    const DataEnumEntryConfig* entryConfigs,
-    const usize                entryCount) {
+void data_register_field(
+    const DataType parentId, const String name, const usize offset, const DataType type) {
 
-  diag_assert(var);
-  if (*var) {
-    return *var; // Type has already been registered.
-  }
-  data_registry_init();
+  const u32 nameHash = bits_hash_32(name);
+  DataDecl* parent   = data_decl(parentId);
 
-  DataEnumEntry* entries = alloc_array_t(g_alloc_persist, DataEnumEntry, entryCount);
-  for (usize i = 0; i != entryCount; ++i) {
-    entries[i] = (DataEnumEntry){
-        .name  = string_dup(g_alloc_persist, entryConfigs[i].name),
-        .value = entryConfigs[i].value,
-    };
-  }
-  DataTypeDecl decl = {
-      .kind     = DataKind_Enum,
-      .name     = string_dup(g_alloc_persist, cfg->name),
-      .size     = cfg->size,
-      .align    = cfg->align,
-      .val_enum = {.entries = entries, .entryCount = entryCount},
+  diag_assert_msg(parent->kind == DataKind_Struct, "Constant parent has to be a Struct");
+  diag_assert_msg(
+      parent->val_struct.count < data_max_fields,
+      "Struct '{}' has more fields then the maximum of '{}'",
+      fmt_text(data_type_id(parentId).name),
+      fmt_int(data_max_consts));
+  diag_assert_msg(
+      offset + data_type_size(type) <= data_type_size(parentId),
+      "Offset '{}' is out of bounds for the Struct type",
+      fmt_int(offset));
+
+  const usize i                = parent->val_struct.count++;
+  parent->val_struct.fields[i] = (DataDeclField){
+      .id     = {.name = string_dup(g_alloc_persist, name), .hash = nameHash},
+      .offset = offset,
+      .type   = type,
   };
-  return *var = data_register_type(decl);
+}
+
+DataType data_register_enum(const String name) {
+  const u32 nameHash = bits_hash_32(name);
+  diag_assert_msg(
+      sentinel_check(data_type_by_hash(nameHash)), "Duplicate type with name '{}'", fmt_text(name));
+
+  const DataType type = data_alloc_type();
+  *data_decl(type)    = (DataDecl){
+      .kind     = DataKind_Enum,
+      .size     = sizeof(i32),
+      .align    = alignof(i32),
+      .id       = {.name = string_dup(g_alloc_persist, name), .hash = nameHash},
+      .val_enum = {.consts = alloc_array_t(g_alloc_persist, DataDeclConst, data_max_consts)},
+  };
+  return type;
+}
+
+void data_register_const(const DataType parentId, const String name, const i32 value) {
+  const u32 nameHash = bits_hash_32(name);
+  DataDecl* parent   = data_decl(parentId);
+
+  diag_assert_msg(parent->kind == DataKind_Enum, "Constant parent has to be an Enum");
+  diag_assert_msg(
+      parent->val_enum.count < data_max_consts,
+      "Enum '{}' has more constants then the maximum of '{}'",
+      fmt_text(data_type_id(parentId).name),
+      fmt_int(data_max_consts));
+
+  const usize i              = parent->val_enum.count++;
+  parent->val_enum.consts[i] = (DataDeclConst){
+      .id    = {.name = string_dup(g_alloc_persist, name), .hash = nameHash},
+      .value = value,
+  };
 }

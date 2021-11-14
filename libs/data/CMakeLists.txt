@@ -9,3 +9,14 @@ add_library(volo_data STATIC
 target_include_directories(volo_data PUBLIC include)
 target_link_libraries(volo_data PUBLIC volo_core)
 target_link_libraries(volo_data PRIVATE volo_json)
+
+add_executable(volo_data_test
+  test/main.c
+  test/test_registry.c)
+target_link_libraries(volo_data_test PRIVATE volo_check)
+target_link_libraries(volo_data_test PRIVATE volo_data)
+target_link_libraries(volo_data_test PRIVATE volo_jobs)
+target_link_libraries(volo_data_test PRIVATE volo_log)
+
+configure_test(volo_data_test data)
+configure_debuggable(volo_data_test)

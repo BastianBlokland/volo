@@ -1,18 +1,6 @@
 #pragma once
 #include "core_string.h"
 
-typedef enum {
-  DataKind_Primitive,
-  DataKind_Struct,
-  DataKind_Enum,
-} DataKind;
-
-typedef u32 DataType;
-
-#define data_type_extern(_NAME_) extern DataType g_data_type_##_NAME_
-#define data_type_define(_NAME_) DataType g_data_type_##_NAME_
-#define data_type_ptr(_NAME_) &g_data_type_##_NAME_
-
 #define DATA_PRIMS                                                                                 \
   X(i8)                                                                                            \
   X(i16)                                                                                           \
@@ -26,33 +14,51 @@ typedef u32 DataType;
   X(f64)                                                                                           \
   X(String)
 
-#define X(_T_) data_type_extern(_T_);
-DATA_PRIMS
+typedef u32 DataType;
+
+typedef struct {
+  String name;
+  u32    hash;
+} DataId;
+
+typedef enum {
+  DataKind_Invalid,
+  DataKind_Prim,
+  DataKind_Struct,
+  DataKind_Enum,
+} DataKind;
+
+// clang-format off
+
+typedef enum {
+#define X(_T_) DataPrim_##_T_,
+  DATA_PRIMS
 #undef X
 
-DataKind data_type_kind(DataType);
-String   data_type_name(DataType);
-usize    data_type_size(DataType);
-usize    data_type_align(DataType);
+  DataPrim_Count,
+} DataPrim;
 
-typedef struct {
-  String name;
-  usize  size, align;
-} DataTypeConfig;
+// clang-format on
 
-typedef struct {
-  String    name;
-  usize     offset;
-  DataType* type;
-} DataStructFieldConfig;
+/**
+ * TODO:
+ */
+DataType data_type_prim(DataPrim);
 
-DataType data_type_register_struct(
-    DataType*, const DataTypeConfig*, const DataStructFieldConfig*, usize fieldCount);
+/**
+ * TODO:
+ * Returns sentinel_u32 if not found.
+ */
+DataType data_type_by_name(String name);
+DataType data_type_by_hash(u32 nameHash);
 
-typedef struct {
-  String name;
-  i32    value;
-} DataEnumEntryConfig;
+DataId data_type_id(DataType);
+usize  data_type_size(DataType);
+usize  data_type_align(DataType);
+usize  data_type_fields(DataType);
+usize  data_type_consts(DataType);
 
-DataType data_type_register_enum(
-    DataType*, const DataTypeConfig*, const DataEnumEntryConfig*, usize entryCount);
+DataType data_register_struct(String name, usize size, usize align);
+void     data_register_field(DataType parentId, String name, usize offset, DataType type);
+DataType data_register_enum(String name);
+void     data_register_const(DataType parentId, String name, i32 value);

@@ -2,32 +2,32 @@
 #include "data_registry.h"
 
 typedef struct {
-  String    name;
-  usize     offset;
-  DataType* type;
-} DataStructField;
+  DataId   id;
+  usize    offset;
+  DataType type;
+} DataDeclField;
 
 typedef struct {
-  DataStructField* fields;
-  usize            fieldCount;
-} DataTypeStruct;
+  DataDeclField* fields;
+  usize          count;
+} DataDeclStruct;
 
 typedef struct {
-  String name;
+  DataId id;
   i32    value;
-} DataEnumEntry;
+} DataDeclConst;
 
 typedef struct {
-  DataEnumEntry* entries;
-  usize          entryCount;
-} DataTypeEnum;
+  DataDeclConst* consts;
+  usize          count;
+} DataDeclEnum;
 
 typedef struct {
   DataKind kind;
   usize    size, align;
-  String   name;
+  DataId   id;
   union {
-    DataTypeStruct val_struct;
-    DataTypeEnum   val_enum;
+    DataDeclStruct val_struct;
+    DataDeclEnum   val_enum;
   };
-} DataTypeDecl;
+} DataDecl;
