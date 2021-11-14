@@ -8,8 +8,7 @@
 
 typedef struct {
   String            name;
-  usize             size;
-  usize             align;
+  usize             size, align;
   EcsCompDestructor destructor;
   EcsCompCombinator combinator;
 } EcsCompDef;

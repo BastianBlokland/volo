@@ -21,8 +21,7 @@ typedef void (*EcsCompCombinator)(void*, void*);
 
 typedef struct {
   String            name;
-  usize             size;
-  usize             align;
+  usize             size, align;
   EcsCompDestructor destructor;
   EcsCompCombinator combinator;
 } EcsCompConfig;
@@ -91,7 +90,7 @@ typedef struct {
  * ```
  * NOTE: Can optionally be declared using ecs_comp_extern().
  */
-#define ecs_comp_define(_NAME_)                                                            \
+#define ecs_comp_define(_NAME_)                                                                    \
   typedef struct s##_NAME_ _NAME_;                                                                 \
   EcsCompId ecs_comp_id(_NAME_);                                                                   \
   struct s##_NAME_
@@ -105,7 +104,7 @@ typedef struct {
  * ```
  * NOTE: Needs to be defined using ecs_comp_define().
  */
-#define ecs_comp_extern(_NAME_)                                                            \
+#define ecs_comp_extern(_NAME_)                                                                    \
   typedef struct s##_NAME_ _NAME_;                                                                 \
   extern EcsCompId ecs_comp_id(_NAME_)
 
