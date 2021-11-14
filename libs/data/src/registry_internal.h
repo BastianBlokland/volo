@@ -1,18 +1,9 @@
 #pragma once
-#include "core_dynarray.h"
 #include "data_registry.h"
-
-#define data_struct_max_fields 64
-#define data_enum_max_entries 64
-
-typedef enum {
-  DataKind_Primitive,
-  DataKind_Struct,
-  DataKind_Enum,
-} DataKind;
 
 typedef struct {
   String    name;
+  usize     offset;
   DataType* type;
 } DataStructField;
 
@@ -31,12 +22,12 @@ typedef struct {
   usize          entryCount;
 } DataTypeEnum;
 
-struct sDataType {
-  DataKind kind : 8;
-  u16      size, align;
+typedef struct {
+  DataKind kind;
+  usize    size, align;
   String   name;
   union {
     DataTypeStruct val_struct;
     DataTypeEnum   val_enum;
   };
-};
+} DataTypeDecl;

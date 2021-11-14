@@ -1,10 +1,16 @@
 #pragma once
 #include "core_string.h"
 
-typedef struct sDataType DataType;
+typedef enum {
+  DataKind_Primitive,
+  DataKind_Struct,
+  DataKind_Enum,
+} DataKind;
 
-#define data_type_extern(_NAME_) extern DataType* g_data_type_##_NAME_
-#define data_type_define(_NAME_) DataType* g_data_type_##_NAME_
+typedef u32 DataType;
+
+#define data_type_extern(_NAME_) extern DataType g_data_type_##_NAME_
+#define data_type_define(_NAME_) DataType g_data_type_##_NAME_
 #define data_type_ptr(_NAME_) &g_data_type_##_NAME_
 
 #define DATA_PRIMS                                                                                 \
@@ -24,31 +30,29 @@ typedef struct sDataType DataType;
 DATA_PRIMS
 #undef X
 
+DataKind data_type_kind(DataType);
+String   data_type_name(DataType);
+usize    data_type_size(DataType);
+usize    data_type_align(DataType);
+
 typedef struct {
   String name;
   usize  size, align;
 } DataTypeConfig;
 
-typedef struct sDataTypeStructBuilder DataTypeStructBuilder;
-typedef struct sDataTypeEnumBuilder   DataTypeEnumBuilder;
+typedef struct {
+  String    name;
+  usize     offset;
+  DataType* type;
+} DataStructFieldConfig;
 
-typedef void (*DataTypeStructInit)(DataTypeStructBuilder*);
-typedef void (*DataTypeEnumInit)(DataTypeEnumBuilder*);
+DataType data_type_register_struct(
+    DataType*, const DataTypeConfig*, const DataStructFieldConfig*, usize fieldCount);
 
-#define data_register_struct_t(_T_, _INIT_, ...)                                                   \
-  data_register(                                                                                   \
-      (_INIT_),                                                                                    \
-      data_type_ptr(_T_),                                                                          \
-      &(DataTypeConfig){                                                                           \
-          .name = string_lit(#_T_), .size = sizeof(_T_), .align = alignof(_T_), ##__VA_ARGS__})
+typedef struct {
+  String name;
+  i32    value;
+} DataEnumEntryConfig;
 
-void data_register_struct(DataTypeStructInit, DataType**, const DataTypeConfig*);
-
-#define data_register_enum_t(_T_, _INIT_, ...)                                                     \
-  data_register(                                                                                   \
-      (_INIT_),                                                                                    \
-      data_type_ptr(_T_),                                                                          \
-      &(DataTypeConfig){                                                                           \
-          .name = string_lit(#_T_), .size = sizeof(i32), .align = alignof(i32), ##__VA_ARGS__})
-
-void data_register_enum(DataTypeEnumInit, DataType**, const DataTypeConfig*);
+DataType data_type_register_enum(
+    DataType*, const DataTypeConfig*, const DataEnumEntryConfig*, usize entryCount);
