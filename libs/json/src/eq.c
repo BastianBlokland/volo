@@ -73,6 +73,8 @@ bool json_eq(JsonDoc* doc, JsonVal x, JsonVal y) {
     return json_bool(doc, x) == json_bool(doc, y);
   case JsonType_Null:
     return true;
+  case JsonType_Count:
+    break;
   }
   diag_crash();
 }

@@ -161,6 +161,8 @@ static void json_state_write(JsonWriteState* state, DynString* str, const JsonVa
   case JsonType_Null:
     json_state_write_null(state, str);
     return;
+  case JsonType_Count:
+    break;
   }
   diag_crash();
 }

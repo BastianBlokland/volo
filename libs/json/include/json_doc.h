@@ -17,6 +17,8 @@ typedef enum {
   JsonType_Number,
   JsonType_Bool,
   JsonType_Null,
+
+  JsonType_Count,
 } JsonType;
 
 /**
@@ -156,6 +158,11 @@ bool json_add_field(JsonDoc*, JsonVal object, JsonVal name, JsonVal val);
  * Pre-condition: Adding val to object does not create cycles.
  */
 bool json_add_field_str(JsonDoc*, JsonVal object, String name, JsonVal val);
+
+/**
+ * Retrieve a textual represention of a json type.
+ */
+String json_type_str(JsonType);
 
 /**
  * Retrieve the type of a value.

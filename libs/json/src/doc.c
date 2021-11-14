@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "json_doc.h"
@@ -181,6 +182,19 @@ bool json_add_field(JsonDoc* doc, const JsonVal object, const JsonVal name, cons
 
 bool json_add_field_str(JsonDoc* doc, const JsonVal object, const String name, const JsonVal val) {
   return json_add_field(doc, object, json_add_string(doc, name), val);
+}
+
+String json_type_str(const JsonType type) {
+  static const String names[] = {
+      string_static("array"),
+      string_static("object"),
+      string_static("string"),
+      string_static("number"),
+      string_static("bool"),
+      string_static("null"),
+  };
+  ASSERT(array_elems(names) == JsonType_Count, "Incorrect number of json-type names");
+  return names[type];
 }
 
 JsonType json_type(const JsonDoc* doc, const JsonVal val) {
