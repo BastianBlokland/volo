@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_bits.h"
 #include "core_bitset.h"
 #include "core_diag.h"
 #include "ecs_def.h"
