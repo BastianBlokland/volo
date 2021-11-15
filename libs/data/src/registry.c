@@ -10,12 +10,8 @@
 #define data_max_fields 32
 #define data_max_consts 64
 
-static i64 g_nextIdCounter = DataPrim_Count;
-
-static DataDecl* data_decl(const DataType type) {
-  static DataDecl g_types[data_max_types];
-  return &g_types[type];
-}
+static DataDecl g_types[data_max_types];
+static i64      g_nextIdCounter = DataPrim_Count;
 
 static DataType data_alloc_type() {
   const DataType type = (DataType)thread_atomic_add_i64(&g_nextIdCounter, 1);
@@ -33,7 +29,7 @@ DataType data_type_prim(const DataPrim prim) {
 #define X(_T_)                                                                                     \
   case DataPrim_##_T_:                                                                             \
     *data_decl(type) = (DataDecl){                                                                 \
-        .kind  = DataKind_Prim,                                                                    \
+        .kind  = DataKind_##_T_,                                                                   \
         .size  = sizeof(_T_),                                                                      \
         .align = alignof(_T_),                                                                     \
         .id    = {.name = string_lit(#_T_), .hash = bits_hash_32(string_lit(#_T_))},               \
@@ -59,19 +55,20 @@ DataType data_type_by_hash(const u32 nameHash) {
   return sentinel_u32;
 }
 
-DataId data_type_id(const DataType type) { return data_decl(type)->id; }
-usize  data_type_size(const DataType type) { return data_decl(type)->size; }
-usize  data_type_align(const DataType type) { return data_decl(type)->size; }
+DataKind data_type_kind(const DataType type) { return data_decl(type)->kind; }
+DataId   data_type_id(const DataType type) { return data_decl(type)->id; }
+usize    data_type_size(const DataType type) { return data_decl(type)->size; }
+usize    data_type_align(const DataType type) { return data_decl(type)->size; }
 
 usize data_type_fields(const DataType type) {
-  if (LIKELY(data_decl(type)->kind == DataKind_Struct)) {
+  if (LIKELY(data_type_kind(type) == DataKind_Struct)) {
     return data_decl(type)->val_struct.count;
   }
   return 0;
 }
 
 usize data_type_consts(const DataType type) {
-  if (LIKELY(data_decl(type)->kind == DataKind_Enum)) {
+  if (LIKELY(data_type_kind(type) == DataKind_Enum)) {
     return data_decl(type)->val_enum.count;
   }
   return 0;
@@ -100,7 +97,7 @@ DataType data_register_struct(const String name, const usize size, const usize a
 }
 
 void data_register_field(
-    const DataType parentId, const String name, const usize offset, const DataType type) {
+    const DataType parentId, const String name, const usize offset, const DataMeta meta) {
 
   const u32 nameHash = bits_hash_32(name);
   DataDecl* parent   = data_decl(parentId);
@@ -112,7 +109,7 @@ void data_register_field(
       fmt_text(data_type_id(parentId).name),
       fmt_int(data_max_consts));
   diag_assert_msg(
-      offset + data_type_size(type) <= data_type_size(parentId),
+      offset + data_type_size(meta.type) <= data_type_size(parentId),
       "Offset '{}' is out of bounds for the Struct type",
       fmt_int(offset));
 
@@ -120,7 +117,7 @@ void data_register_field(
   parent->val_struct.fields[i] = (DataDeclField){
       .id     = {.name = string_dup(g_alloc_persist, name), .hash = nameHash},
       .offset = offset,
-      .type   = type,
+      .meta   = meta,
   };
 }
 
@@ -157,3 +154,5 @@ void data_register_const(const DataType parentId, const String name, const i32 v
       .value = value,
   };
 }
+
+DataDecl* data_decl(const DataType type) { return &g_types[type]; }

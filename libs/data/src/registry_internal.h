@@ -4,7 +4,7 @@
 typedef struct {
   DataId   id;
   usize    offset;
-  DataType type;
+  DataMeta meta;
 } DataDeclField;
 
 typedef struct {
@@ -31,3 +31,5 @@ typedef struct {
     DataDeclEnum   val_enum;
   };
 } DataDecl;
+
+DataDecl* data_decl(DataType);
