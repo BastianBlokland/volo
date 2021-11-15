@@ -3,15 +3,15 @@
 #include "core_array.h"
 #include "core_dynstring.h"
 #include "json_eq.h"
-#include "json_parse.h"
+#include "json_read.h"
 
-spec(parse) {
+spec(read) {
 
   JsonDoc* doc = null;
 
   setup() { doc = json_create(g_alloc_heap, 0); }
 
-  it("can parse arrays") {
+  it("can read arrays") {
     JsonVal tmpValA, tmpValB, tmpValC, tmpValD, tmpValE;
     struct {
       String  input;
@@ -58,7 +58,7 @@ spec(parse) {
     }
   }
 
-  it("can parse objects") {
+  it("can read objects") {
     JsonVal tmpValA, tmpValB, tmpValC, tmpValD, tmpValE;
     struct {
       String  input;
@@ -102,7 +102,7 @@ spec(parse) {
     }
   }
 
-  it("can parse numbers") {
+  it("can read numbers") {
     struct {
       String input;
       f64    expected;
@@ -132,7 +132,7 @@ spec(parse) {
     }
   }
 
-  it("can parse strings") {
+  it("can read strings") {
     struct {
       String input;
       String expected;
@@ -163,7 +163,7 @@ spec(parse) {
     }
   }
 
-  it("can parse booleans") {
+  it("can read booleans") {
     struct {
       String input;
       bool   expected;
@@ -182,7 +182,7 @@ spec(parse) {
     }
   }
 
-  it("can parse null") {
+  it("can read null") {
     JsonResult   res;
     const String rem = json_read(doc, string_lit("null"), &res);
 
@@ -191,7 +191,7 @@ spec(parse) {
     check_eq_int(json_type(doc, res.val), JsonType_Null);
   }
 
-  it("can parse sequences of multiple values") {
+  it("can read sequences of multiple values") {
     String input = string_lit("1 true null [] {}");
 
     DynArray values = dynarray_create_over_t(mem_stack(256), JsonVal);

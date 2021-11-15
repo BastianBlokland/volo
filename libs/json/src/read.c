@@ -1,6 +1,6 @@
 #include "core_array.h"
 #include "core_diag.h"
-#include "json_parse.h"
+#include "json_read.h"
 
 #include "lex_internal.h"
 
