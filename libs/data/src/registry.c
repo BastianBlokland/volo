@@ -26,7 +26,7 @@ static DataId data_get_id(const String name) {
 
 static DataType data_type_by_id(const DataId id) {
   const usize typeCount = (usize)thread_atomic_load_i64(&g_nextIdCounter);
-  for (DataType i = 0; i != typeCount; ++i) {
+  for (DataType i = 1; i != typeCount; ++i) {
     if (data_decl(i)->id.hash == id.hash) {
       return i;
     }
@@ -51,6 +51,7 @@ DataType data_type_prim(const DataPrim prim) {
     break;
     DATA_PRIMS
 #undef X
+  case DataPrim_Invalid:
   case DataPrim_Count:
     diag_crash_msg("Out of bound DataPrim");
   }
@@ -136,4 +137,7 @@ void data_register_const(const DataType parentId, const String name, const i32 v
   parent->val_enum.consts[i] = (DataDeclConst){.id = id, .value = value};
 }
 
-DataDecl* data_decl(const DataType type) { return &g_types[type]; }
+DataDecl* data_decl(const DataType type) {
+  diag_assert_msg(type, "Uninitialized data-type");
+  return &g_types[type - 1];
+}

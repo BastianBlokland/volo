@@ -37,6 +37,7 @@ typedef enum {
 } DataKind;
 
 typedef enum {
+  DataPrim_Invalid,
 #define X(_T_) DataPrim_##_T_,
   DATA_PRIMS
 #undef X
