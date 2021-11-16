@@ -7,6 +7,8 @@ static usize data_utils_size(const DataMeta meta) {
   switch (meta.container) {
   case DataContainer_None:
     return data_type_size(meta.type);
+  case DataContainer_Pointer:
+    return sizeof(void*);
   case DataContainer_Array:
     return sizeof(DataArray);
   }

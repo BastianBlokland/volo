@@ -233,6 +233,29 @@ static void data_read_json_val_single(const ReadCtx* ctx, DataReadResult* res) {
   diag_crash();
 }
 
+static void data_read_json_val_pointer(const ReadCtx* ctx, DataReadResult* res) {
+  if (json_type(ctx->doc, ctx->val) == JsonType_Null) {
+    *mem_as_t(ctx->data, void*) = null;
+    *res                        = result_success();
+    return;
+  }
+
+  const DataDecl* decl = data_decl(ctx->meta.type);
+  const Mem       mem  = alloc_alloc(ctx->alloc, decl->size, decl->align);
+  data_register_alloc(ctx, mem);
+
+  const ReadCtx elemCtx = {
+      .alloc       = ctx->alloc,
+      .allocations = ctx->allocations,
+      .doc         = ctx->doc,
+      .val         = ctx->val,
+      .meta        = {.type = ctx->meta.type},
+      .data        = mem,
+  };
+  data_read_json_val(&elemCtx, res);
+  *mem_as_t(ctx->data, void*) = mem.ptr;
+}
+
 static void data_read_json_val_array(const ReadCtx* ctx, DataReadResult* res) {
   if (UNLIKELY(!data_check_type(ctx, JsonType_Array, res))) {
     return;
@@ -252,6 +275,7 @@ static void data_read_json_val_array(const ReadCtx* ctx, DataReadResult* res) {
         .doc         = ctx->doc,
         .val         = elem,
         .meta        = {.type = ctx->meta.type},
+        .data        = mem_create(ptr, decl->size),
     };
     data_read_json_val(&elemCtx, res);
     if (UNLIKELY(res->error)) {
@@ -259,15 +283,20 @@ static void data_read_json_val_array(const ReadCtx* ctx, DataReadResult* res) {
     }
     ptr = bits_ptr_offset(ptr, decl->size);
   });
+
+  *res = result_success();
 }
 
 static void data_read_json_val(const ReadCtx* ctx, DataReadResult* res) {
   switch (ctx->meta.container) {
-  case DataContainer_Array:
-    data_read_json_val_array(ctx, res);
-    break;
   case DataContainer_None:
     data_read_json_val_single(ctx, res);
+    break;
+  case DataContainer_Pointer:
+    data_read_json_val_pointer(ctx, res);
+    break;
+  case DataContainer_Array:
+    data_read_json_val_array(ctx, res);
     break;
   }
   diag_crash();

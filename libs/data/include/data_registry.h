@@ -29,6 +29,7 @@ typedef struct {
 
 typedef enum {
   DataContainer_None,
+  DataContainer_Pointer,
   DataContainer_Array,
 } DataContainer;
 
