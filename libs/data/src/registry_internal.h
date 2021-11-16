@@ -2,6 +2,11 @@
 #include "data_registry.h"
 
 typedef struct {
+  String name;
+  u32    hash;
+} DataId;
+
+typedef struct {
   DataId   id;
   usize    offset;
   DataMeta meta;
