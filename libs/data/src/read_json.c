@@ -246,7 +246,7 @@ static void data_read_json_val_pointer(const ReadCtx* ctx, DataReadResult* res) 
   const Mem       mem  = alloc_alloc(ctx->alloc, decl->size, decl->align);
   data_register_alloc(ctx, mem);
 
-  const ReadCtx elemCtx = {
+  const ReadCtx subCtx = {
       .alloc       = ctx->alloc,
       .allocations = ctx->allocations,
       .doc         = ctx->doc,
@@ -254,7 +254,7 @@ static void data_read_json_val_pointer(const ReadCtx* ctx, DataReadResult* res) 
       .meta        = {.type = ctx->meta.type},
       .data        = mem,
   };
-  data_read_json_val(&elemCtx, res);
+  data_read_json_val(&subCtx, res);
   *mem_as_t(ctx->data, void*) = mem.ptr;
 }
 
