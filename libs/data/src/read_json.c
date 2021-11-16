@@ -2,7 +2,6 @@
 #include "core_bits.h"
 #include "core_diag.h"
 #include "data_read.h"
-#include "json_doc.h"
 #include "json_read.h"
 
 #include "registry_internal.h"
@@ -182,6 +181,9 @@ static void data_read_json_struct(const ReadCtx* ctx, DataReadResult* res) {
 }
 
 static void data_read_json_enum(const ReadCtx* ctx, DataReadResult* res) {
+  if (UNLIKELY(!data_check_type(ctx, JsonType_String, res))) {
+    return;
+  }
   const DataDecl* decl      = data_decl(ctx->meta.type);
   const u32       valueHash = bits_hash_32(json_string(ctx->doc, ctx->val));
 
