@@ -40,11 +40,13 @@ typedef Allocator* (*AllocatorBuilder)(Mem);
 
 /**
  * 'Normal' heap allocator.
+ * NOTE: Thread-safe.
  */
 extern Allocator* g_alloc_heap;
 
 /**
  * Page allocator, allocates memory pages directly from the OS.
+ * NOTE: Thread-safe.
  */
 extern Allocator* g_alloc_page;
 
@@ -52,6 +54,7 @@ extern Allocator* g_alloc_page;
  * Persitent allocator.
  * Allocator for memory that needs to persist over the whole application lifetime.
  * Memory cannot be manually freed, its automatically freed at application shutdown.
+ * NOTE: Thread-safe.
  */
 extern Allocator* g_alloc_persist;
 

@@ -65,6 +65,8 @@ INLINE_HINT Mem alloc_alloc(Allocator* allocator, const usize size, const usize 
 
 INLINE_HINT void alloc_free(Allocator* allocator, Mem mem) {
   alloc_verify_allocator(allocator);
+
+  diag_assert_msg(allocator->free, "alloc_free: Allocator does not support freeing");
   allocator->free(allocator, mem);
 }
 
