@@ -18,6 +18,7 @@
 
 typedef struct {
   Allocator*     alloc;
+  DynArray*      allocations;
   const JsonDoc* doc;
   const JsonVal  val;
   const DataMeta meta;
@@ -25,6 +26,13 @@ typedef struct {
 } ReadCtx;
 
 static void data_read_json_val(const ReadCtx*, DataReadResult*);
+
+/**
+ * Track allocations so they can be undone in case of an error.
+ */
+static void data_register_alloc(const ReadCtx* ctx, const Mem allocation) {
+  *dynarray_push_t(ctx->allocations, Mem) = allocation;
+}
 
 static bool data_check_type(const ReadCtx* ctx, const JsonType jsonType, DataReadResult* res) {
   if (UNLIKELY(jsonType != json_type(ctx->doc, ctx->val))) {
@@ -135,7 +143,10 @@ static void data_read_json_string(const ReadCtx* ctx, DataReadResult* res) {
   if (UNLIKELY(!data_check_type(ctx, JsonType_String, res))) {
     return;
   }
-  *mem_as_t(ctx->data, String) = string_dup(ctx->alloc, json_string(ctx->doc, ctx->val));
+  const String str = string_dup(ctx->alloc, json_string(ctx->doc, ctx->val));
+
+  data_register_alloc(ctx, str);
+  *mem_as_t(ctx->data, String) = str;
   *res                         = result_success();
 }
 
@@ -155,11 +166,12 @@ static void data_read_json_struct(const ReadCtx* ctx, DataReadResult* res) {
     }
 
     const ReadCtx fieldCtx = {
-        .alloc = ctx->alloc,
-        .doc   = ctx->doc,
-        .val   = fieldVal,
-        .meta  = field->meta,
-        .data  = data_utils_field_mem(field, ctx->data),
+        .alloc       = ctx->alloc,
+        .allocations = ctx->allocations,
+        .doc         = ctx->doc,
+        .val         = fieldVal,
+        .meta        = field->meta,
+        .data        = data_utils_field_mem(field, ctx->data),
     };
     data_read_json_val(&fieldCtx, res);
     if (UNLIKELY(res->error)) {
@@ -225,17 +237,21 @@ static void data_read_json_val_array(const ReadCtx* ctx, DataReadResult* res) {
   if (UNLIKELY(!data_check_type(ctx, JsonType_Array, res))) {
     return;
   }
-  const DataDecl* decl            = data_decl(ctx->meta.type);
-  const usize     count           = json_elem_count(ctx->doc, ctx->val);
-  void*           ptr             = alloc_alloc(ctx->alloc, decl->size * count, decl->align).ptr;
-  *mem_as_t(ctx->data, DataArray) = (DataArray){.data = ptr, .count = count};
+  const DataDecl* decl     = data_decl(ctx->meta.type);
+  const usize     count    = json_elem_count(ctx->doc, ctx->val);
+  const Mem       arrayMem = alloc_alloc(ctx->alloc, decl->size * count, decl->align);
+  data_register_alloc(ctx, arrayMem);
+
+  void* ptr                       = arrayMem.ptr;
+  *mem_as_t(ctx->data, DataArray) = (DataArray){.data = arrayMem.ptr, .count = count};
 
   json_for_elems(ctx->doc, ctx->val, elem, {
     const ReadCtx elemCtx = {
-        .alloc = ctx->alloc,
-        .doc   = ctx->doc,
-        .val   = elem,
-        .meta  = {.type = ctx->meta.type},
+        .alloc       = ctx->alloc,
+        .allocations = ctx->allocations,
+        .doc         = ctx->doc,
+        .val         = elem,
+        .meta        = {.type = ctx->meta.type},
     };
     data_read_json_val(&elemCtx, res);
     if (UNLIKELY(res->error)) {
@@ -259,7 +275,9 @@ static void data_read_json_val(const ReadCtx* ctx, DataReadResult* res) {
 
 String data_read_json(
     const String input, Allocator* alloc, const DataMeta meta, Mem data, DataReadResult* res) {
-  JsonDoc* doc = json_create(g_alloc_scratch, 1024);
+
+  JsonDoc* doc         = json_create(g_alloc_scratch, 1024);
+  DynArray allocations = dynarray_create_t(g_alloc_scratch, Mem, 128);
 
   JsonResult   jsonRes;
   const String rem = json_read(doc, input, &jsonRes);
@@ -272,15 +290,24 @@ String data_read_json(
   }
 
   const ReadCtx ctx = {
-      .alloc = alloc,
-      .doc   = doc,
-      .val   = jsonRes.val,
-      .meta  = meta,
-      .data  = data,
+      .alloc       = alloc,
+      .allocations = &allocations,
+      .doc         = doc,
+      .val         = jsonRes.val,
+      .meta        = meta,
+      .data        = data,
   };
   data_read_json_val(&ctx, res);
 
 Ret:
+  if (res->error) {
+    /**
+     * Free all allocations in case of an error.
+     * This way the caller doesn't have to attempt to cleanup a half initialized object.
+     */
+    dynarray_for_t(&allocations, Mem, mem, { alloc_free(alloc, *mem); });
+  }
+  dynarray_destroy(&allocations);
   json_destroy(doc);
   return rem;
 }

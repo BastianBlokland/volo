@@ -25,6 +25,7 @@ typedef String (*DataReader)(String, Allocator*, DataMeta, Mem data, DataReadRes
 
 /**
  * Read a data value from a json string.
+ * NOTE: Data is left uninitialized in case of an error (does not require cleanup by the caller).
  *
  * Returns the remaining input.
  * The result is written to the given data memory.
