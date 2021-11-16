@@ -4,7 +4,7 @@
 #include "core_thread.h"
 #include "data_registry.h"
 
-#include "registry_internal.h"
+#include "utils_internal.h"
 
 #define data_max_types 256
 #define data_max_fields 32
@@ -93,7 +93,7 @@ void data_register_field(
       fmt_text(data_decl(parentId)->id.name),
       fmt_int(data_max_consts));
   diag_assert_msg(
-      offset + data_decl(meta.type)->size <= data_decl(parentId)->size,
+      offset + data_utils_size(meta) <= data_decl(parentId)->size,
       "Offset '{}' is out of bounds for the Struct type",
       fmt_int(offset));
 

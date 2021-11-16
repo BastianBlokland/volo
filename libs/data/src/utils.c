@@ -3,7 +3,7 @@
 
 #include "utils_internal.h"
 
-static usize data_utils_size(const DataMeta meta) {
+usize data_utils_size(const DataMeta meta) {
   switch (meta.container) {
   case DataContainer_None:
     return data_decl(meta.type)->size;
