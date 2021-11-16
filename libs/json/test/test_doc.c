@@ -6,7 +6,7 @@ spec(doc) {
 
   JsonDoc* doc = null;
 
-  setup() { doc = json_create(g_alloc_heap, 0); }
+  setup() { doc = json_create(g_alloc_heap, 0, JsonDocFlags_None); }
 
   it("can retrieve the value of a string") {
     const JsonVal str = json_add_string_lit(doc, "Hello World");

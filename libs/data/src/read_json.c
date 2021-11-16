@@ -307,7 +307,7 @@ static void data_read_json_val(const ReadCtx* ctx, DataReadResult* res) {
 String data_read_json(
     const String input, Allocator* alloc, const DataMeta meta, Mem data, DataReadResult* res) {
 
-  JsonDoc* doc         = json_create(g_alloc_scratch, 1024);
+  JsonDoc* doc         = json_create(g_alloc_scratch, 1024, JsonDocFlags_NoStringDup);
   DynArray allocations = dynarray_create_t(g_alloc_scratch, Mem, 128);
 
   JsonResult   jsonRes;

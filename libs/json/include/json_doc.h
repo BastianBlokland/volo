@@ -7,6 +7,11 @@
  */
 typedef struct sJsonDoc JsonDoc;
 
+typedef enum {
+  JsonDocFlags_None        = 0,
+  JsonDocFlags_NoStringDup = 1 << 0, // Do not duplicate strings when storing them in the document.
+} JsonDocFlags;
+
 /**
  * Type of a json value.
  */
@@ -82,9 +87,10 @@ typedef struct {
  * Create a new Json document.
  * NOTE: 'valueCapacity' is only the initial capacity, more space is automatically allocated when
  * required. Capacity of 0 is legal and will allocate memory when the first value is added.
+ *
  * Should be destroyed using 'json_destroy()'.
  */
-JsonDoc* json_create(Allocator*, usize valueCapacity);
+JsonDoc* json_create(Allocator*, usize valueCapacity, JsonDocFlags);
 
 /**
  * Destroy a Json document.

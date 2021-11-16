@@ -10,7 +10,7 @@ spec(write) {
   DynString buffer = {0};
 
   setup() {
-    doc    = json_create(g_alloc_heap, 0);
+    doc    = json_create(g_alloc_heap, 0, JsonDocFlags_None);
     buffer = dynstring_create(g_alloc_page, usize_kibibyte * 4);
   }
 

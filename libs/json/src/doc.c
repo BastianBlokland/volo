@@ -27,8 +27,9 @@ typedef struct {
 } JsonValData;
 
 struct sJsonDoc {
-  DynArray   values; // JsonValData[]
-  Allocator* alloc;
+  JsonDocFlags flags;
+  DynArray     values; // JsonValData[]
+  Allocator*   alloc;
 };
 
 static JsonValData* json_val_data(const JsonDoc* doc, const JsonVal val) {
@@ -42,9 +43,10 @@ static JsonVal json_add_data(JsonDoc* doc, JsonValData data) {
   return val;
 }
 
-JsonDoc* json_create(Allocator* alloc, usize valueCapacity) {
+JsonDoc* json_create(Allocator* alloc, usize valueCapacity, const JsonDocFlags flags) {
   JsonDoc* doc = alloc_alloc_t(alloc, JsonDoc);
   *doc         = (JsonDoc){
+      .flags  = flags,
       .values = dynarray_create_t(alloc, JsonValData, valueCapacity),
       .alloc  = alloc,
   };
@@ -55,7 +57,7 @@ void json_destroy(JsonDoc* doc) {
   dynarray_for_t(&doc->values, JsonValData, data, {
     switch (data->typeAndParent & 0xFFFF) {
     case JsonType_String:
-      if (data->val_string.ptr) {
+      if (data->val_string.ptr && !(doc->flags & JsonDocFlags_NoStringDup)) {
         string_free(doc->alloc, data->val_string);
       }
       break;
@@ -90,12 +92,18 @@ JsonVal json_add_object(JsonDoc* doc) {
 }
 
 JsonVal json_add_string(JsonDoc* doc, const String string) {
+  String valString;
+  if (doc->flags & JsonDocFlags_NoStringDup) {
+    valString = string;
+  } else {
+    valString = string_is_empty(string) ? string_empty : string_dup(doc->alloc, string);
+  }
   return json_add_data(
       doc,
       (JsonValData){
           .typeAndParent = JsonType_String,
           .next          = sentinel_u32,
-          .val_string    = string_is_empty(string) ? string_empty : string_dup(doc->alloc, string),
+          .val_string    = valString,
       });
 }
 

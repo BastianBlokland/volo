@@ -148,7 +148,7 @@ static JsonVal data_write_json_val(const WriteCtx* ctx) {
 }
 
 void data_write_json(DynString* str, const DataMeta meta, const Mem data) {
-  JsonDoc*       doc = json_create(g_alloc_scratch, 1024);
+  JsonDoc*       doc = json_create(g_alloc_scratch, 1024, JsonDocFlags_NoStringDup);
   const WriteCtx ctx = {
       .doc  = doc,
       .meta = meta,

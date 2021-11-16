@@ -18,7 +18,7 @@ spec(sink_json) {
     const LogMask mask = LogMask_Info | LogMask_Warn;
     log_add_sink(logger, log_sink_json(g_alloc_heap, tmpFile, mask, LogSinkJsonFlags_DestroyFile));
 
-    jsonDoc = json_create(g_alloc_heap, 64);
+    jsonDoc = json_create(g_alloc_heap, 64, JsonDocFlags_None);
     buffer  = dynstring_create(g_alloc_heap, 1024);
   }
 
