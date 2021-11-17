@@ -42,7 +42,7 @@
 #if defined(VOLO_CLANG) || defined(VOLO_GCC)
 #define MAYBE_UNUSED __attribute__((unused))
 #elif defined(VOLO_MSVC)
-#define MAYBE_UNUSED __pragma(warning(suppress : 4100))
+#define MAYBE_UNUSED __pragma(warning(suppress : 4100 4101))
 #else
 #define MAYBE_UNUSED
 #endif
