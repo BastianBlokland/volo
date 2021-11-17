@@ -51,6 +51,22 @@ spec(memory) {
     check_eq_string(*mem_as_t(mem, String), string_lit("Hello World"));
   }
 
+  it("can create a memory view over a variable") {
+    const i64 val1 = 42;
+    const Mem mem1 = mem_var(val1);
+
+    check(mem1.ptr == &val1);
+    check_eq_int(mem1.size, sizeof(i64));
+    check_eq_int(*mem_as_t(mem1, i64), 42);
+
+    const i32 val2[8] = {42};
+    const Mem mem2    = mem_var(val2);
+
+    check(mem2.ptr == val2);
+    check_eq_int(mem2.size, sizeof(i32) * 8);
+    check_eq_int(*mem_as_t(mem2, i32), 42);
+  }
+
   it("can create a memory view from two pointers") {
     u8    rawMem[128] = {0};
     void* rawMemHead  = rawMem;
