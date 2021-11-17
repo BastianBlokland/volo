@@ -110,22 +110,22 @@ static JsonVal data_write_json_val_pointer(const WriteCtx* ctx) {
   const DataDecl* decl   = data_decl(ctx->meta.type);
   const WriteCtx  subCtx = {
       .doc  = ctx->doc,
-      .meta = {.type = ctx->meta.type},
+      .meta = data_meta_base(ctx->meta),
       .data = mem_create(ptr, decl->size),
   };
   return data_write_json_val(&subCtx);
 }
 
 static JsonVal data_write_json_val_array(const WriteCtx* ctx) {
-  const JsonVal   jsonArray = json_add_array(ctx->doc);
-  const DataDecl* decl      = data_decl(ctx->meta.type);
+  const JsonVal    jsonArray = json_add_array(ctx->doc);
+  const DataDecl*  decl      = data_decl(ctx->meta.type);
+  const DataArray* array     = mem_as_t(ctx->data, DataArray);
 
-  const DataArray* array = mem_as_t(ctx->data, DataArray);
   for (usize i = 0; i != array->count; ++i) {
     const WriteCtx elemCtx = {
         .doc  = ctx->doc,
-        .meta = {.type = ctx->meta.type},
-        .data = mem_create(bits_ptr_offset(array->data, decl->size * i), decl->size),
+        .meta = data_meta_base(ctx->meta),
+        .data = data_elem_mem(decl, array, i),
     };
     const JsonVal elemVal = data_write_json_val(&elemCtx);
     json_add_elem(ctx->doc, jsonArray, elemVal);

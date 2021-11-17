@@ -51,5 +51,22 @@ typedef struct {
     }                                                                                              \
   }
 
-DataDecl* data_decl(DataType);
-Mem       data_field_mem(const DataDeclField*, Mem structMem);
+/**
+ * Strip of any container or other special attributes from the meta.
+ */
+DataMeta data_meta_base(DataMeta);
+
+/**
+ * Lookup a declaration for a type.
+ */
+const DataDecl* data_decl(DataType);
+
+/**
+ * Create a memory view over a field in a structure.
+ */
+Mem data_field_mem(const DataDeclField*, Mem structMem);
+
+/**
+ * Create a memory view over an element in the given array.
+ */
+Mem data_elem_mem(const DataDecl*, const DataArray*, usize index);

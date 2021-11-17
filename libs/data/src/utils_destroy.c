@@ -53,9 +53,8 @@ static void data_destroy_pointer(Allocator* alloc, const DataMeta meta, const Me
   if (!ptr) {
     return;
   }
-  const DataMeta targetMeta = {.type = meta.type};
-  const Mem      targetMem  = mem_create(ptr, data_decl(meta.type)->size);
-  data_destroy(alloc, targetMeta, targetMem);
+  const Mem targetMem = mem_create(ptr, data_size(meta.type));
+  data_destroy(alloc, data_meta_base(meta), targetMem);
 
   alloc_free(alloc, targetMem);
 }
@@ -65,9 +64,7 @@ static void data_destroy_array(Allocator* alloc, const DataMeta meta, const Mem 
   const DataArray* array = mem_as_t(data, DataArray);
 
   for (usize i = 0; i != array->count; ++i) {
-    const Mem      elemMem  = mem_create(bits_ptr_offset(array->data, decl->size * i), decl->size);
-    const DataMeta elemMeta = {.type = meta.type};
-    data_destroy(alloc, elemMeta, elemMem);
+    data_destroy(alloc, data_meta_base(meta), data_elem_mem(decl, array, i));
   }
 
   alloc_free(alloc, mem_create(array->data, decl->size * array->count));

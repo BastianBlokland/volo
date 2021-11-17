@@ -24,6 +24,11 @@ static DataId data_get_id(const String name) {
   return (DataId){.name = name, .hash = bits_hash_32(name)};
 }
 
+static DataDecl* data_decl_mutable(const DataType type) {
+  diag_assert_msg(type, "Uninitialized data-type");
+  return &g_types[type - 1];
+}
+
 static DataType data_type_by_id(const DataId id) {
   const usize typeCount = (usize)thread_atomic_load_i64(&g_nextIdCounter);
   for (DataType i = 1; i != typeCount; ++i) {
@@ -47,7 +52,7 @@ DataType data_prim(const DataPrim prim) {
     goto done;
   }
 #define X(_T_)                                                                                     \
-  *data_decl((DataType)DataPrim_##_T_) = (DataDecl){                                               \
+  *data_decl_mutable((DataType)DataPrim_##_T_) = (DataDecl){                                       \
       .kind  = DataKind_##_T_,                                                                     \
       .size  = sizeof(_T_),                                                                        \
       .align = alignof(_T_),                                                                       \
@@ -91,8 +96,8 @@ DataType data_register_struct(const String name, const usize size, const usize a
   diag_assert_msg(
       sentinel_check(data_type_by_id(id)), "Duplicate type with name '{}'", fmt_text(name));
 
-  const DataType type = data_alloc_type();
-  *data_decl(type)    = (DataDecl){
+  const DataType type      = data_alloc_type();
+  *data_decl_mutable(type) = (DataDecl){
       .kind       = DataKind_Struct,
       .size       = size,
       .align      = align,
@@ -106,7 +111,7 @@ void data_register_field(
     const DataType parent, const String name, const usize offset, const DataMeta meta) {
 
   const DataId id         = data_get_id(string_dup(g_alloc_persist, name));
-  DataDecl*    parentDecl = data_decl(parent);
+  DataDecl*    parentDecl = data_decl_mutable(parent);
 
   diag_assert_msg(parentDecl->kind == DataKind_Struct, "Constant parent has to be a Struct");
   diag_assert_msg(
@@ -132,8 +137,8 @@ DataType data_register_enum(const String name) {
   diag_assert_msg(
       sentinel_check(data_type_by_id(id)), "Duplicate type with name '{}'", fmt_text(name));
 
-  const DataType type = data_alloc_type();
-  *data_decl(type)    = (DataDecl){
+  const DataType type      = data_alloc_type();
+  *data_decl_mutable(type) = (DataDecl){
       .kind     = DataKind_Enum,
       .size     = sizeof(i32),
       .align    = alignof(i32),
@@ -145,7 +150,7 @@ DataType data_register_enum(const String name) {
 
 void data_register_const(const DataType parent, const String name, const i32 value) {
   const DataId id         = data_get_id(string_dup(g_alloc_persist, name));
-  DataDecl*    parentDecl = data_decl(parent);
+  DataDecl*    parentDecl = data_decl_mutable(parent);
 
   diag_assert_msg(parentDecl->kind == DataKind_Enum, "Constant parent has to be an Enum");
   diag_assert_msg(
@@ -158,11 +163,17 @@ void data_register_const(const DataType parent, const String name, const i32 val
   parentDecl->val_enum.consts[i] = (DataDeclConst){.id = id, .value = value};
 }
 
-DataDecl* data_decl(const DataType type) {
+DataMeta data_meta_base(const DataMeta meta) { return (DataMeta){.type = meta.type}; }
+
+const DataDecl* data_decl(const DataType type) {
   diag_assert_msg(type, "Uninitialized data-type");
   return &g_types[type - 1];
 }
 
 Mem data_field_mem(const DataDeclField* field, Mem structMem) {
   return mem_create(bits_ptr_offset(structMem.ptr, field->offset), data_meta_size(field->meta));
+}
+
+Mem data_elem_mem(const DataDecl* decl, const DataArray* array, const usize index) {
+  return mem_create(bits_ptr_offset(array->data, decl->size * index), decl->size);
 }
