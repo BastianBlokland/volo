@@ -7,7 +7,6 @@ message(STATUS "> library: data")
 add_library(volo_data STATIC
   src/read_json.c
   src/registry.c
-  src/utils.c
   src/write_json.c)
 target_include_directories(volo_data PUBLIC include)
 target_link_libraries(volo_data PUBLIC volo_core)

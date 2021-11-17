@@ -38,3 +38,4 @@ typedef struct {
 } DataDecl;
 
 DataDecl* data_decl(DataType);
+Mem       data_field_mem(const DataDeclField*, Mem structMem);

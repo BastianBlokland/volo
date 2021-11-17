@@ -5,7 +5,6 @@
 #include "json_write.h"
 
 #include "registry_internal.h"
-#include "utils_internal.h"
 
 typedef struct {
   JsonDoc*       doc;
@@ -55,7 +54,7 @@ static JsonVal data_write_json_struct(const WriteCtx* ctx) {
     const WriteCtx fieldCtx = {
         .doc  = ctx->doc,
         .meta = field->meta,
-        .data = data_utils_field_mem(field, ctx->data),
+        .data = data_field_mem(field, ctx->data),
     };
     const JsonVal fieldVal = data_write_json_val(&fieldCtx);
     json_add_field_str(ctx->doc, jsonObj, field->id.name, fieldVal);

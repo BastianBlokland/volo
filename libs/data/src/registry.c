@@ -4,7 +4,7 @@
 #include "core_thread.h"
 #include "data_registry.h"
 
-#include "utils_internal.h"
+#include "registry_internal.h"
 
 #define data_max_types 256
 #define data_max_fields 32
@@ -34,28 +34,49 @@ static DataType data_type_by_id(const DataId id) {
   return sentinel_u32;
 }
 
-DataType data_type_prim(const DataPrim prim) {
+DataType data_prim(const DataPrim prim) {
+  static bool           g_initialized;
+  static ThreadSpinLock g_initLock;
+
   const DataType type = (DataType)prim;
-  if (LIKELY(data_decl(type)->kind != DataKind_Invalid)) {
+  if (LIKELY(g_initialized)) {
     return type;
   }
-  switch (prim) {
-#define X(_T_)                                                                                     \
-  case DataPrim_##_T_:                                                                             \
-    *data_decl(type) = (DataDecl){                                                                 \
-        .kind  = DataKind_##_T_,                                                                   \
-        .size  = sizeof(_T_),                                                                      \
-        .align = alignof(_T_),                                                                     \
-        .id    = data_get_id(string_lit(#_T_)),                                                    \
-    };                                                                                             \
-    break;
-    DATA_PRIMS
-#undef X
-  case DataPrim_Invalid:
-  case DataPrim_Count:
-    diag_crash_msg("Out of bound DataPrim");
+  thread_spinlock_lock(&g_initLock);
+  if (UNLIKELY(g_initialized)) {
+    goto done;
   }
+#define X(_T_)                                                                                     \
+  *data_decl((DataType)DataPrim_##_T_) = (DataDecl){                                               \
+      .kind  = DataKind_##_T_,                                                                     \
+      .size  = sizeof(_T_),                                                                        \
+      .align = alignof(_T_),                                                                       \
+      .id    = data_get_id(string_lit(#_T_)),                                                      \
+  };
+  DATA_PRIMS
+#undef X
+done:
+  thread_spinlock_unlock(&g_initLock);
+  g_initialized = true;
   return type;
+}
+
+String data_name(const DataType type) { return data_decl(type)->id.name; }
+
+usize data_size(const DataType type) { return data_decl(type)->size; }
+
+usize data_align(const DataType type) { return data_decl(type)->align; }
+
+usize data_meta_size(const DataMeta meta) {
+  switch (meta.container) {
+  case DataContainer_None:
+    return data_decl(meta.type)->size;
+  case DataContainer_Pointer:
+    return sizeof(void*);
+  case DataContainer_Array:
+    return sizeof(DataArray);
+  }
+  diag_crash();
 }
 
 DataType data_register_struct(const String name, const usize size, const usize align) {
@@ -94,7 +115,7 @@ void data_register_field(
       fmt_text(data_decl(parentId)->id.name),
       fmt_int(data_max_consts));
   diag_assert_msg(
-      offset + data_utils_size(meta) <= data_decl(parentId)->size,
+      offset + data_meta_size(meta) <= data_decl(parentId)->size,
       "Offset '{}' is out of bounds for the Struct type",
       fmt_int(offset));
 
@@ -140,4 +161,8 @@ void data_register_const(const DataType parentId, const String name, const i32 v
 DataDecl* data_decl(const DataType type) {
   diag_assert_msg(type, "Uninitialized data-type");
   return &g_types[type - 1];
+}
+
+Mem data_field_mem(const DataDeclField* field, Mem structMem) {
+  return mem_create(bits_ptr_offset(structMem.ptr, field->offset), data_meta_size(field->meta));
 }

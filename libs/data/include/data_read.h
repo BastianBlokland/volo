@@ -31,7 +31,7 @@ typedef String (*DataReader)(String, Allocator*, DataMeta, Mem data, DataReadRes
  * The result is written to the given data memory.
  *
  * Pre-condition: data memory is big enough to hold a value with the given DataMeta.
- * Pre-condition: DataMeta defintion is not modified in parallel with this call.
+ * Pre-condition: DataMeta definition is not modified in parallel with this call.
  * Pre-condition: res != null.
  */
 String data_read_json(String, Allocator*, DataMeta, Mem data, DataReadResult*);

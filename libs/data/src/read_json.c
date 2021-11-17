@@ -5,7 +5,6 @@
 #include "json_read.h"
 
 #include "registry_internal.h"
-#include "utils_internal.h"
 
 #define result_success()                                                                           \
   (DataReadResult) { 0 }
@@ -170,7 +169,7 @@ static void data_read_json_struct(const ReadCtx* ctx, DataReadResult* res) {
         .doc         = ctx->doc,
         .val         = fieldVal,
         .meta        = field->meta,
-        .data        = data_utils_field_mem(field, ctx->data),
+        .data        = data_field_mem(field, ctx->data),
     };
     data_read_json_val(&fieldCtx, res);
     if (UNLIKELY(res->error)) {

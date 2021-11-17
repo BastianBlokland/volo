@@ -9,6 +9,6 @@ typedef String (*DataWriter)(DynString*, DataMeta, Mem data);
  *
  * Pre-condition: data memory contains an initialized value compatble with the given DataMeta.
  * Pre-condition: data memory does not contain any cycles.
- * Pre-condition: DataMeta defintion is not modified in parallel with this call.
+ * Pre-condition: DataMeta definition is not modified in parallel with this call.
  */
 void data_write_json(DynString*, DataMeta, Mem data);
