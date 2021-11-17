@@ -152,11 +152,9 @@ static void data_read_json_struct(const ReadCtx* ctx, DataReadResult* res) {
   if (UNLIKELY(!data_check_type(ctx, JsonType_Object, res))) {
     return;
   }
-  const DataDecl* decl = data_decl(ctx->meta.type);
-  for (usize i = 0; i != decl->val_struct.count; ++i) {
 
-    const DataDeclField* field    = &decl->val_struct.fields[i];
-    const JsonVal        fieldVal = json_field(ctx->doc, ctx->val, field->id.name);
+  data_for_fields(ctx->meta.type, field, {
+    const JsonVal fieldVal = json_field(ctx->doc, ctx->val, field->id.name);
     if (UNLIKELY(sentinel_check(fieldVal))) {
       *res = result_fail(
           DataReadError_FieldNotFound, "Field '{}' not found", fmt_text(field->id.name));
@@ -175,7 +173,8 @@ static void data_read_json_struct(const ReadCtx* ctx, DataReadResult* res) {
     if (UNLIKELY(res->error)) {
       break;
     }
-  }
+  });
+
   *res = result_success();
 }
 

@@ -46,19 +46,18 @@ static JsonVal data_write_json_string(const WriteCtx* ctx) {
 }
 
 static JsonVal data_write_json_struct(const WriteCtx* ctx) {
-  const JsonVal   jsonObj = json_add_object(ctx->doc);
-  const DataDecl* decl    = data_decl(ctx->meta.type);
+  const JsonVal jsonObj = json_add_object(ctx->doc);
 
-  for (usize i = 0; i != decl->val_struct.count; ++i) {
-    const DataDeclField* field    = &decl->val_struct.fields[i];
-    const WriteCtx       fieldCtx = {
+  data_for_fields(ctx->meta.type, field, {
+    const WriteCtx fieldCtx = {
         .doc  = ctx->doc,
         .meta = field->meta,
         .data = data_field_mem(field, ctx->data),
     };
     const JsonVal fieldVal = data_write_json_val(&fieldCtx);
     json_add_field_str(ctx->doc, jsonObj, field->id.name, fieldVal);
-  }
+  });
+
   return jsonObj;
 }
 

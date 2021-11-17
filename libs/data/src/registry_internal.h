@@ -37,5 +37,19 @@ typedef struct {
   };
 } DataDecl;
 
+/**
+ * Iterate over all fields in the structure.
+ * NOTE: _TYPE_ is expanded twice, so care must be taken when providing complex expressions.
+ */
+#define data_for_fields(_TYPE_, _VAR_, ...)                                                        \
+  {                                                                                                \
+    diag_assert(data_decl(_TYPE_)->kind == DataKind_Struct);                                       \
+    const DataDeclField* _VAR_       = data_decl(_TYPE_)->val_struct.fields;                       \
+    const DataDeclField* _VAR_##_end = _VAR_ + data_decl(_TYPE_)->val_struct.count;                \
+    for (; _VAR_ != _VAR_##_end; ++_VAR_) {                                                        \
+      __VA_ARGS__                                                                                  \
+    }                                                                                              \
+  }
+
 DataDecl* data_decl(DataType);
 Mem       data_field_mem(const DataDeclField*, Mem structMem);

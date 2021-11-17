@@ -13,12 +13,10 @@ static void data_destroy_string(Allocator* alloc, const Mem data) {
 }
 
 static void data_destroy_struct(Allocator* alloc, const DataMeta meta, const Mem data) {
-  const DataDecl* decl = data_decl(meta.type);
-  for (usize i = 0; i != decl->val_struct.count; ++i) {
-    const DataDeclField* field    = &decl->val_struct.fields[i];
-    const Mem            fieldMem = data_field_mem(field, data);
+  data_for_fields(meta.type, field, {
+    const Mem fieldMem = data_field_mem(field, data);
     data_destroy(alloc, field->meta, fieldMem);
-  }
+  });
 }
 
 static void data_destroy_single(Allocator* alloc, const DataMeta meta, const Mem data) {

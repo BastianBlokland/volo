@@ -12,7 +12,7 @@
 #define array_mem(_ARRAY_) mem_create((void*)(_ARRAY_), sizeof(_ARRAY_))
 
 /**
- * Iterate of all values in the given array.
+ * Iterate over all values in the given array.
  * Pre-condition: sizeof(_TYPE_) has to match the element size of the array.
  */
 #define array_for_t(_ARRAY_, _TYPE_, _VAR_, ...)                                                   \
