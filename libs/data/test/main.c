@@ -11,8 +11,8 @@ int main(const int argc, const char** argv) {
   log_add_sink(g_logger, log_sink_json_default(g_alloc_heap, LogMask_All));
 
   CheckDef* check = check_create(g_alloc_heap);
-  register_spec(check, free);
   register_spec(check, registry);
+  register_spec(check, utils_destroy);
 
   const int exitCode = check_app(check, argc, argv);
 

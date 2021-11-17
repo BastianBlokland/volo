@@ -9,4 +9,4 @@
  * Pre-condition: data memory does not contain any cycles.
  * Pre-condition: DataMeta definition is not modified in parallel with this call.
  */
-void data_free(Allocator* alloc, DataMeta, Mem data);
+void data_destroy(Allocator* alloc, DataMeta, Mem data);
