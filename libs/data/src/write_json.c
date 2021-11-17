@@ -50,8 +50,8 @@ static JsonVal data_write_json_struct(const WriteCtx* ctx) {
   const DataDecl* decl    = data_decl(ctx->meta.type);
 
   for (usize i = 0; i != decl->val_struct.count; ++i) {
-    DataDeclField* field    = &decl->val_struct.fields[i];
-    const WriteCtx fieldCtx = {
+    const DataDeclField* field    = &decl->val_struct.fields[i];
+    const WriteCtx       fieldCtx = {
         .doc  = ctx->doc,
         .meta = field->meta,
         .data = data_field_mem(field, ctx->data),

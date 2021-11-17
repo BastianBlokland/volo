@@ -5,6 +5,7 @@
 message(STATUS "> library: data")
 
 add_library(volo_data STATIC
+  src/free.c
   src/read_json.c
   src/registry.c
   src/write_json.c)
@@ -14,6 +15,7 @@ target_link_libraries(volo_data PRIVATE volo_json)
 
 add_executable(volo_data_test
   test/main.c
+  test/test_free.c
   test/test_registry.c)
 target_link_libraries(volo_data_test PRIVATE volo_check)
 target_link_libraries(volo_data_test PRIVATE volo_data)

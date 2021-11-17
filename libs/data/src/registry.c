@@ -103,24 +103,24 @@ DataType data_register_struct(const String name, const usize size, const usize a
 }
 
 void data_register_field(
-    const DataType parentId, const String name, const usize offset, const DataMeta meta) {
+    const DataType parent, const String name, const usize offset, const DataMeta meta) {
 
-  const DataId id     = data_get_id(string_dup(g_alloc_persist, name));
-  DataDecl*    parent = data_decl(parentId);
+  const DataId id         = data_get_id(string_dup(g_alloc_persist, name));
+  DataDecl*    parentDecl = data_decl(parent);
 
-  diag_assert_msg(parent->kind == DataKind_Struct, "Constant parent has to be a Struct");
+  diag_assert_msg(parentDecl->kind == DataKind_Struct, "Constant parent has to be a Struct");
   diag_assert_msg(
-      parent->val_struct.count < data_max_fields,
+      parentDecl->val_struct.count < data_max_fields,
       "Struct '{}' has more fields then the maximum of '{}'",
-      fmt_text(data_decl(parentId)->id.name),
+      fmt_text(data_decl(parent)->id.name),
       fmt_int(data_max_consts));
   diag_assert_msg(
-      offset + data_meta_size(meta) <= data_decl(parentId)->size,
+      offset + data_meta_size(meta) <= data_decl(parent)->size,
       "Offset '{}' is out of bounds for the Struct type",
       fmt_int(offset));
 
-  const usize i                = parent->val_struct.count++;
-  parent->val_struct.fields[i] = (DataDeclField){
+  const usize i                    = parentDecl->val_struct.count++;
+  parentDecl->val_struct.fields[i] = (DataDeclField){
       .id     = id,
       .offset = offset,
       .meta   = meta,
@@ -143,19 +143,19 @@ DataType data_register_enum(const String name) {
   return type;
 }
 
-void data_register_const(const DataType parentId, const String name, const i32 value) {
-  const DataId id     = data_get_id(string_dup(g_alloc_persist, name));
-  DataDecl*    parent = data_decl(parentId);
+void data_register_const(const DataType parent, const String name, const i32 value) {
+  const DataId id         = data_get_id(string_dup(g_alloc_persist, name));
+  DataDecl*    parentDecl = data_decl(parent);
 
-  diag_assert_msg(parent->kind == DataKind_Enum, "Constant parent has to be an Enum");
+  diag_assert_msg(parentDecl->kind == DataKind_Enum, "Constant parent has to be an Enum");
   diag_assert_msg(
-      parent->val_enum.count < data_max_consts,
+      parentDecl->val_enum.count < data_max_consts,
       "Enum '{}' has more constants then the maximum of '{}'",
-      fmt_text(data_decl(parentId)->id.name),
+      fmt_text(data_decl(parent)->id.name),
       fmt_int(data_max_consts));
 
-  const usize i              = parent->val_enum.count++;
-  parent->val_enum.consts[i] = (DataDeclConst){.id = id, .value = value};
+  const usize i                  = parentDecl->val_enum.count++;
+  parentDecl->val_enum.consts[i] = (DataDeclConst){.id = id, .value = value};
 }
 
 DataDecl* data_decl(const DataType type) {
