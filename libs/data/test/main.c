@@ -12,6 +12,7 @@ int main(const int argc, const char** argv) {
 
   CheckDef* check = check_create(g_alloc_heap);
   register_spec(check, registry);
+  register_spec(check, utils_clone);
   register_spec(check, utils_destroy);
 
   const int exitCode = check_app(check, argc, argv);

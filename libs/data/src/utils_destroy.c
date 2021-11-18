@@ -32,14 +32,13 @@ static void data_destroy_single(Allocator* alloc, const DataMeta meta, const Mem
   case DataKind_u64:
   case DataKind_f32:
   case DataKind_f64:
+  case DataKind_Enum:
     return;
   case DataKind_String:
     data_destroy_string(alloc, data);
     return;
   case DataKind_Struct:
     data_destroy_struct(alloc, meta, data);
-    return;
-  case DataKind_Enum:
     return;
   case DataKind_Invalid:
   case DataKind_Count:
@@ -54,7 +53,7 @@ static void data_destroy_pointer(Allocator* alloc, const DataMeta meta, const Me
     return;
   }
   const Mem targetMem = mem_create(ptr, data_size(meta.type));
-  data_destroy(alloc, data_meta_base(meta), targetMem);
+  data_destroy_single(alloc, data_meta_base(meta), targetMem);
 
   alloc_free(alloc, targetMem);
 }
@@ -64,7 +63,7 @@ static void data_destroy_array(Allocator* alloc, const DataMeta meta, const Mem 
   const DataArray* array = mem_as_t(data, DataArray);
 
   for (usize i = 0; i != array->count; ++i) {
-    data_destroy(alloc, data_meta_base(meta), data_elem_mem(decl, array, i));
+    data_destroy_single(alloc, data_meta_base(meta), data_elem_mem(decl, array, i));
   }
 
   alloc_free(alloc, mem_create(array->data, decl->size * array->count));

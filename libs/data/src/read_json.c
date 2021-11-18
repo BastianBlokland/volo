@@ -252,7 +252,7 @@ static void data_read_json_val_pointer(const ReadCtx* ctx, DataReadResult* res) 
       .meta        = data_meta_base(ctx->meta),
       .data        = mem,
   };
-  data_read_json_val(&subCtx, res);
+  data_read_json_val_single(&subCtx, res);
   *mem_as_t(ctx->data, void*) = mem.ptr;
 }
 
@@ -277,7 +277,7 @@ static void data_read_json_val_array(const ReadCtx* ctx, DataReadResult* res) {
         .meta        = data_meta_base(ctx->meta),
         .data        = mem_create(ptr, decl->size),
     };
-    data_read_json_val(&elemCtx, res);
+    data_read_json_val_single(&elemCtx, res);
     if (UNLIKELY(res->error)) {
       break;
     }

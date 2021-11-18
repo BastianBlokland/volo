@@ -113,7 +113,7 @@ static JsonVal data_write_json_val_pointer(const WriteCtx* ctx) {
       .meta = data_meta_base(ctx->meta),
       .data = mem_create(ptr, decl->size),
   };
-  return data_write_json_val(&subCtx);
+  return data_write_json_val_single(&subCtx);
 }
 
 static JsonVal data_write_json_val_array(const WriteCtx* ctx) {
@@ -127,7 +127,7 @@ static JsonVal data_write_json_val_array(const WriteCtx* ctx) {
         .meta = data_meta_base(ctx->meta),
         .data = data_elem_mem(decl, array, i),
     };
-    const JsonVal elemVal = data_write_json_val(&elemCtx);
+    const JsonVal elemVal = data_write_json_val_single(&elemCtx);
     json_add_elem(ctx->doc, jsonArray, elemVal);
   }
   return jsonArray;
