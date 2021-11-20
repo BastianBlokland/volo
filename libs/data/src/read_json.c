@@ -141,7 +141,8 @@ static void data_read_json_string(const ReadCtx* ctx, DataReadResult* res) {
   if (UNLIKELY(!data_check_type(ctx, JsonType_String, res))) {
     return;
   }
-  const String str = string_dup(ctx->alloc, json_string(ctx->doc, ctx->val));
+  const String jsonStr = json_string(ctx->doc, ctx->val);
+  const String str     = string_is_empty(jsonStr) ? string_empty : string_dup(ctx->alloc, jsonStr);
 
   data_register_alloc(ctx, str);
   *mem_as_t(ctx->data, String) = str;
@@ -291,13 +292,13 @@ static void data_read_json_val(const ReadCtx* ctx, DataReadResult* res) {
   switch (ctx->meta.container) {
   case DataContainer_None:
     data_read_json_val_single(ctx, res);
-    break;
+    return;
   case DataContainer_Pointer:
     data_read_json_val_pointer(ctx, res);
-    break;
+    return;
   case DataContainer_Array:
     data_read_json_val_array(ctx, res);
-    break;
+    return;
   }
   diag_crash();
 }
