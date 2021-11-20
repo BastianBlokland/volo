@@ -74,6 +74,10 @@ data_clone_array(Allocator* alloc, const DataMeta meta, const Mem original, cons
   const DataDecl*  decl          = data_decl(meta.type);
   const DataArray* originalArray = mem_as_t(original, DataArray);
   const usize      count         = originalArray->count;
+  if (!count) {
+    *mem_as_t(clone, DataArray) = (DataArray){0};
+    return;
+  }
 
   const Mem  newArrayMem = alloc_alloc(alloc, decl->size * count, decl->align);
   DataArray* newArray    = mem_as_t(clone, DataArray);

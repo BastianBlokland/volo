@@ -261,9 +261,15 @@ static void data_read_json_val_array(const ReadCtx* ctx, DataReadResult* res) {
   if (UNLIKELY(!data_check_type(ctx, JsonType_Array, res))) {
     return;
   }
-  const DataDecl* decl     = data_decl(ctx->meta.type);
-  const usize     count    = json_elem_count(ctx->doc, ctx->val);
-  const Mem       arrayMem = alloc_alloc(ctx->alloc, decl->size * count, decl->align);
+  const DataDecl* decl  = data_decl(ctx->meta.type);
+  const usize     count = json_elem_count(ctx->doc, ctx->val);
+  if (!count) {
+    *mem_as_t(ctx->data, DataArray) = (DataArray){0};
+    *res                            = result_success();
+    return;
+  }
+
+  const Mem arrayMem = alloc_alloc(ctx->alloc, decl->size * count, decl->align);
   data_register_alloc(ctx, arrayMem);
 
   void* ptr                       = arrayMem.ptr;

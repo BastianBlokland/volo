@@ -66,13 +66,19 @@ spec(utils_destroy) {
   }
 
   it("can destroy an array of primitives") {
+    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_Array);
+
     const struct {
       i32*  values;
       usize count;
-    } array = {.values = alloc_array_t(g_alloc_heap, i32, 8), .count = 8};
+    } array1 = {.values = alloc_array_t(g_alloc_heap, i32, 8), .count = 8};
+    data_destroy(g_alloc_heap, meta, mem_var(array1));
 
-    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_Array);
-    data_destroy(g_alloc_heap, meta, mem_var(array));
+    const struct {
+      i32*  values;
+      usize count;
+    } array2 = {0};
+    data_destroy(g_alloc_heap, meta, mem_var(array2));
   }
 
   it("can destroy a structure") {

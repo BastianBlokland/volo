@@ -105,6 +105,19 @@ spec(utils_clone) {
     data_destroy(g_alloc_heap, meta, mem_var(clone));
   }
 
+  it("can clone an empty array") {
+    typedef struct {
+      i32*  values;
+      usize count;
+    } PrimArray;
+
+    const PrimArray original = {0};
+    const PrimArray clone    = {0};
+
+    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_Array);
+    data_clone(g_alloc_heap, meta, mem_var(original), mem_var(clone));
+  }
+
   it("can clone a structure") {
     const CloneStructA original = {
         .a = string_dup(g_alloc_heap, string_lit("Hello")),

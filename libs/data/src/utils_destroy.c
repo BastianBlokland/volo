@@ -61,6 +61,9 @@ static void data_destroy_pointer(Allocator* alloc, const DataMeta meta, const Me
 static void data_destroy_array(Allocator* alloc, const DataMeta meta, const Mem data) {
   const DataDecl*  decl  = data_decl(meta.type);
   const DataArray* array = mem_as_t(data, DataArray);
+  if (!array->count) {
+    return;
+  }
 
   for (usize i = 0; i != array->count; ++i) {
     data_destroy_single(alloc, data_meta_base(meta), data_elem_mem(decl, array, i));
