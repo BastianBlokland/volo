@@ -7,11 +7,6 @@
  */
 typedef struct sJsonDoc JsonDoc;
 
-typedef enum {
-  JsonDocFlags_None        = 0,
-  JsonDocFlags_NoStringDup = 1 << 0, // Do not duplicate strings when storing them in the document.
-} JsonDocFlags;
-
 /**
  * Type of a json value.
  */
@@ -90,7 +85,7 @@ typedef struct {
  *
  * Should be destroyed using 'json_destroy()'.
  */
-JsonDoc* json_create(Allocator*, usize valueCapacity, JsonDocFlags);
+JsonDoc* json_create(Allocator*, usize valueCapacity);
 
 /**
  * Destroy a Json document.
