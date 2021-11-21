@@ -51,7 +51,7 @@ spec(registry) {
       data_register_struct_t(RegStructA);
       data_register_field_t(RegStructA, valA, data_prim_t(i32));
       data_register_field_t(RegStructA, valB, data_prim_t(String));
-      data_register_field_t(RegStructA, valC, data_prim_t(i32));
+      data_register_field_t(RegStructA, valC, data_prim_t(f32));
       data_register_field_t(RegStructA, values, t_RegStructA, .container = DataContainer_Array);
       data_register_field_t(RegStructA, next, t_RegStructA, .container = DataContainer_Pointer);
 

@@ -16,6 +16,7 @@ target_link_libraries(volo_data PRIVATE volo_json)
 
 add_executable(volo_data_test
   test/main.c
+  test/test_read_json.c
   test/test_registry.c
   test/test_utils_clone.c
   test/test_utils_destroy.c)
