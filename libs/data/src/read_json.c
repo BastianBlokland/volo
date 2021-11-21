@@ -1,10 +1,13 @@
 #include "core_alloc.h"
+#include "core_annotation.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "data_read.h"
 #include "json_read.h"
 
 #include "registry_internal.h"
+
+OPTIMIZE_OFF()
 
 #define result_success()                                                                           \
   (DataReadResult) { 0 }
@@ -172,7 +175,12 @@ static void data_read_json_struct(const ReadCtx* ctx, DataReadResult* res) {
     };
     data_read_json_val(&fieldCtx, res);
     if (UNLIKELY(res->error)) {
-      break;
+      *res = result_fail(
+          DataReadError_InvalidField,
+          "Invalid field '{}': {}",
+          fmt_text(field->id.name),
+          fmt_text(res->errorMsg));
+      return;
     }
   });
 
@@ -286,7 +294,7 @@ static void data_read_json_val_array(const ReadCtx* ctx, DataReadResult* res) {
     };
     data_read_json_val_single(&elemCtx, res);
     if (UNLIKELY(res->error)) {
-      break;
+      return;
     }
     ptr = bits_ptr_offset(ptr, decl->size);
   });
@@ -312,8 +320,8 @@ static void data_read_json_val(const ReadCtx* ctx, DataReadResult* res) {
 String data_read_json(
     const String input, Allocator* alloc, const DataMeta meta, Mem data, DataReadResult* res) {
 
-  JsonDoc* doc         = json_create(g_alloc_scratch, 1024, JsonDocFlags_NoStringDup);
-  DynArray allocations = dynarray_create_t(g_alloc_scratch, Mem, 128);
+  JsonDoc* doc         = json_create(g_alloc_heap, 512, JsonDocFlags_NoStringDup);
+  DynArray allocations = dynarray_create_t(g_alloc_heap, Mem, 64);
 
   JsonResult   jsonRes;
   const String rem = json_read(doc, input, &jsonRes);
