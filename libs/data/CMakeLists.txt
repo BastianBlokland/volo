@@ -19,7 +19,8 @@ add_executable(volo_data_test
   test/test_read_json.c
   test/test_registry.c
   test/test_utils_clone.c
-  test/test_utils_destroy.c)
+  test/test_utils_destroy.c
+  test/test_write_json.c)
 target_link_libraries(volo_data_test PRIVATE volo_check)
 target_link_libraries(volo_data_test PRIVATE volo_data)
 target_link_libraries(volo_data_test PRIVATE volo_jobs)

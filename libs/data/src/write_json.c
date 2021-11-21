@@ -71,7 +71,7 @@ static JsonVal data_write_json_enum(const WriteCtx* ctx) {
       return json_add_string(ctx->doc, constDecl->id.name);
     }
   }
-  return json_add_null(ctx->doc);
+  return json_add_number(ctx->doc, val);
 }
 
 static JsonVal data_write_json_val_single(const WriteCtx* ctx) {

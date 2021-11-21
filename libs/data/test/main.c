@@ -15,6 +15,7 @@ int main(const int argc, const char** argv) {
   register_spec(check, registry);
   register_spec(check, utils_clone);
   register_spec(check, utils_destroy);
+  register_spec(check, write_json);
 
   const int exitCode = check_app(check, argc, argv);
 

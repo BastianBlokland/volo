@@ -1,5 +1,6 @@
 #include "check_spec.h"
 #include "core_alloc.h"
+#include "core_array.h"
 #include "data.h"
 
 typedef struct {
@@ -67,17 +68,16 @@ spec(utils_clone) {
   }
 
   it("can clone a primitive pointer") {
-    i32* original = alloc_alloc_t(g_alloc_heap, i32);
-    *original     = 42;
+    i32  original    = 42;
+    i32* originalPtr = &original;
 
     i32* clone = null;
 
     const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_Pointer);
-    data_clone(g_alloc_heap, meta, mem_var(original), mem_var(clone));
+    data_clone(g_alloc_heap, meta, mem_var(originalPtr), mem_var(clone));
 
     check_eq_int(*clone, 42);
 
-    data_destroy(g_alloc_heap, meta, mem_var(original));
     data_destroy(g_alloc_heap, meta, mem_var(clone));
   }
 
@@ -87,12 +87,10 @@ spec(utils_clone) {
       usize count;
     } PrimArray;
 
-    const PrimArray original = {.values = alloc_array_t(g_alloc_heap, i32, 8), .count = 8};
-    const PrimArray clone    = {0};
+    i32 originalValues[] = {0, 1, 2, 3, 4, 5, 6, 7};
 
-    for (usize i = 0; i != original.count; ++i) {
-      original.values[i] = (i32)i;
-    }
+    const PrimArray original = {.values = originalValues, .count = array_elems(originalValues)};
+    const PrimArray clone    = {0};
 
     const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_Array);
     data_clone(g_alloc_heap, meta, mem_var(original), mem_var(clone));
@@ -101,7 +99,6 @@ spec(utils_clone) {
       check_eq_int(original.values[i], (i32)i);
     }
 
-    data_destroy(g_alloc_heap, meta, mem_var(original));
     data_destroy(g_alloc_heap, meta, mem_var(clone));
   }
 
@@ -136,27 +133,22 @@ spec(utils_clone) {
   }
 
   it("can clone nested structures") {
-    CloneStructA* originalPtr = alloc_alloc_t(g_alloc_heap, CloneStructA);
-    *originalPtr              = (CloneStructA){
-        .a = string_dup(g_alloc_heap, string_lit("Some")),
-        .b = string_dup(g_alloc_heap, string_lit("New")),
-        .c = string_dup(g_alloc_heap, string_lit("Values")),
+    CloneStructA originalPtrValue = {
+        .a = string_lit("Some"),
+        .b = string_lit("New"),
+        .c = string_lit("Values"),
     };
 
-    const usize   arrayCount          = 4;
-    CloneStructA* originalArrayValues = alloc_array_t(g_alloc_heap, CloneStructA, arrayCount);
-    for (usize i = 0; i != arrayCount; ++i) {
-      originalArrayValues[i] = (CloneStructA){
-          .a = string_dup(g_alloc_heap, fmt_write_scratch("Array val {}", fmt_int(i))),
-      };
-    }
+    CloneStructA originalArrayValues[] = {
+        {.a = string_lit("Hello")},
+        {.a = string_lit("Beautifull")},
+        {.a = string_lit("World")},
+    };
 
     const CloneStructB original = {
-        .value =
-            {.a = string_dup(g_alloc_heap, string_lit("Hello")),
-             .c = string_dup(g_alloc_heap, string_lit("World"))},
-        .ptr   = originalPtr,
-        .array = {.values = originalArrayValues, .count = arrayCount},
+        .value = {.a = string_lit("Hello"), .c = string_lit("World")},
+        .ptr   = &originalPtrValue,
+        .array = {.values = originalArrayValues, .count = array_elems(originalArrayValues)},
     };
     CloneStructB clone = {0};
 
@@ -169,10 +161,9 @@ spec(utils_clone) {
     check_eq_string(clone.ptr->b, string_lit("New"));
     check_eq_string(clone.ptr->c, string_lit("Values"));
     for (usize i = 0; i != clone.array.count; ++i) {
-      check_eq_string(clone.array.values[i].a, fmt_write_scratch("Array val {}", fmt_int(i)));
+      check_eq_string(clone.array.values[i].a, originalArrayValues[i].a);
     }
 
-    data_destroy(g_alloc_heap, meta, mem_var(original));
     data_destroy(g_alloc_heap, meta, mem_var(clone));
   }
 }
