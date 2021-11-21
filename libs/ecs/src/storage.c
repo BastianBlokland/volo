@@ -1,3 +1,4 @@
+#include "core_bits.h"
 #include "core_diag.h"
 #include "ecs_runner.h"
 

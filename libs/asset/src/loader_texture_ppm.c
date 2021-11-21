@@ -171,7 +171,7 @@ void asset_load_ppm(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
 
   const u32          width  = (u32)header.width;
   const u32          height = (u32)header.height;
-  AssetTexturePixel* pixels = alloc_alloc_array_t(g_alloc_heap, AssetTexturePixel, width * height);
+  AssetTexturePixel* pixels = alloc_array_t(g_alloc_heap, AssetTexturePixel, width * height);
   input                     = ppm_read_pixels(input, &header, pixels, &res);
   if (res) {
     ppm_report_error(res);

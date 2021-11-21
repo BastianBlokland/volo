@@ -122,7 +122,7 @@ static JsonVal dbgsetup_vscode_generate_json(DbgSetupCtx* ctx, JsonDoc* doc) {
 }
 
 static bool dbgsetup_vscode_generate_launch_file(DbgSetupCtx* ctx) {
-  JsonDoc* jsonDoc = json_create(g_alloc_heap, 1024);
+  JsonDoc* jsonDoc = json_create(g_alloc_heap, 1024, JsonDocFlags_NoStringDup);
 
   const String path = path_build_scratch(ctx->workspace, string_lit(".vscode/launch.json"));
   const bool res = dbgsetup_write_json(path, jsonDoc, dbgsetup_vscode_generate_json(ctx, jsonDoc));

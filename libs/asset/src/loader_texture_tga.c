@@ -306,7 +306,7 @@ void asset_load_tga(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
 
   const u32          width  = header.imageSpec.width;
   const u32          height = header.imageSpec.height;
-  AssetTexturePixel* pixels = alloc_alloc_array_t(g_alloc_heap, AssetTexturePixel, width * height);
+  AssetTexturePixel* pixels = alloc_array_t(g_alloc_heap, AssetTexturePixel, width * height);
   data                      = tga_read_pixels(data, width, height, flags, pixels, &res);
   if (res) {
     tga_report_error(res);

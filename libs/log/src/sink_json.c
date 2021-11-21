@@ -55,7 +55,7 @@ static void log_sink_json_write(
     return;
   }
 
-  JsonDoc*      doc  = json_create(g_alloc_scratch, 128);
+  JsonDoc*      doc  = json_create(g_alloc_scratch, 128, JsonDocFlags_NoStringDup);
   const JsonVal root = json_add_object(doc);
 
   json_add_field_str(doc, root, string_lit("message"), json_add_string(doc, message));

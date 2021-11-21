@@ -13,7 +13,7 @@ int main(const int argc, const char** argv) {
   CheckDef* check = check_create(g_alloc_heap);
   register_spec(check, doc);
   register_spec(check, eq);
-  register_spec(check, parse);
+  register_spec(check, read);
   register_spec(check, write);
 
   const int exitCode = check_app(check, argc, argv);

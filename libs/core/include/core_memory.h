@@ -24,6 +24,11 @@ typedef struct {
   })
 
 /**
+ * Create a memory view over a variable.
+ */
+#define mem_var(_VAR_) mem_create(&(_VAR_), sizeof(_VAR_))
+
+/**
  * Create a view over the given memory.
  * NOTE: The memory view is only valid as long as the underlying memory remains valid.
  */

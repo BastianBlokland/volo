@@ -203,7 +203,7 @@ static void output_destroy(CheckOutput* out) {
 }
 
 CheckOutput* check_output_mocha(Allocator* alloc, File* file) {
-  JsonDoc*      doc         = json_create(alloc, 512);
+  JsonDoc*      doc         = json_create(alloc, 512, JsonDocFlags_None);
   const JsonVal rootObj     = json_add_object(doc);
   const JsonVal statsObj    = json_add_object(doc);
   const JsonVal passesArr   = json_add_array(doc);

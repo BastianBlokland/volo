@@ -19,7 +19,7 @@ WorkQueue workqueue_create(Allocator* alloc) {
   return (WorkQueue){
       .bottom = 0,
       .top    = 0,
-      .items  = alloc_alloc_array_t(alloc, WorkItem, workqueue_max_items),
+      .items  = alloc_array_t(alloc, WorkItem, workqueue_max_items),
   };
 }
 

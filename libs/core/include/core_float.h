@@ -1,5 +1,4 @@
 #pragma once
-#include "core_bits.h"
 #include "core_types.h"
 
 #define f32_mantissa_bits 23
@@ -11,19 +10,19 @@
 #define f32_exponent_max 38
 #define f64_exponent_max 308
 
-#define f32_nan bits_u32_as_f32(0x7fc00000u)
-#define f64_nan bits_u64_as_f64(u64_lit(0x7ff8000000000000))
+#define f32_nan (0.0f / 0.0f)
+#define f64_nan (0.0 / 0.0)
 
-#define f32_inf bits_u32_as_f32(0x7f800000u)
-#define f64_inf bits_u64_as_f64(u64_lit(0x7ff0000000000000))
+#define f32_inf (1.0f / 0.0f)
+#define f64_inf (1.0 / 0.0)
 
-#define f32_min bits_u32_as_f32(0xff7fffffu)
-#define f64_min bits_u64_as_f64(u64_lit(0xffefffffffffffff))
+#define f32_max 3.402823466e+38f
+#define f64_max 1.7976931348623158e+308
 
-#define f32_max bits_u32_as_f32(0x7f7fffffu)
-#define f64_max bits_u64_as_f64(u64_lit(0x7fefffffffffffff))
+#define f32_min -f32_max
+#define f64_min -f64_max
 
-#define f32_epsilon 1.401298E-45
+#define f32_epsilon 1.401298E-45f
 #define f64_epsilon 4.94065645841247E-324
 
 /**

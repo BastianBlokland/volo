@@ -1,5 +1,6 @@
 #include "check_spec.h"
 #include "core_array.h"
+#include "core_bits.h"
 #include "core_bitset.h"
 
 spec(bitset) {

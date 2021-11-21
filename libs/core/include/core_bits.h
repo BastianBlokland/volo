@@ -78,6 +78,7 @@ bool bits_ispow2_64(u64);
 
 #define bits_ispow2(_VAL_)                                                                         \
   _Generic((_VAL_),                                                                                \
+    u16 : bits_ispow2_32((u32)(_VAL_)),                                                            \
     u32 : bits_ispow2_32((u32)(_VAL_)),                                                            \
     u64 : bits_ispow2_64((u64)(_VAL_))                                                             \
   )

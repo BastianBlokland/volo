@@ -12,7 +12,7 @@ AffQueue affqueue_create(Allocator* alloc) {
   return (AffQueue){
       .bottom = 0,
       .top    = 0,
-      .items  = alloc_alloc_array_t(alloc, AffQueueItem, affqueue_max_items),
+      .items  = alloc_array_t(alloc, AffQueueItem, affqueue_max_items),
   };
 }
 
