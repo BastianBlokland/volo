@@ -157,6 +157,8 @@ static void data_read_json_struct(const ReadCtx* ctx, DataReadResult* res) {
     return;
   }
 
+  mem_set(ctx->data, 0); // Initialize non-specified memory to zero.
+
   data_for_fields(ctx->meta.type, field, {
     const JsonVal fieldVal = json_field(ctx->doc, ctx->val, field->id.name);
     if (UNLIKELY(sentinel_check(fieldVal))) {
@@ -320,7 +322,7 @@ static void data_read_json_val(const ReadCtx* ctx, DataReadResult* res) {
 String data_read_json(
     const String input, Allocator* alloc, const DataMeta meta, Mem data, DataReadResult* res) {
 
-  JsonDoc* doc         = json_create(g_alloc_heap, 512, JsonDocFlags_NoStringDup);
+  JsonDoc* doc         = json_create(g_alloc_heap, 512);
   DynArray allocations = dynarray_create_t(g_alloc_heap, Mem, 64);
 
   JsonResult   jsonRes;

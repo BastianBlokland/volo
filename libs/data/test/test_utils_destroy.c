@@ -2,45 +2,6 @@
 #include "core_alloc.h"
 #include "data.h"
 
-typedef struct {
-  String a, b, c;
-} DestroyStructA;
-
-typedef struct {
-  DestroyStructA  value;
-  DestroyStructA* ptr;
-  struct {
-    DestroyStructA* values;
-    usize           count;
-  } array;
-} DestroyStructB;
-
-static DataType struct_a_type() {
-  static DataType type;
-  if (!type) {
-    data_register_struct_t(DestroyStructA);
-    data_register_field_t(DestroyStructA, a, data_prim_t(String));
-    data_register_field_t(DestroyStructA, b, data_prim_t(String));
-    data_register_field_t(DestroyStructA, c, data_prim_t(String));
-
-    type = t_DestroyStructA;
-  }
-  return type;
-}
-
-static DataType struct_b_type() {
-  static DataType type;
-  if (!type) {
-    data_register_struct_t(DestroyStructB);
-    data_register_field_t(DestroyStructB, value, struct_a_type());
-    data_register_field_t(DestroyStructB, ptr, struct_a_type(), .container = DataContainer_Pointer);
-    data_register_field_t(DestroyStructB, array, struct_a_type(), .container = DataContainer_Array);
-
-    type = t_DestroyStructB;
-  }
-  return type;
-}
-
 spec(utils_destroy) {
 
   it("can destroy a string") {
@@ -82,40 +43,81 @@ spec(utils_destroy) {
   }
 
   it("can destroy a structure") {
+    typedef struct {
+      String a, b, c;
+    } DestroyStructA;
+
+    static DataType g_typeA;
+    if (!g_typeA) {
+      data_register_struct_t(DestroyStructA);
+      data_register_field_t(DestroyStructA, a, data_prim_t(String));
+      data_register_field_t(DestroyStructA, b, data_prim_t(String));
+      data_register_field_t(DestroyStructA, c, data_prim_t(String));
+      g_typeA = t_DestroyStructA;
+    }
+
     const DestroyStructA val = {
         .a = string_dup(g_alloc_heap, string_lit("Hello")),
         .c = string_dup(g_alloc_heap, string_lit("World")),
     };
 
-    const DataMeta meta = data_meta_t(struct_a_type());
-    data_destroy(g_alloc_heap, meta, mem_var(val));
+    data_destroy(g_alloc_heap, data_meta_t(g_typeA), mem_var(val));
   }
 
   it("can destroy nested structures") {
-    DestroyStructA* ptr = alloc_alloc_t(g_alloc_heap, DestroyStructA);
-    *ptr                = (DestroyStructA){
+    typedef struct {
+      String a, b, c;
+    } DestroyStructB;
+
+    typedef struct {
+      DestroyStructB  value;
+      DestroyStructB* ptr;
+      struct {
+        DestroyStructB* values;
+        usize           count;
+      } array;
+    } DestroyStructC;
+
+    static DataType g_typeB, g_typeC;
+    if (!g_typeB) {
+      data_register_struct_t(DestroyStructB);
+      data_register_field_t(DestroyStructB, a, data_prim_t(String));
+      data_register_field_t(DestroyStructB, b, data_prim_t(String));
+      data_register_field_t(DestroyStructB, c, data_prim_t(String));
+      g_typeB = t_DestroyStructB;
+
+      data_register_struct_t(DestroyStructC);
+      data_register_field_t(DestroyStructC, value, g_typeB);
+      data_register_field_t(DestroyStructC, ptr, g_typeB, .container = DataContainer_Pointer);
+      data_register_field_t(DestroyStructC, array, g_typeB, .container = DataContainer_Array);
+      g_typeC = t_DestroyStructC;
+    }
+
+    DestroyStructB* ptr = alloc_alloc_t(g_alloc_heap, DestroyStructB);
+    *ptr                = (DestroyStructB){
         .a = string_dup(g_alloc_heap, string_lit("Some")),
         .b = string_dup(g_alloc_heap, string_lit("New")),
         .c = string_dup(g_alloc_heap, string_lit("Values")),
     };
 
     const usize     arrayCount  = 4;
-    DestroyStructA* arrayValues = alloc_array_t(g_alloc_heap, DestroyStructA, arrayCount);
+    DestroyStructB* arrayValues = alloc_array_t(g_alloc_heap, DestroyStructB, arrayCount);
     for (usize i = 0; i != arrayCount; ++i) {
-      arrayValues[i] = (DestroyStructA){
+      arrayValues[i] = (DestroyStructB){
           .a = string_dup(g_alloc_heap, fmt_write_scratch("Array val {}", fmt_int(i))),
       };
     }
 
-    const DestroyStructB val = {
+    const DestroyStructC val = {
         .value =
-            {.a = string_dup(g_alloc_heap, string_lit("Hello")),
-             .c = string_dup(g_alloc_heap, string_lit("World"))},
+            {
+                .a = string_dup(g_alloc_heap, string_lit("Hello")),
+                .c = string_dup(g_alloc_heap, string_lit("World")),
+            },
         .ptr   = ptr,
         .array = {.values = arrayValues, .count = arrayCount},
     };
 
-    const DataMeta meta = data_meta_t(struct_b_type());
-    data_destroy(g_alloc_heap, meta, mem_var(val));
+    data_destroy(g_alloc_heap, data_meta_t(g_typeC), mem_var(val));
   }
 }

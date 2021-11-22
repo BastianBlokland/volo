@@ -113,7 +113,7 @@ void data_register_field(
   const DataId id         = data_get_id(string_dup(g_alloc_persist, name));
   DataDecl*    parentDecl = data_decl_mutable(parent);
 
-  diag_assert_msg(parentDecl->kind == DataKind_Struct, "Constant parent has to be a Struct");
+  diag_assert_msg(parentDecl->kind == DataKind_Struct, "Field parent has to be a Struct");
   diag_assert_msg(
       parentDecl->val_struct.count < data_max_fields,
       "Struct '{}' has more fields then the maximum of '{}'",

@@ -16,6 +16,9 @@ static void data_clone_string(Allocator* alloc, const Mem original, const Mem cl
 
 static void
 data_clone_struct(Allocator* alloc, const DataMeta meta, const Mem original, const Mem clone) {
+
+  mem_set(clone, 0); // Initialize non-specified memory to zero.
+
   data_for_fields(meta.type, field, {
     const Mem originalFieldMem = data_field_mem(field, original);
     const Mem dataFieldMem     = data_field_mem(field, clone);
