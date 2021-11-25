@@ -9,10 +9,12 @@
 ASSERT((affqueue_max_items & (affqueue_max_items - 1u)) == 0, "Max size has to be a power-of-two")
 
 AffQueue affqueue_create(Allocator* alloc) {
+  Mem items = alloc_alloc(alloc, sizeof(AffQueueItem) * affqueue_max_items, alignof(AffQueueItem));
+  mem_set(items, 0);
   return (AffQueue){
       .bottom = 0,
       .top    = 0,
-      .items  = alloc_array_t(alloc, AffQueueItem, affqueue_max_items),
+      .items  = items.ptr,
   };
 }
 

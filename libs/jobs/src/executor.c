@@ -72,9 +72,9 @@ static WorkItem executor_work_pop() {
      * This worker is the assigned 'Affinity worker' and thus we need to serve the affinity-queue
      * first before taking from our normal queue.
      */
-    const WorkItem item = affqueue_pop(&g_affinityQueue);
-    if (UNLIKELY(workitem_valid(item))) {
-      return item;
+    const WorkItem affinityItem = affqueue_pop(&g_affinityQueue);
+    if (UNLIKELY(workitem_valid(affinityItem))) {
+      return affinityItem;
     }
   }
   return workqueue_pop(&g_workerQueues[g_jobsWorkerId]);
