@@ -155,13 +155,17 @@ static void data_read_json_struct(const ReadCtx* ctx, DataReadResult* res) {
   if (UNLIKELY(!data_check_type(ctx, JsonType_Object, res))) {
     return;
   }
+  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
 
   mem_set(ctx->data, 0); // Initialize non-specified memory to zero.
 
-  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
   dynarray_for_t((DynArray*)&decl->val_struct.fields, DataDeclField, fieldDecl, {
     const JsonVal fieldVal = json_field(ctx->doc, ctx->val, fieldDecl->id.name);
-    if (UNLIKELY(sentinel_check(fieldVal))) {
+
+    if (sentinel_check(fieldVal)) {
+      if (fieldDecl->meta.flags & DataFlags_Opt) {
+        continue;
+      }
       *res = result_fail(
           DataReadError_FieldNotFound, "Field '{}' not found", fmt_text(fieldDecl->id.name));
       return;

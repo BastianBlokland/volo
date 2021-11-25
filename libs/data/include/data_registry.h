@@ -12,12 +12,18 @@ typedef enum {
   DataContainer_Array,
 } DataContainer;
 
+typedef enum {
+  DataFlags_None = 0,
+  DataFlags_Opt  = 1 << 0,
+} DataFlags;
+
 /**
  * Meta information for a data value.
  * Combination of a type and properties of a specific instance (for example if its a pointer).
  */
 typedef struct {
   DataType      type;
+  DataFlags     flags;
   DataContainer container;
 } DataMeta;
 

@@ -27,8 +27,8 @@ typedef enum {
 } AssetMaterialWrap;
 
 typedef enum {
-  AssetMaterialFilter_Nearest, // Linearly blend between neighboring pixels.
   AssetMaterialFilter_Linear,  // Choose one of the pixels (sometimes known as 'point' filtering).
+  AssetMaterialFilter_Nearest, // Linearly blend between neighboring pixels.
 } AssetMaterialFilter;
 
 typedef enum {
@@ -46,9 +46,9 @@ typedef enum {
 } AssetMaterialDepth;
 
 typedef enum {
-  AssetMaterialCull_None,  // No culling.
   AssetMaterialCull_Back,  // Cull back-facing primitives.
   AssetMaterialCull_Front, // Cull front-facing primitives.
+  AssetMaterialCull_None,  // No culling.
 } AssetMaterialCull;
 
 typedef struct {

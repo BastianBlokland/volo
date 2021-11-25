@@ -14,7 +14,7 @@ static void test_read_success(
   const String   remaining = data_read_json(reg, input, g_alloc_heap, meta, data, &res);
 
   check_eq_string(remaining, string_empty);
-  check_eq_int(res.error, DataReadError_None);
+  check_require(res.error == DataReadError_None);
 }
 
 static void test_read_fail(
@@ -182,12 +182,14 @@ spec(read_json) {
       i32    valA;
       String valB;
       f32    valC;
+      bool   valD;
     } ReadJsonTestStruct;
 
     data_reg_struct_t(reg, ReadJsonTestStruct);
     data_reg_field_t(reg, ReadJsonTestStruct, valA, data_prim_t(i32));
     data_reg_field_t(reg, ReadJsonTestStruct, valB, data_prim_t(String));
     data_reg_field_t(reg, ReadJsonTestStruct, valC, data_prim_t(f32));
+    data_reg_field_t(reg, ReadJsonTestStruct, valD, data_prim_t(bool), .flags = DataFlags_Opt);
 
     const DataMeta meta = data_meta_t(t_ReadJsonTestStruct);
 
@@ -215,7 +217,7 @@ spec(read_json) {
         string_lit("{"
                    "\"valA\": -42,"
                    "\"valB\": \"Hello World\","
-                   "\"valD\": 42.42"
+                   "\"valE\": 42.42"
                    "}"),
         meta,
         DataReadError_FieldNotFound);

@@ -96,9 +96,11 @@ static void mat_datareg_init() {
 
     data_reg_struct_t(g_dataReg, SamplerLoadData);
     data_reg_field_t(g_dataReg, SamplerLoadData, texture, data_prim_t(String));
-    data_reg_field_t(g_dataReg, SamplerLoadData, wrap, t_AssetMaterialWrap);
-    data_reg_field_t(g_dataReg, SamplerLoadData, filter, t_AssetMaterialFilter);
-    data_reg_field_t(g_dataReg, SamplerLoadData, anisotropy, t_AssetMaterialAniso);
+    data_reg_field_t(g_dataReg, SamplerLoadData, wrap, t_AssetMaterialWrap, .flags = DataFlags_Opt);
+    data_reg_field_t(
+        g_dataReg, SamplerLoadData, filter, t_AssetMaterialFilter, .flags = DataFlags_Opt);
+    data_reg_field_t(
+        g_dataReg, SamplerLoadData, anisotropy, t_AssetMaterialAniso, .flags = DataFlags_Opt);
 
     data_reg_struct_t(g_dataReg, ShaderLoadData);
     data_reg_field_t(g_dataReg, ShaderLoadData, shader, data_prim_t(String));
@@ -108,12 +110,18 @@ static void mat_datareg_init() {
         g_dataReg, MaterialLoadData, shaders, t_ShaderLoadData, .container = DataContainer_Array);
     data_reg_field_t(
         g_dataReg, MaterialLoadData, samplers, t_SamplerLoadData, .container = DataContainer_Array);
-    data_reg_field_t(g_dataReg, MaterialLoadData, topology, t_AssetMaterialTopology);
-    data_reg_field_t(g_dataReg, MaterialLoadData, rasterizer, t_AssetMaterialRasterizer);
-    data_reg_field_t(g_dataReg, MaterialLoadData, lineWidth, data_prim_t(u32));
-    data_reg_field_t(g_dataReg, MaterialLoadData, blend, t_AssetMaterialBlend);
-    data_reg_field_t(g_dataReg, MaterialLoadData, depth, t_AssetMaterialDepth);
-    data_reg_field_t(g_dataReg, MaterialLoadData, cull, t_AssetMaterialCull);
+    data_reg_field_t(
+        g_dataReg, MaterialLoadData, topology, t_AssetMaterialTopology, .flags = DataFlags_Opt);
+    data_reg_field_t(
+        g_dataReg, MaterialLoadData, rasterizer, t_AssetMaterialRasterizer, .flags = DataFlags_Opt);
+    data_reg_field_t(
+        g_dataReg, MaterialLoadData, lineWidth, data_prim_t(u32), .flags = DataFlags_Opt);
+    data_reg_field_t(
+        g_dataReg, MaterialLoadData, blend, t_AssetMaterialBlend, .flags = DataFlags_Opt);
+    data_reg_field_t(
+        g_dataReg, MaterialLoadData, depth, t_AssetMaterialDepth, .flags = DataFlags_Opt);
+    data_reg_field_t(
+        g_dataReg, MaterialLoadData, cull, t_AssetMaterialCull, .flags = DataFlags_Opt);
 
     g_dataMeta = data_meta_t(t_MaterialLoadData);
   }
