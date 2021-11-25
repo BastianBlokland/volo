@@ -9,7 +9,7 @@
  * Pre-condition: original memory does not contain any cycles.
  * Pre-condition: DataMeta definition is not modified in parallel with this call.
  */
-void data_clone(Allocator* alloc, DataMeta, Mem original, Mem clone);
+void data_clone(const DataReg*, Allocator* alloc, DataMeta, Mem original, Mem clone);
 
 /**
  * Free the resources associated with the given value.
@@ -19,4 +19,4 @@ void data_clone(Allocator* alloc, DataMeta, Mem original, Mem clone);
  * Pre-condition: data memory does not contain any cycles.
  * Pre-condition: DataMeta definition is not modified in parallel with this call.
  */
-void data_destroy(Allocator* alloc, DataMeta, Mem data);
+void data_destroy(const DataReg*, Allocator* alloc, DataMeta, Mem data);

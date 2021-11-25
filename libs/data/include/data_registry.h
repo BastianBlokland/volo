@@ -1,6 +1,11 @@
 #pragma once
 #include "data_type.h"
 
+/**
+ * Data registry, container for data-type definitions.
+ */
+typedef struct sDataReg DataReg;
+
 typedef enum {
   DataContainer_None,
   DataContainer_Pointer,
@@ -16,77 +21,74 @@ typedef struct {
   DataContainer container;
 } DataMeta;
 
-/**
- * Construct Meta information for a data value.
- */
-#define data_meta_t(_TYPE_, ...)                                                                   \
-  (DataMeta) { .type = _TYPE_, ##__VA_ARGS__ }
+#define data_meta_t(_DATA_TYPE_, ...) ((DataMeta){.type = _DATA_TYPE_, ##__VA_ARGS__})
+#define data_prim_t(_PRIM_) ((DataType)DataKind_##_PRIM_)
 
 /**
- * Lookup a primitive data type.
+ * Create a new data registry.
+ * Destroy using 'data_reg_destroy()'.
  */
-#define data_prim_t(_PRIM_) data_prim(DataPrim_##_PRIM_)
+DataReg* data_reg_create(Allocator*);
 
-DataType data_prim(DataPrim);
+/**
+ * Destroy a data registry.
+ */
+void data_reg_destroy(DataReg*);
 
 /**
  * Retrieve the name of a registered type.
  */
-String data_name(DataType);
+String data_name(const DataReg*, DataType);
 
 /**
  * Retrieve the size (in bytes) of a registered type.
  */
-usize data_size(DataType);
+usize data_size(const DataReg*, DataType);
 
 /**
  * Retrieve the alignment requirement (in bytes) of a registered type.
  */
-usize data_align(DataType);
+usize data_align(const DataReg*, DataType);
 
 /**
  * Get the size (in bytes) that a value with the given DataMeta occupies.
  */
-usize data_meta_size(DataMeta);
+usize data_meta_size(const DataReg*, DataMeta);
 
 /**
  * Register a new Struct type.
- *
- * Pre-condition: No type with the same name has been registered.
  */
-#define data_register_struct_t(_T_)                                                                \
+#define data_reg_struct_t(_REG_, _T_)                                                              \
   MAYBE_UNUSED const DataType t_##_T_ =                                                            \
-      data_register_struct(string_lit(#_T_), sizeof(_T_), alignof(_T_))
+      data_reg_struct((_REG_), string_lit(#_T_), sizeof(_T_), alignof(_T_))
 
-DataType data_register_struct(String name, usize size, usize align);
+DataType data_reg_struct(DataReg*, String name, usize size, usize align);
 
 /**
  * Register a new field for a Struct,
- *
- * Pre-condition: parent is a Struct.
  */
-#define data_register_field_t(_T_, _FIELD_, _TYPE_, ...)                                           \
-  data_register_field(                                                                             \
-      t_##_T_, string_lit(#_FIELD_), offsetof(_T_, _FIELD_), data_meta_t(_TYPE_, __VA_ARGS__));
+#define data_reg_field_t(_REG_, _PARENT_, _FIELD_, _DATA_TYPE_, ...)                               \
+  data_reg_field(                                                                                  \
+      (_REG_),                                                                                     \
+      t_##_PARENT_,                                                                                \
+      string_lit(#_FIELD_),                                                                        \
+      offsetof(_PARENT_, _FIELD_),                                                                 \
+      data_meta_t(_DATA_TYPE_, __VA_ARGS__));
 
-void data_register_field(DataType parent, String name, usize offset, DataMeta);
+void data_reg_field(DataReg*, DataType parent, String name, usize offset, DataMeta);
 
 /**
  * Register a new Enum type.
- *
- * Pre-condition: No type with the same name has been registered.
  */
-#define data_register_enum_t(_T_)                                                                  \
-  MAYBE_UNUSED const DataType t_##_T_ = data_register_enum(string_lit(#_T_))
+#define data_reg_enum_t(_REG_, _T_)                                                                \
+  MAYBE_UNUSED const DataType t_##_T_ = data_reg_enum((_REG_), string_lit(#_T_))
 
-DataType data_register_enum(String name);
+DataType data_reg_enum(DataReg*, String name);
 
 /**
  * Register a new constant for an Enum,
- *
- * Pre-condition: parent is an Enum.
  */
-#define data_register_const_t(_T_, _ENTRY_)                                                        \
-  data_register_const(t_##_T_, string_lit(#_ENTRY_), _T_##_##_ENTRY_);
+#define data_reg_const_t(_REG_, _PARENT_, _ENTRY_)                                                 \
+  data_reg_const((_REG_), t_##_PARENT_, string_lit(#_ENTRY_), _PARENT_##_##_ENTRY_);
 
-void data_register_const(DataType parent, String name, i32 value);
+void data_reg_const(DataReg*, DataType parent, String name, i32 value);

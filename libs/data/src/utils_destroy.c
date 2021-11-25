@@ -5,22 +5,40 @@
 
 #include "registry_internal.h"
 
-static void data_destroy_string(Allocator* alloc, const Mem data) {
-  const String val = *mem_as_t(data, String);
+typedef struct {
+  const DataReg* reg;
+  Allocator*     alloc;
+  const DataMeta meta;
+  const Mem      data;
+} DestroyCtx;
+
+static void data_destroy_internal(const DestroyCtx*);
+
+static void data_destroy_string(const DestroyCtx* ctx) {
+  const String val = *mem_as_t(ctx->data, String);
   if (!string_is_empty(val)) {
-    string_free(alloc, val);
+    string_free(ctx->alloc, val);
   }
 }
 
-static void data_destroy_struct(Allocator* alloc, const DataMeta meta, const Mem data) {
-  data_for_fields(meta.type, field, {
-    const Mem fieldMem = data_field_mem(field, data);
-    data_destroy(alloc, field->meta, fieldMem);
+static void data_destroy_struct(const DestroyCtx* ctx) {
+
+  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
+  dynarray_for_t((DynArray*)&decl->val_struct.fields, DataDeclField, fieldDecl, {
+    const Mem fieldMem = data_field_mem(ctx->reg, fieldDecl, ctx->data);
+
+    const DestroyCtx fieldCtx = {
+        .reg   = ctx->reg,
+        .alloc = ctx->alloc,
+        .meta  = fieldDecl->meta,
+        .data  = fieldMem,
+    };
+    data_destroy_internal(&fieldCtx);
   });
 }
 
-static void data_destroy_single(Allocator* alloc, const DataMeta meta, const Mem data) {
-  switch (data_decl(meta.type)->kind) {
+static void data_destroy_single(const DestroyCtx* ctx) {
+  switch (data_decl(ctx->reg, ctx->meta.type)->kind) {
   case DataKind_bool:
   case DataKind_i8:
   case DataKind_i16:
@@ -35,10 +53,10 @@ static void data_destroy_single(Allocator* alloc, const DataMeta meta, const Mem
   case DataKind_Enum:
     return;
   case DataKind_String:
-    data_destroy_string(alloc, data);
+    data_destroy_string(ctx);
     return;
   case DataKind_Struct:
-    data_destroy_struct(alloc, meta, data);
+    data_destroy_struct(ctx);
     return;
   case DataKind_Invalid:
   case DataKind_Count:
@@ -47,42 +65,65 @@ static void data_destroy_single(Allocator* alloc, const DataMeta meta, const Mem
   diag_crash();
 }
 
-static void data_destroy_pointer(Allocator* alloc, const DataMeta meta, const Mem data) {
-  void* ptr = *mem_as_t(data, void*);
+static void data_destroy_pointer(const DestroyCtx* ctx) {
+  void* ptr = *mem_as_t(ctx->data, void*);
   if (!ptr) {
     return;
   }
-  const Mem targetMem = mem_create(ptr, data_size(meta.type));
-  data_destroy_single(alloc, data_meta_base(meta), targetMem);
+  const Mem targetMem = mem_create(ptr, data_size(ctx->reg, ctx->meta.type));
 
-  alloc_free(alloc, targetMem);
+  const DestroyCtx subCtx = {
+      .reg   = ctx->reg,
+      .alloc = ctx->alloc,
+      .meta  = data_meta_base(ctx->meta),
+      .data  = targetMem,
+  };
+  data_destroy_single(&subCtx);
+
+  alloc_free(ctx->alloc, targetMem);
 }
 
-static void data_destroy_array(Allocator* alloc, const DataMeta meta, const Mem data) {
-  const DataDecl*  decl  = data_decl(meta.type);
-  const DataArray* array = mem_as_t(data, DataArray);
+static void data_destroy_array(const DestroyCtx* ctx) {
+  const DataDecl*  decl  = data_decl(ctx->reg, ctx->meta.type);
+  const DataArray* array = mem_as_t(ctx->data, DataArray);
   if (!array->count) {
     return;
   }
 
   for (usize i = 0; i != array->count; ++i) {
-    data_destroy_single(alloc, data_meta_base(meta), data_elem_mem(decl, array, i));
+    const DestroyCtx elemCtx = {
+        .reg   = ctx->reg,
+        .alloc = ctx->alloc,
+        .meta  = data_meta_base(ctx->meta),
+        .data  = data_elem_mem(decl, array, i),
+    };
+    data_destroy_single(&elemCtx);
   }
 
-  alloc_free(alloc, mem_create(array->data, decl->size * array->count));
+  alloc_free(ctx->alloc, mem_create(array->data, decl->size * array->count));
 }
 
-void data_destroy(Allocator* alloc, const DataMeta meta, const Mem data) {
-  switch (meta.container) {
+static void data_destroy_internal(const DestroyCtx* ctx) {
+  switch (ctx->meta.container) {
   case DataContainer_None:
-    data_destroy_single(alloc, meta, data);
+    data_destroy_single(ctx);
     return;
   case DataContainer_Pointer:
-    data_destroy_pointer(alloc, meta, data);
+    data_destroy_pointer(ctx);
     return;
   case DataContainer_Array:
-    data_destroy_array(alloc, meta, data);
+    data_destroy_array(ctx);
     return;
   }
   diag_crash();
+}
+
+void data_destroy(const DataReg* reg, Allocator* alloc, const DataMeta meta, const Mem data) {
+  const DestroyCtx ctx = {
+      .reg   = reg,
+      .alloc = alloc,
+      .meta  = meta,
+      .data  = data,
+  };
+  data_destroy_internal(&ctx);
 }

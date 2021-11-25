@@ -7,8 +7,6 @@
 
 #include "registry_internal.h"
 
-OPTIMIZE_OFF()
-
 #define result_success()                                                                           \
   (DataReadResult) { 0 }
 
@@ -18,6 +16,7 @@ OPTIMIZE_OFF()
   }
 
 typedef struct {
+  const DataReg* reg;
   Allocator*     alloc;
   DynArray*      allocations;
   const JsonDoc* doc;
@@ -86,7 +85,7 @@ static void data_read_json_number(const ReadCtx* ctx, DataReadResult* res) {
   if (UNLIKELY(!data_check_type(ctx, JsonType_Number, res))) {
     return;
   }
-  const DataDecl* decl   = data_decl(ctx->meta.type);
+  const DataDecl* decl   = data_decl(ctx->reg, ctx->meta.type);
   const f64       number = json_number(ctx->doc, ctx->val);
 
   const f64 min = data_number_min(decl->kind);
@@ -159,28 +158,30 @@ static void data_read_json_struct(const ReadCtx* ctx, DataReadResult* res) {
 
   mem_set(ctx->data, 0); // Initialize non-specified memory to zero.
 
-  data_for_fields(ctx->meta.type, field, {
-    const JsonVal fieldVal = json_field(ctx->doc, ctx->val, field->id.name);
+  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
+  dynarray_for_t((DynArray*)&decl->val_struct.fields, DataDeclField, fieldDecl, {
+    const JsonVal fieldVal = json_field(ctx->doc, ctx->val, fieldDecl->id.name);
     if (UNLIKELY(sentinel_check(fieldVal))) {
       *res = result_fail(
-          DataReadError_FieldNotFound, "Field '{}' not found", fmt_text(field->id.name));
+          DataReadError_FieldNotFound, "Field '{}' not found", fmt_text(fieldDecl->id.name));
       return;
     }
 
     const ReadCtx fieldCtx = {
+        .reg         = ctx->reg,
         .alloc       = ctx->alloc,
         .allocations = ctx->allocations,
         .doc         = ctx->doc,
         .val         = fieldVal,
-        .meta        = field->meta,
-        .data        = data_field_mem(field, ctx->data),
+        .meta        = fieldDecl->meta,
+        .data        = data_field_mem(ctx->reg, fieldDecl, ctx->data),
     };
     data_read_json_val(&fieldCtx, res);
     if (UNLIKELY(res->error)) {
       *res = result_fail(
           DataReadError_InvalidField,
           "Invalid field '{}': {}",
-          fmt_text(field->id.name),
+          fmt_text(fieldDecl->id.name),
           fmt_text(res->errorMsg));
       return;
     }
@@ -193,17 +194,17 @@ static void data_read_json_enum(const ReadCtx* ctx, DataReadResult* res) {
   if (UNLIKELY(!data_check_type(ctx, JsonType_String, res))) {
     return;
   }
-  const DataDecl* decl      = data_decl(ctx->meta.type);
+  const DataDecl* decl      = data_decl(ctx->reg, ctx->meta.type);
   const u32       valueHash = bits_hash_32(json_string(ctx->doc, ctx->val));
 
-  for (usize i = 0; i != decl->val_enum.count; ++i) {
-    const DataDeclConst* constDecl = &decl->val_enum.consts[i];
+  dynarray_for_t((DynArray*)&decl->val_enum.consts, DataDeclConst, constDecl, {
     if (constDecl->id.hash == valueHash) {
       *mem_as_t(ctx->data, i32) = constDecl->value;
       *res                      = result_success();
       return;
     }
-  }
+  });
+
   *res = result_fail(
       DataReadError_InvalidEnumEntry,
       "Invalid enum entry '{}' for type {}",
@@ -212,7 +213,7 @@ static void data_read_json_enum(const ReadCtx* ctx, DataReadResult* res) {
 }
 
 static void data_read_json_val_single(const ReadCtx* ctx, DataReadResult* res) {
-  switch (data_decl(ctx->meta.type)->kind) {
+  switch (data_decl(ctx->reg, ctx->meta.type)->kind) {
   case DataKind_bool:
     data_read_json_bool(ctx, res);
     return;
@@ -251,11 +252,12 @@ static void data_read_json_val_pointer(const ReadCtx* ctx, DataReadResult* res) 
     return;
   }
 
-  const DataDecl* decl = data_decl(ctx->meta.type);
+  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
   const Mem       mem  = alloc_alloc(ctx->alloc, decl->size, decl->align);
   data_register_alloc(ctx, mem);
 
   const ReadCtx subCtx = {
+      .reg         = ctx->reg,
       .alloc       = ctx->alloc,
       .allocations = ctx->allocations,
       .doc         = ctx->doc,
@@ -271,7 +273,7 @@ static void data_read_json_val_array(const ReadCtx* ctx, DataReadResult* res) {
   if (UNLIKELY(!data_check_type(ctx, JsonType_Array, res))) {
     return;
   }
-  const DataDecl* decl  = data_decl(ctx->meta.type);
+  const DataDecl* decl  = data_decl(ctx->reg, ctx->meta.type);
   const usize     count = json_elem_count(ctx->doc, ctx->val);
   if (!count) {
     *mem_as_t(ctx->data, DataArray) = (DataArray){0};
@@ -287,6 +289,7 @@ static void data_read_json_val_array(const ReadCtx* ctx, DataReadResult* res) {
 
   json_for_elems(ctx->doc, ctx->val, elem, {
     const ReadCtx elemCtx = {
+        .reg         = ctx->reg,
         .alloc       = ctx->alloc,
         .allocations = ctx->allocations,
         .doc         = ctx->doc,
@@ -320,7 +323,12 @@ static void data_read_json_val(const ReadCtx* ctx, DataReadResult* res) {
 }
 
 String data_read_json(
-    const String input, Allocator* alloc, const DataMeta meta, Mem data, DataReadResult* res) {
+    const DataReg*  reg,
+    const String    input,
+    Allocator*      alloc,
+    const DataMeta  meta,
+    Mem             data,
+    DataReadResult* res) {
 
   JsonDoc* doc         = json_create(g_alloc_heap, 512);
   DynArray allocations = dynarray_create_t(g_alloc_heap, Mem, 64);
@@ -336,6 +344,7 @@ String data_read_json(
   }
 
   const ReadCtx ctx = {
+      .reg         = reg,
       .alloc       = alloc,
       .allocations = &allocations,
       .doc         = doc,

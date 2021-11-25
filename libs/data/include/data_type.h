@@ -36,13 +36,4 @@ typedef enum {
   DataKind_Count,
 } DataKind;
 
-typedef enum {
-  DataPrim_Invalid,
-#define X(_T_) DataPrim_##_T_,
-  DATA_PRIMS
-#undef X
-
-  DataPrim_Count,
-} DataPrim;
-
 // clang-format on

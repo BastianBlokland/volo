@@ -1,4 +1,5 @@
 #pragma once
+#include "core_dynarray.h"
 #include "data_registry.h"
 
 typedef struct {
@@ -13,8 +14,7 @@ typedef struct {
 } DataDeclField;
 
 typedef struct {
-  DataDeclField* fields;
-  usize          count;
+  DynArray fields; // DataDeclField[]
 } DataDeclStruct;
 
 typedef struct {
@@ -23,8 +23,7 @@ typedef struct {
 } DataDeclConst;
 
 typedef struct {
-  DataDeclConst* consts;
-  usize          count;
+  DynArray consts; // DataDeclConst[]
 } DataDeclEnum;
 
 typedef struct {
@@ -38,33 +37,19 @@ typedef struct {
 } DataDecl;
 
 /**
- * Iterate over all fields in the structure.
- * NOTE: _TYPE_ is expanded twice, so care must be taken when providing complex expressions.
- */
-#define data_for_fields(_TYPE_, _VAR_, ...)                                                        \
-  {                                                                                                \
-    diag_assert(data_decl(_TYPE_)->kind == DataKind_Struct);                                       \
-    const DataDeclField* _VAR_       = data_decl(_TYPE_)->val_struct.fields;                       \
-    const DataDeclField* _VAR_##_end = _VAR_ + data_decl(_TYPE_)->val_struct.count;                \
-    for (; _VAR_ != _VAR_##_end; ++_VAR_) {                                                        \
-      __VA_ARGS__                                                                                  \
-    }                                                                                              \
-  }
-
-/**
- * Strip of any container or other special attributes from the meta.
+ * Strip off any container or other special attributes from the meta.
  */
 DataMeta data_meta_base(DataMeta);
 
 /**
  * Lookup a declaration for a type.
  */
-const DataDecl* data_decl(DataType);
+const DataDecl* data_decl(const DataReg*, DataType);
 
 /**
  * Create a memory view over a field in a structure.
  */
-Mem data_field_mem(const DataDeclField*, Mem structMem);
+Mem data_field_mem(const DataReg*, const DataDeclField*, Mem structMem);
 
 /**
  * Create a memory view over an element in the given array.

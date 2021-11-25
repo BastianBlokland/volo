@@ -2,7 +2,7 @@
 #include "core_dynstring.h"
 #include "data_registry.h"
 
-typedef String (*DataWriter)(DynString*, DataMeta, Mem data);
+typedef String (*DataWriter)(const DataReg*, DynString*, DataMeta, Mem data);
 
 /**
  * Write a data value as a json string.
@@ -11,4 +11,4 @@ typedef String (*DataWriter)(DynString*, DataMeta, Mem data);
  * Pre-condition: data memory does not contain any cycles.
  * Pre-condition: DataMeta definition is not modified in parallel with this call.
  */
-void data_write_json(DynString*, DataMeta, Mem data);
+void data_write_json(const DataReg*, DynString*, DataMeta, Mem data);

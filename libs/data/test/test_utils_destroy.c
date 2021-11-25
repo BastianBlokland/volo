@@ -4,18 +4,22 @@
 
 spec(utils_destroy) {
 
+  DataReg* reg = null;
+
+  setup() { reg = data_reg_create(g_alloc_heap); }
+
   it("can destroy a string") {
     const String val = string_dup(g_alloc_heap, string_lit("Hello World"));
 
     const DataMeta meta = data_meta_t(data_prim_t(String));
-    data_destroy(g_alloc_heap, meta, mem_var(val));
+    data_destroy(reg, g_alloc_heap, meta, mem_var(val));
   }
 
   it("can destroy an empty string") {
     const String val = string_empty;
 
     const DataMeta meta = data_meta_t(data_prim_t(String));
-    data_destroy(g_alloc_heap, meta, mem_var(val));
+    data_destroy(reg, g_alloc_heap, meta, mem_var(val));
   }
 
   it("can destroy a primitive pointer") {
@@ -23,7 +27,7 @@ spec(utils_destroy) {
     *val     = 42;
 
     const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_Pointer);
-    data_destroy(g_alloc_heap, meta, mem_var(val));
+    data_destroy(reg, g_alloc_heap, meta, mem_var(val));
   }
 
   it("can destroy an array of primitives") {
@@ -33,13 +37,13 @@ spec(utils_destroy) {
       i32*  values;
       usize count;
     } array1 = {.values = alloc_array_t(g_alloc_heap, i32, 8), .count = 8};
-    data_destroy(g_alloc_heap, meta, mem_var(array1));
+    data_destroy(reg, g_alloc_heap, meta, mem_var(array1));
 
     const struct {
       i32*  values;
       usize count;
     } array2 = {0};
-    data_destroy(g_alloc_heap, meta, mem_var(array2));
+    data_destroy(reg, g_alloc_heap, meta, mem_var(array2));
   }
 
   it("can destroy a structure") {
@@ -47,21 +51,17 @@ spec(utils_destroy) {
       String a, b, c;
     } DestroyStructA;
 
-    static DataType g_typeA;
-    if (!g_typeA) {
-      data_register_struct_t(DestroyStructA);
-      data_register_field_t(DestroyStructA, a, data_prim_t(String));
-      data_register_field_t(DestroyStructA, b, data_prim_t(String));
-      data_register_field_t(DestroyStructA, c, data_prim_t(String));
-      g_typeA = t_DestroyStructA;
-    }
+    data_reg_struct_t(reg, DestroyStructA);
+    data_reg_field_t(reg, DestroyStructA, a, data_prim_t(String));
+    data_reg_field_t(reg, DestroyStructA, b, data_prim_t(String));
+    data_reg_field_t(reg, DestroyStructA, c, data_prim_t(String));
 
     const DestroyStructA val = {
         .a = string_dup(g_alloc_heap, string_lit("Hello")),
         .c = string_dup(g_alloc_heap, string_lit("World")),
     };
 
-    data_destroy(g_alloc_heap, data_meta_t(g_typeA), mem_var(val));
+    data_destroy(reg, g_alloc_heap, data_meta_t(t_DestroyStructA), mem_var(val));
   }
 
   it("can destroy nested structures") {
@@ -78,20 +78,17 @@ spec(utils_destroy) {
       } array;
     } DestroyStructC;
 
-    static DataType g_typeB, g_typeC;
-    if (!g_typeB) {
-      data_register_struct_t(DestroyStructB);
-      data_register_field_t(DestroyStructB, a, data_prim_t(String));
-      data_register_field_t(DestroyStructB, b, data_prim_t(String));
-      data_register_field_t(DestroyStructB, c, data_prim_t(String));
-      g_typeB = t_DestroyStructB;
+    data_reg_struct_t(reg, DestroyStructB);
+    data_reg_field_t(reg, DestroyStructB, a, data_prim_t(String));
+    data_reg_field_t(reg, DestroyStructB, b, data_prim_t(String));
+    data_reg_field_t(reg, DestroyStructB, c, data_prim_t(String));
 
-      data_register_struct_t(DestroyStructC);
-      data_register_field_t(DestroyStructC, value, g_typeB);
-      data_register_field_t(DestroyStructC, ptr, g_typeB, .container = DataContainer_Pointer);
-      data_register_field_t(DestroyStructC, array, g_typeB, .container = DataContainer_Array);
-      g_typeC = t_DestroyStructC;
-    }
+    data_reg_struct_t(reg, DestroyStructC);
+    data_reg_field_t(reg, DestroyStructC, value, t_DestroyStructB);
+    data_reg_field_t(
+        reg, DestroyStructC, ptr, t_DestroyStructB, .container = DataContainer_Pointer);
+    data_reg_field_t(
+        reg, DestroyStructC, array, t_DestroyStructB, .container = DataContainer_Array);
 
     DestroyStructB* ptr = alloc_alloc_t(g_alloc_heap, DestroyStructB);
     *ptr                = (DestroyStructB){
@@ -118,6 +115,8 @@ spec(utils_destroy) {
         .array = {.values = arrayValues, .count = arrayCount},
     };
 
-    data_destroy(g_alloc_heap, data_meta_t(g_typeC), mem_var(val));
+    data_destroy(reg, g_alloc_heap, data_meta_t(t_DestroyStructC), mem_var(val));
   }
+
+  teardown() { data_reg_destroy(reg); }
 }
