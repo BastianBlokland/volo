@@ -280,18 +280,7 @@ void executor_teardown() {
   }
 
   for (u16 i = 0; i != g_jobsWorkerCount; ++i) {
-    if (workqueue_size(&g_workerQueues[i])) {
-      diag_print_err(
-          "jobs_executor: Worker {} has {} unfinished tasks.\n",
-          fmt_int(i),
-          fmt_int(workqueue_size(&g_workerQueues[i])));
-    }
     workqueue_destroy(g_alloc_heap, &g_workerQueues[i]);
-  }
-
-  if (affqueue_size(&g_affinityQueue)) {
-    diag_print_err(
-        "jobs_executor: {} unfinished affinity tasks.\n", fmt_int(affqueue_size(&g_affinityQueue)));
   }
   affqueue_destroy(g_alloc_heap, &g_affinityQueue);
 
