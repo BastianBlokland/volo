@@ -37,15 +37,16 @@ void affqueue_push(AffQueue* aq, Job* job, const JobTaskId task) {
 WorkItem affqueue_pop(AffQueue* aq) {
   const i64 bottom = aq->bottom; // No atomic load as its only written to from this thread.
   const i64 top    = thread_atomic_load_i64(&aq->top);
-  for (i64 i = bottom; i != top; ++i) {
-    AffQueueItem* item            = aq->items + item_wrap(i);
-    i64           expectedHasData = true;
-    while (!thread_atomic_compare_exchange_i64(&item->hasData, &expectedHasData, false)) {
-      _mm_pause();
-      expectedHasData = true;
-    }
-    ++aq->bottom;
-    return item->work;
+  if (bottom == top) {
+    return (WorkItem){0}; // Queue is empty.
   }
-  return (WorkItem){0}; // Queue is empty.
+
+  AffQueueItem* item            = aq->items + item_wrap(bottom);
+  i64           expectedHasData = true;
+  while (!thread_atomic_compare_exchange_i64(&item->hasData, &expectedHasData, false)) {
+    _mm_pause();
+    expectedHasData = true;
+  }
+  ++aq->bottom;
+  return item->work;
 }
