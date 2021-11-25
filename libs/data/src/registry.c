@@ -29,7 +29,7 @@ static DataDecl* data_decl_mutable(DataReg* reg, const DataType type) {
 static DataType data_type_by_id(const DataReg* reg, const DataId id) {
   dynarray_for_t((DynArray*)&reg->types, DataDecl, decl, {
     if (decl->id.hash == id.hash) {
-      return decl_i;
+      return (DataType)decl_i;
     }
   });
   return sentinel_u32;
