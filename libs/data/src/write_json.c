@@ -7,6 +7,7 @@
 #include "registry_internal.h"
 
 typedef struct {
+  const DataReg* reg;
   JsonDoc*       doc;
   const DataMeta meta;
   Mem            data;
@@ -23,7 +24,7 @@ static JsonVal data_write_json_number(const WriteCtx* ctx) {
   case DataKind_##_T_:                                                                             \
     return json_add_number(ctx->doc, (f64)*mem_as_t(ctx->data, _T_))
 
-  switch (data_decl(ctx->meta.type)->kind) {
+  switch (data_decl(ctx->reg, ctx->meta.type)->kind) {
     RET_ADD_NUM(i8);
     RET_ADD_NUM(i16);
     RET_ADD_NUM(i32);
@@ -46,16 +47,18 @@ static JsonVal data_write_json_string(const WriteCtx* ctx) {
 }
 
 static JsonVal data_write_json_struct(const WriteCtx* ctx) {
-  const JsonVal jsonObj = json_add_object(ctx->doc);
+  const JsonVal   jsonObj = json_add_object(ctx->doc);
+  const DataDecl* decl    = data_decl(ctx->reg, ctx->meta.type);
 
-  data_for_fields(ctx->meta.type, field, {
+  dynarray_for_t((DynArray*)&decl->val_struct.fields, DataDeclField, fieldDecl, {
     const WriteCtx fieldCtx = {
+        .reg  = ctx->reg,
         .doc  = ctx->doc,
-        .meta = field->meta,
-        .data = data_field_mem(field, ctx->data),
+        .meta = fieldDecl->meta,
+        .data = data_field_mem(ctx->reg, fieldDecl, ctx->data),
     };
     const JsonVal fieldVal = data_write_json_val(&fieldCtx);
-    json_add_field_str(ctx->doc, jsonObj, field->id.name, fieldVal);
+    json_add_field_str(ctx->doc, jsonObj, fieldDecl->id.name, fieldVal);
   });
 
   return jsonObj;
@@ -63,19 +66,18 @@ static JsonVal data_write_json_struct(const WriteCtx* ctx) {
 
 static JsonVal data_write_json_enum(const WriteCtx* ctx) {
   const i32       val  = *mem_as_t(ctx->data, i32);
-  const DataDecl* decl = data_decl(ctx->meta.type);
+  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
 
-  for (usize i = 0; i != decl->val_enum.count; ++i) {
-    const DataDeclConst* constDecl = &decl->val_enum.consts[i];
+  dynarray_for_t((DynArray*)&decl->val_enum.consts, DataDeclConst, constDecl, {
     if (constDecl->value == val) {
       return json_add_string(ctx->doc, constDecl->id.name);
     }
-  }
+  });
   return json_add_number(ctx->doc, val);
 }
 
 static JsonVal data_write_json_val_single(const WriteCtx* ctx) {
-  switch (data_decl(ctx->meta.type)->kind) {
+  switch (data_decl(ctx->reg, ctx->meta.type)->kind) {
   case DataKind_bool:
     return data_write_json_bool(ctx);
   case DataKind_i8:
@@ -107,8 +109,9 @@ static JsonVal data_write_json_val_pointer(const WriteCtx* ctx) {
   if (!ptr) {
     return json_add_null(ctx->doc);
   }
-  const DataDecl* decl   = data_decl(ctx->meta.type);
+  const DataDecl* decl   = data_decl(ctx->reg, ctx->meta.type);
   const WriteCtx  subCtx = {
+      .reg  = ctx->reg,
       .doc  = ctx->doc,
       .meta = data_meta_base(ctx->meta),
       .data = mem_create(ptr, decl->size),
@@ -118,11 +121,12 @@ static JsonVal data_write_json_val_pointer(const WriteCtx* ctx) {
 
 static JsonVal data_write_json_val_array(const WriteCtx* ctx) {
   const JsonVal    jsonArray = json_add_array(ctx->doc);
-  const DataDecl*  decl      = data_decl(ctx->meta.type);
+  const DataDecl*  decl      = data_decl(ctx->reg, ctx->meta.type);
   const DataArray* array     = mem_as_t(ctx->data, DataArray);
 
   for (usize i = 0; i != array->count; ++i) {
     const WriteCtx elemCtx = {
+        .reg  = ctx->reg,
         .doc  = ctx->doc,
         .meta = data_meta_base(ctx->meta),
         .data = data_elem_mem(decl, array, i),
@@ -145,9 +149,10 @@ static JsonVal data_write_json_val(const WriteCtx* ctx) {
   diag_crash();
 }
 
-void data_write_json(DynString* str, const DataMeta meta, const Mem data) {
-  JsonDoc*       doc = json_create(g_alloc_scratch, 1024, JsonDocFlags_NoStringDup);
+void data_write_json(const DataReg* reg, DynString* str, const DataMeta meta, const Mem data) {
+  JsonDoc*       doc = json_create(g_alloc_scratch, 512);
   const WriteCtx ctx = {
+      .reg  = reg,
       .doc  = doc,
       .meta = meta,
       .data = data,

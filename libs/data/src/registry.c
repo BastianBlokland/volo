@@ -1,81 +1,96 @@
 #include "core_alloc.h"
 #include "core_bits.h"
 #include "core_diag.h"
-#include "core_thread.h"
 #include "data_registry.h"
 
 #include "registry_internal.h"
 
-#define data_max_types 256
-#define data_max_fields 32
-#define data_max_consts 64
+struct sDataReg {
+  DynArray   types; // DataDecl[]
+  Allocator* alloc;
+};
 
-static DataDecl g_types[data_max_types];
-static i64      g_nextIdCounter = DataPrim_Count;
-
-static DataType data_alloc_type() {
-  const DataType type = (DataType)thread_atomic_add_i64(&g_nextIdCounter, 1);
-  diag_assert_msg(
-      type < data_max_types, "More then '{}' types are not supported", fmt_int(data_max_types));
-  return type;
+static DataType data_alloc_type(DataReg* reg) {
+  dynarray_push(&reg->types, 1);
+  return (DataType)reg->types.size;
 }
 
-static DataId data_get_id(const String name) {
-  return (DataId){.name = name, .hash = bits_hash_32(name)};
+static DataId data_id_create(Allocator* alloc, const String name) {
+  return (DataId){.name = string_dup(alloc, name), .hash = bits_hash_32(name)};
 }
 
-static DataDecl* data_decl_mutable(const DataType type) {
+static void data_id_destroy(Allocator* alloc, DataId id) { string_free(alloc, id.name); }
+
+static DataDecl* data_decl_mutable(DataReg* reg, const DataType type) {
   diag_assert_msg(type, "Uninitialized data-type");
-  return &g_types[type - 1];
+  return dynarray_at_t(&reg->types, type - 1, DataDecl);
 }
 
-static DataType data_type_by_id(const DataId id) {
-  const usize typeCount = (usize)thread_atomic_load_i64(&g_nextIdCounter);
-  for (DataType i = 1; i != typeCount; ++i) {
-    if (data_decl(i)->id.hash == id.hash) {
-      return i;
+static DataType data_type_by_id(const DataReg* reg, const DataId id) {
+  dynarray_for_t((DynArray*)&reg->types, DataDecl, decl, {
+    if (decl->id.hash == id.hash) {
+      return (DataType)decl_i;
     }
-  }
+  });
   return sentinel_u32;
 }
 
-DataType data_prim(const DataPrim prim) {
-  static bool           g_initialized;
-  static ThreadSpinLock g_initLock;
+DataReg* data_reg_create(Allocator* alloc) {
+  DataReg* reg = alloc_alloc_t(alloc, DataReg);
+  *reg         = (DataReg){
+      .types = dynarray_create_t(alloc, DataDecl, 64),
+      .alloc = alloc,
+  };
 
-  const DataType type = (DataType)prim;
-  if (LIKELY(g_initialized)) {
-    return type;
-  }
-  thread_spinlock_lock(&g_initLock);
-  if (UNLIKELY(g_initialized)) {
-    goto done;
-  }
 #define X(_T_)                                                                                     \
-  *data_decl_mutable((DataType)DataPrim_##_T_) = (DataDecl){                                       \
+  *data_decl_mutable(reg, data_alloc_type(reg)) = (DataDecl){                                      \
       .kind  = DataKind_##_T_,                                                                     \
       .size  = sizeof(_T_),                                                                        \
       .align = alignof(_T_),                                                                       \
-      .id    = data_get_id(string_lit(#_T_)),                                                      \
+      .id    = data_id_create(alloc, string_lit(#_T_)),                                            \
   };
   DATA_PRIMS
 #undef X
-done:
-  thread_spinlock_unlock(&g_initLock);
-  g_initialized = true;
-  return type;
+
+  return reg;
 }
 
-String data_name(const DataType type) { return data_decl(type)->id.name; }
+void data_reg_destroy(DataReg* reg) {
 
-usize data_size(const DataType type) { return data_decl(type)->size; }
+  dynarray_for_t(&reg->types, DataDecl, decl, {
+    data_id_destroy(reg->alloc, decl->id);
+    switch (decl->kind) {
+    case DataKind_Struct: {
+      dynarray_for_t(&decl->val_struct.fields, DataDeclField, fieldDecl, {
+        data_id_destroy(reg->alloc, fieldDecl->id);
+      });
+      dynarray_destroy(&decl->val_struct.fields);
+    } break;
+    case DataKind_Enum: {
+      dynarray_for_t(&decl->val_enum.consts, DataDeclConst, constDecl, {
+        data_id_destroy(reg->alloc, constDecl->id);
+      });
+      dynarray_destroy(&decl->val_enum.consts);
+    } break;
+    default:
+      break;
+    }
+  });
+  dynarray_destroy(&reg->types);
 
-usize data_align(const DataType type) { return data_decl(type)->align; }
+  alloc_free_t(reg->alloc, reg);
+}
 
-usize data_meta_size(const DataMeta meta) {
+String data_name(const DataReg* reg, const DataType type) { return data_decl(reg, type)->id.name; }
+
+usize data_size(const DataReg* reg, const DataType type) { return data_decl(reg, type)->size; }
+
+usize data_align(const DataReg* reg, const DataType type) { return data_decl(reg, type)->align; }
+
+usize data_meta_size(const DataReg* reg, const DataMeta meta) {
   switch (meta.container) {
   case DataContainer_None:
-    return data_decl(meta.type)->size;
+    return data_decl(reg, meta.type)->size;
   case DataContainer_Pointer:
     return sizeof(void*);
   case DataContainer_Array:
@@ -84,8 +99,8 @@ usize data_meta_size(const DataMeta meta) {
   diag_crash();
 }
 
-DataType data_register_struct(const String name, const usize size, const usize align) {
-  const DataId id = data_get_id(string_dup(g_alloc_persist, name));
+DataType data_reg_struct(DataReg* reg, const String name, const usize size, const usize align) {
+  const DataId id = data_id_create(reg->alloc, name);
 
   diag_assert_msg(bits_ispow2(align), "Alignment '{}' is not a power-of-two", fmt_int(align));
   diag_assert_msg(
@@ -94,84 +109,78 @@ DataType data_register_struct(const String name, const usize size, const usize a
       fmt_size(size),
       fmt_int(align));
   diag_assert_msg(
-      sentinel_check(data_type_by_id(id)), "Duplicate type with name '{}'", fmt_text(name));
+      sentinel_check(data_type_by_id(reg, id)), "Duplicate type with name '{}'", fmt_text(name));
 
-  const DataType type      = data_alloc_type();
-  *data_decl_mutable(type) = (DataDecl){
+  const DataType type           = data_alloc_type(reg);
+  *data_decl_mutable(reg, type) = (DataDecl){
       .kind       = DataKind_Struct,
       .size       = size,
       .align      = align,
       .id         = id,
-      .val_struct = {.fields = alloc_array_t(g_alloc_persist, DataDeclField, data_max_fields)},
+      .val_struct = {.fields = dynarray_create_t(reg->alloc, DataDeclField, 8)},
   };
   return type;
 }
 
-void data_register_field(
-    const DataType parent, const String name, const usize offset, const DataMeta meta) {
+void data_reg_field(
+    DataReg*       reg,
+    const DataType parent,
+    const String   name,
+    const usize    offset,
+    const DataMeta meta) {
 
-  const DataId id         = data_get_id(string_dup(g_alloc_persist, name));
-  DataDecl*    parentDecl = data_decl_mutable(parent);
+  const DataId id         = data_id_create(reg->alloc, name);
+  DataDecl*    parentDecl = data_decl_mutable(reg, parent);
 
-  diag_assert_msg(parentDecl->kind == DataKind_Struct, "Constant parent has to be a Struct");
+  diag_assert_msg(parentDecl->kind == DataKind_Struct, "Field parent has to be a Struct");
   diag_assert_msg(
-      parentDecl->val_struct.count < data_max_fields,
-      "Struct '{}' has more fields then the maximum of '{}'",
-      fmt_text(data_decl(parent)->id.name),
-      fmt_int(data_max_consts));
-  diag_assert_msg(
-      offset + data_meta_size(meta) <= data_decl(parent)->size,
+      offset + data_meta_size(reg, meta) <= data_decl(reg, parent)->size,
       "Offset '{}' is out of bounds for the Struct type",
       fmt_int(offset));
 
-  const usize i                    = parentDecl->val_struct.count++;
-  parentDecl->val_struct.fields[i] = (DataDeclField){
+  *dynarray_push_t(&parentDecl->val_struct.fields, DataDeclField) = (DataDeclField){
       .id     = id,
       .offset = offset,
       .meta   = meta,
   };
 }
 
-DataType data_register_enum(const String name) {
-  const DataId id = data_get_id(string_dup(g_alloc_persist, name));
+DataType data_reg_enum(DataReg* reg, const String name) {
+  const DataId id = data_id_create(reg->alloc, name);
   diag_assert_msg(
-      sentinel_check(data_type_by_id(id)), "Duplicate type with name '{}'", fmt_text(name));
+      sentinel_check(data_type_by_id(reg, id)), "Duplicate type with name '{}'", fmt_text(name));
 
-  const DataType type      = data_alloc_type();
-  *data_decl_mutable(type) = (DataDecl){
+  const DataType type           = data_alloc_type(reg);
+  *data_decl_mutable(reg, type) = (DataDecl){
       .kind     = DataKind_Enum,
       .size     = sizeof(i32),
       .align    = alignof(i32),
       .id       = id,
-      .val_enum = {.consts = alloc_array_t(g_alloc_persist, DataDeclConst, data_max_consts)},
+      .val_enum = {.consts = dynarray_create_t(reg->alloc, DataDeclConst, 8)},
   };
   return type;
 }
 
-void data_register_const(const DataType parent, const String name, const i32 value) {
-  const DataId id         = data_get_id(string_dup(g_alloc_persist, name));
-  DataDecl*    parentDecl = data_decl_mutable(parent);
+void data_reg_const(DataReg* reg, const DataType parent, const String name, const i32 value) {
+  const DataId id         = data_id_create(reg->alloc, name);
+  DataDecl*    parentDecl = data_decl_mutable(reg, parent);
 
   diag_assert_msg(parentDecl->kind == DataKind_Enum, "Constant parent has to be an Enum");
-  diag_assert_msg(
-      parentDecl->val_enum.count < data_max_consts,
-      "Enum '{}' has more constants then the maximum of '{}'",
-      fmt_text(data_decl(parent)->id.name),
-      fmt_int(data_max_consts));
 
-  const usize i                  = parentDecl->val_enum.count++;
-  parentDecl->val_enum.consts[i] = (DataDeclConst){.id = id, .value = value};
+  *dynarray_push_t(&parentDecl->val_enum.consts, DataDeclConst) =
+      (DataDeclConst){.id = id, .value = value};
 }
 
 DataMeta data_meta_base(const DataMeta meta) { return (DataMeta){.type = meta.type}; }
 
-const DataDecl* data_decl(const DataType type) {
+const DataDecl* data_decl(const DataReg* reg, const DataType type) {
   diag_assert_msg(type, "Uninitialized data-type");
-  return &g_types[type - 1];
+  return dynarray_at_t(&reg->types, type - 1, DataDecl);
 }
 
-Mem data_field_mem(const DataDeclField* field, Mem structMem) {
-  return mem_create(bits_ptr_offset(structMem.ptr, field->offset), data_meta_size(field->meta));
+Mem data_field_mem(const DataReg* reg, const DataDeclField* field, Mem structMem) {
+  return mem_create(
+      bits_ptr_offset(structMem.ptr, field->offset), data_meta_size(reg, field->meta));
 }
 
 Mem data_elem_mem(const DataDecl* decl, const DataArray* array, const usize index) {

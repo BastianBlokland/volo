@@ -2,6 +2,7 @@
 #include "asset_manager.h"
 
 typedef enum {
+  AssetFormat_Mat,
   AssetFormat_Raw,
   AssetFormat_Spv,
   AssetFormat_Ppm,

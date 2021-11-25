@@ -25,12 +25,6 @@ WorkQueue workqueue_create(Allocator*);
 void      workqueue_destroy(Allocator*, WorkQueue*);
 
 /**
- * Amount of items currently in the queue, only an indication as it can be raced by the mutating
- * apis.
- */
-usize workqueue_size(const WorkQueue*);
-
-/**
  * Push a new item to the queue.
  * NOTE: Can only be called by the owning thread.
  */

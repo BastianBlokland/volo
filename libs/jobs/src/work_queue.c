@@ -15,6 +15,16 @@
 
 ASSERT((workqueue_max_items & (workqueue_max_items - 1u)) == 0, "Max size has to be a power-of-two")
 
+/**
+ * Amount of items currently in the queue, only an indication as it can be raced by the mutating
+ * apis.
+ */
+static usize workqueue_size(const WorkQueue* wq) {
+  const i64 bottom = wq->bottom;
+  const i64 top    = wq->top;
+  return (usize)(bottom >= top ? bottom - top : 0);
+}
+
 WorkQueue workqueue_create(Allocator* alloc) {
   return (WorkQueue){
       .bottom = 0,
@@ -25,12 +35,6 @@ WorkQueue workqueue_create(Allocator* alloc) {
 
 void workqueue_destroy(Allocator* alloc, WorkQueue* wq) {
   alloc_free_array_t(alloc, wq->items, workqueue_max_items);
-}
-
-usize workqueue_size(const WorkQueue* wq) {
-  const i64 bottom = wq->bottom;
-  const i64 top    = wq->top;
-  return (usize)(bottom >= top ? bottom - top : 0);
 }
 
 void workqueue_push(WorkQueue* wq, Job* job, const JobTaskId task) {

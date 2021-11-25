@@ -72,9 +72,9 @@ static WorkItem executor_work_pop() {
      * This worker is the assigned 'Affinity worker' and thus we need to serve the affinity-queue
      * first before taking from our normal queue.
      */
-    const WorkItem item = affqueue_pop(&g_affinityQueue);
-    if (UNLIKELY(workitem_valid(item))) {
-      return item;
+    const WorkItem affinityItem = affqueue_pop(&g_affinityQueue);
+    if (UNLIKELY(workitem_valid(affinityItem))) {
+      return affinityItem;
     }
   }
   return workqueue_pop(&g_workerQueues[g_jobsWorkerId]);
@@ -222,13 +222,13 @@ static void executor_worker_thread(void* data) {
 
     // No work found; go to sleep.
     thread_mutex_lock(g_mutex);
-    work = executor_work_steal_loop(); // One last attempt before sleeping.
+    thread_atomic_add_i64(&g_sleepingWorkers, 1);
+    work = executor_work_affinity_or_steal(); // One last attempt before sleeping.
     if (!workitem_valid(work) && LIKELY(g_mode == ExecMode_Running)) {
       // We don't have any work to perform and we are not cancelled; sleep until woken.
-      thread_atomic_add_i64(&g_sleepingWorkers, 1);
       thread_cond_wait(g_wakeCondition, g_mutex);
-      thread_atomic_sub_i64(&g_sleepingWorkers, 1);
     }
+    thread_atomic_sub_i64(&g_sleepingWorkers, 1);
     thread_mutex_unlock(g_mutex);
   }
 }
@@ -280,18 +280,7 @@ void executor_teardown() {
   }
 
   for (u16 i = 0; i != g_jobsWorkerCount; ++i) {
-    if (workqueue_size(&g_workerQueues[i])) {
-      diag_print_err(
-          "jobs_executor: Worker {} has {} unfinished tasks.\n",
-          fmt_int(i),
-          fmt_int(workqueue_size(&g_workerQueues[i])));
-    }
     workqueue_destroy(g_alloc_heap, &g_workerQueues[i]);
-  }
-
-  if (affqueue_size(&g_affinityQueue)) {
-    diag_print_err(
-        "jobs_executor: {} unfinished affinity tasks.\n", fmt_int(affqueue_size(&g_affinityQueue)));
   }
   affqueue_destroy(g_alloc_heap, &g_affinityQueue);
 

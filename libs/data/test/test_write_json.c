@@ -3,33 +3,41 @@
 #include "core_array.h"
 #include "data.h"
 
-static void
-test_write(CheckTestContext* _testCtx, const DataMeta meta, Mem data, const String expected) {
+static void test_write(
+    CheckTestContext* _testCtx,
+    const DataReg*    reg,
+    const DataMeta    meta,
+    Mem               data,
+    const String      expected) {
 
   Mem       buffer    = mem_stack(1024);
   DynString dynString = dynstring_create_over(buffer);
-  data_write_json(&dynString, meta, data);
+  data_write_json(reg, &dynString, meta, data);
 
   check_eq_string(dynstring_view(&dynString), expected);
 }
 
 spec(write_json) {
 
+  DataReg* reg = null;
+
+  setup() { reg = data_reg_create(g_alloc_heap); }
+
   it("can write a boolean") {
     const DataMeta meta = data_meta_t(data_prim_t(bool));
 
     const bool val1 = true;
-    test_write(_testCtx, meta, mem_var(val1), string_lit("true"));
+    test_write(_testCtx, reg, meta, mem_var(val1), string_lit("true"));
 
     const bool val2 = false;
-    test_write(_testCtx, meta, mem_var(val2), string_lit("false"));
+    test_write(_testCtx, reg, meta, mem_var(val2), string_lit("false"));
   }
 
   it("can write a number") {
 #define X(_T_)                                                                                     \
   const DataMeta meta_##_T_ = data_meta_t(data_prim_t(_T_));                                       \
   _T_            val_##_T_  = 42;                                                                  \
-  test_write(_testCtx, meta_##_T_, mem_var(val_##_T_), string_lit("42"));
+  test_write(_testCtx, reg, meta_##_T_, mem_var(val_##_T_), string_lit("42"));
 
     X(i8)
     X(i16)
@@ -48,10 +56,10 @@ spec(write_json) {
     const DataMeta meta = data_meta_t(data_prim_t(String));
 
     const String val1 = string_lit("Hello World");
-    test_write(_testCtx, meta, mem_var(val1), string_lit("\"Hello World\""));
+    test_write(_testCtx, reg, meta, mem_var(val1), string_lit("\"Hello World\""));
 
     const String val2 = string_empty;
-    test_write(_testCtx, meta, mem_var(val2), string_lit("\"\""));
+    test_write(_testCtx, reg, meta, mem_var(val2), string_lit("\"\""));
   }
 
   it("can write a pointer") {
@@ -59,10 +67,10 @@ spec(write_json) {
 
     i32  target = 42;
     i32* val1   = &target;
-    test_write(_testCtx, meta, mem_var(val1), string_lit("42"));
+    test_write(_testCtx, reg, meta, mem_var(val1), string_lit("42"));
 
     i32* val2 = null;
-    test_write(_testCtx, meta, mem_var(val2), string_lit("null"));
+    test_write(_testCtx, reg, meta, mem_var(val2), string_lit("null"));
   }
 
   it("can write an array") {
@@ -72,12 +80,13 @@ spec(write_json) {
     const DataArray array1   = {.data = values, .count = array_elems(values)};
     test_write(
         _testCtx,
+        reg,
         meta,
         mem_var(array1),
         string_lit("[\n  1,\n  2,\n  3,\n  4,\n  5,\n  6,\n  7\n]"));
 
     const DataArray array2 = {0};
-    test_write(_testCtx, meta, mem_var(array2), string_lit("[]"));
+    test_write(_testCtx, reg, meta, mem_var(array2), string_lit("[]"));
   }
 
   it("can write an enum") {
@@ -87,28 +96,24 @@ spec(write_json) {
       WriteJsonTestEnum_C = 1337,
     } WriteJsonTestEnum;
 
-    static DataMeta meta; // Registrations persist over the entire application lifetime.
-    if (!meta.type) {
+    data_reg_enum_t(reg, WriteJsonTestEnum);
+    data_reg_const_t(reg, WriteJsonTestEnum, A);
+    data_reg_const_t(reg, WriteJsonTestEnum, B);
+    data_reg_const_t(reg, WriteJsonTestEnum, C);
 
-      data_register_enum_t(WriteJsonTestEnum);
-      data_register_const_t(WriteJsonTestEnum, A);
-      data_register_const_t(WriteJsonTestEnum, B);
-      data_register_const_t(WriteJsonTestEnum, C);
-
-      meta = data_meta_t(t_WriteJsonTestEnum);
-    }
+    const DataMeta meta = data_meta_t(t_WriteJsonTestEnum);
 
     WriteJsonTestEnum val1 = WriteJsonTestEnum_A;
-    test_write(_testCtx, meta, mem_var(val1), string_lit("\"A\""));
+    test_write(_testCtx, reg, meta, mem_var(val1), string_lit("\"A\""));
 
     WriteJsonTestEnum val2 = WriteJsonTestEnum_B;
-    test_write(_testCtx, meta, mem_var(val2), string_lit("\"B\""));
+    test_write(_testCtx, reg, meta, mem_var(val2), string_lit("\"B\""));
 
     WriteJsonTestEnum val3 = WriteJsonTestEnum_C;
-    test_write(_testCtx, meta, mem_var(val3), string_lit("\"C\""));
+    test_write(_testCtx, reg, meta, mem_var(val3), string_lit("\"C\""));
 
     WriteJsonTestEnum val4 = 41;
-    test_write(_testCtx, meta, mem_var(val4), string_lit("41"));
+    test_write(_testCtx, reg, meta, mem_var(val4), string_lit("41"));
   }
 
   it("can write a structure") {
@@ -118,16 +123,12 @@ spec(write_json) {
       f64    valC;
     } WriteJsonTestStruct;
 
-    static DataMeta meta; // Registrations persist over the entire application lifetime.
-    if (!meta.type) {
+    data_reg_struct_t(reg, WriteJsonTestStruct);
+    data_reg_field_t(reg, WriteJsonTestStruct, valA, data_prim_t(i32));
+    data_reg_field_t(reg, WriteJsonTestStruct, valB, data_prim_t(String));
+    data_reg_field_t(reg, WriteJsonTestStruct, valC, data_prim_t(f64));
 
-      data_register_struct_t(WriteJsonTestStruct);
-      data_register_field_t(WriteJsonTestStruct, valA, data_prim_t(i32));
-      data_register_field_t(WriteJsonTestStruct, valB, data_prim_t(String));
-      data_register_field_t(WriteJsonTestStruct, valC, data_prim_t(f64));
-
-      meta = data_meta_t(t_WriteJsonTestStruct);
-    }
+    const DataMeta meta = data_meta_t(t_WriteJsonTestStruct);
 
     const WriteJsonTestStruct val = {
         .valA = -42,
@@ -136,6 +137,7 @@ spec(write_json) {
     };
     test_write(
         _testCtx,
+        reg,
         meta,
         mem_var(val),
         string_lit("{\n"
@@ -144,4 +146,6 @@ spec(write_json) {
                    "  \"valC\": 42.42\n"
                    "}"));
   }
+
+  teardown() { data_reg_destroy(reg); }
 }

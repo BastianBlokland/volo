@@ -7,6 +7,7 @@ typedef enum {
   DataReadError_MismatchedType,
   DataReadError_InvalidEnumEntry,
   DataReadError_FieldNotFound,
+  DataReadError_InvalidField,
   DataReadError_NumberOutOfBounds,
 } DataReadError;
 
@@ -21,7 +22,7 @@ typedef struct {
   String        errorMsg;
 } DataReadResult;
 
-typedef String (*DataReader)(String, Allocator*, DataMeta, Mem data, DataReadResult*);
+typedef String (*DataReader)(const DataReg*, String, Allocator*, DataMeta, Mem, DataReadResult*);
 
 /**
  * Read a data value from a json string.
@@ -34,4 +35,4 @@ typedef String (*DataReader)(String, Allocator*, DataMeta, Mem data, DataReadRes
  * Pre-condition: DataMeta definition is not modified in parallel with this call.
  * Pre-condition: res != null.
  */
-String data_read_json(String, Allocator*, DataMeta, Mem data, DataReadResult*);
+String data_read_json(const DataReg*, String, Allocator*, DataMeta, Mem data, DataReadResult*);

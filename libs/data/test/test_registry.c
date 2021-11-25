@@ -1,39 +1,44 @@
 #include "check_spec.h"
+#include "core_alloc.h"
 #include "data.h"
 
 spec(registry) {
 
+  DataReg* reg = null;
+
+  setup() { reg = data_reg_create(g_alloc_heap); }
+
   it("can lookup a primitive type's name") {
-#define X(_T_) check_eq_string(data_name(data_prim_t(_T_)), string_lit(#_T_));
+#define X(_T_) check_eq_string(data_name(reg, data_prim_t(_T_)), string_lit(#_T_));
     DATA_PRIMS
 #undef X
   }
 
   it("can lookup a primitive type's size") {
-#define X(_T_) check_eq_int(data_size(data_prim_t(_T_)), sizeof(_T_));
+#define X(_T_) check_eq_int(data_size(reg, data_prim_t(_T_)), sizeof(_T_));
     DATA_PRIMS
 #undef X
   }
 
   it("can lookup a primitive type's alignment requirement") {
-#define X(_T_) check_eq_int(data_align(data_prim_t(_T_)), alignof(_T_));
+#define X(_T_) check_eq_int(data_align(reg, data_prim_t(_T_)), alignof(_T_));
     DATA_PRIMS
 #undef X
   }
 
   it("can lookup the size of a plain value") {
     const DataMeta meta = data_meta_t(data_prim_t(i32));
-    check_eq_int(data_meta_size(meta), sizeof(i32));
+    check_eq_int(data_meta_size(reg, meta), sizeof(i32));
   }
 
   it("can lookup the size of a pointer value") {
     const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_Pointer);
-    check_eq_int(data_meta_size(meta), sizeof(i32*));
+    check_eq_int(data_meta_size(reg, meta), sizeof(i32*));
   }
 
   it("can lookup the size of a array value") {
     const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_Array);
-    check_eq_int(data_meta_size(meta), sizeof(i32*) + sizeof(usize));
+    check_eq_int(data_meta_size(reg, meta), sizeof(i32*) + sizeof(usize));
   }
 
   it("can register custom structs") {
@@ -45,22 +50,16 @@ spec(registry) {
       struct sRegStructA* next;
     } RegStructA;
 
-    static DataType type; // Registrations persist over the entire application lifetime.
-    if (!type) {
+    data_reg_struct_t(reg, RegStructA);
+    data_reg_field_t(reg, RegStructA, valA, data_prim_t(i32));
+    data_reg_field_t(reg, RegStructA, valB, data_prim_t(String));
+    data_reg_field_t(reg, RegStructA, valC, data_prim_t(f32));
+    data_reg_field_t(reg, RegStructA, values, t_RegStructA, .container = DataContainer_Array);
+    data_reg_field_t(reg, RegStructA, next, t_RegStructA, .container = DataContainer_Pointer);
 
-      data_register_struct_t(RegStructA);
-      data_register_field_t(RegStructA, valA, data_prim_t(i32));
-      data_register_field_t(RegStructA, valB, data_prim_t(String));
-      data_register_field_t(RegStructA, valC, data_prim_t(f32));
-      data_register_field_t(RegStructA, values, t_RegStructA, .container = DataContainer_Array);
-      data_register_field_t(RegStructA, next, t_RegStructA, .container = DataContainer_Pointer);
-
-      type = t_RegStructA;
-    }
-
-    check_eq_string(data_name(type), string_lit("RegStructA"));
-    check_eq_int(data_size(type), sizeof(RegStructA));
-    check_eq_int(data_align(type), alignof(RegStructA));
+    check_eq_string(data_name(reg, t_RegStructA), string_lit("RegStructA"));
+    check_eq_int(data_size(reg, t_RegStructA), sizeof(RegStructA));
+    check_eq_int(data_align(reg, t_RegStructA), alignof(RegStructA));
   }
 
   it("can register structs with nested types") {
@@ -81,25 +80,19 @@ spec(registry) {
       NestedStruct*     valC;
     } RegStructB;
 
-    static DataType type; // Registrations persist over the entire application lifetime.
-    if (!type) {
+    data_reg_struct_t(reg, NestedStruct);
+    data_reg_field_t(reg, NestedStruct, valA, data_prim_t(i32));
+    data_reg_field_t(reg, NestedStruct, valB, data_prim_t(String));
+    data_reg_field_t(reg, NestedStruct, valC, data_prim_t(i32));
 
-      data_register_struct_t(NestedStruct);
-      data_register_field_t(NestedStruct, valA, data_prim_t(i32));
-      data_register_field_t(NestedStruct, valB, data_prim_t(String));
-      data_register_field_t(NestedStruct, valC, data_prim_t(i32));
+    data_reg_struct_t(reg, RegStructB);
+    data_reg_field_t(reg, RegStructB, valA, t_NestedStruct);
+    data_reg_field_t(reg, RegStructB, valB, t_NestedStruct, .container = DataContainer_Array);
+    data_reg_field_t(reg, RegStructB, valC, t_NestedStruct, .container = DataContainer_Pointer);
 
-      data_register_struct_t(RegStructB);
-      data_register_field_t(RegStructB, valA, t_NestedStruct);
-      data_register_field_t(RegStructB, valB, t_NestedStruct, .container = DataContainer_Array);
-      data_register_field_t(RegStructB, valC, t_NestedStruct, .container = DataContainer_Pointer);
-
-      type = t_RegStructB;
-    }
-
-    check_eq_string(data_name(type), string_lit("RegStructB"));
-    check_eq_int(data_size(type), sizeof(RegStructB));
-    check_eq_int(data_align(type), alignof(RegStructB));
+    check_eq_string(data_name(reg, t_RegStructB), string_lit("RegStructB"));
+    check_eq_int(data_size(reg, t_RegStructB), sizeof(RegStructB));
+    check_eq_int(data_align(reg, t_RegStructB), alignof(RegStructB));
   }
 
   it("can register custom enums") {
@@ -109,21 +102,15 @@ spec(registry) {
       MyCustomEnum_C = 1337,
     } MyCustomEnum;
 
-    MAYBE_UNUSED MyCustomEnum a; // Fix for compiler thinking the typedef is unused.
+    data_reg_enum_t(reg, MyCustomEnum);
+    data_reg_const_t(reg, MyCustomEnum, A);
+    data_reg_const_t(reg, MyCustomEnum, B);
+    data_reg_const_t(reg, MyCustomEnum, C);
 
-    static DataType type; // Registrations persist over the entire application lifetime.
-    if (!type) {
-
-      data_register_enum_t(MyCustomEnum);
-      data_register_const_t(MyCustomEnum, A);
-      data_register_const_t(MyCustomEnum, B);
-      data_register_const_t(MyCustomEnum, C);
-
-      type = t_MyCustomEnum;
-    }
-
-    check_eq_string(data_name(type), string_lit("MyCustomEnum"));
-    check_eq_int(data_size(type), sizeof(MyCustomEnum));
-    check_eq_int(data_align(type), alignof(MyCustomEnum));
+    check_eq_string(data_name(reg, t_MyCustomEnum), string_lit("MyCustomEnum"));
+    check_eq_int(data_size(reg, t_MyCustomEnum), sizeof(MyCustomEnum));
+    check_eq_int(data_align(reg, t_MyCustomEnum), alignof(MyCustomEnum));
   }
+
+  teardown() { data_reg_destroy(reg); }
 }

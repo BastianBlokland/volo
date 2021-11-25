@@ -9,7 +9,7 @@ spec(read) {
 
   JsonDoc* doc = null;
 
-  setup() { doc = json_create(g_alloc_heap, 0, JsonDocFlags_None); }
+  setup() { doc = json_create(g_alloc_heap, 0); }
 
   it("can read arrays") {
     JsonVal tmpValA, tmpValB, tmpValC, tmpValD, tmpValE;

@@ -26,12 +26,6 @@ AffQueue affqueue_create(Allocator*);
 void     affqueue_destroy(Allocator*, AffQueue*);
 
 /**
- * Amount of items currently in the queue, only an indication as it can be raced by the mutating
- * apis.
- */
-usize affqueue_size(const AffQueue*);
-
-/**
  * Push a new item to the queue.
  * NOTE: Can be called by any thread.
  */

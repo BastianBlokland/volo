@@ -6,7 +6,7 @@ spec(eq) {
 
   JsonDoc* doc = null;
 
-  setup() { doc = json_create(g_alloc_heap, 0, JsonDocFlags_None); }
+  setup() { doc = json_create(g_alloc_heap, 0); }
 
   it("returns false for values of different types") {
     const JsonVal x = json_add_bool(doc, true);
