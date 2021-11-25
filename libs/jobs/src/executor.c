@@ -222,13 +222,13 @@ static void executor_worker_thread(void* data) {
 
     // No work found; go to sleep.
     thread_mutex_lock(g_mutex);
-    work = executor_work_steal_loop(); // One last attempt before sleeping.
+    thread_atomic_add_i64(&g_sleepingWorkers, 1);
+    work = executor_work_affinity_or_steal(); // One last attempt before sleeping.
     if (!workitem_valid(work) && LIKELY(g_mode == ExecMode_Running)) {
       // We don't have any work to perform and we are not cancelled; sleep until woken.
-      thread_atomic_add_i64(&g_sleepingWorkers, 1);
       thread_cond_wait(g_wakeCondition, g_mutex);
-      thread_atomic_sub_i64(&g_sleepingWorkers, 1);
     }
+    thread_atomic_sub_i64(&g_sleepingWorkers, 1);
     thread_mutex_unlock(g_mutex);
   }
 }
