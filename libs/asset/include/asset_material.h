@@ -52,21 +52,21 @@ typedef enum {
 } AssetMaterialCull;
 
 typedef struct {
-  EcsEntityId         textureAsset;
+  EcsEntityId         texture;
   AssetMaterialWrap   wrap;
   AssetMaterialFilter filter;
-  AssetMaterialAniso  aniso;
+  AssetMaterialAniso  anisotropy;
 } AssetMaterialSampler;
 
+typedef struct {
+  EcsEntityId shader;
+} AssetMaterialShader;
+
 ecs_comp_extern_public(AssetMaterialComp) {
-  struct {
-    EcsEntityId* assets;
-    usize        count;
-  } shaders;
-  struct {
-    AssetMaterialSampler* values;
-    usize                 count;
-  } samplers;
+  AssetMaterialShader*    shaders;
+  usize                   shaderCount;
+  AssetMaterialSampler*   samplers;
+  usize                   samplerCount;
   AssetMaterialTopology   topology;
   AssetMaterialRasterizer rasterizer;
   u32                     lineWidth; // Line width (in pixels) when the rasterizer mode is 'lines'.

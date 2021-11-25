@@ -26,6 +26,7 @@ target_link_libraries(volo_asset PRIVATE volo_log)
 
 add_executable(volo_asset_test
   test/main.c
+  test/test_loader_material.c
   test/test_loader_raw.c
   test/test_loader_shader_spv.c
   test/test_loader_texture_ppm.c

@@ -14,7 +14,7 @@
 /**
  * Maximum number of new assets to load per tick.
  */
-#define asset_manager_max_loads_per_tick 2
+#define asset_manager_max_loads_per_tick 5
 
 typedef struct {
   u32         idHash;
