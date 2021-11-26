@@ -90,3 +90,13 @@ f64 math_round_f64(const f64 val) {
   }
   return trunc + math_sign(val);
 }
+
+INLINE_HINT f32 math_clamp_f32(const f32 val, const f32 min, const f32 max) {
+  if (val <= min) {
+    return min;
+  }
+  if (val >= max) {
+    return max;
+  }
+  return val;
+}

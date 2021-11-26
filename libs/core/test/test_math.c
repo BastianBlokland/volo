@@ -91,4 +91,14 @@ spec(math) {
     check_eq_float(math_round_f64(-2.6), -3.0, 1e-24);
     check_eq_float(math_round_f64(-3.5), -4.0, 1e-24);
   }
+
+  it("can clamp 32 bit floats") {
+    check_eq_float(math_clamp_f32(0, 0, 1), 0, 1e-12);
+    check_eq_float(math_clamp_f32(-2, 0, 1), 0, 1e-12);
+    check_eq_float(math_clamp_f32(-.1, 0, 1), 0, 1e-12);
+    check_eq_float(math_clamp_f32(1.1, 0, 1), 1, 1e-12);
+    check_eq_float(math_clamp_f32(2, 0, 1), 1, 1e-12);
+    check_eq_float(math_clamp_f32(-6, -5, -3), -5, 1e-12);
+    check_eq_float(math_clamp_f32(-2, -5, -3), -3, 1e-12);
+  }
 }
