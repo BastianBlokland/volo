@@ -8,14 +8,18 @@
 #pragma intrinsic(sqrtf)
 #pragma intrinsic(logf)
 #pragma intrinsic(sinf)
+#pragma intrinsic(asinf)
 #pragma intrinsic(cosf)
+#pragma intrinsic(acosf)
 
 #else
 
 #define sqrtf __builtin_sqrtf
 #define logf __builtin_logf
 #define sinf __builtin_sinf
+#define asinf __builtin_asinf
 #define cosf __builtin_cosf
+#define acosf __builtin_acosf
 
 #endif
 
@@ -52,7 +56,11 @@ INLINE_HINT f32 math_log_f32(const f32 val) { return logf(val); }
 
 INLINE_HINT f32 math_sin_f32(const f32 val) { return sinf(val); }
 
+INLINE_HINT f32 math_asin_f32(const f32 val) { return asinf(val); }
+
 INLINE_HINT f32 math_cos_f32(const f32 val) { return cosf(val); }
+
+INLINE_HINT f32 math_acos_f32(const f32 val) { return acosf(val); }
 
 INLINE_HINT f64 math_trunc_f64(const f64 val) { return (i64)val; }
 

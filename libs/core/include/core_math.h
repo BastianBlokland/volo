@@ -51,9 +51,19 @@ f32 math_log_f32(f32);
 f32 math_sin_f32(f32);
 
 /**
+ * Computes the arc (inverse) sine of the given value (in radians).
+ */
+f32 math_asin_f32(f32);
+
+/**
  * Computes the cosine of the given value (in radians).
  */
 f32 math_cos_f32(f32);
+
+/**
+ * Computes the arc (inverse) cosine of the given value (in radians).
+ */
+f32 math_acos_f32(f32);
 
 /**
  * Compute the integer part of the given value (removes the fractional part).
