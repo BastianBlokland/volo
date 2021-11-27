@@ -1,7 +1,5 @@
 #pragma once
-#include "core_annotation.h"
 #include "core_format.h"
-#include "core_types.h"
 
 /**
  * 4 component geometric spacial Vector.
@@ -21,7 +19,7 @@ ASSERT(alignof(GeoVector) == 16, "GeoVector has to be aligned to 128 bits");
 /**
  * Construct a new vector.
  */
-#define geo_vector(...) ((GeoVector){0, ##__VA_ARGS__})
+#define geo_vector(...) ((GeoVector){__VA_ARGS__})
 
 #define geo_up geo_vector(.y = +1.0f)
 #define geo_down geo_vector(.y = -1.0f)

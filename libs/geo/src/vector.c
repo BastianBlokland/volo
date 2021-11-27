@@ -9,20 +9,20 @@ bool geo_vector_equal(const GeoVector a, const GeoVector b, const f32 threshold)
 }
 
 GeoVector geo_vector_add(const GeoVector a, const GeoVector b) {
-  return geo_vector(.x = a.x + b.x, .y = a.y + b.y, .z = a.z + b.z, .w = a.w + b.w);
+  return geo_vector(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w);
 }
 
 GeoVector geo_vector_sub(const GeoVector a, const GeoVector b) {
-  return geo_vector(.x = a.x - b.x, .y = a.y - b.y, .z = a.z - b.z, .w = a.w - b.w);
+  return geo_vector(a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w);
 }
 
 GeoVector geo_vector_mul(const GeoVector v, const f32 scalar) {
-  return geo_vector(.x = v.x * scalar, .y = v.y * scalar, .z = v.z * scalar, .w = v.w * scalar);
+  return geo_vector(v.x * scalar, v.y * scalar, v.z * scalar, v.w * scalar);
 }
 
 GeoVector geo_vector_div(const GeoVector v, f32 scalar) {
   diag_assert(scalar != 0);
-  return geo_vector(.x = v.x / scalar, .y = v.y / scalar, .z = v.z / scalar, .w = v.w / scalar);
+  return geo_vector(v.x / scalar, v.y / scalar, v.z / scalar, v.w / scalar);
 }
 
 f32 geo_vector_mag_sqr(const GeoVector v) { return geo_vector_dot(v, v); }
@@ -51,7 +51,7 @@ GeoVector geo_vector_cross3(const GeoVector a, const GeoVector b) {
   const f32 x = a.y * b.z - a.z * b.y;
   const f32 y = a.z * b.x - a.x * b.z;
   const f32 z = a.x * b.y - a.y * b.x;
-  return geo_vector(.x = x, .y = y, .z = z);
+  return geo_vector(x, y, z);
 }
 
 f32 geo_vector_angle(const GeoVector from, const GeoVector to) {
@@ -66,7 +66,7 @@ f32 geo_vector_angle(const GeoVector from, const GeoVector to) {
 GeoVector geo_vector_project(const GeoVector v, const GeoVector nrm) {
   const f32 nrmSqrMag = geo_vector_mag_sqr(nrm);
   if (nrmSqrMag <= f32_epsilon) {
-    return geo_vector();
+    return geo_vector(0);
   }
   return geo_vector_mul(nrm, geo_vector_dot(v, nrm) / nrmSqrMag);
 }
@@ -86,5 +86,5 @@ GeoVector geo_vector_lerp(const GeoVector x, const GeoVector y, const f32 t) {
 }
 
 GeoVector geo_vector_perspective_div(const GeoVector v) {
-  return geo_vector_div(geo_vector(.x = v.x, .y = v.y, .z = v.z), v.w);
+  return geo_vector_div(geo_vector(v.x, v.y, v.z), v.w);
 }

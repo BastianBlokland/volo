@@ -86,7 +86,7 @@ macro(set_clang_compile_options)
   add_compile_options(-Wall -Wextra -Werror -Wshadow -Wgnu-empty-initializer -Wconversion)
   add_compile_options(-Wno-initializer-overrides -Wno-unused-value -Wno-missing-braces
                       -Wno-sign-conversion -Wno-implicit-int-float-conversion
-                      -Wno-implicit-int-conversion)
+                      -Wno-implicit-int-conversion -Wno-missing-field-initializers)
 
   # TODO: Tie these debug options to a configuration knob.
   add_compile_options(-g -fno-omit-frame-pointer)

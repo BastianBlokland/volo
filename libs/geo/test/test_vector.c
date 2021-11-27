@@ -1,65 +1,68 @@
 #include "check_spec.h"
-#include "geo_vector.h"
+
+#include "utils_internal.h"
 
 spec(vector) {
 
+  it("initializes non specified components to 0") {
+    check_eq_vector(geo_vector(0), ((GeoVector){0, 0, 0, 0}));
+    check_eq_vector(geo_vector(1), ((GeoVector){1, 0, 0, 0}));
+    check_eq_vector(geo_vector(1, 2), ((GeoVector){1, 2, 0, 0}));
+    check_eq_vector(geo_vector(1, 2, 3), ((GeoVector){1, 2, 3, 0}));
+    check_eq_vector(geo_vector(1, 2, 3, 4), ((GeoVector){1, 2, 3, 4}));
+    check_eq_vector(geo_vector(.y = 1), ((GeoVector){0, 1, 0, 0}));
+    check_eq_vector(geo_vector(.w = -42, .z = 2), ((GeoVector){0, 0, 2, -42}));
+  }
+
   it("compares the magnitude of the difference vector to a threshold when equated") {
-    check(geo_vector_equal(geo_forward, geo_forward, 0));
-    check(geo_vector_equal(geo_forward, geo_forward, 1e-6f));
+    check_eq_vector(geo_forward, geo_forward);
+    check_eq_vector(geo_forward, geo_forward);
     check(!geo_vector_equal(geo_forward, geo_backward, 1e-6f));
     check(!geo_vector_equal(geo_vector(.x = -.1f), geo_vector(.x = -.1f, .w = .1f), 1e-6f));
   }
 
   it("sums all components when adding") {
-    check(geo_vector_equal(
+    check_eq_vector(
         geo_vector_add(
             geo_vector(.x = 1, .y = -2.1f, .z = 3, .w = 4),
             geo_vector(.x = 2, .y = 3.2f, .z = 4, .w = 5)),
-        geo_vector(.x = 3, .y = 1.1f, .z = 7, .w = 9),
-        1e-6f));
+        geo_vector(.x = 3, .y = 1.1f, .z = 7, .w = 9));
 
-    check(geo_vector_equal(
+    check_eq_vector(
         geo_vector_add(geo_vector(.x = 1, .y = 2, .z = 3), geo_vector(.x = 4, .y = 5, .z = 6)),
-        geo_vector(.x = 5, .y = 7, .z = 9),
-        1e-6f));
+        geo_vector(.x = 5, .y = 7, .z = 9));
   }
 
   it("subtracts all components when subtracting") {
-    check(geo_vector_equal(
+    check_eq_vector(
         geo_vector_sub(
             geo_vector(.x = 5, .y = -2.1f, .z = 6, .w = 8),
             geo_vector(.x = 2, .y = 3.2f, .z = 4, .w = 5)),
-        geo_vector(.x = 3, .y = -5.3f, .z = 2, .w = 3),
-        1e-6f));
+        geo_vector(.x = 3, .y = -5.3f, .z = 2, .w = 3));
 
-    check(geo_vector_equal(
+    check_eq_vector(
         geo_vector_sub(geo_vector(.x = 1, .y = 2, .z = 3), geo_vector(.x = 4, .y = 5, .z = 6)),
-        geo_vector(.x = -3, .y = -3, .z = -3),
-        1e-6f));
+        geo_vector(.x = -3, .y = -3, .z = -3));
   }
 
   it("multiplies each component by the scalar when mutliplying") {
-    check(geo_vector_equal(
+    check_eq_vector(
         geo_vector_mul(geo_vector(.x = 5, .y = -2.1f, .z = 6, .w = 8), 2),
-        geo_vector(.x = 10, .y = -4.2f, .z = 12, .w = 16),
-        1e-6f));
+        geo_vector(.x = 10, .y = -4.2f, .z = 12, .w = 16));
 
-    check(geo_vector_equal(
+    check_eq_vector(
         geo_vector_mul(geo_vector(.x = 1, .y = 2, .z = 3), -2),
-        geo_vector(.x = -2, .y = -4, .z = -6),
-        1e-6f));
+        geo_vector(.x = -2, .y = -4, .z = -6));
   }
 
   it("divides each component by the scalar when dividing") {
-    check(geo_vector_equal(
+    check_eq_vector(
         geo_vector_div(geo_vector(.x = 5, .y = -2.1f, .z = 6, .w = 8), 2),
-        geo_vector(.x = 2.5, .y = -1.05f, .z = 3, .w = 4),
-        1e-6f));
+        geo_vector(.x = 2.5, .y = -1.05f, .z = 3, .w = 4));
 
-    check(geo_vector_equal(
+    check_eq_vector(
         geo_vector_div(geo_vector(.x = 1, .y = 2, .z = 3), -2),
-        geo_vector(.x = -.5, .y = -1, .z = -1.5),
-        1e-6f));
+        geo_vector(.x = -.5, .y = -1, .z = -1.5));
   }
 
   it("sums all the squared components when calculating the squared magnitude") {
@@ -68,13 +71,13 @@ spec(vector) {
   }
 
   it("computes the square-root of the squared components when calculating magnitude") {
-    check_eq_float(geo_vector_mag(geo_vector()), 0, 1e-6f);
+    check_eq_float(geo_vector_mag(geo_vector(0)), 0, 1e-6f);
     check_eq_float(geo_vector_mag(geo_vector(.y = 42)), 42, 1e-6f);
   }
 
   it("returns a unit-vector when normalizing") {
-    check(geo_vector_equal(geo_vector_norm(geo_up), geo_up, 1e-6f));
-    check(geo_vector_equal(geo_vector_norm(geo_vector(.y = 42)), geo_up, 1e-6f));
+    check_eq_vector(geo_vector_norm(geo_up), geo_up);
+    check_eq_vector(geo_vector_norm(geo_vector(.y = 42)), geo_up);
     check_eq_float(
         geo_vector_mag(geo_vector_norm(geo_vector(.x = .1337f, .y = 42, .w = -42))), 1, 1e-6f);
   }
@@ -101,11 +104,11 @@ spec(vector) {
   }
 
   it("returns forward as the cross product of right and up") {
-    check(geo_vector_equal(geo_vector_cross3(geo_right, geo_up), geo_forward, 1e-6f));
+    check_eq_vector(geo_vector_cross3(geo_right, geo_up), geo_forward);
   }
 
   it("returns backward as the cross product of up and right") {
-    check(geo_vector_equal(geo_vector_cross3(geo_right, geo_up), geo_forward, 1e-6f));
+    check_eq_vector(geo_vector_cross3(geo_right, geo_up), geo_forward);
   }
 
   it("returns 0 radians as the angle between parallel vectors") {
@@ -125,50 +128,50 @@ spec(vector) {
 
   it("returns the same vector when projecting a vector onto itself") {
     const GeoVector v = {.x = -1, .y = 1, .z = 42};
-    check(geo_vector_equal(geo_vector_project(v, v), v, 1e-6f));
+    check_eq_vector(geo_vector_project(v, v), v);
   }
 
   it("returns a zero vector when projecting a zero vector") {
-    check(geo_vector_equal(geo_vector_project(geo_vector(), geo_forward), geo_vector(), 1e-6f));
+    check_eq_vector(geo_vector_project(geo_vector(0), geo_forward), geo_vector(0));
   }
 
   it("returns a zero vector when projecting a vector onto a zero vector") {
     const GeoVector v = {.x = -1, .y = 1, .z = 42};
-    check(geo_vector_equal(geo_vector_project(v, geo_vector()), geo_vector(), 1e-6f));
+    check_eq_vector(geo_vector_project(v, geo_vector(0)), geo_vector(0));
   }
 
   it("returns the overlap when projecting a vector onto another") {
     const GeoVector v1 = {.x = 3, .y = 3};
     const GeoVector v2 = {.x = 0, .y = 10};
-    check(geo_vector_equal(geo_vector_project(v1, v2), geo_vector(.x = 0, .y = 3), 1e-6f));
+    check_eq_vector(geo_vector_project(v1, v2), geo_vector(.x = 0, .y = 3));
   }
 
   it("returns a zero vector when reflecting a zero vector") {
-    check(geo_vector_equal(geo_vector_reflect(geo_vector(), geo_up), geo_vector(), 1e-6f));
+    check_eq_vector(geo_vector_reflect(geo_vector(0), geo_up), geo_vector(0));
   }
 
   it("returns the same vector when reflecting a vector onto a zero vector") {
     const GeoVector v = {.x = 3, .y = 42};
-    check(geo_vector_equal(geo_vector_reflect(v, geo_vector()), v, 1e-6f));
+    check_eq_vector(geo_vector_reflect(v, geo_vector(0)), v);
   }
 
   it("returns a reverse vector when reflecting a vector onto an opposite normal") {
     const GeoVector v1 = {.x = 5, .y = 1};
     const GeoVector v2 = {.x = -1, .y = 0};
-    check(geo_vector_equal(geo_vector_reflect(v1, v2), geo_vector(.x = -5, .y = 1), 1e-6f));
+    check_eq_vector(geo_vector_reflect(v1, v2), geo_vector(.x = -5, .y = 1));
   }
 
   it("can linearly interpolate vectors") {
     const GeoVector v1 = {.x = 10, .y = 20, .z = 10};
     const GeoVector v2 = {.x = 20, .y = 40, .z = 20};
     const GeoVector v3 = {.x = 15, .y = 30, .z = 15};
-    check(geo_vector_equal(geo_vector_lerp(v1, v2, .5), v3, 1e-6f));
+    check_eq_vector(geo_vector_lerp(v1, v2, .5), v3);
   }
 
   it("divides each component by w when performing a perspective divide") {
     const GeoVector v1 = {.x = 1, .y = 2, .z = 4, .w = 4};
     const GeoVector v2 = {.x = .25, .y = .5, .z = 1};
-    check(geo_vector_equal(geo_vector_perspective_div(v1), v2, 1e-6f));
+    check_eq_vector(geo_vector_perspective_div(v1), v2);
   }
 
   it("lists all components when formatted") {
