@@ -3,12 +3,14 @@
 #include "core_format.h"
 #include "core_types.h"
 
+/**
+ * 4 component geometric spacial Vector.
+ * Usefull for describing a position / offset in 2 / 3 / 4 dimensions.
+ */
+
 typedef union {
   struct {
     f32 x, y, z, w;
-  };
-  struct {
-    f32 r, g, b, a;
   };
   ALIGNAS(16) f32 comps[4];
 } GeoVector;
