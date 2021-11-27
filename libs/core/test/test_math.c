@@ -41,6 +41,34 @@ spec(math) {
     check_eq_float(math_abs(0.0), 0.0, 1e-6);
   }
 
+  it("can linearly interpolate values") {
+    check_eq_int(math_lerp(42, 1337, 0), 42);
+    check_eq_int(math_lerp(-42, 1337, 0), -42);
+    check_eq_int(math_lerp(1337, 42, 0), 1337);
+    check_eq_int(math_lerp(42, 1337, 1), 1337);
+    check_eq_int(math_lerp(42, -1337, 1), -1337);
+    check_eq_int(math_lerp(1337, 42, 1), 42);
+    check_eq_int(math_lerp(10, 20, 2), 30);
+    check_eq_int(math_lerp(-10, -20, 2), -30);
+  }
+
+  it("can linearly un-interpolate values") {
+    check_eq_float(math_unlerp(10, 20, 10), 0, 1e-12);
+    check_eq_float(math_unlerp(-10, -20, -10), 0, 1e-12);
+
+    check_eq_float(math_unlerp(10, 20, 20), 1, 1e-12);
+    check_eq_float(math_unlerp(-10, -20, -20), 1, 1e-12);
+
+    check_eq_float(math_unlerp(10, 20, 30), 2, 1e-12);
+    check_eq_float(math_unlerp(-10, -20, -30), 2, 1e-12);
+
+    const f32 x   = 42.1337f;
+    const f32 y   = -47.3f;
+    const f32 t   = -3.153f;
+    const f32 val = math_lerp(x, y, t);
+    check_eq_float(math_unlerp(x, y, val), t, 1e-12);
+  }
+
   it("can truncate the fractional part of floats") {
     check_eq_float(math_trunc_f64(1.42), 1.0, 1e-24);
     check_eq_float(math_trunc_f64(42.1337), 42.0, 1e-24);
