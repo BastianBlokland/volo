@@ -183,7 +183,7 @@ static int dbgsetup_app_run(DbgSetupApp* app, const int argc, const char** argv)
   }
 
   DbgSetupCtx ctx = {
-      .dbg         = cli_read_choice_array(invoc, app->dbgFlag, g_dbg_strs, DbgSetupDbg_Lldb),
+      .dbg = (DbgSetupDbg)cli_read_choice_array(invoc, app->dbgFlag, g_dbg_strs, DbgSetupDbg_Lldb),
       .workspace   = cli_read_string(invoc, app->workspaceFlag, string_empty),
       .targets     = cli_parse_values(invoc, app->targetsFlag).head,
       .targetCount = cli_parse_values(invoc, app->targetsFlag).count,

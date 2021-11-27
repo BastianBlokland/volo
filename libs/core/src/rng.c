@@ -98,8 +98,8 @@ RngGaussPairF32 rng_sample_gauss_f32(Rng* rng) {
    * Source: https://en.wikipedia.org/wiki/Box%E2%80%93Muller_transform
    */
   return (RngGaussPairF32){
-      .a = math_sqrt_f32(-2.0f * math_log_f32(a)) * math_cos_f32(math_pi * 2.0f * b),
-      .b = math_sqrt_f32(-2.0f * math_log_f32(a)) * math_sin_f32(math_pi * 2.0f * b),
+      .a = math_sqrt_f32(-2.0f * math_log_f32(a)) * math_cos_f32(math_pi_f32 * 2.0f * b),
+      .b = math_sqrt_f32(-2.0f * math_log_f32(a)) * math_sin_f32(math_pi_f32 * 2.0f * b),
   };
 }
 

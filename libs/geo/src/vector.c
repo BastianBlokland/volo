@@ -21,7 +21,7 @@ GeoVector geo_vector_mul(const GeoVector v, const f32 scalar) {
 }
 
 GeoVector geo_vector_div(const GeoVector v, f32 scalar) {
-  diag_assert(scalar);
+  diag_assert(scalar != 0);
   return geo_vector(.x = v.x / scalar, .y = v.y / scalar, .z = v.z / scalar, .w = v.w / scalar);
 }
 
@@ -29,12 +29,12 @@ f32 geo_vector_mag_sqr(const GeoVector v) { return geo_vector_dot(v, v); }
 
 f32 geo_vector_mag(const GeoVector v) {
   const f32 sqrMag = geo_vector_mag_sqr(v);
-  return sqrMag ? math_sqrt_f32(sqrMag) : 0;
+  return sqrMag != 0 ? math_sqrt_f32(sqrMag) : 0;
 }
 
 GeoVector geo_vector_norm(const GeoVector v) {
   const f32 mag = geo_vector_mag(v);
-  diag_assert(mag);
+  diag_assert(mag != 0);
   return geo_vector_div(v, mag);
 }
 

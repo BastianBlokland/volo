@@ -146,7 +146,7 @@ spec(memory) {
   it("can create a dynamicly sized allocation on the stack") {
     Rng* rng = rng_create_xorwow(g_alloc_scratch, 42);
 
-    const usize size     = rng_sample_range(rng, 0, 2) ? 1234 : 1337;
+    const usize size     = (usize)rng_sample_range(rng, 0, 2) ? 1234 : 1337;
     Mem         stackMem = mem_stack(size);
 
     mem_set(stackMem, 0xAF);

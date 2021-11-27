@@ -115,7 +115,7 @@ void thread_pal_yield() { SwitchToThread(); }
 
 void thread_pal_sleep(const TimeDuration duration) {
   // TODO: This only has milliseconds resolution, investigate alternatives with better resolution.
-  Sleep(duration / time_millisecond);
+  Sleep((DWORD)(duration / time_millisecond));
 }
 
 typedef struct {

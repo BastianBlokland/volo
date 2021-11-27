@@ -266,7 +266,7 @@ static void pal_xcb_wm_state_update(
   const xcb_client_message_event_t evt = {
       .response_type  = XCB_CLIENT_MESSAGE,
       .format         = 32,
-      .window         = windowId,
+      .window         = (xcb_window_t)windowId,
       .type           = pal->xcbWmStateAtom,
       .data.data32[0] = active ? 1 : 0,
       .data.data32[1] = stateAtom,
@@ -284,7 +284,7 @@ static void pal_xcb_bypass_compositor(GapPal* pal, const GapWindowId windowId, c
   xcb_change_property(
       pal->xcbConnection,
       XCB_PROP_MODE_REPLACE,
-      windowId,
+      (xcb_window_t)windowId,
       pal->xcbWmStateBypassCompositorAtom,
       XCB_ATOM_CARDINAL,
       32,
@@ -372,7 +372,8 @@ pal_set_window_min_size(GapPal* pal, const GapWindowId windowId, const GapVector
   xcb_size_hints_t hints = {0};
   xcb_icccm_size_hints_set_min_size(&hints, minSize.x, minSize.y);
 
-  xcb_icccm_set_wm_size_hints(pal->xcbConnection, windowId, XCB_ATOM_WM_NORMAL_HINTS, &hints);
+  xcb_icccm_set_wm_size_hints(
+      pal->xcbConnection, (xcb_window_t)windowId, XCB_ATOM_WM_NORMAL_HINTS, &hints);
 }
 
 static void pal_event_close(GapPal* pal, const GapWindowId windowId) {
@@ -566,7 +567,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   xcb_create_window(
       con,
       XCB_COPY_FROM_PARENT,
-      id,
+      (xcb_window_t)id,
       pal->xcbScreen->root,
       0,
       0,
@@ -580,9 +581,16 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 
   // Register a custom delete message atom.
   xcb_change_property(
-      con, XCB_PROP_MODE_REPLACE, id, pal->xcbProtoMsgAtom, 4, 32, 1, &pal->xcbDeleteMsgAtom);
+      con,
+      XCB_PROP_MODE_REPLACE,
+      (xcb_window_t)id,
+      pal->xcbProtoMsgAtom,
+      4,
+      32,
+      1,
+      &pal->xcbDeleteMsgAtom);
 
-  xcb_map_window(con, id);
+  xcb_map_window(con, (xcb_window_t)id);
   pal_set_window_min_size(pal, id, gap_vector(pal_window_min_width, pal_window_min_height));
   xcb_flush(con);
 
@@ -598,7 +606,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 
 void gap_pal_window_destroy(GapPal* pal, const GapWindowId windowId) {
 
-  xcb_destroy_window(pal->xcbConnection, windowId);
+  xcb_destroy_window(pal->xcbConnection, (xcb_window_t)windowId);
   xcb_flush(pal->xcbConnection);
 
   for (usize i = 0; i != pal->windows.size; ++i) {
@@ -636,11 +644,11 @@ void gap_pal_window_title_set(GapPal* pal, const GapWindowId windowId, const Str
   xcb_change_property(
       pal->xcbConnection,
       XCB_PROP_MODE_REPLACE,
-      windowId,
+      (xcb_window_t)windowId,
       XCB_ATOM_WM_NAME,
       XCB_ATOM_STRING,
       8,
-      title.size,
+      (u32)title.size,
       title.ptr);
   xcb_flush(pal->xcbConnection);
 }
@@ -677,7 +685,10 @@ void gap_pal_window_resize(
 
     const u32 values[2] = {size.x, size.y};
     xcb_configure_window(
-        pal->xcbConnection, windowId, XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT, values);
+        pal->xcbConnection,
+        (xcb_window_t)windowId,
+        XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
+        values);
   }
 
   xcb_flush(pal->xcbConnection);
@@ -693,16 +704,17 @@ void gap_pal_window_cursor_hide(GapPal* pal, const GapWindowId windowId, const b
   log_d("Updating cursor visibility", log_param("hidden", fmt_bool(hidden)));
 
   if (hidden && !pal->cursorHidden) {
-    xcb_xfixes_hide_cursor(pal->xcbConnection, windowId);
+    xcb_xfixes_hide_cursor(pal->xcbConnection, (xcb_window_t)windowId);
     pal->cursorHidden = true;
   } else if (!hidden && pal->cursorHidden) {
-    xcb_xfixes_show_cursor(pal->xcbConnection, windowId);
+    xcb_xfixes_show_cursor(pal->xcbConnection, (xcb_window_t)windowId);
     pal->cursorHidden = false;
   }
 }
 
 void gap_pal_window_cursor_set(GapPal* pal, const GapWindowId windowId, GapVector position) {
-  xcb_warp_pointer(pal->xcbConnection, XCB_NONE, windowId, 0, 0, 0, 0, position.x, position.y);
+  xcb_warp_pointer(
+      pal->xcbConnection, XCB_NONE, (xcb_window_t)windowId, 0, 0, 0, 0, position.x, position.y);
 }
 
 GapNativeWm gap_pal_native_wm() { return GapNativeWm_Xcb; }

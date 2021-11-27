@@ -42,7 +42,8 @@
  */
 #define math_unlerp(_X_, _Y_, _VALUE_) (_X_ == _Y_) ? 0 : (_VALUE_ - _X_) / (_Y_ - _X_)
 
-#define math_pi 3.141592653589793238463
+#define math_pi_f32 3.141592653589793238463f
+#define math_pi_f64 3.141592653589793238463
 #define math_deg_to_rad 0.0174532924
 #define math_rad_to_deg 57.29578
 

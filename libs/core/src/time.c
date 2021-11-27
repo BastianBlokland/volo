@@ -45,8 +45,8 @@ TimeDate time_real_to_date(const TimeReal time) {
    * Implementation based on: http://howardhinnant.github.io/date_algorithms.html#civil_from_days
    */
   const i64 z           = time_days_since_epoch(time) + 719468;
-  const i32 era         = (z >= 0 ? z : z - 146096) / 146097;
-  const i32 dayOfEra    = z - era * 146097;
+  const i32 era         = (i32)((z >= 0 ? z : z - 146096) / 146097);
+  const i32 dayOfEra    = (i32)(z - era * 146097);
   const i32 yearOfEra   = (dayOfEra - dayOfEra / 1460 + dayOfEra / 36524 - dayOfEra / 146096) / 365;
   const i32 year        = yearOfEra + era * 400;
   const i32 dayOfYear   = dayOfEra - (365 * yearOfEra + yearOfEra / 4 - yearOfEra / 100);
