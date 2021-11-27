@@ -11,6 +11,9 @@
 #pragma intrinsic(asinf)
 #pragma intrinsic(cosf)
 #pragma intrinsic(acosf)
+#pragma intrinsic(tanf)
+#pragma intrinsic(atanf)
+#pragma intrinsic(atan2f)
 
 #else
 
@@ -20,6 +23,9 @@
 #define asinf __builtin_asinf
 #define cosf __builtin_cosf
 #define acosf __builtin_acosf
+#define tanf __builtin_tanf
+#define atanf __builtin_atanf
+#define atan2f __builtin_atan2f
 
 #endif
 
@@ -61,6 +67,12 @@ INLINE_HINT f32 math_asin_f32(const f32 val) { return asinf(val); }
 INLINE_HINT f32 math_cos_f32(const f32 val) { return cosf(val); }
 
 INLINE_HINT f32 math_acos_f32(const f32 val) { return acosf(val); }
+
+INLINE_HINT f32 math_tan_f32(const f32 val) { return tanf(val); }
+
+INLINE_HINT f32 math_atan_f32(const f32 val) { return atanf(val); }
+
+INLINE_HINT f32 math_atan2_f32(const f32 x, const f32 y) { return atan2f(x, y); }
 
 INLINE_HINT f64 math_trunc_f64(const f64 val) { return (i64)val; }
 

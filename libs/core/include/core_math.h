@@ -83,6 +83,22 @@ f32 math_cos_f32(f32);
 f32 math_acos_f32(f32);
 
 /**
+ * Compute the tangent of the given value (in radians).
+ */
+f32 math_tan_f32(f32);
+
+/**
+ * Compute the arc (inverse) tangent of the given value (in radians).
+ */
+f32 math_atan_f32(f32);
+
+/**
+ * Compute the arc (inverse) tangent of the given value (in radians) in two dimensions.
+ * Represents the angle from the x-axis to a line containing the origin and a point at x,y.
+ */
+f32 math_atan2_f32(f32 x, f32 y);
+
+/**
  * Compute the integer part of the given value (removes the fractional part).
  */
 f64 math_trunc_f64(f64);
