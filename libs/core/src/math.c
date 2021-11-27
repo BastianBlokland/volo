@@ -30,7 +30,7 @@
 #endif
 
 u64 math_pow10_u64(const u8 val) {
-  static u64 table[] = {
+  static const u64 table[] = {
       u64_lit(1),
       u64_lit(10),
       u64_lit(100),

@@ -140,8 +140,8 @@ spec(bitset) {
 
   it("computes the same index as the iterations number while walking the set bits") {
 
-    static u32   mask = 0b01100100010101000100010110010110;
-    const BitSet bits = bitset_from_var(mask);
+    static const u32 mask = 0b01100100010101000100010110010110;
+    const BitSet     bits = bitset_from_var(mask);
 
     usize i = 0;
     bitset_for(bits, setIdx, {
