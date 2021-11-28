@@ -28,11 +28,12 @@ GeoMatrix geo_matrix_ident() {
    * [ 0,  0,  0,  1 ]
    */
   return (GeoMatrix){
-      .columns[0].x = 1,
-      .columns[1].y = 1,
-      .columns[2].z = 1,
-      .columns[3].w = 1,
-  };
+      .columns = {
+          {1, 0, 0, 0},
+          {0, 1, 0, 0},
+          {0, 0, 1, 0},
+          {0, 0, 0, 1},
+      }};
 }
 
 GeoVector geo_matrix_row(const GeoMatrix* m, const usize index) {
@@ -65,11 +66,12 @@ GeoVector geo_matrix_transform(const GeoMatrix* m, const GeoVector vec) {
 
 GeoMatrix geo_matrix_transpose(const GeoMatrix* m) {
   return (GeoMatrix){
-      .columns[0] = geo_matrix_row(m, 0),
-      .columns[1] = geo_matrix_row(m, 1),
-      .columns[2] = geo_matrix_row(m, 2),
-      .columns[3] = geo_matrix_row(m, 3),
-  };
+      .columns = {
+          geo_matrix_row(m, 0),
+          geo_matrix_row(m, 1),
+          geo_matrix_row(m, 2),
+          geo_matrix_row(m, 3),
+      }};
 }
 
 GeoMatrix geo_matrix_translate(const GeoVector translation) {
@@ -80,11 +82,12 @@ GeoMatrix geo_matrix_translate(const GeoVector translation) {
    * [ 0,  0,  0,  1 ]
    */
   return (GeoMatrix){
-      .columns[0].x = 1,
-      .columns[1].y = 1,
-      .columns[2].z = 1,
-      .columns[3]   = {translation.x, translation.y, translation.z, 1},
-  };
+      .columns = {
+          {1, 0, 0, 0},
+          {0, 1, 0, 0},
+          {0, 0, 1, 0},
+          {translation.x, translation.y, translation.z, 1},
+      }};
 }
 
 GeoMatrix geo_matrix_scale(const GeoVector scale) {
@@ -95,11 +98,12 @@ GeoMatrix geo_matrix_scale(const GeoVector scale) {
    * [ 0,  0,  0,  1 ]
    */
   return (GeoMatrix){
-      .columns[0].x = scale.x,
-      .columns[1].y = scale.y,
-      .columns[2].z = scale.z,
-      .columns[3].w = 1,
-  };
+      .columns = {
+          {scale.x, 0, 0, 0},
+          {0, scale.y, 0, 0},
+          {0, 0, scale.z, 0},
+          {0, 0, 0, 1},
+      }};
 }
 
 GeoMatrix geo_matrix_rotate_x(const f32 angle) {
@@ -112,13 +116,12 @@ GeoMatrix geo_matrix_rotate_x(const f32 angle) {
   const f32 c = math_cos_f32(angle);
   const f32 s = math_sin_f32(angle);
   return (GeoMatrix){
-      .columns[0].comps[0] = 1,
-      .columns[1].comps[1] = c,
-      .columns[1].comps[2] = s,
-      .columns[2].comps[1] = -s,
-      .columns[2].comps[2] = c,
-      .columns[3].comps[3] = 1,
-  };
+      .columns = {
+          {1, 0, 0, 0},
+          {0, c, s, 0},
+          {0, -s, c, 0},
+          {0, 0, 0, 1},
+      }};
 }
 
 GeoMatrix geo_matrix_rotate_y(const f32 angle) {
@@ -131,13 +134,12 @@ GeoMatrix geo_matrix_rotate_y(const f32 angle) {
   const f32 c = math_cos_f32(angle);
   const f32 s = math_sin_f32(angle);
   return (GeoMatrix){
-      .columns[0].comps[0] = c,
-      .columns[0].comps[2] = -s,
-      .columns[1].comps[1] = 1,
-      .columns[2].comps[0] = s,
-      .columns[2].comps[2] = c,
-      .columns[3].comps[3] = 1,
-  };
+      .columns = {
+          {c, 0, -s, 0},
+          {0, 1, 0, 0},
+          {s, 0, c, 0},
+          {0, 0, 0, 1},
+      }};
 }
 
 GeoMatrix geo_matrix_rotate_z(const f32 angle) {
@@ -150,13 +152,12 @@ GeoMatrix geo_matrix_rotate_z(const f32 angle) {
   const f32 c = math_cos_f32(angle);
   const f32 s = math_sin_f32(angle);
   return (GeoMatrix){
-      .columns[0].comps[0] = c,
-      .columns[0].comps[1] = s,
-      .columns[1].comps[0] = -s,
-      .columns[1].comps[1] = c,
-      .columns[2].comps[2] = 1,
-      .columns[3].comps[3] = 1,
-  };
+      .columns = {
+          {c, s, 0, 0},
+          {-s, c, 0, 0},
+          {0, 0, 1, 0},
+          {0, 0, 0, 1},
+      }};
 }
 
 GeoMatrix geo_matrix_rotate(GeoVector right, GeoVector up, GeoVector fwd) {
@@ -174,11 +175,12 @@ GeoMatrix geo_matrix_rotate(GeoVector right, GeoVector up, GeoVector fwd) {
    * [       0,      0,       0,  1 ]
    */
   return (GeoMatrix){
-      .columns[0]          = {right.x, right.y, right.z},
-      .columns[1]          = {up.x, up.y, up.z},
-      .columns[2]          = {fwd.x, fwd.y, fwd.z},
-      .columns[3].comps[3] = 1,
-  };
+      .columns = {
+          {right.x, right.y, right.z, 0},
+          {up.x, up.y, up.z, 0},
+          {fwd.x, fwd.y, fwd.z, 0},
+          {0, 0, 0, 1},
+      }};
 }
 
 GeoMatrix geo_matrix_from_quat(const GeoQuat quat) {
@@ -194,17 +196,12 @@ GeoMatrix geo_matrix_from_quat(const GeoQuat quat) {
   const f32 w = quat.w;
 
   return (GeoMatrix){
-      .columns[0].comps[0] = 1 - 2 * y * y - 2 * z * z,
-      .columns[0].comps[1] = 2 * x * y + 2 * w * z,
-      .columns[0].comps[2] = 2 * x * z - 2 * w * y,
-      .columns[1].comps[0] = 2 * x * y - 2 * w * z,
-      .columns[1].comps[1] = 1 - 2 * x * x - 2 * z * z,
-      .columns[1].comps[2] = 2 * y * z + 2 * w * x,
-      .columns[2].comps[0] = 2 * x * z + 2 * w * y,
-      .columns[2].comps[1] = 2 * y * z - 2 * w * x,
-      .columns[2].comps[2] = 1 - 2 * x * x - 2 * y * y,
-      .columns[3].comps[3] = 1,
-  };
+      .columns = {
+          {1 - 2 * y * y - 2 * z * z, 2 * x * y + 2 * w * z, 2 * x * z - 2 * w * y, 0},
+          {2 * x * y - 2 * w * z, 1 - 2 * x * x - 2 * z * z, 2 * y * z + 2 * w * x, 0},
+          {2 * x * z + 2 * w * y, 2 * y * z - 2 * w * x, 1 - 2 * x * x - 2 * y * y},
+          {0, 0, 0, 1},
+      }};
 }
 
 GeoQuat geo_matrix_to_quat(const GeoMatrix* m) {
@@ -274,12 +271,12 @@ GeoMatrix geo_matrix_proj_ortho(f32 width, f32 height, f32 zNear, f32 zFar) {
    * NOTE: Setup for reversed-z depth so near objects are at depth 1 and far at 0.
    */
   return (GeoMatrix){
-      .columns[0].comps[0] = 2 / width,
-      .columns[1].comps[1] = -(2 / height),
-      .columns[2].comps[2] = 1 / (zNear - zFar),
-      .columns[3].comps[2] = -zFar / (zNear - zFar),
-      .columns[3].comps[3] = 1,
-  };
+      .columns = {
+          {2 / width, 0, 0, 0},
+          {0, -(2 / height), 0, 0},
+          {0, 0, 1 / (zNear - zFar), 0},
+          {0, 0, -zFar / (zNear - zFar), 1},
+      }};
 }
 
 GeoMatrix geo_matrix_proj_pers(f32 horAngle, f32 verAngle, f32 zNear) {
@@ -293,12 +290,12 @@ GeoMatrix geo_matrix_proj_pers(f32 horAngle, f32 verAngle, f32 zNear) {
    * approaches 0 at infinite z.
    */
   return (GeoMatrix){
-      .columns[0].comps[0] = 1 / math_tan_f32(horAngle * .5f),
-      .columns[1].comps[1] = -(1 / math_tan_f32(verAngle * .5f)),
-      .columns[2].comps[2] = 0,
-      .columns[3].comps[2] = zNear,
-      .columns[2].comps[3] = 1,
-  };
+      .columns = {
+          {1 / math_tan_f32(horAngle * .5f), 0, 0, 0},
+          {0, (1 / math_tan_f32(verAngle * .5f)), 0, 0},
+          {0, 0, 0, 1},
+          {0, 0, zNear, 0},
+      }};
 }
 
 GeoMatrix geo_matrix_proj_pers_ver(const f32 verAngle, const f32 aspect, const f32 zNear) {

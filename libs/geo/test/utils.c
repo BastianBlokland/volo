@@ -2,13 +2,11 @@
 
 #include "utils_internal.h"
 
-#define test_geo_matrix_threshold 1e-6f
-#define test_geo_quat_threshold 1e-6f
-#define test_geo_vector_threshold 1e-5f
+#define test_geo_threshold 1e-5f
 
 static bool test_matrix_equal(const GeoMatrix* a, const GeoMatrix* b) {
   for (usize i = 0; i != 16; ++i) {
-    if (math_abs(a->comps[i] - b->comps[i]) > test_geo_matrix_threshold) {
+    if (math_abs(a->comps[i] - b->comps[i]) > test_geo_threshold) {
       return false;
     }
   }
@@ -17,7 +15,7 @@ static bool test_matrix_equal(const GeoMatrix* a, const GeoMatrix* b) {
 
 static bool test_quat_equal(const GeoQuat a, const GeoQuat b) {
   for (usize i = 0; i != 4; ++i) {
-    if (math_abs(a.comps[i] - b.comps[i]) > test_geo_quat_threshold) {
+    if (math_abs(a.comps[i] - b.comps[i]) > test_geo_threshold) {
       return false;
     }
   }
@@ -26,7 +24,7 @@ static bool test_quat_equal(const GeoQuat a, const GeoQuat b) {
 
 static bool test_vector_equal(const GeoVector a, const GeoVector b) {
   for (usize i = 0; i != 4; ++i) {
-    if (math_abs(a.comps[i] - b.comps[i]) > test_geo_vector_threshold) {
+    if (math_abs(a.comps[i] - b.comps[i]) > test_geo_threshold) {
       return false;
     }
   }
