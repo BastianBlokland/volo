@@ -1,4 +1,5 @@
 #pragma once
+#include "geo_quat.h"
 #include "geo_vector.h"
 
 /**
@@ -77,6 +78,12 @@ GeoMatrix geo_matrix_rotate_z(f32 angle);
  * Pre-condition: right, up, fwd are a orthonormal set.
  */
 GeoMatrix geo_matrix_rotate(GeoVector right, GeoVector up, GeoVector fwd);
+
+/**
+ * Create a rotation matrix from a quaternion.
+ * Pre-condition: quaternion is normalized.
+ */
+GeoMatrix geo_matrix_from_quat(GeoQuat);
 
 /**
  * Create an orthographic projection matrix.

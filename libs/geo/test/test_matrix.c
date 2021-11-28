@@ -131,6 +131,49 @@ spec(matrix) {
     check_eq_vector(geo_matrix_transform(&mZ, geo_vector(1, 0, 0)), geo_vector(-1, 0, 0));
   }
 
+  it("returns the same rotation then a quaternion when rotating over a dimensional axis") {
+    const f32       angle = 42 * math_deg_to_rad;
+    const GeoMatrix mX    = geo_matrix_rotate_x(angle);
+    const GeoMatrix mY    = geo_matrix_rotate_y(angle);
+    const GeoMatrix mZ    = geo_matrix_rotate_z(angle);
+
+    const GeoQuat qX = geo_quat_angle_axis(geo_right, angle);
+    const GeoQuat qY = geo_quat_angle_axis(geo_up, angle);
+    const GeoQuat qZ = geo_quat_angle_axis(geo_forward, angle);
+
+    const GeoVector v = geo_vector(.42f, 13.37f, -42);
+
+    check_eq_vector(geo_matrix_transform(&mX, v), geo_quat_rotate(qX, v));
+    check_eq_vector(geo_matrix_transform(&mY, v), geo_quat_rotate(qY, v));
+    check_eq_vector(geo_matrix_transform(&mZ, v), geo_quat_rotate(qZ, v));
+  }
+
+  it("can convert a quaternion to a rotation matrix") {
+    {
+      const f32       angle = 42 * math_deg_to_rad;
+      const GeoMatrix mX    = geo_matrix_rotate_x(angle);
+      const GeoMatrix mY    = geo_matrix_rotate_y(angle);
+      const GeoMatrix mZ    = geo_matrix_rotate_z(angle);
+
+      const GeoQuat qX = geo_quat_angle_axis(geo_right, angle);
+      const GeoQuat qY = geo_quat_angle_axis(geo_up, angle);
+      const GeoQuat qZ = geo_quat_angle_axis(geo_forward, angle);
+
+      check_eq_matrix(geo_matrix_from_quat(qX), mX);
+      check_eq_matrix(geo_matrix_from_quat(qY), mY);
+      check_eq_matrix(geo_matrix_from_quat(qZ), mZ);
+    }
+    {
+      const GeoQuat q =
+          geo_quat_mul(geo_quat_angle_axis(geo_up, 42), geo_quat_angle_axis(geo_right, 13));
+      const GeoVector newX        = geo_quat_rotate(q, geo_right);
+      const GeoVector newY        = geo_quat_rotate(q, geo_up);
+      const GeoVector newZ        = geo_quat_rotate(q, geo_forward);
+      const GeoMatrix matFromAxes = geo_matrix_rotate(newX, newY, newZ);
+      check_eq_matrix(matFromAxes, geo_matrix_from_quat(q));
+    }
+  }
+
   it("scales vectors to clip-space when transforming by an orthogonal projection matrix") {
     const GeoMatrix m = geo_matrix_proj_ortho(10, 5, -2, 2);
     check_eq_vector(geo_matrix_transform(&m, geo_vector(0, 0, 0, 1)), geo_vector(0, 0, .5f, 1));

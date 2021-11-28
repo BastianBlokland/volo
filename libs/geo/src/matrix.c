@@ -181,6 +181,32 @@ GeoMatrix geo_matrix_rotate(GeoVector right, GeoVector up, GeoVector fwd) {
   };
 }
 
+GeoMatrix geo_matrix_from_quat(const GeoQuat quat) {
+  /**
+   * [ 1 - 2y² - 2z²,   2xy + 2wz ,     2xz - 2wy,     0 ]
+   * [ 2xy - 2wz,       1 - 2x² - 2z²,  2yz + 2wx,     0 ]
+   * [ 2xz + 2wy,       2yz - 2wx,      1 - 2x² - 2y², 0 ]
+   * [ 0,               0,              0,             1 ]
+   */
+  const f32 x = quat.x;
+  const f32 y = quat.y;
+  const f32 z = quat.z;
+  const f32 w = quat.w;
+
+  return (GeoMatrix){
+      .columns[0].comps[0] = 1 - 2 * y * y - 2 * z * z,
+      .columns[0].comps[1] = 2 * x * y + 2 * w * z,
+      .columns[0].comps[2] = 2 * x * z - 2 * w * y,
+      .columns[1].comps[0] = 2 * x * y - 2 * w * z,
+      .columns[1].comps[1] = 1 - 2 * x * x - 2 * z * z,
+      .columns[1].comps[2] = 2 * y * z + 2 * w * x,
+      .columns[2].comps[0] = 2 * x * z + 2 * w * y,
+      .columns[2].comps[1] = 2 * y * z - 2 * w * x,
+      .columns[2].comps[2] = 1 - 2 * x * x - 2 * y * y,
+      .columns[3].comps[3] = 1,
+  };
+}
+
 GeoMatrix geo_matrix_proj_ortho(f32 width, f32 height, f32 zNear, f32 zFar) {
   /**
    * [ 2 / w,       0,           0,           0            ]
