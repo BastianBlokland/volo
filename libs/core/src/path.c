@@ -111,8 +111,8 @@ bool path_canonize(DynString* str, String path) {
    * output string. This way we can erase a segment if we encounter a '..' entry.
    */
 
-  static usize maxSegments = 64;
-  DynArray     segStarts   = dynarray_create_over_t(mem_stack(maxSegments * sizeof(usize)), usize);
+  static const usize maxSegments = 64;
+  DynArray segStarts = dynarray_create_over_t(mem_stack(maxSegments * sizeof(usize)), usize);
   *dynarray_push_t(&segStarts, usize) = str->size; // Start of the first segment.
 
   bool success = true;

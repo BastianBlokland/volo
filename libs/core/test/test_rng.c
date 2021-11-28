@@ -58,7 +58,7 @@ spec(rng) {
     Rng*       rng   = rng_create_xorwow(alloc, seed);
 
     for (usize i = 0; i != iterations; ++i) {
-      i32 val = rng_sample_range(rng, -10, 20);
+      i32 val = (i32)rng_sample_range(rng, -10, 20);
       check(val >= -10);
       check(val < 20);
     }

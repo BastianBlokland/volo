@@ -145,7 +145,7 @@ FileResult file_write_sync(File* file, const String data) {
   diag_assert_msg(file->access & FileAccess_Write, "File handle does not have write access");
 
   for (u8* itr = mem_begin(data); itr != mem_end(data);) {
-    const int res = write(file->handle, itr, mem_end(data) - itr);
+    const ssize_t res = write(file->handle, itr, mem_end(data) - itr);
     if (res > 0) {
       itr += res;
       continue;

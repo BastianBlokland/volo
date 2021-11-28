@@ -189,8 +189,8 @@ ecs_system_define(SpawnPickupsSys) {
     const EcsEntityId pickup        = ecs_world_entity_create(world);
     const bool        specialPickup = rng_sample_f32(g_rng) > 0.9f;
     const TtyFgColor  color         = specialPickup ? TtyFgColor_Blue : TtyFgColor_Yellow;
-    const i32         posX          = rng_sample_range(g_rng, 1, inputComp->termWidth - 2);
-    const i32         posY          = rng_sample_range(g_rng, 1, inputComp->termHeight - 2);
+    const i32         posX          = (i32)rng_sample_range(g_rng, 1, inputComp->termWidth - 2);
+    const i32         posY          = (i32)rng_sample_range(g_rng, 1, inputComp->termHeight - 2);
 
     ecs_world_add_t(world, pickup, PickupComp, .score = specialPickup ? 10 : 1);
     ecs_world_add_t(world, pickup, PositionComp, .x = posX, .y = posY);

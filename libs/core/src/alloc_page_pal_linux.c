@@ -15,7 +15,7 @@ typedef struct {
 } AllocatorPage;
 
 static u32 alloc_page_num_pages(AllocatorPage* allocPage, const usize size) {
-  return (size + allocPage->pageSize - 1) / allocPage->pageSize;
+  return (u32)((size + allocPage->pageSize - 1) / allocPage->pageSize);
 }
 
 static Mem alloc_page_alloc(Allocator* allocator, const usize size, const usize align) {

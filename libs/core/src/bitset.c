@@ -72,7 +72,7 @@ usize bitset_next(BitSet bits, usize idx) {
 usize bitset_index(BitSet bits, usize idx) {
   diag_assert(bitset_test(bits, idx));
   usize    byteIdx = bits_to_bytes(idx);
-  const u8 byte    = *mem_at_u8(bits, byteIdx) << (8 - bit_in_byte(idx));
+  const u8 byte    = (u8)(*mem_at_u8(bits, byteIdx) << (8 - bit_in_byte(idx)));
   usize    result  = bits_popcnt_32(byte);
   while (byteIdx) {
     --byteIdx;

@@ -27,8 +27,25 @@
  */
 #define math_abs(_A_) ((_A_) < 0 ? -(_A_) : (_A_))
 
+/**
+ * Compute the linearly interpolated value from x to y at time t.
+ * NOTE: Does not clamp t (so can extrapolate too).
+ * NOTE: _X_ is expanded multiple times, so care must be taken when providing complex expressions.
+ */
+#define math_lerp(_X_, _Y_, _T_) (_X_ + (_Y_ - _X_) * _T_)
+
+/**
+ * Opposite of lerp, calculate at what t the value lies in respect to x and y.
+ * NOTE: does not clamp the value (so can return less then 0 or more then 1).
+ * NOTE: _X_ is expanded multiple times, so care must be taken when providing complex expressions.
+ * NOTE: _Y_ is expanded multiple times, so care must be taken when providing complex expressions.
+ */
+#define math_unlerp(_X_, _Y_, _VALUE_) (_X_ == _Y_) ? 0 : (_VALUE_ - _X_) / (_Y_ - _X_)
+
 #define math_pi_f32 3.141592653589793238463f
 #define math_pi_f64 3.141592653589793238463
+#define math_deg_to_rad 0.0174532924f
+#define math_rad_to_deg 57.29578f
 
 /**
  * Raise the given value to the power of 10.
@@ -51,9 +68,35 @@ f32 math_log_f32(f32);
 f32 math_sin_f32(f32);
 
 /**
+ * Computes the arc (inverse) sine of the given value (in radians).
+ */
+f32 math_asin_f32(f32);
+
+/**
  * Computes the cosine of the given value (in radians).
  */
 f32 math_cos_f32(f32);
+
+/**
+ * Computes the arc (inverse) cosine of the given value (in radians).
+ */
+f32 math_acos_f32(f32);
+
+/**
+ * Compute the tangent of the given value (in radians).
+ */
+f32 math_tan_f32(f32);
+
+/**
+ * Compute the arc (inverse) tangent of the given value (in radians).
+ */
+f32 math_atan_f32(f32);
+
+/**
+ * Compute the arc (inverse) tangent of the given value (in radians) in two dimensions.
+ * Represents the angle from the x-axis to a line containing the origin and a point at x,y.
+ */
+f32 math_atan2_f32(f32 x, f32 y);
 
 /**
  * Compute the integer part of the given value (removes the fractional part).
@@ -76,3 +119,8 @@ f64 math_ceil_f64(f64);
  * rounding').
  */
 f64 math_round_f64(f64);
+
+/**
+ * Clamp the given value between min (inclusive) and max (inclusive).
+ */
+f32 math_clamp_f32(f32 val, f32 min, f32 max);

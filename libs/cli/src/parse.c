@@ -46,7 +46,7 @@ static void cli_parse_consume_arg(CliParseCtx* ctx) {
   ++ctx->argHead;
 }
 
-static u32 cli_parse_args_remaining(CliParseCtx* ctx) { return ctx->argTail - ctx->argHead; }
+static u32 cli_parse_args_remaining(CliParseCtx* ctx) { return (u32)(ctx->argTail - ctx->argHead); }
 
 static bool cli_parse_already_provided(CliParseCtx* ctx, CliId id) {
   return dynarray_at_t(&ctx->options, id, CliInvocationOption)->provided;

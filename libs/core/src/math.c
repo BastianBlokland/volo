@@ -8,19 +8,29 @@
 #pragma intrinsic(sqrtf)
 #pragma intrinsic(logf)
 #pragma intrinsic(sinf)
+#pragma intrinsic(asinf)
 #pragma intrinsic(cosf)
+#pragma intrinsic(acosf)
+#pragma intrinsic(tanf)
+#pragma intrinsic(atanf)
+#pragma intrinsic(atan2f)
 
 #else
 
 #define sqrtf __builtin_sqrtf
 #define logf __builtin_logf
 #define sinf __builtin_sinf
+#define asinf __builtin_asinf
 #define cosf __builtin_cosf
+#define acosf __builtin_acosf
+#define tanf __builtin_tanf
+#define atanf __builtin_atanf
+#define atan2f __builtin_atan2f
 
 #endif
 
 u64 math_pow10_u64(const u8 val) {
-  static u64 table[] = {
+  static const u64 table[] = {
       u64_lit(1),
       u64_lit(10),
       u64_lit(100),
@@ -52,7 +62,17 @@ INLINE_HINT f32 math_log_f32(const f32 val) { return logf(val); }
 
 INLINE_HINT f32 math_sin_f32(const f32 val) { return sinf(val); }
 
+INLINE_HINT f32 math_asin_f32(const f32 val) { return asinf(val); }
+
 INLINE_HINT f32 math_cos_f32(const f32 val) { return cosf(val); }
+
+INLINE_HINT f32 math_acos_f32(const f32 val) { return acosf(val); }
+
+INLINE_HINT f32 math_tan_f32(const f32 val) { return tanf(val); }
+
+INLINE_HINT f32 math_atan_f32(const f32 val) { return atanf(val); }
+
+INLINE_HINT f32 math_atan2_f32(const f32 x, const f32 y) { return atan2f(x, y); }
 
 INLINE_HINT f64 math_trunc_f64(const f64 val) { return (i64)val; }
 
@@ -81,4 +101,14 @@ f64 math_round_f64(const f64 val) {
     return ((i64)trunc % 2) ? (trunc + math_sign(val)) : trunc;
   }
   return trunc + math_sign(val);
+}
+
+INLINE_HINT f32 math_clamp_f32(const f32 val, const f32 min, const f32 max) {
+  if (val <= min) {
+    return min;
+  }
+  if (val >= max) {
+    return max;
+  }
+  return val;
 }
