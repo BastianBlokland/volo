@@ -83,6 +83,21 @@ spec(quat) {
     check_eq_float(geo_vector_mag(geo_vector(qn.x, qn.y, qn.z, qn.w)), 1, 1e-6);
   }
 
+  it("can create a quaterion to rotate to the given axis system") {
+    {
+      const GeoVector newForward = geo_vector_norm(geo_vector(.42f, 13.37f, -42));
+      const GeoQuat   q          = geo_quat_look(newForward, geo_up);
+      check_eq_vector(geo_quat_rotate(q, geo_forward), newForward);
+    }
+    {
+      const GeoQuat   rotQuat = geo_quat_look(geo_right, geo_down);
+      const GeoMatrix rotMat  = geo_matrix_rotate(geo_forward, geo_down, geo_right);
+      const GeoVector vec1    = geo_matrix_transform(&rotMat, geo_vector(.42f, 13.37f, -42));
+      const GeoVector vec2    = geo_quat_rotate(rotQuat, geo_vector(.42f, 13.37f, -42));
+      check_eq_vector(vec1, vec2);
+    }
+  }
+
   it("lists all components when formatted") {
     check_eq_string(
         fmt_write_scratch("{}", geo_quat_fmt(geo_quat_ident)), string_lit("0, 0, 0, 1"));

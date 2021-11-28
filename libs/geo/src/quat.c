@@ -1,5 +1,6 @@
 #include "core_diag.h"
 #include "core_math.h"
+#include "geo_matrix.h"
 #include "geo_quat.h"
 
 GeoQuat geo_quat_angle_axis(const GeoVector axis, const f32 angle) {
@@ -66,4 +67,19 @@ GeoQuat geo_quat_norm(const GeoQuat q) {
   const f32 mag = geo_vector_mag((GeoVector){q.x, q.y, q.z, q.w});
   diag_assert(mag != 0);
   return (GeoQuat){q.x / mag, q.y / mag, q.z / mag, q.w / mag};
+}
+
+GeoQuat geo_quat_look(GeoVector forward, GeoVector upRef) {
+  if (geo_vector_mag_sqr(forward) <= f32_epsilon) {
+    return geo_quat_ident;
+  }
+  if (geo_vector_mag_sqr(upRef) <= f32_epsilon) {
+    return geo_quat_ident;
+  }
+
+  const GeoVector dirForward = geo_vector_norm(forward);
+  const GeoVector dirRight   = geo_vector_norm(geo_vector_cross3(upRef, dirForward));
+  const GeoVector dirUp      = geo_vector_cross3(dirForward, dirRight);
+  const GeoMatrix m          = geo_matrix_rotate(dirRight, dirUp, dirForward);
+  return geo_matrix_to_quat(&m);
 }

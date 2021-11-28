@@ -61,6 +61,13 @@ GeoQuat geo_quat_inv(GeoQuat);
 GeoQuat geo_quat_norm(GeoQuat);
 
 /**
+ * Computes a quaternion that rotates from the identity axes to a new axis system.
+ * NOTE: Vectors do not need to be normalized, but should not be zero.
+ * NOTE: Up does not need to be orthogonal to fwd as the up is reconstructed.
+ */
+GeoQuat geo_quat_look(GeoVector forward, GeoVector upRef);
+
+/**
  * Create a formatting argument for a quaternion.
  * NOTE: _QUAT_ is expanded multiple times, so care must be taken when providing complex
  * expressions.
