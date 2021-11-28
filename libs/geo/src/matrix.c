@@ -207,6 +207,63 @@ GeoMatrix geo_matrix_from_quat(const GeoQuat quat) {
   };
 }
 
+GeoQuat geo_matrix_to_quat(const GeoMatrix* m) {
+  /**
+   * qw = √(1 + m00 + m11 + m22) / 2
+   * qx = (m21 - m12) / (4 * qw)
+   * qy = (m02 - m20) / (4 * qw)
+   * qz = (m10 - m01) / (4 * qw)
+   *
+   * Implementation based on:
+   * https://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToQuaternion/
+   */
+
+  const f32 trace = m->columns[0].x + m->columns[1].y + m->columns[2].z; // Sum of diag elements.
+  if (trace > f32_epsilon) {
+    // Trace is positive
+    const f32 s = math_sqrt_f32(trace + 1) * 2;
+    return (GeoQuat){
+        .x = (m->columns[1].z - m->columns[2].y) / s,
+        .y = (m->columns[2].x - m->columns[0].z) / s,
+        .z = (m->columns[0].y - m->columns[1].x) / s,
+        .w = s * .25f,
+    };
+  }
+
+  // Trace zero or negative.
+  // Find the biggest diagonal element.
+  if (m->columns[0].x > m->columns[1].y && m->columns[0].x > m->columns[2].z) {
+    // [0, 0] is the biggest.
+    const f32 s = math_sqrt_f32(1 + m->columns[0].x - m->columns[1].y - m->columns[2].z) * 2;
+    return (GeoQuat){
+        .x = s * .25f,
+        .y = (m->columns[1].x + m->columns[0].y) / s,
+        .z = (m->columns[2].x + m->columns[0].z) / s,
+        .w = (m->columns[1].z - m->columns[2].y) / s,
+    };
+  }
+
+  if (m->columns[1].y > m->columns[2].z) {
+    // [1, 1] is the biggest.
+    const f32 s = math_sqrt_f32(1 + m->columns[1].y - m->columns[0].x - m->columns[2].z) * 2;
+    return (GeoQuat){
+        .x = (m->columns[1].x + m->columns[0].y) / s,
+        .y = s * .25f,
+        .z = (m->columns[2].y + m->columns[1].z) / s,
+        .w = (m->columns[2].x - m->columns[0].z) / s,
+    };
+  }
+
+  // [2, 2] is the biggest.
+  const f32 s = math_sqrt_f32(1 + m->columns[2].z - m->columns[0].x - m->columns[1].y) * 2;
+  return (GeoQuat){
+      .x = (m->columns[2].x + m->columns[0].z) / s,
+      .y = (m->columns[2].y + m->columns[1].z) / s,
+      .z = s * .25f,
+      .w = (m->columns[0].y - m->columns[1].x) / s,
+  };
+}
+
 GeoMatrix geo_matrix_proj_ortho(f32 width, f32 height, f32 zNear, f32 zFar) {
   /**
    * [ 2 / w,       0,           0,           0            ]

@@ -86,6 +86,12 @@ GeoMatrix geo_matrix_rotate(GeoVector right, GeoVector up, GeoVector fwd);
 GeoMatrix geo_matrix_from_quat(GeoQuat);
 
 /**
+ * Convert a rotation matrix to a quaternion.
+ * Pre-condition: matrix has to be an orthogonal matrix.
+ */
+GeoQuat geo_matrix_to_quat(const GeoMatrix*);
+
+/**
  * Create an orthographic projection matrix.
  * NOTE: Uses reversed-z depth so near objects are at depth 1 and far at 0.
  */

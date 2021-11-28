@@ -174,6 +174,25 @@ spec(matrix) {
     }
   }
 
+  it("can be converted to a quaternion") {
+    {
+      const GeoMatrix m = {
+          .columns[0] = {-1, 0, 0},
+          .columns[1] = {0, 1, 0},
+          .columns[2] = {0, 0, -1},
+      };
+      check_eq_quat(geo_matrix_to_quat(&m), geo_quat_angle_axis(geo_up, math_pi_f32));
+    }
+    {
+      const GeoQuat q1 =
+          geo_quat_mul(geo_quat_angle_axis(geo_up, 42), geo_quat_angle_axis(geo_right, 13));
+      const GeoMatrix m  = geo_matrix_from_quat(q1);
+      const GeoQuat   q2 = geo_matrix_to_quat(&m);
+      const GeoVector v  = {.42f, 13.37f, -42};
+      check_eq_vector(geo_quat_rotate(q1, v), geo_quat_rotate(q2, v));
+    }
+  }
+
   it("scales vectors to clip-space when transforming by an orthogonal projection matrix") {
     const GeoMatrix m = geo_matrix_proj_ortho(10, 5, -2, 2);
     check_eq_vector(geo_matrix_transform(&m, geo_vector(0, 0, 0, 1)), geo_vector(0, 0, .5f, 1));
