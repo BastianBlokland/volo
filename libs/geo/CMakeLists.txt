@@ -5,6 +5,7 @@
 message(STATUS "> library: geo")
 
 add_library(volo_geo STATIC
+  src/matrix.c
   src/quat.c
   src/vector.c)
 target_include_directories(volo_geo PUBLIC include)
@@ -12,6 +13,7 @@ target_link_libraries(volo_geo PUBLIC volo_core)
 
 add_executable(volo_geo_test
   test/main.c
+  test/test_matrix.c
   test/test_quat.c
   test/test_vector.c
   test/utils.c)

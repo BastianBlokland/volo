@@ -1,0 +1,94 @@
+#pragma once
+#include "geo_vector.h"
+
+/**
+ * Geometric 4x4 matrix.
+ *
+ * Column major and a left handed coordinate system.
+ * - Positive x = right.
+ * - Positive y = up.
+ * - Positive z = 'into' the screen.
+ *
+ * Clip space:
+ * - Output top left:     -1, -1
+ * - Output top right:    +1, -1
+ * - Output bottom left:  -1, +1
+ * - Output bottom right: +1, +1
+ * - Output depth: 0 - 1.
+ */
+
+typedef union {
+  GeoVector columns[4];
+  ALIGNAS(16) f32 comps[16];
+} GeoMatrix;
+
+ASSERT(sizeof(GeoMatrix) == 64, "GeoMatrix has to be 512 bits");
+ASSERT(alignof(GeoMatrix) == 16, "GeoMatrix has to be aligned to 128 bits");
+
+/**
+ * Identity matrix.
+ * Represents no scaling, no rotation and no translation.
+ */
+GeoMatrix geo_matrix_ident();
+
+/**
+ * Retrieve a row from the matrix.
+ * NOTE: Matrix is stored as column-major so perfer using columns.
+ * Pre-condition: index < 4
+ */
+GeoVector geo_matrix_row(const GeoMatrix*, usize index);
+
+/**
+ * Compute a new matrix which combines the two given matrices.
+ * (dot product of the rows and columns).
+ */
+GeoMatrix geo_matrix_mul(const GeoMatrix* a, const GeoMatrix* b);
+
+/**
+ * Transform a vector by the given matrix.
+ */
+GeoVector geo_matrix_transform(const GeoMatrix*, GeoVector);
+
+/**
+ * Return a new matrix that has the matrix's rows exchanged with its columns.
+ */
+GeoMatrix geo_matrix_transpose(const GeoMatrix*);
+
+/**
+ * Create a translation matrix.
+ */
+GeoMatrix geo_matrix_translate(GeoVector translation);
+
+/**
+ * Create a scale matrix.
+ */
+GeoMatrix geo_matrix_scale(GeoVector scale);
+
+/**
+ * Create a rotation matrix around one of the dimensions.
+ * NOTE: Angle is in radians.
+ */
+GeoMatrix geo_matrix_rotate_x(f32 angle);
+GeoMatrix geo_matrix_rotate_y(f32 angle);
+GeoMatrix geo_matrix_rotate_z(f32 angle);
+
+/**
+ * Create a rotation matrix from the identity rotation to the given axes set.
+ * Pre-condition: right, up, fwd are a orthonormal set.
+ */
+GeoMatrix geo_matrix_rotate(GeoVector right, GeoVector up, GeoVector fwd);
+
+/**
+ * Create an orthographic projection matrix.
+ * NOTE: Uses reversed-z depth so near objects are at depth 1 and far at 0.
+ */
+GeoMatrix geo_matrix_proj_ortho(f32 width, f32 height, f32 zNear, f32 zFar);
+
+/**
+ * Create a perspective projection matrix.
+ * NOTE: Uses reversed-z with an infinite far plane, so near objects are at depth 1 and depth
+ * reaches 0 at infinite z.
+ */
+GeoMatrix geo_matrix_proj_pers(f32 horAngle, f32 verAngle, f32 zNear);
+GeoMatrix geo_matrix_proj_pers_ver(f32 verAngle, f32 aspect, f32 zNear);
+GeoMatrix geo_matrix_proj_pers_hor(f32 horAngle, f32 aspect, f32 zNear);

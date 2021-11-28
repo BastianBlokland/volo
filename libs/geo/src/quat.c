@@ -25,12 +25,12 @@ f32 geo_quat_angle(const GeoQuat q) {
 }
 
 GeoQuat geo_quat_mul(const GeoQuat a, const GeoQuat b) {
-  GeoQuat res;
-  res.x = a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y;
-  res.y = a.w * b.y + a.y * b.w + a.z * b.x - a.x * b.z;
-  res.z = a.w * b.z + a.z * b.w + a.x * b.y - a.y * b.x;
-  res.w = a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z;
-  return res;
+  return (GeoQuat){
+      .x = a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
+      .y = a.w * b.y + a.y * b.w + a.z * b.x - a.x * b.z,
+      .z = a.w * b.z + a.z * b.w + a.x * b.y - a.y * b.x,
+      .w = a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z,
+  };
 }
 
 GeoVector geo_quat_rotate(const GeoQuat q, const GeoVector vec) {
@@ -44,12 +44,13 @@ GeoVector geo_quat_rotate(const GeoQuat q, const GeoVector vec) {
 }
 
 GeoQuat geo_quat_inv(const GeoQuat q) {
-  GeoQuat res;
   // Compute the conjugate ('transposing').
-  res.x = q.x * -1;
-  res.y = q.y * -1;
-  res.z = q.z * -1;
-  res.w = q.w;
+  GeoQuat res = {
+      .x = q.x * -1,
+      .y = q.y * -1,
+      .z = q.z * -1,
+      .w = q.w,
+  };
 
   // Divide by the squared length.
   // TODO: Should we just skip this? Is only needed for non-normalized quaternions.

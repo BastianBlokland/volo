@@ -77,12 +77,12 @@ GeoVector geo_vector_reflect(const GeoVector v, const GeoVector nrm) {
 }
 
 GeoVector geo_vector_lerp(const GeoVector x, const GeoVector y, const f32 t) {
-  GeoVector v;
-  v.x = math_lerp(x.x, y.x, t);
-  v.y = math_lerp(x.y, y.y, t);
-  v.z = math_lerp(x.z, y.z, t);
-  v.w = math_lerp(x.w, y.w, t);
-  return v;
+  return (GeoVector){
+      .x = math_lerp(x.x, y.x, t),
+      .y = math_lerp(x.y, y.y, t),
+      .z = math_lerp(x.z, y.z, t),
+      .w = math_lerp(x.w, y.w, t),
+  };
 }
 
 GeoVector geo_vector_perspective_div(const GeoVector v) {
