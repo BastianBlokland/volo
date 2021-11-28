@@ -113,7 +113,7 @@ GeoMatrix geo_matrix_rotate_x(const f32 angle) {
   const f32 s = math_sin_f32(angle);
   return (GeoMatrix){
       .columns[0].comps[0] = 1,
-      .columns[1].comps[1] = s,
+      .columns[1].comps[1] = c,
       .columns[1].comps[2] = s,
       .columns[2].comps[1] = -s,
       .columns[2].comps[2] = c,

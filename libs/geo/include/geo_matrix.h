@@ -88,6 +88,7 @@ GeoMatrix geo_matrix_proj_ortho(f32 width, f32 height, f32 zNear, f32 zFar);
  * Create a perspective projection matrix.
  * NOTE: Uses reversed-z with an infinite far plane, so near objects are at depth 1 and depth
  * reaches 0 at infinite z.
+ * NOTE: Angles are in radians.
  */
 GeoMatrix geo_matrix_proj_pers(f32 horAngle, f32 verAngle, f32 zNear);
 GeoMatrix geo_matrix_proj_pers_ver(f32 verAngle, f32 aspect, f32 zNear);

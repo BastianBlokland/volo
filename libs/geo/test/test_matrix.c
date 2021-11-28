@@ -105,4 +105,55 @@ spec(matrix) {
     check_eq_vector(geo_matrix_transform(&m, geo_vector(2, 3, 4, 1)), geo_vector(2, 6, 12, 1));
     check_eq_vector(geo_matrix_transform(&m, geo_vector(2, 3, 4, 0)), geo_vector(2, 6, 12, 0));
   }
+
+  it("returns a vector 45 degrees rotated when transforming by a rotate by 45 matrix") {
+    const f32       angle = math_pi_f32 * .25f;
+    const GeoMatrix mX    = geo_matrix_rotate_x(angle);
+    const GeoMatrix mY    = geo_matrix_rotate_y(angle);
+    const GeoMatrix mZ    = geo_matrix_rotate_z(angle);
+    const GeoVector v1    = geo_vector_norm(geo_vector(0, -2, 3));
+    const GeoVector v2    = geo_vector_norm(geo_vector(-2, 0, 3));
+    const GeoVector v3    = geo_vector_norm(geo_vector(-2, 3, 0));
+
+    check_eq_float(geo_vector_angle(geo_matrix_transform(&mX, v1), v1), angle, 1e-6);
+    check_eq_float(geo_vector_angle(geo_matrix_transform(&mY, v2), v2), angle, 1e-6);
+    check_eq_float(geo_vector_angle(geo_matrix_transform(&mZ, v3), v3), angle, 1e-6);
+  }
+
+  it("flips the axis when transforming a vector with a 180 degrees rotation matrix") {
+    const f32       angle = math_pi_f32;
+    const GeoMatrix mX    = geo_matrix_rotate_x(angle);
+    const GeoMatrix mY    = geo_matrix_rotate_y(angle);
+    const GeoMatrix mZ    = geo_matrix_rotate_z(angle);
+
+    check_eq_vector(geo_matrix_transform(&mX, geo_vector(0, 1, 0)), geo_vector(0, -1, 0));
+    check_eq_vector(geo_matrix_transform(&mY, geo_vector(0, 0, 1)), geo_vector(0, 0, -1));
+    check_eq_vector(geo_matrix_transform(&mZ, geo_vector(1, 0, 0)), geo_vector(-1, 0, 0));
+  }
+
+  it("scales vectors to clip-space when transforming by an orthogonal projection matrix") {
+    const GeoMatrix m = geo_matrix_proj_ortho(10, 5, -2, 2);
+    check_eq_vector(geo_matrix_transform(&m, geo_vector(0, 0, 0, 1)), geo_vector(0, 0, .5f, 1));
+    check_eq_vector(geo_matrix_transform(&m, geo_vector(+5, 0, 0, 1)), geo_vector(+1, 0, .5f, 1));
+    check_eq_vector(geo_matrix_transform(&m, geo_vector(-5, 0, 0, 1)), geo_vector(-1, 0, .5f, 1));
+    check_eq_vector(geo_matrix_transform(&m, geo_vector(-5, 5, 0, 1)), geo_vector(-1, -2, .5f, 1));
+    check_eq_vector(geo_matrix_transform(&m, geo_vector(-5, -5, 0, 1)), geo_vector(-1, 2, .5f, 1));
+
+    // Reversed-z so near is at depth 1 and far is at depth 0.
+    check_eq_vector(geo_matrix_transform(&m, geo_vector(-5, 0, -2, 1)), geo_vector(-1, 0, 1, 1));
+    check_eq_vector(geo_matrix_transform(&m, geo_vector(-5, 0, +2, 1)), geo_vector(-1, 0, 0, 1));
+  }
+
+  it("scales vectors to clip-space when transforming by an perspective projection matrix") {
+    const f32       fov = 90 * math_deg_to_rad;
+    const GeoMatrix m   = geo_matrix_proj_pers(fov, fov, 1);
+
+    // Reversed-z depth so, near plane is at depth 1.
+    const GeoVector v1 = geo_matrix_transform(&m, geo_vector(0, 0, 1, 1));
+    check_eq_vector(geo_vector_perspective_div(v1), geo_vector(0, 0, 1));
+
+    // Reversed-z depth with infinite far plane, so infinite z is at depth 0.
+    const GeoVector v2 = geo_matrix_transform(&m, geo_vector(0, 0, 999999, 1));
+    check_eq_vector(geo_vector_perspective_div(v2), geo_vector(0, 0, 0));
+  }
 }
