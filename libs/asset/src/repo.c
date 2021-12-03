@@ -18,6 +18,7 @@ void asset_repo_destroy(AssetRepo* repo) { repo->destroy(repo); }
 String asset_format_str(AssetFormat fmt) {
   static const String names[] = {
       string_static("mat"),
+      string_static("obj"),
       string_static("raw"),
       string_static("spv"),
       string_static("ppm"),
@@ -28,17 +29,10 @@ String asset_format_str(AssetFormat fmt) {
 }
 
 AssetFormat asset_format_from_ext(String ext) {
-  if (string_eq(ext, string_lit("mat"))) {
-    return AssetFormat_Mat;
-  }
-  if (string_eq(ext, string_lit("spv"))) {
-    return AssetFormat_Spv;
-  }
-  if (string_eq(ext, string_lit("ppm"))) {
-    return AssetFormat_Ppm;
-  }
-  if (string_eq(ext, string_lit("tga"))) {
-    return AssetFormat_Tga;
+  for (AssetFormat fmt = 0; fmt != AssetFormat_Count; ++fmt) {
+    if (string_eq(ext, asset_format_str(fmt))) {
+      return fmt;
+    }
   }
   return AssetFormat_Raw;
 }

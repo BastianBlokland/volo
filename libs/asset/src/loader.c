@@ -25,6 +25,9 @@ AssetLoader asset_loader(const AssetFormat format) {
   case AssetFormat_Tga: {
     RET_LOADER(tga);
   }
+  case AssetFormat_Obj: {
+    RET_LOADER(obj);
+  }
   case AssetFormat_Count:
     break;
   }
