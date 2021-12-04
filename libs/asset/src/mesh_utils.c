@@ -11,6 +11,7 @@ struct sAssetMeshBuilder {
   DynArray   indices;  // u16[]
   u16*       indexTable;
   usize      tableSize, maxVertexCount;
+  GeoBox     positionBounds, texcoordBounds;
   Allocator* alloc;
 };
 
@@ -19,8 +20,10 @@ AssetMeshBuilder* asset_mesh_builder_create(Allocator* alloc, const usize maxVer
   *builder                  = (AssetMeshBuilder){
       .vertices       = dynarray_create_t(alloc, AssetMeshVertex, maxVertexCount),
       .indices        = dynarray_create_t(alloc, u16, maxVertexCount),
-      .maxVertexCount = maxVertexCount,
       .tableSize      = bits_nextpow2(maxVertexCount),
+      .maxVertexCount = maxVertexCount,
+      .positionBounds = geo_box_inverted(),
+      .texcoordBounds = geo_box_inverted(),
       .alloc          = alloc,
   };
 
@@ -62,6 +65,9 @@ u16 asset_mesh_builder_push(AssetMeshBuilder* builder, const AssetMeshVertex ver
       *slot                                                 = builder->vertices.size;
       *dynarray_push_t(&builder->vertices, AssetMeshVertex) = vertex;
       *dynarray_push_t(&builder->indices, u16)              = *slot;
+
+      builder->positionBounds = geo_box_encapsulate(&builder->positionBounds, vertex.position);
+      builder->texcoordBounds = geo_box_encapsulate(&builder->texcoordBounds, vertex.texcoord);
       return *slot;
     }
 
@@ -89,10 +95,12 @@ AssetMeshComp asset_mesh_create(const AssetMeshBuilder* builder) {
   mem_cpy(indicesMem, dynarray_at(&builder->indices, 0, idxCount));
 
   return (AssetMeshComp){
-      .vertices    = vertMem.ptr,
-      .vertexCount = vertCount,
-      .indices     = vertMem.ptr,
-      .indexCount  = idxCount,
+      .vertices       = vertMem.ptr,
+      .vertexCount    = vertCount,
+      .indices        = vertMem.ptr,
+      .indexCount     = idxCount,
+      .positionBounds = builder->positionBounds,
+      .texcoordBounds = builder->texcoordBounds,
   };
 }
 

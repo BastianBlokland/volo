@@ -1,5 +1,6 @@
 #pragma once
 #include "ecs_module.h"
+#include "geo_box.h"
 #include "geo_vector.h"
 
 typedef struct {
@@ -14,4 +15,5 @@ ecs_comp_extern_public(AssetMeshComp) {
   usize                  vertexCount;
   const u16*             indices;
   usize                  indexCount;
+  GeoBox                 positionBounds, texcoordBounds;
 };
