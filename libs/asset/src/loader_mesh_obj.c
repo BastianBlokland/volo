@@ -4,6 +4,7 @@
 #include "core_diag.h"
 #include "ecs_world.h"
 
+#include "mesh_utils_internal.h"
 #include "repo_internal.h"
 
 /**
@@ -29,7 +30,7 @@ typedef struct {
  * Contains three or more vertices, no upper bound on amount of vertices.
  */
 typedef struct {
-  u32  vertexIdx;
+  u32  vertexIndex;
   u32  vertexCount;
   bool useFaceNormal; // Indicates that a face normal should be used instead of per vertex normal.
 } ObjFace;
@@ -48,6 +49,7 @@ typedef enum {
   ObjError_IndexOutOfBounds,
   ObjError_UnexpectedEndOfFile,
   ObjError_FaceTooFewVertices,
+  ObjError_TooManyVertices,
 
   ObjError_Count,
 } ObjError;
@@ -58,6 +60,7 @@ static String obj_error_str(const ObjError err) {
       string_static("Out of bounds index"),
       string_static("Unexpected end-of-file"),
       string_static("Face contains too few vertices (minimum is 3)"),
+      string_static("Mesh contains too many vertices"),
   };
   ASSERT(array_elems(msgs) == ObjError_Count, "Incorrect number of obj-error messages");
   return msgs[err];
@@ -208,7 +211,7 @@ Success:
  * Example: 'f 6/4/1 3/5/3 7/6/5'
  */
 static String obj_read_face(String input, ObjData* data, ObjError* err) {
-  ObjFace face = {.vertexIdx = data->vertices.size};
+  ObjFace face = {.vertexIndex = data->vertices.size};
 
   while (LIKELY(!string_is_empty(input))) {
     switch (*string_begin(input)) {
@@ -289,6 +292,66 @@ End:
   return input;
 }
 
+static GeoVector obj_get_texcoord(const ObjData* data, const ObjVertex* vertex) {
+  if (sentinel_check(vertex->texcoordIndex)) {
+    return geo_vector(0);
+  }
+  return *dynarray_at_t(&data->texcoords, vertex->texcoordIndex, GeoVector);
+}
+
+static GeoVector obj_tri_norm(const GeoVector a, const GeoVector b, const GeoVector c) {
+  const GeoVector surface = geo_vector_cross3(geo_vector_sub(b, a), geo_vector_sub(c, a));
+  if (UNLIKELY(!surface.x && !surface.y && !surface.z)) {
+    // Triangle with zero area has technically no normal, but does ocur in the wild.
+    return geo_forward;
+  }
+  return geo_vector_norm(surface);
+}
+
+static void obj_triangulate(const ObjData* data, AssetMeshBuilder* builder) {
+  dynarray_for_t((DynArray*)&data->faces, ObjFace, face, {
+    const GeoVector* positions = data->positions.data.ptr;
+    const GeoVector* normals   = data->positions.data.ptr;
+    const ObjVertex* vertices  = data->vertices.data.ptr;
+
+    GeoVector faceNrm;
+    if (face->useFaceNormal) {
+      faceNrm = obj_tri_norm(
+          positions[vertices[face->vertexIndex].positionIndex],
+          positions[vertices[face->vertexIndex + 1].positionIndex],
+          positions[vertices[face->vertexIndex + 2].positionIndex]);
+    }
+
+    // Create a triangle fan around the first vertex.
+    const ObjVertex*      inA   = &vertices[face->vertexIndex];
+    const AssetMeshVertex vertA = {
+        .position = positions[inA->positionIndex],
+        .normal   = face->useFaceNormal ? faceNrm : normals[inA->normalIndex],
+        .texcoord = obj_get_texcoord(data, inA),
+    };
+
+    for (usize i = 2; i < face->vertexCount; ++i) {
+      const ObjVertex*      inB   = &vertices[face->vertexIndex + i - 1];
+      const AssetMeshVertex vertB = {
+          .position = positions[inB->positionIndex],
+          .normal   = face->useFaceNormal ? faceNrm : normals[inB->normalIndex],
+          .texcoord = obj_get_texcoord(data, inB),
+      };
+
+      const ObjVertex*      inC   = &vertices[face->vertexIndex + i];
+      const AssetMeshVertex vertC = {
+          .position = positions[inC->positionIndex],
+          .normal   = face->useFaceNormal ? faceNrm : normals[inC->normalIndex],
+          .texcoord = obj_get_texcoord(data, inC),
+      };
+
+      asset_mesh_builder_push(builder, vertA);
+      asset_mesh_builder_push(builder, vertB);
+      asset_mesh_builder_push(builder, vertC);
+    }
+  });
+}
+
 NORETURN static void obj_report_error(const ObjError err) {
   diag_crash_msg("Failed to parse WaveFront Obj Mesh, error: {}", fmt_text(obj_error_str(err)));
 }
@@ -308,11 +371,18 @@ void asset_load_obj(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
     obj_report_error(err);
   }
 
-  ecs_world_add_t(world, assetEntity, AssetMeshComp);
+  const usize numVerts = data.totalTris * 3;
+  if (numVerts > u16_max) {
+    obj_report_error(ObjError_TooManyVertices);
+  }
+  AssetMeshBuilder* builder = asset_mesh_builder_create(g_alloc_heap, numVerts);
+  obj_triangulate(&data, builder);
+
+  *ecs_world_add_t(world, assetEntity, AssetMeshComp) = asset_mesh_create(builder);
   ecs_world_add_empty_t(world, assetEntity, AssetLoadedComp);
 
-  // Cleanup temporary buffers.
-  // NOTE: Investigate using scratch memory for these.
+  // Cleanup temporary resources.
+  asset_mesh_builder_destroy(builder);
   dynarray_destroy(&data.positions);
   dynarray_destroy(&data.texcoords);
   dynarray_destroy(&data.normals);

@@ -44,7 +44,7 @@ void asset_mesh_builder_destroy(AssetMeshBuilder* builder) {
   alloc_free_t(builder->alloc, builder);
 }
 
-u16 asset_mesh_builder_push(AssetMeshBuilder* builder, const AssetMeshVertex* vertex) {
+u16 asset_mesh_builder_push(AssetMeshBuilder* builder, const AssetMeshVertex vertex) {
   diag_assert_msg(
       builder->vertices.size < builder->maxVertexCount, "Vertex count exceeds the maximum");
 
@@ -52,21 +52,20 @@ u16 asset_mesh_builder_push(AssetMeshBuilder* builder, const AssetMeshVertex* ve
    * Deduplicate using a simple open-addressing hash table.
    * https://en.wikipedia.org/wiki/Open_addressing
    */
-  const Mem vertexMem = mem_create(vertex, sizeof(AssetMeshVertex));
-  u32       bucket    = bits_hash_32(vertexMem) & (builder->tableSize - 1);
+  u32 bucket = bits_hash_32(mem_var(vertex)) & (builder->tableSize - 1);
   for (usize i = 0; i != builder->tableSize; ++i) {
     u16* slot = &builder->indexTable[bucket];
 
     if (LIKELY(sentinel_check(*slot))) {
       // Unique vertex, copy to output and save the index in the table.
       *slot                                                 = builder->vertices.size;
-      *dynarray_push_t(&builder->vertices, AssetMeshVertex) = *vertex;
+      *dynarray_push_t(&builder->vertices, AssetMeshVertex) = vertex;
       *dynarray_push_t(&builder->indices, u16)              = *slot;
       return *slot;
     }
 
     diag_assert(*slot < builder->vertices.size);
-    if (mem_eq(dynarray_at(&builder->vertices, *slot, 1), vertexMem)) {
+    if (mem_eq(dynarray_at(&builder->vertices, *slot, 1), mem_var(vertex))) {
       // Equal to the vertex in this slot, reuse the vertex.
       *dynarray_push_t(&builder->indices, u16) = *slot;
       return *slot;
