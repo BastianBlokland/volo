@@ -82,6 +82,12 @@ typedef struct {
   }
 
 /**
+ * Typed pointer to the first element in the array.
+ * NOTE: Returned pointer is only valid if '_ARRAY_'.size != 0.
+ */
+#define dynarray_begin_t(_ARRAY_, _TYPE_) mem_as_t((_ARRAY_)->data, _TYPE_)
+
+/**
  * Create a new dynamic array. 'stride' determines the space each item occupies and 'align'
  * specifies the required alignment for the memory allocation. 'capacity' determines the size of the
  * initial allocation, further allocations will be made automatically when more memory is needed.
