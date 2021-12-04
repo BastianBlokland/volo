@@ -310,9 +310,9 @@ static GeoVector obj_tri_norm(const GeoVector a, const GeoVector b, const GeoVec
 
 static void obj_triangulate(const ObjData* data, AssetMeshBuilder* builder) {
   dynarray_for_t((DynArray*)&data->faces, ObjFace, face, {
-    const GeoVector* positions = data->positions.data.ptr;
-    const GeoVector* normals   = data->positions.data.ptr;
-    const ObjVertex* vertices  = data->vertices.data.ptr;
+    const GeoVector* positions = dynarray_at_t(&data->positions, 0, GeoVector);
+    const GeoVector* normals   = dynarray_at_t(&data->normals, 0, GeoVector);
+    const ObjVertex* vertices  = dynarray_at_t(&data->vertices, 0, ObjVertex);
 
     GeoVector faceNrm;
     if (face->useFaceNormal) {
@@ -377,6 +377,7 @@ void asset_load_obj(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
   }
   AssetMeshBuilder* builder = asset_mesh_builder_create(g_alloc_heap, numVerts);
   obj_triangulate(&data, builder);
+  asset_mesh_compute_tangents(builder);
 
   *ecs_world_add_t(world, assetEntity, AssetMeshComp) = asset_mesh_create(builder);
   ecs_world_add_empty_t(world, assetEntity, AssetLoadedComp);

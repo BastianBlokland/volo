@@ -1,6 +1,7 @@
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
+#include "core_math.h"
 #include "core_sentinel.h"
 
 #include "mesh_utils_internal.h"
@@ -93,4 +94,83 @@ AssetMeshComp asset_mesh_create(const AssetMeshBuilder* builder) {
       .indices     = vertMem.ptr,
       .indexCount  = idxCount,
   };
+}
+
+void asset_mesh_compute_tangents(AssetMeshBuilder* builder) {
+
+  /**
+   * Calculate a tangent and bitangent per triangle and accumlate the results per vertex. At the end
+   * we compute a tangent per vertex by averaging the tangent and bitangents, this has the effect of
+   * smoothing the tangents for vertices that are shared by multiple triangles.
+   */
+
+  const usize vertCount = builder->vertices.size;
+  const usize idxCount  = builder->indices.size;
+
+  Mem bufferMem = alloc_alloc(g_alloc_heap, 2 * vertCount * sizeof(GeoVector), alignof(GeoVector));
+  mem_set(bufferMem, 0);
+
+  GeoVector* tangents   = bufferMem.ptr;
+  GeoVector* bitangents = tangents + vertCount;
+
+  AssetMeshVertex* vertices = dynarray_at_t(&builder->vertices, 0, AssetMeshVertex);
+  const u16*       indices  = dynarray_at_t(&builder->indices, 0, u16);
+
+  // Calculate per triangle tangents and bitangents and accumulate them per vertex.
+  diag_assert((builder->indices.size % 3) == 0); // Input has to be triangles.
+  for (usize i = 0; i != idxCount; i += 3) {
+    const AssetMeshVertex* vA = &vertices[indices[i]];
+    const AssetMeshVertex* vB = &vertices[indices[i + 1]];
+    const AssetMeshVertex* vC = &vertices[indices[i + 2]];
+
+    const GeoVector deltaPos1 = geo_vector_sub(vB->position, vA->position);
+    const GeoVector deltaPos2 = geo_vector_sub(vC->position, vA->position);
+    const GeoVector deltaTex1 = geo_vector_sub(vB->texcoord, vA->texcoord);
+    const GeoVector deltaTex2 = geo_vector_sub(vC->texcoord, vA->texcoord);
+
+    const f32 s = deltaTex1.x * deltaTex2.y - deltaTex2.x * deltaTex1.y;
+    if (math_abs(s) <= f32_epsilon) {
+      // Not possible to calculate a tangent/bitangent here, triangle has zero texcoord area.
+      continue;
+    }
+
+    const GeoVector pos1Tex2Y = geo_vector_mul(deltaPos1, deltaTex2.y);
+    const GeoVector pos2Tex1Y = geo_vector_mul(deltaPos2, deltaTex1.y);
+    const GeoVector tan       = geo_vector_div(geo_vector_sub(pos1Tex2Y, pos2Tex1Y), s);
+
+    tangents[indices[i]]     = geo_vector_add(tangents[indices[i]], tan);
+    tangents[indices[i + 1]] = geo_vector_add(tangents[indices[i + 1]], tan);
+    tangents[indices[i + 2]] = geo_vector_add(tangents[indices[i + 2]], tan);
+
+    const GeoVector pos1Tex2X = geo_vector_mul(deltaPos1, deltaTex2.x);
+    const GeoVector pos2Tex1X = geo_vector_mul(deltaPos2, deltaTex1.x);
+    const GeoVector bitan     = geo_vector_div(geo_vector_sub(pos2Tex1X, pos1Tex2X), s);
+
+    bitangents[indices[i]]     = geo_vector_add(bitangents[indices[i]], bitan);
+    bitangents[indices[i + 1]] = geo_vector_add(bitangents[indices[i + 1]], bitan);
+    bitangents[indices[i + 2]] = geo_vector_add(bitangents[indices[i + 2]], bitan);
+  }
+
+  // Write the tangents to the vertices vector.
+  for (usize i = 0; i != vertCount; ++i) {
+    const GeoVector t = tangents[i];        // tangent.
+    const GeoVector b = bitangents[i];      // bitangent.
+    const GeoVector n = vertices[i].normal; // normal.
+    if (geo_vector_mag_sqr(t) <= f32_epsilon) {
+      // Not possible to calculate a tangent, vertex is not used in any triangle with non-zero
+      // positional area and texcoord area.
+      vertices[i].tangent = geo_vector(1, 0, 0, 1);
+      continue;
+    }
+
+    // Ortho-normalize the tangent in case the texcoords are skewed.
+    GeoVector orthoTan = geo_vector_norm(geo_vector_sub(t, geo_vector_project(t, n)));
+
+    // Calculate the 'handedness', aka if the bi-tangent needs to be flipped.
+    orthoTan.w = (geo_vector_dot(geo_vector_cross3(n, t), b) < 0) ? 1.f : -1.f;
+
+    vertices[i].tangent = orthoTan;
+  }
+
+  alloc_free(g_alloc_heap, bufferMem);
 }
