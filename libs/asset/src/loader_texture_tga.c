@@ -92,7 +92,7 @@ typedef enum {
   TgaError_Count,
 } TgaError;
 
-static String tga_error_str(TgaError res) {
+static String tga_error_str(const TgaError err) {
   static const String msgs[] = {
       string_static("None"),
       string_static("Malformed tga header"),
@@ -107,7 +107,7 @@ static String tga_error_str(TgaError res) {
       string_static("Unsupported image size"),
   };
   ASSERT(array_elems(msgs) == TgaError_Count, "Incorrect number of tga-error messages");
-  return msgs[res];
+  return msgs[err];
 }
 
 static Mem tga_read_header(Mem input, TgaHeader* out, TgaError* err) {
