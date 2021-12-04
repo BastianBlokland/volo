@@ -10,7 +10,7 @@ struct sAssetMeshBuilder {
   DynArray   vertices; // AssetMeshVertex[]
   DynArray   indices;  // u16[]
   u16*       indexTable;
-  usize      tableSize, maxVertexCount;
+  u32        tableSize, maxVertexCount;
   GeoBox     positionBounds, texcoordBounds;
   Allocator* alloc;
 };
@@ -20,15 +20,15 @@ AssetMeshBuilder* asset_mesh_builder_create(Allocator* alloc, const usize maxVer
   *builder                  = (AssetMeshBuilder){
       .vertices       = dynarray_create_t(alloc, AssetMeshVertex, maxVertexCount),
       .indices        = dynarray_create_t(alloc, u16, maxVertexCount),
-      .tableSize      = bits_nextpow2(maxVertexCount),
-      .maxVertexCount = maxVertexCount,
+      .tableSize      = bits_nextpow2((u32)maxVertexCount),
+      .maxVertexCount = (u32)maxVertexCount,
       .positionBounds = geo_box_inverted(),
       .texcoordBounds = geo_box_inverted(),
       .alloc          = alloc,
   };
 
   builder->indexTable = alloc_array_t(alloc, u16, builder->tableSize);
-  for (usize i = 0; i != builder->tableSize; ++i) {
+  for (u32 i = 0; i != builder->tableSize; ++i) {
     builder->indexTable[i] = sentinel_u16;
   }
 
@@ -62,7 +62,7 @@ u16 asset_mesh_builder_push(AssetMeshBuilder* builder, const AssetMeshVertex ver
 
     if (LIKELY(sentinel_check(*slot))) {
       // Unique vertex, copy to output and save the index in the table.
-      *slot                                                 = builder->vertices.size;
+      *slot                                                 = (u16)builder->vertices.size;
       *dynarray_push_t(&builder->vertices, AssetMeshVertex) = vertex;
       *dynarray_push_t(&builder->indices, u16)              = *slot;
 
@@ -97,7 +97,7 @@ AssetMeshComp asset_mesh_create(const AssetMeshBuilder* builder) {
   return (AssetMeshComp){
       .vertices       = vertMem.ptr,
       .vertexCount    = vertCount,
-      .indices        = vertMem.ptr,
+      .indices        = indicesMem.ptr,
       .indexCount     = idxCount,
       .positionBounds = builder->positionBounds,
       .texcoordBounds = builder->texcoordBounds,
@@ -121,8 +121,8 @@ void asset_mesh_compute_tangents(AssetMeshBuilder* builder) {
   GeoVector* tangents   = bufferMem.ptr;
   GeoVector* bitangents = tangents + vertCount;
 
-  AssetMeshVertex* vertices = dynarray_at_t(&builder->vertices, 0, AssetMeshVertex);
-  const u16*       indices  = dynarray_at_t(&builder->indices, 0, u16);
+  AssetMeshVertex* vertices = dynarray_begin_t(&builder->vertices, AssetMeshVertex);
+  const u16*       indices  = dynarray_begin_t(&builder->indices, u16);
 
   // Calculate per triangle tangents and bitangents and accumulate them per vertex.
   diag_assert((builder->indices.size % 3) == 0); // Input has to be triangles.

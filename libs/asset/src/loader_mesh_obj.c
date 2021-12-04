@@ -50,6 +50,7 @@ typedef enum {
   ObjError_UnexpectedEndOfFile,
   ObjError_FaceTooFewVertices,
   ObjError_TooManyVertices,
+  ObjError_NoFaces,
 
   ObjError_Count,
 } ObjError;
@@ -61,6 +62,7 @@ static String obj_error_str(const ObjError err) {
       string_static("Unexpected end-of-file"),
       string_static("Face contains too few vertices (minimum is 3)"),
       string_static("Mesh contains too many vertices"),
+      string_static("At least one mesh face is required"),
   };
   ASSERT(array_elems(msgs) == ObjError_Count, "Incorrect number of obj-error messages");
   return msgs[err];
@@ -137,7 +139,7 @@ static String obj_read_normal(String input, ObjData* data, ObjError* err) {
 
   GeoVector normal;
   input = obj_read_vec3(input, &normal);
-  if (UNLIKELY(!normal.x && !normal.y && !normal.z)) {
+  if (UNLIKELY(geo_vector_mag_sqr(normal) <= f32_epsilon)) {
     normal = geo_forward; // Handle obj files that define 'vn 0 0 0'.
   }
   *dynarray_push_t(&data->normals, GeoVector) = geo_vector_norm(normal);
@@ -153,7 +155,7 @@ static String obj_read_index(String input, const usize attributeCount, u32* out,
    */
   i64 num;
   input = format_read_i64(input, &num, 10);
-  num   = num < 0 ? (i64)attributeCount - num : num - 1;
+  num   = num < 0 ? (i64)attributeCount + num : num - 1;
   if (UNLIKELY(num < 0 || num >= (i64)attributeCount)) {
     *err = ObjError_IndexOutOfBounds;
   } else {
@@ -211,7 +213,7 @@ Success:
  * Example: 'f 6/4/1 3/5/3 7/6/5'
  */
 static String obj_read_face(String input, ObjData* data, ObjError* err) {
-  ObjFace face = {.vertexIndex = data->vertices.size};
+  ObjFace face = {.vertexIndex = (u32)data->vertices.size};
 
   while (LIKELY(!string_is_empty(input))) {
     switch (*string_begin(input)) {
@@ -278,13 +280,16 @@ static String obj_read_data(String input, ObjData* data, ObjError* err) {
         input = obj_read_normal(input, data, err);
         break;
       default:
-        input = format_read_line(input, null); // Unknown data (includes comments etc).
+        input = format_read_line(input, null); // Unknown data.
         break;
       }
       break;
     case 'f':
       input = string_consume(input, 1); // Consume 'f'.
       input = obj_read_face(input, data, err);
+      break;
+    default:
+      input = format_read_line(input, null); // Unknown data.
       break;
     }
   }
@@ -301,7 +306,7 @@ static GeoVector obj_get_texcoord(const ObjData* data, const ObjVertex* vertex) 
 
 static GeoVector obj_tri_norm(const GeoVector a, const GeoVector b, const GeoVector c) {
   const GeoVector surface = geo_vector_cross3(geo_vector_sub(b, a), geo_vector_sub(c, a));
-  if (UNLIKELY(!surface.x && !surface.y && !surface.z)) {
+  if (UNLIKELY(geo_vector_mag_sqr(surface) <= f32_epsilon)) {
     // Triangle with zero area has technically no normal, but does ocur in the wild.
     return geo_forward;
   }
@@ -310,9 +315,9 @@ static GeoVector obj_tri_norm(const GeoVector a, const GeoVector b, const GeoVec
 
 static void obj_triangulate(const ObjData* data, AssetMeshBuilder* builder) {
   dynarray_for_t((DynArray*)&data->faces, ObjFace, face, {
-    const GeoVector* positions = dynarray_at_t(&data->positions, 0, GeoVector);
-    const GeoVector* normals   = dynarray_at_t(&data->normals, 0, GeoVector);
-    const ObjVertex* vertices  = dynarray_at_t(&data->vertices, 0, ObjVertex);
+    const GeoVector* positions = dynarray_begin_t(&data->positions, GeoVector);
+    const GeoVector* normals   = dynarray_begin_t(&data->normals, GeoVector);
+    const ObjVertex* vertices  = dynarray_begin_t(&data->vertices, ObjVertex);
 
     GeoVector faceNrm;
     if (face->useFaceNormal) {
@@ -369,6 +374,9 @@ void asset_load_obj(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
   asset_source_close(src);
   if (err) {
     obj_report_error(err);
+  }
+  if (!data.totalTris) {
+    obj_report_error(ObjError_NoFaces);
   }
 
   const usize numVerts = data.totalTris * 3;
