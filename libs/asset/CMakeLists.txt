@@ -16,6 +16,7 @@ add_library(volo_asset STATIC
   src/loader_texture.c
   src/loader.c
   src/manager.c
+  src/mesh_utils.c
   src/register.c
   src/repo_fs.c
   src/repo_mem.c
