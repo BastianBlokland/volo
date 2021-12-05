@@ -35,12 +35,12 @@ static u32 ecs_archetype_entities_per_chunk(const EcsDef* def, BitSet mask) {
    */
   usize entityDataSize = sizeof(EcsEntityId);
   usize padding        = 0;
-  bitset_for(mask, compId, {
+  bitset_for(mask, compId) {
     const usize compSize  = ecs_def_comp_size(def, (EcsCompId)compId);
     const usize compAlign = ecs_def_comp_align(def, (EcsCompId)compId);
     padding += bits_padding(entityDataSize + padding, compAlign);
     entityDataSize += compSize;
-  });
+  }
   return (u32)((ecs_archetype_chunk_size - padding) / entityDataSize);
 }
 
@@ -140,7 +140,7 @@ EcsArchetype ecs_archetype_create(const EcsDef* def, BitSet mask) {
 
   usize offset  = sizeof(EcsEntityId) * entitiesPerChunk;
   usize compIdx = 0;
-  bitset_for(mask, compId, {
+  bitset_for(mask, compId) {
     const usize compSize  = ecs_def_comp_size(def, (EcsCompId)compId);
     const usize compAlign = ecs_def_comp_align(def, (EcsCompId)compId);
     offset                = bits_align(offset, compAlign);
@@ -148,7 +148,7 @@ EcsArchetype ecs_archetype_create(const EcsDef* def, BitSet mask) {
     compSizes[compIdx]    = (u16)compSize;
     offset += compSize * entitiesPerChunk;
     ++compIdx;
-  });
+  }
 
   return (EcsArchetype){
       .mask                = alloc_dup(g_alloc_heap, mask, 1),
@@ -245,7 +245,7 @@ void ecs_archetype_copy_across(
   const EcsArchetypeLoc dstLoc = ecs_archetype_location(dst, dstIdx);
   const EcsArchetypeLoc srcLoc = ecs_archetype_location(src, srcIdx);
 
-  bitset_for(mask, comp, {
+  bitset_for(mask, comp) {
     const usize dstCompIdx = ecs_archetype_comp_idx(dst, (EcsCompId)comp);
     const usize srcCompIdx = ecs_archetype_comp_idx(src, (EcsCompId)comp);
     const usize compSize   = dstCompSizes[dstCompIdx];
@@ -257,5 +257,5 @@ void ecs_archetype_copy_across(
     const Mem srcCompMem = mem_create(srcChunkData + compSize * srcLoc.indexInChunk, compSize);
 
     mem_cpy(dstCompMem, srcCompMem);
-  });
+  }
 }

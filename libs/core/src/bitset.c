@@ -54,7 +54,9 @@ bool bitset_all_of(BitSet bits, BitSet other) {
 }
 
 usize bitset_next(BitSet bits, usize idx) {
-  diag_assert(idx < bitset_size(bits));
+  if (UNLIKELY(idx >= bitset_size(bits))) {
+    return sentinel_usize;
+  }
   usize byteIdx = bits_to_bytes(idx);
   u8    byte    = *mem_at_u8(bits, byteIdx) >> bit_in_byte(idx);
   if (byte) {

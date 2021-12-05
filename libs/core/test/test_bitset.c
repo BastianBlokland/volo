@@ -144,10 +144,10 @@ spec(bitset) {
     const BitSet     bits = bitset_from_var(mask);
 
     usize i = 0;
-    bitset_for(bits, setIdx, {
+    bitset_for(bits, setIdx) {
       check_eq_int(bitset_index(bits, setIdx), i);
       ++i;
-    });
+    }
   }
 
   it("can iterate all set bits") {
@@ -160,7 +160,7 @@ spec(bitset) {
     check_eq_int(bitset_count(bits), array_elems(indices));
 
     usize i = 0;
-    bitset_for(bits, setIdx, { check_eq_int(setIdx, indices[i++]); });
+    bitset_for(bits, setIdx) { check_eq_int(setIdx, indices[i++]); }
   }
 
   it("can set all bits up to a certain index") {
