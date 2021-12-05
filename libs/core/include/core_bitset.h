@@ -29,8 +29,7 @@ typedef Mem BitSet;
 
 /**
  * Iterate over all the set bits in a bitset.
- * NOTE: _BITSET_ is expanded multiple times, so care must be taken when providing complex
- * expressions.
+ * NOTE: _BITSET_ is expanded multiple times, so care must be taken when providing complex exprs.
  */
 #define bitset_for(_BITSET_, _VAR_)                                                                \
   for (usize _VAR_ = 0; !sentinel_check(_VAR_ = bitset_next(_BITSET_, _VAR_)); ++_VAR_)
@@ -69,7 +68,6 @@ bool bitset_all_of(BitSet, BitSet other);
 
 /**
  * Return the next set bit starting from the given index.
- * Pre-condition: idx < bitset_size
  * NOTE: Returns 'sentinel_usize' if there are no more set bits.
  */
 usize bitset_next(BitSet, usize idx);
