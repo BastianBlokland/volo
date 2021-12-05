@@ -10,3 +10,4 @@ ecs_comp_extern_public(SceneTransformComp) {
 };
 
 GeoMatrix scene_transform_matrix(const SceneTransformComp*);
+GeoMatrix scene_transform_matrix_inv(const SceneTransformComp*);
