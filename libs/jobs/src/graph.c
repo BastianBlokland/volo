@@ -99,7 +99,7 @@ static usize jobs_graph_task_transitive_reduce(
   if (bitset_test(processed, task)) {
     return depsRemoved; // Already processed.
   }
-  jobs_graph_for_task_child(graph, task, child, {
+  jobs_graph_for_task_child(graph, task, child) {
     // Dependency from 'child' to 'root' can be removed as we already inherited that dependency
     // through 'task'.
     if (jobs_graph_task_undepend(graph, rootTask, child.task)) {
@@ -107,7 +107,7 @@ static usize jobs_graph_task_transitive_reduce(
     }
     // Recurse in a 'depth-first' manner.
     depsRemoved += jobs_graph_task_transitive_reduce(graph, rootTask, child.task, processed);
-  });
+  }
   bitset_set(processed, task); // Mark the task as processed.
   return depsRemoved;
 }
@@ -123,9 +123,9 @@ static usize jobs_graph_task_reduce_dependencies(JobGraph* graph, const JobTaskI
   mem_set(processed, 0);
 
   usize depsRemoved = 0;
-  jobs_graph_for_task_child(graph, task, child, {
+  jobs_graph_for_task_child(graph, task, child) {
     depsRemoved += jobs_graph_task_transitive_reduce(graph, task, child.task, processed);
-  });
+  }
   return depsRemoved;
 }
 
@@ -139,11 +139,11 @@ static bool jobs_graph_has_task_cycle(
   }
   bitset_set(processing, task); // Mark the task as currently being processed.
 
-  jobs_graph_for_task_child(graph, task, child, {
+  jobs_graph_for_task_child(graph, task, child) {
     if (jobs_graph_has_task_cycle(graph, child.task, processed, processing)) {
       return true;
     }
-  });
+  }
 
   bitset_clear(processing, task);
   bitset_set(processed, task);
@@ -166,14 +166,14 @@ static bool jobs_graph_has_cycle(const JobGraph* graph) {
   mem_set(processed, 0);
   mem_set(processing, 0);
 
-  jobs_graph_for_task(graph, taskId, {
+  jobs_graph_for_task(graph, taskId) {
     if (bitset_test(processed, taskId)) {
       continue; // Already processed.
     }
     if (jobs_graph_has_task_cycle(graph, taskId, processed, processing)) {
       return true;
     }
-  });
+  }
   return false;
 }
 
@@ -193,12 +193,12 @@ static void jobs_graph_topologically_insert(
    */
   bitset_set(processed, task); // Mark the task as processed.
 
-  jobs_graph_for_task_child(graph, task, child, {
+  jobs_graph_for_task_child(graph, task, child) {
     if (bitset_test(processed, child.task)) {
       continue; // Already processed.
     }
     jobs_graph_topologically_insert(graph, child.task, processed, sortedIndices);
-  });
+  }
 
   *dynarray_push_t(sortedIndices, JobTaskId) = task;
 }
@@ -223,12 +223,12 @@ static usize jobs_graph_longestpath(const JobGraph* graph) {
   DynArray sortedTasks = dynarray_create_t(g_alloc_heap, JobTaskId, graph->tasks.size);
 
   // Created a topologically sorted set of tasks.
-  jobs_graph_for_task(graph, taskId, {
+  jobs_graph_for_task(graph, taskId) {
     if (bitset_test(processed, taskId)) {
       continue; // Already processed.
     }
     jobs_graph_topologically_insert(graph, taskId, processed, &sortedTasks);
-  });
+  }
 
   /**
    * Keep a distance per task in the graph.
@@ -249,13 +249,13 @@ static usize jobs_graph_longestpath(const JobGraph* graph) {
     const usize     currentDist = *dynarray_at_t(&distances, taskId, usize);
 
     if (!sentinel_check(currentDist)) {
-      jobs_graph_for_task_child(graph, taskId, child, {
+      jobs_graph_for_task_child(graph, taskId, child) {
         usize* childDist = dynarray_at_t(&distances, child.task, usize);
         if (sentinel_check(*childDist) || *childDist < (currentDist + 1)) {
           *childDist = currentDist + 1;
         }
         maxDist = math_max(maxDist, *childDist);
-      });
+      }
     }
   }
 
@@ -341,8 +341,9 @@ bool jobs_graph_task_undepend(JobGraph* graph, JobTaskId parent, JobTaskId child
 
 usize jobs_graph_reduce_dependencies(JobGraph* graph) {
   usize depsRemoved = 0;
-  jobs_graph_for_task(
-      graph, taskId, { depsRemoved += jobs_graph_task_reduce_dependencies(graph, taskId); });
+  jobs_graph_for_task(graph, taskId) {
+    depsRemoved += jobs_graph_task_reduce_dependencies(graph, taskId);
+  }
   return depsRemoved;
 }
 
@@ -352,13 +353,13 @@ usize jobs_graph_task_count(const JobGraph* graph) { return graph->tasks.size; }
 
 usize jobs_graph_task_root_count(const JobGraph* graph) {
   usize count = 0;
-  jobs_graph_for_task(graph, taskId, { count += !jobs_graph_task_has_parent(graph, taskId); });
+  jobs_graph_for_task(graph, taskId) { count += !jobs_graph_task_has_parent(graph, taskId); }
   return count;
 }
 
 usize jobs_graph_task_leaf_count(const JobGraph* graph) {
   usize count = 0;
-  jobs_graph_for_task(graph, taskId, { count += !jobs_graph_task_has_child(graph, taskId); });
+  jobs_graph_for_task(graph, taskId) { count += !jobs_graph_task_has_child(graph, taskId); }
   return count;
 }
 

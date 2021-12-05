@@ -21,10 +21,10 @@ dot_write_task_child_edges(DynString* str, const JobGraph* graph, const JobTaskI
   fmt_write(str, "  task_{} -> {", fmt_int(taskId));
 
   bool elemWritten = false;
-  jobs_graph_for_task_child(graph, taskId, child, {
+  jobs_graph_for_task_child(graph, taskId, child) {
     fmt_write(str, "{}task_{}", elemWritten ? fmt_text_lit(", ") : fmt_nop(), fmt_int(child.task));
     elemWritten = true;
-  });
+  }
 
   if (!elemWritten) {
     fmt_write(str, "end"); // If we have no child then the job's end depends on us.
@@ -35,13 +35,13 @@ dot_write_task_child_edges(DynString* str, const JobGraph* graph, const JobTaskI
 static void dot_write_start_task_edges(DynString* str, const JobGraph* graph) {
   fmt_write(str, "  start -> {");
   bool elemWritten = false;
-  jobs_graph_for_task(graph, taskId, {
+  jobs_graph_for_task(graph, taskId) {
     if (jobs_graph_task_has_parent(graph, taskId)) {
       continue;
     }
     fmt_write(str, "{}task_{}", elemWritten ? fmt_text_lit(", ") : fmt_nop(), fmt_int(taskId));
     elemWritten = true;
-  });
+  }
   fmt_write(str, "}\n");
 }
 
@@ -54,7 +54,7 @@ void jobs_dot_write_graph(DynString* str, const JobGraph* graph) {
       fmt_text(jobs_graph_name(graph)));
 
   // Write task nodes.
-  jobs_graph_for_task(graph, taskId, { dot_write_task_node(str, graph, taskId); });
+  jobs_graph_for_task(graph, taskId) { dot_write_task_node(str, graph, taskId); }
   fmt_write(str, "\n");
 
   // Add edges from the start node to tasks without parents.
@@ -62,7 +62,7 @@ void jobs_dot_write_graph(DynString* str, const JobGraph* graph) {
   fmt_write(str, "\n");
 
   // Add edges from tasks to other task nodes (or the end node).
-  jobs_graph_for_task(graph, taskId, { dot_write_task_child_edges(str, graph, taskId); });
+  jobs_graph_for_task(graph, taskId) { dot_write_task_child_edges(str, graph, taskId); }
   fmt_write(str, "}\n");
 }
 

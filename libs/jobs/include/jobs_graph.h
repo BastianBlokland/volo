@@ -46,24 +46,16 @@ typedef struct sJobGraph JobGraph;
 /**
  * Iterate over all tasks in the JobGraph.
  */
-#define jobs_graph_for_task(_GRAPH_, _VAR_, ...)                                                   \
-  {                                                                                                \
-    for (JobTaskId _VAR_ = 0; _VAR_ != jobs_graph_task_count(_GRAPH_); ++_VAR_) {                  \
-      __VA_ARGS__                                                                                  \
-    }                                                                                              \
-  }
+#define jobs_graph_for_task(_GRAPH_, _VAR_)                                                        \
+  for (JobTaskId _VAR_ = 0; _VAR_ != jobs_graph_task_count(_GRAPH_); ++_VAR_)
 
 /**
  * Iterate over all child tasks for a task in the given JobGraph.
  */
-#define jobs_graph_for_task_child(_GRAPH_, _TASK_, _VAR_, ...)                                     \
-  {                                                                                                \
-    for (JobTaskChildItr _VAR_ = jobs_graph_task_child_begin(_GRAPH_, _TASK_);                     \
-         !sentinel_check(_VAR_.task);                                                              \
-         _VAR_ = jobs_graph_task_child_next(_GRAPH_, _VAR_)) {                                     \
-      __VA_ARGS__                                                                                  \
-    }                                                                                              \
-  }
+#define jobs_graph_for_task_child(_GRAPH_, _TASK_, _VAR_)                                          \
+  for (JobTaskChildItr _VAR_ = jobs_graph_task_child_begin(_GRAPH_, _TASK_);                       \
+       !sentinel_check(_VAR_.task);                                                                \
+       _VAR_ = jobs_graph_task_child_next(_GRAPH_, _VAR_))
 
 /**
  * Create a new JobGraph.
