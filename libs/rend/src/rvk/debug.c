@@ -3,8 +3,8 @@
 
 #include "debug_internal.h"
 
-struct sRendVkDebug {
-  RendVkDebugFlags                 flags;
+struct sRvkDebug {
+  RvkDebugFlags                    flags;
   Logger*                          logger;
   VkInstance                       vkInstance;
   VkDevice                         vkDevice;
@@ -15,16 +15,16 @@ struct sRendVkDebug {
   PFN_vkCmdEndDebugUtilsLabelEXT   vkLabelEndFunc;
 };
 
-static const char* rend_to_null_term_scratch(String api) {
+static const char* rvk_to_null_term_scratch(String api) {
   const Mem scratchMem = alloc_alloc(g_alloc_scratch, api.size + 1, 1);
   mem_cpy(scratchMem, api);
   *mem_at_u8(scratchMem, api.size) = '\0';
   return scratchMem.ptr;
 }
 
-static int rend_messenger_severity_mask(const RendVkDebugFlags flags) {
+static int rvk_messenger_severity_mask(const RvkDebugFlags flags) {
   int severity = 0;
-  if (flags & RendVkDebugFlags_Verbose) {
+  if (flags & RvkDebugFlags_Verbose) {
     severity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
   }
   severity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
@@ -32,13 +32,13 @@ static int rend_messenger_severity_mask(const RendVkDebugFlags flags) {
   return severity;
 }
 
-static int rend_messenger_type_mask() {
+static int rvk_messenger_type_mask() {
   return VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
          VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
          VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 }
 
-static String rend_msg_type_label(const VkDebugUtilsMessageTypeFlagsEXT msgType) {
+static String rvk_msg_type_label(const VkDebugUtilsMessageTypeFlagsEXT msgType) {
   if (msgType & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT) {
     return string_lit("performance");
   }
@@ -51,7 +51,7 @@ static String rend_msg_type_label(const VkDebugUtilsMessageTypeFlagsEXT msgType)
   return string_lit("unknown");
 }
 
-static LogLevel rend_msg_log_level(const VkDebugUtilsMessageSeverityFlagBitsEXT msgSeverity) {
+static LogLevel rvk_msg_log_level(const VkDebugUtilsMessageSeverityFlagBitsEXT msgSeverity) {
   if (msgSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
     return LogLevel_Error;
   }
@@ -64,15 +64,15 @@ static LogLevel rend_msg_log_level(const VkDebugUtilsMessageSeverityFlagBitsEXT 
   return LogLevel_Debug;
 }
 
-static VkBool32 rend_vk_message_func(
+static VkBool32 rvk_message_func(
     VkDebugUtilsMessageSeverityFlagBitsEXT      msgSeverity,
     VkDebugUtilsMessageTypeFlagsEXT             msgType,
     const VkDebugUtilsMessengerCallbackDataEXT* callbackData,
     void*                                       userData) {
-  RendVkDebug* dbg = userData;
+  RvkDebug* dbg = userData;
 
-  const LogLevel logLevel  = rend_msg_log_level(msgSeverity);
-  const String   typeLabel = rend_msg_type_label(msgType);
+  const LogLevel logLevel  = rvk_msg_log_level(msgSeverity);
+  const String   typeLabel = rvk_msg_type_label(msgType);
   const String   message   = string_from_null_term(callbackData->pMessage);
 
   log(dbg->logger,
@@ -84,74 +84,74 @@ static VkBool32 rend_vk_message_func(
   return false;
 }
 
-static void rend_vk_messenger_create(RendVkDebug* dbg) {
+static void rvk_messenger_create(RvkDebug* dbg) {
   VkDebugUtilsMessengerCreateInfoEXT createInfo = {
       .sType           = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-      .messageSeverity = rend_messenger_severity_mask(dbg->flags),
-      .messageType     = rend_messenger_type_mask(),
-      .pfnUserCallback = rend_vk_message_func,
+      .messageSeverity = rvk_messenger_severity_mask(dbg->flags),
+      .messageType     = rvk_messenger_type_mask(),
+      .pfnUserCallback = rvk_message_func,
       .pUserData       = dbg,
   };
-  rend_vk_func_load_instance(dbg->vkInstance, vkCreateDebugUtilsMessengerEXT)(
+  rvk_func_load_instance(dbg->vkInstance, vkCreateDebugUtilsMessengerEXT)(
       dbg->vkInstance, &createInfo, dbg->vkAllocHost, &dbg->vkMessenger);
 }
 
-static void rend_vk_messenger_destroy(RendVkDebug* dbg) {
-  rend_vk_func_load_instance(dbg->vkInstance, vkDestroyDebugUtilsMessengerEXT)(
+static void rvk_messenger_destroy(RvkDebug* dbg) {
+  rvk_func_load_instance(dbg->vkInstance, vkDestroyDebugUtilsMessengerEXT)(
       dbg->vkInstance, dbg->vkMessenger, dbg->vkAllocHost);
 }
 
-RendVkDebug* rend_vk_debug_create(
+RvkDebug* rvk_debug_create(
     VkInstance             vkInstance,
     VkDevice               vkDevice,
     VkAllocationCallbacks* vkAllocHost,
-    const RendVkDebugFlags flags) {
+    const RvkDebugFlags    flags) {
 
-  RendVkDebug* debug = alloc_alloc_t(g_alloc_heap, RendVkDebug);
-  *debug             = (RendVkDebug){
+  RvkDebug* debug = alloc_alloc_t(g_alloc_heap, RvkDebug);
+  *debug          = (RvkDebug){
       .flags            = flags,
       .logger           = g_logger,
       .vkInstance       = vkInstance,
       .vkDevice         = vkDevice,
       .vkAllocHost      = vkAllocHost,
-      .vkObjectNameFunc = rend_vk_func_load_instance(vkInstance, vkSetDebugUtilsObjectNameEXT),
-      .vkLabelBeginFunc = rend_vk_func_load_instance(vkInstance, vkCmdBeginDebugUtilsLabelEXT),
-      .vkLabelEndFunc   = rend_vk_func_load_instance(vkInstance, vkCmdEndDebugUtilsLabelEXT),
+      .vkObjectNameFunc = rvk_func_load_instance(vkInstance, vkSetDebugUtilsObjectNameEXT),
+      .vkLabelBeginFunc = rvk_func_load_instance(vkInstance, vkCmdBeginDebugUtilsLabelEXT),
+      .vkLabelEndFunc   = rvk_func_load_instance(vkInstance, vkCmdEndDebugUtilsLabelEXT),
   };
-  rend_vk_messenger_create(debug);
+  rvk_messenger_create(debug);
 
   return debug;
 }
 
-void rend_vk_debug_destroy(RendVkDebug* debug) {
-  rend_vk_messenger_destroy(debug);
+void rvk_debug_destroy(RvkDebug* debug) {
+  rvk_messenger_destroy(debug);
   alloc_free_t(g_alloc_heap, debug);
 }
 
-void rend_vk_debug_name(
-    RendVkDebug* debug, const VkObjectType vkType, const u64 vkHandle, const String name) {
+void rvk_debug_name(
+    RvkDebug* debug, const VkObjectType vkType, const u64 vkHandle, const String name) {
 
   VkDebugUtilsObjectNameInfoEXT nameInfo = {
       .sType        = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
       .objectType   = vkType,
       .objectHandle = vkHandle,
-      .pObjectName  = rend_to_null_term_scratch(name),
+      .pObjectName  = rvk_to_null_term_scratch(name),
   };
   const VkResult result = debug->vkObjectNameFunc(debug->vkDevice, &nameInfo);
-  rend_vk_check(string_lit("vkSetDebugUtilsObjectNameEXT"), result);
+  rvk_check(string_lit("vkSetDebugUtilsObjectNameEXT"), result);
 }
 
-void rend_vk_debug_label_begin(
-    RendVkDebug* debug, VkCommandBuffer vkCmdBuffer, const String name, const RendColor color) {
+void rvk_debug_label_begin(
+    RvkDebug* debug, VkCommandBuffer vkCmdBuffer, const String name, const RendColor color) {
 
   VkDebugUtilsLabelEXT label = {
       .sType      = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
-      .pLabelName = rend_to_null_term_scratch(name),
+      .pLabelName = rvk_to_null_term_scratch(name),
       .color      = {color.r, color.g, color.b, color.a},
   };
   debug->vkLabelBeginFunc(vkCmdBuffer, &label);
 }
 
-void rend_vk_debug_label_end(RendVkDebug* debug, VkCommandBuffer vkCmdBuffer) {
+void rvk_debug_label_end(RvkDebug* debug, VkCommandBuffer vkCmdBuffer) {
   debug->vkLabelEndFunc(vkCmdBuffer);
 }

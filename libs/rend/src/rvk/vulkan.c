@@ -4,30 +4,30 @@
 
 #include "vulkan_internal.h"
 
-static const char* rend_to_null_term_scratch(String api) {
+static const char* rvk_to_null_term_scratch(String api) {
   const Mem scratchMem = alloc_alloc(g_alloc_scratch, api.size + 1, 1);
   mem_cpy(scratchMem, api);
   *mem_at_u8(scratchMem, api.size) = '\0';
   return scratchMem.ptr;
 }
 
-void* rend_vk_func_load_instance_internal(VkInstance instance, String api) {
-  const PFN_vkVoidFunction res = vkGetInstanceProcAddr(instance, rend_to_null_term_scratch(api));
+void* rvk_func_load_instance_internal(VkInstance instance, String api) {
+  const PFN_vkVoidFunction res = vkGetInstanceProcAddr(instance, rvk_to_null_term_scratch(api));
   if (UNLIKELY(!res)) {
     diag_crash_msg("Vulkan failed to load instance api: {}", fmt_text(api));
   }
   return (void*)res;
 }
 
-void* rend_vk_func_load_device_internal(VkDevice device, String api) {
-  const PFN_vkVoidFunction res = vkGetDeviceProcAddr(device, rend_to_null_term_scratch(api));
+void* rvk_func_load_device_internal(VkDevice device, String api) {
+  const PFN_vkVoidFunction res = vkGetDeviceProcAddr(device, rvk_to_null_term_scratch(api));
   if (UNLIKELY(!res)) {
     diag_crash_msg("Vulkan failed to load device api: {}", fmt_text(api));
   }
   return (void*)res;
 }
 
-void rend_vk_check(const String api, const VkResult result) {
+void rvk_check(const String api, const VkResult result) {
   if (LIKELY(result == VK_SUCCESS)) {
     return;
   }
@@ -36,10 +36,10 @@ void rend_vk_check(const String api, const VkResult result) {
     return;
   }
   diag_crash_msg(
-      "Vulkan {}: [{}] {}", fmt_text(api), fmt_int(result), fmt_text(rend_vk_result_str(result)));
+      "Vulkan {}: [{}] {}", fmt_text(api), fmt_int(result), fmt_text(rvk_result_str(result)));
 }
 
-String rend_vk_result_str(const VkResult result) {
+String rvk_result_str(const VkResult result) {
 #define RET_STR(NAME)                                                                              \
   case VK_##NAME:                                                                                  \
     return string_lit(#NAME)
@@ -89,7 +89,7 @@ String rend_vk_result_str(const VkResult result) {
 #undef RET_STR
 }
 
-String rend_vk_devicetype_str(const VkPhysicalDeviceType type) {
+String rvk_devicetype_str(const VkPhysicalDeviceType type) {
   switch (type) {
   case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
     return string_lit("integrated");
@@ -104,7 +104,7 @@ String rend_vk_devicetype_str(const VkPhysicalDeviceType type) {
   }
 }
 
-String rend_vk_vendor_str(const u32 vendorId) {
+String rvk_vendor_str(const u32 vendorId) {
   switch (vendorId) {
   case 0x1002:
     return string_lit("AMD");
@@ -123,7 +123,7 @@ String rend_vk_vendor_str(const u32 vendorId) {
   }
 }
 
-String rend_vk_colorspace_str(const VkColorSpaceKHR colorSpace) {
+String rvk_colorspace_str(const VkColorSpaceKHR colorSpace) {
 #define RET_STR(NAME)                                                                              \
   case VK_COLOR_SPACE_##NAME:                                                                      \
     return string_lit(#NAME)
@@ -151,7 +151,7 @@ String rend_vk_colorspace_str(const VkColorSpaceKHR colorSpace) {
 #undef RET_STR
 }
 
-String rend_vk_presentmode_str(const VkPresentModeKHR mode) {
+String rvk_presentmode_str(const VkPresentModeKHR mode) {
 #define RET_STR(NAME)                                                                              \
   case VK_PRESENT_MODE_##NAME:                                                                     \
     return string_lit(#NAME)
@@ -169,10 +169,10 @@ String rend_vk_presentmode_str(const VkPresentModeKHR mode) {
 #undef RET_STR
 }
 
-RendVkFormatInfo rend_vk_format_info(const VkFormat format) {
+RvkFormatInfo rvk_format_info(const VkFormat format) {
 #define RET_INFO(NAME, SIZE, CHANNEL_COUNT)                                                        \
   case VK_FORMAT_##NAME:                                                                           \
-    return (RendVkFormatInfo) { .name = string_lit(#NAME), .size = SIZE, .channels = CHANNEL_COUNT }
+    return (RvkFormatInfo) { .name = string_lit(#NAME), .size = SIZE, .channels = CHANNEL_COUNT }
 
   switch (format) {
     RET_INFO(R4G4_UNORM_PACK8, 1, 2);
@@ -402,7 +402,7 @@ RendVkFormatInfo rend_vk_format_info(const VkFormat format) {
     RET_INFO(G12X4_B12X4_R12X4_3PLANE_444_UNORM_3PACK16, 6, 3);
     RET_INFO(G16_B16_R16_3PLANE_444_UNORM, 6, 3);
   default:
-    return (RendVkFormatInfo){.name = string_lit("unknown"), .size = 0, .channels = 0};
+    return (RvkFormatInfo){.name = string_lit("unknown"), .size = 0, .channels = 0};
   }
 #undef RET_INFO
 }

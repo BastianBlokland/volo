@@ -7,14 +7,14 @@
 #include "rend_canvas.h"
 
 #include "platform_internal.h"
-#include "vulkan/platform_internal.h"
+#include "rvk/platform_internal.h"
 
 typedef enum {
   RendCanvasRequests_Create = 1 << 0,
 } RendCanvasRequests;
 
 ecs_comp_define(RendCanvasComp) {
-  RendVkCanvasId     id;
+  RvkCanvasId        id;
   RendCanvasRequests requests;
   RendColor          clearColor;
 };
@@ -24,20 +24,19 @@ canvas_render(RendPlatformComp* plat, const GapWindowComp* window, RendCanvasCom
   GapWindowEvents winEvents = gap_window_events(window);
 
   if (canvas->requests & RendCanvasRequests_Create) {
-    canvas->id = rend_vk_platform_canvas_create(plat->vulkan, window);
+    canvas->id = rvk_platform_canvas_create(plat->vulkan, window);
   }
   if (winEvents & GapWindowEvents_Closed) {
-    rend_vk_platform_canvas_destroy(plat->vulkan, canvas->id);
+    rvk_platform_canvas_destroy(plat->vulkan, canvas->id);
     canvas->requests = 0;
     return false;
   }
 
   const GapVector winSize  = gap_window_param(window, GapParam_WindowSize);
   const RendSize  rendSize = rend_size((u32)winSize.width, (u32)winSize.height);
-  const bool      draw =
-      rend_vk_platform_draw_begin(plat->vulkan, canvas->id, rendSize, canvas->clearColor);
+  const bool draw = rvk_platform_draw_begin(plat->vulkan, canvas->id, rendSize, canvas->clearColor);
   if (draw) {
-    rend_vk_platform_draw_end(plat->vulkan, canvas->id);
+    rvk_platform_draw_end(plat->vulkan, canvas->id);
   }
 
   canvas->requests = 0;

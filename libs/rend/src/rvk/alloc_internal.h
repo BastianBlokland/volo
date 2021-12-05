@@ -3,4 +3,4 @@
 
 #include "vulkan_internal.h"
 
-VkAllocationCallbacks rend_vk_alloc_host_create(Allocator*);
+VkAllocationCallbacks rvk_allocator(Allocator*);

@@ -5,16 +5,16 @@
 message(STATUS "> library: rend")
 
 add_library(volo_rend STATIC
-  src/vulkan/alloc_host.c
-  src/vulkan/canvas.c
-  src/vulkan/debug.c
-  src/vulkan/device.c
-  src/vulkan/image.c
-  src/vulkan/platform.c
-  src/vulkan/renderer.c
-  src/vulkan/swapchain.c
-  src/vulkan/technique.c
-  src/vulkan/vulkan.c
+  src/rvk/alloc_callbacks.c
+  src/rvk/canvas.c
+  src/rvk/debug.c
+  src/rvk/device.c
+  src/rvk/image.c
+  src/rvk/platform.c
+  src/rvk/renderer.c
+  src/rvk/swapchain.c
+  src/rvk/technique.c
+  src/rvk/vulkan.c
   src/canvas.c
   src/color.c
   src/platform.c

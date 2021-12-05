@@ -5,17 +5,17 @@
 #include "gap_native.h"
 #include "log_logger.h"
 
-#include "alloc_host_internal.h"
+#include "alloc_internal.h"
 #include "device_internal.h"
 
 #define rend_debug_verbose true
 
-static const RendVkDebugFlags g_debugFlags      = rend_debug_verbose ? RendVkDebugFlags_Verbose : 0;
-static const String           g_validationLayer = string_static("VK_LAYER_KHRONOS_validation");
-static const String           g_validationExt   = string_static("VK_EXT_debug_utils");
-static String                 g_requiredExts[]  = {string_static("VK_KHR_swapchain")};
+static const RvkDebugFlags g_debugFlags      = rend_debug_verbose ? RvkDebugFlags_Verbose : 0;
+static const String        g_validationLayer = string_static("VK_LAYER_KHRONOS_validation");
+static const String        g_validationExt   = string_static("VK_EXT_debug_utils");
+static String              g_requiredExts[]  = {string_static("VK_KHR_swapchain")};
 
-static VkApplicationInfo rend_vk_instance_app_info() {
+static VkApplicationInfo rvk_instance_app_info() {
   return (VkApplicationInfo){
       .sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
       .pApplicationName   = path_stem(g_path_executable).ptr,
@@ -29,10 +29,10 @@ static VkApplicationInfo rend_vk_instance_app_info() {
 /**
  * Check if the given instance layer is supported.
  */
-static bool rend_vk_instance_layer_supported(const String layer) {
+static bool rvk_instance_layer_supported(const String layer) {
   VkLayerProperties availableLayers[32];
   u32               availableLayerCount = array_elems(availableLayers);
-  rend_vk_call(vkEnumerateInstanceLayerProperties, &availableLayerCount, availableLayers);
+  rvk_call(vkEnumerateInstanceLayerProperties, &availableLayerCount, availableLayers);
 
   for (u32 i = 0; i != availableLayerCount; ++i) {
     if (string_eq(layer, string_from_null_term(availableLayers[i].layerName))) {
@@ -45,9 +45,9 @@ static bool rend_vk_instance_layer_supported(const String layer) {
 /**
  * Retrieve a list of required instance layers.
  */
-static u32 rend_vk_instance_required_layers(const char** output, const RendVkDeviceFlags flags) {
+static u32 rvk_instance_required_layers(const char** output, const RvkDeviceFlags flags) {
   u32 i = 0;
-  if (flags & RendVkDeviceFlags_Validation) {
+  if (flags & RvkDeviceFlags_Validation) {
     output[i++] = g_validationLayer.ptr;
   }
   return i;
@@ -56,8 +56,7 @@ static u32 rend_vk_instance_required_layers(const char** output, const RendVkDev
 /**
  * Retrieve a list of required instance extensions.
  */
-static u32
-rend_vk_instance_required_extensions(const char** output, const RendVkDeviceFlags flags) {
+static u32 rvk_instance_required_extensions(const char** output, const RvkDeviceFlags flags) {
   u32 i       = 0;
   output[i++] = VK_KHR_SURFACE_EXTENSION_NAME;
   switch (gap_native_wm()) {
@@ -68,21 +67,21 @@ rend_vk_instance_required_extensions(const char** output, const RendVkDeviceFlag
     output[i++] = "VK_KHR_win32_surface";
     break;
   }
-  if (flags & RendVkDeviceFlags_Validation) {
+  if (flags & RvkDeviceFlags_Validation) {
     output[i++] = g_validationExt.ptr;
   }
   return i;
 }
 
 static VkInstance
-rend_vk_instance_create(VkAllocationCallbacks* vkAllocHost, const RendVkDeviceFlags flags) {
-  const VkApplicationInfo appInfo = rend_vk_instance_app_info();
+rvk_instance_create(VkAllocationCallbacks* vkAllocHost, const RvkDeviceFlags flags) {
+  const VkApplicationInfo appInfo = rvk_instance_app_info();
 
   const char* layerNames[16];
-  const u32   layerCount = rend_vk_instance_required_layers(layerNames, flags);
+  const u32   layerCount = rvk_instance_required_layers(layerNames, flags);
 
   const char* extensionNames[16];
-  const u32   extensionCount = rend_vk_instance_required_extensions(extensionNames, flags);
+  const u32   extensionCount = rvk_instance_required_extensions(extensionNames, flags);
 
   VkInstanceCreateInfo createInfo = {
       .sType                   = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
@@ -94,7 +93,7 @@ rend_vk_instance_create(VkAllocationCallbacks* vkAllocHost, const RendVkDeviceFl
   };
 
   VkInstance result;
-  rend_vk_call(vkCreateInstance, &createInfo, vkAllocHost, &result);
+  rvk_call(vkCreateInstance, &createInfo, vkAllocHost, &result);
   return result;
 }
 
@@ -105,24 +104,24 @@ typedef struct {
 
 /**
  * Query a list of all supported device extensions.
- * NOTE: Free the list with 'rend_vk_device_exts_free()'
+ * NOTE: Free the list with 'rvk_device_exts_free()'
  */
-static RendDeviceExts rend_vk_device_exts_query(VkPhysicalDevice vkPhysicalDevice) {
+static RendDeviceExts rvk_device_exts_query(VkPhysicalDevice vkPhysicalDevice) {
   u32 count;
-  rend_vk_call(vkEnumerateDeviceExtensionProperties, vkPhysicalDevice, null, &count, null);
+  rvk_call(vkEnumerateDeviceExtensionProperties, vkPhysicalDevice, null, &count, null);
   VkExtensionProperties* props = alloc_array_t(g_alloc_heap, VkExtensionProperties, count);
-  rend_vk_call(vkEnumerateDeviceExtensionProperties, vkPhysicalDevice, null, &count, props);
+  rvk_call(vkEnumerateDeviceExtensionProperties, vkPhysicalDevice, null, &count, props);
   return (RendDeviceExts){.head = props, .count = count};
 }
 
-static void rend_vk_device_exts_free(RendDeviceExts exts) {
+static void rvk_device_exts_free(RendDeviceExts exts) {
   alloc_free_array_t(g_alloc_heap, exts.head, exts.count);
 }
 
 /**
  * Check if the given extension is contained in the list of available device extensions.
  */
-static bool rend_vk_device_has_ext(RendDeviceExts availableExts, String ext) {
+static bool rvk_device_has_ext(RendDeviceExts availableExts, String ext) {
   for (u32 i = 0; i != availableExts.count; ++i) {
     if (string_eq(ext, string_from_null_term(availableExts.head[i].extensionName))) {
       return true;
@@ -131,7 +130,7 @@ static bool rend_vk_device_has_ext(RendDeviceExts availableExts, String ext) {
   return false;
 }
 
-static i32 rend_vk_device_type_score_value(const VkPhysicalDeviceType device) {
+static i32 rvk_device_type_score_value(const VkPhysicalDeviceType device) {
   switch (device) {
   case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
     return 4;
@@ -146,7 +145,7 @@ static i32 rend_vk_device_type_score_value(const VkPhysicalDeviceType device) {
   }
 }
 
-static u32 rend_vk_device_pick_main_queue(VkPhysicalDevice vkPhysicalDevice) {
+static u32 rvk_device_pick_main_queue(VkPhysicalDevice vkPhysicalDevice) {
   VkQueueFamilyProperties families[32];
   u32                     familyCount = array_elems(families);
   vkGetPhysicalDeviceQueueFamilyProperties(vkPhysicalDevice, &familyCount, families);
@@ -160,20 +159,20 @@ static u32 rend_vk_device_pick_main_queue(VkPhysicalDevice vkPhysicalDevice) {
   diag_crash_msg("No main queue found");
 }
 
-static VkPhysicalDevice rend_vk_device_pick_physical_device(VkInstance vkInstance) {
+static VkPhysicalDevice rvk_device_pick_physical_device(VkInstance vkInstance) {
   VkPhysicalDevice devices[32];
   u32              devicesCount = array_elems(devices);
-  rend_vk_call(vkEnumeratePhysicalDevices, vkInstance, &devicesCount, devices);
+  rvk_call(vkEnumeratePhysicalDevices, vkInstance, &devicesCount, devices);
 
   VkPhysicalDevice bestVkDevice = null;
   i32              bestScore    = -1;
 
   for (usize i = 0; i != devicesCount; ++i) {
-    const RendDeviceExts exts = rend_vk_device_exts_query(devices[i]);
+    const RendDeviceExts exts = rvk_device_exts_query(devices[i]);
 
     i32 score = 0;
     array_for_t(g_requiredExts, String, reqExt, {
-      if (!rend_vk_device_has_ext(exts, *reqExt)) {
+      if (!rvk_device_has_ext(exts, *reqExt)) {
         score = -1;
         goto detectionDone;
       }
@@ -182,16 +181,16 @@ static VkPhysicalDevice rend_vk_device_pick_physical_device(VkInstance vkInstanc
     VkPhysicalDeviceProperties properties;
     vkGetPhysicalDeviceProperties(devices[i], &properties);
 
-    score += rend_vk_device_type_score_value(properties.deviceType);
+    score += rvk_device_type_score_value(properties.deviceType);
 
   detectionDone:
-    rend_vk_device_exts_free(exts);
+    rvk_device_exts_free(exts);
 
     log_d(
         "Vulkan physical device detected",
         log_param("device-name", fmt_text(string_from_null_term(properties.deviceName))),
-        log_param("device-type", fmt_text(rend_vk_devicetype_str(properties.deviceType))),
-        log_param("vendor", fmt_text(rend_vk_vendor_str(properties.vendorID))),
+        log_param("device-type", fmt_text(rvk_devicetype_str(properties.deviceType))),
+        log_param("vendor", fmt_text(rvk_vendor_str(properties.vendorID))),
         log_param("score", fmt_int(score)));
 
     if (score > bestScore) {
@@ -205,7 +204,7 @@ static VkPhysicalDevice rend_vk_device_pick_physical_device(VkInstance vkInstanc
   return bestVkDevice;
 }
 
-static VkPhysicalDeviceFeatures rend_vk_device_pick_features(RendVkDevice* device) {
+static VkPhysicalDeviceFeatures rvk_device_pick_features(RvkDevice* device) {
   VkPhysicalDeviceFeatures result = {0};
   if (device->vkSupportedFeatures.pipelineStatisticsQuery) {
     result.pipelineStatisticsQuery = true;
@@ -222,7 +221,7 @@ static VkPhysicalDeviceFeatures rend_vk_device_pick_features(RendVkDevice* devic
   return result;
 }
 
-static VkDevice rend_vk_device_create_internal(RendVkDevice* device) {
+static VkDevice rvk_device_create_internal(RvkDevice* device) {
   // Request our main queue (both graphics and transfer) to be created on the device.
   const f32               queuePriority   = 1.0f;
   VkDeviceQueueCreateInfo queueCreateInfo = {
@@ -237,7 +236,7 @@ static VkDevice rend_vk_device_create_internal(RendVkDevice* device) {
     extensionsToEnabled[i] = g_requiredExts[i].ptr;
   }
 
-  const VkPhysicalDeviceFeatures featuresToEnable = rend_vk_device_pick_features(device);
+  const VkPhysicalDeviceFeatures featuresToEnable = rvk_device_pick_features(device);
   VkDeviceCreateInfo             createInfo       = {
       .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
       .pQueueCreateInfos       = &queueCreateInfo,
@@ -248,12 +247,11 @@ static VkDevice rend_vk_device_create_internal(RendVkDevice* device) {
   };
 
   VkDevice result;
-  rend_vk_call(
-      vkCreateDevice, device->vkPhysicalDevice, &createInfo, &device->vkAllocHost, &result);
+  rvk_call(vkCreateDevice, device->vkPhysicalDevice, &createInfo, &device->vkAlloc, &result);
   return result;
 }
 
-static VkCommandPool rend_vk_device_commandpool_create(RendVkDevice* device) {
+static VkCommandPool rvk_device_commandpool_create(RvkDevice* device) {
   VkCommandPoolCreateInfo createInfo = {
       .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
       .queueFamilyIndex = device->mainQueueIndex,
@@ -261,11 +259,11 @@ static VkCommandPool rend_vk_device_commandpool_create(RendVkDevice* device) {
           VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
   };
   VkCommandPool result;
-  rend_vk_call(vkCreateCommandPool, device->vkDevice, &createInfo, &device->vkAllocHost, &result);
+  rvk_call(vkCreateCommandPool, device->vkDevice, &createInfo, &device->vkAlloc, &result);
   return result;
 }
 
-static VkFormat rend_vk_device_pick_depthformat(RendVkDevice* device) {
+static VkFormat rvk_device_pick_depthformat(RvkDevice* device) {
   static const VkFormat             desiredFormat = VK_FORMAT_D32_SFLOAT;
   static const VkFormatFeatureFlags features      = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
@@ -278,58 +276,58 @@ static VkFormat rend_vk_device_pick_depthformat(RendVkDevice* device) {
   diag_crash_msg("No suitable depth-format found");
 }
 
-RendVkDevice* rend_vk_device_create() {
-  RendVkDevice* device = alloc_alloc_t(g_alloc_heap, RendVkDevice);
-  *device              = (RendVkDevice){
-      .vkAllocHost = rend_vk_alloc_host_create(g_alloc_heap),
+RvkDevice* rvk_device_create() {
+  RvkDevice* device = alloc_alloc_t(g_alloc_heap, RvkDevice);
+  *device           = (RvkDevice){
+      .vkAlloc = rvk_allocator(g_alloc_heap),
   };
 
-  if (rend_vk_instance_layer_supported(g_validationLayer)) {
-    device->flags |= RendVkDeviceFlags_Validation;
+  if (rvk_instance_layer_supported(g_validationLayer)) {
+    device->flags |= RvkDeviceFlags_Validation;
   }
-  device->vkInstance       = rend_vk_instance_create(&device->vkAllocHost, device->flags);
-  device->vkPhysicalDevice = rend_vk_device_pick_physical_device(device->vkInstance);
-  device->mainQueueIndex   = rend_vk_device_pick_main_queue(device->vkPhysicalDevice);
+  device->vkInstance       = rvk_instance_create(&device->vkAlloc, device->flags);
+  device->vkPhysicalDevice = rvk_device_pick_physical_device(device->vkInstance);
+  device->mainQueueIndex   = rvk_device_pick_main_queue(device->vkPhysicalDevice);
 
   vkGetPhysicalDeviceProperties(device->vkPhysicalDevice, &device->vkProperties);
   vkGetPhysicalDeviceFeatures(device->vkPhysicalDevice, &device->vkSupportedFeatures);
   vkGetPhysicalDeviceMemoryProperties(device->vkPhysicalDevice, &device->vkMemProperties);
 
-  device->vkDevice = rend_vk_device_create_internal(device);
+  device->vkDevice = rvk_device_create_internal(device);
   vkGetDeviceQueue(device->vkDevice, device->mainQueueIndex, 0, &device->vkMainQueue);
 
-  device->vkMainCommandPool = rend_vk_device_commandpool_create(device);
-  device->vkDepthFormat     = rend_vk_device_pick_depthformat(device);
+  device->vkMainCommandPool = rvk_device_commandpool_create(device);
+  device->vkDepthFormat     = rvk_device_pick_depthformat(device);
 
-  if (device->flags & RendVkDeviceFlags_Validation) {
-    device->debug = rend_vk_debug_create(
-        device->vkInstance, device->vkDevice, &device->vkAllocHost, g_debugFlags);
-    dbg_name_queue(device->debug, device->vkMainQueue, "main");
-    dbg_name_commandpool(device->debug, device->vkMainCommandPool, "main");
+  if (device->flags & RvkDeviceFlags_Validation) {
+    device->debug =
+        rvk_debug_create(device->vkInstance, device->vkDevice, &device->vkAlloc, g_debugFlags);
+    rvk_name_queue(device->debug, device->vkMainQueue, "main");
+    rvk_name_commandpool(device->debug, device->vkMainCommandPool, "main");
   }
 
   log_i(
       "Vulkan device created",
-      log_param("validation", fmt_bool(device->flags & RendVkDeviceFlags_Validation)),
+      log_param("validation", fmt_bool(device->flags & RvkDeviceFlags_Validation)),
       log_param("device-name", fmt_text(string_from_null_term(device->vkProperties.deviceName))),
       log_param("main-queue-idx", fmt_int(device->mainQueueIndex)),
-      log_param("depth-format", fmt_text(rend_vk_format_info(device->vkDepthFormat).name)));
+      log_param("depth-format", fmt_text(rvk_format_info(device->vkDepthFormat).name)));
 
   return device;
 }
 
-void rend_vk_device_destroy(RendVkDevice* device) {
+void rvk_device_destroy(RvkDevice* device) {
 
-  rend_vk_call(vkDeviceWaitIdle, device->vkDevice);
+  rvk_call(vkDeviceWaitIdle, device->vkDevice);
 
-  vkDestroyCommandPool(device->vkDevice, device->vkMainCommandPool, &device->vkAllocHost);
-  vkDestroyDevice(device->vkDevice, &device->vkAllocHost);
+  vkDestroyCommandPool(device->vkDevice, device->vkMainCommandPool, &device->vkAlloc);
+  vkDestroyDevice(device->vkDevice, &device->vkAlloc);
 
   if (device->debug) {
-    rend_vk_debug_destroy(device->debug);
+    rvk_debug_destroy(device->debug);
   }
 
-  vkDestroyInstance(device->vkInstance, &device->vkAllocHost);
+  vkDestroyInstance(device->vkInstance, &device->vkAlloc);
   alloc_free_t(g_alloc_heap, device);
 
   log_i("Vulkan device destroyed");

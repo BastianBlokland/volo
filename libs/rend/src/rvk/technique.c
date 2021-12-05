@@ -6,22 +6,22 @@
 
 #define attachment_max 8
 
-struct sRendVkTechnique {
-  RendVkDevice*    device;
-  RendVkSwapchain* swapchain;
-  VkRenderPass     vkRenderPass;
-  u64              swapchainVersion;
-  DynArray         frameBuffers; // VkFramebuffer[]
+struct sRvkTechnique {
+  RvkDevice*    device;
+  RvkSwapchain* swapchain;
+  VkRenderPass  vkRenderPass;
+  u64           swapchainVersion;
+  DynArray      frameBuffers; // VkFramebuffer[]
 };
 
-static VkRenderPass rend_vk_renderpass_create(RendVkDevice* dev, RendVkSwapchain* swapchain) {
+static VkRenderPass rvk_renderpass_create(RvkDevice* dev, RvkSwapchain* swapchain) {
   VkAttachmentDescription attachments[attachment_max];
   u32                     attachmentCount = 0;
   VkAttachmentReference   colorRefs[attachment_max];
   u32                     colorRefCount = 0;
 
   attachments[attachmentCount++] = (VkAttachmentDescription){
-      .format         = rend_vk_swapchain_format(swapchain),
+      .format         = rvk_swapchain_format(swapchain),
       .samples        = VK_SAMPLE_COUNT_1_BIT,
       .loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR,
       .storeOp        = VK_ATTACHMENT_STORE_OP_STORE,
@@ -57,13 +57,13 @@ static VkRenderPass rend_vk_renderpass_create(RendVkDevice* dev, RendVkSwapchain
       .pDependencies   = &dependency,
   };
   VkRenderPass result;
-  rend_vk_call(vkCreateRenderPass, dev->vkDevice, &renderPassInfo, &dev->vkAllocHost, &result);
+  rvk_call(vkCreateRenderPass, dev->vkDevice, &renderPassInfo, &dev->vkAlloc, &result);
   return result;
 }
 
 static VkFramebuffer
-rend_vk_framebuffer_create(RendVkTechnique* technique, const RendSwapchainIdx swapchainIdx) {
-  RendVkImage* swapchainImage = rend_vk_swapchain_image(technique->swapchain, swapchainIdx);
+rvk_framebuffer_create(RvkTechnique* technique, const RvkSwapchainIdx swapchainIdx) {
+  RvkImage* swapchainImage = rvk_swapchain_image(technique->swapchain, swapchainIdx);
 
   VkFramebufferCreateInfo framebufferInfo = {
       .sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
@@ -75,65 +75,65 @@ rend_vk_framebuffer_create(RendVkTechnique* technique, const RendSwapchainIdx sw
       .layers          = 1,
   };
   VkFramebuffer result;
-  rend_vk_call(
+  rvk_call(
       vkCreateFramebuffer,
       technique->device->vkDevice,
       &framebufferInfo,
-      &technique->device->vkAllocHost,
+      &technique->device->vkAlloc,
       &result);
   return result;
 }
 
-static void rend_vk_resource_init(RendVkTechnique* technique) {
+static void rvk_resource_init(RvkTechnique* technique) {
 
   dynarray_for_t(&technique->frameBuffers, VkFramebuffer, fb, {
-    vkDestroyFramebuffer(technique->device->vkDevice, *fb, &technique->device->vkAllocHost);
+    vkDestroyFramebuffer(technique->device->vkDevice, *fb, &technique->device->vkAlloc);
   });
   dynarray_clear(&technique->frameBuffers);
 
-  for (u32 i = 0; i != rend_vk_swapchain_imagecount(technique->swapchain); ++i) {
+  for (u32 i = 0; i != rvk_swapchain_imagecount(technique->swapchain); ++i) {
     *dynarray_push_t(&technique->frameBuffers, VkFramebuffer) =
-        rend_vk_framebuffer_create(technique, i);
+        rvk_framebuffer_create(technique, i);
   }
 
-  technique->swapchainVersion = rend_vk_swapchain_version(technique->swapchain);
+  technique->swapchainVersion = rvk_swapchain_version(technique->swapchain);
 }
 
-RendVkTechnique* rend_vk_technique_create(RendVkDevice* dev, RendVkSwapchain* swapchain) {
-  RendVkTechnique* technique = alloc_alloc_t(g_alloc_heap, RendVkTechnique);
-  *technique                 = (RendVkTechnique){
+RvkTechnique* rvk_technique_create(RvkDevice* dev, RvkSwapchain* swapchain) {
+  RvkTechnique* technique = alloc_alloc_t(g_alloc_heap, RvkTechnique);
+  *technique              = (RvkTechnique){
       .device           = dev,
       .swapchain        = swapchain,
       .frameBuffers     = dynarray_create_t(g_alloc_heap, VkFramebuffer, 2),
-      .vkRenderPass     = rend_vk_renderpass_create(dev, swapchain),
+      .vkRenderPass     = rvk_renderpass_create(dev, swapchain),
       .swapchainVersion = u64_max,
   };
   return technique;
 }
 
-void rend_vk_technique_destroy(RendVkTechnique* technique) {
+void rvk_technique_destroy(RvkTechnique* technique) {
   vkDestroyRenderPass(
-      technique->device->vkDevice, technique->vkRenderPass, &technique->device->vkAllocHost);
+      technique->device->vkDevice, technique->vkRenderPass, &technique->device->vkAlloc);
 
   dynarray_for_t(&technique->frameBuffers, VkFramebuffer, fb, {
-    vkDestroyFramebuffer(technique->device->vkDevice, *fb, &technique->device->vkAllocHost);
+    vkDestroyFramebuffer(technique->device->vkDevice, *fb, &technique->device->vkAlloc);
   });
   dynarray_destroy(&technique->frameBuffers);
 
   alloc_free_t(g_alloc_heap, technique);
 }
 
-void rend_vk_technique_begin(
-    RendVkTechnique*       technique,
-    VkCommandBuffer        vkCommandBuffer,
-    const RendSwapchainIdx swapchainIdx,
-    const RendColor        clearColor) {
+void rvk_technique_begin(
+    RvkTechnique*         technique,
+    VkCommandBuffer       vkCommandBuffer,
+    const RvkSwapchainIdx swapchainIdx,
+    const RendColor       clearColor) {
 
-  if (technique->swapchainVersion != rend_vk_swapchain_version(technique->swapchain)) {
-    rend_vk_resource_init(technique);
+  if (technique->swapchainVersion != rvk_swapchain_version(technique->swapchain)) {
+    rvk_resource_init(technique);
   }
 
-  RendVkImage* swapchainImage = rend_vk_swapchain_image(technique->swapchain, swapchainIdx);
+  RvkImage* swapchainImage = rvk_swapchain_image(technique->swapchain, swapchainIdx);
 
   VkClearValue clearValues[] = {
       *(VkClearColorValue*)&clearColor,
@@ -151,7 +151,7 @@ void rend_vk_technique_begin(
   vkCmdBeginRenderPass(vkCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
 
-void rend_vk_technique_end(RendVkTechnique* technique, VkCommandBuffer vkCommandBuffer) {
+void rvk_technique_end(RvkTechnique* technique, VkCommandBuffer vkCommandBuffer) {
   (void)technique;
   vkCmdEndRenderPass(vkCommandBuffer);
 }

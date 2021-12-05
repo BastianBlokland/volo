@@ -3,14 +3,14 @@
 #include "vulkan_internal.h"
 
 typedef enum {
-  RendVkDeviceFlags_Validation = 1 << 0,
-} RendVkDeviceFlags;
+  RvkDeviceFlags_Validation = 1 << 0,
+} RvkDeviceFlags;
 
 typedef struct {
-  RendVkDeviceFlags                flags;
-  RendVkDebug*                     debug;
+  RvkDeviceFlags                   flags;
+  RvkDebug*                        debug;
   VkInstance                       vkInstance;
-  VkAllocationCallbacks            vkAllocHost;
+  VkAllocationCallbacks            vkAlloc;
   VkPhysicalDevice                 vkPhysicalDevice;
   VkPhysicalDeviceProperties       vkProperties;
   VkPhysicalDeviceFeatures         vkSupportedFeatures;
@@ -20,7 +20,7 @@ typedef struct {
   u32                              mainQueueIndex;
   VkQueue                          vkMainQueue;
   VkCommandPool                    vkMainCommandPool;
-} RendVkDevice;
+} RvkDevice;
 
-RendVkDevice* rend_vk_device_create();
-void          rend_vk_device_destroy(RendVkDevice*);
+RvkDevice* rvk_device_create();
+void       rvk_device_destroy(RvkDevice*);
