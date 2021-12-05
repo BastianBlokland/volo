@@ -18,11 +18,11 @@ static FormatArg arg_style_reset(const CliHelpFlags flags) {
 }
 
 static bool cli_help_has_options_of_type(CliApp* app, const CliOptionType type) {
-  dynarray_for_t(&app->options, CliOption, opt, {
+  dynarray_for_t(&app->options, CliOption, opt) {
     if (opt->type == type) {
       return true;
     }
-  });
+  }
   return false;
 }
 
@@ -72,7 +72,7 @@ static void cli_help_write_usage(DynString* dynStr, CliApp* app, const CliHelpFl
   const usize startColumn = string_lit("usage: ").size + app->name.size;
   usize       column      = startColumn;
 
-  dynarray_for_t(&app->options, CliOption, opt, {
+  dynarray_for_t(&app->options, CliOption, opt) {
     const String optStr = cli_help_option_usage(opt);
     if ((column + optStr.size + 1) > cli_help_max_width) {
       column = startColumn;
@@ -80,7 +80,7 @@ static void cli_help_write_usage(DynString* dynStr, CliApp* app, const CliHelpFl
     }
     fmt_write(dynStr, " {}", fmt_text(optStr));
     column += optStr.size + 1;
-  });
+  }
 
   fmt_write(dynStr, "\n");
 }
@@ -88,7 +88,7 @@ static void cli_help_write_usage(DynString* dynStr, CliApp* app, const CliHelpFl
 static void cli_help_write_args(DynString* dynStr, CliApp* app, const CliHelpFlags flags) {
   fmt_write(dynStr, "{}Arguments:{}\n", arg_style_bold(flags), arg_style_reset(flags));
 
-  dynarray_for_t(&app->options, CliOption, opt, {
+  dynarray_for_t(&app->options, CliOption, opt) {
     if (opt->type != CliOptionType_Arg) {
       continue;
     }
@@ -106,13 +106,13 @@ static void cli_help_write_args(DynString* dynStr, CliApp* app, const CliHelpFla
     format_write_text_wrapped(dynStr, opt->desc, cli_help_max_width - linePrefix.size, linePrefix);
 
     fmt_write(dynStr, "\n");
-  });
+  }
 }
 
 static void cli_help_write_flags(DynString* dynStr, CliApp* app, const CliHelpFlags flags) {
   fmt_write(dynStr, "{}Flags:{}\n", arg_style_bold(flags), arg_style_reset(flags));
 
-  dynarray_for_t(&app->options, CliOption, opt, {
+  dynarray_for_t(&app->options, CliOption, opt) {
     if (opt->type != CliOptionType_Flag) {
       continue;
     }
@@ -122,7 +122,7 @@ static void cli_help_write_flags(DynString* dynStr, CliApp* app, const CliHelpFl
     const String shortName = opt->dataFlag.character
                                  ? fmt_write_scratch("-{},", fmt_char(opt->dataFlag.character))
                                  : string_empty;
-    const String longName  = fmt_write_scratch("--{}", fmt_text(opt->dataFlag.name));
+    const String longName = fmt_write_scratch("--{}", fmt_text(opt->dataFlag.name));
 
     const String line = fmt_write_scratch(
         " {<4}{<21}{<10}",
@@ -136,7 +136,7 @@ static void cli_help_write_flags(DynString* dynStr, CliApp* app, const CliHelpFl
     format_write_text_wrapped(dynStr, opt->desc, cli_help_max_width - line.size, linePrefix);
 
     fmt_write(dynStr, "\n");
-  });
+  }
 }
 
 void cli_help_write(DynString* dynStr, CliApp* app, const CliHelpFlags flags) {

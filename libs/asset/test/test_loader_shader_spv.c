@@ -203,7 +203,7 @@ spec(loader_shader_spv) {
       }
     };
 
-    array_for_t(records, AssetMemRecord, rec, { string_free(g_alloc_heap, rec->data); });
+    array_for_t(records, AssetMemRecord, rec) { string_free(g_alloc_heap, rec->data); }
   }
 
   it("can unload spv shader assets") {

@@ -286,7 +286,7 @@ spec(view) {
 
     ecs_world_flush(world);
 
-    dynarray_for_t(&entities, EcsEntityId, entity, { ecs_world_entity_destroy(world, *entity); });
+    dynarray_for_t(&entities, EcsEntityId, entity) { ecs_world_entity_destroy(world, *entity); }
 
     ecs_world_flush(world);
 

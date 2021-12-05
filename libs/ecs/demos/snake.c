@@ -91,13 +91,13 @@ static void input_read(InputComp* comp, String inputText) {
   comp->input = Input_None;
   while (!string_is_empty(inputText)) {
 
-    array_for_t(g_inputMappings, InputMapping, mapping, {
+    array_for_t(g_inputMappings, InputMapping, mapping) {
       if (string_starts_with(inputText, mapping->str)) {
         comp->input |= mapping->input;
         inputText = string_consume(inputText, mapping->str.size);
         goto ValidInput;
       }
-    });
+    }
     inputText = string_consume(inputText, 1);
 
   ValidInput:

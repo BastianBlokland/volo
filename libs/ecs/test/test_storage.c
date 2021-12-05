@@ -307,27 +307,29 @@ spec(storage) {
     ecs_world_flush(world);
 
     // Delete all even entities.
-    dynarray_for_t(&entities, EcsEntityId, entity, {
-      if ((entity_i % 2) == 0) {
+    for (usize i = 0; i != entities.size; ++i) {
+      EcsEntityId* entity = dynarray_at_t(&entities, i, EcsEntityId);
+      if ((i % 2) == 0) {
         ecs_world_entity_destroy(world, *entity);
       }
-    });
+    }
 
     ecs_world_flush(world);
 
     EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ReadABE));
-    dynarray_for_t(&entities, EcsEntityId, entity, {
-      if (entity_i % 2) {
+    for (usize i = 0; i != entities.size; ++i) {
+      EcsEntityId* entity = dynarray_at_t(&entities, i, EcsEntityId);
+      if (i % 2) {
         check_require(ecs_world_exists(world, *entity));
         ecs_view_jump(itr, *entity);
-        check_eq_int(ecs_view_read_t(itr, StorageCompA)->f1, entity_i);
-        check_eq_int(ecs_view_read_t(itr, StorageCompB)->f1, entity_i * 2);
-        check_eq_int(ecs_view_read_t(itr, StorageCompB)->f2, entity_i / 2);
-        check_eq_int(ecs_view_read_t(itr, StorageCompE)->f1, entity_i % 123);
+        check_eq_int(ecs_view_read_t(itr, StorageCompA)->f1, i);
+        check_eq_int(ecs_view_read_t(itr, StorageCompB)->f1, i * 2);
+        check_eq_int(ecs_view_read_t(itr, StorageCompB)->f2, i / 2);
+        check_eq_int(ecs_view_read_t(itr, StorageCompE)->f1, i % 123);
       } else {
         check_require(!ecs_world_exists(world, *entity));
       }
-    });
+    }
 
     dynarray_destroy(&entities);
   }
@@ -347,12 +349,13 @@ spec(storage) {
     ecs_world_flush(world);
 
     // Move all even entities to another archetype.
-    dynarray_for_t(&entities, EcsEntityId, entity, {
-      if ((entity_i % 2) == 0) {
+    for (usize i = 0; i != entities.size; ++i) {
+      EcsEntityId* entity = dynarray_at_t(&entities, i, EcsEntityId);
+      if ((i % 2) == 0) {
         ecs_world_remove_t(world, *entity, StorageCompC);
         ecs_world_add_t(world, *entity, StorageCompE, .f1 = 1337);
       }
-    });
+    };
 
     ecs_world_flush(world);
 
@@ -360,23 +363,24 @@ spec(storage) {
     EcsIterator* itrEven    = ecs_view_itr(viewEven);
     EcsView*     viewUneven = ecs_world_view_t(world, ReadABC);
     EcsIterator* itrUneven  = ecs_view_itr(viewUneven);
-    dynarray_for_t(&entities, EcsEntityId, entity, {
-      if (entity_i % 2) {
+    for (usize i = 0; i != entities.size; ++i) {
+      EcsEntityId* entity = dynarray_at_t(&entities, i, EcsEntityId);
+      if (i % 2) {
         check_require(ecs_view_contains(viewUneven, *entity));
         ecs_view_jump(itrUneven, *entity);
-        check_eq_int(ecs_view_read_t(itrUneven, StorageCompA)->f1, entity_i);
-        check_eq_int(ecs_view_read_t(itrUneven, StorageCompB)->f1, entity_i * 2);
-        check_eq_int(ecs_view_read_t(itrUneven, StorageCompB)->f2, entity_i / 2);
-        check_eq_int(ecs_view_read_t(itrUneven, StorageCompC)->f1, entity_i % 123);
+        check_eq_int(ecs_view_read_t(itrUneven, StorageCompA)->f1, i);
+        check_eq_int(ecs_view_read_t(itrUneven, StorageCompB)->f1, i * 2);
+        check_eq_int(ecs_view_read_t(itrUneven, StorageCompB)->f2, i / 2);
+        check_eq_int(ecs_view_read_t(itrUneven, StorageCompC)->f1, i % 123);
       } else {
         check_require(ecs_view_contains(viewEven, *entity));
         ecs_view_jump(itrEven, *entity);
-        check_eq_int(ecs_view_read_t(itrEven, StorageCompA)->f1, entity_i);
-        check_eq_int(ecs_view_read_t(itrEven, StorageCompB)->f1, entity_i * 2);
-        check_eq_int(ecs_view_read_t(itrEven, StorageCompB)->f2, entity_i / 2);
+        check_eq_int(ecs_view_read_t(itrEven, StorageCompA)->f1, i);
+        check_eq_int(ecs_view_read_t(itrEven, StorageCompB)->f1, i * 2);
+        check_eq_int(ecs_view_read_t(itrEven, StorageCompB)->f2, i / 2);
         check_eq_int(ecs_view_read_t(itrEven, StorageCompE)->f1, 1337);
       }
-    });
+    }
 
     dynarray_destroy(&entities);
   }

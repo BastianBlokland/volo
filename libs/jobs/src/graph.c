@@ -238,10 +238,10 @@ static usize jobs_graph_longestpath(const JobGraph* graph) {
   // Note: Unfortunate heap memory usage, but current scratch memory budgets would be too limiting.
   DynArray distances = dynarray_create_t(g_alloc_heap, usize, graph->tasks.size);
   dynarray_resize(&distances, graph->tasks.size);
-  dynarray_for_t(&distances, usize, itr, {
-    const JobTaskId taskId = (JobTaskId)itr_i;
-    *itr                   = jobs_graph_task_has_parent(graph, taskId) ? sentinel_usize : 1;
-  });
+  for (JobTaskId taskId = 0; taskId != graph->tasks.size; ++taskId) {
+    usize* dist = dynarray_at_t(&distances, taskId, usize);
+    *dist       = jobs_graph_task_has_parent(graph, taskId) ? sentinel_usize : 1;
+  }
 
   usize maxDist = 1;
   for (usize i = sortedTasks.size; i-- != 0;) {
@@ -278,7 +278,10 @@ JobGraph* jobs_graph_create(Allocator* alloc, const String name, const usize tas
 }
 
 void jobs_graph_destroy(JobGraph* graph) {
-  dynarray_for_t(&graph->tasks, JobTask, t, { string_free(graph->alloc, t->name); });
+  for (usize i = 0; i != graph->tasks.size; ++i) {
+    JobTask* task = dynarray_at_t(&graph->tasks, i, JobTask);
+    string_free(graph->alloc, task->name);
+  }
   dynarray_destroy(&graph->tasks);
 
   dynarray_destroy(&graph->parentCounts);

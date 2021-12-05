@@ -32,11 +32,11 @@ struct sEcsWorld {
 static usize
 ecs_world_archetype_track(EcsWorld* world, const EcsArchetypeId id, const BitSet mask) {
   usize trackingViews = 0;
-  dynarray_for_t(&world->views, EcsView, view, {
+  dynarray_for_t(&world->views, EcsView, view) {
     if (ecs_view_maybe_track(view, id, mask)) {
       ++trackingViews;
     }
-  });
+  }
   return trackingViews;
 }
 
@@ -135,10 +135,10 @@ EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
       .alloc   = alloc,
   };
 
-  dynarray_for_t((DynArray*)&def->views, EcsViewDef, viewDef, {
+  dynarray_for_t(&def->views, EcsViewDef, viewDef) {
     *dynarray_push_t(&world->views, EcsView) =
         ecs_view_create(alloc, &world->storage, def, viewDef);
-  });
+  }
 
   log_d(
       "Ecs world created",
@@ -157,8 +157,7 @@ void ecs_world_destroy(EcsWorld* world) {
 
   ecs_storage_destroy(&world->storage);
 
-  dynarray_for_t(
-      &world->views, EcsView, view, { ecs_view_destroy(world->alloc, world->def, view); });
+  dynarray_for_t(&world->views, EcsView, view) { ecs_view_destroy(world->alloc, world->def, view); }
   dynarray_destroy(&world->views);
 
   ecs_buffer_destroy(&world->buffer);

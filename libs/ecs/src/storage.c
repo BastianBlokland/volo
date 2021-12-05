@@ -96,10 +96,11 @@ EcsStorage ecs_storage_create(Allocator* alloc, const EcsDef* def) {
 }
 
 void ecs_storage_destroy(EcsStorage* storage) {
-  dynarray_for_t(&storage->archetypes, EcsArchetype, arch, {
-    ecs_storage_destruct_archetype_comps(storage, (EcsArchetypeId)arch_i);
+  for (EcsArchetypeId archId = 0; archId != storage->archetypes.size; ++archId) {
+    EcsArchetype* arch = dynarray_at_t(&storage->archetypes, archId, EcsArchetype);
+    ecs_storage_destruct_archetype_comps(storage, archId);
     ecs_archetype_destroy(arch);
-  });
+  }
   dynarray_destroy(&storage->archetypes);
 
   entity_allocator_destroy(&storage->entityAllocator);
@@ -219,11 +220,12 @@ usize ecs_storage_archetype_entities_per_chunk(const EcsStorage* storage, const 
 }
 
 EcsArchetypeId ecs_storage_archetype_find(EcsStorage* storage, const BitSet mask) {
-  dynarray_for_t(&storage->archetypes, EcsArchetype, arch, {
+  for (EcsArchetypeId archId = 0; archId != storage->archetypes.size; ++archId) {
+    EcsArchetype* arch = dynarray_at_t(&storage->archetypes, archId, EcsArchetype);
     if (mem_eq(arch->mask, mask)) {
-      return (EcsArchetypeId)arch_i;
+      return archId;
     }
-  });
+  }
   return sentinel_u32;
 }
 
@@ -249,9 +251,9 @@ void ecs_storage_itr_jump(EcsStorage* storage, EcsIterator* itr, const EcsEntity
 }
 
 void ecs_storage_flush_new_entities(EcsStorage* storage) {
-  dynarray_for_t(&storage->newEntities, EcsEntityId, newEntityId, {
+  dynarray_for_t(&storage->newEntities, EcsEntityId, newEntityId) {
     ecs_storage_entity_ensure(storage, ecs_entity_id_index(*newEntityId));
     ecs_storage_entity_init(storage, *newEntityId);
-  });
+  }
   dynarray_clear(&storage->newEntities);
 }

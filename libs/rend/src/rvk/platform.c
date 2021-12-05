@@ -18,11 +18,11 @@ struct sRvkPlatform {
 };
 
 static RvkCanvas* rvk_canvas_lookup(RvkPlatform* plat, const RvkCanvasId id) {
-  dynarray_for_t(&plat->canvases, RvkCanvasInfo, info, {
+  dynarray_for_t(&plat->canvases, RvkCanvasInfo, info) {
     if (info->id == id) {
       return info->canvas;
     }
-  });
+  }
   diag_crash_msg("No canvas found with id: {}", fmt_int(id));
 }
 

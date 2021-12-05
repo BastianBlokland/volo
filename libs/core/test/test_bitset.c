@@ -156,7 +156,7 @@ spec(bitset) {
 
     usize indices[] = {0, 13, 42, 137, 1337, 64 * 32 - 1};
 
-    array_for_t(indices, usize, i, { bitset_set(bits, *i); });
+    array_for_t(indices, usize, i) { bitset_set(bits, *i); }
     check_eq_int(bitset_count(bits), array_elems(indices));
 
     usize i = 0;
@@ -169,14 +169,14 @@ spec(bitset) {
     u64    val[8] = {0};
     BitSet bits   = bitset_from_array(val);
 
-    array_for_t(testSizes, usize, testSize, {
+    array_for_t(testSizes, usize, testSize) {
       bitset_clear_all(bits);
 
       bitset_set_all(bits, *testSize);
       for (usize i = 0; i != bytes_to_bits(8); ++i) {
         check(i < *testSize ? bitset_test(bits, i) : !bitset_test(bits, i));
       }
-    })
+    }
   }
 
   it("can bitwise 'or' two bitsets") {

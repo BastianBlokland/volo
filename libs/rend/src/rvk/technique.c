@@ -81,9 +81,9 @@ rvk_framebuffer_create(RvkTechnique* tech, const RvkSwapchainIdx swapchainIdx) {
 
 static void rvk_resource_init(RvkTechnique* tech) {
 
-  dynarray_for_t(&tech->frameBuffers, VkFramebuffer, fb, {
+  dynarray_for_t(&tech->frameBuffers, VkFramebuffer, fb) {
     vkDestroyFramebuffer(tech->dev->vkDev, *fb, &tech->dev->vkAlloc);
-  });
+  }
   dynarray_clear(&tech->frameBuffers);
 
   for (u32 i = 0; i != rvk_swapchain_imagecount(tech->swapchain); ++i) {
@@ -108,9 +108,9 @@ RvkTechnique* rvk_technique_create(RvkDevice* dev, RvkSwapchain* swapchain) {
 void rvk_technique_destroy(RvkTechnique* tech) {
   vkDestroyRenderPass(tech->dev->vkDev, tech->vkRendPass, &tech->dev->vkAlloc);
 
-  dynarray_for_t(&tech->frameBuffers, VkFramebuffer, fb, {
+  dynarray_for_t(&tech->frameBuffers, VkFramebuffer, fb) {
     vkDestroyFramebuffer(tech->dev->vkDev, *fb, &tech->dev->vkAlloc);
-  });
+  }
   dynarray_destroy(&tech->frameBuffers);
 
   alloc_free_t(g_alloc_heap, tech);

@@ -13,7 +13,7 @@ CheckResult* check_result_create(Allocator* alloc) {
 }
 
 void check_result_destroy(CheckResult* result) {
-  dynarray_for_t(&result->errors, CheckError, err, { string_free(result->alloc, err->msg); });
+  dynarray_for_t(&result->errors, CheckError, err) { string_free(result->alloc, err->msg); }
   dynarray_destroy(&result->errors);
   alloc_free_t(result->alloc, result);
 }

@@ -8,17 +8,19 @@
 #include "init_internal.h"
 #include "job_internal.h"
 
+typedef Job* JobPtr;
+
 static i64             g_jobIdCounter;
 static ThreadMutex     g_jobMutex;
 static ThreadCondition g_jobCondition;
 static DynArray        g_runningJobs; // Job*[]. Only access while holding 'g_jobMutex'.
 
 static bool jobs_scheduler_is_finished_locked(const JobId job) {
-  dynarray_for_t(&g_runningJobs, Job*, jobData, {
+  dynarray_for_t(&g_runningJobs, JobPtr, jobData) {
     if ((*jobData)->id == job) {
       return false;
     }
-  });
+  }
   return true;
 }
 
@@ -101,12 +103,13 @@ void jobs_scheduler_finish(Job* job) {
     job_destroy(g_alloc_heap, job);
 
     // Remove it from 'g_runningJobs'.
-    dynarray_for_t(&g_runningJobs, Job*, other, {
-      if (*other == job) {
-        dynarray_remove(&g_runningJobs, other_i, 1);
+    for (usize i = 0; i != g_runningJobs.size; ++i) {
+      Job* other = *dynarray_at_t(&g_runningJobs, i, Job*);
+      if (other == job) {
+        dynarray_remove(&g_runningJobs, i, 1);
         break;
       }
-    });
+    }
   }
   thread_mutex_unlock(g_jobMutex);
   thread_cond_broadcast(g_jobCondition);

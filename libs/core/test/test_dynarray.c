@@ -140,12 +140,14 @@ spec(dynarray) {
       dynarray_remove(&array, data[i].removeIdx, data[i].removeCount);
       check_eq_int(array.size, array_elems(values) - data[i].removeCount);
 
-      dynarray_for_t(&array, u64, val, {
-        if (val_i < data[i].removeIdx)
-          check_eq_int(*val, values[val_i]);
-        else
-          check_eq_int(*val, values[data[i].removeCount + val_i]);
-      });
+      for (usize j = 0; j != array.size; ++j) {
+        u64* val = dynarray_at_t(&array, j, u64);
+        if (j < data[i].removeIdx) {
+          check_eq_int(*val, values[j]);
+        } else {
+          check_eq_int(*val, values[data[i].removeCount + j]);
+        }
+      }
     }
     dynarray_destroy(&array);
   }
@@ -181,7 +183,10 @@ spec(dynarray) {
       dynarray_remove_unordered(&array, data[i].removeIdx, data[i].removeCount);
       check_eq_int(array.size, data[i].initialSize - data[i].removeCount);
 
-      dynarray_for_t(&array, u16, val, { check_eq_int(*val, data[i].expected[val_i]); });
+      for (usize j = 0; j != array.size; ++j) {
+        u16* val = dynarray_at_t(&array, j, u16);
+        check_eq_int(*val, data[i].expected[j]);
+      }
     }
     dynarray_destroy(&array);
   }
@@ -207,14 +212,16 @@ spec(dynarray) {
       mem_set(dynarray_insert(&array, data[i].insertIdx, data[i].insertCount), 0xBB);
       check_eq_int(array.size, array_elems(values) + data[i].insertCount);
 
-      dynarray_for_t(&array, u32, val, {
-        if (val_i < data[i].insertIdx)
-          check_eq_int(*val, values[val_i]);
-        else if (val_i < data[i].insertIdx + data[i].insertCount)
+      for (usize j = 0; j != array.size; ++j) {
+        u32* val = dynarray_at_t(&array, j, u32);
+        if (j < data[i].insertIdx) {
+          check_eq_int(*val, values[j]);
+        } else if (j < data[i].insertIdx + data[i].insertCount) {
           check_eq_int(*val, 0xBBBBBBBB);
-        else
-          check_eq_int(*val, values[val_i - data[i].insertCount]);
-      });
+        } else {
+          check_eq_int(*val, values[j - data[i].insertCount]);
+        }
+      }
     }
     dynarray_destroy(&array);
   }
@@ -225,12 +232,14 @@ spec(dynarray) {
 
     DynArray array = dynarray_create_over_t(mem_stack(256), u32);
 
-    array_for_t(values, u32, valPtr, {
+    array_for_t(values, u32, valPtr) {
       *dynarray_insert_sorted_t(&array, u32, compare_u32, valPtr) = *valPtr;
-    });
+    }
 
     check_eq_int(array.size, array_elems(values));
-    dynarray_for_t(&array, u32, val, { check_eq_int(*val, expected[val_i]); });
+    for (usize i = 0; i != array.size; ++i) {
+      check_eq_int(*dynarray_at_t(&array, i, u32), expected[i]);
+    }
 
     dynarray_destroy(&array);
   }
@@ -244,7 +253,9 @@ spec(dynarray) {
 
     dynarray_sort(&array, compare_u32);
 
-    dynarray_for_t(&array, u32, val, { check_eq_int(*val, expected[val_i]); });
+    for (usize i = 0; i != array.size; ++i) {
+      check_eq_int(*dynarray_at_t(&array, i, u32), expected[i]);
+    }
 
     dynarray_destroy(&array);
   }

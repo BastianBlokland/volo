@@ -96,15 +96,15 @@ static bool graph_system_conflict(EcsWorld* world, const EcsSystemDef* a, const 
   /**
    * Check if two systems have conflicting views meaning they cannot be run in parallel.
    */
-  dynarray_for_t((DynArray*)&a->viewIds, EcsViewId, aViewId, {
+  dynarray_for_t((DynArray*)&a->viewIds, EcsViewId, aViewId) {
     EcsView* aView = ecs_world_view(world, *aViewId);
 
-    dynarray_for_t((DynArray*)&b->viewIds, EcsViewId, bViewId, {
+    dynarray_for_t((DynArray*)&b->viewIds, EcsViewId, bViewId) {
       if (ecs_view_conflict(aView, ecs_world_view(world, *bViewId))) {
         return true;
       }
-    });
-  });
+    }
+  }
   return false;
 }
 
@@ -149,21 +149,21 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
 
   const JobTaskId finalizeTask = graph_insert_finalize(runner);
 
-  dynarray_for_t((DynArray*)&def->systems, EcsSystemDef, sys, {
-    const EcsSystemId sysId     = (EcsSystemId)sys_i;
-    const JobTaskId   sysTaskId = graph_insert_system(runner, sysId, sys);
+  for (EcsSystemId sysId = 0; sysId != def->systems.size; ++sysId) {
+    EcsSystemDef*   sys       = dynarray_at_t(&def->systems, sysId, EcsSystemDef);
+    const JobTaskId sysTaskId = graph_insert_system(runner, sysId, sys);
 
     // Insert a finalize dependency (so finalize only happens when all systems are done).
     jobs_graph_task_depend(runner->graph, sysTaskId, finalizeTask);
 
     // Insert required dependencies on the earlier systems.
-    for (EcsSystemId otherSysId = 0; otherSysId != sys_i; ++otherSysId) {
-      EcsSystemDef* otherSystem = dynarray_at_t((DynArray*)&def->systems, otherSysId, EcsSystemDef);
-      if (graph_system_conflict(world, sys, otherSystem)) {
+    for (EcsSystemId otherSysId = 0; otherSysId != sysId; ++otherSysId) {
+      EcsSystemDef* otherSys = dynarray_at_t(&def->systems, otherSysId, EcsSystemDef);
+      if (graph_system_conflict(world, sys, otherSys)) {
         jobs_graph_task_depend(runner->graph, ecs_runner_graph_task(runner, otherSysId), sysTaskId);
       }
     }
-  });
+  }
 
   diag_assert(jobs_graph_task_count(runner->graph) == taskCount);
 

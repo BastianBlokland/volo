@@ -52,11 +52,11 @@ static const String g_dbg_strs[] = {
 };
 
 static bool dbgsetup_validate_dbg(const String input) {
-  array_for_t(g_dbg_strs, String, cfg, {
+  array_for_t(g_dbg_strs, String, cfg) {
     if (string_eq(*cfg, input)) {
       return true;
     }
-  });
+  }
   return false;
 }
 

@@ -124,7 +124,7 @@ static void rvk_mem_free_vk(RvkMemPool* pool, const VkDeviceMemory vkMem) {
  */
 static u64 rvk_mem_chunk_size_free(const RvkMemChunk* chunk) {
   u64 res = 0;
-  dynarray_for_t((DynArray*)&chunk->freeBlocks, RvkMem, freeBlock, { res += freeBlock->size; });
+  dynarray_for_t(&chunk->freeBlocks, RvkMem, freeBlock) { res += freeBlock->size; }
   return res;
 }
 
@@ -206,7 +206,8 @@ static RvkMem rvk_mem_chunk_alloc(RvkMemChunk* chunk, const u64 size, const u64 
 #endif
 
   // Find a block that can fit the requested size.
-  dynarray_for_t(&chunk->freeBlocks, RvkMem, block, {
+  for (usize i = 0; i != chunk->freeBlocks.size; ++i) {
+    RvkMem*   block         = dynarray_at_t(&chunk->freeBlocks, i, RvkMem);
     const u64 padding       = bits_padding_64(block->offset, align);
     const u64 paddedSize    = size + padding;
     const i64 remainingSize = (i64)block->size - (i64)paddedSize;
@@ -227,11 +228,10 @@ static RvkMem rvk_mem_chunk_alloc(RvkMemChunk* chunk, const u64 size, const u64 
       block->offset += paddedSize;
       block->size = remainingSize;
     } else {
-      dynarray_remove_unordered(&chunk->freeBlocks, block_i, 1);
+      dynarray_remove_unordered(&chunk->freeBlocks, i, 1);
     }
 
 #ifdef VOLO_RVK_MEM_DEBUG
-    // Verify that the right amount of space was allocated.
     diag_assert(dbgFreeSize - rvk_mem_chunk_size_free(chunk) == size);
 #endif
 
@@ -244,7 +244,7 @@ static RvkMem rvk_mem_chunk_alloc(RvkMemChunk* chunk, const u64 size, const u64 
 #endif
 
     return (RvkMem){.chunk = chunk, .offset = block->offset + padding, .size = size};
-  });
+  }
 
   // No block can fit the requested size.
   return (RvkMem){0};
@@ -255,15 +255,15 @@ static void rvk_mem_chunk_free(RvkMemChunk* chunk, const RvkMem mem) {
 
 #ifdef VOLO_RVK_MEM_DEBUG
   // Check that this block was not freed before.
-  dynarray_for_t((DynArray*)&chunk->freeBlocks, RvkMem, freeBlock, {
+  dynarray_for_t(&chunk->freeBlocks, RvkMem, freeBlock) {
     diag_assert(!rvk_mem_overlap(*freeBlock, mem));
-  });
+  }
   const u64 dbgFreeSize = rvk_mem_chunk_size_free(chunk);
 #endif
 
   // Check if there already is a free block before or after this one, if so then 'grow' that.
   // TODO: Merge blocks if they become adjacent due to the given block being freed.
-  dynarray_for_t(&chunk->freeBlocks, RvkMem, freeBlock, {
+  dynarray_for_t(&chunk->freeBlocks, RvkMem, freeBlock) {
     // Check if this freeBlock is right before the given block.
     if (rvk_mem_end_offset(*freeBlock) == mem.offset) {
       freeBlock->size += mem.size;
@@ -276,7 +276,7 @@ static void rvk_mem_chunk_free(RvkMemChunk* chunk, const RvkMem mem) {
       freeBlock->size += mem.size;
       goto Done;
     }
-  });
+  }
 
   // No block to join, add as a new block.
   *dynarray_push_t(&chunk->freeBlocks, RvkMem) = (RvkMem){.offset = mem.offset, .size = mem.size};
@@ -290,7 +290,6 @@ Done:
 #endif
 
 #ifdef VOLO_RVK_MEM_DEBUG
-  // Verify that the right amount of space was freed.
   diag_assert(rvk_mem_chunk_size_free(chunk) - dbgFreeSize == mem.size);
 #endif
 }

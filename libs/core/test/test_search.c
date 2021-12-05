@@ -42,11 +42,11 @@ spec(search) {
 
     const TestElem* found = null;
 
-    array_for_t(data, TestElem, elem, {
+    array_for_t(data, TestElem, elem) {
       found = test_search_linear(data, data + array_elems(data), elem->key);
       check_require(found != null);
       check_eq_string(found->value, elem->value);
-    });
+    }
 
     found = test_search_linear(data, data + array_elems(data), 42);
     check(found == null);
@@ -69,11 +69,11 @@ spec(search) {
 
     const TestElem* found = null;
 
-    array_for_t(data, TestElem, elem, {
+    array_for_t(data, TestElem, elem) {
       found = test_search_binary(data, data + array_elems(data), elem->key);
       check_require(found != null);
       check_eq_string(found->value, elem->value);
-    });
+    }
 
     found = test_search_binary(data, data + array_elems(data), 10);
     check(found == null);

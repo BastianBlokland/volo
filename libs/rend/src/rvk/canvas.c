@@ -6,6 +6,8 @@
 #include "canvas_internal.h"
 #include "renderer_internal.h"
 
+typedef RvkRenderer* RvkRendererPtr;
+
 RvkCanvas* rvk_canvas_create(RvkDevice* dev, const GapWindowComp* window) {
 
   RvkSwapchain* swapchain = rvk_swapchain_create(dev, window);
@@ -24,7 +26,7 @@ void rvk_canvas_destroy(RvkCanvas* canvas) {
   // Wait all renderering be done before destroying the surface.
   rvk_call(vkDeviceWaitIdle, canvas->device->vkDev);
 
-  array_for_t(canvas->renderers, RvkRenderer*, rend, { rvk_renderer_destroy(*rend); });
+  array_for_t(canvas->renderers, RvkRendererPtr, rend) { rvk_renderer_destroy(*rend); }
 
   rvk_technique_destroy(canvas->technique);
   rvk_swapchain_destroy(canvas->swapchain);

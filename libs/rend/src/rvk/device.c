@@ -170,12 +170,12 @@ static VkPhysicalDevice rvk_device_pick_physical_device(VkInstance vkInst) {
     const RendDeviceExts exts = rvk_device_exts_query(vkPhysDevs[i]);
 
     i32 score = 0;
-    array_for_t(g_requiredExts, String, reqExt, {
+    array_for_t(g_requiredExts, String, reqExt) {
       if (!rvk_device_has_ext(exts, *reqExt)) {
         score = -1;
         goto detectionDone;
       }
-    });
+    }
 
     VkPhysicalDeviceProperties properties;
     vkGetPhysicalDeviceProperties(vkPhysDevs[i], &properties);

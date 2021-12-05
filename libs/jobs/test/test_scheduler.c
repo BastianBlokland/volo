@@ -33,10 +33,10 @@ spec(scheduler) {
     }
 
     // Wait for all jobs to finish.
-    dynarray_for_t(&jobIds, JobId, id, {
+    dynarray_for_t(&jobIds, JobId, id) {
       jobs_scheduler_wait_help(*id);
       check(jobs_scheduler_is_finished(*id));
-    });
+    }
 
     dynarray_destroy(&jobIds);
     jobs_graph_destroy(jobGraph);

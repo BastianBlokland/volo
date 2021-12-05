@@ -41,7 +41,7 @@ static AssetSource* asset_source_mem_open(AssetRepo* repo, const String id) {
 static void asset_repo_mem_destroy(AssetRepo* repo) {
   AssetRepoMem* repoMem = (AssetRepoMem*)repo;
 
-  dynarray_for_t(&repoMem->entries, RepoEntry, entry, { string_free(g_alloc_heap, entry->data); });
+  dynarray_for_t(&repoMem->entries, RepoEntry, entry) { string_free(g_alloc_heap, entry->data); };
   dynarray_destroy(&repoMem->entries);
 
   alloc_free_t(g_alloc_heap, repoMem);

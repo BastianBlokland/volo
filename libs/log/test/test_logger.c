@@ -80,7 +80,7 @@ spec(logger) {
   teardown() {
     log_destroy(logger);
 
-    dynarray_for_t(&sink.messages, SinkTestMsg, msg, { string_free(g_alloc_heap, msg->message); });
+    dynarray_for_t(&sink.messages, SinkTestMsg, msg) { string_free(g_alloc_heap, msg->message); }
     dynarray_destroy(&sink.messages);
   }
 }

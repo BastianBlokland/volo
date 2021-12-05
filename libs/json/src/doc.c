@@ -52,7 +52,7 @@ JsonDoc* json_create(Allocator* alloc, usize valueCapacity) {
 }
 
 void json_destroy(JsonDoc* doc) {
-  dynarray_for_t(&doc->values, JsonValData, data, {
+  dynarray_for_t(&doc->values, JsonValData, data) {
     switch (data->typeAndParent & 0xFFFF) {
     case JsonType_String:
       if (data->val_string.ptr) {
@@ -62,7 +62,7 @@ void json_destroy(JsonDoc* doc) {
     default:
       break;
     }
-  });
+  }
 
   dynarray_destroy(&doc->values);
 

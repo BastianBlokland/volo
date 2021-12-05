@@ -62,14 +62,14 @@ static void output_test_finished(
           "result", type == CheckResultType_Pass ? fmt_text_lit("pass") : fmt_text_lit("fail")),
       log_param("duration", fmt_duration(result->duration)));
 
-  dynarray_for_t(&result->errors, CheckError, err, {
+  dynarray_for_t(&result->errors, CheckError, err) {
     log(logOut->logger,
         LogLevel_Error,
         "Test check failure",
         log_param("message", fmt_text(err->msg)),
         log_param("source-file", fmt_path(err->source.file)),
         log_param("source-line", fmt_int(err->source.line)));
-  });
+  }
 }
 
 static void output_run_finished(

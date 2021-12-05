@@ -159,7 +159,7 @@ static void data_read_json_struct(const ReadCtx* ctx, DataReadResult* res) {
 
   mem_set(ctx->data, 0); // Initialize non-specified memory to zero.
 
-  dynarray_for_t((DynArray*)&decl->val_struct.fields, DataDeclField, fieldDecl, {
+  dynarray_for_t(&decl->val_struct.fields, DataDeclField, fieldDecl) {
     const JsonVal fieldVal = json_field(ctx->doc, ctx->val, fieldDecl->id.name);
 
     if (sentinel_check(fieldVal)) {
@@ -189,7 +189,7 @@ static void data_read_json_struct(const ReadCtx* ctx, DataReadResult* res) {
           fmt_text(res->errorMsg));
       return;
     }
-  });
+  }
 
   *res = result_success();
 }
@@ -201,13 +201,13 @@ static void data_read_json_enum(const ReadCtx* ctx, DataReadResult* res) {
   const DataDecl* decl      = data_decl(ctx->reg, ctx->meta.type);
   const u32       valueHash = bits_hash_32(json_string(ctx->doc, ctx->val));
 
-  dynarray_for_t((DynArray*)&decl->val_enum.consts, DataDeclConst, constDecl, {
+  dynarray_for_t(&decl->val_enum.consts, DataDeclConst, constDecl) {
     if (constDecl->id.hash == valueHash) {
       *mem_as_t(ctx->data, i32) = constDecl->value;
       *res                      = result_success();
       return;
     }
-  });
+  }
 
   *res = result_fail(
       DataReadError_InvalidEnumEntry,
@@ -364,7 +364,7 @@ Ret:
      * Free all allocations in case of an error.
      * This way the caller doesn't have to attempt to cleanup a half initialized object.
      */
-    dynarray_for_t(&allocations, Mem, mem, { alloc_free(alloc, *mem); });
+    dynarray_for_t(&allocations, Mem, mem) { alloc_free(alloc, *mem); }
   }
   dynarray_destroy(&allocations);
   json_destroy(doc);
