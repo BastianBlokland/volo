@@ -50,26 +50,18 @@ typedef struct {
  *
  * Pre-condition: _ARRAY_ is a value of type JsonType_Array in the given document.
  */
-#define json_for_elems(_DOC_, _ARRAY_, _VAR_, ...)                                                 \
-  {                                                                                                \
-    for (JsonVal _VAR_ = json_elem_begin(_DOC_, _ARRAY_); !sentinel_check(_VAR_);                  \
-                 _VAR_ = json_elem_next(_DOC_, _VAR_)) {                                           \
-      __VA_ARGS__                                                                                  \
-    }                                                                                              \
-  }
+#define json_for_elems(_DOC_, _ARRAY_, _VAR_)                                                      \
+  for (JsonVal _VAR_ = json_elem_begin(_DOC_, _ARRAY_); !sentinel_check(_VAR_);                    \
+               _VAR_ = json_elem_next(_DOC_, _VAR_))
 
 /**
  * Iterate over all fields in an object value.
  *
  * Pre-condition: _OBJECT_ is a value of type JsonType_Object in the given document.
  */
-#define json_for_fields(_DOC_, _OBJECT_, _VAR_, ...)                                               \
-  {                                                                                                \
-    for (JsonFieldItr _VAR_ = json_field_begin(_DOC_, _OBJECT_); !sentinel_check(_VAR_.value);     \
-                      _VAR_ = json_field_next(_DOC_, _VAR_.value)) {                               \
-      __VA_ARGS__                                                                                  \
-    }                                                                                              \
-  }
+#define json_for_fields(_DOC_, _OBJECT_, _VAR_)                                                    \
+  for (JsonFieldItr _VAR_ = json_field_begin(_DOC_, _OBJECT_); !sentinel_check(_VAR_.value);       \
+                    _VAR_ = json_field_next(_DOC_, _VAR_.value))
 
 /**
  * Add a literal string to the json document.

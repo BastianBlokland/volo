@@ -92,7 +92,7 @@ spec(doc) {
     json_add_elem(doc, val, json_add_null(doc));
 
     i32 i = 0;
-    json_for_elems(doc, val, elem, {
+    json_for_elems(doc, val, elem) {
       switch (i++) {
       case 0:
         check_eq_int(json_type(doc, elem), JsonType_String);
@@ -106,7 +106,7 @@ spec(doc) {
       default:
         check(false);
       }
-    });
+    }
 
     check_eq_int(json_elem_count(doc, val), 3);
   }
@@ -169,7 +169,7 @@ spec(doc) {
     check(res);
 
     i32 i = 0;
-    json_for_fields(doc, val, itr, {
+    json_for_fields(doc, val, itr) {
       switch (i++) {
       case 0:
         check_eq_string(itr.name, string_lit("a"));
@@ -186,7 +186,7 @@ spec(doc) {
       default:
         check(false);
       }
-    });
+    }
 
     check_eq_int(json_field_count(doc, val), 3);
   }
@@ -219,7 +219,7 @@ spec(doc) {
     json_add_field_str(doc, root, string_lit("subObj"), obj2);
 
     i32 i = 0;
-    json_for_fields(doc, root, rootItr, {
+    json_for_fields(doc, root, rootItr) {
       switch (i++) {
       case 0: {
         const JsonVal elem0 = json_elem(doc, rootItr.value, 0);
@@ -240,7 +240,7 @@ spec(doc) {
             json_type(doc, json_field(doc, rootItr.value, string_lit("a"))), JsonType_Null);
         break;
       }
-    });
+    }
   }
 
   teardown() { json_destroy(doc); }

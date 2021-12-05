@@ -41,14 +41,14 @@ static void json_state_write_array(JsonWriteState* state, DynString* str, const 
   json_state_write_indent(state, str);
 
   bool first = true;
-  json_for_elems(state->doc, val, elem, {
+  json_for_elems(state->doc, val, elem) {
     if (!first) {
       dynstring_append_char(str, ',');
       json_state_write_newline(state, str);
     }
     first = false;
     json_state_write(state, str, elem);
-  });
+  }
 
   json_state_write_outdent(state, str);
   dynstring_append_char(str, ']');
@@ -65,7 +65,7 @@ static void json_state_write_object(JsonWriteState* state, DynString* str, const
   json_state_write_indent(state, str);
 
   bool first = true;
-  json_for_fields(state->doc, val, field, {
+  json_for_fields(state->doc, val, field) {
     if (!first) {
       dynstring_append_char(str, ',');
       json_state_write_newline(state, str);
@@ -78,7 +78,7 @@ static void json_state_write_object(JsonWriteState* state, DynString* str, const
     dynstring_append(str, pretty ? string_lit(": ") : string_lit(":"));
 
     json_state_write(state, str, field.value);
-  });
+  }
 
   json_state_write_outdent(state, str);
   dynstring_append_char(str, '}');

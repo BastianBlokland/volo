@@ -291,7 +291,7 @@ static void data_read_json_val_array(const ReadCtx* ctx, DataReadResult* res) {
   void* ptr                       = arrayMem.ptr;
   *mem_as_t(ctx->data, DataArray) = (DataArray){.data = arrayMem.ptr, .count = count};
 
-  json_for_elems(ctx->doc, ctx->val, elem, {
+  json_for_elems(ctx->doc, ctx->val, elem) {
     const ReadCtx elemCtx = {
         .reg         = ctx->reg,
         .alloc       = ctx->alloc,
@@ -306,7 +306,7 @@ static void data_read_json_val_array(const ReadCtx* ctx, DataReadResult* res) {
       return;
     }
     ptr = bits_ptr_offset(ptr, decl->size);
-  });
+  }
 
   *res = result_success();
 }
