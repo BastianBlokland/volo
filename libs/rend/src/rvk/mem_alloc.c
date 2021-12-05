@@ -1,7 +1,7 @@
 #include "core_bits.h"
 #include "core_math.h"
 
-#include "alloc_internal.h"
+#include "mem_internal.h"
 
 /**
  * Api for Vulkan to allocate host memory.
@@ -114,7 +114,7 @@ static void rvk_free_func(void* userData, void* memory) {
   alloc_free(alloc, rvk_alloc_mem_total(memory));
 }
 
-VkAllocationCallbacks rvk_allocator(Allocator* alloc) {
+VkAllocationCallbacks rvk_mem_allocator(Allocator* alloc) {
   return (VkAllocationCallbacks){
       .pUserData       = alloc,
       .pfnAllocation   = rvk_alloc_func,

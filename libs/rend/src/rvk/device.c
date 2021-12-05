@@ -5,8 +5,8 @@
 #include "gap_native.h"
 #include "log_logger.h"
 
-#include "alloc_internal.h"
 #include "device_internal.h"
+#include "mem_internal.h"
 
 #define rend_debug_verbose true
 
@@ -278,7 +278,7 @@ static VkFormat rvk_device_pick_depthformat(RvkDevice* dev) {
 RvkDevice* rvk_device_create() {
   RvkDevice* dev = alloc_alloc_t(g_alloc_heap, RvkDevice);
   *dev           = (RvkDevice){
-      .vkAlloc = rvk_allocator(g_alloc_heap),
+      .vkAlloc = rvk_mem_allocator(g_alloc_heap),
   };
 
   if (rvk_instance_layer_supported(g_validationLayer)) {
@@ -304,6 +304,8 @@ RvkDevice* rvk_device_create() {
     rvk_name_commandpool(dev->debug, dev->vkMainCommandPool, "main");
   }
 
+  dev->memPool = rvk_mem_pool_create(dev->vkDev, dev->vkMemProperties, dev->vkProperties.limits);
+
   log_i(
       "Vulkan device created",
       log_param("validation", fmt_bool(dev->flags & RvkDeviceFlags_Validation)),
@@ -317,6 +319,8 @@ RvkDevice* rvk_device_create() {
 void rvk_device_destroy(RvkDevice* dev) {
 
   rvk_call(vkDeviceWaitIdle, dev->vkDev);
+
+  rvk_mem_pool_destroy(dev->memPool);
 
   vkDestroyCommandPool(dev->vkDev, dev->vkMainCommandPool, &dev->vkAlloc);
   vkDestroyDevice(dev->vkDev, &dev->vkAlloc);

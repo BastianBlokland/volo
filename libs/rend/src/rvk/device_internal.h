@@ -2,6 +2,9 @@
 #include "debug_internal.h"
 #include "vulkan_internal.h"
 
+// Forward declare from 'mem_internal.h'.
+typedef struct sRvkMemPool RvkMemPool;
+
 typedef enum {
   RvkDeviceFlags_Validation = 1 << 0,
 } RvkDeviceFlags;
@@ -20,6 +23,7 @@ typedef struct {
   u32                              mainQueueIndex;
   VkQueue                          vkMainQueue;
   VkCommandPool                    vkMainCommandPool;
+  RvkMemPool*                      memPool;
 } RvkDevice;
 
 RvkDevice* rvk_device_create();

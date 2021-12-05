@@ -51,7 +51,7 @@ static VkSurfaceKHR rvk_surface_create(RvkDevice* dev, const GapWindowComp* wind
       .hinstance = (HINSTANCE)gap_native_app_handle(window),
       .hwnd      = (HWND)gap_native_window_handle(window),
   };
-  rvk_call(vkCreateWin32SurfaceKHR, dev->vkInstance, &createInfo, &dev->vkAlloc, &result);
+  rvk_call(vkCreateWin32SurfaceKHR, dev->vkInst, &createInfo, &dev->vkAlloc, &result);
 #endif
   return result;
 }
