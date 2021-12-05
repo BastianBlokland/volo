@@ -25,9 +25,9 @@ typedef enum {
 } RvkSwapchainFlags;
 
 struct sRvkSwapchain {
-  RvkDevice*         device;
-  VkSurfaceKHR       vkSurface;
-  VkSurfaceFormatKHR vkSurfaceFormat;
+  RvkDevice*         dev;
+  VkSurfaceKHR       vkSurf;
+  VkSurfaceFormatKHR vkSurfFormat;
   VkSwapchainKHR     vkSwapchain;
   VkPresentModeKHR   vkPresentMode;
   RvkSwapchainFlags  flags;
@@ -44,7 +44,7 @@ static VkSurfaceKHR rvk_surface_create(RvkDevice* dev, const GapWindowComp* wind
       .connection = (xcb_connection_t*)gap_native_app_handle(window),
       .window     = (xcb_window_t)gap_native_window_handle(window),
   };
-  rvk_call(vkCreateXcbSurfaceKHR, dev->vkInstance, &createInfo, &dev->vkAlloc, &result);
+  rvk_call(vkCreateXcbSurfaceKHR, dev->vkInst, &createInfo, &dev->vkAlloc, &result);
 #elif defined(VOLO_WIN32)
   VkWin32SurfaceCreateInfoKHR createInfo = {
       .sType     = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
@@ -56,13 +56,13 @@ static VkSurfaceKHR rvk_surface_create(RvkDevice* dev, const GapWindowComp* wind
   return result;
 }
 
-static VkSurfaceFormatKHR rvk_pick_surface_format(RvkDevice* dev, VkSurfaceKHR vkSurface) {
+static VkSurfaceFormatKHR rvk_pick_surface_format(RvkDevice* dev, VkSurfaceKHR vkSurf) {
   VkSurfaceFormatKHR availableFormats[64];
   u32                availableFormatCount = array_elems(availableFormats);
   rvk_call(
       vkGetPhysicalDeviceSurfaceFormatsKHR,
-      dev->vkPhysicalDevice,
-      vkSurface,
+      dev->vkPhysDev,
+      vkSurf,
       &availableFormatCount,
       availableFormats);
 
@@ -81,27 +81,27 @@ static VkSurfaceFormatKHR rvk_pick_surface_format(RvkDevice* dev, VkSurfaceKHR v
   return availableFormats[0];
 }
 
-static u32 rvk_pick_imagecount(const VkSurfaceCapabilitiesKHR* capabilities) {
+static u32 rvk_pick_imagecount(const VkSurfaceCapabilitiesKHR* caps) {
   /**
    * Prefer having two images (one on-screen and one being rendered to).
    */
   u32 imgCount = 2;
-  if (capabilities->minImageCount > imgCount) {
-    imgCount = capabilities->minImageCount;
+  if (caps->minImageCount > imgCount) {
+    imgCount = caps->minImageCount;
   }
-  if (capabilities->maxImageCount && capabilities->maxImageCount < imgCount) {
-    imgCount = capabilities->maxImageCount;
+  if (caps->maxImageCount && caps->maxImageCount < imgCount) {
+    imgCount = caps->maxImageCount;
   }
   return imgCount;
 }
 
-static VkPresentModeKHR rvk_pick_presentmode(RvkDevice* dev, VkSurfaceKHR vkSurface) {
+static VkPresentModeKHR rvk_pick_presentmode(RvkDevice* dev, VkSurfaceKHR vkSurf) {
   VkPresentModeKHR available[32];
   u32              availableCount = array_elems(available);
   rvk_call(
       vkGetPhysicalDeviceSurfacePresentModesKHR,
-      dev->vkPhysicalDevice,
-      vkSurface,
+      dev->vkPhysDev,
+      vkSurf,
       &availableCount,
       available);
 
@@ -117,9 +117,9 @@ static VkPresentModeKHR rvk_pick_presentmode(RvkDevice* dev, VkSurfaceKHR vkSurf
   return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-static VkSurfaceCapabilitiesKHR rvk_surface_capabilities(RvkDevice* dev, VkSurfaceKHR vkSurface) {
+static VkSurfaceCapabilitiesKHR rvk_surface_capabilities(RvkDevice* dev, VkSurfaceKHR vkSurf) {
   VkSurfaceCapabilitiesKHR result;
-  rvk_call(vkGetPhysicalDeviceSurfaceCapabilitiesKHR, dev->vkPhysicalDevice, vkSurface, &result);
+  rvk_call(vkGetPhysicalDeviceSurfaceCapabilitiesKHR, dev->vkPhysDev, vkSurf, &result);
   return result;
 }
 
@@ -132,42 +132,41 @@ static bool rvk_swapchain_init(RvkSwapchain* swapchain, const RendSize size) {
   dynarray_for_t(&swapchain->images, RvkImage, img, { rvk_image_destroy(img); });
   dynarray_clear(&swapchain->images);
 
-  VkDevice                 vkDevice    = swapchain->device->vkDevice;
-  VkAllocationCallbacks*   vkAllocHost = &swapchain->device->vkAlloc;
-  VkSurfaceCapabilitiesKHR vkCapabilities =
-      rvk_surface_capabilities(swapchain->device, swapchain->vkSurface);
+  VkDevice                 vkDev   = swapchain->dev->vkDev;
+  VkAllocationCallbacks*   vkAlloc = &swapchain->dev->vkAlloc;
+  VkSurfaceCapabilitiesKHR vkCaps  = rvk_surface_capabilities(swapchain->dev, swapchain->vkSurf);
 
   VkSwapchainKHR           oldSwapchain = swapchain->vkSwapchain;
   VkSwapchainCreateInfoKHR createInfo   = {
       .sType              = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-      .surface            = swapchain->vkSurface,
-      .minImageCount      = rvk_pick_imagecount(&vkCapabilities),
-      .imageFormat        = swapchain->vkSurfaceFormat.format,
-      .imageColorSpace    = swapchain->vkSurfaceFormat.colorSpace,
+      .surface            = swapchain->vkSurf,
+      .minImageCount      = rvk_pick_imagecount(&vkCaps),
+      .imageFormat        = swapchain->vkSurfFormat.format,
+      .imageColorSpace    = swapchain->vkSurfFormat.colorSpace,
       .imageExtent.width  = size.width,
       .imageExtent.height = size.height,
       .imageArrayLayers   = 1,
       .imageUsage         = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
       .imageSharingMode   = VK_SHARING_MODE_EXCLUSIVE,
-      .preTransform       = vkCapabilities.currentTransform,
+      .preTransform       = vkCaps.currentTransform,
       .compositeAlpha     = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
       .presentMode        = swapchain->vkPresentMode,
       .clipped            = true,
       .oldSwapchain       = oldSwapchain,
   };
-  rvk_call(vkCreateSwapchainKHR, vkDevice, &createInfo, vkAllocHost, &swapchain->vkSwapchain);
+  rvk_call(vkCreateSwapchainKHR, vkDev, &createInfo, vkAlloc, &swapchain->vkSwapchain);
   if (oldSwapchain) {
-    vkDestroySwapchainKHR(vkDevice, oldSwapchain, &swapchain->device->vkAlloc);
+    vkDestroySwapchainKHR(vkDev, oldSwapchain, &swapchain->dev->vkAlloc);
   }
 
   u32 imageCount;
-  rvk_call(vkGetSwapchainImagesKHR, vkDevice, swapchain->vkSwapchain, &imageCount, null);
+  rvk_call(vkGetSwapchainImagesKHR, vkDev, swapchain->vkSwapchain, &imageCount, null);
   VkImage* images = mem_stack(sizeof(VkImage) * imageCount).ptr;
-  rvk_call(vkGetSwapchainImagesKHR, vkDevice, swapchain->vkSwapchain, &imageCount, images);
+  rvk_call(vkGetSwapchainImagesKHR, vkDev, swapchain->vkSwapchain, &imageCount, images);
 
   for (u32 i = 0; i != imageCount; ++i) {
-    *dynarray_push_t(&swapchain->images, RvkImage) = rvk_image_create_swapchain(
-        swapchain->device, images[i], swapchain->vkSurfaceFormat.format, size);
+    *dynarray_push_t(&swapchain->images, RvkImage) =
+        rvk_image_create_swapchain(swapchain->dev, images[i], swapchain->vkSurfFormat.format, size);
   }
 
   swapchain->flags &= ~RvkSwapchainFlags_OutOfDate;
@@ -177,8 +176,8 @@ static bool rvk_swapchain_init(RvkSwapchain* swapchain, const RendSize size) {
   log_i(
       "Vulkan swapchain created",
       log_param("size", rend_size_fmt(size)),
-      log_param("format", fmt_text(rvk_format_info(swapchain->vkSurfaceFormat.format).name)),
-      log_param("color", fmt_text(rvk_colorspace_str(swapchain->vkSurfaceFormat.colorSpace))),
+      log_param("format", fmt_text(rvk_format_info(swapchain->vkSurfFormat.format).name)),
+      log_param("color", fmt_text(rvk_colorspace_str(swapchain->vkSurfFormat.colorSpace))),
       log_param("present-mode", fmt_text(rvk_presentmode_str(swapchain->vkPresentMode))),
       log_param("image-count", fmt_int(imageCount)),
       log_param("version", fmt_int(swapchain->version)));
@@ -187,24 +186,24 @@ static bool rvk_swapchain_init(RvkSwapchain* swapchain, const RendSize size) {
 }
 
 RvkSwapchain* rvk_swapchain_create(RvkDevice* dev, const GapWindowComp* window) {
-  VkSurfaceKHR  vkSurface = rvk_surface_create(dev, window);
+  VkSurfaceKHR  vkSurf    = rvk_surface_create(dev, window);
   RvkSwapchain* swapchain = alloc_alloc_t(g_alloc_heap, RvkSwapchain);
   *swapchain              = (RvkSwapchain){
-      .device          = dev,
-      .vkSurface       = vkSurface,
-      .vkSurfaceFormat = rvk_pick_surface_format(dev, vkSurface),
-      .vkPresentMode   = rvk_pick_presentmode(dev, vkSurface),
-      .images          = dynarray_create_t(g_alloc_heap, RvkImage, 2),
+      .dev           = dev,
+      .vkSurf        = vkSurf,
+      .vkSurfFormat  = rvk_pick_surface_format(dev, vkSurf),
+      .vkPresentMode = rvk_pick_presentmode(dev, vkSurf),
+      .images        = dynarray_create_t(g_alloc_heap, RvkImage, 2),
   };
 
-  VkBool32 presentationSupported;
+  VkBool32 supported;
   rvk_call(
       vkGetPhysicalDeviceSurfaceSupportKHR,
-      dev->vkPhysicalDevice,
+      dev->vkPhysDev,
       dev->mainQueueIndex,
-      vkSurface,
-      &presentationSupported);
-  if (!presentationSupported) {
+      vkSurf,
+      &supported);
+  if (!supported) {
     diag_crash_msg("Vulkan device does not support presenting to the given surface");
   }
   return swapchain;
@@ -215,17 +214,15 @@ void rvk_swapchain_destroy(RvkSwapchain* swapchain) {
   dynarray_destroy(&swapchain->images);
 
   if (swapchain->vkSwapchain) {
-    vkDestroySwapchainKHR(
-        swapchain->device->vkDevice, swapchain->vkSwapchain, &swapchain->device->vkAlloc);
+    vkDestroySwapchainKHR(swapchain->dev->vkDev, swapchain->vkSwapchain, &swapchain->dev->vkAlloc);
   }
 
-  vkDestroySurfaceKHR(
-      swapchain->device->vkInstance, swapchain->vkSurface, &swapchain->device->vkAlloc);
+  vkDestroySurfaceKHR(swapchain->dev->vkInst, swapchain->vkSurf, &swapchain->dev->vkAlloc);
   alloc_free_t(g_alloc_heap, swapchain);
 }
 
 VkFormat rvk_swapchain_format(const RvkSwapchain* swapchain) {
-  return swapchain->vkSurfaceFormat.format;
+  return swapchain->vkSurfFormat.format;
 }
 
 u64 rvk_swapchain_version(const RvkSwapchain* swapchain) { return swapchain->version; }
@@ -248,7 +245,7 @@ rvk_swapchain_acquire(RvkSwapchain* swapchain, VkSemaphore available, const Rend
      * consider keeping the old swapchain alive during recreation and only destroy it after all
      * rendering to it was finished.
      */
-    vkDeviceWaitIdle(swapchain->device->vkDevice);
+    vkDeviceWaitIdle(swapchain->dev->vkDev);
 
     if (!rvk_swapchain_init(swapchain, size)) {
       return sentinel_u32;
@@ -261,7 +258,7 @@ rvk_swapchain_acquire(RvkSwapchain* swapchain, VkSemaphore available, const Rend
 
   u32      index;
   VkResult result = vkAcquireNextImageKHR(
-      swapchain->device->vkDevice, swapchain->vkSwapchain, u64_max, available, null, &index);
+      swapchain->dev->vkDev, swapchain->vkSwapchain, u64_max, available, null, &index);
 
   switch (result) {
   case VK_SUBOPTIMAL_KHR:
@@ -289,7 +286,7 @@ bool rvk_swapchain_present(RvkSwapchain* swapchain, VkSemaphore ready, const Rvk
       .pImageIndices      = &idx,
   };
 
-  VkResult result = vkQueuePresentKHR(swapchain->device->vkMainQueue, &presentInfo);
+  VkResult result = vkQueuePresentKHR(swapchain->dev->vkMainQueue, &presentInfo);
   switch (result) {
   case VK_SUBOPTIMAL_KHR:
     swapchain->flags |= RvkSwapchainFlags_OutOfDate;

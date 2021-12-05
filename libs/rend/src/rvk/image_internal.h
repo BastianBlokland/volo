@@ -14,7 +14,7 @@ typedef enum {
 } RvkImageType;
 
 typedef struct {
-  RvkDevice*   device;
+  RvkDevice*   dev;
   RvkImageType type;
   RendSize     size;
   u32          mipLevels;

@@ -11,16 +11,16 @@ static const char* rvk_to_null_term_scratch(String api) {
   return scratchMem.ptr;
 }
 
-void* rvk_func_load_instance_internal(VkInstance instance, String api) {
-  const PFN_vkVoidFunction res = vkGetInstanceProcAddr(instance, rvk_to_null_term_scratch(api));
+void* rvk_func_load_instance_internal(VkInstance inst, String api) {
+  const PFN_vkVoidFunction res = vkGetInstanceProcAddr(inst, rvk_to_null_term_scratch(api));
   if (UNLIKELY(!res)) {
     diag_crash_msg("Vulkan failed to load instance api: {}", fmt_text(api));
   }
   return (void*)res;
 }
 
-void* rvk_func_load_device_internal(VkDevice device, String api) {
-  const PFN_vkVoidFunction res = vkGetDeviceProcAddr(device, rvk_to_null_term_scratch(api));
+void* rvk_func_load_device_internal(VkDevice inst, String api) {
+  const PFN_vkVoidFunction res = vkGetDeviceProcAddr(inst, rvk_to_null_term_scratch(api));
   if (UNLIKELY(!res)) {
     diag_crash_msg("Vulkan failed to load device api: {}", fmt_text(api));
   }

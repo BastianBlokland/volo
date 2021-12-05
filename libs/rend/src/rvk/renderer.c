@@ -14,7 +14,7 @@ struct sRvkRenderer {
 static VkSemaphore rvk_semaphore_create(RvkDevice* dev) {
   VkSemaphoreCreateInfo semaphoreInfo = {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
   VkSemaphore           result;
-  rvk_call(vkCreateSemaphore, dev->vkDevice, &semaphoreInfo, &dev->vkAlloc, &result);
+  rvk_call(vkCreateSemaphore, dev->vkDev, &semaphoreInfo, &dev->vkAlloc, &result);
   return result;
 }
 
@@ -24,7 +24,7 @@ static VkFence rvk_fence_create(RvkDevice* dev, const bool initialState) {
       .flags = initialState ? VK_FENCE_CREATE_SIGNALED_BIT : 0,
   };
   VkFence result;
-  rvk_call(vkCreateFence, dev->vkDevice, &fenceInfo, &dev->vkAlloc, &result);
+  rvk_call(vkCreateFence, dev->vkDev, &fenceInfo, &dev->vkAlloc, &result);
   return result;
 }
 
@@ -36,38 +36,38 @@ static VkCommandBuffer rvk_commandbuffer_create(RvkDevice* dev) {
       .commandBufferCount = 1,
   };
   VkCommandBuffer result;
-  rvk_call(vkAllocateCommandBuffers, dev->vkDevice, &allocInfo, &result);
+  rvk_call(vkAllocateCommandBuffers, dev->vkDev, &allocInfo, &result);
   return result;
 }
 
-static void rvk_commandbuffer_begin(VkCommandBuffer vkCommandBuffer) {
+static void rvk_commandbuffer_begin(VkCommandBuffer vkCmdBuf) {
   VkCommandBufferBeginInfo beginInfo = {
       .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
       .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
   };
-  rvk_call(vkBeginCommandBuffer, vkCommandBuffer, &beginInfo);
+  rvk_call(vkBeginCommandBuffer, vkCmdBuf, &beginInfo);
 }
 
-static void rvk_commandbuffer_end(VkCommandBuffer vkCommandBuffer) {
-  rvk_call(vkEndCommandBuffer, vkCommandBuffer);
+static void rvk_commandbuffer_end(VkCommandBuffer vkCmdBuf) {
+  rvk_call(vkEndCommandBuffer, vkCmdBuf);
 }
 
-static void rvk_renderer_submit(RvkRenderer* renderer) {
+static void rvk_renderer_submit(RvkRenderer* rend) {
   const VkPipelineStageFlags waitStage  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
   VkSubmitInfo               submitInfo = {
       .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
       .waitSemaphoreCount   = 1,
-      .pWaitSemaphores      = &renderer->imageAvailable,
+      .pWaitSemaphores      = &rend->imageAvailable,
       .pWaitDstStageMask    = &waitStage,
       .commandBufferCount   = 1,
-      .pCommandBuffers      = &renderer->vkDrawBuffer,
+      .pCommandBuffers      = &rend->vkDrawBuffer,
       .signalSemaphoreCount = 1,
-      .pSignalSemaphores    = &renderer->imageReady,
+      .pSignalSemaphores    = &rend->imageReady,
   };
-  rvk_call(vkQueueSubmit, renderer->device->vkMainQueue, 1, &submitInfo, renderer->renderDone);
+  rvk_call(vkQueueSubmit, rend->device->vkMainQueue, 1, &submitInfo, rend->renderDone);
 }
 
-static void rvk_viewport_set(VkCommandBuffer vkCommandBuffer, const RendSize size) {
+static void rvk_viewport_set(VkCommandBuffer vkCmdBuf, const RendSize size) {
   VkViewport viewport = {
       .x        = 0.0f,
       .y        = 0.0f,
@@ -76,16 +76,16 @@ static void rvk_viewport_set(VkCommandBuffer vkCommandBuffer, const RendSize siz
       .minDepth = 0.0f,
       .maxDepth = 1.0f,
   };
-  vkCmdSetViewport(vkCommandBuffer, 0, 1, &viewport);
+  vkCmdSetViewport(vkCmdBuf, 0, 1, &viewport);
 }
 
-static void rvk_scissor_set(VkCommandBuffer vkCommandBuffer, const RendSize size) {
+static void rvk_scissor_set(VkCommandBuffer vkCmdBuf, const RendSize size) {
   VkRect2D scissor = {
       .offset        = {0, 0},
       .extent.width  = size.width,
       .extent.height = size.height,
   };
-  vkCmdSetScissor(vkCommandBuffer, 0, 1, &scissor);
+  vkCmdSetScissor(vkCmdBuf, 0, 1, &scissor);
 }
 
 RvkRenderer* rvk_renderer_create(RvkDevice* dev, RvkSwapchain* swapchain) {
@@ -101,46 +101,45 @@ RvkRenderer* rvk_renderer_create(RvkDevice* dev, RvkSwapchain* swapchain) {
   return renderer;
 }
 
-void rvk_renderer_destroy(RvkRenderer* renderer) {
+void rvk_renderer_destroy(RvkRenderer* rend) {
   vkFreeCommandBuffers(
-      renderer->device->vkDevice, renderer->device->vkMainCommandPool, 1, &renderer->vkDrawBuffer);
-  vkDestroySemaphore(
-      renderer->device->vkDevice, renderer->imageAvailable, &renderer->device->vkAlloc);
-  vkDestroySemaphore(renderer->device->vkDevice, renderer->imageReady, &renderer->device->vkAlloc);
-  vkDestroyFence(renderer->device->vkDevice, renderer->renderDone, &renderer->device->vkAlloc);
+      rend->device->vkDev, rend->device->vkMainCommandPool, 1, &rend->vkDrawBuffer);
+  vkDestroySemaphore(rend->device->vkDev, rend->imageAvailable, &rend->device->vkAlloc);
+  vkDestroySemaphore(rend->device->vkDev, rend->imageReady, &rend->device->vkAlloc);
+  vkDestroyFence(rend->device->vkDev, rend->renderDone, &rend->device->vkAlloc);
 
-  alloc_free_t(g_alloc_heap, renderer);
+  alloc_free_t(g_alloc_heap, rend);
 }
 
-VkSemaphore rvk_renderer_image_available(RvkRenderer* renderer) { return renderer->imageAvailable; }
+VkSemaphore rvk_renderer_image_available(RvkRenderer* rend) { return rend->imageAvailable; }
 
-VkSemaphore rvk_renderer_image_ready(RvkRenderer* renderer) { return renderer->imageReady; }
+VkSemaphore rvk_renderer_image_ready(RvkRenderer* rend) { return rend->imageReady; }
 
-void rvk_renderer_wait_for_done(const RvkRenderer* renderer) {
-  rvk_call(vkWaitForFences, renderer->device->vkDevice, 1, &renderer->renderDone, true, u64_max);
+void rvk_renderer_wait_for_done(const RvkRenderer* rend) {
+  rvk_call(vkWaitForFences, rend->device->vkDev, 1, &rend->renderDone, true, u64_max);
 }
 
 void rvk_renderer_draw_begin(
-    RvkRenderer*          renderer,
+    RvkRenderer*          rend,
     RvkTechnique*         technique,
     const RvkSwapchainIdx swapchainIdx,
     const RendColor       clearColor) {
 
-  rvk_renderer_wait_for_done(renderer);
-  rvk_commandbuffer_begin(renderer->vkDrawBuffer);
+  rvk_renderer_wait_for_done(rend);
+  rvk_commandbuffer_begin(rend->vkDrawBuffer);
 
-  rvk_technique_begin(technique, renderer->vkDrawBuffer, swapchainIdx, clearColor);
+  rvk_technique_begin(technique, rend->vkDrawBuffer, swapchainIdx, clearColor);
 
-  RvkImage* targetImage = rvk_swapchain_image(renderer->swapchain, swapchainIdx);
-  rvk_viewport_set(renderer->vkDrawBuffer, targetImage->size);
-  rvk_scissor_set(renderer->vkDrawBuffer, targetImage->size);
+  RvkImage* targetImage = rvk_swapchain_image(rend->swapchain, swapchainIdx);
+  rvk_viewport_set(rend->vkDrawBuffer, targetImage->size);
+  rvk_scissor_set(rend->vkDrawBuffer, targetImage->size);
 }
 
-void rvk_renderer_draw_end(RvkRenderer* renderer, RvkTechnique* technique) {
+void rvk_renderer_draw_end(RvkRenderer* rend, RvkTechnique* tech) {
 
-  rvk_technique_end(technique, renderer->vkDrawBuffer);
-  rvk_commandbuffer_end(renderer->vkDrawBuffer);
+  rvk_technique_end(tech, rend->vkDrawBuffer);
+  rvk_commandbuffer_end(rend->vkDrawBuffer);
 
-  rvk_call(vkResetFences, renderer->device->vkDevice, 1, &renderer->renderDone);
-  rvk_renderer_submit(renderer);
+  rvk_call(vkResetFences, rend->device->vkDev, 1, &rend->renderDone);
+  rvk_renderer_submit(rend);
 }

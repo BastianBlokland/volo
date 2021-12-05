@@ -7,9 +7,9 @@
 #define attachment_max 8
 
 struct sRvkTechnique {
-  RvkDevice*    device;
+  RvkDevice*    dev;
   RvkSwapchain* swapchain;
-  VkRenderPass  vkRenderPass;
+  VkRenderPass  vkRendPass;
   u64           swapchainVersion;
   DynArray      frameBuffers; // VkFramebuffer[]
 };
@@ -57,17 +57,17 @@ static VkRenderPass rvk_renderpass_create(RvkDevice* dev, RvkSwapchain* swapchai
       .pDependencies   = &dependency,
   };
   VkRenderPass result;
-  rvk_call(vkCreateRenderPass, dev->vkDevice, &renderPassInfo, &dev->vkAlloc, &result);
+  rvk_call(vkCreateRenderPass, dev->vkDev, &renderPassInfo, &dev->vkAlloc, &result);
   return result;
 }
 
 static VkFramebuffer
-rvk_framebuffer_create(RvkTechnique* technique, const RvkSwapchainIdx swapchainIdx) {
-  RvkImage* swapchainImage = rvk_swapchain_image(technique->swapchain, swapchainIdx);
+rvk_framebuffer_create(RvkTechnique* tech, const RvkSwapchainIdx swapchainIdx) {
+  RvkImage* swapchainImage = rvk_swapchain_image(tech->swapchain, swapchainIdx);
 
   VkFramebufferCreateInfo framebufferInfo = {
       .sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-      .renderPass      = technique->vkRenderPass,
+      .renderPass      = tech->vkRendPass,
       .attachmentCount = 1,
       .pAttachments    = &swapchainImage->vkImageView,
       .width           = swapchainImage->size.width,
@@ -75,83 +75,76 @@ rvk_framebuffer_create(RvkTechnique* technique, const RvkSwapchainIdx swapchainI
       .layers          = 1,
   };
   VkFramebuffer result;
-  rvk_call(
-      vkCreateFramebuffer,
-      technique->device->vkDevice,
-      &framebufferInfo,
-      &technique->device->vkAlloc,
-      &result);
+  rvk_call(vkCreateFramebuffer, tech->dev->vkDev, &framebufferInfo, &tech->dev->vkAlloc, &result);
   return result;
 }
 
-static void rvk_resource_init(RvkTechnique* technique) {
+static void rvk_resource_init(RvkTechnique* tech) {
 
-  dynarray_for_t(&technique->frameBuffers, VkFramebuffer, fb, {
-    vkDestroyFramebuffer(technique->device->vkDevice, *fb, &technique->device->vkAlloc);
+  dynarray_for_t(&tech->frameBuffers, VkFramebuffer, fb, {
+    vkDestroyFramebuffer(tech->dev->vkDev, *fb, &tech->dev->vkAlloc);
   });
-  dynarray_clear(&technique->frameBuffers);
+  dynarray_clear(&tech->frameBuffers);
 
-  for (u32 i = 0; i != rvk_swapchain_imagecount(technique->swapchain); ++i) {
-    *dynarray_push_t(&technique->frameBuffers, VkFramebuffer) =
-        rvk_framebuffer_create(technique, i);
+  for (u32 i = 0; i != rvk_swapchain_imagecount(tech->swapchain); ++i) {
+    *dynarray_push_t(&tech->frameBuffers, VkFramebuffer) = rvk_framebuffer_create(tech, i);
   }
 
-  technique->swapchainVersion = rvk_swapchain_version(technique->swapchain);
+  tech->swapchainVersion = rvk_swapchain_version(tech->swapchain);
 }
 
 RvkTechnique* rvk_technique_create(RvkDevice* dev, RvkSwapchain* swapchain) {
   RvkTechnique* technique = alloc_alloc_t(g_alloc_heap, RvkTechnique);
   *technique              = (RvkTechnique){
-      .device           = dev,
+      .dev              = dev,
       .swapchain        = swapchain,
       .frameBuffers     = dynarray_create_t(g_alloc_heap, VkFramebuffer, 2),
-      .vkRenderPass     = rvk_renderpass_create(dev, swapchain),
+      .vkRendPass       = rvk_renderpass_create(dev, swapchain),
       .swapchainVersion = u64_max,
   };
   return technique;
 }
 
-void rvk_technique_destroy(RvkTechnique* technique) {
-  vkDestroyRenderPass(
-      technique->device->vkDevice, technique->vkRenderPass, &technique->device->vkAlloc);
+void rvk_technique_destroy(RvkTechnique* tech) {
+  vkDestroyRenderPass(tech->dev->vkDev, tech->vkRendPass, &tech->dev->vkAlloc);
 
-  dynarray_for_t(&technique->frameBuffers, VkFramebuffer, fb, {
-    vkDestroyFramebuffer(technique->device->vkDevice, *fb, &technique->device->vkAlloc);
+  dynarray_for_t(&tech->frameBuffers, VkFramebuffer, fb, {
+    vkDestroyFramebuffer(tech->dev->vkDev, *fb, &tech->dev->vkAlloc);
   });
-  dynarray_destroy(&technique->frameBuffers);
+  dynarray_destroy(&tech->frameBuffers);
 
-  alloc_free_t(g_alloc_heap, technique);
+  alloc_free_t(g_alloc_heap, tech);
 }
 
 void rvk_technique_begin(
-    RvkTechnique*         technique,
-    VkCommandBuffer       vkCommandBuffer,
+    RvkTechnique*         tech,
+    VkCommandBuffer       vkCmdBuf,
     const RvkSwapchainIdx swapchainIdx,
     const RendColor       clearColor) {
 
-  if (technique->swapchainVersion != rvk_swapchain_version(technique->swapchain)) {
-    rvk_resource_init(technique);
+  if (tech->swapchainVersion != rvk_swapchain_version(tech->swapchain)) {
+    rvk_resource_init(tech);
   }
 
-  RvkImage* swapchainImage = rvk_swapchain_image(technique->swapchain, swapchainIdx);
+  RvkImage* swapchainImage = rvk_swapchain_image(tech->swapchain, swapchainIdx);
 
   VkClearValue clearValues[] = {
       *(VkClearColorValue*)&clearColor,
   };
   VkRenderPassBeginInfo renderPassInfo = {
-      .sType             = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-      .renderPass        = technique->vkRenderPass,
-      .framebuffer       = *dynarray_at_t(&technique->frameBuffers, swapchainIdx, VkFramebuffer),
-      .renderArea.offset = {0, 0},
+      .sType                    = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+      .renderPass               = tech->vkRendPass,
+      .framebuffer              = *dynarray_at_t(&tech->frameBuffers, swapchainIdx, VkFramebuffer),
+      .renderArea.offset        = {0, 0},
       .renderArea.extent.width  = swapchainImage->size.width,
       .renderArea.extent.height = swapchainImage->size.height,
       .clearValueCount          = array_elems(clearValues),
       .pClearValues             = clearValues,
   };
-  vkCmdBeginRenderPass(vkCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+  vkCmdBeginRenderPass(vkCmdBuf, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
 
-void rvk_technique_end(RvkTechnique* technique, VkCommandBuffer vkCommandBuffer) {
-  (void)technique;
-  vkCmdEndRenderPass(vkCommandBuffer);
+void rvk_technique_end(RvkTechnique* tech, VkCommandBuffer vkCmdBuf) {
+  (void)tech;
+  vkCmdEndRenderPass(vkCmdBuf);
 }

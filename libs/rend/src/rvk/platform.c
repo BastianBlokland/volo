@@ -13,7 +13,7 @@ typedef struct {
 } RvkCanvasInfo;
 
 struct sRvkPlatform {
-  RvkDevice* device;
+  RvkDevice* dev;
   DynArray   canvases; // RvkCanvasInfo[]
 };
 
@@ -29,7 +29,7 @@ static RvkCanvas* rvk_canvas_lookup(RvkPlatform* plat, const RvkCanvasId id) {
 RvkPlatform* rvk_platform_create() {
   RvkPlatform* plat = alloc_alloc_t(g_alloc_heap, RvkPlatform);
   *plat             = (RvkPlatform){
-      .device   = rvk_device_create(),
+      .dev      = rvk_device_create(),
       .canvases = dynarray_create_t(g_alloc_heap, RvkCanvasInfo, 4),
   };
   return plat;
@@ -40,7 +40,7 @@ void rvk_platform_destroy(RvkPlatform* plat) {
     rvk_platform_canvas_destroy(plat, dynarray_at_t(&plat->canvases, 0, RvkCanvasInfo)->id);
   }
 
-  rvk_device_destroy(plat->device);
+  rvk_device_destroy(plat->dev);
 
   dynarray_destroy(&plat->canvases);
   alloc_free_t(g_alloc_heap, plat);
@@ -52,7 +52,7 @@ RvkCanvasId rvk_platform_canvas_create(RvkPlatform* plat, const GapWindowComp* w
   RvkCanvasId id = (RvkCanvasId)thread_atomic_add_i64(&nextCanvasId, 1);
   *dynarray_push_t(&plat->canvases, RvkCanvasInfo) = (RvkCanvasInfo){
       .id     = id,
-      .canvas = rvk_canvas_create(plat->device, window),
+      .canvas = rvk_canvas_create(plat->dev, window),
   };
   return id;
 }

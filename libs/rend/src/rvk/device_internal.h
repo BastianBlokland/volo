@@ -9,13 +9,13 @@ typedef enum {
 typedef struct {
   RvkDeviceFlags                   flags;
   RvkDebug*                        debug;
-  VkInstance                       vkInstance;
+  VkInstance                       vkInst;
   VkAllocationCallbacks            vkAlloc;
-  VkPhysicalDevice                 vkPhysicalDevice;
+  VkPhysicalDevice                 vkPhysDev;
   VkPhysicalDeviceProperties       vkProperties;
   VkPhysicalDeviceFeatures         vkSupportedFeatures;
   VkPhysicalDeviceMemoryProperties vkMemProperties;
-  VkDevice                         vkDevice;
+  VkDevice                         vkDev;
   VkFormat                         vkDepthFormat;
   u32                              mainQueueIndex;
   VkQueue                          vkMainQueue;

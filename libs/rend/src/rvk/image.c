@@ -35,7 +35,7 @@ static VkImageView rvk_imageview_create(
       .subresourceRange.layerCount     = 1,
   };
   VkImageView result;
-  rvk_call(vkCreateImageView, dev->vkDevice, &createInfo, &dev->vkAlloc, &result);
+  rvk_call(vkCreateImageView, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
   return result;
 }
 
@@ -48,7 +48,7 @@ RvkImage rvk_image_create_swapchain(
   const VkImageView vkView = rvk_imageview_create(dev, vkImage, vkFormat, vkAspect, mipLevels);
 
   return (RvkImage){
-      .device      = dev,
+      .dev         = dev,
       .type        = type,
       .size        = size,
       .mipLevels   = mipLevels,
@@ -60,9 +60,9 @@ RvkImage rvk_image_create_swapchain(
 
 void rvk_image_destroy(RvkImage* img) {
   if (img->type != RvkImageType_Swapchain) {
-    vkDestroyImage(img->device->vkDevice, img->vkImage, &img->device->vkAlloc);
+    vkDestroyImage(img->dev->vkDev, img->vkImage, &img->dev->vkAlloc);
   }
-  vkDestroyImageView(img->device->vkDevice, img->vkImageView, &img->device->vkAlloc);
+  vkDestroyImageView(img->dev->vkDev, img->vkImageView, &img->dev->vkAlloc);
 }
 
 String rvk_image_type_str(const RvkImageType type) {
