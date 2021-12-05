@@ -7,6 +7,8 @@
 
 #include "logger_internal.h"
 
+typedef LogSink* LogSinkPtr;
+
 struct sLogger {
   DynArray   sinks; // LogSink*[]
   Allocator* alloc;
@@ -24,11 +26,11 @@ static const String g_level_strs[] = {
 ASSERT(array_elems(g_level_strs) == LogLevel_Count, "Incorrect number of LogLevel strings");
 
 static void log_destroy_sinks(Logger* logger) {
-  dynarray_for_t(&logger->sinks, LogSink*, sink, {
+  dynarray_for_t(&logger->sinks, LogSinkPtr, sink) {
     if ((*sink)->destroy) {
       (*sink)->destroy(*sink);
     }
-  });
+  }
   dynarray_destroy(&logger->sinks);
 }
 
@@ -89,7 +91,7 @@ void log_append(Logger* logger, LogLevel lvl, SourceLoc loc, String str, const L
   const String   message   = log_format_text_scratch(str, params);
   const TimeReal timestamp = time_real_clock();
 
-  dynarray_for_t(&logger->sinks, LogSink*, sink, {
+  dynarray_for_t(&logger->sinks, LogSinkPtr, sink) {
     (*sink)->write(*sink, lvl, loc, timestamp, message, params);
-  });
+  }
 }

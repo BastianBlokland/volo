@@ -24,7 +24,7 @@ static void data_destroy_string(const DestroyCtx* ctx) {
 static void data_destroy_struct(const DestroyCtx* ctx) {
 
   const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
-  dynarray_for_t((DynArray*)&decl->val_struct.fields, DataDeclField, fieldDecl, {
+  dynarray_for_t(&decl->val_struct.fields, DataDeclField, fieldDecl) {
     const Mem fieldMem = data_field_mem(ctx->reg, fieldDecl, ctx->data);
 
     const DestroyCtx fieldCtx = {
@@ -34,7 +34,7 @@ static void data_destroy_struct(const DestroyCtx* ctx) {
         .data  = fieldMem,
     };
     data_destroy_internal(&fieldCtx);
-  });
+  }
 }
 
 static void data_destroy_single(const DestroyCtx* ctx) {

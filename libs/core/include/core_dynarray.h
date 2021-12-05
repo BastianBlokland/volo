@@ -38,16 +38,27 @@ typedef struct {
 #define dynarray_create_over_t(_MEM_, _TYPE_) dynarray_create_over((_MEM_), (u16)sizeof(_TYPE_))
 
 /**
+ * Typed pointer to the beginning of the array.
+ */
+#define dynarray_begin_t(_ARRAY_, _TYPE_) ((_TYPE_*)(_ARRAY_)->data.ptr)
+
+/**
+ * Typed pointer to the end of the array (1 past the last element).
+ * NOTE: _MEM_ is expanded multiple times, so care must be taken when providing complex expressions.
+ */
+#define dynarray_end_t(_ARRAY_, _TYPE_) (dynarray_begin_t((_ARRAY_), _TYPE_) + (_ARRAY_)->size)
+
+/**
  * Retreive a pointer to an item in the array at index '_IDX_'.
  * Pre-condition: '_IDX_' < '_ARRAY_'.size
- * Pre-condition: sizeof(_TYPE_) <= '_ARRAY_'.stride
+ * Pre-condition: sizeof(_TYPE_) == '_ARRAY_'.stride
  */
 #define dynarray_at_t(_ARRAY_, _IDX_, _TYPE_) mem_as_t(dynarray_at((_ARRAY_), (_IDX_), 1), _TYPE_)
 
 /**
  * Push memory for new item to the array. Returns a pointer to the new item.
  * NOTE: The memory for the new item is NOT initialized.
- * Pre-condition: sizeof(_TYPE_) <= '_ARRAY_'.stride
+ * Pre-condition: sizeof(_TYPE_) == '_ARRAY_'.stride
  */
 #define dynarray_push_t(_ARRAY_, _TYPE_) mem_as_t(dynarray_push((_ARRAY_), 1), _TYPE_)
 
@@ -62,30 +73,26 @@ typedef struct {
 /**
  * Insert an item into the dynamic-array at an index that would maintain sorting with target.
  * NOTE: The memory for the new item is NOT initialized.
- * Pre-condition: sizeof(_TYPE_) <= '_ARRAY_'.stride
+ * Pre-condition: sizeof(_TYPE_) == '_ARRAY_'.stride
  * Pre-condition: array is sorted.
  */
 #define dynarray_insert_sorted_t(_ARRAY_, _TYPE_, _COMPARE_, _TARGET_)                             \
   mem_as_t(dynarray_insert_sorted((_ARRAY_), 1, (_COMPARE_), (_TARGET_)), _TYPE_)
 
-/**
- * Iterate over all items in the array.
- * Pre-condition: sizeof(_TYPE_) <= '_ARRAY_'.stride
- */
-#define dynarray_for_t(_ARRAY_, _TYPE_, _VAR_, ...)                                                \
-  {                                                                                                \
-    DynArray* _VAR_##_array = (_ARRAY_);                                                           \
-    for (usize _VAR_##_i = 0; _VAR_##_i != _VAR_##_array->size; ++_VAR_##_i) {                     \
-      _TYPE_* _VAR_ = dynarray_at_t(_VAR_##_array, _VAR_##_i, _TYPE_);                             \
-      __VA_ARGS__                                                                                  \
-    }                                                                                              \
-  }
+// clang-format off
 
 /**
- * Typed pointer to the first element in the array.
- * NOTE: Returned pointer is only valid if '_ARRAY_'.size != 0.
+ * Iterate over all items in the array.
+ * NOTE: _ARRAY_ is expanded multiple times, so care must be taken when providing complex exprs.
+ * Pre-condition: sizeof(_TYPE_) == '_ARRAY_'.stride
  */
-#define dynarray_begin_t(_ARRAY_, _TYPE_) mem_as_t((_ARRAY_)->data, _TYPE_)
+#define dynarray_for_t(_ARRAY_, _TYPE_, _VAR_)                                                     \
+  for (_TYPE_* _VAR_       = dynarray_begin_t((_ARRAY_), _TYPE_),                                  \
+             * _VAR_##_end = dynarray_end_t((_ARRAY_), _TYPE_);                                    \
+       _VAR_ != _VAR_##_end;                                                                       \
+       ++_VAR_)
+
+// clang-format on
 
 /**
  * Create a new dynamic array. 'stride' determines the space each item occupies and 'align'

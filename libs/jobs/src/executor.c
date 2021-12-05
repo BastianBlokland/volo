@@ -163,13 +163,13 @@ static void executor_perform_work(WorkItem item) {
 
   JobTaskId childTasks[job_max_task_children];
   usize     childCount = 0;
-  jobs_graph_for_task_child(item.job->graph, item.task, child, {
+  jobs_graph_for_task_child(item.job->graph, item.task, child) {
     diag_assert_msg(
         childCount < job_max_task_children,
         "Task has too many children (max: {})",
         fmt_int(job_max_task_children));
     childTasks[childCount++] = child.task;
-  });
+  }
 
   // Update the tasks that are depending on this work.
   if (childCount) {

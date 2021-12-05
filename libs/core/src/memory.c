@@ -106,11 +106,11 @@ INLINE_HINT bool mem_eq(const Mem a, const Mem b) {
 }
 
 bool mem_contains(const Mem mem, const u8 byte) {
-  mem_for_u8(mem, b, {
-    if (b == byte) {
+  mem_for_u8(mem, itr) {
+    if (*itr == byte) {
       return true;
     }
-  });
+  }
   return false;
 }
 

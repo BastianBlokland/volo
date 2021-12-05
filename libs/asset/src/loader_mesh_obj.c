@@ -314,7 +314,7 @@ static GeoVector obj_tri_norm(const GeoVector a, const GeoVector b, const GeoVec
 }
 
 static void obj_triangulate(const ObjData* data, AssetMeshBuilder* builder) {
-  dynarray_for_t((DynArray*)&data->faces, ObjFace, face, {
+  dynarray_for_t(&data->faces, ObjFace, face) {
     const GeoVector* positions = dynarray_begin_t(&data->positions, GeoVector);
     const GeoVector* normals   = dynarray_begin_t(&data->normals, GeoVector);
     const ObjVertex* vertices  = dynarray_begin_t(&data->vertices, ObjVertex);
@@ -354,7 +354,7 @@ static void obj_triangulate(const ObjData* data, AssetMeshBuilder* builder) {
       asset_mesh_builder_push(builder, vertB);
       asset_mesh_builder_push(builder, vertC);
     }
-  });
+  }
 }
 
 NORETURN static void obj_report_error(const ObjError err) {

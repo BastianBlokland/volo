@@ -52,11 +52,11 @@ static void pal_crash_with_win32_err(String api) {
 }
 
 static GapPalWindow* pal_maybe_window(GapPal* pal, const GapWindowId id) {
-  dynarray_for_t(&pal->windows, GapPalWindow, window, {
+  dynarray_for_t(&pal->windows, GapPalWindow, window) {
     if (window->id == id) {
       return window;
     }
-  });
+  }
   return null;
 }
 
@@ -69,14 +69,14 @@ static GapPalWindow* pal_window(GapPal* pal, const GapWindowId id) {
 }
 
 static void pal_clear_volatile(GapPal* pal) {
-  dynarray_for_t(&pal->windows, GapPalWindow, window, {
+  dynarray_for_t(&pal->windows, GapPalWindow, window) {
     gap_keyset_clear(&window->keysPressed);
     gap_keyset_clear(&window->keysReleased);
 
     window->params[GapParam_ScrollDelta] = gap_vector(0, 0);
 
     window->flags &= ~GapPalWindowFlags_Volatile;
-  });
+  }
 }
 
 static RECT pal_client_to_window_rect(const GapVector clientSize, const DWORD style) {

@@ -165,7 +165,7 @@ spec(string) {
     check_eq_string(*dynarray_at_t(&array, 2, String), string_lit("Hello 2"));
     check_eq_string(*dynarray_at_t(&array, 3, String), string_lit("Hello 3"));
 
-    dynarray_for_t(&array, String, str, { string_free(alloc, *str); });
+    dynarray_for_t(&array, String, str) { string_free(alloc, *str); }
     dynarray_destroy(&array);
   }
 
@@ -242,7 +242,7 @@ spec(string) {
     check_eq_string(*dynarray_at_t(&array, 1, String), string_lit("May"));
     check_eq_string(*dynarray_at_t(&array, 2, String), string_lit("November"));
 
-    dynarray_for_t(&array, String, str, { string_free(alloc, *str); });
+    dynarray_for_t(&array, String, str) { string_free(alloc, *str); }
     dynarray_destroy(&array);
   }
 }

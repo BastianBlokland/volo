@@ -27,11 +27,12 @@ static DataDecl* data_decl_mutable(DataReg* reg, const DataType type) {
 }
 
 static DataType data_type_by_id(const DataReg* reg, const DataId id) {
-  dynarray_for_t((DynArray*)&reg->types, DataDecl, decl, {
+  for (DataType declId = 0; declId != reg->types.size; ++declId) {
+    DataDecl* decl = dynarray_at_t(&reg->types, declId, DataDecl);
     if (decl->id.hash == id.hash) {
-      return (DataType)decl_i;
+      return declId;
     }
-  });
+  }
   return sentinel_u32;
 }
 
@@ -57,25 +58,25 @@ DataReg* data_reg_create(Allocator* alloc) {
 
 void data_reg_destroy(DataReg* reg) {
 
-  dynarray_for_t(&reg->types, DataDecl, decl, {
+  dynarray_for_t(&reg->types, DataDecl, decl) {
     data_id_destroy(reg->alloc, decl->id);
     switch (decl->kind) {
     case DataKind_Struct: {
-      dynarray_for_t(&decl->val_struct.fields, DataDeclField, fieldDecl, {
+      dynarray_for_t(&decl->val_struct.fields, DataDeclField, fieldDecl) {
         data_id_destroy(reg->alloc, fieldDecl->id);
-      });
+      }
       dynarray_destroy(&decl->val_struct.fields);
     } break;
     case DataKind_Enum: {
-      dynarray_for_t(&decl->val_enum.consts, DataDeclConst, constDecl, {
+      dynarray_for_t(&decl->val_enum.consts, DataDeclConst, constDecl) {
         data_id_destroy(reg->alloc, constDecl->id);
-      });
+      }
       dynarray_destroy(&decl->val_enum.consts);
     } break;
     default:
       break;
     }
-  });
+  }
   dynarray_destroy(&reg->types);
 
   alloc_free_t(reg->alloc, reg);

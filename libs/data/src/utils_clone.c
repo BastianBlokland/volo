@@ -28,7 +28,7 @@ static void data_clone_struct(const CloneCtx* ctx) {
   mem_set(ctx->clone, 0); // Initialize non-specified memory to zero.
 
   const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
-  dynarray_for_t((DynArray*)&decl->val_struct.fields, DataDeclField, fieldDecl, {
+  dynarray_for_t(&decl->val_struct.fields, DataDeclField, fieldDecl) {
     const Mem originalFieldMem = data_field_mem(ctx->reg, fieldDecl, ctx->original);
     const Mem dataFieldMem     = data_field_mem(ctx->reg, fieldDecl, ctx->clone);
 
@@ -40,7 +40,7 @@ static void data_clone_struct(const CloneCtx* ctx) {
         .clone    = dataFieldMem,
     };
     data_clone_internal(&fieldCtx);
-  });
+  }
 }
 
 static void data_clone_single(const CloneCtx* ctx) {

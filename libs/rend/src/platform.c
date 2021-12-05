@@ -7,7 +7,7 @@ ecs_comp_define_public(RendPlatformComp);
 
 static void ecs_destruct_platform_comp(void* data) {
   RendPlatformComp* comp = data;
-  rend_vk_platform_destroy(comp->vulkan);
+  rvk_platform_destroy(comp->vulkan);
 }
 
 ecs_view_define(RendPlatformView) { ecs_access_write(RendPlatformComp); };
@@ -22,7 +22,7 @@ static RendPlatformComp* rend_platform_get_or_create(EcsWorld* world) {
       world,
       ecs_world_entity_create(world),
       RendPlatformComp,
-      .vulkan = rend_vk_platform_create(g_alloc_heap));
+      .vulkan = rvk_platform_create(g_alloc_heap));
 }
 
 ecs_system_define(RendPlatformUpdateSys) {

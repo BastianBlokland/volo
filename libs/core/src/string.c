@@ -73,11 +73,11 @@ usize string_find_first(String str, String subStr) {
 }
 
 usize string_find_first_any(String str, String chars) {
-  mem_for_u8(str, c, {
-    if (mem_contains(chars, c)) {
-      return c_itr - string_begin(str);
+  mem_for_u8(str, itr) {
+    if (mem_contains(chars, *itr)) {
+      return itr - string_begin(str);
     }
-  });
+  }
   return sentinel_usize;
 }
 

@@ -156,22 +156,22 @@ static void cli_parse_short_flag(CliParseCtx* ctx, u8 character) {
 }
 
 static void cli_parse_short_flag_block(CliParseCtx* ctx, String characterBlock) {
-  mem_for_u8(characterBlock, character, {
-    const CliId optId = cli_find_by_character(ctx->app, character);
+  mem_for_u8(characterBlock, itr) {
+    const CliId optId = cli_find_by_character(ctx->app, *itr);
     if (sentinel_check(optId)) {
-      cli_parse_add_error(ctx, fmt_write_scratch("Unknown flag '{}'", fmt_char(character)));
+      cli_parse_add_error(ctx, fmt_write_scratch("Unknown flag '{}'", fmt_char(*itr)));
       continue;
     }
     if (cli_parse_already_provided(ctx, optId)) {
-      cli_parse_add_error(ctx, fmt_write_scratch("Duplicate flag '{}'", fmt_char(character)));
+      cli_parse_add_error(ctx, fmt_write_scratch("Duplicate flag '{}'", fmt_char(*itr)));
       continue;
     }
     if (cli_option(ctx->app, optId)->flags & CliOptionFlags_Value) {
-      cli_parse_add_error(ctx, fmt_write_scratch("Flag '{}' takes a value", fmt_char(character)));
+      cli_parse_add_error(ctx, fmt_write_scratch("Flag '{}' takes a value", fmt_char(*itr)));
       continue;
     }
     cli_parse_set_provided(ctx, optId);
-  });
+  }
 }
 
 static void cli_parse_arg(CliParseCtx* ctx) {
@@ -233,7 +233,7 @@ static void cli_parse_options(CliParseCtx* ctx) {
 static void cli_parse_check_validator(CliParseCtx* ctx, const CliId optId) {
 
   CliInvocationOption* invocOpt = dynarray_at_t(&ctx->options, optId, CliInvocationOption);
-  dynarray_for_t(&invocOpt->values, String, val, {
+  dynarray_for_t(&invocOpt->values, String, val) {
     if (!cli_option(ctx->app, optId)->validator(*val)) {
       const String err = fmt_write_scratch(
           "Invalid input '{}' for option '{}'",
@@ -241,7 +241,7 @@ static void cli_parse_check_validator(CliParseCtx* ctx, const CliId optId) {
           fmt_text(cli_option_name(ctx->app, optId)));
       cli_parse_add_error(ctx, err);
     }
-  });
+  }
 }
 
 static void cli_parse_check_validators(CliParseCtx* ctx) {
@@ -253,7 +253,7 @@ static void cli_parse_check_validators(CliParseCtx* ctx) {
 }
 
 static void cli_parse_check_exclusions(CliParseCtx* ctx) {
-  dynarray_for_t((DynArray*)&ctx->app->exclusions, CliExclusion, ex, {
+  dynarray_for_t(&ctx->app->exclusions, CliExclusion, ex) {
     if (cli_parse_already_provided(ctx, ex->a) && cli_parse_already_provided(ctx, ex->b)) {
       cli_parse_add_error(
           ctx,
@@ -262,7 +262,7 @@ static void cli_parse_check_exclusions(CliParseCtx* ctx) {
               fmt_text(cli_option_name(ctx->app, ex->a)),
               fmt_text(cli_option_name(ctx->app, ex->b))));
     }
-  });
+  }
 }
 
 static void cli_parse_check_required_option(CliParseCtx* ctx, const CliId optId) {
@@ -276,14 +276,14 @@ static void cli_parse_check_required_option(CliParseCtx* ctx, const CliId optId)
    * Option was not provided, check if an exclusion option was provided.
    * This supports two mutually exclusive required options (meaning either one has to be provided).
    */
-  dynarray_for_t((DynArray*)&ctx->app->exclusions, CliExclusion, ex, {
+  dynarray_for_t(&ctx->app->exclusions, CliExclusion, ex) {
     if (ex->a == optId && cli_parse_already_provided(ctx, ex->b)) {
       return; // Alternative option was provided; Success.
     }
     if (ex->b == optId && cli_parse_already_provided(ctx, ex->a)) {
       return; // Alternative option was provided; Success.
     }
-  });
+  }
   cli_parse_add_error(
       ctx,
       fmt_write_scratch(
@@ -332,10 +332,10 @@ CliInvocation* cli_parse(const CliApp* app, const int argc, const char** argv) {
 }
 
 void cli_parse_destroy(CliInvocation* invoc) {
-  dynarray_for_t(&invoc->errors, String, err, { string_free(invoc->alloc, *err); });
+  dynarray_for_t(&invoc->errors, String, err) { string_free(invoc->alloc, *err); }
   dynarray_destroy(&invoc->errors);
 
-  dynarray_for_t(&invoc->options, CliInvocationOption, opt, { dynarray_destroy(&opt->values); });
+  dynarray_for_t(&invoc->options, CliInvocationOption, opt) { dynarray_destroy(&opt->values); }
   dynarray_destroy(&invoc->options);
 
   alloc_free_t(invoc->alloc, invoc);

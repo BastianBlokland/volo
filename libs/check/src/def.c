@@ -12,7 +12,7 @@ CheckDef* check_create(Allocator* alloc) {
 }
 
 void check_destroy(CheckDef* ctx) {
-  dynarray_for_t(&ctx->specs, CheckSpecDef, spec, { string_free(ctx->alloc, spec->name); });
+  dynarray_for_t(&ctx->specs, CheckSpecDef, spec) { string_free(ctx->alloc, spec->name); }
 
   dynarray_destroy(&ctx->specs);
 

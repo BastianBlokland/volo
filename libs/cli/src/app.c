@@ -24,7 +24,7 @@ void cli_app_destroy(CliApp* app) {
     string_free(app->alloc, app->desc);
   }
 
-  dynarray_for_t(&app->options, CliOption, opt, {
+  dynarray_for_t(&app->options, CliOption, opt) {
     if (opt->desc.ptr) {
       string_free(app->alloc, opt->desc);
     }
@@ -36,7 +36,7 @@ void cli_app_destroy(CliApp* app) {
       string_free(app->alloc, opt->dataArg.name);
       break;
     }
-  });
+  }
 
   dynarray_destroy(&app->options);
   dynarray_destroy(&app->exclusions);
@@ -81,11 +81,11 @@ CliId cli_register_arg(CliApp* app, const String name, const CliOptionFlags flag
   diag_assert_msg(name.size <= cli_app_option_name_max_len, "Argument name too long");
 
   u16 position = 0;
-  dynarray_for_t(&app->options, CliOption, opt, {
+  dynarray_for_t(&app->options, CliOption, opt) {
     if (opt->type == CliOptionType_Arg) {
       ++position;
     }
-  });
+  }
 
   const CliId id = (CliId)app->options.size;
 
@@ -186,11 +186,11 @@ void cli_register_desc_choice(
 String cli_desc(const CliApp* app, const CliId id) { return cli_option(app, id)->desc; }
 
 bool cli_excludes(const CliApp* app, const CliId a, const CliId b) {
-  dynarray_for_t((DynArray*)&app->exclusions, CliExclusion, ex, {
+  dynarray_for_t(&app->exclusions, CliExclusion, ex) {
     if ((ex->a == a && ex->b == b) || (ex->b == a && ex->a == b)) {
       return true;
     }
-  });
+  }
   return false;
 }
 
@@ -213,30 +213,33 @@ String cli_option_name(const CliApp* app, const CliId id) {
 CliId cli_find_by_character(const CliApp* app, const u8 character) {
   diag_assert_msg(character, "Null is not a valid flag character");
 
-  dynarray_for_t((DynArray*)&app->options, CliOption, opt, {
+  for (CliId id = 0; id != app->options.size; ++id) {
+    CliOption* opt = dynarray_at_t(&app->options, id, CliOption);
     if (opt->type == CliOptionType_Flag && opt->dataFlag.character == character) {
-      return (CliId)opt_i;
+      return id;
     }
-  });
+  }
   return sentinel_u16;
 }
 
 CliId cli_find_by_name(const CliApp* app, const String name) {
   diag_assert_msg(!string_is_empty(name), "Empty string is not a valid flag name");
 
-  dynarray_for_t((DynArray*)&app->options, CliOption, opt, {
+  for (CliId id = 0; id != app->options.size; ++id) {
+    CliOption* opt = dynarray_at_t(&app->options, id, CliOption);
     if (opt->type == CliOptionType_Flag && string_eq(opt->dataFlag.name, name)) {
-      return (CliId)opt_i;
+      return id;
     }
-  });
+  }
   return sentinel_u16;
 }
 
 CliId cli_find_by_position(const CliApp* app, const u16 position) {
-  dynarray_for_t((DynArray*)&app->options, CliOption, opt, {
+  for (CliId id = 0; id != app->options.size; ++id) {
+    CliOption* opt = dynarray_at_t(&app->options, id, CliOption);
     if (opt->type == CliOptionType_Arg && opt->dataArg.position == position) {
-      return (CliId)opt_i;
+      return id;
     }
-  });
+  }
   return sentinel_u16;
 }

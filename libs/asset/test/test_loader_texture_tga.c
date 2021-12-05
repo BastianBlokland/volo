@@ -198,7 +198,7 @@ spec(loader_texture_tga) {
       }
     };
 
-    array_for_t(records, AssetMemRecord, rec, { string_free(g_alloc_heap, rec->data); });
+    array_for_t(records, AssetMemRecord, rec) { string_free(g_alloc_heap, rec->data); }
   }
 
   it("can unload tga texture assets") {

@@ -50,7 +50,7 @@ static JsonVal data_write_json_struct(const WriteCtx* ctx) {
   const JsonVal   jsonObj = json_add_object(ctx->doc);
   const DataDecl* decl    = data_decl(ctx->reg, ctx->meta.type);
 
-  dynarray_for_t((DynArray*)&decl->val_struct.fields, DataDeclField, fieldDecl, {
+  dynarray_for_t(&decl->val_struct.fields, DataDeclField, fieldDecl) {
     const WriteCtx fieldCtx = {
         .reg  = ctx->reg,
         .doc  = ctx->doc,
@@ -59,7 +59,7 @@ static JsonVal data_write_json_struct(const WriteCtx* ctx) {
     };
     const JsonVal fieldVal = data_write_json_val(&fieldCtx);
     json_add_field_str(ctx->doc, jsonObj, fieldDecl->id.name, fieldVal);
-  });
+  }
 
   return jsonObj;
 }
@@ -68,11 +68,11 @@ static JsonVal data_write_json_enum(const WriteCtx* ctx) {
   const i32       val  = *mem_as_t(ctx->data, i32);
   const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
 
-  dynarray_for_t((DynArray*)&decl->val_enum.consts, DataDeclConst, constDecl, {
+  dynarray_for_t(&decl->val_enum.consts, DataDeclConst, constDecl) {
     if (constDecl->value == val) {
       return json_add_string(ctx->doc, constDecl->id.name);
     }
-  });
+  }
   return json_add_number(ctx->doc, val);
 }
 

@@ -480,7 +480,7 @@ void format_write_size_pretty(DynString* str, const usize val) {
 
 void format_write_text(DynString* str, String val, const FormatOptsText* opts) {
   diag_assert_msg(val.size <= usize_gibibyte, "Text too big: '{}'", fmt_size(val.size));
-  mem_for_u8(val, byte, { format_write_char(str, byte, opts); });
+  mem_for_u8(val, itr) { format_write_char(str, *itr, opts); }
 }
 
 void format_write_text_wrapped(

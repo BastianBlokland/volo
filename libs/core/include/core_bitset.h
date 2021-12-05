@@ -32,17 +32,8 @@ typedef Mem BitSet;
  * NOTE: _BITSET_ is expanded multiple times, so care must be taken when providing complex
  * expressions.
  */
-#define bitset_for(_BITSET_, _VAR_, ...)                                                           \
-  {                                                                                                \
-    const usize _VAR_##_size = bitset_size(_BITSET_);                                              \
-    usize       _VAR_        = 0;                                                                  \
-    do {                                                                                           \
-      if (sentinel_check(_VAR_ = bitset_next(_BITSET_, _VAR_))) {                                  \
-        break;                                                                                     \
-      }                                                                                            \
-      __VA_ARGS__                                                                                  \
-    } while (++_VAR_ < _VAR_##_size);                                                              \
-  }
+#define bitset_for(_BITSET_, _VAR_)                                                                \
+  for (usize _VAR_ = 0; !sentinel_check(_VAR_ = bitset_next(_BITSET_, _VAR_)); ++_VAR_)
 
 /**
  * Return the total bit count (either set or unset) in the bitset.

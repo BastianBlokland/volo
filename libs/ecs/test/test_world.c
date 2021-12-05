@@ -51,12 +51,12 @@ spec(world) {
     }
 
     // Newly created entities exists before the first flush.
-    dynarray_for_t(&entities, EcsEntityId, id, { check(ecs_world_exists(world, *id)); });
+    dynarray_for_t(&entities, EcsEntityId, id) { check(ecs_world_exists(world, *id)); }
 
     ecs_world_flush(world);
 
     // Newly created entities still exists after the first flush.
-    dynarray_for_t(&entities, EcsEntityId, id, { check(ecs_world_exists(world, *id)); });
+    dynarray_for_t(&entities, EcsEntityId, id) { check(ecs_world_exists(world, *id)); }
 
     dynarray_destroy(&entities);
   }
@@ -127,15 +127,15 @@ spec(world) {
       *dynarray_push_t(&entities, EcsEntityId) = ecs_world_entity_create(world);
     }
 
-    dynarray_for_t(&entities, EcsEntityId, id, {
+    dynarray_for_t(&entities, EcsEntityId, id) {
       const WorldCompA* comp = ecs_world_add_t(world, *id, WorldCompA, .f1 = 42, .f2 = true);
       check_eq_int(comp->f1, 42);
       check(comp->f2);
-    });
+    }
 
     ecs_world_flush(world);
 
-    dynarray_for_t(&entities, EcsEntityId, id, { check(ecs_world_has_t(world, *id, WorldCompA)); });
+    dynarray_for_t(&entities, EcsEntityId, id) { check(ecs_world_has_t(world, *id, WorldCompA)); }
 
     dynarray_destroy(&entities);
   }

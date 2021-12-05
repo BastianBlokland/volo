@@ -21,20 +21,20 @@ static const EcsSystemDef* ecs_def_system(const EcsDef* def, const EcsSystemId i
 }
 
 static const EcsModuleDef* ecs_def_module_by_name(const EcsDef* def, const String name) {
-  dynarray_for_t((DynArray*)&def->modules, EcsModuleDef, module, {
+  dynarray_for_t(&def->modules, EcsModuleDef, module) {
     if (string_eq(module->name, name)) {
       return module;
     }
-  });
+  }
   return null;
 }
 
 static const EcsCompDef* ecs_def_comp_by_name(const EcsDef* def, const String name) {
-  dynarray_for_t((DynArray*)&def->components, EcsCompDef, comp, {
+  dynarray_for_t(&def->components, EcsCompDef, comp) {
     if (string_eq(comp->name, name)) {
       return comp;
     }
-  });
+  }
   return null;
 }
 
@@ -53,19 +53,19 @@ EcsDef* ecs_def_create(Allocator* alloc) {
 void ecs_def_destroy(EcsDef* def) {
   diag_assert_msg(!(def->flags & EcsDefFlags_Frozen), "Unable to destroy a frozen definition");
 
-  dynarray_for_t(&def->modules, EcsModuleDef, module, { ecs_module_destroy(def, module); });
+  dynarray_for_t(&def->modules, EcsModuleDef, module) { ecs_module_destroy(def, module); }
   dynarray_destroy(&def->modules);
 
-  dynarray_for_t(&def->components, EcsCompDef, comp, { string_free(def->alloc, comp->name); });
+  dynarray_for_t(&def->components, EcsCompDef, comp) { string_free(def->alloc, comp->name); }
   dynarray_destroy(&def->components);
 
-  dynarray_for_t(&def->views, EcsViewDef, view, { string_free(def->alloc, view->name); });
+  dynarray_for_t(&def->views, EcsViewDef, view) { string_free(def->alloc, view->name); }
   dynarray_destroy(&def->views);
 
-  dynarray_for_t(&def->systems, EcsSystemDef, system, {
+  dynarray_for_t(&def->systems, EcsSystemDef, system) {
     string_free(def->alloc, system->name);
     dynarray_destroy(&system->viewIds);
-  });
+  }
   dynarray_destroy(&def->systems);
 
   alloc_free_t(def->alloc, def);

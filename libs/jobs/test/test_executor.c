@@ -207,7 +207,7 @@ spec(executor) {
     }
 
     jobs_scheduler_wait_help(jobs_scheduler_run(graph));
-    array_for_t(data, i64, val, { check_eq_int(*val, 42); });
+    array_for_t(data, i64, val) { check_eq_int(*val, 42); }
 
     jobs_graph_destroy(graph);
   }

@@ -3,21 +3,21 @@
 
 #include "image_internal.h"
 
-static VkImageAspectFlags rend_vk_image_aspect(const RendVkImageType type) {
+static VkImageAspectFlags rvk_image_aspect(const RvkImageType type) {
   switch (type) {
-  case RendVkImageType_ColorSource:
-  case RendVkImageType_ColorAttachment:
-  case RendVkImageType_Swapchain:
+  case RvkImageType_ColorSource:
+  case RvkImageType_ColorAttachment:
+  case RvkImageType_Swapchain:
     return VK_IMAGE_ASPECT_COLOR_BIT;
-  case RendVkImageType_DepthAttachment:
+  case RvkImageType_DepthAttachment:
     return VK_IMAGE_ASPECT_DEPTH_BIT;
   default:
     return 0;
   }
 }
 
-static VkImageView rend_vk_imageview_create(
-    RendVkDevice*      dev,
+static VkImageView rvk_imageview_create(
+    RvkDevice*         dev,
     VkImage            vkImage,
     VkFormat           vkFormat,
     VkImageAspectFlags vkAspect,
@@ -35,20 +35,20 @@ static VkImageView rend_vk_imageview_create(
       .subresourceRange.layerCount     = 1,
   };
   VkImageView result;
-  rend_vk_call(vkCreateImageView, dev->vkDevice, &createInfo, &dev->vkAllocHost, &result);
+  rvk_call(vkCreateImageView, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
   return result;
 }
 
-RendVkImage rend_vk_image_create_swapchain(
-    RendVkDevice* dev, VkImage vkImage, VkFormat vkFormat, const RendSize size) {
+RvkImage rvk_image_create_swapchain(
+    RvkDevice* dev, VkImage vkImage, VkFormat vkFormat, const RendSize size) {
 
-  const RendVkImageType    type      = RendVkImageType_Swapchain;
-  const VkImageAspectFlags vkAspect  = rend_vk_image_aspect(type);
+  const RvkImageType       type      = RvkImageType_Swapchain;
+  const VkImageAspectFlags vkAspect  = rvk_image_aspect(type);
   const u32                mipLevels = 1;
-  const VkImageView vkView = rend_vk_imageview_create(dev, vkImage, vkFormat, vkAspect, mipLevels);
+  const VkImageView vkView = rvk_imageview_create(dev, vkImage, vkFormat, vkAspect, mipLevels);
 
-  return (RendVkImage){
-      .device      = dev,
+  return (RvkImage){
+      .dev         = dev,
       .type        = type,
       .size        = size,
       .mipLevels   = mipLevels,
@@ -58,20 +58,20 @@ RendVkImage rend_vk_image_create_swapchain(
   };
 }
 
-void rend_vk_image_destroy(RendVkImage* img) {
-  if (img->type != RendVkImageType_Swapchain) {
-    vkDestroyImage(img->device->vkDevice, img->vkImage, &img->device->vkAllocHost);
+void rvk_image_destroy(RvkImage* img) {
+  if (img->type != RvkImageType_Swapchain) {
+    vkDestroyImage(img->dev->vkDev, img->vkImage, &img->dev->vkAlloc);
   }
-  vkDestroyImageView(img->device->vkDevice, img->vkImageView, &img->device->vkAllocHost);
+  vkDestroyImageView(img->dev->vkDev, img->vkImageView, &img->dev->vkAlloc);
 }
 
-String rend_vk_image_type_str(const RendVkImageType type) {
+String rvk_image_type_str(const RvkImageType type) {
   static const String names[] = {
       string_static("ColorSource"),
       string_static("ColorAttachment"),
       string_static("DepthAttachment"),
       string_static("Swapchain"),
   };
-  ASSERT(array_elems(names) == RendVkImageType_Count, "Incorrect number of image-type names");
+  ASSERT(array_elems(names) == RvkImageType_Count, "Incorrect number of image-type names");
   return names[type];
 }

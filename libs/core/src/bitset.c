@@ -16,16 +16,16 @@ INLINE_HINT bool bitset_test(BitSet bits, usize idx) {
 
 usize bitset_count(BitSet bits) {
   usize result = 0;
-  mem_for_u8(bits, byte, { result += bits_popcnt_32(byte); });
+  mem_for_u8(bits, itr) { result += bits_popcnt_32(*itr); }
   return result;
 }
 
 bool bitset_any(BitSet bits) {
-  mem_for_u8(bits, byte, {
-    if (byte) {
+  mem_for_u8(bits, itr) {
+    if (*itr) {
       return true;
     }
-  });
+  }
   return false;
 }
 
@@ -54,7 +54,9 @@ bool bitset_all_of(BitSet bits, BitSet other) {
 }
 
 usize bitset_next(BitSet bits, usize idx) {
-  diag_assert(idx < bitset_size(bits));
+  if (UNLIKELY(idx >= bitset_size(bits))) {
+    return sentinel_usize;
+  }
   usize byteIdx = bits_to_bytes(idx);
   u8    byte    = *mem_at_u8(bits, byteIdx) >> bit_in_byte(idx);
   if (byte) {

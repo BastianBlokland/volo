@@ -107,7 +107,7 @@ static void output_test_finished(
       fmt_duration(result->duration),
       arg_style_reset(prettyOut));
 
-  dynarray_for_t(&result->errors, CheckError, err, {
+  dynarray_for_t(&result->errors, CheckError, err) {
     fmt_write(
         &str,
         "  {}{}{} {}[file: {} line: {}]{}\n",
@@ -118,7 +118,7 @@ static void output_test_finished(
         fmt_path(err->source.file),
         fmt_int(err->source.line),
         arg_style_reset(prettyOut));
-  });
+  }
 
   output_write(prettyOut, dynstring_view(&str));
   dynstring_destroy(&str);

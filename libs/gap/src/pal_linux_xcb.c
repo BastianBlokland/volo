@@ -52,11 +52,11 @@ static const xcb_event_mask_t g_xcbWindowEventMask =
     XCB_EVENT_MASK_POINTER_MOTION | XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_KEY_RELEASE;
 
 static GapPalWindow* pal_maybe_window(GapPal* pal, const GapWindowId id) {
-  dynarray_for_t(&pal->windows, GapPalWindow, window, {
+  dynarray_for_t(&pal->windows, GapPalWindow, window) {
     if (window->id == id) {
       return window;
     }
-  });
+  }
   return null;
 }
 
@@ -69,14 +69,14 @@ static GapPalWindow* pal_window(GapPal* pal, const GapWindowId id) {
 }
 
 static void pal_clear_volatile(GapPal* pal) {
-  dynarray_for_t(&pal->windows, GapPalWindow, window, {
+  dynarray_for_t(&pal->windows, GapPalWindow, window) {
     gap_keyset_clear(&window->keysPressed);
     gap_keyset_clear(&window->keysReleased);
 
     window->params[GapParam_ScrollDelta] = gap_vector(0, 0);
 
     window->flags &= ~GapPalWindowFlags_Volatile;
-  });
+  }
 }
 
 static String pal_xcb_err_str(const int xcbErrCode) {
