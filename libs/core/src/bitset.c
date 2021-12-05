@@ -16,16 +16,16 @@ INLINE_HINT bool bitset_test(BitSet bits, usize idx) {
 
 usize bitset_count(BitSet bits) {
   usize result = 0;
-  mem_for_u8(bits, byte, { result += bits_popcnt_32(byte); });
+  mem_for_u8(bits, itr) { result += bits_popcnt_32(*itr); }
   return result;
 }
 
 bool bitset_any(BitSet bits) {
-  mem_for_u8(bits, byte, {
-    if (byte) {
+  mem_for_u8(bits, itr) {
+    if (*itr) {
       return true;
     }
-  });
+  }
   return false;
 }
 

@@ -32,23 +32,23 @@ void base64_decode(DynString* str, String encoded) {
    */
   u32 val     = 0;
   i32 valBits = -8; // 0 indicates we have a 'full' 8 bit value in 'val'.
-  mem_for_u8(encoded, c, {
-    if (c < '+' || c > 'z') {
+  mem_for_u8(encoded, itr) {
+    if (*itr < '+' || *itr > 'z') {
       break; // Non base64 characters found: abort.
     }
-    if (g_decodeTable[c - '+'] == 255) {
+    if (g_decodeTable[*itr - '+'] == 255) {
       break; // Non base64 character found: abort.
     }
     // Each Base64 digit contains 6 bits of data, shift the current value over by 6 and put the new
     // data in the least significant bits.
-    val = (val << 6U) | g_decodeTable[c - '+'];
+    val = (val << 6U) | g_decodeTable[*itr - '+'];
     valBits += 6; // Indicate that we have 6 more bits 'available'.
     if (valBits >= 0) {
       // We have enough bits to form a byte.
       dynstring_append_char(str, (u8)(val >> valBits)); // Shift-of any excess bits.
       valBits -= 8;
     }
-  });
+  }
 }
 
 String base64_decode_scratch(String encoded) {

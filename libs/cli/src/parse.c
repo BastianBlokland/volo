@@ -156,22 +156,22 @@ static void cli_parse_short_flag(CliParseCtx* ctx, u8 character) {
 }
 
 static void cli_parse_short_flag_block(CliParseCtx* ctx, String characterBlock) {
-  mem_for_u8(characterBlock, character, {
-    const CliId optId = cli_find_by_character(ctx->app, character);
+  mem_for_u8(characterBlock, itr) {
+    const CliId optId = cli_find_by_character(ctx->app, *itr);
     if (sentinel_check(optId)) {
-      cli_parse_add_error(ctx, fmt_write_scratch("Unknown flag '{}'", fmt_char(character)));
+      cli_parse_add_error(ctx, fmt_write_scratch("Unknown flag '{}'", fmt_char(*itr)));
       continue;
     }
     if (cli_parse_already_provided(ctx, optId)) {
-      cli_parse_add_error(ctx, fmt_write_scratch("Duplicate flag '{}'", fmt_char(character)));
+      cli_parse_add_error(ctx, fmt_write_scratch("Duplicate flag '{}'", fmt_char(*itr)));
       continue;
     }
     if (cli_option(ctx->app, optId)->flags & CliOptionFlags_Value) {
-      cli_parse_add_error(ctx, fmt_write_scratch("Flag '{}' takes a value", fmt_char(character)));
+      cli_parse_add_error(ctx, fmt_write_scratch("Flag '{}' takes a value", fmt_char(*itr)));
       continue;
     }
     cli_parse_set_provided(ctx, optId);
-  });
+  }
 }
 
 static void cli_parse_arg(CliParseCtx* ctx) {

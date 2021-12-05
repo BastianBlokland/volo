@@ -116,10 +116,10 @@ u32 bits_hash_32(const Mem mem) {
   const u32 prime = 16777619u;
   u32       hash  = 2166136261U;
 
-  mem_for_u8(mem, byte, {
-    hash ^= byte;
+  mem_for_u8(mem, itr) {
+    hash ^= *itr;
     hash *= prime;
-  });
+  }
 
   // Finalize the hash (aka 'mixing').
   hash += hash << 13U;

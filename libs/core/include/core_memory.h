@@ -80,18 +80,19 @@ typedef struct {
  */
 #define mem_as_t(_MEM_, _TYPE_) ((_TYPE_*)mem_as(_MEM_, sizeof(_TYPE_), alignof(_TYPE_)))
 
+// clang-format off
+
 /**
  * Iterate over each byte.
  * NOTE: _MEM_ is expanded multiple times, so care must be taken when providing complex expressions.
  */
-#define mem_for_u8(_MEM_, _VAR_, ...)                                                              \
-  {                                                                                                \
-    const u8* _VAR_##_end = mem_end(_MEM_);                                                        \
-    for (u8* _VAR_##_itr = mem_begin(_MEM_); _VAR_##_itr != _VAR_##_end; ++_VAR_##_itr) {          \
-      const u8 _VAR_ = *_VAR_##_itr;                                                               \
-      __VA_ARGS__                                                                                  \
-    }                                                                                              \
-  }
+#define mem_for_u8(_MEM_, _VAR_)                                                                   \
+  for (u8* _VAR_       = mem_begin(_MEM_),                                                         \
+         * _VAR_##_end = mem_end(_MEM_);                                                           \
+         _VAR_ != _VAR_##_end;                                                                     \
+         ++_VAR_)
+
+// clang-format on
 
 /**
  * Create a memory buffer on the stack.

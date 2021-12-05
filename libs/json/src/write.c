@@ -88,8 +88,8 @@ static void json_state_write_string(JsonWriteState* state, DynString* str, const
   (void)state;
 
   dynstring_append_char(str, '"');
-  mem_for_u8(val, ch, {
-    switch (ch) {
+  mem_for_u8(val, itr) {
+    switch (*itr) {
     case '"':
       dynstring_append(str, string_lit("\\\""));
       break;
@@ -112,10 +112,10 @@ static void json_state_write_string(JsonWriteState* state, DynString* str, const
       dynstring_append(str, string_lit("\\t"));
       break;
     default:
-      dynstring_append_char(str, ch);
+      dynstring_append_char(str, *itr);
       break;
     }
-  });
+  }
   dynstring_append_char(str, '"');
 }
 
