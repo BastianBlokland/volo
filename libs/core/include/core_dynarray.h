@@ -38,6 +38,17 @@ typedef struct {
 #define dynarray_create_over_t(_MEM_, _TYPE_) dynarray_create_over((_MEM_), (u16)sizeof(_TYPE_))
 
 /**
+ * Typed pointer to the beginning of the array.
+ */
+#define dynarray_begin_t(_ARRAY_, _TYPE_) mem_as_t((_ARRAY_)->data, _TYPE_)
+
+/**
+ * Typed pointer to the end of the array (1 past the last element).
+ * NOTE: _MEM_ is expanded multiple times, so care must be taken when providing complex expressions.
+ */
+#define dynarray_end_t(_ARRAY_, _TYPE_) (dynarray_begin_t((_ARRAY_), _TYPE_) + (_ARRAY_)->size)
+
+/**
  * Retreive a pointer to an item in the array at index '_IDX_'.
  * Pre-condition: '_IDX_' < '_ARRAY_'.size
  * Pre-condition: sizeof(_TYPE_) <= '_ARRAY_'.stride
@@ -80,12 +91,6 @@ typedef struct {
       __VA_ARGS__                                                                                  \
     }                                                                                              \
   }
-
-/**
- * Typed pointer to the first element in the array.
- * NOTE: Returned pointer is only valid if '_ARRAY_'.size != 0.
- */
-#define dynarray_begin_t(_ARRAY_, _TYPE_) mem_as_t((_ARRAY_)->data, _TYPE_)
 
 /**
  * Create a new dynamic array. 'stride' determines the space each item occupies and 'align'

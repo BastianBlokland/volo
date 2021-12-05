@@ -43,6 +43,35 @@ spec(dynarray) {
     dynarray_destroy(&array);
   }
 
+  it("can get a pointer to the begin") {
+    Allocator* alloc = alloc_bump_create_stack(1024);
+
+    DynArray array                = dynarray_create_t(alloc, u64, 2);
+    *dynarray_push_t(&array, u64) = 1;
+    *dynarray_push_t(&array, u64) = 2;
+
+    check(dynarray_begin_t(&array, u64) == dynarray_at_t(&array, 0, u64));
+
+    dynarray_destroy(&array);
+  }
+
+  it("can get a pointer to the end") {
+    Allocator* alloc = alloc_bump_create_stack(1024);
+
+    DynArray array                = dynarray_create_t(alloc, u64, 8);
+    *dynarray_push_t(&array, u64) = 1;
+    *dynarray_push_t(&array, u64) = 2;
+
+    check(dynarray_end_t(&array, u64) == (dynarray_at_t(&array, 1, u64) + 1));
+
+    usize i = 0;
+    for (u64* itr = dynarray_begin_t(&array, u64); itr != dynarray_end_t(&array, u64); ++itr, ++i) {
+      check(itr == dynarray_at_t(&array, i, u64));
+    }
+
+    dynarray_destroy(&array);
+  }
+
   it("preserves content while resizing") {
     Allocator* alloc = alloc_bump_create_stack(1024);
 
