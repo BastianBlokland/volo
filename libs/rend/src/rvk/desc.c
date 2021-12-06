@@ -107,7 +107,7 @@ static VkDescriptorPool rvk_desc_vkpool_create(RvkDescPool* pool, const RvkDescM
       const VkDescriptorType type = rvk_desc_vktype(meta->bindings[id]);
       for (u32 sizeIdx = 0; sizeIdx != sizeCount; ++sizeIdx) {
         if (sizes[sizeIdx].type == type) {
-          sizes[sizeIdx].descriptorCount + rvk_desc_sets_per_chunk;
+          sizes[sizeIdx].descriptorCount += rvk_desc_sets_per_chunk;
           goto NextBinding;
         }
       }
