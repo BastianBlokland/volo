@@ -7,7 +7,9 @@
 
 #include "buffer_internal.h"
 #include "desc_internal.h"
+#include "image_internal.h"
 #include "mem_internal.h"
+#include "sampler_internal.h"
 
 #define VOLO_RVK_DESC_LOGGING
 
@@ -357,6 +359,29 @@ void rvk_desc_set_attach_buffer(const RvkDescSet set, const u32 binding, const R
       .descriptorType  = rvk_desc_vktype(kind),
       .descriptorCount = 1,
       .pBufferInfo     = &bufferInfo,
+  };
+  vkUpdateDescriptorSets(set.chunk->pool->vkDev, 1, &descriptorWrite, 0, null);
+}
+
+void rvk_desc_set_attach_sampler(
+    const RvkDescSet set, const u32 binding, const RvkImage* image, const RvkSampler* sampler) {
+
+  const RvkDescKind kind = rvk_desc_set_kind(set, binding);
+  diag_assert(kind == RvkDescKind_CombinedImageSampler);
+
+  VkDescriptorImageInfo imgInfo = {
+      .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+      .imageView   = image->vkImageView,
+      .sampler     = sampler->vkSampler,
+  };
+  VkWriteDescriptorSet descriptorWrite = {
+      .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+      .dstSet          = rvk_desc_set_vkset(set),
+      .dstBinding      = binding,
+      .dstArrayElement = 0,
+      .descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+      .descriptorCount = 1,
+      .pImageInfo      = &imgInfo,
   };
   vkUpdateDescriptorSets(set.chunk->pool->vkDev, 1, &descriptorWrite, 0, null);
 }

@@ -15,6 +15,7 @@ add_library(volo_rend STATIC
   src/rvk/mem_pool.c
   src/rvk/platform.c
   src/rvk/renderer.c
+  src/rvk/sampler.c
   src/rvk/swapchain.c
   src/rvk/technique.c
   src/rvk/vulkan.c
