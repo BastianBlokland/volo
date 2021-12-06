@@ -13,7 +13,7 @@ typedef enum {
   RvkBufferKind_Count,
 } RvkBufferKind;
 
-typedef struct {
+typedef struct sRvkBuffer {
   RvkDevice*    dev;
   RvkMem        mem;
   RvkBufferKind kind;

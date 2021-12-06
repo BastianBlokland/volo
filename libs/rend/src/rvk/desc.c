@@ -5,6 +5,7 @@
 #include "core_thread.h"
 #include "log_logger.h"
 
+#include "buffer_internal.h"
 #include "desc_internal.h"
 #include "mem_internal.h"
 
@@ -337,4 +338,25 @@ RvkDescKind rvk_desc_set_kind(const RvkDescSet set, const u32 binding) {
   const RvkDescKind result = layout->meta.bindings[binding];
   thread_mutex_unlock(set.chunk->pool->layoutLock);
   return result;
+}
+
+void rvk_desc_set_attach_buffer(const RvkDescSet set, const u32 binding, const RvkBuffer* buffer) {
+  const RvkDescKind kind = rvk_desc_set_kind(set, binding);
+  diag_assert(kind);
+
+  const VkDescriptorBufferInfo bufferInfo = {
+      .buffer = buffer->vkBuffer,
+      .offset = 0,
+      .range  = buffer->mem.size,
+  };
+  const VkWriteDescriptorSet descriptorWrite = {
+      .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+      .dstSet          = rvk_desc_set_vkset(set),
+      .dstBinding      = binding,
+      .dstArrayElement = 0,
+      .descriptorType  = rvk_desc_vktype(kind),
+      .descriptorCount = 1,
+      .pBufferInfo     = &bufferInfo,
+  };
+  vkUpdateDescriptorSets(set.chunk->pool->vkDev, 1, &descriptorWrite, 0, null);
 }
