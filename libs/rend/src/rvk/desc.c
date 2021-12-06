@@ -14,6 +14,7 @@
 
 typedef struct {
   u32                   metaHash;
+  RvkDescMeta           meta;
   VkDescriptorSetLayout vkLayout;
 } RvkDescLayout;
 
@@ -247,6 +248,7 @@ VkDescriptorSetLayout rvk_desc_vklayout(RvkDescPool* pool, const RvkDescMeta* me
     layout  = dynarray_insert_sorted_t(&pool->layouts, RvkDescLayout, rvk_desc_compare_layout, tgt);
     *layout = (RvkDescLayout){
         .metaHash = hash,
+        .meta     = *meta,
         .vkLayout = rvk_desc_vklayout_create(pool, meta),
     };
 
@@ -258,7 +260,7 @@ VkDescriptorSetLayout rvk_desc_vklayout(RvkDescPool* pool, const RvkDescMeta* me
 #endif
   }
 
-  VkDescriptorSetLayout result = layout->vkLayout;
+  const VkDescriptorSetLayout result = layout->vkLayout;
   thread_mutex_unlock(pool->layoutLock);
   return result;
 }
@@ -312,12 +314,27 @@ VkDescriptorSetLayout rvk_desc_set_vklayout(const RvkDescSet set) {
 
   thread_mutex_lock(set.chunk->pool->layoutLock);
 
-  RvkDescLayout* layout = dynarray_search_binary(
+  const RvkDescLayout* layout = dynarray_search_binary(
       &set.chunk->pool->layouts,
       rvk_desc_compare_layout,
       mem_struct(RvkDescLayout, .metaHash = set.chunk->metaHash).ptr);
 
-  VkDescriptorSetLayout result = layout->vkLayout;
+  const VkDescriptorSetLayout result = layout->vkLayout;
+  thread_mutex_unlock(set.chunk->pool->layoutLock);
+  return result;
+}
+
+RvkDescKind rvk_desc_set_kind(const RvkDescSet set, const u32 binding) {
+  diag_assert(rvk_desc_valid(set));
+
+  thread_mutex_lock(set.chunk->pool->layoutLock);
+
+  const RvkDescLayout* layout = dynarray_search_binary(
+      &set.chunk->pool->layouts,
+      rvk_desc_compare_layout,
+      mem_struct(RvkDescLayout, .metaHash = set.chunk->metaHash).ptr);
+
+  const RvkDescKind result = layout->meta.bindings[binding];
   thread_mutex_unlock(set.chunk->pool->layoutLock);
   return result;
 }
