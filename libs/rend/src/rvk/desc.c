@@ -5,7 +5,7 @@
 #include "core_thread.h"
 #include "log_logger.h"
 
-#include "desc_pool_internal.h"
+#include "desc_internal.h"
 #include "mem_internal.h"
 
 #define VOLO_RVK_DESC_LOGGING

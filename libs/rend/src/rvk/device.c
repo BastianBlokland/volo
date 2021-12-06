@@ -5,6 +5,7 @@
 #include "gap_native.h"
 #include "log_logger.h"
 
+#include "desc_internal.h"
 #include "device_internal.h"
 #include "mem_internal.h"
 
@@ -304,7 +305,8 @@ RvkDevice* rvk_device_create() {
     rvk_name_commandpool(dev->debug, dev->vkMainCommandPool, "main");
   }
 
-  dev->memPool = rvk_mem_pool_create(dev->vkDev, dev->vkMemProperties, dev->vkProperties.limits);
+  dev->memPool  = rvk_mem_pool_create(dev->vkDev, dev->vkMemProperties, dev->vkProperties.limits);
+  dev->descPool = rvk_desc_pool_create(dev->vkDev);
 
   log_i(
       "Vulkan device created",
@@ -321,6 +323,7 @@ void rvk_device_destroy(RvkDevice* dev) {
   rvk_call(vkDeviceWaitIdle, dev->vkDev);
 
   rvk_mem_pool_destroy(dev->memPool);
+  rvk_desc_pool_destroy(dev->descPool);
 
   vkDestroyCommandPool(dev->vkDev, dev->vkMainCommandPool, &dev->vkAlloc);
   vkDestroyDevice(dev->vkDev, &dev->vkAlloc);
