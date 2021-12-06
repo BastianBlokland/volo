@@ -19,7 +19,7 @@ typedef enum {
   RvkSamplerAniso_x16,
 } RvkSamplerAniso;
 
-typedef struct {
+typedef struct sRvkSampler {
   RvkDevice* dev;
   VkSampler  vkSampler;
 } RvkSampler;

@@ -13,7 +13,7 @@ typedef enum {
   RvkImageType_Count,
 } RvkImageType;
 
-typedef struct {
+typedef struct sRvkImage {
   RvkDevice*   dev;
   RvkImageType type;
   RendSize     size;
