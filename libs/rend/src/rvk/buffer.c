@@ -4,38 +4,38 @@
 #include "buffer_internal.h"
 #include "mem_internal.h"
 
-static RvkMemLoc rvk_buffer_kind_loc(const RvkBufferKind kind) {
-  switch (kind) {
-  case RvkBufferKind_DeviceIndex:
-  case RvkBufferKind_DeviceStorage:
+static RvkMemLoc rvk_buffer_type_loc(const RvkBufferType type) {
+  switch (type) {
+  case RvkBufferType_DeviceIndex:
+  case RvkBufferType_DeviceStorage:
     return RvkMemLoc_Dev;
-  case RvkBufferKind_HostUniform:
-  case RvkBufferKind_HostTransfer:
+  case RvkBufferType_HostUniform:
+  case RvkBufferType_HostTransfer:
     return RvkMemLoc_Host;
-  case RvkBufferKind_Count:
+  case RvkBufferType_Count:
     break;
   }
-  diag_crash_msg("Unexpected RvkBufferKind");
+  diag_crash_msg("Unexpected RvkBufferType");
 }
 
-static VkBufferUsageFlags rvk_buffer_usage_flags(const RvkBufferKind kind) {
-  switch (kind) {
-  case RvkBufferKind_DeviceIndex:
+static VkBufferUsageFlags rvk_buffer_usage_flags(const RvkBufferType type) {
+  switch (type) {
+  case RvkBufferType_DeviceIndex:
     return VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-  case RvkBufferKind_DeviceStorage:
+  case RvkBufferType_DeviceStorage:
     return VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-  case RvkBufferKind_HostUniform:
+  case RvkBufferType_HostUniform:
     return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-  case RvkBufferKind_HostTransfer:
+  case RvkBufferType_HostTransfer:
     return VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-  case RvkBufferKind_Count:
+  case RvkBufferType_Count:
     break;
   }
-  diag_crash_msg("Unexpected RvkBufferKind");
+  diag_crash_msg("Unexpected RvkBufferType");
 }
 
-RvkBuffer rvk_buffer_create(RvkDevice* dev, const u64 size, const RvkBufferKind kind) {
-  const VkBufferUsageFlags usageFlags = rvk_buffer_usage_flags(kind);
+RvkBuffer rvk_buffer_create(RvkDevice* dev, const u64 size, const RvkBufferType type) {
+  const VkBufferUsageFlags usageFlags = rvk_buffer_usage_flags(type);
   VkBufferCreateInfo       bufferInfo = {
       .sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
       .size        = size,
@@ -48,7 +48,7 @@ RvkBuffer rvk_buffer_create(RvkDevice* dev, const u64 size, const RvkBufferKind 
   VkMemoryRequirements memReqs;
   vkGetBufferMemoryRequirements(dev->vkDev, vkBuffer, &memReqs);
 
-  const RvkMemLoc memLoc = rvk_buffer_kind_loc(kind);
+  const RvkMemLoc memLoc = rvk_buffer_type_loc(type);
   const RvkMem    mem    = rvk_mem_alloc_req(dev->memPool, memLoc, RvkMemAccess_Linear, memReqs);
 
   rvk_mem_bind_buffer(mem, vkBuffer);
@@ -56,7 +56,7 @@ RvkBuffer rvk_buffer_create(RvkDevice* dev, const u64 size, const RvkBufferKind 
   return (RvkBuffer){
       .dev      = dev,
       .mem      = mem,
-      .kind     = kind,
+      .type     = type,
       .vkBuffer = vkBuffer,
   };
 }
@@ -68,20 +68,20 @@ void rvk_buffer_destroy(RvkBuffer* buffer) {
 
 void rvk_buffer_upload(RvkBuffer* buffer, const Mem data, const u64 offset) {
   diag_assert(data.size + offset <= buffer->mem.size);
-  diag_assert(rvk_buffer_kind_loc(buffer->kind) == RvkMemLoc_Host);
+  diag_assert(rvk_buffer_type_loc(buffer->type) == RvkMemLoc_Host);
 
   Mem mapped = mem_consume(rvk_mem_map(buffer->mem), offset);
   mem_cpy(mapped, data);
   rvk_mem_flush(buffer->mem);
 }
 
-String rvk_buffer_kind_str(const RvkBufferKind kind) {
+String rvk_buffer_type_str(const RvkBufferType type) {
   static const String names[] = {
       string_static("DeviceIndex"),
       string_static("DeviceStorage"),
       string_static("HostUniform"),
       string_static("HostTransfer"),
   };
-  ASSERT(array_elems(names) == RvkBufferKind_Count, "Incorrect number of buffer-kind names");
-  return names[kind];
+  ASSERT(array_elems(names) == RvkBufferType_Count, "Incorrect number of buffer-type names");
+  return names[type];
 }

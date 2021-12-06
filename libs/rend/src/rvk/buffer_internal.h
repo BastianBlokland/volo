@@ -5,22 +5,22 @@
 #include "mem_internal.h"
 
 typedef enum {
-  RvkBufferKind_DeviceIndex,
-  RvkBufferKind_DeviceStorage,
-  RvkBufferKind_HostUniform,
-  RvkBufferKind_HostTransfer,
+  RvkBufferType_DeviceIndex,
+  RvkBufferType_DeviceStorage,
+  RvkBufferType_HostUniform,
+  RvkBufferType_HostTransfer,
 
-  RvkBufferKind_Count,
-} RvkBufferKind;
+  RvkBufferType_Count,
+} RvkBufferType;
 
 typedef struct sRvkBuffer {
   RvkDevice*    dev;
   RvkMem        mem;
-  RvkBufferKind kind;
+  RvkBufferType type;
   VkBuffer      vkBuffer;
 } RvkBuffer;
 
-RvkBuffer rvk_buffer_create(RvkDevice*, u64 size, RvkBufferKind);
+RvkBuffer rvk_buffer_create(RvkDevice*, u64 size, RvkBufferType);
 void      rvk_buffer_destroy(RvkBuffer*);
 void      rvk_buffer_upload(RvkBuffer*, Mem data, u64 offset);
-String    rvk_buffer_kind_str(RvkBufferKind);
+String    rvk_buffer_type_str(RvkBufferType);
