@@ -5,6 +5,9 @@
 // Forward declare from 'mem_internal.h'.
 typedef struct sRvkMemPool RvkMemPool;
 
+// Forward declare from 'desc.h'.
+typedef struct sRvkDescPool RvkDescPool;
+
 typedef enum {
   RvkDeviceFlags_Validation = 1 << 0,
 } RvkDeviceFlags;
@@ -24,6 +27,7 @@ typedef struct {
   VkQueue                          vkMainQueue;
   VkCommandPool                    vkMainCommandPool;
   RvkMemPool*                      memPool;
+  RvkDescPool*                     descPool;
 } RvkDevice;
 
 RvkDevice* rvk_device_create();

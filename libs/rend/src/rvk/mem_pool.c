@@ -44,9 +44,6 @@ struct sRvkMemPool {
   RvkMemChunk*                     chunkTail;
 };
 
-static void rvk_pool_lock(RvkMemPool* pool) { thread_mutex_lock(pool->lock); }
-static void rvk_pool_unlock(RvkMemPool* pool) { thread_mutex_unlock(pool->lock); }
-
 static String rvk_mem_loc_str(const RvkMemLoc loc) {
   switch (loc) {
   case RvkMemLoc_Host:
@@ -360,7 +357,7 @@ RvkMem rvk_mem_alloc(
     const u32          mask) {
 
   RvkMem result = {0};
-  rvk_pool_lock(pool);
+  thread_mutex_lock(pool->lock);
 
   // Attempt to allocate from an existing chunk.
   for (RvkMemChunk* chunk = pool->chunkHead; chunk; chunk = chunk->next) {
@@ -389,7 +386,7 @@ RvkMem rvk_mem_alloc(
 
 Done:
   diag_assert(rvk_mem_valid(result));
-  rvk_pool_unlock(pool);
+  thread_mutex_unlock(pool->lock);
   return result;
 }
 
@@ -397,9 +394,9 @@ void rvk_mem_free(const RvkMem mem) {
   diag_assert(rvk_mem_valid(mem));
 
   // NOTE: Add per chunk locks would prevent needing to lock the entire pool here.
-  rvk_pool_lock(mem.chunk->pool);
+  thread_mutex_lock(mem.chunk->pool->lock);
   rvk_mem_chunk_free(mem.chunk, mem);
-  rvk_pool_unlock(mem.chunk->pool);
+  thread_mutex_unlock(mem.chunk->pool->lock);
 }
 
 void rvk_mem_bind_buffer(const RvkMem mem, const VkBuffer vkBuffer) {

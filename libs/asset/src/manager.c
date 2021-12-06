@@ -208,8 +208,8 @@ EcsEntityId asset_lookup(EcsWorld* world, AssetManagerComp* manager, const Strin
    * inserted at the position of that greater element.
    */
   const u32   idHash  = bits_hash_32(id);
-  AssetEntry* begin   = manager->lookup.data.ptr;
-  AssetEntry* end     = begin + manager->lookup.size;
+  AssetEntry* begin   = dynarray_begin_t(&manager->lookup, AssetEntry);
+  AssetEntry* end     = dynarray_end_t(&manager->lookup, AssetEntry);
   AssetEntry* greater = search_binary_greater_t(
       begin, end, AssetEntry, asset_compare_entry, mem_struct(AssetEntry, .idHash = idHash).ptr);
   AssetEntry* tgt = greater ? greater : end;
