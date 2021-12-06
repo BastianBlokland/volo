@@ -1,7 +1,10 @@
 #pragma once
 #include "vulkan_internal.h"
 
-#define rvk_desc_bindings_max 16
+// Forward declare from 'buffer_internal.h'.
+typedef struct sRvkBuffer RvkBuffer;
+
+#define rvk_desc_bindings_max 8
 
 typedef struct sRvkDescPool  RvkDescPool;
 typedef struct sRvkDescChunk RvkDescChunk;
@@ -34,3 +37,5 @@ void                  rvk_desc_free(RvkDescSet);
 
 VkDescriptorSet       rvk_desc_set_vkset(RvkDescSet);
 VkDescriptorSetLayout rvk_desc_set_vklayout(RvkDescSet);
+RvkDescKind           rvk_desc_set_kind(RvkDescSet, u32 binding);
+void                  rvk_desc_set_attach_buffer(RvkDescSet, u32 binding, const RvkBuffer*);

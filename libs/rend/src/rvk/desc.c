@@ -5,6 +5,7 @@
 #include "core_thread.h"
 #include "log_logger.h"
 
+#include "buffer_internal.h"
 #include "desc_internal.h"
 #include "mem_internal.h"
 
@@ -14,6 +15,7 @@
 
 typedef struct {
   u32                   metaHash;
+  RvkDescMeta           meta;
   VkDescriptorSetLayout vkLayout;
 } RvkDescLayout;
 
@@ -247,6 +249,7 @@ VkDescriptorSetLayout rvk_desc_vklayout(RvkDescPool* pool, const RvkDescMeta* me
     layout  = dynarray_insert_sorted_t(&pool->layouts, RvkDescLayout, rvk_desc_compare_layout, tgt);
     *layout = (RvkDescLayout){
         .metaHash = hash,
+        .meta     = *meta,
         .vkLayout = rvk_desc_vklayout_create(pool, meta),
     };
 
@@ -258,7 +261,7 @@ VkDescriptorSetLayout rvk_desc_vklayout(RvkDescPool* pool, const RvkDescMeta* me
 #endif
   }
 
-  VkDescriptorSetLayout result = layout->vkLayout;
+  const VkDescriptorSetLayout result = layout->vkLayout;
   thread_mutex_unlock(pool->layoutLock);
   return result;
 }
@@ -312,12 +315,48 @@ VkDescriptorSetLayout rvk_desc_set_vklayout(const RvkDescSet set) {
 
   thread_mutex_lock(set.chunk->pool->layoutLock);
 
-  RvkDescLayout* layout = dynarray_search_binary(
+  const RvkDescLayout* layout = dynarray_search_binary(
       &set.chunk->pool->layouts,
       rvk_desc_compare_layout,
       mem_struct(RvkDescLayout, .metaHash = set.chunk->metaHash).ptr);
 
-  VkDescriptorSetLayout result = layout->vkLayout;
+  const VkDescriptorSetLayout result = layout->vkLayout;
   thread_mutex_unlock(set.chunk->pool->layoutLock);
   return result;
+}
+
+RvkDescKind rvk_desc_set_kind(const RvkDescSet set, const u32 binding) {
+  diag_assert(rvk_desc_valid(set));
+
+  thread_mutex_lock(set.chunk->pool->layoutLock);
+
+  const RvkDescLayout* layout = dynarray_search_binary(
+      &set.chunk->pool->layouts,
+      rvk_desc_compare_layout,
+      mem_struct(RvkDescLayout, .metaHash = set.chunk->metaHash).ptr);
+
+  const RvkDescKind result = layout->meta.bindings[binding];
+  thread_mutex_unlock(set.chunk->pool->layoutLock);
+  return result;
+}
+
+void rvk_desc_set_attach_buffer(const RvkDescSet set, const u32 binding, const RvkBuffer* buffer) {
+  const RvkDescKind kind = rvk_desc_set_kind(set, binding);
+  diag_assert(kind);
+
+  const VkDescriptorBufferInfo bufferInfo = {
+      .buffer = buffer->vkBuffer,
+      .offset = 0,
+      .range  = buffer->mem.size,
+  };
+  const VkWriteDescriptorSet descriptorWrite = {
+      .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+      .dstSet          = rvk_desc_set_vkset(set),
+      .dstBinding      = binding,
+      .dstArrayElement = 0,
+      .descriptorType  = rvk_desc_vktype(kind),
+      .descriptorCount = 1,
+      .pBufferInfo     = &bufferInfo,
+  };
+  vkUpdateDescriptorSets(set.chunk->pool->vkDev, 1, &descriptorWrite, 0, null);
 }

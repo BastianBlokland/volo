@@ -1,0 +1,87 @@
+#include "core_array.h"
+#include "core_diag.h"
+
+#include "buffer_internal.h"
+#include "mem_internal.h"
+
+static RvkMemLoc rvk_buffer_kind_loc(const RvkBufferKind kind) {
+  switch (kind) {
+  case RvkBufferKind_DeviceIndex:
+  case RvkBufferKind_DeviceStorage:
+    return RvkMemLoc_Dev;
+  case RvkBufferKind_HostUniform:
+  case RvkBufferKind_HostTransfer:
+    return RvkMemLoc_Host;
+  case RvkBufferKind_Count:
+    break;
+  }
+  diag_crash_msg("Unexpected RvkBufferKind");
+}
+
+static VkBufferUsageFlags rvk_buffer_usage_flags(const RvkBufferKind kind) {
+  switch (kind) {
+  case RvkBufferKind_DeviceIndex:
+    return VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+  case RvkBufferKind_DeviceStorage:
+    return VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+  case RvkBufferKind_HostUniform:
+    return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+  case RvkBufferKind_HostTransfer:
+    return VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+  case RvkBufferKind_Count:
+    break;
+  }
+  diag_crash_msg("Unexpected RvkBufferKind");
+}
+
+RvkBuffer rvk_buffer_create(RvkDevice* dev, const u64 size, const RvkBufferKind kind) {
+  const VkBufferUsageFlags usageFlags = rvk_buffer_usage_flags(kind);
+  VkBufferCreateInfo       bufferInfo = {
+      .sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+      .size        = size,
+      .usage       = usageFlags,
+      .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+  };
+  VkBuffer vkBuffer;
+  rvk_call(vkCreateBuffer, dev->vkDev, &bufferInfo, &dev->vkAlloc, &vkBuffer);
+
+  VkMemoryRequirements memReqs;
+  vkGetBufferMemoryRequirements(dev->vkDev, vkBuffer, &memReqs);
+
+  const RvkMemLoc memLoc = rvk_buffer_kind_loc(kind);
+  const RvkMem    mem    = rvk_mem_alloc_req(dev->memPool, memLoc, RvkMemAccess_Linear, memReqs);
+
+  rvk_mem_bind_buffer(mem, vkBuffer);
+
+  return (RvkBuffer){
+      .dev      = dev,
+      .mem      = mem,
+      .kind     = kind,
+      .vkBuffer = vkBuffer,
+  };
+}
+
+void rvk_buffer_destroy(RvkBuffer* buffer) {
+  vkDestroyBuffer(buffer->dev->vkDev, buffer->vkBuffer, &buffer->dev->vkAlloc);
+  rvk_mem_free(buffer->mem);
+}
+
+void rvk_buffer_upload(RvkBuffer* buffer, const Mem data, const u64 offset) {
+  diag_assert(data.size + offset <= buffer->mem.size);
+  diag_assert(rvk_buffer_kind_loc(buffer->kind) == RvkMemLoc_Host);
+
+  Mem mapped = mem_consume(rvk_mem_map(buffer->mem), offset);
+  mem_cpy(mapped, data);
+  rvk_mem_flush(buffer->mem);
+}
+
+String rvk_buffer_kind_str(const RvkBufferKind kind) {
+  static const String names[] = {
+      string_static("DeviceIndex"),
+      string_static("DeviceStorage"),
+      string_static("HostUniform"),
+      string_static("HostTransfer"),
+  };
+  ASSERT(array_elems(names) == RvkBufferKind_Count, "Incorrect number of buffer-kind names");
+  return names[kind];
+}

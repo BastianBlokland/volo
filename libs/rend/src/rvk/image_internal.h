@@ -2,7 +2,6 @@
 #include "rend_size.h"
 
 #include "device_internal.h"
-#include "vulkan_internal.h"
 
 typedef enum {
   RvkImageType_ColorSource,

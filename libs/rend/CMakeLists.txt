@@ -5,10 +5,11 @@
 message(STATUS "> library: rend")
 
 add_library(volo_rend STATIC
+  src/rvk/buffer.c
   src/rvk/canvas.c
   src/rvk/debug.c
-  src/rvk/device.c
   src/rvk/desc.c
+  src/rvk/device.c
   src/rvk/image.c
   src/rvk/mem_alloc.c
   src/rvk/mem_pool.c
