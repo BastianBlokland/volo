@@ -17,7 +17,7 @@ void asset_repo_destroy(AssetRepo* repo) { repo->destroy(repo); }
 
 String asset_format_str(AssetFormat fmt) {
   static const String names[] = {
-      string_static("mat"),
+      string_static("gfx"),
       string_static("obj"),
       string_static("raw"),
       string_static("spv"),
