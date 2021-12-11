@@ -5,7 +5,7 @@
 message(STATUS "> library: asset")
 
 add_library(volo_asset STATIC
-  src/loader_material.c
+  src/loader_gfx.c
   src/loader_mesh_obj.c
   src/loader_mesh.c
   src/loader_raw.c
@@ -30,7 +30,7 @@ target_link_libraries(volo_asset PRIVATE volo_log)
 
 add_executable(volo_asset_test
   test/main.c
-  test/test_loader_material.c
+  test/test_loader_gfx.c
   test/test_loader_mesh_obj.c
   test/test_loader_raw.c
   test/test_loader_shader_spv.c

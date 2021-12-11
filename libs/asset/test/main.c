@@ -12,7 +12,7 @@ int main(const int argc, const char** argv) {
 
   CheckDef* check = check_create(g_alloc_heap);
   register_spec(check, manager);
-  register_spec(check, loader_material);
+  register_spec(check, loader_graphic);
   register_spec(check, loader_mesh_obj);
   register_spec(check, loader_raw);
   register_spec(check, loader_shader_spv);
