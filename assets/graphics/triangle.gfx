@@ -1,0 +1,15 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/triangle.vert.spv"
+    },
+    {
+      "shaderId": "shaders/triangle.frag.spv"
+    }
+  ],
+  "meshId": "meshes/triangle.obj",
+  "rasterizer": "Fill",
+  "blend": "None",
+  "depthTest": "Less",
+  "cull": "None"
+}

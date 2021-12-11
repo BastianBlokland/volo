@@ -8,5 +8,4 @@
 # Binary files.
 *.jpg binary
 *.png binary
-*.ppm binary
 *.tga binary

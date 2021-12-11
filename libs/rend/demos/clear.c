@@ -1,3 +1,4 @@
+#include "asset.h"
 #include "cli.h"
 #include "core.h"
 #include "core_file.h"
@@ -13,11 +14,12 @@
  * Demo application for render clearing.
  */
 
-static int run_app() {
+static int run_app(const String assetPath) {
 
   log_i("App starting", log_param("pid", fmt_int(g_thread_pid)));
 
   EcsDef* def = def = ecs_def_create(g_alloc_heap);
+  asset_register(def);
   gap_register(def);
   rend_register(def);
 
@@ -25,6 +27,8 @@ static int run_app() {
   EcsRunner* runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_DumpGraphDot);
 
   log_i("App loop running");
+
+  asset_manager_create_fs(world, assetPath);
 
   const EcsEntityId window =
       gap_window_create(world, GapWindowFlags_Default, gap_vector(1024, 768));
@@ -61,7 +65,11 @@ int main(const int argc, const char** argv) {
 
   int exitCode = 0;
 
-  CliApp*        app   = cli_app_create(g_alloc_heap, string_lit("Volo Render Clear Demo"));
+  CliApp*     app = cli_app_create(g_alloc_heap, string_lit("Volo Render Clear Demo"));
+  const CliId assetFlag =
+      cli_register_flag(app, 'a', string_lit("assets"), CliOptionFlags_Required);
+  cli_register_desc(app, assetFlag, string_lit("Path to asset directory."));
+
   CliInvocation* invoc = cli_parse(app, argc - 1, argv + 1);
   if (cli_parse_result(invoc) == CliParseResult_Fail) {
     cli_failure_write_file(invoc, g_file_stderr);
@@ -69,7 +77,8 @@ int main(const int argc, const char** argv) {
     goto exit;
   }
 
-  exitCode = run_app();
+  const String assetPath = cli_read_string(invoc, assetFlag, string_empty);
+  exitCode               = run_app(assetPath);
 
 exit:
   cli_parse_destroy(invoc);

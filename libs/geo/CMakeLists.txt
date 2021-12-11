@@ -4,25 +4,25 @@
 
 message(STATUS "> library: geo")
 
-add_library(volo_geo STATIC
+add_library(lib_geo STATIC
   src/box.c
   src/matrix.c
   src/quat.c
   src/vector.c)
-target_include_directories(volo_geo PUBLIC include)
-target_link_libraries(volo_geo PUBLIC volo_core)
+target_include_directories(lib_geo PUBLIC include)
+target_link_libraries(lib_geo PUBLIC lib_core)
 
-add_executable(volo_geo_test
+add_executable(lib_geo_test
   test/main.c
   test/test_box.c
   test/test_matrix.c
   test/test_quat.c
   test/test_vector.c
   test/utils.c)
-target_link_libraries(volo_geo_test PRIVATE volo_check)
-target_link_libraries(volo_geo_test PRIVATE volo_geo)
-target_link_libraries(volo_geo_test PRIVATE volo_jobs)
-target_link_libraries(volo_geo_test PRIVATE volo_log)
+target_link_libraries(lib_geo_test PRIVATE lib_check)
+target_link_libraries(lib_geo_test PRIVATE lib_geo)
+target_link_libraries(lib_geo_test PRIVATE lib_jobs)
+target_link_libraries(lib_geo_test PRIVATE lib_log)
 
-configure_test(volo_geo_test geo)
-configure_debuggable(volo_geo_test)
+configure_test(lib_geo_test geo)
+configure_debuggable(lib_geo_test)

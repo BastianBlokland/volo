@@ -4,7 +4,7 @@
 
 message(STATUS "> library: core")
 
-add_library(volo_core STATIC
+add_library(lib_core STATIC
   src/alloc_block.c
   src/alloc_bump.c
   src/alloc_chunked.c
@@ -47,13 +47,13 @@ add_library(volo_core STATIC
   src/tty.c
   src/utf8.c
   src/winutils.c)
-target_include_directories(volo_core PUBLIC include)
+target_include_directories(lib_core PUBLIC include)
 if(${VOLO_PLATFORM} STREQUAL "linux")
   # Link against the math library on linux.
-  target_link_libraries(volo_core PRIVATE m)
+  target_link_libraries(lib_core PRIVATE m)
 endif()
 
-add_executable(volo_core_test
+add_executable(lib_core_test
   test/main.c
   test/test_alloc_block.c
   test/test_alloc_bump.c
@@ -85,10 +85,10 @@ add_executable(volo_core_test
   test/test_time.c
   test/test_utf8.c
   test/test_winutils.c)
-target_link_libraries(volo_core_test PRIVATE volo_check)
-target_link_libraries(volo_core_test PRIVATE volo_core)
-target_link_libraries(volo_core_test PRIVATE volo_jobs)
-target_link_libraries(volo_core_test PRIVATE volo_log)
+target_link_libraries(lib_core_test PRIVATE lib_check)
+target_link_libraries(lib_core_test PRIVATE lib_core)
+target_link_libraries(lib_core_test PRIVATE lib_jobs)
+target_link_libraries(lib_core_test PRIVATE lib_log)
 
-configure_test(volo_core_test core)
-configure_debuggable(volo_core_test)
+configure_test(lib_core_test core)
+configure_debuggable(lib_core_test)
