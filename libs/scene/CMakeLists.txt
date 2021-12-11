@@ -6,7 +6,7 @@ message(STATUS "> library: scene")
 
 add_library(volo_scene STATIC
   src/camera.c
-  src/graphic.c
+  src/gfx.c
   src/register.c
   src/transform.c)
 target_include_directories(volo_scene PUBLIC include)
