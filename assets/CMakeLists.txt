@@ -31,6 +31,8 @@ if(${EXTERNAL_ASSETS})
 endif()
 
 add_custom_target(volo_assets)
+set_target_properties(volo_assets PROPERTIES path ${CMAKE_CURRENT_BINARY_DIR})
+
 add_dependencies(volo_assets volo_assets_graphics)
 add_dependencies(volo_assets volo_assets_meshes)
 add_dependencies(volo_assets volo_assets_shaders)
