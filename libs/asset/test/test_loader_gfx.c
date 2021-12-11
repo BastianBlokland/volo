@@ -27,6 +27,7 @@ static const AssetMemRecord records[] = {
                            "      \"anisotropy\": \"None\","
                            "    },"
                            "  ],"
+                           "  \"meshId\": \"a.obj\","
                            "  \"topology\": \"Triangles\","
                            "  \"rasterizer\": \"Fill\","
                            "  \"lineWidth\": 42,"
@@ -71,6 +72,7 @@ spec(loader_graphic) {
     asset_test_wait(runner);
 
     const AssetGfxComp* gfx = ecs_utils_read_t(world, AssetView, asset, AssetGfxComp);
+
     check_require(gfx->shaders.count == 1);
     check(gfx->shaders.values[0].shader == asset_lookup(world, manager, string_lit("test.spv")));
 
@@ -85,6 +87,7 @@ spec(loader_graphic) {
     check_eq_int(gfx->samplers.values[1].filter, AssetGfxFilter_Linear);
     check_eq_int(gfx->samplers.values[1].anisotropy, AssetGfxAniso_None);
 
+    check(gfx->mesh == asset_lookup(world, manager, string_lit("a.obj")));
     check_eq_int(gfx->topology, AssetGfxTopology_Triangles);
     check_eq_int(gfx->rasterizer, AssetGfxRasterizer_Fill);
     check_eq_int(gfx->lineWidth, 42);

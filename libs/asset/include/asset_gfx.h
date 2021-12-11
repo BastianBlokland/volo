@@ -73,6 +73,8 @@ ecs_comp_extern_public(AssetGfxComp) {
     AssetGfxSampler* values;
     usize            count;
   } samplers;
+  String             meshId;
+  EcsEntityId        mesh;
   AssetGfxTopology   topology;
   AssetGfxRasterizer rasterizer;
   u32                lineWidth; // Line width (in pixels) when the rasterizer mode is 'lines'.

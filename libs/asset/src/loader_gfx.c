@@ -76,6 +76,7 @@ static void gfx_datareg_init() {
         g_dataReg, AssetGfxComp, shaders, t_AssetGfxShader, .container = DataContainer_Array);
     data_reg_field_t(
         g_dataReg, AssetGfxComp, samplers, t_AssetGfxSampler, .container = DataContainer_Array);
+    data_reg_field_t(g_dataReg, AssetGfxComp, meshId, data_prim_t(String));
     data_reg_field_t(g_dataReg, AssetGfxComp, topology, t_AssetGfxTopology, .flags = DataFlags_Opt);
     data_reg_field_t(
         g_dataReg, AssetGfxComp, rasterizer, t_AssetGfxRasterizer, .flags = DataFlags_Opt);
@@ -145,11 +146,15 @@ ecs_system_define(LoadGfxAssetSys) {
       gfxComp->shaders.values[i].shader =
           asset_lookup(world, manager, gfxComp->shaders.values[i].shaderId);
     }
+
     // Resolve texture references.
     for (usize i = 0; i != gfxComp->samplers.count; ++i) {
       gfxComp->samplers.values[i].texture =
           asset_lookup(world, manager, gfxComp->samplers.values[i].textureId);
     }
+
+    // Resolve mesh reference.
+    gfxComp->mesh = asset_lookup(world, manager, gfxComp->meshId);
 
     ecs_world_remove_t(world, entity, AssetGfxLoadComp);
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
