@@ -52,6 +52,7 @@ jobs:
           }
     env:
       CC: ${{matrix.config.cc}}
+      CMAKE_OPTS: "-D EXTERNAL_ASSETS=Off"
     steps:
     - name: checkout
       uses: actions/checkout@v2
@@ -73,23 +74,23 @@ jobs:
     - name: test-unix
       if: matrix.config.toolchain == 'unix'
       run: |
-        cmake -B build   &&
-        cd build         &&
+        cmake -B build $CMAKE_OPTS  &&
+        cd build                    &&
         make -k all test
 
     - name: test-msvc
       if: matrix.config.toolchain == 'msvc'
       run: |
-        ./scripts/msvc-env.ps1              &&
-        cmake -B build -G 'NMake Makefiles' &&
-        cd build                            &&
+        ./scripts/msvc-env.ps1                              &&
+        cmake -B build -G 'NMake Makefiles' $env:CMAKE_OPTS &&
+        cd build                                            &&
         nmake /C /K all test
 
     - name: test-mingw
       if: matrix.config.toolchain == 'mingw'
       run: |
-        cmake -B build -G 'MinGW Makefiles' &&
-        cd build                            &&
+        cmake -B build -G 'MinGW Makefiles' $env:CMAKE_OPTS &&
+        cd build                                            &&
         mingw32-make -k all test
 
     - name: archive

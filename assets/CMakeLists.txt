@@ -20,17 +20,21 @@ configure_copies(volo_assets_textures
   textures/circle.tga
   textures/white.ppm)
 
-configure_copies_external(volo_assets_external
-  bunny.obj
-  head/head.obj
-  head/lambertian.tga
-  corset/corset.obj
-  corset/corset_diff.tga
-  corset/corset_nrm.tga)
+if(${EXTERNAL_ASSETS})
+  configure_copies_external(volo_assets_external
+    bunny.obj
+    head/head.obj
+    head/lambertian.tga
+    corset/corset.obj
+    corset/corset_diff.tga
+    corset/corset_nrm.tga)
+endif()
 
 add_custom_target(volo_assets)
 add_dependencies(volo_assets volo_assets_graphics)
 add_dependencies(volo_assets volo_assets_meshes)
 add_dependencies(volo_assets volo_assets_shaders)
 add_dependencies(volo_assets volo_assets_textures)
-add_dependencies(volo_assets volo_assets_external)
+if(${EXTERNAL_ASSETS})
+  add_dependencies(volo_assets volo_assets_external)
+endif()

@@ -24,7 +24,7 @@ function(configure_copies_external target)
   message(STATUS "> Configuring external copies: ${target}")
 
   set(remoteUrl "https://www.bastian.tech/assets")
-  set(cacheDir "${CMAKE_SOURCE_DIR}/.cache/files")
+  set(cacheDir "${CMAKE_SOURCE_DIR}/.cache/external")
 
   foreach(filePath IN LISTS ARGN)
     set(cacheFilePath ${cacheDir}/${filePath})
