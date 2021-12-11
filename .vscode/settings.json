@@ -13,7 +13,8 @@
   ],
   "files.associations": {
     "*.h": "c",
-    "*.c": "c"
+    "*.c": "c",
+    "*.gfx": "json"
   },
   "glsllint.glslangValidatorArgs": "-V -o .cache/spv/out.spv"
 }
