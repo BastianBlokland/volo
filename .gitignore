@@ -10,6 +10,5 @@
 !/.vscode/settings.json
 !/.vscode/extensions.json
 
-# Ide caches.
-/.clangd/
+# Temporary files.
 /.cache/

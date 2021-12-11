@@ -14,5 +14,10 @@
   "files.associations": {
     "*.h": "c",
     "*.c": "c"
-  }
+  },
+  "glsllint.additionalStageAssociations": {
+    ".fs": "frag",
+    ".vs": "vert"
+  },
+  "glsllint.glslangValidatorArgs": "-V -o .cache/spv/out.spv"
 }
