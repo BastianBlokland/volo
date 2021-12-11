@@ -25,6 +25,7 @@ include(cmake/compiler.cmake)
 include(cmake/debug.cmake)
 include(cmake/findpkg.cmake)
 include(cmake/platform.cmake)
+include(cmake/shader.cmake)
 include(cmake/test.cmake)
 
 # Setup global platform specific defines.
@@ -47,6 +48,9 @@ add_subdirectory(tools)
 
 message(STATUS "Configuring applications")
 add_subdirectory(apps)
+
+message(STATUS "Configuring assets")
+add_subdirectory(assets)
 
 message(STATUS "Configuring utility targets")
 configure_test_target()

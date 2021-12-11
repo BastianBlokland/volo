@@ -29,7 +29,6 @@ target_link_libraries(lib_rend PUBLIC lib_ecs)
 target_link_libraries(lib_rend PRIVATE lib_gap)
 target_link_libraries(lib_rend PRIVATE lib_log)
 
-message(STATUS "> Configuring vulkan sdk")
 find_package(Vulkan REQUIRED)
 message(STATUS ">> Vulkan lib: ${Vulkan_LIBRARIES}")
 message(STATUS ">> Vulkan headers: ${Vulkan_INCLUDE_DIRS}")
