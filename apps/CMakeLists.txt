@@ -3,5 +3,5 @@
 # --------------------------------------------------------------------------------------------------
 
 add_executable(volo volo.c)
-target_link_libraries(volo PRIVATE volo_core)
+target_link_libraries(volo PRIVATE lib_core)
 configure_debuggable(volo)

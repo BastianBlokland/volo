@@ -4,7 +4,7 @@
 
 message(STATUS "> library: ecs")
 
-add_library(volo_ecs STATIC
+add_library(lib_ecs STATIC
   src/archetype.c
   src/buffer.c
   src/comp.c
@@ -18,12 +18,12 @@ add_library(volo_ecs STATIC
   src/utils.c
   src/view.c
   src/world.c)
-target_include_directories(volo_ecs PUBLIC include)
-target_link_libraries(volo_ecs PUBLIC volo_core)
-target_link_libraries(volo_ecs PRIVATE volo_jobs)
-target_link_libraries(volo_ecs PRIVATE volo_log)
+target_include_directories(lib_ecs PUBLIC include)
+target_link_libraries(lib_ecs PUBLIC lib_core)
+target_link_libraries(lib_ecs PRIVATE lib_jobs)
+target_link_libraries(lib_ecs PRIVATE lib_log)
 
-add_executable(volo_ecs_test
+add_executable(lib_ecs_test
   test/main.c
   test/test_affinity.c
   test/test_combinator.c
@@ -36,13 +36,13 @@ add_executable(volo_ecs_test
   test/test_utils.c
   test/test_view.c
   test/test_world.c)
-target_link_libraries(volo_ecs_test PRIVATE volo_check)
-target_link_libraries(volo_ecs_test PRIVATE volo_ecs)
-target_link_libraries(volo_ecs_test PRIVATE volo_jobs)
-target_link_libraries(volo_ecs_test PRIVATE volo_log)
+target_link_libraries(lib_ecs_test PRIVATE lib_check)
+target_link_libraries(lib_ecs_test PRIVATE lib_ecs)
+target_link_libraries(lib_ecs_test PRIVATE lib_jobs)
+target_link_libraries(lib_ecs_test PRIVATE lib_log)
 
-configure_test(volo_ecs_test ecs)
-configure_debuggable(volo_ecs_test)
+configure_test(lib_ecs_test ecs)
+configure_debuggable(lib_ecs_test)
 
 message(STATUS "> demos: ecs")
 add_subdirectory(demos)

@@ -4,7 +4,7 @@
 
 message(STATUS "> library: check")
 
-add_library(volo_check STATIC
+add_library(lib_check STATIC
   src/app.c
   src/def.c
   src/output.c
@@ -14,20 +14,20 @@ add_library(volo_check STATIC
   src/result.c
   src/runner.c
   src/spec.c)
-target_include_directories(volo_check PUBLIC include)
-target_link_libraries(volo_check PUBLIC volo_core)
-target_link_libraries(volo_check PRIVATE volo_cli)
-target_link_libraries(volo_check PRIVATE volo_jobs)
-target_link_libraries(volo_check PRIVATE volo_json)
-target_link_libraries(volo_check PRIVATE volo_log)
+target_include_directories(lib_check PUBLIC include)
+target_link_libraries(lib_check PUBLIC lib_core)
+target_link_libraries(lib_check PRIVATE lib_cli)
+target_link_libraries(lib_check PRIVATE lib_jobs)
+target_link_libraries(lib_check PRIVATE lib_json)
+target_link_libraries(lib_check PRIVATE lib_log)
 
-add_executable(volo_check_test
+add_executable(lib_check_test
   test/main.c
   test/test_dynarray.c
   test/test_fizzbuzz.c)
-target_link_libraries(volo_check_test PRIVATE volo_check)
-target_link_libraries(volo_check_test PRIVATE volo_jobs)
-target_link_libraries(volo_check_test PRIVATE volo_log)
+target_link_libraries(lib_check_test PRIVATE lib_check)
+target_link_libraries(lib_check_test PRIVATE lib_jobs)
+target_link_libraries(lib_check_test PRIVATE lib_log)
 
-configure_test(volo_check_test check)
-configure_debuggable(volo_check_test)
+configure_test(lib_check_test check)
+configure_debuggable(lib_check_test)

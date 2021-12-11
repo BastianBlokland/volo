@@ -4,14 +4,14 @@
 
 message(STATUS ">> demo: rend_clear")
 
-add_executable(volo_demo_rend_clear clear.c)
-target_link_libraries(volo_demo_rend_clear PRIVATE volo_rend)
-target_link_libraries(volo_demo_rend_clear PRIVATE volo_cli)
-target_link_libraries(volo_demo_rend_clear PRIVATE volo_gap)
-target_link_libraries(volo_demo_rend_clear PRIVATE volo_jobs)
-target_link_libraries(volo_demo_rend_clear PRIVATE volo_log)
+add_executable(lib_rend_demo_clear clear.c)
+target_link_libraries(lib_rend_demo_clear PRIVATE lib_rend)
+target_link_libraries(lib_rend_demo_clear PRIVATE lib_cli)
+target_link_libraries(lib_rend_demo_clear PRIVATE lib_gap)
+target_link_libraries(lib_rend_demo_clear PRIVATE lib_jobs)
+target_link_libraries(lib_rend_demo_clear PRIVATE lib_log)
 
-configure_debuggable(volo_demo_rend_clear)
+configure_debuggable(lib_rend_demo_clear)
 
 # Register convenience targets for launching the demos.
-add_custom_target(demo.rend.clear COMMAND volo_demo_rend_clear VERBATIM USES_TERMINAL)
+add_custom_target(demo.rend.clear COMMAND lib_rend_demo_clear VERBATIM USES_TERMINAL)
