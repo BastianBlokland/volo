@@ -16,6 +16,7 @@ add_library(lib_rend STATIC
   src/rvk/platform.c
   src/rvk/renderer.c
   src/rvk/sampler.c
+  src/rvk/shader.c
   src/rvk/swapchain.c
   src/rvk/technique.c
   src/rvk/vulkan.c
@@ -28,6 +29,7 @@ target_link_libraries(lib_rend PUBLIC lib_core)
 target_link_libraries(lib_rend PUBLIC lib_ecs)
 target_link_libraries(lib_rend PRIVATE lib_gap)
 target_link_libraries(lib_rend PRIVATE lib_log)
+target_link_libraries(lib_rend PRIVATE lib_asset)
 
 find_package(Vulkan REQUIRED)
 message(STATUS ">> Vulkan lib: ${Vulkan_LIBRARIES}")

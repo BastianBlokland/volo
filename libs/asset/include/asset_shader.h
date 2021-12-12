@@ -1,9 +1,9 @@
 #pragma once
 #include "ecs_module.h"
 
-#define asset_shader_max_sets 32
-#define asset_shader_max_bindings 32
-#define asset_shader_max_resources 32
+#define asset_shader_max_sets 5
+#define asset_shader_max_bindings 8
+#define asset_shader_max_resources (asset_shader_max_sets * asset_shader_max_bindings)
 
 typedef enum {
   AssetShaderKind_SpvVertex,

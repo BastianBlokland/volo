@@ -356,7 +356,7 @@ static void spv_asset_shader_create(
       .data           = src->data,
   };
 
-  ASSERT(sizeof(u32) == asset_shader_max_bindings / 8, "Unsupported max shader bindings");
+  ASSERT(sizeof(u32) >= asset_shader_max_bindings / 8, "Unsupported max shader bindings");
   u32 usedSlots[asset_shader_max_bindings] = {0};
 
   for (u32 i = 0; i != program->idCount; ++i) {
