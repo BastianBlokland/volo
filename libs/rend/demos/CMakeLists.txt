@@ -11,6 +11,7 @@ target_link_libraries(lib_rend_demo_clear PRIVATE lib_cli)
 target_link_libraries(lib_rend_demo_clear PRIVATE lib_gap)
 target_link_libraries(lib_rend_demo_clear PRIVATE lib_jobs)
 target_link_libraries(lib_rend_demo_clear PRIVATE lib_log)
+target_link_libraries(lib_rend_demo_clear PRIVATE lib_scene)
 
 add_dependencies(lib_rend_demo_clear volo_assets)
 

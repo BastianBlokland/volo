@@ -17,4 +17,4 @@ GeoMatrix scene_camera_viewproj(
   return geo_matrix_mul(&proj, &view);
 }
 
-ecs_module_init(scene_transform_module) { ecs_register_comp(SceneCameraComp); }
+ecs_module_init(scene_camera_module) { ecs_register_comp(SceneCameraComp); }

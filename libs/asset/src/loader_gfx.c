@@ -75,7 +75,12 @@ static void gfx_datareg_init() {
     data_reg_field_t(
         g_dataReg, AssetGfxComp, shaders, t_AssetGfxShader, .container = DataContainer_Array);
     data_reg_field_t(
-        g_dataReg, AssetGfxComp, samplers, t_AssetGfxSampler, .container = DataContainer_Array);
+        g_dataReg,
+        AssetGfxComp,
+        samplers,
+        t_AssetGfxSampler,
+        .container = DataContainer_Array,
+        .flags     = DataFlags_Opt);
     data_reg_field_t(g_dataReg, AssetGfxComp, meshId, data_prim_t(String));
     data_reg_field_t(g_dataReg, AssetGfxComp, topology, t_AssetGfxTopology, .flags = DataFlags_Opt);
     data_reg_field_t(
