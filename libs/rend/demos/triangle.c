@@ -13,7 +13,7 @@
 #include "scene_register.h"
 
 /**
- * Demo application for render clearing.
+ * Demo application that renders a single triangle.
  */
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
@@ -28,7 +28,7 @@ static void demo_add_triangle(EcsWorld* world) {
       .gfxAsset = asset_lookup(world, manager, string_lit("graphics/triangle.gfx")));
 }
 
-ecs_module_init(demo_clear_module) { ecs_register_view(ManagerView); }
+ecs_module_init(demo_triangle_module) { ecs_register_view(ManagerView); }
 
 static int run_app(const String assetPath) {
 
@@ -39,7 +39,7 @@ static int run_app(const String assetPath) {
   scene_register(def);
   gap_register(def);
   rend_register(def);
-  ecs_register_module(def, demo_clear_module);
+  ecs_register_module(def, demo_triangle_module);
 
   EcsWorld*  world  = ecs_world_create(g_alloc_heap, def);
   EcsRunner* runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_DumpGraphDot);
@@ -85,7 +85,7 @@ int main(const int argc, const char** argv) {
 
   int exitCode = 0;
 
-  CliApp*     app = cli_app_create(g_alloc_heap, string_lit("Volo Render Clear Demo"));
+  CliApp*     app = cli_app_create(g_alloc_heap, string_lit("Volo Render Triangle Demo"));
   const CliId assetFlag =
       cli_register_flag(app, 'a', string_lit("assets"), CliOptionFlags_Required);
   cli_register_desc(app, assetFlag, string_lit("Path to asset directory."));
