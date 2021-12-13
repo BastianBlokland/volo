@@ -15,10 +15,10 @@ struct sRvkDebug {
   PFN_vkCmdEndDebugUtilsLabelEXT   vkLabelEndFunc;
 };
 
-static const char* rvk_to_null_term_scratch(String api) {
-  const Mem scratchMem = alloc_alloc(g_alloc_scratch, api.size + 1, 1);
-  mem_cpy(scratchMem, api);
-  *mem_at_u8(scratchMem, api.size) = '\0';
+static const char* rvk_to_null_term_scratch(const String str) {
+  const Mem scratchMem = alloc_alloc(g_alloc_scratch, str.size + 1, 1);
+  mem_cpy(scratchMem, str);
+  *mem_at_u8(scratchMem, str.size) = '\0';
   return scratchMem.ptr;
 }
 

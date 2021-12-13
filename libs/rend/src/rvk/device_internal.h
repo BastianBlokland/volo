@@ -12,7 +12,7 @@ typedef enum {
   RvkDeviceFlags_Validation = 1 << 0,
 } RvkDeviceFlags;
 
-typedef struct {
+typedef struct sRvkDevice {
   RvkDeviceFlags                   flags;
   RvkDebug*                        debug;
   VkInstance                       vkInst;

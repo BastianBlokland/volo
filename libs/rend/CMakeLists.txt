@@ -10,6 +10,7 @@ add_library(lib_rend STATIC
   src/rvk/debug.c
   src/rvk/desc.c
   src/rvk/device.c
+  src/rvk/graphic.c
   src/rvk/image.c
   src/rvk/mem_alloc.c
   src/rvk/mem_pool.c

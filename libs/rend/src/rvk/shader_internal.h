@@ -6,7 +6,7 @@
 
 #define rvk_shader_desc_max 5
 
-typedef struct {
+typedef struct sRvkShader {
   RvkDevice*            dev;
   VkShaderStageFlagBits vkStage;
   VkShaderModule        vkModule;

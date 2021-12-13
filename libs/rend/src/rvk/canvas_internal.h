@@ -8,7 +8,7 @@
 #include "swapchain_internal.h"
 #include "technique_internal.h"
 
-typedef struct {
+typedef struct sRvkCanvas {
   RvkDevice*      device;
   RvkSwapchain*   swapchain;
   RvkTechnique*   technique;
