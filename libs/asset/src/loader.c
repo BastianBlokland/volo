@@ -10,8 +10,8 @@ AssetLoader asset_loader(const AssetFormat format) {
   return &asset_loader_name(_NAME_)
 
   switch (format) {
-  case AssetFormat_Gfx: {
-    RET_LOADER(gfx);
+  case AssetFormat_Graphic: {
+    RET_LOADER(graphic);
   }
   case AssetFormat_Raw: {
     RET_LOADER(raw);

@@ -429,12 +429,12 @@ ecs_system_define(RenderSys) {
 
   EcsView* renderablesView = ecs_world_view_t(world, RenderSysEntity);
   for (EcsIterator* itr = ecs_view_itr(renderablesView); ecs_view_walk(itr);) {
-    const PositionComp* pos = ecs_view_read_t(itr, PositionComp);
-    const GraphicsComp* gfx = ecs_view_read_t(itr, GraphicsComp);
+    const PositionComp* pos     = ecs_view_read_t(itr, PositionComp);
+    const GraphicsComp* graphic = ecs_view_read_t(itr, GraphicsComp);
 
     tty_write_set_cursor_sequence(&str, pos->y + 1, pos->x + 1);
-    tty_write_style_sequence(&str, gfx->style);
-    dynstring_append(&str, gfx->text);
+    tty_write_style_sequence(&str, graphic->style);
+    dynstring_append(&str, graphic->text);
   }
 
   file_write_sync(g_file_stdout, dynstring_view(&str));

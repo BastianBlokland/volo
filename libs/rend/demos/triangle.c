@@ -24,8 +24,8 @@ static void demo_add_triangle(EcsWorld* world) {
   ecs_world_add_t(
       world,
       triangleEntity,
-      SceneGfxComp,
-      .gfxAsset = asset_lookup(world, manager, string_lit("graphics/triangle.gra")));
+      SceneGraphicComp,
+      .asset = asset_lookup(world, manager, string_lit("graphics/triangle.gra")));
 }
 
 ecs_module_init(demo_triangle_module) { ecs_register_view(ManagerView); }

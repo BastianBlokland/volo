@@ -39,7 +39,7 @@ static const AssetMemRecord records[] = {
 };
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
-ecs_view_define(AssetView) { ecs_access_read(AssetGfxComp); }
+ecs_view_define(AssetView) { ecs_access_read(AssetGraphicComp); }
 
 ecs_module_init(loader_graphic_test_module) {
   ecs_register_view(ManagerView);
@@ -71,29 +71,30 @@ spec(loader_graphic) {
 
     asset_test_wait(runner);
 
-    const AssetGfxComp* gfx = ecs_utils_read_t(world, AssetView, asset, AssetGfxComp);
+    const AssetGraphicComp* graphic = ecs_utils_read_t(world, AssetView, asset, AssetGraphicComp);
 
-    check_require(gfx->shaders.count == 1);
-    check(gfx->shaders.values[0].shader == asset_lookup(world, manager, string_lit("test.spv")));
+    check_require(graphic->shaders.count == 1);
+    check(
+        graphic->shaders.values[0].shader == asset_lookup(world, manager, string_lit("test.spv")));
 
-    check_require(gfx->samplers.count == 2);
-    check(gfx->samplers.values[0].texture == asset_lookup(world, manager, string_lit("a.ppm")));
-    check_eq_int(gfx->samplers.values[0].wrap, AssetGfxWrap_Clamp);
-    check_eq_int(gfx->samplers.values[0].filter, AssetGfxFilter_Nearest);
-    check_eq_int(gfx->samplers.values[0].anisotropy, AssetGfxAniso_x4);
+    check_require(graphic->samplers.count == 2);
+    check(graphic->samplers.values[0].texture == asset_lookup(world, manager, string_lit("a.ppm")));
+    check_eq_int(graphic->samplers.values[0].wrap, AssetGraphicWrap_Clamp);
+    check_eq_int(graphic->samplers.values[0].filter, AssetGraphicFilter_Nearest);
+    check_eq_int(graphic->samplers.values[0].anisotropy, AssetGraphicAniso_x4);
 
-    check(gfx->samplers.values[1].texture == asset_lookup(world, manager, string_lit("b.ppm")));
-    check_eq_int(gfx->samplers.values[1].wrap, AssetGfxWrap_Repeat);
-    check_eq_int(gfx->samplers.values[1].filter, AssetGfxFilter_Linear);
-    check_eq_int(gfx->samplers.values[1].anisotropy, AssetGfxAniso_None);
+    check(graphic->samplers.values[1].texture == asset_lookup(world, manager, string_lit("b.ppm")));
+    check_eq_int(graphic->samplers.values[1].wrap, AssetGraphicWrap_Repeat);
+    check_eq_int(graphic->samplers.values[1].filter, AssetGraphicFilter_Linear);
+    check_eq_int(graphic->samplers.values[1].anisotropy, AssetGraphicAniso_None);
 
-    check(gfx->mesh == asset_lookup(world, manager, string_lit("a.obj")));
-    check_eq_int(gfx->topology, AssetGfxTopology_Triangles);
-    check_eq_int(gfx->rasterizer, AssetGfxRasterizer_Fill);
-    check_eq_int(gfx->lineWidth, 42);
-    check_eq_int(gfx->blend, AssetGfxBlend_None);
-    check_eq_int(gfx->depth, AssetGfxDepth_Less);
-    check_eq_int(gfx->cull, AssetGfxCull_Back);
+    check(graphic->mesh == asset_lookup(world, manager, string_lit("a.obj")));
+    check_eq_int(graphic->topology, AssetGraphicTopology_Triangles);
+    check_eq_int(graphic->rasterizer, AssetGraphicRasterizer_Fill);
+    check_eq_int(graphic->lineWidth, 42);
+    check_eq_int(graphic->blend, AssetGraphicBlend_None);
+    check_eq_int(graphic->depth, AssetGraphicDepth_Less);
+    check_eq_int(graphic->cull, AssetGraphicCull_Back);
   }
 
   it("can unload graphic assets") {
@@ -106,12 +107,12 @@ spec(loader_graphic) {
     asset_acquire(world, asset);
     asset_test_wait(runner);
 
-    check(ecs_world_has_t(world, asset, AssetGfxComp));
+    check(ecs_world_has_t(world, asset, AssetGraphicComp));
 
     asset_release(world, asset);
     asset_test_wait(runner);
 
-    check(!ecs_world_has_t(world, asset, AssetGfxComp));
+    check(!ecs_world_has_t(world, asset, AssetGraphicComp));
   }
 
   teardown() {
