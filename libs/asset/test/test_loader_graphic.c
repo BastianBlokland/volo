@@ -8,7 +8,7 @@
 
 static const AssetMemRecord records[] = {
     {
-        .id   = string_static("test.gfx"),
+        .id   = string_static("test.gra"),
         .data = string_static("{"
                               "  \"shaders\": [{ "
                               "    \"shaderId\": \"test.spv\","
@@ -66,7 +66,7 @@ spec(loader_graphic) {
 
     AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
 
-    const EcsEntityId asset = asset_lookup(world, manager, string_lit("test.gfx"));
+    const EcsEntityId asset = asset_lookup(world, manager, string_lit("test.gra"));
     asset_acquire(world, asset);
 
     asset_test_wait(runner);
@@ -101,7 +101,7 @@ spec(loader_graphic) {
     ecs_world_flush(world);
 
     AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-    const EcsEntityId asset   = asset_lookup(world, manager, string_lit("test.gfx"));
+    const EcsEntityId asset   = asset_lookup(world, manager, string_lit("test.gra"));
 
     asset_acquire(world, asset);
     asset_test_wait(runner);

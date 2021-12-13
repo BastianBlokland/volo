@@ -5,7 +5,7 @@
 message(STATUS "> library: asset")
 
 add_library(lib_asset STATIC
-  src/loader_gfx.c
+  src/loader_graphic.c
   src/loader_mesh_obj.c
   src/loader_mesh.c
   src/loader_raw.c
@@ -30,7 +30,7 @@ target_link_libraries(lib_asset PRIVATE lib_log)
 
 add_executable(lib_asset_test
   test/main.c
-  test/test_loader_gfx.c
+  test/test_loader_graphic.c
   test/test_loader_mesh_obj.c
   test/test_loader_raw.c
   test/test_loader_shader_spv.c

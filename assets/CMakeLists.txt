@@ -3,7 +3,7 @@
 # --------------------------------------------------------------------------------------------------
 
 configure_copies(volo_assets_graphics
-  graphics/triangle.gfx)
+  graphics/triangle.gra)
 
 configure_copies(volo_assets_meshes
   meshes/cube.obj

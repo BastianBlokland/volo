@@ -9,7 +9,7 @@
 #include "jobs.h"
 #include "log.h"
 #include "rend.h"
-#include "scene_gfx.h"
+#include "scene_graphic.h"
 #include "scene_register.h"
 
 /**
@@ -25,7 +25,7 @@ static void demo_add_triangle(EcsWorld* world) {
       world,
       triangleEntity,
       SceneGfxComp,
-      .gfxAsset = asset_lookup(world, manager, string_lit("graphics/triangle.gfx")));
+      .gfxAsset = asset_lookup(world, manager, string_lit("graphics/triangle.gra")));
 }
 
 ecs_module_init(demo_triangle_module) { ecs_register_view(ManagerView); }

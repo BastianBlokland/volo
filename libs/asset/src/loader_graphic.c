@@ -1,4 +1,4 @@
-#include "asset_gfx.h"
+#include "asset_graphic.h"
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_thread.h"

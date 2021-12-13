@@ -1,4 +1,4 @@
-#include "scene_gfx.h"
+#include "scene_graphic.h"
 
 ecs_comp_define_public(SceneGfxComp);
 
