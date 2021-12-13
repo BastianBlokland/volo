@@ -2,8 +2,10 @@
 #include "core_types.h"
 #include "rend_color.h"
 
-#include "device_internal.h"
 #include "swapchain_internal.h"
+
+// Internal forward declarations:
+typedef struct sRvkDevice RvkDevice;
 
 typedef struct sRvkTechnique RvkTechnique;
 

@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_diag.h"
 
+#include "device_internal.h"
 #include "shader_internal.h"
 
 static VkShaderModule rvk_shader_module_create(RvkDevice* dev, const AssetShaderComp* asset) {

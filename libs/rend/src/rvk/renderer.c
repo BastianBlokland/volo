@@ -1,7 +1,9 @@
 #include "core_alloc.h"
 #include "rend_size.h"
 
+#include "device_internal.h"
 #include "renderer_internal.h"
+#include "technique_internal.h"
 
 struct sRvkRenderer {
   RvkDevice*      device;

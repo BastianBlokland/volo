@@ -4,7 +4,9 @@
 #include "log_logger.h"
 
 #include "canvas_internal.h"
+#include "device_internal.h"
 #include "renderer_internal.h"
+#include "technique_internal.h"
 
 typedef RvkRenderer* RvkRendererPtr;
 

@@ -1,8 +1,10 @@
 #pragma once
 #include "rend_size.h"
 
-#include "device_internal.h"
 #include "mem_internal.h"
+
+// Internal forward declarations:
+typedef struct sRvkDevice RvkDevice;
 
 typedef enum {
   RvkImageType_ColorSource,

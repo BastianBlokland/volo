@@ -8,6 +8,7 @@
 #include "device_internal.h"
 #include "graphic_internal.h"
 #include "shader_internal.h"
+#include "technique_internal.h"
 
 typedef RvkShader* RvkShaderPtr;
 

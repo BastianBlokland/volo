@@ -3,9 +3,10 @@
 
 #include "vulkan_internal.h"
 
+// Internal forward declarations:
+typedef struct sRvkCanvas RvkCanvas;
 typedef struct sRvkDevice RvkDevice;
 typedef struct sRvkShader RvkShader;
-typedef struct sRvkCanvas RvkCanvas;
 
 #define rvk_graphic_shaders_max 2
 

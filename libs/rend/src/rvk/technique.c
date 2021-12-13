@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_dynarray.h"
 
+#include "device_internal.h"
 #include "technique_internal.h"
 
 #define attachment_max 8

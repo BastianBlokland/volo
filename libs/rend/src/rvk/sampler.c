@@ -1,6 +1,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 
+#include "device_internal.h"
 #include "sampler_internal.h"
 
 static VkFilter rvk_sampler_vkfilter(const RvkSamplerFilter filter) {

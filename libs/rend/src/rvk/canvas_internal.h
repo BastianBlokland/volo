@@ -3,10 +3,12 @@
 #include "rend_color.h"
 #include "rend_size.h"
 
-#include "device_internal.h"
 #include "renderer_internal.h"
-#include "swapchain_internal.h"
-#include "technique_internal.h"
+
+// Internal forward declarations:
+typedef struct sRvkDevice    RvkDevice;
+typedef struct sRvkSwapchain RvkSwapchain;
+typedef struct sRvkTechnique RvkTechnique;
 
 typedef struct sRvkCanvas {
   RvkDevice*      device;

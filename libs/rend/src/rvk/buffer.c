@@ -2,7 +2,7 @@
 #include "core_diag.h"
 
 #include "buffer_internal.h"
-#include "mem_internal.h"
+#include "device_internal.h"
 
 static RvkMemLoc rvk_buffer_type_loc(const RvkBufferType type) {
   switch (type) {

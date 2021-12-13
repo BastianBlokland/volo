@@ -1,8 +1,11 @@
 #pragma once
 #include "gap_window.h"
 
-#include "device_internal.h"
 #include "image_internal.h"
+
+// Internal forward declarations:
+typedef struct sRvkDevice RvkDevice;
+typedef struct sRvkImage  RvkImage;
 
 typedef u32 RvkSwapchainIdx;
 

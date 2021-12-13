@@ -2,11 +2,9 @@
 #include "debug_internal.h"
 #include "vulkan_internal.h"
 
-// Forward declare from 'mem_internal.h'.
-typedef struct sRvkMemPool RvkMemPool;
-
-// Forward declare from 'desc.h'.
+// Internal forward declarations:
 typedef struct sRvkDescPool RvkDescPool;
+typedef struct sRvkMemPool  RvkMemPool;
 
 typedef enum {
   RvkDeviceFlags_Validation = 1 << 0,

@@ -2,7 +2,9 @@
 #include "asset_shader.h"
 
 #include "desc_internal.h"
-#include "device_internal.h"
+
+// Internal forward declarations:
+typedef struct sRvkDevice RvkDevice;
 
 #define rvk_shader_desc_max 5
 

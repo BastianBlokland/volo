@@ -1,9 +1,11 @@
 #pragma once
 #include "rend_color.h"
 
-#include "device_internal.h"
 #include "swapchain_internal.h"
-#include "technique_internal.h"
+
+// Internal forward declarations:
+typedef struct sRvkDevice    RvkDevice;
+typedef struct sRvkTechnique RvkTechnique;
 
 typedef struct sRvkRenderer RvkRenderer;
 

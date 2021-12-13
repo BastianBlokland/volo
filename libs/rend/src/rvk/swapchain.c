@@ -4,6 +4,7 @@
 #include "gap_native.h"
 #include "log_logger.h"
 
+#include "device_internal.h"
 #include "swapchain_internal.h"
 
 #if defined(VOLO_LINUX)
