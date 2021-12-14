@@ -23,7 +23,7 @@ typedef struct sRvkGraphic {
   VkPipeline             vkPipeline;
 } RvkGraphic;
 
-RvkGraphic rvk_graphic_create(RvkDevice*, const AssetGraphicComp*);
-void       rvk_graphic_destroy(RvkGraphic*);
-void       rvk_graphic_shader_add(RvkGraphic*, RvkShader*);
-bool       rvk_graphic_prepare(RvkGraphic*, const RvkCanvas*);
+RvkGraphic* rvk_graphic_create(RvkDevice*, const AssetGraphicComp*);
+void        rvk_graphic_destroy(RvkGraphic*);
+void        rvk_graphic_shader_add(RvkGraphic*, RvkShader*);
+bool        rvk_graphic_prepare(RvkGraphic*, const RvkCanvas*);

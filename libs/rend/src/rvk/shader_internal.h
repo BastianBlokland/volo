@@ -12,9 +12,9 @@ typedef struct sRvkShader {
   RvkDevice*            dev;
   VkShaderStageFlagBits vkStage;
   VkShaderModule        vkModule;
-  String                entryPointName;
+  String                entryPoint;
   RvkDescMeta           descriptors[rvk_shader_desc_max];
 } RvkShader;
 
-RvkShader rvk_shader_create(RvkDevice*, const AssetShaderComp*);
-void      rvk_shader_destroy(RvkShader*);
+RvkShader* rvk_shader_create(RvkDevice*, const AssetShaderComp*);
+void       rvk_shader_destroy(RvkShader*);

@@ -38,12 +38,13 @@ static RvkDescKind rvk_shader_desc_kind(const AssetShaderResKind resKind) {
   diag_crash();
 }
 
-RvkShader rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset) {
-  RvkShader result = {
-      .dev            = dev,
-      .vkModule       = rvk_shader_module_create(dev, asset),
-      .vkStage        = rvk_shader_stage(asset->kind),
-      .entryPointName = string_dup(g_alloc_heap, asset->entryPointName),
+RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset) {
+  RvkShader* shader = alloc_alloc_t(g_alloc_heap, RvkShader);
+  *shader           = (RvkShader){
+      .dev        = dev,
+      .vkModule   = rvk_shader_module_create(dev, asset),
+      .vkStage    = rvk_shader_stage(asset->kind),
+      .entryPoint = string_dup(g_alloc_heap, asset->entryPoint),
   };
 
   for (usize i = 0; i != asset->resourceCount; ++i) {
@@ -54,13 +55,21 @@ RvkShader rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset) {
     if (res->binding >= rvk_desc_bindings_max) {
       diag_crash_msg("Shader resource binding {} is out of bounds", fmt_int(res->binding));
     }
-    result.descriptors[res->set].bindings[res->binding] = rvk_shader_desc_kind(res->kind);
+    shader->descriptors[res->set].bindings[res->binding] = rvk_shader_desc_kind(res->kind);
   }
 
-  return result;
+  return shader;
 }
 
 void rvk_shader_destroy(RvkShader* shader) {
   vkDestroyShaderModule(shader->dev->vkDev, shader->vkModule, &shader->dev->vkAlloc);
-  string_free(g_alloc_heap, shader->entryPointName);
+  string_free(g_alloc_heap, shader->entryPoint);
+
+  alloc_free_t(g_alloc_heap, shader);
 }
+
+VkShaderStageFlagBits rvk_shader_vkstage(const RvkShader* shader) { return shader->vkStage; }
+
+VkShaderModule rvk_shader_vkmodule(const RvkShader* shader) { return shader->vkModule; }
+
+String rvk_shader_entrypoint(const RvkShader* shader) { return shader->entryPoint; }

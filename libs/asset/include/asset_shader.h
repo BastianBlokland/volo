@@ -23,7 +23,7 @@ typedef struct {
 
 ecs_comp_extern_public(AssetShaderComp) {
   AssetShaderKind kind;
-  String          entryPointName;
+  String          entryPoint;
   AssetShaderRes* resources;
   u32             resourceCount;
   String          data;

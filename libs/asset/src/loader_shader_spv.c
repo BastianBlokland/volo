@@ -73,7 +73,7 @@ typedef struct {
 
 typedef struct {
   SpvExecutionModel execModel;
-  String            entryPointName;
+  String            entryPoint;
   SpvId*            ids;
   u32               idCount;
 } SpvProgram;
@@ -160,7 +160,7 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
        * Entry point definiton, we gather the execution model (stage) and the entryPointName here.
        * https://www.khronos.org/registry/spir-v/specs/unified1/SPIRV.html#OpEntryPoint
        */
-      if (!string_is_empty(out->entryPointName)) {
+      if (!string_is_empty(out->entryPoint)) {
         *err = SpvError_UnsupportedMultipleEntryPoints;
         return data;
       }
@@ -169,7 +169,7 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
         return data;
       }
       out->execModel = (SpvExecutionModel)data.ptr[1];
-      spv_read_string(spv_consume(data, 3), header.opSize - 3, &out->entryPointName);
+      spv_read_string(spv_consume(data, 3), header.opSize - 3, &out->entryPoint);
     } break;
     case SpvOp_Decorate: {
       /**
@@ -350,10 +350,10 @@ static void spv_asset_shader_create(
     SpvProgram* program, AssetSource* src, AssetShaderComp* out, SpvError* err) {
 
   *out = (AssetShaderComp){
-      .kind           = spv_shader_kind(program->execModel),
-      .entryPointName = program->entryPointName,
-      .resources      = alloc_array_t(g_alloc_heap, AssetShaderRes, asset_shader_max_resources),
-      .data           = src->data,
+      .kind       = spv_shader_kind(program->execModel),
+      .entryPoint = program->entryPoint,
+      .resources  = alloc_array_t(g_alloc_heap, AssetShaderRes, asset_shader_max_resources),
+      .data       = src->data,
   };
 
   ASSERT(sizeof(u32) >= asset_shader_max_bindings / 8, "Unsupported max shader bindings");

@@ -41,7 +41,7 @@ static VkPipelineShaderStageCreateInfo rvk_pipeline_shaderstage(const RvkShader*
       .sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
       .stage  = shader->vkStage,
       .module = shader->vkModule,
-      .pName  = rvk_to_null_term_scratch(shader->entryPointName),
+      .pName  = rvk_to_null_term_scratch(shader->entryPoint),
   };
 }
 
@@ -237,8 +237,9 @@ rvk_pipeline_create(RvkGraphic* graphic, VkPipelineLayout layout, const RvkCanva
   return result;
 }
 
-RvkGraphic rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset) {
-  return (RvkGraphic){
+RvkGraphic* rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset) {
+  RvkGraphic* graphic = alloc_alloc_t(g_alloc_heap, RvkGraphic);
+  *graphic            = (RvkGraphic){
       .dev        = dev,
       .topology   = asset->topology,
       .rasterizer = asset->rasterizer,
@@ -247,6 +248,7 @@ RvkGraphic rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset) {
       .depth      = asset->depth,
       .cull       = asset->cull,
   };
+  return graphic;
 }
 
 void rvk_graphic_destroy(RvkGraphic* graphic) {
@@ -256,6 +258,7 @@ void rvk_graphic_destroy(RvkGraphic* graphic) {
   if (graphic->vkPipelineLayout) {
     vkDestroyPipelineLayout(graphic->dev->vkDev, graphic->vkPipelineLayout, &graphic->dev->vkAlloc);
   }
+  alloc_free_t(g_alloc_heap, graphic);
 }
 
 void rvk_graphic_shader_add(RvkGraphic* graphic, RvkShader* shader) {
