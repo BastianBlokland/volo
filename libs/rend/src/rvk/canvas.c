@@ -49,6 +49,11 @@ bool rvk_canvas_draw_begin(RvkCanvas* canvas, const RendSize size, const RendCol
   return true;
 }
 
+void rvk_canvas_draw_inst(RvkCanvas* canvas, RvkGraphic* graphic) {
+  RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
+  rvk_renderer_draw_inst(renderer, graphic);
+}
+
 void rvk_canvas_draw_end(RvkCanvas* canvas) {
   RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
 

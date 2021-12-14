@@ -7,6 +7,7 @@
 
 // Internal forward declarations:
 typedef struct sRvkDevice    RvkDevice;
+typedef struct sRvkGraphic   RvkGraphic;
 typedef struct sRvkSwapchain RvkSwapchain;
 typedef struct sRvkTechnique RvkTechnique;
 
@@ -22,4 +23,5 @@ typedef struct sRvkCanvas {
 RvkCanvas* rvk_canvas_create(RvkDevice*, const GapWindowComp*);
 void       rvk_canvas_destroy(RvkCanvas*);
 bool       rvk_canvas_draw_begin(RvkCanvas*, RendSize, RendColor clearColor);
+void       rvk_canvas_draw_inst(RvkCanvas*, RvkGraphic*);
 void       rvk_canvas_draw_end(RvkCanvas*);

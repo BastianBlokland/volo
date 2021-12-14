@@ -5,6 +5,7 @@
 
 // Internal forward declarations:
 typedef struct sRvkDevice    RvkDevice;
+typedef struct sRvkGraphic   RvkGraphic;
 typedef struct sRvkTechnique RvkTechnique;
 
 typedef struct sRvkRenderer RvkRenderer;
@@ -16,4 +17,5 @@ VkSemaphore  rvk_renderer_image_ready(RvkRenderer*);
 void         rvk_renderer_wait_for_done(const RvkRenderer*);
 
 void rvk_renderer_draw_begin(RvkRenderer*, RvkTechnique*, RvkSwapchainIdx, RendColor clearColor);
+void rvk_renderer_draw_inst(RvkRenderer*, RvkGraphic*);
 void rvk_renderer_draw_end(RvkRenderer*, RvkTechnique*);

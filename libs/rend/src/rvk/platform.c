@@ -73,6 +73,10 @@ bool rvk_platform_draw_begin(
   return rvk_canvas_draw_begin(rvk_canvas_lookup(plat, id), size, clearColor);
 }
 
+void rvk_platform_draw_inst(RvkPlatform* plat, const RvkCanvasId id, RvkGraphic* graphic) {
+  rvk_canvas_draw_inst(rvk_canvas_lookup(plat, id), graphic);
+}
+
 void rvk_platform_draw_end(RvkPlatform* plat, const RvkCanvasId id) {
   rvk_canvas_draw_end(rvk_canvas_lookup(plat, id));
 }
