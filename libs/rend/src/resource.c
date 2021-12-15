@@ -44,8 +44,8 @@ static void ecs_combine_resource(void* dataA, void* dataB) {
 ecs_view_define(RendPlatformView) { ecs_access_read(RendPlatformComp); }
 ecs_view_define(SceneGraphicView) { ecs_access_read(SceneGraphicComp); };
 
-ecs_view_define(ResourceShaderWriteView) { ecs_access_write(RendShaderComp); };
-ecs_view_define(ResourceGraphicWriteView) { ecs_access_write(RendGraphicComp); };
+ecs_view_define(ShaderView) { ecs_access_write(RendShaderComp); };
+ecs_view_define(GraphicView) { ecs_access_write(RendGraphicComp); };
 
 ecs_view_define(RendResourceLoadView) {
   ecs_access_without(RendResourceReady);
@@ -58,9 +58,59 @@ ecs_view_define(RendResourceLoadView) {
 ecs_system_define(RendResourceRequestSys) {
   EcsView* graphicView = ecs_world_view_t(world, SceneGraphicView);
   for (EcsIterator* itr = ecs_view_itr(graphicView); ecs_view_walk(itr);) {
-    const SceneGraphicComp* graphicComp = ecs_view_read_t(itr, SceneGraphicComp);
-    ecs_utils_maybe_add_t(world, graphicComp->asset, RendResource);
+    const SceneGraphicComp* comp = ecs_view_read_t(itr, SceneGraphicComp);
+    ecs_utils_maybe_add_t(world, comp->asset, RendResource);
   }
+}
+
+static void rend_resource_load(RvkDevice* rvkDev, EcsWorld* world, EcsIterator* resourceItr) {
+  const EcsEntityId       entity            = ecs_view_entity(resourceItr);
+  RendResource*           resourceComp      = ecs_view_write_t(resourceItr, RendResource);
+  const AssetGraphicComp* maybeAssetGraphic = ecs_view_read_t(resourceItr, AssetGraphicComp);
+  const AssetShaderComp*  maybeAssetShader  = ecs_view_read_t(resourceItr, AssetShaderComp);
+
+  switch (resourceComp->state) {
+  case RendResourceState_AcquireAsset:
+    asset_acquire(world, entity);
+    break;
+  case RendResourceState_AcquireDependencies:
+    if (!ecs_world_has_t(world, entity, AssetLoadedComp)) {
+      return; // Wait for asset to be loaded.
+    }
+    if (maybeAssetGraphic) {
+      bool dependenciesReady = true;
+      for (usize i = 0; i != maybeAssetGraphic->shaders.count; ++i) {
+        const EcsEntityId shaderEntity = maybeAssetGraphic->shaders.values[i].shader;
+        ecs_utils_maybe_add_t(world, shaderEntity, RendResource);
+        dependenciesReady &= ecs_world_has_t(world, shaderEntity, RendResourceReady);
+      }
+      if (!dependenciesReady) {
+        return; // Wait for dependencies to be loaded.
+      }
+    }
+    break;
+  case RendResourceState_Create: {
+    if (maybeAssetGraphic) {
+      RendGraphicComp* graphicComp = ecs_world_add_t(world, entity, RendGraphicComp);
+      graphicComp->graphic         = rvk_graphic_create(rvkDev, maybeAssetGraphic);
+      for (usize i = 0; i != maybeAssetGraphic->shaders.count; ++i) {
+        const EcsEntityId shaderEntity = maybeAssetGraphic->shaders.values[i].shader;
+        RendShaderComp*   comp = ecs_utils_write_t(world, ShaderView, shaderEntity, RendShaderComp);
+        rvk_graphic_shader_add(graphicComp->graphic, comp->shader);
+      }
+    } else if (maybeAssetShader) {
+      RendShaderComp* shaderComp = ecs_world_add_t(world, entity, RendShaderComp);
+      shaderComp->shader         = rvk_shader_create(rvkDev, maybeAssetShader);
+    } else {
+      diag_crash_msg("Unsupported resource asset type");
+    }
+    asset_release(world, entity);
+    ecs_world_add_empty_t(world, entity, RendResourceReady);
+  }
+  case RendResourceState_Ready:
+    break;
+  }
+  ++resourceComp->state;
 }
 
 ecs_system_define(RendResourceLoadSys) {
@@ -72,48 +122,7 @@ ecs_system_define(RendResourceLoadSys) {
 
   EcsView* resourceView = ecs_world_view_t(world, RendResourceLoadView);
   for (EcsIterator* itr = ecs_view_itr(resourceView); ecs_view_walk(itr);) {
-    const EcsEntityId       entity            = ecs_view_entity(itr);
-    RendResource*           resourceComp      = ecs_view_write_t(itr, RendResource);
-    const AssetGraphicComp* maybeAssetGraphic = ecs_view_read_t(itr, AssetGraphicComp);
-    const AssetShaderComp*  maybeAssetShader  = ecs_view_read_t(itr, AssetShaderComp);
-
-    switch (resourceComp->state) {
-    case RendResourceState_AcquireAsset:
-      asset_acquire(world, entity);
-      break;
-    case RendResourceState_AcquireDependencies:
-      if (!ecs_world_has_t(world, entity, AssetLoadedComp)) {
-        continue; // Wait for asset to be loaded.
-      }
-      if (maybeAssetGraphic) {
-        bool dependenciesReady = true;
-        for (usize i = 0; i != maybeAssetGraphic->shaders.count; ++i) {
-          const EcsEntityId shaderEntity = maybeAssetGraphic->shaders.values[i].shader;
-          ecs_utils_maybe_add_t(world, shaderEntity, RendResource);
-          dependenciesReady &= ecs_world_has_t(world, shaderEntity, RendResourceReady);
-        }
-        if (!dependenciesReady) {
-          continue;
-        }
-      }
-      break;
-    case RendResourceState_Create: {
-      if (maybeAssetGraphic) {
-        RendGraphicComp* graphicComp = ecs_world_add_t(world, entity, RendGraphicComp);
-        graphicComp->graphic         = rvk_graphic_create(rvkDev, maybeAssetGraphic);
-      } else if (maybeAssetShader) {
-        RendShaderComp* shaderComp = ecs_world_add_t(world, entity, RendShaderComp);
-        shaderComp->shader         = rvk_shader_create(rvkDev, maybeAssetShader);
-      } else {
-        diag_crash_msg("Unsupported resource asset type");
-      }
-      asset_release(world, entity);
-      ecs_world_add_empty_t(world, entity, RendResourceReady);
-    }
-    case RendResourceState_Ready:
-      break;
-    }
-    ++resourceComp->state;
+    rend_resource_load(rvkDev, world, itr);
   }
 }
 
@@ -126,31 +135,34 @@ ecs_module_init(rend_resource_module) {
 
   ecs_register_view(RendPlatformView);
   ecs_register_view(SceneGraphicView);
-  ecs_register_view(ResourceShaderWriteView);
-  ecs_register_view(ResourceGraphicWriteView);
+  ecs_register_view(ShaderView);
+  ecs_register_view(GraphicView);
 
   ecs_register_view(RendResourceLoadView);
 
   ecs_register_system(RendResourceRequestSys, ecs_view_id(SceneGraphicView));
   ecs_register_system(
-      RendResourceLoadSys, ecs_view_id(RendPlatformView), ecs_view_id(RendResourceLoadView));
+      RendResourceLoadSys,
+      ecs_view_id(RendPlatformView),
+      ecs_view_id(RendResourceLoadView),
+      ecs_view_id(ShaderView));
 }
 
 void rend_resource_teardown(EcsWorld* world) {
 
   // Teardown shaders.
-  EcsView* shaderView = ecs_world_view_t(world, ResourceShaderWriteView);
+  EcsView* shaderView = ecs_world_view_t(world, ShaderView);
   for (EcsIterator* itr = ecs_view_itr(shaderView); ecs_view_walk(itr);) {
-    RendShaderComp* shaderComp = ecs_view_write_t(itr, RendShaderComp);
-    rvk_shader_destroy(shaderComp->shader);
-    shaderComp->shader = null;
+    RendShaderComp* comp = ecs_view_write_t(itr, RendShaderComp);
+    rvk_shader_destroy(comp->shader);
+    comp->shader = null;
   }
 
   // Teardown graphics.
-  EcsView* graphicView = ecs_world_view_t(world, ResourceGraphicWriteView);
+  EcsView* graphicView = ecs_world_view_t(world, GraphicView);
   for (EcsIterator* itr = ecs_view_itr(graphicView); ecs_view_walk(itr);) {
-    RendGraphicComp* shaderComp = ecs_view_write_t(itr, RendGraphicComp);
-    rvk_graphic_destroy(shaderComp->graphic);
-    shaderComp->graphic = null;
+    RendGraphicComp* comp = ecs_view_write_t(itr, RendGraphicComp);
+    rvk_graphic_destroy(comp->graphic);
+    comp->graphic = null;
   }
 }

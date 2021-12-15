@@ -313,8 +313,6 @@ RvkGraphic* rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset) {
 
   log_d(
       "Vulkan graphic created",
-      log_param("shaders", fmt_int(asset->shaders.count)),
-      log_param("samplers", fmt_int(asset->samplers.count)),
       log_param("topology", fmt_text(rvk_graphic_topology_str(asset->topology))),
       log_param("rasterizer", fmt_text(rvk_graphic_rasterizer_str(asset->rasterizer))),
       log_param("lineWidth", fmt_float(asset->lineWidth)),
@@ -342,6 +340,7 @@ void rvk_graphic_shader_add(RvkGraphic* graphic, RvkShader* shader) {
   array_for_t(graphic->shaders, RvkShaderPtr, itr) {
     if (!*itr) {
       *itr = shader;
+      return;
     }
   }
   diag_crash_msg("More then {} shaders are not supported", fmt_int(rvk_graphic_shaders_max));
