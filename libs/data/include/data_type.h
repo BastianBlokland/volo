@@ -18,7 +18,7 @@
 typedef u32 DataType;
 
 typedef struct {
-  void* data;
+  void* values;
   usize count;
 } DataArray;
 

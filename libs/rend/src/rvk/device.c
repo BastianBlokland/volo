@@ -98,7 +98,7 @@ static VkInstance rvk_instance_create(VkAllocationCallbacks* vkAlloc, const RvkD
 }
 
 typedef struct {
-  VkExtensionProperties* head;
+  VkExtensionProperties* values;
   u32                    count;
 } RendDeviceExts;
 
@@ -111,19 +111,19 @@ static RendDeviceExts rvk_device_exts_query(VkPhysicalDevice vkPhysDev) {
   rvk_call(vkEnumerateDeviceExtensionProperties, vkPhysDev, null, &count, null);
   VkExtensionProperties* props = alloc_array_t(g_alloc_heap, VkExtensionProperties, count);
   rvk_call(vkEnumerateDeviceExtensionProperties, vkPhysDev, null, &count, props);
-  return (RendDeviceExts){.head = props, .count = count};
+  return (RendDeviceExts){.values = props, .count = count};
 }
 
 static void rvk_device_exts_free(RendDeviceExts exts) {
-  alloc_free_array_t(g_alloc_heap, exts.head, exts.count);
+  alloc_free_array_t(g_alloc_heap, exts.values, exts.count);
 }
 
 /**
  * Check if the given extension is contained in the list of available device extensions.
  */
 static bool rvk_device_has_ext(RendDeviceExts availableExts, String ext) {
-  for (u32 i = 0; i != availableExts.count; ++i) {
-    if (string_eq(ext, string_from_null_term(availableExts.head[i].extensionName))) {
+  array_ptr_for_t(availableExts, VkExtensionProperties, props) {
+    if (string_eq(ext, string_from_null_term(props->extensionName))) {
       return true;
     }
   }

@@ -14,12 +14,12 @@ typedef enum {
 } CliParseResult;
 
 typedef struct {
-  String* head;
+  String* values;
   usize   count;
 } CliParseErrors;
 
 typedef struct {
-  String* head;
+  String* values;
   usize   count;
 } CliParseValues;
 

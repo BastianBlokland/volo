@@ -1,6 +1,7 @@
 #include "cli_failure.h"
 #include "cli_parse.h"
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_dynstring.h"
 #include "core_file.h"
 #include "core_format.h"
@@ -18,7 +19,7 @@ static FormatArg arg_style_reset(const CliFailureFlags flags) {
 
 void cli_failure_write(DynString* dynStr, CliInvocation* invoc, const CliFailureFlags flags) {
   CliParseErrors errors = cli_parse_errors(invoc);
-  for (String* err = errors.head; err != errors.head + errors.count; ++err) {
+  array_ptr_for_t(errors, String, err) {
     fmt_write(dynStr, "{}{}{}\n", arg_style_red_bg(flags), fmt_text(*err), arg_style_reset(flags));
   }
 }

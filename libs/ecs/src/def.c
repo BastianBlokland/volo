@@ -104,8 +104,8 @@ String ecs_def_system_name(const EcsDef* def, const EcsSystemId id) {
 EcsDefSystemViews ecs_def_system_views(const EcsDef* def, const EcsSystemId id) {
   const EcsSystemDef* sysDef = ecs_def_system(def, id);
   return (EcsDefSystemViews){
-      .head  = sysDef->viewIds.data.ptr,
-      .count = sysDef->viewIds.size,
+      .values = sysDef->viewIds.data.ptr,
+      .count  = sysDef->viewIds.size,
   };
 }
 

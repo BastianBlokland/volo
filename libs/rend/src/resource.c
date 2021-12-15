@@ -1,4 +1,5 @@
 #include "asset_manager.h"
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_math.h"
 #include "ecs_utils.h"
@@ -79,10 +80,9 @@ static void rend_resource_load(RvkDevice* rvkDev, EcsWorld* world, EcsIterator* 
     }
     if (maybeAssetGraphic) {
       bool dependenciesReady = true;
-      for (usize i = 0; i != maybeAssetGraphic->shaders.count; ++i) {
-        const EcsEntityId shaderEntity = maybeAssetGraphic->shaders.values[i].shader;
-        ecs_utils_maybe_add_t(world, shaderEntity, RendResource);
-        dependenciesReady &= ecs_world_has_t(world, shaderEntity, RendResourceReady);
+      array_ptr_for_t(maybeAssetGraphic->shaders, AssetGraphicShader, ptr) {
+        ecs_utils_maybe_add_t(world, ptr->shader, RendResource);
+        dependenciesReady &= ecs_world_has_t(world, ptr->shader, RendResourceReady);
       }
       if (!dependenciesReady) {
         return; // Wait for dependencies to be loaded.
@@ -91,11 +91,10 @@ static void rend_resource_load(RvkDevice* rvkDev, EcsWorld* world, EcsIterator* 
     break;
   case RendResourceState_Create: {
     if (maybeAssetGraphic) {
-      RendGraphicComp* graphicComp = ecs_world_add_t(world, entity, RendGraphicComp);
-      graphicComp->graphic         = rvk_graphic_create(rvkDev, maybeAssetGraphic);
-      for (usize i = 0; i != maybeAssetGraphic->shaders.count; ++i) {
-        const EcsEntityId shaderEntity = maybeAssetGraphic->shaders.values[i].shader;
-        RendShaderComp*   comp = ecs_utils_write_t(world, ShaderView, shaderEntity, RendShaderComp);
+      RendGraphicComp* graphicComp = ecs_world_add_t(
+          world, entity, RendGraphicComp, .graphic = rvk_graphic_create(rvkDev, maybeAssetGraphic));
+      array_ptr_for_t(maybeAssetGraphic->shaders, AssetGraphicShader, ptr) {
+        RendShaderComp* comp = ecs_utils_write_t(world, ShaderView, ptr->shader, RendShaderComp);
         rvk_graphic_shader_add(graphicComp->graphic, comp->shader);
       }
     } else if (maybeAssetShader) {

@@ -1,5 +1,6 @@
 #include "asset_graphic.h"
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_thread.h"
 #include "data.h"
@@ -157,15 +158,13 @@ ecs_system_define(LoadGraphicAssetSys) {
     }
 
     // Resolve shader references.
-    for (usize i = 0; i != graphicComp->shaders.count; ++i) {
-      graphicComp->shaders.values[i].shader =
-          asset_lookup(world, manager, graphicComp->shaders.values[i].shaderId);
+    array_ptr_for_t(graphicComp->shaders, AssetGraphicShader, ptr) {
+      ptr->shader = asset_lookup(world, manager, ptr->shaderId);
     }
 
     // Resolve texture references.
-    for (usize i = 0; i != graphicComp->samplers.count; ++i) {
-      graphicComp->samplers.values[i].texture =
-          asset_lookup(world, manager, graphicComp->samplers.values[i].textureId);
+    array_ptr_for_t(graphicComp->samplers, AssetGraphicSampler, ptr) {
+      ptr->texture = asset_lookup(world, manager, ptr->textureId);
     }
 
     // Resolve mesh reference.
