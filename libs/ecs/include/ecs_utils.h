@@ -2,6 +2,14 @@
 #include "ecs_world.h"
 
 /**
+ * Check if the given view contains any entities.
+ */
+#define ecs_utils_any(_WORLD_, _VIEW_NAME_)                                                        \
+  ecs_utils_any_raw(ecs_world_view_t((_WORLD_), _VIEW_NAME_))
+
+bool ecs_utils_any_raw(EcsView*);
+
+/**
  * Get a read-only pointer to the first component entry, or null if none exists.
  *
  * Pre-condition: view has 'Read' access to the given component type.

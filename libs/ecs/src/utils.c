@@ -1,5 +1,7 @@
 #include "ecs_utils.h"
 
+bool ecs_utils_any_raw(EcsView* view) { return ecs_view_itr_first(view) != null; }
+
 const void* ecs_utils_read_first(EcsView* view, const EcsCompId comp) {
   EcsIterator* itr = ecs_view_itr_first(view);
   return itr ? ecs_view_read(itr, comp) : null;
