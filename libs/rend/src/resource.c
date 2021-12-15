@@ -39,12 +39,6 @@ static void ecs_combine_resource(void* dataA, void* dataB) {
   compA->state        = math_max(compA->state, compB->state);
 }
 
-static void rend_resource_request(EcsWorld* world, const EcsEntityId entity) {
-  if (!ecs_world_has_t(world, entity, RendResource)) {
-    ecs_world_add_t(world, entity, RendResource);
-  }
-}
-
 ecs_view_define(RendPlatformView) { ecs_access_read(RendPlatformComp); }
 ecs_view_define(SceneGraphicView) { ecs_access_read(SceneGraphicComp); };
 
@@ -60,7 +54,7 @@ ecs_system_define(RendResourceRequestSys) {
   EcsView* graphicView = ecs_world_view_t(world, SceneGraphicView);
   for (EcsIterator* itr = ecs_view_itr(graphicView); ecs_view_walk(itr);) {
     const SceneGraphicComp* graphicComp = ecs_view_read_t(itr, SceneGraphicComp);
-    rend_resource_request(world, graphicComp->asset);
+    ecs_utils_maybe_add_t(world, graphicComp->asset, RendResource);
   }
 }
 
@@ -87,7 +81,7 @@ ecs_system_define(RendResourceLoadSys) {
       }
       if (maybeAssetGraphic) {
         for (usize i = 0; i != maybeAssetGraphic->shaders.count; ++i) {
-          rend_resource_request(world, maybeAssetGraphic->shaders.values[i].shader);
+          ecs_utils_maybe_add_t(world, maybeAssetGraphic->shaders.values[i].shader, RendResource);
         }
       }
       break;
