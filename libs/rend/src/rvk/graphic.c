@@ -3,6 +3,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_math.h"
+#include "log_logger.h"
 
 #include "canvas_internal.h"
 #include "device_internal.h"
@@ -17,6 +18,57 @@ static const char* rvk_to_null_term_scratch(String str) {
   mem_cpy(scratchMem, str);
   *mem_at_u8(scratchMem, str.size) = '\0';
   return scratchMem.ptr;
+}
+
+static String rvk_graphic_topology_str(const AssetGraphicTopology topology) {
+  static const String msgs[] = {
+      string_static("Triangles"),
+      string_static("Lines"),
+      string_static("LineStrip"),
+  };
+  ASSERT(array_elems(msgs) == AssetGraphicTopology_Count, "Incorrect number of names");
+  return msgs[topology];
+}
+
+static String rvk_graphic_rasterizer_str(const AssetGraphicRasterizer rasterizer) {
+  static const String msgs[] = {
+      string_static("Fill"),
+      string_static("Lines"),
+      string_static("Points"),
+  };
+  ASSERT(array_elems(msgs) == AssetGraphicRasterizer_Count, "Incorrect number of names");
+  return msgs[rasterizer];
+}
+
+static String rvk_graphic_blend_str(const AssetGraphicBlend blend) {
+  static const String msgs[] = {
+      string_static("None"),
+      string_static("Alpha"),
+      string_static("Additive"),
+      string_static("AlphaAdditive"),
+  };
+  ASSERT(array_elems(msgs) == AssetGraphicBlend_Count, "Incorrect number of names");
+  return msgs[blend];
+}
+
+static String rvk_graphic_depth_str(const AssetGraphicDepth depth) {
+  static const String msgs[] = {
+      string_static("None"),
+      string_static("Less"),
+      string_static("Always"),
+  };
+  ASSERT(array_elems(msgs) == AssetGraphicDepth_Count, "Incorrect number of names");
+  return msgs[depth];
+}
+
+static String rvk_graphic_cull_str(const AssetGraphicCull cull) {
+  static const String msgs[] = {
+      string_static("Back"),
+      string_static("Front"),
+      string_static("None"),
+  };
+  ASSERT(array_elems(msgs) == AssetGraphicCull_Count, "Incorrect number of names");
+  return msgs[cull];
 }
 
 static VkPipelineLayout rvk_pipeline_layout_create(const RvkGraphic* graphic) {
@@ -53,6 +105,8 @@ static VkPrimitiveTopology rvk_pipeline_input_topology(const RvkGraphic* graphic
     return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
   case AssetGraphicTopology_LineStrip:
     return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+  case AssetGraphicTopology_Count:
+    break;
   }
   diag_crash();
 }
@@ -68,6 +122,8 @@ static VkPolygonMode rvk_pipeline_polygonmode(RvkGraphic* graphic) {
     return VK_POLYGON_MODE_LINE;
   case AssetGraphicRasterizer_Points:
     return VK_POLYGON_MODE_POINT;
+  case AssetGraphicRasterizer_Count:
+    break;
   }
   diag_crash();
 }
@@ -90,6 +146,8 @@ static VkCullModeFlags rvk_pipeline_cullmode(RvkGraphic* graphic) {
     return VK_CULL_MODE_BACK_BIT;
   case AssetGraphicCull_Front:
     return VK_CULL_MODE_FRONT_BIT;
+  case AssetGraphicCull_Count:
+    break;
   }
   diag_crash();
 }
@@ -103,6 +161,8 @@ static VkCompareOp rvk_pipeline_depth_compare(RvkGraphic* graphic) {
     return VK_COMPARE_OP_ALWAYS;
   case AssetGraphicDepth_None:
     return VK_COMPARE_OP_NEVER;
+  case AssetGraphicDepth_Count:
+    break;
   }
   diag_crash();
 }
@@ -146,6 +206,8 @@ static VkPipelineColorBlendAttachmentState rvk_pipeline_colorblend_attach(RvkGra
     };
   case AssetGraphicBlend_None:
     return (VkPipelineColorBlendAttachmentState){0};
+  case AssetGraphicBlend_Count:
+    break;
   }
   diag_crash();
 }
@@ -248,6 +310,18 @@ RvkGraphic* rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset) {
       .depth      = asset->depth,
       .cull       = asset->cull,
   };
+
+  log_d(
+      "Vulkan graphic created",
+      log_param("shaders", fmt_int(asset->shaders.count)),
+      log_param("samplers", fmt_int(asset->samplers.count)),
+      log_param("topology", fmt_text(rvk_graphic_topology_str(asset->topology))),
+      log_param("rasterizer", fmt_text(rvk_graphic_rasterizer_str(asset->rasterizer))),
+      log_param("lineWidth", fmt_float(asset->lineWidth)),
+      log_param("blend", fmt_text(rvk_graphic_blend_str(asset->blend))),
+      log_param("depth", fmt_text(rvk_graphic_depth_str(asset->depth))),
+      log_param("cull", fmt_text(rvk_graphic_cull_str(asset->cull))));
+
   return graphic;
 }
 
@@ -258,6 +332,9 @@ void rvk_graphic_destroy(RvkGraphic* graphic) {
   if (graphic->vkPipelineLayout) {
     vkDestroyPipelineLayout(graphic->dev->vkDev, graphic->vkPipelineLayout, &graphic->dev->vkAlloc);
   }
+
+  log_d("Vulkan graphic destroyed");
+
   alloc_free_t(g_alloc_heap, graphic);
 }
 

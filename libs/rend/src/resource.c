@@ -7,7 +7,6 @@
 
 #include "platform_internal.h"
 #include "resource_internal.h"
-#include "rvk/platform_internal.h"
 
 ecs_comp_define_public(RendGraphicComp);
 ecs_comp_define_public(RendShaderComp);
@@ -27,9 +26,8 @@ static void ecs_destruct_shader_comp(void* data) {
 }
 
 typedef enum {
-  RendResourceState_AssetAcquire,
-  RendResourceState_DependencyAcquire,
-  RendResourceState_DependencyWait,
+  RendResourceState_AcquireAsset,
+  RendResourceState_AcquireDependencies,
   RendResourceState_Create,
   RendResourceState_Ready,
 } RendResourceState;
@@ -70,6 +68,7 @@ ecs_system_define(RendResourceLoadSys) {
   if (!plat) {
     return;
   }
+  RvkDevice* rvkDev = rvk_platform_device(plat->vulkan);
 
   EcsView* resourceView = ecs_world_view_t(world, RendResourceLoadView);
   for (EcsIterator* itr = ecs_view_itr(resourceView); ecs_view_walk(itr);) {
@@ -79,42 +78,32 @@ ecs_system_define(RendResourceLoadSys) {
     const AssetShaderComp*  maybeAssetShader  = ecs_view_read_t(itr, AssetShaderComp);
 
     switch (resourceComp->state) {
-    case RendResourceState_AssetAcquire:
+    case RendResourceState_AcquireAsset:
       asset_acquire(world, entity);
       break;
-    case RendResourceState_DependencyAcquire:
+    case RendResourceState_AcquireDependencies:
       if (!ecs_world_has_t(world, entity, AssetLoadedComp)) {
         continue; // Wait for asset to be loaded.
       }
       if (maybeAssetGraphic) {
+        bool dependenciesReady = true;
         for (usize i = 0; i != maybeAssetGraphic->shaders.count; ++i) {
-          ecs_utils_maybe_add_t(world, maybeAssetGraphic->shaders.values[i].shader, RendResource);
+          const EcsEntityId shaderEntity = maybeAssetGraphic->shaders.values[i].shader;
+          ecs_utils_maybe_add_t(world, shaderEntity, RendResource);
+          dependenciesReady &= ecs_world_has_t(world, shaderEntity, RendResourceReady);
         }
-      }
-      break;
-    case RendResourceState_DependencyWait:
-      if (maybeAssetGraphic) {
-        for (usize i = 0; i != maybeAssetGraphic->shaders.count; ++i) {
-          if (!ecs_world_has_t(
-                  world, maybeAssetGraphic->shaders.values[i].shader, RendResourceReady)) {
-            continue; // Wait for dependency to be ready.
-          }
+        if (!dependenciesReady) {
+          continue;
         }
-      } else if (maybeAssetShader) {
-        // No dependencies.
-      } else {
-        diag_crash_msg("Unsupported resource asset type");
       }
       break;
     case RendResourceState_Create: {
       if (maybeAssetGraphic) {
-        // TODO:
+        RendGraphicComp* graphicComp = ecs_world_add_t(world, entity, RendGraphicComp);
+        graphicComp->graphic         = rvk_graphic_create(rvkDev, maybeAssetGraphic);
       } else if (maybeAssetShader) {
-        ecs_world_add_t(
-            world,
-            entity,
-            RendShaderComp,
-            .shader = rvk_shader_create(rvk_platform_device(plat->vulkan), maybeAssetShader));
+        RendShaderComp* shaderComp = ecs_world_add_t(world, entity, RendShaderComp);
+        shaderComp->shader         = rvk_shader_create(rvkDev, maybeAssetShader);
       } else {
         diag_crash_msg("Unsupported resource asset type");
       }

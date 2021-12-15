@@ -8,8 +8,9 @@
     }
   ],
   "meshId": "meshes/triangle.obj",
+  "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "None",
-  "depthTest": "Less",
+  "depth": "Less",
   "cull": "None"
 }

@@ -6,12 +6,16 @@ typedef enum {
   AssetGraphicTopology_Triangles, // Separate triangles with 3 vertices.
   AssetGraphicTopology_Lines,     // Separate lines with 2 vertices.
   AssetGraphicTopology_LineStrip, // Form lines between all vertices.
+
+  AssetGraphicTopology_Count,
 } AssetGraphicTopology;
 
 typedef enum {
   AssetGraphicRasterizer_Fill,   // Fill the primitives with pixels.
   AssetGraphicRasterizer_Lines,  // Draw lines between the vertices.
   AssetGraphicRasterizer_Points, // Draw points on the vertices.
+
+  AssetGraphicRasterizer_Count,
 } AssetGraphicRasterizer;
 
 typedef enum {
@@ -19,6 +23,8 @@ typedef enum {
   AssetGraphicBlend_Alpha,         // Blend between rgb and the framebuffer based on the alpha.
   AssetGraphicBlend_Additive,      // Add rgb to the framebuffer (ignores alpha).
   AssetGraphicBlend_AlphaAdditive, // Multiply rgb by alpha and add them to the framebuffer.
+
+  AssetGraphicBlend_Count,
 } AssetGraphicBlend;
 
 typedef enum {
@@ -43,12 +49,16 @@ typedef enum {
   AssetGraphicDepth_None,   // No depth-testing.
   AssetGraphicDepth_Less,   // Pass the depth-test if the fragment is closer.
   AssetGraphicDepth_Always, // Always pass the depth-test.
+
+  AssetGraphicDepth_Count,
 } AssetGraphicDepth;
 
 typedef enum {
   AssetGraphicCull_Back,  // Cull back-facing primitives.
   AssetGraphicCull_Front, // Cull front-facing primitives.
   AssetGraphicCull_None,  // No culling.
+
+  AssetGraphicCull_Count,
 } AssetGraphicCull;
 
 typedef struct {
