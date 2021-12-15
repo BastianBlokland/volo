@@ -24,13 +24,15 @@ add_library(lib_rend STATIC
   src/canvas.c
   src/color.c
   src/platform.c
-  src/register.c)
+  src/register.c
+  src/resource.c)
 target_include_directories(lib_rend PUBLIC include)
 target_link_libraries(lib_rend PUBLIC lib_core)
 target_link_libraries(lib_rend PUBLIC lib_ecs)
+target_link_libraries(lib_rend PRIVATE lib_asset)
 target_link_libraries(lib_rend PRIVATE lib_gap)
 target_link_libraries(lib_rend PRIVATE lib_log)
-target_link_libraries(lib_rend PRIVATE lib_asset)
+target_link_libraries(lib_rend PRIVATE lib_scene)
 
 find_package(Vulkan REQUIRED)
 message(STATUS ">> Vulkan lib: ${Vulkan_LIBRARIES}")

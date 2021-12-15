@@ -46,6 +46,8 @@ void rvk_platform_destroy(RvkPlatform* plat) {
   alloc_free_t(g_alloc_heap, plat);
 }
 
+RvkDevice* rvk_platform_device(const RvkPlatform* plat) { return plat->dev; }
+
 RvkCanvasId rvk_platform_canvas_create(RvkPlatform* plat, const GapWindowComp* window) {
   static i64 nextCanvasId = 0;
 
