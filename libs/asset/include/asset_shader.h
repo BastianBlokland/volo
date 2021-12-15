@@ -8,12 +8,16 @@
 typedef enum {
   AssetShaderKind_SpvVertex,
   AssetShaderKind_SpvFragment,
+
+  AssetShaderKind_Count,
 } AssetShaderKind;
 
 typedef enum {
   AssetShaderResKind_Texture,
   AssetShaderResKind_UniformBuffer,
   AssetShaderResKind_StorageBuffer,
+
+  AssetShaderResKind_Count,
 } AssetShaderResKind;
 
 typedef struct {

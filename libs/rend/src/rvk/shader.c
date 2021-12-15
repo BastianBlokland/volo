@@ -1,5 +1,7 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_diag.h"
+#include "log_logger.h"
 
 #include "device_internal.h"
 #include "shader_internal.h"
@@ -21,8 +23,19 @@ static VkShaderStageFlagBits rvk_shader_stage(const AssetShaderKind kind) {
     return VK_SHADER_STAGE_VERTEX_BIT;
   case AssetShaderKind_SpvFragment:
     return VK_SHADER_STAGE_FRAGMENT_BIT;
+  case AssetShaderKind_Count:
+    break;
   }
   diag_crash();
+}
+
+static String rvk_shader_kind_str(const AssetShaderKind kind) {
+  static const String msgs[] = {
+      string_static("SpvVertex"),
+      string_static("SpvFragment"),
+  };
+  ASSERT(array_elems(msgs) == AssetShaderKind_Count, "Incorrect number of shader-kind names");
+  return msgs[kind];
 }
 
 static RvkDescKind rvk_shader_desc_kind(const AssetShaderResKind resKind) {
@@ -34,6 +47,8 @@ static RvkDescKind rvk_shader_desc_kind(const AssetShaderResKind resKind) {
     return RvkDescKind_UniformBufferDynamic;
   case AssetShaderResKind_StorageBuffer:
     return RvkDescKind_StorageBuffer;
+  case AssetShaderResKind_Count:
+    break;
   }
   diag_crash();
 }
@@ -58,12 +73,19 @@ RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset) {
     shader->descriptors[res->set].bindings[res->binding] = rvk_shader_desc_kind(res->kind);
   }
 
+  log_d(
+      "Vulkan shader created",
+      log_param("kind", fmt_text(rvk_shader_kind_str(asset->kind))),
+      log_param("entry", fmt_text(asset->entryPoint)),
+      log_param("resources", fmt_int(asset->resourceCount)));
   return shader;
 }
 
 void rvk_shader_destroy(RvkShader* shader) {
   vkDestroyShaderModule(shader->dev->vkDev, shader->vkModule, &shader->dev->vkAlloc);
   string_free(g_alloc_heap, shader->entryPoint);
+
+  log_d("Vulkan shader destroyed");
 
   alloc_free_t(g_alloc_heap, shader);
 }
