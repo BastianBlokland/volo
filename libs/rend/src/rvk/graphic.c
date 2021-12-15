@@ -72,10 +72,10 @@ static String rvk_graphic_cull_str(const AssetGraphicCull cull) {
 }
 
 static VkPipelineLayout rvk_pipeline_layout_create(const RvkGraphic* graphic) {
-  const VkDescriptorSetLayout      descriptorLayouts[0]; // TODO: Support meshes / textures.
-  const VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
+  const VkDescriptorSetLayout      descriptorLayouts[1] = {0}; // TODO: Support meshes / textures.
+  const VkPipelineLayoutCreateInfo pipelineLayoutInfo   = {
       .sType          = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-      .setLayoutCount = array_elems(descriptorLayouts),
+      .setLayoutCount = 0, // array_elems(descriptorLayouts)
       .pSetLayouts    = descriptorLayouts,
   };
   VkPipelineLayout result;
