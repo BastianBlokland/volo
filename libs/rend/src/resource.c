@@ -14,12 +14,16 @@ ecs_comp_define_public(RendShaderComp);
 
 static void ecs_destruct_graphic_comp(void* data) {
   RendGraphicComp* comp = data;
-  rvk_graphic_destroy(comp->graphic);
+  if (comp->graphic) {
+    rvk_graphic_destroy(comp->graphic);
+  }
 }
 
 static void ecs_destruct_shader_comp(void* data) {
   RendShaderComp* comp = data;
-  rvk_shader_destroy(comp->shader);
+  if (comp->shader) {
+    rvk_shader_destroy(comp->shader);
+  }
 }
 
 typedef enum {
@@ -41,6 +45,9 @@ static void ecs_combine_resource(void* dataA, void* dataB) {
 
 ecs_view_define(RendPlatformView) { ecs_access_read(RendPlatformComp); }
 ecs_view_define(SceneGraphicView) { ecs_access_read(SceneGraphicComp); };
+
+ecs_view_define(ResourceShaderWriteView) { ecs_access_write(RendShaderComp); };
+ecs_view_define(ResourceGraphicWriteView) { ecs_access_write(RendGraphicComp); };
 
 ecs_view_define(RendResourceLoadView) {
   ecs_access_without(RendResourceReady);
@@ -130,9 +137,31 @@ ecs_module_init(rend_resource_module) {
 
   ecs_register_view(RendPlatformView);
   ecs_register_view(SceneGraphicView);
+  ecs_register_view(ResourceShaderWriteView);
+  ecs_register_view(ResourceGraphicWriteView);
+
   ecs_register_view(RendResourceLoadView);
 
   ecs_register_system(RendResourceRequestSys, ecs_view_id(SceneGraphicView));
   ecs_register_system(
       RendResourceLoadSys, ecs_view_id(RendPlatformView), ecs_view_id(RendResourceLoadView));
+}
+
+void rend_resource_teardown(EcsWorld* world) {
+
+  // Teardown shaders.
+  EcsView* shaderView = ecs_world_view_t(world, ResourceShaderWriteView);
+  for (EcsIterator* itr = ecs_view_itr(shaderView); ecs_view_walk(itr);) {
+    RendShaderComp* shaderComp = ecs_view_write_t(itr, RendShaderComp);
+    rvk_shader_destroy(shaderComp->shader);
+    shaderComp->shader = null;
+  }
+
+  // Teardown graphics.
+  EcsView* graphicView = ecs_world_view_t(world, ResourceGraphicWriteView);
+  for (EcsIterator* itr = ecs_view_itr(graphicView); ecs_view_walk(itr);) {
+    RendGraphicComp* shaderComp = ecs_view_write_t(itr, RendGraphicComp);
+    rvk_graphic_destroy(shaderComp->graphic);
+    shaderComp->graphic = null;
+  }
 }

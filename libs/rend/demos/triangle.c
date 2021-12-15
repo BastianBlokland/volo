@@ -61,6 +61,8 @@ static int run_app(const String assetPath) {
     ++tickCount;
   }
 
+  rend_teardown(world);
+
   log_i(
       "App loop stopped",
       log_param("ticks", fmt_int(tickCount)),

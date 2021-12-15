@@ -6,3 +6,5 @@
 
 ecs_comp_extern_public(RendGraphicComp) { RvkGraphic* graphic; };
 ecs_comp_extern_public(RendShaderComp) { RvkShader* shader; };
+
+void rend_resource_teardown(EcsWorld*);
