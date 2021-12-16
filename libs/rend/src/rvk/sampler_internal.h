@@ -1,5 +1,8 @@
 #pragma once
-#include "device_internal.h"
+#include "vulkan_internal.h"
+
+// Internal forward declarations:
+typedef struct sRvkDevice RvkDevice;
 
 typedef enum {
   RvkSamplerWrap_Repeat,

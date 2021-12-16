@@ -1,7 +1,11 @@
 #include "core_alloc.h"
+#include "core_diag.h"
 #include "rend_size.h"
 
+#include "device_internal.h"
+#include "graphic_internal.h"
 #include "renderer_internal.h"
+#include "technique_internal.h"
 
 struct sRvkRenderer {
   RvkDevice*      device;
@@ -133,6 +137,13 @@ void rvk_renderer_draw_begin(
   RvkImage* targetImage = rvk_swapchain_image(rend->swapchain, swapchainIdx);
   rvk_viewport_set(rend->vkDrawBuffer, targetImage->size);
   rvk_scissor_set(rend->vkDrawBuffer, targetImage->size);
+}
+
+void rvk_renderer_draw_inst(RvkRenderer* rend, RvkGraphic* graphic) {
+
+  diag_assert_msg(graphic->vkPipeline, "Graphic not initialized");
+  vkCmdBindPipeline(rend->vkDrawBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphic->vkPipeline);
+  vkCmdDraw(rend->vkDrawBuffer, 3, 1, 0, 0);
 }
 
 void rvk_renderer_draw_end(RvkRenderer* rend, RvkTechnique* tech) {

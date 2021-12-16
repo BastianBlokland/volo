@@ -2,6 +2,14 @@
 #include "ecs_world.h"
 
 /**
+ * Check if the given view contains any entities.
+ */
+#define ecs_utils_any(_WORLD_, _VIEW_NAME_)                                                        \
+  ecs_utils_any_raw(ecs_world_view_t((_WORLD_), _VIEW_NAME_))
+
+bool ecs_utils_any_raw(EcsView*);
+
+/**
  * Get a read-only pointer to the first component entry, or null if none exists.
  *
  * Pre-condition: view has 'Read' access to the given component type.
@@ -28,7 +36,8 @@ void* ecs_utils_write_first(EcsView*, EcsCompId);
  * Pre-condition: view has 'Read' access to the given component type.
  */
 #define ecs_utils_read_t(_WORLD_, _VIEW_NAME_, _ENTITY_, _TYPE_)                                   \
-  ecs_utils_read(ecs_world_view_t((_WORLD_), _VIEW_NAME_), (_ENTITY_), ecs_comp_id(_TYPE_))
+  ((const _TYPE_*)ecs_utils_read(                                                                  \
+      ecs_world_view_t((_WORLD_), _VIEW_NAME_), (_ENTITY_), ecs_comp_id(_TYPE_)))
 
 const void* ecs_utils_read(EcsView*, EcsEntityId, EcsCompId);
 
@@ -39,7 +48,8 @@ const void* ecs_utils_read(EcsView*, EcsEntityId, EcsCompId);
  * Pre-condition: view has 'Write' access to the given component type.
  */
 #define ecs_utils_write_t(_WORLD_, _VIEW_NAME_, _ENTITY_, _TYPE_)                                  \
-  ecs_utils_write(ecs_world_view_t((_WORLD_), _VIEW_NAME_), (_ENTITY_), ecs_comp_id(_TYPE_))
+  ((_TYPE_*)ecs_utils_write(                                                                       \
+      ecs_world_view_t((_WORLD_), _VIEW_NAME_), (_ENTITY_), ecs_comp_id(_TYPE_)))
 
 void* ecs_utils_write(EcsView*, EcsEntityId, EcsCompId);
 

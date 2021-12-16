@@ -91,7 +91,7 @@ static bool asset_manager_load(
     log_e(
         "Failed to load asset",
         log_param("id", fmt_path(asset->id)),
-        log_param("msg", fmt_text("Asset not found in repository")));
+        log_param("msg", fmt_text_lit("Asset not found in repository")));
     return false;
   }
 

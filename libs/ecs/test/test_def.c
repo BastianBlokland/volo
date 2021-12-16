@@ -98,11 +98,13 @@ spec(def) {
     check_eq_int(ecs_def_system_views(def, ecs_system_id(EmptySys)).count, 0);
 
     check_eq_int(ecs_def_system_views(def, ecs_system_id(UpdateSys)).count, 2);
-    check(ecs_def_system_views(def, ecs_system_id(UpdateSys)).head[0] == ecs_view_id(ReadAWriteB));
-    check(ecs_def_system_views(def, ecs_system_id(UpdateSys)).head[1] == ecs_view_id(ReadAReadB));
+    check(
+        ecs_def_system_views(def, ecs_system_id(UpdateSys)).values[0] == ecs_view_id(ReadAWriteB));
+    check(ecs_def_system_views(def, ecs_system_id(UpdateSys)).values[1] == ecs_view_id(ReadAReadB));
 
     check_eq_int(ecs_def_system_views(def, ecs_system_id(CleanupSys)).count, 1);
-    check(ecs_def_system_views(def, ecs_system_id(CleanupSys)).head[0] == ecs_view_id(ReadAReadB));
+    check(
+        ecs_def_system_views(def, ecs_system_id(CleanupSys)).values[0] == ecs_view_id(ReadAReadB));
   }
 
   it("can check if a system has access to a view") {

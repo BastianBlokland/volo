@@ -5,6 +5,7 @@
 
 #include "canvas_internal.h"
 #include "device_internal.h"
+#include "graphic_internal.h"
 #include "platform_internal.h"
 
 typedef struct {
@@ -46,6 +47,8 @@ void rvk_platform_destroy(RvkPlatform* plat) {
   alloc_free_t(g_alloc_heap, plat);
 }
 
+RvkDevice* rvk_platform_device(const RvkPlatform* plat) { return plat->dev; }
+
 RvkCanvasId rvk_platform_canvas_create(RvkPlatform* plat, const GapWindowComp* window) {
   static i64 nextCanvasId = 0;
 
@@ -68,9 +71,17 @@ void rvk_platform_canvas_destroy(RvkPlatform* plat, const RvkCanvasId id) {
   }
 }
 
+bool rvk_platform_prepare_graphic(RvkPlatform* plat, const RvkCanvasId id, RvkGraphic* graphic) {
+  return rvk_graphic_prepare(graphic, rvk_canvas_lookup(plat, id));
+}
+
 bool rvk_platform_draw_begin(
     RvkPlatform* plat, const RvkCanvasId id, const RendSize size, const RendColor clearColor) {
   return rvk_canvas_draw_begin(rvk_canvas_lookup(plat, id), size, clearColor);
+}
+
+void rvk_platform_draw_inst(RvkPlatform* plat, const RvkCanvasId id, RvkGraphic* graphic) {
+  rvk_canvas_draw_inst(rvk_canvas_lookup(plat, id), graphic);
 }
 
 void rvk_platform_draw_end(RvkPlatform* plat, const RvkCanvasId id) {

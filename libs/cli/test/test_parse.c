@@ -8,7 +8,7 @@ static void parse_check_success(CheckTestContext* _testCtx, CliInvocation* invoc
   check_eq_int(cli_parse_result(invoc), CliParseResult_Success);
 
   for (usize i = 0; i != cli_parse_errors(invoc).count; ++i) {
-    check_eq_string(cli_parse_errors(invoc).head[i], string_empty);
+    check_eq_string(cli_parse_errors(invoc).values[i], string_empty);
   }
 }
 
@@ -19,7 +19,7 @@ static void parse_check_fail(
   check_eq_int(cli_parse_errors(invoc).count, errCount);
   const usize errsToCheck = math_min(errCount, cli_parse_errors(invoc).count);
   for (usize i = 0; i != errsToCheck; ++i) {
-    check_eq_string(cli_parse_errors(invoc).head[i], errHead[i]);
+    check_eq_string(cli_parse_errors(invoc).values[i], errHead[i]);
   }
 }
 
@@ -33,7 +33,7 @@ static void parse_check_values(
   check_eq_int(cli_parse_values(invoc, id).count, valCount);
   const usize valsToCheck = math_min(valCount, cli_parse_values(invoc, id).count);
   for (usize i = 0; i != valsToCheck; ++i) {
-    check_eq_string(cli_parse_values(invoc, id).head[i], valHead[i]);
+    check_eq_string(cli_parse_values(invoc, id).values[i], valHead[i]);
   }
 }
 

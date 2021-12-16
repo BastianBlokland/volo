@@ -112,7 +112,7 @@ static int run_app() {
 
     ecs_run_sync(runner);
     thread_sleep(time_second / 30);
-  } while (ecs_view_walk(ecs_view_itr_reset(windowItr)));
+  } while (ecs_utils_any(world, UpdateWindowView));
 
   log_i(
       "App loop stopped",

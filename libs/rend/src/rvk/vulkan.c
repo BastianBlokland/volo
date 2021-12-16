@@ -4,14 +4,14 @@
 
 #include "vulkan_internal.h"
 
-static const char* rvk_to_null_term_scratch(String api) {
-  const Mem scratchMem = alloc_alloc(g_alloc_scratch, api.size + 1, 1);
-  mem_cpy(scratchMem, api);
-  *mem_at_u8(scratchMem, api.size) = '\0';
+static const char* rvk_to_null_term_scratch(const String str) {
+  const Mem scratchMem = alloc_alloc(g_alloc_scratch, str.size + 1, 1);
+  mem_cpy(scratchMem, str);
+  *mem_at_u8(scratchMem, str.size) = '\0';
   return scratchMem.ptr;
 }
 
-void* rvk_func_load_instance_internal(VkInstance inst, String api) {
+void* rvk_func_load_instance_internal(VkInstance inst, const String api) {
   const PFN_vkVoidFunction res = vkGetInstanceProcAddr(inst, rvk_to_null_term_scratch(api));
   if (UNLIKELY(!res)) {
     diag_crash_msg("Vulkan failed to load instance api: {}", fmt_text(api));
@@ -19,7 +19,7 @@ void* rvk_func_load_instance_internal(VkInstance inst, String api) {
   return (void*)res;
 }
 
-void* rvk_func_load_device_internal(VkDevice inst, String api) {
+void* rvk_func_load_device_internal(VkDevice inst, const String api) {
   const PFN_vkVoidFunction res = vkGetDeviceProcAddr(inst, rvk_to_null_term_scratch(api));
   if (UNLIKELY(!res)) {
     diag_crash_msg("Vulkan failed to load device api: {}", fmt_text(api));

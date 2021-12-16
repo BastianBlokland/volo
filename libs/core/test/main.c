@@ -16,6 +16,7 @@ int main(const int argc, const char** argv) {
   register_spec(check, alloc_chunked);
   register_spec(check, alloc_page);
   register_spec(check, alloc_scratch);
+  register_spec(check, array);
   register_spec(check, ascii);
   register_spec(check, base64);
   register_spec(check, bits);

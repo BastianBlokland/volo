@@ -2,7 +2,7 @@
 #include "asset_manager.h"
 
 typedef enum {
-  AssetFormat_Gfx,
+  AssetFormat_Graphic,
   AssetFormat_Obj,
   AssetFormat_Raw,
   AssetFormat_Spv,

@@ -10,24 +10,29 @@ add_library(lib_rend STATIC
   src/rvk/debug.c
   src/rvk/desc.c
   src/rvk/device.c
+  src/rvk/graphic.c
   src/rvk/image.c
   src/rvk/mem_alloc.c
   src/rvk/mem_pool.c
   src/rvk/platform.c
   src/rvk/renderer.c
   src/rvk/sampler.c
+  src/rvk/shader.c
   src/rvk/swapchain.c
   src/rvk/technique.c
   src/rvk/vulkan.c
   src/canvas.c
   src/color.c
   src/platform.c
-  src/register.c)
+  src/register.c
+  src/resource.c)
 target_include_directories(lib_rend PUBLIC include)
 target_link_libraries(lib_rend PUBLIC lib_core)
 target_link_libraries(lib_rend PUBLIC lib_ecs)
+target_link_libraries(lib_rend PRIVATE lib_asset)
 target_link_libraries(lib_rend PRIVATE lib_gap)
 target_link_libraries(lib_rend PRIVATE lib_log)
+target_link_libraries(lib_rend PRIVATE lib_scene)
 
 find_package(Vulkan REQUIRED)
 message(STATUS ">> Vulkan lib: ${Vulkan_LIBRARIES}")

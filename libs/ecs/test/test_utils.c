@@ -35,6 +35,17 @@ spec(utils) {
     world = ecs_world_create(g_alloc_heap, def);
   }
 
+  it("can test if a view contains any entities") {
+    check(!ecs_utils_any(world, MaybeReadA));
+
+    const EcsEntityId entity1 = ecs_world_entity_create(world);
+    ecs_world_add_t(world, entity1, UtilsCompA);
+
+    ecs_world_flush(world);
+
+    check(ecs_utils_any(world, MaybeReadA));
+  }
+
   it("can read the first component from a view") {
     check(ecs_utils_read_first_t(world, MaybeReadA, UtilsCompA) == null);
 

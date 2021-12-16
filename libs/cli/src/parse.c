@@ -347,8 +347,8 @@ CliParseResult cli_parse_result(const CliInvocation* invoc) {
 
 CliParseErrors cli_parse_errors(const CliInvocation* invoc) {
   return (CliParseErrors){
-      .head  = invoc->errors.size ? dynarray_at_t(&invoc->errors, 0, String) : null,
-      .count = invoc->errors.size,
+      .values = invoc->errors.size ? dynarray_at_t(&invoc->errors, 0, String) : null,
+      .count  = invoc->errors.size,
   };
 }
 
@@ -359,7 +359,7 @@ bool cli_parse_provided(const CliInvocation* invoc, const CliId id) {
 CliParseValues cli_parse_values(const CliInvocation* invoc, const CliId id) {
   const CliInvocationOption* opt = cli_invocation_option((CliInvocation*)invoc, id);
   return (CliParseValues){
-      .head  = opt->values.size ? dynarray_at_t(&opt->values, 0, String) : null,
-      .count = opt->values.size,
+      .values = opt->values.size ? dynarray_at_t(&opt->values, 0, String) : null,
+      .count  = opt->values.size,
   };
 }

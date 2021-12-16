@@ -4,7 +4,9 @@
 #include "log_logger.h"
 
 #include "canvas_internal.h"
+#include "device_internal.h"
 #include "renderer_internal.h"
+#include "technique_internal.h"
 
 typedef RvkRenderer* RvkRendererPtr;
 
@@ -23,8 +25,8 @@ RvkCanvas* rvk_canvas_create(RvkDevice* dev, const GapWindowComp* window) {
 }
 
 void rvk_canvas_destroy(RvkCanvas* canvas) {
-  // Wait all renderering be done before destroying the surface.
-  rvk_call(vkDeviceWaitIdle, canvas->device->vkDev);
+
+  rvk_device_wait_idle(canvas->device);
 
   array_for_t(canvas->renderers, RvkRendererPtr, rend) { rvk_renderer_destroy(*rend); }
 
@@ -45,6 +47,11 @@ bool rvk_canvas_draw_begin(RvkCanvas* canvas, const RendSize size, const RendCol
 
   rvk_renderer_draw_begin(renderer, canvas->technique, canvas->swapchainIdx, clearColor);
   return true;
+}
+
+void rvk_canvas_draw_inst(RvkCanvas* canvas, RvkGraphic* graphic) {
+  RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
+  rvk_renderer_draw_inst(renderer, graphic);
 }
 
 void rvk_canvas_draw_end(RvkCanvas* canvas) {

@@ -6,7 +6,7 @@ message(STATUS "> library: scene")
 
 add_library(lib_scene STATIC
   src/camera.c
-  src/gfx.c
+  src/graphic.c
   src/register.c
   src/transform.c)
 target_include_directories(lib_scene PUBLIC include)

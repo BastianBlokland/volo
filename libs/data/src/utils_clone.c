@@ -105,7 +105,7 @@ static void data_clone_array(const CloneCtx* ctx) {
 
   const Mem  newArrayMem = alloc_alloc(ctx->alloc, decl->size * count, decl->align);
   DataArray* newArray    = mem_as_t(ctx->clone, DataArray);
-  *newArray              = (DataArray){.data = newArrayMem.ptr, .count = count};
+  *newArray              = (DataArray){.values = newArrayMem.ptr, .count = count};
 
   for (usize i = 0; i != count; ++i) {
     const Mem originalElemMem = data_elem_mem(decl, originalArray, i);

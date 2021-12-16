@@ -185,5 +185,5 @@ Mem data_field_mem(const DataReg* reg, const DataDeclField* field, Mem structMem
 }
 
 Mem data_elem_mem(const DataDecl* decl, const DataArray* array, const usize index) {
-  return mem_create(bits_ptr_offset(array->data, decl->size * index), decl->size);
+  return mem_create(bits_ptr_offset(array->values, decl->size * index), decl->size);
 }

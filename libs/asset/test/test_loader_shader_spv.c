@@ -192,7 +192,7 @@ spec(loader_shader_spv) {
 
       const AssetShaderComp* shader = ecs_utils_read_t(world, AssetView, asset, AssetShaderComp);
       check_eq_int(shader->kind, g_testData[i].kind);
-      check_eq_string(shader->entryPointName, g_testData[i].entryPoint);
+      check_eq_string(shader->entryPoint, g_testData[i].entryPoint);
       check_eq_string(shader->data, records[i].data);
 
       check_require(shader->resourceCount == g_testData[i].resourceCount);

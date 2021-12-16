@@ -60,6 +60,7 @@ add_executable(lib_core_test
   test/test_alloc_chunked.c
   test/test_alloc_page.c
   test/test_alloc_scratch.c
+  test/test_array.c
   test/test_ascii.c
   test/test_base64.c
   test/test_bits.c

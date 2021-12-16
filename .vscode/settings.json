@@ -14,7 +14,7 @@
   "files.associations": {
     "*.h": "c",
     "*.c": "c",
-    "*.gfx": "json"
+    "*.gra": "json"
   },
   "glsllint.glslangValidatorArgs": "-V -o .cache/spv/out.spv"
 }

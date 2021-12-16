@@ -1,8 +1,10 @@
 #pragma once
 #include "core_string.h"
 
-#include "device_internal.h"
 #include "mem_internal.h"
+
+// Internal forward declarations:
+typedef struct sRvkDevice RvkDevice;
 
 typedef enum {
   RvkBufferType_DeviceIndex,

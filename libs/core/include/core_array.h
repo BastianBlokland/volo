@@ -23,4 +23,24 @@
        _VAR_ != _VAR_##_end;                                                                       \
        ++_VAR_)
 
+/**
+ * Iterate over all values in an array defined by a pointer named 'values' and a count.
+ *
+ * Example struct:
+ * '
+ *  struct MyArray {
+ *    i32*  values;
+ *    usize count;
+ *  };
+ * '
+ *
+ * NOTE: _ARRAY_ is expanded twice, so care must be taken when providing complex expressions.
+ * Pre-condition: sizeof(_TYPE_) has to match the element size of the 'values' pointer.
+ */
+#define array_ptr_for_t(_ARRAY_STRUCT_, _TYPE_, _VAR_)                                             \
+  for (_TYPE_* _VAR_      = (_TYPE_*)((_ARRAY_STRUCT_).values),                                    \
+             *_VAR_##_end = (_TYPE_*)_VAR_ + (_ARRAY_STRUCT_).count;                               \
+       _VAR_ != _VAR_##_end;                                                                       \
+       ++_VAR_)
+
 // clang-format on

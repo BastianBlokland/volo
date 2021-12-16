@@ -4,7 +4,7 @@
 
 String cli_read_string(const CliInvocation* invoc, const CliId id, const String defaultVal) {
   CliParseValues values = cli_parse_values(invoc, id);
-  return values.count ? *values.head : defaultVal;
+  return values.count ? *values.values : defaultVal;
 }
 
 i64 cli_read_i64(const CliInvocation* invoc, const CliId id, const i64 defaultVal) {
@@ -14,7 +14,7 @@ i64 cli_read_i64(const CliInvocation* invoc, const CliId id, const i64 defaultVa
   }
   i64      result;
   const u8 base = 10;
-  format_read_i64(values.head[0], &result, base);
+  format_read_i64(values.values[0], &result, base);
   return result;
 }
 
@@ -25,7 +25,7 @@ u64 cli_read_u64(const CliInvocation* invoc, const CliId id, const u64 defaultVa
   }
   u64      result;
   const u8 base = 10;
-  format_read_u64(values.head[0], &result, base);
+  format_read_u64(values.values[0], &result, base);
   return result;
 }
 
@@ -35,7 +35,7 @@ f64 cli_read_f64(const CliInvocation* invoc, const CliId id, const f64 defaultVa
     return defaultVal;
   }
   f64 result;
-  format_read_f64(values.head[0], &result);
+  format_read_f64(values.values[0], &result);
   return result;
 }
 
@@ -50,7 +50,7 @@ usize cli_read_choice(
     return defaultVal;
   }
   for (usize i = 0; i != choicesCount; ++i) {
-    if (string_eq(*values.head, choiceStrs[i])) {
+    if (string_eq(*values.values, choiceStrs[i])) {
       return i;
     }
   }

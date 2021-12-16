@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_dynarray.h"
 
+#include "device_internal.h"
 #include "technique_internal.h"
 
 #define attachment_max 8
@@ -115,6 +116,8 @@ void rvk_technique_destroy(RvkTechnique* tech) {
 
   alloc_free_t(g_alloc_heap, tech);
 }
+
+VkRenderPass rvk_technique_vkrendpass(RvkTechnique* tech) { return tech->vkRendPass; }
 
 void rvk_technique_begin(
     RvkTechnique*         tech,

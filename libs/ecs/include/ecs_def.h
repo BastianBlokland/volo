@@ -77,7 +77,7 @@ String ecs_def_view_name(const EcsDef*, EcsViewId);
 String ecs_def_system_name(const EcsDef*, EcsSystemId);
 
 typedef struct {
-  EcsViewId* head;
+  EcsViewId* values;
   usize      count;
 } EcsDefSystemViews;
 

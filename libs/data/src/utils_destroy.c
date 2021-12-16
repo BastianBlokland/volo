@@ -100,7 +100,7 @@ static void data_destroy_array(const DestroyCtx* ctx) {
     data_destroy_single(&elemCtx);
   }
 
-  alloc_free(ctx->alloc, mem_create(array->data, decl->size * array->count));
+  alloc_free(ctx->alloc, mem_create(array->values, decl->size * array->count));
 }
 
 static void data_destroy_internal(const DestroyCtx* ctx) {

@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 
+#include "device_internal.h"
 #include "image_internal.h"
 
 static VkImageAspectFlags rvk_image_vkaspect(const RvkImageType type) {

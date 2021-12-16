@@ -77,7 +77,7 @@ spec(write_json) {
     const DataMeta meta = data_meta_t(data_prim_t(u32), .container = DataContainer_Array);
 
     i32             values[] = {1, 2, 3, 4, 5, 6, 7};
-    const DataArray array1   = {.data = values, .count = array_elems(values)};
+    const DataArray array1   = {.values = values, .count = array_elems(values)};
     test_write(
         _testCtx,
         reg,
