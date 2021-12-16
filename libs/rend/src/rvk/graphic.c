@@ -345,7 +345,12 @@ void rvk_graphic_shader_add(RvkGraphic* graphic, RvkShader* shader) {
       return;
     }
   }
-  diag_crash_msg("More then {} shaders are not supported", fmt_int(rvk_graphic_shaders_max));
+  diag_assert_fail("More then {} shaders are not supported", fmt_int(rvk_graphic_shaders_max));
+}
+
+void rvk_graphic_mesh_add(RvkGraphic* graphic, RvkMesh* mesh) {
+  diag_assert_msg(!graphic->mesh, "Only a single mesh per graphic supported");
+  graphic->mesh = mesh;
 }
 
 bool rvk_graphic_prepare(RvkGraphic* graphic, const RvkCanvas* canvas) {

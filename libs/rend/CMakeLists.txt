@@ -14,6 +14,7 @@ add_library(lib_rend STATIC
   src/rvk/image.c
   src/rvk/mem_alloc.c
   src/rvk/mem_pool.c
+  src/rvk/mesh.c
   src/rvk/platform.c
   src/rvk/renderer.c
   src/rvk/sampler.c

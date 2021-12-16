@@ -7,6 +7,7 @@
 typedef struct sRvkCanvas RvkCanvas;
 typedef struct sRvkDevice RvkDevice;
 typedef struct sRvkShader RvkShader;
+typedef struct sRvkMesh   RvkMesh;
 
 #define rvk_graphic_shaders_max 2
 
@@ -19,6 +20,7 @@ typedef struct sRvkGraphic {
   AssetGraphicDepth      depth;
   AssetGraphicCull       cull;
   RvkShader*             shaders[rvk_graphic_shaders_max];
+  RvkMesh*               mesh;
   VkPipelineLayout       vkPipelineLayout;
   VkPipeline             vkPipeline;
 } RvkGraphic;
@@ -26,4 +28,5 @@ typedef struct sRvkGraphic {
 RvkGraphic* rvk_graphic_create(RvkDevice*, const AssetGraphicComp*);
 void        rvk_graphic_destroy(RvkGraphic*);
 void        rvk_graphic_shader_add(RvkGraphic*, RvkShader*);
+void        rvk_graphic_mesh_add(RvkGraphic*, RvkMesh*);
 bool        rvk_graphic_prepare(RvkGraphic*, const RvkCanvas*);
