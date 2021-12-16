@@ -205,7 +205,9 @@ static VkPipelineColorBlendAttachmentState rvk_pipeline_colorblend_attach(RvkGra
         .colorWriteMask      = colorMask,
     };
   case AssetGraphicBlend_None:
-    return (VkPipelineColorBlendAttachmentState){0};
+    return (VkPipelineColorBlendAttachmentState){
+        .colorWriteMask = colorMask,
+    };
   case AssetGraphicBlend_Count:
     break;
   }

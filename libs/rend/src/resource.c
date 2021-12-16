@@ -8,6 +8,7 @@
 
 #include "platform_internal.h"
 #include "resource_internal.h"
+#include "rvk/device_internal.h"
 
 ecs_comp_define_public(RendGraphicComp);
 ecs_comp_define_public(RendShaderComp);
@@ -148,13 +149,10 @@ ecs_module_init(rend_resource_module) {
 }
 
 void rend_resource_teardown(EcsWorld* world) {
-
-  // Teardown shaders.
-  EcsView* shaderView = ecs_world_view_t(world, ShaderView);
-  for (EcsIterator* itr = ecs_view_itr(shaderView); ecs_view_walk(itr);) {
-    RendShaderComp* comp = ecs_view_write_t(itr, RendShaderComp);
-    rvk_shader_destroy(comp->shader);
-    comp->shader = null;
+  const RendPlatformComp* plat = ecs_utils_read_first_t(world, RendPlatformView, RendPlatformComp);
+  if (plat) {
+    // Wait for all rendering to be done.
+    rvk_device_wait_idle(rvk_platform_device(plat->vulkan));
   }
 
   // Teardown graphics.
@@ -163,5 +161,13 @@ void rend_resource_teardown(EcsWorld* world) {
     RendGraphicComp* comp = ecs_view_write_t(itr, RendGraphicComp);
     rvk_graphic_destroy(comp->graphic);
     comp->graphic = null;
+  }
+
+  // Teardown shaders.
+  EcsView* shaderView = ecs_world_view_t(world, ShaderView);
+  for (EcsIterator* itr = ecs_view_itr(shaderView); ecs_view_walk(itr);) {
+    RendShaderComp* comp = ecs_view_write_t(itr, RendShaderComp);
+    rvk_shader_destroy(comp->shader);
+    comp->shader = null;
   }
 }

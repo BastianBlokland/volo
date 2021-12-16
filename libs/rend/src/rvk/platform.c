@@ -5,6 +5,7 @@
 
 #include "canvas_internal.h"
 #include "device_internal.h"
+#include "graphic_internal.h"
 #include "platform_internal.h"
 
 typedef struct {
@@ -68,6 +69,10 @@ void rvk_platform_canvas_destroy(RvkPlatform* plat, const RvkCanvasId id) {
       break;
     }
   }
+}
+
+bool rvk_platform_prepare_graphic(RvkPlatform* plat, const RvkCanvasId id, RvkGraphic* graphic) {
+  return rvk_graphic_prepare(graphic, rvk_canvas_lookup(plat, id));
 }
 
 bool rvk_platform_draw_begin(

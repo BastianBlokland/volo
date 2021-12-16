@@ -242,11 +242,11 @@ rvk_swapchain_acquire(RvkSwapchain* swapchain, VkSemaphore available, const Rend
   if (!swapchain->vkSwapchain || outOfDate || !rend_size_equal(size, swapchain->size)) {
     /**
      * Synchronize swapchain (re)creation by waiting for all rendering to be done. This a very
-     * course way of synchronizing and causes stalls when resizing the window. In the future we can
+     * crude way of synchronizing and causes stalls when resizing the window. In the future we can
      * consider keeping the old swapchain alive during recreation and only destroy it after all
      * rendering to it was finished.
      */
-    vkDeviceWaitIdle(swapchain->dev->vkDev);
+    rvk_device_wait_idle(swapchain->dev);
 
     if (!rvk_swapchain_init(swapchain, size)) {
       return sentinel_u32;

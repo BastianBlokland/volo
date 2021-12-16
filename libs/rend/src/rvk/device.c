@@ -320,7 +320,7 @@ RvkDevice* rvk_device_create() {
 
 void rvk_device_destroy(RvkDevice* dev) {
 
-  rvk_call(vkDeviceWaitIdle, dev->vkDev);
+  rvk_device_wait_idle(dev);
 
   rvk_mem_pool_destroy(dev->memPool);
   rvk_desc_pool_destroy(dev->descPool);
@@ -337,3 +337,5 @@ void rvk_device_destroy(RvkDevice* dev) {
 
   log_i("Vulkan device destroyed");
 }
+
+void rvk_device_wait_idle(const RvkDevice* dev) { rvk_call(vkDeviceWaitIdle, dev->vkDev); }

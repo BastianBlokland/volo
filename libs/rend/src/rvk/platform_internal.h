@@ -17,6 +17,8 @@ RvkDevice*   rvk_platform_device(const RvkPlatform*);
 RvkCanvasId  rvk_platform_canvas_create(RvkPlatform*, const GapWindowComp*);
 void         rvk_platform_canvas_destroy(RvkPlatform*, RvkCanvasId);
 
+bool rvk_platform_prepare_graphic(RvkPlatform*, RvkCanvasId, RvkGraphic*);
+
 bool rvk_platform_draw_begin(RvkPlatform*, RvkCanvasId, RendSize, RendColor clearColor);
 void rvk_platform_draw_inst(RvkPlatform*, RvkCanvasId, RvkGraphic*);
 void rvk_platform_draw_end(RvkPlatform*, RvkCanvasId);

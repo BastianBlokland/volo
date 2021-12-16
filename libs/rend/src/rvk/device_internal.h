@@ -30,3 +30,4 @@ typedef struct sRvkDevice {
 
 RvkDevice* rvk_device_create();
 void       rvk_device_destroy(RvkDevice*);
+void       rvk_device_wait_idle(const RvkDevice*);

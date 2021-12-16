@@ -25,8 +25,8 @@ RvkCanvas* rvk_canvas_create(RvkDevice* dev, const GapWindowComp* window) {
 }
 
 void rvk_canvas_destroy(RvkCanvas* canvas) {
-  // Wait all renderering be done before destroying the surface.
-  rvk_call(vkDeviceWaitIdle, canvas->device->vkDev);
+
+  rvk_device_wait_idle(canvas->device);
 
   array_for_t(canvas->renderers, RvkRendererPtr, rend) { rvk_renderer_destroy(*rend); }
 
