@@ -35,7 +35,7 @@ static VkFence rvk_fence_create(RvkDevice* dev, const bool initialState) {
 static VkCommandBuffer rvk_commandbuffer_create(RvkDevice* dev) {
   VkCommandBufferAllocateInfo allocInfo = {
       .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-      .commandPool        = dev->vkMainCommandPool,
+      .commandPool        = dev->vkGraphicsCommandPool,
       .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
       .commandBufferCount = 1,
   };
@@ -68,7 +68,7 @@ static void rvk_renderer_submit(RvkRenderer* rend) {
       .signalSemaphoreCount = 1,
       .pSignalSemaphores    = &rend->imageReady,
   };
-  rvk_call(vkQueueSubmit, rend->device->vkMainQueue, 1, &submitInfo, rend->renderDone);
+  rvk_call(vkQueueSubmit, rend->device->vkGraphicsQueue, 1, &submitInfo, rend->renderDone);
 }
 
 static void rvk_viewport_set(VkCommandBuffer vkCmdBuf, const RendSize size) {
@@ -107,7 +107,7 @@ RvkRenderer* rvk_renderer_create(RvkDevice* dev, RvkSwapchain* swapchain) {
 
 void rvk_renderer_destroy(RvkRenderer* rend) {
   vkFreeCommandBuffers(
-      rend->device->vkDev, rend->device->vkMainCommandPool, 1, &rend->vkDrawBuffer);
+      rend->device->vkDev, rend->device->vkGraphicsCommandPool, 1, &rend->vkDrawBuffer);
   vkDestroySemaphore(rend->device->vkDev, rend->imageAvailable, &rend->device->vkAlloc);
   vkDestroySemaphore(rend->device->vkDev, rend->imageReady, &rend->device->vkAlloc);
   vkDestroyFence(rend->device->vkDev, rend->renderDone, &rend->device->vkAlloc);

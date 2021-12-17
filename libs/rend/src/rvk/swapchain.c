@@ -201,7 +201,7 @@ RvkSwapchain* rvk_swapchain_create(RvkDevice* dev, const GapWindowComp* window) 
   rvk_call(
       vkGetPhysicalDeviceSurfaceSupportKHR,
       dev->vkPhysDev,
-      dev->mainQueueIndex,
+      dev->graphicsQueueIndex,
       vkSurf,
       &supported);
   if (!supported) {
@@ -287,7 +287,7 @@ bool rvk_swapchain_present(RvkSwapchain* swapchain, VkSemaphore ready, const Rvk
       .pImageIndices      = &idx,
   };
 
-  VkResult result = vkQueuePresentKHR(swapchain->dev->vkMainQueue, &presentInfo);
+  VkResult result = vkQueuePresentKHR(swapchain->dev->vkGraphicsQueue, &presentInfo);
   switch (result) {
   case VK_SUBOPTIMAL_KHR:
     swapchain->flags |= RvkSwapchainFlags_OutOfDate;
