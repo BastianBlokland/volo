@@ -317,7 +317,7 @@ RvkGraphic* rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset) {
       "Vulkan graphic created",
       log_param("topology", fmt_text(rvk_graphic_topology_str(asset->topology))),
       log_param("rasterizer", fmt_text(rvk_graphic_rasterizer_str(asset->rasterizer))),
-      log_param("lineWidth", fmt_float(asset->lineWidth)),
+      log_param("line-width", fmt_float(asset->lineWidth)),
       log_param("blend", fmt_text(rvk_graphic_blend_str(asset->blend))),
       log_param("depth", fmt_text(rvk_graphic_depth_str(asset->depth))),
       log_param("cull", fmt_text(rvk_graphic_cull_str(asset->cull))));
