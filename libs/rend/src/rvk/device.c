@@ -164,8 +164,9 @@ static u32 rvk_device_pick_transfer_queue(VkPhysicalDevice vkPhysDev) {
   vkGetPhysicalDeviceQueueFamilyProperties(vkPhysDev, &familyCount, families);
 
   for (u32 i = 0; i != familyCount; ++i) {
-    if (families[i].queueFlags & VK_QUEUE_TRANSFER_BIT &&
-        !(families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
+    const bool hasGraphics = (families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0;
+    const bool hasCompute  = (families[i].queueFlags & VK_QUEUE_COMPUTE_BIT) != 0;
+    if (families[i].queueFlags & VK_QUEUE_TRANSFER_BIT && !hasGraphics && !hasCompute) {
       return i;
     }
   }
