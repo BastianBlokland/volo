@@ -111,7 +111,7 @@ u32 bits_hash_32(Mem);
 
 /**
  * Calculate the amount of padding required to reach the requested alignment.
- * Pre-condition: bits_ispow2(val) (value has to be a power of two).
+ * Pre-condition: bits_ispow2(align) (alignment has to be a power of two).
  */
 u32 bits_padding_32(u32 val, u32 align);
 u64 bits_padding_64(u64 val, u64 align);

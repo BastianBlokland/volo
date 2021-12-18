@@ -8,6 +8,7 @@
 #include "desc_internal.h"
 #include "device_internal.h"
 #include "mem_internal.h"
+#include "transfer_internal.h"
 
 #define rend_debug_verbose true
 
@@ -145,18 +146,37 @@ static i32 rvk_device_type_score_value(const VkPhysicalDeviceType vkDevType) {
   }
 }
 
-static u32 rvk_device_pick_main_queue(VkPhysicalDevice vkPhysDev) {
+static u32 rvk_device_pick_graphics_queue(VkPhysicalDevice vkPhysDev) {
   VkQueueFamilyProperties families[32];
   u32                     familyCount = array_elems(families);
   vkGetPhysicalDeviceQueueFamilyProperties(vkPhysDev, &familyCount, families);
 
   for (u32 i = 0; i != familyCount; ++i) {
-    if (families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT &&
-        families[i].queueFlags & VK_QUEUE_TRANSFER_BIT) {
+    if (families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
       return i;
     }
   }
-  diag_crash_msg("No main queue found");
+  diag_crash_msg("No graphics queue found");
+}
+
+static u32 rvk_device_pick_transfer_queue(VkPhysicalDevice vkPhysDev) {
+  VkQueueFamilyProperties families[32];
+  u32                     familyCount = array_elems(families);
+  vkGetPhysicalDeviceQueueFamilyProperties(vkPhysDev, &familyCount, families);
+
+  for (u32 i = 0; i != familyCount; ++i) {
+    const bool hasGraphics = (families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0;
+    const bool hasCompute  = (families[i].queueFlags & VK_QUEUE_COMPUTE_BIT) != 0;
+    if (families[i].queueFlags & VK_QUEUE_TRANSFER_BIT && !hasGraphics && !hasCompute) {
+      return i;
+    }
+  }
+  for (u32 i = 0; i != familyCount; ++i) {
+    if (families[i].queueFlags & VK_QUEUE_TRANSFER_BIT) {
+      return i;
+    }
+  }
+  diag_crash_msg("No transfer queue found");
 }
 
 static VkPhysicalDevice rvk_device_pick_physical_device(VkInstance vkInst) {
@@ -164,8 +184,9 @@ static VkPhysicalDevice rvk_device_pick_physical_device(VkInstance vkInst) {
   u32              vkPhysDevsCount = array_elems(vkPhysDevs);
   rvk_call(vkEnumeratePhysicalDevices, vkInst, &vkPhysDevsCount, vkPhysDevs);
 
-  VkPhysicalDevice bestVkPhysDev = null;
-  i32              bestScore     = -1;
+  VkPhysicalDevice bestVkPhysDev  = null;
+  u32              bestApiVersion = 0;
+  i32              bestScore      = -1;
 
   for (usize i = 0; i != vkPhysDevsCount; ++i) {
     const RendDeviceExts exts = rvk_device_exts_query(vkPhysDevs[i]);
@@ -193,9 +214,10 @@ static VkPhysicalDevice rvk_device_pick_physical_device(VkInstance vkInst) {
         log_param("vendor", fmt_text(rvk_vendor_str(properties.vendorID))),
         log_param("score", fmt_int(score)));
 
-    if (score > bestScore) {
-      bestVkPhysDev = vkPhysDevs[i];
-      bestScore     = score;
+    if (score > bestScore || (score == bestScore && properties.apiVersion > bestApiVersion)) {
+      bestVkPhysDev  = vkPhysDevs[i];
+      bestScore      = score;
+      bestApiVersion = properties.apiVersion;
     }
   }
   if (!bestVkPhysDev) {
@@ -222,14 +244,23 @@ static VkPhysicalDeviceFeatures rvk_device_pick_features(RvkDevice* dev) {
 }
 
 static VkDevice rvk_device_create_internal(RvkDevice* dev) {
-  // Request our main queue (both graphics and transfer) to be created on the device.
-  const f32               queuePriority   = 1.0f;
-  VkDeviceQueueCreateInfo queueCreateInfo = {
+  const f32               queuePriorities[] = {1.0f, 0.5f};
+  VkDeviceQueueCreateInfo queueCreateInfos[2];
+  u32                     queueCreateInfoCount = 0;
+  queueCreateInfos[queueCreateInfoCount++]     = (VkDeviceQueueCreateInfo){
       .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-      .queueFamilyIndex = dev->mainQueueIndex,
+      .queueFamilyIndex = dev->graphicsQueueIndex,
       .queueCount       = 1,
-      .pQueuePriorities = &queuePriority,
+      .pQueuePriorities = &queuePriorities[0],
   };
+  if (dev->transferQueueIndex != dev->graphicsQueueIndex) {
+    queueCreateInfos[queueCreateInfoCount++] = (VkDeviceQueueCreateInfo){
+        .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+        .queueFamilyIndex = dev->transferQueueIndex,
+        .queueCount       = 1,
+        .pQueuePriorities = &queuePriorities[1],
+    };
+  }
 
   const char* extensionsToEnabled[array_elems(g_requiredExts)];
   for (u32 i = 0; i != array_elems(g_requiredExts); ++i) {
@@ -239,8 +270,8 @@ static VkDevice rvk_device_create_internal(RvkDevice* dev) {
   const VkPhysicalDeviceFeatures featuresToEnable = rvk_device_pick_features(dev);
   VkDeviceCreateInfo             createInfo       = {
       .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-      .pQueueCreateInfos       = &queueCreateInfo,
-      .queueCreateInfoCount    = 1,
+      .pQueueCreateInfos       = queueCreateInfos,
+      .queueCreateInfoCount    = queueCreateInfoCount,
       .enabledExtensionCount   = array_elems(extensionsToEnabled),
       .ppEnabledExtensionNames = extensionsToEnabled,
       .pEnabledFeatures        = &featuresToEnable,
@@ -251,10 +282,10 @@ static VkDevice rvk_device_create_internal(RvkDevice* dev) {
   return result;
 }
 
-static VkCommandPool rvk_device_commandpool_create(RvkDevice* dev) {
+static VkCommandPool rvk_device_commandpool_create(RvkDevice* dev, const u32 queueIndex) {
   VkCommandPoolCreateInfo createInfo = {
       .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-      .queueFamilyIndex = dev->mainQueueIndex,
+      .queueFamilyIndex = queueIndex,
       .flags =
           VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
   };
@@ -285,34 +316,50 @@ RvkDevice* rvk_device_create() {
   if (rvk_instance_layer_supported(g_validationLayer)) {
     dev->flags |= RvkDeviceFlags_Validation;
   }
-  dev->vkInst         = rvk_instance_create(&dev->vkAlloc, dev->flags);
-  dev->vkPhysDev      = rvk_device_pick_physical_device(dev->vkInst);
-  dev->mainQueueIndex = rvk_device_pick_main_queue(dev->vkPhysDev);
+  dev->vkInst             = rvk_instance_create(&dev->vkAlloc, dev->flags);
+  dev->vkPhysDev          = rvk_device_pick_physical_device(dev->vkInst);
+  dev->graphicsQueueIndex = rvk_device_pick_graphics_queue(dev->vkPhysDev);
+  dev->transferQueueIndex = rvk_device_pick_transfer_queue(dev->vkPhysDev);
 
   vkGetPhysicalDeviceProperties(dev->vkPhysDev, &dev->vkProperties);
   vkGetPhysicalDeviceFeatures(dev->vkPhysDev, &dev->vkSupportedFeatures);
   vkGetPhysicalDeviceMemoryProperties(dev->vkPhysDev, &dev->vkMemProperties);
 
   dev->vkDev = rvk_device_create_internal(dev);
-  vkGetDeviceQueue(dev->vkDev, dev->mainQueueIndex, 0, &dev->vkMainQueue);
+  vkGetDeviceQueue(dev->vkDev, dev->graphicsQueueIndex, 0, &dev->vkGraphicsQueue);
+  dev->vkGraphicsCommandPool = rvk_device_commandpool_create(dev, dev->graphicsQueueIndex);
 
-  dev->vkMainCommandPool = rvk_device_commandpool_create(dev);
-  dev->vkDepthFormat     = rvk_device_pick_depthformat(dev);
+  if (dev->transferQueueIndex != dev->graphicsQueueIndex) {
+    vkGetDeviceQueue(dev->vkDev, dev->transferQueueIndex, 0, &dev->vkTransferQueue);
+    dev->vkTransferCommandPool = rvk_device_commandpool_create(dev, dev->transferQueueIndex);
+  } else {
+    dev->vkTransferQueue       = dev->vkGraphicsQueue;
+    dev->vkTransferCommandPool = dev->vkGraphicsCommandPool;
+  }
+
+  dev->vkDepthFormat = rvk_device_pick_depthformat(dev);
 
   if (dev->flags & RvkDeviceFlags_Validation) {
     dev->debug = rvk_debug_create(dev->vkInst, dev->vkDev, &dev->vkAlloc, g_debugFlags);
-    rvk_name_queue(dev->debug, dev->vkMainQueue, "main");
-    rvk_name_commandpool(dev->debug, dev->vkMainCommandPool, "main");
+    rvk_name_queue(dev->debug, dev->vkGraphicsQueue, "graphics");
+    rvk_name_commandpool(dev->debug, dev->vkGraphicsCommandPool, "graphics");
+
+    if (dev->vkTransferQueue != dev->vkGraphicsQueue) {
+      rvk_name_queue(dev->debug, dev->vkTransferQueue, "transfer");
+      rvk_name_commandpool(dev->debug, dev->vkTransferCommandPool, "transfer");
+    }
   }
 
-  dev->memPool  = rvk_mem_pool_create(dev->vkDev, dev->vkMemProperties, dev->vkProperties.limits);
-  dev->descPool = rvk_desc_pool_create(dev->vkDev);
+  dev->memPool    = rvk_mem_pool_create(dev->vkDev, dev->vkMemProperties, dev->vkProperties.limits);
+  dev->descPool   = rvk_desc_pool_create(dev->vkDev);
+  dev->transferer = rvk_transferer_create(dev);
 
   log_i(
       "Vulkan device created",
       log_param("validation", fmt_bool(dev->flags & RvkDeviceFlags_Validation)),
       log_param("device-name", fmt_text(string_from_null_term(dev->vkProperties.deviceName))),
-      log_param("main-queue-idx", fmt_int(dev->mainQueueIndex)),
+      log_param("graphics-queue-idx", fmt_int(dev->graphicsQueueIndex)),
+      log_param("transfer-queue-idx", fmt_int(dev->transferQueueIndex)),
       log_param("depth-format", fmt_text(rvk_format_info(dev->vkDepthFormat).name)));
 
   return dev;
@@ -322,10 +369,14 @@ void rvk_device_destroy(RvkDevice* dev) {
 
   rvk_device_wait_idle(dev);
 
-  rvk_mem_pool_destroy(dev->memPool);
+  rvk_transferer_destroy(dev->transferer);
   rvk_desc_pool_destroy(dev->descPool);
+  rvk_mem_pool_destroy(dev->memPool);
 
-  vkDestroyCommandPool(dev->vkDev, dev->vkMainCommandPool, &dev->vkAlloc);
+  vkDestroyCommandPool(dev->vkDev, dev->vkGraphicsCommandPool, &dev->vkAlloc);
+  if (dev->transferQueueIndex != dev->graphicsQueueIndex) {
+    vkDestroyCommandPool(dev->vkDev, dev->vkTransferCommandPool, &dev->vkAlloc);
+  }
   vkDestroyDevice(dev->vkDev, &dev->vkAlloc);
 
   if (dev->debug) {
@@ -337,5 +388,7 @@ void rvk_device_destroy(RvkDevice* dev) {
 
   log_i("Vulkan device destroyed");
 }
+
+void rvk_device_update(RvkDevice* dev) { rvk_transfer_flush(dev->transferer); }
 
 void rvk_device_wait_idle(const RvkDevice* dev) { rvk_call(vkDeviceWaitIdle, dev->vkDev); }

@@ -168,19 +168,19 @@ static RvkMemChunk* rvk_mem_chunk_create(
       log_param("loc", fmt_text(rvk_mem_loc_str(chunk->loc))),
       log_param("access", fmt_text(rvk_mem_access_str(chunk->access))),
       log_param("type", fmt_int(chunk->memType)),
-      log_param("size", fmt_int(chunk->size)));
+      log_param("size", fmt_size(chunk->size)));
 #endif
   return chunk;
 }
 
 static void rvk_mem_chunk_destroy(RvkMemChunk* chunk) {
 
-  diag_assert(rvk_mem_chunk_size_free(chunk) == chunk->size);
+  const u64 leakedBytes = chunk->size - rvk_mem_chunk_size_free(chunk);
+  if (UNLIKELY(leakedBytes)) {
+    diag_crash_msg("rend mem-pool: {} leaked from chunk", fmt_size(leakedBytes));
+  }
   diag_assert(rvk_mem_chunk_size_occupied(chunk) == 0);
 
-  if (chunk->map) {
-    vkUnmapMemory(chunk->pool->vkDev, chunk->map);
-  }
   rvk_mem_free_vk(chunk->pool, chunk->vkMem);
 
   dynarray_destroy(&chunk->freeBlocks);
@@ -192,7 +192,8 @@ static void rvk_mem_chunk_destroy(RvkMemChunk* chunk) {
       log_param("id", fmt_int(chunk->id)),
       log_param("loc", fmt_text(rvk_mem_loc_str(chunk->loc))),
       log_param("access", fmt_text(rvk_mem_access_str(chunk->access))),
-      log_param("type", fmt_int(chunk->memType)));
+      log_param("type", fmt_int(chunk->memType)),
+      log_param("size", fmt_size(chunk->size)));
 #endif
 }
 
@@ -205,7 +206,8 @@ static RvkMem rvk_mem_chunk_alloc(RvkMemChunk* chunk, const u64 size, const u64 
   // Find a block that can fit the requested size.
   for (usize i = 0; i != chunk->freeBlocks.size; ++i) {
     RvkMem*   block         = dynarray_at_t(&chunk->freeBlocks, i, RvkMem);
-    const u64 padding       = bits_padding_64(block->offset, align);
+    const u64 offset        = block->offset;
+    const u64 padding       = bits_padding_64(offset, align);
     const u64 paddedSize    = size + padding;
     const i64 remainingSize = (i64)block->size - (i64)paddedSize;
 
@@ -216,8 +218,7 @@ static RvkMem rvk_mem_chunk_alloc(RvkMemChunk* chunk, const u64 size, const u64 
 
     if (padding) {
       // Add the lost padding space as a new block.
-      *dynarray_push_t(&chunk->freeBlocks, RvkMem) =
-          (RvkMem){.offset = block->offset, .size = padding};
+      *dynarray_push_t(&chunk->freeBlocks, RvkMem) = (RvkMem){.offset = offset, .size = padding};
     }
 
     // Either shrink the block to 'remove' the space, or remove the block entirely.
@@ -235,12 +236,12 @@ static RvkMem rvk_mem_chunk_alloc(RvkMemChunk* chunk, const u64 size, const u64 
 #ifdef VOLO_RVK_MEM_LOGGING
     log_d(
         "Vulkan memory block allocated",
-        log_param("size", fmt_int(size)),
+        log_param("size", fmt_size(size)),
         log_param("align", fmt_int(align)),
         log_param("chunk", fmt_int(chunk->id)));
 #endif
 
-    return (RvkMem){.chunk = chunk, .offset = block->offset + padding, .size = size};
+    return (RvkMem){.chunk = chunk, .offset = offset + padding, .size = size};
   }
 
   // No block can fit the requested size.
@@ -269,7 +270,7 @@ static void rvk_mem_chunk_free(RvkMemChunk* chunk, const RvkMem mem) {
 
     // Check if this freeBlock is right after the given block.
     if (freeBlock->offset == rvk_mem_end_offset(mem)) {
-      freeBlock->offset -= mem.offset;
+      freeBlock->offset -= mem.size;
       freeBlock->size += mem.size;
       goto Done;
     }

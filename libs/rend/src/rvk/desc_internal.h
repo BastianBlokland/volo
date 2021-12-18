@@ -17,6 +17,8 @@ typedef enum {
   RvkDescKind_UniformBuffer,
   RvkDescKind_UniformBufferDynamic,
   RvkDescKind_StorageBuffer,
+
+  RvkDescKind_Count,
 } RvkDescKind;
 
 typedef struct {
@@ -36,6 +38,7 @@ void         rvk_desc_pool_destroy(RvkDescPool*);
 VkDescriptorSetLayout rvk_desc_vklayout(RvkDescPool*, const RvkDescMeta*);
 RvkDescSet            rvk_desc_alloc(RvkDescPool*, const RvkDescMeta*);
 void                  rvk_desc_free(RvkDescSet);
+String                rvk_desc_kind_str(RvkDescKind);
 
 VkDescriptorSet       rvk_desc_set_vkset(RvkDescSet);
 VkDescriptorSetLayout rvk_desc_set_vklayout(RvkDescSet);

@@ -7,7 +7,7 @@
       "shaderId": "shaders/triangle.frag.spv"
     }
   ],
-  "meshId": "meshes/triangle.obj",
+  "meshId": "meshes/triangle_xy.obj",
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "None",

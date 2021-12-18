@@ -64,6 +64,8 @@ static VkDescriptorType rvk_desc_vktype(const RvkDescKind kind) {
     return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
   case RvkDescKind_StorageBuffer:
     return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+  case RvkDescKind_Count:
+    break;
   }
   diag_crash_msg("Unsupported binding kind");
 }
@@ -170,7 +172,7 @@ static RvkDescChunk* rvk_desc_chunk_create(RvkDescPool* pool, const RvkDescMeta*
       "Vulkan descriptor chunk created",
       log_param("bindings", fmt_int(rvk_desc_binding_count(meta))),
       log_param("sets", fmt_int(rvk_desc_sets_per_chunk)),
-      log_param("metaHash", fmt_int(chunk->metaHash)));
+      log_param("meta-hash", fmt_int(chunk->metaHash)));
 #endif
   return chunk;
 }
@@ -184,7 +186,7 @@ static void rvk_desc_chunk_destroy(RvkDescChunk* chunk) {
   alloc_free_t(g_alloc_heap, chunk);
 
 #ifdef VOLO_RVK_DESC_LOGGING
-  log_d("Vulkan descriptor chunk destroyed", log_param("metaHash", fmt_int(chunk->metaHash)));
+  log_d("Vulkan descriptor chunk destroyed", log_param("meta-hash", fmt_int(chunk->metaHash)));
 #endif
 }
 
@@ -259,7 +261,7 @@ VkDescriptorSetLayout rvk_desc_vklayout(RvkDescPool* pool, const RvkDescMeta* me
     log_d(
         "Vulkan descriptor layout created",
         log_param("bindings", fmt_int(rvk_desc_binding_count(meta))),
-        log_param("metaHash", fmt_int(hash)));
+        log_param("meta-hash", fmt_int(hash)));
 #endif
   }
 
@@ -305,6 +307,18 @@ void rvk_desc_free(RvkDescSet set) {
   thread_mutex_lock(set.chunk->pool->chunkLock);
   rvk_desc_chunk_free(set.chunk, set);
   thread_mutex_unlock(set.chunk->pool->chunkLock);
+}
+
+String rvk_desc_kind_str(const RvkDescKind kind) {
+  static const String names[] = {
+      string_static("None"),
+      string_static("CombinedImageSampler"),
+      string_static("UniformBuffer"),
+      string_static("UniformBufferDynamic"),
+      string_static("StorageBuffer"),
+  };
+  ASSERT(array_elems(names) == RvkDescKind_Count, "Incorrect number of names");
+  return names[kind];
 }
 
 VkDescriptorSet rvk_desc_set_vkset(const RvkDescSet set) {

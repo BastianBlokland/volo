@@ -8,7 +8,7 @@ configure_copies(volo_assets_graphics
 configure_copies(volo_assets_meshes
   meshes/cube.obj
   meshes/quad_xy.obj
-  meshes/triangle.obj)
+  meshes/triangle_xy.obj)
 
 configure_shaders(volo_assets_shaders
   shaders/triangle.vert

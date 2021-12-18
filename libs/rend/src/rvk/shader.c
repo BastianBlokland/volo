@@ -89,9 +89,3 @@ void rvk_shader_destroy(RvkShader* shader) {
 
   alloc_free_t(g_alloc_heap, shader);
 }
-
-VkShaderStageFlagBits rvk_shader_vkstage(const RvkShader* shader) { return shader->vkStage; }
-
-VkShaderModule rvk_shader_vkmodule(const RvkShader* shader) { return shader->vkModule; }
-
-String rvk_shader_entrypoint(const RvkShader* shader) { return shader->entryPoint; }
