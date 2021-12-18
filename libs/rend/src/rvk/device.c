@@ -15,7 +15,10 @@
 static const RvkDebugFlags g_debugFlags      = rend_debug_verbose ? RvkDebugFlags_Verbose : 0;
 static const String        g_validationLayer = string_static("VK_LAYER_KHRONOS_validation");
 static const String        g_validationExt   = string_static("VK_EXT_debug_utils");
-static String              g_requiredExts[]  = {string_static("VK_KHR_swapchain")};
+static String              g_requiredExts[]  = {
+    string_static("VK_KHR_swapchain"),
+    string_static("VK_KHR_shader_float16_int8"),
+};
 
 static VkApplicationInfo rvk_instance_app_info() {
   return (VkApplicationInfo){
@@ -262,6 +265,11 @@ static VkDevice rvk_device_create_internal(RvkDevice* dev) {
     };
   }
 
+  const VkPhysicalDeviceShaderFloat16Int8Features float16Int8Features = {
+      .sType         = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_FLOAT16_INT8_FEATURES,
+      .shaderFloat16 = true,
+  };
+
   const char* extensionsToEnabled[array_elems(g_requiredExts)];
   for (u32 i = 0; i != array_elems(g_requiredExts); ++i) {
     extensionsToEnabled[i] = g_requiredExts[i].ptr;
@@ -270,6 +278,7 @@ static VkDevice rvk_device_create_internal(RvkDevice* dev) {
   const VkPhysicalDeviceFeatures featuresToEnable = rvk_device_pick_features(dev);
   VkDeviceCreateInfo             createInfo       = {
       .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+      .pNext                   = &float16Int8Features,
       .pQueueCreateInfos       = queueCreateInfos,
       .queueCreateInfoCount    = queueCreateInfoCount,
       .enabledExtensionCount   = array_elems(extensionsToEnabled),

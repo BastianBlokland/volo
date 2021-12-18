@@ -1,6 +1,8 @@
 #ifndef INCLUDE_TYPES
 #define INCLUDE_TYPES
 
+#extension GL_EXT_shader_explicit_arithmetic_types_float16 : enable
+
 #define i32 int
 #define i32_vec2 ivec2
 #define i32_vec3 ivec3
@@ -10,6 +12,11 @@
 #define u32_vec2 uvec2
 #define u32_vec3 uvec3
 #define u32_vec4 uvec4
+
+#define f16 float16_t
+#define f16_vec2 f16vec2
+#define f16_vec3 f16vec3
+#define f16_vec4 f16vec4
 
 #define f32 float
 #define f32_vec2 vec2
