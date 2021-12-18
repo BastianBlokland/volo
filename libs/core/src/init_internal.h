@@ -6,6 +6,7 @@
  * Fired once when the core library is initialized.
  */
 void alloc_init();
+void bits_init();
 void file_init();
 void path_init();
 void signal_init();

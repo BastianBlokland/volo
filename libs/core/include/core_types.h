@@ -14,8 +14,9 @@ typedef size_t    usize;
 typedef intptr_t  iptr;
 typedef uintptr_t uptr;
 
-typedef float  f32;
-typedef double f64;
+typedef uint16_t f16;
+typedef float    f32;
+typedef double   f64;
 
 typedef u8 bool;
 #define true 1

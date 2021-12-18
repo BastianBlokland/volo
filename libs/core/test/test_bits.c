@@ -170,4 +170,17 @@ spec(bits) {
     check_eq_float(bits_u64_as_f64(bits_f64_as_u64(1.337)), 1.337, 1e-6f);
     check_eq_int(bits_f64_as_u64(bits_u64_as_f64(42)), 42);
   }
+
+  it("can convert between 32 and 16 bit floats") {
+    check_eq_float(bits_f16_to_f32(bits_f32_to_f16(0.0f)), 0.0f, 1e-6f);
+    check_eq_float(bits_f16_to_f32(bits_f32_to_f16(1.0f)), 1.0f, 1e-6f);
+    check_eq_float(bits_f16_to_f32(bits_f32_to_f16(65504.0f)), 65504.0f, 1e-6f);
+    check_eq_float(bits_f16_to_f32(bits_f32_to_f16(6e-5f)), 6e-5f, 1e-6f);
+    check_eq_float(bits_f16_to_f32(bits_f32_to_f16(.42f)), .42f, 1e-3f);
+    check_eq_float(bits_f16_to_f32(bits_f32_to_f16(.1337f)), .1337f, 1e-3f);
+    check_eq_float(bits_f16_to_f32(bits_f32_to_f16(13.37f)), 13.37f, 1e-2f);
+    check_eq_float(bits_f16_to_f32(bits_f32_to_f16(-.42f)), -.42f, 1e-3f);
+    check_eq_float(bits_f16_to_f32(bits_f32_to_f16(-.1337f)), -.1337f, 1e-3f);
+    check_eq_float(bits_f16_to_f32(bits_f32_to_f16(-13.37f)), -13.37f, 1e-2f);
+  }
 }
