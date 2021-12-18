@@ -175,12 +175,12 @@ static RvkMemChunk* rvk_mem_chunk_create(
 
 static void rvk_mem_chunk_destroy(RvkMemChunk* chunk) {
 
-  diag_assert(rvk_mem_chunk_size_free(chunk) == chunk->size);
+  const u64 leakedBytes = chunk->size - rvk_mem_chunk_size_free(chunk);
+  if (UNLIKELY(leakedBytes)) {
+    diag_crash_msg("rend mem-pool: {} leaked from chunk", fmt_size(leakedBytes));
+  }
   diag_assert(rvk_mem_chunk_size_occupied(chunk) == 0);
 
-  if (chunk->map) {
-    vkUnmapMemory(chunk->pool->vkDev, chunk->map);
-  }
   rvk_mem_free_vk(chunk->pool, chunk->vkMem);
 
   dynarray_destroy(&chunk->freeBlocks);

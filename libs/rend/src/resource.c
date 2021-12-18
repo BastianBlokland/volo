@@ -183,7 +183,7 @@ void rend_resource_teardown(EcsWorld* world) {
   const RendPlatformComp* plat = ecs_utils_read_first_t(world, RendPlatformView, RendPlatformComp);
   if (plat) {
     // Wait for all rendering to be done.
-    rvk_device_wait_idle(rvk_platform_device(plat->vulkan));
+    rvk_platform_wait_idle(plat->vulkan);
   }
 
   // Teardown graphics.

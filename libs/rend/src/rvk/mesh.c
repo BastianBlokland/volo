@@ -5,6 +5,7 @@
 #include "buffer_internal.h"
 #include "device_internal.h"
 #include "mesh_internal.h"
+#include "transfer_internal.h"
 
 typedef struct {
   f32 pos[3];
@@ -24,6 +25,8 @@ RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset) {
   mesh->vertexBuffer     = rvk_buffer_create(dev, vertexSize, RvkBufferType_DeviceStorage);
   mesh->indexBuffer      = rvk_buffer_create(dev, indexSize, RvkBufferType_DeviceIndex);
 
+  rvk_transfer_buffer(dev->transferer, &mesh->indexBuffer, mem_create(asset->indices, indexSize));
+
   log_d(
       "Vulkan mesh created",
       log_param("vertices", fmt_int(mesh->vertexCount)),
@@ -42,4 +45,13 @@ void rvk_mesh_destroy(RvkMesh* mesh) {
   log_d("Vulkan mesh destroyed");
 
   alloc_free_t(g_alloc_heap, mesh);
+}
+
+bool rvk_mesh_prepare(RvkMesh* mesh, const RvkCanvas* canvas) {
+  (void)canvas;
+
+  if (!rvk_transfer_poll(mesh->dev->transferer, mesh->indexTransfer)) {
+    return false;
+  }
+  return true; // All resources have been transferred to the device.
 }

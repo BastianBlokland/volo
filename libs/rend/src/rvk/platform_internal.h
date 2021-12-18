@@ -14,6 +14,8 @@ typedef struct sRvkPlatform RvkPlatform;
 RvkPlatform* rvk_platform_create();
 void         rvk_platform_destroy(RvkPlatform*);
 RvkDevice*   rvk_platform_device(const RvkPlatform*);
+void         rvk_platform_update(RvkPlatform*);
+void         rvk_platform_wait_idle(const RvkPlatform*);
 RvkCanvasId  rvk_platform_canvas_create(RvkPlatform*, const GapWindowComp*);
 void         rvk_platform_canvas_destroy(RvkPlatform*, RvkCanvasId);
 

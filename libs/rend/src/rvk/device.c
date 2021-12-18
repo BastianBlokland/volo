@@ -8,6 +8,7 @@
 #include "desc_internal.h"
 #include "device_internal.h"
 #include "mem_internal.h"
+#include "transfer_internal.h"
 
 #define rend_debug_verbose true
 
@@ -331,7 +332,7 @@ RvkDevice* rvk_device_create() {
     dev->vkTransferCommandPool = rvk_device_commandpool_create(dev, dev->transferQueueIndex);
   } else {
     dev->vkTransferQueue       = dev->vkGraphicsQueue;
-    dev->vkTransferCommandPool = dev->vkTransferCommandPool;
+    dev->vkTransferCommandPool = dev->vkGraphicsCommandPool;
   }
 
   dev->vkDepthFormat = rvk_device_pick_depthformat(dev);
@@ -347,8 +348,9 @@ RvkDevice* rvk_device_create() {
     }
   }
 
-  dev->memPool  = rvk_mem_pool_create(dev->vkDev, dev->vkMemProperties, dev->vkProperties.limits);
-  dev->descPool = rvk_desc_pool_create(dev->vkDev);
+  dev->memPool    = rvk_mem_pool_create(dev->vkDev, dev->vkMemProperties, dev->vkProperties.limits);
+  dev->descPool   = rvk_desc_pool_create(dev->vkDev);
+  dev->transferer = rvk_transferer_create(dev);
 
   log_i(
       "Vulkan device created",
@@ -365,8 +367,9 @@ void rvk_device_destroy(RvkDevice* dev) {
 
   rvk_device_wait_idle(dev);
 
-  rvk_mem_pool_destroy(dev->memPool);
+  rvk_transferer_destroy(dev->transferer);
   rvk_desc_pool_destroy(dev->descPool);
+  rvk_mem_pool_destroy(dev->memPool);
 
   vkDestroyCommandPool(dev->vkDev, dev->vkGraphicsCommandPool, &dev->vkAlloc);
   if (dev->transferQueueIndex != dev->graphicsQueueIndex) {
@@ -383,5 +386,7 @@ void rvk_device_destroy(RvkDevice* dev) {
 
   log_i("Vulkan device destroyed");
 }
+
+void rvk_device_update(RvkDevice* dev) { rvk_transfer_flush(dev->transferer); }
 
 void rvk_device_wait_idle(const RvkDevice* dev) { rvk_call(vkDeviceWaitIdle, dev->vkDev); }

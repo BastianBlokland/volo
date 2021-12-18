@@ -8,6 +8,7 @@
 #include "canvas_internal.h"
 #include "device_internal.h"
 #include "graphic_internal.h"
+#include "mesh_internal.h"
 #include "shader_internal.h"
 #include "technique_internal.h"
 
@@ -354,6 +355,10 @@ void rvk_graphic_mesh_add(RvkGraphic* graphic, RvkMesh* mesh) {
 }
 
 bool rvk_graphic_prepare(RvkGraphic* graphic, const RvkCanvas* canvas) {
+  if (!rvk_mesh_prepare(graphic->mesh, canvas)) {
+    return false;
+  }
+
   if (graphic->vkPipeline) {
     // TODO: Validate that the already created pipeline is compatible with the given canvas.
     return true;

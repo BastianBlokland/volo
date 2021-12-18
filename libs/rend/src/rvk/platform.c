@@ -49,6 +49,10 @@ void rvk_platform_destroy(RvkPlatform* plat) {
 
 RvkDevice* rvk_platform_device(const RvkPlatform* plat) { return plat->dev; }
 
+void rvk_platform_update(RvkPlatform* plat) { rvk_device_update(plat->dev); }
+
+void rvk_platform_wait_idle(const RvkPlatform* plat) { rvk_device_wait_idle(plat->dev); }
+
 RvkCanvasId rvk_platform_canvas_create(RvkPlatform* plat, const GapWindowComp* window) {
   static i64 nextCanvasId = 0;
 
