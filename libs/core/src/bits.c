@@ -32,7 +32,7 @@ static bool bits_cpu_f16c_support() {
    */
   i32 cpuId[4];
   bits_cpu_id(1, cpuId);
-  return cpuId[2] & 0x20000000;
+  return (cpuId[2] & (1 << 29)) != 0;
 }
 
 static f16 bits_f32_to_f16_intrinsic(const f32 val) {
