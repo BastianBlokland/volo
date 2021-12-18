@@ -389,6 +389,10 @@ void rvk_graphic_mesh_add(RvkGraphic* graphic, RvkMesh* mesh) {
   graphic->mesh = mesh;
 }
 
+u32 rvk_graphic_index_count(const RvkGraphic* graphic) {
+  return graphic->mesh ? graphic->mesh->indexCount : 0;
+}
+
 bool rvk_graphic_prepare(RvkGraphic* graphic, const RvkCanvas* canvas) {
   if (!graphic->vkPipeline) {
     const RvkDescMeta descMeta = rvk_graphic_desc_meta(graphic, rvk_desc_graphic_set);
@@ -426,4 +430,8 @@ void rvk_graphic_bind(const RvkGraphic* graphic, VkCommandBuffer vkCmdBuf) {
       &vkGraphicDescSet,
       0,
       null);
+
+  if (graphic->mesh) {
+    vkCmdBindIndexBuffer(vkCmdBuf, graphic->mesh->indexBuffer.vkBuffer, 0, VK_INDEX_TYPE_UINT16);
+  }
 }

@@ -2,7 +2,8 @@
 #define INCLUDE_VERTEX
 
 struct Vertex {
-  vec4 pos;
+  vec4 position; // x, y, z position
+  vec4 texcoord; // x, y texcoord1
 };
 
 #define VERT_INPUT_BINDING()                                                                       \

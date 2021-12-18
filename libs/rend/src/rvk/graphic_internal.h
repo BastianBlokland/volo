@@ -31,5 +31,6 @@ RvkGraphic* rvk_graphic_create(RvkDevice*, const AssetGraphicComp*);
 void        rvk_graphic_destroy(RvkGraphic*);
 void        rvk_graphic_shader_add(RvkGraphic*, RvkShader*);
 void        rvk_graphic_mesh_add(RvkGraphic*, RvkMesh*);
+u32         rvk_graphic_index_count(const RvkGraphic*);
 bool        rvk_graphic_prepare(RvkGraphic*, const RvkCanvas*);
 void        rvk_graphic_bind(const RvkGraphic*, VkCommandBuffer);

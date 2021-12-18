@@ -144,7 +144,8 @@ void rvk_renderer_draw_inst(RvkRenderer* rend, RvkGraphic* graphic) {
 
   rvk_graphic_bind(graphic, rend->vkDrawBuffer);
 
-  vkCmdDraw(rend->vkDrawBuffer, 3, 1, 0, 0);
+  const u32 indexCount = rvk_graphic_index_count(graphic);
+  vkCmdDrawIndexed(rend->vkDrawBuffer, indexCount, 1, 0, 0, 0);
 }
 
 void rvk_renderer_draw_end(RvkRenderer* rend, RvkTechnique* tech) {

@@ -8,8 +8,10 @@
 #include "transfer_internal.h"
 
 typedef struct {
-  f32 pos[3];
-  f32 padding[1];
+  f32 position[3];
+  f32 pad_0[1];
+  f32 texcoord[2];
+  f32 pad_1[2];
 } RvkVertex;
 
 static Mem rvk_mesh_to_device_vertices_scratch(const AssetMeshComp* asset) {
@@ -19,9 +21,11 @@ static Mem rvk_mesh_to_device_vertices_scratch(const AssetMeshComp* asset) {
   RvkVertex* output = mem_as_t(buffer, RvkVertex);
   for (usize i = 0; i != asset->vertexCount; ++i) {
     output[i] = (RvkVertex){
-        .pos[0] = asset->vertices[i].position.x,
-        .pos[1] = asset->vertices[i].position.y,
-        .pos[2] = asset->vertices[i].position.z,
+        .position[0] = asset->vertices[i].position.x,
+        .position[1] = asset->vertices[i].position.y,
+        .position[2] = asset->vertices[i].position.z,
+        .texcoord[0] = asset->vertices[i].texcoord.x,
+        .texcoord[1] = asset->vertices[i].texcoord.y,
     };
   }
   return buffer;
