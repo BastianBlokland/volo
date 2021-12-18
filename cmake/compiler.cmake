@@ -72,6 +72,9 @@ macro(set_gcc_compile_options)
   add_compile_options(-Wno-override-init -Wno-missing-field-initializers -Wno-type-limits
                       -Wno-implicit-fallthrough -Wno-clobbered -Wno-missing-braces)
 
+  # Enable output of f16c (f32 <-> f16 converions)
+  add_compile_options(-mf16c)
+
   # TODO: Tie these debug options to a configuration knob.
   add_compile_options(-g -fno-omit-frame-pointer)
 endmacro(set_gcc_compile_options)
@@ -85,8 +88,11 @@ macro(set_clang_compile_options)
   # Setup warning flags.
   add_compile_options(-Wall -Wextra -Werror -Wshadow -Wgnu-empty-initializer -Wconversion)
   add_compile_options(-Wno-initializer-overrides -Wno-unused-value -Wno-missing-braces
-                      -Wno-sign-conversion -Wno-implicit-int-float-conversion
-                      -Wno-implicit-int-conversion -Wno-missing-field-initializers)
+  -Wno-sign-conversion -Wno-implicit-int-float-conversion
+  -Wno-implicit-int-conversion -Wno-missing-field-initializers)
+
+  # Enable output of f16c (f32 <-> f16 converions)
+  add_compile_options(-mf16c)
 
   # TODO: Tie these debug options to a configuration knob.
   add_compile_options(-g -fno-omit-frame-pointer)
