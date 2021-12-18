@@ -64,6 +64,8 @@ static VkDescriptorType rvk_desc_vktype(const RvkDescKind kind) {
     return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
   case RvkDescKind_StorageBuffer:
     return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+  case RvkDescKind_Count:
+    break;
   }
   diag_crash_msg("Unsupported binding kind");
 }
@@ -305,6 +307,18 @@ void rvk_desc_free(RvkDescSet set) {
   thread_mutex_lock(set.chunk->pool->chunkLock);
   rvk_desc_chunk_free(set.chunk, set);
   thread_mutex_unlock(set.chunk->pool->chunkLock);
+}
+
+String rvk_desc_kind_str(const RvkDescKind kind) {
+  static const String names[] = {
+      string_static("None"),
+      string_static("CombinedImageSampler"),
+      string_static("UniformBuffer"),
+      string_static("UniformBufferDynamic"),
+      string_static("StorageBuffer"),
+  };
+  ASSERT(array_elems(names) == RvkDescKind_Count, "Incorrect number of names");
+  return names[kind];
 }
 
 VkDescriptorSet rvk_desc_set_vkset(const RvkDescSet set) {
