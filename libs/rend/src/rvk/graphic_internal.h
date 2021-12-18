@@ -1,6 +1,7 @@
 #pragma once
 #include "asset_graphic.h"
 
+#include "desc_internal.h"
 #include "vulkan_internal.h"
 
 // Internal forward declarations:
@@ -21,6 +22,7 @@ typedef struct sRvkGraphic {
   AssetGraphicCull       cull;
   RvkShader*             shaders[rvk_graphic_shaders_max];
   RvkMesh*               mesh;
+  RvkDescSet             descSet;
   VkPipelineLayout       vkPipelineLayout;
   VkPipeline             vkPipeline;
 } RvkGraphic;
@@ -30,3 +32,4 @@ void        rvk_graphic_destroy(RvkGraphic*);
 void        rvk_graphic_shader_add(RvkGraphic*, RvkShader*);
 void        rvk_graphic_mesh_add(RvkGraphic*, RvkMesh*);
 bool        rvk_graphic_prepare(RvkGraphic*, const RvkCanvas*);
+void        rvk_graphic_bind(const RvkGraphic*, VkCommandBuffer);

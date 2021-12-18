@@ -6,6 +6,7 @@
 #include "log_logger.h"
 
 #include "canvas_internal.h"
+#include "desc_internal.h"
 #include "device_internal.h"
 #include "graphic_internal.h"
 #include "mesh_internal.h"
@@ -13,6 +14,9 @@
 #include "technique_internal.h"
 
 typedef RvkShader* RvkShaderPtr;
+
+#define rvk_desc_graphic_set 0
+#define rvk_desc_graphic_bind_mesh 0
 
 static const char* rvk_to_null_term_scratch(String str) {
   const Mem scratchMem = alloc_alloc(g_alloc_scratch, str.size + 1, 1);
@@ -22,61 +26,89 @@ static const char* rvk_to_null_term_scratch(String str) {
 }
 
 static String rvk_graphic_topology_str(const AssetGraphicTopology topology) {
-  static const String msgs[] = {
+  static const String names[] = {
       string_static("Triangles"),
       string_static("Lines"),
       string_static("LineStrip"),
   };
-  ASSERT(array_elems(msgs) == AssetGraphicTopology_Count, "Incorrect number of names");
-  return msgs[topology];
+  ASSERT(array_elems(names) == AssetGraphicTopology_Count, "Incorrect number of names");
+  return names[topology];
 }
 
 static String rvk_graphic_rasterizer_str(const AssetGraphicRasterizer rasterizer) {
-  static const String msgs[] = {
+  static const String names[] = {
       string_static("Fill"),
       string_static("Lines"),
       string_static("Points"),
   };
-  ASSERT(array_elems(msgs) == AssetGraphicRasterizer_Count, "Incorrect number of names");
-  return msgs[rasterizer];
+  ASSERT(array_elems(names) == AssetGraphicRasterizer_Count, "Incorrect number of names");
+  return names[rasterizer];
 }
 
 static String rvk_graphic_blend_str(const AssetGraphicBlend blend) {
-  static const String msgs[] = {
+  static const String names[] = {
       string_static("None"),
       string_static("Alpha"),
       string_static("Additive"),
       string_static("AlphaAdditive"),
   };
-  ASSERT(array_elems(msgs) == AssetGraphicBlend_Count, "Incorrect number of names");
-  return msgs[blend];
+  ASSERT(array_elems(names) == AssetGraphicBlend_Count, "Incorrect number of names");
+  return names[blend];
 }
 
 static String rvk_graphic_depth_str(const AssetGraphicDepth depth) {
-  static const String msgs[] = {
+  static const String names[] = {
       string_static("None"),
       string_static("Less"),
       string_static("Always"),
   };
-  ASSERT(array_elems(msgs) == AssetGraphicDepth_Count, "Incorrect number of names");
-  return msgs[depth];
+  ASSERT(array_elems(names) == AssetGraphicDepth_Count, "Incorrect number of names");
+  return names[depth];
 }
 
 static String rvk_graphic_cull_str(const AssetGraphicCull cull) {
-  static const String msgs[] = {
+  static const String names[] = {
       string_static("Back"),
       string_static("Front"),
       string_static("None"),
   };
-  ASSERT(array_elems(msgs) == AssetGraphicCull_Count, "Incorrect number of names");
-  return msgs[cull];
+  ASSERT(array_elems(names) == AssetGraphicCull_Count, "Incorrect number of names");
+  return names[cull];
+}
+
+static void rvk_graphic_desc_merge(RvkDescMeta* meta, const RvkDescMeta* other) {
+  for (usize i = 0; i != rvk_desc_bindings_max; ++i) {
+    if (meta->bindings[i] && other->bindings[i]) {
+      if (UNLIKELY(meta->bindings[i] == other->bindings[i])) {
+        diag_crash_msg(
+            "Incompatible shader descriptor binding {} ({} vs {})",
+            fmt_int(i),
+            fmt_text(rvk_desc_kind_str(meta->bindings[i])),
+            fmt_text(rvk_desc_kind_str(other->bindings[i])));
+      }
+    } else if (other->bindings[i]) {
+      meta->bindings[i] = other->bindings[i];
+    }
+  }
+}
+
+static RvkDescMeta rvk_graphic_desc_meta(const RvkGraphic* graphic, const usize set) {
+  RvkDescMeta meta = {0};
+  array_for_t(graphic->shaders, RvkShaderPtr, itr) {
+    if (*itr) {
+      rvk_graphic_desc_merge(&meta, &(*itr)->descriptors[set]);
+    }
+  }
+  return meta;
 }
 
 static VkPipelineLayout rvk_pipeline_layout_create(const RvkGraphic* graphic) {
-  const VkDescriptorSetLayout      descriptorLayouts[1] = {0}; // TODO: Support meshes / textures.
-  const VkPipelineLayoutCreateInfo pipelineLayoutInfo   = {
+  const VkDescriptorSetLayout descriptorLayouts[1] = {
+      rvk_desc_set_vklayout(graphic->descSet),
+  };
+  const VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
       .sType          = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-      .setLayoutCount = 0, // array_elems(descriptorLayouts)
+      .setLayoutCount = array_elems(descriptorLayouts),
       .pSetLayouts    = descriptorLayouts,
   };
   VkPipelineLayout result;
@@ -333,6 +365,9 @@ void rvk_graphic_destroy(RvkGraphic* graphic) {
   if (graphic->vkPipelineLayout) {
     vkDestroyPipelineLayout(graphic->dev->vkDev, graphic->vkPipelineLayout, &graphic->dev->vkAlloc);
   }
+  if (rvk_desc_valid(graphic->descSet)) {
+    rvk_desc_free(graphic->descSet);
+  }
 
   log_d("Vulkan graphic destroyed");
 
@@ -355,16 +390,40 @@ void rvk_graphic_mesh_add(RvkGraphic* graphic, RvkMesh* mesh) {
 }
 
 bool rvk_graphic_prepare(RvkGraphic* graphic, const RvkCanvas* canvas) {
+  if (!graphic->vkPipeline) {
+    const RvkDescMeta descMeta = rvk_graphic_desc_meta(graphic, rvk_desc_graphic_set);
+    graphic->descSet           = rvk_desc_alloc(graphic->dev->descPool, &descMeta);
+
+    if (descMeta.bindings[rvk_desc_graphic_bind_mesh] == RvkDescKind_StorageBuffer) {
+      diag_assert_msg(graphic->mesh, "Shader expects a mesh");
+      rvk_desc_set_attach_buffer(
+          graphic->descSet, rvk_desc_graphic_bind_mesh, &graphic->mesh->vertexBuffer);
+    }
+
+    graphic->vkPipelineLayout = rvk_pipeline_layout_create(graphic);
+    graphic->vkPipeline       = rvk_pipeline_create(graphic, graphic->vkPipelineLayout, canvas);
+  }
   if (!rvk_mesh_prepare(graphic->mesh, canvas)) {
     return false;
   }
-
-  if (graphic->vkPipeline) {
-    // TODO: Validate that the already created pipeline is compatible with the given canvas.
-    return true;
-  }
-
-  graphic->vkPipelineLayout = rvk_pipeline_layout_create(graphic);
-  graphic->vkPipeline       = rvk_pipeline_create(graphic, graphic->vkPipelineLayout, canvas);
   return true;
+}
+
+void rvk_graphic_bind(const RvkGraphic* graphic, VkCommandBuffer vkCmdBuf) {
+  diag_assert(rvk_desc_valid(graphic->descSet));
+  diag_assert(graphic->vkPipeline);
+  diag_assert(graphic->vkPipelineLayout);
+
+  vkCmdBindPipeline(vkCmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, graphic->vkPipeline);
+
+  const VkDescriptorSet vkGraphicDescSet = rvk_desc_set_vkset(graphic->descSet);
+  vkCmdBindDescriptorSets(
+      vkCmdBuf,
+      VK_PIPELINE_BIND_POINT_GRAPHICS,
+      graphic->vkPipelineLayout,
+      rvk_desc_graphic_set,
+      1,
+      &vkGraphicDescSet,
+      0,
+      null);
 }

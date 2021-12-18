@@ -141,7 +141,9 @@ void rvk_renderer_draw_begin(
 void rvk_renderer_draw_inst(RvkRenderer* rend, RvkGraphic* graphic) {
 
   diag_assert_msg(graphic->vkPipeline, "Graphic not initialized");
-  vkCmdBindPipeline(rend->vkDrawBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphic->vkPipeline);
+
+  rvk_graphic_bind(graphic, rend->vkDrawBuffer);
+
   vkCmdDraw(rend->vkDrawBuffer, 3, 1, 0, 0);
 }
 
