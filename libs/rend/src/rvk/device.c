@@ -184,8 +184,9 @@ static VkPhysicalDevice rvk_device_pick_physical_device(VkInstance vkInst) {
   u32              vkPhysDevsCount = array_elems(vkPhysDevs);
   rvk_call(vkEnumeratePhysicalDevices, vkInst, &vkPhysDevsCount, vkPhysDevs);
 
-  VkPhysicalDevice bestVkPhysDev = null;
-  i32              bestScore     = -1;
+  VkPhysicalDevice bestVkPhysDev  = null;
+  u32              bestApiVersion = 0;
+  i32              bestScore      = -1;
 
   for (usize i = 0; i != vkPhysDevsCount; ++i) {
     const RendDeviceExts exts = rvk_device_exts_query(vkPhysDevs[i]);
@@ -213,9 +214,10 @@ static VkPhysicalDevice rvk_device_pick_physical_device(VkInstance vkInst) {
         log_param("vendor", fmt_text(rvk_vendor_str(properties.vendorID))),
         log_param("score", fmt_int(score)));
 
-    if (score > bestScore) {
-      bestVkPhysDev = vkPhysDevs[i];
-      bestScore     = score;
+    if (score > bestScore || (score == bestScore && properties.apiVersion > bestApiVersion)) {
+      bestVkPhysDev  = vkPhysDevs[i];
+      bestScore      = score;
+      bestApiVersion = properties.apiVersion;
     }
   }
   if (!bestVkPhysDev) {
