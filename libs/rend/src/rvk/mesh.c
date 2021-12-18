@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "log_logger.h"
 
@@ -8,10 +9,10 @@
 #include "transfer_internal.h"
 
 typedef struct {
-  f32 position[3];
-  f32 pad_0[1];
-  f32 texcoord[2];
-  f32 pad_1[2];
+  f16 position[3];
+  f16 pad_0[1];
+  f16 texcoord[2];
+  f16 pad_1[2];
 } RvkVertex;
 
 static Mem rvk_mesh_to_device_vertices_scratch(const AssetMeshComp* asset) {
@@ -21,11 +22,11 @@ static Mem rvk_mesh_to_device_vertices_scratch(const AssetMeshComp* asset) {
   RvkVertex* output = mem_as_t(buffer, RvkVertex);
   for (usize i = 0; i != asset->vertexCount; ++i) {
     output[i] = (RvkVertex){
-        .position[0] = asset->vertices[i].position.x,
-        .position[1] = asset->vertices[i].position.y,
-        .position[2] = asset->vertices[i].position.z,
-        .texcoord[0] = asset->vertices[i].texcoord.x,
-        .texcoord[1] = asset->vertices[i].texcoord.y,
+        .position[0] = bits_f32_to_f16(asset->vertices[i].position.x),
+        .position[1] = bits_f32_to_f16(asset->vertices[i].position.y),
+        .position[2] = bits_f32_to_f16(asset->vertices[i].position.z),
+        .texcoord[0] = bits_f32_to_f16(asset->vertices[i].texcoord.x),
+        .texcoord[1] = bits_f32_to_f16(asset->vertices[i].texcoord.y),
     };
   }
   return buffer;

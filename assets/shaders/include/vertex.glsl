@@ -4,8 +4,8 @@
 #include "types.glsl"
 
 struct Vertex {
-  f32_vec4 position; // x, y, z position
-  f32_vec4 texcoord; // x, y texcoord1
+  f16_vec4 position; // x, y, z position
+  f16_vec4 texcoord; // x, y texcoord1
 };
 
 #define VERT_INPUT_BINDING()                                                                       \
