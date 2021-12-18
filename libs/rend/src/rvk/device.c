@@ -265,8 +265,14 @@ static VkDevice rvk_device_create_internal(RvkDevice* dev) {
     };
   }
 
-  const VkPhysicalDeviceShaderFloat16Int8Features float16Int8Features = {
+  VkPhysicalDevice16BitStorageFeatures float16IStorageFeatures = {
+      .sType                    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES_KHR,
+      .storageBuffer16BitAccess = true,
+  };
+
+  VkPhysicalDeviceShaderFloat16Int8Features float16Int8Features = {
       .sType         = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_FLOAT16_INT8_FEATURES,
+      .pNext         = &float16IStorageFeatures,
       .shaderFloat16 = true,
   };
 
