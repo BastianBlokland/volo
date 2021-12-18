@@ -192,7 +192,8 @@ static void rvk_mem_chunk_destroy(RvkMemChunk* chunk) {
       log_param("id", fmt_int(chunk->id)),
       log_param("loc", fmt_text(rvk_mem_loc_str(chunk->loc))),
       log_param("access", fmt_text(rvk_mem_access_str(chunk->access))),
-      log_param("type", fmt_int(chunk->memType)));
+      log_param("type", fmt_int(chunk->memType)),
+      log_param("size", fmt_size(chunk->size)));
 #endif
 }
 
