@@ -22,7 +22,7 @@ function(configure_shaders target)
       OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${shaderPath}.spv
       DEPENDS ${shaderPath}
       COMMAND ${Vulkan_GLSLC_EXECUTABLE}
-      --target-env=vulkan1.1 --target-spv=spv1.3 -Werror -O
+      -x glsl --target-env=vulkan1.1 --target-spv=spv1.3 -Werror -O
       -o ${CMAKE_CURRENT_BINARY_DIR}/${shaderPath}.spv
       ${CMAKE_CURRENT_SOURCE_DIR}/${shaderPath})
 
