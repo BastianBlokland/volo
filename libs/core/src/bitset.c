@@ -4,9 +4,9 @@
 #include "core_math.h"
 #include "core_types.h"
 
-INLINE_HINT usize bitset_size(BitSet bits) { return bytes_to_bits(bits.size); }
+usize bitset_size(BitSet bits) { return bytes_to_bits(bits.size); }
 
-INLINE_HINT bool bitset_test(BitSet bits, usize idx) {
+bool bitset_test(BitSet bits, usize idx) {
   const usize byteIdx = bits_to_bytes(idx);
   if (byteIdx >= bits.size) {
     return false;
@@ -83,7 +83,7 @@ usize bitset_index(BitSet bits, usize idx) {
   return result;
 }
 
-INLINE_HINT void bitset_set(BitSet bits, usize idx) {
+void bitset_set(BitSet bits, usize idx) {
   diag_assert(idx < bitset_size(bits));
   *mem_at_u8(bits, bits_to_bytes(idx)) |= 1u << bit_in_byte(idx);
 }
@@ -118,7 +118,7 @@ void bitset_set_all(BitSet bits, usize idx) {
   }
 }
 
-INLINE_HINT void bitset_clear(BitSet bits, usize idx) {
+void bitset_clear(BitSet bits, usize idx) {
   diag_assert(idx < bitset_size(bits));
   *mem_at_u8(bits, bits_to_bytes(idx)) &= ~(1u << bit_in_byte(idx));
 }

@@ -42,7 +42,7 @@ void dynarray_destroy(DynArray* array) {
   }
 }
 
-INLINE_HINT usize dynarray_size(const DynArray* array) {
+usize dynarray_size(const DynArray* array) {
   diag_assert(array);
   return array->size;
 }
@@ -61,7 +61,7 @@ static void dynarray_resize_grow(DynArray* array, const usize size) {
   array->data = newMem;
 }
 
-INLINE_HINT void dynarray_resize(DynArray* array, const usize size) {
+void dynarray_resize(DynArray* array, const usize size) {
   diag_assert(array);
   if (size * array->stride > array->data.size) {
     dynarray_resize_grow(array, size);
@@ -69,23 +69,23 @@ INLINE_HINT void dynarray_resize(DynArray* array, const usize size) {
   array->size = size;
 }
 
-INLINE_HINT void dynarray_clear(DynArray* array) {
+void dynarray_clear(DynArray* array) {
   diag_assert(array);
   array->size = 0;
 }
 
-INLINE_HINT Mem dynarray_at(const DynArray* array, const usize idx, const usize count) {
+Mem dynarray_at(const DynArray* array, const usize idx, const usize count) {
   diag_assert(array);
   diag_assert(idx + count <= array->size);
   return mem_slice(array->data, array->stride * idx, array->stride * count);
 }
 
-INLINE_HINT Mem dynarray_push(DynArray* array, const usize count) {
+Mem dynarray_push(DynArray* array, const usize count) {
   dynarray_resize(array, array->size + count);
   return mem_slice(array->data, array->stride * (array->size - count), array->stride * count);
 }
 
-INLINE_HINT void dynarray_pop(DynArray* array, usize count) {
+void dynarray_pop(DynArray* array, usize count) {
   diag_assert(array);
   diag_assert(count <= array->size);
   dynarray_resize(array, array->size - count);

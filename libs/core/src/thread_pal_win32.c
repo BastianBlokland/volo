@@ -49,19 +49,19 @@ void thread_pal_set_name(const String str) {
 }
 #endif // !defined(__MINGW32__)
 
-INLINE_HINT i64 thread_pal_atomic_load_i64(i64* ptr) {
+i64 thread_pal_atomic_load_i64(i64* ptr) {
   return InterlockedCompareExchange64((volatile i64*)ptr, 0, 0);
 }
 
-INLINE_HINT void thread_pal_atomic_store_i64(i64* ptr, i64 value) {
+void thread_pal_atomic_store_i64(i64* ptr, i64 value) {
   InterlockedExchange64((volatile i64*)ptr, value);
 }
 
-INLINE_HINT i64 thread_pal_atomic_exchange_i64(i64* ptr, i64 value) {
+i64 thread_pal_atomic_exchange_i64(i64* ptr, i64 value) {
   return InterlockedExchange64((volatile i64*)ptr, value);
 }
 
-INLINE_HINT bool thread_pal_atomic_compare_exchange_i64(i64* ptr, i64* expected, i64 value) {
+bool thread_pal_atomic_compare_exchange_i64(i64* ptr, i64* expected, i64 value) {
   const i64 read = (i64)InterlockedCompareExchange64((volatile i64*)ptr, value, *expected);
   if (read == *expected) {
     return true;
@@ -70,7 +70,7 @@ INLINE_HINT bool thread_pal_atomic_compare_exchange_i64(i64* ptr, i64* expected,
   return false;
 }
 
-INLINE_HINT i64 thread_pal_atomic_add_i64(i64* ptr, i64 value) {
+i64 thread_pal_atomic_add_i64(i64* ptr, i64 value) {
   i64 current;
   i64 add;
   do {
@@ -80,7 +80,7 @@ INLINE_HINT i64 thread_pal_atomic_add_i64(i64* ptr, i64 value) {
   return current;
 }
 
-INLINE_HINT i64 thread_pal_atomic_sub_i64(i64* ptr, i64 value) {
+i64 thread_pal_atomic_sub_i64(i64* ptr, i64 value) {
   i64 current;
   i64 sub;
   do {

@@ -60,20 +60,6 @@ ASSERT(false, "Unsupported compiler");
 #endif
 
 /**
- * Hint to the compiler that this function should be inlined.
- *
- * NOTE: Only enabled on Clang at the moment as both GCC as MSVC do not like applying these kind of
- * attributes on non-inlineable functions (for example defined in a compilation unit) while with LTO
- * this can be a usefull thing to do. In the future we should consider making a separate hint
- * annotation that is only active while compiling with LTO.
- */
-#if defined(VOLO_CLANG)
-#define INLINE_HINT __attribute__((always_inline))
-#else
-#define INLINE_HINT
-#endif
-
-/**
  * Mark a structure or enum to be packed, meaning it will use as little memory as possible.
  * NOTE: Behaviour differs per compiler, MSVC does not support this on enums at all for example.
  *

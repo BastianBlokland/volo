@@ -43,7 +43,7 @@ void alloc_teardown_thread() {
   g_alloc_scratch = null;
 }
 
-INLINE_HINT Mem alloc_alloc(Allocator* allocator, const usize size, const usize align) {
+Mem alloc_alloc(Allocator* allocator, const usize size, const usize align) {
   alloc_verify_allocator(allocator);
 
   diag_assert_msg(size, "alloc_alloc: 0 byte allocations are not valid");
@@ -63,7 +63,7 @@ INLINE_HINT Mem alloc_alloc(Allocator* allocator, const usize size, const usize 
   return allocator->alloc(allocator, size, align);
 }
 
-INLINE_HINT void alloc_free(Allocator* allocator, Mem mem) {
+void alloc_free(Allocator* allocator, Mem mem) {
   alloc_verify_allocator(allocator);
 
   diag_assert_msg(allocator->free, "alloc_free: Allocator does not support freeing");
@@ -76,12 +76,12 @@ Mem alloc_dup(Allocator* alloc, Mem mem, usize align) {
   return newMem;
 }
 
-INLINE_HINT usize alloc_max_size(Allocator* allocator) {
+usize alloc_max_size(Allocator* allocator) {
   alloc_verify_allocator(allocator);
   return allocator->maxSize(allocator);
 }
 
-INLINE_HINT void alloc_reset(Allocator* allocator) {
+void alloc_reset(Allocator* allocator) {
   alloc_verify_allocator(allocator);
 
   diag_assert_msg(allocator->reset, "alloc_reset: Allocator does not support resetting");

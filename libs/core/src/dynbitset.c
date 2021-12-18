@@ -19,19 +19,17 @@ DynBitSet dynbitset_create(Allocator* alloc, usize capacity) {
 
 void dynbitset_destroy(DynBitSet* dynbitset) { dynarray_destroy(dynbitset); }
 
-INLINE_HINT usize dynbitset_size(const DynBitSet* dynbitset) {
-  return bytes_to_bits(dynbitset->size);
-}
+usize dynbitset_size(const DynBitSet* dynbitset) { return bytes_to_bits(dynbitset->size); }
 
 BitSet dynbitset_view(const DynBitSet* dynbitset) {
   return dynarray_at(dynbitset, 0, dynbitset->size);
 }
 
-INLINE_HINT bool dynbitset_test(const DynBitSet* dynbitset, usize idx) {
+bool dynbitset_test(const DynBitSet* dynbitset, usize idx) {
   return bits_to_bytes(idx) < dynbitset->size && bitset_test(dynbitset_view(dynbitset), idx);
 }
 
-INLINE_HINT void dynbitset_set(DynBitSet* dynbitset, usize idx) {
+void dynbitset_set(DynBitSet* dynbitset, usize idx) {
   dynbitset_ensure(dynbitset, idx);
   bitset_set(dynbitset_view(dynbitset), idx);
 }

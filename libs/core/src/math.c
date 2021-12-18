@@ -56,32 +56,32 @@ u64 math_pow10_u64(const u8 val) {
   return table[val];
 }
 
-INLINE_HINT f32 math_sqrt_f32(const f32 val) { return sqrtf(val); }
+f32 math_sqrt_f32(const f32 val) { return sqrtf(val); }
 
-INLINE_HINT f32 math_log_f32(const f32 val) { return logf(val); }
+f32 math_log_f32(const f32 val) { return logf(val); }
 
-INLINE_HINT f32 math_sin_f32(const f32 val) { return sinf(val); }
+f32 math_sin_f32(const f32 val) { return sinf(val); }
 
-INLINE_HINT f32 math_asin_f32(const f32 val) { return asinf(val); }
+f32 math_asin_f32(const f32 val) { return asinf(val); }
 
-INLINE_HINT f32 math_cos_f32(const f32 val) { return cosf(val); }
+f32 math_cos_f32(const f32 val) { return cosf(val); }
 
-INLINE_HINT f32 math_acos_f32(const f32 val) { return acosf(val); }
+f32 math_acos_f32(const f32 val) { return acosf(val); }
 
-INLINE_HINT f32 math_tan_f32(const f32 val) { return tanf(val); }
+f32 math_tan_f32(const f32 val) { return tanf(val); }
 
-INLINE_HINT f32 math_atan_f32(const f32 val) { return atanf(val); }
+f32 math_atan_f32(const f32 val) { return atanf(val); }
 
-INLINE_HINT f32 math_atan2_f32(const f32 x, const f32 y) { return atan2f(x, y); }
+f32 math_atan2_f32(const f32 x, const f32 y) { return atan2f(x, y); }
 
-INLINE_HINT f64 math_trunc_f64(const f64 val) { return (i64)val; }
+f64 math_trunc_f64(const f64 val) { return (i64)val; }
 
-INLINE_HINT f64 math_floor_f64(const f64 val) {
+f64 math_floor_f64(const f64 val) {
   const f64 trunc = math_trunc_f64(val);
   return trunc > val ? (trunc - 1) : trunc;
 }
 
-INLINE_HINT f64 math_ceil_f64(const f64 val) {
+f64 math_ceil_f64(const f64 val) {
   const f64 trunc = math_trunc_f64(val);
   return trunc < val ? (trunc + 1) : trunc;
 }
@@ -103,7 +103,7 @@ f64 math_round_f64(const f64 val) {
   return trunc + math_sign(val);
 }
 
-INLINE_HINT f32 math_clamp_f32(const f32 val, const f32 min, const f32 max) {
+f32 math_clamp_f32(const f32 val, const f32 min, const f32 max) {
   if (val <= min) {
     return min;
   }

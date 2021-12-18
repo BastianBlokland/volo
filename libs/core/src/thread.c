@@ -51,27 +51,21 @@ void thread_init() {
 
 void thread_init_thread() { g_thread_tid = thread_pal_tid(); }
 
-INLINE_HINT i64 thread_atomic_load_i64(i64* ptr) { return thread_pal_atomic_load_i64(ptr); }
+i64 thread_atomic_load_i64(i64* ptr) { return thread_pal_atomic_load_i64(ptr); }
 
-INLINE_HINT void thread_atomic_store_i64(i64* ptr, i64 value) {
-  thread_pal_atomic_store_i64(ptr, value);
-}
+void thread_atomic_store_i64(i64* ptr, i64 value) { thread_pal_atomic_store_i64(ptr, value); }
 
-INLINE_HINT i64 thread_atomic_exchange_i64(i64* ptr, i64 value) {
+i64 thread_atomic_exchange_i64(i64* ptr, i64 value) {
   return thread_pal_atomic_exchange_i64(ptr, value);
 }
 
-INLINE_HINT bool thread_atomic_compare_exchange_i64(i64* ptr, i64* expected, i64 value) {
+bool thread_atomic_compare_exchange_i64(i64* ptr, i64* expected, i64 value) {
   return thread_pal_atomic_compare_exchange_i64(ptr, expected, value);
 }
 
-INLINE_HINT i64 thread_atomic_add_i64(i64* ptr, i64 value) {
-  return thread_pal_atomic_add_i64(ptr, value);
-}
+i64 thread_atomic_add_i64(i64* ptr, i64 value) { return thread_pal_atomic_add_i64(ptr, value); }
 
-INLINE_HINT i64 thread_atomic_sub_i64(i64* ptr, i64 value) {
-  return thread_pal_atomic_sub_i64(ptr, value);
-}
+i64 thread_atomic_sub_i64(i64* ptr, i64 value) { return thread_pal_atomic_sub_i64(ptr, value); }
 
 ThreadHandle thread_start(ThreadRoutine routine, void* data, String threadName) {
   ThreadRunData* threadRunData = alloc_alloc_t(g_alloc_heap, ThreadRunData);
