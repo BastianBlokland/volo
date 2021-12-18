@@ -12,6 +12,21 @@ typedef struct {
   f32 padding[1];
 } RvkVertex;
 
+static Mem rvk_mesh_to_device_vertices_scratch(const AssetMeshComp* asset) {
+  const usize bufferSize = sizeof(RvkVertex) * asset->vertexCount;
+  Mem         buffer     = alloc_alloc(g_alloc_scratch, bufferSize, alignof(RvkVertex));
+
+  RvkVertex* output = mem_as_t(buffer, RvkVertex);
+  for (usize i = 0; i != asset->vertexCount; ++i) {
+    output[i] = (RvkVertex){
+        .pos[0] = asset->vertices[i].position.x,
+        .pos[1] = asset->vertices[i].position.y,
+        .pos[2] = asset->vertices[i].position.z,
+    };
+  }
+  return buffer;
+}
+
 RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset) {
   RvkMesh* mesh = alloc_alloc_t(g_alloc_heap, RvkMesh);
   *mesh         = (RvkMesh){
@@ -20,12 +35,15 @@ RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset) {
       .indexCount  = (u32)asset->indexCount,
   };
 
-  const usize vertexSize = sizeof(RvkVertex) * asset->vertexCount;
-  const usize indexSize  = sizeof(u16) * asset->indexCount;
-  mesh->vertexBuffer     = rvk_buffer_create(dev, vertexSize, RvkBufferType_DeviceStorage);
-  mesh->indexBuffer      = rvk_buffer_create(dev, indexSize, RvkBufferType_DeviceIndex);
+  const Mem vertices = rvk_mesh_to_device_vertices_scratch(asset);
 
-  rvk_transfer_buffer(dev->transferer, &mesh->indexBuffer, mem_create(asset->indices, indexSize));
+  const usize indexSize = sizeof(u16) * asset->indexCount;
+  mesh->vertexBuffer    = rvk_buffer_create(dev, vertices.size, RvkBufferType_DeviceStorage);
+  mesh->indexBuffer     = rvk_buffer_create(dev, indexSize, RvkBufferType_DeviceIndex);
+
+  mesh->vertexTransfer = rvk_transfer_buffer(dev->transferer, &mesh->vertexBuffer, vertices);
+  mesh->indexTransfer  = rvk_transfer_buffer(
+      dev->transferer, &mesh->indexBuffer, mem_create(asset->indices, indexSize));
 
   log_d(
       "Vulkan mesh created",
@@ -50,6 +68,9 @@ void rvk_mesh_destroy(RvkMesh* mesh) {
 bool rvk_mesh_prepare(RvkMesh* mesh, const RvkCanvas* canvas) {
   (void)canvas;
 
+  if (!rvk_transfer_poll(mesh->dev->transferer, mesh->vertexTransfer)) {
+    return false;
+  }
   if (!rvk_transfer_poll(mesh->dev->transferer, mesh->indexTransfer)) {
     return false;
   }

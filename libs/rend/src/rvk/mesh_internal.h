@@ -11,9 +11,8 @@ typedef struct sRvkDevice RvkDevice;
 typedef struct sRvkMesh {
   RvkDevice*    dev;
   u32           vertexCount, indexCount;
-  RvkBuffer     vertexBuffer;
-  RvkBuffer     indexBuffer;
-  RvkTransferId indexTransfer;
+  RvkBuffer     vertexBuffer, indexBuffer;
+  RvkTransferId vertexTransfer, indexTransfer;
 } RvkMesh;
 
 RvkMesh* rvk_mesh_create(RvkDevice*, const AssetMeshComp*);
