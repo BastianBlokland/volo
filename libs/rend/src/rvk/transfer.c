@@ -72,7 +72,6 @@ static void rvk_image_transition_layout(
 
 static void rvk_image_transition_undef_to_transfer(
     RvkTransferBuffer* buffer, const RvkImage* image, const u32 baseMipLevel, const u32 mipLevels) {
-
   rvk_image_transition_layout(
       buffer,
       image,
@@ -82,6 +81,21 @@ static void rvk_image_transition_undef_to_transfer(
       VK_ACCESS_TRANSFER_WRITE_BIT,
       VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
       VK_PIPELINE_STAGE_TRANSFER_BIT,
+      baseMipLevel,
+      mipLevels);
+}
+
+static void rvk_image_transition_transfer_to_shader(
+    RvkTransferBuffer* buffer, const RvkImage* image, const u32 baseMipLevel, const u32 mipLevels) {
+  rvk_image_transition_layout(
+      buffer,
+      image,
+      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+      VK_ACCESS_TRANSFER_WRITE_BIT,
+      VK_ACCESS_SHADER_READ_BIT,
+      VK_PIPELINE_STAGE_TRANSFER_BIT,
+      VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
       baseMipLevel,
       mipLevels);
 }
@@ -284,6 +298,8 @@ RvkTransferId rvk_transfer_image(RvkTransferer* trans, RvkImage* dest, const Mem
       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
       1,
       &region);
+
+  rvk_image_transition_transfer_to_shader(buffer, dest, 0, dest->mipLevels);
 
   buffer->offset += data.size;
   const RvkTransferId id = rvk_transfer_id(trans, buffer);
