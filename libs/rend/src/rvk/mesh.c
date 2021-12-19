@@ -64,8 +64,6 @@ void rvk_mesh_destroy(RvkMesh* mesh) {
   rvk_buffer_destroy(&mesh->vertexBuffer);
   rvk_buffer_destroy(&mesh->indexBuffer);
 
-  log_d("Vulkan mesh destroyed");
-
   alloc_free_t(g_alloc_heap, mesh);
 }
 

@@ -412,8 +412,6 @@ void rvk_graphic_destroy(RvkGraphic* graphic) {
     }
   }
 
-  log_d("Vulkan graphic destroyed");
-
   alloc_free_t(g_alloc_heap, graphic);
 }
 

@@ -85,7 +85,5 @@ void rvk_shader_destroy(RvkShader* shader) {
   vkDestroyShaderModule(shader->dev->vkDev, shader->vkModule, &shader->dev->vkAlloc);
   string_free(g_alloc_heap, shader->entryPoint);
 
-  log_d("Vulkan shader destroyed");
-
   alloc_free_t(g_alloc_heap, shader);
 }

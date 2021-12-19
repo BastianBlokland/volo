@@ -401,7 +401,7 @@ void rvk_device_destroy(RvkDevice* dev) {
   vkDestroyInstance(dev->vkInst, &dev->vkAlloc);
   alloc_free_t(g_alloc_heap, dev);
 
-  log_i("Vulkan device destroyed");
+  log_d("Vulkan device destroyed");
 }
 
 void rvk_device_update(RvkDevice* dev) { rvk_transfer_flush(dev->transferer); }
