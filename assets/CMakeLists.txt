@@ -12,8 +12,9 @@ configure_copies(volo_assets_meshes
   meshes/triangle_xy.obj)
 
 configure_shaders(volo_assets_shaders
-  shaders/triangle.vert
-  shaders/triangle.frag)
+  shaders/object.vert
+  shaders/object_color.frag
+  shaders/object_tex.frag)
 
 configure_copies(volo_assets_textures
   textures/checker.ppm
