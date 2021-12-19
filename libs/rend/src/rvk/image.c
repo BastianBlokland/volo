@@ -92,16 +92,16 @@ static RvkImage rvk_image_create_backed(
   const VkImageAspectFlags vkUsage   = rvk_image_vkusage(type);
   const u32                mipLevels = 1;
 
-  const VkImage     vkImage = rvk_vkimage_create(dev, size, vkFormat, vkUsage, mipLevels);
-  const VkImageView vkView  = rvk_vkimageview_create(dev, vkImage, vkFormat, vkAspect, mipLevels);
+  const VkImage vkImage = rvk_vkimage_create(dev, size, vkFormat, vkUsage, mipLevels);
 
   VkMemoryRequirements memReqs;
   vkGetImageMemoryRequirements(dev->vkDev, vkImage, &memReqs);
 
   const RvkMemLoc memLoc = RvkMemLoc_Dev;
   const RvkMem    mem    = rvk_mem_alloc_req(dev->memPool, memLoc, RvkMemAccess_NonLinear, memReqs);
-
   rvk_mem_bind_image(mem, vkImage);
+
+  const VkImageView vkView = rvk_vkimageview_create(dev, vkImage, vkFormat, vkAspect, mipLevels);
 
   return (RvkImage){
       .dev         = dev,
