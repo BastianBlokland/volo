@@ -3,7 +3,8 @@
 # --------------------------------------------------------------------------------------------------
 
 configure_copies(volo_assets_graphics
-  graphics/triangle.gra)
+  graphics/triangle.gra
+  graphics/ducks.gra)
 
 configure_copies(volo_assets_meshes
   meshes/cube.obj
@@ -27,7 +28,8 @@ if(${EXTERNAL_ASSETS})
     head/lambertian.tga
     corset/corset.obj
     corset/corset_diff.tga
-    corset/corset_nrm.tga)
+    corset/corset_nrm.tga
+    testimages/ducks.tga)
 endif()
 
 add_custom_target(volo_assets)

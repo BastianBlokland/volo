@@ -1,0 +1,24 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/triangle.vert.spv"
+    },
+    {
+      "shaderId": "shaders/triangle.frag.spv"
+    }
+  ],
+  "samplers": [
+    {
+      "textureId": "testimages/ducks.tga",
+      "wrap": "Clamp",
+      "filter": "Linear",
+      "anisotropy": "None"
+    }
+  ],
+  "meshId": "meshes/quad_xy.obj",
+  "topology": "Triangles",
+  "rasterizer": "Fill",
+  "blend": "None",
+  "depth": "Less",
+  "cull": "None"
+}
