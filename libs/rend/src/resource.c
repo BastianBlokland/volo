@@ -9,10 +9,15 @@
 #include "platform_internal.h"
 #include "resource_internal.h"
 #include "rvk/device_internal.h"
+#include "rvk/graphic_internal.h"
+#include "rvk/mesh_internal.h"
+#include "rvk/shader_internal.h"
+#include "rvk/texture_internal.h"
 
 ecs_comp_define_public(RendGraphicComp);
 ecs_comp_define_public(RendShaderComp);
 ecs_comp_define_public(RendMeshComp);
+ecs_comp_define_public(RendTextureComp);
 
 static void ecs_destruct_graphic_comp(void* data) {
   RendGraphicComp* comp = data;
@@ -32,6 +37,13 @@ static void ecs_destruct_mesh_comp(void* data) {
   RendMeshComp* comp = data;
   if (comp->mesh) {
     rvk_mesh_destroy(comp->mesh);
+  }
+}
+
+static void ecs_destruct_texture_comp(void* data) {
+  RendTextureComp* comp = data;
+  if (comp->texture) {
+    rvk_texture_destroy(comp->texture);
   }
 }
 
@@ -57,6 +69,7 @@ ecs_view_define(SceneGraphicView) { ecs_access_read(SceneGraphicComp); };
 ecs_view_define(ShaderView) { ecs_access_write(RendShaderComp); };
 ecs_view_define(GraphicView) { ecs_access_write(RendGraphicComp); };
 ecs_view_define(MeshView) { ecs_access_write(RendMeshComp); };
+ecs_view_define(TextureView) { ecs_access_write(RendTextureComp); };
 
 ecs_view_define(RendResourceLoadView) {
   ecs_access_without(RendResourceReady);
@@ -65,6 +78,7 @@ ecs_view_define(RendResourceLoadView) {
   ecs_access_maybe_read(AssetGraphicComp);
   ecs_access_maybe_read(AssetShaderComp);
   ecs_access_maybe_read(AssetMeshComp);
+  ecs_access_maybe_read(AssetTextureComp);
 };
 
 ecs_system_define(RendResourceRequestSys) {
@@ -81,6 +95,7 @@ static void rend_resource_load(RvkDevice* rvkDev, EcsWorld* world, EcsIterator* 
   const AssetGraphicComp* maybeAssetGraphic = ecs_view_read_t(resourceItr, AssetGraphicComp);
   const AssetShaderComp*  maybeAssetShader  = ecs_view_read_t(resourceItr, AssetShaderComp);
   const AssetMeshComp*    maybeAssetMesh    = ecs_view_read_t(resourceItr, AssetMeshComp);
+  const AssetTextureComp* maybeAssetTexture = ecs_view_read_t(resourceItr, AssetTextureComp);
 
   switch (resourceComp->state) {
   case RendResourceState_AcquireAsset:
@@ -103,6 +118,12 @@ static void rend_resource_load(RvkDevice* rvkDev, EcsWorld* world, EcsIterator* 
       ecs_utils_maybe_add_t(world, maybeAssetGraphic->mesh, RendResource);
       dependenciesReady &= ecs_world_has_t(world, maybeAssetGraphic->mesh, RendResourceReady);
 
+      // Textures.
+      array_ptr_for_t(maybeAssetGraphic->samplers, AssetGraphicSampler, ptr) {
+        ecs_utils_maybe_add_t(world, ptr->texture, RendResource);
+        dependenciesReady &= ecs_world_has_t(world, ptr->texture, RendResourceReady);
+      }
+
       if (!dependenciesReady) {
         return; // Wait for dependencies to be loaded.
       }
@@ -124,11 +145,20 @@ static void rend_resource_load(RvkDevice* rvkDev, EcsWorld* world, EcsIterator* 
           ecs_utils_write_t(world, MeshView, maybeAssetGraphic->mesh, RendMeshComp);
       rvk_graphic_mesh_add(graphicComp->graphic, meshComp->mesh);
 
+      // Add samplers.
+      array_ptr_for_t(maybeAssetGraphic->samplers, AssetGraphicSampler, ptr) {
+        RendTextureComp* comp =
+            ecs_utils_write_t(world, TextureView, ptr->texture, RendTextureComp);
+        rvk_graphic_sampler_add(graphicComp->graphic, comp->texture, ptr);
+      }
     } else if (maybeAssetShader) {
       ecs_world_add_t(
           world, entity, RendShaderComp, .shader = rvk_shader_create(rvkDev, maybeAssetShader));
     } else if (maybeAssetMesh) {
       ecs_world_add_t(world, entity, RendMeshComp, .mesh = rvk_mesh_create(rvkDev, maybeAssetMesh));
+    } else if (maybeAssetTexture) {
+      ecs_world_add_t(
+          world, entity, RendTextureComp, .texture = rvk_texture_create(rvkDev, maybeAssetTexture));
     } else {
       diag_crash_msg("Unsupported resource asset type");
     }
@@ -158,6 +188,7 @@ ecs_module_init(rend_resource_module) {
   ecs_register_comp(RendGraphicComp, .destructor = ecs_destruct_graphic_comp);
   ecs_register_comp(RendShaderComp, .destructor = ecs_destruct_shader_comp);
   ecs_register_comp(RendMeshComp, .destructor = ecs_destruct_mesh_comp);
+  ecs_register_comp(RendTextureComp, .destructor = ecs_destruct_texture_comp);
 
   ecs_register_comp(RendResource, .combinator = ecs_combine_resource);
   ecs_register_comp_empty(RendResourceReady);
@@ -167,6 +198,7 @@ ecs_module_init(rend_resource_module) {
   ecs_register_view(ShaderView);
   ecs_register_view(GraphicView);
   ecs_register_view(MeshView);
+  ecs_register_view(TextureView);
 
   ecs_register_view(RendResourceLoadView);
 
@@ -176,7 +208,8 @@ ecs_module_init(rend_resource_module) {
       ecs_view_id(RendPlatformView),
       ecs_view_id(RendResourceLoadView),
       ecs_view_id(ShaderView),
-      ecs_view_id(MeshView));
+      ecs_view_id(MeshView),
+      ecs_view_id(TextureView));
 }
 
 void rend_resource_teardown(EcsWorld* world) {
@@ -208,5 +241,13 @@ void rend_resource_teardown(EcsWorld* world) {
     RendMeshComp* comp = ecs_view_write_t(itr, RendMeshComp);
     rvk_mesh_destroy(comp->mesh);
     comp->mesh = null;
+  }
+
+  // Teardown textures.
+  EcsView* textureView = ecs_world_view_t(world, TextureView);
+  for (EcsIterator* itr = ecs_view_itr(textureView); ecs_view_walk(itr);) {
+    RendTextureComp* comp = ecs_view_write_t(itr, RendTextureComp);
+    rvk_texture_destroy(comp->texture);
+    comp->texture = null;
   }
 }

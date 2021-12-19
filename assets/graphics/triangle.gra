@@ -1,10 +1,10 @@
 {
   "shaders": [
     {
-      "shaderId": "shaders/triangle.vert.spv"
+      "shaderId": "shaders/object.vert.spv"
     },
     {
-      "shaderId": "shaders/triangle.frag.spv"
+      "shaderId": "shaders/object_color.frag.spv"
     }
   ],
   "meshId": "meshes/triangle_xy.obj",

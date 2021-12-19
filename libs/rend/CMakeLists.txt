@@ -21,6 +21,7 @@ add_library(lib_rend STATIC
   src/rvk/shader.c
   src/rvk/swapchain.c
   src/rvk/technique.c
+  src/rvk/texture.c
   src/rvk/transfer.c
   src/rvk/vulkan.c
   src/canvas.c

@@ -2,16 +2,18 @@
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
+#include "core_math.h"
 #include "core_thread.h"
 #include "log_logger.h"
 
 #include "buffer_internal.h"
 #include "device_internal.h"
+#include "image_internal.h"
 #include "transfer_internal.h"
 
 #define VOLO_RVK_TRANSFER_LOGGING
 
-#define rvk_transfer_buffer_size (8 * usize_mebibyte)
+#define rvk_transfer_buffer_size (32 * usize_mebibyte)
 
 #define rvk_transfer_index(_TRANSFER_ID_) ((u32)((_TRANSFER_ID_) >> 0))
 #define rvk_transfer_serial(_TRANSFER_ID_) ((u32)((_TRANSFER_ID_) >> 32))
@@ -36,6 +38,67 @@ struct sRvkTransferer {
   ThreadMutex mutex;
   DynArray    buffers; // RvkTransferBuffer[]
 };
+
+static void rvk_image_transition_layout(
+    RvkTransferBuffer*         buffer,
+    const RvkImage*            image,
+    const VkImageLayout        oldLayout,
+    const VkImageLayout        newLayout,
+    const VkAccessFlags        srcAccess,
+    const VkAccessFlags        dstAccess,
+    const VkPipelineStageFlags srcStageFlags,
+    const VkPipelineStageFlags dstStageFlags,
+    const u32                  baseMipLevel,
+    const u32                  mipLevels) {
+
+  const VkImageMemoryBarrier barrier = {
+      .sType                           = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+      .oldLayout                       = oldLayout,
+      .newLayout                       = newLayout,
+      .srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED,
+      .dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED,
+      .image                           = image->vkImage,
+      .subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+      .subresourceRange.baseMipLevel   = baseMipLevel,
+      .subresourceRange.levelCount     = mipLevels,
+      .subresourceRange.baseArrayLayer = 0,
+      .subresourceRange.layerCount     = 1,
+      .srcAccessMask                   = srcAccess,
+      .dstAccessMask                   = dstAccess,
+  };
+  vkCmdPipelineBarrier(
+      buffer->vkCmdBuffer, srcStageFlags, dstStageFlags, 0, 0, null, 0, null, 1, &barrier);
+}
+
+static void rvk_image_transition_undef_to_transfer(
+    RvkTransferBuffer* buffer, const RvkImage* image, const u32 baseMipLevel, const u32 mipLevels) {
+  rvk_image_transition_layout(
+      buffer,
+      image,
+      VK_IMAGE_LAYOUT_UNDEFINED,
+      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+      0,
+      VK_ACCESS_TRANSFER_WRITE_BIT,
+      VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+      VK_PIPELINE_STAGE_TRANSFER_BIT,
+      baseMipLevel,
+      mipLevels);
+}
+
+static void rvk_image_transition_transfer_to_shader(
+    RvkTransferBuffer* buffer, const RvkImage* image, const u32 baseMipLevel, const u32 mipLevels) {
+  rvk_image_transition_layout(
+      buffer,
+      image,
+      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+      VK_ACCESS_TRANSFER_WRITE_BIT,
+      VK_ACCESS_SHADER_READ_BIT,
+      VK_PIPELINE_STAGE_TRANSFER_BIT,
+      VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+      baseMipLevel,
+      mipLevels);
+}
 
 static VkCommandBuffer rvk_commandbuffer_create(RvkDevice* dev) {
   VkCommandBufferAllocateInfo allocInfo = {
@@ -170,9 +233,9 @@ RvkTransferId rvk_transfer_buffer(RvkTransferer* trans, RvkBuffer* dest, const M
 
   thread_mutex_lock(trans->mutex);
 
-  const u64          reqAlign = trans->dev->vkProperties.limits.optimalBufferCopyOffsetAlignment;
-  RvkTransferBuffer* buffer   = rvk_transfer_get(trans, data.size, reqAlign);
+  const u64 reqAlign = trans->dev->vkProperties.limits.optimalBufferCopyOffsetAlignment;
 
+  RvkTransferBuffer* buffer = rvk_transfer_get(trans, data.size, reqAlign);
   if (buffer->state == RvkTransferState_Idle) {
     rvk_transfer_begin(trans, buffer);
   }
@@ -194,6 +257,59 @@ RvkTransferId rvk_transfer_buffer(RvkTransferer* trans, RvkBuffer* dest, const M
       "Vulkan transfer queued",
       log_param("id", fmt_int(id)),
       log_param("buffer-idx", fmt_int(rvk_transfer_index(id))),
+      log_param("type", fmt_text_lit("buffer")),
+      log_param("size", fmt_size(data.size)));
+#endif
+
+  thread_mutex_unlock(trans->mutex);
+  return id;
+}
+
+RvkTransferId rvk_transfer_image(RvkTransferer* trans, RvkImage* dest, const Mem data) {
+  diag_assert(dest->mem.size >= data.size);
+
+  thread_mutex_lock(trans->mutex);
+
+  const u64 reqAlign = math_max(
+      rvk_format_info(dest->vkFormat).size,
+      trans->dev->vkProperties.limits.optimalBufferCopyOffsetAlignment);
+
+  RvkTransferBuffer* buffer = rvk_transfer_get(trans, data.size, reqAlign);
+  if (buffer->state == RvkTransferState_Idle) {
+    rvk_transfer_begin(trans, buffer);
+  }
+  buffer->offset = bits_align(buffer->offset, reqAlign);
+  rvk_buffer_upload(&buffer->hostBuffer, data, buffer->offset);
+
+  rvk_image_transition_undef_to_transfer(buffer, dest, 0, dest->mipLevels);
+
+  const VkBufferImageCopy region = {
+      .bufferOffset                = buffer->offset,
+      .imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+      .imageSubresource.layerCount = 1,
+      .imageExtent.width           = dest->size.width,
+      .imageExtent.height          = dest->size.height,
+      .imageExtent.depth           = 1,
+  };
+  vkCmdCopyBufferToImage(
+      buffer->vkCmdBuffer,
+      buffer->hostBuffer.vkBuffer,
+      dest->vkImage,
+      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+      1,
+      &region);
+
+  rvk_image_transition_transfer_to_shader(buffer, dest, 0, dest->mipLevels);
+
+  buffer->offset += data.size;
+  const RvkTransferId id = rvk_transfer_id(trans, buffer);
+
+#ifdef VOLO_RVK_TRANSFER_LOGGING
+  log_d(
+      "Vulkan transfer queued",
+      log_param("id", fmt_int(id)),
+      log_param("buffer-idx", fmt_int(rvk_transfer_index(id))),
+      log_param("type", fmt_text_lit("image")),
       log_param("size", fmt_size(data.size)));
 #endif
 

@@ -4,6 +4,7 @@
 // Internal forward declarations:
 typedef struct sRvkBuffer RvkBuffer;
 typedef struct sRvkDevice RvkDevice;
+typedef struct sRvkImage  RvkImage;
 
 typedef struct sRvkTransferer RvkTransferer;
 
@@ -18,5 +19,6 @@ RvkTransferer* rvk_transferer_create(RvkDevice*);
 void           rvk_transferer_destroy(RvkTransferer*);
 
 RvkTransferId     rvk_transfer_buffer(RvkTransferer*, RvkBuffer* dest, Mem data);
+RvkTransferId     rvk_transfer_image(RvkTransferer*, RvkImage* dest, Mem data);
 RvkTransferStatus rvk_transfer_poll(RvkTransferer*, RvkTransferId);
 void              rvk_transfer_flush(RvkTransferer*);
