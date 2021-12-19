@@ -10,4 +10,4 @@ layout(location = 0) in f32_vec2 inTexcoord;
 
 layout(location = 0) out f32_vec4 outColor;
 
-void main() { outColor = texture_srgb(texSampler, inTexcoord); }
+void main() { outColor = texture_sample_srgb(texSampler, inTexcoord); }
