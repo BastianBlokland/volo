@@ -6,8 +6,8 @@
 #include "transfer_internal.h"
 
 RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset) {
-  RvkTexture* mesh = alloc_alloc_t(g_alloc_heap, RvkTexture);
-  *mesh            = (RvkTexture){
+  RvkTexture* texture = alloc_alloc_t(g_alloc_heap, RvkTexture);
+  *texture            = (RvkTexture){
       .dev = dev,
   };
 
@@ -15,38 +15,36 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset) {
   diag_assert(rvk_format_info(vkFormat).size == sizeof(AssetTexturePixel));
   diag_assert(rvk_format_info(vkFormat).channels == 4);
 
-  mesh->image =
+  texture->image =
       rvk_image_create_source_color(dev, vkFormat, rend_size(asset->width, asset->height));
 
-  // TODO: Transfer pixels.
+  const usize pixelDataSize = sizeof(AssetTexturePixel) * asset->width * asset->height;
+  texture->pixelTransfer    = rvk_transfer_image(
+      dev->transferer, &texture->image, mem_create(asset->pixels, pixelDataSize));
 
   log_d(
       "Vulkan texture created",
       log_param("format", fmt_text(rvk_format_info(vkFormat).name)),
-      log_param("size", rend_size_fmt(mesh->image.size)),
-      log_param("memory", fmt_size(mesh->image.mem.size)));
+      log_param("size", rend_size_fmt(texture->image.size)),
+      log_param("memory", fmt_size(texture->image.mem.size)));
 
-  return mesh;
+  return texture;
 }
 
-void rvk_texture_destroy(RvkTexture* mesh) {
+void rvk_texture_destroy(RvkTexture* texture) {
 
-  rvk_image_destroy(&mesh->image);
+  rvk_image_destroy(&texture->image);
 
   log_d("Vulkan texture destroyed");
 
-  alloc_free_t(g_alloc_heap, mesh);
+  alloc_free_t(g_alloc_heap, texture);
 }
 
-bool rvk_texture_prepare(RvkTexture* mesh, const RvkCanvas* canvas) {
+bool rvk_texture_prepare(RvkTexture* texture, const RvkCanvas* canvas) {
   (void)canvas;
 
-  // if (!rvk_transfer_poll(mesh->dev->transferer, mesh->pixelTransfer)) {
-  //   return false;
-  // }
-  // return true; // All resources have been transferred to the device.
-
-  // TODO: Transfer pixels.
-  (void)mesh;
-  return false;
+  if (!rvk_transfer_poll(texture->dev->transferer, texture->pixelTransfer)) {
+    return false;
+  }
+  return true; // All resources have been transferred to the device.
 }
