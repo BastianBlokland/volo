@@ -458,10 +458,25 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, const RvkCanvas* canvas) {
     const RvkDescMeta descMeta = rvk_graphic_desc_meta(graphic, rvk_desc_graphic_set);
     graphic->descSet           = rvk_desc_alloc(graphic->dev->descPool, &descMeta);
 
+    // Attach mesh.
     if (descMeta.bindings[rvk_desc_graphic_bind_mesh] == RvkDescKind_StorageBuffer) {
-      diag_assert_msg(graphic->mesh, "Shader expects a mesh");
+      diag_assert_msg(graphic->mesh, "Shader expects a mesh but the graphic provides none");
       rvk_desc_set_attach_buffer(
           graphic->descSet, rvk_desc_graphic_bind_mesh, &graphic->mesh->vertexBuffer);
+    }
+
+    // Attach samplers.
+    u32 samplerIndex = 0;
+    for (u32 i = 0; i != rvk_desc_bindings_max; ++i) {
+      if (descMeta.bindings[i] == RvkDescKind_CombinedImageSampler) {
+        if (UNLIKELY(i == rvk_graphic_samplers_max || !graphic->samplers[samplerIndex].texture)) {
+          diag_crash_msg("Shader expects more textures then the graphic provides");
+        }
+        const RvkImage*   image   = &graphic->samplers[samplerIndex].texture->image;
+        const RvkSampler* sampler = &graphic->samplers[samplerIndex].sampler;
+        rvk_desc_set_attach_sampler(graphic->descSet, i, image, sampler);
+        ++samplerIndex;
+      }
     }
 
     graphic->vkPipelineLayout = rvk_pipeline_layout_create(graphic);
