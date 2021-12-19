@@ -144,6 +144,13 @@ static void rend_resource_load(RvkDevice* rvkDev, EcsWorld* world, EcsIterator* 
       RendMeshComp* meshComp =
           ecs_utils_write_t(world, MeshView, maybeAssetGraphic->mesh, RendMeshComp);
       rvk_graphic_mesh_add(graphicComp->graphic, meshComp->mesh);
+
+      // Add samplers.
+      array_ptr_for_t(maybeAssetGraphic->samplers, AssetGraphicSampler, ptr) {
+        RendTextureComp* comp =
+            ecs_utils_write_t(world, TextureView, ptr->texture, RendTextureComp);
+        rvk_graphic_sampler_add(graphicComp->graphic, comp->texture, ptr);
+      }
     } else if (maybeAssetShader) {
       ecs_world_add_t(
           world, entity, RendShaderComp, .shader = rvk_shader_create(rvkDev, maybeAssetShader));

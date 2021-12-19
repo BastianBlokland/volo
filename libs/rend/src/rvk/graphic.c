@@ -10,8 +10,10 @@
 #include "device_internal.h"
 #include "graphic_internal.h"
 #include "mesh_internal.h"
+#include "sampler_internal.h"
 #include "shader_internal.h"
 #include "technique_internal.h"
+#include "texture_internal.h"
 
 typedef RvkShader* RvkShaderPtr;
 
@@ -74,6 +76,42 @@ static String rvk_graphic_cull_str(const AssetGraphicCull cull) {
   };
   ASSERT(array_elems(names) == AssetGraphicCull_Count, "Incorrect number of names");
   return names[cull];
+}
+
+static RvkSamplerWrap rvk_graphic_wrap(const AssetGraphicWrap assetWrap) {
+  switch (assetWrap) {
+  case AssetGraphicWrap_Repeat:
+    return RvkSamplerWrap_Repeat;
+  case AssetGraphicWrap_Clamp:
+    return RvkSamplerWrap_Clamp;
+  }
+  diag_crash_msg("Unknown graphic wrap mode");
+}
+
+static RvkSamplerFilter rvk_graphic_filter(const AssetGraphicFilter assetFilter) {
+  switch (assetFilter) {
+  case AssetGraphicFilter_Linear:
+    return RvkSamplerFilter_Linear;
+  case AssetGraphicFilter_Nearest:
+    return RvkSamplerFilter_Nearest;
+  }
+  diag_crash_msg("Unknown graphic filter mode");
+}
+
+static RvkSamplerAniso rvk_graphic_aniso(const AssetGraphicAniso assetAniso) {
+  switch (assetAniso) {
+  case AssetGraphicAniso_None:
+    return RvkSamplerAniso_None;
+  case AssetGraphicAniso_x2:
+    return RvkSamplerAniso_x2;
+  case AssetGraphicAniso_x4:
+    return RvkSamplerAniso_x4;
+  case AssetGraphicAniso_x8:
+    return RvkSamplerAniso_x8;
+  case AssetGraphicAniso_x16:
+    return RvkSamplerAniso_x16;
+  }
+  diag_crash_msg("Unknown graphic aniso mode");
 }
 
 static void rvk_graphic_desc_merge(RvkDescMeta* meta, const RvkDescMeta* other) {
@@ -368,6 +406,11 @@ void rvk_graphic_destroy(RvkGraphic* graphic) {
   if (rvk_desc_valid(graphic->descSet)) {
     rvk_desc_free(graphic->descSet);
   }
+  array_for_t(graphic->samplers, RvkGraphicSampler, itr) {
+    if (itr->texture) {
+      rvk_sampler_destroy(&itr->sampler);
+    }
+  }
 
   log_d("Vulkan graphic destroyed");
 
@@ -387,6 +430,23 @@ void rvk_graphic_shader_add(RvkGraphic* graphic, RvkShader* shader) {
 void rvk_graphic_mesh_add(RvkGraphic* graphic, RvkMesh* mesh) {
   diag_assert_msg(!graphic->mesh, "Only a single mesh per graphic supported");
   graphic->mesh = mesh;
+}
+
+void rvk_graphic_sampler_add(
+    RvkGraphic* graphic, RvkTexture* texture, const AssetGraphicSampler* sampler) {
+
+  array_for_t(graphic->samplers, RvkGraphicSampler, itr) {
+    if (!itr->texture) {
+      const RvkSamplerWrap   wrap       = rvk_graphic_wrap(sampler->wrap);
+      const RvkSamplerFilter filter     = rvk_graphic_filter(sampler->filter);
+      const RvkSamplerAniso  anisotropy = rvk_graphic_aniso(sampler->anisotropy);
+      itr->texture                      = texture;
+      itr->sampler =
+          rvk_sampler_create(graphic->dev, wrap, filter, anisotropy, texture->image.mipLevels);
+      return;
+    }
+  }
+  diag_assert_fail("More then {} samplers are not supported", fmt_int(rvk_graphic_samplers_max));
 }
 
 u32 rvk_graphic_index_count(const RvkGraphic* graphic) {
@@ -409,6 +469,11 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, const RvkCanvas* canvas) {
   }
   if (!rvk_mesh_prepare(graphic->mesh, canvas)) {
     return false;
+  }
+  array_for_t(graphic->samplers, RvkGraphicSampler, itr) {
+    if (itr->texture && !rvk_texture_prepare(itr->texture, canvas)) {
+      return false;
+    }
   }
   return true;
 }
