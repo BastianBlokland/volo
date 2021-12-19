@@ -13,8 +13,8 @@
  * Does not do any defragging at the moment so will get fragmented over time.
  */
 
-#define VOLO_RVK_MEM_DEBUG
-#define VOLO_RVK_MEM_LOGGING
+// #define VOLO_RVK_MEM_DEBUG
+// #define VOLO_RVK_MEM_LOGGING
 
 #define rvk_mem_chunk_size (64 * usize_mebibyte)
 
@@ -44,7 +44,7 @@ struct sRvkMemPool {
   RvkMemChunk*                     chunkTail;
 };
 
-static String rvk_mem_loc_str(const RvkMemLoc loc) {
+MAYBE_UNUSED static String rvk_mem_loc_str(const RvkMemLoc loc) {
   switch (loc) {
   case RvkMemLoc_Host:
     return string_lit("host");
@@ -54,7 +54,7 @@ static String rvk_mem_loc_str(const RvkMemLoc loc) {
   diag_crash();
 }
 
-static String rvk_mem_access_str(const RvkMemAccess access) {
+MAYBE_UNUSED static String rvk_mem_access_str(const RvkMemAccess access) {
   switch (access) {
   case RvkMemAccess_Linear:
     return string_lit("linear");
@@ -280,6 +280,8 @@ static void rvk_mem_chunk_free(RvkMemChunk* chunk, const RvkMem mem) {
   *dynarray_push_t(&chunk->freeBlocks, RvkMem) = (RvkMem){.offset = mem.offset, .size = mem.size};
 
 Done:
+  (void)0;
+
 #ifdef VOLO_RVK_MEM_LOGGING
   log_d(
       "Vulkan memory block freed",

@@ -10,6 +10,8 @@
 #include "view_internal.h"
 #include "world_internal.h"
 
+// #define VOLO_ECS_WORLD_LOGGING
+
 typedef enum {
   EcsWorldFlags_None,
   EcsWorldFlags_Busy = 1 << 0, // For example set when a runner is active on this world.
@@ -51,6 +53,7 @@ static EcsArchetypeId ecs_world_archetype_find_or_create(EcsWorld* world, const 
   const EcsArchetypeId newId         = ecs_storage_archetype_create(&world->storage, mask);
   const usize          trackingViews = ecs_world_archetype_track(world, newId, mask);
 
+#ifdef VOLO_ECS_WORLD_LOGGING
   log_d(
       "Ecs archetype created",
       log_param("components", fmt_int(bitset_count(mask))),
@@ -58,6 +61,7 @@ static EcsArchetypeId ecs_world_archetype_find_or_create(EcsWorld* world, const 
           "entities-per-chunk",
           fmt_int(ecs_storage_archetype_entities_per_chunk(&world->storage, newId))),
       log_param("tracking-views", fmt_int(trackingViews)));
+#endif
 
   (void)trackingViews;
   return newId;
@@ -140,12 +144,14 @@ EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
         ecs_view_create(alloc, &world->storage, def, viewDef);
   }
 
+#ifdef VOLO_ECS_WORLD_LOGGING
   log_d(
       "Ecs world created",
       log_param("modules", fmt_int(def->modules.size)),
       log_param("components", fmt_int(def->components.size)),
       log_param("systems", fmt_int(def->systems.size)),
       log_param("views", fmt_int(def->views.size)));
+#endif
 
   return world;
 }
