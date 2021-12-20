@@ -56,10 +56,12 @@ typedef enum {
   RendResourceState_AcquireDependencies,
   RendResourceState_Create,
   RendResourceState_Ready,
+  RendResourceState_Failed,
 } RendResourceState;
 
 ecs_comp_define(RendResource) { RendResourceState state; };
 ecs_comp_define(RendResourceReady);
+ecs_comp_define(RendResourceFailed);
 
 static void ecs_combine_resource(void* dataA, void* dataB) {
   RendResource* compA = dataA;
@@ -84,6 +86,7 @@ ecs_view_define(TextureView) { ecs_access_write(RendTextureComp); };
 
 ecs_view_define(RendResourceLoadView) {
   ecs_access_without(RendResourceReady);
+  ecs_access_without(RendResourceFailed);
   ecs_access_write(RendResource);
 
   ecs_access_maybe_read(AssetGraphicComp);
@@ -157,6 +160,11 @@ static void rend_resource_load(RvkPlatform* plat, EcsWorld* world, EcsIterator* 
     asset_acquire(world, entity);
     break;
   case RendResourceState_AcquireDependencies:
+    if (ecs_world_has_t(world, entity, AssetFailedComp)) {
+      resourceComp->state = RendResourceState_Failed;
+      ecs_world_add_empty_t(world, entity, RendResourceFailed);
+      return;
+    }
     if (!ecs_world_has_t(world, entity, AssetLoadedComp)) {
       return; // Wait for asset to be loaded.
     }
@@ -221,6 +229,7 @@ static void rend_resource_load(RvkPlatform* plat, EcsWorld* world, EcsIterator* 
     ecs_world_add_empty_t(world, entity, RendResourceReady);
   }
   case RendResourceState_Ready:
+  case RendResourceState_Failed:
     break;
   }
   ++resourceComp->state;
@@ -247,6 +256,7 @@ ecs_module_init(rend_resource_module) {
 
   ecs_register_comp(RendResource, .combinator = ecs_combine_resource);
   ecs_register_comp_empty(RendResourceReady);
+  ecs_register_comp_empty(RendResourceFailed);
 
   ecs_register_view(RendPlatView);
   ecs_register_view(SceneGraphicView);
