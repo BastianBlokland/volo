@@ -20,6 +20,7 @@ configure_copies(volo_assets_textures
   textures/checker.ppm
   textures/circle_glow.tga
   textures/circle.tga
+  textures/missing.ppm
   textures/white.ppm)
 
 if(${EXTERNAL_ASSETS})

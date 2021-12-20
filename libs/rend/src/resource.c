@@ -11,6 +11,7 @@
 #include "rvk/device_internal.h"
 #include "rvk/graphic_internal.h"
 #include "rvk/mesh_internal.h"
+#include "rvk/platform_internal.h"
 #include "rvk/shader_internal.h"
 #include "rvk/texture_internal.h"
 
@@ -18,6 +19,9 @@ ecs_comp_define_public(RendGraphicComp);
 ecs_comp_define_public(RendShaderComp);
 ecs_comp_define_public(RendMeshComp);
 ecs_comp_define_public(RendTextureComp);
+
+ecs_comp_define(RendGlobalResourceComp) { EcsEntityId missingTex; };
+ecs_comp_define(RendGlobalResourceLoadedComp);
 
 static void ecs_destruct_graphic_comp(void* data) {
   RendGraphicComp* comp = data;
@@ -63,8 +67,15 @@ static void ecs_combine_resource(void* dataA, void* dataB) {
   compA->state        = math_max(compA->state, compB->state);
 }
 
-ecs_view_define(RendPlatformView) { ecs_access_read(RendPlatformComp); }
+ecs_view_define(RendPlatView) { ecs_access_read(RendPlatformComp); }
 ecs_view_define(SceneGraphicView) { ecs_access_read(SceneGraphicComp); };
+ecs_view_define(AssetManagerView) { ecs_access_write(AssetManagerComp); };
+
+ecs_view_define(GlobalResourceUpdateView) {
+  ecs_access_write(RendPlatformComp);
+  ecs_access_maybe_write(RendGlobalResourceComp);
+  ecs_access_without(RendGlobalResourceLoadedComp);
+};
 
 ecs_view_define(ShaderView) { ecs_access_write(RendShaderComp); };
 ecs_view_define(GraphicView) { ecs_access_write(RendGraphicComp); };
@@ -80,6 +91,50 @@ ecs_view_define(RendResourceLoadView) {
   ecs_access_maybe_read(AssetMeshComp);
   ecs_access_maybe_read(AssetTextureComp);
 };
+
+static EcsEntityId rend_resource_request(EcsWorld* world, AssetManagerComp* assetMan, String id) {
+  const EcsEntityId assetEntity = asset_lookup(world, assetMan, id);
+  ecs_utils_maybe_add_t(world, assetEntity, RendResource);
+  return assetEntity;
+}
+
+static bool rend_resource_set_wellknown_texture(
+    EcsWorld*            world,
+    RendPlatformComp*    plat,
+    const RvkWellKnownId id,
+    const EcsEntityId    textureEntity) {
+
+  if (ecs_world_has_t(world, textureEntity, RendResourceReady)) {
+    RendTextureComp* comp = ecs_utils_write_t(world, TextureView, textureEntity, RendTextureComp);
+    rvk_platform_texture_set(plat->vulkan, id, comp->texture);
+    return true;
+  }
+  return false;
+}
+
+ecs_system_define(RendGlobalResourceLoadSys) {
+  EcsIterator*      platItr = ecs_view_itr_first(ecs_world_view_t(world, GlobalResourceUpdateView));
+  AssetManagerComp* assetMan = ecs_utils_write_first_t(world, AssetManagerView, AssetManagerComp);
+  if (!platItr || !assetMan) {
+    return;
+  }
+  if (!ecs_world_has_t(world, ecs_view_entity(platItr), RendGlobalResourceComp)) {
+    ecs_world_add_t(
+        world,
+        ecs_view_entity(platItr),
+        RendGlobalResourceComp,
+        .missingTex = rend_resource_request(world, assetMan, string_lit("textures/missing.ppm")));
+    return;
+  }
+  RendPlatformComp*       plat    = ecs_view_write_t(platItr, RendPlatformComp);
+  RendGlobalResourceComp* resComp = ecs_view_write_t(platItr, RendGlobalResourceComp);
+
+  if (!rend_resource_set_wellknown_texture(
+          world, plat, RvkWellKnownId_MissingTexture, resComp->missingTex)) {
+    return;
+  }
+  ecs_world_add_empty_t(world, ecs_view_entity(platItr), RendGlobalResourceLoadedComp);
+}
 
 ecs_system_define(RendResourceRequestSys) {
   EcsView* graphicView = ecs_world_view_t(world, SceneGraphicView);
@@ -172,7 +227,7 @@ static void rend_resource_load(RvkPlatform* plat, EcsWorld* world, EcsIterator* 
 }
 
 ecs_system_define(RendResourceLoadSys) {
-  const RendPlatformComp* plat = ecs_utils_read_first_t(world, RendPlatformView, RendPlatformComp);
+  const RendPlatformComp* plat = ecs_utils_read_first_t(world, RendPlatView, RendPlatformComp);
   if (!plat) {
     return;
   }
@@ -187,12 +242,16 @@ ecs_module_init(rend_resource_module) {
   ecs_register_comp(RendShaderComp, .destructor = ecs_destruct_shader_comp);
   ecs_register_comp(RendMeshComp, .destructor = ecs_destruct_mesh_comp);
   ecs_register_comp(RendTextureComp, .destructor = ecs_destruct_texture_comp);
+  ecs_register_comp(RendGlobalResourceComp);
+  ecs_register_comp_empty(RendGlobalResourceLoadedComp);
 
   ecs_register_comp(RendResource, .combinator = ecs_combine_resource);
   ecs_register_comp_empty(RendResourceReady);
 
-  ecs_register_view(RendPlatformView);
+  ecs_register_view(RendPlatView);
   ecs_register_view(SceneGraphicView);
+  ecs_register_view(AssetManagerView);
+  ecs_register_view(GlobalResourceUpdateView);
   ecs_register_view(ShaderView);
   ecs_register_view(GraphicView);
   ecs_register_view(MeshView);
@@ -200,10 +259,17 @@ ecs_module_init(rend_resource_module) {
 
   ecs_register_view(RendResourceLoadView);
 
+  ecs_register_system(
+      RendGlobalResourceLoadSys,
+      ecs_view_id(GlobalResourceUpdateView),
+      ecs_view_id(AssetManagerView),
+      ecs_view_id(TextureView));
+
   ecs_register_system(RendResourceRequestSys, ecs_view_id(SceneGraphicView));
+
   ecs_register_system(
       RendResourceLoadSys,
-      ecs_view_id(RendPlatformView),
+      ecs_view_id(RendPlatView),
       ecs_view_id(RendResourceLoadView),
       ecs_view_id(ShaderView),
       ecs_view_id(MeshView),
@@ -211,7 +277,7 @@ ecs_module_init(rend_resource_module) {
 }
 
 void rend_resource_teardown(EcsWorld* world) {
-  const RendPlatformComp* plat = ecs_utils_read_first_t(world, RendPlatformView, RendPlatformComp);
+  const RendPlatformComp* plat = ecs_utils_read_first_t(world, RendPlatView, RendPlatformComp);
   if (plat) {
     // Wait for all rendering to be done.
     rvk_platform_wait_idle(plat->vulkan);
