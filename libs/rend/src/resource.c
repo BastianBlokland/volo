@@ -20,7 +20,10 @@ ecs_comp_define_public(RendShaderComp);
 ecs_comp_define_public(RendMeshComp);
 ecs_comp_define_public(RendTextureComp);
 
-ecs_comp_define(RendGlobalResourceComp) { EcsEntityId missingTex; };
+ecs_comp_define(RendGlobalResourceComp) {
+  EcsEntityId missingTex;
+  EcsEntityId missingMesh;
+};
 ecs_comp_define(RendGlobalResourceLoadedComp);
 
 static void ecs_destruct_graphic_comp(void* data) {
@@ -131,7 +134,8 @@ ecs_system_define(RendGlobalResourceLoadSys) {
         world,
         ecs_view_entity(platItr),
         RendGlobalResourceComp,
-        .missingTex = rend_resource_request(world, assetMan, string_lit("textures/missing.ppm")));
+        .missingTex  = rend_resource_request(world, assetMan, string_lit("textures/missing.ppm")),
+        .missingMesh = rend_resource_request(world, assetMan, string_lit("meshes/missing.obj")));
     return;
   }
   RendPlatformComp*       plat    = ecs_view_write_t(platItr, RendPlatformComp);
@@ -156,6 +160,12 @@ static EcsEntityId rend_resource_texture_entity(
     EcsWorld* world, const RendGlobalResourceComp* res, const AssetGraphicSampler* sampler) {
   return ecs_world_has_t(world, sampler->texture, RendResourceFailed) ? res->missingTex
                                                                       : sampler->texture;
+}
+
+static EcsEntityId rend_resource_mesh_entity(
+    EcsWorld* world, const RendGlobalResourceComp* res, const AssetGraphicComp* graphic) {
+  return ecs_world_has_t(world, graphic->mesh, RendResourceFailed) ? res->missingMesh
+                                                                   : graphic->mesh;
 }
 
 static void rend_resource_load(
@@ -194,7 +204,8 @@ static void rend_resource_load(
 
       // Mesh.
       ecs_utils_maybe_add_t(world, maybeAssetGraphic->mesh, RendResource);
-      dependenciesReady &= ecs_world_has_t(world, maybeAssetGraphic->mesh, RendResourceReady);
+      const EcsEntityId meshEntity = rend_resource_mesh_entity(world, res, maybeAssetGraphic);
+      dependenciesReady &= ecs_world_has_t(world, meshEntity, RendResourceReady);
 
       // Textures.
       array_ptr_for_t(maybeAssetGraphic->samplers, AssetGraphicSampler, ptr) {
@@ -220,8 +231,8 @@ static void rend_resource_load(
       }
 
       // Add mesh.
-      RendMeshComp* meshComp =
-          ecs_utils_write_t(world, MeshView, maybeAssetGraphic->mesh, RendMeshComp);
+      const EcsEntityId meshEntity = rend_resource_mesh_entity(world, res, maybeAssetGraphic);
+      RendMeshComp*     meshComp   = ecs_utils_write_t(world, MeshView, meshEntity, RendMeshComp);
       rvk_graphic_mesh_add(graphicComp->graphic, meshComp->mesh);
 
       // Add samplers.
