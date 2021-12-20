@@ -168,6 +168,11 @@ static EcsEntityId rend_resource_mesh_entity(
                                                                    : graphic->mesh;
 }
 
+static void rend_resource_fail(EcsWorld* world, EcsIterator* resourceItr) {
+  ecs_view_write_t(resourceItr, RendResource)->state = RendResourceState_Failed;
+  ecs_world_add_empty_t(world, ecs_view_entity(resourceItr), RendResourceFailed);
+}
+
 static void rend_resource_load(
     RvkPlatform*                  plat,
     const RendGlobalResourceComp* res,
@@ -186,8 +191,7 @@ static void rend_resource_load(
     break;
   case RendResourceState_AcquireDependencies:
     if (ecs_world_has_t(world, entity, AssetFailedComp)) {
-      resourceComp->state = RendResourceState_Failed;
-      ecs_world_add_empty_t(world, entity, RendResourceFailed);
+      rend_resource_fail(world, resourceItr);
       return;
     }
     if (!ecs_world_has_t(world, entity, AssetLoadedComp)) {
@@ -199,6 +203,10 @@ static void rend_resource_load(
       // Shaders.
       array_ptr_for_t(maybeAssetGraphic->shaders, AssetGraphicShader, ptr) {
         ecs_utils_maybe_add_t(world, ptr->shader, RendResource);
+        if (ecs_world_has_t(world, ptr->shader, RendResourceFailed)) {
+          rend_resource_fail(world, resourceItr);
+          return;
+        }
         dependenciesReady &= ecs_world_has_t(world, ptr->shader, RendResourceReady);
       }
 
