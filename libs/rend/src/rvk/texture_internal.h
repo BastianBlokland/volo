@@ -5,15 +5,15 @@
 #include "transfer_internal.h"
 
 // Internal forward declarations:
-typedef struct sRvkCanvas RvkCanvas;
-typedef struct sRvkDevice RvkDevice;
+typedef struct sRvkCanvas   RvkCanvas;
+typedef struct sRvkPlatform RvkPlatform;
 
 typedef struct sRvkTexture {
-  RvkDevice*    dev;
+  RvkPlatform*  platform;
   RvkImage      image;
   RvkTransferId pixelTransfer;
 } RvkTexture;
 
-RvkTexture* rvk_texture_create(RvkDevice*, const AssetTextureComp*);
+RvkTexture* rvk_texture_create(RvkPlatform*, const AssetTextureComp*);
 void        rvk_texture_destroy(RvkTexture*);
 bool        rvk_texture_prepare(RvkTexture*, const RvkCanvas*);

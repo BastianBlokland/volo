@@ -89,7 +89,7 @@ ecs_system_define(RendResourceRequestSys) {
   }
 }
 
-static void rend_resource_load(RvkDevice* rvkDev, EcsWorld* world, EcsIterator* resourceItr) {
+static void rend_resource_load(RvkPlatform* plat, EcsWorld* world, EcsIterator* resourceItr) {
   const EcsEntityId       entity            = ecs_view_entity(resourceItr);
   RendResource*           resourceComp      = ecs_view_write_t(resourceItr, RendResource);
   const AssetGraphicComp* maybeAssetGraphic = ecs_view_read_t(resourceItr, AssetGraphicComp);
@@ -132,7 +132,7 @@ static void rend_resource_load(RvkDevice* rvkDev, EcsWorld* world, EcsIterator* 
   case RendResourceState_Create: {
     if (maybeAssetGraphic) {
       RendGraphicComp* graphicComp = ecs_world_add_t(
-          world, entity, RendGraphicComp, .graphic = rvk_graphic_create(rvkDev, maybeAssetGraphic));
+          world, entity, RendGraphicComp, .graphic = rvk_graphic_create(plat, maybeAssetGraphic));
 
       // Add shaders.
       array_ptr_for_t(maybeAssetGraphic->shaders, AssetGraphicShader, ptr) {
@@ -153,12 +153,12 @@ static void rend_resource_load(RvkDevice* rvkDev, EcsWorld* world, EcsIterator* 
       }
     } else if (maybeAssetShader) {
       ecs_world_add_t(
-          world, entity, RendShaderComp, .shader = rvk_shader_create(rvkDev, maybeAssetShader));
+          world, entity, RendShaderComp, .shader = rvk_shader_create(plat, maybeAssetShader));
     } else if (maybeAssetMesh) {
-      ecs_world_add_t(world, entity, RendMeshComp, .mesh = rvk_mesh_create(rvkDev, maybeAssetMesh));
+      ecs_world_add_t(world, entity, RendMeshComp, .mesh = rvk_mesh_create(plat, maybeAssetMesh));
     } else if (maybeAssetTexture) {
       ecs_world_add_t(
-          world, entity, RendTextureComp, .texture = rvk_texture_create(rvkDev, maybeAssetTexture));
+          world, entity, RendTextureComp, .texture = rvk_texture_create(plat, maybeAssetTexture));
     } else {
       diag_crash_msg("Unsupported resource asset type");
     }
@@ -176,11 +176,9 @@ ecs_system_define(RendResourceLoadSys) {
   if (!plat) {
     return;
   }
-  RvkDevice* rvkDev = rvk_platform_device(plat->vulkan);
-
   EcsView* resourceView = ecs_world_view_t(world, RendResourceLoadView);
   for (EcsIterator* itr = ecs_view_itr(resourceView); ecs_view_walk(itr);) {
-    rend_resource_load(rvkDev, world, itr);
+    rend_resource_load(plat->vulkan, world, itr);
   }
 }
 

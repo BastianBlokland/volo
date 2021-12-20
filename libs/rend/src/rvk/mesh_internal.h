@@ -5,16 +5,16 @@
 #include "transfer_internal.h"
 
 // Internal forward declarations:
-typedef struct sRvkCanvas RvkCanvas;
-typedef struct sRvkDevice RvkDevice;
+typedef struct sRvkCanvas   RvkCanvas;
+typedef struct sRvkPlatform RvkPlatform;
 
 typedef struct sRvkMesh {
-  RvkDevice*    dev;
+  RvkPlatform*  platform;
   u32           vertexCount, indexCount;
   RvkBuffer     vertexBuffer, indexBuffer;
   RvkTransferId vertexTransfer, indexTransfer;
 } RvkMesh;
 
-RvkMesh* rvk_mesh_create(RvkDevice*, const AssetMeshComp*);
+RvkMesh* rvk_mesh_create(RvkPlatform*, const AssetMeshComp*);
 void     rvk_mesh_destroy(RvkMesh*);
 bool     rvk_mesh_prepare(RvkMesh*, const RvkCanvas*);

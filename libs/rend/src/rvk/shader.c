@@ -4,6 +4,7 @@
 #include "log_logger.h"
 
 #include "device_internal.h"
+#include "platform_internal.h"
 #include "shader_internal.h"
 
 static VkShaderModule rvk_shader_module_create(RvkDevice* dev, const AssetShaderComp* asset) {
@@ -53,10 +54,11 @@ static RvkDescKind rvk_shader_desc_kind(const AssetShaderResKind resKind) {
   diag_crash();
 }
 
-RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset) {
+RvkShader* rvk_shader_create(RvkPlatform* plat, const AssetShaderComp* asset) {
+  RvkDevice* dev    = rvk_platform_device(plat);
   RvkShader* shader = alloc_alloc_t(g_alloc_heap, RvkShader);
   *shader           = (RvkShader){
-      .dev        = dev,
+      .platform   = plat,
       .vkModule   = rvk_shader_module_create(dev, asset),
       .vkStage    = rvk_shader_stage(asset->kind),
       .entryPoint = string_dup(g_alloc_heap, asset->entryPoint),
@@ -82,7 +84,9 @@ RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset) {
 }
 
 void rvk_shader_destroy(RvkShader* shader) {
-  vkDestroyShaderModule(shader->dev->vkDev, shader->vkModule, &shader->dev->vkAlloc);
+  RvkDevice* dev = rvk_platform_device(shader->platform);
+
+  vkDestroyShaderModule(dev->vkDev, shader->vkModule, &dev->vkAlloc);
   string_free(g_alloc_heap, shader->entryPoint);
 
   alloc_free_t(g_alloc_heap, shader);
