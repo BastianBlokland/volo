@@ -215,6 +215,8 @@ void ecs_storage_entity_destroy(EcsStorage* storage, const EcsEntityId id) {
   entity_allocator_free(&storage->entityAllocator, id);
 }
 
+usize ecs_storage_archetype_count(const EcsStorage* storage) { return storage->archetypes.size; }
+
 usize ecs_storage_archetype_entities_per_chunk(const EcsStorage* storage, const EcsArchetypeId id) {
   return ecs_storage_archetype_ptr(storage, id)->entitiesPerChunk;
 }

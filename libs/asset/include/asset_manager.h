@@ -17,6 +17,7 @@ ecs_comp_extern(AssetManagerComp);
  * The asset payload can be retrieved from type specific components, for example 'AssetTextureComp'.
  */
 ecs_comp_extern(AssetComp);
+ecs_comp_extern(AssetFailedComp);
 ecs_comp_extern(AssetLoadedComp);
 
 /**

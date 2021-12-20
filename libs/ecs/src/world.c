@@ -10,6 +10,8 @@
 #include "view_internal.h"
 #include "world_internal.h"
 
+// #define VOLO_ECS_WORLD_LOGGING_VERBOSE
+
 typedef enum {
   EcsWorldFlags_None,
   EcsWorldFlags_Busy = 1 << 0, // For example set when a runner is active on this world.
@@ -51,6 +53,7 @@ static EcsArchetypeId ecs_world_archetype_find_or_create(EcsWorld* world, const 
   const EcsArchetypeId newId         = ecs_storage_archetype_create(&world->storage, mask);
   const usize          trackingViews = ecs_world_archetype_track(world, newId, mask);
 
+#ifdef VOLO_ECS_WORLD_LOGGING_VERBOSE
   log_d(
       "Ecs archetype created",
       log_param("components", fmt_int(bitset_count(mask))),
@@ -58,6 +61,7 @@ static EcsArchetypeId ecs_world_archetype_find_or_create(EcsWorld* world, const 
           "entities-per-chunk",
           fmt_int(ecs_storage_archetype_entities_per_chunk(&world->storage, newId))),
       log_param("tracking-views", fmt_int(trackingViews)));
+#endif
 
   (void)trackingViews;
   return newId;
@@ -154,6 +158,10 @@ void ecs_world_destroy(EcsWorld* world) {
   diag_assert(!ecs_world_busy(world));
 
   ecs_def_unfreeze((EcsDef*)world->def);
+
+  log_d(
+      "Ecs world destroyed",
+      log_param("archetypes", fmt_int(ecs_storage_archetype_count(&world->storage))));
 
   ecs_storage_destroy(&world->storage);
 

@@ -4,17 +4,17 @@
 #include "desc_internal.h"
 
 // Internal forward declarations:
-typedef struct sRvkDevice RvkDevice;
+typedef struct sRvkPlatform RvkPlatform;
 
 #define rvk_shader_desc_max 5
 
 typedef struct sRvkShader {
-  RvkDevice*            dev;
+  RvkPlatform*          platform;
   VkShaderStageFlagBits vkStage;
   VkShaderModule        vkModule;
   String                entryPoint;
   RvkDescMeta           descriptors[rvk_shader_desc_max];
 } RvkShader;
 
-RvkShader* rvk_shader_create(RvkDevice*, const AssetShaderComp*);
+RvkShader* rvk_shader_create(RvkPlatform*, const AssetShaderComp*);
 void       rvk_shader_destroy(RvkShader*);

@@ -11,7 +11,7 @@
 #include "mem_internal.h"
 #include "sampler_internal.h"
 
-#define VOLO_RVK_DESC_LOGGING
+// #define VOLO_RVK_DESC_LOGGING
 
 #define rvk_desc_sets_per_chunk 8
 

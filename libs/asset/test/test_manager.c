@@ -54,6 +54,7 @@ spec(manager) {
     asset_test_wait(runner);
 
     check(ecs_world_has_t(world, asset, AssetLoadedComp));
+    check(!ecs_world_has_t(world, asset, AssetFailedComp));
     check(ecs_world_has_t(world, asset, AssetRawComp));
   }
 
@@ -130,6 +131,19 @@ spec(manager) {
 
     check(ecs_world_has_t(world, assetB, AssetRawComp));
     check(ecs_world_has_t(world, assetB, AssetLoadedComp));
+  }
+
+  it("fails loads for non-existing assets") {
+    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+    const EcsEntityId entity  = asset_lookup(world, manager, string_lit("non-existent"));
+
+    asset_acquire(world, entity);
+
+    ecs_run_sync(runner);
+    ecs_run_sync(runner);
+
+    check(ecs_world_has_t(world, entity, AssetFailedComp));
+    check(!ecs_world_has_t(world, entity, AssetLoadedComp));
   }
 
   teardown() {
