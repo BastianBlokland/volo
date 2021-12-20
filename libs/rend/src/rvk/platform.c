@@ -8,14 +8,27 @@
 #include "graphic_internal.h"
 #include "platform_internal.h"
 
+typedef enum {
+  RvkWellKnownType_None,
+  RvkWellKnownType_Texture,
+} RvkWellKnownType;
+
+typedef struct {
+  RvkWellKnownType type;
+  union {
+    RvkTexture* texture;
+  };
+} RvkWellKnownEntry;
+
 typedef struct {
   RvkCanvasId id;
   RvkCanvas*  canvas;
 } RvkCanvasInfo;
 
 struct sRvkPlatform {
-  RvkDevice* dev;
-  DynArray   canvases; // RvkCanvasInfo[]
+  RvkDevice*        dev;
+  DynArray          canvases; // RvkCanvasInfo[]
+  RvkWellKnownEntry wellknown[RvkWellKnownId_Count];
 };
 
 static RvkCanvas* rvk_canvas_lookup(RvkPlatform* plat, const RvkCanvasId id) {
@@ -25,6 +38,14 @@ static RvkCanvas* rvk_canvas_lookup(RvkPlatform* plat, const RvkCanvasId id) {
     }
   }
   diag_crash_msg("No canvas found with id: {}", fmt_int(id));
+}
+
+String rvk_wellknown_id_str(const RvkWellKnownId id) {
+  static const String names[] = {
+      string_static("MissingTexture"),
+  };
+  ASSERT(array_elems(names) == RvkWellKnownId_Count, "Incorrect number of names");
+  return names[id];
 }
 
 RvkPlatform* rvk_platform_create() {
@@ -73,6 +94,20 @@ void rvk_platform_canvas_destroy(RvkPlatform* plat, const RvkCanvasId id) {
       break;
     }
   }
+}
+
+void rvk_platform_texture_set(RvkPlatform* plat, const RvkWellKnownId id, RvkTexture* tex) {
+  plat->wellknown[id].type    = RvkWellKnownType_Texture;
+  plat->wellknown[id].texture = tex;
+}
+
+RvkTexture* rvk_platform_texture_get(const RvkPlatform* plat, const RvkWellKnownId id) {
+  if (UNLIKELY(plat->wellknown[id].type != RvkWellKnownType_Texture)) {
+    diag_crash_msg(
+        "Wellknown asset '{}' cannot be found or is of the wrong type",
+        fmt_text(rvk_wellknown_id_str(id)));
+  }
+  return plat->wellknown[id].texture;
 }
 
 bool rvk_platform_prepare_graphic(RvkPlatform* plat, const RvkCanvasId id, RvkGraphic* graphic) {

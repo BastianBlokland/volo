@@ -3,9 +3,16 @@
 #include "rend_color.h"
 #include "rend_size.h"
 
+typedef enum {
+  RvkWellKnownId_MissingTexture,
+
+  RvkWellKnownId_Count,
+} RvkWellKnownId;
+
 // Internal forward declarations:
 typedef struct sRvkDevice  RvkDevice;
 typedef struct sRvkGraphic RvkGraphic;
+typedef struct sRvkTexture RvkTexture;
 
 typedef u16 RvkCanvasId;
 
@@ -18,6 +25,9 @@ void         rvk_platform_update(RvkPlatform*);
 void         rvk_platform_wait_idle(const RvkPlatform*);
 RvkCanvasId  rvk_platform_canvas_create(RvkPlatform*, const GapWindowComp*);
 void         rvk_platform_canvas_destroy(RvkPlatform*, RvkCanvasId);
+
+void        rvk_platform_texture_set(RvkPlatform*, RvkWellKnownId, RvkTexture*);
+RvkTexture* rvk_platform_texture_get(const RvkPlatform*, RvkWellKnownId);
 
 bool rvk_platform_prepare_graphic(RvkPlatform*, RvkCanvasId, RvkGraphic*);
 

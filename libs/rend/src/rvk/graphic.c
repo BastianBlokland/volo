@@ -365,6 +365,20 @@ rvk_pipeline_create(RvkGraphic* graphic, VkPipelineLayout layout, const RvkCanva
   return result;
 }
 
+static void rvk_graphic_set_missing_sampler(RvkGraphic* graphic, const u32 samplerIndex) {
+  diag_assert(!graphic->samplers[samplerIndex].texture);
+
+  RvkTexture* tex = rvk_platform_texture_get(graphic->platform, RvkWellKnownId_MissingTexture);
+
+  graphic->samplers[samplerIndex].texture = tex;
+  graphic->samplers[samplerIndex].sampler = rvk_sampler_create(
+      rvk_platform_device(graphic->platform),
+      RvkSamplerWrap_Repeat,
+      RvkSamplerFilter_Nearest,
+      RvkSamplerAniso_None,
+      tex->image.mipLevels);
+}
+
 RvkGraphic* rvk_graphic_create(RvkPlatform* plat, const AssetGraphicComp* asset) {
   RvkGraphic* graphic = alloc_alloc_t(g_alloc_heap, RvkGraphic);
   *graphic            = (RvkGraphic){
@@ -462,8 +476,11 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, const RvkCanvas* canvas) {
     u32 samplerIndex = 0;
     for (u32 i = 0; i != rvk_desc_bindings_max; ++i) {
       if (descMeta.bindings[i] == RvkDescKind_CombinedImageSampler) {
-        if (UNLIKELY(i == rvk_graphic_samplers_max || !graphic->samplers[samplerIndex].texture)) {
-          diag_crash_msg("Shader expects more textures then the graphic provides");
+        if (UNLIKELY(i == rvk_graphic_samplers_max)) {
+          diag_crash_msg("Shader expects more textures then is supported");
+        }
+        if (!graphic->samplers[samplerIndex].texture) {
+          rvk_graphic_set_missing_sampler(graphic, samplerIndex);
         }
         const RvkImage*   image   = &graphic->samplers[samplerIndex].texture->image;
         const RvkSampler* sampler = &graphic->samplers[samplerIndex].sampler;
