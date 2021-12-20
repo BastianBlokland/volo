@@ -24,7 +24,8 @@ typedef struct {
 typedef enum {
   AssetFlags_Loading = 1 << 0,
   AssetFlags_Loaded  = 1 << 1,
-  AssetFlags_Active  = AssetFlags_Loading | AssetFlags_Loaded,
+  AssetFlags_Failed  = 1 << 2,
+  AssetFlags_Active  = AssetFlags_Loading | AssetFlags_Loaded | AssetFlags_Failed,
 } AssetFlags;
 
 ecs_comp_define(AssetManagerComp) {
@@ -39,6 +40,7 @@ ecs_comp_define(AssetComp) {
 };
 
 ecs_comp_define(AssetLoadedComp);
+ecs_comp_define(AssetFailedComp);
 ecs_comp_define(AssetDirtyComp) { u32 numAcquire, numRelease; };
 
 static void ecs_destruct_manager_comp(void* data) {
@@ -145,11 +147,24 @@ ecs_system_define(UpdateDirtyAssetsSys) {
        * NOTE: Loading can fail to start, for example the asset doesn't exist in the manager's repo.
        */
       const bool canLoad = startedLoads < asset_manager_max_loads_per_tick;
-      if (canLoad && asset_manager_load(world, manager, assetComp, entity)) {
+      if (canLoad) {
         assetComp->flags |= AssetFlags_Loading;
-        startedLoads++;
+        if (asset_manager_load(world, manager, assetComp, entity)) {
+          startedLoads++;
+        } else {
+          ecs_world_add_empty_t(world, entity, AssetFailedComp);
+        }
       }
       updateRequired = true;
+    }
+
+    if (assetComp->flags & AssetFlags_Loading && ecs_world_has_t(world, entity, AssetFailedComp)) {
+      /**
+       * Asset has failed loading.
+       */
+      assetComp->flags &= ~AssetFlags_Loading;
+      assetComp->flags |= AssetFlags_Failed;
+      updateRequired = false;
     }
 
     if (assetComp->flags & AssetFlags_Loading && ecs_world_has_t(world, entity, AssetLoadedComp)) {
@@ -182,6 +197,7 @@ ecs_system_define(UpdateDirtyAssetsSys) {
 ecs_module_init(asset_manager_module) {
   ecs_register_comp(AssetManagerComp, .destructor = ecs_destruct_manager_comp);
   ecs_register_comp(AssetComp, .destructor = ecs_destruct_asset_comp);
+  ecs_register_comp_empty(AssetFailedComp);
   ecs_register_comp_empty(AssetLoadedComp);
   ecs_register_comp(AssetDirtyComp, .combinator = ecs_combine_asset_dirty);
 
