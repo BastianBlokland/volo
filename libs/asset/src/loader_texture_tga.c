@@ -3,6 +3,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "ecs_world.h"
+#include "log_logger.h"
 
 #include "repo_internal.h"
 
@@ -253,8 +254,9 @@ static Mem tga_read_pixels(
   return tga_read_pixels_uncompressed(input, width, height, flags, out, err);
 }
 
-NORETURN static void tga_report_error(const TgaError err) {
-  diag_crash_msg("Failed to parse Tga texture, error: {}", fmt_text(tga_error_str(err)));
+static void tga_load_fail(EcsWorld* world, const EcsEntityId assetEntity, const TgaError err) {
+  log_e("Failed to parse Tga texture", log_param("error", fmt_text(tga_error_str(err))));
+  ecs_world_add_empty_t(world, assetEntity, AssetFailedComp);
 }
 
 void asset_load_tga(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) {
@@ -265,31 +267,39 @@ void asset_load_tga(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
   TgaHeader header;
   data = tga_read_header(data, &header, &res);
   if (res) {
-    tga_report_error(res);
+    tga_load_fail(world, assetEntity, res);
+    goto Error;
   }
   if (header.colorMapType == TgaColorMapType_Present) {
-    tga_report_error(TgaError_UnsupportedColorMap);
+    tga_load_fail(world, assetEntity, TgaError_UnsupportedColorMap);
+    goto Error;
   }
   if (header.imageSpec.bitsPerPixel != 24 && header.imageSpec.bitsPerPixel != 32) {
-    tga_report_error(TgaError_UnsupportedBitDepth);
+    tga_load_fail(world, assetEntity, TgaError_UnsupportedBitDepth);
+    goto Error;
   }
   if (header.imageSpec.bitsPerPixel == 32) {
     flags |= TgaFlags_Alpha;
   }
   if (flags & TgaFlags_Alpha && header.imageSpec.descriptor.attributeDepth != 8) {
-    tga_report_error(TgaError_UnsupportedAlphaChannelDepth);
+    tga_load_fail(world, assetEntity, TgaError_UnsupportedAlphaChannelDepth);
+    goto Error;
   }
   if (header.imageSpec.descriptor.interleave != TgaInterleave_None) {
-    tga_report_error(TgaError_UnsupportedInterleaved);
+    tga_load_fail(world, assetEntity, TgaError_UnsupportedInterleaved);
+    goto Error;
   }
   if (header.imageType != TgaImageType_TrueColor && header.imageType != TgaImageType_RleTrueColor) {
-    tga_report_error(TgaError_UnsupportedNonTrueColor);
+    tga_load_fail(world, assetEntity, TgaError_UnsupportedNonTrueColor);
+    goto Error;
   }
   if (!header.imageSpec.width || !header.imageSpec.height) {
-    tga_report_error(TgaError_UnsupportedSize);
+    tga_load_fail(world, assetEntity, TgaError_UnsupportedSize);
+    goto Error;
   }
   if (header.imageSpec.width > tga_max_width || header.imageSpec.height > tga_max_height) {
-    tga_report_error(TgaError_UnsupportedSize);
+    tga_load_fail(world, assetEntity, TgaError_UnsupportedSize);
+    goto Error;
   }
   if (header.imageType == TgaImageType_RleTrueColor) {
     flags |= TgaFlags_Rle;
@@ -300,7 +310,8 @@ void asset_load_tga(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
   }
 
   if (data.size <= header.idLength) {
-    tga_report_error(TgaError_Malformed);
+    tga_load_fail(world, assetEntity, TgaError_Malformed);
+    goto Error;
   }
   data = mem_consume(data, header.idLength); // Skip over the id field.
 
@@ -309,11 +320,17 @@ void asset_load_tga(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
   AssetTexturePixel* pixels = alloc_array_t(g_alloc_heap, AssetTexturePixel, width * height);
   data                      = tga_read_pixels(data, width, height, flags, pixels, &res);
   if (res) {
-    tga_report_error(res);
+    tga_load_fail(world, assetEntity, res);
+    alloc_free_array_t(g_alloc_heap, pixels, width * height);
+    goto Error;
   }
 
   asset_source_close(src);
   ecs_world_add_t(
       world, assetEntity, AssetTextureComp, .width = width, .height = height, .pixels = pixels);
   ecs_world_add_empty_t(world, assetEntity, AssetLoadedComp);
+  return;
+
+Error:
+  asset_source_close(src);
 }

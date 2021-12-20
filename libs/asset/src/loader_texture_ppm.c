@@ -160,23 +160,19 @@ void asset_load_ppm(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
   input = ppm_read_header(input, &header);
   if (header.type == PixmapType_Unknown) {
     ppm_load_fail(world, assetEntity, PixmapError_MalformedType);
-    asset_source_close(src);
-    return;
+    goto Error;
   }
   if (!header.width || !header.height) {
     ppm_load_fail(world, assetEntity, PixmapError_UnsupportedSize);
-    asset_source_close(src);
-    return;
+    goto Error;
   }
   if (header.width > ppm_max_width || header.height > ppm_max_height) {
     ppm_load_fail(world, assetEntity, PixmapError_UnsupportedSize);
-    asset_source_close(src);
-    return;
+    goto Error;
   }
   if (header.maxValue != 255) {
     ppm_load_fail(world, assetEntity, PixmapError_UnsupportedBitDepth);
-    asset_source_close(src);
-    return;
+    goto Error;
   }
 
   const u32          width  = (u32)header.width;
@@ -186,12 +182,15 @@ void asset_load_ppm(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
   if (res) {
     ppm_load_fail(world, assetEntity, res);
     alloc_free_array_t(g_alloc_heap, pixels, width * height);
-    asset_source_close(src);
-    return;
+    goto Error;
   }
 
   asset_source_close(src);
   ecs_world_add_t(
       world, assetEntity, AssetTextureComp, .width = width, .height = height, .pixels = pixels);
   ecs_world_add_empty_t(world, assetEntity, AssetLoadedComp);
+  return;
+
+Error:
+  asset_source_close(src);
 }
