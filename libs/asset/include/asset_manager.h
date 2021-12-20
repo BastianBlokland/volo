@@ -35,6 +35,7 @@ EcsEntityId asset_manager_create_mem(EcsWorld*, const AssetMemRecord* records, u
 /**
  * Lookup a asset-entity by its id.
  * NOTE: The asset won't be loaded until 'asset_acquire()' is called.
+ * Pre-condition: !string_is_empty(id).
  */
 EcsEntityId asset_lookup(EcsWorld*, AssetManagerComp*, String id);
 
