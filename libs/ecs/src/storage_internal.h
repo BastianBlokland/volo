@@ -32,6 +32,7 @@ EcsArchetypeId ecs_storage_entity_archetype(EcsStorage*, EcsEntityId);
 void           ecs_storage_entity_move(EcsStorage*, EcsEntityId, EcsArchetypeId newArchetypeId);
 void           ecs_storage_entity_destroy(EcsStorage*, EcsEntityId);
 
+usize          ecs_storage_archetype_count(const EcsStorage*);
 usize          ecs_storage_archetype_entities_per_chunk(const EcsStorage*, EcsArchetypeId);
 EcsArchetypeId ecs_storage_archetype_find(EcsStorage*, BitSet mask);
 EcsArchetypeId ecs_storage_archetype_create(EcsStorage*, BitSet mask);

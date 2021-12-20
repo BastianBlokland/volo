@@ -10,7 +10,7 @@
 #include "view_internal.h"
 #include "world_internal.h"
 
-// #define VOLO_ECS_WORLD_LOGGING
+// #define VOLO_ECS_WORLD_LOGGING_VERBOSE
 
 typedef enum {
   EcsWorldFlags_None,
@@ -53,7 +53,7 @@ static EcsArchetypeId ecs_world_archetype_find_or_create(EcsWorld* world, const 
   const EcsArchetypeId newId         = ecs_storage_archetype_create(&world->storage, mask);
   const usize          trackingViews = ecs_world_archetype_track(world, newId, mask);
 
-#ifdef VOLO_ECS_WORLD_LOGGING
+#ifdef VOLO_ECS_WORLD_LOGGING_VERBOSE
   log_d(
       "Ecs archetype created",
       log_param("components", fmt_int(bitset_count(mask))),
@@ -144,14 +144,12 @@ EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
         ecs_view_create(alloc, &world->storage, def, viewDef);
   }
 
-#ifdef VOLO_ECS_WORLD_LOGGING
   log_d(
       "Ecs world created",
       log_param("modules", fmt_int(def->modules.size)),
       log_param("components", fmt_int(def->components.size)),
       log_param("systems", fmt_int(def->systems.size)),
       log_param("views", fmt_int(def->views.size)));
-#endif
 
   return world;
 }
@@ -160,6 +158,10 @@ void ecs_world_destroy(EcsWorld* world) {
   diag_assert(!ecs_world_busy(world));
 
   ecs_def_unfreeze((EcsDef*)world->def);
+
+  log_d(
+      "Ecs world destroyed",
+      log_param("archetypes", fmt_int(ecs_storage_archetype_count(&world->storage))));
 
   ecs_storage_destroy(&world->storage);
 
