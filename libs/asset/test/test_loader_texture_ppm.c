@@ -159,6 +159,24 @@ static const struct {
     },
 };
 
+static const struct {
+  String id;
+  String text;
+} g_errorTestData[] = {
+    {
+        .id   = string_static("invalid-format-type.ppm"),
+        .text = string_static("P9 1 1 255 255 255 255"),
+    },
+    {
+        .id   = string_static("invalid-size.ppm"),
+        .text = string_static("P3 0 0 255 255 255 255"),
+    },
+    {
+        .id   = string_static("invalid-bitdepth.ppm"),
+        .text = string_static("P3 0 0 128 128 128 128"),
+    },
+};
+
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
 ecs_view_define(AssetView) { ecs_access_read(AssetTextureComp); }
 
@@ -223,6 +241,25 @@ spec(loader_texture_ppm) {
     asset_release(world, asset);
     asset_test_wait(runner);
     check(!ecs_world_has_t(world, asset, AssetTextureComp));
+  }
+
+  it("fails when loading invalid ppm files") {
+    AssetMemRecord records[array_elems(g_errorTestData)];
+    for (usize i = 0; i != array_elems(g_errorTestData); ++i) {
+      records[i] = (AssetMemRecord){.id = g_errorTestData[i].id, .data = g_errorTestData[i].text};
+    }
+    asset_manager_create_mem(world, records, array_elems(g_errorTestData));
+    ecs_world_flush(world);
+
+    for (usize i = 0; i != array_elems(g_errorTestData); ++i) {
+      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+      const EcsEntityId asset   = asset_lookup(world, manager, records[i].id);
+      asset_acquire(world, asset);
+
+      asset_test_wait(runner);
+
+      check(ecs_world_has_t(world, asset, AssetFailedComp));
+    }
   }
 
   teardown() {
