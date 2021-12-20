@@ -73,6 +73,11 @@ ecs_view_define(RendPlatView) { ecs_access_read(RendPlatformComp); }
 ecs_view_define(SceneGraphicView) { ecs_access_read(SceneGraphicComp); };
 ecs_view_define(AssetManagerView) { ecs_access_write(AssetManagerComp); };
 
+ecs_view_define(GlobalView) {
+  ecs_access_read(RendPlatformComp);
+  ecs_access_read(RendGlobalResourceComp);
+}
+
 ecs_view_define(GlobalResourceUpdateView) {
   ecs_access_write(RendPlatformComp);
   ecs_access_maybe_write(RendGlobalResourceComp);
@@ -147,7 +152,17 @@ ecs_system_define(RendResourceRequestSys) {
   }
 }
 
-static void rend_resource_load(RvkPlatform* plat, EcsWorld* world, EcsIterator* resourceItr) {
+static EcsEntityId rend_resource_texture_entity(
+    EcsWorld* world, const RendGlobalResourceComp* res, const AssetGraphicSampler* sampler) {
+  return ecs_world_has_t(world, sampler->texture, RendResourceFailed) ? res->missingTex
+                                                                      : sampler->texture;
+}
+
+static void rend_resource_load(
+    RvkPlatform*                  plat,
+    const RendGlobalResourceComp* res,
+    EcsWorld*                     world,
+    EcsIterator*                  resourceItr) {
   const EcsEntityId       entity            = ecs_view_entity(resourceItr);
   RendResource*           resourceComp      = ecs_view_write_t(resourceItr, RendResource);
   const AssetGraphicComp* maybeAssetGraphic = ecs_view_read_t(resourceItr, AssetGraphicComp);
@@ -184,7 +199,8 @@ static void rend_resource_load(RvkPlatform* plat, EcsWorld* world, EcsIterator* 
       // Textures.
       array_ptr_for_t(maybeAssetGraphic->samplers, AssetGraphicSampler, ptr) {
         ecs_utils_maybe_add_t(world, ptr->texture, RendResource);
-        dependenciesReady &= ecs_world_has_t(world, ptr->texture, RendResourceReady);
+        const EcsEntityId textureEntity = rend_resource_texture_entity(world, res, ptr);
+        dependenciesReady &= ecs_world_has_t(world, textureEntity, RendResourceReady);
       }
 
       if (!dependenciesReady) {
@@ -210,8 +226,9 @@ static void rend_resource_load(RvkPlatform* plat, EcsWorld* world, EcsIterator* 
 
       // Add samplers.
       array_ptr_for_t(maybeAssetGraphic->samplers, AssetGraphicSampler, ptr) {
-        RendTextureComp* comp =
-            ecs_utils_write_t(world, TextureView, ptr->texture, RendTextureComp);
+        const EcsEntityId textureEntity = rend_resource_texture_entity(world, res, ptr);
+        RendTextureComp*  comp =
+            ecs_utils_write_t(world, TextureView, textureEntity, RendTextureComp);
         rvk_graphic_sampler_add(graphicComp->graphic, comp->texture, ptr);
       }
     } else if (maybeAssetShader) {
@@ -236,13 +253,17 @@ static void rend_resource_load(RvkPlatform* plat, EcsWorld* world, EcsIterator* 
 }
 
 ecs_system_define(RendResourceLoadSys) {
-  const RendPlatformComp* plat = ecs_utils_read_first_t(world, RendPlatView, RendPlatformComp);
-  if (!plat) {
+  EcsIterator* globalItr = ecs_view_itr_first(ecs_world_view_t(world, GlobalView));
+  if (!globalItr) {
     return;
   }
+
+  const RendPlatformComp*       plat = ecs_view_read_t(globalItr, RendPlatformComp);
+  const RendGlobalResourceComp* res  = ecs_view_read_t(globalItr, RendGlobalResourceComp);
+
   EcsView* resourceView = ecs_world_view_t(world, RendResourceLoadView);
   for (EcsIterator* itr = ecs_view_itr(resourceView); ecs_view_walk(itr);) {
-    rend_resource_load(plat->vulkan, world, itr);
+    rend_resource_load(plat->vulkan, res, world, itr);
   }
 }
 
@@ -259,6 +280,7 @@ ecs_module_init(rend_resource_module) {
   ecs_register_comp_empty(RendResourceFailed);
 
   ecs_register_view(RendPlatView);
+  ecs_register_view(GlobalView);
   ecs_register_view(SceneGraphicView);
   ecs_register_view(AssetManagerView);
   ecs_register_view(GlobalResourceUpdateView);
@@ -279,7 +301,7 @@ ecs_module_init(rend_resource_module) {
 
   ecs_register_system(
       RendResourceLoadSys,
-      ecs_view_id(RendPlatView),
+      ecs_view_id(GlobalView),
       ecs_view_id(RendResourceLoadView),
       ecs_view_id(ShaderView),
       ecs_view_id(MeshView),
