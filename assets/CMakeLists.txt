@@ -8,6 +8,7 @@ configure_copies(volo_assets_graphics
 
 configure_copies(volo_assets_meshes
   meshes/cube.obj
+  meshes/missing.obj
   meshes/quad_xy.obj
   meshes/triangle_xy.obj)
 

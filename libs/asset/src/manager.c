@@ -77,6 +77,8 @@ static EcsEntityId asset_manager_create_internal(EcsWorld* world, AssetRepo* rep
 }
 
 static EcsEntityId asset_entity_create(EcsWorld* world, String id) {
+  diag_assert_msg(!string_is_empty(id), "Empty asset-id is invalid");
+
   const EcsEntityId entity = ecs_world_entity_create(world);
   ecs_world_add_t(world, entity, AssetComp, .id = string_dup(g_alloc_heap, id));
   return entity;
