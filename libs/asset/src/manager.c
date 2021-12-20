@@ -92,10 +92,6 @@ static bool asset_manager_load(
 
   AssetSource* source = asset_source_open(manager->repo, asset->id);
   if (!source) {
-    log_e(
-        "Failed to load asset",
-        log_param("id", fmt_path(asset->id)),
-        log_param("msg", fmt_text_lit("Asset not found in repository")));
     return false;
   }
 
@@ -167,6 +163,8 @@ ecs_system_define(UpdateDirtyAssetsSys) {
       assetComp->flags &= ~AssetFlags_Loading;
       assetComp->flags |= AssetFlags_Failed;
       updateRequired = false;
+
+      log_e("Failed to load asset", log_param("id", fmt_path(assetComp->id)));
     }
 
     if (assetComp->flags & AssetFlags_Loading && ecs_world_has_t(world, entity, AssetLoadedComp)) {
