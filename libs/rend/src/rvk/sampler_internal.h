@@ -29,14 +29,13 @@ typedef enum {
 } RvkSamplerAniso;
 
 typedef struct sRvkSampler {
-  RvkDevice* dev;
-  VkSampler  vkSampler;
+  VkSampler vkSampler;
 } RvkSampler;
 
 RvkSampler
-rvk_sampler_create(RvkDevice*, RvkSamplerWrap, RvkSamplerFilter, RvkSamplerAniso, u32 mipLevels);
+rvk_sampler_create(RvkDevice*, RvkSamplerWrap, RvkSamplerFilter, RvkSamplerAniso, u8 mipLevels);
 
-void rvk_sampler_destroy(RvkSampler*);
+void rvk_sampler_destroy(RvkSampler*, RvkDevice*);
 
 String rvk_sampler_wrap_str(RvkSamplerWrap);
 String rvk_sampler_filter_str(RvkSamplerFilter);

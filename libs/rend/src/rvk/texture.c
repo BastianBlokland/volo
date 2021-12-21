@@ -17,8 +17,9 @@ RvkTexture* rvk_texture_create(RvkPlatform* plat, const AssetTextureComp* asset)
   diag_assert(rvk_format_info(vkFormat).size == sizeof(AssetTexturePixel));
   diag_assert(rvk_format_info(vkFormat).channels == 4);
 
+  const RvkImageFlags flags = 0;
   texture->image =
-      rvk_image_create_source_color(dev, vkFormat, rend_size(asset->width, asset->height));
+      rvk_image_create_source_color(dev, vkFormat, rend_size(asset->width, asset->height), flags);
 
   const usize pixelDataSize = sizeof(AssetTexturePixel) * asset->width * asset->height;
   texture->pixelTransfer    = rvk_transfer_image(
@@ -35,7 +36,8 @@ RvkTexture* rvk_texture_create(RvkPlatform* plat, const AssetTextureComp* asset)
 
 void rvk_texture_destroy(RvkTexture* texture) {
 
-  rvk_image_destroy(&texture->image);
+  RvkDevice* dev = rvk_platform_device(texture->platform);
+  rvk_image_destroy(&texture->image, dev);
 
   alloc_free_t(g_alloc_heap, texture);
 }

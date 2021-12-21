@@ -16,13 +16,12 @@ typedef enum {
 } RvkBufferType;
 
 typedef struct sRvkBuffer {
-  RvkDevice*    dev;
-  RvkMem        mem;
   RvkBufferType type;
+  RvkMem        mem;
   VkBuffer      vkBuffer;
 } RvkBuffer;
 
 RvkBuffer rvk_buffer_create(RvkDevice*, u64 size, RvkBufferType);
-void      rvk_buffer_destroy(RvkBuffer*);
+void      rvk_buffer_destroy(RvkBuffer*, RvkDevice*);
 void      rvk_buffer_upload(RvkBuffer*, Mem data, u64 offset);
 String    rvk_buffer_type_str(RvkBufferType);

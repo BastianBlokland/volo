@@ -63,8 +63,9 @@ RvkMesh* rvk_mesh_create(RvkPlatform* plat, const AssetMeshComp* asset) {
 
 void rvk_mesh_destroy(RvkMesh* mesh) {
 
-  rvk_buffer_destroy(&mesh->vertexBuffer);
-  rvk_buffer_destroy(&mesh->indexBuffer);
+  RvkDevice* dev = rvk_platform_device(mesh->platform);
+  rvk_buffer_destroy(&mesh->vertexBuffer, dev);
+  rvk_buffer_destroy(&mesh->indexBuffer, dev);
 
   alloc_free_t(g_alloc_heap, mesh);
 }

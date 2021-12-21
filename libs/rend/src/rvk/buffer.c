@@ -54,15 +54,14 @@ RvkBuffer rvk_buffer_create(RvkDevice* dev, const u64 size, const RvkBufferType 
   rvk_mem_bind_buffer(mem, vkBuffer);
 
   return (RvkBuffer){
-      .dev      = dev,
-      .mem      = mem,
       .type     = type,
+      .mem      = mem,
       .vkBuffer = vkBuffer,
   };
 }
 
-void rvk_buffer_destroy(RvkBuffer* buffer) {
-  vkDestroyBuffer(buffer->dev->vkDev, buffer->vkBuffer, &buffer->dev->vkAlloc);
+void rvk_buffer_destroy(RvkBuffer* buffer, RvkDevice* dev) {
+  vkDestroyBuffer(dev->vkDev, buffer->vkBuffer, &dev->vkAlloc);
   rvk_mem_free(buffer->mem);
 }
 

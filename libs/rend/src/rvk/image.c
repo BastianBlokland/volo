@@ -1,9 +1,19 @@
 #include "core_annotation.h"
 #include "core_array.h"
+#include "core_bits.h"
 #include "core_diag.h"
+#include "core_math.h"
 
 #include "device_internal.h"
 #include "image_internal.h"
+
+static u32 rvk_compute_miplevels(const RendSize size) {
+  /**
+   * Check how many times we can cut the image in half before both sides hit 1 pixel.
+   */
+  const u32 biggestSide = math_max(size.width, size.height);
+  return 32 - bits_clz_32(biggestSide);
+}
 
 static VkImageAspectFlags rvk_image_vkaspect(const RvkImageType type) {
   switch (type) {
@@ -18,10 +28,11 @@ static VkImageAspectFlags rvk_image_vkaspect(const RvkImageType type) {
   }
 }
 
-static VkImageUsageFlags rvk_image_vkusage(const RvkImageType type) {
+static VkImageUsageFlags rvk_image_vkusage(const RvkImageType type, const RvkImageFlags flags) {
   switch (type) {
   case RvkImageType_ColorSource:
-    return VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    return VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
+           (flags & RvkImageFlags_GenerateMipMaps ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : 0);
   case RvkImageType_ColorAttachment:
     return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
   case RvkImageType_DepthAttachment:
@@ -40,7 +51,7 @@ static VkImage rvk_vkimage_create(
     const RendSize          size,
     const VkFormat          vkFormat,
     const VkImageUsageFlags vkImgUsages,
-    const u32               mipLevels) {
+    const u8                mipLevels) {
 
   const VkImageCreateInfo imageInfo = {
       .sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -67,7 +78,7 @@ static VkImageView rvk_vkimageview_create(
     const VkImage            vkImage,
     const VkFormat           vkFormat,
     const VkImageAspectFlags vkAspect,
-    const u32                mipLevels) {
+    const u8                 mipLevels) {
 
   const VkImageViewCreateInfo createInfo = {
       .sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -86,11 +97,15 @@ static VkImageView rvk_vkimageview_create(
 }
 
 static RvkImage rvk_image_create_backed(
-    RvkDevice* dev, const RvkImageType type, const VkFormat vkFormat, const RendSize size) {
+    RvkDevice*          dev,
+    const RvkImageType  type,
+    const VkFormat      vkFormat,
+    const RendSize      size,
+    const RvkImageFlags flags) {
 
-  const VkImageAspectFlags vkAspect  = rvk_image_vkaspect(type);
-  const VkImageAspectFlags vkUsage   = rvk_image_vkusage(type);
-  const u32                mipLevels = 1;
+  const VkImageAspectFlags vkAspect = rvk_image_vkaspect(type);
+  const VkImageAspectFlags vkUsage  = rvk_image_vkusage(type, flags);
+  const u8 mipLevels = flags & RvkImageFlags_GenerateMipMaps ? rvk_compute_miplevels(size) : 1;
 
   const VkImage vkImage = rvk_vkimage_create(dev, size, vkFormat, vkUsage, mipLevels);
 
@@ -104,58 +119,65 @@ static RvkImage rvk_image_create_backed(
   const VkImageView vkView = rvk_vkimageview_create(dev, vkImage, vkFormat, vkAspect, mipLevels);
 
   return (RvkImage){
-      .dev         = dev,
       .type        = type,
-      .size        = size,
+      .flags       = flags,
       .mipLevels   = mipLevels,
       .vkFormat    = vkFormat,
+      .size        = size,
       .vkImage     = vkImage,
       .vkImageView = vkView,
       .mem         = mem,
   };
 }
 
-RvkImage
-rvk_image_create_source_color(RvkDevice* dev, const VkFormat vkFormat, const RendSize size) {
+RvkImage rvk_image_create_source_color(
+    RvkDevice* dev, const VkFormat vkFormat, const RendSize size, const RvkImageFlags flags) {
   diag_assert(rvk_format_info(vkFormat).channels == 4);
-  return rvk_image_create_backed(dev, RvkImageType_ColorSource, vkFormat, size);
+  return rvk_image_create_backed(dev, RvkImageType_ColorSource, vkFormat, size, flags);
 }
 
-RvkImage
-rvk_image_create_attach_color(RvkDevice* dev, const VkFormat vkFormat, const RendSize size) {
+RvkImage rvk_image_create_attach_color(
+    RvkDevice* dev, const VkFormat vkFormat, const RendSize size, const RvkImageFlags flags) {
+  diag_assert(!(flags & RvkImageFlags_GenerateMipMaps));
   diag_assert(rvk_format_info(vkFormat).channels == 4);
-  return rvk_image_create_backed(dev, RvkImageType_ColorAttachment, vkFormat, size);
+  return rvk_image_create_backed(dev, RvkImageType_ColorAttachment, vkFormat, size, flags);
 }
 
-RvkImage
-rvk_image_create_attach_depth(RvkDevice* dev, const VkFormat vkFormat, const RendSize size) {
+RvkImage rvk_image_create_attach_depth(
+    RvkDevice* dev, const VkFormat vkFormat, const RendSize size, const RvkImageFlags flags) {
+  diag_assert(!(flags & RvkImageFlags_GenerateMipMaps));
   diag_assert(rvk_format_info(vkFormat).channels == 1);
-  return rvk_image_create_backed(dev, RvkImageType_DepthAttachment, vkFormat, size);
+  return rvk_image_create_backed(dev, RvkImageType_DepthAttachment, vkFormat, size, flags);
 }
 
 RvkImage rvk_image_create_swapchain(
-    RvkDevice* dev, VkImage vkImage, VkFormat vkFormat, const RendSize size) {
+    RvkDevice*          dev,
+    VkImage             vkImage,
+    VkFormat            vkFormat,
+    const RendSize      size,
+    const RvkImageFlags flags) {
+  diag_assert(!(flags & RvkImageFlags_GenerateMipMaps));
 
   const VkImageAspectFlags vkAspect  = VK_IMAGE_ASPECT_COLOR_BIT;
-  const u32                mipLevels = 1;
+  const u8                 mipLevels = 1;
   const VkImageView vkView = rvk_vkimageview_create(dev, vkImage, vkFormat, vkAspect, mipLevels);
 
   return (RvkImage){
-      .dev         = dev,
       .type        = RvkImageType_Swapchain,
-      .size        = size,
+      .flags       = flags,
       .mipLevels   = mipLevels,
       .vkFormat    = vkFormat,
+      .size        = size,
       .vkImage     = vkImage,
       .vkImageView = vkView,
   };
 }
 
-void rvk_image_destroy(RvkImage* img) {
+void rvk_image_destroy(RvkImage* img, RvkDevice* dev) {
   if (img->type != RvkImageType_Swapchain) {
-    vkDestroyImage(img->dev->vkDev, img->vkImage, &img->dev->vkAlloc);
+    vkDestroyImage(dev->vkDev, img->vkImage, &dev->vkAlloc);
   }
-  vkDestroyImageView(img->dev->vkDev, img->vkImageView, &img->dev->vkAlloc);
+  vkDestroyImageView(dev->vkDev, img->vkImageView, &dev->vkAlloc);
   if (rvk_mem_valid(img->mem)) {
     rvk_mem_free(img->mem);
   }
