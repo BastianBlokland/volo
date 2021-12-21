@@ -39,67 +39,6 @@ struct sRvkTransferer {
   DynArray    buffers; // RvkTransferBuffer[]
 };
 
-static void rvk_image_transition_layout(
-    RvkTransferBuffer*         buffer,
-    const RvkImage*            image,
-    const VkImageLayout        oldLayout,
-    const VkImageLayout        newLayout,
-    const VkAccessFlags        srcAccess,
-    const VkAccessFlags        dstAccess,
-    const VkPipelineStageFlags srcStageFlags,
-    const VkPipelineStageFlags dstStageFlags,
-    const u8                   baseMipLevel,
-    const u8                   mipLevels) {
-
-  const VkImageMemoryBarrier barrier = {
-      .sType                           = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-      .oldLayout                       = oldLayout,
-      .newLayout                       = newLayout,
-      .srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED,
-      .dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED,
-      .image                           = image->vkImage,
-      .subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
-      .subresourceRange.baseMipLevel   = baseMipLevel,
-      .subresourceRange.levelCount     = mipLevels,
-      .subresourceRange.baseArrayLayer = 0,
-      .subresourceRange.layerCount     = 1,
-      .srcAccessMask                   = srcAccess,
-      .dstAccessMask                   = dstAccess,
-  };
-  vkCmdPipelineBarrier(
-      buffer->vkCmdBuffer, srcStageFlags, dstStageFlags, 0, 0, null, 0, null, 1, &barrier);
-}
-
-static void rvk_image_transition_undef_to_transfer(
-    RvkTransferBuffer* buffer, const RvkImage* image, const u8 baseMipLevel, const u8 mipLevels) {
-  rvk_image_transition_layout(
-      buffer,
-      image,
-      VK_IMAGE_LAYOUT_UNDEFINED,
-      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-      0,
-      VK_ACCESS_TRANSFER_WRITE_BIT,
-      VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-      VK_PIPELINE_STAGE_TRANSFER_BIT,
-      baseMipLevel,
-      mipLevels);
-}
-
-static void rvk_image_transition_transfer_to_shader(
-    RvkTransferBuffer* buffer, const RvkImage* image, const u8 baseMipLevel, const u8 mipLevels) {
-  rvk_image_transition_layout(
-      buffer,
-      image,
-      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-      VK_ACCESS_TRANSFER_WRITE_BIT,
-      0,
-      VK_PIPELINE_STAGE_TRANSFER_BIT,
-      VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-      baseMipLevel,
-      mipLevels);
-}
-
 static VkCommandBuffer rvk_commandbuffer_create(RvkDevice* dev) {
   VkCommandBufferAllocateInfo allocInfo = {
       .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -281,7 +220,7 @@ RvkTransferId rvk_transfer_image(RvkTransferer* trans, RvkImage* dest, const Mem
   buffer->offset = bits_align(buffer->offset, reqAlign);
   rvk_buffer_upload(&buffer->hostBuffer, data, buffer->offset);
 
-  rvk_image_transition_undef_to_transfer(buffer, dest, 0, dest->mipLevels);
+  rvk_image_transition(dest, buffer->vkCmdBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
   const VkBufferImageCopy region = {
       .bufferOffset                = buffer->offset,
@@ -299,7 +238,7 @@ RvkTransferId rvk_transfer_image(RvkTransferer* trans, RvkImage* dest, const Mem
       1,
       &region);
 
-  rvk_image_transition_transfer_to_shader(buffer, dest, 0, dest->mipLevels);
+  rvk_image_transition(dest, buffer->vkCmdBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
   buffer->offset += data.size;
   const RvkTransferId id = rvk_transfer_id(trans, buffer);

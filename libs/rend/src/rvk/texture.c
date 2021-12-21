@@ -49,5 +49,7 @@ bool rvk_texture_prepare(RvkTexture* texture, const RvkCanvas* canvas) {
   if (!rvk_transfer_poll(dev->transferer, texture->pixelTransfer)) {
     return false;
   }
+
+  diag_assert(texture->image.vkImageLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
   return true; // All resources have been transferred to the device.
 }

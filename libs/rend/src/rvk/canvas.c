@@ -57,7 +57,7 @@ void rvk_canvas_draw_inst(RvkCanvas* canvas, RvkGraphic* graphic) {
 void rvk_canvas_draw_end(RvkCanvas* canvas) {
   RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
 
-  rvk_renderer_draw_end(renderer, canvas->technique);
+  rvk_renderer_draw_end(renderer, canvas->technique, canvas->swapchainIdx);
 
   rvk_swapchain_present(
       canvas->swapchain, rvk_renderer_image_ready(renderer), canvas->swapchainIdx);

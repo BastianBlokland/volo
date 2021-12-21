@@ -7,6 +7,65 @@
 #include "device_internal.h"
 #include "image_internal.h"
 
+static void rvk_image_barrier(
+    VkCommandBuffer            buffer,
+    const RvkImage*            image,
+    const VkImageLayout        oldLayout,
+    const VkImageLayout        newLayout,
+    const VkAccessFlags        srcAccess,
+    const VkAccessFlags        dstAccess,
+    const VkPipelineStageFlags srcStageFlags,
+    const VkPipelineStageFlags dstStageFlags) {
+
+  const VkImageMemoryBarrier barrier = {
+      .sType                           = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+      .oldLayout                       = oldLayout,
+      .newLayout                       = newLayout,
+      .srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED,
+      .dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED,
+      .image                           = image->vkImage,
+      .subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+      .subresourceRange.baseMipLevel   = 0,
+      .subresourceRange.levelCount     = image->mipLevels,
+      .subresourceRange.baseArrayLayer = 0,
+      .subresourceRange.layerCount     = 1,
+      .srcAccessMask                   = srcAccess,
+      .dstAccessMask                   = dstAccess,
+  };
+  vkCmdPipelineBarrier(buffer, srcStageFlags, dstStageFlags, 0, 0, null, 0, null, 1, &barrier);
+}
+
+static VkAccessFlags rvk_image_access(const VkImageLayout layout) {
+  switch (layout) {
+  case VK_IMAGE_LAYOUT_UNDEFINED:
+    return 0;
+  case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+    return VK_ACCESS_TRANSFER_WRITE_BIT;
+  case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+    return VK_ACCESS_TRANSFER_READ_BIT;
+  case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+    return 0; // TODO: Update to 'VK_ACCESS_SHADER_READ_BIT'.
+  default:
+    diag_crash_msg("Unsupported image layout");
+  }
+}
+
+static VkPipelineStageFlags rvk_image_pipeline_stage(const VkImageLayout layout) {
+  switch (layout) {
+  case VK_IMAGE_LAYOUT_UNDEFINED:
+    return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+  case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+  case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+    return VK_PIPELINE_STAGE_TRANSFER_BIT;
+  case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+    // TODO: Update to:
+    // 'VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT'.
+    return VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+  default:
+    diag_crash_msg("Unsupported image layout");
+  }
+}
+
 static u32 rvk_compute_miplevels(const RendSize size) {
   /**
    * Check how many times we can cut the image in half before both sides hit 1 pixel.
@@ -119,14 +178,15 @@ static RvkImage rvk_image_create_backed(
   const VkImageView vkView = rvk_vkimageview_create(dev, vkImage, vkFormat, vkAspect, mipLevels);
 
   return (RvkImage){
-      .type        = type,
-      .flags       = flags,
-      .mipLevels   = mipLevels,
-      .vkFormat    = vkFormat,
-      .size        = size,
-      .vkImage     = vkImage,
-      .vkImageView = vkView,
-      .mem         = mem,
+      .type          = type,
+      .flags         = flags,
+      .mipLevels     = mipLevels,
+      .vkFormat      = vkFormat,
+      .size          = size,
+      .vkImage       = vkImage,
+      .vkImageView   = vkView,
+      .vkImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+      .mem           = mem,
   };
 }
 
@@ -163,13 +223,14 @@ RvkImage rvk_image_create_swapchain(
   const VkImageView vkView = rvk_vkimageview_create(dev, vkImage, vkFormat, vkAspect, mipLevels);
 
   return (RvkImage){
-      .type        = RvkImageType_Swapchain,
-      .flags       = flags,
-      .mipLevels   = mipLevels,
-      .vkFormat    = vkFormat,
-      .size        = size,
-      .vkImage     = vkImage,
-      .vkImageView = vkView,
+      .type          = RvkImageType_Swapchain,
+      .flags         = flags,
+      .mipLevels     = mipLevels,
+      .vkFormat      = vkFormat,
+      .size          = size,
+      .vkImage       = vkImage,
+      .vkImageView   = vkView,
+      .vkImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
   };
 }
 
@@ -192,4 +253,23 @@ String rvk_image_type_str(const RvkImageType type) {
   };
   ASSERT(array_elems(names) == RvkImageType_Count, "Incorrect number of image-type names");
   return names[type];
+}
+
+void rvk_image_transition(
+    RvkImage* image, VkCommandBuffer vkCmdBuf, const VkImageLayout newLayout) {
+
+  rvk_image_barrier(
+      vkCmdBuf,
+      image,
+      image->vkImageLayout,
+      newLayout,
+      rvk_image_access(image->vkImageLayout),
+      rvk_image_access(newLayout),
+      rvk_image_pipeline_stage(image->vkImageLayout),
+      rvk_image_pipeline_stage(newLayout));
+  image->vkImageLayout = newLayout;
+}
+
+void rvk_image_transition_external(RvkImage* image, VkImageLayout newLayout) {
+  image->vkImageLayout = newLayout;
 }
