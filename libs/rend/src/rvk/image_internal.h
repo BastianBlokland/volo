@@ -7,7 +7,8 @@
 typedef struct sRvkDevice RvkDevice;
 
 typedef enum {
-  RvkImageFlags_None = 0,
+  RvkImageFlags_None            = 0,
+  RvkImageFlags_GenerateMipMaps = 1 << 0,
 } RvkImageFlags;
 
 typedef enum {

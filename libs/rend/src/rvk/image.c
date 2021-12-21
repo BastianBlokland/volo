@@ -1,9 +1,19 @@
 #include "core_annotation.h"
 #include "core_array.h"
+#include "core_bits.h"
 #include "core_diag.h"
+#include "core_math.h"
 
 #include "device_internal.h"
 #include "image_internal.h"
+
+static u32 rvk_compute_miplevels(const RendSize size) {
+  /**
+   * Check how many times we can cut the image in half before both sides hit 1 pixel.
+   */
+  const u32 biggestSide = math_max(size.width, size.height);
+  return 32 - bits_clz_32(biggestSide);
+}
 
 static VkImageAspectFlags rvk_image_vkaspect(const RvkImageType type) {
   switch (type) {
@@ -18,10 +28,11 @@ static VkImageAspectFlags rvk_image_vkaspect(const RvkImageType type) {
   }
 }
 
-static VkImageUsageFlags rvk_image_vkusage(const RvkImageType type) {
+static VkImageUsageFlags rvk_image_vkusage(const RvkImageType type, const RvkImageFlags flags) {
   switch (type) {
   case RvkImageType_ColorSource:
-    return VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    return VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
+           (flags & RvkImageFlags_GenerateMipMaps ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : 0);
   case RvkImageType_ColorAttachment:
     return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
   case RvkImageType_DepthAttachment:
@@ -92,9 +103,9 @@ static RvkImage rvk_image_create_backed(
     const RendSize      size,
     const RvkImageFlags flags) {
 
-  const VkImageAspectFlags vkAspect  = rvk_image_vkaspect(type);
-  const VkImageAspectFlags vkUsage   = rvk_image_vkusage(type);
-  const u8                 mipLevels = 1;
+  const VkImageAspectFlags vkAspect = rvk_image_vkaspect(type);
+  const VkImageAspectFlags vkUsage  = rvk_image_vkusage(type, flags);
+  const u8 mipLevels = flags & RvkImageFlags_GenerateMipMaps ? rvk_compute_miplevels(size) : 1;
 
   const VkImage vkImage = rvk_vkimage_create(dev, size, vkFormat, vkUsage, mipLevels);
 
@@ -127,12 +138,14 @@ RvkImage rvk_image_create_source_color(
 
 RvkImage rvk_image_create_attach_color(
     RvkDevice* dev, const VkFormat vkFormat, const RendSize size, const RvkImageFlags flags) {
+  diag_assert(!(flags & RvkImageFlags_GenerateMipMaps));
   diag_assert(rvk_format_info(vkFormat).channels == 4);
   return rvk_image_create_backed(dev, RvkImageType_ColorAttachment, vkFormat, size, flags);
 }
 
 RvkImage rvk_image_create_attach_depth(
     RvkDevice* dev, const VkFormat vkFormat, const RendSize size, const RvkImageFlags flags) {
+  diag_assert(!(flags & RvkImageFlags_GenerateMipMaps));
   diag_assert(rvk_format_info(vkFormat).channels == 1);
   return rvk_image_create_backed(dev, RvkImageType_DepthAttachment, vkFormat, size, flags);
 }
@@ -143,6 +156,7 @@ RvkImage rvk_image_create_swapchain(
     VkFormat            vkFormat,
     const RendSize      size,
     const RvkImageFlags flags) {
+  diag_assert(!(flags & RvkImageFlags_GenerateMipMaps));
 
   const VkImageAspectFlags vkAspect  = VK_IMAGE_ASPECT_COLOR_BIT;
   const u8                 mipLevels = 1;

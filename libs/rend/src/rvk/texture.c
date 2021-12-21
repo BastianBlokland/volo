@@ -17,8 +17,9 @@ RvkTexture* rvk_texture_create(RvkPlatform* plat, const AssetTextureComp* asset)
   diag_assert(rvk_format_info(vkFormat).size == sizeof(AssetTexturePixel));
   diag_assert(rvk_format_info(vkFormat).channels == 4);
 
-  texture->image = rvk_image_create_source_color(
-      dev, vkFormat, rend_size(asset->width, asset->height), RvkImageFlags_None);
+  const RvkImageFlags flags = 0;
+  texture->image =
+      rvk_image_create_source_color(dev, vkFormat, rend_size(asset->width, asset->height), flags);
 
   const usize pixelDataSize = sizeof(AssetTexturePixel) * asset->width * asset->height;
   texture->pixelTransfer    = rvk_transfer_image(
