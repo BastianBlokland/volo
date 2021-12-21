@@ -18,7 +18,7 @@ typedef enum {
 
 typedef struct {
   RvkMemChunk* chunk;
-  u64          offset, size;
+  u32          offset, size;
 } RvkMem;
 
 #define rvk_mem_valid(_MEM_) ((_MEM_).chunk != null)
@@ -27,7 +27,7 @@ RvkMemPool* rvk_mem_pool_create(VkDevice, VkPhysicalDeviceMemoryProperties, VkPh
 void        rvk_mem_pool_destroy(RvkMemPool*);
 
 RvkMem rvk_mem_alloc_req(RvkMemPool*, RvkMemLoc, RvkMemAccess, VkMemoryRequirements);
-RvkMem rvk_mem_alloc(RvkMemPool*, RvkMemLoc, RvkMemAccess, u64 size, u64 align, u32 mask);
+RvkMem rvk_mem_alloc(RvkMemPool*, RvkMemLoc, RvkMemAccess, u32 size, u32 align, u32 mask);
 void   rvk_mem_free(RvkMem);
 void   rvk_mem_bind_buffer(RvkMem, VkBuffer);
 void   rvk_mem_bind_image(RvkMem, VkImage);

@@ -26,7 +26,7 @@ struct sRvkMemChunk {
   RvkMemChunk*   next;
   RvkMemLoc      loc;
   RvkMemAccess   access;
-  u64            size;
+  u32            size;
   u32            memType;
   DynArray       freeBlocks; // RvkMem[]
   VkDeviceMemory vkMem;
@@ -88,7 +88,7 @@ static u32 rvk_mem_type(RvkMemPool* pool, const VkMemoryPropertyFlags props, con
   diag_crash_msg("Vulkan device has no memory type that satisfies required properties");
 }
 
-MAYBE_UNUSED static u64 rvk_mem_end_offset(const RvkMem mem) { return mem.offset + mem.size; }
+MAYBE_UNUSED static u32 rvk_mem_end_offset(const RvkMem mem) { return mem.offset + mem.size; }
 
 MAYBE_UNUSED static bool rvk_mem_overlap(const RvkMem a, const RvkMem b) {
   return rvk_mem_end_offset(a) > b.offset && a.offset < rvk_mem_end_offset(b);
@@ -98,7 +98,7 @@ MAYBE_UNUSED static bool rvk_mem_overlap(const RvkMem a, const RvkMem b) {
  * Allocate a continuous block of device memory from Vulkan.
  * NOTE: To avoid gpu memory fragmention only large blocks should be allocated from Vulkan.
  */
-static VkDeviceMemory rvk_mem_alloc_vk(RvkMemPool* pool, const u64 size, const u32 memType) {
+static VkDeviceMemory rvk_mem_alloc_vk(RvkMemPool* pool, const u32 size, const u32 memType) {
   VkMemoryAllocateInfo allocInfo = {
       .sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
       .allocationSize  = size,
@@ -119,8 +119,8 @@ static void rvk_mem_free_vk(RvkMemPool* pool, const VkDeviceMemory vkMem) {
 /**
  * Total free bytes in the given chunk.
  */
-static u64 rvk_mem_chunk_size_free(const RvkMemChunk* chunk) {
-  u64 res = 0;
+static u32 rvk_mem_chunk_size_free(const RvkMemChunk* chunk) {
+  u32 res = 0;
   dynarray_for_t(&chunk->freeBlocks, RvkMem, freeBlock) { res += freeBlock->size; }
   return res;
 }
@@ -128,7 +128,7 @@ static u64 rvk_mem_chunk_size_free(const RvkMemChunk* chunk) {
 /**
  * Total occupied bytes in the given chunk.
  */
-static u64 rvk_mem_chunk_size_occupied(const RvkMemChunk* chunk) {
+static u32 rvk_mem_chunk_size_occupied(const RvkMemChunk* chunk) {
   return chunk->size - rvk_mem_chunk_size_free(chunk);
 }
 
@@ -137,7 +137,7 @@ static RvkMemChunk* rvk_mem_chunk_create(
     const u32          id,
     const RvkMemLoc    loc,
     const RvkMemAccess access,
-    const u64          size,
+    const u32          size,
     const u32          memType) {
 
   RvkMemChunk* chunk = alloc_alloc_t(g_alloc_heap, RvkMemChunk);
@@ -175,7 +175,7 @@ static RvkMemChunk* rvk_mem_chunk_create(
 
 static void rvk_mem_chunk_destroy(RvkMemChunk* chunk) {
 
-  const u64 leakedBytes = chunk->size - rvk_mem_chunk_size_free(chunk);
+  const u32 leakedBytes = chunk->size - rvk_mem_chunk_size_free(chunk);
   if (UNLIKELY(leakedBytes)) {
     diag_crash_msg("rend mem-pool: {} leaked from chunk", fmt_size(leakedBytes));
   }
@@ -197,19 +197,19 @@ static void rvk_mem_chunk_destroy(RvkMemChunk* chunk) {
 #endif
 }
 
-static RvkMem rvk_mem_chunk_alloc(RvkMemChunk* chunk, const u64 size, const u64 align) {
+static RvkMem rvk_mem_chunk_alloc(RvkMemChunk* chunk, const u32 size, const u32 align) {
 
 #ifdef VOLO_RVK_MEM_DEBUG
-  const u64 dbgFreeSize = rvk_mem_chunk_size_free(chunk);
+  const u32 dbgFreeSize = rvk_mem_chunk_size_free(chunk);
 #endif
 
   // Find a block that can fit the requested size.
   for (usize i = 0; i != chunk->freeBlocks.size; ++i) {
     RvkMem*   block         = dynarray_at_t(&chunk->freeBlocks, i, RvkMem);
-    const u64 offset        = block->offset;
-    const u64 padding       = bits_padding_64(offset, align);
-    const u64 paddedSize    = size + padding;
-    const i64 remainingSize = (i64)block->size - (i64)paddedSize;
+    const u32 offset        = block->offset;
+    const u32 padding       = bits_padding_32(offset, align);
+    const u32 paddedSize    = size + padding;
+    const i32 remainingSize = (i32)block->size - (i32)paddedSize;
 
     if (remainingSize < 0) {
       // Doesn't fit in this block.
@@ -256,7 +256,7 @@ static void rvk_mem_chunk_free(RvkMemChunk* chunk, const RvkMem mem) {
   dynarray_for_t(&chunk->freeBlocks, RvkMem, freeBlock) {
     diag_assert(!rvk_mem_overlap(*freeBlock, mem));
   }
-  const u64 dbgFreeSize = rvk_mem_chunk_size_free(chunk);
+  const u32 dbgFreeSize = rvk_mem_chunk_size_free(chunk);
 #endif
 
   // Check if there already is a free block before or after this one, if so then 'grow' that.
@@ -294,17 +294,17 @@ Done:
 #endif
 }
 
-static void rvk_mem_chunk_flush(RvkMemChunk* chunk, u64 offset, u64 size) {
+static void rvk_mem_chunk_flush(RvkMemChunk* chunk, const u32 offset, const u32 size) {
   diag_assert(chunk->map); // Only mapped memory can be flushed.
 
-  const u64 flushAlignment = chunk->pool->vkDevLimits.nonCoherentAtomSize;
+  const u32 flushAlignment = (u32)chunk->pool->vkDevLimits.nonCoherentAtomSize;
 
   // Align the offset to be a multiple of 'flushAlignment'.
-  const u64 alignedOffset = offset / flushAlignment * flushAlignment;
+  const u32 alignedOffset = offset / flushAlignment * flushAlignment;
   diag_assert(offset >= alignedOffset && offset - alignedOffset < flushAlignment);
 
   // Pad the size to be aligned (or until the end of the chunk).
-  u64 paddedSize = bits_align(size, flushAlignment);
+  u32 paddedSize = bits_align(size, flushAlignment);
   if (offset + paddedSize > chunk->size) {
     paddedSize = chunk->size - offset;
   }
@@ -348,15 +348,17 @@ RvkMem rvk_mem_alloc_req(
     const RvkMemLoc            loc,
     const RvkMemAccess         access,
     const VkMemoryRequirements req) {
-  return rvk_mem_alloc(pool, loc, access, req.size, req.alignment, req.memoryTypeBits);
+  diag_assert(req.size <= u32_max);
+  diag_assert(req.alignment <= u32_max);
+  return rvk_mem_alloc(pool, loc, access, (u32)req.size, (u32)req.alignment, req.memoryTypeBits);
 }
 
 RvkMem rvk_mem_alloc(
     RvkMemPool*        pool,
     const RvkMemLoc    loc,
     const RvkMemAccess access,
-    const u64          size,
-    const u64          align,
+    const u32          size,
+    const u32          align,
     const u32          mask) {
 
   RvkMem result = {0};
@@ -373,7 +375,7 @@ RvkMem rvk_mem_alloc(
   }
 
   // No existing chunk has space; create a new chunk.
-  const u64        chunkSize = size > rvk_mem_chunk_size ? size : (u64)rvk_mem_chunk_size;
+  const u32        chunkSize = size > rvk_mem_chunk_size ? size : (u32)rvk_mem_chunk_size;
   const u32        memType   = rvk_mem_type(pool, rvk_mem_props(loc), mask);
   const RvkChunkId chunkId   = pool->nextChunkId++;
   RvkMemChunk*     chunk     = rvk_mem_chunk_create(pool, chunkId, loc, access, chunkSize, memType);
