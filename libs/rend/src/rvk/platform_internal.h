@@ -29,8 +29,6 @@ void         rvk_platform_canvas_destroy(RvkPlatform*, RvkCanvasId);
 void        rvk_platform_texture_set(RvkPlatform*, RvkWellKnownId, RvkTexture*);
 RvkTexture* rvk_platform_texture_get(const RvkPlatform*, RvkWellKnownId);
 
-bool rvk_platform_prepare_graphic(RvkPlatform*, RvkCanvasId, RvkGraphic*);
-
 bool rvk_platform_draw_begin(RvkPlatform*, RvkCanvasId, RendSize, RendColor clearColor);
 void rvk_platform_draw_inst(RvkPlatform*, RvkCanvasId, RvkGraphic*);
 void rvk_platform_draw_end(RvkPlatform*, RvkCanvasId);

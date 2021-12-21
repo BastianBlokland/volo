@@ -9,6 +9,7 @@
 
 struct sRvkRenderer {
   RvkDevice*      dev;
+  RvkTechnique*   tech;
   RvkSwapchain*   swapchain;
   VkSemaphore     imageAvailable, imageReady;
   VkFence         renderDone;
@@ -57,7 +58,7 @@ static void rvk_commandbuffer_end(VkCommandBuffer vkCmdBuf) {
 }
 
 static void rvk_renderer_submit(RvkRenderer* rend) {
-  const VkPipelineStageFlags waitStage  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  const VkPipelineStageFlags waitStage  = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
   VkSubmitInfo               submitInfo = {
       .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
       .waitSemaphoreCount   = 1,
@@ -96,6 +97,7 @@ RvkRenderer* rvk_renderer_create(RvkDevice* dev, RvkSwapchain* swapchain) {
   RvkRenderer* renderer = alloc_alloc_t(g_alloc_heap, RvkRenderer);
   *renderer             = (RvkRenderer){
       .dev            = dev,
+      .tech           = rvk_technique_create(dev, swapchain),
       .swapchain      = swapchain,
       .imageAvailable = rvk_semaphore_create(dev),
       .imageReady     = rvk_semaphore_create(dev),
@@ -106,6 +108,8 @@ RvkRenderer* rvk_renderer_create(RvkDevice* dev, RvkSwapchain* swapchain) {
 }
 
 void rvk_renderer_destroy(RvkRenderer* rend) {
+  rvk_technique_destroy(rend->tech);
+
   vkFreeCommandBuffers(rend->dev->vkDev, rend->dev->vkGraphicsCommandPool, 1, &rend->vkDrawBuffer);
   vkDestroySemaphore(rend->dev->vkDev, rend->imageAvailable, &rend->dev->vkAlloc);
   vkDestroySemaphore(rend->dev->vkDev, rend->imageReady, &rend->dev->vkAlloc);
@@ -123,15 +127,12 @@ void rvk_renderer_wait_for_done(const RvkRenderer* rend) {
 }
 
 void rvk_renderer_draw_begin(
-    RvkRenderer*          rend,
-    RvkTechnique*         tech,
-    const RvkSwapchainIdx swapchainIdx,
-    const RendColor       clearColor) {
+    RvkRenderer* rend, const RvkSwapchainIdx swapchainIdx, const RendColor clearColor) {
 
   rvk_renderer_wait_for_done(rend);
   rvk_commandbuffer_begin(rend->vkDrawBuffer);
 
-  rvk_technique_begin(tech, rend->vkDrawBuffer, swapchainIdx, clearColor);
+  rvk_technique_begin(rend->tech, rend->vkDrawBuffer, swapchainIdx, clearColor);
 
   RvkImage* targetImage = rvk_swapchain_image(rend->swapchain, swapchainIdx);
   rvk_viewport_set(rend->vkDrawBuffer, targetImage->size);
@@ -140,7 +141,9 @@ void rvk_renderer_draw_begin(
 
 void rvk_renderer_draw_inst(RvkRenderer* rend, RvkGraphic* graphic) {
 
-  diag_assert_msg(graphic->vkPipeline, "Graphic not initialized");
+  if (!rvk_graphic_prepare(graphic, rend->tech)) {
+    return;
+  }
 
   rvk_graphic_bind(graphic, rend->vkDrawBuffer);
 
@@ -148,10 +151,9 @@ void rvk_renderer_draw_inst(RvkRenderer* rend, RvkGraphic* graphic) {
   vkCmdDrawIndexed(rend->vkDrawBuffer, indexCount, 1, 0, 0, 0);
 }
 
-void rvk_renderer_draw_end(
-    RvkRenderer* rend, RvkTechnique* tech, const RvkSwapchainIdx swapchainIdx) {
+void rvk_renderer_draw_end(RvkRenderer* rend, const RvkSwapchainIdx swapchainIdx) {
 
-  rvk_technique_end(tech, rend->vkDrawBuffer, swapchainIdx);
+  rvk_technique_end(rend->tech, rend->vkDrawBuffer, swapchainIdx);
   rvk_commandbuffer_end(rend->vkDrawBuffer);
 
   rvk_call(vkResetFences, rend->dev->vkDev, 1, &rend->renderDone);

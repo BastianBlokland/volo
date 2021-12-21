@@ -285,7 +285,7 @@ static VkPipelineColorBlendAttachmentState rvk_pipeline_colorblend_attach(RvkGra
 }
 
 static VkPipeline
-rvk_pipeline_create(RvkGraphic* graphic, VkPipelineLayout layout, const RvkCanvas* canvas) {
+rvk_pipeline_create(RvkGraphic* graphic, VkPipelineLayout layout, const RvkTechnique* tech) {
   RvkDevice* dev = rvk_platform_device(graphic->platform);
 
   VkPipelineShaderStageCreateInfo shaderStages[rvk_graphic_shaders_max];
@@ -358,7 +358,7 @@ rvk_pipeline_create(RvkGraphic* graphic, VkPipelineLayout layout, const RvkCanva
       .pColorBlendState    = &colorBlending,
       .pDynamicState       = &dynamicStateInfo,
       .layout              = layout,
-      .renderPass          = rvk_technique_vkrendpass(canvas->technique),
+      .renderPass          = rvk_technique_vkrendpass(tech),
   };
   VkPipeline result;
   rvk_call(vkCreateGraphicsPipelines, dev->vkDev, null, 1, &pipelineInfo, &dev->vkAlloc, &result);
@@ -459,7 +459,7 @@ u32 rvk_graphic_index_count(const RvkGraphic* graphic) {
   return graphic->mesh ? graphic->mesh->indexCount : 0;
 }
 
-bool rvk_graphic_prepare(RvkGraphic* graphic, const RvkCanvas* canvas) {
+bool rvk_graphic_prepare(RvkGraphic* graphic, const RvkTechnique* tech) {
   RvkDevice* dev = rvk_platform_device(graphic->platform);
   if (!graphic->vkPipeline) {
     const RvkDescMeta descMeta = rvk_graphic_desc_meta(graphic, rvk_desc_graphic_set);
@@ -490,13 +490,13 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, const RvkCanvas* canvas) {
     }
 
     graphic->vkPipelineLayout = rvk_pipeline_layout_create(graphic);
-    graphic->vkPipeline       = rvk_pipeline_create(graphic, graphic->vkPipelineLayout, canvas);
+    graphic->vkPipeline       = rvk_pipeline_create(graphic, graphic->vkPipelineLayout, tech);
   }
-  if (!rvk_mesh_prepare(graphic->mesh, canvas)) {
+  if (!rvk_mesh_prepare(graphic->mesh, tech)) {
     return false;
   }
   array_for_t(graphic->samplers, RvkGraphicSampler, itr) {
-    if (itr->texture && !rvk_texture_prepare(itr->texture, canvas)) {
+    if (itr->texture && !rvk_texture_prepare(itr->texture, tech)) {
       return false;
     }
   }

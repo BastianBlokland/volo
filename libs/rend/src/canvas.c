@@ -39,17 +39,15 @@ ecs_view_define(CanvasView) {
   ecs_access_write(RendCanvasComp);
 };
 
-static void canvas_update(EcsWorld* world, RendPlatformComp* plat, RendCanvasComp* canvas) {
+static void canvas_update(EcsWorld* world, RendCanvasComp* canvas) {
   dynarray_clear(&canvas->drawList);
 
   EcsView* renderableView = ecs_world_view_t(world, RenderableView);
   for (EcsIterator* itr = ecs_view_itr(renderableView); ecs_view_walk(itr);) {
     const RendGraphicComp* graphicComp = ecs_view_read_t(itr, RendGraphicComp);
 
-    if (rvk_platform_prepare_graphic(plat->vulkan, canvas->id, graphicComp->graphic)) {
-      RendDrawEntry* entry = dynarray_push_t(&canvas->drawList, RendDrawEntry);
-      *entry               = (RendDrawEntry){.rvkGraphic = graphicComp->graphic};
-    }
+    RendDrawEntry* entry = dynarray_push_t(&canvas->drawList, RendDrawEntry);
+    *entry               = (RendDrawEntry){.rvkGraphic = graphicComp->graphic};
   }
 }
 
@@ -91,7 +89,7 @@ ecs_system_define(RendCanvasUpdateSys) {
       continue;
     }
 
-    canvas_update(world, plat, canvas);
+    canvas_update(world, canvas);
 
     anyCanvasDrawn |= canvas_draw(plat, win, canvas);
     canvas->requests = 0;

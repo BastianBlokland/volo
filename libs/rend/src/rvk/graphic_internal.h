@@ -6,11 +6,11 @@
 #include "vulkan_internal.h"
 
 // Internal forward declarations:
-typedef struct sRvkCanvas   RvkCanvas;
-typedef struct sRvkMesh     RvkMesh;
-typedef struct sRvkPlatform RvkPlatform;
-typedef struct sRvkShader   RvkShader;
-typedef struct sRvkTexture  RvkTexture;
+typedef struct sRvkMesh      RvkMesh;
+typedef struct sRvkPlatform  RvkPlatform;
+typedef struct sRvkShader    RvkShader;
+typedef struct sRvkTechnique RvkTechnique;
+typedef struct sRvkTexture   RvkTexture;
 
 #define rvk_graphic_shaders_max 2
 #define rvk_graphic_samplers_max 4
@@ -42,5 +42,5 @@ void        rvk_graphic_shader_add(RvkGraphic*, RvkShader*);
 void        rvk_graphic_mesh_add(RvkGraphic*, RvkMesh*);
 void        rvk_graphic_sampler_add(RvkGraphic*, RvkTexture*, const AssetGraphicSampler*);
 u32         rvk_graphic_index_count(const RvkGraphic*);
-bool        rvk_graphic_prepare(RvkGraphic*, const RvkCanvas*);
+bool        rvk_graphic_prepare(RvkGraphic*, const RvkTechnique*);
 void        rvk_graphic_bind(const RvkGraphic*, VkCommandBuffer);

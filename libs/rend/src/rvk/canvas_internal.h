@@ -9,12 +9,10 @@
 typedef struct sRvkDevice    RvkDevice;
 typedef struct sRvkGraphic   RvkGraphic;
 typedef struct sRvkSwapchain RvkSwapchain;
-typedef struct sRvkTechnique RvkTechnique;
 
 typedef struct sRvkCanvas {
   RvkDevice*      device;
   RvkSwapchain*   swapchain;
-  RvkTechnique*   technique;
   RvkRenderer*    renderers[2];
   u32             rendererIdx;
   RvkSwapchainIdx swapchainIdx;

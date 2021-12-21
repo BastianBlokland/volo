@@ -110,10 +110,6 @@ RvkTexture* rvk_platform_texture_get(const RvkPlatform* plat, const RvkWellKnown
   return plat->wellknown[id].texture;
 }
 
-bool rvk_platform_prepare_graphic(RvkPlatform* plat, const RvkCanvasId id, RvkGraphic* graphic) {
-  return rvk_graphic_prepare(graphic, rvk_canvas_lookup(plat, id));
-}
-
 bool rvk_platform_draw_begin(
     RvkPlatform* plat, const RvkCanvasId id, const RendSize size, const RendColor clearColor) {
   return rvk_canvas_draw_begin(rvk_canvas_lookup(plat, id), size, clearColor);

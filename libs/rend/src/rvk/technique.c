@@ -117,7 +117,7 @@ void rvk_technique_destroy(RvkTechnique* tech) {
   alloc_free_t(g_alloc_heap, tech);
 }
 
-VkRenderPass rvk_technique_vkrendpass(RvkTechnique* tech) { return tech->vkRendPass; }
+VkRenderPass rvk_technique_vkrendpass(const RvkTechnique* tech) { return tech->vkRendPass; }
 
 void rvk_technique_begin(
     RvkTechnique*         tech,
