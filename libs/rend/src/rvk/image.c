@@ -35,35 +35,66 @@ static void rvk_image_barrier(
   vkCmdPipelineBarrier(buffer, srcStageFlags, dstStageFlags, 0, 0, null, 0, null, 1, &barrier);
 }
 
-static VkAccessFlags rvk_image_access(const VkImageLayout layout) {
-  switch (layout) {
-  case VK_IMAGE_LAYOUT_UNDEFINED:
-    return 0;
-  case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-    return VK_ACCESS_TRANSFER_WRITE_BIT;
-  case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+static VkAccessFlags rvk_image_vkaccess(const RvkImagePhase phase) {
+  switch (phase) {
+  case RvkImagePhase_Undefined:
+    return VK_ACCESS_NONE_KHR;
+  case RvkImagePhase_TransferSource:
     return VK_ACCESS_TRANSFER_READ_BIT;
-  case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
-    return 0; // TODO: Update to 'VK_ACCESS_SHADER_READ_BIT'.
-  default:
-    diag_crash_msg("Unsupported image layout");
+  case RvkImagePhase_TransferDest:
+    return VK_ACCESS_TRANSFER_WRITE_BIT;
+  case RvkImagePhase_ColorAttachment:
+    return VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+  case RvkImagePhase_ShaderRead:
+    // TODO: Update to 'VK_ACCESS_SHADER_READ_BIT'.
+    return VK_ACCESS_NONE_KHR;
+  case RvkImagePhase_Present:
+    return VK_ACCESS_NONE_KHR;
+  case RvkImagePhase_Count:
+    break;
   }
+  diag_crash_msg("Unsupported image phase");
 }
 
-static VkPipelineStageFlags rvk_image_pipeline_stage(const VkImageLayout layout) {
-  switch (layout) {
-  case VK_IMAGE_LAYOUT_UNDEFINED:
+static VkPipelineStageFlags rvk_image_vkpipelinestage(const RvkImagePhase phase) {
+  switch (phase) {
+  case RvkImagePhase_Undefined:
     return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-  case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-  case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+  case RvkImagePhase_TransferSource:
+  case RvkImagePhase_TransferDest:
     return VK_PIPELINE_STAGE_TRANSFER_BIT;
-  case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+  case RvkImagePhase_ColorAttachment:
+    return VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  case RvkImagePhase_ShaderRead:
     // TODO: Update to:
     // 'VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT'.
     return VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-  default:
-    diag_crash_msg("Unsupported image layout");
+  case RvkImagePhase_Present:
+    return VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+  case RvkImagePhase_Count:
+    break;
   }
+  diag_crash_msg("Unsupported image phase");
+}
+
+static VkImageLayout rvk_image_vklayout(const RvkImagePhase phase) {
+  switch (phase) {
+  case RvkImagePhase_Undefined:
+    return VK_IMAGE_LAYOUT_UNDEFINED;
+  case RvkImagePhase_TransferSource:
+    return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+  case RvkImagePhase_TransferDest:
+    return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+  case RvkImagePhase_ColorAttachment:
+    return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+  case RvkImagePhase_ShaderRead:
+    return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  case RvkImagePhase_Present:
+    return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+  case RvkImagePhase_Count:
+    break;
+  }
+  diag_crash_msg("Unsupported image phase");
 }
 
 static u32 rvk_compute_miplevels(const RendSize size) {
@@ -178,15 +209,14 @@ static RvkImage rvk_image_create_backed(
   const VkImageView vkView = rvk_vkimageview_create(dev, vkImage, vkFormat, vkAspect, mipLevels);
 
   return (RvkImage){
-      .type          = type,
-      .flags         = flags,
-      .mipLevels     = mipLevels,
-      .vkFormat      = vkFormat,
-      .size          = size,
-      .vkImage       = vkImage,
-      .vkImageView   = vkView,
-      .vkImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-      .mem           = mem,
+      .type        = type,
+      .flags       = flags,
+      .mipLevels   = mipLevels,
+      .vkFormat    = vkFormat,
+      .size        = size,
+      .vkImage     = vkImage,
+      .vkImageView = vkView,
+      .mem         = mem,
   };
 }
 
@@ -223,14 +253,13 @@ RvkImage rvk_image_create_swapchain(
   const VkImageView vkView = rvk_vkimageview_create(dev, vkImage, vkFormat, vkAspect, mipLevels);
 
   return (RvkImage){
-      .type          = RvkImageType_Swapchain,
-      .flags         = flags,
-      .mipLevels     = mipLevels,
-      .vkFormat      = vkFormat,
-      .size          = size,
-      .vkImage       = vkImage,
-      .vkImageView   = vkView,
-      .vkImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+      .type        = RvkImageType_Swapchain,
+      .flags       = flags,
+      .mipLevels   = mipLevels,
+      .vkFormat    = vkFormat,
+      .size        = size,
+      .vkImage     = vkImage,
+      .vkImageView = vkView,
   };
 }
 
@@ -255,21 +284,42 @@ String rvk_image_type_str(const RvkImageType type) {
   return names[type];
 }
 
-void rvk_image_transition(
-    RvkImage* image, VkCommandBuffer vkCmdBuf, const VkImageLayout newLayout) {
+String rvk_image_phase_str(const RvkImagePhase phase) {
+  static const String names[] = {
+      string_static("Undefined"),
+      string_static("TransferSource"),
+      string_static("TransferDest"),
+      string_static("ColorAttachment"),
+      string_static("ShaderRead"),
+      string_static("Present"),
+  };
+  ASSERT(array_elems(names) == RvkImagePhase_Count, "Incorrect number of image-phase names");
+  return names[phase];
+}
 
+void rvk_image_assert_phase(const RvkImage* image, const RvkImagePhase phase) {
+  (void)image;
+  (void)phase;
+  diag_assert_msg(
+      image->phase == phase,
+      "Expected image phase {} but found {}",
+      fmt_text(rvk_image_phase_str(phase)),
+      fmt_text(rvk_image_phase_str(image->phase)));
+}
+
+void rvk_image_transition(RvkImage* image, VkCommandBuffer vkCmdBuf, const RvkImagePhase phase) {
   rvk_image_barrier(
       vkCmdBuf,
       image,
-      image->vkImageLayout,
-      newLayout,
-      rvk_image_access(image->vkImageLayout),
-      rvk_image_access(newLayout),
-      rvk_image_pipeline_stage(image->vkImageLayout),
-      rvk_image_pipeline_stage(newLayout));
-  image->vkImageLayout = newLayout;
+      rvk_image_vklayout(image->phase),
+      rvk_image_vklayout(phase),
+      rvk_image_vkaccess(image->phase),
+      rvk_image_vkaccess(phase),
+      rvk_image_vkpipelinestage(image->phase),
+      rvk_image_vkpipelinestage(phase));
+  image->phase = phase;
 }
 
-void rvk_image_transition_external(RvkImage* image, VkImageLayout newLayout) {
-  image->vkImageLayout = newLayout;
+void rvk_image_transition_external(RvkImage* image, const RvkImagePhase phase) {
+  image->phase = phase;
 }

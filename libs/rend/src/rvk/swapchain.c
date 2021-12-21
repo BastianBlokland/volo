@@ -277,8 +277,8 @@ rvk_swapchain_acquire(RvkSwapchain* swapchain, VkSemaphore available, const Rend
 }
 
 bool rvk_swapchain_present(RvkSwapchain* swapchain, VkSemaphore ready, const RvkSwapchainIdx idx) {
-  MAYBE_UNUSED RvkImage* image = rvk_swapchain_image(swapchain, idx);
-  diag_assert(image->vkImageLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+  RvkImage* image = rvk_swapchain_image(swapchain, idx);
+  rvk_image_assert_phase(image, RvkImagePhase_Present);
 
   VkPresentInfoKHR presentInfo = {
       .sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,

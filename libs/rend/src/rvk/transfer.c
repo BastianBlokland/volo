@@ -220,7 +220,7 @@ RvkTransferId rvk_transfer_image(RvkTransferer* trans, RvkImage* dest, const Mem
   buffer->offset = bits_align(buffer->offset, reqAlign);
   rvk_buffer_upload(&buffer->hostBuffer, data, buffer->offset);
 
-  rvk_image_transition(dest, buffer->vkCmdBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+  rvk_image_transition(dest, buffer->vkCmdBuffer, RvkImagePhase_TransferDest);
 
   const VkBufferImageCopy region = {
       .bufferOffset                = buffer->offset,
@@ -238,7 +238,7 @@ RvkTransferId rvk_transfer_image(RvkTransferer* trans, RvkImage* dest, const Mem
       1,
       &region);
 
-  rvk_image_transition(dest, buffer->vkCmdBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+  rvk_image_transition(dest, buffer->vkCmdBuffer, RvkImagePhase_ShaderRead);
 
   buffer->offset += data.size;
   const RvkTransferId id = rvk_transfer_id(trans, buffer);

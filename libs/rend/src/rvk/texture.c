@@ -2,6 +2,7 @@
 #include "log_logger.h"
 
 #include "device_internal.h"
+#include "image_internal.h"
 #include "platform_internal.h"
 #include "texture_internal.h"
 #include "transfer_internal.h"
@@ -50,6 +51,6 @@ bool rvk_texture_prepare(RvkTexture* texture, const RvkCanvas* canvas) {
     return false;
   }
 
-  diag_assert(texture->image.vkImageLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+  rvk_image_assert_phase(&texture->image, RvkImagePhase_ShaderRead);
   return true; // All resources have been transferred to the device.
 }
