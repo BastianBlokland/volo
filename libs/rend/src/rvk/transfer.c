@@ -216,7 +216,7 @@ RvkTransferer* rvk_transferer_create(RvkDevice* dev) {
 void rvk_transferer_destroy(RvkTransferer* transferer) {
 
   dynarray_for_t(&transferer->buffers, RvkTransferBuffer, buffer) {
-    rvk_buffer_destroy(&buffer->hostBuffer);
+    rvk_buffer_destroy(&buffer->hostBuffer, transferer->dev);
     vkFreeCommandBuffers(
         transferer->dev->vkDev, transferer->dev->vkTransferCommandPool, 1, &buffer->vkCmdBuffer);
     vkDestroyFence(transferer->dev->vkDev, buffer->vkFinishedFence, &transferer->dev->vkAlloc);
