@@ -157,26 +157,41 @@ ecs_system_define(LoadGraphicAssetSys) {
         &result);
     if (result.error) {
       graphic_load_fail(world, entity, result.errorMsg);
-      ecs_world_remove_t(world, entity, AssetGraphicLoadComp);
-      // NOTE: 'AssetGraphicComp' will be cleaned up by 'UnloadGraphicAssetSys'.
-      continue;
+      goto Error;
     }
 
     // Resolve shader references.
     array_ptr_for_t(graphicComp->shaders, AssetGraphicShader, ptr) {
+      if (string_is_empty(ptr->shaderId)) {
+        graphic_load_fail(world, entity, string_lit("Missing shader asset"));
+        goto Error;
+      }
       ptr->shader = asset_lookup(world, manager, ptr->shaderId);
     }
 
     // Resolve texture references.
     array_ptr_for_t(graphicComp->samplers, AssetGraphicSampler, ptr) {
+      if (string_is_empty(ptr->textureId)) {
+        graphic_load_fail(world, entity, string_lit("Missing texture asset"));
+        goto Error;
+      }
       ptr->texture = asset_lookup(world, manager, ptr->textureId);
     }
 
     // Resolve mesh reference.
+    if (string_is_empty(graphicComp->meshId)) {
+      graphic_load_fail(world, entity, string_lit("Missing mesh asset"));
+      goto Error;
+    }
     graphicComp->mesh = asset_lookup(world, manager, graphicComp->meshId);
 
     ecs_world_remove_t(world, entity, AssetGraphicLoadComp);
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+    continue;
+
+  Error:
+    // NOTE: 'AssetGraphicComp' will be cleaned up by 'UnloadGraphicAssetSys'.
+    ecs_world_remove_t(world, entity, AssetGraphicLoadComp);
   }
 }
 

@@ -55,6 +55,20 @@ static const struct {
                               "  \"cull\": \"Back\","
                               "}"),
     },
+    {
+        .id   = string_static("empty_mesh.gra"),
+        .text = string_static("{"
+                              "  \"shaders\": [],"
+                              "  \"samplers\": [],"
+                              "  \"meshId\": \"\","
+                              "  \"topology\": \"Triangles\","
+                              "  \"rasterizer\": \"Fill\","
+                              "  \"lineWidth\": 42,"
+                              "  \"blend\": \"None\","
+                              "  \"depth\": \"Less\","
+                              "  \"cull\": \"Back\","
+                              "}"),
+    },
 };
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
