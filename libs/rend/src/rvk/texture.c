@@ -35,7 +35,8 @@ RvkTexture* rvk_texture_create(RvkPlatform* plat, const AssetTextureComp* asset)
 
 void rvk_texture_destroy(RvkTexture* texture) {
 
-  rvk_image_destroy(&texture->image);
+  RvkDevice* dev = rvk_platform_device(texture->platform);
+  rvk_image_destroy(&texture->image, dev);
 
   alloc_free_t(g_alloc_heap, texture);
 }

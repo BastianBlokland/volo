@@ -48,8 +48,8 @@ static void rvk_image_transition_layout(
     const VkAccessFlags        dstAccess,
     const VkPipelineStageFlags srcStageFlags,
     const VkPipelineStageFlags dstStageFlags,
-    const u32                  baseMipLevel,
-    const u32                  mipLevels) {
+    const u8                   baseMipLevel,
+    const u8                   mipLevels) {
 
   const VkImageMemoryBarrier barrier = {
       .sType                           = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -71,7 +71,7 @@ static void rvk_image_transition_layout(
 }
 
 static void rvk_image_transition_undef_to_transfer(
-    RvkTransferBuffer* buffer, const RvkImage* image, const u32 baseMipLevel, const u32 mipLevels) {
+    RvkTransferBuffer* buffer, const RvkImage* image, const u8 baseMipLevel, const u8 mipLevels) {
   rvk_image_transition_layout(
       buffer,
       image,
@@ -86,7 +86,7 @@ static void rvk_image_transition_undef_to_transfer(
 }
 
 static void rvk_image_transition_transfer_to_shader(
-    RvkTransferBuffer* buffer, const RvkImage* image, const u32 baseMipLevel, const u32 mipLevels) {
+    RvkTransferBuffer* buffer, const RvkImage* image, const u8 baseMipLevel, const u8 mipLevels) {
   rvk_image_transition_layout(
       buffer,
       image,

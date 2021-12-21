@@ -130,7 +130,7 @@ static bool rvk_swapchain_init(RvkSwapchain* swapchain, const RendSize size) {
     return false;
   }
 
-  dynarray_for_t(&swapchain->images, RvkImage, img) { rvk_image_destroy(img); }
+  dynarray_for_t(&swapchain->images, RvkImage, img) { rvk_image_destroy(img, swapchain->dev); }
   dynarray_clear(&swapchain->images);
 
   VkDevice                 vkDev   = swapchain->dev->vkDev;
@@ -211,7 +211,7 @@ RvkSwapchain* rvk_swapchain_create(RvkDevice* dev, const GapWindowComp* window) 
 }
 
 void rvk_swapchain_destroy(RvkSwapchain* swapchain) {
-  dynarray_for_t(&swapchain->images, RvkImage, img) { rvk_image_destroy(img); }
+  dynarray_for_t(&swapchain->images, RvkImage, img) { rvk_image_destroy(img, swapchain->dev); }
   dynarray_destroy(&swapchain->images);
 
   if (swapchain->vkSwapchain) {

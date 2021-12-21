@@ -20,12 +20,11 @@ typedef enum {
 } RvkImageType;
 
 typedef struct sRvkImage {
-  RvkDevice*    dev;
-  RvkImageType  type;
-  RvkImageFlags flags;
-  RendSize      size;
-  u32           mipLevels;
+  RvkImageType  type : 8;
+  RvkImageFlags flags : 8;
+  u8            mipLevels;
   VkFormat      vkFormat;
+  RendSize      size;
   VkImage       vkImage;
   VkImageView   vkImageView;
   RvkMem        mem;
@@ -35,5 +34,5 @@ RvkImage rvk_image_create_source_color(RvkDevice*, VkFormat, RendSize size, RvkI
 RvkImage rvk_image_create_attach_color(RvkDevice*, VkFormat, RendSize size, RvkImageFlags);
 RvkImage rvk_image_create_attach_depth(RvkDevice*, VkFormat, RendSize size, RvkImageFlags);
 RvkImage rvk_image_create_swapchain(RvkDevice*, VkImage, VkFormat, RendSize size, RvkImageFlags);
-void     rvk_image_destroy(RvkImage*);
+void     rvk_image_destroy(RvkImage*, RvkDevice*);
 String   rvk_image_type_str(RvkImageType);

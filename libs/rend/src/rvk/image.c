@@ -40,7 +40,7 @@ static VkImage rvk_vkimage_create(
     const RendSize          size,
     const VkFormat          vkFormat,
     const VkImageUsageFlags vkImgUsages,
-    const u32               mipLevels) {
+    const u8                mipLevels) {
 
   const VkImageCreateInfo imageInfo = {
       .sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -67,7 +67,7 @@ static VkImageView rvk_vkimageview_create(
     const VkImage            vkImage,
     const VkFormat           vkFormat,
     const VkImageAspectFlags vkAspect,
-    const u32                mipLevels) {
+    const u8                 mipLevels) {
 
   const VkImageViewCreateInfo createInfo = {
       .sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -94,7 +94,7 @@ static RvkImage rvk_image_create_backed(
 
   const VkImageAspectFlags vkAspect  = rvk_image_vkaspect(type);
   const VkImageAspectFlags vkUsage   = rvk_image_vkusage(type);
-  const u32                mipLevels = 1;
+  const u8                 mipLevels = 1;
 
   const VkImage vkImage = rvk_vkimage_create(dev, size, vkFormat, vkUsage, mipLevels);
 
@@ -108,12 +108,11 @@ static RvkImage rvk_image_create_backed(
   const VkImageView vkView = rvk_vkimageview_create(dev, vkImage, vkFormat, vkAspect, mipLevels);
 
   return (RvkImage){
-      .dev         = dev,
       .type        = type,
       .flags       = flags,
-      .size        = size,
       .mipLevels   = mipLevels,
       .vkFormat    = vkFormat,
+      .size        = size,
       .vkImage     = vkImage,
       .vkImageView = vkView,
       .mem         = mem,
@@ -146,26 +145,25 @@ RvkImage rvk_image_create_swapchain(
     const RvkImageFlags flags) {
 
   const VkImageAspectFlags vkAspect  = VK_IMAGE_ASPECT_COLOR_BIT;
-  const u32                mipLevels = 1;
+  const u8                 mipLevels = 1;
   const VkImageView vkView = rvk_vkimageview_create(dev, vkImage, vkFormat, vkAspect, mipLevels);
 
   return (RvkImage){
-      .dev         = dev,
       .type        = RvkImageType_Swapchain,
       .flags       = flags,
-      .size        = size,
       .mipLevels   = mipLevels,
       .vkFormat    = vkFormat,
+      .size        = size,
       .vkImage     = vkImage,
       .vkImageView = vkView,
   };
 }
 
-void rvk_image_destroy(RvkImage* img) {
+void rvk_image_destroy(RvkImage* img, RvkDevice* dev) {
   if (img->type != RvkImageType_Swapchain) {
-    vkDestroyImage(img->dev->vkDev, img->vkImage, &img->dev->vkAlloc);
+    vkDestroyImage(dev->vkDev, img->vkImage, &dev->vkAlloc);
   }
-  vkDestroyImageView(img->dev->vkDev, img->vkImageView, &img->dev->vkAlloc);
+  vkDestroyImageView(dev->vkDev, img->vkImageView, &dev->vkAlloc);
   if (rvk_mem_valid(img->mem)) {
     rvk_mem_free(img->mem);
   }

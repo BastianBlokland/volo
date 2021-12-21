@@ -51,7 +51,7 @@ static VkSampler rvk_vksampler_create(
     const RvkSamplerWrap   wrap,
     const RvkSamplerFilter filter,
     const RvkSamplerAniso  aniso,
-    const u32              mipLevels) {
+    const u8               mipLevels) {
 
   VkSamplerCreateInfo samplerInfo = {
       .sType                   = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
@@ -86,7 +86,7 @@ RvkSampler rvk_sampler_create(
     const RvkSamplerWrap   wrap,
     const RvkSamplerFilter filter,
     const RvkSamplerAniso  aniso,
-    const u32              mipLevels) {
+    const u8               mipLevels) {
 
   return (RvkSampler){
       .dev       = dev,

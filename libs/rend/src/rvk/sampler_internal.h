@@ -34,7 +34,7 @@ typedef struct sRvkSampler {
 } RvkSampler;
 
 RvkSampler
-rvk_sampler_create(RvkDevice*, RvkSamplerWrap, RvkSamplerFilter, RvkSamplerAniso, u32 mipLevels);
+rvk_sampler_create(RvkDevice*, RvkSamplerWrap, RvkSamplerFilter, RvkSamplerAniso, u8 mipLevels);
 
 void rvk_sampler_destroy(RvkSampler*);
 
