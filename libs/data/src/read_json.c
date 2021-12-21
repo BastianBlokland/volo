@@ -365,6 +365,7 @@ Ret:
      * This way the caller doesn't have to attempt to cleanup a half initialized object.
      */
     dynarray_for_t(&allocations, Mem, mem) { alloc_free(alloc, *mem); }
+    mem_set(data, 0);
   }
   dynarray_destroy(&allocations);
   json_destroy(doc);
