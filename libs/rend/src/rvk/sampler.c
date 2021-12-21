@@ -89,13 +89,12 @@ RvkSampler rvk_sampler_create(
     const u8               mipLevels) {
 
   return (RvkSampler){
-      .dev       = dev,
       .vkSampler = rvk_vksampler_create(dev, wrap, filter, aniso, mipLevels),
   };
 }
 
-void rvk_sampler_destroy(RvkSampler* sampler) {
-  vkDestroySampler(sampler->dev->vkDev, sampler->vkSampler, &sampler->dev->vkAlloc);
+void rvk_sampler_destroy(RvkSampler* sampler, RvkDevice* dev) {
+  vkDestroySampler(dev->vkDev, sampler->vkSampler, &dev->vkAlloc);
 }
 
 String rvk_sampler_wrap_str(const RvkSamplerWrap wrap) {

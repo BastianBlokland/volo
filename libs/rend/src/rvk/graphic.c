@@ -416,7 +416,7 @@ void rvk_graphic_destroy(RvkGraphic* graphic) {
   }
   array_for_t(graphic->samplers, RvkGraphicSampler, itr) {
     if (itr->texture) {
-      rvk_sampler_destroy(&itr->sampler);
+      rvk_sampler_destroy(&itr->sampler, dev);
     }
   }
 
