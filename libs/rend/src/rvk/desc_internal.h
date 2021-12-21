@@ -22,7 +22,7 @@ typedef enum {
 } RvkDescKind;
 
 typedef struct {
-  RvkDescKind bindings[rvk_desc_bindings_max];
+  u8 bindings[rvk_desc_bindings_max]; // RvkDescKind[]
 } RvkDescMeta;
 
 typedef struct {
