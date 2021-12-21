@@ -124,14 +124,14 @@ void rvk_renderer_wait_for_done(const RvkRenderer* rend) {
 
 void rvk_renderer_draw_begin(
     RvkRenderer*          rend,
-    RvkTechnique*         technique,
+    RvkTechnique*         tech,
     const RvkSwapchainIdx swapchainIdx,
     const RendColor       clearColor) {
 
   rvk_renderer_wait_for_done(rend);
   rvk_commandbuffer_begin(rend->vkDrawBuffer);
 
-  rvk_technique_begin(technique, rend->vkDrawBuffer, swapchainIdx, clearColor);
+  rvk_technique_begin(tech, rend->vkDrawBuffer, swapchainIdx, clearColor);
 
   RvkImage* targetImage = rvk_swapchain_image(rend->swapchain, swapchainIdx);
   rvk_viewport_set(rend->vkDrawBuffer, targetImage->size);
@@ -148,9 +148,10 @@ void rvk_renderer_draw_inst(RvkRenderer* rend, RvkGraphic* graphic) {
   vkCmdDrawIndexed(rend->vkDrawBuffer, indexCount, 1, 0, 0, 0);
 }
 
-void rvk_renderer_draw_end(RvkRenderer* rend, RvkTechnique* tech) {
+void rvk_renderer_draw_end(
+    RvkRenderer* rend, RvkTechnique* tech, const RvkSwapchainIdx swapchainIdx) {
 
-  rvk_technique_end(tech, rend->vkDrawBuffer);
+  rvk_technique_end(tech, rend->vkDrawBuffer, swapchainIdx);
   rvk_commandbuffer_end(rend->vkDrawBuffer);
 
   rvk_call(vkResetFences, rend->dev->vkDev, 1, &rend->renderDone);

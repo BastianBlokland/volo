@@ -18,4 +18,4 @@ void         rvk_renderer_wait_for_done(const RvkRenderer*);
 
 void rvk_renderer_draw_begin(RvkRenderer*, RvkTechnique*, RvkSwapchainIdx, RendColor clearColor);
 void rvk_renderer_draw_inst(RvkRenderer*, RvkGraphic*);
-void rvk_renderer_draw_end(RvkRenderer*, RvkTechnique*);
+void rvk_renderer_draw_end(RvkRenderer*, RvkTechnique*, RvkSwapchainIdx);

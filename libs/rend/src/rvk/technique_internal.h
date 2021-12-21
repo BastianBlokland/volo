@@ -14,4 +14,4 @@ void          rvk_technique_destroy(RvkTechnique*);
 VkRenderPass  rvk_technique_vkrendpass(RvkTechnique*);
 
 void rvk_technique_begin(RvkTechnique*, VkCommandBuffer, RvkSwapchainIdx, RendColor clearColor);
-void rvk_technique_end(RvkTechnique*, VkCommandBuffer);
+void rvk_technique_end(RvkTechnique*, VkCommandBuffer, RvkSwapchainIdx);

@@ -28,6 +28,7 @@ typedef struct sRvkImage {
   RendSize      size;
   VkImage       vkImage;
   VkImageView   vkImageView;
+  VkImageLayout vkImageLayout;
   RvkMem        mem;
 } RvkImage;
 
@@ -36,4 +37,7 @@ RvkImage rvk_image_create_attach_color(RvkDevice*, VkFormat, RendSize size, RvkI
 RvkImage rvk_image_create_attach_depth(RvkDevice*, VkFormat, RendSize size, RvkImageFlags);
 RvkImage rvk_image_create_swapchain(RvkDevice*, VkImage, VkFormat, RendSize size, RvkImageFlags);
 void     rvk_image_destroy(RvkImage*, RvkDevice*);
-String   rvk_image_type_str(RvkImageType);
+
+String rvk_image_type_str(RvkImageType);
+void   rvk_image_transition(RvkImage*, VkCommandBuffer, VkImageLayout);
+void   rvk_image_transition_external(RvkImage*, VkImageLayout);

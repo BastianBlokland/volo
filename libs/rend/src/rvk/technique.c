@@ -145,9 +145,14 @@ void rvk_technique_begin(
       .pClearValues             = clearValues,
   };
   vkCmdBeginRenderPass(vkCmdBuf, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+  rvk_image_transition_external(swapchainImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 }
 
-void rvk_technique_end(RvkTechnique* tech, VkCommandBuffer vkCmdBuf) {
-  (void)tech;
+void rvk_technique_end(
+    RvkTechnique* tech, VkCommandBuffer vkCmdBuf, const RvkSwapchainIdx swapchainIdx) {
+
   vkCmdEndRenderPass(vkCmdBuf);
+
+  RvkImage* swapchainImage = rvk_swapchain_image(tech->swapchain, swapchainIdx);
+  rvk_image_transition_external(swapchainImage, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 }
