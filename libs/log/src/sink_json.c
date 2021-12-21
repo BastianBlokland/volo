@@ -11,6 +11,8 @@
 
 #include "logger_internal.h"
 
+#define log_sink_buffer_size (16 * usize_kibibyte)
+
 typedef struct {
   LogSink          api;
   Allocator*       alloc;
@@ -79,7 +81,8 @@ static void log_sink_json_write(
     json_add_field_str(doc, extra, itr->name, log_to_json(doc, &itr->arg));
   }
 
-  DynString str = dynstring_create_over(alloc_alloc(g_alloc_scratch, 8 * usize_kibibyte, 1));
+  DynString str = dynstring_create_over(alloc_alloc(g_alloc_scratch, log_sink_buffer_size, 1));
+
   json_write(&str, doc, root, &json_write_opts(.flags = JsonWriteFlags_None));
   dynstring_append_char(&str, '\n');
   file_write_sync(jsonSink->file, dynstring_view(&str));
