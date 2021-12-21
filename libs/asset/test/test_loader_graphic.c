@@ -6,7 +6,7 @@
 
 #include "utils_internal.h"
 
-static const AssetMemRecord records[] = {
+static const AssetMemRecord g_testData[] = {
     {
         .id   = string_static("test.gra"),
         .data = string_static("{"
@@ -28,6 +28,25 @@ static const AssetMemRecord records[] = {
                               "    },"
                               "  ],"
                               "  \"meshId\": \"a.obj\","
+                              "  \"topology\": \"Triangles\","
+                              "  \"rasterizer\": \"Fill\","
+                              "  \"lineWidth\": 42,"
+                              "  \"blend\": \"None\","
+                              "  \"depth\": \"Less\","
+                              "  \"cull\": \"Back\","
+                              "}"),
+    },
+};
+
+static const struct {
+  String id;
+  String text;
+} g_errorTestData[] = {
+    {
+        .id   = string_static("missing_mesh.gra"),
+        .text = string_static("{"
+                              "  \"shaders\": [],"
+                              "  \"samplers\": [],"
                               "  \"topology\": \"Triangles\","
                               "  \"rasterizer\": \"Fill\","
                               "  \"lineWidth\": 42,"
@@ -61,7 +80,7 @@ spec(loader_graphic) {
   }
 
   it("can load graphic assets") {
-    asset_manager_create_mem(world, records, array_elems(records));
+    asset_manager_create_mem(world, g_testData, array_elems(g_testData));
     ecs_world_flush(world);
 
     AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
@@ -98,7 +117,7 @@ spec(loader_graphic) {
   }
 
   it("can unload graphic assets") {
-    asset_manager_create_mem(world, records, array_elems(records));
+    asset_manager_create_mem(world, g_testData, array_elems(g_testData));
     ecs_world_flush(world);
 
     AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
@@ -113,6 +132,25 @@ spec(loader_graphic) {
     asset_test_wait(runner);
 
     check(!ecs_world_has_t(world, asset, AssetGraphicComp));
+  }
+
+  it("fails when loading invalid graphic files") {
+    AssetMemRecord records[array_elems(g_errorTestData)];
+    for (usize i = 0; i != array_elems(g_errorTestData); ++i) {
+      records[i] = (AssetMemRecord){.id = g_errorTestData[i].id, .data = g_errorTestData[i].text};
+    }
+    asset_manager_create_mem(world, records, array_elems(g_errorTestData));
+    ecs_world_flush(world);
+
+    for (usize i = 0; i != array_elems(g_errorTestData); ++i) {
+      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+      const EcsEntityId asset   = asset_lookup(world, manager, records[i].id);
+      asset_acquire(world, asset);
+      asset_test_wait(runner);
+
+      check(ecs_world_has_t(world, asset, AssetFailedComp));
+      check(!ecs_world_has_t(world, asset, AssetGraphicComp));
+    }
   }
 
   teardown() {

@@ -6,6 +6,7 @@
 #include "data.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
+#include "log_logger.h"
 
 #include "repo_internal.h"
 
@@ -119,8 +120,9 @@ static void ecs_destruct_graphic_load_comp(void* data) {
   asset_source_close(comp->src);
 }
 
-NORETURN static void graphic_report_error(const String message) {
-  diag_crash_msg("Failed to parse graphic, error: {}", fmt_text(message));
+static void graphic_load_fail(EcsWorld* world, const EcsEntityId assetEntity, const String msg) {
+  log_e("Failed to parse graphic", log_param("error", fmt_text(msg)));
+  ecs_world_add_empty_t(world, assetEntity, AssetFailedComp);
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); };
@@ -154,7 +156,10 @@ ecs_system_define(LoadGraphicAssetSys) {
         mem_create(graphicComp, sizeof(AssetGraphicComp)),
         &result);
     if (result.error) {
-      graphic_report_error(result.errorMsg);
+      graphic_load_fail(world, entity, result.errorMsg);
+      ecs_world_remove_t(world, entity, AssetGraphicLoadComp);
+      // NOTE: 'AssetGraphicComp' will be cleaned up by 'UnloadGraphicAssetSys'.
+      continue;
     }
 
     // Resolve shader references.

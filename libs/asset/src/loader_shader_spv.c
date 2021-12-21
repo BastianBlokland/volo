@@ -445,7 +445,7 @@ void asset_load_spv(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
   spv_asset_shader_create(&program, src, asset, &err);
   if (err) {
     spv_load_fail(world, assetEntity, err);
-    ecs_world_remove_t(world, assetEntity, AssetShaderComp);
+    // NOTE: 'AssetShaderComp' will be cleaned up by 'UnloadShaderAssetSys'.
     goto Error;
   }
   ecs_world_add_t(world, assetEntity, AssetShaderSourceComp, .src = src);
