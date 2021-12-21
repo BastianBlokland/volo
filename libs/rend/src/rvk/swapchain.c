@@ -166,8 +166,8 @@ static bool rvk_swapchain_init(RvkSwapchain* swapchain, const RendSize size) {
   rvk_call(vkGetSwapchainImagesKHR, vkDev, swapchain->vkSwapchain, &imageCount, images);
 
   for (u32 i = 0; i != imageCount; ++i) {
-    *dynarray_push_t(&swapchain->images, RvkImage) =
-        rvk_image_create_swapchain(swapchain->dev, images[i], swapchain->vkSurfFormat.format, size);
+    *dynarray_push_t(&swapchain->images, RvkImage) = rvk_image_create_swapchain(
+        swapchain->dev, images[i], swapchain->vkSurfFormat.format, size, RvkImageFlags_None);
   }
 
   swapchain->flags &= ~RvkSwapchainFlags_OutOfDate;

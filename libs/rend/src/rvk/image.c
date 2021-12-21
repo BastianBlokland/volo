@@ -86,7 +86,11 @@ static VkImageView rvk_vkimageview_create(
 }
 
 static RvkImage rvk_image_create_backed(
-    RvkDevice* dev, const RvkImageType type, const VkFormat vkFormat, const RendSize size) {
+    RvkDevice*          dev,
+    const RvkImageType  type,
+    const VkFormat      vkFormat,
+    const RendSize      size,
+    const RvkImageFlags flags) {
 
   const VkImageAspectFlags vkAspect  = rvk_image_vkaspect(type);
   const VkImageAspectFlags vkUsage   = rvk_image_vkusage(type);
@@ -106,6 +110,7 @@ static RvkImage rvk_image_create_backed(
   return (RvkImage){
       .dev         = dev,
       .type        = type,
+      .flags       = flags,
       .size        = size,
       .mipLevels   = mipLevels,
       .vkFormat    = vkFormat,
@@ -115,26 +120,30 @@ static RvkImage rvk_image_create_backed(
   };
 }
 
-RvkImage
-rvk_image_create_source_color(RvkDevice* dev, const VkFormat vkFormat, const RendSize size) {
+RvkImage rvk_image_create_source_color(
+    RvkDevice* dev, const VkFormat vkFormat, const RendSize size, const RvkImageFlags flags) {
   diag_assert(rvk_format_info(vkFormat).channels == 4);
-  return rvk_image_create_backed(dev, RvkImageType_ColorSource, vkFormat, size);
+  return rvk_image_create_backed(dev, RvkImageType_ColorSource, vkFormat, size, flags);
 }
 
-RvkImage
-rvk_image_create_attach_color(RvkDevice* dev, const VkFormat vkFormat, const RendSize size) {
+RvkImage rvk_image_create_attach_color(
+    RvkDevice* dev, const VkFormat vkFormat, const RendSize size, const RvkImageFlags flags) {
   diag_assert(rvk_format_info(vkFormat).channels == 4);
-  return rvk_image_create_backed(dev, RvkImageType_ColorAttachment, vkFormat, size);
+  return rvk_image_create_backed(dev, RvkImageType_ColorAttachment, vkFormat, size, flags);
 }
 
-RvkImage
-rvk_image_create_attach_depth(RvkDevice* dev, const VkFormat vkFormat, const RendSize size) {
+RvkImage rvk_image_create_attach_depth(
+    RvkDevice* dev, const VkFormat vkFormat, const RendSize size, const RvkImageFlags flags) {
   diag_assert(rvk_format_info(vkFormat).channels == 1);
-  return rvk_image_create_backed(dev, RvkImageType_DepthAttachment, vkFormat, size);
+  return rvk_image_create_backed(dev, RvkImageType_DepthAttachment, vkFormat, size, flags);
 }
 
 RvkImage rvk_image_create_swapchain(
-    RvkDevice* dev, VkImage vkImage, VkFormat vkFormat, const RendSize size) {
+    RvkDevice*          dev,
+    VkImage             vkImage,
+    VkFormat            vkFormat,
+    const RendSize      size,
+    const RvkImageFlags flags) {
 
   const VkImageAspectFlags vkAspect  = VK_IMAGE_ASPECT_COLOR_BIT;
   const u32                mipLevels = 1;
@@ -143,6 +152,7 @@ RvkImage rvk_image_create_swapchain(
   return (RvkImage){
       .dev         = dev,
       .type        = RvkImageType_Swapchain,
+      .flags       = flags,
       .size        = size,
       .mipLevels   = mipLevels,
       .vkFormat    = vkFormat,
