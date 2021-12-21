@@ -3,6 +3,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "ecs_world.h"
+#include "log_logger.h"
 
 #include "repo_internal.h"
 
@@ -65,8 +66,8 @@ static String ppm_consume_whitespace_or_comment(String input) {
 static String ppm_read_type(const String input, PixmapType* out) {
   u8     ch;
   String inputRem = format_read_char(input, &ch);
+  *out            = PixmapType_Unknown;
   if (ch != 'P') {
-    *out = PixmapType_Unknown;
     return input;
   }
   inputRem = format_read_char(inputRem, &ch);
@@ -146,8 +147,9 @@ ppm_read_pixels(String input, PixmapHeader* header, AssetTexturePixel* out, Pixm
   return ppm_read_pixels_binary(input, header, out, err);
 }
 
-NORETURN static void ppm_report_error(const PixmapError err) {
-  diag_crash_msg("Failed to parse Pixmap texture, error: {}", fmt_text(pixmap_error_str(err)));
+static void ppm_load_fail(EcsWorld* world, const EcsEntityId assetEntity, const PixmapError err) {
+  log_e("Failed to parse Pixmap texture", log_param("error", fmt_text(pixmap_error_str(err))));
+  ecs_world_add_empty_t(world, assetEntity, AssetFailedComp);
 }
 
 void asset_load_ppm(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) {
@@ -157,16 +159,20 @@ void asset_load_ppm(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
   PixmapHeader header;
   input = ppm_read_header(input, &header);
   if (header.type == PixmapType_Unknown) {
-    ppm_report_error(PixmapError_MalformedType);
+    ppm_load_fail(world, assetEntity, PixmapError_MalformedType);
+    goto Error;
   }
   if (!header.width || !header.height) {
-    ppm_report_error(PixmapError_UnsupportedSize);
+    ppm_load_fail(world, assetEntity, PixmapError_UnsupportedSize);
+    goto Error;
   }
   if (header.width > ppm_max_width || header.height > ppm_max_height) {
-    ppm_report_error(PixmapError_UnsupportedSize);
+    ppm_load_fail(world, assetEntity, PixmapError_UnsupportedSize);
+    goto Error;
   }
   if (header.maxValue != 255) {
-    ppm_report_error(PixmapError_UnsupportedBitDepth);
+    ppm_load_fail(world, assetEntity, PixmapError_UnsupportedBitDepth);
+    goto Error;
   }
 
   const u32          width  = (u32)header.width;
@@ -174,11 +180,17 @@ void asset_load_ppm(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
   AssetTexturePixel* pixels = alloc_array_t(g_alloc_heap, AssetTexturePixel, width * height);
   input                     = ppm_read_pixels(input, &header, pixels, &res);
   if (res) {
-    ppm_report_error(res);
+    ppm_load_fail(world, assetEntity, res);
+    alloc_free_array_t(g_alloc_heap, pixels, width * height);
+    goto Error;
   }
 
   asset_source_close(src);
   ecs_world_add_t(
       world, assetEntity, AssetTextureComp, .width = width, .height = height, .pixels = pixels);
   ecs_world_add_empty_t(world, assetEntity, AssetLoadedComp);
+  return;
+
+Error:
+  asset_source_close(src);
 }

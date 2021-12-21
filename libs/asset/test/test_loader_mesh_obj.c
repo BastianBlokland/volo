@@ -191,6 +191,37 @@ static const struct {
     },
 };
 
+static const struct {
+  String id;
+  String text;
+} g_errorTestData[] = {
+    {
+        .id   = string_static("positive-out-of-bounds-index.obj"),
+        .text = string_static("v 1.0 4.0 7.0 \n"
+                              "v 2.0 5.0 8.0 \n"
+                              "v 3.0 6.0 9.0 \n"
+                              "f 1 2 4 \n"),
+    },
+    {
+        .id   = string_static("negative-out-of-bounds-index.obj"),
+        .text = string_static("v 1.0 4.0 7.0 \n"
+                              "v 2.0 5.0 8.0 \n"
+                              "v 3.0 6.0 9.0 \n"
+                              "f 1 2 -4 \n"),
+    },
+    {
+        .id   = string_static("no-faces.obj"),
+        .text = string_static("v -0.5 -0.5 0.0 \n"
+                              "v 0.5 -0.5 0.0 \n"
+                              "v -0.5 0.5 0.0 \n"
+                              "v 0.5 0.5 0.0 \n"),
+    },
+    {
+        .id   = string_static("invalid.obj"),
+        .text = string_static("Hello World"),
+    },
+};
+
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
 ecs_view_define(AssetView) { ecs_access_read(AssetMeshComp); }
 
@@ -264,6 +295,25 @@ spec(loader_mesh_obj) {
     asset_release(world, asset);
     asset_test_wait(runner);
     check(!ecs_world_has_t(world, asset, AssetMeshComp));
+  }
+
+  it("fails when loading invalid obj files") {
+    AssetMemRecord records[array_elems(g_errorTestData)];
+    for (usize i = 0; i != array_elems(g_errorTestData); ++i) {
+      records[i] = (AssetMemRecord){.id = g_errorTestData[i].id, .data = g_errorTestData[i].text};
+    }
+    asset_manager_create_mem(world, records, array_elems(g_errorTestData));
+    ecs_world_flush(world);
+
+    for (usize i = 0; i != array_elems(g_errorTestData); ++i) {
+      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+      const EcsEntityId asset   = asset_lookup(world, manager, records[i].id);
+      asset_acquire(world, asset);
+      asset_test_wait(runner);
+
+      check(ecs_world_has_t(world, asset, AssetFailedComp));
+      check(!ecs_world_has_t(world, asset, AssetMeshComp));
+    }
   }
 
   teardown() {

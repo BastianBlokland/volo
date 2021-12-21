@@ -149,6 +149,16 @@ static const struct {
     },
 };
 
+static const struct {
+  String id;
+  String text;
+} g_errorTestData[] = {
+    {
+        .id   = string_static("invalid.spv"),
+        .text = string_static("Hello World"),
+    },
+};
+
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
 ecs_view_define(AssetView) { ecs_access_read(AssetShaderComp); }
 
@@ -172,7 +182,7 @@ spec(loader_shader_spv) {
     runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_None);
   }
 
-  it("can load spv shaders") {
+  it("can load SpirV shaders") {
     AssetMemRecord records[array_elems(g_testData)];
     for (usize i = 0; i != array_elems(g_testData); ++i) {
       records[i] = (AssetMemRecord){
@@ -206,7 +216,7 @@ spec(loader_shader_spv) {
     array_for_t(records, AssetMemRecord, rec) { string_free(g_alloc_heap, rec->data); }
   }
 
-  it("can unload spv shader assets") {
+  it("can unload SpirV shader assets") {
     const AssetMemRecord record = {
         .id   = string_lit("shader.spv"),
         .data = string_dup(g_alloc_heap, base64_decode_scratch(g_testData[0].base64Data)),
@@ -226,6 +236,25 @@ spec(loader_shader_spv) {
     check(!ecs_world_has_t(world, asset, AssetShaderComp));
 
     string_free(g_alloc_heap, record.data);
+  }
+
+  it("fails when loading invalid SpirV shader files") {
+    AssetMemRecord records[array_elems(g_errorTestData)];
+    for (usize i = 0; i != array_elems(g_errorTestData); ++i) {
+      records[i] = (AssetMemRecord){.id = g_errorTestData[i].id, .data = g_errorTestData[i].text};
+    }
+    asset_manager_create_mem(world, records, array_elems(g_errorTestData));
+    ecs_world_flush(world);
+
+    for (usize i = 0; i != array_elems(g_errorTestData); ++i) {
+      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+      const EcsEntityId asset   = asset_lookup(world, manager, records[i].id);
+      asset_acquire(world, asset);
+      asset_test_wait(runner);
+
+      check(ecs_world_has_t(world, asset, AssetFailedComp));
+      check(!ecs_world_has_t(world, asset, AssetShaderComp));
+    }
   }
 
   teardown() {

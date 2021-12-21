@@ -3,6 +3,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "ecs_world.h"
+#include "log_logger.h"
 
 #include "mesh_utils_internal.h"
 #include "repo_internal.h"
@@ -357,13 +358,15 @@ static void obj_triangulate(const ObjData* data, AssetMeshBuilder* builder) {
   }
 }
 
-NORETURN static void obj_report_error(const ObjError err) {
-  diag_crash_msg("Failed to parse WaveFront Obj Mesh, error: {}", fmt_text(obj_error_str(err)));
+static void obj_load_fail(EcsWorld* world, const EcsEntityId assetEntity, const ObjError err) {
+  log_e("Failed to parse WaveFront Obj Mesh", log_param("error", fmt_text(obj_error_str(err))));
+  ecs_world_add_empty_t(world, assetEntity, AssetFailedComp);
 }
 
 void asset_load_obj(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) {
-  ObjError err  = ObjError_None;
-  ObjData  data = {
+  ObjError          err     = ObjError_None;
+  AssetMeshBuilder* builder = null;
+  ObjData           data    = {
       .positions = dynarray_create_t(g_alloc_heap, GeoVector, 64),
       .texcoords = dynarray_create_t(g_alloc_heap, GeoVector, 64),
       .normals   = dynarray_create_t(g_alloc_heap, GeoVector, 64),
@@ -373,25 +376,30 @@ void asset_load_obj(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
   obj_read_data(src->data, &data, &err);
   asset_source_close(src);
   if (err) {
-    obj_report_error(err);
+    obj_load_fail(world, assetEntity, err);
+    goto Done;
   }
   if (!data.totalTris) {
-    obj_report_error(ObjError_NoFaces);
+    obj_load_fail(world, assetEntity, ObjError_NoFaces);
+    goto Done;
   }
 
   const usize numVerts = data.totalTris * 3;
   if (numVerts > u16_max) {
-    obj_report_error(ObjError_TooManyVertices);
+    obj_load_fail(world, assetEntity, ObjError_TooManyVertices);
+    goto Done;
   }
-  AssetMeshBuilder* builder = asset_mesh_builder_create(g_alloc_heap, numVerts);
+  builder = asset_mesh_builder_create(g_alloc_heap, numVerts);
   obj_triangulate(&data, builder);
   asset_mesh_compute_tangents(builder);
 
   *ecs_world_add_t(world, assetEntity, AssetMeshComp) = asset_mesh_create(builder);
   ecs_world_add_empty_t(world, assetEntity, AssetLoadedComp);
 
-  // Cleanup temporary resources.
-  asset_mesh_builder_destroy(builder);
+Done:
+  if (builder) {
+    asset_mesh_builder_destroy(builder);
+  }
   dynarray_destroy(&data.positions);
   dynarray_destroy(&data.texcoords);
   dynarray_destroy(&data.normals);
