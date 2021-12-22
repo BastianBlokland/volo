@@ -378,3 +378,25 @@ void rvk_image_blit(const RvkImage* src, RvkImage* dest, VkCommandBuffer vkCmdBu
       regions,
       VK_FILTER_LINEAR);
 }
+
+void rvk_image_clear(const RvkImage* img, const RendColor color, VkCommandBuffer vkCmdBuf) {
+  rvk_image_assert_phase(img, RvkImagePhase_TransferDest);
+
+  const VkClearColorValue       clearColor = *(VkClearColorValue*)&color;
+  const VkImageSubresourceRange ranges[]   = {
+      {
+          .aspectMask     = rvk_image_vkaspect(img->type),
+          .baseMipLevel   = 0,
+          .levelCount     = img->mipLevels,
+          .baseArrayLayer = 0,
+          .layerCount     = 0,
+      },
+  };
+  vkCmdClearColorImage(
+      vkCmdBuf,
+      img->vkImage,
+      rvk_image_vklayout(img->phase),
+      &clearColor,
+      array_elems(ranges),
+      ranges);
+}

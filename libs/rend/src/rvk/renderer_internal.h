@@ -14,7 +14,6 @@ void         rvk_renderer_destroy(RvkRenderer*);
 VkSemaphore  rvk_renderer_semaphore_begin(RvkRenderer*);
 VkSemaphore  rvk_renderer_semaphore_done(RvkRenderer*);
 void         rvk_renderer_wait_for_done(const RvkRenderer*);
-
-void rvk_renderer_draw_begin(RvkRenderer*, RvkSwapchainIdx, RendColor clearColor);
-void rvk_renderer_draw_inst(RvkRenderer*, RvkGraphic*);
-void rvk_renderer_draw_end(RvkRenderer*, RvkSwapchainIdx);
+void         rvk_renderer_begin(RvkRenderer*, RvkSwapchainIdx, RendColor clearColor);
+void         rvk_renderer_draw(RvkRenderer*, RvkGraphic*);
+void         rvk_renderer_end(RvkRenderer*, RvkSwapchainIdx);

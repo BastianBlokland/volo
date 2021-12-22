@@ -1,20 +1,30 @@
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_diag.h"
 #include "core_dynarray.h"
 
 #include "device_internal.h"
+#include "graphic_internal.h"
 #include "image_internal.h"
 #include "pass_internal.h"
 
 #define attachment_max 8
 
+typedef RvkGraphic* RvkGraphicPtr;
+
 static const VkFormat g_colorAttachmentFormat = VK_FORMAT_R8G8B8A8_UNORM;
 
+typedef enum {
+  RvkPassFlags_Active = 1 << 0,
+} RvkPassFlags;
+
 struct sRvkPass {
-  RvkDevice*    dev;
-  VkRenderPass  vkRendPass;
-  RvkImage      colorAttachment;
-  VkFramebuffer vkFrameBuffer;
+  RvkDevice*      dev;
+  RvkPassFlags    flags;
+  VkRenderPass    vkRendPass;
+  RvkImage        colorAttachment;
+  VkFramebuffer   vkFrameBuffer;
+  VkCommandBuffer vkCmdBuf;
 };
 
 static void rvk_memory_barrier(
@@ -110,7 +120,7 @@ static void rvk_pass_scissor_set(VkCommandBuffer vkCmdBuf, const RendSize size) 
 static void rvk_pass_vkrenderpass_begin(
     RvkPass* pass, VkCommandBuffer vkCmdBuf, const RendSize size, const RendColor clearColor) {
 
-  VkClearValue clearValues[] = {
+  const VkClearValue clearValues[] = {
       *(VkClearColorValue*)&clearColor,
   };
   const VkRenderPassBeginInfo renderPassInfo = {
@@ -140,11 +150,12 @@ static void rvk_pass_resource_destroy(RvkPass* pass) {
   vkDestroyFramebuffer(pass->dev->vkDev, pass->vkFrameBuffer, &pass->dev->vkAlloc);
 }
 
-RvkPass* rvk_pass_create(RvkDevice* dev) {
+RvkPass* rvk_pass_create(RvkDevice* dev, VkCommandBuffer vkCmdBuf) {
   RvkPass* pass = alloc_alloc_t(g_alloc_heap, RvkPass);
   *pass         = (RvkPass){
       .dev        = dev,
       .vkRendPass = rvk_renderpass_create(dev),
+      .vkCmdBuf   = vkCmdBuf,
   };
   return pass;
 }
@@ -161,33 +172,52 @@ VkRenderPass rvk_pass_vkrenderpass(const RvkPass* pass) { return pass->vkRendPas
 
 RvkImage* rvk_pass_output(RvkPass* pass) { return &pass->colorAttachment; }
 
-void rvk_pass_output_barrier(RvkPass* pass, VkCommandBuffer vkCmdBuf) {
-  (void)pass;
+void rvk_pass_output_barrier(RvkPass* pass) {
   rvk_memory_barrier(
-      vkCmdBuf,
+      pass->vkCmdBuf,
       VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
       VK_ACCESS_TRANSFER_READ_BIT,
       VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
       VK_PIPELINE_STAGE_TRANSFER_BIT);
 }
 
-void rvk_pass_begin(
-    RvkPass* pass, VkCommandBuffer vkCmdBuf, const RendSize size, const RendColor clearColor) {
+bool rvk_pass_prepare(RvkPass* pass, RvkGraphic* graphic) {
+  // TODO: Only allow when the pass is not active.
+  // diag_assert_msg(!(pass->flags & RvkPassFlags_Active), "Pass already active");
+  return rvk_graphic_prepare(graphic, pass);
+}
+
+void rvk_pass_begin(RvkPass* pass, const RendSize size, const RendColor clearColor) {
+  diag_assert_msg(!(pass->flags & RvkPassFlags_Active), "Pass already active");
+  pass->flags |= RvkPassFlags_Active;
 
   if (!rend_size_equal(pass->colorAttachment.size, size)) {
     rvk_pass_resource_destroy(pass);
     rvk_pass_resource_create(pass, size);
   }
 
-  rvk_pass_vkrenderpass_begin(pass, vkCmdBuf, size, clearColor);
+  rvk_pass_vkrenderpass_begin(pass, pass->vkCmdBuf, size, clearColor);
   rvk_image_transition_external(&pass->colorAttachment, RvkImagePhase_ColorAttachment);
 
-  rvk_pass_viewport_set(vkCmdBuf, size);
-  rvk_pass_scissor_set(vkCmdBuf, size);
+  rvk_pass_viewport_set(pass->vkCmdBuf, size);
+  rvk_pass_scissor_set(pass->vkCmdBuf, size);
 }
 
-void rvk_pass_end(RvkPass* pass, VkCommandBuffer vkCmdBuf) {
+void rvk_pass_draw(RvkPass* pass, const RvkPassDrawList drawList) {
+  diag_assert_msg(pass->flags & RvkPassFlags_Active, "Pass not active");
 
-  vkCmdEndRenderPass(vkCmdBuf);
+  array_ptr_for_t(drawList, RvkGraphicPtr, graphicPtr) {
+    rvk_graphic_bind(*graphicPtr, pass->vkCmdBuf);
+
+    const u32 indexCount = rvk_graphic_index_count(*graphicPtr);
+    vkCmdDrawIndexed(pass->vkCmdBuf, indexCount, 1, 0, 0, 0);
+  }
+}
+
+void rvk_pass_end(RvkPass* pass) {
+  diag_assert_msg(pass->flags & RvkPassFlags_Active, "Pass not active");
+  pass->flags &= ~RvkPassFlags_Active;
+
+  vkCmdEndRenderPass(pass->vkCmdBuf);
   rvk_image_transition_external(&pass->colorAttachment, RvkImagePhase_TransferSource);
 }

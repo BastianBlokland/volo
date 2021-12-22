@@ -42,19 +42,19 @@ bool rvk_canvas_draw_begin(RvkCanvas* canvas, const RendSize size, const RendCol
     return false;
   }
 
-  rvk_renderer_draw_begin(renderer, canvas->swapchainIdx, clearColor);
+  rvk_renderer_begin(renderer, canvas->swapchainIdx, clearColor);
   return true;
 }
 
 void rvk_canvas_draw_inst(RvkCanvas* canvas, RvkGraphic* graphic) {
   RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
-  rvk_renderer_draw_inst(renderer, graphic);
+  rvk_renderer_draw(renderer, graphic);
 }
 
 void rvk_canvas_draw_end(RvkCanvas* canvas) {
   RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
 
-  rvk_renderer_draw_end(renderer, canvas->swapchainIdx);
+  rvk_renderer_end(renderer, canvas->swapchainIdx);
 
   const VkSemaphore imageDoneSemaphore = rvk_renderer_semaphore_done(renderer);
   rvk_swapchain_present(canvas->swapchain, imageDoneSemaphore, canvas->swapchainIdx);

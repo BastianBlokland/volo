@@ -8,13 +8,18 @@
 #include "pass_internal.h"
 #include "renderer_internal.h"
 
+typedef enum {
+  RvkRendererFlags_Active = 1 << 0,
+} RvkRendererFlags;
+
 struct sRvkRenderer {
-  RvkDevice*      dev;
-  RvkPass*        pass;
-  RvkSwapchain*   swapchain;
-  VkSemaphore     semaphoreBegin, semaphoreDone;
-  VkFence         renderDone;
-  VkCommandBuffer vkDrawBuffer;
+  RvkDevice*       dev;
+  RvkRendererFlags flags;
+  RvkPass*         forwardPass;
+  RvkSwapchain*    swapchain;
+  VkSemaphore      semaphoreBegin, semaphoreDone;
+  VkFence          fenceRenderDone;
+  VkCommandBuffer  vkDrawBuffer;
 };
 
 static VkSemaphore rvk_semaphore_create(RvkDevice* dev) {
@@ -70,30 +75,32 @@ static void rvk_renderer_submit(RvkRenderer* rend) {
       .signalSemaphoreCount = 1,
       .pSignalSemaphores    = &rend->semaphoreDone,
   };
-  rvk_call(vkQueueSubmit, rend->dev->vkGraphicsQueue, 1, &submitInfo, rend->renderDone);
+  rvk_call(vkQueueSubmit, rend->dev->vkGraphicsQueue, 1, &submitInfo, rend->fenceRenderDone);
 }
 
 RvkRenderer* rvk_renderer_create(RvkDevice* dev, RvkSwapchain* swapchain) {
   RvkRenderer* renderer = alloc_alloc_t(g_alloc_heap, RvkRenderer);
   *renderer             = (RvkRenderer){
-      .dev            = dev,
-      .pass           = rvk_pass_create(dev),
-      .swapchain      = swapchain,
-      .semaphoreBegin = rvk_semaphore_create(dev),
-      .semaphoreDone  = rvk_semaphore_create(dev),
-      .renderDone     = rvk_fence_create(dev, true),
-      .vkDrawBuffer   = rvk_commandbuffer_create(dev),
+      .dev             = dev,
+      .swapchain       = swapchain,
+      .semaphoreBegin  = rvk_semaphore_create(dev),
+      .semaphoreDone   = rvk_semaphore_create(dev),
+      .fenceRenderDone = rvk_fence_create(dev, true),
+      .vkDrawBuffer    = rvk_commandbuffer_create(dev),
   };
+  renderer->forwardPass = rvk_pass_create(dev, renderer->vkDrawBuffer);
   return renderer;
 }
 
 void rvk_renderer_destroy(RvkRenderer* rend) {
-  rvk_pass_destroy(rend->pass);
+  rvk_renderer_wait_for_done(rend);
+
+  rvk_pass_destroy(rend->forwardPass);
 
   vkFreeCommandBuffers(rend->dev->vkDev, rend->dev->vkGraphicsCommandPool, 1, &rend->vkDrawBuffer);
   vkDestroySemaphore(rend->dev->vkDev, rend->semaphoreBegin, &rend->dev->vkAlloc);
   vkDestroySemaphore(rend->dev->vkDev, rend->semaphoreDone, &rend->dev->vkAlloc);
-  vkDestroyFence(rend->dev->vkDev, rend->renderDone, &rend->dev->vkAlloc);
+  vkDestroyFence(rend->dev->vkDev, rend->fenceRenderDone, &rend->dev->vkAlloc);
 
   alloc_free_t(g_alloc_heap, rend);
 }
@@ -102,40 +109,45 @@ VkSemaphore rvk_renderer_semaphore_begin(RvkRenderer* rend) { return rend->semap
 VkSemaphore rvk_renderer_semaphore_done(RvkRenderer* rend) { return rend->semaphoreDone; }
 
 void rvk_renderer_wait_for_done(const RvkRenderer* rend) {
-  rvk_call(vkWaitForFences, rend->dev->vkDev, 1, &rend->renderDone, true, u64_max);
+  rvk_call(vkWaitForFences, rend->dev->vkDev, 1, &rend->fenceRenderDone, true, u64_max);
 }
 
-void rvk_renderer_draw_begin(
+void rvk_renderer_begin(
     RvkRenderer* rend, const RvkSwapchainIdx swapchainIdx, const RendColor clearColor) {
+  diag_assert_msg(!(rend->flags & RvkRendererFlags_Active), "Renderer already active");
+  rend->flags |= RvkRendererFlags_Active;
 
   rvk_renderer_wait_for_done(rend);
   rvk_commandbuffer_begin(rend->vkDrawBuffer);
 
   RvkImage* targetImage = rvk_swapchain_image(rend->swapchain, swapchainIdx);
-  rvk_pass_begin(rend->pass, rend->vkDrawBuffer, targetImage->size, clearColor);
+  rvk_pass_begin(rend->forwardPass, targetImage->size, clearColor);
 }
 
-void rvk_renderer_draw_inst(RvkRenderer* rend, RvkGraphic* graphic) {
+void rvk_renderer_draw(RvkRenderer* rend, RvkGraphic* graphic) {
+  diag_assert_msg(rend->flags & RvkRendererFlags_Active, "Renderer not active");
 
-  if (!rvk_graphic_prepare(graphic, rend->pass)) {
+  if (!rvk_pass_prepare(rend->forwardPass, graphic)) {
     return;
   }
-
-  rvk_graphic_bind(graphic, rend->vkDrawBuffer);
-
-  const u32 indexCount = rvk_graphic_index_count(graphic);
-  vkCmdDrawIndexed(rend->vkDrawBuffer, indexCount, 1, 0, 0, 0);
+  const RvkPassDrawList drawList = {
+      .values = &graphic,
+      .count  = 1,
+  };
+  rvk_pass_draw(rend->forwardPass, drawList);
 }
 
-void rvk_renderer_draw_end(RvkRenderer* rend, const RvkSwapchainIdx swapchainIdx) {
+void rvk_renderer_end(RvkRenderer* rend, const RvkSwapchainIdx swapchainIdx) {
+  diag_assert_msg(rend->flags & RvkRendererFlags_Active, "Renderer not active");
+  rend->flags &= ~RvkRendererFlags_Active;
 
-  rvk_pass_end(rend->pass, rend->vkDrawBuffer);
+  rvk_pass_end(rend->forwardPass);
 
   // Wait for rendering to be done.
-  rvk_pass_output_barrier(rend->pass, rend->vkDrawBuffer);
+  rvk_pass_output_barrier(rend->forwardPass);
 
   // Copy the output to the swapchain.
-  RvkImage* srcImage  = rvk_pass_output(rend->pass);
+  RvkImage* srcImage  = rvk_pass_output(rend->forwardPass);
   RvkImage* destImage = rvk_swapchain_image(rend->swapchain, swapchainIdx);
   rvk_image_transition(destImage, rend->vkDrawBuffer, RvkImagePhase_TransferDest);
   rvk_image_blit(srcImage, destImage, rend->vkDrawBuffer);
@@ -143,6 +155,6 @@ void rvk_renderer_draw_end(RvkRenderer* rend, const RvkSwapchainIdx swapchainIdx
 
   rvk_commandbuffer_end(rend->vkDrawBuffer);
 
-  rvk_call(vkResetFences, rend->dev->vkDev, 1, &rend->renderDone);
+  rvk_call(vkResetFences, rend->dev->vkDev, 1, &rend->fenceRenderDone);
   rvk_renderer_submit(rend);
 }
