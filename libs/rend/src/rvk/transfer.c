@@ -25,11 +25,11 @@ typedef enum {
 } RvkTransferState;
 
 typedef struct {
-  RvkTransferState state;
   RvkBuffer        hostBuffer;
   VkCommandBuffer  vkCmdBuffer;
   VkFence          vkFinishedFence;
   u64              offset;
+  RvkTransferState state;
   u32              serial;
 } RvkTransferBuffer;
 

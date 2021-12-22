@@ -3,9 +3,8 @@
 #include "rend_size.h"
 
 // Internal forward declarations:
-typedef struct sRvkDevice   RvkDevice;
-typedef struct sRvkPass     RvkPass;
-typedef struct sRvkRenderer RvkRenderer;
+typedef struct sRvkDevice RvkDevice;
+typedef struct sRvkPass   RvkPass;
 
 typedef struct sRvkCanvas RvkCanvas;
 

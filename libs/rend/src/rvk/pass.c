@@ -83,7 +83,7 @@ static VkRenderPass rvk_renderpass_create(RvkDevice* dev) {
 }
 
 static VkFramebuffer rvk_framebuffer_create(RvkPass* pass, RvkImage* colorAttachment) {
-  VkFramebufferCreateInfo framebufferInfo = {
+  const VkFramebufferCreateInfo framebufferInfo = {
       .sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
       .renderPass      = pass->vkRendPass,
       .attachmentCount = 1,
@@ -98,7 +98,7 @@ static VkFramebuffer rvk_framebuffer_create(RvkPass* pass, RvkImage* colorAttach
 }
 
 static void rvk_pass_viewport_set(VkCommandBuffer vkCmdBuf, const RendSize size) {
-  VkViewport viewport = {
+  const VkViewport viewport = {
       .x        = 0.0f,
       .y        = 0.0f,
       .width    = (f32)size.width,
@@ -110,7 +110,7 @@ static void rvk_pass_viewport_set(VkCommandBuffer vkCmdBuf, const RendSize size)
 }
 
 static void rvk_pass_scissor_set(VkCommandBuffer vkCmdBuf, const RendSize size) {
-  VkRect2D scissor = {
+  const VkRect2D scissor = {
       .offset        = {0, 0},
       .extent.width  = size.width,
       .extent.height = size.height,

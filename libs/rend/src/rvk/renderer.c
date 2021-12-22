@@ -29,7 +29,7 @@ static VkSemaphore rvk_semaphore_create(RvkDevice* dev) {
 }
 
 static VkFence rvk_fence_create(RvkDevice* dev, const bool initialState) {
-  VkFenceCreateInfo fenceInfo = {
+  const VkFenceCreateInfo fenceInfo = {
       .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
       .flags = initialState ? VK_FENCE_CREATE_SIGNALED_BIT : 0,
   };
@@ -39,7 +39,7 @@ static VkFence rvk_fence_create(RvkDevice* dev, const bool initialState) {
 }
 
 static VkCommandBuffer rvk_commandbuffer_create(RvkDevice* dev) {
-  VkCommandBufferAllocateInfo allocInfo = {
+  const VkCommandBufferAllocateInfo allocInfo = {
       .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
       .commandPool        = dev->vkGraphicsCommandPool,
       .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
@@ -51,7 +51,7 @@ static VkCommandBuffer rvk_commandbuffer_create(RvkDevice* dev) {
 }
 
 static void rvk_commandbuffer_begin(VkCommandBuffer vkCmdBuf) {
-  VkCommandBufferBeginInfo beginInfo = {
+  const VkCommandBufferBeginInfo beginInfo = {
       .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
       .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
   };

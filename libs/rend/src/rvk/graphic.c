@@ -9,7 +9,6 @@
 #include "device_internal.h"
 #include "graphic_internal.h"
 #include "mesh_internal.h"
-#include "pass_internal.h"
 #include "repository_internal.h"
 #include "sampler_internal.h"
 #include "shader_internal.h"
@@ -141,7 +140,7 @@ static RvkDescMeta rvk_graphic_desc_meta(const RvkGraphic* graphic, const usize 
 }
 
 static VkPipelineLayout rvk_pipeline_layout_create(const RvkGraphic* graphic) {
-  const VkDescriptorSetLayout descriptorLayouts[1] = {
+  const VkDescriptorSetLayout descriptorLayouts[] = {
       rvk_desc_set_vklayout(graphic->descSet),
   };
   const VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
@@ -418,7 +417,6 @@ void rvk_graphic_destroy(RvkGraphic* graphic) {
       rvk_sampler_destroy(&itr->sampler, dev);
     }
   }
-
   alloc_free_t(g_alloc_heap, graphic);
 }
 

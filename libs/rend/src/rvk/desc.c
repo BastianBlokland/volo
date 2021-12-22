@@ -124,8 +124,10 @@ static VkDescriptorPool rvk_desc_vkpool_create(RvkDescPool* pool, const RvkDescM
   }
 
   if (!sizeCount) {
-    // NOTE: Vulkan spec does not allow for empty descriptor pools, however supporting empty
-    // bindings simplifies the api quite a bit. Needs investigation into alternatives.
+    /**
+     * NOTE: Vulkan spec does not allow for empty descriptor pools, however supporting empty
+     * bindings simplifies the api quite a bit. Needs investigation into alternatives.
+     */
     sizes[sizeCount++] =
         (VkDescriptorPoolSize){VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = 1};
   }
