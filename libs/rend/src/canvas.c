@@ -9,6 +9,7 @@
 
 #include "platform_internal.h"
 #include "resource_internal.h"
+#include "rvk/canvas_internal.h"
 
 typedef enum {
   RendCanvasRequests_Create = 1 << 0,
@@ -19,7 +20,7 @@ typedef struct {
 } RendDrawEntry;
 
 ecs_comp_define(RendCanvasComp) {
-  RvkCanvasId        id;
+  RvkCanvas*         canvas;
   RendCanvasRequests requests;
   RendColor          clearColor;
   DynArray           drawList; // RendDrawEntry[]
@@ -27,6 +28,9 @@ ecs_comp_define(RendCanvasComp) {
 
 static void ecs_destruct_canvas_comp(void* data) {
   RendCanvasComp* comp = data;
+  if (comp->canvas) {
+    rvk_canvas_destroy(comp->canvas);
+  }
   dynarray_destroy(&comp->drawList);
 }
 
@@ -51,16 +55,16 @@ static void canvas_update(EcsWorld* world, RendCanvasComp* canvas) {
   }
 }
 
-static bool canvas_draw(RendPlatformComp* plat, const GapWindowComp* win, RendCanvasComp* canvas) {
+static bool canvas_draw(RendCanvasComp* canvas, const GapWindowComp* win) {
 
   const GapVector winSize  = gap_window_param(win, GapParam_WindowSize);
   const RendSize  rendSize = rend_size((u32)winSize.width, (u32)winSize.height);
-  const bool draw = rvk_platform_draw_begin(plat->vulkan, canvas->id, rendSize, canvas->clearColor);
+  const bool      draw     = rvk_canvas_draw_begin(canvas->canvas, rendSize, canvas->clearColor);
   if (draw) {
     dynarray_for_t(&canvas->drawList, RendDrawEntry, entry) {
-      rvk_platform_draw_inst(plat->vulkan, canvas->id, entry->rvkGraphic);
+      rvk_canvas_draw_inst(canvas->canvas, entry->rvkGraphic);
     }
-    rvk_platform_draw_end(plat->vulkan, canvas->id);
+    rvk_canvas_draw_end(canvas->canvas);
   }
 
   return draw;
@@ -81,17 +85,16 @@ ecs_system_define(RendCanvasUpdateSys) {
     GapWindowEvents      winEvents = gap_window_events(win);
 
     if (canvas->requests & RendCanvasRequests_Create) {
-      canvas->id = rvk_platform_canvas_create(plat->vulkan, win);
+      canvas->canvas = rvk_platform_canvas_create(plat->vulkan, win);
     }
     if (winEvents & GapWindowEvents_Closed) {
-      rvk_platform_canvas_destroy(plat->vulkan, canvas->id);
       canvas->requests = 0;
       continue;
     }
 
     canvas_update(world, canvas);
 
-    anyCanvasDrawn |= canvas_draw(plat, win, canvas);
+    anyCanvasDrawn |= canvas_draw(canvas, win);
     canvas->requests = 0;
   }
 
@@ -127,4 +130,16 @@ void rend_canvas_create(
       .requests   = RendCanvasRequests_Create,
       .clearColor = clearColor,
       .drawList   = dynarray_create_t(g_alloc_heap, RendDrawEntry, 1024));
+}
+
+void rend_canvas_teardown(EcsWorld* world) {
+
+  EcsView* canvasView = ecs_world_view_t(world, CanvasView);
+  for (EcsIterator* itr = ecs_view_itr(canvasView); ecs_view_walk(itr);) {
+    RendCanvasComp* comp = ecs_view_write_t(itr, RendCanvasComp);
+    if (comp->canvas) {
+      rvk_canvas_destroy(comp->canvas);
+      comp->canvas = null;
+    }
+  }
 }

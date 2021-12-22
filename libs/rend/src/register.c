@@ -3,6 +3,7 @@
 #include "ecs_world.h"
 #include "rend_register.h"
 
+#include "canvas_internal.h"
 #include "platform_internal.h"
 #include "resource_internal.h"
 
@@ -17,10 +18,11 @@ void rend_teardown(EcsWorld* world) {
 
   /**
    * In the renderer many objects need to be destroyed in a very specific order.
-   * This can unfortunatly not be represented with ecs-destructors as the order is not defined, to
+   * This can unfortunately not be represented with ecs-destructors as the order is not defined, to
    * work around this applications need to specifically call rend_teardown() before exit.
    */
 
   rend_resource_teardown(world);
+  rend_canvas_teardown(world);
   rend_platform_teardown(world);
 }
