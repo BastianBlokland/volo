@@ -3,7 +3,7 @@
 #include "ecs_world.h"
 #include "rend_register.h"
 
-#include "canvas_internal.h"
+#include "painter_internal.h"
 #include "platform_internal.h"
 #include "resource_internal.h"
 
@@ -23,6 +23,6 @@ void rend_teardown(EcsWorld* world) {
    */
 
   rend_resource_teardown(world);
-  rend_canvas_teardown(world);
+  rend_painter_teardown(world);
   rend_platform_teardown(world);
 }

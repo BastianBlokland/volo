@@ -24,8 +24,8 @@ add_library(lib_rend STATIC
   src/rvk/texture.c
   src/rvk/transfer.c
   src/rvk/vulkan.c
-  src/canvas.c
   src/color.c
+  src/painter.c
   src/platform.c
   src/register.c
   src/resource.c)
