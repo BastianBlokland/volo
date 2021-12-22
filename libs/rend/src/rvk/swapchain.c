@@ -55,14 +55,14 @@ static RendSize rvk_surface_clamp_size(RendSize size, const VkSurfaceCapabilitie
 static VkSurfaceKHR rvk_surface_create(RvkDevice* dev, const GapWindowComp* window) {
   VkSurfaceKHR result;
 #if defined(VOLO_LINUX)
-  VkXcbSurfaceCreateInfoKHR createInfo = {
+  const VkXcbSurfaceCreateInfoKHR createInfo = {
       .sType      = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR,
       .connection = (xcb_connection_t*)gap_native_app_handle(window),
       .window     = (xcb_window_t)gap_native_window_handle(window),
   };
   rvk_call(vkCreateXcbSurfaceKHR, dev->vkInst, &createInfo, &dev->vkAlloc, &result);
 #elif defined(VOLO_WIN32)
-  VkWin32SurfaceCreateInfoKHR createInfo = {
+  const VkWin32SurfaceCreateInfoKHR createInfo = {
       .sType     = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
       .hinstance = (HINSTANCE)gap_native_app_handle(window),
       .hwnd      = (HWND)gap_native_window_handle(window),
@@ -148,13 +148,13 @@ static bool rvk_swapchain_init(RvkSwapchain* swapchain, RendSize size) {
   dynarray_for_t(&swapchain->images, RvkImage, img) { rvk_image_destroy(img, swapchain->dev); }
   dynarray_clear(&swapchain->images);
 
-  VkDevice                 vkDev   = swapchain->dev->vkDev;
+  const VkDevice           vkDev   = swapchain->dev->vkDev;
   VkAllocationCallbacks*   vkAlloc = &swapchain->dev->vkAlloc;
   VkSurfaceCapabilitiesKHR vkCaps  = rvk_surface_capabilities(swapchain->dev, swapchain->vkSurf);
   size                             = rvk_surface_clamp_size(size, &vkCaps);
 
-  VkSwapchainKHR           oldSwapchain = swapchain->vkSwapchain;
-  VkSwapchainCreateInfoKHR createInfo   = {
+  const VkSwapchainKHR           oldSwapchain = swapchain->vkSwapchain;
+  const VkSwapchainCreateInfoKHR createInfo   = {
       .sType              = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
       .surface            = swapchain->vkSurf,
       .minImageCount      = rvk_pick_imagecount(&vkCaps),
@@ -286,7 +286,7 @@ bool rvk_swapchain_present(RvkSwapchain* swapchain, VkSemaphore ready, const Rvk
   RvkImage* image = rvk_swapchain_image(swapchain, idx);
   rvk_image_assert_phase(image, RvkImagePhase_Present);
 
-  VkPresentInfoKHR presentInfo = {
+  const VkPresentInfoKHR presentInfo = {
       .sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
       .waitSemaphoreCount = 1,
       .pWaitSemaphores    = &ready,

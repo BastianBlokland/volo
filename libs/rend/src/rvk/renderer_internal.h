@@ -11,8 +11,8 @@ typedef struct sRvkRenderer RvkRenderer;
 
 RvkRenderer* rvk_renderer_create(RvkDevice*, RvkSwapchain*);
 void         rvk_renderer_destroy(RvkRenderer*);
-VkSemaphore  rvk_renderer_image_available(RvkRenderer*);
-VkSemaphore  rvk_renderer_image_ready(RvkRenderer*);
+VkSemaphore  rvk_renderer_semaphore_begin(RvkRenderer*);
+VkSemaphore  rvk_renderer_semaphore_done(RvkRenderer*);
 void         rvk_renderer_wait_for_done(const RvkRenderer*);
 
 void rvk_renderer_draw_begin(RvkRenderer*, RvkSwapchainIdx, RendColor clearColor);

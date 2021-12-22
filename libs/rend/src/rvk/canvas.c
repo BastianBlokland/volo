@@ -36,8 +36,8 @@ void rvk_canvas_destroy(RvkCanvas* canvas) {
 bool rvk_canvas_draw_begin(RvkCanvas* canvas, const RendSize size, const RendColor clearColor) {
   RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
 
-  canvas->swapchainIdx =
-      rvk_swapchain_acquire(canvas->swapchain, rvk_renderer_image_available(renderer), size);
+  const VkSemaphore beginSemaphore = rvk_renderer_semaphore_begin(renderer);
+  canvas->swapchainIdx             = rvk_swapchain_acquire(canvas->swapchain, beginSemaphore, size);
   if (sentinel_check(canvas->swapchainIdx)) {
     return false;
   }
@@ -56,8 +56,8 @@ void rvk_canvas_draw_end(RvkCanvas* canvas) {
 
   rvk_renderer_draw_end(renderer, canvas->swapchainIdx);
 
-  rvk_swapchain_present(
-      canvas->swapchain, rvk_renderer_image_ready(renderer), canvas->swapchainIdx);
+  const VkSemaphore imageDoneSemaphore = rvk_renderer_semaphore_done(renderer);
+  rvk_swapchain_present(canvas->swapchain, imageDoneSemaphore, canvas->swapchainIdx);
 
   canvas->swapchainIdx = sentinel_u32;
   canvas->rendererIdx ^= 1;

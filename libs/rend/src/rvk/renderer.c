@@ -12,7 +12,7 @@ struct sRvkRenderer {
   RvkDevice*      dev;
   RvkPass*        pass;
   RvkSwapchain*   swapchain;
-  VkSemaphore     imageAvailable, imageReady;
+  VkSemaphore     semaphoreBegin, semaphoreDone;
   VkFence         renderDone;
   VkCommandBuffer vkDrawBuffer;
 };
@@ -63,12 +63,12 @@ static void rvk_renderer_submit(RvkRenderer* rend) {
   VkSubmitInfo               submitInfo = {
       .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
       .waitSemaphoreCount   = 1,
-      .pWaitSemaphores      = &rend->imageAvailable,
+      .pWaitSemaphores      = &rend->semaphoreBegin,
       .pWaitDstStageMask    = &waitStage,
       .commandBufferCount   = 1,
       .pCommandBuffers      = &rend->vkDrawBuffer,
       .signalSemaphoreCount = 1,
-      .pSignalSemaphores    = &rend->imageReady,
+      .pSignalSemaphores    = &rend->semaphoreDone,
   };
   rvk_call(vkQueueSubmit, rend->dev->vkGraphicsQueue, 1, &submitInfo, rend->renderDone);
 }
@@ -79,8 +79,8 @@ RvkRenderer* rvk_renderer_create(RvkDevice* dev, RvkSwapchain* swapchain) {
       .dev            = dev,
       .pass           = rvk_pass_create(dev),
       .swapchain      = swapchain,
-      .imageAvailable = rvk_semaphore_create(dev),
-      .imageReady     = rvk_semaphore_create(dev),
+      .semaphoreBegin = rvk_semaphore_create(dev),
+      .semaphoreDone  = rvk_semaphore_create(dev),
       .renderDone     = rvk_fence_create(dev, true),
       .vkDrawBuffer   = rvk_commandbuffer_create(dev),
   };
@@ -91,16 +91,15 @@ void rvk_renderer_destroy(RvkRenderer* rend) {
   rvk_pass_destroy(rend->pass);
 
   vkFreeCommandBuffers(rend->dev->vkDev, rend->dev->vkGraphicsCommandPool, 1, &rend->vkDrawBuffer);
-  vkDestroySemaphore(rend->dev->vkDev, rend->imageAvailable, &rend->dev->vkAlloc);
-  vkDestroySemaphore(rend->dev->vkDev, rend->imageReady, &rend->dev->vkAlloc);
+  vkDestroySemaphore(rend->dev->vkDev, rend->semaphoreBegin, &rend->dev->vkAlloc);
+  vkDestroySemaphore(rend->dev->vkDev, rend->semaphoreDone, &rend->dev->vkAlloc);
   vkDestroyFence(rend->dev->vkDev, rend->renderDone, &rend->dev->vkAlloc);
 
   alloc_free_t(g_alloc_heap, rend);
 }
 
-VkSemaphore rvk_renderer_image_available(RvkRenderer* rend) { return rend->imageAvailable; }
-
-VkSemaphore rvk_renderer_image_ready(RvkRenderer* rend) { return rend->imageReady; }
+VkSemaphore rvk_renderer_semaphore_begin(RvkRenderer* rend) { return rend->semaphoreBegin; }
+VkSemaphore rvk_renderer_semaphore_done(RvkRenderer* rend) { return rend->semaphoreDone; }
 
 void rvk_renderer_wait_for_done(const RvkRenderer* rend) {
   rvk_call(vkWaitForFences, rend->dev->vkDev, 1, &rend->renderDone, true, u64_max);
