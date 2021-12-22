@@ -1,6 +1,4 @@
 #pragma once
-#include "rend_color.h"
-
 #include "vulkan_internal.h"
 
 // Internal forward declarations:
@@ -16,6 +14,6 @@ VkSemaphore  rvk_renderer_semaphore_begin(RvkRenderer*);
 VkSemaphore  rvk_renderer_semaphore_done(RvkRenderer*);
 void         rvk_renderer_wait_for_done(const RvkRenderer*);
 
-void     rvk_renderer_begin(RvkRenderer*, RvkImage* target, RendColor clearColor);
+void     rvk_renderer_begin(RvkRenderer*, RvkImage* target);
 RvkPass* rvk_renderer_pass_forward(RvkRenderer*);
 void     rvk_renderer_end(RvkRenderer*);

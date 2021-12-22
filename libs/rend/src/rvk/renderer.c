@@ -110,16 +110,16 @@ void rvk_renderer_wait_for_done(const RvkRenderer* rend) {
   rvk_call(vkWaitForFences, rend->dev->vkDev, 1, &rend->fenceRenderDone, true, u64_max);
 }
 
-void rvk_renderer_begin(RvkRenderer* rend, RvkImage* target, const RendColor clearColor) {
+void rvk_renderer_begin(RvkRenderer* rend, RvkImage* target) {
   diag_assert_msg(!(rend->flags & RvkRendererFlags_Active), "Renderer already active");
 
   rend->flags |= RvkRendererFlags_Active;
   rend->currentTarget = target;
 
+  rvk_pass_setup(rend->forwardPass, target->size);
+
   rvk_renderer_wait_for_done(rend);
   rvk_commandbuffer_begin(rend->vkDrawBuffer);
-
-  rvk_pass_begin(rend->forwardPass, target->size, clearColor);
 }
 
 RvkPass* rvk_renderer_pass_forward(RvkRenderer* rend) {
@@ -130,7 +130,7 @@ RvkPass* rvk_renderer_pass_forward(RvkRenderer* rend) {
 void rvk_renderer_end(RvkRenderer* rend) {
   diag_assert_msg(rend->flags & RvkRendererFlags_Active, "Renderer not active");
 
-  rvk_pass_end(rend->forwardPass);
+  diag_assert_msg(!rvk_pass_active(rend->forwardPass), "Forward pass is still active");
 
   // Wait for rendering to be done.
   rvk_pass_output_barrier(rend->forwardPass);

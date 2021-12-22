@@ -46,7 +46,7 @@ void rvk_canvas_destroy(RvkCanvas* canvas) {
   alloc_free_t(g_alloc_heap, canvas);
 }
 
-bool rvk_canvas_begin(RvkCanvas* canvas, const RendSize size, const RendColor clearColor) {
+bool rvk_canvas_begin(RvkCanvas* canvas, const RendSize size) {
   diag_assert_msg(!(canvas->flags & RvkCanvasFlags_Active), "Canvas already active");
 
   canvas->flags |= RvkCanvasFlags_Active;
@@ -59,13 +59,14 @@ bool rvk_canvas_begin(RvkCanvas* canvas, const RendSize size, const RendColor cl
   }
 
   RvkImage* targetImage = rvk_swapchain_image(canvas->swapchain, canvas->swapchainIdx);
-  rvk_renderer_begin(renderer, targetImage, clearColor);
+  rvk_renderer_begin(renderer, targetImage);
   return true;
 }
 
 RvkPass* rvk_canvas_pass_forward(RvkCanvas* canvas) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
   RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
+
   return rvk_renderer_pass_forward(renderer);
 }
 

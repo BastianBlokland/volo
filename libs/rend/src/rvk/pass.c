@@ -15,7 +15,8 @@ typedef RvkGraphic* RvkGraphicPtr;
 static const VkFormat g_colorAttachmentFormat = VK_FORMAT_R8G8B8A8_UNORM;
 
 typedef enum {
-  RvkPassFlags_Active = 1 << 0,
+  RvkPassFlags_Setup  = 1 << 0,
+  RvkPassFlags_Active = 1 << 1,
 } RvkPassFlags;
 
 struct sRvkPass {
@@ -168,6 +169,8 @@ void rvk_pass_destroy(RvkPass* pass) {
   alloc_free_t(g_alloc_heap, pass);
 }
 
+bool rvk_pass_active(const RvkPass* pass) { return (pass->flags & RvkPassFlags_Active) != 0; }
+
 VkRenderPass rvk_pass_vkrenderpass(const RvkPass* pass) { return pass->vkRendPass; }
 
 RvkImage* rvk_pass_output(RvkPass* pass) { return &pass->colorAttachment; }
@@ -181,26 +184,33 @@ void rvk_pass_output_barrier(RvkPass* pass) {
       VK_PIPELINE_STAGE_TRANSFER_BIT);
 }
 
+void rvk_pass_setup(RvkPass* pass, const RendSize size) {
+  diag_assert_msg(size.width && size.height, "Pass cannot be zero sized");
+
+  if (rend_size_equal(pass->colorAttachment.size, size)) {
+    return;
+  }
+  pass->flags |= RvkPassFlags_Setup;
+  rvk_pass_resource_destroy(pass);
+  rvk_pass_resource_create(pass, size);
+}
+
 bool rvk_pass_prepare(RvkPass* pass, RvkGraphic* graphic) {
-  // TODO: Only allow when the pass is not active.
-  // diag_assert_msg(!(pass->flags & RvkPassFlags_Active), "Pass already active");
+  diag_assert_msg(!(pass->flags & RvkPassFlags_Active), "Pass already active");
   return rvk_graphic_prepare(graphic, pass);
 }
 
-void rvk_pass_begin(RvkPass* pass, const RendSize size, const RendColor clearColor) {
+void rvk_pass_begin(RvkPass* pass, const RendColor clearColor) {
+  diag_assert_msg(pass->flags & RvkPassFlags_Setup, "Pass not setup");
   diag_assert_msg(!(pass->flags & RvkPassFlags_Active), "Pass already active");
+
   pass->flags |= RvkPassFlags_Active;
 
-  if (!rend_size_equal(pass->colorAttachment.size, size)) {
-    rvk_pass_resource_destroy(pass);
-    rvk_pass_resource_create(pass, size);
-  }
-
-  rvk_pass_vkrenderpass_begin(pass, pass->vkCmdBuf, size, clearColor);
+  rvk_pass_vkrenderpass_begin(pass, pass->vkCmdBuf, pass->colorAttachment.size, clearColor);
   rvk_image_transition_external(&pass->colorAttachment, RvkImagePhase_ColorAttachment);
 
-  rvk_pass_viewport_set(pass->vkCmdBuf, size);
-  rvk_pass_scissor_set(pass->vkCmdBuf, size);
+  rvk_pass_viewport_set(pass->vkCmdBuf, pass->colorAttachment.size);
+  rvk_pass_scissor_set(pass->vkCmdBuf, pass->colorAttachment.size);
 }
 
 void rvk_pass_draw(RvkPass* pass, const RvkPassDrawList drawList) {

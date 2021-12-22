@@ -40,6 +40,7 @@ static void painter_draw_forward(RvkPass* forwardPass, EcsView* renderables) {
     rvk_pass_prepare(forwardPass, graphicComp->graphic);
   }
   // Draw all renderables.
+  rvk_pass_begin(forwardPass, rend_soothing_purple);
   for (EcsIterator* itr = ecs_view_itr(renderables); ecs_view_walk(itr);) {
     RendGraphicComp*      graphicComp = ecs_view_write_t(itr, RendGraphicComp);
     const RvkPassDrawList drawList    = {
@@ -48,12 +49,13 @@ static void painter_draw_forward(RvkPass* forwardPass, EcsView* renderables) {
     };
     rvk_pass_draw(forwardPass, drawList);
   }
+  rvk_pass_end(forwardPass);
 }
 
 static bool painter_draw(RendPainterComp* painter, const GapWindowComp* win, EcsView* renderables) {
   const GapVector winSize  = gap_window_param(win, GapParam_WindowSize);
   const RendSize  rendSize = rend_size((u32)winSize.width, (u32)winSize.height);
-  const bool      draw     = rvk_canvas_begin(painter->canvas, rendSize, rend_soothing_purple);
+  const bool      draw     = rvk_canvas_begin(painter->canvas, rendSize);
   if (draw) {
     RvkPass* forwardPass = rvk_canvas_pass_forward(painter->canvas);
     painter_draw_forward(forwardPass, renderables);
