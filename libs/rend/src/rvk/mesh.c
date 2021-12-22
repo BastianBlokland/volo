@@ -5,7 +5,6 @@
 
 #include "device_internal.h"
 #include "mesh_internal.h"
-#include "platform_internal.h"
 #include "transfer_internal.h"
 
 typedef struct {
@@ -32,16 +31,15 @@ static Mem rvk_mesh_to_device_vertices_scratch(const AssetMeshComp* asset) {
   return buffer;
 }
 
-RvkMesh* rvk_mesh_create(RvkPlatform* plat, const AssetMeshComp* asset) {
+RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset) {
   RvkMesh* mesh = alloc_alloc_t(g_alloc_heap, RvkMesh);
   *mesh         = (RvkMesh){
-      .platform    = plat,
+      .device      = dev,
       .vertexCount = (u32)asset->vertexCount,
       .indexCount  = (u32)asset->indexCount,
   };
 
-  RvkDevice* dev      = rvk_platform_device(plat);
-  const Mem  vertices = rvk_mesh_to_device_vertices_scratch(asset);
+  const Mem vertices = rvk_mesh_to_device_vertices_scratch(asset);
 
   const usize indexSize = sizeof(u16) * asset->indexCount;
   mesh->vertexBuffer    = rvk_buffer_create(dev, vertices.size, RvkBufferType_DeviceStorage);
@@ -63,7 +61,7 @@ RvkMesh* rvk_mesh_create(RvkPlatform* plat, const AssetMeshComp* asset) {
 
 void rvk_mesh_destroy(RvkMesh* mesh) {
 
-  RvkDevice* dev = rvk_platform_device(mesh->platform);
+  RvkDevice* dev = mesh->device;
   rvk_buffer_destroy(&mesh->vertexBuffer, dev);
   rvk_buffer_destroy(&mesh->indexBuffer, dev);
 
@@ -72,7 +70,7 @@ void rvk_mesh_destroy(RvkMesh* mesh) {
 
 bool rvk_mesh_prepare(RvkMesh* mesh, const RvkPass* pass) {
   (void)pass;
-  RvkDevice* dev = rvk_platform_device(mesh->platform);
+  RvkDevice* dev = mesh->device;
 
   if (!rvk_transfer_poll(dev->transferer, mesh->vertexTransfer)) {
     return false;

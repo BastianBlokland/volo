@@ -9,7 +9,7 @@ ecs_comp_define_public(RendPlatformComp);
 
 static void ecs_destruct_platform_comp(void* data) {
   MAYBE_UNUSED RendPlatformComp* comp = data;
-  diag_assert_msg(!comp->vulkan, "Render platform not torn down, call rend_teardown() before exit");
+  diag_assert_msg(!comp->device, "Render device not torn down, call rend_teardown() before exit");
 }
 
 ecs_view_define(RendPlatformView) { ecs_access_write(RendPlatformComp); };
@@ -21,10 +21,10 @@ ecs_system_define(RendPlatformUpdateSys) {
         world,
         ecs_world_entity_create(world),
         RendPlatformComp,
-        .vulkan = rvk_platform_create(g_alloc_heap));
+        .device = rvk_device_create(g_alloc_heap));
   }
 
-  rvk_platform_update(plat->vulkan);
+  rvk_device_update(plat->device);
 }
 
 ecs_module_init(rend_platform_module) {
@@ -37,6 +37,6 @@ ecs_module_init(rend_platform_module) {
 
 void rend_platform_teardown(EcsWorld* world) {
   RendPlatformComp* plat = ecs_utils_write_first_t(world, RendPlatformView, RendPlatformComp);
-  rvk_platform_destroy(plat->vulkan);
-  plat->vulkan = null;
+  rvk_device_destroy(plat->device);
+  plat->device = null;
 }

@@ -10,7 +10,6 @@
 #include "graphic_internal.h"
 #include "mesh_internal.h"
 #include "pass_internal.h"
-#include "platform_internal.h"
 #include "repository_internal.h"
 #include "sampler_internal.h"
 #include "shader_internal.h"
@@ -142,7 +141,6 @@ static RvkDescMeta rvk_graphic_desc_meta(const RvkGraphic* graphic, const usize 
 }
 
 static VkPipelineLayout rvk_pipeline_layout_create(const RvkGraphic* graphic) {
-  RvkDevice*                  dev                  = rvk_platform_device(graphic->platform);
   const VkDescriptorSetLayout descriptorLayouts[1] = {
       rvk_desc_set_vklayout(graphic->descSet),
   };
@@ -151,6 +149,7 @@ static VkPipelineLayout rvk_pipeline_layout_create(const RvkGraphic* graphic) {
       .setLayoutCount = array_elems(descriptorLayouts),
       .pSetLayouts    = descriptorLayouts,
   };
+  RvkDevice*       dev = graphic->device;
   VkPipelineLayout result;
   rvk_call(vkCreatePipelineLayout, dev->vkDev, &pipelineLayoutInfo, &dev->vkAlloc, &result);
   return result;
@@ -180,8 +179,7 @@ static VkPrimitiveTopology rvk_pipeline_input_topology(const RvkGraphic* graphic
 }
 
 static VkPolygonMode rvk_pipeline_polygonmode(RvkGraphic* graphic) {
-  RvkDevice* dev = rvk_platform_device(graphic->platform);
-  if (!dev->vkSupportedFeatures.fillModeNonSolid) {
+  if (!graphic->device->vkSupportedFeatures.fillModeNonSolid) {
     return VK_POLYGON_MODE_FILL;
   }
   switch (graphic->rasterizer) {
@@ -198,7 +196,7 @@ static VkPolygonMode rvk_pipeline_polygonmode(RvkGraphic* graphic) {
 }
 
 static f32 rvk_pipeline_linewidth(RvkGraphic* graphic) {
-  RvkDevice* dev = rvk_platform_device(graphic->platform);
+  RvkDevice* dev = graphic->device;
   if (!dev->vkSupportedFeatures.wideLines) {
     return 1.0f;
   }
@@ -286,7 +284,6 @@ static VkPipelineColorBlendAttachmentState rvk_pipeline_colorblend_attach(RvkGra
 
 static VkPipeline
 rvk_pipeline_create(RvkGraphic* graphic, VkPipelineLayout layout, const RvkPass* pass) {
-  RvkDevice* dev = rvk_platform_device(graphic->platform);
 
   VkPipelineShaderStageCreateInfo shaderStages[rvk_graphic_shaders_max];
   u32                             shaderStageCount = 0;
@@ -360,6 +357,7 @@ rvk_pipeline_create(RvkGraphic* graphic, VkPipelineLayout layout, const RvkPass*
       .layout              = layout,
       .renderPass          = rvk_pass_vkrenderpass(pass),
   };
+  RvkDevice* dev = graphic->device;
   VkPipeline result;
   rvk_call(vkCreateGraphicsPipelines, dev->vkDev, null, 1, &pipelineInfo, &dev->vkAlloc, &result);
   return result;
@@ -368,7 +366,7 @@ rvk_pipeline_create(RvkGraphic* graphic, VkPipelineLayout layout, const RvkPass*
 static void rvk_graphic_set_missing_sampler(RvkGraphic* graphic, const u32 samplerIndex) {
   diag_assert(!graphic->samplers[samplerIndex].texture);
 
-  RvkDevice*  dev = rvk_platform_device(graphic->platform);
+  RvkDevice*  dev = graphic->device;
   RvkTexture* tex = rvk_repository_texture_get(dev->repository, RvkRepositoryId_MissingTexture);
 
   graphic->samplers[samplerIndex].texture = tex;
@@ -380,10 +378,10 @@ static void rvk_graphic_set_missing_sampler(RvkGraphic* graphic, const u32 sampl
       tex->image.mipLevels);
 }
 
-RvkGraphic* rvk_graphic_create(RvkPlatform* plat, const AssetGraphicComp* asset) {
+RvkGraphic* rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset) {
   RvkGraphic* graphic = alloc_alloc_t(g_alloc_heap, RvkGraphic);
   *graphic            = (RvkGraphic){
-      .platform   = plat,
+      .device     = dev,
       .topology   = asset->topology,
       .rasterizer = asset->rasterizer,
       .lineWidth  = asset->lineWidth,
@@ -405,7 +403,7 @@ RvkGraphic* rvk_graphic_create(RvkPlatform* plat, const AssetGraphicComp* asset)
 }
 
 void rvk_graphic_destroy(RvkGraphic* graphic) {
-  RvkDevice* dev = rvk_platform_device(graphic->platform);
+  RvkDevice* dev = graphic->device;
   if (graphic->vkPipeline) {
     vkDestroyPipeline(dev->vkDev, graphic->vkPipeline, &dev->vkAlloc);
   }
@@ -442,7 +440,7 @@ void rvk_graphic_mesh_add(RvkGraphic* graphic, RvkMesh* mesh) {
 void rvk_graphic_sampler_add(
     RvkGraphic* graphic, RvkTexture* texture, const AssetGraphicSampler* sampler) {
 
-  RvkDevice* dev = rvk_platform_device(graphic->platform);
+  RvkDevice* dev = graphic->device;
   array_for_t(graphic->samplers, RvkGraphicSampler, itr) {
     if (!itr->texture) {
       const RvkSamplerWrap   wrap       = rvk_graphic_wrap(sampler->wrap);
@@ -461,7 +459,7 @@ u32 rvk_graphic_index_count(const RvkGraphic* graphic) {
 }
 
 bool rvk_graphic_prepare(RvkGraphic* graphic, const RvkPass* pass) {
-  RvkDevice* dev = rvk_platform_device(graphic->platform);
+  RvkDevice* dev = graphic->device;
   if (!graphic->vkPipeline) {
     const RvkDescMeta descMeta = rvk_graphic_desc_meta(graphic, rvk_desc_graphic_set);
     graphic->descSet           = rvk_desc_alloc(dev->descPool, &descMeta);

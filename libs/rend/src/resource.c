@@ -11,7 +11,6 @@
 #include "rvk/device_internal.h"
 #include "rvk/graphic_internal.h"
 #include "rvk/mesh_internal.h"
-#include "rvk/platform_internal.h"
 #include "rvk/repository_internal.h"
 #include "rvk/shader_internal.h"
 #include "rvk/texture_internal.h"
@@ -118,8 +117,7 @@ static bool rend_resource_set_wellknown_texture(
 
   if (ecs_world_has_t(world, textureEntity, RendResourceReady)) {
     RendTextureComp* comp = ecs_utils_write_t(world, TextureView, textureEntity, RendTextureComp);
-    RvkDevice*       dev  = rvk_platform_device(plat->vulkan);
-    rvk_repository_texture_set(dev->repository, id, comp->texture);
+    rvk_repository_texture_set(plat->device->repository, id, comp->texture);
     return true;
   }
   return false;
@@ -176,10 +174,8 @@ static void rend_resource_fail(EcsWorld* world, EcsIterator* resourceItr) {
 }
 
 static void rend_resource_load(
-    RvkPlatform*                  plat,
-    const RendGlobalResourceComp* res,
-    EcsWorld*                     world,
-    EcsIterator*                  resourceItr) {
+    RvkDevice* dev, const RendGlobalResourceComp* res, EcsWorld* world, EcsIterator* resourceItr) {
+
   const EcsEntityId       entity            = ecs_view_entity(resourceItr);
   RendResource*           resourceComp      = ecs_view_write_t(resourceItr, RendResource);
   const AssetGraphicComp* maybeAssetGraphic = ecs_view_read_t(resourceItr, AssetGraphicComp);
@@ -232,7 +228,7 @@ static void rend_resource_load(
   case RendResourceState_Create: {
     if (maybeAssetGraphic) {
       RendGraphicComp* graphicComp = ecs_world_add_t(
-          world, entity, RendGraphicComp, .graphic = rvk_graphic_create(plat, maybeAssetGraphic));
+          world, entity, RendGraphicComp, .graphic = rvk_graphic_create(dev, maybeAssetGraphic));
 
       // Add shaders.
       array_ptr_for_t(maybeAssetGraphic->shaders, AssetGraphicShader, ptr) {
@@ -254,12 +250,12 @@ static void rend_resource_load(
       }
     } else if (maybeAssetShader) {
       ecs_world_add_t(
-          world, entity, RendShaderComp, .shader = rvk_shader_create(plat, maybeAssetShader));
+          world, entity, RendShaderComp, .shader = rvk_shader_create(dev, maybeAssetShader));
     } else if (maybeAssetMesh) {
-      ecs_world_add_t(world, entity, RendMeshComp, .mesh = rvk_mesh_create(plat, maybeAssetMesh));
+      ecs_world_add_t(world, entity, RendMeshComp, .mesh = rvk_mesh_create(dev, maybeAssetMesh));
     } else if (maybeAssetTexture) {
       ecs_world_add_t(
-          world, entity, RendTextureComp, .texture = rvk_texture_create(plat, maybeAssetTexture));
+          world, entity, RendTextureComp, .texture = rvk_texture_create(dev, maybeAssetTexture));
     } else {
       diag_crash_msg("Unsupported resource asset type");
     }
@@ -284,7 +280,7 @@ ecs_system_define(RendResourceLoadSys) {
 
   EcsView* resourceView = ecs_world_view_t(world, RendResourceLoadView);
   for (EcsIterator* itr = ecs_view_itr(resourceView); ecs_view_walk(itr);) {
-    rend_resource_load(plat->vulkan, res, world, itr);
+    rend_resource_load(plat->device, res, world, itr);
   }
 }
 
@@ -333,7 +329,7 @@ void rend_resource_teardown(EcsWorld* world) {
   const RendPlatformComp* plat = ecs_utils_read_first_t(world, RendPlatView, RendPlatformComp);
   if (plat) {
     // Wait for all rendering to be done.
-    rvk_platform_wait_idle(plat->vulkan);
+    rvk_device_wait_idle(plat->device);
   }
 
   // Teardown graphics.

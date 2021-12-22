@@ -85,7 +85,7 @@ ecs_system_define(RendCanvasUpdateSys) {
     GapWindowEvents      winEvents = gap_window_events(win);
 
     if (canvas->requests & RendCanvasRequests_Create) {
-      canvas->canvas = rvk_platform_canvas_create(plat->vulkan, win);
+      canvas->canvas = rvk_canvas_create(plat->device, win);
     }
     if (winEvents & GapWindowEvents_Closed) {
       canvas->requests = 0;
