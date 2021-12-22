@@ -13,7 +13,7 @@ typedef struct sRvkPass RvkPass;
 
 RvkPass*     rvk_pass_create(RvkDevice*);
 void         rvk_pass_destroy(RvkPass*);
-VkRenderPass rvk_pass_vkrendpass(const RvkPass*);
+VkRenderPass rvk_pass_vkrenderpass(const RvkPass*);
 RvkImage*    rvk_pass_output(RvkPass*);
 void         rvk_pass_output_barrier(RvkPass*, VkCommandBuffer);
 void         rvk_pass_begin(RvkPass*, VkCommandBuffer, RendSize size, RendColor clearColor);

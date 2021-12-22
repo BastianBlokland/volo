@@ -358,7 +358,7 @@ rvk_pipeline_create(RvkGraphic* graphic, VkPipelineLayout layout, const RvkPass*
       .pColorBlendState    = &colorBlending,
       .pDynamicState       = &dynamicStateInfo,
       .layout              = layout,
-      .renderPass          = rvk_pass_vkrendpass(pass),
+      .renderPass          = rvk_pass_vkrenderpass(pass),
   };
   VkPipeline result;
   rvk_call(vkCreateGraphicsPipelines, dev->vkDev, null, 1, &pipelineInfo, &dev->vkAlloc, &result);

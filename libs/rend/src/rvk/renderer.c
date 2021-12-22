@@ -73,27 +73,6 @@ static void rvk_renderer_submit(RvkRenderer* rend) {
   rvk_call(vkQueueSubmit, rend->dev->vkGraphicsQueue, 1, &submitInfo, rend->renderDone);
 }
 
-static void rvk_viewport_set(VkCommandBuffer vkCmdBuf, const RendSize size) {
-  VkViewport viewport = {
-      .x        = 0.0f,
-      .y        = 0.0f,
-      .width    = (f32)size.width,
-      .height   = (f32)size.height,
-      .minDepth = 0.0f,
-      .maxDepth = 1.0f,
-  };
-  vkCmdSetViewport(vkCmdBuf, 0, 1, &viewport);
-}
-
-static void rvk_scissor_set(VkCommandBuffer vkCmdBuf, const RendSize size) {
-  VkRect2D scissor = {
-      .offset        = {0, 0},
-      .extent.width  = size.width,
-      .extent.height = size.height,
-  };
-  vkCmdSetScissor(vkCmdBuf, 0, 1, &scissor);
-}
-
 RvkRenderer* rvk_renderer_create(RvkDevice* dev, RvkSwapchain* swapchain) {
   RvkRenderer* renderer = alloc_alloc_t(g_alloc_heap, RvkRenderer);
   *renderer             = (RvkRenderer){
@@ -135,9 +114,6 @@ void rvk_renderer_draw_begin(
 
   RvkImage* targetImage = rvk_swapchain_image(rend->swapchain, swapchainIdx);
   rvk_pass_begin(rend->pass, rend->vkDrawBuffer, targetImage->size, clearColor);
-
-  rvk_viewport_set(rend->vkDrawBuffer, targetImage->size);
-  rvk_scissor_set(rend->vkDrawBuffer, targetImage->size);
 }
 
 void rvk_renderer_draw_inst(RvkRenderer* rend, RvkGraphic* graphic) {

@@ -86,6 +86,46 @@ static VkFramebuffer rvk_framebuffer_create(RvkPass* pass, RvkImage* colorAttach
   return result;
 }
 
+static void rvk_pass_viewport_set(VkCommandBuffer vkCmdBuf, const RendSize size) {
+  VkViewport viewport = {
+      .x        = 0.0f,
+      .y        = 0.0f,
+      .width    = (f32)size.width,
+      .height   = (f32)size.height,
+      .minDepth = 0.0f,
+      .maxDepth = 1.0f,
+  };
+  vkCmdSetViewport(vkCmdBuf, 0, 1, &viewport);
+}
+
+static void rvk_pass_scissor_set(VkCommandBuffer vkCmdBuf, const RendSize size) {
+  VkRect2D scissor = {
+      .offset        = {0, 0},
+      .extent.width  = size.width,
+      .extent.height = size.height,
+  };
+  vkCmdSetScissor(vkCmdBuf, 0, 1, &scissor);
+}
+
+static void rvk_pass_vkrenderpass_begin(
+    RvkPass* pass, VkCommandBuffer vkCmdBuf, const RendSize size, const RendColor clearColor) {
+
+  VkClearValue clearValues[] = {
+      *(VkClearColorValue*)&clearColor,
+  };
+  const VkRenderPassBeginInfo renderPassInfo = {
+      .sType                    = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+      .renderPass               = pass->vkRendPass,
+      .framebuffer              = pass->vkFrameBuffer,
+      .renderArea.offset        = {0, 0},
+      .renderArea.extent.width  = size.width,
+      .renderArea.extent.height = size.height,
+      .clearValueCount          = array_elems(clearValues),
+      .pClearValues             = clearValues,
+  };
+  vkCmdBeginRenderPass(vkCmdBuf, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+}
+
 static void rvk_pass_resource_create(RvkPass* pass, const RendSize size) {
   pass->colorAttachment =
       rvk_image_create_attach_color(pass->dev, g_colorAttachmentFormat, size, RvkImageFlags_None);
@@ -117,7 +157,7 @@ void rvk_pass_destroy(RvkPass* pass) {
   alloc_free_t(g_alloc_heap, pass);
 }
 
-VkRenderPass rvk_pass_vkrendpass(const RvkPass* pass) { return pass->vkRendPass; }
+VkRenderPass rvk_pass_vkrenderpass(const RvkPass* pass) { return pass->vkRendPass; }
 
 RvkImage* rvk_pass_output(RvkPass* pass) { return &pass->colorAttachment; }
 
@@ -139,21 +179,11 @@ void rvk_pass_begin(
     rvk_pass_resource_create(pass, size);
   }
 
-  VkClearValue clearValues[] = {
-      *(VkClearColorValue*)&clearColor,
-  };
-  VkRenderPassBeginInfo renderPassInfo = {
-      .sType                    = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-      .renderPass               = pass->vkRendPass,
-      .framebuffer              = pass->vkFrameBuffer,
-      .renderArea.offset        = {0, 0},
-      .renderArea.extent.width  = size.width,
-      .renderArea.extent.height = size.height,
-      .clearValueCount          = array_elems(clearValues),
-      .pClearValues             = clearValues,
-  };
-  vkCmdBeginRenderPass(vkCmdBuf, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+  rvk_pass_vkrenderpass_begin(pass, vkCmdBuf, size, clearColor);
   rvk_image_transition_external(&pass->colorAttachment, RvkImagePhase_ColorAttachment);
+
+  rvk_pass_viewport_set(vkCmdBuf, size);
+  rvk_pass_scissor_set(vkCmdBuf, size);
 }
 
 void rvk_pass_end(RvkPass* pass, VkCommandBuffer vkCmdBuf) {
