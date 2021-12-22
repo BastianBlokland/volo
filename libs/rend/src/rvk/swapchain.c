@@ -34,7 +34,6 @@ struct sRvkSwapchain {
   RvkSwapchainFlags  flags;
   RendSize           size;
   DynArray           images; // RvkImage[]
-  u64                version;
 };
 
 static VkSurfaceKHR rvk_surface_create(RvkDevice* dev, const GapWindowComp* window) {
@@ -172,7 +171,6 @@ static bool rvk_swapchain_init(RvkSwapchain* swapchain, const RendSize size) {
 
   swapchain->flags &= ~RvkSwapchainFlags_OutOfDate;
   swapchain->size = size;
-  ++swapchain->version;
 
   log_i(
       "Vulkan swapchain created",
@@ -180,8 +178,7 @@ static bool rvk_swapchain_init(RvkSwapchain* swapchain, const RendSize size) {
       log_param("format", fmt_text(rvk_format_info(swapchain->vkSurfFormat.format).name)),
       log_param("color", fmt_text(rvk_colorspace_str(swapchain->vkSurfFormat.colorSpace))),
       log_param("present-mode", fmt_text(rvk_presentmode_str(swapchain->vkPresentMode))),
-      log_param("image-count", fmt_int(imageCount)),
-      log_param("version", fmt_int(swapchain->version)));
+      log_param("image-count", fmt_int(imageCount)));
 
   return true;
 }
@@ -221,14 +218,6 @@ void rvk_swapchain_destroy(RvkSwapchain* swapchain) {
   vkDestroySurfaceKHR(swapchain->dev->vkInst, swapchain->vkSurf, &swapchain->dev->vkAlloc);
   alloc_free_t(g_alloc_heap, swapchain);
 }
-
-VkFormat rvk_swapchain_format(const RvkSwapchain* swapchain) {
-  return swapchain->vkSurfFormat.format;
-}
-
-u64 rvk_swapchain_version(const RvkSwapchain* swapchain) { return swapchain->version; }
-
-u32 rvk_swapchain_imagecount(const RvkSwapchain* swapchain) { return (u32)swapchain->images.size; }
 
 RvkImage* rvk_swapchain_image(const RvkSwapchain* swapchain, const RvkSwapchainIdx idx) {
   diag_assert_msg(idx < swapchain->images.size, "Out of bound swapchain index");
