@@ -5,8 +5,8 @@
 #include "transfer_internal.h"
 
 // Internal forward declarations:
-typedef struct sRvkPlatform  RvkPlatform;
-typedef struct sRvkTechnique RvkTechnique;
+typedef struct sRvkPlatform RvkPlatform;
+typedef struct sRvkPass     RvkPass;
 
 typedef struct sRvkMesh {
   RvkPlatform*  platform;
@@ -17,4 +17,4 @@ typedef struct sRvkMesh {
 
 RvkMesh* rvk_mesh_create(RvkPlatform*, const AssetMeshComp*);
 void     rvk_mesh_destroy(RvkMesh*);
-bool     rvk_mesh_prepare(RvkMesh*, const RvkTechnique*);
+bool     rvk_mesh_prepare(RvkMesh*, const RvkPass*);

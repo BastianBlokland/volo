@@ -10,10 +10,10 @@
 #include "device_internal.h"
 #include "graphic_internal.h"
 #include "mesh_internal.h"
+#include "pass_internal.h"
 #include "platform_internal.h"
 #include "sampler_internal.h"
 #include "shader_internal.h"
-#include "technique_internal.h"
 #include "texture_internal.h"
 
 typedef RvkShader* RvkShaderPtr;
@@ -285,7 +285,7 @@ static VkPipelineColorBlendAttachmentState rvk_pipeline_colorblend_attach(RvkGra
 }
 
 static VkPipeline
-rvk_pipeline_create(RvkGraphic* graphic, VkPipelineLayout layout, const RvkTechnique* tech) {
+rvk_pipeline_create(RvkGraphic* graphic, VkPipelineLayout layout, const RvkPass* pass) {
   RvkDevice* dev = rvk_platform_device(graphic->platform);
 
   VkPipelineShaderStageCreateInfo shaderStages[rvk_graphic_shaders_max];
@@ -358,7 +358,7 @@ rvk_pipeline_create(RvkGraphic* graphic, VkPipelineLayout layout, const RvkTechn
       .pColorBlendState    = &colorBlending,
       .pDynamicState       = &dynamicStateInfo,
       .layout              = layout,
-      .renderPass          = rvk_technique_vkrendpass(tech),
+      .renderPass          = rvk_pass_vkrendpass(pass),
   };
   VkPipeline result;
   rvk_call(vkCreateGraphicsPipelines, dev->vkDev, null, 1, &pipelineInfo, &dev->vkAlloc, &result);
@@ -459,7 +459,7 @@ u32 rvk_graphic_index_count(const RvkGraphic* graphic) {
   return graphic->mesh ? graphic->mesh->indexCount : 0;
 }
 
-bool rvk_graphic_prepare(RvkGraphic* graphic, const RvkTechnique* tech) {
+bool rvk_graphic_prepare(RvkGraphic* graphic, const RvkPass* pass) {
   RvkDevice* dev = rvk_platform_device(graphic->platform);
   if (!graphic->vkPipeline) {
     const RvkDescMeta descMeta = rvk_graphic_desc_meta(graphic, rvk_desc_graphic_set);
@@ -490,13 +490,13 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, const RvkTechnique* tech) {
     }
 
     graphic->vkPipelineLayout = rvk_pipeline_layout_create(graphic);
-    graphic->vkPipeline       = rvk_pipeline_create(graphic, graphic->vkPipelineLayout, tech);
+    graphic->vkPipeline       = rvk_pipeline_create(graphic, graphic->vkPipelineLayout, pass);
   }
-  if (!rvk_mesh_prepare(graphic->mesh, tech)) {
+  if (!rvk_mesh_prepare(graphic->mesh, pass)) {
     return false;
   }
   array_for_t(graphic->samplers, RvkGraphicSampler, itr) {
-    if (itr->texture && !rvk_texture_prepare(itr->texture, tech)) {
+    if (itr->texture && !rvk_texture_prepare(itr->texture, pass)) {
       return false;
     }
   }

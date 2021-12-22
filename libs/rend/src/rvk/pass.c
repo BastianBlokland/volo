@@ -4,15 +4,13 @@
 
 #include "device_internal.h"
 #include "image_internal.h"
-#include "technique_internal.h"
-
-#include <vulkan/vulkan_core.h>
+#include "pass_internal.h"
 
 #define attachment_max 8
 
 static const VkFormat g_colorAttachmentFormat = VK_FORMAT_R8G8B8A8_UNORM;
 
-struct sRvkTechnique {
+struct sRvkPass {
   RvkDevice*    dev;
   VkRenderPass  vkRendPass;
   RvkImage      colorAttachment;
@@ -73,10 +71,10 @@ static VkRenderPass rvk_renderpass_create(RvkDevice* dev) {
   return result;
 }
 
-static VkFramebuffer rvk_framebuffer_create(RvkTechnique* tech, RvkImage* colorAttachment) {
+static VkFramebuffer rvk_framebuffer_create(RvkPass* pass, RvkImage* colorAttachment) {
   VkFramebufferCreateInfo framebufferInfo = {
       .sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-      .renderPass      = tech->vkRendPass,
+      .renderPass      = pass->vkRendPass,
       .attachmentCount = 1,
       .pAttachments    = &colorAttachment->vkImageView,
       .width           = colorAttachment->size.width,
@@ -84,47 +82,47 @@ static VkFramebuffer rvk_framebuffer_create(RvkTechnique* tech, RvkImage* colorA
       .layers          = 1,
   };
   VkFramebuffer result;
-  rvk_call(vkCreateFramebuffer, tech->dev->vkDev, &framebufferInfo, &tech->dev->vkAlloc, &result);
+  rvk_call(vkCreateFramebuffer, pass->dev->vkDev, &framebufferInfo, &pass->dev->vkAlloc, &result);
   return result;
 }
 
-static void rvk_technique_resource_create(RvkTechnique* tech, const RendSize size) {
-  tech->colorAttachment =
-      rvk_image_create_attach_color(tech->dev, g_colorAttachmentFormat, size, RvkImageFlags_None);
-  tech->vkFrameBuffer = rvk_framebuffer_create(tech, &tech->colorAttachment);
+static void rvk_pass_resource_create(RvkPass* pass, const RendSize size) {
+  pass->colorAttachment =
+      rvk_image_create_attach_color(pass->dev, g_colorAttachmentFormat, size, RvkImageFlags_None);
+  pass->vkFrameBuffer = rvk_framebuffer_create(pass, &pass->colorAttachment);
 }
 
-static void rvk_technique_resource_destroy(RvkTechnique* tech) {
-  if (!tech->colorAttachment.size.width || !tech->colorAttachment.size.height) {
+static void rvk_pass_resource_destroy(RvkPass* pass) {
+  if (!pass->colorAttachment.size.width || !pass->colorAttachment.size.height) {
     return;
   }
-  rvk_image_destroy(&tech->colorAttachment, tech->dev);
-  vkDestroyFramebuffer(tech->dev->vkDev, tech->vkFrameBuffer, &tech->dev->vkAlloc);
+  rvk_image_destroy(&pass->colorAttachment, pass->dev);
+  vkDestroyFramebuffer(pass->dev->vkDev, pass->vkFrameBuffer, &pass->dev->vkAlloc);
 }
 
-RvkTechnique* rvk_technique_create(RvkDevice* dev) {
-  RvkTechnique* technique = alloc_alloc_t(g_alloc_heap, RvkTechnique);
-  *technique              = (RvkTechnique){
+RvkPass* rvk_pass_create(RvkDevice* dev) {
+  RvkPass* pass = alloc_alloc_t(g_alloc_heap, RvkPass);
+  *pass         = (RvkPass){
       .dev        = dev,
       .vkRendPass = rvk_renderpass_create(dev),
   };
-  return technique;
+  return pass;
 }
 
-void rvk_technique_destroy(RvkTechnique* tech) {
+void rvk_pass_destroy(RvkPass* pass) {
 
-  rvk_technique_resource_destroy(tech);
-  vkDestroyRenderPass(tech->dev->vkDev, tech->vkRendPass, &tech->dev->vkAlloc);
+  rvk_pass_resource_destroy(pass);
+  vkDestroyRenderPass(pass->dev->vkDev, pass->vkRendPass, &pass->dev->vkAlloc);
 
-  alloc_free_t(g_alloc_heap, tech);
+  alloc_free_t(g_alloc_heap, pass);
 }
 
-VkRenderPass rvk_technique_vkrendpass(const RvkTechnique* tech) { return tech->vkRendPass; }
+VkRenderPass rvk_pass_vkrendpass(const RvkPass* pass) { return pass->vkRendPass; }
 
-RvkImage* rvk_technique_output(RvkTechnique* tech) { return &tech->colorAttachment; }
+RvkImage* rvk_pass_output(RvkPass* pass) { return &pass->colorAttachment; }
 
-void rvk_technique_output_barrier(RvkTechnique* tech, VkCommandBuffer vkCmdBuf) {
-  (void)tech;
+void rvk_pass_output_barrier(RvkPass* pass, VkCommandBuffer vkCmdBuf) {
+  (void)pass;
   rvk_memory_barrier(
       vkCmdBuf,
       VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
@@ -133,12 +131,12 @@ void rvk_technique_output_barrier(RvkTechnique* tech, VkCommandBuffer vkCmdBuf) 
       VK_PIPELINE_STAGE_TRANSFER_BIT);
 }
 
-void rvk_technique_begin(
-    RvkTechnique* tech, VkCommandBuffer vkCmdBuf, const RendSize size, const RendColor clearColor) {
+void rvk_pass_begin(
+    RvkPass* pass, VkCommandBuffer vkCmdBuf, const RendSize size, const RendColor clearColor) {
 
-  if (!rend_size_equal(tech->colorAttachment.size, size)) {
-    rvk_technique_resource_destroy(tech);
-    rvk_technique_resource_create(tech, size);
+  if (!rend_size_equal(pass->colorAttachment.size, size)) {
+    rvk_pass_resource_destroy(pass);
+    rvk_pass_resource_create(pass, size);
   }
 
   VkClearValue clearValues[] = {
@@ -146,8 +144,8 @@ void rvk_technique_begin(
   };
   VkRenderPassBeginInfo renderPassInfo = {
       .sType                    = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-      .renderPass               = tech->vkRendPass,
-      .framebuffer              = tech->vkFrameBuffer,
+      .renderPass               = pass->vkRendPass,
+      .framebuffer              = pass->vkFrameBuffer,
       .renderArea.offset        = {0, 0},
       .renderArea.extent.width  = size.width,
       .renderArea.extent.height = size.height,
@@ -155,11 +153,11 @@ void rvk_technique_begin(
       .pClearValues             = clearValues,
   };
   vkCmdBeginRenderPass(vkCmdBuf, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-  rvk_image_transition_external(&tech->colorAttachment, RvkImagePhase_ColorAttachment);
+  rvk_image_transition_external(&pass->colorAttachment, RvkImagePhase_ColorAttachment);
 }
 
-void rvk_technique_end(RvkTechnique* tech, VkCommandBuffer vkCmdBuf) {
+void rvk_pass_end(RvkPass* pass, VkCommandBuffer vkCmdBuf) {
 
   vkCmdEndRenderPass(vkCmdBuf);
-  rvk_image_transition_external(&tech->colorAttachment, RvkImagePhase_TransferSource);
+  rvk_image_transition_external(&pass->colorAttachment, RvkImagePhase_TransferSource);
 }
