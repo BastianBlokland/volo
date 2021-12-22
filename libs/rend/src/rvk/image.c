@@ -46,7 +46,7 @@ static void rvk_image_barrier(
 static VkAccessFlags rvk_image_vkaccess(const RvkImagePhase phase) {
   switch (phase) {
   case RvkImagePhase_Undefined:
-    return VK_ACCESS_NONE_KHR;
+    return 0;
   case RvkImagePhase_TransferSource:
     return VK_ACCESS_TRANSFER_READ_BIT;
   case RvkImagePhase_TransferDest:
@@ -55,9 +55,9 @@ static VkAccessFlags rvk_image_vkaccess(const RvkImagePhase phase) {
     return VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
   case RvkImagePhase_ShaderRead:
     // TODO: Update to 'VK_ACCESS_SHADER_READ_BIT'.
-    return VK_ACCESS_NONE_KHR;
+    return 0;
   case RvkImagePhase_Present:
-    return VK_ACCESS_NONE_KHR;
+    return 0;
   case RvkImagePhase_Count:
     break;
   }
