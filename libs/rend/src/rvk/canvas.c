@@ -10,14 +10,13 @@
 typedef RvkRenderer* RvkRendererPtr;
 
 RvkCanvas* rvk_canvas_create(RvkDevice* dev, const GapWindowComp* window) {
-
   RvkSwapchain* swapchain = rvk_swapchain_create(dev, window);
   RvkCanvas*    canvas    = alloc_alloc_t(g_alloc_heap, RvkCanvas);
   *canvas                 = (RvkCanvas){
       .device       = dev,
       .swapchain    = swapchain,
-      .renderers[0] = rvk_renderer_create(dev, swapchain),
-      .renderers[1] = rvk_renderer_create(dev, swapchain),
+      .renderers[0] = rvk_renderer_create(dev),
+      .renderers[1] = rvk_renderer_create(dev),
   };
   return canvas;
 }
@@ -42,7 +41,8 @@ bool rvk_canvas_draw_begin(RvkCanvas* canvas, const RendSize size, const RendCol
     return false;
   }
 
-  rvk_renderer_begin(renderer, canvas->swapchainIdx, clearColor);
+  RvkImage* targetImage = rvk_swapchain_image(canvas->swapchain, canvas->swapchainIdx);
+  rvk_renderer_begin(renderer, targetImage, clearColor);
   return true;
 }
 
@@ -54,7 +54,7 @@ void rvk_canvas_draw_inst(RvkCanvas* canvas, RvkGraphic* graphic) {
 void rvk_canvas_draw_end(RvkCanvas* canvas) {
   RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
 
-  rvk_renderer_end(renderer, canvas->swapchainIdx);
+  rvk_renderer_end(renderer);
 
   const VkSemaphore imageDoneSemaphore = rvk_renderer_semaphore_done(renderer);
   rvk_swapchain_present(canvas->swapchain, imageDoneSemaphore, canvas->swapchainIdx);
