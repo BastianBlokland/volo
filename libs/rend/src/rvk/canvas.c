@@ -6,8 +6,22 @@
 #include "canvas_internal.h"
 #include "device_internal.h"
 #include "renderer_internal.h"
+#include "swapchain_internal.h"
 
 typedef RvkRenderer* RvkRendererPtr;
+
+typedef enum {
+  RvkCanvasFlags_Active = 1 << 0,
+} RvkCanvasFlags;
+
+struct sRvkCanvas {
+  RvkDevice*      device;
+  RvkSwapchain*   swapchain;
+  RvkCanvasFlags  flags;
+  RvkRenderer*    renderers[2];
+  u32             rendererIdx;
+  RvkSwapchainIdx swapchainIdx;
+};
 
 RvkCanvas* rvk_canvas_create(RvkDevice* dev, const GapWindowComp* window) {
   RvkSwapchain* swapchain = rvk_swapchain_create(dev, window);
@@ -32,7 +46,10 @@ void rvk_canvas_destroy(RvkCanvas* canvas) {
   alloc_free_t(g_alloc_heap, canvas);
 }
 
-bool rvk_canvas_draw_begin(RvkCanvas* canvas, const RendSize size, const RendColor clearColor) {
+bool rvk_canvas_begin(RvkCanvas* canvas, const RendSize size, const RendColor clearColor) {
+  diag_assert_msg(!(canvas->flags & RvkCanvasFlags_Active), "Canvas already active");
+
+  canvas->flags |= RvkCanvasFlags_Active;
   RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
 
   const VkSemaphore beginSemaphore = rvk_renderer_semaphore_begin(renderer);
@@ -47,11 +64,14 @@ bool rvk_canvas_draw_begin(RvkCanvas* canvas, const RendSize size, const RendCol
 }
 
 void rvk_canvas_draw_inst(RvkCanvas* canvas, RvkGraphic* graphic) {
+  diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
   RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
+
   rvk_renderer_draw(renderer, graphic);
 }
 
-void rvk_canvas_draw_end(RvkCanvas* canvas) {
+void rvk_canvas_end(RvkCanvas* canvas) {
+  diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
   RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
 
   rvk_renderer_end(renderer);
@@ -61,4 +81,5 @@ void rvk_canvas_draw_end(RvkCanvas* canvas) {
 
   canvas->swapchainIdx = sentinel_u32;
   canvas->rendererIdx ^= 1;
+  canvas->flags &= ~RvkCanvasFlags_Active;
 }

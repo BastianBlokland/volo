@@ -35,13 +35,13 @@ ecs_view_define(PainterUpdateView) {
 static bool painter_draw(RendPainterComp* painter, const GapWindowComp* win, EcsView* renderables) {
   const GapVector winSize  = gap_window_param(win, GapParam_WindowSize);
   const RendSize  rendSize = rend_size((u32)winSize.width, (u32)winSize.height);
-  const bool      draw     = rvk_canvas_draw_begin(painter->canvas, rendSize, rend_soothing_purple);
+  const bool      draw     = rvk_canvas_begin(painter->canvas, rendSize, rend_soothing_purple);
   if (draw) {
     for (EcsIterator* itr = ecs_view_itr(renderables); ecs_view_walk(itr);) {
       const RendGraphicComp* graphicComp = ecs_view_read_t(itr, RendGraphicComp);
-      rvk_canvas_draw_inst(painter->canvas, graphicComp->graphic);
+      rvk_canvas_draw(painter->canvas, graphicComp->graphic);
     }
-    rvk_canvas_draw_end(painter->canvas);
+    rvk_canvas_end(painter->canvas);
   }
   return draw;
 }
