@@ -12,6 +12,7 @@
 #include "rvk/graphic_internal.h"
 #include "rvk/mesh_internal.h"
 #include "rvk/platform_internal.h"
+#include "rvk/repository_internal.h"
 #include "rvk/shader_internal.h"
 #include "rvk/texture_internal.h"
 
@@ -110,14 +111,15 @@ static EcsEntityId rend_resource_request(EcsWorld* world, AssetManagerComp* asse
 }
 
 static bool rend_resource_set_wellknown_texture(
-    EcsWorld*            world,
-    RendPlatformComp*    plat,
-    const RvkWellKnownId id,
-    const EcsEntityId    textureEntity) {
+    EcsWorld*             world,
+    RendPlatformComp*     plat,
+    const RvkRepositoryId id,
+    const EcsEntityId     textureEntity) {
 
   if (ecs_world_has_t(world, textureEntity, RendResourceReady)) {
     RendTextureComp* comp = ecs_utils_write_t(world, TextureView, textureEntity, RendTextureComp);
-    rvk_platform_texture_set(plat->vulkan, id, comp->texture);
+    RvkDevice*       dev  = rvk_platform_device(plat->vulkan);
+    rvk_repository_texture_set(dev->repository, id, comp->texture);
     return true;
   }
   return false;
@@ -142,7 +144,7 @@ ecs_system_define(RendGlobalResourceLoadSys) {
   RendGlobalResourceComp* resComp = ecs_view_write_t(platItr, RendGlobalResourceComp);
 
   if (!rend_resource_set_wellknown_texture(
-          world, plat, RvkWellKnownId_MissingTexture, resComp->missingTex)) {
+          world, plat, RvkRepositoryId_MissingTexture, resComp->missingTex)) {
     return;
   }
   ecs_world_add_empty_t(world, ecs_view_entity(platItr), RendGlobalResourceLoadedComp);

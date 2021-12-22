@@ -8,6 +8,7 @@
 #include "desc_internal.h"
 #include "device_internal.h"
 #include "mem_internal.h"
+#include "repository_internal.h"
 #include "transfer_internal.h"
 
 #define rend_debug_verbose true
@@ -368,6 +369,7 @@ RvkDevice* rvk_device_create() {
   dev->memPool    = rvk_mem_pool_create(dev->vkDev, dev->vkMemProperties, dev->vkProperties.limits);
   dev->descPool   = rvk_desc_pool_create(dev->vkDev);
   dev->transferer = rvk_transferer_create(dev);
+  dev->repository = rvk_repository_create();
 
   log_i(
       "Vulkan device created",
@@ -384,6 +386,7 @@ void rvk_device_destroy(RvkDevice* dev) {
 
   rvk_device_wait_idle(dev);
 
+  rvk_repository_destroy(dev->repository);
   rvk_transferer_destroy(dev->transferer);
   rvk_desc_pool_destroy(dev->descPool);
   rvk_mem_pool_destroy(dev->memPool);

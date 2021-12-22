@@ -18,6 +18,7 @@ add_library(lib_rend STATIC
   src/rvk/pass.c
   src/rvk/platform.c
   src/rvk/renderer.c
+  src/rvk/repository.c
   src/rvk/sampler.c
   src/rvk/shader.c
   src/rvk/swapchain.c

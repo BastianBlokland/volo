@@ -5,13 +5,13 @@
 #include "core_math.h"
 #include "log_logger.h"
 
-#include "canvas_internal.h"
 #include "desc_internal.h"
 #include "device_internal.h"
 #include "graphic_internal.h"
 #include "mesh_internal.h"
 #include "pass_internal.h"
 #include "platform_internal.h"
+#include "repository_internal.h"
 #include "sampler_internal.h"
 #include "shader_internal.h"
 #include "texture_internal.h"
@@ -368,11 +368,12 @@ rvk_pipeline_create(RvkGraphic* graphic, VkPipelineLayout layout, const RvkPass*
 static void rvk_graphic_set_missing_sampler(RvkGraphic* graphic, const u32 samplerIndex) {
   diag_assert(!graphic->samplers[samplerIndex].texture);
 
-  RvkTexture* tex = rvk_platform_texture_get(graphic->platform, RvkWellKnownId_MissingTexture);
+  RvkDevice*  dev = rvk_platform_device(graphic->platform);
+  RvkTexture* tex = rvk_repository_texture_get(dev->repository, RvkRepositoryId_MissingTexture);
 
   graphic->samplers[samplerIndex].texture = tex;
   graphic->samplers[samplerIndex].sampler = rvk_sampler_create(
-      rvk_platform_device(graphic->platform),
+      dev,
       RvkSamplerWrap_Repeat,
       RvkSamplerFilter_Nearest,
       RvkSamplerAniso_None,
