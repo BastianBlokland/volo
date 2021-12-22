@@ -9,6 +9,7 @@
 #include "platform_internal.h"
 #include "resource_internal.h"
 #include "rvk/canvas_internal.h"
+#include "rvk/pass_internal.h"
 
 ecs_comp_define(RendPainterComp) { RvkCanvas* canvas; };
 
@@ -20,7 +21,7 @@ static void ecs_destruct_painter_comp(void* data) {
 }
 
 ecs_view_define(PlatformView) { ecs_access_write(RendPlatformComp); };
-ecs_view_define(RenderableView) { ecs_access_read(RendGraphicComp); };
+ecs_view_define(RenderableView) { ecs_access_write(RendGraphicComp); };
 
 ecs_view_define(PainterCreateView) {
   ecs_access_read(GapWindowComp);
@@ -32,15 +33,30 @@ ecs_view_define(PainterUpdateView) {
   ecs_access_write(RendPainterComp);
 };
 
+static void painter_draw_forward(RvkPass* forwardPass, EcsView* renderables) {
+  // Prepare all renderables.
+  for (EcsIterator* itr = ecs_view_itr(renderables); ecs_view_walk(itr);) {
+    RendGraphicComp* graphicComp = ecs_view_write_t(itr, RendGraphicComp);
+    rvk_pass_prepare(forwardPass, graphicComp->graphic);
+  }
+  // Draw all renderables.
+  for (EcsIterator* itr = ecs_view_itr(renderables); ecs_view_walk(itr);) {
+    RendGraphicComp*      graphicComp = ecs_view_write_t(itr, RendGraphicComp);
+    const RvkPassDrawList drawList    = {
+        .values = &graphicComp->graphic,
+        .count  = 1,
+    };
+    rvk_pass_draw(forwardPass, drawList);
+  }
+}
+
 static bool painter_draw(RendPainterComp* painter, const GapWindowComp* win, EcsView* renderables) {
   const GapVector winSize  = gap_window_param(win, GapParam_WindowSize);
   const RendSize  rendSize = rend_size((u32)winSize.width, (u32)winSize.height);
   const bool      draw     = rvk_canvas_begin(painter->canvas, rendSize, rend_soothing_purple);
   if (draw) {
-    for (EcsIterator* itr = ecs_view_itr(renderables); ecs_view_walk(itr);) {
-      const RendGraphicComp* graphicComp = ecs_view_read_t(itr, RendGraphicComp);
-      rvk_canvas_draw(painter->canvas, graphicComp->graphic);
-    }
+    RvkPass* forwardPass = rvk_canvas_pass_forward(painter->canvas);
+    painter_draw_forward(forwardPass, renderables);
     rvk_canvas_end(painter->canvas);
   }
   return draw;
@@ -73,7 +89,7 @@ ecs_system_define(RendPainterUpdateSys) {
 
   if (!anyPainterDrawn) {
     /**
-     * If no canvas was drawn this frame (for example because they are all minimized) we sleep
+     * If no painter was drawn this frame (for example because they are all minimized) we sleep
      * the thread to avoid wasting cpu cycles.
      */
     thread_sleep(time_second / 30);

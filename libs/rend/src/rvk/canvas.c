@@ -63,11 +63,10 @@ bool rvk_canvas_begin(RvkCanvas* canvas, const RendSize size, const RendColor cl
   return true;
 }
 
-void rvk_canvas_draw_inst(RvkCanvas* canvas, RvkGraphic* graphic) {
+RvkPass* rvk_canvas_pass_forward(RvkCanvas* canvas) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
   RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
-
-  rvk_renderer_draw(renderer, graphic);
+  return rvk_renderer_pass_forward(renderer);
 }
 
 void rvk_canvas_end(RvkCanvas* canvas) {

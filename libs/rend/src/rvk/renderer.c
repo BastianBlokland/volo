@@ -122,17 +122,9 @@ void rvk_renderer_begin(RvkRenderer* rend, RvkImage* target, const RendColor cle
   rvk_pass_begin(rend->forwardPass, target->size, clearColor);
 }
 
-void rvk_renderer_draw(RvkRenderer* rend, RvkGraphic* graphic) {
+RvkPass* rvk_renderer_pass_forward(RvkRenderer* rend) {
   diag_assert_msg(rend->flags & RvkRendererFlags_Active, "Renderer not active");
-
-  if (!rvk_pass_prepare(rend->forwardPass, graphic)) {
-    return;
-  }
-  const RvkPassDrawList drawList = {
-      .values = &graphic,
-      .count  = 1,
-  };
-  rvk_pass_draw(rend->forwardPass, drawList);
+  return rend->forwardPass;
 }
 
 void rvk_renderer_end(RvkRenderer* rend) {
