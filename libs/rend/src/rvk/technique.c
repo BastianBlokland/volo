@@ -6,6 +6,8 @@
 #include "image_internal.h"
 #include "technique_internal.h"
 
+#include <vulkan/vulkan_core.h>
+
 #define attachment_max 8
 
 static const VkFormat g_colorAttachmentFormat = VK_FORMAT_R8G8B8A8_UNORM;
@@ -16,6 +18,21 @@ struct sRvkTechnique {
   RvkImage      colorAttachment;
   VkFramebuffer vkFrameBuffer;
 };
+
+static void rvk_memory_barrier(
+    VkCommandBuffer            buffer,
+    const VkAccessFlags        srcAccess,
+    const VkAccessFlags        dstAccess,
+    const VkPipelineStageFlags srcStageFlags,
+    const VkPipelineStageFlags dstStageFlags) {
+
+  const VkMemoryBarrier barrier = {
+      .sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+      .srcAccessMask = srcAccess,
+      .dstAccessMask = dstAccess,
+  };
+  vkCmdPipelineBarrier(buffer, srcStageFlags, dstStageFlags, 0, 1, &barrier, 0, null, 0, null);
+}
 
 static VkRenderPass rvk_renderpass_create(RvkDevice* dev) {
   VkAttachmentDescription attachments[attachment_max];
@@ -105,6 +122,16 @@ void rvk_technique_destroy(RvkTechnique* tech) {
 VkRenderPass rvk_technique_vkrendpass(const RvkTechnique* tech) { return tech->vkRendPass; }
 
 RvkImage* rvk_technique_output(RvkTechnique* tech) { return &tech->colorAttachment; }
+
+void rvk_technique_output_barrier(RvkTechnique* tech, VkCommandBuffer vkCmdBuf) {
+  (void)tech;
+  rvk_memory_barrier(
+      vkCmdBuf,
+      VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+      VK_ACCESS_TRANSFER_READ_BIT,
+      VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+      VK_PIPELINE_STAGE_TRANSFER_BIT);
+}
 
 void rvk_technique_begin(
     RvkTechnique* tech, VkCommandBuffer vkCmdBuf, const RendSize size, const RendColor clearColor) {

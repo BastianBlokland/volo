@@ -156,6 +156,9 @@ void rvk_renderer_draw_end(RvkRenderer* rend, const RvkSwapchainIdx swapchainIdx
 
   rvk_technique_end(rend->tech, rend->vkDrawBuffer);
 
+  // Wait for rendering to be done.
+  rvk_technique_output_barrier(rend->tech, rend->vkDrawBuffer);
+
   // Copy the output to the swapchain.
   RvkImage* srcImage  = rvk_technique_output(rend->tech);
   RvkImage* destImage = rvk_swapchain_image(rend->swapchain, swapchainIdx);
