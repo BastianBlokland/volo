@@ -68,8 +68,7 @@ void rvk_mesh_destroy(RvkMesh* mesh) {
   alloc_free_t(g_alloc_heap, mesh);
 }
 
-bool rvk_mesh_prepare(RvkMesh* mesh, const RvkPass* pass) {
-  (void)pass;
+bool rvk_mesh_prepare(RvkMesh* mesh) {
   RvkDevice* dev = mesh->device;
 
   if (!rvk_transfer_poll(dev->transferer, mesh->vertexTransfer)) {

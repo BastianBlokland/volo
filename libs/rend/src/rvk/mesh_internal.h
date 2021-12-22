@@ -17,4 +17,4 @@ typedef struct sRvkMesh {
 
 RvkMesh* rvk_mesh_create(RvkDevice*, const AssetMeshComp*);
 void     rvk_mesh_destroy(RvkMesh*);
-bool     rvk_mesh_prepare(RvkMesh*, const RvkPass*);
+bool     rvk_mesh_prepare(RvkMesh*);

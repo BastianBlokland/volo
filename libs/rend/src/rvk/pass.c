@@ -171,8 +171,6 @@ void rvk_pass_destroy(RvkPass* pass) {
 
 bool rvk_pass_active(const RvkPass* pass) { return (pass->flags & RvkPassFlags_Active) != 0; }
 
-VkRenderPass rvk_pass_vkrenderpass(const RvkPass* pass) { return pass->vkRendPass; }
-
 RvkImage* rvk_pass_output(RvkPass* pass) { return &pass->colorAttachment; }
 
 void rvk_pass_output_barrier(RvkPass* pass) {
@@ -197,7 +195,7 @@ void rvk_pass_setup(RvkPass* pass, const RendSize size) {
 
 bool rvk_pass_prepare(RvkPass* pass, RvkGraphic* graphic) {
   diag_assert_msg(!(pass->flags & RvkPassFlags_Active), "Pass already active");
-  return rvk_graphic_prepare(graphic, pass);
+  return rvk_graphic_prepare(graphic, pass->vkCmdBuf, pass->vkRendPass);
 }
 
 void rvk_pass_begin(RvkPass* pass, const RendColor clearColor) {
@@ -216,10 +214,10 @@ void rvk_pass_begin(RvkPass* pass, const RendColor clearColor) {
 void rvk_pass_draw(RvkPass* pass, const RvkPassDrawList drawList) {
   diag_assert_msg(pass->flags & RvkPassFlags_Active, "Pass not active");
 
-  array_ptr_for_t(drawList, RvkGraphicPtr, graphicPtr) {
-    rvk_graphic_bind(*graphicPtr, pass->vkCmdBuf);
+  array_ptr_for_t(drawList, RvkPassDraw, draw) {
+    rvk_graphic_bind(draw->graphic, pass->vkCmdBuf);
 
-    const u32 indexCount = rvk_graphic_index_count(*graphicPtr);
+    const u32 indexCount = rvk_graphic_index_count(draw->graphic);
     vkCmdDrawIndexed(pass->vkCmdBuf, indexCount, 1, 0, 0, 0);
   }
 }

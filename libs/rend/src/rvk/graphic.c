@@ -283,7 +283,7 @@ static VkPipelineColorBlendAttachmentState rvk_pipeline_colorblend_attach(RvkGra
 }
 
 static VkPipeline
-rvk_pipeline_create(RvkGraphic* graphic, VkPipelineLayout layout, const RvkPass* pass) {
+rvk_pipeline_create(RvkGraphic* graphic, VkPipelineLayout layout, VkRenderPass vkRendPass) {
 
   VkPipelineShaderStageCreateInfo shaderStages[rvk_graphic_shaders_max];
   u32                             shaderStageCount = 0;
@@ -355,7 +355,7 @@ rvk_pipeline_create(RvkGraphic* graphic, VkPipelineLayout layout, const RvkPass*
       .pColorBlendState    = &colorBlending,
       .pDynamicState       = &dynamicStateInfo,
       .layout              = layout,
-      .renderPass          = rvk_pass_vkrenderpass(pass),
+      .renderPass          = vkRendPass,
   };
   RvkDevice* dev = graphic->device;
   VkPipeline result;
@@ -458,11 +458,12 @@ u32 rvk_graphic_index_count(const RvkGraphic* graphic) {
   return graphic->mesh ? graphic->mesh->indexCount : 0;
 }
 
-bool rvk_graphic_prepare(RvkGraphic* graphic, const RvkPass* pass) {
-  RvkDevice* dev = graphic->device;
+bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, VkRenderPass vkRendPass) {
+  (void)vkCmdBuf;
+
   if (!graphic->vkPipeline) {
     const RvkDescMeta descMeta = rvk_graphic_desc_meta(graphic, rvk_desc_graphic_set);
-    graphic->descSet           = rvk_desc_alloc(dev->descPool, &descMeta);
+    graphic->descSet           = rvk_desc_alloc(graphic->device->descPool, &descMeta);
 
     // Attach mesh.
     if (descMeta.bindings[rvk_desc_graphic_bind_mesh] == RvkDescKind_StorageBuffer) {
@@ -489,23 +490,22 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, const RvkPass* pass) {
     }
 
     graphic->vkPipelineLayout = rvk_pipeline_layout_create(graphic);
-    graphic->vkPipeline       = rvk_pipeline_create(graphic, graphic->vkPipelineLayout, pass);
+    graphic->vkPipeline       = rvk_pipeline_create(graphic, graphic->vkPipelineLayout, vkRendPass);
   }
-  if (!rvk_mesh_prepare(graphic->mesh, pass)) {
+  if (!rvk_mesh_prepare(graphic->mesh)) {
     return false;
   }
   array_for_t(graphic->samplers, RvkGraphicSampler, itr) {
-    if (itr->texture && !rvk_texture_prepare(itr->texture, pass)) {
+    if (itr->texture && !rvk_texture_prepare(itr->texture)) {
       return false;
     }
   }
+  graphic->flags |= RvkGraphicFlags_Ready;
   return true;
 }
 
 void rvk_graphic_bind(const RvkGraphic* graphic, VkCommandBuffer vkCmdBuf) {
-  diag_assert(rvk_desc_valid(graphic->descSet));
-  diag_assert(graphic->vkPipeline);
-  diag_assert(graphic->vkPipelineLayout);
+  diag_assert_msg(graphic->flags & RvkGraphicFlags_Ready, "Graphic is not ready");
 
   vkCmdBindPipeline(vkCmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, graphic->vkPipeline);
 

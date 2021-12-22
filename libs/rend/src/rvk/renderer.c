@@ -116,9 +116,9 @@ void rvk_renderer_begin(RvkRenderer* rend, RvkImage* target) {
   rend->flags |= RvkRendererFlags_Active;
   rend->currentTarget = target;
 
-  rvk_pass_setup(rend->forwardPass, target->size);
-
   rvk_renderer_wait_for_done(rend);
+
+  rvk_pass_setup(rend->forwardPass, target->size);
   rvk_commandbuffer_begin(rend->vkDrawBuffer);
 }
 
@@ -129,7 +129,6 @@ RvkPass* rvk_renderer_pass_forward(RvkRenderer* rend) {
 
 void rvk_renderer_end(RvkRenderer* rend) {
   diag_assert_msg(rend->flags & RvkRendererFlags_Active, "Renderer not active");
-
   diag_assert_msg(!rvk_pass_active(rend->forwardPass), "Forward pass is still active");
 
   // Wait for rendering to be done.

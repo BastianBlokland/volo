@@ -13,14 +13,17 @@ typedef struct sRvkImage   RvkImage;
 typedef struct sRvkPass RvkPass;
 
 typedef struct {
-  RvkGraphic** values;
+  RvkGraphic* graphic;
+} RvkPassDraw;
+
+typedef struct {
+  RvkPassDraw* values;
   usize        count;
 } RvkPassDrawList;
 
-RvkPass*     rvk_pass_create(RvkDevice*, VkCommandBuffer);
-void         rvk_pass_destroy(RvkPass*);
-bool         rvk_pass_active(const RvkPass*);
-VkRenderPass rvk_pass_vkrenderpass(const RvkPass*);
+RvkPass* rvk_pass_create(RvkDevice*, VkCommandBuffer);
+void     rvk_pass_destroy(RvkPass*);
+bool     rvk_pass_active(const RvkPass*);
 
 RvkImage* rvk_pass_output(RvkPass*);
 void      rvk_pass_output_barrier(RvkPass*);

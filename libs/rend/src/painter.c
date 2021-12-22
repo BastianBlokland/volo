@@ -34,21 +34,26 @@ ecs_view_define(PainterUpdateView) {
 };
 
 static void painter_draw_forward(RvkPass* forwardPass, EcsView* renderables) {
-  // Prepare all renderables.
+  DynArray drawBuffer = dynarray_create_t(g_alloc_scratch, RvkPassDraw, 1024);
+
+  // Prepare draws.
   for (EcsIterator* itr = ecs_view_itr(renderables); ecs_view_walk(itr);) {
     RendGraphicComp* graphicComp = ecs_view_write_t(itr, RendGraphicComp);
-    rvk_pass_prepare(forwardPass, graphicComp->graphic);
+    if (rvk_pass_prepare(forwardPass, graphicComp->graphic)) {
+      *dynarray_push_t(&drawBuffer, RvkPassDraw) = (RvkPassDraw){
+          .graphic = graphicComp->graphic,
+      };
+    }
   }
-  // Draw all renderables.
+
+  // Execute draws.
   rvk_pass_begin(forwardPass, rend_soothing_purple);
-  for (EcsIterator* itr = ecs_view_itr(renderables); ecs_view_walk(itr);) {
-    RendGraphicComp*      graphicComp = ecs_view_write_t(itr, RendGraphicComp);
-    const RvkPassDrawList drawList    = {
-        .values = &graphicComp->graphic,
-        .count  = 1,
-    };
-    rvk_pass_draw(forwardPass, drawList);
-  }
+  rvk_pass_draw(
+      forwardPass,
+      (RvkPassDrawList){
+          .values = dynarray_begin_t(&drawBuffer, RvkPassDraw),
+          .count  = drawBuffer.size,
+      });
   rvk_pass_end(forwardPass);
 }
 

@@ -41,9 +41,7 @@ void rvk_texture_destroy(RvkTexture* texture) {
   alloc_free_t(g_alloc_heap, texture);
 }
 
-bool rvk_texture_prepare(RvkTexture* texture, const RvkPass* pass) {
-  (void)pass;
-
+bool rvk_texture_prepare(RvkTexture* texture) {
   RvkDevice* dev = texture->device;
   if (!rvk_transfer_poll(dev->transferer, texture->pixelTransfer)) {
     return false;

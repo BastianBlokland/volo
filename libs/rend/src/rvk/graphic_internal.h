@@ -19,14 +19,19 @@ typedef struct {
   RvkSampler  sampler;
 } RvkGraphicSampler;
 
+typedef enum {
+  RvkGraphicFlags_Ready = 1 << 0,
+} RvkGraphicFlags;
+
 typedef struct sRvkGraphic {
   RvkDevice*             device;
-  AssetGraphicTopology   topology;
-  AssetGraphicRasterizer rasterizer;
+  RvkGraphicFlags        flags : 8;
+  AssetGraphicTopology   topology : 8;
+  AssetGraphicRasterizer rasterizer : 8;
+  AssetGraphicBlend      blend : 8;
+  AssetGraphicDepth      depth : 8;
+  AssetGraphicCull       cull : 8;
   u32                    lineWidth;
-  AssetGraphicBlend      blend;
-  AssetGraphicDepth      depth;
-  AssetGraphicCull       cull;
   RvkShader*             shaders[rvk_graphic_shaders_max];
   RvkMesh*               mesh;
   RvkGraphicSampler      samplers[rvk_graphic_samplers_max];
@@ -41,5 +46,5 @@ void        rvk_graphic_shader_add(RvkGraphic*, RvkShader*);
 void        rvk_graphic_mesh_add(RvkGraphic*, RvkMesh*);
 void        rvk_graphic_sampler_add(RvkGraphic*, RvkTexture*, const AssetGraphicSampler*);
 u32         rvk_graphic_index_count(const RvkGraphic*);
-bool        rvk_graphic_prepare(RvkGraphic*, const RvkPass*);
+bool        rvk_graphic_prepare(RvkGraphic*, VkCommandBuffer, VkRenderPass);
 void        rvk_graphic_bind(const RvkGraphic*, VkCommandBuffer);
