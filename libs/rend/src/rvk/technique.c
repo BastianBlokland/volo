@@ -3,33 +3,35 @@
 #include "core_dynarray.h"
 
 #include "device_internal.h"
+#include "image_internal.h"
 #include "technique_internal.h"
 
 #define attachment_max 8
 
+static const VkFormat g_colorAttachmentFormat = VK_FORMAT_R8G8B8A8_UNORM;
+
 struct sRvkTechnique {
   RvkDevice*    dev;
-  RvkSwapchain* swapchain;
   VkRenderPass  vkRendPass;
-  u64           swapchainVersion;
-  DynArray      frameBuffers; // VkFramebuffer[]
+  RvkImage      colorAttachment;
+  VkFramebuffer vkFrameBuffer;
 };
 
-static VkRenderPass rvk_renderpass_create(RvkDevice* dev, RvkSwapchain* swapchain) {
+static VkRenderPass rvk_renderpass_create(RvkDevice* dev) {
   VkAttachmentDescription attachments[attachment_max];
   u32                     attachmentCount = 0;
   VkAttachmentReference   colorRefs[attachment_max];
   u32                     colorRefCount = 0;
 
   attachments[attachmentCount++] = (VkAttachmentDescription){
-      .format         = rvk_swapchain_format(swapchain),
+      .format         = g_colorAttachmentFormat,
       .samples        = VK_SAMPLE_COUNT_1_BIT,
       .loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR,
       .storeOp        = VK_ATTACHMENT_STORE_OP_STORE,
       .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
       .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
       .initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED,
-      .finalLayout    = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+      .finalLayout    = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
   };
   colorRefs[colorRefCount++] = (VkAttachmentReference){
       .attachment = attachmentCount - 1,
@@ -40,39 +42,28 @@ static VkRenderPass rvk_renderpass_create(RvkDevice* dev, RvkSwapchain* swapchai
       .colorAttachmentCount = colorRefCount,
       .pColorAttachments    = colorRefs,
   };
-  VkSubpassDependency dependency = {
-      .srcSubpass    = VK_SUBPASS_EXTERNAL,
-      .dstSubpass    = 0,
-      .srcStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-      .srcAccessMask = 0,
-      .dstStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-      .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-  };
   VkRenderPassCreateInfo renderPassInfo = {
       .sType           = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
       .attachmentCount = attachmentCount,
       .pAttachments    = attachments,
       .subpassCount    = 1,
       .pSubpasses      = &subpass,
-      .dependencyCount = 1,
-      .pDependencies   = &dependency,
+      .dependencyCount = 0,
+      .pDependencies   = null,
   };
   VkRenderPass result;
   rvk_call(vkCreateRenderPass, dev->vkDev, &renderPassInfo, &dev->vkAlloc, &result);
   return result;
 }
 
-static VkFramebuffer
-rvk_framebuffer_create(RvkTechnique* tech, const RvkSwapchainIdx swapchainIdx) {
-  RvkImage* swapchainImage = rvk_swapchain_image(tech->swapchain, swapchainIdx);
-
+static VkFramebuffer rvk_framebuffer_create(RvkTechnique* tech, RvkImage* colorAttachment) {
   VkFramebufferCreateInfo framebufferInfo = {
       .sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
       .renderPass      = tech->vkRendPass,
       .attachmentCount = 1,
-      .pAttachments    = &swapchainImage->vkImageView,
-      .width           = swapchainImage->size.width,
-      .height          = swapchainImage->size.height,
+      .pAttachments    = &colorAttachment->vkImageView,
+      .width           = colorAttachment->size.width,
+      .height          = colorAttachment->size.height,
       .layers          = 1,
   };
   VkFramebuffer result;
@@ -80,56 +71,48 @@ rvk_framebuffer_create(RvkTechnique* tech, const RvkSwapchainIdx swapchainIdx) {
   return result;
 }
 
-static void rvk_resource_init(RvkTechnique* tech) {
-
-  dynarray_for_t(&tech->frameBuffers, VkFramebuffer, fb) {
-    vkDestroyFramebuffer(tech->dev->vkDev, *fb, &tech->dev->vkAlloc);
-  }
-  dynarray_clear(&tech->frameBuffers);
-
-  for (u32 i = 0; i != rvk_swapchain_imagecount(tech->swapchain); ++i) {
-    *dynarray_push_t(&tech->frameBuffers, VkFramebuffer) = rvk_framebuffer_create(tech, i);
-  }
-
-  tech->swapchainVersion = rvk_swapchain_version(tech->swapchain);
+static void rvk_technique_resource_create(RvkTechnique* tech, const RendSize size) {
+  tech->colorAttachment =
+      rvk_image_create_attach_color(tech->dev, g_colorAttachmentFormat, size, RvkImageFlags_None);
+  tech->vkFrameBuffer = rvk_framebuffer_create(tech, &tech->colorAttachment);
 }
 
-RvkTechnique* rvk_technique_create(RvkDevice* dev, RvkSwapchain* swapchain) {
+static void rvk_technique_resource_destroy(RvkTechnique* tech) {
+  if (!tech->colorAttachment.size.width || !tech->colorAttachment.size.height) {
+    return;
+  }
+  rvk_image_destroy(&tech->colorAttachment, tech->dev);
+  vkDestroyFramebuffer(tech->dev->vkDev, tech->vkFrameBuffer, &tech->dev->vkAlloc);
+}
+
+RvkTechnique* rvk_technique_create(RvkDevice* dev) {
   RvkTechnique* technique = alloc_alloc_t(g_alloc_heap, RvkTechnique);
   *technique              = (RvkTechnique){
-      .dev              = dev,
-      .swapchain        = swapchain,
-      .frameBuffers     = dynarray_create_t(g_alloc_heap, VkFramebuffer, 2),
-      .vkRendPass       = rvk_renderpass_create(dev, swapchain),
-      .swapchainVersion = u64_max,
+      .dev        = dev,
+      .vkRendPass = rvk_renderpass_create(dev),
   };
   return technique;
 }
 
 void rvk_technique_destroy(RvkTechnique* tech) {
-  vkDestroyRenderPass(tech->dev->vkDev, tech->vkRendPass, &tech->dev->vkAlloc);
 
-  dynarray_for_t(&tech->frameBuffers, VkFramebuffer, fb) {
-    vkDestroyFramebuffer(tech->dev->vkDev, *fb, &tech->dev->vkAlloc);
-  }
-  dynarray_destroy(&tech->frameBuffers);
+  rvk_technique_resource_destroy(tech);
+  vkDestroyRenderPass(tech->dev->vkDev, tech->vkRendPass, &tech->dev->vkAlloc);
 
   alloc_free_t(g_alloc_heap, tech);
 }
 
 VkRenderPass rvk_technique_vkrendpass(const RvkTechnique* tech) { return tech->vkRendPass; }
 
+RvkImage* rvk_technique_output(RvkTechnique* tech) { return &tech->colorAttachment; }
+
 void rvk_technique_begin(
-    RvkTechnique*         tech,
-    VkCommandBuffer       vkCmdBuf,
-    const RvkSwapchainIdx swapchainIdx,
-    const RendColor       clearColor) {
+    RvkTechnique* tech, VkCommandBuffer vkCmdBuf, const RendSize size, const RendColor clearColor) {
 
-  if (tech->swapchainVersion != rvk_swapchain_version(tech->swapchain)) {
-    rvk_resource_init(tech);
+  if (!rend_size_equal(tech->colorAttachment.size, size)) {
+    rvk_technique_resource_destroy(tech);
+    rvk_technique_resource_create(tech, size);
   }
-
-  RvkImage* swapchainImage = rvk_swapchain_image(tech->swapchain, swapchainIdx);
 
   VkClearValue clearValues[] = {
       *(VkClearColorValue*)&clearColor,
@@ -137,22 +120,19 @@ void rvk_technique_begin(
   VkRenderPassBeginInfo renderPassInfo = {
       .sType                    = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
       .renderPass               = tech->vkRendPass,
-      .framebuffer              = *dynarray_at_t(&tech->frameBuffers, swapchainIdx, VkFramebuffer),
+      .framebuffer              = tech->vkFrameBuffer,
       .renderArea.offset        = {0, 0},
-      .renderArea.extent.width  = swapchainImage->size.width,
-      .renderArea.extent.height = swapchainImage->size.height,
+      .renderArea.extent.width  = size.width,
+      .renderArea.extent.height = size.height,
       .clearValueCount          = array_elems(clearValues),
       .pClearValues             = clearValues,
   };
   vkCmdBeginRenderPass(vkCmdBuf, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-  rvk_image_transition_external(swapchainImage, RvkImagePhase_ColorAttachment);
+  rvk_image_transition_external(&tech->colorAttachment, RvkImagePhase_ColorAttachment);
 }
 
-void rvk_technique_end(
-    RvkTechnique* tech, VkCommandBuffer vkCmdBuf, const RvkSwapchainIdx swapchainIdx) {
+void rvk_technique_end(RvkTechnique* tech, VkCommandBuffer vkCmdBuf) {
 
   vkCmdEndRenderPass(vkCmdBuf);
-
-  RvkImage* swapchainImage = rvk_swapchain_image(tech->swapchain, swapchainIdx);
-  rvk_image_transition_external(swapchainImage, RvkImagePhase_Present);
+  rvk_image_transition_external(&tech->colorAttachment, RvkImagePhase_TransferSource);
 }

@@ -4,6 +4,7 @@
 
 #include "device_internal.h"
 #include "graphic_internal.h"
+#include "image_internal.h"
 #include "renderer_internal.h"
 #include "technique_internal.h"
 
@@ -97,7 +98,7 @@ RvkRenderer* rvk_renderer_create(RvkDevice* dev, RvkSwapchain* swapchain) {
   RvkRenderer* renderer = alloc_alloc_t(g_alloc_heap, RvkRenderer);
   *renderer             = (RvkRenderer){
       .dev            = dev,
-      .tech           = rvk_technique_create(dev, swapchain),
+      .tech           = rvk_technique_create(dev),
       .swapchain      = swapchain,
       .imageAvailable = rvk_semaphore_create(dev),
       .imageReady     = rvk_semaphore_create(dev),
@@ -132,9 +133,9 @@ void rvk_renderer_draw_begin(
   rvk_renderer_wait_for_done(rend);
   rvk_commandbuffer_begin(rend->vkDrawBuffer);
 
-  rvk_technique_begin(rend->tech, rend->vkDrawBuffer, swapchainIdx, clearColor);
-
   RvkImage* targetImage = rvk_swapchain_image(rend->swapchain, swapchainIdx);
+  rvk_technique_begin(rend->tech, rend->vkDrawBuffer, targetImage->size, clearColor);
+
   rvk_viewport_set(rend->vkDrawBuffer, targetImage->size);
   rvk_scissor_set(rend->vkDrawBuffer, targetImage->size);
 }
@@ -153,7 +154,15 @@ void rvk_renderer_draw_inst(RvkRenderer* rend, RvkGraphic* graphic) {
 
 void rvk_renderer_draw_end(RvkRenderer* rend, const RvkSwapchainIdx swapchainIdx) {
 
-  rvk_technique_end(rend->tech, rend->vkDrawBuffer, swapchainIdx);
+  rvk_technique_end(rend->tech, rend->vkDrawBuffer);
+
+  // Copy the output to the swapchain.
+  RvkImage* srcImage  = rvk_technique_output(rend->tech);
+  RvkImage* destImage = rvk_swapchain_image(rend->swapchain, swapchainIdx);
+  rvk_image_transition(destImage, rend->vkDrawBuffer, RvkImagePhase_TransferDest);
+  rvk_image_blit(srcImage, destImage, rend->vkDrawBuffer);
+  rvk_image_transition(destImage, rend->vkDrawBuffer, RvkImagePhase_Present);
+
   rvk_commandbuffer_end(rend->vkDrawBuffer);
 
   rvk_call(vkResetFences, rend->dev->vkDev, 1, &rend->renderDone);

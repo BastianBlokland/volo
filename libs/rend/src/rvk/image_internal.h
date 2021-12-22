@@ -55,3 +55,6 @@ String rvk_image_phase_str(RvkImagePhase);
 void rvk_image_assert_phase(const RvkImage*, RvkImagePhase);
 void rvk_image_transition(RvkImage*, VkCommandBuffer, RvkImagePhase);
 void rvk_image_transition_external(RvkImage*, RvkImagePhase);
+
+void rvk_image_copy(const RvkImage* src, RvkImage* dest, VkCommandBuffer);
+void rvk_image_blit(const RvkImage* src, RvkImage* dest, VkCommandBuffer);
