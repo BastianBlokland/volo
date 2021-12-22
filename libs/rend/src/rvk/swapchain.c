@@ -36,6 +36,22 @@ struct sRvkSwapchain {
   DynArray           images; // RvkImage[]
 };
 
+static RendSize rvk_surface_clamp_size(RendSize size, const VkSurfaceCapabilitiesKHR* vkCaps) {
+  if (size.width < vkCaps->minImageExtent.width) {
+    size.width = vkCaps->minImageExtent.width;
+  }
+  if (size.height < vkCaps->minImageExtent.height) {
+    size.height = vkCaps->minImageExtent.height;
+  }
+  if (size.width > vkCaps->maxImageExtent.width) {
+    size.width = vkCaps->maxImageExtent.width;
+  }
+  if (size.height > vkCaps->maxImageExtent.height) {
+    size.height = vkCaps->maxImageExtent.height;
+  }
+  return size;
+}
+
 static VkSurfaceKHR rvk_surface_create(RvkDevice* dev, const GapWindowComp* window) {
   VkSurfaceKHR result;
 #if defined(VOLO_LINUX)
@@ -123,7 +139,7 @@ static VkSurfaceCapabilitiesKHR rvk_surface_capabilities(RvkDevice* dev, VkSurfa
   return result;
 }
 
-static bool rvk_swapchain_init(RvkSwapchain* swapchain, const RendSize size) {
+static bool rvk_swapchain_init(RvkSwapchain* swapchain, RendSize size) {
   if (!size.width || !size.height) {
     swapchain->size = size;
     return false;
@@ -135,6 +151,7 @@ static bool rvk_swapchain_init(RvkSwapchain* swapchain, const RendSize size) {
   VkDevice                 vkDev   = swapchain->dev->vkDev;
   VkAllocationCallbacks*   vkAlloc = &swapchain->dev->vkAlloc;
   VkSurfaceCapabilitiesKHR vkCaps  = rvk_surface_capabilities(swapchain->dev, swapchain->vkSurf);
+  size                             = rvk_surface_clamp_size(size, &vkCaps);
 
   VkSwapchainKHR           oldSwapchain = swapchain->vkSwapchain;
   VkSwapchainCreateInfoKHR createInfo   = {
