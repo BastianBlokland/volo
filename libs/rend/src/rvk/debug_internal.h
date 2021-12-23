@@ -26,29 +26,32 @@ void      rvk_debug_label_end(RvkDebug*, VkCommandBuffer);
 #endif
 
 #define rvk_debug_name_queue(_DBG_, _OBJ_, _LIT_, ...)                                             \
-  rvk_debug_name_fmt(_DBG_, VK_OBJECT_TYPE_QUEUE, _OBJ_, _LIT_ "_queue", __VA_ARGS__)
+  rvk_debug_name_fmt(_DBG_, VK_OBJECT_TYPE_QUEUE, _OBJ_, "queue_" _LIT_, __VA_ARGS__)
 
 #define rvk_debug_name_cmdpool(_DBG_, _OBJ_, _LIT_, ...)                                           \
-  rvk_debug_name_fmt(_DBG_, VK_OBJECT_TYPE_COMMAND_POOL, _OBJ_, _LIT_ "_cmdpool", __VA_ARGS__)
+  rvk_debug_name_fmt(_DBG_, VK_OBJECT_TYPE_COMMAND_POOL, _OBJ_, "cmdpool_" _LIT_, __VA_ARGS__)
 
 #define rvk_debug_name_img(_DBG_, _OBJ_, _LIT_, ...)                                               \
-  rvk_debug_name_fmt(_DBG_, VK_OBJECT_TYPE_IMAGE, _OBJ_, _LIT_ "_img", __VA_ARGS__)
+  rvk_debug_name_fmt(_DBG_, VK_OBJECT_TYPE_IMAGE, _OBJ_, "img_" _LIT_, __VA_ARGS__)
 
 #define rvk_debug_name_img_view(_DBG_, _OBJ_, _LIT_, ...)                                          \
-  rvk_debug_name_fmt(_DBG_, VK_OBJECT_TYPE_IMAGE_VIEW, _OBJ_, _LIT_ "_img_view", __VA_ARGS__)
+  rvk_debug_name_fmt(_DBG_, VK_OBJECT_TYPE_IMAGE_VIEW, _OBJ_, "img_view_" _LIT_, __VA_ARGS__)
 
 #define rvk_debug_name_sampler(_DBG_, _OBJ_, _LIT_, ...)                                           \
-  rvk_debug_name_fmt(_DBG_, VK_OBJECT_TYPE_SAMPLER, _OBJ_, _LIT_ "_sampler", __VA_ARGS__)
+  rvk_debug_name_fmt(_DBG_, VK_OBJECT_TYPE_SAMPLER, _OBJ_, "sampler_" _LIT_, __VA_ARGS__)
+
+#define rvk_debug_name_framebuffer(_DBG_, _OBJ_, _LIT_, ...)                                       \
+  rvk_debug_name_fmt(_DBG_, VK_OBJECT_TYPE_FRAMEBUFFER, _OBJ_, "framebuffer_" _LIT_, __VA_ARGS__)
 
 #define rvk_debug_name_shader(_DBG_, _OBJ_, _LIT_, ...)                                            \
-  rvk_debug_name_fmt(_DBG_, VK_OBJECT_TYPE_SHADER_MODULE, _OBJ_, _LIT_ "_shader", __VA_ARGS__)
+  rvk_debug_name_fmt(_DBG_, VK_OBJECT_TYPE_SHADER_MODULE, _OBJ_, "shader_" _LIT_, __VA_ARGS__)
 
 #define rvk_debug_name_buffer(_DBG_, _OBJ_, _LIT_, ...)                                            \
-  rvk_debug_name_fmt(_DBG_, VK_OBJECT_TYPE_BUFFER, _OBJ_, _LIT_ "_buffer", __VA_ARGS__)
+  rvk_debug_name_fmt(_DBG_, VK_OBJECT_TYPE_BUFFER, _OBJ_, "buffer_" _LIT_, __VA_ARGS__)
 
 #define rvk_debug_name_pipeline(_DBG_, _OBJ_, _LIT_, ...)                                          \
-  rvk_debug_name_fmt(_DBG_, VK_OBJECT_TYPE_PIPELINE, _OBJ_, _LIT_ "_pipeline", __VA_ARGS__)
+  rvk_debug_name_fmt(_DBG_, VK_OBJECT_TYPE_PIPELINE, _OBJ_, "pipeline_" _LIT_, __VA_ARGS__)
 
 #define rvk_debug_name_pipeline_layout(_DBG_, _OBJ_, _LIT_, ...)                                   \
   rvk_debug_name_fmt(                                                                              \
-      _DBG_, VK_OBJECT_TYPE_PIPELINE_LAYOUT, _OBJ_, _LIT_ "_pipeline_layout", __VA_ARGS__)
+      _DBG_, VK_OBJECT_TYPE_PIPELINE_LAYOUT, _OBJ_, "pipeline_layout_" _LIT_, __VA_ARGS__)
