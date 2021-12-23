@@ -8,13 +8,13 @@
 #include "texture_internal.h"
 #include "transfer_internal.h"
 
-// static u32 rvk_compute_miplevels(const RendSize size) {
-//   /**
-//    * Check how many times we can cut the image in half before both sides hit 1 pixel.
-//    */
-//   const u32 biggestSide = math_max(size.width, size.height);
-//   return 32 - bits_clz_32(biggestSide);
-// }
+static u32 rvk_compute_miplevels(const RendSize size) {
+  /**
+   * Check how many times we can cut the image in half before both sides hit 1 pixel.
+   */
+  const u32 biggestSide = math_max(size.width, size.height);
+  return 32 - bits_clz_32(biggestSide);
+}
 
 RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset) {
   RvkTexture* texture = alloc_alloc_t(g_alloc_heap, RvkTexture);
@@ -27,7 +27,7 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset) {
   diag_assert(rvk_format_info(vkFormat).channels == 4);
 
   const RendSize size      = rend_size(asset->width, asset->height);
-  const u8       mipLevels = 1; // rvk_compute_miplevels(size);
+  const u8       mipLevels = rvk_compute_miplevels(size);
   texture->image           = rvk_image_create_source_color(dev, vkFormat, size, mipLevels);
 
   const usize pixelDataSize = sizeof(AssetTexturePixel) * asset->width * asset->height;
@@ -52,11 +52,16 @@ void rvk_texture_destroy(RvkTexture* texture) {
 }
 
 bool rvk_texture_prepare(RvkTexture* texture, VkCommandBuffer vkCmdBuf) {
-  RvkDevice* dev = texture->device;
-  if (!rvk_transfer_poll(dev->transferer, texture->pixelTransfer)) {
+  if (texture->flags & RvkTextureFlags_Ready) {
+    return true;
+  }
+
+  if (!rvk_transfer_poll(texture->device->transferer, texture->pixelTransfer)) {
     return false;
   }
 
+  rvk_image_generate_mipmaps(&texture->image, vkCmdBuf);
   rvk_image_transition(&texture->image, vkCmdBuf, RvkImagePhase_ShaderRead);
-  return true; // All resources have been transferred to the device.
+  texture->flags |= RvkTextureFlags_Ready;
+  return true;
 }

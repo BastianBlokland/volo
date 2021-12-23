@@ -8,10 +8,15 @@
 typedef struct sRvkDevice RvkDevice;
 typedef struct sRvkPass   RvkPass;
 
+typedef enum {
+  RvkTextureFlags_Ready = 1 << 0,
+} RvkTextureFlags;
+
 typedef struct sRvkTexture {
-  RvkDevice*    device;
-  RvkImage      image;
-  RvkTransferId pixelTransfer;
+  RvkDevice*      device;
+  RvkImage        image;
+  RvkTextureFlags flags;
+  RvkTransferId   pixelTransfer;
 } RvkTexture;
 
 RvkTexture* rvk_texture_create(RvkDevice*, const AssetTextureComp*);

@@ -6,34 +6,6 @@
 #include "device_internal.h"
 #include "image_internal.h"
 
-static void rvk_image_barrier(
-    VkCommandBuffer            buffer,
-    const RvkImage*            image,
-    const VkImageLayout        oldLayout,
-    const VkImageLayout        newLayout,
-    const VkAccessFlags        srcAccess,
-    const VkAccessFlags        dstAccess,
-    const VkPipelineStageFlags srcStageFlags,
-    const VkPipelineStageFlags dstStageFlags) {
-
-  const VkImageMemoryBarrier barrier = {
-      .sType                           = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-      .oldLayout                       = oldLayout,
-      .newLayout                       = newLayout,
-      .srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED,
-      .dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED,
-      .image                           = image->vkImage,
-      .subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
-      .subresourceRange.baseMipLevel   = 0,
-      .subresourceRange.levelCount     = image->mipLevels,
-      .subresourceRange.baseArrayLayer = 0,
-      .subresourceRange.layerCount     = 1,
-      .srcAccessMask                   = srcAccess,
-      .dstAccessMask                   = dstAccess,
-  };
-  vkCmdPipelineBarrier(buffer, srcStageFlags, dstStageFlags, 0, 0, null, 0, null, 1, &barrier);
-}
-
 static VkAccessFlags rvk_image_vkaccess(const RvkImagePhase phase) {
   switch (phase) {
   case RvkImagePhase_Undefined:
@@ -122,6 +94,56 @@ static VkImageUsageFlags rvk_image_vkusage(const RvkImageType type) {
     break;
   }
   diag_crash();
+}
+
+static void rvk_image_barrier(
+    VkCommandBuffer            vkCmdBuf,
+    const RvkImage*            image,
+    const VkImageLayout        oldLayout,
+    const VkImageLayout        newLayout,
+    const VkAccessFlags        srcAccess,
+    const VkAccessFlags        dstAccess,
+    const VkPipelineStageFlags srcStageFlags,
+    const VkPipelineStageFlags dstStageFlags,
+    const u8                   baseMip,
+    const u8                   mipLevels) {
+
+  const VkImageMemoryBarrier barrier = {
+      .sType                           = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+      .oldLayout                       = oldLayout,
+      .newLayout                       = newLayout,
+      .srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED,
+      .dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED,
+      .image                           = image->vkImage,
+      .subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+      .subresourceRange.baseMipLevel   = baseMip,
+      .subresourceRange.levelCount     = mipLevels,
+      .subresourceRange.baseArrayLayer = 0,
+      .subresourceRange.layerCount     = 1,
+      .srcAccessMask                   = srcAccess,
+      .dstAccessMask                   = dstAccess,
+  };
+  vkCmdPipelineBarrier(vkCmdBuf, srcStageFlags, dstStageFlags, 0, 0, null, 0, null, 1, &barrier);
+}
+
+static void rvk_image_barrier_from_to(
+    VkCommandBuffer     vkCmdBuf,
+    const RvkImage*     image,
+    const RvkImagePhase from,
+    const RvkImagePhase to,
+    const u8            baseMip,
+    const u8            mipLevels) {
+  rvk_image_barrier(
+      vkCmdBuf,
+      image,
+      rvk_image_vklayout(from),
+      rvk_image_vklayout(to),
+      rvk_image_vkaccess(from),
+      rvk_image_vkaccess(to),
+      rvk_image_vkpipelinestage(from),
+      rvk_image_vkpipelinestage(to),
+      baseMip,
+      mipLevels);
 }
 
 static VkImage rvk_vkimage_create(
@@ -282,20 +304,60 @@ void rvk_image_assert_phase(const RvkImage* image, const RvkImagePhase phase) {
 }
 
 void rvk_image_transition(RvkImage* image, VkCommandBuffer vkCmdBuf, const RvkImagePhase phase) {
-  rvk_image_barrier(
-      vkCmdBuf,
-      image,
-      rvk_image_vklayout(image->phase),
-      rvk_image_vklayout(phase),
-      rvk_image_vkaccess(image->phase),
-      rvk_image_vkaccess(phase),
-      rvk_image_vkpipelinestage(image->phase),
-      rvk_image_vkpipelinestage(phase));
+  rvk_image_barrier_from_to(vkCmdBuf, image, image->phase, phase, 0, image->mipLevels);
   image->phase = phase;
 }
 
 void rvk_image_transition_external(RvkImage* image, const RvkImagePhase phase) {
   image->phase = phase;
+}
+
+void rvk_image_generate_mipmaps(RvkImage* image, VkCommandBuffer vkCmdBuf) {
+  if (image->mipLevels <= 1) {
+    return;
+  }
+
+  /**
+   * Generate the mipmap levels by copying from the previous level at half the size until all levels
+   * have been generated.
+   */
+
+  // Transition the first mip to transfer-source.
+  rvk_image_barrier_from_to(vkCmdBuf, image, image->phase, RvkImagePhase_TransferSource, 0, 1);
+  // Transition the other mips to transfer-dest.
+  rvk_image_barrier_from_to(
+      vkCmdBuf, image, image->phase, RvkImagePhase_TransferDest, 1, image->mipLevels - 1);
+
+  for (u8 level = 1; level != image->mipLevels; ++level) {
+    // Blit from the previous mip-level.
+    const VkImageBlit blit = {
+        .srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+        .srcSubresource.mipLevel   = level - 1,
+        .srcSubresource.layerCount = 1,
+        .srcOffsets[1].x           = math_max(image->size.width >> (level - 1), 1),
+        .srcOffsets[1].y           = math_max(image->size.height >> (level - 1), 1),
+        .srcOffsets[1].z           = 1,
+        .dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+        .dstSubresource.mipLevel   = level,
+        .dstSubresource.layerCount = 1,
+        .dstOffsets[1].x           = math_max(image->size.width >> level, 1),
+        .dstOffsets[1].y           = math_max(image->size.height >> level, 1),
+        .dstOffsets[1].z           = 1,
+    };
+    vkCmdBlitImage(
+        vkCmdBuf,
+        image->vkImage,
+        rvk_image_vklayout(RvkImagePhase_TransferSource),
+        image->vkImage,
+        rvk_image_vklayout(RvkImagePhase_TransferDest),
+        1,
+        &blit,
+        VK_FILTER_LINEAR);
+
+    rvk_image_barrier_from_to(
+        vkCmdBuf, image, RvkImagePhase_TransferDest, RvkImagePhase_TransferSource, level, 1);
+  }
+  image->phase = RvkImagePhase_TransferSource; // All mips are now at the TransferSource phase.
 }
 
 void rvk_image_copy(const RvkImage* src, RvkImage* dest, VkCommandBuffer vkCmdBuf) {
