@@ -207,6 +207,8 @@ ecs_module_init(asset_manager_module) {
   ecs_register_system(UpdateDirtyAssetsSys, ecs_view_id(DirtyAssetView), ecs_view_id(ManagerView));
 }
 
+String asset_id(const AssetComp* comp) { return comp->id; }
+
 EcsEntityId asset_manager_create_fs(EcsWorld* world, const String rootPath) {
   return asset_manager_create_internal(world, asset_repo_create_fs(rootPath));
 }

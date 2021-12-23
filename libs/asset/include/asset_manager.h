@@ -21,6 +21,11 @@ ecs_comp_extern(AssetFailedComp);
 ecs_comp_extern(AssetLoadedComp);
 
 /**
+ * Retrieve the identifier for the given asset.
+ */
+String asset_id(const AssetComp*);
+
+/**
  * Create a asset-manager that loads assets from the file-system.
  * Assets are loaded from '{rootPath}/{assetId}'.
  */
