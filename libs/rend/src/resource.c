@@ -95,6 +95,7 @@ ecs_view_define(TextureView) { ecs_access_write(RendTextureComp); };
 ecs_view_define(RendResourceLoadView) {
   ecs_access_without(RendResourceReady);
   ecs_access_without(RendResourceFailed);
+  ecs_access_read(AssetComp);
   ecs_access_write(RendResource);
 
   ecs_access_maybe_read(AssetGraphicComp);
@@ -176,8 +177,9 @@ static void rend_resource_fail(EcsWorld* world, EcsIterator* resourceItr) {
 static void rend_resource_load(
     RvkDevice* dev, const RendGlobalResourceComp* res, EcsWorld* world, EcsIterator* resourceItr) {
 
-  const EcsEntityId       entity            = ecs_view_entity(resourceItr);
+  const EcsEntityId       ent               = ecs_view_entity(resourceItr);
   RendResource*           resourceComp      = ecs_view_write_t(resourceItr, RendResource);
+  const String            id                = asset_id(ecs_view_read_t(resourceItr, AssetComp));
   const AssetGraphicComp* maybeAssetGraphic = ecs_view_read_t(resourceItr, AssetGraphicComp);
   const AssetShaderComp*  maybeAssetShader  = ecs_view_read_t(resourceItr, AssetShaderComp);
   const AssetMeshComp*    maybeAssetMesh    = ecs_view_read_t(resourceItr, AssetMeshComp);
@@ -185,14 +187,14 @@ static void rend_resource_load(
 
   switch (resourceComp->state) {
   case RendResourceState_AcquireAsset:
-    asset_acquire(world, entity);
+    asset_acquire(world, ent);
     break;
   case RendResourceState_AcquireDependencies:
-    if (ecs_world_has_t(world, entity, AssetFailedComp)) {
+    if (ecs_world_has_t(world, ent, AssetFailedComp)) {
       rend_resource_fail(world, resourceItr);
       return;
     }
-    if (!ecs_world_has_t(world, entity, AssetLoadedComp)) {
+    if (!ecs_world_has_t(world, ent, AssetLoadedComp)) {
       return; // Wait for asset to be loaded.
     }
     if (maybeAssetGraphic) {
@@ -228,7 +230,7 @@ static void rend_resource_load(
   case RendResourceState_Create: {
     if (maybeAssetGraphic) {
       RendGraphicComp* graphicComp = ecs_world_add_t(
-          world, entity, RendGraphicComp, .graphic = rvk_graphic_create(dev, maybeAssetGraphic));
+          world, ent, RendGraphicComp, .graphic = rvk_graphic_create(dev, maybeAssetGraphic, id));
 
       // Add shaders.
       array_ptr_for_t(maybeAssetGraphic->shaders, AssetGraphicShader, ptr) {
@@ -250,17 +252,17 @@ static void rend_resource_load(
       }
     } else if (maybeAssetShader) {
       ecs_world_add_t(
-          world, entity, RendShaderComp, .shader = rvk_shader_create(dev, maybeAssetShader));
+          world, ent, RendShaderComp, .shader = rvk_shader_create(dev, maybeAssetShader, id));
     } else if (maybeAssetMesh) {
-      ecs_world_add_t(world, entity, RendMeshComp, .mesh = rvk_mesh_create(dev, maybeAssetMesh));
+      ecs_world_add_t(world, ent, RendMeshComp, .mesh = rvk_mesh_create(dev, maybeAssetMesh, id));
     } else if (maybeAssetTexture) {
       ecs_world_add_t(
-          world, entity, RendTextureComp, .texture = rvk_texture_create(dev, maybeAssetTexture));
+          world, ent, RendTextureComp, .texture = rvk_texture_create(dev, maybeAssetTexture, id));
     } else {
       diag_crash_msg("Unsupported resource asset type");
     }
-    asset_release(world, entity);
-    ecs_world_add_empty_t(world, entity, RendResourceReady);
+    asset_release(world, ent);
+    ecs_world_add_empty_t(world, ent, RendResourceReady);
   }
   case RendResourceState_Ready:
   case RendResourceState_Failed:

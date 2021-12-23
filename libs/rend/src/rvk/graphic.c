@@ -377,10 +377,12 @@ static void rvk_graphic_set_missing_sampler(RvkGraphic* graphic, const u32 sampl
       tex->image.mipLevels);
 }
 
-RvkGraphic* rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset) {
+RvkGraphic*
+rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset, const String dbgName) {
   RvkGraphic* graphic = alloc_alloc_t(g_alloc_heap, RvkGraphic);
   *graphic            = (RvkGraphic){
       .device     = dev,
+      .dbgName    = string_dup(g_alloc_heap, dbgName),
       .topology   = asset->topology,
       .rasterizer = asset->rasterizer,
       .lineWidth  = asset->lineWidth,
@@ -417,6 +419,7 @@ void rvk_graphic_destroy(RvkGraphic* graphic) {
       rvk_sampler_destroy(&itr->sampler, dev);
     }
   }
+  string_free(g_alloc_heap, graphic->dbgName);
   alloc_free_t(g_alloc_heap, graphic);
 }
 
@@ -487,6 +490,11 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, VkRender
 
     graphic->vkPipelineLayout = rvk_pipeline_layout_create(graphic);
     graphic->vkPipeline       = rvk_pipeline_create(graphic, graphic->vkPipelineLayout, vkRendPass);
+
+    rvk_debug_name_pipeline_layout(
+        graphic->device->debug, graphic->vkPipelineLayout, "{}", fmt_text(graphic->dbgName));
+    rvk_debug_name_pipeline(
+        graphic->device->debug, graphic->vkPipeline, "{}", fmt_text(graphic->dbgName));
   }
   if (!rvk_mesh_prepare(graphic->mesh)) {
     return false;

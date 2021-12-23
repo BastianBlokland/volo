@@ -163,7 +163,7 @@ RvkTransferer* rvk_transferer_create(RvkDevice* dev) {
       .vkCmdPool = rvk_commandpool_create(dev, dev->transferQueueIndex),
       .buffers   = dynarray_create_t(g_alloc_heap, RvkTransferBuffer, 8),
   };
-  rvk_debug_name_commandpool(dev->debug, transferer->vkCmdPool, "transferer");
+  rvk_debug_name_cmdpool(dev->debug, transferer->vkCmdPool, "transferer");
   return transferer;
 }
 

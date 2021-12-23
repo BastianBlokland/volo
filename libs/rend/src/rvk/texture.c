@@ -3,6 +3,7 @@
 #include "core_math.h"
 #include "log_logger.h"
 
+#include "debug_internal.h"
 #include "device_internal.h"
 #include "image_internal.h"
 #include "texture_internal.h"
@@ -16,7 +17,7 @@ static u32 rvk_compute_miplevels(const RendSize size) {
   return 32 - bits_clz_32(biggestSide);
 }
 
-RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset) {
+RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, String dbgName) {
   RvkTexture* texture = alloc_alloc_t(g_alloc_heap, RvkTexture);
   *texture            = (RvkTexture){
       .device = dev,
@@ -33,6 +34,9 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset) {
   const usize pixelDataSize = sizeof(AssetTexturePixel) * asset->width * asset->height;
   texture->pixelTransfer    = rvk_transfer_image(
       dev->transferer, &texture->image, mem_create(asset->pixels, pixelDataSize));
+
+  rvk_debug_name_img(dev->debug, texture->image.vkImage, "{}", fmt_text(dbgName));
+  rvk_debug_name_img_view(dev->debug, texture->image.vkImageView, "{}", fmt_text(dbgName));
 
   log_d(
       "Vulkan texture created",

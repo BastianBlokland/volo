@@ -106,7 +106,7 @@ RvkRenderer* rvk_renderer_create(RvkDevice* dev, const u32 rendererId) {
       .fenceRenderDone = rvk_fence_create(dev, true),
       .vkCmdPool       = rvk_commandpool_create(dev, dev->graphicsQueueIndex),
   };
-  rvk_debug_name_commandpool(dev->debug, renderer->vkCmdPool, "renderer_{}", fmt_int(rendererId));
+  rvk_debug_name_cmdpool(dev->debug, renderer->vkCmdPool, "renderer_{}", fmt_int(rendererId));
   renderer->vkDrawBuffer = rvk_commandbuffer_create(dev, renderer->vkCmdPool);
   renderer->forwardPass  = rvk_pass_create(dev, renderer->vkDrawBuffer);
   return renderer;

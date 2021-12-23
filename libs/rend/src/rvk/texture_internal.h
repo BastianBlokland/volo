@@ -19,6 +19,6 @@ typedef struct sRvkTexture {
   RvkTransferId   pixelTransfer;
 } RvkTexture;
 
-RvkTexture* rvk_texture_create(RvkDevice*, const AssetTextureComp*);
+RvkTexture* rvk_texture_create(RvkDevice*, const AssetTextureComp*, String dbgName);
 void        rvk_texture_destroy(RvkTexture*);
 bool        rvk_texture_prepare(RvkTexture*, VkCommandBuffer);
