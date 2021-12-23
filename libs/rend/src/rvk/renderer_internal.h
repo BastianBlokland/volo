@@ -8,7 +8,7 @@ typedef struct sRvkImage  RvkImage;
 
 typedef struct sRvkRenderer RvkRenderer;
 
-RvkRenderer* rvk_renderer_create(RvkDevice*);
+RvkRenderer* rvk_renderer_create(RvkDevice*, u32 rendererId);
 void         rvk_renderer_destroy(RvkRenderer*);
 VkSemaphore  rvk_renderer_semaphore_begin(RvkRenderer*);
 VkSemaphore  rvk_renderer_semaphore_done(RvkRenderer*);

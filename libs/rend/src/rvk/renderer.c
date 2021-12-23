@@ -15,6 +15,7 @@ typedef enum {
 
 struct sRvkRenderer {
   RvkDevice*       dev;
+  u32              rendererId;
   RvkPass*         forwardPass;
   VkSemaphore      semaphoreBegin, semaphoreDone;
   VkFence          fenceRenderDone;
@@ -95,15 +96,17 @@ static void rvk_renderer_submit(RvkRenderer* rend) {
   rvk_call(vkQueueSubmit, rend->dev->vkGraphicsQueue, 1, &submitInfo, rend->fenceRenderDone);
 }
 
-RvkRenderer* rvk_renderer_create(RvkDevice* dev) {
+RvkRenderer* rvk_renderer_create(RvkDevice* dev, const u32 rendererId) {
   RvkRenderer* renderer = alloc_alloc_t(g_alloc_heap, RvkRenderer);
   *renderer             = (RvkRenderer){
       .dev             = dev,
+      .rendererId      = rendererId,
       .semaphoreBegin  = rvk_semaphore_create(dev),
       .semaphoreDone   = rvk_semaphore_create(dev),
       .fenceRenderDone = rvk_fence_create(dev, true),
       .vkCmdPool       = rvk_commandpool_create(dev, dev->graphicsQueueIndex),
   };
+  rvk_debug_name_commandpool(dev->debug, renderer->vkCmdPool, "renderer_{}", fmt_int(rendererId));
   renderer->vkDrawBuffer = rvk_commandbuffer_create(dev, renderer->vkCmdPool);
   renderer->forwardPass  = rvk_pass_create(dev, renderer->vkDrawBuffer);
   return renderer;

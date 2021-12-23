@@ -29,8 +29,8 @@ RvkCanvas* rvk_canvas_create(RvkDevice* dev, const GapWindowComp* window) {
   *canvas                 = (RvkCanvas){
       .device       = dev,
       .swapchain    = swapchain,
-      .renderers[0] = rvk_renderer_create(dev),
-      .renderers[1] = rvk_renderer_create(dev),
+      .renderers[0] = rvk_renderer_create(dev, 0),
+      .renderers[1] = rvk_renderer_create(dev, 1),
   };
   return canvas;
 }

@@ -360,10 +360,10 @@ RvkDevice* rvk_device_create() {
   if (dev->flags & RvkDeviceFlags_Validation) {
     dev->debug = rvk_debug_create(dev->vkInst, dev->vkDev, &dev->vkAlloc, g_debugFlags);
     if (dev->transferQueueIndex == dev->graphicsQueueIndex) {
-      rvk_name_queue(dev->debug, dev->vkGraphicsQueue, "graphics_and_transfer");
+      rvk_debug_name_queue(dev->debug, dev->vkGraphicsQueue, "graphics_and_transfer");
     } else {
-      rvk_name_queue(dev->debug, dev->vkGraphicsQueue, "graphics");
-      rvk_name_queue(dev->debug, dev->vkTransferQueue, "transfer");
+      rvk_debug_name_queue(dev->debug, dev->vkGraphicsQueue, "graphics");
+      rvk_debug_name_queue(dev->debug, dev->vkTransferQueue, "transfer");
     }
   }
 
