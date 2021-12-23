@@ -4,6 +4,18 @@
 
 #include "debug_internal.h"
 
+/**
+ * Vulkan validation layer support.
+ * - Logs output messages from the validation layers.
+ * - Provide debug names for Vulkan objects.
+ * - Inserting labels into command buffers.
+ *
+ * Validation layers can be further configured using the 'vkconfig' utility.
+ * Debian package: lunarg-vkconfig
+ * On windows its included in the sdk.
+ * More info: https://vulkan.lunarg.com/doc/sdk/1.2.198.1/linux/vkconfig.html
+ */
+
 struct sRvkDebug {
   RvkDebugFlags                    flags;
   Logger*                          logger;
