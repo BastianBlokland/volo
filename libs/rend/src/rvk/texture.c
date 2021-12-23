@@ -41,12 +41,12 @@ void rvk_texture_destroy(RvkTexture* texture) {
   alloc_free_t(g_alloc_heap, texture);
 }
 
-bool rvk_texture_prepare(RvkTexture* texture) {
+bool rvk_texture_prepare(RvkTexture* texture, VkCommandBuffer vkCmdBuf) {
   RvkDevice* dev = texture->device;
   if (!rvk_transfer_poll(dev->transferer, texture->pixelTransfer)) {
     return false;
   }
 
-  rvk_image_assert_phase(&texture->image, RvkImagePhase_ShaderRead);
+  rvk_image_transition(&texture->image, vkCmdBuf, RvkImagePhase_ShaderRead);
   return true; // All resources have been transferred to the device.
 }

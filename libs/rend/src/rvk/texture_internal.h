@@ -16,4 +16,4 @@ typedef struct sRvkTexture {
 
 RvkTexture* rvk_texture_create(RvkDevice*, const AssetTextureComp*);
 void        rvk_texture_destroy(RvkTexture*);
-bool        rvk_texture_prepare(RvkTexture*);
+bool        rvk_texture_prepare(RvkTexture*, VkCommandBuffer);
