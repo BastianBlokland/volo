@@ -176,9 +176,11 @@ static bool rvk_swapchain_init(RvkSwapchain* swapchain, RendSize size) {
   VkImage* images = mem_stack(sizeof(VkImage) * imageCount).ptr;
   rvk_call(vkGetSwapchainImagesKHR, vkDev, swapchain->vkSwapchain, &imageCount, images);
 
+  const VkFormat format = swapchain->vkSurfFormat.format;
   for (u32 i = 0; i != imageCount; ++i) {
-    *dynarray_push_t(&swapchain->images, RvkImage) =
-        rvk_image_create_swapchain(swapchain->dev, images[i], swapchain->vkSurfFormat.format, size);
+    RvkImage* img = dynarray_push_t(&swapchain->images, RvkImage);
+    *img          = rvk_image_create_swapchain(swapchain->dev, images[i], format, size);
+    rvk_debug_name_img(swapchain->dev->debug, img->vkImage, "swapchain_{}", fmt_int(i));
   }
 
   swapchain->flags &= ~RvkSwapchainFlags_OutOfDate;
@@ -187,7 +189,7 @@ static bool rvk_swapchain_init(RvkSwapchain* swapchain, RendSize size) {
   log_i(
       "Vulkan swapchain created",
       log_param("size", rend_size_fmt(size)),
-      log_param("format", fmt_text(rvk_format_info(swapchain->vkSurfFormat.format).name)),
+      log_param("format", fmt_text(rvk_format_info(format).name)),
       log_param("color", fmt_text(rvk_colorspace_str(swapchain->vkSurfFormat.colorSpace))),
       log_param("present-mode", fmt_text(rvk_presentmode_str(swapchain->vkPresentMode))),
       log_param("image-count", fmt_int(imageCount)));
