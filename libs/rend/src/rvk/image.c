@@ -1,19 +1,10 @@
 #include "core_annotation.h"
 #include "core_array.h"
-#include "core_bits.h"
 #include "core_diag.h"
 #include "core_math.h"
 
 #include "device_internal.h"
 #include "image_internal.h"
-
-static u32 rvk_compute_miplevels(const RendSize size) {
-  /**
-   * Check how many times we can cut the image in half before both sides hit 1 pixel.
-   */
-  const u32 biggestSide = math_max(size.width, size.height);
-  return 32 - bits_clz_32(biggestSide);
-}
 
 static void rvk_image_barrier(
     VkCommandBuffer            buffer,
@@ -54,8 +45,7 @@ static VkAccessFlags rvk_image_vkaccess(const RvkImagePhase phase) {
   case RvkImagePhase_ColorAttachment:
     return VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
   case RvkImagePhase_ShaderRead:
-    // TODO: Update to 'VK_ACCESS_SHADER_READ_BIT'.
-    return 0;
+    return VK_ACCESS_SHADER_READ_BIT;
   case RvkImagePhase_Present:
     return 0;
   case RvkImagePhase_Count:
@@ -74,9 +64,7 @@ static VkPipelineStageFlags rvk_image_vkpipelinestage(const RvkImagePhase phase)
   case RvkImagePhase_ColorAttachment:
     return VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
   case RvkImagePhase_ShaderRead:
-    // TODO: Update to:
-    // 'VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT'.
-    return VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+    return VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
   case RvkImagePhase_Present:
     return VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
   case RvkImagePhase_Count:
@@ -118,11 +106,11 @@ static VkImageAspectFlags rvk_image_vkaspect(const RvkImageType type) {
   }
 }
 
-static VkImageUsageFlags rvk_image_vkusage(const RvkImageType type, const RvkImageFlags flags) {
+static VkImageUsageFlags rvk_image_vkusage(const RvkImageType type) {
   switch (type) {
   case RvkImageType_ColorSource:
-    return VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
-           (flags & RvkImageFlags_GenerateMipMaps ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : 0);
+    return VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+           VK_IMAGE_USAGE_SAMPLED_BIT;
   case RvkImageType_ColorAttachment:
     return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
   case RvkImageType_DepthAttachment:
@@ -187,17 +175,15 @@ static VkImageView rvk_vkimageview_create(
 }
 
 static RvkImage rvk_image_create_backed(
-    RvkDevice*          dev,
-    const RvkImageType  type,
-    const VkFormat      vkFormat,
-    const RendSize      size,
-    const RvkImageFlags flags) {
+    RvkDevice*         dev,
+    const RvkImageType type,
+    const VkFormat     vkFormat,
+    const RendSize     size,
+    const u8           mipLevels) {
 
   const VkImageAspectFlags vkAspect = rvk_image_vkaspect(type);
-  const VkImageAspectFlags vkUsage  = rvk_image_vkusage(type, flags);
-  const u8 mipLevels = flags & RvkImageFlags_GenerateMipMaps ? rvk_compute_miplevels(size) : 1;
-
-  const VkImage vkImage = rvk_vkimage_create(dev, size, vkFormat, vkUsage, mipLevels);
+  const VkImageAspectFlags vkUsage  = rvk_image_vkusage(type);
+  const VkImage            vkImage  = rvk_vkimage_create(dev, size, vkFormat, vkUsage, mipLevels);
 
   VkMemoryRequirements memReqs;
   vkGetImageMemoryRequirements(dev->vkDev, vkImage, &memReqs);
@@ -210,7 +196,6 @@ static RvkImage rvk_image_create_backed(
 
   return (RvkImage){
       .type        = type,
-      .flags       = flags,
       .mipLevels   = mipLevels,
       .vkFormat    = vkFormat,
       .size        = size,
@@ -221,37 +206,30 @@ static RvkImage rvk_image_create_backed(
 }
 
 RvkImage rvk_image_create_source_color(
-    RvkDevice* dev, const VkFormat vkFormat, const RendSize size, const RvkImageFlags flags) {
+    RvkDevice* dev, const VkFormat vkFormat, const RendSize size, const u8 mipLevels) {
   diag_assert(rvk_format_info(vkFormat).channels == 4);
-  return rvk_image_create_backed(dev, RvkImageType_ColorSource, vkFormat, size, flags);
+  return rvk_image_create_backed(dev, RvkImageType_ColorSource, vkFormat, size, mipLevels);
 }
 
-RvkImage rvk_image_create_attach_color(
-    RvkDevice* dev, const VkFormat vkFormat, const RendSize size, const RvkImageFlags flags) {
-  diag_assert(!(flags & RvkImageFlags_GenerateMipMaps));
+RvkImage
+rvk_image_create_attach_color(RvkDevice* dev, const VkFormat vkFormat, const RendSize size) {
   diag_assert(rvk_format_info(vkFormat).channels == 4);
-  return rvk_image_create_backed(dev, RvkImageType_ColorAttachment, vkFormat, size, flags);
+  const u8 mipLevels = 1;
+  return rvk_image_create_backed(dev, RvkImageType_ColorAttachment, vkFormat, size, mipLevels);
 }
 
-RvkImage rvk_image_create_attach_depth(
-    RvkDevice* dev, const VkFormat vkFormat, const RendSize size, const RvkImageFlags flags) {
-  diag_assert(!(flags & RvkImageFlags_GenerateMipMaps));
+RvkImage
+rvk_image_create_attach_depth(RvkDevice* dev, const VkFormat vkFormat, const RendSize size) {
   diag_assert(rvk_format_info(vkFormat).channels == 1);
-  return rvk_image_create_backed(dev, RvkImageType_DepthAttachment, vkFormat, size, flags);
+  const u8 mipLevels = 1;
+  return rvk_image_create_backed(dev, RvkImageType_DepthAttachment, vkFormat, size, mipLevels);
 }
 
 RvkImage rvk_image_create_swapchain(
-    RvkDevice*          dev,
-    VkImage             vkImage,
-    VkFormat            vkFormat,
-    const RendSize      size,
-    const RvkImageFlags flags) {
+    RvkDevice* dev, VkImage vkImage, VkFormat vkFormat, const RendSize size) {
   (void)dev;
-  diag_assert(!(flags & RvkImageFlags_GenerateMipMaps));
-
   return (RvkImage){
       .type      = RvkImageType_Swapchain,
-      .flags     = flags,
       .mipLevels = 1,
       .vkFormat  = vkFormat,
       .size      = size,
