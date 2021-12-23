@@ -251,8 +251,6 @@ RvkTransferId rvk_transfer_image(RvkTransferer* trans, RvkImage* dest, const Mem
       1,
       &region);
 
-  rvk_image_transition(dest, buffer->vkCmdBuffer, RvkImagePhase_ShaderRead);
-
   buffer->offset += data.size;
   const RvkTransferId id = rvk_transfer_id(trans, buffer);
 

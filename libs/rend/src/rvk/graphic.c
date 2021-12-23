@@ -457,8 +457,6 @@ u32 rvk_graphic_index_count(const RvkGraphic* graphic) {
 }
 
 bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, VkRenderPass vkRendPass) {
-  (void)vkCmdBuf;
-
   if (!graphic->vkPipeline) {
     const RvkDescMeta descMeta = rvk_graphic_desc_meta(graphic, rvk_desc_graphic_set);
     graphic->descSet           = rvk_desc_alloc(graphic->device->descPool, &descMeta);
@@ -494,7 +492,7 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, VkRender
     return false;
   }
   array_for_t(graphic->samplers, RvkGraphicSampler, itr) {
-    if (itr->texture && !rvk_texture_prepare(itr->texture)) {
+    if (itr->texture && !rvk_texture_prepare(itr->texture, vkCmdBuf)) {
       return false;
     }
   }

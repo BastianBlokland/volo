@@ -138,9 +138,8 @@ static void rvk_pass_vkrenderpass_begin(
 }
 
 static void rvk_pass_resource_create(RvkPass* pass, const RendSize size) {
-  pass->colorAttachment =
-      rvk_image_create_attach_color(pass->dev, g_colorAttachmentFormat, size, RvkImageFlags_None);
-  pass->vkFrameBuffer = rvk_framebuffer_create(pass, &pass->colorAttachment);
+  pass->colorAttachment = rvk_image_create_attach_color(pass->dev, g_colorAttachmentFormat, size);
+  pass->vkFrameBuffer   = rvk_framebuffer_create(pass, &pass->colorAttachment);
 }
 
 static void rvk_pass_resource_destroy(RvkPass* pass) {

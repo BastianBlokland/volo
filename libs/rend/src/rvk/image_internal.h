@@ -8,11 +8,6 @@
 typedef struct sRvkDevice RvkDevice;
 
 typedef enum {
-  RvkImageFlags_None            = 0,
-  RvkImageFlags_GenerateMipMaps = 1 << 0,
-} RvkImageFlags;
-
-typedef enum {
   RvkImagePhase_Undefined,
   RvkImagePhase_TransferSource,
   RvkImagePhase_TransferDest,
@@ -34,7 +29,6 @@ typedef enum {
 
 typedef struct sRvkImage {
   RvkImageType  type : 8;
-  RvkImageFlags flags : 8;
   RvkImagePhase phase : 8;
   u8            mipLevels;
   VkFormat      vkFormat;
@@ -44,10 +38,10 @@ typedef struct sRvkImage {
   RvkMem        mem;
 } RvkImage;
 
-RvkImage rvk_image_create_source_color(RvkDevice*, VkFormat, RendSize size, RvkImageFlags);
-RvkImage rvk_image_create_attach_color(RvkDevice*, VkFormat, RendSize size, RvkImageFlags);
-RvkImage rvk_image_create_attach_depth(RvkDevice*, VkFormat, RendSize size, RvkImageFlags);
-RvkImage rvk_image_create_swapchain(RvkDevice*, VkImage, VkFormat, RendSize size, RvkImageFlags);
+RvkImage rvk_image_create_source_color(RvkDevice*, VkFormat, RendSize size, u8 mipLevels);
+RvkImage rvk_image_create_attach_color(RvkDevice*, VkFormat, RendSize size);
+RvkImage rvk_image_create_attach_depth(RvkDevice*, VkFormat, RendSize size);
+RvkImage rvk_image_create_swapchain(RvkDevice*, VkImage, VkFormat, RendSize size);
 void     rvk_image_destroy(RvkImage*, RvkDevice*);
 
 String rvk_image_type_str(RvkImageType);
@@ -57,6 +51,7 @@ void rvk_image_assert_phase(const RvkImage*, RvkImagePhase);
 void rvk_image_transition(RvkImage*, VkCommandBuffer, RvkImagePhase);
 void rvk_image_transition_external(RvkImage*, RvkImagePhase);
 
+void rvk_image_generate_mipmaps(RvkImage*, VkCommandBuffer);
 void rvk_image_copy(const RvkImage* src, RvkImage* dest, VkCommandBuffer);
 void rvk_image_blit(const RvkImage* src, RvkImage* dest, VkCommandBuffer);
 void rvk_image_clear(const RvkImage*, RendColor, VkCommandBuffer);

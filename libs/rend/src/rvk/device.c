@@ -299,14 +299,18 @@ static VkDevice rvk_device_create_internal(RvkDevice* dev) {
 }
 
 static VkFormat rvk_device_pick_depthformat(RvkDevice* dev) {
-  static const VkFormat             desiredFormat = VK_FORMAT_D32_SFLOAT;
-  static const VkFormatFeatureFlags features      = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+  static const VkFormat supportedFormats[] = {
+      VK_FORMAT_D24_UNORM_S8_UINT,
+      VK_FORMAT_D32_SFLOAT,
+  };
+  static const VkFormatFeatureFlags features = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
-  VkFormatProperties properties;
-  vkGetPhysicalDeviceFormatProperties(dev->vkPhysDev, desiredFormat, &properties);
-
-  if ((properties.optimalTilingFeatures & features) == features) {
-    return desiredFormat;
+  array_for_t(supportedFormats, VkFormat, format) {
+    VkFormatProperties properties;
+    vkGetPhysicalDeviceFormatProperties(dev->vkPhysDev, *format, &properties);
+    if ((properties.optimalTilingFeatures & features) == features) {
+      return *format;
+    }
   }
   diag_crash_msg("No suitable depth-format found");
 }
