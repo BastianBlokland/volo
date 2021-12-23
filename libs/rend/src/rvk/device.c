@@ -13,10 +13,19 @@
 
 #define rend_debug_verbose true
 
-static const RvkDebugFlags g_debugFlags      = rend_debug_verbose ? RvkDebugFlags_Verbose : 0;
-static const String        g_validationLayer = string_static("VK_LAYER_KHRONOS_validation");
-static const String        g_validationExt   = string_static("VK_EXT_debug_utils");
-static String              g_requiredExts[]  = {
+static const RvkDebugFlags g_debugFlags       = rend_debug_verbose ? RvkDebugFlags_Verbose : 0;
+static const String        g_validationLayer  = string_static("VK_LAYER_KHRONOS_validation");
+static const String        g_validationExts[] = {
+    string_static("VK_EXT_debug_utils"),
+    string_static("VK_EXT_validation_features"),
+};
+static VkValidationFeatureEnableEXT g_validationEnabledFeatures[] = {
+    VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
+    VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,
+    // VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
+    // VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT,
+};
+static String g_requiredExts[] = {
     string_static("VK_KHR_swapchain"),
     string_static("VK_KHR_shader_float16_int8"),
 };
@@ -74,7 +83,7 @@ static u32 rvk_instance_required_extensions(const char** output, const RvkDevice
     break;
   }
   if (flags & RvkDeviceFlags_Validation) {
-    output[i++] = g_validationExt.ptr;
+    array_for_t(g_validationExts, String, ext) { output[i++] = ext->ptr; }
   }
   return i;
 }
@@ -96,6 +105,16 @@ static VkInstance rvk_instance_create(VkAllocationCallbacks* vkAlloc, const RvkD
       .enabledLayerCount       = layerCount,
       .ppEnabledLayerNames     = layerNames,
   };
+
+  VkValidationFeaturesEXT validationFeatures;
+  if (flags & RvkDeviceFlags_Validation) {
+    validationFeatures = (VkValidationFeaturesEXT){
+        .sType                         = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT,
+        .pEnabledValidationFeatures    = g_validationEnabledFeatures,
+        .enabledValidationFeatureCount = array_elems(g_validationEnabledFeatures),
+    };
+    createInfo.pNext = &validationFeatures;
+  }
 
   VkInstance result;
   rvk_call(vkCreateInstance, &createInfo, vkAlloc, &result);
