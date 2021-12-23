@@ -3,8 +3,6 @@
 
 #include "vulkan_internal.h"
 
-#define VOLO_REND_OBJECT_NAMING
-
 typedef enum {
   RvkDebugFlags_None    = 0,
   RvkDebugFlags_Verbose = 1 << 0,
@@ -15,15 +13,14 @@ typedef struct sRvkDebug RvkDebug;
 RvkDebug* rvk_debug_create(VkInstance, VkDevice, VkAllocationCallbacks*, RvkDebugFlags);
 void      rvk_debug_destroy(RvkDebug*);
 void      rvk_debug_name(RvkDebug*, VkObjectType, u64 vkHandle, String name);
-void      rvk_debug_label_begin(RvkDebug*, VkCommandBuffer, String name, RendColor);
+void      rvk_debug_label_begin_raw(RvkDebug*, VkCommandBuffer, RendColor, String name);
 void      rvk_debug_label_end(RvkDebug*, VkCommandBuffer);
 
-#ifdef VOLO_REND_OBJECT_NAMING
+#define rvk_debug_label_begin(_DBG_, _CMD_BUF_, _COLOR_, _LIT_, ...)                               \
+  rvk_debug_label_begin_raw((_DBG_), (_CMD_BUF_), (_COLOR_), fmt_write_scratch(_LIT_, __VA_ARGS__))
+
 #define rvk_debug_name_fmt(_DBG_, _OBJ_TYPE_, _OBJ_, _LIT_, ...)                                   \
   rvk_debug_name((_DBG_), (_OBJ_TYPE_), (u64)(_OBJ_), fmt_write_scratch(_LIT_, __VA_ARGS__))
-#else
-#define rvk_debug_name_fmt(_DBG_, _OBJ_TYPE_, _OBJ_, _LIT_, ...)
-#endif
 
 #define rvk_debug_name_queue(_DBG_, _OBJ_, _LIT_, ...)                                             \
   rvk_debug_name_fmt(_DBG_, VK_OBJECT_TYPE_QUEUE, _OBJ_, "queue_" _LIT_, __VA_ARGS__)

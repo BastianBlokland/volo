@@ -66,8 +66,14 @@ bool rvk_texture_prepare(RvkTexture* texture, VkCommandBuffer vkCmdBuf) {
     return false;
   }
 
+  rvk_debug_label_begin(
+      texture->device->debug, vkCmdBuf, rend_silver, "prepare_{}", fmt_text(texture->dbgName));
+
   rvk_image_generate_mipmaps(&texture->image, vkCmdBuf);
   rvk_image_transition(&texture->image, vkCmdBuf, RvkImagePhase_ShaderRead);
+
+  rvk_debug_label_end(texture->device->debug, vkCmdBuf);
+
   texture->flags |= RvkTextureFlags_Ready;
   return true;
 }

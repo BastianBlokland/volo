@@ -451,11 +451,7 @@ void rvk_graphic_sampler_add(
       itr->sampler = rvk_sampler_create(dev, wrap, filter, anisotropy, texture->image.mipLevels);
 
       rvk_debug_name_sampler(
-          graphic->device->debug,
-          itr->sampler.vkSampler,
-          "{}_{}",
-          fmt_text(graphic->dbgName),
-          fmt_text(texture->dbgName));
+          graphic->device->debug, itr->sampler.vkSampler, "{}", fmt_text(texture->dbgName));
       return;
     }
   }

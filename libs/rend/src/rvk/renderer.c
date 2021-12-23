@@ -96,6 +96,18 @@ static void rvk_renderer_submit(RvkRenderer* rend) {
   rvk_call(vkQueueSubmit, rend->dev->vkGraphicsQueue, 1, &submitInfo, rend->fenceRenderDone);
 }
 
+static void rvk_renderer_blit_to_output(RvkRenderer* rend, RvkPass* pass) {
+
+  rvk_debug_label_begin(rend->dev->debug, rend->vkDrawBuffer, rend_purple, "blit_to_target");
+
+  // Copy the output to the target.
+  rvk_image_transition(rend->currentTarget, rend->vkDrawBuffer, RvkImagePhase_TransferDest);
+  rvk_image_blit(rvk_pass_output(pass), rend->currentTarget, rend->vkDrawBuffer);
+  rvk_image_transition(rend->currentTarget, rend->vkDrawBuffer, RvkImagePhase_Present);
+
+  rvk_debug_label_end(rend->dev->debug, rend->vkDrawBuffer);
+}
+
 RvkRenderer* rvk_renderer_create(RvkDevice* dev, const u32 rendererId) {
   RvkRenderer* renderer = alloc_alloc_t(g_alloc_heap, RvkRenderer);
   *renderer             = (RvkRenderer){
@@ -141,8 +153,11 @@ void rvk_renderer_begin(RvkRenderer* rend, RvkImage* target) {
   rvk_renderer_wait_for_done(rend);
   rvk_commandpool_reset(rend->dev, rend->vkCmdPool);
 
-  rvk_pass_setup(rend->forwardPass, target->size);
   rvk_commandbuffer_begin(rend->vkDrawBuffer);
+  rvk_pass_setup(rend->forwardPass, target->size);
+
+  rvk_debug_label_begin(
+      rend->dev->debug, rend->vkDrawBuffer, rend_teal, "renderer_{}", fmt_int(rend->rendererId));
 }
 
 RvkPass* rvk_renderer_pass_forward(RvkRenderer* rend) {
@@ -157,11 +172,9 @@ void rvk_renderer_end(RvkRenderer* rend) {
   // Wait for rendering to be done.
   rvk_pass_output_barrier(rend->forwardPass);
 
-  // Copy the output to the target.
-  rvk_image_transition(rend->currentTarget, rend->vkDrawBuffer, RvkImagePhase_TransferDest);
-  rvk_image_blit(rvk_pass_output(rend->forwardPass), rend->currentTarget, rend->vkDrawBuffer);
-  rvk_image_transition(rend->currentTarget, rend->vkDrawBuffer, RvkImagePhase_Present);
+  rvk_renderer_blit_to_output(rend, rend->forwardPass);
 
+  rvk_debug_label_end(rend->dev->debug, rend->vkDrawBuffer);
   rvk_commandbuffer_end(rend->vkDrawBuffer);
 
   rvk_call(vkResetFences, rend->dev->vkDev, 1, &rend->fenceRenderDone);
