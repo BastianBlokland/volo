@@ -73,28 +73,23 @@ static VkSurfaceKHR rvk_surface_create(RvkDevice* dev, const GapWindowComp* wind
 }
 
 static VkSurfaceFormatKHR rvk_pick_surface_format(RvkDevice* dev, VkSurfaceKHR vkSurf) {
-  VkSurfaceFormatKHR availableFormats[64];
-  u32                availableFormatCount = array_elems(availableFormats);
-  rvk_call(
-      vkGetPhysicalDeviceSurfaceFormatsKHR,
-      dev->vkPhysDev,
-      vkSurf,
-      &availableFormatCount,
-      availableFormats);
-
-  if (!availableFormatCount) {
+  u32 formatCount;
+  rvk_call(vkGetPhysicalDeviceSurfaceFormatsKHR, dev->vkPhysDev, vkSurf, &formatCount, null);
+  if (!formatCount) {
     diag_crash_msg("No Vulkan surface formats available");
   }
+  VkSurfaceFormatKHR* formats = alloc_array_t(g_alloc_scratch, VkSurfaceFormatKHR, formatCount);
+  rvk_call(vkGetPhysicalDeviceSurfaceFormatsKHR, dev->vkPhysDev, vkSurf, &formatCount, formats);
 
   // Prefer srgb, so the gpu can itself perform the linear to srgb conversion.
-  for (u32 i = 0; i != availableFormatCount; ++i) {
-    if (availableFormats[i].format == VK_FORMAT_B8G8R8A8_SRGB) {
-      return availableFormats[i];
+  for (u32 i = 0; i != formatCount; ++i) {
+    if (formats[i].format == VK_FORMAT_B8G8R8A8_SRGB) {
+      return formats[i];
     }
   }
 
   log_w("No SRGB surface format available");
-  return availableFormats[0];
+  return formats[0];
 }
 
 static u32 rvk_pick_imagecount(const VkSurfaceCapabilitiesKHR* caps) {
