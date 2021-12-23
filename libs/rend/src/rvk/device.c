@@ -298,18 +298,6 @@ static VkDevice rvk_device_create_internal(RvkDevice* dev) {
   return result;
 }
 
-static VkCommandPool rvk_device_commandpool_create(RvkDevice* dev, const u32 queueIndex) {
-  VkCommandPoolCreateInfo createInfo = {
-      .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-      .queueFamilyIndex = queueIndex,
-      .flags =
-          VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-  };
-  VkCommandPool result;
-  rvk_call(vkCreateCommandPool, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
-  return result;
-}
-
 static VkFormat rvk_device_pick_depthformat(RvkDevice* dev) {
   static const VkFormat             desiredFormat = VK_FORMAT_D32_SFLOAT;
   static const VkFormatFeatureFlags features      = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
@@ -343,26 +331,16 @@ RvkDevice* rvk_device_create() {
 
   dev->vkDev = rvk_device_create_internal(dev);
   vkGetDeviceQueue(dev->vkDev, dev->graphicsQueueIndex, 0, &dev->vkGraphicsQueue);
-  dev->vkGraphicsCommandPool = rvk_device_commandpool_create(dev, dev->graphicsQueueIndex);
-
-  if (dev->transferQueueIndex != dev->graphicsQueueIndex) {
-    vkGetDeviceQueue(dev->vkDev, dev->transferQueueIndex, 0, &dev->vkTransferQueue);
-    dev->vkTransferCommandPool = rvk_device_commandpool_create(dev, dev->transferQueueIndex);
-  } else {
-    dev->vkTransferQueue       = dev->vkGraphicsQueue;
-    dev->vkTransferCommandPool = dev->vkGraphicsCommandPool;
-  }
+  vkGetDeviceQueue(dev->vkDev, dev->transferQueueIndex, 0, &dev->vkTransferQueue);
 
   dev->vkDepthFormat = rvk_device_pick_depthformat(dev);
 
   if (dev->flags & RvkDeviceFlags_Validation) {
     dev->debug = rvk_debug_create(dev->vkInst, dev->vkDev, &dev->vkAlloc, g_debugFlags);
     rvk_name_queue(dev->debug, dev->vkGraphicsQueue, "graphics");
-    rvk_name_commandpool(dev->debug, dev->vkGraphicsCommandPool, "graphics");
 
     if (dev->vkTransferQueue != dev->vkGraphicsQueue) {
       rvk_name_queue(dev->debug, dev->vkTransferQueue, "transfer");
-      rvk_name_commandpool(dev->debug, dev->vkTransferCommandPool, "transfer");
     }
   }
 
@@ -390,11 +368,6 @@ void rvk_device_destroy(RvkDevice* dev) {
   rvk_transferer_destroy(dev->transferer);
   rvk_desc_pool_destroy(dev->descPool);
   rvk_mem_pool_destroy(dev->memPool);
-
-  vkDestroyCommandPool(dev->vkDev, dev->vkGraphicsCommandPool, &dev->vkAlloc);
-  if (dev->transferQueueIndex != dev->graphicsQueueIndex) {
-    vkDestroyCommandPool(dev->vkDev, dev->vkTransferCommandPool, &dev->vkAlloc);
-  }
   vkDestroyDevice(dev->vkDev, &dev->vkAlloc);
 
   if (dev->debug) {

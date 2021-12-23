@@ -25,7 +25,6 @@ typedef struct sRvkDevice {
   VkFormat                         vkDepthFormat;
   u32                              graphicsQueueIndex, transferQueueIndex;
   VkQueue                          vkGraphicsQueue, vkTransferQueue;
-  VkCommandPool                    vkGraphicsCommandPool, vkTransferCommandPool;
   RvkMemPool*                      memPool;
   RvkDescPool*                     descPool;
   RvkTransferer*                   transferer;

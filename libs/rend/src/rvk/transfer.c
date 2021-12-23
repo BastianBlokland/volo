@@ -34,15 +34,28 @@ typedef struct {
 } RvkTransferBuffer;
 
 struct sRvkTransferer {
-  RvkDevice*  dev;
-  ThreadMutex mutex;
-  DynArray    buffers; // RvkTransferBuffer[]
+  RvkDevice*    dev;
+  ThreadMutex   mutex;
+  VkCommandPool vkCmdPool;
+  DynArray      buffers; // RvkTransferBuffer[]
 };
 
-static VkCommandBuffer rvk_commandbuffer_create(RvkDevice* dev) {
-  VkCommandBufferAllocateInfo allocInfo = {
+static VkCommandPool rvk_commandpool_create(RvkDevice* dev, const u32 queueIndex) {
+  VkCommandPoolCreateInfo createInfo = {
+      .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+      .queueFamilyIndex = queueIndex,
+      .flags =
+          VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+  };
+  VkCommandPool result;
+  rvk_call(vkCreateCommandPool, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
+  return result;
+}
+
+static VkCommandBuffer rvk_commandbuffer_create(RvkDevice* dev, VkCommandPool vkCmdPool) {
+  const VkCommandBufferAllocateInfo allocInfo = {
       .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-      .commandPool        = dev->vkTransferCommandPool,
+      .commandPool        = vkCmdPool,
       .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
       .commandBufferCount = 1,
   };
@@ -74,7 +87,7 @@ static RvkTransferBuffer* rvk_transfer_buffer_create(RvkTransferer* trans) {
   *buffer                   = (RvkTransferBuffer){
       .hostBuffer =
           rvk_buffer_create(trans->dev, rvk_transfer_buffer_size, RvkBufferType_HostTransfer),
-      .vkCmdBuffer     = rvk_commandbuffer_create(trans->dev),
+      .vkCmdBuffer     = rvk_commandbuffer_create(trans->dev, trans->vkCmdPool),
       .vkFinishedFence = rvk_fence_create(trans->dev, true),
   };
 
@@ -145,9 +158,10 @@ static void rvk_transfer_submit(RvkTransferer* trans, RvkTransferBuffer* buffer)
 RvkTransferer* rvk_transferer_create(RvkDevice* dev) {
   RvkTransferer* transferer = alloc_alloc_t(g_alloc_heap, RvkTransferer);
   *transferer               = (RvkTransferer){
-      .dev     = dev,
-      .mutex   = thread_mutex_create(g_alloc_heap),
-      .buffers = dynarray_create_t(g_alloc_heap, RvkTransferBuffer, 8),
+      .dev       = dev,
+      .mutex     = thread_mutex_create(g_alloc_heap),
+      .vkCmdPool = rvk_commandpool_create(dev, dev->transferQueueIndex),
+      .buffers   = dynarray_create_t(g_alloc_heap, RvkTransferBuffer, 8),
   };
   return transferer;
 }
@@ -156,11 +170,10 @@ void rvk_transferer_destroy(RvkTransferer* transferer) {
 
   dynarray_for_t(&transferer->buffers, RvkTransferBuffer, buffer) {
     rvk_buffer_destroy(&buffer->hostBuffer, transferer->dev);
-    vkFreeCommandBuffers(
-        transferer->dev->vkDev, transferer->dev->vkTransferCommandPool, 1, &buffer->vkCmdBuffer);
     vkDestroyFence(transferer->dev->vkDev, buffer->vkFinishedFence, &transferer->dev->vkAlloc);
   }
 
+  vkDestroyCommandPool(transferer->dev->vkDev, transferer->vkCmdPool, &transferer->dev->vkAlloc);
   thread_mutex_destroy(transferer->mutex);
   dynarray_destroy(&transferer->buffers);
 

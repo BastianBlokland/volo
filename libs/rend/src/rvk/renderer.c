@@ -7,6 +7,8 @@
 #include "pass_internal.h"
 #include "renderer_internal.h"
 
+#include <vulkan/vulkan_core.h>
+
 typedef enum {
   RvkRendererFlags_Active = 1 << 0,
 } RvkRendererFlags;
@@ -16,6 +18,7 @@ struct sRvkRenderer {
   RvkPass*         forwardPass;
   VkSemaphore      semaphoreBegin, semaphoreDone;
   VkFence          fenceRenderDone;
+  VkCommandPool    vkCmdPool;
   VkCommandBuffer  vkDrawBuffer;
   RvkRendererFlags flags;
   RvkImage*        currentTarget;
@@ -38,16 +41,31 @@ static VkFence rvk_fence_create(RvkDevice* dev, const bool initialState) {
   return result;
 }
 
-static VkCommandBuffer rvk_commandbuffer_create(RvkDevice* dev) {
+static VkCommandPool rvk_commandpool_create(RvkDevice* dev, const u32 queueIndex) {
+  VkCommandPoolCreateInfo createInfo = {
+      .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+      .queueFamilyIndex = queueIndex,
+      .flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+  };
+  VkCommandPool result;
+  rvk_call(vkCreateCommandPool, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
+  return result;
+}
+
+static VkCommandBuffer rvk_commandbuffer_create(RvkDevice* dev, VkCommandPool vkCmdPool) {
   const VkCommandBufferAllocateInfo allocInfo = {
       .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-      .commandPool        = dev->vkGraphicsCommandPool,
+      .commandPool        = vkCmdPool,
       .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
       .commandBufferCount = 1,
   };
   VkCommandBuffer result;
   rvk_call(vkAllocateCommandBuffers, dev->vkDev, &allocInfo, &result);
   return result;
+}
+
+static void rvk_commandpool_reset(RvkDevice* dev, VkCommandPool vkCmdPool) {
+  rvk_call(vkResetCommandPool, dev->vkDev, vkCmdPool, 0);
 }
 
 static void rvk_commandbuffer_begin(VkCommandBuffer vkCmdBuf) {
@@ -84,9 +102,10 @@ RvkRenderer* rvk_renderer_create(RvkDevice* dev) {
       .semaphoreBegin  = rvk_semaphore_create(dev),
       .semaphoreDone   = rvk_semaphore_create(dev),
       .fenceRenderDone = rvk_fence_create(dev, true),
-      .vkDrawBuffer    = rvk_commandbuffer_create(dev),
+      .vkCmdPool       = rvk_commandpool_create(dev, dev->graphicsQueueIndex),
   };
-  renderer->forwardPass = rvk_pass_create(dev, renderer->vkDrawBuffer);
+  renderer->vkDrawBuffer = rvk_commandbuffer_create(dev, renderer->vkCmdPool);
+  renderer->forwardPass  = rvk_pass_create(dev, renderer->vkDrawBuffer);
   return renderer;
 }
 
@@ -95,7 +114,7 @@ void rvk_renderer_destroy(RvkRenderer* rend) {
 
   rvk_pass_destroy(rend->forwardPass);
 
-  vkFreeCommandBuffers(rend->dev->vkDev, rend->dev->vkGraphicsCommandPool, 1, &rend->vkDrawBuffer);
+  vkDestroyCommandPool(rend->dev->vkDev, rend->vkCmdPool, &rend->dev->vkAlloc);
   vkDestroySemaphore(rend->dev->vkDev, rend->semaphoreBegin, &rend->dev->vkAlloc);
   vkDestroySemaphore(rend->dev->vkDev, rend->semaphoreDone, &rend->dev->vkAlloc);
   vkDestroyFence(rend->dev->vkDev, rend->fenceRenderDone, &rend->dev->vkAlloc);
@@ -117,6 +136,7 @@ void rvk_renderer_begin(RvkRenderer* rend, RvkImage* target) {
   rend->currentTarget = target;
 
   rvk_renderer_wait_for_done(rend);
+  rvk_commandpool_reset(rend->dev, rend->vkCmdPool);
 
   rvk_pass_setup(rend->forwardPass, target->size);
   rvk_commandbuffer_begin(rend->vkDrawBuffer);
