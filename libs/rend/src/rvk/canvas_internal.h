@@ -1,27 +1,15 @@
 #pragma once
-#include "core_alloc.h"
-#include "rend_color.h"
+#include "gap_window.h"
 #include "rend_size.h"
 
-#include "renderer_internal.h"
-
 // Internal forward declarations:
-typedef struct sRvkDevice    RvkDevice;
-typedef struct sRvkGraphic   RvkGraphic;
-typedef struct sRvkSwapchain RvkSwapchain;
-typedef struct sRvkTechnique RvkTechnique;
+typedef struct sRvkDevice RvkDevice;
+typedef struct sRvkPass   RvkPass;
 
-typedef struct sRvkCanvas {
-  RvkDevice*      device;
-  RvkSwapchain*   swapchain;
-  RvkTechnique*   technique;
-  RvkRenderer*    renderers[2];
-  u32             rendererIdx;
-  RvkSwapchainIdx swapchainIdx;
-} RvkCanvas;
+typedef struct sRvkCanvas RvkCanvas;
 
 RvkCanvas* rvk_canvas_create(RvkDevice*, const GapWindowComp*);
 void       rvk_canvas_destroy(RvkCanvas*);
-bool       rvk_canvas_draw_begin(RvkCanvas*, RendSize, RendColor clearColor);
-void       rvk_canvas_draw_inst(RvkCanvas*, RvkGraphic*);
-void       rvk_canvas_draw_end(RvkCanvas*);
+bool       rvk_canvas_begin(RvkCanvas*, RendSize);
+RvkPass*   rvk_canvas_pass_forward(RvkCanvas*);
+void       rvk_canvas_end(RvkCanvas*);

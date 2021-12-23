@@ -309,7 +309,7 @@ static void rvk_mem_chunk_flush(RvkMemChunk* chunk, const u32 offset, const u32 
     paddedSize = chunk->size - offset;
   }
 
-  VkMappedMemoryRange mappedMemoryRange = {
+  const VkMappedMemoryRange mappedMemoryRange = {
       .sType  = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
       .memory = chunk->vkMem,
       .offset = alignedOffset,

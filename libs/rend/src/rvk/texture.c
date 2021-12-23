@@ -3,16 +3,14 @@
 
 #include "device_internal.h"
 #include "image_internal.h"
-#include "platform_internal.h"
 #include "texture_internal.h"
 #include "transfer_internal.h"
 
-RvkTexture* rvk_texture_create(RvkPlatform* plat, const AssetTextureComp* asset) {
+RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset) {
   RvkTexture* texture = alloc_alloc_t(g_alloc_heap, RvkTexture);
   *texture            = (RvkTexture){
-      .platform = plat,
+      .device = dev,
   };
-  RvkDevice* dev = rvk_platform_device(plat);
 
   const VkFormat vkFormat = VK_FORMAT_R8G8B8A8_UNORM;
   diag_assert(rvk_format_info(vkFormat).size == sizeof(AssetTexturePixel));
@@ -37,16 +35,14 @@ RvkTexture* rvk_texture_create(RvkPlatform* plat, const AssetTextureComp* asset)
 
 void rvk_texture_destroy(RvkTexture* texture) {
 
-  RvkDevice* dev = rvk_platform_device(texture->platform);
+  RvkDevice* dev = texture->device;
   rvk_image_destroy(&texture->image, dev);
 
   alloc_free_t(g_alloc_heap, texture);
 }
 
-bool rvk_texture_prepare(RvkTexture* texture, const RvkCanvas* canvas) {
-  (void)canvas;
-
-  RvkDevice* dev = rvk_platform_device(texture->platform);
+bool rvk_texture_prepare(RvkTexture* texture) {
+  RvkDevice* dev = texture->device;
   if (!rvk_transfer_poll(dev->transferer, texture->pixelTransfer)) {
     return false;
   }

@@ -7,6 +7,14 @@
 #include "device_internal.h"
 #include "image_internal.h"
 
+static u32 rvk_compute_miplevels(const RendSize size) {
+  /**
+   * Check how many times we can cut the image in half before both sides hit 1 pixel.
+   */
+  const u32 biggestSide = math_max(size.width, size.height);
+  return 32 - bits_clz_32(biggestSide);
+}
+
 static void rvk_image_barrier(
     VkCommandBuffer            buffer,
     const RvkImage*            image,
@@ -38,7 +46,7 @@ static void rvk_image_barrier(
 static VkAccessFlags rvk_image_vkaccess(const RvkImagePhase phase) {
   switch (phase) {
   case RvkImagePhase_Undefined:
-    return VK_ACCESS_NONE_KHR;
+    return 0;
   case RvkImagePhase_TransferSource:
     return VK_ACCESS_TRANSFER_READ_BIT;
   case RvkImagePhase_TransferDest:
@@ -47,9 +55,9 @@ static VkAccessFlags rvk_image_vkaccess(const RvkImagePhase phase) {
     return VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
   case RvkImagePhase_ShaderRead:
     // TODO: Update to 'VK_ACCESS_SHADER_READ_BIT'.
-    return VK_ACCESS_NONE_KHR;
+    return 0;
   case RvkImagePhase_Present:
-    return VK_ACCESS_NONE_KHR;
+    return 0;
   case RvkImagePhase_Count:
     break;
   }
@@ -97,14 +105,6 @@ static VkImageLayout rvk_image_vklayout(const RvkImagePhase phase) {
   diag_crash_msg("Unsupported image phase");
 }
 
-static u32 rvk_compute_miplevels(const RendSize size) {
-  /**
-   * Check how many times we can cut the image in half before both sides hit 1 pixel.
-   */
-  const u32 biggestSide = math_max(size.width, size.height);
-  return 32 - bits_clz_32(biggestSide);
-}
-
 static VkImageAspectFlags rvk_image_vkaspect(const RvkImageType type) {
   switch (type) {
   case RvkImageType_ColorSource:
@@ -124,7 +124,7 @@ static VkImageUsageFlags rvk_image_vkusage(const RvkImageType type, const RvkIma
     return VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
            (flags & RvkImageFlags_GenerateMipMaps ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : 0);
   case RvkImageType_ColorAttachment:
-    return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
   case RvkImageType_DepthAttachment:
     return VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
   case RvkImageType_Swapchain:
@@ -246,28 +246,24 @@ RvkImage rvk_image_create_swapchain(
     VkFormat            vkFormat,
     const RendSize      size,
     const RvkImageFlags flags) {
+  (void)dev;
   diag_assert(!(flags & RvkImageFlags_GenerateMipMaps));
 
-  const VkImageAspectFlags vkAspect  = VK_IMAGE_ASPECT_COLOR_BIT;
-  const u8                 mipLevels = 1;
-  const VkImageView vkView = rvk_vkimageview_create(dev, vkImage, vkFormat, vkAspect, mipLevels);
-
   return (RvkImage){
-      .type        = RvkImageType_Swapchain,
-      .flags       = flags,
-      .mipLevels   = mipLevels,
-      .vkFormat    = vkFormat,
-      .size        = size,
-      .vkImage     = vkImage,
-      .vkImageView = vkView,
+      .type      = RvkImageType_Swapchain,
+      .flags     = flags,
+      .mipLevels = 1,
+      .vkFormat  = vkFormat,
+      .size      = size,
+      .vkImage   = vkImage,
   };
 }
 
 void rvk_image_destroy(RvkImage* img, RvkDevice* dev) {
   if (img->type != RvkImageType_Swapchain) {
     vkDestroyImage(dev->vkDev, img->vkImage, &dev->vkAlloc);
+    vkDestroyImageView(dev->vkDev, img->vkImageView, &dev->vkAlloc);
   }
-  vkDestroyImageView(dev->vkDev, img->vkImageView, &dev->vkAlloc);
   if (rvk_mem_valid(img->mem)) {
     rvk_mem_free(img->mem);
   }
@@ -302,7 +298,7 @@ void rvk_image_assert_phase(const RvkImage* image, const RvkImagePhase phase) {
   (void)phase;
   diag_assert_msg(
       image->phase == phase,
-      "Expected image phase {} but found {}",
+      "Expected image phase '{}'; but found '{}'",
       fmt_text(rvk_image_phase_str(phase)),
       fmt_text(rvk_image_phase_str(image->phase)));
 }
@@ -322,4 +318,85 @@ void rvk_image_transition(RvkImage* image, VkCommandBuffer vkCmdBuf, const RvkIm
 
 void rvk_image_transition_external(RvkImage* image, const RvkImagePhase phase) {
   image->phase = phase;
+}
+
+void rvk_image_copy(const RvkImage* src, RvkImage* dest, VkCommandBuffer vkCmdBuf) {
+  rvk_image_assert_phase(src, RvkImagePhase_TransferSource);
+  rvk_image_assert_phase(dest, RvkImagePhase_TransferDest);
+  diag_assert_msg(rend_size_equal(src->size, dest->size), "Image copy requires matching sizes");
+
+  const VkImageCopy regions[] = {
+      {
+          .srcSubresource.aspectMask = rvk_image_vkaspect(src->type),
+          .srcSubresource.mipLevel   = 0,
+          .srcSubresource.layerCount = 1,
+          .dstSubresource.aspectMask = rvk_image_vkaspect(dest->type),
+          .dstSubresource.mipLevel   = 0,
+          .dstSubresource.layerCount = 1,
+          .extent.width              = src->size.width,
+          .extent.height             = src->size.height,
+          .extent.depth              = 1,
+      },
+  };
+  vkCmdCopyImage(
+      vkCmdBuf,
+      src->vkImage,
+      rvk_image_vklayout(src->phase),
+      dest->vkImage,
+      rvk_image_vklayout(dest->phase),
+      array_elems(regions),
+      regions);
+}
+
+void rvk_image_blit(const RvkImage* src, RvkImage* dest, VkCommandBuffer vkCmdBuf) {
+  rvk_image_assert_phase(src, RvkImagePhase_TransferSource);
+  rvk_image_assert_phase(dest, RvkImagePhase_TransferDest);
+
+  const VkImageBlit regions[] = {
+      {
+          .srcSubresource.aspectMask = rvk_image_vkaspect(src->type),
+          .srcSubresource.mipLevel   = 0,
+          .srcSubresource.layerCount = 1,
+          .srcOffsets[1].x           = src->size.width,
+          .srcOffsets[1].y           = src->size.height,
+          .srcOffsets[1].z           = 1,
+          .dstSubresource.aspectMask = rvk_image_vkaspect(dest->type),
+          .dstSubresource.mipLevel   = 0,
+          .dstSubresource.layerCount = 1,
+          .dstOffsets[1].x           = dest->size.width,
+          .dstOffsets[1].y           = dest->size.height,
+          .dstOffsets[1].z           = 1,
+      },
+  };
+  vkCmdBlitImage(
+      vkCmdBuf,
+      src->vkImage,
+      rvk_image_vklayout(src->phase),
+      dest->vkImage,
+      rvk_image_vklayout(dest->phase),
+      array_elems(regions),
+      regions,
+      VK_FILTER_LINEAR);
+}
+
+void rvk_image_clear(const RvkImage* img, const RendColor color, VkCommandBuffer vkCmdBuf) {
+  rvk_image_assert_phase(img, RvkImagePhase_TransferDest);
+
+  const VkClearColorValue       clearColor = *(VkClearColorValue*)&color;
+  const VkImageSubresourceRange ranges[]   = {
+      {
+          .aspectMask     = rvk_image_vkaspect(img->type),
+          .baseMipLevel   = 0,
+          .levelCount     = img->mipLevels,
+          .baseArrayLayer = 0,
+          .layerCount     = 0,
+      },
+  };
+  vkCmdClearColorImage(
+      vkCmdBuf,
+      img->vkImage,
+      rvk_image_vklayout(img->phase),
+      &clearColor,
+      array_elems(ranges),
+      ranges);
 }

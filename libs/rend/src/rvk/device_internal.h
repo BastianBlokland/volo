@@ -5,6 +5,7 @@
 // Internal forward declarations:
 typedef struct sRvkDescPool   RvkDescPool;
 typedef struct sRvkMemPool    RvkMemPool;
+typedef struct sRvkRepository RvkRepository;
 typedef struct sRvkTransferer RvkTransferer;
 
 typedef enum {
@@ -24,10 +25,10 @@ typedef struct sRvkDevice {
   VkFormat                         vkDepthFormat;
   u32                              graphicsQueueIndex, transferQueueIndex;
   VkQueue                          vkGraphicsQueue, vkTransferQueue;
-  VkCommandPool                    vkGraphicsCommandPool, vkTransferCommandPool;
   RvkMemPool*                      memPool;
   RvkDescPool*                     descPool;
   RvkTransferer*                   transferer;
+  RvkRepository*                   repository;
 } RvkDevice;
 
 RvkDevice* rvk_device_create();

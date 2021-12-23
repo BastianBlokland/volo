@@ -1,21 +1,19 @@
 #pragma once
-#include "rend_color.h"
-
-#include "swapchain_internal.h"
+#include "vulkan_internal.h"
 
 // Internal forward declarations:
-typedef struct sRvkDevice    RvkDevice;
-typedef struct sRvkGraphic   RvkGraphic;
-typedef struct sRvkTechnique RvkTechnique;
+typedef struct sRvkDevice RvkDevice;
+typedef struct sRvkPass   RvkPass;
+typedef struct sRvkImage  RvkImage;
 
 typedef struct sRvkRenderer RvkRenderer;
 
-RvkRenderer* rvk_renderer_create(RvkDevice*, RvkSwapchain*);
+RvkRenderer* rvk_renderer_create(RvkDevice*);
 void         rvk_renderer_destroy(RvkRenderer*);
-VkSemaphore  rvk_renderer_image_available(RvkRenderer*);
-VkSemaphore  rvk_renderer_image_ready(RvkRenderer*);
+VkSemaphore  rvk_renderer_semaphore_begin(RvkRenderer*);
+VkSemaphore  rvk_renderer_semaphore_done(RvkRenderer*);
 void         rvk_renderer_wait_for_done(const RvkRenderer*);
 
-void rvk_renderer_draw_begin(RvkRenderer*, RvkTechnique*, RvkSwapchainIdx, RendColor clearColor);
-void rvk_renderer_draw_inst(RvkRenderer*, RvkGraphic*);
-void rvk_renderer_draw_end(RvkRenderer*, RvkTechnique*, RvkSwapchainIdx);
+void     rvk_renderer_begin(RvkRenderer*, RvkImage* target);
+RvkPass* rvk_renderer_pass_forward(RvkRenderer*);
+void     rvk_renderer_end(RvkRenderer*);

@@ -3,16 +3,25 @@
 #include "rend_size.h"
 
 #include "device_internal.h"
-#include "graphic_internal.h"
+#include "image_internal.h"
+#include "pass_internal.h"
 #include "renderer_internal.h"
-#include "technique_internal.h"
+
+#include <vulkan/vulkan_core.h>
+
+typedef enum {
+  RvkRendererFlags_Active = 1 << 0,
+} RvkRendererFlags;
 
 struct sRvkRenderer {
-  RvkDevice*      dev;
-  RvkSwapchain*   swapchain;
-  VkSemaphore     imageAvailable, imageReady;
-  VkFence         renderDone;
-  VkCommandBuffer vkDrawBuffer;
+  RvkDevice*       dev;
+  RvkPass*         forwardPass;
+  VkSemaphore      semaphoreBegin, semaphoreDone;
+  VkFence          fenceRenderDone;
+  VkCommandPool    vkCmdPool;
+  VkCommandBuffer  vkDrawBuffer;
+  RvkRendererFlags flags;
+  RvkImage*        currentTarget;
 };
 
 static VkSemaphore rvk_semaphore_create(RvkDevice* dev) {
@@ -23,7 +32,7 @@ static VkSemaphore rvk_semaphore_create(RvkDevice* dev) {
 }
 
 static VkFence rvk_fence_create(RvkDevice* dev, const bool initialState) {
-  VkFenceCreateInfo fenceInfo = {
+  const VkFenceCreateInfo fenceInfo = {
       .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
       .flags = initialState ? VK_FENCE_CREATE_SIGNALED_BIT : 0,
   };
@@ -32,10 +41,21 @@ static VkFence rvk_fence_create(RvkDevice* dev, const bool initialState) {
   return result;
 }
 
-static VkCommandBuffer rvk_commandbuffer_create(RvkDevice* dev) {
-  VkCommandBufferAllocateInfo allocInfo = {
+static VkCommandPool rvk_commandpool_create(RvkDevice* dev, const u32 queueIndex) {
+  VkCommandPoolCreateInfo createInfo = {
+      .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+      .queueFamilyIndex = queueIndex,
+      .flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+  };
+  VkCommandPool result;
+  rvk_call(vkCreateCommandPool, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
+  return result;
+}
+
+static VkCommandBuffer rvk_commandbuffer_create(RvkDevice* dev, VkCommandPool vkCmdPool) {
+  const VkCommandBufferAllocateInfo allocInfo = {
       .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-      .commandPool        = dev->vkGraphicsCommandPool,
+      .commandPool        = vkCmdPool,
       .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
       .commandBufferCount = 1,
   };
@@ -44,8 +64,12 @@ static VkCommandBuffer rvk_commandbuffer_create(RvkDevice* dev) {
   return result;
 }
 
+static void rvk_commandpool_reset(RvkDevice* dev, VkCommandPool vkCmdPool) {
+  rvk_call(vkResetCommandPool, dev->vkDev, vkCmdPool, 0);
+}
+
 static void rvk_commandbuffer_begin(VkCommandBuffer vkCmdBuf) {
-  VkCommandBufferBeginInfo beginInfo = {
+  const VkCommandBufferBeginInfo beginInfo = {
       .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
       .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
   };
@@ -57,103 +81,89 @@ static void rvk_commandbuffer_end(VkCommandBuffer vkCmdBuf) {
 }
 
 static void rvk_renderer_submit(RvkRenderer* rend) {
-  const VkPipelineStageFlags waitStage  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  const VkPipelineStageFlags waitStage  = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
   VkSubmitInfo               submitInfo = {
       .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
       .waitSemaphoreCount   = 1,
-      .pWaitSemaphores      = &rend->imageAvailable,
+      .pWaitSemaphores      = &rend->semaphoreBegin,
       .pWaitDstStageMask    = &waitStage,
       .commandBufferCount   = 1,
       .pCommandBuffers      = &rend->vkDrawBuffer,
       .signalSemaphoreCount = 1,
-      .pSignalSemaphores    = &rend->imageReady,
+      .pSignalSemaphores    = &rend->semaphoreDone,
   };
-  rvk_call(vkQueueSubmit, rend->dev->vkGraphicsQueue, 1, &submitInfo, rend->renderDone);
+  rvk_call(vkQueueSubmit, rend->dev->vkGraphicsQueue, 1, &submitInfo, rend->fenceRenderDone);
 }
 
-static void rvk_viewport_set(VkCommandBuffer vkCmdBuf, const RendSize size) {
-  VkViewport viewport = {
-      .x        = 0.0f,
-      .y        = 0.0f,
-      .width    = (f32)size.width,
-      .height   = (f32)size.height,
-      .minDepth = 0.0f,
-      .maxDepth = 1.0f,
-  };
-  vkCmdSetViewport(vkCmdBuf, 0, 1, &viewport);
-}
-
-static void rvk_scissor_set(VkCommandBuffer vkCmdBuf, const RendSize size) {
-  VkRect2D scissor = {
-      .offset        = {0, 0},
-      .extent.width  = size.width,
-      .extent.height = size.height,
-  };
-  vkCmdSetScissor(vkCmdBuf, 0, 1, &scissor);
-}
-
-RvkRenderer* rvk_renderer_create(RvkDevice* dev, RvkSwapchain* swapchain) {
+RvkRenderer* rvk_renderer_create(RvkDevice* dev) {
   RvkRenderer* renderer = alloc_alloc_t(g_alloc_heap, RvkRenderer);
   *renderer             = (RvkRenderer){
-      .dev            = dev,
-      .swapchain      = swapchain,
-      .imageAvailable = rvk_semaphore_create(dev),
-      .imageReady     = rvk_semaphore_create(dev),
-      .renderDone     = rvk_fence_create(dev, true),
-      .vkDrawBuffer   = rvk_commandbuffer_create(dev),
+      .dev             = dev,
+      .semaphoreBegin  = rvk_semaphore_create(dev),
+      .semaphoreDone   = rvk_semaphore_create(dev),
+      .fenceRenderDone = rvk_fence_create(dev, true),
+      .vkCmdPool       = rvk_commandpool_create(dev, dev->graphicsQueueIndex),
   };
+  renderer->vkDrawBuffer = rvk_commandbuffer_create(dev, renderer->vkCmdPool);
+  renderer->forwardPass  = rvk_pass_create(dev, renderer->vkDrawBuffer);
   return renderer;
 }
 
 void rvk_renderer_destroy(RvkRenderer* rend) {
-  vkFreeCommandBuffers(rend->dev->vkDev, rend->dev->vkGraphicsCommandPool, 1, &rend->vkDrawBuffer);
-  vkDestroySemaphore(rend->dev->vkDev, rend->imageAvailable, &rend->dev->vkAlloc);
-  vkDestroySemaphore(rend->dev->vkDev, rend->imageReady, &rend->dev->vkAlloc);
-  vkDestroyFence(rend->dev->vkDev, rend->renderDone, &rend->dev->vkAlloc);
+  rvk_renderer_wait_for_done(rend);
+
+  rvk_pass_destroy(rend->forwardPass);
+
+  vkDestroyCommandPool(rend->dev->vkDev, rend->vkCmdPool, &rend->dev->vkAlloc);
+  vkDestroySemaphore(rend->dev->vkDev, rend->semaphoreBegin, &rend->dev->vkAlloc);
+  vkDestroySemaphore(rend->dev->vkDev, rend->semaphoreDone, &rend->dev->vkAlloc);
+  vkDestroyFence(rend->dev->vkDev, rend->fenceRenderDone, &rend->dev->vkAlloc);
 
   alloc_free_t(g_alloc_heap, rend);
 }
 
-VkSemaphore rvk_renderer_image_available(RvkRenderer* rend) { return rend->imageAvailable; }
-
-VkSemaphore rvk_renderer_image_ready(RvkRenderer* rend) { return rend->imageReady; }
+VkSemaphore rvk_renderer_semaphore_begin(RvkRenderer* rend) { return rend->semaphoreBegin; }
+VkSemaphore rvk_renderer_semaphore_done(RvkRenderer* rend) { return rend->semaphoreDone; }
 
 void rvk_renderer_wait_for_done(const RvkRenderer* rend) {
-  rvk_call(vkWaitForFences, rend->dev->vkDev, 1, &rend->renderDone, true, u64_max);
+  rvk_call(vkWaitForFences, rend->dev->vkDev, 1, &rend->fenceRenderDone, true, u64_max);
 }
 
-void rvk_renderer_draw_begin(
-    RvkRenderer*          rend,
-    RvkTechnique*         tech,
-    const RvkSwapchainIdx swapchainIdx,
-    const RendColor       clearColor) {
+void rvk_renderer_begin(RvkRenderer* rend, RvkImage* target) {
+  diag_assert_msg(!(rend->flags & RvkRendererFlags_Active), "Renderer already active");
+
+  rend->flags |= RvkRendererFlags_Active;
+  rend->currentTarget = target;
 
   rvk_renderer_wait_for_done(rend);
+  rvk_commandpool_reset(rend->dev, rend->vkCmdPool);
+
+  rvk_pass_setup(rend->forwardPass, target->size);
   rvk_commandbuffer_begin(rend->vkDrawBuffer);
-
-  rvk_technique_begin(tech, rend->vkDrawBuffer, swapchainIdx, clearColor);
-
-  RvkImage* targetImage = rvk_swapchain_image(rend->swapchain, swapchainIdx);
-  rvk_viewport_set(rend->vkDrawBuffer, targetImage->size);
-  rvk_scissor_set(rend->vkDrawBuffer, targetImage->size);
 }
 
-void rvk_renderer_draw_inst(RvkRenderer* rend, RvkGraphic* graphic) {
-
-  diag_assert_msg(graphic->vkPipeline, "Graphic not initialized");
-
-  rvk_graphic_bind(graphic, rend->vkDrawBuffer);
-
-  const u32 indexCount = rvk_graphic_index_count(graphic);
-  vkCmdDrawIndexed(rend->vkDrawBuffer, indexCount, 1, 0, 0, 0);
+RvkPass* rvk_renderer_pass_forward(RvkRenderer* rend) {
+  diag_assert_msg(rend->flags & RvkRendererFlags_Active, "Renderer not active");
+  return rend->forwardPass;
 }
 
-void rvk_renderer_draw_end(
-    RvkRenderer* rend, RvkTechnique* tech, const RvkSwapchainIdx swapchainIdx) {
+void rvk_renderer_end(RvkRenderer* rend) {
+  diag_assert_msg(rend->flags & RvkRendererFlags_Active, "Renderer not active");
+  diag_assert_msg(!rvk_pass_active(rend->forwardPass), "Forward pass is still active");
 
-  rvk_technique_end(tech, rend->vkDrawBuffer, swapchainIdx);
+  // Wait for rendering to be done.
+  rvk_pass_output_barrier(rend->forwardPass);
+
+  // Copy the output to the target.
+  rvk_image_transition(rend->currentTarget, rend->vkDrawBuffer, RvkImagePhase_TransferDest);
+  rvk_image_blit(rvk_pass_output(rend->forwardPass), rend->currentTarget, rend->vkDrawBuffer);
+  rvk_image_transition(rend->currentTarget, rend->vkDrawBuffer, RvkImagePhase_Present);
+
   rvk_commandbuffer_end(rend->vkDrawBuffer);
 
-  rvk_call(vkResetFences, rend->dev->vkDev, 1, &rend->renderDone);
+  rvk_call(vkResetFences, rend->dev->vkDev, 1, &rend->fenceRenderDone);
   rvk_renderer_submit(rend);
+
+  rend->flags &= ~RvkRendererFlags_Active;
+  rend->currentTarget = null;
 }

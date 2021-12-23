@@ -52,7 +52,6 @@ static int run_app(const String assetPath) {
 
   const EcsEntityId window =
       gap_window_create(world, GapWindowFlags_Default, gap_vector(1024, 768));
-  rend_canvas_create(world, window, rend_soothing_purple);
 
   u64 tickCount = 0;
   while (ecs_world_exists(world, window)) {

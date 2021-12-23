@@ -9,6 +9,8 @@
 #include "core_path.h"
 #include "core_time.h"
 
+#define fmt_txt_len_max (8 * usize_kibibyte)
+
 typedef enum {
   FormatReplOptKind_None = 0,
   FormatReplOptKind_PadLeft,
@@ -181,7 +183,11 @@ void format_write_arg(DynString* str, const FormatArg* arg) {
     format_write_size_pretty(str, arg->value_size);
     break;
   case FormatArgType_Text:
-    format_write_text(str, arg->value_text, arg->settings);
+    format_write_text(
+        str,
+        arg->value_text.size > fmt_txt_len_max ? string_slice(arg->value_text, 0, fmt_txt_len_max)
+                                               : arg->value_text,
+        arg->settings);
     break;
   case FormatArgType_Char:
     format_write_char(str, arg->value_char, arg->settings);
@@ -199,7 +205,7 @@ void format_write_arg(DynString* str, const FormatArg* arg) {
 }
 
 String format_write_arg_scratch(const FormatArg* arg) {
-  Mem       scratchMem = alloc_alloc(g_alloc_scratch, usize_kibibyte, 1);
+  Mem       scratchMem = alloc_alloc(g_alloc_scratch, fmt_txt_len_max, 1);
   DynString str        = dynstring_create_over(scratchMem);
 
   format_write_arg(&str, arg);
