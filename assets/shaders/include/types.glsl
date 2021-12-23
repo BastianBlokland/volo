@@ -1,7 +1,7 @@
 #ifndef INCLUDE_TYPES
 #define INCLUDE_TYPES
 
-#extension GL_EXT_shader_explicit_arithmetic_types_float16 : enable
+#extension GL_EXT_shader_16bit_storage : enable
 
 #define i32 int
 #define i32_vec2 ivec2
