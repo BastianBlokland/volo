@@ -1,5 +1,6 @@
 #pragma once
 #include "asset_texture.h"
+#include "core_string.h"
 
 #include "image_internal.h"
 #include "transfer_internal.h"
@@ -14,6 +15,7 @@ typedef enum {
 
 typedef struct sRvkTexture {
   RvkDevice*      device;
+  String          dbgName;
   RvkImage        image;
   RvkTextureFlags flags;
   RvkTransferId   pixelTransfer;

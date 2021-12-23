@@ -17,7 +17,6 @@ static const RvkDebugFlags g_debugFlags       = rend_debug_verbose ? RvkDebugFla
 static const String        g_validationLayer  = string_static("VK_LAYER_KHRONOS_validation");
 static const String        g_validationExts[] = {
     string_static("VK_EXT_debug_utils"),
-    string_static("VK_EXT_validation_features"),
 };
 static VkValidationFeatureEnableEXT g_validationEnabledFeatures[] = {
     VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
@@ -38,6 +37,39 @@ static VkApplicationInfo rvk_instance_app_info() {
       .engineVersion      = VK_MAKE_VERSION(0, 1, 0),
       .apiVersion         = VK_API_VERSION_1_1,
   };
+}
+
+typedef struct {
+  VkExtensionProperties* values;
+  u32                    count;
+} RendVkExts;
+
+/**
+ * Query a list of all supported device extensions.
+ * NOTE: Free the list with 'rvk_device_exts_free()'
+ */
+static RendVkExts rvk_device_exts_query(VkPhysicalDevice vkPhysDev) {
+  u32 count;
+  rvk_call(vkEnumerateDeviceExtensionProperties, vkPhysDev, null, &count, null);
+  VkExtensionProperties* props = alloc_array_t(g_alloc_heap, VkExtensionProperties, count);
+  rvk_call(vkEnumerateDeviceExtensionProperties, vkPhysDev, null, &count, props);
+  return (RendVkExts){.values = props, .count = count};
+}
+
+static void rvk_vk_exts_free(RendVkExts exts) {
+  alloc_free_array_t(g_alloc_heap, exts.values, exts.count);
+}
+
+/**
+ * Check if the given extension is contained in the list of available device extensions.
+ */
+static bool rvk_device_has_ext(RendVkExts availableExts, String ext) {
+  array_ptr_for_t(availableExts, VkExtensionProperties, props) {
+    if (string_eq(ext, string_from_null_term(props->extensionName))) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -120,39 +152,6 @@ static VkInstance rvk_instance_create(VkAllocationCallbacks* vkAlloc, const RvkD
   return result;
 }
 
-typedef struct {
-  VkExtensionProperties* values;
-  u32                    count;
-} RendDeviceExts;
-
-/**
- * Query a list of all supported device extensions.
- * NOTE: Free the list with 'rvk_device_exts_free()'
- */
-static RendDeviceExts rvk_device_exts_query(VkPhysicalDevice vkPhysDev) {
-  u32 count;
-  rvk_call(vkEnumerateDeviceExtensionProperties, vkPhysDev, null, &count, null);
-  VkExtensionProperties* props = alloc_array_t(g_alloc_heap, VkExtensionProperties, count);
-  rvk_call(vkEnumerateDeviceExtensionProperties, vkPhysDev, null, &count, props);
-  return (RendDeviceExts){.values = props, .count = count};
-}
-
-static void rvk_device_exts_free(RendDeviceExts exts) {
-  alloc_free_array_t(g_alloc_heap, exts.values, exts.count);
-}
-
-/**
- * Check if the given extension is contained in the list of available device extensions.
- */
-static bool rvk_device_has_ext(RendDeviceExts availableExts, String ext) {
-  array_ptr_for_t(availableExts, VkExtensionProperties, props) {
-    if (string_eq(ext, string_from_null_term(props->extensionName))) {
-      return true;
-    }
-  }
-  return false;
-}
-
 static i32 rvk_device_type_score_value(const VkPhysicalDeviceType vkDevType) {
   switch (vkDevType) {
   case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
@@ -211,7 +210,7 @@ static VkPhysicalDevice rvk_device_pick_physical_device(VkInstance vkInst) {
   i32              bestScore      = -1;
 
   for (usize i = 0; i != vkPhysDevsCount; ++i) {
-    const RendDeviceExts exts = rvk_device_exts_query(vkPhysDevs[i]);
+    const RendVkExts exts = rvk_device_exts_query(vkPhysDevs[i]);
 
     i32 score = 0;
     array_for_t(g_requiredExts, String, reqExt) {
@@ -227,7 +226,7 @@ static VkPhysicalDevice rvk_device_pick_physical_device(VkInstance vkInst) {
     score += rvk_device_type_score_value(properties.deviceType);
 
   detectionDone:
-    rvk_device_exts_free(exts);
+    rvk_vk_exts_free(exts);
 
     log_d(
         "Vulkan physical device detected",

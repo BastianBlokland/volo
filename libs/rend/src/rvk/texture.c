@@ -20,7 +20,8 @@ static u32 rvk_compute_miplevels(const RendSize size) {
 RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, String dbgName) {
   RvkTexture* texture = alloc_alloc_t(g_alloc_heap, RvkTexture);
   *texture            = (RvkTexture){
-      .device = dev,
+      .device  = dev,
+      .dbgName = string_dup(g_alloc_heap, dbgName),
   };
 
   const VkFormat vkFormat = VK_FORMAT_R8G8B8A8_UNORM;
@@ -52,6 +53,7 @@ void rvk_texture_destroy(RvkTexture* texture) {
   RvkDevice* dev = texture->device;
   rvk_image_destroy(&texture->image, dev);
 
+  string_free(g_alloc_heap, texture->dbgName);
   alloc_free_t(g_alloc_heap, texture);
 }
 

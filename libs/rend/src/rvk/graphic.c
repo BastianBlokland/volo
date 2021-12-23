@@ -449,6 +449,13 @@ void rvk_graphic_sampler_add(
       const RvkSamplerAniso  anisotropy = rvk_graphic_aniso(sampler->anisotropy);
       itr->texture                      = texture;
       itr->sampler = rvk_sampler_create(dev, wrap, filter, anisotropy, texture->image.mipLevels);
+
+      rvk_debug_name_sampler(
+          graphic->device->debug,
+          itr->sampler.vkSampler,
+          "{}_{}",
+          fmt_text(graphic->dbgName),
+          fmt_text(texture->dbgName));
       return;
     }
   }

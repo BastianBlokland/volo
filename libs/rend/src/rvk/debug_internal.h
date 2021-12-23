@@ -37,6 +37,9 @@ void      rvk_debug_label_end(RvkDebug*, VkCommandBuffer);
 #define rvk_debug_name_img_view(_DBG_, _OBJ_, _LIT_, ...)                                          \
   rvk_debug_name_fmt(_DBG_, VK_OBJECT_TYPE_IMAGE_VIEW, _OBJ_, _LIT_ "_img_view", __VA_ARGS__)
 
+#define rvk_debug_name_sampler(_DBG_, _OBJ_, _LIT_, ...)                                           \
+  rvk_debug_name_fmt(_DBG_, VK_OBJECT_TYPE_SAMPLER, _OBJ_, _LIT_ "_sampler", __VA_ARGS__)
+
 #define rvk_debug_name_shader(_DBG_, _OBJ_, _LIT_, ...)                                            \
   rvk_debug_name_fmt(_DBG_, VK_OBJECT_TYPE_SHADER_MODULE, _OBJ_, _LIT_ "_shader", __VA_ARGS__)
 
