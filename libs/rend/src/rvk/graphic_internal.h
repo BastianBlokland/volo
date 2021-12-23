@@ -25,6 +25,7 @@ typedef enum {
 
 typedef struct sRvkGraphic {
   RvkDevice*             device;
+  String                 dbgName;
   RvkGraphicFlags        flags : 8;
   AssetGraphicTopology   topology : 8;
   AssetGraphicRasterizer rasterizer : 8;
@@ -40,7 +41,7 @@ typedef struct sRvkGraphic {
   VkPipeline             vkPipeline;
 } RvkGraphic;
 
-RvkGraphic* rvk_graphic_create(RvkDevice*, const AssetGraphicComp*);
+RvkGraphic* rvk_graphic_create(RvkDevice*, const AssetGraphicComp*, String dbgName);
 void        rvk_graphic_destroy(RvkGraphic*);
 void        rvk_graphic_shader_add(RvkGraphic*, RvkShader*);
 void        rvk_graphic_mesh_add(RvkGraphic*, RvkMesh*);

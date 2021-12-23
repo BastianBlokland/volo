@@ -3,6 +3,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "ecs.h"
+#include "ecs_view.h"
 
 #include "utils_internal.h"
 
@@ -12,8 +13,12 @@ static const AssetMemRecord records[] = {
 };
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
+ecs_view_define(AssetView) { ecs_access_read(AssetComp); }
 
-ecs_module_init(manager_test_module) { ecs_register_view(ManagerView); }
+ecs_module_init(manager_test_module) {
+  ecs_register_view(ManagerView);
+  ecs_register_view(AssetView);
+}
 
 spec(manager) {
 
@@ -144,6 +149,16 @@ spec(manager) {
 
     check(ecs_world_has_t(world, entity, AssetFailedComp));
     check(!ecs_world_has_t(world, entity, AssetLoadedComp));
+  }
+
+  it("can retrieve the identifier of loaded assets") {
+    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+
+    const EcsEntityId entity = asset_lookup(world, manager, string_lit("a.raw"));
+    ecs_run_sync(runner);
+
+    const AssetComp* comp = ecs_utils_read_t(world, AssetView, entity, AssetComp);
+    check_eq_string(asset_id(comp), string_lit("a.raw"));
   }
 
   teardown() {

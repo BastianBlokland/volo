@@ -53,7 +53,7 @@ static RvkDescKind rvk_shader_desc_kind(const AssetShaderResKind resKind) {
   diag_crash();
 }
 
-RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset) {
+RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset, const String dbgName) {
   RvkShader* shader = alloc_alloc_t(g_alloc_heap, RvkShader);
   *shader           = (RvkShader){
       .device     = dev,
@@ -61,6 +61,7 @@ RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset) {
       .vkStage    = rvk_shader_stage(asset->kind),
       .entryPoint = string_dup(g_alloc_heap, asset->entryPoint),
   };
+  rvk_debug_name_shader(dev->debug, shader->vkModule, "{}", fmt_text(dbgName));
 
   for (usize i = 0; i != asset->resourceCount; ++i) {
     const AssetShaderRes* res = &asset->resources[i];

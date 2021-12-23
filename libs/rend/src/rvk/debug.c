@@ -1,7 +1,20 @@
 #include "core_alloc.h"
+#include "core_diag.h"
 #include "log_logger.h"
 
 #include "debug_internal.h"
+
+/**
+ * Vulkan validation layer support.
+ * - Logs output messages from the validation layers.
+ * - Provide debug names for Vulkan objects.
+ * - Inserting labels into command buffers.
+ *
+ * Validation layers can be further configured using the 'vkconfig' utility.
+ * Debian package: lunarg-vkconfig
+ * On windows its included in the sdk.
+ * More info: https://vulkan.lunarg.com/doc/sdk/1.2.198.1/linux/vkconfig.html
+ */
 
 struct sRvkDebug {
   RvkDebugFlags                    flags;
@@ -81,11 +94,14 @@ static VkBool32 rvk_message_func(
       log_param("type", fmt_text(typeLabel)),
       log_param("message", fmt_text(message)));
 
+  if (msgSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
+    diag_break(); // Halt when running in a debugger.
+  }
   return false;
 }
 
 static void rvk_messenger_create(RvkDebug* dbg) {
-  VkDebugUtilsMessengerCreateInfoEXT createInfo = {
+  const VkDebugUtilsMessengerCreateInfoEXT createInfo = {
       .sType           = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
       .messageSeverity = rvk_messenger_severity_mask(dbg->flags),
       .messageType     = rvk_messenger_type_mask(),
@@ -127,28 +143,32 @@ void rvk_debug_destroy(RvkDebug* debug) {
 
 void rvk_debug_name(
     RvkDebug* debug, const VkObjectType vkType, const u64 vkHandle, const String name) {
-
-  VkDebugUtilsObjectNameInfoEXT nameInfo = {
-      .sType        = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
-      .objectType   = vkType,
-      .objectHandle = vkHandle,
-      .pObjectName  = rvk_to_null_term_scratch(name),
-  };
-  const VkResult result = debug->vkObjectNameFunc(debug->vkDev, &nameInfo);
-  rvk_check(string_lit("vkSetDebugUtilsObjectNameEXT"), result);
+  if (debug) {
+    const VkDebugUtilsObjectNameInfoEXT nameInfo = {
+        .sType        = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
+        .objectType   = vkType,
+        .objectHandle = vkHandle,
+        .pObjectName  = rvk_to_null_term_scratch(name),
+    };
+    const VkResult result = debug->vkObjectNameFunc(debug->vkDev, &nameInfo);
+    rvk_check(string_lit("vkSetDebugUtilsObjectNameEXT"), result);
+  }
 }
 
-void rvk_debug_label_begin(
-    RvkDebug* debug, VkCommandBuffer vkCmdBuffer, const String name, const RendColor color) {
-
-  VkDebugUtilsLabelEXT label = {
-      .sType      = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
-      .pLabelName = rvk_to_null_term_scratch(name),
-      .color      = {color.r, color.g, color.b, color.a},
-  };
-  debug->vkLabelBeginFunc(vkCmdBuffer, &label);
+void rvk_debug_label_begin_raw(
+    RvkDebug* debug, VkCommandBuffer vkCmdBuffer, const RendColor color, const String name) {
+  if (debug) {
+    const VkDebugUtilsLabelEXT label = {
+        .sType      = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
+        .pLabelName = rvk_to_null_term_scratch(name),
+        .color      = {color.r, color.g, color.b, color.a},
+    };
+    debug->vkLabelBeginFunc(vkCmdBuffer, &label);
+  }
 }
 
 void rvk_debug_label_end(RvkDebug* debug, VkCommandBuffer vkCmdBuffer) {
-  debug->vkLabelEndFunc(vkCmdBuffer);
+  if (debug) {
+    debug->vkLabelEndFunc(vkCmdBuffer);
+  }
 }

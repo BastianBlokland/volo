@@ -13,10 +13,17 @@
 
 #define rend_debug_verbose true
 
-static const RvkDebugFlags g_debugFlags      = rend_debug_verbose ? RvkDebugFlags_Verbose : 0;
-static const String        g_validationLayer = string_static("VK_LAYER_KHRONOS_validation");
-static const String        g_validationExt   = string_static("VK_EXT_debug_utils");
-static String              g_requiredExts[]  = {
+static const RvkDebugFlags g_debugFlags       = rend_debug_verbose ? RvkDebugFlags_Verbose : 0;
+static const String        g_validationLayer  = string_static("VK_LAYER_KHRONOS_validation");
+static const String        g_validationExts[] = {
+    string_static("VK_EXT_debug_utils"),
+};
+static VkValidationFeatureEnableEXT g_validationEnabledFeatures[] = {
+    VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
+    // VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT,
+    VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
+};
+static String g_requiredExts[] = {
     string_static("VK_KHR_swapchain"),
     string_static("VK_KHR_shader_float16_int8"),
 };
@@ -30,6 +37,39 @@ static VkApplicationInfo rvk_instance_app_info() {
       .engineVersion      = VK_MAKE_VERSION(0, 1, 0),
       .apiVersion         = VK_API_VERSION_1_1,
   };
+}
+
+typedef struct {
+  VkExtensionProperties* values;
+  u32                    count;
+} RendVkExts;
+
+/**
+ * Query a list of all supported device extensions.
+ * NOTE: Free the list with 'rvk_device_exts_free()'
+ */
+static RendVkExts rvk_device_exts_query(VkPhysicalDevice vkPhysDev) {
+  u32 count;
+  rvk_call(vkEnumerateDeviceExtensionProperties, vkPhysDev, null, &count, null);
+  VkExtensionProperties* props = alloc_array_t(g_alloc_heap, VkExtensionProperties, count);
+  rvk_call(vkEnumerateDeviceExtensionProperties, vkPhysDev, null, &count, props);
+  return (RendVkExts){.values = props, .count = count};
+}
+
+static void rvk_vk_exts_free(RendVkExts exts) {
+  alloc_free_array_t(g_alloc_heap, exts.values, exts.count);
+}
+
+/**
+ * Check if the given extension is contained in the list of available device extensions.
+ */
+static bool rvk_device_has_ext(RendVkExts availableExts, String ext) {
+  array_ptr_for_t(availableExts, VkExtensionProperties, props) {
+    if (string_eq(ext, string_from_null_term(props->extensionName))) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -74,7 +114,7 @@ static u32 rvk_instance_required_extensions(const char** output, const RvkDevice
     break;
   }
   if (flags & RvkDeviceFlags_Validation) {
-    output[i++] = g_validationExt.ptr;
+    array_for_t(g_validationExts, String, ext) { output[i++] = ext->ptr; }
   }
   return i;
 }
@@ -97,42 +137,19 @@ static VkInstance rvk_instance_create(VkAllocationCallbacks* vkAlloc, const RvkD
       .ppEnabledLayerNames     = layerNames,
   };
 
+  VkValidationFeaturesEXT validationFeatures;
+  if (flags & RvkDeviceFlags_Validation) {
+    validationFeatures = (VkValidationFeaturesEXT){
+        .sType                         = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT,
+        .pEnabledValidationFeatures    = g_validationEnabledFeatures,
+        .enabledValidationFeatureCount = array_elems(g_validationEnabledFeatures),
+    };
+    createInfo.pNext = &validationFeatures;
+  }
+
   VkInstance result;
   rvk_call(vkCreateInstance, &createInfo, vkAlloc, &result);
   return result;
-}
-
-typedef struct {
-  VkExtensionProperties* values;
-  u32                    count;
-} RendDeviceExts;
-
-/**
- * Query a list of all supported device extensions.
- * NOTE: Free the list with 'rvk_device_exts_free()'
- */
-static RendDeviceExts rvk_device_exts_query(VkPhysicalDevice vkPhysDev) {
-  u32 count;
-  rvk_call(vkEnumerateDeviceExtensionProperties, vkPhysDev, null, &count, null);
-  VkExtensionProperties* props = alloc_array_t(g_alloc_heap, VkExtensionProperties, count);
-  rvk_call(vkEnumerateDeviceExtensionProperties, vkPhysDev, null, &count, props);
-  return (RendDeviceExts){.values = props, .count = count};
-}
-
-static void rvk_device_exts_free(RendDeviceExts exts) {
-  alloc_free_array_t(g_alloc_heap, exts.values, exts.count);
-}
-
-/**
- * Check if the given extension is contained in the list of available device extensions.
- */
-static bool rvk_device_has_ext(RendDeviceExts availableExts, String ext) {
-  array_ptr_for_t(availableExts, VkExtensionProperties, props) {
-    if (string_eq(ext, string_from_null_term(props->extensionName))) {
-      return true;
-    }
-  }
-  return false;
 }
 
 static i32 rvk_device_type_score_value(const VkPhysicalDeviceType vkDevType) {
@@ -193,7 +210,7 @@ static VkPhysicalDevice rvk_device_pick_physical_device(VkInstance vkInst) {
   i32              bestScore      = -1;
 
   for (usize i = 0; i != vkPhysDevsCount; ++i) {
-    const RendDeviceExts exts = rvk_device_exts_query(vkPhysDevs[i]);
+    const RendVkExts exts = rvk_device_exts_query(vkPhysDevs[i]);
 
     i32 score = 0;
     array_for_t(g_requiredExts, String, reqExt) {
@@ -209,7 +226,7 @@ static VkPhysicalDevice rvk_device_pick_physical_device(VkInstance vkInst) {
     score += rvk_device_type_score_value(properties.deviceType);
 
   detectionDone:
-    rvk_device_exts_free(exts);
+    rvk_vk_exts_free(exts);
 
     log_d(
         "Vulkan physical device detected",
@@ -342,10 +359,10 @@ RvkDevice* rvk_device_create() {
   if (dev->flags & RvkDeviceFlags_Validation) {
     dev->debug = rvk_debug_create(dev->vkInst, dev->vkDev, &dev->vkAlloc, g_debugFlags);
     if (dev->transferQueueIndex == dev->graphicsQueueIndex) {
-      rvk_name_queue(dev->debug, dev->vkGraphicsQueue, "graphics_and_transfer");
+      rvk_debug_name_queue(dev->debug, dev->vkGraphicsQueue, "graphics_and_transfer");
     } else {
-      rvk_name_queue(dev->debug, dev->vkGraphicsQueue, "graphics");
-      rvk_name_queue(dev->debug, dev->vkTransferQueue, "transfer");
+      rvk_debug_name_queue(dev->debug, dev->vkGraphicsQueue, "graphics");
+      rvk_debug_name_queue(dev->debug, dev->vkTransferQueue, "transfer");
     }
   }
 

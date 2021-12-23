@@ -73,28 +73,23 @@ static VkSurfaceKHR rvk_surface_create(RvkDevice* dev, const GapWindowComp* wind
 }
 
 static VkSurfaceFormatKHR rvk_pick_surface_format(RvkDevice* dev, VkSurfaceKHR vkSurf) {
-  VkSurfaceFormatKHR availableFormats[64];
-  u32                availableFormatCount = array_elems(availableFormats);
-  rvk_call(
-      vkGetPhysicalDeviceSurfaceFormatsKHR,
-      dev->vkPhysDev,
-      vkSurf,
-      &availableFormatCount,
-      availableFormats);
-
-  if (!availableFormatCount) {
+  u32 formatCount;
+  rvk_call(vkGetPhysicalDeviceSurfaceFormatsKHR, dev->vkPhysDev, vkSurf, &formatCount, null);
+  if (!formatCount) {
     diag_crash_msg("No Vulkan surface formats available");
   }
+  VkSurfaceFormatKHR* formats = alloc_array_t(g_alloc_scratch, VkSurfaceFormatKHR, formatCount);
+  rvk_call(vkGetPhysicalDeviceSurfaceFormatsKHR, dev->vkPhysDev, vkSurf, &formatCount, formats);
 
   // Prefer srgb, so the gpu can itself perform the linear to srgb conversion.
-  for (u32 i = 0; i != availableFormatCount; ++i) {
-    if (availableFormats[i].format == VK_FORMAT_B8G8R8A8_SRGB) {
-      return availableFormats[i];
+  for (u32 i = 0; i != formatCount; ++i) {
+    if (formats[i].format == VK_FORMAT_B8G8R8A8_SRGB) {
+      return formats[i];
     }
   }
 
   log_w("No SRGB surface format available");
-  return availableFormats[0];
+  return formats[0];
 }
 
 static u32 rvk_pick_imagecount(const VkSurfaceCapabilitiesKHR* caps) {
@@ -181,9 +176,11 @@ static bool rvk_swapchain_init(RvkSwapchain* swapchain, RendSize size) {
   VkImage* images = mem_stack(sizeof(VkImage) * imageCount).ptr;
   rvk_call(vkGetSwapchainImagesKHR, vkDev, swapchain->vkSwapchain, &imageCount, images);
 
+  const VkFormat format = swapchain->vkSurfFormat.format;
   for (u32 i = 0; i != imageCount; ++i) {
-    *dynarray_push_t(&swapchain->images, RvkImage) =
-        rvk_image_create_swapchain(swapchain->dev, images[i], swapchain->vkSurfFormat.format, size);
+    RvkImage* img = dynarray_push_t(&swapchain->images, RvkImage);
+    *img          = rvk_image_create_swapchain(swapchain->dev, images[i], format, size);
+    rvk_debug_name_img(swapchain->dev->debug, img->vkImage, "swapchain_{}", fmt_int(i));
   }
 
   swapchain->flags &= ~RvkSwapchainFlags_OutOfDate;
@@ -192,7 +189,7 @@ static bool rvk_swapchain_init(RvkSwapchain* swapchain, RendSize size) {
   log_i(
       "Vulkan swapchain created",
       log_param("size", rend_size_fmt(size)),
-      log_param("format", fmt_text(rvk_format_info(swapchain->vkSurfFormat.format).name)),
+      log_param("format", fmt_text(rvk_format_info(format).name)),
       log_param("color", fmt_text(rvk_colorspace_str(swapchain->vkSurfFormat.colorSpace))),
       log_param("present-mode", fmt_text(rvk_presentmode_str(swapchain->vkPresentMode))),
       log_param("image-count", fmt_int(imageCount)));

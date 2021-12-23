@@ -16,5 +16,5 @@ typedef struct sRvkShader {
   RvkDescMeta           descriptors[rvk_shader_desc_max];
 } RvkShader;
 
-RvkShader* rvk_shader_create(RvkDevice*, const AssetShaderComp*);
+RvkShader* rvk_shader_create(RvkDevice*, const AssetShaderComp*, String dbgName);
 void       rvk_shader_destroy(RvkShader*);

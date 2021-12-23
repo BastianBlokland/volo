@@ -137,12 +137,16 @@ static void rvk_transfer_begin(RvkTransferer* trans, RvkTransferBuffer* buffer) 
       .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
   };
   rvk_call(vkBeginCommandBuffer, buffer->vkCmdBuffer, &beginInfo);
+
+  rvk_debug_label_begin(trans->dev->debug, buffer->vkCmdBuffer, rend_olive, "transfer");
 }
 
 static void rvk_transfer_submit(RvkTransferer* trans, RvkTransferBuffer* buffer) {
   (void)trans;
 
   diag_assert(buffer->state == RvkTransferState_Rec);
+
+  rvk_debug_label_end(trans->dev->debug, buffer->vkCmdBuffer);
 
   buffer->state = RvkTransferState_Busy;
   vkEndCommandBuffer(buffer->vkCmdBuffer);
@@ -163,6 +167,7 @@ RvkTransferer* rvk_transferer_create(RvkDevice* dev) {
       .vkCmdPool = rvk_commandpool_create(dev, dev->transferQueueIndex),
       .buffers   = dynarray_create_t(g_alloc_heap, RvkTransferBuffer, 8),
   };
+  rvk_debug_name_cmdpool(dev->debug, transferer->vkCmdPool, "transferer");
   return transferer;
 }
 

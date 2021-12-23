@@ -15,6 +15,7 @@ typedef enum {
 
 struct sRvkRenderer {
   RvkDevice*       dev;
+  u32              rendererId;
   RvkPass*         forwardPass;
   VkSemaphore      semaphoreBegin, semaphoreDone;
   VkFence          fenceRenderDone;
@@ -95,15 +96,29 @@ static void rvk_renderer_submit(RvkRenderer* rend) {
   rvk_call(vkQueueSubmit, rend->dev->vkGraphicsQueue, 1, &submitInfo, rend->fenceRenderDone);
 }
 
-RvkRenderer* rvk_renderer_create(RvkDevice* dev) {
+static void rvk_renderer_blit_to_output(RvkRenderer* rend, RvkPass* pass) {
+
+  rvk_debug_label_begin(rend->dev->debug, rend->vkDrawBuffer, rend_purple, "blit_to_target");
+
+  // Copy the output to the target.
+  rvk_image_transition(rend->currentTarget, rend->vkDrawBuffer, RvkImagePhase_TransferDest);
+  rvk_image_blit(rvk_pass_output(pass), rend->currentTarget, rend->vkDrawBuffer);
+  rvk_image_transition(rend->currentTarget, rend->vkDrawBuffer, RvkImagePhase_Present);
+
+  rvk_debug_label_end(rend->dev->debug, rend->vkDrawBuffer);
+}
+
+RvkRenderer* rvk_renderer_create(RvkDevice* dev, const u32 rendererId) {
   RvkRenderer* renderer = alloc_alloc_t(g_alloc_heap, RvkRenderer);
   *renderer             = (RvkRenderer){
       .dev             = dev,
+      .rendererId      = rendererId,
       .semaphoreBegin  = rvk_semaphore_create(dev),
       .semaphoreDone   = rvk_semaphore_create(dev),
       .fenceRenderDone = rvk_fence_create(dev, true),
       .vkCmdPool       = rvk_commandpool_create(dev, dev->graphicsQueueIndex),
   };
+  rvk_debug_name_cmdpool(dev->debug, renderer->vkCmdPool, "renderer_{}", fmt_int(rendererId));
   renderer->vkDrawBuffer = rvk_commandbuffer_create(dev, renderer->vkCmdPool);
   renderer->forwardPass  = rvk_pass_create(dev, renderer->vkDrawBuffer);
   return renderer;
@@ -138,8 +153,11 @@ void rvk_renderer_begin(RvkRenderer* rend, RvkImage* target) {
   rvk_renderer_wait_for_done(rend);
   rvk_commandpool_reset(rend->dev, rend->vkCmdPool);
 
-  rvk_pass_setup(rend->forwardPass, target->size);
   rvk_commandbuffer_begin(rend->vkDrawBuffer);
+  rvk_pass_setup(rend->forwardPass, target->size);
+
+  rvk_debug_label_begin(
+      rend->dev->debug, rend->vkDrawBuffer, rend_teal, "renderer_{}", fmt_int(rend->rendererId));
 }
 
 RvkPass* rvk_renderer_pass_forward(RvkRenderer* rend) {
@@ -154,11 +172,9 @@ void rvk_renderer_end(RvkRenderer* rend) {
   // Wait for rendering to be done.
   rvk_pass_output_barrier(rend->forwardPass);
 
-  // Copy the output to the target.
-  rvk_image_transition(rend->currentTarget, rend->vkDrawBuffer, RvkImagePhase_TransferDest);
-  rvk_image_blit(rvk_pass_output(rend->forwardPass), rend->currentTarget, rend->vkDrawBuffer);
-  rvk_image_transition(rend->currentTarget, rend->vkDrawBuffer, RvkImagePhase_Present);
+  rvk_renderer_blit_to_output(rend, rend->forwardPass);
 
+  rvk_debug_label_end(rend->dev->debug, rend->vkDrawBuffer);
   rvk_commandbuffer_end(rend->vkDrawBuffer);
 
   rvk_call(vkResetFences, rend->dev->vkDev, 1, &rend->fenceRenderDone);

@@ -140,6 +140,10 @@ static void rvk_pass_vkrenderpass_begin(
 static void rvk_pass_resource_create(RvkPass* pass, const RendSize size) {
   pass->colorAttachment = rvk_image_create_attach_color(pass->dev, g_colorAttachmentFormat, size);
   pass->vkFrameBuffer   = rvk_framebuffer_create(pass, &pass->colorAttachment);
+
+  rvk_debug_name_img(pass->dev->debug, pass->colorAttachment.vkImage, "pass_color");
+  rvk_debug_name_img_view(pass->dev->debug, pass->colorAttachment.vkImageView, "pass_color");
+  rvk_debug_name_framebuffer(pass->dev->debug, pass->vkFrameBuffer, "pass");
 }
 
 static void rvk_pass_resource_destroy(RvkPass* pass) {
@@ -203,6 +207,8 @@ void rvk_pass_begin(RvkPass* pass, const RendColor clearColor) {
 
   pass->flags |= RvkPassFlags_Active;
 
+  rvk_debug_label_begin(pass->dev->debug, pass->vkCmdBuf, rend_blue, "pass");
+
   rvk_pass_vkrenderpass_begin(pass, pass->vkCmdBuf, pass->colorAttachment.size, clearColor);
   rvk_image_transition_external(&pass->colorAttachment, RvkImagePhase_ColorAttachment);
 
@@ -214,10 +220,15 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDrawList drawList) {
   diag_assert_msg(pass->flags & RvkPassFlags_Active, "Pass not active");
 
   array_ptr_for_t(drawList, RvkPassDraw, draw) {
+    rvk_debug_label_begin(
+        pass->dev->debug, pass->vkCmdBuf, rend_green, "draw_{}", fmt_text(draw->graphic->dbgName));
+
     rvk_graphic_bind(draw->graphic, pass->vkCmdBuf);
 
     const u32 indexCount = rvk_graphic_index_count(draw->graphic);
     vkCmdDrawIndexed(pass->vkCmdBuf, indexCount, 1, 0, 0, 0);
+
+    rvk_debug_label_end(pass->dev->debug, pass->vkCmdBuf);
   }
 }
 
@@ -227,4 +238,6 @@ void rvk_pass_end(RvkPass* pass) {
 
   vkCmdEndRenderPass(pass->vkCmdBuf);
   rvk_image_transition_external(&pass->colorAttachment, RvkImagePhase_TransferSource);
+
+  rvk_debug_label_end(pass->dev->debug, pass->vkCmdBuf);
 }

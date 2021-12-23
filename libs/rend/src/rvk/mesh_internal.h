@@ -15,6 +15,6 @@ typedef struct sRvkMesh {
   RvkTransferId vertexTransfer, indexTransfer;
 } RvkMesh;
 
-RvkMesh* rvk_mesh_create(RvkDevice*, const AssetMeshComp*);
+RvkMesh* rvk_mesh_create(RvkDevice*, const AssetMeshComp*, String dbgName);
 void     rvk_mesh_destroy(RvkMesh*);
 bool     rvk_mesh_prepare(RvkMesh*);

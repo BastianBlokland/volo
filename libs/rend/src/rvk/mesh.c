@@ -31,7 +31,7 @@ static Mem rvk_mesh_to_device_vertices_scratch(const AssetMeshComp* asset) {
   return buffer;
 }
 
-RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset) {
+RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const String dbgName) {
   RvkMesh* mesh = alloc_alloc_t(g_alloc_heap, RvkMesh);
   *mesh         = (RvkMesh){
       .device      = dev,
@@ -44,6 +44,9 @@ RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset) {
   const usize indexSize = sizeof(u16) * asset->indexCount;
   mesh->vertexBuffer    = rvk_buffer_create(dev, vertices.size, RvkBufferType_DeviceStorage);
   mesh->indexBuffer     = rvk_buffer_create(dev, indexSize, RvkBufferType_DeviceIndex);
+
+  rvk_debug_name_buffer(dev->debug, mesh->vertexBuffer.vkBuffer, "{}_vertex", fmt_text(dbgName));
+  rvk_debug_name_buffer(dev->debug, mesh->indexBuffer.vkBuffer, "{}_index", fmt_text(dbgName));
 
   mesh->vertexTransfer = rvk_transfer_buffer(dev->transferer, &mesh->vertexBuffer, vertices);
   mesh->indexTransfer  = rvk_transfer_buffer(
