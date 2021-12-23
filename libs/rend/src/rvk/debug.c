@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_diag.h"
 #include "log_logger.h"
 
 #include "debug_internal.h"
@@ -81,6 +82,9 @@ static VkBool32 rvk_message_func(
       log_param("type", fmt_text(typeLabel)),
       log_param("message", fmt_text(message)));
 
+  if (msgSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
+    diag_break(); // Halt when running in a debugger.
+  }
   return false;
 }
 
