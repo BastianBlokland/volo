@@ -59,7 +59,7 @@ bool rvk_canvas_begin(RvkCanvas* canvas, const RendSize size) {
   }
 
   RvkImage* targetImage = rvk_swapchain_image(canvas->swapchain, canvas->swapchainIdx);
-  rvk_renderer_begin(renderer, targetImage);
+  rvk_renderer_begin(renderer, targetImage, RvkImagePhase_Present);
   return true;
 }
 

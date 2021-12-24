@@ -28,21 +28,6 @@ struct sRvkPass {
   VkCommandBuffer vkCmdBuf;
 };
 
-static void rvk_memory_barrier(
-    VkCommandBuffer            buffer,
-    const VkAccessFlags        srcAccess,
-    const VkAccessFlags        dstAccess,
-    const VkPipelineStageFlags srcStageFlags,
-    const VkPipelineStageFlags dstStageFlags) {
-
-  const VkMemoryBarrier barrier = {
-      .sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER,
-      .srcAccessMask = srcAccess,
-      .dstAccessMask = dstAccess,
-  };
-  vkCmdPipelineBarrier(buffer, srcStageFlags, dstStageFlags, 0, 1, &barrier, 0, null, 0, null);
-}
-
 static VkRenderPass rvk_renderpass_create(RvkDevice* dev) {
   VkAttachmentDescription attachments[attachment_max];
   u32                     attachmentCount = 0;
@@ -57,7 +42,7 @@ static VkRenderPass rvk_renderpass_create(RvkDevice* dev) {
       .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
       .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
       .initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED,
-      .finalLayout    = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+      .finalLayout    = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
   };
   colorRefs[colorRefCount++] = (VkAttachmentReference){
       .attachment = attachmentCount - 1,
@@ -176,15 +161,6 @@ bool rvk_pass_active(const RvkPass* pass) { return (pass->flags & RvkPassFlags_A
 
 RvkImage* rvk_pass_output(RvkPass* pass) { return &pass->colorAttachment; }
 
-void rvk_pass_output_barrier(RvkPass* pass) {
-  rvk_memory_barrier(
-      pass->vkCmdBuf,
-      VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-      VK_ACCESS_TRANSFER_READ_BIT,
-      VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-      VK_PIPELINE_STAGE_TRANSFER_BIT);
-}
-
 void rvk_pass_setup(RvkPass* pass, const RendSize size) {
   diag_assert_msg(size.width && size.height, "Pass cannot be zero sized");
 
@@ -237,7 +213,6 @@ void rvk_pass_end(RvkPass* pass) {
   pass->flags &= ~RvkPassFlags_Active;
 
   vkCmdEndRenderPass(pass->vkCmdBuf);
-  rvk_image_transition_external(&pass->colorAttachment, RvkImagePhase_TransferSource);
 
   rvk_debug_label_end(pass->dev->debug, pass->vkCmdBuf);
 }

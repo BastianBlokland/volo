@@ -6,18 +6,38 @@
 #include "device_internal.h"
 #include "image_internal.h"
 
-static VkAccessFlags rvk_image_vkaccess(const RvkImagePhase phase) {
+static VkAccessFlags rvk_image_vkaccess_read(const RvkImagePhase phase) {
   switch (phase) {
   case RvkImagePhase_Undefined:
     return 0;
   case RvkImagePhase_TransferSource:
     return VK_ACCESS_TRANSFER_READ_BIT;
   case RvkImagePhase_TransferDest:
+    return 0;
+  case RvkImagePhase_ColorAttachment:
+    return 0;
+  case RvkImagePhase_ShaderRead:
+    return VK_ACCESS_SHADER_READ_BIT;
+  case RvkImagePhase_Present:
+    return 0;
+  case RvkImagePhase_Count:
+    break;
+  }
+  diag_crash_msg("Unsupported image phase");
+}
+
+static VkAccessFlags rvk_image_vkaccess_write(const RvkImagePhase phase) {
+  switch (phase) {
+  case RvkImagePhase_Undefined:
+    return 0;
+  case RvkImagePhase_TransferSource:
+    return 0;
+  case RvkImagePhase_TransferDest:
     return VK_ACCESS_TRANSFER_WRITE_BIT;
   case RvkImagePhase_ColorAttachment:
     return VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
   case RvkImagePhase_ShaderRead:
-    return VK_ACCESS_SHADER_READ_BIT;
+    return 0;
   case RvkImagePhase_Present:
     return 0;
   case RvkImagePhase_Count:
@@ -138,8 +158,8 @@ static void rvk_image_barrier_from_to(
       image,
       rvk_image_vklayout(from),
       rvk_image_vklayout(to),
-      rvk_image_vkaccess(from),
-      rvk_image_vkaccess(to),
+      rvk_image_vkaccess_write(from),
+      rvk_image_vkaccess_read(to) | rvk_image_vkaccess_write(to),
       rvk_image_vkpipelinestage(from),
       rvk_image_vkpipelinestage(to),
       baseMip,

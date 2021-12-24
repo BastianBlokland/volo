@@ -7,8 +7,6 @@
 #include "pass_internal.h"
 #include "renderer_internal.h"
 
-#include <vulkan/vulkan_core.h>
-
 typedef enum {
   RvkRendererFlags_Active = 1 << 0,
 } RvkRendererFlags;
@@ -23,6 +21,7 @@ struct sRvkRenderer {
   VkCommandBuffer  vkDrawBuffer;
   RvkRendererFlags flags;
   RvkImage*        currentTarget;
+  RvkImagePhase    currentTargetPhase;
 };
 
 static VkSemaphore rvk_semaphore_create(RvkDevice* dev) {
@@ -82,7 +81,7 @@ static void rvk_commandbuffer_end(VkCommandBuffer vkCmdBuf) {
 }
 
 static void rvk_renderer_submit(RvkRenderer* rend) {
-  const VkPipelineStageFlags waitStage  = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+  const VkPipelineStageFlags waitStage  = VK_PIPELINE_STAGE_TRANSFER_BIT;
   VkSubmitInfo               submitInfo = {
       .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
       .waitSemaphoreCount   = 1,
@@ -100,10 +99,15 @@ static void rvk_renderer_blit_to_output(RvkRenderer* rend, RvkPass* pass) {
 
   rvk_debug_label_begin(rend->dev->debug, rend->vkDrawBuffer, rend_purple, "blit_to_target");
 
-  // Copy the output to the target.
-  rvk_image_transition(rend->currentTarget, rend->vkDrawBuffer, RvkImagePhase_TransferDest);
-  rvk_image_blit(rvk_pass_output(pass), rend->currentTarget, rend->vkDrawBuffer);
-  rvk_image_transition(rend->currentTarget, rend->vkDrawBuffer, RvkImagePhase_Present);
+  RvkImage* src  = rvk_pass_output(pass);
+  RvkImage* dest = rend->currentTarget;
+
+  rvk_image_transition(src, rend->vkDrawBuffer, RvkImagePhase_TransferSource);
+  rvk_image_transition(dest, rend->vkDrawBuffer, RvkImagePhase_TransferDest);
+
+  rvk_image_blit(src, dest, rend->vkDrawBuffer);
+
+  rvk_image_transition(dest, rend->vkDrawBuffer, rend->currentTargetPhase);
 
   rvk_debug_label_end(rend->dev->debug, rend->vkDrawBuffer);
 }
@@ -144,11 +148,12 @@ void rvk_renderer_wait_for_done(const RvkRenderer* rend) {
   rvk_call(vkWaitForFences, rend->dev->vkDev, 1, &rend->fenceRenderDone, true, u64_max);
 }
 
-void rvk_renderer_begin(RvkRenderer* rend, RvkImage* target) {
+void rvk_renderer_begin(RvkRenderer* rend, RvkImage* target, const RvkImagePhase targetPhase) {
   diag_assert_msg(!(rend->flags & RvkRendererFlags_Active), "Renderer already active");
 
   rend->flags |= RvkRendererFlags_Active;
-  rend->currentTarget = target;
+  rend->currentTarget      = target;
+  rend->currentTargetPhase = targetPhase;
 
   rvk_renderer_wait_for_done(rend);
   rvk_commandpool_reset(rend->dev, rend->vkCmdPool);
@@ -168,9 +173,6 @@ RvkPass* rvk_renderer_pass_forward(RvkRenderer* rend) {
 void rvk_renderer_end(RvkRenderer* rend) {
   diag_assert_msg(rend->flags & RvkRendererFlags_Active, "Renderer not active");
   diag_assert_msg(!rvk_pass_active(rend->forwardPass), "Forward pass is still active");
-
-  // Wait for rendering to be done.
-  rvk_pass_output_barrier(rend->forwardPass);
 
   rvk_renderer_blit_to_output(rend, rend->forwardPass);
 

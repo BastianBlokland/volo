@@ -26,7 +26,6 @@ void     rvk_pass_destroy(RvkPass*);
 bool     rvk_pass_active(const RvkPass*);
 
 RvkImage* rvk_pass_output(RvkPass*);
-void      rvk_pass_output_barrier(RvkPass*);
 
 void rvk_pass_setup(RvkPass*, RendSize size);
 bool rvk_pass_prepare(RvkPass*, RvkGraphic*);

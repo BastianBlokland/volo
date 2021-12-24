@@ -20,7 +20,7 @@ static const String        g_validationExts[] = {
 };
 static VkValidationFeatureEnableEXT g_validationEnabledFeatures[] = {
     VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
-    // VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT,
+    VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT,
     VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
 };
 static String g_requiredExts[] = {
