@@ -49,7 +49,6 @@ void rvk_canvas_destroy(RvkCanvas* canvas) {
 bool rvk_canvas_begin(RvkCanvas* canvas, const RendSize size) {
   diag_assert_msg(!(canvas->flags & RvkCanvasFlags_Active), "Canvas already active");
 
-  canvas->flags |= RvkCanvasFlags_Active;
   RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
 
   const VkSemaphore beginSemaphore = rvk_renderer_semaphore_begin(renderer);
@@ -58,6 +57,7 @@ bool rvk_canvas_begin(RvkCanvas* canvas, const RendSize size) {
     return false;
   }
 
+  canvas->flags |= RvkCanvasFlags_Active;
   RvkImage* targetImage = rvk_swapchain_image(canvas->swapchain, canvas->swapchainIdx);
   rvk_renderer_begin(renderer, targetImage, RvkImagePhase_Present);
   return true;
