@@ -94,9 +94,9 @@ static VkSurfaceFormatKHR rvk_pick_surface_format(RvkDevice* dev, VkSurfaceKHR v
 
 static u32 rvk_pick_imagecount(const VkSurfaceCapabilitiesKHR* caps) {
   /**
-   * Prefer having two images (one on-screen and one being rendered to).
+   * Prefer having three images (one on-screen, one ready, and one being rendered to).
    */
-  u32 imgCount = 2;
+  u32 imgCount = 3;
   if (caps->minImageCount > imgCount) {
     imgCount = caps->minImageCount;
   }
