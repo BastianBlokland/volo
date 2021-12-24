@@ -356,9 +356,10 @@ rvk_pipeline_create(RvkGraphic* graphic, VkPipelineLayout layout, VkRenderPass v
       .layout              = layout,
       .renderPass          = vkRendPass,
   };
-  RvkDevice* dev = graphic->device;
-  VkPipeline result;
-  rvk_call(vkCreateGraphicsPipelines, dev->vkDev, null, 1, &pipelineInfo, &dev->vkAlloc, &result);
+  RvkDevice*      dev  = graphic->device;
+  VkPipelineCache psoc = dev->vkPipelineCache;
+  VkPipeline      result;
+  rvk_call(vkCreateGraphicsPipelines, dev->vkDev, psoc, 1, &pipelineInfo, &dev->vkAlloc, &result);
   return result;
 }
 
