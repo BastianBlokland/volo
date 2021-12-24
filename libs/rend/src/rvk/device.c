@@ -8,6 +8,7 @@
 #include "desc_internal.h"
 #include "device_internal.h"
 #include "mem_internal.h"
+#include "psocache_internal.h"
 #include "repository_internal.h"
 #include "transfer_internal.h"
 
@@ -360,6 +361,7 @@ RvkDevice* rvk_device_create() {
     }
   }
 
+  dev->vkPipelineCache = rvk_psocache_load(dev);
   dev->memPool    = rvk_mem_pool_create(dev->vkDev, dev->vkMemProperties, dev->vkProperties.limits);
   dev->descPool   = rvk_desc_pool_create(dev->vkDev);
   dev->transferer = rvk_transferer_create(dev);
@@ -379,6 +381,9 @@ RvkDevice* rvk_device_create() {
 void rvk_device_destroy(RvkDevice* dev) {
 
   rvk_device_wait_idle(dev);
+
+  rvk_psocache_save(dev, dev->vkPipelineCache);
+  vkDestroyPipelineCache(dev->vkDev, dev->vkPipelineCache, &dev->vkAlloc);
 
   rvk_repository_destroy(dev->repository);
   rvk_transferer_destroy(dev->transferer);
