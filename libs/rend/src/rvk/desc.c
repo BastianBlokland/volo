@@ -358,14 +358,15 @@ RvkDescKind rvk_desc_set_kind(const RvkDescSet set, const u32 binding) {
   return result;
 }
 
-void rvk_desc_set_attach_buffer(const RvkDescSet set, const u32 binding, const RvkBuffer* buffer) {
+void rvk_desc_set_attach_buffer(
+    const RvkDescSet set, const u32 binding, const RvkBuffer* buffer, const u32 size) {
   const RvkDescKind kind = rvk_desc_set_kind(set, binding);
   diag_assert(kind);
 
   const VkDescriptorBufferInfo bufferInfo = {
       .buffer = buffer->vkBuffer,
       .offset = 0,
-      .range  = buffer->mem.size,
+      .range  = size ? size : buffer->mem.size,
   };
   const VkWriteDescriptorSet descriptorWrite = {
       .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,

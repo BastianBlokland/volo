@@ -47,9 +47,11 @@ static void painter_draw_forward(RvkPass* forwardPass, EcsView* renderables) {
   }
 
   // Execute draws.
+  const RendColor color = rend_yellow;
   rvk_pass_begin(forwardPass, rend_soothing_purple);
   rvk_pass_draw(
       forwardPass,
+      mem_var(color),
       (RvkPassDrawList){
           .values = dynarray_begin_t(&drawBuffer, RvkPassDraw),
           .count  = drawBuffer.size,

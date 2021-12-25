@@ -7,6 +7,7 @@
 #include "image_internal.h"
 #include "pass_internal.h"
 #include "renderer_internal.h"
+#include "uniform_internal.h"
 
 typedef enum {
   RvkRendererFlags_Active = 1 << 0,
@@ -15,6 +16,7 @@ typedef enum {
 struct sRvkRenderer {
   RvkDevice*       dev;
   u32              rendererId;
+  RvkUniformPool*  uniformPool;
   RvkPass*         forwardPass;
   VkSemaphore      semaphoreBegin, semaphoreDone;
   VkFence          fenceRenderDone;
@@ -119,6 +121,7 @@ RvkRenderer* rvk_renderer_create(RvkDevice* dev, const u32 rendererId) {
   RvkRenderer* renderer = alloc_alloc_t(g_alloc_heap, RvkRenderer);
   *renderer             = (RvkRenderer){
       .dev             = dev,
+      .uniformPool     = rvk_uniform_pool_create(dev),
       .rendererId      = rendererId,
       .semaphoreBegin  = rvk_semaphore_create(dev),
       .semaphoreDone   = rvk_semaphore_create(dev),
@@ -127,7 +130,7 @@ RvkRenderer* rvk_renderer_create(RvkDevice* dev, const u32 rendererId) {
   };
   rvk_debug_name_cmdpool(dev->debug, renderer->vkCmdPool, "renderer_{}", fmt_int(rendererId));
   renderer->vkDrawBuffer = rvk_commandbuffer_create(dev, renderer->vkCmdPool);
-  renderer->forwardPass  = rvk_pass_create(dev, renderer->vkDrawBuffer);
+  renderer->forwardPass  = rvk_pass_create(dev, renderer->vkDrawBuffer, renderer->uniformPool);
   return renderer;
 }
 
@@ -135,6 +138,7 @@ void rvk_renderer_destroy(RvkRenderer* rend) {
   rvk_renderer_wait_for_done(rend);
 
   rvk_pass_destroy(rend->forwardPass);
+  rvk_uniform_pool_destroy(rend->uniformPool);
 
   vkDestroyCommandPool(rend->dev->vkDev, rend->vkCmdPool, &rend->dev->vkAlloc);
   vkDestroySemaphore(rend->dev->vkDev, rend->semaphoreBegin, &rend->dev->vkAlloc);
@@ -159,6 +163,7 @@ void rvk_renderer_begin(RvkRenderer* rend, RvkImage* target, const RvkImagePhase
   rend->currentTargetPhase = targetPhase;
 
   rvk_renderer_wait_for_done(rend);
+  rvk_uniform_reset(rend->uniformPool);
   rvk_commandpool_reset(rend->dev, rend->vkCmdPool);
 
   rvk_commandbuffer_begin(rend->vkDrawBuffer);

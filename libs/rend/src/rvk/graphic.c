@@ -16,7 +16,8 @@
 
 typedef RvkShader* RvkShaderPtr;
 
-#define rvk_desc_graphic_set 0
+#define rvk_desc_global_set 0
+#define rvk_desc_graphic_set 1
 #define rvk_desc_graphic_bind_mesh 0
 
 static const char* rvk_to_null_term_scratch(String str) {
@@ -140,7 +141,9 @@ static RvkDescMeta rvk_graphic_desc_meta(const RvkGraphic* graphic, const usize 
 }
 
 static VkPipelineLayout rvk_pipeline_layout_create(const RvkGraphic* graphic) {
+  const RvkDescMeta           globalDescMeta = {.bindings[0] = RvkDescKind_UniformBufferDynamic};
   const VkDescriptorSetLayout descriptorLayouts[] = {
+      rvk_desc_vklayout(graphic->device->descPool, &globalDescMeta),
       rvk_desc_set_vklayout(graphic->descSet),
   };
   const VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
@@ -465,20 +468,26 @@ u32 rvk_graphic_index_count(const RvkGraphic* graphic) {
 
 bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, VkRenderPass vkRendPass) {
   if (!graphic->vkPipeline) {
-    const RvkDescMeta descMeta = rvk_graphic_desc_meta(graphic, rvk_desc_graphic_set);
-    graphic->descSet           = rvk_desc_alloc(graphic->device->descPool, &descMeta);
+    const RvkDescMeta globalDescMeta = rvk_graphic_desc_meta(graphic, rvk_desc_global_set);
+    if (globalDescMeta.bindings[0] == RvkDescKind_UniformBufferDynamic) {
+      graphic->flags |= RvkGraphicFlags_UsesGlobalData;
+      // TODO: Verify that the other bindings in the global set are unused.
+    }
+
+    const RvkDescMeta graphicDescMeta = rvk_graphic_desc_meta(graphic, rvk_desc_graphic_set);
+    graphic->descSet                  = rvk_desc_alloc(graphic->device->descPool, &graphicDescMeta);
 
     // Attach mesh.
-    if (descMeta.bindings[rvk_desc_graphic_bind_mesh] == RvkDescKind_StorageBuffer) {
+    if (graphicDescMeta.bindings[rvk_desc_graphic_bind_mesh] == RvkDescKind_StorageBuffer) {
       diag_assert_msg(graphic->mesh, "Shader expects a mesh but the graphic provides none");
       rvk_desc_set_attach_buffer(
-          graphic->descSet, rvk_desc_graphic_bind_mesh, &graphic->mesh->vertexBuffer);
+          graphic->descSet, rvk_desc_graphic_bind_mesh, &graphic->mesh->vertexBuffer, 0);
     }
 
     // Attach samplers.
     u32 samplerIndex = 0;
     for (u32 i = 0; i != rvk_desc_bindings_max; ++i) {
-      if (descMeta.bindings[i] == RvkDescKind_CombinedImageSampler) {
+      if (graphicDescMeta.bindings[i] == RvkDescKind_CombinedImageSampler) {
         if (UNLIKELY(i == rvk_graphic_samplers_max)) {
           diag_crash_msg("Shader expects more textures then is supported");
         }
