@@ -1,4 +1,6 @@
 #pragma once
+#include "core_thread.h"
+
 #include "debug_internal.h"
 #include "vulkan_internal.h"
 
@@ -23,6 +25,7 @@ typedef struct sRvkDevice {
   VkPhysicalDeviceMemoryProperties vkMemProperties;
   VkDevice                         vkDev;
   VkFormat                         vkDepthFormat;
+  ThreadMutex                      queueSubmitMutex;
   u32                              graphicsQueueIndex, transferQueueIndex;
   VkQueue                          vkGraphicsQueue, vkTransferQueue;
   VkPipelineCache                  vkPipelineCache;

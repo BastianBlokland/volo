@@ -169,8 +169,8 @@ static i32 rvk_device_type_score_value(const VkPhysicalDeviceType vkDevType) {
 }
 
 static u32 rvk_device_pick_graphics_queue(VkPhysicalDevice vkPhysDev) {
-  VkQueueFamilyProperties families[32];
-  u32                     familyCount = array_elems(families);
+  VkQueueFamilyProperties families[32] = {0};
+  u32                     familyCount  = array_elems(families);
   vkGetPhysicalDeviceQueueFamilyProperties(vkPhysDev, &familyCount, families);
 
   for (u32 i = 0; i != familyCount; ++i) {
@@ -182,8 +182,8 @@ static u32 rvk_device_pick_graphics_queue(VkPhysicalDevice vkPhysDev) {
 }
 
 static u32 rvk_device_pick_transfer_queue(VkPhysicalDevice vkPhysDev) {
-  VkQueueFamilyProperties families[32];
-  u32                     familyCount = array_elems(families);
+  VkQueueFamilyProperties families[32] = {0};
+  u32                     familyCount  = array_elems(families);
   vkGetPhysicalDeviceQueueFamilyProperties(vkPhysDev, &familyCount, families);
 
   for (u32 i = 0; i != familyCount; ++i) {
@@ -330,7 +330,8 @@ static VkFormat rvk_device_pick_depthformat(RvkDevice* dev) {
 RvkDevice* rvk_device_create() {
   RvkDevice* dev = alloc_alloc_t(g_alloc_heap, RvkDevice);
   *dev           = (RvkDevice){
-      .vkAlloc = rvk_mem_allocator(g_alloc_heap),
+      .vkAlloc          = rvk_mem_allocator(g_alloc_heap),
+      .queueSubmitMutex = thread_mutex_create(g_alloc_heap),
   };
 
   if (rvk_instance_layer_supported(g_validationLayer)) {
@@ -396,6 +397,7 @@ void rvk_device_destroy(RvkDevice* dev) {
   }
 
   vkDestroyInstance(dev->vkInst, &dev->vkAlloc);
+  thread_mutex_destroy(dev->queueSubmitMutex);
   alloc_free_t(g_alloc_heap, dev);
 
   log_d("Vulkan device destroyed");
