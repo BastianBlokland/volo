@@ -156,7 +156,9 @@ static void rvk_transfer_submit(RvkTransferer* trans, RvkTransferBuffer* buffer)
       .commandBufferCount = 1,
       .pCommandBuffers    = &buffer->vkCmdBuffer,
   };
+  thread_mutex_lock(trans->dev->queueSubmitMutex);
   rvk_call(vkQueueSubmit, trans->dev->vkTransferQueue, 1, &submitInfo, buffer->vkFinishedFence);
+  thread_mutex_unlock(trans->dev->queueSubmitMutex);
 }
 
 RvkTransferer* rvk_transferer_create(RvkDevice* dev) {

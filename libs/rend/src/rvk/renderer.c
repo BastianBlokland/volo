@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_diag.h"
+#include "core_thread.h"
 #include "rend_size.h"
 
 #include "device_internal.h"
@@ -92,7 +93,9 @@ static void rvk_renderer_submit(RvkRenderer* rend) {
       .signalSemaphoreCount = 1,
       .pSignalSemaphores    = &rend->semaphoreDone,
   };
+  thread_mutex_lock(rend->dev->queueSubmitMutex);
   rvk_call(vkQueueSubmit, rend->dev->vkGraphicsQueue, 1, &submitInfo, rend->fenceRenderDone);
+  thread_mutex_unlock(rend->dev->queueSubmitMutex);
 }
 
 static void rvk_renderer_blit_to_output(RvkRenderer* rend, RvkPass* pass) {
