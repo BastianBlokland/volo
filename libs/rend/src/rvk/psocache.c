@@ -64,7 +64,7 @@ static bool rvk_psocache_header_load(Mem input, RvkPsoCacheHeader* out) {
   }
   input = mem_consume_le_u32(input, &out->vendorId);
   input = mem_consume_le_u32(input, &out->deviceId);
-  mem_cpy(mem_var(out->cacheId), input);
+  mem_cpy(mem_var(out->cacheId), mem_slice(input, 0, VK_UUID_SIZE));
   return true;
 }
 
@@ -100,10 +100,12 @@ VkPipelineCache rvk_psocache_load(RvkDevice* dev) {
       log_param("device", fmt_int(header.deviceId)));
 
 Done:
+  (void)0;
+  VkPipelineCache result = rvk_vkcache_create(dev, data);
   if (file) {
     file_destroy(file);
   }
-  return rvk_vkcache_create(dev, data);
+  return result;
 }
 
 void rvk_psocache_save(RvkDevice* dev, VkPipelineCache vkCache) {
