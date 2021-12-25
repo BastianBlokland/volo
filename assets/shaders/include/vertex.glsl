@@ -1,7 +1,6 @@
 #ifndef INCLUDE_VERTEX
 #define INCLUDE_VERTEX
 
-#include "binding.glsl"
 #include "types.glsl"
 
 struct VertexPacked {
