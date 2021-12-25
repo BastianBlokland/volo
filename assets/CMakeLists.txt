@@ -3,8 +3,7 @@
 # --------------------------------------------------------------------------------------------------
 
 configure_copies(volo_assets_graphics
-  graphics/triangle.gra
-  graphics/ducks.gra)
+  graphics/cube.gra)
 
 configure_copies(volo_assets_meshes
   meshes/cube.obj
@@ -13,9 +12,8 @@ configure_copies(volo_assets_meshes
   meshes/triangle_xy.obj)
 
 configure_shaders(volo_assets_shaders
-  shaders/object.vert
-  shaders/object_color.frag
-  shaders/object_tex.frag)
+  shaders/standard.vert
+  shaders/standard.frag)
 
 configure_copies(volo_assets_textures
   textures/checker.ppm

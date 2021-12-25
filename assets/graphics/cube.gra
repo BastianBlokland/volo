@@ -1,21 +1,21 @@
 {
   "shaders": [
     {
-      "shaderId": "shaders/object.vert.spv"
+      "shaderId": "shaders/standard.vert.spv"
     },
     {
-      "shaderId": "shaders/object_tex.frag.spv"
+      "shaderId": "shaders/standard.frag.spv"
     }
   ],
   "samplers": [
     {
-      "textureId": "testimages/ducks.tga",
+      "textureId": "textures/checker.ppm",
       "wrap": "Clamp",
-      "filter": "Linear",
+      "filter": "Nearest",
       "anisotropy": "None"
     }
   ],
-  "meshId": "meshes/quad_xy.obj",
+  "meshId": "meshes/cube.obj",
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "None",
