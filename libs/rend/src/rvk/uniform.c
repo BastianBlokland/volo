@@ -31,14 +31,14 @@ typedef struct {
   u32            offset;
 } RvkUniformEntry;
 
-struct sRvkUniform {
+struct sRvkUniformPool {
   RvkDevice*  device;
   RvkDescMeta descMeta;
   u32         alignMin, dataSizeMax;
   DynArray    sets; // RvkUniformSet[]
 };
 
-static RvkUniformEntry rvk_uniform_upload(RvkUniform* uni, Mem data) {
+static RvkUniformEntry rvk_uniform_upload(RvkUniformPool* uni, Mem data) {
   const u32 padding    = bits_padding((u32)data.size, uni->alignMin);
   const u32 paddedSize = (u32)data.size + padding;
   diag_assert_msg(paddedSize <= uni->dataSizeMax, "Uniform data exceeds maximum");
@@ -67,7 +67,7 @@ static RvkUniformEntry rvk_uniform_upload(RvkUniform* uni, Mem data) {
       .offset = (u32)paddedSize,
   };
   rvk_debug_name_buffer(uni->device->debug, newSet->buffer.vkBuffer, "uniform");
-  rvk_desc_set_attach_buffer(newSet->desc, 0, &newSet->buffer);
+  rvk_desc_set_attach_buffer(newSet->desc, 0, &newSet->buffer, uni->dataSizeMax);
   rvk_buffer_upload(&newSet->buffer, data, 0);
 
   log_d(
@@ -79,9 +79,9 @@ static RvkUniformEntry rvk_uniform_upload(RvkUniform* uni, Mem data) {
   return (RvkUniformEntry){.set = newSet, .offset = 0};
 }
 
-RvkUniform* rvk_uniform_create(RvkDevice* dev) {
-  RvkUniform* debug = alloc_alloc_t(g_alloc_heap, RvkUniform);
-  *debug            = (RvkUniform){
+RvkUniformPool* rvk_uniform_pool_create(RvkDevice* dev) {
+  RvkUniformPool* debug = alloc_alloc_t(g_alloc_heap, RvkUniformPool);
+  *debug                = (RvkUniformPool){
       .device               = dev,
       .descMeta.bindings[0] = RvkDescKind_UniformBufferDynamic,
       .alignMin             = (u32)dev->vkProperties.limits.minUniformBufferOffsetAlignment,
@@ -92,7 +92,7 @@ RvkUniform* rvk_uniform_create(RvkDevice* dev) {
   return debug;
 }
 
-void rvk_uniform_destroy(RvkUniform* uni) {
+void rvk_uniform_pool_destroy(RvkUniformPool* uni) {
   dynarray_for_t(&uni->sets, RvkUniformSet, set) {
     rvk_buffer_destroy(&set->buffer, uni->device);
     rvk_desc_free(set->desc);
@@ -101,18 +101,18 @@ void rvk_uniform_destroy(RvkUniform* uni) {
   alloc_free_t(g_alloc_heap, uni);
 }
 
-usize rvk_uniform_size_max(RvkUniform* uni) { return uni->dataSizeMax; }
+usize rvk_uniform_size_max(RvkUniformPool* uni) { return uni->dataSizeMax; }
 
-VkDescriptorSetLayout rvk_uniform_vkdesclayout(RvkUniform* uni) {
+VkDescriptorSetLayout rvk_uniform_vkdesclayout(RvkUniformPool* uni) {
   return rvk_desc_vklayout(uni->device->descPool, &uni->descMeta);
 }
 
-void rvk_uniform_reset(RvkUniform* uni) {
+void rvk_uniform_reset(RvkUniformPool* uni) {
   dynarray_for_t(&uni->sets, RvkUniformSet, set) { set->offset = 0; }
 }
 
 void rvk_uniform_bind(
-    RvkUniform*      uni,
+    RvkUniformPool*  uni,
     Mem              data,
     VkCommandBuffer  vkCmdBuf,
     VkPipelineLayout vkPipelineLayout,

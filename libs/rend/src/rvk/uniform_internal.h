@@ -6,12 +6,12 @@
 // Internal forward declarations:
 typedef struct sRvkDevice RvkDevice;
 
-typedef struct sRvkUniform RvkUniform;
+typedef struct sRvkUniformPool RvkUniformPool;
 
-RvkUniform*           rvk_uniform_create(RvkDevice*);
-void                  rvk_uniform_destroy(RvkUniform*);
-usize                 rvk_uniform_size_max(RvkUniform*);
-VkDescriptorSetLayout rvk_uniform_vkdesclayout(RvkUniform*);
+RvkUniformPool*       rvk_uniform_pool_create(RvkDevice*);
+void                  rvk_uniform_pool_destroy(RvkUniformPool*);
+usize                 rvk_uniform_size_max(RvkUniformPool*);
+VkDescriptorSetLayout rvk_uniform_vkdesclayout(RvkUniformPool*);
 
-void rvk_uniform_reset(RvkUniform*);
-void rvk_uniform_bind(RvkUniform*, Mem data, VkCommandBuffer, VkPipelineLayout, u32 set);
+void rvk_uniform_reset(RvkUniformPool*);
+void rvk_uniform_bind(RvkUniformPool*, Mem data, VkCommandBuffer, VkPipelineLayout, u32 set);

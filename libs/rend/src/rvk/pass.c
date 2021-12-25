@@ -2,11 +2,13 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
+#include "log_logger.h"
 
 #include "device_internal.h"
 #include "graphic_internal.h"
 #include "image_internal.h"
 #include "pass_internal.h"
+#include "uniform_internal.h"
 
 #define attachment_max 8
 
@@ -20,12 +22,14 @@ typedef enum {
 } RvkPassFlags;
 
 struct sRvkPass {
-  RvkDevice*      dev;
-  RvkPassFlags    flags;
-  VkRenderPass    vkRendPass;
-  RvkImage        colorAttachment;
-  VkFramebuffer   vkFrameBuffer;
-  VkCommandBuffer vkCmdBuf;
+  RvkDevice*       dev;
+  RvkPassFlags     flags;
+  VkRenderPass     vkRendPass;
+  VkPipelineLayout vkGlobalLayout;
+  RvkImage         colorAttachment;
+  VkFramebuffer    vkFrameBuffer;
+  VkCommandBuffer  vkCmdBuf;
+  RvkUniformPool*  uniformPool;
 };
 
 static VkRenderPass rvk_renderpass_create(RvkDevice* dev) {
@@ -64,6 +68,24 @@ static VkRenderPass rvk_renderpass_create(RvkDevice* dev) {
   };
   VkRenderPass result;
   rvk_call(vkCreateRenderPass, dev->vkDev, &renderPassInfo, &dev->vkAlloc, &result);
+  return result;
+}
+
+/**
+ * Create a pipeline layout with a single global descriptor-set 0.
+ * All pipeline layouts have to be compatible with this layout.
+ * This allows us to share the global data binding between different pipelines.
+ */
+static VkPipelineLayout
+rvk_global_layout_create(RvkDevice* dev, VkDescriptorSetLayout vkGlobalDescLayout) {
+
+  const VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
+      .sType          = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+      .setLayoutCount = 1,
+      .pSetLayouts    = &vkGlobalDescLayout,
+  };
+  VkPipelineLayout result;
+  rvk_call(vkCreatePipelineLayout, dev->vkDev, &pipelineLayoutInfo, &dev->vkAlloc, &result);
   return result;
 }
 
@@ -139,12 +161,14 @@ static void rvk_pass_resource_destroy(RvkPass* pass) {
   vkDestroyFramebuffer(pass->dev->vkDev, pass->vkFrameBuffer, &pass->dev->vkAlloc);
 }
 
-RvkPass* rvk_pass_create(RvkDevice* dev, VkCommandBuffer vkCmdBuf) {
+RvkPass* rvk_pass_create(RvkDevice* dev, VkCommandBuffer vkCmdBuf, RvkUniformPool* uniformPool) {
   RvkPass* pass = alloc_alloc_t(g_alloc_heap, RvkPass);
   *pass         = (RvkPass){
-      .dev        = dev,
-      .vkRendPass = rvk_renderpass_create(dev),
-      .vkCmdBuf   = vkCmdBuf,
+      .dev            = dev,
+      .vkRendPass     = rvk_renderpass_create(dev),
+      .vkGlobalLayout = rvk_global_layout_create(dev, rvk_uniform_vkdesclayout(uniformPool)),
+      .vkCmdBuf       = vkCmdBuf,
+      .uniformPool    = uniformPool,
   };
   return pass;
 }
@@ -153,6 +177,7 @@ void rvk_pass_destroy(RvkPass* pass) {
 
   rvk_pass_resource_destroy(pass);
   vkDestroyRenderPass(pass->dev->vkDev, pass->vkRendPass, &pass->dev->vkAlloc);
+  vkDestroyPipelineLayout(pass->dev->vkDev, pass->vkGlobalLayout, &pass->dev->vkAlloc);
 
   alloc_free_t(g_alloc_heap, pass);
 }
@@ -192,10 +217,18 @@ void rvk_pass_begin(RvkPass* pass, const RendColor clearColor) {
   rvk_pass_scissor_set(pass->vkCmdBuf, pass->colorAttachment.size);
 }
 
-void rvk_pass_draw(RvkPass* pass, const RvkPassDrawList drawList) {
+void rvk_pass_draw(RvkPass* pass, Mem uniformData, const RvkPassDrawList drawList) {
   diag_assert_msg(pass->flags & RvkPassFlags_Active, "Pass not active");
 
+  if (uniformData.size) {
+    rvk_uniform_bind(pass->uniformPool, uniformData, pass->vkCmdBuf, pass->vkGlobalLayout, 0);
+  }
+
   array_ptr_for_t(drawList, RvkPassDraw, draw) {
+    if (draw->graphic->flags & RvkGraphicFlags_UsesGlobalData && !uniformData.size) {
+      log_w("Graphic requires global data", log_param("graphic", fmt_text(draw->graphic->dbgName)));
+      continue;
+    }
     rvk_debug_label_begin(
         pass->dev->debug, pass->vkCmdBuf, rend_green, "draw_{}", fmt_text(draw->graphic->dbgName));
 

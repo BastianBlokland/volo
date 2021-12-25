@@ -44,5 +44,5 @@ VkDescriptorSet       rvk_desc_set_vkset(RvkDescSet);
 VkDescriptorSetLayout rvk_desc_set_vklayout(RvkDescSet);
 RvkDescKind           rvk_desc_set_kind(RvkDescSet, u32 binding);
 
-void rvk_desc_set_attach_buffer(RvkDescSet, u32 binding, const RvkBuffer*);
+void rvk_desc_set_attach_buffer(RvkDescSet, u32 binding, const RvkBuffer*, u32 size);
 void rvk_desc_set_attach_sampler(RvkDescSet, u32 binding, const RvkImage*, const RvkSampler*);
