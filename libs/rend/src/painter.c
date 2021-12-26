@@ -5,6 +5,7 @@
 #include "ecs_world.h"
 #include "gap_input.h"
 #include "gap_window.h"
+#include "rend_instance.h"
 #include "scene_camera.h"
 #include "scene_transform.h"
 
@@ -23,7 +24,8 @@ static void ecs_destruct_painter_comp(void* data) {
 }
 
 ecs_view_define(PlatformView) { ecs_access_write(RendPlatformComp); };
-ecs_view_define(RenderableView) { ecs_access_write(RendGraphicComp); };
+ecs_view_define(RenderableView) { ecs_access_read(RendInstanceComp); };
+ecs_view_define(GraphicView) { ecs_access_write(RendGraphicComp); };
 
 ecs_view_define(PainterCreateView) {
   ecs_access_read(GapWindowComp);
@@ -50,13 +52,23 @@ static GeoMatrix painter_view_proj_matrix(
   return geo_matrix_mul(&proj, &view);
 }
 
-static void
-painter_draw_forward(const GeoMatrix viewProjMatrix, RvkPass* forwardPass, EcsView* renderables) {
+static void painter_draw_forward(
+    const GeoMatrix viewProjMatrix,
+    RvkPass*        forwardPass,
+    EcsView*        renderableView,
+    EcsView*        graphicView) {
   DynArray drawBuffer = dynarray_create_t(g_alloc_scratch, RvkPassDraw, 1024);
 
   // Prepare draws.
-  for (EcsIterator* itr = ecs_view_itr(renderables); ecs_view_walk(itr);) {
-    RendGraphicComp* graphicComp = ecs_view_write_t(itr, RendGraphicComp);
+  EcsIterator* renderableItr = ecs_view_itr(renderableView);
+  EcsIterator* graphicItr    = ecs_view_itr(graphicView);
+  while (ecs_view_walk(renderableItr)) {
+    const RendInstanceComp* instanceComp = ecs_view_read_t(renderableItr, RendInstanceComp);
+    if (!ecs_view_contains(graphicView, instanceComp->asset)) {
+      continue;
+    }
+    ecs_view_jump(graphicItr, instanceComp->asset);
+    RendGraphicComp* graphicComp = ecs_view_write_t(graphicItr, RendGraphicComp);
     if (rvk_pass_prepare(forwardPass, graphicComp->graphic)) {
       *dynarray_push_t(&drawBuffer, RvkPassDraw) = (RvkPassDraw){
           .graphic = graphicComp->graphic,
@@ -81,15 +93,15 @@ static bool painter_draw(
     const GapWindowComp*      win,
     const SceneCameraComp*    cam,
     const SceneTransformComp* trans,
-    EcsView*                  renderables) {
-
+    EcsView*                  renderableView,
+    EcsView*                  graphicView) {
   const GapVector winSize  = gap_window_param(win, GapParam_WindowSize);
   const RendSize  rendSize = rend_size((u32)winSize.width, (u32)winSize.height);
   const bool      draw     = rvk_canvas_begin(painter->canvas, rendSize);
   if (draw) {
     const GeoMatrix viewProjMatrix = painter_view_proj_matrix(win, cam, trans);
     RvkPass*        forwardPass    = rvk_canvas_pass_forward(painter->canvas);
-    painter_draw_forward(viewProjMatrix, forwardPass, renderables);
+    painter_draw_forward(viewProjMatrix, forwardPass, renderableView, graphicView);
     rvk_canvas_end(painter->canvas);
   }
   return draw;
@@ -112,6 +124,7 @@ ecs_system_define(RendPainterCreateSys) {
 ecs_system_define(RendPainterUpdateSys) {
   EcsView* painterView     = ecs_world_view_t(world, PainterUpdateView);
   EcsView* renderablesView = ecs_world_view_t(world, RenderableView);
+  EcsView* graphicView     = ecs_world_view_t(world, GraphicView);
 
   bool anyPainterDrawn = false;
   for (EcsIterator* itr = ecs_view_itr(painterView); ecs_view_walk(itr);) {
@@ -119,7 +132,7 @@ ecs_system_define(RendPainterUpdateSys) {
     RendPainterComp*          painter   = ecs_view_write_t(itr, RendPainterComp);
     const SceneCameraComp*    camera    = ecs_view_read_t(itr, SceneCameraComp);
     const SceneTransformComp* transform = ecs_view_read_t(itr, SceneTransformComp);
-    anyPainterDrawn |= painter_draw(painter, win, camera, transform, renderablesView);
+    anyPainterDrawn |= painter_draw(painter, win, camera, transform, renderablesView, graphicView);
   }
 
   if (!anyPainterDrawn) {
@@ -136,6 +149,7 @@ ecs_module_init(rend_canvas_module) {
 
   ecs_register_view(PlatformView);
   ecs_register_view(RenderableView);
+  ecs_register_view(GraphicView);
   ecs_register_view(PainterCreateView);
   ecs_register_view(PainterUpdateView);
 
@@ -143,7 +157,10 @@ ecs_module_init(rend_canvas_module) {
       RendPainterCreateSys, ecs_view_id(PlatformView), ecs_view_id(PainterCreateView));
 
   ecs_register_system(
-      RendPainterUpdateSys, ecs_view_id(PainterUpdateView), ecs_view_id(RenderableView));
+      RendPainterUpdateSys,
+      ecs_view_id(PainterUpdateView),
+      ecs_view_id(RenderableView),
+      ecs_view_id(GraphicView));
 }
 
 void rend_painter_teardown(EcsWorld* world) {
