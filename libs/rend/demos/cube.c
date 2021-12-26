@@ -7,6 +7,7 @@
 #include "core_time.h"
 #include "ecs.h"
 #include "gap.h"
+#include "geo.h"
 #include "jobs.h"
 #include "log.h"
 #include "rend.h"
@@ -28,7 +29,13 @@ static void demo_add_cube(EcsWorld* world) {
       world,
       cubeEntity,
       RendInstanceComp,
-      .asset = asset_lookup(world, manager, string_lit("graphics/cube.gra")));
+      .graphic = asset_lookup(world, manager, string_lit("graphics/cube.gra")));
+  ecs_world_add_t(
+      world,
+      cubeEntity,
+      SceneTransformComp,
+      .position = geo_vector(0, 0, 0),
+      .rotation = geo_quat_angle_axis(geo_up, 45.0f * math_deg_to_rad));
 }
 
 ecs_module_init(demo_cube_module) { ecs_register_view(ManagerView); }
@@ -55,7 +62,7 @@ static int run_app(const String assetPath) {
 
   const EcsEntityId window =
       gap_window_create(world, GapWindowFlags_Default, gap_vector(1024, 768));
-  ecs_world_add_t(world, window, SceneCameraComp, .fov = 90 * math_deg_to_rad, .zNear = 0.01f);
+  ecs_world_add_t(world, window, SceneCameraComp, .fov = 60 * math_deg_to_rad, .zNear = 0.01f);
   ecs_world_add_t(
       world,
       window,

@@ -2,4 +2,4 @@
 #include "ecs_entity.h"
 #include "ecs_module.h"
 
-ecs_comp_extern_public(RendInstanceComp) { EcsEntityId asset; };
+ecs_comp_extern_public(RendInstanceComp) { EcsEntityId graphic; };

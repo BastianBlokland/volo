@@ -20,8 +20,9 @@ typedef struct {
 } RvkGraphicSampler;
 
 typedef enum {
-  RvkGraphicFlags_Ready          = 1 << 0,
-  RvkGraphicFlags_UsesGlobalData = 1 << 1,
+  RvkGraphicFlags_Ready        = 1 << 0,
+  RvkGraphicFlags_GlobalData   = 1 << 1,
+  RvkGraphicFlags_InstanceData = 1 << 2,
 } RvkGraphicFlags;
 
 typedef struct sRvkGraphic {

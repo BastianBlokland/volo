@@ -153,7 +153,7 @@ ecs_system_define(RendResourceRequestSys) {
   EcsView* instanceView = ecs_world_view_t(world, InstanceView);
   for (EcsIterator* itr = ecs_view_itr(instanceView); ecs_view_walk(itr);) {
     const RendInstanceComp* comp = ecs_view_read_t(itr, RendInstanceComp);
-    ecs_utils_maybe_add_t(world, comp->asset, RendResource);
+    ecs_utils_maybe_add_t(world, comp->graphic, RendResource);
   }
 }
 

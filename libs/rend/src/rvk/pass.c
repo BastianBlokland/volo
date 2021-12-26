@@ -254,24 +254,33 @@ void rvk_pass_begin(RvkPass* pass, const RendColor clearColor) {
   rvk_pass_scissor_set(pass->vkCmdBuf, pass->attachColor.size);
 }
 
-void rvk_pass_draw(RvkPass* pass, Mem uniformData, const RvkPassDrawList drawList) {
+void rvk_pass_draw(RvkPass* pass, Mem globalData, const RvkPassDrawList drawList) {
   diag_assert_msg(pass->flags & RvkPassFlags_Active, "Pass not active");
 
-  if (uniformData.size) {
-    rvk_uniform_bind(pass->uniformPool, uniformData, pass->vkCmdBuf, pass->vkGlobalLayout, 0);
+  if (globalData.size) {
+    rvk_uniform_bind(pass->uniformPool, globalData, pass->vkCmdBuf, pass->vkGlobalLayout, 0);
   }
 
   array_ptr_for_t(drawList, RvkPassDraw, draw) {
-    if (draw->graphic->flags & RvkGraphicFlags_UsesGlobalData && !uniformData.size) {
-      log_w("Graphic requires global data", log_param("graphic", fmt_text(draw->graphic->dbgName)));
+    RvkGraphic* graphic = draw->graphic;
+    if (graphic->flags & RvkGraphicFlags_GlobalData && !globalData.size) {
+      log_w("Graphic requires global data", log_param("graphic", fmt_text(graphic->dbgName)));
+      continue;
+    }
+    if (graphic->flags & RvkGraphicFlags_InstanceData && !draw->data.size) {
+      log_w("Graphic requires instance data", log_param("graphic", fmt_text(graphic->dbgName)));
       continue;
     }
     rvk_debug_label_begin(
-        pass->dev->debug, pass->vkCmdBuf, rend_green, "draw_{}", fmt_text(draw->graphic->dbgName));
+        pass->dev->debug, pass->vkCmdBuf, rend_green, "draw_{}", fmt_text(graphic->dbgName));
 
-    rvk_graphic_bind(draw->graphic, pass->vkCmdBuf);
+    rvk_graphic_bind(graphic, pass->vkCmdBuf);
 
-    const u32 indexCount = rvk_graphic_index_count(draw->graphic);
+    if (draw->data.size) {
+      rvk_uniform_bind(pass->uniformPool, draw->data, pass->vkCmdBuf, graphic->vkPipelineLayout, 2);
+    }
+
+    const u32 indexCount = rvk_graphic_index_count(graphic);
     vkCmdDrawIndexed(pass->vkCmdBuf, indexCount, 1, 0, 0, 0);
 
     rvk_debug_label_end(pass->dev->debug, pass->vkCmdBuf);
