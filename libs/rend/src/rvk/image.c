@@ -262,7 +262,7 @@ rvk_image_create_attach_color(RvkDevice* dev, const VkFormat vkFormat, const Ren
 
 RvkImage
 rvk_image_create_attach_depth(RvkDevice* dev, const VkFormat vkFormat, const RendSize size) {
-  diag_assert(rvk_format_info(vkFormat).channels == 1);
+  diag_assert(rvk_format_info(vkFormat).channels == 1 || rvk_format_info(vkFormat).channels == 2);
   const u8 mipLevels = 1;
   return rvk_image_create_backed(dev, RvkImageType_DepthAttachment, vkFormat, size, mipLevels);
 }
