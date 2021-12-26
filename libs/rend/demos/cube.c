@@ -2,6 +2,7 @@
 #include "cli.h"
 #include "core.h"
 #include "core_file.h"
+#include "core_math.h"
 #include "core_thread.h"
 #include "core_time.h"
 #include "ecs.h"
@@ -9,8 +10,10 @@
 #include "jobs.h"
 #include "log.h"
 #include "rend.h"
+#include "scene_camera.h"
 #include "scene_graphic.h"
 #include "scene_register.h"
+#include "scene_transform.h"
 
 /**
  * Demo application that renders a single cube.
@@ -52,6 +55,13 @@ static int run_app(const String assetPath) {
 
   const EcsEntityId window =
       gap_window_create(world, GapWindowFlags_Default, gap_vector(1024, 768));
+  ecs_world_add_t(world, window, SceneCameraComp, .fov = 90 * math_deg_to_rad, .zNear = 0.01f);
+  ecs_world_add_t(
+      world,
+      window,
+      SceneTransformComp,
+      .position = geo_vector(0, 0, -2),
+      .rotation = geo_quat_ident);
 
   u64 tickCount = 0;
   while (ecs_world_exists(world, window)) {

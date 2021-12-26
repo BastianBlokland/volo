@@ -22,6 +22,7 @@
 #define f32_vec2 vec2
 #define f32_vec3 vec3
 #define f32_vec4 vec4
+#define f32_mat4 mat4
 
 #define f64 double
 #define f64_vec2 dvec2

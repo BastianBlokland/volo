@@ -5,6 +5,8 @@
 #include "ecs_world.h"
 #include "gap_input.h"
 #include "gap_window.h"
+#include "scene_camera.h"
+#include "scene_transform.h"
 
 #include "platform_internal.h"
 #include "resource_internal.h"
@@ -31,9 +33,25 @@ ecs_view_define(PainterCreateView) {
 ecs_view_define(PainterUpdateView) {
   ecs_access_read(GapWindowComp);
   ecs_access_write(RendPainterComp);
+
+  ecs_access_maybe_read(SceneCameraComp);
+  ecs_access_maybe_read(SceneTransformComp);
 };
 
-static void painter_draw_forward(RvkPass* forwardPass, EcsView* renderables) {
+static GeoMatrix painter_view_proj_matrix(
+    const GapWindowComp* win, const SceneCameraComp* cam, const SceneTransformComp* trans) {
+
+  const GapVector winSize = gap_window_param(win, GapParam_WindowSize);
+  const f32       aspect  = (f32)winSize.width / (f32)winSize.height;
+
+  const GeoMatrix proj = cam ? scene_camera_proj(cam, aspect)
+                             : geo_matrix_proj_ortho(2.0f, 2.0f / aspect, -1.0f, 1.0f);
+  const GeoMatrix view = trans ? scene_transform_matrix_inv(trans) : geo_matrix_ident();
+  return geo_matrix_mul(&proj, &view);
+}
+
+static void
+painter_draw_forward(const GeoMatrix viewProjMatrix, RvkPass* forwardPass, EcsView* renderables) {
   DynArray drawBuffer = dynarray_create_t(g_alloc_scratch, RvkPassDraw, 1024);
 
   // Prepare draws.
@@ -47,11 +65,10 @@ static void painter_draw_forward(RvkPass* forwardPass, EcsView* renderables) {
   }
 
   // Execute draws.
-  const RendColor color = rend_yellow;
   rvk_pass_begin(forwardPass, rend_soothing_purple);
   rvk_pass_draw(
       forwardPass,
-      mem_var(color),
+      mem_var(viewProjMatrix),
       (RvkPassDrawList){
           .values = dynarray_begin_t(&drawBuffer, RvkPassDraw),
           .count  = drawBuffer.size,
@@ -59,13 +76,20 @@ static void painter_draw_forward(RvkPass* forwardPass, EcsView* renderables) {
   rvk_pass_end(forwardPass);
 }
 
-static bool painter_draw(RendPainterComp* painter, const GapWindowComp* win, EcsView* renderables) {
+static bool painter_draw(
+    RendPainterComp*          painter,
+    const GapWindowComp*      win,
+    const SceneCameraComp*    cam,
+    const SceneTransformComp* trans,
+    EcsView*                  renderables) {
+
   const GapVector winSize  = gap_window_param(win, GapParam_WindowSize);
   const RendSize  rendSize = rend_size((u32)winSize.width, (u32)winSize.height);
   const bool      draw     = rvk_canvas_begin(painter->canvas, rendSize);
   if (draw) {
-    RvkPass* forwardPass = rvk_canvas_pass_forward(painter->canvas);
-    painter_draw_forward(forwardPass, renderables);
+    const GeoMatrix viewProjMatrix = painter_view_proj_matrix(win, cam, trans);
+    RvkPass*        forwardPass    = rvk_canvas_pass_forward(painter->canvas);
+    painter_draw_forward(viewProjMatrix, forwardPass, renderables);
     rvk_canvas_end(painter->canvas);
   }
   return draw;
@@ -91,9 +115,11 @@ ecs_system_define(RendPainterUpdateSys) {
 
   bool anyPainterDrawn = false;
   for (EcsIterator* itr = ecs_view_itr(painterView); ecs_view_walk(itr);) {
-    const GapWindowComp* win     = ecs_view_read_t(itr, GapWindowComp);
-    RendPainterComp*     painter = ecs_view_write_t(itr, RendPainterComp);
-    anyPainterDrawn |= painter_draw(painter, win, renderablesView);
+    const GapWindowComp*      win       = ecs_view_read_t(itr, GapWindowComp);
+    RendPainterComp*          painter   = ecs_view_write_t(itr, RendPainterComp);
+    const SceneCameraComp*    camera    = ecs_view_read_t(itr, SceneCameraComp);
+    const SceneTransformComp* transform = ecs_view_read_t(itr, SceneTransformComp);
+    anyPainterDrawn |= painter_draw(painter, win, camera, transform, renderablesView);
   }
 
   if (!anyPainterDrawn) {
