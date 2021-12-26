@@ -113,6 +113,9 @@ static void painter_draw_forward(
   for (EcsIterator* itr = ecs_view_itr(batchView); ecs_view_walk(itr);) {
     RendResGraphicComp*         graphicResComp = ecs_view_write_t(itr, RendResGraphicComp);
     const RendPainterBatchComp* batchComp      = ecs_view_read_t(itr, RendPainterBatchComp);
+    if (!batchComp->instances.size) {
+      continue;
+    }
     if (rvk_pass_prepare(forwardPass, graphicResComp->graphic)) {
       dynarray_for_t(&batchComp->instances, RendPainterInstanceData, instance) {
         *dynarray_push_t(&drawBuffer, RvkPassDraw) = (RvkPassDraw){
