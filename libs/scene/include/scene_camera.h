@@ -1,6 +1,6 @@
 #pragma once
 #include "ecs_module.h"
-#include "scene_transform.h"
+#include "geo_matrix.h"
 
 typedef enum {
   SceneCameraFlags_None     = 0,
@@ -14,4 +14,3 @@ ecs_comp_extern_public(SceneCameraComp) {
 };
 
 GeoMatrix scene_camera_proj(const SceneCameraComp*, f32 aspect);
-GeoMatrix scene_camera_viewproj(const SceneCameraComp*, const SceneTransformComp*, f32 aspect);

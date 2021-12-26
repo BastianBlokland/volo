@@ -2,6 +2,7 @@
 #include "cli.h"
 #include "core.h"
 #include "core_file.h"
+#include "core_math.h"
 #include "core_thread.h"
 #include "core_time.h"
 #include "ecs.h"
@@ -9,26 +10,28 @@
 #include "jobs.h"
 #include "log.h"
 #include "rend.h"
+#include "scene_camera.h"
 #include "scene_graphic.h"
 #include "scene_register.h"
+#include "scene_transform.h"
 
 /**
- * Demo application that renders a single triangle.
+ * Demo application that renders a single cube.
  */
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
 
-static void demo_add_triangle(EcsWorld* world) {
-  AssetManagerComp* manager        = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-  const EcsEntityId triangleEntity = ecs_world_entity_create(world);
+static void demo_add_cube(EcsWorld* world) {
+  AssetManagerComp* manager    = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+  const EcsEntityId cubeEntity = ecs_world_entity_create(world);
   ecs_world_add_t(
       world,
-      triangleEntity,
+      cubeEntity,
       SceneGraphicComp,
-      .asset = asset_lookup(world, manager, string_lit("graphics/ducks.gra")));
+      .asset = asset_lookup(world, manager, string_lit("graphics/cube.gra")));
 }
 
-ecs_module_init(demo_triangle_module) { ecs_register_view(ManagerView); }
+ecs_module_init(demo_cube_module) { ecs_register_view(ManagerView); }
 
 static int run_app(const String assetPath) {
 
@@ -39,7 +42,7 @@ static int run_app(const String assetPath) {
   scene_register(def);
   gap_register(def);
   rend_register(def);
-  ecs_register_module(def, demo_triangle_module);
+  ecs_register_module(def, demo_cube_module);
 
   EcsWorld*  world  = ecs_world_create(g_alloc_heap, def);
   EcsRunner* runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_DumpGraphDot);
@@ -48,10 +51,17 @@ static int run_app(const String assetPath) {
 
   asset_manager_create_fs(world, assetPath);
   ecs_run_sync(runner);
-  demo_add_triangle(world);
+  demo_add_cube(world);
 
   const EcsEntityId window =
       gap_window_create(world, GapWindowFlags_Default, gap_vector(1024, 768));
+  ecs_world_add_t(world, window, SceneCameraComp, .fov = 90 * math_deg_to_rad, .zNear = 0.01f);
+  ecs_world_add_t(
+      world,
+      window,
+      SceneTransformComp,
+      .position = geo_vector(0, 0, -2),
+      .rotation = geo_quat_ident);
 
   u64 tickCount = 0;
   while (ecs_world_exists(world, window)) {
@@ -86,7 +96,7 @@ int main(const int argc, const char** argv) {
 
   int exitCode = 0;
 
-  CliApp*     app = cli_app_create(g_alloc_heap, string_lit("Volo Render Triangle Demo"));
+  CliApp*     app = cli_app_create(g_alloc_heap, string_lit("Volo Render Cube Demo"));
   const CliId assetFlag =
       cli_register_flag(app, 'a', string_lit("assets"), CliOptionFlags_Required);
   cli_register_desc(app, assetFlag, string_lit("Path to asset directory."));
