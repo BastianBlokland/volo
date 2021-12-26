@@ -4,7 +4,7 @@
 #include "core_math.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
-#include "scene_graphic.h"
+#include "rend_instance.h"
 
 #include "platform_internal.h"
 #include "resource_internal.h"
@@ -73,7 +73,7 @@ static void ecs_combine_resource(void* dataA, void* dataB) {
 }
 
 ecs_view_define(RendPlatView) { ecs_access_read(RendPlatformComp); }
-ecs_view_define(SceneGraphicView) { ecs_access_read(SceneGraphicComp); };
+ecs_view_define(InstanceView) { ecs_access_read(RendInstanceComp); };
 ecs_view_define(AssetManagerView) { ecs_access_write(AssetManagerComp); };
 
 ecs_view_define(GlobalView) {
@@ -150,9 +150,9 @@ ecs_system_define(RendGlobalResourceLoadSys) {
 }
 
 ecs_system_define(RendResourceRequestSys) {
-  EcsView* graphicView = ecs_world_view_t(world, SceneGraphicView);
-  for (EcsIterator* itr = ecs_view_itr(graphicView); ecs_view_walk(itr);) {
-    const SceneGraphicComp* comp = ecs_view_read_t(itr, SceneGraphicComp);
+  EcsView* instanceView = ecs_world_view_t(world, InstanceView);
+  for (EcsIterator* itr = ecs_view_itr(instanceView); ecs_view_walk(itr);) {
+    const RendInstanceComp* comp = ecs_view_read_t(itr, RendInstanceComp);
     ecs_utils_maybe_add_t(world, comp->asset, RendResource);
   }
 }
@@ -300,7 +300,7 @@ ecs_module_init(rend_resource_module) {
 
   ecs_register_view(RendPlatView);
   ecs_register_view(GlobalView);
-  ecs_register_view(SceneGraphicView);
+  ecs_register_view(InstanceView);
   ecs_register_view(AssetManagerView);
   ecs_register_view(GlobalResourceUpdateView);
   ecs_register_view(ShaderView);
@@ -316,7 +316,7 @@ ecs_module_init(rend_resource_module) {
       ecs_view_id(AssetManagerView),
       ecs_view_id(TextureView));
 
-  ecs_register_system(RendResourceRequestSys, ecs_view_id(SceneGraphicView));
+  ecs_register_system(RendResourceRequestSys, ecs_view_id(InstanceView));
 
   ecs_register_system(
       RendResourceLoadSys,

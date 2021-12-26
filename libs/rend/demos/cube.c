@@ -10,8 +10,8 @@
 #include "jobs.h"
 #include "log.h"
 #include "rend.h"
+#include "rend_instance.h"
 #include "scene_camera.h"
-#include "scene_graphic.h"
 #include "scene_register.h"
 #include "scene_transform.h"
 
@@ -27,7 +27,7 @@ static void demo_add_cube(EcsWorld* world) {
   ecs_world_add_t(
       world,
       cubeEntity,
-      SceneGraphicComp,
+      RendInstanceComp,
       .asset = asset_lookup(world, manager, string_lit("graphics/cube.gra")));
 }
 
