@@ -16,6 +16,8 @@ static VkAccessFlags rvk_image_vkaccess_read(const RvkImagePhase phase) {
     return 0;
   case RvkImagePhase_ColorAttachment:
     return 0;
+  case RvkImagePhase_DepthAttachment:
+    return VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
   case RvkImagePhase_ShaderRead:
     return VK_ACCESS_SHADER_READ_BIT;
   case RvkImagePhase_Present:
@@ -36,6 +38,8 @@ static VkAccessFlags rvk_image_vkaccess_write(const RvkImagePhase phase) {
     return VK_ACCESS_TRANSFER_WRITE_BIT;
   case RvkImagePhase_ColorAttachment:
     return VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+  case RvkImagePhase_DepthAttachment:
+    return VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
   case RvkImagePhase_ShaderRead:
     return 0;
   case RvkImagePhase_Present:
@@ -55,6 +59,8 @@ static VkPipelineStageFlags rvk_image_vkpipelinestage(const RvkImagePhase phase)
     return VK_PIPELINE_STAGE_TRANSFER_BIT;
   case RvkImagePhase_ColorAttachment:
     return VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  case RvkImagePhase_DepthAttachment:
+    return VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
   case RvkImagePhase_ShaderRead:
     return VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
   case RvkImagePhase_Present:
@@ -75,6 +81,8 @@ static VkImageLayout rvk_image_vklayout(const RvkImagePhase phase) {
     return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
   case RvkImagePhase_ColorAttachment:
     return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+  case RvkImagePhase_DepthAttachment:
+    return VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
   case RvkImagePhase_ShaderRead:
     return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
   case RvkImagePhase_Present:
@@ -306,6 +314,7 @@ String rvk_image_phase_str(const RvkImagePhase phase) {
       string_static("TransferSource"),
       string_static("TransferDest"),
       string_static("ColorAttachment"),
+      string_static("DepthAttachment"),
       string_static("ShaderRead"),
       string_static("Present"),
   };

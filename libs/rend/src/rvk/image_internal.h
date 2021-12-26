@@ -12,6 +12,7 @@ typedef enum {
   RvkImagePhase_TransferSource,
   RvkImagePhase_TransferDest,
   RvkImagePhase_ColorAttachment,
+  RvkImagePhase_DepthAttachment,
   RvkImagePhase_ShaderRead,
   RvkImagePhase_Present,
 
