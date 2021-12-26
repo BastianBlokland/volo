@@ -57,12 +57,12 @@ ecs_view_define(RenderableView) {
 };
 
 ecs_view_define(DrawBatchView) {
-  ecs_access_write(RendGraphicComp);
+  ecs_access_write(RendResGraphicComp);
   ecs_access_read(RendPainterBatchComp);
 };
 
 ecs_view_define(CreateBatchView) {
-  ecs_access_with(RendGraphicComp);
+  ecs_access_with(RendResGraphicComp);
   ecs_access_maybe_write(RendPainterBatchComp);
 };
 
@@ -111,12 +111,12 @@ static void painter_draw_forward(
 
   // Prepare batches.
   for (EcsIterator* itr = ecs_view_itr(batchView); ecs_view_walk(itr);) {
-    RendGraphicComp*            graphicComp = ecs_view_write_t(itr, RendGraphicComp);
-    const RendPainterBatchComp* batchComp   = ecs_view_read_t(itr, RendPainterBatchComp);
-    if (rvk_pass_prepare(forwardPass, graphicComp->graphic)) {
+    RendResGraphicComp*         graphicResComp = ecs_view_write_t(itr, RendResGraphicComp);
+    const RendPainterBatchComp* batchComp      = ecs_view_read_t(itr, RendPainterBatchComp);
+    if (rvk_pass_prepare(forwardPass, graphicResComp->graphic)) {
       dynarray_for_t(&batchComp->instances, RendPainterInstanceData, instance) {
         *dynarray_push_t(&drawBuffer, RvkPassDraw) = (RvkPassDraw){
-            .graphic = graphicComp->graphic,
+            .graphic = graphicResComp->graphic,
             .data    = mem_var(*instance),
         };
       }
