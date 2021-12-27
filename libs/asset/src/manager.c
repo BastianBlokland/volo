@@ -112,8 +112,7 @@ ecs_view_define(DirtyAssetView) {
 ecs_view_define(GlobalView) { ecs_access_read(AssetManagerComp); };
 
 ecs_system_define(UpdateDirtyAssetsSys) {
-  EcsView* globalView = ecs_world_view_t(world, GlobalView);
-  if (!ecs_view_contains(ecs_world_view_t(world, GlobalView), ecs_world_global(world))) {
+  if (!ecs_world_has_t(world, ecs_world_global(world), AssetManagerComp)) {
     /**
      * The manager has not been created yet, we delay the processing of asset requests until a
      * manager has been created.
@@ -122,7 +121,7 @@ ecs_system_define(UpdateDirtyAssetsSys) {
     return;
   }
   const AssetManagerComp* manager =
-      ecs_utils_read(globalView, ecs_world_global(world), ecs_comp_id(AssetManagerComp));
+      ecs_utils_read_t(world, GlobalView, ecs_world_global(world), AssetManagerComp);
 
   u32      startedLoads = 0;
   EcsView* assetsView   = ecs_world_view_t(world, DirtyAssetView);
