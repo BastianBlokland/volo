@@ -3,7 +3,7 @@
 
 #include "types.glsl"
 
-struct VertexPacked {
+struct VertexData {
   f16_vec4 position; // x, y, z position
   f16_vec4 texcoord; // x, y texcoord1
 };

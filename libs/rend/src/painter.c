@@ -109,7 +109,7 @@ static void painter_draw_forward(
     const RendPainterGlobalData* globalData, RvkPass* forwardPass, EcsView* batchView) {
   DynArray drawBuffer = dynarray_create_t(g_alloc_scratch, RvkPassDraw, 1024);
 
-  // Prepare batches.
+  // Prepare draws.
   for (EcsIterator* itr = ecs_view_itr(batchView); ecs_view_walk(itr);) {
     RendResGraphicComp*         graphicResComp = ecs_view_write_t(itr, RendResGraphicComp);
     const RendPainterBatchComp* batchComp      = ecs_view_read_t(itr, RendPainterBatchComp);
@@ -117,16 +117,16 @@ static void painter_draw_forward(
       continue;
     }
     if (rvk_pass_prepare(forwardPass, graphicResComp->graphic)) {
-      dynarray_for_t(&batchComp->instances, RendPainterInstanceData, instance) {
-        *dynarray_push_t(&drawBuffer, RvkPassDraw) = (RvkPassDraw){
-            .graphic = graphicResComp->graphic,
-            .data    = mem_var(*instance),
-        };
-      }
+      *dynarray_push_t(&drawBuffer, RvkPassDraw) = (RvkPassDraw){
+          .graphic       = graphicResComp->graphic,
+          .instanceCount = (u32)batchComp->instances.size,
+          .data          = dynarray_at(&batchComp->instances, 0, batchComp->instances.size),
+          .dataStride    = sizeof(RendPainterInstanceData),
+      };
     }
   }
 
-  // Execute batches.
+  // Execute draws.
   rvk_pass_begin(forwardPass, rend_soothing_purple);
   rvk_pass_draw(
       forwardPass,

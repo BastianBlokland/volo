@@ -15,7 +15,9 @@ typedef struct sRvkPass RvkPass;
 
 typedef struct {
   RvkGraphic* graphic;
+  u32         instanceCount;
   Mem         data;
+  u32         dataStride;
 } RvkPassDraw;
 
 typedef struct {
