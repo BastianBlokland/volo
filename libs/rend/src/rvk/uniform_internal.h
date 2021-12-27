@@ -10,7 +10,7 @@ typedef struct sRvkUniformPool RvkUniformPool;
 
 RvkUniformPool*       rvk_uniform_pool_create(RvkDevice*);
 void                  rvk_uniform_pool_destroy(RvkUniformPool*);
-usize                 rvk_uniform_size_max(RvkUniformPool*);
+u32                   rvk_uniform_size_max(RvkUniformPool*);
 VkDescriptorSetLayout rvk_uniform_vkdesclayout(RvkUniformPool*);
 
 void rvk_uniform_reset(RvkUniformPool*);

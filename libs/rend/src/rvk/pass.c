@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
+#include "core_math.h"
 #include "log_logger.h"
 
 #include "device_internal.h"
@@ -10,15 +11,17 @@
 #include "pass_internal.h"
 #include "uniform_internal.h"
 
-#define attachment_max 8
+#define pass_instance_count_max 2048
+#define pass_attachment_max 8
 
 typedef RvkGraphic* RvkGraphicPtr;
 
 static const VkFormat g_attachColorFormat = VK_FORMAT_R8G8B8A8_UNORM;
 
 typedef enum {
-  RvkPassFlags_Setup  = 1 << 0,
-  RvkPassFlags_Active = 1 << 1,
+  RvkPassFlags_Setup           = 1 << 0,
+  RvkPassFlags_Active          = 1 << 1,
+  RvkPassFlags_BoundGlobalData = 1 << 2,
 } RvkPassFlags;
 
 struct sRvkPass {
@@ -34,9 +37,9 @@ struct sRvkPass {
 };
 
 static VkRenderPass rvk_renderpass_create(RvkDevice* dev) {
-  VkAttachmentDescription attachments[attachment_max];
+  VkAttachmentDescription attachments[pass_attachment_max];
   u32                     attachmentCount = 0;
-  VkAttachmentReference   colorRefs[attachment_max];
+  VkAttachmentReference   colorRefs[pass_attachment_max];
   u32                     colorRefCount = 0;
 
   attachments[attachmentCount++] = (VkAttachmentDescription){
@@ -254,28 +257,74 @@ void rvk_pass_begin(RvkPass* pass, const RendColor clearColor) {
   rvk_pass_scissor_set(pass->vkCmdBuf, pass->attachColor.size);
 }
 
-void rvk_pass_draw(RvkPass* pass, Mem uniformData, const RvkPassDrawList drawList) {
+static u32 rvk_pass_instances_per_draw(RvkPass* pass, const u32 remaining, const u32 dataStride) {
+  if (!dataStride) {
+    return math_min(remaining, pass_instance_count_max);
+  }
+  const u32 instances = math_min(remaining, rvk_uniform_size_max(pass->uniformPool) / dataStride);
+  return math_min(instances, pass_instance_count_max);
+}
+
+static void rvk_pass_draw_submit(RvkPass* pass, const RvkPassDraw* draw) {
+  const bool  hasGlobalData = (pass->flags & RvkPassFlags_BoundGlobalData) != 0;
+  RvkGraphic* graphic       = draw->graphic;
+
+  if (UNLIKELY(graphic->flags & RvkGraphicFlags_GlobalData && !hasGlobalData)) {
+    log_w("Graphic requires global data", log_param("graphic", fmt_text(graphic->dbgName)));
+    return;
+  }
+  if (UNLIKELY(graphic->flags & RvkGraphicFlags_InstanceData && !draw->dataStride)) {
+    log_w("Graphic requires instance data", log_param("graphic", fmt_text(graphic->dbgName)));
+    return;
+  }
+  if (UNLIKELY(draw->dataStride > rvk_uniform_size_max(pass->uniformPool))) {
+    log_w(
+        "Draw instance data exceeds maximum",
+        log_param("graphic", fmt_text(graphic->dbgName)),
+        log_param("size", fmt_size(draw->dataStride)),
+        log_param("size-max", fmt_size(rvk_uniform_size_max(pass->uniformPool))));
+    return;
+  }
+
+  rvk_debug_label_begin(
+      pass->dev->debug, pass->vkCmdBuf, rend_green, "draw_{}", fmt_text(graphic->dbgName));
+
+  rvk_graphic_bind(graphic, pass->vkCmdBuf);
+  const u32 indexCount = rvk_graphic_index_count(graphic);
+
+  diag_assert(draw->dataStride * draw->instanceCount == draw->data.size);
+  for (u32 remInstanceCount = draw->instanceCount, dataOffset = 0; remInstanceCount != 0;) {
+    const u32 instanceCount = rvk_pass_instances_per_draw(pass, remInstanceCount, draw->dataStride);
+
+    if (draw->dataStride) {
+      const u32 dataSize = instanceCount * draw->dataStride;
+      rvk_uniform_bind(
+          pass->uniformPool,
+          mem_slice(draw->data, dataOffset, dataSize),
+          pass->vkCmdBuf,
+          graphic->vkPipelineLayout,
+          2);
+      dataOffset += dataSize;
+    }
+
+    vkCmdDrawIndexed(pass->vkCmdBuf, indexCount, instanceCount, 0, 0, 0);
+    remInstanceCount -= instanceCount;
+  }
+
+  rvk_debug_label_end(pass->dev->debug, pass->vkCmdBuf);
+}
+
+void rvk_pass_draw(RvkPass* pass, Mem globalData, const RvkPassDrawList drawList) {
   diag_assert_msg(pass->flags & RvkPassFlags_Active, "Pass not active");
 
-  if (uniformData.size) {
-    rvk_uniform_bind(pass->uniformPool, uniformData, pass->vkCmdBuf, pass->vkGlobalLayout, 0);
+  if (globalData.size) {
+    rvk_uniform_bind(pass->uniformPool, globalData, pass->vkCmdBuf, pass->vkGlobalLayout, 0);
+    pass->flags |= RvkPassFlags_BoundGlobalData;
   }
 
-  array_ptr_for_t(drawList, RvkPassDraw, draw) {
-    if (draw->graphic->flags & RvkGraphicFlags_UsesGlobalData && !uniformData.size) {
-      log_w("Graphic requires global data", log_param("graphic", fmt_text(draw->graphic->dbgName)));
-      continue;
-    }
-    rvk_debug_label_begin(
-        pass->dev->debug, pass->vkCmdBuf, rend_green, "draw_{}", fmt_text(draw->graphic->dbgName));
+  array_ptr_for_t(drawList, RvkPassDraw, draw) { rvk_pass_draw_submit(pass, draw); }
 
-    rvk_graphic_bind(draw->graphic, pass->vkCmdBuf);
-
-    const u32 indexCount = rvk_graphic_index_count(draw->graphic);
-    vkCmdDrawIndexed(pass->vkCmdBuf, indexCount, 1, 0, 0, 0);
-
-    rvk_debug_label_end(pass->dev->debug, pass->vkCmdBuf);
-  }
+  pass->flags &= ~RvkPassFlags_BoundGlobalData;
 }
 
 void rvk_pass_end(RvkPass* pass) {

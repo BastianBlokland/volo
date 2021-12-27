@@ -4,7 +4,7 @@
 #include "core_math.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
-#include "scene_graphic.h"
+#include "rend_instance.h"
 
 #include "platform_internal.h"
 #include "resource_internal.h"
@@ -15,10 +15,10 @@
 #include "rvk/shader_internal.h"
 #include "rvk/texture_internal.h"
 
-ecs_comp_define_public(RendGraphicComp);
-ecs_comp_define_public(RendShaderComp);
-ecs_comp_define_public(RendMeshComp);
-ecs_comp_define_public(RendTextureComp);
+ecs_comp_define_public(RendResGraphicComp);
+ecs_comp_define_public(RendResShaderComp);
+ecs_comp_define_public(RendResMeshComp);
+ecs_comp_define_public(RendResTextureComp);
 
 ecs_comp_define(RendGlobalResourceComp) {
   EcsEntityId missingTex;
@@ -27,28 +27,28 @@ ecs_comp_define(RendGlobalResourceComp) {
 ecs_comp_define(RendGlobalResourceLoadedComp);
 
 static void ecs_destruct_graphic_comp(void* data) {
-  RendGraphicComp* comp = data;
+  RendResGraphicComp* comp = data;
   if (comp->graphic) {
     rvk_graphic_destroy(comp->graphic);
   }
 }
 
 static void ecs_destruct_shader_comp(void* data) {
-  RendShaderComp* comp = data;
+  RendResShaderComp* comp = data;
   if (comp->shader) {
     rvk_shader_destroy(comp->shader);
   }
 }
 
 static void ecs_destruct_mesh_comp(void* data) {
-  RendMeshComp* comp = data;
+  RendResMeshComp* comp = data;
   if (comp->mesh) {
     rvk_mesh_destroy(comp->mesh);
   }
 }
 
 static void ecs_destruct_texture_comp(void* data) {
-  RendTextureComp* comp = data;
+  RendResTextureComp* comp = data;
   if (comp->texture) {
     rvk_texture_destroy(comp->texture);
   }
@@ -73,7 +73,7 @@ static void ecs_combine_resource(void* dataA, void* dataB) {
 }
 
 ecs_view_define(RendPlatView) { ecs_access_read(RendPlatformComp); }
-ecs_view_define(SceneGraphicView) { ecs_access_read(SceneGraphicComp); };
+ecs_view_define(InstanceView) { ecs_access_read(RendInstanceComp); };
 ecs_view_define(AssetManagerView) { ecs_access_write(AssetManagerComp); };
 
 ecs_view_define(GlobalView) {
@@ -87,10 +87,10 @@ ecs_view_define(GlobalResourceUpdateView) {
   ecs_access_without(RendGlobalResourceLoadedComp);
 };
 
-ecs_view_define(ShaderView) { ecs_access_write(RendShaderComp); };
-ecs_view_define(GraphicView) { ecs_access_write(RendGraphicComp); };
-ecs_view_define(MeshView) { ecs_access_write(RendMeshComp); };
-ecs_view_define(TextureView) { ecs_access_write(RendTextureComp); };
+ecs_view_define(ShaderView) { ecs_access_write(RendResShaderComp); };
+ecs_view_define(GraphicView) { ecs_access_write(RendResGraphicComp); };
+ecs_view_define(MeshView) { ecs_access_write(RendResMeshComp); };
+ecs_view_define(TextureView) { ecs_access_write(RendResTextureComp); };
 
 ecs_view_define(RendResourceLoadView) {
   ecs_access_without(RendResourceReady);
@@ -117,7 +117,8 @@ static bool rend_resource_set_wellknown_texture(
     const EcsEntityId     textureEntity) {
 
   if (ecs_world_has_t(world, textureEntity, RendResourceReady)) {
-    RendTextureComp* comp = ecs_utils_write_t(world, TextureView, textureEntity, RendTextureComp);
+    RendResTextureComp* comp =
+        ecs_utils_write_t(world, TextureView, textureEntity, RendResTextureComp);
     rvk_repository_texture_set(plat->device->repository, id, comp->texture);
     return true;
   }
@@ -150,10 +151,10 @@ ecs_system_define(RendGlobalResourceLoadSys) {
 }
 
 ecs_system_define(RendResourceRequestSys) {
-  EcsView* graphicView = ecs_world_view_t(world, SceneGraphicView);
-  for (EcsIterator* itr = ecs_view_itr(graphicView); ecs_view_walk(itr);) {
-    const SceneGraphicComp* comp = ecs_view_read_t(itr, SceneGraphicComp);
-    ecs_utils_maybe_add_t(world, comp->asset, RendResource);
+  EcsView* instanceView = ecs_world_view_t(world, InstanceView);
+  for (EcsIterator* itr = ecs_view_itr(instanceView); ecs_view_walk(itr);) {
+    const RendInstanceComp* comp = ecs_view_read_t(itr, RendInstanceComp);
+    ecs_utils_maybe_add_t(world, comp->graphic, RendResource);
   }
 }
 
@@ -229,35 +230,43 @@ static void rend_resource_load(
     break;
   case RendResourceState_Create: {
     if (maybeAssetGraphic) {
-      RendGraphicComp* graphicComp = ecs_world_add_t(
-          world, ent, RendGraphicComp, .graphic = rvk_graphic_create(dev, maybeAssetGraphic, id));
+      RendResGraphicComp* graphicComp = ecs_world_add_t(
+          world,
+          ent,
+          RendResGraphicComp,
+          .graphic = rvk_graphic_create(dev, maybeAssetGraphic, id));
 
       // Add shaders.
       array_ptr_for_t(maybeAssetGraphic->shaders, AssetGraphicShader, ptr) {
-        RendShaderComp* comp = ecs_utils_write_t(world, ShaderView, ptr->shader, RendShaderComp);
+        RendResShaderComp* comp =
+            ecs_utils_write_t(world, ShaderView, ptr->shader, RendResShaderComp);
         rvk_graphic_shader_add(graphicComp->graphic, comp->shader);
       }
 
       // Add mesh.
       const EcsEntityId meshEntity = rend_resource_mesh_entity(world, res, maybeAssetGraphic);
-      RendMeshComp*     meshComp   = ecs_utils_write_t(world, MeshView, meshEntity, RendMeshComp);
+      RendResMeshComp*  meshComp = ecs_utils_write_t(world, MeshView, meshEntity, RendResMeshComp);
       rvk_graphic_mesh_add(graphicComp->graphic, meshComp->mesh);
 
       // Add samplers.
       array_ptr_for_t(maybeAssetGraphic->samplers, AssetGraphicSampler, ptr) {
-        const EcsEntityId textureEntity = rend_resource_texture_entity(world, res, ptr);
-        RendTextureComp*  comp =
-            ecs_utils_write_t(world, TextureView, textureEntity, RendTextureComp);
+        const EcsEntityId   textureEntity = rend_resource_texture_entity(world, res, ptr);
+        RendResTextureComp* comp =
+            ecs_utils_write_t(world, TextureView, textureEntity, RendResTextureComp);
         rvk_graphic_sampler_add(graphicComp->graphic, comp->texture, ptr);
       }
     } else if (maybeAssetShader) {
       ecs_world_add_t(
-          world, ent, RendShaderComp, .shader = rvk_shader_create(dev, maybeAssetShader, id));
+          world, ent, RendResShaderComp, .shader = rvk_shader_create(dev, maybeAssetShader, id));
     } else if (maybeAssetMesh) {
-      ecs_world_add_t(world, ent, RendMeshComp, .mesh = rvk_mesh_create(dev, maybeAssetMesh, id));
+      ecs_world_add_t(
+          world, ent, RendResMeshComp, .mesh = rvk_mesh_create(dev, maybeAssetMesh, id));
     } else if (maybeAssetTexture) {
       ecs_world_add_t(
-          world, ent, RendTextureComp, .texture = rvk_texture_create(dev, maybeAssetTexture, id));
+          world,
+          ent,
+          RendResTextureComp,
+          .texture = rvk_texture_create(dev, maybeAssetTexture, id));
     } else {
       diag_crash_msg("Unsupported resource asset type");
     }
@@ -287,10 +296,10 @@ ecs_system_define(RendResourceLoadSys) {
 }
 
 ecs_module_init(rend_resource_module) {
-  ecs_register_comp(RendGraphicComp, .destructor = ecs_destruct_graphic_comp);
-  ecs_register_comp(RendShaderComp, .destructor = ecs_destruct_shader_comp);
-  ecs_register_comp(RendMeshComp, .destructor = ecs_destruct_mesh_comp);
-  ecs_register_comp(RendTextureComp, .destructor = ecs_destruct_texture_comp);
+  ecs_register_comp(RendResGraphicComp, .destructor = ecs_destruct_graphic_comp);
+  ecs_register_comp(RendResShaderComp, .destructor = ecs_destruct_shader_comp);
+  ecs_register_comp(RendResMeshComp, .destructor = ecs_destruct_mesh_comp);
+  ecs_register_comp(RendResTextureComp, .destructor = ecs_destruct_texture_comp);
   ecs_register_comp(RendGlobalResourceComp);
   ecs_register_comp_empty(RendGlobalResourceLoadedComp);
 
@@ -300,7 +309,7 @@ ecs_module_init(rend_resource_module) {
 
   ecs_register_view(RendPlatView);
   ecs_register_view(GlobalView);
-  ecs_register_view(SceneGraphicView);
+  ecs_register_view(InstanceView);
   ecs_register_view(AssetManagerView);
   ecs_register_view(GlobalResourceUpdateView);
   ecs_register_view(ShaderView);
@@ -316,7 +325,7 @@ ecs_module_init(rend_resource_module) {
       ecs_view_id(AssetManagerView),
       ecs_view_id(TextureView));
 
-  ecs_register_system(RendResourceRequestSys, ecs_view_id(SceneGraphicView));
+  ecs_register_system(RendResourceRequestSys, ecs_view_id(InstanceView));
 
   ecs_register_system(
       RendResourceLoadSys,
@@ -337,7 +346,7 @@ void rend_resource_teardown(EcsWorld* world) {
   // Teardown graphics.
   EcsView* graphicView = ecs_world_view_t(world, GraphicView);
   for (EcsIterator* itr = ecs_view_itr(graphicView); ecs_view_walk(itr);) {
-    RendGraphicComp* comp = ecs_view_write_t(itr, RendGraphicComp);
+    RendResGraphicComp* comp = ecs_view_write_t(itr, RendResGraphicComp);
     rvk_graphic_destroy(comp->graphic);
     comp->graphic = null;
   }
@@ -345,7 +354,7 @@ void rend_resource_teardown(EcsWorld* world) {
   // Teardown shaders.
   EcsView* shaderView = ecs_world_view_t(world, ShaderView);
   for (EcsIterator* itr = ecs_view_itr(shaderView); ecs_view_walk(itr);) {
-    RendShaderComp* comp = ecs_view_write_t(itr, RendShaderComp);
+    RendResShaderComp* comp = ecs_view_write_t(itr, RendResShaderComp);
     rvk_shader_destroy(comp->shader);
     comp->shader = null;
   }
@@ -353,7 +362,7 @@ void rend_resource_teardown(EcsWorld* world) {
   // Teardown meshes.
   EcsView* meshView = ecs_world_view_t(world, MeshView);
   for (EcsIterator* itr = ecs_view_itr(meshView); ecs_view_walk(itr);) {
-    RendMeshComp* comp = ecs_view_write_t(itr, RendMeshComp);
+    RendResMeshComp* comp = ecs_view_write_t(itr, RendResMeshComp);
     rvk_mesh_destroy(comp->mesh);
     comp->mesh = null;
   }
@@ -361,7 +370,7 @@ void rend_resource_teardown(EcsWorld* world) {
   // Teardown textures.
   EcsView* textureView = ecs_world_view_t(world, TextureView);
   for (EcsIterator* itr = ecs_view_itr(textureView); ecs_view_walk(itr);) {
-    RendTextureComp* comp = ecs_view_write_t(itr, RendTextureComp);
+    RendResTextureComp* comp = ecs_view_write_t(itr, RendResTextureComp);
     rvk_texture_destroy(comp->texture);
     comp->texture = null;
   }

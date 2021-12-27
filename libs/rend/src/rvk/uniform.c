@@ -101,7 +101,7 @@ void rvk_uniform_pool_destroy(RvkUniformPool* uni) {
   alloc_free_t(g_alloc_heap, uni);
 }
 
-usize rvk_uniform_size_max(RvkUniformPool* uni) { return uni->dataSizeMax; }
+u32 rvk_uniform_size_max(RvkUniformPool* uni) { return uni->dataSizeMax; }
 
 VkDescriptorSetLayout rvk_uniform_vkdesclayout(RvkUniformPool* uni) {
   return rvk_desc_vklayout(uni->device->descPool, &uni->descMeta);

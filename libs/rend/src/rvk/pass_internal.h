@@ -15,6 +15,9 @@ typedef struct sRvkPass RvkPass;
 
 typedef struct {
   RvkGraphic* graphic;
+  u32         instanceCount;
+  Mem         data;
+  u32         dataStride;
 } RvkPassDraw;
 
 typedef struct {
@@ -32,5 +35,5 @@ void rvk_pass_setup(RvkPass*, RendSize size);
 bool rvk_pass_prepare(RvkPass*, RvkGraphic*);
 
 void rvk_pass_begin(RvkPass*, RendColor clearColor);
-void rvk_pass_draw(RvkPass*, Mem uniformData, RvkPassDrawList);
+void rvk_pass_draw(RvkPass*, Mem globalData, RvkPassDrawList);
 void rvk_pass_end(RvkPass*);

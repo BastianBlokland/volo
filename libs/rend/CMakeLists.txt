@@ -27,6 +27,7 @@ add_library(lib_rend STATIC
   src/rvk/uniform.c
   src/rvk/vulkan.c
   src/color.c
+  src/instance.c
   src/painter.c
   src/platform.c
   src/register.c

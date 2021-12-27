@@ -564,7 +564,7 @@ void format_write_char(DynString* str, const u8 val, const FormatOptsText* opts)
 
   if (opts->flags & FormatTextFlags_EscapeNonPrintAscii && !ascii_is_printable(val)) {
     // If we have a well-known sequence for this byte we apply it.
-    for (size_t i = 0; i != array_elems(escapes); ++i) {
+    for (usize i = 0; i != array_elems(escapes); ++i) {
       if (escapes[i].byte == val) {
         dynstring_append(str, escapes[i].escapeSeq);
         return;

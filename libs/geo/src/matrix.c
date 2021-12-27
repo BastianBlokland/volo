@@ -292,7 +292,7 @@ GeoMatrix geo_matrix_proj_pers(f32 horAngle, f32 verAngle, f32 zNear) {
   return (GeoMatrix){
       .columns = {
           {1 / math_tan_f32(horAngle * .5f), 0, 0, 0},
-          {0, (1 / math_tan_f32(verAngle * .5f)), 0, 0},
+          {0, -(1 / math_tan_f32(verAngle * .5f)), 0, 0},
           {0, 0, 0, 1},
           {0, 0, zNear, 0},
       }};

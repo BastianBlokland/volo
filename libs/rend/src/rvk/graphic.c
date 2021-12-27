@@ -19,6 +19,7 @@ typedef RvkShader* RvkShaderPtr;
 #define rvk_desc_global_set 0
 #define rvk_desc_graphic_set 1
 #define rvk_desc_graphic_bind_mesh 0
+#define rvk_desc_instance_set 2
 
 static const char* rvk_to_null_term_scratch(String str) {
   const Mem scratchMem = alloc_alloc(g_alloc_scratch, str.size + 1, 1);
@@ -141,10 +142,12 @@ static RvkDescMeta rvk_graphic_desc_meta(const RvkGraphic* graphic, const usize 
 }
 
 static VkPipelineLayout rvk_pipeline_layout_create(const RvkGraphic* graphic) {
-  const RvkDescMeta           globalDescMeta = {.bindings[0] = RvkDescKind_UniformBufferDynamic};
+  const RvkDescMeta           globalDescMeta   = {.bindings[0] = RvkDescKind_UniformBufferDynamic};
+  const RvkDescMeta           instanceDescMeta = {.bindings[0] = RvkDescKind_UniformBufferDynamic};
   const VkDescriptorSetLayout descriptorLayouts[] = {
       rvk_desc_vklayout(graphic->device->descPool, &globalDescMeta),
       rvk_desc_set_vklayout(graphic->descSet),
+      rvk_desc_vklayout(graphic->device->descPool, &instanceDescMeta),
   };
   const VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
       .sType          = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -470,8 +473,13 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, VkRender
   if (!graphic->vkPipeline) {
     const RvkDescMeta globalDescMeta = rvk_graphic_desc_meta(graphic, rvk_desc_global_set);
     if (globalDescMeta.bindings[0] == RvkDescKind_UniformBufferDynamic) {
-      graphic->flags |= RvkGraphicFlags_UsesGlobalData;
-      // TODO: Verify that the other bindings in the global set are unused.
+      graphic->flags |= RvkGraphicFlags_GlobalData;
+      // TODO: Verify that the other bindings in the global-set are unused.
+    }
+    const RvkDescMeta instanceDescMeta = rvk_graphic_desc_meta(graphic, rvk_desc_instance_set);
+    if (instanceDescMeta.bindings[0] == RvkDescKind_UniformBufferDynamic) {
+      graphic->flags |= RvkGraphicFlags_InstanceData;
+      // TODO: Verify that the other bindings in the instance-set are unused.
     }
 
     const RvkDescMeta graphicDescMeta = rvk_graphic_desc_meta(graphic, rvk_desc_graphic_set);
