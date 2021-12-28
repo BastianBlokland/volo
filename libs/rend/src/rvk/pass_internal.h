@@ -13,6 +13,15 @@ typedef struct sRvkUniformPool RvkUniformPool;
 
 typedef struct sRvkPass RvkPass;
 
+typedef enum {
+  RvkPassFlags_ClearColor = 1 << 0,
+  RvkPassFlags_ClearDepth = 1 << 1,
+
+  RvkPassFlags_Default = RvkPassFlags_ClearDepth,
+
+  RvkPassFlags_Count = 2,
+} RvkPassFlags;
+
 typedef struct {
   RvkGraphic* graphic;
   u32         instanceCount;
@@ -25,7 +34,7 @@ typedef struct {
   usize        count;
 } RvkPassDrawList;
 
-RvkPass* rvk_pass_create(RvkDevice*, VkCommandBuffer, RvkUniformPool*);
+RvkPass* rvk_pass_create(RvkDevice*, VkCommandBuffer, RvkUniformPool*, RvkPassFlags);
 void     rvk_pass_destroy(RvkPass*);
 bool     rvk_pass_active(const RvkPass*);
 

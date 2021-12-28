@@ -19,9 +19,7 @@
 #define graph_meta_task_count 1
 
 typedef enum {
-  EcsRunnerPrivateFlags_Running = 1 << (EcsRunnerFlags_Count + 1),
-
-  EcsRunnerPrivateFlags_Count = EcsRunnerFlags_Count + 1,
+  EcsRunnerPrivateFlags_Running = 1 << (EcsRunnerFlags_Count + 0),
 } EcsRunnerPrivateFlags;
 
 typedef struct {

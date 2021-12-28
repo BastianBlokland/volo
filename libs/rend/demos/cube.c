@@ -23,15 +23,13 @@
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
 
-static void demo_add_cube(EcsWorld* world) {
-  AssetManagerComp* manager =
-      ecs_utils_write_t(world, ManagerView, ecs_world_global(world), AssetManagerComp);
+static void demo_add_cube(EcsWorld* world, AssetManagerComp* assets) {
   const EcsEntityId cubeEntity = ecs_world_entity_create(world);
   ecs_world_add_t(
       world,
       cubeEntity,
       RendInstanceComp,
-      .graphic = asset_lookup(world, manager, string_lit("graphics/cube.gra")));
+      .graphic = asset_lookup(world, assets, string_lit("graphics/cube.gra")));
   ecs_world_add_t(
       world,
       cubeEntity,
@@ -43,6 +41,14 @@ static void demo_add_cube(EcsWorld* world) {
       cubeEntity,
       SceneVelocityComp,
       .angularVelocity = geo_vector(0, 45.0f * math_deg_to_rad, 0));
+}
+
+static void demo_add_sky(EcsWorld* world, AssetManagerComp* assets) {
+  ecs_world_add_t(
+      world,
+      ecs_world_entity_create(world),
+      RendInstanceComp,
+      .graphic = asset_lookup(world, assets, string_lit("graphics/sky.gra")));
 }
 
 ecs_module_init(demo_cube_module) { ecs_register_view(ManagerView); }
@@ -65,7 +71,10 @@ static int run_app(const String assetPath) {
 
   asset_manager_create_fs(world, assetPath);
   ecs_run_sync(runner);
-  demo_add_cube(world);
+  AssetManagerComp* assets =
+      ecs_utils_write_t(world, ManagerView, ecs_world_global(world), AssetManagerComp);
+  demo_add_cube(world, assets);
+  demo_add_sky(world, assets);
 
   const EcsEntityId window =
       gap_window_create(world, GapWindowFlags_Default, gap_vector(1024, 768));

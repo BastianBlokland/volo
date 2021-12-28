@@ -56,6 +56,7 @@ static void graphic_datareg_init() {
     data_reg_enum_t(g_dataReg, AssetGraphicDepth);
     data_reg_const_t(g_dataReg, AssetGraphicDepth, None);
     data_reg_const_t(g_dataReg, AssetGraphicDepth, Less);
+    data_reg_const_t(g_dataReg, AssetGraphicDepth, LessOrEqual);
     data_reg_const_t(g_dataReg, AssetGraphicDepth, Always);
 
     data_reg_enum_t(g_dataReg, AssetGraphicCull);

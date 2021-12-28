@@ -19,10 +19,10 @@ typedef RvkGraphic* RvkGraphicPtr;
 static const VkFormat g_attachColorFormat = VK_FORMAT_R8G8B8A8_UNORM;
 
 typedef enum {
-  RvkPassFlags_Setup           = 1 << 0,
-  RvkPassFlags_Active          = 1 << 1,
-  RvkPassFlags_BoundGlobalData = 1 << 2,
-} RvkPassFlags;
+  RvkPassPrivateFlags_Setup           = 1 << (RvkPassFlags_Count + 0),
+  RvkPassPrivateFlags_Active          = 1 << (RvkPassFlags_Count + 1),
+  RvkPassPrivateFlags_BoundGlobalData = 1 << (RvkPassFlags_Count + 2),
+} RvkPassPrivateFlags;
 
 struct sRvkPass {
   RvkDevice*       dev;
@@ -36,16 +36,17 @@ struct sRvkPass {
   RvkUniformPool*  uniformPool;
 };
 
-static VkRenderPass rvk_renderpass_create(RvkDevice* dev) {
+static VkRenderPass rvk_renderpass_create(RvkDevice* dev, const RvkPassFlags flags) {
   VkAttachmentDescription attachments[pass_attachment_max];
   u32                     attachmentCount = 0;
   VkAttachmentReference   colorRefs[pass_attachment_max];
   u32                     colorRefCount = 0;
 
   attachments[attachmentCount++] = (VkAttachmentDescription){
-      .format         = g_attachColorFormat,
-      .samples        = VK_SAMPLE_COUNT_1_BIT,
-      .loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR,
+      .format  = g_attachColorFormat,
+      .samples = VK_SAMPLE_COUNT_1_BIT,
+      .loadOp  = (flags & RvkPassFlags_ClearColor) ? VK_ATTACHMENT_LOAD_OP_CLEAR
+                                                  : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
       .storeOp        = VK_ATTACHMENT_STORE_OP_STORE,
       .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
       .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
@@ -58,9 +59,10 @@ static VkRenderPass rvk_renderpass_create(RvkDevice* dev) {
   };
 
   attachments[attachmentCount++] = (VkAttachmentDescription){
-      .format         = dev->vkDepthFormat,
-      .samples        = VK_SAMPLE_COUNT_1_BIT,
-      .loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR,
+      .format  = dev->vkDepthFormat,
+      .samples = VK_SAMPLE_COUNT_1_BIT,
+      .loadOp  = (flags & RvkPassFlags_ClearDepth) ? VK_ATTACHMENT_LOAD_OP_CLEAR
+                                                  : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
       .storeOp        = VK_ATTACHMENT_STORE_OP_DONT_CARE,
       .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
       .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
@@ -200,14 +202,20 @@ static void rvk_pass_resource_destroy(RvkPass* pass) {
   vkDestroyFramebuffer(pass->dev->vkDev, pass->vkFrameBuffer, &pass->dev->vkAlloc);
 }
 
-RvkPass* rvk_pass_create(RvkDevice* dev, VkCommandBuffer vkCmdBuf, RvkUniformPool* uniformPool) {
+RvkPass* rvk_pass_create(
+    RvkDevice*         dev,
+    VkCommandBuffer    vkCmdBuf,
+    RvkUniformPool*    uniformPool,
+    const RvkPassFlags flags) {
+
   RvkPass* pass = alloc_alloc_t(g_alloc_heap, RvkPass);
   *pass         = (RvkPass){
       .dev            = dev,
-      .vkRendPass     = rvk_renderpass_create(dev),
+      .vkRendPass     = rvk_renderpass_create(dev, flags),
       .vkGlobalLayout = rvk_global_layout_create(dev, rvk_uniform_vkdesclayout(uniformPool)),
       .vkCmdBuf       = vkCmdBuf,
       .uniformPool    = uniformPool,
+      .flags          = flags,
   };
   return pass;
 }
@@ -221,7 +229,9 @@ void rvk_pass_destroy(RvkPass* pass) {
   alloc_free_t(g_alloc_heap, pass);
 }
 
-bool rvk_pass_active(const RvkPass* pass) { return (pass->flags & RvkPassFlags_Active) != 0; }
+bool rvk_pass_active(const RvkPass* pass) {
+  return (pass->flags & RvkPassPrivateFlags_Active) != 0;
+}
 
 RvkImage* rvk_pass_output(RvkPass* pass) { return &pass->attachColor; }
 
@@ -231,21 +241,21 @@ void rvk_pass_setup(RvkPass* pass, const RendSize size) {
   if (rend_size_equal(pass->size, size)) {
     return;
   }
-  pass->flags |= RvkPassFlags_Setup;
+  pass->flags |= RvkPassPrivateFlags_Setup;
   rvk_pass_resource_destroy(pass);
   rvk_pass_resource_create(pass, size);
 }
 
 bool rvk_pass_prepare(RvkPass* pass, RvkGraphic* graphic) {
-  diag_assert_msg(!(pass->flags & RvkPassFlags_Active), "Pass already active");
+  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
   return rvk_graphic_prepare(graphic, pass->vkCmdBuf, pass->vkRendPass);
 }
 
 void rvk_pass_begin(RvkPass* pass, const RendColor clearColor) {
-  diag_assert_msg(pass->flags & RvkPassFlags_Setup, "Pass not setup");
-  diag_assert_msg(!(pass->flags & RvkPassFlags_Active), "Pass already active");
+  diag_assert_msg(pass->flags & RvkPassPrivateFlags_Setup, "Pass not setup");
+  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
 
-  pass->flags |= RvkPassFlags_Active;
+  pass->flags |= RvkPassPrivateFlags_Active;
 
   rvk_debug_label_begin(pass->dev->debug, pass->vkCmdBuf, rend_blue, "pass");
 
@@ -266,7 +276,7 @@ static u32 rvk_pass_instances_per_draw(RvkPass* pass, const u32 remaining, const
 }
 
 static void rvk_pass_draw_submit(RvkPass* pass, const RvkPassDraw* draw) {
-  const bool  hasGlobalData = (pass->flags & RvkPassFlags_BoundGlobalData) != 0;
+  const bool  hasGlobalData = (pass->flags & RvkPassPrivateFlags_BoundGlobalData) != 0;
   RvkGraphic* graphic       = draw->graphic;
 
   if (UNLIKELY(graphic->flags & RvkGraphicFlags_GlobalData && !hasGlobalData)) {
@@ -293,11 +303,13 @@ static void rvk_pass_draw_submit(RvkPass* pass, const RvkPassDraw* draw) {
   const u32 indexCount = rvk_graphic_index_count(graphic);
 
   diag_assert(draw->dataStride * draw->instanceCount == draw->data.size);
-  for (u32 remInstanceCount = draw->instanceCount, dataOffset = 0; remInstanceCount != 0;) {
-    const u32 instanceCount = rvk_pass_instances_per_draw(pass, remInstanceCount, draw->dataStride);
+  const u32 dataStride = graphic->flags & RvkGraphicFlags_InstanceData ? draw->dataStride : 0;
 
-    if (draw->dataStride) {
-      const u32 dataSize = instanceCount * draw->dataStride;
+  for (u32 remInstanceCount = draw->instanceCount, dataOffset = 0; remInstanceCount != 0;) {
+    const u32 instanceCount = rvk_pass_instances_per_draw(pass, remInstanceCount, dataStride);
+
+    if (dataStride) {
+      const u32 dataSize = instanceCount * dataStride;
       rvk_uniform_bind(
           pass->uniformPool,
           mem_slice(draw->data, dataOffset, dataSize),
@@ -315,21 +327,21 @@ static void rvk_pass_draw_submit(RvkPass* pass, const RvkPassDraw* draw) {
 }
 
 void rvk_pass_draw(RvkPass* pass, Mem globalData, const RvkPassDrawList drawList) {
-  diag_assert_msg(pass->flags & RvkPassFlags_Active, "Pass not active");
+  diag_assert_msg(pass->flags & RvkPassPrivateFlags_Active, "Pass not active");
 
   if (globalData.size) {
     rvk_uniform_bind(pass->uniformPool, globalData, pass->vkCmdBuf, pass->vkGlobalLayout, 0);
-    pass->flags |= RvkPassFlags_BoundGlobalData;
+    pass->flags |= RvkPassPrivateFlags_BoundGlobalData;
   }
 
   array_ptr_for_t(drawList, RvkPassDraw, draw) { rvk_pass_draw_submit(pass, draw); }
 
-  pass->flags &= ~RvkPassFlags_BoundGlobalData;
+  pass->flags &= ~RvkPassPrivateFlags_BoundGlobalData;
 }
 
 void rvk_pass_end(RvkPass* pass) {
-  diag_assert_msg(pass->flags & RvkPassFlags_Active, "Pass not active");
-  pass->flags &= ~RvkPassFlags_Active;
+  diag_assert_msg(pass->flags & RvkPassPrivateFlags_Active, "Pass not active");
+  pass->flags &= ~RvkPassPrivateFlags_Active;
 
   vkCmdEndRenderPass(pass->vkCmdBuf);
 

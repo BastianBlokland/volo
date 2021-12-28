@@ -1,0 +1,17 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/sky.vert.spv"
+    },
+    {
+      "shaderId": "shaders/sky.frag.spv"
+    }
+  ],
+  "samplers": [],
+  "meshId": "meshes/quad_xy.obj",
+  "topology": "Triangles",
+  "rasterizer": "Fill",
+  "blend": "None",
+  "depth": "LessOrEqual",
+  "cull": "None"
+}

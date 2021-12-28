@@ -2,11 +2,12 @@
 #extension GL_GOOGLE_include_directive : enable
 
 #include "include/binding.glsl"
+#include "include/global.glsl"
 #include "include/instance.glsl"
 #include "include/quat.glsl"
 #include "include/vertex.glsl"
 
-bind_global_data(0) readonly uniform Global { f32_mat4 viewProjMat; };
+bind_global_data(0) readonly uniform Global { GlobalData global; };
 bind_graphic_data(0) readonly buffer Mesh { VertexData[] vertices; };
 bind_instance_data(0) readonly uniform Instance { InstanceData[g_maxInstances] instances; };
 
@@ -18,6 +19,6 @@ void main() {
   const f32_vec4 instanceQuat = instances[gl_InstanceIndex].rotation;
   const f32_vec3 worldPos     = quat_rotate(instanceQuat, vertPos) + instancePos;
 
-  gl_Position  = viewProjMat * f32_vec4(worldPos, 1);
+  gl_Position  = global.viewProj * f32_vec4(worldPos, 1);
   out_texcoord = vert_texcoord(vertices[gl_VertexIndex]);
 }

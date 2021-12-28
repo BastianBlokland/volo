@@ -63,6 +63,7 @@ static String rvk_graphic_depth_str(const AssetGraphicDepth depth) {
   static const String names[] = {
       string_static("None"),
       string_static("Less"),
+      string_static("LessOrEqual"),
       string_static("Always"),
   };
   ASSERT(array_elems(names) == AssetGraphicDepth_Count, "Incorrect number of names");
@@ -230,6 +231,8 @@ static VkCompareOp rvk_pipeline_depth_compare(RvkGraphic* graphic) {
   case AssetGraphicDepth_Less:
     // Use the 'greater' compare op, because we are using a reversed-z depthbuffer.
     return VK_COMPARE_OP_GREATER;
+  case AssetGraphicDepth_LessOrEqual:
+    return VK_COMPARE_OP_GREATER_OR_EQUAL;
   case AssetGraphicDepth_Always:
     return VK_COMPARE_OP_ALWAYS;
   case AssetGraphicDepth_None:
