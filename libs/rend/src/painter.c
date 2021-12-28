@@ -28,7 +28,8 @@ typedef struct {
 } RendPainterGlobalData;
 
 typedef struct {
-  GeoMatrix modelMatrix;
+  GeoVector position;
+  GeoQuat   rotation;
 } RendPainterInstanceData;
 
 ecs_comp_define(RendPainterBatchComp) {
@@ -198,7 +199,8 @@ ecs_system_define(RendPainterUpdateBatchesSys) {
     RendPainterBatchComp* batchComp = painter_batch_get(world, batchItr);
 
     *dynarray_push_t(&batchComp->instances, RendPainterInstanceData) = (RendPainterInstanceData){
-        .modelMatrix = transformComp ? scene_transform_matrix(transformComp) : geo_matrix_ident(),
+        .position = transformComp ? transformComp->position : geo_vector(0),
+        .rotation = transformComp ? transformComp->rotation : geo_quat_ident,
     };
   }
 }
