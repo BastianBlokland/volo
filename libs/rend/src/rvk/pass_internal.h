@@ -17,7 +17,7 @@ typedef enum {
   RvkPassFlags_ClearColor = 1 << 0,
   RvkPassFlags_ClearDepth = 1 << 1,
 
-  RvkPassFlags_Default = RvkPassFlags_ClearColor | RvkPassFlags_ClearDepth,
+  RvkPassFlags_Default = RvkPassFlags_ClearDepth,
 
   RvkPassFlags_Count = 2,
 } RvkPassFlags;
