@@ -32,6 +32,15 @@ bool ecs_view_contains(EcsView*, EcsEntityId);
 #define ecs_view_itr_at(_VIEW_, _ENTITY_) ecs_view_jump(ecs_view_itr(_VIEW_), (_ENTITY_))
 
 /**
+ * Create a new iterator for the given view at the specified entity.
+ * NOTE: Returns null if the view does not contain the entity.
+ * NOTE: Allocates memory in the function scope, meaning iterators should not be created in loops.
+ * NOTE: _VIEW_ is expanded twice, so care must be taken when providing a complex expression.
+ */
+#define ecs_view_itr_maybe_at(_VIEW_, _ENTITY_)                                                    \
+  ecs_view_maybe_jump(ecs_view_itr(_VIEW_), (_ENTITY_))
+
+/**
  * Create a new iterator for the given view at the first entity.
  * NOTE: Allocates memory in the function scope, meaning iterators should not be created in loops.
  * NOTE: _VIEW_ is expanded twice, so care must be taken when providing a complex expression.
@@ -54,6 +63,12 @@ EcsIterator* ecs_view_walk(EcsIterator*);
  * Pre-condition: ecs_view_contains(view, entity)
  */
 EcsIterator* ecs_view_jump(EcsIterator*, EcsEntityId);
+
+/**
+ * Jump to a specific entity in the view if the view contains the entity.
+ * NOTE: Returns the same iterator pointer if the entity is contained in the view, otherwise null.
+ */
+EcsIterator* ecs_view_maybe_jump(EcsIterator*, EcsEntityId);
 
 /**
  * Get the current entity for the given iterator.

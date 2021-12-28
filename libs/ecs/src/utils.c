@@ -14,12 +14,12 @@ void* ecs_utils_write_first(EcsView* view, const EcsCompId comp) {
 
 const void* ecs_utils_read(EcsView* view, const EcsEntityId entity, const EcsCompId comp) {
   EcsIterator* itr = ecs_view_itr_at(view, entity);
-  return itr ? ecs_view_read(itr, comp) : null;
+  return ecs_view_read(itr, comp);
 }
 
 void* ecs_utils_write(EcsView* view, const EcsEntityId entity, const EcsCompId comp) {
   EcsIterator* itr = ecs_view_itr_at(view, entity);
-  return itr ? ecs_view_write(itr, comp) : null;
+  return ecs_view_write(itr, comp);
 }
 
 const void* ecs_utils_read_or_add(EcsWorld* world, const EcsIterator* itr, const EcsCompId comp) {
