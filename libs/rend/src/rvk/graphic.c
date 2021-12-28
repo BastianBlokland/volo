@@ -549,6 +549,10 @@ void rvk_graphic_bind(const RvkGraphic* graphic, VkCommandBuffer vkCmdBuf) {
       null);
 
   if (graphic->mesh) {
-    vkCmdBindIndexBuffer(vkCmdBuf, graphic->mesh->indexBuffer.vkBuffer, 0, VK_INDEX_TYPE_UINT16);
+    vkCmdBindIndexBuffer(
+        vkCmdBuf,
+        graphic->mesh->indexBuffer.vkBuffer,
+        0,
+        sizeof(AssetMeshIndex) == 2 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32);
   }
 }

@@ -3,6 +3,10 @@
 #include "geo_box.h"
 #include "geo_vector.h"
 
+#define asset_mesh_indices_max u32_max
+
+typedef u32 AssetMeshIndex;
+
 typedef struct {
   GeoVector position; // x, y, z position
   GeoVector normal;   // x, y, z normal
@@ -13,7 +17,7 @@ typedef struct {
 ecs_comp_extern_public(AssetMeshComp) {
   const AssetMeshVertex* vertices;
   usize                  vertexCount;
-  const u16*             indices;
+  const AssetMeshIndex*  indices;
   usize                  indexCount;
   GeoBox                 positionBounds, texcoordBounds;
 };

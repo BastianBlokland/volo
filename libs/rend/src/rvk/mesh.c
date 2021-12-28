@@ -45,7 +45,7 @@ RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const Strin
   Allocator* verticesAlloc = useScratch ? g_alloc_scratch : g_alloc_heap;
   const Mem  verticesMem   = rvk_mesh_to_device_vertices(verticesAlloc, asset);
 
-  const usize indexSize = sizeof(u16) * asset->indexCount;
+  const usize indexSize = sizeof(AssetMeshIndex) * asset->indexCount;
   mesh->vertexBuffer    = rvk_buffer_create(dev, verticesMem.size, RvkBufferType_DeviceStorage);
   mesh->indexBuffer     = rvk_buffer_create(dev, indexSize, RvkBufferType_DeviceIndex);
 
