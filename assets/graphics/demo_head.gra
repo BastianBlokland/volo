@@ -1,0 +1,24 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/standard.vert.spv"
+    },
+    {
+      "shaderId": "shaders/standard.frag.spv"
+    }
+  ],
+  "samplers": [
+    {
+      "textureId": "head/lambertian.tga",
+      "wrap": "Clamp",
+      "filter": "Linear",
+      "anisotropy": "x4"
+    }
+  ],
+  "meshId": "head/head.obj",
+  "topology": "Triangles",
+  "rasterizer": "Fill",
+  "blend": "None",
+  "depth": "Less",
+  "cull": "Back"
+}
