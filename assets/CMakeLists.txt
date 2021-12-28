@@ -3,7 +3,8 @@
 # --------------------------------------------------------------------------------------------------
 
 configure_copies(volo_assets_graphics
-  graphics/cube.gra)
+  graphics/cube.gra
+  graphics/sky.gra)
 
 configure_copies(volo_assets_meshes
   meshes/cube.obj
@@ -12,6 +13,8 @@ configure_copies(volo_assets_meshes
   meshes/triangle_xy.obj)
 
 configure_shaders(volo_assets_shaders
+  shaders/sky.vert
+  shaders/sky.frag
   shaders/standard.vert
   shaders/standard.frag)
 
