@@ -13,12 +13,12 @@ ecs_view_define(GapPlatformView) { ecs_access_write(GapPlatformComp); };
 
 static GapPlatformComp* gap_platform_get_or_create(EcsWorld* world) {
   EcsView*     view = ecs_world_view_t(world, GapPlatformView);
-  EcsIterator* itr  = ecs_view_first(view);
+  EcsIterator* itr  = ecs_view_maybe_at(view, ecs_world_global(world));
   if (itr) {
     return ecs_view_write_t(itr, GapPlatformComp);
   }
   return ecs_world_add_t(
-      world, ecs_world_entity_create(world), GapPlatformComp, .pal = gap_pal_create(g_alloc_heap));
+      world, ecs_world_global(world), GapPlatformComp, .pal = gap_pal_create(g_alloc_heap));
 }
 
 ecs_system_define(GapPlatformUpdateSys) {

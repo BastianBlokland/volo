@@ -1,6 +1,5 @@
 #include "core_alloc.h"
 #include "core_diag.h"
-#include "ecs_utils.h"
 #include "ecs_world.h"
 
 #include "platform_internal.h"
@@ -24,8 +23,9 @@ ecs_system_define(RendPlatformUpdateSys) {
     return;
   }
 
-  RendPlatformComp* plat =
-      ecs_utils_write_t(world, GlobalView, ecs_world_global(world), RendPlatformComp);
+  EcsView*          globalView = ecs_world_view_t(world, GlobalView);
+  EcsIterator*      globalItr  = ecs_view_at(globalView, ecs_world_global(world));
+  RendPlatformComp* plat       = ecs_view_write_t(globalItr, RendPlatformComp);
 
   rvk_device_update(plat->device);
 }
@@ -39,7 +39,10 @@ ecs_module_init(rend_platform_module) {
 }
 
 void rend_platform_teardown(EcsWorld* world) {
-  RendPlatformComp* plat = ecs_utils_write_first_t(world, GlobalView, RendPlatformComp);
+  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
+  EcsIterator* globalItr  = ecs_view_at(globalView, ecs_world_global(world));
+
+  RendPlatformComp* plat = ecs_view_write_t(globalItr, RendPlatformComp);
   rvk_device_destroy(plat->device);
   plat->device = null;
 }

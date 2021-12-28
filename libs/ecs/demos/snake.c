@@ -486,7 +486,7 @@ static int run_snake(const u64 frequency, const u64 pickupDensity) {
   EcsWorld*  world  = ecs_world_create(g_alloc_heap, def);
   EcsRunner* runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_DumpGraphDot);
 
-  const EcsEntityId global = ecs_world_entity_create(world);
+  const EcsEntityId global = ecs_world_global(world);
   ecs_world_add_t(world, global, ResultComp);
   ecs_world_add_t(world, global, InputComp, .pickupDensity = pickupDensity);
   ecs_world_add_empty_t(world, global, InitializeComp);

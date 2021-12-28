@@ -23,7 +23,8 @@
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
 
 static void demo_add_cube(EcsWorld* world) {
-  AssetManagerComp* manager    = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+  AssetManagerComp* manager =
+      ecs_utils_write_t(world, ManagerView, ecs_world_global(world), AssetManagerComp);
   const EcsEntityId cubeEntity = ecs_world_entity_create(world);
   ecs_world_add_t(
       world,

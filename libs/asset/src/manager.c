@@ -4,7 +4,6 @@
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_search.h"
-#include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 
@@ -112,7 +111,9 @@ ecs_view_define(DirtyAssetView) {
 ecs_view_define(GlobalView) { ecs_access_read(AssetManagerComp); };
 
 ecs_system_define(UpdateDirtyAssetsSys) {
-  if (!ecs_world_has_t(world, ecs_world_global(world), AssetManagerComp)) {
+  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
     /**
      * The manager has not been created yet, we delay the processing of asset requests until a
      * manager has been created.
@@ -120,8 +121,7 @@ ecs_system_define(UpdateDirtyAssetsSys) {
      */
     return;
   }
-  const AssetManagerComp* manager =
-      ecs_utils_read_t(world, GlobalView, ecs_world_global(world), AssetManagerComp);
+  const AssetManagerComp* manager = ecs_view_read_t(globalItr, AssetManagerComp);
 
   u32      startedLoads = 0;
   EcsView* assetsView   = ecs_world_view_t(world, DirtyAssetView);
