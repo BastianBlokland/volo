@@ -42,7 +42,7 @@ RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const Strin
   };
 
   const bool useScratch    = sizeof(RvkVertex) * asset->vertexCount < rvk_mesh_max_scratch_size;
-  Allocator* verticesAlloc = useScratch ? g_alloc_heap : g_alloc_scratch;
+  Allocator* verticesAlloc = useScratch ? g_alloc_scratch : g_alloc_heap;
   const Mem  verticesMem   = rvk_mesh_to_device_vertices(verticesAlloc, asset);
 
   const usize indexSize = sizeof(u16) * asset->indexCount;
