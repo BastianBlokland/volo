@@ -13,7 +13,7 @@
 
 #define VOLO_RVK_TRANSFER_LOGGING
 
-#define rvk_transfer_buffer_size (32 * usize_mebibyte)
+#define rvk_transfer_buffer_size (64 * usize_mebibyte)
 
 #define rvk_transfer_index(_TRANSFER_ID_) ((u32)((_TRANSFER_ID_) >> 0))
 #define rvk_transfer_serial(_TRANSFER_ID_) ((u32)((_TRANSFER_ID_) >> 32))
