@@ -15,6 +15,7 @@
 #include "scene_camera.h"
 #include "scene_register.h"
 #include "scene_transform.h"
+#include "scene_velocity.h"
 
 /**
  * Demo application that renders a single cube.
@@ -36,7 +37,12 @@ static void demo_add_cube(EcsWorld* world) {
       cubeEntity,
       SceneTransformComp,
       .position = geo_vector(0, 0, 0),
-      .rotation = geo_quat_angle_axis(geo_up, 45.0f * math_deg_to_rad));
+      .rotation = geo_quat_ident);
+  ecs_world_add_t(
+      world,
+      cubeEntity,
+      SceneVelocityComp,
+      .angularVelocity = geo_vector(0, 45.0f * math_deg_to_rad, 0));
 }
 
 ecs_module_init(demo_cube_module) { ecs_register_view(ManagerView); }
