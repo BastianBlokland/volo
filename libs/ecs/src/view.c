@@ -65,6 +65,15 @@ EcsIterator* ecs_view_jump(EcsIterator* itr, const EcsEntityId entity) {
   return itr;
 }
 
+EcsIterator* ecs_view_maybe_jump(EcsIterator* itr, const EcsEntityId entity) {
+  EcsView* view = itr->context;
+  if (!ecs_view_contains(view, entity)) {
+    return null;
+  }
+  ecs_storage_itr_jump(view->storage, itr, entity);
+  return itr;
+}
+
 EcsEntityId ecs_view_entity(const EcsIterator* itr) {
   diag_assert_msg(itr->entity, "Iterator has not been initialized");
   return *itr->entity;
@@ -106,7 +115,7 @@ EcsView ecs_view_create(
   Mem         masksMem     = alloc_alloc(alloc, bytesPerMask * 4, 1);
   mem_set(masksMem, 0);
 
-  EcsView view = (EcsView){
+  EcsView view = {
       .def        = def,
       .viewDef    = viewDef,
       .storage    = storage,

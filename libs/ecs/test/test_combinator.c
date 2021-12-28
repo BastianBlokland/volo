@@ -60,7 +60,7 @@ spec(combinator) {
 
     ecs_world_flush(world);
 
-    EcsIterator* itr = ecs_view_itr_at(ecs_world_view_t(world, ReadA), e);
+    EcsIterator* itr = ecs_view_at(ecs_world_view_t(world, ReadA), e);
     check_eq_int(ecs_view_read_t(itr, CombineCompA)->state, 1379);
   }
 
@@ -74,7 +74,7 @@ spec(combinator) {
 
     ecs_world_flush(world);
 
-    EcsIterator* itr = ecs_view_itr_at(ecs_world_view_t(world, ReadA), e);
+    EcsIterator* itr = ecs_view_at(ecs_world_view_t(world, ReadA), e);
     check_eq_int(ecs_view_read_t(itr, CombineCompA)->state, compCount * 2);
   }
 
@@ -84,13 +84,13 @@ spec(combinator) {
     ecs_world_add_t(world, e, CombineCompA, .state = 42);
 
     ecs_world_flush(world);
-    EcsIterator* itrA = ecs_view_itr_at(ecs_world_view_t(world, ReadA), e);
+    EcsIterator* itrA = ecs_view_at(ecs_world_view_t(world, ReadA), e);
     check_eq_int(ecs_view_read_t(itrA, CombineCompA)->state, 42);
 
     ecs_world_add_t(world, e, CombineCompA, .state = 1337);
 
     ecs_world_flush(world);
-    EcsIterator* itrB = ecs_view_itr_at(ecs_world_view_t(world, ReadA), e);
+    EcsIterator* itrB = ecs_view_at(ecs_world_view_t(world, ReadA), e);
     check_eq_int(ecs_view_read_t(itrB, CombineCompA)->state, 1379);
   }
 
@@ -103,7 +103,7 @@ spec(combinator) {
 
     ecs_world_flush(world);
 
-    EcsIterator* itr = ecs_view_itr_at(ecs_world_view_t(world, ReadB), e);
+    EcsIterator* itr = ecs_view_at(ecs_world_view_t(world, ReadB), e);
     check_eq_string(ecs_view_read_t(itr, CombineCompB)->text, string_lit("Hello World"));
   }
 

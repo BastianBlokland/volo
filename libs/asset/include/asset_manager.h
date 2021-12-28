@@ -26,16 +26,17 @@ ecs_comp_extern(AssetLoadedComp);
 String asset_id(const AssetComp*);
 
 /**
- * Create a asset-manager that loads assets from the file-system.
+ * Create a asset-manager (on the global entity) that loads assets from the file-system.
  * Assets are loaded from '{rootPath}/{assetId}'.
  */
-EcsEntityId asset_manager_create_fs(EcsWorld*, String rootPath);
+void asset_manager_create_fs(EcsWorld*, String rootPath);
 
 /**
- * Create a asset-manager that loads assets from a set of pre-loaded in-memory sources.
+ * Create a asset-manager (on the global entity) that loads assets from a set of pre-loaded
+ * in-memory sources.
  * For example usefull for unit-testing.
  */
-EcsEntityId asset_manager_create_mem(EcsWorld*, const AssetMemRecord* records, usize recordCount);
+void asset_manager_create_mem(EcsWorld*, const AssetMemRecord* records, usize recordCount);
 
 /**
  * Lookup a asset-entity by its id.

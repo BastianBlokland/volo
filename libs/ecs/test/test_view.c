@@ -93,7 +93,7 @@ spec(view) {
 
     ecs_world_flush(world);
 
-    EcsIterator* itr = ecs_view_itr_at(ecs_world_view_t(world, ReadAB), entity);
+    EcsIterator* itr = ecs_view_at(ecs_world_view_t(world, ReadAB), entity);
 
     check(ecs_view_entity(itr) == entity);
     check_eq_int(ecs_view_read_t(itr, ViewCompA)->f1, 42);
@@ -121,6 +121,27 @@ spec(view) {
     ecs_view_jump(itr, entityB);
     check(ecs_view_entity(itr) == entityB);
     check(ecs_view_read_t(itr, ViewCompC) == null);
+  }
+
+  it("can optionally jump to entities that exist in the view") {
+    const EcsEntityId entityA = ecs_world_entity_create(world);
+    const EcsEntityId entityB = ecs_world_entity_create(world);
+
+    ecs_world_add_t(world, entityA, ViewCompA, .f1 = 42);
+    ecs_world_add_t(world, entityA, ViewCompC, .f1 = 1337);
+
+    ecs_world_add_t(world, entityB, ViewCompA, .f1 = 42);
+    ecs_world_add_t(world, entityB, ViewCompB, .f1 = string_lit("Hello World"));
+
+    ecs_world_flush(world);
+
+    EcsIterator* itrA = ecs_view_maybe_at(ecs_world_view_t(world, ReadAB), entityA);
+    EcsIterator* itrB = ecs_view_maybe_at(ecs_world_view_t(world, ReadAB), entityB);
+
+    check_require(itrA == null);
+    check_require(itrB != null);
+    check_eq_int(ecs_view_read_t(itrB, ViewCompA)->f1, 42);
+    check_eq_string(ecs_view_read_t(itrB, ViewCompB)->f1, string_lit("Hello World"));
   }
 
   it("matches all entities that are in an archetype when defining only maybe-reads") {
@@ -167,7 +188,7 @@ spec(view) {
 
     ecs_world_flush(world);
 
-    EcsIterator* itr = ecs_view_itr_at(ecs_world_view_t(world, WriteC), entity);
+    EcsIterator* itr = ecs_view_at(ecs_world_view_t(world, WriteC), entity);
 
     ViewCompC* comp = ecs_view_write_t(itr, ViewCompC);
 

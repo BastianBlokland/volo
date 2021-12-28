@@ -49,7 +49,7 @@ static void ecs_combine_batch(void* dataA, void* dataB) {
   dynarray_destroy(&compB->instances);
 }
 
-ecs_view_define(PlatformView) { ecs_access_write(RendPlatformComp); };
+ecs_view_define(GlobalView) { ecs_access_write(RendPlatformComp); };
 
 ecs_view_define(RenderableView) {
   ecs_access_read(RendInstanceComp);
@@ -160,10 +160,12 @@ static bool painter_draw(
 }
 
 ecs_system_define(RendPainterCreateSys) {
-  RendPlatformComp* plat = ecs_utils_write_first_t(world, PlatformView, RendPlatformComp);
-  if (!plat) {
+  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
     return;
   }
+  RendPlatformComp* plat = ecs_view_write_t(globalItr, RendPlatformComp);
 
   EcsView* painterView = ecs_world_view_t(world, PainterCreateView);
   for (EcsIterator* itr = ecs_view_itr(painterView); ecs_view_walk(itr);) {
@@ -228,7 +230,7 @@ ecs_module_init(rend_canvas_module) {
   ecs_register_comp(
       RendPainterBatchComp, .destructor = ecs_destruct_batch_comp, .combinator = ecs_combine_batch);
 
-  ecs_register_view(PlatformView);
+  ecs_register_view(GlobalView);
   ecs_register_view(RenderableView);
   ecs_register_view(DrawBatchView);
   ecs_register_view(CreateBatchView);
@@ -237,7 +239,7 @@ ecs_module_init(rend_canvas_module) {
   ecs_register_view(PainterUpdateView);
 
   ecs_register_system(
-      RendPainterCreateSys, ecs_view_id(PlatformView), ecs_view_id(PainterCreateView));
+      RendPainterCreateSys, ecs_view_id(GlobalView), ecs_view_id(PainterCreateView));
 
   ecs_register_system(
       RendPainterUpdateBatchesSys,

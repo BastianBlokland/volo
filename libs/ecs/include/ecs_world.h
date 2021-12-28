@@ -38,6 +38,11 @@ const EcsDef* ecs_world_def(EcsWorld*);
 bool ecs_world_busy(const EcsWorld*);
 
 /**
+ * Retrieve the global entity (an entity that always exists and cannot be destroyed).
+ */
+EcsEntityId ecs_world_global(const EcsWorld*);
+
+/**
  * Retrieve a view for accessing component data.
  * NOTE: In an Ecs System this is only valid if your system has declared access to the view.
  * NOTE: View pointers should not be stored.

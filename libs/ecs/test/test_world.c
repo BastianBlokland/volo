@@ -42,7 +42,7 @@ spec(world) {
 
   it("stores the definition") { check(ecs_world_def(world) == def); }
 
-  it("considers created entities as existing") {
+  it("reports created entities as existing") {
     static const usize entitiesToCreate = 567;
     DynArray           entities         = dynarray_create_t(g_alloc_heap, EcsEntityId, 2048);
 
@@ -61,7 +61,11 @@ spec(world) {
     dynarray_destroy(&entities);
   }
 
-  it("considers destroyed entities as existing until the next flush") {
+  it("reports the global entity as existing") {
+    check(ecs_world_exists(world, ecs_world_global(world)));
+  }
+
+  it("reports destroyed entities as existing until the next flush") {
     const EcsEntityId entity = ecs_world_entity_create(world);
 
     check(ecs_world_exists(world, entity)); // Exists before destroying,

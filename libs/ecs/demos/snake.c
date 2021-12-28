@@ -140,7 +140,7 @@ ecs_view_define(InitSysGlobal) {
 ecs_view_define(InitSysResettable) { ecs_access_with(ResetableComp); }
 
 ecs_system_define(InitSys) {
-  EcsIterator* initializeItr = ecs_view_itr_first(ecs_world_view_t(world, InitSysGlobal));
+  EcsIterator* initializeItr = ecs_view_first(ecs_world_view_t(world, InitSysGlobal));
   if (!initializeItr) {
     return;
   }
@@ -172,7 +172,7 @@ ecs_view_define(SpawnPickupsSysGlobal) { ecs_access_read(InputComp); }
 ecs_view_define(SpawnPickupsSysPickup) { ecs_access_with(PickupComp); }
 
 ecs_system_define(SpawnPickupsSys) {
-  EcsIterator*     globalItr = ecs_view_itr_first(ecs_world_view_t(world, SpawnPickupsSysGlobal));
+  EcsIterator*     globalItr = ecs_view_first(ecs_world_view_t(world, SpawnPickupsSysGlobal));
   const InputComp* inputComp = ecs_view_read_t(globalItr, InputComp);
 
   const usize desiredPickups = (usize)math_round_f64(
@@ -211,7 +211,7 @@ ecs_system_define(InputSys) {
   DynString inputBuffer = dynstring_create(g_alloc_scratch, usize_kibibyte);
   tty_read(g_file_stdin, &inputBuffer, TtyReadFlags_NoBlock);
 
-  EcsIterator* itr       = ecs_view_itr_first(ecs_world_view_t(world, InputSysGlobal));
+  EcsIterator* itr       = ecs_view_first(ecs_world_view_t(world, InputSysGlobal));
   InputComp*   inputComp = ecs_view_write_t(itr, InputComp);
   inputComp->termHeight  = tty_height(g_file_stdout);
   inputComp->termWidth   = tty_width(g_file_stdout);
@@ -234,10 +234,10 @@ ecs_view_define(SteerSysPlayer) {
 }
 
 ecs_system_define(SteerSys) {
-  EcsIterator*     globalItr = ecs_view_itr_first(ecs_world_view_t(world, SteerSysGlobal));
+  EcsIterator*     globalItr = ecs_view_first(ecs_world_view_t(world, SteerSysGlobal));
   const InputComp* inputComp = ecs_view_read_t(globalItr, InputComp);
 
-  EcsIterator* playerItr = ecs_view_itr_first(ecs_world_view_t(world, SteerSysPlayer));
+  EcsIterator* playerItr = ecs_view_first(ecs_world_view_t(world, SteerSysPlayer));
   if (playerItr) {
     VelocityComp* velocityComp = ecs_view_write_t(playerItr, VelocityComp);
     velocityComp->dir          = input_steer(velocityComp->dir, inputComp->input);
@@ -270,7 +270,7 @@ ecs_view_define(UpdateTailSysPlayer) {
 ecs_view_define(UpdateTailSysEntity) { ecs_access_read(TailComp); }
 
 ecs_system_define(UpdateTailSys) {
-  EcsIterator* playerItr = ecs_view_itr_first(ecs_world_view_t(world, UpdateTailSysPlayer));
+  EcsIterator* playerItr = ecs_view_first(ecs_world_view_t(world, UpdateTailSysPlayer));
   if (!playerItr) {
     return;
   }
@@ -306,7 +306,7 @@ ecs_view_define(MoveSysEntity) {
 }
 
 ecs_system_define(MoveSys) {
-  EcsIterator*     globalItr = ecs_view_itr_first(ecs_world_view_t(world, MoveSysGlobal));
+  EcsIterator*     globalItr = ecs_view_first(ecs_world_view_t(world, MoveSysGlobal));
   const InputComp* inputComp = ecs_view_read_t(globalItr, InputComp);
 
   EcsView* moveSysEntity = ecs_world_view_t(world, MoveSysEntity);
@@ -339,10 +339,10 @@ ecs_view_define(CollisionSysCollidable) {
 }
 
 ecs_system_define(CollisionSys) {
-  EcsIterator* globalItr  = ecs_view_itr_first(ecs_world_view_t(world, CollisionSysGlobal));
+  EcsIterator* globalItr  = ecs_view_first(ecs_world_view_t(world, CollisionSysGlobal));
   ResultComp*  resultComp = ecs_view_write_t(globalItr, ResultComp);
 
-  EcsIterator* playerItr = ecs_view_itr_first(ecs_world_view_t(world, CollisionSysPlayer));
+  EcsIterator* playerItr = ecs_view_first(ecs_world_view_t(world, CollisionSysPlayer));
   if (!playerItr) {
     return;
   }
@@ -413,7 +413,7 @@ ecs_system_define(RenderSys) {
   tty_write_clear_sequence(&str, TtyClearMode_All);
   tty_write_cursor_show_sequence(&str, false);
 
-  EcsIterator*      globalItr  = ecs_view_itr_first(ecs_world_view_t(world, RenderSysGlobal));
+  EcsIterator*      globalItr  = ecs_view_first(ecs_world_view_t(world, RenderSysGlobal));
   const InputComp*  inputComp  = ecs_view_read_t(globalItr, InputComp);
   const ResultComp* resultComp = ecs_view_read_t(globalItr, ResultComp);
 
@@ -486,7 +486,7 @@ static int run_snake(const u64 frequency, const u64 pickupDensity) {
   EcsWorld*  world  = ecs_world_create(g_alloc_heap, def);
   EcsRunner* runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_DumpGraphDot);
 
-  const EcsEntityId global = ecs_world_entity_create(world);
+  const EcsEntityId global = ecs_world_global(world);
   ecs_world_add_t(world, global, ResultComp);
   ecs_world_add_t(world, global, InputComp, .pickupDensity = pickupDensity);
   ecs_world_add_empty_t(world, global, InitializeComp);
