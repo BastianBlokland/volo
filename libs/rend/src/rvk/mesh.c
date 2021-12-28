@@ -14,9 +14,11 @@ typedef struct {
   f16 pad_1[2];
 } RvkVertex;
 
-static Mem rvk_mesh_to_device_vertices_scratch(const AssetMeshComp* asset) {
+#define rvk_mesh_max_scratch_size (64 * usize_kibibyte)
+
+static Mem rvk_mesh_to_device_vertices(Allocator* alloc, const AssetMeshComp* asset) {
   const usize bufferSize = sizeof(RvkVertex) * asset->vertexCount;
-  Mem         buffer     = alloc_alloc(g_alloc_scratch, bufferSize, alignof(RvkVertex));
+  Mem         buffer     = alloc_alloc(alloc, bufferSize, alignof(RvkVertex));
 
   RvkVertex* output = mem_as_t(buffer, RvkVertex);
   for (usize i = 0; i != asset->vertexCount; ++i) {
@@ -39,18 +41,22 @@ RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const Strin
       .indexCount  = (u32)asset->indexCount,
   };
 
-  const Mem vertices = rvk_mesh_to_device_vertices_scratch(asset);
+  const bool useScratch    = sizeof(RvkVertex) * asset->vertexCount < rvk_mesh_max_scratch_size;
+  Allocator* verticesAlloc = useScratch ? g_alloc_heap : g_alloc_scratch;
+  const Mem  verticesMem   = rvk_mesh_to_device_vertices(verticesAlloc, asset);
 
   const usize indexSize = sizeof(u16) * asset->indexCount;
-  mesh->vertexBuffer    = rvk_buffer_create(dev, vertices.size, RvkBufferType_DeviceStorage);
+  mesh->vertexBuffer    = rvk_buffer_create(dev, verticesMem.size, RvkBufferType_DeviceStorage);
   mesh->indexBuffer     = rvk_buffer_create(dev, indexSize, RvkBufferType_DeviceIndex);
 
   rvk_debug_name_buffer(dev->debug, mesh->vertexBuffer.vkBuffer, "{}_vertex", fmt_text(dbgName));
   rvk_debug_name_buffer(dev->debug, mesh->indexBuffer.vkBuffer, "{}_index", fmt_text(dbgName));
 
-  mesh->vertexTransfer = rvk_transfer_buffer(dev->transferer, &mesh->vertexBuffer, vertices);
+  mesh->vertexTransfer = rvk_transfer_buffer(dev->transferer, &mesh->vertexBuffer, verticesMem);
   mesh->indexTransfer  = rvk_transfer_buffer(
       dev->transferer, &mesh->indexBuffer, mem_create(asset->indices, indexSize));
+
+  alloc_free(verticesAlloc, verticesMem);
 
   log_d(
       "Vulkan mesh created",
