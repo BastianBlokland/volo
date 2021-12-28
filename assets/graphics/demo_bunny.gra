@@ -1,0 +1,24 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/standard.vert.spv"
+    },
+    {
+      "shaderId": "shaders/standard.frag.spv"
+    }
+  ],
+  "samplers": [
+    {
+      "textureId": "textures/white.ppm",
+      "wrap": "Clamp",
+      "filter": "Linear",
+      "anisotropy": "None"
+    }
+  ],
+  "meshId": "bunny.obj",
+  "topology": "Triangles",
+  "rasterizer": "Fill",
+  "blend": "None",
+  "depth": "Less",
+  "cull": "Back"
+}
