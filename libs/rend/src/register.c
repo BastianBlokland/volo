@@ -11,7 +11,7 @@ void rend_register(EcsDef* def) {
   ecs_register_module(def, rend_platform_module);
   ecs_register_module(def, rend_resource_module);
   ecs_register_module(def, rend_instance_module);
-  ecs_register_module(def, rend_canvas_module);
+  ecs_register_module(def, rend_painter_module);
 }
 
 void rend_teardown(EcsWorld* world) {

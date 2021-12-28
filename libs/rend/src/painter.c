@@ -225,7 +225,7 @@ ecs_system_define(RendPainterDrawBatchesSys) {
   }
 }
 
-ecs_module_init(rend_canvas_module) {
+ecs_module_init(rend_painter_module) {
   ecs_register_comp(RendPainterComp, .destructor = ecs_destruct_painter_comp);
   ecs_register_comp(
       RendPainterBatchComp, .destructor = ecs_destruct_batch_comp, .combinator = ecs_combine_batch);
