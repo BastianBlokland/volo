@@ -12,7 +12,7 @@ const f32_vec4 g_colorBottom = f32_vec4(0.2, 0.2, 0.2, 1);
 
 bind_graphic(1) uniform sampler2D texSampler;
 
-bind_internal(0) in f32_vec3 in_worldViewDir;
+bind_internal(0) in f32_vec3 in_worldViewDir; // NOTE: non-normalized
 
 bind_internal(0) out f32_vec4 out_color;
 
