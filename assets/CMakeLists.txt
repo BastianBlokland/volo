@@ -6,6 +6,7 @@ configure_copies(volo_assets_graphics
   graphics/cube.gra
   graphics/demo_bunny.gra
   graphics/demo_corset.gra
+  graphics/demo_head_wire.gra
   graphics/demo_head.gra
   graphics/sky.gra)
 
