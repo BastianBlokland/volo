@@ -303,11 +303,13 @@ static void rvk_pass_draw_submit(RvkPass* pass, const RvkPassDraw* draw) {
   const u32 indexCount = rvk_graphic_index_count(graphic);
 
   diag_assert(draw->dataStride * draw->instanceCount == draw->data.size);
-  for (u32 remInstanceCount = draw->instanceCount, dataOffset = 0; remInstanceCount != 0;) {
-    const u32 instanceCount = rvk_pass_instances_per_draw(pass, remInstanceCount, draw->dataStride);
+  const u32 dataStride = graphic->flags & RvkGraphicFlags_InstanceData ? draw->dataStride : 0;
 
-    if (draw->dataStride) {
-      const u32 dataSize = instanceCount * draw->dataStride;
+  for (u32 remInstanceCount = draw->instanceCount, dataOffset = 0; remInstanceCount != 0;) {
+    const u32 instanceCount = rvk_pass_instances_per_draw(pass, remInstanceCount, dataStride);
+
+    if (dataStride) {
+      const u32 dataSize = instanceCount * dataStride;
       rvk_uniform_bind(
           pass->uniformPool,
           mem_slice(draw->data, dataOffset, dataSize),
