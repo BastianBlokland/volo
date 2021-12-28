@@ -93,7 +93,7 @@ spec(view) {
 
     ecs_world_flush(world);
 
-    EcsIterator* itr = ecs_view_itr_at(ecs_world_view_t(world, ReadAB), entity);
+    EcsIterator* itr = ecs_view_at(ecs_world_view_t(world, ReadAB), entity);
 
     check(ecs_view_entity(itr) == entity);
     check_eq_int(ecs_view_read_t(itr, ViewCompA)->f1, 42);
@@ -135,8 +135,8 @@ spec(view) {
 
     ecs_world_flush(world);
 
-    EcsIterator* itrA = ecs_view_itr_maybe_at(ecs_world_view_t(world, ReadAB), entityA);
-    EcsIterator* itrB = ecs_view_itr_maybe_at(ecs_world_view_t(world, ReadAB), entityB);
+    EcsIterator* itrA = ecs_view_maybe_at(ecs_world_view_t(world, ReadAB), entityA);
+    EcsIterator* itrB = ecs_view_maybe_at(ecs_world_view_t(world, ReadAB), entityB);
 
     check_require(itrA == null);
     check_require(itrB != null);
@@ -188,7 +188,7 @@ spec(view) {
 
     ecs_world_flush(world);
 
-    EcsIterator* itr = ecs_view_itr_at(ecs_world_view_t(world, WriteC), entity);
+    EcsIterator* itr = ecs_view_at(ecs_world_view_t(world, WriteC), entity);
 
     ViewCompC* comp = ecs_view_write_t(itr, ViewCompC);
 

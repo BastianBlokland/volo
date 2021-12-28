@@ -126,7 +126,7 @@ static bool rend_resource_set_wellknown_texture(
 }
 
 ecs_system_define(RendGlobalResourceLoadSys) {
-  EcsIterator*      platItr = ecs_view_itr_first(ecs_world_view_t(world, GlobalResourceUpdateView));
+  EcsIterator*      platItr  = ecs_view_first(ecs_world_view_t(world, GlobalResourceUpdateView));
   AssetManagerComp* assetMan = ecs_utils_write_first_t(world, AssetManagerView, AssetManagerComp);
   if (!platItr || !assetMan) {
     return;
@@ -281,7 +281,7 @@ static void rend_resource_load(
 }
 
 ecs_system_define(RendResourceLoadSys) {
-  EcsIterator* globalItr = ecs_view_itr_first(ecs_world_view_t(world, GlobalView));
+  EcsIterator* globalItr = ecs_view_first(ecs_world_view_t(world, GlobalView));
   if (!globalItr) {
     return;
   }

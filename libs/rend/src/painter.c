@@ -161,7 +161,7 @@ static bool painter_draw(
 
 ecs_system_define(RendPainterCreateSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
-  EcsIterator* globalItr  = ecs_view_itr_maybe_at(globalView, ecs_world_global(world));
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
   }
