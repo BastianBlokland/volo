@@ -40,7 +40,7 @@ GeoQuat geo_quat_from_to(GeoQuat from, GeoQuat to);
 f32 geo_quat_angle(GeoQuat);
 
 /**
- *  Compute a quaternion that combines both quaternions.
+ * Compute a quaternion that combines both quaternions.
  */
 GeoQuat geo_quat_mul(GeoQuat a, GeoQuat b);
 
