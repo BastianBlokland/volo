@@ -384,7 +384,7 @@ void asset_load_obj(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
     goto Done;
   }
 
-  const usize numVerts = data.totalTris * 3;
+  const usize numVerts = (usize)data.totalTris * 3;
   if (numVerts > asset_mesh_indices_max) {
     obj_load_fail(world, assetEntity, ObjError_TooManyVertices);
     goto Done;
