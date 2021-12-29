@@ -63,8 +63,8 @@ RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset, const
   };
   rvk_debug_name_shader(dev->debug, shader->vkModule, "{}", fmt_text(dbgName));
 
-  for (usize i = 0; i != asset->resourceCount; ++i) {
-    const AssetShaderRes* res = &asset->resources[i];
+  for (usize i = 0; i != asset->resources.count; ++i) {
+    const AssetShaderRes* res = &asset->resources.values[i];
     if (res->set >= rvk_shader_desc_max) {
       diag_crash_msg("Shader resource set {} is out of bounds", fmt_int(res->set));
     }
@@ -79,7 +79,7 @@ RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset, const
       log_param("name", fmt_text(dbgName)),
       log_param("kind", fmt_text(rvk_shader_kind_str(asset->kind))),
       log_param("entry", fmt_text(asset->entryPoint)),
-      log_param("resources", fmt_int(asset->resourceCount)));
+      log_param("resources", fmt_int(asset->resources.count)));
   return shader;
 }
 

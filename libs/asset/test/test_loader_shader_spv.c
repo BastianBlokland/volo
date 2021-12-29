@@ -14,6 +14,8 @@ static const struct {
   String          entryPoint;
   AssetShaderRes  resources[16];
   usize           resourceCount;
+  AssetShaderSpec specs[16];
+  usize           specCount;
 } g_testData[] = {
     {
         .id = string_static("vertex_v1-3.spv"),
@@ -147,6 +149,30 @@ static const struct {
             },
         .resourceCount = 6,
     },
+    {
+        .id         = string_static("3-specialization-constants_vertex_v1-3.spv"),
+        .base64Data = string_static(
+            "AwIjBwADAQAKAA0AGwAAAAAAAAARAAIAAQAAAAsABgABAAAAR0xTTC5zdGQuNDUwAAAAAA4AAwAAAAAAAQAAAA"
+            "8ABgAAAAAABAAAAG1haW4AAAAADQAAAEgABQALAAAAAAAAAAsAAAAAAAAASAAFAAsAAAABAAAACwAAAAEAAABI"
+            "AAUACwAAAAIAAAALAAAAAwAAAEgABQALAAAAAwAAAAsAAAAEAAAARwADAAsAAAACAAAARwAEABAAAAABAAAAAA"
+            "AAAEcABAATAAAAAQAAAAMAAABHAAQAFwAAAAEAAAAHAAAAEwACAAIAAAAhAAMAAwAAAAIAAAAWAAMABgAAACAA"
+            "AAAXAAQABwAAAAYAAAAEAAAAFQAEAAgAAAAgAAAAAAAAACsABAAIAAAACQAAAAEAAAAcAAQACgAAAAYAAAAJAA"
+            "AAHgAGAAsAAAAHAAAABgAAAAoAAAAKAAAAIAAEAAwAAAADAAAACwAAADsABAAMAAAADQAAAAMAAAAVAAQADgAA"
+            "ACAAAAABAAAAKwAEAA4AAAAPAAAAAAAAADIABAAOAAAAEAAAACoAAAAUAAIAEgAAADAAAwASAAAAEwAAACsABA"
+            "AGAAAAFAAAAAAAAAArAAQABgAAABUAAAAAAIA/"
+            "MgAEAAYAAAAXAAAARySnRCAABAAZAAAAAwAAAAcAAAA2AAUAAgAAAAQAAAAAAAAAAwAAAPgAAgAFAAAAbwAEAA"
+            "YAAAARAAAAEAAAAKkABgAGAAAAFgAAABMAAAAVAAAAFAAAAFAABwAHAAAAGAAAABEAAAAWAAAAFwAAABUAAABB"
+            "AAUAGQAAABoAAAANAAAADwAAAD4AAwAaAAAAGAAAAP0AAQA4AAEA"),
+        .kind       = AssetShaderKind_SpvVertex,
+        .entryPoint = string_static("main"),
+        .specs =
+            {
+                {.type = AssetShaderType_i32, .binding = 0},
+                {.type = AssetShaderType_bool, .binding = 3},
+                {.type = AssetShaderType_f32, .binding = 7},
+            },
+        .specCount = 3,
+    },
 };
 
 static const struct {
@@ -205,11 +231,17 @@ spec(loader_shader_spv) {
       check_eq_string(shader->entryPoint, g_testData[i].entryPoint);
       check_eq_string(shader->data, records[i].data);
 
-      check_require(shader->resourceCount == g_testData[i].resourceCount);
+      check_require(shader->resources.count == g_testData[i].resourceCount);
       for (usize p = 0; p != g_testData[i].resourceCount; ++p) {
-        check_eq_int(shader->resources[p].kind, g_testData[i].resources[p].kind);
-        check_eq_int(shader->resources[p].set, g_testData[i].resources[p].set);
-        check_eq_int(shader->resources[p].binding, g_testData[i].resources[p].binding);
+        check_eq_int(shader->resources.values[p].kind, g_testData[i].resources[p].kind);
+        check_eq_int(shader->resources.values[p].set, g_testData[i].resources[p].set);
+        check_eq_int(shader->resources.values[p].binding, g_testData[i].resources[p].binding);
+      }
+
+      check_require(shader->specs.count == g_testData[i].specCount);
+      for (usize p = 0; p != g_testData[i].specCount; ++p) {
+        check_eq_int(shader->specs.values[p].binding, g_testData[i].specs[p].binding);
+        check_eq_int(shader->specs.values[p].type, g_testData[i].specs[p].type);
       }
     };
 
