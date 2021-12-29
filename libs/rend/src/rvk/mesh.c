@@ -8,10 +8,13 @@
 #include "transfer_internal.h"
 
 typedef struct {
+  ALIGNAS(16)
   f16 position[3];
   f16 pad_0[1];
   f16 texcoord[2];
   f16 pad_1[2];
+  f16 normal[3];
+  f16 pad_2[1];
 } RvkVertex;
 
 #define rvk_mesh_max_scratch_size (64 * usize_kibibyte)
@@ -28,6 +31,9 @@ static Mem rvk_mesh_to_device_vertices(Allocator* alloc, const AssetMeshComp* as
         .position[2] = bits_f32_to_f16(asset->vertices[i].position.z),
         .texcoord[0] = bits_f32_to_f16(asset->vertices[i].texcoord.x),
         .texcoord[1] = bits_f32_to_f16(asset->vertices[i].texcoord.y),
+        .normal[0]   = bits_f32_to_f16(asset->vertices[i].normal.x),
+        .normal[1]   = bits_f32_to_f16(asset->vertices[i].normal.y),
+        .normal[2]   = bits_f32_to_f16(asset->vertices[i].normal.z),
     };
   }
   return buffer;
