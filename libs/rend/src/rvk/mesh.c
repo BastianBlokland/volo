@@ -66,6 +66,7 @@ RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const Strin
 
   log_d(
       "Vulkan mesh created",
+      log_param("name", fmt_text(dbgName)),
       log_param("vertices", fmt_int(mesh->vertexCount)),
       log_param("indices", fmt_int(mesh->indexCount)),
       log_param("vertex-memory", fmt_size(mesh->vertexBuffer.mem.size)),
