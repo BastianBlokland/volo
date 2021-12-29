@@ -41,6 +41,7 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
 
   log_d(
       "Vulkan texture created",
+      log_param("name", fmt_text(dbgName)),
       log_param("format", fmt_text(rvk_format_info(vkFormat).name)),
       log_param("size", rend_size_fmt(texture->image.size)),
       log_param("memory", fmt_size(texture->image.mem.size)));

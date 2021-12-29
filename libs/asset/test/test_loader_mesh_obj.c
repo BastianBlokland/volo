@@ -11,7 +11,7 @@ static const struct {
   String          text;
   AssetMeshVertex vertices[16];
   usize           vertexCount;
-  u16             indices[16];
+  AssetMeshIndex  indices[16];
   usize           indexCount;
 } g_testData[] = {
     {

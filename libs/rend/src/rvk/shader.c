@@ -76,6 +76,7 @@ RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset, const
 
   log_d(
       "Vulkan shader created",
+      log_param("name", fmt_text(dbgName)),
       log_param("kind", fmt_text(rvk_shader_kind_str(asset->kind))),
       log_param("entry", fmt_text(asset->entryPoint)),
       log_param("resources", fmt_int(asset->resourceCount)));

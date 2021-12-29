@@ -403,6 +403,7 @@ rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset, const String d
 
   log_d(
       "Vulkan graphic created",
+      log_param("name", fmt_text(dbgName)),
       log_param("topology", fmt_text(rvk_graphic_topology_str(asset->topology))),
       log_param("rasterizer", fmt_text(rvk_graphic_rasterizer_str(asset->rasterizer))),
       log_param("line-width", fmt_float(asset->lineWidth)),
@@ -549,6 +550,10 @@ void rvk_graphic_bind(const RvkGraphic* graphic, VkCommandBuffer vkCmdBuf) {
       null);
 
   if (graphic->mesh) {
-    vkCmdBindIndexBuffer(vkCmdBuf, graphic->mesh->indexBuffer.vkBuffer, 0, VK_INDEX_TYPE_UINT16);
+    vkCmdBindIndexBuffer(
+        vkCmdBuf,
+        graphic->mesh->indexBuffer.vkBuffer,
+        0,
+        sizeof(AssetMeshIndex) == 2 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32);
   }
 }

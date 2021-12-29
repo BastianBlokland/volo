@@ -7,19 +7,19 @@
 #include "mesh_utils_internal.h"
 
 struct sAssetMeshBuilder {
-  DynArray   vertices; // AssetMeshVertex[]
-  DynArray   indices;  // u16[]
-  u16*       indexTable;
-  u32        tableSize, maxVertexCount;
-  GeoBox     positionBounds, texcoordBounds;
-  Allocator* alloc;
+  DynArray        vertices; // AssetMeshVertex[]
+  DynArray        indices;  // AssetMeshIndex[]
+  AssetMeshIndex* indexTable;
+  u32             tableSize, maxVertexCount;
+  GeoBox          positionBounds, texcoordBounds;
+  Allocator*      alloc;
 };
 
 AssetMeshBuilder* asset_mesh_builder_create(Allocator* alloc, const usize maxVertexCount) {
   AssetMeshBuilder* builder = alloc_alloc_t(alloc, AssetMeshBuilder);
   *builder                  = (AssetMeshBuilder){
       .vertices       = dynarray_create_t(alloc, AssetMeshVertex, maxVertexCount),
-      .indices        = dynarray_create_t(alloc, u16, maxVertexCount),
+      .indices        = dynarray_create_t(alloc, AssetMeshIndex, maxVertexCount),
       .tableSize      = bits_nextpow2((u32)maxVertexCount),
       .maxVertexCount = (u32)maxVertexCount,
       .positionBounds = geo_box_inverted(),
@@ -27,16 +27,16 @@ AssetMeshBuilder* asset_mesh_builder_create(Allocator* alloc, const usize maxVer
       .alloc          = alloc,
   };
 
-  builder->indexTable = alloc_array_t(alloc, u16, builder->tableSize);
+  builder->indexTable = alloc_array_t(alloc, AssetMeshIndex, builder->tableSize);
   for (u32 i = 0; i != builder->tableSize; ++i) {
-    builder->indexTable[i] = sentinel_u16;
+    builder->indexTable[i] = asset_mesh_indices_max;
   }
 
   diag_assert_msg(
-      maxVertexCount < u16_max,
+      maxVertexCount < asset_mesh_indices_max,
       "Vertex count {} exceeds the maximum capacity {} of the index-type",
       fmt_int(maxVertexCount),
-      fmt_int(u16_max - 1));
+      fmt_int(asset_mesh_indices_max - 1));
   return builder;
 }
 
@@ -48,7 +48,7 @@ void asset_mesh_builder_destroy(AssetMeshBuilder* builder) {
   alloc_free_t(builder->alloc, builder);
 }
 
-u16 asset_mesh_builder_push(AssetMeshBuilder* builder, const AssetMeshVertex vertex) {
+AssetMeshIndex asset_mesh_builder_push(AssetMeshBuilder* builder, const AssetMeshVertex vertex) {
   diag_assert_msg(
       builder->vertices.size < builder->maxVertexCount, "Vertex count exceeds the maximum");
 
@@ -58,13 +58,13 @@ u16 asset_mesh_builder_push(AssetMeshBuilder* builder, const AssetMeshVertex ver
    */
   u32 bucket = bits_hash_32(mem_var(vertex)) & (builder->tableSize - 1);
   for (usize i = 0; i != builder->tableSize; ++i) {
-    u16* slot = &builder->indexTable[bucket];
+    AssetMeshIndex* slot = &builder->indexTable[bucket];
 
-    if (LIKELY(sentinel_check(*slot))) {
+    if (LIKELY(*slot == asset_mesh_indices_max)) {
       // Unique vertex, copy to output and save the index in the table.
-      *slot                                                 = (u16)builder->vertices.size;
+      *slot = (AssetMeshIndex)builder->vertices.size;
       *dynarray_push_t(&builder->vertices, AssetMeshVertex) = vertex;
-      *dynarray_push_t(&builder->indices, u16)              = *slot;
+      *dynarray_push_t(&builder->indices, AssetMeshIndex)   = *slot;
 
       builder->positionBounds = geo_box_encapsulate(&builder->positionBounds, vertex.position);
       builder->texcoordBounds = geo_box_encapsulate(&builder->texcoordBounds, vertex.texcoord);
@@ -74,7 +74,7 @@ u16 asset_mesh_builder_push(AssetMeshBuilder* builder, const AssetMeshVertex ver
     diag_assert(*slot < builder->vertices.size);
     if (mem_eq(dynarray_at(&builder->vertices, *slot, 1), mem_var(vertex))) {
       // Equal to the vertex in this slot, reuse the vertex.
-      *dynarray_push_t(&builder->indices, u16) = *slot;
+      *dynarray_push_t(&builder->indices, AssetMeshIndex) = *slot;
       return *slot;
     }
 
@@ -90,8 +90,9 @@ AssetMeshComp asset_mesh_create(const AssetMeshBuilder* builder) {
       alloc_alloc(g_alloc_heap, vertCount * sizeof(AssetMeshVertex), alignof(AssetMeshVertex));
   mem_cpy(vertMem, dynarray_at(&builder->vertices, 0, vertCount));
 
-  const usize idxCount   = builder->indices.size;
-  const Mem   indicesMem = alloc_alloc(g_alloc_heap, idxCount * sizeof(u16), alignof(u16));
+  const usize idxCount = builder->indices.size;
+  const Mem   indicesMem =
+      alloc_alloc(g_alloc_heap, idxCount * sizeof(AssetMeshIndex), alignof(AssetMeshIndex));
   mem_cpy(indicesMem, dynarray_at(&builder->indices, 0, idxCount));
 
   return (AssetMeshComp){
@@ -121,8 +122,8 @@ void asset_mesh_compute_tangents(AssetMeshBuilder* builder) {
   GeoVector* tangents   = bufferMem.ptr;
   GeoVector* bitangents = tangents + vertCount;
 
-  AssetMeshVertex* vertices = dynarray_begin_t(&builder->vertices, AssetMeshVertex);
-  const u16*       indices  = dynarray_begin_t(&builder->indices, u16);
+  AssetMeshVertex*      vertices = dynarray_begin_t(&builder->vertices, AssetMeshVertex);
+  const AssetMeshIndex* indices  = dynarray_begin_t(&builder->indices, AssetMeshIndex);
 
   // Calculate per triangle tangents and bitangents and accumulate them per vertex.
   diag_assert((builder->indices.size % 3) == 0); // Input has to be triangles.

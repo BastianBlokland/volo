@@ -8,15 +8,20 @@
 #include "transfer_internal.h"
 
 typedef struct {
+  ALIGNAS(16)
   f16 position[3];
   f16 pad_0[1];
   f16 texcoord[2];
   f16 pad_1[2];
+  f16 normal[3];
+  f16 pad_2[1];
 } RvkVertex;
 
-static Mem rvk_mesh_to_device_vertices_scratch(const AssetMeshComp* asset) {
+#define rvk_mesh_max_scratch_size (64 * usize_kibibyte)
+
+static Mem rvk_mesh_to_device_vertices(Allocator* alloc, const AssetMeshComp* asset) {
   const usize bufferSize = sizeof(RvkVertex) * asset->vertexCount;
-  Mem         buffer     = alloc_alloc(g_alloc_scratch, bufferSize, alignof(RvkVertex));
+  Mem         buffer     = alloc_alloc(alloc, bufferSize, alignof(RvkVertex));
 
   RvkVertex* output = mem_as_t(buffer, RvkVertex);
   for (usize i = 0; i != asset->vertexCount; ++i) {
@@ -26,6 +31,9 @@ static Mem rvk_mesh_to_device_vertices_scratch(const AssetMeshComp* asset) {
         .position[2] = bits_f32_to_f16(asset->vertices[i].position.z),
         .texcoord[0] = bits_f32_to_f16(asset->vertices[i].texcoord.x),
         .texcoord[1] = bits_f32_to_f16(asset->vertices[i].texcoord.y),
+        .normal[0]   = bits_f32_to_f16(asset->vertices[i].normal.x),
+        .normal[1]   = bits_f32_to_f16(asset->vertices[i].normal.y),
+        .normal[2]   = bits_f32_to_f16(asset->vertices[i].normal.z),
     };
   }
   return buffer;
@@ -39,21 +47,26 @@ RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const Strin
       .indexCount  = (u32)asset->indexCount,
   };
 
-  const Mem vertices = rvk_mesh_to_device_vertices_scratch(asset);
+  const bool useScratch    = sizeof(RvkVertex) * asset->vertexCount < rvk_mesh_max_scratch_size;
+  Allocator* verticesAlloc = useScratch ? g_alloc_scratch : g_alloc_heap;
+  const Mem  verticesMem   = rvk_mesh_to_device_vertices(verticesAlloc, asset);
 
-  const usize indexSize = sizeof(u16) * asset->indexCount;
-  mesh->vertexBuffer    = rvk_buffer_create(dev, vertices.size, RvkBufferType_DeviceStorage);
+  const usize indexSize = sizeof(AssetMeshIndex) * asset->indexCount;
+  mesh->vertexBuffer    = rvk_buffer_create(dev, verticesMem.size, RvkBufferType_DeviceStorage);
   mesh->indexBuffer     = rvk_buffer_create(dev, indexSize, RvkBufferType_DeviceIndex);
 
   rvk_debug_name_buffer(dev->debug, mesh->vertexBuffer.vkBuffer, "{}_vertex", fmt_text(dbgName));
   rvk_debug_name_buffer(dev->debug, mesh->indexBuffer.vkBuffer, "{}_index", fmt_text(dbgName));
 
-  mesh->vertexTransfer = rvk_transfer_buffer(dev->transferer, &mesh->vertexBuffer, vertices);
+  mesh->vertexTransfer = rvk_transfer_buffer(dev->transferer, &mesh->vertexBuffer, verticesMem);
   mesh->indexTransfer  = rvk_transfer_buffer(
       dev->transferer, &mesh->indexBuffer, mem_create(asset->indices, indexSize));
 
+  alloc_free(verticesAlloc, verticesMem);
+
   log_d(
       "Vulkan mesh created",
+      log_param("name", fmt_text(dbgName)),
       log_param("vertices", fmt_int(mesh->vertexCount)),
       log_param("indices", fmt_int(mesh->indexCount)),
       log_param("vertex-memory", fmt_size(mesh->vertexBuffer.mem.size)),

@@ -11,14 +11,18 @@ bind_global_data(0) readonly uniform Global { GlobalData global; };
 bind_graphic_data(0) readonly buffer Mesh { VertexData[] vertices; };
 bind_instance_data(0) readonly uniform Instance { InstanceData[g_maxInstances] instances; };
 
-bind_internal(0) out f32_vec2 out_texcoord;
+bind_internal(0) out f32_vec3 out_worldNormal;
+bind_internal(1) out f32_vec2 out_texcoord;
 
 void main() {
   const f32_vec3 vertPos      = vert_position(vertices[gl_VertexIndex]);
+  const f32_vec3 vertNormal   = vert_normal(vertices[gl_VertexIndex]);
   const f32_vec3 instancePos  = instances[gl_InstanceIndex].position.xyz;
   const f32_vec4 instanceQuat = instances[gl_InstanceIndex].rotation;
   const f32_vec3 worldPos     = quat_rotate(instanceQuat, vertPos) + instancePos;
+  const f32_vec3 worldNormal  = quat_rotate(instanceQuat, vertNormal);
 
-  gl_Position  = global.viewProj * f32_vec4(worldPos, 1);
-  out_texcoord = vert_texcoord(vertices[gl_VertexIndex]);
+  gl_Position     = global.viewProj * f32_vec4(worldPos, 1);
+  out_worldNormal = worldNormal;
+  out_texcoord    = vert_texcoord(vertices[gl_VertexIndex]);
 }
