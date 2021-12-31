@@ -74,15 +74,15 @@ typedef struct {
   String name;
   u32    binding;
   f64    value;
-} AssetGraphicShaderSpec;
+} AssetGraphicOverride;
 
 typedef struct {
   String      shaderId;
   EcsEntityId shader;
   struct {
-    AssetGraphicShaderSpec* values;
-    usize                   count;
-  } specs;
+    AssetGraphicOverride* values;
+    usize                 count;
+  } overrides;
 } AssetGraphicShader;
 
 ecs_comp_extern_public(AssetGraphicComp) {

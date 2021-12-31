@@ -73,18 +73,18 @@ static void graphic_datareg_init() {
     data_reg_field_t(
         g_dataReg, AssetGraphicSampler, anisotropy, t_AssetGraphicAniso, .flags = DataFlags_Opt);
 
-    data_reg_struct_t(g_dataReg, AssetGraphicShaderSpec);
-    data_reg_field_t(g_dataReg, AssetGraphicShaderSpec, name, data_prim_t(String));
-    data_reg_field_t(g_dataReg, AssetGraphicShaderSpec, binding, data_prim_t(u32));
-    data_reg_field_t(g_dataReg, AssetGraphicShaderSpec, value, data_prim_t(f64));
+    data_reg_struct_t(g_dataReg, AssetGraphicOverride);
+    data_reg_field_t(g_dataReg, AssetGraphicOverride, name, data_prim_t(String));
+    data_reg_field_t(g_dataReg, AssetGraphicOverride, binding, data_prim_t(u32));
+    data_reg_field_t(g_dataReg, AssetGraphicOverride, value, data_prim_t(f64));
 
     data_reg_struct_t(g_dataReg, AssetGraphicShader);
     data_reg_field_t(g_dataReg, AssetGraphicShader, shaderId, data_prim_t(String));
     data_reg_field_t(
         g_dataReg,
         AssetGraphicShader,
-        specs,
-        t_AssetGraphicShaderSpec,
+        overrides,
+        t_AssetGraphicOverride,
         .container = DataContainer_Array,
         .flags     = DataFlags_Opt);
 
