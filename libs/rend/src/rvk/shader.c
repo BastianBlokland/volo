@@ -166,19 +166,21 @@ void rvk_shader_destroy(RvkShader* shader) {
 VkSpecializationInfo rvk_shader_specialize_scratch(
     RvkShader* shader, RvkShaderOverride* overrides, usize overrideCount) {
 
-  static const usize entriesMax  = 64;
-  static const usize typeSizeMax = 8;
-  static const usize dataSizeMax = entriesMax * typeSizeMax;
+  enum {
+    Limit_EntriesMax  = 64,
+    Limit_TypeSizeMax = 8,
+    Limit_DataSizeMax = Limit_EntriesMax * Limit_TypeSizeMax,
+  };
 
-  if (UNLIKELY(overrideCount > entriesMax)) {
-    diag_crash_msg("More then {} shader overrides are not supported", fmt_int(entriesMax));
+  if (UNLIKELY(overrideCount > Limit_EntriesMax)) {
+    diag_crash_msg("More then {} shader overrides are not supported", fmt_int(Limit_EntriesMax));
   }
 
   VkSpecializationMapEntry* entries =
-      alloc_array_t(g_alloc_scratch, VkSpecializationMapEntry, entriesMax);
+      alloc_array_t(g_alloc_scratch, VkSpecializationMapEntry, Limit_EntriesMax);
   u32       entryCount       = 0;
   u64       usedBindingsMask = 0;
-  const Mem buffer           = alloc_alloc(g_alloc_scratch, dataSizeMax, 8);
+  const Mem buffer           = alloc_alloc(g_alloc_scratch, Limit_DataSizeMax, 8);
   Mem       remainingBuffer  = buffer;
 
   for (usize i = 0; i != overrideCount; ++i) {
