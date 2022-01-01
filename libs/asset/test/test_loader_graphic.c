@@ -12,7 +12,7 @@ static const AssetMemRecord g_testData[] = {
         .data = string_static("{"
                               "  \"shaders\": [{ "
                               "    \"shaderId\": \"test.spv\","
-                              "    \"specs\": [{ "
+                              "    \"overrides\": [{ "
                               "      \"name\": \"Test\","
                               "      \"binding\": 42,"
                               "      \"value\": 1337.1337"
