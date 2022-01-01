@@ -145,7 +145,8 @@ RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset, const
       log_param("name", fmt_text(dbgName)),
       log_param("kind", fmt_text(rvk_shader_kind_str(asset->kind))),
       log_param("entry", fmt_text(asset->entryPoint)),
-      log_param("resources", fmt_int(asset->resources.count)));
+      log_param("resources", fmt_int(asset->resources.count)),
+      log_param("specs", fmt_int(asset->specs.count)));
   return shader;
 }
 
@@ -173,11 +174,12 @@ VkSpecializationInfo rvk_shader_specialize_scratch(
     diag_crash_msg("More then {} shader overrides are not supported", fmt_int(entriesMax));
   }
 
-  VkSpecializationMapEntry entries[entriesMax];
-  u32                      entryCount       = 0;
-  u64                      usedBindingsMask = 0;
-  const Mem                buffer           = alloc_alloc(g_alloc_scratch, dataSizeMax, 8);
-  Mem                      remainingBuffer  = buffer;
+  VkSpecializationMapEntry* entries =
+      alloc_array_t(g_alloc_scratch, VkSpecializationMapEntry, entriesMax);
+  u32       entryCount       = 0;
+  u64       usedBindingsMask = 0;
+  const Mem buffer           = alloc_alloc(g_alloc_scratch, dataSizeMax, 8);
+  Mem       remainingBuffer  = buffer;
 
   for (usize i = 0; i != overrideCount; ++i) {
     RvkShaderOverride* override = &overrides[i];
