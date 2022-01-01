@@ -5,16 +5,16 @@
 #include "include/global.glsl"
 #include "include/vertex.glsl"
 
-bind_global_data(0) readonly uniform Global { GlobalData global; };
-bind_graphic_data(0) readonly buffer Mesh { VertexData[] vertices; };
+bind_global_data(0) readonly uniform Global { GlobalData u_global; };
+bind_graphic_data(0) readonly buffer Mesh { VertexData[] u_vertices; };
 
-bind_internal(0) out f32_vec3 out_worldViewDir; // NOTE: non-normalized
+bind_internal(0) out f32_vec3 out_viewDir; // NOTE: non-normalized
 
 void main() {
-  const f32_vec2 vertPos = vert_position(vertices[gl_VertexIndex]).xy;
+  const f32_vec2 vertPos = vert_position(u_vertices[gl_VertexIndex]).xy;
 
   gl_Position = f32_vec4(vertPos * 2, 0, 1); // Fullscreen at zero depth.
 
-  const f32_mat4 clipToWorldSpace = inverse(global.viewProj);
-  out_worldViewDir                = (clipToWorldSpace * gl_Position).xyz;
+  const f32_mat4 clipToWorldSpace = inverse(u_global.viewProj);
+  out_viewDir                     = (clipToWorldSpace * gl_Position).xyz;
 }

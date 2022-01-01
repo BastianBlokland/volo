@@ -4,7 +4,14 @@
       "shaderId": "shaders/standard.vert.spv"
     },
     {
-      "shaderId": "shaders/standard.frag.spv"
+      "shaderId": "shaders/standard.frag.spv",
+      "overrides": [
+        {
+          "name": "shade",
+          "binding": 0,
+          "value": 0.0
+        }
+      ]
     }
   ],
   "samplers": [
