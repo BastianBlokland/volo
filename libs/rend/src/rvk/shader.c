@@ -53,6 +53,63 @@ static RvkDescKind rvk_shader_desc_kind(const AssetShaderResKind resKind) {
   diag_crash();
 }
 
+static bool rvk_shader_spec_type(RvkShader* shader, const u32 binding, AssetShaderType* out) {
+  array_ptr_for_t(shader->specs, AssetShaderSpec, spec) {
+    if (spec->binding == binding) {
+      *out = spec->type;
+      return true;
+    }
+  }
+  return false;
+}
+
+static usize rvk_shader_spec_size(const AssetShaderType type) {
+  static const usize sizes[] = {
+      [AssetShaderType_bool] = sizeof(VkBool32),
+      [AssetShaderType_u8]   = 1,
+      [AssetShaderType_i8]   = 1,
+      [AssetShaderType_u16]  = 2,
+      [AssetShaderType_i16]  = 2,
+      [AssetShaderType_u32]  = 4,
+      [AssetShaderType_i32]  = 4,
+      [AssetShaderType_u64]  = 8,
+      [AssetShaderType_i64]  = 8,
+      [AssetShaderType_f16]  = 2,
+      [AssetShaderType_f32]  = 4,
+      [AssetShaderType_f64]  = 8,
+  };
+  ASSERT(array_elems(sizes) == AssetShaderType_Count, "Incorrect number of shader-type sizes");
+  return sizes[type];
+}
+
+static Mem rvk_shader_spec_write(Mem output, const AssetShaderType type, const f64 value) {
+#define WRITE_TYPE_AND_RET(_NAME_)                                                                 \
+  case AssetShaderType_##_NAME_:                                                                   \
+    *mem_as_t(output, _NAME_) = (_NAME_)value;                                                     \
+    return mem_consume(output, sizeof(_NAME_))
+
+  switch (type) {
+    WRITE_TYPE_AND_RET(u8);
+    WRITE_TYPE_AND_RET(i8);
+    WRITE_TYPE_AND_RET(u16);
+    WRITE_TYPE_AND_RET(i16);
+    WRITE_TYPE_AND_RET(u32);
+    WRITE_TYPE_AND_RET(i32);
+    WRITE_TYPE_AND_RET(u64);
+    WRITE_TYPE_AND_RET(i64);
+    WRITE_TYPE_AND_RET(f16);
+    WRITE_TYPE_AND_RET(f32);
+    WRITE_TYPE_AND_RET(f64);
+  case AssetShaderType_bool:
+    *mem_as_t(output, VkBool32) = value != 0;
+    return mem_consume(output, sizeof(VkBool32));
+  case AssetShaderType_Count:
+    break;
+  }
+#undef WRITE_TYPE
+  diag_crash();
+}
+
 RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset, const String dbgName) {
   RvkShader* shader = alloc_alloc_t(g_alloc_heap, RvkShader);
   *shader           = (RvkShader){
@@ -63,8 +120,17 @@ RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset, const
   };
   rvk_debug_name_shader(dev->debug, shader->vkModule, "{}", fmt_text(dbgName));
 
-  for (usize i = 0; i != asset->resourceCount; ++i) {
-    const AssetShaderRes* res = &asset->resources[i];
+  // Copy the specialization bindings.
+  if (asset->specs.count) {
+    shader->specs.values = alloc_array_t(g_alloc_heap, AssetShaderSpec, asset->specs.count);
+    shader->specs.count  = asset->specs.count;
+    mem_cpy(
+        mem_from_to(shader->specs.values, shader->specs.values + shader->specs.count),
+        mem_from_to(asset->specs.values, asset->specs.values + asset->specs.count));
+  }
+
+  for (usize i = 0; i != asset->resources.count; ++i) {
+    const AssetShaderRes* res = &asset->resources.values[i];
     if (res->set >= rvk_shader_desc_max) {
       diag_crash_msg("Shader resource set {} is out of bounds", fmt_int(res->set));
     }
@@ -79,7 +145,8 @@ RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset, const
       log_param("name", fmt_text(dbgName)),
       log_param("kind", fmt_text(rvk_shader_kind_str(asset->kind))),
       log_param("entry", fmt_text(asset->entryPoint)),
-      log_param("resources", fmt_int(asset->resourceCount)));
+      log_param("resources", fmt_int(asset->resources.count)),
+      log_param("specs", fmt_int(asset->specs.count)));
   return shader;
 }
 
@@ -89,5 +156,66 @@ void rvk_shader_destroy(RvkShader* shader) {
   vkDestroyShaderModule(dev->vkDev, shader->vkModule, &dev->vkAlloc);
   string_free(g_alloc_heap, shader->entryPoint);
 
+  if (shader->specs.values) {
+    alloc_free_array_t(g_alloc_heap, shader->specs.values, shader->specs.count);
+  }
+
   alloc_free_t(g_alloc_heap, shader);
+}
+
+VkSpecializationInfo rvk_shader_specialize_scratch(
+    RvkShader* shader, RvkShaderOverride* overrides, usize overrideCount) {
+
+  enum {
+    Limit_EntriesMax  = 64,
+    Limit_TypeSizeMax = 8,
+    Limit_DataSizeMax = Limit_EntriesMax * Limit_TypeSizeMax,
+  };
+
+  if (UNLIKELY(overrideCount > Limit_EntriesMax)) {
+    diag_crash_msg("More then {} shader overrides are not supported", fmt_int(Limit_EntriesMax));
+  }
+
+  VkSpecializationMapEntry* entries =
+      alloc_array_t(g_alloc_scratch, VkSpecializationMapEntry, Limit_EntriesMax);
+  u32       entryCount       = 0;
+  u64       usedBindingsMask = 0;
+  const Mem buffer           = alloc_alloc(g_alloc_scratch, Limit_DataSizeMax, 8);
+  Mem       remainingBuffer  = buffer;
+
+  for (usize i = 0; i != overrideCount; ++i) {
+    RvkShaderOverride* override = &overrides[i];
+
+    AssetShaderType type;
+    if (UNLIKELY(!rvk_shader_spec_type(shader, override->binding, &type))) {
+      diag_crash_msg(
+          "No specialization found for override '{}' (binding: {})",
+          fmt_text(override->name),
+          fmt_int(override->binding));
+    }
+    if (UNLIKELY(override->binding >= sizeof(usedBindingsMask) * 8)) {
+      diag_crash_msg(
+          "Binding for specialization override '{}' exceeds maximum", fmt_text(override->name));
+    }
+    if (UNLIKELY(usedBindingsMask & u64_lit(1) << override->binding)) {
+      diag_crash_msg(
+          "Duplicate specialization override '{}' (binding: {})",
+          fmt_text(override->name),
+          fmt_int(override->binding));
+    }
+    usedBindingsMask |= u64_lit(1) << override->binding;
+
+    entries[entryCount++] = (VkSpecializationMapEntry){
+        .constantID = override->binding,
+        .offset     = (u32)(buffer.size - remainingBuffer.size),
+        .size       = rvk_shader_spec_size(type),
+    };
+    remainingBuffer = rvk_shader_spec_write(remainingBuffer, type, override->value);
+  }
+  return (VkSpecializationInfo){
+      .pMapEntries   = entries,
+      .mapEntryCount = entryCount,
+      .dataSize      = buffer.size - remainingBuffer.size,
+      .pData         = buffer.ptr,
+  };
 }

@@ -12,6 +12,11 @@ static const AssetMemRecord g_testData[] = {
         .data = string_static("{"
                               "  \"shaders\": [{ "
                               "    \"shaderId\": \"test.spv\","
+                              "    \"overrides\": [{ "
+                              "      \"name\": \"Test\","
+                              "      \"binding\": 42,"
+                              "      \"value\": 1337.1337"
+                              "    }],"
                               "  }],"
                               "  \"samplers\": ["
                               "    {"
@@ -109,6 +114,10 @@ spec(loader_graphic) {
     check_require(graphic->shaders.count == 1);
     check(
         graphic->shaders.values[0].shader == asset_lookup(world, manager, string_lit("test.spv")));
+    check_require(graphic->shaders.values[0].overrides.count == 1);
+    check_eq_string(graphic->shaders.values[0].overrides.values[0].name, string_lit("Test"));
+    check_eq_int(graphic->shaders.values[0].overrides.values[0].binding, 42);
+    check_eq_float(graphic->shaders.values[0].overrides.values[0].value, 1337.1337, 1e-8);
 
     check_require(graphic->samplers.count == 2);
     check(graphic->samplers.values[0].texture == asset_lookup(world, manager, string_lit("a.ppm")));

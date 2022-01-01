@@ -3,7 +3,7 @@
 
 #include "types.glsl"
 
-const u32 g_maxInstances = 2048;
+const u32 c_maxInstances = 2048;
 
 struct InstanceData {
   f32_vec4 position; // x, y, z position

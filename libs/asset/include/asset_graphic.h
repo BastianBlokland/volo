@@ -71,8 +71,18 @@ typedef struct {
 } AssetGraphicSampler;
 
 typedef struct {
+  String name;
+  u32    binding;
+  f64    value;
+} AssetGraphicOverride;
+
+typedef struct {
   String      shaderId;
   EcsEntityId shader;
+  struct {
+    AssetGraphicOverride* values;
+    usize                 count;
+  } overrides;
 } AssetGraphicShader;
 
 ecs_comp_extern_public(AssetGraphicComp) {

@@ -134,9 +134,9 @@ static void rvk_graphic_desc_merge(RvkDescMeta* meta, const RvkDescMeta* other) 
 
 static RvkDescMeta rvk_graphic_desc_meta(const RvkGraphic* graphic, const usize set) {
   RvkDescMeta meta = {0};
-  array_for_t(graphic->shaders, RvkShaderPtr, itr) {
-    if (*itr) {
-      rvk_graphic_desc_merge(&meta, &(*itr)->descriptors[set]);
+  array_for_t(graphic->shaders, RvkGraphicShader, itr) {
+    if (itr->shader) {
+      rvk_graphic_desc_merge(&meta, &itr->shader->descriptors[set]);
     }
   }
   return meta;
@@ -161,12 +161,18 @@ static VkPipelineLayout rvk_pipeline_layout_create(const RvkGraphic* graphic) {
   return result;
 }
 
-static VkPipelineShaderStageCreateInfo rvk_pipeline_shaderstage(const RvkShader* shader) {
+static VkPipelineShaderStageCreateInfo rvk_pipeline_shader(const RvkGraphicShader* graphicShader) {
+
+  VkSpecializationInfo* specialization = alloc_alloc_t(g_alloc_scratch, VkSpecializationInfo);
+  *specialization                      = rvk_shader_specialize_scratch(
+      graphicShader->shader, graphicShader->overrides.values, graphicShader->overrides.count);
+
   return (VkPipelineShaderStageCreateInfo){
-      .sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-      .stage  = shader->vkStage,
-      .module = shader->vkModule,
-      .pName  = rvk_to_null_term_scratch(shader->entryPoint),
+      .sType               = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+      .stage               = graphicShader->shader->vkStage,
+      .module              = graphicShader->shader->vkModule,
+      .pName               = rvk_to_null_term_scratch(graphicShader->shader->entryPoint),
+      .pSpecializationInfo = specialization,
   };
 }
 
@@ -295,9 +301,9 @@ rvk_pipeline_create(RvkGraphic* graphic, VkPipelineLayout layout, VkRenderPass v
 
   VkPipelineShaderStageCreateInfo shaderStages[rvk_graphic_shaders_max];
   u32                             shaderStageCount = 0;
-  array_for_t(graphic->shaders, RvkShaderPtr, itr) {
-    if (*itr) {
-      shaderStages[shaderStageCount++] = rvk_pipeline_shaderstage(*itr);
+  array_for_t(graphic->shaders, RvkGraphicShader, itr) {
+    if (itr->shader) {
+      shaderStages[shaderStageCount++] = rvk_pipeline_shader(itr);
     }
   }
 
@@ -425,6 +431,14 @@ void rvk_graphic_destroy(RvkGraphic* graphic) {
   if (rvk_desc_valid(graphic->descSet)) {
     rvk_desc_free(graphic->descSet);
   }
+  array_for_t(graphic->shaders, RvkGraphicShader, itr) {
+    if (itr->overrides.count) {
+      array_ptr_for_t(itr->overrides, RvkShaderOverride, override) {
+        string_free(g_alloc_heap, override->name);
+      }
+      alloc_free_array_t(g_alloc_heap, itr->overrides.values, itr->overrides.count);
+    }
+  }
   array_for_t(graphic->samplers, RvkGraphicSampler, itr) {
     if (itr->texture) {
       rvk_sampler_destroy(&itr->sampler, dev);
@@ -434,10 +448,24 @@ void rvk_graphic_destroy(RvkGraphic* graphic) {
   alloc_free_t(g_alloc_heap, graphic);
 }
 
-void rvk_graphic_shader_add(RvkGraphic* graphic, RvkShader* shader) {
-  array_for_t(graphic->shaders, RvkShaderPtr, itr) {
-    if (!*itr) {
-      *itr = shader;
+void rvk_graphic_shader_add(
+    RvkGraphic* graphic, RvkShader* shader, AssetGraphicOverride* overrides, usize overrideCount) {
+
+  array_for_t(graphic->shaders, RvkGraphicShader, itr) {
+    if (!itr->shader) {
+      itr->shader = shader;
+
+      if (overrideCount) {
+        itr->overrides.values = alloc_array_t(g_alloc_heap, RvkShaderOverride, overrideCount);
+        itr->overrides.count  = overrideCount;
+        for (usize i = 0; i != overrideCount; ++i) {
+          itr->overrides.values[i] = (RvkShaderOverride){
+              .binding = overrides[i].binding,
+              .name    = string_dup(g_alloc_heap, overrides[i].name),
+              .value   = overrides[i].value,
+          };
+        }
+      }
       return;
     }
   }

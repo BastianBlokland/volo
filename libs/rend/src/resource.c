@@ -240,7 +240,8 @@ static void rend_resource_load(
       array_ptr_for_t(maybeAssetGraphic->shaders, AssetGraphicShader, ptr) {
         RendResShaderComp* comp =
             ecs_utils_write_t(world, ShaderView, ptr->shader, RendResShaderComp);
-        rvk_graphic_shader_add(graphicComp->graphic, comp->shader);
+        rvk_graphic_shader_add(
+            graphicComp->graphic, comp->shader, ptr->overrides.values, ptr->overrides.count);
       }
 
       // Add mesh.

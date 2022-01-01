@@ -15,15 +15,22 @@
 #define spv_magic 0x07230203
 
 typedef enum {
-  SpvOp_EntryPoint       = 15,
-  SpvOp_TypeSampledImage = 27,
-  SpvOp_TypeStruct       = 30,
-  SpvOp_TypePointer      = 32,
-  SpvOp_Variable         = 59,
-  SpvOp_Decorate         = 71,
+  SpvOp_EntryPoint        = 15,
+  SpvOp_TypeBool          = 20,
+  SpvOp_TypeInt           = 21,
+  SpvOp_TypeFloat         = 22,
+  SpvOp_TypeSampledImage  = 27,
+  SpvOp_TypeStruct        = 30,
+  SpvOp_TypePointer       = 32,
+  SpvOp_SpecConstantTrue  = 48,
+  SpvOp_SpecConstantFalse = 49,
+  SpvOp_SpecConstant      = 50,
+  SpvOp_Variable          = 59,
+  SpvOp_Decorate          = 71,
 } SpvOp;
 
 typedef enum {
+  SpvDecoration_SpecId        = 1,
   SpvDecoration_Binding       = 33,
   SpvDecoration_DescriptorSet = 34,
 } SpvDecoration;
@@ -58,6 +65,7 @@ typedef enum {
   SpvIdKind_TypePointer,
   SpvIdKind_TypeStruct,
   SpvIdKind_TypeSampledImage,
+  SpvIdKind_SpecConstant,
 } SpvIdKind;
 
 typedef enum {
@@ -77,6 +85,7 @@ typedef struct {
   String            entryPoint;
   SpvId*            ids;
   u32               idCount;
+  u32               wellknownTypes[AssetShaderType_Count];
 } SpvProgram;
 
 typedef enum {
@@ -86,9 +95,11 @@ typedef enum {
   SpvError_MalformedDuplicateId,
   SpvError_MalformedResourceWithoutSetAndId,
   SpvError_MalformedDuplicateBinding,
+  SpvError_MalformedSpecWithoutBinding,
   SpvError_UnsupportedVersion,
   SpvError_UnsupportedMultipleEntryPoints,
   SpvError_UnsupportedShaderResource,
+  SpvError_UnsupportedSpecConstantType,
   SpvError_UnsupportedSetExceedsMax,
   SpvError_UnsupportedBindingExceedsMax,
 
@@ -103,9 +114,11 @@ static String spv_error_str(SpvError res) {
       string_static("Duplicate SpirV id"),
       string_static("SpirV shader resource without set and binding"),
       string_static("SpirV shader resource binding already used in this set"),
+      string_static("SpirV shader specialization constant without a binding"),
       string_static("Unsupported SpirV version, atleast 1.3 is required"),
       string_static("Multiple SpirV entrypoints are not supported"),
       string_static("Unsupported SpirV shader resource"),
+      string_static("Unsupported SpirV specialization constant type"),
       string_static("SpirV shader resource set exceeds maximum"),
       string_static("SpirV shader resource binding exceeds maximum"),
   };
@@ -141,12 +154,32 @@ static SpvData spv_read_string(const SpvData data, const u32 maxWordSize, String
   return spv_consume(data, ((u32)out->size + 1 + 3) / sizeof(u32)); // +1 null-term, +3 round up.
 }
 
+static bool spv_validate_id(const u32 id, const SpvProgram* prog, SpvError* err) {
+  if (id >= prog->idCount) {
+    *err = SpvError_MalformedIdOutOfBounds;
+    return false;
+  }
+  return true;
+}
+
+static bool spv_validate_new_id(const u32 id, const SpvProgram* prog, SpvError* err) {
+  if (!spv_validate_id(id, prog, err)) {
+    return false;
+  }
+  if (prog->ids[id].kind != SpvIdKind_Unknown) {
+    *err = SpvError_MalformedDuplicateId;
+    return false;
+  }
+  return true;
+}
+
 static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, SpvError* err) {
   *out = (SpvProgram){
       .ids     = alloc_array_t(g_alloc_scratch, SpvId, maxId),
       .idCount = maxId,
   };
   mem_set(mem_from_to(out->ids, out->ids + out->idCount), 0);
+  array_for_t(out->wellknownTypes, u32, itr) { *itr = sentinel_u32; }
 
   while (data.size) {
     SpvInstructionHeader header;
@@ -172,6 +205,77 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
       out->execModel = (SpvExecutionModel)data.ptr[1];
       spv_read_string(spv_consume(data, 3), header.opSize - 3, &out->entryPoint);
     } break;
+    case SpvOp_TypeBool: {
+      /**
+       * Bool type declaration.
+       * https://www.khronos.org/registry/SPIR-V/specs/unified1/SPIRV.html#OpTypeBool
+       */
+      if (data.size < 2) {
+        *err = SpvError_Malformed;
+        return data;
+      }
+      const u32 typeId = data.ptr[1];
+      if (!spv_validate_id(typeId, out, err)) {
+        return data;
+      }
+      out->wellknownTypes[AssetShaderType_bool] = typeId;
+    } break;
+    case SpvOp_TypeInt: {
+      /**
+       * Int type declaration.
+       * https://www.khronos.org/registry/SPIR-V/specs/unified1/SPIRV.html#OpTypeInt
+       */
+      if (data.size < 4) {
+        *err = SpvError_Malformed;
+        return data;
+      }
+      const u32 typeId = data.ptr[1];
+      if (!spv_validate_id(typeId, out, err)) {
+        return data;
+      }
+      const u32 width      = data.ptr[2];
+      const u32 signedness = data.ptr[3];
+      switch (width) {
+      case 8:
+        out->wellknownTypes[signedness ? AssetShaderType_i8 : AssetShaderType_u8] = typeId;
+        break;
+      case 16:
+        out->wellknownTypes[signedness ? AssetShaderType_i16 : AssetShaderType_u16] = typeId;
+        break;
+      case 32:
+        out->wellknownTypes[signedness ? AssetShaderType_i32 : AssetShaderType_u32] = typeId;
+        break;
+      case 64:
+        out->wellknownTypes[signedness ? AssetShaderType_i64 : AssetShaderType_u64] = typeId;
+        break;
+      }
+    } break;
+    case SpvOp_TypeFloat: {
+      /**
+       * Float type declaration.
+       * https://www.khronos.org/registry/SPIR-V/specs/unified1/SPIRV.html#OpTypeFloat
+       */
+      if (data.size < 3) {
+        *err = SpvError_Malformed;
+        return data;
+      }
+      const u32 typeId = data.ptr[1];
+      if (!spv_validate_id(typeId, out, err)) {
+        return data;
+      }
+      const u32 width = data.ptr[2];
+      switch (width) {
+      case 16:
+        out->wellknownTypes[AssetShaderType_f16] = typeId;
+        break;
+      case 32:
+        out->wellknownTypes[AssetShaderType_f32] = typeId;
+        break;
+      case 64:
+        out->wellknownTypes[AssetShaderType_f64] = typeId;
+        break;
+      }
+    } break;
     case SpvOp_Decorate: {
       /**
        * Id decoration, we can gather which descriptor set and binding an id belongs to.
@@ -183,11 +287,14 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
         return data;
       }
       const u32 targetId = data.ptr[1];
-      if (targetId >= maxId) {
-        *err = SpvError_MalformedIdOutOfBounds;
+      if (!spv_validate_id(targetId, out, err)) {
         return data;
       }
       switch (data.ptr[2]) {
+      case SpvDecoration_SpecId:
+        out->ids[targetId].binding = data.ptr[3];
+        out->ids[targetId].flags |= SpvIdFlags_HasBinding;
+        break;
       case SpvDecoration_DescriptorSet:
         out->ids[targetId].set = data.ptr[3];
         out->ids[targetId].flags |= SpvIdFlags_HasSet;
@@ -209,12 +316,10 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
       }
       const u32 typeId = data.ptr[1];
       const u32 id     = data.ptr[2];
-      if (typeId >= maxId || id >= maxId) {
-        *err = SpvError_MalformedIdOutOfBounds;
+      if (!spv_validate_id(typeId, out, err)) {
         return data;
       }
-      if (out->ids[id].kind != SpvIdKind_Unknown) {
-        *err = SpvError_MalformedDuplicateId;
+      if (!spv_validate_new_id(id, out, err)) {
         return data;
       }
       out->ids[id].kind         = SpvIdKind_Variable;
@@ -232,12 +337,10 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
       }
       const u32 id     = data.ptr[1];
       const u32 typeId = data.ptr[3];
-      if (typeId >= maxId || id >= maxId) {
-        *err = SpvError_MalformedIdOutOfBounds;
+      if (!spv_validate_id(typeId, out, err)) {
         return data;
       }
-      if (out->ids[id].kind != SpvIdKind_Unknown) {
-        *err = SpvError_MalformedDuplicateId;
+      if (!spv_validate_new_id(id, out, err)) {
         return data;
       }
       out->ids[id].kind         = SpvIdKind_TypePointer;
@@ -254,12 +357,7 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
         return data;
       }
       const u32 id = data.ptr[1];
-      if (id >= maxId) {
-        *err = SpvError_MalformedIdOutOfBounds;
-        return data;
-      }
-      if (out->ids[id].kind != SpvIdKind_Unknown) {
-        *err = SpvError_MalformedDuplicateId;
+      if (!spv_validate_new_id(id, out, err)) {
         return data;
       }
       out->ids[id].kind = SpvIdKind_TypeStruct;
@@ -274,15 +372,32 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
         return data;
       }
       const u32 id = data.ptr[1];
-      if (id >= maxId) {
-        *err = SpvError_MalformedIdOutOfBounds;
-        return data;
-      }
-      if (out->ids[id].kind != SpvIdKind_Unknown) {
-        *err = SpvError_MalformedDuplicateId;
+      if (!spv_validate_new_id(id, out, err)) {
         return data;
       }
       out->ids[id].kind = SpvIdKind_TypeSampledImage;
+    } break;
+    case SpvOp_SpecConstant:
+    case SpvOp_SpecConstantTrue:
+    case SpvOp_SpecConstantFalse: {
+      /**
+       * Specialization constant declaration.
+       * https://www.khronos.org/registry/SPIR-V/specs/unified1/SPIRV.html#OpSpecConstantOp
+       */
+      if (data.size < 3) {
+        *err = SpvError_Malformed;
+        return data;
+      }
+      const u32 typeId = data.ptr[1];
+      const u32 id     = data.ptr[2];
+      if (!spv_validate_id(typeId, out, err)) {
+        return data;
+      }
+      if (!spv_validate_new_id(id, out, err)) {
+        return data;
+      }
+      out->ids[id].kind   = SpvIdKind_SpecConstant;
+      out->ids[id].typeId = typeId;
     } break;
     }
     data = spv_consume(data, header.opSize);
@@ -347,50 +462,83 @@ static AssetShaderResKind spv_resource_kind(
   }
 }
 
+static AssetShaderType spv_lookup_type(SpvProgram* program, const u32 typeId, SpvError* err) {
+  for (AssetShaderType type = 0; type != AssetShaderType_Count; ++type) {
+    if (program->wellknownTypes[type] == typeId) {
+      return type;
+    }
+  }
+  *err = SpvError_UnsupportedSpecConstantType;
+  return 0;
+}
+
 static void spv_asset_shader_create(
     SpvProgram* program, AssetSource* src, AssetShaderComp* out, SpvError* err) {
 
   *out = (AssetShaderComp){
-      .kind       = spv_shader_kind(program->execModel),
-      .entryPoint = program->entryPoint,
-      .resources  = alloc_array_t(g_alloc_heap, AssetShaderRes, asset_shader_max_resources),
-      .data       = src->data,
+      .kind             = spv_shader_kind(program->execModel),
+      .entryPoint       = program->entryPoint,
+      .resources.values = alloc_array_t(g_alloc_heap, AssetShaderRes, asset_shader_max_resources),
+      .specs.values     = alloc_array_t(g_alloc_heap, AssetShaderSpec, asset_shader_max_specs),
+      .data             = src->data,
   };
 
   ASSERT(sizeof(u32) >= asset_shader_max_bindings / 8, "Unsupported max shader bindings");
-  u32 usedSlots[asset_shader_max_bindings] = {0};
+  u32 usedResSlots[asset_shader_max_bindings] = {0};
+  u32 usedSpecSlots                           = 0;
 
   for (u32 i = 0; i != program->idCount; ++i) {
     const SpvId* id = &program->ids[i];
-    if (LIKELY(!spv_is_resource(id))) {
-      continue;
+    if (spv_is_resource(id)) {
+      const AssetShaderResKind kind = spv_resource_kind(program, id->typeId, id->storageClass, err);
+      if (UNLIKELY(*err)) {
+        return;
+      }
+      if (!(id->flags & SpvIdFlags_HasSet) || !(id->flags & SpvIdFlags_HasBinding)) {
+        *err = SpvError_MalformedResourceWithoutSetAndId;
+        return;
+      }
+      if (id->set >= asset_shader_max_sets) {
+        *err = SpvError_UnsupportedSetExceedsMax;
+        return;
+      }
+      if (id->binding >= asset_shader_max_bindings) {
+        *err = SpvError_UnsupportedBindingExceedsMax;
+        return;
+      }
+      if (usedResSlots[id->set] & (1 << id->binding)) {
+        *err = SpvError_MalformedDuplicateBinding;
+        return;
+      }
+      usedResSlots[id->set] |= 1 << id->binding;
+      out->resources.values[out->resources.count++] = (AssetShaderRes){
+          .kind    = kind,
+          .set     = id->set,
+          .binding = id->binding,
+      };
+    } else if (id->kind == SpvIdKind_SpecConstant) {
+      if (!(id->flags & SpvIdFlags_HasBinding)) {
+        *err = SpvError_MalformedSpecWithoutBinding;
+        return;
+      }
+      if (id->binding >= asset_shader_max_specs) {
+        *err = SpvError_UnsupportedBindingExceedsMax;
+        return;
+      }
+      if (usedSpecSlots & (1 << id->binding)) {
+        *err = SpvError_MalformedDuplicateBinding;
+        return;
+      }
+      const AssetShaderType type = spv_lookup_type(program, id->typeId, err);
+      if (UNLIKELY(*err)) {
+        return;
+      }
+      usedSpecSlots |= 1 << id->binding;
+      out->specs.values[out->specs.count++] = (AssetShaderSpec){
+          .type    = type,
+          .binding = id->binding,
+      };
     }
-    const AssetShaderResKind kind = spv_resource_kind(program, id->typeId, id->storageClass, err);
-    if (UNLIKELY(*err)) {
-      return;
-    }
-    if (!(id->flags & SpvIdFlags_HasSet) || !(id->flags & SpvIdFlags_HasBinding)) {
-      *err = SpvError_MalformedResourceWithoutSetAndId;
-      return;
-    }
-    if (id->set >= asset_shader_max_sets) {
-      *err = SpvError_UnsupportedSetExceedsMax;
-      return;
-    }
-    if (id->binding >= asset_shader_max_bindings) {
-      *err = SpvError_UnsupportedBindingExceedsMax;
-      return;
-    }
-    if (usedSlots[id->set] & (1 << id->binding)) {
-      *err = SpvError_MalformedDuplicateBinding;
-      return;
-    }
-    usedSlots[id->set] |= 1U << id->binding;
-    out->resources[out->resourceCount++] = (AssetShaderRes){
-        .kind    = kind,
-        .set     = id->set,
-        .binding = id->binding,
-    };
   }
   *err = SpvError_None;
 }
