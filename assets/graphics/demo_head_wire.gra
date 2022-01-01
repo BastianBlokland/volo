@@ -1,7 +1,19 @@
 {
   "shaders": [
     {
-      "shaderId": "shaders/standard.vert.spv"
+      "shaderId": "shaders/standard.vert.spv",
+      "overrides": [
+        {
+          "name": "scale",
+          "binding": 0,
+          "value": 3.5
+        },
+        {
+          "name": "offsetY",
+          "binding": 2,
+          "value": 0.25
+        }
+      ]
     },
     {
       "shaderId": "shaders/standard.frag.spv",
