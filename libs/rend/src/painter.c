@@ -24,10 +24,12 @@ static void ecs_destruct_painter_comp(void* data) {
 }
 
 typedef struct {
+  ALIGNAS(16)
   GeoMatrix viewProj;
 } RendPainterGlobalData;
 
 typedef struct {
+  ALIGNAS(16)
   GeoVector position;
   GeoQuat   rotation;
 } RendPainterInstanceData;
