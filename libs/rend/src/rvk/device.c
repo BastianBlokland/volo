@@ -20,9 +20,11 @@ static const String        g_validationExts[] = {
     string_static("VK_EXT_debug_utils"),
 };
 static VkValidationFeatureEnableEXT g_validationEnabledFeatures[] = {
-    0, // VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
-    2, // VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
-    4, // VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT
+    VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
+    VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
+#if VK_EXT_VALIDATION_FEATURES_SPEC_VERSION >= 4
+    VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT,
+#endif
 };
 static String g_requiredExts[] = {
     string_static("VK_KHR_swapchain"),
