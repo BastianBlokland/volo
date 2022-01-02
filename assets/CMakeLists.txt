@@ -8,12 +8,14 @@ configure_copies(volo_assets_graphics
   graphics/demo_corset.gra
   graphics/demo_head_wire.gra
   graphics/demo_head.gra
+  graphics/sphere.gra
   graphics/sky.gra)
 
 configure_copies(volo_assets_meshes
   meshes/cube.obj
   meshes/missing.obj
   meshes/quad_xy.obj
+  meshes/sphere.obj
   meshes/triangle_xy.obj)
 
 configure_shaders(volo_assets_shaders
