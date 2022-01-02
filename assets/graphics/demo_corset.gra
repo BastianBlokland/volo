@@ -16,7 +16,14 @@
       ]
     },
     {
-      "shaderId": "shaders/standard.frag.spv"
+      "shaderId": "shaders/standard.frag.spv",
+      "overrides": [
+        {
+          "name": "normalMap",
+          "binding": 1,
+          "value": 1
+        }
+      ]
     }
   ],
   "samplers": [

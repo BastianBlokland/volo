@@ -2,30 +2,67 @@
 #extension GL_GOOGLE_include_directive : enable
 
 #include "include/binding.glsl"
+#include "include/global.glsl"
+#include "include/quat.glsl"
 #include "include/texture.glsl"
 
-const f32_vec3 c_lightDir = normalize(f32_vec3(0.2, 1.0, -0.5));
+const f32_vec3 c_lightDir       = normalize(f32_vec3(0.2, 1.0, -0.5));
+const f32      c_lightShininess = 16;
+const f32      c_lightAmbient   = 0.1;
 
-bind_spec(0) const bool s_shade = true;
+bind_spec(0) const bool s_shade     = true;
+bind_spec(1) const bool s_normalMap = false;
+
+bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 
 bind_graphic(1) uniform sampler2D u_texDiffuse;
+bind_graphic(2) uniform sampler2D u_texNormal;
 
-bind_internal(0) in f32_vec3 in_normal; // NOTE: non-normalized
-bind_internal(1) in f32_vec2 in_texcoord;
+bind_internal(0) in f32_vec3 in_normal;  // NOTE: non-normalized
+bind_internal(1) in f32_vec4 in_tangent; // NOTE: non-normalized
+bind_internal(2) in f32_vec2 in_texcoord;
 
 bind_internal(0) out f32_vec4 out_color;
 
-f32 compute_light_intensity(const f32_vec3 lightDir, const f32_vec3 normal) {
-  if (s_shade) {
-    return clamp(dot(normal, lightDir), 0.1, 1.0);
-  } else {
-    return 1.0;
+f32_vec3 surface_normal() {
+  if (s_normalMap) {
+    return texture_sample_normal(u_texNormal, in_texcoord, in_normal, in_tangent);
   }
+  return normalize(in_normal);
+}
+
+struct Shading {
+  f32 lambertian;
+  f32 ambient;
+  f32 specular;
+};
+
+Shading shade_flat() {
+  Shading res;
+  res.lambertian = 0.0;
+  res.ambient    = 1.0;
+  res.specular   = 0.0;
+  return res;
+}
+
+Shading shade_blingphong(const f32_vec3 normal, const f32_vec3 viewDir) {
+  Shading res;
+  res.lambertian = max(dot(normal, c_lightDir), 0.0);
+  res.ambient    = c_lightAmbient;
+  res.specular   = 0.0;
+  if (res.lambertian > 0.0) {
+    const f32_vec3 halfDir   = normalize(c_lightDir - viewDir);
+    const f32      specAngle = max(dot(normal, halfDir), 0.0);
+    res.specular             = pow(specAngle, c_lightShininess);
+  }
+  return res;
 }
 
 void main() {
-  const f32      lightIntensity = compute_light_intensity(c_lightDir, in_normal);
-  const f32_vec4 diffuse        = texture_sample_srgb(u_texDiffuse, in_texcoord);
+  const f32_vec4 diffuse = texture_sample_srgb(u_texDiffuse, in_texcoord);
+  const f32_vec3 normal  = surface_normal();
+  const f32_vec3 viewDir = quat_rotate(u_global.camRotation, f32_vec3(0, 0, 1));
+  const Shading  shading = s_shade ? shade_blingphong(normal, viewDir) : shade_flat();
 
-  out_color = diffuse * lightIntensity;
+  out_color = diffuse * (shading.ambient + shading.lambertian + shading.specular);
 }

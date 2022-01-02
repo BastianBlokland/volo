@@ -26,6 +26,8 @@ static void ecs_destruct_painter_comp(void* data) {
 typedef struct {
   ALIGNAS(16)
   GeoMatrix viewProj;
+  GeoVector camPosition;
+  GeoQuat   camRotation;
 } RendPainterGlobalData;
 
 typedef struct {
@@ -153,7 +155,9 @@ static bool painter_draw(
   const bool      draw     = rvk_canvas_begin(painter->canvas, rendSize);
   if (draw) {
     const RendPainterGlobalData globalData = {
-        .viewProj = painter_view_proj_matrix(win, cam, trans),
+        .viewProj    = painter_view_proj_matrix(win, cam, trans),
+        .camPosition = trans ? trans->position : geo_vector(0),
+        .camRotation = trans ? trans->rotation : geo_quat_ident,
     };
     RvkPass* forwardPass = rvk_canvas_pass_forward(painter->canvas);
     painter_draw_forward(&globalData, forwardPass, batchView);
