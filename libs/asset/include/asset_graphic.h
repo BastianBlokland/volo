@@ -63,14 +63,6 @@ typedef enum {
 } AssetGraphicCull;
 
 typedef struct {
-  String             textureId;
-  EcsEntityId        texture;
-  AssetGraphicWrap   wrap;
-  AssetGraphicFilter filter;
-  AssetGraphicAniso  anisotropy;
-} AssetGraphicSampler;
-
-typedef struct {
   String name;
   u32    binding;
   f64    value;
@@ -85,6 +77,14 @@ typedef struct {
   } overrides;
 } AssetGraphicShader;
 
+typedef struct {
+  String             textureId;
+  EcsEntityId        texture;
+  AssetGraphicWrap   wrap;
+  AssetGraphicFilter filter;
+  AssetGraphicAniso  anisotropy;
+} AssetGraphicSampler;
+
 ecs_comp_extern_public(AssetGraphicComp) {
   struct {
     AssetGraphicShader* values;
@@ -94,8 +94,9 @@ ecs_comp_extern_public(AssetGraphicComp) {
     AssetGraphicSampler* values;
     usize                count;
   } samplers;
-  String                 meshId;
+  String                 meshId; // Mutally exclusive with 'vertexCount'.
   EcsEntityId            mesh;
+  u32                    vertexCount; // Mutally exclusive with 'mesh'.
   AssetGraphicTopology   topology;
   AssetGraphicRasterizer rasterizer;
   u32                    lineWidth; // Line width (in pixels) when the rasterizer mode is 'lines'.

@@ -212,9 +212,11 @@ static void rend_resource_load(
       }
 
       // Mesh.
-      ecs_utils_maybe_add_t(world, maybeAssetGraphic->mesh, RendResource);
-      const EcsEntityId meshEntity = rend_resource_mesh_entity(world, res, maybeAssetGraphic);
-      dependenciesReady &= ecs_world_has_t(world, meshEntity, RendResourceReady);
+      if (maybeAssetGraphic->mesh) {
+        ecs_utils_maybe_add_t(world, maybeAssetGraphic->mesh, RendResource);
+        const EcsEntityId meshEntity = rend_resource_mesh_entity(world, res, maybeAssetGraphic);
+        dependenciesReady &= ecs_world_has_t(world, meshEntity, RendResourceReady);
+      }
 
       // Textures.
       array_ptr_for_t(maybeAssetGraphic->samplers, AssetGraphicSampler, ptr) {
@@ -245,9 +247,11 @@ static void rend_resource_load(
       }
 
       // Add mesh.
-      const EcsEntityId meshEntity = rend_resource_mesh_entity(world, res, maybeAssetGraphic);
-      RendResMeshComp*  meshComp = ecs_utils_write_t(world, MeshView, meshEntity, RendResMeshComp);
-      rvk_graphic_mesh_add(graphicComp->graphic, meshComp->mesh);
+      if (maybeAssetGraphic->mesh) {
+        const EcsEntityId meshEntity = rend_resource_mesh_entity(world, res, maybeAssetGraphic);
+        RendResMeshComp* meshComp = ecs_utils_write_t(world, MeshView, meshEntity, RendResMeshComp);
+        rvk_graphic_mesh_add(graphicComp->graphic, meshComp->mesh);
+      }
 
       // Add samplers.
       array_ptr_for_t(maybeAssetGraphic->samplers, AssetGraphicSampler, ptr) {

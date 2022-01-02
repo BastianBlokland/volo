@@ -46,6 +46,7 @@ typedef struct sRvkGraphic {
   u32                    lineWidth;
   RvkGraphicShader       shaders[rvk_graphic_shaders_max];
   RvkMesh*               mesh;
+  u32                    vertexCount;
   RvkGraphicSampler      samplers[rvk_graphic_samplers_max];
   RvkDescSet             descSet;
   VkPipelineLayout       vkPipelineLayout;
@@ -60,6 +61,5 @@ void rvk_graphic_shader_add(
 void rvk_graphic_mesh_add(RvkGraphic*, RvkMesh*);
 void rvk_graphic_sampler_add(RvkGraphic*, RvkTexture*, const AssetGraphicSampler*);
 
-u32  rvk_graphic_index_count(const RvkGraphic*);
 bool rvk_graphic_prepare(RvkGraphic*, VkCommandBuffer, VkRenderPass);
 void rvk_graphic_bind(const RvkGraphic*, VkCommandBuffer);
