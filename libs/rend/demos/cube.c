@@ -34,7 +34,7 @@ static void demo_add_cube(EcsWorld* world, AssetManagerComp* assets) {
       world,
       cubeEntity,
       SceneTransformComp,
-      .position = geo_vector(0, 0, 0),
+      .position = geo_vector(0, 0.5, 0),
       .rotation = geo_quat_ident);
   ecs_world_add_t(
       world,
@@ -49,6 +49,14 @@ static void demo_add_sky(EcsWorld* world, AssetManagerComp* assets) {
       ecs_world_entity_create(world),
       RendInstanceComp,
       .graphic = asset_lookup(world, assets, string_lit("graphics/sky.gra")));
+}
+
+static void demo_add_grid(EcsWorld* world, AssetManagerComp* assets) {
+  ecs_world_add_t(
+      world,
+      ecs_world_entity_create(world),
+      RendInstanceComp,
+      .graphic = asset_lookup(world, assets, string_lit("graphics/grid.gra")));
 }
 
 ecs_module_init(demo_cube_module) { ecs_register_view(ManagerView); }
@@ -75,6 +83,7 @@ static int run_app(const String assetPath) {
       ecs_utils_write_t(world, ManagerView, ecs_world_global(world), AssetManagerComp);
   demo_add_cube(world, assets);
   demo_add_sky(world, assets);
+  demo_add_grid(world, assets);
 
   const EcsEntityId window =
       gap_window_create(world, GapWindowFlags_Default, gap_vector(1024, 768));
@@ -83,8 +92,8 @@ static int run_app(const String assetPath) {
       world,
       window,
       SceneTransformComp,
-      .position = geo_vector(0, 0, -2),
-      .rotation = geo_quat_ident);
+      .position = geo_vector(0, 1.5, -3),
+      .rotation = geo_quat_angle_axis(geo_right, 10 * math_deg_to_rad));
 
   u64 tickCount = 0;
   while (ecs_world_exists(world, window)) {

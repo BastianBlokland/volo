@@ -9,6 +9,7 @@ configure_copies(volo_assets_graphics
   graphics/demo_head_wire.gra
   graphics/demo_head.gra
   graphics/sphere.gra
+  graphics/grid.gra
   graphics/sky.gra)
 
 configure_copies(volo_assets_meshes
@@ -19,6 +20,8 @@ configure_copies(volo_assets_meshes
   meshes/triangle_xy.obj)
 
 configure_shaders(volo_assets_shaders
+  shaders/grid.vert
+  shaders/grid.frag
   shaders/sky.vert
   shaders/sky.frag
   shaders/standard.vert

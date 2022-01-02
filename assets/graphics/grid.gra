@@ -1,0 +1,30 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/grid.vert.spv",
+      "overrides": [
+        {
+          "name": "segments",
+          "binding": 0,
+          "value": 125
+        },
+        {
+          "name": "highlightInterval",
+          "binding": 1,
+          "value": 5
+        }
+      ]
+    },
+    {
+      "shaderId": "shaders/grid.frag.spv"
+    }
+  ],
+  "samplers": [],
+  "vertexCount": 500,
+  "topology": "Lines",
+  "lineWidth": 2,
+  "rasterizer": "Lines",
+  "blend": "None",
+  "depth": "Less",
+  "cull": "None"
+}
