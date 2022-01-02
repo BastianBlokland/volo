@@ -17,6 +17,7 @@ typedef enum {
 
 typedef struct sRvkBuffer {
   RvkBufferType type;
+  u64           size;
   RvkMem        mem;
   VkBuffer      vkBuffer;
 } RvkBuffer;
