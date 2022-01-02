@@ -119,7 +119,7 @@ static RvkSamplerAniso rvk_graphic_aniso(const AssetGraphicAniso assetAniso) {
 static void rvk_graphic_desc_merge(RvkDescMeta* meta, const RvkDescMeta* other) {
   for (usize i = 0; i != rvk_desc_bindings_max; ++i) {
     if (meta->bindings[i] && other->bindings[i]) {
-      if (UNLIKELY(meta->bindings[i] == other->bindings[i])) {
+      if (UNLIKELY(meta->bindings[i] != other->bindings[i])) {
         diag_crash_msg(
             "Incompatible shader descriptor binding {} ({} vs {})",
             fmt_int(i),
