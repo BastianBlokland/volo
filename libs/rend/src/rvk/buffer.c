@@ -55,6 +55,7 @@ RvkBuffer rvk_buffer_create(RvkDevice* dev, const u64 size, const RvkBufferType 
 
   return (RvkBuffer){
       .type     = type,
+      .size     = size,
       .mem      = mem,
       .vkBuffer = vkBuffer,
   };
@@ -66,7 +67,7 @@ void rvk_buffer_destroy(RvkBuffer* buffer, RvkDevice* dev) {
 }
 
 void rvk_buffer_upload(RvkBuffer* buffer, const Mem data, const u64 offset) {
-  diag_assert(data.size + offset <= buffer->mem.size);
+  diag_assert(data.size + offset <= buffer->size);
   diag_assert(rvk_buffer_type_loc(buffer->type) == RvkMemLoc_Host);
 
   Mem mapped = mem_consume(rvk_mem_map(buffer->mem), offset);

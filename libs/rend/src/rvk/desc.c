@@ -366,7 +366,7 @@ void rvk_desc_set_attach_buffer(
   const VkDescriptorBufferInfo bufferInfo = {
       .buffer = buffer->vkBuffer,
       .offset = 0,
-      .range  = size ? size : buffer->mem.size,
+      .range  = size ? size : buffer->size,
   };
   const VkWriteDescriptorSet descriptorWrite = {
       .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
