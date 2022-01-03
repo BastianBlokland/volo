@@ -64,15 +64,6 @@ static void graphic_datareg_init() {
     data_reg_const_t(g_dataReg, AssetGraphicCull, Back);
     data_reg_const_t(g_dataReg, AssetGraphicCull, Front);
 
-    data_reg_struct_t(g_dataReg, AssetGraphicSampler);
-    data_reg_field_t(g_dataReg, AssetGraphicSampler, textureId, data_prim_t(String));
-    data_reg_field_t(
-        g_dataReg, AssetGraphicSampler, wrap, t_AssetGraphicWrap, .flags = DataFlags_Opt);
-    data_reg_field_t(
-        g_dataReg, AssetGraphicSampler, filter, t_AssetGraphicFilter, .flags = DataFlags_Opt);
-    data_reg_field_t(
-        g_dataReg, AssetGraphicSampler, anisotropy, t_AssetGraphicAniso, .flags = DataFlags_Opt);
-
     data_reg_struct_t(g_dataReg, AssetGraphicOverride);
     data_reg_field_t(g_dataReg, AssetGraphicOverride, name, data_prim_t(String));
     data_reg_field_t(g_dataReg, AssetGraphicOverride, binding, data_prim_t(u32));
@@ -88,6 +79,15 @@ static void graphic_datareg_init() {
         .container = DataContainer_Array,
         .flags     = DataFlags_Opt);
 
+    data_reg_struct_t(g_dataReg, AssetGraphicSampler);
+    data_reg_field_t(g_dataReg, AssetGraphicSampler, textureId, data_prim_t(String));
+    data_reg_field_t(
+        g_dataReg, AssetGraphicSampler, wrap, t_AssetGraphicWrap, .flags = DataFlags_Opt);
+    data_reg_field_t(
+        g_dataReg, AssetGraphicSampler, filter, t_AssetGraphicFilter, .flags = DataFlags_Opt);
+    data_reg_field_t(
+        g_dataReg, AssetGraphicSampler, anisotropy, t_AssetGraphicAniso, .flags = DataFlags_Opt);
+
     data_reg_struct_t(g_dataReg, AssetGraphicComp);
     data_reg_field_t(
         g_dataReg,
@@ -102,7 +102,12 @@ static void graphic_datareg_init() {
         t_AssetGraphicSampler,
         .container = DataContainer_Array,
         .flags     = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, AssetGraphicComp, meshId, data_prim_t(String));
+    data_reg_field_t(
+        g_dataReg, AssetGraphicComp, meshId, data_prim_t(String), .flags = DataFlags_Opt);
+    data_reg_field_t(
+        g_dataReg, AssetGraphicComp, vertexCount, data_prim_t(u32), .flags = DataFlags_Opt);
+    data_reg_field_t(
+        g_dataReg, AssetGraphicComp, renderOrder, data_prim_t(i32), .flags = DataFlags_Opt);
     data_reg_field_t(
         g_dataReg, AssetGraphicComp, topology, t_AssetGraphicTopology, .flags = DataFlags_Opt);
     data_reg_field_t(
@@ -192,11 +197,17 @@ ecs_system_define(LoadGraphicAssetSys) {
     }
 
     // Resolve mesh reference.
-    if (string_is_empty(graphicComp->meshId)) {
-      graphic_load_fail(world, entity, string_lit("Missing mesh asset"));
+    if (!string_is_empty(graphicComp->meshId) && graphicComp->vertexCount) {
+      graphic_load_fail(world, entity, string_lit("'meshId' can't be combined with 'vertexCount'"));
       goto Error;
     }
-    graphicComp->mesh = asset_lookup(world, manager, graphicComp->meshId);
+    if (string_is_empty(graphicComp->meshId) && !graphicComp->vertexCount) {
+      graphic_load_fail(world, entity, string_lit("either 'meshId' or 'vertexCount' missing"));
+      goto Error;
+    }
+    if (!string_is_empty(graphicComp->meshId)) {
+      graphicComp->mesh = asset_lookup(world, manager, graphicComp->meshId);
+    }
 
     ecs_world_remove_t(world, entity, AssetGraphicLoadComp);
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);

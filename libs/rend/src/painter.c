@@ -12,6 +12,7 @@
 #include "platform_internal.h"
 #include "resource_internal.h"
 #include "rvk/canvas_internal.h"
+#include "rvk/graphic_internal.h"
 #include "rvk/pass_internal.h"
 
 ecs_comp_define(RendPainterComp) { RvkCanvas* canvas; };
@@ -86,6 +87,12 @@ ecs_view_define(PainterUpdateView) {
   ecs_access_maybe_read(SceneTransformComp);
 };
 
+static i8 painter_compare_draw(const void* a, const void* b) {
+  const RvkPassDraw* drawA = a;
+  const RvkPassDraw* drawB = b;
+  return compare_i32(&drawA->graphic->renderOrder, &drawB->graphic->renderOrder);
+}
+
 static GeoMatrix painter_view_proj_matrix(
     const GapWindowComp* win, const SceneCameraComp* cam, const SceneTransformComp* trans) {
 
@@ -130,6 +137,9 @@ static void painter_draw_forward(
       };
     }
   }
+
+  // Sort draws.
+  dynarray_sort(&drawBuffer, painter_compare_draw);
 
   // Execute draws.
   rvk_pass_begin(forwardPass, rend_soothing_purple);

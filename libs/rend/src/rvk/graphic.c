@@ -397,14 +397,16 @@ RvkGraphic*
 rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset, const String dbgName) {
   RvkGraphic* graphic = alloc_alloc_t(g_alloc_heap, RvkGraphic);
   *graphic            = (RvkGraphic){
-      .device     = dev,
-      .dbgName    = string_dup(g_alloc_heap, dbgName),
-      .topology   = asset->topology,
-      .rasterizer = asset->rasterizer,
-      .lineWidth  = asset->lineWidth,
-      .blend      = asset->blend,
-      .depth      = asset->depth,
-      .cull       = asset->cull,
+      .device      = dev,
+      .dbgName     = string_dup(g_alloc_heap, dbgName),
+      .topology    = asset->topology,
+      .rasterizer  = asset->rasterizer,
+      .lineWidth   = asset->lineWidth,
+      .renderOrder = asset->renderOrder,
+      .blend       = asset->blend,
+      .depth       = asset->depth,
+      .cull        = asset->cull,
+      .vertexCount = asset->vertexCount,
   };
 
   log_d(
@@ -497,10 +499,6 @@ void rvk_graphic_sampler_add(
   diag_assert_fail("More then {} samplers are not supported", fmt_int(rvk_graphic_samplers_max));
 }
 
-u32 rvk_graphic_index_count(const RvkGraphic* graphic) {
-  return graphic->mesh ? graphic->mesh->indexCount : 0;
-}
-
 bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, VkRenderPass vkRendPass) {
   if (!graphic->vkPipeline) {
     const RvkDescMeta globalDescMeta = rvk_graphic_desc_meta(graphic, rvk_desc_global_set);
@@ -549,7 +547,7 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, VkRender
     rvk_debug_name_pipeline(
         graphic->device->debug, graphic->vkPipeline, "{}", fmt_text(graphic->dbgName));
   }
-  if (!rvk_mesh_prepare(graphic->mesh)) {
+  if (graphic->mesh && !rvk_mesh_prepare(graphic->mesh)) {
     return false;
   }
   array_for_t(graphic->samplers, RvkGraphicSampler, itr) {

@@ -1,0 +1,19 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/grid.vert.spv"
+    },
+    {
+      "shaderId": "shaders/grid.frag.spv"
+    }
+  ],
+  "samplers": [],
+  "vertexCount": 800,
+  "renderOrder": 20,
+  "topology": "Lines",
+  "lineWidth": 2,
+  "rasterizer": "Lines",
+  "blend": "Alpha",
+  "depth": "Less",
+  "cull": "None"
+}

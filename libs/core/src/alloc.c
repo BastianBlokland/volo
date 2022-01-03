@@ -66,8 +66,9 @@ Mem alloc_alloc(Allocator* allocator, const usize size, const usize align) {
 void alloc_free(Allocator* allocator, Mem mem) {
   alloc_verify_allocator(allocator);
 
-  diag_assert_msg(allocator->free, "alloc_free: Allocator does not support freeing");
-  allocator->free(allocator, mem);
+  if (LIKELY(allocator->free)) {
+    allocator->free(allocator, mem);
+  }
 }
 
 Mem alloc_dup(Allocator* alloc, Mem mem, usize align) {

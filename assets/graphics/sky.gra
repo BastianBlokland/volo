@@ -9,6 +9,7 @@
   ],
   "samplers": [],
   "meshId": "meshes/quad_xy.obj",
+  "renderOrder": 10,
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "None",

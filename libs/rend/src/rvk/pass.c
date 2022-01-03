@@ -8,6 +8,7 @@
 #include "device_internal.h"
 #include "graphic_internal.h"
 #include "image_internal.h"
+#include "mesh_internal.h"
 #include "pass_internal.h"
 #include "uniform_internal.h"
 
@@ -300,7 +301,6 @@ static void rvk_pass_draw_submit(RvkPass* pass, const RvkPassDraw* draw) {
       pass->dev->debug, pass->vkCmdBuf, rend_green, "draw_{}", fmt_text(graphic->dbgName));
 
   rvk_graphic_bind(graphic, pass->vkCmdBuf);
-  const u32 indexCount = rvk_graphic_index_count(graphic);
 
   diag_assert(draw->dataStride * draw->instanceCount == draw->data.size);
   const u32 dataStride = graphic->flags & RvkGraphicFlags_InstanceData ? draw->dataStride : 0;
@@ -319,7 +319,12 @@ static void rvk_pass_draw_submit(RvkPass* pass, const RvkPassDraw* draw) {
       dataOffset += dataSize;
     }
 
-    vkCmdDrawIndexed(pass->vkCmdBuf, indexCount, instanceCount, 0, 0, 0);
+    if (graphic->mesh) {
+      vkCmdDrawIndexed(pass->vkCmdBuf, graphic->mesh->indexCount, instanceCount, 0, 0, 0);
+    } else {
+      diag_assert(graphic->vertexCount);
+      vkCmdDraw(pass->vkCmdBuf, graphic->vertexCount, instanceCount, 0, 0);
+    }
     remInstanceCount -= instanceCount;
   }
 
