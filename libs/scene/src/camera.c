@@ -22,7 +22,7 @@ ecs_system_define(SceneCameraMovementSys) {
   }
   const SceneTimeComp* time = ecs_view_read_t(globalItr, SceneTimeComp);
 
-  static const f32 moveSpeed      = 2.0f;
+  static const f32 moveSpeed      = 10.0f;
   static const f32 rotSensitivity = 0.0025f;
   const f32        deltaSeconds   = time->delta / (f32)time_second;
   const f32        posDelta       = deltaSeconds * moveSpeed;
