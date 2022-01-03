@@ -44,6 +44,7 @@ typedef struct sRvkGraphic {
   AssetGraphicDepth      depth : 8;
   AssetGraphicCull       cull : 8;
   u32                    lineWidth;
+  i32                    renderOrder;
   RvkGraphicShader       shaders[rvk_graphic_shaders_max];
   RvkMesh*               mesh;
   u32                    vertexCount;

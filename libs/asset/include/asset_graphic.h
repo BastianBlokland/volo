@@ -97,6 +97,7 @@ ecs_comp_extern_public(AssetGraphicComp) {
   String                 meshId; // Mutally exclusive with 'vertexCount'.
   EcsEntityId            mesh;
   u32                    vertexCount; // Mutally exclusive with 'mesh'.
+  i32                    renderOrder;
   AssetGraphicTopology   topology;
   AssetGraphicRasterizer rasterizer;
   u32                    lineWidth; // Line width (in pixels) when the rasterizer mode is 'lines'.

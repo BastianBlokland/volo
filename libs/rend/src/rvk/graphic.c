@@ -402,6 +402,7 @@ rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset, const String d
       .topology    = asset->topology,
       .rasterizer  = asset->rasterizer,
       .lineWidth   = asset->lineWidth,
+      .renderOrder = asset->renderOrder,
       .blend       = asset->blend,
       .depth       = asset->depth,
       .cull        = asset->cull,
