@@ -24,6 +24,8 @@ add_library(lib_core STATIC
   src/dynbitset.c
   src/dynstring.c
   src/env_pal.c
+  src/file_monitor_pal.c
+  src/file_monitor.c
   src/file_pal.c
   src/file.c
   src/format.c

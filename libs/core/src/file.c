@@ -27,7 +27,7 @@ static const String g_file_result_strs[] = {
 ASSERT(
     array_elems(g_file_result_strs) == FileResult_Count, "Incorrect number of FileResult strings");
 
-String file_result_str(FileResult result) {
+String file_result_str(const FileResult result) {
   diag_assert(result < FileResult_Count);
   return g_file_result_strs[result];
 }
