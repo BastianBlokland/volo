@@ -98,7 +98,6 @@ static int run_app(const String assetPath) {
   u64 tickCount = 0;
   while (ecs_world_exists(world, window)) {
     ecs_run_sync(runner);
-    thread_sleep(time_second / 30);
     ++tickCount;
   }
 
