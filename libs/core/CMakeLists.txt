@@ -72,6 +72,7 @@ add_executable(lib_core_test
   test/test_dynbitset.c
   test/test_dynstring.c
   test/test_env.c
+  test/test_file_monitor.c
   test/test_file.c
   test/test_float.c
   test/test_format.c

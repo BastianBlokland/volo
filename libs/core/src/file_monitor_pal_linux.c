@@ -47,7 +47,7 @@ static FileMonitorResult result_from_errno() {
   case ENAMETOOLONG:
     return FileMonitorResult_PathTooLong;
   case ENOENT:
-    return FileMonitorResult_PathInvalid;
+    return FileMonitorResult_FileDoesNotExist;
   case ENOSPC:
     return FileMonitorResult_WatchesLimitReached;
   }

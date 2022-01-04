@@ -8,7 +8,7 @@ static const String g_file_monitor_result_strs[] = {
     string_static("FileMonitorWatchesLimitReached"),
     string_static("FileMonitorNoAccess"),
     string_static("FileMonitorPathTooLong"),
-    string_static("FileMonitorPathInvalid"),
+    string_static("FileMonitorFileDoesNotExist"),
     string_static("FileMonitorUnknownError"),
 };
 
