@@ -14,7 +14,7 @@ typedef i64 TimeReal;
 typedef struct sFile File;
 
 /**
- * File Result code.
+ * File result-code.
  */
 typedef enum {
   FileResult_Success = 0,
@@ -103,7 +103,7 @@ FileResult file_temp(Allocator*, File** file);
 
 /**
  * Destroy a file handle.
- * NOTE: Does not destroy the file from the file-system.
+ * NOTE: Does not destroy the file on the file-system, only closes the handle.
  */
 void file_destroy(File*);
 

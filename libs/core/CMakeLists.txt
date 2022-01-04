@@ -24,6 +24,8 @@ add_library(lib_core STATIC
   src/dynbitset.c
   src/dynstring.c
   src/env_pal.c
+  src/file_monitor_pal.c
+  src/file_monitor.c
   src/file_pal.c
   src/file.c
   src/format.c
@@ -70,6 +72,7 @@ add_executable(lib_core_test
   test/test_dynbitset.c
   test/test_dynstring.c
   test/test_env.c
+  test/test_file_monitor.c
   test/test_file.c
   test/test_float.c
   test/test_format.c
