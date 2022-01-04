@@ -93,9 +93,8 @@ void file_monitor_destroy(FileMonitor* monitor) {
 }
 
 FileMonitorResult file_monitor_watch(FileMonitor* monitor, const String path, const u64 userData) {
-  const u32  pathHash      = bits_hash_32(path);
-  FileWatch* existingWatch = file_watch_by_path(monitor, pathHash);
-  if (existingWatch) {
+  const u32 pathHash = bits_hash_32(path);
+  if (file_watch_by_path(monitor, pathHash)) {
     return FileMonitorResult_AlreadyWatching;
   }
   File*      handle;
