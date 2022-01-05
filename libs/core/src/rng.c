@@ -45,10 +45,8 @@ static void rng_xorwow_destroy(Rng* rng) {
 static u32 rng_xorwow_next(Rng* rng) {
   struct RngXorWow* rngXorWow = (struct RngXorWow*)rng;
 
-  diag_assert(rngXorWow->state[0]);
-  diag_assert(rngXorWow->state[1]);
-  diag_assert(rngXorWow->state[2]);
-  diag_assert(rngXorWow->state[3]);
+  diag_assert(
+      rngXorWow->state[0] || rngXorWow->state[1] || rngXorWow->state[2] || rngXorWow->state[3]);
 
   u32*      counter   = &rngXorWow->state[4];
   u32       t         = rngXorWow->state[3];
