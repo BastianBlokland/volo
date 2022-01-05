@@ -4,8 +4,6 @@
 #include "core_file_monitor.h"
 #include "core_path.h"
 #include "core_rng.h"
-#include "core_thread.h"
-#include "core_time.h"
 
 static String test_random_path() {
   return path_build_scratch(
@@ -60,8 +58,6 @@ spec(file_monitor) {
 
     check_eq_int(file_monitor_watch(monitor, path, 42), FileMonitorResult_Success);
 
-    thread_sleep(time_milliseconds(1));
-
     file_write_to_path_sync(path, string_lit("Hello World"));
 
     FileMonitorEvent event;
@@ -84,8 +80,6 @@ spec(file_monitor) {
 
     check_eq_int(file_monitor_watch(monitor, pathA, 1), FileMonitorResult_Success);
     check_eq_int(file_monitor_watch(monitor, pathB, 2), FileMonitorResult_Success);
-
-    thread_sleep(time_milliseconds(1));
 
     file_write_to_path_sync(pathA, string_lit("A-Modified"));
     file_write_to_path_sync(pathB, string_lit("B-Modified"));
