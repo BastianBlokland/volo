@@ -82,7 +82,7 @@ file_create(Allocator* alloc, String path, FileMode mode, FileAccessFlags access
   winutils_to_widestr(pathBufferMem, path);
 
   DWORD shareMode =
-      FILE_SHARE_READ | FILE_SHARE_WRITE; // Consider a flag for specifying no concurrent writes?
+      access == 0 ? (FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE) : FILE_SHARE_READ;
   DWORD desiredAccess       = 0;
   DWORD creationDisposition = 0;
   DWORD flags = FILE_ATTRIBUTE_NORMAL | FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_POSIX_SEMANTICS;
@@ -285,6 +285,7 @@ FileResult file_delete_dir_sync(String path) {
 
 FileResult file_map(File* file, String* output) {
   diag_assert_msg(!file->mapping, "File is already mapped");
+  diag_assert_msg(file->access != 0, "File handle does not have read or write access");
 
   LARGE_INTEGER size;
   size.QuadPart = file_stat_sync(file).size;

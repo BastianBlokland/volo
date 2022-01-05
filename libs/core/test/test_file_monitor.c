@@ -60,12 +60,12 @@ spec(file_monitor) {
 
     check_eq_int(file_monitor_watch(monitor, path, 42), FileMonitorResult_Success);
 
-    thread_sleep(time_milliseconds(1));
+    thread_sleep(time_millisecond);
 
     file_write_to_path_sync(path, string_lit("Hello World"));
 
     FileMonitorEvent event;
-    check(file_monitor_poll(monitor, &event));
+    check_require(file_monitor_poll(monitor, &event));
 
     check_eq_string(event.path, path);
     check_eq_int(event.userData, 42);
@@ -85,15 +85,15 @@ spec(file_monitor) {
     check_eq_int(file_monitor_watch(monitor, pathA, 1), FileMonitorResult_Success);
     check_eq_int(file_monitor_watch(monitor, pathB, 2), FileMonitorResult_Success);
 
-    thread_sleep(time_milliseconds(1));
+    thread_sleep(time_millisecond);
 
     file_write_to_path_sync(pathA, string_lit("A-Modified"));
     file_write_to_path_sync(pathB, string_lit("B-Modified"));
 
     FileMonitorEvent event1;
-    check(file_monitor_poll(monitor, &event1));
+    check_require(file_monitor_poll(monitor, &event1));
     FileMonitorEvent event2;
-    check(file_monitor_poll(monitor, &event2));
+    check_require(file_monitor_poll(monitor, &event2));
 
     check(event1.userData != event2.userData);
     check(event1.userData == 1 || event1.userData == 2);

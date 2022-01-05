@@ -17,10 +17,6 @@
  * In the future we could experiment with an alternative implementation that uses
  * 'ReadDirectoryChanges' to read changes in the parent directories of the files that we are
  * watching.
- *
- * Another annoyance is that we have no good alternative to the linux inotify 'CLOSE_WRITE' event,
- * meaning we report multiple events while the file is being written, with no way to know when the
- * writer has finnished writing the file.
  */
 
 typedef struct {
@@ -61,10 +57,25 @@ static FileMonitorResult monitor_result_from_file_result(const FileResult res) {
   }
 }
 
+static bool monitor_file_can_be_read(const String path) {
+  /**
+   * Check if the file can be opened for reading (meaning no-one is currently writing to it).
+   * Reason for this check is to get semantics closer to the linux inotify 'CLOSE_WRITE' event where
+   * we only report the event after file is finished being written to.
+   */
+  File*                 file;
+  const FileAccessFlags access = FileAccess_Read;
+  if (file_create(g_alloc_scratch, path, FileMode_Open, access, &file) != FileResult_Success) {
+    return false;
+  }
+  file_destroy(file);
+  return true;
+}
+
 static void monitor_scan_modified_files(FileMonitor* monitor) {
   dynarray_for_t(&monitor->watches, FileWatch, watch) {
     const TimeReal newModTime = file_stat_sync(watch->handle).modTime;
-    if (newModTime > watch->lastModTime) {
+    if (newModTime > watch->lastModTime && monitor_file_can_be_read(watch->path)) {
       *dynarray_push_t(&monitor->modFiles, u32) = watch->pathHash;
       watch->lastModTime                        = newModTime;
     }
@@ -74,9 +85,9 @@ static void monitor_scan_modified_files(FileMonitor* monitor) {
 FileMonitor* file_monitor_create(Allocator* alloc) {
   FileMonitor* monitor = alloc_alloc_t(alloc, FileMonitor);
   *monitor             = (FileMonitor){
-      .alloc    = alloc,
-      .watches  = dynarray_create_t(alloc, FileWatch, 64),
-      .modFiles = dynarray_create_t(alloc, u32, 16),
+                  .alloc    = alloc,
+                  .watches  = dynarray_create_t(alloc, FileWatch, 64),
+                  .modFiles = dynarray_create_t(alloc, u32, 16),
   };
   return monitor;
 }
@@ -124,8 +135,8 @@ bool file_monitor_poll(FileMonitor* monitor, FileMonitorEvent* out) {
 
     const FileWatch* watch = file_watch_by_path(monitor, pathHash);
     *out                   = (FileMonitorEvent){
-        .path     = watch->path,
-        .userData = watch->userData,
+                          .path     = watch->path,
+                          .userData = watch->userData,
     };
     return true;
   }
