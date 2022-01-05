@@ -4,6 +4,7 @@
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_search.h"
+#include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 
@@ -28,8 +29,9 @@ typedef enum {
 } AssetFlags;
 
 ecs_comp_define(AssetManagerComp) {
-  AssetRepo* repo;
-  DynArray   lookup; // AssetEntry[], kept sorted on the idHash.
+  AssetRepo*        repo;
+  AssetManagerFlags flags;
+  DynArray          lookup; // AssetEntry[], kept sorted on the idHash.
 };
 
 ecs_comp_define(AssetComp) {
@@ -40,6 +42,7 @@ ecs_comp_define(AssetComp) {
 
 ecs_comp_define(AssetLoadedComp);
 ecs_comp_define(AssetFailedComp);
+ecs_comp_define(AssetChangedComp);
 ecs_comp_define(AssetDirtyComp) { u32 numAcquire, numRelease; };
 
 static void ecs_destruct_manager_comp(void* data) {
@@ -64,12 +67,14 @@ static i8 asset_compare_entry(const void* a, const void* b) {
   return compare_u32(field_ptr(a, AssetEntry, idHash), field_ptr(b, AssetEntry, idHash));
 }
 
-static void asset_manager_create_internal(EcsWorld* world, AssetRepo* repo) {
+static void
+asset_manager_create_internal(EcsWorld* world, AssetRepo* repo, const AssetManagerFlags flags) {
   ecs_world_add_t(
       world,
       ecs_world_global(world),
       AssetManagerComp,
       .repo   = repo,
+      .flags  = flags,
       .lookup = dynarray_create_t(g_alloc_heap, AssetEntry, 128));
 }
 
@@ -82,14 +87,15 @@ static EcsEntityId asset_entity_create(EcsWorld* world, String id) {
 }
 
 static bool asset_manager_load(
-    EcsWorld*               world,
-    const AssetManagerComp* manager,
-    AssetComp*              asset,
-    const EcsEntityId       assetEntity) {
+    EcsWorld* world, AssetManagerComp* manager, AssetComp* asset, const EcsEntityId assetEntity) {
 
   AssetSource* source = asset_repo_source_open(manager->repo, asset->id);
   if (!source) {
     return false;
+  }
+
+  if (manager->flags & AssetManagerFlags_TrackChanges) {
+    asset_repo_changes_watch(manager->repo, asset->id, (u64)assetEntity);
   }
 
   log_d(
@@ -108,9 +114,9 @@ ecs_view_define(DirtyAssetView) {
   ecs_access_write(AssetDirtyComp);
 };
 
-ecs_view_define(GlobalView) { ecs_access_read(AssetManagerComp); };
+ecs_view_define(GlobalView) { ecs_access_write(AssetManagerComp); };
 
-ecs_system_define(UpdateDirtyAssetsSys) {
+ecs_system_define(AssetUpdateDirtySys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
@@ -121,7 +127,7 @@ ecs_system_define(UpdateDirtyAssetsSys) {
      */
     return;
   }
-  const AssetManagerComp* manager = ecs_view_read_t(globalItr, AssetManagerComp);
+  AssetManagerComp* manager = ecs_view_write_t(globalItr, AssetManagerComp);
 
   u32      startedLoads = 0;
   EcsView* assetsView   = ecs_world_view_t(world, DirtyAssetView);
@@ -151,6 +157,7 @@ ecs_system_define(UpdateDirtyAssetsSys) {
         } else {
           ecs_world_add_empty_t(world, entity, AssetFailedComp);
         }
+        ecs_utils_maybe_remove_t(world, entity, AssetChangedComp);
       }
       updateRequired = true;
     }
@@ -193,28 +200,51 @@ ecs_system_define(UpdateDirtyAssetsSys) {
   }
 }
 
+ecs_system_define(AssetPollChangedSys) {
+  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return;
+  }
+  AssetManagerComp* manager = ecs_view_write_t(globalItr, AssetManagerComp);
+  if (!(manager->flags & AssetManagerFlags_TrackChanges)) {
+    return;
+  }
+
+  u64 userData;
+  while (asset_repo_changes_poll(manager->repo, &userData)) {
+    ecs_utils_maybe_add_t(world, (EcsEntityId)userData, AssetChangedComp);
+  }
+}
+
 ecs_module_init(asset_manager_module) {
   ecs_register_comp(AssetManagerComp, .destructor = ecs_destruct_manager_comp);
   ecs_register_comp(AssetComp, .destructor = ecs_destruct_asset_comp);
   ecs_register_comp_empty(AssetFailedComp);
   ecs_register_comp_empty(AssetLoadedComp);
+  ecs_register_comp_empty(AssetChangedComp);
   ecs_register_comp(AssetDirtyComp, .combinator = ecs_combine_asset_dirty);
 
   ecs_register_view(DirtyAssetView);
   ecs_register_view(GlobalView);
 
-  ecs_register_system(UpdateDirtyAssetsSys, ecs_view_id(DirtyAssetView), ecs_view_id(GlobalView));
+  ecs_register_system(AssetUpdateDirtySys, ecs_view_id(DirtyAssetView), ecs_view_id(GlobalView));
+  ecs_register_system(AssetPollChangedSys, ecs_view_id(GlobalView));
 }
 
 String asset_id(const AssetComp* comp) { return comp->id; }
 
-void asset_manager_create_fs(EcsWorld* world, const String rootPath) {
-  asset_manager_create_internal(world, asset_repo_create_fs(rootPath));
+void asset_manager_create_fs(
+    EcsWorld* world, const AssetManagerFlags flags, const String rootPath) {
+  asset_manager_create_internal(world, asset_repo_create_fs(rootPath), flags);
 }
 
 void asset_manager_create_mem(
-    EcsWorld* world, const AssetMemRecord* records, const usize recordCount) {
-  asset_manager_create_internal(world, asset_repo_create_mem(records, recordCount));
+    EcsWorld*               world,
+    const AssetManagerFlags flags,
+    const AssetMemRecord*   records,
+    const usize             recordCount) {
+  asset_manager_create_internal(world, asset_repo_create_mem(records, recordCount), flags);
 }
 
 EcsEntityId asset_lookup(EcsWorld* world, AssetManagerComp* manager, const String id) {

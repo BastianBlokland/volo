@@ -205,7 +205,7 @@ spec(loader_texture_ppm) {
     for (usize i = 0; i != array_elems(g_testData); ++i) {
       records[i] = (AssetMemRecord){.id = g_testData[i].id, .data = g_testData[i].text};
     }
-    asset_manager_create_mem(world, records, array_elems(g_testData));
+    asset_manager_create_mem(world, AssetManagerFlags_None, records, array_elems(g_testData));
     ecs_world_flush(world);
 
     for (usize i = 0; i != array_elems(g_testData); ++i) {
@@ -228,7 +228,7 @@ spec(loader_texture_ppm) {
 
   it("can unload ppm texture assets") {
     const AssetMemRecord record = {.id = string_lit("tex.ppm"), .data = g_testData[0].text};
-    asset_manager_create_mem(world, &record, 1);
+    asset_manager_create_mem(world, AssetManagerFlags_None, &record, 1);
     ecs_world_flush(world);
 
     AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
@@ -248,7 +248,7 @@ spec(loader_texture_ppm) {
     for (usize i = 0; i != array_elems(g_errorTestData); ++i) {
       records[i] = (AssetMemRecord){.id = g_errorTestData[i].id, .data = g_errorTestData[i].text};
     }
-    asset_manager_create_mem(world, records, array_elems(g_errorTestData));
+    asset_manager_create_mem(world, AssetManagerFlags_None, records, array_elems(g_errorTestData));
     ecs_world_flush(world);
 
     for (usize i = 0; i != array_elems(g_errorTestData); ++i) {
