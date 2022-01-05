@@ -285,6 +285,7 @@ FileResult file_delete_dir_sync(String path) {
 
 FileResult file_map(File* file, String* output) {
   diag_assert_msg(!file->mapping, "File is already mapped");
+  diag_assert_msg(file->access != 0, "File handle does not have read or write access");
 
   LARGE_INTEGER size;
   size.QuadPart = file_stat_sync(file).size;
