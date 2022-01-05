@@ -144,6 +144,16 @@ ecs_system_define(AssetUpdateDirtySys) {
     // Loading assets should be continuously updated to track their progress.
     bool updateRequired = (assetComp->flags & AssetFlags_Loading) != 0;
 
+    if (assetComp->flags & AssetFlags_Failed) {
+      /**
+       * This asset failed before (but was now acquired again); clear the state to retry.
+       */
+      assetComp->flags &= ~AssetFlags_Failed;
+      ecs_world_remove_t(world, entity, AssetFailedComp);
+      updateRequired = true;
+      goto AssetUpdateDone;
+    }
+
     if (assetComp->refCount && !(assetComp->flags & AssetFlags_Active)) {
       /**
        * Asset ref-count is non-zero; start loading.
@@ -160,17 +170,20 @@ ecs_system_define(AssetUpdateDirtySys) {
         ecs_utils_maybe_remove_t(world, entity, AssetChangedComp);
       }
       updateRequired = true;
+      goto AssetUpdateDone;
     }
 
     if (assetComp->flags & AssetFlags_Loading && ecs_world_has_t(world, entity, AssetFailedComp)) {
       /**
        * Asset has failed loading.
        */
+
+      log_e("Failed to load asset", log_param("id", fmt_path(assetComp->id)));
+
       assetComp->flags &= ~AssetFlags_Loading;
       assetComp->flags |= AssetFlags_Failed;
       updateRequired = false;
-
-      log_e("Failed to load asset", log_param("id", fmt_path(assetComp->id)));
+      goto AssetUpdateDone;
     }
 
     if (assetComp->flags & AssetFlags_Loading && ecs_world_has_t(world, entity, AssetLoadedComp)) {
@@ -180,6 +193,7 @@ ecs_system_define(AssetUpdateDirtySys) {
       assetComp->flags &= ~AssetFlags_Loading;
       assetComp->flags |= AssetFlags_Loaded;
       updateRequired = false;
+      goto AssetUpdateDone;
     }
 
     if (!assetComp->refCount && assetComp->flags & AssetFlags_Loaded) {
@@ -190,8 +204,10 @@ ecs_system_define(AssetUpdateDirtySys) {
       ecs_world_remove_t(world, entity, AssetLoadedComp);
       assetComp->flags &= ~AssetFlags_Loaded;
       updateRequired = false;
+      goto AssetUpdateDone;
     }
 
+  AssetUpdateDone:
     dirtyComp->numAcquire = 0;
     dirtyComp->numRelease = 0;
     if (!updateRequired) {
