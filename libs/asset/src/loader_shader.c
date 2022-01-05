@@ -19,7 +19,7 @@ static void ecs_destruct_shader_comp(void* data) {
 
 static void ecs_destruct_shader_source_comp(void* data) {
   AssetShaderSourceComp* comp = data;
-  asset_source_close(comp->src);
+  asset_repo_source_close(comp->src);
 }
 
 ecs_view_define(UnloadView) {

@@ -87,7 +87,7 @@ static bool asset_manager_load(
     AssetComp*              asset,
     const EcsEntityId       assetEntity) {
 
-  AssetSource* source = asset_source_open(manager->repo, asset->id);
+  AssetSource* source = asset_repo_source_open(manager->repo, asset->id);
   if (!source) {
     return false;
   }

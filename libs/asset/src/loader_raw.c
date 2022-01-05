@@ -9,7 +9,7 @@ ecs_comp_define(AssetRawSourceComp) { AssetSource* src; };
 
 static void ecs_destruct_source_comp(void* data) {
   AssetRawSourceComp* comp = data;
-  asset_source_close(comp->src);
+  asset_repo_source_close(comp->src);
 }
 
 ecs_view_define(UnloadView) {

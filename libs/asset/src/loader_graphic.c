@@ -135,7 +135,7 @@ static void ecs_destruct_graphic_comp(void* data) {
 
 static void ecs_destruct_graphic_load_comp(void* data) {
   AssetGraphicLoadComp* comp = data;
-  asset_source_close(comp->src);
+  asset_repo_source_close(comp->src);
 }
 
 static void graphic_load_fail(EcsWorld* world, const EcsEntityId assetEntity, const String msg) {

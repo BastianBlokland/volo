@@ -367,14 +367,14 @@ void asset_load_obj(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
   ObjError          err     = ObjError_None;
   AssetMeshBuilder* builder = null;
   ObjData           data    = {
-      .positions = dynarray_create_t(g_alloc_heap, GeoVector, 64),
-      .texcoords = dynarray_create_t(g_alloc_heap, GeoVector, 64),
-      .normals   = dynarray_create_t(g_alloc_heap, GeoVector, 64),
-      .vertices  = dynarray_create_t(g_alloc_heap, ObjVertex, 64),
-      .faces     = dynarray_create_t(g_alloc_heap, ObjFace, 32),
+                   .positions = dynarray_create_t(g_alloc_heap, GeoVector, 64),
+                   .texcoords = dynarray_create_t(g_alloc_heap, GeoVector, 64),
+                   .normals   = dynarray_create_t(g_alloc_heap, GeoVector, 64),
+                   .vertices  = dynarray_create_t(g_alloc_heap, ObjVertex, 64),
+                   .faces     = dynarray_create_t(g_alloc_heap, ObjFace, 32),
   };
   obj_read_data(src->data, &data, &err);
-  asset_source_close(src);
+  asset_repo_source_close(src);
   if (err) {
     obj_load_fail(world, assetEntity, err);
     goto Done;

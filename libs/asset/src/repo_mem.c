@@ -29,7 +29,7 @@ static AssetSource* asset_source_mem_open(AssetRepo* repo, const String id) {
       &repoMem->entries, asset_compare_entry, mem_struct(RepoEntry, .idHash = idHash).ptr);
 
   if (!entry) {
-    log_w("AssetSource: Failed to find entry", log_param("id", fmt_path(id)));
+    log_w("AssetRepository: Failed to find entry", log_param("id", fmt_path(id)));
     return null;
   }
 
@@ -49,8 +49,15 @@ static void asset_repo_mem_destroy(AssetRepo* repo) {
 
 AssetRepo* asset_repo_create_mem(const AssetMemRecord* records, const usize recordCount) {
   AssetRepoMem* repo = alloc_alloc_t(g_alloc_heap, AssetRepoMem);
-  *repo              = (AssetRepoMem){
-      .api     = {.open = asset_source_mem_open, .destroy = asset_repo_mem_destroy},
+
+  *repo = (AssetRepoMem){
+      .api =
+          {
+              .open         = asset_source_mem_open,
+              .destroy      = asset_repo_mem_destroy,
+              .changesWatch = null,
+              .changesPoll  = null,
+          },
       .entries = dynarray_create_t(g_alloc_heap, RepoEntry, recordCount),
   };
 

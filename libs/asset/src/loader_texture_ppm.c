@@ -185,12 +185,12 @@ void asset_load_ppm(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
     goto Error;
   }
 
-  asset_source_close(src);
+  asset_repo_source_close(src);
   ecs_world_add_t(
       world, assetEntity, AssetTextureComp, .width = width, .height = height, .pixels = pixels);
   ecs_world_add_empty_t(world, assetEntity, AssetLoadedComp);
   return;
 
 Error:
-  asset_source_close(src);
+  asset_repo_source_close(src);
 }
