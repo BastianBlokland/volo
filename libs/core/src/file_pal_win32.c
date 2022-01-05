@@ -82,7 +82,7 @@ file_create(Allocator* alloc, String path, FileMode mode, FileAccessFlags access
   winutils_to_widestr(pathBufferMem, path);
 
   DWORD shareMode =
-      FILE_SHARE_READ | FILE_SHARE_WRITE; // Consider a flag for specifying no concurrent writes?
+      access == 0 ? (FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE) : FILE_SHARE_READ;
   DWORD desiredAccess       = 0;
   DWORD creationDisposition = 0;
   DWORD flags = FILE_ATTRIBUTE_NORMAL | FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_POSIX_SEMANTICS;
