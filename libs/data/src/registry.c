@@ -26,7 +26,7 @@ static DataDecl* data_decl_mutable(DataReg* reg, const DataType type) {
   return dynarray_at_t(&reg->types, type - 1, DataDecl);
 }
 
-static DataType data_type_by_id(const DataReg* reg, const DataId id) {
+MAYBE_UNUSED static DataType data_type_by_id(const DataReg* reg, const DataId id) {
   for (DataType declId = 0; declId != reg->types.size; ++declId) {
     DataDecl* decl = dynarray_at_t(&reg->types, declId, DataDecl);
     if (decl->id.hash == id.hash) {

@@ -20,7 +20,8 @@ static const EcsSystemDef* ecs_def_system(const EcsDef* def, const EcsSystemId i
   return dynarray_at_t(&def->systems, (usize)id, EcsSystemDef);
 }
 
-static const EcsModuleDef* ecs_def_module_by_name(const EcsDef* def, const String name) {
+MAYBE_UNUSED static const EcsModuleDef*
+ecs_def_module_by_name(const EcsDef* def, const String name) {
   dynarray_for_t(&def->modules, EcsModuleDef, module) {
     if (string_eq(module->name, name)) {
       return module;
@@ -29,7 +30,7 @@ static const EcsModuleDef* ecs_def_module_by_name(const EcsDef* def, const Strin
   return null;
 }
 
-static const EcsCompDef* ecs_def_comp_by_name(const EcsDef* def, const String name) {
+MAYBE_UNUSED static const EcsCompDef* ecs_def_comp_by_name(const EcsDef* def, const String name) {
   dynarray_for_t(&def->components, EcsCompDef, comp) {
     if (string_eq(comp->name, name)) {
       return comp;
