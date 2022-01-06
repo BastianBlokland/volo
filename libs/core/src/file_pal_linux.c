@@ -268,7 +268,7 @@ FileResult file_map(File* file, String* output) {
   if (UNLIKELY(!file->mapping)) {
     const int res = munmap(addr, size);
     if (UNLIKELY(res != 0)) {
-      diag_crash_msg("munmap() failed: {}", fmt_int(res));
+      diag_crash_msg("munmap() failed: {} (errno: {})", fmt_int(res), fmt_int(errno));
     }
     return FileResult_AllocationFailed;
   }
