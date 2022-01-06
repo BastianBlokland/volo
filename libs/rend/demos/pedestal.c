@@ -19,12 +19,12 @@
  * Demo application that renders a single subject.
  */
 
-static const GapVector g_windowSize         = gap_vector(1024, 768);
-static const GeoVector g_subjectPosition    = geo_vector(0, 0.5, 0);
+static const GapVector g_windowSize         = {1024, 768};
+static const GeoVector g_subjectPosition    = {0, 0.5, 0};
 static const f32       g_subjectRotateSpeed = 45.0f * math_deg_to_rad;
 static const f32       g_cameraFov          = 60.0f * math_deg_to_rad;
 static const f32       g_cameraNearPlane    = 0.1f;
-static const GeoVector g_cameraPosition     = geo_vector(0, 1.5, -3);
+static const GeoVector g_cameraPosition     = {0, 1.5, -3};
 static const f32       g_cameraAngle        = 10 * math_deg_to_rad;
 
 static EcsEntityId demo_add_subject(EcsWorld* world, AssetManagerComp* assets) {
