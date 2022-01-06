@@ -21,6 +21,12 @@ typedef RvkShader* RvkShaderPtr;
 #define rvk_desc_graphic_bind_mesh 0
 #define rvk_desc_instance_set 2
 
+static const u8 g_rendSupportedShaderSets[] = {
+    rvk_desc_global_set,
+    rvk_desc_graphic_set,
+    rvk_desc_instance_set,
+};
+
 static const char* rvk_to_null_term_scratch(String str) {
   const Mem scratchMem = alloc_alloc(g_alloc_scratch, str.size + 1, 1);
   mem_cpy(scratchMem, str);
@@ -401,11 +407,24 @@ static bool rvk_graphic_validate_shaders(RvkGraphic* graphic) {
   VkShaderStageFlagBits foundStages = 0;
   array_for_t(graphic->shaders, RvkGraphicShader, itr) {
     if (itr->shader) {
+      // Validate stage.
       if (foundStages & itr->shader->vkStage) {
         log_e("Duplicate shader stage", log_param("graphic", fmt_text(graphic->dbgName)));
         return false;
       }
       foundStages |= itr->shader->vkStage;
+
+      // Validate used sets.
+      for (u32 set = 0; set != rvk_shader_desc_max; ++set) {
+        const bool supported = mem_contains(mem_var(g_rendSupportedShaderSets), set);
+        if (!supported && rvk_shader_set_used(itr->shader, set)) {
+          log_e(
+              "Shader uses unsupported set",
+              log_param("graphic", fmt_text(graphic->dbgName)),
+              log_param("set", fmt_int(set)));
+          return false;
+        }
+      }
     }
   }
   if (!(foundStages & VK_SHADER_STAGE_VERTEX_BIT)) {

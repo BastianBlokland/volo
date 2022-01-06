@@ -29,6 +29,8 @@ typedef struct sRvkShader {
 RvkShader* rvk_shader_create(RvkDevice*, const AssetShaderComp*, String dbgName);
 void       rvk_shader_destroy(RvkShader*);
 
+bool rvk_shader_set_used(const RvkShader*, u32 set);
+
 /**
  * Create a 'VkSpecializationInfo' structure for specializing this shader with the given overrides.
  * NOTE: Specialization constants are written to scratch memory; meaning this specialization should

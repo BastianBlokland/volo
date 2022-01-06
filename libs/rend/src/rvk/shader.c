@@ -166,6 +166,19 @@ void rvk_shader_destroy(RvkShader* shader) {
   alloc_free_t(g_alloc_heap, shader);
 }
 
+bool rvk_shader_set_used(const RvkShader* shader, const u32 set) {
+  if (UNLIKELY(set >= rvk_shader_desc_max)) {
+    return false;
+  }
+  const RvkDescMeta* setDesc = &shader->descriptors[set];
+  array_for_t(setDesc->bindings, u8, binding) {
+    if (*binding != RvkDescKind_None) {
+      return true;
+    }
+  }
+  return false;
+}
+
 VkSpecializationInfo rvk_shader_specialize_scratch(
     RvkShader* shader, RvkShaderOverride* overrides, usize overrideCount) {
 
