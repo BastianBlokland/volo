@@ -4,6 +4,7 @@
 #include "core_math.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
+#include "log_logger.h"
 #include "rend_instance.h"
 
 #include "platform_internal.h"
@@ -354,9 +355,12 @@ static void rend_res_load(RvkDevice* dev, EcsWorld* world, EcsIterator* resource
   } break;
   case RendResLoadState_FinishedSuccess:
   case RendResLoadState_FinishedFailure: {
+    if (UNLIKELY(resComp->state == RendResLoadState_FinishedFailure)) {
+      log_e("Failed to load render resource", log_param("id", fmt_text(id)));
+    }
     asset_release(world, entity);
     ecs_world_add_empty_t(world, entity, RendResFinishedComp);
-  }
+  } break;
   }
 }
 
@@ -382,6 +386,7 @@ ecs_system_define(RendResLoadSys) {
 }
 
 ecs_view_define(RendResUnloadChangedRequestView) {
+  ecs_access_read(AssetComp);
   ecs_access_with(AssetChangedComp);
   ecs_access_read(RendResComp);
   ecs_access_without(RendResUnloadComp);
@@ -394,6 +399,7 @@ ecs_system_define(RendResUnloadChangedRequestSys) {
   EcsView* changedAssetsView = ecs_world_view_t(world, RendResUnloadChangedRequestView);
   for (EcsIterator* itr = ecs_view_itr(changedAssetsView); ecs_view_walk(itr);) {
     const RendResComp* resComp = ecs_view_read_t(itr, RendResComp);
+    const String       id      = asset_id(ecs_view_read_t(itr, AssetComp));
     const EcsEntityId  entity  = ecs_view_entity(itr);
 
     /**
@@ -401,6 +407,7 @@ ecs_system_define(RendResUnloadChangedRequestSys) {
      * a half-loaded asset.
      */
     if (resComp->state >= RendResLoadState_FinishedSuccess) {
+      log_i("Unloaded changed asset", log_param("id", fmt_text(id)));
       ecs_world_add_t(world, entity, RendResUnloadComp);
     }
   }

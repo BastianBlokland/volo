@@ -178,7 +178,7 @@ ecs_system_define(AssetUpdateDirtySys) {
        * Asset has failed loading.
        */
 
-      log_e("Failed to load asset", log_param("id", fmt_path(assetComp->id)));
+      log_w("Failed to load asset", log_param("id", fmt_path(assetComp->id)));
 
       assetComp->flags &= ~AssetFlags_Loading;
       assetComp->flags |= AssetFlags_Failed;
