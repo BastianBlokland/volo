@@ -87,7 +87,7 @@ static RvkSamplerWrap rvk_graphic_wrap(const AssetGraphicWrap assetWrap) {
   case AssetGraphicWrap_Clamp:
     return RvkSamplerWrap_Clamp;
   }
-  diag_crash_msg("Unknown graphic wrap mode");
+  diag_crash();
 }
 
 static RvkSamplerFilter rvk_graphic_filter(const AssetGraphicFilter assetFilter) {
@@ -97,7 +97,7 @@ static RvkSamplerFilter rvk_graphic_filter(const AssetGraphicFilter assetFilter)
   case AssetGraphicFilter_Nearest:
     return RvkSamplerFilter_Nearest;
   }
-  diag_crash_msg("Unknown graphic filter mode");
+  diag_crash();
 }
 
 static RvkSamplerAniso rvk_graphic_aniso(const AssetGraphicAniso assetAniso) {
@@ -113,7 +113,7 @@ static RvkSamplerAniso rvk_graphic_aniso(const AssetGraphicAniso assetAniso) {
   case AssetGraphicAniso_x16:
     return RvkSamplerAniso_x16;
   }
-  diag_crash_msg("Unknown graphic aniso mode");
+  diag_crash();
 }
 
 static void rvk_graphic_desc_merge(RvkDescMeta* meta, const RvkDescMeta* other) {
@@ -471,7 +471,10 @@ void rvk_graphic_shader_add(
       return;
     }
   }
-  diag_assert_fail("More then {} shaders are not supported", fmt_int(rvk_graphic_shaders_max));
+  log_e(
+      "Shaders limit exceeded",
+      log_param("graphic", fmt_text(graphic->dbgName)),
+      log_param("limit", fmt_int(rvk_graphic_shaders_max)));
 }
 
 void rvk_graphic_mesh_add(RvkGraphic* graphic, RvkMesh* mesh) {
@@ -496,7 +499,10 @@ void rvk_graphic_sampler_add(
       return;
     }
   }
-  diag_assert_fail("More then {} samplers are not supported", fmt_int(rvk_graphic_samplers_max));
+  log_e(
+      "Sampler limit exceeded",
+      log_param("graphic", fmt_text(graphic->dbgName)),
+      log_param("limit", fmt_int(rvk_graphic_samplers_max)));
 }
 
 bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, VkRenderPass vkRendPass) {
@@ -517,9 +523,13 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, VkRender
 
     // Attach mesh.
     if (graphicDescMeta.bindings[rvk_desc_graphic_bind_mesh] == RvkDescKind_StorageBuffer) {
-      diag_assert_msg(graphic->mesh, "Shader expects a mesh but the graphic provides none");
-      rvk_desc_set_attach_buffer(
-          graphic->descSet, rvk_desc_graphic_bind_mesh, &graphic->mesh->vertexBuffer, 0);
+      if (graphic->mesh) {
+        rvk_desc_set_attach_buffer(
+            graphic->descSet, rvk_desc_graphic_bind_mesh, &graphic->mesh->vertexBuffer, 0);
+      } else {
+        log_e("Shader requires a mesh", log_param("graphic", fmt_text(graphic->dbgName)));
+        graphic->flags |= RvkGraphicFlags_Invalid;
+      }
     }
 
     // Attach samplers.
@@ -527,7 +537,12 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, VkRender
     for (u32 i = 0; i != rvk_desc_bindings_max; ++i) {
       if (graphicDescMeta.bindings[i] == RvkDescKind_CombinedImageSampler) {
         if (UNLIKELY(i == rvk_graphic_samplers_max)) {
-          diag_crash_msg("Shader expects more textures then is supported");
+          log_e(
+              "Shader exceeds texture limit",
+              log_param("graphic", fmt_text(graphic->dbgName)),
+              log_param("limit", fmt_int(rvk_graphic_samplers_max)));
+          graphic->flags |= RvkGraphicFlags_Invalid;
+          break;
         }
         if (!graphic->samplers[samplerIndex].texture) {
           rvk_graphic_set_missing_sampler(graphic, samplerIndex);
@@ -546,6 +561,9 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, VkRender
         graphic->device->debug, graphic->vkPipelineLayout, "{}", fmt_text(graphic->dbgName));
     rvk_debug_name_pipeline(
         graphic->device->debug, graphic->vkPipeline, "{}", fmt_text(graphic->dbgName));
+  }
+  if (graphic->flags & RvkGraphicFlags_Invalid) {
+    return false;
   }
   if (graphic->mesh && !rvk_mesh_prepare(graphic->mesh)) {
     return false;
