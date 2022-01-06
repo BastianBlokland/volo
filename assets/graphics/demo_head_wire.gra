@@ -28,13 +28,13 @@
   ],
   "samplers": [
     {
-      "textureId": "head/lambertian.tga",
+      "textureId": "external/head/lambertian.tga",
       "wrap": "Clamp",
       "filter": "Linear",
       "anisotropy": "x4"
     }
   ],
-  "meshId": "head/head.obj",
+  "meshId": "external/head/head.obj",
   "topology": "Triangles",
   "rasterizer": "Lines",
   "lineWidth": 1,

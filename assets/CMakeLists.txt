@@ -2,23 +2,9 @@
 # Assets cmake file.
 # --------------------------------------------------------------------------------------------------
 
-configure_copies(volo_assets_graphics
-  graphics/cube.gra
-  graphics/demo_bunny.gra
-  graphics/demo_corset.gra
-  graphics/demo_head_wire.gra
-  graphics/demo_head.gra
-  graphics/sphere.gra
-  graphics/grid.gra
-  graphics/sky.gra)
+message(STATUS "> assets")
 
-configure_copies(volo_assets_meshes
-  meshes/cube.obj
-  meshes/quad_xy.obj
-  meshes/sphere.obj
-  meshes/triangle_xy.obj)
-
-configure_shaders(volo_assets_shaders
+configure_shaders(volo_shaders
   shaders/grid.vert
   shaders/grid.frag
   shaders/sky.vert
@@ -26,15 +12,19 @@ configure_shaders(volo_assets_shaders
   shaders/standard.vert
   shaders/standard.frag)
 
-configure_copies(volo_assets_textures
-  textures/checker.ppm
-  textures/circle_glow.tga
-  textures/circle.tga
-  textures/missing.ppm
-  textures/white.ppm)
+function(download_external_assets)
+  set(remoteUrl "https://www.bastian.tech/assets")
+  foreach(filePath IN LISTS ARGN)
+    set(targetPath ${CMAKE_CURRENT_SOURCE_DIR}/external/${filePath})
+    if(NOT EXISTS ${targetPath})
+      message(STATUS ">> Downloading: ${remoteUrl}/${filePath}")
+      file(DOWNLOAD "${remoteUrl}/${filePath}" ${targetPath})
+    endif()
+  endforeach()
+endfunction(download_external_assets)
 
 if(${EXTERNAL_ASSETS})
-  configure_copies_external(volo_assets_external
+  download_external_assets(
     bunny.obj
     head/head.obj
     head/lambertian.tga
@@ -45,12 +35,5 @@ if(${EXTERNAL_ASSETS})
 endif()
 
 add_custom_target(volo_assets)
-set_target_properties(volo_assets PROPERTIES path ${CMAKE_CURRENT_BINARY_DIR})
-
-add_dependencies(volo_assets volo_assets_graphics)
-add_dependencies(volo_assets volo_assets_meshes)
-add_dependencies(volo_assets volo_assets_shaders)
-add_dependencies(volo_assets volo_assets_textures)
-if(${EXTERNAL_ASSETS})
-  add_dependencies(volo_assets volo_assets_external)
-endif()
+set_target_properties(volo_assets PROPERTIES path ${CMAKE_CURRENT_SOURCE_DIR})
+add_dependencies(volo_assets volo_shaders)
