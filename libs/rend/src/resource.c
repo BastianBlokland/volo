@@ -386,7 +386,9 @@ static bool rend_res_create(RvkDevice* dev, EcsWorld* world, EcsIterator* resour
     return true;
   }
 
-  diag_crash_msg("Unsupported resource asset type");
+  log_e("Unsupported render resource asset type", log_param("id", fmt_text(id)));
+  resComp->state = RendResLoadState_FinishedFailure;
+  return false;
 }
 
 static void rend_res_finished_success(EcsWorld* world, EcsIterator* resourceItr) {
