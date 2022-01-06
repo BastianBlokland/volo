@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_math.h"
 #include "log_logger.h"
 
 #include "device_internal.h"
@@ -132,10 +133,12 @@ RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset, const
   for (usize i = 0; i != asset->resources.count; ++i) {
     const AssetShaderRes* res = &asset->resources.values[i];
     if (res->set >= rvk_shader_desc_max) {
-      diag_crash_msg("Shader resource set {} is out of bounds", fmt_int(res->set));
+      log_e("Shader resource set out of bounds", log_param("set", fmt_int(res->set)));
+      continue;
     }
     if (res->binding >= rvk_desc_bindings_max) {
-      diag_crash_msg("Shader resource binding {} is out of bounds", fmt_int(res->binding));
+      log_e("Shader resource binding out of bounds", log_param("binding", fmt_int(res->binding)));
+      continue;
     }
     shader->descriptors[res->set].bindings[res->binding] = rvk_shader_desc_kind(res->kind);
   }
@@ -163,6 +166,19 @@ void rvk_shader_destroy(RvkShader* shader) {
   alloc_free_t(g_alloc_heap, shader);
 }
 
+bool rvk_shader_set_used(const RvkShader* shader, const u32 set) {
+  if (UNLIKELY(set >= rvk_shader_desc_max)) {
+    return false;
+  }
+  const RvkDescMeta* setDesc = &shader->descriptors[set];
+  array_for_t(setDesc->bindings, u8, binding) {
+    if (*binding != RvkDescKind_None) {
+      return true;
+    }
+  }
+  return false;
+}
+
 VkSpecializationInfo rvk_shader_specialize_scratch(
     RvkShader* shader, RvkShaderOverride* overrides, usize overrideCount) {
 
@@ -173,7 +189,10 @@ VkSpecializationInfo rvk_shader_specialize_scratch(
   };
 
   if (UNLIKELY(overrideCount > Limit_EntriesMax)) {
-    diag_crash_msg("More then {} shader overrides are not supported", fmt_int(Limit_EntriesMax));
+    log_w(
+        "More then {} shader overrides are not supported",
+        log_param("limit", fmt_int(Limit_EntriesMax)),
+        log_param("provided", fmt_int(overrideCount)));
   }
 
   VkSpecializationMapEntry* entries =
@@ -183,25 +202,29 @@ VkSpecializationInfo rvk_shader_specialize_scratch(
   const Mem buffer           = alloc_alloc(g_alloc_scratch, Limit_DataSizeMax, 8);
   Mem       remainingBuffer  = buffer;
 
-  for (usize i = 0; i != overrideCount; ++i) {
+  for (usize i = 0; i != math_min(overrideCount, Limit_EntriesMax); ++i) {
     RvkShaderOverride* override = &overrides[i];
 
     AssetShaderType type;
     if (UNLIKELY(!rvk_shader_spec_type(shader, override->binding, &type))) {
-      diag_crash_msg(
-          "No specialization found for override '{}' (binding: {})",
-          fmt_text(override->name),
-          fmt_int(override->binding));
+      log_e(
+          "No specialization found for override '{}'",
+          log_param("name", fmt_text(override->name)),
+          log_param("binding", fmt_int(override->binding)));
+      continue;
     }
     if (UNLIKELY(override->binding >= sizeof(usedBindingsMask) * 8)) {
-      diag_crash_msg(
-          "Binding for specialization override '{}' exceeds maximum", fmt_text(override->name));
+      log_e(
+          "Binding for specialization override '{}' exceeds maximum",
+          log_param("name", fmt_text(override->name)));
+      continue;
     }
     if (UNLIKELY(usedBindingsMask & u64_lit(1) << override->binding)) {
-      diag_crash_msg(
-          "Duplicate specialization override '{}' (binding: {})",
-          fmt_text(override->name),
-          fmt_int(override->binding));
+      log_e(
+          "Duplicate specialization override '{}'",
+          log_param("name", fmt_text(override->name)),
+          log_param("binding", fmt_int(override->binding)));
+      continue;
     }
     usedBindingsMask |= u64_lit(1) << override->binding;
 
