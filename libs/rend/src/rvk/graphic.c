@@ -116,27 +116,31 @@ static RvkSamplerAniso rvk_graphic_aniso(const AssetGraphicAniso assetAniso) {
   diag_crash();
 }
 
-static void rvk_graphic_desc_merge(RvkDescMeta* meta, const RvkDescMeta* other) {
+static bool rvk_graphic_desc_merge(RvkDescMeta* meta, const RvkDescMeta* other) {
   for (usize i = 0; i != rvk_desc_bindings_max; ++i) {
     if (meta->bindings[i] && other->bindings[i]) {
       if (UNLIKELY(meta->bindings[i] != other->bindings[i])) {
-        diag_crash_msg(
-            "Incompatible shader descriptor binding {} ({} vs {})",
-            fmt_int(i),
-            fmt_text(rvk_desc_kind_str(meta->bindings[i])),
-            fmt_text(rvk_desc_kind_str(other->bindings[i])));
+        log_e(
+            "Incompatible shader descriptor binding {}",
+            log_param("binding", fmt_int(i)),
+            log_param("a", fmt_text(rvk_desc_kind_str(meta->bindings[i]))),
+            log_param("b", fmt_text(rvk_desc_kind_str(other->bindings[i]))));
+        return false;
       }
     } else if (other->bindings[i]) {
       meta->bindings[i] = other->bindings[i];
     }
   }
+  return true;
 }
 
-static RvkDescMeta rvk_graphic_desc_meta(const RvkGraphic* graphic, const usize set) {
+static RvkDescMeta rvk_graphic_desc_meta(RvkGraphic* graphic, const usize set) {
   RvkDescMeta meta = {0};
   array_for_t(graphic->shaders, RvkGraphicShader, itr) {
     if (itr->shader) {
-      rvk_graphic_desc_merge(&meta, &itr->shader->descriptors[set]);
+      if (UNLIKELY(!rvk_graphic_desc_merge(&meta, &itr->shader->descriptors[set]))) {
+        graphic->flags |= RvkGraphicFlags_Invalid;
+      }
     }
   }
   return meta;
@@ -534,7 +538,6 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, VkRender
   if (!graphic->vkPipeline) {
     if (UNLIKELY(!rvk_graphic_validate_shaders(graphic))) {
       graphic->flags |= RvkGraphicFlags_Invalid;
-      return false;
     }
 
     const RvkDescMeta globalDescMeta = rvk_graphic_desc_meta(graphic, rvk_desc_global_set);
@@ -559,7 +562,6 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, VkRender
       } else {
         log_e("Shader requires a mesh", log_param("graphic", fmt_text(graphic->dbgName)));
         graphic->flags |= RvkGraphicFlags_Invalid;
-        return false;
       }
     }
 
@@ -573,7 +575,6 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, VkRender
               log_param("graphic", fmt_text(graphic->dbgName)),
               log_param("limit", fmt_int(rvk_graphic_samplers_max)));
           graphic->flags |= RvkGraphicFlags_Invalid;
-          return false;
         }
         if (!graphic->samplers[samplerIndex].texture) {
           rvk_graphic_set_missing_sampler(graphic, samplerIndex);
@@ -583,6 +584,10 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, VkRender
         rvk_desc_set_attach_sampler(graphic->descSet, i, image, sampler);
         ++samplerIndex;
       }
+    }
+
+    if (graphic->flags & RvkGraphicFlags_Invalid) {
+      return false;
     }
 
     graphic->vkPipelineLayout = rvk_pipeline_layout_create(graphic);
