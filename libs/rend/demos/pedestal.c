@@ -20,20 +20,24 @@
  */
 
 static const GapVector g_windowSize         = {1024, 768};
-static const GeoVector g_subjectPosition    = {0, 0.5, 0};
-static const f32       g_subjectRotateSpeed = 45.0f * math_deg_to_rad;
 static const f32       g_cameraFov          = 60.0f * math_deg_to_rad;
 static const f32       g_cameraNearPlane    = 0.1f;
-static const GeoVector g_cameraPosition     = {0, 1.5, -3};
+static const GeoVector g_cameraPosition     = {0, 1.1, -2.5};
 static const f32       g_cameraAngle        = 10 * math_deg_to_rad;
+static const GeoVector g_subjectPosition    = {0, 0.5, 0};
+static const f32       g_subjectRotateSpeed = 45.0f * math_deg_to_rad;
+static const String    g_subjectGraphics[]  = {
+    string_static("graphics/cube.gra"),
+    string_static("graphics/sphere.gra"),
+    string_static("graphics/demo_bunny.gra"),
+    string_static("graphics/demo_corset.gra"),
+    string_static("graphics/demo_head.gra"),
+    string_static("graphics/demo_head_wire.gra"),
+};
 
-static EcsEntityId demo_add_subject(EcsWorld* world, AssetManagerComp* assets) {
+static EcsEntityId demo_add_subject(EcsWorld* world, AssetManagerComp* assets, String graphic) {
   const EcsEntityId entity = ecs_world_entity_create(world);
-  ecs_world_add_t(
-      world,
-      entity,
-      RendInstanceComp,
-      .graphic = asset_lookup(world, assets, string_lit("graphics/cube.gra")));
+  ecs_world_add_t(world, entity, RendInstanceComp, .graphic = asset_lookup(world, assets, graphic));
   ecs_world_add_t(
       world, entity, SceneTransformComp, .position = g_subjectPosition, .rotation = geo_quat_ident);
   ecs_world_add_t(
@@ -75,12 +79,19 @@ static EcsEntityId demo_open_window(EcsWorld* world) {
   return entity;
 }
 
-ecs_comp_define(DemoComp) { EcsEntityId subject; };
+ecs_comp_define(DemoComp) {
+  bool        initialized;
+  EcsEntityId window;
+  u32         subjectIndex;
+  EcsEntityId subject;
+};
 
 ecs_view_define(UpdateGlobalView) {
   ecs_access_write(AssetManagerComp);
-  ecs_access_maybe_write(DemoComp);
+  ecs_access_write(DemoComp);
 }
+
+ecs_view_define(UpdateWindowView) { ecs_access_read(GapWindowComp); }
 
 ecs_system_define(DemoUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, UpdateGlobalView);
@@ -88,20 +99,27 @@ ecs_system_define(DemoUpdateSys) {
   if (!globalItr) {
     return;
   }
-  AssetManagerComp* assets   = ecs_view_write_t(globalItr, AssetManagerComp);
-  DemoComp*         demoComp = ecs_view_write_t(globalItr, DemoComp);
-  if (!demoComp) {
-    demoComp = ecs_world_add_t(world, ecs_world_global(world), DemoComp);
+  AssetManagerComp* assets = ecs_view_write_t(globalItr, AssetManagerComp);
+  DemoComp*         demo   = ecs_view_write_t(globalItr, DemoComp);
+  if (!demo->initialized) {
     demo_add_sky(world, assets);
     demo_add_grid(world, assets);
-    demoComp->subject = demo_add_subject(world, assets);
+    demo->subject     = demo_add_subject(world, assets, g_subjectGraphics[0]);
+    demo->initialized = true;
+  }
+  const GapWindowComp* win = ecs_utils_read_t(world, UpdateWindowView, demo->window, GapWindowComp);
+  if (gap_window_key_pressed(win, GapKey_Space)) {
+    ecs_world_entity_destroy(world, demo->subject);
+    demo->subjectIndex = (demo->subjectIndex + 1) % array_elems(g_subjectGraphics);
+    demo->subject      = demo_add_subject(world, assets, g_subjectGraphics[demo->subjectIndex]);
   }
 }
 
 ecs_module_init(demo_cube_module) {
   ecs_register_comp(DemoComp);
 
-  ecs_register_system(DemoUpdateSys, ecs_register_view(UpdateGlobalView));
+  ecs_register_system(
+      DemoUpdateSys, ecs_register_view(UpdateGlobalView), ecs_register_view(UpdateWindowView));
 }
 
 static int app_run(const String assetPath) {
@@ -121,6 +139,8 @@ static int app_run(const String assetPath) {
   asset_manager_create_fs(world, AssetManagerFlags_TrackChanges, assetPath);
 
   const EcsEntityId window = demo_open_window(world);
+  ecs_world_add_t(world, ecs_world_global(world), DemoComp, .window = window);
+
   while (ecs_world_exists(world, window)) {
     ecs_run_sync(runner);
   }
