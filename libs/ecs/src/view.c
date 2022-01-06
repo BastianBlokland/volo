@@ -82,7 +82,7 @@ EcsEntityId ecs_view_entity(const EcsIterator* itr) {
 const void* ecs_view_read(const EcsIterator* itr, const EcsCompId comp) {
   diag_assert_msg(itr && itr->entity, "Iterator has not been initialized");
 
-  EcsView* view = itr->context;
+  MAYBE_UNUSED EcsView* view = itr->context;
 
   diag_assert_msg(
       bitset_test(ecs_view_mask(view, EcsViewMask_AccessRead), comp),
@@ -96,7 +96,7 @@ const void* ecs_view_read(const EcsIterator* itr, const EcsCompId comp) {
 void* ecs_view_write(const EcsIterator* itr, const EcsCompId comp) {
   diag_assert_msg(itr && itr->entity, "Iterator has not been initialized");
 
-  EcsView* view = itr->context;
+  MAYBE_UNUSED EcsView* view = itr->context;
 
   diag_assert_msg(
       bitset_test(ecs_view_mask(view, EcsViewMask_AccessWrite), comp),

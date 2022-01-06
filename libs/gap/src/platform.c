@@ -9,7 +9,7 @@ static void ecs_destruct_platform_comp(void* data) {
   gap_pal_destroy(comp->pal);
 }
 
-ecs_view_define(GapPlatformView) { ecs_access_write(GapPlatformComp); };
+ecs_view_define(GapPlatformView) { ecs_access_write(GapPlatformComp); }
 
 static GapPlatformComp* gap_platform_get_or_create(EcsWorld* world) {
   EcsView*     view = ecs_world_view_t(world, GapPlatformView);

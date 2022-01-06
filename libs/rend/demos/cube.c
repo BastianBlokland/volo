@@ -4,7 +4,6 @@
 #include "core_file.h"
 #include "core_math.h"
 #include "core_thread.h"
-#include "core_time.h"
 #include "ecs.h"
 #include "gap.h"
 #include "geo.h"
@@ -77,7 +76,7 @@ static int run_app(const String assetPath) {
 
   log_i("App loop running");
 
-  asset_manager_create_fs(world, assetPath);
+  asset_manager_create_fs(world, AssetManagerFlags_TrackChanges, assetPath);
   ecs_run_sync(runner);
   AssetManagerComp* assets =
       ecs_utils_write_t(world, ManagerView, ecs_world_global(world), AssetManagerComp);

@@ -601,5 +601,5 @@ void asset_load_spv(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
   return;
 
 Error:
-  asset_source_close(src);
+  asset_repo_source_close(src);
 }

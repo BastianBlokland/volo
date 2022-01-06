@@ -55,29 +55,30 @@ static void ecs_combine_batch(void* dataA, void* dataB) {
   dynarray_destroy(&compB->instances);
 }
 
-ecs_view_define(GlobalView) { ecs_access_write(RendPlatformComp); };
+ecs_view_define(GlobalView) { ecs_access_write(RendPlatformComp); }
 
 ecs_view_define(RenderableView) {
   ecs_access_read(RendInstanceComp);
   ecs_access_maybe_read(SceneTransformComp);
-};
+}
 
 ecs_view_define(DrawBatchView) {
   ecs_access_write(RendResGraphicComp);
   ecs_access_read(RendPainterBatchComp);
-};
+}
 
 ecs_view_define(CreateBatchView) {
   ecs_access_with(RendResGraphicComp);
+  ecs_access_without(RendResUnloadComp);
   ecs_access_maybe_write(RendPainterBatchComp);
-};
+}
 
 ecs_view_define(ClearBatchView) { ecs_access_write(RendPainterBatchComp); }
 
 ecs_view_define(PainterCreateView) {
   ecs_access_read(GapWindowComp);
   ecs_access_without(RendPainterComp);
-};
+}
 
 ecs_view_define(PainterUpdateView) {
   ecs_access_read(GapWindowComp);
@@ -85,7 +86,7 @@ ecs_view_define(PainterUpdateView) {
 
   ecs_access_maybe_read(SceneCameraComp);
   ecs_access_maybe_read(SceneTransformComp);
-};
+}
 
 static i8 painter_compare_draw(const void* a, const void* b) {
   const RvkPassDraw* drawA = a;

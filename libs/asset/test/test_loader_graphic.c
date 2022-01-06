@@ -99,7 +99,7 @@ spec(loader_graphic) {
   }
 
   it("can load graphic assets") {
-    asset_manager_create_mem(world, g_testData, array_elems(g_testData));
+    asset_manager_create_mem(world, AssetManagerFlags_None, g_testData, array_elems(g_testData));
     ecs_world_flush(world);
 
     AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
@@ -140,7 +140,7 @@ spec(loader_graphic) {
   }
 
   it("can unload graphic assets") {
-    asset_manager_create_mem(world, g_testData, array_elems(g_testData));
+    asset_manager_create_mem(world, AssetManagerFlags_None, g_testData, array_elems(g_testData));
     ecs_world_flush(world);
 
     AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
@@ -162,7 +162,7 @@ spec(loader_graphic) {
     for (usize i = 0; i != array_elems(g_errorTestData); ++i) {
       records[i] = (AssetMemRecord){.id = g_errorTestData[i].id, .data = g_errorTestData[i].text};
     }
-    asset_manager_create_mem(world, records, array_elems(g_errorTestData));
+    asset_manager_create_mem(world, AssetManagerFlags_None, records, array_elems(g_errorTestData));
     ecs_world_flush(world);
 
     for (usize i = 0; i != array_elems(g_errorTestData); ++i) {

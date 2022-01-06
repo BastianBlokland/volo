@@ -1,11 +1,12 @@
 #include "core_alloc.h"
-#include "core_array.h"
 
 #include "repo_internal.h"
 
-AssetSource* asset_source_open(AssetRepo* repo, String id) { return repo->open(repo, id); }
+void asset_repo_destroy(AssetRepo* repo) { repo->destroy(repo); }
 
-void asset_source_close(AssetSource* src) {
+AssetSource* asset_repo_source_open(AssetRepo* repo, String id) { return repo->open(repo, id); }
+
+void asset_repo_source_close(AssetSource* src) {
   if (src->close) {
     src->close(src);
   } else {
@@ -13,26 +14,15 @@ void asset_source_close(AssetSource* src) {
   }
 }
 
-void asset_repo_destroy(AssetRepo* repo) { repo->destroy(repo); }
-
-String asset_format_str(AssetFormat fmt) {
-  static const String names[] = {
-      string_static("gra"),
-      string_static("obj"),
-      string_static("raw"),
-      string_static("spv"),
-      string_static("ppm"),
-      string_static("tga"),
-  };
-  ASSERT(array_elems(names) == AssetFormat_Count, "Incorrect number of asset-format names");
-  return names[fmt];
+void asset_repo_changes_watch(AssetRepo* repo, const String id, const u64 userData) {
+  if (repo->changesWatch) {
+    repo->changesWatch(repo, id, userData);
+  }
 }
 
-AssetFormat asset_format_from_ext(String ext) {
-  for (AssetFormat fmt = 0; fmt != AssetFormat_Count; ++fmt) {
-    if (string_eq(ext, asset_format_str(fmt))) {
-      return fmt;
-    }
+bool asset_repo_changes_poll(AssetRepo* repo, u64* outUserData) {
+  if (repo->changesPoll) {
+    return repo->changesPoll(repo, outUserData);
   }
-  return AssetFormat_Raw;
+  return false;
 }

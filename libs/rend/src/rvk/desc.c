@@ -383,7 +383,7 @@ void rvk_desc_set_attach_buffer(
 void rvk_desc_set_attach_sampler(
     const RvkDescSet set, const u32 binding, const RvkImage* image, const RvkSampler* sampler) {
 
-  const RvkDescKind kind = rvk_desc_set_kind(set, binding);
+  MAYBE_UNUSED const RvkDescKind kind = rvk_desc_set_kind(set, binding);
   diag_assert(kind == RvkDescKind_CombinedImageSampler);
 
   VkDescriptorImageInfo imgInfo = {

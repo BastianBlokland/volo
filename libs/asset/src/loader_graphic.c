@@ -135,7 +135,7 @@ static void ecs_destruct_graphic_comp(void* data) {
 
 static void ecs_destruct_graphic_load_comp(void* data) {
   AssetGraphicLoadComp* comp = data;
-  asset_source_close(comp->src);
+  asset_repo_source_close(comp->src);
 }
 
 static void graphic_load_fail(EcsWorld* world, const EcsEntityId assetEntity, const String msg) {
@@ -143,13 +143,13 @@ static void graphic_load_fail(EcsWorld* world, const EcsEntityId assetEntity, co
   ecs_world_add_empty_t(world, assetEntity, AssetFailedComp);
 }
 
-ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); };
-ecs_view_define(LoadView) { ecs_access_read(AssetGraphicLoadComp); };
+ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
+ecs_view_define(LoadView) { ecs_access_read(AssetGraphicLoadComp); }
 
 ecs_view_define(UnloadView) {
   ecs_access_read(AssetGraphicComp);
   ecs_access_without(AssetLoadedComp);
-};
+}
 
 /**
  * Load graphic-assets.

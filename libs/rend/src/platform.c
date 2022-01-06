@@ -11,7 +11,7 @@ static void ecs_destruct_platform_comp(void* data) {
   diag_assert_msg(!comp->device, "Render device not torn down, call rend_teardown() before exit");
 }
 
-ecs_view_define(GlobalView) { ecs_access_write(RendPlatformComp); };
+ecs_view_define(GlobalView) { ecs_access_write(RendPlatformComp); }
 
 ecs_system_define(RendPlatformUpdateSys) {
   if (!ecs_world_has_t(world, ecs_world_global(world), RendPlatformComp)) {

@@ -128,7 +128,7 @@ static u32 rvk_mem_chunk_size_free(const RvkMemChunk* chunk) {
 /**
  * Total occupied bytes in the given chunk.
  */
-static u32 rvk_mem_chunk_size_occupied(const RvkMemChunk* chunk) {
+MAYBE_UNUSED static u32 rvk_mem_chunk_size_occupied(const RvkMemChunk* chunk) {
   return chunk->size - rvk_mem_chunk_size_free(chunk);
 }
 

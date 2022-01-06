@@ -5,6 +5,7 @@
 message(STATUS "> library: asset")
 
 add_library(lib_asset STATIC
+  src/format.c
   src/loader_graphic.c
   src/loader_mesh_obj.c
   src/loader_mesh.c

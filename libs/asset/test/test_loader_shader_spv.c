@@ -216,7 +216,7 @@ spec(loader_shader_spv) {
           .data = string_dup(g_alloc_heap, base64_decode_scratch(g_testData[i].base64Data)),
       };
     }
-    asset_manager_create_mem(world, records, array_elems(g_testData));
+    asset_manager_create_mem(world, AssetManagerFlags_None, records, array_elems(g_testData));
     ecs_world_flush(world);
 
     for (usize i = 0; i != array_elems(g_testData); ++i) {
@@ -253,7 +253,7 @@ spec(loader_shader_spv) {
         .id   = string_lit("shader.spv"),
         .data = string_dup(g_alloc_heap, base64_decode_scratch(g_testData[0].base64Data)),
     };
-    asset_manager_create_mem(world, &record, 1);
+    asset_manager_create_mem(world, AssetManagerFlags_None, &record, 1);
     ecs_world_flush(world);
 
     AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
@@ -275,7 +275,7 @@ spec(loader_shader_spv) {
     for (usize i = 0; i != array_elems(g_errorTestData); ++i) {
       records[i] = (AssetMemRecord){.id = g_errorTestData[i].id, .data = g_errorTestData[i].text};
     }
-    asset_manager_create_mem(world, records, array_elems(g_errorTestData));
+    asset_manager_create_mem(world, AssetManagerFlags_None, records, array_elems(g_errorTestData));
     ecs_world_flush(world);
 
     for (usize i = 0; i != array_elems(g_errorTestData); ++i) {

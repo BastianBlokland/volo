@@ -9,14 +9,14 @@ ecs_comp_define(AssetRawSourceComp) { AssetSource* src; };
 
 static void ecs_destruct_source_comp(void* data) {
   AssetRawSourceComp* comp = data;
-  asset_source_close(comp->src);
+  asset_repo_source_close(comp->src);
 }
 
 ecs_view_define(UnloadView) {
   ecs_access_with(AssetRawComp);
   ecs_access_with(AssetRawSourceComp);
   ecs_access_without(AssetLoadedComp);
-};
+}
 
 /**
  * Remove any raw-asset components for unloaded assets.

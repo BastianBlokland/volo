@@ -15,7 +15,7 @@ static void ecs_destruct_texture_comp(void* data) {
 ecs_view_define(UnloadView) {
   ecs_access_with(AssetTextureComp);
   ecs_access_without(AssetLoadedComp);
-};
+}
 
 /**
  * Remove any texture-asset components for unloaded assets.
