@@ -393,6 +393,28 @@ static void rvk_graphic_set_missing_sampler(RvkGraphic* graphic, const u32 sampl
       tex->image.mipLevels);
 }
 
+static bool rvk_graphic_validate_shaders(RvkGraphic* graphic) {
+  VkShaderStageFlagBits foundStages = 0;
+  array_for_t(graphic->shaders, RvkGraphicShader, itr) {
+    if (itr->shader) {
+      if (foundStages & itr->shader->vkStage) {
+        log_e("Duplicate shader stage", log_param("graphic", fmt_text(graphic->dbgName)));
+        return false;
+      }
+      foundStages |= itr->shader->vkStage;
+    }
+  }
+  if (!(foundStages & VK_SHADER_STAGE_VERTEX_BIT)) {
+    log_e("Vertex shader missing", log_param("graphic", fmt_text(graphic->dbgName)));
+    return false;
+  }
+  if (!(foundStages & VK_SHADER_STAGE_FRAGMENT_BIT)) {
+    log_e("Vertex shader missing", log_param("graphic", fmt_text(graphic->dbgName)));
+    return false;
+  }
+  return true;
+}
+
 RvkGraphic*
 rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset, const String dbgName) {
   RvkGraphic* graphic = alloc_alloc_t(g_alloc_heap, RvkGraphic);
@@ -506,7 +528,15 @@ void rvk_graphic_sampler_add(
 }
 
 bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, VkRenderPass vkRendPass) {
+  if (UNLIKELY(graphic->flags & RvkGraphicFlags_Invalid)) {
+    return false;
+  }
   if (!graphic->vkPipeline) {
+    if (UNLIKELY(!rvk_graphic_validate_shaders(graphic))) {
+      graphic->flags |= RvkGraphicFlags_Invalid;
+      return false;
+    }
+
     const RvkDescMeta globalDescMeta = rvk_graphic_desc_meta(graphic, rvk_desc_global_set);
     if (globalDescMeta.bindings[0] == RvkDescKind_UniformBufferDynamic) {
       graphic->flags |= RvkGraphicFlags_GlobalData;
@@ -523,12 +553,13 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, VkRender
 
     // Attach mesh.
     if (graphicDescMeta.bindings[rvk_desc_graphic_bind_mesh] == RvkDescKind_StorageBuffer) {
-      if (graphic->mesh) {
+      if (LIKELY(graphic->mesh)) {
         rvk_desc_set_attach_buffer(
             graphic->descSet, rvk_desc_graphic_bind_mesh, &graphic->mesh->vertexBuffer, 0);
       } else {
         log_e("Shader requires a mesh", log_param("graphic", fmt_text(graphic->dbgName)));
         graphic->flags |= RvkGraphicFlags_Invalid;
+        return false;
       }
     }
 
@@ -542,7 +573,7 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, VkRender
               log_param("graphic", fmt_text(graphic->dbgName)),
               log_param("limit", fmt_int(rvk_graphic_samplers_max)));
           graphic->flags |= RvkGraphicFlags_Invalid;
-          break;
+          return false;
         }
         if (!graphic->samplers[samplerIndex].texture) {
           rvk_graphic_set_missing_sampler(graphic, samplerIndex);
@@ -561,9 +592,6 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, VkRender
         graphic->device->debug, graphic->vkPipelineLayout, "{}", fmt_text(graphic->dbgName));
     rvk_debug_name_pipeline(
         graphic->device->debug, graphic->vkPipeline, "{}", fmt_text(graphic->dbgName));
-  }
-  if (graphic->flags & RvkGraphicFlags_Invalid) {
-    return false;
   }
   if (graphic->mesh && !rvk_mesh_prepare(graphic->mesh)) {
     return false;
