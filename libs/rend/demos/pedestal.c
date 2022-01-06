@@ -22,9 +22,10 @@
 static const GapVector g_windowSize         = {1024, 768};
 static const f32       g_cameraFov          = 60.0f * math_deg_to_rad;
 static const f32       g_cameraNearPlane    = 0.1f;
-static const GeoVector g_cameraPosition     = {0, 1.1, -2.5};
+static const GeoVector g_cameraPosition     = {0, 1.1f, -2.5f};
 static const f32       g_cameraAngle        = 10 * math_deg_to_rad;
-static const GeoVector g_subjectPosition    = {0, 0.5, 0};
+static const f32       g_cameraMoveSpeed    = 10.0f;
+static const GeoVector g_subjectPosition    = {0, 0.5f, 0};
 static const f32       g_subjectRotateSpeed = 45.0f * math_deg_to_rad;
 static const String    g_subjectGraphics[]  = {
     string_static("graphics/cube.gra"),
@@ -69,6 +70,7 @@ static EcsEntityId demo_open_window(EcsWorld* world) {
   const EcsEntityId entity = gap_window_create(world, GapWindowFlags_Default, g_windowSize);
 
   ecs_world_add_t(world, entity, SceneCameraComp, .fov = g_cameraFov, .zNear = g_cameraNearPlane);
+  ecs_world_add_t(world, entity, SceneCameraMovementComp, .moveSpeed = g_cameraMoveSpeed);
   ecs_world_add_t(
       world,
       entity,
