@@ -69,6 +69,7 @@ ecs_view_define(DrawBatchView) {
 
 ecs_view_define(CreateBatchView) {
   ecs_access_with(RendResGraphicComp);
+  ecs_access_without(RendResUnloadComp);
   ecs_access_maybe_write(RendPainterBatchComp);
 };
 

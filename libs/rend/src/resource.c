@@ -20,11 +20,30 @@ ecs_comp_define_public(RendResShaderComp);
 ecs_comp_define_public(RendResMeshComp);
 ecs_comp_define_public(RendResTextureComp);
 
-ecs_comp_define(RendGlobalResourceComp) {
+ecs_comp_define(RendGlobalResComp) {
   EcsEntityId missingTex;
   EcsEntityId missingMesh;
 };
-ecs_comp_define(RendGlobalResourceLoadedComp);
+ecs_comp_define(RendGlobalResLoadedComp);
+
+typedef enum {
+  RendResLoadState_AcquireAsset,
+  RendResLoadState_AcquireDependencies,
+  RendResLoadState_Create,
+  RendResLoadState_Loaded,
+  RendResLoadState_Failed,
+} RendResLoadState;
+
+typedef enum {
+  RendResUnloadState_Wait,
+  RendResUnloadState_Destroy,
+  RendResUnloadState_Done,
+} RendResUnloadState;
+
+ecs_comp_define(RendResComp) { RendResLoadState state; };
+ecs_comp_define(RendResLoadedComp);
+ecs_comp_define(RendResFailedComp);
+ecs_comp_define(RendResUnloadComp) { RendResUnloadState state; };
 
 static void ecs_destruct_graphic_comp(void* data) {
   RendResGraphicComp* comp = data;
@@ -54,148 +73,156 @@ static void ecs_destruct_texture_comp(void* data) {
   }
 }
 
-typedef enum {
-  RendResourceState_AcquireAsset,
-  RendResourceState_AcquireDependencies,
-  RendResourceState_Create,
-  RendResourceState_Ready,
-  RendResourceState_Failed,
-} RendResourceState;
-
-ecs_comp_define(RendResource) { RendResourceState state; };
-ecs_comp_define(RendResourceReady);
-ecs_comp_define(RendResourceFailed);
-
 static void ecs_combine_resource(void* dataA, void* dataB) {
-  RendResource* compA = dataA;
-  RendResource* compB = dataB;
-  compA->state        = math_max(compA->state, compB->state);
+  RendResComp* compA = dataA;
+  RendResComp* compB = dataB;
+  compA->state       = math_max(compA->state, compB->state);
 }
 
 ecs_view_define(RendPlatView) { ecs_access_read(RendPlatformComp); }
-ecs_view_define(InstanceView) { ecs_access_read(RendInstanceComp); };
-ecs_view_define(AssetManagerView) { ecs_access_write(AssetManagerComp); };
 
-ecs_view_define(GlobalView) {
+ecs_view_define(PlatformAndGlobalResView) {
   ecs_access_read(RendPlatformComp);
-  ecs_access_read(RendGlobalResourceComp);
+  ecs_access_read(RendGlobalResComp);
+}
+
+ecs_view_define(ShaderView) { ecs_access_write(RendResShaderComp); }
+ecs_view_define(GraphicView) { ecs_access_write(RendResGraphicComp); }
+ecs_view_define(MeshView) { ecs_access_write(RendResMeshComp); }
+ecs_view_define(TextureView) { ecs_access_write(RendResTextureComp); }
+
+static EcsEntityId rend_resource_request(EcsWorld* world, AssetManagerComp* assetMan, String id) {
+  const EcsEntityId assetEntity = asset_lookup(world, assetMan, id);
+  ecs_utils_maybe_add_t(world, assetEntity, RendResComp);
+  return assetEntity;
+}
+
+static bool rend_resource_set_wellknown_texture(
+    EcsWorld* world, RendPlatformComp* plat, const RvkRepositoryId id, const EcsEntityId entity) {
+
+  if (ecs_world_has_t(world, entity, RendResLoadedComp)) {
+    RendResTextureComp* comp = ecs_utils_write_t(world, TextureView, entity, RendResTextureComp);
+    rvk_repository_texture_set(plat->device->repository, id, comp->texture);
+    return true;
+  }
+
+  return false; // Texture has not finished loading.
 }
 
 ecs_view_define(GlobalResourceUpdateView) {
   ecs_access_write(RendPlatformComp);
-  ecs_access_maybe_write(RendGlobalResourceComp);
-  ecs_access_without(RendGlobalResourceLoadedComp);
-};
+  ecs_access_write(AssetManagerComp);
+  ecs_access_maybe_write(RendGlobalResComp);
+  ecs_access_without(RendGlobalResLoadedComp);
+}
 
-ecs_view_define(ShaderView) { ecs_access_write(RendResShaderComp); };
-ecs_view_define(GraphicView) { ecs_access_write(RendResGraphicComp); };
-ecs_view_define(MeshView) { ecs_access_write(RendResMeshComp); };
-ecs_view_define(TextureView) { ecs_access_write(RendResTextureComp); };
+/**
+ * Load all global resources.
+ */
+ecs_system_define(RendGlobalResourceLoadSys) {
+  EcsIterator* globalItr = ecs_view_first(ecs_world_view_t(world, GlobalResourceUpdateView));
+  if (!globalItr) {
+    return;
+  }
+  RendPlatformComp*  plat     = ecs_view_write_t(globalItr, RendPlatformComp);
+  AssetManagerComp*  assetMan = ecs_view_write_t(globalItr, AssetManagerComp);
+  RendGlobalResComp* resComp  = ecs_view_write_t(globalItr, RendGlobalResComp);
 
-ecs_view_define(RendResourceLoadView) {
-  ecs_access_without(RendResourceReady);
-  ecs_access_without(RendResourceFailed);
+  if (!resComp) {
+    resComp = ecs_world_add_t(
+        world,
+        ecs_view_entity(globalItr),
+        RendGlobalResComp,
+        .missingTex  = rend_resource_request(world, assetMan, string_lit("textures/missing.ppm")),
+        .missingMesh = rend_resource_request(world, assetMan, string_lit("meshes/missing.obj")));
+  }
+
+  /**
+   * Wait for all global resources to be loaded.
+   */
+  if (!rend_resource_set_wellknown_texture(
+          world, plat, RvkRepositoryId_MissingTexture, resComp->missingTex)) {
+    return;
+  }
+
+  /**
+   * Global resources load finished.
+   */
+  ecs_world_add_empty_t(world, ecs_view_entity(globalItr), RendGlobalResLoadedComp);
+}
+
+ecs_view_define(RequestForInstanceView) { ecs_access_read(RendInstanceComp); };
+
+/**
+ * Request the graphic to be loaded for all entities with a RendInstanceComp.
+ */
+ecs_system_define(RendResRequestSys) {
+  EcsView* instanceView = ecs_world_view_t(world, RequestForInstanceView);
+  for (EcsIterator* itr = ecs_view_itr(instanceView); ecs_view_walk(itr);) {
+    const RendInstanceComp* comp = ecs_view_read_t(itr, RendInstanceComp);
+    ecs_utils_maybe_add_t(world, comp->graphic, RendResComp);
+  }
+}
+
+/**
+ * Retrieve the texture entity for a graphic sampler.
+ * NOTE: Falls back to the 'missingTexture' if the desired texture failed to load.
+ */
+static EcsEntityId rend_resource_texture_entity(
+    EcsWorld* world, const RendGlobalResComp* res, const AssetGraphicSampler* sampler) {
+  return ecs_world_has_t(world, sampler->texture, RendResFailedComp) ? res->missingTex
+                                                                     : sampler->texture;
+}
+
+/**
+ * Retrieve the mesh entity for a graphic.
+ * NOTE: Falls back to the 'missingMesh' if the desired mesh failed to load.
+ */
+static EcsEntityId rend_resource_mesh_entity(
+    EcsWorld* world, const RendGlobalResComp* res, const AssetGraphicComp* graphic) {
+  return ecs_world_has_t(world, graphic->mesh, RendResFailedComp) ? res->missingMesh
+                                                                  : graphic->mesh;
+}
+
+ecs_view_define(RendResLoadView) {
+  ecs_access_without(RendResLoadedComp);
+  ecs_access_without(RendResFailedComp);
   ecs_access_read(AssetComp);
-  ecs_access_write(RendResource);
+  ecs_access_write(RendResComp);
 
   ecs_access_maybe_read(AssetGraphicComp);
   ecs_access_maybe_read(AssetShaderComp);
   ecs_access_maybe_read(AssetMeshComp);
   ecs_access_maybe_read(AssetTextureComp);
-};
-
-static EcsEntityId rend_resource_request(EcsWorld* world, AssetManagerComp* assetMan, String id) {
-  const EcsEntityId assetEntity = asset_lookup(world, assetMan, id);
-  ecs_utils_maybe_add_t(world, assetEntity, RendResource);
-  return assetEntity;
-}
-
-static bool rend_resource_set_wellknown_texture(
-    EcsWorld*             world,
-    RendPlatformComp*     plat,
-    const RvkRepositoryId id,
-    const EcsEntityId     textureEntity) {
-
-  if (ecs_world_has_t(world, textureEntity, RendResourceReady)) {
-    RendResTextureComp* comp =
-        ecs_utils_write_t(world, TextureView, textureEntity, RendResTextureComp);
-    rvk_repository_texture_set(plat->device->repository, id, comp->texture);
-    return true;
-  }
-  return false;
-}
-
-ecs_system_define(RendGlobalResourceLoadSys) {
-  EcsIterator*      platItr  = ecs_view_first(ecs_world_view_t(world, GlobalResourceUpdateView));
-  AssetManagerComp* assetMan = ecs_utils_write_first_t(world, AssetManagerView, AssetManagerComp);
-  if (!platItr || !assetMan) {
-    return;
-  }
-  if (!ecs_world_has_t(world, ecs_view_entity(platItr), RendGlobalResourceComp)) {
-    ecs_world_add_t(
-        world,
-        ecs_view_entity(platItr),
-        RendGlobalResourceComp,
-        .missingTex  = rend_resource_request(world, assetMan, string_lit("textures/missing.ppm")),
-        .missingMesh = rend_resource_request(world, assetMan, string_lit("meshes/missing.obj")));
-    return;
-  }
-  RendPlatformComp*       plat    = ecs_view_write_t(platItr, RendPlatformComp);
-  RendGlobalResourceComp* resComp = ecs_view_write_t(platItr, RendGlobalResourceComp);
-
-  if (!rend_resource_set_wellknown_texture(
-          world, plat, RvkRepositoryId_MissingTexture, resComp->missingTex)) {
-    return;
-  }
-  ecs_world_add_empty_t(world, ecs_view_entity(platItr), RendGlobalResourceLoadedComp);
-}
-
-ecs_system_define(RendResourceRequestSys) {
-  EcsView* instanceView = ecs_world_view_t(world, InstanceView);
-  for (EcsIterator* itr = ecs_view_itr(instanceView); ecs_view_walk(itr);) {
-    const RendInstanceComp* comp = ecs_view_read_t(itr, RendInstanceComp);
-    ecs_utils_maybe_add_t(world, comp->graphic, RendResource);
-  }
-}
-
-static EcsEntityId rend_resource_texture_entity(
-    EcsWorld* world, const RendGlobalResourceComp* res, const AssetGraphicSampler* sampler) {
-  return ecs_world_has_t(world, sampler->texture, RendResourceFailed) ? res->missingTex
-                                                                      : sampler->texture;
-}
-
-static EcsEntityId rend_resource_mesh_entity(
-    EcsWorld* world, const RendGlobalResourceComp* res, const AssetGraphicComp* graphic) {
-  return ecs_world_has_t(world, graphic->mesh, RendResourceFailed) ? res->missingMesh
-                                                                   : graphic->mesh;
 }
 
 static void rend_resource_fail(EcsWorld* world, EcsIterator* resourceItr) {
-  ecs_view_write_t(resourceItr, RendResource)->state = RendResourceState_Failed;
-  ecs_world_add_empty_t(world, ecs_view_entity(resourceItr), RendResourceFailed);
+  ecs_view_write_t(resourceItr, RendResComp)->state = RendResLoadState_Failed;
+  ecs_world_add_empty_t(world, ecs_view_entity(resourceItr), RendResFailedComp);
 }
 
 static void rend_resource_load(
-    RvkDevice* dev, const RendGlobalResourceComp* res, EcsWorld* world, EcsIterator* resourceItr) {
+    RvkDevice* dev, const RendGlobalResComp* res, EcsWorld* world, EcsIterator* resourceItr) {
 
-  const EcsEntityId       ent               = ecs_view_entity(resourceItr);
-  RendResource*           resourceComp      = ecs_view_write_t(resourceItr, RendResource);
+  const EcsEntityId       entity            = ecs_view_entity(resourceItr);
+  RendResComp*            resComp           = ecs_view_write_t(resourceItr, RendResComp);
   const String            id                = asset_id(ecs_view_read_t(resourceItr, AssetComp));
   const AssetGraphicComp* maybeAssetGraphic = ecs_view_read_t(resourceItr, AssetGraphicComp);
   const AssetShaderComp*  maybeAssetShader  = ecs_view_read_t(resourceItr, AssetShaderComp);
   const AssetMeshComp*    maybeAssetMesh    = ecs_view_read_t(resourceItr, AssetMeshComp);
   const AssetTextureComp* maybeAssetTexture = ecs_view_read_t(resourceItr, AssetTextureComp);
 
-  switch (resourceComp->state) {
-  case RendResourceState_AcquireAsset:
-    asset_acquire(world, ent);
+  switch (resComp->state) {
+  case RendResLoadState_AcquireAsset:
+    asset_acquire(world, entity);
     break;
-  case RendResourceState_AcquireDependencies:
-    if (ecs_world_has_t(world, ent, AssetFailedComp)) {
+  case RendResLoadState_AcquireDependencies:
+    if (ecs_world_has_t(world, entity, AssetFailedComp)) {
       rend_resource_fail(world, resourceItr);
+      asset_release(world, entity);
       return;
     }
-    if (!ecs_world_has_t(world, ent, AssetLoadedComp)) {
+    if (!ecs_world_has_t(world, entity, AssetLoadedComp)) {
       return; // Wait for asset to be loaded.
     }
     if (maybeAssetGraphic) {
@@ -203,26 +230,27 @@ static void rend_resource_load(
 
       // Shaders.
       array_ptr_for_t(maybeAssetGraphic->shaders, AssetGraphicShader, ptr) {
-        ecs_utils_maybe_add_t(world, ptr->shader, RendResource);
-        if (ecs_world_has_t(world, ptr->shader, RendResourceFailed)) {
+        ecs_utils_maybe_add_t(world, ptr->shader, RendResComp);
+        if (ecs_world_has_t(world, ptr->shader, RendResFailedComp)) {
           rend_resource_fail(world, resourceItr);
+          asset_release(world, entity);
           return;
         }
-        dependenciesReady &= ecs_world_has_t(world, ptr->shader, RendResourceReady);
+        dependenciesReady &= ecs_world_has_t(world, ptr->shader, RendResLoadedComp);
       }
 
       // Mesh.
       if (maybeAssetGraphic->mesh) {
-        ecs_utils_maybe_add_t(world, maybeAssetGraphic->mesh, RendResource);
+        ecs_utils_maybe_add_t(world, maybeAssetGraphic->mesh, RendResComp);
         const EcsEntityId meshEntity = rend_resource_mesh_entity(world, res, maybeAssetGraphic);
-        dependenciesReady &= ecs_world_has_t(world, meshEntity, RendResourceReady);
+        dependenciesReady &= ecs_world_has_t(world, meshEntity, RendResLoadedComp);
       }
 
       // Textures.
       array_ptr_for_t(maybeAssetGraphic->samplers, AssetGraphicSampler, ptr) {
-        ecs_utils_maybe_add_t(world, ptr->texture, RendResource);
+        ecs_utils_maybe_add_t(world, ptr->texture, RendResComp);
         const EcsEntityId textureEntity = rend_resource_texture_entity(world, res, ptr);
-        dependenciesReady &= ecs_world_has_t(world, textureEntity, RendResourceReady);
+        dependenciesReady &= ecs_world_has_t(world, textureEntity, RendResLoadedComp);
       }
 
       if (!dependenciesReady) {
@@ -230,11 +258,11 @@ static void rend_resource_load(
       }
     }
     break;
-  case RendResourceState_Create: {
+  case RendResLoadState_Create: {
     if (maybeAssetGraphic) {
       RendResGraphicComp* graphicComp = ecs_world_add_t(
           world,
-          ent,
+          entity,
           RendResGraphicComp,
           .graphic = rvk_graphic_create(dev, maybeAssetGraphic, id));
 
@@ -262,41 +290,101 @@ static void rend_resource_load(
       }
     } else if (maybeAssetShader) {
       ecs_world_add_t(
-          world, ent, RendResShaderComp, .shader = rvk_shader_create(dev, maybeAssetShader, id));
+          world, entity, RendResShaderComp, .shader = rvk_shader_create(dev, maybeAssetShader, id));
     } else if (maybeAssetMesh) {
       ecs_world_add_t(
-          world, ent, RendResMeshComp, .mesh = rvk_mesh_create(dev, maybeAssetMesh, id));
+          world, entity, RendResMeshComp, .mesh = rvk_mesh_create(dev, maybeAssetMesh, id));
     } else if (maybeAssetTexture) {
       ecs_world_add_t(
           world,
-          ent,
+          entity,
           RendResTextureComp,
           .texture = rvk_texture_create(dev, maybeAssetTexture, id));
     } else {
       diag_crash_msg("Unsupported resource asset type");
     }
-    asset_release(world, ent);
-    ecs_world_add_empty_t(world, ent, RendResourceReady);
+    asset_release(world, entity);
+    ecs_world_add_empty_t(world, entity, RendResLoadedComp);
   }
-  case RendResourceState_Ready:
-  case RendResourceState_Failed:
+  case RendResLoadState_Loaded:
+  case RendResLoadState_Failed:
     break;
   }
-  ++resourceComp->state;
+  ++resComp->state;
 }
 
-ecs_system_define(RendResourceLoadSys) {
-  EcsIterator* globalItr = ecs_view_first(ecs_world_view_t(world, GlobalView));
+/**
+ * Update all active resource loads.
+ */
+ecs_system_define(RendResLoadSys) {
+  EcsIterator* globalItr = ecs_view_first(ecs_world_view_t(world, PlatformAndGlobalResView));
   if (!globalItr) {
     return;
   }
 
-  const RendPlatformComp*       plat = ecs_view_read_t(globalItr, RendPlatformComp);
-  const RendGlobalResourceComp* res  = ecs_view_read_t(globalItr, RendGlobalResourceComp);
+  const RendPlatformComp*  plat = ecs_view_read_t(globalItr, RendPlatformComp);
+  const RendGlobalResComp* res  = ecs_view_read_t(globalItr, RendGlobalResComp);
 
-  EcsView* resourceView = ecs_world_view_t(world, RendResourceLoadView);
+  EcsView* resourceView = ecs_world_view_t(world, RendResLoadView);
   for (EcsIterator* itr = ecs_view_itr(resourceView); ecs_view_walk(itr);) {
     rend_resource_load(plat->device, res, world, itr);
+  }
+}
+
+ecs_view_define(RendResUnloadChangedRequestView) {
+  ecs_access_with(RendResComp);
+  ecs_access_with(AssetChangedComp);
+  ecs_access_without(RendResUnloadComp);
+}
+
+/**
+ * Request resources where the source asset has changed to be unloaded.
+ */
+ecs_system_define(RendResUnloadChangedRequestSys) {
+  EcsView* changedAssetsView = ecs_world_view_t(world, RendResUnloadChangedRequestView);
+  for (EcsIterator* itr = ecs_view_itr(changedAssetsView); ecs_view_walk(itr);) {
+    const EcsEntityId entity = ecs_view_entity(itr);
+
+    /**
+     * Wait with unloading until the asset has finished loaded to avoid the complexity of unloading
+     * a half-loaded asset.
+     */
+    const bool loaded = ecs_world_has_t(world, entity, RendResLoadedComp) ||
+                        ecs_world_has_t(world, entity, RendResFailedComp);
+    if (loaded) {
+      ecs_world_add_t(world, entity, RendResUnloadComp);
+    }
+  }
+}
+
+ecs_view_define(RendResUnloadUpdateView) { ecs_access_write(RendResUnloadComp); }
+
+/**
+ * Update all active resource unloads.
+ */
+ecs_system_define(RendResUnloadUpdateSys) {
+  EcsView* unloadView = ecs_world_view_t(world, RendResUnloadUpdateView);
+  for (EcsIterator* itr = ecs_view_itr(unloadView); ecs_view_walk(itr);) {
+    const EcsEntityId  entity     = ecs_view_entity(itr);
+    RendResUnloadComp* unloadComp = ecs_view_write_t(itr, RendResUnloadComp);
+    switch (unloadComp->state) {
+    case RendResUnloadState_Wait:
+      // Wait for the renderer to stop using this resource.
+      break;
+    case RendResUnloadState_Destroy:
+      ecs_world_remove_t(world, entity, RendResComp);
+      ecs_world_remove_t(world, entity, RendResUnloadComp);
+      ecs_utils_maybe_remove_t(world, entity, RendResLoadedComp);
+      ecs_utils_maybe_remove_t(world, entity, RendResFailedComp);
+      ecs_utils_maybe_remove_t(world, entity, RendResGraphicComp);
+      ecs_utils_maybe_remove_t(world, entity, RendResShaderComp);
+      ecs_utils_maybe_remove_t(world, entity, RendResMeshComp);
+      ecs_utils_maybe_remove_t(world, entity, RendResTextureComp);
+      break;
+    case RendResUnloadState_Done:
+      break;
+    }
+    ++unloadComp->state;
   }
 }
 
@@ -305,40 +393,39 @@ ecs_module_init(rend_resource_module) {
   ecs_register_comp(RendResShaderComp, .destructor = ecs_destruct_shader_comp);
   ecs_register_comp(RendResMeshComp, .destructor = ecs_destruct_mesh_comp);
   ecs_register_comp(RendResTextureComp, .destructor = ecs_destruct_texture_comp);
-  ecs_register_comp(RendGlobalResourceComp);
-  ecs_register_comp_empty(RendGlobalResourceLoadedComp);
-
-  ecs_register_comp(RendResource, .combinator = ecs_combine_resource);
-  ecs_register_comp_empty(RendResourceReady);
-  ecs_register_comp_empty(RendResourceFailed);
+  ecs_register_comp(RendGlobalResComp);
+  ecs_register_comp_empty(RendGlobalResLoadedComp);
+  ecs_register_comp(RendResComp, .combinator = ecs_combine_resource);
+  ecs_register_comp_empty(RendResLoadedComp);
+  ecs_register_comp_empty(RendResFailedComp);
+  ecs_register_comp(RendResUnloadComp);
 
   ecs_register_view(RendPlatView);
-  ecs_register_view(GlobalView);
-  ecs_register_view(InstanceView);
-  ecs_register_view(AssetManagerView);
-  ecs_register_view(GlobalResourceUpdateView);
+  ecs_register_view(PlatformAndGlobalResView);
   ecs_register_view(ShaderView);
   ecs_register_view(GraphicView);
   ecs_register_view(MeshView);
   ecs_register_view(TextureView);
 
-  ecs_register_view(RendResourceLoadView);
-
   ecs_register_system(
       RendGlobalResourceLoadSys,
-      ecs_view_id(GlobalResourceUpdateView),
-      ecs_view_id(AssetManagerView),
+      ecs_register_view(GlobalResourceUpdateView),
       ecs_view_id(TextureView));
 
-  ecs_register_system(RendResourceRequestSys, ecs_view_id(InstanceView));
+  ecs_register_system(RendResRequestSys, ecs_register_view(RequestForInstanceView));
 
   ecs_register_system(
-      RendResourceLoadSys,
-      ecs_view_id(GlobalView),
-      ecs_view_id(RendResourceLoadView),
+      RendResLoadSys,
+      ecs_view_id(PlatformAndGlobalResView),
+      ecs_register_view(RendResLoadView),
       ecs_view_id(ShaderView),
       ecs_view_id(MeshView),
       ecs_view_id(TextureView));
+
+  ecs_register_system(
+      RendResUnloadChangedRequestSys, ecs_register_view(RendResUnloadChangedRequestView));
+
+  ecs_register_system(RendResUnloadUpdateSys, ecs_register_view(RendResUnloadUpdateView));
 }
 
 void rend_resource_teardown(EcsWorld* world) {
