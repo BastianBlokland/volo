@@ -2,7 +2,7 @@
 #  Renderer demos cmake file.
 # --------------------------------------------------------------------------------------------------
 
-message(STATUS ">> demo: rend_cube")
+message(STATUS ">> demo: rend_pedestal")
 
 add_executable(lib_rend_demo_pedestal pedestal.c)
 target_link_libraries(lib_rend_demo_pedestal PRIVATE lib_rend)
@@ -18,5 +18,5 @@ add_dependencies(lib_rend_demo_pedestal volo_assets)
 configure_debuggable(lib_rend_demo_pedestal)
 
 # Register convenience targets for launching the demos.
-add_custom_target(demo.rend.cube COMMAND lib_rend_demo_pedestal
+add_custom_target(demo.rend.pedestal COMMAND lib_rend_demo_pedestal
   "--assets" "$<TARGET_PROPERTY:volo_assets,path>" VERBATIM USES_TERMINAL)
