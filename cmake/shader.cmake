@@ -13,20 +13,16 @@ function(configure_shaders target)
 
   foreach(shaderPath IN LISTS ARGN)
 
-    # Create output directory.
-    get_filename_component(parentDir ${CMAKE_CURRENT_BINARY_DIR}/${shaderPath} DIRECTORY)
-    file(MAKE_DIRECTORY ${parentDir})
-
     # Create a custom command to compile the shader to spir-v using glslc.
     add_custom_command(
-      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${shaderPath}.spv
+      OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${shaderPath}.spv
       DEPENDS ${shaderPath}
       COMMAND ${Vulkan_GLSLC_EXECUTABLE}
       -x glsl --target-env=vulkan1.1 --target-spv=spv1.3 -Werror -O
-      -o ${CMAKE_CURRENT_BINARY_DIR}/${shaderPath}.spv
+      -o ${CMAKE_CURRENT_SOURCE_DIR}/${shaderPath}.spv
       ${CMAKE_CURRENT_SOURCE_DIR}/${shaderPath})
 
-    list(APPEND artifacts ${CMAKE_CURRENT_BINARY_DIR}/${shaderPath}.spv)
+    list(APPEND artifacts ${CMAKE_CURRENT_SOURCE_DIR}/${shaderPath}.spv)
   endforeach()
 
   add_custom_target(${target} DEPENDS ${artifacts})

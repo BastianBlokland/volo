@@ -27,7 +27,7 @@
       "anisotropy": "None"
     }
   ],
-  "meshId": "bunny.obj",
+  "meshId": "external/bunny.obj",
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "None",

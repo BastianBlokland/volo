@@ -16,5 +16,9 @@
     "*.c": "c",
     "*.gra": "json"
   },
+  "files.exclude": {
+    ".cache": true,
+    "assets/**/*.spv": true
+  },
   "glsllint.glslangValidatorArgs": "-V -o .cache/spv/out.spv"
 }

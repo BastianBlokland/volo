@@ -28,19 +28,19 @@
   ],
   "samplers": [
     {
-      "textureId": "corset/corset_diff.tga",
+      "textureId": "external/corset/corset_diff.tga",
       "wrap": "Clamp",
       "filter": "Linear",
       "anisotropy": "x4"
     },
     {
-      "textureId": "corset/corset_nrm.tga",
+      "textureId": "external/corset/corset_nrm.tga",
       "wrap": "Clamp",
       "filter": "Linear",
       "anisotropy": "x4"
     }
   ],
-  "meshId": "corset/corset.obj",
+  "meshId": "external/corset/corset.obj",
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "None",
