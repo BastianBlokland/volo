@@ -15,3 +15,6 @@
 
 # Derrived files.
 *.spv
+
+# Downloaded files.
+/assets/external/
