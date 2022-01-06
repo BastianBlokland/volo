@@ -12,3 +12,6 @@
 
 # Temporary files.
 /.cache/
+
+# Derrived files.
+*.spv
