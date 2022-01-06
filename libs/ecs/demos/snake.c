@@ -479,7 +479,7 @@ ecs_module_init(snake_module) {
       ecs_register_view(CollisionSysCollidable));
 }
 
-static int run_snake(const u64 frequency, const u64 pickupDensity) {
+static int demo_run(const u64 frequency, const u64 pickupDensity) {
   EcsDef* def = def = ecs_def_create(g_alloc_heap);
   ecs_register_module(def, snake_module);
 
@@ -576,7 +576,7 @@ int main(const int argc, const char** argv) {
 
   const u64 frequency     = cli_read_u64(invoc, freqFlag, 15);
   const u64 pickupDensity = cli_read_u64(invoc, pickupsFlag, 5);
-  exitCode                = run_snake(frequency, pickupDensity);
+  exitCode                = demo_run(frequency, pickupDensity);
 
   tty_reset();
 

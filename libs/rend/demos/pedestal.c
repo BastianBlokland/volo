@@ -122,9 +122,11 @@ ecs_module_init(demo_cube_module) {
       DemoUpdateSys, ecs_register_view(UpdateGlobalView), ecs_register_view(UpdateWindowView));
 }
 
-static int app_run(const String assetPath) {
-
-  log_i("App startup", log_param("pid", fmt_int(g_thread_pid)));
+static int demo_run(const String assetPath) {
+  log_i(
+      "Demo startup",
+      log_param("asset-path", fmt_text(assetPath)),
+      log_param("pid", fmt_int(g_thread_pid)));
 
   EcsDef* def = def = ecs_def_create(g_alloc_heap);
   asset_register(def);
@@ -145,7 +147,7 @@ static int app_run(const String assetPath) {
     ecs_run_sync(runner);
   }
 
-  log_i("App shutdown", log_param("mem", fmt_size(alloc_stats_total())));
+  log_i("Demo shutdown", log_param("mem", fmt_size(alloc_stats_total())));
 
   rend_teardown(world);
   ecs_runner_destroy(runner);
@@ -176,7 +178,7 @@ int main(const int argc, const char** argv) {
   }
 
   const String assetPath = cli_read_string(invoc, assetFlag, string_empty);
-  exitCode               = app_run(assetPath);
+  exitCode               = demo_run(assetPath);
 
 exit:
   cli_parse_destroy(invoc);
