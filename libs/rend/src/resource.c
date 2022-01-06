@@ -238,152 +238,177 @@ ecs_view_define(RendResLoadView) {
   ecs_access_maybe_read(AssetTextureComp);
 }
 
-static void rend_res_load(RvkDevice* dev, EcsWorld* world, EcsIterator* resourceItr) {
-  const EcsEntityId       entity            = ecs_view_entity(resourceItr);
+static bool rend_res_asset_acquire(EcsWorld* world, EcsIterator* resourceItr) {
+  const EcsEntityId entity = ecs_view_entity(resourceItr);
+  asset_acquire(world, entity);
+  return true;
+}
+
+static bool rend_res_asset_wait(EcsWorld* world, EcsIterator* resourceItr) {
+  RendResComp*      resComp = ecs_view_write_t(resourceItr, RendResComp);
+  const EcsEntityId entity  = ecs_view_entity(resourceItr);
+
+  if (ecs_world_has_t(world, entity, AssetFailedComp)) {
+    resComp->state = RendResLoadState_FinishedFailure;
+    return false;
+  }
+  if (!ecs_world_has_t(world, entity, AssetLoadedComp)) {
+    return false;
+  }
+  return true;
+}
+
+static bool rend_res_dependencies_acquire(EcsWorld* world, EcsIterator* resourceItr) {
   RendResComp*            resComp           = ecs_view_write_t(resourceItr, RendResComp);
+  const AssetGraphicComp* maybeAssetGraphic = ecs_view_read_t(resourceItr, AssetGraphicComp);
+  if (maybeAssetGraphic) {
+
+    array_ptr_for_t(maybeAssetGraphic->shaders, AssetGraphicShader, ptr) {
+      rend_res_request(world, ptr->shader);
+      rend_res_add_dependency(resComp, ptr->shader);
+    }
+
+    if (maybeAssetGraphic->mesh) {
+      rend_res_request(world, maybeAssetGraphic->mesh);
+      rend_res_add_dependency(resComp, maybeAssetGraphic->mesh);
+    }
+
+    array_ptr_for_t(maybeAssetGraphic->samplers, AssetGraphicSampler, ptr) {
+      rend_res_request(world, ptr->texture);
+      rend_res_add_dependency(resComp, ptr->texture);
+    }
+  }
+  return true;
+}
+
+static bool rend_res_dependencies_wait(EcsWorld* world, EcsIterator* resourceItr) {
+  const EcsEntityId entity         = ecs_view_entity(resourceItr);
+  RendResComp*      resComp        = ecs_view_write_t(resourceItr, RendResComp);
+  EcsView*          dependencyView = ecs_world_view_t(world, ResourceWriteView);
+  EcsIterator*      dependencyItr  = ecs_view_itr(dependencyView);
+
+  dynarray_for_t(&resComp->dependencies, EcsEntityId, dep) {
+    if (!ecs_view_contains(dependencyView, *dep)) {
+      return false;
+    }
+    ecs_view_jump(dependencyItr, *dep);
+    RendResComp* dependencyRes = ecs_view_write_t(dependencyItr, RendResComp);
+    rend_res_add_dependent(dependencyRes, entity);
+
+    if (dependencyRes->state == RendResLoadState_FinishedFailure) {
+      // Dependency failed to load, also fail this resource.
+      resComp->state = RendResLoadState_FinishedFailure;
+      return false;
+    }
+    if (dependencyRes->state != RendResLoadState_FinishedSuccess) {
+      return false;
+    }
+  }
+  return true;
+}
+
+static bool rend_res_create(RvkDevice* dev, EcsWorld* world, EcsIterator* resourceItr) {
+  const EcsEntityId       entity            = ecs_view_entity(resourceItr);
   const String            id                = asset_id(ecs_view_read_t(resourceItr, AssetComp));
+  RendResComp*            resComp           = ecs_view_write_t(resourceItr, RendResComp);
   const AssetGraphicComp* maybeAssetGraphic = ecs_view_read_t(resourceItr, AssetGraphicComp);
   const AssetShaderComp*  maybeAssetShader  = ecs_view_read_t(resourceItr, AssetShaderComp);
   const AssetMeshComp*    maybeAssetMesh    = ecs_view_read_t(resourceItr, AssetMeshComp);
   const AssetTextureComp* maybeAssetTexture = ecs_view_read_t(resourceItr, AssetTextureComp);
 
-  switch (resComp->state) {
-  case RendResLoadState_AssetAcquire: {
-    asset_acquire(world, entity);
-    ++resComp->state;
-  } break;
-  case RendResLoadState_AssetWait: {
-    if (ecs_world_has_t(world, entity, AssetFailedComp)) {
-      resComp->state = RendResLoadState_FinishedFailure;
-      return;
-    }
-    if (!ecs_world_has_t(world, entity, AssetLoadedComp)) {
-      return;
-    }
-    ++resComp->state;
-  } break;
-  case RendResLoadState_DependenciesAcquire: {
-    if (maybeAssetGraphic) {
-      // Shaders.
-      array_ptr_for_t(maybeAssetGraphic->shaders, AssetGraphicShader, ptr) {
-        rend_res_request(world, ptr->shader);
-        rend_res_add_dependency(resComp, ptr->shader);
-      }
-      // Mesh.
-      if (maybeAssetGraphic->mesh) {
-        rend_res_request(world, maybeAssetGraphic->mesh);
-        rend_res_add_dependency(resComp, maybeAssetGraphic->mesh);
-      }
-      // Textures.
-      array_ptr_for_t(maybeAssetGraphic->samplers, AssetGraphicSampler, ptr) {
-        rend_res_request(world, ptr->texture);
-        rend_res_add_dependency(resComp, ptr->texture);
-      }
-    }
-    ++resComp->state;
-  } break;
-  case RendResLoadState_DependenciesWait: {
-    EcsView*     dependencyView = ecs_world_view_t(world, ResourceWriteView);
-    EcsIterator* dependencyItr  = ecs_view_itr(dependencyView);
-    dynarray_for_t(&resComp->dependencies, EcsEntityId, dep) {
-      if (!ecs_view_contains(dependencyView, *dep)) {
-        return; // Dependency not initialized yet.
-      }
-      ecs_view_jump(dependencyItr, *dep);
-      RendResComp* dependencyRes = ecs_view_write_t(dependencyItr, RendResComp);
-      rend_res_add_dependent(dependencyRes, entity);
+  if (maybeAssetGraphic) {
+    RendResGraphicComp* graphicComp = ecs_world_add_t(
+        world,
+        entity,
+        RendResGraphicComp,
+        .graphic = rvk_graphic_create(dev, maybeAssetGraphic, id));
 
-      if (dependencyRes->state == RendResLoadState_FinishedFailure) {
-        // Dependency failed to load, also fail this resource.
+    // Add shaders.
+    EcsView* shaderView = ecs_world_view_t(world, ShaderWriteView);
+    array_ptr_for_t(maybeAssetGraphic->shaders, AssetGraphicShader, ptr) {
+      if (!ecs_view_contains(shaderView, ptr->shader)) {
+        log_e("Invalid shader reference", log_param("graphic", fmt_text(id)));
         resComp->state = RendResLoadState_FinishedFailure;
-        return;
+        return false;
       }
-      if (dependencyRes->state != RendResLoadState_FinishedSuccess) {
-        return; // Dependency not finished.
-      }
+      EcsIterator*       shaderItr  = ecs_view_at(shaderView, ptr->shader);
+      RendResShaderComp* shaderComp = ecs_view_write_t(shaderItr, RendResShaderComp);
+      rvk_graphic_shader_add(
+          graphicComp->graphic, shaderComp->shader, ptr->overrides.values, ptr->overrides.count);
     }
-    ++resComp->state;
-  } break;
-  case RendResLoadState_Create: {
-    if (maybeAssetGraphic) {
-      RendResGraphicComp* graphicComp = ecs_world_add_t(
-          world,
-          entity,
-          RendResGraphicComp,
-          .graphic = rvk_graphic_create(dev, maybeAssetGraphic, id));
 
-      // Add shaders.
-      EcsView* shaderView = ecs_world_view_t(world, ShaderWriteView);
-      array_ptr_for_t(maybeAssetGraphic->shaders, AssetGraphicShader, ptr) {
-        if (!ecs_view_contains(shaderView, ptr->shader)) {
-          log_e("Invalid shader reference", log_param("graphic", fmt_text(id)));
-          resComp->state = RendResLoadState_FinishedFailure;
-          return;
-        }
-        EcsIterator*       shaderItr  = ecs_view_at(shaderView, ptr->shader);
-        RendResShaderComp* shaderComp = ecs_view_write_t(shaderItr, RendResShaderComp);
-        rvk_graphic_shader_add(
-            graphicComp->graphic, shaderComp->shader, ptr->overrides.values, ptr->overrides.count);
+    // Add mesh.
+    if (maybeAssetGraphic->mesh) {
+      EcsView* meshView = ecs_world_view_t(world, MeshWriteView);
+      if (!ecs_view_contains(meshView, maybeAssetGraphic->mesh)) {
+        log_e("Invalid mesh reference", log_param("graphic", fmt_text(id)));
+        resComp->state = RendResLoadState_FinishedFailure;
+        return false;
       }
-
-      // Add mesh.
-      if (maybeAssetGraphic->mesh) {
-        EcsView* meshView = ecs_world_view_t(world, MeshWriteView);
-        if (!ecs_view_contains(meshView, maybeAssetGraphic->mesh)) {
-          log_e("Invalid mesh reference", log_param("graphic", fmt_text(id)));
-          resComp->state = RendResLoadState_FinishedFailure;
-          return;
-        }
-        EcsIterator*     meshItr  = ecs_view_at(meshView, maybeAssetGraphic->mesh);
-        RendResMeshComp* meshComp = ecs_view_write_t(meshItr, RendResMeshComp);
-        rvk_graphic_mesh_add(graphicComp->graphic, meshComp->mesh);
-      }
-
-      // Add samplers.
-      EcsView* textureView = ecs_world_view_t(world, TextureWriteView);
-      array_ptr_for_t(maybeAssetGraphic->samplers, AssetGraphicSampler, ptr) {
-        if (!ecs_view_contains(textureView, ptr->texture)) {
-          log_e("Invalid texture reference", log_param("graphic", fmt_text(id)));
-          resComp->state = RendResLoadState_FinishedFailure;
-          return;
-        }
-        EcsIterator*        textureItr  = ecs_view_at(textureView, ptr->texture);
-        RendResTextureComp* textureComp = ecs_view_write_t(textureItr, RendResTextureComp);
-        rvk_graphic_sampler_add(graphicComp->graphic, textureComp->texture, ptr);
-      }
-    } else if (maybeAssetShader) {
-      ecs_world_add_t(
-          world, entity, RendResShaderComp, .shader = rvk_shader_create(dev, maybeAssetShader, id));
-    } else if (maybeAssetMesh) {
-      ecs_world_add_t(
-          world, entity, RendResMeshComp, .mesh = rvk_mesh_create(dev, maybeAssetMesh, id));
-    } else if (maybeAssetTexture) {
-      ecs_world_add_t(
-          world,
-          entity,
-          RendResTextureComp,
-          .texture = rvk_texture_create(dev, maybeAssetTexture, id));
-    } else {
-      diag_crash_msg("Unsupported resource asset type");
+      EcsIterator*     meshItr  = ecs_view_at(meshView, maybeAssetGraphic->mesh);
+      RendResMeshComp* meshComp = ecs_view_write_t(meshItr, RendResMeshComp);
+      rvk_graphic_mesh_add(graphicComp->graphic, meshComp->mesh);
     }
-    ++resComp->state;
-  } break;
-  case RendResLoadState_FinishedSuccess: {
-    asset_release(world, entity);
-    ecs_world_add_empty_t(world, entity, RendResFinishedComp);
-  } break;
-  case RendResLoadState_FinishedFailure: {
-    log_e("Failed to load render resource", log_param("id", fmt_text(id)));
 
-    ecs_utils_maybe_remove_t(world, entity, RendResGraphicComp);
-    ecs_utils_maybe_remove_t(world, entity, RendResShaderComp);
-    ecs_utils_maybe_remove_t(world, entity, RendResMeshComp);
-    ecs_utils_maybe_remove_t(world, entity, RendResTextureComp);
-
-    asset_release(world, entity);
-    ecs_world_add_empty_t(world, entity, RendResFinishedComp);
-  } break;
+    // Add samplers.
+    EcsView* textureView = ecs_world_view_t(world, TextureWriteView);
+    array_ptr_for_t(maybeAssetGraphic->samplers, AssetGraphicSampler, ptr) {
+      if (!ecs_view_contains(textureView, ptr->texture)) {
+        log_e("Invalid texture reference", log_param("graphic", fmt_text(id)));
+        resComp->state = RendResLoadState_FinishedFailure;
+        return false;
+      }
+      EcsIterator*        textureItr  = ecs_view_at(textureView, ptr->texture);
+      RendResTextureComp* textureComp = ecs_view_write_t(textureItr, RendResTextureComp);
+      rvk_graphic_sampler_add(graphicComp->graphic, textureComp->texture, ptr);
+    }
+    return true;
   }
+
+  if (maybeAssetShader) {
+    ecs_world_add_t(
+        world, entity, RendResShaderComp, .shader = rvk_shader_create(dev, maybeAssetShader, id));
+    return true;
+  }
+
+  if (maybeAssetMesh) {
+    ecs_world_add_t(
+        world, entity, RendResMeshComp, .mesh = rvk_mesh_create(dev, maybeAssetMesh, id));
+    return true;
+  }
+
+  if (maybeAssetTexture) {
+    ecs_world_add_t(
+        world,
+        entity,
+        RendResTextureComp,
+        .texture = rvk_texture_create(dev, maybeAssetTexture, id));
+    return true;
+  }
+
+  diag_crash_msg("Unsupported resource asset type");
+}
+
+static void rend_res_finished_success(EcsWorld* world, EcsIterator* resourceItr) {
+  const EcsEntityId entity = ecs_view_entity(resourceItr);
+
+  asset_release(world, entity);
+  ecs_world_add_empty_t(world, entity, RendResFinishedComp);
+}
+
+static void rend_res_finished_failure(EcsWorld* world, EcsIterator* resourceItr) {
+  const EcsEntityId entity = ecs_view_entity(resourceItr);
+  const String      id     = asset_id(ecs_view_read_t(resourceItr, AssetComp));
+
+  log_e("Failed to load render resource", log_param("id", fmt_text(id)));
+
+  ecs_utils_maybe_remove_t(world, entity, RendResGraphicComp);
+  ecs_utils_maybe_remove_t(world, entity, RendResShaderComp);
+  ecs_utils_maybe_remove_t(world, entity, RendResMeshComp);
+  ecs_utils_maybe_remove_t(world, entity, RendResTextureComp);
+
+  asset_release(world, entity);
+  ecs_world_add_empty_t(world, entity, RendResFinishedComp);
 }
 
 /**
@@ -403,7 +428,40 @@ ecs_system_define(RendResLoadSys) {
    */
   EcsView* resourceView = ecs_world_view_t(world, RendResLoadView);
   for (EcsIterator* itr = ecs_view_itr(resourceView); ecs_view_walk(itr);) {
-    rend_res_load(device, world, itr);
+    RendResComp* resComp = ecs_view_write_t(itr, RendResComp);
+    switch (resComp->state) {
+    case RendResLoadState_AssetAcquire: {
+      if (rend_res_asset_acquire(world, itr)) {
+        ++resComp->state;
+      }
+    } break;
+    case RendResLoadState_AssetWait: {
+      if (rend_res_asset_wait(world, itr)) {
+        ++resComp->state;
+      }
+    } break;
+    case RendResLoadState_DependenciesAcquire: {
+      if (rend_res_dependencies_acquire(world, itr)) {
+        ++resComp->state;
+      }
+    } break;
+    case RendResLoadState_DependenciesWait: {
+      if (rend_res_dependencies_wait(world, itr)) {
+        ++resComp->state;
+      }
+    } break;
+    case RendResLoadState_Create: {
+      if (rend_res_create(device, world, itr)) {
+        ++resComp->state;
+      }
+    } break;
+    case RendResLoadState_FinishedSuccess: {
+      rend_res_finished_success(world, itr);
+    } break;
+    case RendResLoadState_FinishedFailure: {
+      rend_res_finished_failure(world, itr);
+    } break;
+    }
   }
 }
 
