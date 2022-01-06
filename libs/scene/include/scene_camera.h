@@ -13,4 +13,9 @@ ecs_comp_extern_public(SceneCameraComp) {
   SceneCameraFlags flags;
 };
 
+ecs_comp_extern_public(SceneCameraMovementComp) {
+  f32  moveSpeed;
+  bool locked;
+};
+
 GeoMatrix scene_camera_proj(const SceneCameraComp*, f32 aspect);

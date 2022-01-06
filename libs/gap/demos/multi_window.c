@@ -21,9 +21,7 @@
  * - Process interupt:  Close all windows.
  */
 
-ecs_view_define(UpdateWindowView) { ecs_access_write(GapWindowComp); }
-
-ecs_module_init(app_module) { ecs_register_view(UpdateWindowView); }
+static const GapVector g_windowSize = {1024, 768};
 
 static void window_update(EcsWorld* world, GapWindowComp* window, const u64 tickCount) {
   const GapVector windowSize = gap_window_param(window, GapParam_WindowSize);
@@ -49,7 +47,7 @@ static void window_update(EcsWorld* world, GapWindowComp* window, const u64 tick
   // Toggle fullscreen with 'F'.
   if (gap_window_key_pressed(window, GapKey_F)) {
     if (gap_window_mode(window) == GapWindowMode_Fullscreen) {
-      gap_window_resize(window, gap_vector(1024, 768), GapWindowMode_Windowed);
+      gap_window_resize(window, g_windowSize, GapWindowMode_Windowed);
     } else {
       gap_window_resize(window, gap_vector(0, 0), GapWindowMode_Fullscreen);
     }
@@ -75,7 +73,7 @@ static void window_update(EcsWorld* world, GapWindowComp* window, const u64 tick
 
   // Create a new window with 'Return'.
   if (gap_window_key_pressed(window, GapKey_Return)) {
-    gap_window_create(world, GapWindowFlags_Default, gap_vector(1024, 768));
+    gap_window_create(world, GapWindowFlags_Default, g_windowSize);
   }
 
   // Resize the window by scrolling.
@@ -88,9 +86,38 @@ static void window_update(EcsWorld* world, GapWindowComp* window, const u64 tick
   }
 }
 
-static int run_app() {
+ecs_comp_define(DemoComp) { u32 tickCount; };
 
-  log_i("App starting", log_param("pid", fmt_int(g_thread_pid)));
+ecs_view_define(UpdateGlobalView) { ecs_access_write(DemoComp); }
+ecs_view_define(UpdateWindowView) { ecs_access_write(GapWindowComp); }
+
+ecs_system_define(DemoUpdateSys) {
+  EcsView*     globalView = ecs_world_view_t(world, UpdateGlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return;
+  }
+  DemoComp* demo = ecs_view_write_t(globalItr, DemoComp);
+  ++demo->tickCount;
+
+  EcsView* resourceView = ecs_world_view_t(world, UpdateWindowView);
+  for (EcsIterator* itr = ecs_view_itr(resourceView); ecs_view_walk(itr);) {
+    GapWindowComp* window = ecs_view_write_t(itr, GapWindowComp);
+    window_update(world, window, demo->tickCount);
+  }
+}
+
+ecs_module_init(app_module) {
+  ecs_register_comp(DemoComp);
+
+  ecs_register_view(UpdateWindowView);
+
+  ecs_register_system(
+      DemoUpdateSys, ecs_register_view(UpdateGlobalView), ecs_register_view(UpdateWindowView));
+}
+
+static int demo_run() {
+  log_i("Demo starting", log_param("pid", fmt_int(g_thread_pid)));
 
   EcsDef* def = def = ecs_def_create(g_alloc_heap);
   gap_register(def);
@@ -99,32 +126,19 @@ static int run_app() {
   EcsWorld*  world  = ecs_world_create(g_alloc_heap, def);
   EcsRunner* runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_DumpGraphDot);
 
-  log_i("App loop running");
-
   gap_window_create(world, GapWindowFlags_Default, gap_vector(1024, 768));
+  ecs_world_add_t(world, ecs_world_global(world), DemoComp);
 
-  u64          tickCount = 0;
-  EcsIterator* windowItr = ecs_view_itr(ecs_world_view_t(world, UpdateWindowView));
   do {
-    for (ecs_view_itr_reset(windowItr); ecs_view_walk(windowItr);) {
-      window_update(world, ecs_view_write_t(windowItr, GapWindowComp), ++tickCount);
-    }
-
     ecs_run_sync(runner);
     thread_sleep(time_second / 30);
   } while (ecs_utils_any(world, UpdateWindowView));
 
-  log_i(
-      "App loop stopped",
-      log_param("ticks", fmt_int(tickCount)),
-      log_param("mem", fmt_size(alloc_stats_total())));
+  log_i("Demo shutdown", log_param("mem", fmt_size(alloc_stats_total())));
 
   ecs_runner_destroy(runner);
   ecs_world_destroy(world);
   ecs_def_destroy(def);
-
-  log_i("App shutdown");
-
   return 0;
 }
 
@@ -146,7 +160,7 @@ int main(const int argc, const char** argv) {
     goto exit;
   }
 
-  exitCode = run_app();
+  exitCode = demo_run();
 
 exit:
   cli_parse_destroy(invoc);

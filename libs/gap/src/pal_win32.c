@@ -101,7 +101,7 @@ static RECT pal_client_rect(const GapWindowId windowId) {
 static RECT pal_window_rect(const GapWindowId windowId) {
   RECT windowRect;
   if (!GetWindowRect((HWND)windowId, &windowRect)) {
-    pal_crash_with_win32_err(string_lit("pal_window_rect"));
+    pal_crash_with_win32_err(string_lit("GetWindowRect"));
   }
   return windowRect;
 }
@@ -602,10 +602,16 @@ void gap_pal_window_cursor_hide(GapPal* pal, const GapWindowId windowId, const b
 }
 
 void gap_pal_window_cursor_set(GapPal* pal, const GapWindowId windowId, GapVector position) {
-  (void)pal;
+  pal_check_thread_ownership(pal);
 
-  const RECT windowRect = pal_window_rect(windowId);
-  SetCursorPos((int)(windowRect.left + position.x), (int)(windowRect.top + position.y));
+  POINT point = {.x = position.x, .y = position.y};
+  if (!ClientToScreen((HWND)windowId, &point)) {
+    pal_crash_with_win32_err(string_lit("ClientToScreen"));
+  }
+  if (!SetCursorPos((int)point.x, (int)point.y)) {
+    pal_crash_with_win32_err(string_lit("SetCursorPos"));
+  }
+  pal_window((GapPal*)pal, windowId)->params[GapParam_CursorPos] = position;
 }
 
 GapNativeWm gap_pal_native_wm() { return GapNativeWm_Win32; }

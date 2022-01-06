@@ -119,8 +119,10 @@ static void window_update(
 
   if (window->flags & GapWindowFlags_CursorLock) {
     const GapVector tgtPos = gap_vector_div(window->params[GapParam_WindowSize], 2);
-    gap_pal_window_cursor_set(platform->pal, window->id, tgtPos);
-    window->params[GapParam_CursorPos] = tgtPos;
+    if (!gap_vector_equal(window->params[GapParam_CursorPos], tgtPos)) {
+      gap_pal_window_cursor_set(platform->pal, window->id, tgtPos);
+      window->params[GapParam_CursorPos] = tgtPos;
+    }
   }
 
   if (window_should_close(window)) {

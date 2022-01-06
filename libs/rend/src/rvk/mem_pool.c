@@ -177,7 +177,14 @@ static void rvk_mem_chunk_destroy(RvkMemChunk* chunk) {
 
   const u32 leakedBytes = chunk->size - rvk_mem_chunk_size_free(chunk);
   if (UNLIKELY(leakedBytes)) {
-    diag_crash_msg("rend mem-pool: {} leaked from chunk", fmt_size(leakedBytes));
+    diag_crash_msg(
+        "rend mem-pool: {} leaked from chunk (id: {}, loc: {}, access: {}, type: {}, size: {})",
+        fmt_size(leakedBytes),
+        fmt_int(chunk->id),
+        fmt_text(rvk_mem_loc_str(chunk->loc)),
+        fmt_text(rvk_mem_access_str(chunk->access)),
+        fmt_int(chunk->memType),
+        fmt_size(chunk->size));
   }
   diag_assert(rvk_mem_chunk_size_occupied(chunk) == 0);
 
