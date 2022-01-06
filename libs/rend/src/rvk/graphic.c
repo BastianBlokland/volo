@@ -17,14 +17,29 @@
 typedef RvkShader* RvkShaderPtr;
 
 #define rvk_desc_global_set 0
-#define rvk_desc_graphic_set 1
-#define rvk_desc_graphic_bind_mesh 0
 #define rvk_desc_instance_set 2
+#define rvk_desc_graphic_set 1
 
 static const u8 g_rendSupportedShaderSets[] = {
     rvk_desc_global_set,
     rvk_desc_graphic_set,
     rvk_desc_instance_set,
+};
+
+static const u32 g_rendSupportedGlobalBindings[rvk_desc_bindings_max] = {
+    (1 << RvkDescKind_UniformBufferDynamic),
+};
+
+static const u32 g_rendSupportedInstanceBindings[rvk_desc_bindings_max] = {
+    (1 << RvkDescKind_UniformBufferDynamic),
+};
+
+static const u32 g_rendSupportedGraphicBindings[rvk_desc_bindings_max] = {
+    (1 << RvkDescKind_StorageBuffer | 1 << RvkDescKind_CombinedImageSampler),
+    (1 << RvkDescKind_CombinedImageSampler),
+    (1 << RvkDescKind_CombinedImageSampler),
+    (1 << RvkDescKind_CombinedImageSampler),
+    (1 << RvkDescKind_CombinedImageSampler),
 };
 
 static const char* rvk_to_null_term_scratch(String str) {
@@ -403,7 +418,7 @@ static void rvk_graphic_set_missing_sampler(RvkGraphic* graphic, const u32 sampl
       tex->image.mipLevels);
 }
 
-static bool rvk_graphic_validate_shaders(RvkGraphic* graphic) {
+static bool rvk_graphic_validate_shaders(const RvkGraphic* graphic) {
   VkShaderStageFlagBits foundStages = 0;
   array_for_t(graphic->shaders, RvkGraphicShader, itr) {
     if (itr->shader) {
@@ -434,6 +449,36 @@ static bool rvk_graphic_validate_shaders(RvkGraphic* graphic) {
   if (!(foundStages & VK_SHADER_STAGE_FRAGMENT_BIT)) {
     log_e("Vertex shader missing", log_param("graphic", fmt_text(graphic->dbgName)));
     return false;
+  }
+  return true;
+}
+
+static bool rend_graphic_validate_set(
+    const RvkGraphic*  graphic,
+    const u32          set,
+    const RvkDescMeta* setBindings,
+    const u32          supportedKinds[rvk_desc_bindings_max]) {
+
+  for (u32 binding = 0; binding != rvk_desc_bindings_max; binding++) {
+    const BitSet      supportedBits = bitset_from_var(supportedKinds[binding]);
+    const RvkDescKind boundKind     = setBindings->bindings[binding];
+    if (UNLIKELY(boundKind && !bitset_test(supportedBits, boundKind))) {
+
+      // Gather a list of the supported kinds.
+      FormatArg supported[16]  = {0};
+      usize     supportedCount = 0;
+      bitset_for(supportedBits, supportedKind) {
+        supported[supportedCount++] = fmt_text(rvk_desc_kind_str((RvkDescKind)supportedKind));
+      }
+      log_e(
+          "Unsupported shader binding",
+          log_param("graphic", fmt_text(graphic->dbgName)),
+          log_param("set", fmt_int(set)),
+          log_param("binding", fmt_int(binding)),
+          log_param("found", fmt_text(rvk_desc_kind_str(setBindings->bindings[binding]))),
+          log_param("supported", fmt_list(supported)));
+      return false;
+    }
   }
   return true;
 }
@@ -559,25 +604,38 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, VkRender
       graphic->flags |= RvkGraphicFlags_Invalid;
     }
 
+    // Prepare global set bindings.
     const RvkDescMeta globalDescMeta = rvk_graphic_desc_meta(graphic, rvk_desc_global_set);
+    if (UNLIKELY(!rend_graphic_validate_set(
+            graphic, rvk_desc_global_set, &globalDescMeta, g_rendSupportedGlobalBindings))) {
+      graphic->flags |= RvkGraphicFlags_Invalid;
+    }
     if (globalDescMeta.bindings[0] == RvkDescKind_UniformBufferDynamic) {
       graphic->flags |= RvkGraphicFlags_GlobalData;
-      // TODO: Verify that the other bindings in the global-set are unused.
     }
+
+    // Prepare instance set bindings.
     const RvkDescMeta instanceDescMeta = rvk_graphic_desc_meta(graphic, rvk_desc_instance_set);
+    if (UNLIKELY(!rend_graphic_validate_set(
+            graphic, rvk_desc_instance_set, &instanceDescMeta, g_rendSupportedInstanceBindings))) {
+      graphic->flags |= RvkGraphicFlags_Invalid;
+    }
     if (instanceDescMeta.bindings[0] == RvkDescKind_UniformBufferDynamic) {
       graphic->flags |= RvkGraphicFlags_InstanceData;
-      // TODO: Verify that the other bindings in the instance-set are unused.
     }
 
+    // Prepare graphic set bindings.
     const RvkDescMeta graphicDescMeta = rvk_graphic_desc_meta(graphic, rvk_desc_graphic_set);
-    graphic->descSet                  = rvk_desc_alloc(graphic->device->descPool, &graphicDescMeta);
+    if (UNLIKELY(!rend_graphic_validate_set(
+            graphic, rvk_desc_graphic_set, &graphicDescMeta, g_rendSupportedGraphicBindings))) {
+      graphic->flags |= RvkGraphicFlags_Invalid;
+    }
+    graphic->descSet = rvk_desc_alloc(graphic->device->descPool, &graphicDescMeta);
 
     // Attach mesh.
-    if (graphicDescMeta.bindings[rvk_desc_graphic_bind_mesh] == RvkDescKind_StorageBuffer) {
+    if (graphicDescMeta.bindings[0] == RvkDescKind_StorageBuffer) {
       if (LIKELY(graphic->mesh)) {
-        rvk_desc_set_attach_buffer(
-            graphic->descSet, rvk_desc_graphic_bind_mesh, &graphic->mesh->vertexBuffer, 0);
+        rvk_desc_set_attach_buffer(graphic->descSet, 0, &graphic->mesh->vertexBuffer, 0);
       } else {
         log_e("Shader requires a mesh", log_param("graphic", fmt_text(graphic->dbgName)));
         graphic->flags |= RvkGraphicFlags_Invalid;
