@@ -12,7 +12,8 @@
 #include "repository_internal.h"
 #include "transfer_internal.h"
 
-#define rend_debug_verbose true
+#define rend_debug_validation true
+#define rend_debug_verbose false
 
 static const RvkDebugFlags g_debugFlags       = rend_debug_verbose ? RvkDebugFlags_Verbose : 0;
 static const String        g_validationLayer  = string_static("VK_LAYER_KHRONOS_validation");
@@ -336,7 +337,7 @@ RvkDevice* rvk_device_create() {
       .queueSubmitMutex = thread_mutex_create(g_alloc_heap),
   };
 
-  if (rvk_instance_layer_supported(g_validationLayer)) {
+  if (rend_debug_validation && rvk_instance_layer_supported(g_validationLayer)) {
     dev->flags |= RvkDeviceFlags_Validation;
   }
   dev->vkInst             = rvk_instance_create(&dev->vkAlloc, dev->flags);
