@@ -715,6 +715,8 @@ void gap_pal_window_cursor_hide(GapPal* pal, const GapWindowId windowId, const b
 void gap_pal_window_cursor_set(GapPal* pal, const GapWindowId windowId, GapVector position) {
   xcb_warp_pointer(
       pal->xcbConnection, XCB_NONE, (xcb_window_t)windowId, 0, 0, 0, 0, position.x, position.y);
+
+  pal_window((GapPal*)pal, windowId)->params[GapParam_CursorPos] = position;
 }
 
 GapNativeWm gap_pal_native_wm() { return GapNativeWm_Xcb; }
