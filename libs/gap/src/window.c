@@ -133,8 +133,8 @@ static void window_update(
   window->requests = 0;
 }
 
-ecs_view_define(GapPlatformView) { ecs_access_write(GapPlatformComp); };
-ecs_view_define(GapWindowView) { ecs_access_write(GapWindowComp); };
+ecs_view_define(GapPlatformView) { ecs_access_write(GapPlatformComp); }
+ecs_view_define(GapWindowView) { ecs_access_write(GapWindowComp); }
 
 ecs_system_define(GapWindowUpdateSys) {
   GapPlatformComp* platform = ecs_utils_write_first_t(world, GapPlatformView, GapPlatformComp);

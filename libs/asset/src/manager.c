@@ -112,9 +112,9 @@ static bool asset_manager_load(
 ecs_view_define(DirtyAssetView) {
   ecs_access_write(AssetComp);
   ecs_access_write(AssetDirtyComp);
-};
+}
 
-ecs_view_define(GlobalView) { ecs_access_write(AssetManagerComp); };
+ecs_view_define(GlobalView) { ecs_access_write(AssetManagerComp); }
 
 ecs_system_define(AssetUpdateDirtySys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);

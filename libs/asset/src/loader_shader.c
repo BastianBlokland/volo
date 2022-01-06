@@ -25,7 +25,7 @@ static void ecs_destruct_shader_source_comp(void* data) {
 ecs_view_define(UnloadView) {
   ecs_access_with(AssetShaderComp);
   ecs_access_without(AssetLoadedComp);
-};
+}
 
 /**
  * Remove any shader-asset components for unloaded assets.

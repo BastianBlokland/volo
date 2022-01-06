@@ -15,7 +15,7 @@ static void ecs_destruct_mesh_comp(void* data) {
 ecs_view_define(UnloadView) {
   ecs_access_with(AssetMeshComp);
   ecs_access_without(AssetLoadedComp);
-};
+}
 
 /**
  * Remove any mesh-asset components for unloaded assets.

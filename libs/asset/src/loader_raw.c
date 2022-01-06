@@ -16,7 +16,7 @@ ecs_view_define(UnloadView) {
   ecs_access_with(AssetRawComp);
   ecs_access_with(AssetRawSourceComp);
   ecs_access_without(AssetLoadedComp);
-};
+}
 
 /**
  * Remove any raw-asset components for unloaded assets.
