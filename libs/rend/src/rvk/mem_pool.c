@@ -223,21 +223,29 @@ static RvkMem rvk_mem_chunk_alloc(RvkMemChunk* chunk, const u32 size, const u32 
       continue;
     }
 
+    // Either shrink the block to 'remove' the space, or remove the block entirely.
+    if (remainingSize > 0) {
+      block->offset += paddedSize;
+      block->size = (u32)remainingSize;
+    } else {
+      dynarray_remove_unordered(&chunk->freeBlocks, i, 1);
+    }
+
     if (padding) {
       // Add the lost padding space as a new block.
       *dynarray_push_t(&chunk->freeBlocks, RvkMem) = (RvkMem){.offset = offset, .size = padding};
     }
 
-    // Either shrink the block to 'remove' the space, or remove the block entirely.
-    if (remainingSize > 0) {
-      block->offset += paddedSize;
-      block->size = remainingSize;
-    } else {
-      dynarray_remove_unordered(&chunk->freeBlocks, i, 1);
-    }
-
 #ifdef VOLO_RVK_MEM_DEBUG
-    diag_assert(dbgFreeSize - rvk_mem_chunk_size_free(chunk) == size);
+    if (UNLIKELY(dbgFreeSize - rvk_mem_chunk_size_free(chunk) != size)) {
+      diag_crash_msg(
+          "Memory-pool corrupt after allocate (size: {}, chunk: {}, pre-alloc: {}, post-alloc: {})",
+          fmt_int(size),
+          fmt_int(chunk->id),
+          fmt_int(remainingSize),
+          fmt_int(dbgFreeSize),
+          fmt_int(rvk_mem_chunk_size_free(chunk)));
+    }
 #endif
 
 #ifdef VOLO_RVK_MEM_LOGGING
@@ -259,9 +267,11 @@ static void rvk_mem_chunk_free(RvkMemChunk* chunk, const RvkMem mem) {
   diag_assert(mem.chunk == chunk);
 
 #ifdef VOLO_RVK_MEM_DEBUG
-  // Check that this block was not freed before.
   dynarray_for_t(&chunk->freeBlocks, RvkMem, freeBlock) {
-    diag_assert(!rvk_mem_overlap(*freeBlock, mem));
+    if (UNLIKELY(rvk_mem_overlap(*freeBlock, mem))) {
+      diag_crash_msg(
+          "Memory-pool double-free (size: {}, chunk: {})", fmt_int(mem.size), fmt_int(chunk->id));
+    }
   }
   const u32 dbgFreeSize = rvk_mem_chunk_size_free(chunk);
 #endif
@@ -297,7 +307,14 @@ Done:
 #endif
 
 #ifdef VOLO_RVK_MEM_DEBUG
-  diag_assert(rvk_mem_chunk_size_free(chunk) - dbgFreeSize == mem.size);
+  if (UNLIKELY(rvk_mem_chunk_size_free(chunk) - dbgFreeSize != mem.size)) {
+    diag_crash_msg(
+        "Memory-pool corrupt after free (size: {}, chunk: {}, pre-free: {}, post-free: {})",
+        fmt_int(mem.size),
+        fmt_int(chunk->id),
+        fmt_int(dbgFreeSize),
+        fmt_int(rvk_mem_chunk_size_free(chunk)));
+  }
 #endif
 }
 

@@ -44,10 +44,10 @@ static VkRenderPass rvk_renderpass_create(RvkDevice* dev, const RvkPassFlags fla
   u32                     colorRefCount = 0;
 
   attachments[attachmentCount++] = (VkAttachmentDescription){
-      .format  = g_attachColorFormat,
-      .samples = VK_SAMPLE_COUNT_1_BIT,
-      .loadOp  = (flags & RvkPassFlags_ClearColor) ? VK_ATTACHMENT_LOAD_OP_CLEAR
-                                                  : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+      .format         = g_attachColorFormat,
+      .samples        = VK_SAMPLE_COUNT_1_BIT,
+      .loadOp         = (flags & RvkPassFlags_ClearColor) ? VK_ATTACHMENT_LOAD_OP_CLEAR
+                                                          : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
       .storeOp        = VK_ATTACHMENT_STORE_OP_STORE,
       .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
       .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
@@ -60,10 +60,10 @@ static VkRenderPass rvk_renderpass_create(RvkDevice* dev, const RvkPassFlags fla
   };
 
   attachments[attachmentCount++] = (VkAttachmentDescription){
-      .format  = dev->vkDepthFormat,
-      .samples = VK_SAMPLE_COUNT_1_BIT,
-      .loadOp  = (flags & RvkPassFlags_ClearDepth) ? VK_ATTACHMENT_LOAD_OP_CLEAR
-                                                  : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+      .format         = dev->vkDepthFormat,
+      .samples        = VK_SAMPLE_COUNT_1_BIT,
+      .loadOp         = (flags & RvkPassFlags_ClearDepth) ? VK_ATTACHMENT_LOAD_OP_CLEAR
+                                                          : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
       .storeOp        = VK_ATTACHMENT_STORE_OP_DONT_CARE,
       .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
       .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
@@ -81,7 +81,7 @@ static VkRenderPass rvk_renderpass_create(RvkDevice* dev, const RvkPassFlags fla
       .pDepthStencilAttachment = &depthAttachmentRef,
   };
   const VkSubpassDependency dependencies[] = {
-      // Synchronize with the previous invocation run of this renderpass.
+      // Synchronize with the previous run of this renderpass.
       {
           .srcSubpass   = VK_SUBPASS_EXTERNAL,
           .dstSubpass   = 0,
