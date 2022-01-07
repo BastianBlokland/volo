@@ -69,8 +69,8 @@ macro(set_gcc_compile_options)
 
   # Setup warning flags.
   add_compile_options(-Wall -Wextra -Werror -Wshadow)
-  add_compile_options(-Wno-override-init -Wno-missing-field-initializers -Wno-type-limits
-                      -Wno-implicit-fallthrough -Wno-clobbered -Wno-missing-braces)
+  add_compile_options(-Wno-missing-field-initializers -Wno-override-init -Wno-implicit-fallthrough
+                      -Wno-clobbered -Wno-missing-braces -Wno-type-limits -Wno-maybe-uninitialized)
 
   # Disable strict aliasing as its a bit dangerous (TODO: Investigate the perf impact).
   add_compile_options(-fno-strict-aliasing)
