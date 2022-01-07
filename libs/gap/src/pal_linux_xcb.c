@@ -614,8 +614,12 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 
 void gap_pal_window_destroy(GapPal* pal, const GapWindowId windowId) {
 
-  xcb_destroy_window(pal->xcbConnection, (xcb_window_t)windowId);
-  xcb_flush(pal->xcbConnection);
+  const xcb_void_cookie_t cookie =
+      xcb_destroy_window_checked(pal->xcbConnection, (xcb_window_t)windowId);
+  const xcb_generic_error_t* err = xcb_request_check(pal->xcbConnection, cookie);
+  if (UNLIKELY(err)) {
+    diag_crash_msg("xcb_destroy_window(), err: {}", fmt_int(err->error_code));
+  }
 
   for (usize i = 0; i != pal->windows.size; ++i) {
     if (dynarray_at_t(&pal->windows, i, GapPalWindow)->id == windowId) {
@@ -649,7 +653,7 @@ const GapKeySet* gap_pal_window_keys_down(const GapPal* pal, const GapWindowId w
 }
 
 void gap_pal_window_title_set(GapPal* pal, const GapWindowId windowId, const String title) {
-  xcb_change_property(
+  const xcb_void_cookie_t cookie = xcb_change_property_checked(
       pal->xcbConnection,
       XCB_PROP_MODE_REPLACE,
       (xcb_window_t)windowId,
@@ -658,7 +662,10 @@ void gap_pal_window_title_set(GapPal* pal, const GapWindowId windowId, const Str
       8,
       (u32)title.size,
       title.ptr);
-  xcb_flush(pal->xcbConnection);
+  const xcb_generic_error_t* err = xcb_request_check(pal->xcbConnection, cookie);
+  if (UNLIKELY(err)) {
+    diag_crash_msg("xcb_change_property(), err: {}", fmt_int(err->error_code));
+  }
 }
 
 void gap_pal_window_resize(
@@ -720,7 +727,7 @@ void gap_pal_window_cursor_hide(GapPal* pal, const GapWindowId windowId, const b
 
     const xcb_void_cookie_t cookie =
         xcb_xfixes_hide_cursor_checked(pal->xcbConnection, (xcb_window_t)windowId);
-    xcb_generic_error_t* err = xcb_request_check(pal->xcbConnection, cookie);
+    const xcb_generic_error_t* err = xcb_request_check(pal->xcbConnection, cookie);
     if (UNLIKELY(err)) {
       diag_crash_msg("xcb_xfixes_hide_cursor(), err: {}", fmt_int(err->error_code));
     }
@@ -730,7 +737,7 @@ void gap_pal_window_cursor_hide(GapPal* pal, const GapWindowId windowId, const b
 
     const xcb_void_cookie_t cookie =
         xcb_xfixes_show_cursor_checked(pal->xcbConnection, (xcb_window_t)windowId);
-    xcb_generic_error_t* err = xcb_request_check(pal->xcbConnection, cookie);
+    const xcb_generic_error_t* err = xcb_request_check(pal->xcbConnection, cookie);
     if (UNLIKELY(err)) {
       diag_crash_msg("xcb_xfixes_show_cursor(), err: {}", fmt_int(err->error_code));
     }
@@ -745,8 +752,12 @@ void gap_pal_window_cursor_capture(GapPal* pal, const GapWindowId windowId, cons
 }
 
 void gap_pal_window_cursor_set(GapPal* pal, const GapWindowId windowId, GapVector position) {
-  xcb_warp_pointer(
+  const xcb_void_cookie_t cookie = xcb_warp_pointer_checked(
       pal->xcbConnection, XCB_NONE, (xcb_window_t)windowId, 0, 0, 0, 0, position.x, position.y);
+  const xcb_generic_error_t* err = xcb_request_check(pal->xcbConnection, cookie);
+  if (UNLIKELY(err)) {
+    diag_crash_msg("xcb_warp_pointer(), err: {}", fmt_int(err->error_code));
+  }
 
   pal_window((GapPal*)pal, windowId)->params[GapParam_CursorPos] = position;
 }
