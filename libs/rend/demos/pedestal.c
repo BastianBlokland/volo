@@ -12,6 +12,7 @@
 #include "rend.h"
 #include "scene_camera.h"
 #include "scene_register.h"
+#include "scene_time.h"
 #include "scene_transform.h"
 #include "scene_velocity.h"
 
@@ -91,9 +92,10 @@ ecs_comp_define(DemoComp) {
 ecs_view_define(UpdateGlobalView) {
   ecs_access_write(AssetManagerComp);
   ecs_access_write(DemoComp);
+  ecs_access_read(SceneTimeComp);
 }
 
-ecs_view_define(UpdateWindowView) { ecs_access_read(GapWindowComp); }
+ecs_view_define(UpdateWindowView) { ecs_access_write(GapWindowComp); }
 
 ecs_system_define(DemoUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, UpdateGlobalView);
@@ -101,16 +103,31 @@ ecs_system_define(DemoUpdateSys) {
   if (!globalItr) {
     return;
   }
-  AssetManagerComp* assets = ecs_view_write_t(globalItr, AssetManagerComp);
-  DemoComp*         demo   = ecs_view_write_t(globalItr, DemoComp);
+  DemoComp*            demo   = ecs_view_write_t(globalItr, DemoComp);
+  AssetManagerComp*    assets = ecs_view_write_t(globalItr, AssetManagerComp);
+  const SceneTimeComp* time   = ecs_view_read_t(globalItr, SceneTimeComp);
   if (!demo->initialized) {
+    log_i("Initializing demo");
+
     demo_add_sky(world, assets);
     demo_add_grid(world, assets);
     demo->subject     = demo_add_subject(world, assets, g_subjectGraphics[0]);
     demo->initialized = true;
   }
-  const GapWindowComp* win = ecs_utils_read_t(world, UpdateWindowView, demo->window, GapWindowComp);
-  if (gap_window_key_pressed(win, GapKey_Space)) {
+  GapWindowComp* window = ecs_utils_write_t(world, UpdateWindowView, demo->window, GapWindowComp);
+
+  // Update window title.
+  gap_window_title_set(
+      window,
+      fmt_write_scratch(
+          "Volo Pedestal {>4} hz {>8} ram",
+          fmt_float(1.0f / (time->delta / (f32)time_second), .maxDecDigits = 0),
+          fmt_size(alloc_stats_total())));
+
+  // Change subject on input.
+  if (gap_window_key_pressed(window, GapKey_Space)) {
+    log_i("Changing subject", log_param("index", fmt_int(demo->subjectIndex)));
+
     ecs_world_entity_destroy(world, demo->subject);
     demo->subjectIndex = (demo->subjectIndex + 1) % array_elems(g_subjectGraphics);
     demo->subject      = demo_add_subject(world, assets, g_subjectGraphics[demo->subjectIndex]);

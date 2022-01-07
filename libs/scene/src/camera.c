@@ -1,5 +1,6 @@
 #include "ecs_world.h"
 #include "gap_window.h"
+#include "log.h"
 #include "scene_camera.h"
 #include "scene_time.h"
 #include "scene_transform.h"
@@ -65,6 +66,7 @@ ecs_system_define(SceneCameraMovementSys) {
       } else {
         gap_window_flags_set(win, GapWindowFlags_CursorLock | GapWindowFlags_CursorHide);
       }
+      log_i("Update camera lock", log_param("locked", fmt_bool(move->locked)));
       move->locked ^= true;
     }
 
