@@ -553,9 +553,13 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 
   if (size.width <= 0) {
     size.width = pal->xcbScreen->width_in_pixels;
+  } else if (size.width < pal_window_min_width) {
+    size.width = pal_window_min_width;
   }
   if (size.height <= 0) {
     size.height = pal->xcbScreen->height_in_pixels;
+  } else if (size.height < pal_window_min_height) {
+    size.height = pal_window_min_height;
   }
 
   const xcb_cw_t valuesMask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
@@ -675,11 +679,15 @@ void gap_pal_window_resize(
       log_param("fullscreen", fmt_bool(fullscreen)));
 
   if (fullscreen) {
+    window->flags |= GapPalWindowFlags_Fullscreen;
+
     // TODO: Investigate supporting different sizes in fullscreen, this requires actually changing
     // the system display-adapter settings.
     pal_xcb_wm_state_update(pal, windowId, pal->xcbWmStateFullscreenAtom, true);
     pal_xcb_bypass_compositor(pal, windowId, true);
   } else {
+    window->flags &= ~GapPalWindowFlags_Fullscreen;
+
     pal_xcb_wm_state_update(pal, windowId, pal->xcbWmStateFullscreenAtom, false);
     pal_xcb_bypass_compositor(pal, windowId, false);
 
