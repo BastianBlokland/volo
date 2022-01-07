@@ -69,14 +69,21 @@ macro(set_gcc_compile_options)
 
   # Setup warning flags.
   add_compile_options(-Wall -Wextra -Werror -Wshadow)
-  add_compile_options(-Wno-override-init -Wno-missing-field-initializers -Wno-type-limits
-                      -Wno-implicit-fallthrough -Wno-clobbered -Wno-missing-braces)
+  add_compile_options(-Wno-missing-field-initializers -Wno-override-init -Wno-implicit-fallthrough
+                      -Wno-clobbered -Wno-missing-braces -Wno-type-limits -Wno-maybe-uninitialized)
+
+  # Disable strict aliasing as its a bit dangerous (TODO: Investigate the perf impact).
+  add_compile_options(-fno-strict-aliasing)
 
   # Enable output of f16c (f32 <-> f16 converions)
   add_compile_options(-mf16c)
 
-  # TODO: Tie these debug options to a configuration knob.
+  # Optimization settings.
+  add_compile_options(-O3)
+
+  # Debug options.
   add_compile_options(-g -fno-omit-frame-pointer)
+
 endmacro(set_gcc_compile_options)
 
 #
@@ -88,13 +95,19 @@ macro(set_clang_compile_options)
   # Setup warning flags.
   add_compile_options(-Wall -Wextra -Werror -Wshadow -Wgnu-empty-initializer -Wconversion)
   add_compile_options(-Wno-initializer-overrides -Wno-unused-value -Wno-missing-braces
-  -Wno-sign-conversion -Wno-implicit-int-float-conversion
-  -Wno-implicit-int-conversion -Wno-missing-field-initializers)
+                      -Wno-sign-conversion -Wno-implicit-int-float-conversion
+                      -Wno-implicit-int-conversion -Wno-missing-field-initializers)
+
+  # Disable strict aliasing as its a bit dangerous (TODO: Investigate the perf impact).
+  add_compile_options(-fno-strict-aliasing)
 
   # Enable output of f16c (f32 <-> f16 converions)
   add_compile_options(-mf16c)
 
-  # TODO: Tie these debug options to a configuration knob.
+  # Optimization settings.
+  add_compile_options(-O3)
+
+  # Debug options.
   add_compile_options(-g -fno-omit-frame-pointer)
 
   # Enable various clang sanitizers on supported platforms.
@@ -138,9 +151,12 @@ macro(set_msvc_compile_options)
   # writing to the same pdb.
   add_compile_options(/FS)
 
-  # TODO: Tie these debug options to a configuration knob.
-  # Output debug symbols in seperate pdb files.
+  # Optimization settings.
+  add_compile_options(/O2)
+
+  # Debug options.
   add_compile_options(/Zi)
+
 endmacro(set_msvc_compile_options)
 
 #
