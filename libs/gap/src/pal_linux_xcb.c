@@ -746,6 +746,11 @@ void gap_pal_window_cursor_hide(GapPal* pal, const GapWindowId windowId, const b
 }
 
 void gap_pal_window_cursor_capture(GapPal* pal, const GapWindowId windowId, const bool captured) {
+  /**
+   * Not implemented for xcb.
+   * In x11 you can still set the cursor position after the mouse leaves your window so in general
+   * there isn't much need for this feature.
+   */
   (void)pal;
   (void)windowId;
   (void)captured;
