@@ -370,10 +370,10 @@ GapPal* gap_pal_create(Allocator* alloc) {
 
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){
-             .alloc          = alloc,
-             .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
-             .moduleInstance = instance,
-             .owningThreadId = g_thread_tid,
+      .alloc          = alloc,
+      .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
+      .moduleInstance = instance,
+      .owningThreadId = g_thread_tid,
   };
 
   MAYBE_UNUSED const GapVector screenSize =
@@ -448,7 +448,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
     pal_crash_with_win32_err(string_lit("RegisterClassEx"));
   }
 
-  const GapVector position = gap_vector(screenWidth / 2 - size.x, screenHeight / 2 - size.y);
+  const GapVector position = gap_vector((screenWidth - size.x) / 2, (screenHeight - size.y) / 2);
   const RECT      desiredWindowRect = pal_client_to_window_rect(position, size, g_winStyle);
   const HWND      windowHandle      = CreateWindow(
       className.ptr,
