@@ -90,6 +90,7 @@ ecs_comp_define(DemoComp) {
   EcsEntityId window;
   u32         subjectIndex;
   EcsEntityId subject;
+  f32         updateFreq;
 };
 
 ecs_view_define(UpdateGlobalView) {
@@ -120,12 +121,15 @@ ecs_system_define(DemoUpdateSys) {
   }
   GapWindowComp* window = ecs_utils_write_t(world, UpdateWindowView, demo->window, GapWindowComp);
 
+  const f32 deltaSeconds = time->delta / (f32)time_second;
+  demo->updateFreq += (1.0f / deltaSeconds - demo->updateFreq) * 0.05f;
+
   // Update window title.
   gap_window_title_set(
       window,
       fmt_write_scratch(
           "Volo Pedestal {>4} hz {>8} ram",
-          fmt_float(1.0f / (time->delta / (f32)time_second), .maxDecDigits = 0),
+          fmt_float(demo->updateFreq, .maxDecDigits = 0),
           fmt_size(alloc_stats_total())));
 
   // Change subject on input.
