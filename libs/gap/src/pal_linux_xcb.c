@@ -24,6 +24,10 @@ typedef enum {
   GapPalXcbExtFlags_Icccm  = 1 << 2,
 } GapPalXcbExtFlags;
 
+typedef enum {
+  GapPalFlags_CursorHidden = 1 << 0,
+} GapPalFlags;
+
 typedef struct {
   GapWindowId       id;
   GapVector         params[GapParam_Count];
@@ -38,7 +42,7 @@ struct sGapPal {
   xcb_connection_t* xcbConnection;
   xcb_screen_t*     xcbScreen;
   GapPalXcbExtFlags extensions;
-  bool              cursorHidden;
+  GapPalFlags       flags;
 
   xcb_atom_t xcbProtoMsgAtom;
   xcb_atom_t xcbDeleteMsgAtom;
@@ -660,6 +664,9 @@ void gap_pal_window_title_set(GapPal* pal, const GapWindowId windowId, const Str
 void gap_pal_window_resize(
     GapPal* pal, const GapWindowId windowId, GapVector size, const bool fullscreen) {
 
+  GapPalWindow* window = pal_maybe_window(pal, windowId);
+  diag_assert(window);
+
   if (size.width <= 0) {
     size.width = pal->xcbScreen->width_in_pixels;
   } else if (size.width < pal_window_min_width) {
@@ -709,15 +716,19 @@ void gap_pal_window_cursor_hide(GapPal* pal, const GapWindowId windowId, const b
     return;
   }
 
-  log_d("Updating cursor visibility", log_param("hidden", fmt_bool(hidden)));
-
-  if (hidden && !pal->cursorHidden) {
+  if (hidden && !(pal->flags & GapPalFlags_CursorHidden)) {
     xcb_xfixes_hide_cursor(pal->xcbConnection, (xcb_window_t)windowId);
-    pal->cursorHidden = true;
-  } else if (!hidden && pal->cursorHidden) {
+    pal->flags |= GapPalFlags_CursorHidden;
+  } else if (!hidden && pal->flags & GapPalFlags_CursorHidden) {
     xcb_xfixes_show_cursor(pal->xcbConnection, (xcb_window_t)windowId);
-    pal->cursorHidden = false;
+    pal->flags &= ~GapPalFlags_CursorHidden;
   }
+}
+
+void gap_pal_window_cursor_capture(GapPal* pal, const GapWindowId windowId, const bool captured) {
+  (void)pal;
+  (void)windowId;
+  (void)captured;
 }
 
 void gap_pal_window_cursor_set(GapPal* pal, const GapWindowId windowId, GapVector position) {
