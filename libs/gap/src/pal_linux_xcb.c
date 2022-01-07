@@ -717,10 +717,23 @@ void gap_pal_window_cursor_hide(GapPal* pal, const GapWindowId windowId, const b
   }
 
   if (hidden && !(pal->flags & GapPalFlags_CursorHidden)) {
-    xcb_xfixes_hide_cursor(pal->xcbConnection, (xcb_window_t)windowId);
+
+    const xcb_void_cookie_t cookie =
+        xcb_xfixes_hide_cursor_checked(pal->xcbConnection, (xcb_window_t)windowId);
+    xcb_generic_error_t* err = xcb_request_check(pal->xcbConnection, cookie);
+    if (UNLIKELY(err)) {
+      diag_crash_msg("xcb_xfixes_hide_cursor(), err: {}", fmt_int(err->error_code));
+    }
     pal->flags |= GapPalFlags_CursorHidden;
+
   } else if (!hidden && pal->flags & GapPalFlags_CursorHidden) {
-    xcb_xfixes_show_cursor(pal->xcbConnection, (xcb_window_t)windowId);
+
+    const xcb_void_cookie_t cookie =
+        xcb_xfixes_show_cursor_checked(pal->xcbConnection, (xcb_window_t)windowId);
+    xcb_generic_error_t* err = xcb_request_check(pal->xcbConnection, cookie);
+    if (UNLIKELY(err)) {
+      diag_crash_msg("xcb_xfixes_show_cursor(), err: {}", fmt_int(err->error_code));
+    }
     pal->flags &= ~GapPalFlags_CursorHidden;
   }
 }
