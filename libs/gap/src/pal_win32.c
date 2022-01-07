@@ -273,9 +273,9 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
     pal_event_close(window);
     return true;
   case WM_MOVE: {
-    const GapVector newPosition = gap_vector(LOWORD(lParam), HIWORD(lParam));
+    const GapVector newPos = gap_vector((i32)(short)LOWORD(lParam), (i32)(short)HIWORD(lParam));
     if (!(window->flags & GapPalWindowFlags_Fullscreen)) {
-      window->lastWindowedPosition = newPosition;
+      window->lastWindowedPosition = newPos;
     }
     return true;
   }
