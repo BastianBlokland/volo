@@ -6,12 +6,12 @@
         {
           "name": "scale",
           "binding": 0,
-          "value": 3.5
+          "value": 3
         },
         {
           "name": "offsetY",
           "binding": 2,
-          "value": 0.6
+          "value": 0.3
         }
       ]
     },
