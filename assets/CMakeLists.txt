@@ -31,6 +31,12 @@ if(${EXTERNAL_ASSETS})
     corset/corset.obj
     corset/corset_diff.tga
     corset/corset_nrm.tga
+    cayo/cayo.obj
+    cayo/cayo_diff.tga
+    cayo/cayo_nrm.tga
+    pedestal/pedestal.obj
+    pedestal/pedestal_diff.tga
+    pedestal/pedestal_nrm.tga
     testimages/ducks.tga)
 endif()
 
