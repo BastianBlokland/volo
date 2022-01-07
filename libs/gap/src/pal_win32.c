@@ -546,8 +546,19 @@ const GapKeySet* gap_pal_window_keys_down(const GapPal* pal, const GapWindowId w
 void gap_pal_window_title_set(GapPal* pal, const GapWindowId windowId, const String title) {
   pal_check_thread_ownership(pal);
 
-  const Mem titleWideStr = winutils_to_widestr_scratch(title);
-  if (!SetWindowText((HWND)windowId, (const wchar_t*)titleWideStr.ptr)) {
+  const usize wideTitleBytes = winutils_to_widestr_size(title);
+  if (UNLIKELY(wideTitleBytes > usize_kibibyte)) {
+    log_w(
+        "Window title size exceeds limit",
+        log_param("size", fmt_size(wideTitleBytes)),
+        log_param("limit", fmt_size(usize_kibibyte)));
+    return;
+  }
+
+  const Mem buffer = mem_stack(wideTitleBytes);
+  winutils_to_widestr(buffer, title);
+
+  if (!SetWindowText((HWND)windowId, (const wchar_t*)buffer.ptr)) {
     pal_crash_with_win32_err(string_lit("SetWindowText"));
   }
 }
@@ -604,6 +615,7 @@ void gap_pal_window_resize(
 }
 
 void gap_pal_window_cursor_hide(GapPal* pal, const GapWindowId windowId, const bool hidden) {
+  pal_check_thread_ownership(pal);
   (void)windowId;
 
   if (hidden && !(pal->flags & GapPalFlags_CursorHidden)) {
@@ -616,6 +628,7 @@ void gap_pal_window_cursor_hide(GapPal* pal, const GapWindowId windowId, const b
 }
 
 void gap_pal_window_cursor_capture(GapPal* pal, const GapWindowId windowId, const bool captured) {
+  pal_check_thread_ownership(pal);
 
   if (captured && !(pal->flags & GapPalFlags_CursorCaptured)) {
     SetCapture((HWND)windowId);
