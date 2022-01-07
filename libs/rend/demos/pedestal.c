@@ -32,6 +32,7 @@ static const String    g_subjectGraphics[]  = {
     string_static("graphics/cube.gra"),
     string_static("graphics/sphere.gra"),
     string_static("graphics/demo_bunny.gra"),
+    string_static("graphics/demo_cayo.gra"),
     string_static("graphics/demo_corset.gra"),
     string_static("graphics/demo_head.gra"),
     string_static("graphics/demo_head_wire.gra"),

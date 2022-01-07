@@ -1,0 +1,49 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/standard.vert.spv",
+      "overrides": [
+        {
+          "name": "scale",
+          "binding": 0,
+          "value": 0.8
+        },
+        {
+          "name": "offsetY",
+          "binding": 2,
+          "value": -0.5
+        }
+      ]
+    },
+    {
+      "shaderId": "shaders/standard.frag.spv",
+      "overrides": [
+        {
+          "name": "normalMap",
+          "binding": 1,
+          "value": 1
+        }
+      ]
+    }
+  ],
+  "samplers": [
+    {
+      "textureId": "external/cayo/cayo_diff.tga",
+      "wrap": "Clamp",
+      "filter": "Linear",
+      "anisotropy": "x4"
+    },
+    {
+      "textureId": "external/cayo/cayo_nrm.tga",
+      "wrap": "Clamp",
+      "filter": "Linear",
+      "anisotropy": "x4"
+    }
+  ],
+  "meshId": "external/cayo/cayo.obj",
+  "topology": "Triangles",
+  "rasterizer": "Fill",
+  "blend": "None",
+  "depth": "Less",
+  "cull": "Back"
+}
