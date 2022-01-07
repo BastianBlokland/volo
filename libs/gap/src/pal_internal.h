@@ -18,6 +18,7 @@ typedef enum {
   GapPalWindowFlags_Scrolled       = 1 << 3,
   GapPalWindowFlags_KeyPressed     = 1 << 4,
   GapPalWindowFlags_KeyReleased    = 1 << 5,
+  GapPalWindowFlags_Fullscreen     = 1 << 6,
 
   GapPalWindowFlags_Volatile = GapPalWindowFlags_CloseRequested | GapPalWindowFlags_Resized |
                                GapPalWindowFlags_CursorMoved | GapPalWindowFlags_Scrolled |
@@ -39,6 +40,7 @@ const GapKeySet*  gap_pal_window_keys_down(const GapPal*, GapWindowId);
 void              gap_pal_window_title_set(GapPal*, GapWindowId, String);
 void              gap_pal_window_resize(GapPal*, GapWindowId, GapVector size, bool fullscreen);
 void              gap_pal_window_cursor_hide(GapPal*, GapWindowId, bool hidden);
+void              gap_pal_window_cursor_capture(GapPal*, GapWindowId, bool captured);
 void              gap_pal_window_cursor_set(GapPal*, GapWindowId, GapVector position);
 
 GapNativeWm gap_pal_native_wm();

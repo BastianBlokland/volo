@@ -18,22 +18,26 @@ static const DWORD g_winStyle           = WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS 
 static const DWORD g_winFullscreenStyle = WS_POPUP | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
 
 typedef struct {
-  GapWindowId id;
-
-  Mem className;
-
+  GapWindowId       id;
+  Mem               className;
   GapVector         params[GapParam_Count];
   GapPalWindowFlags flags : 16;
   GapKeySet         keysPressed, keysReleased, keysDown;
+  GapVector         lastWindowedPosition;
 } GapPalWindow;
+
+typedef enum {
+  GapPalFlags_CursorHidden   = 1 << 0,
+  GapPalFlags_CursorCaptured = 1 << 1,
+} GapPalFlags;
 
 struct sGapPal {
   Allocator* alloc;
   DynArray   windows; // GapPalWindow[]
 
-  HINSTANCE moduleInstance;
-  i64       owningThreadId;
-  bool      cursorHidden;
+  HINSTANCE   moduleInstance;
+  i64         owningThreadId;
+  GapPalFlags flags;
 };
 
 static void pal_check_thread_ownership(GapPal* pal) {
@@ -79,10 +83,13 @@ static void pal_clear_volatile(GapPal* pal) {
   }
 }
 
-static RECT pal_client_to_window_rect(const GapVector clientSize, const DWORD style) {
+static RECT pal_client_to_window_rect(
+    const GapVector clientPosition, const GapVector clientSize, const DWORD style) {
   RECT rect = {
-      .right  = (long)clientSize.x,
-      .bottom = (long)clientSize.y,
+      .left   = (long)clientPosition.x,
+      .top    = (long)clientPosition.y,
+      .right  = (long)(clientPosition.x + clientSize.x),
+      .bottom = (long)(clientPosition.y + clientSize.y),
   };
   if (!AdjustWindowRect(&rect, style, false)) {
     pal_crash_with_win32_err(string_lit("AdjustWindowRect"));
@@ -98,12 +105,12 @@ static RECT pal_client_rect(const GapWindowId windowId) {
   return clientRect;
 }
 
-static RECT pal_window_rect(const GapWindowId windowId) {
-  RECT windowRect;
-  if (!GetWindowRect((HWND)windowId, &windowRect)) {
-    pal_crash_with_win32_err(string_lit("GetWindowRect"));
+static GapVector pal_client_to_screen(const GapWindowId windowId, const GapVector clientPosition) {
+  POINT point = {.x = clientPosition.x, .y = clientPosition.y};
+  if (!ClientToScreen((HWND)windowId, &point)) {
+    pal_crash_with_win32_err(string_lit("ClientToScreen"));
   }
-  return windowRect;
+  return gap_vector((i32)point.x, (i32)point.y);
 }
 
 static GapKey pal_win32_translate_key(const WPARAM key) {
@@ -270,6 +277,13 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
   case WM_CLOSE:
     pal_event_close(window);
     return true;
+  case WM_MOVE: {
+    const GapVector newPos = gap_vector((i32)(short)LOWORD(lParam), (i32)(short)HIWORD(lParam));
+    if (!(window->flags & GapPalWindowFlags_Fullscreen)) {
+      window->lastWindowedPosition = newPos;
+    }
+    return true;
+  }
   case WM_SIZE: {
     const GapVector newSize = gap_vector(LOWORD(lParam), HIWORD(lParam));
     pal_event_resize(window, newSize);
@@ -285,7 +299,7 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
     ValidateRect(wnd, null);
     return true;
   case WM_MOUSEMOVE: {
-    const GapVector newPos = gap_vector(LOWORD(lParam), HIWORD(lParam));
+    const GapVector newPos = gap_vector((i32)(short)LOWORD(lParam), (i32)(short)HIWORD(lParam));
     pal_event_cursor(window, newPos);
     return true;
   }
@@ -356,10 +370,10 @@ GapPal* gap_pal_create(Allocator* alloc) {
 
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){
-      .alloc          = alloc,
-      .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
-      .moduleInstance = instance,
-      .owningThreadId = g_thread_tid,
+             .alloc          = alloc,
+             .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
+             .moduleInstance = instance,
+             .owningThreadId = g_thread_tid,
   };
 
   MAYBE_UNUSED const GapVector screenSize =
@@ -409,12 +423,16 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 
   if (size.width <= 0) {
     size.width = screenWidth;
+  } else if (size.width < pal_window_min_width) {
+    size.width = pal_window_min_width;
   }
   if (size.height <= 0) {
     size.height = screenHeight;
+  } else if (size.height < pal_window_min_height) {
+    size.height = pal_window_min_height;
   }
 
-  WNDCLASSEX winClass = {
+  const WNDCLASSEX winClass = {
       .cbSize        = sizeof(WNDCLASSEX),
       .style         = CS_HREDRAW | CS_VREDRAW,
       .lpfnWndProc   = pal_window_proc,
@@ -430,13 +448,14 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
     pal_crash_with_win32_err(string_lit("RegisterClassEx"));
   }
 
-  const RECT desiredWindowRect = pal_client_to_window_rect(size, g_winStyle);
-  const HWND windowHandle      = CreateWindow(
+  const GapVector position = gap_vector(screenWidth / 2 - size.x, screenHeight / 2 - size.y);
+  const RECT      desiredWindowRect = pal_client_to_window_rect(position, size, g_winStyle);
+  const HWND      windowHandle      = CreateWindow(
       className.ptr,
       null,
       g_winStyle,
-      0,
-      0,
+      desiredWindowRect.left,
+      desiredWindowRect.top,
       desiredWindowRect.right - desiredWindowRect.left,
       desiredWindowRect.bottom - desiredWindowRect.top,
       null,
@@ -448,30 +467,20 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
     pal_crash_with_win32_err(string_lit("CreateWindow"));
   }
 
-  const GapWindowId id = (GapWindowId)windowHandle;
-
-  const RECT      realClientRect = pal_client_rect(id);
-  const RECT      realWindowRect = pal_window_rect(id);
-  const GapVector realClientSize = gap_vector(
-      realClientRect.right - realClientRect.left, realClientRect.bottom - realClientRect.top);
-
-  SetWindowPos(
-      windowHandle,
-      null,
-      (screenWidth - realWindowRect.right) / 2,
-      (screenHeight - realWindowRect.bottom) / 2,
-      0,
-      0,
-      SWP_NOZORDER | SWP_NOSIZE);
-
   ShowWindow(windowHandle, SW_SHOW);
   SetForegroundWindow(windowHandle);
   SetFocus(windowHandle);
+
+  const GapWindowId id             = (GapWindowId)windowHandle;
+  const RECT        realClientRect = pal_client_rect(id);
+  const GapVector   realClientSize = gap_vector(
+      realClientRect.right - realClientRect.left, realClientRect.bottom - realClientRect.top);
 
   *dynarray_push_t(&pal->windows, GapPalWindow) = (GapPalWindow){
       .id                          = id,
       .className                   = className,
       .params[GapParam_WindowSize] = realClientSize,
+      .lastWindowedPosition        = position,
   };
 
   log_i(
@@ -547,6 +556,8 @@ void gap_pal_window_resize(
     GapPal* pal, const GapWindowId windowId, GapVector size, const bool fullscreen) {
   pal_check_thread_ownership(pal);
 
+  GapPalWindow* window = pal_window((GapPal*)pal, windowId);
+
   if (size.width <= 0) {
     size.width = GetSystemMetrics(SM_CXSCREEN);
   } else if (size.width < pal_window_min_width) {
@@ -566,49 +577,60 @@ void gap_pal_window_resize(
       log_param("fullscreen", fmt_bool(fullscreen)));
 
   if (fullscreen) {
+    window->flags |= GapPalWindowFlags_Fullscreen;
+
     // TODO: Investigate supporting different sizes in fullscreen, this requires actually changing
     // the system display-adapter settings.
     SetWindowLongPtr((HWND)windowId, GWL_STYLE, g_winFullscreenStyle);
     ShowWindow((HWND)windowId, SW_MAXIMIZE);
+
   } else {
+    window->flags &= ~GapPalWindowFlags_Fullscreen;
+
     SetWindowLongPtr((HWND)windowId, GWL_STYLE, g_winStyle);
-    const RECT rect = pal_client_to_window_rect(size, g_winStyle);
+
+    const RECT rect = pal_client_to_window_rect(window->lastWindowedPosition, size, g_winStyle);
     if (!SetWindowPos(
             (HWND)windowId,
             null,
-            0,
-            0,
+            rect.left,
+            rect.top,
             rect.right - rect.left,
             rect.bottom - rect.top,
-            SWP_NOCOPYBITS | SWP_NOMOVE | SWP_NOZORDER)) {
+            SWP_NOCOPYBITS | SWP_NOZORDER | SWP_NOREDRAW | SWP_FRAMECHANGED | SWP_SHOWWINDOW)) {
       pal_crash_with_win32_err(string_lit("SetWindowPos"));
     }
-    ShowWindow((HWND)windowId, SW_RESTORE);
   }
 }
 
 void gap_pal_window_cursor_hide(GapPal* pal, const GapWindowId windowId, const bool hidden) {
   (void)windowId;
 
-  log_d("Updating cursor visibility", log_param("hidden", fmt_bool(hidden)));
-
-  if (hidden && !pal->cursorHidden) {
+  if (hidden && !(pal->flags & GapPalFlags_CursorHidden)) {
     ShowCursor(false);
-    pal->cursorHidden = true;
-  } else if (!hidden && pal->cursorHidden) {
+    pal->flags |= GapPalFlags_CursorHidden;
+  } else if (!hidden && pal->flags & GapPalFlags_CursorHidden) {
     ShowCursor(true);
-    pal->cursorHidden = false;
+    pal->flags &= ~GapPalFlags_CursorHidden;
   }
 }
 
-void gap_pal_window_cursor_set(GapPal* pal, const GapWindowId windowId, GapVector position) {
+void gap_pal_window_cursor_capture(GapPal* pal, const GapWindowId windowId, const bool captured) {
+
+  if (captured && !(pal->flags & GapPalFlags_CursorCaptured)) {
+    SetCapture((HWND)windowId);
+    pal->flags |= GapPalFlags_CursorCaptured;
+  } else if (!captured && pal->flags & GapPalFlags_CursorCaptured) {
+    ReleaseCapture();
+    pal->flags &= ~GapPalFlags_CursorCaptured;
+  }
+}
+
+void gap_pal_window_cursor_set(GapPal* pal, const GapWindowId windowId, const GapVector position) {
   pal_check_thread_ownership(pal);
 
-  POINT point = {.x = position.x, .y = position.y};
-  if (!ClientToScreen((HWND)windowId, &point)) {
-    pal_crash_with_win32_err(string_lit("ClientToScreen"));
-  }
-  if (!SetCursorPos((int)point.x, (int)point.y)) {
+  const GapVector screenPos = pal_client_to_screen(windowId, position);
+  if (!SetCursorPos(screenPos.x, screenPos.y)) {
     pal_crash_with_win32_err(string_lit("SetCursorPos"));
   }
   pal_window((GapPal*)pal, windowId)->params[GapParam_CursorPos] = position;

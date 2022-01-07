@@ -24,6 +24,10 @@ typedef enum {
   GapPalXcbExtFlags_Icccm  = 1 << 2,
 } GapPalXcbExtFlags;
 
+typedef enum {
+  GapPalFlags_CursorHidden = 1 << 0,
+} GapPalFlags;
+
 typedef struct {
   GapWindowId       id;
   GapVector         params[GapParam_Count];
@@ -38,7 +42,7 @@ struct sGapPal {
   xcb_connection_t* xcbConnection;
   xcb_screen_t*     xcbScreen;
   GapPalXcbExtFlags extensions;
-  bool              cursorHidden;
+  GapPalFlags       flags;
 
   xcb_atom_t xcbProtoMsgAtom;
   xcb_atom_t xcbDeleteMsgAtom;
@@ -553,9 +557,13 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 
   if (size.width <= 0) {
     size.width = pal->xcbScreen->width_in_pixels;
+  } else if (size.width < pal_window_min_width) {
+    size.width = pal_window_min_width;
   }
   if (size.height <= 0) {
     size.height = pal->xcbScreen->height_in_pixels;
+  } else if (size.height < pal_window_min_height) {
+    size.height = pal_window_min_height;
   }
 
   const xcb_cw_t valuesMask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
@@ -606,8 +614,12 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 
 void gap_pal_window_destroy(GapPal* pal, const GapWindowId windowId) {
 
-  xcb_destroy_window(pal->xcbConnection, (xcb_window_t)windowId);
-  xcb_flush(pal->xcbConnection);
+  const xcb_void_cookie_t cookie =
+      xcb_destroy_window_checked(pal->xcbConnection, (xcb_window_t)windowId);
+  const xcb_generic_error_t* err = xcb_request_check(pal->xcbConnection, cookie);
+  if (UNLIKELY(err)) {
+    diag_crash_msg("xcb_destroy_window(), err: {}", fmt_int(err->error_code));
+  }
 
   for (usize i = 0; i != pal->windows.size; ++i) {
     if (dynarray_at_t(&pal->windows, i, GapPalWindow)->id == windowId) {
@@ -641,7 +653,7 @@ const GapKeySet* gap_pal_window_keys_down(const GapPal* pal, const GapWindowId w
 }
 
 void gap_pal_window_title_set(GapPal* pal, const GapWindowId windowId, const String title) {
-  xcb_change_property(
+  const xcb_void_cookie_t cookie = xcb_change_property_checked(
       pal->xcbConnection,
       XCB_PROP_MODE_REPLACE,
       (xcb_window_t)windowId,
@@ -650,11 +662,17 @@ void gap_pal_window_title_set(GapPal* pal, const GapWindowId windowId, const Str
       8,
       (u32)title.size,
       title.ptr);
-  xcb_flush(pal->xcbConnection);
+  const xcb_generic_error_t* err = xcb_request_check(pal->xcbConnection, cookie);
+  if (UNLIKELY(err)) {
+    diag_crash_msg("xcb_change_property(), err: {}", fmt_int(err->error_code));
+  }
 }
 
 void gap_pal_window_resize(
     GapPal* pal, const GapWindowId windowId, GapVector size, const bool fullscreen) {
+
+  GapPalWindow* window = pal_maybe_window(pal, windowId);
+  diag_assert(window);
 
   if (size.width <= 0) {
     size.width = pal->xcbScreen->width_in_pixels;
@@ -675,11 +693,15 @@ void gap_pal_window_resize(
       log_param("fullscreen", fmt_bool(fullscreen)));
 
   if (fullscreen) {
+    window->flags |= GapPalWindowFlags_Fullscreen;
+
     // TODO: Investigate supporting different sizes in fullscreen, this requires actually changing
     // the system display-adapter settings.
     pal_xcb_wm_state_update(pal, windowId, pal->xcbWmStateFullscreenAtom, true);
     pal_xcb_bypass_compositor(pal, windowId, true);
   } else {
+    window->flags &= ~GapPalWindowFlags_Fullscreen;
+
     pal_xcb_wm_state_update(pal, windowId, pal->xcbWmStateFullscreenAtom, false);
     pal_xcb_bypass_compositor(pal, windowId, false);
 
@@ -701,20 +723,46 @@ void gap_pal_window_cursor_hide(GapPal* pal, const GapWindowId windowId, const b
     return;
   }
 
-  log_d("Updating cursor visibility", log_param("hidden", fmt_bool(hidden)));
+  if (hidden && !(pal->flags & GapPalFlags_CursorHidden)) {
 
-  if (hidden && !pal->cursorHidden) {
-    xcb_xfixes_hide_cursor(pal->xcbConnection, (xcb_window_t)windowId);
-    pal->cursorHidden = true;
-  } else if (!hidden && pal->cursorHidden) {
-    xcb_xfixes_show_cursor(pal->xcbConnection, (xcb_window_t)windowId);
-    pal->cursorHidden = false;
+    const xcb_void_cookie_t cookie =
+        xcb_xfixes_hide_cursor_checked(pal->xcbConnection, (xcb_window_t)windowId);
+    const xcb_generic_error_t* err = xcb_request_check(pal->xcbConnection, cookie);
+    if (UNLIKELY(err)) {
+      diag_crash_msg("xcb_xfixes_hide_cursor(), err: {}", fmt_int(err->error_code));
+    }
+    pal->flags |= GapPalFlags_CursorHidden;
+
+  } else if (!hidden && pal->flags & GapPalFlags_CursorHidden) {
+
+    const xcb_void_cookie_t cookie =
+        xcb_xfixes_show_cursor_checked(pal->xcbConnection, (xcb_window_t)windowId);
+    const xcb_generic_error_t* err = xcb_request_check(pal->xcbConnection, cookie);
+    if (UNLIKELY(err)) {
+      diag_crash_msg("xcb_xfixes_show_cursor(), err: {}", fmt_int(err->error_code));
+    }
+    pal->flags &= ~GapPalFlags_CursorHidden;
   }
 }
 
+void gap_pal_window_cursor_capture(GapPal* pal, const GapWindowId windowId, const bool captured) {
+  /**
+   * Not implemented for xcb.
+   * In x11 you can still set the cursor position after the mouse leaves your window so in general
+   * there isn't much need for this feature.
+   */
+  (void)pal;
+  (void)windowId;
+  (void)captured;
+}
+
 void gap_pal_window_cursor_set(GapPal* pal, const GapWindowId windowId, GapVector position) {
-  xcb_warp_pointer(
+  const xcb_void_cookie_t cookie = xcb_warp_pointer_checked(
       pal->xcbConnection, XCB_NONE, (xcb_window_t)windowId, 0, 0, 0, 0, position.x, position.y);
+  const xcb_generic_error_t* err = xcb_request_check(pal->xcbConnection, cookie);
+  if (UNLIKELY(err)) {
+    diag_crash_msg("xcb_warp_pointer(), err: {}", fmt_int(err->error_code));
+  }
 
   pal_window((GapPal*)pal, windowId)->params[GapParam_CursorPos] = position;
 }
