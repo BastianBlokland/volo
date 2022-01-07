@@ -100,6 +100,14 @@ static RECT pal_client_rect(const GapWindowId windowId) {
   return clientRect;
 }
 
+static GapVector pal_client_to_screen(const GapWindowId windowId, const GapVector clientPosition) {
+  POINT point = {.x = clientPosition.x, .y = clientPosition.y};
+  if (!ClientToScreen((HWND)windowId, &point)) {
+    pal_crash_with_win32_err(string_lit("ClientToScreen"));
+  }
+  return gap_vector((i32)point.x, (i32)point.y);
+}
+
 static GapKey pal_win32_translate_key(const WPARAM key) {
   switch (key) {
   case VK_SHIFT:
@@ -570,10 +578,12 @@ void gap_pal_window_resize(
     // the system display-adapter settings.
     SetWindowLongPtr((HWND)windowId, GWL_STYLE, g_winFullscreenStyle);
     ShowWindow((HWND)windowId, SW_MAXIMIZE);
+
   } else {
     window->flags &= ~GapPalWindowFlags_Fullscreen;
 
     SetWindowLongPtr((HWND)windowId, GWL_STYLE, g_winStyle);
+
     const RECT rect = pal_client_to_window_rect(window->lastWindowedPosition, size, g_winStyle);
     if (!SetWindowPos(
             (HWND)windowId,
@@ -602,14 +612,11 @@ void gap_pal_window_cursor_hide(GapPal* pal, const GapWindowId windowId, const b
   }
 }
 
-void gap_pal_window_cursor_set(GapPal* pal, const GapWindowId windowId, GapVector position) {
+void gap_pal_window_cursor_set(GapPal* pal, const GapWindowId windowId, const GapVector position) {
   pal_check_thread_ownership(pal);
 
-  POINT point = {.x = position.x, .y = position.y};
-  if (!ClientToScreen((HWND)windowId, &point)) {
-    pal_crash_with_win32_err(string_lit("ClientToScreen"));
-  }
-  if (!SetCursorPos((int)point.x, (int)point.y)) {
+  const GapVector screenPos = pal_client_to_screen(windowId, position);
+  if (!SetCursorPos(screenPos.x, screenPos.y)) {
     pal_crash_with_win32_err(string_lit("SetCursorPos"));
   }
   pal_window((GapPal*)pal, windowId)->params[GapParam_CursorPos] = position;
