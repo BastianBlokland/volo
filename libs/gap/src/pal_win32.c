@@ -26,13 +26,18 @@ typedef struct {
   GapVector         lastWindowedPosition;
 } GapPalWindow;
 
+typedef enum {
+  GapPalFlags_CursorHidden   = 1 << 0,
+  GapPalFlags_CursorCaptured = 1 << 1,
+} GapPalFlags;
+
 struct sGapPal {
   Allocator* alloc;
   DynArray   windows; // GapPalWindow[]
 
-  HINSTANCE moduleInstance;
-  i64       owningThreadId;
-  bool      cursorHidden;
+  HINSTANCE   moduleInstance;
+  i64         owningThreadId;
+  GapPalFlags flags;
 };
 
 static void pal_check_thread_ownership(GapPal* pal) {
@@ -601,14 +606,23 @@ void gap_pal_window_resize(
 void gap_pal_window_cursor_hide(GapPal* pal, const GapWindowId windowId, const bool hidden) {
   (void)windowId;
 
-  log_d("Updating cursor visibility", log_param("hidden", fmt_bool(hidden)));
-
-  if (hidden && !pal->cursorHidden) {
+  if (hidden && !(pal->flags & GapPalFlags_CursorHidden)) {
     ShowCursor(false);
-    pal->cursorHidden = true;
-  } else if (!hidden && pal->cursorHidden) {
+    pal->flags |= GapPalFlags_CursorHidden;
+  } else if (!hidden && pal->flags & GapPalFlags_CursorHidden) {
     ShowCursor(true);
-    pal->cursorHidden = false;
+    pal->flags &= ~GapPalFlags_CursorHidden;
+  }
+}
+
+void gap_pal_window_cursor_capture(GapPal* pal, const GapWindowId windowId, const bool captured) {
+
+  if (captured && !(pal->flags & GapPalFlags_CursorCaptured)) {
+    SetCapture((HWND)windowId);
+    pal->flags |= GapPalFlags_CursorCaptured;
+  } else if (!captured && pal->flags & GapPalFlags_CursorCaptured) {
+    ReleaseCapture();
+    pal->flags &= ~GapPalFlags_CursorCaptured;
   }
 }
 

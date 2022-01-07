@@ -12,6 +12,7 @@ typedef enum {
   GapWindowRequests_Resize           = 1 << 2,
   GapWindowRequests_UpdateTitle      = 1 << 3,
   GapWindowRequests_UpdateCursorHide = 1 << 4,
+  GapWindowRequests_UpdateCursorLock = 1 << 5,
 } GapWindowRequests;
 
 ecs_comp_define(GapWindowComp) {
@@ -76,6 +77,14 @@ static void window_update(
   if (window->requests & GapWindowRequests_UpdateCursorHide) {
     const bool hidden = (window->flags & GapWindowFlags_CursorHide) != 0;
     gap_pal_window_cursor_hide(platform->pal, window->id, hidden);
+  }
+  if (window->requests & GapWindowRequests_UpdateCursorLock) {
+    const bool locked = (window->flags & GapWindowFlags_CursorLock) != 0;
+    /**
+     * Capturing the cursor allows receiving mouse inputs even if the cursor is no longer over the
+     * window. This is usefull as you can then do bigger sweeps without losing the lock.
+     */
+    gap_pal_window_cursor_capture(platform->pal, window->id, locked);
   }
 
   const GapPalWindowFlags palFlags = gap_pal_window_flags(platform->pal, window->id);
@@ -191,6 +200,9 @@ void gap_window_flags_set(GapWindowComp* comp, const GapWindowFlags flags) {
   if (flags & GapWindowFlags_CursorHide) {
     comp->requests |= GapWindowRequests_UpdateCursorHide;
   }
+  if (flags & GapWindowFlags_CursorLock) {
+    comp->requests |= GapWindowRequests_UpdateCursorLock;
+  }
 }
 
 void gap_window_flags_unset(GapWindowComp* comp, const GapWindowFlags flags) {
@@ -198,6 +210,9 @@ void gap_window_flags_unset(GapWindowComp* comp, const GapWindowFlags flags) {
 
   if (flags & GapWindowFlags_CursorHide) {
     comp->requests |= GapWindowRequests_UpdateCursorHide;
+  }
+  if (flags & GapWindowFlags_CursorLock) {
+    comp->requests |= GapWindowRequests_UpdateCursorLock;
   }
 }
 
