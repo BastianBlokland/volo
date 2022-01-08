@@ -27,7 +27,7 @@ void rvk_stopwatch_reset(RvkStopwatch*, VkCommandBuffer);
  * Retrieve the result of a previously marked timestamp (in nanoseconds).
  * NOTE: Make sure the gpu work has finished before calling this.
  */
-f64 rvk_stopwatch_nano(RvkStopwatch*, RvkStopwatchRecord);
+u64 rvk_stopwatch_query(const RvkStopwatch*, RvkStopwatchRecord);
 
 /**
  * Mark a timestamp to be recorded.

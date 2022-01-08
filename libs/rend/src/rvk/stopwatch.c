@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_thread.h"
 #include "log_logger.h"
 
 #include "device_internal.h"
@@ -15,6 +16,7 @@ typedef enum {
 
 struct sRvkStopwatch {
   RvkDevice*        dev;
+  ThreadMutex       retrieveResultsMutex;
   VkQueryPool       vkQueryPool;
   u32               counter;
   RvkStopwatchFlags flags;
@@ -32,9 +34,30 @@ static VkQueryPool rvk_querypool_create(RvkDevice* dev, const u32 maxTimestamps)
   return result;
 }
 
+static void rvk_stopwatch_retrieve_results(RvkStopwatch* sw) {
+  thread_mutex_lock(sw->retrieveResultsMutex);
+  if (!(sw->flags & RvkStopwatch_HasResults)) {
+    rvk_call(
+        vkGetQueryPoolResults,
+        sw->dev->vkDev,
+        sw->vkQueryPool,
+        0,
+        sw->counter,
+        sizeof(sw->results),
+        sw->results,
+        sizeof(u64),
+        VK_QUERY_RESULT_64_BIT);
+    sw->flags |= RvkStopwatch_HasResults;
+  }
+  thread_mutex_unlock(sw->retrieveResultsMutex);
+}
+
 RvkStopwatch* rvk_stopwatch_create(RvkDevice* dev) {
   RvkStopwatch* sw = alloc_alloc_t(g_alloc_heap, RvkStopwatch);
-  *sw              = (RvkStopwatch){.dev = dev};
+  *sw              = (RvkStopwatch){
+      .dev                  = dev,
+      .retrieveResultsMutex = thread_mutex_create(g_alloc_heap),
+  };
 
   if (dev->vkProperties.limits.timestampComputeAndGraphics) {
     sw->vkQueryPool = rvk_querypool_create(dev, rvk_stopwatch_timestamps_max);
@@ -49,6 +72,7 @@ void rvk_stopwatch_destroy(RvkStopwatch* sw) {
   if (sw->flags & RvkStopwatch_IsSupported) {
     vkDestroyQueryPool(sw->dev->vkDev, sw->vkQueryPool, &sw->dev->vkAlloc);
   }
+  thread_mutex_destroy(sw->retrieveResultsMutex);
   alloc_free_t(g_alloc_heap, sw);
 }
 
@@ -64,27 +88,18 @@ void rvk_stopwatch_reset(RvkStopwatch* sw, VkCommandBuffer vkCmdBuf) {
   sw->flags &= ~RvkStopwatch_HasResults;
 }
 
-f64 rvk_stopwatch_nano(RvkStopwatch* sw, const RvkStopwatchRecord record) {
+u64 rvk_stopwatch_query(const RvkStopwatch* sw, const RvkStopwatchRecord record) {
   diag_assert(record < rvk_stopwatch_timestamps_max);
   if (UNLIKELY(!(sw->flags & RvkStopwatch_IsSupported))) {
     return 0;
   }
 
   if (!(sw->flags & RvkStopwatch_HasResults)) {
-    rvk_call(
-        vkGetQueryPoolResults,
-        sw->dev->vkDev,
-        sw->vkQueryPool,
-        0,
-        sw->counter,
-        sizeof(sw->results),
-        sw->results,
-        sizeof(u64),
-        VK_QUERY_RESULT_64_BIT);
-    sw->flags |= RvkStopwatch_HasResults;
+    RvkStopwatch* swMutable = (RvkStopwatch*)sw;
+    rvk_stopwatch_retrieve_results(swMutable);
   }
 
-  return (f64)sw->results[record] * (f64)sw->dev->vkProperties.limits.timestampPeriod;
+  return (u64)(sw->results[record] * (f64)sw->dev->vkProperties.limits.timestampPeriod);
 }
 
 RvkStopwatchRecord rvk_stopwatch_mark(RvkStopwatch* sw, VkCommandBuffer vkCmdBuf) {
