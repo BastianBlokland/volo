@@ -463,7 +463,6 @@ ecs_system_define(RendResLoadSys) {
 ecs_view_define(RendResUnloadUnusedView) {
   ecs_access_write(RendResComp);
   ecs_access_with(RendResFinishedComp);
-  ecs_access_without(RendResUnloadComp);
 }
 
 static void rend_res_mark_dependencies_used(const RendResComp* resComp, EcsView* depView) {
@@ -489,8 +488,10 @@ ecs_system_define(RendResUnloadUnusedSys) {
       resComp->flags &= ~RendResFlags_Used;
       continue;
     };
-    const EcsEntityId entity = ecs_view_entity(itr);
-    if (UNLIKELY(ecs_world_has_t(world, entity, RendResNeverUnloadComp))) {
+    const EcsEntityId entity      = ecs_view_entity(itr);
+    const bool        isUnloading = ecs_world_has_t(world, entity, RendResUnloadComp);
+    const bool        neverUnload = ecs_world_has_t(world, entity, RendResNeverUnloadComp);
+    if (UNLIKELY(isUnloading || neverUnload)) {
       continue;
     }
     if (resComp->unusedTicks++ > g_rendResUnloadUnusedAfterTicks) {
