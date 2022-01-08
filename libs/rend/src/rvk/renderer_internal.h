@@ -1,4 +1,6 @@
 #pragma once
+#include "core_time.h"
+
 #include "image_internal.h"
 #include "vulkan_internal.h"
 
@@ -8,11 +10,16 @@ typedef struct sRvkPass   RvkPass;
 
 typedef struct sRvkRenderer RvkRenderer;
 
-RvkRenderer* rvk_renderer_create(RvkDevice*, u32 rendererId);
-void         rvk_renderer_destroy(RvkRenderer*);
-VkSemaphore  rvk_renderer_semaphore_begin(RvkRenderer*);
-VkSemaphore  rvk_renderer_semaphore_done(RvkRenderer*);
-void         rvk_renderer_wait_for_done(const RvkRenderer*);
+typedef struct {
+  TimeDuration renderTime;
+} RvkRenderStats;
+
+RvkRenderer*   rvk_renderer_create(RvkDevice*, u32 rendererId);
+void           rvk_renderer_destroy(RvkRenderer*);
+VkSemaphore    rvk_renderer_semaphore_begin(RvkRenderer*);
+VkSemaphore    rvk_renderer_semaphore_done(RvkRenderer*);
+void           rvk_renderer_wait_for_done(const RvkRenderer*);
+RvkRenderStats rvk_renderer_stats(const RvkRenderer*);
 
 void     rvk_renderer_begin(RvkRenderer*, RvkImage* target, RvkImagePhase targetPhase);
 RvkPass* rvk_renderer_pass_forward(RvkRenderer*);

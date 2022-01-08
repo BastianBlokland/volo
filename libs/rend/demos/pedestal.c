@@ -21,6 +21,7 @@
  */
 
 static const GapVector g_windowSize          = {1024, 768};
+static const f32       g_statSmoothFactor    = 0.05f;
 static const f32       g_cameraFov           = 60.0f * math_deg_to_rad;
 static const f32       g_cameraNearPlane     = 0.1f;
 static const GeoVector g_cameraPosition      = {0, 1.5f, -3.0f};
@@ -38,6 +39,14 @@ static const String    g_subjectGraphics[]   = {
     string_static("graphics/demo_head.gra"),
     string_static("graphics/demo_head_wire.gra"),
 };
+
+static f32 demo_smooth_f32(const f32 old, const f32 new) {
+  return old + ((new - old) * g_statSmoothFactor);
+}
+
+static TimeDuration demo_smooth_duration(const TimeDuration old, const TimeDuration new) {
+  return (TimeDuration)((f64)old + ((f64)(new - old) * g_statSmoothFactor));
+}
 
 static EcsEntityId demo_add_object(
     EcsWorld* world, AssetManagerComp* assets, const GeoVector position, const String graphic) {
@@ -90,7 +99,9 @@ ecs_comp_define(DemoComp) {
   EcsEntityId window;
   u32         subjectIndex;
   EcsEntityId subject;
-  f32         updateFreq;
+
+  f32          updateFreq;
+  TimeDuration renderTime;
 };
 
 ecs_view_define(UpdateGlobalView) {
@@ -128,16 +139,22 @@ ecs_system_define(DemoUpdateSys) {
   const RendStatsComp* stats = ecs_view_read_t(windowItr, RendStatsComp);
 
   const f32 deltaSeconds = time->delta / (f32)time_second;
-  demo->updateFreq += (1.0f / deltaSeconds - demo->updateFreq) * 0.05f;
+  demo->updateFreq       = demo_smooth_f32(demo->updateFreq, 1.0f / deltaSeconds);
+  if (stats) {
+    demo->renderTime = demo_smooth_duration(demo->renderTime, stats->renderTime);
+  }
 
   // Update window title.
-  gap_window_title_set(
-      window,
-      fmt_write_scratch(
-          "Volo Pedestal {>4} hz {>8} ram {>8} vram",
-          fmt_float(demo->updateFreq, .maxDecDigits = 0),
-          fmt_size(alloc_stats_total()),
-          fmt_size(stats ? stats->vramOccupied : 0)));
+  if ((time->ticks % 4) == 0) {
+    gap_window_title_set(
+        window,
+        fmt_write_scratch(
+            "{>4} hz | {>8} gpu | {>8} ram | {>8} vram",
+            fmt_float(demo->updateFreq, .maxDecDigits = 0),
+            fmt_duration(demo->renderTime),
+            fmt_size(alloc_stats_total()),
+            fmt_size(stats ? stats->vramOccupied : 0)));
+  }
 
   // Change subject on input.
   if (gap_window_key_pressed(window, GapKey_Space)) {
