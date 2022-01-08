@@ -18,7 +18,7 @@
 /**
  * Size of the backing buffers to allocate.
  */
-#define rvk_uniform_buffer_size (32 * usize_mebibyte)
+#define rvk_uniform_buffer_size (16 * usize_mebibyte)
 
 typedef struct {
   RvkBuffer  buffer;
