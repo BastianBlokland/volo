@@ -28,8 +28,9 @@ ecs_system_define(SceneCameraMovementSys) {
   }
   const SceneTimeComp* time = ecs_view_read_t(globalItr, SceneTimeComp);
 
-  static const f32 rotSensitivity = 0.0025f;
-  const f32        deltaSeconds   = time->delta / (f32)time_second;
+  static const f32 rotSensitivity     = 0.0025f;
+  static const f32 boostMoveSpeedMult = 4.0f;
+  const f32        deltaSeconds       = time->delta / (f32)time_second;
 
   EcsView* cameraView = ecs_world_view_t(world, CameraMovementView);
   for (EcsIterator* itr = ecs_view_itr(cameraView); ecs_view_walk(itr);) {
@@ -42,7 +43,8 @@ ecs_system_define(SceneCameraMovementSys) {
       internal = ecs_world_add_t(world, ecs_view_entity(itr), SceneCameraInternalComp);
     }
 
-    const f32 posDelta = deltaSeconds * move->moveSpeed;
+    const bool boosted  = gap_window_key_down(win, GapKey_Shift);
+    const f32  posDelta = deltaSeconds * move->moveSpeed * (boosted ? boostMoveSpeedMult : 1.0f);
 
     const GeoVector forward = geo_quat_rotate(trans->rotation, geo_forward);
     const GeoVector right   = geo_quat_rotate(trans->rotation, geo_right);
