@@ -99,7 +99,10 @@ ecs_view_define(UpdateGlobalView) {
   ecs_access_read(SceneTimeComp);
 }
 
-ecs_view_define(UpdateWindowView) { ecs_access_write(GapWindowComp); }
+ecs_view_define(UpdateWindowView) {
+  ecs_access_write(GapWindowComp);
+  ecs_access_maybe_read(RendStatsComp);
+}
 
 ecs_system_define(DemoUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, UpdateGlobalView);
@@ -119,7 +122,10 @@ ecs_system_define(DemoUpdateSys) {
     demo->subject     = demo_add_object(world, assets, g_subjectPosition, g_subjectGraphics[0]);
     demo->initialized = true;
   }
-  GapWindowComp* window = ecs_utils_write_t(world, UpdateWindowView, demo->window, GapWindowComp);
+
+  EcsIterator*   windowItr   = ecs_view_at(ecs_world_view_t(world, UpdateWindowView), demo->window);
+  GapWindowComp* window      = ecs_view_write_t(windowItr, GapWindowComp);
+  const RendStatsComp* stats = ecs_view_read_t(windowItr, RendStatsComp);
 
   const f32 deltaSeconds = time->delta / (f32)time_second;
   demo->updateFreq += (1.0f / deltaSeconds - demo->updateFreq) * 0.05f;
@@ -128,9 +134,10 @@ ecs_system_define(DemoUpdateSys) {
   gap_window_title_set(
       window,
       fmt_write_scratch(
-          "Volo Pedestal {>4} hz {>8} ram",
+          "Volo Pedestal {>4} hz {>8} ram {>8} vram",
           fmt_float(demo->updateFreq, .maxDecDigits = 0),
-          fmt_size(alloc_stats_total())));
+          fmt_size(alloc_stats_total()),
+          fmt_size(stats ? stats->vramOccupied : 0)));
 
   // Change subject on input.
   if (gap_window_key_pressed(window, GapKey_Space)) {
