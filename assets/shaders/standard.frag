@@ -6,9 +6,11 @@
 #include "include/quat.glsl"
 #include "include/texture.glsl"
 
-const f32_vec3 c_lightDir       = normalize(f32_vec3(0.2, 1.0, -0.5));
+const f32_vec3 c_lightDir       = normalize(f32_vec3(0.4, 0.6, -1.0));
+const f32_vec4 c_lightColor     = f32_vec4(1.0, 0.9, 0.7, 1.0);
+const f32      c_lightIntensity = 0.8;
 const f32      c_lightShininess = 16;
-const f32      c_lightAmbient   = 0.1;
+const f32      c_lightAmbient   = 0.02;
 
 bind_spec(0) const bool s_shade     = true;
 bind_spec(1) const bool s_normalMap = false;
@@ -47,13 +49,13 @@ Shading shade_flat() {
 
 Shading shade_blingphong(const f32_vec3 normal, const f32_vec3 viewDir) {
   Shading res;
-  res.lambertian = max(dot(normal, c_lightDir), 0.0);
+  res.lambertian = max(dot(normal, c_lightDir), 0.0) * c_lightIntensity;
   res.ambient    = c_lightAmbient;
   res.specular   = 0.0;
   if (res.lambertian > 0.0) {
     const f32_vec3 halfDir   = normalize(c_lightDir - viewDir);
     const f32      specAngle = max(dot(normal, halfDir), 0.0);
-    res.specular             = pow(specAngle, c_lightShininess);
+    res.specular             = pow(specAngle, c_lightShininess) * c_lightIntensity;
   }
   return res;
 }
@@ -64,5 +66,6 @@ void main() {
   const f32_vec3 viewDir = quat_rotate(u_global.camRotation, f32_vec3(0, 0, 1));
   const Shading  shading = s_shade ? shade_blingphong(normal, viewDir) : shade_flat();
 
-  out_color = diffuse * (shading.ambient + shading.lambertian + shading.specular);
+  out_color = (diffuse * shading.ambient) +
+              (diffuse * c_lightColor * (shading.lambertian + shading.specular));
 }
