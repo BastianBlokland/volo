@@ -5,7 +5,6 @@
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
-#include "rend_instance.h"
 
 #include "platform_internal.h"
 #include "resource_internal.h"
@@ -162,20 +161,11 @@ ecs_view_define(TextureWriteView) {
   ecs_access_write(RendResTextureComp);
 }
 
-static void rend_res_request(EcsWorld* world, EcsEntityId entity) {
-  if (!ecs_world_has_t(world, entity, RendResComp)) {
-    ecs_world_add_t(
-        world,
-        entity,
-        RendResComp,
-        .dependencies = dynarray_create_t(g_alloc_heap, EcsEntityId, 0),
-        .dependents   = dynarray_create_t(g_alloc_heap, EcsEntityId, 0));
-  }
-}
-
-static EcsEntityId rend_res_request_asset(EcsWorld* world, AssetManagerComp* man, String id) {
+static EcsEntityId
+rend_resource_request_persistent(EcsWorld* world, AssetManagerComp* man, const String id) {
   const EcsEntityId assetEntity = asset_lookup(world, man, id);
-  rend_res_request(world, assetEntity);
+  rend_resource_request(world, assetEntity);
+  ecs_world_add_empty_t(world, assetEntity, RendResNeverUnloadComp);
   return assetEntity;
 }
 
@@ -216,8 +206,8 @@ ecs_system_define(RendGlobalResourceLoadSys) {
         world,
         ecs_view_entity(globalItr),
         RendGlobalResComp,
-        .missingTex = rend_res_request_asset(world, assetMan, string_lit("textures/missing.ppm")));
-    ecs_world_add_empty_t(world, resComp->missingTex, RendResNeverUnloadComp);
+        .missingTex =
+            rend_resource_request_persistent(world, assetMan, string_lit("textures/missing.ppm")));
   }
 
   // Wait for all global resources to be loaded.
@@ -228,19 +218,6 @@ ecs_system_define(RendGlobalResourceLoadSys) {
 
   // Global resources load finished.
   ecs_world_add_empty_t(world, ecs_view_entity(globalItr), RendGlobalResLoadedComp);
-}
-
-ecs_view_define(RequestForInstanceView) { ecs_access_read(RendInstanceComp); };
-
-/**
- * Request the graphic to be loaded for all entities with a RendInstanceComp.
- */
-ecs_system_define(RendResRequestSys) {
-  EcsView* instanceView = ecs_world_view_t(world, RequestForInstanceView);
-  for (EcsIterator* itr = ecs_view_itr(instanceView); ecs_view_walk(itr);) {
-    const RendInstanceComp* comp = ecs_view_read_t(itr, RendInstanceComp);
-    rend_res_request(world, comp->graphic);
-  }
 }
 
 ecs_view_define(RendResLoadView) {
@@ -280,17 +257,17 @@ static bool rend_res_dependencies_acquire(EcsWorld* world, EcsIterator* resource
   if (maybeAssetGraphic) {
 
     array_ptr_for_t(maybeAssetGraphic->shaders, AssetGraphicShader, ptr) {
-      rend_res_request(world, ptr->shader);
+      rend_resource_request(world, ptr->shader);
       rend_res_add_dependency(resComp, ptr->shader);
     }
 
     if (maybeAssetGraphic->mesh) {
-      rend_res_request(world, maybeAssetGraphic->mesh);
+      rend_resource_request(world, maybeAssetGraphic->mesh);
       rend_res_add_dependency(resComp, maybeAssetGraphic->mesh);
     }
 
     array_ptr_for_t(maybeAssetGraphic->samplers, AssetGraphicSampler, ptr) {
-      rend_res_request(world, ptr->texture);
+      rend_resource_request(world, ptr->texture);
       rend_res_add_dependency(resComp, ptr->texture);
     }
   }
@@ -623,8 +600,6 @@ ecs_module_init(rend_resource_module) {
       ecs_register_view(GlobalResourceUpdateView),
       ecs_view_id(TextureWriteView));
 
-  ecs_register_system(RendResRequestSys, ecs_register_view(RequestForInstanceView));
-
   ecs_register_system(
       RendResLoadSys,
       ecs_view_id(RendPlatReadView),
@@ -641,6 +616,17 @@ ecs_module_init(rend_resource_module) {
       RendResUnloadUpdateSys,
       ecs_register_view(RendResUnloadUpdateView),
       ecs_view_id(ResourceWriteView));
+}
+
+void rend_resource_request(EcsWorld* world, const EcsEntityId assetEntity) {
+  if (!ecs_world_has_t(world, assetEntity, RendResComp)) {
+    ecs_world_add_t(
+        world,
+        assetEntity,
+        RendResComp,
+        .dependencies = dynarray_create_t(g_alloc_heap, EcsEntityId, 0),
+        .dependents   = dynarray_create_t(g_alloc_heap, EcsEntityId, 0));
+  }
 }
 
 void rend_resource_mark_used(RendResComp* resComp) { resComp->flags |= RendResFlags_Used; }

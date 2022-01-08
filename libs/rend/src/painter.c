@@ -215,9 +215,12 @@ ecs_system_define(RendPainterUpdateBatchesSys) {
     const RendInstanceComp*   instanceComp  = ecs_view_read_t(renderableItr, RendInstanceComp);
     const SceneTransformComp* transformComp = ecs_view_read_t(renderableItr, SceneTransformComp);
 
+    // Request the graphic to be loaded.
+    rend_resource_request(world, instanceComp->graphic);
     if (!ecs_view_contains(createBatchView, instanceComp->graphic)) {
-      continue;
+      continue; // Graphic not ready.
     }
+
     ecs_view_jump(batchItr, instanceComp->graphic);
     RendPainterBatchComp* batchComp = painter_batch_get(world, batchItr);
 

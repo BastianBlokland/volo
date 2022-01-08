@@ -1,4 +1,5 @@
 #pragma once
+#include "ecs_entity.h"
 #include "ecs_module.h"
 
 // Internal forward declarations:
@@ -22,6 +23,11 @@ ecs_comp_extern(RendResFinishedComp);
  * Component that indicates that this resource is currently being unloaded and should not be used.
  */
 ecs_comp_extern(RendResUnloadComp);
+
+/**
+ * Request a render resource to be loaded for the given asset.
+ */
+void rend_resource_request(EcsWorld* world, EcsEntityId assetEntity);
 
 /**
  * Mark this resource as in-use.
