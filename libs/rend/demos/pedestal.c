@@ -14,10 +14,9 @@
 #include "scene_register.h"
 #include "scene_time.h"
 #include "scene_transform.h"
-#include "scene_velocity.h"
 
 /**
- * Demo application that renders a single subject.
+ * Demo application that renders a subject graphic.
  */
 
 static const GapVector g_windowSize          = {1024, 768};
@@ -28,9 +27,10 @@ static const f32       g_cameraNearPlane     = 0.1f;
 static const GeoVector g_cameraPosition      = {0, 1.5f, -3.0f};
 static const f32       g_cameraAngle         = 10 * math_deg_to_rad;
 static const f32       g_cameraMoveSpeed     = 10.0f;
-static const GeoVector g_pedestalPosition    = {0, 0.5f, 0};
 static const f32       g_pedestalRotateSpeed = 45.0f * math_deg_to_rad;
-static const GeoVector g_subjectPosition     = {0, 1.0f, 0};
+static const f32       g_pedestalPositionY   = 0.5f;
+static const f32       g_subjectPositionY    = 1.0f;
+static const f32       g_subjectSpacing      = 2.5f;
 static const String    g_subjectGraphics[]   = {
     string_static("graphics/cube.gra"),
     string_static("graphics/sphere.gra"),
@@ -41,6 +41,39 @@ static const String    g_subjectGraphics[]   = {
     string_static("graphics/demo_head_wire.gra"),
 };
 
+typedef enum {
+  DemoFlags_Initialized = 1 << 0,
+  DemoFlags_Dirty       = 1 << 1,
+} DemoFlags;
+
+ecs_comp_define(DemoComp) {
+  DemoFlags   flags;
+  EcsEntityId window;
+  u32         subjectCount;
+  u32         subjectIndex;
+
+  f32          updateFreq;
+  TimeDuration renderTime;
+};
+
+ecs_comp_define(DemoObjectComp);
+
+ecs_view_define(GlobalView) {
+  ecs_access_write(AssetManagerComp);
+  ecs_access_write(DemoComp);
+  ecs_access_read(SceneTimeComp);
+}
+
+ecs_view_define(WindowView) {
+  ecs_access_write(GapWindowComp);
+  ecs_access_maybe_read(RendStatsComp);
+}
+
+ecs_view_define(ObjectView) {
+  ecs_access_with(DemoObjectComp);
+  ecs_access_write(SceneTransformComp);
+}
+
 static f32 demo_smooth_f32(const f32 old, const f32 new) {
   return old + ((new - old) * g_statSmoothFactor);
 }
@@ -49,75 +82,86 @@ static TimeDuration demo_smooth_duration(const TimeDuration old, const TimeDurat
   return (TimeDuration)((f64)old + ((f64)(new - old) * g_statSmoothFactor));
 }
 
-static EcsEntityId demo_add_object(
-    EcsWorld* world, AssetManagerComp* assets, const GeoVector position, const String graphic) {
-  const EcsEntityId entity = ecs_world_entity_create(world);
-  ecs_world_add_t(world, entity, RendInstanceComp, .graphic = asset_lookup(world, assets, graphic));
-  ecs_world_add_t(
-      world, entity, SceneTransformComp, .position = position, .rotation = geo_quat_ident);
-  ecs_world_add_t(
-      world, entity, SceneVelocityComp, .angularVelocity = geo_vector(0, g_pedestalRotateSpeed, 0));
-  return entity;
-}
-
-static EcsEntityId demo_add_sky(EcsWorld* world, AssetManagerComp* assets) {
-  const EcsEntityId entity = ecs_world_entity_create(world);
+static void demo_spawn_sky(EcsWorld* world, AssetManagerComp* assets) {
   ecs_world_add_t(
       world,
       ecs_world_entity_create(world),
       RendInstanceComp,
       .graphic = asset_lookup(world, assets, string_lit("graphics/sky.gra")));
-  return entity;
 }
 
-static EcsEntityId demo_add_grid(EcsWorld* world, AssetManagerComp* assets) {
-  const EcsEntityId entity = ecs_world_entity_create(world);
+static void demo_spawn_grid(EcsWorld* world, AssetManagerComp* assets) {
   ecs_world_add_t(
       world,
       ecs_world_entity_create(world),
       RendInstanceComp,
       .graphic = asset_lookup(world, assets, string_lit("graphics/grid.gra")));
-  return entity;
 }
 
-static EcsEntityId demo_open_window(EcsWorld* world) {
-  const EcsEntityId entity = gap_window_create(world, GapWindowFlags_Default, g_windowSize);
+static void demo_spawn_object(
+    EcsWorld* world, AssetManagerComp* assets, const GeoVector position, const String graphic) {
 
-  ecs_world_add_t(world, entity, SceneCameraComp, .fov = g_cameraFov, .zNear = g_cameraNearPlane);
-  ecs_world_add_t(world, entity, SceneCameraMovementComp, .moveSpeed = g_cameraMoveSpeed);
+  const EcsEntityId e = ecs_world_entity_create(world);
+  ecs_world_add_t(world, e, RendInstanceComp, .graphic = asset_lookup(world, assets, graphic));
+  ecs_world_add_t(world, e, SceneTransformComp, .position = position, .rotation = geo_quat_ident);
+  ecs_world_add_empty_t(world, e, DemoObjectComp);
+}
+
+static void demo_spawn_objects(EcsWorld* world, DemoComp* demo, AssetManagerComp* assets) {
+  const u32 columnCount = (u32)math_sqrt_f32(demo->subjectCount);
+  const u32 rowCount    = columnCount;
+
+  for (u32 x = 0; x != columnCount; ++x) {
+    for (u32 y = 0; y != rowCount; ++y) {
+
+      const GeoVector gridPos = geo_vector(
+          (x - (columnCount - 1) * 0.5f) * g_subjectSpacing,
+          (y - (rowCount - 1) * 0.5f) * g_subjectSpacing);
+
+      demo_spawn_object(
+          world,
+          assets,
+          geo_vector(gridPos.x, g_subjectPositionY, gridPos.y),
+          g_subjectGraphics[demo->subjectIndex]);
+
+      demo_spawn_object(
+          world,
+          assets,
+          geo_vector(gridPos.x, g_pedestalPositionY, gridPos.y),
+          string_lit("graphics/demo_pedestal.gra"));
+    }
+  }
+}
+
+static EcsEntityId demo_window_open(EcsWorld* world) {
+  const EcsEntityId e = gap_window_create(world, GapWindowFlags_Default, g_windowSize);
+  ecs_world_add_t(world, e, SceneCameraComp, .fov = g_cameraFov, .zNear = g_cameraNearPlane);
+  ecs_world_add_t(world, e, SceneCameraMovementComp, .moveSpeed = g_cameraMoveSpeed);
   ecs_world_add_t(
       world,
-      entity,
+      e,
       SceneTransformComp,
       .position = g_cameraPosition,
       .rotation = geo_quat_angle_axis(geo_right, g_cameraAngle));
-
-  return entity;
+  return e;
 }
 
-ecs_comp_define(DemoComp) {
-  bool        initialized;
-  EcsEntityId window;
-  u32         subjectIndex;
-  EcsEntityId subject;
-
-  f32          updateFreq;
-  TimeDuration renderTime;
-};
-
-ecs_view_define(UpdateGlobalView) {
-  ecs_access_write(AssetManagerComp);
-  ecs_access_write(DemoComp);
-  ecs_access_read(SceneTimeComp);
-}
-
-ecs_view_define(UpdateWindowView) {
-  ecs_access_write(GapWindowComp);
-  ecs_access_maybe_read(RendStatsComp);
+static void demo_window_title_set(GapWindowComp* win, DemoComp* demo, const RendStatsComp* stats) {
+  gap_window_title_set(
+      win,
+      fmt_write_scratch(
+          "{>4} hz | {>8} gpu | {>6} kverts | {>6} ktris | {>8} ram | {>8} vram | {>7} rend-ram",
+          fmt_float(demo->updateFreq, .maxDecDigits = 0),
+          fmt_duration(demo->renderTime),
+          fmt_int(stats ? stats->vertices / 1000 : 0),
+          fmt_int(stats ? stats->primitives / 1000 : 0),
+          fmt_size(alloc_stats_total()),
+          fmt_size(stats ? stats->vramOccupied : 0),
+          fmt_size(stats ? stats->ramOccupied : 0)));
 }
 
 ecs_system_define(DemoUpdateSys) {
-  EcsView*     globalView = ecs_world_view_t(world, UpdateGlobalView);
+  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
@@ -125,18 +169,14 @@ ecs_system_define(DemoUpdateSys) {
   DemoComp*            demo   = ecs_view_write_t(globalItr, DemoComp);
   AssetManagerComp*    assets = ecs_view_write_t(globalItr, AssetManagerComp);
   const SceneTimeComp* time   = ecs_view_read_t(globalItr, SceneTimeComp);
-  if (!demo->initialized) {
-    log_i("Initializing demo");
-
-    demo_add_sky(world, assets);
-    demo_add_grid(world, assets);
-    demo_add_object(world, assets, g_pedestalPosition, string_lit("graphics/demo_pedestal.gra"));
-    demo->subject     = demo_add_object(world, assets, g_subjectPosition, g_subjectGraphics[0]);
-    demo->initialized = true;
+  if (!(demo->flags & DemoFlags_Initialized)) {
+    demo_spawn_sky(world, assets);
+    demo_spawn_grid(world, assets);
+    demo->flags |= DemoFlags_Initialized | DemoFlags_Dirty;
   }
 
-  EcsIterator*   windowItr = ecs_view_at(ecs_world_view_t(world, UpdateWindowView), demo->window);
-  GapWindowComp* window    = ecs_view_write_t(windowItr, GapWindowComp);
+  EcsIterator*         windowItr = ecs_view_at(ecs_world_view_t(world, WindowView), demo->window);
+  GapWindowComp*       window    = ecs_view_write_t(windowItr, GapWindowComp);
   const RendStatsComp* rendStats = ecs_view_read_t(windowItr, RendStatsComp);
 
   const f32 deltaSeconds = time->delta / (f32)time_second;
@@ -145,37 +185,77 @@ ecs_system_define(DemoUpdateSys) {
     demo->renderTime = demo_smooth_duration(demo->renderTime, rendStats->renderTime);
   }
 
-  // Update window title.
   if ((time->ticks % g_titleUpdateInterval) == 0) {
-    gap_window_title_set(
-        window,
-        fmt_write_scratch(
-            "{>4} hz | {>8} gpu | {>6} verts | {>6} tris | {>8} ram | {>8} vram | {>7} rend-ram",
-            fmt_float(demo->updateFreq, .maxDecDigits = 0),
-            fmt_duration(demo->renderTime),
-            fmt_int(rendStats ? rendStats->vertices : 0),
-            fmt_int(rendStats ? rendStats->primitives : 0),
-            fmt_size(alloc_stats_total()),
-            fmt_size(rendStats ? rendStats->vramOccupied : 0),
-            fmt_size(rendStats ? rendStats->ramOccupied : 0)));
+    demo_window_title_set(window, demo, rendStats);
   }
 
-  // Change subject on input.
   if (gap_window_key_pressed(window, GapKey_Space)) {
-    log_i("Changing subject", log_param("index", fmt_int(demo->subjectIndex)));
-
-    ecs_world_entity_destroy(world, demo->subject);
     demo->subjectIndex = (demo->subjectIndex + 1) % array_elems(g_subjectGraphics);
-    demo->subject =
-        demo_add_object(world, assets, g_subjectPosition, g_subjectGraphics[demo->subjectIndex]);
+    demo->flags |= DemoFlags_Dirty;
+  }
+
+  if (gap_window_key_pressed(window, GapKey_Alpha1)) {
+    demo->subjectCount = 1;
+    demo->flags |= DemoFlags_Dirty;
+  }
+  if (gap_window_key_pressed(window, GapKey_Alpha2)) {
+    demo->subjectCount = 64;
+    demo->flags |= DemoFlags_Dirty;
+  }
+  if (gap_window_key_pressed(window, GapKey_Alpha3)) {
+    demo->subjectCount = 512;
+    demo->flags |= DemoFlags_Dirty;
+  }
+  if (gap_window_key_pressed(window, GapKey_Alpha4)) {
+    demo->subjectCount = 1024;
+    demo->flags |= DemoFlags_Dirty;
+  }
+  if (gap_window_key_pressed(window, GapKey_Alpha5)) {
+    demo->subjectCount = 4096;
+    demo->flags |= DemoFlags_Dirty;
+  }
+  if (gap_window_key_pressed(window, GapKey_Alpha0)) {
+    demo->subjectCount = 0;
+    demo->flags |= DemoFlags_Dirty;
+  }
+
+  if (demo->flags & DemoFlags_Dirty) {
+    EcsView* objectView = ecs_world_view_t(world, ObjectView);
+    for (EcsIterator* objItr = ecs_view_itr(objectView); ecs_view_walk(objItr);) {
+      ecs_world_entity_destroy(world, ecs_view_entity(objItr));
+    }
+    demo_spawn_objects(world, demo, assets);
+    demo->flags &= ~DemoFlags_Dirty;
+  }
+}
+
+ecs_system_define(DemoSetRotationSys) {
+  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return;
+  }
+  const SceneTimeComp* time        = ecs_view_read_t(globalItr, SceneTimeComp);
+  const f32            timeSeconds = time->time / (f32)time_second;
+
+  EcsView* objectView = ecs_world_view_t(world, ObjectView);
+  for (EcsIterator* objItr = ecs_view_itr(objectView); ecs_view_walk(objItr);) {
+    SceneTransformComp* transComp = ecs_view_write_t(objItr, SceneTransformComp);
+    transComp->rotation = geo_quat_angle_axis(geo_up, timeSeconds * g_pedestalRotateSpeed);
   }
 }
 
 ecs_module_init(demo_cube_module) {
   ecs_register_comp(DemoComp);
+  ecs_register_comp_empty(DemoObjectComp);
+
+  ecs_register_view(GlobalView);
+  ecs_register_view(WindowView);
+  ecs_register_view(ObjectView);
 
   ecs_register_system(
-      DemoUpdateSys, ecs_register_view(UpdateGlobalView), ecs_register_view(UpdateWindowView));
+      DemoUpdateSys, ecs_view_id(GlobalView), ecs_view_id(WindowView), ecs_view_id(ObjectView));
+  ecs_register_system(DemoSetRotationSys, ecs_view_id(GlobalView), ecs_view_id(ObjectView));
 }
 
 static int demo_run(const String assetPath) {
@@ -188,16 +268,16 @@ static int demo_run(const String assetPath) {
   asset_register(def);
   scene_register(def);
   gap_register(def);
-  rend_register(def);
   ecs_register_module(def, demo_cube_module);
+  rend_register(def);
 
   EcsWorld*  world  = ecs_world_create(g_alloc_heap, def);
   EcsRunner* runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_DumpGraphDot);
 
   asset_manager_create_fs(world, AssetManagerFlags_TrackChanges, assetPath);
 
-  const EcsEntityId window = demo_open_window(world);
-  ecs_world_add_t(world, ecs_world_global(world), DemoComp, .window = window);
+  const EcsEntityId window = demo_window_open(world);
+  ecs_world_add_t(world, ecs_world_global(world), DemoComp, .window = window, .subjectCount = 1);
 
   while (ecs_world_exists(world, window)) {
     ecs_run_sync(runner);
