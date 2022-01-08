@@ -12,7 +12,7 @@
 #include "repository_internal.h"
 #include "transfer_internal.h"
 
-#define rend_debug_validation true
+#define rend_debug_validation false
 #define rend_debug_verbose false
 
 static const RvkDebugFlags g_debugFlags       = rend_debug_verbose ? RvkDebugFlags_Verbose : 0;
