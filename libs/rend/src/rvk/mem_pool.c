@@ -449,24 +449,28 @@ void rvk_mem_flush(const RvkMem mem) {
   rvk_mem_chunk_flush(mem.chunk, mem.offset, mem.size);
 }
 
-u64 rvk_mem_occupied(const RvkMemPool* pool) {
+u64 rvk_mem_occupied(const RvkMemPool* pool, const RvkMemLoc loc) {
   thread_mutex_lock(pool->lock);
 
   u64 occupied = 0;
   for (RvkMemChunk* chunk = pool->chunkHead; chunk; chunk = chunk->next) {
-    occupied += rvk_mem_chunk_size_occupied(chunk);
+    if (chunk->loc == loc) {
+      occupied += rvk_mem_chunk_size_occupied(chunk);
+    }
   }
 
   thread_mutex_unlock(pool->lock);
   return occupied;
 }
 
-u64 rvk_mem_reserved(const RvkMemPool* pool) {
+u64 rvk_mem_reserved(const RvkMemPool* pool, const RvkMemLoc loc) {
   thread_mutex_lock(pool->lock);
 
   u64 reserved = 0;
   for (RvkMemChunk* chunk = pool->chunkHead; chunk; chunk = chunk->next) {
-    reserved += chunk->size;
+    if (chunk->loc == loc) {
+      reserved += chunk->size;
+    }
   }
 
   thread_mutex_unlock(pool->lock);

@@ -35,8 +35,10 @@ ecs_system_define(RendUpdateStatsSys) {
     const RvkRenderStats renderStats = rvk_canvas_stats(painter->canvas);
 
     stats->renderTime   = renderStats.renderTime;
-    stats->vramOccupied = rvk_mem_occupied(plat->device->memPool);
-    stats->vramReserved = rvk_mem_reserved(plat->device->memPool);
+    stats->ramOccupied  = rvk_mem_occupied(plat->device->memPool, RvkMemLoc_Host);
+    stats->ramReserved  = rvk_mem_reserved(plat->device->memPool, RvkMemLoc_Host);
+    stats->vramOccupied = rvk_mem_occupied(plat->device->memPool, RvkMemLoc_Dev);
+    stats->vramReserved = rvk_mem_reserved(plat->device->memPool, RvkMemLoc_Dev);
   }
 }
 

@@ -22,6 +22,7 @@
 
 static const GapVector g_windowSize          = {1024, 768};
 static const f32       g_statSmoothFactor    = 0.05f;
+static const u32       g_titleUpdateInterval = 4;
 static const f32       g_cameraFov           = 60.0f * math_deg_to_rad;
 static const f32       g_cameraNearPlane     = 0.1f;
 static const GeoVector g_cameraPosition      = {0, 1.5f, -3.0f};
@@ -134,26 +135,27 @@ ecs_system_define(DemoUpdateSys) {
     demo->initialized = true;
   }
 
-  EcsIterator*   windowItr   = ecs_view_at(ecs_world_view_t(world, UpdateWindowView), demo->window);
-  GapWindowComp* window      = ecs_view_write_t(windowItr, GapWindowComp);
-  const RendStatsComp* stats = ecs_view_read_t(windowItr, RendStatsComp);
+  EcsIterator*   windowItr = ecs_view_at(ecs_world_view_t(world, UpdateWindowView), demo->window);
+  GapWindowComp* window    = ecs_view_write_t(windowItr, GapWindowComp);
+  const RendStatsComp* rendStats = ecs_view_read_t(windowItr, RendStatsComp);
 
   const f32 deltaSeconds = time->delta / (f32)time_second;
   demo->updateFreq       = demo_smooth_f32(demo->updateFreq, 1.0f / deltaSeconds);
-  if (stats) {
-    demo->renderTime = demo_smooth_duration(demo->renderTime, stats->renderTime);
+  if (rendStats) {
+    demo->renderTime = demo_smooth_duration(demo->renderTime, rendStats->renderTime);
   }
 
   // Update window title.
-  if ((time->ticks % 4) == 0) {
+  if ((time->ticks % g_titleUpdateInterval) == 0) {
     gap_window_title_set(
         window,
         fmt_write_scratch(
-            "{>4} hz | {>8} gpu | {>8} ram | {>8} vram",
+            "{>4} hz | {>8} gpu | {>8} ram | {>8} vram | {>8} renderer-ram",
             fmt_float(demo->updateFreq, .maxDecDigits = 0),
             fmt_duration(demo->renderTime),
             fmt_size(alloc_stats_total()),
-            fmt_size(stats ? stats->vramOccupied : 0)));
+            fmt_size(rendStats ? rendStats->vramOccupied : 0),
+            fmt_size(rendStats ? rendStats->ramOccupied : 0)));
   }
 
   // Change subject on input.
