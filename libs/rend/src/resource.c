@@ -15,7 +15,7 @@
 #include "rvk/shader_internal.h"
 #include "rvk/texture_internal.h"
 
-static const u32 g_rendResUnloadUnusedAfterTicks = 240;
+static const u32 g_rendResUnloadUnusedAfterTicks = 480;
 
 ecs_comp_define_public(RendResGraphicComp);
 ecs_comp_define_public(RendResShaderComp);
