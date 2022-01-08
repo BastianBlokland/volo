@@ -7,24 +7,30 @@
 #include "image_internal.h"
 #include "pass_internal.h"
 #include "renderer_internal.h"
+#include "statrecorder_internal.h"
+#include "stopwatch_internal.h"
 #include "uniform_internal.h"
 
 typedef enum {
-  RvkRendererFlags_Active = 1 << 0,
+  RvkRenderer_Active            = 1 << 0,
+  RvkRenderer_SubmittedDrawOnce = 1 << 1,
 } RvkRendererFlags;
 
 struct sRvkRenderer {
   RvkDevice*       dev;
   u32              rendererId;
   RvkUniformPool*  uniformPool;
+  RvkStopwatch*    stopwatch;
   RvkPass*         forwardPass;
   VkSemaphore      semaphoreBegin, semaphoreDone;
   VkFence          fenceRenderDone;
   VkCommandPool    vkCmdPool;
   VkCommandBuffer  vkDrawBuffer;
   RvkRendererFlags flags;
-  RvkImage*        currentTarget;
-  RvkImagePhase    currentTargetPhase;
+
+  RvkImage*          currentTarget;
+  RvkImagePhase      currentTargetPhase;
+  RvkStopwatchRecord timeRecBegin, timeRecEnd;
 };
 
 static VkSemaphore rvk_semaphore_create(RvkDevice* dev) {
@@ -122,6 +128,7 @@ RvkRenderer* rvk_renderer_create(RvkDevice* dev, const u32 rendererId) {
   *renderer             = (RvkRenderer){
       .dev             = dev,
       .uniformPool     = rvk_uniform_pool_create(dev),
+      .stopwatch       = rvk_stopwatch_create(dev),
       .rendererId      = rendererId,
       .semaphoreBegin  = rvk_semaphore_create(dev),
       .semaphoreDone   = rvk_semaphore_create(dev),
@@ -140,6 +147,7 @@ void rvk_renderer_destroy(RvkRenderer* rend) {
 
   rvk_pass_destroy(rend->forwardPass);
   rvk_uniform_pool_destroy(rend->uniformPool);
+  rvk_stopwatch_destroy(rend->stopwatch);
 
   vkDestroyCommandPool(rend->dev->vkDev, rend->vkCmdPool, &rend->dev->vkAlloc);
   vkDestroySemaphore(rend->dev->vkDev, rend->semaphoreBegin, &rend->dev->vkAlloc);
@@ -156,10 +164,28 @@ void rvk_renderer_wait_for_done(const RvkRenderer* rend) {
   rvk_call(vkWaitForFences, rend->dev->vkDev, 1, &rend->fenceRenderDone, true, u64_max);
 }
 
-void rvk_renderer_begin(RvkRenderer* rend, RvkImage* target, const RvkImagePhase targetPhase) {
-  diag_assert_msg(!(rend->flags & RvkRendererFlags_Active), "Renderer already active");
+RvkRenderStats rvk_renderer_stats(const RvkRenderer* rend) {
+  if (!(rend->flags & RvkRenderer_SubmittedDrawOnce)) {
+    // This renderer has never submitted a draw so there are no statistics.
+    return (RvkRenderStats){0};
+  }
 
-  rend->flags |= RvkRendererFlags_Active;
+  rvk_renderer_wait_for_done(rend);
+
+  const u64 timestampBegin = rvk_stopwatch_query(rend->stopwatch, rend->timeRecBegin);
+  const u64 timestampEnd   = rvk_stopwatch_query(rend->stopwatch, rend->timeRecEnd);
+
+  return (RvkRenderStats){
+      .renderTime        = time_nanoseconds(timestampEnd - timestampBegin),
+      .forwardVertices   = rvk_pass_stat(rend->forwardPass, RvkStat_InputAssemblyVertices),
+      .forwardPrimitives = rvk_pass_stat(rend->forwardPass, RvkStat_InputAssemblyPrimitives),
+  };
+}
+
+void rvk_renderer_begin(RvkRenderer* rend, RvkImage* target, const RvkImagePhase targetPhase) {
+  diag_assert_msg(!(rend->flags & RvkRenderer_Active), "Renderer already active");
+
+  rend->flags |= RvkRenderer_Active;
   rend->currentTarget      = target;
   rend->currentTargetPhase = targetPhase;
 
@@ -168,29 +194,33 @@ void rvk_renderer_begin(RvkRenderer* rend, RvkImage* target, const RvkImagePhase
   rvk_commandpool_reset(rend->dev, rend->vkCmdPool);
 
   rvk_commandbuffer_begin(rend->vkDrawBuffer);
+  rvk_stopwatch_reset(rend->stopwatch, rend->vkDrawBuffer);
   rvk_pass_setup(rend->forwardPass, target->size);
 
+  rend->timeRecBegin = rvk_stopwatch_mark(rend->stopwatch, rend->vkDrawBuffer);
   rvk_debug_label_begin(
       rend->dev->debug, rend->vkDrawBuffer, rend_teal, "renderer_{}", fmt_int(rend->rendererId));
 }
 
 RvkPass* rvk_renderer_pass_forward(RvkRenderer* rend) {
-  diag_assert_msg(rend->flags & RvkRendererFlags_Active, "Renderer not active");
+  diag_assert_msg(rend->flags & RvkRenderer_Active, "Renderer not active");
   return rend->forwardPass;
 }
 
 void rvk_renderer_end(RvkRenderer* rend) {
-  diag_assert_msg(rend->flags & RvkRendererFlags_Active, "Renderer not active");
+  diag_assert_msg(rend->flags & RvkRenderer_Active, "Renderer not active");
   diag_assert_msg(!rvk_pass_active(rend->forwardPass), "Forward pass is still active");
 
   rvk_renderer_blit_to_output(rend, rend->forwardPass);
 
+  rend->timeRecEnd = rvk_stopwatch_mark(rend->stopwatch, rend->vkDrawBuffer);
   rvk_debug_label_end(rend->dev->debug, rend->vkDrawBuffer);
   rvk_commandbuffer_end(rend->vkDrawBuffer);
 
   rvk_call(vkResetFences, rend->dev->vkDev, 1, &rend->fenceRenderDone);
   rvk_renderer_submit(rend);
 
-  rend->flags &= ~RvkRendererFlags_Active;
+  rend->flags |= RvkRenderer_SubmittedDrawOnce;
+  rend->flags &= ~RvkRenderer_Active;
   rend->currentTarget = null;
 }

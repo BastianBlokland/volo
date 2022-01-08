@@ -3,6 +3,7 @@
 #include "rend_color.h"
 #include "rend_size.h"
 
+#include "statrecorder_internal.h"
 #include "vulkan_internal.h"
 
 // Internal forward declarations:
@@ -39,6 +40,7 @@ void     rvk_pass_destroy(RvkPass*);
 bool     rvk_pass_active(const RvkPass*);
 
 RvkImage* rvk_pass_output(RvkPass*);
+u64       rvk_pass_stat(RvkPass*, RvkStat);
 
 void rvk_pass_setup(RvkPass*, RendSize size);
 bool rvk_pass_prepare(RvkPass*, RvkGraphic*);

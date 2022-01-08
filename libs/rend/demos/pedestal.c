@@ -21,6 +21,8 @@
  */
 
 static const GapVector g_windowSize          = {1024, 768};
+static const f32       g_statSmoothFactor    = 0.05f;
+static const u32       g_titleUpdateInterval = 4;
 static const f32       g_cameraFov           = 60.0f * math_deg_to_rad;
 static const f32       g_cameraNearPlane     = 0.1f;
 static const GeoVector g_cameraPosition      = {0, 1.5f, -3.0f};
@@ -38,6 +40,14 @@ static const String    g_subjectGraphics[]   = {
     string_static("graphics/demo_head.gra"),
     string_static("graphics/demo_head_wire.gra"),
 };
+
+static f32 demo_smooth_f32(const f32 old, const f32 new) {
+  return old + ((new - old) * g_statSmoothFactor);
+}
+
+static TimeDuration demo_smooth_duration(const TimeDuration old, const TimeDuration new) {
+  return (TimeDuration)((f64)old + ((f64)(new - old) * g_statSmoothFactor));
+}
 
 static EcsEntityId demo_add_object(
     EcsWorld* world, AssetManagerComp* assets, const GeoVector position, const String graphic) {
@@ -90,7 +100,9 @@ ecs_comp_define(DemoComp) {
   EcsEntityId window;
   u32         subjectIndex;
   EcsEntityId subject;
-  f32         updateFreq;
+
+  f32          updateFreq;
+  TimeDuration renderTime;
 };
 
 ecs_view_define(UpdateGlobalView) {
@@ -99,7 +111,10 @@ ecs_view_define(UpdateGlobalView) {
   ecs_access_read(SceneTimeComp);
 }
 
-ecs_view_define(UpdateWindowView) { ecs_access_write(GapWindowComp); }
+ecs_view_define(UpdateWindowView) {
+  ecs_access_write(GapWindowComp);
+  ecs_access_maybe_read(RendStatsComp);
+}
 
 ecs_system_define(DemoUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, UpdateGlobalView);
@@ -119,18 +134,31 @@ ecs_system_define(DemoUpdateSys) {
     demo->subject     = demo_add_object(world, assets, g_subjectPosition, g_subjectGraphics[0]);
     demo->initialized = true;
   }
-  GapWindowComp* window = ecs_utils_write_t(world, UpdateWindowView, demo->window, GapWindowComp);
+
+  EcsIterator*   windowItr = ecs_view_at(ecs_world_view_t(world, UpdateWindowView), demo->window);
+  GapWindowComp* window    = ecs_view_write_t(windowItr, GapWindowComp);
+  const RendStatsComp* rendStats = ecs_view_read_t(windowItr, RendStatsComp);
 
   const f32 deltaSeconds = time->delta / (f32)time_second;
-  demo->updateFreq += (1.0f / deltaSeconds - demo->updateFreq) * 0.05f;
+  demo->updateFreq       = demo_smooth_f32(demo->updateFreq, 1.0f / deltaSeconds);
+  if (rendStats) {
+    demo->renderTime = demo_smooth_duration(demo->renderTime, rendStats->renderTime);
+  }
 
   // Update window title.
-  gap_window_title_set(
-      window,
-      fmt_write_scratch(
-          "Volo Pedestal {>4} hz {>8} ram",
-          fmt_float(demo->updateFreq, .maxDecDigits = 0),
-          fmt_size(alloc_stats_total())));
+  if ((time->ticks % g_titleUpdateInterval) == 0) {
+    gap_window_title_set(
+        window,
+        fmt_write_scratch(
+            "{>4} hz | {>8} gpu | {>6} verts | {>6} tris | {>8} ram | {>8} vram | {>8} rend-ram",
+            fmt_float(demo->updateFreq, .maxDecDigits = 0),
+            fmt_duration(demo->renderTime),
+            fmt_int(rendStats ? rendStats->vertices : 0),
+            fmt_int(rendStats ? rendStats->primitives : 0),
+            fmt_size(alloc_stats_total()),
+            fmt_size(rendStats ? rendStats->vramOccupied : 0),
+            fmt_size(rendStats ? rendStats->ramOccupied : 0)));
+  }
 
   // Change subject on input.
   if (gap_window_key_pressed(window, GapKey_Space)) {

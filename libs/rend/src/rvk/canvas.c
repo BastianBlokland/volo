@@ -36,7 +36,6 @@ RvkCanvas* rvk_canvas_create(RvkDevice* dev, const GapWindowComp* window) {
 }
 
 void rvk_canvas_destroy(RvkCanvas* canvas) {
-
   rvk_device_wait_idle(canvas->device);
 
   array_for_t(canvas->renderers, RvkRendererPtr, rend) { rvk_renderer_destroy(*rend); }
@@ -44,6 +43,11 @@ void rvk_canvas_destroy(RvkCanvas* canvas) {
   rvk_swapchain_destroy(canvas->swapchain);
 
   alloc_free_t(g_alloc_heap, canvas);
+}
+
+RvkRenderStats rvk_canvas_stats(const RvkCanvas* canvas) {
+  RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
+  return rvk_renderer_stats(renderer);
 }
 
 bool rvk_canvas_begin(RvkCanvas* canvas, const RendSize size) {

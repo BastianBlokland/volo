@@ -5,7 +5,7 @@
 #include "alloc_internal.h"
 #include "init_internal.h"
 
-#ifdef VOLO_ASAN
+#if defined(VOLO_ASAN)
 #include <sanitizer/asan_interface.h>
 #endif
 

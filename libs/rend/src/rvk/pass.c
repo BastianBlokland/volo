@@ -27,6 +27,7 @@ typedef enum {
 
 struct sRvkPass {
   RvkDevice*       dev;
+  RvkStatRecorder* statrecorder;
   RvkPassFlags     flags;
   RendSize         size;
   VkRenderPass     vkRendPass;
@@ -212,6 +213,7 @@ RvkPass* rvk_pass_create(
   RvkPass* pass = alloc_alloc_t(g_alloc_heap, RvkPass);
   *pass         = (RvkPass){
       .dev            = dev,
+      .statrecorder   = rvk_statrecorder_create(dev),
       .vkRendPass     = rvk_renderpass_create(dev, flags),
       .vkGlobalLayout = rvk_global_layout_create(dev, rvk_uniform_vkdesclayout(uniformPool)),
       .vkCmdBuf       = vkCmdBuf,
@@ -223,6 +225,7 @@ RvkPass* rvk_pass_create(
 
 void rvk_pass_destroy(RvkPass* pass) {
 
+  rvk_statrecorder_destroy(pass->statrecorder);
   rvk_pass_resource_destroy(pass);
   vkDestroyRenderPass(pass->dev->vkDev, pass->vkRendPass, &pass->dev->vkAlloc);
   vkDestroyPipelineLayout(pass->dev->vkDev, pass->vkGlobalLayout, &pass->dev->vkAlloc);
@@ -236,8 +239,14 @@ bool rvk_pass_active(const RvkPass* pass) {
 
 RvkImage* rvk_pass_output(RvkPass* pass) { return &pass->attachColor; }
 
+u64 rvk_pass_stat(RvkPass* pass, const RvkStat stat) {
+  return rvk_statrecorder_query(pass->statrecorder, stat);
+}
+
 void rvk_pass_setup(RvkPass* pass, const RendSize size) {
   diag_assert_msg(size.width && size.height, "Pass cannot be zero sized");
+
+  rvk_statrecorder_reset(pass->statrecorder, pass->vkCmdBuf);
 
   if (rend_size_equal(pass->size, size)) {
     return;
@@ -258,6 +267,7 @@ void rvk_pass_begin(RvkPass* pass, const RendColor clearColor) {
 
   pass->flags |= RvkPassPrivateFlags_Active;
 
+  rvk_statrecorder_start(pass->statrecorder, pass->vkCmdBuf);
   rvk_debug_label_begin(pass->dev->debug, pass->vkCmdBuf, rend_blue, "pass");
 
   rvk_pass_vkrenderpass_begin(pass, pass->vkCmdBuf, pass->attachColor.size, clearColor);
@@ -348,6 +358,7 @@ void rvk_pass_end(RvkPass* pass) {
   diag_assert_msg(pass->flags & RvkPassPrivateFlags_Active, "Pass not active");
   pass->flags &= ~RvkPassPrivateFlags_Active;
 
+  rvk_statrecorder_stop(pass->statrecorder, pass->vkCmdBuf);
   vkCmdEndRenderPass(pass->vkCmdBuf);
 
   rvk_debug_label_end(pass->dev->debug, pass->vkCmdBuf);

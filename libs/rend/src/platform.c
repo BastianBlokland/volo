@@ -3,6 +3,7 @@
 #include "ecs_world.h"
 
 #include "platform_internal.h"
+#include "rvk/device_internal.h"
 
 ecs_comp_define_public(RendPlatformComp);
 

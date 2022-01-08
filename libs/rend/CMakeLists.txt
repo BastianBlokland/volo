@@ -21,6 +21,8 @@ add_library(lib_rend STATIC
   src/rvk/repository.c
   src/rvk/sampler.c
   src/rvk/shader.c
+  src/rvk/statrecorder.c
+  src/rvk/stopwatch.c
   src/rvk/swapchain.c
   src/rvk/texture.c
   src/rvk/transfer.c
@@ -31,7 +33,8 @@ add_library(lib_rend STATIC
   src/painter.c
   src/platform.c
   src/register.c
-  src/resource.c)
+  src/resource.c
+  src/stats.c)
 target_include_directories(lib_rend PUBLIC include)
 target_link_libraries(lib_rend PUBLIC lib_core)
 target_link_libraries(lib_rend PUBLIC lib_ecs)

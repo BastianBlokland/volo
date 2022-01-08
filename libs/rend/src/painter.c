@@ -9,13 +9,14 @@
 #include "scene_camera.h"
 #include "scene_transform.h"
 
+#include "painter_internal.h"
 #include "platform_internal.h"
 #include "resource_internal.h"
 #include "rvk/canvas_internal.h"
 #include "rvk/graphic_internal.h"
 #include "rvk/pass_internal.h"
 
-ecs_comp_define(RendPainterComp) { RvkCanvas* canvas; };
+ecs_comp_define_public(RendPainterComp);
 
 static void ecs_destruct_painter_comp(void* data) {
   RendPainterComp* comp = data;

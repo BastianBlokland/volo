@@ -91,7 +91,7 @@ static RvkTransferBuffer* rvk_transfer_buffer_create(RvkTransferer* trans) {
       .vkFinishedFence = rvk_fence_create(trans->dev, true),
   };
 
-#ifdef VOLO_RVK_MEM_LOGGING
+#if defined(VOLO_RVK_MEM_LOGGING)
   log_d("Vulkan transfer buffer created", log_param("size", fmt_size(rvk_transfer_buffer_size)));
 #endif
   return buffer;
@@ -211,7 +211,7 @@ RvkTransferId rvk_transfer_buffer(RvkTransferer* trans, RvkBuffer* dest, const M
   buffer->offset += data.size;
   const RvkTransferId id = rvk_transfer_id(trans, buffer);
 
-#ifdef VOLO_RVK_TRANSFER_LOGGING
+#if defined(VOLO_RVK_TRANSFER_LOGGING)
   log_d(
       "Vulkan transfer queued",
       log_param("id", fmt_int(id)),
@@ -261,7 +261,7 @@ RvkTransferId rvk_transfer_image(RvkTransferer* trans, RvkImage* dest, const Mem
   buffer->offset += data.size;
   const RvkTransferId id = rvk_transfer_id(trans, buffer);
 
-#ifdef VOLO_RVK_TRANSFER_LOGGING
+#if defined(VOLO_RVK_TRANSFER_LOGGING)
   log_d(
       "Vulkan transfer queued",
       log_param("id", fmt_int(id)),
@@ -308,7 +308,7 @@ void rvk_transfer_flush(RvkTransferer* trans) {
       if (rvk_fence_signaled(trans->dev, buffer->vkFinishedFence)) {
         buffer->state = RvkTransferState_Idle;
 
-#ifdef VOLO_RVK_TRANSFER_LOGGING
+#if defined(VOLO_RVK_TRANSFER_LOGGING)
         log_d("Vulkan transfer finished", log_param("id", fmt_int(rvk_transfer_id(trans, buffer))));
 #endif
       }
@@ -316,7 +316,7 @@ void rvk_transfer_flush(RvkTransferer* trans) {
     case RvkTransferState_Rec:
       rvk_transfer_submit(trans, buffer);
 
-#ifdef VOLO_RVK_TRANSFER_LOGGING
+#if defined(VOLO_RVK_TRANSFER_LOGGING)
       log_d("Vulkan transfer submitted", log_param("id", fmt_int(rvk_transfer_id(trans, buffer))));
 #endif
       break;
