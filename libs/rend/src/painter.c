@@ -237,7 +237,12 @@ ecs_system_define(RendPainterDrawBatchesSys) {
 
   bool anyPainterDrawn = false;
   for (EcsIterator* itr = ecs_view_itr(painterView); ecs_view_walk(itr);) {
-    const GapWindowComp*      win       = ecs_view_read_t(itr, GapWindowComp);
+    const GapWindowComp*  win       = ecs_view_read_t(itr, GapWindowComp);
+    const GapWindowEvents winEvents = gap_window_events(win);
+    if (winEvents & GapWindowEvents_CloseRequested || winEvents & GapWindowEvents_Closed) {
+      ecs_world_remove_t(world, ecs_view_entity(itr), RendPainterComp);
+      continue;
+    }
     RendPainterComp*          painter   = ecs_view_write_t(itr, RendPainterComp);
     const SceneCameraComp*    camera    = ecs_view_read_t(itr, SceneCameraComp);
     const SceneTransformComp* transform = ecs_view_read_t(itr, SceneTransformComp);

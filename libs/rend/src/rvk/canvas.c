@@ -32,6 +32,11 @@ RvkCanvas* rvk_canvas_create(RvkDevice* dev, const GapWindowComp* window) {
       .renderers[0] = rvk_renderer_create(dev, 0),
       .renderers[1] = rvk_renderer_create(dev, 1),
   };
+
+  log_d(
+      "Vulkan canvas created",
+      log_param("size", gap_vector_fmt(gap_window_param(window, GapParam_WindowSize))));
+
   return canvas;
 }
 
@@ -39,8 +44,9 @@ void rvk_canvas_destroy(RvkCanvas* canvas) {
   rvk_device_wait_idle(canvas->device);
 
   array_for_t(canvas->renderers, RvkRendererPtr, rend) { rvk_renderer_destroy(*rend); }
-
   rvk_swapchain_destroy(canvas->swapchain);
+
+  log_d("Vulkan canvas destroyed");
 
   alloc_free_t(g_alloc_heap, canvas);
 }
