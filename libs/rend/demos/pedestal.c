@@ -150,9 +150,11 @@ ecs_system_define(DemoUpdateSys) {
     gap_window_title_set(
         window,
         fmt_write_scratch(
-            "{>4} hz | {>8} gpu | {>8} ram | {>8} vram | {>8} renderer-ram",
+            "{>4} hz | {>8} gpu | {>6} verts | {>6} tris | {>8} ram | {>8} vram | {>8} rend-ram",
             fmt_float(demo->updateFreq, .maxDecDigits = 0),
             fmt_duration(demo->renderTime),
+            fmt_int(rendStats ? rendStats->vertices : 0),
+            fmt_int(rendStats ? rendStats->primitives : 0),
             fmt_size(alloc_stats_total()),
             fmt_size(rendStats ? rendStats->vramOccupied : 0),
             fmt_size(rendStats ? rendStats->ramOccupied : 0)));

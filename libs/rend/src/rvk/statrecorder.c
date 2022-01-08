@@ -25,7 +25,7 @@ struct sRvkStatRecorder {
 static VkQueryPool rvk_querypool_create(RvkDevice* dev) {
   const VkQueryPoolCreateInfo createInfo = {
       .sType              = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO,
-      .queryType          = VK_QUERY_TYPE_TIMESTAMP,
+      .queryType          = VK_QUERY_TYPE_PIPELINE_STATISTICS,
       .queryCount         = RvkStat_Count,
       .pipelineStatistics = VK_QUERY_PIPELINE_STATISTIC_INPUT_ASSEMBLY_VERTICES_BIT |
                             VK_QUERY_PIPELINE_STATISTIC_INPUT_ASSEMBLY_PRIMITIVES_BIT |

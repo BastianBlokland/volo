@@ -4,6 +4,7 @@
 
 ecs_comp_extern_public(RendStatsComp) {
   TimeDuration renderTime;
+  u64          vertices, primitives;
   u64          ramOccupied, ramReserved;
   u64          vramOccupied, vramReserved;
 };
