@@ -11,9 +11,9 @@
 #include "image_internal.h"
 #include "transfer_internal.h"
 
-#define VOLO_RVK_TRANSFER_LOGGING
+// #define VOLO_RVK_TRANSFER_LOGGING
 
-#define rvk_transfer_buffer_size (64 * usize_mebibyte)
+#define rvk_transfer_buffer_size_min (4 * usize_mebibyte)
 
 #define rvk_transfer_index(_TRANSFER_ID_) ((u32)((_TRANSFER_ID_) >> 0))
 #define rvk_transfer_serial(_TRANSFER_ID_) ((u32)((_TRANSFER_ID_) >> 32))
@@ -79,42 +79,45 @@ static VkFence rvk_fence_create(RvkDevice* dev, const bool initialState) {
 }
 
 static bool rvk_transfer_fits(const RvkTransferBuffer* buffer, const u64 size, const u64 align) {
-  return (bits_align(buffer->offset, align) + size) <= rvk_transfer_buffer_size;
+  return (bits_align(buffer->offset, align) + size) <= buffer->hostBuffer.size;
 }
 
-static RvkTransferBuffer* rvk_transfer_buffer_create(RvkTransferer* trans) {
+static RvkTransferBuffer* rvk_transfer_buffer_create(RvkTransferer* trans, const u64 size) {
   RvkTransferBuffer* buffer = dynarray_push_t(&trans->buffers, RvkTransferBuffer);
   *buffer                   = (RvkTransferBuffer){
-      .hostBuffer =
-          rvk_buffer_create(trans->dev, rvk_transfer_buffer_size, RvkBufferType_HostTransfer),
+      .hostBuffer      = rvk_buffer_create(trans->dev, size, RvkBufferType_HostTransfer),
       .vkCmdBuffer     = rvk_commandbuffer_create(trans->dev, trans->vkCmdPool),
       .vkFinishedFence = rvk_fence_create(trans->dev, true),
   };
 
-#if defined(VOLO_RVK_MEM_LOGGING)
-  log_d("Vulkan transfer buffer created", log_param("size", fmt_size(rvk_transfer_buffer_size)));
+#if defined(VOLO_RVK_TRANSFER_LOGGING)
+  log_d("Vulkan transfer buffer created", log_param("size", fmt_size(size)));
 #endif
   return buffer;
 }
 
 static RvkTransferBuffer* rvk_transfer_get(RvkTransferer* trans, const u64 size, const u64 align) {
-  if (UNLIKELY(size > rvk_transfer_buffer_size)) {
-    diag_crash_msg(
-        "Transfer size {} exceeds the maximum of {}",
-        fmt_size(size),
-        fmt_size(rvk_transfer_buffer_size));
-  }
+  // Prefer a buffer that is already being recorded.
   dynarray_for_t(&trans->buffers, RvkTransferBuffer, buffer) {
     if (buffer->state == RvkTransferState_Rec && rvk_transfer_fits(buffer, size, align)) {
       return buffer;
     }
   }
+  // Find the smallest buffer that would fit this transfer.
+  RvkTransferBuffer* bestBuffer = null;
+  u64                bestSize   = u64_max;
   dynarray_for_t(&trans->buffers, RvkTransferBuffer, buffer) {
-    if (buffer->state != RvkTransferState_Busy && rvk_transfer_fits(buffer, size, align)) {
-      return buffer;
+    const bool busy = buffer->state == RvkTransferState_Busy;
+    if (!busy && buffer->hostBuffer.size < bestSize && rvk_transfer_fits(buffer, size, align)) {
+      bestBuffer = buffer;
+      bestSize   = buffer->hostBuffer.size;
     }
   }
-  return rvk_transfer_buffer_create(trans);
+  if (bestBuffer) {
+    return bestBuffer;
+  }
+  // Create a new buffer.
+  return rvk_transfer_buffer_create(trans, math_max(rvk_transfer_buffer_size_min, size));
 }
 
 static RvkTransferId rvk_transfer_id(RvkTransferer* trans, RvkTransferBuffer* buffer) {
@@ -148,7 +151,8 @@ static void rvk_transfer_submit(RvkTransferer* trans, RvkTransferBuffer* buffer)
 
   rvk_debug_label_end(trans->dev->debug, buffer->vkCmdBuffer);
 
-  buffer->state = RvkTransferState_Busy;
+  buffer->state  = RvkTransferState_Busy;
+  buffer->offset = 0;
   vkEndCommandBuffer(buffer->vkCmdBuffer);
 
   const VkSubmitInfo submitInfo = {
