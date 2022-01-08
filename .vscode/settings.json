@@ -20,5 +20,13 @@
     ".cache": true,
     "assets/**/*.spv": true
   },
-  "glsllint.glslangValidatorArgs": "-V -o .cache/spv/out.spv"
+  "glsllint.glslangValidatorArgs": "-V -o .cache/spv/out.spv",
+  "emeraldwalk.runonsave": {
+    "commands": [
+      {
+        "match": "\\.(?:vert|frag)$",
+        "cmd": "cmake --build build --target volo_shaders"
+      }
+    ]
+  }
 }
