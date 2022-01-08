@@ -34,6 +34,9 @@ void   rvk_mem_bind_image(RvkMem, VkImage);
 Mem    rvk_mem_map(RvkMem);
 void   rvk_mem_flush(RvkMem);
 
+u64 rvk_mem_occupied(const RvkMemPool*);
+u64 rvk_mem_reserved(const RvkMemPool*);
+
 /**
  * AllocationCallbacks for Vulkan to allocate host memory using the given allocator.
  */

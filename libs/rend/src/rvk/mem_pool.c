@@ -128,7 +128,7 @@ static u32 rvk_mem_chunk_size_free(const RvkMemChunk* chunk) {
 /**
  * Total occupied bytes in the given chunk.
  */
-MAYBE_UNUSED static u32 rvk_mem_chunk_size_occupied(const RvkMemChunk* chunk) {
+static u32 rvk_mem_chunk_size_occupied(const RvkMemChunk* chunk) {
   return chunk->size - rvk_mem_chunk_size_free(chunk);
 }
 
@@ -447,4 +447,28 @@ Mem rvk_mem_map(const RvkMem mem) {
 void rvk_mem_flush(const RvkMem mem) {
   diag_assert(rvk_mem_valid(mem));
   rvk_mem_chunk_flush(mem.chunk, mem.offset, mem.size);
+}
+
+u64 rvk_mem_occupied(const RvkMemPool* pool) {
+  thread_mutex_lock(pool->lock);
+
+  u64 occupied = 0;
+  for (RvkMemChunk* chunk = pool->chunkHead; chunk; chunk = chunk->next) {
+    occupied += rvk_mem_chunk_size_occupied(chunk);
+  }
+
+  thread_mutex_unlock(pool->lock);
+  return occupied;
+}
+
+u64 rvk_mem_reserved(const RvkMemPool* pool) {
+  thread_mutex_lock(pool->lock);
+
+  u64 reserved = 0;
+  for (RvkMemChunk* chunk = pool->chunkHead; chunk; chunk = chunk->next) {
+    reserved += chunk->size;
+  }
+
+  thread_mutex_unlock(pool->lock);
+  return reserved;
 }
