@@ -5,7 +5,6 @@
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
-#include "rend_instance.h"
 
 #include "platform_internal.h"
 #include "resource_internal.h"
@@ -16,6 +15,8 @@
 #include "rvk/shader_internal.h"
 #include "rvk/texture_internal.h"
 
+static const u32 g_rendResUnloadUnusedAfterTicks = 480;
+
 ecs_comp_define_public(RendResGraphicComp);
 ecs_comp_define_public(RendResShaderComp);
 ecs_comp_define_public(RendResMeshComp);
@@ -23,6 +24,10 @@ ecs_comp_define_public(RendResTextureComp);
 
 ecs_comp_define(RendGlobalResComp) { EcsEntityId missingTex; };
 ecs_comp_define(RendGlobalResLoadedComp);
+
+typedef enum {
+  RendResFlags_Used = 1 << 0,
+} RendResFlags;
 
 typedef enum {
   RendResLoadState_AssetAcquire,
@@ -44,10 +49,13 @@ typedef enum {
 
 ecs_comp_define(RendResComp) {
   RendResLoadState state;
+  RendResFlags     flags;
+  u64              unusedTicks;
   DynArray         dependencies; // EcsEntityId[], resources this resource depends on.
   DynArray         dependents;   // EcsEntityId[], resources that depend on this resource.
 };
 ecs_comp_define(RendResFinishedComp);
+ecs_comp_define(RendResNeverUnloadComp);
 ecs_comp_define(RendResUnloadComp) { RendResUnloadState state; };
 
 static void ecs_destruct_graphic_comp(void* data) {
@@ -123,6 +131,12 @@ static void ecs_combine_resource(void* dataA, void* dataB) {
   dynarray_destroy(&compB->dependents);
 }
 
+static void ecs_combine_resource_unload(void* dataA, void* dataB) {
+  RendResUnloadComp* compA = dataA;
+  RendResUnloadComp* compB = dataB;
+  compA->state             = math_max(compA->state, compB->state);
+}
+
 ecs_view_define(RendPlatReadView) { ecs_access_read(RendPlatformComp); }
 
 ecs_view_define(ResourceWriteView) { ecs_access_write(RendResComp); }
@@ -147,20 +161,11 @@ ecs_view_define(TextureWriteView) {
   ecs_access_write(RendResTextureComp);
 }
 
-static void rend_res_request(EcsWorld* world, EcsEntityId entity) {
-  if (!ecs_world_has_t(world, entity, RendResComp)) {
-    ecs_world_add_t(
-        world,
-        entity,
-        RendResComp,
-        .dependencies = dynarray_create_t(g_alloc_heap, EcsEntityId, 0),
-        .dependents   = dynarray_create_t(g_alloc_heap, EcsEntityId, 0));
-  }
-}
-
-static EcsEntityId rend_res_request_asset(EcsWorld* world, AssetManagerComp* man, String id) {
+static EcsEntityId
+rend_resource_request_persistent(EcsWorld* world, AssetManagerComp* man, const String id) {
   const EcsEntityId assetEntity = asset_lookup(world, man, id);
-  rend_res_request(world, assetEntity);
+  rend_resource_request(world, assetEntity);
+  ecs_world_add_empty_t(world, assetEntity, RendResNeverUnloadComp);
   return assetEntity;
 }
 
@@ -201,7 +206,8 @@ ecs_system_define(RendGlobalResourceLoadSys) {
         world,
         ecs_view_entity(globalItr),
         RendGlobalResComp,
-        .missingTex = rend_res_request_asset(world, assetMan, string_lit("textures/missing.ppm")));
+        .missingTex =
+            rend_resource_request_persistent(world, assetMan, string_lit("textures/missing.ppm")));
   }
 
   // Wait for all global resources to be loaded.
@@ -212,19 +218,6 @@ ecs_system_define(RendGlobalResourceLoadSys) {
 
   // Global resources load finished.
   ecs_world_add_empty_t(world, ecs_view_entity(globalItr), RendGlobalResLoadedComp);
-}
-
-ecs_view_define(RequestForInstanceView) { ecs_access_read(RendInstanceComp); };
-
-/**
- * Request the graphic to be loaded for all entities with a RendInstanceComp.
- */
-ecs_system_define(RendResRequestSys) {
-  EcsView* instanceView = ecs_world_view_t(world, RequestForInstanceView);
-  for (EcsIterator* itr = ecs_view_itr(instanceView); ecs_view_walk(itr);) {
-    const RendInstanceComp* comp = ecs_view_read_t(itr, RendInstanceComp);
-    rend_res_request(world, comp->graphic);
-  }
 }
 
 ecs_view_define(RendResLoadView) {
@@ -264,17 +257,17 @@ static bool rend_res_dependencies_acquire(EcsWorld* world, EcsIterator* resource
   if (maybeAssetGraphic) {
 
     array_ptr_for_t(maybeAssetGraphic->shaders, AssetGraphicShader, ptr) {
-      rend_res_request(world, ptr->shader);
+      rend_resource_request(world, ptr->shader);
       rend_res_add_dependency(resComp, ptr->shader);
     }
 
     if (maybeAssetGraphic->mesh) {
-      rend_res_request(world, maybeAssetGraphic->mesh);
+      rend_resource_request(world, maybeAssetGraphic->mesh);
       rend_res_add_dependency(resComp, maybeAssetGraphic->mesh);
     }
 
     array_ptr_for_t(maybeAssetGraphic->samplers, AssetGraphicSampler, ptr) {
-      rend_res_request(world, ptr->texture);
+      rend_resource_request(world, ptr->texture);
       rend_res_add_dependency(resComp, ptr->texture);
     }
   }
@@ -467,31 +460,62 @@ ecs_system_define(RendResLoadSys) {
   }
 }
 
-ecs_view_define(RendResUnloadChangedRequestView) {
+ecs_view_define(RendResUnloadUnusedView) {
+  ecs_access_write(RendResComp);
+  ecs_access_with(RendResFinishedComp);
+}
+
+static void rend_res_mark_dependencies_used(const RendResComp* resComp, EcsView* depView) {
+  EcsIterator* depItr = ecs_view_itr(depView);
+  dynarray_for_t(&resComp->dependencies, EcsEntityId, dependency) {
+    ecs_view_jump(depItr, *dependency);
+    RendResComp* depResComp = ecs_view_write_t(depItr, RendResComp);
+    depResComp->flags |= RendResFlags_Used;
+  }
+}
+
+/**
+ * Start unloading resources that have not been used in a while.
+ */
+ecs_system_define(RendResUnloadUnusedSys) {
+  EcsView* assetsView = ecs_world_view_t(world, RendResUnloadUnusedView);
+
+  for (EcsIterator* itr = ecs_view_itr(assetsView); ecs_view_walk(itr);) {
+    RendResComp* resComp = ecs_view_write_t(itr, RendResComp);
+    if (LIKELY(resComp->flags & RendResFlags_Used)) {
+      resComp->unusedTicks = 0;
+      rend_res_mark_dependencies_used(resComp, assetsView);
+      resComp->flags &= ~RendResFlags_Used;
+      continue;
+    };
+    const EcsEntityId entity      = ecs_view_entity(itr);
+    const bool        isUnloading = ecs_world_has_t(world, entity, RendResUnloadComp);
+    const bool        neverUnload = ecs_world_has_t(world, entity, RendResNeverUnloadComp);
+    if (UNLIKELY(isUnloading || neverUnload)) {
+      continue;
+    }
+    if (resComp->unusedTicks++ > g_rendResUnloadUnusedAfterTicks) {
+      ecs_world_add_t(world, ecs_view_entity(itr), RendResUnloadComp);
+    }
+  }
+}
+
+ecs_view_define(RendResUnloadChangedView) {
   ecs_access_read(AssetComp);
   ecs_access_with(AssetChangedComp);
-  ecs_access_read(RendResComp);
+  ecs_access_with(RendResFinishedComp);
   ecs_access_without(RendResUnloadComp);
 }
 
 /**
- * Request resources where the source asset has changed to be unloaded.
+ * Start unloading resources where the source asset has changed.
  */
-ecs_system_define(RendResUnloadChangedRequestSys) {
-  EcsView* changedAssetsView = ecs_world_view_t(world, RendResUnloadChangedRequestView);
+ecs_system_define(RendResUnloadChangedSys) {
+  EcsView* changedAssetsView = ecs_world_view_t(world, RendResUnloadChangedView);
   for (EcsIterator* itr = ecs_view_itr(changedAssetsView); ecs_view_walk(itr);) {
-    const RendResComp* resComp = ecs_view_read_t(itr, RendResComp);
-    const String       id      = asset_id(ecs_view_read_t(itr, AssetComp));
-    const EcsEntityId  entity  = ecs_view_entity(itr);
-
-    /**
-     * Wait with unloading until the asset has finished loaded to avoid the complexity of unloading
-     * a half-loaded asset.
-     */
-    if (resComp->state >= RendResLoadState_FinishedSuccess) {
-      log_i("Unloaded changed asset", log_param("id", fmt_text(id)));
-      ecs_world_add_t(world, entity, RendResUnloadComp);
-    }
+    const String id = asset_id(ecs_view_read_t(itr, AssetComp));
+    log_i("Unloading resource due to changed asset", log_param("id", fmt_text(id)));
+    ecs_world_add_t(world, ecs_view_entity(itr), RendResUnloadComp);
   }
 }
 
@@ -539,7 +563,7 @@ ecs_system_define(RendResUnloadUpdateSys) {
     case RendResUnloadState_Destroy: {
       ecs_world_remove_t(world, entity, RendResComp);
       ecs_world_remove_t(world, entity, RendResUnloadComp);
-      ecs_world_remove_t(world, entity, RendResFinishedComp);
+      ecs_utils_maybe_remove_t(world, entity, RendResFinishedComp);
       ecs_utils_maybe_remove_t(world, entity, RendResGraphicComp);
       ecs_utils_maybe_remove_t(world, entity, RendResShaderComp);
       ecs_utils_maybe_remove_t(world, entity, RendResMeshComp);
@@ -562,7 +586,8 @@ ecs_module_init(rend_resource_module) {
   ecs_register_comp(
       RendResComp, .destructor = ecs_destruct_res_comp, .combinator = ecs_combine_resource);
   ecs_register_comp_empty(RendResFinishedComp);
-  ecs_register_comp(RendResUnloadComp);
+  ecs_register_comp_empty(RendResNeverUnloadComp);
+  ecs_register_comp(RendResUnloadComp, .combinator = ecs_combine_resource_unload);
 
   ecs_register_view(RendPlatReadView);
   ecs_register_view(ResourceWriteView);
@@ -576,8 +601,6 @@ ecs_module_init(rend_resource_module) {
       ecs_register_view(GlobalResourceUpdateView),
       ecs_view_id(TextureWriteView));
 
-  ecs_register_system(RendResRequestSys, ecs_register_view(RequestForInstanceView));
-
   ecs_register_system(
       RendResLoadSys,
       ecs_view_id(RendPlatReadView),
@@ -587,14 +610,27 @@ ecs_module_init(rend_resource_module) {
       ecs_view_id(MeshWriteView),
       ecs_view_id(TextureWriteView));
 
-  ecs_register_system(
-      RendResUnloadChangedRequestSys, ecs_register_view(RendResUnloadChangedRequestView));
+  ecs_register_system(RendResUnloadUnusedSys, ecs_register_view(RendResUnloadUnusedView));
+  ecs_register_system(RendResUnloadChangedSys, ecs_register_view(RendResUnloadChangedView));
 
   ecs_register_system(
       RendResUnloadUpdateSys,
       ecs_register_view(RendResUnloadUpdateView),
       ecs_view_id(ResourceWriteView));
 }
+
+void rend_resource_request(EcsWorld* world, const EcsEntityId assetEntity) {
+  if (!ecs_world_has_t(world, assetEntity, RendResComp)) {
+    ecs_world_add_t(
+        world,
+        assetEntity,
+        RendResComp,
+        .dependencies = dynarray_create_t(g_alloc_heap, EcsEntityId, 0),
+        .dependents   = dynarray_create_t(g_alloc_heap, EcsEntityId, 0));
+  }
+}
+
+void rend_resource_mark_used(RendResComp* resComp) { resComp->flags |= RendResFlags_Used; }
 
 void rend_resource_teardown(EcsWorld* world) {
   const RendPlatformComp* plat = ecs_utils_read_first_t(world, RendPlatReadView, RendPlatformComp);
