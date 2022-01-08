@@ -54,7 +54,7 @@ static EcsArchetypeId ecs_world_archetype_find_or_create(EcsWorld* world, const 
   const EcsArchetypeId newId         = ecs_storage_archetype_create(&world->storage, mask);
   const usize          trackingViews = ecs_world_archetype_track(world, newId, mask);
 
-#ifdef VOLO_ECS_WORLD_LOGGING_VERBOSE
+#if defined(VOLO_ECS_WORLD_LOGGING_VERBOSE)
   log_d(
       "Ecs archetype created",
       log_param("components", fmt_int(bitset_count(mask))),

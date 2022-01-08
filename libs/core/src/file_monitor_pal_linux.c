@@ -86,14 +86,14 @@ void file_monitor_destroy(FileMonitor* monitor) {
 FileMonitorResult file_monitor_watch(FileMonitor* monitor, const String path, const u64 userData) {
   const char* pathNullTerm = to_null_term_scratch(path);
   u32         mask         = monitor_inotifyMask;
-#ifdef IN_MASK_CREATE
+#if defined(IN_MASK_CREATE)
   mask |= IN_MASK_CREATE;
 #endif
   const int wd = inotify_add_watch(monitor->fd, pathNullTerm, mask);
   if (wd < 0) {
     return result_from_errno();
   }
-#ifndef IN_MASK_CREATE
+#if !defined(IN_MASK_CREATE)
   /**
    * Without 'IN_MASK_CREATE' we need to manually check if we already had a watch for this path.
    */

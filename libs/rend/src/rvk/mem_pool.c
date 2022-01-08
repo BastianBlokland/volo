@@ -161,7 +161,7 @@ static RvkMemChunk* rvk_mem_chunk_create(
   diag_assert(rvk_mem_chunk_size_free(chunk) == size);
   diag_assert(rvk_mem_chunk_size_occupied(chunk) == 0);
 
-#ifdef VOLO_RVK_MEM_LOGGING
+#if defined(VOLO_RVK_MEM_LOGGING)
   log_d(
       "Vulkan memory chunk created",
       log_param("id", fmt_int(chunk->id)),
@@ -193,7 +193,7 @@ static void rvk_mem_chunk_destroy(RvkMemChunk* chunk) {
   dynarray_destroy(&chunk->freeBlocks);
   alloc_free_t(g_alloc_heap, chunk);
 
-#ifdef VOLO_RVK_MEM_LOGGING
+#if defined(VOLO_RVK_MEM_LOGGING)
   log_d(
       "Vulkan memory chunk destroyed",
       log_param("id", fmt_int(chunk->id)),
@@ -206,7 +206,7 @@ static void rvk_mem_chunk_destroy(RvkMemChunk* chunk) {
 
 static RvkMem rvk_mem_chunk_alloc(RvkMemChunk* chunk, const u32 size, const u32 align) {
 
-#ifdef VOLO_RVK_MEM_DEBUG
+#if defined(VOLO_RVK_MEM_DEBUG)
   const u32 dbgFreeSize = rvk_mem_chunk_size_free(chunk);
 #endif
 
@@ -236,7 +236,7 @@ static RvkMem rvk_mem_chunk_alloc(RvkMemChunk* chunk, const u32 size, const u32 
       *dynarray_push_t(&chunk->freeBlocks, RvkMem) = (RvkMem){.offset = offset, .size = padding};
     }
 
-#ifdef VOLO_RVK_MEM_DEBUG
+#if defined(VOLO_RVK_MEM_DEBUG)
     if (UNLIKELY(dbgFreeSize - rvk_mem_chunk_size_free(chunk) != size)) {
       diag_crash_msg(
           "Memory-pool corrupt after allocate (size: {}, chunk: {}, pre-alloc: {}, post-alloc: {})",
@@ -248,7 +248,7 @@ static RvkMem rvk_mem_chunk_alloc(RvkMemChunk* chunk, const u32 size, const u32 
     }
 #endif
 
-#ifdef VOLO_RVK_MEM_LOGGING
+#if defined(VOLO_RVK_MEM_LOGGING)
     log_d(
         "Vulkan memory block allocated",
         log_param("size", fmt_size(size)),
@@ -266,7 +266,7 @@ static RvkMem rvk_mem_chunk_alloc(RvkMemChunk* chunk, const u32 size, const u32 
 static void rvk_mem_chunk_free(RvkMemChunk* chunk, const RvkMem mem) {
   diag_assert(mem.chunk == chunk);
 
-#ifdef VOLO_RVK_MEM_DEBUG
+#if defined(VOLO_RVK_MEM_DEBUG)
   dynarray_for_t(&chunk->freeBlocks, RvkMem, freeBlock) {
     if (UNLIKELY(rvk_mem_overlap(*freeBlock, mem))) {
       diag_crash_msg(
@@ -299,14 +299,14 @@ static void rvk_mem_chunk_free(RvkMemChunk* chunk, const RvkMem mem) {
 Done:
   (void)0;
 
-#ifdef VOLO_RVK_MEM_LOGGING
+#if defined(VOLO_RVK_MEM_LOGGING)
   log_d(
       "Vulkan memory block freed",
       log_param("size", fmt_int(mem.size)),
       log_param("chunk", fmt_int(chunk->id)));
 #endif
 
-#ifdef VOLO_RVK_MEM_DEBUG
+#if defined(VOLO_RVK_MEM_DEBUG)
   if (UNLIKELY(rvk_mem_chunk_size_free(chunk) - dbgFreeSize != mem.size)) {
     diag_crash_msg(
         "Memory-pool corrupt after free (size: {}, chunk: {}, pre-free: {}, post-free: {})",

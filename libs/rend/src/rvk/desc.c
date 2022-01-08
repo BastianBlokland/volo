@@ -169,7 +169,7 @@ static RvkDescChunk* rvk_desc_chunk_create(RvkDescPool* pool, const RvkDescMeta*
   };
   rvk_call(vkAllocateDescriptorSets, pool->vkDev, &allocInfo, chunk->vkSets);
 
-#ifdef VOLO_RVK_DESC_LOGGING
+#if defined(VOLO_RVK_DESC_LOGGING)
   log_d(
       "Vulkan descriptor chunk created",
       log_param("bindings", fmt_int(rvk_desc_binding_count(meta))),
@@ -187,7 +187,7 @@ static void rvk_desc_chunk_destroy(RvkDescChunk* chunk) {
   vkDestroyDescriptorPool(chunk->pool->vkDev, chunk->vkPool, &chunk->pool->vkAlloc);
   alloc_free_t(g_alloc_heap, chunk);
 
-#ifdef VOLO_RVK_DESC_LOGGING
+#if defined(VOLO_RVK_DESC_LOGGING)
   log_d("Vulkan descriptor chunk destroyed", log_param("meta-hash", fmt_int(chunk->metaHash)));
 #endif
 }
@@ -259,7 +259,7 @@ VkDescriptorSetLayout rvk_desc_vklayout(RvkDescPool* pool, const RvkDescMeta* me
         .vkLayout = rvk_desc_vklayout_create(pool, meta),
     };
 
-#ifdef VOLO_RVK_DESC_LOGGING
+#if defined(VOLO_RVK_DESC_LOGGING)
     log_d(
         "Vulkan descriptor layout created",
         log_param("bindings", fmt_int(rvk_desc_binding_count(meta))),
