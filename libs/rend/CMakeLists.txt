@@ -21,6 +21,7 @@ add_library(lib_rend STATIC
   src/rvk/repository.c
   src/rvk/sampler.c
   src/rvk/shader.c
+  src/rvk/statrecorder.c
   src/rvk/stopwatch.c
   src/rvk/swapchain.c
   src/rvk/texture.c
