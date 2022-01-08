@@ -54,6 +54,8 @@ void rvk_texture_destroy(RvkTexture* texture) {
   RvkDevice* dev = texture->device;
   rvk_image_destroy(&texture->image, dev);
 
+  log_d("Vulkan texture destroyed", log_param("name", fmt_text(texture->dbgName)));
+
   string_free(g_alloc_heap, texture->dbgName);
   alloc_free_t(g_alloc_heap, texture);
 }

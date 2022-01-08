@@ -115,6 +115,7 @@ RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset, const
   RvkShader* shader = alloc_alloc_t(g_alloc_heap, RvkShader);
   *shader           = (RvkShader){
       .device     = dev,
+      .dbgName    = string_dup(g_alloc_heap, dbgName),
       .vkModule   = rvk_shader_module_create(dev, asset),
       .vkStage    = rvk_shader_stage(asset->kind),
       .entryPoint = string_dup(g_alloc_heap, asset->entryPoint),
@@ -163,6 +164,9 @@ void rvk_shader_destroy(RvkShader* shader) {
     alloc_free_array_t(g_alloc_heap, shader->specs.values, shader->specs.count);
   }
 
+  log_d("Vulkan shader destroyed", log_param("name", fmt_text(shader->dbgName)));
+
+  string_free(g_alloc_heap, shader->dbgName);
   alloc_free_t(g_alloc_heap, shader);
 }
 

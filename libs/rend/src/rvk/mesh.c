@@ -56,6 +56,7 @@ RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const Strin
   RvkMesh* mesh = alloc_alloc_t(g_alloc_heap, RvkMesh);
   *mesh         = (RvkMesh){
       .device      = dev,
+      .dbgName     = string_dup(g_alloc_heap, dbgName),
       .vertexCount = (u32)asset->vertexCount,
       .indexCount  = (u32)asset->indexCount,
   };
@@ -94,6 +95,9 @@ void rvk_mesh_destroy(RvkMesh* mesh) {
   rvk_buffer_destroy(&mesh->vertexBuffer, dev);
   rvk_buffer_destroy(&mesh->indexBuffer, dev);
 
+  log_d("Vulkan mesh destroyed", log_param("name", fmt_text(mesh->dbgName)));
+
+  string_free(g_alloc_heap, mesh->dbgName);
   alloc_free_t(g_alloc_heap, mesh);
 }
 

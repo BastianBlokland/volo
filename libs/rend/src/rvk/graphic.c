@@ -536,6 +536,9 @@ void rvk_graphic_destroy(RvkGraphic* graphic) {
       rvk_sampler_destroy(&itr->sampler, dev);
     }
   }
+
+  log_d("Vulkan graphic destroyed", log_param("name", fmt_text(graphic->dbgName)));
+
   string_free(g_alloc_heap, graphic->dbgName);
   alloc_free_t(g_alloc_heap, graphic);
 }

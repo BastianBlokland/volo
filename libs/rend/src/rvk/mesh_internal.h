@@ -10,6 +10,7 @@ typedef struct sRvkPass   RvkPass;
 
 typedef struct sRvkMesh {
   RvkDevice*    device;
+  String        dbgName;
   u32           vertexCount, indexCount;
   RvkBuffer     vertexBuffer, indexBuffer;
   RvkTransferId vertexTransfer, indexTransfer;
