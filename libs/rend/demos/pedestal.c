@@ -44,6 +44,7 @@ static const String    g_subjectGraphics[]   = {
 typedef enum {
   DemoFlags_Initialized = 1 << 0,
   DemoFlags_Dirty       = 1 << 1,
+  DemoFlags_Rotate      = 1 << 2,
 } DemoFlags;
 
 ecs_comp_define(DemoComp) {
@@ -172,7 +173,7 @@ ecs_system_define(DemoUpdateSys) {
   if (!(demo->flags & DemoFlags_Initialized)) {
     demo_spawn_sky(world, assets);
     demo_spawn_grid(world, assets);
-    demo->flags |= DemoFlags_Initialized | DemoFlags_Dirty;
+    demo->flags |= DemoFlags_Initialized | DemoFlags_Rotate | DemoFlags_Dirty;
   }
 
   EcsIterator*         windowItr = ecs_view_at(ecs_world_view_t(world, WindowView), demo->window);
@@ -192,6 +193,10 @@ ecs_system_define(DemoUpdateSys) {
   if (gap_window_key_pressed(window, GapKey_Space)) {
     demo->subjectIndex = (demo->subjectIndex + 1) % array_elems(g_subjectGraphics);
     demo->flags |= DemoFlags_Dirty;
+  }
+
+  if (gap_window_key_pressed(window, GapKey_Return)) {
+    demo->flags ^= DemoFlags_Rotate;
   }
 
   if (gap_window_key_pressed(window, GapKey_Alpha1)) {
@@ -235,8 +240,13 @@ ecs_system_define(DemoSetRotationSys) {
   if (!globalItr) {
     return;
   }
+  const DemoComp*      demo        = ecs_view_read_t(globalItr, DemoComp);
   const SceneTimeComp* time        = ecs_view_read_t(globalItr, SceneTimeComp);
   const f32            timeSeconds = time->time / (f32)time_second;
+
+  if (!(demo->flags & DemoFlags_Rotate)) {
+    return;
+  }
 
   EcsView* objectView = ecs_world_view_t(world, ObjectView);
   for (EcsIterator* objItr = ecs_view_itr(objectView); ecs_view_walk(objItr);) {
