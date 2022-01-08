@@ -3,7 +3,7 @@
 #include "gap_input.h"
 
 typedef struct {
-  u8 data[bits_to_bytes(GapKey_Count)];
+  u8 data[bits_to_bytes(GapKey_Count) + 1];
 } GapKeySet;
 
 void gap_keyset_clear(GapKeySet*);
