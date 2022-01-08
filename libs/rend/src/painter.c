@@ -72,6 +72,7 @@ ecs_view_define(CreateBatchView) {
   ecs_access_with(RendResGraphicComp);
   ecs_access_with(RendResFinishedComp);
   ecs_access_without(RendResUnloadComp);
+  ecs_access_write(RendResComp);
   ecs_access_maybe_write(RendPainterBatchComp);
 }
 
@@ -109,9 +110,12 @@ static GeoMatrix painter_view_proj_matrix(
 }
 
 static RendPainterBatchComp* painter_batch_get(EcsWorld* world, EcsIterator* graphic) {
-  RendPainterBatchComp* comp = ecs_view_write_t(graphic, RendPainterBatchComp);
-  if (LIKELY(comp)) {
-    return comp;
+  RendResComp* resComp = ecs_view_write_t(graphic, RendResComp);
+  rend_resource_mark_used(resComp);
+
+  RendPainterBatchComp* batchComp = ecs_view_write_t(graphic, RendPainterBatchComp);
+  if (LIKELY(batchComp)) {
+    return batchComp;
   }
   return ecs_world_add_t(
       world,
