@@ -1,11 +1,11 @@
 #include "core_alloc.h"
+#include "core_diag.h"
 #include "core_thread.h"
 #include "core_time.h"
 #include "ecs_utils.h"
 #include "gap_input.h"
 #include "gap_window.h"
 #include "geo_matrix.h"
-#include "rend_instance.h"
 #include "rend_register.h"
 #include "scene_camera.h"
 #include "scene_transform.h"
@@ -18,10 +18,29 @@
 #include "rvk/pass_internal.h"
 
 ecs_comp_define_public(RendPainterComp);
+ecs_comp_define_public(RendPainterDrawComp);
 
-static void ecs_destruct_painter_comp(void* data) {
+static void ecs_destruct_painter(void* data) {
   RendPainterComp* comp = data;
   rvk_canvas_destroy(comp->canvas);
+}
+
+static void ecs_destruct_draw(void* data) {
+  RendPainterDrawComp* comp = data;
+  dynarray_destroy(&comp->instances);
+}
+
+static void ecs_combine_draw(void* dataA, void* dataB) {
+  RendPainterDrawComp* compA = dataA;
+  RendPainterDrawComp* compB = dataB;
+  diag_assert_msg(
+      compA->instances.stride == compB->instances.stride,
+      "Only draws with the same data-stride can be combined");
+
+  mem_cpy(
+      dynarray_push(&compA->instances, compB->instances.size),
+      dynarray_at(&compB->instances, 0, compB->instances.size));
+  dynarray_destroy(&compB->instances);
 }
 
 typedef struct {
@@ -31,51 +50,14 @@ typedef struct {
   GeoQuat   camRotation;
 } RendPainterGlobalData;
 
-typedef struct {
-  ALIGNAS(16)
-  GeoVector position;
-  GeoQuat   rotation;
-} RendPainterInstanceData;
-
-ecs_comp_define(RendPainterBatchComp) {
-  DynArray instances; // RendPainterInstanceData[]
-};
-
-static void ecs_destruct_batch_comp(void* data) {
-  RendPainterBatchComp* comp = data;
-  dynarray_destroy(&comp->instances);
-}
-
-static void ecs_combine_batch(void* dataA, void* dataB) {
-  RendPainterBatchComp* compA = dataA;
-  RendPainterBatchComp* compB = dataB;
-  dynarray_for_t(&compB->instances, RendPainterInstanceData, instance) {
-    mem_cpy(dynarray_push(&compA->instances, 1), mem_var(*instance));
-  }
-  dynarray_destroy(&compB->instances);
-}
-
 ecs_view_define(GlobalView) { ecs_access_write(RendPlatformComp); }
-
-ecs_view_define(RenderableView) {
-  ecs_access_read(RendInstanceComp);
-  ecs_access_maybe_read(SceneTransformComp);
-}
-
-ecs_view_define(DrawBatchView) {
+ecs_view_define(DrawView) { ecs_access_read(RendPainterDrawComp); }
+ecs_view_define(GraphicView) {
+  ecs_access_write(RendResComp);
   ecs_access_write(RendResGraphicComp);
-  ecs_access_read(RendPainterBatchComp);
-}
-
-ecs_view_define(CreateBatchView) {
-  ecs_access_with(RendResGraphicComp);
   ecs_access_with(RendResFinishedComp);
   ecs_access_without(RendResUnloadComp);
-  ecs_access_write(RendResComp);
-  ecs_access_maybe_write(RendPainterBatchComp);
 }
-
-ecs_view_define(ClearBatchView) { ecs_access_write(RendPainterBatchComp); }
 
 ecs_view_define(PainterCreateView) {
   ecs_access_read(GapWindowComp);
@@ -108,38 +90,33 @@ static GeoMatrix painter_view_proj_matrix(
   return geo_matrix_mul(&proj, &view);
 }
 
-static RendPainterBatchComp* painter_batch_get(EcsWorld* world, EcsIterator* graphic) {
-  RendResComp* resComp = ecs_view_write_t(graphic, RendResComp);
-  rend_resource_mark_used(resComp);
-
-  RendPainterBatchComp* batchComp = ecs_view_write_t(graphic, RendPainterBatchComp);
-  if (LIKELY(batchComp)) {
-    return batchComp;
-  }
-  return ecs_world_add_t(
-      world,
-      ecs_view_entity(graphic),
-      RendPainterBatchComp,
-      .instances = dynarray_create_t(g_alloc_heap, RendPainterInstanceData, 32));
-}
-
 static void painter_draw_forward(
-    const RendPainterGlobalData* globalData, RvkPass* forwardPass, EcsView* batchView) {
+    const RendPainterGlobalData* globalData,
+    RvkPass*                     forwardPass,
+    EcsView*                     drawView,
+    EcsView*                     graphicView) {
   DynArray drawBuffer = dynarray_create_t(g_alloc_scratch, RvkPassDraw, 1024);
 
   // Prepare draws.
-  for (EcsIterator* itr = ecs_view_itr(batchView); ecs_view_walk(itr);) {
-    RendResGraphicComp*         graphicResComp = ecs_view_write_t(itr, RendResGraphicComp);
-    const RendPainterBatchComp* batchComp      = ecs_view_read_t(itr, RendPainterBatchComp);
-    if (!batchComp->instances.size) {
+  EcsIterator* graphicItr = ecs_view_itr(graphicView);
+  for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
+    const RendPainterDrawComp* drawComp = ecs_view_read_t(drawItr, RendPainterDrawComp);
+    if (!drawComp->instances.size) {
       continue;
     }
+    if (!ecs_view_contains(graphicView, drawComp->graphic)) {
+      continue;
+    }
+    ecs_view_jump(graphicItr, drawComp->graphic);
+    rend_resource_mark_used(ecs_view_write_t(graphicItr, RendResComp));
+
+    RendResGraphicComp* graphicResComp = ecs_view_write_t(graphicItr, RendResGraphicComp);
     if (rvk_pass_prepare(forwardPass, graphicResComp->graphic)) {
       *dynarray_push_t(&drawBuffer, RvkPassDraw) = (RvkPassDraw){
           .graphic       = graphicResComp->graphic,
-          .instanceCount = (u32)batchComp->instances.size,
-          .data          = dynarray_at(&batchComp->instances, 0, batchComp->instances.size),
-          .dataStride    = sizeof(RendPainterInstanceData),
+          .instanceCount = (u32)drawComp->instances.size,
+          .data          = dynarray_at(&drawComp->instances, 0, drawComp->instances.size),
+          .dataStride    = drawComp->instances.stride,
       };
     }
   }
@@ -164,7 +141,8 @@ static bool painter_draw(
     const GapWindowComp*      win,
     const SceneCameraComp*    cam,
     const SceneTransformComp* trans,
-    EcsView*                  batchView) {
+    EcsView*                  drawView,
+    EcsView*                  graphicView) {
 
   const GapVector winSize  = gap_window_param(win, GapParam_WindowSize);
   const RendSize  rendSize = rend_size((u32)winSize.width, (u32)winSize.height);
@@ -176,7 +154,7 @@ static bool painter_draw(
         .camRotation = trans ? trans->rotation : geo_quat_ident,
     };
     RvkPass* forwardPass = rvk_canvas_pass_forward(painter->canvas);
-    painter_draw_forward(&globalData, forwardPass, batchView);
+    painter_draw_forward(&globalData, forwardPass, drawView, graphicView);
     rvk_canvas_end(painter->canvas);
   }
   return draw;
@@ -201,39 +179,10 @@ ecs_system_define(RendPainterCreateSys) {
   }
 }
 
-ecs_system_define(RendPainterCollectBatchesSys) {
-  // Clear the current batches.
-  EcsView* clearBatchView = ecs_world_view_t(world, ClearBatchView);
-  for (EcsIterator* clearItr = ecs_view_itr(clearBatchView); ecs_view_walk(clearItr);) {
-    dynarray_clear(&ecs_view_write_t(clearItr, RendPainterBatchComp)->instances);
-  }
-
-  // Create new batches.
-  EcsView*     createBatchView = ecs_world_view_t(world, CreateBatchView);
-  EcsIterator* batchItr        = ecs_view_itr(createBatchView);
-  EcsView*     renderableView  = ecs_world_view_t(world, RenderableView);
-
-  for (EcsIterator* renderableItr = ecs_view_itr(renderableView); ecs_view_walk(renderableItr);) {
-    const RendInstanceComp*   instanceComp  = ecs_view_read_t(renderableItr, RendInstanceComp);
-    const SceneTransformComp* transformComp = ecs_view_read_t(renderableItr, SceneTransformComp);
-
-    if (!ecs_view_contains(createBatchView, instanceComp->graphic)) {
-      continue; // Graphic not ready.
-    }
-
-    ecs_view_jump(batchItr, instanceComp->graphic);
-    RendPainterBatchComp* batchComp = painter_batch_get(world, batchItr);
-
-    *dynarray_push_t(&batchComp->instances, RendPainterInstanceData) = (RendPainterInstanceData){
-        .position = transformComp ? transformComp->position : geo_vector(0),
-        .rotation = transformComp ? transformComp->rotation : geo_quat_ident,
-    };
-  }
-}
-
 ecs_system_define(RendPainterDrawBatchesSys) {
   EcsView* painterView = ecs_world_view_t(world, PainterUpdateView);
-  EcsView* batchView   = ecs_world_view_t(world, DrawBatchView);
+  EcsView* drawView    = ecs_world_view_t(world, DrawView);
+  EcsView* graphicView = ecs_world_view_t(world, GraphicView);
 
   bool anyPainterDrawn = false;
   for (EcsIterator* itr = ecs_view_itr(painterView); ecs_view_walk(itr);) {
@@ -246,7 +195,7 @@ ecs_system_define(RendPainterDrawBatchesSys) {
     RendPainterComp*          painter   = ecs_view_write_t(itr, RendPainterComp);
     const SceneCameraComp*    camera    = ecs_view_read_t(itr, SceneCameraComp);
     const SceneTransformComp* transform = ecs_view_read_t(itr, SceneTransformComp);
-    anyPainterDrawn |= painter_draw(painter, win, camera, transform, batchView);
+    anyPainterDrawn |= painter_draw(painter, win, camera, transform, drawView, graphicView);
   }
 
   if (!anyPainterDrawn) {
@@ -259,15 +208,13 @@ ecs_system_define(RendPainterDrawBatchesSys) {
 }
 
 ecs_module_init(rend_painter_module) {
-  ecs_register_comp(RendPainterComp, .destructor = ecs_destruct_painter_comp);
+  ecs_register_comp(RendPainterComp, .destructor = ecs_destruct_painter);
   ecs_register_comp(
-      RendPainterBatchComp, .destructor = ecs_destruct_batch_comp, .combinator = ecs_combine_batch);
+      RendPainterDrawComp, .destructor = ecs_destruct_draw, .combinator = ecs_combine_draw);
 
   ecs_register_view(GlobalView);
-  ecs_register_view(RenderableView);
-  ecs_register_view(DrawBatchView);
-  ecs_register_view(CreateBatchView);
-  ecs_register_view(ClearBatchView);
+  ecs_register_view(DrawView);
+  ecs_register_view(GraphicView);
   ecs_register_view(PainterCreateView);
   ecs_register_view(PainterUpdateView);
 
@@ -275,14 +222,10 @@ ecs_module_init(rend_painter_module) {
       RendPainterCreateSys, ecs_view_id(GlobalView), ecs_view_id(PainterCreateView));
 
   ecs_register_system(
-      RendPainterCollectBatchesSys,
-      ecs_view_id(ClearBatchView),
-      ecs_view_id(CreateBatchView),
-      ecs_view_id(RenderableView));
+      RendPainterDrawBatchesSys,
+      ecs_view_id(PainterUpdateView),
+      ecs_view_id(DrawView),
+      ecs_view_id(GraphicView));
 
-  ecs_register_system(
-      RendPainterDrawBatchesSys, ecs_view_id(PainterUpdateView), ecs_view_id(DrawBatchView));
-
-  ecs_order(RendPainterCollectBatchesSys, RendOrder_DrawCollect);
   ecs_order(RendPainterDrawBatchesSys, RendOrder_DrawExecute);
 }
