@@ -275,11 +275,11 @@ static int demo_run(const String assetPath) {
       log_param("pid", fmt_int(g_thread_pid)));
 
   EcsDef* def = def = ecs_def_create(g_alloc_heap);
-  asset_register(def);
-  scene_register(def);
-  gap_register(def);
   ecs_register_module(def, demo_cube_module);
+  asset_register(def);
+  gap_register(def);
   rend_register(def);
+  scene_register(def);
 
   EcsWorld*  world  = ecs_world_create(g_alloc_heap, def);
   EcsRunner* runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_DumpGraphDot);
