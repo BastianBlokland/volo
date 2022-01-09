@@ -477,6 +477,14 @@ ecs_module_init(snake_module) {
       ecs_register_view(CollisionSysGlobal),
       ecs_register_view(CollisionSysPlayer),
       ecs_register_view(CollisionSysCollidable));
+
+  ecs_order(InputSys, 1);
+  ecs_order(InitSys, 2);
+  ecs_order(SteerSys, 3);
+  ecs_order(MoveSys, 4);
+  ecs_order(UpdateTailSys, 5);
+  ecs_order(RenderSys, 6);
+  ecs_order(CollisionSys, 7);
 }
 
 static int demo_run(const u64 frequency, const u64 pickupDensity) {
