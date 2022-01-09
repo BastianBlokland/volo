@@ -106,6 +106,8 @@ macro(set_clang_compile_options)
 
   # Optimization settings.
   add_compile_options(-O3)
+  # add_compile_options(-flto=full)
+  # add_link_options(-fuse-ld=lld -flto=full)
 
   # Debug options.
   add_compile_options(-g -fno-omit-frame-pointer)
