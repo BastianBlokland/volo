@@ -4,12 +4,14 @@
 #include "ecs_def.h"
 
 #include "entity_allocator_internal.h"
+#include "finalizer_internal.h"
 #include "iterator_internal.h"
 
 typedef u32 EcsArchetypeId;
 
 typedef struct {
   const EcsDef* def;
+  EcsFinalizer  finalizer;
 
   EntityAllocator entityAllocator;
   DynArray        entities; // EcsEntityInfo[].

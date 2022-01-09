@@ -50,32 +50,29 @@ static EcsEntityInfo* ecs_storage_entity_info_ptr(EcsStorage* storage, const Ecs
   return info->serial == ecs_entity_id_serial(id) ? info : null;
 }
 
-static void ecs_storage_destruct_comps(EcsStorage* storage, EcsIterator* itr) {
+static void ecs_storage_queue_finalize(EcsStorage* storage, EcsIterator* itr) {
   EcsCompId compId = 0;
   for (usize i = 0; i != itr->compCount; ++i, ++compId) {
     compId = (EcsCompId)bitset_next(itr->mask, compId);
-
-    const EcsCompDestructor destructor = ecs_def_comp_destructor(storage->def, compId);
-    if (destructor) {
-      destructor(itr->comps[i].ptr);
-    }
+    ecs_finalizer_push(&storage->finalizer, compId, itr->comps[i].ptr);
   }
 }
 
-static void ecs_storage_destruct_archetype_comps(EcsStorage* storage, const EcsArchetypeId id) {
+static void ecs_storage_queue_finalize_archetype(EcsStorage* storage, const EcsArchetypeId id) {
   EcsArchetype* archetype = ecs_storage_archetype_ptr(storage, id);
   EcsIterator*  itr       = ecs_iterator_stack(archetype->mask);
   while (ecs_storage_itr_walk(storage, itr, id)) {
-    ecs_storage_destruct_comps(storage, itr);
+    ecs_storage_queue_finalize(storage, itr);
   }
 }
 
-static void ecs_storage_destruct_entity_comps(
+static void ecs_storage_finalize_entity(
     EcsStorage* storage, EcsArchetype* archetype, const u32 archetypeIndex, const BitSet mask) {
 
   EcsIterator* itr = ecs_iterator_stack(mask);
   ecs_archetype_itr_jump(archetype, itr, archetypeIndex);
-  ecs_storage_destruct_comps(storage, itr);
+  ecs_storage_queue_finalize(storage, itr);
+  ecs_finalizer_flush(&storage->finalizer);
 }
 
 i8 ecs_compare_archetype(const void* a, const void* b) { return compare_u32(a, b); }
@@ -85,6 +82,7 @@ EcsStorage ecs_storage_create(Allocator* alloc, const EcsDef* def) {
 
   EcsStorage storage = (EcsStorage){
       .def             = def,
+      .finalizer       = ecs_finalizer_create(alloc, def),
       .entityAllocator = entity_allocator_create(alloc),
       .entities        = dynarray_create_t(alloc, EcsEntityInfo, ecs_starting_entities_capacity),
       .newEntities     = dynarray_create_t(alloc, EcsEntityId, 128),
@@ -96,13 +94,20 @@ EcsStorage ecs_storage_create(Allocator* alloc, const EcsDef* def) {
 }
 
 void ecs_storage_destroy(EcsStorage* storage) {
+  // Finalize (invoke destructors) on all components in the archetypes.
+  for (EcsArchetypeId archId = 0; archId != storage->archetypes.size; ++archId) {
+    ecs_storage_queue_finalize_archetype(storage, archId);
+  }
+  ecs_finalizer_flush(&storage->finalizer);
+
+  // Destoy the archetypes.
   for (EcsArchetypeId archId = 0; archId != storage->archetypes.size; ++archId) {
     EcsArchetype* arch = dynarray_at_t(&storage->archetypes, archId, EcsArchetype);
-    ecs_storage_destruct_archetype_comps(storage, archId);
     ecs_archetype_destroy(arch);
   }
   dynarray_destroy(&storage->archetypes);
 
+  ecs_finalizer_destroy(&storage->finalizer);
   entity_allocator_destroy(&storage->entityAllocator);
 
   dynarray_destroy(&storage->entities);
@@ -187,7 +192,7 @@ void ecs_storage_entity_move(
       bitset_xor(missing, newArchetype->mask);
       bitset_and(missing, oldArchetype->mask);
     }
-    ecs_storage_destruct_entity_comps(storage, oldArchetype, oldArchetypeIndex, missing);
+    ecs_storage_finalize_entity(storage, oldArchetype, oldArchetypeIndex, missing);
 
     const EcsEntityId movedEntity = ecs_archetype_remove(oldArchetype, oldArchetypeIndex);
     if (ecs_entity_valid(movedEntity)) {
@@ -203,7 +208,7 @@ void ecs_storage_entity_destroy(EcsStorage* storage, const EcsEntityId id) {
 
   EcsArchetype* archetype = ecs_storage_archetype_ptr(storage, info->archetype);
   if (archetype) {
-    ecs_storage_destruct_entity_comps(storage, archetype, info->archetypeIndex, archetype->mask);
+    ecs_storage_finalize_entity(storage, archetype, info->archetypeIndex, archetype->mask);
 
     const EcsEntityId movedEntity = ecs_archetype_remove(archetype, info->archetypeIndex);
     if (ecs_entity_valid(movedEntity)) {

@@ -11,6 +11,7 @@ add_library(lib_ecs STATIC
   src/def.c
   src/entity_allocator.c
   src/entity.c
+  src/finalizer.c
   src/iterator.c
   src/module.c
   src/runner.c
