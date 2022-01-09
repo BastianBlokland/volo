@@ -1,6 +1,7 @@
 #include "core_time.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
+#include "scene_register.h"
 #include "scene_time.h"
 
 ecs_comp_define_public(SceneTimeComp);
@@ -48,4 +49,5 @@ ecs_module_init(scene_time_module) {
   ecs_register_view(TimeUpdateView);
 
   ecs_register_system(SceneTimeUpdateSys, ecs_view_id(TimeUpdateView));
+  ecs_order(SceneTimeUpdateSys, SceneOrder_TimeUpdate);
 }

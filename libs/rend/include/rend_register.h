@@ -1,6 +1,11 @@
 #pragma once
 #include "ecs_def.h"
 
+enum {
+  RendOrder_DrawCollect = 900,
+  RendOrder_DrawExecute = 1000,
+};
+
 /**
  * Register the ecs modules for the Renderer library.
  */

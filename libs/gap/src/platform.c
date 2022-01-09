@@ -1,4 +1,5 @@
 #include "ecs_world.h"
+#include "gap_register.h"
 
 #include "platform_internal.h"
 
@@ -37,4 +38,5 @@ ecs_module_init(gap_platform_module) {
    */
   ecs_register_system_with_flags(
       GapPlatformUpdateSys, EcsSystemFlags_ThreadAffinity, ecs_view_id(GapPlatformView));
+  ecs_order(GapPlatformUpdateSys, GapOrder_PlatformUpdate);
 }
