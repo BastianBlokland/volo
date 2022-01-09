@@ -16,7 +16,7 @@
 #include "rvk/shader_internal.h"
 #include "rvk/texture_internal.h"
 
-static const u32 g_rendResUnloadUnusedAfterTicks = 480;
+static const u32 g_rendResUnloadUnusedAfterTicks = 480; // NOTE: Less then 2 is not supported.
 
 ecs_comp_define_public(RendResGraphicComp);
 ecs_comp_define_public(RendResShaderComp);
@@ -29,6 +29,10 @@ ecs_comp_define(RendGlobalResLoadedComp);
 typedef enum {
   RendResFlags_Used = 1 << 0,
 } RendResFlags;
+
+typedef enum {
+  RendUnloadFlags_UnloadDependents = 1 << 0,
+} RendUnloadFlags;
 
 typedef enum {
   RendResLoadState_AssetAcquire,
@@ -56,7 +60,10 @@ ecs_comp_define(RendResComp) {
 };
 ecs_comp_define(RendResFinishedComp);
 ecs_comp_define(RendResNeverUnloadComp);
-ecs_comp_define(RendResUnloadComp) { RendResUnloadState state; };
+ecs_comp_define(RendResUnloadComp) {
+  RendResUnloadState state;
+  RendUnloadFlags    flags;
+};
 
 static void ecs_destruct_graphic_comp(void* data) {
   RendResGraphicComp* comp = data;
@@ -127,7 +134,8 @@ static void ecs_combine_resource(void* dataA, void* dataB) {
 static void ecs_combine_resource_unload(void* dataA, void* dataB) {
   RendResUnloadComp* compA = dataA;
   RendResUnloadComp* compB = dataB;
-  compA->state             = math_max(compA->state, compB->state);
+  compA->flags |= compB->flags;
+  compA->state = math_max(compA->state, compB->state);
 }
 
 ecs_view_define(PlatReadView) { ecs_access_read(RendPlatformComp); }
@@ -473,9 +481,11 @@ ecs_view_define(ResUnloadUnusedView) {
 static void rend_res_mark_dependencies_used(const RendResComp* resComp, EcsView* depView) {
   EcsIterator* depItr = ecs_view_itr(depView);
   dynarray_for_t(&resComp->dependencies, EcsEntityId, dep) {
-    ecs_view_jump(depItr, *dep);
-    RendResComp* depResComp = ecs_view_write_t(depItr, RendResComp);
-    depResComp->flags |= RendResFlags_Used;
+    if (LIKELY(ecs_view_contains(depView, *dep))) {
+      ecs_view_jump(depItr, *dep);
+      RendResComp* depResComp = ecs_view_write_t(depItr, RendResComp);
+      depResComp->flags |= RendResFlags_Used;
+    }
   }
 }
 
@@ -496,7 +506,8 @@ ecs_system_define(RendResUnloadUnusedSys) {
     const EcsEntityId entity      = ecs_view_entity(itr);
     const bool        isUnloading = ecs_world_has_t(world, entity, RendResUnloadComp);
     const bool        neverUnload = ecs_world_has_t(world, entity, RendResNeverUnloadComp);
-    if (UNLIKELY(isUnloading || neverUnload)) {
+    const bool        failed      = resComp->state == RendResLoadState_FinishedFailure;
+    if (UNLIKELY(isUnloading || neverUnload || failed)) {
       continue;
     }
     if (resComp->unusedTicks++ > g_rendResUnloadUnusedAfterTicks) {
@@ -520,7 +531,8 @@ ecs_system_define(RendResUnloadChangedSys) {
   for (EcsIterator* itr = ecs_view_itr(changedAssetsView); ecs_view_walk(itr);) {
     const String id = asset_id(ecs_view_read_t(itr, AssetComp));
     log_i("Unloading resource due to changed asset", log_param("id", fmt_text(id)));
-    ecs_world_add_t(world, ecs_view_entity(itr), RendResUnloadComp);
+    ecs_world_add_t(
+        world, ecs_view_entity(itr), RendResUnloadComp, .flags = RendUnloadFlags_UnloadDependents);
   }
 }
 
@@ -535,8 +547,8 @@ ecs_view_define(UnloadUpdateView) {
 ecs_system_define(RendResUnloadUpdateSys) {
   EcsView* unloadView = ecs_world_view_t(world, UnloadUpdateView);
 
-  EcsView*     resourceView = ecs_world_view_t(world, ResWriteView);
-  EcsIterator* resourceItr  = ecs_view_itr(resourceView);
+  EcsView*     otherResView = ecs_world_view_t(world, ResWriteView);
+  EcsIterator* otherResItr  = ecs_view_itr(otherResView);
 
   for (EcsIterator* itr = ecs_view_itr(unloadView); ecs_view_walk(itr);) {
     const EcsEntityId  entity     = ecs_view_entity(itr);
@@ -545,10 +557,12 @@ ecs_system_define(RendResUnloadUpdateSys) {
     switch (unloadComp->state) {
     case RendResUnloadState_UnloadDependents: {
       bool finished = true;
-      dynarray_for_t(&resComp->dependents, EcsEntityId, dependent) {
-        if (ecs_world_has_t(world, *dependent, RendResFinishedComp)) {
-          ecs_utils_maybe_add_t(world, *dependent, RendResUnloadComp);
-          finished = false;
+      if (unloadComp->flags & RendUnloadFlags_UnloadDependents) {
+        dynarray_for_t(&resComp->dependents, EcsEntityId, dependent) {
+          if (ecs_world_has_t(world, *dependent, RendResFinishedComp)) {
+            ecs_utils_maybe_add_t(world, *dependent, RendResUnloadComp);
+            finished = false;
+          }
         }
       }
       if (finished) {
@@ -557,9 +571,9 @@ ecs_system_define(RendResUnloadUpdateSys) {
     } break;
     case RendResUnloadState_UnregisterDependencies: {
       dynarray_for_t(&resComp->dependencies, EcsEntityId, dependency) {
-        if (ecs_view_contains(resourceView, *dependency)) {
-          ecs_view_jump(resourceItr, *dependency);
-          RendResComp* dependencyRes = ecs_view_write_t(resourceItr, RendResComp);
+        if (ecs_view_contains(otherResView, *dependency)) {
+          ecs_view_jump(otherResItr, *dependency);
+          RendResComp* dependencyRes = ecs_view_write_t(otherResItr, RendResComp);
           rend_res_remove_dependent(dependencyRes, *dependency);
         }
       }
