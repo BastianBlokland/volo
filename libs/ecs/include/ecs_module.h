@@ -229,6 +229,13 @@ typedef struct {
       .views     = (const EcsViewId[]){ VA_ARGS_SKIP_FIRST(0, ##__VA_ARGS__, 0) },                 \
       .viewCount = COUNT_VA_ARGS(__VA_ARGS__)})
 
+/**
+ * Specify the execution order for the given system.
+ * NOTE: Order is a signed 32 bit integer.
+ */
+#define ecs_order(_SYSTEM_, _ORDER_)                                                               \
+  ecs_module_update_system_order(_builder, ecs_system_id(_SYSTEM_), (_ORDER_))
+
 // clang-format on
 
 /**
@@ -246,6 +253,7 @@ i8 ecs_compare_system(const void* a, const void* b);
 EcsCompId   ecs_module_register_comp(EcsModuleBuilder*, EcsCompId*, const EcsCompConfig*);
 EcsViewId   ecs_module_register_view(EcsModuleBuilder*, EcsViewId*, const EcsViewConfig*);
 EcsSystemId ecs_module_register_system(EcsModuleBuilder*, EcsSystemId*, const EcsSystemConfig*);
+void        ecs_module_update_system_order(EcsModuleBuilder*, EcsSystemId, i32 order);
 
 void ecs_module_access_with(EcsViewBuilder*, EcsCompId);
 void ecs_module_access_without(EcsViewBuilder*, EcsCompId);
