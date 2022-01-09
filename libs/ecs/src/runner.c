@@ -1,6 +1,9 @@
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_path.h"
+#include "core_rng.h"
+#include "core_shuffle.h"
+#include "core_sort.h"
 #include "core_time.h"
 #include "ecs_runner.h"
 #include "jobs_dot.h"
@@ -14,9 +17,15 @@
 
 /**
  * Meta systems:
- * - Finalize (flushes the world).
+ * - Flush (Applies entity layout modifications).
  */
 #define graph_meta_task_count 1
+
+/**
+ * Use a random relative-order for systems that have specified the same order (or have not specified
+ * an order at all). This aids in finding bugs where we implicitly rely on system order.
+ */
+#define graph_system_shuffle
 
 typedef enum {
   EcsRunnerPrivateFlags_Running = 1 << (EcsRunnerFlags_Count + 0),
@@ -32,15 +41,27 @@ typedef struct {
   EcsSystemRoutine routine;
 } SystemTaskData;
 
+typedef struct {
+  EcsSystemId   id;
+  i32           order;
+  EcsSystemDef* def;
+} RunnerSystemEntry;
+
 struct sEcsRunner {
   EcsWorld*  world;
   JobGraph*  graph;
   u32        flags;
+  JobTaskId* systemTaskLookup;
   Allocator* alloc;
 };
 
 THREAD_LOCAL bool        g_ecsRunningSystem;
 THREAD_LOCAL EcsSystemId g_ecsRunningSystemId = sentinel_u16;
+
+static i8 compare_system_entry(const void* a, const void* b) {
+  return compare_i32(
+      field_ptr(a, RunnerSystemEntry, order), field_ptr(b, RunnerSystemEntry, order));
+}
 
 static JobTaskFlags graph_system_task_flags(const EcsSystemDef* systemDef) {
   JobTaskFlags flags = JobTaskFlags_None;
@@ -50,7 +71,7 @@ static JobTaskFlags graph_system_task_flags(const EcsSystemDef* systemDef) {
   return flags;
 }
 
-static void graph_runner_finalize_task(void* context) {
+static void graph_runner_flush_task(void* context) {
   MetaTaskData* data = context;
   ecs_world_flush_internal(data->runner->world);
 
@@ -70,11 +91,11 @@ static void graph_system_task(void* context) {
   g_ecsRunningSystemId = sentinel_u16;
 }
 
-static JobTaskId graph_insert_finalize(EcsRunner* runner) {
+static JobTaskId graph_insert_flush(EcsRunner* runner) {
   return jobs_graph_add_task(
       runner->graph,
-      string_lit("finalize"),
-      graph_runner_finalize_task,
+      string_lit("Flush"),
+      graph_runner_flush_task,
       mem_struct(MetaTaskData, .runner = runner),
       JobTaskFlags_None);
 }
@@ -133,35 +154,69 @@ static void graph_dump_dot(const EcsRunner* runner) {
   }
 }
 
-EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerFlags flags) {
-  const EcsDef* def       = ecs_world_def(world);
-  const usize   taskCount = def->systems.size + graph_meta_task_count;
+static void runner_collect_systems(EcsRunner* runner, RunnerSystemEntry* output) {
+  const EcsDef* def         = ecs_world_def(runner->world);
+  const usize   systemCount = def->systems.size;
 
-  EcsRunner* runner = alloc_alloc_t(alloc, EcsRunner);
-  *runner           = (EcsRunner){
-      .world = world,
-      .graph = jobs_graph_create(alloc, string_lit("ecs_runner"), taskCount),
-      .flags = flags,
-      .alloc = alloc,
-  };
+  // Add all systems.
+  for (EcsSystemId sysId = 0; sysId != systemCount; ++sysId) {
+    EcsSystemDef* sysDef = dynarray_at_t(&def->systems, sysId, EcsSystemDef);
+    output[sysId]        = (RunnerSystemEntry){
+        .id    = sysId,
+        .order = sysDef->order,
+        .def   = sysDef,
+    };
+  }
 
-  const JobTaskId finalizeTask = graph_insert_finalize(runner);
+#if defined(graph_system_shuffle)
+  // Shuffle the systems to detect bugs where we are implicitly relying on the system order.
+  shuffle_fisheryates_t(g_rng, output, output + systemCount, RunnerSystemEntry);
+#endif
 
-  for (EcsSystemId sysId = 0; sysId != def->systems.size; ++sysId) {
-    EcsSystemDef*   sys       = dynarray_at_t(&def->systems, sysId, EcsSystemDef);
-    const JobTaskId sysTaskId = graph_insert_system(runner, sysId, sys);
+  // Sort the systems according to the requested order.
+  sort_quicksort_t(output, output + systemCount, RunnerSystemEntry, compare_system_entry);
+}
 
-    // Insert a finalize dependency (so finalize only happens when all systems are done).
-    jobs_graph_task_depend(runner->graph, sysTaskId, finalizeTask);
+static void runner_populate_graph(EcsRunner* runner, RunnerSystemEntry* systems) {
+  const EcsDef*   def         = ecs_world_def(runner->world);
+  const usize     systemCount = def->systems.size;
+  const JobTaskId flushTask   = graph_insert_flush(runner);
+
+  for (RunnerSystemEntry* entry = systems; entry != systems + systemCount; ++entry) {
+    const JobTaskId sysTaskId           = graph_insert_system(runner, entry->id, entry->def);
+    runner->systemTaskLookup[entry->id] = sysTaskId;
+
+    // Insert a flush dependency (so flush only happens when all systems are done).
+    jobs_graph_task_depend(runner->graph, sysTaskId, flushTask);
 
     // Insert required dependencies on the earlier systems.
-    for (EcsSystemId otherSysId = 0; otherSysId != sysId; ++otherSysId) {
-      EcsSystemDef* otherSys = dynarray_at_t(&def->systems, otherSysId, EcsSystemDef);
-      if (graph_system_conflict(world, sys, otherSys)) {
-        jobs_graph_task_depend(runner->graph, ecs_runner_graph_task(runner, otherSysId), sysTaskId);
+    for (RunnerSystemEntry* earlierEntry = systems; earlierEntry != entry; ++earlierEntry) {
+      if (graph_system_conflict(runner->world, entry->def, earlierEntry->def)) {
+        jobs_graph_task_depend(
+            runner->graph, ecs_runner_graph_task(runner, earlierEntry->id), sysTaskId);
       }
     }
   }
+}
+
+EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerFlags flags) {
+  const EcsDef* def         = ecs_world_def(world);
+  const usize   systemCount = def->systems.size;
+  const usize   taskCount   = systemCount + graph_meta_task_count;
+
+  EcsRunner* runner = alloc_alloc_t(alloc, EcsRunner);
+  *runner           = (EcsRunner){
+      .world            = world,
+      .graph            = jobs_graph_create(alloc, string_lit("ecs_runner"), taskCount),
+      .flags            = flags,
+      .systemTaskLookup = alloc_array_t(alloc, JobTaskId, systemCount),
+      .alloc            = alloc,
+  };
+
+  RunnerSystemEntry* systems = alloc_array_t(alloc, RunnerSystemEntry, systemCount);
+  runner_collect_systems(runner, systems);
+  runner_populate_graph(runner, systems);
+  alloc_free_array_t(alloc, systems, systemCount);
 
   diag_assert(jobs_graph_task_count(runner->graph) == taskCount);
 
@@ -182,6 +237,8 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
 void ecs_runner_destroy(EcsRunner* runner) {
   diag_assert_msg(!ecs_running(runner), "Runner is still running");
 
+  const EcsDef* def = ecs_world_def(runner->world);
+  alloc_free_array_t(runner->alloc, runner->systemTaskLookup, def->systems.size);
   jobs_graph_destroy(runner->graph);
   alloc_free_t(runner->alloc, runner);
 }
@@ -189,12 +246,7 @@ void ecs_runner_destroy(EcsRunner* runner) {
 const JobGraph* ecs_runner_graph(const EcsRunner* runner) { return runner->graph; }
 
 JobTaskId ecs_runner_graph_task(const EcsRunner* runner, const EcsSystemId systemId) {
-  (void)runner;
-  /**
-   * Currently systems are added to the JobGraph linearly right after the meta tasks. So to lookup a
-   * task-id we only need to offset.
-   */
-  return (JobTaskId)(graph_meta_task_count + systemId);
+  return runner->systemTaskLookup[systemId];
 }
 
 bool ecs_running(const EcsRunner* runner) {

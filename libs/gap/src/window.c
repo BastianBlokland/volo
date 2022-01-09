@@ -2,6 +2,7 @@
 #include "core_signal.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
+#include "gap_register.h"
 #include "gap_window.h"
 
 #include "platform_internal.h"
@@ -174,6 +175,7 @@ ecs_module_init(gap_window_module) {
       EcsSystemFlags_ThreadAffinity,
       ecs_view_id(GapPlatformView),
       ecs_view_id(GapWindowView));
+  ecs_order(GapWindowUpdateSys, GapOrder_WindowUpdate);
 }
 
 EcsEntityId gap_window_create(EcsWorld* world, const GapWindowFlags flags, const GapVector size) {
@@ -183,6 +185,7 @@ EcsEntityId gap_window_create(EcsWorld* world, const GapWindowFlags flags, const
       windowEntity,
       GapWindowComp,
       .id                          = sentinel_u32,
+      .events                      = GapWindowEvents_Initializing,
       .requests                    = GapWindowRequests_Create,
       .params[GapParam_WindowSize] = size);
 

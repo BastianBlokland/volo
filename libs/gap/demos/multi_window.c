@@ -120,8 +120,8 @@ static int demo_run() {
   log_i("Demo starting", log_param("pid", fmt_int(g_thread_pid)));
 
   EcsDef* def = def = ecs_def_create(g_alloc_heap);
-  gap_register(def);
   ecs_register_module(def, app_module);
+  gap_register(def);
 
   EcsWorld*  world  = ecs_world_create(g_alloc_heap, def);
   EcsRunner* runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_DumpGraphDot);

@@ -20,6 +20,11 @@ static const EcsSystemDef* ecs_def_system(const EcsDef* def, const EcsSystemId i
   return dynarray_at_t(&def->systems, (usize)id, EcsSystemDef);
 }
 
+static EcsSystemDef* ecs_def_system_mutable(EcsDef* def, const EcsSystemId id) {
+  diag_assert_msg(id < def->systems.size, "Invalid system id '{}'", fmt_int(id));
+  return dynarray_at_t(&def->systems, (usize)id, EcsSystemDef);
+}
+
 MAYBE_UNUSED static const EcsModuleDef*
 ecs_def_module_by_name(const EcsDef* def, const String name) {
   dynarray_for_t(&def->modules, EcsModuleDef, module) {
@@ -182,6 +187,10 @@ EcsSystemId ecs_def_register_system(EcsDef* def, const EcsSystemConfig* config) 
   }
 
   return id;
+}
+
+void ecs_def_update_order(EcsDef* def, const EcsSystemId system, const i32 order) {
+  ecs_def_system_mutable(def, system)->order = order;
 }
 
 EcsCompDestructor ecs_def_comp_destructor(const EcsDef* def, const EcsCompId id) {

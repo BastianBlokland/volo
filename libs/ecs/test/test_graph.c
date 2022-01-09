@@ -54,10 +54,19 @@ ecs_module_init(graph_test_module) {
   ecs_register_view(ReadABC);
 
   ecs_register_system(GraphSys1, ecs_view_id(WriteA), ecs_view_id(WriteC));
-  ecs_register_system(GraphSys2, ecs_view_id(ReadAWriteBC));
-  ecs_register_system(GraphSys3, ecs_view_id(ReadABWithoutC));
-  ecs_register_system(GraphSys4, ecs_view_id(WriteCWithoutA), ecs_view_id(ReadABWithoutC));
+  ecs_order(GraphSys1, 1);
+
   ecs_register_system(GraphSys5, ecs_view_id(ReadABC));
+  ecs_order(GraphSys5, 5);
+
+  ecs_register_system(GraphSys2, ecs_view_id(ReadAWriteBC));
+  ecs_order(GraphSys2, 2);
+
+  ecs_register_system(GraphSys4, ecs_view_id(WriteCWithoutA), ecs_view_id(ReadABWithoutC));
+  ecs_order(GraphSys4, 4);
+
+  ecs_register_system(GraphSys3, ecs_view_id(ReadABWithoutC));
+  ecs_order(GraphSys3, 3);
 }
 
 spec(graph) {

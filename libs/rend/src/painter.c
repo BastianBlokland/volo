@@ -6,6 +6,7 @@
 #include "gap_window.h"
 #include "geo_matrix.h"
 #include "rend_instance.h"
+#include "rend_register.h"
 #include "scene_camera.h"
 #include "scene_transform.h"
 
@@ -192,7 +193,10 @@ ecs_system_define(RendPainterCreateSys) {
   EcsView* painterView = ecs_world_view_t(world, PainterCreateView);
   for (EcsIterator* itr = ecs_view_itr(painterView); ecs_view_walk(itr);) {
     const GapWindowComp* windowComp = ecs_view_read_t(itr, GapWindowComp);
-    RvkCanvas*           canvas     = rvk_canvas_create(plat->device, windowComp);
+    if (gap_window_events(windowComp) & GapWindowEvents_Initializing) {
+      continue;
+    }
+    RvkCanvas* canvas = rvk_canvas_create(plat->device, windowComp);
     ecs_world_add_t(world, ecs_view_entity(itr), RendPainterComp, .canvas = canvas);
   }
 }
@@ -280,4 +284,7 @@ ecs_module_init(rend_painter_module) {
 
   ecs_register_system(
       RendPainterDrawBatchesSys, ecs_view_id(PainterUpdateView), ecs_view_id(DrawBatchView));
+
+  ecs_order(RendPainterUpdateBatchesSys, RendOrder_DrawCollect);
+  ecs_order(RendPainterDrawBatchesSys, RendOrder_DrawExecute);
 }

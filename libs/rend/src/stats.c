@@ -1,4 +1,5 @@
 #include "ecs_world.h"
+#include "rend_register.h"
 #include "rend_stats.h"
 
 #include "painter_internal.h"
@@ -51,4 +52,5 @@ ecs_module_init(rend_stats_module) {
   ecs_register_view(UpdateStatsView);
 
   ecs_register_system(RendUpdateStatsSys, ecs_view_id(GlobalView), ecs_view_id(UpdateStatsView));
+  ecs_order(RendUpdateStatsSys, RendOrder_DrawExecute - 1);
 }

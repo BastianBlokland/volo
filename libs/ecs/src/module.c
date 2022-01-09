@@ -125,3 +125,7 @@ EcsSystemId ecs_module_register_system(
   }
   return id;
 }
+
+void ecs_module_update_order(EcsModuleBuilder* builder, const EcsSystemId system, const i32 order) {
+  ecs_def_update_order(builder->def, system, order);
+}
