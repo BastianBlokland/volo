@@ -10,6 +10,7 @@ typedef struct {
   String            name;
   usize             size, align;
   EcsCompDestructor destructor;
+  i32               destructOrder;
   EcsCompCombinator combinator;
 } EcsCompDef;
 
@@ -44,6 +45,7 @@ EcsViewId   ecs_def_register_view(EcsDef*, const EcsViewConfig*);
 EcsSystemId ecs_def_register_system(EcsDef*, const EcsSystemConfig*);
 
 EcsCompDestructor ecs_def_comp_destructor(const EcsDef*, EcsCompId);
+i32               ecs_def_comp_destruct_order(const EcsDef*, EcsCompId);
 EcsCompCombinator ecs_def_comp_combinator(const EcsDef*, EcsCompId);
 
 /**

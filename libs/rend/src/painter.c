@@ -20,9 +20,7 @@ ecs_comp_define_public(RendPainterComp);
 
 static void ecs_destruct_painter_comp(void* data) {
   RendPainterComp* comp = data;
-  if (comp->canvas) {
-    rvk_canvas_destroy(comp->canvas);
-  }
+  rvk_canvas_destroy(comp->canvas);
 }
 
 typedef struct {
@@ -282,16 +280,4 @@ ecs_module_init(rend_painter_module) {
 
   ecs_register_system(
       RendPainterDrawBatchesSys, ecs_view_id(PainterUpdateView), ecs_view_id(DrawBatchView));
-}
-
-void rend_painter_teardown(EcsWorld* world) {
-  // Teardown painters.
-  EcsView* painterView = ecs_world_view_t(world, PainterUpdateView);
-  for (EcsIterator* itr = ecs_view_itr(painterView); ecs_view_walk(itr);) {
-    RendPainterComp* comp = ecs_view_write_t(itr, RendPainterComp);
-    if (comp->canvas) {
-      rvk_canvas_destroy(comp->canvas);
-      comp->canvas = null;
-    }
-  }
 }

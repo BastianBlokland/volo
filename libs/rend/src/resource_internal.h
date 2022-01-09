@@ -34,5 +34,3 @@ void rend_resource_request(EcsWorld* world, EcsEntityId assetEntity);
  * Resources that haven't been used for a while will be unloaded.
  */
 void rend_resource_mark_used(RendResComp*);
-
-void rend_resource_teardown(EcsWorld*);

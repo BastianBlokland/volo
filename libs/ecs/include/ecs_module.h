@@ -23,6 +23,7 @@ typedef struct {
   String            name;
   usize             size, align;
   EcsCompDestructor destructor;
+  i32               destructOrder; // Respected per-entity mid-frame and globally on shutdown.
   EcsCompCombinator combinator;
 } EcsCompConfig;
 

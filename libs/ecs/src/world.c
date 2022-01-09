@@ -6,6 +6,7 @@
 
 #include "buffer_internal.h"
 #include "def_internal.h"
+#include "finalizer_internal.h"
 #include "storage_internal.h"
 #include "view_internal.h"
 #include "world_internal.h"
@@ -19,6 +20,7 @@ typedef enum {
 
 struct sEcsWorld {
   const EcsDef* def;
+  EcsFinalizer  finalizer;
   EcsStorage    storage;
   DynArray      views; // EcsView[].
 
@@ -114,18 +116,15 @@ static void ecs_world_apply_added_comps(
   }
 }
 
-static void ecs_world_destroy_added_comps(const EcsDef* def, EcsBuffer* buffer, const usize idx) {
-
+static void ecs_world_finalize_added_comps(EcsWorld* world, EcsBuffer* buffer, const usize idx) {
   for (EcsBufferCompData* bufferItr = ecs_buffer_comp_begin(buffer, idx); bufferItr;
        bufferItr                    = ecs_buffer_comp_next(bufferItr)) {
 
-    const EcsCompId         compId     = ecs_buffer_comp_id(bufferItr);
-    const Mem               compData   = ecs_buffer_comp_data(buffer, bufferItr);
-    const EcsCompDestructor destructor = ecs_def_comp_destructor(def, compId);
-    if (destructor) {
-      destructor(compData.ptr);
-    }
+    const EcsCompId compId   = ecs_buffer_comp_id(bufferItr);
+    const Mem       compData = ecs_buffer_comp_data(buffer, bufferItr);
+    ecs_finalizer_push(&world->finalizer, compId, compData.ptr);
   }
+  ecs_finalizer_flush(&world->finalizer);
 }
 
 EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
@@ -133,11 +132,12 @@ EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
 
   EcsWorld* world = alloc_alloc_t(alloc, EcsWorld);
   *world          = (EcsWorld){
-      .def     = def,
-      .storage = ecs_storage_create(alloc, def),
-      .views   = dynarray_create_t(alloc, EcsView, ecs_def_view_count(def)),
-      .buffer  = ecs_buffer_create(alloc, def),
-      .alloc   = alloc,
+      .def       = def,
+      .finalizer = ecs_finalizer_create(alloc, def),
+      .storage   = ecs_storage_create(alloc, def),
+      .views     = dynarray_create_t(alloc, EcsView, ecs_def_view_count(def)),
+      .buffer    = ecs_buffer_create(alloc, def),
+      .alloc     = alloc,
   };
   world->globalEntity = ecs_storage_entity_create(&world->storage);
 
@@ -165,6 +165,7 @@ void ecs_world_destroy(EcsWorld* world) {
       "Ecs world destroyed",
       log_param("archetypes", fmt_int(ecs_storage_archetype_count(&world->storage))));
 
+  ecs_finalizer_destroy(&world->finalizer);
   ecs_storage_destroy(&world->storage);
 
   dynarray_for_t(&world->views, EcsView, view) { ecs_view_destroy(world->alloc, world->def, view); }
@@ -301,8 +302,7 @@ void ecs_world_flush_internal(EcsWorld* world) {
       /**
        * Discard any component additions for the same entity in the buffer.
        */
-      ecs_world_destroy_added_comps(world->def, &world->buffer, i);
-
+      ecs_world_finalize_added_comps(world, &world->buffer, i);
       ecs_storage_entity_destroy(&world->storage, entity);
       continue;
     }

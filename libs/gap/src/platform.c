@@ -27,7 +27,7 @@ ecs_system_define(GapPlatformUpdateSys) {
 }
 
 ecs_module_init(gap_platform_module) {
-  ecs_register_comp(GapPlatformComp, .destructor = ecs_destruct_platform_comp);
+  ecs_register_comp(GapPlatformComp, .destructor = ecs_destruct_platform_comp, .destructOrder = 20);
 
   ecs_register_view(GapPlatformView);
 
