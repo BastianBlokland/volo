@@ -201,7 +201,7 @@ ecs_system_define(RendPainterCreateSys) {
   }
 }
 
-ecs_system_define(RendPainterUpdateBatchesSys) {
+ecs_system_define(RendPainterCollectBatchesSys) {
   // Clear the current batches.
   EcsView* clearBatchView = ecs_world_view_t(world, ClearBatchView);
   for (EcsIterator* clearItr = ecs_view_itr(clearBatchView); ecs_view_walk(clearItr);) {
@@ -217,8 +217,6 @@ ecs_system_define(RendPainterUpdateBatchesSys) {
     const RendInstanceComp*   instanceComp  = ecs_view_read_t(renderableItr, RendInstanceComp);
     const SceneTransformComp* transformComp = ecs_view_read_t(renderableItr, SceneTransformComp);
 
-    // Request the graphic to be loaded.
-    rend_resource_request(world, instanceComp->graphic);
     if (!ecs_view_contains(createBatchView, instanceComp->graphic)) {
       continue; // Graphic not ready.
     }
@@ -277,7 +275,7 @@ ecs_module_init(rend_painter_module) {
       RendPainterCreateSys, ecs_view_id(GlobalView), ecs_view_id(PainterCreateView));
 
   ecs_register_system(
-      RendPainterUpdateBatchesSys,
+      RendPainterCollectBatchesSys,
       ecs_view_id(ClearBatchView),
       ecs_view_id(CreateBatchView),
       ecs_view_id(RenderableView));
@@ -285,6 +283,6 @@ ecs_module_init(rend_painter_module) {
   ecs_register_system(
       RendPainterDrawBatchesSys, ecs_view_id(PainterUpdateView), ecs_view_id(DrawBatchView));
 
-  ecs_order(RendPainterUpdateBatchesSys, RendOrder_DrawCollect);
+  ecs_order(RendPainterCollectBatchesSys, RendOrder_DrawCollect);
   ecs_order(RendPainterDrawBatchesSys, RendOrder_DrawExecute);
 }
