@@ -23,7 +23,7 @@ void ecs_finalizer_push(EcsFinalizer* finalizer, const EcsCompId compId, void* c
   }
   *dynarray_push_t(&finalizer->entries, EcsFinalizerEntry) = (EcsFinalizerEntry){
       .destructor    = destructor,
-      .destructOrder = 0,
+      .destructOrder = ecs_def_comp_destruct_order(finalizer->def, compId),
       .compData      = compData,
   };
 }

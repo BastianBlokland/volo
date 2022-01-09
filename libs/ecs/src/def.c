@@ -143,11 +143,12 @@ EcsCompId ecs_def_register_comp(EcsDef* def, const EcsCompConfig* config) {
 
   EcsCompId id                                   = (EcsCompId)def->components.size;
   *dynarray_push_t(&def->components, EcsCompDef) = (EcsCompDef){
-      .name       = string_dup(def->alloc, config->name),
-      .size       = config->size,
-      .align      = config->align,
-      .destructor = config->destructor,
-      .combinator = config->combinator,
+      .name          = string_dup(def->alloc, config->name),
+      .size          = config->size,
+      .align         = config->align,
+      .destructor    = config->destructor,
+      .destructOrder = config->destructOrder,
+      .combinator    = config->combinator,
   };
   return id;
 }
@@ -185,6 +186,10 @@ EcsSystemId ecs_def_register_system(EcsDef* def, const EcsSystemConfig* config) 
 
 EcsCompDestructor ecs_def_comp_destructor(const EcsDef* def, const EcsCompId id) {
   return ecs_def_comp(def, id)->destructor;
+}
+
+i32 ecs_def_comp_destruct_order(const EcsDef* def, const EcsCompId id) {
+  return ecs_def_comp(def, id)->destructOrder;
 }
 
 EcsCompCombinator ecs_def_comp_combinator(const EcsDef* def, const EcsCompId id) {
