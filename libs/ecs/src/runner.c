@@ -14,7 +14,7 @@
 
 /**
  * Meta systems:
- * - Finalize (flushes the world).
+ * - Flush (Applies entity layout modifications).
  */
 #define graph_meta_task_count 1
 
@@ -50,7 +50,7 @@ static JobTaskFlags graph_system_task_flags(const EcsSystemDef* systemDef) {
   return flags;
 }
 
-static void graph_runner_finalize_task(void* context) {
+static void graph_runner_flush_task(void* context) {
   MetaTaskData* data = context;
   ecs_world_flush_internal(data->runner->world);
 
@@ -70,11 +70,11 @@ static void graph_system_task(void* context) {
   g_ecsRunningSystemId = sentinel_u16;
 }
 
-static JobTaskId graph_insert_finalize(EcsRunner* runner) {
+static JobTaskId graph_insert_flush(EcsRunner* runner) {
   return jobs_graph_add_task(
       runner->graph,
-      string_lit("finalize"),
-      graph_runner_finalize_task,
+      string_lit("Flush"),
+      graph_runner_flush_task,
       mem_struct(MetaTaskData, .runner = runner),
       JobTaskFlags_None);
 }
@@ -145,14 +145,14 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
       .alloc = alloc,
   };
 
-  const JobTaskId finalizeTask = graph_insert_finalize(runner);
+  const JobTaskId flushTask = graph_insert_flush(runner);
 
   for (EcsSystemId sysId = 0; sysId != def->systems.size; ++sysId) {
     EcsSystemDef*   sys       = dynarray_at_t(&def->systems, sysId, EcsSystemDef);
     const JobTaskId sysTaskId = graph_insert_system(runner, sysId, sys);
 
-    // Insert a finalize dependency (so finalize only happens when all systems are done).
-    jobs_graph_task_depend(runner->graph, sysTaskId, finalizeTask);
+    // Insert a flush dependency (so flush only happens when all systems are done).
+    jobs_graph_task_depend(runner->graph, sysTaskId, flushTask);
 
     // Insert required dependencies on the earlier systems.
     for (EcsSystemId otherSysId = 0; otherSysId != sysId; ++otherSysId) {
