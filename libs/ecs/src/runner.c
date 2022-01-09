@@ -32,6 +32,11 @@ typedef struct {
   EcsSystemRoutine routine;
 } SystemTaskData;
 
+typedef struct {
+  EcsSystemId   id;
+  EcsSystemDef* def;
+} RunnerSystemEntry;
+
 struct sEcsRunner {
   EcsWorld*  world;
   JobGraph*  graph;
@@ -134,37 +139,57 @@ static void graph_dump_dot(const EcsRunner* runner) {
   }
 }
 
+static void runner_collect_systems(EcsRunner* runner, RunnerSystemEntry* output) {
+  const EcsDef* def = ecs_world_def(runner->world);
+
+  for (EcsSystemId sysId = 0; sysId != def->systems.size; ++sysId) {
+    output[sysId] = (RunnerSystemEntry){
+        .id  = sysId,
+        .def = dynarray_at_t(&def->systems, sysId, EcsSystemDef),
+    };
+  }
+}
+
+static void runner_populate_graph(EcsRunner* runner, RunnerSystemEntry* systems) {
+  const EcsDef*   def         = ecs_world_def(runner->world);
+  const usize     systemCount = def->systems.size;
+  const JobTaskId flushTask   = graph_insert_flush(runner);
+
+  for (RunnerSystemEntry* entry = systems; entry != systems + systemCount; ++entry) {
+    const JobTaskId sysTaskId           = graph_insert_system(runner, entry->id, entry->def);
+    runner->systemTaskLookup[entry->id] = sysTaskId;
+
+    // Insert a flush dependency (so flush only happens when all systems are done).
+    jobs_graph_task_depend(runner->graph, sysTaskId, flushTask);
+
+    // Insert required dependencies on the earlier systems.
+    for (RunnerSystemEntry* earlierEntry = systems; earlierEntry != entry; ++earlierEntry) {
+      if (graph_system_conflict(runner->world, entry->def, earlierEntry->def)) {
+        jobs_graph_task_depend(
+            runner->graph, ecs_runner_graph_task(runner, earlierEntry->id), sysTaskId);
+      }
+    }
+  }
+}
+
 EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerFlags flags) {
-  const EcsDef* def       = ecs_world_def(world);
-  const usize   taskCount = def->systems.size + graph_meta_task_count;
+  const EcsDef* def         = ecs_world_def(world);
+  const usize   systemCount = def->systems.size;
+  const usize   taskCount   = systemCount + graph_meta_task_count;
 
   EcsRunner* runner = alloc_alloc_t(alloc, EcsRunner);
   *runner           = (EcsRunner){
       .world            = world,
       .graph            = jobs_graph_create(alloc, string_lit("ecs_runner"), taskCount),
       .flags            = flags,
-      .systemTaskLookup = alloc_array_t(alloc, JobTaskId, def->systems.size),
+      .systemTaskLookup = alloc_array_t(alloc, JobTaskId, systemCount),
       .alloc            = alloc,
   };
 
-  const JobTaskId flushTask = graph_insert_flush(runner);
-
-  for (EcsSystemId sysId = 0; sysId != def->systems.size; ++sysId) {
-    EcsSystemDef*   sys             = dynarray_at_t(&def->systems, sysId, EcsSystemDef);
-    const JobTaskId sysTaskId       = graph_insert_system(runner, sysId, sys);
-    runner->systemTaskLookup[sysId] = sysTaskId;
-
-    // Insert a flush dependency (so flush only happens when all systems are done).
-    jobs_graph_task_depend(runner->graph, sysTaskId, flushTask);
-
-    // Insert required dependencies on the earlier systems.
-    for (EcsSystemId otherSysId = 0; otherSysId != sysId; ++otherSysId) {
-      EcsSystemDef* otherSys = dynarray_at_t(&def->systems, otherSysId, EcsSystemDef);
-      if (graph_system_conflict(world, sys, otherSys)) {
-        jobs_graph_task_depend(runner->graph, ecs_runner_graph_task(runner, otherSysId), sysTaskId);
-      }
-    }
-  }
+  RunnerSystemEntry* systems = alloc_array_t(alloc, RunnerSystemEntry, systemCount);
+  runner_collect_systems(runner, systems);
+  runner_populate_graph(runner, systems);
+  alloc_free_array_t(alloc, systems, systemCount);
 
   diag_assert(jobs_graph_task_count(runner->graph) == taskCount);
 
