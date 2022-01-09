@@ -295,7 +295,6 @@ static int demo_run(const String assetPath) {
 
   log_i("Demo shutdown", log_param("mem", fmt_size(alloc_stats_total())));
 
-  rend_teardown(world);
   ecs_runner_destroy(runner);
   ecs_world_destroy(world);
   ecs_def_destroy(def);

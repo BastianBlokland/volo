@@ -5,5 +5,3 @@
 typedef struct sRvkDevice RvkDevice;
 
 ecs_comp_extern_public(RendPlatformComp) { RvkDevice* device; };
-
-void rend_platform_teardown(EcsWorld*);

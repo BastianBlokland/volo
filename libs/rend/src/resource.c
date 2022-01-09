@@ -60,30 +60,22 @@ ecs_comp_define(RendResUnloadComp) { RendResUnloadState state; };
 
 static void ecs_destruct_graphic_comp(void* data) {
   RendResGraphicComp* comp = data;
-  if (comp->graphic) {
-    rvk_graphic_destroy(comp->graphic);
-  }
+  rvk_graphic_destroy(comp->graphic);
 }
 
 static void ecs_destruct_shader_comp(void* data) {
   RendResShaderComp* comp = data;
-  if (comp->shader) {
-    rvk_shader_destroy(comp->shader);
-  }
+  rvk_shader_destroy(comp->shader);
 }
 
 static void ecs_destruct_mesh_comp(void* data) {
   RendResMeshComp* comp = data;
-  if (comp->mesh) {
-    rvk_mesh_destroy(comp->mesh);
-  }
+  rvk_mesh_destroy(comp->mesh);
 }
 
 static void ecs_destruct_texture_comp(void* data) {
   RendResTextureComp* comp = data;
-  if (comp->texture) {
-    rvk_texture_destroy(comp->texture);
-  }
+  rvk_texture_destroy(comp->texture);
 }
 
 static void ecs_destruct_res_comp(void* data) {
@@ -577,10 +569,12 @@ ecs_system_define(RendResUnloadUpdateSys) {
 }
 
 ecs_module_init(rend_resource_module) {
-  ecs_register_comp(RendResGraphicComp, .destructor = ecs_destruct_graphic_comp);
-  ecs_register_comp(RendResShaderComp, .destructor = ecs_destruct_shader_comp);
-  ecs_register_comp(RendResMeshComp, .destructor = ecs_destruct_mesh_comp);
-  ecs_register_comp(RendResTextureComp, .destructor = ecs_destruct_texture_comp);
+  ecs_register_comp(
+      RendResGraphicComp, .destructor = ecs_destruct_graphic_comp, .destructOrder = 1);
+  ecs_register_comp(RendResShaderComp, .destructor = ecs_destruct_shader_comp, .destructOrder = 2);
+  ecs_register_comp(RendResMeshComp, .destructor = ecs_destruct_mesh_comp, .destructOrder = 3);
+  ecs_register_comp(
+      RendResTextureComp, .destructor = ecs_destruct_texture_comp, .destructOrder = 4);
   ecs_register_comp(RendGlobalResComp);
   ecs_register_comp_empty(RendGlobalResLoadedComp);
   ecs_register_comp(
@@ -631,43 +625,3 @@ void rend_resource_request(EcsWorld* world, const EcsEntityId assetEntity) {
 }
 
 void rend_resource_mark_used(RendResComp* resComp) { resComp->flags |= RendResFlags_Used; }
-
-void rend_resource_teardown(EcsWorld* world) {
-  const RendPlatformComp* plat = ecs_utils_read_first_t(world, RendPlatReadView, RendPlatformComp);
-  if (plat) {
-    // Wait for all rendering to be done.
-    rvk_device_wait_idle(plat->device);
-  }
-
-  // Teardown graphics.
-  EcsView* graphicView = ecs_world_view_t(world, GraphicWriteView);
-  for (EcsIterator* itr = ecs_view_itr(graphicView); ecs_view_walk(itr);) {
-    RendResGraphicComp* comp = ecs_view_write_t(itr, RendResGraphicComp);
-    rvk_graphic_destroy(comp->graphic);
-    comp->graphic = null;
-  }
-
-  // Teardown shaders.
-  EcsView* shaderView = ecs_world_view_t(world, ShaderWriteView);
-  for (EcsIterator* itr = ecs_view_itr(shaderView); ecs_view_walk(itr);) {
-    RendResShaderComp* comp = ecs_view_write_t(itr, RendResShaderComp);
-    rvk_shader_destroy(comp->shader);
-    comp->shader = null;
-  }
-
-  // Teardown meshes.
-  EcsView* meshView = ecs_world_view_t(world, MeshWriteView);
-  for (EcsIterator* itr = ecs_view_itr(meshView); ecs_view_walk(itr);) {
-    RendResMeshComp* comp = ecs_view_write_t(itr, RendResMeshComp);
-    rvk_mesh_destroy(comp->mesh);
-    comp->mesh = null;
-  }
-
-  // Teardown textures.
-  EcsView* textureView = ecs_world_view_t(world, TextureWriteView);
-  for (EcsIterator* itr = ecs_view_itr(textureView); ecs_view_walk(itr);) {
-    RendResTextureComp* comp = ecs_view_write_t(itr, RendResTextureComp);
-    rvk_texture_destroy(comp->texture);
-    comp->texture = null;
-  }
-}
