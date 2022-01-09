@@ -36,6 +36,7 @@ struct sEcsRunner {
   EcsWorld*  world;
   JobGraph*  graph;
   u32        flags;
+  JobTaskId* systemTaskLookup;
   Allocator* alloc;
 };
 
@@ -139,17 +140,19 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
 
   EcsRunner* runner = alloc_alloc_t(alloc, EcsRunner);
   *runner           = (EcsRunner){
-      .world = world,
-      .graph = jobs_graph_create(alloc, string_lit("ecs_runner"), taskCount),
-      .flags = flags,
-      .alloc = alloc,
+      .world            = world,
+      .graph            = jobs_graph_create(alloc, string_lit("ecs_runner"), taskCount),
+      .flags            = flags,
+      .systemTaskLookup = alloc_array_t(alloc, JobTaskId, def->systems.size),
+      .alloc            = alloc,
   };
 
   const JobTaskId flushTask = graph_insert_flush(runner);
 
   for (EcsSystemId sysId = 0; sysId != def->systems.size; ++sysId) {
-    EcsSystemDef*   sys       = dynarray_at_t(&def->systems, sysId, EcsSystemDef);
-    const JobTaskId sysTaskId = graph_insert_system(runner, sysId, sys);
+    EcsSystemDef*   sys             = dynarray_at_t(&def->systems, sysId, EcsSystemDef);
+    const JobTaskId sysTaskId       = graph_insert_system(runner, sysId, sys);
+    runner->systemTaskLookup[sysId] = sysTaskId;
 
     // Insert a flush dependency (so flush only happens when all systems are done).
     jobs_graph_task_depend(runner->graph, sysTaskId, flushTask);
@@ -182,6 +185,8 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
 void ecs_runner_destroy(EcsRunner* runner) {
   diag_assert_msg(!ecs_running(runner), "Runner is still running");
 
+  const EcsDef* def = ecs_world_def(runner->world);
+  alloc_free_array_t(runner->alloc, runner->systemTaskLookup, def->systems.size);
   jobs_graph_destroy(runner->graph);
   alloc_free_t(runner->alloc, runner);
 }
@@ -189,12 +194,7 @@ void ecs_runner_destroy(EcsRunner* runner) {
 const JobGraph* ecs_runner_graph(const EcsRunner* runner) { return runner->graph; }
 
 JobTaskId ecs_runner_graph_task(const EcsRunner* runner, const EcsSystemId systemId) {
-  (void)runner;
-  /**
-   * Currently systems are added to the JobGraph linearly right after the meta tasks. So to lookup a
-   * task-id we only need to offset.
-   */
-  return (JobTaskId)(graph_meta_task_count + systemId);
+  return runner->systemTaskLookup[systemId];
 }
 
 bool ecs_running(const EcsRunner* runner) {
