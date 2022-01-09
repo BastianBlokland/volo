@@ -1,6 +1,8 @@
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_path.h"
+#include "core_rng.h"
+#include "core_shuffle.h"
 #include "core_sort.h"
 #include "core_time.h"
 #include "ecs_runner.h"
@@ -18,6 +20,12 @@
  * - Flush (Applies entity layout modifications).
  */
 #define graph_meta_task_count 1
+
+/**
+ * Use a random relative-order for systems that have specified the same order (or have not specified
+ * an order at all). This aids in finding bugs where we implicitly rely on system order.
+ */
+#define graph_system_shuffle
 
 typedef enum {
   EcsRunnerPrivateFlags_Running = 1 << (EcsRunnerFlags_Count + 0),
@@ -160,7 +168,12 @@ static void runner_collect_systems(EcsRunner* runner, RunnerSystemEntry* output)
     };
   }
 
-  // Sort the systems.
+#if defined(graph_system_shuffle)
+  // Shuffle the systems to detect bugs where we are implicitly relying on the system order.
+  shuffle_fisheryates_t(g_rng, output, output + systemCount, RunnerSystemEntry);
+#endif
+
+  // Sort the systems according to the requested order.
   sort_quicksort_t(output, output + systemCount, RunnerSystemEntry, compare_system_entry);
 }
 

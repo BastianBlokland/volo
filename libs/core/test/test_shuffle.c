@@ -11,10 +11,9 @@ spec(shuffle) {
     Allocator* alloc = alloc_bump_create_stack(256);
     Rng*       rng   = rng_create_xorwow(alloc, seed);
 
-    i32 ints[]  = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-    Mem intsMem = array_mem(ints);
+    i32 ints[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 
-    shuffle_fisheryates(rng, mem_begin(intsMem), mem_end(intsMem), sizeof(i32));
+    shuffle_fisheryates_t(rng, ints, ints + array_elems(ints), i32);
 
     i32 expectedInts[] = {0, 2, 9, 7, 1, 8, 5, 4, 3, 6};
 
