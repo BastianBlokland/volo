@@ -183,6 +183,7 @@ EcsEntityId gap_window_create(EcsWorld* world, const GapWindowFlags flags, const
       windowEntity,
       GapWindowComp,
       .id                          = sentinel_u32,
+      .events                      = GapWindowEvents_Initializing,
       .requests                    = GapWindowRequests_Create,
       .params[GapParam_WindowSize] = size);
 

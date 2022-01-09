@@ -192,7 +192,10 @@ ecs_system_define(RendPainterCreateSys) {
   EcsView* painterView = ecs_world_view_t(world, PainterCreateView);
   for (EcsIterator* itr = ecs_view_itr(painterView); ecs_view_walk(itr);) {
     const GapWindowComp* windowComp = ecs_view_read_t(itr, GapWindowComp);
-    RvkCanvas*           canvas     = rvk_canvas_create(plat->device, windowComp);
+    if (gap_window_events(windowComp) & GapWindowEvents_Initializing) {
+      continue;
+    }
+    RvkCanvas* canvas = rvk_canvas_create(plat->device, windowComp);
     ecs_world_add_t(world, ecs_view_entity(itr), RendPainterComp, .canvas = canvas);
   }
 }

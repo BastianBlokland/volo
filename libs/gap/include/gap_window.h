@@ -8,12 +8,13 @@
  * Notification flags for events that occurred this tick.
  */
 typedef enum {
-  GapWindowEvents_Resized        = 1 << 0,
-  GapWindowEvents_KeyPressed     = 1 << 1,
-  GapWindowEvents_KeyReleased    = 1 << 2,
-  GapWindowEvents_TitleUpdated   = 1 << 3,
-  GapWindowEvents_CloseRequested = 1 << 4,
-  GapWindowEvents_Closed         = 1 << 5,
+  GapWindowEvents_Initializing   = 1 << 0,
+  GapWindowEvents_Resized        = 1 << 1,
+  GapWindowEvents_KeyPressed     = 1 << 2,
+  GapWindowEvents_KeyReleased    = 1 << 3,
+  GapWindowEvents_TitleUpdated   = 1 << 4,
+  GapWindowEvents_CloseRequested = 1 << 5,
+  GapWindowEvents_Closed         = 1 << 6,
 } GapWindowEvents;
 
 /**
