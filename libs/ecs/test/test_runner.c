@@ -82,9 +82,14 @@ ecs_module_init(runner_test_module) {
   ecs_register_view(ReadBWriteA);
   ecs_register_view(ReadCWriteA);
 
-  ecs_register_system(RunnerSys1, ecs_view_id(ReadAWriteBC));
-  ecs_register_system(RunnerSys2, ecs_view_id(ReadBWriteA));
   ecs_register_system(RunnerSys3, ecs_view_id(ReadCWriteA));
+  ecs_order(RunnerSys3, 3);
+
+  ecs_register_system(RunnerSys1, ecs_view_id(ReadAWriteBC));
+  ecs_order(RunnerSys1, 1);
+
+  ecs_register_system(RunnerSys2, ecs_view_id(ReadBWriteA));
+  ecs_order(RunnerSys2, 2);
 }
 
 spec(runner) {
@@ -101,7 +106,7 @@ spec(runner) {
     runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_None);
   }
 
-  it("executes every system once in registration order") {
+  it("executes every system once in specified order") {
     check(!g_ecsRunningSystem);
     diag_assert(g_ecsRunningSystemId == sentinel_u16);
     check(!ecs_world_busy(world));

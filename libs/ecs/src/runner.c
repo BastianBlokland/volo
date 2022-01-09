@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_path.h"
+#include "core_sort.h"
 #include "core_time.h"
 #include "ecs_runner.h"
 #include "jobs_dot.h"
@@ -34,6 +35,7 @@ typedef struct {
 
 typedef struct {
   EcsSystemId   id;
+  i32           order;
   EcsSystemDef* def;
 } RunnerSystemEntry;
 
@@ -47,6 +49,11 @@ struct sEcsRunner {
 
 THREAD_LOCAL bool        g_ecsRunningSystem;
 THREAD_LOCAL EcsSystemId g_ecsRunningSystemId = sentinel_u16;
+
+static i8 compare_system_entry(const void* a, const void* b) {
+  return compare_i32(
+      field_ptr(a, RunnerSystemEntry, order), field_ptr(b, RunnerSystemEntry, order));
+}
 
 static JobTaskFlags graph_system_task_flags(const EcsSystemDef* systemDef) {
   JobTaskFlags flags = JobTaskFlags_None;
@@ -140,14 +147,21 @@ static void graph_dump_dot(const EcsRunner* runner) {
 }
 
 static void runner_collect_systems(EcsRunner* runner, RunnerSystemEntry* output) {
-  const EcsDef* def = ecs_world_def(runner->world);
+  const EcsDef* def         = ecs_world_def(runner->world);
+  const usize   systemCount = def->systems.size;
 
-  for (EcsSystemId sysId = 0; sysId != def->systems.size; ++sysId) {
-    output[sysId] = (RunnerSystemEntry){
-        .id  = sysId,
-        .def = dynarray_at_t(&def->systems, sysId, EcsSystemDef),
+  // Add all systems.
+  for (EcsSystemId sysId = 0; sysId != systemCount; ++sysId) {
+    EcsSystemDef* sysDef = dynarray_at_t(&def->systems, sysId, EcsSystemDef);
+    output[sysId]        = (RunnerSystemEntry){
+        .id    = sysId,
+        .order = sysDef->order,
+        .def   = sysDef,
     };
   }
+
+  // Sort the systems.
+  sort_quicksort_t(output, output + systemCount, RunnerSystemEntry, compare_system_entry);
 }
 
 static void runner_populate_graph(EcsRunner* runner, RunnerSystemEntry* systems) {

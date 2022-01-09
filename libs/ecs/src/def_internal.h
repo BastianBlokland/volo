@@ -44,7 +44,7 @@ struct sEcsDef {
 EcsCompId   ecs_def_register_comp(EcsDef*, const EcsCompConfig*);
 EcsViewId   ecs_def_register_view(EcsDef*, const EcsViewConfig*);
 EcsSystemId ecs_def_register_system(EcsDef*, const EcsSystemConfig*);
-void        ecs_def_update_system_order(EcsDef*, EcsSystemId, i32 order);
+void        ecs_def_update_order(EcsDef*, EcsSystemId, i32 order);
 
 EcsCompDestructor ecs_def_comp_destructor(const EcsDef*, EcsCompId);
 i32               ecs_def_comp_destruct_order(const EcsDef*, EcsCompId);

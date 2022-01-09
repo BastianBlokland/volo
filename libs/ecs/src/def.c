@@ -189,7 +189,7 @@ EcsSystemId ecs_def_register_system(EcsDef* def, const EcsSystemConfig* config) 
   return id;
 }
 
-void ecs_def_update_system_order(EcsDef* def, const EcsSystemId system, const i32 order) {
+void ecs_def_update_order(EcsDef* def, const EcsSystemId system, const i32 order) {
   ecs_def_system_mutable(def, system)->order = order;
 }
 
