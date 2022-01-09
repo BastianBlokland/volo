@@ -87,7 +87,7 @@ static void demo_spawn_sky(EcsWorld* world, AssetManagerComp* assets) {
   ecs_world_add_t(
       world,
       ecs_world_entity_create(world),
-      RendInstanceComp,
+      RendInstanceCustomComp,
       .graphic = asset_lookup(world, assets, string_lit("graphics/sky.gra")));
 }
 
@@ -95,7 +95,7 @@ static void demo_spawn_grid(EcsWorld* world, AssetManagerComp* assets) {
   ecs_world_add_t(
       world,
       ecs_world_entity_create(world),
-      RendInstanceComp,
+      RendInstanceCustomComp,
       .graphic = asset_lookup(world, assets, string_lit("graphics/grid.gra")));
 }
 

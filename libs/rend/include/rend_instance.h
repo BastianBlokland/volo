@@ -3,3 +3,5 @@
 #include "ecs_module.h"
 
 ecs_comp_extern_public(RendInstanceComp) { EcsEntityId graphic; };
+
+ecs_comp_extern_public(RendInstanceCustomComp) { EcsEntityId graphic; };
