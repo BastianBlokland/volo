@@ -6,6 +6,7 @@ message(STATUS "> library: scene")
 
 add_library(lib_scene STATIC
   src/camera.c
+  src/grid.c
   src/register.c
   src/renderable.c
   src/time.c

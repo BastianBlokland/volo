@@ -6,7 +6,6 @@
 #include "core_thread.h"
 #include "ecs.h"
 #include "gap.h"
-#include "geo.h"
 #include "jobs.h"
 #include "log.h"
 #include "rend.h"
@@ -37,9 +36,8 @@ static const String    g_subjectGraphics[]   = {
 };
 
 typedef enum {
-  DemoFlags_Initialized = 1 << 0,
-  DemoFlags_Dirty       = 1 << 1,
-  DemoFlags_Rotate      = 1 << 2,
+  DemoFlags_Dirty  = 1 << 0,
+  DemoFlags_Rotate = 1 << 1,
 } DemoFlags;
 
 ecs_comp_define(DemoComp) {
@@ -76,14 +74,6 @@ static f32 demo_smooth_f32(const f32 old, const f32 new) {
 
 static TimeDuration demo_smooth_duration(const TimeDuration old, const TimeDuration new) {
   return (TimeDuration)((f64)old + ((f64)(new - old) * g_statSmoothFactor));
-}
-
-static void demo_spawn_grid(EcsWorld* world, AssetManagerComp* assets) {
-  ecs_world_add_t(
-      world,
-      ecs_world_entity_create(world),
-      SceneRenderableUniqueComp,
-      .graphic = asset_lookup(world, assets, string_lit("graphics/grid.gra")));
 }
 
 static void demo_spawn_object(
@@ -146,10 +136,6 @@ ecs_system_define(DemoUpdateSys) {
   DemoComp*            demo   = ecs_view_write_t(globalItr, DemoComp);
   AssetManagerComp*    assets = ecs_view_write_t(globalItr, AssetManagerComp);
   const SceneTimeComp* time   = ecs_view_read_t(globalItr, SceneTimeComp);
-  if (!(demo->flags & DemoFlags_Initialized)) {
-    demo_spawn_grid(world, assets);
-    demo->flags |= DemoFlags_Initialized | DemoFlags_Rotate | DemoFlags_Dirty;
-  }
 
   EcsIterator*         windowItr = ecs_view_at(ecs_world_view_t(world, WindowView), demo->window);
   GapWindowComp*       window    = ecs_view_write_t(windowItr, GapWindowComp);
@@ -262,7 +248,13 @@ static int demo_run(const String assetPath) {
   asset_manager_create_fs(world, AssetManagerFlags_TrackChanges, assetPath);
 
   const EcsEntityId window = gap_window_create(world, GapWindowFlags_Default, g_windowSize);
-  ecs_world_add_t(world, ecs_world_global(world), DemoComp, .window = window, .subjectCount = 1);
+  ecs_world_add_t(
+      world,
+      ecs_world_global(world),
+      DemoComp,
+      .window       = window,
+      .flags        = DemoFlags_Rotate | DemoFlags_Dirty,
+      .subjectCount = 1);
 
   while (ecs_world_exists(world, window)) {
     ecs_run_sync(runner);
