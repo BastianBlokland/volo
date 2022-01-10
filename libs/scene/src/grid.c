@@ -6,11 +6,11 @@
 #include "scene_grid.h"
 #include "scene_renderable.h"
 
-static const u32 g_gridSegments          = 200;
+static const u32 g_gridSegments          = 400;
 static const u32 g_gridHighlightInterval = 5;
 static const f32 g_gridCellSizeDefault   = 1.0f;
-static const f32 g_gridCellSizeMin       = 0.05f;
-static const f32 g_gridCellSizeMax       = 16.0f;
+static const f32 g_gridCellSizeMin       = 0.1f;
+static const f32 g_gridCellSizeMax       = 8.0f;
 
 typedef struct {
   f32 cellSize;
