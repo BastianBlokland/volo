@@ -35,13 +35,14 @@ ecs_system_define(RendUpdateStatsSys) {
     // NOTE: Will block until the previous draw has finished.
     const RvkRenderStats renderStats = rvk_canvas_stats(painter->canvas);
 
-    stats->renderTime   = renderStats.renderTime;
-    stats->vertices     = renderStats.forwardVertices;
-    stats->primitives   = renderStats.forwardPrimitives;
-    stats->ramOccupied  = rvk_mem_occupied(plat->device->memPool, RvkMemLoc_Host);
-    stats->ramReserved  = rvk_mem_reserved(plat->device->memPool, RvkMemLoc_Host);
-    stats->vramOccupied = rvk_mem_occupied(plat->device->memPool, RvkMemLoc_Dev);
-    stats->vramReserved = rvk_mem_reserved(plat->device->memPool, RvkMemLoc_Dev);
+    stats->renderResolution = rvk_canvas_size(painter->canvas);
+    stats->renderTime       = renderStats.renderTime;
+    stats->vertices         = renderStats.forwardVertices;
+    stats->primitives       = renderStats.forwardPrimitives;
+    stats->ramOccupied      = rvk_mem_occupied(plat->device->memPool, RvkMemLoc_Host);
+    stats->ramReserved      = rvk_mem_reserved(plat->device->memPool, RvkMemLoc_Host);
+    stats->vramOccupied     = rvk_mem_occupied(plat->device->memPool, RvkMemLoc_Dev);
+    stats->vramReserved     = rvk_mem_reserved(plat->device->memPool, RvkMemLoc_Dev);
   }
 }
 

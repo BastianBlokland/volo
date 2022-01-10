@@ -151,7 +151,9 @@ static void demo_window_title_set(GapWindowComp* win, DemoComp* demo, const Rend
   gap_window_title_set(
       win,
       fmt_write_scratch(
-          "{>4} hz | {>8} gpu | {>6} kverts | {>6} ktris | {>8} ram | {>8} vram | {>7} rend-ram",
+          "{} | {>4} hz | {>8} gpu | {>6} kverts | {>6} ktris | {>8} ram | {>8} vram | {>7} "
+          "rend-ram",
+          rend_size_fmt(stats->renderResolution),
           fmt_float(demo->updateFreq, .maxDecDigits = 0),
           fmt_duration(demo->renderTime),
           fmt_int(stats ? stats->vertices / 1000 : 0),

@@ -233,6 +233,8 @@ void rvk_swapchain_destroy(RvkSwapchain* swapchain) {
   alloc_free_t(g_alloc_heap, swapchain);
 }
 
+RendSize rvk_swapchain_size(const RvkSwapchain* swapchain) { return swapchain->size; }
+
 RvkImage* rvk_swapchain_image(const RvkSwapchain* swapchain, const RvkSwapchainIdx idx) {
   diag_assert_msg(idx < swapchain->images.size, "Out of bound swapchain index");
   return dynarray_at_t(&swapchain->images, idx, RvkImage);
