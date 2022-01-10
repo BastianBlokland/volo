@@ -18,4 +18,11 @@ ecs_comp_extern_public(SceneRenderableComp) { EcsEntityId graphic; };
  *
  * Draws will not be batched and no instance data will be automatically provided.
  */
-ecs_comp_extern_public(SceneRenderableUniqueComp) { EcsEntityId graphic; };
+ecs_comp_extern_public(SceneRenderableUniqueComp) {
+  EcsEntityId graphic;
+  Mem         instDataMem;
+  usize       instDataSize;
+};
+
+Mem scene_renderable_unique_data(const SceneRenderableUniqueComp*);
+Mem scene_renderable_unique_data_alloc(SceneRenderableUniqueComp*, usize size);

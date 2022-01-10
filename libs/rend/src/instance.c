@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_diag.h"
 #include "ecs_world.h"
 #include "rend_register.h"
 #include "scene_renderable.h"
@@ -91,11 +92,15 @@ ecs_system_define(RendInstanceFillUniqueDrawsSys) {
           ecs_view_entity(renderableItr),
           RendPainterDrawComp,
           .graphic   = comp->graphic,
-          .instances = dynarray_create(g_alloc_heap, 32, 1, 1)); // TODO: Add instance data.
+          .instances = dynarray_create(g_alloc_heap, 1, 16, 0));
       continue;
     }
 
-    dynarray_push(&drawComp->instances, 1); // TODO: Add instance data.
+    diag_assert(!drawComp->instances.size); // Every RenderableUnique should have its own draw.
+
+    const Mem instanceData     = scene_renderable_unique_data(comp);
+    drawComp->instances.stride = instanceData.size;
+    mem_cpy(dynarray_push(&drawComp->instances, 1), instanceData);
   }
 }
 
