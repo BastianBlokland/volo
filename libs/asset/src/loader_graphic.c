@@ -201,10 +201,6 @@ ecs_system_define(LoadGraphicAssetSys) {
       graphic_load_fail(world, entity, string_lit("'meshId' can't be combined with 'vertexCount'"));
       goto Error;
     }
-    if (string_is_empty(graphicComp->meshId) && !graphicComp->vertexCount) {
-      graphic_load_fail(world, entity, string_lit("either 'meshId' or 'vertexCount' missing"));
-      goto Error;
-    }
     if (!string_is_empty(graphicComp->meshId)) {
       graphicComp->mesh = asset_lookup(world, manager, graphicComp->meshId);
     }

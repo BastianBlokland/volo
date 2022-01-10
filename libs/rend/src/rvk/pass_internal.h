@@ -25,6 +25,7 @@ typedef enum {
 
 typedef struct {
   RvkGraphic* graphic;
+  u32         vertexCountOverride;
   u32         instanceCount;
   Mem         data;
   u32         dataStride;

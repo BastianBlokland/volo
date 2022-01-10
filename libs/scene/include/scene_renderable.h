@@ -20,6 +20,7 @@ ecs_comp_extern_public(SceneRenderableComp) { EcsEntityId graphic; };
  */
 ecs_comp_extern_public(SceneRenderableUniqueComp) {
   EcsEntityId graphic;
+  u32         vertexCountOverride;
   Mem         instDataMem;
   usize       instDataSize;
 };

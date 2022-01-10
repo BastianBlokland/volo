@@ -83,7 +83,7 @@ ecs_system_define(RendInstanceFillUniqueDrawsSys) {
   EcsView* renderableView = ecs_world_view_t(world, RenderableUniqueView);
   for (EcsIterator* renderableItr = ecs_view_itr(renderableView); ecs_view_walk(renderableItr);) {
 
-    const SceneRenderableUniqueComp* comp =
+    const SceneRenderableUniqueComp* renderableComp =
         ecs_view_read_t(renderableItr, SceneRenderableUniqueComp);
     RendPainterDrawComp* drawComp = ecs_view_write_t(renderableItr, RendPainterDrawComp);
 
@@ -92,15 +92,20 @@ ecs_system_define(RendInstanceFillUniqueDrawsSys) {
           world,
           ecs_view_entity(renderableItr),
           RendPainterDrawComp,
-          .graphic   = comp->graphic,
+          .graphic   = renderableComp->graphic,
           .instances = dynarray_create(g_alloc_heap, 1, 16, 0));
       continue;
     }
 
     diag_assert(!drawComp->instances.size); // Every RenderableUnique should have its own draw.
+    diag_assert(drawComp->graphic == renderableComp->graphic);
 
-    const Mem instanceData     = scene_renderable_unique_data(comp);
-    drawComp->instances.stride = math_max(instanceData.size, 16);
+    // Set overrides.
+    drawComp->vertexCountOverride = renderableComp->vertexCountOverride;
+
+    // Set instance data.
+    const Mem instanceData     = scene_renderable_unique_data(renderableComp);
+    drawComp->instances.stride = (u16)math_max(instanceData.size, 16);
     mem_cpy(dynarray_push(&drawComp->instances, 1), instanceData);
   }
 }

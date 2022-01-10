@@ -332,8 +332,11 @@ static void rvk_pass_draw_submit(RvkPass* pass, const RvkPassDraw* draw) {
     if (graphic->mesh) {
       vkCmdDrawIndexed(pass->vkCmdBuf, graphic->mesh->indexCount, instanceCount, 0, 0, 0);
     } else {
-      diag_assert(graphic->vertexCount);
-      vkCmdDraw(pass->vkCmdBuf, graphic->vertexCount, instanceCount, 0, 0);
+      const u32 vertexCount =
+          draw->vertexCountOverride ? draw->vertexCountOverride : graphic->vertexCount;
+      if (LIKELY(vertexCount)) {
+        vkCmdDraw(pass->vkCmdBuf, vertexCount, instanceCount, 0, 0);
+      }
     }
     remInstanceCount -= instanceCount;
   }

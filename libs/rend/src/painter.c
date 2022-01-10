@@ -113,10 +113,11 @@ static void painter_draw_forward(
     RendResGraphicComp* graphicResComp = ecs_view_write_t(graphicItr, RendResGraphicComp);
     if (rvk_pass_prepare(forwardPass, graphicResComp->graphic)) {
       *dynarray_push_t(&drawBuffer, RvkPassDraw) = (RvkPassDraw){
-          .graphic       = graphicResComp->graphic,
-          .instanceCount = (u32)drawComp->instances.size,
-          .data          = dynarray_at(&drawComp->instances, 0, drawComp->instances.size),
-          .dataStride    = drawComp->instances.stride,
+          .graphic             = graphicResComp->graphic,
+          .vertexCountOverride = drawComp->vertexCountOverride,
+          .instanceCount       = (u32)drawComp->instances.size,
+          .data                = dynarray_at(&drawComp->instances, 0, drawComp->instances.size),
+          .dataStride          = drawComp->instances.stride,
       };
     }
   }

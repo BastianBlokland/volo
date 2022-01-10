@@ -46,6 +46,7 @@ ecs_system_define(SceneGridUpdateDataSys) {
   EcsView* gridView = ecs_world_view_t(world, GridView);
   for (EcsIterator* itr = ecs_view_itr(gridView); ecs_view_walk(itr);) {
     SceneRenderableUniqueComp* renderable = ecs_view_write_t(itr, SceneRenderableUniqueComp);
+    renderable->vertexCountOverride       = g_gridSegments * 4;
 
     const Mem dataMem = scene_renderable_unique_data_alloc(renderable, sizeof(SceneGridData));
     *mem_as_t(dataMem, SceneGridData) = (SceneGridData){
