@@ -1,7 +1,7 @@
 #include "core_alloc.h"
 #include "ecs_world.h"
-#include "rend_instance.h"
 #include "rend_register.h"
+#include "scene_renderable.h"
 #include "scene_transform.h"
 
 #include "painter_internal.h"
@@ -13,34 +13,31 @@ typedef struct {
   GeoQuat   rotation;
 } RendInstanceData;
 
-ecs_comp_define_public(RendInstanceComp);
-ecs_comp_define_public(RendInstanceCustomComp);
-
-ecs_view_define(InstanceView) {
-  ecs_access_read(RendInstanceComp);
+ecs_view_define(RenderableView) {
+  ecs_access_read(SceneRenderableComp);
   ecs_access_maybe_read(SceneTransformComp);
 }
 
-ecs_view_define(InstanceCustomView) {
-  ecs_access_read(RendInstanceCustomComp);
+ecs_view_define(RenderableUniqueView) {
+  ecs_access_read(SceneRenderableUniqueComp);
   ecs_access_maybe_write(RendPainterDrawComp);
 }
 
 ecs_view_define(PainterDrawView) { ecs_access_write(RendPainterDrawComp); }
 
 ecs_system_define(RendInstanceRequestResourcesSys) {
-  // Request the graphic resource for RendInstanceComp's to be loaded.
-  EcsView* instView = ecs_world_view_t(world, InstanceView);
-  for (EcsIterator* itr = ecs_view_itr(instView); ecs_view_walk(itr);) {
-    const RendInstanceComp* instComp = ecs_view_read_t(itr, RendInstanceComp);
-    rend_resource_request(world, instComp->graphic);
+  // Request the graphic resource for SceneRenderableComp's to be loaded.
+  EcsView* renderableView = ecs_world_view_t(world, RenderableView);
+  for (EcsIterator* itr = ecs_view_itr(renderableView); ecs_view_walk(itr);) {
+    const SceneRenderableComp* comp = ecs_view_read_t(itr, SceneRenderableComp);
+    rend_resource_request(world, comp->graphic);
   }
 
-  // Request the graphic resource for RendInstanceCustomComp's to be loaded.
-  EcsView* instCustomView = ecs_world_view_t(world, InstanceCustomView);
-  for (EcsIterator* itr = ecs_view_itr(instCustomView); ecs_view_walk(itr);) {
-    const RendInstanceCustomComp* instCustomComp = ecs_view_read_t(itr, RendInstanceCustomComp);
-    rend_resource_request(world, instCustomComp->graphic);
+  // Request the graphic resource for SceneRenderableUniqueComp's to be loaded.
+  EcsView* renderableUniqueView = ecs_world_view_t(world, RenderableUniqueView);
+  for (EcsIterator* itr = ecs_view_itr(renderableUniqueView); ecs_view_walk(itr);) {
+    const SceneRenderableUniqueComp* comp = ecs_view_read_t(itr, SceneRenderableUniqueComp);
+    rend_resource_request(world, comp->graphic);
   }
 }
 
@@ -52,24 +49,25 @@ ecs_system_define(RendInstanceClearDrawsSys) {
 }
 
 ecs_system_define(RendInstanceFillDrawsSys) {
-  EcsView* instView = ecs_world_view_t(world, InstanceView);
-  EcsView* drawView = ecs_world_view_t(world, PainterDrawView);
+  EcsView* renderableView = ecs_world_view_t(world, RenderableView);
+  EcsView* drawView       = ecs_world_view_t(world, PainterDrawView);
 
   EcsIterator* drawItr = ecs_view_itr(drawView);
-  for (EcsIterator* instItr = ecs_view_itr(instView); ecs_view_walk(instItr);) {
-    const RendInstanceComp*   instComp      = ecs_view_read_t(instItr, RendInstanceComp);
-    const SceneTransformComp* transformComp = ecs_view_read_t(instItr, SceneTransformComp);
+  for (EcsIterator* renderableItr = ecs_view_itr(renderableView); ecs_view_walk(renderableItr);) {
+    const SceneRenderableComp* renderableComp = ecs_view_read_t(renderableItr, SceneRenderableComp);
+    const SceneTransformComp*  transformComp  = ecs_view_read_t(renderableItr, SceneTransformComp);
 
-    if (UNLIKELY(!ecs_world_has_t(world, instComp->graphic, RendPainterDrawComp))) {
+    if (UNLIKELY(!ecs_world_has_t(world, renderableComp->graphic, RendPainterDrawComp))) {
       ecs_world_add_t(
           world,
-          instComp->graphic,
+          renderableComp->graphic,
           RendPainterDrawComp,
-          .graphic   = instComp->graphic,
+          .graphic   = renderableComp->graphic,
           .instances = dynarray_create_t(g_alloc_heap, RendInstanceData, 128));
       continue;
     }
-    ecs_view_jump(drawItr, instComp->graphic);
+
+    ecs_view_jump(drawItr, renderableComp->graphic);
     RendPainterDrawComp* drawComp = ecs_view_write_t(drawItr, RendPainterDrawComp);
 
     *dynarray_push_t(&drawComp->instances, RendInstanceData) = (RendInstanceData){
@@ -79,41 +77,45 @@ ecs_system_define(RendInstanceFillDrawsSys) {
   }
 }
 
-ecs_system_define(RendInstanceFillCustomDrawsSys) {
-  EcsView* instView = ecs_world_view_t(world, InstanceCustomView);
-  for (EcsIterator* instItr = ecs_view_itr(instView); ecs_view_walk(instItr);) {
-    const RendInstanceCustomComp* instCustomComp = ecs_view_read_t(instItr, RendInstanceCustomComp);
-    RendPainterDrawComp*          drawComp       = ecs_view_write_t(instItr, RendPainterDrawComp);
+ecs_system_define(RendInstanceFillUniqueDrawsSys) {
+  EcsView* renderableView = ecs_world_view_t(world, RenderableUniqueView);
+  for (EcsIterator* renderableItr = ecs_view_itr(renderableView); ecs_view_walk(renderableItr);) {
+
+    const SceneRenderableUniqueComp* comp =
+        ecs_view_read_t(renderableItr, SceneRenderableUniqueComp);
+    RendPainterDrawComp* drawComp = ecs_view_write_t(renderableItr, RendPainterDrawComp);
 
     if (UNLIKELY(!drawComp)) {
       ecs_world_add_t(
           world,
-          ecs_view_entity(instItr),
+          ecs_view_entity(renderableItr),
           RendPainterDrawComp,
-          .graphic   = instCustomComp->graphic,
+          .graphic   = comp->graphic,
           .instances = dynarray_create(g_alloc_heap, 32, 1, 1)); // TODO: Add instance data.
       continue;
     }
+
     dynarray_push(&drawComp->instances, 1); // TODO: Add instance data.
   }
 }
 
 ecs_module_init(rend_instance_module) {
-  ecs_register_comp(RendInstanceComp);
-  ecs_register_comp(RendInstanceCustomComp);
 
-  ecs_register_view(InstanceView);
-  ecs_register_view(InstanceCustomView);
+  ecs_register_view(RenderableView);
+  ecs_register_view(RenderableUniqueView);
   ecs_register_view(PainterDrawView);
 
   ecs_register_system(
-      RendInstanceRequestResourcesSys, ecs_view_id(InstanceView), ecs_view_id(InstanceCustomView));
+      RendInstanceRequestResourcesSys,
+      ecs_view_id(RenderableView),
+      ecs_view_id(RenderableUniqueView));
+
   ecs_register_system(RendInstanceClearDrawsSys, ecs_view_id(PainterDrawView));
   ecs_register_system(
-      RendInstanceFillDrawsSys, ecs_view_id(InstanceView), ecs_view_id(PainterDrawView));
-  ecs_register_system(RendInstanceFillCustomDrawsSys, ecs_view_id(InstanceCustomView));
+      RendInstanceFillDrawsSys, ecs_view_id(RenderableView), ecs_view_id(PainterDrawView));
+  ecs_register_system(RendInstanceFillUniqueDrawsSys, ecs_view_id(RenderableUniqueView));
 
   ecs_order(RendInstanceClearDrawsSys, RendOrder_DrawCollect - 1);
   ecs_order(RendInstanceFillDrawsSys, RendOrder_DrawCollect);
-  ecs_order(RendInstanceFillCustomDrawsSys, RendOrder_DrawCollect);
+  ecs_order(RendInstanceFillUniqueDrawsSys, RendOrder_DrawCollect);
 }

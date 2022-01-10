@@ -12,6 +12,7 @@
 #include "rend.h"
 #include "scene_camera.h"
 #include "scene_register.h"
+#include "scene_renderable.h"
 #include "scene_time.h"
 #include "scene_transform.h"
 
@@ -87,7 +88,7 @@ static void demo_spawn_sky(EcsWorld* world, AssetManagerComp* assets) {
   ecs_world_add_t(
       world,
       ecs_world_entity_create(world),
-      RendInstanceCustomComp,
+      SceneRenderableUniqueComp,
       .graphic = asset_lookup(world, assets, string_lit("graphics/sky.gra")));
 }
 
@@ -95,7 +96,7 @@ static void demo_spawn_grid(EcsWorld* world, AssetManagerComp* assets) {
   ecs_world_add_t(
       world,
       ecs_world_entity_create(world),
-      RendInstanceCustomComp,
+      SceneRenderableUniqueComp,
       .graphic = asset_lookup(world, assets, string_lit("graphics/grid.gra")));
 }
 
@@ -103,7 +104,7 @@ static void demo_spawn_object(
     EcsWorld* world, AssetManagerComp* assets, const GeoVector position, const String graphic) {
 
   const EcsEntityId e = ecs_world_entity_create(world);
-  ecs_world_add_t(world, e, RendInstanceComp, .graphic = asset_lookup(world, assets, graphic));
+  ecs_world_add_t(world, e, SceneRenderableComp, .graphic = asset_lookup(world, assets, graphic));
   ecs_world_add_t(world, e, SceneTransformComp, .position = position, .rotation = geo_quat_ident);
   ecs_world_add_empty_t(world, e, DemoObjectComp);
 }
