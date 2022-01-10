@@ -10,7 +10,6 @@
 #include "jobs.h"
 #include "log.h"
 #include "rend.h"
-#include "scene_camera.h"
 #include "scene_register.h"
 #include "scene_renderable.h"
 #include "scene_time.h"
@@ -23,11 +22,6 @@
 static const GapVector g_windowSize          = {1024, 768};
 static const f32       g_statSmoothFactor    = 0.05f;
 static const u32       g_titleUpdateInterval = 4;
-static const f32       g_cameraFov           = 60.0f * math_deg_to_rad;
-static const f32       g_cameraNearPlane     = 0.1f;
-static const GeoVector g_cameraPosition      = {0, 1.5f, -3.0f};
-static const f32       g_cameraAngle         = 10 * math_deg_to_rad;
-static const f32       g_cameraMoveSpeed     = 10.0f;
 static const f32       g_pedestalRotateSpeed = 45.0f * math_deg_to_rad;
 static const f32       g_pedestalPositionY   = 0.5f;
 static const f32       g_subjectPositionY    = 1.0f;
@@ -84,14 +78,6 @@ static TimeDuration demo_smooth_duration(const TimeDuration old, const TimeDurat
   return (TimeDuration)((f64)old + ((f64)(new - old) * g_statSmoothFactor));
 }
 
-static void demo_spawn_sky(EcsWorld* world, AssetManagerComp* assets) {
-  ecs_world_add_t(
-      world,
-      ecs_world_entity_create(world),
-      SceneRenderableUniqueComp,
-      .graphic = asset_lookup(world, assets, string_lit("graphics/sky.gra")));
-}
-
 static void demo_spawn_grid(EcsWorld* world, AssetManagerComp* assets) {
   ecs_world_add_t(
       world,
@@ -135,19 +121,6 @@ static void demo_spawn_objects(EcsWorld* world, DemoComp* demo, AssetManagerComp
   }
 }
 
-static EcsEntityId demo_window_open(EcsWorld* world) {
-  const EcsEntityId e = gap_window_create(world, GapWindowFlags_Default, g_windowSize);
-  ecs_world_add_t(world, e, SceneCameraComp, .fov = g_cameraFov, .zNear = g_cameraNearPlane);
-  ecs_world_add_t(world, e, SceneCameraMovementComp, .moveSpeed = g_cameraMoveSpeed);
-  ecs_world_add_t(
-      world,
-      e,
-      SceneTransformComp,
-      .position = g_cameraPosition,
-      .rotation = geo_quat_angle_axis(geo_right, g_cameraAngle));
-  return e;
-}
-
 static void demo_window_title_set(GapWindowComp* win, DemoComp* demo, const RendStatsComp* stats) {
   gap_window_title_set(
       win,
@@ -174,7 +147,6 @@ ecs_system_define(DemoUpdateSys) {
   AssetManagerComp*    assets = ecs_view_write_t(globalItr, AssetManagerComp);
   const SceneTimeComp* time   = ecs_view_read_t(globalItr, SceneTimeComp);
   if (!(demo->flags & DemoFlags_Initialized)) {
-    demo_spawn_sky(world, assets);
     demo_spawn_grid(world, assets);
     demo->flags |= DemoFlags_Initialized | DemoFlags_Rotate | DemoFlags_Dirty;
   }
@@ -289,7 +261,7 @@ static int demo_run(const String assetPath) {
 
   asset_manager_create_fs(world, AssetManagerFlags_TrackChanges, assetPath);
 
-  const EcsEntityId window = demo_window_open(world);
+  const EcsEntityId window = gap_window_create(world, GapWindowFlags_Default, g_windowSize);
   ecs_world_add_t(world, ecs_world_global(world), DemoComp, .window = window, .subjectCount = 1);
 
   while (ecs_world_exists(world, window)) {
