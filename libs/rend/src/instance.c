@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_diag.h"
+#include "core_math.h"
 #include "ecs_world.h"
 #include "rend_register.h"
 #include "scene_renderable.h"
@@ -99,7 +100,7 @@ ecs_system_define(RendInstanceFillUniqueDrawsSys) {
     diag_assert(!drawComp->instances.size); // Every RenderableUnique should have its own draw.
 
     const Mem instanceData     = scene_renderable_unique_data(comp);
-    drawComp->instances.stride = instanceData.size;
+    drawComp->instances.stride = math_max(instanceData.size, 16);
     mem_cpy(dynarray_push(&drawComp->instances, 1), instanceData);
   }
 }

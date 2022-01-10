@@ -4,10 +4,22 @@
 #include "scene_grid.h"
 #include "scene_renderable.h"
 
+static const u32 g_gridSegments      = 200;
+static const u32 g_highlightInterval = 5;
+
+typedef struct {
+  u32 segments;
+  u32 highlightInterval;
+} SceneGridData;
+
 ecs_comp_define(SceneGridComp);
 
 ecs_view_define(GlobalAssetsView) { ecs_access_write(AssetManagerComp); }
-ecs_view_define(GridView) { ecs_access_with(SceneGridComp); }
+
+ecs_view_define(GridView) {
+  ecs_access_with(SceneGridComp);
+  ecs_access_write(SceneRenderableUniqueComp);
+}
 
 ecs_system_define(SceneGridCreateSys) {
   if (ecs_utils_any(world, GridView)) {
@@ -30,6 +42,19 @@ ecs_system_define(SceneGridCreateSys) {
       .graphic = asset_lookup(world, assets, string_lit("graphics/grid.gra")));
 }
 
+ecs_system_define(SceneGridUpdateDataSys) {
+  EcsView* gridView = ecs_world_view_t(world, GridView);
+  for (EcsIterator* itr = ecs_view_itr(gridView); ecs_view_walk(itr);) {
+    SceneRenderableUniqueComp* renderable = ecs_view_write_t(itr, SceneRenderableUniqueComp);
+
+    const Mem dataMem = scene_renderable_unique_data_alloc(renderable, sizeof(SceneGridData));
+    *mem_as_t(dataMem, SceneGridData) = (SceneGridData){
+        .segments          = g_gridSegments,
+        .highlightInterval = g_highlightInterval,
+    };
+  }
+}
+
 ecs_module_init(scene_grid_module) {
   ecs_register_comp_empty(SceneGridComp);
 
@@ -37,4 +62,6 @@ ecs_module_init(scene_grid_module) {
   ecs_register_view(GridView);
 
   ecs_register_system(SceneGridCreateSys, ecs_view_id(GlobalAssetsView), ecs_view_id(GridView));
+
+  ecs_register_system(SceneGridUpdateDataSys, ecs_view_id(GridView));
 }

@@ -22,7 +22,7 @@ Mem scene_renderable_unique_data(const SceneRenderableUniqueComp* renderable) {
 }
 
 Mem scene_renderable_unique_data_alloc(SceneRenderableUniqueComp* renderable, const usize size) {
-  if (renderable->instDataMem.size >= size) {
+  if (LIKELY(renderable->instDataMem.size >= size)) {
     renderable->instDataSize = size;
     return mem_slice(renderable->instDataMem, 0, size);
   }
@@ -30,7 +30,7 @@ Mem scene_renderable_unique_data_alloc(SceneRenderableUniqueComp* renderable, co
   if (LIKELY(renderable->instDataMem.ptr)) {
     alloc_free(g_alloc_heap, renderable->instDataMem);
   }
-  renderable->instDataMem  = alloc_alloc(g_alloc_heap, size, math_min(size, 16));
+  renderable->instDataMem  = alloc_alloc(g_alloc_heap, math_max(size, 16), 16);
   renderable->instDataSize = size;
   return renderable->instDataMem;
 }
