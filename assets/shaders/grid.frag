@@ -4,19 +4,19 @@
 #include "include/binding.glsl"
 #include "include/global.glsl"
 
-const i32 c_distFadeBegin = 50;
-const i32 c_distFadeEnd   = 100;
+const f32 c_fadeFraction = 0.5;
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 
 bind_internal(0) in f32_vec3 in_gridPos;
-bind_internal(1) in flat f32_vec4 in_color;
+bind_internal(1) in flat f32 in_gridHalfSize;
+bind_internal(2) in flat f32_vec4 in_color;
 
 bind_internal(0) out f32_vec4 out_color;
 
 f32 compute_fade(const f32_vec3 center) {
   const f32 dist = length(in_gridPos - center);
-  return 1.0 - smoothstep(c_distFadeBegin, c_distFadeEnd, dist);
+  return 1.0 - smoothstep(in_gridHalfSize * (1.0 - c_fadeFraction), in_gridHalfSize, dist);
 }
 
 void main() {
