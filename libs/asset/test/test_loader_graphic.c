@@ -48,10 +48,12 @@ static const struct {
   String text;
 } g_errorTestData[] = {
     {
-        .id   = string_static("missing_mesh.gra"),
+        .id   = string_static("mesh_and_vertex_count.gra"),
         .text = string_static("{"
                               "  \"shaders\": [],"
                               "  \"samplers\": [],"
+                              "  \"meshId\": \"a.obj\","
+                              "  \"vertexCount\": 42,"
                               "  \"topology\": \"Triangles\","
                               "  \"rasterizer\": \"Fill\","
                               "  \"lineWidth\": 42,"
@@ -65,6 +67,7 @@ static const struct {
         .text = string_static("{"
                               "  \"shaders\": [],"
                               "  \"samplers\": [],"
+                              "  \"meshId\": \"\","
                               "  \"meshId\": \"\","
                               "  \"topology\": \"Triangles\","
                               "  \"rasterizer\": \"Fill\","

@@ -8,7 +8,7 @@
     }
   ],
   "samplers": [],
-  "vertexCount": 800,
+  "vertexCount": 0,
   "renderOrder": 20,
   "topology": "Lines",
   "lineWidth": 2,

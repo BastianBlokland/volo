@@ -156,7 +156,7 @@ void rvk_debug_name(
 }
 
 void rvk_debug_label_begin_raw(
-    RvkDebug* debug, VkCommandBuffer vkCmdBuffer, const RendColor color, const String name) {
+    RvkDebug* debug, VkCommandBuffer vkCmdBuffer, const GeoColor color, const String name) {
   if (debug) {
     const VkDebugUtilsLabelEXT label = {
         .sType      = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,

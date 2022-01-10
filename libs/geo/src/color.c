@@ -1,8 +1,8 @@
 #include "core_array.h"
-#include "rend_color.h"
+#include "geo_color.h"
 
-RendColor rend_color_get(const u64 idx) {
-  static const RendColor colors[] = {
+GeoColor geo_color_get(const u64 idx) {
+  static const GeoColor colors[] = {
       {1.0f, 0.0f, 0.0f, 1.0f},
       {1.0f, 1.0f, 0.0f, 1.0f},
       {0.5f, 0.5f, 0.0f, 1.0f},

@@ -169,7 +169,7 @@ static void rvk_pass_scissor_set(VkCommandBuffer vkCmdBuf, const RendSize size) 
 }
 
 static void rvk_pass_vkrenderpass_begin(
-    RvkPass* pass, VkCommandBuffer vkCmdBuf, const RendSize size, const RendColor clearColor) {
+    RvkPass* pass, VkCommandBuffer vkCmdBuf, const RendSize size, const GeoColor clearColor) {
 
   const VkClearValue clearValues[] = {
       *(VkClearColorValue*)&clearColor,
@@ -261,14 +261,14 @@ bool rvk_pass_prepare(RvkPass* pass, RvkGraphic* graphic) {
   return rvk_graphic_prepare(graphic, pass->vkCmdBuf, pass->vkRendPass);
 }
 
-void rvk_pass_begin(RvkPass* pass, const RendColor clearColor) {
+void rvk_pass_begin(RvkPass* pass, const GeoColor clearColor) {
   diag_assert_msg(pass->flags & RvkPassPrivateFlags_Setup, "Pass not setup");
   diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
 
   pass->flags |= RvkPassPrivateFlags_Active;
 
   rvk_statrecorder_start(pass->statrecorder, pass->vkCmdBuf);
-  rvk_debug_label_begin(pass->dev->debug, pass->vkCmdBuf, rend_blue, "pass");
+  rvk_debug_label_begin(pass->dev->debug, pass->vkCmdBuf, geo_color_blue, "pass");
 
   rvk_pass_vkrenderpass_begin(pass, pass->vkCmdBuf, pass->attachColor.size, clearColor);
   rvk_image_transition_external(&pass->attachColor, RvkImagePhase_ColorAttachment);
@@ -308,7 +308,7 @@ static void rvk_pass_draw_submit(RvkPass* pass, const RvkPassDraw* draw) {
   }
 
   rvk_debug_label_begin(
-      pass->dev->debug, pass->vkCmdBuf, rend_green, "draw_{}", fmt_text(graphic->dbgName));
+      pass->dev->debug, pass->vkCmdBuf, geo_color_green, "draw_{}", fmt_text(graphic->dbgName));
 
   rvk_graphic_bind(graphic, pass->vkCmdBuf);
 
@@ -332,8 +332,11 @@ static void rvk_pass_draw_submit(RvkPass* pass, const RvkPassDraw* draw) {
     if (graphic->mesh) {
       vkCmdDrawIndexed(pass->vkCmdBuf, graphic->mesh->indexCount, instanceCount, 0, 0, 0);
     } else {
-      diag_assert(graphic->vertexCount);
-      vkCmdDraw(pass->vkCmdBuf, graphic->vertexCount, instanceCount, 0, 0);
+      const u32 vertexCount =
+          draw->vertexCountOverride ? draw->vertexCountOverride : graphic->vertexCount;
+      if (LIKELY(vertexCount)) {
+        vkCmdDraw(pass->vkCmdBuf, vertexCount, instanceCount, 0, 0);
+      }
     }
     remInstanceCount -= instanceCount;
   }

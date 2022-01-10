@@ -124,6 +124,10 @@ static GapKey pal_xcb_translate_key(const xcb_keycode_t key) {
     return GapKey_Escape;
   case 0x41:
     return GapKey_Space;
+  case 0x14:
+    return GapKey_Plus;
+  case 0x15:
+    return GapKey_Minus;
   case 0x6F:
     return GapKey_ArrowUp;
   case 0x74:
@@ -207,6 +211,7 @@ static GapKey pal_xcb_translate_key(const xcb_keycode_t key) {
   case 0x12:
     return GapKey_Alpha9;
   }
+  // log_d("Unrecognised xcb key", log_param("keycode", fmt_int(key, .base = 16)));
   return GapKey_None;
 }
 

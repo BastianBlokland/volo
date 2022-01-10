@@ -113,10 +113,11 @@ static void painter_draw_forward(
     RendResGraphicComp* graphicResComp = ecs_view_write_t(graphicItr, RendResGraphicComp);
     if (rvk_pass_prepare(forwardPass, graphicResComp->graphic)) {
       *dynarray_push_t(&drawBuffer, RvkPassDraw) = (RvkPassDraw){
-          .graphic       = graphicResComp->graphic,
-          .instanceCount = (u32)drawComp->instances.size,
-          .data          = dynarray_at(&drawComp->instances, 0, drawComp->instances.size),
-          .dataStride    = drawComp->instances.stride,
+          .graphic             = graphicResComp->graphic,
+          .vertexCountOverride = drawComp->vertexCountOverride,
+          .instanceCount       = (u32)drawComp->instances.size,
+          .data                = dynarray_at(&drawComp->instances, 0, drawComp->instances.size),
+          .dataStride          = drawComp->instances.stride,
       };
     }
   }
@@ -125,7 +126,7 @@ static void painter_draw_forward(
   dynarray_sort(&drawBuffer, painter_compare_draw);
 
   // Execute draws.
-  rvk_pass_begin(forwardPass, rend_soothing_purple);
+  rvk_pass_begin(forwardPass, geo_color_white);
   rvk_pass_draw(
       forwardPass,
       mem_var(*globalData),

@@ -125,7 +125,7 @@ static GapKey pal_win32_translate_key(const WPARAM key) {
     return GapKey_Delete;
   case VK_TAB:
     return GapKey_Tab;
-  case 0xC0:
+  case VK_OEM_3:
     return GapKey_Tilde;
   case VK_RETURN:
     return GapKey_Return;
@@ -133,6 +133,10 @@ static GapKey pal_win32_translate_key(const WPARAM key) {
     return GapKey_Escape;
   case VK_SPACE:
     return GapKey_Space;
+  case VK_OEM_PLUS:
+    return GapKey_Plus;
+  case VK_OEM_MINUS:
+    return GapKey_Minus;
   case VK_UP:
     return GapKey_ArrowUp;
   case VK_DOWN:
@@ -216,6 +220,7 @@ static GapKey pal_win32_translate_key(const WPARAM key) {
   case 0x39:
     return GapKey_Alpha9;
   }
+  // log_d("Unrecognised win32 key", log_param("keycode", fmt_int(key, .base = 16)));
   return GapKey_None;
 }
 
@@ -370,10 +375,10 @@ GapPal* gap_pal_create(Allocator* alloc) {
 
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){
-      .alloc          = alloc,
-      .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
-      .moduleInstance = instance,
-      .owningThreadId = g_thread_tid,
+             .alloc          = alloc,
+             .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
+             .moduleInstance = instance,
+             .owningThreadId = g_thread_tid,
   };
 
   MAYBE_UNUSED const GapVector screenSize =

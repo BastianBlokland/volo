@@ -16,6 +16,8 @@ typedef enum {
   GapKey_Return,
   GapKey_Escape,
   GapKey_Space,
+  GapKey_Plus,
+  GapKey_Minus,
   GapKey_ArrowUp,
   GapKey_ArrowDown,
   GapKey_ArrowRight,

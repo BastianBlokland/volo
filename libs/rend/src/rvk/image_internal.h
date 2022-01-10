@@ -1,5 +1,5 @@
 #pragma once
-#include "rend_color.h"
+#include "geo_color.h"
 #include "rend_size.h"
 
 #include "mem_internal.h"
@@ -55,4 +55,4 @@ void rvk_image_transition_external(RvkImage*, RvkImagePhase);
 void rvk_image_generate_mipmaps(RvkImage*, VkCommandBuffer);
 void rvk_image_copy(const RvkImage* src, RvkImage* dest, VkCommandBuffer);
 void rvk_image_blit(const RvkImage* src, RvkImage* dest, VkCommandBuffer);
-void rvk_image_clear(const RvkImage*, RendColor, VkCommandBuffer);
+void rvk_image_clear(const RvkImage*, GeoColor, VkCommandBuffer);

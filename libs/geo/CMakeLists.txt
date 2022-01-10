@@ -6,6 +6,7 @@ message(STATUS "> library: geo")
 
 add_library(lib_geo STATIC
   src/box.c
+  src/color.c
   src/matrix.c
   src/quat.c
   src/vector.c)

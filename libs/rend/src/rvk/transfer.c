@@ -141,7 +141,7 @@ static void rvk_transfer_begin(RvkTransferer* trans, RvkTransferBuffer* buffer) 
   };
   rvk_call(vkBeginCommandBuffer, buffer->vkCmdBuffer, &beginInfo);
 
-  rvk_debug_label_begin(trans->dev->debug, buffer->vkCmdBuffer, rend_olive, "transfer");
+  rvk_debug_label_begin(trans->dev->debug, buffer->vkCmdBuffer, geo_color_olive, "transfer");
 }
 
 static void rvk_transfer_submit(RvkTransferer* trans, RvkTransferBuffer* buffer) {

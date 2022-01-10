@@ -11,6 +11,7 @@ ecs_comp_extern_public(RendPainterComp) { RvkCanvas* canvas; };
 
 ecs_comp_extern_public(RendPainterDrawComp) {
   EcsEntityId graphic;
+  u32         vertexCountOverride;
   DynArray    instances;
 };
 
