@@ -1,5 +1,5 @@
 #pragma once
-#include "rend_color.h"
+#include "geo_color.h"
 
 #include "vulkan_internal.h"
 
@@ -13,7 +13,7 @@ typedef struct sRvkDebug RvkDebug;
 RvkDebug* rvk_debug_create(VkInstance, VkDevice, VkAllocationCallbacks*, RvkDebugFlags);
 void      rvk_debug_destroy(RvkDebug*);
 void      rvk_debug_name(RvkDebug*, VkObjectType, u64 vkHandle, String name);
-void      rvk_debug_label_begin_raw(RvkDebug*, VkCommandBuffer, RendColor, String name);
+void      rvk_debug_label_begin_raw(RvkDebug*, VkCommandBuffer, GeoColor, String name);
 void      rvk_debug_label_end(RvkDebug*, VkCommandBuffer);
 
 #define rvk_debug_label_begin(_DBG_, _CMD_BUF_, _COLOR_, _LIT_, ...)                               \

@@ -1,6 +1,6 @@
 #pragma once
 #include "core_types.h"
-#include "rend_color.h"
+#include "geo_color.h"
 #include "rend_size.h"
 
 #include "statrecorder_internal.h"
@@ -45,6 +45,6 @@ u64       rvk_pass_stat(RvkPass*, RvkStat);
 void rvk_pass_setup(RvkPass*, RendSize size);
 bool rvk_pass_prepare(RvkPass*, RvkGraphic*);
 
-void rvk_pass_begin(RvkPass*, RendColor clearColor);
+void rvk_pass_begin(RvkPass*, GeoColor clearColor);
 void rvk_pass_draw(RvkPass*, Mem globalData, RvkPassDrawList);
 void rvk_pass_end(RvkPass*);

@@ -70,7 +70,7 @@ bool rvk_texture_prepare(RvkTexture* texture, VkCommandBuffer vkCmdBuf) {
   }
 
   rvk_debug_label_begin(
-      texture->device->debug, vkCmdBuf, rend_silver, "prepare_{}", fmt_text(texture->dbgName));
+      texture->device->debug, vkCmdBuf, geo_color_silver, "prepare_{}", fmt_text(texture->dbgName));
 
   rvk_image_generate_mipmaps(&texture->image, vkCmdBuf);
   rvk_image_transition(&texture->image, vkCmdBuf, RvkImagePhase_ShaderRead);

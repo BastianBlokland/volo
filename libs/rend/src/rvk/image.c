@@ -448,7 +448,7 @@ void rvk_image_blit(const RvkImage* src, RvkImage* dest, VkCommandBuffer vkCmdBu
       VK_FILTER_LINEAR);
 }
 
-void rvk_image_clear(const RvkImage* img, const RendColor color, VkCommandBuffer vkCmdBuf) {
+void rvk_image_clear(const RvkImage* img, const GeoColor color, VkCommandBuffer vkCmdBuf) {
   rvk_image_assert_phase(img, RvkImagePhase_TransferDest);
 
   const VkClearColorValue       clearColor = *(VkClearColorValue*)&color;

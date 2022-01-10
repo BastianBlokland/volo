@@ -108,7 +108,7 @@ static void rvk_renderer_submit(RvkRenderer* rend) {
 
 static void rvk_renderer_blit_to_output(RvkRenderer* rend, RvkPass* pass) {
 
-  rvk_debug_label_begin(rend->dev->debug, rend->vkDrawBuffer, rend_purple, "blit_to_target");
+  rvk_debug_label_begin(rend->dev->debug, rend->vkDrawBuffer, geo_color_purple, "blit_to_target");
 
   RvkImage* src  = rvk_pass_output(pass);
   RvkImage* dest = rend->currentTarget;
@@ -199,7 +199,11 @@ void rvk_renderer_begin(RvkRenderer* rend, RvkImage* target, const RvkImagePhase
 
   rend->timeRecBegin = rvk_stopwatch_mark(rend->stopwatch, rend->vkDrawBuffer);
   rvk_debug_label_begin(
-      rend->dev->debug, rend->vkDrawBuffer, rend_teal, "renderer_{}", fmt_int(rend->rendererId));
+      rend->dev->debug,
+      rend->vkDrawBuffer,
+      geo_color_teal,
+      "renderer_{}",
+      fmt_int(rend->rendererId));
 }
 
 RvkPass* rvk_renderer_pass_forward(RvkRenderer* rend) {
