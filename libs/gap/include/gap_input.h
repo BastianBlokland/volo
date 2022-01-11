@@ -61,6 +61,19 @@ typedef enum {
   GapKey_Alpha8,
   GapKey_Alpha9,
 
+  GapKey_F1,
+  GapKey_F2,
+  GapKey_F3,
+  GapKey_F4,
+  GapKey_F5,
+  GapKey_F6,
+  GapKey_F7,
+  GapKey_F8,
+  GapKey_F9,
+  GapKey_F10,
+  GapKey_F11,
+  GapKey_F12,
+
   GapKey_Count,
 } GapKey;
 

@@ -23,7 +23,10 @@ static const String g_key_strs[] = {
     string_static("alpha-1"),    string_static("alpha-2"),     string_static("alpha-3"),
     string_static("alpha-4"),    string_static("alpha-5"),     string_static("alpha-6"),
     string_static("alpha-7"),    string_static("alpha-8"),     string_static("alpha-9"),
-};
+    string_static("f1"),         string_static("f2"),          string_static("f3"),
+    string_static("f4"),         string_static("f5"),          string_static("f6"),
+    string_static("f7"),         string_static("f8"),          string_static("f9"),
+    string_static("f10"),        string_static("f11"),         string_static("f12")};
 
 ASSERT(array_elems(g_key_strs) == GapKey_Count, "Incorrect number of GapKey strings");
 
