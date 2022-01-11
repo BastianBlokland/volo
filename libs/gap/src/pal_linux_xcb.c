@@ -210,6 +210,31 @@ static GapKey pal_xcb_translate_key(const xcb_keycode_t key) {
     return GapKey_Alpha8;
   case 0x12:
     return GapKey_Alpha9;
+
+  case 0x43:
+    return GapKey_F1;
+  case 0x44:
+    return GapKey_F2;
+  case 0x45:
+    return GapKey_F3;
+  case 0x46:
+    return GapKey_F4;
+  case 0x47:
+    return GapKey_F5;
+  case 0x48:
+    return GapKey_F6;
+  case 0x49:
+    return GapKey_F7;
+  case 0x4A:
+    return GapKey_F8;
+  case 0x4B:
+    return GapKey_F9;
+  case 0x60:
+    return GapKey_F10;
+  case 0x5F:
+    return GapKey_F11;
+  case 0x4C:
+    return GapKey_F12;
   }
   // log_d("Unrecognised xcb key", log_param("keycode", fmt_int(key, .base = 16)));
   return GapKey_None;

@@ -69,7 +69,7 @@ GeoQuat geo_quat_norm(const GeoQuat q) {
   return (GeoQuat){q.x / mag, q.y / mag, q.z / mag, q.w / mag};
 }
 
-GeoQuat geo_quat_look(GeoVector forward, GeoVector upRef) {
+GeoQuat geo_quat_look(const GeoVector forward, const GeoVector upRef) {
   if (geo_vector_mag_sqr(forward) <= f32_epsilon) {
     return geo_quat_ident;
   }

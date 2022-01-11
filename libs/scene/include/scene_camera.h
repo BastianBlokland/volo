@@ -3,13 +3,15 @@
 #include "geo_matrix.h"
 
 typedef enum {
-  SceneCameraFlags_None     = 0,
-  SceneCameraFlags_Vertical = 1 << 1,
+  SceneCameraFlags_None         = 0,
+  SceneCameraFlags_Vertical     = 1 << 1,
+  SceneCameraFlags_Orthographic = 1 << 2,
 } SceneCameraFlags;
 
 ecs_comp_extern_public(SceneCameraComp) {
-  f32              fov;
-  f32              zNear;
+  f32              persFov;
+  f32              persNear;
+  f32              orthoSize;
   SceneCameraFlags flags;
 };
 

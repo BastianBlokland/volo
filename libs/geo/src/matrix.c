@@ -160,7 +160,7 @@ GeoMatrix geo_matrix_rotate_z(const f32 angle) {
       }};
 }
 
-GeoMatrix geo_matrix_rotate(GeoVector right, GeoVector up, GeoVector fwd) {
+GeoMatrix geo_matrix_rotate(const GeoVector right, const GeoVector up, const GeoVector fwd) {
   /**
    * NOTE: An alternative api could be that we allow a non-orthonormal set of axis as input and just
    * normalize and reconstruct the axes. This would however be wastefull when you already have
@@ -261,7 +261,8 @@ GeoQuat geo_matrix_to_quat(const GeoMatrix* m) {
   };
 }
 
-GeoMatrix geo_matrix_proj_ortho(f32 width, f32 height, f32 zNear, f32 zFar) {
+GeoMatrix
+geo_matrix_proj_ortho(const f32 width, const f32 height, const f32 zNear, const f32 zFar) {
   /**
    * [ 2 / w,       0,           0,           0            ]
    * [ 0,           -(2 / h),    0,           0            ]
@@ -279,7 +280,17 @@ GeoMatrix geo_matrix_proj_ortho(f32 width, f32 height, f32 zNear, f32 zFar) {
       }};
 }
 
-GeoMatrix geo_matrix_proj_pers(f32 horAngle, f32 verAngle, f32 zNear) {
+GeoMatrix
+geo_matrix_proj_ortho_ver(const f32 size, const f32 aspect, const f32 zNear, const f32 zFar) {
+  return geo_matrix_proj_ortho(size, size / aspect, zNear, zFar);
+}
+
+GeoMatrix
+geo_matrix_proj_ortho_hor(const f32 size, const f32 aspect, const f32 zNear, const f32 zFar) {
+  return geo_matrix_proj_ortho(size * aspect, size, zNear, zFar);
+}
+
+GeoMatrix geo_matrix_proj_pers(const f32 horAngle, const f32 verAngle, const f32 zNear) {
   /**
    * [ 1 / tan(hor / 2),  0,                    0,               0      ]
    * [ 0,                 -(1 / tan(ver / 2)),  0,               0      ]
@@ -303,7 +314,7 @@ GeoMatrix geo_matrix_proj_pers_ver(const f32 verAngle, const f32 aspect, const f
   return geo_matrix_proj_pers(horAngle, verAngle, zNear);
 }
 
-GeoMatrix geo_matrix_proj_pers_hor(f32 horAngle, f32 aspect, f32 zNear) {
+GeoMatrix geo_matrix_proj_pers_hor(const f32 horAngle, const f32 aspect, const f32 zNear) {
   const f32 verAngle = math_atan_f32(math_tan_f32(horAngle * .5f) / aspect) * 2.f;
   return geo_matrix_proj_pers(horAngle, verAngle, zNear);
 }

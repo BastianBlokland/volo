@@ -1,4 +1,5 @@
 #include "core_diag.h"
+#include "core_math.h"
 #include "core_path.h"
 #include "core_rng.h"
 #include "core_thread.h"
@@ -146,79 +147,104 @@ static GapKey pal_win32_translate_key(const WPARAM key) {
   case VK_LEFT:
     return GapKey_ArrowLeft;
 
-  case 0x41:
+  case 0x41: // VK_A
     return GapKey_A;
-  case 0x42:
+  case 0x42: // VK_B
     return GapKey_B;
-  case 0x43:
+  case 0x43: // VK_C
     return GapKey_C;
-  case 0x44:
+  case 0x44: // VK_D
     return GapKey_D;
-  case 0x45:
+  case 0x45: // VK_E
     return GapKey_E;
-  case 0x46:
+  case 0x46: // VK_F
     return GapKey_F;
-  case 0x47:
+  case 0x47: // VK_G
     return GapKey_G;
-  case 0x48:
+  case 0x48: // VK_H
     return GapKey_H;
-  case 0x49:
+  case 0x49: // VK_I
     return GapKey_I;
-  case 0x4A:
+  case 0x4A: // VK_J
     return GapKey_J;
-  case 0x4B:
+  case 0x4B: // VK_K
     return GapKey_K;
-  case 0x4C:
+  case 0x4C: // VK_L
     return GapKey_L;
-  case 0x4D:
+  case 0x4D: // VK_M
     return GapKey_M;
-  case 0x4E:
+  case 0x4E: // VK_N
     return GapKey_N;
-  case 0x4F:
+  case 0x4F: // VK_O
     return GapKey_O;
-  case 0x50:
+  case 0x50: // VK_P
     return GapKey_P;
-  case 0x51:
+  case 0x51: // VK_Q
     return GapKey_Q;
-  case 0x52:
+  case 0x52: // VK_R
     return GapKey_R;
-  case 0x53:
+  case 0x53: // VK_S
     return GapKey_S;
-  case 0x54:
+  case 0x54: // VK_T
     return GapKey_T;
-  case 0x55:
+  case 0x55: // VK_U
     return GapKey_U;
-  case 0x56:
+  case 0x56: // VK_V
     return GapKey_V;
-  case 0x57:
+  case 0x57: // VK_W
     return GapKey_W;
-  case 0x58:
+  case 0x58: // VK_X
     return GapKey_X;
-  case 0x59:
+  case 0x59: // VK_Y
     return GapKey_Y;
-  case 0x5A:
+  case 0x5A: // VK_Z
     return GapKey_Z;
 
-  case 0x30:
+  case 0x30: // VK_0
     return GapKey_Alpha0;
-  case 0x31:
+  case 0x31: // VK_1
     return GapKey_Alpha1;
-  case 0x32:
+  case 0x32: // VK_2
     return GapKey_Alpha2;
-  case 0x33:
+  case 0x33: // VK_3
     return GapKey_Alpha3;
-  case 0x34:
+  case 0x34: // VK_4
     return GapKey_Alpha4;
-  case 0x35:
+  case 0x35: // VK_5
     return GapKey_Alpha5;
-  case 0x36:
+  case 0x36: // VK_6
     return GapKey_Alpha6;
-  case 0x37:
+  case 0x37: // VK_7
     return GapKey_Alpha7;
-  case 0x38:
+  case 0x38: // VK_8
     return GapKey_Alpha8;
-  case 0x39:
+  case 0x39: // VK_9
     return GapKey_Alpha9;
+
+  case VK_F1:
+    return GapKey_F1;
+  case VK_F2:
+    return GapKey_F2;
+  case VK_F3:
+    return GapKey_F3;
+  case VK_F4:
+    return GapKey_F4;
+  case VK_F5:
+    return GapKey_F5;
+  case VK_F6:
+    return GapKey_F6;
+  case VK_F7:
+    return GapKey_F7;
+  case VK_F8:
+    return GapKey_F8;
+  case VK_F9:
+    return GapKey_F9;
+  case VK_F10:
+    return GapKey_F10;
+  case VK_F11:
+    return GapKey_F11;
+  case VK_F12:
+    return GapKey_F12;
   }
   // log_d("Unrecognised win32 key", log_param("keycode", fmt_int(key, .base = 16)));
   return GapKey_None;
@@ -332,12 +358,20 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
   case WM_KEYUP:
     pal_event_release(window, pal_win32_translate_key(wParam));
     return true;
-  case WM_MOUSEWHEEL:
-    pal_event_scroll(window, gap_vector(0, GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA));
+  case WM_MOUSEWHEEL: {
+    const i32 scrollY    = GET_WHEEL_DELTA_WPARAM(wParam);
+    const i32 scrollSign = math_sign(scrollY);
+    pal_event_scroll(
+        window, gap_vector(0, math_max(1, math_abs(scrollY) / WHEEL_DELTA) * scrollSign));
     return true;
-  case WM_MOUSEHWHEEL:
-    pal_event_scroll(window, gap_vector(GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA, 0));
+  }
+  case WM_MOUSEHWHEEL: {
+    const i32 scrollX    = GET_WHEEL_DELTA_WPARAM(wParam);
+    const i32 scrollSign = math_sign(scrollX);
+    pal_event_scroll(
+        window, gap_vector(math_max(1, math_abs(scrollX) / WHEEL_DELTA) * scrollSign, 0));
     return true;
+  }
   default:
     return false;
   }
