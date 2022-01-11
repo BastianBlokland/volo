@@ -1,4 +1,5 @@
 #include "core_diag.h"
+#include "core_math.h"
 #include "core_path.h"
 #include "core_rng.h"
 #include "core_thread.h"
@@ -357,12 +358,20 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
   case WM_KEYUP:
     pal_event_release(window, pal_win32_translate_key(wParam));
     return true;
-  case WM_MOUSEWHEEL:
-    pal_event_scroll(window, gap_vector(0, GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA));
+  case WM_MOUSEWHEEL: {
+    const i32 scrollY    = GET_WHEEL_DELTA_WPARAM(wParam);
+    const i32 scrollSign = math_sign(scrollY);
+    pal_event_scroll(
+        window, gap_vector(0, math_max(1, math_abs(scrollY) / WHEEL_DELTA) * scrollSign));
     return true;
-  case WM_MOUSEHWHEEL:
-    pal_event_scroll(window, gap_vector(GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA, 0));
+  }
+  case WM_MOUSEHWHEEL: {
+    const i32 scrollX    = GET_WHEEL_DELTA_WPARAM(wParam);
+    const i32 scrollSign = math_sign(scrollX);
+    pal_event_scroll(
+        window, gap_vector(math_max(1, math_abs(scrollX) / WHEEL_DELTA) * scrollSign, 0));
     return true;
+  }
   default:
     return false;
   }
