@@ -96,6 +96,8 @@ GeoQuat geo_matrix_to_quat(const GeoMatrix*);
  * NOTE: Uses reversed-z depth so near objects are at depth 1 and far at 0.
  */
 GeoMatrix geo_matrix_proj_ortho(f32 width, f32 height, f32 zNear, f32 zFar);
+GeoMatrix geo_matrix_proj_ortho_ver(f32 size, f32 aspect, f32 zNear, f32 zFar);
+GeoMatrix geo_matrix_proj_ortho_hor(f32 size, f32 aspect, f32 zNear, f32 zFar);
 
 /**
  * Create a perspective projection matrix.

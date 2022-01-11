@@ -20,7 +20,7 @@ GeoVector geo_vector_mul(const GeoVector v, const f32 scalar) {
   return geo_vector(v.x * scalar, v.y * scalar, v.z * scalar, v.w * scalar);
 }
 
-GeoVector geo_vector_div(const GeoVector v, f32 scalar) {
+GeoVector geo_vector_div(const GeoVector v, const f32 scalar) {
   diag_assert(scalar != 0);
   return geo_vector(v.x / scalar, v.y / scalar, v.z / scalar, v.w / scalar);
 }
