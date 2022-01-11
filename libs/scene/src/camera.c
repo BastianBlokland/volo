@@ -204,6 +204,7 @@ ecs_system_define(SceneCameraUpdateSys) {
 
     if (gap_window_key_pressed(win, GapKey_F1)) {
       cam->flags &= ~SceneCameraFlags_Orthographic;
+      cam->persFov    = g_camPersFov;
       trans->position = g_camPersPosition;
       trans->rotation = geo_quat_angle_axis(geo_right, g_camPersAngle);
     }
