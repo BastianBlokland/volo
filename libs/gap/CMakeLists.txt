@@ -28,6 +28,3 @@ if(${VOLO_PLATFORM} STREQUAL "linux")
   target_link_libraries(lib_gap PRIVATE xcb-xfixes)
   target_link_libraries(lib_gap PRIVATE xcb-icccm)
 endif()
-
-message(STATUS "> demos: gap")
-add_subdirectory(demos)

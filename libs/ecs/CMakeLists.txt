@@ -44,6 +44,3 @@ target_link_libraries(lib_ecs_test PRIVATE lib_log)
 
 configure_test(lib_ecs_test ecs)
 configure_debuggable(lib_ecs_test)
-
-message(STATUS "> demos: ecs")
-add_subdirectory(demos)

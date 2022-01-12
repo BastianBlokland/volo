@@ -47,6 +47,3 @@ message(STATUS ">> Vulkan lib: ${Vulkan_LIBRARIES}")
 message(STATUS ">> Vulkan headers: ${Vulkan_INCLUDE_DIRS}")
 target_link_libraries(lib_rend PRIVATE ${Vulkan_LIBRARIES})
 target_include_directories(lib_rend PRIVATE ${Vulkan_INCLUDE_DIRS})
-
-message(STATUS "> demos: rend")
-add_subdirectory(demos)

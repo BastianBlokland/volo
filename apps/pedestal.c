@@ -36,25 +36,25 @@ static const String    g_subjectGraphics[]   = {
 };
 
 typedef enum {
-  DemoFlags_Dirty  = 1 << 0,
-  DemoFlags_Rotate = 1 << 1,
+  AppFlags_Dirty  = 1 << 0,
+  AppFlags_Rotate = 1 << 1,
 
-  DemoFlags_Init = DemoFlags_Dirty | DemoFlags_Rotate,
-} DemoFlags;
+  AppFlags_Init = AppFlags_Dirty | AppFlags_Rotate,
+} AppFlags;
 
-ecs_comp_define(DemoComp) {
-  DemoFlags    flags;
+ecs_comp_define(AppComp) {
+  AppFlags     flags;
   u32          subjectCount;
   u32          subjectIndex;
   f32          updateFreq;
   TimeDuration renderTime;
 };
 
-ecs_comp_define(DemoObjectComp);
+ecs_comp_define(SubjectComp);
 
 ecs_view_define(GlobalView) {
   ecs_access_write(AssetManagerComp);
-  ecs_access_write(DemoComp);
+  ecs_access_write(AppComp);
   ecs_access_read(SceneTimeComp);
 }
 
@@ -64,29 +64,29 @@ ecs_view_define(WindowView) {
 }
 
 ecs_view_define(ObjectView) {
-  ecs_access_with(DemoObjectComp);
+  ecs_access_with(SubjectComp);
   ecs_access_write(SceneTransformComp);
 }
 
-static f32 demo_smooth_f32(const f32 old, const f32 new) {
+static f32 smooth_f32(const f32 old, const f32 new) {
   return old + ((new - old) * g_statSmoothFactor);
 }
 
-static TimeDuration demo_smooth_duration(const TimeDuration old, const TimeDuration new) {
+static TimeDuration smooth_duration(const TimeDuration old, const TimeDuration new) {
   return (TimeDuration)((f64)old + ((f64)(new - old) * g_statSmoothFactor));
 }
 
-static void demo_spawn_object(
+static void spawn_object(
     EcsWorld* world, AssetManagerComp* assets, const GeoVector position, const String graphic) {
 
   const EcsEntityId e = ecs_world_entity_create(world);
   ecs_world_add_t(world, e, SceneRenderableComp, .graphic = asset_lookup(world, assets, graphic));
   ecs_world_add_t(world, e, SceneTransformComp, .position = position, .rotation = geo_quat_ident);
-  ecs_world_add_empty_t(world, e, DemoObjectComp);
+  ecs_world_add_empty_t(world, e, SubjectComp);
 }
 
-static void demo_spawn_objects(EcsWorld* world, DemoComp* demo, AssetManagerComp* assets) {
-  const u32 columnCount = (u32)math_sqrt_f32(demo->subjectCount);
+static void spawn_objects(EcsWorld* world, AppComp* app, AssetManagerComp* assets) {
+  const u32 columnCount = (u32)math_sqrt_f32(app->subjectCount);
   const u32 rowCount    = columnCount;
 
   for (u32 x = 0; x != columnCount; ++x) {
@@ -96,13 +96,13 @@ static void demo_spawn_objects(EcsWorld* world, DemoComp* demo, AssetManagerComp
           (x - (columnCount - 1) * 0.5f) * g_subjectSpacing,
           (y - (rowCount - 1) * 0.5f) * g_subjectSpacing);
 
-      demo_spawn_object(
+      spawn_object(
           world,
           assets,
           geo_vector(gridPos.x, g_subjectPositionY, gridPos.y),
-          g_subjectGraphics[demo->subjectIndex]);
+          g_subjectGraphics[app->subjectIndex]);
 
-      demo_spawn_object(
+      spawn_object(
           world,
           assets,
           geo_vector(gridPos.x, g_pedestalPositionY, gridPos.y),
@@ -111,15 +111,15 @@ static void demo_spawn_objects(EcsWorld* world, DemoComp* demo, AssetManagerComp
   }
 }
 
-static void demo_window_title_set(GapWindowComp* win, DemoComp* demo, const RendStatsComp* stats) {
+static void window_title_set(GapWindowComp* win, AppComp* app, const RendStatsComp* stats) {
   gap_window_title_set(
       win,
       fmt_write_scratch(
           "{} | {>4} hz | {>8} gpu | {>6} kverts | {>6} ktris | {>8} ram | {>8} vram | {>7} "
           "rend-ram",
           rend_size_fmt(stats ? stats->renderResolution : rend_size(0, 0)),
-          fmt_float(demo->updateFreq, .maxDecDigits = 0),
-          fmt_duration(demo->renderTime),
+          fmt_float(app->updateFreq, .maxDecDigits = 0),
+          fmt_duration(app->renderTime),
           fmt_int(stats ? stats->vertices / 1000 : 0),
           fmt_int(stats ? stats->primitives / 1000 : 0),
           fmt_size(alloc_stats_total()),
@@ -127,13 +127,13 @@ static void demo_window_title_set(GapWindowComp* win, DemoComp* demo, const Rend
           fmt_size(stats ? stats->ramOccupied : 0)));
 }
 
-ecs_system_define(DemoUpdateSys) {
+ecs_system_define(AppUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
   }
-  DemoComp*            demo   = ecs_view_write_t(globalItr, DemoComp);
+  AppComp*             app    = ecs_view_write_t(globalItr, AppComp);
   AssetManagerComp*    assets = ecs_view_write_t(globalItr, AssetManagerComp);
   const SceneTimeComp* time   = ecs_view_read_t(globalItr, SceneTimeComp);
 
@@ -143,72 +143,72 @@ ecs_system_define(DemoUpdateSys) {
     const RendStatsComp* rendStats = ecs_view_read_t(windowItr, RendStatsComp);
 
     const f32 deltaSeconds = time->delta / (f32)time_second;
-    demo->updateFreq       = demo_smooth_f32(demo->updateFreq, 1.0f / deltaSeconds);
+    app->updateFreq        = smooth_f32(app->updateFreq, 1.0f / deltaSeconds);
     if (rendStats) {
-      demo->renderTime = demo_smooth_duration(demo->renderTime, rendStats->renderTime);
+      app->renderTime = smooth_duration(app->renderTime, rendStats->renderTime);
     }
 
     if ((time->ticks % g_titleUpdateInterval) == 0) {
-      demo_window_title_set(window, demo, rendStats);
+      window_title_set(window, app, rendStats);
     }
 
     if (gap_window_key_pressed(window, GapKey_Space)) {
-      demo->subjectIndex = (demo->subjectIndex + 1) % array_elems(g_subjectGraphics);
-      demo->flags |= DemoFlags_Dirty;
+      app->subjectIndex = (app->subjectIndex + 1) % array_elems(g_subjectGraphics);
+      app->flags |= AppFlags_Dirty;
     }
     if (gap_window_key_pressed(window, GapKey_Backspace)) {
-      demo->flags ^= DemoFlags_Rotate;
+      app->flags ^= AppFlags_Rotate;
     }
     if (gap_window_key_pressed(window, GapKey_Return)) {
       gap_window_create(world, GapWindowFlags_Default, g_windowSize);
     }
     if (gap_window_key_pressed(window, GapKey_Alpha1)) {
-      demo->subjectCount = 1;
-      demo->flags |= DemoFlags_Dirty;
+      app->subjectCount = 1;
+      app->flags |= AppFlags_Dirty;
     }
     if (gap_window_key_pressed(window, GapKey_Alpha2)) {
-      demo->subjectCount = 64;
-      demo->flags |= DemoFlags_Dirty;
+      app->subjectCount = 64;
+      app->flags |= AppFlags_Dirty;
     }
     if (gap_window_key_pressed(window, GapKey_Alpha3)) {
-      demo->subjectCount = 512;
-      demo->flags |= DemoFlags_Dirty;
+      app->subjectCount = 512;
+      app->flags |= AppFlags_Dirty;
     }
     if (gap_window_key_pressed(window, GapKey_Alpha4)) {
-      demo->subjectCount = 1024;
-      demo->flags |= DemoFlags_Dirty;
+      app->subjectCount = 1024;
+      app->flags |= AppFlags_Dirty;
     }
     if (gap_window_key_pressed(window, GapKey_Alpha5)) {
-      demo->subjectCount = 4096;
-      demo->flags |= DemoFlags_Dirty;
+      app->subjectCount = 4096;
+      app->flags |= AppFlags_Dirty;
     }
     if (gap_window_key_pressed(window, GapKey_Alpha0)) {
-      demo->subjectCount = 0;
-      demo->flags |= DemoFlags_Dirty;
+      app->subjectCount = 0;
+      app->flags |= AppFlags_Dirty;
     }
 
-    if (demo->flags & DemoFlags_Dirty) {
+    if (app->flags & AppFlags_Dirty) {
       EcsView* objectView = ecs_world_view_t(world, ObjectView);
       for (EcsIterator* objItr = ecs_view_itr(objectView); ecs_view_walk(objItr);) {
         ecs_world_entity_destroy(world, ecs_view_entity(objItr));
       }
-      demo_spawn_objects(world, demo, assets);
-      demo->flags &= ~DemoFlags_Dirty;
+      spawn_objects(world, app, assets);
+      app->flags &= ~AppFlags_Dirty;
     }
   }
 }
 
-ecs_system_define(DemoSetRotationSys) {
+ecs_system_define(AppSetRotationSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
   }
-  const DemoComp*      demo        = ecs_view_read_t(globalItr, DemoComp);
+  const AppComp*       app         = ecs_view_read_t(globalItr, AppComp);
   const SceneTimeComp* time        = ecs_view_read_t(globalItr, SceneTimeComp);
   const f32            timeSeconds = time->time / (f32)time_second;
 
-  if (!(demo->flags & DemoFlags_Rotate)) {
+  if (!(app->flags & AppFlags_Rotate)) {
     return;
   }
 
@@ -219,27 +219,27 @@ ecs_system_define(DemoSetRotationSys) {
   }
 }
 
-ecs_module_init(demo_cube_module) {
-  ecs_register_comp(DemoComp);
-  ecs_register_comp_empty(DemoObjectComp);
+ecs_module_init(app_cube_module) {
+  ecs_register_comp(AppComp);
+  ecs_register_comp_empty(SubjectComp);
 
   ecs_register_view(GlobalView);
   ecs_register_view(WindowView);
   ecs_register_view(ObjectView);
 
   ecs_register_system(
-      DemoUpdateSys, ecs_view_id(GlobalView), ecs_view_id(WindowView), ecs_view_id(ObjectView));
-  ecs_register_system(DemoSetRotationSys, ecs_view_id(GlobalView), ecs_view_id(ObjectView));
+      AppUpdateSys, ecs_view_id(GlobalView), ecs_view_id(WindowView), ecs_view_id(ObjectView));
+  ecs_register_system(AppSetRotationSys, ecs_view_id(GlobalView), ecs_view_id(ObjectView));
 }
 
-static int demo_run(const String assetPath) {
+static int app_run(const String assetPath) {
   log_i(
-      "Demo startup",
+      "Application startup",
       log_param("asset-path", fmt_text(assetPath)),
       log_param("pid", fmt_int(g_thread_pid)));
 
   EcsDef* def = def = ecs_def_create(g_alloc_heap);
-  ecs_register_module(def, demo_cube_module);
+  ecs_register_module(def, app_cube_module);
   asset_register(def);
   gap_register(def);
   rend_register(def);
@@ -252,7 +252,7 @@ static int demo_run(const String assetPath) {
 
   gap_window_create(world, GapWindowFlags_Default, g_windowSize);
   ecs_world_add_t(
-      world, ecs_world_global(world), DemoComp, .flags = DemoFlags_Init, .subjectCount = 1);
+      world, ecs_world_global(world), AppComp, .flags = AppFlags_Init, .subjectCount = 1);
 
   do {
     ecs_run_sync(runner);
@@ -262,7 +262,7 @@ static int demo_run(const String assetPath) {
   ecs_world_destroy(world);
   ecs_def_destroy(def);
 
-  log_i("Demo shutdown");
+  log_i("Application shutdown");
   return 0;
 }
 
@@ -276,7 +276,7 @@ int main(const int argc, const char** argv) {
 
   int exitCode = 0;
 
-  CliApp* app       = cli_app_create(g_alloc_heap, string_lit("Volo Render Pedestal Demo"));
+  CliApp* app       = cli_app_create(g_alloc_heap, string_lit("Volo Pedestal Demo"));
   CliId   assetFlag = cli_register_flag(app, 'a', string_lit("assets"), CliOptionFlags_Required);
   cli_register_desc(app, assetFlag, string_lit("Path to asset directory."));
 
@@ -288,7 +288,7 @@ int main(const int argc, const char** argv) {
   }
 
   const String assetPath = cli_read_string(invoc, assetFlag, string_empty);
-  exitCode               = demo_run(assetPath);
+  exitCode               = app_run(assetPath);
 
 exit:
   cli_parse_destroy(invoc);
