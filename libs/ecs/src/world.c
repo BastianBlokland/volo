@@ -132,12 +132,12 @@ EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
 
   EcsWorld* world = alloc_alloc_t(alloc, EcsWorld);
   *world          = (EcsWorld){
-      .def       = def,
-      .finalizer = ecs_finalizer_create(alloc, def),
-      .storage   = ecs_storage_create(alloc, def),
-      .views     = dynarray_create_t(alloc, EcsView, ecs_def_view_count(def)),
-      .buffer    = ecs_buffer_create(alloc, def),
-      .alloc     = alloc,
+               .def       = def,
+               .finalizer = ecs_finalizer_create(alloc, def),
+               .storage   = ecs_storage_create(alloc, def),
+               .views     = dynarray_create_t(alloc, EcsView, ecs_def_view_count(def)),
+               .buffer    = ecs_buffer_create(alloc, def),
+               .alloc     = alloc,
   };
   world->globalEntity = ecs_storage_entity_create(&world->storage);
 
@@ -161,9 +161,7 @@ void ecs_world_destroy(EcsWorld* world) {
 
   ecs_def_unfreeze((EcsDef*)world->def);
 
-  log_d(
-      "Ecs world destroyed",
-      log_param("archetypes", fmt_int(ecs_storage_archetype_count(&world->storage))));
+  MAYBE_UNUSED const usize archetypeCount = ecs_storage_archetype_count(&world->storage);
 
   ecs_finalizer_destroy(&world->finalizer);
   ecs_storage_destroy(&world->storage);
@@ -172,6 +170,8 @@ void ecs_world_destroy(EcsWorld* world) {
   dynarray_destroy(&world->views);
 
   ecs_buffer_destroy(&world->buffer);
+
+  log_d("Ecs world destroyed", log_param("archetypes", fmt_int(archetypeCount)));
 
   alloc_free_t(world->alloc, world);
 }
