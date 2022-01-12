@@ -271,6 +271,10 @@ static void pal_event_resize(GapPalWindow* window, const GapVector newSize) {
   }
   window->params[GapParam_WindowSize] = newSize;
   window->flags |= GapPalWindowFlags_Resized;
+
+  if (!window->inModalLoop) {
+    log_d("Window resized", log_param("size", gap_vector_fmt(newSize)));
+  }
 }
 
 static void pal_event_cursor(GapPalWindow* window, const GapVector newPos) {
