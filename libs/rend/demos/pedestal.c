@@ -38,14 +38,14 @@ static const String    g_subjectGraphics[]   = {
 typedef enum {
   DemoFlags_Dirty  = 1 << 0,
   DemoFlags_Rotate = 1 << 1,
+
+  DemoFlags_Init = DemoFlags_Dirty | DemoFlags_Rotate,
 } DemoFlags;
 
 ecs_comp_define(DemoComp) {
-  DemoFlags   flags;
-  EcsEntityId window;
-  u32         subjectCount;
-  u32         subjectIndex;
-
+  DemoFlags    flags;
+  u32          subjectCount;
+  u32          subjectIndex;
   f32          updateFreq;
   TimeDuration renderTime;
 };
@@ -117,7 +117,7 @@ static void demo_window_title_set(GapWindowComp* win, DemoComp* demo, const Rend
       fmt_write_scratch(
           "{} | {>4} hz | {>8} gpu | {>6} kverts | {>6} ktris | {>8} ram | {>8} vram | {>7} "
           "rend-ram",
-          rend_size_fmt(stats->renderResolution),
+          rend_size_fmt(stats ? stats->renderResolution : rend_size(0, 0)),
           fmt_float(demo->updateFreq, .maxDecDigits = 0),
           fmt_duration(demo->renderTime),
           fmt_int(stats ? stats->vertices / 1000 : 0),
@@ -137,61 +137,64 @@ ecs_system_define(DemoUpdateSys) {
   AssetManagerComp*    assets = ecs_view_write_t(globalItr, AssetManagerComp);
   const SceneTimeComp* time   = ecs_view_read_t(globalItr, SceneTimeComp);
 
-  EcsIterator*         windowItr = ecs_view_at(ecs_world_view_t(world, WindowView), demo->window);
-  GapWindowComp*       window    = ecs_view_write_t(windowItr, GapWindowComp);
-  const RendStatsComp* rendStats = ecs_view_read_t(windowItr, RendStatsComp);
+  EcsView* windowView = ecs_world_view_t(world, WindowView);
+  for (EcsIterator* windowItr = ecs_view_itr(windowView); ecs_view_walk(windowItr);) {
+    GapWindowComp*       window    = ecs_view_write_t(windowItr, GapWindowComp);
+    const RendStatsComp* rendStats = ecs_view_read_t(windowItr, RendStatsComp);
 
-  const f32 deltaSeconds = time->delta / (f32)time_second;
-  demo->updateFreq       = demo_smooth_f32(demo->updateFreq, 1.0f / deltaSeconds);
-  if (rendStats) {
-    demo->renderTime = demo_smooth_duration(demo->renderTime, rendStats->renderTime);
-  }
-
-  if ((time->ticks % g_titleUpdateInterval) == 0) {
-    demo_window_title_set(window, demo, rendStats);
-  }
-
-  if (gap_window_key_pressed(window, GapKey_Space)) {
-    demo->subjectIndex = (demo->subjectIndex + 1) % array_elems(g_subjectGraphics);
-    demo->flags |= DemoFlags_Dirty;
-  }
-
-  if (gap_window_key_pressed(window, GapKey_Return)) {
-    demo->flags ^= DemoFlags_Rotate;
-  }
-
-  if (gap_window_key_pressed(window, GapKey_Alpha1)) {
-    demo->subjectCount = 1;
-    demo->flags |= DemoFlags_Dirty;
-  }
-  if (gap_window_key_pressed(window, GapKey_Alpha2)) {
-    demo->subjectCount = 64;
-    demo->flags |= DemoFlags_Dirty;
-  }
-  if (gap_window_key_pressed(window, GapKey_Alpha3)) {
-    demo->subjectCount = 512;
-    demo->flags |= DemoFlags_Dirty;
-  }
-  if (gap_window_key_pressed(window, GapKey_Alpha4)) {
-    demo->subjectCount = 1024;
-    demo->flags |= DemoFlags_Dirty;
-  }
-  if (gap_window_key_pressed(window, GapKey_Alpha5)) {
-    demo->subjectCount = 4096;
-    demo->flags |= DemoFlags_Dirty;
-  }
-  if (gap_window_key_pressed(window, GapKey_Alpha0)) {
-    demo->subjectCount = 0;
-    demo->flags |= DemoFlags_Dirty;
-  }
-
-  if (demo->flags & DemoFlags_Dirty) {
-    EcsView* objectView = ecs_world_view_t(world, ObjectView);
-    for (EcsIterator* objItr = ecs_view_itr(objectView); ecs_view_walk(objItr);) {
-      ecs_world_entity_destroy(world, ecs_view_entity(objItr));
+    const f32 deltaSeconds = time->delta / (f32)time_second;
+    demo->updateFreq       = demo_smooth_f32(demo->updateFreq, 1.0f / deltaSeconds);
+    if (rendStats) {
+      demo->renderTime = demo_smooth_duration(demo->renderTime, rendStats->renderTime);
     }
-    demo_spawn_objects(world, demo, assets);
-    demo->flags &= ~DemoFlags_Dirty;
+
+    if ((time->ticks % g_titleUpdateInterval) == 0) {
+      demo_window_title_set(window, demo, rendStats);
+    }
+
+    if (gap_window_key_pressed(window, GapKey_Space)) {
+      demo->subjectIndex = (demo->subjectIndex + 1) % array_elems(g_subjectGraphics);
+      demo->flags |= DemoFlags_Dirty;
+    }
+    if (gap_window_key_pressed(window, GapKey_Backspace)) {
+      demo->flags ^= DemoFlags_Rotate;
+    }
+    if (gap_window_key_pressed(window, GapKey_Return)) {
+      gap_window_create(world, GapWindowFlags_Default, g_windowSize);
+    }
+    if (gap_window_key_pressed(window, GapKey_Alpha1)) {
+      demo->subjectCount = 1;
+      demo->flags |= DemoFlags_Dirty;
+    }
+    if (gap_window_key_pressed(window, GapKey_Alpha2)) {
+      demo->subjectCount = 64;
+      demo->flags |= DemoFlags_Dirty;
+    }
+    if (gap_window_key_pressed(window, GapKey_Alpha3)) {
+      demo->subjectCount = 512;
+      demo->flags |= DemoFlags_Dirty;
+    }
+    if (gap_window_key_pressed(window, GapKey_Alpha4)) {
+      demo->subjectCount = 1024;
+      demo->flags |= DemoFlags_Dirty;
+    }
+    if (gap_window_key_pressed(window, GapKey_Alpha5)) {
+      demo->subjectCount = 4096;
+      demo->flags |= DemoFlags_Dirty;
+    }
+    if (gap_window_key_pressed(window, GapKey_Alpha0)) {
+      demo->subjectCount = 0;
+      demo->flags |= DemoFlags_Dirty;
+    }
+
+    if (demo->flags & DemoFlags_Dirty) {
+      EcsView* objectView = ecs_world_view_t(world, ObjectView);
+      for (EcsIterator* objItr = ecs_view_itr(objectView); ecs_view_walk(objItr);) {
+        ecs_world_entity_destroy(world, ecs_view_entity(objItr));
+      }
+      demo_spawn_objects(world, demo, assets);
+      demo->flags &= ~DemoFlags_Dirty;
+    }
   }
 }
 
@@ -247,24 +250,19 @@ static int demo_run(const String assetPath) {
 
   asset_manager_create_fs(world, AssetManagerFlags_TrackChanges, assetPath);
 
-  const EcsEntityId window = gap_window_create(world, GapWindowFlags_Default, g_windowSize);
+  gap_window_create(world, GapWindowFlags_Default, g_windowSize);
   ecs_world_add_t(
-      world,
-      ecs_world_global(world),
-      DemoComp,
-      .window       = window,
-      .flags        = DemoFlags_Rotate | DemoFlags_Dirty,
-      .subjectCount = 1);
+      world, ecs_world_global(world), DemoComp, .flags = DemoFlags_Init, .subjectCount = 1);
 
-  while (ecs_world_exists(world, window)) {
+  do {
     ecs_run_sync(runner);
-  }
-
-  log_i("Demo shutdown", log_param("mem", fmt_size(alloc_stats_total())));
+  } while (ecs_utils_any(world, WindowView));
 
   ecs_runner_destroy(runner);
   ecs_world_destroy(world);
   ecs_def_destroy(def);
+
+  log_i("Demo shutdown");
   return 0;
 }
 
