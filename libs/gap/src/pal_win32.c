@@ -444,8 +444,15 @@ void gap_pal_update(GapPal* pal) {
   // Handle all win32 messages in the buffer.
   MSG msg;
   while (PeekMessage(&msg, null, 0, 0, PM_REMOVE)) {
-    TranslateMessage(&msg);
-    DispatchMessage(&msg);
+    if (UNLIKELY(msg.message == WM_QUIT)) {
+      dynarray_for_t(&pal->windows, GapPalWindow, win) {
+        win->flags |= GapPalWindowFlags_CloseRequested;
+      }
+      log_d("Win32 application quit requested");
+    } else {
+      TranslateMessage(&msg);
+      DispatchMessage(&msg);
+    }
   }
 }
 
