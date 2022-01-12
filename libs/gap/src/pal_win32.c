@@ -25,6 +25,7 @@ typedef struct {
   GapPalWindowFlags flags : 16;
   GapKeySet         keysPressed, keysReleased, keysDown;
   GapVector         lastWindowedPosition;
+  bool              inModalLoop;
 } GapPalWindow;
 
 typedef enum {
@@ -254,14 +255,22 @@ static void pal_event_close(GapPalWindow* window) {
   window->flags |= GapPalWindowFlags_CloseRequested;
 }
 
+static void pal_event_modal_loop_enter(GapPalWindow* window) { window->inModalLoop = true; }
+
+static void pal_event_modal_loop_exit(GapPalWindow* window) {
+  window->inModalLoop = false;
+  if (window->flags & GapPalWindowFlags_Resized) {
+    const GapVector newSize = window->params[GapParam_WindowSize];
+    log_d("Window resized", log_param("size", gap_vector_fmt(newSize)));
+  }
+}
+
 static void pal_event_resize(GapPalWindow* window, const GapVector newSize) {
   if (gap_vector_equal(window->params[GapParam_WindowSize], newSize)) {
     return;
   }
   window->params[GapParam_WindowSize] = newSize;
   window->flags |= GapPalWindowFlags_Resized;
-
-  log_d("Window resized", log_param("size", gap_vector_fmt(newSize)));
 }
 
 static void pal_event_cursor(GapPalWindow* window, const GapVector newPos) {
@@ -312,6 +321,17 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
     const GapVector newPos = gap_vector((i32)(short)LOWORD(lParam), (i32)(short)HIWORD(lParam));
     if (!(window->flags & GapPalWindowFlags_Fullscreen)) {
       window->lastWindowedPosition = newPos;
+    }
+    return true;
+  }
+  case WM_ENTERSIZEMOVE: {
+    pal_event_modal_loop_enter(window);
+    return true;
+  }
+  case WM_EXITSIZEMOVE:
+  case WM_CAPTURECHANGED: {
+    if (window->inModalLoop) {
+      pal_event_modal_loop_exit(window);
     }
     return true;
   }
