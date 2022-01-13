@@ -260,6 +260,7 @@ spec(loader_mesh_obj) {
 
       asset_test_wait(runner);
 
+      check_require(ecs_world_has_t(world, asset, AssetLoadedComp));
       const AssetMeshComp* mesh = ecs_utils_read_t(world, AssetView, asset, AssetMeshComp);
 
       // Verify the vertices.

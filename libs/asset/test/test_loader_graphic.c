@@ -112,6 +112,7 @@ spec(loader_graphic) {
 
     asset_test_wait(runner);
 
+    check_require(ecs_world_has_t(world, asset, AssetLoadedComp));
     const AssetGraphicComp* graphic = ecs_utils_read_t(world, AssetView, asset, AssetGraphicComp);
 
     check_require(graphic->shaders.count == 1);

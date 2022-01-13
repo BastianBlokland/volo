@@ -226,6 +226,7 @@ spec(loader_shader_spv) {
 
       asset_test_wait(runner);
 
+      check_require(ecs_world_has_t(world, asset, AssetLoadedComp));
       const AssetShaderComp* shader = ecs_utils_read_t(world, AssetView, asset, AssetShaderComp);
       check_eq_int(shader->kind, g_testData[i].kind);
       check_eq_string(shader->entryPoint, g_testData[i].entryPoint);
@@ -243,7 +244,7 @@ spec(loader_shader_spv) {
         check_eq_int(shader->specs.values[p].binding, g_testData[i].specs[p].binding);
         check_eq_int(shader->specs.values[p].type, g_testData[i].specs[p].type);
       }
-    };
+    }
 
     array_for_t(records, AssetMemRecord, rec) { string_free(g_alloc_heap, rec->data); }
   }
