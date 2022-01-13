@@ -12,9 +12,13 @@
  * Only simple TrueType outlines are supported (no composites at this time).
  * Apple docs: https://developer.apple.com/fonts/TrueType-Reference-Manual/
  * Microsoft docs: https://docs.microsoft.com/en-us/typography/opentype/spec/otff
+ *
+ * Ttf fonts use big-endian and 2's complement integers.
+ * NOTE: This loader assumes the host system is also using 2's complement integers.
  */
 
 #define ttf_max_tables 32
+#define ttf_magic 0x5F0F3CF5
 
 typedef struct {
   String tag;
@@ -30,7 +34,23 @@ typedef struct {
   u16            entrySelector;
   u16            rangeShift;
   TtfTableRecord records[ttf_max_tables];
-} TffOffsetTable;
+} TtfOffsetTable;
+
+typedef struct {
+  u16 majorVersion, minorVersion;
+  f32 fontRevision;
+  u32 checksumAdjustment;
+  u32 magicNumber;
+  u16 flags;
+  u16 unitsPerEm;
+  i64 dateCreated, dateModified;
+  i16 glyphMinX, glyphMinY, glyphMaxX, glyphMaxY;
+  u16 macStyle;
+  u16 lowestRecPpem;
+  i16 fontDirectionHint;
+  i16 indexToLocFormat;
+  i16 glyphDataFormat;
+} TtfHeadTable;
 
 typedef enum {
   TtfError_None = 0,
@@ -40,6 +60,9 @@ typedef enum {
   TtfError_UnalignedTable,
   TtfError_TableChecksumFailed,
   TtfError_TableDataMissing,
+  TtfError_HeadTableMissing,
+  TtfError_HeadTableMalformed,
+  TtfError_HeadTableUnsupported,
 
   TtfError_Count,
 } TtfError;
@@ -53,6 +76,9 @@ static String ttf_error_str(TtfError res) {
       string_static("Unaligned TrueType table"),
       string_static("TrueType table checksum failed"),
       string_static("TrueType table data missing"),
+      string_static("TrueType font doesn't contain a head table"),
+      string_static("TrueType head table malformed"),
+      string_static("TrueType head table unsupported"),
   };
   ASSERT(array_elems(msgs) == TtfError_Count, "Incorrect number of ttf-error messages");
   return msgs[res];
@@ -72,35 +98,90 @@ static Mem ttf_read_tag(Mem input, String* out, TtfError* err) {
   return string_consume(input, 4);
 }
 
-static Mem ttf_read_table_offset(Mem input, TffOffsetTable* out, TtfError* err) {
-  if (UNLIKELY(input.size < 12)) {
+/**
+ * Read a 32 bit signed fixed-point number (16.16).
+ */
+static Mem ttf_read_fixed(Mem input, f32* out) {
+  i32 value;
+  input = mem_consume_be_u32(input, (u32*)&value); // NOTE: Interpret as 2's complement.
+  *out  = value / (f32)(1 << 16);
+  return input;
+}
+
+static void ttf_read_offset_table(Mem data, TtfOffsetTable* out, TtfError* err) {
+  if (UNLIKELY(data.size < 12)) {
     *err = TtfError_Malformed;
-    return input;
+    return;
   }
-  *out  = (TffOffsetTable){0};
-  input = mem_consume_be_u32(input, &out->sfntVersion);
-  input = mem_consume_be_u16(input, &out->numTables);
-  input = mem_consume_be_u16(input, &out->searchRange);
-  input = mem_consume_be_u16(input, &out->entrySelector);
-  input = mem_consume_be_u16(input, &out->rangeShift);
+  *out = (TtfOffsetTable){0};
+  data = mem_consume_be_u32(data, &out->sfntVersion);
+  data = mem_consume_be_u16(data, &out->numTables);
+  data = mem_consume_be_u16(data, &out->searchRange);
+  data = mem_consume_be_u16(data, &out->entrySelector);
+  data = mem_consume_be_u16(data, &out->rangeShift);
 
   if (UNLIKELY(out->numTables > ttf_max_tables)) {
     *err = TtfError_TooManyTables;
-    return input;
+    return;
   }
-  if (UNLIKELY(input.size < out->numTables * 16)) {
-    // Not enough space for records for all the tables.
+  if (UNLIKELY(data.size < out->numTables * 16)) {
     *err = TtfError_Malformed;
-    return input;
+    return;
   }
   for (usize i = 0; i != out->numTables; ++i) {
-    input = ttf_read_tag(input, &out->records[i].tag, err);
-    input = mem_consume_be_u32(input, &out->records[i].checksum);
-    input = mem_consume_be_u32(input, &out->records[i].offset);
-    input = mem_consume_be_u32(input, &out->records[i].length);
+    data = ttf_read_tag(data, &out->records[i].tag, err);
+    data = mem_consume_be_u32(data, &out->records[i].checksum);
+    data = mem_consume_be_u32(data, &out->records[i].offset);
+    data = mem_consume_be_u32(data, &out->records[i].length);
   }
   *err = TtfError_None;
-  return input;
+  return;
+}
+
+static const TtfTableRecord* ttf_find_table(TtfOffsetTable* offsetTable, const String tag) {
+  for (usize i = 0; i != offsetTable->numTables; ++i) {
+    const TtfTableRecord* record = &offsetTable->records[i];
+    if (string_eq(record->tag, tag)) {
+      return record;
+    }
+  }
+  return null;
+}
+
+static void
+ttf_read_head_table(Mem data, TtfOffsetTable* offsetTable, TtfHeadTable* out, TtfError* err) {
+  const TtfTableRecord* tableRecord = ttf_find_table(offsetTable, string_lit("head"));
+  if (UNLIKELY(!tableRecord)) {
+    *err = TtfError_HeadTableMissing;
+    return;
+  }
+  data = mem_slice(data, tableRecord->offset, tableRecord->length);
+  if (UNLIKELY(data.size < 54)) {
+    *err = TtfError_Malformed;
+    return;
+  }
+  /**
+   * NOTE: For signed values we assume the host system is using 2's complement integers.
+   */
+  *out = (TtfHeadTable){0};
+  data = mem_consume_be_u16(data, &out->majorVersion);
+  data = mem_consume_be_u16(data, &out->minorVersion);
+  data = ttf_read_fixed(data, &out->fontRevision);
+  data = mem_consume_be_u32(data, &out->checksumAdjustment);
+  data = mem_consume_be_u32(data, &out->magicNumber);
+  data = mem_consume_be_u16(data, &out->flags);
+  data = mem_consume_be_u16(data, &out->unitsPerEm);
+  data = mem_consume_be_u64(data, (u64*)&out->dateCreated);
+  data = mem_consume_be_u64(data, (u64*)&out->dateModified);
+  data = mem_consume_be_u16(data, (u16*)&out->glyphMinX);
+  data = mem_consume_be_u16(data, (u16*)&out->glyphMinY);
+  data = mem_consume_be_u16(data, (u16*)&out->glyphMaxX);
+  data = mem_consume_be_u16(data, (u16*)&out->glyphMaxY);
+  data = mem_consume_be_u16(data, &out->macStyle);
+  data = mem_consume_be_u16(data, &out->lowestRecPpem);
+  data = mem_consume_be_u16(data, (u16*)&out->fontDirectionHint);
+  data = mem_consume_be_u16(data, (u16*)&out->indexToLocFormat);
+  data = mem_consume_be_u16(data, (u16*)&out->glyphDataFormat);
 }
 
 /**
@@ -121,7 +202,7 @@ static u32 ttf_checksum(Mem data) {
   return checksum;
 }
 
-static void ttf_validate(Mem data, const TffOffsetTable* offsetTable, TtfError* err) {
+static void ttf_validate(Mem data, const TtfOffsetTable* offsetTable, TtfError* err) {
   for (usize i = 0; i != offsetTable->numTables; ++i) {
     const TtfTableRecord* record = &offsetTable->records[i];
     if (!bits_aligned(record->offset, 4)) {
@@ -136,8 +217,8 @@ static void ttf_validate(Mem data, const TffOffsetTable* offsetTable, TtfError* 
       return;
     }
     if (string_eq(record->tag, string_lit("head"))) {
-      // TODO: Validate head table checksum, for the head table the checksum works differently as it
-      // contains a checksum adjustment for the entire font.
+      // TODO: Validate head table checksum, for the head table the checksum works differently as
+      // it contains a checksum adjustment for the entire font.
       continue;
     }
     if (ttf_checksum(mem_slice(data, record->offset, alignedLength)) != record->checksum) {
@@ -157,8 +238,8 @@ void asset_load_ttf(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
   Mem      data = src->data;
   TtfError err  = TtfError_None;
 
-  TffOffsetTable offsetTable;
-  ttf_read_table_offset(data, &offsetTable, &err);
+  TtfOffsetTable offsetTable;
+  ttf_read_offset_table(data, &offsetTable, &err);
   if (err) {
     ttf_load_fail(world, assetEntity, err);
     goto Error;
@@ -170,6 +251,24 @@ void asset_load_ttf(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
   ttf_validate(data, &offsetTable, &err);
   if (err) {
     ttf_load_fail(world, assetEntity, err);
+    goto Error;
+  }
+  TtfHeadTable headTable;
+  ttf_read_head_table(data, &offsetTable, &headTable, &err);
+  if (err) {
+    ttf_load_fail(world, assetEntity, err);
+    goto Error;
+  }
+  if (headTable.magicNumber != ttf_magic) {
+    ttf_load_fail(world, assetEntity, TtfError_HeadTableMalformed);
+    goto Error;
+  }
+  if (headTable.majorVersion != 0 && headTable.majorVersion != 1) {
+    ttf_load_fail(world, assetEntity, TtfError_HeadTableUnsupported);
+    goto Error;
+  }
+  if (headTable.fontDirectionHint != 2) {
+    ttf_load_fail(world, assetEntity, TtfError_HeadTableUnsupported);
     goto Error;
   }
 
