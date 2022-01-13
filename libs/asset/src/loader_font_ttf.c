@@ -1,11 +1,14 @@
 #include "asset_font.h"
 #include "core_alloc.h"
+#include "core_annotation.h"
 #include "core_array.h"
 #include "core_bits.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 
 #include "repo_internal.h"
+
+OPTIMIZE_OFF();
 
 /**
  * TrueType font.
@@ -52,6 +55,24 @@ typedef struct {
   i16 glyphDataFormat;
 } TtfHeadTable;
 
+typedef struct {
+  f32 version;
+  u16 numGlyphs;
+  u16 maxPoints;
+  u16 maxContours;
+  u16 maxCompositePoints;
+  u16 maxCompositeContours;
+  u16 maxZones;
+  u16 maxTwilightPoints;
+  u16 maxStorage;
+  u16 maxFunctionDefs;
+  u16 maxInstructionDefs;
+  u16 maxStackElements;
+  u16 maxSizeOfInstructions;
+  u16 maxComponentElements;
+  u16 maxComponentDepth;
+} TtfMaxpTable;
+
 typedef enum {
   TtfError_None = 0,
   TtfError_Malformed,
@@ -63,6 +84,7 @@ typedef enum {
   TtfError_HeadTableMissing,
   TtfError_HeadTableMalformed,
   TtfError_HeadTableUnsupported,
+  TtfError_MaxpTableMissing,
 
   TtfError_Count,
 } TtfError;
@@ -76,9 +98,10 @@ static String ttf_error_str(TtfError res) {
       string_static("Unaligned TrueType table"),
       string_static("TrueType table checksum failed"),
       string_static("TrueType table data missing"),
-      string_static("TrueType font doesn't contain a head table"),
+      string_static("TrueType head table missing"),
       string_static("TrueType head table malformed"),
       string_static("TrueType head table unsupported"),
+      string_static("TrueType maxp table missing"),
   };
   ASSERT(array_elems(msgs) == TtfError_Count, "Incorrect number of ttf-error messages");
   return msgs[res];
@@ -184,6 +207,36 @@ ttf_read_head_table(Mem data, TtfOffsetTable* offsetTable, TtfHeadTable* out, Tt
   data = mem_consume_be_u16(data, (u16*)&out->glyphDataFormat);
 }
 
+static void
+ttf_read_maxp_table(Mem data, TtfOffsetTable* offsetTable, TtfMaxpTable* out, TtfError* err) {
+  const TtfTableRecord* tableRecord = ttf_find_table(offsetTable, string_lit("maxp"));
+  if (UNLIKELY(!tableRecord)) {
+    *err = TtfError_HeadTableMissing;
+    return;
+  }
+  data = mem_slice(data, tableRecord->offset, tableRecord->length);
+  if (UNLIKELY(data.size < 32)) {
+    *err = TtfError_Malformed;
+    return;
+  }
+  *out = (TtfMaxpTable){0};
+  data = ttf_read_fixed(data, &out->version);
+  data = mem_consume_be_u16(data, &out->numGlyphs);
+  data = mem_consume_be_u16(data, &out->maxPoints);
+  data = mem_consume_be_u16(data, &out->maxContours);
+  data = mem_consume_be_u16(data, &out->maxCompositePoints);
+  data = mem_consume_be_u16(data, &out->maxCompositeContours);
+  data = mem_consume_be_u16(data, &out->maxZones);
+  data = mem_consume_be_u16(data, &out->maxTwilightPoints);
+  data = mem_consume_be_u16(data, &out->maxStorage);
+  data = mem_consume_be_u16(data, &out->maxFunctionDefs);
+  data = mem_consume_be_u16(data, &out->maxInstructionDefs);
+  data = mem_consume_be_u16(data, &out->maxStackElements);
+  data = mem_consume_be_u16(data, &out->maxSizeOfInstructions);
+  data = mem_consume_be_u16(data, &out->maxComponentElements);
+  data = mem_consume_be_u16(data, &out->maxComponentDepth);
+}
+
 /**
  * Calculate the checksum of the input data.
  * Both offset and length have to be aligned to a 4 byte boundary.
@@ -269,6 +322,12 @@ void asset_load_ttf(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
   }
   if (headTable.fontDirectionHint != 2) {
     ttf_load_fail(world, assetEntity, TtfError_HeadTableUnsupported);
+    goto Error;
+  }
+  TtfMaxpTable maxpTable;
+  ttf_read_maxp_table(data, &offsetTable, &maxpTable, &err);
+  if (err) {
+    ttf_load_fail(world, assetEntity, err);
     goto Error;
   }
 
