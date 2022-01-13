@@ -7,10 +7,11 @@ String asset_format_str(AssetFormat fmt) {
   static const String names[] = {
       string_static("gra"),
       string_static("obj"),
+      string_static("ppm"),
       string_static("raw"),
       string_static("spv"),
-      string_static("ppm"),
       string_static("tga"),
+      string_static("ttf"),
   };
   ASSERT(array_elems(names) == AssetFormat_Count, "Incorrect number of asset-format names");
   return names[fmt];

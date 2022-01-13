@@ -13,20 +13,23 @@ AssetLoader asset_loader(const AssetFormat format) {
   case AssetFormat_Graphic: {
     RET_LOADER(graphic);
   }
+  case AssetFormat_Obj: {
+    RET_LOADER(obj);
+  }
+  case AssetFormat_Ppm: {
+    RET_LOADER(ppm);
+  }
   case AssetFormat_Raw: {
     RET_LOADER(raw);
   }
   case AssetFormat_Spv: {
     RET_LOADER(spv);
   }
-  case AssetFormat_Ppm: {
-    RET_LOADER(ppm);
-  }
   case AssetFormat_Tga: {
     RET_LOADER(tga);
   }
-  case AssetFormat_Obj: {
-    RET_LOADER(obj);
+  case AssetFormat_Ttf: {
+    RET_LOADER(ttf);
   }
   case AssetFormat_Count:
     break;
