@@ -54,7 +54,7 @@ static const struct {
 } g_errorTestData[] = {
     {
         .id   = string_static("invalid.ttf"),
-        .text = string_static("Hello World"),
+        .text = string_static("Hello Beautifull World"),
     },
 };
 
@@ -81,7 +81,7 @@ spec(loader_font_ttf) {
     runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_None);
   }
 
-  skip_it("can load TrueType fonts") {
+  it("can load TrueType fonts") {
     AssetMemRecord records[array_elems(g_testData)];
     for (usize i = 0; i != array_elems(g_testData); ++i) {
       records[i] = (AssetMemRecord){
@@ -107,7 +107,7 @@ spec(loader_font_ttf) {
     array_for_t(records, AssetMemRecord, rec) { string_free(g_alloc_heap, rec->data); }
   }
 
-  skip_it("can unload TrueType font assets") {
+  it("can unload TrueType font assets") {
     const AssetMemRecord record = {
         .id   = string_lit("font.ttf"),
         .data = string_dup(g_alloc_heap, base64_decode_scratch(g_testData[0].base64Data)),
