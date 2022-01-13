@@ -1,14 +1,11 @@
 #include "asset_font.h"
 #include "core_alloc.h"
-#include "core_annotation.h"
 #include "core_array.h"
 #include "core_bits.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 
 #include "repo_internal.h"
-
-OPTIMIZE_OFF();
 
 /**
  * TrueType font.
@@ -20,8 +17,9 @@ OPTIMIZE_OFF();
  * NOTE: This loader assumes the host system is also using 2's complement integers.
  */
 
-#define ttf_max_tables 32
 #define ttf_magic 0x5F0F3CF5
+#define ttf_max_tables 32
+#define ttf_max_encodings 16
 
 typedef struct {
   String tag;
@@ -73,10 +71,23 @@ typedef struct {
   u16 maxComponentDepth;
 } TtfMaxpTable;
 
+typedef struct {
+  u16 platformId;
+  u16 encodingId;
+  u32 offset; // From the start of the file.
+} TtfEncodingRecord;
+
+typedef struct {
+  u16               version;
+  u16               numEncodings;
+  TtfEncodingRecord encodings[ttf_max_encodings];
+} TtfCmapTable;
+
 typedef enum {
   TtfError_None = 0,
   TtfError_Malformed,
   TtfError_TooManyTables,
+  TtfError_TooManyEncodings,
   TtfError_UnsupportedSfntVersion,
   TtfError_UnalignedTable,
   TtfError_TableChecksumFailed,
@@ -85,6 +96,7 @@ typedef enum {
   TtfError_HeadTableMalformed,
   TtfError_HeadTableUnsupported,
   TtfError_MaxpTableMissing,
+  TtfError_CmapTableMissing,
 
   TtfError_Count,
 } TtfError;
@@ -94,6 +106,7 @@ static String ttf_error_str(TtfError res) {
       string_static("None"),
       string_static("Malformed TrueType font-data"),
       string_static("TrueType font contains more tables then are supported"),
+      string_static("TrueType font contains more encodings then are supported"),
       string_static("Unsupported sfntVersion: Only TrueType outlines are supported"),
       string_static("Unaligned TrueType table"),
       string_static("TrueType table checksum failed"),
@@ -102,6 +115,7 @@ static String ttf_error_str(TtfError res) {
       string_static("TrueType head table malformed"),
       string_static("TrueType head table unsupported"),
       string_static("TrueType maxp table missing"),
+      string_static("TrueType cmap table missing"),
   };
   ASSERT(array_elems(msgs) == TtfError_Count, "Incorrect number of ttf-error messages");
   return msgs[res];
@@ -237,6 +251,41 @@ ttf_read_maxp_table(Mem data, TtfOffsetTable* offsetTable, TtfMaxpTable* out, Tt
   data = mem_consume_be_u16(data, &out->maxComponentDepth);
 }
 
+static void
+ttf_read_cmap_table(Mem data, TtfOffsetTable* offsetTable, TtfCmapTable* out, TtfError* err) {
+  const TtfTableRecord* tableRecord = ttf_find_table(offsetTable, string_lit("cmap"));
+  if (UNLIKELY(!tableRecord)) {
+    *err = TtfError_CmapTableMissing;
+    return;
+  }
+  data = mem_slice(data, tableRecord->offset, tableRecord->length);
+  if (UNLIKELY(data.size < 4)) {
+    *err = TtfError_Malformed;
+    return;
+  }
+
+  *out = (TtfCmapTable){0};
+  data = mem_consume_be_u16(data, &out->version);
+  data = mem_consume_be_u16(data, &out->numEncodings);
+  if (UNLIKELY(out->numEncodings > ttf_max_encodings)) {
+    *err = TtfError_TooManyEncodings;
+    return;
+  }
+  if (UNLIKELY(data.size < out->numEncodings * 8)) {
+    *err = TtfError_Malformed;
+    return;
+  }
+  for (usize i = 0; i != out->numEncodings; ++i) {
+    data = mem_consume_be_u16(data, &out->encodings[i].platformId);
+    data = mem_consume_be_u16(data, &out->encodings[i].encodingId);
+    u32 relativeOffset;
+    data                     = mem_consume_be_u32(data, &relativeOffset);
+    out->encodings[i].offset = tableRecord->offset + relativeOffset;
+  }
+  *err = TtfError_None;
+  return;
+}
+
 /**
  * Calculate the checksum of the input data.
  * Both offset and length have to be aligned to a 4 byte boundary.
@@ -326,6 +375,12 @@ void asset_load_ttf(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
   }
   TtfMaxpTable maxpTable;
   ttf_read_maxp_table(data, &offsetTable, &maxpTable, &err);
+  if (err) {
+    ttf_load_fail(world, assetEntity, err);
+    goto Error;
+  }
+  TtfCmapTable cmapTable;
+  ttf_read_cmap_table(data, &offsetTable, &cmapTable, &err);
   if (err) {
     ttf_load_fail(world, assetEntity, err);
     goto Error;
