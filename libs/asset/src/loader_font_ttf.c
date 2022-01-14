@@ -25,8 +25,7 @@
 typedef struct {
   String tag;
   u32    checksum;
-  u32    offset;
-  u32    length;
+  Mem    data;
 } TtfTableRecord;
 
 typedef struct {
@@ -75,7 +74,7 @@ typedef struct {
 typedef struct {
   u16 platformId;
   u16 encodingId;
-  u32 offset; // From the start of the file.
+  Mem data;
 } TtfEncodingRecord;
 
 typedef struct {
@@ -114,6 +113,10 @@ typedef enum {
   TtfError_CmapNoSupportedEncoding,
   TtfError_CmapFormat4EncodingMalformed,
   TtfError_NoCodePoints,
+  TtfError_LocaTableMissing,
+  TtfError_LocaTableMissingGlyphs,
+  TtfError_LocaTableGlyphOutOfBounds,
+  TtfError_GlyfTableMissing,
 
   TtfError_Count,
 } TtfError;
@@ -136,6 +139,10 @@ static String ttf_error_str(TtfError res) {
       string_static("TrueType cmap table does not contain any supported encodings"),
       string_static("TrueType cmap table format4 encoding malformed"),
       string_static("TrueType font contains no codepoints"),
+      string_static("TrueType loca table missing"),
+      string_static("TrueType loca table does not contain locations for all glyphs"),
+      string_static("TrueType loca table specifies out-of-bounds glyph data"),
+      string_static("TrueType glyf table missing"),
 
   };
   ASSERT(array_elems(msgs) == TtfError_Count, "Incorrect number of ttf-error messages");
@@ -171,6 +178,8 @@ static void ttf_read_offset_table(Mem data, TtfOffsetTable* out, TtfError* err) 
     *err = TtfError_Malformed;
     return;
   }
+  const Mem fileData = data;
+
   *out = (TtfOffsetTable){0};
   data = mem_consume_be_u32(data, &out->sfntVersion);
   data = mem_consume_be_u16(data, &out->numTables);
@@ -189,8 +198,20 @@ static void ttf_read_offset_table(Mem data, TtfOffsetTable* out, TtfError* err) 
   for (usize i = 0; i != out->numTables; ++i) {
     data = ttf_read_tag(data, &out->records[i].tag, err);
     data = mem_consume_be_u32(data, &out->records[i].checksum);
-    data = mem_consume_be_u32(data, &out->records[i].offset);
-    data = mem_consume_be_u32(data, &out->records[i].length);
+
+    u32 tableOffset, tableLength;
+    data = mem_consume_be_u32(data, &tableOffset);
+    data = mem_consume_be_u32(data, &tableLength);
+    if (UNLIKELY(!bits_aligned(tableOffset, 4))) {
+      *err = TtfError_UnalignedTable;
+      return;
+    }
+    tableLength = bits_align(tableLength, 4); // All tables have to be 4 byte aligned.
+    if (UNLIKELY(tableOffset + tableLength > fileData.size)) {
+      *err = TtfError_TableDataMissing;
+      return;
+    }
+    out->records[i].data = mem_slice(fileData, tableOffset, tableLength);
   }
   *err = TtfError_None;
   return;
@@ -207,13 +228,13 @@ static const TtfTableRecord* ttf_find_table(const TtfOffsetTable* offsetTable, c
 }
 
 static void
-ttf_read_head_table(Mem data, const TtfOffsetTable* offsetTable, TtfHeadTable* out, TtfError* err) {
+ttf_read_head_table(const TtfOffsetTable* offsetTable, TtfHeadTable* out, TtfError* err) {
   const TtfTableRecord* tableRecord = ttf_find_table(offsetTable, string_lit("head"));
   if (UNLIKELY(!tableRecord)) {
     *err = TtfError_HeadTableMissing;
     return;
   }
-  data = mem_slice(data, tableRecord->offset, tableRecord->length);
+  Mem data = tableRecord->data;
   if (UNLIKELY(data.size < 54)) {
     *err = TtfError_Malformed;
     return;
@@ -243,13 +264,13 @@ ttf_read_head_table(Mem data, const TtfOffsetTable* offsetTable, TtfHeadTable* o
 }
 
 static void
-ttf_read_maxp_table(Mem data, const TtfOffsetTable* offsetTable, TtfMaxpTable* out, TtfError* err) {
+ttf_read_maxp_table(const TtfOffsetTable* offsetTable, TtfMaxpTable* out, TtfError* err) {
   const TtfTableRecord* tableRecord = ttf_find_table(offsetTable, string_lit("maxp"));
   if (UNLIKELY(!tableRecord)) {
     *err = TtfError_HeadTableMissing;
     return;
   }
-  data = mem_slice(data, tableRecord->offset, tableRecord->length);
+  Mem data = tableRecord->data;
   if (UNLIKELY(data.size < 32)) {
     *err = TtfError_Malformed;
     return;
@@ -273,13 +294,13 @@ ttf_read_maxp_table(Mem data, const TtfOffsetTable* offsetTable, TtfMaxpTable* o
 }
 
 static void
-ttf_read_cmap_table(Mem data, const TtfOffsetTable* offsetTable, TtfCmapTable* out, TtfError* err) {
+ttf_read_cmap_table(const TtfOffsetTable* offsetTable, TtfCmapTable* out, TtfError* err) {
   const TtfTableRecord* tableRecord = ttf_find_table(offsetTable, string_lit("cmap"));
   if (UNLIKELY(!tableRecord)) {
     *err = TtfError_CmapTableMissing;
     return;
   }
-  data = mem_slice(data, tableRecord->offset, tableRecord->length);
+  Mem data = tableRecord->data;
   if (UNLIKELY(data.size < 4)) {
     *err = TtfError_Malformed;
     return;
@@ -299,9 +320,9 @@ ttf_read_cmap_table(Mem data, const TtfOffsetTable* offsetTable, TtfCmapTable* o
   for (usize i = 0; i != out->numEncodings; ++i) {
     data = mem_consume_be_u16(data, &out->encodings[i].platformId);
     data = mem_consume_be_u16(data, &out->encodings[i].encodingId);
-    u32 relativeOffset;
-    data                     = mem_consume_be_u32(data, &relativeOffset);
-    out->encodings[i].offset = tableRecord->offset + relativeOffset;
+    u32 offset;
+    data                   = mem_consume_be_u32(data, &offset);
+    out->encodings[i].data = mem_consume(tableRecord->data, offset);
   }
   *err = TtfError_None;
   return;
@@ -351,8 +372,11 @@ static void ttf_read_cmap_format4_header(Mem data, TtfCmapFormat4Header* out, Tt
   *err = TtfError_None;
 }
 
-static void
-ttf_read_codepoints_format4(Mem data, const TtfMaxpTable* maxpTable, DynArray* out, TtfError* err) {
+static void ttf_read_codepoints_format4(
+    Mem                 data,
+    const TtfMaxpTable* maxpTable,
+    DynArray*           out, // AssetFontCodepoint[], needs to be already initialized.
+    TtfError*           err) {
   TtfCmapFormat4Header header;
   ttf_read_cmap_format4_header(data, &header, err);
   if (*err) {
@@ -403,30 +427,104 @@ End:
 }
 
 static void ttf_read_codepoints(
-    Mem                 data,
     const TtfCmapTable* cmapTable,
     const TtfMaxpTable* maxpTable,
-    DynArray*           out,
+    DynArray*           out, // AssetFontCodepoint[], needs to be already initialized.
     TtfError*           err) {
   for (usize i = 0; i != cmapTable->numEncodings; ++i) {
-    const TtfEncodingRecord* encoding     = &cmapTable->encodings[i];
-    Mem                      encodingData = mem_consume(data, encoding->offset);
-    if (UNLIKELY(encodingData.size < 4)) {
+    const TtfEncodingRecord* encoding = &cmapTable->encodings[i];
+    Mem                      data     = encoding->data;
+    if (UNLIKELY(data.size < 4)) {
       continue;
     }
     u16 formatNumber;
-    encodingData = mem_consume_be_u16(encodingData, &formatNumber);
+    data = mem_consume_be_u16(data, &formatNumber);
     switch (formatNumber) {
     case 4: {
       u16 formatDataSize;
-      encodingData = mem_consume_be_u16(encodingData, &formatDataSize);
-      encodingData = mem_slice(encodingData, 0, formatDataSize);
-      ttf_read_codepoints_format4(encodingData, maxpTable, out, err);
+      data = mem_consume_be_u16(data, &formatDataSize);
+      if (UNLIKELY(formatDataSize - 4 > data.size)) {
+        *err = TtfError_CmapFormat4EncodingMalformed;
+        return;
+      }
+      data = mem_slice(data, 0, formatDataSize - 4);
+      ttf_read_codepoints_format4(data, maxpTable, out, err);
       return;
     }
     }
   }
   *err = TtfError_CmapNoSupportedEncoding;
+}
+
+static void ttf_read_glyph_locations(
+    const TtfOffsetTable* offsetTable,
+    const TtfMaxpTable*   maxpTable,
+    const TtfHeadTable*   headTable,
+    Mem*                  out, // Mem[maxpTable.numGlyphs]
+    TtfError*             err) {
+  const TtfTableRecord* locaTableRec = ttf_find_table(offsetTable, string_lit("loca"));
+  if (UNLIKELY(!locaTableRec)) {
+    *err = TtfError_LocaTableMissing;
+    return;
+  }
+  const TtfTableRecord* glyfTableRec = ttf_find_table(offsetTable, string_lit("glyf"));
+  if (UNLIKELY(!glyfTableRec)) {
+    *err = TtfError_GlyfTableMissing;
+    return;
+  }
+  Mem locaData = locaTableRec->data;
+  Mem glyfData = glyfTableRec->data;
+  switch (headTable->indexToLocFormat) {
+  case 1: {
+    /**
+     * Long version of the loca table (32 bit offsets).
+     */
+    if (UNLIKELY(locaData.size < maxpTable->numGlyphs * 4 + 1)) { // +1 for the end offset.
+      *err = TtfError_LocaTableMissingGlyphs;
+      return;
+    }
+    for (usize i = 0; i <= maxpTable->numGlyphs; ++i) { // +1 for the end-offset.
+      u32 offset;
+      locaData     = mem_consume_be_u32(locaData, &offset);
+      u8* startPtr = bits_ptr_offset(glyfData.ptr, offset);
+      if (LIKELY(i != maxpTable->numGlyphs)) {
+        out[i].ptr = startPtr;
+      }
+      if (LIKELY(i)) {
+        out[i - 1].size = startPtr - mem_begin(out[i - 1]);
+        if (UNLIKELY(out[i - 1].size > glyfData.size)) {
+          *err = TtfError_LocaTableGlyphOutOfBounds;
+          return;
+        }
+      }
+    }
+  } break;
+  default: {
+    /**
+     * Short version of the loca table (16 bit offsets divided by two).
+     */
+    if (UNLIKELY(locaData.size < maxpTable->numGlyphs * 2 + 1)) { // +1 for the end offset.
+      *err = TtfError_LocaTableMissingGlyphs;
+      return;
+    }
+    for (usize i = 0; i <= maxpTable->numGlyphs; ++i) { // +1 for the end-offset.
+      u16 offsetDiv2;
+      locaData     = mem_consume_be_u16(locaData, &offsetDiv2);
+      u8* startPtr = bits_ptr_offset(glyfData.ptr, offsetDiv2 * 2);
+      if (LIKELY(i != maxpTable->numGlyphs)) {
+        out[i].ptr = startPtr;
+      }
+      if (LIKELY(i)) {
+        out[i - 1].size = startPtr - mem_begin(out[i - 1]);
+        if (UNLIKELY(out[i - 1].size > glyfData.size)) {
+          *err = TtfError_LocaTableGlyphOutOfBounds;
+          return;
+        }
+      }
+    }
+  } break;
+  }
+  *err = TtfError_None;
 }
 
 /**
@@ -447,26 +545,15 @@ static u32 ttf_checksum(Mem data) {
   return checksum;
 }
 
-static void ttf_validate(Mem data, const TtfOffsetTable* offsetTable, TtfError* err) {
+static void ttf_validate(const TtfOffsetTable* offsetTable, TtfError* err) {
   for (usize i = 0; i != offsetTable->numTables; ++i) {
     const TtfTableRecord* record = &offsetTable->records[i];
-    if (!bits_aligned(record->offset, 4)) {
-      *err = TtfError_UnalignedTable;
-      return;
-    }
-    const u32 alignedLength = bits_align(record->length, 4);
-    if (data.size < record->offset + alignedLength) {
-      // Not enough data is available for this table.
-      // NOTE: ttf tables have to be padded to the next 4 byte boundary.
-      *err = TtfError_TableDataMissing;
-      return;
-    }
     if (string_eq(record->tag, string_lit("head"))) {
       // TODO: Validate head table checksum, for the head table the checksum works differently as
       // it contains a checksum adjustment for the entire font.
       continue;
     }
-    if (ttf_checksum(mem_slice(data, record->offset, alignedLength)) != record->checksum) {
+    if (ttf_checksum(record->data) != record->checksum) {
       *err = TtfError_TableChecksumFailed;
       return;
     }
@@ -480,81 +567,87 @@ static void ttf_load_fail(EcsWorld* world, const EcsEntityId assetEntity, const 
 }
 
 void asset_load_ttf(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) {
-  Mem      data       = src->data;
-  TtfError err        = TtfError_None;
-  DynArray codepoints = dynarray_create_t(g_alloc_heap, AssetFontCodepoint, 128);
+  TtfError err                = TtfError_None;
+  DynArray codepoints         = dynarray_create_t(g_alloc_heap, AssetFontCodepoint, 128);
+  Mem*     glyphDataLocations = null; // Mem[maxpTable.numGlyphs]
 
   TtfOffsetTable offsetTable;
-  ttf_read_offset_table(data, &offsetTable, &err);
+  ttf_read_offset_table(src->data, &offsetTable, &err);
   if (err) {
     ttf_load_fail(world, assetEntity, err);
-    goto Error;
+    goto End;
   }
   if (offsetTable.sfntVersion != 0x10000) {
     ttf_load_fail(world, assetEntity, TtfError_UnsupportedSfntVersion);
-    goto Error;
+    goto End;
   }
-  ttf_validate(data, &offsetTable, &err);
+  ttf_validate(&offsetTable, &err);
   if (err) {
     ttf_load_fail(world, assetEntity, err);
-    goto Error;
+    goto End;
   }
   TtfHeadTable headTable;
-  ttf_read_head_table(data, &offsetTable, &headTable, &err);
+  ttf_read_head_table(&offsetTable, &headTable, &err);
   if (err) {
     ttf_load_fail(world, assetEntity, err);
-    goto Error;
+    goto End;
   }
   if (headTable.magicNumber != ttf_magic) {
     ttf_load_fail(world, assetEntity, TtfError_HeadTableMalformed);
-    goto Error;
+    goto End;
   }
   if (headTable.majorVersion != 0 && headTable.majorVersion != 1) {
     ttf_load_fail(world, assetEntity, TtfError_HeadTableUnsupported);
-    goto Error;
+    goto End;
   }
   if (headTable.fontDirectionHint != 2) {
     ttf_load_fail(world, assetEntity, TtfError_HeadTableUnsupported);
-    goto Error;
+    goto End;
   }
   TtfMaxpTable maxpTable;
-  ttf_read_maxp_table(data, &offsetTable, &maxpTable, &err);
+  ttf_read_maxp_table(&offsetTable, &maxpTable, &err);
   if (err) {
     ttf_load_fail(world, assetEntity, err);
-    goto Error;
+    goto End;
   }
   TtfCmapTable cmapTable;
-  ttf_read_cmap_table(data, &offsetTable, &cmapTable, &err);
+  ttf_read_cmap_table(&offsetTable, &cmapTable, &err);
   if (err) {
     ttf_load_fail(world, assetEntity, err);
-    goto Error;
+    goto End;
   }
-  ttf_read_codepoints(data, &cmapTable, &maxpTable, &codepoints, &err);
+  ttf_read_codepoints(&cmapTable, &maxpTable, &codepoints, &err);
   if (err) {
     ttf_load_fail(world, assetEntity, err);
-    goto Error;
+    goto End;
   }
   if (!codepoints.size) {
     ttf_load_fail(world, assetEntity, TtfError_NoCodePoints);
-    goto Error;
+    goto End;
   }
-  dynarray_sort(&codepoints, asset_font_compare_codepoint);
+  glyphDataLocations = alloc_array_t(g_alloc_heap, Mem, maxpTable.numGlyphs);
+  ttf_read_glyph_locations(&offsetTable, &maxpTable, &headTable, glyphDataLocations, &err);
+  if (err) {
+    ttf_load_fail(world, assetEntity, err);
+    goto End;
+  }
 
   AssetFontComp* result = ecs_world_add_t(world, assetEntity, AssetFontComp);
 
   // Copy the codepoints to the component.
   result->codepoints.count  = codepoints.size;
   result->codepoints.values = alloc_array_t(g_alloc_heap, AssetFontCodepoint, codepoints.size);
+  dynarray_sort(&codepoints, asset_font_compare_codepoint); // Sort on the unicode value.
   mem_cpy(
       mem_from_to(result->codepoints.values, result->codepoints.values + codepoints.size),
       dynarray_at(&codepoints, 0, codepoints.size));
 
   ecs_world_add_empty_t(world, assetEntity, AssetLoadedComp);
-  asset_repo_source_close(src);
-  dynarray_destroy(&codepoints);
-  return;
 
-Error:
+End:
+  if (glyphDataLocations) {
+    alloc_free_array_t(g_alloc_heap, glyphDataLocations, maxpTable.numGlyphs);
+  }
   dynarray_destroy(&codepoints);
   asset_repo_source_close(src);
 }
