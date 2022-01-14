@@ -1,5 +1,6 @@
 #include "asset_font.h"
 #include "core_alloc.h"
+#include "core_compare.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 
@@ -9,7 +10,7 @@ ecs_comp_define_public(AssetFontComp);
 
 static void ecs_destruct_font_comp(void* data) {
   AssetFontComp* comp = data;
-  (void)comp;
+  alloc_free_array_t(g_alloc_heap, comp->codepoints.values, comp->codepoints.count);
 }
 
 ecs_view_define(UnloadView) {
@@ -34,4 +35,9 @@ ecs_module_init(asset_font_module) {
   ecs_register_view(UnloadView);
 
   ecs_register_system(UnloadFontAssetSys, ecs_view_id(UnloadView));
+}
+
+i8 asset_font_compare_codepoint(const void* a, const void* b) {
+  return compare_u32(
+      field_ptr(a, AssetFontCodepoint, unicode), field_ptr(b, AssetFontCodepoint, unicode));
 }

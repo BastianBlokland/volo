@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_bits.h"
+#include "core_dynarray.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 
@@ -83,6 +84,19 @@ typedef struct {
   TtfEncodingRecord encodings[ttf_max_encodings];
 } TtfCmapTable;
 
+typedef struct {
+  u16    language; // Unused as we only support unicode (non language specific).
+  u16    segCount;
+  u16    searchRange;
+  u16    entrySelector;
+  u16    rangeShift;
+  u16*   endCodes; // u16[segCount]
+  u16    reservedPad;
+  u16*   startCodes; // u16[segCount]
+  u16*   deltas;     // u16[segCount]
+  void** rangeData;  // void*[segCount]
+} TtfCmapFormat4Header;
+
 typedef enum {
   TtfError_None = 0,
   TtfError_Malformed,
@@ -97,6 +111,9 @@ typedef enum {
   TtfError_HeadTableUnsupported,
   TtfError_MaxpTableMissing,
   TtfError_CmapTableMissing,
+  TtfError_CmapNoSupportedEncoding,
+  TtfError_CmapFormat4EncodingMalformed,
+  TtfError_NoCodePoints,
 
   TtfError_Count,
 } TtfError;
@@ -116,6 +133,10 @@ static String ttf_error_str(TtfError res) {
       string_static("TrueType head table unsupported"),
       string_static("TrueType maxp table missing"),
       string_static("TrueType cmap table missing"),
+      string_static("TrueType cmap table does not contain any supported encodings"),
+      string_static("TrueType cmap table format4 encoding malformed"),
+      string_static("TrueType font contains no codepoints"),
+
   };
   ASSERT(array_elems(msgs) == TtfError_Count, "Incorrect number of ttf-error messages");
   return msgs[res];
@@ -175,7 +196,7 @@ static void ttf_read_offset_table(Mem data, TtfOffsetTable* out, TtfError* err) 
   return;
 }
 
-static const TtfTableRecord* ttf_find_table(TtfOffsetTable* offsetTable, const String tag) {
+static const TtfTableRecord* ttf_find_table(const TtfOffsetTable* offsetTable, const String tag) {
   for (usize i = 0; i != offsetTable->numTables; ++i) {
     const TtfTableRecord* record = &offsetTable->records[i];
     if (string_eq(record->tag, tag)) {
@@ -186,7 +207,7 @@ static const TtfTableRecord* ttf_find_table(TtfOffsetTable* offsetTable, const S
 }
 
 static void
-ttf_read_head_table(Mem data, TtfOffsetTable* offsetTable, TtfHeadTable* out, TtfError* err) {
+ttf_read_head_table(Mem data, const TtfOffsetTable* offsetTable, TtfHeadTable* out, TtfError* err) {
   const TtfTableRecord* tableRecord = ttf_find_table(offsetTable, string_lit("head"));
   if (UNLIKELY(!tableRecord)) {
     *err = TtfError_HeadTableMissing;
@@ -222,7 +243,7 @@ ttf_read_head_table(Mem data, TtfOffsetTable* offsetTable, TtfHeadTable* out, Tt
 }
 
 static void
-ttf_read_maxp_table(Mem data, TtfOffsetTable* offsetTable, TtfMaxpTable* out, TtfError* err) {
+ttf_read_maxp_table(Mem data, const TtfOffsetTable* offsetTable, TtfMaxpTable* out, TtfError* err) {
   const TtfTableRecord* tableRecord = ttf_find_table(offsetTable, string_lit("maxp"));
   if (UNLIKELY(!tableRecord)) {
     *err = TtfError_HeadTableMissing;
@@ -252,7 +273,7 @@ ttf_read_maxp_table(Mem data, TtfOffsetTable* offsetTable, TtfMaxpTable* out, Tt
 }
 
 static void
-ttf_read_cmap_table(Mem data, TtfOffsetTable* offsetTable, TtfCmapTable* out, TtfError* err) {
+ttf_read_cmap_table(Mem data, const TtfOffsetTable* offsetTable, TtfCmapTable* out, TtfError* err) {
   const TtfTableRecord* tableRecord = ttf_find_table(offsetTable, string_lit("cmap"));
   if (UNLIKELY(!tableRecord)) {
     *err = TtfError_CmapTableMissing;
@@ -284,6 +305,128 @@ ttf_read_cmap_table(Mem data, TtfOffsetTable* offsetTable, TtfCmapTable* out, Tt
   }
   *err = TtfError_None;
   return;
+}
+
+static void ttf_read_cmap_format4_header(Mem data, TtfCmapFormat4Header* out, TtfError* err) {
+  if (UNLIKELY(data.size < 10)) {
+    *err = TtfError_CmapFormat4EncodingMalformed;
+    return;
+  }
+  *out = (TtfCmapFormat4Header){0};
+  data = mem_consume_be_u16(data, &out->language);
+  u16 doubleSegCount;
+  data          = mem_consume_be_u16(data, &doubleSegCount);
+  out->segCount = doubleSegCount / 2;
+  data          = mem_consume_be_u16(data, &out->searchRange);
+  data          = mem_consume_be_u16(data, &out->entrySelector);
+  data          = mem_consume_be_u16(data, &out->rangeShift);
+  if (UNLIKELY(data.size < 2 + out->segCount * 8)) {
+    *err = TtfError_CmapFormat4EncodingMalformed;
+    return;
+  }
+  out->endCodes   = alloc_array_t(g_alloc_heap, u16, out->segCount);
+  out->startCodes = alloc_array_t(g_alloc_heap, u16, out->segCount);
+  out->deltas     = alloc_array_t(g_alloc_heap, u16, out->segCount);
+  out->rangeData  = alloc_array_t(g_alloc_heap, void*, out->segCount);
+  // Read endCodes.
+  for (usize i = 0; i != out->segCount; ++i) {
+    data = mem_consume_be_u16(data, &out->endCodes[i]);
+  }
+  data = mem_consume_be_u16(data, &out->reservedPad);
+  // Read startCodes.
+  for (usize i = 0; i != out->segCount; ++i) {
+    data = mem_consume_be_u16(data, &out->startCodes[i]);
+  }
+  // Read deltas.
+  for (usize i = 0; i != out->segCount; ++i) {
+    data = mem_consume_be_u16(data, &out->deltas[i]);
+  }
+  // Read rangeOffsets.
+  for (usize i = 0; i != out->segCount; ++i) {
+    u16 rangeOffset;
+    data = mem_consume_be_u16(data, &rangeOffset);
+    // Range offsets are offsets from the current location in the file.
+    out->rangeData[i] = rangeOffset ? bits_ptr_offset(data.ptr, rangeOffset - 2) : null;
+  }
+  *err = TtfError_None;
+}
+
+static void
+ttf_read_codepoints_format4(Mem data, const TtfMaxpTable* maxpTable, DynArray* out, TtfError* err) {
+  TtfCmapFormat4Header header;
+  ttf_read_cmap_format4_header(data, &header, err);
+  if (*err) {
+    return;
+  }
+
+  // Iterate over every segment (block of codepoints) and map the codepoints to glyphs.
+  for (usize segIdx = 0U; segIdx != header.segCount; ++segIdx) {
+    const u16   startCode = header.startCodes[segIdx];
+    const u16   endCode   = header.endCodes[segIdx];
+    const u16   delta     = header.deltas[segIdx];
+    const void* rangeData = header.rangeData[segIdx];
+    if (UNLIKELY(startCode == 0xFFFF || endCode == 0xFFFF)) {
+      continue; // 0xFFFF is used as a stop sentinel.
+    }
+    for (u16 code = startCode; code <= endCode; ++code) {
+      /**
+       * There are two different ways of mapping segments to glyphs, either a direct mapping (with
+       * an offset) or a lookup table.
+       */
+      if (!rangeData) {
+        // Directly map a code-point to a glyph (with a offset named 'delta').
+        const u16 glyphIndex = (code + delta) % 65536;
+        if (LIKELY(glyphIndex < maxpTable->numGlyphs)) {
+          *dynarray_push_t(out, AssetFontCodepoint) = (AssetFontCodepoint){code, glyphIndex};
+        }
+      } else {
+        // Read the glyph-id from a lookup table.
+        const Mem glyphIndexMem = mem_create(rangeData, 2);
+        if (UNLIKELY(mem_end(glyphIndexMem) >= mem_end(data))) {
+          *err = TtfError_CmapFormat4EncodingMalformed;
+          goto End;
+        }
+        u16 glyphIndex;
+        mem_consume_be_u16(glyphIndexMem, &glyphIndex);
+        if (LIKELY(glyphIndex < maxpTable->numGlyphs)) {
+          *dynarray_push_t(out, AssetFontCodepoint) = (AssetFontCodepoint){code, glyphIndex};
+        }
+      }
+    }
+  }
+  *err = TtfError_None;
+End:
+  alloc_free_array_t(g_alloc_heap, header.endCodes, header.segCount);
+  alloc_free_array_t(g_alloc_heap, header.startCodes, header.segCount);
+  alloc_free_array_t(g_alloc_heap, header.deltas, header.segCount);
+  alloc_free_array_t(g_alloc_heap, header.rangeData, header.segCount);
+}
+
+static void ttf_read_codepoints(
+    Mem                 data,
+    const TtfCmapTable* cmapTable,
+    const TtfMaxpTable* maxpTable,
+    DynArray*           out,
+    TtfError*           err) {
+  for (usize i = 0; i != cmapTable->numEncodings; ++i) {
+    const TtfEncodingRecord* encoding     = &cmapTable->encodings[i];
+    Mem                      encodingData = mem_consume(data, encoding->offset);
+    if (UNLIKELY(encodingData.size < 4)) {
+      continue;
+    }
+    u16 formatNumber;
+    encodingData = mem_consume_be_u16(encodingData, &formatNumber);
+    switch (formatNumber) {
+    case 4: {
+      u16 formatDataSize;
+      encodingData = mem_consume_be_u16(encodingData, &formatDataSize);
+      encodingData = mem_slice(encodingData, 0, formatDataSize);
+      ttf_read_codepoints_format4(encodingData, maxpTable, out, err);
+      return;
+    }
+    }
+  }
+  *err = TtfError_CmapNoSupportedEncoding;
 }
 
 /**
@@ -337,8 +480,9 @@ static void ttf_load_fail(EcsWorld* world, const EcsEntityId assetEntity, const 
 }
 
 void asset_load_ttf(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) {
-  Mem      data = src->data;
-  TtfError err  = TtfError_None;
+  Mem      data       = src->data;
+  TtfError err        = TtfError_None;
+  DynArray codepoints = dynarray_create_t(g_alloc_heap, AssetFontCodepoint, 128);
 
   TtfOffsetTable offsetTable;
   ttf_read_offset_table(data, &offsetTable, &err);
@@ -385,12 +529,32 @@ void asset_load_ttf(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
     ttf_load_fail(world, assetEntity, err);
     goto Error;
   }
+  ttf_read_codepoints(data, &cmapTable, &maxpTable, &codepoints, &err);
+  if (err) {
+    ttf_load_fail(world, assetEntity, err);
+    goto Error;
+  }
+  if (!codepoints.size) {
+    ttf_load_fail(world, assetEntity, TtfError_NoCodePoints);
+    goto Error;
+  }
+  dynarray_sort(&codepoints, asset_font_compare_codepoint);
 
-  asset_repo_source_close(src);
-  ecs_world_add_t(world, assetEntity, AssetFontComp);
+  AssetFontComp* result = ecs_world_add_t(world, assetEntity, AssetFontComp);
+
+  // Copy the codepoints to the component.
+  result->codepoints.count  = codepoints.size;
+  result->codepoints.values = alloc_array_t(g_alloc_heap, AssetFontCodepoint, codepoints.size);
+  mem_cpy(
+      mem_from_to(result->codepoints.values, result->codepoints.values + codepoints.size),
+      dynarray_at(&codepoints, 0, codepoints.size));
+
   ecs_world_add_empty_t(world, assetEntity, AssetLoadedComp);
+  asset_repo_source_close(src);
+  dynarray_destroy(&codepoints);
   return;
 
 Error:
+  dynarray_destroy(&codepoints);
   asset_repo_source_close(src);
 }

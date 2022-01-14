@@ -101,7 +101,9 @@ spec(loader_font_ttf) {
 
       check_require(ecs_world_has_t(world, asset, AssetLoadedComp));
       const AssetFontComp* font = ecs_utils_read_t(world, AssetView, asset, AssetFontComp);
-      (void)font;
+
+      check_require(font->codepoints.count == 1);
+      check_eq_int(font->codepoints.values[0].unicode, 0x31); // 'digit one' glyph.
     }
 
     array_for_t(records, AssetMemRecord, rec) { string_free(g_alloc_heap, rec->data); }
