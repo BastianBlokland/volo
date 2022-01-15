@@ -11,6 +11,9 @@ ecs_comp_define_public(AssetFontComp);
 static void ecs_destruct_font_comp(void* data) {
   AssetFontComp* comp = data;
   alloc_free_array_t(g_alloc_heap, comp->codepoints.values, comp->codepoints.count);
+  alloc_free_array_t(g_alloc_heap, comp->points.values, comp->points.count);
+  alloc_free_array_t(g_alloc_heap, comp->segments.values, comp->segments.count);
+  alloc_free_array_t(g_alloc_heap, comp->glyphs.values, comp->glyphs.count);
 }
 
 ecs_view_define(UnloadView) {

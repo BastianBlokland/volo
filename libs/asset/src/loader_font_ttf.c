@@ -135,6 +135,8 @@ typedef enum {
   TtfError_CmapNoSupportedEncoding,
   TtfError_CmapFormat4EncodingMalformed,
   TtfError_NoCodePoints,
+  TtfError_NoGlyphPoints,
+  TtfError_NoGlyphSegments,
   TtfError_LocaTableMissing,
   TtfError_LocaTableMissingGlyphs,
   TtfError_LocaTableGlyphOutOfBounds,
@@ -167,6 +169,8 @@ static String ttf_error_str(TtfError res) {
       string_static("TrueType cmap table does not contain any supported encodings"),
       string_static("TrueType cmap table format4 encoding malformed"),
       string_static("TrueType font contains no codepoints"),
+      string_static("TrueType font contains no glyph points"),
+      string_static("TrueType font contains no glyph segments"),
       string_static("TrueType loca table missing"),
       string_static("TrueType loca table does not contain locations for all glyphs"),
       string_static("TrueType loca table specifies out-of-bounds glyph data"),
@@ -767,17 +771,32 @@ static void ttf_validate(const TtfOffsetTable* offsetTable, TtfError* err) {
   *err = TtfError_None;
 }
 
-static void ttf_load_succeed(EcsWorld* world, const EcsEntityId assetEntity, DynArray* codepoints) {
+static void ttf_load_succeed(
+    EcsWorld*         world,
+    const EcsEntityId assetEntity,
+    const DynArray*   codepoints, // AssetFontCodepoint[]
+    const DynArray*   points,     // AssetFontPoint[]
+    const DynArray*   segments,   // AssetFontSegment[]
+    AssetFontGlyph*   glyphs,     // Moved into the result component which will take ownership.
+    const usize       glyphCount) {
+  ecs_world_add_empty_t(world, assetEntity, AssetLoadedComp);
   AssetFontComp* result = ecs_world_add_t(world, assetEntity, AssetFontComp);
 
   // Copy the codepoints to the component.
   result->codepoints.count  = codepoints->size;
-  result->codepoints.values = alloc_array_t(g_alloc_heap, AssetFontCodepoint, codepoints->size);
-  mem_cpy(
-      mem_from_to(result->codepoints.values, result->codepoints.values + codepoints->size),
-      dynarray_at(codepoints, 0, codepoints->size));
+  result->codepoints.values = dynarray_copy_as_new(codepoints, g_alloc_heap);
 
-  ecs_world_add_empty_t(world, assetEntity, AssetLoadedComp);
+  // Copy the points to the component.
+  result->points.count  = points->size;
+  result->points.values = dynarray_copy_as_new(points, g_alloc_heap);
+
+  // Copy the segments to the component.
+  result->segments.count  = segments->size;
+  result->segments.values = dynarray_copy_as_new(segments, g_alloc_heap);
+
+  // Move the glyphs to the component.
+  result->glyphs.values = glyphs;
+  result->glyphs.count  = glyphCount;
 }
 
 static void ttf_load_fail(EcsWorld* world, const EcsEntityId assetEntity, const TtfError err) {
@@ -786,9 +805,12 @@ static void ttf_load_fail(EcsWorld* world, const EcsEntityId assetEntity, const 
 }
 
 void asset_load_ttf(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) {
-  TtfError err                = TtfError_None;
-  DynArray codepoints         = dynarray_create_t(g_alloc_heap, AssetFontCodepoint, 128);
-  Mem*     glyphDataLocations = null; // Mem[maxpTable.numGlyphs]
+  TtfError        err                = TtfError_None;
+  DynArray        codepoints         = dynarray_create_t(g_alloc_heap, AssetFontCodepoint, 128);
+  DynArray        points             = dynarray_create_t(g_alloc_heap, AssetFontPoint, 1024);
+  DynArray        segments           = dynarray_create_t(g_alloc_heap, AssetFontSegment, 512);
+  Mem*            glyphDataLocations = null; // Mem[maxpTable.numGlyphs]
+  AssetFontGlyph* glyphs             = null; // AssetFontGlyph[maxpTable.numGlyphs]
 
   TtfOffsetTable offsetTable;
   ttf_read_offset_table(src->data, &offsetTable, &err);
@@ -852,6 +874,7 @@ void asset_load_ttf(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
     ttf_load_fail(world, assetEntity, err);
     goto End;
   }
+  glyphs = alloc_array_t(g_alloc_heap, AssetFontGlyph, maxpTable.numGlyphs);
   for (usize glyphIndex = 0; glyphIndex != maxpTable.numGlyphs; ++glyphIndex) {
     if (!glyphDataLocations[glyphIndex].size) {
       continue; // Glyphs without data are valid, for example a space character glyph.
@@ -862,12 +885,27 @@ void asset_load_ttf(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
       goto End;
     }
   }
-  ttf_load_succeed(world, assetEntity, &codepoints);
+  if (!points.size) {
+    ttf_load_fail(world, assetEntity, TtfError_NoGlyphPoints);
+    goto End;
+  }
+  if (!segments.size) {
+    ttf_load_fail(world, assetEntity, TtfError_NoGlyphSegments);
+    goto End;
+  }
+  ttf_load_succeed(
+      world, assetEntity, &codepoints, &points, &segments, glyphs, maxpTable.numGlyphs);
+  glyphs = null; // Moved into the result component, which will take ownership.
 
 End:
+  dynarray_destroy(&codepoints);
+  dynarray_destroy(&points);
+  dynarray_destroy(&segments);
   if (glyphDataLocations) {
     alloc_free_array_t(g_alloc_heap, glyphDataLocations, maxpTable.numGlyphs);
   }
-  dynarray_destroy(&codepoints);
+  if (glyphs) {
+    alloc_free_array_t(g_alloc_heap, glyphs, maxpTable.numGlyphs);
+  }
   asset_repo_source_close(src);
 }
