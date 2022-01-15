@@ -1,0 +1,25 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/ui_lines.vert.spv",
+      "overrides": [
+        {
+          "name": "maxLines",
+          "binding": 0,
+          "value": 512
+        }
+      ]
+    },
+    {
+      "shaderId": "shaders/ui_lines.frag.spv"
+    }
+  ],
+  "vertexCount": 0,
+  "renderOrder": 100,
+  "topology": "Lines",
+  "lineWidth": 8,
+  "rasterizer": "Lines",
+  "blend": "None",
+  "depth": "Always",
+  "cull": "None"
+}
