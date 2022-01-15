@@ -19,7 +19,7 @@ ecs_comp_define(AppComp) {
   AppFlags    flags;
   EcsEntityId window;
   EcsEntityId fontAsset;
-  EcsEntityId lineRenderer;
+  EcsEntityId lineRenderer, pointRenderer;
   u32         unicode;
 };
 
@@ -29,43 +29,57 @@ ecs_view_define(GlobalView) {
 }
 
 ecs_view_define(FontView) { ecs_access_read(AssetFontComp); }
-ecs_view_define(LineRendererView) { ecs_access_write(SceneRenderableUniqueComp); }
+ecs_view_define(UiRendererView) { ecs_access_write(SceneRenderableUniqueComp); }
 ecs_view_define(WindowView) { ecs_access_read(GapWindowComp); }
 
 static void app_render_ui(
-    const AssetFontComp* font, const AppComp* app, SceneRenderableUniqueComp* lineRenderer) {
+    const AssetFontComp*       font,
+    const AppComp*             app,
+    SceneRenderableUniqueComp* lineRenderer,
+    SceneRenderableUniqueComp* pointRenderer) {
 
   const AssetFontGlyph* glyph = asset_font_lookup_unicode(font, app->unicode);
 
   GeoVector* lines     = scene_renderable_unique_data(lineRenderer, sizeof(GeoVector) * 512).ptr;
   u32        lineCount = 0;
-  f32        offsetX   = 0.25f;
-  f32        offsetY   = 0.25f;
-  f32        scale     = 0.5f;
+
+  GeoVector* points     = scene_renderable_unique_data(pointRenderer, sizeof(GeoVector) * 512).ptr;
+  u32        pointCount = 0;
+
+  f32 offsetX = 0.25f;
+  f32 offsetY = 0.25f;
+  f32 scale   = 0.5f;
 
   for (usize seg = glyph->segmentIndex; seg != glyph->segmentIndex + glyph->segmentCount; ++seg) {
     switch (font->segments[seg].type) {
     case AssetFontSegment_Line: {
       const AssetFontPoint start = font->points[font->segments[seg].pointIndex + 0];
       const AssetFontPoint end   = font->points[font->segments[seg].pointIndex + 1];
-      lines[lineCount++]         = geo_vector(
-          offsetX + start.x * scale,
-          offsetY + start.y * scale,
-          offsetX + end.x * scale,
-          offsetY + end.y * scale);
+      const GeoVector startPos   = geo_vector(offsetX + start.x * scale, offsetY + start.y * scale);
+      const GeoVector endPos     = geo_vector(offsetX + end.x * scale, offsetY + end.y * scale);
+
+      points[pointCount++] = startPos;
+      points[pointCount++] = endPos;
+      lines[lineCount++]   = geo_vector(startPos.x, startPos.y, endPos.x, endPos.y);
     } break;
     case AssetFontSegment_QuadraticBezier: {
       const AssetFontPoint start = font->points[font->segments[seg].pointIndex + 0];
+      const AssetFontPoint ctrl  = font->points[font->segments[seg].pointIndex + 1];
       const AssetFontPoint end   = font->points[font->segments[seg].pointIndex + 2];
-      lines[lineCount++]         = geo_vector(
-          offsetX + start.x * scale,
-          offsetY + start.y * scale,
-          offsetX + end.x * scale,
-          offsetY + end.y * scale);
+      const GeoVector startPos   = geo_vector(offsetX + start.x * scale, offsetY + start.y * scale);
+      const GeoVector ctrlPos    = geo_vector(offsetX + ctrl.x * scale, offsetY + ctrl.y * scale);
+      const GeoVector endPos     = geo_vector(offsetX + end.x * scale, offsetY + end.y * scale);
+
+      points[pointCount++] = startPos;
+      points[pointCount++] = ctrlPos;
+      points[pointCount++] = endPos;
+      lines[lineCount++]   = geo_vector(startPos.x, startPos.y, endPos.x, endPos.y);
     } break;
     }
   }
-  lineRenderer->vertexCountOverride = lineCount * 2;
+
+  lineRenderer->vertexCountOverride  = lineCount * 2;
+  pointRenderer->vertexCountOverride = pointCount;
 }
 
 ecs_system_define(AppUpdateSys) {
@@ -87,6 +101,13 @@ ecs_system_define(AppUpdateSys) {
         app->lineRenderer,
         SceneRenderableUniqueComp,
         .graphic = asset_lookup(world, assets, string_lit("graphics/ui_lines.gra")));
+
+    app->pointRenderer = ecs_world_entity_create(world);
+    ecs_world_add_t(
+        world,
+        app->pointRenderer,
+        SceneRenderableUniqueComp,
+        .graphic = asset_lookup(world, assets, string_lit("graphics/ui_points.gra")));
 
     app->unicode = 0x42;
     app->flags &= ~AppFlags_Init;
@@ -112,9 +133,11 @@ ecs_system_define(AppUpdateSys) {
     const AssetFontComp* font =
         ecs_utils_read(fontView, app->fontAsset, ecs_comp_id(AssetFontComp));
     SceneRenderableUniqueComp* lineRenderer =
-        ecs_utils_write_t(world, LineRendererView, app->lineRenderer, SceneRenderableUniqueComp);
+        ecs_utils_write_t(world, UiRendererView, app->lineRenderer, SceneRenderableUniqueComp);
+    SceneRenderableUniqueComp* pointRenderer =
+        ecs_utils_write_t(world, UiRendererView, app->pointRenderer, SceneRenderableUniqueComp);
 
-    app_render_ui(font, app, lineRenderer);
+    app_render_ui(font, app, lineRenderer, pointRenderer);
     app->flags &= ~AppFlags_Dirty;
   }
 }
@@ -124,14 +147,14 @@ ecs_module_init(app_font_module) {
 
   ecs_register_view(GlobalView);
   ecs_register_view(FontView);
-  ecs_register_view(LineRendererView);
+  ecs_register_view(UiRendererView);
   ecs_register_view(WindowView);
 
   ecs_register_system(
       AppUpdateSys,
       ecs_view_id(GlobalView),
       ecs_view_id(FontView),
-      ecs_view_id(LineRendererView),
+      ecs_view_id(UiRendererView),
       ecs_view_id(WindowView));
 }
 
