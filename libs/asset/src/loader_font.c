@@ -13,7 +13,7 @@ ecs_comp_define_public(AssetFontComp);
 
 static void ecs_destruct_font_comp(void* data) {
   AssetFontComp* comp = data;
-  alloc_free_array_t(g_alloc_heap, comp->codepoints, comp->codepointCount);
+  alloc_free_array_t(g_alloc_heap, comp->characters, comp->characterCount);
   alloc_free_array_t(g_alloc_heap, comp->points, comp->pointCount);
   alloc_free_array_t(g_alloc_heap, comp->segments, comp->segmentCount);
   alloc_free_array_t(g_alloc_heap, comp->glyphs, comp->glyphCount);
@@ -43,24 +43,23 @@ ecs_module_init(asset_font_module) {
   ecs_register_system(UnloadFontAssetSys, ecs_view_id(UnloadView));
 }
 
-i8 asset_font_compare_codepoint(const void* a, const void* b) {
-  return compare_u32(
-      field_ptr(a, AssetFontCodepoint, unicode), field_ptr(b, AssetFontCodepoint, unicode));
+i8 asset_font_compare_char(const void* a, const void* b) {
+  return compare_u32(field_ptr(a, AssetFontChar, unicode), field_ptr(b, AssetFontChar, unicode));
 }
 
 const AssetFontGlyph* asset_font_lookup_unicode(const AssetFontComp* font, const u32 unicode) {
-  const AssetFontCodepoint* cp = search_binary_t(
-      font->codepoints,
-      font->codepoints + font->codepointCount,
-      AssetFontCodepoint,
-      asset_font_compare_codepoint,
-      mem_struct(AssetFontCodepoint, .unicode = unicode).ptr);
+  const AssetFontChar* ch = search_binary_t(
+      font->characters,
+      font->characters + font->characterCount,
+      AssetFontChar,
+      asset_font_compare_char,
+      mem_struct(AssetFontChar, .unicode = unicode).ptr);
 
-  if (UNLIKELY(!cp)) {
+  if (UNLIKELY(!ch)) {
     return &font->glyphs[0]; // Return the 'missing' glyph (guaranteed to exist).
   }
-  diag_assert(cp->glyphIndex < font->glyphCount);
-  return &font->glyphs[cp->glyphIndex];
+  diag_assert(ch->glyphIndex < font->glyphCount);
+  return &font->glyphs[ch->glyphIndex];
 }
 
 static f32 font_math_dist_sqr(const AssetFontPoint s, const AssetFontPoint e) {

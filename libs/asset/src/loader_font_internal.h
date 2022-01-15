@@ -1,7 +1,7 @@
 #include "asset_font.h"
 
 /**
- * Compare two AssetFontCodepoint's.
+ * Compare two AssetFontChar's.
  * Signature is compatible with the 'CompareFunc' from 'core_compare.h'.
  */
-i8 asset_font_compare_codepoint(const void* a, const void* b);
+i8 asset_font_compare_char(const void* a, const void* b);

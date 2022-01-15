@@ -4,7 +4,7 @@
 typedef struct {
   u32 unicode;
   u32 glyphIndex;
-} AssetFontCodepoint;
+} AssetFontChar;
 
 typedef union {
   struct {
@@ -29,14 +29,14 @@ typedef struct {
 } AssetFontGlyph;
 
 ecs_comp_extern_public(AssetFontComp) {
-  AssetFontCodepoint* codepoints; // Sorted on the unicode value.
-  usize               codepointCount;
-  AssetFontPoint*     points;
-  usize               pointCount;
-  AssetFontSegment*   segments;
-  usize               segmentCount;
-  AssetFontGlyph*     glyphs;
-  usize               glyphCount;
+  AssetFontChar*    characters; // Sorted on the unicode value.
+  usize             characterCount;
+  AssetFontPoint*   points;
+  usize             pointCount;
+  AssetFontSegment* segments;
+  usize             segmentCount;
+  AssetFontGlyph*   glyphs;
+  usize             glyphCount;
 };
 
 /**
