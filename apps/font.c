@@ -2,6 +2,7 @@
 #include "cli.h"
 #include "core.h"
 #include "core_file.h"
+#include "core_math.h"
 #include "ecs.h"
 #include "gap.h"
 #include "jobs.h"
@@ -38,6 +39,8 @@ static void app_render_ui(
     SceneRenderableUniqueComp* lineRenderer,
     SceneRenderableUniqueComp* pointRenderer) {
 
+  MAYBE_UNUSED const TimeSteady startTime = time_steady_clock();
+
   const AssetFontGlyph* glyph = asset_font_lookup_unicode(font, app->unicode);
 
   GeoVector* lines     = scene_renderable_unique_data(lineRenderer, sizeof(GeoVector) * 512).ptr;
@@ -46,40 +49,31 @@ static void app_render_ui(
   GeoVector* points     = scene_renderable_unique_data(pointRenderer, sizeof(GeoVector) * 512).ptr;
   u32        pointCount = 0;
 
-  f32 offsetX = 0.25f;
-  f32 offsetY = 0.25f;
-  f32 scale   = 0.5f;
+  const f32 density = 25.0f;
+  const f32 offsetX = 0.125f;
+  const f32 offsetY = 0.125f;
+  const f32 scale   = 0.75f;
 
   for (usize seg = glyph->segmentIndex; seg != glyph->segmentIndex + glyph->segmentCount; ++seg) {
-    switch (font->segments[seg].type) {
-    case AssetFontSegment_Line: {
-      const AssetFontPoint start = font->points[font->segments[seg].pointIndex + 0];
-      const AssetFontPoint end   = font->points[font->segments[seg].pointIndex + 1];
-      const GeoVector startPos   = geo_vector(offsetX + start.x * scale, offsetY + start.y * scale);
-      const GeoVector endPos     = geo_vector(offsetX + end.x * scale, offsetY + end.y * scale);
-
-      points[pointCount++] = startPos;
-      points[pointCount++] = endPos;
-      lines[lineCount++]   = geo_vector(startPos.x, startPos.y, endPos.x, endPos.y);
-    } break;
-    case AssetFontSegment_QuadraticBezier: {
-      GeoVector lastPoint;
-      for (usize i = 0; i != 4; ++i) {
-        const f32            t     = i / 3.0f;
-        const AssetFontPoint point = asset_font_sample_segment(font, seg, t);
-        const GeoVector pointPos = geo_vector(offsetX + point.x * scale, offsetY + point.y * scale);
-        points[pointCount++]     = pointPos;
-        if (i) {
-          lines[lineCount++] = geo_vector(lastPoint.x, lastPoint.y, pointPos.x, pointPos.y);
-        }
-        lastPoint = pointPos;
+    GeoVector lastPoint;
+    const u32 count = math_max(2, (u32)(asset_font_seg_length(font, seg) * density));
+    for (usize i = 0; i != count; ++i) {
+      const f32            t     = i / (f32)(count - 1);
+      const AssetFontPoint point = asset_font_seg_sample(font, seg, t);
+      const GeoVector pointPos   = geo_vector(offsetX + point.x * scale, offsetY + point.y * scale);
+      points[pointCount++]       = pointPos;
+      if (i) {
+        lines[lineCount++] = geo_vector(lastPoint.x, lastPoint.y, pointPos.x, pointPos.y);
       }
-    } break;
+      lastPoint = pointPos;
     }
   }
 
   lineRenderer->vertexCountOverride  = lineCount * 2;
   pointRenderer->vertexCountOverride = pointCount;
+
+  MAYBE_UNUSED const TimeDuration duration = time_steady_duration(startTime, time_steady_clock());
+  log_d("Ui updated", log_param("duration", fmt_duration(duration)));
 }
 
 ecs_system_define(AppUpdateSys) {

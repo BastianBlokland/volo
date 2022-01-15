@@ -63,29 +63,80 @@ const AssetFontGlyph* asset_font_lookup_unicode(const AssetFontComp* font, const
   return &font->glyphs[cp->glyphIndex];
 }
 
-AssetFontPoint
-asset_font_sample_segment(const AssetFontComp* font, const usize index, const f32 t) {
+static f32 font_math_dist_sqr(const AssetFontPoint s, const AssetFontPoint e) {
+  const f32 dX = s.x - e.x;
+  const f32 dY = s.y - e.y;
+  return dX * dX + dY * dY;
+}
+
+static f32 font_math_dist(const AssetFontPoint s, const AssetFontPoint e) {
+  const f32 distSqr = font_math_dist_sqr(s, e);
+  return math_sqrt_f32(distSqr);
+}
+
+static AssetFontPoint font_math_lerp(const AssetFontPoint s, const AssetFontPoint e, const f32 t) {
+  const f32 x = math_lerp(s.x, e.x, t);
+  const f32 y = math_lerp(s.y, e.y, t);
+  return (AssetFontPoint){x, y};
+}
+
+static AssetFontPoint font_math_quad_bezier(
+    const AssetFontPoint s, const AssetFontPoint c, const AssetFontPoint e, const f32 t) {
+  const f32 invT = 1.0f - t;
+  const f32 x    = c.x + (s.x - c.x) * invT * invT + (e.x - c.x) * t * t;
+  const f32 y    = c.y + (s.y - c.y) * invT * invT + (e.y - c.y) * t * t;
+  return (AssetFontPoint){x, y};
+}
+
+AssetFontPoint asset_font_seg_sample(const AssetFontComp* font, const usize index, const f32 t) {
   const AssetFontSegment* seg = &font->segments[index];
   switch (seg->type) {
   case AssetFontSegment_Line: {
-    const AssetFontPoint p0 = font->points[seg->pointIndex + 0];
-    const AssetFontPoint p1 = font->points[seg->pointIndex + 1];
-
-    const f32 x = math_lerp(p0.x, p1.x, t);
-    const f32 y = math_lerp(p0.y, p1.y, t);
-
-    return (AssetFontPoint){x, y};
+    const AssetFontPoint s = font->points[seg->pointIndex + 0];
+    const AssetFontPoint e = font->points[seg->pointIndex + 1];
+    return font_math_lerp(s, e, t);
   }
   case AssetFontSegment_QuadraticBezier: {
-    const AssetFontPoint p0 = font->points[seg->pointIndex + 0];
-    const AssetFontPoint c  = font->points[seg->pointIndex + 1];
-    const AssetFontPoint p1 = font->points[seg->pointIndex + 2];
+    const AssetFontPoint s = font->points[seg->pointIndex + 0];
+    const AssetFontPoint c = font->points[seg->pointIndex + 1];
+    const AssetFontPoint e = font->points[seg->pointIndex + 2];
+    return font_math_quad_bezier(s, c, e, t);
+  }
+  }
+  diag_crash();
+}
 
-    const f32 invT = 1.0f - t;
-    const f32 x    = c.x + (p0.x - c.x) * invT * invT + (p1.x - c.x) * t * t;
-    const f32 y    = c.y + (p0.y - c.y) * invT * invT + (p1.y - c.y) * t * t;
+f32 asset_font_seg_length(const AssetFontComp* font, const usize index) {
+  const AssetFontSegment* seg = &font->segments[index];
+  switch (seg->type) {
+  case AssetFontSegment_Line: {
+    const AssetFontPoint s = font->points[seg->pointIndex + 0];
+    const AssetFontPoint e = font->points[seg->pointIndex + 1];
+    return font_math_dist(s, e);
+  }
+  case AssetFontSegment_QuadraticBezier: {
+    const AssetFontPoint s = font->points[seg->pointIndex + 0];
+    const AssetFontPoint c = font->points[seg->pointIndex + 1];
+    const AssetFontPoint e = font->points[seg->pointIndex + 2];
 
-    return (AssetFontPoint){x, y};
+    /**
+     * Closed form analytical solutions for the arc-length of a quadratic bezier exist but are
+     * pretty expensive. Instead we approximate it with a series of linear distances.
+     *
+     * More information: https://pomax.github.io/bezierinfo/#arclength
+     */
+
+    const u32      steps = 3;
+    f32            dist  = 0;
+    AssetFontPoint prev  = s;
+    for (usize i = 1; i != steps; ++i) {
+      const f32            t     = i / (f32)steps;
+      const AssetFontPoint point = font_math_quad_bezier(s, c, e, t);
+      dist += font_math_dist(prev, point);
+      prev = point;
+    }
+    dist += font_math_dist(prev, e);
+    return dist;
   }
   }
   diag_crash();

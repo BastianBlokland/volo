@@ -49,4 +49,10 @@ const AssetFontGlyph* asset_font_lookup_unicode(const AssetFontComp*, u32 unicod
  * NOTE: t is a 'time' on the segment where 0 is the start and 1 is the end.
  * Pre-condition: index < font.segmentCount
  */
-AssetFontPoint asset_font_sample_segment(const AssetFontComp*, usize index, f32 t);
+AssetFontPoint asset_font_seg_sample(const AssetFontComp*, usize index, f32 t);
+
+/**
+ * Calculate the length of a segment.
+ * Pre-condition: index < font.segmentCount
+ */
+f32 asset_font_seg_length(const AssetFontComp* font, usize index);
