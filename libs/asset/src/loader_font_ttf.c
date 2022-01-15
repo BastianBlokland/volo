@@ -3,6 +3,7 @@
 #include "core_array.h"
 #include "core_bits.h"
 #include "core_dynarray.h"
+#include "core_math.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 
@@ -21,6 +22,8 @@
 #define ttf_magic 0x5F0F3CF5
 #define ttf_max_tables 32
 #define ttf_max_encodings 16
+#define ttf_max_contours_per_glyph 128
+#define ttf_max_points_per_glyph 256
 
 typedef struct {
   String tag;
@@ -96,11 +99,19 @@ typedef struct {
   void** rangeData;  // void*[segCount]
 } TtfCmapFormat4Header;
 
+typedef struct {
+  i16 numContours;
+  i16 minX, minY;
+  i16 maxX, maxY;
+} TtfGlyphHeader;
+
 typedef enum {
   TtfError_None = 0,
   TtfError_Malformed,
   TtfError_TooManyTables,
   TtfError_TooManyEncodings,
+  TtfError_TooManyContours,
+  TtfError_TooManyPoints,
   TtfError_UnsupportedSfntVersion,
   TtfError_UnalignedTable,
   TtfError_TableChecksumFailed,
@@ -117,6 +128,10 @@ typedef enum {
   TtfError_LocaTableMissingGlyphs,
   TtfError_LocaTableGlyphOutOfBounds,
   TtfError_GlyfTableMissing,
+  TtfError_GlyfTableEntryHeaderMalformed,
+  TtfError_GlyfTableEntryPointsMalformed,
+  TtfError_GlyfTableEntryMalformed,
+  TtfError_CompositeGlyphsNotSupported,
 
   TtfError_Count,
 } TtfError;
@@ -127,6 +142,8 @@ static String ttf_error_str(TtfError res) {
       string_static("Malformed TrueType font-data"),
       string_static("TrueType font contains more tables then are supported"),
       string_static("TrueType font contains more encodings then are supported"),
+      string_static("TrueType glyph contains more contours then are supported"),
+      string_static("TrueType glyph contains more points then are supported"),
       string_static("Unsupported sfntVersion: Only TrueType outlines are supported"),
       string_static("Unaligned TrueType table"),
       string_static("TrueType table checksum failed"),
@@ -143,6 +160,10 @@ static String ttf_error_str(TtfError res) {
       string_static("TrueType loca table does not contain locations for all glyphs"),
       string_static("TrueType loca table specifies out-of-bounds glyph data"),
       string_static("TrueType glyf table missing"),
+      string_static("TrueType glyf table entry header malformed"),
+      string_static("TrueType glyf table entry points malformed"),
+      string_static("TrueType glyf table entry malformed"),
+      string_static("TrueType composite glyphs are not supported"),
 
   };
   ASSERT(array_elems(msgs) == TtfError_Count, "Incorrect number of ttf-error messages");
@@ -261,6 +282,7 @@ ttf_read_head_table(const TtfOffsetTable* offsetTable, TtfHeadTable* out, TtfErr
   data = mem_consume_be_u16(data, (u16*)&out->fontDirectionHint);
   data = mem_consume_be_u16(data, (u16*)&out->indexToLocFormat);
   data = mem_consume_be_u16(data, (u16*)&out->glyphDataFormat);
+  *err = TtfError_None;
 }
 
 static void
@@ -291,6 +313,7 @@ ttf_read_maxp_table(const TtfOffsetTable* offsetTable, TtfMaxpTable* out, TtfErr
   data = mem_consume_be_u16(data, &out->maxSizeOfInstructions);
   data = mem_consume_be_u16(data, &out->maxComponentElements);
   data = mem_consume_be_u16(data, &out->maxComponentDepth);
+  *err = TtfError_None;
 }
 
 static void
@@ -527,6 +550,178 @@ static void ttf_read_glyph_locations(
   *err = TtfError_None;
 }
 
+static Mem ttf_read_glyph_header(Mem data, TtfGlyphHeader* out, TtfError* err) {
+  if (UNLIKELY(data.size < 10)) {
+    *err = TtfError_GlyfTableEntryHeaderMalformed;
+    return data;
+  }
+  /**
+   * NOTE: For signed values we assume the host system is using 2's complement integers.
+   */
+  *out = (TtfGlyphHeader){0};
+  data = mem_consume_be_u16(data, (u16*)&out->numContours);
+  data = mem_consume_be_u16(data, (u16*)&out->minX);
+  data = mem_consume_be_u16(data, (u16*)&out->minY);
+  data = mem_consume_be_u16(data, (u16*)&out->maxX);
+  data = mem_consume_be_u16(data, (u16*)&out->maxY);
+  *err = TtfError_None;
+  return data;
+}
+
+static Mem ttf_read_glyph_flags(Mem data, const usize count, u8* out, TtfError* err) {
+  for (usize i = 0; i != count;) {
+    if (UNLIKELY(!data.size)) {
+      *err = TtfError_GlyfTableEntryMalformed;
+      return data;
+    }
+    u8 flag;
+    data           = mem_consume_u8(data, &flag);
+    u8 repeatCount = 0;
+    if (flag & 0x08) {
+      data = mem_consume_u8(data, &repeatCount);
+      if (UNLIKELY(!repeatCount)) {
+        *err = TtfError_GlyfTableEntryMalformed;
+        return data;
+      }
+    }
+    out[i++] = flag;
+    while (repeatCount--) {
+      out[i++] = flag;
+    }
+  }
+  *err = TtfError_None;
+  return data;
+}
+
+static Mem ttf_read_glyph_points(
+    Mem                   data,
+    const TtfGlyphHeader* header,
+    const u8*             flags,
+    const usize           count,
+    AssetFontPoint*       out,
+    TtfError*             err) {
+
+  // Read the x coordinates for all points.
+  i32 xPos = 0;
+  for (usize i = 0; i != count; ++i) {
+    if (flags[i] & 0x02) {
+      if (UNLIKELY(!data.size)) {
+        *err = TtfError_GlyfTableEntryPointsMalformed;
+        return data;
+      }
+      u8 offset;
+      data = mem_consume_u8(data, &offset);
+      xPos += offset * (flags[i] & 0x10 ? 1 : -1);
+    } else {
+      if (UNLIKELY(data.size < 2)) {
+        *err = TtfError_GlyfTableEntryPointsMalformed;
+        return data;
+      }
+      i16 offset = 0;
+      if (!(flags[i] & 0x10)) {
+        data = mem_consume_be_u16(data, (u16*)&offset);
+      }
+      xPos += offset;
+    }
+    out[i].x = math_unlerp((f32)header->minX, (f32)header->maxX, (f32)xPos);
+  }
+
+  // Read the y coordinates for all points.
+  i32 yPos = 0;
+  for (usize i = 0; i != count; ++i) {
+    if (flags[i] & 0x04) {
+      if (UNLIKELY(!data.size)) {
+        *err = TtfError_GlyfTableEntryPointsMalformed;
+        return data;
+      }
+      u8 offset;
+      data = mem_consume_u8(data, &offset);
+      yPos += offset * (flags[i] & 0x20 ? 1 : -1);
+    } else {
+      i16 offset = 0;
+      if (!(flags[i] & 0x20)) {
+        if (UNLIKELY(data.size < 2)) {
+          *err = TtfError_GlyfTableEntryPointsMalformed;
+          return data;
+        }
+        data = mem_consume_be_u16(data, (u16*)&offset);
+      }
+      yPos += offset;
+    }
+    out[i].y = math_unlerp((f32)header->minY, (f32)header->maxY, (f32)yPos);
+  }
+
+  *err = TtfError_None;
+  return data;
+}
+
+static void ttf_read_glyph(Mem data, TtfError* err) {
+  TtfGlyphHeader header;
+  data = ttf_read_glyph_header(data, &header, err);
+  if (UNLIKELY(*err)) {
+    return;
+  }
+  if (UNLIKELY(header.numContours == 0)) {
+    *err = TtfError_None; // Glyphs with no contours are valid, for example a space character glyph.
+    return;
+  }
+  if (UNLIKELY(header.numContours < 0)) {
+    *err = TtfError_CompositeGlyphsNotSupported;
+    return;
+  }
+  if (UNLIKELY(header.numContours > ttf_max_contours_per_glyph)) {
+    *err = TtfError_TooManyContours;
+    return;
+  }
+
+  // Read contour data.
+  if (UNLIKELY(data.size < (usize)header.numContours * 2)) {
+    *err = TtfError_GlyfTableEntryMalformed;
+    return;
+  }
+  u16* contourEndpoints = mem_stack(sizeof(u16) * header.numContours).ptr;
+  for (usize i = 0; i != (usize)header.numContours; ++i) {
+    data = mem_consume_be_u16(data, &contourEndpoints[i]);
+    ++contourEndpoints[i]; // +1 because 'end' meaning one past the last is more idiomatic.
+  }
+
+  // Skip over ttf instruction byte code for hinting, we do not support it.
+  if (UNLIKELY(data.size < 2)) {
+    *err = TtfError_GlyfTableEntryMalformed;
+    return;
+  }
+  u16 instructionsLength;
+  data = mem_consume_be_u16(data, &instructionsLength);
+  if (UNLIKELY(data.size < instructionsLength)) {
+    *err = TtfError_GlyfTableEntryMalformed;
+    return;
+  }
+  data = mem_consume(data, instructionsLength);
+
+  // Lookup the amount of points in this glyph.
+  const usize numPoints = contourEndpoints[header.numContours - 1];
+  if (UNLIKELY(numPoints > ttf_max_points_per_glyph)) {
+    *err = TtfError_TooManyPoints;
+    return;
+  }
+
+  // Read flags.
+  u8* flags = mem_stack(numPoints).ptr;
+  data      = ttf_read_glyph_flags(data, numPoints, flags, err);
+  if (UNLIKELY(*err)) {
+    return;
+  }
+
+  // Read points.
+  AssetFontPoint* points = mem_stack(sizeof(AssetFontPoint) * numPoints).ptr;
+  data                   = ttf_read_glyph_points(data, &header, flags, numPoints, points, err);
+  if (UNLIKELY(*err)) {
+    return;
+  }
+
+  *err = TtfError_None;
+}
+
 /**
  * Calculate the checksum of the input data.
  * Both offset and length have to be aligned to a 4 byte boundary.
@@ -630,6 +825,16 @@ void asset_load_ttf(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
   if (err) {
     ttf_load_fail(world, assetEntity, err);
     goto End;
+  }
+  for (usize glyphIndex = 0; glyphIndex != maxpTable.numGlyphs; ++glyphIndex) {
+    if (!glyphDataLocations[glyphIndex].size) {
+      continue; // Glyphs without data are valid, for example a space character glyph.
+    }
+    ttf_read_glyph(glyphDataLocations[glyphIndex], &err);
+    if (err) {
+      ttf_load_fail(world, assetEntity, err);
+      goto End;
+    }
   }
 
   AssetFontComp* result = ecs_world_add_t(world, assetEntity, AssetFontComp);

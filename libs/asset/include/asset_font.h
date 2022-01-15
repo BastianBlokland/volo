@@ -6,6 +6,13 @@ typedef struct {
   u32 glyphIndex;
 } AssetFontCodepoint;
 
+typedef union {
+  struct {
+    f32 x, y;
+  };
+  f32 comps[2];
+} AssetFontPoint;
+
 ecs_comp_extern_public(AssetFontComp) {
   struct {
     AssetFontCodepoint* values; // Sorted on the unicode value.
