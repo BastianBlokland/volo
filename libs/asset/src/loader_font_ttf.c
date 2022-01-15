@@ -402,7 +402,7 @@ static void ttf_read_codepoints_format4(
     TtfError*           err) {
   TtfCmapFormat4Header header;
   ttf_read_cmap_format4_header(data, &header, err);
-  if (*err) {
+  if (UNLIKELY(*err)) {
     return;
   }
 
@@ -756,6 +756,19 @@ static void ttf_validate(const TtfOffsetTable* offsetTable, TtfError* err) {
   *err = TtfError_None;
 }
 
+static void ttf_load_succeed(EcsWorld* world, const EcsEntityId assetEntity, DynArray* codepoints) {
+  AssetFontComp* result = ecs_world_add_t(world, assetEntity, AssetFontComp);
+
+  // Copy the codepoints to the component.
+  result->codepoints.count  = codepoints->size;
+  result->codepoints.values = alloc_array_t(g_alloc_heap, AssetFontCodepoint, codepoints->size);
+  mem_cpy(
+      mem_from_to(result->codepoints.values, result->codepoints.values + codepoints->size),
+      dynarray_at(codepoints, 0, codepoints->size));
+
+  ecs_world_add_empty_t(world, assetEntity, AssetLoadedComp);
+}
+
 static void ttf_load_fail(EcsWorld* world, const EcsEntityId assetEntity, const TtfError err) {
   log_e("Failed to parse TrueType font", log_param("error", fmt_text(ttf_error_str(err))));
   ecs_world_add_empty_t(world, assetEntity, AssetFailedComp);
@@ -820,6 +833,8 @@ void asset_load_ttf(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
     ttf_load_fail(world, assetEntity, TtfError_NoCodePoints);
     goto End;
   }
+  dynarray_sort(&codepoints, asset_font_compare_codepoint); // Sort on the unicode value.
+
   glyphDataLocations = alloc_array_t(g_alloc_heap, Mem, maxpTable.numGlyphs);
   ttf_read_glyph_locations(&offsetTable, &maxpTable, &headTable, glyphDataLocations, &err);
   if (err) {
@@ -836,18 +851,7 @@ void asset_load_ttf(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
       goto End;
     }
   }
-
-  AssetFontComp* result = ecs_world_add_t(world, assetEntity, AssetFontComp);
-
-  // Copy the codepoints to the component.
-  result->codepoints.count  = codepoints.size;
-  result->codepoints.values = alloc_array_t(g_alloc_heap, AssetFontCodepoint, codepoints.size);
-  dynarray_sort(&codepoints, asset_font_compare_codepoint); // Sort on the unicode value.
-  mem_cpy(
-      mem_from_to(result->codepoints.values, result->codepoints.values + codepoints.size),
-      dynarray_at(&codepoints, 0, codepoints.size));
-
-  ecs_world_add_empty_t(world, assetEntity, AssetLoadedComp);
+  ttf_load_succeed(world, assetEntity, &codepoints);
 
 End:
   if (glyphDataLocations) {
