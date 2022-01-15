@@ -17,10 +17,10 @@ bind_instance_data(0) readonly uniform Instance { PointData u_instance; };
 bind_internal(0) out f32_vec4 out_color;
 
 void main() {
-  const u32      pointIndex = gl_VertexIndex;
+  const u32      pointIndex = in_vertexIndex;
   const f32_vec2 point      = u_instance.points[pointIndex].xy;
 
-  gl_Position  = ui_to_ndc(point);
-  gl_PointSize = s_pointSize;
-  out_color    = color_red;
+  out_vertexPosition = ui_to_ndc(point);
+  out_pointSize      = s_pointSize;
+  out_color          = color_red;
 }

@@ -28,13 +28,13 @@ void main() {
   const i32 halfSegments = segments / 2;
 
   // First half of the vertices we draw horizontal lines and the other half vertical lines.
-  const bool isHorizontal = gl_VertexIndex < segments * 2;
+  const bool isHorizontal = in_vertexIndex < segments * 2;
 
   // From -halfSegments to +halfSegments increasing by one every 2 vertices.
-  const i32 a = ((gl_VertexIndex / 2) % segments) - halfSegments;
+  const i32 a = ((in_vertexIndex / 2) % segments) - halfSegments;
 
   // Every vertex ping-pong between -halfSegments and + halfSegments.
-  const i32 b = (gl_VertexIndex & 1) * segments - halfSegments;
+  const i32 b = (in_vertexIndex & 1) * segments - halfSegments;
 
   const f32 x      = (centerX + (isHorizontal ? b : a)) * u_instance.cellSize;
   const f32 z      = (centerZ + (isHorizontal ? a : b)) * u_instance.cellSize;
@@ -45,5 +45,5 @@ void main() {
       (abs((isHorizontal ? centerZ : centerX) + a) % u_instance.highlightInterval) == 0;
   out_color = isHighlight ? c_colorHighlight : c_colorNormal;
 
-  gl_Position = u_global.viewProj * f32_vec4(x, f32(isHighlight) * 0.01, z, 1);
+  out_vertexPosition = u_global.viewProj * f32_vec4(x, f32(isHighlight) * 0.01, z, 1);
 }

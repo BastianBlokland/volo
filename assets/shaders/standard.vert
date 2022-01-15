@@ -21,18 +21,18 @@ bind_internal(1) out f32_vec4 out_tangent;
 bind_internal(2) out f32_vec2 out_texcoord;
 
 void main() {
-  const Vertex vert = vert_unpack(u_vertices[gl_VertexIndex]);
+  const Vertex vert = vert_unpack(u_vertices[in_vertexIndex]);
 
   const f32_vec3 offset  = f32_vec3(s_offsetX, s_offsetY, s_offsetZ);
   const f32_vec3 meshPos = vert.position * s_scale + offset;
 
-  const f32_vec3 instancePos  = u_instances[gl_InstanceIndex].position.xyz;
-  const f32_vec4 instanceQuat = u_instances[gl_InstanceIndex].rotation;
+  const f32_vec3 instancePos  = u_instances[in_instanceIndex].position.xyz;
+  const f32_vec4 instanceQuat = u_instances[in_instanceIndex].rotation;
 
   const f32_vec3 worldPos = quat_rotate(instanceQuat, meshPos) + instancePos;
 
-  gl_Position  = u_global.viewProj * f32_vec4(worldPos, 1);
-  out_normal   = quat_rotate(instanceQuat, vert.normal);
-  out_tangent  = f32_vec4(quat_rotate(instanceQuat, vert.tangent.xyz), vert.tangent.w);
-  out_texcoord = vert.texcoord;
+  out_vertexPosition = u_global.viewProj * f32_vec4(worldPos, 1);
+  out_normal         = quat_rotate(instanceQuat, vert.normal);
+  out_tangent        = f32_vec4(quat_rotate(instanceQuat, vert.tangent.xyz), vert.tangent.w);
+  out_texcoord       = vert.texcoord;
 }
