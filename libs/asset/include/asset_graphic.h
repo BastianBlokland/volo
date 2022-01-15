@@ -6,6 +6,7 @@ typedef enum {
   AssetGraphicTopology_Triangles, // Separate triangles with 3 vertices.
   AssetGraphicTopology_Lines,     // Separate lines with 2 vertices.
   AssetGraphicTopology_LineStrip, // Form lines between all vertices.
+  AssetGraphicTopology_Points,    // Every vertex is a treated as a point.
 
   AssetGraphicTopology_Count,
 } AssetGraphicTopology;
