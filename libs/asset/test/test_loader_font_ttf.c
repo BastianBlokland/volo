@@ -100,10 +100,48 @@ spec(loader_font_ttf) {
       asset_test_wait(runner);
 
       check_require(ecs_world_has_t(world, asset, AssetLoadedComp));
-      const AssetFontComp* font = ecs_utils_read_t(world, AssetView, asset, AssetFontComp);
+      const AssetFontComp*  font  = ecs_utils_read_t(world, AssetView, asset, AssetFontComp);
+      const AssetFontGlyph* glyph = asset_font_lookup_unicode(font, 0x31); // 'digit one'.
 
-      check_require(font->codepoints.count == 1);
-      check_eq_int(font->codepoints.values[0].unicode, 0x31); // 'digit one' glyph.
+      /**
+       * Glyph is a box consisting of 4 points and 4 lines connecting the edges of the box.
+       */
+
+      check_require(glyph->segmentCount == 4);
+
+      check(font->segments[glyph->segmentIndex + 0].type == AssetFontSegment_Line);
+      const u32 seg1P1 = font->segments[glyph->segmentIndex + 0].pointIndex + 0;
+      const u32 seg1P2 = font->segments[glyph->segmentIndex + 0].pointIndex + 1;
+
+      check(font->segments[glyph->segmentIndex + 1].type == AssetFontSegment_Line);
+      const u32 seg2P1 = font->segments[glyph->segmentIndex + 1].pointIndex + 0;
+      const u32 seg2P2 = font->segments[glyph->segmentIndex + 1].pointIndex + 1;
+
+      check(font->segments[glyph->segmentIndex + 2].type == AssetFontSegment_Line);
+      const u32 seg3P1 = font->segments[glyph->segmentIndex + 2].pointIndex + 0;
+      const u32 seg3P2 = font->segments[glyph->segmentIndex + 2].pointIndex + 1;
+
+      check(font->segments[glyph->segmentIndex + 3].type == AssetFontSegment_Line);
+      const u32 seg4P1 = font->segments[glyph->segmentIndex + 3].pointIndex + 0;
+      const u32 seg4P2 = font->segments[glyph->segmentIndex + 3].pointIndex + 1;
+
+      check_eq_int(seg1P1, seg1P2 - 1);
+      check_eq_int(seg1P2, seg2P1);
+      check_eq_int(seg2P2, seg3P1);
+      check_eq_int(seg3P2, seg4P1);
+      check_eq_int(seg4P2, seg4P1 + 1);
+
+      check_eq_float(font->points[seg1P1].x, 0, 1e-6);
+      check_eq_float(font->points[seg1P1].y, 0, 1e-6);
+
+      check_eq_float(font->points[seg2P1].x, 0, 1e-6);
+      check_eq_float(font->points[seg2P1].y, 1, 1e-6);
+
+      check_eq_float(font->points[seg3P1].x, 1, 1e-6);
+      check_eq_float(font->points[seg3P1].y, 1, 1e-6);
+
+      check_eq_float(font->points[seg4P1].x, 1, 1e-6);
+      check_eq_float(font->points[seg4P1].y, 0, 1e-6);
     }
 
     array_for_t(records, AssetMemRecord, rec) { string_free(g_alloc_heap, rec->data); }
