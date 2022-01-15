@@ -196,3 +196,8 @@ void* dynarray_search_binary(DynArray*, CompareFunc, const void* target);
  * Shuffle the array using the given RandomNumberGenerator.
  */
 void dynarray_shuffle(DynArray*, Rng*);
+
+/**
+ * Allocate a new array and copy this DynArray's contents into it.
+ */
+void* dynarray_copy_as_new(const DynArray*, Allocator*);

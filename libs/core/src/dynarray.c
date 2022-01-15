@@ -163,3 +163,10 @@ void dynarray_shuffle(DynArray* array, Rng* rng) {
   const Mem mem = dynarray_at(array, 0, array->size);
   shuffle_fisheryates(rng, mem_begin(mem), mem_end(mem), array->stride);
 }
+
+void* dynarray_copy_as_new(const DynArray* array, Allocator* alloc) {
+  const Mem arrayMem = dynarray_at(array, 0, array->size);
+  const Mem newMem   = alloc_alloc(alloc, arrayMem.size, array->align);
+  mem_cpy(newMem, arrayMem);
+  return newMem.ptr;
+}
