@@ -219,7 +219,7 @@ ecs_system_define(AppSetRotationSys) {
   }
 }
 
-ecs_module_init(app_cube_module) {
+ecs_module_init(app_pedestal_module) {
   ecs_register_comp(AppComp);
   ecs_register_comp_empty(SubjectComp);
 
@@ -239,7 +239,7 @@ static int app_run(const String assetPath) {
       log_param("pid", fmt_int(g_thread_pid)));
 
   EcsDef* def = def = ecs_def_create(g_alloc_heap);
-  ecs_register_module(def, app_cube_module);
+  ecs_register_module(def, app_pedestal_module);
   asset_register(def);
   gap_register(def);
   rend_register(def);
