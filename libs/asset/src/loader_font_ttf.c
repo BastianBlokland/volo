@@ -442,21 +442,21 @@ static void ttf_read_codepoints_format4(
        * There are two different ways of mapping segments to glyphs, either a direct mapping (with
        * an offset) or a lookup table.
        */
-      if (!rangeData) {
-        // Directly map a code-point to a glyph (with a offset named 'delta').
-        const u16 glyphIndex = (code + delta) % 65536;
-        if (LIKELY(glyphIndex < maxpTable->numGlyphs)) {
-          *dynarray_push_t(out, AssetFontCodepoint) = (AssetFontCodepoint){code, glyphIndex};
-        }
-      } else {
+      if (rangeData) {
         // Read the glyph-id from a lookup table.
-        const Mem glyphIndexMem = mem_create(rangeData, 2);
-        if (UNLIKELY(mem_end(glyphIndexMem) >= mem_end(data))) {
+        const Mem glyphIndexMem = mem_create(bits_ptr_offset(rangeData, (code - startCode) * 2), 2);
+        if (UNLIKELY(mem_end(glyphIndexMem) > mem_end(data))) {
           *err = TtfError_CmapFormat4EncodingMalformed;
           goto End;
         }
         u16 glyphIndex;
         mem_consume_be_u16(glyphIndexMem, &glyphIndex);
+        if (LIKELY(glyphIndex < maxpTable->numGlyphs)) {
+          *dynarray_push_t(out, AssetFontCodepoint) = (AssetFontCodepoint){code, glyphIndex};
+        }
+      } else {
+        // Directly map a code-point to a glyph (with a offset named 'delta').
+        const u16 glyphIndex = (code + delta) % u16_lit(65536);
         if (LIKELY(glyphIndex < maxpTable->numGlyphs)) {
           *dynarray_push_t(out, AssetFontCodepoint) = (AssetFontCodepoint){code, glyphIndex};
         }
