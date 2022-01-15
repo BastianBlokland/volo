@@ -131,16 +131,16 @@ spec(loader_font_ttf) {
       check_eq_int(seg3P2, seg4P1);
       check_eq_int(seg4P2, seg4P1 + 1);
 
-      check_eq_float(font->points[seg1P1].x, 0, 1e-6);
+      check_eq_float(font->points[seg1P1].x, 0.4765625f, 1e-6);
       check_eq_float(font->points[seg1P1].y, 0, 1e-6);
 
-      check_eq_float(font->points[seg2P1].x, 0, 1e-6);
+      check_eq_float(font->points[seg2P1].x, 0.4765625f, 1e-6);
       check_eq_float(font->points[seg2P1].y, 1, 1e-6);
 
-      check_eq_float(font->points[seg3P1].x, 1, 1e-6);
+      check_eq_float(font->points[seg3P1].x, 0.5234375, 1e-6);
       check_eq_float(font->points[seg3P1].y, 1, 1e-6);
 
-      check_eq_float(font->points[seg4P1].x, 1, 1e-6);
+      check_eq_float(font->points[seg4P1].x, 0.5234375, 1e-6);
       check_eq_float(font->points[seg4P1].y, 0, 1e-6);
     }
 
