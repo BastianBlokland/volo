@@ -1,12 +1,17 @@
 {
   "shaders": [
     {
-      "shaderId": "shaders/ui_lines.vert.spv",
+      "shaderId": "shaders/ui_points.vert.spv",
       "overrides": [
         {
-          "name": "maxLines",
+          "name": "maxPoints",
           "binding": 0,
           "value": 512
+        },
+        {
+          "name": "pointSize",
+          "binding": 1,
+          "value": 8
         }
       ]
     },
@@ -15,10 +20,9 @@
     }
   ],
   "vertexCount": 0,
-  "renderOrder": 100,
-  "topology": "Lines",
-  "lineWidth": 4,
-  "rasterizer": "Lines",
+  "renderOrder": 101,
+  "topology": "Points",
+  "rasterizer": "Points",
   "blend": "None",
   "depth": "Always",
   "cull": "None"
