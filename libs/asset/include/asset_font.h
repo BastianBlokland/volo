@@ -29,26 +29,18 @@ typedef struct {
 } AssetFontGlyph;
 
 ecs_comp_extern_public(AssetFontComp) {
-  struct {
-    AssetFontCodepoint* values; // Sorted on the unicode value.
-    usize               count;
-  } codepoints;
-  struct {
-    AssetFontPoint* values;
-    usize           count;
-  } points;
-  struct {
-    AssetFontSegment* values;
-    usize             count;
-  } segments;
-  struct {
-    AssetFontGlyph* values;
-    usize           count;
-  } glyphs;
+  AssetFontCodepoint* codepoints; // Sorted on the unicode value.
+  usize               codepointCount;
+  AssetFontPoint*     points;
+  usize               pointCount;
+  AssetFontSegment*   segments;
+  usize               segmentCount;
+  AssetFontGlyph*     glyphs;
+  usize               glyphCount;
 };
 
 /**
- * Compare two AssetFontCodepoint's.
- * Signature is compatible with the 'CompareFunc' from 'core_compare.h'.
+ * Find a glyph based on an unicode value.
+ * NOTE: Returns null if the font does not contain a glyph for the given value.
  */
-i8 asset_font_compare_codepoint(const void* a, const void* b);
+const AssetFontGlyph* asset_font_lookup_unicode(const AssetFontComp*, u32 unicode);

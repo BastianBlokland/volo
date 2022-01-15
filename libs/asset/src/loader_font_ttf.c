@@ -1,4 +1,3 @@
-#include "asset_font.h"
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_bits.h"
@@ -7,6 +6,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 
+#include "loader_font_internal.h"
 #include "repo_internal.h"
 
 /**
@@ -896,20 +896,20 @@ static void ttf_load_succeed(
   AssetFontComp* result = ecs_world_add_t(world, assetEntity, AssetFontComp);
 
   // Copy the codepoints to the component.
-  result->codepoints.count  = codepoints->size;
-  result->codepoints.values = dynarray_copy_as_new(codepoints, g_alloc_heap);
+  result->codepoints     = dynarray_copy_as_new(codepoints, g_alloc_heap);
+  result->codepointCount = codepoints->size;
 
   // Copy the points to the component.
-  result->points.count  = points->size;
-  result->points.values = dynarray_copy_as_new(points, g_alloc_heap);
+  result->points     = dynarray_copy_as_new(points, g_alloc_heap);
+  result->pointCount = points->size;
 
   // Copy the segments to the component.
-  result->segments.count  = segments->size;
-  result->segments.values = dynarray_copy_as_new(segments, g_alloc_heap);
+  result->segments     = dynarray_copy_as_new(segments, g_alloc_heap);
+  result->segmentCount = segments->size;
 
   // Move the glyphs to the component.
-  result->glyphs.values = glyphs;
-  result->glyphs.count  = glyphCount;
+  result->glyphs     = glyphs;
+  result->glyphCount = glyphCount;
 }
 
 static void ttf_load_fail(EcsWorld* world, const EcsEntityId assetEntity, const TtfError err) {
