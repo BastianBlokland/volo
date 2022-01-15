@@ -37,7 +37,7 @@ static void app_render_ui(
 
   const AssetFontGlyph* glyph = asset_font_lookup_unicode(font, app->unicode);
 
-  GeoVector* lines = scene_renderable_unique_data_alloc(lineRenderer, sizeof(GeoVector) * 512).ptr;
+  GeoVector* lines     = scene_renderable_unique_data(lineRenderer, sizeof(GeoVector) * 512).ptr;
   u32        lineCount = 0;
   f32        offsetX   = 0.25f;
   f32        offsetY   = 0.25f;

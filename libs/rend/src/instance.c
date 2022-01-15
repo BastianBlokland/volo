@@ -104,9 +104,9 @@ ecs_system_define(RendInstanceFillUniqueDrawsSys) {
     drawComp->vertexCountOverride = renderableComp->vertexCountOverride;
 
     // Set instance data.
-    const Mem instanceData     = scene_renderable_unique_data(renderableComp);
-    drawComp->instances.stride = (u16)math_max(instanceData.size, 16);
-    mem_cpy(dynarray_push(&drawComp->instances, 1), instanceData);
+    const Mem data = mem_slice(renderableComp->instDataMem, 0, renderableComp->instDataSize);
+    drawComp->instances.stride = (u16)math_max(data.size, 16);
+    mem_cpy(dynarray_push(&drawComp->instances, 1), data);
   }
 }
 
