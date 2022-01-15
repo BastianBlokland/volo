@@ -109,6 +109,8 @@ typedef struct {
   i16 numContours;
   i16 minX, minY;
   i16 maxX, maxY;
+  f32 offsetX, offsetY;
+  f32 scale;
 } TtfGlyphHeader;
 
 typedef enum {
@@ -586,6 +588,17 @@ static Mem ttf_read_glyph_header(Mem data, TtfGlyphHeader* out, TtfError* err) {
   data = mem_consume_be_u16(data, (u16*)&out->minY);
   data = mem_consume_be_u16(data, (u16*)&out->maxX);
   data = mem_consume_be_u16(data, (u16*)&out->maxY);
+
+  /**
+   * Calculate offsets and scales to normalize and center the points in the glyph.
+   */
+  const u16 width  = out->maxX - out->minX;
+  const u16 height = out->maxY - out->minY;
+  const u16 size   = math_max(width, height);
+  out->offsetX     = -out->minX + size * 0.5f - width * 0.5f;
+  out->offsetY     = -out->minY + size * 0.5f - height * 0.5f;
+  out->scale       = size ? 1.0f / size : 0.0f;
+
   *err = TtfError_None;
   return data;
 }
@@ -645,7 +658,7 @@ static Mem ttf_read_glyph_points(
       }
       xPos += offset;
     }
-    out[i].x = math_unlerp((f32)header->minX, (f32)header->maxX, (f32)xPos);
+    out[i].x = (xPos + (f32)header->offsetX) * header->scale;
   }
 
   // Read the y coordinates for all points.
@@ -670,7 +683,7 @@ static Mem ttf_read_glyph_points(
       }
       yPos += offset;
     }
-    out[i].y = math_unlerp((f32)header->minY, (f32)header->maxY, (f32)yPos);
+    out[i].y = (yPos + (f32)header->offsetY) * header->scale;
   }
 
   *err = TtfError_None;

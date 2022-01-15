@@ -73,7 +73,10 @@ static void app_render_ui(
   pointRenderer->vertexCountOverride = pointCount;
 
   MAYBE_UNUSED const TimeDuration duration = time_steady_duration(startTime, time_steady_clock());
-  log_d("Ui updated", log_param("duration", fmt_duration(duration)));
+  log_d(
+      "Ui updated",
+      log_param("unicode", fmt_int(app->unicode)),
+      log_param("duration", fmt_duration(duration)));
 }
 
 ecs_system_define(AppUpdateSys) {
