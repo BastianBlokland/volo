@@ -101,18 +101,18 @@ static void camera_update_move(
   const GeoVector up      = geo_quat_rotate(trans->rotation, geo_up);
   const GeoVector forward = geo_quat_rotate(trans->rotation, geo_forward);
 
-  if (gap_window_key_down(win, GapKey_W) || gap_window_key_down(win, GapKey_ArrowUp)) {
+  if (gap_window_key_down(win, GapKey_W)) {
     const GeoVector dir = cam->flags & SceneCameraFlags_Orthographic ? up : forward;
     trans->position     = geo_vector_add(trans->position, geo_vector_mul(dir, posDelta));
   }
-  if (gap_window_key_down(win, GapKey_S) || gap_window_key_down(win, GapKey_ArrowDown)) {
+  if (gap_window_key_down(win, GapKey_S)) {
     const GeoVector dir = cam->flags & SceneCameraFlags_Orthographic ? up : forward;
     trans->position     = geo_vector_sub(trans->position, geo_vector_mul(dir, posDelta));
   }
-  if (gap_window_key_down(win, GapKey_D) || gap_window_key_down(win, GapKey_ArrowRight)) {
+  if (gap_window_key_down(win, GapKey_D)) {
     trans->position = geo_vector_add(trans->position, geo_vector_mul(right, posDelta));
   }
-  if (gap_window_key_down(win, GapKey_A) || gap_window_key_down(win, GapKey_ArrowLeft)) {
+  if (gap_window_key_down(win, GapKey_A)) {
     trans->position = geo_vector_sub(trans->position, geo_vector_mul(right, posDelta));
   }
 }
