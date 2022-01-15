@@ -23,8 +23,13 @@
 #define ttf_supported_sfnt_version 0x10000
 #define ttf_max_tables 32
 #define ttf_max_encodings 16
+#define ttf_max_glyphs 15000
 #define ttf_max_contours_per_glyph 128
-#define ttf_max_points_per_glyph 256
+#define ttf_max_points_per_glyph 512
+
+ASSERT(
+    ttf_max_glyphs* ttf_max_points_per_glyph < u32_max,
+    "Points should be safely indexable using 32 bits");
 
 typedef struct {
   String tag;
@@ -121,6 +126,7 @@ typedef enum {
   TtfError_Malformed,
   TtfError_TooManyTables,
   TtfError_TooManyEncodings,
+  TtfError_TooManyGlyphs,
   TtfError_TooManyContours,
   TtfError_TooManyPoints,
   TtfError_UnsupportedSfntVersion,
@@ -143,8 +149,8 @@ typedef enum {
   TtfError_GlyfTableMissing,
   TtfError_GlyfTableEntryHeaderMalformed,
   TtfError_GlyfTableEntryPointsMalformed,
+  TtfError_GlyfTableEntryContourMalformed,
   TtfError_GlyfTableEntryMalformed,
-  TtfError_CompositeGlyphsNotSupported,
 
   TtfError_Count,
 } TtfError;
@@ -155,6 +161,7 @@ static String ttf_error_str(TtfError res) {
       string_static("Malformed TrueType font-data"),
       string_static("TrueType font contains more tables then are supported"),
       string_static("TrueType font contains more encodings then are supported"),
+      string_static("TrueType font contains more glyphs then are supported"),
       string_static("TrueType glyph contains more contours then are supported"),
       string_static("TrueType glyph contains more points then are supported"),
       string_static("Unsupported sfntVersion: Only TrueType outlines are supported"),
@@ -177,8 +184,8 @@ static String ttf_error_str(TtfError res) {
       string_static("TrueType glyf table missing"),
       string_static("TrueType glyf table entry header malformed"),
       string_static("TrueType glyf table entry points malformed"),
+      string_static("TrueType glyf table entry contains a malformed contour"),
       string_static("TrueType glyf table entry malformed"),
-      string_static("TrueType composite glyphs are not supported"),
 
   };
   ASSERT(array_elems(msgs) == TtfError_Count, "Incorrect number of ttf-error messages");
@@ -670,18 +677,114 @@ static Mem ttf_read_glyph_points(
   return data;
 }
 
-static void ttf_read_glyph(Mem data, TtfError* err) {
+/**
+ * Construct a glyph out of the ttf data.
+ * Decode the lines and quadratic beziers and makes all implicit points explicit.
+ */
+static void ttf_glyph_build(
+    const u16*            contourEndpoints,
+    const usize           numContours,
+    const u8*             pointFlags,
+    const AssetFontPoint* points,
+    const usize           numPoints,
+    DynArray*             outPoints,   // AssetFontPoint[], needs to be already initialized.
+    DynArray*             outSegments, // AssetFontSegment[], needs to be already initialized.
+    AssetFontGlyph*       outGlyph,
+    TtfError*             err) {
+
+  *outGlyph = (AssetFontGlyph){.segmentIndex = (u32)outSegments->size, .segmentCount = 0};
+
+  for (usize c = 0; c != numContours; ++c) {
+    const usize start = c ? contourEndpoints[c - 1U] : 0;
+    const usize end   = contourEndpoints[c];
+    if (UNLIKELY((end - start) < 2)) {
+      // Not enough points in this contour to form a segment.
+      // TODO: Investigate how we should handle this, it does happen with fonts in the wild.
+      continue;
+    }
+    if (UNLIKELY(start > end)) {
+      *err = TtfError_GlyfTableEntryContourMalformed;
+      return;
+    }
+    if (UNLIKELY(end > numPoints)) {
+      *err = TtfError_GlyfTableEntryContourMalformed;
+      return;
+    }
+
+    *dynarray_push_t(outPoints, AssetFontPoint) = points[start];
+
+    for (usize cur = start; cur != end; ++cur) {
+      const usize next = (cur + 1) == end ? start : cur + 1; // Wraps around for the last entry.
+      const bool  curOnCurve  = (pointFlags[cur] & TtfGlyphFlags_OnCurvePoint) != 0;
+      const bool  nextOnCurve = (pointFlags[next] & TtfGlyphFlags_OnCurvePoint) != 0;
+
+      if (nextOnCurve) {
+        /**
+         * Next is a point on the curve.
+         * If the current is also on the curve then there is a straight line between them.
+         * Otherwise this point 'finishes' the previous curve.
+         */
+        if (curOnCurve) {
+          *dynarray_push_t(outSegments, AssetFontSegment) = (AssetFontSegment){
+              .type       = AssetFontSegment_Line,
+              .pointIndex = (u32)outPoints->size - 1,
+          };
+          ++outGlyph->segmentCount;
+        }
+      } else {
+        /**
+         * Next is a control point.
+         * If the current is also a control point we synthesize the implicit 'on curve' point to
+         * finish the previous curve.
+         */
+        if (!curOnCurve) {
+          *dynarray_push_t(outPoints, AssetFontPoint) = (AssetFontPoint){
+              .x = (points[cur].x + points[next].x) * 0.5f,
+              .y = (points[cur].y + points[next].y) * 0.5f,
+          };
+        }
+        *dynarray_push_t(outSegments, AssetFontSegment) = (AssetFontSegment){
+            .type       = AssetFontSegment_QuadraticBezier,
+            .pointIndex = (u32)outPoints->size - 1,
+        };
+        ++outGlyph->segmentCount;
+
+        if (UNLIKELY(cur == end)) {
+          // Another point has to follow this one to finish the curve.
+          *err = TtfError_GlyfTableEntryContourMalformed;
+          return;
+        }
+      }
+    }
+  }
+  *err = TtfError_None;
+}
+
+static void ttf_read_glyph(
+    Mem             data,
+    const usize     glyphId,
+    DynArray*       outPoints,   // AssetFontPoint[], needs to be already initialized.
+    DynArray*       outSegments, // AssetFontSegment[], needs to be already initialized.
+    AssetFontGlyph* outGlyph,
+    TtfError*       err) {
   TtfGlyphHeader header;
   data = ttf_read_glyph_header(data, &header, err);
   if (UNLIKELY(*err)) {
     return;
   }
   if (UNLIKELY(header.numContours == 0)) {
-    *err = TtfError_None; // Glyphs with no contours are valid, for example a space character glyph.
+    // Glyphs with no contours are valid, for example a space character glyph.
+    *outGlyph = (AssetFontGlyph){.segmentCount = 0};
+    *err      = TtfError_None;
     return;
   }
   if (UNLIKELY(header.numContours < 0)) {
-    *err = TtfError_CompositeGlyphsNotSupported;
+    log_w(
+        "Skipping unsupported ttf glyph",
+        log_param("id", fmt_int(glyphId)),
+        log_param("reason", fmt_text_lit("Composite glyphs are unsupported")));
+    *outGlyph = (AssetFontGlyph){.segmentCount = 0};
+    *err      = TtfError_None;
     return;
   }
   if (UNLIKELY(header.numContours > ttf_max_contours_per_glyph)) {
@@ -734,7 +837,17 @@ static void ttf_read_glyph(Mem data, TtfError* err) {
     return;
   }
 
-  *err = TtfError_None;
+  // Output the glyph.
+  ttf_glyph_build(
+      contourEndpoints,
+      header.numContours,
+      flags,
+      points,
+      numPoints,
+      outPoints,
+      outSegments,
+      outGlyph,
+      err);
 }
 
 /**
@@ -841,10 +954,6 @@ void asset_load_ttf(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
     ttf_load_fail(world, assetEntity, TtfError_HeadTableUnsupported);
     goto End;
   }
-  if (headTable.fontDirectionHint != 2) {
-    ttf_load_fail(world, assetEntity, TtfError_HeadTableUnsupported);
-    goto End;
-  }
   TtfMaxpTable maxpTable;
   ttf_read_maxp_table(&offsetTable, &maxpTable, &err);
   if (err) {
@@ -868,6 +977,10 @@ void asset_load_ttf(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
   }
   dynarray_sort(&codepoints, asset_font_compare_codepoint); // Sort on the unicode value.
 
+  if (maxpTable.numGlyphs > ttf_max_glyphs) {
+    ttf_load_fail(world, assetEntity, TtfError_TooManyGlyphs);
+    goto End;
+  }
   glyphDataLocations = alloc_array_t(g_alloc_heap, Mem, maxpTable.numGlyphs);
   ttf_read_glyph_locations(&offsetTable, &maxpTable, &headTable, glyphDataLocations, &err);
   if (err) {
@@ -877,9 +990,12 @@ void asset_load_ttf(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
   glyphs = alloc_array_t(g_alloc_heap, AssetFontGlyph, maxpTable.numGlyphs);
   for (usize glyphIndex = 0; glyphIndex != maxpTable.numGlyphs; ++glyphIndex) {
     if (!glyphDataLocations[glyphIndex].size) {
-      continue; // Glyphs without data are valid, for example a space character glyph.
+      // Glyphs without data are valid, for example a space character glyph.
+      glyphs[glyphIndex] = (AssetFontGlyph){.segmentCount = 0};
+      continue;
     }
-    ttf_read_glyph(glyphDataLocations[glyphIndex], &err);
+    ttf_read_glyph(
+        glyphDataLocations[glyphIndex], glyphIndex, &points, &segments, &glyphs[glyphIndex], &err);
     if (err) {
       ttf_load_fail(world, assetEntity, err);
       goto End;
