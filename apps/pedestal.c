@@ -152,8 +152,13 @@ ecs_system_define(AppUpdateSys) {
       window_title_set(window, app, rendStats);
     }
 
-    if (gap_window_key_pressed(window, GapKey_Space)) {
+    if (gap_window_key_pressed(window, GapKey_ArrowRight)) {
       app->subjectIndex = (app->subjectIndex + 1) % array_elems(g_subjectGraphics);
+      app->flags |= AppFlags_Dirty;
+    }
+    if (gap_window_key_pressed(window, GapKey_ArrowLeft)) {
+      app->subjectIndex =
+          (app->subjectIndex ? app->subjectIndex : array_elems(g_subjectGraphics)) - 1;
       app->flags |= AppFlags_Dirty;
     }
     if (gap_window_key_pressed(window, GapKey_Backspace)) {
