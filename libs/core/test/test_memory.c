@@ -78,11 +78,11 @@ spec(memory) {
     check(mem_end(mem) == rawMemTail);
   }
 
-  it("can read a little-endian encoded 8bit unsigned integer") {
+  it("can read a 8bit unsigned integer") {
     const u8 val = 42;
     Mem      mem = array_mem(((u8[]){val}));
     u8       out;
-    check(mem_consume_le_u8(mem, &out).size == 0);
+    check(mem_consume_u8(mem, &out).size == 0);
     check_eq_int(out, val);
   }
 
@@ -124,14 +124,6 @@ spec(memory) {
     }));
     u64       out;
     check(mem_consume_le_u64(mem, &out).size == 0);
-    check_eq_int(out, val);
-  }
-
-  it("can read a big-endian encoded 8bit unsigned integer") {
-    const u8 val = 42;
-    Mem      mem = array_mem(((u8[]){val}));
-    u8       out;
-    check(mem_consume_be_u8(mem, &out).size == 0);
     check_eq_int(out, val);
   }
 

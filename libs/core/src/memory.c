@@ -53,7 +53,7 @@ Mem mem_consume(const Mem mem, const usize amount) {
   };
 }
 
-Mem mem_consume_le_u8(const Mem mem, u8* out) {
+Mem mem_consume_u8(const Mem mem, u8* out) {
   diag_assert(mem.size >= 1);
   *out = *mem_begin(mem);
   return mem_consume(mem, 1);
@@ -80,12 +80,6 @@ Mem mem_consume_le_u64(const Mem mem, u64* out) {
       ((u64)data[0] | (u64)data[1] << 8 | (u64)data[2] << 16 | (u64)data[3] << 24 |
        (u64)data[4] << 32 | (u64)data[5] << 40 | (u64)data[6] << 48 | (u64)data[7] << 56);
   return mem_consume(mem, 8);
-}
-
-Mem mem_consume_be_u8(const Mem mem, u8* out) {
-  diag_assert(mem.size >= 1);
-  *out = *mem_begin(mem);
-  return mem_consume(mem, 1);
 }
 
 Mem mem_consume_be_u16(const Mem mem, u16* out) {
