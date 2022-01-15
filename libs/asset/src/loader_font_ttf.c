@@ -755,6 +755,8 @@ static void ttf_glyph_build(
           return;
         }
       }
+
+      *dynarray_push_t(outPoints, AssetFontPoint) = points[next];
     }
   }
   *err = TtfError_None;
