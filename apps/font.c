@@ -63,17 +63,17 @@ static void app_render_ui(
       lines[lineCount++]   = geo_vector(startPos.x, startPos.y, endPos.x, endPos.y);
     } break;
     case AssetFontSegment_QuadraticBezier: {
-      const AssetFontPoint start = font->points[font->segments[seg].pointIndex + 0];
-      const AssetFontPoint ctrl  = font->points[font->segments[seg].pointIndex + 1];
-      const AssetFontPoint end   = font->points[font->segments[seg].pointIndex + 2];
-      const GeoVector startPos   = geo_vector(offsetX + start.x * scale, offsetY + start.y * scale);
-      const GeoVector ctrlPos    = geo_vector(offsetX + ctrl.x * scale, offsetY + ctrl.y * scale);
-      const GeoVector endPos     = geo_vector(offsetX + end.x * scale, offsetY + end.y * scale);
-
-      points[pointCount++] = startPos;
-      points[pointCount++] = ctrlPos;
-      points[pointCount++] = endPos;
-      lines[lineCount++]   = geo_vector(startPos.x, startPos.y, endPos.x, endPos.y);
+      GeoVector lastPoint;
+      for (usize i = 0; i != 4; ++i) {
+        const f32            t     = i / 3.0f;
+        const AssetFontPoint point = asset_font_sample_segment(font, seg, t);
+        const GeoVector pointPos = geo_vector(offsetX + point.x * scale, offsetY + point.y * scale);
+        points[pointCount++]     = pointPos;
+        if (i) {
+          lines[lineCount++] = geo_vector(lastPoint.x, lastPoint.y, pointPos.x, pointPos.y);
+        }
+        lastPoint = pointPos;
+      }
     } break;
     }
   }

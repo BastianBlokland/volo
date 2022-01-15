@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "core_compare.h"
 #include "core_diag.h"
+#include "core_math.h"
 #include "core_search.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
@@ -60,4 +61,32 @@ const AssetFontGlyph* asset_font_lookup_unicode(const AssetFontComp* font, const
   }
   diag_assert(cp->glyphIndex < font->glyphCount);
   return &font->glyphs[cp->glyphIndex];
+}
+
+AssetFontPoint
+asset_font_sample_segment(const AssetFontComp* font, const usize index, const f32 t) {
+  const AssetFontSegment* seg = &font->segments[index];
+  switch (seg->type) {
+  case AssetFontSegment_Line: {
+    const AssetFontPoint p0 = font->points[seg->pointIndex + 0];
+    const AssetFontPoint p1 = font->points[seg->pointIndex + 1];
+
+    const f32 x = math_lerp(p0.x, p1.x, t);
+    const f32 y = math_lerp(p0.y, p1.y, t);
+
+    return (AssetFontPoint){x, y};
+  }
+  case AssetFontSegment_QuadraticBezier: {
+    const AssetFontPoint p0 = font->points[seg->pointIndex + 0];
+    const AssetFontPoint c  = font->points[seg->pointIndex + 1];
+    const AssetFontPoint p1 = font->points[seg->pointIndex + 2];
+
+    const f32 invT = 1.0f - t;
+    const f32 x    = c.x + (p0.x - c.x) * invT * invT + (p1.x - c.x) * t * t;
+    const f32 y    = c.y + (p0.y - c.y) * invT * invT + (p1.y - c.y) * t * t;
+
+    return (AssetFontPoint){x, y};
+  }
+  }
+  diag_crash();
 }
