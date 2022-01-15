@@ -20,6 +20,7 @@
  */
 
 #define ttf_magic 0x5F0F3CF5
+#define ttf_supported_sfnt_version 0x10000
 #define ttf_max_tables 32
 #define ttf_max_encodings 16
 #define ttf_max_contours_per_glyph 128
@@ -104,6 +105,16 @@ typedef struct {
   i16 minX, minY;
   i16 maxX, maxY;
 } TtfGlyphHeader;
+
+typedef enum {
+  TtfGlyphFlags_OnCurvePoint             = 1 << 0,
+  TtfGlyphFlags_XShortVector             = 1 << 1,
+  TtfGlyphFlags_YShortVector             = 1 << 2,
+  TtfGlyphFlags_Repeat                   = 1 << 3,
+  TtfGlyphFlags_XIsSameOrPositiveXVector = 1 << 4,
+  TtfGlyphFlags_YIsSameOrPositiveYVector = 1 << 5,
+  TtfGlyphFlags_OverlapSimple            = 1 << 6,
+} TtfGlyphFlags;
 
 typedef enum {
   TtfError_None = 0,
@@ -577,7 +588,7 @@ static Mem ttf_read_glyph_flags(Mem data, const usize count, u8* out, TtfError* 
     u8 flag;
     data           = mem_consume_u8(data, &flag);
     u8 repeatCount = 0;
-    if (flag & 0x08) {
+    if (flag & TtfGlyphFlags_Repeat) {
       data = mem_consume_u8(data, &repeatCount);
       if (UNLIKELY(!repeatCount)) {
         *err = TtfError_GlyfTableEntryMalformed;
@@ -604,21 +615,21 @@ static Mem ttf_read_glyph_points(
   // Read the x coordinates for all points.
   i32 xPos = 0;
   for (usize i = 0; i != count; ++i) {
-    if (flags[i] & 0x02) {
+    if (flags[i] & TtfGlyphFlags_XShortVector) {
       if (UNLIKELY(!data.size)) {
         *err = TtfError_GlyfTableEntryPointsMalformed;
         return data;
       }
       u8 offset;
       data = mem_consume_u8(data, &offset);
-      xPos += offset * (flags[i] & 0x10 ? 1 : -1);
+      xPos += offset * (flags[i] & TtfGlyphFlags_XIsSameOrPositiveXVector ? 1 : -1);
     } else {
       if (UNLIKELY(data.size < 2)) {
         *err = TtfError_GlyfTableEntryPointsMalformed;
         return data;
       }
       i16 offset = 0;
-      if (!(flags[i] & 0x10)) {
+      if (!(flags[i] & TtfGlyphFlags_XIsSameOrPositiveXVector)) {
         data = mem_consume_be_u16(data, (u16*)&offset);
       }
       xPos += offset;
@@ -629,17 +640,17 @@ static Mem ttf_read_glyph_points(
   // Read the y coordinates for all points.
   i32 yPos = 0;
   for (usize i = 0; i != count; ++i) {
-    if (flags[i] & 0x04) {
+    if (flags[i] & TtfGlyphFlags_YShortVector) {
       if (UNLIKELY(!data.size)) {
         *err = TtfError_GlyfTableEntryPointsMalformed;
         return data;
       }
       u8 offset;
       data = mem_consume_u8(data, &offset);
-      yPos += offset * (flags[i] & 0x20 ? 1 : -1);
+      yPos += offset * (flags[i] & TtfGlyphFlags_YIsSameOrPositiveYVector ? 1 : -1);
     } else {
       i16 offset = 0;
-      if (!(flags[i] & 0x20)) {
+      if (!(flags[i] & TtfGlyphFlags_YIsSameOrPositiveYVector)) {
         if (UNLIKELY(data.size < 2)) {
           *err = TtfError_GlyfTableEntryPointsMalformed;
           return data;
@@ -785,7 +796,7 @@ void asset_load_ttf(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
     ttf_load_fail(world, assetEntity, err);
     goto End;
   }
-  if (offsetTable.sfntVersion != 0x10000) {
+  if (offsetTable.sfntVersion != ttf_supported_sfnt_version) {
     ttf_load_fail(world, assetEntity, TtfError_UnsupportedSfntVersion);
     goto End;
   }
