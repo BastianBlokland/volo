@@ -41,6 +41,5 @@ ecs_comp_extern_public(AssetFontComp) {
 
 /**
  * Find a glyph based on an unicode value.
- * NOTE: Returns null if the font does not contain a glyph for the given value.
  */
 const AssetFontGlyph* asset_font_lookup_unicode(const AssetFontComp*, u32 unicode);

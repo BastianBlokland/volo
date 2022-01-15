@@ -55,8 +55,8 @@ const AssetFontGlyph* asset_font_lookup_unicode(const AssetFontComp* font, const
       asset_font_compare_codepoint,
       mem_struct(AssetFontCodepoint, .unicode = unicode).ptr);
 
-  if (!cp) {
-    return null;
+  if (UNLIKELY(!cp)) {
+    return &font->glyphs[0]; // Return the 'missing' glyph (guaranteed to exist).
   }
   diag_assert(cp->glyphIndex < font->glyphCount);
   return &font->glyphs[cp->glyphIndex];
