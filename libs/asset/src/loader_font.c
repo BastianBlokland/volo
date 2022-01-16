@@ -122,10 +122,10 @@ static f32 font_math_line_dist_sqr(
   const f32 vMagSqr = vX * vX + vY * vY;
 
   f32 t = ((point.x - start.x) * vX + (point.y - start.y) * vY) / vMagSqr;
-  if (t < 0.0f) {
-    t = 0.0f;
+  if (t < 0) {
+    t = 0;
   } else if (t > 1) {
-    t = 1.0f;
+    t = 1;
   }
 
   const f32 lx = start.x + t * vX;
@@ -135,26 +135,30 @@ static f32 font_math_line_dist_sqr(
   return dx * dx + dy * dy;
 }
 
-static f32 font_math_line_xroot(const AssetFontPoint start, const AssetFontPoint end) {
-  // line equation: p = p1 + (p2 - p1) * t
-  const AssetFontPoint toEnd = {end.x - start.x, end.y - start.y};
-  if (toEnd.y == 0) {
-    return sentinel_f32; // parallel line, no root.
-  }
-  const f32 t = -start.y / toEnd.y;
-  if (t < 0 || t > 1) {
-    return sentinel_f32;
-  }
-  return start.x + toEnd.x * t;
-}
-
 static bool font_math_line_right(
     const AssetFontPoint start, const AssetFontPoint end, const AssetFontPoint point) {
 
-  const AssetFontPoint localStart = {start.x - point.x, start.y - point.y};
-  const AssetFontPoint localEnd   = {end.x - point.x, end.y - point.y};
-  const f32            xRoot      = font_math_line_xroot(localStart, localEnd);
-  return !sentinel_check(xRoot) && xRoot >= 0.0f;
+  /**
+   * Check if the given point is to the right of the line by transforming the line to be local to
+   * the point and then check if the xroot of the line equation is positive.
+   */
+
+  const f32 localEndY   = end.y - point.y;
+  const f32 localStartY = start.y - point.y;
+  const f32 toLocalEndY = localEndY - localStartY;
+  if (UNLIKELY(toLocalEndY == 0)) {
+    return false; // parallel line, no root.
+  }
+
+  const f32 localEndX   = end.x - point.x;
+  const f32 localStartX = start.x - point.x;
+  const f32 toLocalEndX = localEndX - localStartX;
+
+  const f32 t = -localStartY / toLocalEndY;
+  if (t < 0 || t > 1) {
+    return false;
+  }
+  return (localStartX + toLocalEndX * t) >= 0.0f;
 }
 
 AssetFontPoint asset_font_seg_sample(const AssetFontComp* font, const usize index, const f32 t) {
@@ -214,6 +218,14 @@ f32 asset_font_seg_length(const AssetFontComp* font, const usize index) {
 f32 asset_font_glyph_dist(
     const AssetFontComp* font, const AssetFontGlyph* glyph, const AssetFontPoint point) {
 
+  /**
+   * Find the signed distance of the given point to the glyph.
+   * Iterates over all segments and checks if the segment is closer then the current closest dist.
+   *
+   * Additionally we keep track if we're inside or outside the shape by counting how many segments
+   * we're to the right of.
+   */
+
   f32  minDistSqr = f32_max;
   bool inside     = false;
   for (usize seg = glyph->segmentIndex; seg != glyph->segmentIndex + glyph->segmentCount; ++seg) {
@@ -231,7 +243,12 @@ f32 asset_font_glyph_dist(
       const AssetFontPoint ctrl  = font->points[font->segments[seg].pointIndex + 1];
       const AssetFontPoint end   = font->points[font->segments[seg].pointIndex + 2];
 
-      const u32      steps = 3;
+      /**
+       * Naive implementation that splits the quadratic bezier into a series of line segments.
+       * Analytical solutions for quadratic beziers exist but have not been explored yet.
+       */
+
+      const u32      steps = 5;
       AssetFontPoint prev  = start;
       for (usize j = 1; j != steps; ++j) {
         const f32            t           = j / (f32)steps;
