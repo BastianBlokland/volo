@@ -54,7 +54,7 @@ static void app_render_ui(
     for (f32 y = step; y <= 1.0f - step; y += step) {
       const AssetFontPoint p         = {x, y};
       const f32            dist      = asset_font_glyph_dist(font, glyph, p);
-      const f32            intensity = math_clamp_f32(dist * 10.0f, -1, 1) * 0.5f + 0.5f;
+      const f32            intensity = math_clamp_f32(dist * 20.0f, -1, 1) * 0.5f + 0.5f;
       points[pointCount++]           = geo_vector(p.x, p.y, intensity);
     }
   }

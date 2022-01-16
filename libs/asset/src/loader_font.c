@@ -114,101 +114,47 @@ static AssetFontPoint font_math_quad_bezier_sample(
   return (AssetFontPoint){x, y};
 }
 
-static f32 font_math_cuberoot(const f32 x) {
-  if (x < 0.0f) {
-    return -math_pow_f32(-x, 1.0f / 3.0f);
-  }
-  return math_pow_f32(x, 1.0f / 3.0f);
-}
-
-static u8 font_math_solve_cube(const f32 a, const f32 b, const f32 c, f32 out[3]) {
-  const f32 p      = b - a * a / 3;
-  const f32 q      = a * (2 * a * a - 9 * b) / 27 + c;
-  const f32 p3     = p * p * p;
-  const f32 d      = q * q + 4 * p3 / 27;
-  const f32 offset = -a / 3;
-
-  if (d >= 0.0f) {
-    /**
-     * Single real solution.
-     */
-    const f32 z = math_sqrt_f32(d);
-    f32       u = (-q + z) / 2;
-    f32       v = (-q - z) / 2;
-    u           = font_math_cuberoot(u);
-    v           = font_math_cuberoot(v);
-    out[0]      = offset + u + v;
-    return 1;
-  }
-
-  /**
-   * Three real solution.
-   */
-  const f32 u = math_sqrt_f32(-p / 3);
-  const f32 v = math_acos_f32(-math_sqrt_f32(-27 / p3) * q / 2) / 3;
-  const f32 m = math_cos_f32(v), n = math_sin_f32(v) * 1.732050808f;
-  out[0] = offset + u * (m + m);
-  out[1] = offset - u * (n + m);
-  out[2] = offset + u * (n - m);
-  return 3;
-}
-
-static f32 font_math_line_dist(
+static f32 font_math_line_dist_sqr(
     const AssetFontPoint start, const AssetFontPoint end, const AssetFontPoint point) {
 
-  const AssetFontPoint ab   = {end.x - start.x, end.y - start.y};
-  const AssetFontPoint be   = {point.x - end.x, point.y - end.y};
-  const AssetFontPoint ae   = {point.x - start.x, point.y - start.y};
-  const f32            abBe = (ab.x * be.x + ab.y * be.y);
-  const f32            abAe = (ab.x * ae.x + ab.y * ae.y);
+  const f32 vX      = end.x - start.x;
+  const f32 vY      = end.y - start.y;
+  const f32 vMagSqr = vX * vX + vY * vY;
 
-  if (abBe > 0) {
-    const f32 y = point.y - end.y;
-    const f32 x = point.x - end.x;
-    return math_sqrt_f32(x * x + y * y);
-  }
-  if (abAe < 0) {
-    const f32 y = point.y - start.y;
-    const f32 x = point.x - start.x;
-    return math_sqrt_f32(x * x + y * y);
+  f32 t = ((point.x - start.x) * vX + (point.y - start.y) * vY) / vMagSqr;
+  if (t < 0.0f) {
+    t = 0.0f;
+  } else if (t > 1) {
+    t = 1.0f;
   }
 
-  // Finding the perpendicular distance
-  const f32 mod = math_sqrt_f32(ab.x * ab.x + ab.y * ab.y);
-  return math_abs(ab.x * ae.y - ab.y * ae.x) / mod;
+  const f32 lx = start.x + t * vX;
+  const f32 ly = start.y + t * vY;
+  const f32 dx = point.x - lx;
+  const f32 dy = point.y - ly;
+  return dx * dx + dy * dy;
 }
 
-static f32 font_math_quad_bezier_dist(
-    const AssetFontPoint start,
-    const AssetFontPoint ctrl,
-    const AssetFontPoint end,
-    const AssetFontPoint point) {
-
-  const AssetFontPoint a = {start.x - 2.0f * ctrl.x + end.x, start.y - 2.0f * ctrl.y + end.y};
-  const AssetFontPoint b = {2.0f * (start.x + ctrl.x), 2.0f * (start.y + ctrl.y)};
-  const AssetFontPoint c = {start.x, start.y};
-  const AssetFontPoint d = {c.x - point.x, c.y - point.y};
-
-  const f32 k3 = 2.0f * font_math_dot(a, a);
-  const f32 k2 = 3.0f * font_math_dot(a, b);
-  const f32 k1 = font_math_dot(a, d) + font_math_dot(b, b);
-  const f32 k0 = font_math_dot(b, d);
-
-  f32      resSqr = f32_max;
-  f32      roots[3];
-  const u8 numRoots = font_math_solve_cube(k2 / k3, k1 / k3, k0 / k3, roots);
-  for (u8 i = 0; i < numRoots; i++) {
-    const f32            t = math_clamp_f32(roots[i], 0.0f, 1.0f);
-    const AssetFontPoint p = {
-        (1.0f - t) * (1.0f - t) * start.x + 2.0f * t * (1.0f - t) * ctrl.x + t * t * end.y,
-        (1.0f - t) * (1.0f - t) * start.y + 2.0f * t * (1.0f - t) * ctrl.x + t * t * end.y,
-    };
-    const f32 distSqr = font_math_dist_sqr(p, point);
-    if (distSqr < resSqr) {
-      resSqr = distSqr;
-    }
+static f32 font_math_line_xroot(const AssetFontPoint start, const AssetFontPoint end) {
+  // line equation: p = p1 + (p2 - p1) * t
+  const AssetFontPoint toEnd = {end.x - start.x, end.y - start.y};
+  if (toEnd.y == 0) {
+    return sentinel_f32; // parallel line, no root.
   }
-  return math_sqrt_f32(resSqr);
+  const f32 t = -start.y / toEnd.y;
+  if (t < 0 || t > 1) {
+    return sentinel_f32;
+  }
+  return start.x + toEnd.x * t;
+}
+
+static bool font_math_line_right(
+    const AssetFontPoint start, const AssetFontPoint end, const AssetFontPoint point) {
+
+  const AssetFontPoint localStart = {start.x - point.x, start.y - point.y};
+  const AssetFontPoint localEnd   = {end.x - point.x, end.y - point.y};
+  const f32            xRoot      = font_math_line_xroot(localStart, localEnd);
+  return !sentinel_check(xRoot) && xRoot >= 0.0f;
 }
 
 AssetFontPoint asset_font_seg_sample(const AssetFontComp* font, const usize index, const f32 t) {
@@ -265,37 +211,42 @@ f32 asset_font_seg_length(const AssetFontComp* font, const usize index) {
   diag_crash();
 }
 
-f32 asset_font_seg_dist(const AssetFontComp* font, const usize index, const AssetFontPoint point) {
-  const AssetFontSegment* seg = &font->segments[index];
-  switch (seg->type) {
-  case AssetFontSegment_Line: {
-    (void)font_math_line_dist;
-    // const AssetFontPoint start = font->points[seg->pointIndex + 0];
-    // const AssetFontPoint end   = font->points[seg->pointIndex + 1];
-    // return font_math_line_dist(start, end, point);
-    return f32_max;
-  }
-  case AssetFontSegment_QuadraticBezier: {
-    (void)font_math_quad_bezier_dist;
-    const AssetFontPoint start = font->points[seg->pointIndex + 0];
-    const AssetFontPoint ctrl  = font->points[seg->pointIndex + 1];
-    const AssetFontPoint end   = font->points[seg->pointIndex + 2];
-    const f32            res   = font_math_quad_bezier_dist(start, ctrl, end, point);
-    return math_abs(res);
-  }
-  }
-  diag_crash();
-}
-
 f32 asset_font_glyph_dist(
     const AssetFontComp* font, const AssetFontGlyph* glyph, const AssetFontPoint point) {
 
-  f32 res = f32_max;
+  f32  minDistSqr = f32_max;
+  bool inside     = false;
   for (usize seg = glyph->segmentIndex; seg != glyph->segmentIndex + glyph->segmentCount; ++seg) {
-    const f32 dist = asset_font_seg_dist(font, seg, point);
-    if (dist < res) {
-      res = dist;
+    switch (font->segments[seg].type) {
+    case AssetFontSegment_Line: {
+      const AssetFontPoint start   = font->points[font->segments[seg].pointIndex + 0];
+      const AssetFontPoint end     = font->points[font->segments[seg].pointIndex + 1];
+      const f32            distSqr = font_math_line_dist_sqr(start, end, point);
+      minDistSqr                   = math_min(minDistSqr, distSqr);
+      inside ^= font_math_line_right(start, end, point);
+      break;
+    }
+    case AssetFontSegment_QuadraticBezier: {
+      const AssetFontPoint start = font->points[font->segments[seg].pointIndex + 0];
+      const AssetFontPoint ctrl  = font->points[font->segments[seg].pointIndex + 1];
+      const AssetFontPoint end   = font->points[font->segments[seg].pointIndex + 2];
+
+      const u32      steps = 3;
+      AssetFontPoint prev  = start;
+      for (usize j = 1; j != steps; ++j) {
+        const f32            t           = j / (f32)steps;
+        const AssetFontPoint bezierPoint = font_math_quad_bezier_sample(start, ctrl, end, t);
+        const f32            distSqr     = font_math_line_dist_sqr(prev, bezierPoint, point);
+        minDistSqr                       = math_min(minDistSqr, distSqr);
+        inside ^= font_math_line_right(prev, bezierPoint, point);
+        prev = bezierPoint;
+      }
+      const f32 distSqr = font_math_line_dist_sqr(prev, end, point);
+      minDistSqr        = math_min(minDistSqr, distSqr);
+      inside ^= font_math_line_right(prev, end, point);
+    }
     }
   }
-  return res;
+  const f32 minDist = math_sqrt_f32(minDistSqr);
+  return minDist * (inside ? -1.0f : 1.0f);
 }
