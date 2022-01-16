@@ -12,9 +12,9 @@
 #include "scene_renderable.h"
 
 static const String g_texts[] = {
-    string_static("Hello!"),
-    string_static("истрируйт"),
-    string_static(",./0-+!@#$^&*"),
+    string_static("Bas!"),
+    string_static("истрир"),
+    string_static(",./0-+"),
 };
 
 typedef enum {
@@ -48,7 +48,12 @@ static void app_render_glyph(
     GeoVector*            outLines,
     u32*                  outLineIdx) {
 
-  const f32 density = 10.0f;
+  outLines[(*outLineIdx)++] = geo_vector(offsetX, offsetY, offsetX + size, offsetY);
+  outLines[(*outLineIdx)++] = geo_vector(offsetX, offsetY, offsetX, offsetY + size);
+  outLines[(*outLineIdx)++] = geo_vector(offsetX + size, offsetY, offsetX + size, offsetY + size);
+  outLines[(*outLineIdx)++] = geo_vector(offsetX, offsetY + size, offsetX + size, offsetY + size);
+
+  const f32 density = 20.0f;
   for (usize seg = glyph->segmentIndex; seg != glyph->segmentIndex + glyph->segmentCount; ++seg) {
     GeoVector lastPoint;
     const u32 count = math_max(2, (u32)(asset_font_seg_length(font, seg) * density));
@@ -69,7 +74,7 @@ static void app_render_ui(
 
   MAYBE_UNUSED const TimeSteady startTime = time_steady_clock();
 
-  GeoVector* lines     = scene_renderable_unique_data(lineRenderer, sizeof(GeoVector) * 512).ptr;
+  GeoVector* lines     = scene_renderable_unique_data(lineRenderer, sizeof(GeoVector) * 1024).ptr;
   u32        lineCount = 0;
 
   const AssetFontGlyph* glyphs[128];
@@ -77,8 +82,8 @@ static void app_render_ui(
       asset_font_lookup_utf8(font, g_texts[app->textIndex], glyphs, array_elems(glyphs));
 
   f32 offsetX = 0.05f;
-  f32 offsetY = 0.85f;
-  f32 size    = 0.1f;
+  f32 offsetY = 0.80f;
+  f32 size    = 0.15f;
   for (usize i = 0; i != glyphCount; ++i) {
     app_render_glyph(font, glyphs[i], offsetX, offsetY, size, lines, &lineCount);
     offsetX += size;
@@ -174,7 +179,7 @@ static int app_run(const String assetPath) {
 
   asset_manager_create_fs(world, AssetManagerFlags_TrackChanges, assetPath);
 
-  const EcsEntityId win = gap_window_create(world, GapWindowFlags_Default, (GapVector){1024, 1024});
+  const EcsEntityId win = gap_window_create(world, GapWindowFlags_Default, (GapVector){1280, 1280});
   ecs_world_add_t(world, ecs_world_global(world), AppComp, .flags = AppFlags_Init, .window = win);
 
   while (ecs_world_exists(world, win)) {

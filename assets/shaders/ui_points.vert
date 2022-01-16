@@ -5,7 +5,7 @@
 #include "include/color.glsl"
 #include "include/ui.glsl"
 
-bind_spec(0) const u32 s_maxPoints = 512;
+bind_spec(0) const u32 s_maxPoints = 1024;
 bind_spec(1) const u32 s_pointSize = 4;
 
 struct PointData {

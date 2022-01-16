@@ -5,7 +5,7 @@
 #include "include/color.glsl"
 #include "include/ui.glsl"
 
-bind_spec(0) const u32 s_maxLines = 512;
+bind_spec(0) const u32 s_maxLines = 1024;
 
 struct LineData {
   f32_vec4 lines[s_maxLines];
@@ -23,5 +23,5 @@ void main() {
   const f32_vec2 point = pointIndex == 0 ? line.xy : line.zw;
 
   out_vertexPosition = ui_to_ndc(point);
-  out_color          = lineIndex % 2 == 0 ? color_white : color_black;
+  out_color          = color_white;
 }

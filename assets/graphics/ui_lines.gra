@@ -6,7 +6,7 @@
         {
           "name": "maxLines",
           "binding": 0,
-          "value": 512
+          "value": 1024
         }
       ]
     },
