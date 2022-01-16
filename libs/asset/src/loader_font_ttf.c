@@ -99,12 +99,23 @@ typedef struct {
   u16    searchRange;
   u16    entrySelector;
   u16    rangeShift;
-  u16*   endCodes; // u16[segCount]
-  u16    reservedPad;
+  u16*   endCodes;   // u16[segCount]
   u16*   startCodes; // u16[segCount]
   u16*   deltas;     // u16[segCount]
   void** rangeData;  // void*[segCount]
 } TtfCmapFormat4Header;
+
+typedef struct {
+  f32 version;
+  i16 ascent, descent;
+  i16 lineGap;
+  u16 advanceWidthMax;
+  i16 minLeftSideBearing, maxLeftSideBearing;
+  i16 xMaxExtent;
+  i16 caretSlopeRise, caretSlopeRun, caretOffset;
+  i16 metricDataFormat;
+  u16 numOfLongHorMetrics;
+} TtfHheaTable;
 
 typedef struct {
   i16 numContours;
@@ -143,6 +154,7 @@ typedef enum {
   TtfError_CmapTableMissing,
   TtfError_CmapNoSupportedEncoding,
   TtfError_CmapFormat4EncodingMalformed,
+  TtfError_HheaTableMissing,
   TtfError_NoCharacters,
   TtfError_NoGlyphPoints,
   TtfError_NoGlyphSegments,
@@ -178,6 +190,7 @@ static String ttf_error_str(TtfError res) {
       string_static("TrueType cmap table missing"),
       string_static("TrueType cmap table does not contain any supported encodings"),
       string_static("TrueType cmap table format4 encoding malformed"),
+      string_static("TrueType hhea table missing"),
       string_static("TrueType font contains no characters"),
       string_static("TrueType font contains no glyph points"),
       string_static("TrueType font contains no glyph segments"),
@@ -403,7 +416,7 @@ static void ttf_read_cmap_format4_header(Mem data, TtfCmapFormat4Header* out, Tt
   for (usize i = 0; i != out->segCount; ++i) {
     data = mem_consume_be_u16(data, &out->endCodes[i]);
   }
-  data = mem_consume_be_u16(data, &out->reservedPad);
+  data = mem_consume(data, 2);
   // Read startCodes.
   for (usize i = 0; i != out->segCount; ++i) {
     data = mem_consume_be_u16(data, &out->startCodes[i]);
@@ -504,6 +517,40 @@ static void ttf_read_characters(
     }
   }
   *err = TtfError_CmapNoSupportedEncoding;
+}
+
+static void
+ttf_read_hhea_table(const TtfOffsetTable* offsetTable, TtfHheaTable* out, TtfError* err) {
+  const TtfTableRecord* tableRecord = ttf_find_table(offsetTable, string_lit("hhea"));
+  if (UNLIKELY(!tableRecord)) {
+    *err = TtfError_CmapTableMissing;
+    return;
+  }
+  Mem data = tableRecord->data;
+  if (UNLIKELY(data.size < 36)) {
+    *err = TtfError_Malformed;
+    return;
+  }
+  /**
+   * NOTE: For signed values we assume the host system is using 2's complement integers.
+   */
+  *out = (TtfHheaTable){0};
+  data = ttf_read_fixed(data, &out->version);
+  data = mem_consume_be_u16(data, (u16*)&out->ascent);
+  data = mem_consume_be_u16(data, (u16*)&out->descent);
+  data = mem_consume_be_u16(data, (u16*)&out->lineGap);
+  data = mem_consume_be_u16(data, &out->advanceWidthMax);
+  data = mem_consume_be_u16(data, (u16*)&out->minLeftSideBearing);
+  data = mem_consume_be_u16(data, (u16*)&out->maxLeftSideBearing);
+  data = mem_consume_be_u16(data, (u16*)&out->xMaxExtent);
+  data = mem_consume_be_u16(data, (u16*)&out->caretSlopeRise);
+  data = mem_consume_be_u16(data, (u16*)&out->caretSlopeRun);
+  data = mem_consume_be_u16(data, (u16*)&out->caretOffset);
+  data = mem_consume(data, 8);
+  data = mem_consume_be_u16(data, (u16*)&out->metricDataFormat);
+  data = mem_consume_be_u16(data, &out->numOfLongHorMetrics);
+  *err = TtfError_None;
+  return;
 }
 
 static void ttf_read_glyph_locations(
@@ -971,6 +1018,7 @@ void asset_load_ttf(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
     ttf_load_fail(world, assetEntity, err);
     goto End;
   }
+
   TtfHeadTable headTable;
   ttf_read_head_table(&offsetTable, &headTable, &err);
   if (err) {
@@ -985,12 +1033,14 @@ void asset_load_ttf(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
     ttf_load_fail(world, assetEntity, TtfError_HeadTableUnsupported);
     goto End;
   }
+
   TtfMaxpTable maxpTable;
   ttf_read_maxp_table(&offsetTable, &maxpTable, &err);
   if (err) {
     ttf_load_fail(world, assetEntity, err);
     goto End;
   }
+
   TtfCmapTable cmapTable;
   ttf_read_cmap_table(&offsetTable, &cmapTable, &err);
   if (err) {
@@ -1007,6 +1057,13 @@ void asset_load_ttf(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
     goto End;
   }
   dynarray_sort(&characters, asset_font_compare_char); // Sort on the unicode codepoint.
+
+  TtfHheaTable hheaTable;
+  ttf_read_hhea_table(&offsetTable, &hheaTable, &err);
+  if (err) {
+    ttf_load_fail(world, assetEntity, err);
+    goto End;
+  }
 
   if (maxpTable.numGlyphs > ttf_max_glyphs) {
     ttf_load_fail(world, assetEntity, TtfError_TooManyGlyphs);
