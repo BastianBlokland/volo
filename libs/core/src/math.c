@@ -14,6 +14,7 @@
 #pragma intrinsic(tanf)
 #pragma intrinsic(atanf)
 #pragma intrinsic(atan2f)
+#pragma intrinsic(powf)
 
 #else
 
@@ -26,6 +27,7 @@
 #define tanf __builtin_tanf
 #define atanf __builtin_atanf
 #define atan2f __builtin_atan2f
+#define powf __builtin_powf
 
 #endif
 
@@ -73,6 +75,8 @@ f32 math_tan_f32(const f32 val) { return tanf(val); }
 f32 math_atan_f32(const f32 val) { return atanf(val); }
 
 f32 math_atan2_f32(const f32 x, const f32 y) { return atan2f(x, y); }
+
+f32 math_pow_f32(const f32 base, const f32 exp) { return powf(base, exp); }
 
 f64 math_trunc_f64(const f64 val) { return (i64)val; }
 

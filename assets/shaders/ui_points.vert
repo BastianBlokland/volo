@@ -19,8 +19,9 @@ bind_internal(0) out f32_vec4 out_color;
 void main() {
   const u32      pointIndex = in_vertexIndex;
   const f32_vec2 point      = u_instance.points[pointIndex].xy;
+  const f32      intensity  = u_instance.points[pointIndex].z;
 
   out_vertexPosition = ui_to_ndc(point);
   out_pointSize      = s_pointSize;
-  out_color          = color_red;
+  out_color          = mix(color_white, color_red, intensity);
 }

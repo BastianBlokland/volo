@@ -67,4 +67,11 @@ AssetFontPoint asset_font_seg_sample(const AssetFontComp*, usize index, f32 t);
  * Calculate the length of a segment.
  * Pre-condition: index < font.segmentCount
  */
-f32 asset_font_seg_length(const AssetFontComp* font, usize index);
+f32 asset_font_seg_length(const AssetFontComp*, usize index);
+
+/**
+ * Calculate the signed distance from the glyph to the given point.
+ * NOTE: Distance is negative when the glyph contains the point, otherwise positive.
+ * Pre-condition: Glyph is part of the given font.
+ */
+f32 asset_font_glyph_dist(const AssetFontComp*, const AssetFontGlyph*, AssetFontPoint);

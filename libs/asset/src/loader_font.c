@@ -85,44 +85,95 @@ usize asset_font_lookup_utf8(
   return count;
 }
 
-static f32 font_math_dist_sqr(const AssetFontPoint s, const AssetFontPoint e) {
-  const f32 dX = s.x - e.x;
-  const f32 dY = s.y - e.y;
-  return dX * dX + dY * dY;
+static f32 font_math_dot(const AssetFontPoint a, const AssetFontPoint b) {
+  return (a.x * b.x) + (a.y * b.y);
 }
 
-static f32 font_math_dist(const AssetFontPoint s, const AssetFontPoint e) {
-  const f32 distSqr = font_math_dist_sqr(s, e);
+static f32 font_math_dist_sqr(const AssetFontPoint start, const AssetFontPoint end) {
+  const AssetFontPoint toEnd = {end.x - start.x, end.y - start.y};
+  return font_math_dot(toEnd, toEnd);
+}
+
+static f32 font_math_dist(const AssetFontPoint start, const AssetFontPoint end) {
+  const f32 distSqr = font_math_dist_sqr(start, end);
   return math_sqrt_f32(distSqr);
 }
 
-static AssetFontPoint font_math_lerp(const AssetFontPoint s, const AssetFontPoint e, const f32 t) {
-  const f32 x = math_lerp(s.x, e.x, t);
-  const f32 y = math_lerp(s.y, e.y, t);
+static AssetFontPoint
+font_math_line_sample(const AssetFontPoint start, const AssetFontPoint end, const f32 t) {
+  const f32 x = math_lerp(start.x, end.x, t);
+  const f32 y = math_lerp(start.y, end.y, t);
   return (AssetFontPoint){x, y};
 }
 
-static AssetFontPoint font_math_quad_bezier(
-    const AssetFontPoint s, const AssetFontPoint c, const AssetFontPoint e, const f32 t) {
+static AssetFontPoint font_math_quad_bezier_sample(
+    const AssetFontPoint start, const AssetFontPoint ctrl, const AssetFontPoint end, const f32 t) {
   const f32 invT = 1.0f - t;
-  const f32 x    = c.x + (s.x - c.x) * invT * invT + (e.x - c.x) * t * t;
-  const f32 y    = c.y + (s.y - c.y) * invT * invT + (e.y - c.y) * t * t;
+  const f32 x    = ctrl.x + (start.x - ctrl.x) * invT * invT + (end.x - ctrl.x) * t * t;
+  const f32 y    = ctrl.y + (start.y - ctrl.y) * invT * invT + (end.y - ctrl.y) * t * t;
   return (AssetFontPoint){x, y};
+}
+
+static f32 font_math_line_dist_sqr(
+    const AssetFontPoint start, const AssetFontPoint end, const AssetFontPoint point) {
+
+  const f32 vX      = end.x - start.x;
+  const f32 vY      = end.y - start.y;
+  const f32 vMagSqr = vX * vX + vY * vY;
+
+  f32 t = ((point.x - start.x) * vX + (point.y - start.y) * vY) / vMagSqr;
+  if (t < 0) {
+    t = 0;
+  } else if (t > 1) {
+    t = 1;
+  }
+
+  const f32 lx = start.x + t * vX;
+  const f32 ly = start.y + t * vY;
+  const f32 dx = point.x - lx;
+  const f32 dy = point.y - ly;
+  return dx * dx + dy * dy;
+}
+
+static bool font_math_line_right(
+    const AssetFontPoint start, const AssetFontPoint end, const AssetFontPoint point) {
+
+  /**
+   * Check if the given point is to the right of the line by transforming the line to be local to
+   * the point and then check if the xroot of the line equation is positive.
+   */
+
+  const f32 localEndY   = end.y - point.y;
+  const f32 localStartY = start.y - point.y;
+  const f32 toLocalEndY = localEndY - localStartY;
+  if (UNLIKELY(toLocalEndY == 0)) {
+    return false; // parallel line, no root.
+  }
+
+  const f32 localEndX   = end.x - point.x;
+  const f32 localStartX = start.x - point.x;
+  const f32 toLocalEndX = localEndX - localStartX;
+
+  const f32 t = -localStartY / toLocalEndY;
+  if (t < 0 || t > 1) {
+    return false;
+  }
+  return (localStartX + toLocalEndX * t) >= 0.0f;
 }
 
 AssetFontPoint asset_font_seg_sample(const AssetFontComp* font, const usize index, const f32 t) {
   const AssetFontSegment* seg = &font->segments[index];
   switch (seg->type) {
   case AssetFontSegment_Line: {
-    const AssetFontPoint s = font->points[seg->pointIndex + 0];
-    const AssetFontPoint e = font->points[seg->pointIndex + 1];
-    return font_math_lerp(s, e, t);
+    const AssetFontPoint start = font->points[seg->pointIndex + 0];
+    const AssetFontPoint end   = font->points[seg->pointIndex + 1];
+    return font_math_line_sample(start, end, t);
   }
   case AssetFontSegment_QuadraticBezier: {
-    const AssetFontPoint s = font->points[seg->pointIndex + 0];
-    const AssetFontPoint c = font->points[seg->pointIndex + 1];
-    const AssetFontPoint e = font->points[seg->pointIndex + 2];
-    return font_math_quad_bezier(s, c, e, t);
+    const AssetFontPoint start = font->points[seg->pointIndex + 0];
+    const AssetFontPoint ctrl  = font->points[seg->pointIndex + 1];
+    const AssetFontPoint end   = font->points[seg->pointIndex + 2];
+    return font_math_quad_bezier_sample(start, ctrl, end, t);
   }
   }
   diag_crash();
@@ -132,14 +183,14 @@ f32 asset_font_seg_length(const AssetFontComp* font, const usize index) {
   const AssetFontSegment* seg = &font->segments[index];
   switch (seg->type) {
   case AssetFontSegment_Line: {
-    const AssetFontPoint s = font->points[seg->pointIndex + 0];
-    const AssetFontPoint e = font->points[seg->pointIndex + 1];
-    return font_math_dist(s, e);
+    const AssetFontPoint start = font->points[seg->pointIndex + 0];
+    const AssetFontPoint end   = font->points[seg->pointIndex + 1];
+    return font_math_dist(start, end);
   }
   case AssetFontSegment_QuadraticBezier: {
-    const AssetFontPoint s = font->points[seg->pointIndex + 0];
-    const AssetFontPoint c = font->points[seg->pointIndex + 1];
-    const AssetFontPoint e = font->points[seg->pointIndex + 2];
+    const AssetFontPoint start = font->points[seg->pointIndex + 0];
+    const AssetFontPoint ctrl  = font->points[seg->pointIndex + 1];
+    const AssetFontPoint end   = font->points[seg->pointIndex + 2];
 
     /**
      * Closed form analytical solutions for the arc-length of a quadratic bezier exist but are
@@ -150,16 +201,69 @@ f32 asset_font_seg_length(const AssetFontComp* font, const usize index) {
 
     const u32      steps = 3;
     f32            dist  = 0;
-    AssetFontPoint prev  = s;
+    AssetFontPoint prev  = start;
     for (usize i = 1; i != steps; ++i) {
       const f32            t     = i / (f32)steps;
-      const AssetFontPoint point = font_math_quad_bezier(s, c, e, t);
+      const AssetFontPoint point = font_math_quad_bezier_sample(start, ctrl, end, t);
       dist += font_math_dist(prev, point);
       prev = point;
     }
-    dist += font_math_dist(prev, e);
+    dist += font_math_dist(prev, end);
     return dist;
   }
   }
   diag_crash();
+}
+
+f32 asset_font_glyph_dist(
+    const AssetFontComp* font, const AssetFontGlyph* glyph, const AssetFontPoint point) {
+
+  /**
+   * Find the signed distance of the given point to the glyph.
+   * Iterates over all segments and checks if the segment is closer then the current closest dist.
+   *
+   * Additionally we keep track if we're inside or outside the shape by counting how many segments
+   * we're to the right of.
+   */
+
+  f32  minDistSqr = f32_max;
+  bool inside     = false;
+  for (usize seg = glyph->segmentIndex; seg != glyph->segmentIndex + glyph->segmentCount; ++seg) {
+    switch (font->segments[seg].type) {
+    case AssetFontSegment_Line: {
+      const AssetFontPoint start   = font->points[font->segments[seg].pointIndex + 0];
+      const AssetFontPoint end     = font->points[font->segments[seg].pointIndex + 1];
+      const f32            distSqr = font_math_line_dist_sqr(start, end, point);
+      minDistSqr                   = math_min(minDistSqr, distSqr);
+      inside ^= font_math_line_right(start, end, point);
+      break;
+    }
+    case AssetFontSegment_QuadraticBezier: {
+      const AssetFontPoint start = font->points[font->segments[seg].pointIndex + 0];
+      const AssetFontPoint ctrl  = font->points[font->segments[seg].pointIndex + 1];
+      const AssetFontPoint end   = font->points[font->segments[seg].pointIndex + 2];
+
+      /**
+       * Naive implementation that splits the quadratic bezier into a series of line segments.
+       * Analytical solutions for quadratic beziers exist but have not been explored yet.
+       */
+
+      const u32      steps = 5;
+      AssetFontPoint prev  = start;
+      for (usize j = 1; j != steps; ++j) {
+        const f32            t           = j / (f32)steps;
+        const AssetFontPoint bezierPoint = font_math_quad_bezier_sample(start, ctrl, end, t);
+        const f32            distSqr     = font_math_line_dist_sqr(prev, bezierPoint, point);
+        minDistSqr                       = math_min(minDistSqr, distSqr);
+        inside ^= font_math_line_right(prev, bezierPoint, point);
+        prev = bezierPoint;
+      }
+      const f32 distSqr = font_math_line_dist_sqr(prev, end, point);
+      minDistSqr        = math_min(minDistSqr, distSqr);
+      inside ^= font_math_line_right(prev, end, point);
+    }
+    }
+  }
+  const f32 minDist = math_sqrt_f32(minDistSqr);
+  return minDist * (inside ? -1.0f : 1.0f);
 }
