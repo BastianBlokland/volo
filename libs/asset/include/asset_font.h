@@ -29,6 +29,7 @@ typedef struct {
   u32 segmentCount;
   f32 size;
   f32 offsetX, offsetY;
+  f32 advance;
 } AssetFontGlyph;
 
 ecs_comp_extern_public(AssetFontComp) {

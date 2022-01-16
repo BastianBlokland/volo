@@ -673,12 +673,8 @@ static void ttf_read_glyph_hor_metrics(
   }
 }
 
-static Mem ttf_read_glyph_header(
-    Mem                       data,
-    const TtfGlyphHorMetrics* horMetrics,
-    const TtfHeadTable*       headTable,
-    TtfGlyphHeader*           out,
-    TtfError*                 err) {
+static Mem
+ttf_read_glyph_header(Mem data, const TtfHeadTable* headTable, TtfGlyphHeader* out, TtfError* err) {
 
   if (UNLIKELY(data.size < 10)) {
     *err = TtfError_GlyfTableEntryHeaderMalformed;
@@ -703,7 +699,7 @@ static Mem ttf_read_glyph_header(
   out->gridOriginY     = (f32)gridMinY;
   out->gridScale       = gridSize ? 1.0f / gridSize : 0.0f;
   out->size            = gridSize * headTable->invUnitsPerEm;
-  out->offsetX         = (horMetrics->leftSideBearing - gridMinX) * headTable->invUnitsPerEm;
+  out->offsetX         = gridMinX * headTable->invUnitsPerEm;
   out->offsetY         = gridMinY * headTable->invUnitsPerEm;
 
   *err = TtfError_None;
@@ -802,7 +798,6 @@ static Mem ttf_read_glyph_points(
  * Decode the lines and quadratic beziers and makes all implicit points explicit.
  */
 static void ttf_glyph_build(
-    const TtfGlyphHeader* header,
     const u16*            contourEndpoints,
     const usize           numContours,
     const u8*             pointFlags,
@@ -813,13 +808,8 @@ static void ttf_glyph_build(
     AssetFontGlyph*       outGlyph,
     TtfError*             err) {
 
-  *outGlyph = (AssetFontGlyph){
-      .segmentIndex = (u32)outSegments->size,
-      .segmentCount = 0,
-      .size         = header->size,
-      .offsetX      = header->offsetX,
-      .offsetY      = header->offsetY,
-  };
+  outGlyph->segmentIndex = (u32)outSegments->size;
+  outGlyph->segmentCount = 0;
 
   for (usize c = 0; c != numContours; ++c) {
     const usize start = c ? contourEndpoints[c - 1U] : 0;
@@ -900,15 +890,24 @@ static void ttf_read_glyph(
     AssetFontGlyph*           outGlyph,
     TtfError*                 err) {
 
+  *err      = TtfError_None;
+  *outGlyph = (AssetFontGlyph){
+      .advance = horMetrics->advanceWidth * headTable->invUnitsPerEm,
+  };
+  if (UNLIKELY(!data.size)) {
+    return; // Glyphs without data are valid, for example a space character glyph.
+  }
+
   TtfGlyphHeader header;
-  data = ttf_read_glyph_header(data, horMetrics, headTable, &header, err);
+  data = ttf_read_glyph_header(data, headTable, &header, err);
   if (UNLIKELY(*err)) {
     return;
   }
+  outGlyph->size    = header.size;
+  outGlyph->offsetX = header.offsetX;
+  outGlyph->offsetY = header.offsetY;
+
   if (UNLIKELY(header.numContours == 0)) {
-    // Glyphs with no contours are valid, for example a space character glyph.
-    *outGlyph = (AssetFontGlyph){.segmentCount = 0};
-    *err      = TtfError_None;
     return;
   }
   if (UNLIKELY(header.numContours < 0)) {
@@ -972,7 +971,6 @@ static void ttf_read_glyph(
 
   // Output the glyph.
   ttf_glyph_build(
-      &header,
       contourEndpoints,
       header.numContours,
       flags,
@@ -1143,11 +1141,6 @@ void asset_load_ttf(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
 
   glyphs = alloc_array_t(g_alloc_heap, AssetFontGlyph, maxpTable.numGlyphs);
   for (usize glyphIndex = 0; glyphIndex != maxpTable.numGlyphs; ++glyphIndex) {
-    if (!glyphDataLocations[glyphIndex].size) {
-      // Glyphs without data are valid, for example a space character glyph.
-      glyphs[glyphIndex] = (AssetFontGlyph){.segmentCount = 0};
-      continue;
-    }
     ttf_read_glyph(
         glyphDataLocations[glyphIndex],
         &glyphHorMetrics[glyphIndex],
