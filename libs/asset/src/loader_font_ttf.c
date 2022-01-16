@@ -53,6 +53,7 @@ typedef struct {
   u32 magicNumber;
   u16 flags;
   u16 unitsPerEm;
+  f32 invUnitsPerEm;
   i64 dateCreated, dateModified;
   i16 glyphMinX, glyphMinY, glyphMaxX, glyphMaxY;
   u16 macStyle;
@@ -110,6 +111,7 @@ typedef struct {
   f32 gridOriginX, gridOriginY; // Origin of the ttf grid.
   f32 gridScale;                // Scale to multiply grid ttf points by to normalize them.
   f32 size;                     // Size of the glyph.
+  f32 offsetX, offsetY;         // Offset of the glyph.
 } TtfGlyphHeader;
 
 typedef enum {
@@ -305,7 +307,9 @@ ttf_read_head_table(const TtfOffsetTable* offsetTable, TtfHeadTable* out, TtfErr
   data = mem_consume_be_u16(data, (u16*)&out->fontDirectionHint);
   data = mem_consume_be_u16(data, (u16*)&out->indexToLocFormat);
   data = mem_consume_be_u16(data, (u16*)&out->glyphDataFormat);
-  *err = TtfError_None;
+
+  out->invUnitsPerEm = 1.0f / (f32)out->unitsPerEm;
+  *err               = TtfError_None;
 }
 
 static void
@@ -596,7 +600,9 @@ ttf_read_glyph_header(Mem data, const TtfHeadTable* headTable, TtfGlyphHeader* o
   out->gridOriginX     = (f32)gridMinX;
   out->gridOriginY     = (f32)gridMinY;
   out->gridScale       = gridSize ? 1.0f / gridSize : 0.0f;
-  out->size            = gridSize / (f32)headTable->unitsPerEm;
+  out->size            = gridSize * headTable->invUnitsPerEm;
+  out->offsetX         = gridMinX * headTable->invUnitsPerEm;
+  out->offsetY         = gridMinY * headTable->invUnitsPerEm;
 
   *err = TtfError_None;
   return data;
@@ -705,11 +711,12 @@ static void ttf_glyph_build(
     AssetFontGlyph*       outGlyph,
     TtfError*             err) {
 
-  (void)header;
   *outGlyph = (AssetFontGlyph){
       .segmentIndex = (u32)outSegments->size,
       .segmentCount = 0,
       .size         = header->size,
+      .offsetX      = header->offsetX,
+      .offsetY      = header->offsetY,
   };
 
   for (usize c = 0; c != numContours; ++c) {
