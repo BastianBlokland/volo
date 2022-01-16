@@ -413,7 +413,7 @@ static void ttf_read_cmap_format4_header(Mem data, TtfCmapFormat4Header* out, Tt
   data          = mem_consume_be_u16(data, &out->searchRange);
   data          = mem_consume_be_u16(data, &out->entrySelector);
   data          = mem_consume_be_u16(data, &out->rangeShift);
-  if (UNLIKELY(data.size < 2 + out->segCount * 8)) {
+  if (UNLIKELY(data.size < (usize)(2 + out->segCount * 8))) {
     *err = TtfError_CmapFormat4EncodingMalformed;
     return;
   }
@@ -515,7 +515,7 @@ static void ttf_read_characters(
     case 4: {
       u16 formatDataSize;
       data = mem_consume_be_u16(data, &formatDataSize);
-      if (UNLIKELY(formatDataSize - 4 > data.size)) {
+      if (UNLIKELY((usize)(formatDataSize - 4) > data.size)) {
         *err = TtfError_CmapFormat4EncodingMalformed;
         return;
       }
@@ -585,7 +585,7 @@ static void ttf_read_glyph_locations(
     /**
      * Long version of the loca table (32 bit offsets).
      */
-    if (UNLIKELY(locaData.size < maxpTable->numGlyphs * 4 + 1)) { // +1 for the end offset.
+    if (UNLIKELY(locaData.size < (usize)(maxpTable->numGlyphs * 4 + 1))) { // +1 for the end offset.
       *err = TtfError_LocaTableMissingGlyphs;
       return;
     }
@@ -609,7 +609,7 @@ static void ttf_read_glyph_locations(
     /**
      * Short version of the loca table (16 bit offsets divided by two).
      */
-    if (UNLIKELY(locaData.size < maxpTable->numGlyphs * 2 + 1)) { // +1 for the end offset.
+    if (UNLIKELY(locaData.size < (usize)(maxpTable->numGlyphs * 2 + 1))) { // +1 for the end offset.
       *err = TtfError_LocaTableMissingGlyphs;
       return;
     }
