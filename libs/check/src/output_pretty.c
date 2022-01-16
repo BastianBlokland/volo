@@ -138,7 +138,7 @@ static void output_run_finished(
   CheckOutputPretty* prettyOut = (CheckOutputPretty*)out;
 
   const String str = fmt_write_scratch(
-      "> Finished: {}{}{} [Passed: {} Failed: {} Skipped: {}] {}({}){}\n",
+      "> Finished: {}{}{} [Passed: {}, Failed: {}, Skipped: {}] {}({}){}\n",
       arg_style_result(prettyOut, type),
       type == CheckResultType_Pass ? fmt_text_lit("PASS") : fmt_text_lit("FAIL"),
       arg_style_reset(prettyOut),

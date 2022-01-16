@@ -20,4 +20,12 @@ const u32 c_setInstance = 2;
 
 #define bind_spec(_BIND_IDX_) layout(constant_id = _BIND_IDX_)
 
+/**
+ * Build-in bindings.
+ */
+#define in_vertexIndex gl_VertexIndex
+#define in_instanceIndex gl_InstanceIndex
+#define out_vertexPosition gl_Position
+#define out_pointSize gl_PointSize
+
 #endif // INCLUDE_BINDING

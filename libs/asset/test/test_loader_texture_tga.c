@@ -198,6 +198,7 @@ spec(loader_texture_tga) {
 
       asset_test_wait(runner);
 
+      check_require(ecs_world_has_t(world, asset, AssetLoadedComp));
       const AssetTextureComp* tex = ecs_utils_read_t(world, AssetView, asset, AssetTextureComp);
       check_require(tex->height * tex->height == g_testData[i].pixelCount);
       for (usize p = 0; p != g_testData[i].pixelCount; ++p) {

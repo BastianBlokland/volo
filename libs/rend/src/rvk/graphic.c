@@ -54,6 +54,7 @@ static String rvk_graphic_topology_str(const AssetGraphicTopology topology) {
       string_static("Triangles"),
       string_static("Lines"),
       string_static("LineStrip"),
+      string_static("Points"),
   };
   ASSERT(array_elems(names) == AssetGraphicTopology_Count, "Incorrect number of names");
   return names[topology];
@@ -209,6 +210,8 @@ static VkPrimitiveTopology rvk_pipeline_input_topology(const RvkGraphic* graphic
     return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
   case AssetGraphicTopology_LineStrip:
     return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+  case AssetGraphicTopology_Points:
+    return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
   case AssetGraphicTopology_Count:
     break;
   }

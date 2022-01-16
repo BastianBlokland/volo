@@ -9,7 +9,7 @@
 #include "core_sort.h"
 
 DynArray
-dynarray_create(Allocator* alloc, const u16 stride, const u16 align, const usize capacity) {
+dynarray_create(Allocator* alloc, const u32 stride, const u16 align, const usize capacity) {
   diag_assert(stride);
   DynArray array = {
       .stride = stride,
@@ -24,7 +24,7 @@ dynarray_create(Allocator* alloc, const u16 stride, const u16 align, const usize
   return array;
 }
 
-DynArray dynarray_create_over(Mem memory, u16 stride) {
+DynArray dynarray_create_over(Mem memory, const u32 stride) {
   diag_assert(stride);
   DynArray array = {
       .stride = stride,
@@ -162,4 +162,11 @@ void* dynarray_search_binary(DynArray* array, CompareFunc compare, const void* t
 void dynarray_shuffle(DynArray* array, Rng* rng) {
   const Mem mem = dynarray_at(array, 0, array->size);
   shuffle_fisheryates(rng, mem_begin(mem), mem_end(mem), array->stride);
+}
+
+void* dynarray_copy_as_new(const DynArray* array, Allocator* alloc) {
+  const Mem arrayMem = dynarray_at(array, 0, array->size);
+  const Mem newMem   = alloc_alloc(alloc, arrayMem.size, array->align);
+  mem_cpy(newMem, arrayMem);
+  return newMem.ptr;
 }

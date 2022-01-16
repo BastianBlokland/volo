@@ -1,0 +1,29 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/ui_points.vert.spv",
+      "overrides": [
+        {
+          "name": "maxPoints",
+          "binding": 0,
+          "value": 1024
+        },
+        {
+          "name": "pointSize",
+          "binding": 1,
+          "value": 8
+        }
+      ]
+    },
+    {
+      "shaderId": "shaders/ui_color.frag.spv"
+    }
+  ],
+  "vertexCount": 0,
+  "renderOrder": 101,
+  "topology": "Points",
+  "rasterizer": "Points",
+  "blend": "None",
+  "depth": "Always",
+  "cull": "None"
+}

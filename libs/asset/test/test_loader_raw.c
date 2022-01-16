@@ -44,6 +44,7 @@ spec(loader_raw) {
 
     asset_test_wait(runner);
 
+    check_require(ecs_world_has_t(world, asset, AssetLoadedComp));
     const AssetRawComp* assetRaw = ecs_utils_read_t(world, AssetView, asset, AssetRawComp);
     check_eq_string(assetRaw->data, string_lit("Hello World"));
   }

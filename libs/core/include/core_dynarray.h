@@ -18,7 +18,7 @@ typedef struct {
   Mem        data;
   Allocator* alloc;
   usize      size;
-  u16        stride;
+  u32        stride;
   u16        align;
 } DynArray;
 
@@ -29,13 +29,13 @@ typedef struct {
  * until required.
  */
 #define dynarray_create_t(_ALLOCATOR_, _TYPE_, _CAPACITY_)                                         \
-  dynarray_create((_ALLOCATOR_), (u16)sizeof(_TYPE_), (u16)alignof(_TYPE_), _CAPACITY_)
+  dynarray_create((_ALLOCATOR_), (u32)sizeof(_TYPE_), (u16)alignof(_TYPE_), _CAPACITY_)
 
 /**
  * Create a new dynamic array for items of type '_TYPE_' over the given memory.
  * Will not allocate any memory, pushing more entries then (mem.size / stride) is not supported.
  */
-#define dynarray_create_over_t(_MEM_, _TYPE_) dynarray_create_over((_MEM_), (u16)sizeof(_TYPE_))
+#define dynarray_create_over_t(_MEM_, _TYPE_) dynarray_create_over((_MEM_), (u32)sizeof(_TYPE_))
 
 /**
  * Typed pointer to the beginning of the array.
@@ -100,14 +100,14 @@ typedef struct {
  * initial allocation, further allocations will be made automatically when more memory is needed.
  * 'capacity' of 0 is valid and won't allocate memory until required.
  */
-DynArray dynarray_create(Allocator*, u16 stride, u16 align, usize capacity);
+DynArray dynarray_create(Allocator*, u32 stride, u16 align, usize capacity);
 
 /**
  * Create a new dynamic array over the given memory, 'stride' determines the space each item
  * occupies.
  * Will not allocate any memory, pushing more entries then (mem.size / stride) is not supported.
  */
-DynArray dynarray_create_over(Mem, u16 stride);
+DynArray dynarray_create_over(Mem, u32 stride);
 
 /**
  * Free resources held by the dynamic-array.
@@ -196,3 +196,8 @@ void* dynarray_search_binary(DynArray*, CompareFunc, const void* target);
  * Shuffle the array using the given RandomNumberGenerator.
  */
 void dynarray_shuffle(DynArray*, Rng*);
+
+/**
+ * Allocate a new array and copy this DynArray's contents into it.
+ */
+void* dynarray_copy_as_new(const DynArray*, Allocator*);

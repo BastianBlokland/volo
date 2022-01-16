@@ -6,6 +6,8 @@ message(STATUS "> library: asset")
 
 add_library(lib_asset STATIC
   src/format.c
+  src/loader_font_ttf.c
+  src/loader_font.c
   src/loader_graphic.c
   src/loader_mesh_obj.c
   src/loader_mesh.c
@@ -31,6 +33,7 @@ target_link_libraries(lib_asset PRIVATE lib_log)
 
 add_executable(lib_asset_test
   test/main.c
+  test/test_loader_font_ttf.c
   test/test_loader_graphic.c
   test/test_loader_mesh_obj.c
   test/test_loader_raw.c

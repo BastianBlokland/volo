@@ -138,13 +138,26 @@ Mem mem_slice(Mem, usize offset, usize size);
 Mem mem_consume(Mem, usize amount);
 
 /**
+ * Read a single byte.
+ * Pre-condition: mem.size >= 1
+ */
+Mem mem_consume_u8(Mem, u8* out);
+
+/**
  * Read a little-endian value and return a view 'sizeof(*out)' bytes into the memory.
  * Pre-condition: mem.size >= sizeof(*out).
  */
-Mem mem_consume_le_u8(Mem, u8* out);
 Mem mem_consume_le_u16(Mem, u16* out);
 Mem mem_consume_le_u32(Mem, u32* out);
 Mem mem_consume_le_u64(Mem, u64* out);
+
+/**
+ * Read a big-endian value and return a view 'sizeof(*out)' bytes into the memory.
+ * Pre-condition: mem.size >= sizeof(*out).
+ */
+Mem mem_consume_be_u16(Mem, u16* out);
+Mem mem_consume_be_u32(Mem, u32* out);
+Mem mem_consume_be_u64(Mem, u64* out);
 
 /**
  * Interpret this memory as an object with the given size.

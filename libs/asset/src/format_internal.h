@@ -4,10 +4,11 @@
 typedef enum {
   AssetFormat_Graphic,
   AssetFormat_Obj,
+  AssetFormat_Ppm,
   AssetFormat_Raw,
   AssetFormat_Spv,
-  AssetFormat_Ppm,
   AssetFormat_Tga,
+  AssetFormat_Ttf,
 
   AssetFormat_Count,
 } AssetFormat;

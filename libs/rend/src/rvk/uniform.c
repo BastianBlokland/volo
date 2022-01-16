@@ -13,7 +13,7 @@
  * Maximum amount of data that we can bind to a single uniform.
  * NOTE: might be lower if the 'maxUniformBufferRange' device limit is lower.
  */
-#define rvk_uniform_desired_size_max (32 * usize_kibibyte)
+#define rvk_uniform_desired_size_max (64 * usize_kibibyte)
 
 /**
  * Size of the backing buffers to allocate.

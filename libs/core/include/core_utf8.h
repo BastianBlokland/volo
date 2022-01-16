@@ -1,11 +1,6 @@
 #pragma once
 #include "core_dynstring.h"
-
-/**
- * A single unicode codepoint.
- * https://en.wikipedia.org/wiki/Unicode#Architecture_and_terminology
- */
-typedef u32 Utf8Codepoint;
+#include "core_unicode.h"
 
 /**
  * Test if the given byte is a utf8 continuation byte.
@@ -21,9 +16,16 @@ usize utf8_cp_count(String);
 /**
  * Returns how many utf8 bytes are required to represent the given codepoint.
  */
-usize utf8_cp_bytes(Utf8Codepoint);
+usize utf8_cp_bytes(UnicodeCp);
 
 /**
  * Write a utf8 string (1 - 4 bytes) for a Unicode codepoint.
  */
-void utf8_cp_write(DynString*, Utf8Codepoint);
+void utf8_cp_write(DynString*, UnicodeCp);
+
+/**
+ * Read the next Unicode codepoint from the given utf8 string.
+ * Returns the remaining utf8 string.
+ * NOTE: Returns the Unicode NULL (0) character when invalid utf8 is detected.
+ */
+String utf8_cp_read(String, UnicodeCp* out);

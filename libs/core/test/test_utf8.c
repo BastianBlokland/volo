@@ -24,8 +24,8 @@ spec(utf8) {
 
   it("can encode codepoints as utf8") {
     struct {
-      Utf8Codepoint cp;
-      String        expected;
+      UnicodeCp cp;
+      String    expected;
     } const data[] = {
         {0x0, string_lit("\0")},
         {0x61, string_lit("a")},
@@ -43,5 +43,30 @@ spec(utf8) {
       check_eq_string(dynstring_view(&string), data[i].expected);
     }
     dynstring_destroy(&string);
+  }
+
+  it("can decode codecpoints from utf8") {
+    struct {
+      String    utf8;
+      UnicodeCp expected;
+      String    remaining;
+    } const data[] = {
+        {string_lit("\0"), 0x0, string_lit("")},
+        {string_lit("a"), 0x61, string_lit("")},
+        {string_lit("&"), 0x26, string_lit("")},
+        {string_lit("Λ"), 0x39B, string_lit("")},
+        {string_lit("฿"), 0xE3F, string_lit("")},
+        {string_lit("�"), 0xFFFD, string_lit("")},
+        {string_lit("⠼"), 0x283C, string_lit("")},
+        {string_lit("⠼hello"), 0x283C, string_lit("hello")},
+    };
+
+    for (usize i = 0; i != array_elems(data); ++i) {
+      UnicodeCp    result;
+      const String remaining = utf8_cp_read(data[i].utf8, &result);
+
+      check_eq_string(remaining, data[i].remaining);
+      check_eq_int(result, data[i].expected);
+    }
   }
 }

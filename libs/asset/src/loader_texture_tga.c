@@ -117,20 +117,20 @@ static Mem tga_read_header(Mem input, TgaHeader* out, TgaError* err) {
     return input;
   }
   *out  = (TgaHeader){0};
-  input = mem_consume_le_u8(input, &out->idLength);
-  input = mem_consume_le_u8(input, (u8*)&out->colorMapType);
-  input = mem_consume_le_u8(input, (u8*)&out->imageType);
+  input = mem_consume_u8(input, &out->idLength);
+  input = mem_consume_u8(input, (u8*)&out->colorMapType);
+  input = mem_consume_u8(input, (u8*)&out->imageType);
   input = mem_consume_le_u16(input, &out->colorMapSpec.mapStart);
   input = mem_consume_le_u16(input, &out->colorMapSpec.mapLength);
-  input = mem_consume_le_u8(input, &out->colorMapSpec.entrySize);
+  input = mem_consume_u8(input, &out->colorMapSpec.entrySize);
   input = mem_consume_le_u16(input, &out->imageSpec.origin[0]);
   input = mem_consume_le_u16(input, &out->imageSpec.origin[1]);
   input = mem_consume_le_u16(input, &out->imageSpec.width);
   input = mem_consume_le_u16(input, &out->imageSpec.height);
-  input = mem_consume_le_u8(input, &out->imageSpec.bitsPerPixel);
+  input = mem_consume_u8(input, &out->imageSpec.bitsPerPixel);
 
   u8 imageSpecDescriptorRaw;
-  input                     = mem_consume_le_u8(input, &imageSpecDescriptorRaw);
+  input                     = mem_consume_u8(input, &imageSpecDescriptorRaw);
   out->imageSpec.descriptor = (TgaImageDescriptor){
       .attributeDepth = imageSpecDescriptorRaw & u8_lit(0b1111),
       .origin         = (TgaOrigin)((imageSpecDescriptorRaw & u8_lit(0b110000)) >> 4),
@@ -212,7 +212,7 @@ static Mem tga_read_pixels_rle(
           return input;
         }
         u8 packetHeader;
-        input                  = mem_consume_le_u8(input, &packetHeader);
+        input                  = mem_consume_u8(input, &packetHeader);
         const bool isRlePacket = (packetHeader & 0b10000000) != 0; // Msb indicates packet type.
         packetRefPixel         = isRlePacket ? i : u32_max;
         packetRem              = packetHeader & 0b01111111; // Remaining 7 bits are the rep count.

@@ -26,6 +26,7 @@ static void graphic_datareg_init() {
     data_reg_const_t(g_dataReg, AssetGraphicTopology, Triangles);
     data_reg_const_t(g_dataReg, AssetGraphicTopology, Lines);
     data_reg_const_t(g_dataReg, AssetGraphicTopology, LineStrip);
+    data_reg_const_t(g_dataReg, AssetGraphicTopology, Points);
 
     data_reg_enum_t(g_dataReg, AssetGraphicRasterizer);
     data_reg_const_t(g_dataReg, AssetGraphicRasterizer, Fill);
