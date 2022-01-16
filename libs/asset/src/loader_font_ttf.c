@@ -727,7 +727,8 @@ static void ttf_glyph_build(
     *dynarray_push_t(outPoints, AssetFontPoint) = points[start];
 
     for (usize cur = start; cur != end; ++cur) {
-      const usize next = (cur + 1) == end ? start : cur + 1; // Wraps around for the last entry.
+      const bool  isLast      = (cur + 1) == end;
+      const usize next        = isLast ? start : cur + 1; // Wraps around for the last entry.
       const bool  curOnCurve  = (pointFlags[cur] & TtfGlyphFlags_OnCurvePoint) != 0;
       const bool  nextOnCurve = (pointFlags[next] & TtfGlyphFlags_OnCurvePoint) != 0;
 
@@ -762,7 +763,7 @@ static void ttf_glyph_build(
         };
         ++outGlyph->segmentCount;
 
-        if (UNLIKELY(cur == end)) {
+        if (UNLIKELY(isLast)) {
           // Another point has to follow this one to finish the curve.
           *err = TtfError_GlyfTableEntryContourMalformed;
           return;
