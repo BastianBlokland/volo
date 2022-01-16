@@ -21,7 +21,7 @@ ecs_comp_define(AppComp) {
   EcsEntityId window;
   EcsEntityId fontAsset;
   EcsEntityId lineRenderer, pointRenderer;
-  u32         unicode;
+  UnicodeCp   cp;
 };
 
 ecs_view_define(GlobalView) {
@@ -41,7 +41,7 @@ static void app_render_ui(
 
   MAYBE_UNUSED const TimeSteady startTime = time_steady_clock();
 
-  const AssetFontGlyph* glyph = asset_font_lookup_unicode(font, app->unicode);
+  const AssetFontGlyph* glyph = asset_font_lookup_unicode(font, app->cp);
 
   GeoVector* lines     = scene_renderable_unique_data(lineRenderer, sizeof(GeoVector) * 512).ptr;
   u32        lineCount = 0;
@@ -75,7 +75,7 @@ static void app_render_ui(
   MAYBE_UNUSED const TimeDuration duration = time_steady_duration(startTime, time_steady_clock());
   log_d(
       "Ui updated",
-      log_param("unicode", fmt_int(app->unicode)),
+      log_param("cp", fmt_int(app->cp)),
       log_param("duration", fmt_duration(duration)));
 }
 
@@ -106,7 +106,7 @@ ecs_system_define(AppUpdateSys) {
         SceneRenderableUniqueComp,
         .graphic = asset_lookup(world, assets, string_lit("graphics/ui_points.gra")));
 
-    app->unicode = 0x42;
+    app->cp = 0x42;
     app->flags &= ~AppFlags_Init;
     app->flags |= AppFlags_Dirty;
   }
@@ -118,11 +118,11 @@ ecs_system_define(AppUpdateSys) {
 
   const GapWindowComp* win = ecs_utils_read_t(world, WindowView, app->window, GapWindowComp);
   if (gap_window_key_pressed(win, GapKey_ArrowRight)) {
-    ++app->unicode;
+    ++app->cp;
     app->flags |= AppFlags_Dirty;
   }
   if (gap_window_key_pressed(win, GapKey_ArrowLeft)) {
-    --app->unicode;
+    --app->cp;
     app->flags |= AppFlags_Dirty;
   }
 

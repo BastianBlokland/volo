@@ -1,9 +1,10 @@
 #pragma once
+#include "core_unicode.h"
 #include "ecs_module.h"
 
 typedef struct {
-  u32 unicode;
-  u32 glyphIndex;
+  UnicodeCp cp;
+  u32       glyphIndex;
 } AssetFontChar;
 
 typedef union {
@@ -29,7 +30,7 @@ typedef struct {
 } AssetFontGlyph;
 
 ecs_comp_extern_public(AssetFontComp) {
-  AssetFontChar*    characters; // Sorted on the unicode value.
+  AssetFontChar*    characters; // Sorted on the unicode codepoint.
   usize             characterCount;
   AssetFontPoint*   points;
   usize             pointCount;
@@ -40,9 +41,9 @@ ecs_comp_extern_public(AssetFontComp) {
 };
 
 /**
- * Find a glyph based on an unicode value.
+ * Find a glyph based on an unicode codepoint.
  */
-const AssetFontGlyph* asset_font_lookup_unicode(const AssetFontComp*, u32 unicode);
+const AssetFontGlyph* asset_font_lookup_unicode(const AssetFontComp*, UnicodeCp);
 
 /**
  * Sample a position on the segment.

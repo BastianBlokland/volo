@@ -44,16 +44,16 @@ ecs_module_init(asset_font_module) {
 }
 
 i8 asset_font_compare_char(const void* a, const void* b) {
-  return compare_u32(field_ptr(a, AssetFontChar, unicode), field_ptr(b, AssetFontChar, unicode));
+  return compare_u32(field_ptr(a, AssetFontChar, cp), field_ptr(b, AssetFontChar, cp));
 }
 
-const AssetFontGlyph* asset_font_lookup_unicode(const AssetFontComp* font, const u32 unicode) {
+const AssetFontGlyph* asset_font_lookup_unicode(const AssetFontComp* font, const UnicodeCp cp) {
   const AssetFontChar* ch = search_binary_t(
       font->characters,
       font->characters + font->characterCount,
       AssetFontChar,
       asset_font_compare_char,
-      mem_struct(AssetFontChar, .unicode = unicode).ptr);
+      mem_struct(AssetFontChar, .cp = cp).ptr);
 
   if (UNLIKELY(!ch)) {
     return &font->glyphs[0]; // Return the 'missing' glyph (guaranteed to exist).
