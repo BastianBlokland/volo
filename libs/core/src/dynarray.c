@@ -9,7 +9,7 @@
 #include "core_sort.h"
 
 DynArray
-dynarray_create(Allocator* alloc, const u16 stride, const u16 align, const usize capacity) {
+dynarray_create(Allocator* alloc, const u32 stride, const u16 align, const usize capacity) {
   diag_assert(stride);
   DynArray array = {
       .stride = stride,
@@ -24,7 +24,7 @@ dynarray_create(Allocator* alloc, const u16 stride, const u16 align, const usize
   return array;
 }
 
-DynArray dynarray_create_over(Mem memory, u16 stride) {
+DynArray dynarray_create_over(Mem memory, const u32 stride) {
   diag_assert(stride);
   DynArray array = {
       .stride = stride,

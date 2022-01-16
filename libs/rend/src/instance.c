@@ -105,7 +105,7 @@ ecs_system_define(RendInstanceFillUniqueDrawsSys) {
 
     // Set instance data.
     const Mem data = mem_slice(renderableComp->instDataMem, 0, renderableComp->instDataSize);
-    drawComp->instances.stride = (u16)math_max(data.size, 16);
+    drawComp->instances.stride = (u32)math_max(data.size, 16);
     mem_cpy(dynarray_push(&drawComp->instances, 1), data);
   }
 }
