@@ -118,6 +118,11 @@ typedef struct {
 } TtfHheaTable;
 
 typedef struct {
+  u16 advanceWidth;
+  i16 leftSideBearing;
+} TtfGlyphHorMetrics;
+
+typedef struct {
   i16 numContours;
   f32 gridOriginX, gridOriginY; // Origin of the ttf grid.
   f32 gridScale;                // Scale to multiply grid ttf points by to normalize them.
@@ -155,6 +160,8 @@ typedef enum {
   TtfError_CmapNoSupportedEncoding,
   TtfError_CmapFormat4EncodingMalformed,
   TtfError_HheaTableMissing,
+  TtfError_HmtxTableMissing,
+  TtfError_HmtxTableMalformed,
   TtfError_NoCharacters,
   TtfError_NoGlyphPoints,
   TtfError_NoGlyphSegments,
@@ -191,6 +198,8 @@ static String ttf_error_str(TtfError res) {
       string_static("TrueType cmap table does not contain any supported encodings"),
       string_static("TrueType cmap table format4 encoding malformed"),
       string_static("TrueType hhea table missing"),
+      string_static("TrueType hmtx table missing"),
+      string_static("TrueType hmtx table is malformed"),
       string_static("TrueType font contains no characters"),
       string_static("TrueType font contains no glyph points"),
       string_static("TrueType font contains no glyph segments"),
@@ -523,7 +532,7 @@ static void
 ttf_read_hhea_table(const TtfOffsetTable* offsetTable, TtfHheaTable* out, TtfError* err) {
   const TtfTableRecord* tableRecord = ttf_find_table(offsetTable, string_lit("hhea"));
   if (UNLIKELY(!tableRecord)) {
-    *err = TtfError_CmapTableMissing;
+    *err = TtfError_HheaTableMissing;
     return;
   }
   Mem data = tableRecord->data;
@@ -624,12 +633,58 @@ static void ttf_read_glyph_locations(
   *err = TtfError_None;
 }
 
-static Mem
-ttf_read_glyph_header(Mem data, const TtfHeadTable* headTable, TtfGlyphHeader* out, TtfError* err) {
+static void ttf_read_glyph_hor_metrics(
+    const TtfOffsetTable* offsetTable,
+    const TtfMaxpTable*   maxpTable,
+    const TtfHheaTable*   hheaTable,
+    TtfGlyphHorMetrics*   out, // TtfGlyphHorMetrics[maxpTable.numGlyphs]
+    TtfError*             err) {
+  const TtfTableRecord* tableRecord = ttf_find_table(offsetTable, string_lit("hmtx"));
+  if (UNLIKELY(!tableRecord)) {
+    *err = TtfError_HmtxTableMissing;
+    return;
+  }
+  Mem data = tableRecord->data;
+
+  // Read the 'long' entries (both a advanceWidth and a leftSideBearing).
+  if (UNLIKELY(data.size < hheaTable->numOfLongHorMetrics * 4)) {
+    *err = TtfError_HmtxTableMalformed;
+    return;
+  }
+  if (UNLIKELY(hheaTable->numOfLongHorMetrics > maxpTable->numGlyphs)) {
+    *err = TtfError_Malformed;
+    return;
+  }
+  for (usize i = 0; i != hheaTable->numOfLongHorMetrics; ++i) {
+    data = mem_consume_be_u16(data, &out[i].advanceWidth);
+    data = mem_consume_be_u16(data, (u16*)&out[i].leftSideBearing);
+  }
+
+  // Read the 'short' entries (only a leftSideBearing, advanceWith of the last long entry is used).
+  const u16 remainingEntries = maxpTable->numGlyphs - hheaTable->numOfLongHorMetrics;
+  if (UNLIKELY(data.size < remainingEntries * 2)) {
+    *err = TtfError_HmtxTableMalformed;
+    return;
+  }
+  const u16 lastLongIndex = hheaTable->numOfLongHorMetrics ? hheaTable->numOfLongHorMetrics - 1 : 0;
+  for (usize i = 0; i != remainingEntries; ++i) {
+    data = mem_consume_be_u16(data, (u16*)&out[lastLongIndex + i].leftSideBearing);
+    out[lastLongIndex + i].advanceWidth = out[lastLongIndex].advanceWidth;
+  }
+}
+
+static Mem ttf_read_glyph_header(
+    Mem                       data,
+    const TtfGlyphHorMetrics* horMetrics,
+    const TtfHeadTable*       headTable,
+    TtfGlyphHeader*           out,
+    TtfError*                 err) {
+
   if (UNLIKELY(data.size < 10)) {
     *err = TtfError_GlyfTableEntryHeaderMalformed;
     return data;
   }
+
   /**
    * NOTE: For signed values we assume the host system is using 2's complement integers.
    */
@@ -648,7 +703,7 @@ ttf_read_glyph_header(Mem data, const TtfHeadTable* headTable, TtfGlyphHeader* o
   out->gridOriginY     = (f32)gridMinY;
   out->gridScale       = gridSize ? 1.0f / gridSize : 0.0f;
   out->size            = gridSize * headTable->invUnitsPerEm;
-  out->offsetX         = gridMinX * headTable->invUnitsPerEm;
+  out->offsetX         = (horMetrics->leftSideBearing - gridMinX) * headTable->invUnitsPerEm;
   out->offsetY         = gridMinY * headTable->invUnitsPerEm;
 
   *err = TtfError_None;
@@ -836,16 +891,17 @@ static void ttf_glyph_build(
 }
 
 static void ttf_read_glyph(
-    Mem                 data,
-    const TtfHeadTable* headTable,
-    const usize         glyphId,
-    DynArray*           outPoints,   // AssetFontPoint[], needs to be already initialized.
-    DynArray*           outSegments, // AssetFontSegment[], needs to be already initialized.
-    AssetFontGlyph*     outGlyph,
-    TtfError*           err) {
+    Mem                       data,
+    const TtfGlyphHorMetrics* horMetrics,
+    const TtfHeadTable*       headTable,
+    const usize               glyphId,
+    DynArray*                 outPoints,   // AssetFontPoint[], needs to be already initialized.
+    DynArray*                 outSegments, // AssetFontSegment[], needs to be already initialized.
+    AssetFontGlyph*           outGlyph,
+    TtfError*                 err) {
 
   TtfGlyphHeader header;
-  data = ttf_read_glyph_header(data, headTable, &header, err);
+  data = ttf_read_glyph_header(data, horMetrics, headTable, &header, err);
   if (UNLIKELY(*err)) {
     return;
   }
@@ -996,12 +1052,13 @@ static void ttf_load_fail(EcsWorld* world, const EcsEntityId assetEntity, const 
 }
 
 void asset_load_ttf(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) {
-  TtfError        err                = TtfError_None;
-  DynArray        characters         = dynarray_create_t(g_alloc_heap, AssetFontChar, 128);
-  DynArray        points             = dynarray_create_t(g_alloc_heap, AssetFontPoint, 1024);
-  DynArray        segments           = dynarray_create_t(g_alloc_heap, AssetFontSegment, 512);
-  Mem*            glyphDataLocations = null; // Mem[maxpTable.numGlyphs]
-  AssetFontGlyph* glyphs             = null; // AssetFontGlyph[maxpTable.numGlyphs]
+  TtfError            err                = TtfError_None;
+  DynArray            characters         = dynarray_create_t(g_alloc_heap, AssetFontChar, 128);
+  DynArray            points             = dynarray_create_t(g_alloc_heap, AssetFontPoint, 1024);
+  DynArray            segments           = dynarray_create_t(g_alloc_heap, AssetFontSegment, 512);
+  Mem*                glyphDataLocations = null; // Mem[maxpTable.numGlyphs]
+  TtfGlyphHorMetrics* glyphHorMetrics    = null; // TtfGlyphHorMetrics[maxpTable.numGlyphs]
+  AssetFontGlyph*     glyphs             = null; // AssetFontGlyph[maxpTable.numGlyphs]
 
   TtfOffsetTable offsetTable;
   ttf_read_offset_table(src->data, &offsetTable, &err);
@@ -1069,12 +1126,21 @@ void asset_load_ttf(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
     ttf_load_fail(world, assetEntity, TtfError_TooManyGlyphs);
     goto End;
   }
+
   glyphDataLocations = alloc_array_t(g_alloc_heap, Mem, maxpTable.numGlyphs);
   ttf_read_glyph_locations(&offsetTable, &maxpTable, &headTable, glyphDataLocations, &err);
   if (err) {
     ttf_load_fail(world, assetEntity, err);
     goto End;
   }
+
+  glyphHorMetrics = alloc_array_t(g_alloc_heap, TtfGlyphHorMetrics, maxpTable.numGlyphs);
+  ttf_read_glyph_hor_metrics(&offsetTable, &maxpTable, &hheaTable, glyphHorMetrics, &err);
+  if (err) {
+    ttf_load_fail(world, assetEntity, err);
+    goto End;
+  }
+
   glyphs = alloc_array_t(g_alloc_heap, AssetFontGlyph, maxpTable.numGlyphs);
   for (usize glyphIndex = 0; glyphIndex != maxpTable.numGlyphs; ++glyphIndex) {
     if (!glyphDataLocations[glyphIndex].size) {
@@ -1084,6 +1150,7 @@ void asset_load_ttf(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
     }
     ttf_read_glyph(
         glyphDataLocations[glyphIndex],
+        &glyphHorMetrics[glyphIndex],
         &headTable,
         glyphIndex,
         &points,
@@ -1113,6 +1180,9 @@ End:
   dynarray_destroy(&segments);
   if (glyphDataLocations) {
     alloc_free_array_t(g_alloc_heap, glyphDataLocations, maxpTable.numGlyphs);
+  }
+  if (glyphHorMetrics) {
+    alloc_free_array_t(g_alloc_heap, glyphHorMetrics, maxpTable.numGlyphs);
   }
   if (glyphs) {
     alloc_free_array_t(g_alloc_heap, glyphs, maxpTable.numGlyphs);
