@@ -6,7 +6,7 @@
         {
           "name": "maxPoints",
           "binding": 0,
-          "value": 1024
+          "value": 4096
         },
         {
           "name": "pointSize",

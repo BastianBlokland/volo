@@ -46,13 +46,23 @@ static void app_render_ui(
   GeoVector* lines     = scene_renderable_unique_data(lineRenderer, sizeof(GeoVector) * 512).ptr;
   u32        lineCount = 0;
 
-  GeoVector* points     = scene_renderable_unique_data(pointRenderer, sizeof(GeoVector) * 512).ptr;
+  GeoVector* points     = scene_renderable_unique_data(pointRenderer, sizeof(GeoVector) * 4096).ptr;
   u32        pointCount = 0;
 
+  const f32 step = 0.02f;
+  for (f32 x = step; x <= 1.0f - step; x += step) {
+    for (f32 y = step; y <= 1.0f - step; y += step) {
+      const AssetFontPoint p         = {x, y};
+      const f32            dist      = asset_font_glyph_dist(font, glyph, p);
+      const f32            intensity = math_clamp_f32(dist * 10.0f, -1, 1) * 0.5f + 0.5f;
+      points[pointCount++]           = geo_vector(p.x, p.y, intensity);
+    }
+  }
+
   const f32 density = 25.0f;
-  const f32 offsetX = 0.125f;
-  const f32 offsetY = 0.125f;
-  const f32 scale   = 0.75f;
+  const f32 offsetX = 0;
+  const f32 offsetY = 0;
+  const f32 scale   = 1;
 
   for (usize seg = glyph->segmentIndex; seg != glyph->segmentIndex + glyph->segmentCount; ++seg) {
     GeoVector lastPoint;
@@ -61,7 +71,6 @@ static void app_render_ui(
       const f32            t     = i / (f32)(count - 1);
       const AssetFontPoint point = asset_font_seg_sample(font, seg, t);
       const GeoVector pointPos   = geo_vector(offsetX + point.x * scale, offsetY + point.y * scale);
-      points[pointCount++]       = pointPos;
       if (i) {
         lines[lineCount++] = geo_vector(lastPoint.x, lastPoint.y, pointPos.x, pointPos.y);
       }

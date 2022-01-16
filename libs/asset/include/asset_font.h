@@ -67,4 +67,16 @@ AssetFontPoint asset_font_seg_sample(const AssetFontComp*, usize index, f32 t);
  * Calculate the length of a segment.
  * Pre-condition: index < font.segmentCount
  */
-f32 asset_font_seg_length(const AssetFontComp* font, usize index);
+f32 asset_font_seg_length(const AssetFontComp*, usize index);
+
+/**
+ * Calculate the distance of a segment to the given point.
+ * Pre-condition: index < font.segmentCount
+ */
+f32 asset_font_seg_dist(const AssetFontComp*, usize index, AssetFontPoint);
+
+/**
+ * Calculate the distance from the closest segment to the given point.
+ * Pre-condition: index < font.segmentCount
+ */
+f32 asset_font_glyph_dist(const AssetFontComp*, const AssetFontGlyph*, AssetFontPoint);
