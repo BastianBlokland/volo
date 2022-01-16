@@ -1,3 +1,4 @@
+#include "core_annotation.h"
 #include "core_dynstring.h"
 #include "core_utf8.h"
 
@@ -9,7 +10,23 @@
 
 static bool utf8_cp_valid(const UnicodeCp cp) { return cp <= utf8_cp_max; }
 
-bool utf8_contchar(u8 c) { return (c & 0b11000000) == 0b10000000; }
+static u8 utf8_charcount_from_first(const u8 c) {
+  if ((c & 0b10000000) == 0) {
+    return 1;
+  }
+  if ((c & 0b11100000) == 0b11000000) {
+    return 2;
+  }
+  if ((c & 0b11110000) == 0b11100000) {
+    return 3;
+  }
+  if ((c & 0b11111000) == 0b11110000) {
+    return 4;
+  }
+  return 0; // Invalid utf8 char.
+}
+
+bool utf8_contchar(const u8 c) { return (c & 0b11000000) == 0b10000000; }
 
 usize utf8_cp_count(String str) {
   usize result = 0;
@@ -65,4 +82,49 @@ void utf8_cp_write(DynString* str, const UnicodeCp cp) {
   dynstring_append_char(str, (u8)(((cp >> 12) & 0x3F) | 0x80));
   dynstring_append_char(str, (u8)(((cp >> 6) & 0x3F) | 0x80));
   dynstring_append_char(str, (u8)((cp & 0x3F) | 0x80));
+}
+
+String utf8_cp_read(String utf8, UnicodeCp* out) {
+  if (UNLIKELY(!utf8.size)) {
+    *out = 0;
+    return string_empty;
+  }
+  u8* chars = string_begin(utf8);
+
+  // Find out how many utf8 characters this codepoint consists.
+  const u8 charCount = utf8_charcount_from_first(chars[0]);
+  if (UNLIKELY(!charCount)) {
+    *out = 0;
+    return string_consume(utf8, 1);
+  }
+
+  // Validate that the remaning characters are all valid utf8 continuation characters.
+  if (UNLIKELY(utf8.size < charCount)) {
+    *out = 0;
+    return string_empty;
+  }
+  for (u8 i = 1; i != charCount; ++i) {
+    if (UNLIKELY(!utf8_contchar(chars[i]))) {
+      *out = 0;
+      return string_consume(utf8, charCount);
+    }
+  }
+
+  // Decode the Unicode codepoint.
+  switch (charCount) {
+  case 1:
+    *out = chars[0];
+    break;
+  case 2:
+    *out = (chars[0] & 0b00011111) << 6 | (chars[1] & 0b00111111);
+    break;
+  case 3:
+    *out = (chars[0] & 0b00001111) << 12 | (chars[1] & 0b00111111) << 6 | (chars[2] & 0b00111111);
+    break;
+  case 4:
+    *out = (chars[0] & 0b00000111) << 18 | (chars[1] & 0b00111111) << 12 |
+           (chars[2] & 0b00111111) << 6 | (chars[3] & 0b00111111);
+    break;
+  }
+  return string_consume(utf8, charCount);
 }
