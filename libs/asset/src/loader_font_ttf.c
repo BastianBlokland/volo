@@ -107,7 +107,7 @@ typedef struct {
 
 typedef struct {
   i16 numContours;
-  f32 gridOffsetX, gridOffsetY; // Offsets to move grid ttf points to their normalized positions.
+  f32 gridOriginX, gridOriginY; // Origin of the ttf grid.
   f32 gridScale;                // Scale to multiply grid ttf points by to normalize them.
   f32 size;                     // Size of the glyph.
 } TtfGlyphHeader;
@@ -590,20 +590,13 @@ ttf_read_glyph_header(Mem data, const TtfHeadTable* headTable, TtfGlyphHeader* o
   data = mem_consume_be_u16(data, (u16*)&gridMaxX);
   data = mem_consume_be_u16(data, (u16*)&gridMaxY);
 
-  /**
-   * Calculate offsets and scales to normalize and center grid points in the glyph.
-   */
   const u16 gridWidth  = gridMaxX - gridMinX;
   const u16 gridHeight = gridMaxY - gridMinY;
   const u16 gridSize   = math_max(gridWidth, gridHeight);
-  out->gridOffsetX     = -gridMinX + gridSize * 0.5f - gridWidth * 0.5f;
-  out->gridOffsetY     = -gridMinY + gridSize * 0.5f - gridHeight * 0.5f;
+  out->gridOriginX     = (f32)gridMinX;
+  out->gridOriginY     = (f32)gridMinY;
   out->gridScale       = gridSize ? 1.0f / gridSize : 0.0f;
-
-  /**
-   * Calculate Glyph size and offset.
-   */
-  out->size = gridSize / (f32)headTable->unitsPerEm;
+  out->size            = gridSize / (f32)headTable->unitsPerEm;
 
   *err = TtfError_None;
   return data;
@@ -664,7 +657,7 @@ static Mem ttf_read_glyph_points(
       }
       xPos += offset;
     }
-    out[i].x = (xPos + (f32)header->gridOffsetX) * header->gridScale;
+    out[i].x = (xPos - header->gridOriginX) * header->gridScale;
   }
 
   // Read the y coordinates for all points.
@@ -689,7 +682,7 @@ static Mem ttf_read_glyph_points(
       }
       yPos += offset;
     }
-    out[i].y = (yPos + (f32)header->gridOffsetY) * header->gridScale;
+    out[i].y = (yPos - header->gridOriginY) * header->gridScale;
   }
 
   *err = TtfError_None;
