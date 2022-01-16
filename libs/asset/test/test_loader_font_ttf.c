@@ -101,7 +101,7 @@ spec(loader_font_ttf) {
 
       check_require(ecs_world_has_t(world, asset, AssetLoadedComp));
       const AssetFontComp*  font  = ecs_utils_read_t(world, AssetView, asset, AssetFontComp);
-      const AssetFontGlyph* glyph = asset_font_lookup_unicode(font, 0x31); // 'digit one'.
+      const AssetFontGlyph* glyph = asset_font_lookup(font, 0x31); // 'digit one'.
 
       /**
        * Glyph is a box consisting of 4 points and 4 lines connecting the edges of the box.

@@ -4,6 +4,7 @@
 #include "core_diag.h"
 #include "core_math.h"
 #include "core_search.h"
+#include "core_utf8.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 
@@ -47,7 +48,7 @@ i8 asset_font_compare_char(const void* a, const void* b) {
   return compare_u32(field_ptr(a, AssetFontChar, cp), field_ptr(b, AssetFontChar, cp));
 }
 
-const AssetFontGlyph* asset_font_lookup_unicode(const AssetFontComp* font, const UnicodeCp cp) {
+const AssetFontGlyph* asset_font_lookup(const AssetFontComp* font, const UnicodeCp cp) {
   const AssetFontChar* ch = search_binary_t(
       font->characters,
       font->characters + font->characterCount,
@@ -60,6 +61,28 @@ const AssetFontGlyph* asset_font_lookup_unicode(const AssetFontComp* font, const
   }
   diag_assert(ch->glyphIndex < font->glyphCount);
   return &font->glyphs[ch->glyphIndex];
+}
+
+usize asset_font_lookup_utf8(
+    const AssetFontComp* font, String text, const AssetFontGlyph** out, const usize outCount) {
+
+  if (UNLIKELY(!text.size)) {
+    return 0;
+  }
+  usize count = 0;
+  do {
+    UnicodeCp cp;
+    text = utf8_cp_read(text, &cp);
+    if (out) {
+      if (UNLIKELY(count >= outCount)) {
+        return count;
+      }
+      out[count] = asset_font_lookup(font, cp);
+    }
+    ++count;
+  } while (text.size);
+
+  return count;
 }
 
 static f32 font_math_dist_sqr(const AssetFontPoint s, const AssetFontPoint e) {

@@ -41,9 +41,17 @@ ecs_comp_extern_public(AssetFontComp) {
 };
 
 /**
- * Find a glyph based on an unicode codepoint.
+ * Get a glyph based on an unicode codepoint.
  */
-const AssetFontGlyph* asset_font_lookup_unicode(const AssetFontComp*, UnicodeCp);
+const AssetFontGlyph* asset_font_lookup(const AssetFontComp*, UnicodeCp);
+
+/**
+ * Get a set of glyphs to represent the input utf8 string.
+ * Return the amount glyphs written to the output.
+ * NOTE: Provide 'null' as the out pointer to query the amount of glyphs without writing them.
+ */
+usize asset_font_lookup_utf8(
+    const AssetFontComp*, String, const AssetFontGlyph** out, usize outCount);
 
 /**
  * Sample a position on the segment.
