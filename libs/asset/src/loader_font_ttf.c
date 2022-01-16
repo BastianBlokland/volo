@@ -107,10 +107,9 @@ typedef struct {
 
 typedef struct {
   i16 numContours;
-  i16 minX, minY;
-  i16 maxX, maxY;
-  f32 offsetX, offsetY;
-  f32 scale;
+  f32 gridOffsetX, gridOffsetY; // Offsets to move grid ttf points to their normalized positions.
+  f32 gridScale;                // Scale to multiply grid ttf points by to normalize them.
+  f32 size;                     // Size of the glyph.
 } TtfGlyphHeader;
 
 typedef enum {
@@ -574,7 +573,8 @@ static void ttf_read_glyph_locations(
   *err = TtfError_None;
 }
 
-static Mem ttf_read_glyph_header(Mem data, TtfGlyphHeader* out, TtfError* err) {
+static Mem
+ttf_read_glyph_header(Mem data, const TtfHeadTable* headTable, TtfGlyphHeader* out, TtfError* err) {
   if (UNLIKELY(data.size < 10)) {
     *err = TtfError_GlyfTableEntryHeaderMalformed;
     return data;
@@ -583,21 +583,27 @@ static Mem ttf_read_glyph_header(Mem data, TtfGlyphHeader* out, TtfError* err) {
    * NOTE: For signed values we assume the host system is using 2's complement integers.
    */
   *out = (TtfGlyphHeader){0};
+  i16 gridMinX, gridMinY, gridMaxX, gridMaxY;
   data = mem_consume_be_u16(data, (u16*)&out->numContours);
-  data = mem_consume_be_u16(data, (u16*)&out->minX);
-  data = mem_consume_be_u16(data, (u16*)&out->minY);
-  data = mem_consume_be_u16(data, (u16*)&out->maxX);
-  data = mem_consume_be_u16(data, (u16*)&out->maxY);
+  data = mem_consume_be_u16(data, (u16*)&gridMinX);
+  data = mem_consume_be_u16(data, (u16*)&gridMinY);
+  data = mem_consume_be_u16(data, (u16*)&gridMaxX);
+  data = mem_consume_be_u16(data, (u16*)&gridMaxY);
 
   /**
-   * Calculate offsets and scales to normalize and center the points in the glyph.
+   * Calculate offsets and scales to normalize and center grid points in the glyph.
    */
-  const u16 width  = out->maxX - out->minX;
-  const u16 height = out->maxY - out->minY;
-  const u16 size   = math_max(width, height);
-  out->offsetX     = -out->minX + size * 0.5f - width * 0.5f;
-  out->offsetY     = -out->minY + size * 0.5f - height * 0.5f;
-  out->scale       = size ? 1.0f / size : 0.0f;
+  const u16 gridWidth  = gridMaxX - gridMinX;
+  const u16 gridHeight = gridMaxY - gridMinY;
+  const u16 gridSize   = math_max(gridWidth, gridHeight);
+  out->gridOffsetX     = -gridMinX + gridSize * 0.5f - gridWidth * 0.5f;
+  out->gridOffsetY     = -gridMinY + gridSize * 0.5f - gridHeight * 0.5f;
+  out->gridScale       = gridSize ? 1.0f / gridSize : 0.0f;
+
+  /**
+   * Calculate Glyph size and offset.
+   */
+  out->size = gridSize / (f32)headTable->unitsPerEm;
 
   *err = TtfError_None;
   return data;
@@ -658,7 +664,7 @@ static Mem ttf_read_glyph_points(
       }
       xPos += offset;
     }
-    out[i].x = (xPos + (f32)header->offsetX) * header->scale;
+    out[i].x = (xPos + (f32)header->gridOffsetX) * header->gridScale;
   }
 
   // Read the y coordinates for all points.
@@ -683,7 +689,7 @@ static Mem ttf_read_glyph_points(
       }
       yPos += offset;
     }
-    out[i].y = (yPos + (f32)header->offsetY) * header->scale;
+    out[i].y = (yPos + (f32)header->gridOffsetY) * header->gridScale;
   }
 
   *err = TtfError_None;
@@ -695,6 +701,7 @@ static Mem ttf_read_glyph_points(
  * Decode the lines and quadratic beziers and makes all implicit points explicit.
  */
 static void ttf_glyph_build(
+    const TtfGlyphHeader* header,
     const u16*            contourEndpoints,
     const usize           numContours,
     const u8*             pointFlags,
@@ -705,7 +712,12 @@ static void ttf_glyph_build(
     AssetFontGlyph*       outGlyph,
     TtfError*             err) {
 
-  *outGlyph = (AssetFontGlyph){.segmentIndex = (u32)outSegments->size, .segmentCount = 0};
+  (void)header;
+  *outGlyph = (AssetFontGlyph){
+      .segmentIndex = (u32)outSegments->size,
+      .segmentCount = 0,
+      .size         = header->size,
+  };
 
   for (usize c = 0; c != numContours; ++c) {
     const usize start = c ? contourEndpoints[c - 1U] : 0;
@@ -777,14 +789,16 @@ static void ttf_glyph_build(
 }
 
 static void ttf_read_glyph(
-    Mem             data,
-    const usize     glyphId,
-    DynArray*       outPoints,   // AssetFontPoint[], needs to be already initialized.
-    DynArray*       outSegments, // AssetFontSegment[], needs to be already initialized.
-    AssetFontGlyph* outGlyph,
-    TtfError*       err) {
+    Mem                 data,
+    const TtfHeadTable* headTable,
+    const usize         glyphId,
+    DynArray*           outPoints,   // AssetFontPoint[], needs to be already initialized.
+    DynArray*           outSegments, // AssetFontSegment[], needs to be already initialized.
+    AssetFontGlyph*     outGlyph,
+    TtfError*           err) {
+
   TtfGlyphHeader header;
-  data = ttf_read_glyph_header(data, &header, err);
+  data = ttf_read_glyph_header(data, headTable, &header, err);
   if (UNLIKELY(*err)) {
     return;
   }
@@ -855,6 +869,7 @@ static void ttf_read_glyph(
 
   // Output the glyph.
   ttf_glyph_build(
+      &header,
       contourEndpoints,
       header.numContours,
       flags,
@@ -1011,7 +1026,13 @@ void asset_load_ttf(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
       continue;
     }
     ttf_read_glyph(
-        glyphDataLocations[glyphIndex], glyphIndex, &points, &segments, &glyphs[glyphIndex], &err);
+        glyphDataLocations[glyphIndex],
+        &headTable,
+        glyphIndex,
+        &points,
+        &segments,
+        &glyphs[glyphIndex],
+        &err);
     if (err) {
       ttf_load_fail(world, assetEntity, err);
       goto End;

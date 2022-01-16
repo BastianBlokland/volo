@@ -53,6 +53,7 @@ static void app_render_glyph(
   outLines[(*outLineIdx)++] = geo_vector(offsetX + size, offsetY, offsetX + size, offsetY + size);
   outLines[(*outLineIdx)++] = geo_vector(offsetX, offsetY + size, offsetX + size, offsetY + size);
 
+  const f32 scale   = size * glyph->size;
   const f32 density = 20.0f;
   for (usize seg = glyph->segmentIndex; seg != glyph->segmentIndex + glyph->segmentCount; ++seg) {
     GeoVector lastPoint;
@@ -60,7 +61,7 @@ static void app_render_glyph(
     for (usize i = 0; i != count; ++i) {
       const f32            t     = i / (f32)(count - 1);
       const AssetFontPoint point = asset_font_seg_sample(font, seg, t);
-      const GeoVector pointPos   = geo_vector(offsetX + point.x * size, offsetY + point.y * size);
+      const GeoVector pointPos   = geo_vector(offsetX + point.x * scale, offsetY + point.y * scale);
       if (i) {
         outLines[(*outLineIdx)++] = geo_vector(lastPoint.x, lastPoint.y, pointPos.x, pointPos.y);
       }
