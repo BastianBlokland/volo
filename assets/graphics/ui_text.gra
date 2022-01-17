@@ -1,0 +1,23 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/ui_text.vert.spv"
+    },
+    {
+      "shaderId": "shaders/ui_text.frag.spv"
+    }
+  ],
+  "samplers": [
+    {
+      "textureId": "fonts/main.ftx",
+      "filter": "Linear"
+    }
+  ],
+  "meshId": "meshes/quad_xy.obj",
+  "renderOrder": 100,
+  "topology": "Triangles",
+  "rasterizer": "Fill",
+  "blend": "None",
+  "depth": "Always",
+  "cull": "None"
+}
