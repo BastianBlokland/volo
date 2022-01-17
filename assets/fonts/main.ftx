@@ -1,3 +1,4 @@
 {
-  "fontId": "fonts/hack_regular.ttf"
+  "fontId": "fonts/hack_regular.ttf",
+  "textureSize": 128
 }

@@ -2,6 +2,7 @@
 #include "asset_texture.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_bits.h"
 #include "core_thread.h"
 #include "data.h"
 #include "ecs_utils.h"
@@ -15,6 +16,7 @@ static DataMeta g_dataFtxDefMeta;
 
 typedef struct {
   String fontId;
+  u32    textureSize;
 } FtxDefinition;
 
 static void ftx_datareg_init() {
@@ -28,6 +30,7 @@ static void ftx_datareg_init() {
 
     data_reg_struct_t(g_dataReg, FtxDefinition);
     data_reg_field_t(g_dataReg, FtxDefinition, fontId, data_prim_t(String));
+    data_reg_field_t(g_dataReg, FtxDefinition, textureSize, data_prim_t(u32));
 
     g_dataFtxDefMeta = data_meta_t(t_FtxDefinition);
   }
@@ -55,6 +58,7 @@ typedef enum {
   FtxError_None = 0,
   FtxError_FontNotSpecified,
   FtxError_FontInvalid,
+  FtxError_NonPow2TextureSize,
 
   FtxError_Count,
 } FtxError;
@@ -64,6 +68,7 @@ static String ftx_error_str(const FtxError err) {
       string_static("None"),
       string_static("Ftx definition does not specify a font"),
       string_static("Ftx definition specifies an invalid font"),
+      string_static("Ftx definition specifies a non power-of-two texture size"),
   };
   ASSERT(array_elems(msgs) == FtxError_Count, "Incorrect number of ftx-error messages");
   return msgs[err];
@@ -98,23 +103,43 @@ static bool ftx_font_wait(EcsWorld* world, const EcsEntityId entity, AssetFtxLoa
   return ecs_world_has_t(world, load->font, AssetLoadedComp);
 }
 
+static AssetTexturePixel* ftx_generate_sdf(const FtxDefinition* def, const AssetFontComp* font) {
+  const u32          pixelCount = def->textureSize * def->textureSize;
+  AssetTexturePixel* pixels     = alloc_array_t(g_alloc_heap, AssetTexturePixel, pixelCount);
+
+  (void)font;
+
+  for (usize y = 0; y != def->textureSize; ++y) {
+    for (usize x = 0; x != def->textureSize; ++x) {
+      pixels[y * def->textureSize + x] = (AssetTexturePixel){255, 0, 0, 255};
+    }
+  }
+  return pixels;
+}
+
 static bool
 ftx_generate(EcsWorld* world, const EcsEntityId entity, AssetFtxLoadComp* load, EcsView* fontView) {
+
+  if (UNLIKELY(!bits_ispow2(load->def.textureSize))) {
+    ftx_load_fail(world, entity, load, FtxError_NonPow2TextureSize);
+    return false;
+  }
+
   EcsIterator* fontItr = ecs_view_maybe_at(fontView, load->font);
   if (UNLIKELY(!fontItr)) {
     ftx_load_fail(world, entity, load, FtxError_FontInvalid);
     return false;
   }
+  const AssetFontComp* fontComp = ecs_view_read_t(fontItr, AssetFontComp);
 
-  const u32          width = 2, height = 2;
-  AssetTexturePixel* pixels = alloc_array_t(g_alloc_heap, AssetTexturePixel, width * height);
-  for (usize y = 0; y != height; ++y) {
-    for (usize x = 0; x != width; ++x) {
-      pixels[y * width + x] = (AssetTexturePixel){255, 0, 0, 255};
-    }
-  }
+  AssetTexturePixel* pixels = ftx_generate_sdf(&load->def, fontComp);
   ecs_world_add_t(
-      world, entity, AssetTextureComp, .width = width, .height = height, .pixels = pixels);
+      world,
+      entity,
+      AssetTextureComp,
+      .width  = load->def.textureSize,
+      .height = load->def.textureSize,
+      .pixels = pixels);
   return true;
 }
 
