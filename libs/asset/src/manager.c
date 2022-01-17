@@ -264,6 +264,8 @@ void asset_manager_create_mem(
 }
 
 EcsEntityId asset_lookup(EcsWorld* world, AssetManagerComp* manager, const String id) {
+  diag_assert_msg(!string_is_empty(id), "Asset id cannot be empty");
+
   /**
    * Find or create an asset entity.
    * Do a binary-search for the first entry with a greater id hash, which means our asset has to be
