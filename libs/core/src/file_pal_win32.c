@@ -289,6 +289,9 @@ FileResult file_map(File* file, String* output) {
 
   LARGE_INTEGER size;
   size.QuadPart = file_stat_sync(file).size;
+  if (UNLIKELY(!size.QuadPart)) {
+    return FileResult_FileEmpty;
+  }
 
   const DWORD  protect = (file->access & FileAccess_Write) ? PAGE_READWRITE : PAGE_READONLY;
   const HANDLE mappingObj =
