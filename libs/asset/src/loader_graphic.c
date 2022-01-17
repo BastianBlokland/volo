@@ -241,6 +241,6 @@ ecs_module_init(asset_graphic_module) {
   ecs_register_system(UnloadGraphicAssetSys, ecs_view_id(UnloadView));
 }
 
-void asset_load_graphic(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) {
+void asset_load_gra(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) {
   ecs_world_add_t(world, assetEntity, AssetGraphicLoadComp, .src = src);
 }
