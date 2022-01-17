@@ -543,36 +543,36 @@ static void spv_asset_shader_create(
   *err = SpvError_None;
 }
 
-static void spv_load_fail(EcsWorld* world, const EcsEntityId assetEntity, const SpvError err) {
+static void spv_load_fail(EcsWorld* world, const EcsEntityId entity, const SpvError err) {
   log_e("Failed to parse SpirV shader", log_param("error", fmt_text(spv_error_str(err))));
-  ecs_world_add_empty_t(world, assetEntity, AssetFailedComp);
+  ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
-void asset_load_spv(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) {
+void asset_load_spv(EcsWorld* world, const EcsEntityId entity, AssetSource* src) {
   /**
    * SpirV consists of 32 bit words so we interpret the file as a set of 32 bit words.
    * TODO: Convert to big-endian in case we're running on a big-endian system.
    */
   if (!bits_aligned(src->data.size, sizeof(u32))) {
-    spv_load_fail(world, assetEntity, SpvError_Malformed);
+    spv_load_fail(world, entity, SpvError_Malformed);
     goto Error;
   }
   SpvData data = {.ptr = src->data.ptr, .size = (u32)src->data.size / sizeof(u32)};
   if (data.size < 5) {
-    spv_load_fail(world, assetEntity, SpvError_Malformed);
+    spv_load_fail(world, entity, SpvError_Malformed);
     goto Error;
   }
 
   // Read the header.
   if (*data.ptr != spv_magic) {
-    spv_load_fail(world, assetEntity, SpvError_Malformed);
+    spv_load_fail(world, entity, SpvError_Malformed);
     goto Error;
   }
   data = spv_consume(data, 1); // Spv magic number.
   SpvVersion version;
   data = spv_read_version(data, &version);
   if (version.major <= 1 && version.minor < 3) {
-    spv_load_fail(world, assetEntity, SpvError_UnsupportedVersion);
+    spv_load_fail(world, entity, SpvError_UnsupportedVersion);
     goto Error;
   }
   data            = spv_consume(data, 1); // Generators magic number.
@@ -584,20 +584,20 @@ void asset_load_spv(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
   SpvProgram program;
   data = spv_read_program(data, maxId, &program, &err);
   if (err) {
-    spv_load_fail(world, assetEntity, err);
+    spv_load_fail(world, entity, err);
     goto Error;
   }
 
   // Create the asset.
-  AssetShaderComp* asset = ecs_world_add_t(world, assetEntity, AssetShaderComp);
+  AssetShaderComp* asset = ecs_world_add_t(world, entity, AssetShaderComp);
   spv_asset_shader_create(&program, src, asset, &err);
   if (err) {
-    spv_load_fail(world, assetEntity, err);
+    spv_load_fail(world, entity, err);
     // NOTE: 'AssetShaderComp' will be cleaned up by 'UnloadShaderAssetSys'.
     goto Error;
   }
-  ecs_world_add_t(world, assetEntity, AssetShaderSourceComp, .src = src);
-  ecs_world_add_empty_t(world, assetEntity, AssetLoadedComp);
+  ecs_world_add_t(world, entity, AssetShaderSourceComp, .src = src);
+  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   return;
 
 Error:

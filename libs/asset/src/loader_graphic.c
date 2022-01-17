@@ -139,9 +139,9 @@ static void ecs_destruct_graphic_load_comp(void* data) {
   asset_repo_source_close(comp->src);
 }
 
-static void graphic_load_fail(EcsWorld* world, const EcsEntityId assetEntity, const String msg) {
+static void graphic_load_fail(EcsWorld* world, const EcsEntityId entity, const String msg) {
   log_e("Failed to parse graphic", log_param("error", fmt_text(msg)));
-  ecs_world_add_empty_t(world, assetEntity, AssetFailedComp);
+  ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
@@ -241,6 +241,6 @@ ecs_module_init(asset_graphic_module) {
   ecs_register_system(UnloadGraphicAssetSys, ecs_view_id(UnloadView));
 }
 
-void asset_load_gra(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) {
-  ecs_world_add_t(world, assetEntity, AssetGraphicLoadComp, .src = src);
+void asset_load_gra(EcsWorld* world, const EcsEntityId entity, AssetSource* src) {
+  ecs_world_add_t(world, entity, AssetGraphicLoadComp, .src = src);
 }

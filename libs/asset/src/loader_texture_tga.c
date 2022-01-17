@@ -254,12 +254,12 @@ static Mem tga_read_pixels(
   return tga_read_pixels_uncompressed(input, width, height, flags, out, err);
 }
 
-static void tga_load_fail(EcsWorld* world, const EcsEntityId assetEntity, const TgaError err) {
+static void tga_load_fail(EcsWorld* world, const EcsEntityId entity, const TgaError err) {
   log_e("Failed to parse Tga texture", log_param("error", fmt_text(tga_error_str(err))));
-  ecs_world_add_empty_t(world, assetEntity, AssetFailedComp);
+  ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
-void asset_load_tga(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) {
+void asset_load_tga(EcsWorld* world, const EcsEntityId entity, AssetSource* src) {
   Mem      data  = src->data;
   TgaError res   = TgaError_None;
   TgaFlags flags = 0;
@@ -267,38 +267,38 @@ void asset_load_tga(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
   TgaHeader header;
   data = tga_read_header(data, &header, &res);
   if (res) {
-    tga_load_fail(world, assetEntity, res);
+    tga_load_fail(world, entity, res);
     goto Error;
   }
   if (header.colorMapType == TgaColorMapType_Present) {
-    tga_load_fail(world, assetEntity, TgaError_UnsupportedColorMap);
+    tga_load_fail(world, entity, TgaError_UnsupportedColorMap);
     goto Error;
   }
   if (header.imageSpec.bitsPerPixel != 24 && header.imageSpec.bitsPerPixel != 32) {
-    tga_load_fail(world, assetEntity, TgaError_UnsupportedBitDepth);
+    tga_load_fail(world, entity, TgaError_UnsupportedBitDepth);
     goto Error;
   }
   if (header.imageSpec.bitsPerPixel == 32) {
     flags |= TgaFlags_Alpha;
   }
   if (flags & TgaFlags_Alpha && header.imageSpec.descriptor.attributeDepth != 8) {
-    tga_load_fail(world, assetEntity, TgaError_UnsupportedAlphaChannelDepth);
+    tga_load_fail(world, entity, TgaError_UnsupportedAlphaChannelDepth);
     goto Error;
   }
   if (header.imageSpec.descriptor.interleave != TgaInterleave_None) {
-    tga_load_fail(world, assetEntity, TgaError_UnsupportedInterleaved);
+    tga_load_fail(world, entity, TgaError_UnsupportedInterleaved);
     goto Error;
   }
   if (header.imageType != TgaImageType_TrueColor && header.imageType != TgaImageType_RleTrueColor) {
-    tga_load_fail(world, assetEntity, TgaError_UnsupportedNonTrueColor);
+    tga_load_fail(world, entity, TgaError_UnsupportedNonTrueColor);
     goto Error;
   }
   if (!header.imageSpec.width || !header.imageSpec.height) {
-    tga_load_fail(world, assetEntity, TgaError_UnsupportedSize);
+    tga_load_fail(world, entity, TgaError_UnsupportedSize);
     goto Error;
   }
   if (header.imageSpec.width > tga_max_width || header.imageSpec.height > tga_max_height) {
-    tga_load_fail(world, assetEntity, TgaError_UnsupportedSize);
+    tga_load_fail(world, entity, TgaError_UnsupportedSize);
     goto Error;
   }
   if (header.imageType == TgaImageType_RleTrueColor) {
@@ -310,7 +310,7 @@ void asset_load_tga(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
   }
 
   if (data.size <= header.idLength) {
-    tga_load_fail(world, assetEntity, TgaError_Malformed);
+    tga_load_fail(world, entity, TgaError_Malformed);
     goto Error;
   }
   data = mem_consume(data, header.idLength); // Skip over the id field.
@@ -320,15 +320,15 @@ void asset_load_tga(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
   AssetTexturePixel* pixels = alloc_array_t(g_alloc_heap, AssetTexturePixel, width * height);
   data                      = tga_read_pixels(data, width, height, flags, pixels, &res);
   if (res) {
-    tga_load_fail(world, assetEntity, res);
+    tga_load_fail(world, entity, res);
     alloc_free_array_t(g_alloc_heap, pixels, width * height);
     goto Error;
   }
 
   asset_repo_source_close(src);
   ecs_world_add_t(
-      world, assetEntity, AssetTextureComp, .width = width, .height = height, .pixels = pixels);
-  ecs_world_add_empty_t(world, assetEntity, AssetLoadedComp);
+      world, entity, AssetTextureComp, .width = width, .height = height, .pixels = pixels);
+  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   return;
 
 Error:

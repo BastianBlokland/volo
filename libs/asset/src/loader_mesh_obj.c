@@ -358,43 +358,43 @@ static void obj_triangulate(const ObjData* data, AssetMeshBuilder* builder) {
   }
 }
 
-static void obj_load_fail(EcsWorld* world, const EcsEntityId assetEntity, const ObjError err) {
+static void obj_load_fail(EcsWorld* world, const EcsEntityId entity, const ObjError err) {
   log_e("Failed to parse WaveFront Obj Mesh", log_param("error", fmt_text(obj_error_str(err))));
-  ecs_world_add_empty_t(world, assetEntity, AssetFailedComp);
+  ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
-void asset_load_obj(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) {
+void asset_load_obj(EcsWorld* world, const EcsEntityId entity, AssetSource* src) {
   ObjError          err     = ObjError_None;
   AssetMeshBuilder* builder = null;
   ObjData           data    = {
-                   .positions = dynarray_create_t(g_alloc_heap, GeoVector, 64),
-                   .texcoords = dynarray_create_t(g_alloc_heap, GeoVector, 64),
-                   .normals   = dynarray_create_t(g_alloc_heap, GeoVector, 64),
-                   .vertices  = dynarray_create_t(g_alloc_heap, ObjVertex, 64),
-                   .faces     = dynarray_create_t(g_alloc_heap, ObjFace, 32),
+      .positions = dynarray_create_t(g_alloc_heap, GeoVector, 64),
+      .texcoords = dynarray_create_t(g_alloc_heap, GeoVector, 64),
+      .normals   = dynarray_create_t(g_alloc_heap, GeoVector, 64),
+      .vertices  = dynarray_create_t(g_alloc_heap, ObjVertex, 64),
+      .faces     = dynarray_create_t(g_alloc_heap, ObjFace, 32),
   };
   obj_read_data(src->data, &data, &err);
   asset_repo_source_close(src);
   if (err) {
-    obj_load_fail(world, assetEntity, err);
+    obj_load_fail(world, entity, err);
     goto Done;
   }
   if (!data.totalTris) {
-    obj_load_fail(world, assetEntity, ObjError_NoFaces);
+    obj_load_fail(world, entity, ObjError_NoFaces);
     goto Done;
   }
 
   const usize numVerts = (usize)data.totalTris * 3;
   if (numVerts > asset_mesh_indices_max) {
-    obj_load_fail(world, assetEntity, ObjError_TooManyVertices);
+    obj_load_fail(world, entity, ObjError_TooManyVertices);
     goto Done;
   }
   builder = asset_mesh_builder_create(g_alloc_heap, numVerts);
   obj_triangulate(&data, builder);
   asset_mesh_compute_tangents(builder);
 
-  *ecs_world_add_t(world, assetEntity, AssetMeshComp) = asset_mesh_create(builder);
-  ecs_world_add_empty_t(world, assetEntity, AssetLoadedComp);
+  *ecs_world_add_t(world, entity, AssetMeshComp) = asset_mesh_create(builder);
+  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
 
 Done:
   if (builder) {

@@ -39,8 +39,8 @@ ecs_module_init(asset_raw_module) {
   ecs_register_system(UnloadRawAssetSys, ecs_view_id(UnloadView));
 }
 
-void asset_load_raw(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) {
-  ecs_world_add_t(world, assetEntity, AssetRawComp, .data = src->data);
-  ecs_world_add_t(world, assetEntity, AssetRawSourceComp, .src = src);
-  ecs_world_add_empty_t(world, assetEntity, AssetLoadedComp);
+void asset_load_raw(EcsWorld* world, const EcsEntityId entity, AssetSource* src) {
+  ecs_world_add_t(world, entity, AssetRawComp, .data = src->data);
+  ecs_world_add_t(world, entity, AssetRawSourceComp, .src = src);
+  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
 }

@@ -147,31 +147,31 @@ ppm_read_pixels(String input, PixmapHeader* header, AssetTexturePixel* out, Pixm
   return ppm_read_pixels_binary(input, header, out, err);
 }
 
-static void ppm_load_fail(EcsWorld* world, const EcsEntityId assetEntity, const PixmapError err) {
+static void ppm_load_fail(EcsWorld* world, const EcsEntityId entity, const PixmapError err) {
   log_e("Failed to parse Pixmap texture", log_param("error", fmt_text(pixmap_error_str(err))));
-  ecs_world_add_empty_t(world, assetEntity, AssetFailedComp);
+  ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
-void asset_load_ppm(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) {
+void asset_load_ppm(EcsWorld* world, const EcsEntityId entity, AssetSource* src) {
   String      input = src->data;
   PixmapError res   = PixmapError_None;
 
   PixmapHeader header;
   input = ppm_read_header(input, &header);
   if (header.type == PixmapType_Unknown) {
-    ppm_load_fail(world, assetEntity, PixmapError_MalformedType);
+    ppm_load_fail(world, entity, PixmapError_MalformedType);
     goto Error;
   }
   if (!header.width || !header.height) {
-    ppm_load_fail(world, assetEntity, PixmapError_UnsupportedSize);
+    ppm_load_fail(world, entity, PixmapError_UnsupportedSize);
     goto Error;
   }
   if (header.width > ppm_max_width || header.height > ppm_max_height) {
-    ppm_load_fail(world, assetEntity, PixmapError_UnsupportedSize);
+    ppm_load_fail(world, entity, PixmapError_UnsupportedSize);
     goto Error;
   }
   if (header.maxValue != 255) {
-    ppm_load_fail(world, assetEntity, PixmapError_UnsupportedBitDepth);
+    ppm_load_fail(world, entity, PixmapError_UnsupportedBitDepth);
     goto Error;
   }
 
@@ -180,15 +180,15 @@ void asset_load_ppm(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
   AssetTexturePixel* pixels = alloc_array_t(g_alloc_heap, AssetTexturePixel, width * height);
   input                     = ppm_read_pixels(input, &header, pixels, &res);
   if (res) {
-    ppm_load_fail(world, assetEntity, res);
+    ppm_load_fail(world, entity, res);
     alloc_free_array_t(g_alloc_heap, pixels, width * height);
     goto Error;
   }
 
   asset_repo_source_close(src);
   ecs_world_add_t(
-      world, assetEntity, AssetTextureComp, .width = width, .height = height, .pixels = pixels);
-  ecs_world_add_empty_t(world, assetEntity, AssetLoadedComp);
+      world, entity, AssetTextureComp, .width = width, .height = height, .pixels = pixels);
+  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   return;
 
 Error:
