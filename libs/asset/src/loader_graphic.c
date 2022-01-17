@@ -160,8 +160,8 @@ ecs_system_define(LoadGraphicAssetSys) {
   if (!manager) {
     return;
   }
-  EcsView* LoadView = ecs_world_view_t(world, LoadView);
-  for (EcsIterator* itr = ecs_view_itr(LoadView); ecs_view_walk(itr);) {
+  EcsView* loadView = ecs_world_view_t(world, LoadView);
+  for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
     const EcsEntityId  entity      = ecs_view_entity(itr);
     const AssetSource* src         = ecs_view_read_t(itr, AssetGraphicLoadComp)->src;
     AssetGraphicComp*  graphicComp = ecs_world_add_t(world, entity, AssetGraphicComp);
