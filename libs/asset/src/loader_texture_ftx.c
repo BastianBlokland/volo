@@ -3,6 +3,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_bits.h"
+#include "core_diag.h"
 #include "core_math.h"
 #include "core_thread.h"
 #include "data.h"
@@ -12,14 +13,16 @@
 
 #include "repo_internal.h"
 
+#define ftx_max_glyphs 1024
+
 static DataReg* g_dataReg;
 static DataMeta g_dataFtxDefMeta;
 
 typedef struct {
   String fontId;
-  u32    size;
+  u32    size, glyphSize;
   u32    border;
-  u32    character;
+  String characters;
 } FtxDefinition;
 
 static void ftx_datareg_init() {
@@ -34,8 +37,9 @@ static void ftx_datareg_init() {
     data_reg_struct_t(g_dataReg, FtxDefinition);
     data_reg_field_t(g_dataReg, FtxDefinition, fontId, data_prim_t(String));
     data_reg_field_t(g_dataReg, FtxDefinition, size, data_prim_t(u32));
+    data_reg_field_t(g_dataReg, FtxDefinition, glyphSize, data_prim_t(u32));
     data_reg_field_t(g_dataReg, FtxDefinition, border, data_prim_t(u32));
-    data_reg_field_t(g_dataReg, FtxDefinition, character, data_prim_t(u32));
+    data_reg_field_t(g_dataReg, FtxDefinition, characters, data_prim_t(String));
 
     g_dataFtxDefMeta = data_meta_t(t_FtxDefinition);
   }
@@ -57,6 +61,8 @@ typedef enum {
   FtxError_FontNotSpecified,
   FtxError_FontInvalid,
   FtxError_NonPow2Size,
+  FtxError_NonPow2GlyphSize,
+  FtxError_TooManyGlyphs,
 
   FtxError_Count,
 } FtxError;
@@ -67,33 +73,66 @@ static String ftx_error_str(const FtxError err) {
       string_static("Ftx definition does not specify a font"),
       string_static("Ftx definition specifies an invalid font"),
       string_static("Ftx definition specifies a non power-of-two texture size"),
+      string_static("Ftx definition specifies a non power-of-two glyph size"),
+      string_static("Ftx definition requires more glyphs then fit at the requested size"),
   };
   ASSERT(array_elems(msgs) == FtxError_Count, "Incorrect number of ftx-error messages");
   return msgs[err];
 }
 
-static void ftx_generate_sdf(
-    const FtxDefinition* def, const AssetFontComp* font, AssetTexturePixel* out, FtxError* err) {
+static void ftx_generate_glyph(
+    const FtxDefinition*  def,
+    const AssetFontComp*  font,
+    const AssetFontGlyph* glyph,
+    const usize           index,
+    AssetTexturePixel*    out) {
 
-  const AssetFontGlyph* glyph   = asset_font_lookup(font, def->character);
-  const u32             size    = def->size;
-  const f32             invSize = 1.0f / def->size;
-  const f32             offset  = def->border * invSize;
-  const f32             scale   = 1.0f + offset * 2.0f;
+  const u32 texY = (u32)index * def->glyphSize / def->size * def->glyphSize;
+  const u32 texX = (u32)index * def->glyphSize % def->size;
 
-  for (usize pixelY = 0; pixelY != size; ++pixelY) {
-    for (usize pixelX = 0; pixelX != size; ++pixelX) {
+  diag_assert(texY + def->glyphSize <= def->size);
+  diag_assert(texX + def->glyphSize <= def->size);
+
+  const u32 glyphSize    = def->glyphSize;
+  const f32 invGlyphSize = 1.0f / glyphSize;
+  const f32 offset       = def->border * invGlyphSize;
+  const f32 scale        = 1.0f + offset * 2.0f;
+
+  for (usize glyphPixelY = 0; glyphPixelY != glyphSize; ++glyphPixelY) {
+    for (usize glyphPixelX = 0; glyphPixelX != glyphSize; ++glyphPixelX) {
       const AssetFontPoint point = {
-          .x = ((pixelX + 0.5f) * invSize - offset) * scale,
-          .y = ((pixelY + 0.5f) * invSize - offset) * scale,
+          .x = ((glyphPixelX + 0.5f) * invGlyphSize - offset) * scale,
+          .y = ((glyphPixelY + 0.5f) * invGlyphSize - offset) * scale,
       };
-      const f32 dist              = asset_font_glyph_dist(font, glyph, point);
-      const f32 borderFrac        = math_clamp_f32(dist / offset, -1, 1);
-      const u8  alpha             = (u8)((-borderFrac * 0.5f + 0.5f) * 255.999f);
-      out[pixelY * size + pixelX] = (AssetTexturePixel){0, 0, 0, alpha};
+      const f32 dist       = asset_font_glyph_dist(font, glyph, point);
+      const f32 borderFrac = math_clamp_f32(dist / offset, -1, 1);
+      const u8  alpha      = (u8)((-borderFrac * 0.5f + 0.5f) * 255.999f);
+
+      const usize texPixelY                  = texY + glyphPixelY;
+      const usize texPixelX                  = texX + glyphPixelX;
+      out[texPixelY * def->size + texPixelX] = (AssetTexturePixel){0, 0, 0, alpha};
     }
   }
+}
 
+static void ftx_generate(
+    const FtxDefinition* def, const AssetFontComp* font, AssetTexturePixel* out, FtxError* err) {
+
+  const AssetFontGlyph* glyphs[ftx_max_glyphs];
+  const usize glyphCount = asset_font_lookup_utf8(font, def->characters, glyphs, ftx_max_glyphs);
+  if (UNLIKELY(glyphCount == ftx_max_glyphs)) {
+    *err = FtxError_TooManyGlyphs;
+    return;
+  }
+  const u32 maxFittingGlyphs = (def->size / def->glyphSize) * (def->size / def->glyphSize);
+  if (UNLIKELY(glyphCount > maxFittingGlyphs)) {
+    *err = FtxError_TooManyGlyphs;
+    return;
+  }
+
+  for (usize i = 0; i != glyphCount; ++i) {
+    ftx_generate_glyph(def, font, glyphs[i], i, out);
+  }
   *err = FtxError_None;
 }
 
@@ -137,7 +176,7 @@ ecs_system_define(FtxLoadAssetSys) {
     const AssetFontComp* font = ecs_view_read_t(fontItr, AssetFontComp);
 
     AssetTexturePixel* pixels = alloc_array_t(g_alloc_heap, AssetTexturePixel, size * size);
-    ftx_generate_sdf(&load->def, font, pixels, &err);
+    ftx_generate(&load->def, font, pixels, &err);
     if (UNLIKELY(err)) {
       alloc_free_array_t(g_alloc_heap, pixels, size * size);
       goto Error;
@@ -189,6 +228,10 @@ void asset_load_ftx(EcsWorld* world, const EcsEntityId entity, AssetSource* src)
   }
   if (UNLIKELY(!bits_ispow2(def.size))) {
     errMsg = ftx_error_str(FtxError_NonPow2Size);
+    goto Error;
+  }
+  if (UNLIKELY(!bits_ispow2(def.glyphSize))) {
+    errMsg = ftx_error_str(FtxError_NonPow2GlyphSize);
     goto Error;
   }
 
