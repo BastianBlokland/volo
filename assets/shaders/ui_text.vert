@@ -12,5 +12,5 @@ void main() {
   const Vertex vert = vert_unpack(u_vertices[in_vertexIndex]);
 
   out_vertexPosition = f32_vec4(vert.position * 2, 1);
-  out_texcoord       = vert.texcoord;
+  out_texcoord       = f32_vec2(vert.texcoord.x, 1 - vert.texcoord.y);
 }
