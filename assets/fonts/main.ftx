@@ -1,4 +1,6 @@
 {
   "fontId": "fonts/hack_regular.ttf",
-  "textureSize": 128
+  "size": 32,
+  "border": 3,
+  "character": 66
 }

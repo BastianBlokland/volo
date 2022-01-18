@@ -3,6 +3,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_bits.h"
+#include "core_math.h"
 #include "core_thread.h"
 #include "data.h"
 #include "ecs_utils.h"
@@ -16,7 +17,9 @@ static DataMeta g_dataFtxDefMeta;
 
 typedef struct {
   String fontId;
-  u32    textureSize;
+  u32    size;
+  u32    border;
+  u32    character;
 } FtxDefinition;
 
 static void ftx_datareg_init() {
@@ -30,22 +33,17 @@ static void ftx_datareg_init() {
 
     data_reg_struct_t(g_dataReg, FtxDefinition);
     data_reg_field_t(g_dataReg, FtxDefinition, fontId, data_prim_t(String));
-    data_reg_field_t(g_dataReg, FtxDefinition, textureSize, data_prim_t(u32));
+    data_reg_field_t(g_dataReg, FtxDefinition, size, data_prim_t(u32));
+    data_reg_field_t(g_dataReg, FtxDefinition, border, data_prim_t(u32));
+    data_reg_field_t(g_dataReg, FtxDefinition, character, data_prim_t(u32));
 
     g_dataFtxDefMeta = data_meta_t(t_FtxDefinition);
   }
   thread_spinlock_unlock(&g_initLock);
 }
 
-typedef enum {
-  FtxLoadState_FontAcquire,
-  FtxLoadState_FontWait,
-  FtxLoadState_Generate,
-} FtxLoadState;
-
 ecs_comp_define(AssetFtxLoadComp) {
   FtxDefinition def;
-  FtxLoadState  state;
   EcsEntityId   font;
 };
 
@@ -58,7 +56,7 @@ typedef enum {
   FtxError_None = 0,
   FtxError_FontNotSpecified,
   FtxError_FontInvalid,
-  FtxError_NonPow2TextureSize,
+  FtxError_NonPow2Size,
 
   FtxError_Count,
 } FtxError;
@@ -74,73 +72,28 @@ static String ftx_error_str(const FtxError err) {
   return msgs[err];
 }
 
-static void ftx_load_fail(
-    EcsWorld* world, const EcsEntityId entity, AssetFtxLoadComp* load, const FtxError err) {
-  log_e("Failed to load Ftx font-texture", log_param("error", fmt_text(ftx_error_str(err))));
-  ecs_world_add_empty_t(world, entity, AssetFailedComp);
-  ecs_world_remove_t(world, entity, AssetFtxLoadComp);
-  if (load->font) {
-    asset_release(world, load->font);
-  }
-}
+static void ftx_generate_sdf(
+    const FtxDefinition* def, const AssetFontComp* font, AssetTexturePixel* out, FtxError* err) {
 
-static bool ftx_font_acquire(
-    EcsWorld* world, AssetManagerComp* manager, const EcsEntityId entity, AssetFtxLoadComp* load) {
-  if (UNLIKELY(string_is_empty(load->def.fontId))) {
-    ftx_load_fail(world, entity, load, FtxError_FontNotSpecified);
-    return false;
-  }
-  load->font = asset_lookup(world, manager, load->def.fontId);
-  asset_acquire(world, load->font);
-  return true;
-}
+  const AssetFontGlyph* glyph   = asset_font_lookup(font, def->character);
+  const u32             size    = def->size;
+  const f32             invSize = 1.0f / def->size;
+  const f32             offset  = def->border * invSize;
+  const f32             scale   = 1.0f + offset * 2.0f;
 
-static bool ftx_font_wait(EcsWorld* world, const EcsEntityId entity, AssetFtxLoadComp* load) {
-  if (ecs_world_has_t(world, load->font, AssetFailedComp)) {
-    ftx_load_fail(world, entity, load, FtxError_FontInvalid);
-    return false;
-  }
-  return ecs_world_has_t(world, load->font, AssetLoadedComp);
-}
-
-static AssetTexturePixel* ftx_generate_sdf(const FtxDefinition* def, const AssetFontComp* font) {
-  const u32          pixelCount = def->textureSize * def->textureSize;
-  AssetTexturePixel* pixels     = alloc_array_t(g_alloc_heap, AssetTexturePixel, pixelCount);
-
-  (void)font;
-
-  for (usize y = 0; y != def->textureSize; ++y) {
-    for (usize x = 0; x != def->textureSize; ++x) {
-      pixels[y * def->textureSize + x] = (AssetTexturePixel){255, 0, 0, 255};
+  for (usize pixelY = 0; pixelY != size; ++pixelY) {
+    for (usize pixelX = 0; pixelX != size; ++pixelX) {
+      const AssetFontPoint point = {
+          .x = ((pixelX + 0.5f) * invSize - offset) * scale,
+          .y = ((pixelY + 0.5f) * invSize - offset) * scale,
+      };
+      const f32 dist                = asset_font_glyph_dist(font, glyph, point);
+      const f32 borderFrac          = math_clamp_f32(dist / offset, -1, 1);
+      out[pixelY * size + pixelX].a = (u8)((-borderFrac * 0.5f + 0.5f) * 255.999f);
     }
   }
-  return pixels;
-}
 
-static bool
-ftx_generate(EcsWorld* world, const EcsEntityId entity, AssetFtxLoadComp* load, EcsView* fontView) {
-
-  if (UNLIKELY(!bits_ispow2(load->def.textureSize))) {
-    ftx_load_fail(world, entity, load, FtxError_NonPow2TextureSize);
-    return false;
-  }
-
-  EcsIterator* fontItr = ecs_view_maybe_at(fontView, load->font);
-  if (UNLIKELY(!fontItr)) {
-    ftx_load_fail(world, entity, load, FtxError_FontInvalid);
-    return false;
-  }
-  const AssetFontComp* fontComp = ecs_view_read_t(fontItr, AssetFontComp);
-
-  AssetTexturePixel* pixels = ftx_generate_sdf(&load->def, fontComp);
-  ecs_world_add_t(
-      world,
-      entity,
-      AssetTextureComp,
-      .width  = load->def.textureSize,
-      .height = load->def.textureSize,
-      .pixels = pixels);
-  return true;
+  *err = FtxError_None;
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
@@ -161,24 +114,49 @@ ecs_system_define(FtxLoadAssetSys) {
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
     const EcsEntityId entity = ecs_view_entity(itr);
     AssetFtxLoadComp* load   = ecs_view_write_t(itr, AssetFtxLoadComp);
-    switch (load->state) {
-    case FtxLoadState_FontAcquire:
-      if (ftx_font_acquire(world, manager, entity, load)) {
-        ++load->state;
-      }
-      break;
-    case FtxLoadState_FontWait:
-      if (ftx_font_wait(world, entity, load)) {
-        ++load->state;
-      }
-      break;
-    case FtxLoadState_Generate:
-      if (ftx_generate(world, entity, load, fontView)) {
-        asset_release(world, load->font);
-        ecs_world_remove_t(world, entity, AssetFtxLoadComp);
-        ecs_world_add_empty_t(world, entity, AssetLoadedComp);
-      }
-      break;
+    const u32         size   = load->def.size;
+    FtxError          err;
+
+    if (!load->font) {
+      load->font = asset_lookup(world, manager, load->def.fontId);
+      asset_acquire(world, load->font);
+    }
+    if (ecs_world_has_t(world, load->font, AssetFailedComp)) {
+      err = FtxError_FontInvalid;
+      goto Error;
+    }
+    if (!ecs_world_has_t(world, load->font, AssetLoadedComp)) {
+      continue; // Wait for the font to load.
+    }
+    EcsIterator* fontItr = ecs_view_maybe_at(fontView, load->font);
+    if (UNLIKELY(!fontItr)) {
+      err = FtxError_FontInvalid;
+      goto Error;
+    }
+    const AssetFontComp* font = ecs_view_read_t(fontItr, AssetFontComp);
+
+    const Mem pixelMem = alloc_alloc(g_alloc_heap, size * size * sizeof(AssetTexturePixel), 1);
+    mem_set(pixelMem, 0);
+
+    ftx_generate_sdf(&load->def, font, pixelMem.ptr, &err);
+    if (UNLIKELY(err)) {
+      alloc_free(g_alloc_heap, pixelMem);
+      goto Error;
+    }
+
+    ecs_world_add_t(
+        world, entity, AssetTextureComp, .width = size, .height = size, .pixels = pixelMem.ptr);
+    ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+    goto Cleanup;
+
+  Error:
+    log_e("Failed to load Ftx font-texture", log_param("error", fmt_text(ftx_error_str(err))));
+    ecs_world_add_empty_t(world, entity, AssetFailedComp);
+
+  Cleanup:
+    ecs_world_remove_t(world, entity, AssetFtxLoadComp);
+    if (load->font) {
+      asset_release(world, load->font);
     }
   }
 }
@@ -197,19 +175,30 @@ ecs_module_init(asset_ftx_module) {
 }
 
 void asset_load_ftx(EcsWorld* world, const EcsEntityId entity, AssetSource* src) {
-  // Parse the definition.
-  FtxDefinition  definition;
+  String         errMsg;
+  FtxDefinition  def;
   DataReadResult result;
-  data_read_json(
-      g_dataReg, src->data, g_alloc_heap, g_dataFtxDefMeta, mem_var(definition), &result);
-  if (result.error) {
-    log_e("Failed to load Ftx definition", log_param("error", fmt_text(result.errorMsg)));
-    ecs_world_add_empty_t(world, entity, AssetFailedComp);
-    goto Cleanup;
+  data_read_json(g_dataReg, src->data, g_alloc_heap, g_dataFtxDefMeta, mem_var(def), &result);
+
+  if (UNLIKELY(result.error)) {
+    errMsg = result.errorMsg;
+    goto Error;
+  }
+  if (UNLIKELY(string_is_empty(def.fontId))) {
+    errMsg = ftx_error_str(FtxError_FontNotSpecified);
+    goto Error;
+  }
+  if (UNLIKELY(!bits_ispow2(def.size))) {
+    errMsg = ftx_error_str(FtxError_NonPow2Size);
+    goto Error;
   }
 
-  // Start the load process.
-  ecs_world_add_t(world, entity, AssetFtxLoadComp, .def = definition);
+  ecs_world_add_t(world, entity, AssetFtxLoadComp, .def = def);
+  goto Cleanup;
+
+Error:
+  log_e("Failed to load Ftx font-texture", log_param("error", fmt_text(errMsg)));
+  ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
 Cleanup:
   asset_repo_source_close(src);
