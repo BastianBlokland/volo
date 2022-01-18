@@ -155,7 +155,7 @@ static bool font_math_line_right(
   const f32 toLocalEndX = localEndX - localStartX;
 
   const f32 t = -localStartY / toLocalEndY;
-  if (t < 0 || t > 1) {
+  if (t < 0 || t >= 1) {
     return false;
   }
   return (localStartX + toLocalEndX * t) >= 0.0f;
