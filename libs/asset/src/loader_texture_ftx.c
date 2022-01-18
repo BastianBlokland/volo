@@ -87,9 +87,10 @@ static void ftx_generate_sdf(
           .x = ((pixelX + 0.5f) * invSize - offset) * scale,
           .y = ((pixelY + 0.5f) * invSize - offset) * scale,
       };
-      const f32 dist                = asset_font_glyph_dist(font, glyph, point);
-      const f32 borderFrac          = math_clamp_f32(dist / offset, -1, 1);
-      out[pixelY * size + pixelX].a = (u8)((-borderFrac * 0.5f + 0.5f) * 255.999f);
+      const f32 dist              = asset_font_glyph_dist(font, glyph, point);
+      const f32 borderFrac        = math_clamp_f32(dist / offset, -1, 1);
+      const u8  alpha             = (u8)((-borderFrac * 0.5f + 0.5f) * 255.999f);
+      out[pixelY * size + pixelX] = (AssetTexturePixel){0, 0, 0, alpha};
     }
   }
 
@@ -135,17 +136,15 @@ ecs_system_define(FtxLoadAssetSys) {
     }
     const AssetFontComp* font = ecs_view_read_t(fontItr, AssetFontComp);
 
-    const Mem pixelMem = alloc_alloc(g_alloc_heap, size * size * sizeof(AssetTexturePixel), 1);
-    mem_set(pixelMem, 0);
-
-    ftx_generate_sdf(&load->def, font, pixelMem.ptr, &err);
+    AssetTexturePixel* pixels = alloc_array_t(g_alloc_heap, AssetTexturePixel, size * size);
+    ftx_generate_sdf(&load->def, font, pixels, &err);
     if (UNLIKELY(err)) {
-      alloc_free(g_alloc_heap, pixelMem);
+      alloc_free_array_t(g_alloc_heap, pixels, size * size);
       goto Error;
     }
 
     ecs_world_add_t(
-        world, entity, AssetTextureComp, .width = size, .height = size, .pixels = pixelMem.ptr);
+        world, entity, AssetTextureComp, .width = size, .height = size, .pixels = pixels);
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
     goto Cleanup;
 
