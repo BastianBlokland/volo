@@ -14,3 +14,8 @@ ecs_comp_extern_public(AssetFtxComp) {
   AssetFtxChar* characters; // Sorted on the unicode codepoint.
   usize         characterCount;
 };
+
+/**
+ * Get a character based on a unicode codepoint.
+ */
+const AssetFtxChar* asset_ftx_lookup(const AssetFtxComp*, UnicodeCp);

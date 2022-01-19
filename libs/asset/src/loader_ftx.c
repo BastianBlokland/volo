@@ -6,6 +6,7 @@
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_math.h"
+#include "core_search.h"
 #include "core_sort.h"
 #include "core_thread.h"
 #include "core_utf8.h"
@@ -384,4 +385,18 @@ Error:
 
 Cleanup:
   asset_repo_source_close(src);
+}
+
+const AssetFtxChar* asset_ftx_lookup(const AssetFtxComp* comp, const UnicodeCp cp) {
+  const AssetFtxChar* ch = search_binary_t(
+      comp->characters,
+      comp->characters + comp->characterCount,
+      AssetFtxChar,
+      ftx_compare_char,
+      mem_struct(AssetFtxChar, .cp = cp).ptr);
+
+  if (UNLIKELY(!ch)) {
+    return &comp->characters[0]; // The 'missing' character, is guaranteed to exist.
+  }
+  return ch;
 }

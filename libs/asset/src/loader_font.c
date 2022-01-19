@@ -49,7 +49,7 @@ i8 asset_font_compare_char(const void* a, const void* b) {
 }
 
 const AssetFontGlyph* asset_font_missing(const AssetFontComp* font) {
-  return &font->glyphs[0]; // The  'missing' glyph is guaranteed to exist.
+  return &font->glyphs[0]; // The 'missing' glyph, is guaranteed to exist.
 }
 
 const AssetFontGlyph* asset_font_lookup(const AssetFontComp* font, const UnicodeCp cp) {
