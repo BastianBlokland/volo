@@ -15,6 +15,7 @@
 
 #include "repo_internal.h"
 
+#define ftx_max_chars 1024
 #define ftx_max_size (1024 * 16)
 
 static DataReg* g_dataReg;
@@ -66,8 +67,9 @@ typedef enum {
   FtxError_SizeNonPow2,
   FtxError_SizeTooBig,
   FtxError_GlyphSizeNonPow2,
-  FtxError_TooManyGlyphs,
   FtxError_NoCharacters,
+  FtxError_TooManyCharacters,
+  FtxError_TooManyGlyphs,
   FtxError_InvalidUtf8,
 
   FtxError_Count,
@@ -82,12 +84,46 @@ static String ftx_error_str(const FtxError err) {
       string_static("Ftx definition specifies a non power-of-two texture size"),
       string_static("Ftx definition specifies a texture size larger then is supported"),
       string_static("Ftx definition specifies a non power-of-two glyph size"),
-      string_static("Ftx definition requires more glyphs then fit at the requested size"),
       string_static("Ftx definition does not specify any characters"),
+      string_static("Ftx definition specifies more characters then are supported"),
+      string_static("Ftx definition requires more glyphs then fit at the requested size"),
       string_static("Ftx definition specifies invalid utf8"),
   };
   ASSERT(array_elems(msgs) == FtxError_Count, "Incorrect number of ftx-error messages");
   return msgs[err];
+}
+
+typedef struct {
+  u32                   unicode;
+  const AssetFontGlyph* glyph;
+} FtxDefinitionChar;
+
+static u32 ftx_lookup_chars(
+    const AssetFontComp* font, String chars, FtxDefinitionChar out[ftx_max_chars], FtxError* err) {
+
+  u32 index = 0;
+  do {
+    UnicodeCp cp;
+    chars = utf8_cp_read(chars, &cp);
+    if (UNLIKELY(index >= ftx_max_chars)) {
+      *err = FtxError_TooManyCharacters;
+      return 0;
+    }
+    if (UNLIKELY(!cp)) {
+      *err = FtxError_InvalidUtf8;
+      return 0;
+    }
+    const AssetFontGlyph* glyph = asset_font_lookup(font, cp);
+    if (UNLIKELY(glyph == asset_font_missing(font))) {
+      *err = FtxError_FontGlyphMissing;
+      return 0;
+    }
+    out[index++] = (FtxDefinitionChar){.unicode = cp, .glyph = glyph};
+
+  } while (chars.size);
+
+  *err = FtxError_None;
+  return index;
 }
 
 static void ftx_generate_glyph(
@@ -136,34 +172,21 @@ static void ftx_generate(
   }
 
   // Generate the 'missing' glyph.
-  ftx_generate_glyph(def, font, asset_font_missing(font), 0, out);
+  u32 nextTexIndex = 0;
+  ftx_generate_glyph(def, font, asset_font_missing(font), nextTexIndex++, out);
 
-  // Generate the specified glyphs.
-  u32    nextTexIndex = 1;
-  String remChars     = def->characters;
-  do {
-    UnicodeCp cp;
-    remChars = utf8_cp_read(remChars, &cp);
-    if (UNLIKELY(nextTexIndex >= maxGlyphs)) {
-      *err = FtxError_TooManyGlyphs;
-      return;
-    }
-    if (UNLIKELY(!cp)) {
-      *err = FtxError_InvalidUtf8;
-      return;
-    }
-    const AssetFontGlyph* glyph = asset_font_lookup(font, cp);
-    if (UNLIKELY(glyph == asset_font_missing(font))) {
-      *err = FtxError_FontGlyphMissing;
-      return;
-    }
-    const u32 texIndex = glyph->segmentCount ? nextTexIndex++ : sentinel_u32;
-    if (!sentinel_check(texIndex)) {
-      ftx_generate_glyph(def, font, glyph, texIndex, out);
-    }
+  // Generate the glyphs for the specified character.
+  FtxDefinitionChar chars[ftx_max_chars];
+  const u32         charCount = ftx_lookup_chars(font, def->characters, chars, err);
+  if (UNLIKELY(*err)) {
+    return;
+  }
+  for (u32 i = 0; i != charCount; ++i) {
 
-  } while (remChars.size);
-
+    if (chars[i].glyph->segmentCount) {
+      ftx_generate_glyph(def, font, chars[i].glyph, nextTexIndex++, out);
+    }
+  }
   *err = FtxError_None;
 }
 
