@@ -115,7 +115,8 @@ typedef struct {
 static u32 ftx_lookup_chars(
     const AssetFontComp* font, String chars, FtxDefinitionChar out[ftx_max_chars], FtxError* err) {
 
-  u32 index = 0;
+  u32 index    = 0;
+  out[index++] = (FtxDefinitionChar){.cp = 0, .glyph = asset_font_missing(font)};
   do {
     UnicodeCp cp;
     chars = utf8_cp_read(chars, &cp);
@@ -192,19 +193,15 @@ static void ftx_generate(
     goto Error;
   }
 
-  u32 nextGlyphIndex = 0;
-  pixels             = alloc_array_t(g_alloc_heap, AssetTexturePixel, size * size);
-
-  // Generate the 'missing' character glyph.
-  ftx_generate_glyph(def, font, asset_font_missing(font), nextGlyphIndex++, pixels);
-
-  // Generate the specified characters.
   FtxDefinitionChar inputChars[ftx_max_chars];
   const u32         charCount = ftx_lookup_chars(font, def->characters, inputChars, err);
   if (UNLIKELY(*err)) {
     goto Error;
   }
-  chars = alloc_array_t(g_alloc_heap, AssetFtxChar, charCount);
+  chars  = alloc_array_t(g_alloc_heap, AssetFtxChar, charCount);
+  pixels = alloc_array_t(g_alloc_heap, AssetTexturePixel, size * size);
+
+  u32 nextGlyphIndex = 0;
   for (u32 i = 0; i != charCount; ++i) {
     chars[i] = (AssetFtxChar){
         .cp         = inputChars[i].cp,
