@@ -63,6 +63,7 @@ typedef enum {
   FtxError_NonPow2Size,
   FtxError_NonPow2GlyphSize,
   FtxError_TooManyGlyphs,
+  FtxError_NoCharacters,
 
   FtxError_Count,
 } FtxError;
@@ -75,6 +76,7 @@ static String ftx_error_str(const FtxError err) {
       string_static("Ftx definition specifies a non power-of-two texture size"),
       string_static("Ftx definition specifies a non power-of-two glyph size"),
       string_static("Ftx definition requires more glyphs then fit at the requested size"),
+      string_static("Ftx definition does not specify any characters"),
   };
   ASSERT(array_elems(msgs) == FtxError_Count, "Incorrect number of ftx-error messages");
   return msgs[err];
@@ -232,6 +234,10 @@ void asset_load_ftx(EcsWorld* world, const EcsEntityId entity, AssetSource* src)
   }
   if (UNLIKELY(!bits_ispow2(def.glyphSize))) {
     errMsg = ftx_error_str(FtxError_NonPow2GlyphSize);
+    goto Error;
+  }
+  if (UNLIKELY(string_is_empty(def.characters))) {
+    errMsg = ftx_error_str(FtxError_NoCharacters);
     goto Error;
   }
 
