@@ -131,7 +131,7 @@ void file_destroy(File* file) {
     FileMapping* mapping = file->mapping;
     const int    res     = munmap(mapping->addr, mapping->size);
     if (UNLIKELY(res != 0)) {
-      diag_crash_msg("munmap() failed: {}", fmt_int(res));
+      diag_crash_msg("munmap() failed: {} (errno: {})", fmt_int(res), fmt_int(errno));
     }
     alloc_free_t(file->alloc, mapping);
   }
@@ -251,6 +251,9 @@ FileResult file_map(File* file, String* output) {
   diag_assert_msg(file->access != 0, "File handle does not have read or write access");
 
   const usize size = file_stat_sync(file).size;
+  if (UNLIKELY(!size)) {
+    return FileResult_FileEmpty;
+  }
 
   int prot = 0;
   if (file->access & FileAccess_Read) {

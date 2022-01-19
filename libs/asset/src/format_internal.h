@@ -2,7 +2,8 @@
 #include "core_string.h"
 
 typedef enum {
-  AssetFormat_Graphic,
+  AssetFormat_Ftx,
+  AssetFormat_Gra,
   AssetFormat_Obj,
   AssetFormat_Ppm,
   AssetFormat_Raw,

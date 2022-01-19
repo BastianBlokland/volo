@@ -5,6 +5,7 @@
 
 String asset_format_str(AssetFormat fmt) {
   static const String names[] = {
+      string_static("ftx"),
       string_static("gra"),
       string_static("obj"),
       string_static("ppm"),

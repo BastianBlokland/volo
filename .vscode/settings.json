@@ -14,7 +14,8 @@
   "files.associations": {
     "*.h": "c",
     "*.c": "c",
-    "*.gra": "json"
+    "*.gra": "json",
+    "*.ftx": "json"
   },
   "files.exclude": {
     ".cache": true,

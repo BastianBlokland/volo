@@ -1018,14 +1018,14 @@ static void ttf_validate(const TtfOffsetTable* offsetTable, TtfError* err) {
 
 static void ttf_load_succeed(
     EcsWorld*         world,
-    const EcsEntityId assetEntity,
+    const EcsEntityId entity,
     const DynArray*   characters, // AssetFontChar[]
     const DynArray*   points,     // AssetFontPoint[]
     const DynArray*   segments,   // AssetFontSegment[]
     AssetFontGlyph*   glyphs,     // Moved into the result component which will take ownership.
     const usize       glyphCount) {
-  ecs_world_add_empty_t(world, assetEntity, AssetLoadedComp);
-  AssetFontComp* result = ecs_world_add_t(world, assetEntity, AssetFontComp);
+  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+  AssetFontComp* result = ecs_world_add_t(world, entity, AssetFontComp);
 
   // Copy the characters to the component.
   result->characters     = dynarray_copy_as_new(characters, g_alloc_heap);
@@ -1044,12 +1044,12 @@ static void ttf_load_succeed(
   result->glyphCount = glyphCount;
 }
 
-static void ttf_load_fail(EcsWorld* world, const EcsEntityId assetEntity, const TtfError err) {
+static void ttf_load_fail(EcsWorld* world, const EcsEntityId entity, const TtfError err) {
   log_e("Failed to parse TrueType font", log_param("error", fmt_text(ttf_error_str(err))));
-  ecs_world_add_empty_t(world, assetEntity, AssetFailedComp);
+  ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
-void asset_load_ttf(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) {
+void asset_load_ttf(EcsWorld* world, const EcsEntityId entity, AssetSource* src) {
   TtfError            err                = TtfError_None;
   DynArray            characters         = dynarray_create_t(g_alloc_heap, AssetFontChar, 128);
   DynArray            points             = dynarray_create_t(g_alloc_heap, AssetFontPoint, 1024);
@@ -1061,54 +1061,54 @@ void asset_load_ttf(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
   TtfOffsetTable offsetTable;
   ttf_read_offset_table(src->data, &offsetTable, &err);
   if (err) {
-    ttf_load_fail(world, assetEntity, err);
+    ttf_load_fail(world, entity, err);
     goto End;
   }
   if (offsetTable.sfntVersion != ttf_supported_sfnt_version) {
-    ttf_load_fail(world, assetEntity, TtfError_UnsupportedSfntVersion);
+    ttf_load_fail(world, entity, TtfError_UnsupportedSfntVersion);
     goto End;
   }
   ttf_validate(&offsetTable, &err);
   if (err) {
-    ttf_load_fail(world, assetEntity, err);
+    ttf_load_fail(world, entity, err);
     goto End;
   }
 
   TtfHeadTable headTable;
   ttf_read_head_table(&offsetTable, &headTable, &err);
   if (err) {
-    ttf_load_fail(world, assetEntity, err);
+    ttf_load_fail(world, entity, err);
     goto End;
   }
   if (headTable.magicNumber != ttf_magic) {
-    ttf_load_fail(world, assetEntity, TtfError_HeadTableMalformed);
+    ttf_load_fail(world, entity, TtfError_HeadTableMalformed);
     goto End;
   }
   if (headTable.majorVersion != 0 && headTable.majorVersion != 1) {
-    ttf_load_fail(world, assetEntity, TtfError_HeadTableUnsupported);
+    ttf_load_fail(world, entity, TtfError_HeadTableUnsupported);
     goto End;
   }
 
   TtfMaxpTable maxpTable;
   ttf_read_maxp_table(&offsetTable, &maxpTable, &err);
   if (err) {
-    ttf_load_fail(world, assetEntity, err);
+    ttf_load_fail(world, entity, err);
     goto End;
   }
 
   TtfCmapTable cmapTable;
   ttf_read_cmap_table(&offsetTable, &cmapTable, &err);
   if (err) {
-    ttf_load_fail(world, assetEntity, err);
+    ttf_load_fail(world, entity, err);
     goto End;
   }
   ttf_read_characters(&cmapTable, &maxpTable, &characters, &err);
   if (err) {
-    ttf_load_fail(world, assetEntity, err);
+    ttf_load_fail(world, entity, err);
     goto End;
   }
   if (!characters.size) {
-    ttf_load_fail(world, assetEntity, TtfError_NoCharacters);
+    ttf_load_fail(world, entity, TtfError_NoCharacters);
     goto End;
   }
   dynarray_sort(&characters, asset_font_compare_char); // Sort on the unicode codepoint.
@@ -1116,26 +1116,26 @@ void asset_load_ttf(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
   TtfHheaTable hheaTable;
   ttf_read_hhea_table(&offsetTable, &hheaTable, &err);
   if (err) {
-    ttf_load_fail(world, assetEntity, err);
+    ttf_load_fail(world, entity, err);
     goto End;
   }
 
   if (maxpTable.numGlyphs > ttf_max_glyphs) {
-    ttf_load_fail(world, assetEntity, TtfError_TooManyGlyphs);
+    ttf_load_fail(world, entity, TtfError_TooManyGlyphs);
     goto End;
   }
 
   glyphDataLocations = alloc_array_t(g_alloc_heap, Mem, maxpTable.numGlyphs);
   ttf_read_glyph_locations(&offsetTable, &maxpTable, &headTable, glyphDataLocations, &err);
   if (err) {
-    ttf_load_fail(world, assetEntity, err);
+    ttf_load_fail(world, entity, err);
     goto End;
   }
 
   glyphHorMetrics = alloc_array_t(g_alloc_heap, TtfGlyphHorMetrics, maxpTable.numGlyphs);
   ttf_read_glyph_hor_metrics(&offsetTable, &maxpTable, &hheaTable, glyphHorMetrics, &err);
   if (err) {
-    ttf_load_fail(world, assetEntity, err);
+    ttf_load_fail(world, entity, err);
     goto End;
   }
 
@@ -1151,20 +1151,19 @@ void asset_load_ttf(EcsWorld* world, EcsEntityId assetEntity, AssetSource* src) 
         &glyphs[glyphIndex],
         &err);
     if (err) {
-      ttf_load_fail(world, assetEntity, err);
+      ttf_load_fail(world, entity, err);
       goto End;
     }
   }
   if (!points.size) {
-    ttf_load_fail(world, assetEntity, TtfError_NoGlyphPoints);
+    ttf_load_fail(world, entity, TtfError_NoGlyphPoints);
     goto End;
   }
   if (!segments.size) {
-    ttf_load_fail(world, assetEntity, TtfError_NoGlyphSegments);
+    ttf_load_fail(world, entity, TtfError_NoGlyphSegments);
     goto End;
   }
-  ttf_load_succeed(
-      world, assetEntity, &characters, &points, &segments, glyphs, maxpTable.numGlyphs);
+  ttf_load_succeed(world, entity, &characters, &points, &segments, glyphs, maxpTable.numGlyphs);
   glyphs = null; // Moved into the result component, which will take ownership.
 
 End:

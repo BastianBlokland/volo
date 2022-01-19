@@ -30,6 +30,7 @@ typedef enum {
   FileResult_TooManyOpenFiles,
   FileResult_IsDirectory,
   FileResult_AllocationFailed,
+  FileResult_FileEmpty,
   FileResult_UnknownError,
 
   FileResult_Count,

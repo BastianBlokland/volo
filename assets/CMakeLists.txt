@@ -13,7 +13,9 @@ configure_shaders(volo_shaders
   shaders/standard.frag
   shaders/ui_lines.vert
   shaders/ui_points.vert
-  shaders/ui_color.frag)
+  shaders/ui_color.frag
+  shaders/ui_text.vert
+  shaders/ui_text.frag)
 
 function(download_external_assets)
   set(remoteUrl "https://www.bastian.tech/assets")

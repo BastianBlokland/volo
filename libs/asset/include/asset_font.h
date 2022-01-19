@@ -44,7 +44,12 @@ ecs_comp_extern_public(AssetFontComp) {
 };
 
 /**
- * Get a glyph based on an unicode codepoint.
+ * Get the 'missing' glyph.
+ */
+const AssetFontGlyph* asset_font_missing(const AssetFontComp*);
+
+/**
+ * Get a glyph based on a unicode codepoint.
  */
 const AssetFontGlyph* asset_font_lookup(const AssetFontComp*, UnicodeCp);
 
