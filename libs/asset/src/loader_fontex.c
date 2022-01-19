@@ -65,6 +65,7 @@ typedef enum {
   FtxError_FontInvalid,
   FtxError_FontGlyphMissing,
   FtxError_SizeNonPow2,
+  FtxError_SizeZero,
   FtxError_SizeTooBig,
   FtxError_GlyphSizeNonPow2,
   FtxError_NoCharacters,
@@ -82,6 +83,7 @@ static String ftx_error_str(const FtxError err) {
       string_static("Ftx definition specifies an invalid font"),
       string_static("Ftx font has no glyph for a requested character"),
       string_static("Ftx definition specifies a non power-of-two texture size"),
+      string_static("Ftx definition specifies a zero texture size"),
       string_static("Ftx definition specifies a texture size larger then is supported"),
       string_static("Ftx definition specifies a non power-of-two glyph size"),
       string_static("Ftx definition does not specify any characters"),
@@ -162,32 +164,52 @@ static void ftx_generate_glyph(
 }
 
 static void ftx_generate(
-    const FtxDefinition* def, const AssetFontComp* font, AssetTexturePixel* out, FtxError* err) {
+    const FtxDefinition* def, const AssetFontComp* font, AssetTextureComp* out, FtxError* err) {
 
-  const u32 glyphsPerDim = def->size / def->glyphSize;
-  const u32 maxGlyphs    = glyphsPerDim * glyphsPerDim;
+  AssetTexturePixel* pixels       = null;
+  const u32          size         = def->size;
+  const u32          glyphsPerDim = size / def->glyphSize;
+  const u32          maxGlyphs    = glyphsPerDim * glyphsPerDim;
   if (UNLIKELY(!maxGlyphs)) {
     *err = FtxError_TooManyGlyphs;
-    return;
+    goto Error;
   }
 
-  // Generate the 'missing' glyph.
-  u32 nextTexIndex = 0;
-  ftx_generate_glyph(def, font, asset_font_missing(font), nextTexIndex++, out);
+  u32 nextGlyphIndex = 0;
+  pixels             = alloc_array_t(g_alloc_heap, AssetTexturePixel, size * size);
 
-  // Generate the glyphs for the specified character.
+  // Generate the 'missing' character glyph.
+  ftx_generate_glyph(def, font, asset_font_missing(font), nextGlyphIndex++, pixels);
+
+  // Generate the specified characters.
   FtxDefinitionChar chars[ftx_max_chars];
   const u32         charCount = ftx_lookup_chars(font, def->characters, chars, err);
   if (UNLIKELY(*err)) {
-    return;
+    goto Error;
   }
   for (u32 i = 0; i != charCount; ++i) {
-
     if (chars[i].glyph->segmentCount) {
-      ftx_generate_glyph(def, font, chars[i].glyph, nextTexIndex++, out);
+      if (UNLIKELY(nextGlyphIndex >= maxGlyphs)) {
+        *err = FtxError_TooManyGlyphs;
+        goto Error;
+      }
+      ftx_generate_glyph(def, font, chars[i].glyph, nextGlyphIndex++, pixels);
     }
   }
+
+  *out = (AssetTextureComp){
+      .pixels = pixels,
+      .width  = size,
+      .height = size,
+  };
   *err = FtxError_None;
+  return;
+
+Error:
+  diag_assert(*err);
+  if (pixels) {
+    alloc_free_array_t(g_alloc_heap, pixels, size * size);
+  }
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
@@ -208,7 +230,6 @@ ecs_system_define(FtxLoadAssetSys) {
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
     const EcsEntityId entity = ecs_view_entity(itr);
     AssetFtxLoadComp* load   = ecs_view_write_t(itr, AssetFtxLoadComp);
-    const u32         size   = load->def.size;
     FtxError          err;
 
     if (!load->font) {
@@ -229,15 +250,13 @@ ecs_system_define(FtxLoadAssetSys) {
     }
     const AssetFontComp* font = ecs_view_read_t(fontItr, AssetFontComp);
 
-    AssetTexturePixel* pixels = alloc_array_t(g_alloc_heap, AssetTexturePixel, size * size);
-    ftx_generate(&load->def, font, pixels, &err);
+    AssetTextureComp texture;
+    ftx_generate(&load->def, font, &texture, &err);
     if (UNLIKELY(err)) {
-      alloc_free_array_t(g_alloc_heap, pixels, size * size);
       goto Error;
     }
 
-    ecs_world_add_t(
-        world, entity, AssetTextureComp, .width = size, .height = size, .pixels = pixels);
+    *ecs_world_add_t(world, entity, AssetTextureComp) = texture;
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
     goto Cleanup;
 
@@ -278,6 +297,10 @@ void asset_load_ftx(EcsWorld* world, const EcsEntityId entity, AssetSource* src)
   }
   if (UNLIKELY(string_is_empty(def.fontId))) {
     errMsg = ftx_error_str(FtxError_FontNotSpecified);
+    goto Error;
+  }
+  if (UNLIKELY(!def.size)) {
+    errMsg = ftx_error_str(FtxError_SizeZero);
     goto Error;
   }
   if (UNLIKELY(!bits_ispow2(def.size))) {
