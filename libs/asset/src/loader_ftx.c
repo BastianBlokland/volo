@@ -1,5 +1,5 @@
 #include "asset_font.h"
-#include "asset_fontex.h"
+#include "asset_ftx.h"
 #include "asset_texture.h"
 #include "core_alloc.h"
 #include "core_array.h"
@@ -49,10 +49,17 @@ static void ftx_datareg_init() {
   thread_spinlock_unlock(&g_initLock);
 }
 
+ecs_comp_define_public(AssetFtxComp);
+
 ecs_comp_define(AssetFtxLoadComp) {
   FtxDefinition def;
   EcsEntityId   font;
 };
+
+static void ecs_destruct_ftx_comp(void* data) {
+  AssetFtxComp* comp = data;
+  alloc_free_array_t(g_alloc_heap, comp->characters, comp->characterCount);
+}
 
 static void ecs_destruct_ftx_load_comp(void* data) {
   AssetFtxLoadComp* comp = data;
@@ -96,7 +103,7 @@ static String ftx_error_str(const FtxError err) {
 }
 
 typedef struct {
-  u32                   unicode;
+  u32                   cp;
   const AssetFontGlyph* glyph;
 } FtxDefinitionChar;
 
@@ -120,7 +127,7 @@ static u32 ftx_lookup_chars(
       *err = FtxError_FontGlyphMissing;
       return 0;
     }
-    out[index++] = (FtxDefinitionChar){.unicode = cp, .glyph = glyph};
+    out[index++] = (FtxDefinitionChar){.cp = cp, .glyph = glyph};
 
   } while (chars.size);
 
@@ -164,8 +171,13 @@ static void ftx_generate_glyph(
 }
 
 static void ftx_generate(
-    const FtxDefinition* def, const AssetFontComp* font, AssetTextureComp* out, FtxError* err) {
+    const FtxDefinition* def,
+    const AssetFontComp* font,
+    AssetFtxComp*        outFtx,
+    AssetTextureComp*    outTexture,
+    FtxError*            err) {
 
+  AssetFtxChar*      chars        = null;
   AssetTexturePixel* pixels       = null;
   const u32          size         = def->size;
   const u32          glyphsPerDim = size / def->glyphSize;
@@ -182,22 +194,35 @@ static void ftx_generate(
   ftx_generate_glyph(def, font, asset_font_missing(font), nextGlyphIndex++, pixels);
 
   // Generate the specified characters.
-  FtxDefinitionChar chars[ftx_max_chars];
-  const u32         charCount = ftx_lookup_chars(font, def->characters, chars, err);
+  FtxDefinitionChar inputChars[ftx_max_chars];
+  const u32         charCount = ftx_lookup_chars(font, def->characters, inputChars, err);
   if (UNLIKELY(*err)) {
     goto Error;
   }
+  chars = alloc_array_t(g_alloc_heap, AssetFtxChar, charCount);
   for (u32 i = 0; i != charCount; ++i) {
-    if (chars[i].glyph->segmentCount) {
+    chars[i] = (AssetFtxChar){
+        .cp         = inputChars[i].cp,
+        .glyphIndex = inputChars[i].glyph->segmentCount ? nextGlyphIndex : sentinel_u32,
+        .size       = inputChars[i].glyph->size,
+        .offsetX    = inputChars[i].glyph->offsetX,
+        .offsetY    = inputChars[i].glyph->offsetY,
+        .advance    = inputChars[i].glyph->advance,
+    };
+    if (inputChars[i].glyph->segmentCount) {
       if (UNLIKELY(nextGlyphIndex >= maxGlyphs)) {
         *err = FtxError_TooManyGlyphs;
         goto Error;
       }
-      ftx_generate_glyph(def, font, chars[i].glyph, nextGlyphIndex++, pixels);
+      ftx_generate_glyph(def, font, inputChars[i].glyph, nextGlyphIndex++, pixels);
     }
   }
 
-  *out = (AssetTextureComp){
+  *outFtx = (AssetFtxComp){
+      .characters     = chars,
+      .characterCount = charCount,
+  };
+  *outTexture = (AssetTextureComp){
       .pixels = pixels,
       .width  = size,
       .height = size,
@@ -207,6 +232,9 @@ static void ftx_generate(
 
 Error:
   diag_assert(*err);
+  if (chars) {
+    alloc_free_array_t(g_alloc_heap, chars, charCount);
+  }
   if (pixels) {
     alloc_free_array_t(g_alloc_heap, pixels, size * size);
   }
@@ -250,12 +278,14 @@ ecs_system_define(FtxLoadAssetSys) {
     }
     const AssetFontComp* font = ecs_view_read_t(fontItr, AssetFontComp);
 
+    AssetFtxComp     ftx;
     AssetTextureComp texture;
-    ftx_generate(&load->def, font, &texture, &err);
+    ftx_generate(&load->def, font, &ftx, &texture, &err);
     if (UNLIKELY(err)) {
       goto Error;
     }
 
+    *ecs_world_add_t(world, entity, AssetFtxComp)     = ftx;
     *ecs_world_add_t(world, entity, AssetTextureComp) = texture;
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
     goto Cleanup;
@@ -272,17 +302,37 @@ ecs_system_define(FtxLoadAssetSys) {
   }
 }
 
-ecs_module_init(asset_fontex_module) {
+ecs_view_define(FtxUnloadView) {
+  ecs_access_with(AssetFtxComp);
+  ecs_access_without(AssetLoadedComp);
+}
+
+/**
+ * Remove any ftx-asset component for unloaded assets.
+ */
+ecs_system_define(FtxUnloadAssetSys) {
+  EcsView* unloadView = ecs_world_view_t(world, FtxUnloadView);
+  for (EcsIterator* itr = ecs_view_itr(unloadView); ecs_view_walk(itr);) {
+    const EcsEntityId entity = ecs_view_entity(itr);
+    ecs_world_remove_t(world, entity, AssetFtxComp);
+  }
+}
+
+ecs_module_init(asset_ftx_module) {
   ftx_datareg_init();
 
+  ecs_register_comp(AssetFtxComp, .destructor = ecs_destruct_ftx_comp);
   ecs_register_comp(AssetFtxLoadComp, .destructor = ecs_destruct_ftx_load_comp);
 
   ecs_register_view(ManagerView);
   ecs_register_view(LoadView);
   ecs_register_view(FontView);
+  ecs_register_view(FtxUnloadView);
 
   ecs_register_system(
       FtxLoadAssetSys, ecs_view_id(ManagerView), ecs_view_id(LoadView), ecs_view_id(FontView));
+
+  ecs_register_system(FtxUnloadAssetSys, ecs_view_id(FtxUnloadView));
 }
 
 void asset_load_ftx(EcsWorld* world, const EcsEntityId entity, AssetSource* src) {
