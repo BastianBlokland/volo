@@ -6,6 +6,7 @@
 #include "core_diag.h"
 #include "core_math.h"
 #include "core_thread.h"
+#include "core_utf8.h"
 #include "data.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
@@ -13,7 +14,6 @@
 
 #include "repo_internal.h"
 
-#define ftx_max_glyphs 1024
 #define ftx_max_size (1024 * 16)
 
 static DataReg* g_dataReg;
@@ -123,21 +123,23 @@ static void ftx_generate_glyph(
 static void ftx_generate(
     const FtxDefinition* def, const AssetFontComp* font, AssetTexturePixel* out, FtxError* err) {
 
-  const AssetFontGlyph* glyphs[ftx_max_glyphs];
-  const usize glyphCount = asset_font_lookup_utf8(font, def->characters, glyphs, ftx_max_glyphs);
-  if (UNLIKELY(glyphCount == ftx_max_glyphs)) {
-    *err = FtxError_TooManyGlyphs;
-    return;
-  }
-  const u32 maxFittingGlyphs = (def->size / def->glyphSize) * (def->size / def->glyphSize);
-  if (UNLIKELY(glyphCount > maxFittingGlyphs)) {
-    *err = FtxError_TooManyGlyphs;
-    return;
-  }
+  const u32 glyphsPerDim = def->size / def->glyphSize;
+  const u32 maxGlyphs    = glyphsPerDim * glyphsPerDim;
 
-  for (usize i = 0; i != glyphCount; ++i) {
-    ftx_generate_glyph(def, font, glyphs[i], i, out);
-  }
+  usize  index    = 0;
+  String remChars = def->characters;
+  do {
+    UnicodeCp cp;
+    remChars = utf8_cp_read(remChars, &cp);
+    if (UNLIKELY(index >= maxGlyphs)) {
+      *err = FtxError_TooManyGlyphs;
+      return;
+    }
+    const AssetFontGlyph* glyph = asset_font_lookup(font, cp);
+    ftx_generate_glyph(def, font, glyph, index++, out);
+
+  } while (remChars.size);
+
   *err = FtxError_None;
 }
 
