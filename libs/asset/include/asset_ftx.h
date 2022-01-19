@@ -11,6 +11,6 @@ typedef struct {
 } AssetFtxChar;
 
 ecs_comp_extern_public(AssetFtxComp) {
-  AssetFtxChar* characters;
+  AssetFtxChar* characters; // Sorted on the unicode codepoint.
   usize         characterCount;
 };

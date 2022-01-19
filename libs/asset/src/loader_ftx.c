@@ -6,6 +6,7 @@
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_math.h"
+#include "core_sort.h"
 #include "core_thread.h"
 #include "core_utf8.h"
 #include "data.h"
@@ -100,6 +101,10 @@ static String ftx_error_str(const FtxError err) {
   };
   ASSERT(array_elems(msgs) == FtxError_Count, "Incorrect number of ftx-error messages");
   return msgs[err];
+}
+
+static i8 ftx_compare_char(const void* a, const void* b) {
+  return compare_u32(field_ptr(a, AssetFtxChar, cp), field_ptr(b, AssetFtxChar, cp));
 }
 
 typedef struct {
@@ -217,6 +222,9 @@ static void ftx_generate(
       ftx_generate_glyph(def, font, inputChars[i].glyph, nextGlyphIndex++, pixels);
     }
   }
+
+  // Sort the characters on the unicode codepoint.
+  sort_quicksort_t(chars, chars + charCount, AssetFtxChar, ftx_compare_char);
 
   *outFtx = (AssetFtxComp){
       .characters     = chars,
