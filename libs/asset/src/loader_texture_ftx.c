@@ -61,6 +61,7 @@ typedef enum {
   FtxError_None = 0,
   FtxError_FontNotSpecified,
   FtxError_FontInvalid,
+  FtxError_FontGlyphMissing,
   FtxError_SizeNonPow2,
   FtxError_SizeTooBig,
   FtxError_GlyphSizeNonPow2,
@@ -76,6 +77,7 @@ static String ftx_error_str(const FtxError err) {
       string_static("None"),
       string_static("Ftx definition does not specify a font"),
       string_static("Ftx definition specifies an invalid font"),
+      string_static("Ftx font has no glyph for a requested character"),
       string_static("Ftx definition specifies a non power-of-two texture size"),
       string_static("Ftx definition specifies a texture size larger then is supported"),
       string_static("Ftx definition specifies a non power-of-two glyph size"),
@@ -150,6 +152,10 @@ static void ftx_generate(
       return;
     }
     const AssetFontGlyph* glyph = asset_font_lookup(font, cp);
+    if (UNLIKELY(glyph == asset_font_missing(font))) {
+      *err = FtxError_FontGlyphMissing;
+      return;
+    }
     ftx_generate_glyph(def, font, glyph, index++, out);
 
   } while (remChars.size);
