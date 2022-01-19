@@ -8,13 +8,13 @@ add_library(lib_asset STATIC
   src/format.c
   src/loader_font_ttf.c
   src/loader_font.c
+  src/loader_fontex.c
   src/loader_graphic.c
   src/loader_mesh_obj.c
   src/loader_mesh.c
   src/loader_raw.c
   src/loader_shader_spv.c
   src/loader_shader.c
-  src/loader_texture_ftx.c
   src/loader_texture_ppm.c
   src/loader_texture_tga.c
   src/loader_texture.c

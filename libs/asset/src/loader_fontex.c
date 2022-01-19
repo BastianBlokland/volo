@@ -1,4 +1,5 @@
 #include "asset_font.h"
+#include "asset_fontex.h"
 #include "asset_texture.h"
 #include "core_alloc.h"
 #include "core_array.h"
@@ -93,11 +94,11 @@ static void ftx_generate_glyph(
     const FtxDefinition*  def,
     const AssetFontComp*  font,
     const AssetFontGlyph* glyph,
-    const usize           index,
+    const u32             index,
     AssetTexturePixel*    out) {
 
-  const u32 texY = (u32)index * def->glyphSize / def->size * def->glyphSize;
-  const u32 texX = (u32)index * def->glyphSize % def->size;
+  const u32 texY = index * def->glyphSize / def->size * def->glyphSize;
+  const u32 texX = index * def->glyphSize % def->size;
 
   diag_assert(texY + def->glyphSize <= def->size);
   diag_assert(texX + def->glyphSize <= def->size);
@@ -138,12 +139,12 @@ static void ftx_generate(
   ftx_generate_glyph(def, font, asset_font_missing(font), 0, out);
 
   // Generate the specified glyphs.
-  usize  index    = 1;
-  String remChars = def->characters;
+  u32    nextTexIndex = 1;
+  String remChars     = def->characters;
   do {
     UnicodeCp cp;
     remChars = utf8_cp_read(remChars, &cp);
-    if (UNLIKELY(index >= maxGlyphs)) {
+    if (UNLIKELY(nextTexIndex >= maxGlyphs)) {
       *err = FtxError_TooManyGlyphs;
       return;
     }
@@ -156,7 +157,10 @@ static void ftx_generate(
       *err = FtxError_FontGlyphMissing;
       return;
     }
-    ftx_generate_glyph(def, font, glyph, index++, out);
+    const u32 texIndex = glyph->segmentCount ? nextTexIndex++ : sentinel_u32;
+    if (!sentinel_check(texIndex)) {
+      ftx_generate_glyph(def, font, glyph, texIndex, out);
+    }
 
   } while (remChars.size);
 
@@ -226,7 +230,7 @@ ecs_system_define(FtxLoadAssetSys) {
   }
 }
 
-ecs_module_init(asset_ftx_module) {
+ecs_module_init(asset_fontex_module) {
   ftx_datareg_init();
 
   ecs_register_comp(AssetFtxLoadComp, .destructor = ecs_destruct_ftx_load_comp);
