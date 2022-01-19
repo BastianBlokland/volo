@@ -66,6 +66,7 @@ typedef enum {
   FtxError_GlyphSizeNonPow2,
   FtxError_TooManyGlyphs,
   FtxError_NoCharacters,
+  FtxError_InvalidUtf8,
 
   FtxError_Count,
 } FtxError;
@@ -80,6 +81,7 @@ static String ftx_error_str(const FtxError err) {
       string_static("Ftx definition specifies a non power-of-two glyph size"),
       string_static("Ftx definition requires more glyphs then fit at the requested size"),
       string_static("Ftx definition does not specify any characters"),
+      string_static("Ftx definition specifies invalid utf8"),
   };
   ASSERT(array_elems(msgs) == FtxError_Count, "Incorrect number of ftx-error messages");
   return msgs[err];
@@ -125,14 +127,26 @@ static void ftx_generate(
 
   const u32 glyphsPerDim = def->size / def->glyphSize;
   const u32 maxGlyphs    = glyphsPerDim * glyphsPerDim;
+  if (UNLIKELY(!maxGlyphs)) {
+    *err = FtxError_TooManyGlyphs;
+    return;
+  }
 
-  usize  index    = 0;
+  // Generate the 'missing' glyph.
+  ftx_generate_glyph(def, font, asset_font_missing(font), 0, out);
+
+  // Generate the specified glyphs.
+  usize  index    = 1;
   String remChars = def->characters;
   do {
     UnicodeCp cp;
     remChars = utf8_cp_read(remChars, &cp);
     if (UNLIKELY(index >= maxGlyphs)) {
       *err = FtxError_TooManyGlyphs;
+      return;
+    }
+    if (UNLIKELY(!cp)) {
+      *err = FtxError_InvalidUtf8;
       return;
     }
     const AssetFontGlyph* glyph = asset_font_lookup(font, cp);

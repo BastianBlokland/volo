@@ -48,6 +48,10 @@ i8 asset_font_compare_char(const void* a, const void* b) {
   return compare_u32(field_ptr(a, AssetFontChar, cp), field_ptr(b, AssetFontChar, cp));
 }
 
+const AssetFontGlyph* asset_font_missing(const AssetFontComp* font) {
+  return &font->glyphs[0]; // The  'missing' glyph is guaranteed to exist.
+}
+
 const AssetFontGlyph* asset_font_lookup(const AssetFontComp* font, const UnicodeCp cp) {
   const AssetFontChar* ch = search_binary_t(
       font->characters,
@@ -57,7 +61,7 @@ const AssetFontGlyph* asset_font_lookup(const AssetFontComp* font, const Unicode
       mem_struct(AssetFontChar, .cp = cp).ptr);
 
   if (UNLIKELY(!ch)) {
-    return &font->glyphs[0]; // Return the 'missing' glyph (guaranteed to exist).
+    return asset_font_missing(font);
   }
   diag_assert(ch->glyphIndex < font->glyphCount);
   return &font->glyphs[ch->glyphIndex];
