@@ -381,13 +381,13 @@ void asset_load_ftx(EcsWorld* world, const EcsEntityId entity, AssetSource* src)
   }
 
   ecs_world_add_t(world, entity, AssetFtxLoadComp, .def = def);
-  goto Cleanup;
+  asset_repo_source_close(src);
+  return;
 
 Error:
   log_e("Failed to load Ftx font-texture", log_param("error", fmt_text(errMsg)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
-
-Cleanup:
+  data_destroy(g_dataReg, g_alloc_heap, g_dataFtxDefMeta, mem_var(def));
   asset_repo_source_close(src);
 }
 
