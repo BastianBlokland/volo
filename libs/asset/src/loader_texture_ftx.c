@@ -14,6 +14,7 @@
 #include "repo_internal.h"
 
 #define ftx_max_glyphs 1024
+#define ftx_max_size (1024 * 16)
 
 static DataReg* g_dataReg;
 static DataMeta g_dataFtxDefMeta;
@@ -60,8 +61,9 @@ typedef enum {
   FtxError_None = 0,
   FtxError_FontNotSpecified,
   FtxError_FontInvalid,
-  FtxError_NonPow2Size,
-  FtxError_NonPow2GlyphSize,
+  FtxError_SizeNonPow2,
+  FtxError_SizeTooBig,
+  FtxError_GlyphSizeNonPow2,
   FtxError_TooManyGlyphs,
   FtxError_NoCharacters,
 
@@ -74,6 +76,7 @@ static String ftx_error_str(const FtxError err) {
       string_static("Ftx definition does not specify a font"),
       string_static("Ftx definition specifies an invalid font"),
       string_static("Ftx definition specifies a non power-of-two texture size"),
+      string_static("Ftx definition specifies a texture size larger then is supported"),
       string_static("Ftx definition specifies a non power-of-two glyph size"),
       string_static("Ftx definition requires more glyphs then fit at the requested size"),
       string_static("Ftx definition does not specify any characters"),
@@ -229,11 +232,15 @@ void asset_load_ftx(EcsWorld* world, const EcsEntityId entity, AssetSource* src)
     goto Error;
   }
   if (UNLIKELY(!bits_ispow2(def.size))) {
-    errMsg = ftx_error_str(FtxError_NonPow2Size);
+    errMsg = ftx_error_str(FtxError_SizeNonPow2);
+    goto Error;
+  }
+  if (UNLIKELY(def.size > ftx_max_size)) {
+    errMsg = ftx_error_str(FtxError_SizeTooBig);
     goto Error;
   }
   if (UNLIKELY(!bits_ispow2(def.glyphSize))) {
-    errMsg = ftx_error_str(FtxError_NonPow2GlyphSize);
+    errMsg = ftx_error_str(FtxError_GlyphSizeNonPow2);
     goto Error;
   }
   if (UNLIKELY(string_is_empty(def.characters))) {
