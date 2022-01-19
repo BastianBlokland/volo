@@ -17,6 +17,10 @@
 
 #include "repo_internal.h"
 
+/**
+ * FontTeXture - Generates a sdf texture atlas and a character mapping based on a font file.
+ */
+
 #define ftx_max_chars 1024
 #define ftx_max_size (1024 * 16)
 
@@ -88,23 +92,23 @@ typedef enum {
 static String ftx_error_str(const FtxError err) {
   static const String msgs[] = {
       string_static("None"),
-      string_static("Ftx definition does not specify a font"),
-      string_static("Ftx definition specifies an invalid font"),
-      string_static("Ftx font has no glyph for a requested character"),
-      string_static("Ftx definition specifies a non power-of-two texture size"),
-      string_static("Ftx definition specifies a zero texture size"),
-      string_static("Ftx definition specifies a texture size larger then is supported"),
-      string_static("Ftx definition specifies a non power-of-two glyph size"),
-      string_static("Ftx definition does not specify any characters"),
-      string_static("Ftx definition specifies more characters then are supported"),
-      string_static("Ftx definition requires more glyphs then fit at the requested size"),
-      string_static("Ftx definition specifies invalid utf8"),
+      string_static("Ftx does not specify a font"),
+      string_static("Ftx specifies an invalid font"),
+      string_static("Ftx source font is missing a glyph for the requested characters"),
+      string_static("Ftx specifies a non power-of-two texture size"),
+      string_static("Ftx specifies a zero texture size"),
+      string_static("Ftx specifies a texture size larger then is supported"),
+      string_static("Ftx specifies a non power-of-two glyph size"),
+      string_static("Ftx does not specify any characters"),
+      string_static("Ftx specifies more characters then are supported"),
+      string_static("Ftx requires more glyphs then fit at the requested size"),
+      string_static("Ftx specifies invalid utf8"),
   };
   ASSERT(array_elems(msgs) == FtxError_Count, "Incorrect number of ftx-error messages");
   return msgs[err];
 }
 
-static i8 ftx_compare_char(const void* a, const void* b) {
+static i8 ftx_compare_char_cp(const void* a, const void* b) {
   return compare_u32(field_ptr(a, AssetFtxChar, cp), field_ptr(b, AssetFtxChar, cp));
 }
 
@@ -222,7 +226,7 @@ static void ftx_generate(
   }
 
   // Sort the characters on the unicode codepoint.
-  sort_quicksort_t(chars, chars + charCount, AssetFtxChar, ftx_compare_char);
+  sort_quicksort_t(chars, chars + charCount, AssetFtxChar, ftx_compare_char_cp);
 
   *outFtx = (AssetFtxComp){
       .characters     = chars,
@@ -392,7 +396,7 @@ const AssetFtxChar* asset_ftx_lookup(const AssetFtxComp* comp, const UnicodeCp c
       comp->characters,
       comp->characters + comp->characterCount,
       AssetFtxChar,
-      ftx_compare_char,
+      ftx_compare_char_cp,
       mem_struct(AssetFtxChar, .cp = cp).ptr);
 
   if (UNLIKELY(!ch)) {
