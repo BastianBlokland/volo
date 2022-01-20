@@ -49,6 +49,68 @@ static const AssetMemRecord g_testData[] = {
     },
 };
 
+static const AssetMemRecord g_errorTestData[] = {
+    {
+        .id   = string_static("no-font.ftx"),
+        .data = string_static("{"
+                              "  \"size\": 64,"
+                              "  \"glyphSize\": 32,"
+                              "  \"border\": 3,"
+                              "  \"characters\": \"1\","
+                              "  \"depth\": \"Less\","
+                              "  \"cull\": \"Back\","
+                              "}"),
+    },
+    {
+        .id   = string_static("empty-font.ftx"),
+        .data = string_static("{"
+                              "  \"fontId\": \"\","
+                              "  \"size\": 64,"
+                              "  \"glyphSize\": 32,"
+                              "  \"border\": 3,"
+                              "  \"characters\": \"1\","
+                              "  \"depth\": \"Less\","
+                              "  \"cull\": \"Back\","
+                              "}"),
+    },
+    {
+        .id   = string_static("missing-font.ftx"),
+        .data = string_static("{"
+                              "  \"fontId\": \"missing.ttf\","
+                              "  \"size\": 64,"
+                              "  \"glyphSize\": 32,"
+                              "  \"border\": 3,"
+                              "  \"characters\": \"1\","
+                              "  \"depth\": \"Less\","
+                              "  \"cull\": \"Back\","
+                              "}"),
+    },
+    {
+        .id   = string_static("non-pow2-size.ftx"),
+        .data = string_static("{"
+                              "  \"fontId\": \"font.ttf\","
+                              "  \"size\": 42,"
+                              "  \"glyphSize\": 32,"
+                              "  \"border\": 3,"
+                              "  \"characters\": \"1\","
+                              "  \"depth\": \"Less\","
+                              "  \"cull\": \"Back\","
+                              "}"),
+    },
+    {
+        .id   = string_static("too-many-glyphs.ftx"),
+        .data = string_static("{"
+                              "  \"fontId\": \"font.ttf\","
+                              "  \"size\": 64,"
+                              "  \"glyphSize\": 32,"
+                              "  \"border\": 3,"
+                              "  \"characters\": \"1111\","
+                              "  \"depth\": \"Less\","
+                              "  \"cull\": \"Back\","
+                              "}"),
+    },
+};
+
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
 ecs_view_define(AssetView) {
   ecs_access_read(AssetFtxComp);
@@ -61,11 +123,10 @@ ecs_module_init(loader_ftx_test_module) {
 }
 
 spec(loader_ftx) {
-  EcsDef*        def          = null;
-  EcsWorld*      world        = null;
-  EcsRunner*     runner       = null;
-  String         testFontData = string_empty;
-  AssetMemRecord records[array_elems(g_testData) + 1];
+  EcsDef*    def          = null;
+  EcsWorld*  world        = null;
+  EcsRunner* runner       = null;
+  String     testFontData = string_empty;
 
   setup() {
     def = ecs_def_create(g_alloc_heap);
@@ -76,13 +137,15 @@ spec(loader_ftx) {
     runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_None);
 
     testFontData = string_dup(g_alloc_heap, base64_decode_scratch(g_testFontBase64));
-    records[0]   = (AssetMemRecord){.id = string_lit("font.ttf"), .data = testFontData};
-    for (usize i = 0; i != array_elems(g_testData); ++i) {
-      records[i + 1] = g_testData[i];
-    }
   }
 
   it("can load ftx assets") {
+    AssetMemRecord records[array_elems(g_testData) + 1] = {
+        {.id = string_lit("font.ttf"), .data = testFontData},
+    };
+    for (usize i = 0; i != array_elems(g_testData); ++i) {
+      records[i + 1] = g_testData[i];
+    }
     asset_manager_create_mem(world, AssetManagerFlags_None, records, array_elems(records));
     ecs_world_flush(world);
 
@@ -109,6 +172,10 @@ spec(loader_ftx) {
   }
 
   it("can unload ftx assets") {
+    const AssetMemRecord records[] = {
+        {.id = string_lit("font.ttf"), .data = testFontData},
+        {.id = string_lit("test.ftx"), .data = g_testData[0].data},
+    };
     asset_manager_create_mem(world, AssetManagerFlags_None, records, array_elems(records));
     ecs_world_flush(world);
 
@@ -126,6 +193,28 @@ spec(loader_ftx) {
 
     check(!ecs_world_has_t(world, asset, AssetFtxComp));
     check(!ecs_world_has_t(world, asset, AssetTextureComp));
+  }
+
+  it("fails when loading invalid ftx files") {
+    AssetMemRecord records[array_elems(g_errorTestData) + 1] = {
+        {.id = string_lit("font.ttf"), .data = testFontData},
+    };
+    for (usize i = 0; i != array_elems(g_errorTestData); ++i) {
+      records[i + 1] = g_errorTestData[i];
+    }
+    asset_manager_create_mem(world, AssetManagerFlags_None, records, array_elems(records));
+    ecs_world_flush(world);
+
+    array_for_t(g_errorTestData, AssetMemRecord, errRec) {
+      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+      const EcsEntityId asset   = asset_lookup(world, manager, errRec->id);
+      asset_acquire(world, asset);
+      asset_test_wait(runner);
+
+      check(ecs_world_has_t(world, asset, AssetFailedComp));
+      check(!ecs_world_has_t(world, asset, AssetFtxComp));
+      check(!ecs_world_has_t(world, asset, AssetTextureComp));
+    }
   }
 
   teardown() {
