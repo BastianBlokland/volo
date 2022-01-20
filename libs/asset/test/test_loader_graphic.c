@@ -43,13 +43,10 @@ static const AssetMemRecord g_testData[] = {
     },
 };
 
-static const struct {
-  String id;
-  String text;
-} g_errorTestData[] = {
+static const AssetMemRecord g_errorTestData[] = {
     {
         .id   = string_static("mesh_and_vertex_count.gra"),
-        .text = string_static("{"
+        .data = string_static("{"
                               "  \"shaders\": [],"
                               "  \"samplers\": [],"
                               "  \"meshId\": \"a.obj\","
@@ -64,7 +61,7 @@ static const struct {
     },
     {
         .id   = string_static("empty_mesh.gra"),
-        .text = string_static("{"
+        .data = string_static("{"
                               "  \"shaders\": [],"
                               "  \"samplers\": [],"
                               "  \"meshId\": \"\","
@@ -162,16 +159,13 @@ spec(loader_graphic) {
   }
 
   it("fails when loading invalid graphic files") {
-    AssetMemRecord records[array_elems(g_errorTestData)];
-    for (usize i = 0; i != array_elems(g_errorTestData); ++i) {
-      records[i] = (AssetMemRecord){.id = g_errorTestData[i].id, .data = g_errorTestData[i].text};
-    }
-    asset_manager_create_mem(world, AssetManagerFlags_None, records, array_elems(g_errorTestData));
+    asset_manager_create_mem(
+        world, AssetManagerFlags_None, g_errorTestData, array_elems(g_errorTestData));
     ecs_world_flush(world);
 
     for (usize i = 0; i != array_elems(g_errorTestData); ++i) {
       AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-      const EcsEntityId asset   = asset_lookup(world, manager, records[i].id);
+      const EcsEntityId asset   = asset_lookup(world, manager, g_errorTestData[i].id);
       asset_acquire(world, asset);
       asset_test_wait(runner);
 

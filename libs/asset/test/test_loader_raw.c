@@ -6,7 +6,7 @@
 
 #include "utils_internal.h"
 
-static const AssetMemRecord records[] = {
+static const AssetMemRecord g_records[] = {
     {.id = string_static("a.raw"), .data = string_static("Hello World")},
 };
 
@@ -30,7 +30,7 @@ spec(loader_raw) {
     ecs_register_module(def, loader_raw_test_module);
 
     world = ecs_world_create(g_alloc_heap, def);
-    asset_manager_create_mem(world, AssetManagerFlags_None, records, array_elems(records));
+    asset_manager_create_mem(world, AssetManagerFlags_None, g_records, array_elems(g_records));
     ecs_world_flush(world);
 
     runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_None);
