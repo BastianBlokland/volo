@@ -8,9 +8,9 @@
     }
   ],
   "samplers": [],
-  "meshId": "meshes/quad_xy.obj",
+  "vertexCount": 4,
   "renderOrder": 10,
-  "topology": "Triangles",
+  "topology": "TriangleFan",
   "rasterizer": "Fill",
   "blend": "None",
   "depth": "LessOrEqual",

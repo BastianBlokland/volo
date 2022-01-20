@@ -52,6 +52,8 @@ static const char* rvk_to_null_term_scratch(String str) {
 static String rvk_graphic_topology_str(const AssetGraphicTopology topology) {
   static const String g_names[] = {
       string_static("Triangles"),
+      string_static("TriangleStrip"),
+      string_static("TriangleFan"),
       string_static("Lines"),
       string_static("LineStrip"),
       string_static("Points"),
@@ -206,6 +208,10 @@ static VkPrimitiveTopology rvk_pipeline_input_topology(const RvkGraphic* graphic
   switch (graphic->topology) {
   case AssetGraphicTopology_Triangles:
     return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+  case AssetGraphicTopology_TriangleStrip:
+    return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+  case AssetGraphicTopology_TriangleFan:
+    return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
   case AssetGraphicTopology_Lines:
     return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
   case AssetGraphicTopology_LineStrip:
