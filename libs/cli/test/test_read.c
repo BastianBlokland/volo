@@ -91,37 +91,37 @@ spec(read) {
   }
 
   it("returns the index of the provided choice string") {
-    static const String choices[] = {string_static("choiceA"), string_static("choiceB")};
+    static const String g_choices[] = {string_static("choiceA"), string_static("choiceB")};
 
     const CliId flag = cli_register_flag(app, 'c', string_lit("choice"), CliOptionFlags_Value);
 
     CliInvocation* invocA = cli_parse(app, 2, (const char*[]){"-c", "choiceA"});
-    check_eq_int(cli_read_choice_array(invocA, flag, choices, 999), 0);
+    check_eq_int(cli_read_choice_array(invocA, flag, g_choices, 999), 0);
     cli_parse_destroy(invocA);
 
     CliInvocation* invocB = cli_parse(app, 2, (const char*[]){"-c", "choiceB"});
-    check_eq_int(cli_read_choice_array(invocB, flag, choices, 999), 1);
+    check_eq_int(cli_read_choice_array(invocB, flag, g_choices, 999), 1);
     cli_parse_destroy(invocB);
   }
 
   it("returns the default when not providing a choice string") {
-    static const String choices[] = {string_static("choiceA"), string_static("choiceB")};
+    static const String g_choices[] = {string_static("choiceA"), string_static("choiceB")};
 
     const CliId flag = cli_register_flag(app, 'c', string_lit("choice"), CliOptionFlags_Value);
 
     CliInvocation* invoc = cli_parse(app, 0, null);
-    check_eq_int(cli_read_choice_array(invoc, flag, choices, 999), 999);
+    check_eq_int(cli_read_choice_array(invoc, flag, g_choices, 999), 999);
 
     cli_parse_destroy(invoc);
   }
 
   it("returns the default when provided input doesn't match any choice string") {
-    static const String choices[] = {string_static("choiceA"), string_static("choiceB")};
+    static const String g_choices[] = {string_static("choiceA"), string_static("choiceB")};
 
     const CliId flag = cli_register_flag(app, 'c', string_lit("choice"), CliOptionFlags_Value);
 
     CliInvocation* invoc = cli_parse(app, 2, (const char*[]){"-c", "choiceC"});
-    check_eq_int(cli_read_choice_array(invoc, flag, choices, 999), 999);
+    check_eq_int(cli_read_choice_array(invoc, flag, g_choices, 999), 999);
 
     cli_parse_destroy(invoc);
   }

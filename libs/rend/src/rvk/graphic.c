@@ -50,7 +50,7 @@ static const char* rvk_to_null_term_scratch(String str) {
 }
 
 static String rvk_graphic_topology_str(const AssetGraphicTopology topology) {
-  static const String names[] = {
+  static const String g_names[] = {
       string_static("Triangles"),
       string_static("TriangleStrip"),
       string_static("TriangleFan"),
@@ -58,50 +58,50 @@ static String rvk_graphic_topology_str(const AssetGraphicTopology topology) {
       string_static("LineStrip"),
       string_static("Points"),
   };
-  ASSERT(array_elems(names) == AssetGraphicTopology_Count, "Incorrect number of names");
-  return names[topology];
+  ASSERT(array_elems(g_names) == AssetGraphicTopology_Count, "Incorrect number of names");
+  return g_names[topology];
 }
 
 static String rvk_graphic_rasterizer_str(const AssetGraphicRasterizer rasterizer) {
-  static const String names[] = {
+  static const String g_names[] = {
       string_static("Fill"),
       string_static("Lines"),
       string_static("Points"),
   };
-  ASSERT(array_elems(names) == AssetGraphicRasterizer_Count, "Incorrect number of names");
-  return names[rasterizer];
+  ASSERT(array_elems(g_names) == AssetGraphicRasterizer_Count, "Incorrect number of names");
+  return g_names[rasterizer];
 }
 
 static String rvk_graphic_blend_str(const AssetGraphicBlend blend) {
-  static const String names[] = {
+  static const String g_names[] = {
       string_static("None"),
       string_static("Alpha"),
       string_static("Additive"),
       string_static("AlphaAdditive"),
   };
-  ASSERT(array_elems(names) == AssetGraphicBlend_Count, "Incorrect number of names");
-  return names[blend];
+  ASSERT(array_elems(g_names) == AssetGraphicBlend_Count, "Incorrect number of names");
+  return g_names[blend];
 }
 
 static String rvk_graphic_depth_str(const AssetGraphicDepth depth) {
-  static const String names[] = {
+  static const String g_names[] = {
       string_static("None"),
       string_static("Less"),
       string_static("LessOrEqual"),
       string_static("Always"),
   };
-  ASSERT(array_elems(names) == AssetGraphicDepth_Count, "Incorrect number of names");
-  return names[depth];
+  ASSERT(array_elems(g_names) == AssetGraphicDepth_Count, "Incorrect number of names");
+  return g_names[depth];
 }
 
 static String rvk_graphic_cull_str(const AssetGraphicCull cull) {
-  static const String names[] = {
+  static const String g_names[] = {
       string_static("Back"),
       string_static("Front"),
       string_static("None"),
   };
-  ASSERT(array_elems(names) == AssetGraphicCull_Count, "Incorrect number of names");
-  return names[cull];
+  ASSERT(array_elems(g_names) == AssetGraphicCull_Count, "Incorrect number of names");
+  return g_names[cull];
 }
 
 static RvkSamplerWrap rvk_graphic_wrap(const AssetGraphicWrap assetWrap) {

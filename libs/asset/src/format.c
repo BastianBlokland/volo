@@ -4,7 +4,7 @@
 #include "format_internal.h"
 
 String asset_format_str(AssetFormat fmt) {
-  static const String names[] = {
+  static const String g_names[] = {
       string_static("ftx"),
       string_static("gra"),
       string_static("obj"),
@@ -14,8 +14,8 @@ String asset_format_str(AssetFormat fmt) {
       string_static("tga"),
       string_static("ttf"),
   };
-  ASSERT(array_elems(names) == AssetFormat_Count, "Incorrect number of asset-format names");
-  return names[fmt];
+  ASSERT(array_elems(g_names) == AssetFormat_Count, "Incorrect number of asset-format names");
+  return g_names[fmt];
 }
 
 AssetFormat asset_format_from_ext(String ext) {

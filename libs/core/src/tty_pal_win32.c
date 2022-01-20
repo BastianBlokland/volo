@@ -176,11 +176,11 @@ bool tty_pal_read(File* file, DynString* dynstr, const TtyReadFlags flags) {
     return false; // No keyboard input is available for reading at the given console.
   }
 
-  static const DWORD maxChars = 512;
+  static const DWORD g_maxChars = 512;
 
-  Mem        wideBuffer = mem_stack(maxChars * sizeof(wchar_t));
+  Mem        wideBuffer = mem_stack(g_maxChars * sizeof(wchar_t));
   DWORD      wideCharsRead;
-  const BOOL readRes = ReadConsole(file->handle, wideBuffer.ptr, maxChars, &wideCharsRead, null);
+  const BOOL readRes = ReadConsole(file->handle, wideBuffer.ptr, g_maxChars, &wideCharsRead, null);
   if (UNLIKELY(!readRes)) {
     const DWORD err = GetLastError();
     diag_crash_msg(

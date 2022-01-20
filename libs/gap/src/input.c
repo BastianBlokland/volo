@@ -4,7 +4,7 @@
 
 #include "input_internal.h"
 
-static const String g_key_strs[] = {
+static const String g_keyStrs[] = {
     string_static("mouse-left"), string_static("mouse-right"), string_static("mouse-middle"),
     string_static("shift"),      string_static("control"),     string_static("backspace"),
     string_static("delete"),     string_static("tab"),         string_static("tilde"),
@@ -28,25 +28,25 @@ static const String g_key_strs[] = {
     string_static("f7"),         string_static("f8"),          string_static("f9"),
     string_static("f10"),        string_static("f11"),         string_static("f12")};
 
-ASSERT(array_elems(g_key_strs) == GapKey_Count, "Incorrect number of GapKey strings");
+ASSERT(array_elems(g_keyStrs) == GapKey_Count, "Incorrect number of GapKey strings");
 
 String gap_key_str(const GapKey key) {
   diag_assert(key < GapKey_Count);
-  return g_key_strs[key];
+  return g_keyStrs[key];
 }
 
-static const String g_param_strs[] = {
+static const String g_paramStrs[] = {
     string_static("window-size"),
     string_static("cursor-pos"),
     string_static("cursor-delta"),
     string_static("scroll-delta"),
 };
 
-ASSERT(array_elems(g_param_strs) == GapParam_Count, "Incorrect number of GapParam strings");
+ASSERT(array_elems(g_paramStrs) == GapParam_Count, "Incorrect number of GapParam strings");
 
 String gap_param_str(const GapParam param) {
   diag_assert(param < GapParam_Count);
-  return g_param_strs[param];
+  return g_paramStrs[param];
 }
 
 void gap_keyset_clear(GapKeySet* set) { mem_set(array_mem(set->data), 0); }

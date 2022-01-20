@@ -46,13 +46,13 @@ typedef struct {
   usize       targetCount;
 } DbgSetupCtx;
 
-static const String g_dbg_strs[] = {
+static const String g_dbgStrs[] = {
     string_static("lldb"),
     string_static("cppvsdbg"),
 };
 
 static bool dbgsetup_validate_dbg(const String input) {
-  array_for_t(g_dbg_strs, String, cfg) {
+  array_for_t(g_dbgStrs, String, cfg) {
     if (string_eq(*cfg, input)) {
       return true;
     }
@@ -83,7 +83,7 @@ static JsonVal dbgsetup_vscode_gen_launch_entry(DbgSetupCtx* ctx, JsonDoc* doc, 
       obj,
       string_lit("name"),
       json_add_string(doc, fmt_write_scratch("{} (Launch)", fmt_text(path_stem(target)))));
-  json_add_field_str(doc, obj, string_lit("type"), json_add_string(doc, g_dbg_strs[ctx->dbg]));
+  json_add_field_str(doc, obj, string_lit("type"), json_add_string(doc, g_dbgStrs[ctx->dbg]));
   json_add_field_str(doc, obj, string_lit("request"), json_add_string_lit(doc, "launch"));
   json_add_field_str(doc, obj, string_lit("program"), json_add_string(doc, target));
   json_add_field_str(doc, obj, string_lit("cwd"), json_add_string(doc, ctx->workspace));
@@ -100,7 +100,7 @@ static JsonVal dbgsetup_vscode_gen_attach_entry(DbgSetupCtx* ctx, JsonDoc* doc, 
       obj,
       string_lit("name"),
       json_add_string(doc, fmt_write_scratch("{} (Attach)", fmt_text(path_stem(target)))));
-  json_add_field_str(doc, obj, string_lit("type"), json_add_string(doc, g_dbg_strs[ctx->dbg]));
+  json_add_field_str(doc, obj, string_lit("type"), json_add_string(doc, g_dbgStrs[ctx->dbg]));
   json_add_field_str(doc, obj, string_lit("request"), json_add_string_lit(doc, "attach"));
   json_add_field_str(doc, obj, string_lit("program"), json_add_string(doc, target));
   json_add_field_str(
@@ -141,7 +141,7 @@ static DbgSetupApp dbgsetup_app_create() {
 
   const CliId dbgFlag = cli_register_flag(app, 'd', string_lit("debugger"), CliOptionFlags_Value);
   cli_register_desc_choice_array(
-      app, dbgFlag, string_lit("What debugger to use."), g_dbg_strs, DbgSetupDbg_Lldb);
+      app, dbgFlag, string_lit("What debugger to use."), g_dbgStrs, DbgSetupDbg_Lldb);
   cli_register_validator(app, dbgFlag, dbgsetup_validate_dbg);
 
   const CliId workspaceFlag =
@@ -183,7 +183,7 @@ static int dbgsetup_app_run(DbgSetupApp* app, const int argc, const char** argv)
   }
 
   DbgSetupCtx ctx = {
-      .dbg = (DbgSetupDbg)cli_read_choice_array(invoc, app->dbgFlag, g_dbg_strs, DbgSetupDbg_Lldb),
+      .dbg = (DbgSetupDbg)cli_read_choice_array(invoc, app->dbgFlag, g_dbgStrs, DbgSetupDbg_Lldb),
       .workspace   = cli_read_string(invoc, app->workspaceFlag, string_empty),
       .targets     = cli_parse_values(invoc, app->targetsFlag).values,
       .targetCount = cli_parse_values(invoc, app->targetsFlag).count,
@@ -195,7 +195,7 @@ static int dbgsetup_app_run(DbgSetupApp* app, const int argc, const char** argv)
   log_i(
       "Generating debugger setup",
       log_param("workspace", fmt_path(ctx.workspace)),
-      log_param("debugger", fmt_text(g_dbg_strs[ctx.dbg])),
+      log_param("debugger", fmt_text(g_dbgStrs[ctx.dbg])),
       log_param("targets", fmt_int(ctx.targetCount)));
 
   if (!dbgsetup_vscode_generate_launch_file(&ctx)) {

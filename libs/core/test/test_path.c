@@ -143,10 +143,10 @@ spec(path) {
   }
 
   it("can generate a random file-name") {
-    static const u64 seed = 42;
+    static const u64 g_seed = 42;
 
     Allocator* alloc = alloc_bump_create_stack(256);
-    Rng*       rng   = rng_create_xorwow(alloc, seed);
+    Rng*       rng   = rng_create_xorwow(alloc, g_seed);
 
     check_eq_string(
         path_name_random_scratch(rng, string_empty, string_empty), string_lit("nkOZrR4b15bJ"));

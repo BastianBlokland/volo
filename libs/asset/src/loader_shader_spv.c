@@ -107,7 +107,7 @@ typedef enum {
 } SpvError;
 
 static String spv_error_str(SpvError res) {
-  static const String msgs[] = {
+  static const String g_msgs[] = {
       string_static("None"),
       string_static("Malformed SpirV data"),
       string_static("SpirV id out of bounds"),
@@ -122,8 +122,8 @@ static String spv_error_str(SpvError res) {
       string_static("SpirV shader resource set exceeds maximum"),
       string_static("SpirV shader resource binding exceeds maximum"),
   };
-  ASSERT(array_elems(msgs) == SpvError_Count, "Incorrect number of spv-error messages");
-  return msgs[res];
+  ASSERT(array_elems(g_msgs) == SpvError_Count, "Incorrect number of spv-error messages");
+  return g_msgs[res];
 }
 
 static SpvData spv_consume(const SpvData data, const u32 amount) {

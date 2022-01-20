@@ -20,15 +20,15 @@ spec(scheduler) {
   }
 
   it("can run a job-graph multiple times") {
-    static const usize numRuns = 128;
+    static const usize g_numRuns = 128;
 
     JobGraph* jobGraph = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 1);
     jobs_graph_add_task(jobGraph, string_lit("TestTask"), test_task_nop, mem_empty, task_flags);
 
-    DynArray jobIds = dynarray_create_t(g_alloc_heap, JobId, numRuns);
+    DynArray jobIds = dynarray_create_t(g_alloc_heap, JobId, g_numRuns);
 
     // Start the graph multiple times.
-    for (usize i = 0; i != numRuns; ++i) {
+    for (usize i = 0; i != g_numRuns; ++i) {
       *dynarray_push_t(&jobIds, JobId) = jobs_scheduler_run(jobGraph);
     }
 

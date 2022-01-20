@@ -6,7 +6,7 @@
 #include "init_internal.h"
 
 static bool              g_intialized;
-static THREAD_LOCAL bool g_initialized_thread;
+static THREAD_LOCAL bool g_initializedThread;
 
 void core_init() {
   if (!g_intialized) {
@@ -16,7 +16,7 @@ void core_init() {
     time_init();
   }
 
-  if (!g_initialized_thread) {
+  if (!g_initializedThread) {
     alloc_init_thread();
     thread_init_thread();
     rng_init_thread();
@@ -29,17 +29,17 @@ void core_init() {
     path_init();
   }
 
-  g_intialized         = true;
-  g_initialized_thread = true;
+  g_intialized        = true;
+  g_initializedThread = true;
 }
 
 void core_teardown() {
   if (g_thread_tid == g_thread_main_tid && g_intialized) {
     tty_teardown();
   }
-  if (g_initialized_thread) {
+  if (g_initializedThread) {
     alloc_teardown_thread();
-    g_initialized_thread = false;
+    g_initializedThread = false;
   }
   if (g_thread_tid == g_thread_main_tid && g_intialized) {
     alloc_teardown();

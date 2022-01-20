@@ -90,7 +90,7 @@ typedef enum {
 } FtxError;
 
 static String ftx_error_str(const FtxError err) {
-  static const String msgs[] = {
+  static const String g_msgs[] = {
       string_static("None"),
       string_static("Ftx does not specify a font"),
       string_static("Ftx specifies an invalid font"),
@@ -104,8 +104,8 @@ static String ftx_error_str(const FtxError err) {
       string_static("Ftx requires more glyphs then fit at the requested size"),
       string_static("Ftx specifies invalid utf8"),
   };
-  ASSERT(array_elems(msgs) == FtxError_Count, "Incorrect number of ftx-error messages");
-  return msgs[err];
+  ASSERT(array_elems(g_msgs) == FtxError_Count, "Incorrect number of ftx-error messages");
+  return g_msgs[err];
 }
 
 static i8 ftx_compare_char_cp(const void* a, const void* b) {

@@ -32,7 +32,7 @@
 #endif
 
 u64 math_pow10_u64(const u8 val) {
-  static const u64 table[] = {
+  static const u64 g_table[] = {
       u64_lit(1),
       u64_lit(10),
       u64_lit(100),
@@ -54,8 +54,8 @@ u64 math_pow10_u64(const u8 val) {
       u64_lit(1000000000000000000),
       u64_lit(10000000000000000000),
   };
-  diag_assert(val < array_elems(table));
-  return table[val];
+  diag_assert(val < array_elems(g_table));
+  return g_table[val];
 }
 
 f32 math_sqrt_f32(const f32 val) { return sqrtf(val); }

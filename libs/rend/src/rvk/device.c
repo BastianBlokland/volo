@@ -314,16 +314,16 @@ static VkDevice rvk_device_create_internal(RvkDevice* dev) {
 }
 
 static VkFormat rvk_device_pick_depthformat(RvkDevice* dev) {
-  static const VkFormat supportedFormats[] = {
+  static const VkFormat g_supportedFormats[] = {
       VK_FORMAT_D24_UNORM_S8_UINT,
       VK_FORMAT_D32_SFLOAT,
   };
-  static const VkFormatFeatureFlags features = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+  static const VkFormatFeatureFlags g_features = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
-  array_for_t(supportedFormats, VkFormat, format) {
+  array_for_t(g_supportedFormats, VkFormat, format) {
     VkFormatProperties properties;
     vkGetPhysicalDeviceFormatProperties(dev->vkPhysDev, *format, &properties);
-    if ((properties.optimalTilingFeatures & features) == features) {
+    if ((properties.optimalTilingFeatures & g_features) == g_features) {
       return *format;
     }
   }

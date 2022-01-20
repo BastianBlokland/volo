@@ -12,11 +12,11 @@ spec(float) {
   }
 
   it("has NaN literals") {
-    static const f32 nan32 = f32_nan; // Compile time constant.
-    check(float_isnan(nan32));
+    static const f32 g_nan32 = f32_nan; // Compile time constant.
+    check(float_isnan(g_nan32));
 
-    static const f64 nan64 = f64_nan; // Compile time constant.
-    check(float_isnan(nan64));
+    static const f64 g_nan64 = f64_nan; // Compile time constant.
+    check(float_isnan(g_nan64));
   }
 
   it("can detect an infinity float") {
@@ -27,11 +27,11 @@ spec(float) {
   }
 
   it("has infinity literals") {
-    static const f32 inf32 = f32_inf; // Compile time constant.
-    check(float_isinf(inf32));
+    static const f32 g_inf32 = f32_inf; // Compile time constant.
+    check(float_isinf(g_inf32));
 
-    static const f64 inf64 = f64_inf; // Compile time constant.
-    check(float_isinf(inf64));
+    static const f64 g_inf64 = f64_inf; // Compile time constant.
+    check(float_isinf(g_inf64));
   }
 
   it("has float min literals") {

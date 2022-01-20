@@ -147,13 +147,13 @@ spec(destruct) {
   }
 
   it("destroys stored components from all chunks when the world is destroyed") {
-    static const usize entitiesToCreate = 567;
-    DynArray           entities = dynarray_create_t(g_alloc_heap, EcsEntityId, entitiesToCreate);
+    static const usize g_entitiesToCreate = 567;
+    DynArray           entities = dynarray_create_t(g_alloc_heap, EcsEntityId, g_entitiesToCreate);
     EcsWorld*          world    = ecs_world_create(g_alloc_heap, def);
 
     g_destructCount = 0;
 
-    for (usize i = 0; i != entitiesToCreate; ++i) {
+    for (usize i = 0; i != g_entitiesToCreate; ++i) {
       const EcsEntityId newEntity = ecs_world_entity_create(world);
       ecs_world_add_t(world, newEntity, DestructCompA, .state = CompDataState_Normal);
       *dynarray_push_t(&entities, EcsEntityId) = newEntity;
@@ -163,7 +163,7 @@ spec(destruct) {
 
     ecs_world_destroy(world);
 
-    check_require(g_destructCount == entitiesToCreate);
+    check_require(g_destructCount == g_entitiesToCreate);
 
     dynarray_destroy(&entities);
   }

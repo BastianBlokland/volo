@@ -80,8 +80,8 @@ u32 rng_sample_u32(Rng* rng) {
 
 f32 rng_sample_f32(Rng* rng) {
   diag_assert_msg(rng, "rng_next: Rng is not initialized");
-  static const f32 toFloat = 1.0f / ((f32)u32_max + 1.0f); // +1 to never return 1.0.
-  return rng->next(rng) * toFloat;
+  static const f32 g_toFloat = 1.0f / ((f32)u32_max + 1.0f); // +1 to never return 1.0.
+  return rng->next(rng) * g_toFloat;
 }
 
 RngGaussPairF32 rng_sample_gauss_f32(Rng* rng) {

@@ -43,10 +43,10 @@ spec(world) {
   it("stores the definition") { check(ecs_world_def(world) == def); }
 
   it("reports created entities as existing") {
-    static const usize entitiesToCreate = 567;
-    DynArray           entities         = dynarray_create_t(g_alloc_heap, EcsEntityId, 2048);
+    static const usize g_entitiesToCreate = 567;
+    DynArray           entities           = dynarray_create_t(g_alloc_heap, EcsEntityId, 2048);
 
-    for (usize i = 0; i != entitiesToCreate; ++i) {
+    for (usize i = 0; i != g_entitiesToCreate; ++i) {
       *dynarray_push_t(&entities, EcsEntityId) = ecs_world_entity_create(world);
     }
 
@@ -124,10 +124,10 @@ spec(world) {
   }
 
   it("can add components for many entities") {
-    static const usize entitiesToCreate = 567;
-    DynArray           entities         = dynarray_create_t(g_alloc_heap, EcsEntityId, 2048);
+    static const usize g_entitiesToCreate = 567;
+    DynArray           entities           = dynarray_create_t(g_alloc_heap, EcsEntityId, 2048);
 
-    for (usize i = 0; i != entitiesToCreate; ++i) {
+    for (usize i = 0; i != g_entitiesToCreate; ++i) {
       *dynarray_push_t(&entities, EcsEntityId) = ecs_world_entity_create(world);
     }
 

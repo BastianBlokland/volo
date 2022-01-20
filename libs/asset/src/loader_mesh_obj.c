@@ -57,7 +57,7 @@ typedef enum {
 } ObjError;
 
 static String obj_error_str(const ObjError err) {
-  static const String msgs[] = {
+  static const String g_msgs[] = {
       string_static("None"),
       string_static("Out of bounds index"),
       string_static("Unexpected end-of-file"),
@@ -65,8 +65,8 @@ static String obj_error_str(const ObjError err) {
       string_static("Mesh contains too many vertices"),
       string_static("At least one mesh face is required"),
   };
-  ASSERT(array_elems(msgs) == ObjError_Count, "Incorrect number of obj-error messages");
-  return msgs[err];
+  ASSERT(array_elems(g_msgs) == ObjError_Count, "Incorrect number of obj-error messages");
+  return g_msgs[err];
 }
 
 static String obj_consume_optional(const String input, const String toConsume, bool* outConsumed) {

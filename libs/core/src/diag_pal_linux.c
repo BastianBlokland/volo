@@ -3,17 +3,17 @@
 #include <signal.h>
 #include <unistd.h>
 
-static bool g_debugger_present;
+static bool g_debuggerPresent;
 
 static void diag_sigtrap_handler(int signum) {
   (void)signum;
 
-  g_debugger_present = false;
+  g_debuggerPresent = false;
   signal(SIGTRAP, SIG_DFL);
 }
 
 void diag_pal_break() {
-  g_debugger_present = true;
+  g_debuggerPresent = true;
   signal(SIGTRAP, diag_sigtrap_handler);
   raise(SIGTRAP);
 }
