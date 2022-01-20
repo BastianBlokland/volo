@@ -2,15 +2,25 @@
 #extension GL_GOOGLE_include_directive : enable
 
 #include "include/binding.glsl"
-#include "include/vertex.glsl"
 
-bind_graphic_data(0) readonly buffer Mesh { VertexPacked[] u_vertices; };
+// Fullscreen at zero depth.
+const f32_vec4 c_positions[] = {
+    f32_vec4(-1, 1, 1, 1),
+    f32_vec4(1, 1, 1, 1),
+    f32_vec4(1, -1, 1, 1),
+    f32_vec4(-1, -1, 1, 1),
+};
+
+const f32_vec2 c_texCoords[] = {
+    f32_vec2(0, 0),
+    f32_vec2(1, 0),
+    f32_vec2(1, 1),
+    f32_vec2(0, 1),
+};
 
 bind_internal(0) out f32_vec2 out_texcoord;
 
 void main() {
-  const Vertex vert = vert_unpack(u_vertices[in_vertexIndex]);
-
-  out_vertexPosition = f32_vec4(vert.position * 2, 1);
-  out_texcoord       = f32_vec2(vert.texcoord.x, 1 - vert.texcoord.y);
+  out_vertexPosition = c_positions[in_vertexIndex];
+  out_texcoord       = c_texCoords[in_vertexIndex];
 }

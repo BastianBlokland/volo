@@ -3,10 +3,12 @@
 #include "ecs_module.h"
 
 typedef enum {
-  AssetGraphicTopology_Triangles, // Separate triangles with 3 vertices.
-  AssetGraphicTopology_Lines,     // Separate lines with 2 vertices.
-  AssetGraphicTopology_LineStrip, // Form lines between all vertices.
-  AssetGraphicTopology_Points,    // Every vertex is a treated as a point.
+  AssetGraphicTopology_Triangles,     // Separate triangles with 3 vertices.
+  AssetGraphicTopology_TriangleStrip, // Form a strip of triangles (triangle connected to the last.
+  AssetGraphicTopology_TriangleFan,   // Form a fan of triangles (every triangle has a common vert).
+  AssetGraphicTopology_Lines,         // Separate lines with 2 vertices.
+  AssetGraphicTopology_LineStrip,     // Form lines between all vertices.
+  AssetGraphicTopology_Points,        // Every vertex is a treated as a point.
 
   AssetGraphicTopology_Count,
 } AssetGraphicTopology;
