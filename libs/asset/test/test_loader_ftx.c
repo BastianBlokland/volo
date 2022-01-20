@@ -7,43 +7,38 @@
 
 #include "utils_internal.h"
 
-static const struct {
-  String id, data;
-  bool   base64Encoded;
-} g_testData[] = {
-    {
-        .id   = string_static("test.ttf"),
-        .data = string_static(
-            "AAEAAAAOAIAAAwBgRkZUTZKGfgsAAAXMAAAAHEdERUYAFQAUAAAFsAAAABxPUy8yYqNs7QAAAWgAAABgY21hcA"
-            "APA98AAAHYAAABQmN2dCAARAURAAADHAAAAARnYXNw//8AAwAABagAAAAIZ2x5Zo6zAJ8AAAMsAAAAdGhlYWQa"
-            "fppxAAAA7AAAADZoaGVhCiYIBQAAASQAAAAkaG10eBgABCwAAAHIAAAAEGxvY2EAZgBYAAADIAAAAAptYXhwAE"
-            "gAOQAAAUgAAAAgbmFtZZKIeQUAAAOgAAAB0XBvc3TMWOidAAAFdAAAADQAAQAAAAEAAAxB/+9fDzz1AAsIAAAA"
-            "AADbgiVLAAAAANuCKtQARAAABBgFVQAAAAgAAgAAAAAAAAABAAAFVQAAALgIAAAAAAAEGAABAAAAAAAAAAAAAA"
-            "AAAAAABAABAAAABAAIAAIAAAAAAAIAAAABAAEAAABAAC4AAAAAAAQIAAGQAAUAAAUzBZkAAAEeBTMFmQAAA9cA"
-            "ZgISAAACAAUJAAAAAAAAAAAAAQAAAAAAAAAAAAAAAFBmRWQAwAAxADEGZv5mALgFVQAAAAAAAQAAAAAAAAAAAA"
-            "AAIAABCAAARAAAAAAIAAAACAAD6AAAAAMAAAADAAAAHAABAAAAAAA8AAMAAQAAABwABAAgAAAABAAEAAEAAAAx"
-            "//8AAAAx////0gABAAAAAAAAAQYAAAEAAAAAAAAAAQIAAAACAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAA"
-            "AAAAAAAAADAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAABEBREAAAAsACwALAA6AAAAAgBEAAACZAVVAAMABwAusQEALzyyBwQA7T"
-            "KxBgXcPLIDAgDtMgCxAwAvPLIFBADtMrIHBgH8PLIBAgDtMjMRIRElIREhRAIg/iQBmP5oBVX6q0QEzQAAAAED"
-            "6AAABBgEAAADAAAhETMRA+gwBAD8AAAAAAAAAA4ArgABAAAAAAAAABsAOAABAAAAAAABAAQAXgABAAAAAAACAA"
-            "cAcwABAAAAAAADABwAtQABAAAAAAAEAAQA3AABAAAAAAAFABABAwABAAAAAAAGAAQBHgADAAEECQAAADYAAAAD"
-            "AAEECQABAAgAVAADAAEECQACAA4AYwADAAEECQADADgAewADAAEECQAEAAgA0gADAAEECQAFACAA4QADAAEECQ"
-            "AGAAgBFABDAG8AcAB5AHIAaQBnAGgAdAAgACgAYwApACAAMgAwADIAMAAsACAAYgBhAHMAdABpAGEAbgAAQ29w"
-            "eXJpZ2h0IChjKSAyMDIwLCBiYXN0aWFuAAB0AGUAcwB0AAB0ZXN0AABSAGUAZwB1AGwAYQByAABSZWd1bGFyAA"
-            "BGAG8AbgB0AEYAbwByAGcAZQAgADoAIAB0AGUAcwB0ACAAOgAgADEAMgAtADkALQAyADAAMgAwAABGb250Rm9y"
-            "Z2UgOiB0ZXN0IDogMTItOS0yMDIwAAB0AGUAcwB0AAB0ZXN0AABWAGUAcgBzAGkAbwBuACAAMAAwADEALgAwAD"
-            "AAMAAgAABWZXJzaW9uIDAwMS4wMDAgAAB0AGUAcwB0AAB0ZXN0AAAAAAACAAAAAAAA/2cAZgAAAAEAAAAAAAAA"
-            "AAAAAAAAAAAAAAQAAAABAAIBAglnbHlwaF9vbmUAAAAB//8AAgABAAAAAAAAAAwAFAAEAAAAAgAAAAEAAAABAA"
-            "AAAAABAAAAANuCLesAAAAA24IlSwAAAADbgirU"),
-        .base64Encoded = true,
-    },
+/**
+ * Font exported from fontforge (sha: c3468cbd0320c152c0cbf762b9e2b63642d9c65f) and base64 encoded.
+ */
+static const String g_testFontBase64 = string_static(
+    "AAEAAAAOAIAAAwBgRkZUTZKGfgsAAAXMAAAAHEdERUYAFQAUAAAFsAAAABxPUy8yYqNs7QAAAWgAAABgY21hcAAPA98AAA"
+    "HYAAABQmN2dCAARAURAAADHAAAAARnYXNw//8AAwAABagAAAAIZ2x5Zo6zAJ8AAAMsAAAAdGhlYWQafppxAAAA7AAAADZo"
+    "aGVhCiYIBQAAASQAAAAkaG10eBgABCwAAAHIAAAAEGxvY2EAZgBYAAADIAAAAAptYXhwAEgAOQAAAUgAAAAgbmFtZZKIeQ"
+    "UAAAOgAAAB0XBvc3TMWOidAAAFdAAAADQAAQAAAAEAAAxB/+9fDzz1AAsIAAAAAADbgiVLAAAAANuCKtQARAAABBgFVQAA"
+    "AAgAAgAAAAAAAAABAAAFVQAAALgIAAAAAAAEGAABAAAAAAAAAAAAAAAAAAAABAABAAAABAAIAAIAAAAAAAIAAAABAAEAAA"
+    "BAAC4AAAAAAAQIAAGQAAUAAAUzBZkAAAEeBTMFmQAAA9cAZgISAAACAAUJAAAAAAAAAAAAAQAAAAAAAAAAAAAAAFBmRWQA"
+    "wAAxADEGZv5mALgFVQAAAAAAAQAAAAAAAAAAAAAAIAABCAAARAAAAAAIAAAACAAD6AAAAAMAAAADAAAAHAABAAAAAAA8AA"
+    "MAAQAAABwABAAgAAAABAAEAAEAAAAx//8AAAAx////0gABAAAAAAAAAQYAAAEAAAAAAAAAAQIAAAACAAAAAAAAAAAAAAAA"
+    "AAAAAQAAAAAAAAAAAAAAAAAAAAAAAAADAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAABEBREAAAAsACwALAA6AAAAAgBEAAACZAVVAAMABwAusQEALzyyBwQA7TKxBgXcPLID"
+    "AgDtMgCxAwAvPLIFBADtMrIHBgH8PLIBAgDtMjMRIRElIREhRAIg/iQBmP5oBVX6q0QEzQAAAAED6AAABBgEAAADAAAhET"
+    "MRA+gwBAD8AAAAAAAAAA4ArgABAAAAAAAAABsAOAABAAAAAAABAAQAXgABAAAAAAACAAcAcwABAAAAAAADABwAtQABAAAA"
+    "AAAEAAQA3AABAAAAAAAFABABAwABAAAAAAAGAAQBHgADAAEECQAAADYAAAADAAEECQABAAgAVAADAAEECQACAA4AYwADAA"
+    "EECQADADgAewADAAEECQAEAAgA0gADAAEECQAFACAA4QADAAEECQAGAAgBFABDAG8AcAB5AHIAaQBnAGgAdAAgACgAYwAp"
+    "ACAAMgAwADIAMAAsACAAYgBhAHMAdABpAGEAbgAAQ29weXJpZ2h0IChjKSAyMDIwLCBiYXN0aWFuAAB0AGUAcwB0AAB0ZX"
+    "N0AABSAGUAZwB1AGwAYQByAABSZWd1bGFyAABGAG8AbgB0AEYAbwByAGcAZQAgADoAIAB0AGUAcwB0ACAAOgAgADEAMgAt"
+    "ADkALQAyADAAMgAwAABGb250Rm9yZ2UgOiB0ZXN0IDogMTItOS0yMDIwAAB0AGUAcwB0AAB0ZXN0AABWAGUAcgBzAGkAbw"
+    "BuACAAMAAwADEALgAwADAAMAAgAABWZXJzaW9uIDAwMS4wMDAgAAB0AGUAcwB0AAB0ZXN0AAAAAAACAAAAAAAA/2cAZgAA"
+    "AAEAAAAAAAAAAAAAAAAAAAAAAAQAAAABAAIBAglnbHlwaF9vbmUAAAAB//8AAgABAAAAAAAAAAwAFAAEAAAAAgAAAAEAAA"
+    "ABAAAAAAABAAAAANuCLesAAAAA24IlSwAAAADbgirU");
+
+static const AssetMemRecord g_testData[] = {
     {
         .id   = string_static("test.ftx"),
         .data = string_static("{"
-                              "  \"fontId\": \"test.ttf\","
+                              "  \"fontId\": \"font.ttf\","
                               "  \"size\": 64,"
                               "  \"glyphSize\": 32,"
                               "  \"border\": 3,"
@@ -66,9 +61,11 @@ ecs_module_init(loader_ftx_test_module) {
 }
 
 spec(loader_ftx) {
-  EcsDef*    def    = null;
-  EcsWorld*  world  = null;
-  EcsRunner* runner = null;
+  EcsDef*        def          = null;
+  EcsWorld*      world        = null;
+  EcsRunner*     runner       = null;
+  String         testFontData = string_empty;
+  AssetMemRecord records[array_elems(g_testData) + 1];
 
   setup() {
     def = ecs_def_create(g_alloc_heap);
@@ -77,19 +74,16 @@ spec(loader_ftx) {
 
     world  = ecs_world_create(g_alloc_heap, def);
     runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_None);
+
+    testFontData = string_dup(g_alloc_heap, base64_decode_scratch(g_testFontBase64));
+    records[0]   = (AssetMemRecord){.id = string_lit("font.ttf"), .data = testFontData};
+    for (usize i = 0; i != array_elems(g_testData); ++i) {
+      records[i + 1] = g_testData[i];
+    }
   }
 
   it("can load ftx assets") {
-    AssetMemRecord records[array_elems(g_testData)];
-    for (usize i = 0; i != array_elems(g_testData); ++i) {
-      records[i] = (AssetMemRecord){
-          .id   = g_testData[i].id,
-          .data = g_testData[i].base64Encoded
-                      ? string_dup(g_alloc_heap, base64_decode_scratch(g_testData[i].data))
-                      : g_testData[i].data,
-      };
-    }
-    asset_manager_create_mem(world, AssetManagerFlags_None, records, array_elems(g_testData));
+    asset_manager_create_mem(world, AssetManagerFlags_None, records, array_elems(records));
     ecs_world_flush(world);
 
     AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
@@ -112,17 +106,32 @@ spec(loader_ftx) {
 
     check_eq_int(tex->width, 64);
     check_eq_int(tex->height, 64);
+  }
 
-    for (usize i = 0; i != array_elems(g_testData); ++i) {
-      if (g_testData[i].base64Encoded) {
-        alloc_free(g_alloc_heap, records[i].data);
-      }
-    }
+  it("can unload ftx assets") {
+    asset_manager_create_mem(world, AssetManagerFlags_None, records, array_elems(records));
+    ecs_world_flush(world);
+
+    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+    const EcsEntityId asset   = asset_lookup(world, manager, string_lit("test.ftx"));
+
+    asset_acquire(world, asset);
+    asset_test_wait(runner);
+
+    check(ecs_world_has_t(world, asset, AssetFtxComp));
+    check(ecs_world_has_t(world, asset, AssetTextureComp));
+
+    asset_release(world, asset);
+    asset_test_wait(runner);
+
+    check(!ecs_world_has_t(world, asset, AssetFtxComp));
+    check(!ecs_world_has_t(world, asset, AssetTextureComp));
   }
 
   teardown() {
     ecs_runner_destroy(runner);
     ecs_world_destroy(world);
     ecs_def_destroy(def);
+    alloc_free(g_alloc_heap, testFontData);
   }
 }
