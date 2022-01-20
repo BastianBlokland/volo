@@ -7,7 +7,7 @@
 #include "file_internal.h"
 #include "init_internal.h"
 
-static const String g_file_result_strs[] = {
+static const String g_fileResultStrs[] = {
     string_static("FileSuccess"),
     string_static("FileAlreadyExists"),
     string_static("FileDiskFull"),
@@ -25,12 +25,11 @@ static const String g_file_result_strs[] = {
     string_static("FileUnknownError"),
 };
 
-ASSERT(
-    array_elems(g_file_result_strs) == FileResult_Count, "Incorrect number of FileResult strings");
+ASSERT(array_elems(g_fileResultStrs) == FileResult_Count, "Incorrect number of FileResult strings");
 
 String file_result_str(const FileResult result) {
   diag_assert(result < FileResult_Count);
-  return g_file_result_strs[result];
+  return g_fileResultStrs[result];
 }
 
 void file_init() { file_pal_init(); }

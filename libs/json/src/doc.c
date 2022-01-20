@@ -185,7 +185,7 @@ bool json_add_field_str(JsonDoc* doc, const JsonVal object, const String name, c
 }
 
 String json_type_str(const JsonType type) {
-  static const String names[] = {
+  static const String g_names[] = {
       string_static("array"),
       string_static("object"),
       string_static("string"),
@@ -193,8 +193,8 @@ String json_type_str(const JsonType type) {
       string_static("bool"),
       string_static("null"),
   };
-  ASSERT(array_elems(names) == JsonType_Count, "Incorrect number of json-type names");
-  return names[type];
+  ASSERT(array_elems(g_names) == JsonType_Count, "Incorrect number of json-type names");
+  return g_names[type];
 }
 
 JsonType json_type(const JsonDoc* doc, const JsonVal val) {

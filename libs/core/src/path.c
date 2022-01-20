@@ -111,8 +111,8 @@ bool path_canonize(DynString* str, String path) {
    * output string. This way we can erase a segment if we encounter a '..' entry.
    */
 
-  static const usize maxSegments = 64;
-  DynArray segStarts = dynarray_create_over_t(mem_stack(maxSegments * sizeof(usize)), usize);
+  static const usize g_maxSegments = 64;
+  DynArray segStarts = dynarray_create_over_t(mem_stack(g_maxSegments * sizeof(usize)), usize);
   *dynarray_push_t(&segStarts, usize) = str->size; // Start of the first segment.
 
   bool success = true;
@@ -142,7 +142,7 @@ bool path_canonize(DynString* str, String path) {
       dynstring_append_char(str, '/');
     }
     *dynarray_push_t(&segStarts, usize) = str->size; // Remember where this segment starts.
-    if (segStarts.size == maxSegments) {
+    if (segStarts.size == g_maxSegments) {
       success = false;
       break;
     }
@@ -187,24 +187,24 @@ String path_build_scratch_raw(const String* segments) {
 }
 
 void path_name_random(DynString* str, Rng* rng, String prefix, String extension) {
-  static const u8 chars[] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
-                             'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
-                             'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
-                             'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
-                             '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+  static const u8 g_chars[] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
+                               'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+                               'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
+                               'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+                               '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
 
   if (!string_is_empty(prefix)) {
     dynstring_append(str, prefix);
     dynstring_append_char(str, '_');
   }
 
-  static const usize nameSize = 12; // Note: Only multiples of 4 are supported atm.
-  for (usize i = 0; i < nameSize; i += 4) {
+  static const usize g_nameSize = 12; // Note: Only multiples of 4 are supported atm.
+  for (usize i = 0; i < g_nameSize; i += 4) {
     const u32 rngVal = rng_sample_u32(rng);
-    dynstring_append_char(str, chars[((rngVal >> 0) & 255) % array_elems(chars)]);
-    dynstring_append_char(str, chars[((rngVal >> 1) & 255) % array_elems(chars)]);
-    dynstring_append_char(str, chars[((rngVal >> 2) & 255) % array_elems(chars)]);
-    dynstring_append_char(str, chars[((rngVal >> 3) & 255) % array_elems(chars)]);
+    dynstring_append_char(str, g_chars[((rngVal >> 0) & 255) % array_elems(g_chars)]);
+    dynstring_append_char(str, g_chars[((rngVal >> 1) & 255) % array_elems(g_chars)]);
+    dynstring_append_char(str, g_chars[((rngVal >> 2) & 255) % array_elems(g_chars)]);
+    dynstring_append_char(str, g_chars[((rngVal >> 3) & 255) % array_elems(g_chars)]);
   }
 
   if (!string_is_empty(extension)) {

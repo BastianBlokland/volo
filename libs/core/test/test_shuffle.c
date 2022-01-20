@@ -6,10 +6,10 @@
 spec(shuffle) {
 
   it("can shuffle values using the fisheryates algorithm") {
-    static const u64 seed = 42;
+    static const u64 g_seed = 42;
 
     Allocator* alloc = alloc_bump_create_stack(256);
-    Rng*       rng   = rng_create_xorwow(alloc, seed);
+    Rng*       rng   = rng_create_xorwow(alloc, g_seed);
 
     i32 ints[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 

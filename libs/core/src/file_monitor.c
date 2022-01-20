@@ -2,7 +2,7 @@
 #include "core_diag.h"
 #include "core_file_monitor.h"
 
-static const String g_file_monitor_result_strs[] = {
+static const String g_fileMonitorResultStrs[] = {
     string_static("FileMonitorSuccess"),
     string_static("FileMonitorAlreadyWatching"),
     string_static("FileMonitorWatchesLimitReached"),
@@ -13,10 +13,10 @@ static const String g_file_monitor_result_strs[] = {
 };
 
 ASSERT(
-    array_elems(g_file_monitor_result_strs) == FileMonitorResult_Count,
+    array_elems(g_fileMonitorResultStrs) == FileMonitorResult_Count,
     "Incorrect number of FileMonitorResult strings");
 
 String file_monitor_result_str(const FileMonitorResult result) {
   diag_assert(result < FileMonitorResult_Count);
-  return g_file_monitor_result_strs[result];
+  return g_fileMonitorResultStrs[result];
 }

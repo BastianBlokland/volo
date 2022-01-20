@@ -47,20 +47,20 @@ spec(alloc_chunked) {
   it("can create up to 32 chunks") {
     Allocator* alloc = alloc_chunked_create(g_alloc_heap, alloc_bump_create, 512);
 
-    static const usize allocSize = 300;
+    static const usize g_allocSize = 300;
     Mem                data[32];
     for (usize i = 0; i != array_elems(data); ++i) {
-      data[i] = alloc_alloc(alloc, allocSize, 1);
+      data[i] = alloc_alloc(alloc, g_allocSize, 1);
       check_require(mem_valid(data[i]));
       mem_set(data[i], (u8)i);
     }
 
     // The 33'rd allocation should fail.
-    Mem mem = alloc_alloc(alloc, allocSize, 1);
+    Mem mem = alloc_alloc(alloc, g_allocSize, 1);
     check(!mem_valid(mem));
 
     // Verify that all chunks contains the expected memory.
-    Mem expected = mem_stack(allocSize);
+    Mem expected = mem_stack(g_allocSize);
     for (usize i = 0; i != array_elems(data); ++i) {
       mem_set(expected, (u8)i);
       check(mem_eq(data[i], expected));

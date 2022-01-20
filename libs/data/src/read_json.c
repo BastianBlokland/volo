@@ -51,7 +51,7 @@ static bool data_check_type(const ReadCtx* ctx, const JsonType jsonType, DataRea
  * Get the minimal representable number for the given DataKind.
  */
 static f64 data_number_min(const DataKind kind) {
-  static const f64 minValue[DataKind_Count] = {
+  static const f64 g_minValue[DataKind_Count] = {
       [DataKind_i8]  = i8_min,
       [DataKind_i16] = i16_min,
       [DataKind_i32] = i32_min,
@@ -59,14 +59,14 @@ static f64 data_number_min(const DataKind kind) {
       [DataKind_f32] = f32_min,
       [DataKind_f64] = f64_min,
   };
-  return minValue[kind];
+  return g_minValue[kind];
 }
 
 /**
  * Get the maximum representable number for the given DataKind.
  */
 static f64 data_number_max(const DataKind kind) {
-  static const f64 maxValue[DataKind_Count] = {
+  static const f64 g_maxValue[DataKind_Count] = {
       [DataKind_u8]  = u8_max,
       [DataKind_u16] = u16_max,
       [DataKind_u32] = u32_max,
@@ -78,7 +78,7 @@ static f64 data_number_max(const DataKind kind) {
       [DataKind_f32] = f32_max,
       [DataKind_f64] = f64_max,
   };
-  return maxValue[kind];
+  return g_maxValue[kind];
 }
 
 static void data_read_json_number(const ReadCtx* ctx, DataReadResult* res) {

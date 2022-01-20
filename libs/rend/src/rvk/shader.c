@@ -31,12 +31,12 @@ static VkShaderStageFlagBits rvk_shader_stage(const AssetShaderKind kind) {
 }
 
 static String rvk_shader_kind_str(const AssetShaderKind kind) {
-  static const String msgs[] = {
+  static const String g_msgs[] = {
       string_static("SpvVertex"),
       string_static("SpvFragment"),
   };
-  ASSERT(array_elems(msgs) == AssetShaderKind_Count, "Incorrect number of shader-kind names");
-  return msgs[kind];
+  ASSERT(array_elems(g_msgs) == AssetShaderKind_Count, "Incorrect number of shader-kind names");
+  return g_msgs[kind];
 }
 
 static RvkDescKind rvk_shader_desc_kind(const AssetShaderResKind resKind) {
@@ -65,7 +65,7 @@ static bool rvk_shader_spec_type(RvkShader* shader, const u32 binding, AssetShad
 }
 
 static usize rvk_shader_spec_size(const AssetShaderType type) {
-  static const usize sizes[] = {
+  static const usize g_sizes[] = {
       [AssetShaderType_bool] = sizeof(VkBool32),
       [AssetShaderType_u8]   = 1,
       [AssetShaderType_i8]   = 1,
@@ -79,8 +79,8 @@ static usize rvk_shader_spec_size(const AssetShaderType type) {
       [AssetShaderType_f32]  = 4,
       [AssetShaderType_f64]  = 8,
   };
-  ASSERT(array_elems(sizes) == AssetShaderType_Count, "Incorrect number of shader-type sizes");
-  return sizes[type];
+  ASSERT(array_elems(g_sizes) == AssetShaderType_Count, "Incorrect number of shader-type sizes");
+  return g_sizes[type];
 }
 
 static Mem rvk_shader_spec_write(Mem output, const AssetShaderType type, const f64 value) {

@@ -58,12 +58,12 @@ static void test_task_require_affinity(void* ctx) {
 spec(executor) {
 
   it("can execute a linear chain of tasks") {
-    static const usize numTasks = 1000;
+    static const usize g_numTasks = 1000;
 
     JobGraph* jobGraph = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 1);
 
     i64 counter = 0;
-    for (usize i = 0; i != numTasks; ++i) {
+    for (usize i = 0; i != g_numTasks; ++i) {
       jobs_graph_add_task(
           jobGraph,
           string_lit("Increment"),
@@ -76,21 +76,21 @@ spec(executor) {
     }
 
     jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph));
-    check_eq_int((usize)counter, numTasks);
+    check_eq_int((usize)counter, g_numTasks);
 
     jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph));
-    check_eq_int((usize)counter, numTasks * 2);
+    check_eq_int((usize)counter, g_numTasks * 2);
 
     jobs_graph_destroy(jobGraph);
   }
 
   it("executes a linear chain of tasks in the correct order") {
-    static const usize numTasks = 1000;
+    static const usize g_numTasks = 1000;
 
     JobGraph* jobGraph = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 1);
 
     i64 counter = 0;
-    for (usize i = 0; i != numTasks; ++i) {
+    for (usize i = 0; i != g_numTasks; ++i) {
       if (i % 2) {
         jobs_graph_add_task(
             jobGraph,
@@ -121,12 +121,12 @@ spec(executor) {
   }
 
   it("can execute a set of parallel tasks") {
-    static const usize numTasks = 1000;
+    static const usize g_numTasks = 1000;
 
     JobGraph* jobGraph = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 1);
 
     i64 counter = 0;
-    for (usize i = 0; i != numTasks; ++i) {
+    for (usize i = 0; i != g_numTasks; ++i) {
       jobs_graph_add_task(
           jobGraph,
           string_lit("Increment"),
@@ -136,10 +136,10 @@ spec(executor) {
     }
 
     jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph));
-    check_eq_int((usize)counter, numTasks);
+    check_eq_int((usize)counter, g_numTasks);
 
     jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph));
-    check_eq_int((usize)counter, numTasks * 2);
+    check_eq_int((usize)counter, g_numTasks * 2);
 
     jobs_graph_destroy(jobGraph);
   }
@@ -213,11 +213,11 @@ spec(executor) {
   }
 
   it("executes a parallel set affinity tasks always on the same thread") {
-    static const usize numTasks = 100;
+    static const usize g_numTasks = 100;
 
     JobGraph* jobGraph = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 1);
 
-    for (usize i = 0; i != numTasks; ++i) {
+    for (usize i = 0; i != g_numTasks; ++i) {
 
       jobs_graph_add_task(
           jobGraph,
@@ -234,11 +234,11 @@ spec(executor) {
   }
 
   it("executes a linear set affinity tasks always on the same thread") {
-    static const usize numTasks = 1000;
+    static const usize g_numTasks = 1000;
 
     JobGraph* jobGraph = jobs_graph_create(g_alloc_heap, string_lit("TestJob"), 1);
 
-    for (usize i = 0; i != numTasks; ++i) {
+    for (usize i = 0; i != g_numTasks; ++i) {
       jobs_graph_add_task(
           jobGraph,
           string_lit("RequireAffinity"),

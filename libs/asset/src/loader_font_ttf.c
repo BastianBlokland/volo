@@ -178,7 +178,7 @@ typedef enum {
 } TtfError;
 
 static String ttf_error_str(TtfError res) {
-  static const String msgs[] = {
+  static const String g_msgs[] = {
       string_static("None"),
       string_static("Malformed TrueType font-data"),
       string_static("TrueType font contains more tables then are supported"),
@@ -213,8 +213,8 @@ static String ttf_error_str(TtfError res) {
       string_static("TrueType glyf table entry malformed"),
 
   };
-  ASSERT(array_elems(msgs) == TtfError_Count, "Incorrect number of ttf-error messages");
-  return msgs[res];
+  ASSERT(array_elems(g_msgs) == TtfError_Count, "Incorrect number of ttf-error messages");
+  return g_msgs[res];
 }
 
 /**

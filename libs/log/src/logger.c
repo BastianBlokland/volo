@@ -16,14 +16,14 @@ struct sLogger {
 
 Logger* g_logger = null;
 
-static const String g_level_strs[] = {
+static const String g_levelStrs[] = {
     string_static("dbg"),
     string_static("inf"),
     string_static("wrn"),
     string_static("err"),
 };
 
-ASSERT(array_elems(g_level_strs) == LogLevel_Count, "Incorrect number of LogLevel strings");
+ASSERT(array_elems(g_levelStrs) == LogLevel_Count, "Incorrect number of LogLevel strings");
 
 static void log_destroy_sinks(Logger* logger) {
   dynarray_for_t(&logger->sinks, LogSinkPtr, sink) {
@@ -46,7 +46,7 @@ static String log_format_text_scratch(String str, const LogParam* params) {
 
 String log_level_str(LogLevel level) {
   diag_assert(level < LogLevel_Count);
-  return g_level_strs[level];
+  return g_levelStrs[level];
 }
 
 bool log_mask_enabled(const LogMask mask, const LogLevel level) {

@@ -44,13 +44,13 @@ spec(affinity) {
   }
 
   it("executes systems with thread affinity always on the same thread") {
-    static const usize numTicks = 100;
+    static const usize g_numTicks = 100;
 
     const EcsEntityId entity = ecs_world_entity_create(world);
     ecs_world_add_t(world, entity, AffinityComp, .tid = sentinel_i64);
     ecs_world_flush(world);
 
-    for (usize i = 0; i != numTicks; ++i) {
+    for (usize i = 0; i != g_numTicks; ++i) {
       ecs_run_sync(runner);
     }
   }

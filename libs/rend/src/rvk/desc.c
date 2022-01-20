@@ -312,15 +312,15 @@ void rvk_desc_free(RvkDescSet set) {
 }
 
 String rvk_desc_kind_str(const RvkDescKind kind) {
-  static const String names[] = {
+  static const String g_names[] = {
       string_static("None"),
       string_static("CombinedImageSampler"),
       string_static("UniformBuffer"),
       string_static("UniformBufferDynamic"),
       string_static("StorageBuffer"),
   };
-  ASSERT(array_elems(names) == RvkDescKind_Count, "Incorrect number of names");
-  return names[kind];
+  ASSERT(array_elems(g_names) == RvkDescKind_Count, "Incorrect number of names");
+  return g_names[kind];
 }
 
 VkDescriptorSet rvk_desc_set_vkset(const RvkDescSet set) {

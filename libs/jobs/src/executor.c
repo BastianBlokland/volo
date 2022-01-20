@@ -128,8 +128,8 @@ static WorkItem executor_work_steal_loop() {
    * - Fully random picking of workers to steal from (instead of linear with random offset) could
    *   reduce contention.
    */
-  static const usize maxIterations = 25;
-  for (usize itr = 0; itr != maxIterations; ++itr) {
+  static const usize g_maxIterations = 25;
+  for (usize itr = 0; itr != g_maxIterations; ++itr) {
 
     WorkItem stolenItem = executor_work_affinity_or_steal();
     if (workitem_valid(stolenItem)) {

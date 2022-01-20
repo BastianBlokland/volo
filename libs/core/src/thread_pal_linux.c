@@ -24,10 +24,10 @@ u16 thread_pal_core_count() {
 }
 
 void thread_pal_set_name(const String str) {
-  static const usize maxNameLen = 15;
-  if (str.size > maxNameLen) {
+  static const usize g_maxNameLen = 15;
+  if (str.size > g_maxNameLen) {
     diag_assert_fail(
-        "Thread name '{}' is too long, maximum is {} chars", fmt_text(str), fmt_int(maxNameLen));
+        "Thread name '{}' is too long, maximum is {} chars", fmt_text(str), fmt_int(g_maxNameLen));
   }
 
   // Copy the string on the stack and null-terminate it.

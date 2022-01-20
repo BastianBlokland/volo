@@ -298,18 +298,18 @@ void rvk_image_destroy(RvkImage* img, RvkDevice* dev) {
 }
 
 String rvk_image_type_str(const RvkImageType type) {
-  static const String names[] = {
+  static const String g_names[] = {
       string_static("ColorSource"),
       string_static("ColorAttachment"),
       string_static("DepthAttachment"),
       string_static("Swapchain"),
   };
-  ASSERT(array_elems(names) == RvkImageType_Count, "Incorrect number of image-type names");
-  return names[type];
+  ASSERT(array_elems(g_names) == RvkImageType_Count, "Incorrect number of image-type names");
+  return g_names[type];
 }
 
 String rvk_image_phase_str(const RvkImagePhase phase) {
-  static const String names[] = {
+  static const String g_names[] = {
       string_static("Undefined"),
       string_static("TransferSource"),
       string_static("TransferDest"),
@@ -318,8 +318,8 @@ String rvk_image_phase_str(const RvkImagePhase phase) {
       string_static("ShaderRead"),
       string_static("Present"),
   };
-  ASSERT(array_elems(names) == RvkImagePhase_Count, "Incorrect number of image-phase names");
-  return names[phase];
+  ASSERT(array_elems(g_names) == RvkImagePhase_Count, "Incorrect number of image-phase names");
+  return g_names[phase];
 }
 
 void rvk_image_assert_phase(const RvkImage* image, const RvkImagePhase phase) {
