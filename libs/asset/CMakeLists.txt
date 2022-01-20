@@ -35,6 +35,7 @@ target_link_libraries(lib_asset PRIVATE lib_log)
 add_executable(lib_asset_test
   test/main.c
   test/test_loader_font_ttf.c
+  test/test_loader_ftx.c
   test/test_loader_graphic.c
   test/test_loader_mesh_obj.c
   test/test_loader_raw.c
