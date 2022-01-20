@@ -92,13 +92,13 @@ void alloc_reset(Allocator* allocator) {
 usize alloc_stats_total() { return alloc_page_allocated_size(); }
 
 void alloc_tag_free(Mem mem, const AllocMemType type) {
-  static const u8 tags[AllocMemType_Count] = {0xAA, 0xAB};
-  mem_set(mem, tags[type]);
+  static const u8 g_tags[AllocMemType_Count] = {0xAA, 0xAB};
+  mem_set(mem, g_tags[type]);
 }
 
 void alloc_tag_guard(Mem mem, const AllocMemType type) {
-  static const u8 tags[AllocMemType_Count] = {0xBA, 0xBB};
-  mem_set(mem, tags[type]);
+  static const u8 g_tags[AllocMemType_Count] = {0xBA, 0xBB};
+  mem_set(mem, g_tags[type]);
 }
 
 void alloc_poison(Mem mem) {

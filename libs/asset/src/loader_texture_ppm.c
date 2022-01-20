@@ -39,15 +39,15 @@ typedef enum {
 } PixmapError;
 
 static String pixmap_error_str(PixmapError res) {
-  static const String msgs[] = {
+  static const String g_msgs[] = {
       string_static("None"),
       string_static("Malformed pixmap pixel data"),
       string_static("Malformed pixmap type, expected 'P3' or 'P6'"),
       string_static("Unsupported bit depth, only 24 bit (RGB) is supported"),
       string_static("Unsupported image size"),
   };
-  ASSERT(array_elems(msgs) == PixmapError_Count, "Incorrect number of pixmap-error messages");
-  return msgs[res];
+  ASSERT(array_elems(g_msgs) == PixmapError_Count, "Incorrect number of pixmap-error messages");
+  return g_msgs[res];
 }
 
 static String ppm_consume_whitespace_or_comment(String input) {

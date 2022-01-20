@@ -4,8 +4,8 @@
 
 spec(alloc_block) {
 
-  static const usize memSize   = 32 * usize_kibibyte;
-  static const usize blockSize = 32;
+  static const usize g_memSize   = 32 * usize_kibibyte;
+  static const usize g_blockSize = 32;
 
   Mem        memTotal       = mem_empty;
   usize      memSizeUseable = 0;
@@ -13,16 +13,16 @@ spec(alloc_block) {
   Allocator* allocBlock     = null;
 
   setup() {
-    memTotal       = alloc_alloc(g_alloc_heap, memSize, 1);
+    memTotal       = alloc_alloc(g_alloc_heap, g_memSize, 1);
     allocParent    = alloc_bump_create(memTotal);
     memSizeUseable = alloc_max_size(allocParent);
-    allocBlock     = alloc_block_create(allocParent, blockSize);
+    allocBlock     = alloc_block_create(allocParent, g_blockSize);
   }
 
   it("store blocks sequentially in memory") {
     Mem lastMem;
     for (usize i = 0; i != 100; ++i) {
-      Mem mem = alloc_alloc(allocBlock, blockSize, 1);
+      Mem mem = alloc_alloc(allocBlock, g_blockSize, 1);
       check_require(mem_valid(mem));
       if (i) {
         check(mem_begin(lastMem) == mem_end(mem)); // The free-list is initialized in reverse order.
@@ -36,22 +36,22 @@ spec(alloc_block) {
     check(startingSize < memSizeUseable); // it will make an initial allocation.
 
     for (usize i = 0; i != 256; ++i) {
-      check(mem_valid(alloc_alloc(allocBlock, blockSize, 1)));
+      check(mem_valid(alloc_alloc(allocBlock, g_blockSize, 1)));
     }
     check(alloc_max_size(allocParent) < memSizeUseable);
   }
 
   it("reuses freed blocks immediately") {
-    const Mem memA = alloc_alloc(allocBlock, blockSize, 1);
-    const Mem memB = alloc_alloc(allocBlock, blockSize, 1);
+    const Mem memA = alloc_alloc(allocBlock, g_blockSize, 1);
+    const Mem memB = alloc_alloc(allocBlock, g_blockSize, 1);
 
     check(memA.ptr != memB.ptr);
 
     alloc_free(allocBlock, memA);
     alloc_free(allocBlock, memB);
 
-    const Mem memC = alloc_alloc(allocBlock, blockSize, 1);
-    const Mem memD = alloc_alloc(allocBlock, blockSize, 1);
+    const Mem memC = alloc_alloc(allocBlock, g_blockSize, 1);
+    const Mem memD = alloc_alloc(allocBlock, g_blockSize, 1);
 
     check(memC.ptr == memB.ptr);
     check(memD.ptr == memA.ptr);
@@ -66,19 +66,19 @@ spec(alloc_block) {
     u32 numAllocs = 0;
     Mem mem;
     do {
-      mem = alloc_alloc(allocBlock, blockSize, 1);
+      mem = alloc_alloc(allocBlock, g_blockSize, 1);
       numAllocs++;
     } while (mem_valid(mem));
 
     alloc_reset(allocBlock);
 
     for (u32 i = 1; i != numAllocs; ++i) {
-      check(mem_valid(alloc_alloc(allocBlock, blockSize, 1)));
+      check(mem_valid(alloc_alloc(allocBlock, g_blockSize, 1)));
     }
   }
 
   it("returns the block-size as the max size") {
-    check_eq_int(alloc_max_size(allocBlock), blockSize);
+    check_eq_int(alloc_max_size(allocBlock), g_blockSize);
   }
 
   teardown() {

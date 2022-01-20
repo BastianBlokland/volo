@@ -64,7 +64,7 @@ spec(app) {
   }
 
   it("supports descriptions with preset choices") {
-    static const String choices[] = {
+    static const String g_choices[] = {
         string_static("ChoiceA"),
         string_static("ChoiceB"),
         string_static("ChoiceC"),
@@ -75,10 +75,10 @@ spec(app) {
     const CliId c = cli_register_flag(app, 'c', string_lit("opt-c"), CliOptionFlags_None);
     const CliId d = cli_register_flag(app, 'd', string_lit("opt-d"), CliOptionFlags_None);
 
-    cli_register_desc_choice_array(app, a, string_empty, choices, sentinel_usize);
-    cli_register_desc_choice_array(app, b, string_lit("A nice flag."), choices, sentinel_usize);
-    cli_register_desc_choice_array(app, c, string_lit("A nice flag."), choices, 0);
-    cli_register_desc_choice_array(app, d, string_lit("A nice flag."), choices, 2);
+    cli_register_desc_choice_array(app, a, string_empty, g_choices, sentinel_usize);
+    cli_register_desc_choice_array(app, b, string_lit("A nice flag."), g_choices, sentinel_usize);
+    cli_register_desc_choice_array(app, c, string_lit("A nice flag."), g_choices, 0);
+    cli_register_desc_choice_array(app, d, string_lit("A nice flag."), g_choices, 2);
 
     check_eq_string(cli_desc(app, a), string_lit("Options: 'ChoiceA', 'ChoiceB', 'ChoiceC'."));
     check_eq_string(

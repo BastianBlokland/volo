@@ -293,10 +293,10 @@ spec(storage) {
   }
 
   it("keeps component data consistent when destroying many entities in the same archetype") {
-    static const usize entitiesToCreate = 567;
-    DynArray           entities = dynarray_create_t(g_alloc_heap, EcsEntityId, entitiesToCreate);
+    static const usize g_entitiesToCreate = 567;
+    DynArray           entities = dynarray_create_t(g_alloc_heap, EcsEntityId, g_entitiesToCreate);
 
-    for (usize i = 0; i != entitiesToCreate; ++i) {
+    for (usize i = 0; i != g_entitiesToCreate; ++i) {
       const EcsEntityId newEntity = ecs_world_entity_create(world);
       ecs_world_add_t(world, newEntity, StorageCompA, .f1 = (u32)i);
       ecs_world_add_t(world, newEntity, StorageCompB, .f1 = (u32)i * 2, (u32)i / 2);
@@ -335,10 +335,10 @@ spec(storage) {
   }
 
   it("keeps component data consistent when splitting an archetype in two") {
-    static const usize entitiesToCreate = 567;
-    DynArray           entities = dynarray_create_t(g_alloc_heap, EcsEntityId, entitiesToCreate);
+    static const usize g_entitiesToCreate = 567;
+    DynArray           entities = dynarray_create_t(g_alloc_heap, EcsEntityId, g_entitiesToCreate);
 
-    for (usize i = 0; i != entitiesToCreate; ++i) {
+    for (usize i = 0; i != g_entitiesToCreate; ++i) {
       const EcsEntityId newEntity = ecs_world_entity_create(world);
       ecs_world_add_t(world, newEntity, StorageCompA, .f1 = (u32)i);
       ecs_world_add_t(world, newEntity, StorageCompB, .f1 = (u32)i * 2, (u32)i / 2);

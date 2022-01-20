@@ -73,7 +73,7 @@ spec(read_json) {
     static const struct {
       String   input;
       DataKind prim;
-    } data[] = {
+    } g_data[] = {
         {.input = string_static("129"), DataKind_i8},
         {.input = string_static("-129"), DataKind_i8},
         {.input = string_static("32768"), DataKind_i16},
@@ -88,9 +88,9 @@ spec(read_json) {
         {.input = string_static("4294967296"), DataKind_u32},
         {.input = string_static("-1"), DataKind_u64},
     };
-    for (usize i = 0; i != array_elems(data); ++i) {
-      const DataMeta meta = data_meta_t((DataType)data[i].prim);
-      test_read_fail(_testCtx, reg, data[i].input, meta, DataReadError_NumberOutOfBounds);
+    for (usize i = 0; i != array_elems(g_data); ++i) {
+      const DataMeta meta = data_meta_t((DataType)g_data[i].prim);
+      test_read_fail(_testCtx, reg, g_data[i].input, meta, DataReadError_NumberOutOfBounds);
     }
   }
 

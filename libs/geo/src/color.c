@@ -2,7 +2,7 @@
 #include "geo_color.h"
 
 GeoColor geo_color_get(const u64 idx) {
-  static const GeoColor colors[] = {
+  static const GeoColor g_colors[] = {
       {1.0f, 0.0f, 0.0f, 1.0f},
       {1.0f, 1.0f, 0.0f, 1.0f},
       {0.5f, 0.5f, 0.0f, 1.0f},
@@ -18,5 +18,5 @@ GeoColor geo_color_get(const u64 idx) {
       {0.5f, 0.5f, 0.5f, 1.0f},
       {0.5f, 0.0f, 0.5f, 1.0f},
   };
-  return colors[idx % array_elems(colors)];
+  return g_colors[idx % array_elems(g_colors)];
 }

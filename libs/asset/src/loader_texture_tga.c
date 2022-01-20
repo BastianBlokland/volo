@@ -94,7 +94,7 @@ typedef enum {
 } TgaError;
 
 static String tga_error_str(const TgaError err) {
-  static const String msgs[] = {
+  static const String g_msgs[] = {
       string_static("None"),
       string_static("Malformed tga header"),
       string_static("Malformed tga pixel data"),
@@ -107,8 +107,8 @@ static String tga_error_str(const TgaError err) {
       string_static("Unsupported image type, only TrueColor is supported"),
       string_static("Unsupported image size"),
   };
-  ASSERT(array_elems(msgs) == TgaError_Count, "Incorrect number of tga-error messages");
-  return msgs[err];
+  ASSERT(array_elems(g_msgs) == TgaError_Count, "Incorrect number of tga-error messages");
+  return g_msgs[err];
 }
 
 static Mem tga_read_header(Mem input, TgaHeader* out, TgaError* err) {

@@ -12,7 +12,7 @@
 #define json_success(_VAL_)                                                                        \
   (JsonResult) { .type = JsonResultType_Success, .val = (_VAL_) }
 
-static const String g_error_strs[] = {
+static const String g_errorStrs[] = {
     string_static("DuplicateField"),
     string_static("InvalidChar"),
     string_static("InvalidCharInFalse"),
@@ -29,11 +29,11 @@ static const String g_error_strs[] = {
     string_static("UnterminatedString"),
 };
 
-ASSERT(array_elems(g_error_strs) == JsonError_Count, "Incorrect number of JsonError strings");
+ASSERT(array_elems(g_errorStrs) == JsonError_Count, "Incorrect number of JsonError strings");
 
 String json_error_str(JsonError error) {
   diag_assert(error < JsonError_Count);
-  return g_error_strs[error];
+  return g_errorStrs[error];
 }
 
 static String json_read_with_start_token(JsonDoc*, String, JsonToken, JsonResult*);

@@ -235,10 +235,10 @@ spec(view) {
   }
 
   it("can iterate over entities from multiple chunks in an archetype") {
-    static const usize entitiesToCreate = 999;
-    DynArray           entities = dynarray_create_t(g_alloc_heap, EcsEntityId, entitiesToCreate);
+    static const usize g_entitiesToCreate = 999;
+    DynArray           entities = dynarray_create_t(g_alloc_heap, EcsEntityId, g_entitiesToCreate);
 
-    for (usize i = 0; i != entitiesToCreate; ++i) {
+    for (usize i = 0; i != g_entitiesToCreate; ++i) {
       const EcsEntityId newEntity = ecs_world_entity_create(world);
       ecs_world_add_t(world, newEntity, ViewCompA, .f1 = (u32)i);
       ecs_world_add_t(world, newEntity, ViewCompB, .f1 = string_lit("Hello World"));
@@ -255,7 +255,7 @@ spec(view) {
       check_eq_int(ecs_view_read_t(itr, ViewCompA)->f1, count);
       check_eq_string(ecs_view_read_t(itr, ViewCompB)->f1, string_lit("Hello World"));
     }
-    check_eq_int(count, entitiesToCreate);
+    check_eq_int(count, g_entitiesToCreate);
 
     dynarray_destroy(&entities);
   }
@@ -295,10 +295,10 @@ spec(view) {
   }
 
   it("skips empty archetypes") {
-    static const usize entitiesToCreate = 567;
-    DynArray           entities = dynarray_create_t(g_alloc_heap, EcsEntityId, entitiesToCreate);
+    static const usize g_entitiesToCreate = 567;
+    DynArray           entities = dynarray_create_t(g_alloc_heap, EcsEntityId, g_entitiesToCreate);
 
-    for (usize i = 0; i != entitiesToCreate; ++i) {
+    for (usize i = 0; i != g_entitiesToCreate; ++i) {
       const EcsEntityId newEntity = ecs_world_entity_create(world);
       ecs_world_add_t(world, newEntity, ViewCompA, .f1 = (u32)i);
       ecs_world_add_t(world, newEntity, ViewCompB, .f1 = string_lit("Hello World"));

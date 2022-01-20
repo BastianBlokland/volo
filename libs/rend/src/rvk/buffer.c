@@ -76,12 +76,12 @@ void rvk_buffer_upload(RvkBuffer* buffer, const Mem data, const u64 offset) {
 }
 
 String rvk_buffer_type_str(const RvkBufferType type) {
-  static const String names[] = {
+  static const String g_names[] = {
       string_static("DeviceIndex"),
       string_static("DeviceStorage"),
       string_static("HostUniform"),
       string_static("HostTransfer"),
   };
-  ASSERT(array_elems(names) == RvkBufferType_Count, "Incorrect number of buffer-type names");
-  return names[type];
+  ASSERT(array_elems(g_names) == RvkBufferType_Count, "Incorrect number of buffer-type names");
+  return g_names[type];
 }

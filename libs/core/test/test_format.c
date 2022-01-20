@@ -139,16 +139,16 @@ spec(format) {
   }
 
   it("can write f64 floats") {
-    static const f64 nan = f64_nan;
-    static const f64 inf = f64_inf;
+    static const f64 g_nan = f64_nan;
+    static const f64 g_inf = f64_inf;
     struct {
       f64             val;
       FormatOptsFloat opts;
       String          expected;
     } const data[] = {
-        {nan, format_opts_float(), string_lit("nan")},
-        {inf, format_opts_float(), string_lit("inf")},
-        {-inf, format_opts_float(), string_lit("-inf")},
+        {g_nan, format_opts_float(), string_lit("nan")},
+        {g_inf, format_opts_float(), string_lit("inf")},
+        {-g_inf, format_opts_float(), string_lit("-inf")},
         {0, format_opts_float(), string_lit("0")},
         {42, format_opts_float(), string_lit("42")},
         {42.0042, format_opts_float(), string_lit("42.0042")},

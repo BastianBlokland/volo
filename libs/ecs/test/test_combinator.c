@@ -67,15 +67,15 @@ spec(combinator) {
   it("supports combining many pending components") {
     const EcsEntityId e = ecs_world_entity_create(world);
 
-    static const usize compCount = 1337;
-    for (usize i = 0; i != compCount; ++i) {
+    static const usize g_compCount = 1337;
+    for (usize i = 0; i != g_compCount; ++i) {
       ecs_world_add_t(world, e, CombineCompA, .state = 2);
     }
 
     ecs_world_flush(world);
 
     EcsIterator* itr = ecs_view_at(ecs_world_view_t(world, ReadA), e);
-    check_eq_int(ecs_view_read_t(itr, CombineCompA)->state, compCount * 2);
+    check_eq_int(ecs_view_read_t(itr, CombineCompA)->state, g_compCount * 2);
   }
 
   it("supports combining a pending component with an existing component") {
