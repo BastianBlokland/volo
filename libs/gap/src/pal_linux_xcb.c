@@ -432,8 +432,17 @@ static void pal_event_cursor(GapPal* pal, const GapWindowId windowId, const GapV
   GapPalWindow* window = pal_maybe_window(pal, windowId);
   if (!window || gap_vector_equal(window->params[GapParam_CursorPos], newPos)) {
     return;
-  }
-  window->params[GapParam_CursorPos] = newPos;
+  };
+
+  /**
+   * NOTE: Xcb uses top-left as the origin while the Volo project uses bottom-left, so we have to
+   * remap the y coordinate.
+   */
+
+  window->params[GapParam_CursorPos] = (GapVector){
+      .x = newPos.x,
+      .y = window->params[GapParam_WindowSize].height - newPos.y,
+  };
   window->flags |= GapPalWindowFlags_CursorMoved;
 }
 
@@ -786,9 +795,22 @@ void gap_pal_window_cursor_capture(GapPal* pal, const GapWindowId windowId, cons
   (void)captured;
 }
 
-void gap_pal_window_cursor_set(GapPal* pal, const GapWindowId windowId, GapVector position) {
+void gap_pal_window_cursor_set(GapPal* pal, const GapWindowId windowId, const GapVector position) {
+
+  GapPalWindow* window = pal_maybe_window(pal, windowId);
+  diag_assert(window);
+
+  /**
+   * NOTE: Xcb uses top-left as the origin while the Volo project uses bottom-left, so we have to
+   * remap the y coordinate.
+   */
+  const GapVector xcbPos = {
+      .x = position.x,
+      .y = window->params[GapParam_WindowSize].height - position.y,
+  };
+
   const xcb_void_cookie_t cookie = xcb_warp_pointer_checked(
-      pal->xcbConnection, XCB_NONE, (xcb_window_t)windowId, 0, 0, 0, 0, position.x, position.y);
+      pal->xcbConnection, XCB_NONE, (xcb_window_t)windowId, 0, 0, 0, 0, xcbPos.x, xcbPos.y);
   const xcb_generic_error_t* err = xcb_request_check(pal->xcbConnection, cookie);
   if (UNLIKELY(err)) {
     diag_crash_msg("xcb_warp_pointer(), err: {}", fmt_int(err->error_code));
