@@ -18,11 +18,12 @@ add_library(lib_ecs STATIC
   src/storage.c
   src/utils.c
   src/view.c
-  src/world.c)
+  src/world.c
+  )
 target_include_directories(lib_ecs PUBLIC include)
-target_link_libraries(lib_ecs PUBLIC lib_core)
 target_link_libraries(lib_ecs PRIVATE lib_jobs)
 target_link_libraries(lib_ecs PRIVATE lib_log)
+target_link_libraries(lib_ecs PUBLIC lib_core)
 
 add_executable(lib_ecs_test
   test/main.c
@@ -36,11 +37,12 @@ add_executable(lib_ecs_test
   test/test_storage.c
   test/test_utils.c
   test/test_view.c
-  test/test_world.c)
+  test/test_world.c
+  )
 target_link_libraries(lib_ecs_test PRIVATE lib_check)
 target_link_libraries(lib_ecs_test PRIVATE lib_ecs)
 target_link_libraries(lib_ecs_test PRIVATE lib_jobs)
 target_link_libraries(lib_ecs_test PRIVATE lib_log)
 
-configure_test(lib_ecs_test ecs)
+configure_test(lib_ecs_test SHORT_NAME ecs)
 configure_debuggable(lib_ecs_test)

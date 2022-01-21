@@ -23,17 +23,19 @@ function(configure_test_target)
 endfunction(configure_test_target)
 
 #
-# Configure a 'test.[shortName]' target that will execute the given test executable when invoked.
+# Configure a 'test.[SHORT_NAME]' target that will execute the given test executable when invoked.
 # Also adds it to the 'TEST_TARGETS' global property.
 #
-function(configure_test target shortName)
+function(configure_test target)
+  cmake_parse_arguments(PARSE_ARGV 1 ARG "" "SHORT_NAME" "")
+
   message(STATUS "> test: ${target}")
 
   if(NOT TARGET ${target})
     message(FATAL_ERROR "Unknown target")
   endif()
 
-  set(testTargetName "test.${shortName}")
+  set(testTargetName "test.${ARG_SHORT_NAME}")
   if(TARGET ${testTargetName})
     message(FATAL_ERROR "${testTargetName} target already configured")
   endif()

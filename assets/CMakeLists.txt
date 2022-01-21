@@ -20,32 +20,25 @@ configure_shaders(volo_shaders
     shaders/standard.frag
   )
 
-function(download_external_assets)
-  set(remoteUrl "https://www.bastian.tech/assets")
-  foreach(filePath IN LISTS ARGN)
-    set(targetPath ${CMAKE_CURRENT_SOURCE_DIR}/external/${filePath})
-    if(NOT EXISTS ${targetPath})
-      message(STATUS ">> Downloading: ${remoteUrl}/${filePath}")
-      file(DOWNLOAD "${remoteUrl}/${filePath}" ${targetPath})
-    endif()
-  endforeach()
-endfunction(download_external_assets)
-
 if(${EXTERNAL_ASSETS})
-  download_external_assets(
-    bunny.obj
-    head/head.obj
-    head/lambertian.tga
-    corset/corset.obj
-    corset/corset_diff.tga
-    corset/corset_nrm.tga
-    cayo/cayo.obj
-    cayo/cayo_diff.tga
-    cayo/cayo_nrm.tga
-    pedestal/pedestal.obj
-    pedestal/pedestal_diff.tga
-    pedestal/pedestal_nrm.tga
-    testimages/ducks.tga)
+  download_external_files(
+    PATH ${CMAKE_CURRENT_SOURCE_DIR}/external
+    REMOTE_URL "https://www.bastian.tech/assets"
+    FILES
+      bunny.obj
+      head/head.obj
+      head/lambertian.tga
+      corset/corset.obj
+      corset/corset_diff.tga
+      corset/corset_nrm.tga
+      cayo/cayo.obj
+      cayo/cayo_diff.tga
+      cayo/cayo_nrm.tga
+      pedestal/pedestal.obj
+      pedestal/pedestal_diff.tga
+      pedestal/pedestal_nrm.tga
+      testimages/ducks.tga
+    )
 endif()
 
 add_custom_target(volo_assets)

@@ -48,7 +48,8 @@ add_library(lib_core STATIC
   src/tty_pal.c
   src/tty.c
   src/utf8.c
-  src/winutils.c)
+  src/winutils.c
+  )
 target_include_directories(lib_core PUBLIC include)
 if(${VOLO_PLATFORM} STREQUAL "linux")
   # Link against the math library on linux.
@@ -88,11 +89,12 @@ add_executable(lib_core_test
   test/test_thread.c
   test/test_time.c
   test/test_utf8.c
-  test/test_winutils.c)
+  test/test_winutils.c
+  )
 target_link_libraries(lib_core_test PRIVATE lib_check)
 target_link_libraries(lib_core_test PRIVATE lib_core)
 target_link_libraries(lib_core_test PRIVATE lib_jobs)
 target_link_libraries(lib_core_test PRIVATE lib_log)
 
-configure_test(lib_core_test core)
+configure_test(lib_core_test SHORT_NAME core)
 configure_debuggable(lib_core_test)

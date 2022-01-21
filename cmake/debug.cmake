@@ -34,10 +34,11 @@ function(configure_dbgsetup_target)
     message(FATAL_ERROR "Unknown compiler")
   endif()
 
-  add_custom_target(dbgsetup COMMAND volo_dbgsetup
+  add_custom_target(dbgsetup COMMAND tool_dbgsetup
     "--debugger" "${debugger}"
     "--workspace" "${PROJECT_SOURCE_DIR}"
-    "--targets" "$<GENEX_EVAL:${targets}>" VERBATIM USES_TERMINAL)
+    "--targets" "$<GENEX_EVAL:${targets}>" VERBATIM USES_TERMINAL
+    )
 endfunction(configure_dbgsetup_target)
 
 #
