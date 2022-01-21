@@ -6,8 +6,8 @@ message(STATUS "> library: cli")
 
 add_library(lib_cli STATIC
   src/app.c
-  src/help.c
   src/failure.c
+  src/help.c
   src/parse.c
   src/read.c
   src/validate.c

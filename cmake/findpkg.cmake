@@ -10,7 +10,7 @@ include(FindPackageHandleStandardArgs)
 # Helper function to find a system library using pkg-config.
 #
 function(findpkg)
-  cmake_parse_arguments(PARSE_ARGV 0 ARG "" "LIB;HEADER_NAME" "")
+  cmake_parse_arguments(PARSE_ARGV 0 ARG "" "LIB;HEADER" "")
 
   message(STATUS "findpkg: Finding system package (lib: ${ARG_LIB}, header: ${ARG_HEADER})")
 

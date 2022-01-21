@@ -7,10 +7,10 @@ message(STATUS "> library: check")
 add_library(lib_check STATIC
   src/app.c
   src/def.c
-  src/output.c
   src/output_log.c
   src/output_mocha.c
   src/output_pretty.c
+  src/output.c
   src/result.c
   src/runner.c
   src/spec.c

@@ -7,10 +7,10 @@ message(STATUS "> library: jobs")
 add_library(lib_jobs STATIC
   src/affinity_queue.c
   src/dot.c
+  src/executor.c
   src/graph.c
   src/init.c
   src/job.c
-  src/executor.c
   src/scheduler.c
   src/work_queue.c
   )
