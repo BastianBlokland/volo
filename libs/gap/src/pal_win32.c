@@ -281,7 +281,16 @@ static void pal_event_cursor(GapPalWindow* window, const GapVector newPos) {
   if (gap_vector_equal(window->params[GapParam_CursorPos], newPos)) {
     return;
   }
-  window->params[GapParam_CursorPos] = newPos;
+
+  /**
+   * NOTE: Win32 uses top-left as the origin while the Volo project uses bottom-left, so we have to
+   * remap the y coordinate.
+   */
+
+  window->params[GapParam_CursorPos] = (GapVector){
+      .x = newPos.x,
+      .y = window->params[GapParam_WindowSize].height - newPos.y,
+  };
   window->flags |= GapPalWindowFlags_CursorMoved;
 }
 
@@ -712,7 +721,19 @@ void gap_pal_window_cursor_capture(GapPal* pal, const GapWindowId windowId, cons
 void gap_pal_window_cursor_set(GapPal* pal, const GapWindowId windowId, const GapVector position) {
   pal_check_thread_ownership(pal);
 
-  const GapVector screenPos = pal_client_to_screen(windowId, position);
+  GapPalWindow* window = pal_maybe_window(pal, windowId);
+  diag_assert(window);
+
+  /**
+   * NOTE: Win32 uses top-left as the origin while the Volo project uses bottom-left, so we have to
+   * remap the y coordinate.
+   */
+  const GapVector win32Pos = {
+      .x = position.x,
+      .y = window->params[GapParam_WindowSize].height - position.y,
+  };
+
+  const GapVector screenPos = pal_client_to_screen(windowId, win32Pos);
   if (!SetCursorPos(screenPos.x, screenPos.y)) {
     pal_crash_with_win32_err(string_lit("SetCursorPos"));
   }
