@@ -141,7 +141,7 @@ static Mem tga_read_header(Mem input, TgaHeader* out, TgaError* err) {
 }
 
 static u32 tga_index(const u32 x, const u32 y, const u32 width, const u32 height, TgaFlags flags) {
-  // Either fill pixels from top to bottom - left to right, or bottom to top - left to right.
+  // Either fill pixels from bottom to top - left to right, or top to bottom - left to right.
   return ((flags & TgaFlags_YFlip) ? (height - 1 - y) * width : y * width) + x;
 }
 
@@ -304,8 +304,8 @@ void asset_load_tga(EcsWorld* world, const EcsEntityId entity, AssetSource* src)
   if (header.imageType == TgaImageType_RleTrueColor) {
     flags |= TgaFlags_Rle;
   }
-  if (header.imageSpec.descriptor.origin == TgaOrigin_LowerLeft ||
-      header.imageSpec.descriptor.origin == TgaOrigin_LowerRight) {
+  if (header.imageSpec.descriptor.origin == TgaOrigin_UpperLeft ||
+      header.imageSpec.descriptor.origin == TgaOrigin_UpperRight) {
     flags |= TgaFlags_YFlip;
   }
 

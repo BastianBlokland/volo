@@ -123,8 +123,7 @@ static String obj_read_texcoord(String input, ObjData* data, ObjError* err) {
   input = format_read_whitespace(input, null);
 
   GeoVector texcoord;
-  input      = obj_read_vec2(input, &texcoord);
-  texcoord.y = 1 - texcoord.y; // Flip the y axis to use the top as the origin.
+  input                                         = obj_read_vec2(input, &texcoord);
   *dynarray_push_t(&data->texcoords, GeoVector) = texcoord;
 
   *err = ObjError_None;

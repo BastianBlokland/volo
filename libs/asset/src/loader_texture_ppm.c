@@ -96,16 +96,26 @@ static String ppm_read_header(String input, PixmapHeader* out) {
 
 static String ppm_read_pixels_ascii(
     String input, PixmapHeader* header, AssetTexturePixel* out, PixmapError* err) {
-  u64       r, g, b;
-  const u32 pixelCount = (u32)(header->width * header->height);
-  for (u32 i = 0; i != pixelCount; ++i) {
-    input  = ppm_consume_whitespace_or_comment(input);
-    input  = format_read_u64(input, &r, 10);
-    input  = ppm_consume_whitespace_or_comment(input);
-    input  = format_read_u64(input, &g, 10);
-    input  = ppm_consume_whitespace_or_comment(input);
-    input  = format_read_u64(input, &b, 10);
-    out[i] = (AssetTexturePixel){(u8)r, (u8)g, (u8)b, 255};
+  u64 r, g, b;
+
+  /**
+   * NOTE: PPM images use the top-left as the origin, while the Volo project uses the bottom-left,
+   * so we have to remap the y axis.
+   */
+
+  for (u32 y = (u32)header->height; y-- != 0;) {
+    for (u32 x = 0; x != header->width; ++x) {
+
+      input = ppm_consume_whitespace_or_comment(input);
+      input = format_read_u64(input, &r, 10);
+      input = ppm_consume_whitespace_or_comment(input);
+      input = format_read_u64(input, &g, 10);
+      input = ppm_consume_whitespace_or_comment(input);
+      input = format_read_u64(input, &b, 10);
+
+      const u32 index = y * (u32)header->height + x;
+      out[index]      = (AssetTexturePixel){(u8)r, (u8)g, (u8)b, 255};
+    }
   }
   *err = PixmapError_None;
   return input;
@@ -127,14 +137,23 @@ static String ppm_read_pixels_binary(
    */
   input = string_consume(input, 1);
 
+  /**
+   * NOTE: PPM images use the top-left as the origin, while the Volo project uses the bottom-left,
+   * so we have to remap the y axis.
+   */
+
   u8* data = input.ptr;
-  for (u32 i = 0; i != pixelCount; ++i) {
-    out[i].r = data[0];
-    out[i].g = data[1];
-    out[i].b = data[2];
-    out[i].a = 255;
-    data += 3;
+  for (u32 y = (u32)header->height; y-- != 0;) {
+    for (u32 x = 0; x != header->width; ++x) {
+      const u32 index = y * (u32)header->height + x;
+      out[index].r    = data[0];
+      out[index].g    = data[1];
+      out[index].b    = data[2];
+      out[index].a    = 255;
+      data += 3;
+    }
   }
+
   *err = PixmapError_None;
   return string_consume(input, pixelCount * 3);
 }

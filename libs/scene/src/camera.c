@@ -120,7 +120,7 @@ static void camera_update_move(
 static void camera_update_rotate(
     const SceneCameraMovementComp* move, SceneTransformComp* trans, const GapWindowComp* win) {
 
-  const GeoVector right = geo_quat_rotate(trans->rotation, geo_right);
+  const GeoVector left = geo_quat_rotate(trans->rotation, geo_left);
 
   const bool lookEnable = gap_window_key_down(win, GapKey_MouseRight) ||
                           gap_window_key_down(win, GapKey_Control) || move->locked;
@@ -129,7 +129,7 @@ static void camera_update_rotate(
     const f32 deltaX = gap_window_param(win, GapParam_CursorDelta).x * g_camRotateSensitivity;
     const f32 deltaY = gap_window_param(win, GapParam_CursorDelta).y * g_camRotateSensitivity;
 
-    trans->rotation = geo_quat_mul(geo_quat_angle_axis(right, deltaY), trans->rotation);
+    trans->rotation = geo_quat_mul(geo_quat_angle_axis(left, deltaY), trans->rotation);
     trans->rotation = geo_quat_mul(geo_quat_angle_axis(geo_up, deltaX), trans->rotation);
     trans->rotation = geo_quat_norm(trans->rotation);
   }
