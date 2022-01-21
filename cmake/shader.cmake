@@ -5,6 +5,9 @@
 #
 # Configure a target that consists of shaders.
 #
+# NOTE: Shaders are build in an 'in-source' fashion, meaning shader binaries (.spv) will end up next
+# to the source shaders. This greatly simplies asset path handling.
+#
 function(configure_shaders target)
   message(STATUS "> Configuring shaders: ${target}")
 
@@ -12,6 +15,12 @@ function(configure_shaders target)
   message(STATUS ">> Vulkan glslc: ${Vulkan_GLSLC_EXECUTABLE}")
 
   foreach(shaderPath IN LISTS ARGN)
+    # Create output directory.
+    # Even though the shader binaries are compiled 'in-source' (so they will not end up in the
+    # binary-dir) the dep (.d) files will still be generated in the binary output directory.
+    get_filename_component(parentDir ${CMAKE_CURRENT_BINARY_DIR}/${shaderPath} DIRECTORY)
+    file(MAKE_DIRECTORY ${parentDir})
+
     # Create a custom command to compile the shader to spir-v using glslc.
     add_custom_command(
       OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${shaderPath}.spv
@@ -28,5 +37,4 @@ function(configure_shaders target)
   endforeach()
 
   add_custom_target(${target} DEPENDS ${artifacts})
-
 endfunction(configure_shaders)
