@@ -12,9 +12,9 @@ add_library(lib_gap STATIC
   src/window.c
   )
 target_include_directories(lib_gap PUBLIC include)
+target_link_libraries(lib_gap PRIVATE lib_log)
 target_link_libraries(lib_gap PUBLIC lib_core)
 target_link_libraries(lib_gap PUBLIC lib_ecs)
-target_link_libraries(lib_gap PRIVATE lib_log)
 
 # On linux use the xcb (https://xcb.freedesktop.org/) bindings for the x window server.
 # For debian based systems: apt install libxcb1-dev libxcb-xkb-dev libxcb-xfixes0-dev libxcb-icccm4-dev
@@ -24,8 +24,8 @@ if(${VOLO_PLATFORM} STREQUAL "linux")
   find_package(xcb-xkb REQUIRED)
   find_package(xcb-xfixes REQUIRED)
   find_package(xcb-icccm REQUIRED)
-  target_link_libraries(lib_gap PRIVATE xcb)
-  target_link_libraries(lib_gap PRIVATE xcb-xkb)
-  target_link_libraries(lib_gap PRIVATE xcb-xfixes)
   target_link_libraries(lib_gap PRIVATE xcb-icccm)
+  target_link_libraries(lib_gap PRIVATE xcb-xfixes)
+  target_link_libraries(lib_gap PRIVATE xcb-xkb)
+  target_link_libraries(lib_gap PRIVATE xcb)
 endif()

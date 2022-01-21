@@ -21,9 +21,9 @@ add_library(lib_ecs STATIC
   src/world.c
   )
 target_include_directories(lib_ecs PUBLIC include)
-target_link_libraries(lib_ecs PUBLIC lib_core)
 target_link_libraries(lib_ecs PRIVATE lib_jobs)
 target_link_libraries(lib_ecs PRIVATE lib_log)
+target_link_libraries(lib_ecs PUBLIC lib_core)
 
 add_executable(lib_ecs_test
   test/main.c

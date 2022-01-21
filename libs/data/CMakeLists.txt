@@ -12,8 +12,8 @@ add_library(lib_data STATIC
   src/write_json.c
   )
 target_include_directories(lib_data PUBLIC include)
-target_link_libraries(lib_data PUBLIC lib_core)
 target_link_libraries(lib_data PRIVATE lib_json)
+target_link_libraries(lib_data PUBLIC lib_core)
 
 add_executable(lib_data_test
   test/main.c

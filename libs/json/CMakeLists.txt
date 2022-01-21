@@ -22,8 +22,8 @@ add_executable(lib_json_test
   test/test_write.c
   )
 target_link_libraries(lib_json_test PRIVATE lib_check)
-target_link_libraries(lib_json_test PRIVATE lib_json)
 target_link_libraries(lib_json_test PRIVATE lib_jobs)
+target_link_libraries(lib_json_test PRIVATE lib_json)
 target_link_libraries(lib_json_test PRIVATE lib_log)
 
 configure_test(lib_json_test SHORT_NAME json)
