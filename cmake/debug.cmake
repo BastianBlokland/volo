@@ -37,7 +37,8 @@ function(configure_dbgsetup_target)
   add_custom_target(dbgsetup COMMAND tool_dbgsetup
     "--debugger" "${debugger}"
     "--workspace" "${PROJECT_SOURCE_DIR}"
-    "--targets" "$<GENEX_EVAL:${targets}>" VERBATIM USES_TERMINAL)
+    "--targets" "$<GENEX_EVAL:${targets}>" VERBATIM USES_TERMINAL
+    )
 endfunction(configure_dbgsetup_target)
 
 #

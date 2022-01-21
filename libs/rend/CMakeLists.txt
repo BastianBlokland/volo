@@ -33,7 +33,8 @@ add_library(lib_rend STATIC
   src/platform.c
   src/register.c
   src/resource.c
-  src/stats.c)
+  src/stats.c
+  )
 target_include_directories(lib_rend PUBLIC include)
 target_link_libraries(lib_rend PUBLIC lib_core)
 target_link_libraries(lib_rend PUBLIC lib_ecs)

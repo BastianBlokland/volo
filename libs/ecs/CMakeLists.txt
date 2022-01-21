@@ -18,7 +18,8 @@ add_library(lib_ecs STATIC
   src/storage.c
   src/utils.c
   src/view.c
-  src/world.c)
+  src/world.c
+  )
 target_include_directories(lib_ecs PUBLIC include)
 target_link_libraries(lib_ecs PUBLIC lib_core)
 target_link_libraries(lib_ecs PRIVATE lib_jobs)
@@ -36,7 +37,8 @@ add_executable(lib_ecs_test
   test/test_storage.c
   test/test_utils.c
   test/test_view.c
-  test/test_world.c)
+  test/test_world.c
+  )
 target_link_libraries(lib_ecs_test PRIVATE lib_check)
 target_link_libraries(lib_ecs_test PRIVATE lib_ecs)
 target_link_libraries(lib_ecs_test PRIVATE lib_jobs)

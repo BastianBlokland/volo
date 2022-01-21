@@ -10,7 +10,8 @@ add_library(lib_cli STATIC
   src/failure.c
   src/parse.c
   src/read.c
-  src/validate.c)
+  src/validate.c
+  )
 target_include_directories(lib_cli PUBLIC include)
 target_link_libraries(lib_cli PUBLIC lib_core)
 
@@ -21,7 +22,8 @@ add_executable(lib_cli_test
   test/test_help.c
   test/test_parse.c
   test/test_read.c
-  test/test_validate.c)
+  test/test_validate.c
+  )
 target_link_libraries(lib_cli_test PRIVATE lib_check)
 target_link_libraries(lib_cli_test PRIVATE lib_cli)
 target_link_libraries(lib_cli_test PRIVATE lib_jobs)

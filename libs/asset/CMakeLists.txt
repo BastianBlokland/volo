@@ -24,7 +24,8 @@ add_library(lib_asset STATIC
   src/register.c
   src/repo_fs.c
   src/repo_mem.c
-  src/repo.c)
+  src/repo.c
+  )
 target_include_directories(lib_asset PUBLIC include)
 target_link_libraries(lib_asset PUBLIC lib_core)
 target_link_libraries(lib_asset PUBLIC lib_ecs)
@@ -43,7 +44,8 @@ add_executable(lib_asset_test
   test/test_loader_texture_ppm.c
   test/test_loader_texture_tga.c
   test/test_manager.c
-  test/utils.c)
+  test/utils.c
+  )
 target_link_libraries(lib_asset_test PRIVATE lib_check)
 target_link_libraries(lib_asset_test PRIVATE lib_asset)
 target_link_libraries(lib_asset_test PRIVATE lib_jobs)

@@ -9,7 +9,8 @@ add_library(lib_geo STATIC
   src/color.c
   src/matrix.c
   src/quat.c
-  src/vector.c)
+  src/vector.c
+  )
 target_include_directories(lib_geo PUBLIC include)
 target_link_libraries(lib_geo PUBLIC lib_core)
 
@@ -19,7 +20,8 @@ add_executable(lib_geo_test
   test/test_matrix.c
   test/test_quat.c
   test/test_vector.c
-  test/utils.c)
+  test/utils.c
+  )
 target_link_libraries(lib_geo_test PRIVATE lib_check)
 target_link_libraries(lib_geo_test PRIVATE lib_geo)
 target_link_libraries(lib_geo_test PRIVATE lib_jobs)
