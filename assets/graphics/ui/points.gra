@@ -1,7 +1,7 @@
 {
   "shaders": [
     {
-      "shaderId": "shaders/ui_points.vert.spv",
+      "shaderId": "shaders/ui/points.vert.spv",
       "overrides": [
         {
           "name": "maxPoints",
@@ -16,7 +16,7 @@
       ]
     },
     {
-      "shaderId": "shaders/ui_color.frag.spv"
+      "shaderId": "shaders/ui/color.frag.spv"
     }
   ],
   "vertexCount": 0,

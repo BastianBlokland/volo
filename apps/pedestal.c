@@ -28,11 +28,11 @@ static const f32       g_subjectSpacing      = 2.5f;
 static const String    g_subjectGraphics[]   = {
     string_static("graphics/cube.gra"),
     string_static("graphics/sphere.gra"),
-    string_static("graphics/demo_bunny.gra"),
-    string_static("graphics/demo_cayo.gra"),
-    string_static("graphics/demo_corset.gra"),
-    string_static("graphics/demo_head.gra"),
-    string_static("graphics/demo_head_wire.gra"),
+    string_static("graphics/demo/bunny.gra"),
+    string_static("graphics/demo/cayo.gra"),
+    string_static("graphics/demo/corset.gra"),
+    string_static("graphics/demo/head.gra"),
+    string_static("graphics/demo/head_wire.gra"),
 };
 
 typedef enum {
@@ -106,7 +106,7 @@ static void spawn_objects(EcsWorld* world, AppComp* app, AssetManagerComp* asset
           world,
           assets,
           geo_vector(gridPos.x, g_pedestalPositionY, gridPos.y),
-          string_lit("graphics/demo_pedestal.gra"));
+          string_lit("graphics/demo/pedestal.gra"));
     }
   }
 }

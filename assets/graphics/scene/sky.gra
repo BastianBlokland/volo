@@ -1,10 +1,10 @@
 {
   "shaders": [
     {
-      "shaderId": "shaders/sky.vert.spv"
+      "shaderId": "shaders/scene/sky.vert.spv"
     },
     {
-      "shaderId": "shaders/sky.frag.spv"
+      "shaderId": "shaders/scene/sky.frag.spv"
     }
   ],
   "samplers": [],
