@@ -1,7 +1,7 @@
 {
   "shaders": [
     {
-      "shaderId": "shaders/ui_lines.vert.spv",
+      "shaderId": "shaders/ui/lines.vert.spv",
       "overrides": [
         {
           "name": "maxLines",
@@ -11,7 +11,7 @@
       ]
     },
     {
-      "shaderId": "shaders/ui_color.frag.spv"
+      "shaderId": "shaders/ui/color.frag.spv"
     }
   ],
   "vertexCount": 0,

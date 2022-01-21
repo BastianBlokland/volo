@@ -1,11 +1,11 @@
 #version 450
 #extension GL_GOOGLE_include_directive : enable
 
-#include "include/binding.glsl"
-#include "include/global.glsl"
-#include "include/instance.glsl"
-#include "include/quat.glsl"
-#include "include/vertex.glsl"
+#include "binding.glsl"
+#include "global.glsl"
+#include "instance.glsl"
+#include "quat.glsl"
+#include "vertex.glsl"
 
 bind_spec(0) const f32 s_scale   = 1.0;
 bind_spec(1) const f32 s_offsetX = 0.0;

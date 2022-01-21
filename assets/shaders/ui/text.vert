@@ -1,7 +1,7 @@
 #version 450
 #extension GL_GOOGLE_include_directive : enable
 
-#include "include/binding.glsl"
+#include "binding.glsl"
 
 // Fullscreen at zero depth.
 const f32_vec4 c_positions[] = {

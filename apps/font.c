@@ -106,14 +106,14 @@ ecs_system_define(AppUpdateSys) {
         world,
         app->lineRenderer,
         SceneRenderableUniqueComp,
-        .graphic = asset_lookup(world, assets, string_lit("graphics/ui_lines.gra")));
+        .graphic = asset_lookup(world, assets, string_lit("graphics/ui/lines.gra")));
 
     app->pointRenderer = ecs_world_entity_create(world);
     ecs_world_add_t(
         world,
         app->pointRenderer,
         SceneRenderableUniqueComp,
-        .graphic = asset_lookup(world, assets, string_lit("graphics/ui_points.gra")));
+        .graphic = asset_lookup(world, assets, string_lit("graphics/ui/points.gra")));
 
     app->cp = 0x42;
     app->flags &= ~AppFlags_Init;

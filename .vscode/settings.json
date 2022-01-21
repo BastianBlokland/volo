@@ -21,7 +21,8 @@
     ".cache": true,
     "assets/**/*.spv": true
   },
-  "glsllint.glslangValidatorArgs": "-V -o .cache/spv/out.spv",
+  "glsllint.glslangValidatorArgs": "-Iassets/shaders/include -V",
+  "glsllint.linkShader": false,
   "emeraldwalk.runonsave": {
     "commands": [
       {

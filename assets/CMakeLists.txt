@@ -5,17 +5,20 @@
 message(STATUS "> assets")
 
 configure_shaders(volo_shaders
-  shaders/grid.vert
-  shaders/grid.frag
-  shaders/sky.vert
-  shaders/sky.frag
-  shaders/standard.vert
-  shaders/standard.frag
-  shaders/ui_lines.vert
-  shaders/ui_points.vert
-  shaders/ui_color.frag
-  shaders/ui_text.vert
-  shaders/ui_text.frag)
+  INCLUDE_DIR shaders/include
+  SOURCES
+    shaders/scene/grid.vert
+    shaders/scene/grid.frag
+    shaders/scene/sky.vert
+    shaders/scene/sky.frag
+    shaders/ui/lines.vert
+    shaders/ui/points.vert
+    shaders/ui/color.frag
+    shaders/ui/text.vert
+    shaders/ui/text.frag
+    shaders/standard.vert
+    shaders/standard.frag
+  )
 
 function(download_external_assets)
   set(remoteUrl "https://www.bastian.tech/assets")

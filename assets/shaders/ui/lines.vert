@@ -1,9 +1,9 @@
 #version 450
 #extension GL_GOOGLE_include_directive : enable
 
-#include "include/binding.glsl"
-#include "include/color.glsl"
-#include "include/ui.glsl"
+#include "binding.glsl"
+#include "color.glsl"
+#include "ui.glsl"
 
 bind_spec(0) const u32 s_maxLines = 1024;
 

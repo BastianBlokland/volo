@@ -84,7 +84,7 @@ ecs_system_define(SceneCameraCreateSkySys) {
       world,
       skyEntity,
       SceneRenderableUniqueComp,
-      .graphic = asset_lookup(world, assets, string_lit("graphics/sky.gra")));
+      .graphic = asset_lookup(world, assets, string_lit("graphics/scene/sky.gra")));
 }
 
 static void camera_update_move(

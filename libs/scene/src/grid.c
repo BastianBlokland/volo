@@ -43,7 +43,7 @@ ecs_system_define(SceneGridCreateSys) {
       world,
       gridEntity,
       SceneRenderableUniqueComp,
-      .graphic = asset_lookup(world, assets, string_lit("graphics/grid.gra")));
+      .graphic = asset_lookup(world, assets, string_lit("graphics/scene/grid.gra")));
 }
 
 ecs_system_define(SceneGridInputSys) {
