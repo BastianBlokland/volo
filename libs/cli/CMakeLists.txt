@@ -29,5 +29,5 @@ target_link_libraries(lib_cli_test PRIVATE lib_cli)
 target_link_libraries(lib_cli_test PRIVATE lib_jobs)
 target_link_libraries(lib_cli_test PRIVATE lib_log)
 
-configure_test(lib_cli_test cli)
+configure_test(lib_cli_test SHORT_NAME cli)
 configure_debuggable(lib_cli_test)

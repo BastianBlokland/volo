@@ -26,5 +26,5 @@ target_link_libraries(lib_json_test PRIVATE lib_json)
 target_link_libraries(lib_json_test PRIVATE lib_jobs)
 target_link_libraries(lib_json_test PRIVATE lib_log)
 
-configure_test(lib_json_test json)
+configure_test(lib_json_test SHORT_NAME json)
 configure_debuggable(lib_json_test)

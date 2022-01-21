@@ -31,5 +31,5 @@ target_link_libraries(lib_check_test PRIVATE lib_check)
 target_link_libraries(lib_check_test PRIVATE lib_jobs)
 target_link_libraries(lib_check_test PRIVATE lib_log)
 
-configure_test(lib_check_test check)
+configure_test(lib_check_test SHORT_NAME check)
 configure_debuggable(lib_check_test)

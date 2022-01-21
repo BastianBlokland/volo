@@ -96,5 +96,5 @@ target_link_libraries(lib_core_test PRIVATE lib_core)
 target_link_libraries(lib_core_test PRIVATE lib_jobs)
 target_link_libraries(lib_core_test PRIVATE lib_log)
 
-configure_test(lib_core_test core)
+configure_test(lib_core_test SHORT_NAME core)
 configure_debuggable(lib_core_test)

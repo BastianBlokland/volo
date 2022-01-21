@@ -25,5 +25,5 @@ target_link_libraries(lib_log_test PRIVATE lib_log)
 target_link_libraries(lib_log_test PRIVATE lib_json)
 target_link_libraries(lib_log_test PRIVATE lib_jobs)
 
-configure_test(lib_log_test log)
+configure_test(lib_log_test SHORT_NAME log)
 configure_debuggable(lib_log_test)

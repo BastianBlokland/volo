@@ -51,5 +51,5 @@ target_link_libraries(lib_asset_test PRIVATE lib_asset)
 target_link_libraries(lib_asset_test PRIVATE lib_jobs)
 target_link_libraries(lib_asset_test PRIVATE lib_log)
 
-configure_test(lib_asset_test asset)
+configure_test(lib_asset_test SHORT_NAME asset)
 configure_debuggable(lib_asset_test)

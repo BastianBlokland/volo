@@ -28,5 +28,5 @@ target_link_libraries(lib_jobs_test PRIVATE lib_check)
 target_link_libraries(lib_jobs_test PRIVATE lib_jobs)
 target_link_libraries(lib_jobs_test PRIVATE lib_log)
 
-configure_test(lib_jobs_test jobs)
+configure_test(lib_jobs_test SHORT_NAME jobs)
 configure_debuggable(lib_jobs_test)

@@ -44,5 +44,5 @@ target_link_libraries(lib_ecs_test PRIVATE lib_ecs)
 target_link_libraries(lib_ecs_test PRIVATE lib_jobs)
 target_link_libraries(lib_ecs_test PRIVATE lib_log)
 
-configure_test(lib_ecs_test ecs)
+configure_test(lib_ecs_test SHORT_NAME ecs)
 configure_debuggable(lib_ecs_test)

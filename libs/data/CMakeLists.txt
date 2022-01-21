@@ -28,5 +28,5 @@ target_link_libraries(lib_data_test PRIVATE lib_data)
 target_link_libraries(lib_data_test PRIVATE lib_jobs)
 target_link_libraries(lib_data_test PRIVATE lib_log)
 
-configure_test(lib_data_test data)
+configure_test(lib_data_test SHORT_NAME data)
 configure_debuggable(lib_data_test)

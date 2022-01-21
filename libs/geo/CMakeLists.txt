@@ -27,5 +27,5 @@ target_link_libraries(lib_geo_test PRIVATE lib_geo)
 target_link_libraries(lib_geo_test PRIVATE lib_jobs)
 target_link_libraries(lib_geo_test PRIVATE lib_log)
 
-configure_test(lib_geo_test geo)
+configure_test(lib_geo_test SHORT_NAME geo)
 configure_debuggable(lib_geo_test)
