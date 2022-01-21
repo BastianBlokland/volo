@@ -9,31 +9,34 @@
 # to the source shaders. This greatly simplies asset path handling.
 #
 function(configure_shaders target)
+  cmake_parse_arguments(PARSE_ARGV 1 ARG "" "" "SOURCES")
+
   message(STATUS "> Configuring shaders: ${target}")
 
   find_package(Vulkan REQUIRED)
   message(STATUS ">> Vulkan glslc: ${Vulkan_GLSLC_EXECUTABLE}")
 
-  foreach(shaderPath IN LISTS ARGN)
+  foreach(source ${ARG_SOURCES})
+
     # Create output directory.
     # Even though the shader binaries are compiled 'in-source' (so they will not end up in the
     # binary-dir) the dep (.d) files will still be generated in the binary output directory.
-    get_filename_component(parentDir ${CMAKE_CURRENT_BINARY_DIR}/${shaderPath} DIRECTORY)
-    file(MAKE_DIRECTORY ${parentDir})
+    get_filename_component(binParentDir ${CMAKE_CURRENT_BINARY_DIR}/${source} DIRECTORY)
+    file(MAKE_DIRECTORY ${binParentDir})
 
     # Create a custom command to compile the shader to spir-v using glslc.
     add_custom_command(
-      OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${shaderPath}.spv
-      DEPENDS ${shaderPath}
-      DEPFILE ${shaderPath}.d
+      OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${source}.spv
+      DEPENDS ${source}
+      DEPFILE ${source}.d
       COMMAND
         ${Vulkan_GLSLC_EXECUTABLE}
-        -MD -MF ${shaderPath}.d
+        -MD -MF ${source}.d
         -x glsl --target-env=vulkan1.1 --target-spv=spv1.3 -Werror -O
-        -o ${CMAKE_CURRENT_SOURCE_DIR}/${shaderPath}.spv
-        ${CMAKE_CURRENT_SOURCE_DIR}/${shaderPath}
+        -o ${CMAKE_CURRENT_SOURCE_DIR}/${source}.spv
+        ${CMAKE_CURRENT_SOURCE_DIR}/${source}
       )
-    list(APPEND artifacts ${CMAKE_CURRENT_SOURCE_DIR}/${shaderPath}.spv)
+    list(APPEND artifacts ${CMAKE_CURRENT_SOURCE_DIR}/${source}.spv)
   endforeach()
 
   add_custom_target(${target} DEPENDS ${artifacts})
