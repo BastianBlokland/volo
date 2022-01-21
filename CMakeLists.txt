@@ -4,6 +4,8 @@
 
 cmake_minimum_required(VERSION 3.19)
 
+cmake_policy(SET CMP0116 NEW) # Support Ninja dep-files in subdirectories.
+
 project(Volo VERSION 0.1.0 LANGUAGES C)
 
 # Custom options.

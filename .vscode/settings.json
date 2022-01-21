@@ -25,7 +25,7 @@
   "emeraldwalk.runonsave": {
     "commands": [
       {
-        "match": "\\.(?:vert|frag)$",
+        "match": "\\.(?:vert|frag|glsl)$",
         "cmd": "cmake --build build --target volo_shaders"
       }
     ]
