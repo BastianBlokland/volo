@@ -8,4 +8,4 @@
 # More info: https://xcb.freedesktop.org/
 #
 
-findpkg("xcb" "xcb/xcb.h")
+findpkg(LIB "xcb" HEADER "xcb/xcb.h")

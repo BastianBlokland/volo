@@ -8,4 +8,4 @@
 # More info: https://xcb.freedesktop.org/
 #
 
-findpkg("xcb-xfixes" "xcb/xfixes.h")
+findpkg(LIB "xcb-xfixes" HEADER "xcb/xfixes.h")

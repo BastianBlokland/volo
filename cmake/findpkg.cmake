@@ -9,28 +9,30 @@ include(FindPackageHandleStandardArgs)
 #
 # Helper function to find a system library using pkg-config.
 #
-function(findpkg libName headerName)
-  message(STATUS "findpkg: Finding system package (lib: ${libName}, header: ${headerName})")
+function(findpkg)
+  cmake_parse_arguments(PARSE_ARGV 0 ARG "" "LIB;HEADER_NAME" "")
 
-  pkg_check_modules(PC_${libName} QUIET ${libName})
+  message(STATUS "findpkg: Finding system package (lib: ${ARG_LIB}, header: ${ARG_HEADER})")
 
-  find_path(${libName}_INCLUDE_DIR NAMES ${headerName}
+  pkg_check_modules(PC_${ARG_LIB} QUIET ${ARG_LIB})
+
+  find_path(${ARG_LIB}_INCLUDE_DIR NAMES ${ARG_HEADER}
     HINTS
-    ${PC_${libName}_INCLUDEDIR}
-    ${PC_${libName}_INCLUDE_DIRS}
+    ${PC_${ARG_LIB}_INCLUDEDIR}
+    ${PC_${ARG_LIB}_INCLUDE_DIRS}
     )
 
-  find_library(${libName}_LIBRARY NAMES ${libName}
+  find_library(${ARG_LIB}_LIBRARY NAMES ${ARG_LIB}
     HINTS
-    ${PC_${libName}_LIBDIR}
-    ${PC_${libName}_LIBRARY_DIRS}
+    ${PC_${ARG_LIB}_LIBDIR}
+    ${PC_${ARG_LIB}_LIBRARY_DIRS}
     )
 
-  find_package_handle_standard_args(${libName}
-    FOUND_VAR ${libName}_FOUND
-    REQUIRED_VARS ${libName}_INCLUDE_DIR ${libName}_LIBRARY
+  find_package_handle_standard_args(${ARG_LIB}
+    FOUND_VAR ${ARG_LIB}_FOUND
+    REQUIRED_VARS ${ARG_LIB}_INCLUDE_DIR ${ARG_LIB}_LIBRARY
     )
 
-  mark_as_advanced(${libName}_INCLUDE_DIR ${libName}_LIBRARY)
+  mark_as_advanced(${ARG_LIB}_INCLUDE_DIR ${ARG_LIB}_LIBRARY)
 
 endfunction(findpkg)

@@ -9,4 +9,4 @@
 # More info: https://xcb.freedesktop.org/
 #
 
-findpkg("xcb-icccm" "xcb/xcb_icccm.h")
+findpkg(LIB "xcb-icccm" HEADER "xcb/xcb_icccm.h")
