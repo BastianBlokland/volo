@@ -10,3 +10,9 @@
 *.png binary
 *.tga binary
 *.ttf binary
+
+# Override linguist language detection for custom extensions.
+*.vert linguist-language=GLSL
+*.frag linguist-language=GLSL
+*.gra linguist-language=JSON
+*.ftx linguist-language=JSON
