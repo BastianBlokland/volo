@@ -1,10 +1,10 @@
 #version 450
 #extension GL_GOOGLE_include_directive : enable
 
-#include "include/binding.glsl"
-#include "include/global.glsl"
-#include "include/quat.glsl"
-#include "include/texture.glsl"
+#include "binding.glsl"
+#include "global.glsl"
+#include "quat.glsl"
+#include "texture.glsl"
 
 const f32_vec3 c_lightDir       = normalize(f32_vec3(0.4, 0.6, -1.0));
 const f32_vec4 c_lightColor     = f32_vec4(1.0, 0.9, 0.7, 1.0);

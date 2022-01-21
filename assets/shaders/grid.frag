@@ -1,8 +1,8 @@
 #version 450
 #extension GL_GOOGLE_include_directive : enable
 
-#include "include/binding.glsl"
-#include "include/global.glsl"
+#include "binding.glsl"
+#include "global.glsl"
 
 const f32 c_fadeFraction = 0.5;
 

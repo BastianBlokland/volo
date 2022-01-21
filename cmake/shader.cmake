@@ -9,7 +9,7 @@
 # to the source shaders. This greatly simplies asset path handling.
 #
 function(configure_shaders target)
-  cmake_parse_arguments(PARSE_ARGV 1 ARG "" "" "SOURCES")
+  cmake_parse_arguments(PARSE_ARGV 1 ARG "" "INCLUDE_DIR" "SOURCES")
 
   message(STATUS "> Configuring shaders: ${target}")
 
@@ -31,8 +31,9 @@ function(configure_shaders target)
       DEPFILE ${source}.d
       COMMAND
         ${Vulkan_GLSLC_EXECUTABLE}
-        -MD -MF ${source}.d
         -x glsl --target-env=vulkan1.1 --target-spv=spv1.3 -Werror -O
+        -MD -MF ${source}.d
+        -I ${CMAKE_CURRENT_SOURCE_DIR}/${ARG_INCLUDE_DIR}
         -o ${CMAKE_CURRENT_SOURCE_DIR}/${source}.spv
         ${CMAKE_CURRENT_SOURCE_DIR}/${source}
       )

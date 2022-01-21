@@ -1,7 +1,7 @@
 #version 450
 #extension GL_GOOGLE_include_directive : enable
 
-#include "include/binding.glsl"
+#include "binding.glsl"
 
 /**
  * 3 color gradient based on the y component of the world direction.

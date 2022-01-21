@@ -5,6 +5,7 @@
 message(STATUS "> assets")
 
 configure_shaders(volo_shaders
+  INCLUDE_DIR shaders/include
   SOURCES
     shaders/grid.vert
     shaders/grid.frag

@@ -1,8 +1,8 @@
 #version 450
 #extension GL_GOOGLE_include_directive : enable
 
-#include "include/binding.glsl"
-#include "include/texture.glsl"
+#include "binding.glsl"
+#include "texture.glsl"
 
 const f32 c_smoothing = 1.0 / 16.0;
 
