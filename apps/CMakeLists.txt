@@ -31,9 +31,9 @@ add_dependencies(app_font volo_assets)
 configure_debuggable(app_font)
 
 #
-# Convienience launch targets.
+# Convienience run targets.
 #
-add_custom_target(app.pedestal COMMAND app_pedestal
+add_custom_target(run.pedestal COMMAND app_pedestal
   "--assets" "$<TARGET_PROPERTY:volo_assets,path>" VERBATIM USES_TERMINAL)
-add_custom_target(app.font COMMAND app_font
+add_custom_target(run.font COMMAND app_font
   "--assets" "$<TARGET_PROPERTY:volo_assets,path>" VERBATIM USES_TERMINAL)
