@@ -140,11 +140,16 @@ typedef enum {
   SceneGlobalFont_Unloading = 1 << 1,
 } SceneGlobalFontFlags;
 
+typedef enum {
+  SceneText_Dirty = 1 << 0,
+} SceneTextFlags;
+
 ecs_comp_define(SceneTextComp) {
-  f32   position[2];
-  f32   size;
-  Mem   textMem;
-  usize textMemSize;
+  SceneTextFlags flags;
+  f32            position[2];
+  f32            size;
+  Mem            textMem;
+  usize          textMemSize;
 };
 
 ecs_comp_define(SceneGlobalFontComp) {
@@ -247,7 +252,7 @@ ecs_system_define(SceneTextUnloadChangedFontsSys) {
 }
 
 ecs_view_define(TextRenderView) {
-  ecs_access_read(SceneTextComp);
+  ecs_access_write(SceneTextComp);
   ecs_access_write(SceneRenderableUniqueComp);
 }
 
@@ -258,8 +263,12 @@ ecs_system_define(SceneTextRenderSys) {
   }
   EcsView* renderView = ecs_world_view_t(world, TextRenderView);
   for (EcsIterator* itr = ecs_view_itr(renderView); ecs_view_walk(itr);) {
-    const SceneTextComp*       textComp   = ecs_view_read_t(itr, SceneTextComp);
+    SceneTextComp*             textComp   = ecs_view_write_t(itr, SceneTextComp);
     SceneRenderableUniqueComp* renderable = ecs_view_write_t(itr, SceneRenderableUniqueComp);
+    if (!(textComp->flags & SceneText_Dirty)) {
+      continue; // Text did not change, no need to rebuild.
+    }
+    textComp->flags &= ~SceneText_Dirty;
 
     if (UNLIKELY(!textComp->textMemSize)) {
       renderable->instDataSize        = 0;
@@ -307,13 +316,26 @@ scene_text_create(EcsWorld* world, const f32 x, const f32 y, const f32 size, con
 }
 
 void scene_text_update_position(SceneTextComp* comp, const f32 x, const f32 y) {
-  comp->position[0] = x;
-  comp->position[1] = y;
+  if (comp->position[0] != x | comp->position[1] != y) {
+    comp->flags |= SceneText_Dirty;
+    comp->position[0] = x;
+    comp->position[1] = y;
+  }
 }
 
-void scene_text_update_size(SceneTextComp* comp, const f32 size) { comp->size = size; }
+void scene_text_update_size(SceneTextComp* comp, const f32 size) {
+  if (comp->size != size) {
+    comp->flags |= SceneText_Dirty;
+    comp->size = size;
+  }
+}
 
 void scene_text_update_str(SceneTextComp* comp, const String newText) {
+  if (mem_eq(mem_slice(comp->textMem, 0, comp->textMemSize), newText)) {
+    // The same string was assigned; no need to rebuild the text.
+    return;
+  }
+
   if (UNLIKELY(newText.size > comp->textMem.size)) {
     /**
      * Text does not fit in the existing memory; free the old memory and allocate new memory.
@@ -326,6 +348,7 @@ void scene_text_update_str(SceneTextComp* comp, const String newText) {
     comp->textMem = alloc_alloc(g_alloc_heap, bits_nextpow2_64(newText.size), 1);
   }
 
+  comp->flags |= SceneText_Dirty;
   mem_cpy(comp->textMem, newText);
   comp->textMemSize = newText.size;
 }
