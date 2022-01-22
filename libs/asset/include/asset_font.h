@@ -3,8 +3,8 @@
 #include "ecs_module.h"
 
 typedef struct {
-  UnicodeCp cp;
-  u32       glyphIndex;
+  Unicode cp;
+  u32     glyphIndex;
 } AssetFontChar;
 
 typedef union {
@@ -51,7 +51,7 @@ const AssetFontGlyph* asset_font_missing(const AssetFontComp*);
 /**
  * Get a glyph based on a unicode codepoint.
  */
-const AssetFontGlyph* asset_font_lookup(const AssetFontComp*, UnicodeCp);
+const AssetFontGlyph* asset_font_lookup(const AssetFontComp*, Unicode);
 
 /**
  * Get a set of glyphs to represent the input utf8 string.

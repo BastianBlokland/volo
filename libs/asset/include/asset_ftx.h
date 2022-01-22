@@ -14,15 +14,16 @@
  */
 
 typedef struct {
-  UnicodeCp cp;
-  u32       glyphIndex; // sentinel_u32 when character has no glyph (for example a space).
-  f32       size;
-  f32       offsetX, offsetY;
-  f32       advance;
+  Unicode cp;
+  u32     glyphIndex; // sentinel_u32 when character has no glyph (for example a space).
+  f32     size;
+  f32     offsetX, offsetY;
+  f32     advance;
 } AssetFtxChar;
 
 ecs_comp_extern_public(AssetFtxComp) {
   u32           glyphsPerDim;
+  f32           lineSpacing;
   AssetFtxChar* characters; // Sorted on the unicode codepoint.
   usize         characterCount;
 };
@@ -30,4 +31,4 @@ ecs_comp_extern_public(AssetFtxComp) {
 /**
  * Get a character based on a unicode codepoint.
  */
-const AssetFtxChar* asset_ftx_lookup(const AssetFtxComp*, UnicodeCp);
+const AssetFtxChar* asset_ftx_lookup(const AssetFtxComp*, Unicode);

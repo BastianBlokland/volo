@@ -2,13 +2,13 @@
 #include "core_dynstring.h"
 #include "core_utf8.h"
 
-#define utf8_cp_max ((UnicodeCp)0x10FFFF)
-#define utf8_cp_single_char ((UnicodeCp)0x7F)
-#define utf8_cp_double_char ((UnicodeCp)0x7FF)
-#define utf8_cp_triple_char ((UnicodeCp)0xFFFF)
+#define utf8_cp_max ((Unicode)0x10FFFF)
+#define utf8_cp_single_char ((Unicode)0x7F)
+#define utf8_cp_double_char ((Unicode)0x7FF)
+#define utf8_cp_triple_char ((Unicode)0xFFFF)
 #define utf8_cp_quad_char utf8_cp_max
 
-static bool utf8_cp_valid(const UnicodeCp cp) { return cp <= utf8_cp_max; }
+static bool utf8_cp_valid(const Unicode cp) { return cp <= utf8_cp_max; }
 
 static u8 utf8_charcount_from_first(const u8 c) {
   if ((c & 0b10000000) == 0) {
@@ -38,7 +38,7 @@ usize utf8_cp_count(String str) {
   return result;
 }
 
-usize utf8_cp_bytes(const UnicodeCp cp) {
+usize utf8_cp_bytes(const Unicode cp) {
   if (cp <= utf8_cp_single_char) {
     return 1;
   }
@@ -51,7 +51,7 @@ usize utf8_cp_bytes(const UnicodeCp cp) {
   return 4;
 }
 
-void utf8_cp_write(DynString* str, const UnicodeCp cp) {
+void utf8_cp_write(DynString* str, const Unicode cp) {
   /**
    * Encode a Unicode codepoint as either 1, 2, 3 or 4 bytes.
    * Description of the encoding: https://en.wikipedia.org/wiki/UTF-8#Encoding
@@ -84,7 +84,7 @@ void utf8_cp_write(DynString* str, const UnicodeCp cp) {
   dynstring_append_char(str, (u8)((cp & 0x3F) | 0x80));
 }
 
-String utf8_cp_read(String utf8, UnicodeCp* out) {
+String utf8_cp_read(String utf8, Unicode* out) {
   if (UNLIKELY(!utf8.size)) {
     *out = 0;
     return string_empty;

@@ -68,9 +68,9 @@ static String json_lex_string(String str, JsonToken* out) {
         break;
       case 'u':
       case 'U': {
-        u64 unicodeCp;
-        str = format_read_u64(str, &unicodeCp, 16);
-        utf8_cp_write(&result, (UnicodeCp)unicodeCp);
+        u64 unicode;
+        str = format_read_u64(str, &unicode, 16);
+        utf8_cp_write(&result, (Unicode)unicode);
       } break;
       default:
         *out = json_token_err(JsonError_InvalidEscapeSequence);
