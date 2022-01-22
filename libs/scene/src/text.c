@@ -44,12 +44,17 @@ typedef struct {
 } SceneTextBuilder;
 
 static void scene_text_build_char(SceneTextBuilder* builder, const Unicode cp) {
-  if (cp == Unicode_Newline) {
+  switch (cp) {
+  case Unicode_Newline:
     builder->cursor[0] = 0;
     builder->cursor[1] -= (1 + builder->font->lineSpacing) * builder->glyphSize;
     return;
+  case Unicode_CarriageReturn:
+    builder->cursor[0] = 0;
+    return;
+  default:
+    break;
   }
-
   const AssetFtxChar* ch = asset_ftx_lookup(builder->font, cp);
   if (!sentinel_check(ch->glyphIndex)) {
     /**
