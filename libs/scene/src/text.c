@@ -42,11 +42,14 @@ typedef struct {
   ShaderGlyphData*           outputGlyphData;
   u32                        outputGlyphCount;
   String                     text;
+  f32                        startCursor[2];
   f32                        cursor[2];
   f32                        glyphSize;
 } SceneTextBuilder;
 
-static void scene_text_carriage_return(SceneTextBuilder* builder) { builder->cursor[0] = 0; }
+static void scene_text_carriage_return(SceneTextBuilder* builder) {
+  builder->cursor[0] = builder->startCursor[0];
+}
 
 static void scene_text_newline(SceneTextBuilder* builder) {
   scene_text_carriage_return(builder);
@@ -278,11 +281,12 @@ ecs_system_define(SceneTextBuildSys) {
     }
 
     scene_text_build(&(SceneTextBuilder){
-        .font       = ftx,
-        .renderable = renderable,
-        .text       = mem_slice(textComp->textMem, 0, textComp->textMemSize),
-        .cursor     = {textComp->position[0], textComp->position[1]},
-        .glyphSize  = textComp->size,
+        .font        = ftx,
+        .renderable  = renderable,
+        .text        = mem_slice(textComp->textMem, 0, textComp->textMemSize),
+        .startCursor = {textComp->position[0], textComp->position[1]},
+        .cursor      = {textComp->position[0], textComp->position[1]},
+        .glyphSize   = textComp->size,
     });
   }
 }
