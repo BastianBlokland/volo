@@ -9,6 +9,7 @@
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
+#include "scene_register.h"
 #include "scene_renderable.h"
 #include "scene_text.h"
 
@@ -215,8 +216,8 @@ ecs_system_define(SceneTextInitSys) {
     ecs_world_add_t(world, ecs_world_global(world), SceneGlobalFontComp, .asset = fontAsset);
   }
 
-  EcsView* renderView = ecs_world_view_t(world, TextInitView);
-  for (EcsIterator* itr = ecs_view_itr(renderView); ecs_view_walk(itr);) {
+  EcsView* initView = ecs_world_view_t(world, TextInitView);
+  for (EcsIterator* itr = ecs_view_itr(initView); ecs_view_walk(itr);) {
     /**
      * Create a 'SceneRenderableUniqueComp' for every text instance.
      */
@@ -251,18 +252,18 @@ ecs_system_define(SceneTextUnloadChangedFontsSys) {
   }
 }
 
-ecs_view_define(TextRenderView) {
+ecs_view_define(TextBuildView) {
   ecs_access_write(SceneTextComp);
   ecs_access_write(SceneRenderableUniqueComp);
 }
 
-ecs_system_define(SceneTextRenderSys) {
+ecs_system_define(SceneTextBuildSys) {
   const AssetFtxComp* ftx = scene_font_get(world);
   if (!ftx) {
     return;
   }
-  EcsView* renderView = ecs_world_view_t(world, TextRenderView);
-  for (EcsIterator* itr = ecs_view_itr(renderView); ecs_view_walk(itr);) {
+  EcsView* buildView = ecs_world_view_t(world, TextBuildView);
+  for (EcsIterator* itr = ecs_view_itr(buildView); ecs_view_walk(itr);) {
     SceneTextComp*             textComp   = ecs_view_write_t(itr, SceneTextComp);
     SceneRenderableUniqueComp* renderable = ecs_view_write_t(itr, SceneRenderableUniqueComp);
     if (!(textComp->flags & SceneText_Dirty)) {
@@ -294,15 +295,17 @@ ecs_module_init(scene_text_module) {
   ecs_register_view(GlobalFontView);
   ecs_register_view(FtxView);
   ecs_register_view(TextInitView);
-  ecs_register_view(TextRenderView);
+  ecs_register_view(TextBuildView);
 
   ecs_register_system(SceneTextInitSys, ecs_view_id(GlobalAssetsView), ecs_view_id(TextInitView));
   ecs_register_system(SceneTextUnloadChangedFontsSys, ecs_view_id(GlobalFontView));
   ecs_register_system(
-      SceneTextRenderSys,
+      SceneTextBuildSys,
       ecs_view_id(GlobalFontView),
       ecs_view_id(FtxView),
-      ecs_view_id(TextRenderView));
+      ecs_view_id(TextBuildView));
+
+  ecs_order(SceneTextBuildSys, SceneOrder_TextBuild);
 }
 
 EcsEntityId
