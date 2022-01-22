@@ -13,6 +13,7 @@ typedef struct sRvkRenderer RvkRenderer;
 typedef struct {
   TimeDuration renderTime;
   u64          forwardVertices, forwardPrimitives;
+  u64          forwardShadersVert, forwardShadersFrag;
 } RvkRenderStats;
 
 RvkRenderer*   rvk_renderer_create(RvkDevice*, u32 rendererId);

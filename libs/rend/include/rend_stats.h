@@ -7,6 +7,7 @@ ecs_comp_extern_public(RendStatsComp) {
   RendSize     renderResolution;
   TimeDuration renderTime;
   u64          vertices, primitives;
+  u64          shadersVert, shadersFrag;
   u64          ramOccupied, ramReserved;
   u64          vramOccupied, vramReserved;
 };
