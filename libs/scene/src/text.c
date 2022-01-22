@@ -5,8 +5,10 @@
 #include "scene_text.h"
 
 static const String g_textGraphic = string_static("graphics/ui/text.gra");
+static const String g_textFont    = string_static("fonts/mono.ftx");
 
 ecs_comp_define_public(SceneTextComp);
+ecs_comp_define(SceneGlobalFontComp) { EcsEntityId asset; };
 
 ecs_view_define(GlobalAssetsView) { ecs_access_write(AssetManagerComp); }
 
@@ -22,6 +24,11 @@ ecs_system_define(SceneTextInitSys) {
     return;
   }
   AssetManagerComp* assets = ecs_view_write_t(globalItr, AssetManagerComp);
+  if (!ecs_world_has_t(world, ecs_view_entity(globalItr), SceneGlobalFontComp)) {
+    const EcsEntityId fontAsset = asset_lookup(world, assets, g_textFont);
+    asset_acquire(world, fontAsset); // Keep the font loaded throughout application lifetime.
+    ecs_world_add_t(world, ecs_view_entity(globalItr), SceneGlobalFontComp, .asset = fontAsset);
+  }
 
   EcsView* renderView = ecs_world_view_t(world, TextInitView);
   for (EcsIterator* itr = ecs_view_itr(renderView); ecs_view_walk(itr);) {
@@ -51,6 +58,7 @@ ecs_system_define(SceneTextRenderSys) {
 
 ecs_module_init(scene_text_module) {
   ecs_register_comp(SceneTextComp);
+  ecs_register_comp(SceneGlobalFontComp);
 
   ecs_register_view(GlobalAssetsView);
   ecs_register_view(TextInitView);
