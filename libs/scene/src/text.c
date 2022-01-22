@@ -298,15 +298,22 @@ ecs_module_init(scene_text_module) {
 
 EcsEntityId
 scene_text_create(EcsWorld* world, const f32 x, const f32 y, const f32 size, const String text) {
-  const EcsEntityId entity   = ecs_world_entity_create(world);
-  SceneTextComp*    textComp = ecs_world_add_t(world, entity, SceneTextComp);
-  scene_text_update(textComp, x, y, size, text);
+  const EcsEntityId entity = ecs_world_entity_create(world);
+  SceneTextComp*    comp   = ecs_world_add_t(world, entity, SceneTextComp);
+  scene_text_update_position(comp, x, y);
+  scene_text_update_size(comp, size);
+  scene_text_update_str(comp, text);
   return entity;
 }
 
-void scene_text_update(
-    SceneTextComp* comp, const f32 x, const f32 y, const f32 size, const String newText) {
+void scene_text_update_position(SceneTextComp* comp, const f32 x, const f32 y) {
+  comp->position[0] = x;
+  comp->position[1] = y;
+}
 
+void scene_text_update_size(SceneTextComp* comp, const f32 size) { comp->size = size; }
+
+void scene_text_update_str(SceneTextComp* comp, const String newText) {
   if (UNLIKELY(newText.size > comp->textMem.size)) {
     /**
      * Text does not fit in the existing memory; free the old memory and allocate new memory.
@@ -318,10 +325,6 @@ void scene_text_update(
     }
     comp->textMem = alloc_alloc(g_alloc_heap, bits_nextpow2_64(newText.size), 1);
   }
-
-  comp->position[0] = x;
-  comp->position[1] = y;
-  comp->size        = size;
 
   mem_cpy(comp->textMem, newText);
   comp->textMemSize = newText.size;
