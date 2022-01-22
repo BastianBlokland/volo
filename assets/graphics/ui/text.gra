@@ -14,9 +14,9 @@
       "filter": "Linear"
     }
   ],
-  "vertexCount": 4,
+  "vertexCount": 0,
   "renderOrder": 100,
-  "topology": "TriangleFan",
+  "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "Alpha",
   "depth": "Always",
