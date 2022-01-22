@@ -37,7 +37,12 @@ ecs_system_define(AppUpdateSys) {
   if (app->flags & AppFlags_Init) {
     app->text = ecs_world_entity_create(world);
     ecs_world_add_t(
-        world, app->text, SceneTextComp, .x = 100, .y = 100, .text = string_lit("Hello World!"));
+        world,
+        app->text,
+        SceneTextComp,
+        .position = {100, 100},
+        .size     = 50.0f,
+        .text     = string_lit("Hello World!"));
 
     app->flags &= ~AppFlags_Init;
   }

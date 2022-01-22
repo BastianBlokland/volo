@@ -219,8 +219,8 @@ ecs_system_define(SceneTextRenderSys) {
         .font       = ftx,
         .renderable = ecs_view_write_t(itr, SceneRenderableUniqueComp),
         .text       = textComp->text,
-        .cursor     = {textComp->x, textComp->y},
-        .glyphSize  = 100.0f,
+        .cursor     = {textComp->position[0], textComp->position[1]},
+        .glyphSize  = textComp->size,
     });
   }
 }
