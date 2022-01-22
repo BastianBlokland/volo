@@ -129,8 +129,8 @@ ecs_system_define(SceneTextRenderSys) {
     };
     ShaderCharData* charData = mem_consume(data, sizeof(ShaderFontData)).ptr;
     charData[0]              = (ShaderCharData){
-        .position = {0.1f, 0.0f},
-        .size     = 0.1f,
+        .position = {100, 100},
+        .size     = 100,
         .index    = (f32)asset_ftx_lookup(ftx, 65)->glyphIndex,
     };
 

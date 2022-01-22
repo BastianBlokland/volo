@@ -45,6 +45,7 @@ static void ecs_combine_draw(void* dataA, void* dataB) {
 
 typedef struct {
   ALIGNAS(16)
+  GeoVector resolution; // x, y size, z, w invSize
   GeoMatrix viewProj;
   GeoVector camPosition;
   GeoQuat   camRotation;
@@ -150,7 +151,9 @@ static bool painter_draw(
   const bool      draw     = rvk_canvas_begin(painter->canvas, rendSize);
   if (draw) {
     const RendPainterGlobalData globalData = {
-        .viewProj    = painter_view_proj_matrix(win, cam, trans),
+        .viewProj   = painter_view_proj_matrix(win, cam, trans),
+        .resolution = geo_vector(
+            rendSize.width, rendSize.height, 1.0f / rendSize.width, 1.0f / rendSize.height),
         .camPosition = trans ? trans->position : geo_vector(0),
         .camRotation = trans ? trans->rotation : geo_quat_ident,
     };
