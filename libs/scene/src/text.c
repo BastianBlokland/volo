@@ -1,5 +1,7 @@
 #include "asset_ftx.h"
 #include "asset_manager.h"
+#include "core_alloc.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_unicode.h"
 #include "core_utf8.h"
@@ -108,11 +110,24 @@ typedef enum {
   SceneGlobalFont_Unloading = 1 << 1,
 } SceneGlobalFontFlags;
 
-ecs_comp_define_public(SceneTextComp);
+ecs_comp_define(SceneTextComp) {
+  f32   position[2];
+  f32   size;
+  Mem   textMem;
+  usize textMemSize;
+};
+
 ecs_comp_define(SceneGlobalFontComp) {
   EcsEntityId          asset;
   SceneGlobalFontFlags flags;
 };
+
+static void ecs_destruct_text(void* data) {
+  SceneTextComp* comp = data;
+  if (comp->textMem.ptr) {
+    alloc_free(g_alloc_heap, comp->textMem);
+  }
+}
 
 ecs_view_define(GlobalAssetsView) { ecs_access_write(AssetManagerComp); }
 ecs_view_define(GlobalFontView) { ecs_access_write(SceneGlobalFontComp); }
@@ -213,12 +228,19 @@ ecs_system_define(SceneTextRenderSys) {
   }
   EcsView* renderView = ecs_world_view_t(world, TextRenderView);
   for (EcsIterator* itr = ecs_view_itr(renderView); ecs_view_walk(itr);) {
-    const SceneTextComp* textComp = ecs_view_read_t(itr, SceneTextComp);
+    const SceneTextComp*       textComp   = ecs_view_read_t(itr, SceneTextComp);
+    SceneRenderableUniqueComp* renderable = ecs_view_write_t(itr, SceneRenderableUniqueComp);
+
+    if (UNLIKELY(!textComp->textMemSize)) {
+      renderable->instDataSize        = 0;
+      renderable->vertexCountOverride = 0;
+      continue;
+    }
 
     scene_text_build(&(SceneTextBuilder){
         .font       = ftx,
-        .renderable = ecs_view_write_t(itr, SceneRenderableUniqueComp),
-        .text       = textComp->text,
+        .renderable = renderable,
+        .text       = mem_slice(textComp->textMem, 0, textComp->textMemSize),
         .cursor     = {textComp->position[0], textComp->position[1]},
         .glyphSize  = textComp->size,
     });
@@ -226,7 +248,7 @@ ecs_system_define(SceneTextRenderSys) {
 }
 
 ecs_module_init(scene_text_module) {
-  ecs_register_comp(SceneTextComp);
+  ecs_register_comp(SceneTextComp, .destructor = ecs_destruct_text);
   ecs_register_comp(SceneGlobalFontComp);
 
   ecs_register_view(GlobalAssetsView);
@@ -242,4 +264,35 @@ ecs_module_init(scene_text_module) {
       ecs_view_id(GlobalFontView),
       ecs_view_id(FtxView),
       ecs_view_id(TextRenderView));
+}
+
+EcsEntityId
+scene_text_create(EcsWorld* world, const f32 x, const f32 y, const f32 size, const String text) {
+  const EcsEntityId entity   = ecs_world_entity_create(world);
+  SceneTextComp*    textComp = ecs_world_add_t(world, entity, SceneTextComp);
+  scene_text_update(textComp, x, y, size, text);
+  return entity;
+}
+
+void scene_text_update(
+    SceneTextComp* comp, const f32 x, const f32 y, const f32 size, const String newText) {
+
+  if (UNLIKELY(newText.size > comp->textMem.size)) {
+    /**
+     * Text does not fit in the existing memory; free the old memory and allocate new memory.
+     * NOTE: Rounds the allocation up to the next power-of-two to avoid reallocating many times when
+     * slowly growing the text.
+     */
+    if (LIKELY(comp->textMem.ptr)) {
+      alloc_free(g_alloc_heap, comp->textMem);
+    }
+    comp->textMem = alloc_alloc(g_alloc_heap, bits_nextpow2_64(newText.size), 1);
+  }
+
+  comp->position[0] = x;
+  comp->position[1] = y;
+  comp->size        = size;
+
+  mem_cpy(comp->textMem, newText);
+  comp->textMemSize = newText.size;
 }

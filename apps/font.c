@@ -35,15 +35,7 @@ ecs_system_define(AppUpdateSys) {
   AppComp* app = ecs_view_write_t(globalItr, AppComp);
 
   if (app->flags & AppFlags_Init) {
-    app->text = ecs_world_entity_create(world);
-    ecs_world_add_t(
-        world,
-        app->text,
-        SceneTextComp,
-        .position = {100, 100},
-        .size     = 50.0f,
-        .text     = string_lit("Hello World!"));
-
+    app->text = scene_text_create(world, 100, 100, 50, string_lit("Hello World!"));
     app->flags &= ~AppFlags_Init;
   }
 }
