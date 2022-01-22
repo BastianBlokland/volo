@@ -27,14 +27,14 @@ typedef struct {
   f32 position[2];
   f32 size;
   f32 index;
-} ShaderCharData;
+} ShaderGlyphData;
 
-ASSERT(sizeof(ShaderCharData) == 16, "Size needs to match the size defined in glsl");
+ASSERT(sizeof(ShaderGlyphData) == 16, "Size needs to match the size defined in glsl");
 
 typedef struct {
   const AssetFtxComp*        font;
   SceneRenderableUniqueComp* renderable;
-  ShaderCharData*            outputCharData;
+  ShaderGlyphData*           outputGlyphData;
   u32                        outputGlyphCount;
   String                     text;
   f32                        cursor[2];
@@ -47,7 +47,7 @@ static void scene_text_build_char(SceneTextBuilder* builder, const UnicodeCp cp)
     /**
      * This character has a glyph, output it to the shader.
      */
-    builder->outputCharData[builder->outputGlyphCount++] = (ShaderCharData){
+    builder->outputGlyphData[builder->outputGlyphCount++] = (ShaderGlyphData){
         .index = (f32)ch->glyphIndex,
         .position =
             {
@@ -74,7 +74,7 @@ static void scene_text_build(SceneTextBuilder* builder) {
     return;
   }
 
-  const usize maxDataSize = sizeof(ShaderFontData) + sizeof(ShaderCharData) * codePointsCount;
+  const usize maxDataSize = sizeof(ShaderFontData) + sizeof(ShaderGlyphData) * codePointsCount;
   Mem         data        = scene_renderable_unique_data(builder->renderable, maxDataSize);
 
   /**
@@ -88,7 +88,7 @@ static void scene_text_build(SceneTextBuilder* builder) {
   /**
    * Build the glyph data.
    */
-  builder->outputCharData = mem_consume(data, sizeof(ShaderFontData)).ptr;
+  builder->outputGlyphData = mem_consume(data, sizeof(ShaderFontData)).ptr;
   do {
     diag_assert(builder->outputGlyphCount < scene_text_max_glyphs);
 
