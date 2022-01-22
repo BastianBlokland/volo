@@ -31,6 +31,7 @@ typedef struct {
   String fontId;
   u32    size, glyphSize;
   u32    border;
+  f32    advanceMultiplier;
   String characters;
 } FtxDefinition;
 
@@ -48,6 +49,8 @@ static void ftx_datareg_init() {
     data_reg_field_t(g_dataReg, FtxDefinition, size, data_prim_t(u32));
     data_reg_field_t(g_dataReg, FtxDefinition, glyphSize, data_prim_t(u32));
     data_reg_field_t(g_dataReg, FtxDefinition, border, data_prim_t(u32));
+    data_reg_field_t(
+        g_dataReg, FtxDefinition, advanceMultiplier, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, FtxDefinition, characters, data_prim_t(String));
 
     g_dataFtxDefMeta = data_meta_t(t_FtxDefinition);
@@ -197,6 +200,7 @@ static void ftx_generate(
     *err = FtxError_TooManyGlyphs;
     goto Error;
   }
+  const f32 advanceMult = def->advanceMultiplier < f32_epsilon ? 1.0f : def->advanceMultiplier;
 
   FtxDefinitionChar inputChars[ftx_max_chars];
   const u32         charCount = ftx_lookup_chars(font, def->characters, inputChars, err);
@@ -214,7 +218,7 @@ static void ftx_generate(
         .size       = inputChars[i].glyph->size,
         .offsetX    = inputChars[i].glyph->offsetX,
         .offsetY    = inputChars[i].glyph->offsetY,
-        .advance    = inputChars[i].glyph->advance,
+        .advance    = inputChars[i].glyph->advance * advanceMult,
     };
     if (inputChars[i].glyph->segmentCount) {
       if (UNLIKELY(nextGlyphIndex >= maxGlyphs)) {
