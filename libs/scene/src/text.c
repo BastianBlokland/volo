@@ -1,52 +1,106 @@
 #include "asset_ftx.h"
 #include "asset_manager.h"
+#include "core_diag.h"
+#include "core_unicode.h"
+#include "core_utf8.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "scene_renderable.h"
 #include "scene_text.h"
 
-#define scene_text_max_chars 2048
+#define scene_text_max_glyphs 2048
 
 static const String g_textGraphic = string_static("graphics/ui/text.gra");
 static const String g_textFont    = string_static("fonts/mono.ftx");
 
-static void scene_text_build(
-    const SceneTextComp* textComp, SceneRenderableUniqueComp* renderable, const AssetFtxComp* ftx) {
+typedef struct {
+  ALIGNAS(16)
+  f32 glyphsPerDim;
+  f32 invGlyphsPerDim;
+} ShaderFontData;
 
-  (void)textComp;
+ASSERT(sizeof(ShaderFontData) == 16, "Size needs to match the size defined in glsl");
 
-  typedef struct {
-    ALIGNAS(16)
-    f32 glyphsPerDim;
-    f32 invGlyphsPerDim;
-  } ShaderFontData;
+typedef struct {
+  ALIGNAS(16)
+  f32 position[2];
+  f32 size;
+  f32 index;
+} ShaderCharData;
 
-  typedef struct {
-    ALIGNAS(16)
-    f32 position[2];
-    f32 size;
-    f32 index;
-  } ShaderCharData;
+ASSERT(sizeof(ShaderCharData) == 16, "Size needs to match the size defined in glsl");
 
-  // TODO: Compute chars.
-  // TODO: Clamp max chars.
-  const u32 charCount = 1;
+typedef struct {
+  const AssetFtxComp*        font;
+  SceneRenderableUniqueComp* renderable;
+  ShaderCharData*            outputCharData;
+  u32                        outputGlyphCount;
+  String                     text;
+  f32                        cursor[2];
+  f32                        glyphSize;
+} SceneTextBuilder;
 
-  const usize dataSize            = sizeof(ShaderFontData) + sizeof(ShaderCharData) * charCount;
-  Mem         data                = scene_renderable_unique_data(renderable, dataSize);
+static void scene_text_build_char(SceneTextBuilder* builder, const UnicodeCp cp) {
+  const AssetFtxChar* ch = asset_ftx_lookup(builder->font, cp);
+  if (!sentinel_check(ch->glyphIndex)) {
+    /**
+     * This character has a glyph, output it to the shader.
+     */
+    builder->outputCharData[builder->outputGlyphCount++] = (ShaderCharData){
+        .index = (f32)ch->glyphIndex,
+        .position =
+            {
+                ch->offsetX * builder->glyphSize + builder->cursor[0],
+                ch->offsetY * builder->glyphSize + builder->cursor[1],
+            },
+        .size = ch->size * builder->glyphSize,
+    };
+  }
+  builder->cursor[0] += ch->advance * builder->glyphSize;
+}
+
+static void scene_text_build(SceneTextBuilder* builder) {
+  const usize codePointsCount = utf8_cp_count(builder->text);
+  if (UNLIKELY(codePointsCount > scene_text_max_glyphs)) {
+    /**
+     * NOTE: This check is conservative as not every code-point necessarily has a glyph (for example
+     * spaces dont have glyphs).
+     */
+    log_w(
+        "SceneTextComp consists of more codepoints then are supported",
+        log_param("codepoints", fmt_int(codePointsCount)),
+        log_param("maximum", fmt_int(scene_text_max_glyphs)));
+    return;
+  }
+
+  const usize maxDataSize = sizeof(ShaderFontData) + sizeof(ShaderCharData) * codePointsCount;
+  Mem         data        = scene_renderable_unique_data(builder->renderable, maxDataSize);
+
+  /**
+   * Setup per-font data (shared between all glyphs in this text).
+   */
   *mem_as_t(data, ShaderFontData) = (ShaderFontData){
-      .glyphsPerDim    = (f32)ftx->glyphsPerDim,
-      .invGlyphsPerDim = 1.0f / (f32)ftx->glyphsPerDim,
-  };
-  ShaderCharData* charData = mem_consume(data, sizeof(ShaderFontData)).ptr;
-  charData[0]              = (ShaderCharData){
-      .position = {100, 100},
-      .size     = 100,
-      .index    = (f32)asset_ftx_lookup(ftx, 65)->glyphIndex,
+      .glyphsPerDim    = (f32)builder->font->glyphsPerDim,
+      .invGlyphsPerDim = 1.0f / (f32)builder->font->glyphsPerDim,
   };
 
-  renderable->vertexCountOverride = charCount * 6;
+  /**
+   * Build the glyph data.
+   */
+  builder->outputCharData = mem_consume(data, sizeof(ShaderFontData)).ptr;
+  do {
+    diag_assert(builder->outputGlyphCount < scene_text_max_glyphs);
+
+    UnicodeCp cp;
+    builder->text = utf8_cp_read(builder->text, &cp);
+    scene_text_build_char(builder, cp);
+  } while (!string_is_empty(builder->text));
+
+  /**
+   * Finalize the text render data.
+   */
+  builder->renderable->vertexCountOverride = builder->outputGlyphCount * 6; // 6 verts for a quad.
 }
 
 typedef enum {
@@ -159,9 +213,15 @@ ecs_system_define(SceneTextRenderSys) {
   }
   EcsView* renderView = ecs_world_view_t(world, TextRenderView);
   for (EcsIterator* itr = ecs_view_itr(renderView); ecs_view_walk(itr);) {
-    const SceneTextComp*       textComp   = ecs_view_read_t(itr, SceneTextComp);
-    SceneRenderableUniqueComp* renderable = ecs_view_write_t(itr, SceneRenderableUniqueComp);
-    scene_text_build(textComp, renderable, ftx);
+    const SceneTextComp* textComp = ecs_view_read_t(itr, SceneTextComp);
+
+    scene_text_build(&(SceneTextBuilder){
+        .font       = ftx,
+        .renderable = ecs_view_write_t(itr, SceneRenderableUniqueComp),
+        .text       = textComp->text,
+        .cursor     = {textComp->x, textComp->y},
+        .glyphSize  = 100.0f,
+    });
   }
 }
 
