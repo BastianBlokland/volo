@@ -9,7 +9,7 @@
 #include "log.h"
 #include "rend.h"
 #include "scene_register.h"
-#include "scene_renderable.h"
+#include "scene_text.h"
 
 typedef enum {
   AppFlags_Init  = 1 << 0,
@@ -19,74 +19,12 @@ typedef enum {
 ecs_comp_define(AppComp) {
   AppFlags    flags;
   EcsEntityId window;
-  EcsEntityId fontAsset;
-  EcsEntityId lineRenderer, pointRenderer;
-  UnicodeCp   cp;
+  EcsEntityId text;
 };
 
-ecs_view_define(GlobalView) {
-  ecs_access_write(AssetManagerComp);
-  ecs_access_write(AppComp);
-}
+ecs_view_define(GlobalView) { ecs_access_write(AppComp); }
 
-ecs_view_define(FontView) { ecs_access_read(AssetFontComp); }
-ecs_view_define(UiRendererView) { ecs_access_write(SceneRenderableUniqueComp); }
 ecs_view_define(WindowView) { ecs_access_read(GapWindowComp); }
-
-static void app_render_ui(
-    const AssetFontComp*       font,
-    const AppComp*             app,
-    SceneRenderableUniqueComp* lineRenderer,
-    SceneRenderableUniqueComp* pointRenderer) {
-
-  MAYBE_UNUSED const TimeSteady startTime = time_steady_clock();
-
-  const AssetFontGlyph* glyph = asset_font_lookup(font, app->cp);
-
-  GeoVector* lines     = scene_renderable_unique_data(lineRenderer, sizeof(GeoVector) * 512).ptr;
-  u32        lineCount = 0;
-
-  GeoVector* points     = scene_renderable_unique_data(pointRenderer, sizeof(GeoVector) * 4096).ptr;
-  u32        pointCount = 0;
-
-  const f32 step = 0.02f;
-  for (f32 x = step; x <= 1.0f - step; x += step) {
-    for (f32 y = step; y <= 1.0f - step; y += step) {
-      const AssetFontPoint p         = {x, y};
-      const f32            dist      = asset_font_glyph_dist(font, glyph, p);
-      const f32            intensity = math_clamp_f32(dist * 20.0f, -1, 1) * 0.5f + 0.5f;
-      points[pointCount++]           = geo_vector(p.x, p.y, intensity);
-    }
-  }
-
-  const f32 density = 25.0f;
-  const f32 offsetX = 0;
-  const f32 offsetY = 0;
-  const f32 scale   = 1;
-
-  for (usize seg = glyph->segmentIndex; seg != glyph->segmentIndex + glyph->segmentCount; ++seg) {
-    GeoVector lastPoint;
-    const u32 count = math_max(2, (u32)(asset_font_seg_length(font, seg) * density));
-    for (usize i = 0; i != count; ++i) {
-      const f32            t     = i / (f32)(count - 1);
-      const AssetFontPoint point = asset_font_seg_sample(font, seg, t);
-      const GeoVector pointPos   = geo_vector(offsetX + point.x * scale, offsetY + point.y * scale);
-      if (i) {
-        lines[lineCount++] = geo_vector(lastPoint.x, lastPoint.y, pointPos.x, pointPos.y);
-      }
-      lastPoint = pointPos;
-    }
-  }
-
-  lineRenderer->vertexCountOverride  = lineCount * 2;
-  pointRenderer->vertexCountOverride = pointCount;
-
-  MAYBE_UNUSED const TimeDuration duration = time_steady_duration(startTime, time_steady_clock());
-  log_d(
-      "Ui updated",
-      log_param("cp", fmt_int(app->cp)),
-      log_param("duration", fmt_duration(duration)));
-}
 
 ecs_system_define(AppUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
@@ -94,57 +32,14 @@ ecs_system_define(AppUpdateSys) {
   if (!globalItr) {
     return;
   }
-  AppComp*          app    = ecs_view_write_t(globalItr, AppComp);
-  AssetManagerComp* assets = ecs_view_write_t(globalItr, AssetManagerComp);
+  AppComp* app = ecs_view_write_t(globalItr, AppComp);
 
   if (app->flags & AppFlags_Init) {
-    app->fontAsset = asset_lookup(world, assets, string_lit("fonts/hack_regular.ttf"));
-    asset_acquire(world, app->fontAsset);
-
-    app->lineRenderer = ecs_world_entity_create(world);
+    app->text = ecs_world_entity_create(world);
     ecs_world_add_t(
-        world,
-        app->lineRenderer,
-        SceneRenderableUniqueComp,
-        .graphic = asset_lookup(world, assets, string_lit("graphics/ui/lines.gra")));
+        world, app->text, SceneTextComp, .x = 100, .y = 100, .text = string_lit("Hello World!"));
 
-    app->pointRenderer = ecs_world_entity_create(world);
-    ecs_world_add_t(
-        world,
-        app->pointRenderer,
-        SceneRenderableUniqueComp,
-        .graphic = asset_lookup(world, assets, string_lit("graphics/ui/points.gra")));
-
-    app->cp = 0x42;
     app->flags &= ~AppFlags_Init;
-    app->flags |= AppFlags_Dirty;
-  }
-
-  EcsView* fontView = ecs_world_view_t(world, FontView);
-  if (!ecs_view_contains(fontView, app->fontAsset)) {
-    return;
-  }
-
-  const GapWindowComp* win = ecs_utils_read_t(world, WindowView, app->window, GapWindowComp);
-  if (gap_window_key_pressed(win, GapKey_ArrowRight)) {
-    ++app->cp;
-    app->flags |= AppFlags_Dirty;
-  }
-  if (gap_window_key_pressed(win, GapKey_ArrowLeft)) {
-    --app->cp;
-    app->flags |= AppFlags_Dirty;
-  }
-
-  if (app->flags & AppFlags_Dirty) {
-    const AssetFontComp* font =
-        ecs_utils_read(fontView, app->fontAsset, ecs_comp_id(AssetFontComp));
-    SceneRenderableUniqueComp* lineRenderer =
-        ecs_utils_write_t(world, UiRendererView, app->lineRenderer, SceneRenderableUniqueComp);
-    SceneRenderableUniqueComp* pointRenderer =
-        ecs_utils_write_t(world, UiRendererView, app->pointRenderer, SceneRenderableUniqueComp);
-
-    app_render_ui(font, app, lineRenderer, pointRenderer);
-    app->flags &= ~AppFlags_Dirty;
   }
 }
 
@@ -152,16 +47,9 @@ ecs_module_init(app_font_module) {
   ecs_register_comp(AppComp);
 
   ecs_register_view(GlobalView);
-  ecs_register_view(FontView);
-  ecs_register_view(UiRendererView);
   ecs_register_view(WindowView);
 
-  ecs_register_system(
-      AppUpdateSys,
-      ecs_view_id(GlobalView),
-      ecs_view_id(FontView),
-      ecs_view_id(UiRendererView),
-      ecs_view_id(WindowView));
+  ecs_register_system(AppUpdateSys, ecs_view_id(GlobalView), ecs_view_id(WindowView));
 }
 
 static int app_run(const String assetPath) {
