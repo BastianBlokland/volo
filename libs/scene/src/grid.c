@@ -30,8 +30,8 @@ ecs_system_define(SceneGridCreateSys) {
     return;
   }
 
-  EcsView*     view      = ecs_world_view_t(world, GlobalAssetsView);
-  EcsIterator* globalItr = ecs_view_maybe_at(view, ecs_world_global(world));
+  EcsView*     globalView = ecs_world_view_t(world, GlobalAssetsView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
   }

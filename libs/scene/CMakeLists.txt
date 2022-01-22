@@ -9,6 +9,7 @@ add_library(lib_scene STATIC
   src/grid.c
   src/register.c
   src/renderable.c
+  src/text.c
   src/time.c
   src/transform.c
   src/velocity.c

@@ -39,6 +39,8 @@ ecs_system_define(RendUpdateStatsSys) {
     stats->renderTime       = renderStats.renderTime;
     stats->vertices         = renderStats.forwardVertices;
     stats->primitives       = renderStats.forwardPrimitives;
+    stats->shadersVert      = renderStats.forwardShadersVert;
+    stats->shadersFrag      = renderStats.forwardShadersFrag;
     stats->ramOccupied      = rvk_mem_occupied(plat->device->memPool, RvkMemLoc_Host);
     stats->ramReserved      = rvk_mem_reserved(plat->device->memPool, RvkMemLoc_Host);
     stats->vramOccupied     = rvk_mem_occupied(plat->device->memPool, RvkMemLoc_Dev);

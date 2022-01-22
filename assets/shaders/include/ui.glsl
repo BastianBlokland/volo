@@ -4,7 +4,7 @@
 #include "types.glsl"
 
 /**
- * Map from UI to  NDC coordinates.
+ * Map from normalized UI coordinates to NDC coordinates.
  *
  * Input:
  *   0,1        1,1
@@ -16,7 +16,7 @@
  *
  * NOTE: Output depth is 0 meaning right at the camera.
  */
-f32_vec4 ui_to_ndc(const f32_vec2 uiPosition) {
+f32_vec4 ui_norm_to_ndc(const f32_vec2 uiPosition) {
   return f32_vec4(uiPosition * f32_vec2(2, -2) - f32_vec2(1, -1), 1.0, 1.0);
 }
 

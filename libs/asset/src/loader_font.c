@@ -52,7 +52,7 @@ const AssetFontGlyph* asset_font_missing(const AssetFontComp* font) {
   return &font->glyphs[0]; // The 'missing' glyph, is guaranteed to exist.
 }
 
-const AssetFontGlyph* asset_font_lookup(const AssetFontComp* font, const UnicodeCp cp) {
+const AssetFontGlyph* asset_font_lookup(const AssetFontComp* font, const Unicode cp) {
   const AssetFontChar* ch = search_binary_t(
       font->characters,
       font->characters + font->characterCount,
@@ -75,7 +75,7 @@ usize asset_font_lookup_utf8(
   }
   usize count = 0;
   do {
-    UnicodeCp cp;
+    Unicode cp;
     text = utf8_cp_read(text, &cp);
     if (out) {
       if (UNLIKELY(count >= outCount)) {

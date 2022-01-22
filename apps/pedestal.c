@@ -11,6 +11,7 @@
 #include "rend.h"
 #include "scene_register.h"
 #include "scene_renderable.h"
+#include "scene_text.h"
 #include "scene_time.h"
 #include "scene_transform.h"
 
@@ -19,8 +20,9 @@
  */
 
 static const GapVector g_windowSize          = {1024, 768};
+static const f32       g_statsTextSize       = 30.0f;
+static const u32       g_statsUpdateInterval = 4;
 static const f32       g_statSmoothFactor    = 0.05f;
-static const u32       g_titleUpdateInterval = 4;
 static const f32       g_pedestalRotateSpeed = 45.0f * math_deg_to_rad;
 static const f32       g_pedestalPositionY   = 0.5f;
 static const f32       g_subjectPositionY    = 1.0f;
@@ -44,6 +46,7 @@ typedef enum {
 
 ecs_comp_define(AppComp) {
   AppFlags     flags;
+  EcsEntityId  statsText;
   u32          subjectCount;
   u32          subjectIndex;
   f32          updateFreq;
@@ -62,6 +65,8 @@ ecs_view_define(WindowView) {
   ecs_access_write(GapWindowComp);
   ecs_access_maybe_read(RendStatsComp);
 }
+
+ecs_view_define(TextView) { ecs_access_write(SceneTextComp); }
 
 ecs_view_define(ObjectView) {
   ecs_access_with(SubjectComp);
@@ -111,20 +116,39 @@ static void spawn_objects(EcsWorld* world, AppComp* app, AssetManagerComp* asset
   }
 }
 
-static void window_title_set(GapWindowComp* win, AppComp* app, const RendStatsComp* stats) {
-  gap_window_title_set(
-      win,
+static void stats_draw(AppComp* app, const RendStatsComp* stats, EcsView* textView) {
+  if (!ecs_view_contains(textView, app->statsText)) {
+    return;
+  }
+  SceneTextComp* text = ecs_view_write_t(ecs_view_at(textView, app->statsText), SceneTextComp);
+  scene_text_update_position(text, 5, (stats ? stats->renderResolution.height : 0) - 30);
+  scene_text_update_str(
+      text,
       fmt_write_scratch(
-          "{} | {>4} hz | {>8} gpu | {>6} kverts | {>6} ktris | {>8} ram | {>8} vram | {>7} "
-          "rend-ram",
+          "{<10} pixels\n"
+          "{<10} hz\n"
+          "{<10} gpu time\n"
+          "{<10} verts\n"
+          "{<10} tris\n"
+          "{<10} vert shaders\n"
+          "{<10} frag shaders\n"
+          "{<10} ram\n"
+          "{<10} vram occupied\n"
+          "{<10} vram reserved\n"
+          "{<10} renderer ram occupied\n"
+          "{<10} renderer ram reserved",
           rend_size_fmt(stats ? stats->renderResolution : rend_size(0, 0)),
           fmt_float(app->updateFreq, .maxDecDigits = 0),
           fmt_duration(app->renderTime),
-          fmt_int(stats ? stats->vertices / 1000 : 0),
-          fmt_int(stats ? stats->primitives / 1000 : 0),
+          fmt_int(stats ? stats->vertices : 0),
+          fmt_int(stats ? stats->primitives : 0),
+          fmt_int(stats ? stats->shadersVert : 0),
+          fmt_int(stats ? stats->shadersFrag : 0),
           fmt_size(alloc_stats_total()),
           fmt_size(stats ? stats->vramOccupied : 0),
-          fmt_size(stats ? stats->ramOccupied : 0)));
+          fmt_size(stats ? stats->vramReserved : 0),
+          fmt_size(stats ? stats->ramOccupied : 0),
+          fmt_size(stats ? stats->ramReserved : 0)));
 }
 
 ecs_system_define(AppUpdateSys) {
@@ -137,6 +161,10 @@ ecs_system_define(AppUpdateSys) {
   AssetManagerComp*    assets = ecs_view_write_t(globalItr, AssetManagerComp);
   const SceneTimeComp* time   = ecs_view_read_t(globalItr, SceneTimeComp);
 
+  if (!app->statsText) {
+    app->statsText = scene_text_create(world, 0, 0, g_statsTextSize, string_empty);
+  }
+
   EcsView* windowView = ecs_world_view_t(world, WindowView);
   for (EcsIterator* windowItr = ecs_view_itr(windowView); ecs_view_walk(windowItr);) {
     GapWindowComp*       window    = ecs_view_write_t(windowItr, GapWindowComp);
@@ -148,8 +176,8 @@ ecs_system_define(AppUpdateSys) {
       app->renderTime = smooth_duration(app->renderTime, rendStats->renderTime);
     }
 
-    if ((time->ticks % g_titleUpdateInterval) == 0) {
-      window_title_set(window, app, rendStats);
+    if ((time->ticks % g_statsUpdateInterval) == 0) {
+      stats_draw(app, rendStats, ecs_world_view_t(world, TextView));
     }
 
     if (gap_window_key_pressed(window, GapKey_ArrowRight)) {
@@ -231,9 +259,14 @@ ecs_module_init(app_pedestal_module) {
   ecs_register_view(GlobalView);
   ecs_register_view(WindowView);
   ecs_register_view(ObjectView);
+  ecs_register_view(TextView);
 
   ecs_register_system(
-      AppUpdateSys, ecs_view_id(GlobalView), ecs_view_id(WindowView), ecs_view_id(ObjectView));
+      AppUpdateSys,
+      ecs_view_id(GlobalView),
+      ecs_view_id(WindowView),
+      ecs_view_id(ObjectView),
+      ecs_view_id(TextView));
   ecs_register_system(AppSetRotationSys, ecs_view_id(GlobalView), ecs_view_id(ObjectView));
 }
 

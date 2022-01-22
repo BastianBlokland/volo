@@ -3,6 +3,7 @@
 
 enum {
   SceneOrder_TimeUpdate = -100,
+  SceneOrder_TextBuild  = 800,
 };
 
 /**

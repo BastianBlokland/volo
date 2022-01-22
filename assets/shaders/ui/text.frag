@@ -4,7 +4,7 @@
 #include "binding.glsl"
 #include "texture.glsl"
 
-const f32 c_smoothing = 1.0 / 16.0;
+const f32 c_smoothing = 1.0 / 8.0;
 
 bind_graphic(1) uniform sampler2D u_fontTexture;
 

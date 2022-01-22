@@ -176,9 +176,11 @@ RvkRenderStats rvk_renderer_stats(const RvkRenderer* rend) {
   const u64 timestampEnd   = rvk_stopwatch_query(rend->stopwatch, rend->timeRecEnd);
 
   return (RvkRenderStats){
-      .renderTime        = time_nanoseconds(timestampEnd - timestampBegin),
-      .forwardVertices   = rvk_pass_stat(rend->forwardPass, RvkStat_InputAssemblyVertices),
-      .forwardPrimitives = rvk_pass_stat(rend->forwardPass, RvkStat_InputAssemblyPrimitives),
+      .renderTime         = time_nanoseconds(timestampEnd - timestampBegin),
+      .forwardVertices    = rvk_pass_stat(rend->forwardPass, RvkStat_InputAssemblyVertices),
+      .forwardPrimitives  = rvk_pass_stat(rend->forwardPass, RvkStat_InputAssemblyPrimitives),
+      .forwardShadersVert = rvk_pass_stat(rend->forwardPass, RvkStat_ShaderInvocationsVert),
+      .forwardShadersFrag = rvk_pass_stat(rend->forwardPass, RvkStat_ShaderInvocationsFrag),
   };
 }
 
