@@ -5,29 +5,31 @@
 #if defined(VOLO_MSVC)
 
 #include <math.h>
-#pragma intrinsic(sqrtf)
-#pragma intrinsic(logf)
-#pragma intrinsic(sinf)
-#pragma intrinsic(asinf)
-#pragma intrinsic(cosf)
 #pragma intrinsic(acosf)
-#pragma intrinsic(tanf)
-#pragma intrinsic(atanf)
+#pragma intrinsic(asinf)
 #pragma intrinsic(atan2f)
+#pragma intrinsic(atanf)
+#pragma intrinsic(cosf)
+#pragma intrinsic(fmodf)
+#pragma intrinsic(logf)
 #pragma intrinsic(powf)
+#pragma intrinsic(sinf)
+#pragma intrinsic(sqrtf)
+#pragma intrinsic(tanf)
 
 #else
 
-#define sqrtf __builtin_sqrtf
-#define logf __builtin_logf
-#define sinf __builtin_sinf
-#define asinf __builtin_asinf
-#define cosf __builtin_cosf
 #define acosf __builtin_acosf
-#define tanf __builtin_tanf
-#define atanf __builtin_atanf
+#define asinf __builtin_asinf
 #define atan2f __builtin_atan2f
+#define atanf __builtin_atanf
+#define cosf __builtin_cosf
+#define fmodf __builtin_fmodf
+#define logf __builtin_logf
 #define powf __builtin_powf
+#define sinf __builtin_sinf
+#define sqrtf __builtin_sqrtf
+#define tanf __builtin_tanf
 
 #endif
 
@@ -57,6 +59,8 @@ u64 math_pow10_u64(const u8 val) {
   diag_assert(val < array_elems(g_table));
   return g_table[val];
 }
+
+f32 math_mod_f32(const f32 x, const f32 y) { return fmodf(x, y); }
 
 f32 math_sqrt_f32(const f32 val) { return sqrtf(val); }
 
