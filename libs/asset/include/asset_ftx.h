@@ -22,6 +22,7 @@ typedef struct {
 } AssetFtxChar;
 
 ecs_comp_extern_public(AssetFtxComp) {
+  u32           glyphsPerDim;
   AssetFtxChar* characters; // Sorted on the unicode codepoint.
   usize         characterCount;
 };

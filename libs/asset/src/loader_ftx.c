@@ -229,6 +229,7 @@ static void ftx_generate(
   sort_quicksort_t(chars, chars + charCount, AssetFtxChar, ftx_compare_char_cp);
 
   *outFtx = (AssetFtxComp){
+      .glyphsPerDim   = glyphsPerDim,
       .characters     = chars,
       .characterCount = charCount,
   };
