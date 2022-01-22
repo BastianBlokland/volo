@@ -3,6 +3,7 @@
 #include "core_alloc.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_math.h"
 #include "core_unicode.h"
 #include "core_utf8.h"
 #include "ecs_utils.h"
@@ -12,6 +13,7 @@
 #include "scene_text.h"
 
 #define scene_text_max_glyphs 2048
+#define scene_text_tab_size 4
 
 static const String g_textGraphic = string_static("graphics/ui/text.gra");
 static const String g_textFont    = string_static("fonts/mono.ftx");
@@ -43,14 +45,31 @@ typedef struct {
   f32                        glyphSize;
 } SceneTextBuilder;
 
+static void scene_text_carriage_return(SceneTextBuilder* builder) { builder->cursor[0] = 0; }
+
+static void scene_text_newline(SceneTextBuilder* builder) {
+  scene_text_carriage_return(builder);
+  builder->cursor[1] -= (1 + builder->font->lineSpacing) * builder->glyphSize;
+}
+
+static void scene_text_next_tabstop_hor(SceneTextBuilder* builder) {
+  const AssetFtxChar* space        = asset_ftx_lookup(builder->font, Unicode_Space);
+  const f32           spaceAdvance = space->advance * builder->glyphSize;
+  const f32           horTabSize   = spaceAdvance * scene_text_tab_size;
+  const f32           rem          = math_mod_f32(builder->cursor[0], horTabSize);
+  builder->cursor[0] += horTabSize - rem;
+}
+
 static void scene_text_build_char(SceneTextBuilder* builder, const Unicode cp) {
   switch (cp) {
+  case Unicode_HorizontalTab:
+    scene_text_next_tabstop_hor(builder);
+    return;
   case Unicode_Newline:
-    builder->cursor[0] = 0;
-    builder->cursor[1] -= (1 + builder->font->lineSpacing) * builder->glyphSize;
+    scene_text_newline(builder);
     return;
   case Unicode_CarriageReturn:
-    builder->cursor[0] = 0;
+    scene_text_carriage_return(builder);
     return;
   default:
     break;
