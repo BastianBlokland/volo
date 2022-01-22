@@ -43,7 +43,13 @@ typedef struct {
   f32                        glyphSize;
 } SceneTextBuilder;
 
-static void scene_text_build_char(SceneTextBuilder* builder, const UnicodeCp cp) {
+static void scene_text_build_char(SceneTextBuilder* builder, const Unicode cp) {
+  if (cp == Unicode_Newline) {
+    builder->cursor[0] = 0;
+    builder->cursor[1] -= (1 + builder->font->lineSpacing) * builder->glyphSize;
+    return;
+  }
+
   const AssetFtxChar* ch = asset_ftx_lookup(builder->font, cp);
   if (!sentinel_check(ch->glyphIndex)) {
     /**
@@ -94,7 +100,7 @@ static void scene_text_build(SceneTextBuilder* builder) {
   do {
     diag_assert(builder->outputGlyphCount < scene_text_max_glyphs);
 
-    UnicodeCp cp;
+    Unicode cp;
     builder->text = utf8_cp_read(builder->text, &cp);
     scene_text_build_char(builder, cp);
   } while (!string_is_empty(builder->text));

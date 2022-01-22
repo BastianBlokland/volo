@@ -31,6 +31,7 @@ typedef struct {
   String fontId;
   u32    size, glyphSize;
   u32    border;
+  f32    lineSpacing;
   f32    advanceMultiplier;
   String characters;
 } FtxDefinition;
@@ -49,6 +50,8 @@ static void ftx_datareg_init() {
     data_reg_field_t(g_dataReg, FtxDefinition, size, data_prim_t(u32));
     data_reg_field_t(g_dataReg, FtxDefinition, glyphSize, data_prim_t(u32));
     data_reg_field_t(g_dataReg, FtxDefinition, border, data_prim_t(u32));
+    data_reg_field_t(
+        g_dataReg, FtxDefinition, lineSpacing, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(
         g_dataReg, FtxDefinition, advanceMultiplier, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, FtxDefinition, characters, data_prim_t(String));
@@ -126,7 +129,7 @@ static u32 ftx_lookup_chars(
   u32 index    = 0;
   out[index++] = (FtxDefinitionChar){.cp = 0, .glyph = asset_font_missing(font)};
   do {
-    UnicodeCp cp;
+    Unicode cp;
     chars = utf8_cp_read(chars, &cp);
     if (UNLIKELY(index >= ftx_max_chars)) {
       *err = FtxError_TooManyCharacters;
@@ -234,6 +237,7 @@ static void ftx_generate(
 
   *outFtx = (AssetFtxComp){
       .glyphsPerDim   = glyphsPerDim,
+      .lineSpacing    = def->lineSpacing,
       .characters     = chars,
       .characterCount = charCount,
   };
@@ -396,7 +400,7 @@ Error:
   asset_repo_source_close(src);
 }
 
-const AssetFtxChar* asset_ftx_lookup(const AssetFtxComp* comp, const UnicodeCp cp) {
+const AssetFtxChar* asset_ftx_lookup(const AssetFtxComp* comp, const Unicode cp) {
   const AssetFtxChar* ch = search_binary_t(
       comp->characters,
       comp->characters + comp->characterCount,
