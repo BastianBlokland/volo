@@ -323,7 +323,7 @@ scene_text_create(EcsWorld* world, const f32 x, const f32 y, const f32 size, con
 }
 
 void scene_text_update_position(SceneTextComp* comp, const f32 x, const f32 y) {
-  if (comp->position[0] != x | comp->position[1] != y) {
+  if (comp->position[0] != x || comp->position[1] != y) {
     comp->flags |= SceneText_Dirty;
     comp->position[0] = x;
     comp->position[1] = y;
