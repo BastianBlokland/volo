@@ -6,6 +6,8 @@
 #include "scene_renderable.h"
 #include "scene_text.h"
 
+#define scene_text_max_chars 2048
+
 static const String g_textGraphic = string_static("graphics/ui/text.gra");
 static const String g_textFont    = string_static("fonts/mono.ftx");
 
@@ -101,7 +103,38 @@ ecs_system_define(SceneTextRenderSys) {
     SceneRenderableUniqueComp* renderable = ecs_view_write_t(itr, SceneRenderableUniqueComp);
 
     (void)textComp;
-    renderable->vertexCountOverride = 6;
+
+    typedef struct {
+      ALIGNAS(16)
+      f32 glyphsPerDim;
+      f32 invGlyphsPerDim;
+    } ShaderFontData;
+
+    typedef struct {
+      ALIGNAS(16)
+      f32 position[2];
+      f32 size;
+      f32 index;
+    } ShaderCharData;
+
+    // TODO: Compute chars.
+    // TODO: Clamp max chars.
+    const u32 charCount = 1;
+
+    const usize dataSize            = sizeof(ShaderFontData) + sizeof(ShaderCharData) * charCount;
+    Mem         data                = scene_renderable_unique_data(renderable, dataSize);
+    *mem_as_t(data, ShaderFontData) = (ShaderFontData){
+        .glyphsPerDim    = (f32)ftx->glyphsPerDim,
+        .invGlyphsPerDim = 1.0f / (f32)ftx->glyphsPerDim,
+    };
+    ShaderCharData* charData = mem_consume(data, sizeof(ShaderFontData)).ptr;
+    charData[0]              = (ShaderCharData){
+        .position = {0.1f, 0.0f},
+        .size     = 0.1f,
+        .index    = (f32)asset_ftx_lookup(ftx, 65)->glyphIndex,
+    };
+
+    renderable->vertexCountOverride = charCount * 6;
   }
 }
 
