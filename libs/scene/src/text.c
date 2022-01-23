@@ -63,7 +63,8 @@ static void scene_text_next_tabstop_hor(SceneTextBuilder* builder) {
   const AssetFtxChar* space        = asset_ftx_lookup(builder->font, Unicode_Space);
   const f32           spaceAdvance = space->advance * builder->glyphSize;
   const f32           horTabSize   = spaceAdvance * scene_text_tab_size;
-  const f32           rem          = math_mod_f32(builder->cursor[0], horTabSize);
+  const f32           relCursorX   = builder->cursor[0] - builder->startCursor[0];
+  const f32           rem          = math_mod_f32(relCursorX, horTabSize);
   builder->cursor[0] += horTabSize - rem;
 }
 
