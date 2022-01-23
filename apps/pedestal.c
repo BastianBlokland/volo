@@ -172,7 +172,7 @@ ecs_system_define(AppUpdateSys) {
   const SceneTimeComp* time   = ecs_view_read_t(globalItr, SceneTimeComp);
 
   if (!app->statsText) {
-    app->statsText = scene_text_create(world, 0, 0, g_statsTextSize, string_empty);
+    app->statsText = scene_text_create(world, 0, 0, g_statsTextSize, geo_color_white, string_empty);
   }
 
   EcsView* windowView = ecs_world_view_t(world, WindowView);

@@ -30,8 +30,9 @@ struct GlyphData {
 };
 
 struct FontData {
-  f32 glyphsPerDim;
-  f32 invGlyphsPerDim;
+  f32      glyphsPerDim;
+  f32      invGlyphsPerDim;
+  f32_vec4 color;
 };
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
@@ -41,6 +42,7 @@ bind_instance_data(0) readonly uniform Instance {
 };
 
 bind_internal(0) out f32_vec2 out_texcoord;
+bind_internal(1) out flat f32_vec4 out_color;
 
 void main() {
   const u32      glyphIndex = in_vertexIndex / c_verticesPerGlyph;
@@ -62,4 +64,5 @@ void main() {
 
   out_vertexPosition = ui_norm_to_ndc(uiPos * u_global.resolution.zw);
   out_texcoord       = (c_unitTexCoords[vertIndex] + atlasPos) * u_font.invGlyphsPerDim;
+  out_color          = u_font.color;
 }

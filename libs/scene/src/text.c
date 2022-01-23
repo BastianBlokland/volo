@@ -21,11 +21,13 @@ static const String g_textFont    = string_static("fonts/mono.ftx");
 
 typedef struct {
   ALIGNAS(16)
-  f32 glyphsPerDim;
-  f32 invGlyphsPerDim;
+  f32      glyphsPerDim;
+  f32      invGlyphsPerDim;
+  f32      padding[2];
+  GeoColor color;
 } ShaderFontData;
 
-ASSERT(sizeof(ShaderFontData) == 16, "Size needs to match the size defined in glsl");
+ASSERT(sizeof(ShaderFontData) == 32, "Size needs to match the size defined in glsl");
 
 typedef struct {
   ALIGNAS(16)
@@ -42,6 +44,7 @@ typedef struct {
   ShaderGlyphData*           outputGlyphData;
   u32                        outputGlyphCount;
   String                     text;
+  GeoColor                   color;
   f32                        startCursor[2];
   f32                        cursor[2];
   f32                        glyphSize;
@@ -120,6 +123,7 @@ static void scene_text_build(SceneTextBuilder* builder) {
   *mem_as_t(data, ShaderFontData) = (ShaderFontData){
       .glyphsPerDim    = (f32)builder->font->glyphsPerDim,
       .invGlyphsPerDim = 1.0f / (f32)builder->font->glyphsPerDim,
+      .color           = builder->color,
   };
 
   /**
@@ -153,6 +157,7 @@ ecs_comp_define(SceneTextComp) {
   SceneTextFlags flags;
   f32            position[2];
   f32            size;
+  GeoColor       color;
   Mem            textMem;
   usize          textMemSize;
 };
@@ -285,6 +290,7 @@ ecs_system_define(SceneTextBuildSys) {
         .font        = ftx,
         .renderable  = renderable,
         .text        = mem_slice(textComp->textMem, 0, textComp->textMemSize),
+        .color       = textComp->color,
         .startCursor = {textComp->position[0], textComp->position[1]},
         .cursor      = {textComp->position[0], textComp->position[1]},
         .glyphSize   = textComp->size,
@@ -313,14 +319,27 @@ ecs_module_init(scene_text_module) {
   ecs_order(SceneTextBuildSys, SceneOrder_TextBuild);
 }
 
-EcsEntityId
-scene_text_create(EcsWorld* world, const f32 x, const f32 y, const f32 size, const String text) {
+EcsEntityId scene_text_create(
+    EcsWorld*      world,
+    const f32      x,
+    const f32      y,
+    const f32      size,
+    const GeoColor color,
+    const String   text) {
+
   const EcsEntityId entity = ecs_world_entity_create(world);
   SceneTextComp*    comp   = ecs_world_add_t(world, entity, SceneTextComp);
+  scene_text_update_color(comp, color);
   scene_text_update_position(comp, x, y);
   scene_text_update_size(comp, size);
   scene_text_update_str(comp, text);
   return entity;
+}
+
+void scene_text_update_color(SceneTextComp* comp, const GeoColor color) {
+  // TODO: Only mark the text as dirty if the color is different.
+  comp->flags |= SceneText_Dirty;
+  comp->color = color;
 }
 
 void scene_text_update_position(SceneTextComp* comp, const f32 x, const f32 y) {
