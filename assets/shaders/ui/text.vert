@@ -35,7 +35,7 @@ struct GlyphPackedData {
 };
 
 struct FontData {
-  f32      glyphPerAtlas; // glyphsPerDim * glyphsPerDim
+  f32      glyphsInFont; // glyphsPerDim * glyphsPerDim
   f32      glyphsPerDim;
   f32      invGlyphsPerDim; // 1,0 / glyphsPerDim
   f32_vec4 color;
@@ -68,7 +68,7 @@ void main() {
   const f32_vec4 glyphData  = glyph_data(glyphIndex);
   const f32_vec2 glyphPos   = glyphData.xy;
   const f32      glyphSize  = glyphData.z;
-  const f32      atlasIndex = glyphData.w * u_font.glyphPerAtlas;
+  const f32      atlasIndex = glyphData.w * u_font.glyphsInFont;
 
   /**
    * Compute the ui positions of the vertices.
