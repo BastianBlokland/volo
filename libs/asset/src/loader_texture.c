@@ -9,7 +9,7 @@ ecs_comp_define_public(AssetTextureComp);
 static void ecs_destruct_texture_comp(void* data) {
   AssetTextureComp* comp       = data;
   const u32         pixelCount = comp->height * comp->width;
-  alloc_free_array_t(g_alloc_heap, comp->pixels, pixelCount);
+  alloc_free(g_alloc_heap, mem_create(comp->pixelsRaw, comp->channels * sizeof(u8) * pixelCount));
 }
 
 ecs_view_define(UnloadView) {

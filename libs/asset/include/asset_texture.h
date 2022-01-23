@@ -3,11 +3,26 @@
 
 typedef struct {
   u8 r, g, b, a;
-} AssetTexturePixel;
+} AssetTexturePixel4;
 
-ASSERT(sizeof(AssetTexturePixel) == 4, "Pixels are 4 bytes");
+typedef struct {
+  u8 r;
+} AssetTexturePixel1;
+
+ASSERT(sizeof(AssetTexturePixel4) == 4, "Unexpected pixel size");
+ASSERT(sizeof(AssetTexturePixel1) == 1, "Unexpected pixel size");
+
+typedef enum {
+  AssetTextureChannels_One  = 1,
+  AssetTextureChannels_Four = 4,
+} AssetTextureChannels;
 
 ecs_comp_extern_public(AssetTextureComp) {
-  const AssetTexturePixel* pixels;
-  u32                      width, height;
+  AssetTextureChannels channels;
+  union {
+    const u8*                 pixelsRaw;
+    const AssetTexturePixel1* pixels1;
+    const AssetTexturePixel4* pixels4;
+  };
+  u32 width, height;
 };

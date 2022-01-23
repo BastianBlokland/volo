@@ -154,7 +154,7 @@ static void ftx_generate_glyph(
     const AssetFontComp*  font,
     const AssetFontGlyph* glyph,
     const u32             index,
-    AssetTexturePixel*    out) {
+    AssetTexturePixel1*   out) {
 
   const u32 texY = index * def->glyphSize / def->size * def->glyphSize;
   const u32 texX = index * def->glyphSize % def->size;
@@ -175,11 +175,11 @@ static void ftx_generate_glyph(
       };
       const f32 dist       = asset_font_glyph_dist(font, glyph, point);
       const f32 borderFrac = math_clamp_f32(dist / offset, -1, 1);
-      const u8  alpha      = (u8)((-borderFrac * 0.5f + 0.5f) * 255.999f);
+      const u8  value      = (u8)((-borderFrac * 0.5f + 0.5f) * 255.999f);
 
       const usize texPixelY                  = texY + glyphPixelY;
       const usize texPixelX                  = texX + glyphPixelX;
-      out[texPixelY * def->size + texPixelX] = (AssetTexturePixel){0, 0, 0, alpha};
+      out[texPixelY * def->size + texPixelX] = (AssetTexturePixel1){value};
     }
   }
 }
@@ -191,11 +191,11 @@ static void ftx_generate(
     AssetTextureComp*    outTexture,
     FtxError*            err) {
 
-  AssetFtxChar*      chars        = null;
-  AssetTexturePixel* pixels       = null;
-  const u32          size         = def->size;
-  const u32          glyphsPerDim = size / def->glyphSize;
-  const u32          maxGlyphs    = glyphsPerDim * glyphsPerDim;
+  AssetFtxChar*       chars        = null;
+  AssetTexturePixel1* pixels       = null;
+  const u32           size         = def->size;
+  const u32           glyphsPerDim = size / def->glyphSize;
+  const u32           maxGlyphs    = glyphsPerDim * glyphsPerDim;
   if (UNLIKELY(!maxGlyphs)) {
     *err = FtxError_TooManyGlyphs;
     goto Error;
@@ -207,7 +207,7 @@ static void ftx_generate(
     goto Error;
   }
   chars  = alloc_array_t(g_alloc_heap, AssetFtxChar, charCount);
-  pixels = alloc_array_t(g_alloc_heap, AssetTexturePixel, size * size);
+  pixels = alloc_array_t(g_alloc_heap, AssetTexturePixel1, size * size);
 
   u32 nextGlyphIndex = 0;
   for (u32 i = 0; i != charCount; ++i) {
@@ -243,9 +243,10 @@ static void ftx_generate(
       .characterCount = charCount,
   };
   *outTexture = (AssetTextureComp){
-      .pixels = pixels,
-      .width  = size,
-      .height = size,
+      .channels = AssetTextureChannels_One,
+      .pixels1  = pixels,
+      .width    = size,
+      .height   = size,
   };
   *err = FtxError_None;
   return;
