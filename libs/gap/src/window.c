@@ -38,12 +38,12 @@ static void ecs_destruct_window_comp(void* data) {
   }
 }
 
-static String window_default_title_scratch() {
+static String window_default_title_scratch(const GapWindowComp* window) {
   return fmt_write_scratch(
-      "{} (pid: {}, cores: {})",
+      "{} (pid: {}, wid: {})",
       fmt_text(path_stem(g_path_executable)),
       fmt_int(g_thread_pid),
-      fmt_int(g_thread_core_count));
+      fmt_int(window->id));
 }
 
 static bool window_should_close(GapWindowComp* win) {
@@ -75,6 +75,9 @@ static void window_update(
 
   if (window->requests & GapWindowRequests_Create) {
     window->id = gap_pal_window_create(platform->pal, window->params[GapParam_WindowSize]);
+    if (window->flags & GapWindowFlags_DefaultTitle) {
+      gap_window_title_set(window, window_default_title_scratch(window));
+    }
   }
   if (window->requests & GapWindowRequests_UpdateTitle) {
     gap_pal_window_title_set(platform->pal, window->id, window->title);
@@ -223,9 +226,6 @@ void gap_window_flags_set(GapWindowComp* comp, const GapWindowFlags flags) {
   }
   if (flags & GapWindowFlags_CursorLock) {
     comp->requests |= GapWindowRequests_UpdateCursorLock;
-  }
-  if (flags & GapWindowFlags_DefaultTitle) {
-    gap_window_title_set(comp, window_default_title_scratch());
   }
 }
 
