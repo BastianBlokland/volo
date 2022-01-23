@@ -26,12 +26,13 @@ const f32_vec2 c_unitTexCoords[c_verticesPerGlyph] = {
 bind_spec(0) const u32 s_maxGlyphs = 2048;
 
 struct GlyphData {
-  f32_vec4 raw; // x, y = position, z = size, w = glyphIndex.
+  f32_vec4 raw; // x, y = position, z = size, w = glyphIndex / glyphPerAtlas.
 };
 
 struct FontData {
+  f32      glyphPerAtlas; // glyphsPerDim * glyphsPerDim
   f32      glyphsPerDim;
-  f32      invGlyphsPerDim;
+  f32      invGlyphsPerDim; // 1,0 / glyphsPerDim
   f32_vec4 color;
 };
 
@@ -49,7 +50,7 @@ void main() {
   const u32      vertIndex  = in_vertexIndex % c_verticesPerGlyph;
   const f32_vec2 glyphPos   = u_glyphs[glyphIndex].raw.xy;
   const f32      glyphSize  = u_glyphs[glyphIndex].raw.z;
-  const f32      atlasIndex = u_glyphs[glyphIndex].raw.w;
+  const f32      atlasIndex = u_glyphs[glyphIndex].raw.w * u_font.glyphPerAtlas;
 
   /**
    * Compute the ui positions of the vertices.

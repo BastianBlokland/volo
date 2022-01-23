@@ -21,9 +21,9 @@ static const String g_textFont    = string_static("fonts/mono.ftx");
 
 typedef struct {
   ALIGNAS(16)
-  f32      glyphsPerDim;
-  f32      invGlyphsPerDim;
-  f32      padding[2];
+  f32      glyphsPerAtlas;
+  f32      glyphsPerDim, invGlyphsPerDim;
+  f32      padding[1];
   GeoColor color;
 } ShaderFontData;
 
@@ -33,7 +33,7 @@ typedef struct {
   ALIGNAS(16)
   f32 position[2];
   f32 size;
-  f32 index;
+  f32 indexFrac;
 } ShaderGlyphData;
 
 ASSERT(sizeof(ShaderGlyphData) == 16, "Size needs to match the size defined in glsl");
@@ -87,8 +87,9 @@ static void scene_text_build_char(SceneTextBuilder* builder, const Unicode cp) {
     /**
      * This character has a glyph, output it to the shader.
      */
+    const f32 glyphsPerAtlas = builder->font->glyphsPerDim * builder->font->glyphsPerDim;
     builder->outputGlyphData[builder->outputGlyphCount++] = (ShaderGlyphData){
-        .index = (f32)ch->glyphIndex,
+        .indexFrac = ch->glyphIndex / (f32)glyphsPerAtlas,
         .position =
             {
                 ch->offsetX * builder->glyphSize + builder->cursor[0],
@@ -121,7 +122,8 @@ static void scene_text_build(SceneTextBuilder* builder) {
    * Setup per-font data (shared between all glyphs in this text).
    */
   *mem_as_t(data, ShaderFontData) = (ShaderFontData){
-      .glyphsPerDim    = (f32)builder->font->glyphsPerDim,
+      .glyphsPerAtlas  = builder->font->glyphsPerDim * builder->font->glyphsPerDim,
+      .glyphsPerDim    = builder->font->glyphsPerDim,
       .invGlyphsPerDim = 1.0f / (f32)builder->font->glyphsPerDim,
       .color           = builder->color,
   };
