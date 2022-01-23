@@ -1,7 +1,8 @@
 {
   "fontId": "fonts/hack_regular.ttf",
-  "size": 512,
-  "glyphSize": 32,
-  "border": 3,
+  "size": 256,
+  "glyphSize": 16,
+  "border": 2,
+  "lineSpacing": 0.2,
   "characters": "\u0020!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜø£Ø×ƒáíóúñÑªº¿®¬½¼¡«»░▒▓│┤ÁÂÀ©╣║╗╝¢¥┐└┴┬├─┼ãÃ╚╔╩╦╠═╬¤ðÐÊËÈıÍÎÏ┘┌█▄¦Ì▀ÓßÔÒõÕµþÞÚÛÙýÝ¯´≡±‗¾¶§÷¸°¨·¹³²■"
 }

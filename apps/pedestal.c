@@ -20,7 +20,7 @@
  */
 
 static const GapVector g_windowSize          = {1024, 768};
-static const f32       g_statsTextSize       = 30.0f;
+static const f32       g_statsTextSize       = 25.0f;
 static const u32       g_statsUpdateInterval = 4;
 static const f32       g_statSmoothFactor    = 0.05f;
 static const f32       g_pedestalRotateSpeed = 45.0f * math_deg_to_rad;
