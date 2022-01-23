@@ -12,7 +12,7 @@ typedef struct sRvkRenderer RvkRenderer;
 
 typedef struct {
   TimeDuration renderTime;
-  u64          forwardDraws, forwardInstances;
+  u32          forwardDraws, forwardInstances;
   u64          forwardVertices, forwardPrimitives;
   u64          forwardShadersVert, forwardShadersFrag;
 } RvkRenderStats;
