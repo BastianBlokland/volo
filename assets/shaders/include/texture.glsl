@@ -5,7 +5,7 @@
 #include "types.glsl"
 
 /**
- * Sample a srgb encoded texture.
+ * Sample a linear encoded texture.
  */
 f32_vec4 texture_sample_linear(const sampler2D imageSampler, const f32_vec2 texcoord) {
   return texture(imageSampler, texcoord);
@@ -15,7 +15,7 @@ f32_vec4 texture_sample_linear(const sampler2D imageSampler, const f32_vec2 texc
  * Sample a srgb encoded texture.
  */
 f32_vec4 texture_sample_srgb(const sampler2D imageSampler, const f32_vec2 texcoord) {
-  const f32_vec4 raw = texture(imageSampler, texcoord);
+  const f32_vec4 raw = texture_sample_linear(imageSampler, texcoord);
   return f32_vec4(color_decode_srgb(raw.rgb), raw.a);
 }
 

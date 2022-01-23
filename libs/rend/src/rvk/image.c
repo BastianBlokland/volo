@@ -257,7 +257,6 @@ static RvkImage rvk_image_create_backed(
 
 RvkImage rvk_image_create_source_color(
     RvkDevice* dev, const VkFormat vkFormat, const RendSize size, const u8 mipLevels) {
-  diag_assert(rvk_format_info(vkFormat).channels == 4);
   return rvk_image_create_backed(dev, RvkImageType_ColorSource, vkFormat, size, mipLevels);
 }
 

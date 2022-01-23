@@ -95,7 +95,7 @@ static String ppm_read_header(String input, PixmapHeader* out) {
 }
 
 static String ppm_read_pixels_ascii(
-    String input, PixmapHeader* header, AssetTexturePixel* out, PixmapError* err) {
+    String input, PixmapHeader* header, AssetTexturePixel4* out, PixmapError* err) {
   u64 r, g, b;
 
   /**
@@ -114,7 +114,7 @@ static String ppm_read_pixels_ascii(
       input = format_read_u64(input, &b, 10);
 
       const u32 index = y * (u32)header->height + x;
-      out[index]      = (AssetTexturePixel){(u8)r, (u8)g, (u8)b, 255};
+      out[index]      = (AssetTexturePixel4){(u8)r, (u8)g, (u8)b, 255};
     }
   }
   *err = PixmapError_None;
@@ -122,7 +122,7 @@ static String ppm_read_pixels_ascii(
 }
 
 static String ppm_read_pixels_binary(
-    String input, PixmapHeader* header, AssetTexturePixel* out, PixmapError* err) {
+    String input, PixmapHeader* header, AssetTexturePixel4* out, PixmapError* err) {
 
   const u32 pixelCount = (u32)(header->width * header->height);
   if (input.size <= pixelCount * 3) {
@@ -159,7 +159,7 @@ static String ppm_read_pixels_binary(
 }
 
 static String
-ppm_read_pixels(String input, PixmapHeader* header, AssetTexturePixel* out, PixmapError* err) {
+ppm_read_pixels(String input, PixmapHeader* header, AssetTexturePixel4* out, PixmapError* err) {
   if (header->type == PixmapType_Ascii) {
     return ppm_read_pixels_ascii(input, header, out, err);
   }
@@ -194,10 +194,10 @@ void asset_load_ppm(EcsWorld* world, const EcsEntityId entity, AssetSource* src)
     goto Error;
   }
 
-  const u32          width  = (u32)header.width;
-  const u32          height = (u32)header.height;
-  AssetTexturePixel* pixels = alloc_array_t(g_alloc_heap, AssetTexturePixel, width * height);
-  input                     = ppm_read_pixels(input, &header, pixels, &res);
+  const u32           width  = (u32)header.width;
+  const u32           height = (u32)header.height;
+  AssetTexturePixel4* pixels = alloc_array_t(g_alloc_heap, AssetTexturePixel4, width * height);
+  input                      = ppm_read_pixels(input, &header, pixels, &res);
   if (res) {
     ppm_load_fail(world, entity, res);
     alloc_free_array_t(g_alloc_heap, pixels, width * height);
@@ -206,7 +206,13 @@ void asset_load_ppm(EcsWorld* world, const EcsEntityId entity, AssetSource* src)
 
   asset_repo_source_close(src);
   ecs_world_add_t(
-      world, entity, AssetTextureComp, .width = width, .height = height, .pixels = pixels);
+      world,
+      entity,
+      AssetTextureComp,
+      .channels = AssetTextureChannels_Four,
+      .width    = width,
+      .height   = height,
+      .pixels4  = pixels);
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   return;
 

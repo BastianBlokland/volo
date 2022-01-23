@@ -14,7 +14,7 @@ bind_internal(1) in flat f32_vec4 in_color;
 bind_internal(0) out f32_vec4 out_color;
 
 void main() {
-  const f32 dist  = texture_sample_srgb(u_fontTexture, in_texcoord).a;
+  const f32 dist  = texture_sample_linear(u_fontTexture, in_texcoord).r;
   const f32 alpha = smoothstep(0.5 - c_smoothing, 0.5 + c_smoothing, dist);
   out_color       = f32_vec4(in_color.rgb, in_color.a * alpha);
 }
