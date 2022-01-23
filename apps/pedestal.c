@@ -127,22 +127,16 @@ static void stats_draw(AppComp* app, const RendStatsComp* stats, EcsView* textVi
       fmt_write_scratch(
           "{}\n"
           "{<10} pixels\n"
-          "{<10} hz\n"
-          "{<10} gpu time\n"
-          "{<10} draws\n"
-          "{<10} instances\n"
-          "{<10} verts\n"
-          "{<10} tris\n"
-          "{<10} vert shaders\n"
-          "{<10} frag shaders\n"
+          "{<10} hz\n{<10} gpu time\n"
+          "{<10} draws\n{<10} instances\n"
+          "{<10} verts\n{<10} tris\n"
+          "{<10} vert shaders\n{<10} frag shaders\n"
           "{<10} ram\n"
-          "{<10} vram occupied\n"
-          "{<10} vram reserved\n"
-          "{<10} renderer ram occupied\n"
-          "{<10} renderer ram reserved\n"
-          "{<10} descriptor-sets occupied\n"
-          "{<10} descriptor-sets reserved\n"
-          "{<10} descriptor layouts",
+          "{<10} vram occupied\n{<10} vram reserved\n"
+          "{<10} renderer ram occupied\n{<10} renderer ram reserved\n"
+          "{<10} descriptor-sets occupied\n{<10} descriptor-sets reserved\n"
+          "{<10} descriptor layouts\n"
+          "{<10} graphics\n{<10} shaders\n{<10} meshes\n{<10} textures\n",
           fmt_text(stats->gpuName),
           rend_size_fmt(stats->renderResolution),
           fmt_float(app->updateFreq, .maxDecDigits = 0),
@@ -160,7 +154,11 @@ static void stats_draw(AppComp* app, const RendStatsComp* stats, EcsView* textVi
           fmt_size(stats->ramReserved),
           fmt_int(stats->descSetsOccupied),
           fmt_int(stats->descSetsReserved),
-          fmt_int(stats->descLayouts)));
+          fmt_int(stats->descLayouts),
+          fmt_int(stats->resources[RendStatRes_Graphic]),
+          fmt_int(stats->resources[RendStatRes_Shader]),
+          fmt_int(stats->resources[RendStatRes_Mesh]),
+          fmt_int(stats->resources[RendStatRes_Texture])));
 }
 
 ecs_system_define(AppUpdateSys) {
