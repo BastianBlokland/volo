@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_bits.h"
 #include "core_math.h"
 #include "scene_renderable.h"
 
@@ -26,7 +27,7 @@ Mem scene_renderable_unique_data(SceneRenderableUniqueComp* renderable, const us
   if (LIKELY(renderable->instDataMem.ptr)) {
     alloc_free(g_alloc_heap, renderable->instDataMem);
   }
-  renderable->instDataMem  = alloc_alloc(g_alloc_heap, math_max(size, 16), 16);
+  renderable->instDataMem  = alloc_alloc(g_alloc_heap, bits_align(size, 16), 16);
   renderable->instDataSize = size;
   return renderable->instDataMem;
 }
