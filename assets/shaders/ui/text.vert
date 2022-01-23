@@ -23,7 +23,7 @@ const f32_vec2 c_unitTexCoords[c_verticesPerGlyph] = {
     f32_vec2(0, 0),
 };
 
-bind_spec(0) const u32 s_maxGlyphs = 2048;
+bind_spec(0) const u32 s_maxGlyphs = 4096;
 
 /**
  * Packed data for 2 glyphs.

@@ -13,7 +13,7 @@
 #include "scene_renderable.h"
 #include "scene_text.h"
 
-#define scene_text_max_glyphs 2048
+#define scene_text_max_glyphs 4096
 #define scene_text_tab_size 4
 
 static const String g_textGraphic = string_static("graphics/ui/text.gra");
