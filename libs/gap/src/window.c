@@ -111,7 +111,6 @@ static void window_update(
   } else {
     window->params[GapParam_ScrollDelta] = gap_vector(0, 0);
   }
-
   if (palFlags & GapPalWindowFlags_KeyPressed) {
     window->keysPressed = *gap_pal_window_keys_pressed(platform->pal, window->id);
     window->keysDown    = *gap_pal_window_keys_down(platform->pal, window->id);
@@ -126,7 +125,12 @@ static void window_update(
   } else {
     gap_keyset_clear(&window->keysReleased);
   }
-
+  if (palFlags & GapPalWindowFlags_FocusGained) {
+    window->events |= GapWindowEvents_FocusGained;
+  }
+  if (palFlags & GapPalWindowFlags_FocusLost) {
+    window->events |= GapWindowEvents_FocusLost;
+  }
   if (window->flags & GapWindowFlags_CursorLock) {
     const GapVector tgtPos = gap_vector_div(window->params[GapParam_WindowSize], 2);
     if (!gap_vector_equal(window->params[GapParam_CursorPos], tgtPos)) {
