@@ -5,6 +5,7 @@
 #include "painter_internal.h"
 #include "platform_internal.h"
 #include "rvk/canvas_internal.h"
+#include "rvk/desc_internal.h"
 #include "rvk/device_internal.h"
 #include "rvk/mem_internal.h"
 
@@ -47,6 +48,9 @@ ecs_system_define(RendUpdateStatsSys) {
     stats->ramReserved      = rvk_mem_reserved(plat->device->memPool, RvkMemLoc_Host);
     stats->vramOccupied     = rvk_mem_occupied(plat->device->memPool, RvkMemLoc_Dev);
     stats->vramReserved     = rvk_mem_reserved(plat->device->memPool, RvkMemLoc_Dev);
+    stats->descSetsOccupied = rvk_desc_pool_sets_occupied(plat->device->descPool);
+    stats->descSetsReserved = rvk_desc_pool_sets_reserved(plat->device->descPool);
+    stats->descLayouts      = rvk_desc_pool_layouts(plat->device->descPool);
   }
 }
 

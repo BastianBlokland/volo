@@ -242,6 +242,34 @@ void rvk_desc_pool_destroy(RvkDescPool* pool) {
   alloc_free_t(g_alloc_heap, pool);
 }
 
+u32 rvk_desc_pool_sets_occupied(const RvkDescPool* pool) {
+  thread_mutex_lock(pool->chunkLock);
+  u32 occupied = 0;
+  for (RvkDescChunk* chunk = pool->chunkHead; chunk; chunk = chunk->next) {
+    const u32 numFree = (u32)bitset_count(rvk_desc_chunk_mask(chunk));
+    occupied += rvk_desc_sets_per_chunk - numFree;
+  }
+  thread_mutex_unlock(pool->chunkLock);
+  return occupied;
+}
+
+u32 rvk_desc_pool_sets_reserved(const RvkDescPool* pool) {
+  thread_mutex_lock(pool->chunkLock);
+  u32 reserved = 0;
+  for (RvkDescChunk* chunk = pool->chunkHead; chunk; chunk = chunk->next) {
+    reserved += rvk_desc_sets_per_chunk;
+  }
+  thread_mutex_unlock(pool->chunkLock);
+  return reserved;
+}
+
+u32 rvk_desc_pool_layouts(const RvkDescPool* pool) {
+  thread_mutex_lock(pool->layoutLock);
+  const u32 layouts = (u32)pool->layouts.size;
+  thread_mutex_unlock(pool->layoutLock);
+  return layouts;
+}
+
 VkDescriptorSetLayout rvk_desc_vklayout(RvkDescPool* pool, const RvkDescMeta* meta) {
   const u32 hash = rvk_desc_meta_hash(meta);
 

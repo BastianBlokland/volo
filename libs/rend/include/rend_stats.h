@@ -11,4 +11,5 @@ ecs_comp_extern_public(RendStatsComp) {
   u64          shadersVert, shadersFrag;
   u64          ramOccupied, ramReserved;
   u64          vramOccupied, vramReserved;
+  u32          descSetsOccupied, descSetsReserved, descLayouts;
 };

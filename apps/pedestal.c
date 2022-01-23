@@ -138,7 +138,10 @@ static void stats_draw(AppComp* app, const RendStatsComp* stats, EcsView* textVi
           "{<10} vram occupied\n"
           "{<10} vram reserved\n"
           "{<10} renderer ram occupied\n"
-          "{<10} renderer ram reserved",
+          "{<10} renderer ram reserved\n"
+          "{<10} descriptor-sets occupied\n"
+          "{<10} descriptor-sets reserved\n"
+          "{<10} descriptor layouts",
           rend_size_fmt(stats->renderResolution),
           fmt_float(app->updateFreq, .maxDecDigits = 0),
           fmt_duration(app->renderTime),
@@ -152,7 +155,10 @@ static void stats_draw(AppComp* app, const RendStatsComp* stats, EcsView* textVi
           fmt_size(stats->vramOccupied),
           fmt_size(stats->vramReserved),
           fmt_size(stats->ramOccupied),
-          fmt_size(stats->ramReserved)));
+          fmt_size(stats->ramReserved),
+          fmt_int(stats->descSetsOccupied),
+          fmt_int(stats->descSetsReserved),
+          fmt_int(stats->descLayouts)));
 }
 
 ecs_system_define(AppUpdateSys) {
