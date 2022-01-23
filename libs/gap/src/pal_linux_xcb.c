@@ -681,6 +681,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   *dynarray_push_t(&pal->windows, GapPalWindow) = (GapPalWindow){
       .id                          = id,
       .params[GapParam_WindowSize] = size,
+      .flags                       = GapPalWindowFlags_Focussed,
   };
 
   log_i("Window created", log_param("id", fmt_int(id)), log_param("size", gap_vector_fmt(size)));
