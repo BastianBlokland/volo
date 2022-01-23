@@ -318,6 +318,7 @@ static void rvk_pass_draw_submit(RvkPass* pass, const RvkPassDraw* draw) {
 
   for (u32 remInstanceCount = draw->instanceCount, dataOffset = 0; remInstanceCount != 0;) {
     const u32 instanceCount = rvk_pass_instances_per_draw(pass, remInstanceCount, dataStride);
+    rvk_statrecorder_report(pass->statrecorder, RvkStat_Instances, instanceCount);
 
     if (dataStride) {
       const u32 dataSize = instanceCount * dataStride;

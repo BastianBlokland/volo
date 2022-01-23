@@ -36,6 +36,8 @@ ecs_system_define(RendUpdateStatsSys) {
     const RvkRenderStats renderStats = rvk_canvas_stats(painter->canvas);
 
     stats->renderResolution = rvk_canvas_size(painter->canvas);
+    stats->draws            = renderStats.forwardDraws;
+    stats->instances        = renderStats.forwardInstances;
     stats->renderTime       = renderStats.renderTime;
     stats->vertices         = renderStats.forwardVertices;
     stats->primitives       = renderStats.forwardPrimitives;

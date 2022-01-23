@@ -128,6 +128,8 @@ static void stats_draw(AppComp* app, const RendStatsComp* stats, EcsView* textVi
           "{<10} pixels\n"
           "{<10} hz\n"
           "{<10} gpu time\n"
+          "{<10} draws\n"
+          "{<10} instances\n"
           "{<10} verts\n"
           "{<10} tris\n"
           "{<10} vert shaders\n"
@@ -137,18 +139,20 @@ static void stats_draw(AppComp* app, const RendStatsComp* stats, EcsView* textVi
           "{<10} vram reserved\n"
           "{<10} renderer ram occupied\n"
           "{<10} renderer ram reserved",
-          rend_size_fmt(stats ? stats->renderResolution : rend_size(0, 0)),
+          rend_size_fmt(stats->renderResolution),
           fmt_float(app->updateFreq, .maxDecDigits = 0),
           fmt_duration(app->renderTime),
-          fmt_int(stats ? stats->vertices : 0),
-          fmt_int(stats ? stats->primitives : 0),
-          fmt_int(stats ? stats->shadersVert : 0),
-          fmt_int(stats ? stats->shadersFrag : 0),
+          fmt_int(stats->draws),
+          fmt_int(stats->instances),
+          fmt_int(stats->vertices),
+          fmt_int(stats->primitives),
+          fmt_int(stats->shadersVert),
+          fmt_int(stats->shadersFrag),
           fmt_size(alloc_stats_total()),
-          fmt_size(stats ? stats->vramOccupied : 0),
-          fmt_size(stats ? stats->vramReserved : 0),
-          fmt_size(stats ? stats->ramOccupied : 0),
-          fmt_size(stats ? stats->ramReserved : 0)));
+          fmt_size(stats->vramOccupied),
+          fmt_size(stats->vramReserved),
+          fmt_size(stats->ramOccupied),
+          fmt_size(stats->ramReserved)));
 }
 
 ecs_system_define(AppUpdateSys) {
@@ -176,7 +180,7 @@ ecs_system_define(AppUpdateSys) {
       app->renderTime = smooth_duration(app->renderTime, rendStats->renderTime);
     }
 
-    if ((time->ticks % g_statsUpdateInterval) == 0) {
+    if (rendStats && (time->ticks % g_statsUpdateInterval) == 0) {
       stats_draw(app, rendStats, ecs_world_view_t(world, TextView));
     }
 

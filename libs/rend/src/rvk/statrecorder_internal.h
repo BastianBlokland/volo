@@ -23,6 +23,7 @@ typedef enum {
    * Stats that can be manually reported using the 'report()' api.
    */
   RvkStat_Draws = RvkStatMeta_CountAuto,
+  RvkStat_Instances,
 
   RvkStatMeta_CountTotal,
   RvkStatMeta_CountManual = RvkStatMeta_CountTotal - RvkStatMeta_CountTotal,
