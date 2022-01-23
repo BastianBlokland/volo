@@ -211,12 +211,17 @@ static void ftx_generate(
 
   u32 nextGlyphIndex = 0;
   for (u32 i = 0; i != charCount; ++i) {
+    /**
+     * Take the sdf border into account as the glyph will need to be rendered bigger to compensate.
+     */
+    const f32 relGlyphBorder = def->border / (f32)def->glyphSize * inputChars[i].glyph->size;
+
     chars[i] = (AssetFtxChar){
         .cp         = inputChars[i].cp,
         .glyphIndex = inputChars[i].glyph->segmentCount ? nextGlyphIndex : sentinel_u32,
-        .size       = inputChars[i].glyph->size,
-        .offsetX    = inputChars[i].glyph->offsetX,
-        .offsetY    = inputChars[i].glyph->offsetY,
+        .size       = inputChars[i].glyph->size + relGlyphBorder * 2.0f,
+        .offsetX    = inputChars[i].glyph->offsetX - relGlyphBorder,
+        .offsetY    = inputChars[i].glyph->offsetY - relGlyphBorder,
         .advance    = inputChars[i].glyph->advance,
     };
     if (inputChars[i].glyph->segmentCount) {
