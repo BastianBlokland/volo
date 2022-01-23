@@ -36,7 +36,7 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
 
   const VkFormat vkFormat = rvk_texture_format(asset->channels);
   diag_assert(rvk_format_info(vkFormat).size == asset->channels * sizeof(u8));
-  diag_assert(rvk_format_info(vkFormat).channels == asset->channels);
+  diag_assert(rvk_format_info(vkFormat).channels == (u32)asset->channels);
 
   const RendSize size      = rend_size(asset->width, asset->height);
   const u8       mipLevels = rvk_compute_miplevels(size);
