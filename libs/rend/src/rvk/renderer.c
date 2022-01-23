@@ -177,6 +177,8 @@ RvkRenderStats rvk_renderer_stats(const RvkRenderer* rend) {
 
   return (RvkRenderStats){
       .renderTime         = time_nanoseconds(timestampEnd - timestampBegin),
+      .forwardDraws       = (u32)rvk_pass_stat(rend->forwardPass, RvkStat_Draws),
+      .forwardInstances   = (u32)rvk_pass_stat(rend->forwardPass, RvkStat_Instances),
       .forwardVertices    = rvk_pass_stat(rend->forwardPass, RvkStat_InputAssemblyVertices),
       .forwardPrimitives  = rvk_pass_stat(rend->forwardPass, RvkStat_InputAssemblyPrimitives),
       .forwardShadersVert = rvk_pass_stat(rend->forwardPass, RvkStat_ShaderInvocationsVert),

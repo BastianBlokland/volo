@@ -307,6 +307,7 @@ static void rvk_pass_draw_submit(RvkPass* pass, const RvkPassDraw* draw) {
     return;
   }
 
+  rvk_statrecorder_report(pass->statrecorder, RvkStat_Draws, 1);
   rvk_debug_label_begin(
       pass->dev->debug, pass->vkCmdBuf, geo_color_green, "draw_{}", fmt_text(graphic->dbgName));
 
@@ -317,6 +318,7 @@ static void rvk_pass_draw_submit(RvkPass* pass, const RvkPassDraw* draw) {
 
   for (u32 remInstanceCount = draw->instanceCount, dataOffset = 0; remInstanceCount != 0;) {
     const u32 instanceCount = rvk_pass_instances_per_draw(pass, remInstanceCount, dataStride);
+    rvk_statrecorder_report(pass->statrecorder, RvkStat_Instances, instanceCount);
 
     if (dataStride) {
       const u32 dataSize = instanceCount * dataStride;

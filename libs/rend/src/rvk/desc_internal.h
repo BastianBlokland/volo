@@ -34,6 +34,9 @@ typedef struct {
 
 RvkDescPool* rvk_desc_pool_create(VkDevice);
 void         rvk_desc_pool_destroy(RvkDescPool*);
+u32          rvk_desc_pool_sets_occupied(const RvkDescPool*);
+u32          rvk_desc_pool_sets_reserved(const RvkDescPool*);
+u32          rvk_desc_pool_layouts(const RvkDescPool*);
 
 VkDescriptorSetLayout rvk_desc_vklayout(RvkDescPool*, const RvkDescMeta*);
 RvkDescSet            rvk_desc_alloc(RvkDescPool*, const RvkDescMeta*);
