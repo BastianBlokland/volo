@@ -32,7 +32,6 @@ typedef struct {
   u32    size, glyphSize;
   u32    border;
   f32    lineSpacing;
-  f32    advanceMultiplier;
   String characters;
 } FtxDefinition;
 
@@ -52,8 +51,6 @@ static void ftx_datareg_init() {
     data_reg_field_t(g_dataReg, FtxDefinition, border, data_prim_t(u32));
     data_reg_field_t(
         g_dataReg, FtxDefinition, lineSpacing, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(
-        g_dataReg, FtxDefinition, advanceMultiplier, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, FtxDefinition, characters, data_prim_t(String));
 
     g_dataFtxDefMeta = data_meta_t(t_FtxDefinition);
@@ -203,7 +200,6 @@ static void ftx_generate(
     *err = FtxError_TooManyGlyphs;
     goto Error;
   }
-  const f32 advanceMult = def->advanceMultiplier < f32_epsilon ? 1.0f : def->advanceMultiplier;
 
   FtxDefinitionChar inputChars[ftx_max_chars];
   const u32         charCount = ftx_lookup_chars(font, def->characters, inputChars, err);
@@ -215,13 +211,18 @@ static void ftx_generate(
 
   u32 nextGlyphIndex = 0;
   for (u32 i = 0; i != charCount; ++i) {
+    /**
+     * Take the sdf border into account as the glyph will need to be rendered bigger to compensate.
+     */
+    const f32 relGlyphBorder = def->border / (f32)def->glyphSize * inputChars[i].glyph->size;
+
     chars[i] = (AssetFtxChar){
         .cp         = inputChars[i].cp,
         .glyphIndex = inputChars[i].glyph->segmentCount ? nextGlyphIndex : sentinel_u32,
-        .size       = inputChars[i].glyph->size,
-        .offsetX    = inputChars[i].glyph->offsetX,
-        .offsetY    = inputChars[i].glyph->offsetY,
-        .advance    = inputChars[i].glyph->advance * advanceMult,
+        .size       = inputChars[i].glyph->size + relGlyphBorder * 2.0f,
+        .offsetX    = inputChars[i].glyph->offsetX - relGlyphBorder,
+        .offsetY    = inputChars[i].glyph->offsetY - relGlyphBorder,
+        .advance    = inputChars[i].glyph->advance,
     };
     if (inputChars[i].glyph->segmentCount) {
       if (UNLIKELY(nextGlyphIndex >= maxGlyphs)) {
@@ -368,7 +369,7 @@ void asset_load_ftx(EcsWorld* world, const EcsEntityId entity, AssetSource* src)
     errMsg = ftx_error_str(FtxError_FontNotSpecified);
     goto Error;
   }
-  if (UNLIKELY(!def.size)) {
+  if (UNLIKELY(!def.size || !def.glyphSize)) {
     errMsg = ftx_error_str(FtxError_SizeZero);
     goto Error;
   }
