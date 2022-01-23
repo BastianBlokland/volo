@@ -37,5 +37,6 @@ typedef struct sRvkDevice {
 
 RvkDevice* rvk_device_create();
 void       rvk_device_destroy(RvkDevice*);
+String     rvk_device_name(const RvkDevice*);
 void       rvk_device_update(RvkDevice*);
 void       rvk_device_wait_idle(const RvkDevice*);

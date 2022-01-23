@@ -382,6 +382,10 @@ RvkDevice* rvk_device_create() {
   return dev;
 }
 
+String rvk_device_name(const RvkDevice* dev) {
+  return string_from_null_term(dev->vkProperties.deviceName);
+}
+
 void rvk_device_destroy(RvkDevice* dev) {
 
   rvk_device_wait_idle(dev);

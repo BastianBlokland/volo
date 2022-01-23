@@ -4,6 +4,7 @@
 #include "rend_size.h"
 
 ecs_comp_extern_public(RendStatsComp) {
+  String       gpuName;
   RendSize     renderResolution;
   TimeDuration renderTime;
   u32          draws, instances;

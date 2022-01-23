@@ -11,6 +11,24 @@
 
 ecs_comp_define_public(RendStatsComp);
 
+static void ecs_destruct_stats_comp(void* data) {
+  RendStatsComp* comp = data;
+  if (!string_is_empty(comp->gpuName)) {
+    string_free(g_alloc_heap, comp->gpuName);
+  }
+}
+
+static void rend_stats_update_str(String* strPtr, const String newStr) {
+  if (LIKELY(strPtr->size == newStr.size)) {
+    mem_cpy(*strPtr, newStr);
+    return;
+  }
+  if (strPtr->size) {
+    alloc_free(g_alloc_heap, *strPtr);
+  }
+  *strPtr = string_dup(g_alloc_heap, newStr);
+}
+
 ecs_view_define(GlobalView) { ecs_access_read(RendPlatformComp); }
 
 ecs_view_define(UpdateStatsView) {
@@ -36,6 +54,7 @@ ecs_system_define(RendUpdateStatsSys) {
     // NOTE: Will block until the previous draw has finished.
     const RvkRenderStats renderStats = rvk_canvas_stats(painter->canvas);
 
+    rend_stats_update_str(&stats->gpuName, rvk_device_name(plat->device));
     stats->renderResolution = rvk_canvas_size(painter->canvas);
     stats->draws            = renderStats.forwardDraws;
     stats->instances        = renderStats.forwardInstances;
@@ -55,7 +74,7 @@ ecs_system_define(RendUpdateStatsSys) {
 }
 
 ecs_module_init(rend_stats_module) {
-  ecs_register_comp(RendStatsComp);
+  ecs_register_comp(RendStatsComp, .destructor = ecs_destruct_stats_comp);
 
   ecs_register_view(GlobalView);
   ecs_register_view(UpdateStatsView);

@@ -125,6 +125,7 @@ static void stats_draw(AppComp* app, const RendStatsComp* stats, EcsView* textVi
   scene_text_update_str(
       text,
       fmt_write_scratch(
+          "{}\n"
           "{<10} pixels\n"
           "{<10} hz\n"
           "{<10} gpu time\n"
@@ -142,6 +143,7 @@ static void stats_draw(AppComp* app, const RendStatsComp* stats, EcsView* textVi
           "{<10} descriptor-sets occupied\n"
           "{<10} descriptor-sets reserved\n"
           "{<10} descriptor layouts",
+          fmt_text(stats->gpuName),
           rend_size_fmt(stats->renderResolution),
           fmt_float(app->updateFreq, .maxDecDigits = 0),
           fmt_duration(app->renderTime),
