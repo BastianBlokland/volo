@@ -147,6 +147,9 @@ static void camera_update_zoom(SceneCameraComp* cam, GapWindowComp* win) {
 }
 
 static void camera_update_lock(SceneCameraMovementComp* move, GapWindowComp* win) {
+  if (gap_window_events(win) & GapWindowEvents_FocusLost) {
+    move->locked = false;
+  }
   if (gap_window_key_pressed(win, GapKey_Tab)) {
     if (move->locked) {
       gap_window_flags_unset(win, GapWindowFlags_CursorLock | GapWindowFlags_CursorHide);

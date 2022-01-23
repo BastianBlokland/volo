@@ -255,13 +255,37 @@ static void pal_event_close(GapPalWindow* window) {
   window->flags |= GapPalWindowFlags_CloseRequested;
 }
 
+static void pal_event_focus_gained(GapPalWindow* window) {
+  if (window->flags & GapPalWindowFlags_Focussed) {
+    return;
+  }
+  window->flags |= GapPalWindowFlags_Focussed;
+  window->flags |= GapPalWindowFlags_FocusGained;
+
+  log_d("Window focus gained", log_param("id", fmt_int(window->id)));
+}
+
+static void pal_event_focus_lost(GapPalWindow* window) {
+  if (!(window->flags & GapPalWindowFlags_Focussed)) {
+    return;
+  }
+
+  window->flags &= ~GapPalWindowFlags_Focussed;
+  window->flags |= GapPalWindowFlags_FocusLost;
+
+  log_d("Window focus lost", log_param("id", fmt_int(window->id)));
+}
+
 static void pal_event_modal_loop_enter(GapPalWindow* window) { window->inModalLoop = true; }
 
 static void pal_event_modal_loop_exit(GapPalWindow* window) {
   window->inModalLoop = false;
   if (window->flags & GapPalWindowFlags_Resized) {
     const GapVector newSize = window->params[GapParam_WindowSize];
-    log_d("Window resized", log_param("size", gap_vector_fmt(newSize)));
+    log_d(
+        "Window resized",
+        log_param("id", fmt_int(window->id)),
+        log_param("size", gap_vector_fmt(newSize)));
   }
 }
 
@@ -273,7 +297,10 @@ static void pal_event_resize(GapPalWindow* window, const GapVector newSize) {
   window->flags |= GapPalWindowFlags_Resized;
 
   if (!window->inModalLoop) {
-    log_d("Window resized", log_param("size", gap_vector_fmt(newSize)));
+    log_d(
+        "Window resized",
+        log_param("id", fmt_int(window->id)),
+        log_param("size", gap_vector_fmt(newSize)));
   }
 }
 
@@ -335,6 +362,14 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
     if (!(window->flags & GapPalWindowFlags_Fullscreen)) {
       window->lastWindowedPosition = newPos;
     }
+    return true;
+  }
+  case WM_SETFOCUS: {
+    pal_event_focus_gained(window);
+    return true;
+  }
+  case WM_KILLFOCUS: {
+    pal_event_focus_lost(window);
     return true;
   }
   case WM_ENTERSIZEMOVE: {
@@ -442,10 +477,10 @@ GapPal* gap_pal_create(Allocator* alloc) {
 
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){
-             .alloc          = alloc,
-             .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
-             .moduleInstance = instance,
-             .owningThreadId = g_thread_tid,
+      .alloc          = alloc,
+      .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
+      .moduleInstance = instance,
+      .owningThreadId = g_thread_tid,
   };
 
   MAYBE_UNUSED const GapVector screenSize =
@@ -559,6 +594,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       .id                          = id,
       .className                   = className,
       .params[GapParam_WindowSize] = realClientSize,
+      .flags                       = GapPalWindowFlags_Focussed,
       .lastWindowedPosition        = position,
   };
 

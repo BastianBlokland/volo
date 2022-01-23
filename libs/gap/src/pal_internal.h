@@ -19,10 +19,14 @@ typedef enum {
   GapPalWindowFlags_KeyPressed     = 1 << 4,
   GapPalWindowFlags_KeyReleased    = 1 << 5,
   GapPalWindowFlags_Fullscreen     = 1 << 6,
+  GapPalWindowFlags_Focussed       = 1 << 7,
+  GapPalWindowFlags_FocusLost      = 1 << 8,
+  GapPalWindowFlags_FocusGained    = 1 << 9,
 
   GapPalWindowFlags_Volatile = GapPalWindowFlags_CloseRequested | GapPalWindowFlags_Resized |
                                GapPalWindowFlags_CursorMoved | GapPalWindowFlags_Scrolled |
-                               GapPalWindowFlags_KeyPressed | GapPalWindowFlags_KeyReleased,
+                               GapPalWindowFlags_KeyPressed | GapPalWindowFlags_KeyReleased |
+                               GapPalWindowFlags_FocusLost | GapPalWindowFlags_FocusGained,
 } GapPalWindowFlags;
 
 typedef struct sGapPal GapPal;
