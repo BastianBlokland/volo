@@ -53,7 +53,8 @@ struct sGapPal {
 
 static const xcb_event_mask_t g_xcbWindowEventMask =
     XCB_EVENT_MASK_STRUCTURE_NOTIFY | XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE |
-    XCB_EVENT_MASK_POINTER_MOTION | XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_KEY_RELEASE;
+    XCB_EVENT_MASK_POINTER_MOTION | XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_KEY_RELEASE |
+    XCB_EVENT_MASK_FOCUS_CHANGE;
 
 static GapPalWindow* pal_maybe_window(GapPal* pal, const GapWindowId id) {
   dynarray_for_t(&pal->windows, GapPalWindow, window) {
@@ -417,6 +418,29 @@ static void pal_event_close(GapPal* pal, const GapWindowId windowId) {
   }
 }
 
+static void pal_event_focus_gained(GapPal* pal, const GapWindowId windowId) {
+  GapPalWindow* window = pal_maybe_window(pal, windowId);
+  if (!window || window->flags & GapPalWindowFlags_Focussed) {
+    return;
+  }
+  window->flags |= GapPalWindowFlags_Focussed;
+  window->flags |= GapPalWindowFlags_FocusGained;
+
+  log_d("Window focus gained", log_param("id", fmt_int(windowId)));
+}
+
+static void pal_event_focus_lost(GapPal* pal, const GapWindowId windowId) {
+  GapPalWindow* window = pal_maybe_window(pal, windowId);
+  if (!window || !(window->flags & GapPalWindowFlags_Focussed)) {
+    return;
+  }
+
+  window->flags &= ~GapPalWindowFlags_Focussed;
+  window->flags |= GapPalWindowFlags_FocusLost;
+
+  log_d("Window focus lost", log_param("id", fmt_int(windowId)));
+}
+
 static void pal_event_resize(GapPal* pal, const GapWindowId windowId, const GapVector newSize) {
   GapPalWindow* window = pal_maybe_window(pal, windowId);
   if (!window || gap_vector_equal(window->params[GapParam_WindowSize], newSize)) {
@@ -425,7 +449,10 @@ static void pal_event_resize(GapPal* pal, const GapWindowId windowId, const GapV
   window->params[GapParam_WindowSize] = newSize;
   window->flags |= GapPalWindowFlags_Resized;
 
-  log_d("Window resized", log_param("size", gap_vector_fmt(newSize)));
+  log_d(
+      "Window resized",
+      log_param("id", fmt_int(windowId)),
+      log_param("size", gap_vector_fmt(newSize)));
 }
 
 static void pal_event_cursor(GapPal* pal, const GapWindowId windowId, const GapVector newPos) {
@@ -521,6 +548,16 @@ void gap_pal_update(GapPal* pal) {
       if (clientMsg->data.data32[0] == pal->xcbDeleteMsgAtom) {
         pal_event_close(pal, clientMsg->window);
       }
+    } break;
+
+    case XCB_FOCUS_IN: {
+      const xcb_focus_in_event_t* focusInMsg = (const void*)evt;
+      pal_event_focus_gained(pal, focusInMsg->event);
+    } break;
+
+    case XCB_FOCUS_OUT: {
+      const xcb_focus_out_event_t* focusOutMsg = (const void*)evt;
+      pal_event_focus_lost(pal, focusOutMsg->event);
     } break;
 
     case XCB_CONFIGURE_NOTIFY: {
