@@ -130,6 +130,10 @@ static void window_update(
   }
   if (palFlags & GapPalWindowFlags_FocusLost) {
     window->events |= GapWindowEvents_FocusLost;
+    // Unlock and unhide cursor.
+    window->flags &= ~(GapWindowFlags_CursorHide | GapWindowFlags_CursorLock);
+    gap_pal_window_cursor_capture(platform->pal, window->id, false);
+    gap_pal_window_cursor_hide(platform->pal, window->id, false);
   }
   if (window->flags & GapWindowFlags_CursorLock) {
     const GapVector tgtPos = gap_vector_div(window->params[GapParam_WindowSize], 2);
