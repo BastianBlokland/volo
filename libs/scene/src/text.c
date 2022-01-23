@@ -30,13 +30,13 @@ typedef struct {
 ASSERT(sizeof(ShaderFontData) == 32, "Size needs to match the size defined in glsl");
 
 typedef struct {
-  ALIGNAS(16)
-  f32 position[2];
-  f32 size;
-  f32 indexFrac;
+  ALIGNAS(8)
+  f16 position[2];
+  f16 size;
+  f16 indexFrac;
 } ShaderGlyphData;
 
-ASSERT(sizeof(ShaderGlyphData) == 16, "Size needs to match the size defined in glsl");
+ASSERT(sizeof(ShaderGlyphData) == 8, "Size needs to match the size defined in glsl");
 
 typedef struct {
   const AssetFtxComp*        font;
@@ -89,13 +89,13 @@ static void scene_text_build_char(SceneTextBuilder* builder, const Unicode cp) {
      */
     const f32 glyphsPerAtlas = builder->font->glyphsPerDim * builder->font->glyphsPerDim;
     builder->outputGlyphData[builder->outputGlyphCount++] = (ShaderGlyphData){
-        .indexFrac = ch->glyphIndex / (f32)glyphsPerAtlas,
+        .indexFrac = bits_f32_to_f16(ch->glyphIndex / (f32)glyphsPerAtlas),
         .position =
             {
-                ch->offsetX * builder->glyphSize + builder->cursor[0],
-                ch->offsetY * builder->glyphSize + builder->cursor[1],
+                bits_f32_to_f16(ch->offsetX * builder->glyphSize + builder->cursor[0]),
+                bits_f32_to_f16(ch->offsetY * builder->glyphSize + builder->cursor[1]),
             },
-        .size = ch->size * builder->glyphSize,
+        .size = bits_f32_to_f16(ch->size * builder->glyphSize),
     };
   }
   builder->cursor[0] += ch->advance * builder->glyphSize;
