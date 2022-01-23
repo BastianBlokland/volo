@@ -1,5 +1,7 @@
+#include "core_path.h"
 #include "core_sentinel.h"
 #include "core_signal.h"
+#include "core_thread.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "gap_register.h"
@@ -34,6 +36,14 @@ static void ecs_destruct_window_comp(void* data) {
   if (!string_is_empty(comp->title)) {
     string_free(g_alloc_heap, comp->title);
   }
+}
+
+static String window_default_title_scratch() {
+  return fmt_write_scratch(
+      "{} (pid: {}, cores: {})",
+      fmt_text(path_stem(g_path_executable)),
+      fmt_int(g_thread_pid),
+      fmt_int(g_thread_core_count));
 }
 
 static bool window_should_close(GapWindowComp* win) {
@@ -213,6 +223,9 @@ void gap_window_flags_set(GapWindowComp* comp, const GapWindowFlags flags) {
   }
   if (flags & GapWindowFlags_CursorLock) {
     comp->requests |= GapWindowRequests_UpdateCursorLock;
+  }
+  if (flags & GapWindowFlags_DefaultTitle) {
+    gap_window_title_set(comp, window_default_title_scratch());
   }
 }
 
