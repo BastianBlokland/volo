@@ -287,9 +287,10 @@ static VkDevice rvk_device_create_internal(RvkDevice* dev) {
     };
   }
 
-  VkPhysicalDevice16BitStorageFeatures float16IStorageFeatures = {
+  const VkPhysicalDevice16BitStorageFeatures float16IStorageFeatures = {
       .sType                    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES_KHR,
       .storageBuffer16BitAccess = true,
+      .uniformAndStorageBuffer16BitAccess = true,
   };
 
   const char* extensionsToEnabled[array_elems(g_requiredExts)];
