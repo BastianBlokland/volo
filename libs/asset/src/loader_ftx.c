@@ -369,7 +369,7 @@ void asset_load_ftx(EcsWorld* world, const EcsEntityId entity, AssetSource* src)
     errMsg = ftx_error_str(FtxError_FontNotSpecified);
     goto Error;
   }
-  if (UNLIKELY(!def.size)) {
+  if (UNLIKELY(!def.size || !def.glyphSize)) {
     errMsg = ftx_error_str(FtxError_SizeZero);
     goto Error;
   }
