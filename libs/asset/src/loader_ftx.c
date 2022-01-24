@@ -33,7 +33,7 @@ typedef struct {
   u32    border;
   f32    lineSpacing;
   String characters;
-} FtxDefinition;
+} FtxDef;
 
 static void ftx_datareg_init() {
   static ThreadSpinLock g_initLock;
@@ -44,16 +44,16 @@ static void ftx_datareg_init() {
   if (!g_dataReg) {
     g_dataReg = data_reg_create(g_alloc_persist);
 
-    data_reg_struct_t(g_dataReg, FtxDefinition);
-    data_reg_field_t(g_dataReg, FtxDefinition, fontId, data_prim_t(String));
-    data_reg_field_t(g_dataReg, FtxDefinition, size, data_prim_t(u32));
-    data_reg_field_t(g_dataReg, FtxDefinition, glyphSize, data_prim_t(u32));
-    data_reg_field_t(g_dataReg, FtxDefinition, border, data_prim_t(u32));
+    data_reg_struct_t(g_dataReg, FtxDef);
+    data_reg_field_t(g_dataReg, FtxDef, fontId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, FtxDef, size, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, FtxDef, glyphSize, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, FtxDef, border, data_prim_t(u32));
+    data_reg_field_t(g_dataReg, FtxDef, lineSpacing, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(
-        g_dataReg, FtxDefinition, lineSpacing, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, FtxDefinition, characters, data_prim_t(String));
+        g_dataReg, FtxDef, characters, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
-    g_dataFtxDefMeta = data_meta_t(t_FtxDefinition);
+    g_dataFtxDefMeta = data_meta_t(t_FtxDef);
   }
   thread_spinlock_unlock(&g_initLock);
 }
@@ -61,8 +61,8 @@ static void ftx_datareg_init() {
 ecs_comp_define_public(AssetFtxComp);
 
 ecs_comp_define(AssetFtxLoadComp) {
-  FtxDefinition def;
-  EcsEntityId   font;
+  FtxDef      def;
+  EcsEntityId font;
 };
 
 static void ecs_destruct_ftx_comp(void* data) {
@@ -77,14 +77,11 @@ static void ecs_destruct_ftx_load_comp(void* data) {
 
 typedef enum {
   FtxError_None = 0,
-  FtxError_FontNotSpecified,
   FtxError_FontInvalid,
   FtxError_FontGlyphMissing,
   FtxError_SizeNonPow2,
-  FtxError_SizeZero,
   FtxError_SizeTooBig,
   FtxError_GlyphSizeNonPow2,
-  FtxError_NoCharacters,
   FtxError_TooManyCharacters,
   FtxError_TooManyGlyphs,
   FtxError_InvalidUtf8,
@@ -95,14 +92,11 @@ typedef enum {
 static String ftx_error_str(const FtxError err) {
   static const String g_msgs[] = {
       string_static("None"),
-      string_static("Ftx does not specify a font"),
       string_static("Ftx specifies an invalid font"),
       string_static("Ftx source font is missing a glyph for the requested characters"),
       string_static("Ftx specifies a non power-of-two texture size"),
-      string_static("Ftx specifies a zero texture size"),
       string_static("Ftx specifies a texture size larger then is supported"),
       string_static("Ftx specifies a non power-of-two glyph size"),
-      string_static("Ftx does not specify any characters"),
       string_static("Ftx specifies more characters then are supported"),
       string_static("Ftx requires more glyphs then fit at the requested size"),
       string_static("Ftx specifies invalid utf8"),
@@ -118,13 +112,13 @@ static i8 ftx_compare_char_cp(const void* a, const void* b) {
 typedef struct {
   u32                   cp;
   const AssetFontGlyph* glyph;
-} FtxDefinitionChar;
+} FtxDefChar;
 
 static u32 ftx_lookup_chars(
-    const AssetFontComp* font, String chars, FtxDefinitionChar out[ftx_max_chars], FtxError* err) {
+    const AssetFontComp* font, String chars, FtxDefChar out[ftx_max_chars], FtxError* err) {
 
   u32 index    = 0;
-  out[index++] = (FtxDefinitionChar){.cp = 0, .glyph = asset_font_missing(font)};
+  out[index++] = (FtxDefChar){.cp = 0, .glyph = asset_font_missing(font)};
   do {
     Unicode cp;
     chars = utf8_cp_read(chars, &cp);
@@ -141,7 +135,7 @@ static u32 ftx_lookup_chars(
       *err = FtxError_FontGlyphMissing;
       return 0;
     }
-    out[index++] = (FtxDefinitionChar){.cp = cp, .glyph = glyph};
+    out[index++] = (FtxDefChar){.cp = cp, .glyph = glyph};
 
   } while (chars.size);
 
@@ -150,7 +144,7 @@ static u32 ftx_lookup_chars(
 }
 
 static void ftx_generate_glyph(
-    const FtxDefinition*  def,
+    const FtxDef*         def,
     const AssetFontComp*  font,
     const AssetFontGlyph* glyph,
     const u32             index,
@@ -185,7 +179,7 @@ static void ftx_generate_glyph(
 }
 
 static void ftx_generate(
-    const FtxDefinition* def,
+    const FtxDef*        def,
     const AssetFontComp* font,
     AssetFtxComp*        outFtx,
     AssetTextureComp*    outTexture,
@@ -201,8 +195,8 @@ static void ftx_generate(
     goto Error;
   }
 
-  FtxDefinitionChar inputChars[ftx_max_chars];
-  const u32         charCount = ftx_lookup_chars(font, def->characters, inputChars, err);
+  FtxDefChar inputChars[ftx_max_chars];
+  const u32  charCount = ftx_lookup_chars(font, def->characters, inputChars, err);
   if (UNLIKELY(*err)) {
     goto Error;
   }
@@ -358,20 +352,12 @@ ecs_module_init(asset_ftx_module) {
 
 void asset_load_ftx(EcsWorld* world, const EcsEntityId entity, AssetSource* src) {
   String         errMsg;
-  FtxDefinition  def;
+  FtxDef         def;
   DataReadResult result;
   data_read_json(g_dataReg, src->data, g_alloc_heap, g_dataFtxDefMeta, mem_var(def), &result);
 
   if (UNLIKELY(result.error)) {
     errMsg = result.errorMsg;
-    goto Error;
-  }
-  if (UNLIKELY(string_is_empty(def.fontId))) {
-    errMsg = ftx_error_str(FtxError_FontNotSpecified);
-    goto Error;
-  }
-  if (UNLIKELY(!def.size || !def.glyphSize)) {
-    errMsg = ftx_error_str(FtxError_SizeZero);
     goto Error;
   }
   if (UNLIKELY(!bits_ispow2(def.size))) {
@@ -384,10 +370,6 @@ void asset_load_ftx(EcsWorld* world, const EcsEntityId entity, AssetSource* src)
   }
   if (UNLIKELY(!bits_ispow2(def.glyphSize))) {
     errMsg = ftx_error_str(FtxError_GlyphSizeNonPow2);
-    goto Error;
-  }
-  if (UNLIKELY(string_is_empty(def.characters))) {
-    errMsg = ftx_error_str(FtxError_NoCharacters);
     goto Error;
   }
 
