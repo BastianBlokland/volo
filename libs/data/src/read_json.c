@@ -34,6 +34,16 @@ static void data_register_alloc(const ReadCtx* ctx, const Mem allocation) {
   *dynarray_push_t(ctx->allocations, Mem) = allocation;
 }
 
+static const DataDeclField* data_field_by_name(const DataDeclStruct* data, const String name) {
+  const u32 nameHash = bits_hash_32(name);
+  dynarray_for_t(&data->fields, DataDeclField, fieldDecl) {
+    if (fieldDecl->id.hash == nameHash) {
+      return fieldDecl;
+    }
+  }
+  return null;
+}
+
 static bool data_check_type(const ReadCtx* ctx, const JsonType jsonType, DataReadResult* res) {
   if (UNLIKELY(jsonType != json_type(ctx->doc, ctx->val))) {
     *res = result_fail(
@@ -168,6 +178,7 @@ static void data_read_json_struct(const ReadCtx* ctx, DataReadResult* res) {
 
   mem_set(ctx->data, 0); // Initialize non-specified memory to zero.
 
+  u32 fieldsRead = 0;
   dynarray_for_t(&decl->val_struct.fields, DataDeclField, fieldDecl) {
     const JsonVal fieldVal = json_field(ctx->doc, ctx->val, fieldDecl->id.name);
 
@@ -198,6 +209,17 @@ static void data_read_json_struct(const ReadCtx* ctx, DataReadResult* res) {
           fmt_text(res->errorMsg));
       return;
     }
+    ++fieldsRead;
+  }
+
+  if (UNLIKELY(fieldsRead != json_field_count(ctx->doc, ctx->val))) {
+    json_for_fields(ctx->doc, ctx->val, field) {
+      if (!data_field_by_name(&decl->val_struct, field.name)) {
+        *res = result_fail(DataReadError_UnknownField, "Unknown field: '{}'", fmt_text(field.name));
+        return;
+      }
+    }
+    diag_assert_fail("Invalid state");
   }
 
   *res = result_success();

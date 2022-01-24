@@ -8,6 +8,7 @@ typedef enum {
   DataReadError_InvalidEnumEntry,
   DataReadError_FieldNotFound,
   DataReadError_InvalidField,
+  DataReadError_UnknownField,
   DataReadError_NumberOutOfBounds,
   DataReadError_ZeroIsInvalid,
   DataReadError_EmptyStringIsInvalid,
