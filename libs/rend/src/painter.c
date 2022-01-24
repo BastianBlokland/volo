@@ -51,6 +51,8 @@ typedef struct {
   GeoQuat   camRotation;
 } RendPainterGlobalData;
 
+ASSERT(sizeof(RendPainterGlobalData) == 112, "Size needs to match the size defined in glsl");
+
 ecs_view_define(GlobalView) { ecs_access_write(RendPlatformComp); }
 ecs_view_define(DrawView) { ecs_access_read(RendPainterDrawComp); }
 ecs_view_define(GraphicView) {
