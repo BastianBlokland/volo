@@ -68,12 +68,14 @@ static void graphic_datareg_init() {
     data_reg_const_t(g_dataReg, AssetGraphicCull, Front);
 
     data_reg_struct_t(g_dataReg, AssetGraphicOverride);
-    data_reg_field_t(g_dataReg, AssetGraphicOverride, name, data_prim_t(String));
+    data_reg_field_t(
+        g_dataReg, AssetGraphicOverride, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetGraphicOverride, binding, data_prim_t(u32));
     data_reg_field_t(g_dataReg, AssetGraphicOverride, value, data_prim_t(f64));
 
     data_reg_struct_t(g_dataReg, AssetGraphicShader);
-    data_reg_field_t(g_dataReg, AssetGraphicShader, shaderId, data_prim_t(String));
+    data_reg_field_t(
+        g_dataReg, AssetGraphicShader, shaderId, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(
         g_dataReg,
         AssetGraphicShader,
@@ -83,7 +85,12 @@ static void graphic_datareg_init() {
         .flags     = DataFlags_Opt);
 
     data_reg_struct_t(g_dataReg, AssetGraphicSampler);
-    data_reg_field_t(g_dataReg, AssetGraphicSampler, textureId, data_prim_t(String));
+    data_reg_field_t(
+        g_dataReg,
+        AssetGraphicSampler,
+        textureId,
+        data_prim_t(String),
+        .flags = DataFlags_NotEmpty);
     data_reg_field_t(
         g_dataReg, AssetGraphicSampler, wrap, t_AssetGraphicWrap, .flags = DataFlags_Opt);
     data_reg_field_t(
@@ -97,7 +104,8 @@ static void graphic_datareg_init() {
         AssetGraphicComp,
         shaders,
         t_AssetGraphicShader,
-        .container = DataContainer_Array);
+        .container = DataContainer_Array,
+        .flags     = DataFlags_NotEmpty);
     data_reg_field_t(
         g_dataReg,
         AssetGraphicComp,
@@ -106,9 +114,17 @@ static void graphic_datareg_init() {
         .container = DataContainer_Array,
         .flags     = DataFlags_Opt);
     data_reg_field_t(
-        g_dataReg, AssetGraphicComp, meshId, data_prim_t(String), .flags = DataFlags_Opt);
+        g_dataReg,
+        AssetGraphicComp,
+        meshId,
+        data_prim_t(String),
+        .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(
-        g_dataReg, AssetGraphicComp, vertexCount, data_prim_t(u32), .flags = DataFlags_Opt);
+        g_dataReg,
+        AssetGraphicComp,
+        vertexCount,
+        data_prim_t(u32),
+        .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(
         g_dataReg, AssetGraphicComp, renderOrder, data_prim_t(i32), .flags = DataFlags_Opt);
     data_reg_field_t(
@@ -116,7 +132,11 @@ static void graphic_datareg_init() {
     data_reg_field_t(
         g_dataReg, AssetGraphicComp, rasterizer, t_AssetGraphicRasterizer, .flags = DataFlags_Opt);
     data_reg_field_t(
-        g_dataReg, AssetGraphicComp, lineWidth, data_prim_t(u32), .flags = DataFlags_Opt);
+        g_dataReg,
+        AssetGraphicComp,
+        lineWidth,
+        data_prim_t(u32),
+        .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(
         g_dataReg, AssetGraphicComp, blend, t_AssetGraphicBlend, .flags = DataFlags_Opt);
     data_reg_field_t(
@@ -183,19 +203,11 @@ ecs_system_define(LoadGraphicAssetSys) {
 
     // Resolve shader references.
     array_ptr_for_t(graphicComp->shaders, AssetGraphicShader, ptr) {
-      if (string_is_empty(ptr->shaderId)) {
-        graphic_load_fail(world, entity, string_lit("Missing shader asset"));
-        goto Error;
-      }
       ptr->shader = asset_lookup(world, manager, ptr->shaderId);
     }
 
     // Resolve texture references.
     array_ptr_for_t(graphicComp->samplers, AssetGraphicSampler, ptr) {
-      if (string_is_empty(ptr->textureId)) {
-        graphic_load_fail(world, entity, string_lit("Missing texture asset"));
-        goto Error;
-      }
       ptr->texture = asset_lookup(world, manager, ptr->textureId);
     }
 

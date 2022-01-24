@@ -119,7 +119,7 @@ static void data_read_json_number(const ReadCtx* ctx, DataReadResult* res) {
   }
 
   // clang-format off
-#define READ_PRIM_NUM(_T_) case DataKind_##_T_: *mem_as_t(ctx->data, _T_) = (_T_)number
+#define READ_PRIM_NUM(_T_) case DataKind_##_T_: *mem_as_t(ctx->data, _T_) = (_T_)number;
 
   switch (decl->kind) {
     READ_PRIM_NUM(i8);  break;
@@ -135,10 +135,14 @@ static void data_read_json_number(const ReadCtx* ctx, DataReadResult* res) {
   default:
     diag_crash();
   }
-  *res = result_success();
-
-#undef READ_PRIM_NUM
   // clang-format on
+#undef READ_PRIM_NUM
+
+  if (UNLIKELY(ctx->meta.flags & DataFlags_NotEmpty && mem_all(ctx->data, 0))) {
+    *res = result_fail(DataReadError_ZeroIsInvalid, "Value cannot be zero");
+  } else {
+    *res = result_success();
+  }
 }
 
 static void data_read_json_bool(const ReadCtx* ctx, DataReadResult* res) {
@@ -154,8 +158,13 @@ static void data_read_json_string(const ReadCtx* ctx, DataReadResult* res) {
     return;
   }
   const String jsonStr = json_string(ctx->doc, ctx->val);
-  const String str     = string_is_empty(jsonStr) ? string_empty : string_dup(ctx->alloc, jsonStr);
 
+  if (UNLIKELY(ctx->meta.flags & DataFlags_NotEmpty && string_is_empty(jsonStr))) {
+    *res = result_fail(DataReadError_EmptyStringIsInvalid, "Value cannot be an empty string");
+    return;
+  }
+
+  const String str = string_is_empty(jsonStr) ? string_empty : string_dup(ctx->alloc, jsonStr);
   data_register_alloc(ctx, str);
   *mem_as_t(ctx->data, String) = str;
   *res                         = result_success();
@@ -273,8 +282,12 @@ static void data_read_json_val_single(const ReadCtx* ctx, DataReadResult* res) {
 
 static void data_read_json_val_pointer(const ReadCtx* ctx, DataReadResult* res) {
   if (json_type(ctx->doc, ctx->val) == JsonType_Null) {
-    *mem_as_t(ctx->data, void*) = null;
-    *res                        = result_success();
+    if (UNLIKELY(ctx->meta.flags & DataFlags_NotEmpty)) {
+      *res = result_fail(DataReadError_NullIsInvalid, "Value cannot be null");
+    } else {
+      *mem_as_t(ctx->data, void*) = null;
+      *res                        = result_success();
+    }
     return;
   }
 
@@ -302,8 +315,12 @@ static void data_read_json_val_array(const ReadCtx* ctx, DataReadResult* res) {
   const DataDecl* decl  = data_decl(ctx->reg, ctx->meta.type);
   const usize     count = json_elem_count(ctx->doc, ctx->val);
   if (!count) {
-    *mem_as_t(ctx->data, DataArray) = (DataArray){0};
-    *res                            = result_success();
+    if (UNLIKELY(ctx->meta.flags & DataFlags_NotEmpty)) {
+      *res = result_fail(DataReadError_EmptyArrayIsInvalid, "Value cannot be an empty array");
+    } else {
+      *mem_as_t(ctx->data, DataArray) = (DataArray){0};
+      *res                            = result_success();
+    }
     return;
   }
 

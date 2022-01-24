@@ -19,7 +19,6 @@
       "shaderId": "shaders/ui/color.frag.spv"
     }
   ],
-  "vertexCount": 0,
   "renderOrder": 101,
   "topology": "Points",
   "rasterizer": "Points",

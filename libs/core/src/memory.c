@@ -137,6 +137,15 @@ bool mem_contains(const Mem mem, const u8 byte) {
   return false;
 }
 
+bool mem_all(Mem mem, const u8 byte) {
+  mem_for_u8(mem, itr) {
+    if (*itr != byte) {
+      return false;
+    }
+  }
+  return true;
+}
+
 void mem_swap(const Mem a, const Mem b) {
   diag_assert(mem_valid(a));
   diag_assert(mem_valid(b));
