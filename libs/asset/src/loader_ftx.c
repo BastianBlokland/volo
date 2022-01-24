@@ -44,14 +44,15 @@ static void ftx_datareg_init() {
   if (!g_dataReg) {
     g_dataReg = data_reg_create(g_alloc_persist);
 
+    // clang-format off
     data_reg_struct_t(g_dataReg, FtxDef);
     data_reg_field_t(g_dataReg, FtxDef, fontId, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, FtxDef, size, data_prim_t(u32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, FtxDef, glyphSize, data_prim_t(u32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, FtxDef, border, data_prim_t(u32));
     data_reg_field_t(g_dataReg, FtxDef, lineSpacing, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(
-        g_dataReg, FtxDef, characters, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, FtxDef, characters, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    // clang-format on
 
     g_dataFtxDefMeta = data_meta_t(t_FtxDef);
   }
