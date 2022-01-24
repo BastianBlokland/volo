@@ -11,6 +11,7 @@ typedef enum {
   DataReadError_NumberOutOfBounds,
   DataReadError_ZeroIsInvalid,
   DataReadError_EmptyStringIsInvalid,
+  DataReadError_EmptyArrayIsInvalid,
 } DataReadError;
 
 /**

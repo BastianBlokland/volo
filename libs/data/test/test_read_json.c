@@ -176,6 +176,13 @@ spec(read_json) {
     test_read_fail(_testCtx, reg, string_lit("null"), meta, DataReadError_MismatchedType);
   }
 
+  it("fails when an array value cannot be empty") {
+    const DataMeta meta = data_meta_t(
+        data_prim_t(u32), .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
+
+    test_read_fail(_testCtx, reg, string_lit("[]"), meta, DataReadError_EmptyArrayIsInvalid);
+  }
+
   it("can read an enum") {
     typedef enum {
       ReadJsonTestEnum_A = -42,

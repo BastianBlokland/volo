@@ -289,8 +289,12 @@ static void data_read_json_val_array(const ReadCtx* ctx, DataReadResult* res) {
   const DataDecl* decl  = data_decl(ctx->reg, ctx->meta.type);
   const usize     count = json_elem_count(ctx->doc, ctx->val);
   if (!count) {
-    *mem_as_t(ctx->data, DataArray) = (DataArray){0};
-    *res                            = result_success();
+    if (UNLIKELY(ctx->meta.flags & DataFlags_NotEmpty)) {
+      *res = result_fail(DataReadError_EmptyArrayIsInvalid, "Value cannot be an empty array");
+    } else {
+      *mem_as_t(ctx->data, DataArray) = (DataArray){0};
+      *res                            = result_success();
+    }
     return;
   }
 
