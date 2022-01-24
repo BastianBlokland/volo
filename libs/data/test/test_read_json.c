@@ -52,6 +52,8 @@ spec(read_json) {
 #define X(_T_)                                                                                     \
   const DataMeta meta_##_T_ = data_meta_t(data_prim_t(_T_));                                       \
   _T_            val_##_T_;                                                                        \
+  test_read_success(_testCtx, reg, string_lit("0"), meta_##_T_, mem_var(val_##_T_));               \
+  check_eq_int(val_##_T_, 0);                                                                      \
   test_read_success(_testCtx, reg, string_lit("42"), meta_##_T_, mem_var(val_##_T_));              \
   check_eq_int(val_##_T_, 42);                                                                     \
   test_read_fail(_testCtx, reg, string_lit("null"), meta_##_T_, DataReadError_MismatchedType);
@@ -91,6 +93,26 @@ spec(read_json) {
     for (usize i = 0; i != array_elems(g_data); ++i) {
       const DataMeta meta = data_meta_t((DataType)g_data[i].prim);
       test_read_fail(_testCtx, reg, g_data[i].input, meta, DataReadError_NumberOutOfBounds);
+    }
+  }
+
+  it("fails when a value cannot be empty but the number is zero") {
+    static const struct {
+      String   input;
+      DataKind prim;
+    } g_data[] = {
+        {.input = string_static("0"), DataKind_i8},
+        {.input = string_static("0.1"), DataKind_i8},
+        {.input = string_static("0"), DataKind_i16},
+        {.input = string_static("-0.1"), DataKind_i16},
+        {.input = string_static("-0.9"), DataKind_i16},
+        {.input = string_static("0.9"), DataKind_i16},
+        {.input = string_static("0"), DataKind_f32},
+        {.input = string_static("0"), DataKind_f64},
+    };
+    for (usize i = 0; i != array_elems(g_data); ++i) {
+      const DataMeta meta = data_meta_t((DataType)g_data[i].prim, .flags = DataFlags_NotEmpty);
+      test_read_fail(_testCtx, reg, g_data[i].input, meta, DataReadError_ZeroIsInvalid);
     }
   }
 

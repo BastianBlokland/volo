@@ -9,6 +9,7 @@ typedef enum {
   DataReadError_FieldNotFound,
   DataReadError_InvalidField,
   DataReadError_NumberOutOfBounds,
+  DataReadError_ZeroIsInvalid,
 } DataReadError;
 
 /**

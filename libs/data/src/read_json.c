@@ -108,9 +108,17 @@ static void data_read_json_number(const ReadCtx* ctx, DataReadResult* res) {
     return;
   }
 
-  // clang-format off
-#define READ_PRIM_NUM(_T_) case DataKind_##_T_: *mem_as_t(ctx->data, _T_) = (_T_)number
+  *res = result_success(); // Success unless its set to failure after this.
 
+#define READ_PRIM_NUM(_T_)                                                                         \
+  case DataKind_##_T_:                                                                             \
+    if (UNLIKELY(ctx->meta.flags & DataFlags_NotEmpty && (_T_)number == 0)) {                      \
+      *res = result_fail(DataReadError_ZeroIsInvalid, "Zero is not valid");                        \
+    } else {                                                                                       \
+      *mem_as_t(ctx->data, _T_) = (_T_)number;                                                     \
+    }
+
+  // clang-format off
   switch (decl->kind) {
     READ_PRIM_NUM(i8);  break;
     READ_PRIM_NUM(i16); break;
@@ -125,10 +133,9 @@ static void data_read_json_number(const ReadCtx* ctx, DataReadResult* res) {
   default:
     diag_crash();
   }
-  *res = result_success();
+  // clang-format on
 
 #undef READ_PRIM_NUM
-  // clang-format on
 }
 
 static void data_read_json_bool(const ReadCtx* ctx, DataReadResult* res) {
