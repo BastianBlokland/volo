@@ -184,6 +184,26 @@ spec(memory) {
     check(!mem_contains(mem, 0));
   }
 
+  it("can check if all bytes are equal to specific byte") {
+    Mem memA = array_mem(((u8[]){
+        1,
+        1,
+        1,
+    }));
+
+    check(!mem_all(memA, 0));
+    check(mem_all(memA, 1));
+
+    Mem memB = array_mem(((u8[]){
+        1,
+        2,
+        3,
+    }));
+    check(!mem_all(memB, 1));
+    check(!mem_all(memB, 2));
+    check(!mem_all(memB, 3));
+  }
+
   it("can create a dynamicly sized allocation on the stack") {
     Rng* rng = rng_create_xorwow(g_alloc_scratch, 42);
 
