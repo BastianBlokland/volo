@@ -260,8 +260,12 @@ static void data_read_json_val_single(const ReadCtx* ctx, DataReadResult* res) {
 
 static void data_read_json_val_pointer(const ReadCtx* ctx, DataReadResult* res) {
   if (json_type(ctx->doc, ctx->val) == JsonType_Null) {
-    *mem_as_t(ctx->data, void*) = null;
-    *res                        = result_success();
+    if (UNLIKELY(ctx->meta.flags & DataFlags_NotEmpty)) {
+      *res = result_fail(DataReadError_NullIsInvalid, "Value cannot be null");
+    } else {
+      *mem_as_t(ctx->data, void*) = null;
+      *res                        = result_success();
+    }
     return;
   }
 

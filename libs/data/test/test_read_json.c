@@ -150,6 +150,13 @@ spec(read_json) {
     test_read_fail(_testCtx, reg, string_lit("true"), meta, DataReadError_MismatchedType);
   }
 
+  it("fails when a pointer value cannot be empty") {
+    const DataMeta meta = data_meta_t(
+        data_prim_t(u32), .container = DataContainer_Pointer, .flags = DataFlags_NotEmpty);
+
+    test_read_fail(_testCtx, reg, string_lit("null"), meta, DataReadError_NullIsInvalid);
+  }
+
   it("can read an array") {
     const DataMeta meta = data_meta_t(data_prim_t(u32), .container = DataContainer_Array);
 
