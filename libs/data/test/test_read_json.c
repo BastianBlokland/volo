@@ -221,6 +221,17 @@ spec(read_json) {
                    "}"),
         meta,
         DataReadError_FieldNotFound);
+    test_read_fail(
+        _testCtx,
+        reg,
+        string_lit("{"
+                   "\"valA\": -42,"
+                   "\"valB\": \"Hello World\","
+                   "\"Hello\": \"World\","
+                   "\"valC\": 42.42"
+                   "}"),
+        meta,
+        DataReadError_UnknownField);
     test_read_fail(_testCtx, reg, string_lit("null"), meta, DataReadError_MismatchedType);
   }
 
