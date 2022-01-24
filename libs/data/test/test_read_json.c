@@ -96,7 +96,7 @@ spec(read_json) {
     }
   }
 
-  it("fails when a value cannot be empty but the number is zero") {
+  it("fails when a number value cannot be empty") {
     static const struct {
       String   input;
       DataKind prim;
@@ -128,6 +128,12 @@ spec(read_json) {
     check_eq_string(val, string_empty);
 
     test_read_fail(_testCtx, reg, string_lit("null"), meta, DataReadError_MismatchedType);
+  }
+
+  it("fails when a string value cannot be empty") {
+    const DataMeta meta = data_meta_t(data_prim_t(String), .flags = DataFlags_NotEmpty);
+
+    test_read_fail(_testCtx, reg, string_lit("\"\""), meta, DataReadError_EmptyStringIsInvalid);
   }
 
   it("can read a pointer") {

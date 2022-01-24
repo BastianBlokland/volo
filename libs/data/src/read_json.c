@@ -113,7 +113,7 @@ static void data_read_json_number(const ReadCtx* ctx, DataReadResult* res) {
 #define READ_PRIM_NUM(_T_)                                                                         \
   case DataKind_##_T_:                                                                             \
     if (UNLIKELY(ctx->meta.flags & DataFlags_NotEmpty && (_T_)number == 0)) {                      \
-      *res = result_fail(DataReadError_ZeroIsInvalid, "Zero is not valid");                        \
+      *res = result_fail(DataReadError_ZeroIsInvalid, "Value cannot be zero");                     \
     } else {                                                                                       \
       *mem_as_t(ctx->data, _T_) = (_T_)number;                                                     \
     }
@@ -151,8 +151,13 @@ static void data_read_json_string(const ReadCtx* ctx, DataReadResult* res) {
     return;
   }
   const String jsonStr = json_string(ctx->doc, ctx->val);
-  const String str     = string_is_empty(jsonStr) ? string_empty : string_dup(ctx->alloc, jsonStr);
 
+  if (UNLIKELY(ctx->meta.flags & DataFlags_NotEmpty && string_is_empty(jsonStr))) {
+    *res = result_fail(DataReadError_EmptyStringIsInvalid, "Value cannot be an empty string");
+    return;
+  }
+
+  const String str = string_is_empty(jsonStr) ? string_empty : string_dup(ctx->alloc, jsonStr);
   data_register_alloc(ctx, str);
   *mem_as_t(ctx->data, String) = str;
   *res                         = result_success();
