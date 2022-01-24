@@ -43,8 +43,6 @@ static const AssetMemRecord g_testData[] = {
                               "  \"glyphSize\": 32,"
                               "  \"border\": 3,"
                               "  \"characters\": \"1\","
-                              "  \"depth\": \"Less\","
-                              "  \"cull\": \"Back\","
                               "}"),
     },
 };
@@ -57,8 +55,6 @@ static const AssetMemRecord g_errorTestData[] = {
                               "  \"glyphSize\": 32,"
                               "  \"border\": 3,"
                               "  \"characters\": \"1\","
-                              "  \"depth\": \"Less\","
-                              "  \"cull\": \"Back\","
                               "}"),
     },
     {
@@ -69,8 +65,6 @@ static const AssetMemRecord g_errorTestData[] = {
                               "  \"glyphSize\": 32,"
                               "  \"border\": 3,"
                               "  \"characters\": \"1\","
-                              "  \"depth\": \"Less\","
-                              "  \"cull\": \"Back\","
                               "}"),
     },
     {
@@ -81,8 +75,6 @@ static const AssetMemRecord g_errorTestData[] = {
                               "  \"glyphSize\": 32,"
                               "  \"border\": 3,"
                               "  \"characters\": \"1\","
-                              "  \"depth\": \"Less\","
-                              "  \"cull\": \"Back\","
                               "}"),
     },
     {
@@ -93,8 +85,6 @@ static const AssetMemRecord g_errorTestData[] = {
                               "  \"glyphSize\": 32,"
                               "  \"border\": 3,"
                               "  \"characters\": \"1\","
-                              "  \"depth\": \"Less\","
-                              "  \"cull\": \"Back\","
                               "}"),
     },
     {
@@ -105,8 +95,6 @@ static const AssetMemRecord g_errorTestData[] = {
                               "  \"glyphSize\": 32,"
                               "  \"border\": 3,"
                               "  \"characters\": \"1111\","
-                              "  \"depth\": \"Less\","
-                              "  \"cull\": \"Back\","
                               "}"),
     },
 };
