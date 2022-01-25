@@ -25,7 +25,7 @@ ecs_view_define(RenderableUniqueView) {
   ecs_access_maybe_write(RendDrawComp);
 }
 
-ecs_view_define(PainterDrawView) { ecs_access_write(RendDrawComp); }
+ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
 
 ecs_system_define(RendInstanceRequestResourcesSys) {
   // Request the graphic resource for SceneRenderableComp's to be loaded.
@@ -43,16 +43,9 @@ ecs_system_define(RendInstanceRequestResourcesSys) {
   }
 }
 
-ecs_system_define(RendInstanceClearDrawsSys) {
-  EcsView* drawView = ecs_world_view_t(world, PainterDrawView);
-  for (EcsIterator* itr = ecs_view_itr(drawView); ecs_view_walk(itr);) {
-    dynarray_clear(&ecs_view_write_t(itr, RendDrawComp)->instances);
-  }
-}
-
 ecs_system_define(RendInstanceFillDrawsSys) {
   EcsView* renderableView = ecs_world_view_t(world, RenderableView);
-  EcsView* drawView       = ecs_world_view_t(world, PainterDrawView);
+  EcsView* drawView       = ecs_world_view_t(world, DrawView);
 
   EcsIterator* drawItr = ecs_view_itr(drawView);
   for (EcsIterator* renderableItr = ecs_view_itr(renderableView); ecs_view_walk(renderableItr);) {
@@ -111,22 +104,18 @@ ecs_system_define(RendInstanceFillUniqueDrawsSys) {
 }
 
 ecs_module_init(rend_instance_module) {
-
   ecs_register_view(RenderableView);
   ecs_register_view(RenderableUniqueView);
-  ecs_register_view(PainterDrawView);
+  ecs_register_view(DrawView);
 
   ecs_register_system(
       RendInstanceRequestResourcesSys,
       ecs_view_id(RenderableView),
       ecs_view_id(RenderableUniqueView));
 
-  ecs_register_system(RendInstanceClearDrawsSys, ecs_view_id(PainterDrawView));
-  ecs_register_system(
-      RendInstanceFillDrawsSys, ecs_view_id(RenderableView), ecs_view_id(PainterDrawView));
+  ecs_register_system(RendInstanceFillDrawsSys, ecs_view_id(RenderableView), ecs_view_id(DrawView));
   ecs_register_system(RendInstanceFillUniqueDrawsSys, ecs_view_id(RenderableUniqueView));
 
-  ecs_order(RendInstanceClearDrawsSys, RendOrder_DrawCollect - 1);
   ecs_order(RendInstanceFillDrawsSys, RendOrder_DrawCollect);
   ecs_order(RendInstanceFillUniqueDrawsSys, RendOrder_DrawCollect);
 }
