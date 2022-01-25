@@ -1,6 +1,7 @@
 #pragma once
 #include "ecs_entity.h"
 #include "ecs_module.h"
+#include "scene_tag.h"
 
 #include "rvk/pass_internal.h"
 
@@ -20,4 +21,4 @@ void rend_draw_set_vertex_count(RendDrawComp*, u32 vertexCount);
  */
 void rend_draw_set_data_size(RendDrawComp*, u32 size);
 
-Mem rend_draw_add_instance(RendDrawComp*);
+Mem rend_draw_add_instance(RendDrawComp*, SceneTags);

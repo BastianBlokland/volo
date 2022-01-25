@@ -108,7 +108,8 @@ void rend_draw_set_data_size(RendDrawComp* draw, const u32 size) {
   draw->dataSize  = bits_align(size, rend_draw_min_align);
 }
 
-Mem rend_draw_add_instance(RendDrawComp* draw) {
+Mem rend_draw_add_instance(RendDrawComp* draw, const SceneTags tags) {
+  (void)tags;
   ++draw->instances;
   rend_draw_ensure_data_storage(draw, draw->instances);
   return rend_draw_data(draw, draw->instances - 1);

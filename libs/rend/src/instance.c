@@ -1,6 +1,7 @@
 #include "ecs_world.h"
 #include "rend_register.h"
 #include "scene_renderable.h"
+#include "scene_tag.h"
 #include "scene_transform.h"
 
 #include "draw_internal.h"
@@ -14,11 +15,13 @@ typedef struct {
 
 ecs_view_define(RenderableView) {
   ecs_access_read(SceneRenderableComp);
+  ecs_access_maybe_read(SceneTagComp);
   ecs_access_maybe_read(SceneTransformComp);
 }
 
 ecs_view_define(RenderableUniqueView) {
   ecs_access_read(SceneRenderableUniqueComp);
+  ecs_access_maybe_read(SceneTagComp);
   ecs_access_maybe_write(RendDrawComp);
 }
 
@@ -47,7 +50,10 @@ ecs_system_define(RendInstanceFillDrawsSys) {
   EcsIterator* drawItr = ecs_view_itr(drawView);
   for (EcsIterator* renderableItr = ecs_view_itr(renderableView); ecs_view_walk(renderableItr);) {
     const SceneRenderableComp* renderable = ecs_view_read_t(renderableItr, SceneRenderableComp);
+    const SceneTagComp*        tagComp    = ecs_view_read_t(renderableItr, SceneTagComp);
     const SceneTransformComp*  transform  = ecs_view_read_t(renderableItr, SceneTransformComp);
+
+    const SceneTags tags = tagComp ? tagComp->tags : SceneTag_None;
 
     if (UNLIKELY(!ecs_world_has_t(world, renderable->graphic, RendDrawComp))) {
       RendDrawComp* draw = rend_draw_create(world, renderable->graphic);
@@ -59,7 +65,7 @@ ecs_system_define(RendInstanceFillDrawsSys) {
     ecs_view_jump(drawItr, renderable->graphic);
     RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
 
-    *mem_as_t(rend_draw_add_instance(draw), RendInstanceData) = (RendInstanceData){
+    *mem_as_t(rend_draw_add_instance(draw, tags), RendInstanceData) = (RendInstanceData){
         .position = transform ? transform->position : geo_vector(0),
         .rotation = transform ? transform->rotation : geo_quat_ident,
     };
@@ -71,7 +77,10 @@ ecs_system_define(RendInstanceFillUniqueDrawsSys) {
   for (EcsIterator* itr = ecs_view_itr(renderableView); ecs_view_walk(itr);) {
 
     const SceneRenderableUniqueComp* renderable = ecs_view_read_t(itr, SceneRenderableUniqueComp);
-    const Mem                        data       = scene_renderable_unique_data_get(renderable);
+    const SceneTagComp*              tagComp    = ecs_view_read_t(itr, SceneTagComp);
+
+    const Mem       data = scene_renderable_unique_data_get(renderable);
+    const SceneTags tags = tagComp ? tagComp->tags : SceneTag_None;
 
     RendDrawComp* draw = ecs_view_write_t(itr, RendDrawComp);
     if (UNLIKELY(!draw)) {
@@ -82,7 +91,7 @@ ecs_system_define(RendInstanceFillUniqueDrawsSys) {
     rend_draw_set_graphic(draw, renderable->graphic);
     rend_draw_set_vertex_count(draw, renderable->vertexCountOverride);
     rend_draw_set_data_size(draw, (u32)data.size);
-    mem_cpy(rend_draw_add_instance(draw), data);
+    mem_cpy(rend_draw_add_instance(draw, tags), data);
   }
 }
 
