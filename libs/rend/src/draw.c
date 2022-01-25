@@ -6,20 +6,24 @@
 
 #include "draw_internal.h"
 
-#define rend_draw_min_align 16
+#define rend_min_align 16
 
 ecs_comp_define(RendDrawComp) {
   EcsEntityId graphic;
   u32         vertexCountOverride;
+  u32         instances;
   u32         dataSize; // NOTE: Size per instance.
   Mem         dataMemory;
-  u32         instances;
+  Mem         tagsMemory;
 };
 
 static void ecs_destruct_draw(void* data) {
   RendDrawComp* comp = data;
   if (mem_valid(comp->dataMemory)) {
     alloc_free(g_alloc_heap, comp->dataMemory);
+  }
+  if (mem_valid(comp->tagsMemory)) {
+    alloc_free(g_alloc_heap, comp->tagsMemory);
   }
 }
 
@@ -31,7 +35,8 @@ static void ecs_combine_draw(void* dataA, void* dataB) {
 
   for (u32 i = 0; i != drawB->instances; ++i) {
     const Mem instanceData = mem_slice(drawB->dataMemory, drawB->dataSize * i, drawB->dataSize);
-    mem_cpy(rend_draw_add_instance(drawA), instanceData);
+    const SceneTags tags   = mem_as_t(drawB->tagsMemory, SceneTags)[i];
+    mem_cpy(rend_draw_add_instance(drawA, tags), instanceData);
   }
 
   if (mem_valid(drawB->dataMemory)) {
@@ -39,15 +44,14 @@ static void ecs_combine_draw(void* dataA, void* dataB) {
   }
 }
 
-static void rend_draw_ensure_data_storage(RendDrawComp* draw, const u32 instances) {
-  const u32 neededSize = instances * draw->dataSize;
-  if (UNLIKELY(draw->dataMemory.size < neededSize)) {
-    const Mem newMem = alloc_alloc(g_alloc_heap, bits_nextpow2_32(neededSize), rend_draw_min_align);
-    if (mem_valid(draw->dataMemory)) {
-      mem_cpy(newMem, draw->dataMemory);
-      alloc_free(g_alloc_heap, draw->dataMemory);
+static void rend_draw_ensure_storage(Mem* mem, const usize neededSize, const usize align) {
+  if (UNLIKELY(mem->size < neededSize)) {
+    const Mem newMem = alloc_alloc(g_alloc_heap, bits_nextpow2(neededSize), align);
+    if (mem_valid(*mem)) {
+      mem_cpy(newMem, *mem);
+      alloc_free(g_alloc_heap, *mem);
     }
-    draw->dataMemory = newMem;
+    *mem = newMem;
   }
 }
 
@@ -105,12 +109,14 @@ void rend_draw_set_vertex_count(RendDrawComp* comp, const u32 vertexCount) {
 
 void rend_draw_set_data_size(RendDrawComp* draw, const u32 size) {
   draw->instances = 0;
-  draw->dataSize  = bits_align(size, rend_draw_min_align);
+  draw->dataSize  = bits_align(size, rend_min_align);
 }
 
 Mem rend_draw_add_instance(RendDrawComp* draw, const SceneTags tags) {
-  (void)tags;
   ++draw->instances;
-  rend_draw_ensure_data_storage(draw, draw->instances);
+  rend_draw_ensure_storage(&draw->dataMemory, draw->instances * draw->dataSize, rend_min_align);
+  rend_draw_ensure_storage(&draw->tagsMemory, draw->instances * sizeof(SceneTags), 1);
+
+  mem_as_t(draw->tagsMemory, SceneTags)[draw->instances - 1] = tags;
   return rend_draw_data(draw, draw->instances - 1);
 }
