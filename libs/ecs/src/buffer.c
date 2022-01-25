@@ -140,9 +140,11 @@ static EcsBufferCompData* ecs_buffer_compdata_add(
   const usize padding = ecs_buffer_compdata_padding(compAlign);
   const usize size    = bits_align(sizeof(EcsBufferCompData) + padding + compSize, align);
 
-  Mem                storage = alloc_alloc(buffer->compDataAllocator, size, align);
-  EcsBufferCompData* res     = mem_as_t(storage, EcsBufferCompData);
-  *res                       = (EcsBufferCompData){.id = compId};
+  Mem storage = alloc_alloc(buffer->compDataAllocator, size, align);
+  diag_assert_msg(mem_valid(storage), "EcsBuffer size limit exceeded");
+
+  EcsBufferCompData* res = mem_as_t(storage, EcsBufferCompData);
+  *res                   = (EcsBufferCompData){.id = compId};
   return res;
 }
 
