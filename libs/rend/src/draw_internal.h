@@ -1,15 +1,10 @@
 #pragma once
-#include "core_dynarray.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
 
 #include "rvk/pass_internal.h"
 
-ecs_comp_extern_public(RendDrawComp) {
-  EcsEntityId graphic;
-  u32         vertexCountOverride;
-  DynArray    instances;
-};
+ecs_comp_extern(RendDrawComp);
 
 RendDrawComp* rend_draw_create(EcsWorld*, EcsEntityId entity);
 EcsEntityId   rend_draw_graphic(const RendDrawComp*);

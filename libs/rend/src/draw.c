@@ -8,7 +8,11 @@
 
 #define rend_draw_min_align 16
 
-ecs_comp_define_public(RendDrawComp);
+ecs_comp_define(RendDrawComp) {
+  EcsEntityId graphic;
+  u32         vertexCountOverride;
+  DynArray    instances;
+};
 
 static void ecs_destruct_draw(void* data) {
   RendDrawComp* comp = data;
