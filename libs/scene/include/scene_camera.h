@@ -1,6 +1,7 @@
 #pragma once
 #include "ecs_module.h"
 #include "geo_matrix.h"
+#include "scene_tag.h"
 
 typedef enum {
   SceneCameraFlags_None         = 0,
@@ -13,6 +14,7 @@ ecs_comp_extern_public(SceneCameraComp) {
   f32              persNear;
   f32              orthoSize;
   SceneCameraFlags flags;
+  SceneTags        requiredTags;
 };
 
 ecs_comp_extern_public(SceneCameraMovementComp) {

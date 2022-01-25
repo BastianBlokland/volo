@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_annotation.h"
 #include "core_array.h"
 #include "core_bitset.h"
 #include "core_diag.h"
@@ -22,7 +23,9 @@ struct sRvkStatRecorder {
   u64                  results[RvkStatMeta_CountTotal];
 };
 
-static bool rvk_statrecorder_is_manual(const RvkStat stat) { return stat >= RvkStatMeta_CountAuto; }
+MAYBE_UNUSED static bool rvk_statrecorder_is_manual(const RvkStat stat) {
+  return stat >= RvkStatMeta_CountAuto;
+}
 
 static VkQueryPool rvk_querypool_create(RvkDevice* dev) {
   const VkQueryPoolCreateInfo createInfo = {

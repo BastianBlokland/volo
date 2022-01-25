@@ -23,7 +23,7 @@ typedef enum {
   RvkPassFlags_Count = 2,
 } RvkPassFlags;
 
-typedef struct {
+typedef struct sRvkPassDraw {
   RvkGraphic* graphic;
   u32         vertexCountOverride;
   u32         instanceCount;
@@ -31,7 +31,7 @@ typedef struct {
   u32         dataStride;
 } RvkPassDraw;
 
-typedef struct {
+typedef struct sRvkPassDrawList {
   RvkPassDraw* values;
   usize        count;
 } RvkPassDrawList;

@@ -126,7 +126,7 @@ static void scene_text_build(SceneTextBuilder* builder) {
   }
 
   const usize maxDataSize = sizeof(ShaderFontData) + sizeof(ShaderGlyphData) * codePointsCount;
-  Mem         data        = scene_renderable_unique_data(builder->renderable, maxDataSize);
+  Mem         data        = scene_renderable_unique_data_set(builder->renderable, maxDataSize);
 
   /**
    * Setup per-font data (shared between all glyphs in this text).

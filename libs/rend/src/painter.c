@@ -1,15 +1,13 @@
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_thread.h"
-#include "core_time.h"
 #include "ecs_utils.h"
-#include "gap_input.h"
 #include "gap_window.h"
-#include "geo_matrix.h"
 #include "rend_register.h"
 #include "scene_camera.h"
 #include "scene_transform.h"
 
+#include "draw_internal.h"
 #include "painter_internal.h"
 #include "platform_internal.h"
 #include "resource_internal.h"
@@ -18,29 +16,10 @@
 #include "rvk/pass_internal.h"
 
 ecs_comp_define_public(RendPainterComp);
-ecs_comp_define_public(RendPainterDrawComp);
 
 static void ecs_destruct_painter(void* data) {
   RendPainterComp* comp = data;
   rvk_canvas_destroy(comp->canvas);
-}
-
-static void ecs_destruct_draw(void* data) {
-  RendPainterDrawComp* comp = data;
-  dynarray_destroy(&comp->instances);
-}
-
-static void ecs_combine_draw(void* dataA, void* dataB) {
-  RendPainterDrawComp* compA = dataA;
-  RendPainterDrawComp* compB = dataB;
-  diag_assert_msg(
-      compA->instances.stride == compB->instances.stride,
-      "Only draws with the same data-stride can be combined");
-
-  mem_cpy(
-      dynarray_push(&compA->instances, compB->instances.size),
-      dynarray_at(&compB->instances, 0, compB->instances.size));
-  dynarray_destroy(&compB->instances);
 }
 
 typedef struct {
@@ -54,7 +33,7 @@ typedef struct {
 ASSERT(sizeof(RendPainterGlobalData) == 112, "Size needs to match the size defined in glsl");
 
 ecs_view_define(GlobalView) { ecs_access_write(RendPlatformComp); }
-ecs_view_define(DrawView) { ecs_access_read(RendPainterDrawComp); }
+ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
 ecs_view_define(GraphicView) {
   ecs_access_write(RendResComp);
   ecs_access_write(RendResGraphicComp);
@@ -75,7 +54,7 @@ ecs_view_define(PainterUpdateView) {
   ecs_access_maybe_read(SceneTransformComp);
 }
 
-static i8 painter_compare_draw(const void* a, const void* b) {
+static i8 painter_compare_pass_draw(const void* a, const void* b) {
   const RvkPassDraw* drawA = a;
   const RvkPassDraw* drawB = b;
   return compare_i32(&drawA->graphic->renderOrder, &drawB->graphic->renderOrder);
@@ -95,6 +74,7 @@ static GeoMatrix painter_view_proj_matrix(
 
 static void painter_draw_forward(
     const RendPainterGlobalData* globalData,
+    const SceneTags              requiredTags,
     RvkPass*                     forwardPass,
     EcsView*                     drawView,
     EcsView*                     graphicView) {
@@ -103,30 +83,25 @@ static void painter_draw_forward(
   // Prepare draws.
   EcsIterator* graphicItr = ecs_view_itr(graphicView);
   for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
-    const RendPainterDrawComp* drawComp = ecs_view_read_t(drawItr, RendPainterDrawComp);
-    if (!drawComp->instances.size) {
+    RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
+    if (!rend_draw_gather(draw, requiredTags)) {
       continue;
     }
-    if (!ecs_view_contains(graphicView, drawComp->graphic)) {
+    if (!ecs_view_contains(graphicView, rend_draw_graphic(draw))) {
       continue;
     }
-    ecs_view_jump(graphicItr, drawComp->graphic);
-    rend_resource_mark_used(ecs_view_write_t(graphicItr, RendResComp));
+    ecs_view_jump(graphicItr, rend_draw_graphic(draw));
+    RendResComp*        res        = ecs_view_write_t(graphicItr, RendResComp);
+    RendResGraphicComp* graphicRes = ecs_view_write_t(graphicItr, RendResGraphicComp);
 
-    RendResGraphicComp* graphicResComp = ecs_view_write_t(graphicItr, RendResGraphicComp);
-    if (rvk_pass_prepare(forwardPass, graphicResComp->graphic)) {
-      *dynarray_push_t(&drawBuffer, RvkPassDraw) = (RvkPassDraw){
-          .graphic             = graphicResComp->graphic,
-          .vertexCountOverride = drawComp->vertexCountOverride,
-          .instanceCount       = (u32)drawComp->instances.size,
-          .data                = dynarray_at(&drawComp->instances, 0, drawComp->instances.size),
-          .dataStride          = drawComp->instances.stride,
-      };
+    rend_resource_mark_used(res);
+    if (rvk_pass_prepare(forwardPass, graphicRes->graphic)) {
+      *dynarray_push_t(&drawBuffer, RvkPassDraw) = rend_draw_output(draw, graphicRes->graphic);
     }
   }
 
   // Sort draws.
-  dynarray_sort(&drawBuffer, painter_compare_draw);
+  dynarray_sort(&drawBuffer, painter_compare_pass_draw);
 
   // Execute draws.
   rvk_pass_begin(forwardPass, geo_color_white);
@@ -159,8 +134,9 @@ static bool painter_draw(
         .camPosition = trans ? trans->position : geo_vector(0),
         .camRotation = trans ? trans->rotation : geo_quat_ident,
     };
-    RvkPass* forwardPass = rvk_canvas_pass_forward(painter->canvas);
-    painter_draw_forward(&globalData, forwardPass, drawView, graphicView);
+    const SceneTags requiredTags = cam->requiredTags;
+    RvkPass*        forwardPass  = rvk_canvas_pass_forward(painter->canvas);
+    painter_draw_forward(&globalData, requiredTags, forwardPass, drawView, graphicView);
     rvk_canvas_end(painter->canvas);
   }
   return draw;
@@ -215,8 +191,6 @@ ecs_system_define(RendPainterDrawBatchesSys) {
 
 ecs_module_init(rend_painter_module) {
   ecs_register_comp(RendPainterComp, .destructor = ecs_destruct_painter);
-  ecs_register_comp(
-      RendPainterDrawComp, .destructor = ecs_destruct_draw, .combinator = ecs_combine_draw);
 
   ecs_register_view(GlobalView);
   ecs_register_view(DrawView);

@@ -25,4 +25,5 @@ ecs_comp_extern_public(SceneRenderableUniqueComp) {
   usize       instDataSize;
 };
 
-Mem scene_renderable_unique_data(SceneRenderableUniqueComp*, usize size);
+Mem scene_renderable_unique_data_get(const SceneRenderableUniqueComp*);
+Mem scene_renderable_unique_data_set(SceneRenderableUniqueComp*, usize size);

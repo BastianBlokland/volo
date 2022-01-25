@@ -12,13 +12,17 @@ ecs_view_define(VelocityApplyView) {
   ecs_access_write(SceneTransformComp);
 }
 
-ecs_system_define(SceneVelocityApplySys) {
+static const SceneTimeComp* scene_time(EcsWorld* world) {
   EcsView*     view      = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr = ecs_view_maybe_at(view, ecs_world_global(world));
-  if (!globalItr) {
+  return globalItr ? ecs_view_read_t(globalItr, SceneTimeComp) : null;
+}
+
+ecs_system_define(SceneVelocityApplySys) {
+  const SceneTimeComp* time = scene_time(world);
+  if (!time) {
     return;
   }
-  const SceneTimeComp* time = ecs_view_read_t(globalItr, SceneTimeComp);
 
   EcsView* applyView = ecs_world_view_t(world, VelocityApplyView);
   for (EcsIterator* itr = ecs_view_itr(applyView); ecs_view_walk(itr);) {

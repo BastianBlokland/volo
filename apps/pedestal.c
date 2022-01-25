@@ -9,6 +9,7 @@
 #include "jobs.h"
 #include "log.h"
 #include "rend.h"
+#include "scene_camera.h"
 #include "scene_register.h"
 #include "scene_renderable.h"
 #include "scene_text.h"
@@ -45,12 +46,15 @@ typedef enum {
 } AppFlags;
 
 ecs_comp_define(AppComp) {
-  AppFlags     flags;
-  EcsEntityId  statsText;
-  u32          subjectCount;
-  u32          subjectIndex;
+  AppFlags flags;
+  u32      subjectCount;
+  u32      subjectIndex;
+};
+
+ecs_comp_define(AppStatsComp) {
   f32          updateFreq;
   TimeDuration renderTime;
+  EcsEntityId  text;
 };
 
 ecs_comp_define(SubjectComp);
@@ -61,9 +65,13 @@ ecs_view_define(GlobalView) {
   ecs_access_read(SceneTimeComp);
 }
 
-ecs_view_define(WindowView) {
+ecs_view_define(WindowExistsView) { ecs_access_with(GapWindowComp); }
+
+ecs_view_define(WindowUpdateView) {
   ecs_access_write(GapWindowComp);
-  ecs_access_maybe_read(RendStatsComp);
+  ecs_access_read(SceneCameraComp);
+  ecs_access_read(RendStatsComp);
+  ecs_access_maybe_write(AppStatsComp);
 }
 
 ecs_view_define(TextView) { ecs_access_write(SceneTextComp); }
@@ -116,12 +124,12 @@ static void spawn_objects(EcsWorld* world, AppComp* app, AssetManagerComp* asset
   }
 }
 
-static void stats_draw(AppComp* app, const RendStatsComp* stats, EcsView* textView) {
-  if (!ecs_view_contains(textView, app->statsText)) {
+static void stats_draw(AppStatsComp* appStats, const RendStatsComp* rstats, EcsView* textView) {
+  if (!ecs_view_contains(textView, appStats->text)) {
     return;
   }
-  SceneTextComp* text = ecs_view_write_t(ecs_view_at(textView, app->statsText), SceneTextComp);
-  scene_text_update_position(text, 5, (stats ? stats->renderResolution.height : 0) - 30);
+  SceneTextComp* text = ecs_view_write_t(ecs_view_at(textView, appStats->text), SceneTextComp);
+  scene_text_update_position(text, 5, (rstats ? rstats->renderResolution.height : 0) - 30);
   scene_text_update_str(
       text,
       fmt_write_scratch(
@@ -137,28 +145,28 @@ static void stats_draw(AppComp* app, const RendStatsComp* stats, EcsView* textVi
           "{<10} descriptor-sets occupied\n{<10} descriptor-sets reserved\n"
           "{<10} descriptor layouts\n"
           "{<10} graphics\n{<10} shaders\n{<10} meshes\n{<10} textures\n",
-          fmt_text(stats->gpuName),
-          rend_size_fmt(stats->renderResolution),
-          fmt_float(app->updateFreq, .maxDecDigits = 0),
-          fmt_duration(app->renderTime),
-          fmt_int(stats->draws),
-          fmt_int(stats->instances),
-          fmt_int(stats->vertices),
-          fmt_int(stats->primitives),
-          fmt_int(stats->shadersVert),
-          fmt_int(stats->shadersFrag),
+          fmt_text(rstats->gpuName),
+          rend_size_fmt(rstats->renderResolution),
+          fmt_float(appStats->updateFreq, .maxDecDigits = 0),
+          fmt_duration(appStats->renderTime),
+          fmt_int(rstats->draws),
+          fmt_int(rstats->instances),
+          fmt_int(rstats->vertices),
+          fmt_int(rstats->primitives),
+          fmt_int(rstats->shadersVert),
+          fmt_int(rstats->shadersFrag),
           fmt_size(alloc_stats_total()),
-          fmt_size(stats->vramOccupied),
-          fmt_size(stats->vramReserved),
-          fmt_size(stats->ramOccupied),
-          fmt_size(stats->ramReserved),
-          fmt_int(stats->descSetsOccupied),
-          fmt_int(stats->descSetsReserved),
-          fmt_int(stats->descLayouts),
-          fmt_int(stats->resources[RendStatRes_Graphic]),
-          fmt_int(stats->resources[RendStatRes_Shader]),
-          fmt_int(stats->resources[RendStatRes_Mesh]),
-          fmt_int(stats->resources[RendStatRes_Texture])));
+          fmt_size(rstats->vramOccupied),
+          fmt_size(rstats->vramReserved),
+          fmt_size(rstats->ramOccupied),
+          fmt_size(rstats->ramReserved),
+          fmt_int(rstats->descSetsOccupied),
+          fmt_int(rstats->descSetsReserved),
+          fmt_int(rstats->descLayouts),
+          fmt_int(rstats->resources[RendStatRes_Graphic]),
+          fmt_int(rstats->resources[RendStatRes_Shader]),
+          fmt_int(rstats->resources[RendStatRes_Mesh]),
+          fmt_int(rstats->resources[RendStatRes_Texture])));
 }
 
 ecs_system_define(AppUpdateSys) {
@@ -171,23 +179,26 @@ ecs_system_define(AppUpdateSys) {
   AssetManagerComp*    assets = ecs_view_write_t(globalItr, AssetManagerComp);
   const SceneTimeComp* time   = ecs_view_read_t(globalItr, SceneTimeComp);
 
-  if (!app->statsText) {
-    app->statsText = scene_text_create(world, 0, 0, g_statsTextSize, geo_color_white, string_empty);
-  }
-
-  EcsView* windowView = ecs_world_view_t(world, WindowView);
-  for (EcsIterator* windowItr = ecs_view_itr(windowView); ecs_view_walk(windowItr);) {
-    GapWindowComp*       window    = ecs_view_write_t(windowItr, GapWindowComp);
+  EcsView* windowUpdateView = ecs_world_view_t(world, WindowUpdateView);
+  for (EcsIterator* windowItr = ecs_view_itr(windowUpdateView); ecs_view_walk(windowItr);) {
+    GapWindowComp*         window   = ecs_view_write_t(windowItr, GapWindowComp);
+    const SceneCameraComp* cam      = ecs_view_read_t(windowItr, SceneCameraComp);
+    AppStatsComp*          appStats = ecs_view_write_t(windowItr, AppStatsComp);
+    if (!appStats) {
+      const EcsEntityId text =
+          scene_text_create(world, 0, 0, g_statsTextSize, geo_color_white, string_empty);
+      scene_tag_add(world, text, cam->requiredTags);
+      ecs_world_add_t(world, ecs_view_entity(windowItr), AppStatsComp, .text = text);
+      continue;
+    }
     const RendStatsComp* rendStats = ecs_view_read_t(windowItr, RendStatsComp);
 
     const f32 deltaSeconds = time->delta / (f32)time_second;
-    app->updateFreq        = smooth_f32(app->updateFreq, 1.0f / deltaSeconds);
-    if (rendStats) {
-      app->renderTime = smooth_duration(app->renderTime, rendStats->renderTime);
-    }
+    appStats->updateFreq   = smooth_f32(appStats->updateFreq, 1.0f / deltaSeconds);
+    appStats->renderTime   = smooth_duration(appStats->renderTime, rendStats->renderTime);
 
-    if (rendStats && (time->ticks % g_statsUpdateInterval) == 0) {
-      stats_draw(app, rendStats, ecs_world_view_t(world, TextView));
+    if ((time->ticks % g_statsUpdateInterval) == 0) {
+      stats_draw(appStats, rendStats, ecs_world_view_t(world, TextView));
     }
 
     if (gap_window_key_pressed(window, GapKey_ArrowRight)) {
@@ -264,17 +275,19 @@ ecs_system_define(AppSetRotationSys) {
 
 ecs_module_init(app_pedestal_module) {
   ecs_register_comp(AppComp);
+  ecs_register_comp(AppStatsComp);
   ecs_register_comp_empty(SubjectComp);
 
   ecs_register_view(GlobalView);
-  ecs_register_view(WindowView);
+  ecs_register_view(WindowExistsView);
+  ecs_register_view(WindowUpdateView);
   ecs_register_view(ObjectView);
   ecs_register_view(TextView);
 
   ecs_register_system(
       AppUpdateSys,
       ecs_view_id(GlobalView),
-      ecs_view_id(WindowView),
+      ecs_view_id(WindowUpdateView),
       ecs_view_id(ObjectView),
       ecs_view_id(TextView));
   ecs_register_system(AppSetRotationSys, ecs_view_id(GlobalView), ecs_view_id(ObjectView));
@@ -304,7 +317,7 @@ static int app_run(const String assetPath) {
 
   do {
     ecs_run_sync(runner);
-  } while (ecs_utils_any(world, WindowView));
+  } while (ecs_utils_any(world, WindowExistsView));
 
   ecs_runner_destroy(runner);
   ecs_world_destroy(world);
