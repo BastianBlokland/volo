@@ -72,6 +72,7 @@ static GeoMatrix painter_view_proj_matrix(
 
 static void painter_draw_forward(
     const RendPainterGlobalData* globalData,
+    const SceneTags              requiredTags,
     RvkPass*                     forwardPass,
     EcsView*                     drawView,
     EcsView*                     graphicView) {
@@ -81,7 +82,7 @@ static void painter_draw_forward(
   EcsIterator* graphicItr = ecs_view_itr(graphicView);
   for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
     RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
-    if (!rend_draw_gather(draw, SceneTag_None)) {
+    if (!rend_draw_gather(draw, requiredTags)) {
       continue;
     }
     if (!ecs_view_contains(graphicView, rend_draw_graphic(draw))) {
@@ -131,8 +132,9 @@ static bool painter_draw(
         .camPosition = trans ? trans->position : geo_vector(0),
         .camRotation = trans ? trans->rotation : geo_quat_ident,
     };
-    RvkPass* forwardPass = rvk_canvas_pass_forward(painter->canvas);
-    painter_draw_forward(&globalData, forwardPass, drawView, graphicView);
+    const SceneTags requiredTags = cam->requiredTags;
+    RvkPass*        forwardPass  = rvk_canvas_pass_forward(painter->canvas);
+    painter_draw_forward(&globalData, requiredTags, forwardPass, drawView, graphicView);
     rvk_canvas_end(painter->canvas);
   }
   return draw;
