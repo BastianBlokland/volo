@@ -9,7 +9,7 @@ ecs_comp_extern(RendDrawComp);
 
 RendDrawComp* rend_draw_create(EcsWorld*, EcsEntityId entity);
 EcsEntityId   rend_draw_graphic(const RendDrawComp*);
-bool          rend_draw_gather(RendDrawComp*);
+bool          rend_draw_gather(RendDrawComp*, SceneTags requiredTags);
 RvkPassDraw   rend_draw_output(const RendDrawComp*, RvkGraphic* graphic);
 
 void rend_draw_set_graphic(RendDrawComp*, EcsEntityId graphic);

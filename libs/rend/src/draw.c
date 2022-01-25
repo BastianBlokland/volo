@@ -12,18 +12,25 @@ ecs_comp_define(RendDrawComp) {
   EcsEntityId graphic;
   u32         vertexCountOverride;
   u32         instances;
-  u32         dataSize; // NOTE: Size per instance.
-  Mem         dataMemory;
-  Mem         tagsMemory;
+  u32         outputInstances;
+
+  u32 dataSize; // NOTE: Size per instance.
+
+  Mem dataMem;
+  Mem tagsMem;
+  Mem outputMem;
 };
 
 static void ecs_destruct_draw(void* data) {
   RendDrawComp* comp = data;
-  if (mem_valid(comp->dataMemory)) {
-    alloc_free(g_alloc_heap, comp->dataMemory);
+  if (mem_valid(comp->dataMem)) {
+    alloc_free(g_alloc_heap, comp->dataMem);
   }
-  if (mem_valid(comp->tagsMemory)) {
-    alloc_free(g_alloc_heap, comp->tagsMemory);
+  if (mem_valid(comp->tagsMem)) {
+    alloc_free(g_alloc_heap, comp->tagsMem);
+  }
+  if (mem_valid(comp->outputMem)) {
+    alloc_free(g_alloc_heap, comp->outputMem);
   }
 }
 
@@ -34,14 +41,12 @@ static void ecs_combine_draw(void* dataA, void* dataB) {
       drawA->dataSize == drawB->dataSize, "Only draws with the same data-stride can be combined");
 
   for (u32 i = 0; i != drawB->instances; ++i) {
-    const Mem instanceData = mem_slice(drawB->dataMemory, drawB->dataSize * i, drawB->dataSize);
-    const SceneTags tags   = mem_as_t(drawB->tagsMemory, SceneTags)[i];
+    const Mem       instanceData = mem_slice(drawB->dataMem, drawB->dataSize * i, drawB->dataSize);
+    const SceneTags tags         = mem_as_t(drawB->tagsMem, SceneTags)[i];
     mem_cpy(rend_draw_add_instance(drawA, tags), instanceData);
   }
 
-  if (mem_valid(drawB->dataMemory)) {
-    alloc_free(g_alloc_heap, drawB->dataMemory);
-  }
+  ecs_destruct_draw(drawB);
 }
 
 static void rend_draw_ensure_storage(Mem* mem, const usize neededSize, const usize align) {
@@ -56,7 +61,11 @@ static void rend_draw_ensure_storage(Mem* mem, const usize neededSize, const usi
 }
 
 static Mem rend_draw_data(const RendDrawComp* draw, const u32 instance) {
-  return mem_slice(draw->dataMemory, instance * draw->dataSize, draw->dataSize);
+  return mem_slice(draw->dataMem, instance * draw->dataSize, draw->dataSize);
+}
+
+static Mem rend_draw_output_data(const RendDrawComp* draw, const u32 instance) {
+  return mem_slice(draw->outputMem, instance * draw->dataSize, draw->dataSize);
 }
 
 ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
@@ -84,17 +93,32 @@ RendDrawComp* rend_draw_create(EcsWorld* world, const EcsEntityId entity) {
 
 EcsEntityId rend_draw_graphic(const RendDrawComp* draw) { return draw->graphic; }
 
-bool rend_draw_gather(RendDrawComp* draw) {
-  // TODO: Perform culling etc.
-  return draw->instances != 0;
+bool rend_draw_gather(RendDrawComp* draw, const SceneTags requiredTags) {
+  /**
+   * Gather the actual draws after filtering.
+   * Because we need the output data to be contiguous in memory we have to copy the instances that
+   * pass the filter to separate output memory.
+   */
+
+  rend_draw_ensure_storage(&draw->outputMem, draw->instances * draw->dataSize, rend_min_align);
+
+  draw->outputInstances = 0;
+  for (u32 i = 0; i != draw->instances; ++i) {
+    const SceneTags instanceTags = mem_as_t(draw->tagsMem, SceneTags)[i];
+    if ((instanceTags & requiredTags) != requiredTags) {
+      continue;
+    }
+    mem_cpy(rend_draw_output_data(draw, draw->outputInstances++), rend_draw_data(draw, i));
+  }
+  return draw->outputInstances != 0;
 }
 
 RvkPassDraw rend_draw_output(const RendDrawComp* draw, RvkGraphic* graphic) {
   return (RvkPassDraw){
       .graphic             = graphic,
       .vertexCountOverride = draw->vertexCountOverride,
-      .instanceCount       = draw->instances,
-      .data                = mem_slice(draw->dataMemory, 0, draw->instances * draw->dataSize),
+      .instanceCount       = draw->outputInstances,
+      .data                = mem_slice(draw->outputMem, 0, draw->outputInstances * draw->dataSize),
       .dataStride          = draw->dataSize,
   };
 }
@@ -114,9 +138,9 @@ void rend_draw_set_data_size(RendDrawComp* draw, const u32 size) {
 
 Mem rend_draw_add_instance(RendDrawComp* draw, const SceneTags tags) {
   ++draw->instances;
-  rend_draw_ensure_storage(&draw->dataMemory, draw->instances * draw->dataSize, rend_min_align);
-  rend_draw_ensure_storage(&draw->tagsMemory, draw->instances * sizeof(SceneTags), 1);
+  rend_draw_ensure_storage(&draw->dataMem, draw->instances * draw->dataSize, rend_min_align);
+  rend_draw_ensure_storage(&draw->tagsMem, draw->instances * sizeof(SceneTags), 1);
 
-  mem_as_t(draw->tagsMemory, SceneTags)[draw->instances - 1] = tags;
+  mem_as_t(draw->tagsMem, SceneTags)[draw->instances - 1] = tags;
   return rend_draw_data(draw, draw->instances - 1);
 }

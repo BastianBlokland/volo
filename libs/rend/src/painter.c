@@ -81,7 +81,7 @@ static void painter_draw_forward(
   EcsIterator* graphicItr = ecs_view_itr(graphicView);
   for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
     RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
-    if (!rend_draw_gather(draw)) {
+    if (!rend_draw_gather(draw, SceneTag_None)) {
       continue;
     }
     if (!ecs_view_contains(graphicView, rend_draw_graphic(draw))) {
