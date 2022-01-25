@@ -31,7 +31,7 @@ typedef struct {
 } RendPainterGlobalData;
 
 ecs_view_define(GlobalView) { ecs_access_write(RendPlatformComp); }
-ecs_view_define(DrawView) { ecs_access_read(RendDrawComp); }
+ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
 ecs_view_define(GraphicView) {
   ecs_access_write(RendResComp);
   ecs_access_write(RendResGraphicComp);
@@ -52,7 +52,7 @@ ecs_view_define(PainterUpdateView) {
   ecs_access_maybe_read(SceneTransformComp);
 }
 
-static i8 painter_compare_draw(const void* a, const void* b) {
+static i8 painter_compare_pass_draw(const void* a, const void* b) {
   const RvkPassDraw* drawA = a;
   const RvkPassDraw* drawB = b;
   return compare_i32(&drawA->graphic->renderOrder, &drawB->graphic->renderOrder);
@@ -80,30 +80,25 @@ static void painter_draw_forward(
   // Prepare draws.
   EcsIterator* graphicItr = ecs_view_itr(graphicView);
   for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
-    const RendDrawComp* drawComp = ecs_view_read_t(drawItr, RendDrawComp);
-    if (!drawComp->instances.size) {
+    RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
+    if (!rend_draw_gather(draw)) {
       continue;
     }
-    if (!ecs_view_contains(graphicView, drawComp->graphic)) {
+    if (!ecs_view_contains(graphicView, rend_draw_graphic(draw))) {
       continue;
     }
-    ecs_view_jump(graphicItr, drawComp->graphic);
-    rend_resource_mark_used(ecs_view_write_t(graphicItr, RendResComp));
+    ecs_view_jump(graphicItr, rend_draw_graphic(draw));
+    RendResComp*        res        = ecs_view_write_t(graphicItr, RendResComp);
+    RendResGraphicComp* graphicRes = ecs_view_write_t(graphicItr, RendResGraphicComp);
 
-    RendResGraphicComp* graphicResComp = ecs_view_write_t(graphicItr, RendResGraphicComp);
-    if (rvk_pass_prepare(forwardPass, graphicResComp->graphic)) {
-      *dynarray_push_t(&drawBuffer, RvkPassDraw) = (RvkPassDraw){
-          .graphic             = graphicResComp->graphic,
-          .vertexCountOverride = drawComp->vertexCountOverride,
-          .instanceCount       = (u32)drawComp->instances.size,
-          .data                = dynarray_at(&drawComp->instances, 0, drawComp->instances.size),
-          .dataStride          = drawComp->instances.stride,
-      };
+    rend_resource_mark_used(res);
+    if (rvk_pass_prepare(forwardPass, graphicRes->graphic)) {
+      *dynarray_push_t(&drawBuffer, RvkPassDraw) = rend_draw_output(draw, graphicRes->graphic);
     }
   }
 
   // Sort draws.
-  dynarray_sort(&drawBuffer, painter_compare_draw);
+  dynarray_sort(&drawBuffer, painter_compare_pass_draw);
 
   // Execute draws.
   rvk_pass_begin(forwardPass, geo_color_white);

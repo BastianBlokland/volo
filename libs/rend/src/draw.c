@@ -52,6 +52,23 @@ RendDrawComp* rend_draw_create(EcsWorld* world, const EcsEntityId entity) {
       world, entity, RendDrawComp, .instances = dynarray_create(g_alloc_heap, 1, 16, 0));
 }
 
+EcsEntityId rend_draw_graphic(const RendDrawComp* draw) { return draw->graphic; }
+
+bool rend_draw_gather(RendDrawComp* draw) {
+  // TODO: Perform culling etc.
+  return draw->instances.size != 0;
+}
+
+RvkPassDraw rend_draw_output(const RendDrawComp* draw, RvkGraphic* graphic) {
+  return (RvkPassDraw){
+      .graphic             = graphic,
+      .vertexCountOverride = draw->vertexCountOverride,
+      .instanceCount       = (u32)draw->instances.size,
+      .data                = dynarray_at(&draw->instances, 0, draw->instances.size),
+      .dataStride          = draw->instances.stride,
+  };
+}
+
 void rend_draw_set_graphic(RendDrawComp* comp, const EcsEntityId graphic) {
   comp->graphic = graphic;
 }
@@ -59,10 +76,6 @@ void rend_draw_set_graphic(RendDrawComp* comp, const EcsEntityId graphic) {
 void rend_draw_set_vertex_count(RendDrawComp* comp, const u32 vertexCount) {
   comp->vertexCountOverride = vertexCount;
 }
-
-EcsEntityId rend_draw_graphic(const RendDrawComp* draw) { return draw->graphic; }
-
-u32 rend_draw_instance_count(const RendDrawComp* draw) { return (u32)draw->instances.size; }
 
 void rend_draw_set_data_size(RendDrawComp* draw, const u32 size) {
   // TODO: size 0 should probably be valid, but is not properly handled at the moment.
