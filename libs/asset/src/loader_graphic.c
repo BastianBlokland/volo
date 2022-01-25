@@ -22,6 +22,7 @@ static void graphic_datareg_init() {
   if (!g_dataReg) {
     g_dataReg = data_reg_create(g_alloc_persist);
 
+    // clang-format off
     data_reg_enum_t(g_dataReg, AssetGraphicTopology);
     data_reg_const_t(g_dataReg, AssetGraphicTopology, Triangles);
     data_reg_const_t(g_dataReg, AssetGraphicTopology, TriangleStrip);
@@ -68,80 +69,33 @@ static void graphic_datareg_init() {
     data_reg_const_t(g_dataReg, AssetGraphicCull, Front);
 
     data_reg_struct_t(g_dataReg, AssetGraphicOverride);
-    data_reg_field_t(
-        g_dataReg, AssetGraphicOverride, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetGraphicOverride, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetGraphicOverride, binding, data_prim_t(u32));
     data_reg_field_t(g_dataReg, AssetGraphicOverride, value, data_prim_t(f64));
 
     data_reg_struct_t(g_dataReg, AssetGraphicShader);
-    data_reg_field_t(
-        g_dataReg, AssetGraphicShader, shaderId, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(
-        g_dataReg,
-        AssetGraphicShader,
-        overrides,
-        t_AssetGraphicOverride,
-        .container = DataContainer_Array,
-        .flags     = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetGraphicShader, shaderId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetGraphicShader, overrides, t_AssetGraphicOverride, .container = DataContainer_Array, .flags = DataFlags_Opt);
 
     data_reg_struct_t(g_dataReg, AssetGraphicSampler);
-    data_reg_field_t(
-        g_dataReg,
-        AssetGraphicSampler,
-        textureId,
-        data_prim_t(String),
-        .flags = DataFlags_NotEmpty);
-    data_reg_field_t(
-        g_dataReg, AssetGraphicSampler, wrap, t_AssetGraphicWrap, .flags = DataFlags_Opt);
-    data_reg_field_t(
-        g_dataReg, AssetGraphicSampler, filter, t_AssetGraphicFilter, .flags = DataFlags_Opt);
-    data_reg_field_t(
-        g_dataReg, AssetGraphicSampler, anisotropy, t_AssetGraphicAniso, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetGraphicSampler, textureId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetGraphicSampler, wrap, t_AssetGraphicWrap, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetGraphicSampler, filter, t_AssetGraphicFilter, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetGraphicSampler, anisotropy, t_AssetGraphicAniso, .flags = DataFlags_Opt);
 
     data_reg_struct_t(g_dataReg, AssetGraphicComp);
-    data_reg_field_t(
-        g_dataReg,
-        AssetGraphicComp,
-        shaders,
-        t_AssetGraphicShader,
-        .container = DataContainer_Array,
-        .flags     = DataFlags_NotEmpty);
-    data_reg_field_t(
-        g_dataReg,
-        AssetGraphicComp,
-        samplers,
-        t_AssetGraphicSampler,
-        .container = DataContainer_Array,
-        .flags     = DataFlags_Opt);
-    data_reg_field_t(
-        g_dataReg,
-        AssetGraphicComp,
-        meshId,
-        data_prim_t(String),
-        .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(
-        g_dataReg,
-        AssetGraphicComp,
-        vertexCount,
-        data_prim_t(u32),
-        .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(
-        g_dataReg, AssetGraphicComp, renderOrder, data_prim_t(i32), .flags = DataFlags_Opt);
-    data_reg_field_t(
-        g_dataReg, AssetGraphicComp, topology, t_AssetGraphicTopology, .flags = DataFlags_Opt);
-    data_reg_field_t(
-        g_dataReg, AssetGraphicComp, rasterizer, t_AssetGraphicRasterizer, .flags = DataFlags_Opt);
-    data_reg_field_t(
-        g_dataReg,
-        AssetGraphicComp,
-        lineWidth,
-        data_prim_t(u32),
-        .flags = DataFlags_Opt | DataFlags_NotEmpty);
-    data_reg_field_t(
-        g_dataReg, AssetGraphicComp, blend, t_AssetGraphicBlend, .flags = DataFlags_Opt);
-    data_reg_field_t(
-        g_dataReg, AssetGraphicComp, depth, t_AssetGraphicDepth, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetGraphicComp, shaders, t_AssetGraphicShader, .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetGraphicComp, samplers, t_AssetGraphicSampler, .container = DataContainer_Array, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetGraphicComp, meshId, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetGraphicComp, vertexCount, data_prim_t(u32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetGraphicComp, renderOrder, data_prim_t(i32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetGraphicComp, topology, t_AssetGraphicTopology, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetGraphicComp, rasterizer, t_AssetGraphicRasterizer, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetGraphicComp, lineWidth, data_prim_t(u32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetGraphicComp, blend, t_AssetGraphicBlend, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetGraphicComp, depth, t_AssetGraphicDepth, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, AssetGraphicComp, cull, t_AssetGraphicCull, .flags = DataFlags_Opt);
+    // clang-format on
 
     g_dataMeta = data_meta_t(t_AssetGraphicComp);
   }
