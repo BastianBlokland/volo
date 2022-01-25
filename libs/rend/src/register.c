@@ -4,6 +4,7 @@
 #include "rend_register.h"
 
 void rend_register(EcsDef* def) {
+  ecs_register_module(def, rend_draw_module);
   ecs_register_module(def, rend_instance_module);
   ecs_register_module(def, rend_painter_module);
   ecs_register_module(def, rend_platform_module);

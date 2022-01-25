@@ -1,15 +1,13 @@
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_thread.h"
-#include "core_time.h"
 #include "ecs_utils.h"
-#include "gap_input.h"
 #include "gap_window.h"
-#include "geo_matrix.h"
 #include "rend_register.h"
 #include "scene_camera.h"
 #include "scene_transform.h"
 
+#include "draw_internal.h"
 #include "painter_internal.h"
 #include "platform_internal.h"
 #include "resource_internal.h"
@@ -18,29 +16,10 @@
 #include "rvk/pass_internal.h"
 
 ecs_comp_define_public(RendPainterComp);
-ecs_comp_define_public(RendPainterDrawComp);
 
 static void ecs_destruct_painter(void* data) {
   RendPainterComp* comp = data;
   rvk_canvas_destroy(comp->canvas);
-}
-
-static void ecs_destruct_draw(void* data) {
-  RendPainterDrawComp* comp = data;
-  dynarray_destroy(&comp->instances);
-}
-
-static void ecs_combine_draw(void* dataA, void* dataB) {
-  RendPainterDrawComp* compA = dataA;
-  RendPainterDrawComp* compB = dataB;
-  diag_assert_msg(
-      compA->instances.stride == compB->instances.stride,
-      "Only draws with the same data-stride can be combined");
-
-  mem_cpy(
-      dynarray_push(&compA->instances, compB->instances.size),
-      dynarray_at(&compB->instances, 0, compB->instances.size));
-  dynarray_destroy(&compB->instances);
 }
 
 typedef struct {
@@ -52,7 +31,7 @@ typedef struct {
 } RendPainterGlobalData;
 
 ecs_view_define(GlobalView) { ecs_access_write(RendPlatformComp); }
-ecs_view_define(DrawView) { ecs_access_read(RendPainterDrawComp); }
+ecs_view_define(DrawView) { ecs_access_read(RendDrawComp); }
 ecs_view_define(GraphicView) {
   ecs_access_write(RendResComp);
   ecs_access_write(RendResGraphicComp);
@@ -101,7 +80,7 @@ static void painter_draw_forward(
   // Prepare draws.
   EcsIterator* graphicItr = ecs_view_itr(graphicView);
   for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
-    const RendPainterDrawComp* drawComp = ecs_view_read_t(drawItr, RendPainterDrawComp);
+    const RendDrawComp* drawComp = ecs_view_read_t(drawItr, RendDrawComp);
     if (!drawComp->instances.size) {
       continue;
     }
@@ -213,8 +192,6 @@ ecs_system_define(RendPainterDrawBatchesSys) {
 
 ecs_module_init(rend_painter_module) {
   ecs_register_comp(RendPainterComp, .destructor = ecs_destruct_painter);
-  ecs_register_comp(
-      RendPainterDrawComp, .destructor = ecs_destruct_draw, .combinator = ecs_combine_draw);
 
   ecs_register_view(GlobalView);
   ecs_register_view(DrawView);

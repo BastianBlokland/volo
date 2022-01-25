@@ -6,7 +6,7 @@
 #include "scene_renderable.h"
 #include "scene_transform.h"
 
-#include "painter_internal.h"
+#include "draw_internal.h"
 #include "resource_internal.h"
 
 typedef struct {
@@ -22,10 +22,10 @@ ecs_view_define(RenderableView) {
 
 ecs_view_define(RenderableUniqueView) {
   ecs_access_read(SceneRenderableUniqueComp);
-  ecs_access_maybe_write(RendPainterDrawComp);
+  ecs_access_maybe_write(RendDrawComp);
 }
 
-ecs_view_define(PainterDrawView) { ecs_access_write(RendPainterDrawComp); }
+ecs_view_define(PainterDrawView) { ecs_access_write(RendDrawComp); }
 
 ecs_system_define(RendInstanceRequestResourcesSys) {
   // Request the graphic resource for SceneRenderableComp's to be loaded.
@@ -46,7 +46,7 @@ ecs_system_define(RendInstanceRequestResourcesSys) {
 ecs_system_define(RendInstanceClearDrawsSys) {
   EcsView* drawView = ecs_world_view_t(world, PainterDrawView);
   for (EcsIterator* itr = ecs_view_itr(drawView); ecs_view_walk(itr);) {
-    dynarray_clear(&ecs_view_write_t(itr, RendPainterDrawComp)->instances);
+    dynarray_clear(&ecs_view_write_t(itr, RendDrawComp)->instances);
   }
 }
 
@@ -59,18 +59,18 @@ ecs_system_define(RendInstanceFillDrawsSys) {
     const SceneRenderableComp* renderableComp = ecs_view_read_t(renderableItr, SceneRenderableComp);
     const SceneTransformComp*  transformComp  = ecs_view_read_t(renderableItr, SceneTransformComp);
 
-    if (UNLIKELY(!ecs_world_has_t(world, renderableComp->graphic, RendPainterDrawComp))) {
+    if (UNLIKELY(!ecs_world_has_t(world, renderableComp->graphic, RendDrawComp))) {
       ecs_world_add_t(
           world,
           renderableComp->graphic,
-          RendPainterDrawComp,
+          RendDrawComp,
           .graphic   = renderableComp->graphic,
           .instances = dynarray_create_t(g_alloc_heap, RendInstanceData, 128));
       continue;
     }
 
     ecs_view_jump(drawItr, renderableComp->graphic);
-    RendPainterDrawComp* drawComp = ecs_view_write_t(drawItr, RendPainterDrawComp);
+    RendDrawComp* drawComp = ecs_view_write_t(drawItr, RendDrawComp);
 
     *dynarray_push_t(&drawComp->instances, RendInstanceData) = (RendInstanceData){
         .position = transformComp ? transformComp->position : geo_vector(0),
@@ -85,13 +85,13 @@ ecs_system_define(RendInstanceFillUniqueDrawsSys) {
 
     const SceneRenderableUniqueComp* renderableComp =
         ecs_view_read_t(renderableItr, SceneRenderableUniqueComp);
-    RendPainterDrawComp* drawComp = ecs_view_write_t(renderableItr, RendPainterDrawComp);
+    RendDrawComp* drawComp = ecs_view_write_t(renderableItr, RendDrawComp);
 
     if (UNLIKELY(!drawComp)) {
       ecs_world_add_t(
           world,
           ecs_view_entity(renderableItr),
-          RendPainterDrawComp,
+          RendDrawComp,
           .graphic   = renderableComp->graphic,
           .instances = dynarray_create(g_alloc_heap, 1, 16, 0));
       continue;
