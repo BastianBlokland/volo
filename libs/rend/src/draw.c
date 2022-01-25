@@ -1,3 +1,4 @@
+#include "core_alloc.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "ecs_world.h"
@@ -44,6 +45,15 @@ ecs_module_init(rend_draw_module) {
   ecs_register_system(RendClearDrawsSys, ecs_view_id(DrawView));
 
   ecs_order(RendClearDrawsSys, RendOrder_DrawCollect - 1);
+}
+
+RendDrawComp* rend_draw_create(EcsWorld* world, const EcsEntityId entity) {
+  return ecs_world_add_t(
+      world, entity, RendDrawComp, .instances = dynarray_create(g_alloc_heap, 1, 16, 0));
+}
+
+void rend_draw_set_graphic(RendDrawComp* comp, const EcsEntityId graphic) {
+  comp->graphic = graphic;
 }
 
 void rend_draw_set_vertex_count(RendDrawComp* comp, const u32 vertexCount) {

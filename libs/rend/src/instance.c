@@ -1,6 +1,3 @@
-#include "core_alloc.h"
-#include "core_diag.h"
-#include "core_math.h"
 #include "ecs_world.h"
 #include "rend_register.h"
 #include "scene_renderable.h"
@@ -49,56 +46,41 @@ ecs_system_define(RendInstanceFillDrawsSys) {
 
   EcsIterator* drawItr = ecs_view_itr(drawView);
   for (EcsIterator* renderableItr = ecs_view_itr(renderableView); ecs_view_walk(renderableItr);) {
-    const SceneRenderableComp* renderableComp = ecs_view_read_t(renderableItr, SceneRenderableComp);
-    const SceneTransformComp*  transformComp  = ecs_view_read_t(renderableItr, SceneTransformComp);
+    const SceneRenderableComp* renderable = ecs_view_read_t(renderableItr, SceneRenderableComp);
+    const SceneTransformComp*  transform  = ecs_view_read_t(renderableItr, SceneTransformComp);
 
-    if (UNLIKELY(!ecs_world_has_t(world, renderableComp->graphic, RendDrawComp))) {
-      RendDrawComp* newDraw = ecs_world_add_t(
-          world,
-          renderableComp->graphic,
-          RendDrawComp,
-          .graphic   = renderableComp->graphic,
-          .instances = dynarray_create(g_alloc_heap, 1, 16, 0));
-      rend_draw_set_data_size(newDraw, sizeof(RendInstanceData));
+    if (UNLIKELY(!ecs_world_has_t(world, renderable->graphic, RendDrawComp))) {
+      RendDrawComp* draw = rend_draw_create(world, renderable->graphic);
+      rend_draw_set_graphic(draw, renderable->graphic);
+      rend_draw_set_data_size(draw, sizeof(RendInstanceData));
       continue;
     }
 
-    ecs_view_jump(drawItr, renderableComp->graphic);
-    RendDrawComp* drawComp = ecs_view_write_t(drawItr, RendDrawComp);
+    ecs_view_jump(drawItr, renderable->graphic);
+    RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
 
-    *mem_as_t(rend_draw_add_instance(drawComp), RendInstanceData) = (RendInstanceData){
-        .position = transformComp ? transformComp->position : geo_vector(0),
-        .rotation = transformComp ? transformComp->rotation : geo_quat_ident,
+    *mem_as_t(rend_draw_add_instance(draw), RendInstanceData) = (RendInstanceData){
+        .position = transform ? transform->position : geo_vector(0),
+        .rotation = transform ? transform->rotation : geo_quat_ident,
     };
   }
 }
 
 ecs_system_define(RendInstanceFillUniqueDrawsSys) {
   EcsView* renderableView = ecs_world_view_t(world, RenderableUniqueView);
-  for (EcsIterator* renderableItr = ecs_view_itr(renderableView); ecs_view_walk(renderableItr);) {
+  for (EcsIterator* itr = ecs_view_itr(renderableView); ecs_view_walk(itr);) {
 
-    const SceneRenderableUniqueComp* renderableComp =
-        ecs_view_read_t(renderableItr, SceneRenderableUniqueComp);
-    RendDrawComp* draw = ecs_view_write_t(renderableItr, RendDrawComp);
+    const SceneRenderableUniqueComp* renderable = ecs_view_read_t(itr, SceneRenderableUniqueComp);
+    const Mem                        data       = scene_renderable_unique_data_get(renderable);
 
+    RendDrawComp* draw = ecs_view_write_t(itr, RendDrawComp);
     if (UNLIKELY(!draw)) {
-      ecs_world_add_t(
-          world,
-          ecs_view_entity(renderableItr),
-          RendDrawComp,
-          .graphic   = renderableComp->graphic,
-          .instances = dynarray_create(g_alloc_heap, 1, 16, 0));
+      rend_draw_create(world, ecs_view_entity(itr));
       continue;
     }
 
-    diag_assert(!rend_draw_instance_count(draw)); // Every RenderableUnique needs its own draw.
-    diag_assert(rend_draw_graphic(draw) == renderableComp->graphic);
-
-    // Set overrides.
-    rend_draw_set_vertex_count(draw, renderableComp->vertexCountOverride);
-
-    // Set instance data.
-    const Mem data = scene_renderable_unique_data_get(renderableComp);
+    rend_draw_set_graphic(draw, renderable->graphic);
+    rend_draw_set_vertex_count(draw, renderable->vertexCountOverride);
     rend_draw_set_data_size(draw, (u32)data.size);
     mem_cpy(rend_draw_add_instance(draw), data);
   }
