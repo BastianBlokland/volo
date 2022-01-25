@@ -7,6 +7,8 @@
 #include "draw_internal.h"
 #include "resource_internal.h"
 
+#define rend_instance_max_res_requests 16
+
 typedef struct {
   ALIGNAS(16)
   GeoVector position;
@@ -28,18 +30,32 @@ ecs_view_define(RenderableUniqueView) {
 ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
 
 ecs_system_define(RendInstanceRequestResourcesSys) {
+  u32 startedRequests = 0;
+
   // Request the graphic resource for SceneRenderableComp's to be loaded.
   EcsView* renderableView = ecs_world_view_t(world, RenderableView);
   for (EcsIterator* itr = ecs_view_itr(renderableView); ecs_view_walk(itr);) {
     const SceneRenderableComp* comp = ecs_view_read_t(itr, SceneRenderableComp);
-    rend_resource_request(world, comp->graphic);
+
+    if (UNLIKELY(!ecs_world_has_t(world, comp->graphic, RendResComp))) {
+      if (++startedRequests > rend_instance_max_res_requests) {
+        break;
+      }
+      rend_resource_request(world, comp->graphic);
+    }
   }
 
   // Request the graphic resource for SceneRenderableUniqueComp's to be loaded.
   EcsView* renderableUniqueView = ecs_world_view_t(world, RenderableUniqueView);
   for (EcsIterator* itr = ecs_view_itr(renderableUniqueView); ecs_view_walk(itr);) {
     const SceneRenderableUniqueComp* comp = ecs_view_read_t(itr, SceneRenderableUniqueComp);
-    rend_resource_request(world, comp->graphic);
+
+    if (UNLIKELY(!ecs_world_has_t(world, comp->graphic, RendResComp))) {
+      if (++startedRequests > rend_instance_max_res_requests) {
+        break;
+      }
+      rend_resource_request(world, comp->graphic);
+    }
   }
 }
 

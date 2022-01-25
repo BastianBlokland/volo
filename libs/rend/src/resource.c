@@ -642,15 +642,13 @@ ecs_module_init(rend_resource_module) {
 }
 
 void rend_resource_request(EcsWorld* world, const EcsEntityId assetEntity) {
-  if (!ecs_world_has_t(world, assetEntity, RendResComp)) {
-    ecs_world_add_t(
-        world,
-        assetEntity,
-        RendResComp,
-        .flags        = RendResFlags_Used,
-        .dependencies = dynarray_create_t(g_alloc_heap, EcsEntityId, 0),
-        .dependents   = dynarray_create_t(g_alloc_heap, EcsEntityId, 0));
-  }
+  ecs_world_add_t(
+      world,
+      assetEntity,
+      RendResComp,
+      .flags        = RendResFlags_Used,
+      .dependencies = dynarray_create_t(g_alloc_heap, EcsEntityId, 0),
+      .dependents   = dynarray_create_t(g_alloc_heap, EcsEntityId, 0));
 }
 
 void rend_resource_mark_used(RendResComp* resComp) { resComp->flags |= RendResFlags_Used; }
