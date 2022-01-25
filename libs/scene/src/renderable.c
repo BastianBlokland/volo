@@ -18,7 +18,11 @@ ecs_module_init(scene_renderable_module) {
   ecs_register_comp(SceneRenderableUniqueComp, .destructor = ecs_destruct_renderable_unique);
 }
 
-Mem scene_renderable_unique_data(SceneRenderableUniqueComp* renderable, const usize size) {
+Mem scene_renderable_unique_data_get(const SceneRenderableUniqueComp* renderable) {
+  return mem_slice(renderable->instDataMem, 0, renderable->instDataSize);
+}
+
+Mem scene_renderable_unique_data_set(SceneRenderableUniqueComp* renderable, const usize size) {
   if (LIKELY(renderable->instDataMem.size >= size)) {
     renderable->instDataSize = size;
     return mem_slice(renderable->instDataMem, 0, size);

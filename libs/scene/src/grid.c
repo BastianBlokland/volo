@@ -80,7 +80,7 @@ ecs_system_define(SceneGridUpdateDataSys) {
 
     renderable->vertexCountOverride = g_gridSegments * 4;
 
-    SceneGridData* data = scene_renderable_unique_data(renderable, sizeof(SceneGridData)).ptr;
+    SceneGridData* data = scene_renderable_unique_data_set(renderable, sizeof(SceneGridData)).ptr;
     *data               = (SceneGridData){
         .cellSize          = grid->cellSize,
         .segments          = g_gridSegments,

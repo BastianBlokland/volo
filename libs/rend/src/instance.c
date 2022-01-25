@@ -53,19 +53,20 @@ ecs_system_define(RendInstanceFillDrawsSys) {
     const SceneTransformComp*  transformComp  = ecs_view_read_t(renderableItr, SceneTransformComp);
 
     if (UNLIKELY(!ecs_world_has_t(world, renderableComp->graphic, RendDrawComp))) {
-      ecs_world_add_t(
+      RendDrawComp* newDraw = ecs_world_add_t(
           world,
           renderableComp->graphic,
           RendDrawComp,
           .graphic   = renderableComp->graphic,
-          .instances = dynarray_create_t(g_alloc_heap, RendInstanceData, 128));
+          .instances = dynarray_create(g_alloc_heap, 1, 16, 0));
+      rend_draw_set_data_size(newDraw, sizeof(RendInstanceData));
       continue;
     }
 
     ecs_view_jump(drawItr, renderableComp->graphic);
     RendDrawComp* drawComp = ecs_view_write_t(drawItr, RendDrawComp);
 
-    *dynarray_push_t(&drawComp->instances, RendInstanceData) = (RendInstanceData){
+    *mem_as_t(rend_draw_add_instance(drawComp), RendInstanceData) = (RendInstanceData){
         .position = transformComp ? transformComp->position : geo_vector(0),
         .rotation = transformComp ? transformComp->rotation : geo_quat_ident,
     };
@@ -78,9 +79,9 @@ ecs_system_define(RendInstanceFillUniqueDrawsSys) {
 
     const SceneRenderableUniqueComp* renderableComp =
         ecs_view_read_t(renderableItr, SceneRenderableUniqueComp);
-    RendDrawComp* drawComp = ecs_view_write_t(renderableItr, RendDrawComp);
+    RendDrawComp* draw = ecs_view_write_t(renderableItr, RendDrawComp);
 
-    if (UNLIKELY(!drawComp)) {
+    if (UNLIKELY(!draw)) {
       ecs_world_add_t(
           world,
           ecs_view_entity(renderableItr),
@@ -90,16 +91,16 @@ ecs_system_define(RendInstanceFillUniqueDrawsSys) {
       continue;
     }
 
-    diag_assert(!drawComp->instances.size); // Every RenderableUnique should have its own draw.
-    diag_assert(drawComp->graphic == renderableComp->graphic);
+    diag_assert(!rend_draw_instance_count(draw)); // Every RenderableUnique needs its own draw.
+    diag_assert(rend_draw_graphic(draw) == renderableComp->graphic);
 
     // Set overrides.
-    drawComp->vertexCountOverride = renderableComp->vertexCountOverride;
+    rend_draw_set_vertex_count(draw, renderableComp->vertexCountOverride);
 
     // Set instance data.
-    const Mem data = mem_slice(renderableComp->instDataMem, 0, renderableComp->instDataSize);
-    drawComp->instances.stride = (u32)math_max(data.size, 16);
-    mem_cpy(dynarray_push(&drawComp->instances, 1), data);
+    const Mem data = scene_renderable_unique_data_get(renderableComp);
+    rend_draw_set_data_size(draw, (u32)data.size);
+    mem_cpy(rend_draw_add_instance(draw), data);
   }
 }
 

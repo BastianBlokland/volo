@@ -1,8 +1,11 @@
+#include "core_bits.h"
 #include "core_diag.h"
 #include "ecs_world.h"
 #include "rend_register.h"
 
 #include "draw_internal.h"
+
+#define rend_draw_min_align 16
 
 ecs_comp_define_public(RendDrawComp);
 
@@ -42,3 +45,19 @@ ecs_module_init(rend_draw_module) {
 
   ecs_order(RendClearDrawsSys, RendOrder_DrawCollect - 1);
 }
+
+void rend_draw_set_vertex_count(RendDrawComp* comp, const u32 vertexCount) {
+  comp->vertexCountOverride = vertexCount;
+}
+
+EcsEntityId rend_draw_graphic(const RendDrawComp* draw) { return draw->graphic; }
+
+u32 rend_draw_instance_count(const RendDrawComp* draw) { return (u32)draw->instances.size; }
+
+void rend_draw_set_data_size(RendDrawComp* draw, const u32 size) {
+  // TODO: size 0 should probably be valid, but is not properly handled at the moment.
+  dynarray_clear(&draw->instances);
+  draw->instances.stride = bits_align(size, rend_draw_min_align);
+}
+
+Mem rend_draw_add_instance(RendDrawComp* draw) { return dynarray_push(&draw->instances, 1); }
