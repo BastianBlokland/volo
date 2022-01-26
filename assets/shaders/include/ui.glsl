@@ -16,8 +16,8 @@
  *
  * NOTE: Output depth is 0 meaning right at the camera.
  */
-f32_vec4 ui_norm_to_ndc(const f32_vec2 uiPosition) {
-  return f32_vec4(uiPosition * f32_vec2(2, -2) - f32_vec2(1, -1), 1.0, 1.0);
+f32v4 ui_norm_to_ndc(const f32v2 uiPosition) {
+  return f32v4(uiPosition * f32v2(2, -2) - f32v2(1, -1), 1.0, 1.0);
 }
 
 #endif // INCLUDE_UI

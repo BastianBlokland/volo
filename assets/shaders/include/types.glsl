@@ -4,40 +4,40 @@
 #extension GL_EXT_shader_16bit_storage : enable
 
 #define i16 int16_t
-#define i16_vec2 i16vec2
-#define i16_vec3 i16vec3
-#define i16_vec4 i16vec4
+#define i16v2 i16vec2
+#define i16v3 i16vec3
+#define i16v4 i16vec4
 
 #define u16 uint16_t
-#define u16_vec2 u16vec2
-#define u16_vec3 u16vec3
-#define u16_vec4 u16vec4
+#define u16v2 u16vec2
+#define u16v3 u16vec3
+#define u16v4 u16vec4
 
 #define i32 int
-#define i32_vec2 ivec2
-#define i32_vec3 ivec3
-#define i32_vec4 ivec4
+#define i32v2 ivec2
+#define i32v3 ivec3
+#define i32v4 ivec4
 
 #define u32 uint
-#define u32_vec2 uvec2
-#define u32_vec3 uvec3
-#define u32_vec4 uvec4
+#define u32v2 uvec2
+#define u32v3 uvec3
+#define u32v4 uvec4
 
 #define f16 float16_t
-#define f16_vec2 f16vec2
-#define f16_vec3 f16vec3
-#define f16_vec4 f16vec4
+#define f16v2 f16vec2
+#define f16v3 f16vec3
+#define f16v4 f16vec4
 
 #define f32 float
-#define f32_vec2 vec2
-#define f32_vec3 vec3
-#define f32_vec4 vec4
-#define f32_mat3 mat3
-#define f32_mat4 mat4
+#define f32v2 vec2
+#define f32v3 vec3
+#define f32v4 vec4
+#define f32m3 mat3
+#define f32m4 mat4
 
 #define f64 double
-#define f64_vec2 dvec2
-#define f64_vec3 dvec3
-#define f64_vec4 dvec4
+#define f64v2 dvec2
+#define f64v3 dvec3
+#define f64v4 dvec4
 
 #endif // INCLUDE_TYPES
