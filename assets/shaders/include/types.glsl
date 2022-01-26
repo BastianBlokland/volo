@@ -3,6 +3,16 @@
 
 #extension GL_EXT_shader_16bit_storage : enable
 
+#define i16 int16_t
+#define i16_vec2 i16vec2
+#define i16_vec3 i16vec3
+#define i16_vec4 i16vec4
+
+#define u16 uint16_t
+#define u16_vec2 u16vec2
+#define u16_vec3 u16vec3
+#define u16_vec4 u16vec4
+
 #define i32 int
 #define i32_vec2 ivec2
 #define i32_vec3 ivec3
