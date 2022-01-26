@@ -13,6 +13,12 @@ typedef enum {
   SceneTags_Default = SceneTags_CamAny,
 } SceneTags;
 
+typedef struct {
+  SceneTags required, illegal;
+} SceneTagFilter;
+
 ecs_comp_extern_public(SceneTagComp) { SceneTags tags; };
 
 void scene_tag_add(EcsWorld* world, EcsEntityId, SceneTags);
+
+bool scene_tag_filter(SceneTagFilter filter, SceneTags);

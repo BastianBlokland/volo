@@ -187,7 +187,7 @@ ecs_system_define(AppUpdateSys) {
     if (!appStats) {
       const EcsEntityId text =
           scene_text_create(world, 0, 0, g_statsTextSize, geo_color_white, string_empty);
-      scene_tag_add(world, text, cam->requiredTags);
+      scene_tag_add(world, text, cam->filter.required);
       ecs_world_add_t(world, ecs_view_entity(windowItr), AppStatsComp, .text = text);
       continue;
     }
