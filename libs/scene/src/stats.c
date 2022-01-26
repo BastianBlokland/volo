@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "ecs_world.h"
+#include "gap_window.h"
 #include "scene_camera.h"
 #include "scene_lifetime.h"
 #include "scene_stats.h"
@@ -74,6 +75,7 @@ ecs_view_define(UiCreateView) {
 }
 
 ecs_view_define(UiUpdateView) {
+  ecs_access_read(GapWindowComp);
   ecs_access_read(SceneStatsCamComp);
   ecs_access_write(SceneStatsUiComp);
 }
@@ -102,6 +104,7 @@ ecs_system_define(SceneStatsUiUpdateSys) {
 
   EcsView* updateView = ecs_world_view_t(world, UiUpdateView);
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
+    const GapWindowComp*     win      = ecs_view_read_t(itr, GapWindowComp);
     const SceneStatsCamComp* camStats = ecs_view_read_t(itr, SceneStatsCamComp);
     SceneStatsUiComp*        ui       = ecs_view_write_t(itr, SceneStatsUiComp);
 
@@ -113,10 +116,9 @@ ecs_system_define(SceneStatsUiUpdateSys) {
     ecs_view_jump(textItr, ui->text);
     SceneTextComp* text = ecs_view_write_t(textItr, SceneTextComp);
 
+    const f32 windowHeight = gap_window_param(win, GapParam_WindowSize).y;
     scene_text_update_position(
-        text,
-        g_sceneStatsUiPadding,
-        camStats->renderSize[1] - g_sceneStatsUiTextSize - g_sceneStatsUiPadding);
+        text, g_sceneStatsUiPadding, windowHeight - g_sceneStatsUiTextSize - g_sceneStatsUiPadding);
     scene_text_update_str(text, scene_stats_ui_text(ui, camStats));
   }
 }
