@@ -14,7 +14,7 @@ ecs_comp_extern_public(SceneCameraComp) {
   f32              persNear;
   f32              orthoSize;
   SceneCameraFlags flags;
-  SceneTags        requiredTags;
+  SceneTagFilter   filter;
 };
 
 ecs_comp_extern_public(SceneCameraMovementComp) {

@@ -42,18 +42,18 @@ ecs_view_define(CameraCreateView) {
   ecs_access_without(SceneCameraComp);
 }
 
-static SceneTags camera_default_required_tags(const u32 cameraIdx) {
+static SceneTagFilter camera_default_filter(const u32 cameraIdx) {
   switch (cameraIdx) {
   case 0:
-    return SceneTags_Cam0;
+    return (SceneTagFilter){.required = SceneTags_Cam0};
   case 1:
-    return SceneTags_Cam1;
+    return (SceneTagFilter){.required = SceneTags_Cam1};
   case 2:
-    return SceneTags_Cam2;
+    return (SceneTagFilter){.required = SceneTags_Cam2};
   case 3:
-    return SceneTags_Cam3;
+    return (SceneTagFilter){.required = SceneTags_Cam3};
   default:
-    return SceneTags_None;
+    return (SceneTagFilter){0};
   }
 }
 
@@ -78,10 +78,10 @@ ecs_system_define(SceneCameraCreateSys) {
         world,
         entity,
         SceneCameraComp,
-        .persFov      = g_camPersFov,
-        .persNear     = g_camPersNear,
-        .orthoSize    = g_camOrthoSize,
-        .requiredTags = camera_default_required_tags(cameraId));
+        .persFov   = g_camPersFov,
+        .persNear  = g_camPersNear,
+        .orthoSize = g_camOrthoSize,
+        .filter    = camera_default_filter(cameraId));
 
     ecs_world_add_t(world, entity, SceneCameraMovementComp, .moveSpeed = g_camMoveSpeed);
 

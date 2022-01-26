@@ -16,3 +16,7 @@ ecs_module_init(scene_tag_module) {
 void scene_tag_add(EcsWorld* world, const EcsEntityId entity, const SceneTags tags) {
   ecs_world_add_t(world, entity, SceneTagComp, .tags = tags);
 }
+
+bool scene_tag_filter(const SceneTagFilter filter, const SceneTags tags) {
+  return ((tags & filter.required) == filter.required) && ((tags & filter.illegal) == 0);
+}
