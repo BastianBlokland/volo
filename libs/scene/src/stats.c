@@ -33,7 +33,7 @@ static EcsEntityId
 scene_stats_create_text(EcsWorld* world, const SceneCameraComp* cam, const EcsEntityId owner) {
   const EcsEntityId text =
       scene_text_create(world, 0, 0, g_sceneStatsUiTextSize, geo_color_white, string_empty);
-  scene_tag_add(world, text, cam->requiredTags);
+  scene_tag_add(world, text, cam->filter.required);
   ecs_world_add_t(world, text, SceneLifetimeOwnerComp, .owner = owner);
   return text;
 }
