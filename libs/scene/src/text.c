@@ -31,9 +31,9 @@ ASSERT(sizeof(ShaderFontData) == 32, "Size needs to match the size defined in gl
 
 typedef struct {
   ALIGNAS(8)
-  u16 position[2];
-  u16 size;
-  u16 index;
+  i16 position[2];
+  i16 size;
+  i16 index;
 } ShaderGlyphData;
 
 ASSERT(sizeof(ShaderGlyphData) == 8, "Size needs to match the size defined in glsl");
@@ -90,11 +90,11 @@ static void scene_text_build_char(SceneTextBuilder* builder, const Unicode cp) {
     builder->outputGlyphData[builder->outputGlyphCount++] = (ShaderGlyphData){
         .position =
             {
-                (u16)(ch->offsetX * builder->glyphSize + builder->cursor[0]),
-                (u16)(ch->offsetY * builder->glyphSize + builder->cursor[1]),
+                (i16)(ch->offsetX * builder->glyphSize + builder->cursor[0]),
+                (i16)(ch->offsetY * builder->glyphSize + builder->cursor[1]),
             },
-        .size  = (u16)(ch->size * builder->glyphSize),
-        .index = ch->glyphIndex,
+        .size  = (i16)(ch->size * builder->glyphSize),
+        .index = (i16)ch->glyphIndex,
     };
   }
   builder->cursor[0] += ch->advance * builder->glyphSize;
