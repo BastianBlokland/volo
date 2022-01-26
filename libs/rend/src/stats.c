@@ -25,7 +25,7 @@ ecs_view_define(GlobalView) { ecs_access_read(RendPlatformComp); }
 
 ecs_view_define(UpdateStatsView) {
   ecs_access_read(RendPainterComp);
-  ecs_access_maybe_write(SceneStatsCamComp);
+  ecs_access_write(SceneStatsCamComp);
 }
 
 ecs_view_define(LoadedResourceView) {
@@ -70,9 +70,7 @@ ecs_system_define(RendUpdateCamStatsSys) {
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
     const RendPainterComp* painter = ecs_view_read_t(itr, RendPainterComp);
     SceneStatsCamComp*     stats   = ecs_view_write_t(itr, SceneStatsCamComp);
-    if (!stats) {
-      stats = ecs_world_add_t(world, ecs_view_entity(itr), SceneStatsCamComp);
-    }
+
     // NOTE: Will block until the previous draw has finished.
     const RvkRenderStats renderStats = rvk_canvas_stats(painter->canvas);
 
