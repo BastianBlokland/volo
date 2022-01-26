@@ -1,20 +1,19 @@
 #pragma once
 #include "core_time.h"
 #include "ecs_module.h"
-#include "rend_size.h"
 
 typedef enum {
-  RendStatRes_Graphic,
-  RendStatRes_Shader,
-  RendStatRes_Mesh,
-  RendStatRes_Texture,
+  SceneStatRes_Graphic,
+  SceneStatRes_Shader,
+  SceneStatRes_Mesh,
+  SceneStatRes_Texture,
 
-  RendStatRes_Count,
-} RendStatRes;
+  SceneStatRes_Count,
+} SceneStatRes;
 
-ecs_comp_extern_public(RendStatsComp) {
+ecs_comp_extern_public(SceneStatsCamComp) {
   String       gpuName;
-  RendSize     renderResolution;
+  u32          renderSize[2];
   TimeDuration renderTime;
   u32          draws, instances;
   u64          vertices, primitives;
@@ -22,5 +21,5 @@ ecs_comp_extern_public(RendStatsComp) {
   u64          ramOccupied, ramReserved;
   u64          vramOccupied, vramReserved;
   u32          descSetsOccupied, descSetsReserved, descLayouts;
-  u32          resources[RendStatRes_Count];
+  u32          resources[SceneStatRes_Count];
 };
