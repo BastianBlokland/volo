@@ -12,6 +12,7 @@
 #include "scene_camera.h"
 #include "scene_register.h"
 #include "scene_renderable.h"
+#include "scene_stats.h"
 #include "scene_text.h"
 #include "scene_time.h"
 #include "scene_transform.h"
@@ -70,7 +71,7 @@ ecs_view_define(WindowExistsView) { ecs_access_with(GapWindowComp); }
 ecs_view_define(WindowUpdateView) {
   ecs_access_write(GapWindowComp);
   ecs_access_read(SceneCameraComp);
-  ecs_access_read(RendStatsComp);
+  ecs_access_read(SceneStatsCamComp);
   ecs_access_maybe_write(AppStatsComp);
 }
 
@@ -124,17 +125,16 @@ static void spawn_objects(EcsWorld* world, AppComp* app, AssetManagerComp* asset
   }
 }
 
-static void stats_draw(AppStatsComp* appStats, const RendStatsComp* rstats, EcsView* textView) {
+static void stats_draw(AppStatsComp* appStats, const SceneStatsCamComp* rstats, EcsView* textView) {
   if (!ecs_view_contains(textView, appStats->text)) {
     return;
   }
   SceneTextComp* text = ecs_view_write_t(ecs_view_at(textView, appStats->text), SceneTextComp);
-  scene_text_update_position(text, 5, (rstats ? rstats->renderResolution.height : 0) - 30);
+  scene_text_update_position(text, 5, (rstats ? rstats->renderResolution[1] : 0) - 30);
   scene_text_update_str(
       text,
       fmt_write_scratch(
-          "{}\n"
-          "{<10} pixels\n"
+          "{}x{} {}\n"
           "{<10} hz\n{<10} gpu time\n"
           "{<10} draws\n{<10} instances\n"
           "{<10} verts\n{<10} tris\n"
@@ -145,8 +145,9 @@ static void stats_draw(AppStatsComp* appStats, const RendStatsComp* rstats, EcsV
           "{<10} descriptor-sets occupied\n{<10} descriptor-sets reserved\n"
           "{<10} descriptor layouts\n"
           "{<10} graphics\n{<10} shaders\n{<10} meshes\n{<10} textures\n",
+          fmt_int(rstats->renderResolution[0]),
+          fmt_int(rstats->renderResolution[1]),
           fmt_text(rstats->gpuName),
-          rend_size_fmt(rstats->renderResolution),
           fmt_float(appStats->updateFreq, .maxDecDigits = 0),
           fmt_duration(appStats->renderTime),
           fmt_int(rstats->draws),
@@ -163,10 +164,10 @@ static void stats_draw(AppStatsComp* appStats, const RendStatsComp* rstats, EcsV
           fmt_int(rstats->descSetsOccupied),
           fmt_int(rstats->descSetsReserved),
           fmt_int(rstats->descLayouts),
-          fmt_int(rstats->resources[RendStatRes_Graphic]),
-          fmt_int(rstats->resources[RendStatRes_Shader]),
-          fmt_int(rstats->resources[RendStatRes_Mesh]),
-          fmt_int(rstats->resources[RendStatRes_Texture])));
+          fmt_int(rstats->resources[SceneStatRes_Graphic]),
+          fmt_int(rstats->resources[SceneStatRes_Shader]),
+          fmt_int(rstats->resources[SceneStatRes_Mesh]),
+          fmt_int(rstats->resources[SceneStatRes_Texture])));
 }
 
 ecs_system_define(AppUpdateSys) {
@@ -191,14 +192,14 @@ ecs_system_define(AppUpdateSys) {
       ecs_world_add_t(world, ecs_view_entity(windowItr), AppStatsComp, .text = text);
       continue;
     }
-    const RendStatsComp* rendStats = ecs_view_read_t(windowItr, RendStatsComp);
+    const SceneStatsCamComp* camStats = ecs_view_read_t(windowItr, SceneStatsCamComp);
 
     const f32 deltaSeconds = time->delta / (f32)time_second;
     appStats->updateFreq   = smooth_f32(appStats->updateFreq, 1.0f / deltaSeconds);
-    appStats->renderTime   = smooth_duration(appStats->renderTime, rendStats->renderTime);
+    appStats->renderTime   = smooth_duration(appStats->renderTime, camStats->renderTime);
 
     if ((time->ticks % g_statsUpdateInterval) == 0) {
-      stats_draw(appStats, rendStats, ecs_world_view_t(world, TextView));
+      stats_draw(appStats, camStats, ecs_world_view_t(world, TextView));
     }
 
     if (gap_window_key_pressed(window, GapKey_ArrowRight)) {
