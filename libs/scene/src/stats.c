@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "ecs_world.h"
 #include "scene_camera.h"
+#include "scene_lifetime.h"
 #include "scene_stats.h"
 #include "scene_text.h"
 #include "scene_time.h"
@@ -28,10 +29,12 @@ static TimeDuration scene_smooth_duration(const TimeDuration old, const TimeDura
   return (TimeDuration)((f64)old + ((f64)(new - old) * g_sceneStatsSmoothFactor));
 }
 
-static EcsEntityId scene_stats_create_text(EcsWorld* world, const SceneCameraComp* cam) {
+static EcsEntityId
+scene_stats_create_text(EcsWorld* world, const SceneCameraComp* cam, const EcsEntityId owner) {
   const EcsEntityId text =
       scene_text_create(world, 0, 0, g_sceneStatsUiTextSize, geo_color_white, string_empty);
   scene_tag_add(world, text, cam->requiredTags);
+  ecs_world_add_t(world, text, SceneLifetimeOwnerComp, .owner = owner);
   return text;
 }
 
@@ -83,7 +86,8 @@ ecs_system_define(SceneStatsUiCreateSys) {
     const EcsEntityId      entity = ecs_view_entity(itr);
     const SceneCameraComp* cam    = ecs_view_read_t(itr, SceneCameraComp);
 
-    ecs_world_add_t(world, entity, SceneStatsUiComp, .text = scene_stats_create_text(world, cam));
+    ecs_world_add_t(
+        world, entity, SceneStatsUiComp, .text = scene_stats_create_text(world, cam, entity));
     ecs_world_add_t(world, entity, SceneStatsCamComp);
   }
 }
