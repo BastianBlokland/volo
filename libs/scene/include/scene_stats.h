@@ -13,7 +13,7 @@ typedef enum {
 
 ecs_comp_extern_public(SceneStatsCamComp) {
   String       gpuName;
-  u32          renderResolution[2];
+  u32          renderSize[2];
   TimeDuration renderTime;
   u32          draws, instances;
   u64          vertices, primitives;
