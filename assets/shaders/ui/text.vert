@@ -31,11 +31,10 @@ bind_spec(0) const u32 s_maxGlyphs = 4096;
  * byte struct (to meet the 16 byte alignment requirement).
  */
 struct GlyphPackedData {
-  f16_vec4 a, b; // x, y = position, z = size, w = glyphIndex / glyphPerAtlas.
+  u16_vec4 a, b; // x, y = position, z = size, w = glyphIndex.
 };
 
 struct FontData {
-  f32      glyphsInFont; // glyphsPerDim * glyphsPerDim
   f32      glyphsPerDim;
   f32      invGlyphsPerDim; // 1,0 / glyphsPerDim
   f32_vec4 color;
@@ -53,22 +52,22 @@ bind_internal(1) out flat f32_vec4 out_color;
 /**
  * Retrieve the glyph-data for the given glyph-index.
  */
-f32_vec4 glyph_data(const u32 glyphIndex) {
+u32_vec4 glyph_data(const u32 glyphIndex) {
   /**
    * Find the glyph-tuple (as they are stored in sets of 2) and then retrieve the correct entry.
    */
   const u32  packedIndex = glyphIndex / 2;
   const bool useA        = glyphIndex % 2 == 0;
-  return useA ? f32_vec4(u_packedGlyphs[packedIndex].a) : f32_vec4(u_packedGlyphs[packedIndex].b);
+  return useA ? u32_vec4(u_packedGlyphs[packedIndex].a) : u32_vec4(u_packedGlyphs[packedIndex].b);
 }
 
 void main() {
   const u32      glyphIndex = in_vertexIndex / c_verticesPerGlyph;
   const u32      vertIndex  = in_vertexIndex % c_verticesPerGlyph;
-  const f32_vec4 glyphData  = glyph_data(glyphIndex);
-  const f32_vec2 glyphPos   = glyphData.xy;
-  const f32      glyphSize  = glyphData.z;
-  const f32      atlasIndex = glyphData.w * u_font.glyphsInFont;
+  const u32_vec4 glyphData  = glyph_data(glyphIndex);
+  const u32_vec2 glyphPos   = glyphData.xy;
+  const u32      glyphSize  = glyphData.z;
+  const u32      atlasIndex = glyphData.w;
 
   /**
    * Compute the ui positions of the vertices.

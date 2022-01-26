@@ -14,7 +14,6 @@
 #include "scene_text.h"
 
 #define scene_text_max_glyphs_to_render 4096
-#define scene_text_max_glyphs_in_font 1024
 #define scene_text_tab_size 4
 
 static const String g_textGraphic = string_static("graphics/ui/text.gra");
@@ -22,9 +21,9 @@ static const String g_textFont    = string_static("fonts/mono.ftx");
 
 typedef struct {
   ALIGNAS(16)
-  f32      glyphsInFont;
-  f32      glyphsPerDim, invGlyphsPerDim;
-  f32      padding[1];
+  f32      glyphsPerDim;
+  f32      invGlyphsPerDim;
+  f32      padding[2];
   GeoColor color;
 } ShaderFontData;
 
@@ -32,9 +31,9 @@ ASSERT(sizeof(ShaderFontData) == 32, "Size needs to match the size defined in gl
 
 typedef struct {
   ALIGNAS(8)
-  f16 position[2];
-  f16 size;
-  f16 indexFrac;
+  u16 position[2];
+  u16 size;
+  u16 index;
 } ShaderGlyphData;
 
 ASSERT(sizeof(ShaderGlyphData) == 8, "Size needs to match the size defined in glsl");
@@ -88,15 +87,14 @@ static void scene_text_build_char(SceneTextBuilder* builder, const Unicode cp) {
     /**
      * This character has a glyph, output it to the shader.
      */
-    const f32 glyphsPerAtlas = builder->font->glyphsPerDim * builder->font->glyphsPerDim;
     builder->outputGlyphData[builder->outputGlyphCount++] = (ShaderGlyphData){
-        .indexFrac = bits_f32_to_f16(ch->glyphIndex / (f32)glyphsPerAtlas),
         .position =
             {
-                bits_f32_to_f16(ch->offsetX * builder->glyphSize + builder->cursor[0]),
-                bits_f32_to_f16(ch->offsetY * builder->glyphSize + builder->cursor[1]),
+                (u16)(ch->offsetX * builder->glyphSize + builder->cursor[0]),
+                (u16)(ch->offsetY * builder->glyphSize + builder->cursor[1]),
             },
-        .size = bits_f32_to_f16(ch->size * builder->glyphSize),
+        .size  = (u16)(ch->size * builder->glyphSize),
+        .index = ch->glyphIndex,
     };
   }
   builder->cursor[0] += ch->advance * builder->glyphSize;
@@ -115,16 +113,6 @@ static void scene_text_build(SceneTextBuilder* builder) {
         log_param("maximum", fmt_int(scene_text_max_glyphs_to_render)));
     return;
   }
-  const u32 glyphsInFont = builder->font->glyphsPerDim * builder->font->glyphsPerDim;
-  if (UNLIKELY(glyphsInFont > scene_text_max_glyphs_in_font)) {
-    /**
-     * Sanity check here because we encode the glyph-index as a 16 bit floating point fraction we
-     * might get into trouble with fonts containing many glyphs.
-     */
-    log_w("Font contains more glyphs then are supported");
-    return;
-  }
-
   const usize maxDataSize = sizeof(ShaderFontData) + sizeof(ShaderGlyphData) * codePointsCount;
   Mem         data        = scene_renderable_unique_data_set(builder->renderable, maxDataSize);
 
@@ -132,7 +120,6 @@ static void scene_text_build(SceneTextBuilder* builder) {
    * Setup per-font data (shared between all glyphs in this text).
    */
   *mem_as_t(data, ShaderFontData) = (ShaderFontData){
-      .glyphsInFont    = glyphsInFont,
       .glyphsPerDim    = builder->font->glyphsPerDim,
       .invGlyphsPerDim = 1.0f / (f32)builder->font->glyphsPerDim,
       .color           = builder->color,
