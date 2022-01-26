@@ -13,7 +13,7 @@ typedef struct sRvkSwapchain RvkSwapchain;
 
 RvkSwapchain* rvk_swapchain_create(RvkDevice*, const GapWindowComp*);
 void          rvk_swapchain_destroy(RvkSwapchain*);
-RendSize      rvk_swapchain_size(const RvkSwapchain*);
+RvkSize       rvk_swapchain_size(const RvkSwapchain*);
 RvkImage*     rvk_swapchain_image(const RvkSwapchain*, RvkSwapchainIdx);
 
 /**
@@ -21,7 +21,7 @@ RvkImage*     rvk_swapchain_image(const RvkSwapchain*, RvkSwapchainIdx);
  * The provided semaphore will be signaled when the image is available.
  * NOTE: Returns sentinel_u32 on failure (for example because the window was minimized).
  */
-RvkSwapchainIdx rvk_swapchain_acquire(RvkSwapchain*, VkSemaphore, RendSize);
+RvkSwapchainIdx rvk_swapchain_acquire(RvkSwapchain*, VkSemaphore, RvkSize);
 
 /**
  * Present an image to the surface.

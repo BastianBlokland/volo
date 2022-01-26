@@ -29,7 +29,7 @@ struct sRvkPass {
   RvkDevice*       dev;
   RvkStatRecorder* statrecorder;
   RvkPassFlags     flags;
-  RendSize         size;
+  RvkSize          size;
   VkRenderPass     vkRendPass;
   VkPipelineLayout vkGlobalLayout;
   RvkImage         attachColor, attachDepth;
@@ -45,10 +45,10 @@ static VkRenderPass rvk_renderpass_create(RvkDevice* dev, const RvkPassFlags fla
   u32                     colorRefCount = 0;
 
   attachments[attachmentCount++] = (VkAttachmentDescription){
-      .format         = g_attachColorFormat,
-      .samples        = VK_SAMPLE_COUNT_1_BIT,
-      .loadOp         = (flags & RvkPassFlags_ClearColor) ? VK_ATTACHMENT_LOAD_OP_CLEAR
-                                                          : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+      .format  = g_attachColorFormat,
+      .samples = VK_SAMPLE_COUNT_1_BIT,
+      .loadOp  = (flags & RvkPassFlags_ClearColor) ? VK_ATTACHMENT_LOAD_OP_CLEAR
+                                                  : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
       .storeOp        = VK_ATTACHMENT_STORE_OP_STORE,
       .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
       .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
@@ -61,10 +61,10 @@ static VkRenderPass rvk_renderpass_create(RvkDevice* dev, const RvkPassFlags fla
   };
 
   attachments[attachmentCount++] = (VkAttachmentDescription){
-      .format         = dev->vkDepthFormat,
-      .samples        = VK_SAMPLE_COUNT_1_BIT,
-      .loadOp         = (flags & RvkPassFlags_ClearDepth) ? VK_ATTACHMENT_LOAD_OP_CLEAR
-                                                          : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+      .format  = dev->vkDepthFormat,
+      .samples = VK_SAMPLE_COUNT_1_BIT,
+      .loadOp  = (flags & RvkPassFlags_ClearDepth) ? VK_ATTACHMENT_LOAD_OP_CLEAR
+                                                  : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
       .storeOp        = VK_ATTACHMENT_STORE_OP_DONT_CARE,
       .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
       .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
@@ -147,7 +147,7 @@ rvk_framebuffer_create(RvkPass* pass, RvkImage* attachColor, RvkImage* attachDep
   return result;
 }
 
-static void rvk_pass_viewport_set(VkCommandBuffer vkCmdBuf, const RendSize size) {
+static void rvk_pass_viewport_set(VkCommandBuffer vkCmdBuf, const RvkSize size) {
   const VkViewport viewport = {
       .x        = 0.0f,
       .y        = 0.0f,
@@ -159,7 +159,7 @@ static void rvk_pass_viewport_set(VkCommandBuffer vkCmdBuf, const RendSize size)
   vkCmdSetViewport(vkCmdBuf, 0, 1, &viewport);
 }
 
-static void rvk_pass_scissor_set(VkCommandBuffer vkCmdBuf, const RendSize size) {
+static void rvk_pass_scissor_set(VkCommandBuffer vkCmdBuf, const RvkSize size) {
   const VkRect2D scissor = {
       .offset        = {0, 0},
       .extent.width  = size.width,
@@ -169,7 +169,7 @@ static void rvk_pass_scissor_set(VkCommandBuffer vkCmdBuf, const RendSize size) 
 }
 
 static void rvk_pass_vkrenderpass_begin(
-    RvkPass* pass, VkCommandBuffer vkCmdBuf, const RendSize size, const GeoColor clearColor) {
+    RvkPass* pass, VkCommandBuffer vkCmdBuf, const RvkSize size, const GeoColor clearColor) {
 
   const VkClearValue clearValues[] = {
       *(VkClearColorValue*)&clearColor,
@@ -188,7 +188,7 @@ static void rvk_pass_vkrenderpass_begin(
   vkCmdBeginRenderPass(vkCmdBuf, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
 
-static void rvk_pass_resource_create(RvkPass* pass, const RendSize size) {
+static void rvk_pass_resource_create(RvkPass* pass, const RvkSize size) {
   pass->size          = size;
   pass->attachColor   = rvk_image_create_attach_color(pass->dev, g_attachColorFormat, size);
   pass->attachDepth   = rvk_image_create_attach_depth(pass->dev, pass->dev->vkDepthFormat, size);
@@ -243,12 +243,12 @@ u64 rvk_pass_stat(RvkPass* pass, const RvkStat stat) {
   return rvk_statrecorder_query(pass->statrecorder, stat);
 }
 
-void rvk_pass_setup(RvkPass* pass, const RendSize size) {
+void rvk_pass_setup(RvkPass* pass, const RvkSize size) {
   diag_assert_msg(size.width && size.height, "Pass cannot be zero sized");
 
   rvk_statrecorder_reset(pass->statrecorder, pass->vkCmdBuf);
 
-  if (rend_size_equal(pass->size, size)) {
+  if (rvk_size_equal(pass->size, size)) {
     return;
   }
   pass->flags |= RvkPassPrivateFlags_Setup;

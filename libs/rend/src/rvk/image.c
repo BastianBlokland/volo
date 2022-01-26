@@ -176,7 +176,7 @@ static void rvk_image_barrier_from_to(
 
 static VkImage rvk_vkimage_create(
     RvkDevice*              dev,
-    const RendSize          size,
+    const RvkSize           size,
     const VkFormat          vkFormat,
     const VkImageUsageFlags vkImgUsages,
     const u8                mipLevels) {
@@ -228,7 +228,7 @@ static RvkImage rvk_image_create_backed(
     RvkDevice*         dev,
     const RvkImageType type,
     const VkFormat     vkFormat,
-    const RendSize     size,
+    const RvkSize      size,
     const u8           mipLevels) {
 
   const VkImageAspectFlags vkAspect = rvk_image_vkaspect(type);
@@ -256,26 +256,26 @@ static RvkImage rvk_image_create_backed(
 }
 
 RvkImage rvk_image_create_source_color(
-    RvkDevice* dev, const VkFormat vkFormat, const RendSize size, const u8 mipLevels) {
+    RvkDevice* dev, const VkFormat vkFormat, const RvkSize size, const u8 mipLevels) {
   return rvk_image_create_backed(dev, RvkImageType_ColorSource, vkFormat, size, mipLevels);
 }
 
 RvkImage
-rvk_image_create_attach_color(RvkDevice* dev, const VkFormat vkFormat, const RendSize size) {
+rvk_image_create_attach_color(RvkDevice* dev, const VkFormat vkFormat, const RvkSize size) {
   diag_assert(rvk_format_info(vkFormat).channels == 4);
   const u8 mipLevels = 1;
   return rvk_image_create_backed(dev, RvkImageType_ColorAttachment, vkFormat, size, mipLevels);
 }
 
 RvkImage
-rvk_image_create_attach_depth(RvkDevice* dev, const VkFormat vkFormat, const RendSize size) {
+rvk_image_create_attach_depth(RvkDevice* dev, const VkFormat vkFormat, const RvkSize size) {
   diag_assert(rvk_format_info(vkFormat).channels == 1 || rvk_format_info(vkFormat).channels == 2);
   const u8 mipLevels = 1;
   return rvk_image_create_backed(dev, RvkImageType_DepthAttachment, vkFormat, size, mipLevels);
 }
 
-RvkImage rvk_image_create_swapchain(
-    RvkDevice* dev, VkImage vkImage, VkFormat vkFormat, const RendSize size) {
+RvkImage
+rvk_image_create_swapchain(RvkDevice* dev, VkImage vkImage, VkFormat vkFormat, const RvkSize size) {
   (void)dev;
   return (RvkImage){
       .type      = RvkImageType_Swapchain,
@@ -391,7 +391,7 @@ void rvk_image_generate_mipmaps(RvkImage* image, VkCommandBuffer vkCmdBuf) {
 void rvk_image_copy(const RvkImage* src, RvkImage* dest, VkCommandBuffer vkCmdBuf) {
   rvk_image_assert_phase(src, RvkImagePhase_TransferSource);
   rvk_image_assert_phase(dest, RvkImagePhase_TransferDest);
-  diag_assert_msg(rend_size_equal(src->size, dest->size), "Image copy requires matching sizes");
+  diag_assert_msg(rvk_size_equal(src->size, dest->size), "Image copy requires matching sizes");
 
   const VkImageCopy regions[] = {
       {

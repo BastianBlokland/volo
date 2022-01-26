@@ -1,7 +1,6 @@
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_thread.h"
-#include "rend_size.h"
 
 #include "device_internal.h"
 #include "image_internal.h"
@@ -9,6 +8,7 @@
 #include "renderer_internal.h"
 #include "statrecorder_internal.h"
 #include "stopwatch_internal.h"
+#include "types_internal.h"
 #include "uniform_internal.h"
 
 typedef enum {

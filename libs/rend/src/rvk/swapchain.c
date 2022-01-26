@@ -32,11 +32,11 @@ struct sRvkSwapchain {
   VkSwapchainKHR     vkSwapchain;
   VkPresentModeKHR   vkPresentMode;
   RvkSwapchainFlags  flags;
-  RendSize           size;
+  RvkSize            size;
   DynArray           images; // RvkImage[]
 };
 
-static RendSize rvk_surface_clamp_size(RendSize size, const VkSurfaceCapabilitiesKHR* vkCaps) {
+static RvkSize rvk_surface_clamp_size(RvkSize size, const VkSurfaceCapabilitiesKHR* vkCaps) {
   if (size.width < vkCaps->minImageExtent.width) {
     size.width = vkCaps->minImageExtent.width;
   }
@@ -134,7 +134,7 @@ static VkSurfaceCapabilitiesKHR rvk_surface_capabilities(RvkDevice* dev, VkSurfa
   return result;
 }
 
-static bool rvk_swapchain_init(RvkSwapchain* swapchain, RendSize size) {
+static bool rvk_swapchain_init(RvkSwapchain* swapchain, RvkSize size) {
   if (!size.width || !size.height) {
     swapchain->size = size;
     return false;
@@ -188,7 +188,7 @@ static bool rvk_swapchain_init(RvkSwapchain* swapchain, RendSize size) {
 
   log_i(
       "Vulkan swapchain created",
-      log_param("size", rend_size_fmt(size)),
+      log_param("size", rvk_size_fmt(size)),
       log_param("format", fmt_text(rvk_format_info(format).name)),
       log_param("color", fmt_text(rvk_colorspace_str(swapchain->vkSurfFormat.colorSpace))),
       log_param("present-mode", fmt_text(rvk_presentmode_str(swapchain->vkPresentMode))),
@@ -233,7 +233,7 @@ void rvk_swapchain_destroy(RvkSwapchain* swapchain) {
   alloc_free_t(g_alloc_heap, swapchain);
 }
 
-RendSize rvk_swapchain_size(const RvkSwapchain* swapchain) { return swapchain->size; }
+RvkSize rvk_swapchain_size(const RvkSwapchain* swapchain) { return swapchain->size; }
 
 RvkImage* rvk_swapchain_image(const RvkSwapchain* swapchain, const RvkSwapchainIdx idx) {
   diag_assert_msg(idx < swapchain->images.size, "Out of bound swapchain index");
@@ -241,10 +241,10 @@ RvkImage* rvk_swapchain_image(const RvkSwapchain* swapchain, const RvkSwapchainI
 }
 
 RvkSwapchainIdx
-rvk_swapchain_acquire(RvkSwapchain* swapchain, VkSemaphore available, const RendSize size) {
+rvk_swapchain_acquire(RvkSwapchain* swapchain, VkSemaphore available, const RvkSize size) {
 
   const bool outOfDate = (swapchain->flags & RvkSwapchainFlags_OutOfDate) != 0;
-  if (!swapchain->vkSwapchain || outOfDate || !rend_size_equal(size, swapchain->size)) {
+  if (!swapchain->vkSwapchain || outOfDate || !rvk_size_equal(size, swapchain->size)) {
     /**
      * Synchronize swapchain (re)creation by waiting for all rendering to be done. This a very
      * crude way of synchronizing and causes stalls when resizing the window. In the future we can

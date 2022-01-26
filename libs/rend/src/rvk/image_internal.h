@@ -1,8 +1,8 @@
 #pragma once
 #include "geo_color.h"
-#include "rend_size.h"
 
 #include "mem_internal.h"
+#include "types_internal.h"
 
 // Internal forward declarations:
 typedef struct sRvkDevice RvkDevice;
@@ -33,16 +33,16 @@ typedef struct sRvkImage {
   RvkImagePhase phase : 8;
   u8            mipLevels;
   VkFormat      vkFormat;
-  RendSize      size;
+  RvkSize       size;
   VkImage       vkImage;
   VkImageView   vkImageView;
   RvkMem        mem;
 } RvkImage;
 
-RvkImage rvk_image_create_source_color(RvkDevice*, VkFormat, RendSize size, u8 mipLevels);
-RvkImage rvk_image_create_attach_color(RvkDevice*, VkFormat, RendSize size);
-RvkImage rvk_image_create_attach_depth(RvkDevice*, VkFormat, RendSize size);
-RvkImage rvk_image_create_swapchain(RvkDevice*, VkImage, VkFormat, RendSize size);
+RvkImage rvk_image_create_source_color(RvkDevice*, VkFormat, RvkSize size, u8 mipLevels);
+RvkImage rvk_image_create_attach_color(RvkDevice*, VkFormat, RvkSize size);
+RvkImage rvk_image_create_attach_depth(RvkDevice*, VkFormat, RvkSize size);
+RvkImage rvk_image_create_swapchain(RvkDevice*, VkImage, VkFormat, RvkSize size);
 void     rvk_image_destroy(RvkImage*, RvkDevice*);
 
 String rvk_image_type_str(RvkImageType);

@@ -1,9 +1,9 @@
 #pragma once
 #include "core_types.h"
 #include "geo_color.h"
-#include "rend_size.h"
 
 #include "statrecorder_internal.h"
+#include "types_internal.h"
 #include "vulkan_internal.h"
 
 // Internal forward declarations:
@@ -43,7 +43,7 @@ bool     rvk_pass_active(const RvkPass*);
 RvkImage* rvk_pass_output(RvkPass*);
 u64       rvk_pass_stat(RvkPass*, RvkStat);
 
-void rvk_pass_setup(RvkPass*, RendSize size);
+void rvk_pass_setup(RvkPass*, RvkSize size);
 bool rvk_pass_prepare(RvkPass*, RvkGraphic*);
 
 void rvk_pass_begin(RvkPass*, GeoColor clearColor);

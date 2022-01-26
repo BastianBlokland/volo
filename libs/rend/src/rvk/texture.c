@@ -9,7 +9,7 @@
 #include "texture_internal.h"
 #include "transfer_internal.h"
 
-static u32 rvk_compute_miplevels(const RendSize size) {
+static u32 rvk_compute_miplevels(const RvkSize size) {
   /**
    * Check how many times we can cut the image in half before both sides hit 1 pixel.
    */
@@ -38,9 +38,9 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
   diag_assert(rvk_format_info(vkFormat).size == asset->channels * sizeof(u8));
   diag_assert(rvk_format_info(vkFormat).channels == (u32)asset->channels);
 
-  const RendSize size      = rend_size(asset->width, asset->height);
-  const u8       mipLevels = rvk_compute_miplevels(size);
-  texture->image           = rvk_image_create_source_color(dev, vkFormat, size, mipLevels);
+  const RvkSize size      = rvk_size(asset->width, asset->height);
+  const u8      mipLevels = rvk_compute_miplevels(size);
+  texture->image          = rvk_image_create_source_color(dev, vkFormat, size, mipLevels);
 
   const usize pixelDataSize = asset->channels * sizeof(u8) * asset->width * asset->height;
   texture->pixelTransfer    = rvk_transfer_image(
@@ -53,7 +53,7 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
       "Vulkan texture created",
       log_param("name", fmt_text(dbgName)),
       log_param("format", fmt_text(rvk_format_info(vkFormat).name)),
-      log_param("size", rend_size_fmt(texture->image.size)),
+      log_param("size", rvk_size_fmt(texture->image.size)),
       log_param("memory", fmt_size(texture->image.mem.size)));
 
   return texture;

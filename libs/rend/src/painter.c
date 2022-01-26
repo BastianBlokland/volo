@@ -124,7 +124,7 @@ static bool painter_draw(
     EcsView*                  graphicView) {
 
   const GapVector winSize  = gap_window_param(win, GapParam_WindowSize);
-  const RendSize  rendSize = rend_size((u32)winSize.width, (u32)winSize.height);
+  const RvkSize   rendSize = rvk_size((u32)winSize.width, (u32)winSize.height);
   const bool      draw     = rvk_canvas_begin(painter->canvas, rendSize);
   if (draw) {
     const RendPainterGlobalData globalData = {

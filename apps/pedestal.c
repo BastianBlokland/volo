@@ -8,7 +8,7 @@
 #include "gap.h"
 #include "jobs.h"
 #include "log.h"
-#include "rend.h"
+#include "rend_register.h"
 #include "scene_camera.h"
 #include "scene_register.h"
 #include "scene_renderable.h"
