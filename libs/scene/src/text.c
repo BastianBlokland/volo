@@ -318,21 +318,10 @@ ecs_module_init(scene_text_module) {
   ecs_order(SceneTextBuildSys, SceneOrder_TextBuild);
 }
 
-EcsEntityId scene_text_create(
-    EcsWorld*      world,
-    const f32      x,
-    const f32      y,
-    const f32      size,
-    const GeoColor color,
-    const String   text) {
-
-  const EcsEntityId entity = ecs_world_entity_create(world);
-  SceneTextComp*    comp   = ecs_world_add_t(world, entity, SceneTextComp);
-  scene_text_update_color(comp, color);
-  scene_text_update_position(comp, x, y);
-  scene_text_update_size(comp, size);
-  scene_text_update_str(comp, text);
-  return entity;
+SceneTextComp* scene_text_add(EcsWorld* world, const EcsEntityId entity) {
+  SceneTextComp* text = ecs_world_add_t(world, entity, SceneTextComp, .size = 25);
+  text->color         = geo_color_white;
+  return text;
 }
 
 void scene_text_update_color(SceneTextComp* comp, const GeoColor color) {
