@@ -14,10 +14,10 @@
 #include "scene_text.h"
 
 #define scene_text_tab_size 4
-#define scene_text_glyphs_max 4096
+#define scene_text_glyphs_max 2048
 #define scene_text_palette_index_bits 2
 #define scene_text_palette_size (1 << scene_text_palette_index_bits)
-#define scene_text_atlas_index_bits (16 - (scene_text_palette_index_bits + 1))
+#define scene_text_atlas_index_bits (32 - scene_text_palette_index_bits)
 #define scene_text_atlas_index_max ((1 << scene_text_atlas_index_bits) - 1)
 
 static const String g_textGraphic = string_static("graphics/ui/text.gra");
@@ -35,12 +35,12 @@ ASSERT(sizeof(ShaderFontData) == 80, "Size needs to match the size defined in gl
 
 typedef struct {
   ALIGNAS(8)
-  i16 position[2];
-  i16 size;
-  u16 index; // 1b unused (to avoid sign-extend to issues), 2b palette index, 13b glyphIndex.
+  f32 position[2];
+  f32 size;
+  u32 index; // 2b palette index, 30b glyphIndex.
 } ShaderGlyphData;
 
-ASSERT(sizeof(ShaderGlyphData) == 8, "Size needs to match the size defined in glsl");
+ASSERT(sizeof(ShaderGlyphData) == 16, "Size needs to match the size defined in glsl");
 
 typedef struct {
   const AssetFtxComp*        font;
@@ -96,10 +96,10 @@ static void scene_text_build_char(SceneTextBuilder* builder, const Unicode cp) {
     builder->outputGlyphData[builder->outputGlyphCount++] = (ShaderGlyphData){
         .position =
             {
-                (i16)(ch->offsetX * builder->glyphSize + builder->cursor[0]),
-                (i16)(ch->offsetY * builder->glyphSize + builder->cursor[1]),
+                ch->offsetX * builder->glyphSize + builder->cursor[0],
+                ch->offsetY * builder->glyphSize + builder->cursor[1],
             },
-        .size  = (i16)(ch->size * builder->glyphSize),
+        .size  = ch->size * builder->glyphSize,
         .index = ch->glyphIndex | (builder->paletteIndex << scene_text_atlas_index_bits),
     };
   }
