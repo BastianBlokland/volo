@@ -641,7 +641,10 @@ ecs_module_init(rend_resource_module) {
   ecs_order(RendResUnloadUnusedSys, RendOrder_DrawExecute + 1);
 }
 
-void rend_resource_request(EcsWorld* world, const EcsEntityId assetEntity) {
+bool rend_resource_request(EcsWorld* world, const EcsEntityId assetEntity) {
+  if (ecs_world_has_t(world, assetEntity, RendResUnloadComp)) {
+    return false; // Asset is currently in the process of being unloaded.
+  }
   ecs_world_add_t(
       world,
       assetEntity,
@@ -649,6 +652,7 @@ void rend_resource_request(EcsWorld* world, const EcsEntityId assetEntity) {
       .flags        = RendResFlags_Used,
       .dependencies = dynarray_create_t(g_alloc_heap, EcsEntityId, 0),
       .dependents   = dynarray_create_t(g_alloc_heap, EcsEntityId, 0));
+  return true;
 }
 
 void rend_resource_mark_used(RendResComp* resComp) { resComp->flags |= RendResFlags_Used; }
