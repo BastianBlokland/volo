@@ -34,8 +34,8 @@ static EcsEntityId
 scene_stats_create_text(EcsWorld* world, const SceneCameraComp* cam, const EcsEntityId owner) {
   const EcsEntityId entity = ecs_world_entity_create(world);
   SceneTextComp*    text   = scene_text_add(world, entity);
-  scene_text_update_palette(text, SceneTextColor_B, geo_color_red);
-  scene_text_update_palette(text, SceneTextColor_C, geo_color_yellow);
+  scene_text_update_palette(text, TextPalette_B, geo_color_red);
+  scene_text_update_palette(text, TextPalette_C, geo_color_yellow);
 
   scene_tag_add(world, entity, cam->filter.required);
   ecs_world_add_t(world, entity, SceneLifetimeOwnerComp, .owner = owner);
@@ -48,7 +48,7 @@ static String scene_stats_ui_text(const SceneStatsUiComp* ui, const SceneStatsCa
   // clang-format off
   fmt_write(&str, "{}\n", fmt_text(camStats->gpuName));
   fmt_write(&str, "{<4}x{<4} pixels\n", fmt_int(camStats->renderSize[0]), fmt_int(camStats->renderSize[1]));
-  fmt_write(&str, "{<9} {}update{} time ({} hz)\n", fmt_duration(ui->updateTime), scene_text_color(SceneTextColor_B), scene_text_color(SceneTextColor_A), fmt_float(ui->updateFreq, .minDecDigits = 1, .maxDecDigits = 1));
+  fmt_write(&str, "{<9} {}update{} time ({} hz)\n", fmt_duration(ui->updateTime), fmt_text_palette(TextPalette_B), fmt_text_palette(TextPalette_A), fmt_float(ui->updateFreq, .minDecDigits = 1, .maxDecDigits = 1));
   fmt_write(&str, "{<9} render time ({} hz)\n", fmt_duration(ui->renderTime), fmt_float(ui->renderFreq, .minDecDigits = 1, .maxDecDigits = 1));
   fmt_write(&str, "{<9} draws\n", fmt_int(camStats->draws));
   fmt_write(&str, "{<9} instances\n", fmt_int(camStats->instances));

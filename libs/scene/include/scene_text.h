@@ -5,22 +5,21 @@
 #include "geo_color.h"
 
 typedef enum {
-  SceneTextColor_A,
-  SceneTextColor_B,
-  SceneTextColor_C,
-  SceneTextColor_D,
-} SceneTextColor;
+  TextPalette_A,
+  TextPalette_B,
+  TextPalette_C,
+  TextPalette_D,
+} TextPalette;
 
 ecs_comp_extern(SceneTextComp);
 
 SceneTextComp* scene_text_add(EcsWorld*, EcsEntityId);
-void           scene_text_update_palette(SceneTextComp*, SceneTextColor, GeoColor);
+void           scene_text_update_palette(SceneTextComp*, TextPalette, GeoColor);
 void           scene_text_update_position(SceneTextComp*, f32 x, f32 y);
 void           scene_text_update_size(SceneTextComp*, f32 size);
 void           scene_text_update_str(SceneTextComp*, String);
 
 /**
- * Retrieve a formatting argument that can be placed in text strings to switch to a different color
- * from the text palette.
+ * Retrieve a formatting argument that can be placed in text to switch to a different palette.
  */
-FormatArg scene_text_color(SceneTextColor);
+FormatArg fmt_text_palette(TextPalette);

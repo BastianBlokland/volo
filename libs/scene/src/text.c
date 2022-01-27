@@ -46,13 +46,13 @@ typedef struct {
   const AssetFtxComp*        font;
   SceneRenderableUniqueComp* renderable;
   GeoColor*                  palette;
+  TextPalette                activePalette;
   ShaderGlyphData*           outputGlyphData;
   u32                        outputGlyphCount;
   String                     text;
   f32                        glyphSize;
   f32                        startCursor[2];
   f32                        cursor[2];
-  u8                         paletteIndex;
 } SceneTextBuilder;
 
 static void scene_text_carriage_return(SceneTextBuilder* builder) {
@@ -79,7 +79,7 @@ static void scene_text_build_char(SceneTextBuilder* builder, const Unicode cp) {
   case '\2':
   case '\3':
   case '\4':
-    builder->paletteIndex = cp - 1;
+    builder->activePalette = cp - 1;
     return;
   case Unicode_HorizontalTab:
     scene_text_next_tabstop_hor(builder);
@@ -104,7 +104,7 @@ static void scene_text_build_char(SceneTextBuilder* builder, const Unicode cp) {
                 ch->offsetY * builder->glyphSize + builder->cursor[1],
             },
         .size  = ch->size * builder->glyphSize,
-        .index = ch->glyphIndex | (builder->paletteIndex << scene_text_atlas_index_bits),
+        .index = ch->glyphIndex | (builder->activePalette << scene_text_atlas_index_bits),
     };
   }
   builder->cursor[0] += ch->advance * builder->glyphSize;
@@ -334,12 +334,12 @@ SceneTextComp* scene_text_add(EcsWorld* world, const EcsEntityId entity) {
 }
 
 void scene_text_update_palette(
-    SceneTextComp* comp, const SceneTextColor entry, const GeoColor color) {
-  diag_assert(entry < scene_text_palette_size);
+    SceneTextComp* comp, const TextPalette palette, const GeoColor color) {
+  diag_assert(palette < scene_text_palette_size);
 
   // TODO: Only mark the text as dirty if the color is different.
   comp->flags |= SceneText_Dirty;
-  comp->palette[entry] = color;
+  comp->palette[palette] = color;
 }
 
 void scene_text_update_position(SceneTextComp* comp, const f32 x, const f32 y) {
@@ -380,9 +380,9 @@ void scene_text_update_str(SceneTextComp* comp, const String newText) {
   comp->textMemSize = newText.size;
 }
 
-FormatArg scene_text_color(const SceneTextColor color) {
+FormatArg fmt_text_palette(const TextPalette palette) {
   /**
-   * Use ASCII 1 - 4 to switch the active color.
+   * Use ASCII 1 - 4 to switch the active palette.
    */
-  return fmt_char('\1' + color);
+  return fmt_char('\1' + palette);
 }
