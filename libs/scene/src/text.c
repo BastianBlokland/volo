@@ -1,10 +1,10 @@
 #include "asset_ftx.h"
 #include "asset_manager.h"
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_math.h"
-#include "core_unicode.h"
 #include "core_utf8.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
@@ -13,8 +13,12 @@
 #include "scene_renderable.h"
 #include "scene_text.h"
 
-#define scene_text_max_glyphs_to_render 4096
 #define scene_text_tab_size 4
+#define scene_text_glyphs_max 4096
+#define scene_text_palette_index_bits 2
+#define scene_text_palette_size (1 << scene_text_palette_index_bits)
+#define scene_text_atlas_index_bits (16 - scene_text_palette_index_bits)
+#define scene_text_atlas_index_max ((1 << scene_text_atlas_index_bits) - 1)
 
 static const String g_textGraphic = string_static("graphics/ui/text.gra");
 static const String g_textFont    = string_static("fonts/mono.ftx");
@@ -24,16 +28,16 @@ typedef struct {
   f32      glyphsPerDim;
   f32      invGlyphsPerDim;
   f32      padding[2];
-  GeoColor color;
+  GeoColor palette[scene_text_palette_size];
 } ShaderFontData;
 
-ASSERT(sizeof(ShaderFontData) == 32, "Size needs to match the size defined in glsl");
+ASSERT(sizeof(ShaderFontData) == 80, "Size needs to match the size defined in glsl");
 
 typedef struct {
   ALIGNAS(8)
   i16 position[2];
   i16 size;
-  i16 index;
+  u16 index;
 } ShaderGlyphData;
 
 ASSERT(sizeof(ShaderGlyphData) == 8, "Size needs to match the size defined in glsl");
@@ -41,13 +45,14 @@ ASSERT(sizeof(ShaderGlyphData) == 8, "Size needs to match the size defined in gl
 typedef struct {
   const AssetFtxComp*        font;
   SceneRenderableUniqueComp* renderable;
+  GeoColor*                  palette;
   ShaderGlyphData*           outputGlyphData;
   u32                        outputGlyphCount;
   String                     text;
-  GeoColor                   color;
+  f32                        glyphSize;
   f32                        startCursor[2];
   f32                        cursor[2];
-  f32                        glyphSize;
+  u8                         paletteIndex;
 } SceneTextBuilder;
 
 static void scene_text_carriage_return(SceneTextBuilder* builder) {
@@ -84,6 +89,7 @@ static void scene_text_build_char(SceneTextBuilder* builder, const Unicode cp) {
   }
   const AssetFtxChar* ch = asset_ftx_lookup(builder->font, cp);
   if (!sentinel_check(ch->glyphIndex)) {
+    diag_assert(ch->glyphIndex < scene_text_atlas_index_max);
     /**
      * This character has a glyph, output it to the shader.
      */
@@ -94,7 +100,7 @@ static void scene_text_build_char(SceneTextBuilder* builder, const Unicode cp) {
                 (i16)(ch->offsetY * builder->glyphSize + builder->cursor[1]),
             },
         .size  = (i16)(ch->size * builder->glyphSize),
-        .index = (i16)ch->glyphIndex,
+        .index = ch->glyphIndex | (builder->paletteIndex << scene_text_atlas_index_bits),
     };
   }
   builder->cursor[0] += ch->advance * builder->glyphSize;
@@ -102,7 +108,7 @@ static void scene_text_build_char(SceneTextBuilder* builder, const Unicode cp) {
 
 static void scene_text_build(SceneTextBuilder* builder) {
   const usize codePointsCount = utf8_cp_count(builder->text);
-  if (UNLIKELY(codePointsCount > scene_text_max_glyphs_to_render)) {
+  if (UNLIKELY(codePointsCount > scene_text_glyphs_max)) {
     /**
      * NOTE: This check is conservative as not every code-point necessarily has a glyph (for example
      * spaces dont have glyphs).
@@ -110,7 +116,7 @@ static void scene_text_build(SceneTextBuilder* builder) {
     log_w(
         "SceneTextComp consists of more codepoints then are supported",
         log_param("codepoints", fmt_int(codePointsCount)),
-        log_param("maximum", fmt_int(scene_text_max_glyphs_to_render)));
+        log_param("maximum", fmt_int(scene_text_glyphs_max)));
     return;
   }
   const usize maxDataSize = sizeof(ShaderFontData) + sizeof(ShaderGlyphData) * codePointsCount;
@@ -119,18 +125,17 @@ static void scene_text_build(SceneTextBuilder* builder) {
   /**
    * Setup per-font data (shared between all glyphs in this text).
    */
-  *mem_as_t(data, ShaderFontData) = (ShaderFontData){
-      .glyphsPerDim    = builder->font->glyphsPerDim,
-      .invGlyphsPerDim = 1.0f / (f32)builder->font->glyphsPerDim,
-      .color           = builder->color,
-  };
+  ShaderFontData* fontData  = mem_as_t(data, ShaderFontData);
+  fontData->glyphsPerDim    = builder->font->glyphsPerDim;
+  fontData->invGlyphsPerDim = 1.0f / (f32)builder->font->glyphsPerDim;
+  mem_cpy(array_mem(fontData->palette), mem_create(builder->palette, sizeof(fontData->palette)));
 
   /**
    * Build the glyph data.
    */
   builder->outputGlyphData = mem_consume(data, sizeof(ShaderFontData)).ptr;
   do {
-    diag_assert(builder->outputGlyphCount < scene_text_max_glyphs_to_render);
+    diag_assert(builder->outputGlyphCount < scene_text_glyphs_max);
 
     Unicode cp;
     builder->text = utf8_cp_read(builder->text, &cp);
@@ -156,7 +161,7 @@ ecs_comp_define(SceneTextComp) {
   SceneTextFlags flags;
   f32            position[2];
   f32            size;
-  GeoColor       color;
+  GeoColor       palette[scene_text_palette_size];
   Mem            textMem;
   usize          textMemSize;
 };
@@ -288,11 +293,11 @@ ecs_system_define(SceneTextBuildSys) {
     scene_text_build(&(SceneTextBuilder){
         .font        = ftx,
         .renderable  = renderable,
+        .palette     = textComp->palette,
         .text        = mem_slice(textComp->textMem, 0, textComp->textMemSize),
-        .color       = textComp->color,
+        .glyphSize   = textComp->size,
         .startCursor = {textComp->position[0], textComp->position[1]},
         .cursor      = {textComp->position[0], textComp->position[1]},
-        .glyphSize   = textComp->size,
     });
   }
 }
@@ -320,14 +325,14 @@ ecs_module_init(scene_text_module) {
 
 SceneTextComp* scene_text_add(EcsWorld* world, const EcsEntityId entity) {
   SceneTextComp* text = ecs_world_add_t(world, entity, SceneTextComp, .size = 25);
-  text->color         = geo_color_white;
+  array_for_t(text->palette, GeoColor, col) { *col = geo_color_white; }
   return text;
 }
 
 void scene_text_update_color(SceneTextComp* comp, const GeoColor color) {
   // TODO: Only mark the text as dirty if the color is different.
   comp->flags |= SceneText_Dirty;
-  comp->color = color;
+  comp->palette[0] = color;
 }
 
 void scene_text_update_position(SceneTextComp* comp, const f32 x, const f32 y) {
