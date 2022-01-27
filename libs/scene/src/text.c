@@ -74,7 +74,13 @@ static void scene_text_next_tabstop_hor(SceneTextBuilder* builder) {
 }
 
 static void scene_text_build_char(SceneTextBuilder* builder, const Unicode cp) {
-  switch (cp) {
+  switch ((u32)cp) {
+  case '\1':
+  case '\2':
+  case '\3':
+  case '\4':
+    builder->paletteIndex = cp - 1;
+    return;
   case Unicode_HorizontalTab:
     scene_text_next_tabstop_hor(builder);
     return;
@@ -84,8 +90,6 @@ static void scene_text_build_char(SceneTextBuilder* builder, const Unicode cp) {
   case Unicode_CarriageReturn:
     scene_text_carriage_return(builder);
     return;
-  default:
-    break;
   }
   const AssetFtxChar* ch = asset_ftx_lookup(builder->font, cp);
   if (!sentinel_check(ch->glyphIndex)) {
@@ -329,13 +333,13 @@ SceneTextComp* scene_text_add(EcsWorld* world, const EcsEntityId entity) {
   return text;
 }
 
-void scene_text_update_color(
-    SceneTextComp* comp, const SceneTextPalette palette, const GeoColor color) {
-  diag_assert(palette < scene_text_palette_size);
+void scene_text_update_palette(
+    SceneTextComp* comp, const SceneTextColor entry, const GeoColor color) {
+  diag_assert(entry < scene_text_palette_size);
 
   // TODO: Only mark the text as dirty if the color is different.
   comp->flags |= SceneText_Dirty;
-  comp->palette[palette] = color;
+  comp->palette[entry] = color;
 }
 
 void scene_text_update_position(SceneTextComp* comp, const f32 x, const f32 y) {
@@ -374,4 +378,11 @@ void scene_text_update_str(SceneTextComp* comp, const String newText) {
   comp->flags |= SceneText_Dirty;
   mem_cpy(comp->textMem, newText);
   comp->textMemSize = newText.size;
+}
+
+FormatArg scene_text_color(const SceneTextColor color) {
+  /**
+   * Use ASCII 1 - 4 to switch the active color.
+   */
+  return fmt_char('\1' + color);
 }
