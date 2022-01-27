@@ -33,7 +33,10 @@ static TimeDuration scene_smooth_duration(const TimeDuration old, const TimeDura
 static EcsEntityId
 scene_stats_create_text(EcsWorld* world, const SceneCameraComp* cam, const EcsEntityId owner) {
   const EcsEntityId entity = ecs_world_entity_create(world);
-  scene_text_add(world, entity);
+  SceneTextComp*    text   = scene_text_add(world, entity);
+  scene_text_update_color(text, SceneTextPalette_B, geo_color_red);
+  scene_text_update_color(text, SceneTextPalette_C, geo_color_yellow);
+
   scene_tag_add(world, entity, cam->filter.required);
   ecs_world_add_t(world, entity, SceneLifetimeOwnerComp, .owner = owner);
   return entity;

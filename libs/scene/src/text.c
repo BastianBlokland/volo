@@ -329,10 +329,13 @@ SceneTextComp* scene_text_add(EcsWorld* world, const EcsEntityId entity) {
   return text;
 }
 
-void scene_text_update_color(SceneTextComp* comp, const GeoColor color) {
+void scene_text_update_color(
+    SceneTextComp* comp, const SceneTextPalette palette, const GeoColor color) {
+  diag_assert(palette < scene_text_palette_size);
+
   // TODO: Only mark the text as dirty if the color is different.
   comp->flags |= SceneText_Dirty;
-  comp->palette[0] = color;
+  comp->palette[palette] = color;
 }
 
 void scene_text_update_position(SceneTextComp* comp, const f32 x, const f32 y) {
