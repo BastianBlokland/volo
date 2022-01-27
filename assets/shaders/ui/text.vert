@@ -8,7 +8,7 @@
 const u32 c_maxGlyphs        = 4096;
 const u32 c_paletteIndexBits = 2;
 const u32 c_paletteSize      = 1 << c_paletteIndexBits;
-const u32 c_atlasIndexBits   = 16 - c_paletteIndexBits;
+const u32 c_atlasIndexBits   = 16 - (c_paletteIndexBits + 1); // +1 to skip the sign bit.
 const u32 c_atlasIndexMask   = (1 << c_atlasIndexBits) - 1;
 
 const u32   c_verticesPerGlyph                  = 6;
@@ -35,7 +35,7 @@ const f32v2 c_unitTexCoords[c_verticesPerGlyph] = {
  * byte struct (to meet the 16 byte alignment requirement).
  */
 struct GlyphPackedData {
-  i16v4 a, b; // x, y = position, z = size, w = 2 bits palette index, 14 bits glyphIndex.
+  u16v4 a, b; // x, y = position, z = size, w = 1b unused, 2b palette index, 13b glyphIndex.
 };
 
 struct FontData {

@@ -17,7 +17,7 @@
 #define scene_text_glyphs_max 4096
 #define scene_text_palette_index_bits 2
 #define scene_text_palette_size (1 << scene_text_palette_index_bits)
-#define scene_text_atlas_index_bits (16 - scene_text_palette_index_bits)
+#define scene_text_atlas_index_bits (16 - (scene_text_palette_index_bits + 1))
 #define scene_text_atlas_index_max ((1 << scene_text_atlas_index_bits) - 1)
 
 static const String g_textGraphic = string_static("graphics/ui/text.gra");
@@ -37,7 +37,7 @@ typedef struct {
   ALIGNAS(8)
   i16 position[2];
   i16 size;
-  u16 index;
+  u16 index; // 1b unused (to avoid sign-extend to issues), 2b palette index, 13b glyphIndex.
 } ShaderGlyphData;
 
 ASSERT(sizeof(ShaderGlyphData) == 8, "Size needs to match the size defined in glsl");
