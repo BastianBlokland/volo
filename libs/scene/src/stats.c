@@ -8,14 +8,13 @@
 #include "scene_time.h"
 
 static const f32 g_sceneStatsUiPadding    = 5.0f;
-static const f32 g_sceneStatsUiTextSize   = 25.0f;
+static const f32 g_sceneStatsUiTextSize   = 30.0f;
 static const f32 g_sceneStatsSmoothFactor = 0.1f;
 
 ecs_comp_define_public(SceneStatsCamComp);
 
 ecs_comp_define(SceneStatsUiComp) {
   TimeDuration updateTime, renderTime;
-  f32          updateFreq, renderFreq;
   EcsEntityId  text;
 };
 
@@ -26,27 +25,54 @@ static void ecs_destruct_rend_stats_comp(void* data) {
   }
 }
 
-static TimeDuration scene_smooth_duration(const TimeDuration old, const TimeDuration new) {
+static TimeDuration stats_smooth_duration(const TimeDuration old, const TimeDuration new) {
   return (TimeDuration)((f64)old + ((f64)(new - old) * g_sceneStatsSmoothFactor));
 }
 
 static EcsEntityId
-scene_stats_create_text(EcsWorld* world, const SceneCameraComp* cam, const EcsEntityId owner) {
-  const EcsEntityId text =
-      scene_text_create(world, 0, 0, g_sceneStatsUiTextSize, geo_color_white, string_empty);
-  scene_tag_add(world, text, cam->filter.required);
-  ecs_world_add_t(world, text, SceneLifetimeOwnerComp, .owner = owner);
-  return text;
+stats_create_text(EcsWorld* world, const SceneCameraComp* cam, const EcsEntityId owner) {
+  const EcsEntityId entity = ecs_world_entity_create(world);
+  SceneTextComp*    text   = scene_text_add(world, entity);
+  scene_text_update_palette(text, TextPalette_B, geo_color_yellow);
+  scene_text_update_palette(text, TextPalette_C, geo_color_red);
+
+  scene_tag_add(world, entity, cam->filter.required);
+  ecs_world_add_t(world, entity, SceneLifetimeOwnerComp, .owner = owner);
+  return entity;
 }
 
-static String scene_stats_ui_text(const SceneStatsUiComp* ui, const SceneStatsCamComp* camStats) {
+static void stats_ui_text_dur(
+    DynString*         str,
+    const TimeDuration dur,
+    const String       label,
+    const TimeDuration threshold1,
+    const TimeDuration threshold2) {
+  const TextPalette valPalette =
+      dur > threshold2 ? TextPalette_C : (dur > threshold1 ? TextPalette_B : TextPalette_A);
+  fmt_write(
+      str,
+      "{}{<9} {}{}",
+      fmt_text_palette(valPalette),
+      fmt_duration(dur),
+      fmt_text_palette(TextPalette_A),
+      fmt_text(label));
+  const f32 freq = 1.0f / (dur / (f32)time_second);
+  fmt_write(
+      str,
+      " ({}{}{} hz)\n",
+      fmt_text_palette(valPalette),
+      fmt_float(freq, .minDecDigits = 1, .maxDecDigits = 1),
+      fmt_text_palette(TextPalette_A));
+}
+
+static String stats_ui_text(const SceneStatsUiComp* ui, const SceneStatsCamComp* camStats) {
   DynString str = dynstring_create(g_alloc_scratch, usize_kibibyte);
 
   // clang-format off
   fmt_write(&str, "{}\n", fmt_text(camStats->gpuName));
   fmt_write(&str, "{<4}x{<4} pixels\n", fmt_int(camStats->renderSize[0]), fmt_int(camStats->renderSize[1]));
-  fmt_write(&str, "{<9} update time ({} hz)\n", fmt_duration(ui->updateTime), fmt_float(ui->updateFreq, .minDecDigits = 1, .maxDecDigits = 1));
-  fmt_write(&str, "{<9} render time ({} hz)\n", fmt_duration(ui->renderTime), fmt_float(ui->renderFreq, .minDecDigits = 1, .maxDecDigits = 1));
+  stats_ui_text_dur(&str, ui->updateTime, string_lit("update time"), time_milliseconds(17), time_milliseconds(17));
+  stats_ui_text_dur(&str, ui->renderTime, string_lit("render time"), time_milliseconds(10), time_milliseconds(17));
   fmt_write(&str, "{<9} draws\n", fmt_int(camStats->draws));
   fmt_write(&str, "{<9} instances\n", fmt_int(camStats->instances));
   fmt_write(&str, "{<9} vertices\n", fmt_int(camStats->vertices));
@@ -88,8 +114,7 @@ ecs_system_define(SceneStatsUiCreateSys) {
     const EcsEntityId      entity = ecs_view_entity(itr);
     const SceneCameraComp* cam    = ecs_view_read_t(itr, SceneCameraComp);
 
-    ecs_world_add_t(
-        world, entity, SceneStatsUiComp, .text = scene_stats_create_text(world, cam, entity));
+    ecs_world_add_t(world, entity, SceneStatsUiComp, .text = stats_create_text(world, cam, entity));
     ecs_world_add_t(world, entity, SceneStatsCamComp);
   }
 }
@@ -108,10 +133,8 @@ ecs_system_define(SceneStatsUiUpdateSys) {
     const SceneStatsCamComp* camStats = ecs_view_read_t(itr, SceneStatsCamComp);
     SceneStatsUiComp*        ui       = ecs_view_write_t(itr, SceneStatsUiComp);
 
-    ui->updateTime = scene_smooth_duration(ui->updateTime, time ? time->delta : time_second);
-    ui->renderTime = scene_smooth_duration(ui->renderTime, camStats->renderTime);
-    ui->updateFreq = 1.0f / (ui->updateTime / (f32)time_second);
-    ui->renderFreq = 1.0f / (ui->renderTime / (f32)time_second);
+    ui->updateTime = stats_smooth_duration(ui->updateTime, time ? time->delta : time_second);
+    ui->renderTime = stats_smooth_duration(ui->renderTime, camStats->renderTime);
 
     ecs_view_jump(textItr, ui->text);
     SceneTextComp* text = ecs_view_write_t(textItr, SceneTextComp);
@@ -119,7 +142,7 @@ ecs_system_define(SceneStatsUiUpdateSys) {
     const f32 windowHeight = gap_window_param(win, GapParam_WindowSize).y;
     scene_text_update_position(
         text, g_sceneStatsUiPadding, windowHeight - g_sceneStatsUiTextSize - g_sceneStatsUiPadding);
-    scene_text_update_str(text, scene_stats_ui_text(ui, camStats));
+    scene_text_update_str(text, stats_ui_text(ui, camStats));
   }
 }
 
