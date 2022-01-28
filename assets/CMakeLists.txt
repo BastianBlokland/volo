@@ -16,6 +16,8 @@ configure_shaders(volo_shaders
     shaders/ui/color.frag
     shaders/ui/text.vert
     shaders/ui/text.frag
+    shaders/ui/texture.vert
+    shaders/ui/texture.frag
     shaders/standard.vert
     shaders/standard.frag
   )
