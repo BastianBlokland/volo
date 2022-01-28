@@ -33,6 +33,7 @@ static EcsEntityId
 stats_create_text(EcsWorld* world, const SceneCameraComp* cam, const EcsEntityId owner) {
   const EcsEntityId entity = ecs_world_entity_create(world);
   SceneTextComp*    text   = scene_text_add(world, entity);
+  scene_text_update_size(text, g_sceneStatsUiTextSize);
   scene_text_update_palette(text, TextPalette_B, geo_color_yellow);
   scene_text_update_palette(text, TextPalette_C, geo_color_red);
 
