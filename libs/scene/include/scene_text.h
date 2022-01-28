@@ -11,6 +11,11 @@ typedef enum {
   TextPalette_D,
 } TextPalette;
 
+/**
+ * Retrieve a formatting argument that can be placed in text to switch to a different palette.
+ */
+#define fmt_text_palette(_PALETTE_) fmt_char(scene_text_palette_char(_PALETTE_))
+
 ecs_comp_extern(SceneTextComp);
 
 SceneTextComp* scene_text_add(EcsWorld*, EcsEntityId);
@@ -18,8 +23,4 @@ void           scene_text_update_palette(SceneTextComp*, TextPalette, GeoColor);
 void           scene_text_update_position(SceneTextComp*, f32 x, f32 y);
 void           scene_text_update_size(SceneTextComp*, f32 size);
 void           scene_text_update_str(SceneTextComp*, String);
-
-/**
- * Retrieve a formatting argument that can be placed in text to switch to a different palette.
- */
-FormatArg fmt_text_palette(TextPalette);
+u8             scene_text_palette_char(TextPalette);

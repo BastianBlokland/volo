@@ -380,9 +380,9 @@ void scene_text_update_str(SceneTextComp* comp, const String newText) {
   comp->textMemSize = newText.size;
 }
 
-FormatArg fmt_text_palette(const TextPalette palette) {
+u8 scene_text_palette_char(const TextPalette palette) {
   /**
    * Use ASCII 1 - 4 to switch the active palette.
    */
-  return fmt_char('\1' + palette);
+  return '\1' + palette;
 }
