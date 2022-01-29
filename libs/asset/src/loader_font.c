@@ -139,30 +139,21 @@ static f32 font_math_line_dist_sqr(
   return dx * dx + dy * dy;
 }
 
-static bool font_math_line_right(
+static bool font_math_line_inside(
     const AssetFontPoint start, const AssetFontPoint end, const AssetFontPoint point) {
 
   /**
-   * Check if the given point is to the right of the line by transforming the line to be local to
-   * the point and then check if the xroot of the line equation is positive.
+   * Check whether the line intersects a line from (-inf, point.y) to (point.x, point.y).
+   * Impl based on: https://stackoverflow.com/questions/11716268/point-in-polygon-algorithm
+   * More info: http://erich.realtimerendering.com/ptinpoly/
    */
 
-  const f32 localEndY   = end.y - point.y;
-  const f32 localStartY = start.y - point.y;
-  const f32 toLocalEndY = localEndY - localStartY;
-  if (UNLIKELY(toLocalEndY == 0)) {
-    return false; // parallel line, no root.
+  // Check if the line crosses the horizontal line at y in either direction.
+  if (((start.y <= point.y) && (end.y > point.y)) || ((end.y <= point.y) && (start.y > point.y))) {
+    // Get the point where it crosses, and check if it crosses to the right of the given point.
+    return ((end.x - start.x) * (point.y - start.y) / (end.y - start.y) + start.x) > point.x;
   }
-
-  const f32 localEndX   = end.x - point.x;
-  const f32 localStartX = start.x - point.x;
-  const f32 toLocalEndX = localEndX - localStartX;
-
-  const f32 t = -localStartY / toLocalEndY;
-  if (t < 0 || t >= 1) {
-    return false;
-  }
-  return (localStartX + toLocalEndX * t) >= 0.0f;
+  return false;
 }
 
 AssetFontPoint asset_font_seg_sample(const AssetFontComp* font, const usize index, const f32 t) {
@@ -239,7 +230,7 @@ f32 asset_font_glyph_dist(
       const AssetFontPoint end     = font->points[font->segments[seg].pointIndex + 1];
       const f32            distSqr = font_math_line_dist_sqr(start, end, point);
       minDistSqr                   = math_min(minDistSqr, distSqr);
-      inside ^= font_math_line_right(start, end, point);
+      inside ^= font_math_line_inside(start, end, point);
       break;
     }
     case AssetFontSegment_QuadraticBezier: {
@@ -259,12 +250,12 @@ f32 asset_font_glyph_dist(
         const AssetFontPoint bezierPoint = font_math_quad_bezier_sample(start, ctrl, end, t);
         const f32            distSqr     = font_math_line_dist_sqr(prev, bezierPoint, point);
         minDistSqr                       = math_min(minDistSqr, distSqr);
-        inside ^= font_math_line_right(prev, bezierPoint, point);
+        inside ^= font_math_line_inside(prev, bezierPoint, point);
         prev = bezierPoint;
       }
       const f32 distSqr = font_math_line_dist_sqr(prev, end, point);
       minDistSqr        = math_min(minDistSqr, distSqr);
-      inside ^= font_math_line_right(prev, end, point);
+      inside ^= font_math_line_inside(prev, end, point);
     }
     }
   }
