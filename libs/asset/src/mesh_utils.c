@@ -22,8 +22,8 @@ AssetMeshBuilder* asset_mesh_builder_create(Allocator* alloc, const usize maxVer
       .indices        = dynarray_create_t(alloc, AssetMeshIndex, maxVertexCount),
       .tableSize      = bits_nextpow2((u32)maxVertexCount),
       .maxVertexCount = (u32)maxVertexCount,
-      .positionBounds = geo_box_inverted(),
-      .texcoordBounds = geo_box_inverted(),
+      .positionBounds = geo_box_inverted3(),
+      .texcoordBounds = geo_box_inverted2(),
       .alloc          = alloc,
   };
 
@@ -66,8 +66,8 @@ AssetMeshIndex asset_mesh_builder_push(AssetMeshBuilder* builder, const AssetMes
       *dynarray_push_t(&builder->vertices, AssetMeshVertex) = vertex;
       *dynarray_push_t(&builder->indices, AssetMeshIndex)   = *slot;
 
-      builder->positionBounds = geo_box_encapsulate(&builder->positionBounds, vertex.position);
-      builder->texcoordBounds = geo_box_encapsulate(&builder->texcoordBounds, vertex.texcoord);
+      builder->positionBounds = geo_box_encapsulate3(&builder->positionBounds, vertex.position);
+      builder->texcoordBounds = geo_box_encapsulate2(&builder->texcoordBounds, vertex.texcoord);
       return *slot;
     }
 

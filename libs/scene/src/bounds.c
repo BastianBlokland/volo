@@ -52,7 +52,7 @@ ecs_system_define(SceneBoundsInitSys) {
     const EcsEntityId    entity   = ecs_view_entity(itr);
     SceneBoundsInitComp* initComp = ecs_view_write_t(itr, SceneBoundsInitComp);
     if (!initComp) {
-      ecs_world_add_t(world, entity, SceneBoundsInitComp, .localBounds = geo_box_inverted());
+      ecs_world_add_t(world, entity, SceneBoundsInitComp, .localBounds = geo_box_inverted3());
       continue;
     }
     switch (initComp->state) {
