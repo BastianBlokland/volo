@@ -24,3 +24,14 @@ GeoBox geo_box_encapsulate(const GeoBox* b, const GeoVector point) {
   }
   return newBox;
 }
+
+void geo_box_corners3(const GeoBox* box, GeoVector corners[8]) {
+  corners[0] = geo_vector(box->min.x, box->min.y, box->min.z);
+  corners[1] = geo_vector(box->min.x, box->min.y, box->max.z);
+  corners[2] = geo_vector(box->max.x, box->min.y, box->min.z);
+  corners[3] = geo_vector(box->max.x, box->min.y, box->max.z);
+  corners[4] = geo_vector(box->min.x, box->max.y, box->min.z);
+  corners[5] = geo_vector(box->min.x, box->max.y, box->max.z);
+  corners[6] = geo_vector(box->max.x, box->max.y, box->min.z);
+  corners[7] = geo_vector(box->max.x, box->max.y, box->max.z);
+}

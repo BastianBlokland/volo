@@ -29,3 +29,8 @@ GeoBox geo_box_inverted();
  * Compute a new box that encapsulates the existing box and the new point.
  */
 GeoBox geo_box_encapsulate(const GeoBox*, GeoVector point);
+
+/**
+ * Retrieve the 8 cornsers of the 3d box.
+ */
+void geo_box_corners3(const GeoBox*, GeoVector corners[8]);
