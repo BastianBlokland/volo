@@ -19,19 +19,53 @@
  * Demo application that renders a subject graphic.
  */
 
+typedef struct {
+  String    graphic;
+  GeoVector offset;
+  f32       scale;
+} Subject;
+
 static const GapVector g_windowSize          = {1024, 768};
 static const f32       g_pedestalRotateSpeed = 45.0f * math_deg_to_rad;
 static const f32       g_pedestalPositionY   = 0.5f;
 static const f32       g_subjectPositionY    = 1.0f;
 static const f32       g_subjectSpacing      = 2.5f;
-static const String    g_subjectGraphics[]   = {
-    string_static("graphics/cube.gra"),
-    string_static("graphics/sphere.gra"),
-    string_static("graphics/demo/bunny.gra"),
-    string_static("graphics/demo/cayo.gra"),
-    string_static("graphics/demo/corset.gra"),
-    string_static("graphics/demo/head.gra"),
-    string_static("graphics/demo/head_wire.gra"),
+static const Subject   g_subjects[]          = {
+    {
+        .graphic = string_static("graphics/cube.gra"),
+        .offset  = {0},
+        .scale   = 1.0f,
+    },
+    {
+        .graphic = string_static("graphics/sphere.gra"),
+        .offset  = {0},
+        .scale   = 0.5f,
+    },
+    {
+        .graphic = string_static("graphics/demo/bunny.gra"),
+        .offset  = {.y = -0.55f},
+        .scale   = 0.75f,
+    },
+    {
+        .graphic = string_static("graphics/demo/cayo.gra"),
+        .offset  = {.y = -0.5f},
+        .scale   = 0.8f,
+    },
+    {
+        .graphic = string_static("graphics/demo/corset.gra"),
+        .offset  = {.y = -0.5f},
+        .scale   = 0.6f,
+    },
+    {
+        .graphic = string_static("graphics/demo/head.gra"),
+        .offset  = {.y = 0.3f},
+        .scale   = 3.0f,
+    },
+    {
+        .graphic = string_static("graphics/demo/head_wire.gra"),
+        .offset  = {.y = 0.3f},
+        .scale   = 3.0f,
+    },
 };
 
 typedef enum {
@@ -63,11 +97,15 @@ ecs_view_define(ObjectView) {
 }
 
 static void spawn_object(
-    EcsWorld* world, AssetManagerComp* assets, const GeoVector position, const String graphic) {
-
+    EcsWorld*         world,
+    AssetManagerComp* assets,
+    const GeoVector   position,
+    const String      graphic,
+    const f32         scale) {
   const EcsEntityId e = ecs_world_entity_create(world);
   ecs_world_add_t(world, e, SceneRenderableComp, .graphic = asset_lookup(world, assets, graphic));
   ecs_world_add_t(world, e, SceneTransformComp, .position = position, .rotation = geo_quat_ident);
+  ecs_world_add_t(world, e, SceneScaleComp, .scale = scale);
   ecs_world_add_empty_t(world, e, SubjectComp);
 }
 
@@ -85,14 +123,19 @@ static void spawn_objects(EcsWorld* world, AppComp* app, AssetManagerComp* asset
       spawn_object(
           world,
           assets,
-          geo_vector(gridPos.x, g_subjectPositionY, gridPos.y),
-          g_subjectGraphics[app->subjectIndex]);
+          geo_vector_add(
+              geo_vector(gridPos.x, g_subjectPositionY, gridPos.y),
+              g_subjects[app->subjectIndex].offset),
+          g_subjects[app->subjectIndex].graphic,
+          g_subjects[app->subjectIndex].scale);
 
       spawn_object(
           world,
           assets,
-          geo_vector(gridPos.x, g_pedestalPositionY, gridPos.y),
-          string_lit("graphics/demo/pedestal.gra"));
+          geo_vector_add(
+              geo_vector(gridPos.x, g_pedestalPositionY, gridPos.y), geo_vector(0, -0.8f)),
+          string_lit("graphics/demo/pedestal.gra"),
+          0.4f);
     }
   }
 }
@@ -111,12 +154,11 @@ ecs_system_define(AppUpdateSys) {
     GapWindowComp* window = ecs_view_write_t(windowItr, GapWindowComp);
 
     if (gap_window_key_pressed(window, GapKey_ArrowRight)) {
-      app->subjectIndex = (app->subjectIndex + 1) % array_elems(g_subjectGraphics);
+      app->subjectIndex = (app->subjectIndex + 1) % array_elems(g_subjects);
       app->flags |= AppFlags_Dirty;
     }
     if (gap_window_key_pressed(window, GapKey_ArrowLeft)) {
-      app->subjectIndex =
-          (app->subjectIndex ? app->subjectIndex : array_elems(g_subjectGraphics)) - 1;
+      app->subjectIndex = (app->subjectIndex ? app->subjectIndex : array_elems(g_subjects)) - 1;
       app->flags |= AppFlags_Dirty;
     }
     if (gap_window_key_pressed(window, GapKey_Backspace)) {

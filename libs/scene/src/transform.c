@@ -2,7 +2,12 @@
 
 ecs_comp_define_public(SceneTransformComp);
 
-ecs_module_init(scene_transform_module) { ecs_register_comp(SceneTransformComp); }
+ecs_comp_define_public(SceneScaleComp);
+
+ecs_module_init(scene_transform_module) {
+  ecs_register_comp(SceneTransformComp);
+  ecs_register_comp(SceneScaleComp);
+}
 
 GeoMatrix scene_transform_matrix(const SceneTransformComp* trans) {
   const GeoMatrix pos = geo_matrix_translate(trans->position);

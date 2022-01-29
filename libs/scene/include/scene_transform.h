@@ -9,5 +9,7 @@ ecs_comp_extern_public(SceneTransformComp) {
   GeoQuat   rotation;
 };
 
+ecs_comp_extern_public(SceneScaleComp) { f32 scale; };
+
 GeoMatrix scene_transform_matrix(const SceneTransformComp*);
 GeoMatrix scene_transform_matrix_inv(const SceneTransformComp*);
