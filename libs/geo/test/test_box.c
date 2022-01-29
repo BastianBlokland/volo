@@ -55,4 +55,18 @@ spec(box) {
     check_eq_vector(corners[6], geo_vector(1, 1, -1));
     check_eq_vector(corners[7], geo_vector(1, 1, 1));
   }
+
+  it("can transform a box") {
+    const GeoBox    orgBox  = {{-1, -1, -1}, {1, 1, 1}};
+    const GeoVector orgSize = geo_box_size(&orgBox);
+
+    const GeoVector offset   = geo_vector(2, 3, -1);
+    const GeoQuat   rotation = geo_quat_angle_axis(geo_up, 90 * math_deg_to_rad);
+    const f32       scale    = 2.0f;
+    const GeoBox    transBox = geo_box_transform(&orgBox, offset, rotation, scale);
+
+    check_eq_vector(geo_box_size(&transBox), geo_vector_mul(orgSize, scale));
+    check_eq_vector(transBox.min, geo_vector(0, 1, -3));
+    check_eq_vector(transBox.max, geo_vector(4, 5, 1));
+  }
 }

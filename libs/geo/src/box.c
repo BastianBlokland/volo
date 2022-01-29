@@ -1,3 +1,4 @@
+#include "core_array.h"
 #include "geo_box.h"
 
 GeoVector geo_box_center(const GeoBox* b) {
@@ -34,4 +35,17 @@ void geo_box_corners3(const GeoBox* box, GeoVector corners[8]) {
   corners[5] = geo_vector(box->min.x, box->max.y, box->max.z);
   corners[6] = geo_vector(box->max.x, box->max.y, box->min.z);
   corners[7] = geo_vector(box->max.x, box->max.y, box->max.z);
+}
+
+GeoBox
+geo_box_transform(const GeoBox* box, const GeoVector pos, const GeoQuat rot, const f32 scale) {
+  GeoVector points[8];
+  geo_box_corners3(box, points);
+
+  GeoBox newBox = geo_box_inverted();
+  for (usize i = 0; i != array_elems(points); ++i) {
+    const GeoVector p = geo_vector_add(geo_quat_rotate(rot, geo_vector_mul(points[i], scale)), pos);
+    newBox            = geo_box_encapsulate(&newBox, p);
+  }
+  return newBox;
 }
