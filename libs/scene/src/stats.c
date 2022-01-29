@@ -13,9 +13,14 @@ static const f32 g_sceneStatsSmoothFactor = 0.1f;
 
 ecs_comp_define_public(SceneStatsCamComp);
 
+typedef enum {
+  SceneStatsUi_Enabled = 1 << 0,
+} SceneStatsUiFlags;
+
 ecs_comp_define(SceneStatsUiComp) {
-  TimeDuration updateTime, renderTime;
-  EcsEntityId  text;
+  SceneStatsUiFlags flags;
+  TimeDuration      updateTime, renderTime;
+  EcsEntityId       text;
 };
 
 static void ecs_destruct_rend_stats_comp(void* data) {
@@ -115,7 +120,12 @@ ecs_system_define(SceneStatsUiCreateSys) {
     const EcsEntityId      entity = ecs_view_entity(itr);
     const SceneCameraComp* cam    = ecs_view_read_t(itr, SceneCameraComp);
 
-    ecs_world_add_t(world, entity, SceneStatsUiComp, .text = stats_create_text(world, cam, entity));
+    ecs_world_add_t(
+        world,
+        entity,
+        SceneStatsUiComp,
+        .flags = SceneStatsUi_Enabled,
+        .text  = stats_create_text(world, cam, entity));
     ecs_world_add_t(world, entity, SceneStatsCamComp);
   }
 }
@@ -134,16 +144,26 @@ ecs_system_define(SceneStatsUiUpdateSys) {
     const SceneStatsCamComp* camStats = ecs_view_read_t(itr, SceneStatsCamComp);
     SceneStatsUiComp*        ui       = ecs_view_write_t(itr, SceneStatsUiComp);
 
+    if (gap_window_key_pressed(win, GapKey_F5)) {
+      ui->flags ^= SceneStatsUi_Enabled;
+    }
+
     ui->updateTime = stats_smooth_duration(ui->updateTime, time ? time->delta : time_second);
     ui->renderTime = stats_smooth_duration(ui->renderTime, camStats->renderTime);
 
     ecs_view_jump(textItr, ui->text);
     SceneTextComp* text = ecs_view_write_t(textItr, SceneTextComp);
 
-    const f32 windowHeight = gap_window_param(win, GapParam_WindowSize).y;
-    scene_text_update_position(
-        text, g_sceneStatsUiPadding, windowHeight - g_sceneStatsUiTextSize - g_sceneStatsUiPadding);
-    scene_text_update_str(text, stats_ui_text(ui, camStats));
+    if (ui->flags & SceneStatsUi_Enabled) {
+      const f32 windowHeight = gap_window_param(win, GapParam_WindowSize).y;
+      scene_text_update_position(
+          text,
+          g_sceneStatsUiPadding,
+          windowHeight - g_sceneStatsUiTextSize - g_sceneStatsUiPadding);
+      scene_text_update_str(text, stats_ui_text(ui, camStats));
+    } else {
+      scene_text_update_str(text, string_empty);
+    }
   }
 }
 
