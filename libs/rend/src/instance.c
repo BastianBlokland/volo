@@ -66,12 +66,15 @@ ecs_system_define(RendInstanceFillDrawsSys) {
 
   EcsIterator* drawItr = ecs_view_itr(drawView);
   for (EcsIterator* renderableItr = ecs_view_itr(renderableView); ecs_view_walk(renderableItr);) {
-    const SceneRenderableComp* renderable    = ecs_view_read_t(renderableItr, SceneRenderableComp);
-    const SceneTagComp*        tagComp       = ecs_view_read_t(renderableItr, SceneTagComp);
-    const SceneTransformComp*  transformComp = ecs_view_read_t(renderableItr, SceneTransformComp);
-    const SceneScaleComp*      scaleComp     = ecs_view_read_t(renderableItr, SceneScaleComp);
+    const SceneRenderableComp* renderable = ecs_view_read_t(renderableItr, SceneRenderableComp);
+    if (renderable->flags & SceneRenderable_Hide) {
+      continue;
+    }
 
-    const SceneTags tags = tagComp ? tagComp->tags : SceneTags_Default;
+    const SceneTagComp*       tagComp       = ecs_view_read_t(renderableItr, SceneTagComp);
+    const SceneTransformComp* transformComp = ecs_view_read_t(renderableItr, SceneTransformComp);
+    const SceneScaleComp*     scaleComp     = ecs_view_read_t(renderableItr, SceneScaleComp);
+    const SceneTags           tags          = tagComp ? tagComp->tags : SceneTags_Default;
 
     if (UNLIKELY(!ecs_world_has_t(world, renderable->graphic, RendDrawComp))) {
       RendDrawComp* draw = rend_draw_create(world, renderable->graphic);
@@ -96,12 +99,14 @@ ecs_system_define(RendInstanceFillDrawsSys) {
 ecs_system_define(RendInstanceFillUniqueDrawsSys) {
   EcsView* renderableView = ecs_world_view_t(world, RenderableUniqueView);
   for (EcsIterator* itr = ecs_view_itr(renderableView); ecs_view_walk(itr);) {
-
     const SceneRenderableUniqueComp* renderable = ecs_view_read_t(itr, SceneRenderableUniqueComp);
-    const SceneTagComp*              tagComp    = ecs_view_read_t(itr, SceneTagComp);
+    if (renderable->flags & SceneRenderable_Hide) {
+      continue;
+    }
 
-    const Mem       data = scene_renderable_unique_data_get(renderable);
-    const SceneTags tags = tagComp ? tagComp->tags : SceneTags_Default;
+    const SceneTagComp* tagComp = ecs_view_read_t(itr, SceneTagComp);
+    const Mem           data    = scene_renderable_unique_data_get(renderable);
+    const SceneTags     tags    = tagComp ? tagComp->tags : SceneTags_Default;
 
     RendDrawComp* draw = ecs_view_write_t(itr, RendDrawComp);
     if (UNLIKELY(!draw)) {
