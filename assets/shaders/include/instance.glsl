@@ -6,8 +6,8 @@
 const u32 c_maxInstances = 2048;
 
 struct InstanceData {
-  f32v4 position; // x, y, z position
-  f32v4 rotation; // x, y, z, w rotation quaternion
+  f32v4 posAndScale; // x, y, z position, w scale
+  f32v4 rot;         // x, y, z, w rotation quaternion
 };
 
 #endif // INCLUDE_INSTANCE

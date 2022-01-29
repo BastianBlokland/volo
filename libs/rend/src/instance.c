@@ -11,14 +11,15 @@
 
 typedef struct {
   ALIGNAS(16)
-  GeoVector position;
-  GeoQuat   rotation;
+  GeoVector posAndScale; // xyz: position, w: scale.
+  GeoQuat   rot;
 } RendInstanceData;
 
 ecs_view_define(RenderableView) {
   ecs_access_read(SceneRenderableComp);
   ecs_access_maybe_read(SceneTagComp);
   ecs_access_maybe_read(SceneTransformComp);
+  ecs_access_maybe_read(SceneScaleComp);
 }
 
 ecs_view_define(RenderableUniqueView) {
@@ -65,9 +66,10 @@ ecs_system_define(RendInstanceFillDrawsSys) {
 
   EcsIterator* drawItr = ecs_view_itr(drawView);
   for (EcsIterator* renderableItr = ecs_view_itr(renderableView); ecs_view_walk(renderableItr);) {
-    const SceneRenderableComp* renderable = ecs_view_read_t(renderableItr, SceneRenderableComp);
-    const SceneTagComp*        tagComp    = ecs_view_read_t(renderableItr, SceneTagComp);
-    const SceneTransformComp*  transform  = ecs_view_read_t(renderableItr, SceneTransformComp);
+    const SceneRenderableComp* renderable    = ecs_view_read_t(renderableItr, SceneRenderableComp);
+    const SceneTagComp*        tagComp       = ecs_view_read_t(renderableItr, SceneTagComp);
+    const SceneTransformComp*  transformComp = ecs_view_read_t(renderableItr, SceneTransformComp);
+    const SceneScaleComp*      scaleComp     = ecs_view_read_t(renderableItr, SceneScaleComp);
 
     const SceneTags tags = tagComp ? tagComp->tags : SceneTags_Default;
 
@@ -81,9 +83,12 @@ ecs_system_define(RendInstanceFillDrawsSys) {
     ecs_view_jump(drawItr, renderable->graphic);
     RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
 
+    const GeoVector position = transformComp ? transformComp->position : geo_vector(0);
+    const f32       scale    = scaleComp ? scaleComp->scale : 1.0f;
+    const GeoQuat   rotation = transformComp ? transformComp->rotation : geo_quat_ident;
     *mem_as_t(rend_draw_add_instance(draw, tags), RendInstanceData) = (RendInstanceData){
-        .position = transform ? transform->position : geo_vector(0),
-        .rotation = transform ? transform->rotation : geo_quat_ident,
+        .posAndScale = geo_vector(position.x, position.y, position.z, scale),
+        .rot         = rotation,
     };
   }
 }
