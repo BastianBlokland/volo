@@ -19,6 +19,7 @@ ecs_comp_define_public(RendPainterComp);
 
 static void ecs_destruct_painter(void* data) {
   RendPainterComp* comp = data;
+  dynarray_destroy(&comp->drawBuffer);
   rvk_canvas_destroy(comp->canvas);
 }
 
@@ -73,12 +74,14 @@ static GeoMatrix painter_view_proj_matrix(
 }
 
 static void painter_draw_forward(
+    RendPainterComp*             painter,
     const RendPainterGlobalData* globalData,
     const SceneTagFilter         filter,
     RvkPass*                     forwardPass,
     EcsView*                     drawView,
     EcsView*                     graphicView) {
-  DynArray drawBuffer = dynarray_create_t(g_alloc_scratch, RvkPassDraw, 1024);
+
+  dynarray_clear(&painter->drawBuffer);
 
   // Prepare draws.
   EcsIterator* graphicItr = ecs_view_itr(graphicView);
@@ -96,12 +99,13 @@ static void painter_draw_forward(
 
     rend_resource_mark_used(res);
     if (rvk_pass_prepare(forwardPass, graphicRes->graphic)) {
-      *dynarray_push_t(&drawBuffer, RvkPassDraw) = rend_draw_output(draw, graphicRes->graphic);
+      *dynarray_push_t(&painter->drawBuffer, RvkPassDraw) =
+          rend_draw_output(draw, graphicRes->graphic);
     }
   }
 
   // Sort draws.
-  dynarray_sort(&drawBuffer, painter_compare_pass_draw);
+  dynarray_sort(&painter->drawBuffer, painter_compare_pass_draw);
 
   // Execute draws.
   rvk_pass_begin(forwardPass, geo_color_white);
@@ -109,8 +113,8 @@ static void painter_draw_forward(
       forwardPass,
       mem_var(*globalData),
       (RvkPassDrawList){
-          .values = dynarray_begin_t(&drawBuffer, RvkPassDraw),
-          .count  = drawBuffer.size,
+          .values = dynarray_begin_t(&painter->drawBuffer, RvkPassDraw),
+          .count  = painter->drawBuffer.size,
       });
   rvk_pass_end(forwardPass);
 }
@@ -135,7 +139,7 @@ static bool painter_draw(
         .camRotation = trans ? trans->rotation : geo_quat_ident,
     };
     RvkPass* forwardPass = rvk_canvas_pass_forward(painter->canvas);
-    painter_draw_forward(&globalData, cam->filter, forwardPass, drawView, graphicView);
+    painter_draw_forward(painter, &globalData, cam->filter, forwardPass, drawView, graphicView);
     rvk_canvas_end(painter->canvas);
   }
   return draw;
@@ -155,8 +159,12 @@ ecs_system_define(RendPainterCreateSys) {
     if (gap_window_events(windowComp) & GapWindowEvents_Initializing) {
       continue;
     }
-    RvkCanvas* canvas = rvk_canvas_create(plat->device, windowComp);
-    ecs_world_add_t(world, ecs_view_entity(itr), RendPainterComp, .canvas = canvas);
+    ecs_world_add_t(
+        world,
+        ecs_view_entity(itr),
+        RendPainterComp,
+        .drawBuffer = dynarray_create_t(g_alloc_heap, RvkPassDraw, 1024),
+        .canvas     = rvk_canvas_create(plat->device, windowComp));
   }
 }
 
