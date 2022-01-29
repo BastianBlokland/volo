@@ -289,10 +289,10 @@ ecs_system_define(SceneTextBuildSys) {
     textComp->flags &= ~SceneText_Dirty;
 
     if (UNLIKELY(!textComp->textMemSize)) {
-      renderable->instDataSize        = 0;
-      renderable->vertexCountOverride = 0;
+      renderable->flags |= SceneRenderable_Hide;
       continue;
     }
+    renderable->flags &= ~SceneRenderable_Hide;
 
     scene_text_build(&(SceneTextBuilder){
         .font        = ftx,
