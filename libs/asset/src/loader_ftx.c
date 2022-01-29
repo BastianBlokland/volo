@@ -159,17 +159,18 @@ static void ftx_generate_glyph(
 
   const u32 glyphSize    = def->glyphSize;
   const f32 invGlyphSize = 1.0f / glyphSize;
-  const f32 offset       = def->border * invGlyphSize;
-  const f32 scale        = 1.0f + offset * 2.0f;
+  const f32 border       = def->border * invGlyphSize / glyph->size;
+  const f32 invBorder    = 1.0f / border;
+  const f32 scale        = 1.0f + border * 2.0f;
 
   for (usize glyphPixelY = 0; glyphPixelY != glyphSize; ++glyphPixelY) {
     for (usize glyphPixelX = 0; glyphPixelX != glyphSize; ++glyphPixelX) {
       const AssetFontPoint point = {
-          .x = ((glyphPixelX + 0.5f) * invGlyphSize - offset) * scale,
-          .y = ((glyphPixelY + 0.5f) * invGlyphSize - offset) * scale,
+          .x = ((glyphPixelX + 0.5f) * invGlyphSize * scale - border),
+          .y = ((glyphPixelY + 0.5f) * invGlyphSize * scale - border),
       };
       const f32 dist       = asset_font_glyph_dist(font, glyph, point);
-      const f32 borderFrac = math_clamp_f32(dist / offset, -1, 1);
+      const f32 borderFrac = math_clamp_f32(dist * invBorder, -1.0f, 1.0f);
       const u8  value      = (u8)((-borderFrac * 0.5f + 0.5f) * 255.999f);
 
       const usize texPixelY                  = texY + glyphPixelY;
@@ -209,14 +210,13 @@ static void ftx_generate(
     /**
      * Take the sdf border into account as the glyph will need to be rendered bigger to compensate.
      */
-    const f32 relGlyphBorder = def->border / (f32)def->glyphSize * inputChars[i].glyph->size;
-
-    chars[i] = (AssetFtxChar){
+    const f32 border = def->border / (f32)def->glyphSize;
+    chars[i]         = (AssetFtxChar){
         .cp         = inputChars[i].cp,
         .glyphIndex = inputChars[i].glyph->segmentCount ? nextGlyphIndex : sentinel_u32,
-        .size       = inputChars[i].glyph->size + relGlyphBorder * 2.0f,
-        .offsetX    = inputChars[i].glyph->offsetX - relGlyphBorder,
-        .offsetY    = inputChars[i].glyph->offsetY - relGlyphBorder,
+        .size       = inputChars[i].glyph->size + border * 2.0f,
+        .offsetX    = inputChars[i].glyph->offsetX - border,
+        .offsetY    = inputChars[i].glyph->offsetY - border,
         .advance    = inputChars[i].glyph->advance,
     };
     if (inputChars[i].glyph->segmentCount) {
