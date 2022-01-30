@@ -18,10 +18,16 @@ typedef struct {
 
 ecs_view_define(RenderableView) {
   ecs_access_read(SceneRenderableComp);
+
+  /**
+   * NOTE: At the moment only entities who's bounds are allready calculated are drawn. This avoids
+   * the issue that entities are needlessly drawn while their bounds are being calculated.
+   */
+  ecs_access_read(SceneBoundsComp);
+
   ecs_access_maybe_read(SceneTagComp);
   ecs_access_maybe_read(SceneTransformComp);
   ecs_access_maybe_read(SceneScaleComp);
-  ecs_access_maybe_read(SceneBoundsComp);
 }
 
 ecs_view_define(RenderableUniqueView) {
@@ -101,9 +107,7 @@ ecs_system_define(RendInstanceFillDrawsSys) {
     const GeoVector position = transformComp ? transformComp->position : geo_vector(0);
     const GeoQuat   rotation = transformComp ? transformComp->rotation : geo_quat_ident;
     const f32       scale    = scaleComp ? scaleComp->scale : 1.0f;
-    const GeoBox    aabb     = boundsComp
-                            ? geo_box_transform3(&boundsComp->local, position, rotation, scale)
-                            : geo_box_inverted3();
+    const GeoBox    aabb     = geo_box_transform3(&boundsComp->local, position, rotation, scale);
 
     *mem_as_t(rend_draw_add_instance(draw, tags, aabb), RendInstanceData) = (RendInstanceData){
         .posAndScale = geo_vector(position.x, position.y, position.z, scale),
