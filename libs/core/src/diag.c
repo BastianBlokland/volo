@@ -7,6 +7,8 @@ THREAD_LOCAL AssertHandler g_assertHandler;
 THREAD_LOCAL void*         g_assertHandlerContext;
 
 static bool assert_handler_print(String msg, const SourceLoc sourceLoc, void* context) {
+  (void)msg;
+  (void)sourceLoc;
   (void)context;
 
   diag_print_err(
@@ -40,6 +42,7 @@ void diag_crash() {
 }
 
 void diag_crash_msg_raw(String msg) {
+  (void)msg;
   diag_print_err("Crash: '{}'\n", fmt_text(msg));
   diag_crash();
 }
