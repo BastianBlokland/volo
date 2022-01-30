@@ -44,9 +44,9 @@ static void scene_bounds_init_done(EcsWorld* world, EcsIterator* itr) {
 }
 
 ecs_system_define(SceneBoundsInitSys) {
-  EcsView* initView    = ecs_world_view_t(world, BoundsInitView);
-  EcsView* graphicView = ecs_world_view_t(world, AssetGraphicView);
-  EcsView* meshView    = ecs_world_view_t(world, AssetMeshView);
+  EcsView*     initView   = ecs_world_view_t(world, BoundsInitView);
+  EcsIterator* graphicItr = ecs_view_itr(ecs_world_view_t(world, AssetGraphicView));
+  EcsIterator* meshItr    = ecs_view_itr(ecs_world_view_t(world, AssetMeshView));
 
   for (EcsIterator* itr = ecs_view_itr(initView); ecs_view_walk(itr);) {
     const EcsEntityId    entity   = ecs_view_entity(itr);
@@ -68,8 +68,7 @@ ecs_system_define(SceneBoundsInitSys) {
       // Fallthrough.
     }
     case SceneBoundsState_ProcessGraphic: {
-      const EcsIterator* graphicItr = ecs_view_maybe_at(graphicView, initComp->graphic);
-      if (!graphicItr) {
+      if (!ecs_view_maybe_jump(graphicItr, initComp->graphic)) {
         break; // Graphic has not loaded yet; wait.
       }
       const AssetGraphicComp* graphic = ecs_view_read_t(graphicItr, AssetGraphicComp);
@@ -83,8 +82,7 @@ ecs_system_define(SceneBoundsInitSys) {
       // Fallthrough.
     }
     case SceneBoundsState_ProcessMesh: {
-      const EcsIterator* meshItr = ecs_view_maybe_at(meshView, initComp->mesh);
-      if (!meshItr) {
+      if (!ecs_view_maybe_jump(meshItr, initComp->mesh)) {
         break; // Mesh has not loaded yet; wait.
       }
       const AssetMeshComp* mesh = ecs_view_read_t(meshItr, AssetMeshComp);

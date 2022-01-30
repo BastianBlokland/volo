@@ -268,8 +268,8 @@ ecs_system_define(FtxLoadAssetSys) {
   if (!manager) {
     return;
   }
-  EcsView* loadView = ecs_world_view_t(world, LoadView);
-  EcsView* fontView = ecs_world_view_t(world, FontView);
+  EcsView*     loadView = ecs_world_view_t(world, LoadView);
+  EcsIterator* fontItr  = ecs_view_itr(ecs_world_view_t(world, FontView));
 
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
     const EcsEntityId entity = ecs_view_entity(itr);
@@ -287,8 +287,7 @@ ecs_system_define(FtxLoadAssetSys) {
     if (!ecs_world_has_t(world, load->font, AssetLoadedComp)) {
       continue; // Wait for the font to load.
     }
-    EcsIterator* fontItr = ecs_view_maybe_at(fontView, load->font);
-    if (UNLIKELY(!fontItr)) {
+    if (UNLIKELY(!ecs_view_maybe_jump(fontItr, load->font))) {
       err = FtxError_FontInvalid;
       goto Error;
     }
