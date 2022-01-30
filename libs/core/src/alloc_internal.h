@@ -3,7 +3,7 @@
 #include "core_diag.h"
 #include "core_format.h"
 
-#define alloc_max_alloc_size (usize_mebibyte * 128)
+#define alloc_max_alloc_size (usize_mebibyte * 256)
 
 /**
  * Special crash-routine that does not allocate any memory.
