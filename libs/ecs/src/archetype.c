@@ -20,8 +20,8 @@
  * ```
  */
 
-#define ecs_archetype_chunk_size 8192
-#define ecs_archetype_max_chunks 128
+#define ecs_archetype_chunk_size (16 * usize_kibibyte)
+#define ecs_archetype_max_chunks 256
 
 typedef struct {
   u32 chunkIdx;

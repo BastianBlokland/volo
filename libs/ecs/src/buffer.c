@@ -27,7 +27,7 @@
  * pointer to the caller (stable until the buffer is cleared).
  */
 
-#define ecs_buffer_compdata_chunk_size (64 * usize_kibibyte)
+#define ecs_buffer_compdata_chunk_size (128 * usize_kibibyte)
 
 typedef u32 EcsBufferMaskId;
 
@@ -209,7 +209,12 @@ void* ecs_buffer_comp_add(
   *last                 = ecs_buffer_compdata_add(buffer, compId, compSize, compAlign);
   Mem payload           = ecs_buffer_compdata_payload(*last, compSize, compAlign);
   if (data.size) {
-    diag_assert(data.size == payload.size);
+    diag_assert_msg(
+        data.size == payload.size,
+        "Unexpected size {} for component {} (id: {})",
+        fmt_size(data.size),
+        fmt_text(ecs_def_comp_name(buffer->def, compId)),
+        fmt_int(compId));
     mem_cpy(payload, data);
   } else {
     mem_set(payload, 0);

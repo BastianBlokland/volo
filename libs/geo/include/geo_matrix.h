@@ -1,4 +1,5 @@
 #pragma once
+#include "geo_plane.h"
 #include "geo_quat.h"
 #include "geo_vector.h"
 
@@ -108,3 +109,16 @@ GeoMatrix geo_matrix_proj_ortho_hor(f32 size, f32 aspect, f32 zNear, f32 zFar);
 GeoMatrix geo_matrix_proj_pers(f32 horAngle, f32 verAngle, f32 zNear);
 GeoMatrix geo_matrix_proj_pers_ver(f32 verAngle, f32 aspect, f32 zNear);
 GeoMatrix geo_matrix_proj_pers_hor(f32 horAngle, f32 aspect, f32 zNear);
+
+/**
+ * Extract frustum planes from a projection matrix.
+ * NOTE: The near and the far planes are not extracted. Reasoning is that near is not often usefull
+ * for clipping against and we're using an infinite far plane for perspective projections.
+ * NOTE: Plane normals point towards the inside of the frustum.
+ *
+ * [0] = Left plane.
+ * [1] = Right plane.
+ * [2] = Top plane.
+ * [3] = Bottom plane.
+ */
+void geo_matrix_frustum4(const GeoMatrix* proj, GeoPlane out[4]);
