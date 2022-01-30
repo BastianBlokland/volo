@@ -318,3 +318,49 @@ GeoMatrix geo_matrix_proj_pers_hor(const f32 horAngle, const f32 aspect, const f
   const f32 verAngle = math_atan_f32(math_tan_f32(horAngle * .5f) / aspect) * 2.f;
   return geo_matrix_proj_pers(horAngle, verAngle, zNear);
 }
+
+void geo_matrix_frustum4(const GeoMatrix* proj, GeoPlane out[4]) {
+  /**
+   * Extract the frustum planes from the proj matrix.
+   * More information: http://www.cs.otago.ac.nz/postgrads/alexis/planeExtraction.pdf
+   */
+
+  // Left clipping plane.
+  out[0] = (GeoPlane){
+      .normal.x = proj->columns[0].w + proj->columns[0].x,
+      .normal.y = proj->columns[1].w + proj->columns[1].x,
+      .normal.z = proj->columns[2].w + proj->columns[2].x,
+      .distance = proj->columns[3].w + proj->columns[3].x,
+  };
+
+  // Right clipping plane.
+  out[1] = (GeoPlane){
+      .normal.x = proj->columns[0].w - proj->columns[0].x,
+      .normal.y = proj->columns[1].w - proj->columns[1].x,
+      .normal.z = proj->columns[2].w - proj->columns[2].x,
+      .distance = proj->columns[3].w - proj->columns[3].x,
+  };
+
+  // Top clipping plane.
+  out[2] = (GeoPlane){
+      .normal.x = proj->columns[0].w - proj->columns[0].y,
+      .normal.y = proj->columns[1].w - proj->columns[1].y,
+      .normal.z = proj->columns[2].w - proj->columns[2].y,
+      .distance = proj->columns[3].w - proj->columns[3].y,
+  };
+
+  // Bottom clipping plane.
+  out[3] = (GeoPlane){
+      .normal.x = proj->columns[0].w + proj->columns[0].y,
+      .normal.y = proj->columns[1].w + proj->columns[1].y,
+      .normal.z = proj->columns[2].w + proj->columns[2].y,
+      .distance = proj->columns[3].w + proj->columns[3].y,
+  };
+
+  // Normalize the planes.
+  for (usize i = 0; i != 4; ++i) {
+    const f32 mag = geo_vector_mag(out[i].normal);
+    out[i].normal = geo_vector_div(out[i].normal, mag);
+    out[i].distance /= mag;
+  }
+}
