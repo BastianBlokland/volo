@@ -9,6 +9,8 @@
 #include "scene_renderable.h"
 #include "scene_transform.h"
 
+#define scene_bounds_max_loads 16
+
 ecs_comp_define_public(SceneBoundsComp);
 
 /**
@@ -68,6 +70,8 @@ ecs_system_define(SceneBoundsInitSys) {
   EcsIterator* graphicBoundsItr = ecs_view_itr(ecs_world_view_t(world, GraphicBoundsView));
   EcsIterator* meshItr          = ecs_view_itr(ecs_world_view_t(world, MeshView));
 
+  u32 startedLoads = 0;
+
   for (EcsIterator* itr = ecs_view_itr(initView); ecs_view_walk(itr);) {
     const EcsEntityId    entity   = ecs_view_entity(itr);
     SceneBoundsInitComp* initComp = ecs_view_write_t(itr, SceneBoundsInitComp);
@@ -88,6 +92,9 @@ ecs_system_define(SceneBoundsInitSys) {
             ecs_view_read_t(graphicBoundsItr, SceneGraphicBoundsComp)->localBounds;
         scene_bounds_init_done(world, itr);
         break;
+      }
+      if (++startedLoads > scene_bounds_max_loads) {
+        continue; // Limit the amount of loads to start in a single frame.
       }
       initComp->graphic = renderable->graphic;
       asset_acquire(world, renderable->graphic);
