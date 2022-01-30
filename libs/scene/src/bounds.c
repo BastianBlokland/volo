@@ -123,6 +123,18 @@ ecs_system_define(SceneBoundsInitSys) {
   }
 }
 
+ecs_view_define(OutdatedGraphicBoundsView) {
+  ecs_access_with(SceneGraphicBoundsComp);
+  ecs_access_with(AssetChangedComp);
+}
+
+ecs_system_define(SceneClearOutdatedGraphicBoundsSys) {
+  EcsView* outdatedGraphicBounds = ecs_world_view_t(world, OutdatedGraphicBoundsView);
+  for (EcsIterator* itr = ecs_view_itr(outdatedGraphicBounds); ecs_view_walk(itr);) {
+    ecs_world_remove_t(world, ecs_view_entity(itr), SceneGraphicBoundsComp);
+  }
+}
+
 ecs_module_init(scene_bounds_module) {
   ecs_register_comp(SceneBoundsComp);
   ecs_register_comp(SceneGraphicBoundsComp, .combinator = ecs_combine_graphic_bounds);
@@ -132,6 +144,7 @@ ecs_module_init(scene_bounds_module) {
   ecs_register_view(GraphicView);
   ecs_register_view(GraphicBoundsView);
   ecs_register_view(MeshView);
+  ecs_register_view(OutdatedGraphicBoundsView);
 
   ecs_register_system(
       SceneBoundsInitSys,
@@ -139,4 +152,6 @@ ecs_module_init(scene_bounds_module) {
       ecs_view_id(GraphicView),
       ecs_view_id(GraphicBoundsView),
       ecs_view_id(MeshView));
+
+  ecs_register_system(SceneClearOutdatedGraphicBoundsSys, ecs_view_id(OutdatedGraphicBoundsView));
 }
