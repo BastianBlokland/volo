@@ -7,7 +7,7 @@
 
 #define alloc_chunk_size_min 128
 #define alloc_chunk_align sizeof(void*)
-#define alloc_chunks_max 32
+#define alloc_chunks_max 64
 
 typedef struct {
   Allocator        api;
