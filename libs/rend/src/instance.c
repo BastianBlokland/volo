@@ -1,5 +1,6 @@
 #include "ecs_world.h"
 #include "rend_register.h"
+#include "scene_bounds.h"
 #include "scene_renderable.h"
 #include "scene_tag.h"
 #include "scene_transform.h"
@@ -20,6 +21,7 @@ ecs_view_define(RenderableView) {
   ecs_access_maybe_read(SceneTagComp);
   ecs_access_maybe_read(SceneTransformComp);
   ecs_access_maybe_read(SceneScaleComp);
+  ecs_access_maybe_read(SceneBoundsComp);
 }
 
 ecs_view_define(RenderableUniqueView) {
@@ -74,6 +76,7 @@ ecs_system_define(RendInstanceFillDrawsSys) {
     const SceneTagComp*       tagComp       = ecs_view_read_t(renderableItr, SceneTagComp);
     const SceneTransformComp* transformComp = ecs_view_read_t(renderableItr, SceneTransformComp);
     const SceneScaleComp*     scaleComp     = ecs_view_read_t(renderableItr, SceneScaleComp);
+    const SceneBoundsComp*    boundsComp    = ecs_view_read_t(renderableItr, SceneBoundsComp);
     const SceneTags           tags          = tagComp ? tagComp->tags : SceneTags_Default;
 
     if (UNLIKELY(!ecs_world_has_t(world, renderable->graphic, RendDrawComp))) {
@@ -87,9 +90,13 @@ ecs_system_define(RendInstanceFillDrawsSys) {
     RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
 
     const GeoVector position = transformComp ? transformComp->position : geo_vector(0);
-    const f32       scale    = scaleComp ? scaleComp->scale : 1.0f;
     const GeoQuat   rotation = transformComp ? transformComp->rotation : geo_quat_ident;
-    *mem_as_t(rend_draw_add_instance(draw, tags), RendInstanceData) = (RendInstanceData){
+    const f32       scale    = scaleComp ? scaleComp->scale : 1.0f;
+    const GeoBox    aabb     = boundsComp
+                                   ? geo_box_transform3(&boundsComp->local, position, rotation, scale)
+                                   : geo_box_inverted3();
+
+    *mem_as_t(rend_draw_add_instance(draw, tags, aabb), RendInstanceData) = (RendInstanceData){
         .posAndScale = geo_vector(position.x, position.y, position.z, scale),
         .rot         = rotation,
     };
@@ -117,7 +124,8 @@ ecs_system_define(RendInstanceFillUniqueDrawsSys) {
     rend_draw_set_graphic(draw, renderable->graphic);
     rend_draw_set_vertex_count(draw, renderable->vertexCountOverride);
     rend_draw_set_data_size(draw, (u32)data.size);
-    mem_cpy(rend_draw_add_instance(draw, tags), data);
+    const GeoBox aabb = geo_box_inverted3(); // No bounds known for unique draws.
+    mem_cpy(rend_draw_add_instance(draw, tags, aabb), data);
   }
 }
 

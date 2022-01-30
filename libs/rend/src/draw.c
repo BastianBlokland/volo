@@ -16,8 +16,7 @@ ecs_comp_define(RendDrawComp) {
 
   u32 dataSize; // NOTE: Size per instance.
 
-  Mem dataMem;
-  Mem tagsMem;
+  Mem dataMem, tagsMem, aabbMem;
   Mem outputMem;
 };
 
@@ -28,6 +27,9 @@ static void ecs_destruct_draw(void* data) {
   }
   if (mem_valid(comp->tagsMem)) {
     alloc_free(g_alloc_heap, comp->tagsMem);
+  }
+  if (mem_valid(comp->aabbMem)) {
+    alloc_free(g_alloc_heap, comp->aabbMem);
   }
   if (mem_valid(comp->outputMem)) {
     alloc_free(g_alloc_heap, comp->outputMem);
@@ -43,7 +45,8 @@ static void ecs_combine_draw(void* dataA, void* dataB) {
   for (u32 i = 0; i != drawB->instances; ++i) {
     const Mem       instanceData = mem_slice(drawB->dataMem, drawB->dataSize * i, drawB->dataSize);
     const SceneTags tags         = mem_as_t(drawB->tagsMem, SceneTags)[i];
-    mem_cpy(rend_draw_add_instance(drawA, tags), instanceData);
+    const GeoBox    aabb         = mem_as_t(drawB->aabbMem, GeoBox)[i];
+    mem_cpy(rend_draw_add_instance(drawA, tags, aabb), instanceData);
   }
 
   ecs_destruct_draw(drawB);
@@ -136,11 +139,13 @@ void rend_draw_set_data_size(RendDrawComp* draw, const u32 size) {
   draw->dataSize  = bits_align(size, rend_min_align);
 }
 
-Mem rend_draw_add_instance(RendDrawComp* draw, const SceneTags tags) {
+Mem rend_draw_add_instance(RendDrawComp* draw, const SceneTags tags, const GeoBox aabb) {
   ++draw->instances;
   rend_draw_ensure_storage(&draw->dataMem, draw->instances * draw->dataSize, rend_min_align);
   rend_draw_ensure_storage(&draw->tagsMem, draw->instances * sizeof(SceneTags), 1);
+  rend_draw_ensure_storage(&draw->aabbMem, draw->instances * sizeof(GeoBox), alignof(GeoBox));
 
   mem_as_t(draw->tagsMem, SceneTags)[draw->instances - 1] = tags;
+  mem_as_t(draw->aabbMem, GeoBox)[draw->instances - 1]    = aabb;
   return rend_draw_data(draw, draw->instances - 1);
 }
