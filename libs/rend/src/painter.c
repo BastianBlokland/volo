@@ -36,7 +36,6 @@ ASSERT(sizeof(RendPainterGlobalData) == 112, "Size needs to match the size defin
 ecs_view_define(GlobalView) { ecs_access_write(RendPlatformComp); }
 ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
 ecs_view_define(GraphicView) {
-  ecs_access_write(RendResComp);
   ecs_access_write(RendResGraphicComp);
   ecs_access_with(RendResFinishedComp);
   ecs_access_without(RendResUnloadComp);
@@ -94,13 +93,10 @@ static void painter_draw_forward(
       continue;
     }
     ecs_view_jump(graphicItr, rend_draw_graphic(draw));
-    RendResComp*        res        = ecs_view_write_t(graphicItr, RendResComp);
-    RendResGraphicComp* graphicRes = ecs_view_write_t(graphicItr, RendResGraphicComp);
+    RvkGraphic* graphic = ecs_view_write_t(graphicItr, RendResGraphicComp)->graphic;
 
-    rend_resource_mark_used(res);
-    if (rvk_pass_prepare(forwardPass, graphicRes->graphic)) {
-      *dynarray_push_t(&painter->drawBuffer, RvkPassDraw) =
-          rend_draw_output(draw, graphicRes->graphic);
+    if (rvk_pass_prepare(forwardPass, graphic)) {
+      *dynarray_push_t(&painter->drawBuffer, RvkPassDraw) = rend_draw_output(draw, graphic);
     }
   }
 
