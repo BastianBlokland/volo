@@ -76,7 +76,7 @@ static GeoMatrix painter_view_proj_matrix(
 static void painter_draw_forward(
     RendPainterComp*             painter,
     const RendPainterGlobalData* globalData,
-    const SceneTagFilter         filter,
+    const RendView*              view,
     RvkPass*                     forwardPass,
     EcsView*                     drawView,
     EcsView*                     graphicView) {
@@ -87,7 +87,7 @@ static void painter_draw_forward(
   EcsIterator* graphicItr = ecs_view_itr(graphicView);
   for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
     RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
-    if (!rend_draw_gather(draw, filter)) {
+    if (!rend_draw_gather(draw, view)) {
       continue;
     }
     if (!ecs_view_contains(graphicView, rend_draw_graphic(draw))) {
@@ -131,15 +131,19 @@ static bool painter_draw(
   const RvkSize   rendSize = rvk_size((u32)winSize.width, (u32)winSize.height);
   const bool      draw     = rvk_canvas_begin(painter->canvas, rendSize);
   if (draw) {
+    const GeoMatrix viewProj = painter_view_proj_matrix(win, cam, trans);
+    const RendView  view     = rend_view_create(&viewProj, cam->filter);
+
     const RendPainterGlobalData globalData = {
-        .viewProj   = painter_view_proj_matrix(win, cam, trans),
+        .viewProj   = viewProj,
         .resolution = geo_vector(
             rendSize.width, rendSize.height, 1.0f / rendSize.width, 1.0f / rendSize.height),
         .camPosition = trans ? trans->position : geo_vector(0),
         .camRotation = trans ? trans->rotation : geo_quat_ident,
     };
+
     RvkPass* forwardPass = rvk_canvas_pass_forward(painter->canvas);
-    painter_draw_forward(painter, &globalData, cam->filter, forwardPass, drawView, graphicView);
+    painter_draw_forward(painter, &globalData, &view, forwardPass, drawView, graphicView);
     rvk_canvas_end(painter->canvas);
   }
   return draw;

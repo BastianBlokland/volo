@@ -96,7 +96,7 @@ RendDrawComp* rend_draw_create(EcsWorld* world, const EcsEntityId entity) {
 
 EcsEntityId rend_draw_graphic(const RendDrawComp* draw) { return draw->graphic; }
 
-bool rend_draw_gather(RendDrawComp* draw, const SceneTagFilter filter) {
+bool rend_draw_gather(RendDrawComp* draw, const RendView* view) {
   /**
    * Gather the actual draws after filtering.
    * Because we need the output data to be contiguous in memory we have to copy the instances that
@@ -108,7 +108,8 @@ bool rend_draw_gather(RendDrawComp* draw, const SceneTagFilter filter) {
   draw->outputInstances = 0;
   for (u32 i = 0; i != draw->instances; ++i) {
     const SceneTags instanceTags = mem_as_t(draw->tagsMem, SceneTags)[i];
-    if (!scene_tag_filter(filter, instanceTags)) {
+    const GeoBox*   instanceAabb = &mem_as_t(draw->aabbMem, GeoBox)[i];
+    if (!rend_view_visible(view, instanceTags, instanceAabb)) {
       continue;
     }
     mem_cpy(rend_draw_output_data(draw, draw->outputInstances++), rend_draw_data(draw, i));

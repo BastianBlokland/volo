@@ -5,12 +5,13 @@
 #include "scene_tag.h"
 
 #include "rvk/pass_internal.h"
+#include "view_internal.h"
 
 ecs_comp_extern(RendDrawComp);
 
 RendDrawComp* rend_draw_create(EcsWorld*, EcsEntityId entity);
 EcsEntityId   rend_draw_graphic(const RendDrawComp*);
-bool          rend_draw_gather(RendDrawComp*, SceneTagFilter);
+bool          rend_draw_gather(RendDrawComp*, const RendView*);
 RvkPassDraw   rend_draw_output(const RendDrawComp*, RvkGraphic* graphic);
 
 void rend_draw_set_graphic(RendDrawComp*, EcsEntityId graphic);
