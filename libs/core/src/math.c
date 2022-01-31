@@ -31,6 +31,7 @@
 #define fmodf __builtin_fmodf
 #define logf __builtin_logf
 #define powf __builtin_powf
+#define round __builtin_round
 #define sinf __builtin_sinf
 #define sqrtf __builtin_sqrtf
 #define tanf __builtin_tanf
@@ -92,22 +93,7 @@ f64 math_floor_f64(const f64 val) { return floor(val); }
 
 f64 math_ceil_f64(const f64 val) { return ceil(val); }
 
-f64 math_round_f64(const f64 val) {
-  const f64 trunc = math_trunc_f64(val);
-  const f64 frac  = math_abs(val - trunc);
-  if (frac < 0.5) {
-    return trunc;
-  }
-  if (UNLIKELY(frac == 0.5)) {
-    /**
-     * Round-to-even (aka bankers rounding).
-     * Given a number exactly halfway between two values, round to the even value (zero is
-     * considered even here).
-     */
-    return ((i64)trunc % 2) ? (trunc + math_sign(val)) : trunc;
-  }
-  return trunc + math_sign(val);
-}
+f64 math_round_f64(const f64 val) { return round(val); }
 
 f32 math_clamp_f32(const f32 val, const f32 min, const f32 max) {
   if (val <= min) {
