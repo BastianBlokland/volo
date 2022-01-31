@@ -10,6 +10,7 @@
 #pragma intrinsic(atan2f)
 #pragma intrinsic(atanf)
 #pragma intrinsic(cosf)
+#pragma intrinsic(floor)
 #pragma intrinsic(fmodf)
 #pragma intrinsic(logf)
 #pragma intrinsic(powf)
@@ -24,6 +25,7 @@
 #define atan2f __builtin_atan2f
 #define atanf __builtin_atanf
 #define cosf __builtin_cosf
+#define floor __builtin_floor
 #define fmodf __builtin_fmodf
 #define logf __builtin_logf
 #define powf __builtin_powf
@@ -84,10 +86,7 @@ f32 math_pow_f32(const f32 base, const f32 exp) { return powf(base, exp); }
 
 f64 math_trunc_f64(const f64 val) { return (i64)val; }
 
-f64 math_floor_f64(const f64 val) {
-  const f64 trunc = math_trunc_f64(val);
-  return trunc > val ? (trunc - 1) : trunc;
-}
+f64 math_floor_f64(const f64 val) { return floor(val); }
 
 f64 math_ceil_f64(const f64 val) {
   const f64 trunc = math_trunc_f64(val);
