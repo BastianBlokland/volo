@@ -5,6 +5,8 @@ extern const u8 g_perlinPermutations[512];
 
 static f32 perlin_fade(const f32 t) { return t * t * t * (t * (t * 6 - 15) + 10); }
 
+static f32 perlin_lerp(const f32 t, const f32 a, const f32 b) { return a + t * (b - a); }
+
 static f32 perlin_grad(const i32 hash, const f32 x, const f32 y, const f32 z) {
   // Convert lower 4 bits of hash code into 12 gradient directions.
   const i32 h = hash & 15;
@@ -21,9 +23,9 @@ f32 noise_perlin3(f32 x, f32 y, f32 z) {
   // clang-format off
 
   // Find the unit cube that contains the point.
-  const i32 iX = (i32)math_floor_f64(x) & 255;
-  const i32 iY = (i32)math_floor_f64(y) & 255;
-  const i32 iZ = (i32)math_floor_f64(z) & 255;
+  const i32 iX = (i32)math_floor_f32(x) & 255;
+  const i32 iY = (i32)math_floor_f32(y) & 255;
+  const i32 iZ = (i32)math_floor_f32(z) & 255;
 
   // Find relative x,y,z of point in cube.
   x -= math_floor_f32(x);
@@ -42,13 +44,13 @@ f32 noise_perlin3(f32 x, f32 y, f32 z) {
   const i32 BA = g_perlinPermutations[B    ] + iZ,  BB = g_perlinPermutations[B  + 1] + iZ;
 
   // And add blended results from the 8 corners of the cube.
-  return math_lerp(w, math_lerp(v, math_lerp(u, perlin_grad(g_perlinPermutations[AA], x, y, z),
-                                                perlin_grad(g_perlinPermutations[BA], x - 1, y, z)),
-                                   math_lerp(u, perlin_grad(g_perlinPermutations[AB], x, y - 1, z),
-                                                perlin_grad(g_perlinPermutations[BB], x - 1, y - 1, z))),
-                      math_lerp(v, math_lerp(u, perlin_grad(g_perlinPermutations[AA + 1], x, y, z - 1),
-                                                perlin_grad(g_perlinPermutations[BA + 1], x - 1, y, z - 1)),
-                                   math_lerp(u, perlin_grad(g_perlinPermutations[AB + 1], x, y - 1, z - 1),
-                                                perlin_grad(g_perlinPermutations[BB + 1], x - 1, y - 1, z - 1))));
+  return perlin_lerp(w, perlin_lerp(v, perlin_lerp(u, perlin_grad(g_perlinPermutations[AA], x, y, z),
+                                                      perlin_grad(g_perlinPermutations[BA], x - 1, y, z)),
+                                       perlin_lerp(u, perlin_grad(g_perlinPermutations[AB], x, y - 1, z),
+                                                      perlin_grad(g_perlinPermutations[BB], x - 1, y - 1, z))),
+                        perlin_lerp(v, perlin_lerp(u, perlin_grad(g_perlinPermutations[AA + 1], x, y, z - 1),
+                                                      perlin_grad(g_perlinPermutations[BA + 1], x - 1, y, z - 1)),
+                                       perlin_lerp(u, perlin_grad(g_perlinPermutations[AB + 1], x, y - 1, z - 1),
+                                                      perlin_grad(g_perlinPermutations[BB + 1], x - 1, y - 1, z - 1))));
   // clang-format on
 }
