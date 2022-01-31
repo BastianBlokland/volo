@@ -9,6 +9,7 @@
 #pragma intrinsic(asinf)
 #pragma intrinsic(atan2f)
 #pragma intrinsic(atanf)
+#pragma intrinsic(ceil)
 #pragma intrinsic(cosf)
 #pragma intrinsic(floor)
 #pragma intrinsic(fmodf)
@@ -24,6 +25,7 @@
 #define asinf __builtin_asinf
 #define atan2f __builtin_atan2f
 #define atanf __builtin_atanf
+#define ceil __builtin_ceil
 #define cosf __builtin_cosf
 #define floor __builtin_floor
 #define fmodf __builtin_fmodf
@@ -88,10 +90,7 @@ f64 math_trunc_f64(const f64 val) { return (i64)val; }
 
 f64 math_floor_f64(const f64 val) { return floor(val); }
 
-f64 math_ceil_f64(const f64 val) {
-  const f64 trunc = math_trunc_f64(val);
-  return trunc < val ? (trunc + 1) : trunc;
-}
+f64 math_ceil_f64(const f64 val) { return ceil(val); }
 
 f64 math_round_f64(const f64 val) {
   const f64 trunc = math_trunc_f64(val);
