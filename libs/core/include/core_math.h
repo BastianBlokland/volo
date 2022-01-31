@@ -111,22 +111,26 @@ f32 math_pow_f32(f32 base, f32 exp);
 /**
  * Compute the integer part of the given value (removes the fractional part).
  */
+f32 math_trunc_f32(f32);
 f64 math_trunc_f64(f64);
 
 /**
  * Compute the floor (round-down) of the given value.
  */
+f32 math_floor_f32(f32);
 f64 math_floor_f64(f64);
 
 /**
  * Compute the ceiling (round-up) of the given value.
  */
+f32 math_ceil_f32(f32);
 f64 math_ceil_f64(f64);
 
 /**
  * Compute the rounded version of the given value.
  * NOTE: Rounds half-way cases away from zero.
  */
+f32 math_round_f32(f32);
 f64 math_round_f64(f64);
 
 /**
