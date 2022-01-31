@@ -2,6 +2,8 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_bits.h"
+#include "core_math.h"
+#include "core_noise.h"
 #include "core_thread.h"
 #include "data.h"
 #include "ecs_world.h"
@@ -20,6 +22,8 @@ static DataMeta g_dataNtxDefMeta;
 
 typedef struct {
   u32 size;
+  f32 frequency, intensity;
+  u32 seed;
 } NtxDef;
 
 static void ntx_datareg_init() {
@@ -34,6 +38,9 @@ static void ntx_datareg_init() {
     // clang-format off
     data_reg_struct_t(g_dataReg, NtxDef);
     data_reg_field_t(g_dataReg, NtxDef, size, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, NtxDef, frequency, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, NtxDef, intensity, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, NtxDef, seed, data_prim_t(u32), .flags = DataFlags_Opt);
     // clang-format on
 
     g_dataNtxDefMeta = data_meta_t(t_NtxDef);
@@ -59,10 +66,26 @@ static String ntx_error_str(const NtxError err) {
   return g_msgs[err];
 }
 
+/**
+ * Sample the noise function at a specific coordinate.
+ * Returns a value in the 0-1 range.
+ */
+static f32 ntx_sample(const NtxDef* def, const u32 x, const u32 y) {
+  const f32 raw  = noise_perlin3(x * def->frequency, y * def->frequency, def->seed);
+  const f32 norm = raw * 0.5f + 0.5f;
+  return math_pow_f32(norm, def->intensity);
+}
+
 static void ntx_generate(const NtxDef* def, AssetTextureComp* outTexture, NtxError* err) {
   const u32           size   = def->size;
   AssetTexturePixel1* pixels = alloc_array_t(g_alloc_heap, AssetTexturePixel1, size * size);
-  mem_set(mem_create(pixels, sizeof(AssetTexturePixel1) * size * size), 128);
+
+  for (u32 y = 0; y != size; ++y) {
+    for (u32 x = 0; x != size; ++x) {
+      const f32 sample     = ntx_sample(def, x, y);
+      pixels[y * size + x] = (AssetTexturePixel1){(u8)(sample * 255.999f)};
+    }
+  }
 
   *outTexture = (AssetTextureComp){
       .channels = AssetTextureChannels_One,
