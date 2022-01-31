@@ -9,7 +9,11 @@
 #pragma intrinsic(asinf)
 #pragma intrinsic(atan2f)
 #pragma intrinsic(atanf)
+#pragma intrinsic(ceil)
+#pragma intrinsic(ceilf)
 #pragma intrinsic(cosf)
+#pragma intrinsic(floor)
+#pragma intrinsic(floorf)
 #pragma intrinsic(fmodf)
 #pragma intrinsic(logf)
 #pragma intrinsic(powf)
@@ -23,10 +27,16 @@
 #define asinf __builtin_asinf
 #define atan2f __builtin_atan2f
 #define atanf __builtin_atanf
+#define ceil __builtin_ceil
+#define ceilf __builtin_ceilf
 #define cosf __builtin_cosf
+#define floor __builtin_floor
+#define floorf __builtin_floorf
 #define fmodf __builtin_fmodf
 #define logf __builtin_logf
 #define powf __builtin_powf
+#define round __builtin_round
+#define roundf __builtin_roundf
 #define sinf __builtin_sinf
 #define sqrtf __builtin_sqrtf
 #define tanf __builtin_tanf
@@ -82,34 +92,21 @@ f32 math_atan2_f32(const f32 x, const f32 y) { return atan2f(x, y); }
 
 f32 math_pow_f32(const f32 base, const f32 exp) { return powf(base, exp); }
 
+f32 math_trunc_f32(const f32 val) { return (i32)val; }
+
 f64 math_trunc_f64(const f64 val) { return (i64)val; }
 
-f64 math_floor_f64(const f64 val) {
-  const f64 trunc = math_trunc_f64(val);
-  return trunc > val ? (trunc - 1) : trunc;
-}
+f32 math_floor_f32(const f32 val) { return floorf(val); }
 
-f64 math_ceil_f64(const f64 val) {
-  const f64 trunc = math_trunc_f64(val);
-  return trunc < val ? (trunc + 1) : trunc;
-}
+f64 math_floor_f64(const f64 val) { return floor(val); }
 
-f64 math_round_f64(const f64 val) {
-  const f64 trunc = math_trunc_f64(val);
-  const f64 frac  = math_abs(val - trunc);
-  if (frac < 0.5) {
-    return trunc;
-  }
-  if (UNLIKELY(frac == 0.5)) {
-    /**
-     * Round-to-even (aka bankers rounding).
-     * Given a number exactly halfway between two values, round to the even value (zero is
-     * considered even here).
-     */
-    return ((i64)trunc % 2) ? (trunc + math_sign(val)) : trunc;
-  }
-  return trunc + math_sign(val);
-}
+f32 math_ceil_f32(const f32 val) { return ceilf(val); }
+
+f64 math_ceil_f64(const f64 val) { return ceil(val); }
+
+f32 math_round_f32(const f32 val) { return roundf(val); }
+
+f64 math_round_f64(const f64 val) { return round(val); }
 
 f32 math_clamp_f32(const f32 val, const f32 min, const f32 max) {
   if (val <= min) {
