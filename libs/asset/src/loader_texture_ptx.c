@@ -25,6 +25,7 @@ static DataMeta g_dataPtxDefMeta;
 typedef enum {
   PtxType_One,
   PtxType_Zero,
+  PtxType_Checker,
   PtxType_NoisePerlin,
   PtxType_NoiseWhite,
   PtxType_NoiseWhiteGauss,
@@ -53,6 +54,7 @@ static void ptx_datareg_init() {
     data_reg_const_t(g_dataReg, PtxType, NoisePerlin);
     data_reg_const_t(g_dataReg, PtxType, NoiseWhite);
     data_reg_const_t(g_dataReg, PtxType, NoiseWhiteGauss);
+    data_reg_const_t(g_dataReg, PtxType, Checker);
 
     data_reg_struct_t(g_dataReg, PtxDef);
     data_reg_field_t(g_dataReg, PtxDef, type, t_PtxType);
@@ -86,9 +88,18 @@ static String ptx_error_str(const PtxError err) {
 }
 
 static f32 ptx_sample_noise_perlin(const PtxDef* def, const u32 x, const u32 y) {
-  const f32 raw  = noise_perlin3(x * def->frequency, y * def->frequency, def->seed);
-  const f32 norm = raw * 0.5f + 0.5f; // Convert to a 0 - 1 range.
+  const f32 scaledX = x * def->frequency / def->size;
+  const f32 scaledY = y * def->frequency / def->size;
+  const f32 raw     = noise_perlin3(scaledX, scaledY, def->seed);
+  const f32 norm    = raw * 0.5f + 0.5f; // Convert to a 0 - 1 range.
   return math_pow_f32(norm, def->power);
+}
+
+static f32 ptx_sample_checker(const PtxDef* def, const u32 x, const u32 y) {
+  const u32 scaleDiv = math_max(def->size / 2, 1);
+  const u32 scaledX  = (u32)(x * def->frequency / scaleDiv);
+  const u32 scaledY  = (u32)(y * def->frequency / scaleDiv);
+  return ((scaledX & 1) != (scaledY & 1)) ? 1.0f : 0.0f;
 }
 
 static f32 ptx_sample_noise_white(const PtxDef* def, Rng* rng) {
@@ -111,6 +122,8 @@ static f32 ptx_sample(const PtxDef* def, const u32 x, const u32 y, Rng* rng) {
     return 0.0f;
   case PtxType_One:
     return 1.0f;
+  case PtxType_Checker:
+    return ptx_sample_checker(def, x, y);
   case PtxType_NoisePerlin:
     return ptx_sample_noise_perlin(def, x, y);
   case PtxType_NoiseWhite:

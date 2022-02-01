@@ -208,7 +208,7 @@ ecs_system_define(RendGlobalResourceLoadSys) {
         ecs_view_entity(globalItr),
         RendGlobalResComp,
         .missingTex =
-            rend_resource_request_persistent(world, assetMan, string_lit("textures/missing.ppm")));
+            rend_resource_request_persistent(world, assetMan, string_lit("textures/missing.ptx")));
   }
 
   // Wait for all global resources to be loaded.
