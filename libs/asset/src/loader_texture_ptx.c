@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_bits.h"
+#include "core_diag.h"
 #include "core_math.h"
 #include "core_noise.h"
 #include "core_thread.h"
@@ -20,10 +21,17 @@
 static DataReg* g_dataReg;
 static DataMeta g_dataPtxDefMeta;
 
+typedef enum {
+  PtxType_One,
+  PtxType_Zero,
+  PtxType_NoisePerlin,
+} PtxType;
+
 typedef struct {
-  u32 size;
-  f32 frequency, intensity;
-  u32 seed;
+  PtxType type;
+  u32     size;
+  f32     frequency, power;
+  u32     seed;
 } PtxDef;
 
 static void ptx_datareg_init() {
@@ -36,10 +44,16 @@ static void ptx_datareg_init() {
     g_dataReg = data_reg_create(g_alloc_persist);
 
     // clang-format off
+    data_reg_enum_t(g_dataReg, PtxType);
+    data_reg_const_t(g_dataReg, PtxType, One);
+    data_reg_const_t(g_dataReg, PtxType, Zero);
+    data_reg_const_t(g_dataReg, PtxType, NoisePerlin);
+
     data_reg_struct_t(g_dataReg, PtxDef);
+    data_reg_field_t(g_dataReg, PtxDef, type, t_PtxType);
     data_reg_field_t(g_dataReg, PtxDef, size, data_prim_t(u32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, PtxDef, frequency, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, PtxDef, intensity, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, PtxDef, power, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, PtxDef, seed, data_prim_t(u32), .flags = DataFlags_NotEmpty);
     // clang-format on
 
@@ -66,14 +80,26 @@ static String ptx_error_str(const PtxError err) {
   return g_msgs[err];
 }
 
+static f32 ptx_sample_noise_perlin(const PtxDef* def, const u32 x, const u32 y) {
+  const f32 raw  = noise_perlin3(x * def->frequency, y * def->frequency, def->seed);
+  const f32 norm = raw * 0.5f + 0.5f; // Convert to a 0 - 1 range.
+  return math_pow_f32(norm, def->power);
+}
+
 /**
  * Sample the procedure at a specific coordinate.
  * Returns a value in the 0-1 range.
  */
 static f32 ptx_sample(const PtxDef* def, const u32 x, const u32 y) {
-  const f32 raw  = noise_perlin3(x * def->frequency, y * def->frequency, def->seed);
-  const f32 norm = raw * 0.5f + 0.5f;
-  return math_pow_f32(norm, def->intensity);
+  switch (def->type) {
+  case PtxType_Zero:
+    return 0.0f;
+  case PtxType_One:
+    return 1.0f;
+  case PtxType_NoisePerlin:
+    return ptx_sample_noise_perlin(def, x, y);
+  }
+  diag_crash();
 }
 
 static void ptx_generate(const PtxDef* def, AssetTextureComp* outTexture) {
