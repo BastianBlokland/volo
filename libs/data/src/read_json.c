@@ -266,9 +266,11 @@ static void data_read_json_enum_number(const ReadCtx* ctx, DataReadResult* res) 
 static void data_read_json_enum(const ReadCtx* ctx, DataReadResult* res) {
   switch (json_type(ctx->doc, ctx->val)) {
   case JsonType_String:
-    return data_read_json_enum_string(ctx, res);
+    data_read_json_enum_string(ctx, res);
+    break;
   case JsonType_Number:
-    return data_read_json_enum_number(ctx, res);
+    data_read_json_enum_number(ctx, res);
+    break;
   default:
     *res = result_fail(
         DataReadError_MismatchedType,
