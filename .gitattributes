@@ -16,3 +16,4 @@
 *.frag linguist-language=GLSL
 *.gra linguist-language=JSON
 *.ftx linguist-language=JSON
+*.ptx linguist-language=JSON

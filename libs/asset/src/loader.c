@@ -16,14 +16,14 @@ AssetLoader asset_loader(const AssetFormat format) {
   case AssetFormat_Gra: {
     RET_LOADER(gra);
   }
-  case AssetFormat_Ntx: {
-    RET_LOADER(ntx);
-  }
   case AssetFormat_Obj: {
     RET_LOADER(obj);
   }
   case AssetFormat_Ppm: {
     RET_LOADER(ppm);
+  }
+  case AssetFormat_Ptx: {
+    RET_LOADER(ptx);
   }
   case AssetFormat_Raw: {
     RET_LOADER(raw);

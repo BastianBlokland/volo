@@ -7,9 +7,9 @@ String asset_format_str(AssetFormat fmt) {
   static const String g_names[] = {
       string_static("ftx"),
       string_static("gra"),
-      string_static("ntx"),
       string_static("obj"),
       string_static("ppm"),
+      string_static("ptx"),
       string_static("raw"),
       string_static("spv"),
       string_static("tga"),
