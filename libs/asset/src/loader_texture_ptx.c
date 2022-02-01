@@ -5,6 +5,7 @@
 #include "core_diag.h"
 #include "core_math.h"
 #include "core_noise.h"
+#include "core_rng.h"
 #include "core_thread.h"
 #include "data.h"
 #include "ecs_world.h"
@@ -25,6 +26,8 @@ typedef enum {
   PtxType_One,
   PtxType_Zero,
   PtxType_NoisePerlin,
+  PtxType_NoiseWhite,
+  PtxType_NoiseWhiteGauss,
 } PtxType;
 
 typedef struct {
@@ -48,6 +51,8 @@ static void ptx_datareg_init() {
     data_reg_const_t(g_dataReg, PtxType, One);
     data_reg_const_t(g_dataReg, PtxType, Zero);
     data_reg_const_t(g_dataReg, PtxType, NoisePerlin);
+    data_reg_const_t(g_dataReg, PtxType, NoiseWhite);
+    data_reg_const_t(g_dataReg, PtxType, NoiseWhiteGauss);
 
     data_reg_struct_t(g_dataReg, PtxDef);
     data_reg_field_t(g_dataReg, PtxDef, type, t_PtxType);
@@ -86,11 +91,21 @@ static f32 ptx_sample_noise_perlin(const PtxDef* def, const u32 x, const u32 y) 
   return math_pow_f32(norm, def->power);
 }
 
+static f32 ptx_sample_noise_white(const PtxDef* def, Rng* rng) {
+  const f32 raw = rng_sample_f32(rng);
+  return math_pow_f32(raw, def->power);
+}
+
+static f32 ptx_sample_noise_white_gauss(const PtxDef* def, Rng* rng) {
+  const f32 raw = rng_sample_gauss_f32(rng).a;
+  return math_pow_f32(raw, def->power);
+}
+
 /**
  * Sample the procedure at a specific coordinate.
  * Returns a value in the 0-1 range.
  */
-static f32 ptx_sample(const PtxDef* def, const u32 x, const u32 y) {
+static f32 ptx_sample(const PtxDef* def, const u32 x, const u32 y, Rng* rng) {
   switch (def->type) {
   case PtxType_Zero:
     return 0.0f;
@@ -98,6 +113,10 @@ static f32 ptx_sample(const PtxDef* def, const u32 x, const u32 y) {
     return 1.0f;
   case PtxType_NoisePerlin:
     return ptx_sample_noise_perlin(def, x, y);
+  case PtxType_NoiseWhite:
+    return ptx_sample_noise_white(def, rng);
+  case PtxType_NoiseWhiteGauss:
+    return ptx_sample_noise_white_gauss(def, rng);
   }
   diag_crash();
 }
@@ -106,12 +125,14 @@ static void ptx_generate(const PtxDef* def, AssetTextureComp* outTexture) {
   const u32           size   = def->size;
   AssetTexturePixel1* pixels = alloc_array_t(g_alloc_heap, AssetTexturePixel1, size * size);
 
+  Rng* rng = rng_create_xorwow(g_alloc_heap, def->seed);
   for (u32 y = 0; y != size; ++y) {
     for (u32 x = 0; x != size; ++x) {
-      const f32 sample     = ptx_sample(def, x, y);
+      const f32 sample     = ptx_sample(def, x, y, rng);
       pixels[y * size + x] = (AssetTexturePixel1){(u8)(sample * 255.999f)};
     }
   }
+  rng_destroy(rng);
 
   *outTexture = (AssetTextureComp){
       .channels = AssetTextureChannels_One,
