@@ -26,6 +26,7 @@ typedef enum {
   PtxType_One,
   PtxType_Zero,
   PtxType_Checker,
+  PtxType_Circle,
   PtxType_NoisePerlin,
   PtxType_NoiseWhite,
   PtxType_NoiseWhiteGauss,
@@ -51,10 +52,11 @@ static void ptx_datareg_init() {
     data_reg_enum_t(g_dataReg, PtxType);
     data_reg_const_t(g_dataReg, PtxType, One);
     data_reg_const_t(g_dataReg, PtxType, Zero);
+    data_reg_const_t(g_dataReg, PtxType, Checker);
+    data_reg_const_t(g_dataReg, PtxType, Circle);
     data_reg_const_t(g_dataReg, PtxType, NoisePerlin);
     data_reg_const_t(g_dataReg, PtxType, NoiseWhite);
     data_reg_const_t(g_dataReg, PtxType, NoiseWhiteGauss);
-    data_reg_const_t(g_dataReg, PtxType, Checker);
 
     data_reg_struct_t(g_dataReg, PtxDef);
     data_reg_field_t(g_dataReg, PtxDef, type, t_PtxType);
@@ -102,6 +104,16 @@ static f32 ptx_sample_checker(const PtxDef* def, const u32 x, const u32 y) {
   return ((scaledX & 1) != (scaledY & 1)) ? 1.0f : 0.0f;
 }
 
+static f32 ptx_sample_circle(const PtxDef* def, const u32 x, const u32 y) {
+  const f32 size         = def->size / def->frequency;
+  const f32 halfSize     = size * 0.5f;
+  const f32 toCenterX    = halfSize - math_mod_f32(x + 0.5f, size),
+            toCenterY    = halfSize - math_mod_f32(y + 0.5f, size);
+  const f32 toCenterDist = math_sqrt_f32(toCenterX * toCenterX + toCenterY * toCenterY);
+  const f32 toCircle     = halfSize - toCenterDist;
+  return math_clamp_f32(toCircle * def->power, 0.0f, 1.0f);
+}
+
 static f32 ptx_sample_noise_white(const PtxDef* def, Rng* rng) {
   const f32 raw = rng_sample_f32(rng);
   return math_pow_f32(raw, def->power);
@@ -124,6 +136,8 @@ static f32 ptx_sample(const PtxDef* def, const u32 x, const u32 y, Rng* rng) {
     return 1.0f;
   case PtxType_Checker:
     return ptx_sample_checker(def, x, y);
+  case PtxType_Circle:
+    return ptx_sample_circle(def, x, y);
   case PtxType_NoisePerlin:
     return ptx_sample_noise_perlin(def, x, y);
   case PtxType_NoiseWhite:
