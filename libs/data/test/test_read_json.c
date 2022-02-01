@@ -208,14 +208,25 @@ spec(read_json) {
     test_read_success(_testCtx, reg, string_lit("\"A\""), meta, mem_var(val));
     check_eq_int(val, ReadJsonTestEnum_A);
 
+    test_read_success(_testCtx, reg, string_lit("-42"), meta, mem_var(val));
+    check_eq_int(val, ReadJsonTestEnum_A);
+
     test_read_success(_testCtx, reg, string_lit("\"B\""), meta, mem_var(val));
+    check_eq_int(val, ReadJsonTestEnum_B);
+
+    test_read_success(_testCtx, reg, string_lit("42"), meta, mem_var(val));
     check_eq_int(val, ReadJsonTestEnum_B);
 
     test_read_success(_testCtx, reg, string_lit("\"C\""), meta, mem_var(val));
     check_eq_int(val, ReadJsonTestEnum_C);
 
+    test_read_success(_testCtx, reg, string_lit("1337"), meta, mem_var(val));
+    check_eq_int(val, ReadJsonTestEnum_C);
+
     test_read_fail(_testCtx, reg, string_lit("\"D\""), meta, DataReadError_InvalidEnumEntry);
     test_read_fail(_testCtx, reg, string_lit("\"\""), meta, DataReadError_InvalidEnumEntry);
+    test_read_fail(_testCtx, reg, string_lit("0"), meta, DataReadError_InvalidEnumEntry);
+    test_read_fail(_testCtx, reg, string_lit("41"), meta, DataReadError_InvalidEnumEntry);
     test_read_fail(_testCtx, reg, string_lit("null"), meta, DataReadError_MismatchedType);
   }
 

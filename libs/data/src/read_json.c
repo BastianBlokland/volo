@@ -225,10 +225,7 @@ static void data_read_json_struct(const ReadCtx* ctx, DataReadResult* res) {
   *res = result_success();
 }
 
-static void data_read_json_enum(const ReadCtx* ctx, DataReadResult* res) {
-  if (UNLIKELY(!data_check_type(ctx, JsonType_String, res))) {
-    return;
-  }
+static void data_read_json_enum_string(const ReadCtx* ctx, DataReadResult* res) {
   const DataDecl* decl      = data_decl(ctx->reg, ctx->meta.type);
   const u32       valueHash = bits_hash_32(json_string(ctx->doc, ctx->val));
 
@@ -245,6 +242,42 @@ static void data_read_json_enum(const ReadCtx* ctx, DataReadResult* res) {
       "Invalid enum entry '{}' for type {}",
       fmt_text(json_string(ctx->doc, ctx->val)),
       fmt_text(decl->id.name));
+}
+
+static void data_read_json_enum_number(const ReadCtx* ctx, DataReadResult* res) {
+  const DataDecl* decl  = data_decl(ctx->reg, ctx->meta.type);
+  const i32       value = (i32)json_number(ctx->doc, ctx->val);
+
+  dynarray_for_t(&decl->val_enum.consts, DataDeclConst, constDecl) {
+    if (constDecl->value == value) {
+      *mem_as_t(ctx->data, i32) = constDecl->value;
+      *res                      = result_success();
+      return;
+    }
+  }
+
+  *res = result_fail(
+      DataReadError_InvalidEnumEntry,
+      "Invalid enum entry '{}' for type {}",
+      fmt_float(json_number(ctx->doc, ctx->val)),
+      fmt_text(decl->id.name));
+}
+
+static void data_read_json_enum(const ReadCtx* ctx, DataReadResult* res) {
+  switch (json_type(ctx->doc, ctx->val)) {
+  case JsonType_String:
+    data_read_json_enum_string(ctx, res);
+    break;
+  case JsonType_Number:
+    data_read_json_enum_number(ctx, res);
+    break;
+  default:
+    *res = result_fail(
+        DataReadError_MismatchedType,
+        "Expected json string or number got {}",
+        fmt_text(json_type_str(json_type(ctx->doc, ctx->val))));
+    break;
+  }
 }
 
 static void data_read_json_val_single(const ReadCtx* ctx, DataReadResult* res) {

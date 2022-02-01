@@ -1,0 +1,8 @@
+{
+  "type": "NoiseWhiteGauss",
+  "channels": 1,
+  "size": 128,
+  "frequency": 1,
+  "power": 1,
+  "seed": 42
+}

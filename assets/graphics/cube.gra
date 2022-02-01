@@ -9,7 +9,7 @@
   ],
   "samplers": [
     {
-      "textureId": "textures/checker.ppm",
+      "textureId": "textures/checker_white.ptx",
       "wrap": "Clamp",
       "filter": "Nearest",
       "anisotropy": "None"

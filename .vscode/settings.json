@@ -15,7 +15,8 @@
     "*.h": "c",
     "*.c": "c",
     "*.gra": "json",
-    "*.ftx": "json"
+    "*.ftx": "json",
+    "*.ptx": "json"
   },
   "files.exclude": {
     ".cache": true,
