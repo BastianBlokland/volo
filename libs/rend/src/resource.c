@@ -521,6 +521,7 @@ ecs_view_define(UnloadChangedView) {
   ecs_access_with(AssetChangedComp);
   ecs_access_with(RendResFinishedComp);
   ecs_access_without(RendResUnloadComp);
+  ecs_access_without(RendResNeverUnloadComp);
 }
 
 /**
