@@ -9,9 +9,9 @@
   ],
   "samplers": [
     {
-      "textureId": "textures/checker.ppm",
+      "textureId": "textures/noise.ptx",
       "wrap": "Clamp",
-      "filter": "Nearest",
+      "filter": "Linear",
       "anisotropy": "None"
     }
   ],

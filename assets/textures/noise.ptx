@@ -1,0 +1,7 @@
+{
+  "type": "NoisePerlin",
+  "size": 256,
+  "frequency": 20,
+  "power": 0.8,
+  "seed": 42
+}

@@ -1,0 +1,7 @@
+{
+  "type": "Circle",
+  "size": 64,
+  "frequency": 1,
+  "power": 0.03,
+  "seed": 1
+}
