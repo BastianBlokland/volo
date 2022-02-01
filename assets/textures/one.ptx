@@ -1,5 +1,6 @@
 {
   "type": "One",
+  "channels": 1,
   "size": 1,
   "frequency": 1,
   "power": 1,

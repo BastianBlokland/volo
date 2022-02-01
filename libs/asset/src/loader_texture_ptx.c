@@ -33,10 +33,11 @@ typedef enum {
 } PtxType;
 
 typedef struct {
-  PtxType type;
-  u32     size;
-  f32     frequency, power;
-  u32     seed;
+  PtxType              type;
+  AssetTextureChannels channels;
+  u32                  size;
+  f32                  frequency, power;
+  u32                  seed;
 } PtxDef;
 
 static void ptx_datareg_init() {
@@ -58,8 +59,13 @@ static void ptx_datareg_init() {
     data_reg_const_t(g_dataReg, PtxType, NoiseWhite);
     data_reg_const_t(g_dataReg, PtxType, NoiseWhiteGauss);
 
+    data_reg_enum_t(g_dataReg, AssetTextureChannels);
+    data_reg_const_t(g_dataReg, AssetTextureChannels, One);
+    data_reg_const_t(g_dataReg, AssetTextureChannels, Four);
+
     data_reg_struct_t(g_dataReg, PtxDef);
     data_reg_field_t(g_dataReg, PtxDef, type, t_PtxType);
+    data_reg_field_t(g_dataReg, PtxDef, channels, t_AssetTextureChannels);
     data_reg_field_t(g_dataReg, PtxDef, size, data_prim_t(u32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, PtxDef, frequency, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, PtxDef, power, data_prim_t(f32), .flags = DataFlags_NotEmpty);
@@ -149,23 +155,24 @@ static f32 ptx_sample(const PtxDef* def, const u32 x, const u32 y, Rng* rng) {
 }
 
 static void ptx_generate(const PtxDef* def, AssetTextureComp* outTexture) {
-  const u32           size   = def->size;
-  AssetTexturePixel1* pixels = alloc_array_t(g_alloc_heap, AssetTexturePixel1, size * size);
+  const u32 size   = def->size;
+  u8*       pixels = alloc_alloc(g_alloc_heap, size * size * def->channels, def->channels).ptr;
 
   Rng* rng = rng_create_xorwow(g_alloc_heap, def->seed);
   for (u32 y = 0; y != size; ++y) {
     for (u32 x = 0; x != size; ++x) {
-      const f32 sample     = ptx_sample(def, x, y, rng);
-      pixels[y * size + x] = (AssetTexturePixel1){(u8)(sample * 255.999f)};
+      const f32 sample = ptx_sample(def, x, y, rng);
+      const u8  value  = (u8)(sample * 255.999f);
+      mem_set(mem_create(&pixels[(y * size + x) * def->channels], def->channels), value);
     }
   }
   rng_destroy(rng);
 
   *outTexture = (AssetTextureComp){
-      .channels = AssetTextureChannels_One,
-      .pixels1  = pixels,
-      .width    = size,
-      .height   = size,
+      .channels  = def->channels,
+      .pixelsRaw = pixels,
+      .width     = size,
+      .height    = size,
   };
 }
 

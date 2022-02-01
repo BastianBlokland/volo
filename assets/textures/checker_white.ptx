@@ -1,6 +1,6 @@
 {
   "type": "Checker",
-  "channels": 1,
+  "channels": 4,
   "size": 4,
   "frequency": 2,
   "power": 1,

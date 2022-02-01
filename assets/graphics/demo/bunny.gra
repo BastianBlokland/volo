@@ -9,7 +9,7 @@
   ],
   "samplers": [
     {
-      "textureId": "textures/one.ptx",
+      "textureId": "textures/white.ptx",
       "wrap": "Clamp",
       "filter": "Linear",
       "anisotropy": "None"
