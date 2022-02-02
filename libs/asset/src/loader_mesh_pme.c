@@ -25,6 +25,7 @@ typedef enum {
 
 typedef struct {
   PmeType type;
+  f32     scaleX, scaleY, scaleZ;
 } PmeDef;
 
 static void pme_datareg_init() {
@@ -42,6 +43,9 @@ static void pme_datareg_init() {
 
     data_reg_struct_t(g_dataReg, PmeDef);
     data_reg_field_t(g_dataReg, PmeDef, type, t_PmeType);
+    data_reg_field_t(g_dataReg, PmeDef, scaleX, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, PmeDef, scaleY, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, PmeDef, scaleZ, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     // clang-format on
 
     g_dataPmeDefMeta = data_meta_t(t_PmeDef);
@@ -50,11 +54,10 @@ static void pme_datareg_init() {
 }
 
 static void pme_generate_triangle(const PmeDef* def, AssetMeshBuilder* builder) {
-  (void)def;
   asset_mesh_builder_push(
       builder,
       (AssetMeshVertex){
-          .position = geo_vector(-0.5, -0.5),
+          .position = geo_vector(-0.5f * def->scaleX, -0.5f * def->scaleY),
           .normal   = geo_backward,
           .tangent  = geo_vector(0, 1, 0, -1),
           .texcoord = geo_vector(0, 0),
@@ -62,7 +65,7 @@ static void pme_generate_triangle(const PmeDef* def, AssetMeshBuilder* builder) 
   asset_mesh_builder_push(
       builder,
       (AssetMeshVertex){
-          .position = geo_vector(0, 0.5),
+          .position = geo_vector(0, 0.5f * def->scaleY),
           .normal   = geo_backward,
           .tangent  = geo_vector(0, 1, 0, -1),
           .texcoord = geo_vector(0.5, 1),
@@ -70,7 +73,7 @@ static void pme_generate_triangle(const PmeDef* def, AssetMeshBuilder* builder) 
   asset_mesh_builder_push(
       builder,
       (AssetMeshVertex){
-          .position = geo_vector(0.5, -0.5),
+          .position = geo_vector(0.5f * def->scaleX, -0.5f * def->scaleY),
           .normal   = geo_backward,
           .tangent  = geo_vector(0, 1, 0, -1),
           .texcoord = geo_vector(1.0, 0.0),

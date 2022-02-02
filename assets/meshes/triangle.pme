@@ -1,3 +1,6 @@
 {
-  "type": "Triangle"
+  "type": "Triangle",
+  "scaleX": 1.0,
+  "scaleY": 1.0,
+  "scaleZ": 1.0
 }
