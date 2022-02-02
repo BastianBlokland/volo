@@ -8,6 +8,7 @@ String asset_format_str(AssetFormat fmt) {
       string_static("ftx"),
       string_static("gra"),
       string_static("obj"),
+      string_static("pme"),
       string_static("ppm"),
       string_static("ptx"),
       string_static("raw"),
