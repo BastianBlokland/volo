@@ -26,6 +26,7 @@ typedef enum {
 typedef struct {
   PmeType type;
   f32     scaleX, scaleY, scaleZ;
+  f32     offsetX, offsetY, offsetZ;
 } PmeDef;
 
 static void pme_datareg_init() {
@@ -43,9 +44,12 @@ static void pme_datareg_init() {
 
     data_reg_struct_t(g_dataReg, PmeDef);
     data_reg_field_t(g_dataReg, PmeDef, type, t_PmeType);
-    data_reg_field_t(g_dataReg, PmeDef, scaleX, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, PmeDef, scaleY, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, PmeDef, scaleZ, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, PmeDef, scaleX, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, PmeDef, scaleY, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, PmeDef, scaleZ, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, PmeDef, offsetX, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, PmeDef, offsetY, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, PmeDef, offsetZ, data_prim_t(f32), .flags = DataFlags_Opt);
     // clang-format on
 
     g_dataPmeDefMeta = data_meta_t(t_PmeDef);
@@ -53,11 +57,19 @@ static void pme_datareg_init() {
   thread_spinlock_unlock(&g_initLock);
 }
 
+static GeoVector pme_position(const PmeDef* def, const f32 x, const f32 y, const f32 z) {
+  const f32 scaleX = def->scaleX != 0.0f ? def->scaleX : 1.0f;
+  const f32 scaleY = def->scaleY != 0.0f ? def->scaleY : 1.0f;
+  const f32 scaleZ = def->scaleZ != 0.0f ? def->scaleZ : 1.0f;
+  return geo_vector(
+      def->offsetX + x * scaleX, def->offsetY + y * scaleY, def->offsetZ + z * scaleZ);
+}
+
 static void pme_generate_triangle(const PmeDef* def, AssetMeshBuilder* builder) {
   asset_mesh_builder_push(
       builder,
       (AssetMeshVertex){
-          .position = geo_vector(-0.5f * def->scaleX, -0.5f * def->scaleY),
+          .position = pme_position(def, -0.5f, -0.5f, 0.0),
           .normal   = geo_backward,
           .tangent  = geo_vector(0, 1, 0, -1),
           .texcoord = geo_vector(0, 0),
@@ -65,7 +77,7 @@ static void pme_generate_triangle(const PmeDef* def, AssetMeshBuilder* builder) 
   asset_mesh_builder_push(
       builder,
       (AssetMeshVertex){
-          .position = geo_vector(0, 0.5f * def->scaleY),
+          .position = pme_position(def, 0, 0.5f, 0.0),
           .normal   = geo_backward,
           .tangent  = geo_vector(0, 1, 0, -1),
           .texcoord = geo_vector(0.5, 1),
@@ -73,10 +85,10 @@ static void pme_generate_triangle(const PmeDef* def, AssetMeshBuilder* builder) 
   asset_mesh_builder_push(
       builder,
       (AssetMeshVertex){
-          .position = geo_vector(0.5f * def->scaleX, -0.5f * def->scaleY),
+          .position = pme_position(def, 0.5f, -0.5f, 0.0),
           .normal   = geo_backward,
           .tangent  = geo_vector(0, 1, 0, -1),
-          .texcoord = geo_vector(1.0, 0.0),
+          .texcoord = geo_vector(1, 0),
       });
 }
 

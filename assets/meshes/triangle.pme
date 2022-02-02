@@ -1,6 +1,9 @@
 {
   "type": "Triangle",
-  "scaleX": 1.0,
-  "scaleY": 1.0,
-  "scaleZ": 1.0
+  "scaleX": 1,
+  "scaleY": 1,
+  "scaleZ": 1,
+  "offsetX": 0,
+  "offsetY": 0,
+  "offsetZ": 0
 }
