@@ -1,5 +1,6 @@
 {
   "type": "Triangle",
+  "axis": "Forward",
   "scaleX": 1,
   "scaleY": 1,
   "scaleZ": 1,
