@@ -30,6 +30,7 @@ typedef enum {
 
 typedef enum {
   PmeType_Triangle,
+  PmeType_Quad,
 } PmeType;
 
 typedef struct {
@@ -51,6 +52,7 @@ static void pme_datareg_init() {
     // clang-format off
     data_reg_enum_t(g_dataReg, PmeType);
     data_reg_const_t(g_dataReg, PmeType, Triangle);
+    data_reg_const_t(g_dataReg, PmeType, Quad);
 
     data_reg_enum_t(g_dataReg, PmeAxis);
     data_reg_const_t(g_dataReg, PmeAxis, Up);
@@ -102,33 +104,45 @@ static GeoVector pme_axis_normal(const PmeDef* def) {
   diag_crash();
 }
 
+static void pme_push_vert(
+    const PmeDef*     def,
+    AssetMeshBuilder* builder,
+    const GeoQuat     rot,
+    const GeoVector   pos,
+    const GeoVector   texcoord) {
+
+  asset_mesh_builder_push(
+      builder,
+      (AssetMeshVertex){
+          .position = pme_position(def, geo_quat_rotate(rot, pos)),
+          .texcoord = texcoord,
+      });
+}
+
 static void pme_generate_triangle(const PmeDef* def, AssetMeshBuilder* builder) {
-  const GeoVector fwd = pme_axis_normal(def);
-  const GeoQuat   rot = geo_quat_look(fwd, geo_up);
-  asset_mesh_builder_push(
-      builder,
-      (AssetMeshVertex){
-          .position = pme_position(def, geo_quat_rotate(rot, geo_vector(-0.5, -0.5))),
-          .texcoord = geo_vector(0, 0),
-      });
-  asset_mesh_builder_push(
-      builder,
-      (AssetMeshVertex){
-          .position = pme_position(def, geo_quat_rotate(rot, geo_vector(0, 0.5))),
-          .texcoord = geo_vector(0.5, 1),
-      });
-  asset_mesh_builder_push(
-      builder,
-      (AssetMeshVertex){
-          .position = pme_position(def, geo_quat_rotate(rot, geo_vector(0.5, -0.5))),
-          .texcoord = geo_vector(1, 0),
-      });
+  const GeoQuat rot = geo_quat_look(pme_axis_normal(def), geo_up);
+  pme_push_vert(def, builder, rot, geo_vector(-0.5, -0.5), geo_vector(0, 0));
+  pme_push_vert(def, builder, rot, geo_vector(0, 0.5), geo_vector(0.5, 1));
+  pme_push_vert(def, builder, rot, geo_vector(0.5, -0.5), geo_vector(1, 0));
+}
+
+static void pme_generate_quad(const PmeDef* def, AssetMeshBuilder* builder) {
+  const GeoQuat rot = geo_quat_look(pme_axis_normal(def), geo_up);
+  pme_push_vert(def, builder, rot, geo_vector(-0.5, 0.5), geo_vector(0, 1));
+  pme_push_vert(def, builder, rot, geo_vector(0.5, 0.5), geo_vector(1, 1));
+  pme_push_vert(def, builder, rot, geo_vector(-0.5, -0.5), geo_vector(0, 0));
+  pme_push_vert(def, builder, rot, geo_vector(0.5, 0.5), geo_vector(1, 1));
+  pme_push_vert(def, builder, rot, geo_vector(0.5, -0.5), geo_vector(1, 0));
+  pme_push_vert(def, builder, rot, geo_vector(-0.5, -0.5), geo_vector(0, 0));
 }
 
 static void pme_generate(const PmeDef* def, AssetMeshBuilder* builder) {
   switch (def->type) {
   case PmeType_Triangle:
     pme_generate_triangle(def, builder);
+    break;
+  case PmeType_Quad:
+    pme_generate_quad(def, builder);
     break;
   }
 }
