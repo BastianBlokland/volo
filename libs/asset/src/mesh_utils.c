@@ -105,6 +105,31 @@ AssetMeshComp asset_mesh_create(const AssetMeshBuilder* builder) {
   };
 }
 
+GeoVector asset_mesh_tri_norm(const GeoVector a, const GeoVector b, const GeoVector c) {
+  const GeoVector surface = geo_vector_cross3(geo_vector_sub(b, a), geo_vector_sub(c, a));
+  if (UNLIKELY(geo_vector_mag_sqr(surface) <= f32_epsilon)) {
+    return geo_forward; // Triangle with zero area has technically no normal.
+  }
+  return geo_vector_norm(surface);
+}
+
+void asset_mesh_compute_flat_normals(AssetMeshBuilder* builder) {
+  AssetMeshVertex*      vertices = dynarray_begin_t(&builder->vertices, AssetMeshVertex);
+  const AssetMeshIndex* indices  = dynarray_begin_t(&builder->indices, AssetMeshIndex);
+
+  diag_assert((builder->indices.size % 3) == 0); // Input has to be triangles.
+  for (usize i = 0; i != builder->indices.size; i += 3) {
+    AssetMeshVertex* vA = &vertices[indices[i]];
+    AssetMeshVertex* vB = &vertices[indices[i + 1]];
+    AssetMeshVertex* vC = &vertices[indices[i + 2]];
+
+    const GeoVector norm = asset_mesh_tri_norm(vA->position, vB->position, vC->position);
+    vA->normal           = norm;
+    vB->normal           = norm;
+    vC->normal           = norm;
+  }
+}
+
 void asset_mesh_compute_tangents(AssetMeshBuilder* builder) {
 
   /**

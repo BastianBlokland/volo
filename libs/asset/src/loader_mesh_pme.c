@@ -150,6 +150,12 @@ void asset_load_pme(EcsWorld* world, const EcsEntityId entity, AssetSource* src)
   builder = asset_mesh_builder_create(g_alloc_heap, pme_max_verts);
   pme_generate(&def, builder);
 
+  /**
+   * Compute the normals and tangents based on the vertex positions and texture coordinates.
+   */
+  asset_mesh_compute_flat_normals(builder);
+  asset_mesh_compute_tangents(builder);
+
   *ecs_world_add_t(world, entity, AssetMeshComp) = asset_mesh_create(builder);
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   goto Done;

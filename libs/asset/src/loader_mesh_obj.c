@@ -13,6 +13,10 @@
  * Polygonal faces are supported (no curves or lines), materials are ignored at this time.
  * Format specification: http://www.martinreddy.net/gfx/3d/OBJ.spec
  * Faces are assumed to be convex and are triangulated using a simple triangle fan.
+ *
+ * NOTE: This doesn't do any handedness correction (as Obj doesn't specify the handedness), that
+ * does mean that obj files exported from software with a right-handed coordinate system appear
+ * flipped.
  */
 
 /**
@@ -304,15 +308,6 @@ static GeoVector obj_get_texcoord(const ObjData* data, const ObjVertex* vertex) 
   return *dynarray_at_t(&data->texcoords, vertex->texcoordIndex, GeoVector);
 }
 
-static GeoVector obj_tri_norm(const GeoVector a, const GeoVector b, const GeoVector c) {
-  const GeoVector surface = geo_vector_cross3(geo_vector_sub(b, a), geo_vector_sub(c, a));
-  if (UNLIKELY(geo_vector_mag_sqr(surface) <= f32_epsilon)) {
-    // Triangle with zero area has technically no normal, but does ocur in the wild.
-    return geo_forward;
-  }
-  return geo_vector_norm(surface);
-}
-
 static void obj_triangulate(const ObjData* data, AssetMeshBuilder* builder) {
   dynarray_for_t(&data->faces, ObjFace, face) {
     const GeoVector* positions = dynarray_begin_t(&data->positions, GeoVector);
@@ -321,7 +316,7 @@ static void obj_triangulate(const ObjData* data, AssetMeshBuilder* builder) {
 
     GeoVector faceNrm;
     if (face->useFaceNormal) {
-      faceNrm = obj_tri_norm(
+      faceNrm = asset_mesh_tri_norm(
           positions[vertices[face->vertexIndex].positionIndex],
           positions[vertices[face->vertexIndex + 1].positionIndex],
           positions[vertices[face->vertexIndex + 2].positionIndex]);
