@@ -14,7 +14,8 @@
  * ProceduralMEsh - Procedurally generated mesh.
  */
 
-#define pme_max_verts 512
+#define pme_max_verts (1024 * 64)
+#define pme_max_subdivisions 100
 
 static DataReg* g_dataReg;
 static DataMeta g_dataPmeDefMeta;
@@ -36,6 +37,7 @@ typedef enum {
 typedef struct {
   PmeType type;
   PmeAxis axis;
+  u32     subdivisions;
   f32     scaleX, scaleY, scaleZ;
   f32     offsetX, offsetY, offsetZ;
 } PmeDef;
@@ -65,6 +67,7 @@ static void pme_datareg_init() {
     data_reg_struct_t(g_dataReg, PmeDef);
     data_reg_field_t(g_dataReg, PmeDef, type, t_PmeType);
     data_reg_field_t(g_dataReg, PmeDef, axis, t_PmeAxis);
+    data_reg_field_t(g_dataReg, PmeDef, subdivisions, data_prim_t(u32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, PmeDef, scaleX, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, PmeDef, scaleY, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, PmeDef, scaleZ, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
@@ -124,16 +127,33 @@ static void pme_generate_triangle(const PmeDef* def, AssetMeshBuilder* builder) 
   pme_push_vert(def, builder, rot, geo_vector(-0.5, -0.5), geo_vector(0, 0));
   pme_push_vert(def, builder, rot, geo_vector(0, 0.5), geo_vector(0.5, 1));
   pme_push_vert(def, builder, rot, geo_vector(0.5, -0.5), geo_vector(1, 0));
+
+  asset_mesh_compute_flat_normals(builder);
+  asset_mesh_compute_tangents(builder);
 }
 
 static void pme_generate_quad(const PmeDef* def, AssetMeshBuilder* builder) {
   const GeoQuat rot = geo_quat_look(pme_axis_normal(def), geo_up);
-  pme_push_vert(def, builder, rot, geo_vector(-0.5, 0.5), geo_vector(0, 1));
-  pme_push_vert(def, builder, rot, geo_vector(0.5, 0.5), geo_vector(1, 1));
-  pme_push_vert(def, builder, rot, geo_vector(-0.5, -0.5), geo_vector(0, 0));
-  pme_push_vert(def, builder, rot, geo_vector(0.5, 0.5), geo_vector(1, 1));
-  pme_push_vert(def, builder, rot, geo_vector(0.5, -0.5), geo_vector(1, 0));
-  pme_push_vert(def, builder, rot, geo_vector(-0.5, -0.5), geo_vector(0, 0));
+
+  const f32 step = 1.0f / (def->subdivisions + 1);
+  for (f32 y = 0.0f; y < 1.0f; y += step) {
+    for (f32 x = 0.0f; x < 1.0f; x += step) {
+      const f32 xPosMin = x - 0.5f, yPosMin = y - 0.5f;
+      const f32 xPosMax = xPosMin + step, yPosMax = yPosMin + step;
+      const f32 xTexMin = x, yTexMin = y;
+      const f32 xTexMax = xTexMin + step, yTexMax = yTexMin + step;
+
+      pme_push_vert(def, builder, rot, geo_vector(xPosMin, yPosMax), geo_vector(xTexMin, yTexMax));
+      pme_push_vert(def, builder, rot, geo_vector(xPosMax, yPosMax), geo_vector(xTexMax, yTexMax));
+      pme_push_vert(def, builder, rot, geo_vector(xPosMin, yPosMin), geo_vector(xTexMin, yTexMin));
+      pme_push_vert(def, builder, rot, geo_vector(xPosMax, yPosMax), geo_vector(xTexMax, yTexMax));
+      pme_push_vert(def, builder, rot, geo_vector(xPosMax, yPosMin), geo_vector(xTexMax, yTexMin));
+      pme_push_vert(def, builder, rot, geo_vector(xPosMin, yPosMin), geo_vector(xTexMin, yTexMin));
+    }
+  }
+
+  asset_mesh_compute_flat_normals(builder);
+  asset_mesh_compute_tangents(builder);
 }
 
 static void pme_generate(const PmeDef* def, AssetMeshBuilder* builder) {
@@ -145,6 +165,22 @@ static void pme_generate(const PmeDef* def, AssetMeshBuilder* builder) {
     pme_generate_quad(def, builder);
     break;
   }
+}
+
+typedef enum {
+  PmeError_None = 0,
+  PmeError_TooManySubdivisions,
+
+  PmeError_Count,
+} PmeError;
+
+static String pme_error_str(const PmeError err) {
+  static const String g_msgs[] = {
+      string_static("None"),
+      string_static("Pme specifies more subdivisions then are supported"),
+  };
+  ASSERT(array_elems(g_msgs) == PmeError_Count, "Incorrect number of pme-error messages");
+  return g_msgs[err];
 }
 
 void asset_load_pme(EcsWorld* world, const EcsEntityId entity, AssetSource* src) {
@@ -160,15 +196,13 @@ void asset_load_pme(EcsWorld* world, const EcsEntityId entity, AssetSource* src)
     errMsg = result.errorMsg;
     goto Error;
   }
+  if (UNLIKELY(def.subdivisions > pme_max_subdivisions)) {
+    errMsg = pme_error_str(PmeError_TooManySubdivisions);
+    goto Error;
+  }
 
   builder = asset_mesh_builder_create(g_alloc_heap, pme_max_verts);
   pme_generate(&def, builder);
-
-  /**
-   * Compute the normals and tangents based on the vertex positions and texture coordinates.
-   */
-  asset_mesh_compute_flat_normals(builder);
-  asset_mesh_compute_tangents(builder);
 
   *ecs_world_add_t(world, entity, AssetMeshComp) = asset_mesh_create(builder);
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
