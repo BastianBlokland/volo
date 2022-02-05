@@ -82,6 +82,13 @@ GeoMatrix geo_matrix_rotate_z(f32 angle);
 GeoMatrix geo_matrix_rotate(GeoVector right, GeoVector up, GeoVector fwd);
 
 /**
+ * Create a rotation matrix that rotates from the rotation to a new axis system.
+ * NOTE: Vectors do not need to be normalized, but should not be zero.
+ * NOTE: Up does not need to be orthogonal to fwd as the up is reconstructed.
+ */
+GeoMatrix geo_matrix_rotate_look(GeoVector forward, GeoVector upRef);
+
+/**
  * Create a rotation matrix from a quaternion.
  * Pre-condition: quaternion is normalized.
  */

@@ -71,22 +71,6 @@ GeoQuat geo_quat_norm(const GeoQuat q) {
 }
 
 GeoQuat geo_quat_look(const GeoVector forward, const GeoVector upRef) {
-  if (UNLIKELY(geo_vector_mag_sqr(forward) <= f32_epsilon)) {
-    return geo_quat_ident;
-  }
-  if (UNLIKELY(geo_vector_mag_sqr(upRef) <= f32_epsilon)) {
-    return geo_quat_ident;
-  }
-
-  const GeoVector dirForward     = geo_vector_norm(forward);
-  GeoVector       dirRight       = geo_vector_cross3(upRef, dirForward);
-  const f32       dirRightMagSqr = geo_vector_mag_sqr(dirRight);
-  if (LIKELY(dirRightMagSqr > f32_epsilon)) {
-    dirRight = geo_vector_div(dirRight, math_sqrt_f32(dirRightMagSqr));
-  } else {
-    dirRight = geo_right;
-  }
-  const GeoVector dirUp = geo_vector_cross3(dirForward, dirRight);
-  const GeoMatrix m     = geo_matrix_rotate(dirRight, dirUp, dirForward);
+  const GeoMatrix m = geo_matrix_rotate_look(forward, upRef);
   return geo_matrix_to_quat(&m);
 }
