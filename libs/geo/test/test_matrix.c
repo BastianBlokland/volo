@@ -35,6 +35,17 @@ spec(matrix) {
     check_eq_vector(geo_matrix_transform(&m, geo_vector(2, 1)), geo_vector(1, -3));
   }
 
+  it("takes the 4th column into account for transform3") {
+    const GeoMatrix m = {
+        .columns = {
+            {1, 0, 0, 0},
+            {-1, -3, 0, 0},
+            {2, 1, 1, 0},
+            {1, 2, 3, 0},
+        }};
+    check_eq_vector(geo_matrix_transform3(&m, geo_vector(2, 1, 0)), geo_vector(2, -1, 3));
+  }
+
   it("exchanges the rows and columns when transposing") {
     const GeoMatrix m = {.columns = {{1, 4, 7}, {2, 5, 8}, {3, 6, 9}}};
     const GeoMatrix t = {.columns = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}}};

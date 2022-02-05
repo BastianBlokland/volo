@@ -50,6 +50,7 @@ GeoMatrix geo_matrix_mul(const GeoMatrix* a, const GeoMatrix* b);
  * Transform a vector by the given matrix.
  */
 GeoVector geo_matrix_transform(const GeoMatrix*, GeoVector);
+GeoVector geo_matrix_transform3(const GeoMatrix*, GeoVector);
 
 /**
  * Return a new matrix that has the matrix's rows exchanged with its columns.
