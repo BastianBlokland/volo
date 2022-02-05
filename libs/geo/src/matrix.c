@@ -66,6 +66,14 @@ GeoVector geo_matrix_transform(const GeoMatrix* m, const GeoVector vec) {
 
 GeoVector geo_matrix_transform3(const GeoMatrix* m, const GeoVector vec) {
   return (GeoVector){
+      .x = geo_vector_dot(geo_matrix_row(m, 0), vec),
+      .y = geo_vector_dot(geo_matrix_row(m, 1), vec),
+      .z = geo_vector_dot(geo_matrix_row(m, 2), vec),
+  };
+}
+
+GeoVector geo_matrix_transform3_point(const GeoMatrix* m, const GeoVector vec) {
+  return (GeoVector){
       .x = geo_vector_dot(geo_matrix_row(m, 0), vec) + m->columns[3].x,
       .y = geo_vector_dot(geo_matrix_row(m, 1), vec) + m->columns[3].y,
       .z = geo_vector_dot(geo_matrix_row(m, 2), vec) + m->columns[3].z,
