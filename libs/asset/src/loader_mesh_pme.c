@@ -96,17 +96,17 @@ typedef struct {
 static GeoVector pme_def_normal(const PmeDef* def) {
   switch (def->axis) {
   case PmeAxis_Up:
-    return geo_down;
-  case PmeAxis_Down:
     return geo_up;
+  case PmeAxis_Down:
+    return geo_down;
   case PmeAxis_Right:
-    return geo_left;
-  case PmeAxis_Left:
     return geo_right;
+  case PmeAxis_Left:
+    return geo_left;
   case PmeAxis_Forward:
-    return geo_backward;
-  case PmeAxis_Backward:
     return geo_forward;
+  case PmeAxis_Backward:
+    return geo_backward;
   }
   diag_crash();
 }
