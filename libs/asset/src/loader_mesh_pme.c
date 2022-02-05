@@ -36,6 +36,7 @@ typedef enum {
   PmeType_Quad,
   PmeType_Cube,
   PmeType_Sphere,
+  PmeType_Capsule,
 } PmeType;
 
 typedef struct {
@@ -61,6 +62,7 @@ static void pme_datareg_init() {
     data_reg_const_t(g_dataReg, PmeType, Quad);
     data_reg_const_t(g_dataReg, PmeType, Cube);
     data_reg_const_t(g_dataReg, PmeType, Sphere);
+    data_reg_const_t(g_dataReg, PmeType, Capsule);
 
     data_reg_enum_t(g_dataReg, PmeAxis);
     data_reg_const_t(g_dataReg, PmeAxis, Up);
@@ -93,7 +95,7 @@ typedef struct {
   GeoMatrix         transformGlobal, transformLocal;
 } PmeGenerator;
 
-static GeoVector pme_def_normal(const PmeDef* def) {
+static GeoVector pme_def_axis(const PmeDef* def) {
   switch (def->axis) {
   case PmeAxis_Up:
     return geo_up;
@@ -111,13 +113,28 @@ static GeoVector pme_def_normal(const PmeDef* def) {
   diag_crash();
 }
 
+static f32 pme_def_axis_scale(const PmeDef* def) {
+  switch (def->axis) {
+  case PmeAxis_Right:
+  case PmeAxis_Left:
+    return def->scaleX != 0.0f ? math_max(def->scaleX, f32_epsilon) : 1.0f;
+  case PmeAxis_Up:
+  case PmeAxis_Down:
+    return def->scaleY != 0.0f ? math_max(def->scaleY, f32_epsilon) : 1.0f;
+  case PmeAxis_Forward:
+  case PmeAxis_Backward:
+    return def->scaleZ != 0.0f ? math_max(def->scaleZ, f32_epsilon) : 1.0f;
+  }
+  diag_crash();
+}
+
 static GeoMatrix pme_def_matrix(const PmeDef* def) {
   const GeoMatrix t = geo_matrix_translate(geo_vector(def->offsetX, def->offsetY, def->offsetZ));
-  const GeoMatrix r = geo_matrix_rotate_look(pme_def_normal(def), geo_up);
+  const GeoMatrix r = geo_matrix_rotate_look(pme_def_axis(def), geo_up);
   const GeoMatrix s = geo_matrix_scale(geo_vector(
-      def->scaleX != 0.0f ? def->scaleX : 1.0f,
-      def->scaleY != 0.0f ? def->scaleY : 1.0f,
-      def->scaleZ != 0.0f ? def->scaleZ : 1.0f));
+      def->scaleX != 0.0f ? math_max(def->scaleX, f32_epsilon) : 1.0f,
+      def->scaleY != 0.0f ? math_max(def->scaleY, f32_epsilon) : 1.0f,
+      def->scaleZ != 0.0f ? math_max(def->scaleZ, f32_epsilon) : 1.0f));
 
   const GeoMatrix ts = geo_matrix_mul(&t, &s);
   return geo_matrix_mul(&ts, &r);
@@ -241,22 +258,29 @@ static void pme_generate_cube(PmeGenerator* gen) {
   asset_mesh_compute_tangents(gen->builder);
 }
 
-static GeoVector pme_sphere_position(const f32 vAngle, const f32 hAngle) {
+static GeoVector pme_capsule_position(const f32 vAngle, const f32 hAngle, const f32 height) {
   const f32 vSin = math_sin_f32(vAngle), vCos = math_cos_f32(vAngle);
-  return geo_vector(.x = vCos * math_cos_f32(hAngle), .y = vSin, .z = vCos * math_sin_f32(hAngle));
+  return geo_vector(
+          .x = vCos * math_cos_f32(hAngle),
+          .y = vAngle >= 0 ? height + vSin : vSin,
+          .z = vCos * math_sin_f32(hAngle));
 }
 
-static void pme_generate_sphere(PmeGenerator* gen) {
-  /**
-   * Generate a sphere by placing quads (two triangles) on the surface of the sphere.
-   * TODO: Pretty inefficient as we generate the same point 4 times (each of the quad corners).
-   */
-
-  const u32 numSegs    = math_max(4, gen->def->subdivisions);
+static void pme_generate_capsule(PmeGenerator* gen, const f32 height) {
+  u32 numSegs = math_max(4, gen->def->subdivisions);
+  if (height > 0) {
+    // Additional segments for the straight part (1 for even sub-divs and 2 for odd sub-divs).
+    numSegs += 1 + numSegs % 2;
+  }
   const f32 segStepVer = math_pi_f32 / numSegs;
   const f32 segStepHor = math_pi_f32 * 2.0f / numSegs;
   const f32 invNumSegs = 1.0f / numSegs;
   const f32 radius     = 0.5f;
+
+  /**
+   * Generate 2 triangles on each segment (except for the first and last vertical segment).
+   * TODO: Pretty inefficient as we generate the same point 4 times (each of the quad corners).
+   */
 
   for (u32 v = 0; v != numSegs; ++v) {
     const f32 vAngleMax = math_pi_f32 * 0.5f - v * segStepVer;
@@ -269,10 +293,10 @@ static void pme_generate_sphere(PmeGenerator* gen) {
       const f32 hAngleMax = h * segStepHor;
       const f32 hAngleMin = hAngleMax - segStepHor;
 
-      const GeoVector posA = pme_sphere_position(vAngleMin, hAngleMin);
-      const GeoVector posB = pme_sphere_position(vAngleMax, hAngleMin);
-      const GeoVector posC = pme_sphere_position(vAngleMax, hAngleMax);
-      const GeoVector posD = pme_sphere_position(vAngleMin, hAngleMax);
+      const GeoVector posA = pme_capsule_position(vAngleMin, hAngleMin, height);
+      const GeoVector posB = pme_capsule_position(vAngleMax, hAngleMin, height);
+      const GeoVector posC = pme_capsule_position(vAngleMax, hAngleMax, height);
+      const GeoVector posD = pme_capsule_position(vAngleMin, hAngleMax, height);
 
       const f32 texXMin = h * invNumSegs;
       const f32 texXMax = (h + 1.0f) * invNumSegs;
@@ -306,8 +330,13 @@ static void pme_generate(PmeGenerator* gen) {
     pme_generate_cube(gen);
     break;
   case PmeType_Sphere:
-    pme_generate_sphere(gen);
+    pme_generate_capsule(gen, 0);
     break;
+  case PmeType_Capsule: {
+    const f32 axisScale = pme_def_axis_scale(gen->def);
+    const f32 height    = math_max(0.0f, axisScale - 1.0f);
+    pme_generate_capsule(gen, height);
+  } break;
   }
 }
 
