@@ -2,6 +2,7 @@
 #include "core_math.h"
 #include "geo_matrix.h"
 #include "geo_quat.h"
+#include "geo_vector.h"
 
 GeoQuat geo_quat_angle_axis(const GeoVector axis, const f32 angle) {
   // TODO: Should we instaed just add the pre-condition that the axis should be a unit vector?
@@ -70,16 +71,6 @@ GeoQuat geo_quat_norm(const GeoQuat q) {
 }
 
 GeoQuat geo_quat_look(const GeoVector forward, const GeoVector upRef) {
-  if (geo_vector_mag_sqr(forward) <= f32_epsilon) {
-    return geo_quat_ident;
-  }
-  if (geo_vector_mag_sqr(upRef) <= f32_epsilon) {
-    return geo_quat_ident;
-  }
-
-  const GeoVector dirForward = geo_vector_norm(forward);
-  const GeoVector dirRight   = geo_vector_norm(geo_vector_cross3(upRef, dirForward));
-  const GeoVector dirUp      = geo_vector_cross3(dirForward, dirRight);
-  const GeoMatrix m          = geo_matrix_rotate(dirRight, dirUp, dirForward);
+  const GeoMatrix m = geo_matrix_rotate_look(forward, upRef);
   return geo_matrix_to_quat(&m);
 }

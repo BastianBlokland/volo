@@ -15,7 +15,7 @@
       "anisotropy": "None"
     }
   ],
-  "meshId": "meshes/sphere.obj",
+  "meshId": "meshes/sphere.pme",
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "None",

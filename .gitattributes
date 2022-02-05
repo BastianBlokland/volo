@@ -17,3 +17,4 @@
 *.gra linguist-language=JSON
 *.ftx linguist-language=JSON
 *.ptx linguist-language=JSON
+*.pme linguist-language=JSON

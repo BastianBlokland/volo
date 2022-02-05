@@ -15,6 +15,34 @@ struct sAssetMeshBuilder {
   Allocator*      alloc;
 };
 
+typedef struct {
+  Mem              mem;
+  AssetMeshVertex* vertices;
+  AssetMeshIndex*  indices;
+  usize            vertexCount, indexCount;
+} AssetMeshSnapshot;
+
+static AssetMeshSnapshot asset_mesh_snapshot(const AssetMeshBuilder* builder, Allocator* alloc) {
+  const Mem orgVertMem = dynarray_at(&builder->vertices, 0, builder->vertices.size);
+  const Mem orgIdxMem  = dynarray_at(&builder->indices, 0, builder->indices.size);
+
+  const usize memSize = bits_align(orgVertMem.size + orgIdxMem.size, alignof(AssetMeshVertex));
+  const Mem   mem     = alloc_alloc(alloc, memSize, alignof(AssetMeshVertex));
+  const Mem   vertMem = mem_slice(mem, 0, orgVertMem.size);
+  const Mem   idxMem  = mem_slice(mem, orgVertMem.size, orgIdxMem.size);
+
+  mem_cpy(vertMem, orgVertMem);
+  mem_cpy(idxMem, orgIdxMem);
+
+  return (AssetMeshSnapshot){
+      .mem         = mem,
+      .vertices    = mem_as_t(vertMem, AssetMeshVertex),
+      .indices     = mem_as_t(idxMem, AssetMeshIndex),
+      .vertexCount = builder->vertices.size,
+      .indexCount  = builder->indices.size,
+  };
+}
+
 AssetMeshBuilder* asset_mesh_builder_create(Allocator* alloc, const usize maxVertexCount) {
   AssetMeshBuilder* builder = alloc_alloc_t(alloc, AssetMeshBuilder);
   *builder                  = (AssetMeshBuilder){
@@ -46,6 +74,18 @@ void asset_mesh_builder_destroy(AssetMeshBuilder* builder) {
   alloc_free_array_t(builder->alloc, builder->indexTable, builder->tableSize);
 
   alloc_free_t(builder->alloc, builder);
+}
+
+void asset_mesh_builder_clear(AssetMeshBuilder* builder) {
+  dynarray_clear(&builder->vertices);
+  dynarray_clear(&builder->indices);
+  builder->positionBounds = geo_box_inverted3();
+  builder->texcoordBounds = geo_box_inverted3();
+
+  // Reset the index table.
+  for (u32 i = 0; i != builder->tableSize; ++i) {
+    builder->indexTable[i] = asset_mesh_indices_max;
+  }
 }
 
 AssetMeshIndex asset_mesh_builder_push(AssetMeshBuilder* builder, const AssetMeshVertex vertex) {
@@ -105,7 +145,48 @@ AssetMeshComp asset_mesh_create(const AssetMeshBuilder* builder) {
   };
 }
 
+GeoVector asset_mesh_tri_norm(const GeoVector a, const GeoVector b, const GeoVector c) {
+  const GeoVector surface = geo_vector_cross3(geo_vector_sub(b, a), geo_vector_sub(c, a));
+  if (UNLIKELY(geo_vector_mag_sqr(surface) <= f32_epsilon)) {
+    return geo_forward; // Triangle with zero area has technically no normal.
+  }
+  return geo_vector_norm(surface);
+}
+
+void asset_mesh_compute_flat_normals(AssetMeshBuilder* builder) {
+  diag_assert_msg(builder->indices.size, "Empty mesh is invalid");
+
+  /**
+   * Compute flat normals (pointing away from the triangle face). This operation potentially needs
+   * to split vertices, therefore we take a snapshot of the mesh and then rebuild it.
+   */
+
+  AssetMeshSnapshot snapshot = asset_mesh_snapshot(builder, g_alloc_heap);
+  asset_mesh_builder_clear(builder);
+
+  diag_assert((snapshot.indexCount % 3) == 0); // Input has to be triangles.
+  for (usize i = 0; i != snapshot.indexCount; i += 3) {
+    AssetMeshVertex* vA = &snapshot.vertices[snapshot.indices[i]];
+    AssetMeshVertex* vB = &snapshot.vertices[snapshot.indices[i + 1]];
+    AssetMeshVertex* vC = &snapshot.vertices[snapshot.indices[i + 2]];
+
+    const GeoVector norm = asset_mesh_tri_norm(vA->position, vB->position, vC->position);
+
+    vA->normal = norm;
+    asset_mesh_builder_push(builder, *vA);
+
+    vB->normal = norm;
+    asset_mesh_builder_push(builder, *vB);
+
+    vC->normal = norm;
+    asset_mesh_builder_push(builder, *vC);
+  }
+
+  alloc_free(g_alloc_heap, snapshot.mem);
+}
+
 void asset_mesh_compute_tangents(AssetMeshBuilder* builder) {
+  diag_assert_msg(builder->indices.size, "Empty mesh is invalid");
 
   /**
    * Calculate a tangent and bitangent per triangle and accumlate the results per vertex. At the end

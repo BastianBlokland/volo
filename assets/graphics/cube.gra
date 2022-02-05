@@ -15,7 +15,7 @@
       "anisotropy": "None"
     }
   ],
-  "meshId": "meshes/cube.obj",
+  "meshId": "meshes/cube.pme",
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "None",

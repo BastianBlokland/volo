@@ -19,6 +19,9 @@ AssetLoader asset_loader(const AssetFormat format) {
   case AssetFormat_Obj: {
     RET_LOADER(obj);
   }
+  case AssetFormat_Pme: {
+    RET_LOADER(pme);
+  }
   case AssetFormat_Ppm: {
     RET_LOADER(ppm);
   }

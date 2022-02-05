@@ -39,7 +39,7 @@ static const Subject   g_subjects[]          = {
     {
         .graphic = string_static("graphics/sphere.gra"),
         .offset  = {0},
-        .scale   = 0.5f,
+        .scale   = 1.0f,
     },
     {
         .graphic = string_static("graphics/demo/bunny.gra"),

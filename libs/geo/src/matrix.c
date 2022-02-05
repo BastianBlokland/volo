@@ -64,6 +64,22 @@ GeoVector geo_matrix_transform(const GeoMatrix* m, const GeoVector vec) {
   };
 }
 
+GeoVector geo_matrix_transform3(const GeoMatrix* m, const GeoVector vec) {
+  return (GeoVector){
+      .x = geo_vector_dot(geo_matrix_row(m, 0), vec),
+      .y = geo_vector_dot(geo_matrix_row(m, 1), vec),
+      .z = geo_vector_dot(geo_matrix_row(m, 2), vec),
+  };
+}
+
+GeoVector geo_matrix_transform3_point(const GeoMatrix* m, const GeoVector vec) {
+  return (GeoVector){
+      .x = geo_vector_dot(geo_matrix_row(m, 0), vec) + m->columns[3].x,
+      .y = geo_vector_dot(geo_matrix_row(m, 1), vec) + m->columns[3].y,
+      .z = geo_vector_dot(geo_matrix_row(m, 2), vec) + m->columns[3].z,
+  };
+}
+
 GeoMatrix geo_matrix_transpose(const GeoMatrix* m) {
   return (GeoMatrix){
       .columns = {
@@ -161,11 +177,6 @@ GeoMatrix geo_matrix_rotate_z(const f32 angle) {
 }
 
 GeoMatrix geo_matrix_rotate(const GeoVector right, const GeoVector up, const GeoVector fwd) {
-  /**
-   * NOTE: An alternative api could be that we allow a non-orthonormal set of axis as input and just
-   * normalize and reconstruct the axes. This would however be wastefull when you already have
-   * orthonormal axes.
-   */
   assert_orthonormal(right, up, fwd);
 
   /**
@@ -181,6 +192,26 @@ GeoMatrix geo_matrix_rotate(const GeoVector right, const GeoVector up, const Geo
           {fwd.x, fwd.y, fwd.z, 0},
           {0, 0, 0, 1},
       }};
+}
+
+GeoMatrix geo_matrix_rotate_look(const GeoVector forward, const GeoVector upRef) {
+  if (UNLIKELY(geo_vector_mag_sqr(forward) <= f32_epsilon)) {
+    return geo_matrix_ident();
+  }
+  if (UNLIKELY(geo_vector_mag_sqr(upRef) <= f32_epsilon)) {
+    return geo_matrix_ident();
+  }
+
+  const GeoVector fwdNorm     = geo_vector_norm(forward);
+  GeoVector       right       = geo_vector_cross3(upRef, fwdNorm);
+  const f32       rightMagSqr = geo_vector_mag_sqr(right);
+  if (LIKELY(rightMagSqr > f32_epsilon)) {
+    right = geo_vector_div(right, math_sqrt_f32(rightMagSqr));
+  } else {
+    right = geo_right;
+  }
+  const GeoVector upNorm = geo_vector_cross3(fwdNorm, right);
+  return geo_matrix_rotate(right, upNorm, fwdNorm);
 }
 
 GeoMatrix geo_matrix_from_quat(const GeoQuat quat) {
