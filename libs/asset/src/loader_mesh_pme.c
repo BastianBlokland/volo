@@ -67,7 +67,7 @@ static void pme_datareg_init() {
     data_reg_struct_t(g_dataReg, PmeDef);
     data_reg_field_t(g_dataReg, PmeDef, type, t_PmeType);
     data_reg_field_t(g_dataReg, PmeDef, axis, t_PmeAxis);
-    data_reg_field_t(g_dataReg, PmeDef, subdivisions, data_prim_t(u32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, PmeDef, subdivisions, data_prim_t(u32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, PmeDef, scaleX, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, PmeDef, scaleY, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, PmeDef, scaleZ, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
@@ -81,13 +81,11 @@ static void pme_datareg_init() {
   thread_spinlock_unlock(&g_initLock);
 }
 
-static GeoVector pme_position(const PmeDef* def, const GeoVector vec) {
-  const f32 scaleX = def->scaleX != 0.0f ? def->scaleX : 1.0f;
-  const f32 scaleY = def->scaleY != 0.0f ? def->scaleY : 1.0f;
-  const f32 scaleZ = def->scaleZ != 0.0f ? def->scaleZ : 1.0f;
-  return geo_vector(
-      def->offsetX + vec.x * scaleX, def->offsetY + vec.y * scaleY, def->offsetZ + vec.z * scaleZ);
-}
+typedef struct {
+  const PmeDef*     def;
+  AssetMeshBuilder* builder;
+  GeoQuat           rotation;
+} PmeGenerator;
 
 static GeoVector pme_axis_normal(const PmeDef* def) {
   switch (def->axis) {
@@ -107,62 +105,106 @@ static GeoVector pme_axis_normal(const PmeDef* def) {
   diag_crash();
 }
 
-static void pme_push_vert(
-    const PmeDef*     def,
-    AssetMeshBuilder* builder,
-    const GeoQuat     rot,
-    const GeoVector   pos,
-    const GeoVector   texcoord) {
+static GeoVector pme_position(const PmeDef* def, const GeoVector vec) {
+  const f32 scaleX = def->scaleX != 0.0f ? def->scaleX : 1.0f;
+  const f32 scaleY = def->scaleY != 0.0f ? def->scaleY : 1.0f;
+  const f32 scaleZ = def->scaleZ != 0.0f ? def->scaleZ : 1.0f;
+  return geo_vector(
+      def->offsetX + vec.x * scaleX, def->offsetY + vec.y * scaleY, def->offsetZ + vec.z * scaleZ);
+}
 
+static void pme_push_vert(PmeGenerator* gen, const GeoVector pos, const GeoVector texcoord) {
   asset_mesh_builder_push(
-      builder,
+      gen->builder,
       (AssetMeshVertex){
-          .position = pme_position(def, geo_quat_rotate(rot, pos)),
+          .position = pme_position(gen->def, geo_quat_rotate(gen->rotation, pos)),
           .texcoord = texcoord,
       });
 }
 
-static void pme_generate_triangle(const PmeDef* def, AssetMeshBuilder* builder) {
-  const GeoQuat rot = geo_quat_look(pme_axis_normal(def), geo_up);
-  pme_push_vert(def, builder, rot, geo_vector(-0.5, -0.5), geo_vector(0, 0));
-  pme_push_vert(def, builder, rot, geo_vector(0, 0.5), geo_vector(0.5, 1));
-  pme_push_vert(def, builder, rot, geo_vector(0.5, -0.5), geo_vector(1, 0));
+void pme_push_triangle(PmeGenerator* gen) {
+  /**
+   * Subdivided triangle.
+   *
+   *    /\
+   *   /\/\
+   *  /\/\/\
+   * /\/\/\/\
+   *
+   */
+  const u32 numSteps = gen->def->subdivisions + 1;
+  const f32 step     = 1.0f / numSteps;
+  for (u32 y = numSteps; y-- != 0;) {
+    for (u32 x = 0; x != (numSteps - y); ++x) {
+      const f32 xMin = (x + y * 0.5f + 0.0f) * step;
+      const f32 xMid = (x + y * 0.5f + 0.5f) * step;
+      const f32 xMax = (x + y * 0.5f + 1.0f) * step;
+      const f32 yMin = (y + 0.0f) * step;
+      const f32 yMax = (y + 1.0f) * step;
 
-  asset_mesh_compute_flat_normals(builder);
-  asset_mesh_compute_tangents(builder);
-}
+      pme_push_vert(gen, geo_vector(xMin - 0.5f, yMin - 0.5f), geo_vector(xMin, yMin));
+      pme_push_vert(gen, geo_vector(xMid - 0.5f, yMax - 0.5f), geo_vector(xMid, yMax));
+      pme_push_vert(gen, geo_vector(xMax - 0.5f, yMin - 0.5f), geo_vector(xMax, yMin));
 
-static void pme_generate_quad(const PmeDef* def, AssetMeshBuilder* builder) {
-  const GeoQuat rot = geo_quat_look(pme_axis_normal(def), geo_up);
-
-  const f32 step = 1.0f / (def->subdivisions + 1);
-  for (f32 y = 0.0f; y < 1.0f; y += step) {
-    for (f32 x = 0.0f; x < 1.0f; x += step) {
-      const f32 xPosMin = x - 0.5f, yPosMin = y - 0.5f;
-      const f32 xPosMax = xPosMin + step, yPosMax = yPosMin + step;
-      const f32 xTexMin = x, yTexMin = y;
-      const f32 xTexMax = xTexMin + step, yTexMax = yTexMin + step;
-
-      pme_push_vert(def, builder, rot, geo_vector(xPosMin, yPosMax), geo_vector(xTexMin, yTexMax));
-      pme_push_vert(def, builder, rot, geo_vector(xPosMax, yPosMax), geo_vector(xTexMax, yTexMax));
-      pme_push_vert(def, builder, rot, geo_vector(xPosMin, yPosMin), geo_vector(xTexMin, yTexMin));
-      pme_push_vert(def, builder, rot, geo_vector(xPosMax, yPosMax), geo_vector(xTexMax, yTexMax));
-      pme_push_vert(def, builder, rot, geo_vector(xPosMax, yPosMin), geo_vector(xTexMax, yTexMin));
-      pme_push_vert(def, builder, rot, geo_vector(xPosMin, yPosMin), geo_vector(xTexMin, yTexMin));
+      if (y) {
+        /**
+         * Fill in the hole in the row below us.
+         */
+        const f32 yLastRow = yMin - step;
+        pme_push_vert(gen, geo_vector(xMin - 0.5f, yMin - 0.5f), geo_vector(xMin, yMin));
+        pme_push_vert(gen, geo_vector(xMax - 0.5f, yMin - 0.5f), geo_vector(xMax, yMin));
+        pme_push_vert(gen, geo_vector(xMid - 0.5f, yLastRow - 0.5f), geo_vector(xMid, yLastRow));
+      }
     }
   }
-
-  asset_mesh_compute_flat_normals(builder);
-  asset_mesh_compute_tangents(builder);
 }
 
-static void pme_generate(const PmeDef* def, AssetMeshBuilder* builder) {
-  switch (def->type) {
+void pme_push_quad(PmeGenerator* gen) {
+  /**
+   * Subdivided quad.
+   *
+   * | | | |
+   * | | | |
+   * | | | |
+   *
+   */
+  const f32 step = 1.0f / (gen->def->subdivisions + 1);
+  for (f32 y = 0.0f; y < 1.0f; y += step) {
+    for (f32 x = 0.0f; x < 1.0f; x += step) {
+      const f32 xMin = x;
+      const f32 yMin = y;
+      const f32 xMax = xMin + step;
+      const f32 yMax = yMin + step;
+
+      pme_push_vert(gen, geo_vector(xMin - 0.5f, yMax - 0.5f), geo_vector(xMin, yMax));
+      pme_push_vert(gen, geo_vector(xMax - 0.5f, yMax - 0.5f), geo_vector(xMax, yMax));
+      pme_push_vert(gen, geo_vector(xMin - 0.5f, yMin - 0.5f), geo_vector(xMin, yMin));
+      pme_push_vert(gen, geo_vector(xMax - 0.5f, yMax - 0.5f), geo_vector(xMax, yMax));
+      pme_push_vert(gen, geo_vector(xMax - 0.5f, yMin - 0.5f), geo_vector(xMax, yMin));
+      pme_push_vert(gen, geo_vector(xMin - 0.5f, yMin - 0.5f), geo_vector(xMin, yMin));
+    }
+  }
+}
+
+static void pme_generate_triangle(PmeGenerator* gen) {
+  pme_push_triangle(gen);
+  asset_mesh_compute_flat_normals(gen->builder);
+  asset_mesh_compute_tangents(gen->builder);
+}
+
+static void pme_generate_quad(PmeGenerator* gen) {
+  pme_push_quad(gen);
+  asset_mesh_compute_flat_normals(gen->builder);
+  asset_mesh_compute_tangents(gen->builder);
+}
+
+static void pme_generate(PmeGenerator* gen) {
+  switch (gen->def->type) {
   case PmeType_Triangle:
-    pme_generate_triangle(def, builder);
+    pme_generate_triangle(gen);
     break;
   case PmeType_Quad:
-    pme_generate_quad(def, builder);
+    pme_generate_quad(gen);
     break;
   }
 }
@@ -202,7 +244,11 @@ void asset_load_pme(EcsWorld* world, const EcsEntityId entity, AssetSource* src)
   }
 
   builder = asset_mesh_builder_create(g_alloc_heap, pme_max_verts);
-  pme_generate(&def, builder);
+  pme_generate(&(PmeGenerator){
+      .def      = &def,
+      .builder  = builder,
+      .rotation = geo_quat_look(pme_axis_normal(&def), geo_up),
+  });
 
   *ecs_world_add_t(world, entity, AssetMeshComp) = asset_mesh_create(builder);
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
