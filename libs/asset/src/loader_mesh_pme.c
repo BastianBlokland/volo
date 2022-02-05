@@ -261,9 +261,9 @@ static void pme_generate_cube(PmeGenerator* gen) {
 static GeoVector pme_capsule_position(const f32 vAngle, const f32 hAngle, const f32 height) {
   const f32 vSin = math_sin_f32(vAngle), vCos = math_cos_f32(vAngle);
   return geo_vector(
-          .x = vCos * math_cos_f32(hAngle),
-          .y = vAngle >= 0 ? height + vSin : vSin,
-          .z = vCos * math_sin_f32(hAngle));
+          .x = vCos * math_sin_f32(hAngle),
+          .y = vCos * math_cos_f32(hAngle),
+          .z = vAngle >= 0 ? height + vSin : vSin);
 }
 
 static void pme_generate_capsule(PmeGenerator* gen, const f32 height) {
