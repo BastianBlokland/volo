@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_math.h"
 #include "core_thread.h"
 #include "data.h"
 #include "ecs_world.h"
@@ -34,6 +35,7 @@ typedef enum {
   PmeType_Triangle,
   PmeType_Quad,
   PmeType_Cube,
+  PmeType_Sphere,
 } PmeType;
 
 typedef struct {
@@ -58,6 +60,7 @@ static void pme_datareg_init() {
     data_reg_const_t(g_dataReg, PmeType, Triangle);
     data_reg_const_t(g_dataReg, PmeType, Quad);
     data_reg_const_t(g_dataReg, PmeType, Cube);
+    data_reg_const_t(g_dataReg, PmeType, Sphere);
 
     data_reg_enum_t(g_dataReg, PmeAxis);
     data_reg_const_t(g_dataReg, PmeAxis, Up);
@@ -120,17 +123,25 @@ static GeoMatrix pme_def_matrix(const PmeDef* def) {
   return geo_matrix_mul(&ts, &r);
 }
 
-static GeoVector pme_transform(PmeGenerator* gen, GeoVector vec) {
-  const GeoMatrix mat = geo_matrix_mul(&gen->transformGlobal, &gen->transformLocal);
-  return geo_matrix_transform3(&mat, vec);
-}
-
 static void pme_push_vert(PmeGenerator* gen, const GeoVector pos, const GeoVector texcoord) {
+  const GeoMatrix mat = geo_matrix_mul(&gen->transformGlobal, &gen->transformLocal);
   asset_mesh_builder_push(
       gen->builder,
       (AssetMeshVertex){
-          .position = pme_transform(gen, pos),
+          .position = geo_matrix_transform3_point(&mat, pos),
           .texcoord = texcoord,
+      });
+}
+
+static void pme_push_vert_nrm(
+    PmeGenerator* gen, const GeoVector pos, const GeoVector texcoord, const GeoVector normal) {
+  const GeoMatrix mat = geo_matrix_mul(&gen->transformGlobal, &gen->transformLocal);
+  asset_mesh_builder_push(
+      gen->builder,
+      (AssetMeshVertex){
+          .position = geo_matrix_transform3_point(&mat, pos),
+          .texcoord = texcoord,
+          .normal   = geo_matrix_transform3(&mat, normal),
       });
 }
 
@@ -147,12 +158,12 @@ void pme_push_triangle(PmeGenerator* gen) {
   const u32 numSteps = gen->def->subdivisions + 1;
   const f32 step     = 1.0f / numSteps;
   for (u32 y = numSteps; y-- != 0;) {
+    const f32 yMin = (y + 0.0f) * step;
+    const f32 yMax = (y + 1.0f) * step;
     for (u32 x = 0; x != (numSteps - y); ++x) {
       const f32 xMin = (x + y * 0.5f + 0.0f) * step;
       const f32 xMid = (x + y * 0.5f + 0.5f) * step;
       const f32 xMax = (x + y * 0.5f + 1.0f) * step;
-      const f32 yMin = (y + 0.0f) * step;
-      const f32 yMax = (y + 1.0f) * step;
 
       pme_push_vert(gen, geo_vector(xMin - 0.5f, yMin - 0.5f), geo_vector(xMin, yMin));
       pme_push_vert(gen, geo_vector(xMid - 0.5f, yMax - 0.5f), geo_vector(xMid, yMax));
@@ -178,11 +189,11 @@ void pme_push_quad(PmeGenerator* gen) {
   const u32 numSteps = gen->def->subdivisions + 1;
   const f32 step     = 1.0f / numSteps;
   for (u32 y = 0; y != numSteps; ++y) {
+    const f32 yMin = y * step;
+    const f32 yMax = yMin + step;
     for (u32 x = 0; x != numSteps; ++x) {
       const f32 xMin = x * step;
-      const f32 yMin = y * step;
       const f32 xMax = xMin + step;
-      const f32 yMax = yMin + step;
 
       pme_push_vert(gen, geo_vector(xMin - 0.5f, yMax - 0.5f), geo_vector(xMin, yMax));
       pme_push_vert(gen, geo_vector(xMax - 0.5f, yMax - 0.5f), geo_vector(xMax, yMax));
@@ -196,12 +207,16 @@ void pme_push_quad(PmeGenerator* gen) {
 
 static void pme_generate_triangle(PmeGenerator* gen) {
   pme_push_triangle(gen);
+
+  // TODO: Compute the normals and tangents directly instead of these separate passes.
   asset_mesh_compute_flat_normals(gen->builder);
   asset_mesh_compute_tangents(gen->builder);
 }
 
 static void pme_generate_quad(PmeGenerator* gen) {
   pme_push_quad(gen);
+
+  // TODO: Compute the normals and tangents directly instead of these separate passes.
   asset_mesh_compute_flat_normals(gen->builder);
   asset_mesh_compute_tangents(gen->builder);
 }
@@ -221,7 +236,61 @@ static void pme_generate_cube(PmeGenerator* gen) {
     gen->transformLocal    = geo_matrix_mul(&t, rotMat);
     pme_push_quad(gen);
   }
+  // TODO: Compute the normals and tangents directly instead of these separate passes.
   asset_mesh_compute_flat_normals(gen->builder);
+  asset_mesh_compute_tangents(gen->builder);
+}
+
+static GeoVector pme_sphere_position(const f32 vAngle, const f32 hAngle) {
+  const f32 vSin = math_sin_f32(vAngle), vCos = math_cos_f32(vAngle);
+  return geo_vector(.x = vCos * math_cos_f32(hAngle), .y = vSin, .z = vCos * math_sin_f32(hAngle));
+}
+
+static void pme_generate_sphere(PmeGenerator* gen) {
+  /**
+   * Generate a sphere by placing quads (two triangles) on the surface of the sphere.
+   * TODO: Pretty inefficient as we generate the same point 4 times (each of the quad corners).
+   */
+
+  const u32 numSegs    = math_max(4, gen->def->subdivisions);
+  const f32 segStepVer = math_pi_f32 / numSegs;
+  const f32 segStepHor = math_pi_f32 * 2.0f / numSegs;
+  const f32 invNumSegs = 1.0f / numSegs;
+  const f32 radius     = 0.5f;
+
+  for (u32 v = 0; v != numSegs; ++v) {
+    const f32 vAngleMax = math_pi_f32 * 0.5f - v * segStepVer;
+    const f32 vAngleMin = vAngleMax - segStepVer;
+
+    const f32 texYMin = 1.0f - (v + 1.0f) * invNumSegs;
+    const f32 texYMax = 1.0f - v * invNumSegs;
+
+    for (u32 h = 0; h != numSegs; ++h) {
+      const f32 hAngleMax = h * segStepHor;
+      const f32 hAngleMin = hAngleMax - segStepHor;
+
+      const GeoVector posA = pme_sphere_position(vAngleMin, hAngleMin);
+      const GeoVector posB = pme_sphere_position(vAngleMax, hAngleMin);
+      const GeoVector posC = pme_sphere_position(vAngleMax, hAngleMax);
+      const GeoVector posD = pme_sphere_position(vAngleMin, hAngleMax);
+
+      const f32 texXMin = h * invNumSegs;
+      const f32 texXMax = (h + 1.0f) * invNumSegs;
+
+      if (v) {
+        pme_push_vert_nrm(gen, geo_vector_mul(posA, radius), geo_vector(texXMin, texYMin), posA);
+        pme_push_vert_nrm(gen, geo_vector_mul(posB, radius), geo_vector(texXMin, texYMax), posB);
+        pme_push_vert_nrm(gen, geo_vector_mul(posC, radius), geo_vector(texXMax, texYMax), posC);
+      }
+      if (v != numSegs - 1) {
+        pme_push_vert_nrm(gen, geo_vector_mul(posA, radius), geo_vector(texXMin, texYMin), posA);
+        pme_push_vert_nrm(gen, geo_vector_mul(posC, radius), geo_vector(texXMax, texYMax), posC);
+        pme_push_vert_nrm(gen, geo_vector_mul(posD, radius), geo_vector(texXMax, texYMin), posD);
+      }
+    }
+  }
+
+  // TODO: Compute the tangents directly instead of this separate pass.
   asset_mesh_compute_tangents(gen->builder);
 }
 
@@ -235,6 +304,9 @@ static void pme_generate(PmeGenerator* gen) {
     break;
   case PmeType_Cube:
     pme_generate_cube(gen);
+    break;
+  case PmeType_Sphere:
+    pme_generate_sphere(gen);
     break;
   }
 }
