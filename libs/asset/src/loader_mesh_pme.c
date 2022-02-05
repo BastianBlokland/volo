@@ -5,6 +5,7 @@
 #include "core_thread.h"
 #include "data.h"
 #include "ecs_world.h"
+#include "geo_matrix.h"
 #include "log_logger.h"
 
 #include "mesh_utils_internal.h"
@@ -14,7 +15,7 @@
  * ProceduralMEsh - Procedurally generated mesh.
  */
 
-#define pme_max_verts (1024 * 64)
+#define pme_max_verts (1024 * 100)
 #define pme_max_subdivisions 100
 
 static DataReg* g_dataReg;
@@ -32,6 +33,7 @@ typedef enum {
 typedef enum {
   PmeType_Triangle,
   PmeType_Quad,
+  PmeType_Cube,
 } PmeType;
 
 typedef struct {
@@ -55,6 +57,7 @@ static void pme_datareg_init() {
     data_reg_enum_t(g_dataReg, PmeType);
     data_reg_const_t(g_dataReg, PmeType, Triangle);
     data_reg_const_t(g_dataReg, PmeType, Quad);
+    data_reg_const_t(g_dataReg, PmeType, Cube);
 
     data_reg_enum_t(g_dataReg, PmeAxis);
     data_reg_const_t(g_dataReg, PmeAxis, Up);
@@ -84,10 +87,10 @@ static void pme_datareg_init() {
 typedef struct {
   const PmeDef*     def;
   AssetMeshBuilder* builder;
-  GeoQuat           rotation;
+  GeoMatrix         transformGlobal, transformLocal;
 } PmeGenerator;
 
-static GeoVector pme_axis_normal(const PmeDef* def) {
+static GeoVector pme_def_normal(const PmeDef* def) {
   switch (def->axis) {
   case PmeAxis_Up:
     return geo_down;
@@ -105,19 +108,28 @@ static GeoVector pme_axis_normal(const PmeDef* def) {
   diag_crash();
 }
 
-static GeoVector pme_position(const PmeDef* def, const GeoVector vec) {
-  const f32 scaleX = def->scaleX != 0.0f ? def->scaleX : 1.0f;
-  const f32 scaleY = def->scaleY != 0.0f ? def->scaleY : 1.0f;
-  const f32 scaleZ = def->scaleZ != 0.0f ? def->scaleZ : 1.0f;
-  return geo_vector(
-      def->offsetX + vec.x * scaleX, def->offsetY + vec.y * scaleY, def->offsetZ + vec.z * scaleZ);
+static GeoMatrix pme_def_matrix(const PmeDef* def) {
+  const GeoMatrix t = geo_matrix_translate(geo_vector(def->offsetX, def->offsetY, def->offsetZ));
+  const GeoMatrix r = geo_matrix_rotate_look(pme_def_normal(def), geo_up);
+  const GeoMatrix s = geo_matrix_scale(geo_vector(
+      def->scaleX != 0.0f ? def->scaleX : 1.0f,
+      def->scaleY != 0.0f ? def->scaleY : 1.0f,
+      def->scaleZ != 0.0f ? def->scaleZ : 1.0f));
+
+  const GeoMatrix ts = geo_matrix_mul(&t, &s);
+  return geo_matrix_mul(&ts, &r);
+}
+
+static GeoVector pme_transform(PmeGenerator* gen, GeoVector vec) {
+  const GeoMatrix mat = geo_matrix_mul(&gen->transformGlobal, &gen->transformLocal);
+  return geo_matrix_transform3(&mat, vec);
 }
 
 static void pme_push_vert(PmeGenerator* gen, const GeoVector pos, const GeoVector texcoord) {
   asset_mesh_builder_push(
       gen->builder,
       (AssetMeshVertex){
-          .position = pme_position(gen->def, geo_quat_rotate(gen->rotation, pos)),
+          .position = pme_transform(gen, pos),
           .texcoord = texcoord,
       });
 }
@@ -162,17 +174,13 @@ void pme_push_triangle(PmeGenerator* gen) {
 void pme_push_quad(PmeGenerator* gen) {
   /**
    * Subdivided quad.
-   *
-   * | | | |
-   * | | | |
-   * | | | |
-   *
    */
-  const f32 step = 1.0f / (gen->def->subdivisions + 1);
-  for (f32 y = 0.0f; y < 1.0f; y += step) {
-    for (f32 x = 0.0f; x < 1.0f; x += step) {
-      const f32 xMin = x;
-      const f32 yMin = y;
+  const u32 numSteps = gen->def->subdivisions + 1;
+  const f32 step     = 1.0f / numSteps;
+  for (u32 y = 0; y != numSteps; ++y) {
+    for (u32 x = 0; x != numSteps; ++x) {
+      const f32 xMin = x * step;
+      const f32 yMin = y * step;
       const f32 xMax = xMin + step;
       const f32 yMax = yMin + step;
 
@@ -198,6 +206,25 @@ static void pme_generate_quad(PmeGenerator* gen) {
   asset_mesh_compute_tangents(gen->builder);
 }
 
+static void pme_generate_cube(PmeGenerator* gen) {
+  const GeoMatrix faceRotations[] = {
+      geo_matrix_rotate_look(geo_up, geo_forward),
+      geo_matrix_rotate_look(geo_down, geo_forward),
+      geo_matrix_rotate_look(geo_right, geo_up),
+      geo_matrix_rotate_look(geo_left, geo_up),
+      geo_matrix_rotate_look(geo_forward, geo_up),
+      geo_matrix_rotate_look(geo_backward, geo_up),
+  };
+  array_for_t(faceRotations, GeoMatrix, rotMat) {
+    const GeoVector offset = geo_vector_mul(geo_matrix_transform3(rotMat, geo_backward), 0.5f);
+    const GeoMatrix t      = geo_matrix_translate(offset);
+    gen->transformLocal    = geo_matrix_mul(&t, rotMat);
+    pme_push_quad(gen);
+  }
+  asset_mesh_compute_flat_normals(gen->builder);
+  asset_mesh_compute_tangents(gen->builder);
+}
+
 static void pme_generate(PmeGenerator* gen) {
   switch (gen->def->type) {
   case PmeType_Triangle:
@@ -205,6 +232,9 @@ static void pme_generate(PmeGenerator* gen) {
     break;
   case PmeType_Quad:
     pme_generate_quad(gen);
+    break;
+  case PmeType_Cube:
+    pme_generate_cube(gen);
     break;
   }
 }
@@ -245,9 +275,10 @@ void asset_load_pme(EcsWorld* world, const EcsEntityId entity, AssetSource* src)
 
   builder = asset_mesh_builder_create(g_alloc_heap, pme_max_verts);
   pme_generate(&(PmeGenerator){
-      .def      = &def,
-      .builder  = builder,
-      .rotation = geo_quat_look(pme_axis_normal(&def), geo_up),
+      .def             = &def,
+      .builder         = builder,
+      .transformGlobal = pme_def_matrix(&def),
+      .transformLocal  = geo_matrix_ident(),
   });
 
   *ecs_world_add_t(world, entity, AssetMeshComp) = asset_mesh_create(builder);
