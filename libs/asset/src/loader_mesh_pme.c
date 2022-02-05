@@ -35,7 +35,6 @@ typedef enum {
   PmeType_Triangle,
   PmeType_Quad,
   PmeType_Cube,
-  PmeType_Sphere,
   PmeType_Capsule,
 } PmeType;
 
@@ -43,6 +42,7 @@ typedef struct {
   PmeType type;
   PmeAxis axis;
   u32     subdivisions;
+  f32     length;
   f32     scaleX, scaleY, scaleZ;
   f32     offsetX, offsetY, offsetZ;
 } PmeDef;
@@ -61,7 +61,6 @@ static void pme_datareg_init() {
     data_reg_const_t(g_dataReg, PmeType, Triangle);
     data_reg_const_t(g_dataReg, PmeType, Quad);
     data_reg_const_t(g_dataReg, PmeType, Cube);
-    data_reg_const_t(g_dataReg, PmeType, Sphere);
     data_reg_const_t(g_dataReg, PmeType, Capsule);
 
     data_reg_enum_t(g_dataReg, PmeAxis);
@@ -76,6 +75,7 @@ static void pme_datareg_init() {
     data_reg_field_t(g_dataReg, PmeDef, type, t_PmeType);
     data_reg_field_t(g_dataReg, PmeDef, axis, t_PmeAxis);
     data_reg_field_t(g_dataReg, PmeDef, subdivisions, data_prim_t(u32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, PmeDef, length, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, PmeDef, scaleX, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, PmeDef, scaleY, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, PmeDef, scaleZ, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
@@ -263,7 +263,7 @@ static GeoVector pme_capsule_position(const f32 vAngle, const f32 hAngle, const 
   return geo_vector(
           .x = vCos * math_sin_f32(hAngle),
           .y = vCos * math_cos_f32(hAngle),
-          .z = vAngle >= 0 ? height + vSin : vSin);
+          .z = (height * -0.5f) + (vAngle >= 0 ? height + vSin : vSin));
 }
 
 static void pme_generate_capsule(PmeGenerator* gen, const f32 height) {
@@ -329,12 +329,8 @@ static void pme_generate(PmeGenerator* gen) {
   case PmeType_Cube:
     pme_generate_cube(gen);
     break;
-  case PmeType_Sphere:
-    pme_generate_capsule(gen, 0);
-    break;
   case PmeType_Capsule: {
-    const f32 axisScale = pme_def_axis_scale(gen->def);
-    const f32 height    = math_max(0.0f, axisScale - 1.0f);
+    const f32 height = 1.0f / pme_def_axis_scale(gen->def) * gen->def->length;
     pme_generate_capsule(gen, height);
   } break;
   }
