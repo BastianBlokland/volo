@@ -59,8 +59,6 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
   diag_assert(rvk_format_info(vkFormat).size == asset_texture_pixel_size(asset));
   diag_assert(rvk_format_info(vkFormat).channels == (u32)asset->channels);
 
-  // TODO: Check if texture format is supported.
-
   const RvkSize size      = rvk_size(asset->width, asset->height);
   const u8      mipLevels = rvk_compute_miplevels(size);
   texture->image          = rvk_image_create_source_color(dev, vkFormat, size, mipLevels);

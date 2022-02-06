@@ -322,9 +322,7 @@ static VkFormat rvk_device_pick_depthformat(RvkDevice* dev) {
   static const VkFormatFeatureFlags g_features = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
   array_for_t(g_supportedFormats, VkFormat, format) {
-    VkFormatProperties properties;
-    vkGetPhysicalDeviceFormatProperties(dev->vkPhysDev, *format, &properties);
-    if ((properties.optimalTilingFeatures & g_features) == g_features) {
+    if (rvk_device_format_supported(dev, *format, g_features)) {
       return *format;
     }
   }
@@ -383,10 +381,6 @@ RvkDevice* rvk_device_create() {
   return dev;
 }
 
-String rvk_device_name(const RvkDevice* dev) {
-  return string_from_null_term(dev->vkProperties.deviceName);
-}
-
 void rvk_device_destroy(RvkDevice* dev) {
 
   rvk_device_wait_idle(dev);
@@ -409,6 +403,17 @@ void rvk_device_destroy(RvkDevice* dev) {
   alloc_free_t(g_alloc_heap, dev);
 
   log_d("Vulkan device destroyed");
+}
+
+bool rvk_device_format_supported(
+    const RvkDevice* dev, const VkFormat format, const VkFormatFeatureFlags requiredFeatures) {
+  VkFormatProperties properties;
+  vkGetPhysicalDeviceFormatProperties(dev->vkPhysDev, format, &properties);
+  return (properties.optimalTilingFeatures & requiredFeatures) == requiredFeatures;
+}
+
+String rvk_device_name(const RvkDevice* dev) {
+  return string_from_null_term(dev->vkProperties.deviceName);
 }
 
 void rvk_device_update(RvkDevice* dev) { rvk_transfer_flush(dev->transferer); }
