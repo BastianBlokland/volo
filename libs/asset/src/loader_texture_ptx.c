@@ -36,6 +36,7 @@ typedef struct {
   PtxType              type;
   AssetTextureType     pixelType;
   AssetTextureChannels channels;
+  bool                 mipmaps;
   u32                  size;
   f32                  frequency, power;
   u32                  seed;
@@ -72,6 +73,7 @@ static void ptx_datareg_init() {
     data_reg_field_t(g_dataReg, PtxDef, type, t_PtxType);
     data_reg_field_t(g_dataReg, PtxDef, pixelType, t_AssetTextureType, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, PtxDef, channels, t_AssetTextureChannels);
+    data_reg_field_t(g_dataReg, PtxDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, PtxDef, size, data_prim_t(u32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, PtxDef, frequency, data_prim_t(f32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, PtxDef, power, data_prim_t(f32), .flags = DataFlags_NotEmpty);
@@ -203,6 +205,7 @@ static void ptx_generate(const PtxDef* def, AssetTextureComp* outTexture) {
   *outTexture = (AssetTextureComp){
       .type      = def->pixelType,
       .channels  = def->channels,
+      .flags     = def->mipmaps ? AssetTextureFlags_MipMaps : 0,
       .pixelsRaw = pixels,
       .width     = size,
       .height    = size,

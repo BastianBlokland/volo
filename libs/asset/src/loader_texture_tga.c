@@ -332,6 +332,7 @@ void asset_load_tga(EcsWorld* world, const EcsEntityId entity, AssetSource* src)
       AssetTextureComp,
       .type     = AssetTextureType_Byte,
       .channels = AssetTextureChannels_Four,
+      .flags    = AssetTextureFlags_MipMaps,
       .width    = width,
       .height   = height,
       .pixelsB4 = pixels);
