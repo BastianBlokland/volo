@@ -36,3 +36,9 @@
  * NOTE: _VAL_ is expanded multiple times, so care must be taken when providing complex expressions.
  */
 #define float_isinf(_VAL_) ((_VAL_) != 0.0 && (_VAL_)*2 == (_VAL_))
+
+/**
+ * Quantize a float to use a limited number of mantissa bits.
+ * Pre-condition: maxMantissaBits > 0 && maxMantissaBits <= 23
+ */
+f32 float_quantize_f32(f32, u8 maxMantissaBits);

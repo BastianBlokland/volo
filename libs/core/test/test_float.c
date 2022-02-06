@@ -43,4 +43,9 @@ spec(float) {
     check_eq_int(bits_f32_as_u32(f32_max), u32_lit(0x7f7fffff));
     check_eq_int(bits_f64_as_u64(f64_max), u64_lit(0x7fefffffffffffff));
   }
+
+  it("can quantize 32 bit floats to use a limited amount of mantissa bits") {
+    check(1.1234f != 1.1235f);
+    check(float_quantize_f32(1.1234f, 10) == float_quantize_f32(1.1235f, 10));
+  }
 }

@@ -183,9 +183,4 @@ spec(bits) {
     check_eq_float(bits_f16_to_f32(bits_f32_to_f16(-.1337f)), -.1337f, 1e-3f);
     check_eq_float(bits_f16_to_f32(bits_f32_to_f16(-13.37f)), -13.37f, 1e-2f);
   }
-
-  it("can quantize 32 bit floats to use a limited amount of mantissa bits") {
-    check(1.1234f != 1.1235f);
-    check(bits_quantize_f32(1.1234f, 10) == bits_quantize_f32(1.1235f, 10));
-  }
 }

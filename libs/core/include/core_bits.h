@@ -193,9 +193,3 @@ f16 bits_f32_to_f16(f32);
  * Convert a 16 bit floating point value to 32 bit.
  */
 f32 bits_f16_to_f32(f16);
-
-/**
- * Quantize a float to use a limited number of mantissa bits.
- * Pre-condition: maxMantissaBits > 0 && maxMantissaBits <= 23
- */
-f32 bits_quantize_f32(f32, u8 maxMantissaBits);

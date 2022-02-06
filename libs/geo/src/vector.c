@@ -92,17 +92,17 @@ GeoVector geo_vector_perspective_div(const GeoVector v) {
 
 GeoVector geo_vector_quantize(const GeoVector v, const u8 maxMantissaBits) {
   return (GeoVector){
-      .x = bits_quantize_f32(v.x, maxMantissaBits),
-      .y = bits_quantize_f32(v.y, maxMantissaBits),
-      .z = bits_quantize_f32(v.z, maxMantissaBits),
-      .w = bits_quantize_f32(v.w, maxMantissaBits),
+      .x = float_quantize_f32(v.x, maxMantissaBits),
+      .y = float_quantize_f32(v.y, maxMantissaBits),
+      .z = float_quantize_f32(v.z, maxMantissaBits),
+      .w = float_quantize_f32(v.w, maxMantissaBits),
   };
 }
 
 GeoVector geo_vector_quantize3(const GeoVector v, const u8 maxMantissaBits) {
   return (GeoVector){
-      .x = bits_quantize_f32(v.x, maxMantissaBits),
-      .y = bits_quantize_f32(v.y, maxMantissaBits),
-      .z = bits_quantize_f32(v.z, maxMantissaBits),
+      .x = float_quantize_f32(v.x, maxMantissaBits),
+      .y = float_quantize_f32(v.y, maxMantissaBits),
+      .z = float_quantize_f32(v.z, maxMantissaBits),
   };
 }
