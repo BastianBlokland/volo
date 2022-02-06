@@ -21,50 +21,54 @@
 
 typedef struct {
   String    graphic;
-  GeoVector offset;
+  GeoVector position;
   f32       scale;
 } Subject;
 
 static const GapVector g_windowSize          = {1024, 768};
 static const f32       g_pedestalRotateSpeed = 45.0f * math_deg_to_rad;
 static const f32       g_pedestalPositionY   = 0.5f;
-static const f32       g_subjectPositionY    = 1.0f;
 static const f32       g_subjectSpacing      = 2.5f;
 static const Subject   g_subjects[]          = {
     {
-        .graphic = string_static("graphics/cube.gra"),
-        .offset  = {0},
-        .scale   = 1.0f,
+        .graphic  = string_static("graphics/cube.gra"),
+        .position = {.y = 1},
+        .scale    = 1.0f,
     },
     {
-        .graphic = string_static("graphics/sphere.gra"),
-        .offset  = {0},
-        .scale   = 1.0f,
+        .graphic  = string_static("graphics/sphere.gra"),
+        .position = {.y = 1},
+        .scale    = 1.0f,
     },
     {
-        .graphic = string_static("graphics/demo/bunny.gra"),
-        .offset  = {.y = -0.55f},
-        .scale   = 0.75f,
+        .graphic  = string_static("graphics/demo/terrain.gra"),
+        .position = {.y = 0.5f},
+        .scale    = 1.5f,
     },
     {
-        .graphic = string_static("graphics/demo/cayo.gra"),
-        .offset  = {.y = -0.5f},
-        .scale   = 0.8f,
+        .graphic  = string_static("graphics/demo/bunny.gra"),
+        .position = {.y = 0.45f},
+        .scale    = 0.75f,
     },
     {
-        .graphic = string_static("graphics/demo/corset.gra"),
-        .offset  = {.y = -0.5f},
-        .scale   = 0.6f,
+        .graphic  = string_static("graphics/demo/cayo.gra"),
+        .position = {.y = 0.5f},
+        .scale    = 0.8f,
     },
     {
-        .graphic = string_static("graphics/demo/head.gra"),
-        .offset  = {.y = 0.3f},
-        .scale   = 3.0f,
+        .graphic  = string_static("graphics/demo/corset.gra"),
+        .position = {.y = 0.5f},
+        .scale    = 0.6f,
     },
     {
-        .graphic = string_static("graphics/demo/head_wire.gra"),
-        .offset  = {.y = 0.3f},
-        .scale   = 3.0f,
+        .graphic  = string_static("graphics/demo/head.gra"),
+        .position = {.y = 1.3f},
+        .scale    = 3.0f,
+    },
+    {
+        .graphic  = string_static("graphics/demo/head_wire.gra"),
+        .position = {.y = 1.3f},
+        .scale    = 3.0f,
     },
 };
 
@@ -124,8 +128,7 @@ static void spawn_objects(EcsWorld* world, AppComp* app, AssetManagerComp* asset
           world,
           assets,
           geo_vector_add(
-              geo_vector(gridPos.x, g_subjectPositionY, gridPos.y),
-              g_subjects[app->subjectIndex].offset),
+              g_subjects[app->subjectIndex].position, geo_vector(gridPos.x, 0, gridPos.y)),
           g_subjects[app->subjectIndex].graphic,
           g_subjects[app->subjectIndex].scale);
 
