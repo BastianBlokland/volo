@@ -89,9 +89,6 @@ void asset_mesh_builder_clear(AssetMeshBuilder* builder) {
 }
 
 AssetMeshIndex asset_mesh_builder_push(AssetMeshBuilder* builder, const AssetMeshVertex vertex) {
-  diag_assert_msg(
-      builder->vertices.size < builder->maxVertexCount, "Vertex count exceeds the maximum");
-
   /**
    * Deduplicate using a simple open-addressing hash table.
    * https://en.wikipedia.org/wiki/Open_addressing
@@ -101,6 +98,9 @@ AssetMeshIndex asset_mesh_builder_push(AssetMeshBuilder* builder, const AssetMes
     AssetMeshIndex* slot = &builder->indexTable[bucket];
 
     if (LIKELY(*slot == asset_mesh_indices_max)) {
+      diag_assert_msg(
+          builder->vertices.size < builder->maxVertexCount, "Vertex count exceeds the maximum");
+
       // Unique vertex, copy to output and save the index in the table.
       *slot = (AssetMeshIndex)builder->vertices.size;
       *dynarray_push_t(&builder->vertices, AssetMeshVertex) = vertex;
