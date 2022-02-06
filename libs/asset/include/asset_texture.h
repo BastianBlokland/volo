@@ -2,26 +2,20 @@
 #include "ecs_module.h"
 
 typedef struct {
-  u8 r, g, b, a;
-} AssetTexturePixelB4;
-
-typedef struct {
   u8 r;
 } AssetTexturePixelB1;
 
-ASSERT(sizeof(AssetTexturePixelB4) == 4, "Unexpected byte pixel size");
-ASSERT(sizeof(AssetTexturePixelB1) == 1, "Unexpected byte pixel size");
-
 typedef struct {
-  f32 r, g, b, a;
-} AssetTexturePixelF4;
+  u8 r, g, b, a;
+} AssetTexturePixelB4;
 
 typedef struct {
   f32 r;
 } AssetTexturePixelF1;
 
-ASSERT(sizeof(AssetTexturePixelF4) == sizeof(f32) * 4, "Unexpected float pixel size");
-ASSERT(sizeof(AssetTexturePixelF1) == sizeof(f32), "Unexpected float pixel size");
+typedef struct {
+  f32 r, g, b, a;
+} AssetTexturePixelF4;
 
 typedef enum {
   AssetTextureType_Byte,
