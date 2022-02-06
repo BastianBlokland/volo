@@ -124,6 +124,24 @@ static VkImageUsageFlags rvk_image_vkusage(const RvkImageType type) {
   diag_crash();
 }
 
+static VkFormatFeatureFlags rvk_image_format_features(const RvkImageType type) {
+  switch (type) {
+  case RvkImageType_ColorSource:
+    return VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT | VK_FORMAT_FEATURE_TRANSFER_SRC_BIT |
+           VK_FORMAT_FEATURE_TRANSFER_DST_BIT;
+  case RvkImageType_ColorAttachment:
+    return VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT | VK_FORMAT_FEATURE_TRANSFER_SRC_BIT;
+  case RvkImageType_DepthAttachment:
+    return VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+  case RvkImageType_Swapchain:
+    // Swapchain images cannot be created manually.
+    break;
+  case RvkImageType_Count:
+    break;
+  }
+  diag_crash();
+}
+
 static void rvk_image_barrier(
     VkCommandBuffer            vkCmdBuf,
     const RvkImage*            image,
@@ -231,8 +249,13 @@ static RvkImage rvk_image_create_backed(
     const RvkSize      size,
     const u8           mipLevels) {
 
+  const VkFormatFeatureFlags vkFormatFeatures = rvk_image_format_features(type);
+  if (UNLIKELY(!rvk_device_format_supported(dev, vkFormat, vkFormatFeatures))) {
+    diag_crash_msg("Image format {} unsupported", fmt_text(rvk_format_info(vkFormat).name));
+  }
+
   const VkImageAspectFlags vkAspect = rvk_image_vkaspect(type);
-  const VkImageAspectFlags vkUsage  = rvk_image_vkusage(type);
+  const VkImageUsageFlags  vkUsage  = rvk_image_vkusage(type);
   const VkImage            vkImage  = rvk_vkimage_create(dev, size, vkFormat, vkUsage, mipLevels);
 
   VkMemoryRequirements memReqs;

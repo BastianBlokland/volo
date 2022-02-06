@@ -113,6 +113,12 @@ typedef struct {
 void mem_set(Mem, u8 val);
 
 /**
+ * Splat the given value over the destination memory.
+ * Pre-condition: dst.size % val.size == 0
+ */
+void mem_splat(Mem dst, Mem val);
+
+/**
  * Copy all bytes from 'src' to 'dst'. Does NOT support overlapping memory views.
  * Pre-condition: dst.size >= src.size
  * Pre-condition: src and dst do NOT overlap.

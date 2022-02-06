@@ -34,6 +34,7 @@ typedef enum {
 
 typedef struct {
   PtxType              type;
+  AssetTextureType     pixelType;
   AssetTextureChannels channels;
   u32                  size;
   f32                  frequency, power;
@@ -63,8 +64,13 @@ static void ptx_datareg_init() {
     data_reg_const_t(g_dataReg, AssetTextureChannels, One);
     data_reg_const_t(g_dataReg, AssetTextureChannels, Four);
 
+    data_reg_enum_t(g_dataReg, AssetTextureType);
+    data_reg_const_t(g_dataReg, AssetTextureType, Byte);
+    data_reg_const_t(g_dataReg, AssetTextureType, Float);
+
     data_reg_struct_t(g_dataReg, PtxDef);
     data_reg_field_t(g_dataReg, PtxDef, type, t_PtxType);
+    data_reg_field_t(g_dataReg, PtxDef, pixelType, t_AssetTextureType, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, PtxDef, channels, t_AssetTextureChannels);
     data_reg_field_t(g_dataReg, PtxDef, size, data_prim_t(u32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, PtxDef, frequency, data_prim_t(f32), .flags = DataFlags_NotEmpty);
@@ -154,21 +160,48 @@ static f32 ptx_sample(const PtxDef* def, const u32 x, const u32 y, Rng* rng) {
   diag_crash();
 }
 
+static usize pme_pixel_channel_size(const PtxDef* def) {
+  switch (def->pixelType) {
+  case AssetTextureType_Byte:
+    return sizeof(u8);
+  case AssetTextureType_Float:
+    return sizeof(f32);
+  }
+  diag_crash();
+}
+
 static void ptx_generate(const PtxDef* def, AssetTextureComp* outTexture) {
-  const u32 size   = def->size;
-  u8*       pixels = alloc_alloc(g_alloc_heap, size * size * def->channels, def->channels).ptr;
+  const u32   size             = def->size;
+  const usize pixelChannelSize = pme_pixel_channel_size(def);
+  const usize pixelDataSize    = pixelChannelSize * def->channels;
+  u8*         pixels = alloc_alloc(g_alloc_heap, size * size * pixelDataSize, pixelDataSize).ptr;
 
   Rng* rng = rng_create_xorwow(g_alloc_heap, def->seed);
   for (u32 y = 0; y != size; ++y) {
     for (u32 x = 0; x != size; ++x) {
       const f32 sample = ptx_sample(def, x, y, rng);
-      const u8  value  = (u8)(sample * 255.999f);
-      mem_set(mem_create(&pixels[(y * size + x) * def->channels], def->channels), value);
+
+      union {
+        f32 f32;
+        u8  u8;
+      } value;
+      switch (def->pixelType) {
+      case AssetTextureType_Byte:
+        value.u8 = (u8)(sample * 255.999f);
+        break;
+      case AssetTextureType_Float:
+        value.f32 = sample;
+        break;
+      }
+
+      const Mem pixelMem = mem_create(&pixels[(y * size + x) * pixelDataSize], pixelDataSize);
+      mem_splat(pixelMem, mem_create(&value, pixelChannelSize));
     }
   }
   rng_destroy(rng);
 
   *outTexture = (AssetTextureComp){
+      .type      = def->pixelType,
       .channels  = def->channels,
       .pixelsRaw = pixels,
       .width     = size,

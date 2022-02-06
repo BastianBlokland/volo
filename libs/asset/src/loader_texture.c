@@ -1,5 +1,6 @@
 #include "asset_texture.h"
 #include "core_alloc.h"
+#include "core_diag.h"
 #include "ecs_world.h"
 
 #include "repo_internal.h"
@@ -7,9 +8,8 @@
 ecs_comp_define_public(AssetTextureComp);
 
 static void ecs_destruct_texture_comp(void* data) {
-  AssetTextureComp* comp       = data;
-  const u32         pixelCount = comp->height * comp->width;
-  alloc_free(g_alloc_heap, mem_create(comp->pixelsRaw, comp->channels * sizeof(u8) * pixelCount));
+  AssetTextureComp* comp = data;
+  alloc_free(g_alloc_heap, asset_texture_data(comp));
 }
 
 ecs_view_define(UnloadView) {
@@ -34,4 +34,20 @@ ecs_module_init(asset_texture_module) {
   ecs_register_view(UnloadView);
 
   ecs_register_system(UnloadTextureAssetSys, ecs_view_id(UnloadView));
+}
+
+usize asset_texture_pixel_size(const AssetTextureComp* texture) {
+  switch (texture->type) {
+  case AssetTextureType_Byte:
+    return sizeof(u8) * texture->channels;
+  case AssetTextureType_Float:
+    return sizeof(f32) * texture->channels;
+  }
+  diag_crash();
+}
+
+Mem asset_texture_data(const AssetTextureComp* texture) {
+  const usize pixelCount = texture->width * texture->height;
+  const usize dataSize   = asset_texture_pixel_size(texture) * pixelCount;
+  return mem_create(texture->pixelsRaw, dataSize);
 }

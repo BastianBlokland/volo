@@ -2,15 +2,25 @@
 #include "ecs_module.h"
 
 typedef struct {
-  u8 r, g, b, a;
-} AssetTexturePixel4;
+  u8 r;
+} AssetTexturePixelB1;
 
 typedef struct {
-  u8 r;
-} AssetTexturePixel1;
+  u8 r, g, b, a;
+} AssetTexturePixelB4;
 
-ASSERT(sizeof(AssetTexturePixel4) == 4, "Unexpected pixel size");
-ASSERT(sizeof(AssetTexturePixel1) == 1, "Unexpected pixel size");
+typedef struct {
+  f32 r;
+} AssetTexturePixelF1;
+
+typedef struct {
+  f32 r, g, b, a;
+} AssetTexturePixelF4;
+
+typedef enum {
+  AssetTextureType_Byte,
+  AssetTextureType_Float,
+} AssetTextureType;
 
 typedef enum {
   AssetTextureChannels_One  = 1,
@@ -18,11 +28,17 @@ typedef enum {
 } AssetTextureChannels;
 
 ecs_comp_extern_public(AssetTextureComp) {
+  AssetTextureType     type;
   AssetTextureChannels channels;
   union {
-    const u8*                 pixelsRaw;
-    const AssetTexturePixel1* pixels1;
-    const AssetTexturePixel4* pixels4;
+    const u8*                  pixelsRaw;
+    const AssetTexturePixelB1* pixelsB1;
+    const AssetTexturePixelB4* pixelsB4;
+    const AssetTexturePixelF1* pixelsF1;
+    const AssetTexturePixelF4* pixelsF4;
   };
   u32 width, height;
 };
+
+usize asset_texture_pixel_size(const AssetTextureComp*);
+Mem   asset_texture_data(const AssetTextureComp*);
