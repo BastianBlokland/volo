@@ -7,10 +7,10 @@
 #include "utils_internal.h"
 
 static const struct {
-  String             id;
-  String             text;
-  AssetTexturePixel4 pixels[16];
-  usize              pixelCount;
+  String              id;
+  String              text;
+  AssetTexturePixelB4 pixels[16];
+  usize               pixelCount;
 } g_testData[] = {
     {
         .id   = string_static("p3_formatted.ppm"),
@@ -225,10 +225,10 @@ spec(loader_texture_ppm) {
       const AssetTextureComp* tex = ecs_utils_read_t(world, AssetView, asset, AssetTextureComp);
       check_require(tex->height * tex->height == g_testData[i].pixelCount);
       for (usize p = 0; p != g_testData[i].pixelCount; ++p) {
-        check_eq_int(tex->pixels4[p].r, g_testData[i].pixels[p].r);
-        check_eq_int(tex->pixels4[p].g, g_testData[i].pixels[p].g);
-        check_eq_int(tex->pixels4[p].b, g_testData[i].pixels[p].b);
-        check_eq_int(tex->pixels4[p].a, g_testData[i].pixels[p].a);
+        check_eq_int(tex->pixelsB4[p].r, g_testData[i].pixels[p].r);
+        check_eq_int(tex->pixelsB4[p].g, g_testData[i].pixels[p].g);
+        check_eq_int(tex->pixelsB4[p].b, g_testData[i].pixels[p].b);
+        check_eq_int(tex->pixelsB4[p].a, g_testData[i].pixels[p].a);
       }
     };
   }

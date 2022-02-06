@@ -145,7 +145,7 @@ static u32 tga_index(const u32 x, const u32 y, const u32 width, const u32 height
   return ((flags & TgaFlags_YFlip) ? (height - 1 - y) * width : y * width) + x;
 }
 
-static void tga_read_pixel_unchecked(u8* data, const TgaFlags flags, AssetTexturePixel4* out) {
+static void tga_read_pixel_unchecked(u8* data, const TgaFlags flags, AssetTexturePixelB4* out) {
   out->b = data[0];
   out->g = data[1];
   out->r = data[2];
@@ -157,12 +157,12 @@ static void tga_read_pixel_unchecked(u8* data, const TgaFlags flags, AssetTextur
 }
 
 static Mem tga_read_pixels_uncompressed(
-    Mem                 input,
-    const u32           width,
-    const u32           height,
-    const TgaFlags      flags,
-    AssetTexturePixel4* out,
-    TgaError*           err) {
+    Mem                  input,
+    const u32            width,
+    const u32            height,
+    const TgaFlags       flags,
+    AssetTexturePixelB4* out,
+    TgaError*            err) {
 
   const u32 pixelCount = width * height;
   const u32 pixelSize  = flags & TgaFlags_Alpha ? 4 : 3;
@@ -183,12 +183,12 @@ static Mem tga_read_pixels_uncompressed(
 }
 
 static Mem tga_read_pixels_rle(
-    Mem                 input,
-    const u32           width,
-    const u32           height,
-    const TgaFlags      flags,
-    AssetTexturePixel4* out,
-    TgaError*           err) {
+    Mem                  input,
+    const u32            width,
+    const u32            height,
+    const TgaFlags       flags,
+    AssetTexturePixelB4* out,
+    TgaError*            err) {
 
   const u32 pixelSize      = flags & TgaFlags_Alpha ? 4 : 3;
   u32       packetRem      = 0; // How many pixels are left in the current rle packet.
@@ -241,12 +241,12 @@ static Mem tga_read_pixels_rle(
 }
 
 static Mem tga_read_pixels(
-    Mem                 input,
-    const u32           width,
-    const u32           height,
-    const TgaFlags      flags,
-    AssetTexturePixel4* out,
-    TgaError*           err) {
+    Mem                  input,
+    const u32            width,
+    const u32            height,
+    const TgaFlags       flags,
+    AssetTexturePixelB4* out,
+    TgaError*            err) {
 
   if (flags & TgaFlags_Rle) {
     return tga_read_pixels_rle(input, width, height, flags, out, err);
@@ -315,10 +315,10 @@ void asset_load_tga(EcsWorld* world, const EcsEntityId entity, AssetSource* src)
   }
   data = mem_consume(data, header.idLength); // Skip over the id field.
 
-  const u32           width  = header.imageSpec.width;
-  const u32           height = header.imageSpec.height;
-  AssetTexturePixel4* pixels = alloc_array_t(g_alloc_heap, AssetTexturePixel4, width * height);
-  data                       = tga_read_pixels(data, width, height, flags, pixels, &res);
+  const u32            width  = header.imageSpec.width;
+  const u32            height = header.imageSpec.height;
+  AssetTexturePixelB4* pixels = alloc_array_t(g_alloc_heap, AssetTexturePixelB4, width * height);
+  data                        = tga_read_pixels(data, width, height, flags, pixels, &res);
   if (res) {
     tga_load_fail(world, entity, res);
     alloc_free_array_t(g_alloc_heap, pixels, width * height);
@@ -333,7 +333,7 @@ void asset_load_tga(EcsWorld* world, const EcsEntityId entity, AssetSource* src)
       .channels = AssetTextureChannels_Four,
       .width    = width,
       .height   = height,
-      .pixels4  = pixels);
+      .pixelsB4 = pixels);
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   return;
 
