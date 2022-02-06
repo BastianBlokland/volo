@@ -8,7 +8,7 @@
 #include "scene_time.h"
 
 static const f32 g_sceneStatsUiPadding    = 5.0f;
-static const f32 g_sceneStatsUiTextSize   = 30.0f;
+static const f32 g_sceneStatsUiTextSize   = 25.0f;
 static const f32 g_sceneStatsSmoothFactor = 0.1f;
 
 ecs_comp_define_public(SceneStatsCamComp);
