@@ -138,10 +138,10 @@ static usize pme_max_verts(PmeDef* def) {
     return (def->subdivisions + 1) * (def->subdivisions + 1) * 4;
   case PmeType_Cube:
     return (def->subdivisions + 1) * (def->subdivisions + 1) * 4 * 6;
-  case PmeType_Capsule: {
+  case PmeType_Capsule:
     return (math_max(4, def->subdivisions) + 2) * (math_max(4, def->subdivisions) + 2) * 4;
-  } break;
   }
+  diag_crash();
 }
 
 static GeoMatrix pme_def_matrix(const PmeDef* def) {
