@@ -18,6 +18,7 @@
 #pragma intrinsic(logf)
 #pragma intrinsic(powf)
 #pragma intrinsic(sinf)
+#pragma intrinsic(sqrt)
 #pragma intrinsic(sqrtf)
 #pragma intrinsic(tanf)
 
@@ -38,6 +39,7 @@
 #define round __builtin_round
 #define roundf __builtin_roundf
 #define sinf __builtin_sinf
+#define sqrt __builtin_sqrt
 #define sqrtf __builtin_sqrtf
 #define tanf __builtin_tanf
 
@@ -73,6 +75,7 @@ u64 math_pow10_u64(const u8 val) {
 f32 math_mod_f32(const f32 x, const f32 y) { return fmodf(x, y); }
 
 f32 math_sqrt_f32(const f32 val) { return sqrtf(val); }
+f64 math_sqrt_f64(const f64 val) { return sqrt(val); }
 
 f32 math_log_f32(const f32 val) { return logf(val); }
 
@@ -93,19 +96,15 @@ f32 math_atan2_f32(const f32 x, const f32 y) { return atan2f(x, y); }
 f32 math_pow_f32(const f32 base, const f32 exp) { return powf(base, exp); }
 
 f32 math_trunc_f32(const f32 val) { return (i32)val; }
-
 f64 math_trunc_f64(const f64 val) { return (i64)val; }
 
 f32 math_floor_f32(const f32 val) { return floorf(val); }
-
 f64 math_floor_f64(const f64 val) { return floor(val); }
 
 f32 math_ceil_f32(const f32 val) { return ceilf(val); }
-
 f64 math_ceil_f64(const f64 val) { return ceil(val); }
 
 f32 math_round_f32(const f32 val) { return roundf(val); }
-
 f64 math_round_f64(const f64 val) { return round(val); }
 
 f32 math_clamp_f32(const f32 val, const f32 min, const f32 max) {
