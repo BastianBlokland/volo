@@ -20,9 +20,17 @@
 
 #endif
 
-void mem_set(const Mem mem, const u8 val) {
-  diag_assert(mem_valid(mem));
-  memset(mem.ptr, val, mem.size);
+void mem_set(const Mem dst, const u8 val) {
+  diag_assert(mem_valid(dst));
+  memset(dst.ptr, val, dst.size);
+}
+
+void mem_splat(Mem dst, const Mem val) {
+  diag_assert(dst.size % val.size == 0);
+  while (dst.size) {
+    mem_cpy(dst, val);
+    dst = mem_consume(dst, val.size);
+  }
 }
 
 void mem_cpy(const Mem dst, const Mem src) {

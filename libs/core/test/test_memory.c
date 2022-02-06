@@ -78,6 +78,19 @@ spec(memory) {
     check(mem_end(mem) == rawMemTail);
   }
 
+  it("can splat a value over a memory range") {
+    const usize valueCount = 4;
+    const u32   value      = 133337;
+    const Mem   target     = mem_stack(sizeof(value) * valueCount);
+
+    mem_splat(target, mem_var(value));
+
+    const u32* targetValues = mem_as_t(target, u32);
+    for (usize i = 0; i != valueCount; ++i) {
+      check_eq_int(targetValues[i], value);
+    }
+  }
+
   it("can read a 8bit unsigned integer") {
     const u8 val = 42;
     Mem      mem = array_mem(((u8[]){val}));
