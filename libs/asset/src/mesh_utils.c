@@ -170,15 +170,16 @@ void asset_mesh_compute_flat_normals(AssetMeshBuilder* builder) {
     AssetMeshVertex* vB = &snapshot.vertices[snapshot.indices[i + 1]];
     AssetMeshVertex* vC = &snapshot.vertices[snapshot.indices[i + 2]];
 
-    const GeoVector norm = asset_mesh_tri_norm(vA->position, vB->position, vC->position);
+    const GeoVector norm      = asset_mesh_tri_norm(vA->position, vB->position, vC->position);
+    const GeoVector normQuant = geo_vector_quantize3(norm, 20);
 
-    vA->normal = norm;
+    vA->normal = normQuant;
     asset_mesh_builder_push(builder, *vA);
 
-    vB->normal = norm;
+    vB->normal = normQuant;
     asset_mesh_builder_push(builder, *vB);
 
-    vC->normal = norm;
+    vC->normal = normQuant;
     asset_mesh_builder_push(builder, *vC);
   }
 
