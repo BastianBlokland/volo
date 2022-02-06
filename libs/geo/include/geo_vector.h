@@ -106,6 +106,13 @@ GeoVector geo_vector_lerp(GeoVector x, GeoVector y, f32 t);
 GeoVector geo_vector_perspective_div(GeoVector);
 
 /**
+ * Quantize a vector to use a limited number of mantissa bits.
+ * Pre-condition: maxMantissaBits > 0 && maxMantissaBits <= 23
+ */
+GeoVector geo_vector_quantize(GeoVector, u8 maxMantissaBits);
+GeoVector geo_vector_quantize3(GeoVector, u8 maxMantissaBits);
+
+/**
  * Create a formatting argument for a vector.
  * NOTE: _VEC_ is expanded multiple times, so care must be taken when providing complex expressions.
  */

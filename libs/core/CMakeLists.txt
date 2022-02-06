@@ -28,6 +28,7 @@ add_library(lib_core STATIC
   src/file_monitor.c
   src/file_pal.c
   src/file.c
+  src/float.c
   src/format.c
   src/init.c
   src/math.c

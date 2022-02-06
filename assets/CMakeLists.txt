@@ -18,6 +18,8 @@ configure_shaders(volo_shaders
     shaders/ui/text.frag
     shaders/ui/texture.vert
     shaders/ui/texture.frag
+    shaders/demo/terrain.vert
+    shaders/demo/terrain.frag
     shaders/standard.vert
     shaders/standard.frag
   )
@@ -40,6 +42,8 @@ if(${EXTERNAL_ASSETS})
       pedestal/pedestal_diff.tga
       pedestal/pedestal_nrm.tga
       testimages/ducks.tga
+      terrain/terrain_color.tga
+      terrain/terrain_height.r32
     )
 endif()
 

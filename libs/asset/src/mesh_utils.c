@@ -89,9 +89,6 @@ void asset_mesh_builder_clear(AssetMeshBuilder* builder) {
 }
 
 AssetMeshIndex asset_mesh_builder_push(AssetMeshBuilder* builder, const AssetMeshVertex vertex) {
-  diag_assert_msg(
-      builder->vertices.size < builder->maxVertexCount, "Vertex count exceeds the maximum");
-
   /**
    * Deduplicate using a simple open-addressing hash table.
    * https://en.wikipedia.org/wiki/Open_addressing
@@ -101,6 +98,9 @@ AssetMeshIndex asset_mesh_builder_push(AssetMeshBuilder* builder, const AssetMes
     AssetMeshIndex* slot = &builder->indexTable[bucket];
 
     if (LIKELY(*slot == asset_mesh_indices_max)) {
+      diag_assert_msg(
+          builder->vertices.size < builder->maxVertexCount, "Vertex count exceeds the maximum");
+
       // Unique vertex, copy to output and save the index in the table.
       *slot = (AssetMeshIndex)builder->vertices.size;
       *dynarray_push_t(&builder->vertices, AssetMeshVertex) = vertex;
@@ -170,15 +170,16 @@ void asset_mesh_compute_flat_normals(AssetMeshBuilder* builder) {
     AssetMeshVertex* vB = &snapshot.vertices[snapshot.indices[i + 1]];
     AssetMeshVertex* vC = &snapshot.vertices[snapshot.indices[i + 2]];
 
-    const GeoVector norm = asset_mesh_tri_norm(vA->position, vB->position, vC->position);
+    const GeoVector norm      = asset_mesh_tri_norm(vA->position, vB->position, vC->position);
+    const GeoVector normQuant = geo_vector_quantize3(norm, 20);
 
-    vA->normal = norm;
+    vA->normal = normQuant;
     asset_mesh_builder_push(builder, *vA);
 
-    vB->normal = norm;
+    vB->normal = normQuant;
     asset_mesh_builder_push(builder, *vB);
 
-    vC->normal = norm;
+    vC->normal = normQuant;
     asset_mesh_builder_push(builder, *vC);
   }
 

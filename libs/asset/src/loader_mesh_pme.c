@@ -16,8 +16,7 @@
  * ProceduralMEsh - Procedurally generated mesh.
  */
 
-#define pme_max_verts (1024 * 100)
-#define pme_max_subdivisions 100
+#define pme_max_subdivisions 400
 
 static DataReg* g_dataReg;
 static DataMeta g_dataPmeDefMeta;
@@ -124,6 +123,23 @@ static f32 pme_def_axis_scale(const PmeDef* def) {
   case PmeAxis_Forward:
   case PmeAxis_Backward:
     return def->scaleZ != 0.0f ? math_max(def->scaleZ, f32_epsilon) : 1.0f;
+  }
+  diag_crash();
+}
+
+static usize pme_max_verts(PmeDef* def) {
+  /**
+   * Get a conservative maximum amount of needed vertices.
+   */
+  switch (def->type) {
+  case PmeType_Triangle:
+    return (def->subdivisions + 1) * (def->subdivisions + 1) * 3;
+  case PmeType_Quad:
+    return (def->subdivisions + 1) * (def->subdivisions + 1) * 4;
+  case PmeType_Cube:
+    return (def->subdivisions + 1) * (def->subdivisions + 1) * 4 * 6;
+  case PmeType_Capsule:
+    return (math_max(4, def->subdivisions) + 2) * (math_max(4, def->subdivisions) + 2) * 4;
   }
   diag_crash();
 }
@@ -370,7 +386,7 @@ void asset_load_pme(EcsWorld* world, const EcsEntityId entity, AssetSource* src)
     goto Error;
   }
 
-  builder = asset_mesh_builder_create(g_alloc_heap, pme_max_verts);
+  builder = asset_mesh_builder_create(g_alloc_heap, pme_max_verts(&def));
   pme_generate(&(PmeGenerator){
       .def             = &def,
       .builder         = builder,

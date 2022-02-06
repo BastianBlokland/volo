@@ -61,6 +61,7 @@ f32 math_mod_f32(f32 x, f32 y);
  * Return the square-root of the given value.
  */
 f32 math_sqrt_f32(f32);
+f64 math_sqrt_f64(f64);
 
 /**
  * Return the natural (base e) logarithm of the given value.

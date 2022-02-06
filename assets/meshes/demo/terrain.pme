@@ -1,0 +1,11 @@
+{
+  "type": "Quad",
+  "axis": "Down",
+  "subdivisions": 150,
+  "scaleX": 1,
+  "scaleY": 1,
+  "scaleZ": 1,
+  "offsetX": 0,
+  "offsetY": 0,
+  "offsetZ": 0
+}
