@@ -26,7 +26,7 @@ typedef struct {
 } Subject;
 
 static const GapVector g_windowSize          = {1024, 768};
-static const f32       g_pedestalRotateSpeed = 45.0f * math_deg_to_rad;
+static const f32       g_pedestalRotateSpeed = 25.0f * math_deg_to_rad;
 static const f32       g_pedestalPositionY   = 0.5f;
 static const f32       g_subjectSpacing      = 2.5f;
 static const Subject   g_subjects[]          = {
