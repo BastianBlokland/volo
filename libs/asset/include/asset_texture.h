@@ -27,9 +27,14 @@ typedef enum {
   AssetTextureChannels_Four = 4,
 } AssetTextureChannels;
 
+typedef enum {
+  AssetTextureFlags_MipMaps = 1 << 0,
+} AssetTextureFlags;
+
 ecs_comp_extern_public(AssetTextureComp) {
   AssetTextureType     type;
   AssetTextureChannels channels;
+  AssetTextureFlags    flags;
   union {
     const u8*                  pixelsRaw;
     const AssetTexturePixelB1* pixelsB1;
