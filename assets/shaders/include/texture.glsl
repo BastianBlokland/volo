@@ -7,15 +7,15 @@
 /**
  * Sample a linear encoded texture.
  */
-f32v4 texture_sample_linear(const sampler2D imageSampler, const f32v2 texcoord) {
-  return texture(imageSampler, texcoord);
+f32v4 texture_sample_linear(const sampler2D tex, const f32v2 texcoord) {
+  return texture(tex, texcoord);
 }
 
 /**
  * Sample a srgb encoded texture.
  */
-f32v4 texture_sample_srgb(const sampler2D imageSampler, const f32v2 texcoord) {
-  const f32v4 raw = texture_sample_linear(imageSampler, texcoord);
+f32v4 texture_sample_srgb(const sampler2D tex, const f32v2 texcoord) {
+  const f32v4 raw = texture_sample_linear(tex, texcoord);
   return f32v4(color_decode_srgb(raw.rgb), raw.a);
 }
 
