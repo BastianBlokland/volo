@@ -17,12 +17,33 @@ static u32 rvk_compute_miplevels(const RvkSize size) {
   return 32 - bits_clz_32(biggestSide);
 }
 
-static VkFormat rvk_texture_format(const AssetTextureChannels channels) {
+static VkFormat rvk_texture_format_byte(const AssetTextureChannels channels) {
   switch (channels) {
   case AssetTextureChannels_One:
     return VK_FORMAT_R8_UNORM;
   case AssetTextureChannels_Four:
     return VK_FORMAT_R8G8B8A8_UNORM;
+  }
+  diag_crash();
+}
+
+static VkFormat rvk_texture_format_float(const AssetTextureChannels channels) {
+  switch (channels) {
+  case AssetTextureChannels_One:
+    return VK_FORMAT_R32_SFLOAT;
+  case AssetTextureChannels_Four:
+    return VK_FORMAT_R32G32B32A32_SFLOAT;
+  }
+  diag_crash();
+}
+
+static VkFormat
+rvk_texture_format(const AssetTextureType type, const AssetTextureChannels channels) {
+  switch (type) {
+  case AssetTextureType_Byte:
+    return rvk_texture_format_byte(channels);
+  case AssetTextureType_Float:
+    return rvk_texture_format_float(channels);
   }
   diag_crash();
 }
@@ -34,17 +55,18 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
       .dbgName = string_dup(g_alloc_heap, dbgName),
   };
 
-  const VkFormat vkFormat = rvk_texture_format(asset->channels);
-  diag_assert(rvk_format_info(vkFormat).size == asset->channels * sizeof(u8));
+  const VkFormat vkFormat = rvk_texture_format(asset->type, asset->channels);
+  diag_assert(rvk_format_info(vkFormat).size == asset_texture_pixel_size(asset));
   diag_assert(rvk_format_info(vkFormat).channels == (u32)asset->channels);
+
+  // TODO: Check if texture format is supported.
 
   const RvkSize size      = rvk_size(asset->width, asset->height);
   const u8      mipLevels = rvk_compute_miplevels(size);
   texture->image          = rvk_image_create_source_color(dev, vkFormat, size, mipLevels);
 
-  const usize pixelDataSize = asset->channels * sizeof(u8) * asset->width * asset->height;
-  texture->pixelTransfer    = rvk_transfer_image(
-      dev->transferer, &texture->image, mem_create(asset->pixelsRaw, pixelDataSize));
+  const Mem pixelData    = asset_texture_data(asset);
+  texture->pixelTransfer = rvk_transfer_image(dev->transferer, &texture->image, pixelData);
 
   rvk_debug_name_img(dev->debug, texture->image.vkImage, "{}", fmt_text(dbgName));
   rvk_debug_name_img_view(dev->debug, texture->image.vkImageView, "{}", fmt_text(dbgName));

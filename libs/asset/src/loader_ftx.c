@@ -238,6 +238,7 @@ static void ftx_generate(
       .characterCount = charCount,
   };
   *outTexture = (AssetTextureComp){
+      .type     = AssetTextureType_Byte,
       .channels = AssetTextureChannels_One,
       .pixelsB1 = pixels,
       .width    = size,

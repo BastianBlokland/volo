@@ -330,6 +330,7 @@ void asset_load_tga(EcsWorld* world, const EcsEntityId entity, AssetSource* src)
       world,
       entity,
       AssetTextureComp,
+      .type     = AssetTextureType_Byte,
       .channels = AssetTextureChannels_Four,
       .width    = width,
       .height   = height,

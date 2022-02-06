@@ -169,6 +169,7 @@ static void ptx_generate(const PtxDef* def, AssetTextureComp* outTexture) {
   rng_destroy(rng);
 
   *outTexture = (AssetTextureComp){
+      .type      = AssetTextureType_Byte,
       .channels  = def->channels,
       .pixelsRaw = pixels,
       .width     = size,
