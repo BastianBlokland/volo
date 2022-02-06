@@ -1,3 +1,4 @@
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
@@ -87,4 +88,21 @@ GeoVector geo_vector_lerp(const GeoVector x, const GeoVector y, const f32 t) {
 
 GeoVector geo_vector_perspective_div(const GeoVector v) {
   return geo_vector_div(geo_vector(v.x, v.y, v.z), v.w);
+}
+
+GeoVector geo_vector_quantize(const GeoVector v, const u8 maxMantissaBits) {
+  return (GeoVector){
+      .x = bits_quantize_f32(v.x, maxMantissaBits),
+      .y = bits_quantize_f32(v.y, maxMantissaBits),
+      .z = bits_quantize_f32(v.z, maxMantissaBits),
+      .w = bits_quantize_f32(v.w, maxMantissaBits),
+  };
+}
+
+GeoVector geo_vector_quantize3(const GeoVector v, const u8 maxMantissaBits) {
+  return (GeoVector){
+      .x = bits_quantize_f32(v.x, maxMantissaBits),
+      .y = bits_quantize_f32(v.y, maxMantissaBits),
+      .z = bits_quantize_f32(v.z, maxMantissaBits),
+  };
 }
