@@ -1,7 +1,7 @@
 {
   "type": "Quad",
   "axis": "Down",
-  "subdivisions": 150,
+  "subdivisions": 100,
   "scaleX": 1,
   "scaleY": 1,
   "scaleZ": 1,

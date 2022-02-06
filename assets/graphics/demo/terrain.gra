@@ -6,12 +6,19 @@
         {
           "name": "heightMapScale",
           "binding": 0,
-          "value": 0.15
+          "value": 0.2
         }
       ]
     },
     {
-      "shaderId": "shaders/demo/terrain.frag.spv"
+      "shaderId": "shaders/demo/terrain.frag.spv",
+      "overrides": [
+        {
+          "name": "heightMapScale",
+          "binding": 0,
+          "value": 0.2
+        }
+      ]
     }
   ],
   "samplers": [
