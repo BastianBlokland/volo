@@ -38,12 +38,18 @@ typedef enum {
 } PmeType;
 
 typedef struct {
-  PmeType type;
-  PmeAxis axis;
-  u32     subdivisions;
-  f32     length;
-  f32     scaleX, scaleY, scaleZ;
-  f32     offsetX, offsetY, offsetZ;
+  f32 minX, minY, minZ;
+  f32 maxX, maxY, maxZ;
+} PmeBounds;
+
+typedef struct {
+  PmeType    type;
+  PmeAxis    axis;
+  u32        subdivisions;
+  f32        length;
+  f32        scaleX, scaleY, scaleZ;
+  f32        offsetX, offsetY, offsetZ;
+  PmeBounds* bounds;
 } PmeDef;
 
 static void pme_datareg_init() {
@@ -70,6 +76,14 @@ static void pme_datareg_init() {
     data_reg_const_t(g_dataReg, PmeAxis, Forward);
     data_reg_const_t(g_dataReg, PmeAxis, Backward);
 
+    data_reg_struct_t(g_dataReg, PmeBounds);
+    data_reg_field_t(g_dataReg, PmeBounds, minX, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, PmeBounds, minY, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, PmeBounds, minZ, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, PmeBounds, maxX, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, PmeBounds, maxY, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, PmeBounds, maxZ, data_prim_t(f32));
+
     data_reg_struct_t(g_dataReg, PmeDef);
     data_reg_field_t(g_dataReg, PmeDef, type, t_PmeType);
     data_reg_field_t(g_dataReg, PmeDef, axis, t_PmeAxis);
@@ -81,6 +95,7 @@ static void pme_datareg_init() {
     data_reg_field_t(g_dataReg, PmeDef, offsetX, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, PmeDef, offsetY, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, PmeDef, offsetZ, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, PmeDef, bounds, t_PmeBounds, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
     // clang-format on
 
     g_dataPmeDefMeta = data_meta_t(t_PmeDef);
@@ -394,6 +409,14 @@ void asset_load_pme(EcsWorld* world, const EcsEntityId entity, AssetSource* src)
       .transformLocal  = geo_matrix_ident(),
   });
 
+  if (def.bounds) {
+    const GeoBox box = (GeoBox){
+        .min = geo_vector(def.bounds->minX, def.bounds->minY, def.bounds->minZ),
+        .max = geo_vector(def.bounds->maxX, def.bounds->maxY, def.bounds->maxZ),
+    };
+    asset_mesh_builder_override_bounds(builder, box);
+  }
+
   *ecs_world_add_t(world, entity, AssetMeshComp) = asset_mesh_create(builder);
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   goto Done;
@@ -406,5 +429,6 @@ Done:
   if (builder) {
     asset_mesh_builder_destroy(builder);
   }
+  data_destroy(g_dataReg, g_alloc_heap, g_dataPmeDefMeta, mem_var(def));
   asset_repo_source_close(src);
 }

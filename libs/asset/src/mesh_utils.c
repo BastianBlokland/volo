@@ -46,13 +46,13 @@ static AssetMeshSnapshot asset_mesh_snapshot(const AssetMeshBuilder* builder, Al
 AssetMeshBuilder* asset_mesh_builder_create(Allocator* alloc, const usize maxVertexCount) {
   AssetMeshBuilder* builder = alloc_alloc_t(alloc, AssetMeshBuilder);
   *builder                  = (AssetMeshBuilder){
-      .vertices       = dynarray_create_t(alloc, AssetMeshVertex, maxVertexCount),
-      .indices        = dynarray_create_t(alloc, AssetMeshIndex, maxVertexCount),
-      .tableSize      = bits_nextpow2((u32)maxVertexCount),
-      .maxVertexCount = (u32)maxVertexCount,
-      .positionBounds = geo_box_inverted3(),
-      .texcoordBounds = geo_box_inverted2(),
-      .alloc          = alloc,
+                       .vertices       = dynarray_create_t(alloc, AssetMeshVertex, maxVertexCount),
+                       .indices        = dynarray_create_t(alloc, AssetMeshIndex, maxVertexCount),
+                       .tableSize      = bits_nextpow2((u32)maxVertexCount),
+                       .maxVertexCount = (u32)maxVertexCount,
+                       .positionBounds = geo_box_inverted3(),
+                       .texcoordBounds = geo_box_inverted2(),
+                       .alloc          = alloc,
   };
 
   builder->indexTable = alloc_array_t(alloc, AssetMeshIndex, builder->tableSize);
@@ -122,6 +122,10 @@ AssetMeshIndex asset_mesh_builder_push(AssetMeshBuilder* builder, const AssetMes
     bucket = (bucket + i + 1) & (builder->tableSize - 1);
   }
   diag_crash_msg("Mesh index table full");
+}
+
+void asset_mesh_builder_override_bounds(AssetMeshBuilder* builder, const GeoBox overrideBounds) {
+  builder->positionBounds = overrideBounds;
 }
 
 AssetMeshComp asset_mesh_create(const AssetMeshBuilder* builder) {
