@@ -7,5 +7,13 @@
   "scaleZ": 1,
   "offsetX": 0,
   "offsetY": 0,
-  "offsetZ": 0
+  "offsetZ": 0,
+  "bounds": {
+    "minX": -0.5,
+    "minY": 0.0,
+    "minZ": -0.5,
+    "maxX": 0.5,
+    "maxY": 1.0,
+    "maxZ": 0.5
+  }
 }
