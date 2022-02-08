@@ -44,6 +44,19 @@ spec(float) {
     check_eq_int(bits_f64_as_u64(f64_max), u64_lit(0x7fefffffffffffff));
   }
 
+  it("can convert between 32 and 16 bit floats") {
+    check_eq_float(float_f16_to_f32(float_f32_to_f16(0.0f)), 0.0f, 1e-6f);
+    check_eq_float(float_f16_to_f32(float_f32_to_f16(1.0f)), 1.0f, 1e-6f);
+    check_eq_float(float_f16_to_f32(float_f32_to_f16(65504.0f)), 65504.0f, 1e-6f);
+    check_eq_float(float_f16_to_f32(float_f32_to_f16(6e-5f)), 6e-5f, 1e-6f);
+    check_eq_float(float_f16_to_f32(float_f32_to_f16(.42f)), .42f, 1e-3f);
+    check_eq_float(float_f16_to_f32(float_f32_to_f16(.1337f)), .1337f, 1e-3f);
+    check_eq_float(float_f16_to_f32(float_f32_to_f16(13.37f)), 13.37f, 1e-2f);
+    check_eq_float(float_f16_to_f32(float_f32_to_f16(-.42f)), -.42f, 1e-3f);
+    check_eq_float(float_f16_to_f32(float_f32_to_f16(-.1337f)), -.1337f, 1e-3f);
+    check_eq_float(float_f16_to_f32(float_f32_to_f16(-13.37f)), -13.37f, 1e-2f);
+  }
+
   it("can quantize 32 bit floats to use a limited amount of mantissa bits") {
     check(1.1234f != 1.1235f);
     check(float_quantize_f32(1.1234f, 10) == float_quantize_f32(1.1235f, 10));

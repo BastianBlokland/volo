@@ -10,8 +10,8 @@ static THREAD_LOCAL bool g_initializedThread;
 
 void core_init() {
   if (!g_intialized) {
-    bits_init();
     alloc_init();
+    float_init();
     thread_init();
     time_init();
   }

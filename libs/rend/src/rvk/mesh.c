@@ -32,21 +32,21 @@ static Mem rvk_mesh_to_device_vertices(Allocator* alloc, const AssetMeshComp* as
   RvkVertexPacked* output = mem_as_t(buffer, RvkVertexPacked);
   for (usize i = 0; i != asset->vertexCount; ++i) {
     output[i] = (RvkVertexPacked){
-        .data1[0] = bits_f32_to_f16(asset->vertices[i].position.x),
-        .data1[1] = bits_f32_to_f16(asset->vertices[i].position.y),
-        .data1[2] = bits_f32_to_f16(asset->vertices[i].position.z),
+        .data1[0] = float_f32_to_f16(asset->vertices[i].position.x),
+        .data1[1] = float_f32_to_f16(asset->vertices[i].position.y),
+        .data1[2] = float_f32_to_f16(asset->vertices[i].position.z),
 
-        .data2[0] = bits_f32_to_f16(asset->vertices[i].texcoord.x),
-        .data2[1] = bits_f32_to_f16(asset->vertices[i].texcoord.y),
+        .data2[0] = float_f32_to_f16(asset->vertices[i].texcoord.x),
+        .data2[1] = float_f32_to_f16(asset->vertices[i].texcoord.y),
 
-        .data3[0] = bits_f32_to_f16(asset->vertices[i].normal.x),
-        .data3[1] = bits_f32_to_f16(asset->vertices[i].normal.y),
-        .data3[2] = bits_f32_to_f16(asset->vertices[i].normal.z),
+        .data3[0] = float_f32_to_f16(asset->vertices[i].normal.x),
+        .data3[1] = float_f32_to_f16(asset->vertices[i].normal.y),
+        .data3[2] = float_f32_to_f16(asset->vertices[i].normal.z),
 
-        .data4[0] = bits_f32_to_f16(asset->vertices[i].tangent.x),
-        .data4[1] = bits_f32_to_f16(asset->vertices[i].tangent.y),
-        .data4[2] = bits_f32_to_f16(asset->vertices[i].tangent.z),
-        .data4[3] = bits_f32_to_f16(asset->vertices[i].tangent.w),
+        .data4[0] = float_f32_to_f16(asset->vertices[i].tangent.x),
+        .data4[1] = float_f32_to_f16(asset->vertices[i].tangent.y),
+        .data4[2] = float_f32_to_f16(asset->vertices[i].tangent.z),
+        .data4[3] = float_f32_to_f16(asset->vertices[i].tangent.w),
     };
   }
   return buffer;
@@ -55,10 +55,10 @@ static Mem rvk_mesh_to_device_vertices(Allocator* alloc, const AssetMeshComp* as
 RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const String dbgName) {
   RvkMesh* mesh = alloc_alloc_t(g_alloc_heap, RvkMesh);
   *mesh         = (RvkMesh){
-      .device      = dev,
-      .dbgName     = string_dup(g_alloc_heap, dbgName),
-      .vertexCount = (u32)asset->vertexCount,
-      .indexCount  = (u32)asset->indexCount,
+              .device      = dev,
+              .dbgName     = string_dup(g_alloc_heap, dbgName),
+              .vertexCount = (u32)asset->vertexCount,
+              .indexCount  = (u32)asset->indexCount,
   };
 
   const bool useScratch = sizeof(RvkVertexPacked) * asset->vertexCount < rvk_mesh_max_scratch_size;
