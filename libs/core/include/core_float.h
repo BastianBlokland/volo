@@ -38,6 +38,16 @@
 #define float_isinf(_VAL_) ((_VAL_) != 0.0 && (_VAL_)*2 == (_VAL_))
 
 /**
+ * Convert a 32 bit floating point value to 16 bit.
+ */
+f16 float_f32_to_f16(f32);
+
+/**
+ * Convert a 16 bit floating point value to 32 bit.
+ */
+f32 float_f16_to_f32(f16);
+
+/**
  * Quantize a float to use a limited number of mantissa bits.
  * Pre-condition: maxMantissaBits > 0 && maxMantissaBits <= 23
  */

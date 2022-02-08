@@ -183,13 +183,3 @@ f64 bits_u64_as_f64(u64);
  * Reinterpret the 64 bit floating point value as an integer value.
  */
 u64 bits_f64_as_u64(f64);
-
-/**
- * Convert a 32 bit floating point value to 16 bit.
- */
-f16 bits_f32_to_f16(f32);
-
-/**
- * Convert a 16 bit floating point value to 32 bit.
- */
-f32 bits_f16_to_f32(f16);
