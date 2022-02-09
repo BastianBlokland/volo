@@ -265,6 +265,9 @@ static RvkImage rvk_image_create_backed(
   if (UNLIKELY(!rvk_device_format_supported(dev, vkFormat, vkFormatFeatures))) {
     diag_crash_msg("Image format {} unsupported", fmt_text(rvk_format_info(vkFormat).name));
   }
+  if (UNLIKELY(layers > dev->vkProperties.limits.maxImageArrayLayers)) {
+    diag_crash_msg("Image layer count {} unsupported", fmt_int(layers));
+  }
 
   const VkImageAspectFlags vkAspect = rvk_image_vkaspect(type);
   const VkImageUsageFlags  vkUsage  = rvk_image_vkusage(type, mipLevels);
