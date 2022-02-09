@@ -174,7 +174,7 @@ static void rvk_image_barrier(
       .subresourceRange.baseMipLevel   = baseMip,
       .subresourceRange.levelCount     = mipLevels,
       .subresourceRange.baseArrayLayer = 0,
-      .subresourceRange.layerCount     = 1,
+      .subresourceRange.layerCount     = image->layers,
       .srcAccessMask                   = srcAccess,
       .dstAccessMask                   = dstAccess,
   };
@@ -206,6 +206,7 @@ static VkImage rvk_vkimage_create(
     const RvkSize           size,
     const VkFormat          vkFormat,
     const VkImageUsageFlags vkImgUsages,
+    const u32               layers,
     const u8                mipLevels) {
 
   const VkImageCreateInfo imageInfo = {
@@ -215,7 +216,7 @@ static VkImage rvk_vkimage_create(
       .extent.height = size.height,
       .extent.depth  = 1,
       .mipLevels     = mipLevels,
-      .arrayLayers   = 1,
+      .arrayLayers   = layers,
       .format        = vkFormat,
       .tiling        = VK_IMAGE_TILING_OPTIMAL,
       .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
@@ -233,6 +234,7 @@ static VkImageView rvk_vkimageview_create(
     const VkImage            vkImage,
     const VkFormat           vkFormat,
     const VkImageAspectFlags vkAspect,
+    const u32                layers,
     const u8                 mipLevels) {
 
   const VkImageViewCreateInfo createInfo = {
@@ -244,7 +246,7 @@ static VkImageView rvk_vkimageview_create(
       .subresourceRange.baseMipLevel   = 0,
       .subresourceRange.levelCount     = mipLevels,
       .subresourceRange.baseArrayLayer = 0,
-      .subresourceRange.layerCount     = 1,
+      .subresourceRange.layerCount     = layers,
   };
   VkImageView result;
   rvk_call(vkCreateImageView, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
@@ -256,6 +258,7 @@ static RvkImage rvk_image_create_backed(
     const RvkImageType type,
     const VkFormat     vkFormat,
     const RvkSize      size,
+    const u32          layers,
     const u8           mipLevels) {
 
   const VkFormatFeatureFlags vkFormatFeatures = rvk_image_format_features(type, mipLevels);
@@ -265,7 +268,7 @@ static RvkImage rvk_image_create_backed(
 
   const VkImageAspectFlags vkAspect = rvk_image_vkaspect(type);
   const VkImageUsageFlags  vkUsage  = rvk_image_vkusage(type, mipLevels);
-  const VkImage            vkImage  = rvk_vkimage_create(dev, size, vkFormat, vkUsage, mipLevels);
+  const VkImage vkImage = rvk_vkimage_create(dev, size, vkFormat, vkUsage, layers, mipLevels);
 
   VkMemoryRequirements memReqs;
   vkGetImageMemoryRequirements(dev->vkDev, vkImage, &memReqs);
@@ -274,11 +277,13 @@ static RvkImage rvk_image_create_backed(
   const RvkMem    mem    = rvk_mem_alloc_req(dev->memPool, memLoc, RvkMemAccess_NonLinear, memReqs);
   rvk_mem_bind_image(mem, vkImage);
 
-  const VkImageView vkView = rvk_vkimageview_create(dev, vkImage, vkFormat, vkAspect, mipLevels);
+  const VkImageView vkView =
+      rvk_vkimageview_create(dev, vkImage, vkFormat, vkAspect, layers, mipLevels);
 
   return (RvkImage){
       .type        = type,
       .mipLevels   = mipLevels,
+      .layers      = layers,
       .vkFormat    = vkFormat,
       .size        = size,
       .vkImage     = vkImage,
@@ -288,22 +293,30 @@ static RvkImage rvk_image_create_backed(
 }
 
 RvkImage rvk_image_create_source_color(
-    RvkDevice* dev, const VkFormat vkFormat, const RvkSize size, const u8 mipLevels) {
-  return rvk_image_create_backed(dev, RvkImageType_ColorSource, vkFormat, size, mipLevels);
+    RvkDevice*     dev,
+    const VkFormat vkFormat,
+    const RvkSize  size,
+    const u32      layers,
+    const u8       mipLevels) {
+  return rvk_image_create_backed(dev, RvkImageType_ColorSource, vkFormat, size, layers, mipLevels);
 }
 
 RvkImage
 rvk_image_create_attach_color(RvkDevice* dev, const VkFormat vkFormat, const RvkSize size) {
   diag_assert(rvk_format_info(vkFormat).channels == 4);
-  const u8 mipLevels = 1;
-  return rvk_image_create_backed(dev, RvkImageType_ColorAttachment, vkFormat, size, mipLevels);
+  const u32 layers    = 1;
+  const u8  mipLevels = 1;
+  return rvk_image_create_backed(
+      dev, RvkImageType_ColorAttachment, vkFormat, size, layers, mipLevels);
 }
 
 RvkImage
 rvk_image_create_attach_depth(RvkDevice* dev, const VkFormat vkFormat, const RvkSize size) {
   diag_assert(rvk_format_info(vkFormat).channels == 1 || rvk_format_info(vkFormat).channels == 2);
-  const u8 mipLevels = 1;
-  return rvk_image_create_backed(dev, RvkImageType_DepthAttachment, vkFormat, size, mipLevels);
+  const u32 layers    = 1;
+  const u8  mipLevels = 1;
+  return rvk_image_create_backed(
+      dev, RvkImageType_DepthAttachment, vkFormat, size, layers, mipLevels);
 }
 
 RvkImage
@@ -311,6 +324,7 @@ rvk_image_create_swapchain(RvkDevice* dev, VkImage vkImage, VkFormat vkFormat, c
   (void)dev;
   return (RvkImage){
       .type      = RvkImageType_Swapchain,
+      .layers    = 1,
       .mipLevels = 1,
       .vkFormat  = vkFormat,
       .size      = size,
@@ -393,13 +407,13 @@ void rvk_image_generate_mipmaps(RvkImage* image, VkCommandBuffer vkCmdBuf) {
     const VkImageBlit blit = {
         .srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
         .srcSubresource.mipLevel   = level - 1,
-        .srcSubresource.layerCount = 1,
+        .srcSubresource.layerCount = image->layers,
         .srcOffsets[1].x           = math_max(image->size.width >> (level - 1), 1),
         .srcOffsets[1].y           = math_max(image->size.height >> (level - 1), 1),
         .srcOffsets[1].z           = 1,
         .dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
         .dstSubresource.mipLevel   = level,
-        .dstSubresource.layerCount = 1,
+        .dstSubresource.layerCount = image->layers,
         .dstOffsets[1].x           = math_max(image->size.width >> level, 1),
         .dstOffsets[1].y           = math_max(image->size.height >> level, 1),
         .dstOffsets[1].z           = 1,
@@ -429,10 +443,10 @@ void rvk_image_copy(const RvkImage* src, RvkImage* dest, VkCommandBuffer vkCmdBu
       {
           .srcSubresource.aspectMask = rvk_image_vkaspect(src->type),
           .srcSubresource.mipLevel   = 0,
-          .srcSubresource.layerCount = 1,
+          .srcSubresource.layerCount = src->layers,
           .dstSubresource.aspectMask = rvk_image_vkaspect(dest->type),
           .dstSubresource.mipLevel   = 0,
-          .dstSubresource.layerCount = 1,
+          .dstSubresource.layerCount = dest->layers,
           .extent.width              = src->size.width,
           .extent.height             = src->size.height,
           .extent.depth              = 1,
@@ -456,13 +470,13 @@ void rvk_image_blit(const RvkImage* src, RvkImage* dest, VkCommandBuffer vkCmdBu
       {
           .srcSubresource.aspectMask = rvk_image_vkaspect(src->type),
           .srcSubresource.mipLevel   = 0,
-          .srcSubresource.layerCount = 1,
+          .srcSubresource.layerCount = src->layers,
           .srcOffsets[1].x           = src->size.width,
           .srcOffsets[1].y           = src->size.height,
           .srcOffsets[1].z           = 1,
           .dstSubresource.aspectMask = rvk_image_vkaspect(dest->type),
           .dstSubresource.mipLevel   = 0,
-          .dstSubresource.layerCount = 1,
+          .dstSubresource.layerCount = dest->layers,
           .dstOffsets[1].x           = dest->size.width,
           .dstOffsets[1].y           = dest->size.height,
           .dstOffsets[1].z           = 1,
@@ -484,12 +498,12 @@ void rvk_image_clear(const RvkImage* img, const GeoColor color, VkCommandBuffer 
 
   const VkClearColorValue       clearColor = *(VkClearColorValue*)&color;
   const VkImageSubresourceRange ranges[]   = {
-      {
-          .aspectMask     = rvk_image_vkaspect(img->type),
-          .baseMipLevel   = 0,
-          .levelCount     = img->mipLevels,
-          .baseArrayLayer = 0,
-          .layerCount     = 0,
+        {
+            .aspectMask     = rvk_image_vkaspect(img->type),
+            .baseMipLevel   = 0,
+            .levelCount     = img->mipLevels,
+            .baseArrayLayer = 0,
+            .layerCount     = img->layers,
       },
   };
   vkCmdClearColorImage(

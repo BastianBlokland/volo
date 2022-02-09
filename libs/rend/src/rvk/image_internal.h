@@ -32,6 +32,7 @@ typedef struct sRvkImage {
   RvkImageType  type : 8;
   RvkImagePhase phase : 8;
   u8            mipLevels;
+  u32           layers;
   VkFormat      vkFormat;
   RvkSize       size;
   VkImage       vkImage;
@@ -39,10 +40,10 @@ typedef struct sRvkImage {
   RvkMem        mem;
 } RvkImage;
 
-RvkImage rvk_image_create_source_color(RvkDevice*, VkFormat, RvkSize size, u8 mipLevels);
-RvkImage rvk_image_create_attach_color(RvkDevice*, VkFormat, RvkSize size);
-RvkImage rvk_image_create_attach_depth(RvkDevice*, VkFormat, RvkSize size);
-RvkImage rvk_image_create_swapchain(RvkDevice*, VkImage, VkFormat, RvkSize size);
+RvkImage rvk_image_create_source_color(RvkDevice*, VkFormat, RvkSize, u32 layers, u8 mipLevels);
+RvkImage rvk_image_create_attach_color(RvkDevice*, VkFormat, RvkSize);
+RvkImage rvk_image_create_attach_depth(RvkDevice*, VkFormat, RvkSize);
+RvkImage rvk_image_create_swapchain(RvkDevice*, VkImage, VkFormat, RvkSize);
 void     rvk_image_destroy(RvkImage*, RvkDevice*);
 
 String rvk_image_type_str(RvkImageType);

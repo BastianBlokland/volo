@@ -85,9 +85,9 @@ static bool rvk_transfer_fits(const RvkTransferBuffer* buffer, const u64 size, c
 static RvkTransferBuffer* rvk_transfer_buffer_create(RvkTransferer* trans, const u64 size) {
   RvkTransferBuffer* buffer = dynarray_push_t(&trans->buffers, RvkTransferBuffer);
   *buffer                   = (RvkTransferBuffer){
-      .hostBuffer      = rvk_buffer_create(trans->dev, size, RvkBufferType_HostTransfer),
-      .vkCmdBuffer     = rvk_commandbuffer_create(trans->dev, trans->vkCmdPool),
-      .vkFinishedFence = rvk_fence_create(trans->dev, true),
+                        .hostBuffer      = rvk_buffer_create(trans->dev, size, RvkBufferType_HostTransfer),
+                        .vkCmdBuffer     = rvk_commandbuffer_create(trans->dev, trans->vkCmdPool),
+                        .vkFinishedFence = rvk_fence_create(trans->dev, true),
   };
 
 #if defined(VOLO_RVK_TRANSFER_LOGGING)
@@ -168,10 +168,10 @@ static void rvk_transfer_submit(RvkTransferer* trans, RvkTransferBuffer* buffer)
 RvkTransferer* rvk_transferer_create(RvkDevice* dev) {
   RvkTransferer* transferer = alloc_alloc_t(g_alloc_heap, RvkTransferer);
   *transferer               = (RvkTransferer){
-      .dev       = dev,
-      .mutex     = thread_mutex_create(g_alloc_heap),
-      .vkCmdPool = rvk_commandpool_create(dev, dev->transferQueueIndex),
-      .buffers   = dynarray_create_t(g_alloc_heap, RvkTransferBuffer, 8),
+                    .dev       = dev,
+                    .mutex     = thread_mutex_create(g_alloc_heap),
+                    .vkCmdPool = rvk_commandpool_create(dev, dev->transferQueueIndex),
+                    .buffers   = dynarray_create_t(g_alloc_heap, RvkTransferBuffer, 8),
   };
   rvk_debug_name_cmdpool(dev->debug, transferer->vkCmdPool, "transferer");
   return transferer;
@@ -249,7 +249,7 @@ RvkTransferId rvk_transfer_image(RvkTransferer* trans, RvkImage* dest, const Mem
   const VkBufferImageCopy region = {
       .bufferOffset                = buffer->offset,
       .imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-      .imageSubresource.layerCount = 1,
+      .imageSubresource.layerCount = dest->layers,
       .imageExtent.width           = dest->size.width,
       .imageExtent.height          = dest->size.height,
       .imageExtent.depth           = 1,

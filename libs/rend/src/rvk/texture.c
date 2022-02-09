@@ -51,8 +51,8 @@ rvk_texture_format(const AssetTextureType type, const AssetTextureChannels chann
 RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, String dbgName) {
   RvkTexture* texture = alloc_alloc_t(g_alloc_heap, RvkTexture);
   *texture            = (RvkTexture){
-      .device  = dev,
-      .dbgName = string_dup(g_alloc_heap, dbgName),
+                 .device  = dev,
+                 .dbgName = string_dup(g_alloc_heap, dbgName),
   };
 
   const VkFormat vkFormat = rvk_texture_format(asset->type, asset->channels);
@@ -60,9 +60,10 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
   diag_assert(rvk_format_info(vkFormat).channels == (u32)asset->channels);
 
   const RvkSize size         = rvk_size(asset->width, asset->height);
+  const u32     layers       = 1;
   const bool    generateMips = (asset->flags & AssetTextureFlags_MipMaps) != 0;
   const u8      mipLevels    = generateMips ? rvk_compute_miplevels(size) : 1;
-  texture->image             = rvk_image_create_source_color(dev, vkFormat, size, mipLevels);
+  texture->image = rvk_image_create_source_color(dev, vkFormat, size, layers, mipLevels);
 
   const Mem pixelData    = asset_texture_data(asset);
   texture->pixelTransfer = rvk_transfer_image(dev->transferer, &texture->image, pixelData);
