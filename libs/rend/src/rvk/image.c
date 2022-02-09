@@ -154,7 +154,7 @@ static VkFormatFeatureFlags rvk_image_format_features(const RvkImageType type, c
   diag_crash();
 }
 
-static VkImageCreateFlags rvk_image_create_flags(const RvkImageType type, const u32 layers) {
+static VkImageCreateFlags rvk_image_create_flags(const RvkImageType type, const u8 layers) {
   switch (type) {
   case RvkImageType_ColorSourceCube:
     return VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
@@ -163,7 +163,7 @@ static VkImageCreateFlags rvk_image_create_flags(const RvkImageType type, const 
   }
 }
 
-static VkImageViewType rvk_image_viewtype(const RvkImageType type, const u32 layers) {
+static VkImageViewType rvk_image_viewtype(const RvkImageType type, const u8 layers) {
   switch (type) {
   case RvkImageType_ColorSourceCube:
     return layers > 6 ? VK_IMAGE_VIEW_TYPE_CUBE_ARRAY : VK_IMAGE_VIEW_TYPE_CUBE;
@@ -228,7 +228,7 @@ static VkImage rvk_vkimage_create(
     const RvkSize           size,
     const VkFormat          vkFormat,
     const VkImageUsageFlags vkImgUsages,
-    const u32               layers,
+    const u8                layers,
     const u8                mipLevels) {
 
   const VkImageCreateInfo imageInfo = {
@@ -258,7 +258,7 @@ static VkImageView rvk_vkimageview_create(
     const VkImage            vkImage,
     const VkFormat           vkFormat,
     const VkImageAspectFlags vkAspect,
-    const u32                layers,
+    const u8                 layers,
     const u8                 mipLevels) {
 
   const VkImageViewCreateInfo createInfo = {
@@ -282,7 +282,7 @@ static RvkImage rvk_image_create_backed(
     const RvkImageType type,
     const VkFormat     vkFormat,
     const RvkSize      size,
-    const u32          layers,
+    const u8           layers,
     const u8           mipLevels) {
 
   const VkFormatFeatureFlags vkFormatFeatures = rvk_image_format_features(type, mipLevels);
@@ -323,22 +323,22 @@ RvkImage rvk_image_create_source_color(
     RvkDevice*     dev,
     const VkFormat vkFormat,
     const RvkSize  size,
-    const u32      layers,
+    const u8       layers,
     const u8       mipLevels) {
   return rvk_image_create_backed(dev, RvkImageType_ColorSource, vkFormat, size, layers, mipLevels);
 }
 
 RvkImage rvk_image_create_source_color_cube(
     RvkDevice* dev, const VkFormat vkFormat, const RvkSize size, const u8 mipLevels) {
-  const u32 layers = 6;
+  const u8 layers = 6;
   return rvk_image_create_backed(dev, RvkImageType_ColorSource, vkFormat, size, layers, mipLevels);
 }
 
 RvkImage
 rvk_image_create_attach_color(RvkDevice* dev, const VkFormat vkFormat, const RvkSize size) {
   diag_assert(rvk_format_info(vkFormat).channels == 4);
-  const u32 layers    = 1;
-  const u8  mipLevels = 1;
+  const u8 layers    = 1;
+  const u8 mipLevels = 1;
   return rvk_image_create_backed(
       dev, RvkImageType_ColorAttachment, vkFormat, size, layers, mipLevels);
 }
@@ -346,8 +346,8 @@ rvk_image_create_attach_color(RvkDevice* dev, const VkFormat vkFormat, const Rvk
 RvkImage
 rvk_image_create_attach_depth(RvkDevice* dev, const VkFormat vkFormat, const RvkSize size) {
   diag_assert(rvk_format_info(vkFormat).channels == 1 || rvk_format_info(vkFormat).channels == 2);
-  const u32 layers    = 1;
-  const u8  mipLevels = 1;
+  const u8 layers    = 1;
+  const u8 mipLevels = 1;
   return rvk_image_create_backed(
       dev, RvkImageType_DepthAttachment, vkFormat, size, layers, mipLevels);
 }
