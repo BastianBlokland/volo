@@ -21,6 +21,7 @@ typedef enum {
 
 typedef enum {
   RvkImageType_ColorSource,
+  RvkImageType_ColorSourceCube,
   RvkImageType_ColorAttachment,
   RvkImageType_DepthAttachment,
   RvkImageType_Swapchain,
@@ -41,6 +42,7 @@ typedef struct sRvkImage {
 } RvkImage;
 
 RvkImage rvk_image_create_source_color(RvkDevice*, VkFormat, RvkSize, u32 layers, u8 mipLevels);
+RvkImage rvk_image_create_source_color_cube(RvkDevice*, VkFormat, RvkSize, u8 mipLevels);
 RvkImage rvk_image_create_attach_color(RvkDevice*, VkFormat, RvkSize);
 RvkImage rvk_image_create_attach_depth(RvkDevice*, VkFormat, RvkSize);
 RvkImage rvk_image_create_swapchain(RvkDevice*, VkImage, VkFormat, RvkSize);

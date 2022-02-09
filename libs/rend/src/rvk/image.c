@@ -96,6 +96,7 @@ static VkImageLayout rvk_image_vklayout(const RvkImagePhase phase) {
 static VkImageAspectFlags rvk_image_vkaspect(const RvkImageType type) {
   switch (type) {
   case RvkImageType_ColorSource:
+  case RvkImageType_ColorSourceCube:
   case RvkImageType_ColorAttachment:
   case RvkImageType_Swapchain:
     return VK_IMAGE_ASPECT_COLOR_BIT;
@@ -108,7 +109,8 @@ static VkImageAspectFlags rvk_image_vkaspect(const RvkImageType type) {
 
 static VkImageUsageFlags rvk_image_vkusage(const RvkImageType type, const u8 mipLevels) {
   switch (type) {
-  case RvkImageType_ColorSource: {
+  case RvkImageType_ColorSource:
+  case RvkImageType_ColorSourceCube: {
     VkImageUsageFlags flags = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     if (mipLevels > 1) {
       flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
@@ -130,7 +132,8 @@ static VkImageUsageFlags rvk_image_vkusage(const RvkImageType type, const u8 mip
 
 static VkFormatFeatureFlags rvk_image_format_features(const RvkImageType type, const u8 mipLevels) {
   switch (type) {
-  case RvkImageType_ColorSource: {
+  case RvkImageType_ColorSource:
+  case RvkImageType_ColorSourceCube: {
     VkFormatFeatureFlags flags =
         VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT | VK_FORMAT_FEATURE_TRANSFER_DST_BIT;
     if (mipLevels > 1) {
@@ -149,6 +152,24 @@ static VkFormatFeatureFlags rvk_image_format_features(const RvkImageType type, c
     break;
   }
   diag_crash();
+}
+
+static VkImageCreateFlags rvk_image_create_flags(const RvkImageType type, const u32 layers) {
+  switch (type) {
+  case RvkImageType_ColorSourceCube:
+    return VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+  default:
+    return layers > 1 ? VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT : 0;
+  }
+}
+
+static VkImageViewType rvk_image_viewtype(const RvkImageType type, const u32 layers) {
+  switch (type) {
+  case RvkImageType_ColorSourceCube:
+    return layers > 6 ? VK_IMAGE_VIEW_TYPE_CUBE_ARRAY : VK_IMAGE_VIEW_TYPE_CUBE;
+  default:
+    return layers > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D;
+  }
 }
 
 static void rvk_image_barrier(
@@ -203,6 +224,7 @@ static void rvk_image_barrier_from_to(
 
 static VkImage rvk_vkimage_create(
     RvkDevice*              dev,
+    const RvkImageType      type,
     const RvkSize           size,
     const VkFormat          vkFormat,
     const VkImageUsageFlags vkImgUsages,
@@ -211,6 +233,7 @@ static VkImage rvk_vkimage_create(
 
   const VkImageCreateInfo imageInfo = {
       .sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+      .flags         = rvk_image_create_flags(type, layers),
       .imageType     = VK_IMAGE_TYPE_2D,
       .extent.width  = size.width,
       .extent.height = size.height,
@@ -231,6 +254,7 @@ static VkImage rvk_vkimage_create(
 
 static VkImageView rvk_vkimageview_create(
     RvkDevice*               dev,
+    const RvkImageType       type,
     const VkImage            vkImage,
     const VkFormat           vkFormat,
     const VkImageAspectFlags vkAspect,
@@ -240,7 +264,7 @@ static VkImageView rvk_vkimageview_create(
   const VkImageViewCreateInfo createInfo = {
       .sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
       .image                           = vkImage,
-      .viewType                        = VK_IMAGE_VIEW_TYPE_2D,
+      .viewType                        = rvk_image_viewtype(type, layers),
       .format                          = vkFormat,
       .subresourceRange.aspectMask     = vkAspect,
       .subresourceRange.baseMipLevel   = 0,
@@ -271,7 +295,7 @@ static RvkImage rvk_image_create_backed(
 
   const VkImageAspectFlags vkAspect = rvk_image_vkaspect(type);
   const VkImageUsageFlags  vkUsage  = rvk_image_vkusage(type, mipLevels);
-  const VkImage vkImage = rvk_vkimage_create(dev, size, vkFormat, vkUsage, layers, mipLevels);
+  const VkImage vkImage = rvk_vkimage_create(dev, type, size, vkFormat, vkUsage, layers, mipLevels);
 
   VkMemoryRequirements memReqs;
   vkGetImageMemoryRequirements(dev->vkDev, vkImage, &memReqs);
@@ -281,7 +305,7 @@ static RvkImage rvk_image_create_backed(
   rvk_mem_bind_image(mem, vkImage);
 
   const VkImageView vkView =
-      rvk_vkimageview_create(dev, vkImage, vkFormat, vkAspect, layers, mipLevels);
+      rvk_vkimageview_create(dev, type, vkImage, vkFormat, vkAspect, layers, mipLevels);
 
   return (RvkImage){
       .type        = type,
@@ -301,6 +325,12 @@ RvkImage rvk_image_create_source_color(
     const RvkSize  size,
     const u32      layers,
     const u8       mipLevels) {
+  return rvk_image_create_backed(dev, RvkImageType_ColorSource, vkFormat, size, layers, mipLevels);
+}
+
+RvkImage rvk_image_create_source_color_cube(
+    RvkDevice* dev, const VkFormat vkFormat, const RvkSize size, const u8 mipLevels) {
+  const u32 layers = 6;
   return rvk_image_create_backed(dev, RvkImageType_ColorSource, vkFormat, size, layers, mipLevels);
 }
 
@@ -348,6 +378,7 @@ void rvk_image_destroy(RvkImage* img, RvkDevice* dev) {
 String rvk_image_type_str(const RvkImageType type) {
   static const String g_names[] = {
       string_static("ColorSource"),
+      string_static("ColorSourceCube"),
       string_static("ColorAttachment"),
       string_static("DepthAttachment"),
       string_static("Swapchain"),
