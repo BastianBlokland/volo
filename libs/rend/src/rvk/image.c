@@ -472,6 +472,7 @@ void rvk_image_copy(const RvkImage* src, RvkImage* dest, VkCommandBuffer vkCmdBu
   rvk_image_assert_phase(src, RvkImagePhase_TransferSource);
   rvk_image_assert_phase(dest, RvkImagePhase_TransferDest);
   diag_assert_msg(rvk_size_equal(src->size, dest->size), "Image copy requires matching sizes");
+  diag_assert_msg(src->layers == dest->layers, "Image copy requires matching layer counts");
 
   const VkImageCopy regions[] = {
       {
@@ -499,6 +500,7 @@ void rvk_image_copy(const RvkImage* src, RvkImage* dest, VkCommandBuffer vkCmdBu
 void rvk_image_blit(const RvkImage* src, RvkImage* dest, VkCommandBuffer vkCmdBuf) {
   rvk_image_assert_phase(src, RvkImagePhase_TransferSource);
   rvk_image_assert_phase(dest, RvkImagePhase_TransferDest);
+  diag_assert_msg(src->layers == dest->layers, "Image blit requires matching layer counts");
 
   const VkImageBlit regions[] = {
       {
