@@ -284,6 +284,8 @@ static RvkImage rvk_image_create_backed(
     const RvkSize      size,
     const u8           layers,
     const u8           mipLevels) {
+  diag_assert_msg(layers, "Image needs at least 1 layer");
+  diag_assert_msg(mipLevels, "Image needs at least 1 mipmap");
 
   const VkFormatFeatureFlags vkFormatFeatures = rvk_image_format_features(type, mipLevels);
   if (UNLIKELY(!rvk_device_format_supported(dev, vkFormat, vkFormatFeatures))) {

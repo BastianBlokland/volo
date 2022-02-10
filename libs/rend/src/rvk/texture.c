@@ -49,6 +49,8 @@ rvk_texture_format(const AssetTextureType type, const AssetTextureChannels chann
 }
 
 RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, String dbgName) {
+  diag_assert_msg(asset->layers < u8_max, "Only {} texture layers are supported", fmt_int(u8_max));
+
   RvkTexture* texture = alloc_alloc_t(g_alloc_heap, RvkTexture);
   *texture            = (RvkTexture){
                  .device  = dev,
@@ -60,10 +62,15 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
   diag_assert(rvk_format_info(vkFormat).channels == (u32)asset->channels);
 
   const RvkSize size         = rvk_size(asset->width, asset->height);
-  const u32     layers       = 1;
   const bool    generateMips = (asset->flags & AssetTextureFlags_MipMaps) != 0;
   const u8      mipLevels    = generateMips ? rvk_compute_miplevels(size) : 1;
-  texture->image = rvk_image_create_source_color(dev, vkFormat, size, layers, mipLevels);
+  if (asset->flags & AssetTextureFlags_CubeMap) {
+    diag_assert_msg(asset->layers == 6, "CubeMap needs 6 layers");
+    texture->image = rvk_image_create_source_color_cube(dev, vkFormat, size, mipLevels);
+  } else {
+    const u8 layers = math_max(1, asset->layers);
+    texture->image  = rvk_image_create_source_color(dev, vkFormat, size, layers, mipLevels);
+  }
 
   const Mem pixelData    = asset_texture_data(asset);
   texture->pixelTransfer = rvk_transfer_image(dev->transferer, &texture->image, pixelData);
@@ -76,6 +83,7 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
       log_param("name", fmt_text(dbgName)),
       log_param("format", fmt_text(rvk_format_info(vkFormat).name)),
       log_param("size", rvk_size_fmt(texture->image.size)),
+      log_param("layers", fmt_int(texture->image.layers)),
       log_param("memory", fmt_size(texture->image.mem.size)));
 
   return texture;

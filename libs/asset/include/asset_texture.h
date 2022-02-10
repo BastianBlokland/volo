@@ -29,6 +29,7 @@ typedef enum {
 
 typedef enum {
   AssetTextureFlags_MipMaps = 1 << 0,
+  AssetTextureFlags_CubeMap = 1 << 1,
 } AssetTextureFlags;
 
 ecs_comp_extern_public(AssetTextureComp) {
@@ -42,7 +43,7 @@ ecs_comp_extern_public(AssetTextureComp) {
     const AssetTexturePixelF1* pixelsF1;
     const AssetTexturePixelF4* pixelsF4;
   };
-  u32 width, height;
+  u32 width, height, layers;
 };
 
 usize asset_texture_pixel_size(const AssetTextureComp*);
