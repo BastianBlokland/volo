@@ -5,6 +5,8 @@
 #include "core_thread.h"
 #include "data.h"
 #include "data_registry.h"
+#include "ecs_entity.h"
+#include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 
@@ -59,7 +61,7 @@ typedef enum {
   AtxError_None = 0,
   AtxError_NoLayers,
   AtxError_TooManyLayers,
-  AtxError_EmptyTextureIdentifier,
+  AtxError_InvalidTexture,
 
   AtxError_Count,
 } AtxError;
@@ -69,20 +71,87 @@ static String atx_error_str(const AtxError err) {
       string_static("None"),
       string_static("Atx does not specify any layers"),
       string_static("Atx specifies more layers then are supported"),
-      string_static("Atx specifies an empty texture identifier"),
+      string_static("Atx specifies an invalid texture"),
   };
   ASSERT(array_elems(g_msgs) == AtxError_Count, "Incorrect number of atx-error messages");
   return g_msgs[err];
+}
+
+ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
+ecs_view_define(LoadView) { ecs_access_write(AssetAtxLoadComp); }
+ecs_view_define(TextureView) { ecs_access_write(AssetTextureComp); }
+
+/**
+ * Update all active loads.
+ */
+ecs_system_define(AtxLoadAssetSys) {
+  AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+  if (!manager) {
+    return;
+  }
+  EcsView* loadView = ecs_world_view_t(world, LoadView);
+  // EcsIterator* textueItr = ecs_view_itr(ecs_world_view_t(world, TextureView));
+
+  for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
+    const EcsEntityId entity = ecs_view_entity(itr);
+    AssetAtxLoadComp* load   = ecs_view_write_t(itr, AssetAtxLoadComp);
+    AtxError          err;
+
+    /**
+     * Start loading all textures.
+     */
+    if (!load->textures.size) {
+      array_ptr_for_t(load->def.textures, String, texName) {
+        const EcsEntityId texAsset                     = asset_lookup(world, manager, *texName);
+        *dynarray_push_t(&load->textures, EcsEntityId) = texAsset;
+        asset_acquire(world, texAsset);
+      }
+    }
+
+    /**
+     * Check if all textures are loaded.
+     */
+    dynarray_for_t(&load->textures, EcsEntityId, texAsset) {
+      if (ecs_world_has_t(world, *texAsset, AssetFailedComp)) {
+        err = AtxError_InvalidTexture;
+        goto Error;
+      }
+      if (!ecs_world_has_t(world, *texAsset, AssetLoadedComp)) {
+        goto Next; // Wait for the texture to be loaded.
+      }
+    }
+
+    // *ecs_world_add_t(world, entity, AssetTextureComp) = texture;
+    ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+    goto Cleanup;
+
+  Error:
+    log_e("Failed to load Atx array-texture", log_param("error", fmt_text(atx_error_str(err))));
+    ecs_world_add_empty_t(world, entity, AssetFailedComp);
+
+  Cleanup:
+    ecs_world_remove_t(world, entity, AssetAtxLoadComp);
+    dynarray_for_t(&load->textures, EcsEntityId, texAsset) { asset_release(world, *texAsset); }
+
+  Next:
+    continue;
+  }
 }
 
 ecs_module_init(asset_atx_module) {
   atx_datareg_init();
 
   ecs_register_comp(AssetAtxLoadComp, .destructor = ecs_destruct_atx_load_comp);
+
+  ecs_register_view(ManagerView);
+  ecs_register_view(LoadView);
+  ecs_register_view(TextureView);
+
+  ecs_register_system(
+      AtxLoadAssetSys, ecs_view_id(ManagerView), ecs_view_id(LoadView), ecs_view_id(TextureView));
 }
 
 void asset_load_atx(EcsWorld* world, const EcsEntityId entity, AssetSource* src) {
-
   String         errMsg;
   AtxDef         def;
   DataReadResult result;
@@ -102,7 +171,7 @@ void asset_load_atx(EcsWorld* world, const EcsEntityId entity, AssetSource* src)
   }
   array_ptr_for_t(def.textures, String, texName) {
     if (UNLIKELY(string_is_empty(*texName))) {
-      errMsg = atx_error_str(AtxError_EmptyTextureIdentifier);
+      errMsg = atx_error_str(AtxError_InvalidTexture);
       goto Error;
     }
   }
