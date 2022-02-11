@@ -28,6 +28,7 @@ typedef struct {
     String* values;
     usize   count;
   } textures;
+  bool mipmaps;
 } AtxDef;
 
 static void atx_datareg_init() {
@@ -42,6 +43,7 @@ static void atx_datareg_init() {
     // clang-format off
     data_reg_struct_t(g_dataReg, AtxDef);
     data_reg_field_t(g_dataReg, AtxDef, textures, data_prim_t(String), .flags = DataFlags_NotEmpty, .container = DataContainer_Array);
+    data_reg_field_t(g_dataReg, AtxDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
     // clang-format on
 
     g_dataAtxDefMeta = data_meta_t(t_AtxDef);
@@ -136,6 +138,7 @@ static void atx_generate(
   *outTexture = (AssetTextureComp){
       .type      = type,
       .channels  = channels,
+      .flags     = def->mipmaps ? AssetTextureFlags_MipMaps : 0,
       .pixelsRaw = pixelsMem.ptr,
       .width     = width,
       .height    = height,
