@@ -23,12 +23,18 @@
 static DataReg* g_dataReg;
 static DataMeta g_dataAtxDefMeta;
 
+typedef enum {
+  AtxType_Array,
+  AtxType_CubeMap,
+} AtxType;
+
 typedef struct {
+  AtxType type;
+  bool    mipmaps;
   struct {
     String* values;
     usize   count;
   } textures;
-  bool mipmaps;
 } AtxDef;
 
 static void atx_datareg_init() {
@@ -41,9 +47,14 @@ static void atx_datareg_init() {
     g_dataReg = data_reg_create(g_alloc_persist);
 
     // clang-format off
+    data_reg_enum_t(g_dataReg, AtxType);
+    data_reg_const_t(g_dataReg, AtxType, Array);
+    data_reg_const_t(g_dataReg, AtxType, CubeMap);
+
     data_reg_struct_t(g_dataReg, AtxDef);
-    data_reg_field_t(g_dataReg, AtxDef, textures, data_prim_t(String), .flags = DataFlags_NotEmpty, .container = DataContainer_Array);
+    data_reg_field_t(g_dataReg, AtxDef, type, t_AtxType);
     data_reg_field_t(g_dataReg, AtxDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AtxDef, textures, data_prim_t(String), .flags = DataFlags_NotEmpty, .container = DataContainer_Array);
     // clang-format on
 
     g_dataAtxDefMeta = data_meta_t(t_AtxDef);
@@ -70,6 +81,7 @@ typedef enum {
   AtxError_MismatchType,
   AtxError_MismatchChannels,
   AtxError_MismatchSize,
+  AtxError_CubeMapInvalidTextureCount,
 
   AtxError_Count,
 } AtxError;
@@ -84,9 +96,25 @@ static String atx_error_str(const AtxError err) {
       string_static("Atx textures have different types"),
       string_static("Atx textures have different channel counts"),
       string_static("Atx textures have different sizes"),
+      string_static("Atx cubemap needs 6 textures"),
   };
   ASSERT(array_elems(g_msgs) == AtxError_Count, "Incorrect number of atx-error messages");
   return g_msgs[err];
+}
+
+static AssetTextureFlags atx_texture_flags(const AtxDef* def) {
+  AssetTextureFlags flags = 0;
+  switch (def->type) {
+  case AtxType_Array:
+    break;
+  case AtxType_CubeMap:
+    flags |= AssetTextureFlags_CubeMap;
+    break;
+  }
+  if (def->mipmaps) {
+    flags |= AssetTextureFlags_MipMaps;
+  }
+  return flags;
 }
 
 static void atx_generate(
@@ -119,6 +147,10 @@ static void atx_generate(
     *err = AtxError_TooManyLayers;
     return;
   }
+  if (UNLIKELY(def->type == AtxType_CubeMap && layers != 6)) {
+    *err = AtxError_CubeMapInvalidTextureCount;
+    return;
+  }
 
   const usize pixelDataSize   = asset_texture_pixel_size(textures[0]);
   const usize textureDataSize = width * height * pixelDataSize * layers;
@@ -138,7 +170,7 @@ static void atx_generate(
   *outTexture = (AssetTextureComp){
       .type      = type,
       .channels  = channels,
-      .flags     = def->mipmaps ? AssetTextureFlags_MipMaps : 0,
+      .flags     = atx_texture_flags(def),
       .pixelsRaw = pixelsMem.ptr,
       .width     = width,
       .height    = height,
