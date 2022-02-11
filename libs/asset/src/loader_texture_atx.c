@@ -37,7 +37,7 @@ static void atx_datareg_init() {
 
     // clang-format off
     data_reg_struct_t(g_dataReg, AtxDef);
-    data_reg_field_t(g_dataReg, AtxDef, textures, data_prim_t(String), .container = DataContainer_Array);
+    data_reg_field_t(g_dataReg, AtxDef, textures, data_prim_t(String), .flags = DataFlags_NotEmpty, .container = DataContainer_Array);
     // clang-format on
 
     g_dataAtxDefMeta = data_meta_t(t_AtxDef);
@@ -57,6 +57,7 @@ static void ecs_destruct_atx_load_comp(void* data) {
 
 typedef enum {
   AtxError_None = 0,
+  AtxError_NoLayers,
   AtxError_TooManyLayers,
   AtxError_EmptyTextureIdentifier,
 
@@ -66,6 +67,7 @@ typedef enum {
 static String atx_error_str(const AtxError err) {
   static const String g_msgs[] = {
       string_static("None"),
+      string_static("Atx does not specify any layers"),
       string_static("Atx specifies more layers then are supported"),
       string_static("Atx specifies an empty texture identifier"),
   };
@@ -88,6 +90,10 @@ void asset_load_atx(EcsWorld* world, const EcsEntityId entity, AssetSource* src)
 
   if (UNLIKELY(result.error)) {
     errMsg = result.errorMsg;
+    goto Error;
+  }
+  if (UNLIKELY(!def.textures.count)) {
+    errMsg = atx_error_str(AtxError_NoLayers);
     goto Error;
   }
   if (UNLIKELY(def.textures.count > atx_max_layers)) {
