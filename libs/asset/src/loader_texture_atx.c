@@ -14,7 +14,7 @@
 #include "repo_internal.h"
 
 /**
- * ArrayTeXture - Creates multi-layer textures by combining textures.
+ * ArrayTeXture - Creates multi-layer textures by combining other textures.
  */
 
 #define atx_max_textures 100
@@ -81,7 +81,7 @@ typedef enum {
   AtxError_MismatchType,
   AtxError_MismatchChannels,
   AtxError_MismatchSize,
-  AtxError_CubeMapInvalidTextureCount,
+  AtxError_InvalidCubeMapTextureCount,
 
   AtxError_Count,
 } AtxError;
@@ -148,7 +148,7 @@ static void atx_generate(
     return;
   }
   if (UNLIKELY(def->type == AtxType_CubeMap && layers != 6)) {
-    *err = AtxError_CubeMapInvalidTextureCount;
+    *err = AtxError_InvalidCubeMapTextureCount;
     return;
   }
 
