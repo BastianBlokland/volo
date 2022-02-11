@@ -127,7 +127,7 @@ static void atx_generate(
   const AssetTextureType     type     = textures[0]->type;
   const AssetTextureChannels channels = textures[0]->channels;
   const u32                  width = textures[0]->width, height = textures[0]->height;
-  u32                        layers = textures[0]->layers;
+  u32                        layers = math_max(1, textures[0]->layers);
 
   for (usize i = 1; i != def->textures.count; ++i) {
     if (UNLIKELY(textures[i]->type != type)) {
