@@ -70,6 +70,7 @@ ecs_comp_define(AssetAtxLoadComp) {
 static void ecs_destruct_atx_load_comp(void* data) {
   AssetAtxLoadComp* comp = data;
   data_destroy(g_dataReg, g_alloc_heap, g_dataAtxDefMeta, mem_var(comp->def));
+  dynarray_destroy(&comp->textures);
 }
 
 typedef enum {
