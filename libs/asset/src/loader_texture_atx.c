@@ -58,6 +58,7 @@ static void ecs_destruct_atx_load_comp(void* data) {
 typedef enum {
   AtxError_None = 0,
   AtxError_TooManyLayers,
+  AtxError_EmptyTextureIdentifier,
 
   AtxError_Count,
 } AtxError;
@@ -66,6 +67,7 @@ static String atx_error_str(const AtxError err) {
   static const String g_msgs[] = {
       string_static("None"),
       string_static("Atx specifies more layers then are supported"),
+      string_static("Atx specifies an empty texture identifier"),
   };
   ASSERT(array_elems(g_msgs) == AtxError_Count, "Incorrect number of atx-error messages");
   return g_msgs[err];
@@ -91,6 +93,12 @@ void asset_load_atx(EcsWorld* world, const EcsEntityId entity, AssetSource* src)
   if (UNLIKELY(def.textures.count > atx_max_layers)) {
     errMsg = atx_error_str(AtxError_TooManyLayers);
     goto Error;
+  }
+  array_ptr_for_t(def.textures, String, texName) {
+    if (UNLIKELY(string_is_empty(*texName))) {
+      errMsg = atx_error_str(AtxError_EmptyTextureIdentifier);
+      goto Error;
+    }
   }
 
   ecs_world_add_t(
