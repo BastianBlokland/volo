@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_math.h"
 #include "core_thread.h"
 #include "data.h"
 #include "data_registry.h"
@@ -16,7 +17,8 @@
  * ArrayTeXture - Creates multi-layer textures by combining textures.
  */
 
-#define atx_max_layers 100
+#define atx_max_textures 100
+#define atx_max_layers 256
 
 static DataReg* g_dataReg;
 static DataMeta g_dataAtxDefMeta;
@@ -59,9 +61,13 @@ static void ecs_destruct_atx_load_comp(void* data) {
 
 typedef enum {
   AtxError_None = 0,
-  AtxError_NoLayers,
+  AtxError_NoTextures,
+  AtxError_TooManyTextures,
   AtxError_TooManyLayers,
   AtxError_InvalidTexture,
+  AtxError_MismatchType,
+  AtxError_MismatchChannels,
+  AtxError_MismatchSize,
 
   AtxError_Count,
 } AtxError;
@@ -69,9 +75,13 @@ typedef enum {
 static String atx_error_str(const AtxError err) {
   static const String g_msgs[] = {
       string_static("None"),
-      string_static("Atx does not specify any layers"),
+      string_static("Atx does not specify any textures"),
+      string_static("Atx specifies more textures then are supported"),
       string_static("Atx specifies more layers then are supported"),
       string_static("Atx specifies an invalid texture"),
+      string_static("Atx textures have different types"),
+      string_static("Atx textures have different channel counts"),
+      string_static("Atx textures have different sizes"),
   };
   ASSERT(array_elems(g_msgs) == AtxError_Count, "Incorrect number of atx-error messages");
   return g_msgs[err];
@@ -82,10 +92,56 @@ static void atx_generate(
     const AssetTextureComp** textures,
     AssetTextureComp*        outTexture,
     AtxError*                err) {
-  (void)def;
-  (void)textures;
-  (void)outTexture;
-  (void)err;
+
+  const AssetTextureType     type     = textures[0]->type;
+  const AssetTextureChannels channels = textures[0]->channels;
+  const u32                  width = textures[0]->width, height = textures[0]->height;
+  u32                        layers = textures[0]->layers;
+
+  for (usize i = 1; i != def->textures.count; ++i) {
+    if (UNLIKELY(textures[i]->type != type)) {
+      *err = AtxError_MismatchType;
+      return;
+    }
+    if (UNLIKELY(textures[i]->channels != channels)) {
+      *err = AtxError_MismatchChannels;
+      return;
+    }
+    if (UNLIKELY(textures[i]->width != width || textures[i]->height != height)) {
+      *err = AtxError_MismatchSize;
+      return;
+    }
+    layers += math_max(1, textures[i]->layers);
+  }
+  if (UNLIKELY(layers > atx_max_layers)) {
+    *err = AtxError_TooManyLayers;
+    return;
+  }
+
+  const usize pixelDataSize   = asset_texture_pixel_size(textures[0]);
+  const usize textureDataSize = width * height * pixelDataSize * layers;
+  const Mem   pixelsMem       = alloc_alloc(g_alloc_heap, textureDataSize, pixelDataSize);
+
+  /**
+   * Copy all pixel data to the final array texture.
+   */
+  Mem pixelWriteMem = pixelsMem;
+  for (usize i = 0; i != def->textures.count; ++i) {
+    const Mem texMem = asset_texture_data(textures[i]);
+    mem_cpy(pixelWriteMem, texMem);
+    pixelWriteMem = mem_consume(pixelWriteMem, texMem.size);
+  }
+  diag_assert(!pixelWriteMem.size);
+
+  *outTexture = (AssetTextureComp){
+      .type      = type,
+      .channels  = channels,
+      .pixelsRaw = pixelsMem.ptr,
+      .width     = width,
+      .height    = height,
+      .layers    = layers,
+  };
+  *err = AtxError_None;
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
@@ -186,11 +242,11 @@ void asset_load_atx(EcsWorld* world, const EcsEntityId entity, AssetSource* src)
     goto Error;
   }
   if (UNLIKELY(!def.textures.count)) {
-    errMsg = atx_error_str(AtxError_NoLayers);
+    errMsg = atx_error_str(AtxError_NoTextures);
     goto Error;
   }
-  if (UNLIKELY(def.textures.count > atx_max_layers)) {
-    errMsg = atx_error_str(AtxError_TooManyLayers);
+  if (UNLIKELY(def.textures.count > atx_max_textures)) {
+    errMsg = atx_error_str(AtxError_TooManyTextures);
     goto Error;
   }
   array_ptr_for_t(def.textures, String, texName) {
