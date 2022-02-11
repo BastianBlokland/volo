@@ -45,6 +45,16 @@ static void atx_datareg_init() {
   thread_spinlock_unlock(&g_initLock);
 }
 
+ecs_comp_define(AssetAtxLoadComp) {
+  AtxDef   def;
+  DynArray textures; // EcsEntityId[].
+};
+
+static void ecs_destruct_atx_load_comp(void* data) {
+  AssetAtxLoadComp* comp = data;
+  data_destroy(g_dataReg, g_alloc_heap, g_dataAtxDefMeta, mem_var(comp->def));
+}
+
 typedef enum {
   AtxError_None = 0,
   AtxError_TooManyLayers,
@@ -61,8 +71,13 @@ static String atx_error_str(const AtxError err) {
   return g_msgs[err];
 }
 
-void asset_load_atx(EcsWorld* world, const EcsEntityId entity, AssetSource* src) {
+ecs_module_init(asset_atx_module) {
   atx_datareg_init();
+
+  ecs_register_comp(AssetAtxLoadComp, .destructor = ecs_destruct_atx_load_comp);
+}
+
+void asset_load_atx(EcsWorld* world, const EcsEntityId entity, AssetSource* src) {
 
   String         errMsg;
   AtxDef         def;
@@ -78,9 +93,13 @@ void asset_load_atx(EcsWorld* world, const EcsEntityId entity, AssetSource* src)
     goto Error;
   }
 
-  // *ecs_world_add_t(world, entity, AssetTextureComp) = ;
-  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
-  // asset_repo_source_close(src);
+  ecs_world_add_t(
+      world,
+      entity,
+      AssetAtxLoadComp,
+      .def      = def,
+      .textures = dynarray_create_t(g_alloc_heap, EcsEntityId, def.textures.count));
+  asset_repo_source_close(src);
   return;
 
 Error:

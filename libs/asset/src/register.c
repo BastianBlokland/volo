@@ -3,6 +3,7 @@
 #include "ecs_def.h"
 
 void asset_register(EcsDef* def) {
+  ecs_register_module(def, asset_atx_module);
   ecs_register_module(def, asset_font_module);
   ecs_register_module(def, asset_ftx_module);
   ecs_register_module(def, asset_graphic_module);
