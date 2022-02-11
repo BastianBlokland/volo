@@ -77,6 +77,17 @@ static String atx_error_str(const AtxError err) {
   return g_msgs[err];
 }
 
+static void atx_generate(
+    const AtxDef*            def,
+    const AssetTextureComp** textures,
+    AssetTextureComp*        outTexture,
+    AtxError*                err) {
+  (void)def;
+  (void)textures;
+  (void)outTexture;
+  (void)err;
+}
+
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
 ecs_view_define(LoadView) { ecs_access_write(AssetAtxLoadComp); }
 ecs_view_define(TextureView) { ecs_access_write(AssetTextureComp); }
@@ -89,8 +100,8 @@ ecs_system_define(AtxLoadAssetSys) {
   if (!manager) {
     return;
   }
-  EcsView* loadView = ecs_world_view_t(world, LoadView);
-  // EcsIterator* textueItr = ecs_view_itr(ecs_world_view_t(world, TextureView));
+  EcsView*     loadView   = ecs_world_view_t(world, LoadView);
+  EcsIterator* textureItr = ecs_view_itr(ecs_world_view_t(world, TextureView));
 
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
     const EcsEntityId entity = ecs_view_entity(itr);
@@ -109,19 +120,32 @@ ecs_system_define(AtxLoadAssetSys) {
     }
 
     /**
-     * Check if all textures are loaded.
+     * Gather all textures.
      */
-    dynarray_for_t(&load->textures, EcsEntityId, texAsset) {
-      if (ecs_world_has_t(world, *texAsset, AssetFailedComp)) {
+    const AssetTextureComp** textures = mem_stack(sizeof(void*) * load->textures.size).ptr;
+    for (usize i = 0; i != load->textures.size; ++i) {
+      const EcsEntityId texAsset = *dynarray_at_t(&load->textures, i, EcsEntityId);
+      if (ecs_world_has_t(world, texAsset, AssetFailedComp)) {
         err = AtxError_InvalidTexture;
         goto Error;
       }
-      if (!ecs_world_has_t(world, *texAsset, AssetLoadedComp)) {
+      if (!ecs_world_has_t(world, texAsset, AssetLoadedComp)) {
         goto Next; // Wait for the texture to be loaded.
       }
+      if (UNLIKELY(!ecs_view_maybe_jump(textureItr, texAsset))) {
+        err = AtxError_InvalidTexture;
+        goto Error;
+      }
+      textures[i] = ecs_view_read_t(textureItr, AssetTextureComp);
     }
 
-    // *ecs_world_add_t(world, entity, AssetTextureComp) = texture;
+    AssetTextureComp texture;
+    atx_generate(&load->def, textures, &texture, &err);
+    if (UNLIKELY(err)) {
+      goto Error;
+    }
+
+    *ecs_world_add_t(world, entity, AssetTextureComp) = texture;
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
     goto Cleanup;
 
