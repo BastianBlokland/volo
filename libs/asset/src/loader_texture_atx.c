@@ -81,6 +81,7 @@ typedef enum {
   AtxError_InvalidTexture,
   AtxError_MismatchType,
   AtxError_MismatchChannels,
+  AtxError_MismatchEncoding,
   AtxError_MismatchSize,
   AtxError_InvalidCubeMapTextureCount,
 
@@ -96,6 +97,7 @@ static String atx_error_str(const AtxError err) {
       string_static("Atx specifies an invalid texture"),
       string_static("Atx textures have different types"),
       string_static("Atx textures have different channel counts"),
+      string_static("Atx textures have different encodings"),
       string_static("Atx textures have different sizes"),
       string_static("Atx cubemap needs 6 textures"),
   };
@@ -103,7 +105,7 @@ static String atx_error_str(const AtxError err) {
   return g_msgs[err];
 }
 
-static AssetTextureFlags atx_texture_flags(const AtxDef* def) {
+static AssetTextureFlags atx_texture_flags(const AtxDef* def, const bool srgb) {
   AssetTextureFlags flags = 0;
   switch (def->type) {
   case AtxType_Array:
@@ -114,6 +116,9 @@ static AssetTextureFlags atx_texture_flags(const AtxDef* def) {
   }
   if (def->mipmaps) {
     flags |= AssetTextureFlags_MipMaps;
+  }
+  if (srgb) {
+    flags |= AssetTextureFlags_Srgb;
   }
   return flags;
 }
@@ -126,6 +131,7 @@ static void atx_generate(
 
   const AssetTextureType     type     = textures[0]->type;
   const AssetTextureChannels channels = textures[0]->channels;
+  const bool                 srgb     = (textures[0]->flags & AssetTextureFlags_Srgb) != 0;
   const u32                  width = textures[0]->width, height = textures[0]->height;
   u32                        layers = math_max(1, textures[0]->layers);
 
@@ -136,6 +142,10 @@ static void atx_generate(
     }
     if (UNLIKELY(textures[i]->channels != channels)) {
       *err = AtxError_MismatchChannels;
+      return;
+    }
+    if (UNLIKELY(srgb != (textures[i]->flags & AssetTextureFlags_Srgb) != 0)) {
+      *err = AtxError_MismatchEncoding;
       return;
     }
     if (UNLIKELY(textures[i]->width != width || textures[i]->height != height)) {
@@ -171,7 +181,7 @@ static void atx_generate(
   *outTexture = (AssetTextureComp){
       .type      = type,
       .channels  = channels,
-      .flags     = atx_texture_flags(def),
+      .flags     = atx_texture_flags(def, srgb),
       .pixelsRaw = pixelsMem.ptr,
       .width     = width,
       .height    = height,
