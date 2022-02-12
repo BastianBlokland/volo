@@ -548,7 +548,9 @@ static void spv_load_fail(EcsWorld* world, const EcsEntityId entity, const SpvEr
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
-void asset_load_spv(EcsWorld* world, const EcsEntityId entity, AssetSource* src) {
+void asset_load_spv(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+  (void)id;
+
   /**
    * SpirV consists of 32 bit words so we interpret the file as a set of 32 bit words.
    * TODO: Convert to big-endian in case we're running on a big-endian system.

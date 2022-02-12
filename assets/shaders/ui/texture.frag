@@ -10,4 +10,4 @@ bind_internal(0) in f32v2 in_texcoord;
 
 bind_internal(0) out f32v4 out_color;
 
-void main() { out_color = texture_sample_srgb(u_tex, in_texcoord); }
+void main() { out_color = texture(u_tex, in_texcoord); }

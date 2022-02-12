@@ -212,7 +212,8 @@ static void ptx_generate(const PtxDef* def, AssetTextureComp* outTexture) {
   };
 }
 
-void asset_load_ptx(EcsWorld* world, const EcsEntityId entity, AssetSource* src) {
+void asset_load_ptx(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+  (void)id;
   ptx_datareg_init();
 
   String         errMsg;

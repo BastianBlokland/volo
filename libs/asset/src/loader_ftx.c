@@ -212,12 +212,12 @@ static void ftx_generate(
      */
     const f32 border = def->border / (f32)def->glyphSize;
     chars[i]         = (AssetFtxChar){
-        .cp         = inputChars[i].cp,
-        .glyphIndex = inputChars[i].glyph->segmentCount ? nextGlyphIndex : sentinel_u32,
-        .size       = inputChars[i].glyph->size + border * 2.0f,
-        .offsetX    = inputChars[i].glyph->offsetX - border,
-        .offsetY    = inputChars[i].glyph->offsetY - border,
-        .advance    = inputChars[i].glyph->advance,
+                .cp         = inputChars[i].cp,
+                .glyphIndex = inputChars[i].glyph->segmentCount ? nextGlyphIndex : sentinel_u32,
+                .size       = inputChars[i].glyph->size + border * 2.0f,
+                .offsetX    = inputChars[i].glyph->offsetX - border,
+                .offsetY    = inputChars[i].glyph->offsetY - border,
+                .advance    = inputChars[i].glyph->advance,
     };
     if (inputChars[i].glyph->segmentCount) {
       if (UNLIKELY(nextGlyphIndex >= maxGlyphs)) {
@@ -351,7 +351,9 @@ ecs_module_init(asset_ftx_module) {
   ecs_register_system(FtxUnloadAssetSys, ecs_view_id(FtxUnloadView));
 }
 
-void asset_load_ftx(EcsWorld* world, const EcsEntityId entity, AssetSource* src) {
+void asset_load_ftx(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+  (void)id;
+
   String         errMsg;
   FtxDef         def;
   DataReadResult result;

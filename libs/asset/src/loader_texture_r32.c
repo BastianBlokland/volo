@@ -37,7 +37,9 @@ static void raw32_load_fail(EcsWorld* world, const EcsEntityId entity, const Raw
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
-void asset_load_r32(EcsWorld* world, const EcsEntityId entity, AssetSource* src) {
+void asset_load_r32(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+  (void)id;
+
   if (src->data.size % sizeof(f32)) {
     raw32_load_fail(world, entity, Raw32Error_Corrupt);
     goto Error;

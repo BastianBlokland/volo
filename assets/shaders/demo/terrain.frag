@@ -35,7 +35,7 @@ f32v3 heightmap_normal(const f32v2 uv, const f32 scale) {
 }
 
 void main() {
-  const f32v4 diffuse      = texture_sample_srgb(u_texDiffuse, in_texcoord);
+  const f32v4 diffuse      = texture(u_texDiffuse, in_texcoord);
   const f32v3 worldViewDir = quat_rotate(u_global.camRotation, f32v3(0, 0, 1));
 
   const f32v3 localNormal = heightmap_normal(in_texcoord, s_heightMapScale);

@@ -357,10 +357,13 @@ static void obj_load_fail(EcsWorld* world, const EcsEntityId entity, const ObjEr
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
-void asset_load_obj(EcsWorld* world, const EcsEntityId entity, AssetSource* src) {
+void asset_load_obj(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+  (void)id;
+
   ObjError          err     = ObjError_None;
   AssetMeshBuilder* builder = null;
-  ObjData           data    = {
+
+  ObjData data = {
       .positions = dynarray_create_t(g_alloc_heap, GeoVector, 64),
       .texcoords = dynarray_create_t(g_alloc_heap, GeoVector, 64),
       .normals   = dynarray_create_t(g_alloc_heap, GeoVector, 64),

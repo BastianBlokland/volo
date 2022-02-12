@@ -28,8 +28,10 @@ typedef enum {
 } AssetTextureChannels;
 
 typedef enum {
-  AssetTextureFlags_MipMaps = 1 << 0,
-  AssetTextureFlags_CubeMap = 1 << 1,
+  AssetTextureFlags_Srgb      = 1 << 0,
+  AssetTextureFlags_MipMaps   = 1 << 1,
+  AssetTextureFlags_CubeMap   = 1 << 2,
+  AssetTextureFlags_NormalMap = 1 << 3,
 } AssetTextureFlags;
 
 ecs_comp_extern_public(AssetTextureComp) {

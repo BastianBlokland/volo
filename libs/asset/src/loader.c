@@ -6,7 +6,7 @@
 
 AssetLoader asset_loader(const AssetFormat format) {
 #define RET_LOADER(_NAME_)                                                                         \
-  void asset_loader_name(_NAME_)(EcsWorld*, EcsEntityId, AssetSource*);                            \
+  void asset_loader_name(_NAME_)(EcsWorld*, String, EcsEntityId, AssetSource*);                    \
   return &asset_loader_name(_NAME_)
 
   switch (format) {
