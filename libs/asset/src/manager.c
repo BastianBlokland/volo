@@ -116,10 +116,15 @@ ecs_view_define(DirtyAssetView) {
 
 ecs_view_define(GlobalView) { ecs_access_write(AssetManagerComp); }
 
-ecs_system_define(AssetUpdateDirtySys) {
+static AssetManagerComp* asset_manager(EcsWorld* world) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  if (!globalItr) {
+  return globalItr ? ecs_view_write_t(globalItr, AssetManagerComp) : null;
+}
+
+ecs_system_define(AssetUpdateDirtySys) {
+  AssetManagerComp* manager = asset_manager(world);
+  if (!manager) {
     /**
      * The manager has not been created yet, we delay the processing of asset requests until a
      * manager has been created.
@@ -127,7 +132,6 @@ ecs_system_define(AssetUpdateDirtySys) {
      */
     return;
   }
-  AssetManagerComp* manager = ecs_view_write_t(globalItr, AssetManagerComp);
 
   u32      startedLoads = 0;
   EcsView* assetsView   = ecs_world_view_t(world, DirtyAssetView);
@@ -217,12 +221,10 @@ ecs_system_define(AssetUpdateDirtySys) {
 }
 
 ecs_system_define(AssetPollChangedSys) {
-  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
-  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  if (!globalItr) {
+  AssetManagerComp* manager = asset_manager(world);
+  if (!manager) {
     return;
   }
-  AssetManagerComp* manager = ecs_view_write_t(globalItr, AssetManagerComp);
   if (!(manager->flags & AssetManagerFlags_TrackChanges)) {
     return;
   }
