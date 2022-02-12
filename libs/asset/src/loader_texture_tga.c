@@ -5,6 +5,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 
+#include "loader_texture_internal.h"
 #include "repo_internal.h"
 
 /**
@@ -259,8 +260,18 @@ static void tga_load_fail(EcsWorld* world, const EcsEntityId entity, const TgaEr
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
+static AssetTextureFlags tga_texture_flags(const bool isNormalmap) {
+  AssetTextureFlags flags = AssetTextureFlags_MipMaps;
+  if (isNormalmap) {
+    flags |= AssetTextureFlags_NormalMap;
+  } else {
+    flags |= AssetTextureFlags_Srgb;
+  }
+  return flags;
+}
+
 void asset_load_tga(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
-  (void)id;
+  const bool isNormalmap = asset_texture_is_normalmap(id);
 
   Mem      data  = src->data;
   TgaError res   = TgaError_None;
@@ -334,7 +345,7 @@ void asset_load_tga(EcsWorld* world, const String id, const EcsEntityId entity, 
       AssetTextureComp,
       .type     = AssetTextureType_Byte,
       .channels = AssetTextureChannels_Four,
-      .flags    = AssetTextureFlags_Srgb | AssetTextureFlags_MipMaps,
+      .flags    = tga_texture_flags(isNormalmap),
       .width    = width,
       .height   = height,
       .pixelsB4 = pixels);

@@ -1,7 +1,9 @@
 #include "asset_texture.h"
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_math.h"
+#include "core_string.h"
 #include "ecs_world.h"
 
 #include "repo_internal.h"
@@ -52,4 +54,17 @@ Mem asset_texture_data(const AssetTextureComp* texture) {
   const usize layerCount = math_max(1, texture->layers);
   const usize dataSize   = asset_texture_pixel_size(texture) * pixelCount * layerCount;
   return mem_create(texture->pixelsRaw, dataSize);
+}
+
+bool asset_texture_is_normalmap(const String id) {
+  const static String g_patterns[] = {
+      string_static("*_nrm.*"),
+      string_static("*_normal.*"),
+  };
+  array_for_t(g_patterns, String, pattern) {
+    if (string_match_glob(id, *pattern, StringMatchFlags_IgnoreCase)) {
+      return true;
+    }
+  }
+  return false;
 }
