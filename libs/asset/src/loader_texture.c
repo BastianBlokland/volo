@@ -57,7 +57,7 @@ Mem asset_texture_data(const AssetTextureComp* texture) {
 }
 
 bool asset_texture_is_normalmap(const String id) {
-  const static String g_patterns[] = {
+  static const String g_patterns[] = {
       string_static("*_nrm.*"),
       string_static("*_normal.*"),
   };

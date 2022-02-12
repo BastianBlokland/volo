@@ -144,7 +144,7 @@ static void atx_generate(
       *err = AtxError_MismatchChannels;
       return;
     }
-    if (UNLIKELY(srgb != (textures[i]->flags & AssetTextureFlags_Srgb) != 0)) {
+    if (UNLIKELY(srgb != ((textures[i]->flags & AssetTextureFlags_Srgb) != 0))) {
       *err = AtxError_MismatchEncoding;
       return;
     }
