@@ -15,7 +15,7 @@ bind_instance_data(0) readonly uniform Instance { InstanceData[c_maxInstances] u
 
 bind_graphic(1) uniform sampler2D u_texHeightMap;
 
-bind_internal(0) out flat f32v4 out_rotation;
+bind_internal(0) out flat f32v4 out_worldRotation;
 bind_internal(1) out f32v2 out_texcoord;
 
 f32 heightmap_sample(const f32v2 uv, const f32 scale) {
@@ -35,6 +35,6 @@ void main() {
   const f32v3 worldPos = quat_rotate(instanceQuat, localPos * instanceScale) + instancePos;
 
   out_vertexPosition = u_global.viewProj * f32v4(worldPos, 1);
-  out_rotation       = instanceQuat;
+  out_worldRotation  = instanceQuat;
   out_texcoord       = vert.texcoord;
 }

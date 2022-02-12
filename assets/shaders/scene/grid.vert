@@ -16,7 +16,7 @@ const f32v4 c_colorHighlight = f32v4(0.8, 0.8, 0.8, 0.4);
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_instance_data(0) readonly uniform Instance { GridData u_instance; };
 
-bind_internal(0) out f32v3 out_gridPos;
+bind_internal(0) out f32v3 out_worldGridPos;
 bind_internal(1) out flat f32 out_gridHalfSize;
 bind_internal(2) out flat f32v4 out_color;
 
@@ -38,7 +38,7 @@ void main() {
 
   const f32 x      = (centerX + (isHorizontal ? b : a)) * u_instance.cellSize;
   const f32 z      = (centerZ + (isHorizontal ? a : b)) * u_instance.cellSize;
-  out_gridPos      = f32v3(x, 0, z);
+  out_worldGridPos = f32v3(x, 0, z);
   out_gridHalfSize = segments * u_instance.cellSize * 0.5;
 
   const bool isHighlight =
