@@ -333,7 +333,8 @@ RvkImage rvk_image_create_source_color(
 RvkImage rvk_image_create_source_color_cube(
     RvkDevice* dev, const VkFormat vkFormat, const RvkSize size, const u8 mipLevels) {
   const u8 layers = 6;
-  return rvk_image_create_backed(dev, RvkImageType_ColorSource, vkFormat, size, layers, mipLevels);
+  return rvk_image_create_backed(
+      dev, RvkImageType_ColorSourceCube, vkFormat, size, layers, mipLevels);
 }
 
 RvkImage
