@@ -34,7 +34,7 @@ f32 get_color_frac(const f32 dist) {
 }
 
 void main() {
-  const f32   dist  = texture_sample_linear(u_fontTexture, in_texcoord).r;
+  const f32   dist  = texture(u_fontTexture, in_texcoord).r;
   const f32v3 color = mix(c_outlineColor.rgb, in_color.rgb, get_color_frac(dist));
   out_color         = f32v4(color, in_color.a * get_glyph_alpha(dist));
 }
