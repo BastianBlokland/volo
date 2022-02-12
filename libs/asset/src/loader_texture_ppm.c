@@ -171,7 +171,9 @@ static void ppm_load_fail(EcsWorld* world, const EcsEntityId entity, const Pixma
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
-void asset_load_ppm(EcsWorld* world, const EcsEntityId entity, AssetSource* src) {
+void asset_load_ppm(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+  (void)id;
+
   String      input = src->data;
   PixmapError res   = PixmapError_None;
 

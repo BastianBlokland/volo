@@ -105,7 +105,7 @@ static bool asset_manager_load(
       log_param("size", fmt_size(source->data.size)));
 
   AssetLoader loader = asset_loader(source->format);
-  loader(world, assetEntity, source);
+  loader(world, asset->id, assetEntity, source);
   return true;
 }
 

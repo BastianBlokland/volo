@@ -39,7 +39,9 @@ ecs_module_init(asset_raw_module) {
   ecs_register_system(UnloadRawAssetSys, ecs_view_id(UnloadView));
 }
 
-void asset_load_raw(EcsWorld* world, const EcsEntityId entity, AssetSource* src) {
+void asset_load_raw(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+  (void)id;
+
   ecs_world_add_t(world, entity, AssetRawComp, .data = src->data);
   ecs_world_add_t(world, entity, AssetRawSourceComp, .src = src);
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);

@@ -383,7 +383,8 @@ static String pme_error_str(const PmeError err) {
   return g_msgs[err];
 }
 
-void asset_load_pme(EcsWorld* world, const EcsEntityId entity, AssetSource* src) {
+void asset_load_pme(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+  (void)id;
   pme_datareg_init();
 
   String            errMsg;

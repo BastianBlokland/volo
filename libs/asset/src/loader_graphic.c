@@ -209,6 +209,7 @@ ecs_module_init(asset_graphic_module) {
   ecs_register_system(UnloadGraphicAssetSys, ecs_view_id(UnloadView));
 }
 
-void asset_load_gra(EcsWorld* world, const EcsEntityId entity, AssetSource* src) {
+void asset_load_gra(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+  (void)id;
   ecs_world_add_t(world, entity, AssetGraphicLoadComp, .src = src);
 }

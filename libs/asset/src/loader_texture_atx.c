@@ -277,7 +277,9 @@ ecs_module_init(asset_atx_module) {
       AtxLoadAssetSys, ecs_view_id(ManagerView), ecs_view_id(LoadView), ecs_view_id(TextureView));
 }
 
-void asset_load_atx(EcsWorld* world, const EcsEntityId entity, AssetSource* src) {
+void asset_load_atx(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+  (void)id;
+
   String         errMsg;
   AtxDef         def;
   DataReadResult result;

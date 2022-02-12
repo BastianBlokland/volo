@@ -259,7 +259,9 @@ static void tga_load_fail(EcsWorld* world, const EcsEntityId entity, const TgaEr
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
-void asset_load_tga(EcsWorld* world, const EcsEntityId entity, AssetSource* src) {
+void asset_load_tga(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+  (void)id;
+
   Mem      data  = src->data;
   TgaError res   = TgaError_None;
   TgaFlags flags = 0;
