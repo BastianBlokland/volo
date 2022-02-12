@@ -14,10 +14,11 @@
   "files.associations": {
     "*.h": "c",
     "*.c": "c",
-    "*.gra": "json",
+    "*.atx": "json",
     "*.ftx": "json",
-    "*.ptx": "json",
+    "*.gra": "json",
     "*.pme": "json",
+    "*.ptx": "json",
   },
   "files.exclude": {
     ".cache": true,

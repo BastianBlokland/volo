@@ -10,7 +10,8 @@ configure_shaders(volo_shaders
     shaders/scene/grid.vert
     shaders/scene/grid.frag
     shaders/scene/sky.vert
-    shaders/scene/sky.frag
+    shaders/scene/sky_cubemap.frag
+    shaders/scene/sky_procedural.frag
     shaders/ui/lines.vert
     shaders/ui/points.vert
     shaders/ui/color.frag
@@ -44,6 +45,12 @@ if(${EXTERNAL_ASSETS})
       testimages/ducks.tga
       terrain/terrain_color.tga
       terrain/terrain_height.r32
+      skybox/sorsele_front.tga
+      skybox/sorsele_back.tga
+      skybox/sorsele_up.tga
+      skybox/sorsele_down.tga
+      skybox/sorsele_right.tga
+      skybox/sorsele_left.tga
     )
 endif()
 

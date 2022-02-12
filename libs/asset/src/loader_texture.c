@@ -1,6 +1,7 @@
 #include "asset_texture.h"
 #include "core_alloc.h"
 #include "core_diag.h"
+#include "core_math.h"
 #include "ecs_world.h"
 
 #include "repo_internal.h"
@@ -48,6 +49,7 @@ usize asset_texture_pixel_size(const AssetTextureComp* texture) {
 
 Mem asset_texture_data(const AssetTextureComp* texture) {
   const usize pixelCount = texture->width * texture->height;
-  const usize dataSize   = asset_texture_pixel_size(texture) * pixelCount;
+  const usize layerCount = math_max(1, texture->layers);
+  const usize dataSize   = asset_texture_pixel_size(texture) * pixelCount * layerCount;
   return mem_create(texture->pixelsRaw, dataSize);
 }

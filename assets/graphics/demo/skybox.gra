@@ -4,10 +4,17 @@
       "shaderId": "shaders/scene/sky.vert.spv"
     },
     {
-      "shaderId": "shaders/scene/sky_procedural.frag.spv"
+      "shaderId": "shaders/scene/sky_cubemap.frag.spv"
     }
   ],
-  "samplers": [],
+  "samplers": [
+    {
+      "textureId": "textures/demo/skybox.atx",
+      "wrap": "Clamp",
+      "filter": "Linear",
+      "anisotropy": "None"
+    }
+  ],
   "vertexCount": 4,
   "renderOrder": 10,
   "topology": "TriangleFan",

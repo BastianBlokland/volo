@@ -21,6 +21,7 @@ typedef enum {
 
 typedef enum {
   RvkImageType_ColorSource,
+  RvkImageType_ColorSourceCube,
   RvkImageType_ColorAttachment,
   RvkImageType_DepthAttachment,
   RvkImageType_Swapchain,
@@ -31,6 +32,7 @@ typedef enum {
 typedef struct sRvkImage {
   RvkImageType  type : 8;
   RvkImagePhase phase : 8;
+  u8            layers;
   u8            mipLevels;
   VkFormat      vkFormat;
   RvkSize       size;
@@ -39,10 +41,11 @@ typedef struct sRvkImage {
   RvkMem        mem;
 } RvkImage;
 
-RvkImage rvk_image_create_source_color(RvkDevice*, VkFormat, RvkSize size, u8 mipLevels);
-RvkImage rvk_image_create_attach_color(RvkDevice*, VkFormat, RvkSize size);
-RvkImage rvk_image_create_attach_depth(RvkDevice*, VkFormat, RvkSize size);
-RvkImage rvk_image_create_swapchain(RvkDevice*, VkImage, VkFormat, RvkSize size);
+RvkImage rvk_image_create_source_color(RvkDevice*, VkFormat, RvkSize, u8 layers, u8 mipLevels);
+RvkImage rvk_image_create_source_color_cube(RvkDevice*, VkFormat, RvkSize, u8 mipLevels);
+RvkImage rvk_image_create_attach_color(RvkDevice*, VkFormat, RvkSize);
+RvkImage rvk_image_create_attach_depth(RvkDevice*, VkFormat, RvkSize);
+RvkImage rvk_image_create_swapchain(RvkDevice*, VkImage, VkFormat, RvkSize);
 void     rvk_image_destroy(RvkImage*, RvkDevice*);
 
 String rvk_image_type_str(RvkImageType);

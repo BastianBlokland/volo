@@ -16,6 +16,7 @@ add_library(lib_asset STATIC
   src/loader_raw.c
   src/loader_shader_spv.c
   src/loader_shader.c
+  src/loader_texture_atx.c
   src/loader_texture_ppm.c
   src/loader_texture_ptx.c
   src/loader_texture_r32.c

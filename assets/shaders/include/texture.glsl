@@ -20,6 +20,15 @@ f32v4 texture_sample_srgb(const sampler2D tex, const f32v2 texcoord) {
 }
 
 /**
+ * Sample a srgb encoded cubemap.
+ */
+f32v4 texture_cube_srgb(const samplerCube tex, const f32v3 direction) {
+  // NOTE: Flip the Y component as we are using the bottom as the texture origin.
+  const f32v4 raw = texture(tex, f32v3(direction.x, -direction.y, direction.z));
+  return f32v4(color_decode_srgb(raw.rgb), raw.a);
+}
+
+/**
  * Sample a normal texture in tangent space and convert it to the axis system formed by the given
  * normal and tangent references, 'w' component of the tangent indicates the handedness.
  * NOTE: normalRef and tangentRef are not required to be unit vectors.
