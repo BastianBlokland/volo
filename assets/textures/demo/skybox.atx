@@ -1,0 +1,12 @@
+{
+  "type": "CubeMap",
+  "mipmaps": true,
+  "textures": [
+    "external/skybox/skybox.front.tga",
+    "external/skybox/skybox.back.tga",
+    "external/skybox/skybox.down.tga",
+    "external/skybox/skybox.up.tga",
+    "external/skybox/skybox.right.tga",
+    "external/skybox/skybox.left.tga"
+  ]
+}
