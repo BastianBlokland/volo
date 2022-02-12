@@ -23,7 +23,8 @@ f32v4 texture_sample_srgb(const sampler2D tex, const f32v2 texcoord) {
  * Sample a srgb encoded cubemap.
  */
 f32v4 texture_cube_srgb(const samplerCube tex, const f32v3 direction) {
-  const f32v4 raw = texture(tex, direction);
+  // NOTE: Flip the Y component as we are using the bottom as the texture origin.
+  const f32v4 raw = texture(tex, f32v3(direction.x, -direction.y, direction.z));
   return f32v4(color_decode_srgb(raw.rgb), raw.a);
 }
 

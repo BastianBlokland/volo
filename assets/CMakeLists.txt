@@ -45,12 +45,12 @@ if(${EXTERNAL_ASSETS})
       testimages/ducks.tga
       terrain/terrain_color.tga
       terrain/terrain_height.r32
-      skybox/skybox.front.tga
-      skybox/skybox.back.tga
-      skybox/skybox.up.tga
-      skybox/skybox.down.tga
-      skybox/skybox.right.tga
-      skybox/skybox.left.tga
+      skybox/sorsele_front.tga
+      skybox/sorsele_back.tga
+      skybox/sorsele_up.tga
+      skybox/sorsele_down.tga
+      skybox/sorsele_right.tga
+      skybox/sorsele_left.tga
     )
 endif()
 

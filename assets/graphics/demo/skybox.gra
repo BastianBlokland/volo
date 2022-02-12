@@ -11,7 +11,8 @@
     {
       "textureId": "textures/demo/skybox.atx",
       "wrap": "Clamp",
-      "filter": "Linear"
+      "filter": "Linear",
+      "anisotropy": "None"
     }
   ],
   "vertexCount": 4,
