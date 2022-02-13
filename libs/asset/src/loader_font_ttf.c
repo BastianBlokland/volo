@@ -868,9 +868,8 @@ static void ttf_glyph_build(
         ++outGlyph->segmentCount;
 
         if (UNLIKELY(isLast)) {
-          // Another point has to follow this one to finish the curve.
-          *err = TtfError_GlyfTableEntryContourMalformed;
-          return;
+          // Insert another point to finish this curve.
+          *dynarray_push_t(outPoints, AssetFontPoint) = points[next];
         }
       }
 
