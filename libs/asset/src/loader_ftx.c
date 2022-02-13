@@ -181,6 +181,44 @@ static void ftx_generate_glyph(
   }
 }
 
+static void ftx_generate_font(
+    const FtxDef*        def,
+    const AssetFontComp* font,
+    u32                  maxGlyphs,
+    u32*                 nextGlyphIndex,
+    DynArray*            outChars, // AssetFtxChar[]
+    AssetTexturePixelB1* outPixels,
+    FtxError*            err) {
+
+  FtxDefChar inputChars[ftx_max_chars];
+  const u32  charCount = ftx_lookup_chars(font, def->characters, inputChars, err);
+  if (UNLIKELY(*err)) {
+    return;
+  }
+
+  for (u32 i = 0; i != charCount; ++i) {
+    /**
+     * Take the sdf border into account as the glyph will need to be rendered bigger to compensate.
+     */
+    const f32 border                         = def->border / (f32)def->glyphSize;
+    *dynarray_push_t(outChars, AssetFtxChar) = (AssetFtxChar){
+        .cp         = inputChars[i].cp,
+        .glyphIndex = inputChars[i].glyph->segmentCount ? *nextGlyphIndex : sentinel_u32,
+        .size       = inputChars[i].glyph->size + border * 2.0f,
+        .offsetX    = inputChars[i].glyph->offsetX - border,
+        .offsetY    = inputChars[i].glyph->offsetY - border,
+        .advance    = inputChars[i].glyph->advance,
+    };
+    if (inputChars[i].glyph->segmentCount) {
+      if (UNLIKELY(*nextGlyphIndex >= maxGlyphs)) {
+        *err = FtxError_TooManyGlyphs;
+        return;
+      }
+      ftx_generate_glyph(def, font, inputChars[i].glyph, (*nextGlyphIndex)++, outPixels);
+    }
+  }
+}
+
 static void ftx_generate(
     const FtxDef*        def,
     const AssetFontComp* font,
@@ -188,74 +226,47 @@ static void ftx_generate(
     AssetTextureComp*    outTexture,
     FtxError*            err) {
 
-  AssetFtxChar*        chars        = null;
-  AssetTexturePixelB1* pixels       = null;
-  const u32            size         = def->size;
-  const u32            glyphsPerDim = size / def->glyphSize;
-  const u32            maxGlyphs    = glyphsPerDim * glyphsPerDim;
+  AssetTexturePixelB1* pixels =
+      alloc_array_t(g_alloc_heap, AssetTexturePixelB1, def->size * def->size);
+  DynArray chars = dynarray_create_t(g_alloc_heap, AssetFtxChar, 128);
+
+  const u32 glyphsPerDim   = def->size / def->glyphSize;
+  const u32 maxGlyphs      = glyphsPerDim * glyphsPerDim;
+  u32       nextGlyphIndex = 0;
   if (UNLIKELY(!maxGlyphs)) {
     *err = FtxError_TooManyGlyphs;
     goto Error;
   }
 
-  FtxDefChar inputChars[ftx_max_chars];
-  const u32  charCount = ftx_lookup_chars(font, def->characters, inputChars, err);
+  ftx_generate_font(def, font, maxGlyphs, &nextGlyphIndex, &chars, pixels, err);
   if (UNLIKELY(*err)) {
     goto Error;
   }
-  chars  = alloc_array_t(g_alloc_heap, AssetFtxChar, charCount);
-  pixels = alloc_array_t(g_alloc_heap, AssetTexturePixelB1, size * size);
-
-  u32 nextGlyphIndex = 0;
-  for (u32 i = 0; i != charCount; ++i) {
-    /**
-     * Take the sdf border into account as the glyph will need to be rendered bigger to compensate.
-     */
-    const f32 border = def->border / (f32)def->glyphSize;
-    chars[i]         = (AssetFtxChar){
-        .cp         = inputChars[i].cp,
-        .glyphIndex = inputChars[i].glyph->segmentCount ? nextGlyphIndex : sentinel_u32,
-        .size       = inputChars[i].glyph->size + border * 2.0f,
-        .offsetX    = inputChars[i].glyph->offsetX - border,
-        .offsetY    = inputChars[i].glyph->offsetY - border,
-        .advance    = inputChars[i].glyph->advance,
-    };
-    if (inputChars[i].glyph->segmentCount) {
-      if (UNLIKELY(nextGlyphIndex >= maxGlyphs)) {
-        *err = FtxError_TooManyGlyphs;
-        goto Error;
-      }
-      ftx_generate_glyph(def, font, inputChars[i].glyph, nextGlyphIndex++, pixels);
-    }
-  }
 
   // Sort the characters on the unicode codepoint.
-  sort_quicksort_t(chars, chars + charCount, AssetFtxChar, ftx_compare_char_cp);
+  dynarray_sort(&chars, ftx_compare_char_cp);
 
   *outFtx = (AssetFtxComp){
       .glyphsPerDim   = glyphsPerDim,
       .lineSpacing    = def->lineSpacing,
-      .characters     = chars,
-      .characterCount = charCount,
+      .characters     = dynarray_copy_as_new(&chars, g_alloc_heap),
+      .characterCount = chars.size,
   };
   *outTexture = (AssetTextureComp){
       .type     = AssetTextureType_Byte,
       .channels = AssetTextureChannels_One,
       .pixelsB1 = pixels,
-      .width    = size,
-      .height   = size,
+      .width    = def->size,
+      .height   = def->size,
   };
+  dynarray_destroy(&chars);
   *err = FtxError_None;
   return;
 
 Error:
   diag_assert(*err);
-  if (chars) {
-    alloc_free_array_t(g_alloc_heap, chars, charCount);
-  }
-  if (pixels) {
-    alloc_free_array_t(g_alloc_heap, pixels, size * size);
-  }
+  dynarray_destroy(&chars);
+  alloc_free_array_t(g_alloc_heap, pixels, def->size * def->size);
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
