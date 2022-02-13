@@ -64,6 +64,11 @@ static void scene_bounds_init_done(EcsWorld* world, EcsIterator* itr) {
   ecs_world_add_t(world, entity, SceneBoundsComp, .local = initComp->localBounds);
 }
 
+static bool scene_asset_is_loaded(EcsWorld* world, const EcsEntityId asset) {
+  return ecs_world_has_t(world, asset, AssetLoadedComp) ||
+         ecs_world_has_t(world, asset, AssetFailedComp);
+}
+
 ecs_system_define(SceneBoundsInitSys) {
   EcsView*     initView         = ecs_world_view_t(world, BoundsInitView);
   EcsIterator* graphicItr       = ecs_view_itr(ecs_world_view_t(world, GraphicView));
@@ -102,13 +107,17 @@ ecs_system_define(SceneBoundsInitSys) {
       // Fallthrough.
     }
     case SceneBoundsState_LoadGraphic: {
-      if (!ecs_view_maybe_jump(graphicItr, initComp->graphic)) {
+      if (!scene_asset_is_loaded(world, initComp->graphic)) {
         break; // Graphic has not loaded yet; wait.
+      }
+      if (!ecs_view_maybe_jump(graphicItr, initComp->graphic)) {
+        scene_bounds_init_done(world, itr);
+        break; // Graphic failed to load, or was of unexpected type.
       }
       const AssetGraphicComp* graphic = ecs_view_read_t(graphicItr, AssetGraphicComp);
       if (!graphic->mesh) {
         scene_bounds_init_done(world, itr);
-        break;
+        break; // Graphic did not have a mesh.
       }
       initComp->mesh = graphic->mesh;
       asset_acquire(world, graphic->mesh);
@@ -116,14 +125,16 @@ ecs_system_define(SceneBoundsInitSys) {
       // Fallthrough.
     }
     case SceneBoundsState_LoadMesh: {
-      if (!ecs_view_maybe_jump(meshItr, initComp->mesh)) {
-        break; // Mesh has not loaded yet; wait.
+      if (!scene_asset_is_loaded(world, initComp->mesh)) {
+        break; // Graphic has not loaded yet; wait.
       }
-      const AssetMeshComp* mesh = ecs_view_read_t(meshItr, AssetMeshComp);
-      initComp->localBounds     = mesh->positionBounds;
+      if (ecs_view_maybe_jump(meshItr, initComp->mesh)) {
+        const AssetMeshComp* mesh = ecs_view_read_t(meshItr, AssetMeshComp);
+        initComp->localBounds     = mesh->positionBounds;
+        ecs_world_add_t(
+            world, initComp->graphic, SceneGraphicBoundsComp, .localBounds = mesh->positionBounds);
+      }
       scene_bounds_init_done(world, itr);
-      ecs_world_add_t(
-          world, initComp->graphic, SceneGraphicBoundsComp, .localBounds = mesh->positionBounds);
       break;
     }
     }
