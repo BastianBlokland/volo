@@ -41,14 +41,14 @@ ecs_view_define(GraphicBoundsView) { ecs_access_read(SceneGraphicBoundsComp); }
 ecs_view_define(MeshView) { ecs_access_read(AssetMeshComp); }
 
 static void ecs_combine_graphic_bounds(void* dataA, void* dataB) {
-  MAYBE_UNUSED SceneGraphicBoundsComp* boundsA = dataA;
-  MAYBE_UNUSED SceneGraphicBoundsComp* boundsB = dataB;
-  diag_assert_msg(
-      geo_vector_equal(boundsA->localBounds.min, boundsB->localBounds.min, 1e-3f),
-      "Only identical graphic-bounds can be combined");
-  diag_assert_msg(
-      geo_vector_equal(boundsA->localBounds.max, boundsB->localBounds.max, 1e-3f),
-      "Only identical graphic-bounds can be combined");
+  SceneGraphicBoundsComp* boundsA = dataA;
+  SceneGraphicBoundsComp* boundsB = dataB;
+
+  MAYBE_UNUSED const bool identical =
+      geo_vector_equal(boundsA->localBounds.min, boundsB->localBounds.min, 1e-3f) &&
+      geo_vector_equal(boundsA->localBounds.max, boundsB->localBounds.max, 1e-3f);
+
+  diag_assert_msg(identical, "Only identical graphic-bounds can be combined");
 }
 
 static void scene_bounds_init_done(EcsWorld* world, EcsIterator* itr) {
