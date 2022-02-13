@@ -38,11 +38,10 @@ static const AssetMemRecord g_testData[] = {
     {
         .id   = string_static("test.ftx"),
         .data = string_static("{"
-                              "  \"fontId\": \"font.ttf\","
                               "  \"size\": 64,"
                               "  \"glyphSize\": 32,"
                               "  \"border\": 3,"
-                              "  \"characters\": \"1\","
+                              "  \"fonts\": [{ \"id\": \"font.ttf\", \"characters\": \"1\"}]"
                               "}"),
     },
 };
@@ -54,47 +53,43 @@ static const AssetMemRecord g_errorTestData[] = {
                               "  \"size\": 64,"
                               "  \"glyphSize\": 32,"
                               "  \"border\": 3,"
-                              "  \"characters\": \"1\","
+                              "  \"fonts\": [{ \"characters\": \"1\"}]"
                               "}"),
     },
     {
         .id   = string_static("empty-font.ftx"),
         .data = string_static("{"
-                              "  \"fontId\": \"\","
                               "  \"size\": 64,"
                               "  \"glyphSize\": 32,"
                               "  \"border\": 3,"
-                              "  \"characters\": \"1\","
+                              "  \"fonts\": [{ \"id\": \"\", \"characters\": \"1\"}]"
                               "}"),
     },
     {
         .id   = string_static("missing-font.ftx"),
         .data = string_static("{"
-                              "  \"fontId\": \"missing.ttf\","
                               "  \"size\": 64,"
                               "  \"glyphSize\": 32,"
                               "  \"border\": 3,"
-                              "  \"characters\": \"1\","
+                              "  \"fonts\": [{ \"id\": \"missing.ttf\", \"characters\": \"1\"}]"
                               "}"),
     },
     {
         .id   = string_static("non-pow2-size.ftx"),
         .data = string_static("{"
-                              "  \"fontId\": \"font.ttf\","
                               "  \"size\": 42,"
                               "  \"glyphSize\": 32,"
                               "  \"border\": 3,"
-                              "  \"characters\": \"1\","
+                              "  \"fonts\": [{ \"id\": \"font.ttf\", \"characters\": \"1\"}]"
                               "}"),
     },
     {
         .id   = string_static("too-many-glyphs.ftx"),
         .data = string_static("{"
-                              "  \"fontId\": \"font.ttf\","
                               "  \"size\": 64,"
                               "  \"glyphSize\": 32,"
                               "  \"border\": 3,"
-                              "  \"characters\": \"1111\","
+                              "  \"fonts\": [{ \"id\": \"font.ttf\", \"characters\": \"1111\"}]"
                               "}"),
     },
 };

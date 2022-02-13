@@ -24,16 +24,25 @@
 
 #define ftx_max_chars 1024
 #define ftx_max_size (1024 * 16)
+#define ftx_max_fonts 100
 
 static DataReg* g_dataReg;
 static DataMeta g_dataFtxDefMeta;
 
 typedef struct {
-  String fontId;
-  u32    size, glyphSize;
-  u32    border;
-  f32    lineSpacing;
-  String characters;
+  String      id;
+  EcsEntityId asset;
+  String      characters;
+} FtxDefFont;
+
+typedef struct {
+  u32 size, glyphSize;
+  u32 border;
+  f32 lineSpacing;
+  struct {
+    FtxDefFont* values;
+    usize       count;
+  } fonts;
 } FtxDef;
 
 static void ftx_datareg_init() {
@@ -46,13 +55,16 @@ static void ftx_datareg_init() {
     g_dataReg = data_reg_create(g_alloc_persist);
 
     // clang-format off
+    data_reg_struct_t(g_dataReg, FtxDefFont);
+    data_reg_field_t(g_dataReg, FtxDefFont, id, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, FtxDefFont, characters, data_prim_t(String), .flags = DataFlags_NotEmpty);
+
     data_reg_struct_t(g_dataReg, FtxDef);
-    data_reg_field_t(g_dataReg, FtxDef, fontId, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, FtxDef, size, data_prim_t(u32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, FtxDef, glyphSize, data_prim_t(u32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, FtxDef, border, data_prim_t(u32));
     data_reg_field_t(g_dataReg, FtxDef, lineSpacing, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, FtxDef, characters, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, FtxDef, fonts, t_FtxDefFont, .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
     // clang-format on
 
     g_dataFtxDefMeta = data_meta_t(t_FtxDef);
@@ -62,10 +74,7 @@ static void ftx_datareg_init() {
 
 ecs_comp_define_public(AssetFtxComp);
 
-ecs_comp_define(AssetFtxLoadComp) {
-  FtxDef      def;
-  EcsEntityId font;
-};
+ecs_comp_define(AssetFtxLoadComp) { FtxDef def; };
 
 static void ecs_destruct_ftx_comp(void* data) {
   AssetFtxComp* comp = data;
@@ -84,6 +93,7 @@ typedef enum {
   FtxError_SizeNonPow2,
   FtxError_SizeTooBig,
   FtxError_GlyphSizeNonPow2,
+  FtxError_TooManyFonts,
   FtxError_TooManyCharacters,
   FtxError_TooManyGlyphs,
   FtxError_InvalidUtf8,
@@ -99,6 +109,7 @@ static String ftx_error_str(const FtxError err) {
       string_static("Ftx specifies a non power-of-two texture size"),
       string_static("Ftx specifies a texture size larger then is supported"),
       string_static("Ftx specifies a non power-of-two glyph size"),
+      string_static("Ftx specifies more fonts then are supported"),
       string_static("Ftx specifies more characters then are supported"),
       string_static("Ftx requires more glyphs then fit at the requested size"),
       string_static("Ftx specifies invalid utf8"),
@@ -181,81 +192,100 @@ static void ftx_generate_glyph(
   }
 }
 
-static void ftx_generate(
-    const FtxDef*        def,
-    const AssetFontComp* font,
-    AssetFtxComp*        outFtx,
-    AssetTextureComp*    outTexture,
-    FtxError*            err) {
+typedef struct {
+  const AssetFontComp* data;
+  String               characters;
+} FtxDefResolvedFont;
 
-  AssetFtxChar*        chars        = null;
-  AssetTexturePixelB1* pixels       = null;
-  const u32            size         = def->size;
-  const u32            glyphsPerDim = size / def->glyphSize;
-  const u32            maxGlyphs    = glyphsPerDim * glyphsPerDim;
-  if (UNLIKELY(!maxGlyphs)) {
-    *err = FtxError_TooManyGlyphs;
-    goto Error;
-  }
+static void ftx_generate_font(
+    const FtxDef*            def,
+    const FtxDefResolvedFont font,
+    u32                      maxGlyphs,
+    u32*                     nextGlyphIndex,
+    DynArray*                outChars, // AssetFtxChar[]
+    AssetTexturePixelB1*     outPixels,
+    FtxError*                err) {
 
   FtxDefChar inputChars[ftx_max_chars];
-  const u32  charCount = ftx_lookup_chars(font, def->characters, inputChars, err);
+  const u32  charCount = ftx_lookup_chars(font.data, font.characters, inputChars, err);
   if (UNLIKELY(*err)) {
-    goto Error;
+    return;
   }
-  chars  = alloc_array_t(g_alloc_heap, AssetFtxChar, charCount);
-  pixels = alloc_array_t(g_alloc_heap, AssetTexturePixelB1, size * size);
 
-  u32 nextGlyphIndex = 0;
   for (u32 i = 0; i != charCount; ++i) {
     /**
      * Take the sdf border into account as the glyph will need to be rendered bigger to compensate.
      */
-    const f32 border = def->border / (f32)def->glyphSize;
-    chars[i]         = (AssetFtxChar){
+    const f32 border                         = def->border / (f32)def->glyphSize;
+    *dynarray_push_t(outChars, AssetFtxChar) = (AssetFtxChar){
         .cp         = inputChars[i].cp,
-        .glyphIndex = inputChars[i].glyph->segmentCount ? nextGlyphIndex : sentinel_u32,
+        .glyphIndex = inputChars[i].glyph->segmentCount ? *nextGlyphIndex : sentinel_u32,
         .size       = inputChars[i].glyph->size + border * 2.0f,
         .offsetX    = inputChars[i].glyph->offsetX - border,
         .offsetY    = inputChars[i].glyph->offsetY - border,
         .advance    = inputChars[i].glyph->advance,
     };
     if (inputChars[i].glyph->segmentCount) {
-      if (UNLIKELY(nextGlyphIndex >= maxGlyphs)) {
+      if (UNLIKELY(*nextGlyphIndex >= maxGlyphs)) {
         *err = FtxError_TooManyGlyphs;
-        goto Error;
+        return;
       }
-      ftx_generate_glyph(def, font, inputChars[i].glyph, nextGlyphIndex++, pixels);
+      ftx_generate_glyph(def, font.data, inputChars[i].glyph, (*nextGlyphIndex)++, outPixels);
+    }
+  }
+}
+
+static void ftx_generate(
+    const FtxDef*             def,
+    const FtxDefResolvedFont* fonts,
+    const u32                 fontCount,
+    AssetFtxComp*             outFtx,
+    AssetTextureComp*         outTexture,
+    FtxError*                 err) {
+
+  AssetTexturePixelB1* pixels =
+      alloc_array_t(g_alloc_heap, AssetTexturePixelB1, def->size * def->size);
+  DynArray chars = dynarray_create_t(g_alloc_heap, AssetFtxChar, 128);
+
+  const u32 glyphsPerDim   = def->size / def->glyphSize;
+  const u32 maxGlyphs      = glyphsPerDim * glyphsPerDim;
+  u32       nextGlyphIndex = 0;
+  if (UNLIKELY(!maxGlyphs)) {
+    *err = FtxError_TooManyGlyphs;
+    goto Error;
+  }
+
+  for (u32 i = 0; i != fontCount; ++i) {
+    ftx_generate_font(def, fonts[i], maxGlyphs, &nextGlyphIndex, &chars, pixels, err);
+    if (UNLIKELY(*err)) {
+      goto Error;
     }
   }
 
   // Sort the characters on the unicode codepoint.
-  sort_quicksort_t(chars, chars + charCount, AssetFtxChar, ftx_compare_char_cp);
+  dynarray_sort(&chars, ftx_compare_char_cp);
 
   *outFtx = (AssetFtxComp){
       .glyphsPerDim   = glyphsPerDim,
       .lineSpacing    = def->lineSpacing,
-      .characters     = chars,
-      .characterCount = charCount,
+      .characters     = dynarray_copy_as_new(&chars, g_alloc_heap),
+      .characterCount = chars.size,
   };
   *outTexture = (AssetTextureComp){
       .type     = AssetTextureType_Byte,
       .channels = AssetTextureChannels_One,
       .pixelsB1 = pixels,
-      .width    = size,
-      .height   = size,
+      .width    = def->size,
+      .height   = def->size,
   };
+  dynarray_destroy(&chars);
   *err = FtxError_None;
   return;
 
 Error:
   diag_assert(*err);
-  if (chars) {
-    alloc_free_array_t(g_alloc_heap, chars, charCount);
-  }
-  if (pixels) {
-    alloc_free_array_t(g_alloc_heap, pixels, size * size);
-  }
+  dynarray_destroy(&chars);
+  alloc_free_array_t(g_alloc_heap, pixels, def->size * def->size);
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
@@ -278,27 +308,35 @@ ecs_system_define(FtxLoadAssetSys) {
     AssetFtxLoadComp* load   = ecs_view_write_t(itr, AssetFtxLoadComp);
     FtxError          err;
 
-    if (!load->font) {
-      load->font = asset_lookup(world, manager, load->def.fontId);
-      asset_acquire(world, load->font);
-      asset_register_dep(world, entity, load->font);
+    const u32           fontCount = (u32)load->def.fonts.count;
+    FtxDefResolvedFont* fonts     = mem_stack(sizeof(FtxDefResolvedFont) * fontCount).ptr;
+    for (u32 i = 0; i != fontCount; ++i) {
+      FtxDefFont* defFont = &load->def.fonts.values[i];
+      if (!defFont->asset) {
+        defFont->asset = asset_lookup(world, manager, defFont->id);
+        asset_acquire(world, defFont->asset);
+        asset_register_dep(world, entity, defFont->asset);
+      }
+      if (ecs_world_has_t(world, defFont->asset, AssetFailedComp)) {
+        err = FtxError_FontInvalid;
+        goto Error;
+      }
+      if (!ecs_world_has_t(world, defFont->asset, AssetLoadedComp)) {
+        goto Wait; // Wait for the font to load.
+      }
+      if (UNLIKELY(!ecs_view_maybe_jump(fontItr, defFont->asset))) {
+        err = FtxError_FontInvalid;
+        goto Error;
+      }
+      fonts[i] = (FtxDefResolvedFont){
+          .data       = ecs_view_read_t(fontItr, AssetFontComp),
+          .characters = defFont->characters,
+      };
     }
-    if (ecs_world_has_t(world, load->font, AssetFailedComp)) {
-      err = FtxError_FontInvalid;
-      goto Error;
-    }
-    if (!ecs_world_has_t(world, load->font, AssetLoadedComp)) {
-      continue; // Wait for the font to load.
-    }
-    if (UNLIKELY(!ecs_view_maybe_jump(fontItr, load->font))) {
-      err = FtxError_FontInvalid;
-      goto Error;
-    }
-    const AssetFontComp* font = ecs_view_read_t(fontItr, AssetFontComp);
 
     AssetFtxComp     ftx;
     AssetTextureComp texture;
-    ftx_generate(&load->def, font, &ftx, &texture, &err);
+    ftx_generate(&load->def, fonts, fontCount, &ftx, &texture, &err);
     if (UNLIKELY(err)) {
       goto Error;
     }
@@ -314,9 +352,14 @@ ecs_system_define(FtxLoadAssetSys) {
 
   Cleanup:
     ecs_world_remove_t(world, entity, AssetFtxLoadComp);
-    if (load->font) {
-      asset_release(world, load->font);
+    array_ptr_for_t(load->def.fonts, FtxDefFont, font) {
+      if (font->asset) {
+        asset_release(world, font->asset);
+      }
     }
+
+  Wait:
+    continue;
   }
 }
 
@@ -375,6 +418,10 @@ void asset_load_ftx(EcsWorld* world, const String id, const EcsEntityId entity, 
   }
   if (UNLIKELY(!bits_ispow2(def.glyphSize))) {
     errMsg = ftx_error_str(FtxError_GlyphSizeNonPow2);
+    goto Error;
+  }
+  if (UNLIKELY(def.fonts.count > ftx_max_fonts)) {
+    errMsg = ftx_error_str(FtxError_TooManyFonts);
     goto Error;
   }
 

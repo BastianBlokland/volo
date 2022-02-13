@@ -21,7 +21,7 @@
 #define scene_text_atlas_index_max ((1 << scene_text_atlas_index_bits) - 1)
 
 static const String g_textGraphic = string_static("graphics/ui/text.gra");
-static const String g_textFont    = string_static("fonts/mono.ftx");
+static const String g_textFont    = string_static("fonts/ui.ftx");
 
 typedef struct {
   ALIGNAS(16)
@@ -252,9 +252,10 @@ ecs_system_define(SceneTextUnloadChangedFontsSys) {
     return;
   }
   const bool isLoaded   = ecs_world_has_t(world, globalFonts->asset, AssetLoadedComp);
+  const bool isFailed   = ecs_world_has_t(world, globalFonts->asset, AssetFailedComp);
   const bool hasChanged = ecs_world_has_t(world, globalFonts->asset, AssetChangedComp);
 
-  if (globalFonts->flags & SceneGlobalFont_Acquired && isLoaded && hasChanged) {
+  if (globalFonts->flags & SceneGlobalFont_Acquired && (isLoaded || isFailed) && hasChanged) {
     log_i(
         "Unloading global font",
         log_param("id", fmt_text(g_textFont)),

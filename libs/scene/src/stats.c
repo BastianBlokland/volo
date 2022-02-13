@@ -57,7 +57,7 @@ static void stats_ui_text_dur(
       dur > threshold2 ? TextPalette_C : (dur > threshold1 ? TextPalette_B : TextPalette_A);
   fmt_write(
       str,
-      "{}{<9} {}{}",
+      "\ue9e4 {}{<9} {}{}",
       fmt_text_palette(valPalette),
       fmt_duration(dur),
       fmt_text_palette(TextPalette_A),
@@ -75,25 +75,25 @@ static String stats_ui_text(const SceneStatsUiComp* ui, const SceneStatsCamComp*
   DynString str = dynstring_create(g_alloc_scratch, usize_kibibyte);
 
   // clang-format off
-  fmt_write(&str, "{}\n", fmt_text(camStats->gpuName));
-  fmt_write(&str, "{<4}x{<4} pixels\n", fmt_int(camStats->renderSize[0]), fmt_int(camStats->renderSize[1]));
+  fmt_write(&str, "\ue80e {}\n", fmt_text(camStats->gpuName));
+  fmt_write(&str, "\uef5b {<4}x{<4} pixels\n", fmt_int(camStats->renderSize[0]), fmt_int(camStats->renderSize[1]));
   stats_ui_text_dur(&str, ui->updateTime, string_lit("update time"), time_milliseconds(17), time_milliseconds(17));
   stats_ui_text_dur(&str, ui->renderTime, string_lit("render time"), time_milliseconds(10), time_milliseconds(17));
-  fmt_write(&str, "{<9} draws\n", fmt_int(camStats->draws));
-  fmt_write(&str, "{<9} instances\n", fmt_int(camStats->instances));
-  fmt_write(&str, "{<9} vertices\n", fmt_int(camStats->vertices));
-  fmt_write(&str, "{<9} triangles\n", fmt_int(camStats->primitives));
-  fmt_write(&str, "{<9} vertex shaders\n", fmt_int(camStats->shadersVert));
-  fmt_write(&str, "{<9} fragment shaders\n", fmt_int(camStats->shadersFrag));
-  fmt_write(&str, "{<9} memory-main\n", fmt_size(alloc_stats_total()));
-  fmt_write(&str, "{<9} memory-renderer (reserved: {})\n", fmt_size(camStats->ramOccupied), fmt_size(camStats->ramReserved));
-  fmt_write(&str, "{<9} memory-gpu (reserved: {})\n", fmt_size(camStats->vramOccupied), fmt_size(camStats->vramReserved));
-  fmt_write(&str, "{<9} descriptor-sets (reserved: {})\n", fmt_int(camStats->descSetsOccupied), fmt_int(camStats->descSetsReserved));
-  fmt_write(&str, "{<9} descriptor-layouts\n", fmt_int(camStats->descLayouts));
-  fmt_write(&str, "{<9} graphics\n", fmt_int(camStats->resources[SceneStatRes_Graphic]));
-  fmt_write(&str, "{<9} shaders\n", fmt_int(camStats->resources[SceneStatRes_Shader]));
-  fmt_write(&str, "{<9} meshes\n", fmt_int(camStats->resources[SceneStatRes_Mesh]));
-  fmt_write(&str, "{<9} textures\n", fmt_int(camStats->resources[SceneStatRes_Texture]));
+  fmt_write(&str, "\ue3ae {<9} draws\n", fmt_int(camStats->draws));
+  fmt_write(&str, "\ue4fc {<9} instances\n", fmt_int(camStats->instances));
+  fmt_write(&str, "\ue4fc {<9} vertices\n", fmt_int(camStats->vertices));
+  fmt_write(&str, "\ue4fc {<9} triangles\n", fmt_int(camStats->primitives));
+  fmt_write(&str, "\uea5f {<9} vertex shaders\n", fmt_int(camStats->shadersVert));
+  fmt_write(&str, "\uea5f {<9} fragment shaders\n", fmt_int(camStats->shadersFrag));
+  fmt_write(&str, "\ue1db {<9} memory-main\n", fmt_size(alloc_stats_total()));
+  fmt_write(&str, "\ue1db {<9} memory-renderer (reserved: {})\n", fmt_size(camStats->ramOccupied), fmt_size(camStats->ramReserved));
+  fmt_write(&str, "\ue1db {<9} memory-gpu (reserved: {})\n", fmt_size(camStats->vramOccupied), fmt_size(camStats->vramReserved));
+  fmt_write(&str, "\ue338 {<9} descriptor-sets (reserved: {})\n", fmt_int(camStats->descSetsOccupied), fmt_int(camStats->descSetsReserved));
+  fmt_write(&str, "\ue338 {<9} descriptor-layouts\n", fmt_int(camStats->descLayouts));
+  fmt_write(&str, "\ue069 {<9} graphics\n", fmt_int(camStats->resources[SceneStatRes_Graphic]));
+  fmt_write(&str, "\ue069 {<9} shaders\n", fmt_int(camStats->resources[SceneStatRes_Shader]));
+  fmt_write(&str, "\ue069 {<9} meshes\n", fmt_int(camStats->resources[SceneStatRes_Mesh]));
+  fmt_write(&str, "\ue069 {<9} textures\n", fmt_int(camStats->resources[SceneStatRes_Texture]));
   // clang-format on
 
   return dynstring_view(&str);

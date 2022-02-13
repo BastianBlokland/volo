@@ -9,7 +9,7 @@
   ],
   "samplers": [
     {
-      "textureId": "fonts/mono.ftx",
+      "textureId": "fonts/ui.ftx",
       "wrap": "Clamp",
       "filter": "Linear"
     }
