@@ -21,7 +21,7 @@
 #define scene_text_atlas_index_max ((1 << scene_text_atlas_index_bits) - 1)
 
 static const String g_textGraphic = string_static("graphics/ui/text.gra");
-static const String g_textFont    = string_static("fonts/mono.ftx");
+static const String g_textFont    = string_static("fonts/ui.ftx");
 
 typedef struct {
   ALIGNAS(16)
