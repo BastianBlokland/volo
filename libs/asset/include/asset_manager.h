@@ -10,6 +10,7 @@ typedef struct {
 typedef enum {
   AssetManagerFlags_None         = 0,
   AssetManagerFlags_TrackChanges = 1 << 0,
+  AssetManagerFlags_DelayUnload  = 1 << 1,
 } AssetManagerFlags;
 
 /**

@@ -256,7 +256,8 @@ static int app_run(const String assetPath) {
   EcsWorld*  world  = ecs_world_create(g_alloc_heap, def);
   EcsRunner* runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_DumpGraphDot);
 
-  asset_manager_create_fs(world, AssetManagerFlags_TrackChanges, assetPath);
+  asset_manager_create_fs(
+      world, AssetManagerFlags_TrackChanges | AssetManagerFlags_DelayUnload, assetPath);
 
   gap_window_create(world, GapWindowFlags_Default, g_windowSize);
   ecs_world_add_t(

@@ -258,7 +258,8 @@ ecs_system_define(AssetUpdateDirtySys) {
       goto AssetUpdateDone;
     }
 
-    const bool unload = !assetComp->refCount && assetComp->unloadTicks++ >= asset_unload_delay;
+    const u32 unloadDelay = manager->flags & AssetManagerFlags_DelayUnload ? asset_unload_delay : 0;
+    const bool unload     = !assetComp->refCount && assetComp->unloadTicks++ >= unloadDelay;
     if (unload && assetComp->flags & AssetFlags_Loaded) {
       /**
        * Asset should be unloaded.
