@@ -47,7 +47,6 @@ typedef enum {
 typedef enum {
   RendResUnloadState_UnloadDependents,
   RendResUnloadState_UnregisterDependencies,
-  RendResUnloadState_WaitAssetUnload,
   RendResUnloadState_Destroy,
   RendResUnloadState_Done,
 } RendResUnloadState;
@@ -580,11 +579,6 @@ ecs_system_define(RendResUnloadUpdateSys) {
         }
       }
       ++unloadComp->state;
-    } break;
-    case RendResUnloadState_WaitAssetUnload: {
-      if (!ecs_world_has_t(world, entity, AssetLoadedComp)) {
-        ++unloadComp->state;
-      }
     } break;
     case RendResUnloadState_Destroy: {
       ecs_world_remove_t(world, entity, RendResComp);
