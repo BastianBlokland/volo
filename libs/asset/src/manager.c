@@ -21,7 +21,7 @@
  * This prevents loading the same asset multiple times if different systems request and release the
  * asset in quick succession.
  */
-#define asset_max_unload_delay 50
+#define asset_max_unload_delay 200
 
 typedef struct {
   u32         idHash;
@@ -183,14 +183,15 @@ static AssetManagerComp* asset_manager(EcsWorld* world) {
   return globalItr ? ecs_view_write_t(globalItr, AssetManagerComp) : null;
 }
 
-static void asset_instant_unload_dependents(EcsWorld* world, const AssetDependencyComp* depComp) {
+static void
+asset_mark_dependents(EcsWorld* world, const AssetDependencyComp* depComp, const EcsCompId comp) {
   switch (depComp->dependents.type) {
   case AssetDependencyStorage_Single:
-    ecs_utils_maybe_add_t(world, depComp->dependents.single, AssetInstantUnloadComp);
+    ecs_utils_maybe_add(world, depComp->dependents.single, comp);
     break;
   case AssetDependencyStorage_Many:
     dynarray_for_t(&depComp->dependents.many, EcsEntityId, dependent) {
-      ecs_utils_maybe_add_t(world, *dependent, AssetInstantUnloadComp);
+      ecs_utils_maybe_add(world, *dependent, comp);
     }
     break;
   }
@@ -275,7 +276,7 @@ ecs_system_define(AssetUpdateDirtySys) {
          * for the unload delay). Reason is that if this asset fails to load most likely the asset
          * that depends on this one should be reloaded as well.
          */
-        asset_instant_unload_dependents(world, dependencyComp);
+        asset_mark_dependents(world, dependencyComp, ecs_comp_id(AssetInstantUnloadComp));
       }
 
       assetComp->flags &= ~AssetFlags_Loading;
@@ -295,7 +296,7 @@ ecs_system_define(AssetUpdateDirtySys) {
     }
 
     const u32  unloadDelay = asset_unload_delay(world, manager, entity);
-    const bool unload      = !assetComp->refCount && assetComp->unloadTicks++ >= unloadDelay;
+    const bool unload      = !assetComp->refCount && ++assetComp->unloadTicks >= unloadDelay;
     if (unload && assetComp->flags & AssetFlags_Loaded) {
       /**
        * Asset should be unloaded.
@@ -332,20 +333,13 @@ ecs_system_define(AssetPollChangedSys) {
   while (asset_repo_changes_poll(manager->repo, &userData)) {
     const EcsEntityId assetEntity = (EcsEntityId)userData;
     ecs_utils_maybe_add_t(world, assetEntity, AssetChangedComp);
+    ecs_utils_maybe_add_t(world, assetEntity, AssetInstantUnloadComp);
 
     // Also mark the dependent assets as changed.
     if (ecs_view_maybe_jump(depItr, assetEntity)) {
       const AssetDependencyComp* depComp = ecs_view_read_t(depItr, AssetDependencyComp);
-      switch (depComp->dependents.type) {
-      case AssetDependencyStorage_Single:
-        ecs_utils_maybe_add_t(world, depComp->dependents.single, AssetChangedComp);
-        break;
-      case AssetDependencyStorage_Many:
-        dynarray_for_t(&depComp->dependents.many, EcsEntityId, dep) {
-          ecs_utils_maybe_add_t(world, *dep, AssetChangedComp);
-        }
-        break;
-      }
+      asset_mark_dependents(world, depComp, ecs_comp_id(AssetChangedComp));
+      asset_mark_dependents(world, depComp, ecs_comp_id(AssetInstantUnloadComp));
     }
   }
 }
