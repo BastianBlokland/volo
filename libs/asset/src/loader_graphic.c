@@ -8,6 +8,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 
+#include "manager_internal.h"
 #include "repo_internal.h"
 
 static DataReg* g_dataReg;
@@ -158,11 +159,13 @@ ecs_system_define(LoadGraphicAssetSys) {
     // Resolve shader references.
     array_ptr_for_t(graphicComp->shaders, AssetGraphicShader, ptr) {
       ptr->shader = asset_lookup(world, manager, ptr->shaderId);
+      asset_register_dep(world, entity, ptr->shader);
     }
 
     // Resolve texture references.
     array_ptr_for_t(graphicComp->samplers, AssetGraphicSampler, ptr) {
       ptr->texture = asset_lookup(world, manager, ptr->textureId);
+      asset_register_dep(world, entity, ptr->texture);
     }
 
     // Resolve mesh reference.
@@ -172,6 +175,7 @@ ecs_system_define(LoadGraphicAssetSys) {
     }
     if (!string_is_empty(graphicComp->meshId)) {
       graphicComp->mesh = asset_lookup(world, manager, graphicComp->meshId);
+      asset_register_dep(world, entity, graphicComp->mesh);
     }
 
     ecs_world_remove_t(world, entity, AssetGraphicLoadComp);

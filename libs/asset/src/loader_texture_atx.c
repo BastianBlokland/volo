@@ -11,6 +11,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 
+#include "manager_internal.h"
 #include "repo_internal.h"
 
 /**
@@ -218,6 +219,7 @@ ecs_system_define(AtxLoadAssetSys) {
         const EcsEntityId texAsset                     = asset_lookup(world, manager, *texName);
         *dynarray_push_t(&load->textures, EcsEntityId) = texAsset;
         asset_acquire(world, texAsset);
+        asset_register_dep(world, entity, texAsset);
       }
     }
 

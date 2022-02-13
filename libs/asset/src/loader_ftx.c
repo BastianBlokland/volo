@@ -15,6 +15,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 
+#include "manager_internal.h"
 #include "repo_internal.h"
 
 /**
@@ -212,12 +213,12 @@ static void ftx_generate(
      */
     const f32 border = def->border / (f32)def->glyphSize;
     chars[i]         = (AssetFtxChar){
-                .cp         = inputChars[i].cp,
-                .glyphIndex = inputChars[i].glyph->segmentCount ? nextGlyphIndex : sentinel_u32,
-                .size       = inputChars[i].glyph->size + border * 2.0f,
-                .offsetX    = inputChars[i].glyph->offsetX - border,
-                .offsetY    = inputChars[i].glyph->offsetY - border,
-                .advance    = inputChars[i].glyph->advance,
+        .cp         = inputChars[i].cp,
+        .glyphIndex = inputChars[i].glyph->segmentCount ? nextGlyphIndex : sentinel_u32,
+        .size       = inputChars[i].glyph->size + border * 2.0f,
+        .offsetX    = inputChars[i].glyph->offsetX - border,
+        .offsetY    = inputChars[i].glyph->offsetY - border,
+        .advance    = inputChars[i].glyph->advance,
     };
     if (inputChars[i].glyph->segmentCount) {
       if (UNLIKELY(nextGlyphIndex >= maxGlyphs)) {
@@ -280,6 +281,7 @@ ecs_system_define(FtxLoadAssetSys) {
     if (!load->font) {
       load->font = asset_lookup(world, manager, load->def.fontId);
       asset_acquire(world, load->font);
+      asset_register_dep(world, entity, load->font);
     }
     if (ecs_world_has_t(world, load->font, AssetFailedComp)) {
       err = FtxError_FontInvalid;
