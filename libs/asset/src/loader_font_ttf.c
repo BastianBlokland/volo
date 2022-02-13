@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_annotation.h"
 #include "core_array.h"
 #include "core_bits.h"
 #include "core_dynarray.h"
@@ -18,6 +19,8 @@
  * Ttf fonts use big-endian and 2's complement integers.
  * NOTE: This loader assumes the host system is also using 2's complement integers.
  */
+
+OPTIMIZE_OFF()
 
 #define ttf_magic 0x5F0F3CF5
 #define ttf_supported_sfnt_version 0x10000
@@ -958,6 +961,11 @@ static void ttf_read_glyph(
   u8* flags = mem_stack(numPoints).ptr;
   data      = ttf_read_glyph_flags(data, numPoints, flags, err);
   if (UNLIKELY(*err)) {
+    return;
+  }
+  if (!data.size) {
+    // Glyphs without any data after the flags are strange but happen in the wild, just treat it as
+    // an empty glyph.
     return;
   }
 
