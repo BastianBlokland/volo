@@ -14,7 +14,14 @@
 /**
  * Maximum number of new assets to load per tick.
  */
-#define asset_manager_max_loads_per_tick 5
+#define asset_max_loads_per_tick 5
+
+/**
+ * Amount of frames to delay unloading of assets.
+ * This prevents loading the same asset multiple times if different systems request and release the
+ * asset in quick succession.
+ */
+#define asset_unload_delay 100
 
 typedef struct {
   u32         idHash;
@@ -37,6 +44,7 @@ ecs_comp_define(AssetManagerComp) {
 ecs_comp_define(AssetComp) {
   String     id;
   u32        refCount;
+  u32        unloadTicks;
   AssetFlags flags;
 };
 
@@ -197,7 +205,7 @@ ecs_system_define(AssetUpdateDirtySys) {
     assetComp->refCount -= dirtyComp->numRelease;
 
     // Loading assets should be continuously updated to track their progress.
-    bool updateRequired = (assetComp->flags & AssetFlags_Loading) != 0;
+    bool updateRequired = true;
 
     if (assetComp->flags & AssetFlags_Failed) {
       /**
@@ -205,16 +213,16 @@ ecs_system_define(AssetUpdateDirtySys) {
        */
       assetComp->flags &= ~AssetFlags_Failed;
       ecs_world_remove_t(world, entity, AssetFailedComp);
-      updateRequired = true;
       goto AssetUpdateDone;
     }
 
     if (assetComp->refCount && !(assetComp->flags & AssetFlags_Active)) {
+      assetComp->unloadTicks = 0;
       /**
        * Asset ref-count is non-zero; start loading.
        * NOTE: Loading can fail to start, for example the asset doesn't exist in the manager's repo.
        */
-      const bool canLoad = startedLoads < asset_manager_max_loads_per_tick;
+      const bool canLoad = startedLoads < asset_max_loads_per_tick;
       if (canLoad) {
         assetComp->flags |= AssetFlags_Loading;
         if (asset_manager_load(world, manager, assetComp, entity)) {
@@ -224,7 +232,6 @@ ecs_system_define(AssetUpdateDirtySys) {
         }
         ecs_utils_maybe_remove_t(world, entity, AssetChangedComp);
       }
-      updateRequired = true;
       goto AssetUpdateDone;
     }
 
@@ -251,7 +258,8 @@ ecs_system_define(AssetUpdateDirtySys) {
       goto AssetUpdateDone;
     }
 
-    if (!assetComp->refCount && assetComp->flags & AssetFlags_Loaded) {
+    const bool unload = !assetComp->refCount && assetComp->unloadTicks++ >= asset_unload_delay;
+    if (unload && assetComp->flags & AssetFlags_Loaded) {
       /**
        * Asset should be unloaded.
        * Actual data cleanup will be performed by the loader responsible for this asset-type.
