@@ -45,6 +45,21 @@ ecs_comp_define(AssetFailedComp);
 ecs_comp_define(AssetChangedComp);
 ecs_comp_define(AssetDirtyComp) { u32 numAcquire, numRelease; };
 
+typedef enum {
+  AssetDependencyStorage_Single,
+  AssetDependencyStorage_Many,
+} AssetDependencyStorage;
+
+ecs_comp_define(AssetDependencyComp) {
+  struct {
+    AssetDependencyStorage type;
+    union {
+      EcsEntityId single;
+      DynArray    many; // EcsEntityId[].
+    };
+  } dependents;
+};
+
 static void ecs_destruct_manager_comp(void* data) {
   AssetManagerComp* comp = data;
   asset_repo_destroy(comp->repo);
@@ -61,6 +76,40 @@ static void ecs_combine_asset_dirty(void* dataA, void* dataB) {
   AssetDirtyComp* compB = dataB;
   compA->numAcquire += compB->numAcquire;
   compA->numRelease += compB->numRelease;
+}
+
+static void ecs_destruct_asset_dependency(void* data) {
+  AssetDependencyComp* comp = data;
+  if (comp->dependents.type == AssetDependencyStorage_Many) {
+    dynarray_destroy(&comp->dependents.many);
+  }
+}
+
+static void asset_add_dependent(AssetDependencyComp* comp, const EcsEntityId dep) {
+  if (comp->dependents.type == AssetDependencyStorage_Single) {
+    const EcsEntityId existingDep = comp->dependents.single;
+    comp->dependents.type         = AssetDependencyStorage_Many;
+    comp->dependents.many         = dynarray_create_t(g_alloc_heap, EcsEntityId, 8);
+    *dynarray_push_t(&comp->dependents.many, EcsEntityId) = existingDep;
+  }
+  if (!dynarray_search_linear(&comp->dependents.many, ecs_compare_entity, &dep)) {
+    *dynarray_push_t(&comp->dependents.many, EcsEntityId) = dep;
+  }
+}
+
+static void ecs_combine_asset_dependency(void* dataA, void* dataB) {
+  AssetDependencyComp* compA = dataA;
+  AssetDependencyComp* compB = dataB;
+
+  switch (compB->dependents.type) {
+  case AssetDependencyStorage_Single:
+    asset_add_dependent(compA, compB->dependents.single);
+    break;
+  case AssetDependencyStorage_Many:
+    dynarray_for_t(&compB->dependents.many, EcsEntityId, dep) { asset_add_dependent(compA, *dep); }
+    dynarray_destroy(&compB->dependents.many);
+    break;
+  }
 }
 
 static i8 asset_compare_entry(const void* a, const void* b) {
@@ -113,6 +162,8 @@ ecs_view_define(DirtyAssetView) {
   ecs_access_write(AssetComp);
   ecs_access_write(AssetDirtyComp);
 }
+
+ecs_view_define(AssetDependencyView) { ecs_access_read(AssetDependencyComp); }
 
 ecs_view_define(GlobalView) { ecs_access_write(AssetManagerComp); }
 
@@ -229,9 +280,27 @@ ecs_system_define(AssetPollChangedSys) {
     return;
   }
 
+  EcsIterator* depItr = ecs_view_itr(ecs_world_view_t(world, AssetDependencyView));
+
   u64 userData;
   while (asset_repo_changes_poll(manager->repo, &userData)) {
-    ecs_utils_maybe_add_t(world, (EcsEntityId)userData, AssetChangedComp);
+    const EcsEntityId assetEntity = (EcsEntityId)userData;
+    ecs_utils_maybe_add_t(world, assetEntity, AssetChangedComp);
+
+    // Also mark the dependent assets as changed.
+    if (ecs_view_maybe_jump(depItr, assetEntity)) {
+      const AssetDependencyComp* depComp = ecs_view_read_t(depItr, AssetDependencyComp);
+      switch (depComp->dependents.type) {
+      case AssetDependencyStorage_Single:
+        ecs_utils_maybe_add_t(world, depComp->dependents.single, AssetChangedComp);
+        break;
+      case AssetDependencyStorage_Many:
+        dynarray_for_t(&depComp->dependents.many, EcsEntityId, dep) {
+          ecs_utils_maybe_add_t(world, *dep, AssetChangedComp);
+        }
+        break;
+      }
+    }
   }
 }
 
@@ -242,12 +311,18 @@ ecs_module_init(asset_manager_module) {
   ecs_register_comp_empty(AssetLoadedComp);
   ecs_register_comp_empty(AssetChangedComp);
   ecs_register_comp(AssetDirtyComp, .combinator = ecs_combine_asset_dirty);
+  ecs_register_comp(
+      AssetDependencyComp,
+      .destructor = ecs_destruct_asset_dependency,
+      .combinator = ecs_combine_asset_dependency);
 
   ecs_register_view(DirtyAssetView);
+  ecs_register_view(AssetDependencyView);
   ecs_register_view(GlobalView);
 
   ecs_register_system(AssetUpdateDirtySys, ecs_view_id(DirtyAssetView), ecs_view_id(GlobalView));
-  ecs_register_system(AssetPollChangedSys, ecs_view_id(GlobalView));
+  ecs_register_system(
+      AssetPollChangedSys, ecs_view_id(AssetDependencyView), ecs_view_id(GlobalView));
 }
 
 String asset_id(const AssetComp* comp) { return comp->id; }
@@ -292,10 +367,26 @@ EcsEntityId asset_lookup(EcsWorld* world, AssetManagerComp* manager, const Strin
   return newAsset;
 }
 
-void asset_acquire(EcsWorld* world, const EcsEntityId assetEntity) {
-  ecs_world_add_t(world, assetEntity, AssetDirtyComp, .numAcquire = 1);
+void asset_acquire(EcsWorld* world, const EcsEntityId asset) {
+  ecs_world_add_t(world, asset, AssetDirtyComp, .numAcquire = 1);
 }
 
-void asset_release(EcsWorld* world, const EcsEntityId assetEntity) {
-  ecs_world_add_t(world, assetEntity, AssetDirtyComp, .numRelease = 1);
+void asset_release(EcsWorld* world, const EcsEntityId asset) {
+  ecs_world_add_t(world, asset, AssetDirtyComp, .numRelease = 1);
+}
+
+void asset_register_dep(EcsWorld* world, EcsEntityId asset, const EcsEntityId dependency) {
+  diag_assert(asset);
+  diag_assert(dependency);
+
+  /**
+   * Track the upwards dependency ('asset' being dependent on 'dependency'), so when the
+   * 'dependency' changes we also mark the 'asset' as changed.
+   */
+  ecs_world_add_t(
+      world,
+      dependency,
+      AssetDependencyComp,
+      .dependents.type   = AssetDependencyStorage_Single,
+      .dependents.single = asset);
 }
