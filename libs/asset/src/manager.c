@@ -21,7 +21,7 @@
  * This prevents loading the same asset multiple times if different systems request and release the
  * asset in quick succession.
  */
-#define asset_unload_delay 100
+#define asset_max_unload_delay 100
 
 typedef struct {
   u32         idHash;
@@ -52,6 +52,7 @@ ecs_comp_define(AssetLoadedComp);
 ecs_comp_define(AssetFailedComp);
 ecs_comp_define(AssetChangedComp);
 ecs_comp_define(AssetDirtyComp) { u32 numAcquire, numRelease; };
+ecs_comp_define(AssetInstantUnloadComp);
 
 typedef enum {
   AssetDependencyStorage_Single,
@@ -169,6 +170,7 @@ static bool asset_manager_load(
 ecs_view_define(DirtyAssetView) {
   ecs_access_write(AssetComp);
   ecs_access_write(AssetDirtyComp);
+  ecs_access_maybe_read(AssetDependencyComp);
 }
 
 ecs_view_define(AssetDependencyView) { ecs_access_read(AssetDependencyComp); }
@@ -179,6 +181,30 @@ static AssetManagerComp* asset_manager(EcsWorld* world) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   return globalItr ? ecs_view_write_t(globalItr, AssetManagerComp) : null;
+}
+
+static void asset_instant_unload_dependents(EcsWorld* world, const AssetDependencyComp* depComp) {
+  switch (depComp->dependents.type) {
+  case AssetDependencyStorage_Single:
+    ecs_utils_maybe_add_t(world, depComp->dependents.single, AssetInstantUnloadComp);
+    break;
+  case AssetDependencyStorage_Many:
+    dynarray_for_t(&depComp->dependents.many, EcsEntityId, dependent) {
+      ecs_utils_maybe_add_t(world, *dependent, AssetInstantUnloadComp);
+    }
+    break;
+  }
+}
+
+static u32 asset_unload_delay(
+    EcsWorld* world, const AssetManagerComp* manager, const EcsEntityId assetEntity) {
+  if (ecs_world_has_t(world, assetEntity, AssetInstantUnloadComp)) {
+    return 0;
+  }
+  if (manager->flags & AssetManagerFlags_DelayUnload) {
+    return asset_max_unload_delay;
+  }
+  return 0;
 }
 
 ecs_system_define(AssetUpdateDirtySys) {
@@ -196,9 +222,10 @@ ecs_system_define(AssetUpdateDirtySys) {
   EcsView* assetsView   = ecs_world_view_t(world, DirtyAssetView);
 
   for (EcsIterator* itr = ecs_view_itr(assetsView); ecs_view_walk(itr);) {
-    const EcsEntityId entity    = ecs_view_entity(itr);
-    AssetComp*        assetComp = ecs_view_write_t(itr, AssetComp);
-    AssetDirtyComp*   dirtyComp = ecs_view_write_t(itr, AssetDirtyComp);
+    const EcsEntityId          entity         = ecs_view_entity(itr);
+    AssetComp*                 assetComp      = ecs_view_write_t(itr, AssetComp);
+    AssetDirtyComp*            dirtyComp      = ecs_view_write_t(itr, AssetDirtyComp);
+    const AssetDependencyComp* dependencyComp = ecs_view_read_t(itr, AssetDependencyComp);
 
     assetComp->refCount += dirtyComp->numAcquire;
     diag_assert_msg(assetComp->refCount >= dirtyComp->numRelease, "Unbalanced Acquire / Release");
@@ -242,6 +269,15 @@ ecs_system_define(AssetUpdateDirtySys) {
 
       log_w("Failed to load asset", log_param("id", fmt_path(assetComp->id)));
 
+      if (dependencyComp) {
+        /*
+         * Mark the assets that depend on this asset to be instantly unloaded (instead of waiting
+         * for the unload delay). Reason is that if this asset fails to load most likely the asset
+         * that depends on this one should be reloaded as well.
+         */
+        asset_instant_unload_dependents(world, dependencyComp);
+      }
+
       assetComp->flags &= ~AssetFlags_Loading;
       assetComp->flags |= AssetFlags_Failed;
       updateRequired = false;
@@ -258,14 +294,15 @@ ecs_system_define(AssetUpdateDirtySys) {
       goto AssetUpdateDone;
     }
 
-    const u32 unloadDelay = manager->flags & AssetManagerFlags_DelayUnload ? asset_unload_delay : 0;
-    const bool unload     = !assetComp->refCount && assetComp->unloadTicks++ >= unloadDelay;
+    const u32  unloadDelay = asset_unload_delay(world, manager, entity);
+    const bool unload      = !assetComp->refCount && assetComp->unloadTicks++ >= unloadDelay;
     if (unload && assetComp->flags & AssetFlags_Loaded) {
       /**
        * Asset should be unloaded.
        * Actual data cleanup will be performed by the loader responsible for this asset-type.
        */
       ecs_world_remove_t(world, entity, AssetLoadedComp);
+      ecs_utils_maybe_remove_t(world, entity, AssetInstantUnloadComp);
       assetComp->flags &= ~AssetFlags_Loaded;
       updateRequired = false;
       goto AssetUpdateDone;
@@ -319,6 +356,7 @@ ecs_module_init(asset_manager_module) {
   ecs_register_comp_empty(AssetFailedComp);
   ecs_register_comp_empty(AssetLoadedComp);
   ecs_register_comp_empty(AssetChangedComp);
+  ecs_register_comp_empty(AssetInstantUnloadComp);
   ecs_register_comp(AssetDirtyComp, .combinator = ecs_combine_asset_dirty);
   ecs_register_comp(
       AssetDependencyComp,
