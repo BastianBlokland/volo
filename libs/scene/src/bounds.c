@@ -130,15 +130,34 @@ ecs_system_define(SceneBoundsInitSys) {
   }
 }
 
-ecs_view_define(OutdatedGraphicBoundsView) {
+ecs_view_define(DirtyGraphicsView) {
   ecs_access_with(SceneGraphicBoundsComp);
   ecs_access_with(AssetChangedComp);
 }
 
-ecs_system_define(SceneClearOutdatedGraphicBoundsSys) {
-  EcsView* outdatedGraphicBounds = ecs_world_view_t(world, OutdatedGraphicBoundsView);
-  for (EcsIterator* itr = ecs_view_itr(outdatedGraphicBounds); ecs_view_walk(itr);) {
+ecs_view_define(RenderablesWithBoundsView) {
+  ecs_access_with(SceneBoundsComp);
+  ecs_access_read(SceneRenderableComp);
+}
+
+ecs_system_define(SceneClearDirtyBoundsSys) {
+  /**
+   * Clear cached bounds on changed graphic assets.
+   */
+  EcsView* dirtyGraphicsView = ecs_world_view_t(world, DirtyGraphicsView);
+  for (EcsIterator* itr = ecs_view_itr(dirtyGraphicsView); ecs_view_walk(itr);) {
     ecs_world_remove_t(world, ecs_view_entity(itr), SceneGraphicBoundsComp);
+  }
+
+  /**
+   * Clear computed bounds on renderable entities when their graphic asset has changed.
+   */
+  EcsView* renderablesView = ecs_world_view_t(world, RenderablesWithBoundsView);
+  for (EcsIterator* itr = ecs_view_itr(renderablesView); ecs_view_walk(itr);) {
+    const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
+    if (ecs_world_has_t(world, renderable->graphic, AssetChangedComp)) {
+      ecs_world_remove_t(world, ecs_view_entity(itr), SceneBoundsComp);
+    }
   }
 }
 
@@ -151,7 +170,8 @@ ecs_module_init(scene_bounds_module) {
   ecs_register_view(GraphicView);
   ecs_register_view(GraphicBoundsView);
   ecs_register_view(MeshView);
-  ecs_register_view(OutdatedGraphicBoundsView);
+  ecs_register_view(DirtyGraphicsView);
+  ecs_register_view(RenderablesWithBoundsView);
 
   ecs_register_system(
       SceneBoundsInitSys,
@@ -160,5 +180,8 @@ ecs_module_init(scene_bounds_module) {
       ecs_view_id(GraphicBoundsView),
       ecs_view_id(MeshView));
 
-  ecs_register_system(SceneClearOutdatedGraphicBoundsSys, ecs_view_id(OutdatedGraphicBoundsView));
+  ecs_register_system(
+      SceneClearDirtyBoundsSys,
+      ecs_view_id(DirtyGraphicsView),
+      ecs_view_id(RenderablesWithBoundsView));
 }
