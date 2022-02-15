@@ -13,6 +13,7 @@ target_link_libraries(app_pedestal PRIVATE lib_jobs)
 target_link_libraries(app_pedestal PRIVATE lib_log)
 target_link_libraries(app_pedestal PRIVATE lib_rend)
 target_link_libraries(app_pedestal PRIVATE lib_scene)
+target_link_libraries(app_pedestal PRIVATE lib_ui)
 add_dependencies(app_pedestal volo_assets)
 configure_debuggable(app_pedestal)
 
