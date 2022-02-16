@@ -5,7 +5,8 @@
 
 #include "resource_internal.h"
 
-static const String g_ui_global_font = string_static("fonts/ui.ftx");
+static const String g_ui_global_font    = string_static("fonts/ui.ftx");
+static const String g_ui_global_graphic = string_static("graphics/ui/global.gra");
 
 typedef enum {
   UiGlobalRes_FontAcquired  = 1 << 0,
@@ -15,6 +16,7 @@ typedef enum {
 ecs_comp_define(UiGlobalResourcesComp) {
   UiGlobalResFlags flags;
   EcsEntityId      font;
+  EcsEntityId      graphic;
 };
 
 ecs_view_define(GlobalAssetsView) { ecs_access_write(AssetManagerComp); }
@@ -45,7 +47,8 @@ ecs_system_define(UiResourceInitSys) {
         world,
         ecs_world_global(world),
         UiGlobalResourcesComp,
-        .font = asset_lookup(world, assets, g_ui_global_font));
+        .font    = asset_lookup(world, assets, g_ui_global_font),
+        .graphic = asset_lookup(world, assets, g_ui_global_graphic));
     return;
   }
 
@@ -91,6 +94,5 @@ ecs_module_init(ui_resource_module) {
   ecs_register_system(UiResourceUnloadChangedFontsSys, ecs_view_id(GlobalResourcesView));
 }
 
-EcsEntityId ui_resource_font(const UiGlobalResourcesComp* globalResources) {
-  return globalResources->font;
-}
+EcsEntityId ui_resource_font(const UiGlobalResourcesComp* comp) { return comp->font; }
+EcsEntityId ui_resource_graphic(const UiGlobalResourcesComp* comp) { return comp->graphic; }
