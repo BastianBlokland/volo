@@ -7,6 +7,7 @@ message(STATUS "> library: ui")
 add_library(lib_ui STATIC
   src/canvas.c
   src/register.c
+  src/resource.c
   )
 target_include_directories(lib_ui PUBLIC include)
 target_link_libraries(lib_ui PRIVATE lib_log)
