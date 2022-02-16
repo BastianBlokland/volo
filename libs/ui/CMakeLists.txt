@@ -5,7 +5,7 @@
 message(STATUS "> library: ui")
 
 add_library(lib_ui STATIC
-  src/painter.c
+  src/canvas.c
   src/register.c
   )
 target_include_directories(lib_ui PUBLIC include)
