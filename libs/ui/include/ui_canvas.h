@@ -4,10 +4,10 @@
 #include "ecs_module.h"
 #include "ui_rect.h"
 
-typedef u64 UiId;
+typedef u64 UiElementId;
 
 ecs_comp_extern(UiCanvasComp);
 
 UiCanvasComp* ui_canvas_create(EcsWorld*, EcsEntityId);
 void          ui_canvas_reset(UiCanvasComp*);
-UiId          ui_canvas_draw_glyph(UiCanvasComp*, Unicode);
+UiElementId   ui_canvas_draw_glyph(UiCanvasComp*, Unicode);
