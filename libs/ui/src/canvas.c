@@ -9,6 +9,7 @@
 #include "resource_internal.h"
 
 ecs_comp_define(UiCanvasComp) {
+  EcsEntityId  window;
   UiCmdBuffer* cmdBuffer;
   UiElementId  nextId;
 };
@@ -109,11 +110,16 @@ ecs_module_init(ui_canvas_module) {
       ecs_view_id(FtxView));
 }
 
-UiCanvasComp* ui_canvas_create(EcsWorld* world, const EcsEntityId entity) {
-  UiCanvasComp* canvasComp =
-      ecs_world_add_t(world, entity, UiCanvasComp, .cmdBuffer = ui_cmdbuffer_create(g_alloc_heap));
-  ecs_world_add_t(world, entity, SceneRenderableUniqueComp);
-  return canvasComp;
+EcsEntityId ui_canvas_create(EcsWorld* world, const EcsEntityId window) {
+  const EcsEntityId canvasEntity = ecs_world_entity_create(world);
+  ecs_world_add_t(
+      world,
+      canvasEntity,
+      UiCanvasComp,
+      .window    = window,
+      .cmdBuffer = ui_cmdbuffer_create(g_alloc_heap));
+  ecs_world_add_t(world, canvasEntity, SceneRenderableUniqueComp);
+  return canvasEntity;
 }
 
 void ui_canvas_reset(UiCanvasComp* comp) {

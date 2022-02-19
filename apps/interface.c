@@ -17,15 +17,13 @@
 
 static const GapVector g_windowSize = {1024, 768};
 
-ecs_view_define(WindowView) {
-  ecs_access_read(GapWindowComp);
-  ecs_access_write(UiCanvasComp);
-}
+ecs_view_define(WindowView) { ecs_access_read(GapWindowComp); }
+ecs_view_define(CanvasView) { ecs_access_write(UiCanvasComp); }
 
-ecs_system_define(WindowUpdateSys) {
-  EcsView* windowView = ecs_world_view_t(world, WindowView);
-  for (EcsIterator* windowItr = ecs_view_itr(windowView); ecs_view_walk(windowItr);) {
-    UiCanvasComp* canvas = ecs_view_write_t(windowItr, UiCanvasComp);
+ecs_system_define(CanvasUpdateSys) {
+  EcsView* canvasView = ecs_world_view_t(world, CanvasView);
+  for (EcsIterator* canvasItr = ecs_view_itr(canvasView); ecs_view_walk(canvasItr);) {
+    UiCanvasComp* canvas = ecs_view_write_t(canvasItr, UiCanvasComp);
     ui_canvas_reset(canvas);
     ui_canvas_set_pos(canvas, ui_vector(400, 400));
     ui_canvas_set_size(canvas, ui_vector(200, 200));
@@ -36,8 +34,9 @@ ecs_system_define(WindowUpdateSys) {
 
 ecs_module_init(app_interface_module) {
   ecs_register_view(WindowView);
+  ecs_register_view(CanvasView);
 
-  ecs_register_system(WindowUpdateSys, ecs_view_id(WindowView));
+  ecs_register_system(CanvasUpdateSys, ecs_view_id(CanvasView));
 }
 
 static int app_run(const String assetPath) {
