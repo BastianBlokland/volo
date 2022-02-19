@@ -13,6 +13,7 @@ add_library(lib_ui STATIC
   )
 target_include_directories(lib_ui PUBLIC include)
 target_link_libraries(lib_ui PRIVATE lib_log)
+target_link_libraries(lib_ui PRIVATE lib_gap)
 target_link_libraries(lib_ui PUBLIC lib_asset)
 target_link_libraries(lib_ui PUBLIC lib_core)
 target_link_libraries(lib_ui PUBLIC lib_ecs)

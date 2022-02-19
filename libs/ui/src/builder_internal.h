@@ -4,7 +4,8 @@
 #include "ui_rect.h"
 
 // Internal forward declarations:
-typedef struct sUiCmdBuffer UiCmdBuffer;
+typedef struct sGapWindowComp GapWindowComp;
+typedef struct sUiCmdBuffer   UiCmdBuffer;
 
 typedef struct {
   ALIGNAS(16)
@@ -34,4 +35,4 @@ typedef struct {
   UiOutputGlyphFunc outputGlyph;
 } UiBuildCtx;
 
-void ui_build(const UiCmdBuffer*, const AssetFtxComp*, const UiBuildCtx*);
+void ui_build(const UiCmdBuffer*, const GapWindowComp*, const AssetFtxComp*, const UiBuildCtx*);

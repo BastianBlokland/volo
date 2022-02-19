@@ -1,10 +1,7 @@
 #pragma once
 #include "core_alloc.h"
 #include "core_unicode.h"
-#include "ui_color.h"
-#include "ui_vector.h"
-
-typedef u64 UiElementId;
+#include "ui_canvas.h"
 
 typedef enum {
   UiCmd_SetPos,
@@ -15,6 +12,7 @@ typedef enum {
 
 typedef struct {
   UiVector pos;
+  UiOrigin origin;
 } UiSetPos;
 
 typedef struct {

@@ -1,6 +1,7 @@
 #include "asset_ftx.h"
 #include "core_dynstring.h"
 #include "ecs_world.h"
+#include "gap_window.h"
 #include "scene_renderable.h"
 #include "ui_canvas.h"
 
@@ -36,7 +37,10 @@ static void ui_canvas_output_glyph(void* userCtx, const UiGlyphData data) {
 }
 
 static void ui_canvas_render(
-    const UiCanvasComp* canvas, SceneRenderableUniqueComp* renderable, const AssetFtxComp* font) {
+    const UiCanvasComp*        canvas,
+    SceneRenderableUniqueComp* renderable,
+    const GapWindowComp*       window,
+    const AssetFtxComp*        font) {
 
   DynString     dataBuffer  = dynstring_create(g_alloc_heap, 512);
   UiRenderState renderState = {
@@ -48,7 +52,7 @@ static void ui_canvas_render(
       .outputDraw  = &ui_canvas_output_draw,
       .outputGlyph = &ui_canvas_output_glyph,
   };
-  ui_build(canvas->cmdBuffer, font, &buildCtx);
+  ui_build(canvas->cmdBuffer, window, font, &buildCtx);
 
   const Mem instData = scene_renderable_unique_data_set(renderable, renderState.output->size);
   mem_cpy(instData, dynstring_view(renderState.output));
@@ -59,6 +63,7 @@ static void ui_canvas_render(
 
 ecs_view_define(GlobalResourcesView) { ecs_access_read(UiGlobalResourcesComp); }
 ecs_view_define(FtxView) { ecs_access_read(AssetFtxComp); }
+ecs_view_define(WindowView) { ecs_access_read(GapWindowComp); }
 
 ecs_view_define(CanvasBuildView) {
   ecs_access_write(UiCanvasComp);
@@ -85,14 +90,22 @@ ecs_system_define(UiCanvasBuildSys) {
   if (!font) {
     return; // Global font not loaded yet.
   }
+  EcsView*     windowView = ecs_world_view_t(world, WindowView);
+  EcsIterator* windowItr  = ecs_view_itr(windowView);
 
   EcsView* buildView = ecs_world_view_t(world, CanvasBuildView);
   for (EcsIterator* itr = ecs_view_itr(buildView); ecs_view_walk(itr);) {
     UiCanvasComp*              canvasComp = ecs_view_write_t(itr, UiCanvasComp);
     SceneRenderableUniqueComp* renderable = ecs_view_write_t(itr, SceneRenderableUniqueComp);
+    if (!ecs_view_maybe_jump(windowItr, canvasComp->window)) {
+      // Destroy the canvas if the associated window is destroyed.
+      ecs_world_entity_destroy(world, ecs_view_entity(itr));
+      continue;
+    }
+    const GapWindowComp* window = ecs_view_read_t(windowItr, GapWindowComp);
 
     renderable->graphic = ui_resource_graphic(globalRes);
-    ui_canvas_render(canvasComp, renderable, font);
+    ui_canvas_render(canvasComp, renderable, window, font);
   }
 }
 
@@ -102,12 +115,14 @@ ecs_module_init(ui_canvas_module) {
   ecs_register_view(CanvasBuildView);
   ecs_register_view(GlobalResourcesView);
   ecs_register_view(FtxView);
+  ecs_register_view(WindowView);
 
   ecs_register_system(
       UiCanvasBuildSys,
       ecs_view_id(CanvasBuildView),
       ecs_view_id(GlobalResourcesView),
-      ecs_view_id(FtxView));
+      ecs_view_id(FtxView),
+      ecs_view_id(WindowView));
 }
 
 EcsEntityId ui_canvas_create(EcsWorld* world, const EcsEntityId window) {
@@ -127,11 +142,12 @@ void ui_canvas_reset(UiCanvasComp* comp) {
   comp->nextId = 0;
 }
 
-void ui_canvas_set_pos(UiCanvasComp* comp, const UiVector pos) {
+void ui_canvas_set_pos(UiCanvasComp* comp, const UiVector pos, const UiOrigin origin) {
   ui_cmd_push_set_pos(
       comp->cmdBuffer,
       (UiSetPos){
-          .pos = pos,
+          .pos    = pos,
+          .origin = origin,
       });
 }
 

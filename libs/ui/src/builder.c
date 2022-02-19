@@ -1,4 +1,5 @@
 #include "core_diag.h"
+#include "gap_window.h"
 
 #include "builder_internal.h"
 #include "cmd_internal.h"
@@ -8,11 +9,12 @@ static const UiVector g_ui_defaultSize  = {100, 100};
 static const UiColor  g_ui_defaultColor = {255, 255, 255, 255};
 
 typedef struct {
-  const UiBuildCtx*   ctx;
-  const AssetFtxComp* font;
-  UiVector            pos;
-  UiVector            size;
-  UiColor             color;
+  const UiBuildCtx*    ctx;
+  const GapWindowComp* window;
+  const AssetFtxComp*  font;
+  UiVector             pos;
+  UiVector             size;
+  UiColor              color;
 } UiBuildState;
 
 static UiDrawData ui_build_drawdata(const UiBuildState* state) {
@@ -20,6 +22,28 @@ static UiDrawData ui_build_drawdata(const UiBuildState* state) {
       .glyphsPerDim    = state->font->glyphsPerDim,
       .invGlyphsPerDim = 1.0f / (f32)state->font->glyphsPerDim,
   };
+}
+
+static void ui_build_set_pos(UiBuildState* state, const UiSetPos* setPos) {
+  const GapVector windowSize = gap_window_param(state->window, GapParam_WindowSize);
+  switch (setPos->origin) {
+  case UiOrigin_BottomLeft:
+    state->pos = setPos->pos;
+    break;
+  case UiOrigin_BottomRight:
+    state->pos = ui_vector(windowSize.width - setPos->pos.x, setPos->pos.y);
+    break;
+  case UiOrigin_TopLeft:
+    state->pos = ui_vector(setPos->pos.x, windowSize.height - setPos->pos.y);
+    break;
+  case UiOrigin_TopRight:
+    state->pos = ui_vector(windowSize.width - setPos->pos.x, windowSize.height - setPos->pos.y);
+    break;
+  case UiOrigin_Middle:
+    state->pos = ui_vector(
+        windowSize.width * 0.5f + setPos->pos.x, windowSize.height * 0.5f + setPos->pos.y);
+    break;
+  }
 }
 
 static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* drawGlyph) {
@@ -47,7 +71,7 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* drawGlyp
 static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
   switch (cmd->type) {
   case UiCmd_SetPos:
-    state->pos = cmd->setPos.pos;
+    ui_build_set_pos(state, &cmd->setPos);
     break;
   case UiCmd_SetSize:
     state->size = cmd->setSize.size;
@@ -61,13 +85,19 @@ static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
   }
 }
 
-void ui_build(const UiCmdBuffer* cmdBuffer, const AssetFtxComp* font, const UiBuildCtx* ctx) {
+void ui_build(
+    const UiCmdBuffer*   cmdBuffer,
+    const GapWindowComp* window,
+    const AssetFtxComp*  font,
+    const UiBuildCtx*    ctx) {
+
   UiBuildState state = {
-      .ctx   = ctx,
-      .font  = font,
-      .pos   = g_ui_defaultPos,
-      .size  = g_ui_defaultSize,
-      .color = g_ui_defaultColor,
+      .ctx    = ctx,
+      .window = window,
+      .font   = font,
+      .pos    = g_ui_defaultPos,
+      .size   = g_ui_defaultSize,
+      .color  = g_ui_defaultColor,
   };
   ctx->outputDraw(ctx->userCtx, ui_build_drawdata(&state));
 
