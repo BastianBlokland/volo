@@ -20,6 +20,10 @@ static UiDrawData ui_build_drawdata(const UiBuildState* state) {
   };
 }
 
+static void ui_build_set_size(UiBuildState* state, const UiSetSize* setSize) {
+  state->size = setSize->size;
+}
+
 static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* drawGlyph) {
   const AssetFtxChar* ch = asset_ftx_lookup(state->font, drawGlyph->cp);
   if (!sentinel_check(ch->glyphIndex)) {
@@ -43,6 +47,9 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* drawGlyp
 
 static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
   switch (cmd->type) {
+  case UiCmd_SetSize:
+    ui_build_set_size(state, &cmd->setSize);
+    break;
   case UiCmd_DrawGlyph:
     ui_build_draw_glyph(state, &cmd->drawGlyph);
     break;

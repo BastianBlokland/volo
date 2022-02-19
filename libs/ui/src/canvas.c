@@ -132,6 +132,14 @@ void ui_canvas_reset(UiCanvasComp* comp) {
   comp->nextId = 0;
 }
 
+void ui_canvas_set_size(UiCanvasComp* comp, const UiVector size) {
+  ui_cmd_push_set_size(
+      comp->cmdBuffer,
+      (UiSetSize){
+          .size = size,
+      });
+}
+
 UiElementId ui_canvas_draw_glyph(UiCanvasComp* comp, const Unicode cp) {
   const UiElementId id = comp->nextId++;
   ui_cmd_push_draw_glyph(
