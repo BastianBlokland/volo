@@ -52,12 +52,12 @@ ASSERT(sizeof(ShaderCanvasData) == 16, "Size needs to match the size defined in 
 // TODO: Ensure alignment.
 typedef struct {
   //  ALIGNAS(8)
-  f32 position[2];
-  f32 size;
-  u32 index;
+  UiRect rect;
+  u32    atlasIndex;
+  u32    padding[3];
 } ShaderGlyphData;
 
-ASSERT(sizeof(ShaderGlyphData) == 16, "Size needs to match the size defined in glsl");
+ASSERT(sizeof(ShaderGlyphData) == 32, "Size needs to match the size defined in glsl");
 
 typedef struct {
   const UiCanvasComp*        canvas;
@@ -66,6 +66,7 @@ typedef struct {
   DynString*                 output;
   u32                        outputNumGlyphs;
   UiVector                   cursor;
+  UiVector                   size;
 } UiBuilder;
 
 static void ui_canvas_process_draw_glyph(UiBuilder* builder, const UiDrawGlyph* drawGlyph) {
@@ -74,16 +75,19 @@ static void ui_canvas_process_draw_glyph(UiBuilder* builder, const UiDrawGlyph* 
     /**
      * This character has a glyph, output it to the shader.
      */
-    const f32        glyphSize = 100;
     ShaderGlyphData* glyphData = dynstring_push(builder->output, sizeof(ShaderGlyphData)).ptr;
     *glyphData                 = (ShaderGlyphData){
-        .position =
+        .rect.position =
             {
-                ch->offsetX * glyphSize + builder->cursor.x,
-                ch->offsetY * glyphSize + builder->cursor.y,
+                ch->offsetX * builder->size.x + builder->cursor.x,
+                ch->offsetY * builder->size.y + builder->cursor.y,
             },
-        .size  = ch->size * glyphSize,
-        .index = ch->glyphIndex,
+        .rect.size =
+            {
+                ch->size * builder->size.x,
+                ch->size * builder->size.y,
+            },
+        .atlasIndex = ch->glyphIndex,
     };
     ++builder->outputNumGlyphs;
   }
@@ -163,6 +167,7 @@ ecs_system_define(UiCanvasBuildSys) {
         .font       = font,
         .renderable = renderable,
         .output     = &dataBuffer,
+        .size       = {100, 100},
     });
     dynstring_destroy(&dataBuffer);
   }

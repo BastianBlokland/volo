@@ -30,21 +30,26 @@ struct CanvasData {
   f32 invGlyphsPerDim; // 1,0 / glyphsPerDim
 };
 
+struct GlyphData {
+  f32v4 rect; // x, y = position, z, w = size
+  u32v4 data; // x = atlasIndex
+};
+
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_instance_data(0) readonly uniform Instance {
   CanvasData u_canvas;
-  f32v4      u_glyphs[c_maxGlyphs]; // x, y = position, z = size, w = atlasIndex.
+  GlyphData  u_glyphs[c_maxGlyphs];
 };
 
 bind_internal(0) out f32v2 out_texcoord;
 
 void main() {
-  const u32   glyphIndex = in_vertexIndex / c_verticesPerGlyph;
-  const u32   vertIndex  = in_vertexIndex % c_verticesPerGlyph;
-  const f32v4 glyphData  = u_glyphs[glyphIndex];
-  const f32v2 glyphPos   = glyphData.xy;
-  const f32   glyphSize  = glyphData.z;
-  const u32   atlasIndex = floatBitsToUint(glyphData.w);
+  const u32       glyphIndex = in_vertexIndex / c_verticesPerGlyph;
+  const u32       vertIndex  = in_vertexIndex % c_verticesPerGlyph;
+  const GlyphData glyphData  = u_glyphs[glyphIndex];
+  const f32v2     glyphPos   = glyphData.rect.xy;
+  const f32v2     glyphSize  = glyphData.rect.zw;
+  const u32       atlasIndex = glyphData.data.x;
 
   /**
    * Compute the ui positions of the vertices.
