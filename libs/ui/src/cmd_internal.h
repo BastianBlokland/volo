@@ -17,6 +17,7 @@ typedef struct {
 
 typedef struct {
   UiVector size;
+  UiUnits  units;
 } UiSetSize;
 
 typedef struct {

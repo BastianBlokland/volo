@@ -15,13 +15,18 @@ typedef enum {
   UiOrigin_Middle,
 } UiOrigin;
 
+typedef enum {
+  UiUnits_Absolute,
+  UiUnits_Window,
+} UiUnits;
+
 ecs_comp_extern(UiCanvasComp);
 
 EcsEntityId ui_canvas_create(EcsWorld*, EcsEntityId window);
 void        ui_canvas_reset(UiCanvasComp*);
 
 void ui_canvas_set_pos(UiCanvasComp*, UiVector, UiOrigin);
-void ui_canvas_set_size(UiCanvasComp*, UiVector);
+void ui_canvas_set_size(UiCanvasComp*, UiVector, UiUnits);
 void ui_canvas_set_color(UiCanvasComp*, UiColor);
 
 UiElementId ui_canvas_draw_glyph(UiCanvasComp*, Unicode);

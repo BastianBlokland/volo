@@ -24,30 +24,41 @@ static UiDrawData ui_build_drawdata(const UiBuildState* state) {
   };
 }
 
-static void ui_build_set_pos(UiBuildState* state, const UiSetPos* setPos) {
-  const GapVector windowSize = gap_window_param(state->window, GapParam_WindowSize);
-  switch (setPos->origin) {
+static void ui_build_set_pos(UiBuildState* state, const UiSetPos* cmd) {
+  const GapVector winSize = gap_window_param(state->window, GapParam_WindowSize);
+  switch (cmd->origin) {
   case UiOrigin_BottomLeft:
-    state->pos = setPos->pos;
+    state->pos = cmd->pos;
     break;
   case UiOrigin_BottomRight:
-    state->pos = ui_vector(windowSize.width - setPos->pos.x, setPos->pos.y);
+    state->pos = ui_vector(winSize.width - cmd->pos.x, cmd->pos.y);
     break;
   case UiOrigin_TopLeft:
-    state->pos = ui_vector(setPos->pos.x, windowSize.height - setPos->pos.y);
+    state->pos = ui_vector(cmd->pos.x, winSize.height - cmd->pos.y);
     break;
   case UiOrigin_TopRight:
-    state->pos = ui_vector(windowSize.width - setPos->pos.x, windowSize.height - setPos->pos.y);
+    state->pos = ui_vector(winSize.width - cmd->pos.x, winSize.height - cmd->pos.y);
     break;
   case UiOrigin_Middle:
-    state->pos = ui_vector(
-        windowSize.width * 0.5f + setPos->pos.x, windowSize.height * 0.5f + setPos->pos.y);
+    state->pos = ui_vector(winSize.width * 0.5f + cmd->pos.x, winSize.height * 0.5f + cmd->pos.y);
     break;
   }
 }
 
-static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* drawGlyph) {
-  const AssetFtxChar* ch = asset_ftx_lookup(state->font, drawGlyph->cp);
+static void ui_build_set_size(UiBuildState* state, const UiSetSize* cmd) {
+  const GapVector winSize = gap_window_param(state->window, GapParam_WindowSize);
+  switch (cmd->units) {
+  case UiUnits_Absolute:
+    state->size = cmd->size;
+    break;
+  case UiUnits_Window:
+    state->size = ui_vector(cmd->size.x * winSize.width, cmd->size.y * winSize.height);
+    break;
+  }
+}
+
+static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
+  const AssetFtxChar* ch = asset_ftx_lookup(state->font, cmd->cp);
   if (!sentinel_check(ch->glyphIndex)) {
     const UiRect rect = {
         .position =
@@ -74,7 +85,7 @@ static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
     ui_build_set_pos(state, &cmd->setPos);
     break;
   case UiCmd_SetSize:
-    state->size = cmd->setSize.size;
+    ui_build_set_size(state, &cmd->setSize);
     break;
   case UiCmd_SetColor:
     state->color = cmd->setColor.color;

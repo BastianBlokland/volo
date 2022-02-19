@@ -151,11 +151,12 @@ void ui_canvas_set_pos(UiCanvasComp* comp, const UiVector pos, const UiOrigin or
       });
 }
 
-void ui_canvas_set_size(UiCanvasComp* comp, const UiVector size) {
+void ui_canvas_set_size(UiCanvasComp* comp, const UiVector size, const UiUnits units) {
   ui_cmd_push_set_size(
       comp->cmdBuffer,
       (UiSetSize){
-          .size = size,
+          .size  = size,
+          .units = units,
       });
 }
 
