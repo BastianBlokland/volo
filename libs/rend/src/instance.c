@@ -66,14 +66,18 @@ ecs_system_define(RendInstanceRequestGraphicSys) {
   EcsView* renderableView = ecs_world_view_t(world, RenderableView);
   for (EcsIterator* itr = ecs_view_itr(renderableView); ecs_view_walk(itr);) {
     const SceneRenderableComp* comp = ecs_view_read_t(itr, SceneRenderableComp);
-    rend_instance_request_graphic(world, comp->graphic, graphicResItr, &numRequests);
+    if (LIKELY(comp->graphic)) {
+      rend_instance_request_graphic(world, comp->graphic, graphicResItr, &numRequests);
+    }
   }
 
   // Request the graphic resource for SceneRenderableUniqueComp's to be loaded.
   EcsView* renderableUniqueView = ecs_world_view_t(world, RenderableUniqueView);
   for (EcsIterator* itr = ecs_view_itr(renderableUniqueView); ecs_view_walk(itr);) {
     const SceneRenderableUniqueComp* comp = ecs_view_read_t(itr, SceneRenderableUniqueComp);
-    rend_instance_request_graphic(world, comp->graphic, graphicResItr, &numRequests);
+    if (LIKELY(comp->graphic)) {
+      rend_instance_request_graphic(world, comp->graphic, graphicResItr, &numRequests);
+    }
   }
 }
 
