@@ -132,6 +132,14 @@ void ui_canvas_reset(UiCanvasComp* comp) {
   comp->nextId = 0;
 }
 
+void ui_canvas_set_pos(UiCanvasComp* comp, const UiVector pos) {
+  ui_cmd_push_set_pos(
+      comp->cmdBuffer,
+      (UiSetPos){
+          .pos = pos,
+      });
+}
+
 void ui_canvas_set_size(UiCanvasComp* comp, const UiVector size) {
   ui_cmd_push_set_size(
       comp->cmdBuffer,

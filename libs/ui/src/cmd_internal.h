@@ -7,10 +7,15 @@
 typedef u64 UiElementId;
 
 typedef enum {
+  UiCmd_SetPos,
   UiCmd_SetSize,
   UiCmd_SetColor,
   UiCmd_DrawGlyph,
 } UiCmdType;
+
+typedef struct {
+  UiVector pos;
+} UiSetPos;
 
 typedef struct {
   UiVector size;
@@ -28,6 +33,7 @@ typedef struct {
 typedef struct {
   UiCmdType type;
   union {
+    UiSetPos    setPos;
     UiSetSize   setSize;
     UiSetColor  setColor;
     UiDrawGlyph drawGlyph;
@@ -40,6 +46,7 @@ UiCmdBuffer* ui_cmdbuffer_create(Allocator*);
 void         ui_cmdbuffer_destroy(UiCmdBuffer*);
 void         ui_cmdbuffer_clear(UiCmdBuffer*);
 
+void ui_cmd_push_set_pos(UiCmdBuffer*, UiSetPos);
 void ui_cmd_push_set_size(UiCmdBuffer*, UiSetSize);
 void ui_cmd_push_set_color(UiCmdBuffer*, UiSetColor);
 void ui_cmd_push_draw_glyph(UiCmdBuffer*, UiDrawGlyph);

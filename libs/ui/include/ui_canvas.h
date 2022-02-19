@@ -12,6 +12,7 @@ ecs_comp_extern(UiCanvasComp);
 UiCanvasComp* ui_canvas_create(EcsWorld*, EcsEntityId);
 void          ui_canvas_reset(UiCanvasComp*);
 
+void ui_canvas_set_pos(UiCanvasComp*, UiVector);
 void ui_canvas_set_size(UiCanvasComp*, UiVector);
 void ui_canvas_set_color(UiCanvasComp*, UiColor);
 
