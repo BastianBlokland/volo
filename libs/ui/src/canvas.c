@@ -1,5 +1,4 @@
 #include "asset_ftx.h"
-#include "core_annotation.h"
 #include "core_dynstring.h"
 #include "ecs_world.h"
 #include "scene_renderable.h"
@@ -9,12 +8,7 @@
 #include "cmd_internal.h"
 #include "resource_internal.h"
 
-typedef enum {
-  UiFlags_Dirty = 1 << 0,
-} UiFlags;
-
 ecs_comp_define(UiCanvasComp) {
-  UiFlags      flags;
   UiCmdBuffer* cmdBuffer;
   UiElementId  nextId;
 };
@@ -95,12 +89,8 @@ ecs_system_define(UiCanvasBuildSys) {
   for (EcsIterator* itr = ecs_view_itr(buildView); ecs_view_walk(itr);) {
     UiCanvasComp*              canvasComp = ecs_view_write_t(itr, UiCanvasComp);
     SceneRenderableUniqueComp* renderable = ecs_view_write_t(itr, SceneRenderableUniqueComp);
-    if (!(canvasComp->flags & UiFlags_Dirty)) {
-      continue; // Canvas did not change, no need to rebuild.
-    }
-    canvasComp->flags &= ~UiFlags_Dirty;
-    renderable->graphic = ui_resource_graphic(globalRes);
 
+    renderable->graphic = ui_resource_graphic(globalRes);
     ui_canvas_render(canvasComp, renderable, font);
   }
 }
@@ -127,7 +117,6 @@ UiCanvasComp* ui_canvas_create(EcsWorld* world, const EcsEntityId entity) {
 }
 
 void ui_canvas_reset(UiCanvasComp* comp) {
-  comp->flags |= UiFlags_Dirty;
   ui_cmdbuffer_clear(comp->cmdBuffer);
   comp->nextId = 0;
 }
