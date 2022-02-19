@@ -2,7 +2,7 @@
 #include "core_unicode.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
-#include "ui_rect.h"
+#include "ui_types.h"
 
 typedef u64 UiElementId;
 
