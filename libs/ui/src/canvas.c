@@ -6,37 +6,22 @@
 #include "scene_renderable.h"
 #include "ui_canvas.h"
 
+#include "cmd_internal.h"
 #include "resource_internal.h"
-
-typedef enum {
-  UiCmd_DrawGlyph,
-} UiCmdType;
-
-typedef struct {
-  UiElementId id;
-  Unicode     cp;
-} UiDrawGlyph;
-
-typedef struct {
-  UiCmdType type;
-  union {
-    UiDrawGlyph drawGlyph;
-  };
-} UiCmd;
 
 typedef enum {
   UiFlags_Dirty = 1 << 0,
 } UiFlags;
 
 ecs_comp_define(UiCanvasComp) {
-  UiFlags     flags;
-  DynArray    commands; // UiCmd[]
-  UiElementId nextId;
+  UiFlags      flags;
+  UiCmdBuffer* cmdBuffer;
+  UiElementId  nextId;
 };
 
 static void ecs_destruct_commands(void* data) {
   UiCanvasComp* comp = data;
-  dynarray_destroy(&comp->commands);
+  ui_cmdbuffer_destroy(comp->cmdBuffer);
 }
 
 // TODO: Ensure alignment.
@@ -112,7 +97,10 @@ static void ui_canvas_build(UiBuilder* builder) {
   /**
    * Process all commands.
    */
-  dynarray_for_t(&builder->canvas->commands, UiCmd, cmd) { ui_canvas_process_cmd(builder, cmd); }
+  UiCmd* cmd = null;
+  while ((cmd = ui_cmd_next(builder->canvas->cmdBuffer, cmd))) {
+    ui_canvas_process_cmd(builder, cmd);
+  }
 
   /**
    * Write the output to the renderable.
@@ -188,26 +176,25 @@ ecs_module_init(ui_canvas_module) {
 }
 
 UiCanvasComp* ui_canvas_create(EcsWorld* world, const EcsEntityId entity) {
-  UiCanvasComp* canvasComp = ecs_world_add_t(
-      world, entity, UiCanvasComp, .commands = dynarray_create_t(g_alloc_heap, UiCmd, 128));
+  UiCanvasComp* canvasComp =
+      ecs_world_add_t(world, entity, UiCanvasComp, .cmdBuffer = ui_cmdbuffer_create(g_alloc_heap));
   ecs_world_add_t(world, entity, SceneRenderableUniqueComp);
   return canvasComp;
 }
 
 void ui_canvas_reset(UiCanvasComp* comp) {
   comp->flags |= UiFlags_Dirty;
-  dynarray_clear(&comp->commands);
+  ui_cmdbuffer_clear(comp->cmdBuffer);
   comp->nextId = 0;
 }
 
 UiElementId ui_canvas_draw_glyph(UiCanvasComp* comp, const Unicode cp) {
   const UiElementId id = comp->nextId++;
-
-  *dynarray_push_t(&comp->commands, UiCmd) = (UiCmd){
-      .type      = UiCmd_DrawGlyph,
-      .drawGlyph = {
+  ui_cmd_push_draw_glyph(
+      comp->cmdBuffer,
+      (UiDrawGlyph){
           .id = id,
           .cp = cp,
-      }};
+      });
   return id;
 }

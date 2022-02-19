@@ -6,6 +6,7 @@ message(STATUS "> library: ui")
 
 add_library(lib_ui STATIC
   src/canvas.c
+  src/cmd.c
   src/register.c
   src/resource.c
   )
