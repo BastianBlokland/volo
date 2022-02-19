@@ -18,7 +18,25 @@ add_dependencies(app_pedestal volo_assets)
 configure_debuggable(app_pedestal)
 
 #
+# Interface app.
+#
+add_executable(app_interface interface.c)
+target_link_libraries(app_interface PRIVATE lib_asset)
+target_link_libraries(app_interface PRIVATE lib_cli)
+target_link_libraries(app_interface PRIVATE lib_gap)
+target_link_libraries(app_interface PRIVATE lib_jobs)
+target_link_libraries(app_interface PRIVATE lib_log)
+target_link_libraries(app_interface PRIVATE lib_rend)
+target_link_libraries(app_interface PRIVATE lib_scene)
+target_link_libraries(app_interface PRIVATE lib_ui)
+add_dependencies(app_interface volo_assets)
+configure_debuggable(app_interface)
+
+#
 # Convienience run targets.
 #
 add_custom_target(run.pedestal COMMAND app_pedestal
+  "--assets" "$<TARGET_PROPERTY:volo_assets,path>" VERBATIM USES_TERMINAL)
+
+  add_custom_target(run.interface COMMAND app_interface
   "--assets" "$<TARGET_PROPERTY:volo_assets,path>" VERBATIM USES_TERMINAL)
