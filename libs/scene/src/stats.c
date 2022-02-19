@@ -121,11 +121,7 @@ ecs_system_define(SceneStatsUiCreateSys) {
     const SceneCameraComp* cam    = ecs_view_read_t(itr, SceneCameraComp);
 
     ecs_world_add_t(
-        world,
-        entity,
-        SceneStatsUiComp,
-        .flags = SceneStatsUi_Enabled,
-        .text  = stats_create_text(world, cam, entity));
+        world, entity, SceneStatsUiComp, .flags = 0, .text = stats_create_text(world, cam, entity));
     ecs_world_add_t(world, entity, SceneStatsCamComp);
   }
 }
