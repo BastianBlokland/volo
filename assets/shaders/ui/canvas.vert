@@ -25,7 +25,7 @@ const f32v2 c_unitTexCoords[c_verticesPerGlyph] = {
     f32v2(0, 0),
 };
 
-struct CanvasData {
+struct DrawData {
   f32 glyphsPerDim;
   f32 invGlyphsPerDim; // 1,0 / glyphsPerDim
 };
@@ -37,8 +37,8 @@ struct GlyphData {
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_instance_data(0) readonly uniform Instance {
-  CanvasData u_canvas;
-  GlyphData  u_glyphs[c_maxGlyphs];
+  DrawData  u_draw;
+  GlyphData u_glyphs[c_maxGlyphs];
 };
 
 bind_internal(0) out f32v2 out_texcoord;
@@ -60,8 +60,8 @@ void main() {
    * Compute the x and y position in the texture atlas based on the glyphIndex.
    */
   const f32v2 atlasPos =
-      f32v2(mod(atlasIndex, u_canvas.glyphsPerDim), floor(atlasIndex * u_canvas.invGlyphsPerDim));
+      f32v2(mod(atlasIndex, u_draw.glyphsPerDim), floor(atlasIndex * u_draw.invGlyphsPerDim));
 
   out_vertexPosition = ui_norm_to_ndc(uiPos * u_global.resolution.zw);
-  out_texcoord       = (c_unitTexCoords[vertIndex] + atlasPos) * u_canvas.invGlyphsPerDim;
+  out_texcoord       = (c_unitTexCoords[vertIndex] + atlasPos) * u_draw.invGlyphsPerDim;
 }

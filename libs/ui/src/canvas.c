@@ -1,11 +1,11 @@
 #include "asset_ftx.h"
-#include "core_alloc.h"
-#include "core_dynarray.h"
+#include "core_annotation.h"
 #include "core_dynstring.h"
 #include "ecs_world.h"
 #include "scene_renderable.h"
 #include "ui_canvas.h"
 
+#include "builder_internal.h"
 #include "cmd_internal.h"
 #include "resource_internal.h"
 
@@ -19,95 +19,47 @@ ecs_comp_define(UiCanvasComp) {
   UiElementId  nextId;
 };
 
-static void ecs_destruct_commands(void* data) {
+static void ecs_destruct_canvas(void* data) {
   UiCanvasComp* comp = data;
   ui_cmdbuffer_destroy(comp->cmdBuffer);
 }
 
-// TODO: Ensure alignment.
 typedef struct {
-  //  ALIGNAS(16)
-  f32 glyphsPerDim;
-  f32 invGlyphsPerDim;
-  f32 padding[2];
-} ShaderCanvasData;
+  DynString* output;
+  u32        outputNumGlyphs;
+} UiRenderState;
 
-ASSERT(sizeof(ShaderCanvasData) == 16, "Size needs to match the size defined in glsl");
-
-// TODO: Ensure alignment.
-typedef struct {
-  //  ALIGNAS(8)
-  UiRect rect;
-  u32    atlasIndex;
-  u32    padding[3];
-} ShaderGlyphData;
-
-ASSERT(sizeof(ShaderGlyphData) == 32, "Size needs to match the size defined in glsl");
-
-typedef struct {
-  const UiCanvasComp*        canvas;
-  const AssetFtxComp*        font;
-  SceneRenderableUniqueComp* renderable;
-  DynString*                 output;
-  u32                        outputNumGlyphs;
-  UiVector                   cursor;
-  UiVector                   size;
-} UiBuilder;
-
-static void ui_canvas_process_draw_glyph(UiBuilder* builder, const UiDrawGlyph* drawGlyph) {
-  const AssetFtxChar* ch = asset_ftx_lookup(builder->font, drawGlyph->cp);
-  if (!sentinel_check(ch->glyphIndex)) {
-    /**
-     * This character has a glyph, output it to the shader.
-     */
-    ShaderGlyphData* glyphData = dynstring_push(builder->output, sizeof(ShaderGlyphData)).ptr;
-    *glyphData                 = (ShaderGlyphData){
-        .rect.position =
-            {
-                ch->offsetX * builder->size.x + builder->cursor.x,
-                ch->offsetY * builder->size.y + builder->cursor.y,
-            },
-        .rect.size =
-            {
-                ch->size * builder->size.x,
-                ch->size * builder->size.y,
-            },
-        .atlasIndex = ch->glyphIndex,
-    };
-    ++builder->outputNumGlyphs;
-  }
+static void ui_canvas_output_draw(void* userCtx, const UiDrawData data) {
+  UiRenderState* renderState                                                = userCtx;
+  *(UiDrawData*)dynstring_push(renderState->output, sizeof(UiDrawData)).ptr = data;
 }
 
-static void ui_canvas_process_cmd(UiBuilder* builder, const UiCmd* cmd) {
-  switch (cmd->type) {
-  case UiCmd_DrawGlyph:
-    ui_canvas_process_draw_glyph(builder, &cmd->drawGlyph);
-    break;
-  }
+static void ui_canvas_output_glyph(void* userCtx, const UiGlyphData data) {
+  UiRenderState* renderState                                                  = userCtx;
+  *(UiGlyphData*)dynstring_push(renderState->output, sizeof(UiGlyphData)).ptr = data;
+  ++renderState->outputNumGlyphs;
 }
 
-static void ui_canvas_build(UiBuilder* builder) {
-  /**
-   * Setup per-canvas data (shared between all glyphs in this text).
-   */
-  ShaderCanvasData* fontData = dynstring_push(builder->output, sizeof(ShaderCanvasData)).ptr;
-  fontData->glyphsPerDim     = builder->font->glyphsPerDim;
-  fontData->invGlyphsPerDim  = 1.0f / (f32)builder->font->glyphsPerDim;
+static void ui_canvas_render(
+    const UiCanvasComp* canvas, SceneRenderableUniqueComp* renderable, const AssetFtxComp* font) {
 
-  /**
-   * Process all commands.
-   */
-  UiCmd* cmd = null;
-  while ((cmd = ui_cmd_next(builder->canvas->cmdBuffer, cmd))) {
-    ui_canvas_process_cmd(builder, cmd);
-  }
+  DynString     dataBuffer  = dynstring_create(g_alloc_heap, 512);
+  UiRenderState renderState = {
+      .output = &dataBuffer,
+  };
 
-  /**
-   * Write the output to the renderable.
-   */
-  const Mem instData = scene_renderable_unique_data_set(builder->renderable, builder->output->size);
-  mem_cpy(instData, dynstring_view(builder->output));
-  builder->renderable->vertexCountOverride = builder->outputNumGlyphs * 6; // 6 verts per quad.
+  UiBuildCtx buildCtx = {
+      .userCtx     = &renderState,
+      .outputDraw  = &ui_canvas_output_draw,
+      .outputGlyph = &ui_canvas_output_glyph,
+  };
+  ui_build(canvas->cmdBuffer, font, &buildCtx);
+
+  const Mem instData = scene_renderable_unique_data_set(renderable, renderState.output->size);
+  mem_cpy(instData, dynstring_view(renderState.output));
+  renderable->vertexCountOverride = renderState.outputNumGlyphs * 6; // 6 verts per quad.
+
+  dynstring_destroy(&dataBuffer);
 }
 
 ecs_view_define(GlobalResourcesView) { ecs_access_read(UiGlobalResourcesComp); }
@@ -149,20 +101,12 @@ ecs_system_define(UiCanvasBuildSys) {
     canvasComp->flags &= ~UiFlags_Dirty;
     renderable->graphic = ui_resource_graphic(globalRes);
 
-    DynString dataBuffer = dynstring_create(g_alloc_heap, 512);
-    ui_canvas_build(&(UiBuilder){
-        .canvas     = canvasComp,
-        .font       = font,
-        .renderable = renderable,
-        .output     = &dataBuffer,
-        .size       = {100, 100},
-    });
-    dynstring_destroy(&dataBuffer);
+    ui_canvas_render(canvasComp, renderable, font);
   }
 }
 
 ecs_module_init(ui_canvas_module) {
-  ecs_register_comp(UiCanvasComp, .destructor = ecs_destruct_commands);
+  ecs_register_comp(UiCanvasComp, .destructor = ecs_destruct_canvas);
 
   ecs_register_view(CanvasBuildView);
   ecs_register_view(GlobalResourcesView);
