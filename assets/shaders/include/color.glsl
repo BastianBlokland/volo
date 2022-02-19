@@ -25,6 +25,17 @@
 // clang-format on
 
 /**
+ * Create a color from 8 bit rgba values.
+ */
+f32v4 color_from_u32(const u32 val) {
+  return f32v4(
+      f32((val >> 0) & 0xFF) / 255.0,
+      f32((val >> 8) & 0xFF) / 255.0,
+      f32((val >> 16) & 0xFF) / 255.0,
+      f32((val >> 24) & 0xFF) / 255.0);
+}
+
+/**
  * Decode a srgb encoded color to a linear color.
  * NOTE: Fast approximation, more info: https://en.wikipedia.org/wiki/SRGB
  */

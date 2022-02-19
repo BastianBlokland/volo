@@ -5,12 +5,14 @@
 
 static const UiVector g_ui_defaultCursor = {0, 0};
 static const UiVector g_ui_defaultSize   = {100, 100};
+static const UiColor  g_ui_defaultColor  = {255, 255, 255, 255};
 
 typedef struct {
   const UiBuildCtx*   ctx;
   const AssetFtxComp* font;
   UiVector            cursor;
   UiVector            size;
+  UiColor             color;
 } UiBuildState;
 
 static UiDrawData ui_build_drawdata(const UiBuildState* state) {
@@ -18,10 +20,6 @@ static UiDrawData ui_build_drawdata(const UiBuildState* state) {
       .glyphsPerDim    = state->font->glyphsPerDim,
       .invGlyphsPerDim = 1.0f / (f32)state->font->glyphsPerDim,
   };
-}
-
-static void ui_build_set_size(UiBuildState* state, const UiSetSize* setSize) {
-  state->size = setSize->size;
 }
 
 static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* drawGlyph) {
@@ -40,6 +38,7 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* drawGlyp
         state->ctx->userCtx,
         (UiGlyphData){
             .rect       = rect,
+            .color      = state->color,
             .atlasIndex = ch->glyphIndex,
         });
   }
@@ -48,7 +47,10 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* drawGlyp
 static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
   switch (cmd->type) {
   case UiCmd_SetSize:
-    ui_build_set_size(state, &cmd->setSize);
+    state->size = cmd->setSize.size;
+    break;
+  case UiCmd_SetColor:
+    state->color = cmd->setColor.color;
     break;
   case UiCmd_DrawGlyph:
     ui_build_draw_glyph(state, &cmd->drawGlyph);
@@ -62,6 +64,7 @@ void ui_build(const UiCmdBuffer* cmdBuffer, const AssetFtxComp* font, const UiBu
       .font   = font,
       .cursor = g_ui_defaultCursor,
       .size   = g_ui_defaultSize,
+      .color  = g_ui_defaultColor,
   };
   ctx->outputDraw(ctx->userCtx, ui_build_drawdata(&state));
 

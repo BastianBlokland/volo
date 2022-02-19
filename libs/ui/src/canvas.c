@@ -140,6 +140,14 @@ void ui_canvas_set_size(UiCanvasComp* comp, const UiVector size) {
       });
 }
 
+void ui_canvas_set_color(UiCanvasComp* comp, const UiColor color) {
+  ui_cmd_push_set_color(
+      comp->cmdBuffer,
+      (UiSetColor){
+          .color = color,
+      });
+}
+
 UiElementId ui_canvas_draw_glyph(UiCanvasComp* comp, const Unicode cp) {
   const UiElementId id = comp->nextId++;
   ui_cmd_push_draw_glyph(

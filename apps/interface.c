@@ -28,6 +28,7 @@ ecs_system_define(WindowUpdateSys) {
     UiCanvasComp* canvas = ecs_view_write_t(windowItr, UiCanvasComp);
     ui_canvas_reset(canvas);
     ui_canvas_set_size(canvas, ui_vector(200, 200));
+    ui_canvas_set_color(canvas, ui_color_red);
     ui_canvas_draw_glyph(canvas, 42);
   }
 }

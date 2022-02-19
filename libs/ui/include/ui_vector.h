@@ -19,26 +19,9 @@ typedef union {
 ASSERT(sizeof(UiVector) == 8, "UiVector has to be 64 bits");
 
 /**
- * 2D Rectangle.
- */
-typedef union {
-  struct {
-    UiVector position, size;
-  };
-  f32 data[4];
-} UiRect;
-
-ASSERT(sizeof(UiRect) == 16, "UiRect has to be 128 bits");
-
-/**
  * Construct a new vector.
  */
 #define ui_vector(_X_, _Y_) ((UiVector){(_X_), (_Y_)})
-
-/**
- * Construct a new rectangle.
- */
-#define ui_rect(_POSITION_, _SIZE_) ((UiRect){(_POSITION_), (_SIZE_)})
 
 /**
  * Create a formatting argument for a vector.

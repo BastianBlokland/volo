@@ -1,6 +1,7 @@
 #pragma once
 #include "asset_ftx.h"
-#include "ui_types.h"
+#include "ui_color.h"
+#include "ui_rect.h"
 
 // Internal forward declarations:
 typedef struct sUiCmdBuffer UiCmdBuffer;
@@ -16,9 +17,10 @@ ASSERT(sizeof(UiDrawData) == 16, "Size needs to match the size defined in glsl")
 
 typedef struct {
   ALIGNAS(16)
-  UiRect rect;
-  u32    atlasIndex;
-  u32    padding[3];
+  UiRect  rect;
+  UiColor color;
+  u32     atlasIndex;
+  u32     padding[2];
 } UiGlyphData;
 
 ASSERT(sizeof(UiGlyphData) == 32, "Size needs to match the size defined in glsl");

@@ -2,6 +2,7 @@
 #extension GL_GOOGLE_include_directive : enable
 
 #include "binding.glsl"
+#include "color.glsl"
 #include "global.glsl"
 #include "ui.glsl"
 
@@ -32,7 +33,7 @@ struct DrawData {
 
 struct GlyphData {
   f32v4 rect; // x, y = position, z, w = size
-  u32v4 data; // x = atlasIndex
+  u32v4 data; // x = color, y = atlasIndex
 };
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
@@ -42,6 +43,7 @@ bind_instance_data(0) readonly uniform Instance {
 };
 
 bind_internal(0) out f32v2 out_texcoord;
+bind_internal(1) out flat f32v4 out_color;
 
 void main() {
   const u32       glyphIndex = in_vertexIndex / c_verticesPerGlyph;
@@ -49,7 +51,8 @@ void main() {
   const GlyphData glyphData  = u_glyphs[glyphIndex];
   const f32v2     glyphPos   = glyphData.rect.xy;
   const f32v2     glyphSize  = glyphData.rect.zw;
-  const u32       atlasIndex = glyphData.data.x;
+  const f32v4     glyphColor = color_from_u32(glyphData.data.x);
+  const u32       atlasIndex = glyphData.data.y;
 
   /**
    * Compute the ui positions of the vertices.
@@ -64,4 +67,5 @@ void main() {
 
   out_vertexPosition = ui_norm_to_ndc(uiPos * u_global.resolution.zw);
   out_texcoord       = (c_unitTexCoords[vertIndex] + atlasPos) * u_draw.invGlyphsPerDim;
+  out_color          = glyphColor;
 }
