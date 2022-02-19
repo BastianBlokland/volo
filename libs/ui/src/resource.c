@@ -6,7 +6,7 @@
 #include "resource_internal.h"
 
 static const String g_ui_global_font    = string_static("fonts/ui.ftx");
-static const String g_ui_global_graphic = string_static("graphics/ui/global.gra");
+static const String g_ui_global_graphic = string_static("graphics/ui/canvas.gra");
 
 typedef enum {
   UiGlobalRes_FontAcquired  = 1 << 0,
