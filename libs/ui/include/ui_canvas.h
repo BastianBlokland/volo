@@ -12,7 +12,6 @@ typedef enum {
   UiOrigin_BottomRight,
   UiOrigin_TopLeft,
   UiOrigin_TopRight,
-  UiOrigin_Middle,
 } UiOrigin;
 
 typedef enum {

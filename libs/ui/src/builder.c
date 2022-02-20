@@ -48,8 +48,6 @@ static UiVector ui_resolve_pos(
     return ui_vector(vec.x, winSize.height - vec.y);
   case UiOrigin_TopRight:
     return ui_vector(winSize.width - vec.x, winSize.height - vec.y);
-  case UiOrigin_Middle:
-    return ui_vector(winSize.width * 0.5f + vec.x, winSize.height * 0.5f + vec.y);
   }
   diag_crash();
 }
