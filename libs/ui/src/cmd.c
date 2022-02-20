@@ -23,12 +23,14 @@ void ui_cmdbuffer_destroy(UiCmdBuffer* buffer) {
 
 void ui_cmdbuffer_clear(UiCmdBuffer* buffer) { dynarray_clear(&buffer->commands); }
 
-void ui_cmd_push_set_pos(UiCmdBuffer* buffer, const UiVector pos, const UiOrigin origin) {
+void ui_cmd_push_set_pos(
+    UiCmdBuffer* buffer, const UiVector pos, const UiOrigin origin, const UiUnits units) {
   *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
       .type   = UiCmd_SetPos,
       .setPos = {
           .pos    = pos,
           .origin = origin,
+          .units  = units,
       }};
 }
 

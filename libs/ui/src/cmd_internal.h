@@ -13,6 +13,7 @@ typedef enum {
 typedef struct {
   UiVector pos;
   UiOrigin origin;
+  UiUnits  units;
 } UiSetPos;
 
 typedef struct {
@@ -45,7 +46,7 @@ UiCmdBuffer* ui_cmdbuffer_create(Allocator*);
 void         ui_cmdbuffer_destroy(UiCmdBuffer*);
 void         ui_cmdbuffer_clear(UiCmdBuffer*);
 
-void ui_cmd_push_set_pos(UiCmdBuffer*, UiVector pos, UiOrigin);
+void ui_cmd_push_set_pos(UiCmdBuffer*, UiVector pos, UiOrigin, UiUnits);
 void ui_cmd_push_set_size(UiCmdBuffer*, UiVector size, UiUnits);
 void ui_cmd_push_set_color(UiCmdBuffer*, UiColor);
 void ui_cmd_push_draw_glyph(UiCmdBuffer*, UiElementId, Unicode cp);

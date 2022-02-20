@@ -24,37 +24,42 @@ static UiDrawData ui_build_drawdata(const UiBuildState* state) {
   };
 }
 
-static void ui_build_set_pos(UiBuildState* state, const UiSetPos* cmd) {
+static UiVector ui_resolve_vec(UiBuildState* state, const UiVector vec, const UiUnits units) {
   const GapVector winSize = gap_window_param(state->window, GapParam_WindowSize);
-  switch (cmd->origin) {
-  case UiOrigin_BottomLeft:
-    state->pos = cmd->pos;
-    break;
-  case UiOrigin_BottomRight:
-    state->pos = ui_vector(winSize.width - cmd->pos.x, cmd->pos.y);
-    break;
-  case UiOrigin_TopLeft:
-    state->pos = ui_vector(cmd->pos.x, winSize.height - cmd->pos.y);
-    break;
-  case UiOrigin_TopRight:
-    state->pos = ui_vector(winSize.width - cmd->pos.x, winSize.height - cmd->pos.y);
-    break;
-  case UiOrigin_Middle:
-    state->pos = ui_vector(winSize.width * 0.5f + cmd->pos.x, winSize.height * 0.5f + cmd->pos.y);
-    break;
+  switch (units) {
+  case UiUnits_Absolute:
+    return vec;
+  case UiUnits_Window:
+    return ui_vector(vec.x * winSize.width, vec.y * winSize.height);
   }
+  diag_crash();
+}
+
+static UiVector ui_resolve_pos(
+    UiBuildState* state, const UiVector pos, const UiOrigin origin, const UiUnits units) {
+  const GapVector winSize = gap_window_param(state->window, GapParam_WindowSize);
+  const UiVector  vec     = ui_resolve_vec(state, pos, units);
+  switch (origin) {
+  case UiOrigin_BottomLeft:
+    return vec;
+  case UiOrigin_BottomRight:
+    return ui_vector(winSize.width - vec.x, vec.y);
+  case UiOrigin_TopLeft:
+    return ui_vector(vec.x, winSize.height - vec.y);
+  case UiOrigin_TopRight:
+    return ui_vector(winSize.width - vec.x, winSize.height - vec.y);
+  case UiOrigin_Middle:
+    return ui_vector(winSize.width * 0.5f + vec.x, winSize.height * 0.5f + vec.y);
+  }
+  diag_crash();
+}
+
+static void ui_build_set_pos(UiBuildState* state, const UiSetPos* cmd) {
+  state->pos = ui_resolve_pos(state, cmd->pos, cmd->origin, cmd->units);
 }
 
 static void ui_build_set_size(UiBuildState* state, const UiSetSize* cmd) {
-  const GapVector winSize = gap_window_param(state->window, GapParam_WindowSize);
-  switch (cmd->units) {
-  case UiUnits_Absolute:
-    state->size = cmd->size;
-    break;
-  case UiUnits_Window:
-    state->size = ui_vector(cmd->size.x * winSize.width, cmd->size.y * winSize.height);
-    break;
-  }
+  state->size = ui_resolve_vec(state, cmd->size, cmd->units);
 }
 
 static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
