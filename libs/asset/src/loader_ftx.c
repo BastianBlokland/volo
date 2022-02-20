@@ -183,7 +183,7 @@ static void ftx_generate_glyph(
       };
       const f32 dist       = asset_font_glyph_dist(font, glyph, point);
       const f32 borderFrac = math_clamp_f32(dist * invBorder, -1.0f, 1.0f);
-      const u8  value      = (u8)((-borderFrac * 0.5f + 0.5f) * 255.999f);
+      const u8  value      = (u8)((borderFrac * 0.5f + 0.5f) * 255.999f);
 
       const usize texPixelY                  = texY + glyphPixelY;
       const usize texPixelX                  = texX + glyphPixelX;
