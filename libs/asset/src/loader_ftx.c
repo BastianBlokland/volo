@@ -243,9 +243,11 @@ static void ftx_generate(
     AssetTextureComp*         outTexture,
     FtxError*                 err) {
 
-  AssetTexturePixelB1* pixels =
-      alloc_array_t(g_alloc_heap, AssetTexturePixelB1, def->size * def->size);
-  DynArray chars = dynarray_create_t(g_alloc_heap, AssetFtxChar, 128);
+  Mem pixelMem = alloc_alloc(g_alloc_heap, sizeof(AssetTexturePixelB1) * def->size * def->size, 1);
+  mem_set(pixelMem, 255); // Initialize to the maximum distance away from a glyph.
+
+  AssetTexturePixelB1* pixels = pixelMem.ptr;
+  DynArray             chars  = dynarray_create_t(g_alloc_heap, AssetFtxChar, 128);
 
   const u32 glyphsPerDim   = def->size / def->glyphSize;
   const u32 maxGlyphs      = glyphsPerDim * glyphsPerDim;
