@@ -1,6 +1,6 @@
 {
-  "size": 512,
-  "glyphSize": 32,
+  "size": 1024,
+  "glyphSize": 64,
   "border": 4,
   "lineSpacing": 0.2,
   "fonts": [
