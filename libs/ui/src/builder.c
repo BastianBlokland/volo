@@ -7,6 +7,7 @@
 static const UiVector g_ui_defaultPos   = {0, 0};
 static const UiVector g_ui_defaultSize  = {100, 100};
 static const UiColor  g_ui_defaultColor = {255, 255, 255, 255};
+static const UiFlow   g_ui_defaultFlow  = UiFlow_Right;
 
 typedef struct {
   const UiBuildCtx*    ctx;
@@ -14,6 +15,7 @@ typedef struct {
   const AssetFtxComp*  font;
   UiVector             pos;
   UiVector             size;
+  UiFlow               flow;
   UiColor              color;
 } UiBuildState;
 
@@ -52,18 +54,27 @@ static UiVector ui_resolve_pos(
   diag_crash();
 }
 
-static void ui_build_set_pos(UiBuildState* state, const UiSetPos* cmd) {
-  state->pos = ui_resolve_pos(state, cmd->pos, cmd->origin, cmd->units);
-}
-
-static void ui_build_set_size(UiBuildState* state, const UiSetSize* cmd) {
-  state->size = ui_resolve_vec(state, cmd->size, cmd->units);
+static void ui_advance(UiBuildState* state, const UiVector size) {
+  switch (state->flow) {
+  case UiFlow_Left:
+    state->pos.x -= size.width;
+    break;
+  case UiFlow_Right:
+    state->pos.x += size.width;
+    break;
+  case UiFlow_Down:
+    state->pos.y -= size.height;
+    break;
+  case UiFlow_Up:
+    state->pos.y += size.height;
+    break;
+  }
 }
 
 static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
   const AssetFtxChar* ch = asset_ftx_lookup(state->font, cmd->cp);
   if (!sentinel_check(ch->glyphIndex)) {
-    const UiRect rect = {
+    const UiRect renderRect = {
         .position =
             {
                 ch->offsetX * state->size.x + state->pos.x,
@@ -75,20 +86,24 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
     state->ctx->outputGlyph(
         state->ctx->userCtx,
         (UiGlyphData){
-            .rect       = rect,
+            .rect       = renderRect,
             .color      = state->color,
             .atlasIndex = ch->glyphIndex,
         });
   }
+  ui_advance(state, state->size);
 }
 
 static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
   switch (cmd->type) {
   case UiCmd_SetPos:
-    ui_build_set_pos(state, &cmd->setPos);
+    state->pos = ui_resolve_pos(state, cmd->setPos.pos, cmd->setPos.origin, cmd->setPos.units);
     break;
   case UiCmd_SetSize:
-    ui_build_set_size(state, &cmd->setSize);
+    state->size = ui_resolve_vec(state, cmd->setSize.size, cmd->setSize.units);
+    break;
+  case UiCmd_SetFlow:
+    state->flow = cmd->setFlow.flow;
     break;
   case UiCmd_SetColor:
     state->color = cmd->setColor.color;
@@ -111,6 +126,7 @@ void ui_build(
       .font   = font,
       .pos    = g_ui_defaultPos,
       .size   = g_ui_defaultSize,
+      .flow   = g_ui_defaultFlow,
       .color  = g_ui_defaultColor,
   };
   ctx->outputDraw(ctx->userCtx, ui_build_drawdata(&state));

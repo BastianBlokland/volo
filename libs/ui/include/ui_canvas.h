@@ -19,6 +19,13 @@ typedef enum {
   UiUnits_Window,
 } UiUnits;
 
+typedef enum {
+  UiFlow_Left,
+  UiFlow_Right,
+  UiFlow_Down,
+  UiFlow_Up,
+} UiFlow;
+
 ecs_comp_extern(UiCanvasComp);
 
 EcsEntityId ui_canvas_create(EcsWorld*, EcsEntityId window);
@@ -26,6 +33,7 @@ void        ui_canvas_reset(UiCanvasComp*);
 
 void ui_canvas_set_pos(UiCanvasComp*, UiVector, UiOrigin, UiUnits);
 void ui_canvas_set_size(UiCanvasComp*, UiVector, UiUnits);
+void ui_canvas_set_flow(UiCanvasComp*, UiFlow);
 void ui_canvas_set_color(UiCanvasComp*, UiColor);
 
 UiElementId ui_canvas_draw_glyph(UiCanvasComp*, Unicode);

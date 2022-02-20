@@ -151,6 +151,10 @@ void ui_canvas_set_size(UiCanvasComp* comp, const UiVector size, const UiUnits u
   ui_cmd_push_set_size(comp->cmdBuffer, size, units);
 }
 
+void ui_canvas_set_flow(UiCanvasComp* comp, const UiFlow flow) {
+  ui_cmd_push_set_flow(comp->cmdBuffer, flow);
+}
+
 void ui_canvas_set_color(UiCanvasComp* comp, const UiColor color) {
   ui_cmd_push_set_color(comp->cmdBuffer, color);
 }

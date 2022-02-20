@@ -43,6 +43,14 @@ void ui_cmd_push_set_size(UiCmdBuffer* buffer, const UiVector size, const UiUnit
       }};
 }
 
+void ui_cmd_push_set_flow(UiCmdBuffer* buffer, const UiFlow flow) {
+  *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
+      .type    = UiCmd_SetFlow,
+      .setFlow = {
+          .flow = flow,
+      }};
+}
+
 void ui_cmd_push_set_color(UiCmdBuffer* buffer, const UiColor color) {
   *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
       .type     = UiCmd_SetColor,

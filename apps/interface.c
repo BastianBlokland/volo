@@ -26,9 +26,31 @@ ecs_system_define(CanvasUpdateSys) {
     UiCanvasComp* canvas = ecs_view_write_t(canvasItr, UiCanvasComp);
     ui_canvas_reset(canvas);
 
-    ui_canvas_set_pos(canvas, ui_vector(0, 0), UiOrigin_BottomLeft);
-    ui_canvas_set_size(canvas, ui_vector(0.5, 0.5), UiUnits_Window);
+    ui_canvas_set_pos(canvas, ui_vector(10, 10), UiOrigin_BottomLeft, UiUnits_Absolute);
+    ui_canvas_set_flow(canvas, UiFlow_Right);
+
+    ui_canvas_set_size(canvas, ui_vector(10, 10), UiUnits_Absolute);
     ui_canvas_set_color(canvas, ui_color_red);
+    ui_canvas_draw_glyph(canvas, 0xF000);
+
+    ui_canvas_set_size(canvas, ui_vector(25, 25), UiUnits_Absolute);
+    ui_canvas_set_color(canvas, ui_color_blue);
+    ui_canvas_draw_glyph(canvas, 0xF000);
+
+    ui_canvas_set_size(canvas, ui_vector(50, 50), UiUnits_Absolute);
+    ui_canvas_set_color(canvas, ui_color_green);
+    ui_canvas_draw_glyph(canvas, 0xF000);
+
+    ui_canvas_set_size(canvas, ui_vector(100, 100), UiUnits_Absolute);
+    ui_canvas_set_color(canvas, ui_color_purple);
+    ui_canvas_draw_glyph(canvas, 0xF000);
+
+    ui_canvas_set_size(canvas, ui_vector(200, 200), UiUnits_Absolute);
+    ui_canvas_set_color(canvas, ui_color_lime);
+    ui_canvas_draw_glyph(canvas, 0xF000);
+
+    ui_canvas_set_size(canvas, ui_vector(400, 400), UiUnits_Absolute);
+    ui_canvas_set_color(canvas, ui_color_maroon);
     ui_canvas_draw_glyph(canvas, 0xF000);
   }
 }
