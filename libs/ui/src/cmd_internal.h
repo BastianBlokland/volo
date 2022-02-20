@@ -45,9 +45,9 @@ UiCmdBuffer* ui_cmdbuffer_create(Allocator*);
 void         ui_cmdbuffer_destroy(UiCmdBuffer*);
 void         ui_cmdbuffer_clear(UiCmdBuffer*);
 
-void ui_cmd_push_set_pos(UiCmdBuffer*, UiSetPos);
-void ui_cmd_push_set_size(UiCmdBuffer*, UiSetSize);
-void ui_cmd_push_set_color(UiCmdBuffer*, UiSetColor);
-void ui_cmd_push_draw_glyph(UiCmdBuffer*, UiDrawGlyph);
+void ui_cmd_push_set_pos(UiCmdBuffer*, UiVector pos, UiOrigin);
+void ui_cmd_push_set_size(UiCmdBuffer*, UiVector size, UiUnits);
+void ui_cmd_push_set_color(UiCmdBuffer*, UiColor);
+void ui_cmd_push_draw_glyph(UiCmdBuffer*, UiElementId, Unicode cp);
 
 UiCmd* ui_cmd_next(const UiCmdBuffer*, UiCmd*);

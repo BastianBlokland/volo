@@ -23,20 +23,39 @@ void ui_cmdbuffer_destroy(UiCmdBuffer* buffer) {
 
 void ui_cmdbuffer_clear(UiCmdBuffer* buffer) { dynarray_clear(&buffer->commands); }
 
-void ui_cmd_push_set_pos(UiCmdBuffer* buffer, const UiSetPos cmd) {
-  *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){.type = UiCmd_SetPos, .setPos = cmd};
+void ui_cmd_push_set_pos(UiCmdBuffer* buffer, const UiVector pos, const UiOrigin origin) {
+  *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
+      .type   = UiCmd_SetPos,
+      .setPos = {
+          .pos    = pos,
+          .origin = origin,
+      }};
 }
 
-void ui_cmd_push_set_size(UiCmdBuffer* buffer, const UiSetSize cmd) {
-  *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){.type = UiCmd_SetSize, .setSize = cmd};
+void ui_cmd_push_set_size(UiCmdBuffer* buffer, const UiVector size, const UiUnits units) {
+  *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
+      .type    = UiCmd_SetSize,
+      .setSize = {
+          .size  = size,
+          .units = units,
+      }};
 }
 
-void ui_cmd_push_set_color(UiCmdBuffer* buffer, const UiSetColor cmd) {
-  *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){.type = UiCmd_SetColor, .setColor = cmd};
+void ui_cmd_push_set_color(UiCmdBuffer* buffer, const UiColor color) {
+  *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
+      .type     = UiCmd_SetColor,
+      .setColor = {
+          .color = color,
+      }};
 }
 
-void ui_cmd_push_draw_glyph(UiCmdBuffer* buffer, const UiDrawGlyph cmd) {
-  *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){.type = UiCmd_DrawGlyph, .drawGlyph = cmd};
+void ui_cmd_push_draw_glyph(UiCmdBuffer* buffer, const UiElementId id, const Unicode cp) {
+  *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
+      .type      = UiCmd_DrawGlyph,
+      .drawGlyph = {
+          .id = id,
+          .cp = cp,
+      }};
 }
 
 UiCmd* ui_cmd_next(const UiCmdBuffer* buffer, UiCmd* prev) {

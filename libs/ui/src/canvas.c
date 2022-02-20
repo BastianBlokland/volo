@@ -143,38 +143,19 @@ void ui_canvas_reset(UiCanvasComp* comp) {
 }
 
 void ui_canvas_set_pos(UiCanvasComp* comp, const UiVector pos, const UiOrigin origin) {
-  ui_cmd_push_set_pos(
-      comp->cmdBuffer,
-      (UiSetPos){
-          .pos    = pos,
-          .origin = origin,
-      });
+  ui_cmd_push_set_pos(comp->cmdBuffer, pos, origin);
 }
 
 void ui_canvas_set_size(UiCanvasComp* comp, const UiVector size, const UiUnits units) {
-  ui_cmd_push_set_size(
-      comp->cmdBuffer,
-      (UiSetSize){
-          .size  = size,
-          .units = units,
-      });
+  ui_cmd_push_set_size(comp->cmdBuffer, size, units);
 }
 
 void ui_canvas_set_color(UiCanvasComp* comp, const UiColor color) {
-  ui_cmd_push_set_color(
-      comp->cmdBuffer,
-      (UiSetColor){
-          .color = color,
-      });
+  ui_cmd_push_set_color(comp->cmdBuffer, color);
 }
 
 UiElementId ui_canvas_draw_glyph(UiCanvasComp* comp, const Unicode cp) {
   const UiElementId id = comp->nextId++;
-  ui_cmd_push_draw_glyph(
-      comp->cmdBuffer,
-      (UiDrawGlyph){
-          .id = id,
-          .cp = cp,
-      });
+  ui_cmd_push_draw_glyph(comp->cmdBuffer, id, cp);
   return id;
 }
