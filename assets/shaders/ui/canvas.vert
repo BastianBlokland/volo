@@ -42,9 +42,11 @@ bind_instance_data(0) readonly uniform Instance {
   GlyphData u_glyphs[c_maxGlyphs];
 };
 
-bind_internal(0) out f32v2 out_texcoord;
-bind_internal(1) out flat f32v4 out_color;
-bind_internal(2) out flat f32 out_glyphSize;
+bind_internal(0) out f32v2 out_texCoord;
+bind_internal(1) out flat f32v2 out_texOrigin;
+bind_internal(2) out flat f32 out_texScale;
+bind_internal(3) out flat f32v4 out_color;
+bind_internal(4) out flat f32 out_glyphSize;
 
 void main() {
   const u32       glyphIndex = in_vertexIndex / c_verticesPerGlyph;
@@ -63,11 +65,13 @@ void main() {
   /**
    * Compute the x and y position in the texture atlas based on the glyphIndex.
    */
-  const f32v2 atlasPos =
+  const f32v2 texOrigin =
       f32v2(mod(atlasIndex, u_draw.glyphsPerDim), floor(atlasIndex * u_draw.invGlyphsPerDim));
 
   out_vertexPosition = ui_norm_to_ndc(uiPos * u_global.resolution.zw);
-  out_texcoord       = (c_unitTexCoords[vertIndex] + atlasPos) * u_draw.invGlyphsPerDim;
+  out_texCoord       = c_unitTexCoords[vertIndex];
+  out_texOrigin      = texOrigin;
+  out_texScale       = u_draw.invGlyphsPerDim;
   out_color          = glyphColor;
   out_glyphSize      = glyphSize.x;
 }
