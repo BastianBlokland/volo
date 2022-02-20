@@ -14,7 +14,7 @@
     },
     {
       "id": "fonts/shapes.ttf",
-      "characters": "\uF000"
+      "characters": "\uF000\uF001"
     }
   ]
 }

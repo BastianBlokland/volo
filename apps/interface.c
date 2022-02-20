@@ -52,6 +52,10 @@ ecs_system_define(CanvasUpdateSys) {
     ui_canvas_set_size(canvas, ui_vector(400, 400), UiUnits_Absolute);
     ui_canvas_set_color(canvas, ui_color_maroon);
     ui_canvas_draw_glyph(canvas, 0xF000);
+
+    ui_canvas_set_size(canvas, ui_vector(800, 800), UiUnits_Absolute);
+    ui_canvas_set_color(canvas, ui_color_silver);
+    ui_canvas_draw_glyph(canvas, 0xF001);
   }
 }
 
