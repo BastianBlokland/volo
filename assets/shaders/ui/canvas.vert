@@ -44,6 +44,7 @@ bind_instance_data(0) readonly uniform Instance {
 
 bind_internal(0) out f32v2 out_texcoord;
 bind_internal(1) out flat f32v4 out_color;
+bind_internal(2) out flat f32 out_glyphSize;
 
 void main() {
   const u32       glyphIndex = in_vertexIndex / c_verticesPerGlyph;
@@ -68,4 +69,5 @@ void main() {
   out_vertexPosition = ui_norm_to_ndc(uiPos * u_global.resolution.zw);
   out_texcoord       = (c_unitTexCoords[vertIndex] + atlasPos) * u_draw.invGlyphsPerDim;
   out_color          = glyphColor;
+  out_glyphSize      = glyphSize.x;
 }
