@@ -5,7 +5,10 @@
 #include "color.glsl"
 #include "texture.glsl"
 
-const f32 c_smoothingPixels = 2;
+const f32   c_smoothingPixels = 2;
+const f32v4 c_outlineColor    = color_black;
+const f32   c_outlineNormMax  = 0.9;  // Avoid the extremities of the sdf border to avoid artifacts.
+const f32   c_outlineMin      = 0.01; // Outlines smaller then this will not be drawn.
 
 bind_graphic(1) uniform sampler2D u_fontTexture;
 
@@ -14,15 +17,30 @@ bind_internal(1) in flat f32v2 in_texOrigin;
 bind_internal(2) in flat f32 in_texScale;
 bind_internal(3) in flat f32v4 in_color;
 bind_internal(4) in flat f32 in_invBorder;
+bind_internal(5) in flat u32 in_outlineWidth;
 
 bind_internal(0) out f32v4 out_color;
 
 /**
- * Fade out the glyph beyond the edge.
+ * Fade out the glyph beyond the outline edge.
+ * 0 = beyond the outline and smoothing pixels.
+ * 1 = Precisely on the outer edge of the outline.
  */
-f32 get_glyph_alpha(const f32 borderDistNorm, const f32 smoothingNorm) {
-  const f32 halfSmoothingNorm = smoothingNorm * 0.5;
-  return smoothstep(-halfSmoothingNorm, +halfSmoothingNorm, borderDistNorm);
+f32 get_glyph_alpha(const f32 distNorm, const f32 outlineNorm, const f32 smoothingNorm) {
+  const f32 halfSmoothing = smoothingNorm * 0.5;
+  return 1.0 - smoothstep(outlineNorm - halfSmoothing, outlineNorm + halfSmoothing, distNorm);
+}
+
+/**
+ * Get the fraction between the glyph color and the outline color.
+ * 0 = fully glyph color
+ * 1 = fully outline color
+ */
+f32 get_outline_frac(const f32 distNorm, const f32 outlineNorm, const f32 smoothingNorm) {
+  if (outlineNorm < c_outlineMin) {
+    return 0.0; // Outline is disabled.
+  }
+  return smoothstep(-smoothingNorm, 0, distNorm);
 }
 
 /**
@@ -30,12 +48,24 @@ f32 get_glyph_alpha(const f32 borderDistNorm, const f32 smoothingNorm) {
  */
 f32v2 get_fontcoord() { return (in_texOrigin + in_texCoord) * in_texScale; }
 
+/**
+ * Get the signed distance to the glyph edge:
+ * -1.0 = Well into the glyph.
+ *  0.0 = Precisely on the border of the glyph.
+ * +1.0 = Well outside the glyph.
+ */
+f32 get_signed_dist_to_glyph(const f32v2 coord) {
+  return texture(u_fontTexture, coord).r * 2.0 - 1.0;
+}
+
 void main() {
   const f32 smoothingNorm = min(c_smoothingPixels * in_invBorder, 1.0);
+  const f32 outlineNorm   = min(in_outlineWidth * in_invBorder, c_outlineNormMax - smoothingNorm);
 
-  const f32v2 fontCoord      = get_fontcoord();
-  const f32   borderDistNorm = (1.0 - texture(u_fontTexture, fontCoord).r * 2.0); // -1 to 1.
-  const f32   alpha          = get_glyph_alpha(borderDistNorm, smoothingNorm);
+  const f32   distNorm    = get_signed_dist_to_glyph(get_fontcoord());
+  const f32   outlineFrac = get_outline_frac(distNorm, outlineNorm, smoothingNorm);
+  const f32v3 color       = mix(in_color.rgb, c_outlineColor.rgb, outlineFrac);
+  const f32   alpha       = get_glyph_alpha(distNorm, outlineNorm, smoothingNorm);
 
-  out_color = f32v4(in_color.rgb, in_color.a * alpha);
+  out_color = f32v4(color, in_color.a * alpha);
 }

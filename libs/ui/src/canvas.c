@@ -155,8 +155,8 @@ void ui_canvas_set_flow(UiCanvasComp* comp, const UiFlow flow) {
   ui_cmd_push_set_flow(comp->cmdBuffer, flow);
 }
 
-void ui_canvas_set_color(UiCanvasComp* comp, const UiColor color) {
-  ui_cmd_push_set_color(comp->cmdBuffer, color);
+void ui_canvas_set_color(UiCanvasComp* comp, const UiColor color, const u8 outlineWidth) {
+  ui_cmd_push_set_color(comp->cmdBuffer, color, outlineWidth);
 }
 
 UiElementId ui_canvas_draw_glyph(UiCanvasComp* comp, const Unicode cp) {

@@ -5,10 +5,11 @@
 #include "builder_internal.h"
 #include "cmd_internal.h"
 
-static const UiVector g_ui_defaultPos   = {0, 0};
-static const UiVector g_ui_defaultSize  = {100, 100};
-static const UiColor  g_ui_defaultColor = {255, 255, 255, 255};
-static const UiFlow   g_ui_defaultFlow  = UiFlow_Right;
+static const UiVector g_ui_defaultPos          = {0, 0};
+static const UiVector g_ui_defaultSize         = {100, 100};
+static const UiColor  g_ui_defaultColor        = {255, 255, 255, 255};
+static const UiFlow   g_ui_defaultFlow         = UiFlow_Right;
+static const u8       g_ui_defaultOutlineWidth = 0;
 
 typedef struct {
   const UiBuildCtx*    ctx;
@@ -18,6 +19,7 @@ typedef struct {
   UiVector             size;
   UiFlow               flow;
   UiColor              color;
+  u8                   outlineWidth;
 } UiBuildState;
 
 static UiDrawData ui_build_drawdata(const UiBuildState* state) {
@@ -87,10 +89,11 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
     state->ctx->outputGlyph(
         state->ctx->userCtx,
         (UiGlyphData){
-            .rect       = renderRect,
-            .color      = state->color,
-            .atlasIndex = ch->glyphIndex,
-            .invBorder  = 1.0f / (ch->border * math_max(state->size.x, state->size.y)),
+            .rect         = renderRect,
+            .color        = state->color,
+            .atlasIndex   = ch->glyphIndex,
+            .invBorder    = 1.0f / (ch->border * math_max(state->size.x, state->size.y)),
+            .outlineWidth = state->outlineWidth,
         });
   }
   ui_advance(state, state->size);
@@ -108,7 +111,8 @@ static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
     state->flow = cmd->setFlow.flow;
     break;
   case UiCmd_SetColor:
-    state->color = cmd->setColor.color;
+    state->color        = cmd->setColor.color;
+    state->outlineWidth = cmd->setColor.outlineWidth;
     break;
   case UiCmd_DrawGlyph:
     ui_build_draw_glyph(state, &cmd->drawGlyph);
@@ -123,13 +127,14 @@ void ui_build(
     const UiBuildCtx*    ctx) {
 
   UiBuildState state = {
-      .ctx    = ctx,
-      .window = window,
-      .font   = font,
-      .pos    = g_ui_defaultPos,
-      .size   = g_ui_defaultSize,
-      .flow   = g_ui_defaultFlow,
-      .color  = g_ui_defaultColor,
+      .ctx          = ctx,
+      .window       = window,
+      .font         = font,
+      .pos          = g_ui_defaultPos,
+      .size         = g_ui_defaultSize,
+      .flow         = g_ui_defaultFlow,
+      .color        = g_ui_defaultColor,
+      .outlineWidth = g_ui_defaultOutlineWidth,
   };
   ctx->outputDraw(ctx->userCtx, ui_build_drawdata(&state));
 

@@ -245,7 +245,7 @@ static void ftx_generate(
     FtxError*                 err) {
 
   Mem pixelMem = alloc_alloc(g_alloc_heap, sizeof(AssetTexturePixelB1) * def->size * def->size, 1);
-  mem_set(pixelMem, 255); // Initialize to the maximum distance away from a glyph.
+  mem_set(pixelMem, 0xFF); // Initialize to the maximum distance away from a glyph.
 
   AssetTexturePixelB1* pixels = pixelMem.ptr;
   DynArray             chars  = dynarray_create_t(g_alloc_heap, AssetFtxChar, 128);

@@ -33,7 +33,7 @@ struct DrawData {
 
 struct GlyphData {
   f32v4 rect; // x, y = position, z, w = size
-  u32v4 data; // x = color, y = atlasIndex, z = invBorder
+  u32v4 data; // x = color, y = atlasIndex, z = invBorder, w = outlineWidth
 };
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
@@ -47,16 +47,18 @@ bind_internal(1) out flat f32v2 out_texOrigin;
 bind_internal(2) out flat f32 out_texScale;
 bind_internal(3) out flat f32v4 out_color;
 bind_internal(4) out flat f32 out_invBorder;
+bind_internal(5) out flat u32 out_outlineWidth;
 
 void main() {
-  const u32       glyphIndex = in_vertexIndex / c_verticesPerGlyph;
-  const u32       vertIndex  = in_vertexIndex % c_verticesPerGlyph;
-  const GlyphData glyphData  = u_glyphs[glyphIndex];
-  const f32v2     glyphPos   = glyphData.rect.xy;
-  const f32v2     glyphSize  = glyphData.rect.zw;
-  const f32v4     glyphColor = color_from_u32(glyphData.data.x);
-  const u32       atlasIndex = glyphData.data.y;
-  const f32       invBorder  = uintBitsToFloat(glyphData.data.z);
+  const u32       glyphIndex   = in_vertexIndex / c_verticesPerGlyph;
+  const u32       vertIndex    = in_vertexIndex % c_verticesPerGlyph;
+  const GlyphData glyphData    = u_glyphs[glyphIndex];
+  const f32v2     glyphPos     = glyphData.rect.xy;
+  const f32v2     glyphSize    = glyphData.rect.zw;
+  const f32v4     glyphColor   = color_from_u32(glyphData.data.x);
+  const u32       atlasIndex   = glyphData.data.y;
+  const f32       invBorder    = uintBitsToFloat(glyphData.data.z);
+  const u32       outlineWidth = glyphData.data.w;
 
   /**
    * Compute the ui positions of the vertices.
@@ -75,4 +77,5 @@ void main() {
   out_texScale       = u_draw.invGlyphsPerDim;
   out_color          = glyphColor;
   out_invBorder      = invBorder;
+  out_outlineWidth   = outlineWidth;
 }

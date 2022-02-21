@@ -34,6 +34,6 @@ void        ui_canvas_reset(UiCanvasComp*);
 void ui_canvas_set_pos(UiCanvasComp*, UiVector, UiOrigin, UiUnits);
 void ui_canvas_set_size(UiCanvasComp*, UiVector, UiUnits);
 void ui_canvas_set_flow(UiCanvasComp*, UiFlow);
-void ui_canvas_set_color(UiCanvasComp*, UiColor);
+void ui_canvas_set_color(UiCanvasComp*, UiColor, u8 outlineWidth);
 
 UiElementId ui_canvas_draw_glyph(UiCanvasComp*, Unicode);
