@@ -224,6 +224,7 @@ static void ftx_generate_font(
         .offsetX    = inputChars[i].glyph->offsetX - border,
         .offsetY    = inputChars[i].glyph->offsetY - border,
         .advance    = inputChars[i].glyph->advance,
+        .border     = border,
     };
     if (inputChars[i].glyph->segmentCount) {
       if (UNLIKELY(*nextGlyphIndex >= maxGlyphs)) {

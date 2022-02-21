@@ -1,4 +1,5 @@
 #include "core_diag.h"
+#include "core_math.h"
 #include "gap_window.h"
 
 #include "builder_internal.h"
@@ -89,6 +90,7 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
             .rect       = renderRect,
             .color      = state->color,
             .atlasIndex = ch->glyphIndex,
+            .invBorder  = 1.0f / (ch->border * math_max(state->size.x, state->size.y)),
         });
   }
   ui_advance(state, state->size);

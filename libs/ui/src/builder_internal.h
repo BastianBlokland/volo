@@ -21,7 +21,8 @@ typedef struct {
   UiRect  rect;
   UiColor color;
   u32     atlasIndex;
-  u32     padding[2];
+  f32     invBorder; // '1 / border pixel size'
+  u32     padding[1];
 } UiGlyphData;
 
 ASSERT(sizeof(UiGlyphData) == 32, "Size needs to match the size defined in glsl");

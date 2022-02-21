@@ -19,6 +19,7 @@ typedef struct {
   f32     size;
   f32     offsetX, offsetY;
   f32     advance;
+  f32     border;
 } AssetFtxChar;
 
 ecs_comp_extern_public(AssetFtxComp) {
