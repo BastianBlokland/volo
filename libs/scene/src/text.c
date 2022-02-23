@@ -96,14 +96,15 @@ static void scene_text_build_char(SceneTextBuilder* builder, const Unicode cp) {
     diag_assert(ch->glyphIndex < scene_text_atlas_index_max);
     /**
      * This character has a glyph, output it to the shader.
+     * NOTE: Take the border into account as the glyph will need to be drawn bigger to compensate.
      */
     builder->outputGlyphData[builder->outputGlyphCount++] = (ShaderGlyphData){
         .position =
             {
-                ch->offsetX * builder->glyphSize + builder->cursor[0],
-                ch->offsetY * builder->glyphSize + builder->cursor[1],
+                (ch->offsetX - ch->border) * builder->glyphSize + builder->cursor[0],
+                (ch->offsetY - ch->border) * builder->glyphSize + builder->cursor[1],
             },
-        .size  = ch->size * builder->glyphSize,
+        .size  = (ch->size + ch->border * 2.0f) * builder->glyphSize,
         .index = ch->glyphIndex | (builder->activePalette << scene_text_atlas_index_bits),
     };
   }

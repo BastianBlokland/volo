@@ -213,18 +213,14 @@ static void ftx_generate_font(
   }
 
   for (u32 i = 0; i != charCount; ++i) {
-    /**
-     * Take the sdf border into account as the glyph will need to be rendered bigger to compensate.
-     */
-    const f32 border                         = def->border / (f32)def->glyphSize;
     *dynarray_push_t(outChars, AssetFtxChar) = (AssetFtxChar){
         .cp         = inputChars[i].cp,
         .glyphIndex = inputChars[i].glyph->segmentCount ? *nextGlyphIndex : sentinel_u32,
-        .size       = inputChars[i].glyph->size + border * 2.0f,
-        .offsetX    = inputChars[i].glyph->offsetX - border,
-        .offsetY    = inputChars[i].glyph->offsetY - border,
+        .size       = inputChars[i].glyph->size,
+        .offsetX    = inputChars[i].glyph->offsetX,
+        .offsetY    = inputChars[i].glyph->offsetY,
         .advance    = inputChars[i].glyph->advance,
-        .border     = border,
+        .border     = def->border / (f32)def->glyphSize,
     };
     if (inputChars[i].glyph->segmentCount) {
       if (UNLIKELY(*nextGlyphIndex >= maxGlyphs)) {

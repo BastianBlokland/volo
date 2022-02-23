@@ -77,13 +77,20 @@ static void ui_advance(UiBuildState* state, const UiVector size) {
 static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
   const AssetFtxChar* ch = asset_ftx_lookup(state->font, cmd->cp);
   if (!sentinel_check(ch->glyphIndex)) {
+    /**
+     * NOTE: Take the border into account as the glyph will need to be drawn bigger to compensate.
+     */
     const UiRect renderRect = {
         .position =
             {
-                ch->offsetX * state->size.x + state->pos.x,
-                ch->offsetY * state->size.y + state->pos.y,
+                (ch->offsetX - ch->border) * state->size.x + state->pos.x,
+                (ch->offsetY - ch->border) * state->size.y + state->pos.y,
             },
-        .size = {ch->size * state->size.x, ch->size * state->size.y},
+        .size =
+            {
+                (ch->size + ch->border * 2.0f) * state->size.x,
+                (ch->size + ch->border * 2.0f) * state->size.y,
+            },
     };
 
     state->ctx->outputGlyph(
