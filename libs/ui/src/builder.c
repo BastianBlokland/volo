@@ -80,16 +80,17 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
     /**
      * NOTE: Take the border into account as the glyph will need to be drawn bigger to compensate.
      */
+    const f32    border     = ch->border * state->size.x; // TODO: Handle non square.
     const UiRect renderRect = {
         .position =
             {
-                (ch->offsetX - ch->border) * state->size.x + state->pos.x,
-                (ch->offsetY - ch->border) * state->size.y + state->pos.y,
+                state->pos.x - border,
+                state->pos.y - border,
             },
         .size =
             {
-                (ch->size + ch->border * 2.0f) * state->size.x,
-                (ch->size + ch->border * 2.0f) * state->size.y,
+                state->size.x + border * 2,
+                state->size.y + border * 2,
             },
     };
 
@@ -99,7 +100,7 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
             .rect         = renderRect,
             .color        = state->color,
             .atlasIndex   = ch->glyphIndex,
-            .invBorder    = 1.0f / (ch->border * math_max(state->size.x, state->size.y)),
+            .invBorder    = 1.0f / border,
             .outlineWidth = state->outlineWidth,
         });
   }
