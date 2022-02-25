@@ -8,6 +8,7 @@
 #include "builder_internal.h"
 #include "cmd_internal.h"
 #include "resource_internal.h"
+#include "shape_internal.h"
 
 ecs_comp_define(UiCanvasComp) {
   EcsEntityId  window;
@@ -155,13 +156,20 @@ void ui_canvas_set_flow(UiCanvasComp* comp, const UiFlow flow) {
   ui_cmd_push_set_flow(comp->cmdBuffer, flow);
 }
 
-void ui_canvas_set_style(
-    UiCanvasComp* comp, const UiColor color, const u8 outline, const u16 maxCorner) {
-  ui_cmd_push_set_style(comp->cmdBuffer, color, outline, maxCorner);
+void ui_canvas_set_style(UiCanvasComp* comp, const UiColor color, const u8 outline) {
+  ui_cmd_push_set_style(comp->cmdBuffer, color, outline);
 }
 
-UiElementId ui_canvas_draw_glyph(UiCanvasComp* comp, const Unicode cp) {
+UiElementId ui_canvas_draw_glyph(UiCanvasComp* comp, const Unicode cp, const u16 maxCorner) {
   const UiElementId id = comp->nextId++;
-  ui_cmd_push_draw_glyph(comp->cmdBuffer, id, cp);
+  ui_cmd_push_draw_glyph(comp->cmdBuffer, id, cp, maxCorner);
   return id;
+}
+
+UiElementId ui_canvas_draw_square(UiCanvasComp* comp) {
+  return ui_canvas_draw_glyph(comp, ui_shape_square, 25);
+}
+
+UiElementId ui_canvas_draw_circle(UiCanvasComp* comp, const u16 maxCorner) {
+  return ui_canvas_draw_glyph(comp, ui_shape_circle, maxCorner);
 }

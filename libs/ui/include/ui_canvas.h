@@ -34,6 +34,8 @@ void        ui_canvas_reset(UiCanvasComp*);
 void ui_canvas_set_pos(UiCanvasComp*, UiVector, UiOrigin, UiUnits);
 void ui_canvas_set_size(UiCanvasComp*, UiVector, UiUnits);
 void ui_canvas_set_flow(UiCanvasComp*, UiFlow);
-void ui_canvas_set_style(UiCanvasComp*, UiColor, u8 outline, u16 maxCorner);
+void ui_canvas_set_style(UiCanvasComp*, UiColor, u8 outline);
 
-UiElementId ui_canvas_draw_glyph(UiCanvasComp*, Unicode);
+UiElementId ui_canvas_draw_glyph(UiCanvasComp*, Unicode, u16 maxCorner);
+UiElementId ui_canvas_draw_square(UiCanvasComp*);
+UiElementId ui_canvas_draw_circle(UiCanvasComp*, u16 maxCorner);

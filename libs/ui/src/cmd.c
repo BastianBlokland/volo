@@ -51,23 +51,23 @@ void ui_cmd_push_set_flow(UiCmdBuffer* buffer, const UiFlow flow) {
       }};
 }
 
-void ui_cmd_push_set_style(
-    UiCmdBuffer* buffer, const UiColor color, const u8 outline, const u16 maxCorner) {
+void ui_cmd_push_set_style(UiCmdBuffer* buffer, const UiColor color, const u8 outline) {
   *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
       .type     = UiCmd_SetStyle,
       .setStyle = {
-          .color     = color,
-          .outline   = outline,
-          .maxCorner = maxCorner,
+          .color   = color,
+          .outline = outline,
       }};
 }
 
-void ui_cmd_push_draw_glyph(UiCmdBuffer* buffer, const UiElementId id, const Unicode cp) {
+void ui_cmd_push_draw_glyph(
+    UiCmdBuffer* buffer, const UiElementId id, const Unicode cp, const u16 maxCorner) {
   *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
       .type      = UiCmd_DrawGlyph,
       .drawGlyph = {
-          .id = id,
-          .cp = cp,
+          .id        = id,
+          .cp        = cp,
+          .maxCorner = maxCorner,
       }};
 }
 
