@@ -4,10 +4,9 @@
 #include "ui_canvas.h"
 
 typedef enum {
-  UiCmd_SetPos,
-  UiCmd_SetSize,
-  UiCmd_SetFlow,
-  UiCmd_SetStyle,
+  UiCmd_Move,
+  UiCmd_Size,
+  UiCmd_Style,
   UiCmd_DrawGlyph,
 } UiCmdType;
 
@@ -15,21 +14,17 @@ typedef struct {
   UiVector pos;
   UiOrigin origin;
   UiUnits  units;
-} UiSetPos;
+} UiMove;
 
 typedef struct {
   UiVector size;
   UiUnits  units;
-} UiSetSize;
-
-typedef struct {
-  UiFlow flow;
-} UiSetFlow;
+} UiSize;
 
 typedef struct {
   UiColor color;
   u8      outline;
-} UiSetStyle;
+} UiStyle;
 
 typedef struct {
   UiElementId id;
@@ -40,10 +35,9 @@ typedef struct {
 typedef struct {
   UiCmdType type;
   union {
-    UiSetPos    setPos;
-    UiSetSize   setSize;
-    UiSetFlow   setFlow;
-    UiSetStyle  setStyle;
+    UiMove      move;
+    UiSize      size;
+    UiStyle     style;
     UiDrawGlyph drawGlyph;
   };
 } UiCmd;
@@ -54,10 +48,9 @@ UiCmdBuffer* ui_cmdbuffer_create(Allocator*);
 void         ui_cmdbuffer_destroy(UiCmdBuffer*);
 void         ui_cmdbuffer_clear(UiCmdBuffer*);
 
-void ui_cmd_push_set_pos(UiCmdBuffer*, UiVector pos, UiOrigin, UiUnits);
-void ui_cmd_push_set_size(UiCmdBuffer*, UiVector size, UiUnits);
-void ui_cmd_push_set_flow(UiCmdBuffer*, UiFlow);
-void ui_cmd_push_set_style(UiCmdBuffer*, UiColor, u8 outline);
+void ui_cmd_push_move(UiCmdBuffer*, UiVector pos, UiOrigin, UiUnits);
+void ui_cmd_push_size(UiCmdBuffer*, UiVector size, UiUnits);
+void ui_cmd_push_style(UiCmdBuffer*, UiColor, u8 outline);
 void ui_cmd_push_draw_glyph(UiCmdBuffer*, UiElementId, Unicode cp, u16 maxCorner);
 
 UiCmd* ui_cmd_next(const UiCmdBuffer*, UiCmd*);

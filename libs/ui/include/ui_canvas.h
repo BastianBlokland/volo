@@ -8,33 +8,27 @@
 typedef u64 UiElementId;
 
 typedef enum {
-  UiOrigin_BottomLeft,
-  UiOrigin_BottomRight,
-  UiOrigin_TopLeft,
-  UiOrigin_TopRight,
+  UiOrigin_Current,
+  UiOrigin_WindowBottomLeft,
+  UiOrigin_WindowBottomRight,
+  UiOrigin_WindowTopLeft,
+  UiOrigin_WindowTopRight,
 } UiOrigin;
 
 typedef enum {
+  UiUnits_Current,
   UiUnits_Absolute,
   UiUnits_Window,
 } UiUnits;
-
-typedef enum {
-  UiFlow_Left,
-  UiFlow_Right,
-  UiFlow_Down,
-  UiFlow_Up,
-} UiFlow;
 
 ecs_comp_extern(UiCanvasComp);
 
 EcsEntityId ui_canvas_create(EcsWorld*, EcsEntityId window);
 void        ui_canvas_reset(UiCanvasComp*);
 
-void ui_canvas_set_pos(UiCanvasComp*, UiVector, UiOrigin, UiUnits);
-void ui_canvas_set_size(UiCanvasComp*, UiVector, UiUnits);
-void ui_canvas_set_flow(UiCanvasComp*, UiFlow);
-void ui_canvas_set_style(UiCanvasComp*, UiColor, u8 outline);
+void ui_canvas_move(UiCanvasComp*, UiVector, UiOrigin, UiUnits);
+void ui_canvas_size(UiCanvasComp*, UiVector, UiUnits);
+void ui_canvas_style(UiCanvasComp*, UiColor, u8 outline);
 
 UiElementId ui_canvas_draw_glyph(UiCanvasComp*, Unicode, u16 maxCorner);
 UiElementId ui_canvas_draw_square(UiCanvasComp*);

@@ -26,35 +26,39 @@ ecs_system_define(CanvasUpdateSys) {
     UiCanvasComp* canvas = ecs_view_write_t(canvasItr, UiCanvasComp);
     ui_canvas_reset(canvas);
 
-    ui_canvas_set_pos(canvas, ui_vector(10, 10), UiOrigin_BottomLeft, UiUnits_Absolute);
-    ui_canvas_set_flow(canvas, UiFlow_Right);
-
-    ui_canvas_set_size(canvas, ui_vector(10, 10), UiUnits_Absolute);
-    ui_canvas_set_style(canvas, ui_color_red, 2);
+    ui_canvas_move(canvas, ui_vector(10, 10), UiOrigin_WindowBottomLeft, UiUnits_Absolute);
+    ui_canvas_size(canvas, ui_vector(10, 10), UiUnits_Absolute);
+    ui_canvas_style(canvas, ui_color_red, 2);
     ui_canvas_draw_square(canvas);
 
-    ui_canvas_set_size(canvas, ui_vector(25, 25), UiUnits_Absolute);
-    ui_canvas_set_style(canvas, ui_color_blue, 2);
+    ui_canvas_move(canvas, ui_vector(1, 0), UiOrigin_Current, UiUnits_Current);
+    ui_canvas_size(canvas, ui_vector(25, 25), UiUnits_Absolute);
+    ui_canvas_style(canvas, ui_color_blue, 2);
     ui_canvas_draw_square(canvas);
 
-    ui_canvas_set_size(canvas, ui_vector(50, 50), UiUnits_Absolute);
-    ui_canvas_set_style(canvas, ui_color_green, 2);
+    ui_canvas_move(canvas, ui_vector(1, 0), UiOrigin_Current, UiUnits_Current);
+    ui_canvas_size(canvas, ui_vector(50, 50), UiUnits_Absolute);
+    ui_canvas_style(canvas, ui_color_green, 2);
     ui_canvas_draw_square(canvas);
 
-    ui_canvas_set_size(canvas, ui_vector(100, 100), UiUnits_Absolute);
-    ui_canvas_set_style(canvas, ui_color_purple, 2);
+    ui_canvas_move(canvas, ui_vector(1, 0), UiOrigin_Current, UiUnits_Current);
+    ui_canvas_size(canvas, ui_vector(100, 100), UiUnits_Absolute);
+    ui_canvas_style(canvas, ui_color_purple, 2);
     ui_canvas_draw_square(canvas);
 
-    ui_canvas_set_size(canvas, ui_vector(200, 200), UiUnits_Absolute);
-    ui_canvas_set_style(canvas, ui_color_lime, 2);
+    ui_canvas_move(canvas, ui_vector(1, 0), UiOrigin_Current, UiUnits_Current);
+    ui_canvas_size(canvas, ui_vector(200, 200), UiUnits_Absolute);
+    ui_canvas_style(canvas, ui_color_lime, 2);
     ui_canvas_draw_square(canvas);
 
-    ui_canvas_set_size(canvas, ui_vector(400, 400), UiUnits_Absolute);
-    ui_canvas_set_style(canvas, ui_color_maroon, 2);
+    ui_canvas_move(canvas, ui_vector(1, 0), UiOrigin_Current, UiUnits_Current);
+    ui_canvas_size(canvas, ui_vector(400, 400), UiUnits_Absolute);
+    ui_canvas_style(canvas, ui_color_maroon, 2);
     ui_canvas_draw_circle(canvas, 0);
 
-    ui_canvas_set_size(canvas, ui_vector(800, 800), UiUnits_Absolute);
-    ui_canvas_set_style(canvas, ui_color_silver, 2);
+    ui_canvas_move(canvas, ui_vector(1, 0), UiOrigin_Current, UiUnits_Current);
+    ui_canvas_size(canvas, ui_vector(800, 800), UiUnits_Absolute);
+    ui_canvas_style(canvas, ui_color_silver, 2);
     ui_canvas_draw_square(canvas);
   }
 }

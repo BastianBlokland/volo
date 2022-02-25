@@ -143,21 +143,17 @@ void ui_canvas_reset(UiCanvasComp* comp) {
   comp->nextId = 0;
 }
 
-void ui_canvas_set_pos(
+void ui_canvas_move(
     UiCanvasComp* comp, const UiVector pos, const UiOrigin origin, const UiUnits units) {
-  ui_cmd_push_set_pos(comp->cmdBuffer, pos, origin, units);
+  ui_cmd_push_move(comp->cmdBuffer, pos, origin, units);
 }
 
-void ui_canvas_set_size(UiCanvasComp* comp, const UiVector size, const UiUnits units) {
-  ui_cmd_push_set_size(comp->cmdBuffer, size, units);
+void ui_canvas_size(UiCanvasComp* comp, const UiVector size, const UiUnits units) {
+  ui_cmd_push_size(comp->cmdBuffer, size, units);
 }
 
-void ui_canvas_set_flow(UiCanvasComp* comp, const UiFlow flow) {
-  ui_cmd_push_set_flow(comp->cmdBuffer, flow);
-}
-
-void ui_canvas_set_style(UiCanvasComp* comp, const UiColor color, const u8 outline) {
-  ui_cmd_push_set_style(comp->cmdBuffer, color, outline);
+void ui_canvas_style(UiCanvasComp* comp, const UiColor color, const u8 outline) {
+  ui_cmd_push_style(comp->cmdBuffer, color, outline);
 }
 
 UiElementId ui_canvas_draw_glyph(UiCanvasComp* comp, const Unicode cp, const u16 maxCorner) {
