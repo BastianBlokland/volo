@@ -9,6 +9,7 @@ typedef u64 UiElementId;
 
 typedef enum {
   UiOrigin_Current,
+  UiOrigin_Cursor,
   UiOrigin_WindowBottomLeft,
   UiOrigin_WindowBottomRight,
   UiOrigin_WindowTopLeft,

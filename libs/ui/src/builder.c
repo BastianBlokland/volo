@@ -42,11 +42,14 @@ static UiVector ui_resolve_vec(UiBuildState* state, const UiVector vec, const Ui
 
 static UiVector ui_resolve_pos(
     UiBuildState* state, const UiVector pos, const UiOrigin origin, const UiUnits units) {
-  const GapVector winSize = gap_window_param(state->window, GapParam_WindowSize);
-  const UiVector  vec     = ui_resolve_vec(state, pos, units);
+  const GapVector winSize   = gap_window_param(state->window, GapParam_WindowSize);
+  const GapVector cursorPos = gap_window_param(state->window, GapParam_CursorPos);
+  const UiVector  vec       = ui_resolve_vec(state, pos, units);
   switch (origin) {
   case UiOrigin_Current:
     return ui_vector(state->pos.x + vec.x, state->pos.y + vec.y);
+  case UiOrigin_Cursor:
+    return ui_vector(cursorPos.x + vec.x, cursorPos.y + vec.y);
   case UiOrigin_WindowBottomLeft:
     return vec;
   case UiOrigin_WindowBottomRight:
