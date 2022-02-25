@@ -20,8 +20,6 @@
  * NOTE: This loader assumes the host system is also using 2's complement integers.
  */
 
-OPTIMIZE_OFF()
-
 #define ttf_magic 0x5F0F3CF5
 #define ttf_supported_sfnt_version 0x10000
 #define ttf_max_tables 32
@@ -695,15 +693,17 @@ ttf_read_glyph_header(Mem data, const TtfHeadTable* headTable, TtfGlyphHeader* o
   data = mem_consume_be_u16(data, (u16*)&gridMaxX);
   data = mem_consume_be_u16(data, (u16*)&gridMaxY);
 
-  const u16 gridWidth  = gridMaxX - gridMinX;
-  const u16 gridHeight = gridMaxY - gridMinY;
-  const u16 gridSize   = math_max(gridWidth, gridHeight);
-  out->gridOriginX     = (f32)gridMinX;
-  out->gridOriginY     = (f32)gridMinY;
-  out->gridScale       = gridSize ? 1.0f / gridSize : 0.0f;
-  out->size            = gridSize * headTable->invUnitsPerEm;
-  out->offsetX         = gridMinX * headTable->invUnitsPerEm;
-  out->offsetY         = gridMinY * headTable->invUnitsPerEm;
+  const u16 gridWidth     = gridMaxX - gridMinX;
+  const u16 gridHeight    = gridMaxY - gridMinY;
+  const u16 gridSize      = math_max(gridWidth, gridHeight);
+  const f32 centerOffsetX = (gridSize - gridWidth) * 0.5f;
+  const f32 centerOffsetY = (gridSize - gridHeight) * 0.5f;
+  out->gridOriginX        = gridMinX - centerOffsetX;
+  out->gridOriginY        = gridMinY - centerOffsetY;
+  out->gridScale          = gridSize ? 1.0f / gridSize : 0.0f;
+  out->size               = gridSize * headTable->invUnitsPerEm;
+  out->offsetX            = (gridMinX - centerOffsetX) * headTable->invUnitsPerEm;
+  out->offsetY            = (gridMinY - centerOffsetY) * headTable->invUnitsPerEm;
 
   *err = TtfError_None;
   return data;
