@@ -62,6 +62,12 @@ static UiVector ui_resolve_pos(
   diag_crash();
 }
 
+static UiVector ui_resolve_size_to(
+    UiBuildState* state, const UiVector pos, const UiOrigin origin, const UiUnits unit) {
+  const UiVector toPos = ui_resolve_pos(state, pos, origin, unit);
+  return ui_vector(math_max(toPos.x - state->pos.x, 0), math_max(toPos.y - state->pos.y, 0));
+}
+
 static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
   const AssetFtxChar* ch = asset_ftx_lookup(state->font, cmd->cp);
   if (sentinel_check(ch->glyphIndex)) {
@@ -89,10 +95,13 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
 static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
   switch (cmd->type) {
   case UiCmd_Move:
-    state->pos = ui_resolve_pos(state, cmd->move.pos, cmd->move.origin, cmd->move.units);
+    state->pos = ui_resolve_pos(state, cmd->move.pos, cmd->move.origin, cmd->move.unit);
     break;
   case UiCmd_Size:
-    state->size = ui_resolve_vec(state, cmd->size.size, cmd->size.units);
+    state->size = ui_resolve_vec(state, cmd->size.size, cmd->size.unit);
+    break;
+  case UiCmd_SizeTo:
+    state->size = ui_resolve_size_to(state, cmd->sizeTo.pos, cmd->sizeTo.origin, cmd->sizeTo.unit);
     break;
   case UiCmd_Style:
     state->color   = cmd->style.color;

@@ -1,4 +1,5 @@
 #include "asset_ftx.h"
+#include "core_diag.h"
 #include "core_dynstring.h"
 #include "ecs_world.h"
 #include "gap_window.h"
@@ -144,12 +145,18 @@ void ui_canvas_reset(UiCanvasComp* comp) {
 }
 
 void ui_canvas_move(
-    UiCanvasComp* comp, const UiVector pos, const UiOrigin origin, const UiUnits units) {
-  ui_cmd_push_move(comp->cmdBuffer, pos, origin, units);
+    UiCanvasComp* comp, const UiVector pos, const UiOrigin origin, const UiUnits unit) {
+  ui_cmd_push_move(comp->cmdBuffer, pos, origin, unit);
 }
 
-void ui_canvas_size(UiCanvasComp* comp, const UiVector size, const UiUnits units) {
-  ui_cmd_push_size(comp->cmdBuffer, size, units);
+void ui_canvas_size(UiCanvasComp* comp, const UiVector size, const UiUnits unit) {
+  diag_assert_msg(size.x >= 0.0f && size.y >= 0.0f, "Negative sizes are not supported");
+  ui_cmd_push_size(comp->cmdBuffer, size, unit);
+}
+
+void ui_canvas_size_to(
+    UiCanvasComp* comp, const UiVector pos, const UiOrigin origin, const UiUnits unit) {
+  ui_cmd_push_size_to(comp->cmdBuffer, pos, origin, unit);
 }
 
 void ui_canvas_style(UiCanvasComp* comp, const UiColor color, const u8 outline) {

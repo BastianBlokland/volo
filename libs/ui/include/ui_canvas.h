@@ -29,6 +29,7 @@ void        ui_canvas_reset(UiCanvasComp*);
 
 void ui_canvas_move(UiCanvasComp*, UiVector, UiOrigin, UiUnits);
 void ui_canvas_size(UiCanvasComp*, UiVector, UiUnits);
+void ui_canvas_size_to(UiCanvasComp*, UiVector, UiOrigin, UiUnits);
 void ui_canvas_style(UiCanvasComp*, UiColor, u8 outline);
 
 UiElementId ui_canvas_draw_glyph(UiCanvasComp*, Unicode, u16 maxCorner);

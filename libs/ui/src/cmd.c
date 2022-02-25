@@ -24,22 +24,33 @@ void ui_cmdbuffer_destroy(UiCmdBuffer* buffer) {
 void ui_cmdbuffer_clear(UiCmdBuffer* buffer) { dynarray_clear(&buffer->commands); }
 
 void ui_cmd_push_move(
-    UiCmdBuffer* buffer, const UiVector pos, const UiOrigin origin, const UiUnits units) {
+    UiCmdBuffer* buffer, const UiVector pos, const UiOrigin origin, const UiUnits unit) {
   *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
       .type = UiCmd_Move,
       .move = {
           .pos    = pos,
           .origin = origin,
-          .units  = units,
+          .unit   = unit,
       }};
 }
 
-void ui_cmd_push_size(UiCmdBuffer* buffer, const UiVector size, const UiUnits units) {
+void ui_cmd_push_size(UiCmdBuffer* buffer, const UiVector size, const UiUnits unit) {
   *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
       .type = UiCmd_Size,
       .size = {
-          .size  = size,
-          .units = units,
+          .size = size,
+          .unit = unit,
+      }};
+}
+
+void ui_cmd_push_size_to(
+    UiCmdBuffer* buffer, const UiVector pos, const UiOrigin origin, const UiUnits unit) {
+  *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
+      .type   = UiCmd_SizeTo,
+      .sizeTo = {
+          .pos    = pos,
+          .origin = origin,
+          .unit   = unit,
       }};
 }
 

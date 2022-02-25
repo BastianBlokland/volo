@@ -6,6 +6,7 @@
 typedef enum {
   UiCmd_Move,
   UiCmd_Size,
+  UiCmd_SizeTo,
   UiCmd_Style,
   UiCmd_DrawGlyph,
 } UiCmdType;
@@ -13,13 +14,19 @@ typedef enum {
 typedef struct {
   UiVector pos;
   UiOrigin origin;
-  UiUnits  units;
+  UiUnits  unit;
 } UiMove;
 
 typedef struct {
   UiVector size;
-  UiUnits  units;
+  UiUnits  unit;
 } UiSize;
+
+typedef struct {
+  UiVector pos;
+  UiOrigin origin;
+  UiUnits  unit;
+} UiSizeTo;
 
 typedef struct {
   UiColor color;
@@ -37,6 +44,7 @@ typedef struct {
   union {
     UiMove      move;
     UiSize      size;
+    UiSizeTo    sizeTo;
     UiStyle     style;
     UiDrawGlyph drawGlyph;
   };
@@ -50,6 +58,7 @@ void         ui_cmdbuffer_clear(UiCmdBuffer*);
 
 void ui_cmd_push_move(UiCmdBuffer*, UiVector pos, UiOrigin, UiUnits);
 void ui_cmd_push_size(UiCmdBuffer*, UiVector size, UiUnits);
+void ui_cmd_push_size_to(UiCmdBuffer*, UiVector pos, UiOrigin, UiUnits);
 void ui_cmd_push_style(UiCmdBuffer*, UiColor, u8 outline);
 void ui_cmd_push_draw_glyph(UiCmdBuffer*, UiElementId, Unicode cp, u16 maxCorner);
 
