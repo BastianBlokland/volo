@@ -21,7 +21,8 @@ typedef struct {
   UiRect  rect;
   UiColor color;
   u32     atlasIndex;
-  f32     invBorder; // '1 / border pixel size'
+  u16     borderFrac; // 'border size' / rect.width * u16_max
+  u16     cornerFrac; // 'border size' / rect.width * u16_max
   u32     outlineWidth;
 } UiGlyphData;
 

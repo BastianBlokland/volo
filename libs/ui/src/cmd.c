@@ -51,12 +51,14 @@ void ui_cmd_push_set_flow(UiCmdBuffer* buffer, const UiFlow flow) {
       }};
 }
 
-void ui_cmd_push_set_color(UiCmdBuffer* buffer, const UiColor color, const u8 outlineWidth) {
+void ui_cmd_push_set_style(
+    UiCmdBuffer* buffer, const UiColor color, const u8 outline, const u16 maxCorner) {
   *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
-      .type     = UiCmd_SetColor,
-      .setColor = {
-          .color        = color,
-          .outlineWidth = outlineWidth,
+      .type     = UiCmd_SetStyle,
+      .setStyle = {
+          .color     = color,
+          .outline   = outline,
+          .maxCorner = maxCorner,
       }};
 }
 

@@ -12,12 +12,14 @@ const f32   c_outlineMin      = 0.01; // Outlines smaller then this will not be 
 
 bind_graphic(1) uniform sampler2D u_fontTexture;
 
-bind_internal(0) in f32v2 in_texCoord;
-bind_internal(1) in flat f32v2 in_texOrigin;
-bind_internal(2) in flat f32 in_texScale;
+bind_internal(0) in f32v2 in_texCoord;       // Texture coordinates of this glyph.
+bind_internal(1) in flat f32v2 in_texOrigin; // Origin of the glyph in the font atlas.
+bind_internal(2) in flat f32 in_texScale;    // Scale of the glyph in the font atlas.
 bind_internal(3) in flat f32v4 in_color;
-bind_internal(4) in flat f32 in_invBorder;
-bind_internal(5) in flat u32 in_outlineWidth;
+bind_internal(4) in flat f32 in_invBorder;    // 1.0 / borderPixelSize
+bind_internal(5) in flat f32 in_outlineWidth; // Desired outline size in pixels.
+bind_internal(6) in flat f32 in_aspectRatio;  // Aspect ratio of the glyph
+bind_internal(7) in flat f32 in_cornerFrac;   // Corner size in fractions of the glyph width.
 
 bind_internal(0) out f32v4 out_color;
 
@@ -44,9 +46,38 @@ f32 get_outline_frac(const f32 distNorm, const f32 outlineNorm, const f32 smooth
 }
 
 /**
+ * Remap a single texture coordinate axis.
+ * From: | 0  corner     corner 1.0 |
+ * To:   | 0  0.5        0.5    1.0 |
+ */
+f32 remap_texcoord_axis(const f32 coord, const f32 corner) {
+  const f32 leftEdge  = corner;
+  const f32 rightEdge = 1 - corner;
+  if (coord < leftEdge) {
+    return coord / leftEdge * 0.5;
+  }
+  if (coord > rightEdge) {
+    return 0.5 + (coord - rightEdge) / corner * 0.5;
+  }
+  return 0.5;
+}
+
+/**
+ * Remap the given texture coordinate to preserve a consistent (unstretched) corner size.
+ * Sometimes known as '9 slice scaling'.
+ */
+f32v2 remap_texcoord(const f32v2 texcoord, const f32 xCorner, const f32 aspectRatio) {
+  const f32 x = remap_texcoord_axis(texcoord.x, xCorner);
+  const f32 y = remap_texcoord_axis(texcoord.y, xCorner * aspectRatio);
+  return f32v2(x, y);
+}
+
+/**
  * Compute the final texture coordinates in the font atlas.
  */
-f32v2 get_fontcoord() { return (in_texOrigin + in_texCoord) * in_texScale; }
+f32v2 get_fontcoord() {
+  return (in_texOrigin + remap_texcoord(in_texCoord, in_cornerFrac, in_aspectRatio)) * in_texScale;
+}
 
 /**
  * Get the signed distance to the glyph edge:

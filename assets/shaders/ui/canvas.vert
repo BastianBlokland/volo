@@ -28,12 +28,12 @@ const f32v2 c_unitTexCoords[c_verticesPerGlyph] = {
 
 struct DrawData {
   f32 glyphsPerDim;
-  f32 invGlyphsPerDim; // 1,0 / glyphsPerDim
+  f32 invGlyphsPerDim; // 1.0 / glyphsPerDim
 };
 
 struct GlyphData {
   f32v4 rect; // x, y = position, z, w = size
-  u32v4 data; // x = color, y = atlasIndex, z = invBorder, w = outlineWidth
+  u32v4 data; // x = color, y = atlasIndex, z = 16b borderFrac 16b cornerFrac, w = outlineWidth
 };
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
@@ -47,7 +47,9 @@ bind_internal(1) out flat f32v2 out_texOrigin;
 bind_internal(2) out flat f32 out_texScale;
 bind_internal(3) out flat f32v4 out_color;
 bind_internal(4) out flat f32 out_invBorder;
-bind_internal(5) out flat u32 out_outlineWidth;
+bind_internal(5) out flat f32 out_outlineWidth;
+bind_internal(6) out flat f32 out_aspectRatio;
+bind_internal(7) out flat f32 out_cornerFrac;
 
 void main() {
   const u32       glyphIndex   = in_vertexIndex / c_verticesPerGlyph;
@@ -57,7 +59,8 @@ void main() {
   const f32v2     glyphSize    = glyphData.rect.zw;
   const f32v4     glyphColor   = color_from_u32(glyphData.data.x);
   const u32       atlasIndex   = glyphData.data.y;
-  const f32       invBorder    = uintBitsToFloat(glyphData.data.z);
+  const f32       borderFrac   = (glyphData.data.z & 0xFFFF) / f32(0xFFFF);
+  const f32       cornerFrac   = (glyphData.data.z >> 16) / f32(0xFFFF);
   const u32       outlineWidth = glyphData.data.w;
 
   /**
@@ -76,6 +79,8 @@ void main() {
   out_texOrigin      = texOrigin;
   out_texScale       = u_draw.invGlyphsPerDim;
   out_color          = glyphColor;
-  out_invBorder      = invBorder;
+  out_invBorder      = 1.0 / (glyphSize.x * borderFrac);
   out_outlineWidth   = outlineWidth;
+  out_aspectRatio    = glyphSize.x / glyphSize.y;
+  out_cornerFrac     = cornerFrac;
 }

@@ -5,11 +5,12 @@
 #include "builder_internal.h"
 #include "cmd_internal.h"
 
-static const UiVector g_ui_defaultPos          = {0, 0};
-static const UiVector g_ui_defaultSize         = {100, 100};
-static const UiColor  g_ui_defaultColor        = {255, 255, 255, 255};
-static const UiFlow   g_ui_defaultFlow         = UiFlow_Right;
-static const u8       g_ui_defaultOutlineWidth = 0;
+static const UiVector g_ui_defaultPos       = {0, 0};
+static const UiVector g_ui_defaultSize      = {100, 100};
+static const UiColor  g_ui_defaultColor     = {255, 255, 255, 255};
+static const UiFlow   g_ui_defaultFlow      = UiFlow_Right;
+static const u8       g_ui_defaultOutline   = 0;
+static const u16      g_ui_defaultMaxCorner = 0;
 
 typedef struct {
   const UiBuildCtx*    ctx;
@@ -19,7 +20,8 @@ typedef struct {
   UiVector             size;
   UiFlow               flow;
   UiColor              color;
-  u8                   outlineWidth;
+  u8                   outline;
+  u16                  maxCorner;
 } UiBuildState;
 
 static UiDrawData ui_build_drawdata(const UiBuildState* state) {
@@ -77,31 +79,22 @@ static void ui_advance(UiBuildState* state, const UiVector size) {
 static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
   const AssetFtxChar* ch = asset_ftx_lookup(state->font, cmd->cp);
   if (!sentinel_check(ch->glyphIndex)) {
-    /**
-     * NOTE: Take the border into account as the glyph will need to be drawn bigger to compensate.
-     */
-    const f32    border     = ch->border * state->size.x; // TODO: Handle non square.
-    const UiRect renderRect = {
-        .position =
-            {
-                state->pos.x - border,
-                state->pos.y - border,
-            },
-        .size =
-            {
-                state->size.x + border * 2,
-                state->size.y + border * 2,
-            },
+    const f32    halfMinDim = math_min(state->size.width, state->size.height) * 0.5f;
+    const f32    corner = state->maxCorner ? math_min(state->maxCorner, halfMinDim) : halfMinDim;
+    const f32    border = ch->border * corner * 2.0f;
+    const UiRect rect   = {
+        .position = {state->pos.x - border, state->pos.y - border},
+        .size     = {state->size.width + border * 2, state->size.height + border * 2},
     };
-
     state->ctx->outputGlyph(
         state->ctx->userCtx,
         (UiGlyphData){
-            .rect         = renderRect,
+            .rect         = rect,
             .color        = state->color,
             .atlasIndex   = ch->glyphIndex,
-            .invBorder    = 1.0f / border,
-            .outlineWidth = state->outlineWidth,
+            .borderFrac   = (u16)(border / rect.size.width * u16_max),
+            .cornerFrac   = (u16)((corner + border) / rect.size.width * u16_max),
+            .outlineWidth = state->outline,
         });
   }
   ui_advance(state, state->size);
@@ -118,9 +111,10 @@ static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
   case UiCmd_SetFlow:
     state->flow = cmd->setFlow.flow;
     break;
-  case UiCmd_SetColor:
-    state->color        = cmd->setColor.color;
-    state->outlineWidth = cmd->setColor.outlineWidth;
+  case UiCmd_SetStyle:
+    state->color     = cmd->setStyle.color;
+    state->outline   = cmd->setStyle.outline;
+    state->maxCorner = cmd->setStyle.maxCorner;
     break;
   case UiCmd_DrawGlyph:
     ui_build_draw_glyph(state, &cmd->drawGlyph);
@@ -135,14 +129,15 @@ void ui_build(
     const UiBuildCtx*    ctx) {
 
   UiBuildState state = {
-      .ctx          = ctx,
-      .window       = window,
-      .font         = font,
-      .pos          = g_ui_defaultPos,
-      .size         = g_ui_defaultSize,
-      .flow         = g_ui_defaultFlow,
-      .color        = g_ui_defaultColor,
-      .outlineWidth = g_ui_defaultOutlineWidth,
+      .ctx       = ctx,
+      .window    = window,
+      .font      = font,
+      .pos       = g_ui_defaultPos,
+      .size      = g_ui_defaultSize,
+      .flow      = g_ui_defaultFlow,
+      .color     = g_ui_defaultColor,
+      .outline   = g_ui_defaultOutline,
+      .maxCorner = g_ui_defaultMaxCorner,
   };
   ctx->outputDraw(ctx->userCtx, ui_build_drawdata(&state));
 
