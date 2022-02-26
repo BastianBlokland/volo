@@ -165,7 +165,9 @@ void ui_canvas_style(UiCanvasComp* comp, const UiColor color, const u8 outline) 
 
 UiElementId ui_canvas_draw_text(UiCanvasComp* comp, const String text, const u16 fontSize) {
   const UiElementId id = comp->nextId++;
-  ui_cmd_push_draw_text(comp->cmdBuffer, id, text, fontSize);
+  if (!string_is_empty(text)) {
+    ui_cmd_push_draw_text(comp->cmdBuffer, id, text, fontSize);
+  }
   return id;
 }
 
