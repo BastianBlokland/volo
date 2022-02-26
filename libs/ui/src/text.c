@@ -75,7 +75,7 @@ static String ui_text_line(
 
     const bool isSeperator = ui_text_is_seperator(cp);
     if ((isSeperator && !wasSeperator) || firstWord) {
-      lineEnd = consumedEnd = text.size - remainingText.size - 1;
+      lineEnd = consumedEnd = text.size - remainingText.size - utf8_cp_bytes(cp);
     }
     if (isSeperator) {
       consumedEnd = text.size - remainingText.size;
@@ -108,6 +108,12 @@ End:
 }
 
 static void ui_text_build_char(UiTextBuildState* state, const Unicode cp) {
+  switch (cp) {
+  case Unicode_ZeroWidthSpace:
+    return; // Has no glyph and no advance.
+  default:
+    break;
+  }
   const AssetFtxChar* ch = asset_ftx_lookup(state->font, cp);
   if (!sentinel_check(ch->glyphIndex)) {
     const f32      originX = state->rect.position.x;
