@@ -4,6 +4,7 @@
 
 #include "builder_internal.h"
 #include "cmd_internal.h"
+#include "text_internal.h"
 
 static const UiVector g_ui_defaultPos     = {0, 0};
 static const UiVector g_ui_defaultSize    = {100, 100};
@@ -68,6 +69,40 @@ static UiVector ui_resolve_size_to(
   return ui_vector(math_max(toPos.x - state->pos.x, 0), math_max(toPos.y - state->pos.y, 0));
 }
 
+static void ui_build_text_char(void* userCtx, const UiTextCharInfo* info) {
+  UiBuildState* state = userCtx;
+
+  // NOTE: Take the border into account as the glyph will need to be drawn bigger to compensate.
+  const f32      border = info->ch->border * info->size;
+  const f32      size   = (info->ch->size + info->ch->border * 2.0f) * info->size;
+  const UiVector pos    = {
+      info->pos.x + info->ch->offsetX * info->size - border,
+      info->pos.y + info->ch->offsetY * info->size - border,
+  };
+
+  state->ctx->outputGlyph(
+      state->ctx->userCtx,
+      (UiGlyphData){
+          .rect         = {pos, ui_vector(size, size)},
+          .color        = info->color,
+          .atlasIndex   = info->ch->glyphIndex,
+          .borderFrac   = (u16)(border / size * u16_max),
+          .cornerFrac   = (u16)(0.5f * u16_max),
+          .outlineWidth = state->outline,
+      });
+}
+
+static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
+  ui_text_build(
+      state->font,
+      ui_rect(state->pos, state->size),
+      cmd->text,
+      cmd->fontSize,
+      state->color,
+      state,
+      &ui_build_text_char);
+}
+
 static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
   const AssetFtxChar* ch = asset_ftx_lookup(state->font, cmd->cp);
   if (sentinel_check(ch->glyphIndex)) {
@@ -106,6 +141,9 @@ static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
   case UiCmd_Style:
     state->color   = cmd->style.color;
     state->outline = cmd->style.outline;
+    break;
+  case UiCmd_DrawText:
+    ui_build_draw_text(state, &cmd->drawText);
     break;
   case UiCmd_DrawGlyph:
     ui_build_draw_glyph(state, &cmd->drawGlyph);

@@ -1,10 +1,15 @@
 #include "core_dynarray.h"
+#include "log_logger.h"
 
 #include "cmd_internal.h"
+
+#define ui_cmdbuffer_transient_chunk_size (8 * usize_kibibyte)
+#define ui_cmdbuffer_max_text_size (8 * usize_kibibyte)
 
 struct sUiCmdBuffer {
   DynArray   commands; // UiCmd[]
   Allocator* alloc;
+  Allocator* allocTransient;
 };
 
 UiCmdBuffer* ui_cmdbuffer_create(Allocator* alloc) {
@@ -12,16 +17,21 @@ UiCmdBuffer* ui_cmdbuffer_create(Allocator* alloc) {
   *buffer             = (UiCmdBuffer){
       .commands = dynarray_create_t(alloc, UiCmd, 128),
       .alloc    = alloc,
-  };
+      .allocTransient =
+          alloc_chunked_create(g_alloc_page, alloc_bump_create, ui_cmdbuffer_transient_chunk_size)};
   return buffer;
 }
 
 void ui_cmdbuffer_destroy(UiCmdBuffer* buffer) {
   dynarray_destroy(&buffer->commands);
+  alloc_chunked_destroy(buffer->allocTransient);
   alloc_free_t(buffer->alloc, buffer);
 }
 
-void ui_cmdbuffer_clear(UiCmdBuffer* buffer) { dynarray_clear(&buffer->commands); }
+void ui_cmdbuffer_clear(UiCmdBuffer* buffer) {
+  dynarray_clear(&buffer->commands);
+  alloc_reset(buffer->allocTransient);
+}
 
 void ui_cmd_push_move(
     UiCmdBuffer* buffer, const UiVector pos, const UiOrigin origin, const UiUnits unit) {
@@ -60,6 +70,25 @@ void ui_cmd_push_style(UiCmdBuffer* buffer, const UiColor color, const u8 outlin
       .style = {
           .color   = color,
           .outline = outline,
+      }};
+}
+
+void ui_cmd_push_draw_text(
+    UiCmdBuffer* buffer, const UiElementId id, const String text, const u16 fontSize) {
+  if (UNLIKELY(text.size > ui_cmdbuffer_max_text_size)) {
+    log_e(
+        "Ui text size exceeds maximum",
+        log_param("size", fmt_size(text.size)),
+        log_param("limit", fmt_size(ui_cmdbuffer_max_text_size)));
+    return;
+  }
+  // TODO: Report error when the transient allocator runs out of space.
+  *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
+      .type     = UiCmd_DrawText,
+      .drawText = {
+          .id       = id,
+          .text     = string_dup(buffer->allocTransient, text),
+          .fontSize = fontSize,
       }};
 }
 
