@@ -95,8 +95,8 @@ void main() {
 
   const f32   distNorm    = get_signed_dist_to_glyph(get_fontcoord());
   const f32   outlineFrac = get_outline_frac(distNorm, outlineNorm, smoothingNorm);
-  const f32v3 color       = mix(in_color.rgb, c_outlineColor.rgb, outlineFrac);
+  const f32v4 color       = mix(in_color, c_outlineColor, outlineFrac);
   const f32   alpha       = get_glyph_alpha(distNorm, outlineNorm, smoothingNorm);
 
-  out_color = f32v4(color, in_color.a * alpha);
+  out_color = f32v4(color.rgb, color.a * alpha);
 }
