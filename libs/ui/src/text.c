@@ -127,21 +127,28 @@ static UiVector ui_text_char_pos(UiTextBuildState* state, const UiTextLine* line
   const f32 minX = state->rect.pos.x, maxX = minX + width;
   const f32 minY = state->rect.pos.y, maxY = minY + height;
   const f32 cursor = state->cursor, lineY = line->posY;
-  const f32 textHeight = state->totalHeight;
+  const f32 textWidth = line->size.width, textHeight = state->totalHeight;
 
   switch (state->align) {
   case UiTextAlign_TopLeft:
     return ui_vector(minX + cursor, maxY - lineY);
   case UiTextAlign_TopCenter:
-    return ui_vector(minX + (width - line->size.width) * 0.5f + cursor, maxY - lineY);
+    return ui_vector(minX + (width - textWidth) * 0.5f + cursor, maxY - lineY);
   case UiTextAlign_TopRight:
-    return ui_vector(maxX - line->size.width + cursor, maxY - lineY);
+    return ui_vector(maxX - textWidth + cursor, maxY - lineY);
+  case UiTextAlign_MiddleLeft:
+    return ui_vector(minX + cursor, maxY - (height - textHeight) * 0.5f - lineY);
+  case UiTextAlign_MiddleCenter:
+    return ui_vector(
+        minX + (width - textWidth) * 0.5f + cursor, maxY - (height - textHeight) * 0.5f - lineY);
+  case UiTextAlign_MiddleRight:
+    return ui_vector(maxX - textWidth + cursor, maxY - (height - textHeight) * 0.5f - lineY);
   case UiTextAlign_BottomLeft:
     return ui_vector(minX + cursor, minY + textHeight - lineY);
   case UiTextAlign_BottomCenter:
-    return ui_vector(minX + (width - line->size.width) * 0.5f + cursor, minY + textHeight - lineY);
+    return ui_vector(minX + (width - textWidth) * 0.5f + cursor, minY + textHeight - lineY);
   case UiTextAlign_BottomRight:
-    return ui_vector(maxX - line->size.width + cursor, minY + textHeight - lineY);
+    return ui_vector(maxX - textWidth + cursor, minY + textHeight - lineY);
   }
   diag_crash();
 }
