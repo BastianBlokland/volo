@@ -29,6 +29,10 @@
 static DataReg* g_dataReg;
 static DataMeta g_dataFtxDefMeta;
 
+typedef enum {
+  FtxGenFlags_IncludeGlyph0 = 1 << 0, // Aka the '.notdef' glyph or the 'missing glyph'.
+} FtxGenFlags;
+
 typedef struct {
   String      id;
   EcsEntityId asset;
@@ -128,10 +132,17 @@ typedef struct {
 } FtxDefChar;
 
 static u32 ftx_lookup_chars(
-    const AssetFontComp* font, String chars, FtxDefChar out[ftx_max_chars], FtxError* err) {
+    const AssetFontComp* font,
+    const FtxGenFlags    flags,
+    String               chars,
+    FtxDefChar           out[ftx_max_chars],
+    FtxError*            err) {
 
-  u32 index    = 0;
-  out[index++] = (FtxDefChar){.cp = 0, .glyph = asset_font_missing(font)};
+  u32 index = 0;
+  if (flags & FtxGenFlags_IncludeGlyph0) {
+    out[index++] = (FtxDefChar){.cp = 0, .glyph = asset_font_missing(font)};
+  }
+
   do {
     Unicode cp;
     chars = utf8_cp_read(chars, &cp);
@@ -200,6 +211,7 @@ typedef struct {
 static void ftx_generate_font(
     const FtxDef*            def,
     const FtxDefResolvedFont font,
+    const FtxGenFlags        flags,
     u32                      maxGlyphs,
     u32*                     nextGlyphIndex,
     DynArray*                outChars, // AssetFtxChar[]
@@ -207,7 +219,7 @@ static void ftx_generate_font(
     FtxError*                err) {
 
   FtxDefChar inputChars[ftx_max_chars];
-  const u32  charCount = ftx_lookup_chars(font.data, font.characters, inputChars, err);
+  const u32  charCount = ftx_lookup_chars(font.data, flags, font.characters, inputChars, err);
   if (UNLIKELY(*err)) {
     return;
   }
@@ -255,7 +267,9 @@ static void ftx_generate(
   }
 
   for (u32 i = 0; i != fontCount; ++i) {
-    ftx_generate_font(def, fonts[i], maxGlyphs, &nextGlyphIndex, &chars, pixels, err);
+    const FtxGenFlags genFlags = i == 0 ? FtxGenFlags_IncludeGlyph0 : 0;
+
+    ftx_generate_font(def, fonts[i], genFlags, maxGlyphs, &nextGlyphIndex, &chars, pixels, err);
     if (UNLIKELY(*err)) {
       goto Error;
     }
