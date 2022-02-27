@@ -86,6 +86,9 @@ static String ui_text_line(
     switch (cp) {
     case Unicode_Newline:
       goto End;
+    case Unicode_CarriageReturn:
+      cursor = 0;
+      break;
     case Unicode_HorizontalTab:
       cursor = ui_text_next_tabstop(font, cursor, fontSize);
     case Unicode_ZeroWidthSpace:
@@ -109,10 +112,13 @@ End:
 
 static void ui_text_build_char(UiTextBuildState* state, const Unicode cp) {
   switch (cp) {
-  case Unicode_ZeroWidthSpace:
+  case Unicode_CarriageReturn:
+    state->cursor.x = 0;
     return;
   case Unicode_HorizontalTab:
     state->cursor.x = ui_text_next_tabstop(state->font, state->cursor.x, state->fontSize);
+    return;
+  case Unicode_ZeroWidthSpace:
     return;
   default:
     break;
