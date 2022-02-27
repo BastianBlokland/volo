@@ -2,14 +2,17 @@
 #include "core_math.h"
 #include "core_unicode.h"
 #include "core_utf8.h"
+#include "log_logger.h"
 
 #include "text_internal.h"
 
 #define ui_text_tab_size 4
+#define ui_text_max_lines 100
 
 typedef struct {
   String   text;
   UiVector size;
+  f32      posY;
 } UiTextLine;
 
 typedef struct {
@@ -20,7 +23,7 @@ typedef struct {
   UiTextAlign         align;
   void*               userCtx;
   UiTextBuildCharFunc buildChar;
-  UiVector            cursor;
+  f32                 cursor;
 } UiTextBuildState;
 
 static f32 ui_text_next_tabstop(const AssetFtxComp* font, const f32 cursor, const f32 fontSize) {
@@ -122,15 +125,15 @@ static UiVector ui_text_char_pos(UiTextBuildState* state, const UiTextLine* line
   const f32 height = state->rect.size.height;
   const f32 minX = state->rect.pos.x, maxX = minX + width;
   const f32 minY = state->rect.pos.y, maxY = minY + height;
-  const f32 cursorX = state->cursor.x, cursorY = state->cursor.y;
+  const f32 cursor = state->cursor, lineY = line->posY;
 
   switch (state->align) {
   case UiTextAlign_TopLeft:
-    return ui_vector(minX + cursorX, maxY - cursorY);
+    return ui_vector(minX + cursor, maxY - lineY);
   case UiTextAlign_TopCenter:
-    return ui_vector(minX + (width - line->size.width) * 0.5f + cursorX, maxY - cursorY);
+    return ui_vector(minX + (width - line->size.width) * 0.5f + cursor, maxY - lineY);
   case UiTextAlign_TopRight:
-    return ui_vector(maxX - line->size.width + cursorX, maxY - cursorY);
+    return ui_vector(maxX - line->size.width + cursor, maxY - lineY);
   }
   diag_crash();
 }
@@ -138,10 +141,10 @@ static UiVector ui_text_char_pos(UiTextBuildState* state, const UiTextLine* line
 static void ui_text_build_char(UiTextBuildState* state, const UiTextLine* line, const Unicode cp) {
   switch (cp) {
   case Unicode_CarriageReturn:
-    state->cursor.x = 0;
+    state->cursor = 0;
     return;
   case Unicode_HorizontalTab:
-    state->cursor.x = ui_text_next_tabstop(state->font, state->cursor.x, state->fontSize);
+    state->cursor = ui_text_next_tabstop(state->font, state->cursor, state->fontSize);
     return;
   case Unicode_ZeroWidthSpace:
     return;
@@ -159,27 +162,17 @@ static void ui_text_build_char(UiTextBuildState* state, const UiTextLine* line, 
             .color = state->fontColor,
         });
   }
-  state->cursor.x += ch->advance * state->fontSize;
+  state->cursor += ch->advance * state->fontSize;
 }
 
-static bool ui_text_build_line(UiTextBuildState* state, const UiTextLine* line) {
-  state->cursor.x = 0;
-  state->cursor.y += state->fontSize;
-
-  const f32 maxY = state->rect.size.height - state->font->lineSpacing * state->fontSize;
-  if (state->cursor.y >= maxY) {
-    return false; // Not enough space remaining to draw a line.
-  }
-
+static void ui_text_build_line(UiTextBuildState* state, const UiTextLine* line) {
+  state->cursor        = 0;
   String remainingText = line->text;
   while (!string_is_empty(remainingText)) {
     Unicode cp;
     remainingText = utf8_cp_read(remainingText, &cp);
     ui_text_build_char(state, line, cp);
   }
-
-  state->cursor.y += state->font->lineSpacing * state->fontSize;
-  return true;
 }
 
 void ui_text_build(
@@ -192,6 +185,33 @@ void ui_text_build(
     void*                     userCtx,
     const UiTextBuildCharFunc buildChar) {
 
+  /**
+   * Compute all lines.
+   */
+  UiTextLine lines[ui_text_max_lines];
+  usize      lineCount = 0;
+  f32        lineY     = 0;
+  String     remText   = text;
+  while (!string_is_empty(remText)) {
+    if (lineY + fontSize >= rect.size.height - font->lineSpacing * fontSize) {
+      break; // Not enough space remaining for this line.
+    }
+    lineY += fontSize;
+
+    if (lineCount + 1 >= ui_text_max_lines) {
+      log_w("Ui text line count exceeds maximum", log_param("limit", fmt_int(ui_text_max_lines)));
+      break;
+    }
+    const usize lineIndex = lineCount++;
+    remText = ui_text_line(font, remText, rect.size.width, fontSize, &lines[lineIndex]);
+
+    lines[lineIndex].posY = lineY;
+    lineY += font->lineSpacing * fontSize;
+  }
+
+  /**
+   * Draw all lines.
+   */
   UiTextBuildState state = {
       .font      = font,
       .rect      = rect,
@@ -200,14 +220,8 @@ void ui_text_build(
       .align     = align,
       .userCtx   = userCtx,
       .buildChar = buildChar,
-      .cursor    = {0},
   };
-  String     remainingText = text;
-  UiTextLine line;
-  while (!string_is_empty(remainingText)) {
-    remainingText = ui_text_line(font, remainingText, rect.size.width, fontSize, &line);
-    if (!ui_text_build_line(&state, &line)) {
-      break;
-    }
+  for (usize i = 0; i != lineCount; ++i) {
+    ui_text_build_line(&state, &lines[i]);
   }
 }
