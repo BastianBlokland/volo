@@ -99,6 +99,7 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
       cmd->text,
       cmd->fontSize,
       state->color,
+      cmd->align,
       state,
       &ui_build_text_char);
 }
@@ -112,8 +113,8 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
   const f32    corner     = cmd->maxCorner ? math_min(cmd->maxCorner, halfMinDim) : halfMinDim;
   const f32    border     = ch->border * corner * 2.0f;
   const UiRect rect       = {
-      .position = {state->pos.x - border, state->pos.y - border},
-      .size     = {state->size.width + border * 2, state->size.height + border * 2},
+      .pos  = {state->pos.x - border, state->pos.y - border},
+      .size = {state->size.width + border * 2, state->size.height + border * 2},
   };
   state->ctx->outputGlyph(
       state->ctx->userCtx,

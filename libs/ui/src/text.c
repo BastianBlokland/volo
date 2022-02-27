@@ -1,3 +1,4 @@
+#include "core_diag.h"
 #include "core_math.h"
 #include "core_unicode.h"
 #include "core_utf8.h"
@@ -16,6 +17,7 @@ typedef struct {
   UiRect              rect;
   f32                 fontSize;
   UiColor             fontColor;
+  UiTextAlign         align;
   void*               userCtx;
   UiTextBuildCharFunc buildChar;
   UiVector            cursor;
@@ -57,16 +59,20 @@ static String ui_text_line(
     return string_empty;
   }
 
-  String remainingText = text;
-  usize  lineEnd       = 0; // Character index of the last processed non-seperator codepoint.
-  usize  consumedEnd   = 0; // Character index of the last consumed codepoint (incl seperators).
-  f32    cursor        = 0; // Current pixel position on the line.
-  bool   wasSeperator  = false;
-  bool   firstWord     = true;
+  typedef struct {
+    f32   pixel;
+    usize charIndex;
+  } CursorPos;
+
+  CursorPos cursorAccepted = {0}, cursorConsumed = {0};
+  String    remainingText = text;
+  bool      wasSeperator  = false;
+  bool      firstWord     = true;
 
   while (true) {
     if (string_is_empty(remainingText)) {
-      lineEnd = consumedEnd = text.size;
+      cursorConsumed.charIndex = text.size;
+      cursorAccepted           = cursorConsumed;
       goto End;
     }
 
@@ -75,11 +81,12 @@ static String ui_text_line(
 
     const bool isSeperator = ui_text_is_seperator(cp);
     if ((isSeperator && !wasSeperator) || firstWord) {
-      lineEnd = consumedEnd = text.size - remainingText.size - utf8_cp_bytes(cp);
+      cursorConsumed.charIndex = text.size - remainingText.size - utf8_cp_bytes(cp);
+      cursorAccepted           = cursorConsumed;
     }
     if (isSeperator) {
-      consumedEnd = text.size - remainingText.size;
-      firstWord   = false;
+      cursorConsumed.charIndex = text.size - remainingText.size;
+      firstWord                = false;
     }
     wasSeperator = isSeperator;
 
@@ -87,30 +94,45 @@ static String ui_text_line(
     case Unicode_Newline:
       goto End;
     case Unicode_CarriageReturn:
-      cursor = 0;
+      cursorConsumed.pixel = 0;
       break;
     case Unicode_HorizontalTab:
-      cursor = ui_text_next_tabstop(font, cursor, fontSize);
+      cursorConsumed.pixel = ui_text_next_tabstop(font, cursorConsumed.pixel, fontSize);
     case Unicode_ZeroWidthSpace:
       break; // Occupies no space, so the cursor shouldn't be updated.
     default:
-      cursor += asset_ftx_lookup(font, cp)->advance * fontSize;
+      cursorConsumed.pixel += asset_ftx_lookup(font, cp)->advance * fontSize;
       break;
     }
-    if (cursor > maxWidth) {
+    if (cursorConsumed.pixel > maxWidth) {
       goto End;
     }
   }
 
 End:
   *out = (UiTextLine){
-      .text = string_slice(text, 0, lineEnd),
-      .size = ui_vector(cursor, fontSize),
+      .text = string_slice(text, 0, cursorAccepted.charIndex),
+      .size = ui_vector(cursorAccepted.pixel, fontSize),
   };
-  return string_consume(text, consumedEnd);
+  return string_consume(text, cursorConsumed.charIndex);
 }
 
-static void ui_text_build_char(UiTextBuildState* state, const Unicode cp) {
+static UiVector ui_text_char_pos(UiTextBuildState* state, const UiTextLine* line) {
+  const f32 minY = state->rect.pos.y;
+  const f32 maxY = minY + state->rect.size.height;
+  const f32 minX = state->rect.pos.x;
+  const f32 maxX = minX + state->rect.size.width;
+
+  switch (state->align) {
+  case UiTextAlign_TopLeft:
+    return ui_vector(minX + state->cursor.x, maxY - state->cursor.y);
+  case UiTextAlign_TopRight:
+    return ui_vector(maxX - line->size.x + state->cursor.x, maxY - state->cursor.y);
+  }
+  diag_crash();
+}
+
+static void ui_text_build_char(UiTextBuildState* state, const UiTextLine* line, const Unicode cp) {
   switch (cp) {
   case Unicode_CarriageReturn:
     state->cursor.x = 0;
@@ -125,17 +147,11 @@ static void ui_text_build_char(UiTextBuildState* state, const Unicode cp) {
   }
   const AssetFtxChar* ch = asset_ftx_lookup(state->font, cp);
   if (!sentinel_check(ch->glyphIndex)) {
-    const f32      originX = state->rect.position.x;
-    const f32      originY = state->rect.position.y + state->rect.size.height;
-    const UiVector pos     = {
-        originX + state->cursor.x,
-        originY - state->cursor.y,
-    };
     state->buildChar(
         state->userCtx,
         &(UiTextCharInfo){
             .ch    = ch,
-            .pos   = pos,
+            .pos   = ui_text_char_pos(state, line),
             .size  = state->fontSize,
             .color = state->fontColor,
         });
@@ -156,7 +172,7 @@ static bool ui_text_build_line(UiTextBuildState* state, const UiTextLine* line) 
   while (!string_is_empty(remainingText)) {
     Unicode cp;
     remainingText = utf8_cp_read(remainingText, &cp);
-    ui_text_build_char(state, cp);
+    ui_text_build_char(state, line, cp);
   }
 
   state->cursor.y += state->font->lineSpacing * state->fontSize;
@@ -169,6 +185,7 @@ void ui_text_build(
     const String              text,
     const f32                 fontSize,
     const UiColor             fontColor,
+    const UiTextAlign         align,
     void*                     userCtx,
     const UiTextBuildCharFunc buildChar) {
 
@@ -177,6 +194,7 @@ void ui_text_build(
       .rect      = rect,
       .fontSize  = fontSize,
       .fontColor = fontColor,
+      .align     = align,
       .userCtx   = userCtx,
       .buildChar = buildChar,
       .cursor    = {0},

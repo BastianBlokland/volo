@@ -22,6 +22,11 @@ typedef enum {
   UiUnits_Window,
 } UiUnits;
 
+typedef enum {
+  UiTextAlign_TopLeft,
+  UiTextAlign_TopRight,
+} UiTextAlign;
+
 ecs_comp_extern(UiCanvasComp);
 
 EcsEntityId ui_canvas_create(EcsWorld*, EcsEntityId window);
@@ -32,7 +37,7 @@ void ui_canvas_size(UiCanvasComp*, UiVector, UiUnits);
 void ui_canvas_size_to(UiCanvasComp*, UiVector, UiOrigin, UiUnits);
 void ui_canvas_style(UiCanvasComp*, UiColor, u8 outline);
 
-UiElementId ui_canvas_draw_text(UiCanvasComp*, String text, u16 fontSize);
+UiElementId ui_canvas_draw_text(UiCanvasComp*, String text, u16 fontSize, UiTextAlign);
 UiElementId ui_canvas_draw_glyph(UiCanvasComp*, Unicode, u16 maxCorner);
 UiElementId ui_canvas_draw_square(UiCanvasComp*);
 UiElementId ui_canvas_draw_circle(UiCanvasComp*, u16 maxCorner);

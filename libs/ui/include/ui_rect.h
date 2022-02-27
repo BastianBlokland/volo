@@ -6,7 +6,7 @@
  */
 typedef union {
   struct {
-    UiVector position, size;
+    UiVector pos, size;
   };
   f32 data[4];
 } UiRect;
@@ -16,4 +16,4 @@ ASSERT(sizeof(UiRect) == 16, "UiRect has to be 128 bits");
 /**
  * Construct a new rectangle.
  */
-#define ui_rect(_POSITION_, _SIZE_) ((UiRect){(_POSITION_), (_SIZE_)})
+#define ui_rect(_POS_, _SIZE_) ((UiRect){(_POS_), (_SIZE_)})

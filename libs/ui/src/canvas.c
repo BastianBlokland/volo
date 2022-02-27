@@ -163,10 +163,12 @@ void ui_canvas_style(UiCanvasComp* comp, const UiColor color, const u8 outline) 
   ui_cmd_push_style(comp->cmdBuffer, color, outline);
 }
 
-UiElementId ui_canvas_draw_text(UiCanvasComp* comp, const String text, const u16 fontSize) {
+UiElementId ui_canvas_draw_text(
+    UiCanvasComp* comp, const String text, const u16 fontSize, const UiTextAlign align) {
+
   const UiElementId id = comp->nextId++;
   if (!string_is_empty(text)) {
-    ui_cmd_push_draw_text(comp->cmdBuffer, id, text, fontSize);
+    ui_cmd_push_draw_text(comp->cmdBuffer, id, text, fontSize, align);
   }
   return id;
 }

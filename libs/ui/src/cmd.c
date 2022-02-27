@@ -74,7 +74,12 @@ void ui_cmd_push_style(UiCmdBuffer* buffer, const UiColor color, const u8 outlin
 }
 
 void ui_cmd_push_draw_text(
-    UiCmdBuffer* buffer, const UiElementId id, const String text, const u16 fontSize) {
+    UiCmdBuffer*      buffer,
+    const UiElementId id,
+    const String      text,
+    const u16         fontSize,
+    const UiTextAlign align) {
+
   if (UNLIKELY(text.size > ui_cmdbuffer_max_text_size)) {
     log_e(
         "Ui text size exceeds maximum",
@@ -89,6 +94,7 @@ void ui_cmd_push_draw_text(
           .id       = id,
           .text     = string_dup(buffer->allocTransient, text),
           .fontSize = fontSize,
+          .align    = align,
       }};
 }
 
