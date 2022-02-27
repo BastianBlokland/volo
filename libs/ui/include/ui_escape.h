@@ -6,6 +6,7 @@
  * Escape sequences can be used to control various aspects of text rendering.
  *
  * Supported sequences:
+ * - Reset the style to default:  [ESC]r           example: \ar
  * - Switch to a specific color:  [ESC]#RRGGBBAA   example: \a#FF0000FF
  * - Switch to a named color:     [ESC]~NAME       example: \a~red
  * - Switch the outline width:    [ESC]|FF         example: \a|10

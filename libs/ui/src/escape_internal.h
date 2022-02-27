@@ -4,6 +4,7 @@
 
 typedef enum {
   UiEscape_Invalid,
+  UiEscape_Reset,
   UiEscape_Color,
   UiEscape_Outline,
 } UiEscapeType;

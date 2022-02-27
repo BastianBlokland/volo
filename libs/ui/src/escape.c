@@ -25,6 +25,13 @@ static bool ui_escape_check_min_chars(String input, usize minChars, UiEscape* ou
   return true;
 }
 
+static String ui_escape_read_reset(String input, UiEscape* out) {
+  if (out) {
+    *out = (UiEscape){.type = UiEscape_Reset};
+  }
+  return input;
+}
+
 static String ui_escape_read_color(String input, UiEscape* out) {
   if (!ui_escape_check_min_chars(input, 8, out)) {
     return input;
@@ -100,6 +107,8 @@ String ui_escape_read(String input, UiEscape* out) {
   u8 ch;
   input = format_read_char(input, &ch);
   switch (ch) {
+  case 'r':
+    return ui_escape_read_reset(input, out);
   case '#':
     return ui_escape_read_color(input, out);
   case '~':

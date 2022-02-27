@@ -20,8 +20,8 @@ typedef struct {
   const AssetFtxComp* font;
   UiRect              rect;
   f32                 fontSize;
-  UiColor             fontColor;
-  u8                  fontOutline;
+  UiColor             fontColor, fontColorDefault;
+  u8                  fontOutline, fontOutlineDefault;
   UiTextAlign         align;
   void*               userCtx;
   UiTextBuildCharFunc buildChar;
@@ -181,6 +181,10 @@ static void ui_text_build_escape(UiTextBuildState* state, const UiEscape* esc) {
   switch (esc->type) {
   case UiEscape_Invalid:
     break;
+  case UiEscape_Reset:
+    state->fontColor   = state->fontColorDefault;
+    state->fontOutline = state->fontOutlineDefault;
+    break;
   case UiEscape_Color:
     state->fontColor = esc->escColor.value;
     break;
@@ -256,15 +260,17 @@ void ui_text_build(
    * Draw all lines.
    */
   UiTextBuildState state = {
-      .font        = font,
-      .rect        = rect,
-      .fontSize    = fontSize,
-      .fontColor   = fontColor,
-      .fontOutline = fontOutline,
-      .align       = align,
-      .userCtx     = userCtx,
-      .buildChar   = buildChar,
-      .totalHeight = lineY + (font->lineSpacing * 2) * fontSize,
+      .font               = font,
+      .rect               = rect,
+      .fontSize           = fontSize,
+      .fontColor          = fontColor,
+      .fontColorDefault   = fontColor,
+      .fontOutline        = fontOutline,
+      .fontOutlineDefault = fontOutline,
+      .align              = align,
+      .userCtx            = userCtx,
+      .buildChar          = buildChar,
+      .totalHeight        = lineY + (font->lineSpacing * 2) * fontSize,
   };
   for (usize i = 0; i != lineCount; ++i) {
     ui_text_build_line(&state, &lines[i]);
