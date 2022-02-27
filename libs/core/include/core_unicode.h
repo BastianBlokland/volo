@@ -1,6 +1,9 @@
 #pragma once
 #include "core_types.h"
 
+#define uni_zws "\u200B"
+#define uni_escape "\u1B"
+
 /**
  * A single unicode codepoint.
  * https://en.wikipedia.org/wiki/Unicode#Architecture_and_terminology
