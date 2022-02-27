@@ -8,6 +8,7 @@ typedef struct {
   UiVector            pos;
   f32                 size;
   UiColor             color;
+  u8                  outline;
 } UiTextCharInfo;
 
 typedef void (*UiTextBuildCharFunc)(void* userCtx, const UiTextCharInfo*);
@@ -18,6 +19,7 @@ void ui_text_build(
     String      text,
     f32         fontSize,
     UiColor     fontColor,
+    u8          fontOutline,
     UiTextAlign align,
     void*       userCtx,
     UiTextBuildCharFunc);

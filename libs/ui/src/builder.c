@@ -88,7 +88,7 @@ static void ui_build_text_char(void* userCtx, const UiTextCharInfo* info) {
           .atlasIndex   = info->ch->glyphIndex,
           .borderFrac   = (u16)(border / size * u16_max),
           .cornerFrac   = (u16)(0.5f * u16_max),
-          .outlineWidth = state->outline,
+          .outlineWidth = info->outline,
       });
 }
 
@@ -99,6 +99,7 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
       cmd->text,
       cmd->fontSize,
       state->color,
+      state->outline,
       cmd->align,
       state,
       &ui_build_text_char);

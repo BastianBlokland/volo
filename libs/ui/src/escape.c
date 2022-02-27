@@ -15,16 +15,22 @@ static String ui_escape_read_byte_hex(String input, u8* out) {
   return string_consume(input, 2);
 }
 
-static String ui_escape_read_color(String input, UiEscape* out) {
-  if (input.size < 8) {
+static bool ui_escape_check_min_chars(String input, usize minChars, UiEscape* out) {
+  if (input.size < minChars) {
     if (out) {
       *out = ui_escape_invalid;
     }
+    return false;
+  }
+  return true;
+}
+
+static String ui_escape_read_color(String input, UiEscape* out) {
+  if (!ui_escape_check_min_chars(input, 8, out)) {
     return input;
   }
   if (!out) {
-    // Fast path in case the output is not needed.
-    return string_consume(input, 8);
+    return string_consume(input, 8); // Fast path in case the output is not needed.
   }
 
   UiColor color;
@@ -76,14 +82,30 @@ static String ui_escape_read_color_named(const String input, UiEscape* out) {
   return input;
 }
 
+static String ui_escape_read_outline(String input, UiEscape* out) {
+  if (!ui_escape_check_min_chars(input, 2, out)) {
+    return input;
+  }
+  if (!out) {
+    return string_consume(input, 2); // Fast path in case the output is not needed.
+  }
+  u8 outlineWidth;
+  input = ui_escape_read_byte_hex(input, &outlineWidth);
+
+  *out = (UiEscape){.type = UiEscape_Outline, .escOutline = {.value = outlineWidth}};
+  return input;
+}
+
 String ui_escape_read(String input, UiEscape* out) {
   u8 ch;
   input = format_read_char(input, &ch);
   switch (ch) {
   case '#':
     return ui_escape_read_color(input, out);
-  case '|':
+  case '~':
     return ui_escape_read_color_named(input, out);
+  case '|':
+    return ui_escape_read_outline(input, out);
   default:
     if (out) {
       *out = ui_escape_invalid;
@@ -99,4 +121,8 @@ String ui_escape_color_scratch(const UiColor color) {
       fmt_int(color.g, .base = 16, .minDigits = 2),
       fmt_int(color.b, .base = 16, .minDigits = 2),
       fmt_int(color.a, .base = 16, .minDigits = 2));
+}
+
+String ui_escape_outline_scratch(const u8 outline) {
+  return fmt_write_scratch("\33|{}", fmt_int(outline, .base = 16, .minDigits = 2));
 }

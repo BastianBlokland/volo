@@ -21,6 +21,7 @@ typedef struct {
   UiRect              rect;
   f32                 fontSize;
   UiColor             fontColor;
+  u8                  fontOutline;
   UiTextAlign         align;
   void*               userCtx;
   UiTextBuildCharFunc buildChar;
@@ -166,10 +167,11 @@ static void ui_text_build_char(UiTextBuildState* state, const UiTextLine* line, 
     state->buildChar(
         state->userCtx,
         &(UiTextCharInfo){
-            .ch    = ch,
-            .pos   = ui_text_char_pos(state, line),
-            .size  = state->fontSize,
-            .color = state->fontColor,
+            .ch      = ch,
+            .pos     = ui_text_char_pos(state, line),
+            .size    = state->fontSize,
+            .color   = state->fontColor,
+            .outline = state->fontOutline,
         });
   }
   state->cursor += ch->advance * state->fontSize;
@@ -181,6 +183,9 @@ static void ui_text_build_escape(UiTextBuildState* state, const UiEscape* esc) {
     break;
   case UiEscape_Color:
     state->fontColor = esc->escColor.value;
+    break;
+  case UiEscape_Outline:
+    state->fontOutline = esc->escOutline.value;
     break;
   }
 }
@@ -218,6 +223,7 @@ void ui_text_build(
     const String              text,
     const f32                 fontSize,
     const UiColor             fontColor,
+    const u8                  fontOutline,
     const UiTextAlign         align,
     void*                     userCtx,
     const UiTextBuildCharFunc buildChar) {
@@ -254,6 +260,7 @@ void ui_text_build(
       .rect        = rect,
       .fontSize    = fontSize,
       .fontColor   = fontColor,
+      .fontOutline = fontOutline,
       .align       = align,
       .userCtx     = userCtx,
       .buildChar   = buildChar,
