@@ -4,6 +4,7 @@
 #include "core_utf8.h"
 #include "log_logger.h"
 
+#include "escape_internal.h"
 #include "text_internal.h"
 
 #define ui_text_tab_size 4
@@ -103,7 +104,10 @@ static String ui_text_line(
     case Unicode_HorizontalTab:
       cursorConsumed.pixel = ui_text_next_tabstop(font, cursorConsumed.pixel, fontSize);
     case Unicode_ZeroWidthSpace:
-      break; // Occupies no space, so the cursor shouldn't be updated.
+      break;
+    case Unicode_Escape:
+      remainingText = ui_escape_read(remainingText, null);
+      break;
     default:
       cursorConsumed.pixel += asset_ftx_lookup(font, cp)->advance * fontSize;
       break;
@@ -154,18 +158,6 @@ static UiVector ui_text_char_pos(UiTextBuildState* state, const UiTextLine* line
 }
 
 static void ui_text_build_char(UiTextBuildState* state, const UiTextLine* line, const Unicode cp) {
-  switch (cp) {
-  case Unicode_CarriageReturn:
-    state->cursor = 0;
-    return;
-  case Unicode_HorizontalTab:
-    state->cursor = ui_text_next_tabstop(state->font, state->cursor, state->fontSize);
-    return;
-  case Unicode_ZeroWidthSpace:
-    return;
-  default:
-    break;
-  }
   const AssetFtxChar* ch = asset_ftx_lookup(state->font, cp);
   if (!sentinel_check(ch->glyphIndex)) {
     state->buildChar(
@@ -180,12 +172,38 @@ static void ui_text_build_char(UiTextBuildState* state, const UiTextLine* line, 
   state->cursor += ch->advance * state->fontSize;
 }
 
+static void ui_text_build_escape(UiTextBuildState* state, const UiEscape* esc) {
+  switch (esc->type) {
+  case UiEscape_Invalid:
+    break;
+  case UiEscape_Color:
+    state->fontColor = esc->escColor.value;
+    break;
+  }
+}
+
 static void ui_text_build_line(UiTextBuildState* state, const UiTextLine* line) {
   state->cursor        = 0;
   String remainingText = line->text;
   while (!string_is_empty(remainingText)) {
     Unicode cp;
     remainingText = utf8_cp_read(remainingText, &cp);
+
+    UiEscape esc;
+    switch ((u32)cp) {
+    case Unicode_CarriageReturn:
+      state->cursor = 0;
+      continue;
+    case Unicode_HorizontalTab:
+      state->cursor = ui_text_next_tabstop(state->font, state->cursor, state->fontSize);
+      continue;
+    case Unicode_ZeroWidthSpace:
+      continue;
+    case Unicode_Escape:
+      remainingText = ui_escape_read(remainingText, &esc);
+      ui_text_build_escape(state, &esc);
+      continue;
+    }
     ui_text_build_char(state, line, cp);
   }
 }

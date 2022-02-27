@@ -2,7 +2,7 @@
 #include "core_types.h"
 
 #define uni_zws "\u200B"
-#define uni_escape "\u1B"
+#define uni_esc "\33"
 
 /**
  * A single unicode codepoint.
