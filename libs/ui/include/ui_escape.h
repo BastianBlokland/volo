@@ -6,13 +6,11 @@
  * Escape sequences can be used to control various aspects of text rendering.
  *
  * Supported sequences:
- * - Switch to a specific color: [ESC]#RRGGBBAA
+ * - Switch to a specific color:  [ESC]#RRGGBBAA   example: \a#FF0000FF
+ * - Switch to a named color:     [ESC]|NAME       example: \a|red
  *
  * NOTE: The 'Bell' character is supported as an alternative to the normal 'ESC' character. Reason
  * is C has \a shorthand for the bell character.
- *
- * Example usage:
- * "Hello \a#FF0000FFWorld": Display 'Hello World' where 'World' is rendered in red.
  */
 
 /**

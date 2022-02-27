@@ -1,3 +1,4 @@
+#include "core_array.h"
 #include "core_ascii.h"
 #include "core_diag.h"
 
@@ -36,12 +37,53 @@ static String ui_escape_read_color(String input, UiEscape* out) {
   return input;
 }
 
+static String ui_escape_read_color_named(const String input, UiEscape* out) {
+  struct UiNamedColor {
+    String  name;
+    UiColor value;
+  };
+  static const struct UiNamedColor g_namedColors[] = {
+      {string_static("white"), {0xFF, 0xFF, 0xFF, 0xFF}},
+      {string_static("black"), {0x00, 0x00, 0x00, 0xFF}},
+      {string_static("clear"), {0x00, 0x00, 0x00, 0x00}},
+      {string_static("silver"), {0xC0, 0xC0, 0xC0, 0xFF}},
+      {string_static("gray"), {0x80, 0x80, 0x80, 0xFF}},
+      {string_static("red"), {0xFF, 0x00, 0x00, 0xFF}},
+      {string_static("maroon"), {0x80, 0x00, 0x00, 0xFF}},
+      {string_static("yellow"), {0xFF, 0xFF, 0x00, 0xFF}},
+      {string_static("olive"), {0x80, 0x80, 0x00, 0xFF}},
+      {string_static("lime"), {0x00, 0xFF, 0x00, 0xFF}},
+      {string_static("green"), {0x00, 0x80, 0x00, 0xFF}},
+      {string_static("aqua"), {0x00, 0xFF, 0xFF, 0xFF}},
+      {string_static("teal"), {0x00, 0x80, 0x80, 0xFF}},
+      {string_static("blue"), {0x00, 0x00, 0xFF, 0xFF}},
+      {string_static("navy"), {0x00, 0x00, 0x80, 0xFF}},
+      {string_static("fuchsia"), {0xFF, 0x00, 0xFF, 0xFF}},
+      {string_static("purple"), {0x80, 0x00, 0x80, 0xFF}},
+  };
+
+  array_for_t(g_namedColors, struct UiNamedColor, namedColor) {
+    if (string_starts_with(input, namedColor->name)) {
+      if (out) {
+        *out = (UiEscape){.type = UiEscape_Color, .escColor = {.value = namedColor->value}};
+      }
+      return string_consume(input, namedColor->name.size);
+    }
+  }
+  if (out) {
+    *out = ui_escape_invalid;
+  }
+  return input;
+}
+
 String ui_escape_read(String input, UiEscape* out) {
   u8 ch;
   input = format_read_char(input, &ch);
   switch (ch) {
   case '#':
     return ui_escape_read_color(input, out);
+  case '|':
+    return ui_escape_read_color_named(input, out);
   default:
     if (out) {
       *out = ui_escape_invalid;

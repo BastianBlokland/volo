@@ -103,11 +103,13 @@ static String ui_text_line(
       break;
     case Unicode_HorizontalTab:
       cursorConsumed.pixel = ui_text_next_tabstop(font, cursorConsumed.pixel, fontSize);
+      break;
     case Unicode_ZeroWidthSpace:
       break;
     case Unicode_Escape:
     case Unicode_Bell:
-      remainingText = ui_escape_read(remainingText, null);
+      remainingText            = ui_escape_read(remainingText, null);
+      cursorConsumed.charIndex = text.size - remainingText.size;
       break;
     default:
       cursorConsumed.pixel += asset_ftx_lookup(font, cp)->advance * fontSize;
