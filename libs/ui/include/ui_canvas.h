@@ -24,6 +24,7 @@ typedef enum {
 
 typedef enum {
   UiTextAlign_TopLeft,
+  UiTextAlign_TopCenter,
   UiTextAlign_TopRight,
 } UiTextAlign;
 

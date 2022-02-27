@@ -118,16 +118,19 @@ End:
 }
 
 static UiVector ui_text_char_pos(UiTextBuildState* state, const UiTextLine* line) {
-  const f32 minY = state->rect.pos.y;
-  const f32 maxY = minY + state->rect.size.height;
-  const f32 minX = state->rect.pos.x;
-  const f32 maxX = minX + state->rect.size.width;
+  const f32 width  = state->rect.size.width;
+  const f32 height = state->rect.size.height;
+  const f32 minX = state->rect.pos.x, maxX = minX + width;
+  const f32 minY = state->rect.pos.y, maxY = minY + height;
+  const f32 cursorX = state->cursor.x, cursorY = state->cursor.y;
 
   switch (state->align) {
   case UiTextAlign_TopLeft:
-    return ui_vector(minX + state->cursor.x, maxY - state->cursor.y);
+    return ui_vector(minX + cursorX, maxY - cursorY);
+  case UiTextAlign_TopCenter:
+    return ui_vector(minX + (width - line->size.width) * 0.5f + cursorX, maxY - cursorY);
   case UiTextAlign_TopRight:
-    return ui_vector(maxX - line->size.x + state->cursor.x, maxY - state->cursor.y);
+    return ui_vector(maxX - line->size.width + cursorX, maxY - cursorY);
   }
   diag_crash();
 }
