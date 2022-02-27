@@ -28,38 +28,49 @@ ecs_system_define(CanvasUpdateSys) {
 
     ui_canvas_move(canvas, ui_vector(10, 10), UiOrigin_WindowBottomLeft, UiUnits_Absolute);
     ui_canvas_size(canvas, ui_vector(10, 10), UiUnits_Absolute);
-    ui_canvas_style(canvas, ui_color_red, 2);
+    ui_canvas_style(canvas, ui_color_red, 6);
     ui_canvas_draw_square(canvas);
 
     ui_canvas_move(canvas, ui_vector(1, 0), UiOrigin_Current, UiUnits_Current);
     ui_canvas_size(canvas, ui_vector(25, 25), UiUnits_Absolute);
-    ui_canvas_style(canvas, ui_color_blue, 2);
+    ui_canvas_style(canvas, ui_color_blue, 6);
     ui_canvas_draw_square(canvas);
 
     ui_canvas_move(canvas, ui_vector(1, 0), UiOrigin_Current, UiUnits_Current);
     ui_canvas_size(canvas, ui_vector(50, 50), UiUnits_Absolute);
-    ui_canvas_style(canvas, ui_color_green, 2);
+    ui_canvas_style(canvas, ui_color_green, 6);
     ui_canvas_draw_square(canvas);
 
     ui_canvas_move(canvas, ui_vector(1, 0), UiOrigin_Current, UiUnits_Current);
     ui_canvas_size(canvas, ui_vector(100, 100), UiUnits_Absolute);
-    ui_canvas_style(canvas, ui_color_purple, 2);
+    ui_canvas_style(canvas, ui_color_purple, 6);
     ui_canvas_draw_square(canvas);
 
     ui_canvas_move(canvas, ui_vector(1, 0), UiOrigin_Current, UiUnits_Current);
     ui_canvas_size(canvas, ui_vector(200, 200), UiUnits_Absolute);
-    ui_canvas_style(canvas, ui_color_lime, 2);
-    ui_canvas_draw_square(canvas);
-
-    ui_canvas_move(canvas, ui_vector(1, 0), UiOrigin_Current, UiUnits_Current);
-    ui_canvas_size(canvas, ui_vector(400, 400), UiUnits_Absolute);
-    ui_canvas_style(canvas, ui_color_maroon, 2);
+    ui_canvas_style(canvas, ui_color_maroon, 6);
     ui_canvas_draw_circle(canvas, 0);
 
     ui_canvas_move(canvas, ui_vector(1, 0), UiOrigin_Current, UiUnits_Current);
-    ui_canvas_size(canvas, ui_vector(800, 800), UiUnits_Absolute);
-    ui_canvas_style(canvas, ui_color_silver, 2);
+    ui_canvas_size(canvas, ui_vector(600, 600), UiUnits_Absolute);
+    ui_canvas_style(canvas, ui_color(32, 32, 32, 192), 6);
     ui_canvas_draw_square(canvas);
+    ui_canvas_style(canvas, ui_color_white, 1);
+    ui_canvas_draw_text(
+        canvas,
+        string_lit(
+            "Lorem ipsum dolor sit amet. The graphic and typographic operators know this well, in "
+            "reality all the professions dealing with the universe of communication have a stable "
+            "relationship with these words, but what is it? Lorem ipsum is a dummy text without "
+            "any sense.\n\n"
+            "It is a sequence of Latin words that, as they are positioned, do not form sentences "
+            "with a complete sense, but give life to a test text useful to fill spaces that will "
+            "subsequently be occupied from ad hoc texts composed by communication "
+            "professionals.\n\n"
+            "It is certainly the most famous placeholder text even if there are different versions "
+            "distinguishable from the order in which the Latin words are repeated."),
+        14,
+        UiTextAlign_MiddleCenter);
   }
 }
 
