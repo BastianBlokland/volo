@@ -24,6 +24,7 @@ typedef struct {
   void*               userCtx;
   UiTextBuildCharFunc buildChar;
   f32                 cursor;
+  f32                 totalHeight;
 } UiTextBuildState;
 
 static f32 ui_text_next_tabstop(const AssetFtxComp* font, const f32 cursor, const f32 fontSize) {
@@ -126,6 +127,7 @@ static UiVector ui_text_char_pos(UiTextBuildState* state, const UiTextLine* line
   const f32 minX = state->rect.pos.x, maxX = minX + width;
   const f32 minY = state->rect.pos.y, maxY = minY + height;
   const f32 cursor = state->cursor, lineY = line->posY;
+  const f32 textHeight = state->totalHeight;
 
   switch (state->align) {
   case UiTextAlign_TopLeft:
@@ -134,6 +136,12 @@ static UiVector ui_text_char_pos(UiTextBuildState* state, const UiTextLine* line
     return ui_vector(minX + (width - line->size.width) * 0.5f + cursor, maxY - lineY);
   case UiTextAlign_TopRight:
     return ui_vector(maxX - line->size.width + cursor, maxY - lineY);
+  case UiTextAlign_BottomLeft:
+    return ui_vector(minX + cursor, minY + textHeight - lineY);
+  case UiTextAlign_BottomCenter:
+    return ui_vector(minX + (width - line->size.width) * 0.5f + cursor, minY + textHeight - lineY);
+  case UiTextAlign_BottomRight:
+    return ui_vector(maxX - line->size.width + cursor, minY + textHeight - lineY);
   }
   diag_crash();
 }
@@ -193,10 +201,11 @@ void ui_text_build(
   f32        lineY     = 0;
   String     remText   = text;
   while (!string_is_empty(remText)) {
-    if (lineY + fontSize >= rect.size.height - font->lineSpacing * fontSize) {
+    const f32 lineHeight = lineCount ? (1 + font->lineSpacing) * fontSize : fontSize;
+    if (lineY + lineHeight >= rect.size.height - font->lineSpacing * fontSize) {
       break; // Not enough space remaining for this line.
     }
-    lineY += fontSize;
+    lineY += lineHeight;
 
     if (lineCount + 1 >= ui_text_max_lines) {
       log_w("Ui text line count exceeds maximum", log_param("limit", fmt_int(ui_text_max_lines)));
@@ -206,20 +215,20 @@ void ui_text_build(
     remText = ui_text_line(font, remText, rect.size.width, fontSize, &lines[lineIndex]);
 
     lines[lineIndex].posY = lineY;
-    lineY += font->lineSpacing * fontSize;
   }
 
   /**
    * Draw all lines.
    */
   UiTextBuildState state = {
-      .font      = font,
-      .rect      = rect,
-      .fontSize  = fontSize,
-      .fontColor = fontColor,
-      .align     = align,
-      .userCtx   = userCtx,
-      .buildChar = buildChar,
+      .font        = font,
+      .rect        = rect,
+      .fontSize    = fontSize,
+      .fontColor   = fontColor,
+      .align       = align,
+      .userCtx     = userCtx,
+      .buildChar   = buildChar,
+      .totalHeight = lineY + (font->lineSpacing * 2) * fontSize,
   };
   for (usize i = 0; i != lineCount; ++i) {
     ui_text_build_line(&state, &lines[i]);

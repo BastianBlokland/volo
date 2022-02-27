@@ -26,6 +26,9 @@ typedef enum {
   UiTextAlign_TopLeft,
   UiTextAlign_TopCenter,
   UiTextAlign_TopRight,
+  UiTextAlign_BottomLeft,
+  UiTextAlign_BottomCenter,
+  UiTextAlign_BottomRight,
 } UiTextAlign;
 
 ecs_comp_extern(UiCanvasComp);
