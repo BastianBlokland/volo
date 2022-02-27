@@ -24,7 +24,7 @@ typedef struct {
 static f32 ui_text_next_tabstop(const AssetFtxComp* font, const f32 cursor, const f32 fontSize) {
   const f32 spaceAdvance = asset_ftx_lookup(font, Unicode_Space)->advance * fontSize;
   const f32 tabSize      = spaceAdvance * ui_text_tab_size;
-  return cursor + math_mod_f32(cursor, tabSize);
+  return cursor + tabSize - math_mod_f32(cursor, tabSize);
 }
 
 static bool ui_text_is_seperator(const Unicode cp) {
@@ -110,7 +110,10 @@ End:
 static void ui_text_build_char(UiTextBuildState* state, const Unicode cp) {
   switch (cp) {
   case Unicode_ZeroWidthSpace:
-    return; // Has no glyph and no advance.
+    return;
+  case Unicode_HorizontalTab:
+    state->cursor.x = ui_text_next_tabstop(state->font, state->cursor.x, state->fontSize);
+    return;
   default:
     break;
   }
