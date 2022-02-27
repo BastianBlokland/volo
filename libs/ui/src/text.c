@@ -106,6 +106,7 @@ static String ui_text_line(
     case Unicode_ZeroWidthSpace:
       break;
     case Unicode_Escape:
+    case Unicode_Bell:
       remainingText = ui_escape_read(remainingText, null);
       break;
     default:
@@ -200,6 +201,7 @@ static void ui_text_build_line(UiTextBuildState* state, const UiTextLine* line) 
     case Unicode_ZeroWidthSpace:
       continue;
     case Unicode_Escape:
+    case Unicode_Bell:
       remainingText = ui_escape_read(remainingText, &esc);
       ui_text_build_escape(state, &esc);
       continue;

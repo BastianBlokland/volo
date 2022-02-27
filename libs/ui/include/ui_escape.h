@@ -8,8 +8,11 @@
  * Supported sequences:
  * - Switch to a specific color: [ESC]#RRGGBBAA
  *
+ * NOTE: The 'Bell' character is supported as an alternative to the normal 'ESC' character. Reason
+ * is C has \a shorthand for the bell character.
+ *
  * Example usage:
- * "Hello \33#FF0000FFWorld": Display 'Hello World' where 'World' is rendered in red.
+ * "Hello \a#FF0000FFWorld": Display 'Hello World' where 'World' is rendered in red.
  */
 
 /**
