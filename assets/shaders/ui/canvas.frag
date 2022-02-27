@@ -42,7 +42,7 @@ f32 get_outline_frac(const f32 distNorm, const f32 outlineNorm, const f32 smooth
   if (outlineNorm < c_outlineMin) {
     return 0.0; // Outline is disabled.
   }
-  return smoothstep(-smoothingNorm, 0, distNorm);
+  return smoothstep(-smoothingNorm * 0.5, smoothingNorm * 0.5, distNorm);
 }
 
 /**
