@@ -36,6 +36,7 @@ typedef enum {
 typedef struct {
   String      id;
   EcsEntityId asset;
+  f32         yOffset;
   String      characters;
 } FtxDefFont;
 
@@ -61,6 +62,7 @@ static void ftx_datareg_init() {
     // clang-format off
     data_reg_struct_t(g_dataReg, FtxDefFont);
     data_reg_field_t(g_dataReg, FtxDefFont, id, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, FtxDefFont, yOffset, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, FtxDefFont, characters, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
     data_reg_struct_t(g_dataReg, FtxDef);
@@ -205,6 +207,7 @@ static void ftx_generate_glyph(
 
 typedef struct {
   const AssetFontComp* data;
+  f32                  yOffset;
   String               characters;
 } FtxDefResolvedFont;
 
@@ -230,7 +233,7 @@ static void ftx_generate_font(
         .glyphIndex = inputChars[i].glyph->segmentCount ? *nextGlyphIndex : sentinel_u32,
         .size       = inputChars[i].glyph->size,
         .offsetX    = inputChars[i].glyph->offsetX,
-        .offsetY    = inputChars[i].glyph->offsetY,
+        .offsetY    = inputChars[i].glyph->offsetY + font.yOffset,
         .advance    = inputChars[i].glyph->advance,
         .border     = def->border / (f32)def->glyphSize,
     };
@@ -343,6 +346,7 @@ ecs_system_define(FtxLoadAssetSys) {
       }
       fonts[i] = (FtxDefResolvedFont){
           .data       = ecs_view_read_t(fontItr, AssetFontComp),
+          .yOffset    = defFont->yOffset,
           .characters = defFont->characters,
       };
     }

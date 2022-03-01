@@ -10,6 +10,7 @@
     },
     {
       "id": "fonts/materialicons_regular.ttf",
+      "yOffset": -0.15,
       "characters": "\ue9e4\uef5b\ue3ae\ue1db\uea5f\ue069\ue338\ue4fc\ue80e"
     },
     {
