@@ -35,16 +35,18 @@ typedef struct {
 } UiStyle;
 
 typedef struct {
-  UiElementId id;
+  UiId        id;
   String      text;
   u16         fontSize;
   UiTextAlign align;
+  UiFlags     flags;
 } UiDrawText;
 
 typedef struct {
-  UiElementId id;
-  Unicode     cp;
-  u16         maxCorner;
+  UiId    id;
+  Unicode cp;
+  u16     maxCorner;
+  UiFlags flags;
 } UiDrawGlyph;
 
 typedef struct {
@@ -69,7 +71,7 @@ void ui_cmd_push_move(UiCmdBuffer*, UiVector pos, UiOrigin, UiUnits);
 void ui_cmd_push_size(UiCmdBuffer*, UiVector size, UiUnits);
 void ui_cmd_push_size_to(UiCmdBuffer*, UiVector pos, UiOrigin, UiUnits);
 void ui_cmd_push_style(UiCmdBuffer*, UiColor, u8 outline);
-void ui_cmd_push_draw_text(UiCmdBuffer*, UiElementId, String text, u16 fontSize, UiTextAlign);
-void ui_cmd_push_draw_glyph(UiCmdBuffer*, UiElementId, Unicode cp, u16 maxCorner);
+void ui_cmd_push_draw_text(UiCmdBuffer*, UiId, String text, u16 fontSize, UiTextAlign, UiFlags);
+void ui_cmd_push_draw_glyph(UiCmdBuffer*, UiId, Unicode cp, u16 maxCorner, UiFlags);
 
 UiCmd* ui_cmd_next(const UiCmdBuffer*, UiCmd*);

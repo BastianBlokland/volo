@@ -5,7 +5,7 @@
 #include "ui_color.h"
 #include "ui_vector.h"
 
-typedef u64 UiElementId;
+typedef u64 UiId;
 
 typedef enum {
   UiOrigin_Current,
@@ -34,17 +34,32 @@ typedef enum {
   UiTextAlign_BottomRight,
 } UiTextAlign;
 
+typedef enum {
+  UiStatus_Idle,
+  UiStatus_Hovered,
+  UiStatus_Down,
+  UiStatus_Activated,
+} UiStatus;
+
+typedef enum {
+  UiFlags_None         = 0,
+  UiFlags_Interactable = 1 << 0,
+} UiFlags;
+
 ecs_comp_extern(UiCanvasComp);
 
 EcsEntityId ui_canvas_create(EcsWorld*, EcsEntityId window);
 void        ui_canvas_reset(UiCanvasComp*);
+
+UiId     ui_canvas_next_id(const UiCanvasComp*);
+UiStatus ui_canvas_status(const UiCanvasComp*, UiId);
 
 void ui_canvas_move(UiCanvasComp*, UiVector, UiOrigin, UiUnits);
 void ui_canvas_size(UiCanvasComp*, UiVector, UiUnits);
 void ui_canvas_size_to(UiCanvasComp*, UiVector, UiOrigin, UiUnits);
 void ui_canvas_style(UiCanvasComp*, UiColor, u8 outline);
 
-UiElementId ui_canvas_draw_text(UiCanvasComp*, String text, u16 fontSize, UiTextAlign);
-UiElementId ui_canvas_draw_glyph(UiCanvasComp*, Unicode, u16 maxCorner);
-UiElementId ui_canvas_draw_square(UiCanvasComp*);
-UiElementId ui_canvas_draw_circle(UiCanvasComp*, u16 maxCorner);
+UiId ui_canvas_draw_text(UiCanvasComp*, String text, u16 fontSize, UiTextAlign, UiFlags);
+UiId ui_canvas_draw_glyph(UiCanvasComp*, Unicode, u16 maxCorner, UiFlags);
+UiId ui_canvas_draw_square(UiCanvasComp*, UiFlags);
+UiId ui_canvas_draw_circle(UiCanvasComp*, u16 maxCorner, UiFlags);

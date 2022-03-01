@@ -4,7 +4,6 @@
 #include "ecs_world.h"
 #include "gap_window.h"
 #include "scene_renderable.h"
-#include "ui_canvas.h"
 
 #include "builder_internal.h"
 #include "cmd_internal.h"
@@ -14,7 +13,9 @@
 ecs_comp_define(UiCanvasComp) {
   EcsEntityId  window;
   UiCmdBuffer* cmdBuffer;
-  UiElementId  nextId;
+  UiId         nextId;
+  UiId         activeId;
+  UiStatus     activeStatus;
 };
 
 static void ecs_destruct_canvas(void* data) {
@@ -38,8 +39,22 @@ static void ui_canvas_output_glyph(void* userCtx, const UiGlyphData data) {
   ++renderState->outputNumGlyphs;
 }
 
+static void ui_canvas_update_active(
+    UiCanvasComp* canvas, const GapWindowComp* window, const UiBuildResult result) {
+
+  if (gap_window_key_released(window, GapKey_MouseLeft)) {
+    canvas->activeStatus =
+        result.hoveredId == canvas->activeId ? UiStatus_Activated : UiStatus_Idle;
+  } else if (gap_window_key_down(window, GapKey_MouseLeft)) {
+    canvas->activeStatus = result.hoveredId == canvas->activeId ? UiStatus_Down : UiStatus_Idle;
+  } else {
+    canvas->activeId     = result.hoveredId;
+    canvas->activeStatus = UiStatus_Hovered;
+  }
+}
+
 static void ui_canvas_render(
-    const UiCanvasComp*        canvas,
+    UiCanvasComp*              canvas,
     SceneRenderableUniqueComp* renderable,
     const GapWindowComp*       window,
     const AssetFtxComp*        font) {
@@ -49,18 +64,22 @@ static void ui_canvas_render(
       .output = &dataBuffer,
   };
 
-  UiBuildCtx buildCtx = {
+  const UiBuildCtx buildCtx = {
+      .window      = window,
+      .font        = font,
       .userCtx     = &renderState,
       .outputDraw  = &ui_canvas_output_draw,
       .outputGlyph = &ui_canvas_output_glyph,
   };
-  ui_build(canvas->cmdBuffer, window, font, &buildCtx);
+  const UiBuildResult result = ui_build(canvas->cmdBuffer, &buildCtx);
 
   const Mem instData = scene_renderable_unique_data_set(renderable, renderState.output->size);
   mem_cpy(instData, dynstring_view(renderState.output));
   renderable->vertexCountOverride = renderState.outputNumGlyphs * 6; // 6 verts per quad.
 
   dynstring_destroy(&dataBuffer);
+
+  ui_canvas_update_active(canvas, window, result);
 }
 
 ecs_view_define(GlobalResourcesView) { ecs_access_read(UiGlobalResourcesComp); }
@@ -144,6 +163,15 @@ void ui_canvas_reset(UiCanvasComp* comp) {
   comp->nextId = 0;
 }
 
+UiId ui_canvas_next_id(const UiCanvasComp* comp) { return comp->nextId; }
+
+UiStatus ui_canvas_status(const UiCanvasComp* comp, const UiId id) {
+  if (comp->activeId == id) {
+    return comp->activeStatus;
+  }
+  return UiStatus_Idle;
+}
+
 void ui_canvas_move(
     UiCanvasComp* comp, const UiVector pos, const UiOrigin origin, const UiUnits unit) {
   ui_cmd_push_move(comp->cmdBuffer, pos, origin, unit);
@@ -163,26 +191,31 @@ void ui_canvas_style(UiCanvasComp* comp, const UiColor color, const u8 outline) 
   ui_cmd_push_style(comp->cmdBuffer, color, outline);
 }
 
-UiElementId ui_canvas_draw_text(
-    UiCanvasComp* comp, const String text, const u16 fontSize, const UiTextAlign align) {
+UiId ui_canvas_draw_text(
+    UiCanvasComp*     comp,
+    const String      text,
+    const u16         fontSize,
+    const UiTextAlign align,
+    const UiFlags     flags) {
 
-  const UiElementId id = comp->nextId++;
+  const UiId id = comp->nextId++;
   if (!string_is_empty(text)) {
-    ui_cmd_push_draw_text(comp->cmdBuffer, id, text, fontSize, align);
+    ui_cmd_push_draw_text(comp->cmdBuffer, id, text, fontSize, align, flags);
   }
   return id;
 }
 
-UiElementId ui_canvas_draw_glyph(UiCanvasComp* comp, const Unicode cp, const u16 maxCorner) {
-  const UiElementId id = comp->nextId++;
-  ui_cmd_push_draw_glyph(comp->cmdBuffer, id, cp, maxCorner);
+UiId ui_canvas_draw_glyph(
+    UiCanvasComp* comp, const Unicode cp, const u16 maxCorner, const UiFlags flags) {
+  const UiId id = comp->nextId++;
+  ui_cmd_push_draw_glyph(comp->cmdBuffer, id, cp, maxCorner, flags);
   return id;
 }
 
-UiElementId ui_canvas_draw_square(UiCanvasComp* comp) {
-  return ui_canvas_draw_glyph(comp, ui_shape_square, 25);
+UiId ui_canvas_draw_square(UiCanvasComp* comp, const UiFlags flags) {
+  return ui_canvas_draw_glyph(comp, ui_shape_square, 25, flags);
 }
 
-UiElementId ui_canvas_draw_circle(UiCanvasComp* comp, const u16 maxCorner) {
-  return ui_canvas_draw_glyph(comp, ui_shape_circle, maxCorner);
+UiId ui_canvas_draw_circle(UiCanvasComp* comp, const u16 maxCorner, const UiFlags flags) {
+  return ui_canvas_draw_glyph(comp, ui_shape_circle, maxCorner, flags);
 }

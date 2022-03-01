@@ -1,6 +1,6 @@
 #pragma once
 #include "asset_ftx.h"
-#include "ui_color.h"
+#include "ui_canvas.h"
 #include "ui_rect.h"
 
 // Internal forward declarations:
@@ -32,9 +32,15 @@ typedef void (*UiOutputDrawFunc)(void* userCtx, UiDrawData);
 typedef void (*UiOutputGlyphFunc)(void* userCtx, UiGlyphData);
 
 typedef struct {
-  void*             userCtx;
-  UiOutputDrawFunc  outputDraw;
-  UiOutputGlyphFunc outputGlyph;
+  const GapWindowComp* window;
+  const AssetFtxComp*  font;
+  void*                userCtx;
+  UiOutputDrawFunc     outputDraw;
+  UiOutputGlyphFunc    outputGlyph;
 } UiBuildCtx;
 
-void ui_build(const UiCmdBuffer*, const GapWindowComp*, const AssetFtxComp*, const UiBuildCtx*);
+typedef struct {
+  UiId hoveredId;
+} UiBuildResult;
+
+UiBuildResult ui_build(const UiCmdBuffer*, const UiBuildCtx*);

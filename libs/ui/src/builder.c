@@ -1,6 +1,7 @@
 #include "core_diag.h"
 #include "core_math.h"
 #include "gap_window.h"
+#include "ui_canvas.h"
 
 #include "builder_internal.h"
 #include "cmd_internal.h"
@@ -19,6 +20,7 @@ typedef struct {
   UiVector             size;
   UiColor              color;
   u8                   outline;
+  UiId                 hoveredId;
 } UiBuildState;
 
 static UiDrawData ui_build_drawdata(const UiBuildState* state) {
@@ -92,7 +94,17 @@ static void ui_build_text_char(void* userCtx, const UiTextCharInfo* info) {
       });
 }
 
+static bool ui_build_is_hovered(UiBuildState* state) {
+  const f32       minX = state->pos.x, minY = state->pos.y;
+  const f32       maxX = minX + state->size.x, maxY = minY + state->size.y;
+  const GapVector cursorPos = gap_window_param(state->window, GapParam_CursorPos);
+  return cursorPos.x >= minX && cursorPos.x <= maxX && cursorPos.y >= minY && cursorPos.y <= maxY;
+}
+
 static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
+  if (cmd->flags & UiFlags_Interactable && ui_build_is_hovered(state)) {
+    state->hoveredId = cmd->id;
+  }
   ui_text_build(
       state->font,
       ui_rect(state->pos, state->size),
@@ -106,6 +118,9 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
 }
 
 static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
+  if (cmd->flags & UiFlags_Interactable && ui_build_is_hovered(state)) {
+    state->hoveredId = cmd->id;
+  }
   const AssetFtxChar* ch = asset_ftx_lookup(state->font, cmd->cp);
   if (sentinel_check(ch->glyphIndex)) {
     return; // No glyph for the given codepoint.
@@ -153,20 +168,17 @@ static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
   }
 }
 
-void ui_build(
-    const UiCmdBuffer*   cmdBuffer,
-    const GapWindowComp* window,
-    const AssetFtxComp*  font,
-    const UiBuildCtx*    ctx) {
+UiBuildResult ui_build(const UiCmdBuffer* cmdBuffer, const UiBuildCtx* ctx) {
 
   UiBuildState state = {
-      .ctx     = ctx,
-      .window  = window,
-      .font    = font,
-      .pos     = g_ui_defaultPos,
-      .size    = g_ui_defaultSize,
-      .color   = g_ui_defaultColor,
-      .outline = g_ui_defaultOutline,
+      .ctx       = ctx,
+      .window    = ctx->window,
+      .font      = ctx->font,
+      .pos       = g_ui_defaultPos,
+      .size      = g_ui_defaultSize,
+      .color     = g_ui_defaultColor,
+      .outline   = g_ui_defaultOutline,
+      .hoveredId = sentinel_u64,
   };
   ctx->outputDraw(ctx->userCtx, ui_build_drawdata(&state));
 
@@ -174,4 +186,8 @@ void ui_build(
   while ((cmd = ui_cmd_next(cmdBuffer, cmd))) {
     ui_build_cmd(&state, cmd);
   }
+
+  return (UiBuildResult){
+      .hoveredId = state.hoveredId,
+  };
 }

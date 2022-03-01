@@ -75,10 +75,11 @@ void ui_cmd_push_style(UiCmdBuffer* buffer, const UiColor color, const u8 outlin
 
 void ui_cmd_push_draw_text(
     UiCmdBuffer*      buffer,
-    const UiElementId id,
+    const UiId        id,
     const String      text,
     const u16         fontSize,
-    const UiTextAlign align) {
+    const UiTextAlign align,
+    const UiFlags     flags) {
 
   if (UNLIKELY(text.size > ui_cmdbuffer_max_text_size)) {
     log_e(
@@ -95,17 +96,24 @@ void ui_cmd_push_draw_text(
           .text     = string_dup(buffer->allocTransient, text),
           .fontSize = fontSize,
           .align    = align,
+          .flags    = flags,
       }};
 }
 
 void ui_cmd_push_draw_glyph(
-    UiCmdBuffer* buffer, const UiElementId id, const Unicode cp, const u16 maxCorner) {
+    UiCmdBuffer*  buffer,
+    const UiId    id,
+    const Unicode cp,
+    const u16     maxCorner,
+    const UiFlags flags) {
+
   *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
       .type      = UiCmd_DrawGlyph,
       .drawGlyph = {
           .id        = id,
           .cp        = cp,
           .maxCorner = maxCorner,
+          .flags     = flags,
       }};
 }
 
