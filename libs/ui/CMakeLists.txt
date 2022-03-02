@@ -12,6 +12,7 @@ add_library(lib_ui STATIC
   src/register.c
   src/resource.c
   src/text.c
+  src/widget.c
   )
 target_include_directories(lib_ui PUBLIC include)
 target_link_libraries(lib_ui PRIVATE lib_log)
