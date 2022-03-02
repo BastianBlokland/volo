@@ -171,6 +171,9 @@ UiStatus ui_canvas_status(const UiCanvasComp* comp, const UiId id) {
   return UiStatus_Idle;
 }
 
+void ui_canvas_rect_push(UiCanvasComp* comp) { ui_cmd_push_rect_push(comp->cmdBuffer); }
+void ui_canvas_rect_pop(UiCanvasComp* comp) { ui_cmd_push_rect_pop(comp->cmdBuffer); }
+
 void ui_canvas_rect_move(
     UiCanvasComp* comp, const UiVector pos, const UiOrigin origin, const UiUnits unit) {
   ui_cmd_push_rect_move(comp->cmdBuffer, pos, origin, unit);

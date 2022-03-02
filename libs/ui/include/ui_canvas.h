@@ -82,32 +82,39 @@ UiId ui_canvas_next_id(const UiCanvasComp*);
 UiStatus ui_canvas_status(const UiCanvasComp*, UiId);
 
 /**
- * Move the active rectangle to a new location.
+ * Push / Pop an element from the rectangle stack.
+ * Usefull for local changes to the current rectangle with an easy way to restore the previous.
+ */
+void ui_canvas_rect_push(UiCanvasComp*);
+void ui_canvas_rect_pop(UiCanvasComp*);
+
+/**
+ * Move the current rectangle to a new location.
  */
 void ui_canvas_rect_move(UiCanvasComp*, UiVector, UiOrigin, UiUnits);
 
 /**
- * Change the size of the active rectangle.
+ * Change the size of the current rectangle.
  */
 void ui_canvas_rect_resize(UiCanvasComp*, UiVector, UiUnits);
 
 /**
- * Resize the active rectangle to start at the current position and end at the specified position.
+ * Resize the current rectangle to start at the current position and end at the specified position.
  */
 void ui_canvas_rect_resize_to(UiCanvasComp*, UiVector, UiOrigin, UiUnits);
 
 /**
- * Update the active style.
+ * Update the current style.
  */
 void ui_canvas_style(UiCanvasComp*, UiColor, u8 outline);
 
 /**
- * Draw text in the currently active rectangle.
+ * Draw text in the current rectangle.
  */
 UiId ui_canvas_draw_text(UiCanvasComp*, String text, u16 fontSize, UiTextAlign, UiFlags);
 
 /**
- * Draw a single glyph in the currently active rectangle.
+ * Draw a single glyph in the current rectangle.
  * The glyph will be stretched using 9-slice scaling to fill the rectangle, 'maxCorner' is used to
  * control the size of the 9-slice corner.
  */

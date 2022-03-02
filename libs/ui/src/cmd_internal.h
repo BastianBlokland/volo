@@ -4,6 +4,8 @@
 #include "ui_canvas.h"
 
 typedef enum {
+  UiCmd_RectPush,
+  UiCmd_RectPop,
   UiCmd_RectMove,
   UiCmd_RectResize,
   UiCmd_RectResizeTo,
@@ -67,6 +69,8 @@ UiCmdBuffer* ui_cmdbuffer_create(Allocator*);
 void         ui_cmdbuffer_destroy(UiCmdBuffer*);
 void         ui_cmdbuffer_clear(UiCmdBuffer*);
 
+void ui_cmd_push_rect_push(UiCmdBuffer*);
+void ui_cmd_push_rect_pop(UiCmdBuffer*);
 void ui_cmd_push_rect_move(UiCmdBuffer*, UiVector pos, UiOrigin, UiUnits);
 void ui_cmd_push_rect_resize(UiCmdBuffer*, UiVector size, UiUnits);
 void ui_cmd_push_rect_resize_to(UiCmdBuffer*, UiVector pos, UiOrigin, UiUnits);

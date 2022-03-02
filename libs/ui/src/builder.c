@@ -11,15 +11,23 @@ static const UiRect  g_ui_defaultRect    = {0, 0, 100, 100};
 static const UiColor g_ui_defaultColor   = {255, 255, 255, 255};
 static const u8      g_ui_defaultOutline = 0;
 
+#define ui_build_rect_stack_max 10
+
 typedef struct {
   const UiBuildCtx*    ctx;
   const GapWindowComp* window;
   const AssetFtxComp*  font;
-  UiRect               rect;
+  UiRect               rectStack[ui_build_rect_stack_max];
+  u32                  rectStackCount;
   UiColor              color;
   u8                   outline;
   UiId                 hoveredId;
 } UiBuildState;
+
+static UiRect* ui_build_rect_currect(UiBuildState* state) {
+  diag_assert(state->rectStackCount);
+  return &state->rectStack[state->rectStackCount - 1];
+}
 
 static UiDrawData ui_build_drawdata(const UiBuildState* state) {
   return (UiDrawData){
@@ -29,10 +37,11 @@ static UiDrawData ui_build_drawdata(const UiBuildState* state) {
 }
 
 static UiVector ui_resolve_vec(UiBuildState* state, const UiVector vec, const UiUnits units) {
-  const GapVector winSize = gap_window_param(state->window, GapParam_WindowSize);
+  const GapVector winSize     = gap_window_param(state->window, GapParam_WindowSize);
+  const UiRect    currentRect = *ui_build_rect_currect(state);
   switch (units) {
   case UiUnits_Current:
-    return ui_vector(vec.x * state->rect.width, vec.y * state->rect.height);
+    return ui_vector(vec.x * currentRect.width, vec.y * currentRect.height);
   case UiUnits_Absolute:
     return vec;
   case UiUnits_Window:
@@ -43,12 +52,13 @@ static UiVector ui_resolve_vec(UiBuildState* state, const UiVector vec, const Ui
 
 static UiVector ui_resolve_pos(
     UiBuildState* state, const UiVector pos, const UiOrigin origin, const UiUnits units) {
-  const GapVector winSize   = gap_window_param(state->window, GapParam_WindowSize);
-  const GapVector cursorPos = gap_window_param(state->window, GapParam_CursorPos);
-  const UiVector  vec       = ui_resolve_vec(state, pos, units);
+  const UiRect    currentRect = *ui_build_rect_currect(state);
+  const GapVector winSize     = gap_window_param(state->window, GapParam_WindowSize);
+  const GapVector cursorPos   = gap_window_param(state->window, GapParam_CursorPos);
+  const UiVector  vec         = ui_resolve_vec(state, pos, units);
   switch (origin) {
   case UiOrigin_Current:
-    return ui_vector(state->rect.x + vec.x, state->rect.y + vec.y);
+    return ui_vector(currentRect.x + vec.x, currentRect.y + vec.y);
   case UiOrigin_Cursor:
     return ui_vector(cursorPos.x + vec.x, cursorPos.y + vec.y);
   case UiOrigin_WindowBottomLeft:
@@ -65,8 +75,9 @@ static UiVector ui_resolve_pos(
 
 static UiVector ui_resolve_size_to(
     UiBuildState* state, const UiVector pos, const UiOrigin origin, const UiUnits unit) {
-  const UiVector toPos = ui_resolve_pos(state, pos, origin, unit);
-  return ui_vector(math_max(toPos.x - state->rect.x, 0), math_max(toPos.y - state->rect.y, 0));
+  const UiRect   currentRect = *ui_build_rect_currect(state);
+  const UiVector toPos       = ui_resolve_pos(state, pos, origin, unit);
+  return ui_vector(math_max(toPos.x - currentRect.x, 0), math_max(toPos.y - currentRect.y, 0));
 }
 
 static void ui_build_text_char(void* userCtx, const UiTextCharInfo* info) {
@@ -93,8 +104,9 @@ static void ui_build_text_char(void* userCtx, const UiTextCharInfo* info) {
 }
 
 static bool ui_build_is_hovered(UiBuildState* state) {
-  const f32       minX = state->rect.x, minY = state->rect.y;
-  const f32       maxX = minX + state->rect.width, maxY = minY + state->rect.height;
+  const UiRect    currentRect = *ui_build_rect_currect(state);
+  const f32       minX = currentRect.x, minY = currentRect.y;
+  const f32       maxX = minX + currentRect.width, maxY = minY + currentRect.height;
   const GapVector cursorPos = gap_window_param(state->window, GapParam_CursorPos);
   return cursorPos.x >= minX && cursorPos.x <= maxX && cursorPos.y >= minY && cursorPos.y <= maxY;
 }
@@ -105,7 +117,7 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
   }
   ui_text_build(
       state->font,
-      state->rect,
+      *ui_build_rect_currect(state),
       cmd->text,
       cmd->fontSize,
       state->color,
@@ -123,12 +135,13 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
   if (sentinel_check(ch->glyphIndex)) {
     return; // No glyph for the given codepoint.
   }
-  const f32    halfMinDim = math_min(state->rect.width, state->rect.height) * 0.5f;
-  const f32    corner     = cmd->maxCorner ? math_min(cmd->maxCorner, halfMinDim) : halfMinDim;
-  const f32    border     = ch->border * corner * 2.0f;
-  const UiRect rect       = {
-      .pos  = {state->rect.x - border, state->rect.y - border},
-      .size = {state->rect.width + border * 2, state->rect.height + border * 2},
+  const UiRect currentRect = *ui_build_rect_currect(state);
+  const f32    halfMinDim  = math_min(currentRect.width, currentRect.height) * 0.5f;
+  const f32    corner      = cmd->maxCorner ? math_min(cmd->maxCorner, halfMinDim) : halfMinDim;
+  const f32    border      = ch->border * corner * 2.0f;
+  const UiRect rect        = {
+      .pos  = {currentRect.x - border, currentRect.y - border},
+      .size = {currentRect.width + border * 2, currentRect.height + border * 2},
   };
   state->ctx->outputGlyph(
       state->ctx->userCtx,
@@ -144,15 +157,25 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
 
 static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
   switch (cmd->type) {
+  case UiCmd_RectPush:
+    diag_assert(state->rectStackCount < ui_build_rect_stack_max);
+    state->rectStack[state->rectStackCount] = state->rectStack[state->rectStackCount - 1];
+    ++state->rectStackCount;
+    break;
+  case UiCmd_RectPop:
+    diag_assert(state->rectStackCount);
+    --state->rectStackCount;
+    break;
   case UiCmd_RectMove:
-    state->rect.pos =
+    ui_build_rect_currect(state)->pos =
         ui_resolve_pos(state, cmd->rectMove.pos, cmd->rectMove.origin, cmd->rectMove.unit);
     break;
   case UiCmd_RectResize:
-    state->rect.size = ui_resolve_vec(state, cmd->rectResize.size, cmd->rectResize.unit);
+    ui_build_rect_currect(state)->size =
+        ui_resolve_vec(state, cmd->rectResize.size, cmd->rectResize.unit);
     break;
   case UiCmd_RectResizeTo:
-    state->rect.size = ui_resolve_size_to(
+    ui_build_rect_currect(state)->size = ui_resolve_size_to(
         state, cmd->rectResizeTo.pos, cmd->rectResizeTo.origin, cmd->rectResizeTo.unit);
     break;
   case UiCmd_Style:
@@ -171,13 +194,14 @@ static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
 UiBuildResult ui_build(const UiCmdBuffer* cmdBuffer, const UiBuildCtx* ctx) {
 
   UiBuildState state = {
-      .ctx       = ctx,
-      .window    = ctx->window,
-      .font      = ctx->font,
-      .rect      = g_ui_defaultRect,
-      .color     = g_ui_defaultColor,
-      .outline   = g_ui_defaultOutline,
-      .hoveredId = sentinel_u64,
+      .ctx            = ctx,
+      .window         = ctx->window,
+      .font           = ctx->font,
+      .rectStack[0]   = g_ui_defaultRect,
+      .rectStackCount = 1,
+      .color          = g_ui_defaultColor,
+      .outline        = g_ui_defaultOutline,
+      .hoveredId      = sentinel_u64,
   };
   ctx->outputDraw(ctx->userCtx, ui_build_drawdata(&state));
 

@@ -33,6 +33,14 @@ void ui_cmdbuffer_clear(UiCmdBuffer* buffer) {
   alloc_reset(buffer->allocTransient);
 }
 
+void ui_cmd_push_rect_push(UiCmdBuffer* buffer) {
+  *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){.type = UiCmd_RectPush};
+}
+
+void ui_cmd_push_rect_pop(UiCmdBuffer* buffer) {
+  *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){.type = UiCmd_RectPop};
+}
+
 void ui_cmd_push_rect_move(
     UiCmdBuffer* buffer, const UiVector pos, const UiOrigin origin, const UiUnits unit) {
   *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
