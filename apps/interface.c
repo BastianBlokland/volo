@@ -26,51 +26,20 @@ ecs_system_define(CanvasUpdateSys) {
     UiCanvasComp* canvas = ecs_view_write_t(canvasItr, UiCanvasComp);
     ui_canvas_reset(canvas);
 
-    ui_canvas_move(canvas, ui_vector(10, 10), UiOrigin_WindowBottomLeft, UiUnits_Absolute);
-    ui_canvas_size(canvas, ui_vector(10, 10), UiUnits_Absolute);
-    ui_canvas_style(canvas, ui_color_red, 6);
-    ui_canvas_draw_square(canvas);
+    ui_canvas_move(canvas, ui_vector(0.1f, 0.5f), UiOrigin_WindowBottomLeft, UiUnits_Window);
+    ui_canvas_size(canvas, ui_vector(200, 50), UiUnits_Absolute);
 
-    ui_canvas_move(canvas, ui_vector(1, 0), UiOrigin_Current, UiUnits_Current);
-    ui_canvas_size(canvas, ui_vector(25, 25), UiUnits_Absolute);
-    ui_canvas_style(canvas, ui_color_blue, 6);
-    ui_canvas_draw_square(canvas);
+    ui_button(canvas, .label = string_lit("Hello World"), .frameColor = ui_color(192, 0, 0, 255));
 
-    ui_canvas_move(canvas, ui_vector(1, 0), UiOrigin_Current, UiUnits_Current);
-    ui_canvas_size(canvas, ui_vector(50, 50), UiUnits_Absolute);
-    ui_canvas_style(canvas, ui_color_green, 6);
-    ui_canvas_draw_square(canvas);
-
-    ui_canvas_move(canvas, ui_vector(1, 0), UiOrigin_Current, UiUnits_Current);
-    ui_canvas_size(canvas, ui_vector(100, 100), UiUnits_Absolute);
-    ui_canvas_style(canvas, ui_color_purple, 6);
-    ui_canvas_draw_square(canvas);
-
-    ui_canvas_move(canvas, ui_vector(1, 0), UiOrigin_Current, UiUnits_Current);
-    ui_canvas_size(canvas, ui_vector(200, 200), UiUnits_Absolute);
-    ui_canvas_style(canvas, ui_color_maroon, 6);
-    ui_canvas_draw_circle(canvas, 0);
-
-    ui_canvas_move(canvas, ui_vector(1, 0), UiOrigin_Current, UiUnits_Current);
-    ui_canvas_size(canvas, ui_vector(600, 600), UiUnits_Absolute);
-    ui_canvas_style(canvas, ui_color(32, 32, 32, 192), 6);
-    ui_canvas_draw_square(canvas);
-    ui_canvas_style(canvas, ui_color_white, 1);
-    ui_canvas_draw_text(
+    ui_canvas_move(canvas, ui_vector(0, 1.2f), UiOrigin_Current, UiUnits_Current);
+    ui_button(
         canvas,
-        string_lit(
-            "Lorem ipsum dolor sit amet. The graphic and typographic operators know this well, in "
-            "reality all the professions dealing with the universe of communication have a stable "
-            "relationship with these words, but what is it? Lorem ipsum is a dummy text without "
-            "any sense.\n\n"
-            "It is a sequence of Latin words that, as they are positioned, do not form sentences "
-            "with a complete sense, but give life to a test text useful to fill spaces that will "
-            "subsequently be occupied from ad hoc texts composed by communication "
-            "professionals.\n\n"
-            "It is certainly the most famous placeholder text even if there are different versions "
-            "distinguishable from the order in which the Latin words are repeated."),
-        14,
-        UiTextAlign_MiddleCenter);
+        .label      = string_lit("Test"),
+        .frameColor = ui_color_green,
+        .labelColor = ui_color_yellow);
+
+    ui_canvas_move(canvas, ui_vector(0, 1.2f), UiOrigin_Current, UiUnits_Current);
+    ui_button(canvas, .label = string_lit("\ue3ae"));
   }
 }
 
