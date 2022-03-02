@@ -45,7 +45,7 @@ static void ui_canvas_update_active(
     canvas->activeStatus =
         result.hoveredId == canvas->activeId ? UiStatus_Activated : UiStatus_Idle;
   } else if (gap_window_key_down(window, GapKey_MouseLeft)) {
-    canvas->activeStatus = result.hoveredId == canvas->activeId ? UiStatus_Down : UiStatus_Idle;
+    canvas->activeStatus = result.hoveredId == canvas->activeId ? UiStatus_Pressed : UiStatus_Idle;
   } else {
     canvas->activeId     = result.hoveredId;
     canvas->activeStatus = UiStatus_Hovered;

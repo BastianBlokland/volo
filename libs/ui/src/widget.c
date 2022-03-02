@@ -20,7 +20,7 @@ bool ui_widget_button(UiCanvasComp* canvas, const UiWidgetButtonOpts* opts) {
   case UiStatus_Hovered:
     ui_canvas_style(canvas, ui_widget_color_mult(opts->frameColor, 2), 5);
     break;
-  case UiStatus_Down:
+  case UiStatus_Pressed:
   case UiStatus_Activated:
     ui_canvas_style(canvas, ui_widget_color_mult(opts->frameColor, 3), 3);
     break;
@@ -34,7 +34,7 @@ bool ui_widget_button(UiCanvasComp* canvas, const UiWidgetButtonOpts* opts) {
   case UiStatus_Hovered:
     ui_canvas_style(canvas, opts->labelColor, 4);
     break;
-  case UiStatus_Down:
+  case UiStatus_Pressed:
   case UiStatus_Activated:
     ui_canvas_style(canvas, opts->labelColor, 1);
     break;
