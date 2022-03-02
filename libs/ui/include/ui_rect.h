@@ -9,6 +9,9 @@ typedef union {
     UiVector pos, size;
   };
   f32 data[4];
+  struct {
+    f32 x, y, width, height;
+  };
 } UiRect;
 
 ASSERT(sizeof(UiRect) == 16, "UiRect has to be 128 bits");

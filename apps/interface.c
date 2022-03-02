@@ -26,19 +26,19 @@ ecs_system_define(CanvasUpdateSys) {
     UiCanvasComp* canvas = ecs_view_write_t(canvasItr, UiCanvasComp);
     ui_canvas_reset(canvas);
 
-    ui_canvas_move(canvas, ui_vector(0.1f, 0.5f), UiOrigin_WindowBottomLeft, UiUnits_Window);
-    ui_canvas_size(canvas, ui_vector(200, 50), UiUnits_Absolute);
+    ui_canvas_rect_move(canvas, ui_vector(0.1f, 0.5f), UiOrigin_WindowBottomLeft, UiUnits_Window);
+    ui_canvas_rect_resize(canvas, ui_vector(200, 50), UiUnits_Absolute);
 
     ui_button(canvas, .label = string_lit("Hello World"), .frameColor = ui_color(192, 0, 0, 255));
 
-    ui_canvas_move(canvas, ui_vector(0, 1.2f), UiOrigin_Current, UiUnits_Current);
+    ui_canvas_rect_move(canvas, ui_vector(0, 1.2f), UiOrigin_Current, UiUnits_Current);
     ui_button(
         canvas,
         .label      = string_lit("Test"),
         .frameColor = ui_color_green,
         .labelColor = ui_color_yellow);
 
-    ui_canvas_move(canvas, ui_vector(0, 1.2f), UiOrigin_Current, UiUnits_Current);
+    ui_canvas_rect_move(canvas, ui_vector(0, 1.2f), UiOrigin_Current, UiUnits_Current);
     ui_button(canvas, .label = string_lit("\ue3ae"));
   }
 }

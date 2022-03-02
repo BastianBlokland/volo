@@ -130,10 +130,10 @@ End:
 }
 
 static UiVector ui_text_char_pos(UiTextBuildState* state, const UiTextLine* line) {
-  const f32 width  = state->rect.size.width;
-  const f32 height = state->rect.size.height;
-  const f32 minX = state->rect.pos.x, maxX = minX + width;
-  const f32 minY = state->rect.pos.y, maxY = minY + height;
+  const f32 width  = state->rect.width;
+  const f32 height = state->rect.height;
+  const f32 minX = state->rect.x, maxX = minX + width;
+  const f32 minY = state->rect.y, maxY = minY + height;
   const f32 cursor = state->cursor, lineY = line->posY;
   const f32 textWidth = line->size.width, textHeight = state->totalHeight;
 
@@ -241,7 +241,7 @@ void ui_text_build(
   String     remText   = text;
   while (!string_is_empty(remText)) {
     const f32 lineHeight = lineCount ? (1 + font->lineSpacing) * fontSize : fontSize;
-    if (lineY + lineHeight >= rect.size.height - font->lineSpacing * fontSize) {
+    if (lineY + lineHeight >= rect.height - font->lineSpacing * fontSize) {
       break; // Not enough space remaining for this line.
     }
     lineY += lineHeight;
@@ -251,7 +251,7 @@ void ui_text_build(
       break;
     }
     const usize lineIndex = lineCount++;
-    remText = ui_text_line(font, remText, rect.size.width, fontSize, &lines[lineIndex]);
+    remText               = ui_text_line(font, remText, rect.width, fontSize, &lines[lineIndex]);
 
     lines[lineIndex].posY = lineY;
   }

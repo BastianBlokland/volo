@@ -84,17 +84,17 @@ UiStatus ui_canvas_status(const UiCanvasComp*, UiId);
 /**
  * Move the active rectangle to a new location.
  */
-void ui_canvas_move(UiCanvasComp*, UiVector, UiOrigin, UiUnits);
+void ui_canvas_rect_move(UiCanvasComp*, UiVector, UiOrigin, UiUnits);
 
 /**
  * Change the size of the active rectangle.
  */
-void ui_canvas_size(UiCanvasComp*, UiVector, UiUnits);
+void ui_canvas_rect_resize(UiCanvasComp*, UiVector, UiUnits);
 
 /**
  * Resize the active rectangle to start at the current position and end at the specified position.
  */
-void ui_canvas_size_to(UiCanvasComp*, UiVector, UiOrigin, UiUnits);
+void ui_canvas_rect_resize_to(UiCanvasComp*, UiVector, UiOrigin, UiUnits);
 
 /**
  * Update the active style.

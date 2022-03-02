@@ -171,19 +171,19 @@ UiStatus ui_canvas_status(const UiCanvasComp* comp, const UiId id) {
   return UiStatus_Idle;
 }
 
-void ui_canvas_move(
+void ui_canvas_rect_move(
     UiCanvasComp* comp, const UiVector pos, const UiOrigin origin, const UiUnits unit) {
-  ui_cmd_push_move(comp->cmdBuffer, pos, origin, unit);
+  ui_cmd_push_rect_move(comp->cmdBuffer, pos, origin, unit);
 }
 
-void ui_canvas_size(UiCanvasComp* comp, const UiVector size, const UiUnits unit) {
+void ui_canvas_rect_resize(UiCanvasComp* comp, const UiVector size, const UiUnits unit) {
   diag_assert_msg(size.x >= 0.0f && size.y >= 0.0f, "Negative sizes are not supported");
-  ui_cmd_push_size(comp->cmdBuffer, size, unit);
+  ui_cmd_push_rect_resize(comp->cmdBuffer, size, unit);
 }
 
-void ui_canvas_size_to(
+void ui_canvas_rect_resize_to(
     UiCanvasComp* comp, const UiVector pos, const UiOrigin origin, const UiUnits unit) {
-  ui_cmd_push_size_to(comp->cmdBuffer, pos, origin, unit);
+  ui_cmd_push_rect_resize_to(comp->cmdBuffer, pos, origin, unit);
 }
 
 void ui_canvas_style(UiCanvasComp* comp, const UiColor color, const u8 outline) {
