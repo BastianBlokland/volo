@@ -61,5 +61,3 @@ void ui_canvas_style(UiCanvasComp*, UiColor, u8 outline);
 
 UiId ui_canvas_draw_text(UiCanvasComp*, String text, u16 fontSize, UiTextAlign, UiFlags);
 UiId ui_canvas_draw_glyph(UiCanvasComp*, Unicode, u16 maxCorner, UiFlags);
-UiId ui_canvas_draw_square(UiCanvasComp*, UiFlags);
-UiId ui_canvas_draw_circle(UiCanvasComp*, u16 maxCorner, UiFlags);

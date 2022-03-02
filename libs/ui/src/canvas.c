@@ -8,7 +8,6 @@
 #include "builder_internal.h"
 #include "cmd_internal.h"
 #include "resource_internal.h"
-#include "shape_internal.h"
 
 ecs_comp_define(UiCanvasComp) {
   EcsEntityId  window;
@@ -210,12 +209,4 @@ UiId ui_canvas_draw_glyph(
   const UiId id = comp->nextId++;
   ui_cmd_push_draw_glyph(comp->cmdBuffer, id, cp, maxCorner, flags);
   return id;
-}
-
-UiId ui_canvas_draw_square(UiCanvasComp* comp, const UiFlags flags) {
-  return ui_canvas_draw_glyph(comp, ui_shape_square, 25, flags);
-}
-
-UiId ui_canvas_draw_circle(UiCanvasComp* comp, const u16 maxCorner, const UiFlags flags) {
-  return ui_canvas_draw_glyph(comp, ui_shape_circle, maxCorner, flags);
 }

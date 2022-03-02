@@ -2,6 +2,8 @@
 #include "ui_canvas.h"
 #include "ui_widget.h"
 
+#include "shape_internal.h"
+
 static UiColor ui_widget_color_mult(const UiColor color, const f32 mult) {
   return ui_color(
       (u8)math_min(color.r * mult, u8_max),
@@ -26,7 +28,7 @@ bool ui_widget_button(UiCanvasComp* canvas, const UiWidgetButtonOpts* opts) {
     ui_canvas_style(canvas, opts->frameColor, 4);
     break;
   }
-  ui_canvas_draw_circle(canvas, 20, UiFlags_Interactable);
+  ui_canvas_draw_glyph(canvas, ui_shape_circle, 20, UiFlags_Interactable);
 
   switch (status) {
   case UiStatus_Hovered:
