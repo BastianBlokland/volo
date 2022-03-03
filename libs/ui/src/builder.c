@@ -12,7 +12,7 @@
 
 static const UiRect  g_ui_defaultRect    = {0, 0, 100, 100};
 static const UiColor g_ui_defaultColor   = {255, 255, 255, 255};
-static const u8      g_ui_defaultOutline = 0;
+static const u8      g_ui_defaultOutline = 2;
 
 typedef struct {
   UiColor color;

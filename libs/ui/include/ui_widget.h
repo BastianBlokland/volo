@@ -8,7 +8,6 @@ ecs_comp_extern(UiCanvasComp);
 typedef struct {
   String  label;
   u16     fontSize;
-  UiColor labelColor;
   UiColor frameColor;
 } UiWidgetButtonOpts;
 
@@ -21,7 +20,6 @@ typedef struct {
  */
 #define ui_button(_CANVAS_, ...) ui_widget_button((_CANVAS_), &((UiWidgetButtonOpts){              \
   .fontSize   = 25,                                                                                \
-  .labelColor = ui_color(255, 255, 255, 255),                                                      \
   .frameColor = ui_color(32, 32, 32, 192),                                                         \
   __VA_ARGS__}))
 

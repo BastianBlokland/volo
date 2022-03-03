@@ -13,11 +13,10 @@ static UiColor ui_widget_color_mult(const UiColor color, const f32 mult) {
 }
 
 bool ui_widget_button(UiCanvasComp* canvas, const UiWidgetButtonOpts* opts) {
-  ui_canvas_style_push(canvas);
-
   const UiId     id     = ui_canvas_next_id(canvas);
   const UiStatus status = ui_canvas_status(canvas, id);
 
+  ui_canvas_style_push(canvas);
   switch (status) {
   case UiStatus_Hovered:
     ui_canvas_style_color(canvas, ui_widget_color_mult(opts->frameColor, 2));
@@ -34,8 +33,9 @@ bool ui_widget_button(UiCanvasComp* canvas, const UiWidgetButtonOpts* opts) {
     break;
   }
   ui_canvas_draw_glyph(canvas, ui_shape_circle, 20, UiFlags_Interactable);
+  ui_canvas_style_pop(canvas);
 
-  ui_canvas_style_color(canvas, opts->labelColor);
+  ui_canvas_style_push(canvas);
   switch (status) {
   case UiStatus_Hovered:
     ui_canvas_style_outline(canvas, 4);
@@ -45,11 +45,10 @@ bool ui_widget_button(UiCanvasComp* canvas, const UiWidgetButtonOpts* opts) {
     ui_canvas_style_outline(canvas, 1);
     break;
   case UiStatus_Idle:
-    ui_canvas_style_outline(canvas, 2);
     break;
   }
   ui_canvas_draw_text(canvas, opts->label, opts->fontSize, UiTextAlign_MiddleCenter, UiFlags_None);
-
   ui_canvas_style_pop(canvas);
+
   return status == UiStatus_Activated;
 }
