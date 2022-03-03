@@ -4,6 +4,7 @@
 #include "ecs_world.h"
 #include "gap_window.h"
 #include "scene_renderable.h"
+#include "ui_register.h"
 
 #include "builder_internal.h"
 #include "cmd_internal.h"
@@ -143,6 +144,8 @@ ecs_module_init(ui_canvas_module) {
       ecs_view_id(GlobalResourcesView),
       ecs_view_id(FtxView),
       ecs_view_id(WindowView));
+
+  ecs_order(UiCanvasBuildSys, UiOrder_CanvasBuild);
 }
 
 EcsEntityId ui_canvas_create(EcsWorld* world, const EcsEntityId window) {
