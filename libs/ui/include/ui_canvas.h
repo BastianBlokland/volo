@@ -82,7 +82,7 @@ UiId ui_canvas_next_id(const UiCanvasComp*);
 UiStatus ui_canvas_status(const UiCanvasComp*, UiId);
 
 /**
- * Push / Pop an element from the rectangle stack.
+ * Push / Pop an element to / from the rectangle stack.
  * Usefull for local changes to the current rectangle with an easy way to restore the previous.
  */
 void ui_canvas_rect_push(UiCanvasComp*);
@@ -102,6 +102,13 @@ void ui_canvas_rect_resize(UiCanvasComp*, UiVector, UiUnits);
  * Resize the current rectangle to start at the current position and end at the specified position.
  */
 void ui_canvas_rect_resize_to(UiCanvasComp*, UiVector, UiOrigin, UiUnits);
+
+/**
+ * Push / Pop an element to / from the style stack.
+ * Usefull for local changes to the current style with an easy way to restore the previous.
+ */
+void ui_canvas_style_push(UiCanvasComp*);
+void ui_canvas_style_pop(UiCanvasComp*);
 
 /**
  * Update the current style.

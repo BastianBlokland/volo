@@ -72,6 +72,14 @@ void ui_cmd_push_rect_resize_to(
       }};
 }
 
+void ui_cmd_push_style_push(UiCmdBuffer* buffer) {
+  *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){.type = UiCmd_StylePush};
+}
+
+void ui_cmd_push_style_pop(UiCmdBuffer* buffer) {
+  *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){.type = UiCmd_StylePop};
+}
+
 void ui_cmd_push_style(UiCmdBuffer* buffer, const UiColor color, const u8 outline) {
   *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
       .type  = UiCmd_Style,

@@ -9,6 +9,8 @@ typedef enum {
   UiCmd_RectMove,
   UiCmd_RectResize,
   UiCmd_RectResizeTo,
+  UiCmd_StylePush,
+  UiCmd_StylePop,
   UiCmd_Style,
   UiCmd_DrawText,
   UiCmd_DrawGlyph,
@@ -74,6 +76,8 @@ void ui_cmd_push_rect_pop(UiCmdBuffer*);
 void ui_cmd_push_rect_move(UiCmdBuffer*, UiVector pos, UiOrigin, UiUnits);
 void ui_cmd_push_rect_resize(UiCmdBuffer*, UiVector size, UiUnits);
 void ui_cmd_push_rect_resize_to(UiCmdBuffer*, UiVector pos, UiOrigin, UiUnits);
+void ui_cmd_push_style_push(UiCmdBuffer*);
+void ui_cmd_push_style_pop(UiCmdBuffer*);
 void ui_cmd_push_style(UiCmdBuffer*, UiColor, u8 outline);
 void ui_cmd_push_draw_text(UiCmdBuffer*, UiId, String text, u16 fontSize, UiTextAlign, UiFlags);
 void ui_cmd_push_draw_glyph(UiCmdBuffer*, UiId, Unicode cp, u16 maxCorner, UiFlags);

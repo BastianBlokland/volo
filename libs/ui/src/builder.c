@@ -7,11 +7,17 @@
 #include "cmd_internal.h"
 #include "text_internal.h"
 
+#define ui_build_rect_stack_max 10
+#define ui_build_style_stack_max 10
+
 static const UiRect  g_ui_defaultRect    = {0, 0, 100, 100};
 static const UiColor g_ui_defaultColor   = {255, 255, 255, 255};
 static const u8      g_ui_defaultOutline = 0;
 
-#define ui_build_rect_stack_max 10
+typedef struct {
+  UiColor color;
+  u8      outline;
+} UiBuildStyle;
 
 typedef struct {
   const UiBuildCtx*    ctx;
@@ -19,14 +25,19 @@ typedef struct {
   const AssetFtxComp*  font;
   UiRect               rectStack[ui_build_rect_stack_max];
   u32                  rectStackCount;
-  UiColor              color;
-  u8                   outline;
+  UiBuildStyle         styleStack[ui_build_style_stack_max];
+  u32                  styleStackCount;
   UiId                 hoveredId;
 } UiBuildState;
 
 static UiRect* ui_build_rect_currect(UiBuildState* state) {
   diag_assert(state->rectStackCount);
   return &state->rectStack[state->rectStackCount - 1];
+}
+
+static UiBuildStyle* ui_build_style_currect(UiBuildState* state) {
+  diag_assert(state->rectStackCount);
+  return &state->styleStack[state->styleStackCount - 1];
 }
 
 static UiDrawData ui_build_drawdata(const UiBuildState* state) {
@@ -120,8 +131,8 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
       *ui_build_rect_currect(state),
       cmd->text,
       cmd->fontSize,
-      state->color,
-      state->outline,
+      ui_build_style_currect(state)->color,
+      ui_build_style_currect(state)->outline,
       cmd->align,
       state,
       &ui_build_text_char);
@@ -147,11 +158,11 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
       state->ctx->userCtx,
       (UiGlyphData){
           .rect         = rect,
-          .color        = state->color,
+          .color        = ui_build_style_currect(state)->color,
           .atlasIndex   = ch->glyphIndex,
           .borderFrac   = (u16)(border / rect.size.width * u16_max),
           .cornerFrac   = (u16)((corner + border) / rect.size.width * u16_max),
-          .outlineWidth = state->outline,
+          .outlineWidth = ui_build_style_currect(state)->outline,
       });
 }
 
@@ -178,9 +189,18 @@ static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
     ui_build_rect_currect(state)->size = ui_resolve_size_to(
         state, cmd->rectResizeTo.pos, cmd->rectResizeTo.origin, cmd->rectResizeTo.unit);
     break;
+  case UiCmd_StylePush:
+    diag_assert(state->styleStackCount < ui_build_style_stack_max);
+    state->styleStack[state->styleStackCount] = state->styleStack[state->styleStackCount - 1];
+    ++state->styleStackCount;
+    break;
+  case UiCmd_StylePop:
+    diag_assert(state->styleStackCount);
+    --state->styleStackCount;
+    break;
   case UiCmd_Style:
-    state->color   = cmd->style.color;
-    state->outline = cmd->style.outline;
+    ui_build_style_currect(state)->color   = cmd->style.color;
+    ui_build_style_currect(state)->outline = cmd->style.outline;
     break;
   case UiCmd_DrawText:
     ui_build_draw_text(state, &cmd->drawText);
@@ -194,14 +214,14 @@ static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
 UiBuildResult ui_build(const UiCmdBuffer* cmdBuffer, const UiBuildCtx* ctx) {
 
   UiBuildState state = {
-      .ctx            = ctx,
-      .window         = ctx->window,
-      .font           = ctx->font,
-      .rectStack[0]   = g_ui_defaultRect,
-      .rectStackCount = 1,
-      .color          = g_ui_defaultColor,
-      .outline        = g_ui_defaultOutline,
-      .hoveredId      = sentinel_u64,
+      .ctx             = ctx,
+      .window          = ctx->window,
+      .font            = ctx->font,
+      .rectStack[0]    = g_ui_defaultRect,
+      .rectStackCount  = 1,
+      .styleStack[0]   = {g_ui_defaultColor, g_ui_defaultOutline},
+      .styleStackCount = 1,
+      .hoveredId       = sentinel_u64,
   };
   ctx->outputDraw(ctx->userCtx, ui_build_drawdata(&state));
 

@@ -13,6 +13,8 @@ static UiColor ui_widget_color_mult(const UiColor color, const f32 mult) {
 }
 
 bool ui_widget_button(UiCanvasComp* canvas, const UiWidgetButtonOpts* opts) {
+  ui_canvas_style_push(canvas);
+
   const UiId     id     = ui_canvas_next_id(canvas);
   const UiStatus status = ui_canvas_status(canvas, id);
 
@@ -44,5 +46,6 @@ bool ui_widget_button(UiCanvasComp* canvas, const UiWidgetButtonOpts* opts) {
   }
   ui_canvas_draw_text(canvas, opts->label, opts->fontSize, UiTextAlign_MiddleCenter, UiFlags_None);
 
+  ui_canvas_style_pop(canvas);
   return status == UiStatus_Activated;
 }

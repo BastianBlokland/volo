@@ -189,6 +189,9 @@ void ui_canvas_rect_resize_to(
   ui_cmd_push_rect_resize_to(comp->cmdBuffer, pos, origin, unit);
 }
 
+void ui_canvas_style_push(UiCanvasComp* comp) { ui_cmd_push_style_push(comp->cmdBuffer); }
+void ui_canvas_style_pop(UiCanvasComp* comp) { ui_cmd_push_style_pop(comp->cmdBuffer); }
+
 void ui_canvas_style(UiCanvasComp* comp, const UiColor color, const u8 outline) {
   ui_cmd_push_style(comp->cmdBuffer, color, outline);
 }
