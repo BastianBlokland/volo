@@ -192,8 +192,12 @@ void ui_canvas_rect_resize_to(
 void ui_canvas_style_push(UiCanvasComp* comp) { ui_cmd_push_style_push(comp->cmdBuffer); }
 void ui_canvas_style_pop(UiCanvasComp* comp) { ui_cmd_push_style_pop(comp->cmdBuffer); }
 
-void ui_canvas_style(UiCanvasComp* comp, const UiColor color, const u8 outline) {
-  ui_cmd_push_style(comp->cmdBuffer, color, outline);
+void ui_canvas_style_color(UiCanvasComp* comp, const UiColor color) {
+  ui_cmd_push_style_color(comp->cmdBuffer, color);
+}
+
+void ui_canvas_style_outline(UiCanvasComp* comp, const u8 outline) {
+  ui_cmd_push_style_outline(comp->cmdBuffer, outline);
 }
 
 UiId ui_canvas_draw_text(

@@ -89,18 +89,10 @@ void ui_canvas_rect_push(UiCanvasComp*);
 void ui_canvas_rect_pop(UiCanvasComp*);
 
 /**
- * Move the current rectangle to a new location.
+ * Update the current rect.
  */
 void ui_canvas_rect_move(UiCanvasComp*, UiVector, UiOrigin, UiUnits);
-
-/**
- * Change the size of the current rectangle.
- */
 void ui_canvas_rect_resize(UiCanvasComp*, UiVector, UiUnits);
-
-/**
- * Resize the current rectangle to start at the current position and end at the specified position.
- */
 void ui_canvas_rect_resize_to(UiCanvasComp*, UiVector, UiOrigin, UiUnits);
 
 /**
@@ -113,7 +105,8 @@ void ui_canvas_style_pop(UiCanvasComp*);
 /**
  * Update the current style.
  */
-void ui_canvas_style(UiCanvasComp*, UiColor, u8 outline);
+void ui_canvas_style_color(UiCanvasComp*, UiColor);
+void ui_canvas_style_outline(UiCanvasComp*, u8 outline);
 
 /**
  * Draw text in the current rectangle.

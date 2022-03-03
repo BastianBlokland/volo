@@ -198,9 +198,11 @@ static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
     diag_assert(state->styleStackCount);
     --state->styleStackCount;
     break;
-  case UiCmd_Style:
-    ui_build_style_currect(state)->color   = cmd->style.color;
-    ui_build_style_currect(state)->outline = cmd->style.outline;
+  case UiCmd_StyleColor:
+    ui_build_style_currect(state)->color = cmd->styleColor.value;
+    break;
+  case UiCmd_StyleOutline:
+    ui_build_style_currect(state)->outline = cmd->styleOutline.value;
     break;
   case UiCmd_DrawText:
     ui_build_draw_text(state, &cmd->drawText);

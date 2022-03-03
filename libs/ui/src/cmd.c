@@ -80,12 +80,19 @@ void ui_cmd_push_style_pop(UiCmdBuffer* buffer) {
   *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){.type = UiCmd_StylePop};
 }
 
-void ui_cmd_push_style(UiCmdBuffer* buffer, const UiColor color, const u8 outline) {
+void ui_cmd_push_style_color(UiCmdBuffer* buffer, const UiColor color) {
   *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
-      .type  = UiCmd_Style,
-      .style = {
-          .color   = color,
-          .outline = outline,
+      .type       = UiCmd_StyleColor,
+      .styleColor = {
+          .value = color,
+      }};
+}
+
+void ui_cmd_push_style_outline(UiCmdBuffer* buffer, const u8 outline) {
+  *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
+      .type         = UiCmd_StyleOutline,
+      .styleOutline = {
+          .value = outline,
       }};
 }
 
