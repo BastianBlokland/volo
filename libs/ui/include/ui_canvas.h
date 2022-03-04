@@ -61,6 +61,12 @@ typedef enum {
 } UiStatus;
 
 typedef enum {
+  Ui_X  = 1 << 0,
+  Ui_Y  = 1 << 1,
+  Ui_XY = Ui_X | Ui_Y,
+} UiAxis;
+
+typedef enum {
   UiFlags_None         = 0,
   UiFlags_Interactable = 1 << 0,
 } UiFlags;
@@ -91,9 +97,9 @@ void ui_canvas_rect_pop(UiCanvasComp*);
 /**
  * Update the current rect.
  */
-void ui_canvas_rect_move(UiCanvasComp*, UiVector, UiOrigin, UiUnits);
-void ui_canvas_rect_resize(UiCanvasComp*, UiVector, UiUnits);
-void ui_canvas_rect_resize_to(UiCanvasComp*, UiVector, UiOrigin, UiUnits);
+void ui_canvas_rect_move(UiCanvasComp*, UiVector, UiOrigin, UiUnits, UiAxis);
+void ui_canvas_rect_resize(UiCanvasComp*, UiVector, UiUnits, UiAxis);
+void ui_canvas_rect_resize_to(UiCanvasComp*, UiVector, UiOrigin, UiUnits, UiAxis);
 
 /**
  * Push / Pop an element to / from the style stack.

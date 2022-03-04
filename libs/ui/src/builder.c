@@ -91,6 +91,24 @@ static UiVector ui_resolve_size_to(
   return ui_vector(math_max(toPos.x - currentRect.x, 0), math_max(toPos.y - currentRect.y, 0));
 }
 
+static void ui_build_set_pos(UiBuildState* state, const UiVector val, const UiAxis axis) {
+  if (axis & Ui_X) {
+    ui_build_rect_currect(state)->pos.x = val.x;
+  }
+  if (axis & Ui_Y) {
+    ui_build_rect_currect(state)->pos.y = val.y;
+  }
+}
+
+static void ui_build_set_size(UiBuildState* state, const UiVector val, const UiAxis axis) {
+  if (axis & Ui_X) {
+    ui_build_rect_currect(state)->size.x = val.x;
+  }
+  if (axis & Ui_Y) {
+    ui_build_rect_currect(state)->size.y = val.y;
+  }
+}
+
 static void ui_build_text_char(void* userCtx, const UiTextCharInfo* info) {
   UiBuildState* state = userCtx;
 
@@ -178,16 +196,23 @@ static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
     --state->rectStackCount;
     break;
   case UiCmd_RectMove:
-    ui_build_rect_currect(state)->pos =
-        ui_resolve_pos(state, cmd->rectMove.pos, cmd->rectMove.origin, cmd->rectMove.unit);
+    ui_build_set_pos(
+        state,
+        ui_resolve_pos(state, cmd->rectMove.pos, cmd->rectMove.origin, cmd->rectMove.unit),
+        cmd->rectMove.axis);
     break;
   case UiCmd_RectResize:
-    ui_build_rect_currect(state)->size =
-        ui_resolve_vec(state, cmd->rectResize.size, cmd->rectResize.unit);
+    ui_build_set_size(
+        state,
+        ui_resolve_vec(state, cmd->rectResize.size, cmd->rectResize.unit),
+        cmd->rectResize.axis);
     break;
   case UiCmd_RectResizeTo:
-    ui_build_rect_currect(state)->size = ui_resolve_size_to(
-        state, cmd->rectResizeTo.pos, cmd->rectResizeTo.origin, cmd->rectResizeTo.unit);
+    ui_build_set_size(
+        state,
+        ui_resolve_size_to(
+            state, cmd->rectResizeTo.pos, cmd->rectResizeTo.origin, cmd->rectResizeTo.unit),
+        cmd->rectResizeTo.axis);
     break;
   case UiCmd_StylePush:
     diag_assert(state->styleStackCount < ui_build_style_stack_max);
@@ -214,7 +239,6 @@ static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
 }
 
 UiBuildResult ui_build(const UiCmdBuffer* cmdBuffer, const UiBuildCtx* ctx) {
-
   UiBuildState state = {
       .ctx             = ctx,
       .window          = ctx->window,

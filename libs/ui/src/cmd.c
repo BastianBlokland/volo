@@ -42,33 +42,45 @@ void ui_cmd_push_rect_pop(UiCmdBuffer* buffer) {
 }
 
 void ui_cmd_push_rect_move(
-    UiCmdBuffer* buffer, const UiVector pos, const UiOrigin origin, const UiUnits unit) {
+    UiCmdBuffer*   buffer,
+    const UiVector pos,
+    const UiOrigin origin,
+    const UiUnits  unit,
+    const UiAxis   axis) {
   *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
       .type     = UiCmd_RectMove,
       .rectMove = {
           .pos    = pos,
           .origin = origin,
           .unit   = unit,
+          .axis   = axis,
       }};
 }
 
-void ui_cmd_push_rect_resize(UiCmdBuffer* buffer, const UiVector size, const UiUnits unit) {
+void ui_cmd_push_rect_resize(
+    UiCmdBuffer* buffer, const UiVector size, const UiUnits unit, const UiAxis axis) {
   *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
       .type       = UiCmd_RectResize,
       .rectResize = {
           .size = size,
           .unit = unit,
+          .axis = axis,
       }};
 }
 
 void ui_cmd_push_rect_resize_to(
-    UiCmdBuffer* buffer, const UiVector pos, const UiOrigin origin, const UiUnits unit) {
+    UiCmdBuffer*   buffer,
+    const UiVector pos,
+    const UiOrigin origin,
+    const UiUnits  unit,
+    const UiAxis   axis) {
   *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
       .type         = UiCmd_RectResizeTo,
       .rectResizeTo = {
           .pos    = pos,
           .origin = origin,
           .unit   = unit,
+          .axis   = axis,
       }};
 }
 
