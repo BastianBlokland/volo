@@ -9,6 +9,7 @@ add_library(lib_ui STATIC
   src/canvas.c
   src/cmd.c
   src/escape.c
+  src/layout.c
   src/register.c
   src/resource.c
   src/text.c

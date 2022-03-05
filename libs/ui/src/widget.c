@@ -1,5 +1,6 @@
 #include "core_math.h"
 #include "ui_canvas.h"
+#include "ui_layout.h"
 #include "ui_widget.h"
 
 #include "shape_internal.h"
@@ -57,9 +58,9 @@ static void ui_slider_bar(UiCanvasComp* canvas, const UiStatus status, const UiS
   ui_canvas_rect_push(canvas);
   ui_canvas_style_push(canvas);
 
-  ui_canvas_rect_move(canvas, ui_vector(0, 0.5f), UiOrigin_Current, UiUnits_Current, Ui_Y);
+  ui_layout_to_center(canvas, Ui_Y);
   ui_canvas_rect_resize(canvas, ui_vector(0, opts->barHeight), UiUnits_Absolute, Ui_Y);
-  ui_canvas_rect_move(canvas, ui_vector(0, -0.5f), UiOrigin_Current, UiUnits_Current, Ui_Y);
+  ui_layout_from_center(canvas, Ui_Y);
 
   ui_canvas_style_outline(canvas, 2);
   switch (status) {
@@ -86,7 +87,7 @@ static void ui_slider_handle(
   const UiVector handleSize = ui_vector(opts->handleSize, opts->handleSize);
   ui_canvas_rect_move(canvas, ui_vector(normValue, 0.5f), UiOrigin_Current, UiUnits_Current, Ui_XY);
   ui_canvas_rect_resize(canvas, handleSize, UiUnits_Absolute, Ui_XY);
-  ui_canvas_rect_move(canvas, ui_vector(-0.5f, -0.5f), UiOrigin_Current, UiUnits_Current, Ui_XY);
+  ui_layout_from_center(canvas, Ui_XY);
 
   switch (status) {
   case UiStatus_Hovered:
@@ -113,7 +114,7 @@ static void ui_slider_label(UiCanvasComp* canvas, const f32 normValue, const UiS
 
   ui_canvas_rect_move(canvas, ui_vector(normValue, 0.5f), UiOrigin_Current, UiUnits_Current, Ui_XY);
   ui_canvas_rect_resize(canvas, g_maxSize, UiUnits_Absolute, Ui_XY);
-  ui_canvas_rect_move(canvas, ui_vector(-0.5f, -0.5f), UiOrigin_Current, UiUnits_Current, Ui_XY);
+  ui_layout_from_center(canvas, Ui_XY);
   ui_canvas_rect_move(canvas, offsetFromHandle, UiOrigin_Current, UiUnits_Absolute, Ui_Y);
 
   const f32    value = math_lerp(opts->min, opts->max, normValue);
