@@ -1,9 +1,8 @@
 #include "core_math.h"
 #include "ui_canvas.h"
 #include "ui_layout.h"
+#include "ui_shape.h"
 #include "ui_widget.h"
-
-#include "shape_internal.h"
 
 static UiColor ui_color_mult(const UiColor color, const f32 mult) {
   return ui_color(
@@ -33,7 +32,7 @@ bool ui_button_with_opts(UiCanvasComp* canvas, const UiButtonOpts* opts) {
     ui_canvas_style_outline(canvas, 4);
     break;
   }
-  ui_canvas_draw_glyph(canvas, ui_shape_circle, 20, UiFlags_Interactable);
+  ui_canvas_draw_glyph(canvas, UiShape_Circle, 20, UiFlags_Interactable);
   ui_canvas_style_pop(canvas);
 
   ui_canvas_style_push(canvas);
@@ -73,7 +72,7 @@ static void ui_slider_bar(UiCanvasComp* canvas, const UiStatus status, const UiS
     ui_canvas_style_color(canvas, opts->barColor);
     break;
   }
-  ui_canvas_draw_glyph(canvas, ui_shape_square, 0, UiFlags_Interactable);
+  ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_Interactable);
 
   ui_canvas_style_pop(canvas);
   ui_canvas_rect_pop(canvas);
@@ -100,7 +99,7 @@ static void ui_slider_handle(
   case UiStatus_Idle:
     break;
   }
-  ui_canvas_draw_glyph(canvas, ui_shape_circle, 0, UiFlags_Interactable);
+  ui_canvas_draw_glyph(canvas, UiShape_Circle, 0, UiFlags_Interactable);
 
   ui_canvas_style_pop(canvas);
   ui_canvas_rect_pop(canvas);

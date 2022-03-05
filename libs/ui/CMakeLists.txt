@@ -12,6 +12,7 @@ add_library(lib_ui STATIC
   src/layout.c
   src/register.c
   src/resource.c
+  src/shape.c
   src/text.c
   src/widget.c
   )

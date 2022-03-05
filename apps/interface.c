@@ -40,7 +40,7 @@ ecs_system_define(CanvasUpdateSys) {
     ui_slider(canvas, &value);
 
     ui_canvas_rect_move(canvas, ui_vector(0, 1.2f), UiOrigin_Current, UiUnits_Current, Ui_XY);
-    ui_button(canvas, .label = string_lit("\ue3ae"));
+    ui_button(canvas, .label = ui_shape_scratch(UiShape_QueryStats));
   }
 }
 
