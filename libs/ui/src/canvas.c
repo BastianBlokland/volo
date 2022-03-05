@@ -21,6 +21,7 @@ ecs_comp_define(UiCanvasComp) {
   UiId         nextId;
   DynArray     elements; // UiElement[]
   UiId         activeId;
+  UiVector     inputDelta, inputPos;
 };
 
 static void ecs_destruct_canvas(void* data) {
@@ -64,6 +65,11 @@ static void ui_canvas_output_rect(void* userCtx, const UiId id, const UiRect rec
 
 static void ui_canvas_update_input(
     UiCanvasComp* canvas, const GapWindowComp* window, const UiBuildResult result) {
+
+  const GapVector cursorDelta = gap_window_param(window, GapParam_CursorDelta);
+  const GapVector cursorPos   = gap_window_param(window, GapParam_CursorPos);
+  canvas->inputDelta          = ui_vector(cursorDelta.x, cursorDelta.y);
+  canvas->inputPos            = ui_vector(cursorPos.x, cursorPos.y);
 
   const bool inputDown     = gap_window_key_down(window, GapKey_MouseLeft);
   const bool inputReleased = gap_window_key_released(window, GapKey_MouseLeft);
@@ -222,6 +228,9 @@ UiRect ui_canvas_elem_rect(const UiCanvasComp* comp, const UiId id) {
   const UiElement* elem = ui_build_elem(comp, id);
   return elem ? elem->rect : ui_rect(ui_vector(0, 0), ui_vector(0, 0));
 }
+
+UiVector ui_canvas_input_delta(const UiCanvasComp* comp) { return comp->inputDelta; }
+UiVector ui_canvas_input_pos(const UiCanvasComp* comp) { return comp->inputPos; }
 
 void ui_canvas_rect_push(UiCanvasComp* comp) { ui_cmd_push_rect_push(comp->cmdBuffer); }
 void ui_canvas_rect_pop(UiCanvasComp* comp) { ui_cmd_push_rect_pop(comp->cmdBuffer); }

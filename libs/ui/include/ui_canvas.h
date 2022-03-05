@@ -89,6 +89,12 @@ UiStatus ui_canvas_elem_status(const UiCanvasComp*, UiId);
 UiRect   ui_canvas_elem_rect(const UiCanvasComp*, UiId);
 
 /**
+ * Query input information.
+ */
+UiVector ui_canvas_input_delta(const UiCanvasComp*);
+UiVector ui_canvas_input_pos(const UiCanvasComp*);
+
+/**
  * Push / Pop an element to / from the rectangle stack.
  * Usefull for local changes to the current rectangle with an easy way to restore the previous.
  */
