@@ -32,7 +32,7 @@
  * NOTE: Does not clamp t (so can extrapolate too).
  * NOTE: _X_ is expanded multiple times, so care must be taken when providing complex expressions.
  */
-#define math_lerp(_X_, _Y_, _T_) (_X_ + (_Y_ - _X_) * _T_)
+#define math_lerp(_X_, _Y_, _T_) ((_X_) + ((_Y_) - (_X_)) * (_T_))
 
 /**
  * Opposite of lerp, calculate at what t the value lies in respect to x and y.
@@ -40,7 +40,7 @@
  * NOTE: _X_ is expanded multiple times, so care must be taken when providing complex expressions.
  * NOTE: _Y_ is expanded multiple times, so care must be taken when providing complex expressions.
  */
-#define math_unlerp(_X_, _Y_, _VALUE_) (_X_ == _Y_) ? 0 : (_VALUE_ - _X_) / (_Y_ - _X_)
+#define math_unlerp(_X_, _Y_, _VALUE_) ((_X_) == (_Y_)) ? 0 : ((_VALUE_) - (_X_)) / ((_Y_) - (_X_))
 
 #define math_pi_f32 3.141592653589793238463f
 #define math_pi_f64 3.141592653589793238463
