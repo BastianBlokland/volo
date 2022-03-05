@@ -14,7 +14,7 @@ static UiColor ui_widget_color_mult(const UiColor color, const f32 mult) {
 
 bool ui_widget_button(UiCanvasComp* canvas, const UiWidgetButtonOpts* opts) {
   const UiId     id     = ui_canvas_next_id(canvas);
-  const UiStatus status = ui_canvas_status(canvas, id);
+  const UiStatus status = ui_canvas_elem_status(canvas, id);
 
   ui_canvas_style_push(canvas);
   switch (status) {
@@ -38,7 +38,7 @@ bool ui_widget_button(UiCanvasComp* canvas, const UiWidgetButtonOpts* opts) {
   ui_canvas_style_push(canvas);
   switch (status) {
   case UiStatus_Hovered:
-    ui_canvas_style_outline(canvas, 4);
+    ui_canvas_style_outline(canvas, 3);
     break;
   case UiStatus_Pressed:
   case UiStatus_Activated:

@@ -10,23 +10,41 @@
 #include "cmd_internal.h"
 #include "resource_internal.h"
 
+typedef struct {
+  UiRect   rect;
+  UiStatus status;
+} UiElement;
+
 ecs_comp_define(UiCanvasComp) {
   EcsEntityId  window;
   UiCmdBuffer* cmdBuffer;
   UiId         nextId;
+  DynArray     elements; // UiElement[]
   UiId         activeId;
-  UiStatus     activeStatus;
 };
 
 static void ecs_destruct_canvas(void* data) {
   UiCanvasComp* comp = data;
   ui_cmdbuffer_destroy(comp->cmdBuffer);
+  dynarray_destroy(&comp->elements);
 }
 
 typedef struct {
   DynString* output;
   u32        outputNumGlyphs;
+  DynArray*  elementsOutput; // UiElement[]*
 } UiRenderState;
+
+static const UiElement* ui_build_elem(const UiCanvasComp* canvas, const UiId id) {
+  if (id >= canvas->elements.size) {
+    return null;
+  }
+  return dynarray_at_t(&canvas->elements, id, UiElement);
+}
+
+static UiElement* ui_build_elem_mutable(UiCanvasComp* canvas, const UiId id) {
+  return (UiElement*)ui_build_elem(canvas, id);
+}
 
 static void ui_canvas_output_draw(void* userCtx, const UiDrawData data) {
   UiRenderState* renderState                                                = userCtx;
@@ -39,18 +57,40 @@ static void ui_canvas_output_glyph(void* userCtx, const UiGlyphData data) {
   ++renderState->outputNumGlyphs;
 }
 
-static void ui_canvas_update_active(
+static void ui_canvas_output_rect(void* userCtx, const UiId id, const UiRect rect) {
+  UiRenderState* renderState                                      = userCtx;
+  dynarray_at_t(renderState->elementsOutput, id, UiElement)->rect = rect;
+}
+
+static void ui_canvas_update_input(
     UiCanvasComp* canvas, const GapWindowComp* window, const UiBuildResult result) {
 
-  if (gap_window_key_released(window, GapKey_MouseLeft)) {
-    canvas->activeStatus =
-        result.hoveredId == canvas->activeId ? UiStatus_Activated : UiStatus_Idle;
-  } else if (gap_window_key_down(window, GapKey_MouseLeft)) {
-    canvas->activeStatus = result.hoveredId == canvas->activeId ? UiStatus_Pressed : UiStatus_Idle;
-  } else {
-    canvas->activeId     = result.hoveredId;
-    canvas->activeStatus = UiStatus_Hovered;
+  const bool inputDown     = gap_window_key_down(window, GapKey_MouseLeft);
+  const bool inputReleased = gap_window_key_released(window, GapKey_MouseLeft);
+
+  UiElement* activeElem  = ui_build_elem_mutable(canvas, canvas->activeId);
+  UiElement* hoveredElem = ui_build_elem_mutable(canvas, result.hoveredId);
+
+  if (activeElem && activeElem == hoveredElem && inputReleased) {
+    activeElem->status = UiStatus_Activated;
+    return;
   }
+  if (activeElem && activeElem == hoveredElem && inputDown) {
+    activeElem->status = UiStatus_Pressed;
+    return;
+  }
+  if (inputDown) {
+    return; // Keep the same element active while holding down the input.
+  }
+
+  // Select a new active element.
+  if (activeElem) {
+    activeElem->status = UiStatus_Idle;
+  }
+  if (hoveredElem) {
+    hoveredElem->status = UiStatus_Hovered;
+  }
+  canvas->activeId = result.hoveredId;
 }
 
 static void ui_canvas_render(
@@ -59,9 +99,13 @@ static void ui_canvas_render(
     const GapWindowComp*       window,
     const AssetFtxComp*        font) {
 
+  // Ensure we have UiElement structures for all elements that are requested to be drawn.
+  dynarray_resize(&canvas->elements, canvas->nextId);
+
   DynString     dataBuffer  = dynstring_create(g_alloc_heap, 512);
   UiRenderState renderState = {
-      .output = &dataBuffer,
+      .output         = &dataBuffer,
+      .elementsOutput = &canvas->elements,
   };
 
   const UiBuildCtx buildCtx = {
@@ -70,6 +114,7 @@ static void ui_canvas_render(
       .userCtx     = &renderState,
       .outputDraw  = &ui_canvas_output_draw,
       .outputGlyph = &ui_canvas_output_glyph,
+      .outputRect  = &ui_canvas_output_rect,
   };
   const UiBuildResult result = ui_build(canvas->cmdBuffer, &buildCtx);
 
@@ -79,7 +124,7 @@ static void ui_canvas_render(
 
   dynstring_destroy(&dataBuffer);
 
-  ui_canvas_update_active(canvas, window, result);
+  ui_canvas_update_input(canvas, window, result);
 }
 
 ecs_view_define(GlobalResourcesView) { ecs_access_read(UiGlobalResourcesComp); }
@@ -155,7 +200,8 @@ EcsEntityId ui_canvas_create(EcsWorld* world, const EcsEntityId window) {
       canvasEntity,
       UiCanvasComp,
       .window    = window,
-      .cmdBuffer = ui_cmdbuffer_create(g_alloc_heap));
+      .cmdBuffer = ui_cmdbuffer_create(g_alloc_heap),
+      .elements  = dynarray_create_t(g_alloc_heap, UiElement, 128));
   ecs_world_add_t(world, canvasEntity, SceneRenderableUniqueComp);
   return canvasEntity;
 }
@@ -167,11 +213,14 @@ void ui_canvas_reset(UiCanvasComp* comp) {
 
 UiId ui_canvas_next_id(const UiCanvasComp* comp) { return comp->nextId; }
 
-UiStatus ui_canvas_status(const UiCanvasComp* comp, const UiId id) {
-  if (comp->activeId == id) {
-    return comp->activeStatus;
-  }
-  return UiStatus_Idle;
+UiStatus ui_canvas_elem_status(const UiCanvasComp* comp, const UiId id) {
+  const UiElement* elem = ui_build_elem(comp, id);
+  return elem ? elem->status : UiStatus_Idle;
+}
+
+UiRect ui_canvas_elem_rect(const UiCanvasComp* comp, const UiId id) {
+  const UiElement* elem = ui_build_elem(comp, id);
+  return elem ? elem->rect : ui_rect(ui_vector(0, 0), ui_vector(0, 0));
 }
 
 void ui_canvas_rect_push(UiCanvasComp* comp) { ui_cmd_push_rect_push(comp->cmdBuffer); }

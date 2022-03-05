@@ -132,21 +132,24 @@ static void ui_build_text_char(void* userCtx, const UiTextCharInfo* info) {
       });
 }
 
-static bool ui_build_is_hovered(UiBuildState* state) {
-  const UiRect    currentRect = *ui_build_rect_currect(state);
-  const f32       minX = currentRect.x, minY = currentRect.y;
-  const f32       maxX = minX + currentRect.width, maxY = minY + currentRect.height;
+static bool ui_build_is_hovered(UiBuildState* state, const UiRect rect) {
+  const f32 minX = rect.x, minY = rect.y;
+  const f32 maxX = minX + rect.width, maxY = minY + rect.height;
+
   const GapVector cursorPos = gap_window_param(state->window, GapParam_CursorPos);
   return cursorPos.x >= minX && cursorPos.x <= maxX && cursorPos.y >= minY && cursorPos.y <= maxY;
 }
 
 static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
-  if (cmd->flags & UiFlags_Interactable && ui_build_is_hovered(state)) {
+  const UiRect currentRect = *ui_build_rect_currect(state);
+  if (cmd->flags & UiFlags_Interactable && ui_build_is_hovered(state, currentRect)) {
     state->hoveredId = cmd->id;
   }
+  state->ctx->outputRect(state->ctx->userCtx, cmd->id, currentRect);
+
   ui_text_build(
       state->font,
-      *ui_build_rect_currect(state),
+      currentRect,
       cmd->text,
       cmd->fontSize,
       ui_build_style_currect(state)->color,
@@ -157,18 +160,20 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
 }
 
 static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
-  if (cmd->flags & UiFlags_Interactable && ui_build_is_hovered(state)) {
+  const UiRect currentRect = *ui_build_rect_currect(state);
+  if (cmd->flags & UiFlags_Interactable && ui_build_is_hovered(state, currentRect)) {
     state->hoveredId = cmd->id;
   }
+  state->ctx->outputRect(state->ctx->userCtx, cmd->id, currentRect);
+
   const AssetFtxChar* ch = asset_ftx_lookup(state->font, cmd->cp);
   if (sentinel_check(ch->glyphIndex)) {
     return; // No glyph for the given codepoint.
   }
-  const UiRect currentRect = *ui_build_rect_currect(state);
-  const f32    halfMinDim  = math_min(currentRect.width, currentRect.height) * 0.5f;
-  const f32    corner      = cmd->maxCorner ? math_min(cmd->maxCorner, halfMinDim) : halfMinDim;
-  const f32    border      = ch->border * corner * 2.0f;
-  const UiRect rect        = {
+  const f32    halfMinDim = math_min(currentRect.width, currentRect.height) * 0.5f;
+  const f32    corner     = cmd->maxCorner ? math_min(cmd->maxCorner, halfMinDim) : halfMinDim;
+  const f32    border     = ch->border * corner * 2.0f;
+  const UiRect rect       = {
       .pos  = {currentRect.x - border, currentRect.y - border},
       .size = {currentRect.width + border * 2, currentRect.height + border * 2},
   };

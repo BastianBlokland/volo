@@ -3,7 +3,7 @@
 #include "ecs_entity.h"
 #include "ecs_module.h"
 #include "ui_color.h"
-#include "ui_vector.h"
+#include "ui_rect.h"
 
 /**
  * Identifier for an ui-element.
@@ -82,10 +82,11 @@ void        ui_canvas_reset(UiCanvasComp*);
 UiId ui_canvas_next_id(const UiCanvasComp*);
 
 /**
- * Query the interaction status of a specific element.
+ * Query information about a specific element.
  * NOTE: Requires cross frame consistency of identifiers.
  */
-UiStatus ui_canvas_status(const UiCanvasComp*, UiId);
+UiStatus ui_canvas_elem_status(const UiCanvasComp*, UiId);
+UiRect   ui_canvas_elem_rect(const UiCanvasComp*, UiId);
 
 /**
  * Push / Pop an element to / from the rectangle stack.

@@ -30,6 +30,7 @@ ASSERT(sizeof(UiGlyphData) == 32, "Size needs to match the size defined in glsl"
 
 typedef void (*UiOutputDrawFunc)(void* userCtx, UiDrawData);
 typedef void (*UiOutputGlyphFunc)(void* userCtx, UiGlyphData);
+typedef void (*UiOutputRect)(void* userCtx, UiId, UiRect);
 
 typedef struct {
   const GapWindowComp* window;
@@ -37,6 +38,7 @@ typedef struct {
   void*                userCtx;
   UiOutputDrawFunc     outputDraw;
   UiOutputGlyphFunc    outputGlyph;
+  UiOutputRect         outputRect;
 } UiBuildCtx;
 
 typedef struct {
