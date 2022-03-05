@@ -152,3 +152,63 @@ bool ui_slider_with_opts(UiCanvasComp* canvas, f32* input, const UiSliderOpts* o
   *input = math_lerp(opts->min, opts->max, normValue);
   return status >= UiStatus_Pressed;
 }
+
+static void ui_toggle_check(UiCanvasComp* canvas, const UiStatus status, const UiToggleOpts* opts) {
+  ui_canvas_rect_push(canvas);
+  ui_canvas_style_push(canvas);
+
+  const f32 checkSize = opts->size * 1.4f;
+
+  ui_layout_to_center(canvas, Ui_XY);
+  ui_canvas_rect_resize(canvas, ui_vector(checkSize, checkSize), UiUnits_Absolute, Ui_XY);
+  ui_layout_from_center(canvas, Ui_XY);
+  ui_canvas_rect_move(canvas, ui_vector(0.1f, 0.1f), UiOrigin_Current, UiUnits_Current, Ui_XY);
+
+  ui_canvas_style_outline(canvas, status == UiStatus_Hovered ? 4 : 3);
+  ui_canvas_draw_glyph(canvas, UiShape_Check, 0, UiFlags_None);
+
+  ui_canvas_style_pop(canvas);
+  ui_canvas_rect_pop(canvas);
+}
+
+bool ui_toggle_with_opts(UiCanvasComp* canvas, bool* input, const UiToggleOpts* opts) {
+  const UiId     id     = ui_canvas_id_peek(canvas);
+  const UiStatus status = ui_canvas_elem_status(canvas, id);
+
+  if (status == UiStatus_Activated) {
+    *input ^= true;
+  }
+  ui_canvas_rect_push(canvas);
+
+  ui_layout_to_center(canvas, Ui_Y);
+  ui_canvas_rect_resize(canvas, ui_vector(opts->size, opts->size), UiUnits_Absolute, Ui_XY);
+  ui_layout_from_center(canvas, Ui_Y);
+
+  ui_canvas_style_push(canvas);
+  switch (status) {
+  case UiStatus_Hovered:
+    ui_canvas_style_color(canvas, ui_color_mult(opts->bgColor, 2));
+    ui_canvas_style_outline(canvas, 3);
+    break;
+  case UiStatus_Pressed:
+  case UiStatus_Activated:
+    ui_canvas_style_color(canvas, ui_color_mult(opts->bgColor, 3));
+    ui_canvas_style_outline(canvas, 2);
+    break;
+  case UiStatus_Idle:
+    ui_canvas_style_color(canvas, opts->bgColor);
+    ui_canvas_style_outline(canvas, 2);
+    break;
+  }
+  ui_canvas_draw_glyph(canvas, UiShape_Circle, 5, UiFlags_Interactable);
+  ui_canvas_style_pop(canvas);
+
+  if (*input) {
+    ui_toggle_check(canvas, status, opts);
+  } else {
+    ui_canvas_id_skip(canvas);
+  }
+
+  ui_canvas_rect_pop(canvas);
+  return status == UiStatus_Activated;
+}

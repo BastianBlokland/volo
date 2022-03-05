@@ -5,6 +5,7 @@
 #define UI_SHAPES                                                                                  \
   X(0xF000, Square)                                                                                \
   X(0xF001, Circle)                                                                                \
+  X(0xE5CA, Check)                                                                                 \
   X(0xE9E4, Speed)                                                                                 \
   X(0xEF5B, Monitor)                                                                               \
   X(0xE3AE, Brush)                                                                                 \
