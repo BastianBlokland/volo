@@ -36,6 +36,10 @@ ecs_system_define(CanvasUpdateSys) {
     ui_button(canvas, .label = string_lit("Test"), .frameColor = ui_color_green);
 
     ui_canvas_rect_move(canvas, ui_vector(0, 1.2f), UiOrigin_Current, UiUnits_Current, Ui_XY);
+    static f32 value = 0.5f;
+    ui_slider(canvas, &value);
+
+    ui_canvas_rect_move(canvas, ui_vector(0, 1.2f), UiOrigin_Current, UiUnits_Current, Ui_XY);
     ui_button(canvas, .label = string_lit("\ue3ae"));
   }
 }
