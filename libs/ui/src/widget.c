@@ -105,6 +105,24 @@ static void ui_slider_handle(
   ui_canvas_rect_pop(canvas);
 }
 
+static void ui_slider_label(UiCanvasComp* canvas, const f32 normValue, const UiSliderOpts* opts) {
+  ui_canvas_rect_push(canvas);
+  static const UiVector g_maxSize        = {100, 100};
+  static const u16      g_fontSize       = 15;
+  const UiVector        offsetFromHandle = ui_vector(0, opts->handleSize + 1);
+
+  ui_canvas_rect_move(canvas, ui_vector(normValue, 0.5f), UiOrigin_Current, UiUnits_Current, Ui_XY);
+  ui_canvas_rect_resize(canvas, g_maxSize, UiUnits_Absolute, Ui_XY);
+  ui_canvas_rect_move(canvas, ui_vector(-0.5f, -0.5f), UiOrigin_Current, UiUnits_Current, Ui_XY);
+  ui_canvas_rect_move(canvas, offsetFromHandle, UiOrigin_Current, UiUnits_Absolute, Ui_Y);
+
+  const f32    value = math_lerp(opts->min, opts->max, normValue);
+  const String label = fmt_write_scratch("{}", fmt_float(value, .maxDecDigits = 2));
+  ui_canvas_draw_text(canvas, label, g_fontSize, UiTextAlign_MiddleCenter, UiFlags_None);
+
+  ui_canvas_rect_pop(canvas);
+}
+
 bool ui_slider_with_opts(UiCanvasComp* canvas, f32* input, const UiSliderOpts* opts) {
   const UiId     barId    = ui_canvas_id_peek(canvas);
   const UiId     handleId = barId + 1;
@@ -124,6 +142,12 @@ bool ui_slider_with_opts(UiCanvasComp* canvas, f32* input, const UiSliderOpts* o
 
   ui_slider_bar(canvas, status, opts);
   ui_slider_handle(canvas, status, normValue, opts);
+
+  if (status >= UiStatus_Hovered) {
+    ui_slider_label(canvas, normValue, opts);
+  } else {
+    ui_canvas_id_skip(canvas);
+  }
 
   *input = math_lerp(opts->min, opts->max, normValue);
   return status >= UiStatus_Pressed;
