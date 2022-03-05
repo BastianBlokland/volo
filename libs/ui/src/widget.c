@@ -13,7 +13,7 @@ static UiColor ui_color_mult(const UiColor color, const f32 mult) {
 }
 
 bool ui_button_with_opts(UiCanvasComp* canvas, const UiButtonOpts* opts) {
-  const UiId     id     = ui_canvas_next_id(canvas);
+  const UiId     id     = ui_canvas_id_peek(canvas);
   const UiStatus status = ui_canvas_elem_status(canvas, id);
 
   ui_canvas_style_push(canvas);
@@ -106,7 +106,7 @@ static void ui_slider_handle(
 }
 
 bool ui_slider_with_opts(UiCanvasComp* canvas, f32* input, const UiSliderOpts* opts) {
-  const UiId     barId    = ui_canvas_next_id(canvas);
+  const UiId     barId    = ui_canvas_id_peek(canvas);
   const UiId     handleId = barId + 1;
   const UiStatus status =
       math_max(ui_canvas_elem_status(canvas, barId), ui_canvas_elem_status(canvas, handleId));

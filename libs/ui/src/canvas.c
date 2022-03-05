@@ -217,7 +217,8 @@ void ui_canvas_reset(UiCanvasComp* comp) {
   comp->nextId = 0;
 }
 
-UiId ui_canvas_next_id(const UiCanvasComp* comp) { return comp->nextId; }
+UiId ui_canvas_id_peek(const UiCanvasComp* comp) { return comp->nextId; }
+void ui_canvas_id_skip(UiCanvasComp* comp) { ++comp->nextId; }
 
 UiStatus ui_canvas_elem_status(const UiCanvasComp* comp, const UiId id) {
   const UiElement* elem = ui_build_elem(comp, id);

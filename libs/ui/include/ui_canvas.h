@@ -77,9 +77,10 @@ EcsEntityId ui_canvas_create(EcsWorld*, EcsEntityId window);
 void        ui_canvas_reset(UiCanvasComp*);
 
 /**
- * Query the value of the next ui-id in the sequence.
+ * Query / manipulate values in the ui-id sequence.
  */
-UiId ui_canvas_next_id(const UiCanvasComp*);
+UiId ui_canvas_id_peek(const UiCanvasComp*);
+void ui_canvas_id_skip(UiCanvasComp*);
 
 /**
  * Query information about a specific element.
