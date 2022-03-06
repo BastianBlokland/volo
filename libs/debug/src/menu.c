@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "debug_menu.h"
 #include "ecs_world.h"
 #include "gap_window.h"
 #include "rend_stats.h"
@@ -70,13 +71,24 @@ static void debug_action_fullscreen(DebugMenuComp* menu, UiCanvasComp* canvas, G
   }
 }
 
+static void debug_action_new_window(EcsWorld* world, UiCanvasComp* canvas) {
+  static const GapVector newWindowSize = {1024, 768};
+
+  if (ui_button(canvas, .label = ui_shape_scratch(UiShape_OpenInNew))) {
+    const EcsEntityId newWindow = gap_window_create(world, GapWindowFlags_Default, newWindowSize);
+    debug_menu_create(world, newWindow);
+  }
+}
+
 static void debug_action_close(UiCanvasComp* canvas, GapWindowComp* win) {
   if (ui_button(canvas, .label = ui_shape_scratch(UiShape_Logout))) {
     gap_window_close(win);
   }
 }
 
-static void debug_action_bar_draw(DebugMenuComp* menu, UiCanvasComp* canvas, GapWindowComp* win) {
+static void debug_action_bar_draw(
+    EcsWorld* world, DebugMenuComp* menu, UiCanvasComp* canvas, GapWindowComp* win) {
+
   const UiVector offset = {g_debugActionBarButtonSize.x + g_debugActionBarSpacing, 0};
   ui_canvas_rect_move(canvas, offset, UiOrigin_WindowTopRight, UiUnits_Absolute, Ui_XY);
   ui_canvas_rect_resize(canvas, g_debugActionBarButtonSize, UiUnits_Absolute, Ui_XY);
@@ -86,6 +98,9 @@ static void debug_action_bar_draw(DebugMenuComp* menu, UiCanvasComp* canvas, Gap
 
   debug_action_bar_next(canvas);
   debug_action_fullscreen(menu, canvas, win);
+
+  debug_action_bar_next(canvas);
+  debug_action_new_window(world, canvas);
 
   debug_action_bar_next(canvas);
   debug_action_close(canvas, win);
@@ -183,7 +198,7 @@ ecs_system_define(DebugMenuUpdateSys) {
     if (menu->flags & DebugMenuFlags_ShowStats) {
       debug_stats_draw(canvas, &menu->stats, rendStats);
     }
-    debug_action_bar_draw(menu, canvas, window);
+    debug_action_bar_draw(world, menu, canvas, window);
   }
 }
 

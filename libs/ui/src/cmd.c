@@ -154,7 +154,7 @@ void ui_cmd_push_draw_glyph(
 
 UiCmd* ui_cmd_next(const UiCmdBuffer* buffer, UiCmd* prev) {
   if (!prev) {
-    return dynarray_begin_t(&buffer->commands, UiCmd);
+    return buffer->commands.size ? dynarray_begin_t(&buffer->commands, UiCmd) : null;
   }
   UiCmd* next = ++prev;
   return next == dynarray_end_t(&buffer->commands, UiCmd) ? null : next;

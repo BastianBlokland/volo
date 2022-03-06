@@ -3,7 +3,7 @@
 #include "core_dynstring.h"
 #include "ecs_world.h"
 #include "gap_window.h"
-#include "scene_renderable.h"
+#include "rend_draw.h"
 #include "ui_register.h"
 
 #include "builder_internal.h"
@@ -100,10 +100,10 @@ static void ui_canvas_update_input(
 }
 
 static void ui_canvas_render(
-    UiCanvasComp*              canvas,
-    SceneRenderableUniqueComp* renderable,
-    const GapWindowComp*       window,
-    const AssetFtxComp*        font) {
+    UiCanvasComp*        canvas,
+    RendDrawComp*        draw,
+    const GapWindowComp* window,
+    const AssetFtxComp*  font) {
 
   // Ensure we have UiElement structures for all elements that are requested to be drawn.
   dynarray_resize(&canvas->elements, canvas->nextId);
@@ -124,9 +124,11 @@ static void ui_canvas_render(
   };
   const UiBuildResult result = ui_build(canvas->cmdBuffer, &buildCtx);
 
-  const Mem instData = scene_renderable_unique_data_set(renderable, renderState.output->size);
-  mem_cpy(instData, dynstring_view(renderState.output));
-  renderable->vertexCountOverride = renderState.outputNumGlyphs * 6; // 6 verts per quad.
+  rend_draw_set_data_size(draw, (u32)renderState.output->size);
+  rend_draw_set_vertex_count(draw, renderState.outputNumGlyphs * 6); // 6 verts per quad.
+
+  const Mem data = dynstring_view(renderState.output);
+  mem_cpy(rend_draw_add_instance(draw, SceneTags_None, (GeoBox){0}), data);
 
   dynstring_destroy(&dataBuffer);
 
@@ -139,7 +141,7 @@ ecs_view_define(WindowView) { ecs_access_read(GapWindowComp); }
 
 ecs_view_define(CanvasBuildView) {
   ecs_access_write(UiCanvasComp);
-  ecs_access_write(SceneRenderableUniqueComp);
+  ecs_access_write(RendDrawComp);
 }
 
 static const UiGlobalResourcesComp* ui_global_resources(EcsWorld* world) {
@@ -167,8 +169,8 @@ ecs_system_define(UiCanvasBuildSys) {
 
   EcsView* buildView = ecs_world_view_t(world, CanvasBuildView);
   for (EcsIterator* itr = ecs_view_itr(buildView); ecs_view_walk(itr);) {
-    UiCanvasComp*              canvasComp = ecs_view_write_t(itr, UiCanvasComp);
-    SceneRenderableUniqueComp* renderable = ecs_view_write_t(itr, SceneRenderableUniqueComp);
+    UiCanvasComp* canvasComp = ecs_view_write_t(itr, UiCanvasComp);
+    RendDrawComp* draw       = ecs_view_write_t(itr, RendDrawComp);
     if (!ecs_view_maybe_jump(windowItr, canvasComp->window)) {
       // Destroy the canvas if the associated window is destroyed.
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
@@ -176,8 +178,9 @@ ecs_system_define(UiCanvasBuildSys) {
     }
     const GapWindowComp* window = ecs_view_read_t(windowItr, GapWindowComp);
 
-    renderable->graphic = ui_resource_graphic(globalRes);
-    ui_canvas_render(canvasComp, renderable, window, font);
+    rend_draw_set_graphic(draw, ui_resource_graphic(globalRes));
+
+    ui_canvas_render(canvasComp, draw, window, font);
   }
 }
 
@@ -208,7 +211,10 @@ EcsEntityId ui_canvas_create(EcsWorld* world, const EcsEntityId window) {
       .window    = window,
       .cmdBuffer = ui_cmdbuffer_create(g_alloc_heap),
       .elements  = dynarray_create_t(g_alloc_heap, UiElement, 128));
-  ecs_world_add_t(world, canvasEntity, SceneRenderableUniqueComp);
+
+  RendDrawComp* draw = rend_draw_create(world, canvasEntity, RendDrawFlags_NoInstanceFiltering);
+  rend_draw_set_camera_filter(draw, window);
+
   return canvasEntity;
 }
 

@@ -16,9 +16,11 @@ static bool rend_frustum_intersect(const GeoPlane frustum[4], const GeoBox* aabb
   return true;
 }
 
-RendView rend_view_create(const GeoMatrix* viewProj, const SceneTagFilter filter) {
+RendView
+rend_view_create(const EcsEntityId camera, const GeoMatrix* viewProj, const SceneTagFilter filter) {
   RendView result = {
-      result.filter = filter,
+      .camera = camera,
+      .filter = filter,
   };
   geo_matrix_frustum4(viewProj, result.frustum);
   return result;

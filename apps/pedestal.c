@@ -169,9 +169,6 @@ ecs_system_define(AppUpdateSys) {
     if (gap_window_key_pressed(window, GapKey_Backspace)) {
       app->flags ^= AppFlags_Rotate;
     }
-    if (gap_window_key_pressed(window, GapKey_Return)) {
-      gap_window_create(world, GapWindowFlags_Default, g_windowSize);
-    }
     if (gap_window_key_pressed(window, GapKey_Alpha1)) {
       app->subjectCount = 1;
       app->flags |= AppFlags_Dirty;
