@@ -32,7 +32,7 @@ bool ui_button_with_opts(UiCanvasComp* canvas, const UiButtonOpts* opts) {
     ui_canvas_style_outline(canvas, 4);
     break;
   }
-  ui_canvas_draw_glyph(canvas, UiShape_Circle, 20, UiFlags_Interactable);
+  ui_canvas_draw_glyph(canvas, UiShape_Circle, 15, UiFlags_Interactable);
   ui_canvas_style_pop(canvas);
 
   ui_canvas_style_push(canvas);

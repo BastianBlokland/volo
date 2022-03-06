@@ -263,7 +263,9 @@ static int app_run(const String assetPath) {
   asset_manager_create_fs(
       world, AssetManagerFlags_TrackChanges | AssetManagerFlags_DelayUnload, assetPath);
 
-  gap_window_create(world, GapWindowFlags_Default, g_windowSize);
+  const EcsEntityId window = gap_window_create(world, GapWindowFlags_Default, g_windowSize);
+  debug_menu_create(world, window);
+
   ecs_world_add_t(
       world, ecs_world_global(world), AppComp, .flags = AppFlags_Init, .subjectCount = 1);
 
