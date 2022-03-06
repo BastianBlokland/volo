@@ -58,12 +58,12 @@ static const struct {
         .entryPoint = string_static("main"),
         .resources =
             {
-                {AssetShaderResKind_Texture, .set = 0, .binding = 0},
-                {AssetShaderResKind_Texture, .set = 2, .binding = 0},
-                {AssetShaderResKind_Texture, .set = 2, .binding = 1},
-                {AssetShaderResKind_Texture, .set = 4, .binding = 0},
-                {AssetShaderResKind_Texture, .set = 4, .binding = 1},
-                {AssetShaderResKind_Texture, .set = 4, .binding = 7},
+                {AssetShaderResKind_Texture2D, .set = 0, .binding = 0},
+                {AssetShaderResKind_Texture2D, .set = 2, .binding = 0},
+                {AssetShaderResKind_Texture2D, .set = 2, .binding = 1},
+                {AssetShaderResKind_Texture2D, .set = 4, .binding = 0},
+                {AssetShaderResKind_Texture2D, .set = 4, .binding = 1},
+                {AssetShaderResKind_Texture2D, .set = 4, .binding = 7},
             },
         .resourceCount = 6,
     },
