@@ -4,6 +4,7 @@
 #include "core_file.h"
 #include "core_math.h"
 #include "core_thread.h"
+#include "debug.h"
 #include "ecs.h"
 #include "gap.h"
 #include "jobs.h"
@@ -250,6 +251,7 @@ static int app_run(const String assetPath) {
   EcsDef* def = def = ecs_def_create(g_alloc_heap);
   ecs_register_module(def, app_pedestal_module);
   asset_register(def);
+  debug_register(def);
   gap_register(def);
   rend_register(def);
   scene_register(def);

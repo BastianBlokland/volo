@@ -8,6 +8,7 @@
 add_executable(app_pedestal pedestal.c)
 target_link_libraries(app_pedestal PRIVATE lib_asset)
 target_link_libraries(app_pedestal PRIVATE lib_cli)
+target_link_libraries(app_pedestal PRIVATE lib_debug)
 target_link_libraries(app_pedestal PRIVATE lib_gap)
 target_link_libraries(app_pedestal PRIVATE lib_jobs)
 target_link_libraries(app_pedestal PRIVATE lib_log)
@@ -23,6 +24,7 @@ configure_debuggable(app_pedestal)
 add_executable(app_interface interface.c)
 target_link_libraries(app_interface PRIVATE lib_asset)
 target_link_libraries(app_interface PRIVATE lib_cli)
+target_link_libraries(app_interface PRIVATE lib_debug)
 target_link_libraries(app_interface PRIVATE lib_gap)
 target_link_libraries(app_interface PRIVATE lib_jobs)
 target_link_libraries(app_interface PRIVATE lib_log)
@@ -38,5 +40,5 @@ configure_debuggable(app_interface)
 add_custom_target(run.pedestal COMMAND app_pedestal
   "--assets" "$<TARGET_PROPERTY:volo_assets,path>" VERBATIM USES_TERMINAL)
 
-  add_custom_target(run.interface COMMAND app_interface
+add_custom_target(run.interface COMMAND app_interface
   "--assets" "$<TARGET_PROPERTY:volo_assets,path>" VERBATIM USES_TERMINAL)
