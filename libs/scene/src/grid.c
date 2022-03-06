@@ -5,6 +5,7 @@
 #include "gap_window.h"
 #include "scene_grid.h"
 #include "scene_renderable.h"
+#include "scene_tag.h"
 
 static const u32 g_gridSegments          = 400;
 static const u32 g_gridHighlightInterval = 5;
@@ -44,6 +45,8 @@ ecs_system_define(SceneGridCreateSys) {
       gridEntity,
       SceneRenderableUniqueComp,
       .graphic = asset_lookup(world, assets, string_lit("graphics/scene/grid.gra")));
+
+  ecs_world_add_t(world, gridEntity, SceneTagComp, .tags = SceneTags_Debug);
 }
 
 ecs_system_define(SceneGridInputSys) {

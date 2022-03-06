@@ -28,11 +28,9 @@ static const f32       g_camOrthoFar             = +1e4f;
 ecs_comp_define_public(SceneCameraComp);
 ecs_comp_define_public(SceneCameraMovementComp);
 
-ecs_comp_define(SceneCameraGlobalComp) { u32 nextCameraId; };
 ecs_comp_define(SceneCameraInternalComp) { GapVector lastWindowedSize; };
 ecs_comp_define(SceneCameraSkyComp);
 
-ecs_view_define(GlobalCameraView) { ecs_access_write(SceneCameraGlobalComp); }
 ecs_view_define(GlobalTimeView) { ecs_access_read(SceneTimeComp); }
 ecs_view_define(GlobalAssetsView) { ecs_access_write(AssetManagerComp); }
 ecs_view_define(SkyView) { ecs_access_with(SceneCameraSkyComp); }
@@ -42,37 +40,10 @@ ecs_view_define(CameraCreateView) {
   ecs_access_without(SceneCameraComp);
 }
 
-static SceneTagFilter camera_default_filter(const u32 cameraIdx) {
-  switch (cameraIdx) {
-  case 0:
-    return (SceneTagFilter){.required = SceneTags_Cam0};
-  case 1:
-    return (SceneTagFilter){.required = SceneTags_Cam1};
-  case 2:
-    return (SceneTagFilter){.required = SceneTags_Cam2};
-  case 3:
-    return (SceneTagFilter){.required = SceneTags_Cam3};
-  default:
-    return (SceneTagFilter){0};
-  }
-}
-
-static SceneCameraGlobalComp* scene_global_camera(EcsWorld* world) {
-  EcsView*     globalView = ecs_world_view_t(world, GlobalCameraView);
-  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  return globalItr ? ecs_view_write_t(globalItr, SceneCameraGlobalComp) : null;
-}
-
 ecs_system_define(SceneCameraCreateSys) {
-  SceneCameraGlobalComp* globalCamera = scene_global_camera(world);
-  if (!globalCamera) {
-    globalCamera = ecs_world_add_t(world, ecs_world_global(world), SceneCameraGlobalComp);
-  }
-
   EcsView* createView = ecs_world_view_t(world, CameraCreateView);
   for (EcsIterator* itr = ecs_view_itr(createView); ecs_view_walk(itr);) {
-    const EcsEntityId entity   = ecs_view_entity(itr);
-    const u32         cameraId = globalCamera->nextCameraId++;
+    const EcsEntityId entity = ecs_view_entity(itr);
 
     ecs_world_add_t(
         world,
@@ -80,8 +51,7 @@ ecs_system_define(SceneCameraCreateSys) {
         SceneCameraComp,
         .persFov   = g_camPersFov,
         .persNear  = g_camPersNear,
-        .orthoSize = g_camOrthoSize,
-        .filter    = camera_default_filter(cameraId));
+        .orthoSize = g_camOrthoSize);
 
     ecs_world_add_t(world, entity, SceneCameraMovementComp, .moveSpeed = g_camMoveSpeed);
 
@@ -255,19 +225,16 @@ ecs_system_define(SceneCameraUpdateSys) {
 ecs_module_init(scene_camera_module) {
   ecs_register_comp(SceneCameraComp);
   ecs_register_comp(SceneCameraMovementComp);
-  ecs_register_comp(SceneCameraGlobalComp);
   ecs_register_comp(SceneCameraInternalComp);
   ecs_register_comp_empty(SceneCameraSkyComp);
 
-  ecs_register_view(GlobalCameraView);
   ecs_register_view(GlobalTimeView);
   ecs_register_view(GlobalAssetsView);
   ecs_register_view(SkyView);
   ecs_register_view(CameraCreateView);
   ecs_register_view(CameraUpdateView);
 
-  ecs_register_system(
-      SceneCameraCreateSys, ecs_view_id(GlobalCameraView), ecs_view_id(CameraCreateView));
+  ecs_register_system(SceneCameraCreateSys, ecs_view_id(CameraCreateView));
   ecs_register_system(SceneCameraCreateSkySys, ecs_view_id(GlobalAssetsView), ecs_view_id(SkyView));
 
   ecs_register_system(
