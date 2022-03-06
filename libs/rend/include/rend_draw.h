@@ -4,6 +4,11 @@
 #include "geo_box.h"
 #include "scene_tag.h"
 
+typedef enum {
+  RendDrawFlags_None                = 0,
+  RendDrawFlags_NoInstanceFiltering = 1 << 0,
+} RendDrawFlags;
+
 /**
  * Low level api for submitting draws.
  * In most cases the scene apis should be preferred (SceneRenderable / SceneRenderableUnique).
@@ -13,7 +18,7 @@ ecs_comp_extern(RendDrawComp);
 /**
  * Add a new draw component to the given entity.
  */
-RendDrawComp* rend_draw_create(EcsWorld*, EcsEntityId entity);
+RendDrawComp* rend_draw_create(EcsWorld*, EcsEntityId entity, RendDrawFlags);
 
 /**
  * Update the graphic asset used for the draw.

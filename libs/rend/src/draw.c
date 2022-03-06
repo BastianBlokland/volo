@@ -11,11 +11,12 @@
 #define rend_max_res_requests 16
 
 ecs_comp_define(RendDrawComp) {
-  EcsEntityId graphic;
-  EcsEntityId cameraFilter;
-  u32         vertexCountOverride;
-  u32         instances;
-  u32         outputInstances;
+  EcsEntityId   graphic;
+  EcsEntityId   cameraFilter;
+  RendDrawFlags flags;
+  u32           vertexCountOverride;
+  u32           instances;
+  u32           outputInstances;
 
   u32 dataSize; // NOTE: Size per instance.
 
@@ -133,22 +134,30 @@ ecs_module_init(rend_draw_module) {
   ecs_order(RendDrawRequestGraphicSys, RendOrder_DrawCollect + 1);
 }
 
-RendDrawComp* rend_draw_create(EcsWorld* world, const EcsEntityId entity) {
-  return ecs_world_add_t(world, entity, RendDrawComp);
+RendDrawComp*
+rend_draw_create(EcsWorld* world, const EcsEntityId entity, const RendDrawFlags flags) {
+  return ecs_world_add_t(world, entity, RendDrawComp, .flags = flags);
 }
 
 EcsEntityId rend_draw_graphic(const RendDrawComp* draw) { return draw->graphic; }
 
 bool rend_draw_gather(RendDrawComp* draw, const RendView* view) {
+  if (draw->cameraFilter && view->camera != draw->cameraFilter) {
+    return false;
+  }
+  if (draw->flags & RendDrawFlags_NoInstanceFiltering) {
+    /**
+     * If we can skip the instance filtering, we can also skip the memory copy that is needed to
+     * keep the instances contiguous in memory.
+     */
+    return draw->instances != 0;
+  }
+
   /**
    * Gather the actual draws after filtering.
    * Because we need the output data to be contiguous in memory we have to copy the instances that
    * pass the filter to separate output memory.
    */
-
-  if (draw->cameraFilter && view->camera != draw->cameraFilter) {
-    return false;
-  }
 
   rend_draw_ensure_storage(&draw->outputMem, draw->instances * draw->dataSize, rend_min_align);
 
@@ -165,11 +174,20 @@ bool rend_draw_gather(RendDrawComp* draw, const RendView* view) {
 }
 
 RvkPassDraw rend_draw_output(const RendDrawComp* draw, RvkGraphic* graphic) {
+  u32 instanceCount;
+  Mem data;
+  if (draw->flags & RendDrawFlags_NoInstanceFiltering) {
+    instanceCount = draw->instances;
+    data          = mem_slice(draw->dataMem, 0, instanceCount * draw->dataSize);
+  } else {
+    instanceCount = draw->outputInstances;
+    data          = mem_slice(draw->outputMem, 0, instanceCount * draw->dataSize);
+  }
   return (RvkPassDraw){
       .graphic             = graphic,
       .vertexCountOverride = draw->vertexCountOverride,
-      .instanceCount       = draw->outputInstances,
-      .data                = mem_slice(draw->outputMem, 0, draw->outputInstances * draw->dataSize),
+      .instanceCount       = instanceCount,
+      .data                = data,
       .dataStride          = draw->dataSize,
   };
 }

@@ -53,7 +53,7 @@ ecs_system_define(RendInstanceFillDrawsSys) {
     const SceneTags           tags          = tagComp ? tagComp->tags : SceneTags_Default;
 
     if (UNLIKELY(!ecs_world_has_t(world, renderable->graphic, RendDrawComp))) {
-      RendDrawComp* draw = rend_draw_create(world, renderable->graphic);
+      RendDrawComp* draw = rend_draw_create(world, renderable->graphic, RendDrawFlags_None);
       rend_draw_set_graphic(draw, renderable->graphic);
       rend_draw_set_data_size(draw, sizeof(RendInstanceData));
       continue;
@@ -88,7 +88,7 @@ ecs_system_define(RendInstanceFillUniqueDrawsSys) {
 
     RendDrawComp* draw = ecs_view_write_t(itr, RendDrawComp);
     if (UNLIKELY(!draw)) {
-      rend_draw_create(world, ecs_view_entity(itr));
+      rend_draw_create(world, ecs_view_entity(itr), RendDrawFlags_None);
       continue;
     }
 
