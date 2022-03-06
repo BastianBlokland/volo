@@ -57,8 +57,8 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
 
   RvkTexture* texture = alloc_alloc_t(g_alloc_heap, RvkTexture);
   *texture            = (RvkTexture){
-                 .device  = dev,
-                 .dbgName = string_dup(g_alloc_heap, dbgName),
+      .device  = dev,
+      .dbgName = string_dup(g_alloc_heap, dbgName),
   };
 
   const VkFormat vkFormat = rvk_texture_format(asset->type, asset->flags, asset->channels);
@@ -102,6 +102,15 @@ void rvk_texture_destroy(RvkTexture* texture) {
 
   string_free(g_alloc_heap, texture->dbgName);
   alloc_free_t(g_alloc_heap, texture);
+}
+
+RvkDescKind rvk_texture_sampler_kind(RvkTexture* texture) {
+  switch (texture->image.type) {
+  case RvkImageType_ColorSourceCube:
+    return RvkDescKind_CombinedImageSamplerCube;
+  default:
+    return RvkDescKind_CombinedImageSampler2D;
+  }
 }
 
 bool rvk_texture_prepare(RvkTexture* texture, VkCommandBuffer vkCmdBuf) {

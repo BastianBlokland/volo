@@ -23,6 +23,7 @@ struct sRvkRepository {
 String rvk_repository_id_str(const RvkRepositoryId id) {
   static const String g_names[] = {
       string_static("MissingTexture"),
+      string_static("MissingTextureCube"),
   };
   ASSERT(array_elems(g_names) == RvkRepositoryId_Count, "Incorrect number of names");
   return g_names[id];

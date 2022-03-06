@@ -19,6 +19,7 @@ typedef enum {
   SpvOp_TypeBool          = 20,
   SpvOp_TypeInt           = 21,
   SpvOp_TypeFloat         = 22,
+  SpvOp_TypeImage         = 25,
   SpvOp_TypeSampledImage  = 27,
   SpvOp_TypeStruct        = 30,
   SpvOp_TypePointer       = 32,
@@ -46,6 +47,11 @@ typedef enum {
   SpvExecutionModel_Fragment = 4,
 } SpvExecutionModel;
 
+typedef enum {
+  SpvImageDim_2D   = 1,
+  SpvImageDim_Cube = 3,
+} SpvImageDim;
+
 typedef struct {
   const u32* ptr;
   u32        size;
@@ -64,6 +70,8 @@ typedef enum {
   SpvIdKind_Variable,
   SpvIdKind_TypePointer,
   SpvIdKind_TypeStruct,
+  SpvIdKind_TypeImage2D,
+  SpvIdKind_TypeImageCube,
   SpvIdKind_TypeSampledImage,
   SpvIdKind_SpecConstant,
 } SpvIdKind;
@@ -102,6 +110,7 @@ typedef enum {
   SpvError_UnsupportedSpecConstantType,
   SpvError_UnsupportedSetExceedsMax,
   SpvError_UnsupportedBindingExceedsMax,
+  SpvError_UnsupportedImageType,
 
   SpvError_Count,
 } SpvError;
@@ -121,6 +130,7 @@ static String spv_error_str(SpvError res) {
       string_static("Unsupported SpirV specialization constant type"),
       string_static("SpirV shader resource set exceeds maximum"),
       string_static("SpirV shader resource binding exceeds maximum"),
+      string_static("SpirV shader uses an unsupported image type (only 2D and Cube are supported)"),
   };
   ASSERT(array_elems(g_msgs) == SpvError_Count, "Incorrect number of spv-error messages");
   return g_msgs[res];
@@ -362,12 +372,12 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
       }
       out->ids[id].kind = SpvIdKind_TypeStruct;
     } break;
-    case SpvOp_TypeSampledImage: {
+    case SpvOp_TypeImage: {
       /**
-       * Sampled image declaration.
-       * https://www.khronos.org/registry/spir-v/specs/unified1/SPIRV.html#OpTypeSampledImage
+       * Image declaration.
+       * https://www.khronos.org/registry/SPIR-V/specs/unified1/SPIRV.html#OpTypeImage
        */
-      if (data.size < 3) {
+      if (data.size < 5) {
         *err = SpvError_Malformed;
         return data;
       }
@@ -375,7 +385,37 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
       if (!spv_validate_new_id(id, out, err)) {
         return data;
       }
-      out->ids[id].kind = SpvIdKind_TypeSampledImage;
+      switch (data.ptr[3]) {
+      case SpvImageDim_2D:
+        out->ids[id].kind = SpvIdKind_TypeImage2D;
+        break;
+      case SpvImageDim_Cube:
+        out->ids[id].kind = SpvIdKind_TypeImageCube;
+        break;
+      default:
+        *err = SpvError_UnsupportedImageType;
+        return data;
+      }
+    } break;
+    case SpvOp_TypeSampledImage: {
+      /**
+       * Sampled image declaration.
+       * https://www.khronos.org/registry/spir-v/specs/unified1/SPIRV.html#OpTypeSampledImage
+       */
+      if (data.size < 4) {
+        *err = SpvError_Malformed;
+        return data;
+      }
+      const u32 id     = data.ptr[1];
+      const u32 typeId = data.ptr[2];
+      if (!spv_validate_new_id(id, out, err)) {
+        return data;
+      }
+      if (!spv_validate_id(typeId, out, err)) {
+        return data;
+      }
+      out->ids[id].kind   = SpvIdKind_TypeSampledImage;
+      out->ids[id].typeId = typeId;
     } break;
     case SpvOp_SpecConstant:
     case SpvOp_SpecConstantTrue:
@@ -441,9 +481,14 @@ static AssetShaderResKind spv_resource_kind(
   switch (id->kind) {
   case SpvIdKind_TypePointer:
     return spv_resource_kind(program, id->typeId, varStorageClass, err);
-  case SpvIdKind_TypeSampledImage:
+  case SpvIdKind_TypeImage2D:
     *err = SpvError_None;
-    return AssetShaderResKind_Texture;
+    return AssetShaderResKind_Texture2D;
+  case SpvIdKind_TypeImageCube:
+    *err = SpvError_None;
+    return AssetShaderResKind_TextureCube;
+  case SpvIdKind_TypeSampledImage:
+    return spv_resource_kind(program, id->typeId, varStorageClass, err);
   case SpvIdKind_TypeStruct:
     switch (varStorageClass) {
     case SpvStorageClass_Uniform:

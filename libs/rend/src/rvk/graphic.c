@@ -26,21 +26,31 @@ static const u8 g_rendSupportedShaderSets[] = {
     rvk_desc_instance_set,
 };
 
+#define rend_uniform_buffer_mask (1 << RvkDescKind_UniformBufferDynamic)
+#define rend_storage_buffer_mask (1 << RvkDescKind_StorageBuffer)
+#define rend_image_sampler_2d_mask (1 << RvkDescKind_CombinedImageSampler2D)
+#define rend_image_sampler_cube_mask (1 << RvkDescKind_CombinedImageSamplerCube)
+#define rend_image_sampler_mask (rend_image_sampler_2d_mask | rend_image_sampler_cube_mask)
+
 static const u32 g_rendSupportedGlobalBindings[rvk_desc_bindings_max] = {
-    (1 << RvkDescKind_UniformBufferDynamic),
+    rend_uniform_buffer_mask,
 };
 
 static const u32 g_rendSupportedInstanceBindings[rvk_desc_bindings_max] = {
-    (1 << RvkDescKind_UniformBufferDynamic),
+    rend_uniform_buffer_mask,
 };
 
 static const u32 g_rendSupportedGraphicBindings[rvk_desc_bindings_max] = {
-    (1 << RvkDescKind_StorageBuffer | 1 << RvkDescKind_CombinedImageSampler),
-    (1 << RvkDescKind_CombinedImageSampler),
-    (1 << RvkDescKind_CombinedImageSampler),
-    (1 << RvkDescKind_CombinedImageSampler),
-    (1 << RvkDescKind_CombinedImageSampler),
+    (rend_storage_buffer_mask | rend_image_sampler_mask),
+    rend_image_sampler_mask,
+    rend_image_sampler_mask,
+    rend_image_sampler_mask,
+    rend_image_sampler_mask,
 };
+
+static bool rvk_desc_is_sampler(const RvkDescKind kind) {
+  return kind == RvkDescKind_CombinedImageSampler2D || kind == RvkDescKind_CombinedImageSamplerCube;
+}
 
 static const char* rvk_to_null_term_scratch(String str) {
   const Mem scratchMem = alloc_alloc(g_alloc_scratch, str.size + 1, 1);
@@ -412,11 +422,16 @@ rvk_pipeline_create(RvkGraphic* graphic, VkPipelineLayout layout, VkRenderPass v
   return result;
 }
 
-static void rvk_graphic_set_missing_sampler(RvkGraphic* graphic, const u32 samplerIndex) {
+static void rvk_graphic_set_missing_sampler(
+    RvkGraphic* graphic, const u32 samplerIndex, const RvkDescKind kind) {
   diag_assert(!graphic->samplers[samplerIndex].texture);
 
+  const RvkRepositoryId repoId = kind == RvkDescKind_CombinedImageSamplerCube
+                                     ? RvkRepositoryId_MissingTextureCube
+                                     : RvkRepositoryId_MissingTexture;
+
   RvkDevice*  dev = graphic->device;
-  RvkTexture* tex = rvk_repository_texture_get(dev->repository, RvkRepositoryId_MissingTexture);
+  RvkTexture* tex = rvk_repository_texture_get(dev->repository, repoId);
 
   graphic->samplers[samplerIndex].texture = tex;
   graphic->samplers[samplerIndex].sampler = rvk_sampler_create(
@@ -657,16 +672,27 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, VkRender
     // Attach samplers.
     u32 samplerIndex = 0;
     for (u32 i = 0; i != rvk_desc_bindings_max; ++i) {
-      if (graphicDescMeta.bindings[i] == RvkDescKind_CombinedImageSampler) {
+      const RvkDescKind kind = graphicDescMeta.bindings[i];
+      if (rvk_desc_is_sampler(kind)) {
         if (UNLIKELY(i == rvk_graphic_samplers_max)) {
           log_e(
               "Shader exceeds texture limit",
               log_param("graphic", fmt_text(graphic->dbgName)),
               log_param("limit", fmt_int(rvk_graphic_samplers_max)));
           graphic->flags |= RvkGraphicFlags_Invalid;
+          break;
         }
         if (!graphic->samplers[samplerIndex].texture) {
-          rvk_graphic_set_missing_sampler(graphic, samplerIndex);
+          rvk_graphic_set_missing_sampler(graphic, samplerIndex, kind);
+        }
+        if (kind != rvk_texture_sampler_kind(graphic->samplers[samplerIndex].texture)) {
+          log_e(
+              "Mismatched shader texture sampler kind",
+              log_param("graphic", fmt_text(graphic->dbgName)),
+              log_param("sampler", fmt_int(samplerIndex)),
+              log_param("expected", fmt_text(rvk_desc_kind_str(kind))));
+          graphic->flags |= RvkGraphicFlags_Invalid;
+          break;
         }
         const RvkImage*   image   = &graphic->samplers[samplerIndex].texture->image;
         const RvkSampler* sampler = &graphic->samplers[samplerIndex].sampler;
