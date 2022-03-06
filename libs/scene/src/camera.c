@@ -28,7 +28,6 @@ static const f32       g_camOrthoFar             = +1e4f;
 ecs_comp_define_public(SceneCameraComp);
 ecs_comp_define_public(SceneCameraMovementComp);
 
-ecs_comp_define(SceneCameraInternalComp) { GapVector lastWindowedSize; };
 ecs_comp_define(SceneCameraSkyComp);
 
 ecs_view_define(GlobalTimeView) { ecs_access_read(SceneTimeComp); }
@@ -160,23 +159,11 @@ static void camera_update_lock(SceneCameraMovementComp* move, GapWindowComp* win
   }
 }
 
-static void camera_update_fullscreen(SceneCameraInternalComp* internal, GapWindowComp* win) {
-  if (gap_window_key_pressed(win, GapKey_F)) {
-    if (gap_window_mode(win) == GapWindowMode_Fullscreen) {
-      gap_window_resize(win, internal->lastWindowedSize, GapWindowMode_Windowed);
-    } else {
-      internal->lastWindowedSize = gap_window_param(win, GapParam_WindowSize);
-      gap_window_resize(win, gap_vector(0, 0), GapWindowMode_Fullscreen);
-    }
-  }
-}
-
 ecs_view_define(CameraUpdateView) {
   ecs_access_write(SceneCameraComp);
   ecs_access_write(SceneCameraMovementComp);
   ecs_access_write(SceneTransformComp);
   ecs_access_write(GapWindowComp);
-  ecs_access_maybe_write(SceneCameraInternalComp);
 }
 
 ecs_system_define(SceneCameraUpdateSys) {
@@ -190,20 +177,15 @@ ecs_system_define(SceneCameraUpdateSys) {
 
   EcsView* cameraView = ecs_world_view_t(world, CameraUpdateView);
   for (EcsIterator* itr = ecs_view_itr(cameraView); ecs_view_walk(itr);) {
-    SceneCameraComp*         cam      = ecs_view_write_t(itr, SceneCameraComp);
-    GapWindowComp*           win      = ecs_view_write_t(itr, GapWindowComp);
-    SceneTransformComp*      trans    = ecs_view_write_t(itr, SceneTransformComp);
-    SceneCameraMovementComp* move     = ecs_view_write_t(itr, SceneCameraMovementComp);
-    SceneCameraInternalComp* internal = ecs_view_write_t(itr, SceneCameraInternalComp);
-    if (!internal) {
-      internal = ecs_world_add_t(world, ecs_view_entity(itr), SceneCameraInternalComp);
-    }
+    SceneCameraComp*         cam   = ecs_view_write_t(itr, SceneCameraComp);
+    GapWindowComp*           win   = ecs_view_write_t(itr, GapWindowComp);
+    SceneTransformComp*      trans = ecs_view_write_t(itr, SceneTransformComp);
+    SceneCameraMovementComp* move  = ecs_view_write_t(itr, SceneCameraMovementComp);
 
     camera_update_move(cam, move, trans, win, deltaSeconds);
     camera_update_rotate(move, trans, win);
     camera_update_zoom(cam, win);
     camera_update_lock(move, win);
-    camera_update_fullscreen(internal, win);
 
     if (gap_window_key_pressed(win, GapKey_F1)) {
       cam->flags &= ~SceneCameraFlags_Orthographic;
@@ -225,7 +207,6 @@ ecs_system_define(SceneCameraUpdateSys) {
 ecs_module_init(scene_camera_module) {
   ecs_register_comp(SceneCameraComp);
   ecs_register_comp(SceneCameraMovementComp);
-  ecs_register_comp(SceneCameraInternalComp);
   ecs_register_comp_empty(SceneCameraSkyComp);
 
   ecs_register_view(GlobalTimeView);
