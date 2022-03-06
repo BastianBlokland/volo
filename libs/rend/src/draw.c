@@ -12,6 +12,7 @@
 
 ecs_comp_define(RendDrawComp) {
   EcsEntityId graphic;
+  EcsEntityId cameraFilter;
   u32         vertexCountOverride;
   u32         instances;
   u32         outputInstances;
@@ -145,6 +146,10 @@ bool rend_draw_gather(RendDrawComp* draw, const RendView* view) {
    * pass the filter to separate output memory.
    */
 
+  if (draw->cameraFilter && view->camera != draw->cameraFilter) {
+    return false;
+  }
+
   rend_draw_ensure_storage(&draw->outputMem, draw->instances * draw->dataSize, rend_min_align);
 
   draw->outputInstances = 0;
@@ -171,6 +176,10 @@ RvkPassDraw rend_draw_output(const RendDrawComp* draw, RvkGraphic* graphic) {
 
 void rend_draw_set_graphic(RendDrawComp* comp, const EcsEntityId graphic) {
   comp->graphic = graphic;
+}
+
+void rend_draw_set_camera_filter(RendDrawComp* comp, const EcsEntityId camera) {
+  comp->cameraFilter = camera;
 }
 
 void rend_draw_set_vertex_count(RendDrawComp* comp, const u32 vertexCount) {

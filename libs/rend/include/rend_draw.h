@@ -21,6 +21,11 @@ RendDrawComp* rend_draw_create(EcsWorld*, EcsEntityId entity);
 void rend_draw_set_graphic(RendDrawComp*, EcsEntityId graphic);
 
 /**
+ * Set a camera filter so only that specific camera will render this draw.
+ */
+void rend_draw_set_camera_filter(RendDrawComp*, EcsEntityId camera);
+
+/**
  * Override the vertex count for the draw.
  * NOTE: Pass 0 to use the vertex-count as specified by the graphic.
  */

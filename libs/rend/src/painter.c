@@ -118,6 +118,7 @@ static void painter_draw_forward(
 static bool painter_draw(
     RendPainterComp*          painter,
     const GapWindowComp*      win,
+    const EcsEntityId         camEntity,
     const SceneCameraComp*    cam,
     const SceneTransformComp* trans,
     EcsView*                  drawView,
@@ -128,7 +129,7 @@ static bool painter_draw(
   const bool      draw     = rvk_canvas_begin(painter->canvas, rendSize);
   if (draw) {
     const GeoMatrix viewProj = painter_view_proj_matrix(win, cam, trans);
-    const RendView  view     = rend_view_create(&viewProj, cam->filter);
+    const RendView  view     = rend_view_create(camEntity, &viewProj, cam->filter);
 
     const RendPainterGlobalData globalData = {
         .viewProj   = viewProj,
@@ -175,16 +176,17 @@ ecs_system_define(RendPainterDrawBatchesSys) {
 
   bool anyPainterDrawn = false;
   for (EcsIterator* itr = ecs_view_itr(painterView); ecs_view_walk(itr);) {
+    const EcsEntityId     entity    = ecs_view_entity(itr);
     const GapWindowComp*  win       = ecs_view_read_t(itr, GapWindowComp);
     const GapWindowEvents winEvents = gap_window_events(win);
     if (winEvents & GapWindowEvents_CloseRequested || winEvents & GapWindowEvents_Closed) {
-      ecs_world_remove_t(world, ecs_view_entity(itr), RendPainterComp);
+      ecs_world_remove_t(world, entity, RendPainterComp);
       continue;
     }
     RendPainterComp*          painter   = ecs_view_write_t(itr, RendPainterComp);
     const SceneCameraComp*    camera    = ecs_view_read_t(itr, SceneCameraComp);
     const SceneTransformComp* transform = ecs_view_read_t(itr, SceneTransformComp);
-    anyPainterDrawn |= painter_draw(painter, win, camera, transform, drawView, graphicView);
+    anyPainterDrawn |= painter_draw(painter, win, entity, camera, transform, drawView, graphicView);
   }
 
   if (!anyPainterDrawn) {
