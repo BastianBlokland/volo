@@ -87,7 +87,7 @@ ecs_module_init(rend_draw_module) {
 
   ecs_register_system(RendClearDrawsSys, ecs_view_id(DrawView));
 
-  ecs_order(RendClearDrawsSys, RendOrder_DrawCollect - 1);
+  ecs_order(RendClearDrawsSys, RendOrder_DrawClear);
 }
 
 RendDrawComp* rend_draw_create(EcsWorld* world, const EcsEntityId entity) {
