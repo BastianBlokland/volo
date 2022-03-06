@@ -1,0 +1,12 @@
+{
+  "type": "CubeMap",
+  "mipmaps": false,
+  "textures": [
+    "textures/missing.ptx",
+    "textures/missing.ptx",
+    "textures/missing.ptx",
+    "textures/missing.ptx",
+    "textures/missing.ptx",
+    "textures/missing.ptx"
+  ]
+}
