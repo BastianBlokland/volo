@@ -213,7 +213,10 @@ EcsEntityId ui_canvas_create(EcsWorld* world, const EcsEntityId window) {
       .window    = window,
       .cmdBuffer = ui_cmdbuffer_create(g_alloc_heap),
       .elements  = dynarray_create_t(g_alloc_heap, UiElement, 128));
-  rend_draw_create(world, canvasEntity);
+
+  RendDrawComp* draw = rend_draw_create(world, canvasEntity);
+  rend_draw_set_camera_filter(draw, window);
+
   return canvasEntity;
 }
 
