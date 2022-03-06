@@ -10,6 +10,8 @@
   X(0xE9BA, Logout)                                                                                \
   X(0xE5D0, Fullscreen)                                                                            \
   X(0xE5D1, FullscreenExit)                                                                        \
+  X(0xE53B, Layers)                                                                                \
+  X(0xE53C, LayersClear)                                                                           \
   X(0xEF5B, Monitor)                                                                               \
   X(0xE3AE, Brush)                                                                                 \
   X(0xE1DB, Storage)                                                                               \
