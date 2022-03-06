@@ -127,10 +127,8 @@ static void ui_canvas_render(
   rend_draw_set_data_size(draw, (u32)renderState.output->size);
   rend_draw_set_vertex_count(draw, renderState.outputNumGlyphs * 6); // 6 verts per quad.
 
-  const SceneTags tags = SceneTags_Ui | SceneTags_Debug;
-  const Mem       data = dynstring_view(renderState.output);
-  const GeoBox    aabb = geo_box_inverted3();
-  mem_cpy(rend_draw_add_instance(draw, tags, aabb), data);
+  const Mem data = dynstring_view(renderState.output);
+  mem_cpy(rend_draw_add_instance(draw, SceneTags_None, (GeoBox){0}), data);
 
   dynstring_destroy(&dataBuffer);
 

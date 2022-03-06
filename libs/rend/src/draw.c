@@ -212,10 +212,13 @@ void rend_draw_set_data_size(RendDrawComp* draw, const u32 size) {
 Mem rend_draw_add_instance(RendDrawComp* draw, const SceneTags tags, const GeoBox aabb) {
   ++draw->instances;
   rend_draw_ensure_storage(&draw->dataMem, draw->instances * draw->dataSize, rend_min_align);
-  rend_draw_ensure_storage(&draw->tagsMem, draw->instances * sizeof(SceneTags), 1);
-  rend_draw_ensure_storage(&draw->aabbMem, draw->instances * sizeof(GeoBox), alignof(GeoBox));
 
-  mem_as_t(draw->tagsMem, SceneTags)[draw->instances - 1] = tags;
-  mem_as_t(draw->aabbMem, GeoBox)[draw->instances - 1]    = aabb;
+  if (!(draw->flags & RendDrawFlags_NoInstanceFiltering)) {
+    rend_draw_ensure_storage(&draw->tagsMem, draw->instances * sizeof(SceneTags), 1);
+    rend_draw_ensure_storage(&draw->aabbMem, draw->instances * sizeof(GeoBox), alignof(GeoBox));
+
+    mem_as_t(draw->tagsMem, SceneTags)[draw->instances - 1] = tags;
+    mem_as_t(draw->aabbMem, GeoBox)[draw->instances - 1]    = aabb;
+  }
   return rend_draw_data(draw, draw->instances - 1);
 }
