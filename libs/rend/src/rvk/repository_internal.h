@@ -5,6 +5,7 @@ typedef struct sRvkTexture RvkTexture;
 
 typedef enum {
   RvkRepositoryId_MissingTexture,
+  RvkRepositoryId_MissingTextureCube,
 
   RvkRepositoryId_Count,
 } RvkRepositoryId;

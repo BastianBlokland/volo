@@ -23,7 +23,10 @@ ecs_comp_define_public(RendResShaderComp);
 ecs_comp_define_public(RendResMeshComp);
 ecs_comp_define_public(RendResTextureComp);
 
-ecs_comp_define(RendGlobalResComp) { EcsEntityId missingTex; };
+ecs_comp_define(RendGlobalResComp) {
+  EcsEntityId missingTex;
+  EcsEntityId missingTexCube;
+};
 ecs_comp_define(RendGlobalResLoadedComp);
 
 typedef enum {
@@ -203,17 +206,20 @@ ecs_system_define(RendGlobalResourceLoadSys) {
   RendGlobalResComp* resComp  = ecs_view_write_t(globalItr, RendGlobalResComp);
 
   if (!resComp) {
-    resComp = ecs_world_add_t(
-        world,
-        ecs_view_entity(globalItr),
-        RendGlobalResComp,
-        .missingTex =
-            rend_resource_request_persistent(world, assetMan, string_lit("textures/missing.ptx")));
+    resComp = ecs_world_add_t(world, ecs_view_entity(globalItr), RendGlobalResComp);
+    resComp->missingTex =
+        rend_resource_request_persistent(world, assetMan, string_lit("textures/missing.ptx"));
+    resComp->missingTexCube =
+        rend_resource_request_persistent(world, assetMan, string_lit("textures/missing_cube.atx"));
   }
 
   // Wait for all global resources to be loaded.
-  if (!rend_res_set_wellknown_texture(
-          world, plat, RvkRepositoryId_MissingTexture, resComp->missingTex)) {
+  bool ready = true;
+  ready &= rend_res_set_wellknown_texture(
+      world, plat, RvkRepositoryId_MissingTexture, resComp->missingTex);
+  ready &= rend_res_set_wellknown_texture(
+      world, plat, RvkRepositoryId_MissingTextureCube, resComp->missingTexCube);
+  if (!ready) {
     return;
   }
 
