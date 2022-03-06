@@ -11,7 +11,6 @@ add_library(lib_scene STATIC
   src/lifetime.c
   src/register.c
   src/renderable.c
-  src/stats.c
   src/tag.c
   src/text.c
   src/time.c
