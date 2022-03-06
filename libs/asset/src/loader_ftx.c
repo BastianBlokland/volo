@@ -29,9 +29,14 @@
 static DataReg* g_dataReg;
 static DataMeta g_dataFtxDefMeta;
 
+typedef enum {
+  FtxGenFlags_IncludeGlyph0 = 1 << 0, // Aka the '.notdef' glyph or the 'missing glyph'.
+} FtxGenFlags;
+
 typedef struct {
   String      id;
   EcsEntityId asset;
+  f32         yOffset;
   String      characters;
 } FtxDefFont;
 
@@ -57,6 +62,7 @@ static void ftx_datareg_init() {
     // clang-format off
     data_reg_struct_t(g_dataReg, FtxDefFont);
     data_reg_field_t(g_dataReg, FtxDefFont, id, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, FtxDefFont, yOffset, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, FtxDefFont, characters, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
     data_reg_struct_t(g_dataReg, FtxDef);
@@ -128,10 +134,17 @@ typedef struct {
 } FtxDefChar;
 
 static u32 ftx_lookup_chars(
-    const AssetFontComp* font, String chars, FtxDefChar out[ftx_max_chars], FtxError* err) {
+    const AssetFontComp* font,
+    const FtxGenFlags    flags,
+    String               chars,
+    FtxDefChar           out[ftx_max_chars],
+    FtxError*            err) {
 
-  u32 index    = 0;
-  out[index++] = (FtxDefChar){.cp = 0, .glyph = asset_font_missing(font)};
+  u32 index = 0;
+  if (flags & FtxGenFlags_IncludeGlyph0) {
+    out[index++] = (FtxDefChar){.cp = 0, .glyph = asset_font_missing(font)};
+  }
+
   do {
     Unicode cp;
     chars = utf8_cp_read(chars, &cp);
@@ -183,7 +196,7 @@ static void ftx_generate_glyph(
       };
       const f32 dist       = asset_font_glyph_dist(font, glyph, point);
       const f32 borderFrac = math_clamp_f32(dist * invBorder, -1.0f, 1.0f);
-      const u8  value      = (u8)((-borderFrac * 0.5f + 0.5f) * 255.999f);
+      const u8  value      = (u8)((borderFrac * 0.5f + 0.5f) * 255.999f);
 
       const usize texPixelY                  = texY + glyphPixelY;
       const usize texPixelX                  = texX + glyphPixelX;
@@ -194,12 +207,14 @@ static void ftx_generate_glyph(
 
 typedef struct {
   const AssetFontComp* data;
+  f32                  yOffset;
   String               characters;
 } FtxDefResolvedFont;
 
 static void ftx_generate_font(
     const FtxDef*            def,
     const FtxDefResolvedFont font,
+    const FtxGenFlags        flags,
     u32                      maxGlyphs,
     u32*                     nextGlyphIndex,
     DynArray*                outChars, // AssetFtxChar[]
@@ -207,23 +222,20 @@ static void ftx_generate_font(
     FtxError*                err) {
 
   FtxDefChar inputChars[ftx_max_chars];
-  const u32  charCount = ftx_lookup_chars(font.data, font.characters, inputChars, err);
+  const u32  charCount = ftx_lookup_chars(font.data, flags, font.characters, inputChars, err);
   if (UNLIKELY(*err)) {
     return;
   }
 
   for (u32 i = 0; i != charCount; ++i) {
-    /**
-     * Take the sdf border into account as the glyph will need to be rendered bigger to compensate.
-     */
-    const f32 border                         = def->border / (f32)def->glyphSize;
     *dynarray_push_t(outChars, AssetFtxChar) = (AssetFtxChar){
         .cp         = inputChars[i].cp,
         .glyphIndex = inputChars[i].glyph->segmentCount ? *nextGlyphIndex : sentinel_u32,
-        .size       = inputChars[i].glyph->size + border * 2.0f,
-        .offsetX    = inputChars[i].glyph->offsetX - border,
-        .offsetY    = inputChars[i].glyph->offsetY - border,
+        .size       = inputChars[i].glyph->size,
+        .offsetX    = inputChars[i].glyph->offsetX,
+        .offsetY    = inputChars[i].glyph->offsetY + font.yOffset,
         .advance    = inputChars[i].glyph->advance,
+        .border     = def->border / (f32)def->glyphSize,
     };
     if (inputChars[i].glyph->segmentCount) {
       if (UNLIKELY(*nextGlyphIndex >= maxGlyphs)) {
@@ -243,9 +255,11 @@ static void ftx_generate(
     AssetTextureComp*         outTexture,
     FtxError*                 err) {
 
-  AssetTexturePixelB1* pixels =
-      alloc_array_t(g_alloc_heap, AssetTexturePixelB1, def->size * def->size);
-  DynArray chars = dynarray_create_t(g_alloc_heap, AssetFtxChar, 128);
+  Mem pixelMem = alloc_alloc(g_alloc_heap, sizeof(AssetTexturePixelB1) * def->size * def->size, 1);
+  mem_set(pixelMem, 0xFF); // Initialize to the maximum distance away from a glyph.
+
+  AssetTexturePixelB1* pixels = pixelMem.ptr;
+  DynArray             chars  = dynarray_create_t(g_alloc_heap, AssetFtxChar, 128);
 
   const u32 glyphsPerDim   = def->size / def->glyphSize;
   const u32 maxGlyphs      = glyphsPerDim * glyphsPerDim;
@@ -256,7 +270,9 @@ static void ftx_generate(
   }
 
   for (u32 i = 0; i != fontCount; ++i) {
-    ftx_generate_font(def, fonts[i], maxGlyphs, &nextGlyphIndex, &chars, pixels, err);
+    const FtxGenFlags genFlags = i == 0 ? FtxGenFlags_IncludeGlyph0 : 0;
+
+    ftx_generate_font(def, fonts[i], genFlags, maxGlyphs, &nextGlyphIndex, &chars, pixels, err);
     if (UNLIKELY(*err)) {
       goto Error;
     }
@@ -330,6 +346,7 @@ ecs_system_define(FtxLoadAssetSys) {
       }
       fonts[i] = (FtxDefResolvedFont){
           .data       = ecs_view_read_t(fontItr, AssetFontComp),
+          .yOffset    = defFont->yOffset,
           .characters = defFont->characters,
       };
     }

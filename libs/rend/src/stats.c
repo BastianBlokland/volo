@@ -1,6 +1,6 @@
 #include "ecs_world.h"
 #include "rend_register.h"
-#include "scene_stats.h"
+#include "rend_stats.h"
 
 #include "painter_internal.h"
 #include "platform_internal.h"
@@ -9,6 +9,15 @@
 #include "rvk/desc_internal.h"
 #include "rvk/device_internal.h"
 #include "rvk/mem_internal.h"
+
+ecs_comp_define_public(RendStatsComp);
+
+static void ecs_destruct_rend_stats_comp(void* data) {
+  RendStatsComp* comp = data;
+  if (!string_is_empty(comp->gpuName)) {
+    string_free(g_alloc_heap, comp->gpuName);
+  }
+}
 
 static void rend_stats_update_str(String* strPtr, const String newStr) {
   if (LIKELY(strPtr->size == newStr.size)) {
@@ -25,7 +34,7 @@ ecs_view_define(GlobalView) { ecs_access_read(RendPlatformComp); }
 
 ecs_view_define(UpdateStatsView) {
   ecs_access_read(RendPainterComp);
-  ecs_access_write(SceneStatsCamComp);
+  ecs_access_maybe_write(RendStatsComp);
 }
 
 ecs_view_define(LoadedResourceView) {
@@ -39,23 +48,23 @@ static const RendPlatformComp* rend_stats_platform(EcsWorld* world) {
   return globalItr ? ecs_view_read_t(globalItr, RendPlatformComp) : null;
 }
 
-static void rend_stat_update_resources(EcsWorld* world, u32 resources[SceneStatRes_Count]) {
-  mem_set(mem_create(resources, sizeof(u32) * SceneStatRes_Count), 0);
+static void rend_stat_update_resources(EcsWorld* world, u32 resources[RendStatRes_Count]) {
+  mem_set(mem_create(resources, sizeof(u32) * RendStatRes_Count), 0);
 
   EcsView* loadedResView = ecs_world_view_t(world, LoadedResourceView);
   for (EcsIterator* itr = ecs_view_itr(loadedResView); ecs_view_walk(itr);) {
     const EcsEntityId entity = ecs_view_entity(itr);
     if (ecs_world_has_t(world, entity, RendResGraphicComp)) {
-      ++resources[SceneStatRes_Graphic];
+      ++resources[RendStatRes_Graphic];
     }
     if (ecs_world_has_t(world, entity, RendResShaderComp)) {
-      ++resources[SceneStatRes_Shader];
+      ++resources[RendStatRes_Shader];
     }
     if (ecs_world_has_t(world, entity, RendResMeshComp)) {
-      ++resources[SceneStatRes_Mesh];
+      ++resources[RendStatRes_Mesh];
     }
     if (ecs_world_has_t(world, entity, RendResTextureComp)) {
-      ++resources[SceneStatRes_Texture];
+      ++resources[RendStatRes_Texture];
     }
   }
 }
@@ -69,7 +78,11 @@ ecs_system_define(RendUpdateCamStatsSys) {
   EcsView* updateView = ecs_world_view_t(world, UpdateStatsView);
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
     const RendPainterComp* painter = ecs_view_read_t(itr, RendPainterComp);
-    SceneStatsCamComp*     stats   = ecs_view_write_t(itr, SceneStatsCamComp);
+    RendStatsComp*         stats   = ecs_view_write_t(itr, RendStatsComp);
+    if (!stats) {
+      ecs_world_add_t(world, ecs_view_entity(itr), RendStatsComp);
+      continue;
+    }
 
     // NOTE: Will block until the previous draw has finished.
     const RvkRenderStats renderStats = rvk_canvas_stats(painter->canvas);
@@ -96,6 +109,8 @@ ecs_system_define(RendUpdateCamStatsSys) {
 }
 
 ecs_module_init(rend_stats_module) {
+  ecs_register_comp(RendStatsComp, .destructor = ecs_destruct_rend_stats_comp);
+
   ecs_register_view(GlobalView);
   ecs_register_view(UpdateStatsView);
   ecs_register_view(LoadedResourceView);

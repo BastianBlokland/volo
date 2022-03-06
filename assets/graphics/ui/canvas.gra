@@ -1,10 +1,10 @@
 {
   "shaders": [
     {
-      "shaderId": "shaders/ui/text.vert.spv"
+      "shaderId": "shaders/ui/canvas.vert.spv"
     },
     {
-      "shaderId": "shaders/ui/text.frag.spv"
+      "shaderId": "shaders/ui/canvas.frag.spv"
     }
   ],
   "samplers": [

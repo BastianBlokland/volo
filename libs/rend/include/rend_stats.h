@@ -3,15 +3,15 @@
 #include "ecs_module.h"
 
 typedef enum {
-  SceneStatRes_Graphic,
-  SceneStatRes_Shader,
-  SceneStatRes_Mesh,
-  SceneStatRes_Texture,
+  RendStatRes_Graphic,
+  RendStatRes_Shader,
+  RendStatRes_Mesh,
+  RendStatRes_Texture,
 
-  SceneStatRes_Count,
-} SceneStatRes;
+  RendStatRes_Count,
+} RendStatRes;
 
-ecs_comp_extern_public(SceneStatsCamComp) {
+ecs_comp_extern_public(RendStatsComp) {
   String       gpuName;
   u32          renderSize[2];
   TimeDuration renderTime;
@@ -21,5 +21,5 @@ ecs_comp_extern_public(SceneStatsCamComp) {
   u64          ramOccupied, ramReserved;
   u64          vramOccupied, vramReserved;
   u32          descSetsOccupied, descSetsReserved, descLayouts;
-  u32          resources[SceneStatRes_Count];
+  u32          resources[RendStatRes_Count];
 };

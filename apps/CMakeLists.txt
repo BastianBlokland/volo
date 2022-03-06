@@ -8,11 +8,13 @@
 add_executable(app_pedestal pedestal.c)
 target_link_libraries(app_pedestal PRIVATE lib_asset)
 target_link_libraries(app_pedestal PRIVATE lib_cli)
+target_link_libraries(app_pedestal PRIVATE lib_debug)
 target_link_libraries(app_pedestal PRIVATE lib_gap)
 target_link_libraries(app_pedestal PRIVATE lib_jobs)
 target_link_libraries(app_pedestal PRIVATE lib_log)
 target_link_libraries(app_pedestal PRIVATE lib_rend)
 target_link_libraries(app_pedestal PRIVATE lib_scene)
+target_link_libraries(app_pedestal PRIVATE lib_ui)
 add_dependencies(app_pedestal volo_assets)
 configure_debuggable(app_pedestal)
 

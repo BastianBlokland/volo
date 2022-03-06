@@ -14,7 +14,7 @@ typedef struct sRng Rng;
  * Dynamically allocates memory when more items get added.
  * NOTE: Any pointers / memory-views retrieved over DynArray are invalidated on any mutating api.
  */
-typedef struct {
+typedef struct sDynArray {
   Mem        data;
   Allocator* alloc;
   usize      size;

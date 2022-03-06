@@ -1,7 +1,7 @@
 {
-  "size": 512,
-  "glyphSize": 32,
-  "border": 4,
+  "size": 1024,
+  "glyphSize": 64,
+  "border": 32,
   "lineSpacing": 0.2,
   "fonts": [
     {
@@ -10,7 +10,12 @@
     },
     {
       "id": "fonts/materialicons_regular.ttf",
-      "characters": "\ue9e4\uef5b\ue3ae\ue1db\uea5f\ue069\ue338\ue4fc\ue80e"
+      "yOffset": -0.15,
+      "characters": "\uE9E4\uEF5B\uE3AE\uE1DB\uEA5F\uE069\uE338\uE4FC\uE80E\uE5CA\uE9BA\uE5D0\uE5D1\uE53B\uE53C"
+    },
+    {
+      "id": "fonts/shapes.ttf",
+      "characters": "\uF000\uF001"
     }
   ]
 }
