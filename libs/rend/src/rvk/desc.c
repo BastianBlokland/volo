@@ -56,7 +56,8 @@ static VkDescriptorType rvk_desc_vktype(const RvkDescKind kind) {
   switch (kind) {
   case RvkDescKind_None:
     break;
-  case RvkDescKind_CombinedImageSampler:
+  case RvkDescKind_CombinedImageSampler2D:
+  case RvkDescKind_CombinedImageSamplerCube:
     return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
   case RvkDescKind_UniformBuffer:
     return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -342,7 +343,8 @@ void rvk_desc_free(RvkDescSet set) {
 String rvk_desc_kind_str(const RvkDescKind kind) {
   static const String g_names[] = {
       string_static("None"),
-      string_static("CombinedImageSampler"),
+      string_static("CombinedImageSampler2D"),
+      string_static("CombinedImageSamplerCube"),
       string_static("UniformBuffer"),
       string_static("UniformBufferDynamic"),
       string_static("StorageBuffer"),
@@ -411,8 +413,19 @@ void rvk_desc_set_attach_buffer(
 void rvk_desc_set_attach_sampler(
     const RvkDescSet set, const u32 binding, const RvkImage* image, const RvkSampler* sampler) {
 
-  MAYBE_UNUSED const RvkDescKind kind = rvk_desc_set_kind(set, binding);
-  diag_assert(kind == RvkDescKind_CombinedImageSampler);
+  const RvkDescKind kind = rvk_desc_set_kind(set, binding);
+  switch (kind) {
+  case RvkDescKind_CombinedImageSampler2D:
+    diag_assert(image->type == RvkImageType_ColorSource);
+    break;
+  case RvkDescKind_CombinedImageSamplerCube:
+    diag_assert(image->type == RvkImageType_ColorSourceCube);
+    break;
+  default:
+    diag_assert_fail(
+        "Desc kind {} does not support attaching samplers", fmt_text(rvk_desc_kind_str(kind)));
+    break;
+  }
 
   VkDescriptorImageInfo imgInfo = {
       .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,

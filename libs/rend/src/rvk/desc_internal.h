@@ -13,7 +13,8 @@ typedef struct sRvkDescChunk RvkDescChunk;
 
 typedef enum {
   RvkDescKind_None,
-  RvkDescKind_CombinedImageSampler,
+  RvkDescKind_CombinedImageSampler2D,
+  RvkDescKind_CombinedImageSamplerCube,
   RvkDescKind_UniformBuffer,
   RvkDescKind_UniformBufferDynamic,
   RvkDescKind_StorageBuffer,

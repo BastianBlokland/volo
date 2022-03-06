@@ -41,8 +41,10 @@ static String rvk_shader_kind_str(const AssetShaderKind kind) {
 
 static RvkDescKind rvk_shader_desc_kind(const AssetShaderResKind resKind) {
   switch (resKind) {
-  case AssetShaderResKind_Texture:
-    return RvkDescKind_CombinedImageSampler;
+  case AssetShaderResKind_Texture2D:
+    return RvkDescKind_CombinedImageSampler2D;
+  case AssetShaderResKind_TextureCube:
+    return RvkDescKind_CombinedImageSamplerCube;
   case AssetShaderResKind_UniformBuffer:
     // NOTE: This makes the assumption that all uniform-buffers will be bound as dynamic buffers.
     return RvkDescKind_UniformBufferDynamic;
