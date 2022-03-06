@@ -48,6 +48,10 @@ static const u32 g_rendSupportedGraphicBindings[rvk_desc_bindings_max] = {
     rend_image_sampler_mask,
 };
 
+static bool rvk_desc_is_sampler(const RvkDescKind kind) {
+  return kind == RvkDescKind_CombinedImageSampler2D || kind == RvkDescKind_CombinedImageSamplerCube;
+}
+
 static const char* rvk_to_null_term_scratch(String str) {
   const Mem scratchMem = alloc_alloc(g_alloc_scratch, str.size + 1, 1);
   mem_cpy(scratchMem, str);
@@ -669,17 +673,26 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, VkRender
     u32 samplerIndex = 0;
     for (u32 i = 0; i != rvk_desc_bindings_max; ++i) {
       const RvkDescKind kind = graphicDescMeta.bindings[i];
-      if (kind == RvkDescKind_CombinedImageSampler2D ||
-          kind == RvkDescKind_CombinedImageSamplerCube) {
+      if (rvk_desc_is_sampler(kind)) {
         if (UNLIKELY(i == rvk_graphic_samplers_max)) {
           log_e(
               "Shader exceeds texture limit",
               log_param("graphic", fmt_text(graphic->dbgName)),
               log_param("limit", fmt_int(rvk_graphic_samplers_max)));
           graphic->flags |= RvkGraphicFlags_Invalid;
+          break;
         }
         if (!graphic->samplers[samplerIndex].texture) {
           rvk_graphic_set_missing_sampler(graphic, samplerIndex, kind);
+        }
+        if (kind != rvk_texture_sampler_kind(graphic->samplers[samplerIndex].texture)) {
+          log_e(
+              "Mismatched shader texture sampler kind",
+              log_param("graphic", fmt_text(graphic->dbgName)),
+              log_param("sampler", fmt_int(samplerIndex)),
+              log_param("expected", fmt_text(rvk_desc_kind_str(kind))));
+          graphic->flags |= RvkGraphicFlags_Invalid;
+          break;
         }
         const RvkImage*   image   = &graphic->samplers[samplerIndex].texture->image;
         const RvkSampler* sampler = &graphic->samplers[samplerIndex].sampler;
