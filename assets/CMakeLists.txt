@@ -14,13 +14,6 @@ configure_shaders(volo_shaders
     shaders/scene/sky_procedural.frag
     shaders/ui/canvas.vert
     shaders/ui/canvas.frag
-    shaders/ui/lines.vert
-    shaders/ui/points.vert
-    shaders/ui/color.frag
-    shaders/ui/text.vert
-    shaders/ui/text.frag
-    shaders/ui/texture.vert
-    shaders/ui/texture.frag
     shaders/demo/terrain.vert
     shaders/demo/terrain.frag
     shaders/standard.vert
