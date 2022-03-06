@@ -82,7 +82,12 @@ macro(set_gcc_compile_options)
   add_compile_options(-O3)
 
   # Debug options.
-  add_compile_options(-g -fno-omit-frame-pointer)
+  add_compile_options(-g)
+  if(NOT ${VOLO_PLATFORM} STREQUAL "win32")
+    # NOTE: The MinGW GCC port fails code-gen with the 'no-omit-frame-pointer' option.
+    # Open issue: https://github.com/msys2/MINGW-packages/issues/4409
+    add_compile_options(-fno-omit-frame-pointer)
+  endif()
 
 endmacro(set_gcc_compile_options)
 
