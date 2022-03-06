@@ -5,8 +5,10 @@
 #include "rend_register.h"
 
 #include "draw_internal.h"
+#include "resource_internal.h"
 
 #define rend_min_align 16
+#define rend_max_res_requests 16
 
 ecs_comp_define(RendDrawComp) {
   EcsEntityId graphic;
@@ -71,21 +73,60 @@ static Mem rend_draw_output_data(const RendDrawComp* draw, const u32 instance) {
   return mem_slice(draw->outputMem, instance * draw->dataSize, draw->dataSize);
 }
 
-ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
+/**
+ * Request the given graphic entity to be loaded.
+ */
+static void rend_draw_request_graphic(
+    EcsWorld* world, const EcsEntityId entity, EcsIterator* graphicItr, u32* numRequests) {
+  /**
+   * If the graphic resource is already loaded then tell the resource system we're still using it
+   * (so it won't be unloaded). If its not loaded then start loading it.
+   */
+  if (LIKELY(ecs_view_maybe_jump(graphicItr, entity))) {
+    rend_resource_mark_used(ecs_view_write_t(graphicItr, RendResComp));
+    return;
+  }
+  if (++*numRequests < rend_max_res_requests) {
+    rend_resource_request(world, entity);
+  }
+}
+
+ecs_view_define(ResourceView) { ecs_access_write(RendResComp); }
+ecs_view_define(DrawReadView) { ecs_access_read(RendDrawComp); }
+ecs_view_define(DrawWriteView) { ecs_access_write(RendDrawComp); }
 
 ecs_system_define(RendClearDrawsSys) {
-  EcsView* drawView = ecs_world_view_t(world, DrawView);
+  EcsView* drawView = ecs_world_view_t(world, DrawWriteView);
   for (EcsIterator* itr = ecs_view_itr(drawView); ecs_view_walk(itr);) {
     ecs_view_write_t(itr, RendDrawComp)->instances = 0;
+  }
+}
+
+ecs_system_define(RendDrawRequestGraphicSys) {
+  u32 numRequests = 0;
+
+  EcsIterator* graphicResItr = ecs_view_itr(ecs_world_view_t(world, ResourceView));
+
+  // Request the graphic resource for all draw's to be loaded.
+  EcsView* drawView = ecs_world_view_t(world, DrawReadView);
+  for (EcsIterator* itr = ecs_view_itr(drawView); ecs_view_walk(itr);) {
+    const RendDrawComp* comp = ecs_view_read_t(itr, RendDrawComp);
+    if (LIKELY(comp->graphic)) {
+      rend_draw_request_graphic(world, comp->graphic, graphicResItr, &numRequests);
+    }
   }
 }
 
 ecs_module_init(rend_draw_module) {
   ecs_register_comp(RendDrawComp, .destructor = ecs_destruct_draw, .combinator = ecs_combine_draw);
 
-  ecs_register_view(DrawView);
+  ecs_register_view(ResourceView);
+  ecs_register_view(DrawReadView);
+  ecs_register_view(DrawWriteView);
 
-  ecs_register_system(RendClearDrawsSys, ecs_view_id(DrawView));
+  ecs_register_system(RendClearDrawsSys, ecs_view_id(DrawWriteView));
+  ecs_register_system(
+      RendDrawRequestGraphicSys, ecs_view_id(DrawReadView), ecs_view_id(ResourceView));
 
   ecs_order(RendClearDrawsSys, RendOrder_DrawClear);
 }
