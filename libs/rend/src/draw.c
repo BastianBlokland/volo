@@ -111,7 +111,7 @@ ecs_system_define(RendDrawRequestGraphicSys) {
   EcsView* drawView = ecs_world_view_t(world, DrawReadView);
   for (EcsIterator* itr = ecs_view_itr(drawView); ecs_view_walk(itr);) {
     const RendDrawComp* comp = ecs_view_read_t(itr, RendDrawComp);
-    if (LIKELY(comp->graphic)) {
+    if (comp->instances && comp->graphic) {
       rend_draw_request_graphic(world, comp->graphic, graphicResItr, &numRequests);
     }
   }
@@ -129,6 +129,7 @@ ecs_module_init(rend_draw_module) {
       RendDrawRequestGraphicSys, ecs_view_id(DrawReadView), ecs_view_id(ResourceView));
 
   ecs_order(RendClearDrawsSys, RendOrder_DrawClear);
+  ecs_order(RendDrawRequestGraphicSys, RendOrder_DrawCollect + 1);
 }
 
 RendDrawComp* rend_draw_create(EcsWorld* world, const EcsEntityId entity) {
