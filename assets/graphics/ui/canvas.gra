@@ -14,10 +14,11 @@
       "filter": "Linear"
     }
   ],
+  "vertexCount": 6,
   "renderOrder": 100,
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "Alpha",
-  "depth": "Always",
+  "depth": "None",
   "cull": "None"
 }

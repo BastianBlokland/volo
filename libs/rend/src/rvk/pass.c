@@ -45,10 +45,10 @@ static VkRenderPass rvk_renderpass_create(RvkDevice* dev, const RvkPassFlags fla
   u32                     colorRefCount = 0;
 
   attachments[attachmentCount++] = (VkAttachmentDescription){
-      .format  = g_attachColorFormat,
-      .samples = VK_SAMPLE_COUNT_1_BIT,
-      .loadOp  = (flags & RvkPassFlags_ClearColor) ? VK_ATTACHMENT_LOAD_OP_CLEAR
-                                                  : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+      .format         = g_attachColorFormat,
+      .samples        = VK_SAMPLE_COUNT_1_BIT,
+      .loadOp         = (flags & RvkPassFlags_ClearColor) ? VK_ATTACHMENT_LOAD_OP_CLEAR
+                                                          : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
       .storeOp        = VK_ATTACHMENT_STORE_OP_STORE,
       .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
       .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
@@ -61,10 +61,10 @@ static VkRenderPass rvk_renderpass_create(RvkDevice* dev, const RvkPassFlags fla
   };
 
   attachments[attachmentCount++] = (VkAttachmentDescription){
-      .format  = dev->vkDepthFormat,
-      .samples = VK_SAMPLE_COUNT_1_BIT,
-      .loadOp  = (flags & RvkPassFlags_ClearDepth) ? VK_ATTACHMENT_LOAD_OP_CLEAR
-                                                  : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+      .format         = dev->vkDepthFormat,
+      .samples        = VK_SAMPLE_COUNT_1_BIT,
+      .loadOp         = (flags & RvkPassFlags_ClearDepth) ? VK_ATTACHMENT_LOAD_OP_CLEAR
+                                                          : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
       .storeOp        = VK_ATTACHMENT_STORE_OP_DONT_CARE,
       .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
       .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
@@ -294,15 +294,19 @@ static void rvk_pass_draw_submit(RvkPass* pass, const RvkPassDraw* draw) {
     log_w("Graphic requires global data", log_param("graphic", fmt_text(graphic->dbgName)));
     return;
   }
-  if (UNLIKELY(graphic->flags & RvkGraphicFlags_InstanceData && !draw->dataStride)) {
+  if (UNLIKELY(graphic->flags & RvkGraphicFlags_DrawData && !draw->drawData.size)) {
+    log_w("Graphic requires draw data", log_param("graphic", fmt_text(graphic->dbgName)));
+    return;
+  }
+  if (UNLIKELY(graphic->flags & RvkGraphicFlags_InstanceData && !draw->instDataStride)) {
     log_w("Graphic requires instance data", log_param("graphic", fmt_text(graphic->dbgName)));
     return;
   }
-  if (UNLIKELY(draw->dataStride > rvk_uniform_size_max(pass->uniformPool))) {
+  if (UNLIKELY(draw->instDataStride > rvk_uniform_size_max(pass->uniformPool))) {
     log_w(
         "Draw instance data exceeds maximum",
         log_param("graphic", fmt_text(graphic->dbgName)),
-        log_param("size", fmt_size(draw->dataStride)),
+        log_param("size", fmt_size(draw->instDataStride)),
         log_param("size-max", fmt_size(rvk_uniform_size_max(pass->uniformPool))));
     return;
   }
@@ -313,34 +317,39 @@ static void rvk_pass_draw_submit(RvkPass* pass, const RvkPassDraw* draw) {
 
   rvk_graphic_bind(graphic, pass->vkCmdBuf);
 
-  diag_assert(draw->dataStride * draw->instanceCount == draw->data.size);
-  const u32 dataStride = graphic->flags & RvkGraphicFlags_InstanceData ? draw->dataStride : 0;
+  if (draw->drawData.size) {
+    rvk_uniform_bind(
+        pass->uniformPool, draw->drawData, pass->vkCmdBuf, graphic->vkPipelineLayout, 2);
+  }
 
-  for (u32 remInstanceCount = draw->instanceCount, dataOffset = 0; remInstanceCount != 0;) {
-    const u32 instanceCount = rvk_pass_instances_per_draw(pass, remInstanceCount, dataStride);
-    rvk_statrecorder_report(pass->statrecorder, RvkStat_Instances, instanceCount);
+  diag_assert(draw->instDataStride * draw->instCount == draw->instData.size);
+  const u32 dataStride = graphic->flags & RvkGraphicFlags_InstanceData ? draw->instDataStride : 0;
+
+  for (u32 remInstCount = draw->instCount, dataOffset = 0; remInstCount != 0;) {
+    const u32 instCount = rvk_pass_instances_per_draw(pass, remInstCount, dataStride);
+    rvk_statrecorder_report(pass->statrecorder, RvkStat_Instances, instCount);
 
     if (dataStride) {
-      const u32 dataSize = instanceCount * dataStride;
+      const u32 dataSize = instCount * dataStride;
       rvk_uniform_bind(
           pass->uniformPool,
-          mem_slice(draw->data, dataOffset, dataSize),
+          mem_slice(draw->instData, dataOffset, dataSize),
           pass->vkCmdBuf,
           graphic->vkPipelineLayout,
-          2);
+          3);
       dataOffset += dataSize;
     }
 
     if (graphic->mesh) {
-      vkCmdDrawIndexed(pass->vkCmdBuf, graphic->mesh->indexCount, instanceCount, 0, 0, 0);
+      vkCmdDrawIndexed(pass->vkCmdBuf, graphic->mesh->indexCount, instCount, 0, 0, 0);
     } else {
       const u32 vertexCount =
           draw->vertexCountOverride ? draw->vertexCountOverride : graphic->vertexCount;
       if (LIKELY(vertexCount)) {
-        vkCmdDraw(pass->vkCmdBuf, vertexCount, instanceCount, 0, 0);
+        vkCmdDraw(pass->vkCmdBuf, vertexCount, instCount, 0, 0);
       }
     }
-    remInstanceCount -= instanceCount;
+    remInstCount -= instCount;
   }
 
   rvk_debug_label_end(pass->dev->debug, pass->vkCmdBuf);

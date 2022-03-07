@@ -1,6 +1,5 @@
 #include "asset_ftx.h"
 #include "core_diag.h"
-#include "core_dynstring.h"
 #include "ecs_world.h"
 #include "gap_window.h"
 #include "rend_draw.h"
@@ -31,9 +30,8 @@ static void ecs_destruct_canvas(void* data) {
 }
 
 typedef struct {
-  DynString* output;
-  u32        outputNumGlyphs;
-  DynArray*  elementsOutput; // UiElement[]*
+  RendDrawComp* draw;
+  DynArray*     elementsOutput; // UiElement[]*
 } UiRenderState;
 
 static const UiElement* ui_build_elem(const UiCanvasComp* canvas, const UiId id) {
@@ -48,14 +46,13 @@ static UiElement* ui_build_elem_mutable(UiCanvasComp* canvas, const UiId id) {
 }
 
 static void ui_canvas_output_draw(void* userCtx, const UiDrawData data) {
-  UiRenderState* renderState                                                = userCtx;
-  *(UiDrawData*)dynstring_push(renderState->output, sizeof(UiDrawData)).ptr = data;
+  UiRenderState* renderState = userCtx;
+  rend_draw_set_data(renderState->draw, mem_var(data));
 }
 
 static void ui_canvas_output_glyph(void* userCtx, const UiGlyphData data) {
-  UiRenderState* renderState                                                  = userCtx;
-  *(UiGlyphData*)dynstring_push(renderState->output, sizeof(UiGlyphData)).ptr = data;
-  ++renderState->outputNumGlyphs;
+  UiRenderState* renderState = userCtx;
+  rend_draw_add_instance(renderState->draw, mem_var(data), SceneTags_None, (GeoBox){0});
 }
 
 static void ui_canvas_output_rect(void* userCtx, const UiId id, const UiRect rect) {
@@ -108,9 +105,8 @@ static void ui_canvas_render(
   // Ensure we have UiElement structures for all elements that are requested to be drawn.
   dynarray_resize(&canvas->elements, canvas->nextId);
 
-  DynString     dataBuffer  = dynstring_create(g_alloc_heap, 512);
   UiRenderState renderState = {
-      .output         = &dataBuffer,
+      .draw           = draw,
       .elementsOutput = &canvas->elements,
   };
 
@@ -123,14 +119,6 @@ static void ui_canvas_render(
       .outputRect  = &ui_canvas_output_rect,
   };
   const UiBuildResult result = ui_build(canvas->cmdBuffer, &buildCtx);
-
-  rend_draw_set_data_size(draw, (u32)renderState.output->size);
-  rend_draw_set_vertex_count(draw, renderState.outputNumGlyphs * 6); // 6 verts per quad.
-
-  const Mem data = dynstring_view(renderState.output);
-  mem_cpy(rend_draw_add_instance(draw, SceneTags_None, (GeoBox){0}), data);
-
-  dynstring_destroy(&dataBuffer);
 
   ui_canvas_update_input(canvas, window, result);
 }

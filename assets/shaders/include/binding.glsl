@@ -5,13 +5,17 @@
 
 const u32 c_setGlobal   = 0;
 const u32 c_setGraphic  = 1;
-const u32 c_setInstance = 2;
+const u32 c_setDraw     = 2;
+const u32 c_setInstance = 3;
 
 #define bind_global(_BIND_IDX_) layout(set = c_setGlobal, binding = _BIND_IDX_)
 #define bind_global_data(_BIND_IDX_) layout(set = c_setGlobal, binding = _BIND_IDX_, std140)
 
 #define bind_graphic(_BIND_IDX_) layout(set = c_setGraphic, binding = _BIND_IDX_)
 #define bind_graphic_data(_BIND_IDX_) layout(set = c_setGraphic, binding = _BIND_IDX_, std140)
+
+#define bind_draw(_BIND_IDX_) layout(set = c_setDraw, binding = _BIND_IDX_)
+#define bind_draw_data(_BIND_IDX_) layout(set = c_setDraw, binding = _BIND_IDX_, std140)
 
 #define bind_instance(_BIND_IDX_) layout(set = c_setInstance, binding = _BIND_IDX_)
 #define bind_instance_data(_BIND_IDX_) layout(set = c_setInstance, binding = _BIND_IDX_, std140)
