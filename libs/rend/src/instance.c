@@ -55,7 +55,6 @@ ecs_system_define(RendInstanceFillDrawsSys) {
     if (UNLIKELY(!ecs_world_has_t(world, renderable->graphic, RendDrawComp))) {
       RendDrawComp* draw = rend_draw_create(world, renderable->graphic, RendDrawFlags_None);
       rend_draw_set_graphic(draw, renderable->graphic);
-      rend_draw_set_data_size(draw, sizeof(RendInstanceData));
       continue;
     }
 
@@ -67,10 +66,14 @@ ecs_system_define(RendInstanceFillDrawsSys) {
     const f32       scale    = scaleComp ? scaleComp->scale : 1.0f;
     const GeoBox    aabb     = geo_box_transform3(&boundsComp->local, position, rotation, scale);
 
-    *mem_as_t(rend_draw_add_instance(draw, tags, aabb), RendInstanceData) = (RendInstanceData){
-        .posAndScale = geo_vector(position.x, position.y, position.z, scale),
-        .rot         = rotation,
-    };
+    rend_draw_add_instance(
+        draw,
+        mem_struct(
+            RendInstanceData,
+            .posAndScale = geo_vector(position.x, position.y, position.z, scale),
+            .rot         = rotation),
+        tags,
+        aabb);
   }
 }
 
@@ -94,9 +97,8 @@ ecs_system_define(RendInstanceFillUniqueDrawsSys) {
 
     rend_draw_set_graphic(draw, renderable->graphic);
     rend_draw_set_vertex_count(draw, renderable->vertexCountOverride);
-    rend_draw_set_data_size(draw, (u32)data.size);
     const GeoBox aabb = geo_box_inverted3(); // No bounds known for unique draws.
-    mem_cpy(rend_draw_add_instance(draw, tags, aabb), data);
+    rend_draw_add_instance(draw, data, tags, aabb);
   }
 }
 

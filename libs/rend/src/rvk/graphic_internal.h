@@ -23,8 +23,9 @@ typedef struct {
 typedef enum {
   RvkGraphicFlags_Ready        = 1 << 0,
   RvkGraphicFlags_GlobalData   = 1 << 1,
-  RvkGraphicFlags_InstanceData = 1 << 2,
-  RvkGraphicFlags_Invalid      = 1 << 3,
+  RvkGraphicFlags_DrawData     = 1 << 2,
+  RvkGraphicFlags_InstanceData = 1 << 3,
+  RvkGraphicFlags_Invalid      = 1 << 4,
 } RvkGraphicFlags;
 
 typedef struct {

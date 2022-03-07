@@ -15,13 +15,15 @@ ecs_comp_define(RendDrawComp) {
   EcsEntityId   cameraFilter;
   RendDrawFlags flags;
   u32           vertexCountOverride;
-  u32           instances;
-  u32           outputInstances;
+  u32           instCount;
+  u32           outputInstCount;
 
-  u32 dataSize; // NOTE: Size per instance.
+  u32 dataSize;     // Size of the 'per draw' data.
+  u32 instDataSize; // Size of the 'per instance' data.
 
-  Mem dataMem, tagsMem, aabbMem;
-  Mem outputMem;
+  Mem dataMem;
+  Mem instDataMem, instTagsMem, instAabbMem;
+  Mem instDataOutput;
 };
 
 static void ecs_destruct_draw(void* data) {
@@ -29,14 +31,17 @@ static void ecs_destruct_draw(void* data) {
   if (mem_valid(comp->dataMem)) {
     alloc_free(g_alloc_heap, comp->dataMem);
   }
-  if (mem_valid(comp->tagsMem)) {
-    alloc_free(g_alloc_heap, comp->tagsMem);
+  if (mem_valid(comp->instDataMem)) {
+    alloc_free(g_alloc_heap, comp->instDataMem);
   }
-  if (mem_valid(comp->aabbMem)) {
-    alloc_free(g_alloc_heap, comp->aabbMem);
+  if (mem_valid(comp->instTagsMem)) {
+    alloc_free(g_alloc_heap, comp->instTagsMem);
   }
-  if (mem_valid(comp->outputMem)) {
-    alloc_free(g_alloc_heap, comp->outputMem);
+  if (mem_valid(comp->instAabbMem)) {
+    alloc_free(g_alloc_heap, comp->instAabbMem);
+  }
+  if (mem_valid(comp->instDataOutput)) {
+    alloc_free(g_alloc_heap, comp->instDataOutput);
   }
 }
 
@@ -44,13 +49,14 @@ static void ecs_combine_draw(void* dataA, void* dataB) {
   RendDrawComp* drawA = dataA;
   RendDrawComp* drawB = dataB;
   diag_assert_msg(
-      drawA->dataSize == drawB->dataSize, "Only draws with the same data-stride can be combined");
+      drawA->instDataSize == drawB->instDataSize,
+      "Only draws with the same instance-data stride can be combined");
 
-  for (u32 i = 0; i != drawB->instances; ++i) {
-    const Mem       instanceData = mem_slice(drawB->dataMem, drawB->dataSize * i, drawB->dataSize);
-    const SceneTags tags         = mem_as_t(drawB->tagsMem, SceneTags)[i];
-    const GeoBox    aabb         = mem_as_t(drawB->aabbMem, GeoBox)[i];
-    mem_cpy(rend_draw_add_instance(drawA, tags, aabb), instanceData);
+  for (u32 i = 0; i != drawB->instCount; ++i) {
+    const Mem data = mem_slice(drawB->instDataMem, drawB->instDataSize * i, drawB->instDataSize);
+    const SceneTags tags = mem_as_t(drawB->instTagsMem, SceneTags)[i];
+    const GeoBox    aabb = mem_as_t(drawB->instAabbMem, GeoBox)[i];
+    rend_draw_add_instance(drawA, data, tags, aabb);
   }
 
   ecs_destruct_draw(drawB);
@@ -67,12 +73,12 @@ static void rend_draw_ensure_storage(Mem* mem, const usize neededSize, const usi
   }
 }
 
-static Mem rend_draw_data(const RendDrawComp* draw, const u32 instance) {
-  return mem_slice(draw->dataMem, instance * draw->dataSize, draw->dataSize);
+static Mem rend_draw_inst_data(const RendDrawComp* draw, const u32 instance) {
+  return mem_slice(draw->instDataMem, instance * draw->instDataSize, draw->instDataSize);
 }
 
-static Mem rend_draw_output_data(const RendDrawComp* draw, const u32 instance) {
-  return mem_slice(draw->outputMem, instance * draw->dataSize, draw->dataSize);
+static Mem rend_draw_inst_output_data(const RendDrawComp* draw, const u32 instance) {
+  return mem_slice(draw->instDataOutput, instance * draw->instDataSize, draw->instDataSize);
 }
 
 /**
@@ -100,7 +106,7 @@ ecs_view_define(DrawWriteView) { ecs_access_write(RendDrawComp); }
 ecs_system_define(RendClearDrawsSys) {
   EcsView* drawView = ecs_world_view_t(world, DrawWriteView);
   for (EcsIterator* itr = ecs_view_itr(drawView); ecs_view_walk(itr);) {
-    ecs_view_write_t(itr, RendDrawComp)->instances = 0;
+    ecs_view_write_t(itr, RendDrawComp)->instCount = 0;
   }
 }
 
@@ -113,7 +119,7 @@ ecs_system_define(RendDrawRequestGraphicSys) {
   EcsView* drawView = ecs_world_view_t(world, DrawReadView);
   for (EcsIterator* itr = ecs_view_itr(drawView); ecs_view_walk(itr);) {
     const RendDrawComp* comp = ecs_view_read_t(itr, RendDrawComp);
-    if (comp->instances && comp->graphic) {
+    if (comp->instCount && comp->graphic) {
       rend_draw_request_graphic(world, comp->graphic, graphicResItr, &numRequests);
     }
   }
@@ -150,7 +156,7 @@ bool rend_draw_gather(RendDrawComp* draw, const RendView* view) {
      * If we can skip the instance filtering, we can also skip the memory copy that is needed to
      * keep the instances contiguous in memory.
      */
-    return draw->instances != 0;
+    return draw->instCount != 0;
   }
 
   /**
@@ -159,36 +165,39 @@ bool rend_draw_gather(RendDrawComp* draw, const RendView* view) {
    * pass the filter to separate output memory.
    */
 
-  rend_draw_ensure_storage(&draw->outputMem, draw->instances * draw->dataSize, rend_min_align);
+  rend_draw_ensure_storage(
+      &draw->instDataOutput, draw->instCount * draw->instDataSize, rend_min_align);
 
-  draw->outputInstances = 0;
-  for (u32 i = 0; i != draw->instances; ++i) {
-    const SceneTags instanceTags = mem_as_t(draw->tagsMem, SceneTags)[i];
-    const GeoBox*   instanceAabb = &mem_as_t(draw->aabbMem, GeoBox)[i];
-    if (!rend_view_visible(view, instanceTags, instanceAabb)) {
+  draw->outputInstCount = 0;
+  for (u32 i = 0; i != draw->instCount; ++i) {
+    const SceneTags instTags = mem_as_t(draw->instTagsMem, SceneTags)[i];
+    const GeoBox*   instAabb = &mem_as_t(draw->instAabbMem, GeoBox)[i];
+    if (!rend_view_visible(view, instTags, instAabb)) {
       continue;
     }
-    mem_cpy(rend_draw_output_data(draw, draw->outputInstances++), rend_draw_data(draw, i));
+    const Mem outputMem = rend_draw_inst_output_data(draw, draw->outputInstCount++);
+    mem_cpy(outputMem, rend_draw_inst_data(draw, i));
   }
-  return draw->outputInstances != 0;
+  return draw->outputInstCount != 0;
 }
 
 RvkPassDraw rend_draw_output(const RendDrawComp* draw, RvkGraphic* graphic) {
-  u32 instanceCount;
-  Mem data;
+  u32 instCount;
+  Mem instData;
   if (draw->flags & RendDrawFlags_NoInstanceFiltering) {
-    instanceCount = draw->instances;
-    data          = mem_slice(draw->dataMem, 0, instanceCount * draw->dataSize);
+    instCount = draw->instCount;
+    instData  = mem_slice(draw->instDataMem, 0, instCount * draw->instDataSize);
   } else {
-    instanceCount = draw->outputInstances;
-    data          = mem_slice(draw->outputMem, 0, instanceCount * draw->dataSize);
+    instCount = draw->outputInstCount;
+    instData  = mem_slice(draw->instDataOutput, 0, instCount * draw->instDataSize);
   }
   return (RvkPassDraw){
       .graphic             = graphic,
       .vertexCountOverride = draw->vertexCountOverride,
-      .instanceCount       = instanceCount,
-      .data                = data,
-      .dataStride          = draw->dataSize,
+      .drawData            = mem_slice(draw->dataMem, 0, draw->dataSize),
+      .instCount           = instCount,
+      .instData            = instData,
+      .instDataStride      = draw->instDataSize,
   };
 }
 
@@ -204,21 +213,34 @@ void rend_draw_set_vertex_count(RendDrawComp* comp, const u32 vertexCount) {
   comp->vertexCountOverride = vertexCount;
 }
 
-void rend_draw_set_data_size(RendDrawComp* draw, const u32 size) {
-  draw->instances = 0;
-  draw->dataSize  = bits_align(size, rend_min_align);
+void rend_draw_set_data(RendDrawComp* draw, const Mem data) {
+  rend_draw_ensure_storage(&draw->dataMem, data.size, rend_min_align);
+  mem_cpy(draw->dataMem, data);
+  draw->dataSize = (u32)data.size;
 }
 
-Mem rend_draw_add_instance(RendDrawComp* draw, const SceneTags tags, const GeoBox aabb) {
-  ++draw->instances;
-  rend_draw_ensure_storage(&draw->dataMem, draw->instances * draw->dataSize, rend_min_align);
+void rend_draw_add_instance(
+    RendDrawComp* draw, const Mem data, const SceneTags tags, const GeoBox aabb) {
+
+  if (UNLIKELY(bits_align(data.size, rend_min_align) != draw->instDataSize)) {
+    /**
+     * Instance data-size changed; Clear any previously added instances.
+     */
+    draw->instCount    = 0;
+    draw->instDataSize = bits_align((u32)data.size, rend_min_align);
+  }
+
+  ++draw->instCount;
+  rend_draw_ensure_storage(
+      &draw->instDataMem, draw->instCount * draw->instDataSize, rend_min_align);
+
+  mem_cpy(rend_draw_inst_data(draw, draw->instCount - 1), data);
 
   if (!(draw->flags & RendDrawFlags_NoInstanceFiltering)) {
-    rend_draw_ensure_storage(&draw->tagsMem, draw->instances * sizeof(SceneTags), 1);
-    rend_draw_ensure_storage(&draw->aabbMem, draw->instances * sizeof(GeoBox), alignof(GeoBox));
+    rend_draw_ensure_storage(&draw->instTagsMem, draw->instCount * sizeof(SceneTags), 1);
+    rend_draw_ensure_storage(&draw->instAabbMem, draw->instCount * sizeof(GeoBox), alignof(GeoBox));
 
-    mem_as_t(draw->tagsMem, SceneTags)[draw->instances - 1] = tags;
-    mem_as_t(draw->aabbMem, GeoBox)[draw->instances - 1]    = aabb;
+    mem_as_t(draw->instTagsMem, SceneTags)[draw->instCount - 1] = tags;
+    mem_as_t(draw->instAabbMem, GeoBox)[draw->instCount - 1]    = aabb;
   }
-  return rend_draw_data(draw, draw->instances - 1);
 }

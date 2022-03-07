@@ -26,9 +26,10 @@ typedef enum {
 typedef struct sRvkPassDraw {
   RvkGraphic* graphic;
   u32         vertexCountOverride;
-  u32         instanceCount;
-  Mem         data;
-  u32         dataStride;
+  Mem         drawData;
+  u32         instCount;
+  Mem         instData;
+  u32         instDataStride;
 } RvkPassDraw;
 
 typedef struct sRvkPassDrawList {

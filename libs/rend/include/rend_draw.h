@@ -37,13 +37,13 @@ void rend_draw_set_camera_filter(RendDrawComp*, EcsEntityId camera);
 void rend_draw_set_vertex_count(RendDrawComp*, u32 vertexCount);
 
 /**
- * Update the data size per instance for the given draw.
- * NOTE: Clears all added instances.
+ * Set the 'per draw' data.
  */
-void rend_draw_set_data_size(RendDrawComp*, u32 size);
+void rend_draw_set_data(RendDrawComp*, Mem data);
 
 /**
  * Add a new instance to the given draw.
+ * NOTE: All instances need to use the same data-size.
  * NOTE: Tags and bounds are used to filter the draws per camera.
  */
-Mem rend_draw_add_instance(RendDrawComp*, SceneTags, GeoBox aabb);
+void rend_draw_add_instance(RendDrawComp*, Mem data, SceneTags, GeoBox aabb);
