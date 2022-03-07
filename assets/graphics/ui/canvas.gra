@@ -14,6 +14,7 @@
       "filter": "Linear"
     }
   ],
+  "vertexCount": 6,
   "renderOrder": 100,
   "topology": "Triangles",
   "rasterizer": "Fill",
