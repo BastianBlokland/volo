@@ -13,9 +13,14 @@ typedef struct {
 
 typedef void (*UiTextBuildCharFunc)(void* userCtx, const UiTextCharInfo*);
 
-void ui_text_build(
+typedef struct {
+  UiRect rect;
+  u32    lineCount;
+} UiTextBuildResult;
+
+UiTextBuildResult ui_text_build(
     const AssetFtxComp*,
-    UiRect      rect,
+    UiRect      totalRect,
     String      text,
     f32         fontSize,
     UiColor     fontColor,

@@ -145,9 +145,8 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
   if (cmd->flags & UiFlags_Interactable && ui_build_is_hovered(state, currentRect)) {
     state->hoveredId = cmd->id;
   }
-  state->ctx->outputRect(state->ctx->userCtx, cmd->id, currentRect);
 
-  ui_text_build(
+  const UiTextBuildResult result = ui_text_build(
       state->font,
       currentRect,
       cmd->text,
@@ -157,6 +156,8 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
       cmd->align,
       state,
       &ui_build_text_char);
+
+  state->ctx->outputRect(state->ctx->userCtx, cmd->id, result.rect);
 }
 
 static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
