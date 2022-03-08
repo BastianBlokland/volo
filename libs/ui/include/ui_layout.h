@@ -10,3 +10,8 @@ void ui_layout_to_center(UiCanvasComp*, UiAxis);
  * Update the rectangle so that the center is at the lower-left of the previous rectangle.
  */
 void ui_layout_from_center(UiCanvasComp*, UiAxis);
+
+/**
+ * Set a specific rectangle in absolute pixels.
+ */
+void ui_layout_set_rect(UiCanvasComp*, UiRect);
