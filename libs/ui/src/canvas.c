@@ -10,8 +10,7 @@
 #include "resource_internal.h"
 
 typedef struct {
-  UiRect   rect;
-  UiStatus status;
+  UiRect rect;
 } UiElement;
 
 ecs_comp_define(UiCanvasComp) {
@@ -21,6 +20,7 @@ ecs_comp_define(UiCanvasComp) {
   DynArray     elements;      // UiElement[]
   DynArray     overlayGlyphs; // UiGlyphData[]
   UiId         activeId;
+  UiStatus     activeStatus;
   UiVector     inputDelta, inputPos;
 };
 
@@ -42,10 +42,6 @@ static const UiElement* ui_build_elem(const UiCanvasComp* canvas, const UiId id)
     return null;
   }
   return dynarray_at_t(&canvas->elements, id, UiElement);
-}
-
-static UiElement* ui_build_elem_mutable(UiCanvasComp* canvas, const UiId id) {
-  return (UiElement*)ui_build_elem(canvas, id);
 }
 
 static void ui_canvas_output_draw(void* userCtx, const UiDrawData data) {
@@ -81,15 +77,15 @@ static void ui_canvas_update_input(
   const bool inputDown     = gap_window_key_down(window, GapKey_MouseLeft);
   const bool inputReleased = gap_window_key_released(window, GapKey_MouseLeft);
 
-  UiElement* activeElem  = ui_build_elem_mutable(canvas, canvas->activeId);
-  UiElement* hoveredElem = ui_build_elem_mutable(canvas, result.hoveredId);
+  const bool hasActiveElem       = !sentinel_check(canvas->activeId);
+  const bool activeElemIsHovered = canvas->activeId == result.hoveredId;
 
-  if (activeElem && activeElem == hoveredElem && inputReleased) {
-    activeElem->status = UiStatus_Activated;
+  if (hasActiveElem && activeElemIsHovered && inputReleased) {
+    canvas->activeStatus = UiStatus_Activated;
     return;
   }
-  if (activeElem && activeElem == hoveredElem && inputDown) {
-    activeElem->status = UiStatus_Pressed;
+  if (hasActiveElem && activeElemIsHovered && inputDown) {
+    canvas->activeStatus = UiStatus_Pressed;
     return;
   }
   if (inputDown) {
@@ -97,13 +93,8 @@ static void ui_canvas_update_input(
   }
 
   // Select a new active element.
-  if (activeElem) {
-    activeElem->status = UiStatus_Idle;
-  }
-  if (hoveredElem) {
-    hoveredElem->status = UiStatus_Hovered;
-  }
-  canvas->activeId = result.hoveredId;
+  canvas->activeId     = result.hoveredId;
+  canvas->activeStatus = sentinel_check(result.hoveredId) ? UiStatus_Idle : UiStatus_Hovered;
 }
 
 static void ui_canvas_render(
@@ -235,8 +226,7 @@ UiId ui_canvas_id_peek(const UiCanvasComp* comp) { return comp->nextId; }
 void ui_canvas_id_skip(UiCanvasComp* comp) { ++comp->nextId; }
 
 UiStatus ui_canvas_elem_status(const UiCanvasComp* comp, const UiId id) {
-  const UiElement* elem = ui_build_elem(comp, id);
-  return elem ? elem->status : UiStatus_Idle;
+  return id == comp->activeId ? comp->activeStatus : UiStatus_Idle;
 }
 
 UiRect ui_canvas_elem_rect(const UiCanvasComp* comp, const UiId id) {
