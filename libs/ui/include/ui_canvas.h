@@ -35,20 +35,19 @@ typedef enum {
 } UiUnits;
 
 /**
- * Text alignment.
- * Controls how text will be layed out relative to the active rectangle.
+ * Alignment relative to the active rectangle.
  */
 typedef enum {
-  UiTextAlign_TopLeft,
-  UiTextAlign_TopCenter,
-  UiTextAlign_TopRight,
-  UiTextAlign_MiddleLeft,
-  UiTextAlign_MiddleCenter,
-  UiTextAlign_MiddleRight,
-  UiTextAlign_BottomLeft,
-  UiTextAlign_BottomCenter,
-  UiTextAlign_BottomRight,
-} UiTextAlign;
+  UiAlign_TopLeft,
+  UiAlign_TopCenter,
+  UiAlign_TopRight,
+  UiAlign_MiddleLeft,
+  UiAlign_MiddleCenter,
+  UiAlign_MiddleRight,
+  UiAlign_BottomLeft,
+  UiAlign_BottomCenter,
+  UiAlign_BottomRight,
+} UiAlign;
 
 /**
  * Interaction status.
@@ -125,7 +124,7 @@ void ui_canvas_style_outline(UiCanvasComp*, u8 outline);
 /**
  * Draw text in the current rectangle.
  */
-UiId ui_canvas_draw_text(UiCanvasComp*, String text, u16 fontSize, UiTextAlign, UiFlags);
+UiId ui_canvas_draw_text(UiCanvasComp*, String text, u16 fontSize, UiAlign, UiFlags);
 
 /**
  * Draw a single glyph in the current rectangle.

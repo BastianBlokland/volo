@@ -266,11 +266,11 @@ void ui_canvas_style_outline(UiCanvasComp* comp, const u8 outline) {
 }
 
 UiId ui_canvas_draw_text(
-    UiCanvasComp*     comp,
-    const String      text,
-    const u16         fontSize,
-    const UiTextAlign align,
-    const UiFlags     flags) {
+    UiCanvasComp* comp,
+    const String  text,
+    const u16     fontSize,
+    const UiAlign align,
+    const UiFlags flags) {
 
   const UiId id = comp->nextId++;
   if (!string_is_empty(text)) {

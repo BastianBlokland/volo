@@ -20,11 +20,11 @@ typedef struct {
 
 UiTextBuildResult ui_text_build(
     const AssetFtxComp*,
-    UiRect      totalRect,
-    String      text,
-    f32         fontSize,
-    UiColor     fontColor,
-    u8          fontOutline,
-    UiTextAlign align,
-    void*       userCtx,
+    UiRect  totalRect,
+    String  text,
+    f32     fontSize,
+    UiColor fontColor,
+    u8      fontOutline,
+    UiAlign align,
+    void*   userCtx,
     UiTextBuildCharFunc);

@@ -46,11 +46,11 @@ typedef struct {
 } UiStyleOutline;
 
 typedef struct {
-  UiId        id;
-  String      text;
-  u16         fontSize;
-  UiTextAlign align;
-  UiFlags     flags;
+  UiId    id;
+  String  text;
+  u16     fontSize;
+  UiAlign align;
+  UiFlags flags;
 } UiDrawText;
 
 typedef struct {
@@ -88,7 +88,7 @@ void ui_cmd_push_style_push(UiCmdBuffer*);
 void ui_cmd_push_style_pop(UiCmdBuffer*);
 void ui_cmd_push_style_color(UiCmdBuffer*, UiColor);
 void ui_cmd_push_style_outline(UiCmdBuffer*, u8 outline);
-void ui_cmd_push_draw_text(UiCmdBuffer*, UiId, String text, u16 fontSize, UiTextAlign, UiFlags);
+void ui_cmd_push_draw_text(UiCmdBuffer*, UiId, String text, u16 fontSize, UiAlign, UiFlags);
 void ui_cmd_push_draw_glyph(UiCmdBuffer*, UiId, Unicode cp, u16 maxCorner, UiFlags);
 
 UiCmd* ui_cmd_next(const UiCmdBuffer*, UiCmd*);

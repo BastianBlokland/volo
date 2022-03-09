@@ -109,12 +109,12 @@ void ui_cmd_push_style_outline(UiCmdBuffer* buffer, const u8 outline) {
 }
 
 void ui_cmd_push_draw_text(
-    UiCmdBuffer*      buffer,
-    const UiId        id,
-    const String      text,
-    const u16         fontSize,
-    const UiTextAlign align,
-    const UiFlags     flags) {
+    UiCmdBuffer*  buffer,
+    const UiId    id,
+    const String  text,
+    const u16     fontSize,
+    const UiAlign align,
+    const UiFlags flags) {
 
   if (UNLIKELY(text.size > ui_cmdbuffer_max_text_size)) {
     log_e(

@@ -47,7 +47,7 @@ bool ui_button_with_opts(UiCanvasComp* canvas, const UiButtonOpts* opts) {
   case UiStatus_Idle:
     break;
   }
-  ui_canvas_draw_text(canvas, opts->label, opts->fontSize, UiTextAlign_MiddleCenter, UiFlags_None);
+  ui_canvas_draw_text(canvas, opts->label, opts->fontSize, UiAlign_MiddleCenter, UiFlags_None);
   ui_canvas_style_pop(canvas);
 
   return status == UiStatus_Activated;
@@ -118,7 +118,7 @@ static void ui_slider_label(UiCanvasComp* canvas, const f32 normValue, const UiS
 
   const f32    value = math_lerp(opts->min, opts->max, normValue);
   const String label = fmt_write_scratch("{}", fmt_float(value, .maxDecDigits = 2));
-  ui_canvas_draw_text(canvas, label, g_fontSize, UiTextAlign_MiddleCenter, UiFlags_None);
+  ui_canvas_draw_text(canvas, label, g_fontSize, UiAlign_MiddleCenter, UiFlags_None);
 
   ui_canvas_rect_pop(canvas);
 }

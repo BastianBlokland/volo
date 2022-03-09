@@ -22,7 +22,7 @@ typedef struct {
   f32                 fontSize;
   UiColor             fontColor, fontColorDefault;
   u8                  fontOutline, fontOutlineDefault;
-  UiTextAlign         align;
+  UiAlign             align;
   void*               userCtx;
   UiTextBuildCharFunc buildChar;
   f32                 cursor;
@@ -128,29 +128,29 @@ End:
   return string_consume(text, cursorConsumed.charIndex);
 }
 
-static UiRect ui_text_inner_rect(const UiRect rect, const UiVector size, const UiTextAlign align) {
+static UiRect ui_text_inner_rect(const UiRect rect, const UiVector size, const UiAlign align) {
   const f32 centerX = rect.x + (rect.width - size.width) * 0.5f;
   const f32 centerY = rect.y + (rect.height - size.height) * 0.5f;
   const f32 maxX    = rect.x + rect.width - size.width;
   const f32 maxY    = rect.y + rect.height - size.height;
   switch (align) {
-  case UiTextAlign_TopLeft:
+  case UiAlign_TopLeft:
     return ui_rect(ui_vector(rect.x, maxY), size);
-  case UiTextAlign_TopCenter:
+  case UiAlign_TopCenter:
     return ui_rect(ui_vector(centerX, maxY), size);
-  case UiTextAlign_TopRight:
+  case UiAlign_TopRight:
     return ui_rect(ui_vector(maxX, maxY), size);
-  case UiTextAlign_MiddleLeft:
+  case UiAlign_MiddleLeft:
     return ui_rect(ui_vector(rect.x, centerY), size);
-  case UiTextAlign_MiddleCenter:
+  case UiAlign_MiddleCenter:
     return ui_rect(ui_vector(centerX, centerY), size);
-  case UiTextAlign_MiddleRight:
+  case UiAlign_MiddleRight:
     return ui_rect(ui_vector(maxX, centerY), size);
-  case UiTextAlign_BottomLeft:
+  case UiAlign_BottomLeft:
     return ui_rect(rect.pos, size);
-  case UiTextAlign_BottomCenter:
+  case UiAlign_BottomCenter:
     return ui_rect(ui_vector(centerX, rect.y), size);
-  case UiTextAlign_BottomRight:
+  case UiAlign_BottomRight:
     return ui_rect(ui_vector(maxX, rect.y), size);
   }
   diag_crash();
@@ -160,18 +160,18 @@ static UiVector ui_text_char_pos(UiTextBuildState* state, const UiTextLine* line
   const UiRect rect = state->rect;
   const f32    posY = rect.y + rect.height - line->posY;
   switch (state->align) {
-  case UiTextAlign_TopLeft:
-  case UiTextAlign_MiddleLeft:
-  case UiTextAlign_BottomLeft:
+  case UiAlign_TopLeft:
+  case UiAlign_MiddleLeft:
+  case UiAlign_BottomLeft:
     return ui_vector(rect.x + state->cursor, posY);
-  case UiTextAlign_TopCenter:
-  case UiTextAlign_MiddleCenter:
-  case UiTextAlign_BottomCenter:
+  case UiAlign_TopCenter:
+  case UiAlign_MiddleCenter:
+  case UiAlign_BottomCenter:
     return ui_vector(rect.x + (rect.width - line->size.x) * 0.5f + state->cursor, posY);
     break;
-  case UiTextAlign_TopRight:
-  case UiTextAlign_MiddleRight:
-  case UiTextAlign_BottomRight:
+  case UiAlign_TopRight:
+  case UiAlign_MiddleRight:
+  case UiAlign_BottomRight:
     return ui_vector(rect.x + rect.width - line->size.x + state->cursor, posY);
   }
   diag_crash();
@@ -244,7 +244,7 @@ UiTextBuildResult ui_text_build(
     const f32                 fontSize,
     const UiColor             fontColor,
     const u8                  fontOutline,
-    const UiTextAlign         align,
+    const UiAlign             align,
     void*                     userCtx,
     const UiTextBuildCharFunc buildChar) {
 

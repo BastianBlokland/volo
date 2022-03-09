@@ -162,7 +162,7 @@ debug_stats_draw(UiCanvasComp* canvas, const DebugStats* stats, const RendStatsC
   // clang-format on
 
   ui_canvas_draw_text(
-      canvas, dynstring_view(&str), g_debugStatsFontSize, UiTextAlign_TopLeft, UiFlags_None);
+      canvas, dynstring_view(&str), g_debugStatsFontSize, UiAlign_TopLeft, UiFlags_None);
 }
 
 static void
