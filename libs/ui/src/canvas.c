@@ -19,6 +19,7 @@ ecs_comp_define(UiCanvasComp) {
   UiId         nextId;
   DynArray     elements;      // UiElement[]
   DynArray     overlayGlyphs; // UiGlyphData[]
+  UiVector     windowSize, windowCursor;
   UiId         activeId;
   UiStatus     activeStatus;
   TimeSteady   activeStatusStart;
@@ -176,18 +177,22 @@ ecs_system_define(UiCanvasBuildSys) {
 
   EcsView* buildView = ecs_world_view_t(world, CanvasBuildView);
   for (EcsIterator* itr = ecs_view_itr(buildView); ecs_view_walk(itr);) {
-    UiCanvasComp* canvasComp = ecs_view_write_t(itr, UiCanvasComp);
-    RendDrawComp* draw       = ecs_view_write_t(itr, RendDrawComp);
-    if (!ecs_view_maybe_jump(windowItr, canvasComp->window)) {
+    UiCanvasComp* canvas = ecs_view_write_t(itr, UiCanvasComp);
+    RendDrawComp* draw   = ecs_view_write_t(itr, RendDrawComp);
+    if (!ecs_view_maybe_jump(windowItr, canvas->window)) {
       // Destroy the canvas if the associated window is destroyed.
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
       continue;
     }
-    const GapWindowComp* window = ecs_view_read_t(windowItr, GapWindowComp);
+    const GapWindowComp* window       = ecs_view_read_t(windowItr, GapWindowComp);
+    const GapVector      windowSize   = gap_window_param(window, GapParam_WindowSize);
+    const GapVector      windowCursor = gap_window_param(window, GapParam_CursorPos);
+    canvas->windowSize                = ui_vector(windowSize.x, windowSize.y);
+    canvas->windowCursor              = ui_vector(windowCursor.x, windowCursor.y);
 
     rend_draw_set_graphic(draw, ui_resource_graphic(globalRes));
 
-    ui_canvas_render(canvasComp, draw, window, font);
+    ui_canvas_render(canvas, draw, window, font);
   }
 }
 
@@ -247,6 +252,9 @@ UiRect ui_canvas_elem_rect(const UiCanvasComp* comp, const UiId id) {
   const UiElement* elem = ui_build_elem(comp, id);
   return elem ? elem->rect : ui_rect(ui_vector(0, 0), ui_vector(0, 0));
 }
+
+UiVector ui_canvas_window_size(const UiCanvasComp* comp) { return comp->windowSize; }
+UiVector ui_canvas_window_cursor(const UiCanvasComp* comp) { return comp->windowCursor; }
 
 UiVector ui_canvas_input_delta(const UiCanvasComp* comp) { return comp->inputDelta; }
 UiVector ui_canvas_input_pos(const UiCanvasComp* comp) { return comp->inputPos; }
