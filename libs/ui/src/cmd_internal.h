@@ -6,9 +6,9 @@
 typedef enum {
   UiCmd_RectPush,
   UiCmd_RectPop,
-  UiCmd_RectMove,
-  UiCmd_RectResize,
-  UiCmd_RectResizeTo,
+  UiCmd_RectPos,
+  UiCmd_RectSize,
+  UiCmd_RectSizeTo,
   UiCmd_StylePush,
   UiCmd_StylePop,
   UiCmd_StyleColor,
@@ -22,20 +22,20 @@ typedef struct {
   UiOrigin origin;
   UiUnits  unit;
   UiAxis   axis;
-} UiRectMove;
+} UiRectPos;
 
 typedef struct {
   UiVector size;
   UiUnits  unit;
   UiAxis   axis;
-} UiRectResize;
+} UiRectSize;
 
 typedef struct {
   UiVector pos;
   UiOrigin origin;
   UiUnits  unit;
   UiAxis   axis;
-} UiRectResizeTo;
+} UiRectSizeTo;
 
 typedef struct {
   UiColor value;
@@ -63,9 +63,9 @@ typedef struct {
 typedef struct {
   UiCmdType type;
   union {
-    UiRectMove     rectMove;
-    UiRectResize   rectResize;
-    UiRectResizeTo rectResizeTo;
+    UiRectPos      rectPos;
+    UiRectSize     rectSize;
+    UiRectSizeTo   rectSizeTo;
     UiStyleColor   styleColor;
     UiStyleOutline styleOutline;
     UiDrawText     drawText;
@@ -81,9 +81,9 @@ void         ui_cmdbuffer_clear(UiCmdBuffer*);
 
 void ui_cmd_push_rect_push(UiCmdBuffer*);
 void ui_cmd_push_rect_pop(UiCmdBuffer*);
-void ui_cmd_push_rect_move(UiCmdBuffer*, UiVector pos, UiOrigin, UiUnits, UiAxis);
-void ui_cmd_push_rect_resize(UiCmdBuffer*, UiVector size, UiUnits, UiAxis);
-void ui_cmd_push_rect_resize_to(UiCmdBuffer*, UiVector pos, UiOrigin, UiUnits, UiAxis);
+void ui_cmd_push_rect_pos(UiCmdBuffer*, UiVector pos, UiOrigin, UiUnits, UiAxis);
+void ui_cmd_push_rect_size(UiCmdBuffer*, UiVector size, UiUnits, UiAxis);
+void ui_cmd_push_rect_size_to(UiCmdBuffer*, UiVector pos, UiOrigin, UiUnits, UiAxis);
 void ui_cmd_push_style_push(UiCmdBuffer*);
 void ui_cmd_push_style_pop(UiCmdBuffer*);
 void ui_cmd_push_style_color(UiCmdBuffer*, UiColor);

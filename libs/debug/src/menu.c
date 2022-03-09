@@ -45,8 +45,8 @@ ecs_view_define(WindowUpdateView) {
 }
 
 static void debug_action_bar_next(UiCanvasComp* canvas) {
-  ui_canvas_rect_move(canvas, ui_vector(0, -1), UiOrigin_Current, UiUnits_Current, Ui_Y);
-  ui_canvas_rect_move(
+  ui_canvas_rect_pos(canvas, ui_vector(0, -1), UiOrigin_Current, UiUnits_Current, Ui_Y);
+  ui_canvas_rect_pos(
       canvas, ui_vector(0, -g_debugActionBarSpacing), UiOrigin_Current, UiUnits_Absolute, Ui_Y);
 }
 
@@ -90,8 +90,8 @@ static void debug_action_bar_draw(
     EcsWorld* world, DebugMenuComp* menu, UiCanvasComp* canvas, GapWindowComp* win) {
 
   const UiVector offset = {g_debugActionBarButtonSize.x + g_debugActionBarSpacing, 0};
-  ui_canvas_rect_move(canvas, offset, UiOrigin_WindowTopRight, UiUnits_Absolute, Ui_XY);
-  ui_canvas_rect_resize(canvas, g_debugActionBarButtonSize, UiUnits_Absolute, Ui_XY);
+  ui_canvas_rect_pos(canvas, offset, UiOrigin_WindowTopRight, UiUnits_Absolute, Ui_XY);
+  ui_canvas_rect_size(canvas, g_debugActionBarButtonSize, UiUnits_Absolute, Ui_XY);
 
   debug_action_bar_next(canvas);
   debug_action_stats(menu, canvas);
@@ -134,8 +134,8 @@ static void
 debug_stats_draw(UiCanvasComp* canvas, const DebugStats* stats, const RendStatsComp* rendStats) {
   const UiVector textAreaSize = {500, 500};
   const UiVector offset       = {10, textAreaSize.y + 10};
-  ui_canvas_rect_move(canvas, offset, UiOrigin_WindowTopLeft, UiUnits_Absolute, Ui_XY);
-  ui_canvas_rect_resize(canvas, textAreaSize, UiUnits_Absolute, Ui_XY);
+  ui_canvas_rect_pos(canvas, offset, UiOrigin_WindowTopLeft, UiUnits_Absolute, Ui_XY);
+  ui_canvas_rect_size(canvas, textAreaSize, UiUnits_Absolute, Ui_XY);
 
   DynString str = dynstring_create(g_alloc_scratch, usize_kibibyte);
 

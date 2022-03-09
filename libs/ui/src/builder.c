@@ -201,24 +201,22 @@ static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
     diag_assert(state->rectStackCount);
     --state->rectStackCount;
     break;
-  case UiCmd_RectMove:
+  case UiCmd_RectPos:
     ui_build_set_pos(
         state,
-        ui_resolve_pos(state, cmd->rectMove.pos, cmd->rectMove.origin, cmd->rectMove.unit),
-        cmd->rectMove.axis);
+        ui_resolve_pos(state, cmd->rectPos.pos, cmd->rectPos.origin, cmd->rectPos.unit),
+        cmd->rectPos.axis);
     break;
-  case UiCmd_RectResize:
+  case UiCmd_RectSize:
     ui_build_set_size(
-        state,
-        ui_resolve_vec(state, cmd->rectResize.size, cmd->rectResize.unit),
-        cmd->rectResize.axis);
+        state, ui_resolve_vec(state, cmd->rectSize.size, cmd->rectSize.unit), cmd->rectSize.axis);
     break;
-  case UiCmd_RectResizeTo:
+  case UiCmd_RectSizeTo:
     ui_build_set_size(
         state,
         ui_resolve_size_to(
-            state, cmd->rectResizeTo.pos, cmd->rectResizeTo.origin, cmd->rectResizeTo.unit),
-        cmd->rectResizeTo.axis);
+            state, cmd->rectSizeTo.pos, cmd->rectSizeTo.origin, cmd->rectSizeTo.unit),
+        cmd->rectSizeTo.axis);
     break;
   case UiCmd_StylePush:
     diag_assert(state->styleStackCount < ui_build_style_stack_max);

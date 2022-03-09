@@ -104,9 +104,9 @@ void ui_canvas_rect_pop(UiCanvasComp*);
 /**
  * Update the current rect.
  */
-void ui_canvas_rect_move(UiCanvasComp*, UiVector, UiOrigin, UiUnits, UiAxis);
-void ui_canvas_rect_resize(UiCanvasComp*, UiVector, UiUnits, UiAxis);
-void ui_canvas_rect_resize_to(UiCanvasComp*, UiVector, UiOrigin, UiUnits, UiAxis);
+void ui_canvas_rect_pos(UiCanvasComp*, UiVector, UiOrigin, UiUnits, UiAxis);
+void ui_canvas_rect_size(UiCanvasComp*, UiVector, UiUnits, UiAxis);
+void ui_canvas_rect_size_to(UiCanvasComp*, UiVector, UiOrigin, UiUnits, UiAxis);
 
 /**
  * Push / Pop an element to / from the style stack.

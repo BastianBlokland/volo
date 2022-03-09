@@ -58,7 +58,7 @@ static void ui_slider_bar(UiCanvasComp* canvas, const UiStatus status, const UiS
   ui_canvas_style_push(canvas);
 
   ui_layout_to_center(canvas, Ui_Y);
-  ui_canvas_rect_resize(canvas, ui_vector(0, opts->barHeight), UiUnits_Absolute, Ui_Y);
+  ui_canvas_rect_size(canvas, ui_vector(0, opts->barHeight), UiUnits_Absolute, Ui_Y);
   ui_layout_from_center(canvas, Ui_Y);
 
   ui_canvas_style_outline(canvas, 2);
@@ -84,8 +84,8 @@ static void ui_slider_handle(
   ui_canvas_style_push(canvas);
 
   const UiVector handleSize = ui_vector(opts->handleSize, opts->handleSize);
-  ui_canvas_rect_move(canvas, ui_vector(normValue, 0.5f), UiOrigin_Current, UiUnits_Current, Ui_XY);
-  ui_canvas_rect_resize(canvas, handleSize, UiUnits_Absolute, Ui_XY);
+  ui_canvas_rect_pos(canvas, ui_vector(normValue, 0.5f), UiOrigin_Current, UiUnits_Current, Ui_XY);
+  ui_canvas_rect_size(canvas, handleSize, UiUnits_Absolute, Ui_XY);
   ui_layout_from_center(canvas, Ui_XY);
 
   switch (status) {
@@ -111,10 +111,10 @@ static void ui_slider_label(UiCanvasComp* canvas, const f32 normValue, const UiS
   static const u16      g_fontSize       = 15;
   const UiVector        offsetFromHandle = ui_vector(0, opts->handleSize + 1);
 
-  ui_canvas_rect_move(canvas, ui_vector(normValue, 0.5f), UiOrigin_Current, UiUnits_Current, Ui_XY);
-  ui_canvas_rect_resize(canvas, g_maxSize, UiUnits_Absolute, Ui_XY);
+  ui_canvas_rect_pos(canvas, ui_vector(normValue, 0.5f), UiOrigin_Current, UiUnits_Current, Ui_XY);
+  ui_canvas_rect_size(canvas, g_maxSize, UiUnits_Absolute, Ui_XY);
   ui_layout_from_center(canvas, Ui_XY);
-  ui_canvas_rect_move(canvas, offsetFromHandle, UiOrigin_Current, UiUnits_Absolute, Ui_Y);
+  ui_canvas_rect_pos(canvas, offsetFromHandle, UiOrigin_Current, UiUnits_Absolute, Ui_Y);
 
   const f32    value = math_lerp(opts->min, opts->max, normValue);
   const String label = fmt_write_scratch("{}", fmt_float(value, .maxDecDigits = 2));
@@ -160,9 +160,9 @@ static void ui_toggle_check(UiCanvasComp* canvas, const UiStatus status, const U
   const f32 checkSize = opts->size * 1.4f;
 
   ui_layout_to_center(canvas, Ui_XY);
-  ui_canvas_rect_resize(canvas, ui_vector(checkSize, checkSize), UiUnits_Absolute, Ui_XY);
+  ui_canvas_rect_size(canvas, ui_vector(checkSize, checkSize), UiUnits_Absolute, Ui_XY);
   ui_layout_from_center(canvas, Ui_XY);
-  ui_canvas_rect_move(canvas, ui_vector(0.1f, 0.1f), UiOrigin_Current, UiUnits_Current, Ui_XY);
+  ui_canvas_rect_pos(canvas, ui_vector(0.1f, 0.1f), UiOrigin_Current, UiUnits_Current, Ui_XY);
 
   ui_canvas_style_outline(canvas, status == UiStatus_Hovered ? 4 : 3);
   ui_canvas_draw_glyph(canvas, UiShape_Check, 0, UiFlags_None);
@@ -181,7 +181,7 @@ bool ui_toggle_with_opts(UiCanvasComp* canvas, bool* input, const UiToggleOpts* 
   ui_canvas_rect_push(canvas);
 
   ui_layout_to_center(canvas, Ui_Y);
-  ui_canvas_rect_resize(canvas, ui_vector(opts->size, opts->size), UiUnits_Absolute, Ui_XY);
+  ui_canvas_rect_size(canvas, ui_vector(opts->size, opts->size), UiUnits_Absolute, Ui_XY);
   ui_layout_from_center(canvas, Ui_Y);
 
   ui_canvas_style_push(canvas);
