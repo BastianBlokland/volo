@@ -1,4 +1,5 @@
 #pragma once
+#include "core_time.h"
 #include "core_unicode.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
@@ -87,8 +88,9 @@ void ui_canvas_id_skip(UiCanvasComp*);
  * Query information about a specific element.
  * NOTE: Requires cross frame consistency of identifiers.
  */
-UiStatus ui_canvas_elem_status(const UiCanvasComp*, UiId);
-UiRect   ui_canvas_elem_rect(const UiCanvasComp*, UiId);
+UiStatus     ui_canvas_elem_status(const UiCanvasComp*, UiId);
+TimeDuration ui_canvas_elem_status_duration(const UiCanvasComp*, UiId);
+UiRect       ui_canvas_elem_rect(const UiCanvasComp*, UiId);
 
 /**
  * Query input information.
