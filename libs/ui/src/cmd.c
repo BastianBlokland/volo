@@ -108,6 +108,14 @@ void ui_cmd_push_style_outline(UiCmdBuffer* buffer, const u8 outline) {
       }};
 }
 
+void ui_cmd_push_style_layer(UiCmdBuffer* buffer, const UiLayer layer) {
+  *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
+      .type       = UiCmd_StyleLayer,
+      .styleLayer = {
+          .value = layer,
+      }};
+}
+
 void ui_cmd_push_draw_text(
     UiCmdBuffer*  buffer,
     const UiId    id,

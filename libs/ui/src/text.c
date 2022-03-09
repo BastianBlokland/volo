@@ -22,6 +22,7 @@ typedef struct {
   f32                 fontSize;
   UiColor             fontColor, fontColorDefault;
   u8                  fontOutline, fontOutlineDefault;
+  UiLayer             fontLayer;
   UiAlign             align;
   void*               userCtx;
   UiTextBuildCharFunc buildChar;
@@ -188,6 +189,7 @@ static void ui_text_build_char(UiTextBuildState* state, const UiTextLine* line, 
             .size    = state->fontSize,
             .color   = state->fontColor,
             .outline = state->fontOutline,
+            .layer   = state->fontLayer,
         });
   }
   state->cursor += ch->advance * state->fontSize;
@@ -244,6 +246,7 @@ UiTextBuildResult ui_text_build(
     const f32                 fontSize,
     const UiColor             fontColor,
     const u8                  fontOutline,
+    const UiLayer             fontLayer,
     const UiAlign             align,
     void*                     userCtx,
     const UiTextBuildCharFunc buildChar) {
@@ -287,6 +290,7 @@ UiTextBuildResult ui_text_build(
       .fontColorDefault   = fontColor,
       .fontOutline        = fontOutline,
       .fontOutlineDefault = fontOutline,
+      .fontLayer          = fontLayer,
       .align              = align,
       .userCtx            = userCtx,
       .buildChar          = buildChar,

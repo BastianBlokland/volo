@@ -29,7 +29,7 @@ typedef enum {
  * For example 0.5 Window units means the middle of the window.
  */
 typedef enum {
-  UiUnits_Current,
+  UiUnits_Current, // Fraction of currently active size.
   UiUnits_Absolute,
   UiUnits_Window,
 } UiUnits;
@@ -49,15 +49,17 @@ typedef enum {
   UiAlign_BottomRight,
 } UiAlign;
 
-/**
- * Interaction status.
- */
 typedef enum {
   UiStatus_Idle,
   UiStatus_Hovered,
   UiStatus_Pressed,
   UiStatus_Activated,
 } UiStatus;
+
+typedef enum {
+  UiLayer_Normal,
+  UiLayer_Overlay,
+} UiLayer;
 
 typedef enum {
   Ui_X  = 1 << 0,
@@ -120,6 +122,7 @@ void ui_canvas_style_pop(UiCanvasComp*);
  */
 void ui_canvas_style_color(UiCanvasComp*, UiColor);
 void ui_canvas_style_outline(UiCanvasComp*, u8 outline);
+void ui_canvas_style_layer(UiCanvasComp*, UiLayer);
 
 /**
  * Draw text in the current rectangle.

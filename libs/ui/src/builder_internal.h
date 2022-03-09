@@ -29,7 +29,7 @@ typedef struct {
 ASSERT(sizeof(UiGlyphData) == 32, "Size needs to match the size defined in glsl");
 
 typedef void (*UiOutputDrawFunc)(void* userCtx, UiDrawData);
-typedef void (*UiOutputGlyphFunc)(void* userCtx, UiGlyphData);
+typedef void (*UiOutputGlyphFunc)(void* userCtx, UiGlyphData, UiLayer);
 typedef void (*UiOutputRect)(void* userCtx, UiId, UiRect);
 
 typedef struct {

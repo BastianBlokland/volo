@@ -18,7 +18,8 @@ ecs_comp_define(UiCanvasComp) {
   EcsEntityId  window;
   UiCmdBuffer* cmdBuffer;
   UiId         nextId;
-  DynArray     elements; // UiElement[]
+  DynArray     elements;      // UiElement[]
+  DynArray     overlayGlyphs; // UiGlyphData[]
   UiId         activeId;
   UiVector     inputDelta, inputPos;
 };
@@ -27,11 +28,13 @@ static void ecs_destruct_canvas(void* data) {
   UiCanvasComp* comp = data;
   ui_cmdbuffer_destroy(comp->cmdBuffer);
   dynarray_destroy(&comp->elements);
+  dynarray_destroy(&comp->overlayGlyphs);
 }
 
 typedef struct {
   RendDrawComp* draw;
-  DynArray*     elementsOutput; // UiElement[]*
+  DynArray*     elementsOutput;      // UiElement[]*
+  DynArray*     overlayGlyphsOutput; // UiGlyphData[]*
 } UiRenderState;
 
 static const UiElement* ui_build_elem(const UiCanvasComp* canvas, const UiId id) {
@@ -50,9 +53,16 @@ static void ui_canvas_output_draw(void* userCtx, const UiDrawData data) {
   rend_draw_set_data(renderState->draw, mem_var(data));
 }
 
-static void ui_canvas_output_glyph(void* userCtx, const UiGlyphData data) {
+static void ui_canvas_output_glyph(void* userCtx, const UiGlyphData data, const UiLayer layer) {
   UiRenderState* renderState = userCtx;
-  rend_draw_add_instance(renderState->draw, mem_var(data), SceneTags_None, (GeoBox){0});
+  switch (layer) {
+  case UiLayer_Normal:
+    rend_draw_add_instance(renderState->draw, mem_var(data), SceneTags_None, (GeoBox){0});
+    break;
+  case UiLayer_Overlay:
+    *dynarray_push_t(renderState->overlayGlyphsOutput, UiGlyphData) = data;
+    break;
+  }
 }
 
 static void ui_canvas_output_rect(void* userCtx, const UiId id, const UiRect rect) {
@@ -105,9 +115,13 @@ static void ui_canvas_render(
   // Ensure we have UiElement structures for all elements that are requested to be drawn.
   dynarray_resize(&canvas->elements, canvas->nextId);
 
+  // Clear last frame's overlay glyphs.
+  dynarray_clear(&canvas->overlayGlyphs);
+
   UiRenderState renderState = {
-      .draw           = draw,
-      .elementsOutput = &canvas->elements,
+      .draw                = draw,
+      .elementsOutput      = &canvas->elements,
+      .overlayGlyphsOutput = &canvas->overlayGlyphs,
   };
 
   const UiBuildCtx buildCtx = {
@@ -119,6 +133,11 @@ static void ui_canvas_render(
       .outputRect  = &ui_canvas_output_rect,
   };
   const UiBuildResult result = ui_build(canvas->cmdBuffer, &buildCtx);
+
+  // Add the overlay glyphs, at this stage all the normal glyphs have already been added.
+  dynarray_for_t(&canvas->overlayGlyphs, UiGlyphData, glyph) {
+    rend_draw_add_instance(draw, mem_var(*glyph), SceneTags_None, (GeoBox){0});
+  }
 
   ui_canvas_update_input(canvas, window, result);
 }
@@ -196,9 +215,10 @@ EcsEntityId ui_canvas_create(EcsWorld* world, const EcsEntityId window) {
       world,
       canvasEntity,
       UiCanvasComp,
-      .window    = window,
-      .cmdBuffer = ui_cmdbuffer_create(g_alloc_heap),
-      .elements  = dynarray_create_t(g_alloc_heap, UiElement, 128));
+      .window        = window,
+      .cmdBuffer     = ui_cmdbuffer_create(g_alloc_heap),
+      .elements      = dynarray_create_t(g_alloc_heap, UiElement, 128),
+      .overlayGlyphs = dynarray_create_t(g_alloc_heap, UiGlyphData, 32));
 
   RendDrawComp* draw = rend_draw_create(world, canvasEntity, RendDrawFlags_NoInstanceFiltering);
   rend_draw_set_camera_filter(draw, window);
@@ -263,6 +283,10 @@ void ui_canvas_style_color(UiCanvasComp* comp, const UiColor color) {
 
 void ui_canvas_style_outline(UiCanvasComp* comp, const u8 outline) {
   ui_cmd_push_style_outline(comp->cmdBuffer, outline);
+}
+
+void ui_canvas_style_layer(UiCanvasComp* comp, const UiLayer layer) {
+  ui_cmd_push_style_layer(comp->cmdBuffer, layer);
 }
 
 UiId ui_canvas_draw_text(
