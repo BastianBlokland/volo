@@ -51,17 +51,22 @@ static void debug_action_bar_next(UiCanvasComp* canvas) {
 }
 
 static void debug_action_stats(DebugMenuComp* menu, UiCanvasComp* canvas) {
-  const bool    enabled = (menu->flags & DebugMenuFlags_ShowStats) != 0;
-  const Unicode icon    = enabled ? UiShape_LayersClear : UiShape_Layers;
-  if (ui_button(canvas, .label = ui_shape_scratch(icon))) {
+  const bool enabled = (menu->flags & DebugMenuFlags_ShowStats) != 0;
+  if (ui_button(
+          canvas,
+          .label   = ui_shape_scratch(enabled ? UiShape_LayersClear : UiShape_Layers),
+          .tooltip = enabled ? string_lit("Disable the statistics text")
+                             : string_lit("Enable the statistics text"))) {
     menu->flags ^= DebugMenuFlags_ShowStats;
   }
 }
 
 static void debug_action_fullscreen(DebugMenuComp* menu, UiCanvasComp* canvas, GapWindowComp* win) {
-  const bool    active = gap_window_mode(win) == GapWindowMode_Fullscreen;
-  const Unicode icon   = active ? UiShape_FullscreenExit : UiShape_Fullscreen;
-  if (ui_button(canvas, .label = ui_shape_scratch(icon))) {
+  const bool active = gap_window_mode(win) == GapWindowMode_Fullscreen;
+  if (ui_button(
+          canvas,
+          .label   = ui_shape_scratch(active ? UiShape_FullscreenExit : UiShape_Fullscreen),
+          .tooltip = active ? string_lit("Exit fullscreen") : string_lit("Enter fullscreen"))) {
     if (active) {
       gap_window_resize(win, menu->lastWindowedSize, GapWindowMode_Windowed);
     } else {
@@ -74,14 +79,20 @@ static void debug_action_fullscreen(DebugMenuComp* menu, UiCanvasComp* canvas, G
 static void debug_action_new_window(EcsWorld* world, UiCanvasComp* canvas) {
   static const GapVector newWindowSize = {1024, 768};
 
-  if (ui_button(canvas, .label = ui_shape_scratch(UiShape_OpenInNew))) {
+  if (ui_button(
+          canvas,
+          .label   = ui_shape_scratch(UiShape_OpenInNew),
+          .tooltip = string_lit("Open a new window"))) {
     const EcsEntityId newWindow = gap_window_create(world, GapWindowFlags_Default, newWindowSize);
     debug_menu_create(world, newWindow);
   }
 }
 
 static void debug_action_close(UiCanvasComp* canvas, GapWindowComp* win) {
-  if (ui_button(canvas, .label = ui_shape_scratch(UiShape_Logout))) {
+  if (ui_button(
+          canvas,
+          .label   = ui_shape_scratch(UiShape_Logout),
+          .tooltip = string_lit("Close the window (Escape)"))) {
     gap_window_close(win);
   }
 }
