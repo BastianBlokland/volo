@@ -212,3 +212,97 @@ bool ui_toggle_with_opts(UiCanvasComp* canvas, bool* input, const UiToggleOpts* 
   ui_canvas_rect_pop(canvas);
   return status == UiStatus_Activated;
 }
+
+typedef enum {
+  UiTooltipDir_Left,
+  UiTooltipDir_Right,
+} UiTooltipDir;
+
+static UiTooltipDir ui_tooltip_dir(UiCanvasComp* canvas) {
+  const f32 halfWindow = ui_canvas_window_size(canvas).x * 0.5f;
+  return ui_canvas_window_cursor(canvas).x > halfWindow ? UiTooltipDir_Left : UiTooltipDir_Right;
+}
+
+static void ui_tooltip_background(UiCanvasComp* canvas, const UiRect textRect) {
+  ui_canvas_rect_push(canvas);
+  ui_canvas_style_push(canvas);
+
+  static const UiVector g_offset  = {-25, -5};
+  static const UiVector g_padding = {10, 5};
+
+  const UiVector size =
+      ui_vector(textRect.width + g_padding.x * 2, textRect.height + g_padding.y * 2);
+  UiVector offset;
+  switch (ui_tooltip_dir(canvas)) {
+  case UiTooltipDir_Left:
+    offset = ui_vector(
+        -textRect.width - g_padding.x + g_offset.x, -textRect.height - g_padding.y + g_offset.y);
+    break;
+  case UiTooltipDir_Right:
+    offset = ui_vector(-g_offset.x - g_padding.x, -textRect.height - g_padding.y + g_offset.y);
+    break;
+  }
+  ui_canvas_rect_pos(canvas, offset, UiOrigin_Cursor, UiUnits_Absolute, Ui_XY);
+  ui_canvas_rect_size(canvas, size, UiUnits_Absolute, Ui_XY);
+
+  ui_canvas_style_color(canvas, ui_color_white);
+  ui_canvas_style_outline(canvas, 4);
+  ui_canvas_style_layer(canvas, UiLayer_Overlay);
+
+  ui_canvas_draw_glyph(canvas, UiShape_Circle, 5, UiFlags_None);
+
+  ui_canvas_style_pop(canvas);
+  ui_canvas_rect_pop(canvas);
+}
+
+static void ui_tooltip_text(UiCanvasComp* canvas, const String text, const UiTooltipOpts* opts) {
+  ui_canvas_rect_push(canvas);
+  ui_canvas_style_push(canvas);
+
+  static const UiVector g_offset = {-25, -5};
+
+  UiAlign  align;
+  UiVector offset;
+  switch (ui_tooltip_dir(canvas)) {
+  case UiTooltipDir_Left:
+    align  = UiAlign_TopRight;
+    offset = ui_vector(-opts->maxSize.x + g_offset.x, -opts->maxSize.y + g_offset.y);
+    break;
+  case UiTooltipDir_Right:
+    align  = UiAlign_TopLeft;
+    offset = ui_vector(-g_offset.x, -opts->maxSize.y + g_offset.y);
+    break;
+  }
+
+  ui_canvas_rect_pos(canvas, offset, UiOrigin_Cursor, UiUnits_Absolute, Ui_XY);
+  ui_canvas_rect_size(canvas, opts->maxSize, UiUnits_Absolute, Ui_XY);
+
+  ui_canvas_style_color(canvas, ui_color_black);
+  ui_canvas_style_outline(canvas, 0);
+  ui_canvas_style_layer(canvas, UiLayer_Overlay);
+
+  ui_canvas_draw_text(canvas, text, opts->fontSize, align, UiFlags_None);
+
+  ui_canvas_style_pop(canvas);
+  ui_canvas_rect_pop(canvas);
+}
+
+bool ui_tooltip_with_opts(
+    UiCanvasComp* canvas, const UiId id, const String text, const UiTooltipOpts* opts) {
+
+  const bool showTooltip = ui_canvas_elem_status(canvas, id) == UiStatus_Hovered &&
+                           ui_canvas_elem_status_duration(canvas, id) >= time_second;
+  if (!showTooltip) {
+    ui_canvas_id_skip(canvas);
+    ui_canvas_id_skip(canvas);
+    return false;
+  }
+
+  const UiId   backgroundId = ui_canvas_id_peek(canvas);
+  const UiId   textId       = backgroundId + 1;
+  const UiRect textRect     = ui_canvas_elem_rect(canvas, textId);
+
+  ui_tooltip_background(canvas, textRect);
+  ui_tooltip_text(canvas, text, opts);
+  return true;
+}
