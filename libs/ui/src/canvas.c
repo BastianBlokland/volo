@@ -68,10 +68,11 @@ static void ui_canvas_output_rect(void* userCtx, const UiId id, const UiRect rec
   dynarray_at_t(renderState->elementsOutput, id, UiElement)->rect = rect;
 }
 
-static void ui_canvas_set_status(UiCanvasComp* canvas, const UiStatus status) {
-  if (canvas->activeStatus == status) {
+static void ui_canvas_set_active(UiCanvasComp* canvas, const UiId id, const UiStatus status) {
+  if (canvas->activeId == id && canvas->activeStatus == status) {
     return;
   }
+  canvas->activeId          = id;
   canvas->activeStatus      = status;
   canvas->activeStatusStart = time_steady_clock();
 }
@@ -91,11 +92,11 @@ static void ui_canvas_update_input(
   const bool activeElemIsHovered = canvas->activeId == result.hoveredId;
 
   if (hasActiveElem && activeElemIsHovered && inputReleased) {
-    ui_canvas_set_status(canvas, UiStatus_Activated);
+    ui_canvas_set_active(canvas, canvas->activeId, UiStatus_Activated);
     return;
   }
   if (hasActiveElem && activeElemIsHovered && inputDown) {
-    ui_canvas_set_status(canvas, UiStatus_Pressed);
+    ui_canvas_set_active(canvas, canvas->activeId, UiStatus_Pressed);
     return;
   }
   if (inputDown) {
@@ -103,8 +104,10 @@ static void ui_canvas_update_input(
   }
 
   // Select a new active element.
-  canvas->activeId = result.hoveredId;
-  ui_canvas_set_status(canvas, sentinel_check(result.hoveredId) ? UiStatus_Idle : UiStatus_Hovered);
+  ui_canvas_set_active(
+      canvas,
+      result.hoveredId,
+      sentinel_check(result.hoveredId) ? UiStatus_Idle : UiStatus_Hovered);
 }
 
 static void ui_canvas_render(
