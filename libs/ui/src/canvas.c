@@ -194,6 +194,10 @@ ecs_system_define(UiCanvasBuildSys) {
     canvas->windowSize                = ui_vector(windowSize.x, windowSize.y);
     canvas->windowCursor              = ui_vector(windowCursor.x, windowCursor.y);
 
+    if (gap_window_events(window) & GapWindowEvents_FocusLost) {
+      ui_canvas_set_active(canvas, sentinel_u64, UiStatus_Idle);
+    }
+
     rend_draw_set_graphic(draw, ui_resource_graphic(globalRes));
 
     ui_canvas_render(canvas, draw, window, font);
