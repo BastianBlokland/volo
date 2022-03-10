@@ -6,13 +6,14 @@
 typedef enum {
   UiCmd_RectPush,
   UiCmd_RectPop,
-  UiCmd_RectMove,
-  UiCmd_RectResize,
-  UiCmd_RectResizeTo,
+  UiCmd_RectPos,
+  UiCmd_RectSize,
+  UiCmd_RectSizeTo,
   UiCmd_StylePush,
   UiCmd_StylePop,
   UiCmd_StyleColor,
   UiCmd_StyleOutline,
+  UiCmd_StyleLayer,
   UiCmd_DrawText,
   UiCmd_DrawGlyph,
 } UiCmdType;
@@ -22,20 +23,20 @@ typedef struct {
   UiOrigin origin;
   UiUnits  unit;
   UiAxis   axis;
-} UiRectMove;
+} UiRectPos;
 
 typedef struct {
   UiVector size;
   UiUnits  unit;
   UiAxis   axis;
-} UiRectResize;
+} UiRectSize;
 
 typedef struct {
   UiVector pos;
   UiOrigin origin;
   UiUnits  unit;
   UiAxis   axis;
-} UiRectResizeTo;
+} UiRectSizeTo;
 
 typedef struct {
   UiColor value;
@@ -46,11 +47,15 @@ typedef struct {
 } UiStyleOutline;
 
 typedef struct {
-  UiId        id;
-  String      text;
-  u16         fontSize;
-  UiTextAlign align;
-  UiFlags     flags;
+  UiLayer value;
+} UiStyleLayer;
+
+typedef struct {
+  UiId    id;
+  String  text;
+  u16     fontSize;
+  UiAlign align;
+  UiFlags flags;
 } UiDrawText;
 
 typedef struct {
@@ -63,11 +68,12 @@ typedef struct {
 typedef struct {
   UiCmdType type;
   union {
-    UiRectMove     rectMove;
-    UiRectResize   rectResize;
-    UiRectResizeTo rectResizeTo;
+    UiRectPos      rectPos;
+    UiRectSize     rectSize;
+    UiRectSizeTo   rectSizeTo;
     UiStyleColor   styleColor;
     UiStyleOutline styleOutline;
+    UiStyleLayer   styleLayer;
     UiDrawText     drawText;
     UiDrawGlyph    drawGlyph;
   };
@@ -81,14 +87,15 @@ void         ui_cmdbuffer_clear(UiCmdBuffer*);
 
 void ui_cmd_push_rect_push(UiCmdBuffer*);
 void ui_cmd_push_rect_pop(UiCmdBuffer*);
-void ui_cmd_push_rect_move(UiCmdBuffer*, UiVector pos, UiOrigin, UiUnits, UiAxis);
-void ui_cmd_push_rect_resize(UiCmdBuffer*, UiVector size, UiUnits, UiAxis);
-void ui_cmd_push_rect_resize_to(UiCmdBuffer*, UiVector pos, UiOrigin, UiUnits, UiAxis);
+void ui_cmd_push_rect_pos(UiCmdBuffer*, UiVector pos, UiOrigin, UiUnits, UiAxis);
+void ui_cmd_push_rect_size(UiCmdBuffer*, UiVector size, UiUnits, UiAxis);
+void ui_cmd_push_rect_size_to(UiCmdBuffer*, UiVector pos, UiOrigin, UiUnits, UiAxis);
 void ui_cmd_push_style_push(UiCmdBuffer*);
 void ui_cmd_push_style_pop(UiCmdBuffer*);
 void ui_cmd_push_style_color(UiCmdBuffer*, UiColor);
 void ui_cmd_push_style_outline(UiCmdBuffer*, u8 outline);
-void ui_cmd_push_draw_text(UiCmdBuffer*, UiId, String text, u16 fontSize, UiTextAlign, UiFlags);
+void ui_cmd_push_style_layer(UiCmdBuffer*, UiLayer);
+void ui_cmd_push_draw_text(UiCmdBuffer*, UiId, String text, u16 fontSize, UiAlign, UiFlags);
 void ui_cmd_push_draw_glyph(UiCmdBuffer*, UiId, Unicode cp, u16 maxCorner, UiFlags);
 
 UiCmd* ui_cmd_next(const UiCmdBuffer*, UiCmd*);

@@ -22,11 +22,11 @@ typedef struct {
   f32                 fontSize;
   UiColor             fontColor, fontColorDefault;
   u8                  fontOutline, fontOutlineDefault;
-  UiTextAlign         align;
+  UiLayer             fontLayer;
+  UiAlign             align;
   void*               userCtx;
   UiTextBuildCharFunc buildChar;
   f32                 cursor;
-  f32                 totalHeight;
 } UiTextBuildState;
 
 static f32 ui_text_next_tabstop(const AssetFtxComp* font, const f32 cursor, const f32 fontSize) {
@@ -129,34 +129,51 @@ End:
   return string_consume(text, cursorConsumed.charIndex);
 }
 
-static UiVector ui_text_char_pos(UiTextBuildState* state, const UiTextLine* line) {
-  const f32 width  = state->rect.width;
-  const f32 height = state->rect.height;
-  const f32 minX = state->rect.x, maxX = minX + width;
-  const f32 minY = state->rect.y, maxY = minY + height;
-  const f32 cursor = state->cursor, lineY = line->posY;
-  const f32 textWidth = line->size.width, textHeight = state->totalHeight;
+static UiRect ui_text_inner_rect(const UiRect rect, const UiVector size, const UiAlign align) {
+  const f32 centerX = rect.x + (rect.width - size.width) * 0.5f;
+  const f32 centerY = rect.y + (rect.height - size.height) * 0.5f;
+  const f32 maxX    = rect.x + rect.width - size.width;
+  const f32 maxY    = rect.y + rect.height - size.height;
+  switch (align) {
+  case UiAlign_TopLeft:
+    return ui_rect(ui_vector(rect.x, maxY), size);
+  case UiAlign_TopCenter:
+    return ui_rect(ui_vector(centerX, maxY), size);
+  case UiAlign_TopRight:
+    return ui_rect(ui_vector(maxX, maxY), size);
+  case UiAlign_MiddleLeft:
+    return ui_rect(ui_vector(rect.x, centerY), size);
+  case UiAlign_MiddleCenter:
+    return ui_rect(ui_vector(centerX, centerY), size);
+  case UiAlign_MiddleRight:
+    return ui_rect(ui_vector(maxX, centerY), size);
+  case UiAlign_BottomLeft:
+    return ui_rect(rect.pos, size);
+  case UiAlign_BottomCenter:
+    return ui_rect(ui_vector(centerX, rect.y), size);
+  case UiAlign_BottomRight:
+    return ui_rect(ui_vector(maxX, rect.y), size);
+  }
+  diag_crash();
+}
 
+static UiVector ui_text_char_pos(UiTextBuildState* state, const UiTextLine* line) {
+  const UiRect rect = state->rect;
+  const f32    posY = rect.y + rect.height - line->posY;
   switch (state->align) {
-  case UiTextAlign_TopLeft:
-    return ui_vector(minX + cursor, maxY - lineY);
-  case UiTextAlign_TopCenter:
-    return ui_vector(minX + (width - textWidth) * 0.5f + cursor, maxY - lineY);
-  case UiTextAlign_TopRight:
-    return ui_vector(maxX - textWidth + cursor, maxY - lineY);
-  case UiTextAlign_MiddleLeft:
-    return ui_vector(minX + cursor, maxY - (height - textHeight) * 0.5f - lineY);
-  case UiTextAlign_MiddleCenter:
-    return ui_vector(
-        minX + (width - textWidth) * 0.5f + cursor, maxY - (height - textHeight) * 0.5f - lineY);
-  case UiTextAlign_MiddleRight:
-    return ui_vector(maxX - textWidth + cursor, maxY - (height - textHeight) * 0.5f - lineY);
-  case UiTextAlign_BottomLeft:
-    return ui_vector(minX + cursor, minY + textHeight - lineY);
-  case UiTextAlign_BottomCenter:
-    return ui_vector(minX + (width - textWidth) * 0.5f + cursor, minY + textHeight - lineY);
-  case UiTextAlign_BottomRight:
-    return ui_vector(maxX - textWidth + cursor, minY + textHeight - lineY);
+  case UiAlign_TopLeft:
+  case UiAlign_MiddleLeft:
+  case UiAlign_BottomLeft:
+    return ui_vector(rect.x + state->cursor, posY);
+  case UiAlign_TopCenter:
+  case UiAlign_MiddleCenter:
+  case UiAlign_BottomCenter:
+    return ui_vector(rect.x + (rect.width - line->size.x) * 0.5f + state->cursor, posY);
+    break;
+  case UiAlign_TopRight:
+  case UiAlign_MiddleRight:
+  case UiAlign_BottomRight:
+    return ui_vector(rect.x + rect.width - line->size.x + state->cursor, posY);
   }
   diag_crash();
 }
@@ -172,6 +189,7 @@ static void ui_text_build_char(UiTextBuildState* state, const UiTextLine* line, 
             .size    = state->fontSize,
             .color   = state->fontColor,
             .outline = state->fontOutline,
+            .layer   = state->fontLayer,
         });
   }
   state->cursor += ch->advance * state->fontSize;
@@ -221,14 +239,15 @@ static void ui_text_build_line(UiTextBuildState* state, const UiTextLine* line) 
   }
 }
 
-void ui_text_build(
+UiTextBuildResult ui_text_build(
     const AssetFtxComp*       font,
-    const UiRect              rect,
+    const UiRect              totalRect,
     const String              text,
     const f32                 fontSize,
     const UiColor             fontColor,
     const u8                  fontOutline,
-    const UiTextAlign         align,
+    const UiLayer             fontLayer,
+    const UiAlign             align,
     void*                     userCtx,
     const UiTextBuildCharFunc buildChar) {
 
@@ -236,12 +255,13 @@ void ui_text_build(
    * Compute all lines.
    */
   UiTextLine lines[ui_text_max_lines];
-  usize      lineCount = 0;
-  f32        lineY     = 0;
-  String     remText   = text;
+  u32        lineCount  = 0;
+  f32        lineY      = 0;
+  f32        totalWidth = 0;
+  String     remText    = text;
   while (!string_is_empty(remText)) {
     const f32 lineHeight = lineCount ? (1 + font->lineSpacing) * fontSize : fontSize;
-    if (lineY + lineHeight >= rect.height - font->lineSpacing * fontSize) {
+    if (lineY + lineHeight >= totalRect.height - font->lineSpacing * fontSize) {
       break; // Not enough space remaining for this line.
     }
     lineY += lineHeight;
@@ -251,10 +271,13 @@ void ui_text_build(
       break;
     }
     const usize lineIndex = lineCount++;
-    remText               = ui_text_line(font, remText, rect.width, fontSize, &lines[lineIndex]);
+    remText = ui_text_line(font, remText, totalRect.width, fontSize, &lines[lineIndex]);
 
     lines[lineIndex].posY = lineY;
+    totalWidth            = math_max(totalWidth, lines[lineIndex].size.width);
   }
+  const UiVector size = ui_vector(totalWidth, lineY + (font->lineSpacing * 2) * fontSize);
+  const UiRect   rect = ui_text_inner_rect(totalRect, size, align);
 
   /**
    * Draw all lines.
@@ -267,12 +290,17 @@ void ui_text_build(
       .fontColorDefault   = fontColor,
       .fontOutline        = fontOutline,
       .fontOutlineDefault = fontOutline,
+      .fontLayer          = fontLayer,
       .align              = align,
       .userCtx            = userCtx,
       .buildChar          = buildChar,
-      .totalHeight        = lineY + (font->lineSpacing * 2) * fontSize,
   };
   for (usize i = 0; i != lineCount; ++i) {
     ui_text_build_line(&state, &lines[i]);
   }
+
+  return (UiTextBuildResult){
+      .rect      = rect,
+      .lineCount = lineCount,
+  };
 }

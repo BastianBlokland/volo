@@ -10,16 +10,19 @@
 #include "resource_internal.h"
 
 typedef struct {
-  UiRect   rect;
-  UiStatus status;
+  UiRect rect;
 } UiElement;
 
 ecs_comp_define(UiCanvasComp) {
   EcsEntityId  window;
   UiCmdBuffer* cmdBuffer;
   UiId         nextId;
-  DynArray     elements; // UiElement[]
+  DynArray     elements;      // UiElement[]
+  DynArray     overlayGlyphs; // UiGlyphData[]
+  UiVector     windowSize, windowCursor;
   UiId         activeId;
+  UiStatus     activeStatus;
+  TimeSteady   activeStatusStart;
   UiVector     inputDelta, inputPos;
 };
 
@@ -27,11 +30,13 @@ static void ecs_destruct_canvas(void* data) {
   UiCanvasComp* comp = data;
   ui_cmdbuffer_destroy(comp->cmdBuffer);
   dynarray_destroy(&comp->elements);
+  dynarray_destroy(&comp->overlayGlyphs);
 }
 
 typedef struct {
   RendDrawComp* draw;
-  DynArray*     elementsOutput; // UiElement[]*
+  DynArray*     elementsOutput;      // UiElement[]*
+  DynArray*     overlayGlyphsOutput; // UiGlyphData[]*
 } UiRenderState;
 
 static const UiElement* ui_build_elem(const UiCanvasComp* canvas, const UiId id) {
@@ -41,23 +46,35 @@ static const UiElement* ui_build_elem(const UiCanvasComp* canvas, const UiId id)
   return dynarray_at_t(&canvas->elements, id, UiElement);
 }
 
-static UiElement* ui_build_elem_mutable(UiCanvasComp* canvas, const UiId id) {
-  return (UiElement*)ui_build_elem(canvas, id);
-}
-
 static void ui_canvas_output_draw(void* userCtx, const UiDrawData data) {
   UiRenderState* renderState = userCtx;
   rend_draw_set_data(renderState->draw, mem_var(data));
 }
 
-static void ui_canvas_output_glyph(void* userCtx, const UiGlyphData data) {
+static void ui_canvas_output_glyph(void* userCtx, const UiGlyphData data, const UiLayer layer) {
   UiRenderState* renderState = userCtx;
-  rend_draw_add_instance(renderState->draw, mem_var(data), SceneTags_None, (GeoBox){0});
+  switch (layer) {
+  case UiLayer_Normal:
+    rend_draw_add_instance(renderState->draw, mem_var(data), SceneTags_None, (GeoBox){0});
+    break;
+  case UiLayer_Overlay:
+    *dynarray_push_t(renderState->overlayGlyphsOutput, UiGlyphData) = data;
+    break;
+  }
 }
 
 static void ui_canvas_output_rect(void* userCtx, const UiId id, const UiRect rect) {
   UiRenderState* renderState                                      = userCtx;
   dynarray_at_t(renderState->elementsOutput, id, UiElement)->rect = rect;
+}
+
+static void ui_canvas_set_active(UiCanvasComp* canvas, const UiId id, const UiStatus status) {
+  if (canvas->activeId == id && canvas->activeStatus == status) {
+    return;
+  }
+  canvas->activeId          = id;
+  canvas->activeStatus      = status;
+  canvas->activeStatusStart = time_steady_clock();
 }
 
 static void ui_canvas_update_input(
@@ -71,15 +88,15 @@ static void ui_canvas_update_input(
   const bool inputDown     = gap_window_key_down(window, GapKey_MouseLeft);
   const bool inputReleased = gap_window_key_released(window, GapKey_MouseLeft);
 
-  UiElement* activeElem  = ui_build_elem_mutable(canvas, canvas->activeId);
-  UiElement* hoveredElem = ui_build_elem_mutable(canvas, result.hoveredId);
+  const bool hasActiveElem       = !sentinel_check(canvas->activeId);
+  const bool activeElemIsHovered = canvas->activeId == result.hoveredId;
 
-  if (activeElem && activeElem == hoveredElem && inputReleased) {
-    activeElem->status = UiStatus_Activated;
+  if (hasActiveElem && activeElemIsHovered && inputReleased) {
+    ui_canvas_set_active(canvas, canvas->activeId, UiStatus_Activated);
     return;
   }
-  if (activeElem && activeElem == hoveredElem && inputDown) {
-    activeElem->status = UiStatus_Pressed;
+  if (hasActiveElem && activeElemIsHovered && inputDown) {
+    ui_canvas_set_active(canvas, canvas->activeId, UiStatus_Pressed);
     return;
   }
   if (inputDown) {
@@ -87,13 +104,10 @@ static void ui_canvas_update_input(
   }
 
   // Select a new active element.
-  if (activeElem) {
-    activeElem->status = UiStatus_Idle;
-  }
-  if (hoveredElem) {
-    hoveredElem->status = UiStatus_Hovered;
-  }
-  canvas->activeId = result.hoveredId;
+  ui_canvas_set_active(
+      canvas,
+      result.hoveredId,
+      sentinel_check(result.hoveredId) ? UiStatus_Idle : UiStatus_Hovered);
 }
 
 static void ui_canvas_render(
@@ -104,10 +118,15 @@ static void ui_canvas_render(
 
   // Ensure we have UiElement structures for all elements that are requested to be drawn.
   dynarray_resize(&canvas->elements, canvas->nextId);
+  mem_set(dynarray_at(&canvas->elements, 0, canvas->nextId), 0);
+
+  // Clear last frame's overlay glyphs.
+  dynarray_clear(&canvas->overlayGlyphs);
 
   UiRenderState renderState = {
-      .draw           = draw,
-      .elementsOutput = &canvas->elements,
+      .draw                = draw,
+      .elementsOutput      = &canvas->elements,
+      .overlayGlyphsOutput = &canvas->overlayGlyphs,
   };
 
   const UiBuildCtx buildCtx = {
@@ -119,6 +138,11 @@ static void ui_canvas_render(
       .outputRect  = &ui_canvas_output_rect,
   };
   const UiBuildResult result = ui_build(canvas->cmdBuffer, &buildCtx);
+
+  // Add the overlay glyphs, at this stage all the normal glyphs have already been added.
+  dynarray_for_t(&canvas->overlayGlyphs, UiGlyphData, glyph) {
+    rend_draw_add_instance(draw, mem_var(*glyph), SceneTags_None, (GeoBox){0});
+  }
 
   ui_canvas_update_input(canvas, window, result);
 }
@@ -157,18 +181,22 @@ ecs_system_define(UiCanvasBuildSys) {
 
   EcsView* buildView = ecs_world_view_t(world, CanvasBuildView);
   for (EcsIterator* itr = ecs_view_itr(buildView); ecs_view_walk(itr);) {
-    UiCanvasComp* canvasComp = ecs_view_write_t(itr, UiCanvasComp);
-    RendDrawComp* draw       = ecs_view_write_t(itr, RendDrawComp);
-    if (!ecs_view_maybe_jump(windowItr, canvasComp->window)) {
+    UiCanvasComp* canvas = ecs_view_write_t(itr, UiCanvasComp);
+    RendDrawComp* draw   = ecs_view_write_t(itr, RendDrawComp);
+    if (!ecs_view_maybe_jump(windowItr, canvas->window)) {
       // Destroy the canvas if the associated window is destroyed.
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
       continue;
     }
-    const GapWindowComp* window = ecs_view_read_t(windowItr, GapWindowComp);
+    const GapWindowComp* window       = ecs_view_read_t(windowItr, GapWindowComp);
+    const GapVector      windowSize   = gap_window_param(window, GapParam_WindowSize);
+    const GapVector      windowCursor = gap_window_param(window, GapParam_CursorPos);
+    canvas->windowSize                = ui_vector(windowSize.x, windowSize.y);
+    canvas->windowCursor              = ui_vector(windowCursor.x, windowCursor.y);
 
     rend_draw_set_graphic(draw, ui_resource_graphic(globalRes));
 
-    ui_canvas_render(canvasComp, draw, window, font);
+    ui_canvas_render(canvas, draw, window, font);
   }
 }
 
@@ -196,9 +224,10 @@ EcsEntityId ui_canvas_create(EcsWorld* world, const EcsEntityId window) {
       world,
       canvasEntity,
       UiCanvasComp,
-      .window    = window,
-      .cmdBuffer = ui_cmdbuffer_create(g_alloc_heap),
-      .elements  = dynarray_create_t(g_alloc_heap, UiElement, 128));
+      .window        = window,
+      .cmdBuffer     = ui_cmdbuffer_create(g_alloc_heap),
+      .elements      = dynarray_create_t(g_alloc_heap, UiElement, 128),
+      .overlayGlyphs = dynarray_create_t(g_alloc_heap, UiGlyphData, 32));
 
   RendDrawComp* draw = rend_draw_create(world, canvasEntity, RendDrawFlags_NoInstanceFiltering);
   rend_draw_set_camera_filter(draw, window);
@@ -215,8 +244,12 @@ UiId ui_canvas_id_peek(const UiCanvasComp* comp) { return comp->nextId; }
 void ui_canvas_id_skip(UiCanvasComp* comp) { ++comp->nextId; }
 
 UiStatus ui_canvas_elem_status(const UiCanvasComp* comp, const UiId id) {
-  const UiElement* elem = ui_build_elem(comp, id);
-  return elem ? elem->status : UiStatus_Idle;
+  return id == comp->activeId ? comp->activeStatus : UiStatus_Idle;
+}
+
+TimeDuration ui_canvas_elem_status_duration(const UiCanvasComp* comp, const UiId id) {
+  return id == comp->activeId ? time_steady_duration(comp->activeStatusStart, time_steady_clock())
+                              : 0;
 }
 
 UiRect ui_canvas_elem_rect(const UiCanvasComp* comp, const UiId id) {
@@ -224,34 +257,37 @@ UiRect ui_canvas_elem_rect(const UiCanvasComp* comp, const UiId id) {
   return elem ? elem->rect : ui_rect(ui_vector(0, 0), ui_vector(0, 0));
 }
 
+UiVector ui_canvas_window_size(const UiCanvasComp* comp) { return comp->windowSize; }
+UiVector ui_canvas_window_cursor(const UiCanvasComp* comp) { return comp->windowCursor; }
+
 UiVector ui_canvas_input_delta(const UiCanvasComp* comp) { return comp->inputDelta; }
 UiVector ui_canvas_input_pos(const UiCanvasComp* comp) { return comp->inputPos; }
 
 void ui_canvas_rect_push(UiCanvasComp* comp) { ui_cmd_push_rect_push(comp->cmdBuffer); }
 void ui_canvas_rect_pop(UiCanvasComp* comp) { ui_cmd_push_rect_pop(comp->cmdBuffer); }
 
-void ui_canvas_rect_move(
+void ui_canvas_rect_pos(
     UiCanvasComp*  comp,
     const UiVector pos,
     const UiOrigin origin,
     const UiUnits  unit,
     const UiAxis   axis) {
-  ui_cmd_push_rect_move(comp->cmdBuffer, pos, origin, unit, axis);
+  ui_cmd_push_rect_pos(comp->cmdBuffer, pos, origin, unit, axis);
 }
 
-void ui_canvas_rect_resize(
+void ui_canvas_rect_size(
     UiCanvasComp* comp, const UiVector size, const UiUnits unit, const UiAxis axis) {
   diag_assert_msg(size.x >= 0.0f && size.y >= 0.0f, "Negative sizes are not supported");
-  ui_cmd_push_rect_resize(comp->cmdBuffer, size, unit, axis);
+  ui_cmd_push_rect_size(comp->cmdBuffer, size, unit, axis);
 }
 
-void ui_canvas_rect_resize_to(
+void ui_canvas_rect_size_to(
     UiCanvasComp*  comp,
     const UiVector pos,
     const UiOrigin origin,
     const UiUnits  unit,
     const UiAxis   axis) {
-  ui_cmd_push_rect_resize_to(comp->cmdBuffer, pos, origin, unit, axis);
+  ui_cmd_push_rect_size_to(comp->cmdBuffer, pos, origin, unit, axis);
 }
 
 void ui_canvas_style_push(UiCanvasComp* comp) { ui_cmd_push_style_push(comp->cmdBuffer); }
@@ -265,12 +301,16 @@ void ui_canvas_style_outline(UiCanvasComp* comp, const u8 outline) {
   ui_cmd_push_style_outline(comp->cmdBuffer, outline);
 }
 
+void ui_canvas_style_layer(UiCanvasComp* comp, const UiLayer layer) {
+  ui_cmd_push_style_layer(comp->cmdBuffer, layer);
+}
+
 UiId ui_canvas_draw_text(
-    UiCanvasComp*     comp,
-    const String      text,
-    const u16         fontSize,
-    const UiTextAlign align,
-    const UiFlags     flags) {
+    UiCanvasComp* comp,
+    const String  text,
+    const u16     fontSize,
+    const UiAlign align,
+    const UiFlags flags) {
 
   const UiId id = comp->nextId++;
   if (!string_is_empty(text)) {

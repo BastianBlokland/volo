@@ -1,4 +1,5 @@
 #pragma once
+#include "core_time.h"
 #include "core_unicode.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
@@ -29,36 +30,37 @@ typedef enum {
  * For example 0.5 Window units means the middle of the window.
  */
 typedef enum {
-  UiUnits_Current,
+  UiUnits_Current, // Fraction of currently active size.
   UiUnits_Absolute,
   UiUnits_Window,
 } UiUnits;
 
 /**
- * Text alignment.
- * Controls how text will be layed out relative to the active rectangle.
+ * Alignment relative to the active rectangle.
  */
 typedef enum {
-  UiTextAlign_TopLeft,
-  UiTextAlign_TopCenter,
-  UiTextAlign_TopRight,
-  UiTextAlign_MiddleLeft,
-  UiTextAlign_MiddleCenter,
-  UiTextAlign_MiddleRight,
-  UiTextAlign_BottomLeft,
-  UiTextAlign_BottomCenter,
-  UiTextAlign_BottomRight,
-} UiTextAlign;
+  UiAlign_TopLeft,
+  UiAlign_TopCenter,
+  UiAlign_TopRight,
+  UiAlign_MiddleLeft,
+  UiAlign_MiddleCenter,
+  UiAlign_MiddleRight,
+  UiAlign_BottomLeft,
+  UiAlign_BottomCenter,
+  UiAlign_BottomRight,
+} UiAlign;
 
-/**
- * Interaction status.
- */
 typedef enum {
   UiStatus_Idle,
   UiStatus_Hovered,
   UiStatus_Pressed,
   UiStatus_Activated,
 } UiStatus;
+
+typedef enum {
+  UiLayer_Normal,
+  UiLayer_Overlay,
+} UiLayer;
 
 typedef enum {
   Ui_X  = 1 << 0,
@@ -86,8 +88,15 @@ void ui_canvas_id_skip(UiCanvasComp*);
  * Query information about a specific element.
  * NOTE: Requires cross frame consistency of identifiers.
  */
-UiStatus ui_canvas_elem_status(const UiCanvasComp*, UiId);
-UiRect   ui_canvas_elem_rect(const UiCanvasComp*, UiId);
+UiStatus     ui_canvas_elem_status(const UiCanvasComp*, UiId);
+TimeDuration ui_canvas_elem_status_duration(const UiCanvasComp*, UiId);
+UiRect       ui_canvas_elem_rect(const UiCanvasComp*, UiId);
+
+/**
+ * Query information about the window.
+ */
+UiVector ui_canvas_window_size(const UiCanvasComp*);
+UiVector ui_canvas_window_cursor(const UiCanvasComp*);
 
 /**
  * Query input information.
@@ -105,9 +114,9 @@ void ui_canvas_rect_pop(UiCanvasComp*);
 /**
  * Update the current rect.
  */
-void ui_canvas_rect_move(UiCanvasComp*, UiVector, UiOrigin, UiUnits, UiAxis);
-void ui_canvas_rect_resize(UiCanvasComp*, UiVector, UiUnits, UiAxis);
-void ui_canvas_rect_resize_to(UiCanvasComp*, UiVector, UiOrigin, UiUnits, UiAxis);
+void ui_canvas_rect_pos(UiCanvasComp*, UiVector, UiOrigin, UiUnits, UiAxis);
+void ui_canvas_rect_size(UiCanvasComp*, UiVector, UiUnits, UiAxis);
+void ui_canvas_rect_size_to(UiCanvasComp*, UiVector, UiOrigin, UiUnits, UiAxis);
 
 /**
  * Push / Pop an element to / from the style stack.
@@ -121,11 +130,12 @@ void ui_canvas_style_pop(UiCanvasComp*);
  */
 void ui_canvas_style_color(UiCanvasComp*, UiColor);
 void ui_canvas_style_outline(UiCanvasComp*, u8 outline);
+void ui_canvas_style_layer(UiCanvasComp*, UiLayer);
 
 /**
  * Draw text in the current rectangle.
  */
-UiId ui_canvas_draw_text(UiCanvasComp*, String text, u16 fontSize, UiTextAlign, UiFlags);
+UiId ui_canvas_draw_text(UiCanvasComp*, String text, u16 fontSize, UiAlign, UiFlags);
 
 /**
  * Draw a single glyph in the current rectangle.

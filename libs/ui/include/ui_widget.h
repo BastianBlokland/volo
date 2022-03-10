@@ -1,14 +1,12 @@
 #pragma once
 #include "ecs_module.h"
-#include "ui_color.h"
-
-// Forward declare from 'ui_canvas.h'.
-ecs_comp_extern(UiCanvasComp);
+#include "ui_canvas.h"
 
 typedef struct {
   String  label;
   u16     fontSize;
   UiColor frameColor;
+  String  tooltip;
 } UiButtonOpts;
 
 typedef struct {
@@ -16,12 +14,19 @@ typedef struct {
   f32     barHeight;
   f32     handleSize;
   UiColor barColor;
+  String  tooltip;
 } UiSliderOpts;
 
 typedef struct {
   f32     size;
   UiColor bgColor;
+  String  tooltip;
 } UiToggleOpts;
+
+typedef struct {
+  u16      fontSize;
+  UiVector maxSize;
+} UiTooltipOpts;
 
 // clang-format off
 
@@ -58,8 +63,17 @@ typedef struct {
  */
 #define ui_toggle(_CANVAS_, _VALUE_, ...) ui_toggle_with_opts((_CANVAS_), (_VALUE_),               \
   &((UiToggleOpts){                                                                                \
-    .size           = 20,                                                                          \
-    .bgColor        = ui_color(32, 32, 32, 192),                                                   \
+    .size    = 20,                                                                                 \
+    .bgColor = ui_color(32, 32, 32, 192),                                                          \
+    __VA_ARGS__}))
+
+/**
+ * Draw a tooltip if the given element is being hovered.
+ */
+#define ui_tooltip(_CANVAS_, _ID_, _TEXT_, ...) ui_tooltip_with_opts((_CANVAS_), (_ID_), (_TEXT_), \
+  &((UiTooltipOpts){                                                                               \
+    .fontSize = 15,                                                                                \
+    .maxSize  = {500, 500},                                                                        \
     __VA_ARGS__}))
 
 // clang-format on
@@ -67,3 +81,4 @@ typedef struct {
 bool ui_button_with_opts(UiCanvasComp*, const UiButtonOpts*);
 bool ui_slider_with_opts(UiCanvasComp*, f32* value, const UiSliderOpts*);
 bool ui_toggle_with_opts(UiCanvasComp*, bool* value, const UiToggleOpts*);
+bool ui_tooltip_with_opts(UiCanvasComp*, UiId, String text, const UiTooltipOpts*);

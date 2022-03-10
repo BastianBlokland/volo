@@ -6,20 +6,27 @@
 typedef struct {
   const AssetFtxChar* ch;
   UiVector            pos;
-  f32                 size;
   UiColor             color;
+  UiLayer             layer;
+  f32                 size;
   u8                  outline;
 } UiTextCharInfo;
 
 typedef void (*UiTextBuildCharFunc)(void* userCtx, const UiTextCharInfo*);
 
-void ui_text_build(
+typedef struct {
+  UiRect rect;
+  u32    lineCount;
+} UiTextBuildResult;
+
+UiTextBuildResult ui_text_build(
     const AssetFtxComp*,
-    UiRect      rect,
-    String      text,
-    f32         fontSize,
-    UiColor     fontColor,
-    u8          fontOutline,
-    UiTextAlign align,
-    void*       userCtx,
+    UiRect  totalRect,
+    String  text,
+    f32     fontSize,
+    UiColor fontColor,
+    u8      fontOutline,
+    UiLayer fontLayer,
+    UiAlign align,
+    void*   userCtx,
     UiTextBuildCharFunc);

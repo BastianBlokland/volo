@@ -45,23 +45,28 @@ ecs_view_define(WindowUpdateView) {
 }
 
 static void debug_action_bar_next(UiCanvasComp* canvas) {
-  ui_canvas_rect_move(canvas, ui_vector(0, -1), UiOrigin_Current, UiUnits_Current, Ui_Y);
-  ui_canvas_rect_move(
+  ui_canvas_rect_pos(canvas, ui_vector(0, -1), UiOrigin_Current, UiUnits_Current, Ui_Y);
+  ui_canvas_rect_pos(
       canvas, ui_vector(0, -g_debugActionBarSpacing), UiOrigin_Current, UiUnits_Absolute, Ui_Y);
 }
 
 static void debug_action_stats(DebugMenuComp* menu, UiCanvasComp* canvas) {
-  const bool    enabled = (menu->flags & DebugMenuFlags_ShowStats) != 0;
-  const Unicode icon    = enabled ? UiShape_LayersClear : UiShape_Layers;
-  if (ui_button(canvas, .label = ui_shape_scratch(icon))) {
+  const bool enabled = (menu->flags & DebugMenuFlags_ShowStats) != 0;
+  if (ui_button(
+          canvas,
+          .label   = ui_shape_scratch(enabled ? UiShape_LayersClear : UiShape_Layers),
+          .tooltip = enabled ? string_lit("Disable the statistics text")
+                             : string_lit("Enable the statistics text"))) {
     menu->flags ^= DebugMenuFlags_ShowStats;
   }
 }
 
 static void debug_action_fullscreen(DebugMenuComp* menu, UiCanvasComp* canvas, GapWindowComp* win) {
-  const bool    active = gap_window_mode(win) == GapWindowMode_Fullscreen;
-  const Unicode icon   = active ? UiShape_FullscreenExit : UiShape_Fullscreen;
-  if (ui_button(canvas, .label = ui_shape_scratch(icon))) {
+  const bool active = gap_window_mode(win) == GapWindowMode_Fullscreen;
+  if (ui_button(
+          canvas,
+          .label   = ui_shape_scratch(active ? UiShape_FullscreenExit : UiShape_Fullscreen),
+          .tooltip = active ? string_lit("Exit fullscreen") : string_lit("Enter fullscreen"))) {
     if (active) {
       gap_window_resize(win, menu->lastWindowedSize, GapWindowMode_Windowed);
     } else {
@@ -74,14 +79,20 @@ static void debug_action_fullscreen(DebugMenuComp* menu, UiCanvasComp* canvas, G
 static void debug_action_new_window(EcsWorld* world, UiCanvasComp* canvas) {
   static const GapVector newWindowSize = {1024, 768};
 
-  if (ui_button(canvas, .label = ui_shape_scratch(UiShape_OpenInNew))) {
+  if (ui_button(
+          canvas,
+          .label   = ui_shape_scratch(UiShape_OpenInNew),
+          .tooltip = string_lit("Open a new window"))) {
     const EcsEntityId newWindow = gap_window_create(world, GapWindowFlags_Default, newWindowSize);
     debug_menu_create(world, newWindow);
   }
 }
 
 static void debug_action_close(UiCanvasComp* canvas, GapWindowComp* win) {
-  if (ui_button(canvas, .label = ui_shape_scratch(UiShape_Logout))) {
+  if (ui_button(
+          canvas,
+          .label   = ui_shape_scratch(UiShape_Logout),
+          .tooltip = string_lit("Close the window (Escape)"))) {
     gap_window_close(win);
   }
 }
@@ -90,8 +101,8 @@ static void debug_action_bar_draw(
     EcsWorld* world, DebugMenuComp* menu, UiCanvasComp* canvas, GapWindowComp* win) {
 
   const UiVector offset = {g_debugActionBarButtonSize.x + g_debugActionBarSpacing, 0};
-  ui_canvas_rect_move(canvas, offset, UiOrigin_WindowTopRight, UiUnits_Absolute, Ui_XY);
-  ui_canvas_rect_resize(canvas, g_debugActionBarButtonSize, UiUnits_Absolute, Ui_XY);
+  ui_canvas_rect_pos(canvas, offset, UiOrigin_WindowTopRight, UiUnits_Absolute, Ui_XY);
+  ui_canvas_rect_size(canvas, g_debugActionBarButtonSize, UiUnits_Absolute, Ui_XY);
 
   debug_action_bar_next(canvas);
   debug_action_stats(menu, canvas);
@@ -134,8 +145,8 @@ static void
 debug_stats_draw(UiCanvasComp* canvas, const DebugStats* stats, const RendStatsComp* rendStats) {
   const UiVector textAreaSize = {500, 500};
   const UiVector offset       = {10, textAreaSize.y + 10};
-  ui_canvas_rect_move(canvas, offset, UiOrigin_WindowTopLeft, UiUnits_Absolute, Ui_XY);
-  ui_canvas_rect_resize(canvas, textAreaSize, UiUnits_Absolute, Ui_XY);
+  ui_canvas_rect_pos(canvas, offset, UiOrigin_WindowTopLeft, UiUnits_Absolute, Ui_XY);
+  ui_canvas_rect_size(canvas, textAreaSize, UiUnits_Absolute, Ui_XY);
 
   DynString str = dynstring_create(g_alloc_scratch, usize_kibibyte);
 
@@ -162,7 +173,7 @@ debug_stats_draw(UiCanvasComp* canvas, const DebugStats* stats, const RendStatsC
   // clang-format on
 
   ui_canvas_draw_text(
-      canvas, dynstring_view(&str), g_debugStatsFontSize, UiTextAlign_TopLeft, UiFlags_None);
+      canvas, dynstring_view(&str), g_debugStatsFontSize, UiAlign_TopLeft, UiFlags_None);
 }
 
 static void

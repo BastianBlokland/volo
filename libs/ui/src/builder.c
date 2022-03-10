@@ -17,6 +17,7 @@ static const u8      g_ui_defaultOutline = 2;
 typedef struct {
   UiColor color;
   u8      outline;
+  UiLayer layer;
 } UiBuildStyle;
 
 typedef struct {
@@ -129,7 +130,8 @@ static void ui_build_text_char(void* userCtx, const UiTextCharInfo* info) {
           .borderFrac   = (u16)(border / size * u16_max),
           .cornerFrac   = (u16)(0.5f * u16_max),
           .outlineWidth = info->outline,
-      });
+      },
+      info->layer);
 }
 
 static bool ui_build_is_hovered(UiBuildState* state, const UiRect rect) {
@@ -141,26 +143,32 @@ static bool ui_build_is_hovered(UiBuildState* state, const UiRect rect) {
 }
 
 static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
-  const UiRect currentRect = *ui_build_rect_currect(state);
+  const UiRect       currentRect  = *ui_build_rect_currect(state);
+  const UiBuildStyle currentStyle = *ui_build_style_currect(state);
+
   if (cmd->flags & UiFlags_Interactable && ui_build_is_hovered(state, currentRect)) {
     state->hoveredId = cmd->id;
   }
-  state->ctx->outputRect(state->ctx->userCtx, cmd->id, currentRect);
 
-  ui_text_build(
+  const UiTextBuildResult result = ui_text_build(
       state->font,
       currentRect,
       cmd->text,
       cmd->fontSize,
-      ui_build_style_currect(state)->color,
-      ui_build_style_currect(state)->outline,
+      currentStyle.color,
+      currentStyle.outline,
+      currentStyle.layer,
       cmd->align,
       state,
       &ui_build_text_char);
+
+  state->ctx->outputRect(state->ctx->userCtx, cmd->id, result.rect);
 }
 
 static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
-  const UiRect currentRect = *ui_build_rect_currect(state);
+  const UiRect       currentRect  = *ui_build_rect_currect(state);
+  const UiBuildStyle currentStyle = *ui_build_style_currect(state);
+
   if (cmd->flags & UiFlags_Interactable && ui_build_is_hovered(state, currentRect)) {
     state->hoveredId = cmd->id;
   }
@@ -181,12 +189,13 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
       state->ctx->userCtx,
       (UiGlyphData){
           .rect         = rect,
-          .color        = ui_build_style_currect(state)->color,
+          .color        = currentStyle.color,
           .atlasIndex   = ch->glyphIndex,
           .borderFrac   = (u16)(border / rect.size.width * u16_max),
           .cornerFrac   = (u16)((corner + border) / rect.size.width * u16_max),
-          .outlineWidth = ui_build_style_currect(state)->outline,
-      });
+          .outlineWidth = currentStyle.outline,
+      },
+      currentStyle.layer);
 }
 
 static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
@@ -200,24 +209,22 @@ static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
     diag_assert(state->rectStackCount);
     --state->rectStackCount;
     break;
-  case UiCmd_RectMove:
+  case UiCmd_RectPos:
     ui_build_set_pos(
         state,
-        ui_resolve_pos(state, cmd->rectMove.pos, cmd->rectMove.origin, cmd->rectMove.unit),
-        cmd->rectMove.axis);
+        ui_resolve_pos(state, cmd->rectPos.pos, cmd->rectPos.origin, cmd->rectPos.unit),
+        cmd->rectPos.axis);
     break;
-  case UiCmd_RectResize:
+  case UiCmd_RectSize:
     ui_build_set_size(
-        state,
-        ui_resolve_vec(state, cmd->rectResize.size, cmd->rectResize.unit),
-        cmd->rectResize.axis);
+        state, ui_resolve_vec(state, cmd->rectSize.size, cmd->rectSize.unit), cmd->rectSize.axis);
     break;
-  case UiCmd_RectResizeTo:
+  case UiCmd_RectSizeTo:
     ui_build_set_size(
         state,
         ui_resolve_size_to(
-            state, cmd->rectResizeTo.pos, cmd->rectResizeTo.origin, cmd->rectResizeTo.unit),
-        cmd->rectResizeTo.axis);
+            state, cmd->rectSizeTo.pos, cmd->rectSizeTo.origin, cmd->rectSizeTo.unit),
+        cmd->rectSizeTo.axis);
     break;
   case UiCmd_StylePush:
     diag_assert(state->styleStackCount < ui_build_style_stack_max);
@@ -233,6 +240,9 @@ static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
     break;
   case UiCmd_StyleOutline:
     ui_build_style_currect(state)->outline = cmd->styleOutline.value;
+    break;
+  case UiCmd_StyleLayer:
+    ui_build_style_currect(state)->layer = cmd->styleLayer.value;
     break;
   case UiCmd_DrawText:
     ui_build_draw_text(state, &cmd->drawText);
