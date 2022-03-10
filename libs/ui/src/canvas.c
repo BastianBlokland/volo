@@ -118,6 +118,7 @@ static void ui_canvas_render(
 
   // Ensure we have UiElement structures for all elements that are requested to be drawn.
   dynarray_resize(&canvas->elements, canvas->nextId);
+  mem_set(dynarray_at(&canvas->elements, 0, canvas->nextId), 0);
 
   // Clear last frame's overlay glyphs.
   dynarray_clear(&canvas->overlayGlyphs);
