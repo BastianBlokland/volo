@@ -50,6 +50,10 @@ bool ui_button_with_opts(UiCanvasComp* canvas, const UiButtonOpts* opts) {
   ui_canvas_draw_text(canvas, opts->label, opts->fontSize, UiAlign_MiddleCenter, UiFlags_None);
   ui_canvas_style_pop(canvas);
 
+  if (!string_is_empty(opts->tooltip)) {
+    ui_tooltip(canvas, id, opts->tooltip);
+  }
+
   return status == UiStatus_Activated;
 }
 
@@ -149,6 +153,11 @@ bool ui_slider_with_opts(UiCanvasComp* canvas, f32* input, const UiSliderOpts* o
     ui_canvas_id_skip(canvas);
   }
 
+  if (!string_is_empty(opts->tooltip)) {
+    ui_tooltip(canvas, barId, opts->tooltip);
+    ui_tooltip(canvas, handleId, opts->tooltip);
+  }
+
   *input = math_lerp(opts->min, opts->max, normValue);
   return status >= UiStatus_Pressed;
 }
@@ -207,6 +216,10 @@ bool ui_toggle_with_opts(UiCanvasComp* canvas, bool* input, const UiToggleOpts* 
     ui_toggle_check(canvas, status, opts);
   } else {
     ui_canvas_id_skip(canvas);
+  }
+
+  if (!string_is_empty(opts->tooltip)) {
+    ui_tooltip(canvas, id, opts->tooltip);
   }
 
   ui_canvas_rect_pop(canvas);

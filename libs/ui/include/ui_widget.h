@@ -6,6 +6,7 @@ typedef struct {
   String  label;
   u16     fontSize;
   UiColor frameColor;
+  String  tooltip;
 } UiButtonOpts;
 
 typedef struct {
@@ -13,11 +14,13 @@ typedef struct {
   f32     barHeight;
   f32     handleSize;
   UiColor barColor;
+  String  tooltip;
 } UiSliderOpts;
 
 typedef struct {
   f32     size;
   UiColor bgColor;
+  String  tooltip;
 } UiToggleOpts;
 
 typedef struct {
