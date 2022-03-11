@@ -6,6 +6,7 @@
   "fonts": [
     {
       "id": "fonts/hack_bold.ttf",
+      "yOffset": -0.05,
       "characters": "\u0020!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
     },
     {
