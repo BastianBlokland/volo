@@ -22,7 +22,8 @@
   X(0xE4FC, QueryStats)                                                                            \
   X(0xE80E, Whatshot)                                                                              \
   X(0xE312, Keyboard)                                                                              \
-  X(0xE5CD, Close)
+  X(0xE5CD, Close)                                                                                 \
+  X(0xF016, Grid4x4)
 
 enum {
 #define X(_UNICODE_, _NAME_) UiShape_##_NAME_ = _UNICODE_,
