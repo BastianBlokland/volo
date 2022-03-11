@@ -233,7 +233,7 @@ typedef enum {
 
 static UiTooltipDir ui_tooltip_dir(UiCanvasComp* canvas) {
   const f32 halfWindow = ui_canvas_window_size(canvas).x * 0.5f;
-  return ui_canvas_window_cursor(canvas).x > halfWindow ? UiTooltipDir_Left : UiTooltipDir_Right;
+  return ui_canvas_input_pos(canvas).x > halfWindow ? UiTooltipDir_Left : UiTooltipDir_Right;
 }
 
 static void ui_tooltip_background(UiCanvasComp* canvas, const UiRect textRect) {

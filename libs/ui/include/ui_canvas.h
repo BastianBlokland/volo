@@ -96,7 +96,6 @@ UiRect       ui_canvas_elem_rect(const UiCanvasComp*, UiId);
  * Query information about the window.
  */
 UiVector ui_canvas_window_size(const UiCanvasComp*);
-UiVector ui_canvas_window_cursor(const UiCanvasComp*);
 
 /**
  * Query input information.
