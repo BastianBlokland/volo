@@ -21,7 +21,8 @@
   X(0xE338, VideogameAsset)                                                                        \
   X(0xE4FC, QueryStats)                                                                            \
   X(0xE80E, Whatshot)                                                                              \
-  X(0xE312, Keyboard)
+  X(0xE312, Keyboard)                                                                              \
+  X(0xE5CD, Close)
 
 enum {
 #define X(_UNICODE_, _NAME_) UiShape_##_NAME_ = _UNICODE_,
