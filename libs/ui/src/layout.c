@@ -13,6 +13,16 @@ void ui_layout_pop(UiCanvasComp* canvas) {
   ui_cmd_push_rect_pop(cmdBuffer);
 }
 
+void ui_layout_container_push(UiCanvasComp* canvas) {
+  UiCmdBuffer* cmdBuffer = ui_canvas_cmd_buffer(canvas);
+  ui_cmd_push_container_push(cmdBuffer);
+}
+
+void ui_layout_container_pop(UiCanvasComp* canvas) {
+  UiCmdBuffer* cmdBuffer = ui_canvas_cmd_buffer(canvas);
+  ui_cmd_push_container_pop(cmdBuffer);
+}
+
 void ui_layout_move(
     UiCanvasComp* canvas, const UiVector offset, const UiBase units, const UiAxis axis) {
 

@@ -57,13 +57,6 @@ UiVector ui_canvas_input_delta(const UiCanvasComp*);
 UiVector ui_canvas_input_pos(const UiCanvasComp*);
 
 /**
- * Push / Pop an element to / from the container stack.
- * When pushing a new container the current rectangle value will be used.
- */
-void ui_canvas_container_push(UiCanvasComp*);
-void ui_canvas_container_pop(UiCanvasComp*);
-
-/**
  * Draw text in the current rectangle.
  */
 UiId ui_canvas_draw_text(UiCanvasComp*, String text, u16 fontSize, UiAlign, UiFlags);

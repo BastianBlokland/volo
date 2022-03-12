@@ -283,9 +283,6 @@ UiVector ui_canvas_window_size(const UiCanvasComp* comp) { return comp->windowSi
 UiVector ui_canvas_input_delta(const UiCanvasComp* comp) { return comp->inputDelta; }
 UiVector ui_canvas_input_pos(const UiCanvasComp* comp) { return comp->inputPos; }
 
-void ui_canvas_container_push(UiCanvasComp* comp) { ui_cmd_push_container_push(comp->cmdBuffer); }
-void ui_canvas_container_pop(UiCanvasComp* comp) { ui_cmd_push_container_pop(comp->cmdBuffer); }
-
 UiId ui_canvas_draw_text(
     UiCanvasComp* comp,
     const String  text,

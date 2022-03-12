@@ -13,6 +13,13 @@ void ui_layout_push(UiCanvasComp*);
 void ui_layout_pop(UiCanvasComp*);
 
 /**
+ * Push / Pop an element to / from the container stack.
+ * When pushing a new container the current rectangle value will be used.
+ */
+void ui_layout_container_push(UiCanvasComp*);
+void ui_layout_container_pop(UiCanvasComp*);
+
+/**
  * Move the origin of the current rectangle.
  */
 void ui_layout_move(UiCanvasComp*, UiVector, UiBase units, UiAxis);
