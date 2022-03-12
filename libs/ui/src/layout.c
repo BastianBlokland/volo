@@ -1,6 +1,9 @@
 #include "ui_canvas.h"
 #include "ui_layout.h"
 
+void ui_layout_push(UiCanvasComp* canvas) { ui_canvas_rect_push(canvas); }
+void ui_layout_pop(UiCanvasComp* canvas) { ui_canvas_rect_pop(canvas); }
+
 void ui_layout_move(
     UiCanvasComp* canvas, const UiVector offset, const UiBase units, const UiAxis axis) {
   ui_canvas_rect_pos(canvas, UiBase_Current, offset, units, axis);

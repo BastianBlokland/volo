@@ -59,7 +59,7 @@ bool ui_button_with_opts(UiCanvasComp* canvas, const UiButtonOpts* opts) {
 }
 
 static void ui_slider_bar(UiCanvasComp* canvas, const UiStatus status, const UiSliderOpts* opts) {
-  ui_canvas_rect_push(canvas);
+  ui_layout_push(canvas);
   ui_canvas_style_push(canvas);
 
   ui_layout_move_to(canvas, UiBase_Current, UiAlign_MiddleLeft, Ui_Y);
@@ -80,12 +80,12 @@ static void ui_slider_bar(UiCanvasComp* canvas, const UiStatus status, const UiS
   ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_Interactable);
 
   ui_canvas_style_pop(canvas);
-  ui_canvas_rect_pop(canvas);
+  ui_layout_pop(canvas);
 }
 
 static void ui_slider_handle(
     UiCanvasComp* canvas, const UiStatus status, const f32 normValue, const UiSliderOpts* opts) {
-  ui_canvas_rect_push(canvas);
+  ui_layout_push(canvas);
   ui_canvas_style_push(canvas);
 
   const UiVector handleSize = ui_vector(opts->handleSize, opts->handleSize);
@@ -106,11 +106,11 @@ static void ui_slider_handle(
   ui_canvas_draw_glyph(canvas, UiShape_Circle, 0, UiFlags_Interactable);
 
   ui_canvas_style_pop(canvas);
-  ui_canvas_rect_pop(canvas);
+  ui_layout_pop(canvas);
 }
 
 static void ui_slider_label(UiCanvasComp* canvas, const f32 normValue, const UiSliderOpts* opts) {
-  ui_canvas_rect_push(canvas);
+  ui_layout_push(canvas);
   static const UiVector g_maxSize  = {100, 100};
   static const u16      g_fontSize = 15;
 
@@ -122,7 +122,7 @@ static void ui_slider_label(UiCanvasComp* canvas, const f32 normValue, const UiS
   const String label = fmt_write_scratch("{}", fmt_float(value, .maxDecDigits = 2));
   ui_canvas_draw_text(canvas, label, g_fontSize, UiAlign_MiddleCenter, UiFlags_None);
 
-  ui_canvas_rect_pop(canvas);
+  ui_layout_pop(canvas);
 }
 
 bool ui_slider_with_opts(UiCanvasComp* canvas, f32* input, const UiSliderOpts* opts) {
@@ -182,7 +182,7 @@ bool ui_toggle_with_opts(UiCanvasComp* canvas, bool* input, const UiToggleOpts* 
   if (status == UiStatus_Activated) {
     *input ^= true;
   }
-  ui_canvas_rect_push(canvas);
+  ui_layout_push(canvas);
   ui_layout_inner(canvas, UiBase_Current, UiAlign_MiddleLeft, size, UiBase_Absolute);
 
   ui_canvas_style_push(canvas);
@@ -215,7 +215,7 @@ bool ui_toggle_with_opts(UiCanvasComp* canvas, bool* input, const UiToggleOpts* 
     ui_tooltip(canvas, id, opts->tooltip);
   }
 
-  ui_canvas_rect_pop(canvas);
+  ui_layout_pop(canvas);
   return status == UiStatus_Activated;
 }
 
@@ -283,7 +283,7 @@ bool ui_tooltip_with_opts(
   const UiId   textId       = backgroundId + 1;
   const UiRect textRect     = ui_canvas_elem_rect(canvas, textId);
 
-  ui_canvas_rect_push(canvas);
+  ui_layout_push(canvas);
   ui_canvas_style_push(canvas);
 
   ui_canvas_style_layer(canvas, UiLayer_Overlay);
@@ -292,6 +292,6 @@ bool ui_tooltip_with_opts(
   ui_tooltip_text(canvas, dir, align, text, opts);
 
   ui_canvas_style_pop(canvas);
-  ui_canvas_rect_pop(canvas);
+  ui_layout_pop(canvas);
   return true;
 }
