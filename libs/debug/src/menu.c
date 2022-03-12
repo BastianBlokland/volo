@@ -6,12 +6,12 @@
 #include "scene_time.h"
 #include "ui.h"
 
-static const UiVector g_debugActionBarButtonSize = {50, 50};
-static const f32      g_debugActionBarSpacing    = 10;
-static const f32      g_debugStatsSmoothFactor   = 0.1f;
-static const u16      g_debugStatsFontSize       = 18;
-static const UiColor  g_debugWarnColor           = {255, 255, 0, 255};
-static const UiColor  g_debugErrorColor          = {255, 0, 0, 255};
+static const UiVector g_debugBarButtonSize     = {50, 50};
+static const f32      g_debugBarSpacing        = 10;
+static const f32      g_debugStatsSmoothFactor = 0.1f;
+static const u16      g_debugStatsFontSize     = 18;
+static const UiColor  g_debugWarnColor         = {255, 255, 0, 255};
+static const UiColor  g_debugErrorColor        = {255, 0, 0, 255};
 
 typedef enum {
   DebugMenuFlags_ShowStats = 1 << 0,
@@ -94,19 +94,18 @@ static void debug_action_close(UiCanvasComp* canvas, GapWindowComp* win) {
 static void debug_action_bar_draw(
     EcsWorld* world, DebugMenuComp* menu, UiCanvasComp* canvas, GapWindowComp* win) {
 
-  ui_layout_move_to(canvas, UiBase_Window, UiAlign_TopRight, Ui_XY);
-  ui_layout_resize(canvas, UiAlign_TopRight, g_debugActionBarButtonSize, UiBase_Absolute, Ui_XY);
-  ui_layout_move_dir(canvas, Ui_Left, g_debugActionBarSpacing, UiBase_Absolute);
-  ui_layout_move_dir(canvas, Ui_Down, g_debugActionBarSpacing, UiBase_Absolute);
+  ui_layout_inner(canvas, UiBase_Window, UiAlign_TopRight, g_debugBarButtonSize, UiBase_Absolute);
+  ui_layout_move_dir(canvas, Ui_Left, g_debugBarSpacing, UiBase_Absolute);
+  ui_layout_move_dir(canvas, Ui_Down, g_debugBarSpacing, UiBase_Absolute);
 
   debug_action_stats(menu, canvas);
-  ui_layout_next(canvas, Ui_Down, g_debugActionBarSpacing);
+  ui_layout_next(canvas, Ui_Down, g_debugBarSpacing);
 
   debug_action_fullscreen(menu, canvas, win);
-  ui_layout_next(canvas, Ui_Down, g_debugActionBarSpacing);
+  ui_layout_next(canvas, Ui_Down, g_debugBarSpacing);
 
   debug_action_new_window(world, canvas);
-  ui_layout_next(canvas, Ui_Down, g_debugActionBarSpacing);
+  ui_layout_next(canvas, Ui_Down, g_debugBarSpacing);
 
   debug_action_close(canvas, win);
 }

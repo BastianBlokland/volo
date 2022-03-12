@@ -19,6 +19,7 @@ void ui_layout_next(UiCanvasComp*, UiDir, f32 spacing);
 void ui_layout_resize(UiCanvasComp*, UiAlign origin, UiVector size, UiBase units, UiAxis);
 
 /**
- * Set a specific rectangle in absolute pixels.
+ * Set a specific rectangle.
  */
-void ui_layout_set_rect(UiCanvasComp*, UiRect);
+void ui_layout_set(UiCanvasComp*, UiRect);
+void ui_layout_inner(UiCanvasComp*, UiBase parent, UiAlign, UiVector size, UiBase units);

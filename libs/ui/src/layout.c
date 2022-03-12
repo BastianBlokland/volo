@@ -99,7 +99,17 @@ void ui_layout_resize(
   }
 }
 
-void ui_layout_set_rect(UiCanvasComp* canvas, const UiRect rect) {
+void ui_layout_set(UiCanvasComp* canvas, const UiRect rect) {
   ui_canvas_rect_pos(canvas, UiBase_Absolute, rect.pos, UiBase_Absolute, Ui_XY);
   ui_canvas_rect_size(canvas, rect.size, UiBase_Absolute, Ui_XY);
+}
+
+void ui_layout_inner(
+    UiCanvasComp*  canvas,
+    const UiBase   parent,
+    const UiAlign  align,
+    const UiVector size,
+    const UiBase   units) {
+  ui_layout_move_to(canvas, parent, align, Ui_XY);
+  ui_layout_resize(canvas, align, size, units, Ui_XY);
 }
