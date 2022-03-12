@@ -6,14 +6,6 @@
 #include "ui_style.h"
 #include "ui_widget.h"
 
-static UiColor ui_color_mult(const UiColor color, const f32 mult) {
-  return ui_color(
-      (u8)math_min(color.r * mult, u8_max),
-      (u8)math_min(color.g * mult, u8_max),
-      (u8)math_min(color.b * mult, u8_max),
-      color.a);
-}
-
 bool ui_button_with_opts(UiCanvasComp* canvas, const UiButtonOpts* opts) {
   const UiId     id     = ui_canvas_id_peek(canvas);
   const UiStatus status = ui_canvas_elem_status(canvas, id);
@@ -21,12 +13,12 @@ bool ui_button_with_opts(UiCanvasComp* canvas, const UiButtonOpts* opts) {
   ui_style_push(canvas);
   switch (status) {
   case UiStatus_Hovered:
-    ui_style_color(canvas, ui_color_mult(opts->frameColor, 2));
+    ui_style_color_with_mult(canvas, opts->frameColor, 2);
     ui_style_outline(canvas, 5);
     break;
   case UiStatus_Pressed:
   case UiStatus_Activated:
-    ui_style_color(canvas, ui_color_mult(opts->frameColor, 3));
+    ui_style_color_with_mult(canvas, opts->frameColor, 3);
     ui_style_outline(canvas, 3);
     break;
   case UiStatus_Idle:
@@ -72,7 +64,7 @@ static void ui_slider_bar(UiCanvasComp* canvas, const UiStatus status, const UiS
   case UiStatus_Hovered:
   case UiStatus_Pressed:
   case UiStatus_Activated:
-    ui_style_color(canvas, ui_color_mult(opts->barColor, 2));
+    ui_style_color_with_mult(canvas, opts->barColor, 2);
     break;
   case UiStatus_Idle:
     ui_style_color(canvas, opts->barColor);
@@ -189,12 +181,12 @@ bool ui_toggle_with_opts(UiCanvasComp* canvas, bool* input, const UiToggleOpts* 
   ui_style_push(canvas);
   switch (status) {
   case UiStatus_Hovered:
-    ui_style_color(canvas, ui_color_mult(opts->bgColor, 2));
+    ui_style_color_with_mult(canvas, opts->bgColor, 2);
     ui_style_outline(canvas, 3);
     break;
   case UiStatus_Pressed:
   case UiStatus_Activated:
-    ui_style_color(canvas, ui_color_mult(opts->bgColor, 3));
+    ui_style_color_with_mult(canvas, opts->bgColor, 3);
     ui_style_outline(canvas, 2);
     break;
   case UiStatus_Idle:

@@ -16,5 +16,6 @@ void ui_style_pop(UiCanvasComp*);
  * Update the current style.
  */
 void ui_style_color(UiCanvasComp*, UiColor);
+void ui_style_color_with_mult(UiCanvasComp*, UiColor, f32 mult);
 void ui_style_outline(UiCanvasComp*, u8 outline);
 void ui_style_layer(UiCanvasComp*, UiLayer);
