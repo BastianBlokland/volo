@@ -62,7 +62,7 @@ static void ui_slider_bar(UiCanvasComp* canvas, const UiStatus status, const UiS
   ui_canvas_style_push(canvas);
 
   ui_layout_to_center(canvas, Ui_Y);
-  ui_canvas_rect_size(canvas, ui_vector(0, opts->barHeight), UiUnits_Absolute, Ui_Y);
+  ui_canvas_rect_size(canvas, ui_vector(0, opts->barHeight), UiBase_Absolute, Ui_Y);
   ui_layout_from_center(canvas, Ui_Y);
 
   ui_canvas_style_outline(canvas, 2);
@@ -88,8 +88,8 @@ static void ui_slider_handle(
   ui_canvas_style_push(canvas);
 
   const UiVector handleSize = ui_vector(opts->handleSize, opts->handleSize);
-  ui_canvas_rect_pos(canvas, ui_vector(normValue, 0.5f), UiOrigin_Current, UiUnits_Current, Ui_XY);
-  ui_canvas_rect_size(canvas, handleSize, UiUnits_Absolute, Ui_XY);
+  ui_canvas_rect_pos(canvas, UiBase_Current, ui_vector(normValue, 0.5f), UiBase_Current, Ui_XY);
+  ui_canvas_rect_size(canvas, handleSize, UiBase_Absolute, Ui_XY);
   ui_layout_from_center(canvas, Ui_XY);
 
   switch (status) {
@@ -115,10 +115,10 @@ static void ui_slider_label(UiCanvasComp* canvas, const f32 normValue, const UiS
   static const u16      g_fontSize       = 15;
   const UiVector        offsetFromHandle = ui_vector(0, opts->handleSize + 1);
 
-  ui_canvas_rect_pos(canvas, ui_vector(normValue, 0.5f), UiOrigin_Current, UiUnits_Current, Ui_XY);
-  ui_canvas_rect_size(canvas, g_maxSize, UiUnits_Absolute, Ui_XY);
+  ui_canvas_rect_pos(canvas, UiBase_Current, ui_vector(normValue, 0.5f), UiBase_Current, Ui_XY);
+  ui_canvas_rect_size(canvas, g_maxSize, UiBase_Absolute, Ui_XY);
   ui_layout_from_center(canvas, Ui_XY);
-  ui_canvas_rect_pos(canvas, offsetFromHandle, UiOrigin_Current, UiUnits_Absolute, Ui_Y);
+  ui_canvas_rect_pos(canvas, UiBase_Current, offsetFromHandle, UiBase_Absolute, Ui_Y);
 
   const f32    value = math_lerp(opts->min, opts->max, normValue);
   const String label = fmt_write_scratch("{}", fmt_float(value, .maxDecDigits = 2));
@@ -169,9 +169,9 @@ static void ui_toggle_check(UiCanvasComp* canvas, const UiStatus status, const U
   const f32 checkSize = opts->size * 1.4f;
 
   ui_layout_to_center(canvas, Ui_XY);
-  ui_canvas_rect_size(canvas, ui_vector(checkSize, checkSize), UiUnits_Absolute, Ui_XY);
+  ui_canvas_rect_size(canvas, ui_vector(checkSize, checkSize), UiBase_Absolute, Ui_XY);
   ui_layout_from_center(canvas, Ui_XY);
-  ui_canvas_rect_pos(canvas, ui_vector(0.1f, 0.1f), UiOrigin_Current, UiUnits_Current, Ui_XY);
+  ui_canvas_rect_pos(canvas, UiBase_Current, ui_vector(0.1f, 0.1f), UiBase_Current, Ui_XY);
 
   ui_canvas_style_outline(canvas, status == UiStatus_Hovered ? 4 : 3);
   ui_canvas_draw_glyph(canvas, UiShape_Check, 0, UiFlags_None);
@@ -190,7 +190,7 @@ bool ui_toggle_with_opts(UiCanvasComp* canvas, bool* input, const UiToggleOpts* 
   ui_canvas_rect_push(canvas);
 
   ui_layout_to_center(canvas, Ui_Y);
-  ui_canvas_rect_size(canvas, ui_vector(opts->size, opts->size), UiUnits_Absolute, Ui_XY);
+  ui_canvas_rect_size(canvas, ui_vector(opts->size, opts->size), UiBase_Absolute, Ui_XY);
   ui_layout_from_center(canvas, Ui_Y);
 
   ui_canvas_style_push(canvas);
@@ -255,8 +255,8 @@ static void ui_tooltip_background(UiCanvasComp* canvas, const UiRect textRect) {
     offset = ui_vector(-g_offset.x - g_padding.x, -textRect.height - g_padding.y + g_offset.y);
     break;
   }
-  ui_canvas_rect_pos(canvas, offset, UiOrigin_Cursor, UiUnits_Absolute, Ui_XY);
-  ui_canvas_rect_size(canvas, size, UiUnits_Absolute, Ui_XY);
+  ui_canvas_rect_pos(canvas, UiBase_Cursor, offset, UiBase_Absolute, Ui_XY);
+  ui_canvas_rect_size(canvas, size, UiBase_Absolute, Ui_XY);
 
   ui_canvas_style_color(canvas, ui_color_white);
   ui_canvas_style_outline(canvas, 4);
@@ -287,8 +287,8 @@ static void ui_tooltip_text(UiCanvasComp* canvas, const String text, const UiToo
     break;
   }
 
-  ui_canvas_rect_pos(canvas, offset, UiOrigin_Cursor, UiUnits_Absolute, Ui_XY);
-  ui_canvas_rect_size(canvas, opts->maxSize, UiUnits_Absolute, Ui_XY);
+  ui_canvas_rect_pos(canvas, UiBase_Cursor, offset, UiBase_Absolute, Ui_XY);
+  ui_canvas_rect_size(canvas, opts->maxSize, UiBase_Absolute, Ui_XY);
 
   ui_canvas_style_color(canvas, ui_color_black);
   ui_canvas_style_outline(canvas, 0);

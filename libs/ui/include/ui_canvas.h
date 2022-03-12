@@ -14,28 +14,16 @@
 typedef u64 UiId;
 
 /**
- * Ui coordinate origin.
- */
-typedef enum {
-  UiOrigin_Current,   // Current rectangle's position.
-  UiOrigin_Container, // Current container's position.
-  UiOrigin_Cursor,
-  UiOrigin_WindowBottomLeft,
-  UiOrigin_WindowBottomRight,
-  UiOrigin_WindowTopLeft,
-  UiOrigin_WindowTopRight,
-} UiOrigin;
-
-/**
- * Ui coordinate scale.
+ * Ui coordinate base.
  * For example 0.5 Window units means the middle of the window.
  */
 typedef enum {
-  UiUnits_Current,   // Fraction of current rectangle size.
-  UiUnits_Container, // Fraction of the current container's size.
-  UiUnits_Absolute,
-  UiUnits_Window,
-} UiUnits;
+  UiBase_Absolute,
+  UiBase_Current,
+  UiBase_Container,
+  UiBase_Window,
+  UiBase_Cursor,
+} UiBase;
 
 /**
  * Alignment relative to the active rectangle.
@@ -115,9 +103,9 @@ void ui_canvas_rect_pop(UiCanvasComp*);
 /**
  * Update the current rect.
  */
-void ui_canvas_rect_pos(UiCanvasComp*, UiVector, UiOrigin, UiUnits, UiAxis);
-void ui_canvas_rect_size(UiCanvasComp*, UiVector, UiUnits, UiAxis);
-void ui_canvas_rect_size_to(UiCanvasComp*, UiVector, UiOrigin, UiUnits, UiAxis);
+void ui_canvas_rect_pos(UiCanvasComp*, UiBase origin, UiVector offset, UiBase units, UiAxis);
+void ui_canvas_rect_size(UiCanvasComp*, UiVector size, UiBase units, UiAxis);
+void ui_canvas_rect_size_to(UiCanvasComp*, UiBase origin, UiVector offset, UiBase units, UiAxis);
 
 /**
  * Push / Pop an element to / from the container stack.

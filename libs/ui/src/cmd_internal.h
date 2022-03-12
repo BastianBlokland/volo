@@ -21,22 +21,22 @@ typedef enum {
 } UiCmdType;
 
 typedef struct {
-  UiVector pos;
-  UiOrigin origin;
-  UiUnits  unit;
+  UiBase   origin;
+  UiVector offset;
+  UiBase   units;
   UiAxis   axis;
 } UiRectPos;
 
 typedef struct {
   UiVector size;
-  UiUnits  unit;
+  UiBase   units;
   UiAxis   axis;
 } UiRectSize;
 
 typedef struct {
-  UiVector pos;
-  UiOrigin origin;
-  UiUnits  unit;
+  UiBase   origin;
+  UiVector offset;
+  UiBase   units;
   UiAxis   axis;
 } UiRectSizeTo;
 
@@ -89,9 +89,9 @@ void         ui_cmdbuffer_clear(UiCmdBuffer*);
 
 void ui_cmd_push_rect_push(UiCmdBuffer*);
 void ui_cmd_push_rect_pop(UiCmdBuffer*);
-void ui_cmd_push_rect_pos(UiCmdBuffer*, UiVector pos, UiOrigin, UiUnits, UiAxis);
-void ui_cmd_push_rect_size(UiCmdBuffer*, UiVector size, UiUnits, UiAxis);
-void ui_cmd_push_rect_size_to(UiCmdBuffer*, UiVector pos, UiOrigin, UiUnits, UiAxis);
+void ui_cmd_push_rect_pos(UiCmdBuffer*, UiBase origin, UiVector offset, UiBase units, UiAxis);
+void ui_cmd_push_rect_size(UiCmdBuffer*, UiVector size, UiBase units, UiAxis);
+void ui_cmd_push_rect_size_to(UiCmdBuffer*, UiBase origin, UiVector offset, UiBase units, UiAxis);
 void ui_cmd_push_container_push(UiCmdBuffer*);
 void ui_cmd_push_container_pop(UiCmdBuffer*);
 void ui_cmd_push_style_push(UiCmdBuffer*);

@@ -288,26 +288,26 @@ void ui_canvas_rect_pop(UiCanvasComp* comp) { ui_cmd_push_rect_pop(comp->cmdBuff
 
 void ui_canvas_rect_pos(
     UiCanvasComp*  comp,
-    const UiVector pos,
-    const UiOrigin origin,
-    const UiUnits  unit,
+    const UiBase   origin,
+    const UiVector offset,
+    const UiBase   units,
     const UiAxis   axis) {
-  ui_cmd_push_rect_pos(comp->cmdBuffer, pos, origin, unit, axis);
+  ui_cmd_push_rect_pos(comp->cmdBuffer, origin, offset, units, axis);
 }
 
 void ui_canvas_rect_size(
-    UiCanvasComp* comp, const UiVector size, const UiUnits unit, const UiAxis axis) {
+    UiCanvasComp* comp, const UiVector size, const UiBase units, const UiAxis axis) {
   diag_assert_msg(size.x >= 0.0f && size.y >= 0.0f, "Negative sizes are not supported");
-  ui_cmd_push_rect_size(comp->cmdBuffer, size, unit, axis);
+  ui_cmd_push_rect_size(comp->cmdBuffer, size, units, axis);
 }
 
 void ui_canvas_rect_size_to(
     UiCanvasComp*  comp,
-    const UiVector pos,
-    const UiOrigin origin,
-    const UiUnits  unit,
+    const UiBase   origin,
+    const UiVector offset,
+    const UiBase   units,
     const UiAxis   axis) {
-  ui_cmd_push_rect_size_to(comp->cmdBuffer, pos, origin, unit, axis);
+  ui_cmd_push_rect_size_to(comp->cmdBuffer, origin, offset, units, axis);
 }
 
 void ui_canvas_container_push(UiCanvasComp* comp) { ui_cmd_push_container_push(comp->cmdBuffer); }

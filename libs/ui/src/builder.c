@@ -56,58 +56,61 @@ static UiDrawData ui_build_drawdata(const UiBuildState* state) {
   };
 }
 
-static UiVector ui_resolve_vec(UiBuildState* state, const UiVector vec, const UiUnits units) {
-  const GapVector winSize = gap_window_param(state->window, GapParam_WindowSize);
+static UiVector ui_resolve_vec(UiBuildState* state, const UiVector vec, const UiBase units) {
   switch (units) {
-  case UiUnits_Current: {
+  case UiBase_Absolute:
+    return vec;
+  case UiBase_Current: {
     const UiRect currentRect = *ui_build_rect_currect(state);
     return ui_vector(vec.x * currentRect.width, vec.y * currentRect.height);
   }
-  case UiUnits_Container: {
+  case UiBase_Container: {
     const UiRect currentContainer = *ui_build_container_currect(state);
     return ui_vector(vec.x * currentContainer.width, vec.y * currentContainer.height);
   }
-  case UiUnits_Absolute:
-    return vec;
-  case UiUnits_Window:
+  case UiBase_Window: {
+    const GapVector winSize = gap_window_param(state->window, GapParam_WindowSize);
     return ui_vector(vec.x * winSize.width, vec.y * winSize.height);
+  }
+  case UiBase_Cursor:
+    return ui_vector(0, 0);
+  }
+  diag_crash();
+}
+
+static UiVector ui_resolve_origin(UiBuildState* state, const UiBase origin) {
+  switch (origin) {
+  case UiBase_Absolute:
+    return ui_vector(0, 0);
+  case UiBase_Current: {
+    const UiRect currentRect = *ui_build_rect_currect(state);
+    return ui_vector(currentRect.x, currentRect.y);
+  }
+  case UiBase_Container: {
+    const UiRect currentContainer = *ui_build_container_currect(state);
+    return ui_vector(currentContainer.x, currentContainer.y);
+  }
+  case UiBase_Window:
+    return ui_vector(0, 0);
+  case UiBase_Cursor: {
+    const GapVector cursorPos = gap_window_param(state->window, GapParam_CursorPos);
+    return ui_vector(cursorPos.x, cursorPos.y);
+  }
   }
   diag_crash();
 }
 
 static UiVector ui_resolve_pos(
-    UiBuildState* state, const UiVector pos, const UiOrigin origin, const UiUnits units) {
-  const GapVector winSize = gap_window_param(state->window, GapParam_WindowSize);
-  const UiVector  vec     = ui_resolve_vec(state, pos, units);
-  switch (origin) {
-  case UiOrigin_Current: {
-    const UiRect currentRect = *ui_build_rect_currect(state);
-    return ui_vector(currentRect.x + vec.x, currentRect.y + vec.y);
-  }
-  case UiOrigin_Container: {
-    const UiRect containerRect = *ui_build_container_currect(state);
-    return ui_vector(containerRect.x + vec.x, containerRect.y + vec.y);
-  }
-  case UiOrigin_Cursor: {
-    const GapVector cursorPos = gap_window_param(state->window, GapParam_CursorPos);
-    return ui_vector(cursorPos.x + vec.x, cursorPos.y + vec.y);
-  }
-  case UiOrigin_WindowBottomLeft:
-    return vec;
-  case UiOrigin_WindowBottomRight:
-    return ui_vector(winSize.width - vec.x, vec.y);
-  case UiOrigin_WindowTopLeft:
-    return ui_vector(vec.x, winSize.height - vec.y);
-  case UiOrigin_WindowTopRight:
-    return ui_vector(winSize.width - vec.x, winSize.height - vec.y);
-  }
-  diag_crash();
+    UiBuildState* state, const UiBase origin, const UiVector offset, const UiBase units) {
+  const UiVector originVec = ui_resolve_origin(state, origin);
+  const UiVector offsetVec = ui_resolve_vec(state, offset, units);
+  return ui_vector(originVec.x + offsetVec.x, originVec.y + offsetVec.y);
 }
 
 static UiVector ui_resolve_size_to(
-    UiBuildState* state, const UiVector pos, const UiOrigin origin, const UiUnits unit) {
+    UiBuildState* state, const UiBase origin, const UiVector offset, const UiBase units) {
   const UiRect   currentRect = *ui_build_rect_currect(state);
-  const UiVector toPos       = ui_resolve_pos(state, pos, origin, unit);
+  const UiVector toPos       = ui_resolve_pos(state, origin, offset, units);
   return ui_vector(math_max(toPos.x - currentRect.x, 0), math_max(toPos.y - currentRect.y, 0));
 }
 
@@ -231,18 +234,18 @@ static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
   case UiCmd_RectPos:
     ui_build_set_pos(
         state,
-        ui_resolve_pos(state, cmd->rectPos.pos, cmd->rectPos.origin, cmd->rectPos.unit),
+        ui_resolve_pos(state, cmd->rectPos.origin, cmd->rectPos.offset, cmd->rectPos.units),
         cmd->rectPos.axis);
     break;
   case UiCmd_RectSize:
     ui_build_set_size(
-        state, ui_resolve_vec(state, cmd->rectSize.size, cmd->rectSize.unit), cmd->rectSize.axis);
+        state, ui_resolve_vec(state, cmd->rectSize.size, cmd->rectSize.units), cmd->rectSize.axis);
     break;
   case UiCmd_RectSizeTo:
     ui_build_set_size(
         state,
         ui_resolve_size_to(
-            state, cmd->rectSizeTo.pos, cmd->rectSizeTo.origin, cmd->rectSizeTo.unit),
+            state, cmd->rectSizeTo.origin, cmd->rectSizeTo.offset, cmd->rectSizeTo.units),
         cmd->rectSizeTo.axis);
     break;
   case UiCmd_ContainerPush:
