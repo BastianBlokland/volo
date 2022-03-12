@@ -17,7 +17,8 @@ typedef u64 UiId;
  * Ui coordinate origin.
  */
 typedef enum {
-  UiOrigin_Current, // Currently active position.
+  UiOrigin_Current,   // Current rectangle's position.
+  UiOrigin_Container, // Current container's position.
   UiOrigin_Cursor,
   UiOrigin_WindowBottomLeft,
   UiOrigin_WindowBottomRight,
@@ -30,7 +31,8 @@ typedef enum {
  * For example 0.5 Window units means the middle of the window.
  */
 typedef enum {
-  UiUnits_Current, // Fraction of currently active size.
+  UiUnits_Current,   // Fraction of current rectangle size.
+  UiUnits_Container, // Fraction of the current container's size.
   UiUnits_Absolute,
   UiUnits_Window,
 } UiUnits;
@@ -116,6 +118,13 @@ void ui_canvas_rect_pop(UiCanvasComp*);
 void ui_canvas_rect_pos(UiCanvasComp*, UiVector, UiOrigin, UiUnits, UiAxis);
 void ui_canvas_rect_size(UiCanvasComp*, UiVector, UiUnits, UiAxis);
 void ui_canvas_rect_size_to(UiCanvasComp*, UiVector, UiOrigin, UiUnits, UiAxis);
+
+/**
+ * Push / Pop an element to / from the container stack.
+ * When pushing a new container the current rectangle value will be used.
+ */
+void ui_canvas_container_push(UiCanvasComp*);
+void ui_canvas_container_pop(UiCanvasComp*);
 
 /**
  * Push / Pop an element to / from the style stack.

@@ -9,6 +9,7 @@
 
 #define ui_build_rect_stack_max 10
 #define ui_build_style_stack_max 10
+#define ui_build_container_stack_max 10
 
 static const UiRect  g_ui_defaultRect    = {0, 0, 100, 100};
 static const UiColor g_ui_defaultColor   = {255, 255, 255, 255};
@@ -28,6 +29,8 @@ typedef struct {
   u32                  rectStackCount;
   UiBuildStyle         styleStack[ui_build_style_stack_max];
   u32                  styleStackCount;
+  UiRect               containerStack[ui_build_container_stack_max];
+  u32                  containerStackCount;
   UiId                 hoveredId;
 } UiBuildState;
 
@@ -41,6 +44,11 @@ static UiBuildStyle* ui_build_style_currect(UiBuildState* state) {
   return &state->styleStack[state->styleStackCount - 1];
 }
 
+static UiRect* ui_build_container_currect(UiBuildState* state) {
+  diag_assert(state->containerStackCount);
+  return &state->containerStack[state->containerStackCount - 1];
+}
+
 static UiDrawData ui_build_drawdata(const UiBuildState* state) {
   return (UiDrawData){
       .glyphsPerDim    = state->font->glyphsPerDim,
@@ -49,11 +57,16 @@ static UiDrawData ui_build_drawdata(const UiBuildState* state) {
 }
 
 static UiVector ui_resolve_vec(UiBuildState* state, const UiVector vec, const UiUnits units) {
-  const GapVector winSize     = gap_window_param(state->window, GapParam_WindowSize);
-  const UiRect    currentRect = *ui_build_rect_currect(state);
+  const GapVector winSize = gap_window_param(state->window, GapParam_WindowSize);
   switch (units) {
-  case UiUnits_Current:
+  case UiUnits_Current: {
+    const UiRect currentRect = *ui_build_rect_currect(state);
     return ui_vector(vec.x * currentRect.width, vec.y * currentRect.height);
+  }
+  case UiUnits_Container: {
+    const UiRect currentContainer = *ui_build_container_currect(state);
+    return ui_vector(vec.x * currentContainer.width, vec.y * currentContainer.height);
+  }
   case UiUnits_Absolute:
     return vec;
   case UiUnits_Window:
@@ -64,15 +77,21 @@ static UiVector ui_resolve_vec(UiBuildState* state, const UiVector vec, const Ui
 
 static UiVector ui_resolve_pos(
     UiBuildState* state, const UiVector pos, const UiOrigin origin, const UiUnits units) {
-  const UiRect    currentRect = *ui_build_rect_currect(state);
-  const GapVector winSize     = gap_window_param(state->window, GapParam_WindowSize);
-  const GapVector cursorPos   = gap_window_param(state->window, GapParam_CursorPos);
-  const UiVector  vec         = ui_resolve_vec(state, pos, units);
+  const GapVector winSize = gap_window_param(state->window, GapParam_WindowSize);
+  const UiVector  vec     = ui_resolve_vec(state, pos, units);
   switch (origin) {
-  case UiOrigin_Current:
+  case UiOrigin_Current: {
+    const UiRect currentRect = *ui_build_rect_currect(state);
     return ui_vector(currentRect.x + vec.x, currentRect.y + vec.y);
-  case UiOrigin_Cursor:
+  }
+  case UiOrigin_Container: {
+    const UiRect containerRect = *ui_build_container_currect(state);
+    return ui_vector(containerRect.x + vec.x, containerRect.y + vec.y);
+  }
+  case UiOrigin_Cursor: {
+    const GapVector cursorPos = gap_window_param(state->window, GapParam_CursorPos);
     return ui_vector(cursorPos.x + vec.x, cursorPos.y + vec.y);
+  }
   case UiOrigin_WindowBottomLeft:
     return vec;
   case UiOrigin_WindowBottomRight:
@@ -206,7 +225,7 @@ static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
     ++state->rectStackCount;
     break;
   case UiCmd_RectPop:
-    diag_assert(state->rectStackCount);
+    diag_assert(state->rectStackCount > 1);
     --state->rectStackCount;
     break;
   case UiCmd_RectPos:
@@ -226,13 +245,22 @@ static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
             state, cmd->rectSizeTo.pos, cmd->rectSizeTo.origin, cmd->rectSizeTo.unit),
         cmd->rectSizeTo.axis);
     break;
+  case UiCmd_ContainerPush:
+    diag_assert(state->containerStackCount < ui_build_container_stack_max);
+    state->containerStack[state->containerStackCount] = *ui_build_rect_currect(state);
+    ++state->containerStackCount;
+    break;
+  case UiCmd_ContainerPop:
+    diag_assert(state->containerStackCount > 1);
+    --state->containerStackCount;
+    break;
   case UiCmd_StylePush:
     diag_assert(state->styleStackCount < ui_build_style_stack_max);
     state->styleStack[state->styleStackCount] = state->styleStack[state->styleStackCount - 1];
     ++state->styleStackCount;
     break;
   case UiCmd_StylePop:
-    diag_assert(state->styleStackCount);
+    diag_assert(state->styleStackCount > 1);
     --state->styleStackCount;
     break;
   case UiCmd_StyleColor:
@@ -254,15 +282,18 @@ static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
 }
 
 UiBuildResult ui_build(const UiCmdBuffer* cmdBuffer, const UiBuildCtx* ctx) {
-  UiBuildState state = {
-      .ctx             = ctx,
-      .window          = ctx->window,
-      .font            = ctx->font,
-      .rectStack[0]    = g_ui_defaultRect,
-      .rectStackCount  = 1,
-      .styleStack[0]   = {g_ui_defaultColor, g_ui_defaultOutline},
-      .styleStackCount = 1,
-      .hoveredId       = sentinel_u64,
+  const GapVector winSize = gap_window_param(ctx->window, GapParam_WindowSize);
+  UiBuildState    state   = {
+      .ctx                 = ctx,
+      .window              = ctx->window,
+      .font                = ctx->font,
+      .rectStack[0]        = g_ui_defaultRect,
+      .rectStackCount      = 1,
+      .styleStack[0]       = {g_ui_defaultColor, g_ui_defaultOutline},
+      .styleStackCount     = 1,
+      .containerStack[0]   = {.size = {winSize.width, winSize.height}},
+      .containerStackCount = 1,
+      .hoveredId           = sentinel_u64,
   };
   ctx->outputDraw(ctx->userCtx, ui_build_drawdata(&state));
 

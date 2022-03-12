@@ -9,6 +9,8 @@ typedef enum {
   UiCmd_RectPos,
   UiCmd_RectSize,
   UiCmd_RectSizeTo,
+  UiCmd_ContainerPush,
+  UiCmd_ContainerPop,
   UiCmd_StylePush,
   UiCmd_StylePop,
   UiCmd_StyleColor,
@@ -90,6 +92,8 @@ void ui_cmd_push_rect_pop(UiCmdBuffer*);
 void ui_cmd_push_rect_pos(UiCmdBuffer*, UiVector pos, UiOrigin, UiUnits, UiAxis);
 void ui_cmd_push_rect_size(UiCmdBuffer*, UiVector size, UiUnits, UiAxis);
 void ui_cmd_push_rect_size_to(UiCmdBuffer*, UiVector pos, UiOrigin, UiUnits, UiAxis);
+void ui_cmd_push_container_push(UiCmdBuffer*);
+void ui_cmd_push_container_pop(UiCmdBuffer*);
 void ui_cmd_push_style_push(UiCmdBuffer*);
 void ui_cmd_push_style_pop(UiCmdBuffer*);
 void ui_cmd_push_style_color(UiCmdBuffer*, UiColor);
