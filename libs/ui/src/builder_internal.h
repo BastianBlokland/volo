@@ -1,7 +1,6 @@
 #pragma once
 #include "asset_ftx.h"
 #include "ui_canvas.h"
-#include "ui_rect.h"
 
 // Internal forward declarations:
 typedef struct sGapWindowComp GapWindowComp;

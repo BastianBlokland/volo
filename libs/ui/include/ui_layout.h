@@ -1,5 +1,9 @@
 #pragma once
-#include "ui_canvas.h"
+#include "ecs_module.h"
+#include "ui_rect.h"
+#include "ui_units.h"
+
+ecs_comp_extern(UiCanvasComp);
 
 /**
  * Move the origin of the current rectangle.

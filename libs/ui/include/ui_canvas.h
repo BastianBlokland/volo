@@ -5,6 +5,7 @@
 #include "ecs_module.h"
 #include "ui_color.h"
 #include "ui_rect.h"
+#include "ui_units.h"
 
 /**
  * Identifier for an ui-element.
@@ -12,33 +13,6 @@
  * identifier in different frames.
  */
 typedef u64 UiId;
-
-/**
- * Ui coordinate base.
- * For example 0.5 Window units means the middle of the window.
- */
-typedef enum {
-  UiBase_Absolute,
-  UiBase_Current,
-  UiBase_Container,
-  UiBase_Window,
-  UiBase_Cursor,
-} UiBase;
-
-/**
- * Alignment relative to the active rectangle.
- */
-typedef enum {
-  UiAlign_TopLeft,
-  UiAlign_TopCenter,
-  UiAlign_TopRight,
-  UiAlign_MiddleLeft,
-  UiAlign_MiddleCenter,
-  UiAlign_MiddleRight,
-  UiAlign_BottomLeft,
-  UiAlign_BottomCenter,
-  UiAlign_BottomRight,
-} UiAlign;
 
 typedef enum {
   UiStatus_Idle,
@@ -51,12 +25,6 @@ typedef enum {
   UiLayer_Normal,
   UiLayer_Overlay,
 } UiLayer;
-
-typedef enum {
-  Ui_X  = 1 << 0,
-  Ui_Y  = 1 << 1,
-  Ui_XY = Ui_X | Ui_Y,
-} UiAxis;
 
 typedef enum {
   UiFlags_None         = 0,

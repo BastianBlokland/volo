@@ -1,3 +1,4 @@
+#include "ui_canvas.h"
 #include "ui_layout.h"
 
 void ui_layout_move(
