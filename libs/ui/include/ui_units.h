@@ -28,6 +28,16 @@ typedef enum {
 } UiAlign;
 
 /**
+ * Layout flow direction.
+ */
+typedef enum {
+  Ui_Right,
+  Ui_Left,
+  Ui_Up,
+  Ui_Down,
+} UiDir;
+
+/**
  * Mask for filtering various layout operations.
  */
 typedef enum {

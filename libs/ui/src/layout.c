@@ -39,6 +39,27 @@ void ui_layout_move_to(
   }
 }
 
+void ui_layout_next(UiCanvasComp* canvas, const UiDir dir, const f32 spacing) {
+  switch (dir) {
+  case Ui_Right:
+    ui_layout_move(canvas, ui_vector(1, 0), UiBase_Current, Ui_X);
+    ui_layout_move(canvas, ui_vector(spacing, 0), UiBase_Absolute, Ui_X);
+    break;
+  case Ui_Left:
+    ui_layout_move(canvas, ui_vector(-1, 0), UiBase_Current, Ui_X);
+    ui_layout_move(canvas, ui_vector(-spacing, 0), UiBase_Absolute, Ui_X);
+    break;
+  case Ui_Up:
+    ui_layout_move(canvas, ui_vector(0, 1), UiBase_Current, Ui_Y);
+    ui_layout_move(canvas, ui_vector(0, spacing), UiBase_Absolute, Ui_Y);
+    break;
+  case Ui_Down:
+    ui_layout_move(canvas, ui_vector(0, -1), UiBase_Current, Ui_Y);
+    ui_layout_move(canvas, ui_vector(0, -spacing), UiBase_Absolute, Ui_Y);
+    break;
+  }
+}
+
 void ui_layout_from_center(UiCanvasComp* canvas, const UiAxis axis) {
   ui_canvas_rect_pos(canvas, UiBase_Current, ui_vector(-0.5f, -0.5f), UiBase_Current, axis);
 }

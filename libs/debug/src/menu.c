@@ -44,11 +44,6 @@ ecs_view_define(WindowUpdateView) {
   ecs_access_read(RendStatsComp);
 }
 
-static void debug_action_bar_next(UiCanvasComp* canvas) {
-  ui_layout_move(canvas, ui_vector(0, -1), UiBase_Current, Ui_Y);
-  ui_layout_move(canvas, ui_vector(0, -g_debugActionBarSpacing), UiBase_Absolute, Ui_Y);
-}
-
 static void debug_action_stats(DebugMenuComp* menu, UiCanvasComp* canvas) {
   const bool enabled = (menu->flags & DebugMenuFlags_ShowStats) != 0;
   if (ui_button(
@@ -104,16 +99,16 @@ static void debug_action_bar_draw(
   ui_canvas_rect_pos(canvas, UiBase_Current, offset, UiBase_Absolute, Ui_XY);
   ui_canvas_rect_size(canvas, g_debugActionBarButtonSize, UiBase_Absolute, Ui_XY);
 
-  debug_action_bar_next(canvas);
+  ui_layout_next(canvas, Ui_Down, g_debugActionBarSpacing);
   debug_action_stats(menu, canvas);
 
-  debug_action_bar_next(canvas);
+  ui_layout_next(canvas, Ui_Down, g_debugActionBarSpacing);
   debug_action_fullscreen(menu, canvas, win);
 
-  debug_action_bar_next(canvas);
+  ui_layout_next(canvas, Ui_Down, g_debugActionBarSpacing);
   debug_action_new_window(world, canvas);
 
-  debug_action_bar_next(canvas);
+  ui_layout_next(canvas, Ui_Down, g_debugActionBarSpacing);
   debug_action_close(canvas, win);
 }
 
