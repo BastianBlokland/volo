@@ -63,8 +63,8 @@ static void ui_slider_bar(UiCanvasComp* canvas, const UiStatus status, const UiS
   ui_canvas_style_push(canvas);
 
   ui_layout_move_to(canvas, UiBase_Current, UiAlign_MiddleLeft, Ui_Y);
-  ui_canvas_rect_size(canvas, ui_vector(0, opts->barHeight), UiBase_Absolute, Ui_Y);
-  ui_canvas_rect_pos(canvas, UiBase_Current, ui_vector(-0.5f, -0.5f), UiBase_Current, Ui_Y);
+  ui_layout_resize(
+      canvas, UiAlign_MiddleLeft, ui_vector(0, opts->barHeight), UiBase_Absolute, Ui_Y);
 
   ui_canvas_style_outline(canvas, 2);
   switch (status) {
@@ -89,7 +89,7 @@ static void ui_slider_handle(
   ui_canvas_style_push(canvas);
 
   const UiVector handleSize = ui_vector(opts->handleSize, opts->handleSize);
-  ui_canvas_rect_pos(canvas, UiBase_Current, ui_vector(normValue, 0.5f), UiBase_Current, Ui_XY);
+  ui_layout_move(canvas, ui_vector(normValue, 0.5f), UiBase_Current, Ui_XY);
   ui_layout_resize(canvas, UiAlign_MiddleCenter, handleSize, UiBase_Absolute, Ui_XY);
 
   switch (status) {
@@ -111,13 +111,12 @@ static void ui_slider_handle(
 
 static void ui_slider_label(UiCanvasComp* canvas, const f32 normValue, const UiSliderOpts* opts) {
   ui_canvas_rect_push(canvas);
-  static const UiVector g_maxSize        = {100, 100};
-  static const u16      g_fontSize       = 15;
-  const UiVector        offsetFromHandle = ui_vector(0, opts->handleSize + 1);
+  static const UiVector g_maxSize  = {100, 100};
+  static const u16      g_fontSize = 15;
 
-  ui_canvas_rect_pos(canvas, UiBase_Current, ui_vector(normValue, 0.5f), UiBase_Current, Ui_XY);
+  ui_layout_move(canvas, ui_vector(normValue, 0.5f), UiBase_Current, Ui_XY);
   ui_layout_resize(canvas, UiAlign_MiddleCenter, g_maxSize, UiBase_Absolute, Ui_XY);
-  ui_canvas_rect_pos(canvas, UiBase_Current, offsetFromHandle, UiBase_Absolute, Ui_Y);
+  ui_layout_move_dir(canvas, Ui_Up, opts->handleSize + 1, UiBase_Absolute);
 
   const f32    value = math_lerp(opts->min, opts->max, normValue);
   const String label = fmt_write_scratch("{}", fmt_float(value, .maxDecDigits = 2));
