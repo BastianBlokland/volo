@@ -1,3 +1,4 @@
+#include "core_diag.h"
 #include "core_math.h"
 #include "ui_canvas.h"
 #include "ui_layout.h"
@@ -224,14 +225,9 @@ bool ui_toggle_with_opts(UiCanvasComp* canvas, bool* input, const UiToggleOpts* 
   return status == UiStatus_Activated;
 }
 
-typedef enum {
-  UiTooltipDir_Left,
-  UiTooltipDir_Right,
-} UiTooltipDir;
-
-static UiTooltipDir ui_tooltip_dir(UiCanvasComp* canvas) {
+static UiDir ui_tooltip_dir(UiCanvasComp* canvas) {
   const f32 halfWindow = ui_canvas_window_size(canvas).x * 0.5f;
-  return ui_canvas_input_pos(canvas).x > halfWindow ? UiTooltipDir_Left : UiTooltipDir_Right;
+  return ui_canvas_input_pos(canvas).x > halfWindow ? Ui_Left : Ui_Right;
 }
 
 static void ui_tooltip_background(UiCanvasComp* canvas, const UiRect textRect) {
@@ -245,13 +241,16 @@ static void ui_tooltip_background(UiCanvasComp* canvas, const UiRect textRect) {
       ui_vector(textRect.width + g_padding.x * 2, textRect.height + g_padding.y * 2);
   UiVector offset;
   switch (ui_tooltip_dir(canvas)) {
-  case UiTooltipDir_Left:
+  case Ui_Left:
     offset = ui_vector(
         -textRect.width - g_padding.x + g_offset.x, -textRect.height - g_padding.y + g_offset.y);
     break;
-  case UiTooltipDir_Right:
+  case Ui_Right:
     offset = ui_vector(-g_offset.x - g_padding.x, -textRect.height - g_padding.y + g_offset.y);
     break;
+  case Ui_Up:
+  case Ui_Down:
+    diag_crash();
   }
   ui_canvas_rect_pos(canvas, UiBase_Cursor, offset, UiBase_Absolute, Ui_XY);
   ui_canvas_rect_size(canvas, size, UiBase_Absolute, Ui_XY);
@@ -275,14 +274,17 @@ static void ui_tooltip_text(UiCanvasComp* canvas, const String text, const UiToo
   UiAlign  align;
   UiVector offset;
   switch (ui_tooltip_dir(canvas)) {
-  case UiTooltipDir_Left:
+  case Ui_Left:
     align  = UiAlign_TopRight;
     offset = ui_vector(-opts->maxSize.x + g_offset.x, -opts->maxSize.y + g_offset.y);
     break;
-  case UiTooltipDir_Right:
+  case Ui_Right:
     align  = UiAlign_TopLeft;
     offset = ui_vector(-g_offset.x, -opts->maxSize.y + g_offset.y);
     break;
+  case Ui_Up:
+  case Ui_Down:
+    diag_crash();
   }
 
   ui_canvas_rect_pos(canvas, UiBase_Cursor, offset, UiBase_Absolute, Ui_XY);
