@@ -22,11 +22,6 @@ typedef enum {
 } UiStatus;
 
 typedef enum {
-  UiLayer_Normal,
-  UiLayer_Overlay,
-} UiLayer;
-
-typedef enum {
   UiFlags_None         = 0,
   UiFlags_Interactable = 1 << 0,
 } UiFlags;
@@ -67,20 +62,6 @@ UiVector ui_canvas_input_pos(const UiCanvasComp*);
  */
 void ui_canvas_container_push(UiCanvasComp*);
 void ui_canvas_container_pop(UiCanvasComp*);
-
-/**
- * Push / Pop an element to / from the style stack.
- * Usefull for local changes to the current style with an easy way to restore the previous.
- */
-void ui_canvas_style_push(UiCanvasComp*);
-void ui_canvas_style_pop(UiCanvasComp*);
-
-/**
- * Update the current style.
- */
-void ui_canvas_style_color(UiCanvasComp*, UiColor);
-void ui_canvas_style_outline(UiCanvasComp*, u8 outline);
-void ui_canvas_style_layer(UiCanvasComp*, UiLayer);
 
 /**
  * Draw text in the current rectangle.

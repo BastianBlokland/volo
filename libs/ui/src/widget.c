@@ -3,6 +3,7 @@
 #include "ui_canvas.h"
 #include "ui_layout.h"
 #include "ui_shape.h"
+#include "ui_style.h"
 #include "ui_widget.h"
 
 static UiColor ui_color_mult(const UiColor color, const f32 mult) {
@@ -17,39 +18,39 @@ bool ui_button_with_opts(UiCanvasComp* canvas, const UiButtonOpts* opts) {
   const UiId     id     = ui_canvas_id_peek(canvas);
   const UiStatus status = ui_canvas_elem_status(canvas, id);
 
-  ui_canvas_style_push(canvas);
+  ui_style_push(canvas);
   switch (status) {
   case UiStatus_Hovered:
-    ui_canvas_style_color(canvas, ui_color_mult(opts->frameColor, 2));
-    ui_canvas_style_outline(canvas, 5);
+    ui_style_color(canvas, ui_color_mult(opts->frameColor, 2));
+    ui_style_outline(canvas, 5);
     break;
   case UiStatus_Pressed:
   case UiStatus_Activated:
-    ui_canvas_style_color(canvas, ui_color_mult(opts->frameColor, 3));
-    ui_canvas_style_outline(canvas, 3);
+    ui_style_color(canvas, ui_color_mult(opts->frameColor, 3));
+    ui_style_outline(canvas, 3);
     break;
   case UiStatus_Idle:
-    ui_canvas_style_color(canvas, opts->frameColor);
-    ui_canvas_style_outline(canvas, 4);
+    ui_style_color(canvas, opts->frameColor);
+    ui_style_outline(canvas, 4);
     break;
   }
   ui_canvas_draw_glyph(canvas, UiShape_Circle, 15, UiFlags_Interactable);
-  ui_canvas_style_pop(canvas);
+  ui_style_pop(canvas);
 
-  ui_canvas_style_push(canvas);
+  ui_style_push(canvas);
   switch (status) {
   case UiStatus_Hovered:
-    ui_canvas_style_outline(canvas, 3);
+    ui_style_outline(canvas, 3);
     break;
   case UiStatus_Pressed:
   case UiStatus_Activated:
-    ui_canvas_style_outline(canvas, 1);
+    ui_style_outline(canvas, 1);
     break;
   case UiStatus_Idle:
     break;
   }
   ui_canvas_draw_text(canvas, opts->label, opts->fontSize, UiAlign_MiddleCenter, UiFlags_None);
-  ui_canvas_style_pop(canvas);
+  ui_style_pop(canvas);
 
   if (!string_is_empty(opts->tooltip)) {
     ui_tooltip(canvas, id, opts->tooltip);
@@ -60,33 +61,33 @@ bool ui_button_with_opts(UiCanvasComp* canvas, const UiButtonOpts* opts) {
 
 static void ui_slider_bar(UiCanvasComp* canvas, const UiStatus status, const UiSliderOpts* opts) {
   ui_layout_push(canvas);
-  ui_canvas_style_push(canvas);
+  ui_style_push(canvas);
 
   ui_layout_move_to(canvas, UiBase_Current, UiAlign_MiddleLeft, Ui_Y);
   ui_layout_resize(
       canvas, UiAlign_MiddleLeft, ui_vector(0, opts->barHeight), UiBase_Absolute, Ui_Y);
 
-  ui_canvas_style_outline(canvas, 2);
+  ui_style_outline(canvas, 2);
   switch (status) {
   case UiStatus_Hovered:
   case UiStatus_Pressed:
   case UiStatus_Activated:
-    ui_canvas_style_color(canvas, ui_color_mult(opts->barColor, 2));
+    ui_style_color(canvas, ui_color_mult(opts->barColor, 2));
     break;
   case UiStatus_Idle:
-    ui_canvas_style_color(canvas, opts->barColor);
+    ui_style_color(canvas, opts->barColor);
     break;
   }
   ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_Interactable);
 
-  ui_canvas_style_pop(canvas);
+  ui_style_pop(canvas);
   ui_layout_pop(canvas);
 }
 
 static void ui_slider_handle(
     UiCanvasComp* canvas, const UiStatus status, const f32 normValue, const UiSliderOpts* opts) {
   ui_layout_push(canvas);
-  ui_canvas_style_push(canvas);
+  ui_style_push(canvas);
 
   const UiVector handleSize = ui_vector(opts->handleSize, opts->handleSize);
   ui_layout_move(canvas, ui_vector(normValue, 0.5f), UiBase_Current, Ui_XY);
@@ -94,10 +95,10 @@ static void ui_slider_handle(
 
   switch (status) {
   case UiStatus_Hovered:
-    ui_canvas_style_outline(canvas, 3);
+    ui_style_outline(canvas, 3);
     break;
   case UiStatus_Pressed:
-    ui_canvas_style_outline(canvas, 1);
+    ui_style_outline(canvas, 1);
     break;
   case UiStatus_Activated:
   case UiStatus_Idle:
@@ -105,7 +106,7 @@ static void ui_slider_handle(
   }
   ui_canvas_draw_glyph(canvas, UiShape_Circle, 0, UiFlags_Interactable);
 
-  ui_canvas_style_pop(canvas);
+  ui_style_pop(canvas);
   ui_layout_pop(canvas);
 }
 
@@ -166,12 +167,12 @@ static void ui_toggle_check(UiCanvasComp* canvas, const UiStatus status, const U
   ui_layout_move_dir(canvas, Ui_Right, 0.1f, UiBase_Current);
   ui_layout_move_dir(canvas, Ui_Up, 0.1f, UiBase_Current);
 
-  ui_canvas_style_push(canvas);
+  ui_style_push(canvas);
 
-  ui_canvas_style_outline(canvas, status == UiStatus_Hovered ? 4 : 3);
+  ui_style_outline(canvas, status == UiStatus_Hovered ? 4 : 3);
   ui_canvas_draw_glyph(canvas, UiShape_Check, 0, UiFlags_None);
 
-  ui_canvas_style_pop(canvas);
+  ui_style_pop(canvas);
 }
 
 bool ui_toggle_with_opts(UiCanvasComp* canvas, bool* input, const UiToggleOpts* opts) {
@@ -185,25 +186,25 @@ bool ui_toggle_with_opts(UiCanvasComp* canvas, bool* input, const UiToggleOpts* 
   ui_layout_push(canvas);
   ui_layout_inner(canvas, UiBase_Current, UiAlign_MiddleLeft, size, UiBase_Absolute);
 
-  ui_canvas_style_push(canvas);
+  ui_style_push(canvas);
   switch (status) {
   case UiStatus_Hovered:
-    ui_canvas_style_color(canvas, ui_color_mult(opts->bgColor, 2));
-    ui_canvas_style_outline(canvas, 3);
+    ui_style_color(canvas, ui_color_mult(opts->bgColor, 2));
+    ui_style_outline(canvas, 3);
     break;
   case UiStatus_Pressed:
   case UiStatus_Activated:
-    ui_canvas_style_color(canvas, ui_color_mult(opts->bgColor, 3));
-    ui_canvas_style_outline(canvas, 2);
+    ui_style_color(canvas, ui_color_mult(opts->bgColor, 3));
+    ui_style_outline(canvas, 2);
     break;
   case UiStatus_Idle:
-    ui_canvas_style_color(canvas, opts->bgColor);
-    ui_canvas_style_outline(canvas, 2);
+    ui_style_color(canvas, opts->bgColor);
+    ui_style_outline(canvas, 2);
     break;
   }
   ui_canvas_draw_glyph(canvas, UiShape_Circle, 5, UiFlags_Interactable);
 
-  ui_canvas_style_pop(canvas);
+  ui_style_pop(canvas);
 
   if (*input) {
     ui_toggle_check(canvas, status, opts);
@@ -226,8 +227,8 @@ static void ui_tooltip_background(
   ui_layout_inner(canvas, UiBase_Cursor, align, size, UiBase_Absolute);
   ui_layout_move_dir(canvas, dir, 15, UiBase_Absolute);
 
-  ui_canvas_style_color(canvas, ui_color_white);
-  ui_canvas_style_outline(canvas, 4);
+  ui_style_color(canvas, ui_color_white);
+  ui_style_outline(canvas, 4);
 
   ui_canvas_draw_glyph(canvas, UiShape_Circle, 5, UiFlags_None);
 }
@@ -243,8 +244,8 @@ static void ui_tooltip_text(
   ui_layout_move_dir(canvas, dir, 25, UiBase_Absolute);
   ui_layout_move_dir(canvas, Ui_Down, 5, UiBase_Absolute);
 
-  ui_canvas_style_color(canvas, ui_color_black);
-  ui_canvas_style_outline(canvas, 0);
+  ui_style_color(canvas, ui_color_black);
+  ui_style_outline(canvas, 0);
 
   ui_canvas_draw_text(canvas, text, opts->fontSize, align, UiFlags_None);
 }
@@ -284,14 +285,14 @@ bool ui_tooltip_with_opts(
   const UiRect textRect     = ui_canvas_elem_rect(canvas, textId);
 
   ui_layout_push(canvas);
-  ui_canvas_style_push(canvas);
+  ui_style_push(canvas);
 
-  ui_canvas_style_layer(canvas, UiLayer_Overlay);
+  ui_style_layer(canvas, UiLayer_Overlay);
 
   ui_tooltip_background(canvas, dir, align, textRect);
   ui_tooltip_text(canvas, dir, align, text, opts);
 
-  ui_canvas_style_pop(canvas);
+  ui_style_pop(canvas);
   ui_layout_pop(canvas);
   return true;
 }

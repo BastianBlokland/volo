@@ -286,21 +286,6 @@ UiVector ui_canvas_input_pos(const UiCanvasComp* comp) { return comp->inputPos; 
 void ui_canvas_container_push(UiCanvasComp* comp) { ui_cmd_push_container_push(comp->cmdBuffer); }
 void ui_canvas_container_pop(UiCanvasComp* comp) { ui_cmd_push_container_pop(comp->cmdBuffer); }
 
-void ui_canvas_style_push(UiCanvasComp* comp) { ui_cmd_push_style_push(comp->cmdBuffer); }
-void ui_canvas_style_pop(UiCanvasComp* comp) { ui_cmd_push_style_pop(comp->cmdBuffer); }
-
-void ui_canvas_style_color(UiCanvasComp* comp, const UiColor color) {
-  ui_cmd_push_style_color(comp->cmdBuffer, color);
-}
-
-void ui_canvas_style_outline(UiCanvasComp* comp, const u8 outline) {
-  ui_cmd_push_style_outline(comp->cmdBuffer, outline);
-}
-
-void ui_canvas_style_layer(UiCanvasComp* comp, const UiLayer layer) {
-  ui_cmd_push_style_layer(comp->cmdBuffer, layer);
-}
-
 UiId ui_canvas_draw_text(
     UiCanvasComp* comp,
     const String  text,

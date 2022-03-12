@@ -45,3 +45,11 @@ typedef enum {
   Ui_Y  = 1 << 1,
   Ui_XY = Ui_X | Ui_Y,
 } UiAxis;
+
+/**
+ * Ui Glyph Layer.
+ */
+typedef enum {
+  UiLayer_Normal,
+  UiLayer_Overlay,
+} UiLayer;
