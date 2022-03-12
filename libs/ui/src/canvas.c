@@ -283,33 +283,6 @@ UiVector ui_canvas_window_size(const UiCanvasComp* comp) { return comp->windowSi
 UiVector ui_canvas_input_delta(const UiCanvasComp* comp) { return comp->inputDelta; }
 UiVector ui_canvas_input_pos(const UiCanvasComp* comp) { return comp->inputPos; }
 
-void ui_canvas_rect_push(UiCanvasComp* comp) { ui_cmd_push_rect_push(comp->cmdBuffer); }
-void ui_canvas_rect_pop(UiCanvasComp* comp) { ui_cmd_push_rect_pop(comp->cmdBuffer); }
-
-void ui_canvas_rect_pos(
-    UiCanvasComp*  comp,
-    const UiBase   origin,
-    const UiVector offset,
-    const UiBase   units,
-    const UiAxis   axis) {
-  ui_cmd_push_rect_pos(comp->cmdBuffer, origin, offset, units, axis);
-}
-
-void ui_canvas_rect_size(
-    UiCanvasComp* comp, const UiVector size, const UiBase units, const UiAxis axis) {
-  diag_assert_msg(size.x >= 0.0f && size.y >= 0.0f, "Negative sizes are not supported");
-  ui_cmd_push_rect_size(comp->cmdBuffer, size, units, axis);
-}
-
-void ui_canvas_rect_size_to(
-    UiCanvasComp*  comp,
-    const UiBase   origin,
-    const UiVector offset,
-    const UiBase   units,
-    const UiAxis   axis) {
-  ui_cmd_push_rect_size_to(comp->cmdBuffer, origin, offset, units, axis);
-}
-
 void ui_canvas_container_push(UiCanvasComp* comp) { ui_cmd_push_container_push(comp->cmdBuffer); }
 void ui_canvas_container_pop(UiCanvasComp* comp) { ui_cmd_push_container_pop(comp->cmdBuffer); }
 
@@ -348,3 +321,5 @@ UiId ui_canvas_draw_glyph(
   ui_cmd_push_draw_glyph(comp->cmdBuffer, id, cp, maxCorner, flags);
   return id;
 }
+
+UiCmdBuffer* ui_canvas_cmd_buffer(UiCanvasComp* canvas) { return canvas->cmdBuffer; }

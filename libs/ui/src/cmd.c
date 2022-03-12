@@ -68,22 +68,6 @@ void ui_cmd_push_rect_size(
       }};
 }
 
-void ui_cmd_push_rect_size_to(
-    UiCmdBuffer*   buffer,
-    const UiBase   origin,
-    const UiVector offset,
-    const UiBase   units,
-    const UiAxis   axis) {
-  *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
-      .type       = UiCmd_RectSizeTo,
-      .rectSizeTo = {
-          .origin = origin,
-          .offset = offset,
-          .units  = units,
-          .axis   = axis,
-      }};
-}
-
 void ui_cmd_push_container_push(UiCmdBuffer* buffer) {
   *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){.type = UiCmd_ContainerPush};
 }

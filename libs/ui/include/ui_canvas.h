@@ -62,20 +62,6 @@ UiVector ui_canvas_input_delta(const UiCanvasComp*);
 UiVector ui_canvas_input_pos(const UiCanvasComp*);
 
 /**
- * Push / Pop an element to / from the rectangle stack.
- * Usefull for local changes to the current rectangle with an easy way to restore the previous.
- */
-void ui_canvas_rect_push(UiCanvasComp*);
-void ui_canvas_rect_pop(UiCanvasComp*);
-
-/**
- * Update the current rect.
- */
-void ui_canvas_rect_pos(UiCanvasComp*, UiBase origin, UiVector offset, UiBase units, UiAxis);
-void ui_canvas_rect_size(UiCanvasComp*, UiVector size, UiBase units, UiAxis);
-void ui_canvas_rect_size_to(UiCanvasComp*, UiBase origin, UiVector offset, UiBase units, UiAxis);
-
-/**
  * Push / Pop an element to / from the container stack.
  * When pushing a new container the current rectangle value will be used.
  */

@@ -8,7 +8,6 @@ typedef enum {
   UiCmd_RectPop,
   UiCmd_RectPos,
   UiCmd_RectSize,
-  UiCmd_RectSizeTo,
   UiCmd_ContainerPush,
   UiCmd_ContainerPop,
   UiCmd_StylePush,
@@ -32,13 +31,6 @@ typedef struct {
   UiBase   units;
   UiAxis   axis;
 } UiRectSize;
-
-typedef struct {
-  UiBase   origin;
-  UiVector offset;
-  UiBase   units;
-  UiAxis   axis;
-} UiRectSizeTo;
 
 typedef struct {
   UiColor value;
@@ -72,7 +64,6 @@ typedef struct {
   union {
     UiRectPos      rectPos;
     UiRectSize     rectSize;
-    UiRectSizeTo   rectSizeTo;
     UiStyleColor   styleColor;
     UiStyleOutline styleOutline;
     UiStyleLayer   styleLayer;

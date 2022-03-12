@@ -107,13 +107,6 @@ static UiVector ui_resolve_pos(
   return ui_vector(originVec.x + offsetVec.x, originVec.y + offsetVec.y);
 }
 
-static UiVector ui_resolve_size_to(
-    UiBuildState* state, const UiBase origin, const UiVector offset, const UiBase units) {
-  const UiRect   currentRect = *ui_build_rect_currect(state);
-  const UiVector toPos       = ui_resolve_pos(state, origin, offset, units);
-  return ui_vector(math_max(toPos.x - currentRect.x, 0), math_max(toPos.y - currentRect.y, 0));
-}
-
 static void ui_build_set_pos(UiBuildState* state, const UiVector val, const UiAxis axis) {
   if (axis & Ui_X) {
     ui_build_rect_currect(state)->pos.x = val.x;
@@ -240,13 +233,6 @@ static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
   case UiCmd_RectSize:
     ui_build_set_size(
         state, ui_resolve_vec(state, cmd->rectSize.size, cmd->rectSize.units), cmd->rectSize.axis);
-    break;
-  case UiCmd_RectSizeTo:
-    ui_build_set_size(
-        state,
-        ui_resolve_size_to(
-            state, cmd->rectSizeTo.origin, cmd->rectSizeTo.offset, cmd->rectSizeTo.units),
-        cmd->rectSizeTo.axis);
     break;
   case UiCmd_ContainerPush:
     diag_assert(state->containerStackCount < ui_build_container_stack_max);
