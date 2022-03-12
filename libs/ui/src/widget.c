@@ -225,79 +225,39 @@ bool ui_toggle_with_opts(UiCanvasComp* canvas, bool* input, const UiToggleOpts* 
   return status == UiStatus_Activated;
 }
 
-static UiDir ui_tooltip_dir(UiCanvasComp* canvas) {
-  const f32 halfWindow = ui_canvas_window_size(canvas).x * 0.5f;
-  return ui_canvas_input_pos(canvas).x > halfWindow ? Ui_Left : Ui_Right;
-}
+static void ui_tooltip_background(
+    UiCanvasComp* canvas, const UiDir dir, const UiAlign align, const UiRect textRect) {
+  const UiVector size = ui_vector(textRect.width + 20, textRect.height + 10);
 
-static void ui_tooltip_background(UiCanvasComp* canvas, const UiRect textRect) {
-  ui_canvas_rect_push(canvas);
-  ui_canvas_style_push(canvas);
-
-  static const UiVector g_offset  = {-25, -5};
-  static const UiVector g_padding = {10, 5};
-
-  const UiVector size =
-      ui_vector(textRect.width + g_padding.x * 2, textRect.height + g_padding.y * 2);
-  UiVector offset;
-  switch (ui_tooltip_dir(canvas)) {
-  case Ui_Left:
-    offset = ui_vector(
-        -textRect.width - g_padding.x + g_offset.x, -textRect.height - g_padding.y + g_offset.y);
-    break;
-  case Ui_Right:
-    offset = ui_vector(-g_offset.x - g_padding.x, -textRect.height - g_padding.y + g_offset.y);
-    break;
-  case Ui_Up:
-  case Ui_Down:
-    diag_crash();
-  }
-  ui_canvas_rect_pos(canvas, UiBase_Cursor, offset, UiBase_Absolute, Ui_XY);
-  ui_canvas_rect_size(canvas, size, UiBase_Absolute, Ui_XY);
+  ui_layout_inner(canvas, UiBase_Cursor, align, size, UiBase_Absolute);
+  ui_layout_move_dir(canvas, dir, 15, UiBase_Absolute);
 
   ui_canvas_style_color(canvas, ui_color_white);
   ui_canvas_style_outline(canvas, 4);
-  ui_canvas_style_layer(canvas, UiLayer_Overlay);
 
   ui_canvas_draw_glyph(canvas, UiShape_Circle, 5, UiFlags_None);
-
-  ui_canvas_style_pop(canvas);
-  ui_canvas_rect_pop(canvas);
 }
 
-static void ui_tooltip_text(UiCanvasComp* canvas, const String text, const UiTooltipOpts* opts) {
-  ui_canvas_rect_push(canvas);
-  ui_canvas_style_push(canvas);
+static void ui_tooltip_text(
+    UiCanvasComp*        canvas,
+    const UiDir          dir,
+    const UiAlign        align,
+    const String         text,
+    const UiTooltipOpts* opts) {
 
-  static const UiVector g_offset = {-25, -5};
-
-  UiAlign  align;
-  UiVector offset;
-  switch (ui_tooltip_dir(canvas)) {
-  case Ui_Left:
-    align  = UiAlign_TopRight;
-    offset = ui_vector(-opts->maxSize.x + g_offset.x, -opts->maxSize.y + g_offset.y);
-    break;
-  case Ui_Right:
-    align  = UiAlign_TopLeft;
-    offset = ui_vector(-g_offset.x, -opts->maxSize.y + g_offset.y);
-    break;
-  case Ui_Up:
-  case Ui_Down:
-    diag_crash();
-  }
-
-  ui_canvas_rect_pos(canvas, UiBase_Cursor, offset, UiBase_Absolute, Ui_XY);
-  ui_canvas_rect_size(canvas, opts->maxSize, UiBase_Absolute, Ui_XY);
+  ui_layout_inner(canvas, UiBase_Cursor, align, opts->maxSize, UiBase_Absolute);
+  ui_layout_move_dir(canvas, dir, 25, UiBase_Absolute);
+  ui_layout_move_dir(canvas, Ui_Down, 5, UiBase_Absolute);
 
   ui_canvas_style_color(canvas, ui_color_black);
   ui_canvas_style_outline(canvas, 0);
-  ui_canvas_style_layer(canvas, UiLayer_Overlay);
 
   ui_canvas_draw_text(canvas, text, opts->fontSize, align, UiFlags_None);
+}
 
-  ui_canvas_style_pop(canvas);
-  ui_canvas_rect_pop(canvas);
+static UiDir ui_tooltip_dir(UiCanvasComp* canvas) {
+  const f32 halfWindow = ui_canvas_window_size(canvas).x * 0.5f;
+  return ui_canvas_input_pos(canvas).x > halfWindow ? Ui_Left : Ui_Right;
 }
 
 bool ui_tooltip_with_opts(
@@ -311,11 +271,33 @@ bool ui_tooltip_with_opts(
     return false;
   }
 
+  const UiDir dir = ui_tooltip_dir(canvas);
+  UiAlign     align;
+  switch (dir) {
+  case Ui_Left:
+    align = UiAlign_TopRight;
+    break;
+  case Ui_Right:
+    align = UiAlign_TopLeft;
+    break;
+  case Ui_Up:
+  case Ui_Down:
+    diag_crash();
+  }
+
   const UiId   backgroundId = ui_canvas_id_peek(canvas);
   const UiId   textId       = backgroundId + 1;
   const UiRect textRect     = ui_canvas_elem_rect(canvas, textId);
 
-  ui_tooltip_background(canvas, textRect);
-  ui_tooltip_text(canvas, text, opts);
+  ui_canvas_rect_push(canvas);
+  ui_canvas_style_push(canvas);
+
+  ui_canvas_style_layer(canvas, UiLayer_Overlay);
+
+  ui_tooltip_background(canvas, dir, align, textRect);
+  ui_tooltip_text(canvas, dir, align, text, opts);
+
+  ui_canvas_style_pop(canvas);
+  ui_canvas_rect_pop(canvas);
   return true;
 }
