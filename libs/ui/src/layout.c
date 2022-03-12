@@ -68,7 +68,7 @@ void ui_layout_resize(
     const UiVector size,
     const UiBase   units,
     const UiAxis   axis) {
-  ui_canvas_rect_size(canvas, size, units, Ui_XY);
+  ui_canvas_rect_size(canvas, size, units, axis);
   switch (origin) {
   case UiAlign_TopLeft:
     ui_canvas_rect_pos(canvas, UiBase_Current, ui_vector(0.0, -1.0), UiBase_Current, axis);
