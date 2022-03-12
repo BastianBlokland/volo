@@ -162,35 +162,29 @@ bool ui_slider_with_opts(UiCanvasComp* canvas, f32* input, const UiSliderOpts* o
 }
 
 static void ui_toggle_check(UiCanvasComp* canvas, const UiStatus status, const UiToggleOpts* opts) {
-  ui_canvas_rect_push(canvas);
+  const UiVector size = {opts->size * 1.4f, opts->size * 1.4f};
+  ui_layout_inner(canvas, UiBase_Current, UiAlign_MiddleCenter, size, UiBase_Absolute);
+  ui_layout_move_dir(canvas, Ui_Right, 0.1f, UiBase_Current);
+  ui_layout_move_dir(canvas, Ui_Up, 0.1f, UiBase_Current);
+
   ui_canvas_style_push(canvas);
-
-  const f32 checkSize = opts->size * 1.4f;
-
-  ui_layout_move_to(canvas, UiBase_Current, UiAlign_MiddleCenter, Ui_XY);
-  ui_layout_resize(
-      canvas, UiAlign_MiddleCenter, ui_vector(checkSize, checkSize), UiBase_Absolute, Ui_XY);
-  ui_canvas_rect_pos(canvas, UiBase_Current, ui_vector(0.1f, 0.1f), UiBase_Current, Ui_XY);
 
   ui_canvas_style_outline(canvas, status == UiStatus_Hovered ? 4 : 3);
   ui_canvas_draw_glyph(canvas, UiShape_Check, 0, UiFlags_None);
 
   ui_canvas_style_pop(canvas);
-  ui_canvas_rect_pop(canvas);
 }
 
 bool ui_toggle_with_opts(UiCanvasComp* canvas, bool* input, const UiToggleOpts* opts) {
   const UiId     id     = ui_canvas_id_peek(canvas);
   const UiStatus status = ui_canvas_elem_status(canvas, id);
+  const UiVector size   = {opts->size, opts->size};
 
   if (status == UiStatus_Activated) {
     *input ^= true;
   }
   ui_canvas_rect_push(canvas);
-
-  ui_layout_move_to(canvas, UiBase_Current, UiAlign_BottomLeft, Ui_Y);
-  ui_canvas_rect_size(canvas, ui_vector(opts->size, opts->size), UiBase_Absolute, Ui_XY);
-  ui_canvas_rect_pos(canvas, UiBase_Current, ui_vector(-0.5f, -0.5f), UiBase_Current, Ui_Y);
+  ui_layout_inner(canvas, UiBase_Current, UiAlign_MiddleLeft, size, UiBase_Absolute);
 
   ui_canvas_style_push(canvas);
   switch (status) {
@@ -209,6 +203,7 @@ bool ui_toggle_with_opts(UiCanvasComp* canvas, bool* input, const UiToggleOpts* 
     break;
   }
   ui_canvas_draw_glyph(canvas, UiShape_Circle, 5, UiFlags_Interactable);
+
   ui_canvas_style_pop(canvas);
 
   if (*input) {
