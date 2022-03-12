@@ -45,9 +45,8 @@ ecs_view_define(WindowUpdateView) {
 }
 
 static void debug_action_bar_next(UiCanvasComp* canvas) {
-  ui_canvas_rect_pos(canvas, UiBase_Current, ui_vector(0, -1), UiBase_Current, Ui_Y);
-  ui_canvas_rect_pos(
-      canvas, UiBase_Current, ui_vector(0, -g_debugActionBarSpacing), UiBase_Absolute, Ui_Y);
+  ui_layout_move(canvas, ui_vector(0, -1), UiBase_Current, Ui_Y);
+  ui_layout_move(canvas, ui_vector(0, -g_debugActionBarSpacing), UiBase_Absolute, Ui_Y);
 }
 
 static void debug_action_stats(DebugMenuComp* menu, UiCanvasComp* canvas) {

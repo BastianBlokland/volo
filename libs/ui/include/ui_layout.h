@@ -2,8 +2,9 @@
 #include "ui_canvas.h"
 
 /**
- * Move the origin of the current rectangle..
+ * Move the origin of the current rectangle.
  */
+void ui_layout_move(UiCanvasComp*, UiVector, UiBase units, UiAxis);
 void ui_layout_move_to(UiCanvasComp*, UiBase, UiAlign, UiAxis);
 
 /**

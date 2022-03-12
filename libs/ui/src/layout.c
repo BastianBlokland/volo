@@ -1,5 +1,10 @@
 #include "ui_layout.h"
 
+void ui_layout_move(
+    UiCanvasComp* canvas, const UiVector offset, const UiBase units, const UiAxis axis) {
+  ui_canvas_rect_pos(canvas, UiBase_Current, offset, units, axis);
+}
+
 void ui_layout_move_to(
     UiCanvasComp* canvas, const UiBase base, const UiAlign align, const UiAxis axis) {
   switch (align) {
