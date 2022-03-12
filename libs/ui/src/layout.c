@@ -6,6 +6,24 @@ void ui_layout_move(
   ui_canvas_rect_pos(canvas, UiBase_Current, offset, units, axis);
 }
 
+void ui_layout_move_dir(
+    UiCanvasComp* canvas, const UiDir dir, const f32 spacing, const UiBase units) {
+  switch (dir) {
+  case Ui_Right:
+    ui_layout_move(canvas, ui_vector(spacing, 0), units, Ui_X);
+    break;
+  case Ui_Left:
+    ui_layout_move(canvas, ui_vector(-spacing, 0), units, Ui_X);
+    break;
+  case Ui_Up:
+    ui_layout_move(canvas, ui_vector(0, spacing), units, Ui_Y);
+    break;
+  case Ui_Down:
+    ui_layout_move(canvas, ui_vector(0, -spacing), units, Ui_Y);
+    break;
+  }
+}
+
 void ui_layout_move_to(
     UiCanvasComp* canvas, const UiBase base, const UiAlign align, const UiAxis axis) {
   switch (align) {
@@ -40,24 +58,8 @@ void ui_layout_move_to(
 }
 
 void ui_layout_next(UiCanvasComp* canvas, const UiDir dir, const f32 spacing) {
-  switch (dir) {
-  case Ui_Right:
-    ui_layout_move(canvas, ui_vector(1, 0), UiBase_Current, Ui_X);
-    ui_layout_move(canvas, ui_vector(spacing, 0), UiBase_Absolute, Ui_X);
-    break;
-  case Ui_Left:
-    ui_layout_move(canvas, ui_vector(-1, 0), UiBase_Current, Ui_X);
-    ui_layout_move(canvas, ui_vector(-spacing, 0), UiBase_Absolute, Ui_X);
-    break;
-  case Ui_Up:
-    ui_layout_move(canvas, ui_vector(0, 1), UiBase_Current, Ui_Y);
-    ui_layout_move(canvas, ui_vector(0, spacing), UiBase_Absolute, Ui_Y);
-    break;
-  case Ui_Down:
-    ui_layout_move(canvas, ui_vector(0, -1), UiBase_Current, Ui_Y);
-    ui_layout_move(canvas, ui_vector(0, -spacing), UiBase_Absolute, Ui_Y);
-    break;
-  }
+  ui_layout_move_dir(canvas, dir, 1, UiBase_Current);
+  ui_layout_move_dir(canvas, dir, spacing, UiBase_Absolute);
 }
 
 void ui_layout_resize(

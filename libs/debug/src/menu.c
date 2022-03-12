@@ -96,11 +96,8 @@ static void debug_action_bar_draw(
 
   ui_layout_move_to(canvas, UiBase_Window, UiAlign_TopRight, Ui_XY);
   ui_layout_resize(canvas, UiAlign_TopRight, g_debugActionBarButtonSize, UiBase_Absolute, Ui_XY);
-  ui_layout_move(
-      canvas,
-      ui_vector(-g_debugActionBarSpacing, -g_debugActionBarSpacing),
-      UiBase_Absolute,
-      Ui_XY);
+  ui_layout_move_dir(canvas, Ui_Left, g_debugActionBarSpacing, UiBase_Absolute);
+  ui_layout_move_dir(canvas, Ui_Down, g_debugActionBarSpacing, UiBase_Absolute);
 
   debug_action_stats(menu, canvas);
   ui_layout_next(canvas, Ui_Down, g_debugActionBarSpacing);
