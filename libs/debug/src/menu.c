@@ -136,11 +136,11 @@ static void debug_stats_draw_dur(
 
 static void
 debug_stats_draw(UiCanvasComp* canvas, const DebugStats* stats, const RendStatsComp* rendStats) {
-  const UiVector textAreaSize = {500, 500};
-  const UiVector offset       = {10, -textAreaSize.y - 10};
-  ui_layout_move_to(canvas, UiBase_Window, UiAlign_TopLeft, Ui_XY);
-  ui_canvas_rect_pos(canvas, UiBase_Current, offset, UiBase_Absolute, Ui_XY);
-  ui_canvas_rect_size(canvas, textAreaSize, UiBase_Absolute, Ui_XY);
+  static const UiVector g_textAreaSize  = {500, 500};
+  static const f32      g_textEdgeSpace = 10;
+  ui_layout_inner(canvas, UiBase_Window, UiAlign_TopLeft, g_textAreaSize, UiBase_Absolute);
+  ui_layout_move_dir(canvas, Ui_Right, g_textEdgeSpace, UiBase_Absolute);
+  ui_layout_move_dir(canvas, Ui_Down, g_textEdgeSpace, UiBase_Absolute);
 
   DynString str = dynstring_create(g_alloc_scratch, usize_kibibyte);
 
