@@ -60,8 +60,41 @@ void ui_layout_next(UiCanvasComp* canvas, const UiDir dir, const f32 spacing) {
   }
 }
 
-void ui_layout_from_center(UiCanvasComp* canvas, const UiAxis axis) {
-  ui_canvas_rect_pos(canvas, UiBase_Current, ui_vector(-0.5f, -0.5f), UiBase_Current, axis);
+void ui_layout_resize(
+    UiCanvasComp*  canvas,
+    const UiAlign  origin,
+    const UiVector size,
+    const UiBase   units,
+    const UiAxis   axis) {
+  ui_canvas_rect_size(canvas, size, units, Ui_XY);
+  switch (origin) {
+  case UiAlign_TopLeft:
+    ui_canvas_rect_pos(canvas, UiBase_Current, ui_vector(0.0, -1.0), UiBase_Current, axis);
+    break;
+  case UiAlign_TopCenter:
+    ui_canvas_rect_pos(canvas, UiBase_Current, ui_vector(-0.5, -1.0), UiBase_Current, axis);
+    break;
+  case UiAlign_TopRight:
+    ui_canvas_rect_pos(canvas, UiBase_Current, ui_vector(-1.0, -1.0), UiBase_Current, axis);
+    break;
+  case UiAlign_MiddleLeft:
+    ui_canvas_rect_pos(canvas, UiBase_Current, ui_vector(0.0, -0.5), UiBase_Current, axis);
+    break;
+  case UiAlign_MiddleCenter:
+    ui_canvas_rect_pos(canvas, UiBase_Current, ui_vector(-0.5, -0.5), UiBase_Current, axis);
+    break;
+  case UiAlign_MiddleRight:
+    ui_canvas_rect_pos(canvas, UiBase_Current, ui_vector(-1.0, -0.5), UiBase_Current, axis);
+    break;
+  case UiAlign_BottomLeft:
+    break;
+  case UiAlign_BottomCenter:
+    ui_canvas_rect_pos(canvas, UiBase_Current, ui_vector(-0.5, 0.0), UiBase_Current, axis);
+    break;
+  case UiAlign_BottomRight:
+    ui_canvas_rect_pos(canvas, UiBase_Current, ui_vector(-1.0, 0.0), UiBase_Current, axis);
+    break;
+  }
 }
 
 void ui_layout_set_rect(UiCanvasComp* canvas, const UiRect rect) {

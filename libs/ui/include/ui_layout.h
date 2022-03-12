@@ -13,9 +13,9 @@ void ui_layout_move_to(UiCanvasComp*, UiBase, UiAlign, UiAxis);
 void ui_layout_next(UiCanvasComp*, UiDir, f32 spacing);
 
 /**
- * Update the rectangle so that the center is at the lower-left of the previous rectangle.
+ * Update the current rectangle size, from a specific origin in the new size.
  */
-void ui_layout_from_center(UiCanvasComp*, UiAxis);
+void ui_layout_resize(UiCanvasComp*, UiAlign origin, UiVector size, UiBase units, UiAxis);
 
 /**
  * Set a specific rectangle in absolute pixels.
