@@ -2,9 +2,9 @@
 #include "ui_canvas.h"
 
 /**
- * Update the rectangle so that the origin (lower-left) is in the center of the previous rectangle.
+ * Move the origin of the current rectangle..
  */
-void ui_layout_to_center(UiCanvasComp*, UiAxis);
+void ui_layout_move_to(UiCanvasComp*, UiBase, UiAlign, UiAxis);
 
 /**
  * Update the rectangle so that the center is at the lower-left of the previous rectangle.

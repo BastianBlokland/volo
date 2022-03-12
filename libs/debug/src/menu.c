@@ -101,7 +101,7 @@ static void debug_action_bar_draw(
     EcsWorld* world, DebugMenuComp* menu, UiCanvasComp* canvas, GapWindowComp* win) {
 
   const UiVector offset = {-g_debugActionBarButtonSize.x - g_debugActionBarSpacing, 0};
-  ui_canvas_rect_pos(canvas, UiBase_Window, ui_vector(1, 1), UiBase_Window, Ui_XY);
+  ui_layout_move_to(canvas, UiBase_Window, UiAlign_TopRight, Ui_XY);
   ui_canvas_rect_pos(canvas, UiBase_Current, offset, UiBase_Absolute, Ui_XY);
   ui_canvas_rect_size(canvas, g_debugActionBarButtonSize, UiBase_Absolute, Ui_XY);
 
@@ -146,7 +146,7 @@ static void
 debug_stats_draw(UiCanvasComp* canvas, const DebugStats* stats, const RendStatsComp* rendStats) {
   const UiVector textAreaSize = {500, 500};
   const UiVector offset       = {10, -textAreaSize.y - 10};
-  ui_canvas_rect_pos(canvas, UiBase_Window, ui_vector(0, 1), UiBase_Window, Ui_XY);
+  ui_layout_move_to(canvas, UiBase_Window, UiAlign_TopLeft, Ui_XY);
   ui_canvas_rect_pos(canvas, UiBase_Current, offset, UiBase_Absolute, Ui_XY);
   ui_canvas_rect_size(canvas, textAreaSize, UiBase_Absolute, Ui_XY);
 

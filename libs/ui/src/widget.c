@@ -61,7 +61,7 @@ static void ui_slider_bar(UiCanvasComp* canvas, const UiStatus status, const UiS
   ui_canvas_rect_push(canvas);
   ui_canvas_style_push(canvas);
 
-  ui_layout_to_center(canvas, Ui_Y);
+  ui_layout_move_to(canvas, UiBase_Current, UiAlign_MiddleLeft, Ui_Y);
   ui_canvas_rect_size(canvas, ui_vector(0, opts->barHeight), UiBase_Absolute, Ui_Y);
   ui_layout_from_center(canvas, Ui_Y);
 
@@ -168,7 +168,7 @@ static void ui_toggle_check(UiCanvasComp* canvas, const UiStatus status, const U
 
   const f32 checkSize = opts->size * 1.4f;
 
-  ui_layout_to_center(canvas, Ui_XY);
+  ui_layout_move_to(canvas, UiBase_Current, UiAlign_MiddleCenter, Ui_XY);
   ui_canvas_rect_size(canvas, ui_vector(checkSize, checkSize), UiBase_Absolute, Ui_XY);
   ui_layout_from_center(canvas, Ui_XY);
   ui_canvas_rect_pos(canvas, UiBase_Current, ui_vector(0.1f, 0.1f), UiBase_Current, Ui_XY);
@@ -189,7 +189,7 @@ bool ui_toggle_with_opts(UiCanvasComp* canvas, bool* input, const UiToggleOpts* 
   }
   ui_canvas_rect_push(canvas);
 
-  ui_layout_to_center(canvas, Ui_Y);
+  ui_layout_move_to(canvas, UiBase_Current, UiAlign_BottomLeft, Ui_Y);
   ui_canvas_rect_size(canvas, ui_vector(opts->size, opts->size), UiBase_Absolute, Ui_XY);
   ui_layout_from_center(canvas, Ui_Y);
 
