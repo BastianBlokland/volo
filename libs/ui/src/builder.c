@@ -149,30 +149,51 @@ static void ui_build_text_char(void* userCtx, const UiTextCharInfo* info) {
       info->layer);
 }
 
-static bool ui_build_is_hovered(UiBuildState* state, const UiRect rect) {
+static bool ui_rect_contains(const UiRect rect, const UiVector point) {
   const f32 minX = rect.x, minY = rect.y;
   const f32 maxX = minX + rect.width, maxY = minY + rect.height;
+  return point.x >= minX && point.x <= maxX && point.y >= minY && point.y <= maxY;
+}
 
+static bool ui_rect_intersect(const UiRect a, const UiRect b, const f32 padding) {
+  return a.x + a.width > b.x - padding && b.x + b.width > a.x - padding &&
+         a.y + a.height > b.y - padding && b.y + b.height > a.y - padding;
+}
+
+static bool ui_build_cull(const UiRect container, const UiRect rect, const UiBuildStyle style) {
+  switch (style.layer) {
+  case UiLayer_Normal:
+    return !ui_rect_intersect(container, rect, style.outline);
+  case UiLayer_Overlay:
+    return false;
+  }
+}
+
+static bool ui_build_is_hovered(UiBuildState* state, const UiRect rect) {
   const GapVector cursorPos = gap_window_param(state->window, GapParam_CursorPos);
-  return cursorPos.x >= minX && cursorPos.x <= maxX && cursorPos.y >= minY && cursorPos.y <= maxY;
+  return ui_rect_contains(rect, ui_vector(cursorPos.x, cursorPos.y));
 }
 
 static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
-  const UiRect       currentRect  = *ui_build_rect_currect(state);
-  const UiBuildStyle currentStyle = *ui_build_style_currect(state);
+  const UiRect       layoutRect = *ui_build_rect_currect(state);
+  const UiRect       container  = *ui_build_container_currect(state);
+  const UiBuildStyle style      = *ui_build_style_currect(state);
 
-  if (cmd->flags & UiFlags_Interactable && ui_build_is_hovered(state, currentRect)) {
+  if (ui_build_cull(container, layoutRect, style)) {
+    return;
+  }
+  if (cmd->flags & UiFlags_Interactable && ui_build_is_hovered(state, layoutRect)) {
     state->hoveredId = cmd->id;
   }
 
   const UiTextBuildResult result = ui_text_build(
       state->font,
-      currentRect,
+      layoutRect,
       cmd->text,
       cmd->fontSize,
-      currentStyle.color,
-      currentStyle.outline,
-      currentStyle.layer,
+      style.color,
+      style.outline,
+      style.layer,
       cmd->align,
       state,
       &ui_build_text_char);
@@ -181,36 +202,40 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
 }
 
 static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
-  const UiRect       currentRect  = *ui_build_rect_currect(state);
-  const UiBuildStyle currentStyle = *ui_build_style_currect(state);
+  const UiRect       layoutRect = *ui_build_rect_currect(state);
+  const UiRect       container  = *ui_build_container_currect(state);
+  const UiBuildStyle style      = *ui_build_style_currect(state);
 
-  if (cmd->flags & UiFlags_Interactable && ui_build_is_hovered(state, currentRect)) {
+  if (ui_build_cull(container, layoutRect, style)) {
+    return;
+  }
+  if (cmd->flags & UiFlags_Interactable && ui_build_is_hovered(state, layoutRect)) {
     state->hoveredId = cmd->id;
   }
-  state->ctx->outputRect(state->ctx->userCtx, cmd->id, currentRect);
+  state->ctx->outputRect(state->ctx->userCtx, cmd->id, layoutRect);
 
   const AssetFtxChar* ch = asset_ftx_lookup(state->font, cmd->cp);
   if (sentinel_check(ch->glyphIndex)) {
     return; // No glyph for the given codepoint.
   }
-  const f32    halfMinDim = math_min(currentRect.width, currentRect.height) * 0.5f;
+  const f32    halfMinDim = math_min(layoutRect.width, layoutRect.height) * 0.5f;
   const f32    corner     = cmd->maxCorner ? math_min(cmd->maxCorner, halfMinDim) : halfMinDim;
   const f32    border     = ch->border * corner * 2.0f;
   const UiRect rect       = {
-      .pos  = {currentRect.x - border, currentRect.y - border},
-      .size = {currentRect.width + border * 2, currentRect.height + border * 2},
+      .pos  = {layoutRect.x - border, layoutRect.y - border},
+      .size = {layoutRect.width + border * 2, layoutRect.height + border * 2},
   };
   state->ctx->outputGlyph(
       state->ctx->userCtx,
       (UiGlyphData){
           .rect         = rect,
-          .color        = currentStyle.color,
+          .color        = style.color,
           .atlasIndex   = ch->glyphIndex,
           .borderFrac   = (u16)(border / rect.size.width * u16_max),
           .cornerFrac   = (u16)((corner + border) / rect.size.width * u16_max),
-          .outlineWidth = currentStyle.outline,
+          .outlineWidth = style.outline,
       },
-      currentStyle.layer);
+      style.layer);
 }
 
 static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
