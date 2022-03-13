@@ -7,7 +7,6 @@
 #include "ui.h"
 
 static const f32     g_debugStatsSmoothFactor = 0.1f;
-static const u16     g_debugStatsFontSize     = 18;
 static const UiColor g_debugWarnColor         = {255, 255, 0, 255};
 static const UiColor g_debugErrorColor        = {255, 0, 0, 255};
 
@@ -92,7 +91,7 @@ static void debug_action_close(UiCanvasComp* canvas, GapWindowComp* win) {
 static void debug_action_bar_draw(
     EcsWorld* world, DebugMenuComp* menu, UiCanvasComp* canvas, GapWindowComp* win) {
 
-  UiGridState grid = ui_grid_init(canvas, .align = UiAlign_TopRight, .size = {50, 50});
+  UiGridState grid = ui_grid_init(canvas, .align = UiAlign_TopRight, .size = {40, 40});
 
   debug_action_stats(menu, canvas);
   ui_grid_next_row(canvas, &grid);
@@ -162,9 +161,10 @@ debug_stats_draw(UiCanvasComp* canvas, const DebugStats* stats, const RendStatsC
   fmt_write(&str, "{<9} textures\n", fmt_int(rendStats->resources[RendStatRes_Texture]));
   // clang-format on
 
+  ui_style_push(canvas);
   ui_style_outline(canvas, 2);
-  ui_canvas_draw_text(
-      canvas, dynstring_view(&str), g_debugStatsFontSize, UiAlign_TopLeft, UiFlags_None);
+  ui_label(canvas, dynstring_view(&str), .align = UiAlign_TopLeft);
+  ui_style_pop(canvas);
 }
 
 static void
