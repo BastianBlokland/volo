@@ -1,6 +1,7 @@
 #include "asset_ftx.h"
 #include "core_diag.h"
 #include "ecs_world.h"
+#include "gap_register.h"
 #include "gap_window.h"
 #include "rend_draw.h"
 #include "ui_register.h"
@@ -19,11 +20,11 @@ ecs_comp_define(UiCanvasComp) {
   UiId         nextId;
   DynArray     elements;      // UiElement[]
   DynArray     overlayGlyphs; // UiGlyphData[]
-  UiVector     windowSize, windowCursor;
+  UiVector     windowSize;
+  UiVector     inputDelta, inputPos;
   UiId         activeId;
   UiStatus     activeStatus;
   TimeSteady   activeStatusStart;
-  UiVector     inputDelta, inputPos;
 };
 
 static void ecs_destruct_canvas(void* data) {
@@ -46,7 +47,7 @@ static const UiElement* ui_build_elem(const UiCanvasComp* canvas, const UiId id)
   return dynarray_at_t(&canvas->elements, id, UiElement);
 }
 
-static void ui_canvas_output_draw(void* userCtx, const UiDrawData data) {
+static void ui_canvas_output_meta(void* userCtx, const UiMetaData data) {
   UiRenderState* renderState = userCtx;
   rend_draw_set_data(renderState->draw, mem_var(data));
 }
@@ -77,13 +78,8 @@ static void ui_canvas_set_active(UiCanvasComp* canvas, const UiId id, const UiSt
   canvas->activeStatusStart = time_steady_clock();
 }
 
-static void ui_canvas_update_input(
+static void ui_canvas_update_active(
     UiCanvasComp* canvas, const GapWindowComp* window, const UiBuildResult result) {
-
-  const GapVector cursorDelta = gap_window_param(window, GapParam_CursorDelta);
-  const GapVector cursorPos   = gap_window_param(window, GapParam_CursorPos);
-  canvas->inputDelta          = ui_vector(cursorDelta.x, cursorDelta.y);
-  canvas->inputPos            = ui_vector(cursorPos.x, cursorPos.y);
 
   const bool inputDown     = gap_window_key_down(window, GapKey_MouseLeft);
   const bool inputReleased = gap_window_key_released(window, GapKey_MouseLeft);
@@ -110,7 +106,7 @@ static void ui_canvas_update_input(
       sentinel_check(result.hoveredId) ? UiStatus_Idle : UiStatus_Hovered);
 }
 
-static void ui_canvas_render(
+static UiBuildResult ui_canvas_render(
     UiCanvasComp*        canvas,
     RendDrawComp*        draw,
     const GapWindowComp* window,
@@ -133,7 +129,7 @@ static void ui_canvas_render(
       .window      = window,
       .font        = font,
       .userCtx     = &renderState,
-      .outputDraw  = &ui_canvas_output_draw,
+      .outputMeta  = &ui_canvas_output_meta,
       .outputGlyph = &ui_canvas_output_glyph,
       .outputRect  = &ui_canvas_output_rect,
   };
@@ -144,7 +140,7 @@ static void ui_canvas_render(
     rend_draw_add_instance(draw, mem_var(*glyph), SceneTags_None, (GeoBox){0});
   }
 
-  ui_canvas_update_input(canvas, window, result);
+  return result;
 }
 
 ecs_view_define(GlobalResourcesView) { ecs_access_read(UiGlobalResourcesComp); }
@@ -165,6 +161,31 @@ static const UiGlobalResourcesComp* ui_global_resources(EcsWorld* world) {
 static const AssetFtxComp* ui_global_font(EcsWorld* world, const EcsEntityId entity) {
   EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(world, FtxView), entity);
   return itr ? ecs_view_read_t(itr, AssetFtxComp) : null;
+}
+
+ecs_system_define(UiCanvasInputSys) {
+  EcsView*     windowView = ecs_world_view_t(world, WindowView);
+  EcsIterator* windowItr  = ecs_view_itr(windowView);
+
+  EcsView* buildView = ecs_world_view_t(world, CanvasBuildView);
+  for (EcsIterator* itr = ecs_view_itr(buildView); ecs_view_walk(itr);) {
+    UiCanvasComp* canvas = ecs_view_write_t(itr, UiCanvasComp);
+    if (!ecs_view_maybe_jump(windowItr, canvas->window)) {
+      continue;
+    }
+    const GapWindowComp* window      = ecs_view_read_t(windowItr, GapWindowComp);
+    const GapVector      windowSize  = gap_window_param(window, GapParam_WindowSize);
+    const GapVector      cursorDelta = gap_window_param(window, GapParam_CursorDelta);
+    const GapVector      cursorPos   = gap_window_param(window, GapParam_CursorPos);
+
+    if (gap_window_events(window) & GapWindowEvents_FocusLost) {
+      ui_canvas_set_active(canvas, sentinel_u64, UiStatus_Idle);
+    }
+
+    canvas->windowSize = ui_vector(windowSize.x, windowSize.y);
+    canvas->inputDelta = ui_vector(cursorDelta.x, cursorDelta.y);
+    canvas->inputPos   = ui_vector(cursorPos.x, cursorPos.y);
+  }
 }
 
 ecs_system_define(UiCanvasBuildSys) {
@@ -188,19 +209,12 @@ ecs_system_define(UiCanvasBuildSys) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
       continue;
     }
-    const GapWindowComp* window       = ecs_view_read_t(windowItr, GapWindowComp);
-    const GapVector      windowSize   = gap_window_param(window, GapParam_WindowSize);
-    const GapVector      windowCursor = gap_window_param(window, GapParam_CursorPos);
-    canvas->windowSize                = ui_vector(windowSize.x, windowSize.y);
-    canvas->windowCursor              = ui_vector(windowCursor.x, windowCursor.y);
-
-    if (gap_window_events(window) & GapWindowEvents_FocusLost) {
-      ui_canvas_set_active(canvas, sentinel_u64, UiStatus_Idle);
-    }
+    const GapWindowComp* window = ecs_view_read_t(windowItr, GapWindowComp);
 
     rend_draw_set_graphic(draw, ui_resource_graphic(globalRes));
 
-    ui_canvas_render(canvas, draw, window, font);
+    const UiBuildResult buildResult = ui_canvas_render(canvas, draw, window, font);
+    ui_canvas_update_active(canvas, window, buildResult);
   }
 }
 
@@ -212,6 +226,8 @@ ecs_module_init(ui_canvas_module) {
   ecs_register_view(FtxView);
   ecs_register_view(WindowView);
 
+  ecs_register_system(UiCanvasInputSys, ecs_view_id(CanvasBuildView), ecs_view_id(WindowView));
+
   ecs_register_system(
       UiCanvasBuildSys,
       ecs_view_id(CanvasBuildView),
@@ -219,6 +235,7 @@ ecs_module_init(ui_canvas_module) {
       ecs_view_id(FtxView),
       ecs_view_id(WindowView));
 
+  ecs_order(UiCanvasInputSys, GapOrder_WindowUpdate + 1);
   ecs_order(UiCanvasBuildSys, UiOrder_CanvasBuild);
 }
 
@@ -262,52 +279,9 @@ UiRect ui_canvas_elem_rect(const UiCanvasComp* comp, const UiId id) {
 }
 
 UiVector ui_canvas_window_size(const UiCanvasComp* comp) { return comp->windowSize; }
-UiVector ui_canvas_window_cursor(const UiCanvasComp* comp) { return comp->windowCursor; }
 
 UiVector ui_canvas_input_delta(const UiCanvasComp* comp) { return comp->inputDelta; }
 UiVector ui_canvas_input_pos(const UiCanvasComp* comp) { return comp->inputPos; }
-
-void ui_canvas_rect_push(UiCanvasComp* comp) { ui_cmd_push_rect_push(comp->cmdBuffer); }
-void ui_canvas_rect_pop(UiCanvasComp* comp) { ui_cmd_push_rect_pop(comp->cmdBuffer); }
-
-void ui_canvas_rect_pos(
-    UiCanvasComp*  comp,
-    const UiVector pos,
-    const UiOrigin origin,
-    const UiUnits  unit,
-    const UiAxis   axis) {
-  ui_cmd_push_rect_pos(comp->cmdBuffer, pos, origin, unit, axis);
-}
-
-void ui_canvas_rect_size(
-    UiCanvasComp* comp, const UiVector size, const UiUnits unit, const UiAxis axis) {
-  diag_assert_msg(size.x >= 0.0f && size.y >= 0.0f, "Negative sizes are not supported");
-  ui_cmd_push_rect_size(comp->cmdBuffer, size, unit, axis);
-}
-
-void ui_canvas_rect_size_to(
-    UiCanvasComp*  comp,
-    const UiVector pos,
-    const UiOrigin origin,
-    const UiUnits  unit,
-    const UiAxis   axis) {
-  ui_cmd_push_rect_size_to(comp->cmdBuffer, pos, origin, unit, axis);
-}
-
-void ui_canvas_style_push(UiCanvasComp* comp) { ui_cmd_push_style_push(comp->cmdBuffer); }
-void ui_canvas_style_pop(UiCanvasComp* comp) { ui_cmd_push_style_pop(comp->cmdBuffer); }
-
-void ui_canvas_style_color(UiCanvasComp* comp, const UiColor color) {
-  ui_cmd_push_style_color(comp->cmdBuffer, color);
-}
-
-void ui_canvas_style_outline(UiCanvasComp* comp, const u8 outline) {
-  ui_cmd_push_style_outline(comp->cmdBuffer, outline);
-}
-
-void ui_canvas_style_layer(UiCanvasComp* comp, const UiLayer layer) {
-  ui_cmd_push_style_layer(comp->cmdBuffer, layer);
-}
 
 UiId ui_canvas_draw_text(
     UiCanvasComp* comp,
@@ -329,3 +303,5 @@ UiId ui_canvas_draw_glyph(
   ui_cmd_push_draw_glyph(comp->cmdBuffer, id, cp, maxCorner, flags);
   return id;
 }
+
+UiCmdBuffer* ui_canvas_cmd_buffer(UiCanvasComp* canvas) { return canvas->cmdBuffer; }

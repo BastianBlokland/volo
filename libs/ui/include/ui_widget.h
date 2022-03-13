@@ -1,6 +1,12 @@
 #pragma once
 #include "ecs_module.h"
-#include "ui_canvas.h"
+#include "ui_color.h"
+#include "ui_rect.h"
+
+// Forward declare from 'ui_canvas.h'.
+typedef u64 UiId;
+
+ecs_comp_extern(UiCanvasComp);
 
 typedef struct {
   String  label;

@@ -5,6 +5,7 @@
 #include "ecs_module.h"
 #include "ui_color.h"
 #include "ui_rect.h"
+#include "ui_units.h"
 
 /**
  * Identifier for an ui-element.
@@ -13,60 +14,12 @@
  */
 typedef u64 UiId;
 
-/**
- * Ui coordinate origin.
- */
-typedef enum {
-  UiOrigin_Current, // Currently active position.
-  UiOrigin_Cursor,
-  UiOrigin_WindowBottomLeft,
-  UiOrigin_WindowBottomRight,
-  UiOrigin_WindowTopLeft,
-  UiOrigin_WindowTopRight,
-} UiOrigin;
-
-/**
- * Ui coordinate scale.
- * For example 0.5 Window units means the middle of the window.
- */
-typedef enum {
-  UiUnits_Current, // Fraction of currently active size.
-  UiUnits_Absolute,
-  UiUnits_Window,
-} UiUnits;
-
-/**
- * Alignment relative to the active rectangle.
- */
-typedef enum {
-  UiAlign_TopLeft,
-  UiAlign_TopCenter,
-  UiAlign_TopRight,
-  UiAlign_MiddleLeft,
-  UiAlign_MiddleCenter,
-  UiAlign_MiddleRight,
-  UiAlign_BottomLeft,
-  UiAlign_BottomCenter,
-  UiAlign_BottomRight,
-} UiAlign;
-
 typedef enum {
   UiStatus_Idle,
   UiStatus_Hovered,
   UiStatus_Pressed,
   UiStatus_Activated,
 } UiStatus;
-
-typedef enum {
-  UiLayer_Normal,
-  UiLayer_Overlay,
-} UiLayer;
-
-typedef enum {
-  Ui_X  = 1 << 0,
-  Ui_Y  = 1 << 1,
-  Ui_XY = Ui_X | Ui_Y,
-} UiAxis;
 
 typedef enum {
   UiFlags_None         = 0,
@@ -96,41 +49,12 @@ UiRect       ui_canvas_elem_rect(const UiCanvasComp*, UiId);
  * Query information about the window.
  */
 UiVector ui_canvas_window_size(const UiCanvasComp*);
-UiVector ui_canvas_window_cursor(const UiCanvasComp*);
 
 /**
  * Query input information.
  */
 UiVector ui_canvas_input_delta(const UiCanvasComp*);
 UiVector ui_canvas_input_pos(const UiCanvasComp*);
-
-/**
- * Push / Pop an element to / from the rectangle stack.
- * Usefull for local changes to the current rectangle with an easy way to restore the previous.
- */
-void ui_canvas_rect_push(UiCanvasComp*);
-void ui_canvas_rect_pop(UiCanvasComp*);
-
-/**
- * Update the current rect.
- */
-void ui_canvas_rect_pos(UiCanvasComp*, UiVector, UiOrigin, UiUnits, UiAxis);
-void ui_canvas_rect_size(UiCanvasComp*, UiVector, UiUnits, UiAxis);
-void ui_canvas_rect_size_to(UiCanvasComp*, UiVector, UiOrigin, UiUnits, UiAxis);
-
-/**
- * Push / Pop an element to / from the style stack.
- * Usefull for local changes to the current style with an easy way to restore the previous.
- */
-void ui_canvas_style_push(UiCanvasComp*);
-void ui_canvas_style_pop(UiCanvasComp*);
-
-/**
- * Update the current style.
- */
-void ui_canvas_style_color(UiCanvasComp*, UiColor);
-void ui_canvas_style_outline(UiCanvasComp*, u8 outline);
-void ui_canvas_style_layer(UiCanvasComp*, UiLayer);
 
 /**
  * Draw text in the current rectangle.

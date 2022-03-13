@@ -12,14 +12,16 @@ const f32   c_outlineMin      = 0.01; // Outlines smaller then this will not be 
 
 bind_graphic(1) uniform sampler2D u_fontTexture;
 
-bind_internal(0) in f32v2 in_texCoord;       // Texture coordinates of this glyph.
-bind_internal(1) in flat f32v2 in_texOrigin; // Origin of the glyph in the font atlas.
-bind_internal(2) in flat f32 in_texScale;    // Scale of the glyph in the font atlas.
-bind_internal(3) in flat f32v4 in_color;
-bind_internal(4) in flat f32 in_invBorder;    // 1.0 / borderPixelSize
-bind_internal(5) in flat f32 in_outlineWidth; // Desired outline size in pixels.
-bind_internal(6) in flat f32 in_aspectRatio;  // Aspect ratio of the glyph
-bind_internal(7) in flat f32 in_cornerFrac;   // Corner size in fractions of the glyph width.
+bind_internal(0) in f32v2 in_uiPos;          // Coordinates in ui pixels.
+bind_internal(1) in f32v2 in_texCoord;       // Texture coordinates of this glyph.
+bind_internal(2) in flat f32v4 in_clipRect;  // Clipping rectangle in ui pixel coordinates.
+bind_internal(3) in flat f32v2 in_texOrigin; // Origin of the glyph in the font atlas.
+bind_internal(4) in flat f32 in_texScale;    // Scale of the glyph in the font atlas.
+bind_internal(5) in flat f32v4 in_color;
+bind_internal(6) in flat f32 in_invBorder;    // 1.0 / borderPixelSize
+bind_internal(7) in flat f32 in_outlineWidth; // Desired outline size in pixels.
+bind_internal(8) in flat f32 in_aspectRatio;  // Aspect ratio of the glyph
+bind_internal(9) in flat f32 in_cornerFrac;   // Corner size in fractions of the glyph width.
 
 bind_internal(0) out f32v4 out_color;
 
@@ -89,7 +91,19 @@ f32 get_signed_dist_to_glyph(const f32v2 coord) {
   return texture(u_fontTexture, coord).r * 2.0 - 1.0;
 }
 
+/**
+ * Should the given point be clipped.
+ */
+bool clip(const f32v2 point) {
+  return point.x < in_clipRect.x || point.x > in_clipRect.x + in_clipRect.z ||
+         point.y < in_clipRect.y || point.y > in_clipRect.y + in_clipRect.w;
+}
+
 void main() {
+  if (clip(in_uiPos)) {
+    discard;
+  }
+
   const f32 smoothingNorm = min(c_smoothingPixels * in_invBorder, 1.0);
   const f32 outlineNorm   = min(in_outlineWidth * in_invBorder, c_outlineNormMax - smoothingNorm);
 

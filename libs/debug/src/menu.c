@@ -6,12 +6,12 @@
 #include "scene_time.h"
 #include "ui.h"
 
-static const UiVector g_debugActionBarButtonSize = {50, 50};
-static const f32      g_debugActionBarSpacing    = 10;
-static const f32      g_debugStatsSmoothFactor   = 0.1f;
-static const u16      g_debugStatsFontSize       = 18;
-static const UiColor  g_debugWarnColor           = {255, 255, 0, 255};
-static const UiColor  g_debugErrorColor          = {255, 0, 0, 255};
+static const UiVector g_debugBarButtonSize     = {50, 50};
+static const f32      g_debugBarSpacing        = 10;
+static const f32      g_debugStatsSmoothFactor = 0.1f;
+static const u16      g_debugStatsFontSize     = 18;
+static const UiColor  g_debugWarnColor         = {255, 255, 0, 255};
+static const UiColor  g_debugErrorColor        = {255, 0, 0, 255};
 
 typedef enum {
   DebugMenuFlags_ShowStats = 1 << 0,
@@ -42,12 +42,6 @@ ecs_view_define(MenuUpdateView) {
 ecs_view_define(WindowUpdateView) {
   ecs_access_write(GapWindowComp);
   ecs_access_read(RendStatsComp);
-}
-
-static void debug_action_bar_next(UiCanvasComp* canvas) {
-  ui_canvas_rect_pos(canvas, ui_vector(0, -1), UiOrigin_Current, UiUnits_Current, Ui_Y);
-  ui_canvas_rect_pos(
-      canvas, ui_vector(0, -g_debugActionBarSpacing), UiOrigin_Current, UiUnits_Absolute, Ui_Y);
 }
 
 static void debug_action_stats(DebugMenuComp* menu, UiCanvasComp* canvas) {
@@ -100,20 +94,20 @@ static void debug_action_close(UiCanvasComp* canvas, GapWindowComp* win) {
 static void debug_action_bar_draw(
     EcsWorld* world, DebugMenuComp* menu, UiCanvasComp* canvas, GapWindowComp* win) {
 
-  const UiVector offset = {g_debugActionBarButtonSize.x + g_debugActionBarSpacing, 0};
-  ui_canvas_rect_pos(canvas, offset, UiOrigin_WindowTopRight, UiUnits_Absolute, Ui_XY);
-  ui_canvas_rect_size(canvas, g_debugActionBarButtonSize, UiUnits_Absolute, Ui_XY);
+  ui_layout_inner(
+      canvas, UiBase_Container, UiAlign_TopRight, g_debugBarButtonSize, UiBase_Absolute);
+  ui_layout_move_dir(canvas, Ui_Left, g_debugBarSpacing, UiBase_Absolute);
+  ui_layout_move_dir(canvas, Ui_Down, g_debugBarSpacing, UiBase_Absolute);
 
-  debug_action_bar_next(canvas);
   debug_action_stats(menu, canvas);
+  ui_layout_next(canvas, Ui_Down, g_debugBarSpacing);
 
-  debug_action_bar_next(canvas);
   debug_action_fullscreen(menu, canvas, win);
+  ui_layout_next(canvas, Ui_Down, g_debugBarSpacing);
 
-  debug_action_bar_next(canvas);
   debug_action_new_window(world, canvas);
+  ui_layout_next(canvas, Ui_Down, g_debugBarSpacing);
 
-  debug_action_bar_next(canvas);
   debug_action_close(canvas, win);
 }
 
@@ -143,10 +137,11 @@ static void debug_stats_draw_dur(
 
 static void
 debug_stats_draw(UiCanvasComp* canvas, const DebugStats* stats, const RendStatsComp* rendStats) {
-  const UiVector textAreaSize = {500, 500};
-  const UiVector offset       = {10, textAreaSize.y + 10};
-  ui_canvas_rect_pos(canvas, offset, UiOrigin_WindowTopLeft, UiUnits_Absolute, Ui_XY);
-  ui_canvas_rect_size(canvas, textAreaSize, UiUnits_Absolute, Ui_XY);
+  static const UiVector g_textAreaSize  = {500, 500};
+  static const f32      g_textEdgeSpace = 10;
+  ui_layout_inner(canvas, UiBase_Container, UiAlign_TopLeft, g_textAreaSize, UiBase_Absolute);
+  ui_layout_move_dir(canvas, Ui_Right, g_textEdgeSpace, UiBase_Absolute);
+  ui_layout_move_dir(canvas, Ui_Down, g_textEdgeSpace, UiBase_Absolute);
 
   DynString str = dynstring_create(g_alloc_scratch, usize_kibibyte);
 

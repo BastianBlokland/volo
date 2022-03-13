@@ -43,45 +43,37 @@ void ui_cmd_push_rect_pop(UiCmdBuffer* buffer) {
 
 void ui_cmd_push_rect_pos(
     UiCmdBuffer*   buffer,
-    const UiVector pos,
-    const UiOrigin origin,
-    const UiUnits  unit,
+    const UiBase   origin,
+    const UiVector offset,
+    const UiBase   units,
     const UiAxis   axis) {
   *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
       .type    = UiCmd_RectPos,
       .rectPos = {
-          .pos    = pos,
           .origin = origin,
-          .unit   = unit,
+          .offset = offset,
+          .units  = units,
           .axis   = axis,
       }};
 }
 
 void ui_cmd_push_rect_size(
-    UiCmdBuffer* buffer, const UiVector size, const UiUnits unit, const UiAxis axis) {
+    UiCmdBuffer* buffer, const UiVector size, const UiBase units, const UiAxis axis) {
   *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
       .type     = UiCmd_RectSize,
       .rectSize = {
-          .size = size,
-          .unit = unit,
-          .axis = axis,
+          .size  = size,
+          .units = units,
+          .axis  = axis,
       }};
 }
 
-void ui_cmd_push_rect_size_to(
-    UiCmdBuffer*   buffer,
-    const UiVector pos,
-    const UiOrigin origin,
-    const UiUnits  unit,
-    const UiAxis   axis) {
-  *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
-      .type       = UiCmd_RectSizeTo,
-      .rectSizeTo = {
-          .pos    = pos,
-          .origin = origin,
-          .unit   = unit,
-          .axis   = axis,
-      }};
+void ui_cmd_push_container_push(UiCmdBuffer* buffer) {
+  *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){.type = UiCmd_ContainerPush};
+}
+
+void ui_cmd_push_container_pop(UiCmdBuffer* buffer) {
+  *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){.type = UiCmd_ContainerPop};
 }
 
 void ui_cmd_push_style_push(UiCmdBuffer* buffer) {

@@ -1,7 +1,6 @@
 #pragma once
 #include "core_annotation.h"
 #include "core_format.h"
-#include "core_types.h"
 
 /**
  * 2D Vector.
