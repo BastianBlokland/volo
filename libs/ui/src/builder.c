@@ -169,9 +169,10 @@ static bool ui_build_cull(const UiRect container, const UiRect rect, const UiBui
   }
 }
 
-static bool ui_build_is_hovered(UiBuildState* state, const UiRect rect) {
-  const GapVector cursorPos = gap_window_param(state->window, GapParam_CursorPos);
-  return ui_rect_contains(rect, ui_vector(cursorPos.x, cursorPos.y));
+static bool ui_build_is_hovered(UiBuildState* state, const UiRect container, const UiRect rect) {
+  const GapVector cursorPos   = gap_window_param(state->window, GapParam_CursorPos);
+  const UiVector  cursorUiPos = ui_vector(cursorPos.x, cursorPos.y);
+  return ui_rect_contains(container, cursorUiPos) && ui_rect_contains(rect, cursorUiPos);
 }
 
 static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
@@ -182,7 +183,7 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
   if (ui_build_cull(container, layoutRect, style)) {
     return;
   }
-  if (cmd->flags & UiFlags_Interactable && ui_build_is_hovered(state, layoutRect)) {
+  if (cmd->flags & UiFlags_Interactable && ui_build_is_hovered(state, container, layoutRect)) {
     state->hoveredId = cmd->id;
   }
 
@@ -209,7 +210,7 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
   if (ui_build_cull(container, layoutRect, style)) {
     return;
   }
-  if (cmd->flags & UiFlags_Interactable && ui_build_is_hovered(state, layoutRect)) {
+  if (cmd->flags & UiFlags_Interactable && ui_build_is_hovered(state, container, layoutRect)) {
     state->hoveredId = cmd->id;
   }
   state->ctx->outputRect(state->ctx->userCtx, cmd->id, layoutRect);
