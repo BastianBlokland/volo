@@ -94,7 +94,8 @@ static void debug_action_close(UiCanvasComp* canvas, GapWindowComp* win) {
 static void debug_action_bar_draw(
     EcsWorld* world, DebugMenuComp* menu, UiCanvasComp* canvas, GapWindowComp* win) {
 
-  ui_layout_inner(canvas, UiBase_Window, UiAlign_TopRight, g_debugBarButtonSize, UiBase_Absolute);
+  ui_layout_inner(
+      canvas, UiBase_Container, UiAlign_TopRight, g_debugBarButtonSize, UiBase_Absolute);
   ui_layout_move_dir(canvas, Ui_Left, g_debugBarSpacing, UiBase_Absolute);
   ui_layout_move_dir(canvas, Ui_Down, g_debugBarSpacing, UiBase_Absolute);
 
@@ -138,7 +139,7 @@ static void
 debug_stats_draw(UiCanvasComp* canvas, const DebugStats* stats, const RendStatsComp* rendStats) {
   static const UiVector g_textAreaSize  = {500, 500};
   static const f32      g_textEdgeSpace = 10;
-  ui_layout_inner(canvas, UiBase_Window, UiAlign_TopLeft, g_textAreaSize, UiBase_Absolute);
+  ui_layout_inner(canvas, UiBase_Container, UiAlign_TopLeft, g_textAreaSize, UiBase_Absolute);
   ui_layout_move_dir(canvas, Ui_Right, g_textEdgeSpace, UiBase_Absolute);
   ui_layout_move_dir(canvas, Ui_Down, g_textEdgeSpace, UiBase_Absolute);
 
