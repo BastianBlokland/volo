@@ -104,6 +104,8 @@ static void ui_slider_handle(
 
 static void ui_slider_label(UiCanvasComp* canvas, const f32 normValue, const UiSliderOpts* opts) {
   ui_layout_push(canvas);
+  ui_style_push(canvas);
+
   static const UiVector g_maxSize  = {100, 100};
   static const u16      g_fontSize = 15;
 
@@ -111,10 +113,13 @@ static void ui_slider_label(UiCanvasComp* canvas, const f32 normValue, const UiS
   ui_layout_resize(canvas, UiAlign_MiddleCenter, g_maxSize, UiBase_Absolute, Ui_XY);
   ui_layout_move_dir(canvas, Ui_Up, opts->handleSize + 1, UiBase_Absolute);
 
+  ui_style_layer(canvas, UiLayer_Overlay);
+
   const f32    value = math_lerp(opts->min, opts->max, normValue);
   const String label = fmt_write_scratch("{}", fmt_float(value, .maxDecDigits = 2));
   ui_canvas_draw_text(canvas, label, g_fontSize, UiAlign_MiddleCenter, UiFlags_None);
 
+  ui_style_pop(canvas);
   ui_layout_pop(canvas);
 }
 
