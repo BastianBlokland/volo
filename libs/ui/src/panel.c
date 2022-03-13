@@ -9,6 +9,10 @@
 
 static void ui_panel_clamp_to_window(UiCanvasComp* canvas, UiPanelState* state) {
   const UiVector windowSize = ui_canvas_window_size(canvas);
+  if (windowSize.x < 1 || windowSize.y < 1) {
+    return;
+  }
+
   if (state->flags & UiPanelFlags_Center) {
     state->rect.pos.x = (windowSize.x - state->rect.width) * 0.5f;
     state->rect.pos.y = (windowSize.y - state->rect.height) * 0.5f;
