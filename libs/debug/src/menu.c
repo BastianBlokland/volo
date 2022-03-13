@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "debug_grid.h"
 #include "debug_menu.h"
 #include "ecs_world.h"
 #include "gap_window.h"
@@ -41,68 +42,64 @@ ecs_view_define(WindowUpdateView) {
   ecs_access_read(RendStatsComp);
 }
 
-static void debug_action_stats(DebugMenuComp* menu, UiCanvasComp* canvas) {
-  const bool enabled = (menu->flags & DebugMenuFlags_ShowStats) != 0;
+static void debug_action_bar_draw(
+    EcsWorld*         world,
+    UiCanvasComp*     canvas,
+    DebugMenuComp*    menu,
+    GapWindowComp*    win,
+    const EcsEntityId winEntity) {
+
+  UiGridState grid = ui_grid_init(canvas, .align = UiAlign_TopRight, .size = {40, 40});
+
+  const bool statsEnabled = (menu->flags & DebugMenuFlags_ShowStats) != 0;
   if (ui_button(
           canvas,
-          .label   = ui_shape_scratch(enabled ? UiShape_LayersClear : UiShape_Layers),
-          .tooltip = enabled ? string_lit("Disable the statistics text")
-                             : string_lit("Enable the statistics text"))) {
+          .label   = ui_shape_scratch(statsEnabled ? UiShape_LayersClear : UiShape_Layers),
+          .tooltip = statsEnabled ? string_lit("Disable the statistics text")
+                                  : string_lit("Enable the statistics text"))) {
     menu->flags ^= DebugMenuFlags_ShowStats;
   }
-}
+  ui_grid_next_row(canvas, &grid);
 
-static void debug_action_fullscreen(DebugMenuComp* menu, UiCanvasComp* canvas, GapWindowComp* win) {
-  const bool active = gap_window_mode(win) == GapWindowMode_Fullscreen;
   if (ui_button(
           canvas,
-          .label   = ui_shape_scratch(active ? UiShape_FullscreenExit : UiShape_Fullscreen),
-          .tooltip = active ? string_lit("Exit fullscreen") : string_lit("Enter fullscreen"))) {
-    if (active) {
+          .label   = ui_shape_scratch(UiShape_Grid4x4),
+          .tooltip = string_lit("Open the grid settings panel"))) {
+    debug_grid_panel_open(world, winEntity);
+  }
+  ui_grid_next_row(canvas, &grid);
+
+  const bool fullscreen = gap_window_mode(win) == GapWindowMode_Fullscreen;
+  if (ui_button(
+          canvas,
+          .label   = ui_shape_scratch(fullscreen ? UiShape_FullscreenExit : UiShape_Fullscreen),
+          .tooltip = fullscreen ? string_lit("Exit fullscreen") : string_lit("Enter fullscreen"))) {
+    if (fullscreen) {
       gap_window_resize(win, menu->lastWindowedSize, GapWindowMode_Windowed);
     } else {
       menu->lastWindowedSize = gap_window_param(win, GapParam_WindowSize);
       gap_window_resize(win, gap_vector(0, 0), GapWindowMode_Fullscreen);
     }
   }
-}
-
-static void debug_action_new_window(EcsWorld* world, UiCanvasComp* canvas) {
-  static const GapVector newWindowSize = {1024, 768};
+  ui_grid_next_row(canvas, &grid);
 
   if (ui_button(
           canvas,
           .label   = ui_shape_scratch(UiShape_OpenInNew),
           .tooltip = string_lit("Open a new window"))) {
-    const EcsEntityId newWindow = gap_window_create(world, GapWindowFlags_Default, newWindowSize);
+    static const GapVector g_newWindowSize = {1024, 768};
+    const EcsEntityId newWindow = gap_window_create(world, GapWindowFlags_Default, g_newWindowSize);
     debug_menu_create(world, newWindow);
   }
-}
+  ui_grid_next_row(canvas, &grid);
 
-static void debug_action_close(UiCanvasComp* canvas, GapWindowComp* win) {
   if (ui_button(
           canvas,
           .label   = ui_shape_scratch(UiShape_Logout),
           .tooltip = string_lit("Close the window (Escape)"))) {
     gap_window_close(win);
   }
-}
-
-static void debug_action_bar_draw(
-    EcsWorld* world, DebugMenuComp* menu, UiCanvasComp* canvas, GapWindowComp* win) {
-
-  UiGridState grid = ui_grid_init(canvas, .align = UiAlign_TopRight, .size = {40, 40});
-
-  debug_action_stats(menu, canvas);
   ui_grid_next_row(canvas, &grid);
-
-  debug_action_fullscreen(menu, canvas, win);
-  ui_grid_next_row(canvas, &grid);
-
-  debug_action_new_window(world, canvas);
-  ui_grid_next_row(canvas, &grid);
-
-  debug_action_close(canvas, win);
 }
 
 static void debug_stats_draw_dur(
@@ -189,7 +186,8 @@ ecs_system_define(DebugMenuUpdateSys) {
     if (!ecs_view_maybe_jump(windowItr, menu->window)) {
       continue;
     }
-    GapWindowComp*       window    = ecs_view_write_t(windowItr, GapWindowComp);
+    GapWindowComp*       win       = ecs_view_write_t(windowItr, GapWindowComp);
+    const EcsEntityId    winEntity = ecs_view_entity(windowItr);
     const RendStatsComp* rendStats = ecs_view_read_t(windowItr, RendStatsComp);
 
     if (time) {
@@ -200,7 +198,7 @@ ecs_system_define(DebugMenuUpdateSys) {
     if (menu->flags & DebugMenuFlags_ShowStats) {
       debug_stats_draw(canvas, &menu->stats, rendStats);
     }
-    debug_action_bar_draw(world, menu, canvas, window);
+    debug_action_bar_draw(world, canvas, menu, win, winEntity);
   }
 }
 
