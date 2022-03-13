@@ -72,7 +72,7 @@ typedef struct {
   &((UiSliderOpts){                                                                                \
     .min        = 0,                                                                               \
     .max        = 1,                                                                               \
-    .barHeight  = 8,                                                                               \
+    .barHeight  = 9,                                                                               \
     .handleSize = 20,                                                                              \
     .barColor   = ui_color(32, 32, 32, 192),                                                       \
     __VA_ARGS__}))

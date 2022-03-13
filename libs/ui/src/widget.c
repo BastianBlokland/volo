@@ -68,7 +68,7 @@ static void ui_slider_bar(UiCanvasComp* canvas, const UiStatus status, const UiS
   case UiStatus_Hovered:
   case UiStatus_Pressed:
   case UiStatus_Activated:
-    ui_style_color_with_mult(canvas, opts->barColor, 2);
+    ui_style_color_with_mult(canvas, opts->barColor, 1.5);
     break;
   case UiStatus_Idle:
     ui_style_color(canvas, opts->barColor);
@@ -86,6 +86,7 @@ static void ui_slider_handle(
   ui_style_push(canvas);
 
   const UiVector handleSize = ui_vector(opts->handleSize, opts->handleSize);
+  ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-handleSize.x, 0), UiBase_Absolute, Ui_X);
   ui_layout_move(canvas, ui_vector(normValue, 0.5f), UiBase_Current, Ui_XY);
   ui_layout_resize(canvas, UiAlign_MiddleCenter, handleSize, UiBase_Absolute, Ui_XY);
 
@@ -102,26 +103,19 @@ static void ui_slider_handle(
   }
   ui_canvas_draw_glyph(canvas, UiShape_Circle, 0, UiFlags_Interactable);
 
-  ui_style_pop(canvas);
-  ui_layout_pop(canvas);
-}
+  if (status >= UiStatus_Hovered) {
+    ui_layout_move(canvas, ui_vector(0.5, 1), UiBase_Current, Ui_XY);
+    ui_layout_resize(canvas, UiAlign_BottomCenter, ui_vector(100, 100), UiBase_Absolute, Ui_XY);
 
-static void ui_slider_label(UiCanvasComp* canvas, const f32 normValue, const UiSliderOpts* opts) {
-  ui_layout_push(canvas);
-  ui_style_push(canvas);
+    ui_style_outline(canvas, 2);
+    ui_style_layer(canvas, UiLayer_Overlay);
 
-  static const UiVector g_maxSize  = {100, 100};
-  static const u16      g_fontSize = 15;
-
-  ui_layout_move(canvas, ui_vector(normValue, 0.5f), UiBase_Current, Ui_XY);
-  ui_layout_resize(canvas, UiAlign_MiddleCenter, g_maxSize, UiBase_Absolute, Ui_XY);
-  ui_layout_move_dir(canvas, Ui_Up, opts->handleSize + 1, UiBase_Absolute);
-
-  ui_style_layer(canvas, UiLayer_Overlay);
-
-  const f32    value = math_lerp(opts->min, opts->max, normValue);
-  const String label = fmt_write_scratch("{}", fmt_float(value, .maxDecDigits = 2));
-  ui_canvas_draw_text(canvas, label, g_fontSize, UiAlign_MiddleCenter, UiFlags_None);
+    const f32    value = math_lerp(opts->min, opts->max, normValue);
+    const String label = fmt_write_scratch("{}", fmt_float(value, .maxDecDigits = 2));
+    ui_canvas_draw_text(canvas, label, 15, UiAlign_BottomCenter, UiFlags_None);
+  } else {
+    ui_canvas_id_skip(canvas);
+  }
 
   ui_style_pop(canvas);
   ui_layout_pop(canvas);
@@ -133,12 +127,14 @@ bool ui_slider_with_opts(UiCanvasComp* canvas, f32* input, const UiSliderOpts* o
   const UiStatus status =
       math_max(ui_canvas_elem_status(canvas, barId), ui_canvas_elem_status(canvas, handleId));
 
-  const UiRect   barRect  = ui_canvas_elem_rect(canvas, barId);
-  const UiVector inputPos = ui_canvas_input_pos(canvas);
+  const f32      halfHandleSize = opts->handleSize * 0.5f;
+  const UiRect   barRect        = ui_canvas_elem_rect(canvas, barId);
+  const UiVector inputPos       = ui_canvas_input_pos(canvas);
 
   f32 normValue;
   if (status >= UiStatus_Pressed) {
-    normValue = math_unlerp(barRect.x, barRect.x + barRect.width, inputPos.x);
+    normValue = math_unlerp(
+        barRect.x + halfHandleSize, barRect.x + barRect.width - halfHandleSize, inputPos.x);
   } else {
     normValue = math_unlerp(opts->min, opts->max, *input);
   }
@@ -146,12 +142,6 @@ bool ui_slider_with_opts(UiCanvasComp* canvas, f32* input, const UiSliderOpts* o
 
   ui_slider_bar(canvas, status, opts);
   ui_slider_handle(canvas, status, normValue, opts);
-
-  if (status >= UiStatus_Hovered) {
-    ui_slider_label(canvas, normValue, opts);
-  } else {
-    ui_canvas_id_skip(canvas);
-  }
 
   if (!string_is_empty(opts->tooltip)) {
     ui_tooltip(canvas, barId, opts->tooltip);
@@ -170,7 +160,7 @@ static void ui_toggle_check(UiCanvasComp* canvas, const UiStatus status, const U
 
   ui_style_push(canvas);
 
-  ui_style_outline(canvas, status == UiStatus_Hovered ? 4 : 3);
+  ui_style_outline(canvas, status == UiStatus_Hovered ? 3 : 2);
   ui_canvas_draw_glyph(canvas, UiShape_Check, 0, UiFlags_None);
 
   ui_style_pop(canvas);
