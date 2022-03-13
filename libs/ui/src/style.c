@@ -20,13 +20,14 @@ void ui_style_color(UiCanvasComp* canvas, const UiColor color) {
 }
 
 void ui_style_color_with_mult(UiCanvasComp* canvas, const UiColor color, const f32 mult) {
-  ui_style_color(
-      canvas,
-      ui_color(
-          (u8)math_min(color.r * mult, u8_max),
-          (u8)math_min(color.g * mult, u8_max),
-          (u8)math_min(color.b * mult, u8_max),
-          color.a));
+  UiCmdBuffer* cmdBuffer = ui_canvas_cmd_buffer(canvas);
+  ui_cmd_push_style_color(cmdBuffer, color);
+  ui_cmd_push_style_color_mult(cmdBuffer, mult);
+}
+
+void ui_style_color_mult(UiCanvasComp* canvas, const f32 mult) {
+  UiCmdBuffer* cmdBuffer = ui_canvas_cmd_buffer(canvas);
+  ui_cmd_push_style_color_mult(cmdBuffer, mult);
 }
 
 void ui_style_outline(UiCanvasComp* canvas, const u8 outline) {

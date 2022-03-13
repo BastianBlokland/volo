@@ -313,6 +313,14 @@ static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
   case UiCmd_StyleColor:
     ui_build_style_currect(state)->color = cmd->styleColor.value;
     break;
+  case UiCmd_StyleColorMult: {
+    const UiColor cur                    = ui_build_style_currect(state)->color;
+    ui_build_style_currect(state)->color = ui_color(
+        (u8)math_min(cur.r * cmd->styleColorMult.value, u8_max),
+        (u8)math_min(cur.g * cmd->styleColorMult.value, u8_max),
+        (u8)math_min(cur.b * cmd->styleColorMult.value, u8_max),
+        cur.a);
+  } break;
   case UiCmd_StyleOutline:
     ui_build_style_currect(state)->outline = cmd->styleOutline.value;
     break;

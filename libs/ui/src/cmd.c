@@ -103,6 +103,14 @@ void ui_cmd_push_style_color(UiCmdBuffer* buffer, const UiColor color) {
       }};
 }
 
+void ui_cmd_push_style_color_mult(UiCmdBuffer* buffer, const f32 value) {
+  *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
+      .type           = UiCmd_StyleColorMult,
+      .styleColorMult = {
+          .value = value,
+      }};
+}
+
 void ui_cmd_push_style_outline(UiCmdBuffer* buffer, const u8 outline) {
   *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
       .type         = UiCmd_StyleOutline,

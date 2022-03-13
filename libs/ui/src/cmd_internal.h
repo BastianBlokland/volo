@@ -14,6 +14,7 @@ typedef enum {
   UiCmd_StylePush,
   UiCmd_StylePop,
   UiCmd_StyleColor,
+  UiCmd_StyleColorMult,
   UiCmd_StyleOutline,
   UiCmd_StyleLayer,
   UiCmd_DrawText,
@@ -44,6 +45,10 @@ typedef struct {
 } UiStyleColor;
 
 typedef struct {
+  f32 value;
+} UiStyleColorMult;
+
+typedef struct {
   u8 value;
 } UiStyleOutline;
 
@@ -69,14 +74,15 @@ typedef struct {
 typedef struct {
   UiCmdType type;
   union {
-    UiRectPos      rectPos;
-    UiRectSize     rectSize;
-    UiRectSizeGrow rectSizeGrow;
-    UiStyleColor   styleColor;
-    UiStyleOutline styleOutline;
-    UiStyleLayer   styleLayer;
-    UiDrawText     drawText;
-    UiDrawGlyph    drawGlyph;
+    UiRectPos        rectPos;
+    UiRectSize       rectSize;
+    UiRectSizeGrow   rectSizeGrow;
+    UiStyleColor     styleColor;
+    UiStyleColorMult styleColorMult;
+    UiStyleOutline   styleOutline;
+    UiStyleLayer     styleLayer;
+    UiDrawText       drawText;
+    UiDrawGlyph      drawGlyph;
   };
 } UiCmd;
 
@@ -96,6 +102,7 @@ void ui_cmd_push_container_pop(UiCmdBuffer*);
 void ui_cmd_push_style_push(UiCmdBuffer*);
 void ui_cmd_push_style_pop(UiCmdBuffer*);
 void ui_cmd_push_style_color(UiCmdBuffer*, UiColor);
+void ui_cmd_push_style_color_mult(UiCmdBuffer*, f32 value);
 void ui_cmd_push_style_outline(UiCmdBuffer*, u8 outline);
 void ui_cmd_push_style_layer(UiCmdBuffer*, UiLayer);
 void ui_cmd_push_draw_text(UiCmdBuffer*, UiId, String text, u16 fontSize, UiAlign, UiFlags);
