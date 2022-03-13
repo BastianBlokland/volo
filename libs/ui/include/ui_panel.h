@@ -19,5 +19,21 @@ typedef struct {
   UiRect          rect;
 } UiPanel;
 
-void ui_panel_begin(UiCanvasComp*, UiPanel*, String title);
+typedef struct {
+  String title;
+} UiPanelOpts;
+
+// clang-format off
+
+/**
+ * Draws a basic movable panel and sets an active container for drawing its contents.
+ * NOTE: Should be followed by a 'ui_panel_end()'.
+ * NOTE: Its important that the panel has a stable identifier in the canvas.
+ */
+#define ui_panel_begin(_CANVAS_, _PANEL_, ...) ui_panel_begin_with_opts((_CANVAS_), (_PANEL_),     \
+  &((UiPanelOpts){__VA_ARGS__}))
+
+// clang-format on
+
+void ui_panel_begin_with_opts(UiCanvasComp*, UiPanel*, const UiPanelOpts*);
 void ui_panel_end(UiCanvasComp*, UiPanel*);

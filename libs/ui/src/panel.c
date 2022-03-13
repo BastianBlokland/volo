@@ -12,13 +12,13 @@ static void ui_panel_clamp_to_window(UiCanvasComp* canvas, UiPanel* panel) {
   panel->rect.pos.y = math_clamp_f32(panel->rect.pos.y, 0, windowSize.y - panel->rect.height);
 }
 
-static void ui_panel_topbar_title(UiCanvasComp* canvas, const String title) {
+static void ui_panel_topbar_title(UiCanvasComp* canvas, const UiPanelOpts* opts) {
   ui_layout_push(canvas);
   ui_style_push(canvas);
 
   ui_style_outline(canvas, 2);
   ui_layout_move_dir(canvas, Ui_Right, 5, UiBase_Absolute);
-  ui_canvas_draw_text(canvas, title, 18, UiAlign_MiddleLeft, UiFlags_None);
+  ui_canvas_draw_text(canvas, opts->title, 18, UiAlign_MiddleLeft, UiFlags_None);
 
   ui_style_pop(canvas);
   ui_layout_pop(canvas);
@@ -86,7 +86,7 @@ static void ui_panel_topbar_background(UiCanvasComp* canvas, UiPanel* panel) {
   ui_style_pop(canvas);
 }
 
-static void ui_panel_topbar(UiCanvasComp* canvas, UiPanel* panel, const String title) {
+static void ui_panel_topbar(UiCanvasComp* canvas, UiPanel* panel, const UiPanelOpts* opts) {
   const UiStatus status = ui_canvas_elem_status(canvas, ui_canvas_id_peek(canvas));
   if (status == UiStatus_Pressed) {
     const UiVector inputDelta = ui_canvas_input_delta(canvas);
@@ -102,7 +102,7 @@ static void ui_panel_topbar(UiCanvasComp* canvas, UiPanel* panel, const String t
   ui_layout_resize(canvas, UiAlign_TopCenter, ui_vector(0, 23), UiBase_Absolute, Ui_Y);
 
   ui_panel_topbar_background(canvas, panel);
-  ui_panel_topbar_title(canvas, title);
+  ui_panel_topbar_title(canvas, opts);
   ui_panel_topbar_close_button(canvas, panel);
 
   ui_layout_pop(canvas);
@@ -124,8 +124,8 @@ static void ui_panel_background(UiCanvasComp* canvas, UiPanel* panel) {
   ui_style_pop(canvas);
 }
 
-void ui_panel_begin(UiCanvasComp* canvas, UiPanel* panel, const String title) {
-  ui_panel_topbar(canvas, panel, title);
+void ui_panel_begin_with_opts(UiCanvasComp* canvas, UiPanel* panel, const UiPanelOpts* opts) {
+  ui_panel_topbar(canvas, panel, opts);
 
   ui_layout_push(canvas);
 
