@@ -3,7 +3,6 @@
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "gap_window.h"
-#include "scene_grid.h"
 #include "scene_renderable.h"
 #include "scene_tag.h"
 
@@ -17,16 +16,16 @@ typedef struct {
   f32 cellSize;
   u32 segments;
   u32 highlightInterval;
-} SceneGridData;
+} DebugGridData;
 
-ecs_comp_define(SceneGridComp);
+ecs_comp_define(DebugGridComp) { f32 cellSize; };
 
 ecs_view_define(GlobalAssetsView) { ecs_access_write(AssetManagerComp); }
 ecs_view_define(WindowView) { ecs_access_read(GapWindowComp); }
 
-ecs_view_define(GridView) { ecs_access_write(SceneGridComp); }
+ecs_view_define(GridView) { ecs_access_write(DebugGridComp); }
 
-ecs_system_define(SceneGridCreateSys) {
+ecs_system_define(DebugGridCreateSys) {
   if (ecs_utils_any(world, GridView)) {
     return;
   }
@@ -39,17 +38,17 @@ ecs_system_define(SceneGridCreateSys) {
   AssetManagerComp* assets = ecs_view_write_t(globalItr, AssetManagerComp);
 
   const EcsEntityId gridEntity = ecs_world_entity_create(world);
-  ecs_world_add_t(world, gridEntity, SceneGridComp, .cellSize = g_gridCellSizeDefault);
+  ecs_world_add_t(world, gridEntity, DebugGridComp, .cellSize = g_gridCellSizeDefault);
   ecs_world_add_t(
       world,
       gridEntity,
       SceneRenderableUniqueComp,
-      .graphic = asset_lookup(world, assets, string_lit("graphics/scene/grid.gra")));
+      .graphic = asset_lookup(world, assets, string_lit("graphics/debug/grid.gra")));
 
   ecs_world_add_t(world, gridEntity, SceneTagComp, .tags = SceneTags_Debug);
 }
 
-ecs_system_define(SceneGridInputSys) {
+ecs_system_define(DebugGridInputSys) {
   EcsIterator* windowItr = ecs_view_itr(ecs_world_view_t(world, WindowView));
   EcsIterator* gridItr   = ecs_view_itr(ecs_world_view_t(world, GridView));
 
@@ -58,7 +57,7 @@ ecs_system_define(SceneGridInputSys) {
 
     ecs_view_itr_reset(gridItr);
     while (ecs_view_walk(gridItr)) {
-      SceneGridComp* grid = ecs_view_write_t(gridItr, SceneGridComp);
+      DebugGridComp* grid = ecs_view_write_t(gridItr, DebugGridComp);
       if (gap_window_key_pressed(win, GapKey_Plus)) {
         grid->cellSize *= 2.0f;
       }
@@ -71,20 +70,20 @@ ecs_system_define(SceneGridInputSys) {
 }
 
 ecs_view_define(GridUpdateDataView) {
-  ecs_access_read(SceneGridComp);
+  ecs_access_read(DebugGridComp);
   ecs_access_write(SceneRenderableUniqueComp);
 }
 
-ecs_system_define(SceneGridUpdateDataSys) {
+ecs_system_define(DebugGridUpdateDataSys) {
   EcsView* gridView = ecs_world_view_t(world, GridUpdateDataView);
   for (EcsIterator* itr = ecs_view_itr(gridView); ecs_view_walk(itr);) {
-    const SceneGridComp*       grid       = ecs_view_read_t(itr, SceneGridComp);
+    const DebugGridComp*       grid       = ecs_view_read_t(itr, DebugGridComp);
     SceneRenderableUniqueComp* renderable = ecs_view_write_t(itr, SceneRenderableUniqueComp);
 
     renderable->vertexCountOverride = g_gridSegments * 4;
 
-    SceneGridData* data = scene_renderable_unique_data_set(renderable, sizeof(SceneGridData)).ptr;
-    *data               = (SceneGridData){
+    DebugGridData* data = scene_renderable_unique_data_set(renderable, sizeof(DebugGridData)).ptr;
+    *data               = (DebugGridData){
         .cellSize          = grid->cellSize,
         .segments          = g_gridSegments,
         .highlightInterval = g_gridHighlightInterval,
@@ -92,15 +91,15 @@ ecs_system_define(SceneGridUpdateDataSys) {
   }
 }
 
-ecs_module_init(scene_grid_module) {
-  ecs_register_comp(SceneGridComp);
+ecs_module_init(debug_grid_module) {
+  ecs_register_comp(DebugGridComp);
 
   ecs_register_view(GlobalAssetsView);
   ecs_register_view(WindowView);
   ecs_register_view(GridView);
   ecs_register_view(GridUpdateDataView);
 
-  ecs_register_system(SceneGridCreateSys, ecs_view_id(GlobalAssetsView), ecs_view_id(GridView));
-  ecs_register_system(SceneGridInputSys, ecs_view_id(WindowView), ecs_view_id(GridView));
-  ecs_register_system(SceneGridUpdateDataSys, ecs_view_id(GridUpdateDataView));
+  ecs_register_system(DebugGridCreateSys, ecs_view_id(GlobalAssetsView), ecs_view_id(GridView));
+  ecs_register_system(DebugGridInputSys, ecs_view_id(WindowView), ecs_view_id(GridView));
+  ecs_register_system(DebugGridUpdateDataSys, ecs_view_id(GridUpdateDataView));
 }

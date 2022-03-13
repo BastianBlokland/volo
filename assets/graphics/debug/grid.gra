@@ -1,10 +1,10 @@
 {
   "shaders": [
     {
-      "shaderId": "shaders/scene/grid.vert.spv"
+      "shaderId": "shaders/debug/grid.vert.spv"
     },
     {
-      "shaderId": "shaders/scene/grid.frag.spv"
+      "shaderId": "shaders/debug/grid.frag.spv"
     }
   ],
   "samplers": [],
