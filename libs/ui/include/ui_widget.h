@@ -9,16 +9,21 @@ typedef u64 UiId;
 
 ecs_comp_extern(UiCanvasComp);
 
+typedef enum {
+  UiWidget_Disabled = 1 << 0,
+} UiWidgetFlags;
+
 typedef struct {
   u16     fontSize;
   UiAlign align;
 } UiLabelOpts;
 
 typedef struct {
-  String  label;
-  u16     fontSize;
-  UiColor frameColor;
-  String  tooltip;
+  UiWidgetFlags flags;
+  String        label;
+  u16           fontSize;
+  UiColor       frameColor;
+  String        tooltip;
 } UiButtonOpts;
 
 typedef struct {

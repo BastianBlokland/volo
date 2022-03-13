@@ -11,8 +11,9 @@ void ui_label_with_opts(UiCanvasComp* canvas, const String text, const UiLabelOp
 }
 
 bool ui_button_with_opts(UiCanvasComp* canvas, const UiButtonOpts* opts) {
-  const UiId     id     = ui_canvas_id_peek(canvas);
-  const UiStatus status = ui_canvas_elem_status(canvas, id);
+  const UiId     id       = ui_canvas_id_peek(canvas);
+  const bool     disabled = (opts->flags & UiWidget_Disabled) != 0;
+  const UiStatus status   = disabled ? UiStatus_Idle : ui_canvas_elem_status(canvas, id);
 
   ui_style_push(canvas);
   switch (status) {
@@ -34,6 +35,9 @@ bool ui_button_with_opts(UiCanvasComp* canvas, const UiButtonOpts* opts) {
   ui_style_pop(canvas);
 
   ui_style_push(canvas);
+  if (disabled) {
+    ui_style_color_mult(canvas, 0.5);
+  }
   switch (status) {
   case UiStatus_Hovered:
     ui_style_outline(canvas, 3);
