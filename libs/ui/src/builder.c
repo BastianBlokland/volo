@@ -49,8 +49,8 @@ static UiRect* ui_build_container_currect(UiBuildState* state) {
   return &state->containerStack[state->containerStackCount - 1];
 }
 
-static UiDrawData ui_build_drawdata(const UiBuildState* state) {
-  return (UiDrawData){
+static UiMetaData ui_build_metadata(const UiBuildState* state) {
+  return (UiMetaData){
       .glyphsPerDim    = state->font->glyphsPerDim,
       .invGlyphsPerDim = 1.0f / (f32)state->font->glyphsPerDim,
   };
@@ -310,12 +310,13 @@ UiBuildResult ui_build(const UiCmdBuffer* cmdBuffer, const UiBuildCtx* ctx) {
       .containerStackCount = 1,
       .hoveredId           = sentinel_u64,
   };
-  ctx->outputDraw(ctx->userCtx, ui_build_drawdata(&state));
 
   UiCmd* cmd = null;
   while ((cmd = ui_cmd_next(cmdBuffer, cmd))) {
     ui_build_cmd(&state, cmd);
   }
+
+  ctx->outputMeta(ctx->userCtx, ui_build_metadata(&state));
 
   return (UiBuildResult){
       .hoveredId = state.hoveredId,

@@ -47,7 +47,7 @@ static const UiElement* ui_build_elem(const UiCanvasComp* canvas, const UiId id)
   return dynarray_at_t(&canvas->elements, id, UiElement);
 }
 
-static void ui_canvas_output_draw(void* userCtx, const UiDrawData data) {
+static void ui_canvas_output_meta(void* userCtx, const UiMetaData data) {
   UiRenderState* renderState = userCtx;
   rend_draw_set_data(renderState->draw, mem_var(data));
 }
@@ -129,7 +129,7 @@ static UiBuildResult ui_canvas_render(
       .window      = window,
       .font        = font,
       .userCtx     = &renderState,
-      .outputDraw  = &ui_canvas_output_draw,
+      .outputMeta  = &ui_canvas_output_meta,
       .outputGlyph = &ui_canvas_output_glyph,
       .outputRect  = &ui_canvas_output_rect,
   };

@@ -11,9 +11,9 @@ typedef struct {
   f32 glyphsPerDim;
   f32 invGlyphsPerDim;
   f32 padding[2];
-} UiDrawData;
+} UiMetaData;
 
-ASSERT(sizeof(UiDrawData) == 16, "Size needs to match the size defined in glsl");
+ASSERT(sizeof(UiMetaData) == 16, "Size needs to match the size defined in glsl");
 
 typedef struct {
   ALIGNAS(16)
@@ -27,7 +27,7 @@ typedef struct {
 
 ASSERT(sizeof(UiGlyphData) == 32, "Size needs to match the size defined in glsl");
 
-typedef void (*UiOutputDrawFunc)(void* userCtx, UiDrawData);
+typedef void (*UiOutputMetaFunc)(void* userCtx, UiMetaData);
 typedef void (*UiOutputGlyphFunc)(void* userCtx, UiGlyphData, UiLayer);
 typedef void (*UiOutputRect)(void* userCtx, UiId, UiRect);
 
@@ -35,7 +35,7 @@ typedef struct {
   const GapWindowComp* window;
   const AssetFtxComp*  font;
   void*                userCtx;
-  UiOutputDrawFunc     outputDraw;
+  UiOutputMetaFunc     outputMeta;
   UiOutputGlyphFunc    outputGlyph;
   UiOutputRect         outputRect;
 } UiBuildCtx;
