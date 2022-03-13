@@ -7,8 +7,8 @@ message(STATUS "> assets")
 configure_shaders(volo_shaders
   INCLUDE_DIR shaders/include
   SOURCES
-    shaders/scene/grid.vert
-    shaders/scene/grid.frag
+    shaders/debug/grid.vert
+    shaders/debug/grid.frag
     shaders/scene/sky.vert
     shaders/scene/sky_cubemap.frag
     shaders/scene/sky_procedural.frag

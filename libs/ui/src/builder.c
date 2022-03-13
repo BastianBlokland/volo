@@ -14,7 +14,7 @@
 
 static const UiRect  g_ui_defaultRect    = {0, 0, 100, 100};
 static const UiColor g_ui_defaultColor   = {255, 255, 255, 255};
-static const u8      g_ui_defaultOutline = 2;
+static const u8      g_ui_defaultOutline = 1;
 
 typedef struct {
   UiColor color;
@@ -284,6 +284,14 @@ static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
     ui_build_set_size(
         state, ui_resolve_vec(state, cmd->rectSize.size, cmd->rectSize.units), cmd->rectSize.axis);
     break;
+  case UiCmd_RectSizeGrow: {
+    const UiVector cur   = ui_build_rect_currect(state)->size;
+    const UiVector delta = ui_resolve_vec(state, cmd->rectSizeGrow.delta, cmd->rectSizeGrow.units);
+    ui_build_set_size(
+        state,
+        ui_vector(math_max(cur.x + delta.x, 0), math_max(cur.y + delta.y, 0)),
+        cmd->rectSizeGrow.axis);
+  } break;
   case UiCmd_ContainerPush: {
     diag_assert(state->containerStackCount < ui_build_container_stack_max);
     const u8 clipId = ui_build_clip_add(state, *ui_build_rect_currect(state));
@@ -305,6 +313,14 @@ static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
   case UiCmd_StyleColor:
     ui_build_style_currect(state)->color = cmd->styleColor.value;
     break;
+  case UiCmd_StyleColorMult: {
+    const UiColor cur                    = ui_build_style_currect(state)->color;
+    ui_build_style_currect(state)->color = ui_color(
+        (u8)math_min(cur.r * cmd->styleColorMult.value, u8_max),
+        (u8)math_min(cur.g * cmd->styleColorMult.value, u8_max),
+        (u8)math_min(cur.b * cmd->styleColorMult.value, u8_max),
+        cur.a);
+  } break;
   case UiCmd_StyleOutline:
     ui_build_style_currect(state)->outline = cmd->styleOutline.value;
     break;

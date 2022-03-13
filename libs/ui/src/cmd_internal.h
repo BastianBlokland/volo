@@ -8,11 +8,13 @@ typedef enum {
   UiCmd_RectPop,
   UiCmd_RectPos,
   UiCmd_RectSize,
+  UiCmd_RectSizeGrow,
   UiCmd_ContainerPush,
   UiCmd_ContainerPop,
   UiCmd_StylePush,
   UiCmd_StylePop,
   UiCmd_StyleColor,
+  UiCmd_StyleColorMult,
   UiCmd_StyleOutline,
   UiCmd_StyleLayer,
   UiCmd_DrawText,
@@ -33,8 +35,18 @@ typedef struct {
 } UiRectSize;
 
 typedef struct {
+  UiVector delta;
+  UiBase   units;
+  UiAxis   axis;
+} UiRectSizeGrow;
+
+typedef struct {
   UiColor value;
 } UiStyleColor;
+
+typedef struct {
+  f32 value;
+} UiStyleColorMult;
 
 typedef struct {
   u8 value;
@@ -62,13 +74,15 @@ typedef struct {
 typedef struct {
   UiCmdType type;
   union {
-    UiRectPos      rectPos;
-    UiRectSize     rectSize;
-    UiStyleColor   styleColor;
-    UiStyleOutline styleOutline;
-    UiStyleLayer   styleLayer;
-    UiDrawText     drawText;
-    UiDrawGlyph    drawGlyph;
+    UiRectPos        rectPos;
+    UiRectSize       rectSize;
+    UiRectSizeGrow   rectSizeGrow;
+    UiStyleColor     styleColor;
+    UiStyleColorMult styleColorMult;
+    UiStyleOutline   styleOutline;
+    UiStyleLayer     styleLayer;
+    UiDrawText       drawText;
+    UiDrawGlyph      drawGlyph;
   };
 } UiCmd;
 
@@ -82,12 +96,13 @@ void ui_cmd_push_rect_push(UiCmdBuffer*);
 void ui_cmd_push_rect_pop(UiCmdBuffer*);
 void ui_cmd_push_rect_pos(UiCmdBuffer*, UiBase origin, UiVector offset, UiBase units, UiAxis);
 void ui_cmd_push_rect_size(UiCmdBuffer*, UiVector size, UiBase units, UiAxis);
-void ui_cmd_push_rect_size_to(UiCmdBuffer*, UiBase origin, UiVector offset, UiBase units, UiAxis);
+void ui_cmd_push_rect_size_grow(UiCmdBuffer*, UiVector delta, UiBase units, UiAxis);
 void ui_cmd_push_container_push(UiCmdBuffer*);
 void ui_cmd_push_container_pop(UiCmdBuffer*);
 void ui_cmd_push_style_push(UiCmdBuffer*);
 void ui_cmd_push_style_pop(UiCmdBuffer*);
 void ui_cmd_push_style_color(UiCmdBuffer*, UiColor);
+void ui_cmd_push_style_color_mult(UiCmdBuffer*, f32 value);
 void ui_cmd_push_style_outline(UiCmdBuffer*, u8 outline);
 void ui_cmd_push_style_layer(UiCmdBuffer*, UiLayer);
 void ui_cmd_push_draw_text(UiCmdBuffer*, UiId, String text, u16 fontSize, UiAlign, UiFlags);

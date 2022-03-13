@@ -5,6 +5,7 @@
 message(STATUS "> library: debug")
 
 add_library(lib_debug STATIC
+  src/grid.c
   src/menu.c
   src/register.c
   )

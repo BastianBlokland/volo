@@ -6,8 +6,9 @@
 
 struct GridData {
   f32 cellSize;
-  u32 segments;
+  u32 segmentCount;
   u32 highlightInterval;
+  f32 fadeFraction;
 };
 
 const f32v4 c_colorNormal    = f32v4(0.5, 0.5, 0.5, 0.2);
@@ -19,12 +20,13 @@ bind_instance_data(0) readonly uniform Instance { GridData u_instance; };
 bind_internal(0) out f32v3 out_worldGridPos;
 bind_internal(1) out flat f32 out_gridHalfSize;
 bind_internal(2) out flat f32v4 out_color;
+bind_internal(3) out flat f32 out_fadeFraction;
 
 void main() {
   const f32 invCellSize  = 1.0 / u_instance.cellSize;
   const i32 centerX      = i32(u_global.camPosition.x * invCellSize);
   const i32 centerZ      = i32(u_global.camPosition.z * invCellSize);
-  const i32 segments     = i32(u_instance.segments);
+  const i32 segments     = i32(u_instance.segmentCount);
   const i32 halfSegments = segments / 2;
 
   // First half of the vertices we draw horizontal lines and the other half vertical lines.
@@ -46,4 +48,5 @@ void main() {
   out_color = isHighlight ? c_colorHighlight : c_colorNormal;
 
   out_vertexPosition = u_global.viewProj * f32v4(x, f32(isHighlight) * 0.01, z, 1);
+  out_fadeFraction   = u_instance.fadeFraction;
 }

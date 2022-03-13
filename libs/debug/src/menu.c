@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "debug_grid.h"
 #include "debug_menu.h"
 #include "ecs_world.h"
 #include "gap_window.h"
@@ -6,12 +7,9 @@
 #include "scene_time.h"
 #include "ui.h"
 
-static const UiVector g_debugBarButtonSize     = {50, 50};
-static const f32      g_debugBarSpacing        = 10;
-static const f32      g_debugStatsSmoothFactor = 0.1f;
-static const u16      g_debugStatsFontSize     = 18;
-static const UiColor  g_debugWarnColor         = {255, 255, 0, 255};
-static const UiColor  g_debugErrorColor        = {255, 0, 0, 255};
+static const f32     g_debugStatsSmoothFactor = 0.1f;
+static const UiColor g_debugWarnColor         = {255, 255, 0, 255};
+static const UiColor g_debugErrorColor        = {255, 0, 0, 255};
 
 typedef enum {
   DebugMenuFlags_ShowStats = 1 << 0,
@@ -26,6 +24,7 @@ ecs_comp_define(DebugMenuComp) {
   DebugMenuFlags flags;
   DebugStats     stats;
   GapVector      lastWindowedSize;
+  EcsEntityId    gridSettingsPanel;
 };
 
 static TimeDuration debug_smooth_duration(const TimeDuration old, const TimeDuration new) {
@@ -44,71 +43,79 @@ ecs_view_define(WindowUpdateView) {
   ecs_access_read(RendStatsComp);
 }
 
-static void debug_action_stats(DebugMenuComp* menu, UiCanvasComp* canvas) {
-  const bool enabled = (menu->flags & DebugMenuFlags_ShowStats) != 0;
-  if (ui_button(
-          canvas,
-          .label   = ui_shape_scratch(enabled ? UiShape_LayersClear : UiShape_Layers),
-          .tooltip = enabled ? string_lit("Disable the statistics text")
-                             : string_lit("Enable the statistics text"))) {
-    menu->flags ^= DebugMenuFlags_ShowStats;
+static bool debug_panel_is_open(EcsWorld* world, EcsEntityId panel) {
+  return panel && ecs_world_exists(world, panel);
+}
+
+static void debug_panel_open(
+    EcsWorld*    world,
+    EcsEntityId* reference,
+    EcsEntityId  winEntity,
+    EcsEntityId (*openFunc)(EcsWorld*, EcsEntityId)) {
+  if (!debug_panel_is_open(world, *reference)) {
+    *reference = openFunc(world, winEntity);
   }
 }
 
-static void debug_action_fullscreen(DebugMenuComp* menu, UiCanvasComp* canvas, GapWindowComp* win) {
-  const bool active = gap_window_mode(win) == GapWindowMode_Fullscreen;
+static void debug_action_bar_draw(
+    EcsWorld*         world,
+    UiCanvasComp*     canvas,
+    DebugMenuComp*    menu,
+    GapWindowComp*    win,
+    const EcsEntityId winEntity) {
+
+  UiGridState grid = ui_grid_init(canvas, .align = UiAlign_TopRight, .size = {40, 40});
+
+  const bool statsEnabled = (menu->flags & DebugMenuFlags_ShowStats) != 0;
   if (ui_button(
           canvas,
-          .label   = ui_shape_scratch(active ? UiShape_FullscreenExit : UiShape_Fullscreen),
-          .tooltip = active ? string_lit("Exit fullscreen") : string_lit("Enter fullscreen"))) {
-    if (active) {
+          .label   = ui_shape_scratch(statsEnabled ? UiShape_LayersClear : UiShape_Layers),
+          .tooltip = statsEnabled ? string_lit("Disable the statistics text")
+                                  : string_lit("Enable the statistics text"))) {
+    menu->flags ^= DebugMenuFlags_ShowStats;
+  }
+  ui_grid_next_row(canvas, &grid);
+
+  if (ui_button(
+          canvas,
+          .flags   = debug_panel_is_open(world, menu->gridSettingsPanel) ? UiWidget_Disabled : 0,
+          .label   = ui_shape_scratch(UiShape_Grid4x4),
+          .tooltip = string_lit("Open the grid settings panel"))) {
+    debug_panel_open(world, &menu->gridSettingsPanel, winEntity, debug_grid_panel_open);
+  }
+  ui_grid_next_row(canvas, &grid);
+
+  const bool fullscreen = gap_window_mode(win) == GapWindowMode_Fullscreen;
+  if (ui_button(
+          canvas,
+          .label   = ui_shape_scratch(fullscreen ? UiShape_FullscreenExit : UiShape_Fullscreen),
+          .tooltip = fullscreen ? string_lit("Exit fullscreen") : string_lit("Enter fullscreen"))) {
+    if (fullscreen) {
       gap_window_resize(win, menu->lastWindowedSize, GapWindowMode_Windowed);
     } else {
       menu->lastWindowedSize = gap_window_param(win, GapParam_WindowSize);
       gap_window_resize(win, gap_vector(0, 0), GapWindowMode_Fullscreen);
     }
   }
-}
-
-static void debug_action_new_window(EcsWorld* world, UiCanvasComp* canvas) {
-  static const GapVector newWindowSize = {1024, 768};
+  ui_grid_next_row(canvas, &grid);
 
   if (ui_button(
           canvas,
           .label   = ui_shape_scratch(UiShape_OpenInNew),
           .tooltip = string_lit("Open a new window"))) {
-    const EcsEntityId newWindow = gap_window_create(world, GapWindowFlags_Default, newWindowSize);
+    static const GapVector g_newWindowSize = {1024, 768};
+    const EcsEntityId newWindow = gap_window_create(world, GapWindowFlags_Default, g_newWindowSize);
     debug_menu_create(world, newWindow);
   }
-}
+  ui_grid_next_row(canvas, &grid);
 
-static void debug_action_close(UiCanvasComp* canvas, GapWindowComp* win) {
   if (ui_button(
           canvas,
           .label   = ui_shape_scratch(UiShape_Logout),
           .tooltip = string_lit("Close the window (Escape)"))) {
     gap_window_close(win);
   }
-}
-
-static void debug_action_bar_draw(
-    EcsWorld* world, DebugMenuComp* menu, UiCanvasComp* canvas, GapWindowComp* win) {
-
-  ui_layout_inner(
-      canvas, UiBase_Container, UiAlign_TopRight, g_debugBarButtonSize, UiBase_Absolute);
-  ui_layout_move_dir(canvas, Ui_Left, g_debugBarSpacing, UiBase_Absolute);
-  ui_layout_move_dir(canvas, Ui_Down, g_debugBarSpacing, UiBase_Absolute);
-
-  debug_action_stats(menu, canvas);
-  ui_layout_next(canvas, Ui_Down, g_debugBarSpacing);
-
-  debug_action_fullscreen(menu, canvas, win);
-  ui_layout_next(canvas, Ui_Down, g_debugBarSpacing);
-
-  debug_action_new_window(world, canvas);
-  ui_layout_next(canvas, Ui_Down, g_debugBarSpacing);
-
-  debug_action_close(canvas, win);
+  ui_grid_next_row(canvas, &grid);
 }
 
 static void debug_stats_draw_dur(
@@ -167,8 +174,10 @@ debug_stats_draw(UiCanvasComp* canvas, const DebugStats* stats, const RendStatsC
   fmt_write(&str, "{<9} textures\n", fmt_int(rendStats->resources[RendStatRes_Texture]));
   // clang-format on
 
-  ui_canvas_draw_text(
-      canvas, dynstring_view(&str), g_debugStatsFontSize, UiAlign_TopLeft, UiFlags_None);
+  ui_style_push(canvas);
+  ui_style_outline(canvas, 2);
+  ui_label(canvas, dynstring_view(&str), .align = UiAlign_TopLeft);
+  ui_style_pop(canvas);
 }
 
 static void
@@ -193,7 +202,8 @@ ecs_system_define(DebugMenuUpdateSys) {
     if (!ecs_view_maybe_jump(windowItr, menu->window)) {
       continue;
     }
-    GapWindowComp*       window    = ecs_view_write_t(windowItr, GapWindowComp);
+    GapWindowComp*       win       = ecs_view_write_t(windowItr, GapWindowComp);
+    const EcsEntityId    winEntity = ecs_view_entity(windowItr);
     const RendStatsComp* rendStats = ecs_view_read_t(windowItr, RendStatsComp);
 
     if (time) {
@@ -204,7 +214,7 @@ ecs_system_define(DebugMenuUpdateSys) {
     if (menu->flags & DebugMenuFlags_ShowStats) {
       debug_stats_draw(canvas, &menu->stats, rendStats);
     }
-    debug_action_bar_draw(world, menu, canvas, window);
+    debug_action_bar_draw(world, canvas, menu, win, winEntity);
   }
 }
 
