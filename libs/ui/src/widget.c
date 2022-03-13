@@ -138,6 +138,10 @@ bool ui_slider_with_opts(UiCanvasComp* canvas, f32* input, const UiSliderOpts* o
   } else {
     normValue = math_unlerp(opts->min, opts->max, *input);
   }
+  if (opts->step > f32_epsilon) {
+    const f32 normStep = opts->step / math_abs(opts->max - opts->min);
+    normValue          = math_round_f32(normValue / normStep) * normStep;
+  }
   normValue = math_clamp_f32(normValue, 0, 1);
 
   ui_slider_bar(canvas, status, opts);

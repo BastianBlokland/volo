@@ -25,6 +25,7 @@ typedef struct {
   f32     min, max;
   f32     barHeight;
   f32     handleSize;
+  f32     step;
   UiColor barColor;
   String  tooltip;
 } UiSliderOpts;
@@ -70,7 +71,6 @@ typedef struct {
  */
 #define ui_slider(_CANVAS_, _VALUE_, ...) ui_slider_with_opts((_CANVAS_), (_VALUE_),               \
   &((UiSliderOpts){                                                                                \
-    .min        = 0,                                                                               \
     .max        = 1,                                                                               \
     .barHeight  = 9,                                                                               \
     .handleSize = 20,                                                                              \
