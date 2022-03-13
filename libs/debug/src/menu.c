@@ -43,12 +43,16 @@ ecs_view_define(WindowUpdateView) {
   ecs_access_read(RendStatsComp);
 }
 
-static void debug_action_open_panel(
+static bool debug_panel_is_open(EcsWorld* world, EcsEntityId panel) {
+  return panel && ecs_world_exists(world, panel);
+}
+
+static void debug_panel_open(
     EcsWorld*    world,
     EcsEntityId* reference,
     EcsEntityId  winEntity,
     EcsEntityId (*openFunc)(EcsWorld*, EcsEntityId)) {
-  if (!*reference || !ecs_world_exists(world, *reference)) {
+  if (!debug_panel_is_open(world, *reference)) {
     *reference = openFunc(world, winEntity);
   }
 }
@@ -74,9 +78,10 @@ static void debug_action_bar_draw(
 
   if (ui_button(
           canvas,
+          .flags   = debug_panel_is_open(world, menu->gridSettingsPanel) ? UiWidget_Disabled : 0,
           .label   = ui_shape_scratch(UiShape_Grid4x4),
           .tooltip = string_lit("Open the grid settings panel"))) {
-    debug_action_open_panel(world, &menu->gridSettingsPanel, winEntity, debug_grid_panel_open);
+    debug_panel_open(world, &menu->gridSettingsPanel, winEntity, debug_grid_panel_open);
   }
   ui_grid_next_row(canvas, &grid);
 
