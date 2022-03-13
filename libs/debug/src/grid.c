@@ -3,8 +3,7 @@
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "gap_window.h"
-#include "scene_renderable.h"
-#include "scene_tag.h"
+#include "rend_draw.h"
 
 static const u32 g_gridSegments          = 400;
 static const u32 g_gridHighlightInterval = 5;
@@ -39,13 +38,10 @@ ecs_system_define(DebugGridCreateSys) {
 
   const EcsEntityId gridEntity = ecs_world_entity_create(world);
   ecs_world_add_t(world, gridEntity, DebugGridComp, .cellSize = g_gridCellSizeDefault);
-  ecs_world_add_t(
-      world,
-      gridEntity,
-      SceneRenderableUniqueComp,
-      .graphic = asset_lookup(world, assets, string_lit("graphics/debug/grid.gra")));
 
-  ecs_world_add_t(world, gridEntity, SceneTagComp, .tags = SceneTags_Debug);
+  RendDrawComp* draw = rend_draw_create(world, gridEntity, RendDrawFlags_NoInstanceFiltering);
+  rend_draw_set_graphic(draw, asset_lookup(world, assets, string_lit("graphics/debug/grid.gra")));
+  rend_draw_set_vertex_count(draw, g_gridSegments * 4);
 }
 
 ecs_system_define(DebugGridInputSys) {
@@ -71,23 +67,21 @@ ecs_system_define(DebugGridInputSys) {
 
 ecs_view_define(GridUpdateDataView) {
   ecs_access_read(DebugGridComp);
-  ecs_access_write(SceneRenderableUniqueComp);
+  ecs_access_write(RendDrawComp);
 }
 
 ecs_system_define(DebugGridUpdateDataSys) {
   EcsView* gridView = ecs_world_view_t(world, GridUpdateDataView);
   for (EcsIterator* itr = ecs_view_itr(gridView); ecs_view_walk(itr);) {
-    const DebugGridComp*       grid       = ecs_view_read_t(itr, DebugGridComp);
-    SceneRenderableUniqueComp* renderable = ecs_view_write_t(itr, SceneRenderableUniqueComp);
+    const DebugGridComp* grid = ecs_view_read_t(itr, DebugGridComp);
+    RendDrawComp*        draw = ecs_view_write_t(itr, RendDrawComp);
 
-    renderable->vertexCountOverride = g_gridSegments * 4;
-
-    DebugGridData* data = scene_renderable_unique_data_set(renderable, sizeof(DebugGridData)).ptr;
-    *data               = (DebugGridData){
+    const DebugGridData data = {
         .cellSize          = grid->cellSize,
         .segments          = g_gridSegments,
         .highlightInterval = g_gridHighlightInterval,
     };
+    rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, (GeoBox){0});
   }
 }
 
