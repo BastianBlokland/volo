@@ -10,6 +10,7 @@ add_library(lib_ui STATIC
   src/cmd.c
   src/escape.c
   src/layout.c
+  src/panel.c
   src/register.c
   src/resource.c
   src/shape.c
