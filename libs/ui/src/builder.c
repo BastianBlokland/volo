@@ -149,8 +149,8 @@ static void ui_build_set_size(UiBuildState* state, const UiVector val, const UiA
 }
 
 static void ui_build_text_char(void* userCtx, const UiTextCharInfo* info) {
-  UiBuildState*          state     = userCtx;
-  const UiBuildContainer container = *ui_build_container_currect(state);
+  UiBuildState* state = userCtx;
+  const u8 clipId = info->layer == UiLayer_Overlay ? 0 : ui_build_container_currect(state)->clipId;
 
   // NOTE: Take the border into account as the glyph will need to be drawn bigger to compensate.
   const f32      border = info->ch->border * info->size;
@@ -168,7 +168,7 @@ static void ui_build_text_char(void* userCtx, const UiTextCharInfo* info) {
           .atlasIndex   = info->ch->glyphIndex,
           .borderFrac   = (u16)(border / size * u16_max),
           .cornerFrac   = (u16)(0.5f * u16_max),
-          .clipId       = container.clipId,
+          .clipId       = clipId,
           .outlineWidth = info->outline,
       },
       info->layer);
@@ -185,38 +185,28 @@ static bool ui_rect_intersect(const UiRect a, const UiRect b, const f32 padding)
          a.y + a.height > b.y - padding && b.y + b.height > a.y - padding;
 }
 
-static bool ui_build_cull(
-    UiBuildState*          state,
-    const UiBuildContainer container,
-    const UiRect           rect,
-    const UiBuildStyle     style) {
-  switch (style.layer) {
-  case UiLayer_Normal: {
-    const UiRect clipRect = ui_build_clip_rect(state, container.clipId);
-    return !ui_rect_intersect(clipRect, rect, style.outline);
-  }
-  case UiLayer_Overlay:
-    return false;
-  }
+static bool
+ui_build_cull(UiBuildState* state, const u8 clipId, const UiRect rect, const UiBuildStyle style) {
+  const UiRect clipRect = ui_build_clip_rect(state, clipId);
+  return !ui_rect_intersect(clipRect, rect, style.outline);
 }
 
-static bool
-ui_build_is_hovered(UiBuildState* state, const UiBuildContainer container, const UiRect rect) {
+static bool ui_build_is_hovered(UiBuildState* state, const u8 clipId, const UiRect rect) {
   const GapVector cursorPos   = gap_window_param(state->window, GapParam_CursorPos);
   const UiVector  cursorUiPos = ui_vector(cursorPos.x, cursorPos.y);
-  const UiRect    clipRect    = ui_build_clip_rect(state, container.clipId);
+  const UiRect    clipRect    = ui_build_clip_rect(state, clipId);
   return ui_rect_contains(rect, cursorUiPos) && ui_rect_contains(clipRect, cursorUiPos);
 }
 
 static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
-  const UiRect           layoutRect = *ui_build_rect_currect(state);
-  const UiBuildContainer container  = *ui_build_container_currect(state);
-  const UiBuildStyle     style      = *ui_build_style_currect(state);
+  const UiRect       layoutRect = *ui_build_rect_currect(state);
+  const UiBuildStyle style      = *ui_build_style_currect(state);
+  const u8 clipId = style.layer == UiLayer_Overlay ? 0 : ui_build_container_currect(state)->clipId;
 
-  if (ui_build_cull(state, container, layoutRect, style)) {
+  if (ui_build_cull(state, clipId, layoutRect, style)) {
     return;
   }
-  if (cmd->flags & UiFlags_Interactable && ui_build_is_hovered(state, container, layoutRect)) {
+  if (cmd->flags & UiFlags_Interactable && ui_build_is_hovered(state, clipId, layoutRect)) {
     state->hoveredId = cmd->id;
   }
 
@@ -236,14 +226,14 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
 }
 
 static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
-  const UiRect           layoutRect = *ui_build_rect_currect(state);
-  const UiBuildContainer container  = *ui_build_container_currect(state);
-  const UiBuildStyle     style      = *ui_build_style_currect(state);
+  const UiRect       layoutRect = *ui_build_rect_currect(state);
+  const UiBuildStyle style      = *ui_build_style_currect(state);
+  const u8 clipId = style.layer == UiLayer_Overlay ? 0 : ui_build_container_currect(state)->clipId;
 
-  if (ui_build_cull(state, container, layoutRect, style)) {
+  if (ui_build_cull(state, clipId, layoutRect, style)) {
     return;
   }
-  if (cmd->flags & UiFlags_Interactable && ui_build_is_hovered(state, container, layoutRect)) {
+  if (cmd->flags & UiFlags_Interactable && ui_build_is_hovered(state, clipId, layoutRect)) {
     state->hoveredId = cmd->id;
   }
   state->ctx->outputRect(state->ctx->userCtx, cmd->id, layoutRect);
@@ -267,7 +257,7 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
           .atlasIndex   = ch->glyphIndex,
           .borderFrac   = (u16)(border / rect.size.width * u16_max),
           .cornerFrac   = (u16)((corner + border) / rect.size.width * u16_max),
-          .clipId       = container.clipId,
+          .clipId       = clipId,
           .outlineWidth = style.outline,
       },
       style.layer);
