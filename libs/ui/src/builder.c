@@ -284,6 +284,14 @@ static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
     ui_build_set_size(
         state, ui_resolve_vec(state, cmd->rectSize.size, cmd->rectSize.units), cmd->rectSize.axis);
     break;
+  case UiCmd_RectSizeGrow: {
+    const UiVector cur   = ui_build_rect_currect(state)->size;
+    const UiVector delta = ui_resolve_vec(state, cmd->rectSizeGrow.delta, cmd->rectSizeGrow.units);
+    ui_build_set_size(
+        state,
+        ui_vector(math_max(cur.x + delta.x, 0), math_max(cur.y + delta.y, 0)),
+        cmd->rectSizeGrow.axis);
+  } break;
   case UiCmd_ContainerPush: {
     diag_assert(state->containerStackCount < ui_build_container_stack_max);
     const u8 clipId = ui_build_clip_add(state, *ui_build_rect_currect(state));

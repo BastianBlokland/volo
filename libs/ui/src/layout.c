@@ -88,6 +88,49 @@ void ui_layout_next(UiCanvasComp* canvas, const UiDir dir, const f32 spacing) {
   ui_layout_move_dir(canvas, dir, spacing, UiBase_Absolute);
 }
 
+void ui_layout_grow(
+    UiCanvasComp*  canvas,
+    const UiAlign  origin,
+    const UiVector delta,
+    const UiBase   units,
+    const UiAxis   axis) {
+
+  UiCmdBuffer* cmdBuffer = ui_canvas_cmd_buffer(canvas);
+  ui_cmd_push_rect_size_grow(cmdBuffer, delta, units, axis);
+
+  switch (origin) {
+  case UiAlign_TopLeft:
+    ui_cmd_push_rect_pos(cmdBuffer, UiBase_Current, ui_vector(0.0, -delta.y), units, axis);
+    break;
+  case UiAlign_TopCenter:
+    ui_cmd_push_rect_pos(
+        cmdBuffer, UiBase_Current, ui_vector(-delta.x * 0.5f, -delta.y), units, axis);
+    break;
+  case UiAlign_TopRight:
+    ui_cmd_push_rect_pos(cmdBuffer, UiBase_Current, ui_vector(-delta.x, -delta.y), units, axis);
+    break;
+  case UiAlign_MiddleLeft:
+    ui_cmd_push_rect_pos(cmdBuffer, UiBase_Current, ui_vector(0.0, -delta.y * 0.5f), units, axis);
+    break;
+  case UiAlign_MiddleCenter:
+    ui_cmd_push_rect_pos(
+        cmdBuffer, UiBase_Current, ui_vector(-delta.x * 0.5f, -delta.y * 0.5f), units, axis);
+    break;
+  case UiAlign_MiddleRight:
+    ui_cmd_push_rect_pos(
+        cmdBuffer, UiBase_Current, ui_vector(-delta.x, -delta.y * 0.5f), units, axis);
+    break;
+  case UiAlign_BottomLeft:
+    break;
+  case UiAlign_BottomCenter:
+    ui_cmd_push_rect_pos(cmdBuffer, UiBase_Current, ui_vector(-delta.x * 0.5f, 0.0), units, axis);
+    break;
+  case UiAlign_BottomRight:
+    ui_cmd_push_rect_pos(cmdBuffer, UiBase_Current, ui_vector(-delta.x, 0.0), units, axis);
+    break;
+  }
+}
+
 void ui_layout_resize(
     UiCanvasComp*  canvas,
     const UiAlign  origin,

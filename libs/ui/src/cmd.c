@@ -68,6 +68,17 @@ void ui_cmd_push_rect_size(
       }};
 }
 
+void ui_cmd_push_rect_size_grow(
+    UiCmdBuffer* buffer, const UiVector delta, const UiBase units, const UiAxis axis) {
+  *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
+      .type         = UiCmd_RectSizeGrow,
+      .rectSizeGrow = {
+          .delta = delta,
+          .units = units,
+          .axis  = axis,
+      }};
+}
+
 void ui_cmd_push_container_push(UiCmdBuffer* buffer) {
   *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){.type = UiCmd_ContainerPush};
 }
