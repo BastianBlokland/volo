@@ -162,6 +162,7 @@ debug_stats_draw(UiCanvasComp* canvas, const DebugStats* stats, const RendStatsC
   fmt_write(&str, "{<9} textures\n", fmt_int(rendStats->resources[RendStatRes_Texture]));
   // clang-format on
 
+  ui_style_outline(canvas, 2);
   ui_canvas_draw_text(
       canvas, dynstring_view(&str), g_debugStatsFontSize, UiAlign_TopLeft, UiFlags_None);
 }
