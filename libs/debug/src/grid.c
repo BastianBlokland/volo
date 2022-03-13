@@ -45,6 +45,7 @@ static void debug_grid_create(EcsWorld* world, const EcsEntityId entity, AssetMa
   RendDrawComp* draw = rend_draw_create(world, drawEntity, RendDrawFlags_NoInstanceFiltering);
   rend_draw_set_graphic(draw, asset_lookup(world, assets, string_lit("graphics/debug/grid.gra")));
   rend_draw_set_vertex_count(draw, g_gridSegments * 4);
+  rend_draw_set_camera_filter(draw, entity);
 
   ecs_world_add_t(
       world, entity, DebugGridComp, .cellSize = g_gridCellSizeDefault, .draw = drawEntity);
