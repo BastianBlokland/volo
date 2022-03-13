@@ -69,10 +69,12 @@ static u8 ui_build_clip_add(UiBuildState* state, const UiRect rect) {
 }
 
 static UiMetaData ui_build_metadata(const UiBuildState* state) {
-  return (UiMetaData){
+  UiMetaData meta = {
       .glyphsPerDim    = state->font->glyphsPerDim,
       .invGlyphsPerDim = 1.0f / (f32)state->font->glyphsPerDim,
   };
+  mem_cpy(mem_var(meta.clipRects), mem_var(state->clipRects));
+  return meta;
 }
 
 static UiVector ui_resolve_vec(UiBuildState* state, const UiVector vec, const UiBase units) {
@@ -147,7 +149,8 @@ static void ui_build_set_size(UiBuildState* state, const UiVector val, const UiA
 }
 
 static void ui_build_text_char(void* userCtx, const UiTextCharInfo* info) {
-  UiBuildState* state = userCtx;
+  UiBuildState*          state     = userCtx;
+  const UiBuildContainer container = *ui_build_container_currect(state);
 
   // NOTE: Take the border into account as the glyph will need to be drawn bigger to compensate.
   const f32      border = info->ch->border * info->size;
@@ -165,6 +168,7 @@ static void ui_build_text_char(void* userCtx, const UiTextCharInfo* info) {
           .atlasIndex   = info->ch->glyphIndex,
           .borderFrac   = (u16)(border / size * u16_max),
           .cornerFrac   = (u16)(0.5f * u16_max),
+          .clipId       = container.clipId,
           .outlineWidth = info->outline,
       },
       info->layer);
@@ -263,6 +267,7 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
           .atlasIndex   = ch->glyphIndex,
           .borderFrac   = (u16)(border / rect.size.width * u16_max),
           .cornerFrac   = (u16)((corner + border) / rect.size.width * u16_max),
+          .clipId       = container.clipId,
           .outlineWidth = style.outline,
       },
       style.layer);

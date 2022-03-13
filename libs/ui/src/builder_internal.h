@@ -8,12 +8,13 @@ typedef struct sUiCmdBuffer   UiCmdBuffer;
 
 typedef struct {
   ALIGNAS(16)
-  f32 glyphsPerDim;
-  f32 invGlyphsPerDim;
-  f32 padding[2];
+  f32    glyphsPerDim;
+  f32    invGlyphsPerDim;
+  f32    padding[2];
+  UiRect clipRects[10];
 } UiMetaData;
 
-ASSERT(sizeof(UiMetaData) == 16, "Size needs to match the size defined in glsl");
+ASSERT(sizeof(UiMetaData) == 176, "Size needs to match the size defined in glsl");
 
 typedef struct {
   ALIGNAS(16)
@@ -22,7 +23,8 @@ typedef struct {
   u32     atlasIndex;
   u16     borderFrac; // 'border size' / rect.width * u16_max
   u16     cornerFrac; // 'border size' / rect.width * u16_max
-  u32     outlineWidth;
+  u8      clipId;
+  u8      outlineWidth;
 } UiGlyphData;
 
 ASSERT(sizeof(UiGlyphData) == 32, "Size needs to match the size defined in glsl");
