@@ -137,8 +137,6 @@ void ui_panel_begin_with_opts(UiCanvasComp* canvas, UiPanel* panel, const UiPane
 
   ui_panel_topbar(canvas, panel, opts);
 
-  ui_layout_push(canvas);
-
   const UiRect containerRect = {
       .pos  = panel->rect.pos,
       .size = ui_vector(panel->rect.size.width, panel->rect.size.height - 26),
@@ -147,7 +145,6 @@ void ui_panel_begin_with_opts(UiCanvasComp* canvas, UiPanel* panel, const UiPane
   ui_panel_background(canvas, panel);
 
   ui_layout_container_push(canvas);
-  ui_layout_pop(canvas);
 }
 
 void ui_panel_end(UiCanvasComp* canvas, UiPanel* panel) {
