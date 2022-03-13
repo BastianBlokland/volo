@@ -9,8 +9,14 @@
 
 static void ui_panel_clamp_to_window(UiCanvasComp* canvas, UiPanel* panel) {
   const UiVector windowSize = ui_canvas_window_size(canvas);
-  panel->rect.pos.x = math_clamp_f32(panel->rect.pos.x, 0, windowSize.x - panel->rect.width);
-  panel->rect.pos.y = math_clamp_f32(panel->rect.pos.y, 0, windowSize.y - panel->rect.height);
+  if (panel->flags & UiPanelFlags_Center) {
+    panel->rect.pos.x = (windowSize.x - panel->rect.width) * 0.5f;
+    panel->rect.pos.y = (windowSize.y - panel->rect.height) * 0.5f;
+  } else {
+    panel->rect.pos.x = math_clamp_f32(panel->rect.pos.x, 0, windowSize.x - panel->rect.width);
+    panel->rect.pos.y = math_clamp_f32(panel->rect.pos.y, 0, windowSize.y - panel->rect.height);
+  }
+  panel->flags &= ~UiPanelFlags_Center;
 }
 
 static void ui_panel_topbar_title(UiCanvasComp* canvas, const UiPanelOpts* opts) {
