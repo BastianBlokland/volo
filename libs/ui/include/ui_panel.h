@@ -14,7 +14,7 @@ typedef enum {
 typedef struct {
   UiRect       rect;
   UiPanelFlags flags;
-} UiPanel;
+} UiPanelState;
 
 typedef struct {
   String title;
@@ -32,5 +32,6 @@ typedef struct {
 
 // clang-format on
 
-void ui_panel_begin_with_opts(UiCanvasComp*, UiPanel*, const UiPanelOpts*);
-void ui_panel_end(UiCanvasComp*, UiPanel*);
+UiPanelState ui_panel_init(UiVector size);
+void         ui_panel_begin_with_opts(UiCanvasComp*, UiPanelState*, const UiPanelOpts*);
+void         ui_panel_end(UiCanvasComp*, UiPanelState*);

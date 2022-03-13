@@ -7,16 +7,16 @@
 #include "ui_style.h"
 #include "ui_widget.h"
 
-static void ui_panel_clamp_to_window(UiCanvasComp* canvas, UiPanel* panel) {
+static void ui_panel_clamp_to_window(UiCanvasComp* canvas, UiPanelState* state) {
   const UiVector windowSize = ui_canvas_window_size(canvas);
-  if (panel->flags & UiPanelFlags_Center) {
-    panel->rect.pos.x = (windowSize.x - panel->rect.width) * 0.5f;
-    panel->rect.pos.y = (windowSize.y - panel->rect.height) * 0.5f;
+  if (state->flags & UiPanelFlags_Center) {
+    state->rect.pos.x = (windowSize.x - state->rect.width) * 0.5f;
+    state->rect.pos.y = (windowSize.y - state->rect.height) * 0.5f;
   } else {
-    panel->rect.pos.x = math_clamp_f32(panel->rect.pos.x, 0, windowSize.x - panel->rect.width);
-    panel->rect.pos.y = math_clamp_f32(panel->rect.pos.y, 0, windowSize.y - panel->rect.height);
+    state->rect.pos.x = math_clamp_f32(state->rect.pos.x, 0, windowSize.x - state->rect.width);
+    state->rect.pos.y = math_clamp_f32(state->rect.pos.y, 0, windowSize.y - state->rect.height);
   }
-  panel->flags &= ~UiPanelFlags_Center;
+  state->flags &= ~UiPanelFlags_Center;
 }
 
 static void ui_panel_topbar_title(UiCanvasComp* canvas, const UiPanelOpts* opts) {
@@ -31,7 +31,7 @@ static void ui_panel_topbar_title(UiCanvasComp* canvas, const UiPanelOpts* opts)
   ui_layout_pop(canvas);
 }
 
-static void ui_panel_topbar_close_button(UiCanvasComp* canvas, UiPanel* panel) {
+static void ui_panel_topbar_close_button(UiCanvasComp* canvas, UiPanelState* state) {
   ui_layout_push(canvas);
   ui_style_push(canvas);
 
@@ -39,7 +39,7 @@ static void ui_panel_topbar_close_button(UiCanvasComp* canvas, UiPanel* panel) {
   const UiStatus status = ui_canvas_elem_status(canvas, id);
 
   if (status == UiStatus_Activated) {
-    panel->flags |= UiPanelFlags_Close;
+    state->flags |= UiPanelFlags_Close;
   }
 
   UiVector size;
@@ -71,7 +71,7 @@ static void ui_panel_topbar_close_button(UiCanvasComp* canvas, UiPanel* panel) {
   ui_layout_pop(canvas);
 }
 
-static void ui_panel_topbar_background(UiCanvasComp* canvas, UiPanel* panel) {
+static void ui_panel_topbar_background(UiCanvasComp* canvas, UiPanelState* state) {
   ui_style_push(canvas);
 
   const UiId id = ui_canvas_id_peek(canvas);
@@ -79,7 +79,7 @@ static void ui_panel_topbar_background(UiCanvasComp* canvas, UiPanel* panel) {
   case UiStatus_Pressed:
   case UiStatus_Activated:
     ui_style_color(canvas, ui_color(32, 32, 32, 240));
-    panel->flags |= UiPanelFlags_ToFront;
+    state->flags |= UiPanelFlags_ToFront;
     break;
   case UiStatus_Hovered:
   case UiStatus_Idle:
@@ -93,29 +93,29 @@ static void ui_panel_topbar_background(UiCanvasComp* canvas, UiPanel* panel) {
   ui_style_pop(canvas);
 }
 
-static void ui_panel_topbar(UiCanvasComp* canvas, UiPanel* panel, const UiPanelOpts* opts) {
+static void ui_panel_topbar(UiCanvasComp* canvas, UiPanelState* state, const UiPanelOpts* opts) {
   const UiStatus status = ui_canvas_elem_status(canvas, ui_canvas_id_peek(canvas));
   if (status == UiStatus_Pressed) {
     const UiVector inputDelta = ui_canvas_input_delta(canvas);
-    panel->rect.pos.x += inputDelta.x;
-    panel->rect.pos.y += inputDelta.y;
+    state->rect.pos.x += inputDelta.x;
+    state->rect.pos.y += inputDelta.y;
   }
-  ui_panel_clamp_to_window(canvas, panel);
+  ui_panel_clamp_to_window(canvas, state);
 
   ui_layout_push(canvas);
 
-  ui_layout_set(canvas, panel->rect);
+  ui_layout_set(canvas, state->rect);
   ui_layout_move(canvas, ui_vector(0, 1), UiBase_Current, Ui_Y);
   ui_layout_resize(canvas, UiAlign_TopCenter, ui_vector(0, 23), UiBase_Absolute, Ui_Y);
 
-  ui_panel_topbar_background(canvas, panel);
+  ui_panel_topbar_background(canvas, state);
   ui_panel_topbar_title(canvas, opts);
-  ui_panel_topbar_close_button(canvas, panel);
+  ui_panel_topbar_close_button(canvas, state);
 
   ui_layout_pop(canvas);
 }
 
-static void ui_panel_background(UiCanvasComp* canvas, UiPanel* panel) {
+static void ui_panel_background(UiCanvasComp* canvas, UiPanelState* state) {
   ui_style_push(canvas);
 
   ui_style_color(canvas, ui_color(64, 64, 64, 230));
@@ -123,7 +123,7 @@ static void ui_panel_background(UiCanvasComp* canvas, UiPanel* panel) {
 
   const UiId id = ui_canvas_id_peek(canvas);
   if (ui_canvas_elem_status(canvas, id) >= UiStatus_Pressed) {
-    panel->flags |= UiPanelFlags_ToFront;
+    state->flags |= UiPanelFlags_ToFront;
   }
 
   ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_Interactable);
@@ -131,25 +131,32 @@ static void ui_panel_background(UiCanvasComp* canvas, UiPanel* panel) {
   ui_style_pop(canvas);
 }
 
-void ui_panel_begin_with_opts(UiCanvasComp* canvas, UiPanel* panel, const UiPanelOpts* opts) {
-  diag_assert_msg(!(panel->flags & UiPanelFlags_Drawing), "The given panel is already being drawn");
-  panel->flags |= UiPanelFlags_Drawing;
+UiPanelState ui_panel_init(const UiVector size) {
+  return (UiPanelState){
+      .flags     = UiPanelFlags_Center | UiPanelFlags_ToFront,
+      .rect.size = size,
+  };
+}
 
-  ui_panel_topbar(canvas, panel, opts);
+void ui_panel_begin_with_opts(UiCanvasComp* canvas, UiPanelState* state, const UiPanelOpts* opts) {
+  diag_assert_msg(!(state->flags & UiPanelFlags_Drawing), "The given panel is already being drawn");
+  state->flags |= UiPanelFlags_Drawing;
+
+  ui_panel_topbar(canvas, state, opts);
 
   const UiRect containerRect = {
-      .pos  = panel->rect.pos,
-      .size = ui_vector(panel->rect.size.width, panel->rect.size.height - 26),
+      .pos  = state->rect.pos,
+      .size = ui_vector(state->rect.size.width, state->rect.size.height - 26),
   };
   ui_layout_set(canvas, containerRect);
-  ui_panel_background(canvas, panel);
+  ui_panel_background(canvas, state);
 
   ui_layout_container_push(canvas);
 }
 
-void ui_panel_end(UiCanvasComp* canvas, UiPanel* panel) {
-  diag_assert_msg(panel->flags & UiPanelFlags_Drawing, "The given panel is not being drawn");
-  panel->flags &= ~UiPanelFlags_Drawing;
+void ui_panel_end(UiCanvasComp* canvas, UiPanelState* state) {
+  diag_assert_msg(state->flags & UiPanelFlags_Drawing, "The given panel is not being drawn");
+  state->flags &= ~UiPanelFlags_Drawing;
 
   ui_layout_container_pop(canvas);
 }
