@@ -205,7 +205,7 @@ ecs_module_init(debug_grid_module) {
       DebugGridUpdatePanelSys, ecs_view_id(PanelUpdateView), ecs_view_id(GridWriteView));
 }
 
-void debug_grid_panel_open(EcsWorld* world, const EcsEntityId window) {
+EcsEntityId debug_grid_panel_open(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId panelEntity = ui_canvas_create(world, window);
   ecs_world_add_t(
       world,
@@ -213,4 +213,5 @@ void debug_grid_panel_open(EcsWorld* world, const EcsEntityId window) {
       DebugGridPanelComp,
       .state  = ui_panel_init(ui_vector(225, 185)),
       .window = window);
+  return panelEntity;
 }

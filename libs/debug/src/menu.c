@@ -24,6 +24,7 @@ ecs_comp_define(DebugMenuComp) {
   DebugMenuFlags flags;
   DebugStats     stats;
   GapVector      lastWindowedSize;
+  EcsEntityId    gridSettingsPanel;
 };
 
 static TimeDuration debug_smooth_duration(const TimeDuration old, const TimeDuration new) {
@@ -40,6 +41,16 @@ ecs_view_define(MenuUpdateView) {
 ecs_view_define(WindowUpdateView) {
   ecs_access_write(GapWindowComp);
   ecs_access_read(RendStatsComp);
+}
+
+static void debug_action_open_panel(
+    EcsWorld*    world,
+    EcsEntityId* reference,
+    EcsEntityId  winEntity,
+    EcsEntityId (*openFunc)(EcsWorld*, EcsEntityId)) {
+  if (!*reference || !ecs_world_exists(world, *reference)) {
+    *reference = openFunc(world, winEntity);
+  }
 }
 
 static void debug_action_bar_draw(
@@ -65,7 +76,7 @@ static void debug_action_bar_draw(
           canvas,
           .label   = ui_shape_scratch(UiShape_Grid4x4),
           .tooltip = string_lit("Open the grid settings panel"))) {
-    debug_grid_panel_open(world, winEntity);
+    debug_action_open_panel(world, &menu->gridSettingsPanel, winEntity, debug_grid_panel_open);
   }
   ui_grid_next_row(canvas, &grid);
 
