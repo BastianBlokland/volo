@@ -1,3 +1,4 @@
+#include "core_diag.h"
 #include "core_math.h"
 #include "ui_canvas.h"
 #include "ui_layout.h"
@@ -125,6 +126,9 @@ static void ui_panel_background(UiCanvasComp* canvas, UiPanel* panel) {
 }
 
 void ui_panel_begin_with_opts(UiCanvasComp* canvas, UiPanel* panel, const UiPanelOpts* opts) {
+  diag_assert_msg(!(panel->flags & UiPanelFlags_Drawing), "The given panel is already being drawn");
+  panel->flags |= UiPanelFlags_Drawing;
+
   ui_panel_topbar(canvas, panel, opts);
 
   ui_layout_push(canvas);
@@ -141,6 +145,8 @@ void ui_panel_begin_with_opts(UiCanvasComp* canvas, UiPanel* panel, const UiPane
 }
 
 void ui_panel_end(UiCanvasComp* canvas, UiPanel* panel) {
-  (void)panel;
+  diag_assert_msg(panel->flags & UiPanelFlags_Drawing, "The given panel is not being drawn");
+  panel->flags &= ~UiPanelFlags_Drawing;
+
   ui_layout_container_pop(canvas);
 }
