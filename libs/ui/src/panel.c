@@ -25,7 +25,7 @@ static void ui_panel_topbar_title(UiCanvasComp* canvas, const UiPanelOpts* opts)
 
   ui_style_outline(canvas, 2);
   ui_layout_move_dir(canvas, Ui_Right, 5, UiBase_Absolute);
-  ui_canvas_draw_text(canvas, opts->title, 18, UiAlign_MiddleLeft, UiFlags_None);
+  ui_label(canvas, opts->title, .fontSize = 18);
 
   ui_style_pop(canvas);
   ui_layout_pop(canvas);

@@ -6,6 +6,10 @@
 #include "ui_style.h"
 #include "ui_widget.h"
 
+void ui_label_with_opts(UiCanvasComp* canvas, const String text, const UiLabelOpts* opts) {
+  ui_canvas_draw_text(canvas, text, opts->fontSize, opts->align, UiFlags_None);
+}
+
 bool ui_button_with_opts(UiCanvasComp* canvas, const UiButtonOpts* opts) {
   const UiId     id     = ui_canvas_id_peek(canvas);
   const UiStatus status = ui_canvas_elem_status(canvas, id);
