@@ -164,7 +164,9 @@ static void ui_toggle_check(UiCanvasComp* canvas, const UiStatus status, const U
 
   ui_style_push(canvas);
 
-  ui_style_outline(canvas, status == UiStatus_Hovered ? 3 : 2);
+  if (status == UiStatus_Hovered) {
+    ui_style_outline(canvas, 3);
+  }
   ui_canvas_draw_glyph(canvas, UiShape_Check, 0, UiFlags_None);
 
   ui_style_pop(canvas);
