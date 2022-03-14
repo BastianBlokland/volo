@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "debug_grid.h"
 #include "debug_menu.h"
+#include "debug_rend.h"
 #include "ecs_world.h"
 #include "gap_window.h"
 #include "rend_stats.h"
@@ -24,7 +25,7 @@ ecs_comp_define(DebugMenuComp) {
   DebugMenuFlags flags;
   DebugStats     stats;
   GapVector      lastWindowedSize;
-  EcsEntityId    gridSettingsPanel;
+  EcsEntityId    panelGrid, panelRend;
 };
 
 static TimeDuration debug_smooth_duration(const TimeDuration old, const TimeDuration new) {
@@ -78,10 +79,19 @@ static void debug_action_bar_draw(
 
   if (ui_button(
           canvas,
-          .flags   = debug_panel_is_open(world, menu->gridSettingsPanel) ? UiWidget_Disabled : 0,
+          .flags   = debug_panel_is_open(world, menu->panelGrid) ? UiWidget_Disabled : 0,
           .label   = ui_shape_scratch(UiShape_Grid4x4),
           .tooltip = string_lit("Open the grid settings panel"))) {
-    debug_panel_open(world, &menu->gridSettingsPanel, winEntity, debug_grid_panel_open);
+    debug_panel_open(world, &menu->panelGrid, winEntity, debug_grid_panel_open);
+  }
+  ui_grid_next_row(canvas, &grid);
+
+  if (ui_button(
+          canvas,
+          .flags   = debug_panel_is_open(world, menu->panelRend) ? UiWidget_Disabled : 0,
+          .label   = ui_shape_scratch(UiShape_Brush),
+          .tooltip = string_lit("Open the renderer settings panel"))) {
+    debug_panel_open(world, &menu->panelRend, winEntity, debug_rend_panel_open);
   }
   ui_grid_next_row(canvas, &grid);
 
