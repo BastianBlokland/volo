@@ -185,6 +185,7 @@ ecs_system_define(RendPainterDrawBatchesSys) {
     const GapWindowEvents winEvents = gap_window_events(win);
     if (winEvents & GapWindowEvents_CloseRequested || winEvents & GapWindowEvents_Closed) {
       ecs_world_remove_t(world, entity, RendPainterComp);
+      ecs_world_remove_t(world, entity, RendSettingsComp);
       continue;
     }
     RendPainterComp*          painter   = ecs_view_write_t(itr, RendPainterComp);
