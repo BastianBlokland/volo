@@ -169,7 +169,9 @@ ecs_system_define(RendPainterCreateSys) {
         RendPainterComp,
         .drawBuffer = dynarray_create_t(g_alloc_heap, RvkPassDraw, 1024),
         .canvas     = rvk_canvas_create(plat->device, windowComp));
-    ecs_world_add_t(world, entity, RendSettingsComp, .presentMode = RendPresentMode_VSyncRelaxed);
+
+    RendSettingsComp* settings = ecs_world_add_t(world, entity, RendSettingsComp);
+    rend_settings_to_default(settings);
   }
 }
 

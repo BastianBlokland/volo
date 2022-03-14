@@ -29,6 +29,10 @@ rend_panel_draw(UiCanvasComp* canvas, DebugRendPanelComp* panel, RendSettingsCom
   }
   ui_grid_next_row(canvas, &layoutGrid);
 
+  if (ui_button(canvas, .label = string_lit("Reset"))) {
+    rend_settings_to_default(settings);
+  }
+
   ui_panel_end(canvas, &panel->state);
 }
 

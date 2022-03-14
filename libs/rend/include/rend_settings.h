@@ -29,4 +29,5 @@ typedef enum {
 
 } RendPresentMode;
 
-ecs_comp_extern_public(RendSettingsComp) { RendPresentMode presentMode; };
+
+void rend_settings_to_default(RendSettingsComp*);
