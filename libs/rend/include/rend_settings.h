@@ -29,5 +29,9 @@ typedef enum {
 
 } RendPresentMode;
 
+ecs_comp_extern_public(RendSettingsComp) {
+  RendPresentMode presentMode;
+  f32             resolutionScale;
+};
 
 void rend_settings_to_default(RendSettingsComp*);

@@ -13,7 +13,6 @@ typedef struct sRvkCanvas RvkCanvas;
 
 RvkCanvas* rvk_canvas_create(RvkDevice*, const GapWindowComp*);
 void       rvk_canvas_destroy(RvkCanvas*);
-RvkSize    rvk_canvas_size(const RvkCanvas*);
 
 /**
  * Query for statistics about the previous submitted draw.

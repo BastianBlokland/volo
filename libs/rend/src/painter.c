@@ -126,9 +126,9 @@ static bool painter_draw(
     EcsView*                  drawView,
     EcsView*                  graphicView) {
 
-  const GapVector winSize  = gap_window_param(win, GapParam_WindowSize);
-  const RvkSize   rendSize = rvk_size((u32)winSize.width, (u32)winSize.height);
-  const bool      draw     = rvk_canvas_begin(painter->canvas, settings, rendSize);
+  const GapVector winSize    = gap_window_param(win, GapParam_WindowSize);
+  const RvkSize   resolution = rvk_size((u32)winSize.width, (u32)winSize.height);
+  const bool      draw       = rvk_canvas_begin(painter->canvas, settings, resolution);
   if (draw) {
     const GeoMatrix viewProj = painter_view_proj_matrix(win, cam, trans);
     const RendView  view     = rend_view_create(camEntity, &viewProj, cam->filter);
@@ -136,7 +136,7 @@ static bool painter_draw(
     const RendPainterGlobalData globalData = {
         .viewProj   = viewProj,
         .resolution = geo_vector(
-            rendSize.width, rendSize.height, 1.0f / rendSize.width, 1.0f / rendSize.height),
+            resolution.width, resolution.height, 1.0f / resolution.width, 1.0f / resolution.height),
         .camPosition = trans ? trans->position : geo_vector(0),
         .camRotation = trans ? trans->rotation : geo_quat_ident,
     };

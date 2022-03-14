@@ -51,8 +51,6 @@ void rvk_canvas_destroy(RvkCanvas* canvas) {
   alloc_free_t(g_alloc_heap, canvas);
 }
 
-RvkSize rvk_canvas_size(const RvkCanvas* canvas) { return rvk_swapchain_size(canvas->swapchain); }
-
 RvkRenderStats rvk_canvas_stats(const RvkCanvas* canvas) {
   RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
   return rvk_renderer_stats(renderer);
@@ -71,7 +69,7 @@ bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const
 
   canvas->flags |= RvkCanvasFlags_Active;
   RvkImage* targetImage = rvk_swapchain_image(canvas->swapchain, canvas->swapchainIdx);
-  rvk_renderer_begin(renderer, targetImage, RvkImagePhase_Present);
+  rvk_renderer_begin(renderer, settings, targetImage, RvkImagePhase_Present);
   return true;
 }
 

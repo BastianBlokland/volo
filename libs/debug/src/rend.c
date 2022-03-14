@@ -29,6 +29,17 @@ rend_panel_draw(UiCanvasComp* canvas, DebugRendPanelComp* panel, RendSettingsCom
   }
   ui_grid_next_row(canvas, &layoutGrid);
 
+  ui_label(canvas, string_lit("Scale"));
+  ui_grid_next_col(canvas, &layoutGrid);
+  ui_slider(
+      canvas,
+      &settings->resolutionScale,
+      .min     = 0.2f,
+      .max     = 2.0f,
+      .step    = 0.1f,
+      .tooltip = string_lit("Render resolution scale"));
+  ui_grid_next_row(canvas, &layoutGrid);
+
   if (ui_button(canvas, .label = string_lit("Reset"))) {
     rend_settings_to_default(settings);
   }
