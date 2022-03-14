@@ -1,5 +1,6 @@
 #pragma once
 #include "core_time.h"
+#include "rend_settings.h"
 
 #include "image_internal.h"
 #include "vulkan_internal.h"
@@ -12,6 +13,7 @@ typedef struct sRvkRenderer RvkRenderer;
 
 typedef struct {
   TimeDuration renderTime;
+  RvkSize      forwardResolution;
   u32          forwardDraws, forwardInstances;
   u64          forwardVertices, forwardPrimitives;
   u64          forwardShadersVert, forwardShadersFrag;
@@ -24,6 +26,7 @@ VkSemaphore    rvk_renderer_semaphore_done(RvkRenderer*);
 void           rvk_renderer_wait_for_done(const RvkRenderer*);
 RvkRenderStats rvk_renderer_stats(const RvkRenderer*);
 
-void     rvk_renderer_begin(RvkRenderer*, RvkImage* target, RvkImagePhase targetPhase);
+void rvk_renderer_begin(
+    RvkRenderer*, const RendSettingsComp*, RvkImage* target, RvkImagePhase targetPhase);
 RvkPass* rvk_renderer_pass_forward(RvkRenderer*);
 void     rvk_renderer_end(RvkRenderer*);

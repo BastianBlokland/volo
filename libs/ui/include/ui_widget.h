@@ -64,7 +64,7 @@ typedef struct {
  */
 #define ui_button(_CANVAS_, ...) ui_button_with_opts((_CANVAS_),                                   \
   &((UiButtonOpts){                                                                                \
-    .fontSize   = 30,                                                                              \
+    .fontSize   = 16,                                                                              \
     .frameColor = ui_color(32, 32, 32, 192),                                                       \
     __VA_ARGS__}))
 

@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_diag.h"
+#include "core_math.h"
 #include "core_thread.h"
 
 #include "device_internal.h"
@@ -30,6 +31,7 @@ struct sRvkRenderer {
 
   RvkImage*          currentTarget;
   RvkImagePhase      currentTargetPhase;
+  RvkSize            currentResolution;
   RvkStopwatchRecord timeRecBegin, timeRecEnd;
 };
 
@@ -107,7 +109,6 @@ static void rvk_renderer_submit(RvkRenderer* rend) {
 }
 
 static void rvk_renderer_blit_to_output(RvkRenderer* rend, RvkPass* pass) {
-
   rvk_debug_label_begin(rend->dev->debug, rend->vkDrawBuffer, geo_color_purple, "blit_to_target");
 
   RvkImage* src  = rvk_pass_output(pass);
@@ -121,6 +122,12 @@ static void rvk_renderer_blit_to_output(RvkRenderer* rend, RvkPass* pass) {
   rvk_image_transition(dest, rend->vkDrawBuffer, rend->currentTargetPhase);
 
   rvk_debug_label_end(rend->dev->debug, rend->vkDrawBuffer);
+}
+
+static RvkSize rvk_renderer_resolution(RvkImage* target, const RendSettingsComp* settings) {
+  return rvk_size(
+      (u32)math_round_f32(target->size.width * settings->resolutionScale),
+      (u32)math_round_f32(target->size.height * settings->resolutionScale));
 }
 
 RvkRenderer* rvk_renderer_create(RvkDevice* dev, const u32 rendererId) {
@@ -177,6 +184,7 @@ RvkRenderStats rvk_renderer_stats(const RvkRenderer* rend) {
 
   return (RvkRenderStats){
       .renderTime         = time_nanoseconds(timestampEnd - timestampBegin),
+      .forwardResolution  = rend->currentResolution,
       .forwardDraws       = (u32)rvk_pass_stat(rend->forwardPass, RvkStat_Draws),
       .forwardInstances   = (u32)rvk_pass_stat(rend->forwardPass, RvkStat_Instances),
       .forwardVertices    = rvk_pass_stat(rend->forwardPass, RvkStat_InputAssemblyVertices),
@@ -186,12 +194,17 @@ RvkRenderStats rvk_renderer_stats(const RvkRenderer* rend) {
   };
 }
 
-void rvk_renderer_begin(RvkRenderer* rend, RvkImage* target, const RvkImagePhase targetPhase) {
+void rvk_renderer_begin(
+    RvkRenderer*            rend,
+    const RendSettingsComp* settings,
+    RvkImage*               target,
+    const RvkImagePhase     targetPhase) {
   diag_assert_msg(!(rend->flags & RvkRenderer_Active), "Renderer already active");
 
   rend->flags |= RvkRenderer_Active;
   rend->currentTarget      = target;
   rend->currentTargetPhase = targetPhase;
+  rend->currentResolution  = rvk_renderer_resolution(target, settings);
 
   rvk_renderer_wait_for_done(rend);
   rvk_uniform_reset(rend->uniformPool);
@@ -199,7 +212,7 @@ void rvk_renderer_begin(RvkRenderer* rend, RvkImage* target, const RvkImagePhase
 
   rvk_commandbuffer_begin(rend->vkDrawBuffer);
   rvk_stopwatch_reset(rend->stopwatch, rend->vkDrawBuffer);
-  rvk_pass_setup(rend->forwardPass, target->size);
+  rvk_pass_setup(rend->forwardPass, rend->currentResolution);
 
   rend->timeRecBegin = rvk_stopwatch_mark(rend->stopwatch, rend->vkDrawBuffer);
   rvk_debug_label_begin(

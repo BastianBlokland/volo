@@ -51,27 +51,25 @@ void rvk_canvas_destroy(RvkCanvas* canvas) {
   alloc_free_t(g_alloc_heap, canvas);
 }
 
-RvkSize rvk_canvas_size(const RvkCanvas* canvas) { return rvk_swapchain_size(canvas->swapchain); }
-
 RvkRenderStats rvk_canvas_stats(const RvkCanvas* canvas) {
   RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
   return rvk_renderer_stats(renderer);
 }
 
-bool rvk_canvas_begin(RvkCanvas* canvas, const RvkSize size) {
+bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const RvkSize size) {
   diag_assert_msg(!(canvas->flags & RvkCanvasFlags_Active), "Canvas already active");
 
   RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
 
   const VkSemaphore beginSemaphore = rvk_renderer_semaphore_begin(renderer);
-  canvas->swapchainIdx             = rvk_swapchain_acquire(canvas->swapchain, beginSemaphore, size);
+  canvas->swapchainIdx = rvk_swapchain_acquire(canvas->swapchain, settings, beginSemaphore, size);
   if (sentinel_check(canvas->swapchainIdx)) {
     return false;
   }
 
   canvas->flags |= RvkCanvasFlags_Active;
   RvkImage* targetImage = rvk_swapchain_image(canvas->swapchain, canvas->swapchainIdx);
-  rvk_renderer_begin(renderer, targetImage, RvkImagePhase_Present);
+  rvk_renderer_begin(renderer, settings, targetImage, RvkImagePhase_Present);
   return true;
 }
 

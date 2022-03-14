@@ -19,19 +19,19 @@ bool ui_button_with_opts(UiCanvasComp* canvas, const UiButtonOpts* opts) {
   switch (status) {
   case UiStatus_Hovered:
     ui_style_color_with_mult(canvas, opts->frameColor, 2);
-    ui_style_outline(canvas, 5);
+    ui_style_outline(canvas, 4);
     break;
   case UiStatus_Pressed:
   case UiStatus_Activated:
     ui_style_color_with_mult(canvas, opts->frameColor, 3);
-    ui_style_outline(canvas, 3);
+    ui_style_outline(canvas, 2);
     break;
   case UiStatus_Idle:
     ui_style_color(canvas, opts->frameColor);
-    ui_style_outline(canvas, 4);
+    ui_style_outline(canvas, 3);
     break;
   }
-  ui_canvas_draw_glyph(canvas, UiShape_Circle, 15, UiFlags_Interactable);
+  ui_canvas_draw_glyph(canvas, UiShape_Circle, 10, UiFlags_Interactable);
   ui_style_pop(canvas);
 
   ui_style_push(canvas);

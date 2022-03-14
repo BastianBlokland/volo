@@ -88,8 +88,8 @@ ecs_system_define(RendUpdateCamStatsSys) {
     const RvkRenderStats renderStats = rvk_canvas_stats(painter->canvas);
 
     rend_stats_update_str(&stats->gpuName, rvk_device_name(plat->device));
-    stats->renderSize[0]    = rvk_canvas_size(painter->canvas).width;
-    stats->renderSize[1]    = rvk_canvas_size(painter->canvas).height;
+    stats->renderSize[0]    = renderStats.forwardResolution.width;
+    stats->renderSize[1]    = renderStats.forwardResolution.height;
     stats->draws            = renderStats.forwardDraws;
     stats->instances        = renderStats.forwardInstances;
     stats->renderTime       = renderStats.renderTime;

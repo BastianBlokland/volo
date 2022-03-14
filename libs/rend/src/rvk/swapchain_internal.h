@@ -1,5 +1,6 @@
 #pragma once
 #include "gap_window.h"
+#include "rend_settings.h"
 
 #include "image_internal.h"
 
@@ -21,7 +22,7 @@ RvkImage*     rvk_swapchain_image(const RvkSwapchain*, RvkSwapchainIdx);
  * The provided semaphore will be signaled when the image is available.
  * NOTE: Returns sentinel_u32 on failure (for example because the window was minimized).
  */
-RvkSwapchainIdx rvk_swapchain_acquire(RvkSwapchain*, VkSemaphore, RvkSize);
+RvkSwapchainIdx rvk_swapchain_acquire(RvkSwapchain*, const RendSettingsComp*, VkSemaphore, RvkSize);
 
 /**
  * Present an image to the surface.

@@ -1,5 +1,6 @@
 #pragma once
 #include "gap_window.h"
+#include "rend_settings.h"
 
 #include "renderer_internal.h"
 #include "types_internal.h"
@@ -12,7 +13,6 @@ typedef struct sRvkCanvas RvkCanvas;
 
 RvkCanvas* rvk_canvas_create(RvkDevice*, const GapWindowComp*);
 void       rvk_canvas_destroy(RvkCanvas*);
-RvkSize    rvk_canvas_size(const RvkCanvas*);
 
 /**
  * Query for statistics about the previous submitted draw.
@@ -20,6 +20,6 @@ RvkSize    rvk_canvas_size(const RvkCanvas*);
  */
 RvkRenderStats rvk_canvas_stats(const RvkCanvas*);
 
-bool     rvk_canvas_begin(RvkCanvas*, RvkSize);
+bool     rvk_canvas_begin(RvkCanvas*, const RendSettingsComp*, RvkSize);
 RvkPass* rvk_canvas_pass_forward(RvkCanvas*);
 void     rvk_canvas_end(RvkCanvas*);
