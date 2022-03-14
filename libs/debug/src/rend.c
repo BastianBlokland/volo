@@ -40,7 +40,10 @@ rend_panel_draw(UiCanvasComp* canvas, DebugRendPanelComp* panel, RendSettingsCom
       .tooltip = string_lit("Render resolution scale"));
   ui_grid_next_row(canvas, &layoutGrid);
 
-  if (ui_button(canvas, .label = string_lit("Reset"))) {
+  if (ui_button(
+          canvas,
+          .label   = string_lit("Defaults"),
+          .tooltip = string_lit("Reset all settings to their defaults"))) {
     rend_settings_to_default(settings);
   }
 
