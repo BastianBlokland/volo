@@ -34,6 +34,7 @@ add_library(lib_rend STATIC
   src/platform.c
   src/register.c
   src/resource.c
+  src/settings.c
   src/stats.c
   src/view.c
   )

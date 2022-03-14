@@ -30,7 +30,7 @@ struct sRvkSwapchain {
   VkSurfaceKHR       vkSurf;
   VkSurfaceFormatKHR vkSurfFormat;
   VkSwapchainKHR     vkSwapchain;
-  VkPresentModeKHR   vkPresentMode;
+  RendPresentMode    presentModeSetting;
   RvkSwapchainFlags  flags;
   RvkSize            size;
   DynArray           images; // RvkImage[]
@@ -106,7 +106,22 @@ static u32 rvk_pick_imagecount(const VkSurfaceCapabilitiesKHR* caps) {
   return imgCount;
 }
 
-static VkPresentModeKHR rvk_pick_presentmode(RvkDevice* dev, VkSurfaceKHR vkSurf) {
+static VkPresentModeKHR rvk_preferred_presentmode(const RendPresentMode setting) {
+  switch (setting) {
+  case RendPresentMode_Immediate:
+    return VK_PRESENT_MODE_IMMEDIATE_KHR;
+  case RendPresentMode_VSync:
+    return VK_PRESENT_MODE_FIFO_KHR;
+  case RendPresentMode_VSyncRelaxed:
+    return VK_PRESENT_MODE_FIFO_RELAXED_KHR;
+  case RendPresentMode_Mailbox:
+    return VK_PRESENT_MODE_MAILBOX_KHR;
+  }
+  diag_crash();
+}
+
+static VkPresentModeKHR
+rvk_pick_presentmode(RvkDevice* dev, const RendSettingsComp* settings, const VkSurfaceKHR vkSurf) {
   VkPresentModeKHR available[32];
   u32              availableCount = array_elems(available);
   rvk_call(
@@ -116,16 +131,18 @@ static VkPresentModeKHR rvk_pick_presentmode(RvkDevice* dev, VkSurfaceKHR vkSurf
       &availableCount,
       available);
 
-  /**
-   * Prefer FIFO_RELAXED to reduce stuttering in case of late frames. If that is not available
-   * fall-back to FIFO (which is required by the spec to always be available).
-   */
+  const VkPresentModeKHR preferred = rvk_preferred_presentmode(settings->presentMode);
   for (u32 i = 0; i != availableCount; ++i) {
-    if (available[i] == VK_PRESENT_MODE_FIFO_RELAXED_KHR) {
+    if (available[i] == preferred) {
       return available[i];
     }
   }
-  return VK_PRESENT_MODE_FIFO_KHR;
+  log_w(
+      "Preferred present mode unavailable",
+      log_param("preferred", fmt_text(rvk_presentmode_str(preferred))),
+      log_param("fallback", fmt_text(rvk_presentmode_str(VK_PRESENT_MODE_FIFO_KHR))));
+
+  return VK_PRESENT_MODE_FIFO_KHR; // FIFO is required by the spec to be always available.
 }
 
 static VkSurfaceCapabilitiesKHR rvk_surface_capabilities(RvkDevice* dev, VkSurfaceKHR vkSurf) {
@@ -134,7 +151,8 @@ static VkSurfaceCapabilitiesKHR rvk_surface_capabilities(RvkDevice* dev, VkSurfa
   return result;
 }
 
-static bool rvk_swapchain_init(RvkSwapchain* swapchain, RvkSize size) {
+static bool
+rvk_swapchain_init(RvkSwapchain* swapchain, const RendSettingsComp* settings, RvkSize size) {
   if (!size.width || !size.height) {
     swapchain->size = size;
     return false;
@@ -147,6 +165,9 @@ static bool rvk_swapchain_init(RvkSwapchain* swapchain, RvkSize size) {
   VkAllocationCallbacks*   vkAlloc = &swapchain->dev->vkAlloc;
   VkSurfaceCapabilitiesKHR vkCaps  = rvk_surface_capabilities(swapchain->dev, swapchain->vkSurf);
   size                             = rvk_surface_clamp_size(size, &vkCaps);
+
+  const VkPresentModeKHR presentMode =
+      rvk_pick_presentmode(swapchain->dev, settings, swapchain->vkSurf);
 
   const VkSwapchainKHR           oldSwapchain = swapchain->vkSwapchain;
   const VkSwapchainCreateInfoKHR createInfo   = {
@@ -162,7 +183,7 @@ static bool rvk_swapchain_init(RvkSwapchain* swapchain, RvkSize size) {
       .imageSharingMode   = VK_SHARING_MODE_EXCLUSIVE,
       .preTransform       = vkCaps.currentTransform,
       .compositeAlpha     = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-      .presentMode        = swapchain->vkPresentMode,
+      .presentMode        = presentMode,
       .clipped            = true,
       .oldSwapchain       = oldSwapchain,
   };
@@ -184,14 +205,15 @@ static bool rvk_swapchain_init(RvkSwapchain* swapchain, RvkSize size) {
   }
 
   swapchain->flags &= ~RvkSwapchainFlags_OutOfDate;
-  swapchain->size = size;
+  swapchain->presentModeSetting = settings->presentMode;
+  swapchain->size               = size;
 
   log_i(
       "Vulkan swapchain created",
       log_param("size", rvk_size_fmt(size)),
       log_param("format", fmt_text(rvk_format_info(format).name)),
       log_param("color", fmt_text(rvk_colorspace_str(swapchain->vkSurfFormat.colorSpace))),
-      log_param("present-mode", fmt_text(rvk_presentmode_str(swapchain->vkPresentMode))),
+      log_param("present-mode", fmt_text(rvk_presentmode_str(presentMode))),
       log_param("image-count", fmt_int(imageCount)));
 
   return true;
@@ -201,11 +223,10 @@ RvkSwapchain* rvk_swapchain_create(RvkDevice* dev, const GapWindowComp* window) 
   VkSurfaceKHR  vkSurf    = rvk_surface_create(dev, window);
   RvkSwapchain* swapchain = alloc_alloc_t(g_alloc_heap, RvkSwapchain);
   *swapchain              = (RvkSwapchain){
-      .dev           = dev,
-      .vkSurf        = vkSurf,
-      .vkSurfFormat  = rvk_pick_surface_format(dev, vkSurf),
-      .vkPresentMode = rvk_pick_presentmode(dev, vkSurf),
-      .images        = dynarray_create_t(g_alloc_heap, RvkImage, 2),
+      .dev          = dev,
+      .vkSurf       = vkSurf,
+      .vkSurfFormat = rvk_pick_surface_format(dev, vkSurf),
+      .images       = dynarray_create_t(g_alloc_heap, RvkImage, 3),
   };
 
   VkBool32 supported;
@@ -240,11 +261,16 @@ RvkImage* rvk_swapchain_image(const RvkSwapchain* swapchain, const RvkSwapchainI
   return dynarray_at_t(&swapchain->images, idx, RvkImage);
 }
 
-RvkSwapchainIdx
-rvk_swapchain_acquire(RvkSwapchain* swapchain, VkSemaphore available, const RvkSize size) {
+RvkSwapchainIdx rvk_swapchain_acquire(
+    RvkSwapchain*           swapchain,
+    const RendSettingsComp* settings,
+    VkSemaphore             available,
+    const RvkSize           size) {
 
-  const bool outOfDate = (swapchain->flags & RvkSwapchainFlags_OutOfDate) != 0;
-  if (!swapchain->vkSwapchain || outOfDate || !rvk_size_equal(size, swapchain->size)) {
+  const bool outOfDate      = (swapchain->flags & RvkSwapchainFlags_OutOfDate) != 0;
+  const bool changedSize    = !rvk_size_equal(size, swapchain->size);
+  const bool changedPresent = swapchain->presentModeSetting != settings->presentMode;
+  if (!swapchain->vkSwapchain || outOfDate || changedSize || changedPresent) {
     /**
      * Synchronize swapchain (re)creation by waiting for all rendering to be done. This a very
      * crude way of synchronizing and causes stalls when resizing the window. In the future we can
@@ -253,7 +279,7 @@ rvk_swapchain_acquire(RvkSwapchain* swapchain, VkSemaphore available, const RvkS
      */
     rvk_device_wait_idle(swapchain->dev);
 
-    if (!rvk_swapchain_init(swapchain, size)) {
+    if (!rvk_swapchain_init(swapchain, settings, size)) {
       return sentinel_u32;
     }
   }

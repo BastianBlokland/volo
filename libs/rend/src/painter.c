@@ -49,6 +49,7 @@ ecs_view_define(PainterCreateView) {
 ecs_view_define(PainterUpdateView) {
   ecs_access_read(GapWindowComp);
   ecs_access_write(RendPainterComp);
+  ecs_access_read(RendSettingsComp);
 
   ecs_access_maybe_read(SceneCameraComp);
   ecs_access_maybe_read(SceneTransformComp);
@@ -117,6 +118,7 @@ static void painter_draw_forward(
 
 static bool painter_draw(
     RendPainterComp*          painter,
+    const RendSettingsComp*   settings,
     const GapWindowComp*      win,
     const EcsEntityId         camEntity,
     const SceneCameraComp*    cam,
@@ -126,7 +128,7 @@ static bool painter_draw(
 
   const GapVector winSize  = gap_window_param(win, GapParam_WindowSize);
   const RvkSize   rendSize = rvk_size((u32)winSize.width, (u32)winSize.height);
-  const bool      draw     = rvk_canvas_begin(painter->canvas, rendSize);
+  const bool      draw     = rvk_canvas_begin(painter->canvas, settings, rendSize);
   if (draw) {
     const GeoMatrix viewProj = painter_view_proj_matrix(win, cam, trans);
     const RendView  view     = rend_view_create(camEntity, &viewProj, cam->filter);
@@ -160,12 +162,14 @@ ecs_system_define(RendPainterCreateSys) {
     if (gap_window_events(windowComp) & GapWindowEvents_Initializing) {
       continue;
     }
+    const EcsEntityId entity = ecs_view_entity(itr);
     ecs_world_add_t(
         world,
-        ecs_view_entity(itr),
+        entity,
         RendPainterComp,
         .drawBuffer = dynarray_create_t(g_alloc_heap, RvkPassDraw, 1024),
         .canvas     = rvk_canvas_create(plat->device, windowComp));
+    ecs_world_add_t(world, entity, RendSettingsComp, .presentMode = RendPresentMode_VSyncRelaxed);
   }
 }
 
@@ -184,9 +188,11 @@ ecs_system_define(RendPainterDrawBatchesSys) {
       continue;
     }
     RendPainterComp*          painter   = ecs_view_write_t(itr, RendPainterComp);
+    const RendSettingsComp*   settings  = ecs_view_read_t(itr, RendSettingsComp);
     const SceneCameraComp*    camera    = ecs_view_read_t(itr, SceneCameraComp);
     const SceneTransformComp* transform = ecs_view_read_t(itr, SceneTransformComp);
-    anyPainterDrawn |= painter_draw(painter, win, entity, camera, transform, drawView, graphicView);
+    anyPainterDrawn |=
+        painter_draw(painter, settings, win, entity, camera, transform, drawView, graphicView);
   }
 
   if (!anyPainterDrawn) {
