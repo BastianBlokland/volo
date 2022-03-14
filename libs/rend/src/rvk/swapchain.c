@@ -92,11 +92,19 @@ static VkSurfaceFormatKHR rvk_pick_surface_format(RvkDevice* dev, VkSurfaceKHR v
   return formats[0];
 }
 
-static u32 rvk_pick_imagecount(const VkSurfaceCapabilitiesKHR* caps) {
-  /**
-   * Prefer having three images (one on-screen, one ready, and one being rendered to).
-   */
-  u32 imgCount = 3;
+static u32
+rvk_pick_imagecount(const VkSurfaceCapabilitiesKHR* caps, const RendSettingsComp* settings) {
+  u32 imgCount;
+  switch (settings->presentMode) {
+  case RendPresentMode_Immediate:
+    imgCount = 2; // one on-screen, and one being rendered to.
+    break;
+  case RendPresentMode_VSync:
+  case RendPresentMode_VSyncRelaxed:
+  case RendPresentMode_Mailbox:
+    imgCount = 3; // one on-screen, one ready, and one being rendered to.
+    break;
+  }
   if (caps->minImageCount > imgCount) {
     imgCount = caps->minImageCount;
   }
@@ -173,7 +181,7 @@ rvk_swapchain_init(RvkSwapchain* swapchain, const RendSettingsComp* settings, Rv
   const VkSwapchainCreateInfoKHR createInfo   = {
       .sType              = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
       .surface            = swapchain->vkSurf,
-      .minImageCount      = rvk_pick_imagecount(&vkCaps),
+      .minImageCount      = rvk_pick_imagecount(&vkCaps, settings),
       .imageFormat        = swapchain->vkSurfFormat.format,
       .imageColorSpace    = swapchain->vkSurfFormat.colorSpace,
       .imageExtent.width  = size.width,
