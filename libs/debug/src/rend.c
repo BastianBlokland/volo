@@ -19,7 +19,7 @@ rend_panel_draw(UiCanvasComp* canvas, DebugRendPanelComp* panel, RendSettingsCom
   const String title = fmt_write_scratch("{} Renderer Settings", fmt_ui_shape(Brush));
   ui_panel_begin(canvas, &panel->state, .title = title);
 
-  UiGridState layoutGrid = ui_grid_init(canvas, .size = {110, 20});
+  UiGridState layoutGrid = ui_grid_init(canvas, .size = {110, 25});
 
   ui_label(canvas, string_lit("VSync"));
   ui_grid_next_col(canvas, &layoutGrid);
@@ -70,7 +70,7 @@ EcsEntityId debug_rend_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugRendPanelComp,
-      .state  = ui_panel_init(ui_vector(250, 185)),
+      .state  = ui_panel_init(ui_vector(250, 225)),
       .window = window);
   return panelEntity;
 }
