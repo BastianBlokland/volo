@@ -11,7 +11,6 @@ typedef u32 EcsArchetypeId;
 
 typedef struct {
   const EcsDef* def;
-  EcsFinalizer  finalizer;
 
   EntityAllocator entityAllocator;
   DynArray        entities; // EcsEntityInfo[].
@@ -27,12 +26,15 @@ i8 ecs_compare_archetype(const void* a, const void* b);
 EcsStorage ecs_storage_create(Allocator*, const EcsDef*);
 void       ecs_storage_destroy(EcsStorage*);
 
+void ecs_storage_queue_finalize_all(EcsStorage*, EcsFinalizer*);
+
 EcsEntityId    ecs_storage_entity_create(EcsStorage*);
 bool           ecs_storage_entity_exists(const EcsStorage*, EcsEntityId);
 BitSet         ecs_storage_entity_mask(EcsStorage*, EcsEntityId);
 EcsArchetypeId ecs_storage_entity_archetype(EcsStorage*, EcsEntityId);
-void           ecs_storage_entity_move(EcsStorage*, EcsEntityId, EcsArchetypeId newArchetypeId);
-void           ecs_storage_entity_destroy(EcsStorage*, EcsEntityId);
+void           ecs_storage_entity_move(
+              EcsStorage*, EcsFinalizer*, EcsEntityId, EcsArchetypeId newArchetypeId);
+void ecs_storage_entity_destroy(EcsStorage*, EcsFinalizer*, EcsEntityId);
 
 usize          ecs_storage_archetype_count(const EcsStorage*);
 usize          ecs_storage_archetype_entities_per_chunk(const EcsStorage*, EcsArchetypeId);

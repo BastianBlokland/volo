@@ -132,12 +132,12 @@ EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
 
   EcsWorld* world = alloc_alloc_t(alloc, EcsWorld);
   *world          = (EcsWorld){
-               .def       = def,
-               .finalizer = ecs_finalizer_create(alloc, def),
-               .storage   = ecs_storage_create(alloc, def),
-               .views     = dynarray_create_t(alloc, EcsView, ecs_def_view_count(def)),
-               .buffer    = ecs_buffer_create(alloc, def),
-               .alloc     = alloc,
+      .def       = def,
+      .finalizer = ecs_finalizer_create(alloc, def),
+      .storage   = ecs_storage_create(alloc, def),
+      .views     = dynarray_create_t(alloc, EcsView, ecs_def_view_count(def)),
+      .buffer    = ecs_buffer_create(alloc, def),
+      .alloc     = alloc,
   };
   world->globalEntity = ecs_storage_entity_create(&world->storage);
 
@@ -163,7 +163,11 @@ void ecs_world_destroy(EcsWorld* world) {
 
   MAYBE_UNUSED const usize archetypeCount = ecs_storage_archetype_count(&world->storage);
 
+  // Finalize (invoke destructors) all components on all entities.
+  ecs_storage_queue_finalize_all(&world->storage, &world->finalizer);
+  ecs_finalizer_flush(&world->finalizer);
   ecs_finalizer_destroy(&world->finalizer);
+
   ecs_storage_destroy(&world->storage);
 
   dynarray_for_t(&world->views, EcsView, view) { ecs_view_destroy(world->alloc, world->def, view); }
@@ -303,7 +307,7 @@ void ecs_world_flush_internal(EcsWorld* world) {
        * Discard any component additions for the same entity in the buffer.
        */
       ecs_world_finalize_added_comps(world, &world->buffer, i);
-      ecs_storage_entity_destroy(&world->storage, entity);
+      ecs_storage_entity_destroy(&world->storage, &world->finalizer, entity);
       continue;
     }
 
@@ -314,7 +318,7 @@ void ecs_world_flush_internal(EcsWorld* world) {
 
     const BitSet         curCompMask  = ecs_storage_entity_mask(&world->storage, entity);
     const EcsArchetypeId newArchetype = ecs_world_archetype_find_or_create(world, newCompMask);
-    ecs_storage_entity_move(&world->storage, entity, newArchetype);
+    ecs_storage_entity_move(&world->storage, &world->finalizer, entity, newArchetype);
     ecs_world_apply_added_comps(&world->storage, &world->buffer, i, curCompMask);
   }
 
