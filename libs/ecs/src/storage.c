@@ -217,17 +217,13 @@ void ecs_storage_entity_move(
   }
 }
 
-void ecs_storage_entity_destroy(
-    EcsStorage* storage, EcsFinalizer* finalizer, const EcsEntityId id) {
+void ecs_storage_entity_destroy(EcsStorage* storage, const EcsEntityId id) {
 
   EcsEntityInfo* info = ecs_storage_entity_info_ptr(storage, id);
   diag_assert_msg(info, "Missing entity-info for entity '{}'", fmt_int(id));
 
   EcsArchetype* archetype = ecs_storage_archetype_ptr(storage, info->archetype);
   if (archetype) {
-    ecs_storage_queue_finalize_entity(storage, finalizer, id);
-    ecs_finalizer_flush(finalizer); // TODO: Remove this intermidate flush.
-
     const EcsEntityId movedEntity = ecs_archetype_remove(archetype, info->archetypeIndex);
     if (ecs_entity_valid(movedEntity)) {
       ecs_storage_entity_info_ptr(storage, movedEntity)->archetypeIndex = info->archetypeIndex;

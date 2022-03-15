@@ -298,15 +298,27 @@ void ecs_world_flush_internal(EcsWorld* world) {
   BitSet      newCompMask = ecs_comp_mask_stack(world->def);
   const usize bufferCount = ecs_buffer_count(&world->buffer);
 
+  /**
+   * Finalize (invoke destructors) components that have been removed this frame.
+   */
+  for (usize i = 0; i != bufferCount; ++i) {
+    const EcsEntityId entity = ecs_buffer_entity(&world->buffer, i);
+    if (ecs_buffer_entity_flags(&world->buffer, i) & EcsBufferEntityFlags_Destroy) {
+      ecs_storage_queue_finalize_entity(&world->storage, &world->finalizer, entity);
+      // NOTE: Discard any component additions for the same entity in the buffer.
+      ecs_world_queue_finalize_added(world, &world->buffer, i);
+    }
+  }
+  ecs_finalizer_flush(&world->finalizer);
+
+  /**
+   * Move entities to their new archetypes and apply the added components.
+   */
   for (usize i = 0; i != bufferCount; ++i) {
     const EcsEntityId entity = ecs_buffer_entity(&world->buffer, i);
 
     if (ecs_buffer_entity_flags(&world->buffer, i) & EcsBufferEntityFlags_Destroy) {
-      /**
-       * Discard any component additions for the same entity in the buffer.
-       */
-      ecs_world_queue_finalize_added(world, &world->buffer, i);
-      ecs_storage_entity_destroy(&world->storage, &world->finalizer, entity);
+      ecs_storage_entity_destroy(&world->storage, entity);
       continue;
     }
 
@@ -320,8 +332,6 @@ void ecs_world_flush_internal(EcsWorld* world) {
     ecs_storage_entity_move(&world->storage, &world->finalizer, entity, newArchetype);
     ecs_world_apply_added_comps(&world->storage, &world->buffer, i, curCompMask);
   }
-
-  ecs_finalizer_flush(&world->finalizer);
 
   ecs_buffer_clear(&world->buffer);
 }

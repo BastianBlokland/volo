@@ -190,10 +190,10 @@ spec(destruct) {
 
     check_require(g_destructCount == 4);
     /**
-     * Destruction order is respected per entity for mid-frame destroys.
+     * Verify that destruction order is respected globally.
      */
-    check_eq_int(g_destructs[0], ecs_comp_id(DestructCompA));
-    check_eq_int(g_destructs[1], ecs_comp_id(DestructCompB));
+    check_eq_int(g_destructs[0], ecs_comp_id(DestructCompB));
+    check_eq_int(g_destructs[1], ecs_comp_id(DestructCompA));
     check_eq_int(g_destructs[2], ecs_comp_id(DestructCompA));
     check_eq_int(g_destructs[3], ecs_comp_id(DestructCompC));
 
