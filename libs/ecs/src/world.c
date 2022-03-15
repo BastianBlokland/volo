@@ -304,7 +304,8 @@ void ecs_world_flush_internal(EcsWorld* world) {
   for (usize i = 0; i != bufferCount; ++i) {
     const EcsEntityId entity = ecs_buffer_entity(&world->buffer, i);
     if (ecs_buffer_entity_flags(&world->buffer, i) & EcsBufferEntityFlags_Destroy) {
-      ecs_storage_queue_finalize_entity(&world->storage, &world->finalizer, entity);
+      const BitSet mask = ecs_storage_entity_mask(&world->storage, entity);
+      ecs_storage_queue_finalize(&world->storage, &world->finalizer, entity, mask);
       // NOTE: Discard any component additions for the same entity in the buffer.
       ecs_world_queue_finalize_added(world, &world->buffer, i);
     }

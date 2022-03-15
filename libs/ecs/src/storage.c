@@ -50,7 +50,7 @@ static EcsEntityInfo* ecs_storage_entity_info_ptr(EcsStorage* storage, const Ecs
   return info->serial == ecs_entity_id_serial(id) ? info : null;
 }
 
-static void ecs_storage_queue_finalize(EcsFinalizer* finalizer, EcsIterator* itr) {
+static void ecs_storage_queue_finalize_itr(EcsFinalizer* finalizer, EcsIterator* itr) {
   EcsCompId compId = 0;
   for (usize i = 0; i != itr->compCount; ++i, ++compId) {
     compId = (EcsCompId)bitset_next(itr->mask, compId);
@@ -64,7 +64,7 @@ static void ecs_storage_queue_finalize_archetype(
   EcsArchetype* archetype = ecs_storage_archetype_ptr(storage, id);
   EcsIterator*  itr       = ecs_iterator_stack(archetype->mask);
   while (ecs_storage_itr_walk(storage, itr, id)) {
-    ecs_storage_queue_finalize(finalizer, itr);
+    ecs_storage_queue_finalize_itr(finalizer, itr);
   }
 }
 
@@ -73,7 +73,7 @@ static void ecs_storage_queue_finalize_entity_internal(
 
   EcsIterator* itr = ecs_iterator_stack(mask);
   ecs_archetype_itr_jump(archetype, itr, archetypeIndex);
-  ecs_storage_queue_finalize(finalizer, itr);
+  ecs_storage_queue_finalize_itr(finalizer, itr);
 }
 
 i8 ecs_compare_archetype(const void* a, const void* b) { return compare_u32(a, b); }
@@ -106,17 +106,17 @@ void ecs_storage_destroy(EcsStorage* storage) {
   dynarray_destroy(&storage->newEntities);
 }
 
-void ecs_storage_queue_finalize_entity(
-    EcsStorage* storage, EcsFinalizer* finalizer, const EcsEntityId id) {
+void ecs_storage_queue_finalize(
+    EcsStorage* storage, EcsFinalizer* finalizer, const EcsEntityId id, const BitSet mask) {
 
   EcsEntityInfo* info = ecs_storage_entity_info_ptr(storage, id);
   diag_assert_msg(info, "Missing entity-info for entity '{}'", fmt_int(id));
 
   EcsArchetype* archetype = ecs_storage_archetype_ptr(storage, info->archetype);
   if (archetype) {
-    EcsIterator* itr = ecs_iterator_stack(archetype->mask);
+    EcsIterator* itr = ecs_iterator_stack(mask);
     ecs_archetype_itr_jump(archetype, itr, info->archetypeIndex);
-    ecs_storage_queue_finalize(finalizer, itr);
+    ecs_storage_queue_finalize_itr(finalizer, itr);
   }
 }
 
