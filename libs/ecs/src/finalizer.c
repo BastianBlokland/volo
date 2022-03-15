@@ -1,3 +1,5 @@
+#include "core_diag.h"
+
 #include "def_internal.h"
 #include "finalizer_internal.h"
 
@@ -14,7 +16,10 @@ EcsFinalizer ecs_finalizer_create(Allocator* alloc, const EcsDef* def) {
   };
 }
 
-void ecs_finalizer_destroy(EcsFinalizer* finalizer) { dynarray_destroy(&finalizer->entries); }
+void ecs_finalizer_destroy(EcsFinalizer* finalizer) {
+  diag_assert_msg(finalizer->entries.size == 0, "Finalizer cannot be destroyed with pending items");
+  dynarray_destroy(&finalizer->entries);
+}
 
 void ecs_finalizer_push(EcsFinalizer* finalizer, const EcsCompId compId, void* compData) {
   EcsCompDestructor destructor = ecs_def_comp_destructor(finalizer->def, compId);
