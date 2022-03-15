@@ -4,6 +4,7 @@
 #include "ecs_def.h"
 
 #include "entity_internal.h"
+#include "finalizer_internal.h"
 
 /**
  * Buffer for storing entity layout modifications to be applied at a later time.
@@ -26,6 +27,8 @@ typedef struct sEcsBufferCompData EcsBufferCompData;
 EcsBuffer ecs_buffer_create(Allocator*, const EcsDef* def);
 void      ecs_buffer_destroy(EcsBuffer*);
 void      ecs_buffer_clear(EcsBuffer*);
+
+void ecs_buffer_queue_finalize_all(EcsBuffer*, EcsFinalizer*);
 
 void  ecs_buffer_destroy_entity(EcsBuffer*, EcsEntityId);
 void* ecs_buffer_comp_add(EcsBuffer*, EcsEntityId, EcsCompId, Mem data);

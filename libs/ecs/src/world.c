@@ -116,7 +116,7 @@ static void ecs_world_apply_added_comps(
   }
 }
 
-static void ecs_world_finalize_added_comps(EcsWorld* world, EcsBuffer* buffer, const usize idx) {
+static void ecs_world_queue_finalize_added(EcsWorld* world, EcsBuffer* buffer, const usize idx) {
   for (EcsBufferCompData* bufferItr = ecs_buffer_comp_begin(buffer, idx); bufferItr;
        bufferItr                    = ecs_buffer_comp_next(bufferItr)) {
 
@@ -124,7 +124,30 @@ static void ecs_world_finalize_added_comps(EcsWorld* world, EcsBuffer* buffer, c
     const Mem       compData = ecs_buffer_comp_data(buffer, bufferItr);
     ecs_finalizer_push(&world->finalizer, compId, compData.ptr);
   }
-  ecs_finalizer_flush(&world->finalizer);
+}
+
+/**
+ * Compute a mask with the removed components for the given entry in the buffer.
+ *
+ * This is not the same as 'ecs_buffer_entity_removed()' as component addition takes precedence
+ * over removal and the buffer could contain both for the same component.
+ */
+static void ecs_world_removed_comps_mask(EcsBuffer* buffer, const usize idx, BitSet out) {
+  bitset_clear_all(out);
+  bitset_or(out, ecs_buffer_entity_removed(buffer, idx));
+  bitset_xor(out, ecs_buffer_entity_added(buffer, idx));
+  bitset_and(out, ecs_buffer_entity_removed(buffer, idx));
+}
+
+/**
+ * Compute the new component mask for the given entry in the buffer.
+ */
+static void
+ecs_world_new_comps_mask(EcsBuffer* buffer, const usize idx, const BitSet currentMask, BitSet out) {
+  bitset_clear_all(out);
+  bitset_or(out, currentMask);
+  bitset_xor(out, ecs_buffer_entity_removed(buffer, idx));
+  bitset_or(out, ecs_buffer_entity_added(buffer, idx));
 }
 
 EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
@@ -132,12 +155,12 @@ EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
 
   EcsWorld* world = alloc_alloc_t(alloc, EcsWorld);
   *world          = (EcsWorld){
-               .def       = def,
-               .finalizer = ecs_finalizer_create(alloc, def),
-               .storage   = ecs_storage_create(alloc, def),
-               .views     = dynarray_create_t(alloc, EcsView, ecs_def_view_count(def)),
-               .buffer    = ecs_buffer_create(alloc, def),
-               .alloc     = alloc,
+      .def       = def,
+      .finalizer = ecs_finalizer_create(alloc, def),
+      .storage   = ecs_storage_create(alloc, def),
+      .views     = dynarray_create_t(alloc, EcsView, ecs_def_view_count(def)),
+      .buffer    = ecs_buffer_create(alloc, def),
+      .alloc     = alloc,
   };
   world->globalEntity = ecs_storage_entity_create(&world->storage);
 
@@ -163,13 +186,18 @@ void ecs_world_destroy(EcsWorld* world) {
 
   MAYBE_UNUSED const usize archetypeCount = ecs_storage_archetype_count(&world->storage);
 
+  // Finalize (invoke destructors) all components on all entities.
+  ecs_storage_queue_finalize_all(&world->storage, &world->finalizer);
+  ecs_buffer_queue_finalize_all(&world->buffer, &world->finalizer);
+
+  ecs_finalizer_flush(&world->finalizer);
   ecs_finalizer_destroy(&world->finalizer);
+
   ecs_storage_destroy(&world->storage);
+  ecs_buffer_destroy(&world->buffer);
 
   dynarray_for_t(&world->views, EcsView, view) { ecs_view_destroy(world->alloc, world->def, view); }
   dynarray_destroy(&world->views);
-
-  ecs_buffer_destroy(&world->buffer);
 
   log_d("Ecs world destroyed", log_param("archetypes", fmt_int(archetypeCount)));
 
@@ -292,31 +320,44 @@ void ecs_world_busy_unset(EcsWorld* world) {
 void ecs_world_flush_internal(EcsWorld* world) {
   ecs_storage_flush_new_entities(&world->storage);
 
-  BitSet      newCompMask = ecs_comp_mask_stack(world->def);
+  BitSet      tmpMask     = ecs_comp_mask_stack(world->def);
   const usize bufferCount = ecs_buffer_count(&world->buffer);
 
+  /**
+   * Finalize (invoke destructors) components that have been removed this frame.
+   */
   for (usize i = 0; i != bufferCount; ++i) {
     const EcsEntityId entity = ecs_buffer_entity(&world->buffer, i);
 
     if (ecs_buffer_entity_flags(&world->buffer, i) & EcsBufferEntityFlags_Destroy) {
-      /**
-       * Discard any component additions for the same entity in the buffer.
-       */
-      ecs_world_finalize_added_comps(world, &world->buffer, i);
-      ecs_storage_entity_destroy(&world->storage, entity);
+      const BitSet mask = ecs_storage_entity_mask(&world->storage, entity);
+      ecs_storage_queue_finalize(&world->storage, &world->finalizer, entity, mask);
+      // NOTE: Discard any component additions for the same entity in the buffer.
+      ecs_world_queue_finalize_added(world, &world->buffer, i);
       continue;
     }
 
-    bitset_clear_all(newCompMask);
-    bitset_or(newCompMask, ecs_storage_entity_mask(&world->storage, entity));
-    bitset_xor(newCompMask, ecs_buffer_entity_removed(&world->buffer, i));
-    bitset_or(newCompMask, ecs_buffer_entity_added(&world->buffer, i));
+    ecs_world_removed_comps_mask(&world->buffer, i, tmpMask);
+    ecs_storage_queue_finalize(&world->storage, &world->finalizer, entity, tmpMask);
+  }
+  ecs_finalizer_flush(&world->finalizer);
 
-    const BitSet         curCompMask  = ecs_storage_entity_mask(&world->storage, entity);
-    const EcsArchetypeId newArchetype = ecs_world_archetype_find_or_create(world, newCompMask);
+  /**
+   * Move entities to their new archetypes and apply the added components.
+   */
+  for (usize i = 0; i != bufferCount; ++i) {
+    const EcsEntityId entity = ecs_buffer_entity(&world->buffer, i);
+
+    if (ecs_buffer_entity_flags(&world->buffer, i) & EcsBufferEntityFlags_Destroy) {
+      ecs_storage_entity_destroy(&world->storage, entity);
+      continue;
+    }
+    const BitSet curCompMask = ecs_storage_entity_mask(&world->storage, entity);
+    ecs_world_new_comps_mask(&world->buffer, i, curCompMask, tmpMask);
+
+    const EcsArchetypeId newArchetype = ecs_world_archetype_find_or_create(world, tmpMask);
     ecs_storage_entity_move(&world->storage, entity, newArchetype);
     ecs_world_apply_added_comps(&world->storage, &world->buffer, i, curCompMask);
   }
-
   ecs_buffer_clear(&world->buffer);
 }

@@ -11,7 +11,6 @@ typedef u32 EcsArchetypeId;
 
 typedef struct {
   const EcsDef* def;
-  EcsFinalizer  finalizer;
 
   EntityAllocator entityAllocator;
   DynArray        entities; // EcsEntityInfo[].
@@ -26,6 +25,9 @@ i8 ecs_compare_archetype(const void* a, const void* b);
 
 EcsStorage ecs_storage_create(Allocator*, const EcsDef*);
 void       ecs_storage_destroy(EcsStorage*);
+
+void ecs_storage_queue_finalize(EcsStorage*, EcsFinalizer*, EcsEntityId, BitSet mask);
+void ecs_storage_queue_finalize_all(EcsStorage*, EcsFinalizer*);
 
 EcsEntityId    ecs_storage_entity_create(EcsStorage*);
 bool           ecs_storage_entity_exists(const EcsStorage*, EcsEntityId);
