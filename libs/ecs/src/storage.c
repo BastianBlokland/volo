@@ -68,14 +68,6 @@ static void ecs_storage_queue_finalize_archetype(
   }
 }
 
-static void ecs_storage_queue_finalize_entity_internal(
-    EcsFinalizer* finalizer, EcsArchetype* archetype, const u32 archetypeIndex, const BitSet mask) {
-
-  EcsIterator* itr = ecs_iterator_stack(mask);
-  ecs_archetype_itr_jump(archetype, itr, archetypeIndex);
-  ecs_storage_queue_finalize_itr(finalizer, itr);
-}
-
 i8 ecs_compare_archetype(const void* a, const void* b) { return compare_u32(a, b); }
 
 EcsStorage ecs_storage_create(Allocator* alloc, const EcsDef* def) {
@@ -168,10 +160,7 @@ EcsArchetypeId ecs_storage_entity_archetype(EcsStorage* storage, const EcsEntity
 }
 
 void ecs_storage_entity_move(
-    EcsStorage*          storage,
-    EcsFinalizer*        finalizer,
-    const EcsEntityId    id,
-    const EcsArchetypeId newArchetypeId) {
+    EcsStorage* storage, const EcsEntityId id, const EcsArchetypeId newArchetypeId) {
 
   EcsEntityInfo* info              = ecs_storage_entity_info_ptr(storage, id);
   EcsArchetype*  oldArchetype      = ecs_storage_archetype_ptr(storage, info->archetype);
@@ -200,16 +189,6 @@ void ecs_storage_entity_move(
   }
 
   if (oldArchetype) {
-    // Destroy the components that are no longer present on the new archetype.
-    BitSet missing = ecs_comp_mask_stack(storage->def);
-    mem_cpy(missing, oldArchetype->mask);
-    if (newArchetype) {
-      bitset_xor(missing, newArchetype->mask);
-      bitset_and(missing, oldArchetype->mask);
-    }
-    ecs_storage_queue_finalize_entity_internal(finalizer, oldArchetype, oldArchetypeIndex, missing);
-    ecs_finalizer_flush(finalizer); // TODO: Remove this intermidate flush.
-
     const EcsEntityId movedEntity = ecs_archetype_remove(oldArchetype, oldArchetypeIndex);
     if (ecs_entity_valid(movedEntity)) {
       ecs_storage_entity_info_ptr(storage, movedEntity)->archetypeIndex = oldArchetypeIndex;
