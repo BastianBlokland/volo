@@ -68,7 +68,7 @@ static void ecs_storage_queue_finalize_archetype(
   }
 }
 
-static void ecs_storage_queue_finalize_entity(
+static void ecs_storage_queue_finalize_entity_internal(
     EcsFinalizer* finalizer, EcsArchetype* archetype, const u32 archetypeIndex, const BitSet mask) {
 
   EcsIterator* itr = ecs_iterator_stack(mask);
@@ -104,6 +104,20 @@ void ecs_storage_destroy(EcsStorage* storage) {
 
   dynarray_destroy(&storage->entities);
   dynarray_destroy(&storage->newEntities);
+}
+
+void ecs_storage_queue_finalize_entity(
+    EcsStorage* storage, EcsFinalizer* finalizer, const EcsEntityId id) {
+
+  EcsEntityInfo* info = ecs_storage_entity_info_ptr(storage, id);
+  diag_assert_msg(info, "Missing entity-info for entity '{}'", fmt_int(id));
+
+  EcsArchetype* archetype = ecs_storage_archetype_ptr(storage, info->archetype);
+  if (archetype) {
+    EcsIterator* itr = ecs_iterator_stack(archetype->mask);
+    ecs_archetype_itr_jump(archetype, itr, info->archetypeIndex);
+    ecs_storage_queue_finalize(finalizer, itr);
+  }
 }
 
 void ecs_storage_queue_finalize_all(EcsStorage* storage, EcsFinalizer* finalizer) {
@@ -193,7 +207,7 @@ void ecs_storage_entity_move(
       bitset_xor(missing, newArchetype->mask);
       bitset_and(missing, oldArchetype->mask);
     }
-    ecs_storage_queue_finalize_entity(finalizer, oldArchetype, oldArchetypeIndex, missing);
+    ecs_storage_queue_finalize_entity_internal(finalizer, oldArchetype, oldArchetypeIndex, missing);
     ecs_finalizer_flush(finalizer); // TODO: Remove this intermidate flush.
 
     const EcsEntityId movedEntity = ecs_archetype_remove(oldArchetype, oldArchetypeIndex);
@@ -211,7 +225,7 @@ void ecs_storage_entity_destroy(
 
   EcsArchetype* archetype = ecs_storage_archetype_ptr(storage, info->archetype);
   if (archetype) {
-    ecs_storage_queue_finalize_entity(finalizer, archetype, info->archetypeIndex, archetype->mask);
+    ecs_storage_queue_finalize_entity(storage, finalizer, id);
     ecs_finalizer_flush(finalizer); // TODO: Remove this intermidate flush.
 
     const EcsEntityId movedEntity = ecs_archetype_remove(archetype, info->archetypeIndex);
