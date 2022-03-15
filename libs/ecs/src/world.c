@@ -116,7 +116,7 @@ static void ecs_world_apply_added_comps(
   }
 }
 
-static void ecs_world_finalize_added_comps(EcsWorld* world, EcsBuffer* buffer, const usize idx) {
+static void ecs_world_queue_finalize_added(EcsWorld* world, EcsBuffer* buffer, const usize idx) {
   for (EcsBufferCompData* bufferItr = ecs_buffer_comp_begin(buffer, idx); bufferItr;
        bufferItr                    = ecs_buffer_comp_next(bufferItr)) {
 
@@ -124,7 +124,6 @@ static void ecs_world_finalize_added_comps(EcsWorld* world, EcsBuffer* buffer, c
     const Mem       compData = ecs_buffer_comp_data(buffer, bufferItr);
     ecs_finalizer_push(&world->finalizer, compId, compData.ptr);
   }
-  ecs_finalizer_flush(&world->finalizer);
 }
 
 EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
@@ -306,7 +305,7 @@ void ecs_world_flush_internal(EcsWorld* world) {
       /**
        * Discard any component additions for the same entity in the buffer.
        */
-      ecs_world_finalize_added_comps(world, &world->buffer, i);
+      ecs_world_queue_finalize_added(world, &world->buffer, i);
       ecs_storage_entity_destroy(&world->storage, &world->finalizer, entity);
       continue;
     }
@@ -321,6 +320,8 @@ void ecs_world_flush_internal(EcsWorld* world) {
     ecs_storage_entity_move(&world->storage, &world->finalizer, entity, newArchetype);
     ecs_world_apply_added_comps(&world->storage, &world->buffer, i, curCompMask);
   }
+
+  ecs_finalizer_flush(&world->finalizer);
 
   ecs_buffer_clear(&world->buffer);
 }
