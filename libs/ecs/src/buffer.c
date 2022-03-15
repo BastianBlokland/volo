@@ -6,7 +6,6 @@
 #include "log_logger.h"
 
 #include "buffer_internal.h"
-#include "finalizer_internal.h"
 
 /**
  * Modifications are stored per entity. Entity data is kept sorted so a binary-search can be
@@ -159,18 +158,6 @@ EcsBuffer ecs_buffer_create(Allocator* alloc, const EcsDef* def) {
 }
 
 void ecs_buffer_destroy(EcsBuffer* buffer) {
-  // Finalize (invoke destructors) any added components still in the buffer.
-  EcsFinalizer finalizer = ecs_finalizer_create(g_alloc_heap, buffer->def);
-  for (usize i = 0; i != buffer->entities.size; ++i) {
-    for (EcsBufferCompData* bufferItr = ecs_buffer_comp_begin(buffer, i); bufferItr;
-         bufferItr                    = ecs_buffer_comp_next(bufferItr)) {
-      void* compData = ecs_buffer_comp_data(buffer, bufferItr).ptr;
-      ecs_finalizer_push(&finalizer, bufferItr->id, compData);
-    }
-  }
-  ecs_finalizer_flush(&finalizer);
-  ecs_finalizer_destroy(&finalizer);
-
   dynarray_destroy(&buffer->masks);
   dynarray_destroy(&buffer->entities);
   alloc_chunked_destroy(buffer->compDataAllocator);
@@ -180,6 +167,16 @@ void ecs_buffer_clear(EcsBuffer* buffer) {
   dynarray_clear(&buffer->masks);
   dynarray_clear(&buffer->entities);
   alloc_reset(buffer->compDataAllocator);
+}
+
+void ecs_buffer_queue_finalize_all(EcsBuffer* buffer, EcsFinalizer* finalizer) {
+  for (usize i = 0; i != buffer->entities.size; ++i) {
+    for (EcsBufferCompData* bufferItr = ecs_buffer_comp_begin(buffer, i); bufferItr;
+         bufferItr                    = ecs_buffer_comp_next(bufferItr)) {
+      void* compData = ecs_buffer_comp_data(buffer, bufferItr).ptr;
+      ecs_finalizer_push(finalizer, bufferItr->id, compData);
+    }
+  }
 }
 
 void ecs_buffer_destroy_entity(EcsBuffer* buffer, const EcsEntityId entityId) {
