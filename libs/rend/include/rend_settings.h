@@ -34,4 +34,12 @@ ecs_comp_extern_public(RendSettingsComp) {
   f32             resolutionScale;
 };
 
+typedef enum {
+  RendGlobalFlags_Validation = 1 << 0,
+  RendGlobalFlags_Verbose    = 1 << 1,
+} RendGlobalFlags;
+
+ecs_comp_extern_public(RendGlobalSettingsComp) { RendGlobalFlags flags; };
+
 void rend_settings_to_default(RendSettingsComp*);
+void rend_global_settings_to_default(RendGlobalSettingsComp*);

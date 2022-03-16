@@ -3,6 +3,7 @@
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
+#include "rend_settings.h"
 
 #include "platform_internal.h"
 #include "reset_internal.h"
@@ -28,9 +29,19 @@ static void destruct_platform_intern_comp(void* data) {
   rvk_device_wait_idle(comp->device);
 }
 
-ecs_view_define(GlobalView) {
-  ecs_access_write(RendPlatformComp);
-  ecs_access_write(RendPlatformInternComp);
+ecs_view_define(GlobalPlatformView) { ecs_access_write(RendPlatformComp); }
+ecs_view_define(GlobalSettingsView) { ecs_access_read(RendGlobalSettingsComp); }
+
+static const RendGlobalSettingsComp* rend_global_settings(EcsWorld* world) {
+  const EcsEntityId global       = ecs_world_global(world);
+  EcsView*          settingsView = ecs_world_view_t(world, GlobalSettingsView);
+  EcsIterator*      settingsItr  = ecs_view_maybe_at(settingsView, global);
+  if (!settingsItr) {
+    RendGlobalSettingsComp* settings = ecs_world_add_t(world, global, RendGlobalSettingsComp);
+    rend_global_settings_to_default(settings);
+    return settings;
+  }
+  return ecs_view_read_t(settingsItr, RendGlobalSettingsComp);
 }
 
 ecs_system_define(RendPlatformUpdateSys) {
@@ -38,17 +49,19 @@ ecs_system_define(RendPlatformUpdateSys) {
     return;
   }
 
-  if (!ecs_world_has_t(world, ecs_world_global(world), RendPlatformComp)) {
-    RvkDevice* device = rvk_device_create(g_alloc_heap);
-    ecs_world_add_t(world, ecs_world_global(world), RendPlatformComp, .device = device);
-    ecs_world_add_t(world, ecs_world_global(world), RendPlatformInternComp, .device = device);
+  const EcsEntityId global       = ecs_world_global(world);
+  EcsView*          platformView = ecs_world_view_t(world, GlobalPlatformView);
+  EcsIterator*      platformItr  = ecs_view_maybe_at(platformView, global);
+
+  if (!platformItr) {
+    const RendGlobalSettingsComp* settings = rend_global_settings(world);
+    RvkDevice*                    device   = rvk_device_create(settings);
+    ecs_world_add_t(world, global, RendPlatformComp, .device = device);
+    ecs_world_add_t(world, global, RendPlatformInternComp, .device = device);
     return;
   }
 
-  EcsView*          globalView = ecs_world_view_t(world, GlobalView);
-  EcsIterator*      globalItr  = ecs_view_at(globalView, ecs_world_global(world));
-  RendPlatformComp* plat       = ecs_view_write_t(globalItr, RendPlatformComp);
-
+  RendPlatformComp* plat = ecs_view_write_t(platformItr, RendPlatformComp);
   rvk_device_update(plat->device);
 }
 
@@ -57,9 +70,11 @@ ecs_module_init(rend_platform_module) {
   ecs_register_comp(
       RendPlatformInternComp, .destructor = destruct_platform_intern_comp, .destructOrder = -10);
 
-  ecs_register_view(GlobalView);
+  ecs_register_view(GlobalPlatformView);
+  ecs_register_view(GlobalSettingsView);
 
-  ecs_register_system(RendPlatformUpdateSys, ecs_view_id(GlobalView));
+  ecs_register_system(
+      RendPlatformUpdateSys, ecs_view_id(GlobalPlatformView), ecs_view_id(GlobalSettingsView));
 }
 
 void rend_platform_teardown(EcsWorld* world) {

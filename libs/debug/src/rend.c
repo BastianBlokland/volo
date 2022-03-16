@@ -3,12 +3,21 @@
 #include "rend_settings.h"
 #include "ui.h"
 
+static const String g_tooltipVSync = string_static("Should presentation wait for VBlanks?");
+static const String g_tooltipScale = string_static("Render resolution scale");
+static const String g_tooltipValidation =
+    string_static("Should gpu api validation be enabled?\nNote: Requires a reset to take effect.");
+static const String g_tooltipVerbose  = string_static("Should verbose logging be enabled?");
+static const String g_tooltipDefaults = string_static("Reset all settings to their defaults");
+static const String g_tooltipReset    = string_static("Re-initialize the renderer");
+
 ecs_comp_define(DebugRendPanelComp) {
   UiPanelState state;
   EcsEntityId  window;
 };
 
-ecs_view_define(RendSettingsView) { ecs_access_write(RendSettingsComp); }
+ecs_view_define(GlobalView) { ecs_access_write(RendGlobalSettingsComp); }
+ecs_view_define(WindowView) { ecs_access_write(RendSettingsComp); }
 
 ecs_view_define(PanelUpdateView) {
   ecs_access_write(DebugRendPanelComp);
@@ -16,7 +25,12 @@ ecs_view_define(PanelUpdateView) {
 }
 
 static void rend_panel_draw(
-    EcsWorld* world, UiCanvasComp* canvas, DebugRendPanelComp* panel, RendSettingsComp* settings) {
+    EcsWorld*               world,
+    UiCanvasComp*           canvas,
+    DebugRendPanelComp*     panel,
+    RendSettingsComp*       settings,
+    RendGlobalSettingsComp* globalSettings) {
+
   const String title = fmt_write_scratch("{} Renderer Settings", fmt_ui_shape(Brush));
   ui_panel_begin(canvas, &panel->state, .title = title);
 
@@ -25,7 +39,7 @@ static void rend_panel_draw(
   ui_label(canvas, string_lit("VSync"));
   ui_grid_next_col(canvas, &layoutGrid);
   bool vsync = settings->presentMode == RendPresentMode_VSyncRelaxed;
-  if (ui_toggle(canvas, &vsync, .tooltip = string_lit("Should presentation wait for VBlanks?"))) {
+  if (ui_toggle(canvas, &vsync, .tooltip = g_tooltipVSync)) {
     settings->presentMode = vsync ? RendPresentMode_VSyncRelaxed : RendPresentMode_Immediate;
   }
   ui_grid_next_row(canvas, &layoutGrid);
@@ -38,21 +52,35 @@ static void rend_panel_draw(
       .min     = 0.2f,
       .max     = 2.0f,
       .step    = 0.1f,
-      .tooltip = string_lit("Render resolution scale"));
+      .tooltip = g_tooltipScale);
   ui_grid_next_row(canvas, &layoutGrid);
 
-  if (ui_button(
-          canvas,
-          .label   = string_lit("Defaults"),
-          .tooltip = string_lit("Reset all settings to their defaults"))) {
+  ui_label(canvas, string_lit("Validation"));
+  ui_grid_next_col(canvas, &layoutGrid);
+  bool validation = (globalSettings->flags & RendGlobalFlags_Validation) != 0;
+  if (ui_toggle(canvas, &validation, .tooltip = g_tooltipValidation)) {
+    globalSettings->flags ^= RendGlobalFlags_Validation;
+  }
+  ui_grid_next_row(canvas, &layoutGrid);
+
+  ui_label(canvas, string_lit("Verbose"));
+  ui_grid_next_col(canvas, &layoutGrid);
+  bool verbose = (globalSettings->flags & RendGlobalFlags_Verbose) != 0;
+  if (ui_toggle(canvas, &verbose, .tooltip = g_tooltipVerbose)) {
+    globalSettings->flags ^= RendGlobalFlags_Verbose;
+  }
+  ui_grid_next_row(canvas, &layoutGrid);
+
+  if (ui_button(canvas, .label = string_lit("Defaults"), .tooltip = g_tooltipDefaults)) {
     rend_settings_to_default(settings);
+    rend_global_settings_to_default(globalSettings);
   }
   ui_grid_next_col(canvas, &layoutGrid);
   if (ui_button(
           canvas,
           .label      = string_lit("Reset"),
           .frameColor = ui_color(255, 0, 0, 192),
-          .tooltip    = string_lit("Re-initialize the renderer"))) {
+          .tooltip    = g_tooltipReset)) {
     rend_reset(world);
   }
 
@@ -60,20 +88,27 @@ static void rend_panel_draw(
 }
 
 ecs_system_define(DebugRendUpdatePanelSys) {
-  EcsIterator* settingsItr = ecs_view_itr(ecs_world_view_t(world, RendSettingsView));
+  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return;
+  }
+  RendGlobalSettingsComp* globalSettings = ecs_view_write_t(globalItr, RendGlobalSettingsComp);
+
+  EcsIterator* windowItr = ecs_view_itr(ecs_world_view_t(world, WindowView));
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
     DebugRendPanelComp* panel  = ecs_view_write_t(itr, DebugRendPanelComp);
     UiCanvasComp*       canvas = ecs_view_write_t(itr, UiCanvasComp);
 
-    if (!ecs_view_maybe_jump(settingsItr, panel->window)) {
+    if (!ecs_view_maybe_jump(windowItr, panel->window)) {
       continue; // Window has been destroyed, or has no render settings.
     }
-    RendSettingsComp* settings = ecs_view_write_t(settingsItr, RendSettingsComp);
+    RendSettingsComp* settings = ecs_view_write_t(windowItr, RendSettingsComp);
 
     ui_canvas_reset(canvas);
-    rend_panel_draw(world, canvas, panel, settings);
+    rend_panel_draw(world, canvas, panel, settings, globalSettings);
 
     if (panel->state.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
@@ -84,11 +119,15 @@ ecs_system_define(DebugRendUpdatePanelSys) {
 ecs_module_init(debug_rend_module) {
   ecs_register_comp(DebugRendPanelComp);
 
-  ecs_register_view(RendSettingsView);
+  ecs_register_view(GlobalView);
+  ecs_register_view(WindowView);
   ecs_register_view(PanelUpdateView);
 
   ecs_register_system(
-      DebugRendUpdatePanelSys, ecs_view_id(PanelUpdateView), ecs_view_id(RendSettingsView));
+      DebugRendUpdatePanelSys,
+      ecs_view_id(PanelUpdateView),
+      ecs_view_id(WindowView),
+      ecs_view_id(GlobalView));
 }
 
 EcsEntityId debug_rend_panel_open(EcsWorld* world, const EcsEntityId window) {

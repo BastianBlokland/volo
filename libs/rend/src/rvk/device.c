@@ -12,12 +12,8 @@
 #include "repository_internal.h"
 #include "transfer_internal.h"
 
-#define rend_debug_validation false
-#define rend_debug_verbose false
-
-static const RvkDebugFlags g_debugFlags       = rend_debug_verbose ? RvkDebugFlags_Verbose : 0;
-static const String        g_validationLayer  = string_static("VK_LAYER_KHRONOS_validation");
-static const String        g_validationExts[] = {
+static const String g_validationLayer  = string_static("VK_LAYER_KHRONOS_validation");
+static const String g_validationExts[] = {
     string_static("VK_EXT_debug_utils"),
 };
 static VkValidationFeatureEnableEXT g_validationEnabledFeatures[] = {
@@ -329,14 +325,15 @@ static VkFormat rvk_device_pick_depthformat(RvkDevice* dev) {
   diag_crash_msg("No suitable depth-format found");
 }
 
-RvkDevice* rvk_device_create() {
+RvkDevice* rvk_device_create(const RendGlobalSettingsComp* globalSettings) {
   RvkDevice* dev = alloc_alloc_t(g_alloc_heap, RvkDevice);
   *dev           = (RvkDevice){
       .vkAlloc          = rvk_mem_allocator(g_alloc_heap),
       .queueSubmitMutex = thread_mutex_create(g_alloc_heap),
   };
 
-  if (rend_debug_validation && rvk_instance_layer_supported(g_validationLayer)) {
+  const bool validationDesired = (globalSettings->flags & RendGlobalFlags_Validation) != 0;
+  if (validationDesired && rvk_instance_layer_supported(g_validationLayer)) {
     dev->flags |= RvkDeviceFlags_Validation;
   }
   dev->vkInst             = rvk_instance_create(&dev->vkAlloc, dev->flags);
@@ -355,7 +352,9 @@ RvkDevice* rvk_device_create() {
   dev->vkDepthFormat = rvk_device_pick_depthformat(dev);
 
   if (dev->flags & RvkDeviceFlags_Validation) {
-    dev->debug = rvk_debug_create(dev->vkInst, dev->vkDev, &dev->vkAlloc, g_debugFlags);
+    const bool          verbose    = (globalSettings->flags & RendGlobalFlags_Verbose) != 0;
+    const RvkDebugFlags debugFlags = verbose ? RvkDebugFlags_Verbose : 0;
+    dev->debug = rvk_debug_create(dev->vkInst, dev->vkDev, &dev->vkAlloc, debugFlags);
     if (dev->transferQueueIndex == dev->graphicsQueueIndex) {
       rvk_debug_name_queue(dev->debug, dev->vkGraphicsQueue, "graphics_and_transfer");
     } else {
