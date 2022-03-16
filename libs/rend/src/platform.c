@@ -1,9 +1,11 @@
 #include "core_alloc.h"
 #include "core_diag.h"
+#include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 
 #include "platform_internal.h"
+#include "reset_internal.h"
 #include "rvk/device_internal.h"
 
 ecs_comp_define_public(RendPlatformComp);
@@ -32,6 +34,10 @@ ecs_view_define(GlobalView) {
 }
 
 ecs_system_define(RendPlatformUpdateSys) {
+  if (rend_will_reset(world)) {
+    return;
+  }
+
   if (!ecs_world_has_t(world, ecs_world_global(world), RendPlatformComp)) {
     RvkDevice* device = rvk_device_create(g_alloc_heap);
     ecs_world_add_t(world, ecs_world_global(world), RendPlatformComp, .device = device);
@@ -54,4 +60,9 @@ ecs_module_init(rend_platform_module) {
   ecs_register_view(GlobalView);
 
   ecs_register_system(RendPlatformUpdateSys, ecs_view_id(GlobalView));
+}
+
+void rend_platform_teardown(EcsWorld* world) {
+  ecs_utils_maybe_remove_t(world, ecs_world_global(world), RendPlatformComp);
+  ecs_utils_maybe_remove_t(world, ecs_world_global(world), RendPlatformInternComp);
 }

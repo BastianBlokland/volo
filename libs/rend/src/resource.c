@@ -8,6 +8,7 @@
 #include "rend_register.h"
 
 #include "platform_internal.h"
+#include "reset_internal.h"
 #include "resource_internal.h"
 #include "rvk/device_internal.h"
 #include "rvk/graphic_internal.h"
@@ -141,7 +142,10 @@ static void ecs_combine_resource_unload(void* dataA, void* dataB) {
   compA->state = math_max(compA->state, compB->state);
 }
 
-ecs_view_define(PlatReadView) { ecs_access_read(RendPlatformComp); }
+ecs_view_define(PlatReadView) {
+  ecs_access_read(RendPlatformComp);
+  ecs_access_without(RendResetComp);
+}
 
 ecs_view_define(ResWriteView) { ecs_access_write(RendResComp); }
 
@@ -191,6 +195,7 @@ ecs_view_define(GlobalResourceUpdateView) {
   ecs_access_write(AssetManagerComp);
   ecs_access_maybe_write(RendGlobalResComp);
   ecs_access_without(RendGlobalResLoadedComp);
+  ecs_access_without(RendResetComp);
 }
 
 /**
@@ -587,13 +592,7 @@ ecs_system_define(RendResUnloadUpdateSys) {
       ++unloadComp->state;
     } break;
     case RendResUnloadState_Destroy: {
-      ecs_world_remove_t(world, entity, RendResComp);
-      ecs_world_remove_t(world, entity, RendResUnloadComp);
-      ecs_world_remove_t(world, entity, RendResFinishedComp);
-      ecs_utils_maybe_remove_t(world, entity, RendResGraphicComp);
-      ecs_utils_maybe_remove_t(world, entity, RendResShaderComp);
-      ecs_utils_maybe_remove_t(world, entity, RendResMeshComp);
-      ecs_utils_maybe_remove_t(world, entity, RendResTextureComp);
+      rend_resource_teardown(world, entity);
       ++unloadComp->state;
     } break;
     case RendResUnloadState_Done: {
@@ -663,3 +662,19 @@ bool rend_resource_request(EcsWorld* world, const EcsEntityId assetEntity) {
 }
 
 void rend_resource_mark_used(RendResComp* resComp) { resComp->flags |= RendResFlags_Used; }
+
+void rend_resource_teardown(EcsWorld* world, const EcsEntityId entity) {
+  ecs_world_remove_t(world, entity, RendResComp);
+  ecs_utils_maybe_remove_t(world, entity, RendResUnloadComp);
+  ecs_utils_maybe_remove_t(world, entity, RendResFinishedComp);
+  ecs_utils_maybe_remove_t(world, entity, RendResNeverUnloadComp);
+  ecs_utils_maybe_remove_t(world, entity, RendResGraphicComp);
+  ecs_utils_maybe_remove_t(world, entity, RendResShaderComp);
+  ecs_utils_maybe_remove_t(world, entity, RendResMeshComp);
+  ecs_utils_maybe_remove_t(world, entity, RendResTextureComp);
+}
+
+void rend_resource_teardown_global(EcsWorld* world) {
+  ecs_utils_maybe_remove_t(world, ecs_world_global(world), RendGlobalResComp);
+  ecs_utils_maybe_remove_t(world, ecs_world_global(world), RendGlobalResLoadedComp);
+}

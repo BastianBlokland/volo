@@ -4,6 +4,7 @@
 
 #include "painter_internal.h"
 #include "platform_internal.h"
+#include "reset_internal.h"
 #include "resource_internal.h"
 #include "rvk/canvas_internal.h"
 #include "rvk/desc_internal.h"
@@ -30,7 +31,10 @@ static void rend_stats_update_str(String* strPtr, const String newStr) {
   *strPtr = string_dup(g_alloc_heap, newStr);
 }
 
-ecs_view_define(GlobalView) { ecs_access_read(RendPlatformComp); }
+ecs_view_define(GlobalView) {
+  ecs_access_read(RendPlatformComp);
+  ecs_access_without(RendResetComp);
+}
 
 ecs_view_define(UpdateStatsView) {
   ecs_access_read(RendPainterComp);

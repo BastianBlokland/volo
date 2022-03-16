@@ -5,6 +5,7 @@
 #include "rend_register.h"
 
 #include "draw_internal.h"
+#include "reset_internal.h"
 #include "resource_internal.h"
 
 #define rend_min_align 16
@@ -111,6 +112,10 @@ ecs_system_define(RendClearDrawsSys) {
 }
 
 ecs_system_define(RendDrawRequestGraphicSys) {
+  if (rend_will_reset(world)) {
+    return;
+  }
+
   u32 numRequests = 0;
 
   EcsIterator* graphicResItr = ecs_view_itr(ecs_world_view_t(world, ResourceView));

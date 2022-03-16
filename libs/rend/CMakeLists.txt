@@ -33,6 +33,7 @@ add_library(lib_rend STATIC
   src/painter.c
   src/platform.c
   src/register.c
+  src/reset.c
   src/resource.c
   src/settings.c
   src/stats.c
