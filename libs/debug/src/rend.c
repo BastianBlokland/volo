@@ -1,4 +1,5 @@
 #include "ecs_world.h"
+#include "rend_reset.h"
 #include "rend_settings.h"
 #include "ui.h"
 
@@ -14,8 +15,8 @@ ecs_view_define(PanelUpdateView) {
   ecs_access_write(UiCanvasComp);
 }
 
-static void
-rend_panel_draw(UiCanvasComp* canvas, DebugRendPanelComp* panel, RendSettingsComp* settings) {
+static void rend_panel_draw(
+    EcsWorld* world, UiCanvasComp* canvas, DebugRendPanelComp* panel, RendSettingsComp* settings) {
   const String title = fmt_write_scratch("{} Renderer Settings", fmt_ui_shape(Brush));
   ui_panel_begin(canvas, &panel->state, .title = title);
 
@@ -46,6 +47,14 @@ rend_panel_draw(UiCanvasComp* canvas, DebugRendPanelComp* panel, RendSettingsCom
           .tooltip = string_lit("Reset all settings to their defaults"))) {
     rend_settings_to_default(settings);
   }
+  ui_grid_next_col(canvas, &layoutGrid);
+  if (ui_button(
+          canvas,
+          .label      = string_lit("Reset"),
+          .frameColor = ui_color(255, 0, 0, 192),
+          .tooltip    = string_lit("Re-initialize the renderer"))) {
+    rend_reset(world);
+  }
 
   ui_panel_end(canvas, &panel->state);
 }
@@ -64,7 +73,7 @@ ecs_system_define(DebugRendUpdatePanelSys) {
     RendSettingsComp* settings = ecs_view_write_t(settingsItr, RendSettingsComp);
 
     ui_canvas_reset(canvas);
-    rend_panel_draw(canvas, panel, settings);
+    rend_panel_draw(world, canvas, panel, settings);
 
     if (panel->state.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));

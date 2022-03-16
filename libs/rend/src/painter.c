@@ -10,6 +10,7 @@
 #include "draw_internal.h"
 #include "painter_internal.h"
 #include "platform_internal.h"
+#include "reset_internal.h"
 #include "resource_internal.h"
 #include "rvk/canvas_internal.h"
 #include "rvk/graphic_internal.h"
@@ -33,7 +34,10 @@ typedef struct {
 
 ASSERT(sizeof(RendPainterGlobalData) == 112, "Size needs to match the size defined in glsl");
 
-ecs_view_define(GlobalView) { ecs_access_write(RendPlatformComp); }
+ecs_view_define(GlobalView) {
+  ecs_access_write(RendPlatformComp);
+  ecs_access_without(RendResetComp);
+}
 ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
 ecs_view_define(GraphicView) {
   ecs_access_write(RendResGraphicComp);
@@ -170,8 +174,10 @@ ecs_system_define(RendPainterCreateSys) {
         .drawBuffer = dynarray_create_t(g_alloc_heap, RvkPassDraw, 1024),
         .canvas     = rvk_canvas_create(plat->device, windowComp));
 
-    RendSettingsComp* settings = ecs_world_add_t(world, entity, RendSettingsComp);
-    rend_settings_to_default(settings);
+    if (!ecs_world_has_t(world, entity, RendSettingsComp)) {
+      RendSettingsComp* settings = ecs_world_add_t(world, entity, RendSettingsComp);
+      rend_settings_to_default(settings);
+    }
   }
 }
 
@@ -226,4 +232,8 @@ ecs_module_init(rend_painter_module) {
       ecs_view_id(GraphicView));
 
   ecs_order(RendPainterDrawBatchesSys, RendOrder_DrawExecute);
+}
+
+void rend_painter_teardown(EcsWorld* world, const EcsEntityId entity) {
+  ecs_world_remove_t(world, entity, RendPainterComp);
 }
