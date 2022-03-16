@@ -1,5 +1,6 @@
 #include "ecs_utils.h"
 #include "ecs_world.h"
+#include "log_logger.h"
 
 #include "painter_internal.h"
 #include "platform_internal.h"
@@ -15,6 +16,8 @@ ecs_system_define(RendResetSys) {
   if (!rend_will_reset(world)) {
     return;
   }
+
+  log_i("Resetting renderer");
 
   rend_platform_teardown(world);
   rend_resource_teardown_global(world);

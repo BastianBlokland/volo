@@ -54,6 +54,8 @@ ecs_system_define(RendPlatformUpdateSys) {
   EcsIterator*      platformItr  = ecs_view_maybe_at(platformView, global);
 
   if (!platformItr) {
+    log_i("Setting up renderer");
+
     const RendGlobalSettingsComp* settings = rend_global_settings(world);
     RvkDevice*                    device   = rvk_device_create(settings);
     ecs_world_add_t(world, global, RendPlatformComp, .device = device);
