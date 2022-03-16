@@ -1,5 +1,6 @@
 #pragma once
 #include "core_thread.h"
+#include "rend_settings.h"
 
 #include "debug_internal.h"
 #include "vulkan_internal.h"
@@ -35,7 +36,7 @@ typedef struct sRvkDevice {
   RvkRepository*                   repository;
 } RvkDevice;
 
-RvkDevice* rvk_device_create();
+RvkDevice* rvk_device_create(const RendGlobalSettingsComp*);
 void       rvk_device_destroy(RvkDevice*);
 bool       rvk_device_format_supported(const RvkDevice*, VkFormat, VkFormatFeatureFlags);
 String     rvk_device_name(const RvkDevice*);
