@@ -10,6 +10,8 @@
 #include "cmd_internal.h"
 #include "resource_internal.h"
 
+#define ui_canvas_clip_rects_max 10
+
 typedef struct {
   UiRect rect;
 } UiElement;
@@ -35,10 +37,31 @@ static void ecs_destruct_canvas(void* data) {
 }
 
 typedef struct {
+  ALIGNAS(16)
+  f32    glyphsPerDim;
+  f32    invGlyphsPerDim;
+  f32    padding[2];
+  UiRect clipRects[10];
+} UiDrawMetaData;
+
+ASSERT(sizeof(UiDrawMetaData) == 176, "Size needs to match the size defined in glsl");
+
+typedef struct {
   RendDrawComp* draw;
   DynArray*     elementsOutput;      // UiElement[]*
   DynArray*     overlayGlyphsOutput; // UiGlyphData[]*
+  UiRect        clipRects[ui_canvas_clip_rects_max];
+  u32           clipRectCount;
 } UiRenderState;
+
+static UiDrawMetaData ui_draw_metadata(const UiRenderState* state, const AssetFtxComp* font) {
+  UiDrawMetaData meta = {
+      .glyphsPerDim    = font->glyphsPerDim,
+      .invGlyphsPerDim = 1.0f / (f32)font->glyphsPerDim,
+  };
+  mem_cpy(mem_var(meta.clipRects), mem_var(state->clipRects));
+  return meta;
+}
 
 static const UiElement* ui_build_elem(const UiCanvasComp* canvas, const UiId id) {
   if (id >= canvas->elements.size) {
@@ -47,9 +70,12 @@ static const UiElement* ui_build_elem(const UiCanvasComp* canvas, const UiId id)
   return dynarray_at_t(&canvas->elements, id, UiElement);
 }
 
-static void ui_canvas_output_meta(void* userCtx, const UiMetaData data) {
+static u8 ui_canvas_output_clip_rect(void* userCtx, const UiRect rect) {
   UiRenderState* renderState = userCtx;
-  rend_draw_set_data(renderState->draw, mem_var(data));
+  diag_assert(renderState->clipRectCount < ui_canvas_clip_rects_max);
+  const u8 id                = renderState->clipRectCount++;
+  renderState->clipRects[id] = rect;
+  return id;
 }
 
 static void ui_canvas_output_glyph(void* userCtx, const UiGlyphData data, const UiLayer layer) {
@@ -119,21 +145,27 @@ static UiBuildResult ui_canvas_render(
   // Clear last frame's overlay glyphs.
   dynarray_clear(&canvas->overlayGlyphs);
 
-  UiRenderState renderState = {
+  const GapVector winSize     = gap_window_param(window, GapParam_WindowSize);
+  UiRenderState   renderState = {
       .draw                = draw,
       .elementsOutput      = &canvas->elements,
       .overlayGlyphsOutput = &canvas->overlayGlyphs,
+      .clipRects[0]        = {.size = {winSize.width, winSize.height}},
+      .clipRectCount       = 1,
   };
 
   const UiBuildCtx buildCtx = {
-      .window      = window,
-      .font        = font,
-      .userCtx     = &renderState,
-      .outputMeta  = &ui_canvas_output_meta,
-      .outputGlyph = &ui_canvas_output_glyph,
-      .outputRect  = &ui_canvas_output_rect,
+      .window         = window,
+      .font           = font,
+      .userCtx        = &renderState,
+      .outputClipRect = &ui_canvas_output_clip_rect,
+      .outputGlyph    = &ui_canvas_output_glyph,
+      .outputRect     = &ui_canvas_output_rect,
   };
   const UiBuildResult result = ui_build(canvas->cmdBuffer, &buildCtx);
+
+  const UiDrawMetaData meta = ui_draw_metadata(&renderState, font);
+  rend_draw_set_data(draw, mem_var(meta));
 
   // Add the overlay glyphs, at this stage all the normal glyphs have already been added.
   dynarray_for_t(&canvas->overlayGlyphs, UiGlyphData, glyph) {
