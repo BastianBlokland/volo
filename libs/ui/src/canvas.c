@@ -127,14 +127,14 @@ static void ui_canvas_set_active(UiCanvasComp* canvas, const UiId id, const UiSt
   canvas->activeStatusStart = time_steady_clock();
 }
 
-static void ui_canvas_update_active(
-    UiCanvasComp* canvas, const GapWindowComp* window, const UiBuildResult result) {
+static void ui_canvas_update_interaction(
+    UiCanvasComp* canvas, const GapWindowComp* window, const UiId hoveredId) {
 
   const bool inputDown     = gap_window_key_down(window, GapKey_MouseLeft);
   const bool inputReleased = gap_window_key_released(window, GapKey_MouseLeft);
 
   const bool hasActiveElem       = !sentinel_check(canvas->activeId);
-  const bool activeElemIsHovered = canvas->activeId == result.hoveredId;
+  const bool activeElemIsHovered = canvas->activeId == hoveredId;
 
   if (hasActiveElem && activeElemIsHovered && inputReleased) {
     ui_canvas_set_active(canvas, canvas->activeId, UiStatus_Activated);
@@ -150,9 +150,7 @@ static void ui_canvas_update_active(
 
   // Select a new active element.
   ui_canvas_set_active(
-      canvas,
-      result.hoveredId,
-      sentinel_check(result.hoveredId) ? UiStatus_Idle : UiStatus_Hovered);
+      canvas, hoveredId, sentinel_check(hoveredId) ? UiStatus_Idle : UiStatus_Hovered);
 }
 
 static UiBuildResult ui_canvas_build(UiRenderState* state) {
@@ -277,17 +275,25 @@ ecs_system_define(UiRenderSys) {
         .clipRectCount = 1,
     };
 
-    // Build all canvasses.
     UiCanvasPtr canvasses[ui_canvas_canvasses_max];
     const u32   canvasCount = ui_canvass_query(world, entity, canvasses);
 
     sort_quicksort_t(canvasses, canvasses + canvasCount, UiCanvasPtr, ui_canvas_ptr_compare_order);
 
+    u32  hoveredCanvasIndex = sentinel_u32;
+    UiId hoveredId;
     for (u32 i = 0; i != canvasCount; ++i) {
       canvasses[i]->order        = i;
       renderState.canvas         = canvasses[i];
       const UiBuildResult result = ui_canvas_build(&renderState);
-      ui_canvas_update_active(canvasses[i], window, result);
+      if (!sentinel_check(result.hoveredId)) {
+        hoveredCanvasIndex = i;
+        hoveredId          = result.hoveredId;
+      }
+    }
+    for (u32 i = 0; i != canvasCount; ++i) {
+      const bool isHovered = hoveredCanvasIndex == i;
+      ui_canvas_update_interaction(canvasses[i], window, isHovered ? hoveredId : sentinel_u64);
     }
 
     // Add the overlay glyphs, at this stage all the normal glyphs have already been added.
