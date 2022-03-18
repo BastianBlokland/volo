@@ -112,7 +112,6 @@ static void ui_slider_handle(
     ui_layout_resize(canvas, UiAlign_BottomCenter, ui_vector(100, 100), UiBase_Absolute, Ui_XY);
 
     ui_style_outline(canvas, 2);
-    ui_style_layer(canvas, UiLayer_Overlay);
 
     const f32    value = math_lerp(opts->min, opts->max, normValue);
     const String label = fmt_write_scratch("{}", fmt_float(value, .maxDecDigits = 2));
