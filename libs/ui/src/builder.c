@@ -10,7 +10,6 @@
 #define ui_build_rect_stack_max 5
 #define ui_build_style_stack_max 5
 #define ui_build_container_stack_max 5
-#define ui_build_clip_rects_max 10
 
 static const UiRect  g_ui_defaultRect    = {0, 0, 100, 100};
 static const UiColor g_ui_defaultColor   = {255, 255, 255, 255};
@@ -23,7 +22,8 @@ typedef struct {
 } UiBuildStyle;
 
 typedef struct {
-  u8 clipId;
+  UiRect rect;
+  u8     clipId;
 } UiBuildContainer;
 
 typedef struct {
@@ -36,8 +36,6 @@ typedef struct {
   u32                  styleStackCount;
   UiBuildContainer     containerStack[ui_build_container_stack_max];
   u32                  containerStackCount;
-  UiRect               clipRects[ui_build_clip_rects_max];
-  u32                  clipRectCount;
   UiId                 hoveredId;
 } UiBuildState;
 
@@ -56,25 +54,10 @@ static UiBuildContainer* ui_build_container_currect(UiBuildState* state) {
   return &state->containerStack[state->containerStackCount - 1];
 }
 
-static UiRect ui_build_clip_rect(UiBuildState* state, const u8 id) {
-  diag_assert(id < state->clipRectCount);
-  return state->clipRects[id];
-}
-
-static u8 ui_build_clip_add(UiBuildState* state, const UiRect rect) {
-  diag_assert(state->clipRectCount < ui_build_clip_rects_max);
-  const u8 id          = state->clipRectCount++;
-  state->clipRects[id] = rect;
-  return id;
-}
-
-static UiMetaData ui_build_metadata(const UiBuildState* state) {
-  UiMetaData meta = {
-      .glyphsPerDim    = state->font->glyphsPerDim,
-      .invGlyphsPerDim = 1.0f / (f32)state->font->glyphsPerDim,
-  };
-  mem_cpy(mem_var(meta.clipRects), mem_var(state->clipRects));
-  return meta;
+static UiBuildContainer* ui_build_container_active(UiBuildState* state) {
+  const UiBuildStyle style = *ui_build_style_currect(state);
+  return style.layer == UiLayer_Overlay ? &state->containerStack[0]
+                                        : ui_build_container_currect(state);
 }
 
 static UiVector ui_resolve_vec(UiBuildState* state, const UiVector vec, const UiBase units) {
@@ -86,9 +69,8 @@ static UiVector ui_resolve_vec(UiBuildState* state, const UiVector vec, const Ui
     return ui_vector(vec.x * currentRect.width, vec.y * currentRect.height);
   }
   case UiBase_Container: {
-    const UiBuildContainer currentContainer = *ui_build_container_currect(state);
-    const UiRect           clipRect         = ui_build_clip_rect(state, currentContainer.clipId);
-    return ui_vector(vec.x * clipRect.width, vec.y * clipRect.height);
+    const UiBuildContainer container = *ui_build_container_currect(state);
+    return ui_vector(vec.x * container.rect.width, vec.y * container.rect.height);
   }
   case UiBase_Window: {
     const GapVector winSize = gap_window_param(state->window, GapParam_WindowSize);
@@ -109,9 +91,8 @@ static UiVector ui_resolve_origin(UiBuildState* state, const UiBase origin) {
     return ui_vector(currentRect.x, currentRect.y);
   }
   case UiBase_Container: {
-    const UiBuildContainer currentContainer = *ui_build_container_currect(state);
-    const UiRect           clipRect         = ui_build_clip_rect(state, currentContainer.clipId);
-    return ui_vector(clipRect.x, clipRect.y);
+    const UiBuildContainer container = *ui_build_container_currect(state);
+    return ui_vector(container.rect.x, container.rect.y);
   }
   case UiBase_Window:
     return ui_vector(0, 0);
@@ -186,27 +167,26 @@ static bool ui_rect_intersect(const UiRect a, const UiRect b, const f32 padding)
 }
 
 static bool
-ui_build_cull(UiBuildState* state, const u8 clipId, const UiRect rect, const UiBuildStyle style) {
-  const UiRect clipRect = ui_build_clip_rect(state, clipId);
-  return !ui_rect_intersect(clipRect, rect, style.outline);
+ui_build_cull(const UiBuildContainer container, const UiRect rect, const UiBuildStyle style) {
+  return !ui_rect_intersect(container.rect, rect, style.outline);
 }
 
-static bool ui_build_is_hovered(UiBuildState* state, const u8 clipId, const UiRect rect) {
+static bool
+ui_build_is_hovered(UiBuildState* state, const UiBuildContainer container, const UiRect rect) {
   const GapVector cursorPos   = gap_window_param(state->window, GapParam_CursorPos);
   const UiVector  cursorUiPos = ui_vector(cursorPos.x, cursorPos.y);
-  const UiRect    clipRect    = ui_build_clip_rect(state, clipId);
-  return ui_rect_contains(rect, cursorUiPos) && ui_rect_contains(clipRect, cursorUiPos);
+  return ui_rect_contains(rect, cursorUiPos) && ui_rect_contains(container.rect, cursorUiPos);
 }
 
 static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
-  const UiRect       layoutRect = *ui_build_rect_currect(state);
-  const UiBuildStyle style      = *ui_build_style_currect(state);
-  const u8 clipId = style.layer == UiLayer_Overlay ? 0 : ui_build_container_currect(state)->clipId;
+  const UiRect           layoutRect = *ui_build_rect_currect(state);
+  const UiBuildStyle     style      = *ui_build_style_currect(state);
+  const UiBuildContainer container  = *ui_build_container_active(state);
 
-  if (ui_build_cull(state, clipId, layoutRect, style)) {
+  if (ui_build_cull(container, layoutRect, style)) {
     return;
   }
-  if (cmd->flags & UiFlags_Interactable && ui_build_is_hovered(state, clipId, layoutRect)) {
+  if (cmd->flags & UiFlags_Interactable && ui_build_is_hovered(state, container, layoutRect)) {
     state->hoveredId = cmd->id;
   }
 
@@ -226,14 +206,14 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
 }
 
 static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
-  const UiRect       layoutRect = *ui_build_rect_currect(state);
-  const UiBuildStyle style      = *ui_build_style_currect(state);
-  const u8 clipId = style.layer == UiLayer_Overlay ? 0 : ui_build_container_currect(state)->clipId;
+  const UiRect           layoutRect = *ui_build_rect_currect(state);
+  const UiBuildStyle     style      = *ui_build_style_currect(state);
+  const UiBuildContainer container  = *ui_build_container_active(state);
 
-  if (ui_build_cull(state, clipId, layoutRect, style)) {
+  if (ui_build_cull(container, layoutRect, style)) {
     return;
   }
-  if (cmd->flags & UiFlags_Interactable && ui_build_is_hovered(state, clipId, layoutRect)) {
+  if (cmd->flags & UiFlags_Interactable && ui_build_is_hovered(state, container, layoutRect)) {
     state->hoveredId = cmd->id;
   }
   state->ctx->outputRect(state->ctx->userCtx, cmd->id, layoutRect);
@@ -257,7 +237,7 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
           .atlasIndex   = ch->glyphIndex,
           .borderFrac   = (u16)(border / rect.size.width * u16_max),
           .cornerFrac   = (u16)((corner + border) / rect.size.width * u16_max),
-          .clipId       = clipId,
+          .clipId       = container.clipId,
           .outlineWidth = style.outline,
       },
       style.layer);
@@ -294,8 +274,11 @@ static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
   } break;
   case UiCmd_ContainerPush: {
     diag_assert(state->containerStackCount < ui_build_container_stack_max);
-    const u8 clipId = ui_build_clip_add(state, *ui_build_rect_currect(state));
-    state->containerStack[state->containerStackCount++].clipId = clipId;
+    const UiRect rect                                   = *ui_build_rect_currect(state);
+    state->containerStack[state->containerStackCount++] = (UiBuildContainer){
+        .rect   = rect,
+        .clipId = state->ctx->outputClipRect(state->ctx->userCtx, rect),
+    };
   } break;
   case UiCmd_ContainerPop:
     diag_assert(state->containerStackCount > 1);
@@ -346,10 +329,8 @@ UiBuildResult ui_build(const UiCmdBuffer* cmdBuffer, const UiBuildCtx* ctx) {
       .rectStackCount      = 1,
       .styleStack[0]       = {g_ui_defaultColor, g_ui_defaultOutline},
       .styleStackCount     = 1,
-      .containerStack[0]   = {.clipId = 0},
+      .containerStack[0]   = {.rect.size = {winSize.width, winSize.height}, .clipId = 0},
       .containerStackCount = 1,
-      .clipRects[0]        = {.size = {winSize.width, winSize.height}},
-      .clipRectCount       = 1,
       .hoveredId           = sentinel_u64,
   };
 
@@ -357,8 +338,6 @@ UiBuildResult ui_build(const UiCmdBuffer* cmdBuffer, const UiBuildCtx* ctx) {
   while ((cmd = ui_cmd_next(cmdBuffer, cmd))) {
     ui_build_cmd(&state, cmd);
   }
-
-  ctx->outputMeta(ctx->userCtx, ui_build_metadata(&state));
 
   return (UiBuildResult){
       .hoveredId = state.hoveredId,

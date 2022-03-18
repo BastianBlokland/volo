@@ -2,7 +2,7 @@
 #include "ecs_def.h"
 
 enum {
-  UiOrder_CanvasBuild = 800,
+  UiOrder_Render = 800,
 };
 
 /**

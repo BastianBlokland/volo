@@ -108,10 +108,14 @@ ecs_system_define(DebugRendUpdatePanelSys) {
     RendSettingsComp* settings = ecs_view_write_t(windowItr, RendSettingsComp);
 
     ui_canvas_reset(canvas);
+
     rend_panel_draw(world, canvas, panel, settings, globalSettings);
 
     if (panel->state.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
+    }
+    if (ui_canvas_status(canvas) >= UiStatus_Pressed) {
+      ui_canvas_to_front(canvas);
     }
   }
 }
