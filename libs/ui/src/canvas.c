@@ -1,5 +1,6 @@
 #include "asset_ftx.h"
 #include "core_diag.h"
+#include "core_sort.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "gap_register.h"
@@ -15,6 +16,8 @@
 #define ui_canvas_clip_rects_max 10
 #define ui_canvas_canvasses_max 100
 
+typedef UiCanvasComp* UiCanvasPtr;
+
 typedef struct {
   UiRect rect;
 } UiElement;
@@ -25,6 +28,7 @@ ecs_comp_define(UiRendererComp) {
 };
 
 ecs_comp_define(UiCanvasComp) {
+  i32          order;
   EcsEntityId  window;
   UiCmdBuffer* cmdBuffer;
   UiId         nextId;
@@ -45,6 +49,12 @@ static void ecs_destruct_canvas(void* data) {
   UiCanvasComp* comp = data;
   ui_cmdbuffer_destroy(comp->cmdBuffer);
   dynarray_destroy(&comp->elements);
+}
+
+static i8 ui_canvas_ptr_compare_order(const void* a, const void* b) {
+  const UiCanvasPtr* canvasPtrA = a;
+  const UiCanvasPtr* canvasPtrB = b;
+  return compare_i32(&(*canvasPtrA)->order, &(*canvasPtrB)->order);
 }
 
 typedef struct {
@@ -225,7 +235,7 @@ static void ui_renderer_create(
 }
 
 static u32 ui_canvass_query(
-    EcsWorld* world, const EcsEntityId window, UiCanvasComp* out[ui_canvas_canvasses_max]) {
+    EcsWorld* world, const EcsEntityId window, UiCanvasPtr out[ui_canvas_canvasses_max]) {
   u32 count = 0;
   for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, CanvasView)); ecs_view_walk(itr);) {
     UiCanvasComp* canvas = ecs_view_write_t(itr, UiCanvasComp);
@@ -268,9 +278,13 @@ ecs_system_define(UiRenderSys) {
     };
 
     // Build all canvasses.
-    UiCanvasComp* canvasses[ui_canvas_canvasses_max];
-    const u32     canvasCount = ui_canvass_query(world, entity, canvasses);
+    UiCanvasPtr canvasses[ui_canvas_canvasses_max];
+    const u32   canvasCount = ui_canvass_query(world, entity, canvasses);
+
+    sort_quicksort_t(canvasses, canvasses + canvasCount, UiCanvasPtr, ui_canvas_ptr_compare_order);
+
     for (u32 i = 0; i != canvasCount; ++i) {
+      canvasses[i]->order        = i;
       renderState.canvas         = canvasses[i];
       const UiBuildResult result = ui_canvas_build(&renderState);
       ui_canvas_update_active(canvasses[i], window, result);
@@ -330,6 +344,9 @@ void ui_canvas_reset(UiCanvasComp* comp) {
   ui_cmdbuffer_clear(comp->cmdBuffer);
   comp->nextId = 0;
 }
+
+void ui_canvas_to_front(UiCanvasComp* comp) { comp->order = i32_max; }
+void ui_canvas_to_back(UiCanvasComp* comp) { comp->order = i32_min; }
 
 UiId ui_canvas_id_peek(const UiCanvasComp* comp) { return comp->nextId; }
 void ui_canvas_id_skip(UiCanvasComp* comp) { ++comp->nextId; }

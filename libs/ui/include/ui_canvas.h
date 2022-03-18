@@ -32,6 +32,12 @@ EcsEntityId ui_canvas_create(EcsWorld*, EcsEntityId window);
 void        ui_canvas_reset(UiCanvasComp*);
 
 /**
+ * Manipulate the render order with respect to other canvasses.
+ */
+void ui_canvas_to_front(UiCanvasComp*);
+void ui_canvas_to_back(UiCanvasComp*);
+
+/**
  * Query / manipulate values in the ui-id sequence.
  */
 UiId ui_canvas_id_peek(const UiCanvasComp*);

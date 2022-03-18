@@ -83,7 +83,7 @@ static void ui_panel_topbar_background(UiCanvasComp* canvas, UiPanelState* state
   case UiStatus_Pressed:
   case UiStatus_Activated:
     ui_style_color(canvas, ui_color(32, 32, 32, 240));
-    state->flags |= UiPanelFlags_ToFront;
+    state->flags |= UiPanelFlags_RequestFocus;
     break;
   case UiStatus_Hovered:
   case UiStatus_Idle:
@@ -127,7 +127,7 @@ static void ui_panel_background(UiCanvasComp* canvas, UiPanelState* state) {
 
   const UiId id = ui_canvas_id_peek(canvas);
   if (ui_canvas_elem_status(canvas, id) >= UiStatus_Pressed) {
-    state->flags |= UiPanelFlags_ToFront;
+    state->flags |= UiPanelFlags_RequestFocus;
   }
 
   ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_Interactable);
@@ -137,7 +137,7 @@ static void ui_panel_background(UiCanvasComp* canvas, UiPanelState* state) {
 
 UiPanelState ui_panel_init(const UiVector size) {
   return (UiPanelState){
-      .flags     = UiPanelFlags_Center | UiPanelFlags_ToFront,
+      .flags     = UiPanelFlags_Center | UiPanelFlags_RequestFocus,
       .rect.size = size,
   };
 }

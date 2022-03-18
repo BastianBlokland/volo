@@ -182,6 +182,10 @@ ecs_system_define(DebugGridUpdatePanelSys) {
     if (panel->state.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
     }
+    if (panel->state.flags & UiPanelFlags_RequestFocus) {
+      ui_canvas_to_front(canvas);
+      panel->state.flags &= ~UiPanelFlags_RequestFocus;
+    }
   }
 }
 

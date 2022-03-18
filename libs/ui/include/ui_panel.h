@@ -5,10 +5,10 @@
 ecs_comp_extern(UiCanvasComp);
 
 typedef enum {
-  UiPanelFlags_Center  = 1 << 0,
-  UiPanelFlags_Close   = 1 << 1,
-  UiPanelFlags_ToFront = 1 << 2,
-  UiPanelFlags_Drawing = 1 << 3,
+  UiPanelFlags_Center       = 1 << 0,
+  UiPanelFlags_Close        = 1 << 1,
+  UiPanelFlags_RequestFocus = 1 << 2,
+  UiPanelFlags_Drawing      = 1 << 3,
 } UiPanelFlags;
 
 typedef struct {
