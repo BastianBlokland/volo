@@ -4,6 +4,7 @@
 #include "gap_register.h"
 #include "gap_window.h"
 #include "rend_draw.h"
+#include "scene_lifetime.h"
 #include "ui_register.h"
 
 #include "builder_internal.h"
@@ -237,8 +238,6 @@ ecs_system_define(UiCanvasBuildSys) {
     UiCanvasComp* canvas = ecs_view_write_t(itr, UiCanvasComp);
     RendDrawComp* draw   = ecs_view_write_t(itr, RendDrawComp);
     if (!ecs_view_maybe_jump(windowItr, canvas->window)) {
-      // Destroy the canvas if the associated window is destroyed.
-      ecs_world_entity_destroy(world, ecs_view_entity(itr));
       continue;
     }
     const GapWindowComp* window = ecs_view_read_t(windowItr, GapWindowComp);
@@ -281,6 +280,8 @@ EcsEntityId ui_canvas_create(EcsWorld* world, const EcsEntityId window) {
       .cmdBuffer     = ui_cmdbuffer_create(g_alloc_heap),
       .elements      = dynarray_create_t(g_alloc_heap, UiElement, 128),
       .overlayGlyphs = dynarray_create_t(g_alloc_heap, UiGlyphData, 32));
+
+  ecs_world_add_t(world, canvasEntity, SceneLifetimeOwnerComp, .owner = window);
 
   RendDrawComp* draw = rend_draw_create(world, canvasEntity, RendDrawFlags_NoInstanceFiltering);
   rend_draw_set_camera_filter(draw, window);
