@@ -75,7 +75,7 @@ static void ui_panel_topbar_close_button(UiCanvasComp* canvas, UiPanelState* sta
   ui_layout_pop(canvas);
 }
 
-static void ui_panel_topbar_background(UiCanvasComp* canvas, UiPanelState* state) {
+static void ui_panel_topbar_background(UiCanvasComp* canvas) {
   ui_style_push(canvas);
 
   const UiId id = ui_canvas_id_peek(canvas);
@@ -83,7 +83,6 @@ static void ui_panel_topbar_background(UiCanvasComp* canvas, UiPanelState* state
   case UiStatus_Pressed:
   case UiStatus_Activated:
     ui_style_color(canvas, ui_color(32, 32, 32, 240));
-    state->flags |= UiPanelFlags_RequestFocus;
     break;
   case UiStatus_Hovered:
   case UiStatus_Idle:
@@ -112,23 +111,18 @@ static void ui_panel_topbar(UiCanvasComp* canvas, UiPanelState* state, const UiP
   ui_layout_move(canvas, ui_vector(0, 1), UiBase_Current, Ui_Y);
   ui_layout_resize(canvas, UiAlign_TopCenter, ui_vector(0, 23), UiBase_Absolute, Ui_Y);
 
-  ui_panel_topbar_background(canvas, state);
+  ui_panel_topbar_background(canvas);
   ui_panel_topbar_title(canvas, opts);
   ui_panel_topbar_close_button(canvas, state);
 
   ui_layout_pop(canvas);
 }
 
-static void ui_panel_background(UiCanvasComp* canvas, UiPanelState* state) {
+static void ui_panel_background(UiCanvasComp* canvas) {
   ui_style_push(canvas);
 
   ui_style_color(canvas, ui_color(64, 64, 64, 230));
   ui_style_outline(canvas, 3);
-
-  const UiId id = ui_canvas_id_peek(canvas);
-  if (ui_canvas_elem_status(canvas, id) >= UiStatus_Pressed) {
-    state->flags |= UiPanelFlags_RequestFocus;
-  }
 
   ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_Interactable);
 
@@ -137,7 +131,7 @@ static void ui_panel_background(UiCanvasComp* canvas, UiPanelState* state) {
 
 UiPanelState ui_panel_init(const UiVector size) {
   return (UiPanelState){
-      .flags     = UiPanelFlags_Center | UiPanelFlags_RequestFocus,
+      .flags     = UiPanelFlags_Center,
       .rect.size = size,
   };
 }
@@ -153,7 +147,7 @@ void ui_panel_begin_with_opts(UiCanvasComp* canvas, UiPanelState* state, const U
       .size = ui_vector(state->rect.size.width, state->rect.size.height - 26),
   };
   ui_layout_set(canvas, containerRect);
-  ui_panel_background(canvas, state);
+  ui_panel_background(canvas);
 
   ui_layout_container_push(canvas);
 }

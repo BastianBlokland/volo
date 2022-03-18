@@ -50,6 +50,7 @@ void ui_canvas_id_skip(UiCanvasComp*);
 UiStatus     ui_canvas_elem_status(const UiCanvasComp*, UiId);
 TimeDuration ui_canvas_elem_status_duration(const UiCanvasComp*, UiId);
 UiRect       ui_canvas_elem_rect(const UiCanvasComp*, UiId);
+UiStatus     ui_canvas_status(const UiCanvasComp*);
 
 /**
  * Query information about the window.

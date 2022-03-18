@@ -334,13 +334,15 @@ ecs_module_init(ui_canvas_module) {
 
 EcsEntityId ui_canvas_create(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId canvasEntity = ecs_world_entity_create(world);
-  ecs_world_add_t(
+  UiCanvasComp*     canvas       = ecs_world_add_t(
       world,
       canvasEntity,
       UiCanvasComp,
       .window    = window,
       .cmdBuffer = ui_cmdbuffer_create(g_alloc_heap),
       .elements  = dynarray_create_t(g_alloc_heap, UiElement, 128));
+
+  ui_canvas_to_front(canvas);
 
   ecs_world_add_t(world, canvasEntity, SceneLifetimeOwnerComp, .owner = window);
   return canvasEntity;
@@ -370,6 +372,8 @@ UiRect ui_canvas_elem_rect(const UiCanvasComp* comp, const UiId id) {
   const UiElement* elem = ui_canvas_elem(comp, id);
   return elem ? elem->rect : ui_rect(ui_vector(0, 0), ui_vector(0, 0));
 }
+
+UiStatus ui_canvas_status(const UiCanvasComp* comp) { return comp->activeStatus; }
 
 UiVector ui_canvas_window_size(const UiCanvasComp* comp) { return comp->windowSize; }
 

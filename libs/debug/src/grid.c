@@ -177,14 +177,14 @@ ecs_system_define(DebugGridUpdatePanelSys) {
     DebugGridComp* grid = ecs_view_write_t(gridItr, DebugGridComp);
 
     ui_canvas_reset(canvas);
+
     grid_panel_draw(canvas, panel, grid);
 
     if (panel->state.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
     }
-    if (panel->state.flags & UiPanelFlags_RequestFocus) {
+    if (ui_canvas_status(canvas) >= UiStatus_Pressed) {
       ui_canvas_to_front(canvas);
-      panel->state.flags &= ~UiPanelFlags_RequestFocus;
     }
   }
 }
