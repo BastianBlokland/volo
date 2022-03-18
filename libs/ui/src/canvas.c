@@ -16,7 +16,8 @@
 #define ui_canvas_clip_rects_max 10
 #define ui_canvas_canvasses_max 100
 
-typedef UiCanvasComp* UiCanvasPtr;
+typedef UiCanvasComp*       UiCanvasPtr;
+typedef const UiCanvasComp* UiCanvasConstPtr;
 
 typedef struct {
   UiRect rect;
@@ -52,9 +53,9 @@ static void ecs_destruct_canvas(void* data) {
 }
 
 static i8 ui_canvas_ptr_compare_order(const void* a, const void* b) {
-  const UiCanvasPtr* canvasPtrA = a;
-  const UiCanvasPtr* canvasPtrB = b;
-  return compare_i32(&(*canvasPtrA)->order, &(*canvasPtrB)->order);
+  const UiCanvasConstPtr* canvasPtrA = a;
+  const UiCanvasConstPtr* canvasPtrB = b;
+  return compare_i32(&(*(canvasPtrA))->order, &(*canvasPtrB)->order);
 }
 
 typedef struct {
