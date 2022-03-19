@@ -1,7 +1,9 @@
+#include "asset_font.h"
 #include "core_alloc.h"
 #include "core_annotation.h"
 #include "core_array.h"
 #include "core_bits.h"
+#include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_math.h"
 #include "ecs_world.h"
@@ -10,9 +12,11 @@
 #include "loader_font_internal.h"
 #include "repo_internal.h"
 
+OPTIMIZE_OFF();
+
 /**
  * TrueType font.
- * Only simple TrueType outlines are supported (no composites at this time).
+ * Only simple TrueType outlines are supported (and simple composites, just offset and scale).
  * Apple docs: https://developer.apple.com/fonts/TrueType-Reference-Manual/
  * Microsoft docs: https://docs.microsoft.com/en-us/typography/opentype/spec/otff
  *
@@ -142,6 +146,17 @@ typedef enum {
 } TtfGlyphFlags;
 
 typedef enum {
+  TtfCompositeFlags_Arg1And2AreWords = 1 << 0,
+  TtfCompositeFlags_ArgsAreXYValues  = 1 << 1,
+  TtfCompositeFlags_RoundXYToGrid    = 1 << 2,
+  TtfCompositeFlags_HaveScale        = 1 << 3,
+  TtfCompositeFlags_MoreComponents   = 1 << 5,
+  TtfCompositeFlags_HaveXYScale      = 1 << 6,
+  TtfCompositeFlags_Have2x2          = 1 << 7,
+
+} TtfCompositeFlags;
+
+typedef enum {
   TtfError_None = 0,
   TtfError_Malformed,
   TtfError_TooManyTables,
@@ -234,11 +249,23 @@ static Mem ttf_read_tag(Mem input, String* out, TtfError* err) {
 
 /**
  * Read a 32 bit signed fixed-point number (16.16).
+ * More info: https://docs.microsoft.com/en-us/typography/opentype/spec/otff#data-types
  */
-static Mem ttf_read_fixed(Mem input, f32* out) {
+static Mem ttf_read_fixed_16_16(Mem input, f32* out) {
   i32 value;
   input = mem_consume_be_u32(input, (u32*)&value); // NOTE: Interpret as 2's complement.
   *out  = value / (f32)(1 << 16);
+  return input;
+}
+
+/**
+ * Read a 16 bit signed fixed-point number (2.14).
+ * More info: https://docs.microsoft.com/en-us/typography/opentype/spec/otff#data-types
+ */
+static Mem ttf_read_fixed_2_14(Mem input, f32* out) {
+  i16 value;
+  input = mem_consume_be_u16(input, (u16*)&value); // NOTE: Interpret as 2's complement.
+  *out  = (f32)value / 16384.0f;
   return input;
 }
 
@@ -314,7 +341,7 @@ ttf_read_head_table(const TtfOffsetTable* offsetTable, TtfHeadTable* out, TtfErr
   *out = (TtfHeadTable){0};
   data = mem_consume_be_u16(data, &out->majorVersion);
   data = mem_consume_be_u16(data, &out->minorVersion);
-  data = ttf_read_fixed(data, &out->fontRevision);
+  data = ttf_read_fixed_16_16(data, &out->fontRevision);
   data = mem_consume_be_u32(data, &out->checksumAdjustment);
   data = mem_consume_be_u32(data, &out->magicNumber);
   data = mem_consume_be_u16(data, &out->flags);
@@ -348,7 +375,7 @@ ttf_read_maxp_table(const TtfOffsetTable* offsetTable, TtfMaxpTable* out, TtfErr
     return;
   }
   *out = (TtfMaxpTable){0};
-  data = ttf_read_fixed(data, &out->version);
+  data = ttf_read_fixed_16_16(data, &out->version);
   data = mem_consume_be_u16(data, &out->numGlyphs);
   data = mem_consume_be_u16(data, &out->maxPoints);
   data = mem_consume_be_u16(data, &out->maxContours);
@@ -545,7 +572,7 @@ ttf_read_hhea_table(const TtfOffsetTable* offsetTable, TtfHheaTable* out, TtfErr
    * NOTE: For signed values we assume the host system is using 2's complement integers.
    */
   *out = (TtfHheaTable){0};
-  data = ttf_read_fixed(data, &out->version);
+  data = ttf_read_fixed_16_16(data, &out->version);
   data = mem_consume_be_u16(data, (u16*)&out->ascent);
   data = mem_consume_be_u16(data, (u16*)&out->descent);
   data = mem_consume_be_u16(data, (u16*)&out->lineGap);
@@ -801,6 +828,7 @@ static Mem ttf_read_glyph_points(
  * Decode the lines and quadratic beziers and makes all implicit points explicit.
  */
 static void ttf_glyph_build(
+    const usize           glyphIdx,
     const u16*            contourEndpoints,
     const usize           numContours,
     const u8*             pointFlags,
@@ -808,11 +836,11 @@ static void ttf_glyph_build(
     const usize           numPoints,
     DynArray*             outPoints,   // AssetFontPoint[], needs to be already initialized.
     DynArray*             outSegments, // AssetFontSegment[], needs to be already initialized.
-    AssetFontGlyph*       outGlyph,
+    AssetFontGlyph*       outGlyphs,
     TtfError*             err) {
 
-  outGlyph->segmentIndex = (u32)outSegments->size;
-  outGlyph->segmentCount = 0;
+  outGlyphs[glyphIdx].segmentIndex = (u32)outSegments->size;
+  outGlyphs[glyphIdx].segmentCount = 0;
 
   for (usize c = 0; c != numContours; ++c) {
     const usize start = c ? contourEndpoints[c - 1U] : 0;
@@ -850,7 +878,7 @@ static void ttf_glyph_build(
               .type       = AssetFontSegment_Line,
               .pointIndex = (u32)outPoints->size - 1,
           };
-          ++outGlyph->segmentCount;
+          ++outGlyphs[glyphIdx].segmentCount;
         }
       } else {
         /**
@@ -868,7 +896,7 @@ static void ttf_glyph_build(
             .type       = AssetFontSegment_QuadraticBezier,
             .pointIndex = (u32)outPoints->size - 1,
         };
-        ++outGlyph->segmentCount;
+        ++outGlyphs[glyphIdx].segmentCount;
 
         if (UNLIKELY(isLast)) {
           // Insert another point to finish this curve.
@@ -882,18 +910,120 @@ static void ttf_glyph_build(
   *err = TtfError_None;
 }
 
+static void ttf_glyph_copy_point(
+    const u32 pointIndex,
+    const f32 scaleX,
+    const f32 scaleY,
+    DynArray* outPoints // AssetFontPoint[], needs to be already initialized.
+) {
+  const AssetFontPoint srcPoint = *dynarray_at_t(outPoints, pointIndex, AssetFontPoint);
+  *dynarray_push_t(outPoints, AssetFontPoint) = (AssetFontPoint){
+      .x = srcPoint.x * scaleX,
+      .y = srcPoint.y * scaleY,
+  };
+}
+
+static void ttf_glyph_copy_component(
+    const AssetFontGlyph* src,
+    AssetFontGlyph*       dst,
+    const f32             scaleX,
+    const f32             scaleY,
+    DynArray*             outPoints,  // AssetFontPoint[], needs to be already initialized.
+    DynArray*             outSegments // AssetFontSegment[], needs to be already initialized.
+) {
+  for (usize seg = src->segmentIndex; seg != src->segmentIndex + src->segmentCount; ++seg) {
+
+    const AssetFontSegment segSrc = *dynarray_at_t(outSegments, seg, AssetFontSegment);
+    *dynarray_push_t(outSegments, AssetFontSegment) = (AssetFontSegment){
+        .type       = segSrc.type,
+        .pointIndex = (u32)outPoints->size - 1,
+    };
+
+    switch (segSrc.type) {
+    case AssetFontSegment_Line:
+      ttf_glyph_copy_point(segSrc.pointIndex + 0, scaleX, scaleY, outPoints);
+      ttf_glyph_copy_point(segSrc.pointIndex + 1, scaleX, scaleY, outPoints);
+      break;
+    case AssetFontSegment_QuadraticBezier:
+      ttf_glyph_copy_point(segSrc.pointIndex + 0, scaleX, scaleY, outPoints);
+      ttf_glyph_copy_point(segSrc.pointIndex + 1, scaleX, scaleY, outPoints);
+      ttf_glyph_copy_point(segSrc.pointIndex + 2, scaleX, scaleY, outPoints);
+      break;
+    }
+  }
+  dst->segmentCount += src->segmentCount;
+}
+
+static void ttf_read_glyph_composite(
+    Mem                       data,
+    const TtfGlyphHeader*     header,
+    const TtfGlyphHorMetrics* horMetrics,
+    const TtfHeadTable*       headTable,
+    const usize               glyphIdx,
+    DynArray*                 outPoints,   // AssetFontPoint[], needs to be already initialized.
+    DynArray*                 outSegments, // AssetFontSegment[], needs to be already initialized.
+    AssetFontGlyph*           outGlyphs,
+    TtfError*                 err) {
+
+  outGlyphs[glyphIdx].segmentIndex = (u32)outSegments->size;
+  outGlyphs[glyphIdx].segmentCount = 0;
+
+  u16 flags, glyphIndex;
+  f32 scaleX = 1, scaleY = 1;
+  do {
+    // TODO: Validate enough space remaining.
+    data = mem_consume_be_u16(data, &flags);
+    data = mem_consume_be_u16(data, &glyphIndex);
+
+    if (flags & TtfCompositeFlags_Arg1And2AreWords) {
+      u16 arg1, arg2;
+      data = mem_consume_be_u16(data, &arg1);
+      data = mem_consume_be_u16(data, &arg2);
+    } else {
+      u8 arg1, arg2;
+      data = mem_consume_u8(data, &arg1);
+      data = mem_consume_u8(data, &arg2);
+    }
+    if (flags & TtfCompositeFlags_HaveScale) {
+      f32 scale;
+      data   = ttf_read_fixed_2_14(data, &scale);
+      scaleX = scale;
+      scaleY = scale;
+    } else if (flags & TtfCompositeFlags_HaveXYScale) {
+      data = ttf_read_fixed_2_14(data, &scaleX);
+      data = ttf_read_fixed_2_14(data, &scaleY);
+    } else if (flags & TtfCompositeFlags_Have2x2) {
+      // TODO: Mark glyph as unsupported.
+      diag_break();
+    }
+
+    // TODO: Verify that source glyph exists (index < current??)
+    const AssetFontGlyph* srcGlyph = &outGlyphs[glyphIndex];
+    ttf_glyph_copy_component(
+        srcGlyph, &outGlyphs[glyphIdx], scaleX, scaleY, outPoints, outSegments);
+
+  } while (flags & TtfCompositeFlags_MoreComponents);
+
+  (void)header;
+  (void)horMetrics;
+  (void)headTable;
+  (void)outPoints;
+  (void)outSegments;
+  (void)err;
+}
+
 static void ttf_read_glyph(
     Mem                       data,
     const TtfGlyphHorMetrics* horMetrics,
     const TtfHeadTable*       headTable,
-    const usize               glyphId,
+    const usize               glyphIdx,
     DynArray*                 outPoints,   // AssetFontPoint[], needs to be already initialized.
     DynArray*                 outSegments, // AssetFontSegment[], needs to be already initialized.
-    AssetFontGlyph*           outGlyph,
+    AssetFontGlyph*           outGlyphs,
     TtfError*                 err) {
 
-  *err      = TtfError_None;
-  *outGlyph = (AssetFontGlyph){
+  *err                = TtfError_None;
+  outGlyphs[glyphIdx] = (AssetFontGlyph){
       .advance = horMetrics->advanceWidth * headTable->invUnitsPerEm,
   };
   if (UNLIKELY(!data.size)) {
@@ -905,20 +1035,16 @@ static void ttf_read_glyph(
   if (UNLIKELY(*err)) {
     return;
   }
-  outGlyph->size    = header.size;
-  outGlyph->offsetX = header.offsetX;
-  outGlyph->offsetY = header.offsetY;
+  outGlyphs[glyphIdx].size    = header.size;
+  outGlyphs[glyphIdx].offsetX = header.offsetX;
+  outGlyphs[glyphIdx].offsetY = header.offsetY;
 
   if (UNLIKELY(header.numContours == 0)) {
     return;
   }
   if (UNLIKELY(header.numContours < 0)) {
-    log_w(
-        "Skipping unsupported ttf glyph",
-        log_param("id", fmt_int(glyphId)),
-        log_param("reason", fmt_text_lit("Composite glyphs are unsupported")));
-    *outGlyph = (AssetFontGlyph){.segmentCount = 0};
-    *err      = TtfError_None;
+    ttf_read_glyph_composite(
+        data, &header, horMetrics, headTable, glyphIdx, outPoints, outSegments, outGlyphs, err);
     return;
   }
   if (UNLIKELY(header.numContours > ttf_max_contours_per_glyph)) {
@@ -978,6 +1104,7 @@ static void ttf_read_glyph(
 
   // Output the glyph.
   ttf_glyph_build(
+      glyphIdx,
       contourEndpoints,
       header.numContours,
       flags,
@@ -985,7 +1112,7 @@ static void ttf_read_glyph(
       numPoints,
       outPoints,
       outSegments,
-      outGlyph,
+      outGlyphs,
       err);
 }
 
@@ -1157,7 +1284,7 @@ void asset_load_ttf(EcsWorld* world, const String id, const EcsEntityId entity, 
         glyphIndex,
         &points,
         &segments,
-        &glyphs[glyphIndex],
+        glyphs,
         &err);
     if (err) {
       ttf_load_fail(world, entity, err);
