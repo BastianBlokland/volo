@@ -112,6 +112,10 @@ graph_insert_system(EcsRunner* runner, const EcsSystemId systemId, const EcsSyst
 };
 
 static bool graph_system_conflict(EcsWorld* world, const EcsSystemDef* a, const EcsSystemDef* b) {
+  if ((a->flags & EcsSystemFlags_Exclusive) || (b->flags & EcsSystemFlags_Exclusive)) {
+    return true; // Exclusive systems conflict with any other system.
+  }
+
   /**
    * Check if two systems have conflicting views meaning they cannot be run in parallel.
    */
