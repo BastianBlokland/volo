@@ -17,7 +17,7 @@ typedef enum {
 } DebugMenuFlags;
 
 typedef struct {
-  TimeDuration updateTime, renderTime;
+  TimeDuration updateTime, limiterTime, renderTime;
 } DebugStats;
 
 ecs_comp_define(DebugMenuComp) {
@@ -171,7 +171,8 @@ debug_stats_draw(UiCanvasComp* canvas, const DebugStats* stats, const RendStatsC
   // clang-format off
   fmt_write(&str, "{}\n", fmt_text(rendStats->gpuName));
   fmt_write(&str, "{<4}x{<4} pixels\n", fmt_int(rendStats->renderSize[0]), fmt_int(rendStats->renderSize[1]));
-  debug_stats_draw_dur(&str, stats->updateTime, string_lit("update time"), time_milliseconds(17), time_milliseconds(17));
+  debug_stats_draw_dur(&str, stats->updateTime, string_lit("update time"), time_milliseconds(17), time_milliseconds(18));
+  fmt_write(&str, "{}{<9} \arlimiter time\n", fmt_ui_color(stats->limiterTime < 0 ? g_debugWarnColor : ui_color_white), fmt_duration(stats->limiterTime));
   debug_stats_draw_dur(&str, stats->renderTime, string_lit("render time"), time_milliseconds(10), time_milliseconds(17));
   fmt_write(&str, "{<9} draws\n", fmt_int(rendStats->draws));
   fmt_write(&str, "{<9} instances\n", fmt_int(rendStats->instances));
@@ -198,8 +199,9 @@ debug_stats_draw(UiCanvasComp* canvas, const DebugStats* stats, const RendStatsC
 
 static void
 debug_stats_update(DebugStats* stats, const RendStatsComp* rendStats, const SceneTimeComp* time) {
-  stats->updateTime = debug_smooth_duration(stats->updateTime, time ? time->delta : time_second);
-  stats->renderTime = debug_smooth_duration(stats->renderTime, rendStats->renderTime);
+  stats->updateTime  = debug_smooth_duration(stats->updateTime, time ? time->delta : time_second);
+  stats->limiterTime = debug_smooth_duration(stats->limiterTime, rendStats->limiterTime);
+  stats->renderTime  = debug_smooth_duration(stats->renderTime, rendStats->renderTime);
 }
 
 ecs_system_define(DebugMenuUpdateSys) {

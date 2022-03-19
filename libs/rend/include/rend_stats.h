@@ -15,6 +15,7 @@ ecs_comp_extern_public(RendStatsComp) {
   String       gpuName;
   u32          renderSize[2];
   TimeDuration renderTime;
+  TimeDuration limiterTime;
   u32          draws, instances;
   u64          vertices, primitives;
   u64          shadersVert, shadersFrag;

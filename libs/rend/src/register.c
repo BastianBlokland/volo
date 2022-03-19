@@ -6,6 +6,7 @@
 void rend_register(EcsDef* def) {
   ecs_register_module(def, rend_draw_module);
   ecs_register_module(def, rend_instance_module);
+  ecs_register_module(def, rend_limiter_module);
   ecs_register_module(def, rend_painter_module);
   ecs_register_module(def, rend_platform_module);
   ecs_register_module(def, rend_reset_module);

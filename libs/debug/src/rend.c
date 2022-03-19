@@ -5,6 +5,8 @@
 
 static const String g_tooltipVSync = string_static("Should presentation wait for VBlanks?");
 static const String g_tooltipScale = string_static("Render resolution scale");
+static const String g_tooltipLimiter =
+    string_static("Frame frequency limiter (in hz).\nNote: 0 disables the limiter.");
 static const String g_tooltipValidation =
     string_static("Should gpu api validation be enabled?\nNote: Requires a reset to take effect.");
 static const String g_tooltipVerbose  = string_static("Should verbose logging be enabled?");
@@ -41,6 +43,15 @@ static void rend_panel_draw(
   bool vsync = settings->presentMode == RendPresentMode_VSyncRelaxed;
   if (ui_toggle(canvas, &vsync, .tooltip = g_tooltipVSync)) {
     settings->presentMode = vsync ? RendPresentMode_VSyncRelaxed : RendPresentMode_Immediate;
+  }
+  ui_grid_next_row(canvas, &layoutGrid);
+
+  ui_label(canvas, string_lit("Limiter"));
+  ui_grid_next_col(canvas, &layoutGrid);
+  f32 limiterFreq = globalSettings->limiterFreq;
+  if (ui_slider(
+          canvas, &limiterFreq, .min = 0, .max = 240, .step = 30, .tooltip = g_tooltipLimiter)) {
+    globalSettings->limiterFreq = (u16)limiterFreq;
   }
   ui_grid_next_row(canvas, &layoutGrid);
 
@@ -140,7 +151,7 @@ EcsEntityId debug_rend_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugRendPanelComp,
-      .state  = ui_panel_init(ui_vector(250, 225)),
+      .state  = ui_panel_init(ui_vector(250, 250)),
       .window = window);
   return panelEntity;
 }
