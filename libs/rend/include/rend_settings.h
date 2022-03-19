@@ -39,7 +39,10 @@ typedef enum {
   RendGlobalFlags_Verbose    = 1 << 1,
 } RendGlobalFlags;
 
-ecs_comp_extern_public(RendGlobalSettingsComp) { RendGlobalFlags flags; };
+ecs_comp_extern_public(RendGlobalSettingsComp) {
+  RendGlobalFlags flags;
+  u16             limiterFreq;
+};
 
 void rend_settings_to_default(RendSettingsComp*);
 void rend_global_settings_to_default(RendGlobalSettingsComp*);

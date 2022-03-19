@@ -40,6 +40,12 @@ typedef enum {
    * NOTE: Incurs an additional scheduling overhead.
    */
   EcsSystemFlags_ThreadAffinity = 1 << 0,
+
+  /**
+   * No other systems are allowed to run in parallel with this system.
+   */
+  EcsSystemFlags_Exclusive = 1 << 1,
+
 } EcsSystemFlags;
 
 typedef struct {

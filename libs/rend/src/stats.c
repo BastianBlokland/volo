@@ -2,6 +2,7 @@
 #include "rend_register.h"
 #include "rend_stats.h"
 
+#include "limiter_internal.h"
 #include "painter_internal.h"
 #include "platform_internal.h"
 #include "reset_internal.h"
@@ -33,6 +34,7 @@ static void rend_stats_update_str(String* strPtr, const String newStr) {
 
 ecs_view_define(GlobalView) {
   ecs_access_read(RendPlatformComp);
+  ecs_access_read(RendLimiterComp);
   ecs_access_without(RendResetComp);
 }
 
@@ -44,12 +46,6 @@ ecs_view_define(UpdateStatsView) {
 ecs_view_define(LoadedResourceView) {
   ecs_access_with(RendResComp);
   ecs_access_with(RendResFinishedComp);
-}
-
-static const RendPlatformComp* rend_stats_platform(EcsWorld* world) {
-  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
-  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  return globalItr ? ecs_view_read_t(globalItr, RendPlatformComp) : null;
 }
 
 static void rend_stat_update_resources(EcsWorld* world, u32 resources[RendStatRes_Count]) {
@@ -74,10 +70,13 @@ static void rend_stat_update_resources(EcsWorld* world, u32 resources[RendStatRe
 }
 
 ecs_system_define(RendUpdateCamStatsSys) {
-  const RendPlatformComp* plat = rend_stats_platform(world);
-  if (!plat) {
+  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
     return;
   }
+  const RendPlatformComp* plat    = ecs_view_read_t(globalItr, RendPlatformComp);
+  const RendLimiterComp*  limiter = ecs_view_read_t(globalItr, RendLimiterComp);
 
   EcsView* updateView = ecs_world_view_t(world, UpdateStatsView);
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
@@ -88,7 +87,7 @@ ecs_system_define(RendUpdateCamStatsSys) {
       continue;
     }
 
-    // NOTE: Will block until the previous draw has finished.
+    // NOTE: Can potentially block if the previous draw has not finished.
     const RvkRenderStats renderStats = rvk_canvas_stats(painter->canvas);
 
     rend_stats_update_str(&stats->gpuName, rvk_device_name(plat->device));
@@ -97,6 +96,7 @@ ecs_system_define(RendUpdateCamStatsSys) {
     stats->draws            = renderStats.forwardDraws;
     stats->instances        = renderStats.forwardInstances;
     stats->renderTime       = renderStats.renderTime;
+    stats->limiterTime      = limiter->sleepTime;
     stats->vertices         = renderStats.forwardVertices;
     stats->primitives       = renderStats.forwardPrimitives;
     stats->shadersVert      = renderStats.forwardShadersVert;

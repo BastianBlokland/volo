@@ -30,6 +30,7 @@ add_library(lib_rend STATIC
   src/rvk/vulkan.c
   src/draw.c
   src/instance.c
+  src/limiter.c
   src/painter.c
   src/platform.c
   src/register.c
