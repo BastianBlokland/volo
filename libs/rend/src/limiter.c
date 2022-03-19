@@ -63,6 +63,7 @@ ecs_module_init(rend_limiter_module) {
 
   ecs_register_view(GlobalView);
 
-  ecs_register_system(RendFrameLimiterSys, ecs_view_id(GlobalView));
+  ecs_register_system_with_flags(
+      RendFrameLimiterSys, EcsSystemFlags_Exclusive, ecs_view_id(GlobalView));
   ecs_order(RendFrameLimiterSys, RendOrder_FrameLimiter);
 }

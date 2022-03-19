@@ -2,10 +2,10 @@
 #include "ecs_def.h"
 
 enum {
-  RendOrder_FrameLimiter = -2000,
   RendOrder_DrawClear    = -100,
   RendOrder_DrawCollect  = 900,
   RendOrder_DrawExecute  = 1000,
+  RendOrder_FrameLimiter = 2000,
 };
 
 /**
