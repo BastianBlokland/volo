@@ -114,8 +114,28 @@ void thread_pal_join(ThreadHandle thread) {
 void thread_pal_yield() { SwitchToThread(); }
 
 void thread_pal_sleep(const TimeDuration duration) {
-  // TODO: This only has milliseconds resolution, investigate alternatives with better resolution.
-  Sleep((DWORD)(duration / time_millisecond));
+  static const TimeDuration g_minSleep = time_milliseconds(15);
+
+  /**
+   * On Win32 Sleep() only has granularity to about 10 - 15ms due to the default scheduling period.
+   * To sill provide support for short sleeps we do the bulk of the waiting using Sleep() and then
+   * do a loop of yielding our timeslice until the desired duration is met.
+   *
+   * TODO: Is it worth it to change the global scheduling period?
+   * Requires linking with the Winmm dll.
+   * https://docs.microsoft.com/en-us/windows/win32/api/timeapi/nf-timeapi-timebeginperiod
+   */
+  TimeSteady start = time_steady_clock();
+
+  // Bulk of the sleeping.
+  if (duration > g_minSleep) {
+    Sleep((DWORD)((duration - g_minSleep) / time_millisecond));
+  }
+
+  // Wait for the remaining time by yielding our timeslice.
+  while (duration > time_steady_duration(start, time_steady_clock())) {
+    thread_pal_yield();
+  }
 }
 
 typedef struct {
