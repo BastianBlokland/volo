@@ -31,7 +31,7 @@ ecs_view_define(PanelUpdateView) {
 
 ecs_view_define(WindowView) {
   ecs_access_write(SceneCameraComp);
-  ecs_access_write(SceneTransformComp);
+  ecs_access_maybe_write(SceneTransformComp);
 }
 
 static void camera_default_transform(const SceneCameraComp* camera, SceneTransformComp* transform) {
@@ -55,16 +55,18 @@ static void camera_panel_draw_ortho(
   ui_slider(canvas, &camera->orthoSize, .min = 1, .max = 100, .tooltip = g_tooltipOrthoSize);
   ui_grid_next_row(canvas, grid);
 
-  if (ui_button(canvas, .label = string_lit("Top"))) {
-    transform->position = geo_vector(0);
-    transform->rotation = geo_quat_look(geo_down, geo_forward);
+  if (transform) {
+    if (ui_button(canvas, .label = string_lit("Top"))) {
+      transform->position = geo_vector(0);
+      transform->rotation = geo_quat_look(geo_down, geo_forward);
+    }
+    ui_grid_next_col(canvas, grid);
+    if (ui_button(canvas, .label = string_lit("Front"))) {
+      transform->position = geo_vector(0);
+      transform->rotation = geo_quat_look(geo_forward, geo_up);
+    }
+    ui_grid_next_row(canvas, grid);
   }
-  ui_grid_next_col(canvas, grid);
-  if (ui_button(canvas, .label = string_lit("Front"))) {
-    transform->position = geo_vector(0);
-    transform->rotation = geo_quat_look(geo_forward, geo_up);
-  }
-  ui_grid_next_row(canvas, grid);
 }
 
 static void
@@ -145,7 +147,9 @@ static void camera_panel_draw(
 
   if (ui_button(canvas, .label = string_lit("Defaults"), .tooltip = g_tooltipDefaults)) {
     scene_camera_to_default(camera);
-    camera_default_transform(camera, transform);
+    if (transform) {
+      camera_default_transform(camera, transform);
+    }
   }
 
   ui_panel_end(canvas, &panel->state);
