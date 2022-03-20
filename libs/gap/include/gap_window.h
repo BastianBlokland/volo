@@ -56,7 +56,7 @@ EcsEntityId gap_window_create(EcsWorld*, GapWindowFlags, GapVector size);
  */
 void gap_window_close(GapWindowComp*);
 
-GapWindowFlags gap_window_flags(GapWindowComp*);
+GapWindowFlags gap_window_flags(const GapWindowComp*);
 void           gap_window_flags_set(GapWindowComp*, GapWindowFlags);
 void           gap_window_flags_unset(GapWindowComp*, GapWindowFlags);
 

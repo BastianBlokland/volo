@@ -216,7 +216,7 @@ EcsEntityId gap_window_create(EcsWorld* world, const GapWindowFlags flags, const
 
 void gap_window_close(GapWindowComp* window) { window->requests |= GapWindowRequests_Close; }
 
-GapWindowFlags gap_window_flags(GapWindowComp* window) { return window->flags; }
+GapWindowFlags gap_window_flags(const GapWindowComp* window) { return window->flags; }
 
 void gap_window_flags_set(GapWindowComp* comp, const GapWindowFlags flags) {
   comp->flags |= flags;

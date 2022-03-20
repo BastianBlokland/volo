@@ -292,6 +292,10 @@ ecs_system_define(UiRenderSys) {
         hoveredId          = result.hoveredId;
       }
     }
+    if (gap_window_flags(window) & (GapWindowFlags_CursorHide | GapWindowFlags_CursorLock)) {
+      // When the cursor is hidden or locked its be considered to not be 'hovering' over ui.
+      hoveredCanvasIndex = sentinel_u32;
+    }
     for (u32 i = 0; i != canvasCount; ++i) {
       const bool isHovered = hoveredCanvasIndex == i;
       ui_canvas_update_interaction(canvasses[i], window, isHovered ? hoveredId : sentinel_u64);
