@@ -112,6 +112,7 @@ static void ui_slider_handle(
     ui_layout_resize(canvas, UiAlign_BottomCenter, ui_vector(100, 100), UiBase_Absolute, Ui_XY);
 
     ui_style_outline(canvas, 2);
+    ui_style_layer(canvas, UiLayer_Overlay);
     ui_style_variation(canvas, UiVariation_Monospace);
 
     const f32    value = math_lerp(opts->min, opts->max, normValue);
