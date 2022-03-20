@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "debug_camera.h"
 #include "debug_grid.h"
 #include "debug_menu.h"
 #include "debug_rend.h"
@@ -8,9 +9,22 @@
 #include "scene_time.h"
 #include "ui.h"
 
+// clang-format off
+
+static const String  g_tooltipStatsEnable     = string_static("Enable the statistics text.");
+static const String  g_tooltipStatsDisable    = string_static("Disable the statistics text.");
+static const String  g_tooltipPanelCamera     = string_static("Open the Camera settings panel.");
+static const String  g_tooltipPanelGrid       = string_static("Open the Grid settings panel.");
+static const String  g_tooltipPanelRend       = string_static("Open the Renderer settings panel.");
+static const String  g_tooltipFullscreenEnter = string_static("Enter fullscreen.");
+static const String  g_tooltipFullscreenExit  = string_static("Exit fullscreen.");
+static const String  g_tooltipWindowOpen      = string_static("Open a new window.");
+static const String  g_tooltipWindowClose     = string_static("Close the current window (Escape).");
 static const f32     g_debugStatsSmoothFactor = 0.1f;
 static const UiColor g_debugWarnColor         = {255, 255, 0, 255};
 static const UiColor g_debugErrorColor        = {255, 0, 0, 255};
+
+// clang-format on
 
 typedef enum {
   DebugMenuFlags_ShowStats = 1 << 0,
@@ -25,7 +39,7 @@ ecs_comp_define(DebugMenuComp) {
   DebugMenuFlags flags;
   DebugStats     stats;
   GapVector      lastWindowedSize;
-  EcsEntityId    panelGrid, panelRend;
+  EcsEntityId    panelCamera, panelGrid, panelRend;
 };
 
 static TimeDuration debug_smooth_duration(const TimeDuration old, const TimeDuration new) {
@@ -72,9 +86,18 @@ static void debug_action_bar_draw(
           canvas,
           .label    = ui_shape_scratch(statsEnabled ? UiShape_LayersClear : UiShape_Layers),
           .fontSize = 30,
-          .tooltip  = statsEnabled ? string_lit("Disable the statistics text")
-                                   : string_lit("Enable the statistics text"))) {
+          .tooltip  = statsEnabled ? g_tooltipStatsDisable : g_tooltipStatsEnable)) {
     menu->flags ^= DebugMenuFlags_ShowStats;
+  }
+  ui_grid_next_row(canvas, &grid);
+
+  if (ui_button(
+          canvas,
+          .flags    = debug_panel_is_open(world, menu->panelCamera) ? UiWidget_Disabled : 0,
+          .label    = ui_shape_scratch(UiShape_PhotoCamera),
+          .fontSize = 30,
+          .tooltip  = g_tooltipPanelCamera)) {
+    debug_panel_open(world, &menu->panelCamera, winEntity, debug_camera_panel_open);
   }
   ui_grid_next_row(canvas, &grid);
 
@@ -83,7 +106,7 @@ static void debug_action_bar_draw(
           .flags    = debug_panel_is_open(world, menu->panelGrid) ? UiWidget_Disabled : 0,
           .label    = ui_shape_scratch(UiShape_Grid4x4),
           .fontSize = 30,
-          .tooltip  = string_lit("Open the grid settings panel"))) {
+          .tooltip  = g_tooltipPanelGrid)) {
     debug_panel_open(world, &menu->panelGrid, winEntity, debug_grid_panel_open);
   }
   ui_grid_next_row(canvas, &grid);
@@ -93,7 +116,7 @@ static void debug_action_bar_draw(
           .flags    = debug_panel_is_open(world, menu->panelRend) ? UiWidget_Disabled : 0,
           .label    = ui_shape_scratch(UiShape_Brush),
           .fontSize = 30,
-          .tooltip  = string_lit("Open the renderer settings panel"))) {
+          .tooltip  = g_tooltipPanelRend)) {
     debug_panel_open(world, &menu->panelRend, winEntity, debug_rend_panel_open);
   }
   ui_grid_next_row(canvas, &grid);
@@ -103,7 +126,7 @@ static void debug_action_bar_draw(
           canvas,
           .label    = ui_shape_scratch(fullscreen ? UiShape_FullscreenExit : UiShape_Fullscreen),
           .fontSize = 30,
-          .tooltip = fullscreen ? string_lit("Exit fullscreen") : string_lit("Enter fullscreen"))) {
+          .tooltip  = fullscreen ? g_tooltipFullscreenExit : g_tooltipFullscreenEnter)) {
     if (fullscreen) {
       gap_window_resize(win, menu->lastWindowedSize, GapWindowMode_Windowed);
     } else {
@@ -117,7 +140,7 @@ static void debug_action_bar_draw(
           canvas,
           .label    = ui_shape_scratch(UiShape_OpenInNew),
           .fontSize = 30,
-          .tooltip  = string_lit("Open a new window"))) {
+          .tooltip  = g_tooltipWindowOpen)) {
     static const GapVector g_newWindowSize = {1024, 768};
     const EcsEntityId newWindow = gap_window_create(world, GapWindowFlags_Default, g_newWindowSize);
     debug_menu_create(world, newWindow);
@@ -128,7 +151,7 @@ static void debug_action_bar_draw(
           canvas,
           .label    = ui_shape_scratch(UiShape_Logout),
           .fontSize = 30,
-          .tooltip  = string_lit("Close the window (Escape)"))) {
+          .tooltip  = g_tooltipWindowClose)) {
     gap_window_close(win);
   }
   ui_grid_next_row(canvas, &grid);

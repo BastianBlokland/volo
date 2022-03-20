@@ -152,7 +152,7 @@ rend_draw_create(EcsWorld* world, const EcsEntityId entity, const RendDrawFlags 
 
 EcsEntityId rend_draw_graphic(const RendDrawComp* draw) { return draw->graphic; }
 
-bool rend_draw_gather(RendDrawComp* draw, const RendView* view) {
+bool rend_draw_gather(RendDrawComp* draw, const RendView* view, const RendSettingsComp* settings) {
   if (draw->cameraFilter && view->camera != draw->cameraFilter) {
     return false;
   }
@@ -177,7 +177,7 @@ bool rend_draw_gather(RendDrawComp* draw, const RendView* view) {
   for (u32 i = 0; i != draw->instCount; ++i) {
     const SceneTags instTags = mem_as_t(draw->instTagsMem, SceneTags)[i];
     const GeoBox*   instAabb = &mem_as_t(draw->instAabbMem, GeoBox)[i];
-    if (!rend_view_visible(view, instTags, instAabb)) {
+    if (!rend_view_visible(view, instTags, instAabb, settings)) {
       continue;
     }
     const Mem outputMem = rend_draw_inst_output_data(draw, draw->outputInstCount++);

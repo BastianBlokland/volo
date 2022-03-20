@@ -1,6 +1,7 @@
 #pragma once
 #include "geo_box.h"
 #include "geo_matrix.h"
+#include "rend_settings.h"
 #include "scene_tag.h"
 
 typedef struct {
@@ -14,4 +15,5 @@ RendView rend_view_create(EcsEntityId camera, const GeoMatrix* viewProj, SceneTa
 /**
  * Check if an object is visible in the view.
  */
-bool rend_view_visible(const RendView*, SceneTags objTags, const GeoBox* objAabb);
+bool rend_view_visible(
+    const RendView*, SceneTags objTags, const GeoBox* objAabb, const RendSettingsComp*);

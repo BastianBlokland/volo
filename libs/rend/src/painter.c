@@ -79,6 +79,7 @@ static GeoMatrix painter_view_proj_matrix(
 
 static void painter_draw_forward(
     RendPainterComp*             painter,
+    const RendSettingsComp*      settings,
     const RendPainterGlobalData* globalData,
     const RendView*              view,
     RvkPass*                     forwardPass,
@@ -91,7 +92,7 @@ static void painter_draw_forward(
   EcsIterator* graphicItr = ecs_view_itr(graphicView);
   for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
     RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
-    if (!rend_draw_gather(draw, view)) {
+    if (!rend_draw_gather(draw, view, settings)) {
       continue;
     }
     if (!ecs_view_contains(graphicView, rend_draw_graphic(draw))) {
@@ -146,7 +147,7 @@ static bool painter_draw(
     };
 
     RvkPass* forwardPass = rvk_canvas_pass_forward(painter->canvas);
-    painter_draw_forward(painter, &globalData, &view, forwardPass, drawView, graphicView);
+    painter_draw_forward(painter, settings, &globalData, &view, forwardPass, drawView, graphicView);
     rvk_canvas_end(painter->canvas);
   }
   return draw;

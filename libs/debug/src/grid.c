@@ -5,6 +5,16 @@
 #include "scene_lifetime.h"
 #include "ui.h"
 
+// clang-format off
+
+static const String g_tooltipShow       = string_static("Should the grid be shown?");
+static const String g_tooltipCellSize   = string_static("Size of the grid cells.");
+static const String g_tooltipHighlight  = string_static("Every how manyth segment to be highlighted.");
+static const String g_tooltipSegments   = string_static("How many segments the grid should consist of.");
+static const String g_tooltipFade       = string_static("Fraction of the grid that should be faded out.");
+
+// clang-format on
+
 typedef struct {
   ALIGNAS(16)
   f32 cellSize;
@@ -56,7 +66,7 @@ static void debug_grid_create(EcsWorld* world, const EcsEntityId entity, AssetMa
   const EcsEntityId drawEntity = ecs_world_entity_create(world);
   ecs_world_add_t(world, drawEntity, SceneLifetimeOwnerComp, .owner = entity);
 
-  RendDrawComp* draw = rend_draw_create(world, drawEntity, RendDrawFlags_NoInstanceFiltering);
+  RendDrawComp* draw = rend_draw_create(world, drawEntity, RendDrawFlags_None);
   rend_draw_set_graphic(draw, asset_lookup(world, assets, string_lit("graphics/debug/grid.gra")));
   rend_draw_set_camera_filter(draw, entity);
 
@@ -104,7 +114,7 @@ ecs_system_define(DebugGridDrawSys) {
         .fadeFraction      = grid->fadeFraction,
     };
     rend_draw_set_vertex_count(draw, (u32)grid->segmentCount * 4);
-    rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, (GeoBox){0});
+    rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, geo_box_inverted3());
   }
 }
 
@@ -112,22 +122,17 @@ static void grid_panel_draw(UiCanvasComp* canvas, DebugGridPanelComp* panel, Deb
   const String title = fmt_write_scratch("{} Grid Settings", fmt_ui_shape(Grid4x4));
   ui_panel_begin(canvas, &panel->state, .title = title);
 
-  UiGridState layoutGrid = ui_grid_init(canvas, .size = {110, 25});
+  UiGridState layoutGrid = ui_grid_init(canvas, .size = {140, 25});
 
   ui_label(canvas, string_lit("Show"));
   ui_grid_next_col(canvas, &layoutGrid);
-  ui_toggle(canvas, &grid->show, .tooltip = string_lit("Should the grid be shown?"));
+  ui_toggle(canvas, &grid->show, .tooltip = g_tooltipShow);
   ui_grid_next_row(canvas, &layoutGrid);
 
   ui_label(canvas, string_lit("Cell size"));
   ui_grid_next_col(canvas, &layoutGrid);
   ui_slider(
-      canvas,
-      &grid->cellSize,
-      .min     = 0.1f,
-      .max     = 4,
-      .step    = 0.1f,
-      .tooltip = string_lit("Size of the grid cells"));
+      canvas, &grid->cellSize, .min = 0.1f, .max = 4, .step = 0.1f, .tooltip = g_tooltipCellSize);
   ui_grid_next_row(canvas, &layoutGrid);
 
   ui_label(canvas, string_lit("Highlight"));
@@ -138,7 +143,7 @@ static void grid_panel_draw(UiCanvasComp* canvas, DebugGridPanelComp* panel, Deb
       .min     = 2,
       .max     = 10,
       .step    = 1,
-      .tooltip = string_lit("Every how manyth segment to be highlighted"));
+      .tooltip = g_tooltipHighlight);
   ui_grid_next_row(canvas, &layoutGrid);
 
   ui_label(canvas, string_lit("Segments"));
@@ -149,15 +154,12 @@ static void grid_panel_draw(UiCanvasComp* canvas, DebugGridPanelComp* panel, Deb
       .min     = 50,
       .max     = 1000,
       .step    = 50,
-      .tooltip = string_lit("How many segments the grid should consist of"));
+      .tooltip = g_tooltipSegments);
   ui_grid_next_row(canvas, &layoutGrid);
 
   ui_label(canvas, string_lit("Fade"));
   ui_grid_next_col(canvas, &layoutGrid);
-  ui_slider(
-      canvas,
-      &grid->fadeFraction,
-      .tooltip = string_lit("Fraction of the grid that should be faded out"));
+  ui_slider(canvas, &grid->fadeFraction, .tooltip = g_tooltipFade);
 
   ui_panel_end(canvas, &panel->state);
 }
@@ -215,7 +217,7 @@ EcsEntityId debug_grid_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugGridPanelComp,
-      .state  = ui_panel_init(ui_vector(250, 225)),
+      .state  = ui_panel_init(ui_vector(310, 280)),
       .window = window);
   return panelEntity;
 }

@@ -3,15 +3,18 @@
 #include "rend_settings.h"
 #include "ui.h"
 
-static const String g_tooltipVSync = string_static("Should presentation wait for VBlanks?");
-static const String g_tooltipScale = string_static("Render resolution scale");
-static const String g_tooltipLimiter =
-    string_static("Frame frequency limiter (in hz).\nNote: 0 disables the limiter.");
-static const String g_tooltipValidation =
-    string_static("Should gpu api validation be enabled?\nNote: Requires a reset to take effect.");
-static const String g_tooltipVerbose  = string_static("Should verbose logging be enabled?");
-static const String g_tooltipDefaults = string_static("Reset all settings to their defaults");
-static const String g_tooltipReset    = string_static("Re-initialize the renderer");
+// clang-format off
+
+static const String g_tooltipVSync          = string_static("Should presentation wait for VBlanks?");
+static const String g_tooltipScale          = string_static("Render resolution scale.");
+static const String g_tooltipLimiter        = string_static("Frame frequency limiter (in hz).\nNote: 0 disables the limiter.");
+static const String g_tooltipFrustumCulling = string_static("Should draws be culled if their bounds are outside of the view frustum?");
+static const String g_tooltipValidation     = string_static("Should gpu api validation be enabled?\nNote: Requires a reset to take effect.");
+static const String g_tooltipVerbose        = string_static("Should verbose logging be enabled?");
+static const String g_tooltipDefaults       = string_static("Reset all settings to their defaults.");
+static const String g_tooltipReset          = string_static("Re-initialize the renderer.");
+
+// clang-format on
 
 ecs_comp_define(DebugRendPanelComp) {
   UiPanelState state;
@@ -36,7 +39,7 @@ static void rend_panel_draw(
   const String title = fmt_write_scratch("{} Renderer Settings", fmt_ui_shape(Brush));
   ui_panel_begin(canvas, &panel->state, .title = title);
 
-  UiGridState layoutGrid = ui_grid_init(canvas, .size = {110, 25});
+  UiGridState layoutGrid = ui_grid_init(canvas, .size = {140, 25});
 
   ui_label(canvas, string_lit("VSync"));
   ui_grid_next_col(canvas, &layoutGrid);
@@ -64,6 +67,14 @@ static void rend_panel_draw(
       .max     = 2.0f,
       .step    = 0.1f,
       .tooltip = g_tooltipScale);
+  ui_grid_next_row(canvas, &layoutGrid);
+
+  ui_label(canvas, string_lit("Frustum culling"));
+  ui_grid_next_col(canvas, &layoutGrid);
+  bool frustumCulling = (settings->flags & RendFlags_FrustumCulling) != 0;
+  if (ui_toggle(canvas, &frustumCulling, .tooltip = g_tooltipFrustumCulling)) {
+    settings->flags ^= RendFlags_FrustumCulling;
+  }
   ui_grid_next_row(canvas, &layoutGrid);
 
   ui_label(canvas, string_lit("Validation"));
@@ -119,7 +130,6 @@ ecs_system_define(DebugRendUpdatePanelSys) {
     RendSettingsComp* settings = ecs_view_write_t(windowItr, RendSettingsComp);
 
     ui_canvas_reset(canvas);
-
     rend_panel_draw(world, canvas, panel, settings, globalSettings);
 
     if (panel->state.flags & UiPanelFlags_Close) {
@@ -151,7 +161,7 @@ EcsEntityId debug_rend_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugRendPanelComp,
-      .state  = ui_panel_init(ui_vector(250, 250)),
+      .state  = ui_panel_init(ui_vector(310, 280)),
       .window = window);
   return panelEntity;
 }

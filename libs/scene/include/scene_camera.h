@@ -23,3 +23,5 @@ ecs_comp_extern_public(SceneCameraMovementComp) {
 };
 
 GeoMatrix scene_camera_proj(const SceneCameraComp*, f32 aspect);
+
+void scene_camera_to_default(SceneCameraComp*);

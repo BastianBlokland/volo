@@ -8,22 +8,16 @@
 #include "scene_time.h"
 #include "scene_transform.h"
 
-static const f32       g_camMoveSpeed            = 10.0f;
-static const f32       g_camMoveSpeedBoostMult   = 4.0f;
-static const f32       g_camRotateSensitivity    = 0.0025f;
-static const f32       g_camPersFov              = 60.0f * math_deg_to_rad;
-static const f32       g_camPersFovMin           = 25.0f * math_deg_to_rad;
-static const f32       g_camPersFovMax           = 120.0f * math_deg_to_rad;
-static const f32       g_camPersZoomSensitivity  = 0.1f;
-static const f32       g_camPersNear             = 0.1f;
-static const GeoVector g_camPersPosition         = {0, 1.5f, -3.0f};
-static const f32       g_camPersAngle            = 10 * math_deg_to_rad;
-static const f32       g_camOrthoZoomSensitivity = 1.0f;
-static const f32       g_camOrthoSize            = 5.0f;
-static const f32       g_camOrthoSizeMin         = 0.1f;
-static const f32       g_camOrthoSizeMax         = 1000.0f;
-static const f32       g_camOrthoNear            = -1e4f;
-static const f32       g_camOrthoFar             = +1e4f;
+static const f32       g_camMoveSpeed          = 10.0f;
+static const f32       g_camMoveSpeedBoostMult = 4.0f;
+static const f32       g_camRotateSensitivity  = 0.0025f;
+static const f32       g_camPersFov            = 60.0f * math_deg_to_rad;
+static const f32       g_camPersNear           = 0.1f;
+static const GeoVector g_camPersPosition       = {0, 1.5f, -3.0f};
+static const f32       g_camPersAngle          = 10 * math_deg_to_rad;
+static const f32       g_camOrthoSize          = 5.0f;
+static const f32       g_camOrthoNear          = -1e4f;
+static const f32       g_camOrthoFar           = +1e4f;
 
 ecs_comp_define_public(SceneCameraComp);
 ecs_comp_define_public(SceneCameraMovementComp);
@@ -84,6 +78,7 @@ ecs_system_define(SceneCameraCreateSkySys) {
       skyEntity,
       SceneRenderableUniqueComp,
       .graphic = asset_lookup(world, assets, string_lit("graphics/scene/sky.gra")));
+  ecs_world_add_t(world, skyEntity, SceneTagComp, .tags = SceneTags_Background);
 }
 
 static void camera_update_move(
@@ -134,17 +129,6 @@ static void camera_update_rotate(
   }
 }
 
-static void camera_update_zoom(SceneCameraComp* cam, GapWindowComp* win) {
-  const f32 scrollDelta = gap_window_param(win, GapParam_ScrollDelta).y;
-  if (cam->flags & SceneCameraFlags_Orthographic) {
-    const f32 delta = scrollDelta * g_camOrthoZoomSensitivity;
-    cam->orthoSize  = math_clamp_f32(cam->orthoSize + delta, g_camOrthoSizeMin, g_camOrthoSizeMax);
-  } else {
-    const f32 delta = scrollDelta * g_camPersZoomSensitivity;
-    cam->persFov    = math_clamp_f32(cam->persFov + delta, g_camPersFovMin, g_camPersFovMax);
-  }
-}
-
 static void camera_update_lock(SceneCameraMovementComp* move, GapWindowComp* win) {
   if (gap_window_events(win) & GapWindowEvents_FocusLost) {
     move->locked = false;
@@ -184,23 +168,7 @@ ecs_system_define(SceneCameraUpdateSys) {
 
     camera_update_move(cam, move, trans, win, deltaSeconds);
     camera_update_rotate(move, trans, win);
-    camera_update_zoom(cam, win);
     camera_update_lock(move, win);
-
-    if (gap_window_key_pressed(win, GapKey_F1)) {
-      cam->flags &= ~SceneCameraFlags_Orthographic;
-      cam->persFov    = g_camPersFov;
-      trans->position = g_camPersPosition;
-      trans->rotation = geo_quat_angle_axis(geo_right, g_camPersAngle);
-    }
-    if (gap_window_key_pressed(win, GapKey_F2)) {
-      cam->flags |= SceneCameraFlags_Orthographic;
-      trans->position = geo_vector(0);
-      trans->rotation = geo_quat_look(geo_down, geo_forward);
-    }
-    if (gap_window_key_pressed(win, GapKey_F3)) {
-      cam->flags ^= SceneCameraFlags_Vertical;
-    }
   }
 }
 
@@ -235,4 +203,11 @@ GeoMatrix scene_camera_proj(const SceneCameraComp* cam, const f32 aspect) {
     return geo_matrix_proj_pers_ver(cam->persFov, aspect, cam->persNear);
   }
   return geo_matrix_proj_pers_hor(cam->persFov, aspect, cam->persNear);
+}
+
+void scene_camera_to_default(SceneCameraComp* cam) {
+  cam->persFov   = g_camPersFov;
+  cam->orthoSize = g_camOrthoSize;
+  cam->persNear  = g_camPersNear;
+  cam->flags &= ~SceneCameraFlags_Vertical;
 }
