@@ -3,10 +3,11 @@
 #include "ecs_module.h"
 
 typedef enum {
-  SceneTags_None     = 0,
-  SceneTags_Geometry = 1 << 0,
-  SceneTags_Ui       = 1 << 1,
-  SceneTags_Debug    = 1 << 2,
+  SceneTags_None       = 0,
+  SceneTags_Background = 1 << 0,
+  SceneTags_Geometry   = 1 << 1,
+  SceneTags_Ui         = 1 << 2,
+  SceneTags_Debug      = 1 << 3,
 
   SceneTags_Default = SceneTags_Geometry,
 } SceneTags;

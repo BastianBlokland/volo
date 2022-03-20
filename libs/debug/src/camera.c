@@ -1,7 +1,9 @@
+#include "core_array.h"
 #include "core_math.h"
 #include "debug_camera.h"
 #include "ecs_world.h"
 #include "scene_camera.h"
+#include "scene_tag.h"
 #include "scene_transform.h"
 #include "ui.h"
 
@@ -12,6 +14,7 @@ static const String g_tooltipOrthoSize      = string_static("Size (in meters) of
 static const String g_tooltipFov            = string_static("Field of view of the dominant dimension of the perspective projection.");
 static const String g_tooltipVerticalAspect = string_static("Use the vertical dimension as the dominant dimension.");
 static const String g_tooltipNearDistance   = string_static("Distance (in meters) to the near clipping plane.");
+static const String g_tooltipExclude        = string_static("Exclude {} from being rendered.");
 static const String g_tooltipDefaults       = string_static("Reset all settings to their defaults.");
 
 // clang-format on
@@ -81,6 +84,31 @@ camera_panel_draw_pers(UiCanvasComp* canvas, UiGridState* grid, SceneCameraComp*
   ui_grid_next_row(canvas, grid);
 }
 
+static void
+camera_panel_draw_filters(UiCanvasComp* canvas, UiGridState* grid, SceneCameraComp* camera) {
+  static const struct {
+    SceneTags tag;
+    String    name;
+  } g_filters[] = {
+      {SceneTags_Geometry, string_static("geometry")},
+      {SceneTags_Debug, string_static("debug")},
+  };
+
+  for (usize i = 0; i != array_elems(g_filters); ++i) {
+    const String name = g_filters[i].name;
+    const String tooltip =
+        format_write_formatted_scratch(g_tooltipExclude, fmt_args(fmt_text(name)));
+
+    ui_label(canvas, fmt_write_scratch("Exclude {}", fmt_text(name)));
+    ui_grid_next_col(canvas, grid);
+    bool illegal = (camera->filter.illegal & g_filters[i].tag) != 0;
+    if (ui_toggle(canvas, &illegal, .tooltip = tooltip)) {
+      camera->filter.illegal ^= g_filters[i].tag;
+    }
+    ui_grid_next_row(canvas, grid);
+  }
+}
+
 static void camera_panel_draw(
     UiCanvasComp*         canvas,
     DebugCameraPanelComp* panel,
@@ -89,7 +117,7 @@ static void camera_panel_draw(
   const String title = fmt_write_scratch("{} Camera Settings", fmt_ui_shape(PhotoCamera));
   ui_panel_begin(canvas, &panel->state, .title = title);
 
-  UiGridState layoutGrid = ui_grid_init(canvas, .size = {110, 25});
+  UiGridState layoutGrid = ui_grid_init(canvas, .size = {140, 25});
 
   ui_label(canvas, string_lit("Orthographic"));
   ui_grid_next_col(canvas, &layoutGrid);
@@ -112,6 +140,8 @@ static void camera_panel_draw(
   } else {
     camera_panel_draw_pers(canvas, &layoutGrid, camera);
   }
+
+  camera_panel_draw_filters(canvas, &layoutGrid, camera);
 
   if (ui_button(canvas, .label = string_lit("Defaults"), .tooltip = g_tooltipDefaults)) {
     scene_camera_to_default(camera);
@@ -163,7 +193,7 @@ EcsEntityId debug_camera_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugCameraPanelComp,
-      .state  = ui_panel_init(ui_vector(250, 250)),
+      .state  = ui_panel_init(ui_vector(310, 280)),
       .window = window);
   return panelEntity;
 }
