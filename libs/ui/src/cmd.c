@@ -127,6 +127,14 @@ void ui_cmd_push_style_layer(UiCmdBuffer* buffer, const UiLayer layer) {
       }};
 }
 
+void ui_cmd_push_style_variation(UiCmdBuffer* buffer, const u8 variation) {
+  *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
+      .type           = UiCmd_StyleVariation,
+      .styleVariation = {
+          .value = variation,
+      }};
+}
+
 void ui_cmd_push_draw_text(
     UiCmdBuffer*  buffer,
     const UiId    id,

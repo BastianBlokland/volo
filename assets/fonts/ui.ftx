@@ -5,7 +5,13 @@
   "lineSpacing": 0.2,
   "fonts": [
     {
-      "id": "fonts/hack_bold.ttf",
+      "id": "fonts/roboto_medium.ttf",
+      "yOffset": -0.05,
+      "characters": "\u0020!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+    },
+    {
+      "id": "fonts/robotomono_medium.ttf",
+      "variation": 1,
       "yOffset": -0.05,
       "characters": "\u0020!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
     },

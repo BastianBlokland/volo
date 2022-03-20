@@ -19,16 +19,16 @@ bool ui_button_with_opts(UiCanvasComp* canvas, const UiButtonOpts* opts) {
   switch (status) {
   case UiStatus_Hovered:
     ui_style_color_with_mult(canvas, opts->frameColor, 2);
-    ui_style_outline(canvas, 4);
+    ui_style_outline(canvas, 3);
     break;
   case UiStatus_Pressed:
   case UiStatus_Activated:
     ui_style_color_with_mult(canvas, opts->frameColor, 3);
-    ui_style_outline(canvas, 2);
+    ui_style_outline(canvas, 1);
     break;
   case UiStatus_Idle:
     ui_style_color(canvas, opts->frameColor);
-    ui_style_outline(canvas, 3);
+    ui_style_outline(canvas, 2);
     break;
   }
   ui_canvas_draw_glyph(canvas, UiShape_Circle, 10, UiFlags_Interactable);
@@ -40,11 +40,11 @@ bool ui_button_with_opts(UiCanvasComp* canvas, const UiButtonOpts* opts) {
   }
   switch (status) {
   case UiStatus_Hovered:
-    ui_style_outline(canvas, 3);
+    ui_style_outline(canvas, 2);
     break;
   case UiStatus_Pressed:
   case UiStatus_Activated:
-    ui_style_outline(canvas, 1);
+    ui_style_outline(canvas, 0);
     break;
   case UiStatus_Idle:
     break;
@@ -112,6 +112,7 @@ static void ui_slider_handle(
     ui_layout_resize(canvas, UiAlign_BottomCenter, ui_vector(100, 100), UiBase_Absolute, Ui_XY);
 
     ui_style_outline(canvas, 2);
+    ui_style_variation(canvas, UiVariation_Monospace);
 
     const f32    value = math_lerp(opts->min, opts->max, normValue);
     const String label = fmt_write_scratch("{}", fmt_float(value, .maxDecDigits = 2));
