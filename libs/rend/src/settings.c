@@ -11,6 +11,7 @@ ecs_module_init(rend_settings_module) {
 }
 
 void rend_settings_to_default(RendSettingsComp* settings) {
+  settings->flags           = RendFlags_FrustumCulling;
   settings->presentMode     = RendPresentMode_VSyncRelaxed;
   settings->resolutionScale = 1.0f;
 }

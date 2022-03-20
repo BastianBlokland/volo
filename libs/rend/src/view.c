@@ -1,4 +1,5 @@
 #include "core_annotation.h"
+#include "rend_settings.h"
 
 #include "view_internal.h"
 
@@ -26,9 +27,17 @@ rend_view_create(const EcsEntityId camera, const GeoMatrix* viewProj, const Scen
   return result;
 }
 
-bool rend_view_visible(const RendView* view, const SceneTags objTags, const GeoBox* objAabb) {
+bool rend_view_visible(
+    const RendView*         view,
+    const SceneTags         objTags,
+    const GeoBox*           objAabb,
+    const RendSettingsComp* settings) {
+
   if (!scene_tag_filter(view->filter, objTags)) {
     return false;
+  }
+  if (UNLIKELY(!(settings->flags & RendFlags_FrustumCulling))) {
+    return true;
   }
   if (UNLIKELY(geo_box_is_inverted3(objAabb))) {
     /**

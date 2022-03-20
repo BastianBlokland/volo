@@ -5,13 +5,14 @@
 
 // clang-format off
 
-static const String g_tooltipVSync      = string_static("Should presentation wait for VBlanks?");
-static const String g_tooltipScale      = string_static("Render resolution scale.");
-static const String g_tooltipLimiter    = string_static("Frame frequency limiter (in hz).\nNote: 0 disables the limiter.");
-static const String g_tooltipValidation = string_static("Should gpu api validation be enabled?\nNote: Requires a reset to take effect.");
-static const String g_tooltipVerbose    = string_static("Should verbose logging be enabled?");
-static const String g_tooltipDefaults   = string_static("Reset all settings to their defaults.");
-static const String g_tooltipReset      = string_static("Re-initialize the renderer.");
+static const String g_tooltipVSync          = string_static("Should presentation wait for VBlanks?");
+static const String g_tooltipScale          = string_static("Render resolution scale.");
+static const String g_tooltipLimiter        = string_static("Frame frequency limiter (in hz).\nNote: 0 disables the limiter.");
+static const String g_tooltipFrustumCulling = string_static("Should draws be culled if their bounds are outside of the view frustum?");
+static const String g_tooltipValidation     = string_static("Should gpu api validation be enabled?\nNote: Requires a reset to take effect.");
+static const String g_tooltipVerbose        = string_static("Should verbose logging be enabled?");
+static const String g_tooltipDefaults       = string_static("Reset all settings to their defaults.");
+static const String g_tooltipReset          = string_static("Re-initialize the renderer.");
 
 // clang-format on
 
@@ -66,6 +67,14 @@ static void rend_panel_draw(
       .max     = 2.0f,
       .step    = 0.1f,
       .tooltip = g_tooltipScale);
+  ui_grid_next_row(canvas, &layoutGrid);
+
+  ui_label(canvas, string_lit("Frustum culling"));
+  ui_grid_next_col(canvas, &layoutGrid);
+  bool frustumCulling = (settings->flags & RendFlags_FrustumCulling) != 0;
+  if (ui_toggle(canvas, &frustumCulling, .tooltip = g_tooltipFrustumCulling)) {
+    settings->flags ^= RendFlags_FrustumCulling;
+  }
   ui_grid_next_row(canvas, &layoutGrid);
 
   ui_label(canvas, string_lit("Validation"));

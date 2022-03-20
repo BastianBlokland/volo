@@ -2,6 +2,10 @@
 #include "ecs_module.h"
 
 typedef enum {
+  RendFlags_FrustumCulling = 1 << 0,
+} RendFlags;
+
+typedef enum {
   /**
    * Don't wait for a vblank but immediately output the new image.
    * NOTE: This mode may result in visible tearing.
@@ -30,6 +34,7 @@ typedef enum {
 } RendPresentMode;
 
 ecs_comp_extern_public(RendSettingsComp) {
+  RendFlags       flags;
   RendPresentMode presentMode;
   f32             resolutionScale;
 };
