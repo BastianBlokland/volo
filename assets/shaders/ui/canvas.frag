@@ -6,7 +6,7 @@
 #include "texture.glsl"
 
 const f32   c_smoothingPixels = 2;
-const f32v4 c_outlineColor    = color_black;
+const f32v4 c_outlineColor    = f32v4(0.025, 0.025, 0.025, 0.95);
 const f32   c_outlineNormMax  = 0.9;  // Avoid the extremities of the sdf border to avoid artifacts.
 const f32   c_outlineMin      = 0.01; // Outlines smaller then this will not be drawn.
 

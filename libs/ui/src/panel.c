@@ -25,13 +25,10 @@ static void ui_panel_clamp_to_window(UiCanvasComp* canvas, UiPanelState* state) 
 
 static void ui_panel_topbar_title(UiCanvasComp* canvas, const UiPanelOpts* opts) {
   ui_layout_push(canvas);
-  ui_style_push(canvas);
 
-  ui_style_outline(canvas, 2);
   ui_layout_move_dir(canvas, Ui_Right, 5, UiBase_Absolute);
   ui_label(canvas, opts->title, .fontSize = 18);
 
-  ui_style_pop(canvas);
   ui_layout_pop(canvas);
 }
 

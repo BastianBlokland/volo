@@ -35,6 +35,7 @@ typedef enum {
 
 typedef struct {
   String      id;
+  u8          variation;
   EcsEntityId asset;
   f32         yOffset;
   String      characters;
@@ -62,6 +63,7 @@ static void ftx_datareg_init() {
     // clang-format off
     data_reg_struct_t(g_dataReg, FtxDefFont);
     data_reg_field_t(g_dataReg, FtxDefFont, id, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, FtxDefFont, variation, data_prim_t(u8), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, FtxDefFont, yOffset, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, FtxDefFont, characters, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
@@ -125,7 +127,11 @@ static String ftx_error_str(const FtxError err) {
 }
 
 static i8 ftx_compare_char_cp(const void* a, const void* b) {
-  return compare_u32(field_ptr(a, AssetFtxChar, cp), field_ptr(b, AssetFtxChar, cp));
+  const i8 result = compare_u32(field_ptr(a, AssetFtxChar, cp), field_ptr(b, AssetFtxChar, cp));
+  if (LIKELY(result != 0)) {
+    return result;
+  }
+  return compare_u8(field_ptr(a, AssetFtxChar, variation), field_ptr(b, AssetFtxChar, variation));
 }
 
 typedef struct {
@@ -207,6 +213,7 @@ static void ftx_generate_glyph(
 
 typedef struct {
   const AssetFontComp* data;
+  u8                   variation;
   f32                  yOffset;
   String               characters;
 } FtxDefResolvedFont;
@@ -230,6 +237,7 @@ static void ftx_generate_font(
   for (u32 i = 0; i != charCount; ++i) {
     *dynarray_push_t(outChars, AssetFtxChar) = (AssetFtxChar){
         .cp         = inputChars[i].cp,
+        .variation  = font.variation,
         .glyphIndex = inputChars[i].glyph->segmentCount ? *nextGlyphIndex : sentinel_u32,
         .size       = inputChars[i].glyph->size,
         .offsetX    = inputChars[i].glyph->offsetX,
@@ -346,6 +354,7 @@ ecs_system_define(FtxLoadAssetSys) {
       }
       fonts[i] = (FtxDefResolvedFont){
           .data       = ecs_view_read_t(fontItr, AssetFontComp),
+          .variation  = defFont->variation,
           .yOffset    = defFont->yOffset,
           .characters = defFont->characters,
       };
@@ -453,16 +462,23 @@ Error:
   asset_repo_source_close(src);
 }
 
-const AssetFtxChar* asset_ftx_lookup(const AssetFtxComp* comp, const Unicode cp) {
+const AssetFtxChar*
+asset_ftx_lookup(const AssetFtxComp* comp, const Unicode cp, const u8 variation) {
   const AssetFtxChar* ch = search_binary_t(
       comp->characters,
       comp->characters + comp->characterCount,
       AssetFtxChar,
       ftx_compare_char_cp,
-      mem_struct(AssetFtxChar, .cp = cp).ptr);
+      mem_struct(AssetFtxChar, .cp = cp, .variation = variation).ptr);
 
   if (UNLIKELY(!ch)) {
-    return &comp->characters[0]; // The 'missing' character, is guaranteed to exist.
+    if (variation) {
+      // Try with the default variation.
+      return asset_ftx_lookup(comp, cp, 0);
+    }
+
+    // Return the 'missing' character, is guaranteed to exist.
+    return &comp->characters[0];
   }
   return ch;
 }

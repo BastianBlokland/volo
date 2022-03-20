@@ -19,6 +19,7 @@ typedef struct {
   UiColor color;
   u8      outline;
   UiLayer layer;
+  u8      variation;
 } UiBuildStyle;
 
 typedef struct {
@@ -198,6 +199,7 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
       style.color,
       style.outline,
       style.layer,
+      style.variation,
       cmd->align,
       state,
       &ui_build_text_char);
@@ -218,7 +220,7 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
   }
   state->ctx->outputRect(state->ctx->userCtx, cmd->id, layoutRect);
 
-  const AssetFtxChar* ch = asset_ftx_lookup(state->font, cmd->cp);
+  const AssetFtxChar* ch = asset_ftx_lookup(state->font, cmd->cp, style.variation);
   if (sentinel_check(ch->glyphIndex)) {
     return; // No glyph for the given codepoint.
   }
@@ -309,6 +311,9 @@ static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
     break;
   case UiCmd_StyleLayer:
     ui_build_style_currect(state)->layer = cmd->styleLayer.value;
+    break;
+  case UiCmd_StyleVariation:
+    ui_build_style_currect(state)->variation = cmd->styleVariation.value;
     break;
   case UiCmd_DrawText:
     ui_build_draw_text(state, &cmd->drawText);

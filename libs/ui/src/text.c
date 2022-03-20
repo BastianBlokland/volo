@@ -23,14 +23,16 @@ typedef struct {
   UiColor             fontColor, fontColorDefault;
   u8                  fontOutline, fontOutlineDefault;
   UiLayer             fontLayer;
+  u8                  fontVariation;
   UiAlign             align;
   void*               userCtx;
   UiTextBuildCharFunc buildChar;
   f32                 cursor;
 } UiTextBuildState;
 
-static f32 ui_text_next_tabstop(const AssetFtxComp* font, const f32 cursor, const f32 fontSize) {
-  const f32 spaceAdvance = asset_ftx_lookup(font, Unicode_Space)->advance * fontSize;
+static f32 ui_text_next_tabstop(
+    const AssetFtxComp* font, const f32 cursor, const f32 fontSize, const u8 fontVariation) {
+  const f32 spaceAdvance = asset_ftx_lookup(font, Unicode_Space, fontVariation)->advance * fontSize;
   const f32 tabSize      = spaceAdvance * ui_text_tab_size;
   return cursor + tabSize - math_mod_f32(cursor, tabSize);
 }
@@ -57,6 +59,7 @@ static String ui_text_line(
     const String        text,
     const f32           maxWidth,
     const f32           fontSize,
+    const u8            fontVariation,
     UiTextLine*         out) {
 
   if (UNLIKELY(maxWidth < fontSize)) {
@@ -103,7 +106,8 @@ static String ui_text_line(
       cursorConsumed.pixel = 0;
       break;
     case Unicode_HorizontalTab:
-      cursorConsumed.pixel = ui_text_next_tabstop(font, cursorConsumed.pixel, fontSize);
+      cursorConsumed.pixel =
+          ui_text_next_tabstop(font, cursorConsumed.pixel, fontSize, fontVariation);
       break;
     case Unicode_ZeroWidthSpace:
       break;
@@ -113,7 +117,7 @@ static String ui_text_line(
       cursorConsumed.charIndex = text.size - remainingText.size;
       break;
     default:
-      cursorConsumed.pixel += asset_ftx_lookup(font, cp)->advance * fontSize;
+      cursorConsumed.pixel += asset_ftx_lookup(font, cp, fontVariation)->advance * fontSize;
       break;
     }
     if (cursorConsumed.pixel > maxWidth) {
@@ -179,7 +183,7 @@ static UiVector ui_text_char_pos(UiTextBuildState* state, const UiTextLine* line
 }
 
 static void ui_text_build_char(UiTextBuildState* state, const UiTextLine* line, const Unicode cp) {
-  const AssetFtxChar* ch = asset_ftx_lookup(state->font, cp);
+  const AssetFtxChar* ch = asset_ftx_lookup(state->font, cp, state->fontVariation);
   if (!sentinel_check(ch->glyphIndex)) {
     state->buildChar(
         state->userCtx,
@@ -225,7 +229,8 @@ static void ui_text_build_line(UiTextBuildState* state, const UiTextLine* line) 
       state->cursor = 0;
       continue;
     case Unicode_HorizontalTab:
-      state->cursor = ui_text_next_tabstop(state->font, state->cursor, state->fontSize);
+      state->cursor =
+          ui_text_next_tabstop(state->font, state->cursor, state->fontSize, state->fontVariation);
       continue;
     case Unicode_ZeroWidthSpace:
       continue;
@@ -247,6 +252,7 @@ UiTextBuildResult ui_text_build(
     const UiColor             fontColor,
     const u8                  fontOutline,
     const UiLayer             fontLayer,
+    const u8                  fontVariation,
     const UiAlign             align,
     void*                     userCtx,
     const UiTextBuildCharFunc buildChar) {
@@ -271,7 +277,8 @@ UiTextBuildResult ui_text_build(
       break;
     }
     const usize lineIndex = lineCount++;
-    remText = ui_text_line(font, remText, totalRect.width, fontSize, &lines[lineIndex]);
+    remText =
+        ui_text_line(font, remText, totalRect.width, fontSize, fontVariation, &lines[lineIndex]);
 
     lines[lineIndex].posY = lineY;
     totalWidth            = math_max(totalWidth, lines[lineIndex].size.width);
@@ -291,6 +298,7 @@ UiTextBuildResult ui_text_build(
       .fontOutline        = fontOutline,
       .fontOutlineDefault = fontOutline,
       .fontLayer          = fontLayer,
+      .fontVariation      = fontVariation,
       .align              = align,
       .userCtx            = userCtx,
       .buildChar          = buildChar,

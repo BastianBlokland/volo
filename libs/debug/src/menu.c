@@ -193,6 +193,7 @@ debug_stats_draw(UiCanvasComp* canvas, const DebugStats* stats, const RendStatsC
 
   ui_style_push(canvas);
   ui_style_outline(canvas, 2);
+  ui_style_variation(canvas, UiVariation_Monospace);
   ui_label(canvas, dynstring_view(&str), .align = UiAlign_TopLeft);
   ui_style_pop(canvas);
 }
