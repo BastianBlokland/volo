@@ -343,6 +343,27 @@ static void pal_event_scroll(GapPalWindow* window, const GapVector delta) {
   window->flags |= GapPalWindowFlags_Scrolled;
 }
 
+static void pal_cursor_interaction_start(GapPalWindow* window) {
+  /**
+   * Enable cursor capture if its not already explicitly enabled with the
+   * 'gap_pal_window_cursor_capture' api. This allows us to still get mouse events (like move and
+   * release) even if you leave the window area while in an interaction.
+   */
+  if (!(window->flags & GapPalFlags_CursorCaptured)) {
+    SetCapture((HWND)window->id);
+  }
+}
+
+static void pal_cursor_interaction_end(GapPalWindow* window) {
+  /**
+   * Release the capture if its not explicitly requested using the 'gap_pal_window_cursor_capture'
+   * api.
+   */
+  if (!(window->flags & GapPalFlags_CursorCaptured)) {
+    ReleaseCapture();
+  }
+}
+
 static bool
 pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
   GapPalWindow* window = pal_maybe_window(pal, (GapWindowId)wnd);
@@ -404,21 +425,27 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
   }
   case WM_LBUTTONDOWN:
     pal_event_press(window, GapKey_MouseLeft);
+    pal_cursor_interaction_start(window);
     return true;
   case WM_RBUTTONDOWN:
     pal_event_press(window, GapKey_MouseRight);
+    pal_cursor_interaction_start(window);
     return true;
   case WM_MBUTTONDOWN:
     pal_event_press(window, GapKey_MouseMiddle);
+    pal_cursor_interaction_start(window);
     return true;
   case WM_LBUTTONUP:
     pal_event_release(window, GapKey_MouseLeft);
+    pal_cursor_interaction_end(window);
     return true;
   case WM_RBUTTONUP:
     pal_event_release(window, GapKey_MouseRight);
+    pal_cursor_interaction_end(window);
     return true;
   case WM_MBUTTONUP:
     pal_event_release(window, GapKey_MouseMiddle);
+    pal_cursor_interaction_end(window);
     return true;
   case WM_KEYDOWN:
     pal_event_press(window, pal_win32_translate_key(wParam));
@@ -477,10 +504,10 @@ GapPal* gap_pal_create(Allocator* alloc) {
 
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){
-      .alloc          = alloc,
-      .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
-      .moduleInstance = instance,
-      .owningThreadId = g_thread_tid,
+             .alloc          = alloc,
+             .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
+             .moduleInstance = instance,
+             .owningThreadId = g_thread_tid,
   };
 
   MAYBE_UNUSED const GapVector screenSize =
