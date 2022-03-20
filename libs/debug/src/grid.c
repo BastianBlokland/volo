@@ -5,6 +5,16 @@
 #include "scene_lifetime.h"
 #include "ui.h"
 
+// clang-format off
+
+static const String g_tooltipShow       = string_static("Should the grid be shown?");
+static const String g_tooltipCellSize   = string_static("Size of the grid cells.");
+static const String g_tooltipHighlight  = string_static("Every how manyth segment to be highlighted.");
+static const String g_tooltipSegments   = string_static("How many segments the grid should consist of.");
+static const String g_tooltipFade       = string_static("Fraction of the grid that should be faded out.");
+
+// clang-format on
+
 typedef struct {
   ALIGNAS(16)
   f32 cellSize;
@@ -116,18 +126,13 @@ static void grid_panel_draw(UiCanvasComp* canvas, DebugGridPanelComp* panel, Deb
 
   ui_label(canvas, string_lit("Show"));
   ui_grid_next_col(canvas, &layoutGrid);
-  ui_toggle(canvas, &grid->show, .tooltip = string_lit("Should the grid be shown?"));
+  ui_toggle(canvas, &grid->show, .tooltip = g_tooltipShow);
   ui_grid_next_row(canvas, &layoutGrid);
 
   ui_label(canvas, string_lit("Cell size"));
   ui_grid_next_col(canvas, &layoutGrid);
   ui_slider(
-      canvas,
-      &grid->cellSize,
-      .min     = 0.1f,
-      .max     = 4,
-      .step    = 0.1f,
-      .tooltip = string_lit("Size of the grid cells"));
+      canvas, &grid->cellSize, .min = 0.1f, .max = 4, .step = 0.1f, .tooltip = g_tooltipCellSize);
   ui_grid_next_row(canvas, &layoutGrid);
 
   ui_label(canvas, string_lit("Highlight"));
@@ -138,7 +143,7 @@ static void grid_panel_draw(UiCanvasComp* canvas, DebugGridPanelComp* panel, Deb
       .min     = 2,
       .max     = 10,
       .step    = 1,
-      .tooltip = string_lit("Every how manyth segment to be highlighted"));
+      .tooltip = g_tooltipHighlight);
   ui_grid_next_row(canvas, &layoutGrid);
 
   ui_label(canvas, string_lit("Segments"));
@@ -149,15 +154,12 @@ static void grid_panel_draw(UiCanvasComp* canvas, DebugGridPanelComp* panel, Deb
       .min     = 50,
       .max     = 1000,
       .step    = 50,
-      .tooltip = string_lit("How many segments the grid should consist of"));
+      .tooltip = g_tooltipSegments);
   ui_grid_next_row(canvas, &layoutGrid);
 
   ui_label(canvas, string_lit("Fade"));
   ui_grid_next_col(canvas, &layoutGrid);
-  ui_slider(
-      canvas,
-      &grid->fadeFraction,
-      .tooltip = string_lit("Fraction of the grid that should be faded out"));
+  ui_slider(canvas, &grid->fadeFraction, .tooltip = g_tooltipFade);
 
   ui_panel_end(canvas, &panel->state);
 }

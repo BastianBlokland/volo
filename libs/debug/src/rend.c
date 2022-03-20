@@ -3,15 +3,17 @@
 #include "rend_settings.h"
 #include "ui.h"
 
-static const String g_tooltipVSync = string_static("Should presentation wait for VBlanks?");
-static const String g_tooltipScale = string_static("Render resolution scale");
-static const String g_tooltipLimiter =
-    string_static("Frame frequency limiter (in hz).\nNote: 0 disables the limiter.");
-static const String g_tooltipValidation =
-    string_static("Should gpu api validation be enabled?\nNote: Requires a reset to take effect.");
-static const String g_tooltipVerbose  = string_static("Should verbose logging be enabled?");
-static const String g_tooltipDefaults = string_static("Reset all settings to their defaults");
-static const String g_tooltipReset    = string_static("Re-initialize the renderer");
+// clang-format off
+
+static const String g_tooltipVSync      = string_static("Should presentation wait for VBlanks?");
+static const String g_tooltipScale      = string_static("Render resolution scale.");
+static const String g_tooltipLimiter    = string_static("Frame frequency limiter (in hz).\nNote: 0 disables the limiter.");
+static const String g_tooltipValidation = string_static("Should gpu api validation be enabled?\nNote: Requires a reset to take effect.");
+static const String g_tooltipVerbose    = string_static("Should verbose logging be enabled?");
+static const String g_tooltipDefaults   = string_static("Reset all settings to their defaults.");
+static const String g_tooltipReset      = string_static("Re-initialize the renderer.");
+
+// clang-format on
 
 ecs_comp_define(DebugRendPanelComp) {
   UiPanelState state;
