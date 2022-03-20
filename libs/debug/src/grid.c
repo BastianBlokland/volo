@@ -114,7 +114,7 @@ ecs_system_define(DebugGridDrawSys) {
         .fadeFraction      = grid->fadeFraction,
     };
     rend_draw_set_vertex_count(draw, (u32)grid->segmentCount * 4);
-    rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, (GeoBox){0});
+    rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, geo_box_inverted3());
   }
 }
 
