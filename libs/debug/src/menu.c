@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "debug_camera.h"
 #include "debug_grid.h"
 #include "debug_menu.h"
 #include "debug_rend.h"
@@ -25,7 +26,7 @@ ecs_comp_define(DebugMenuComp) {
   DebugMenuFlags flags;
   DebugStats     stats;
   GapVector      lastWindowedSize;
-  EcsEntityId    panelGrid, panelRend;
+  EcsEntityId    panelCamera, panelGrid, panelRend;
 };
 
 static TimeDuration debug_smooth_duration(const TimeDuration old, const TimeDuration new) {
@@ -73,8 +74,18 @@ static void debug_action_bar_draw(
           .label    = ui_shape_scratch(statsEnabled ? UiShape_LayersClear : UiShape_Layers),
           .fontSize = 30,
           .tooltip  = statsEnabled ? string_lit("Disable the statistics text")
-                                   : string_lit("Enable the statistics text"))) {
+                                  : string_lit("Enable the statistics text"))) {
     menu->flags ^= DebugMenuFlags_ShowStats;
+  }
+  ui_grid_next_row(canvas, &grid);
+
+  if (ui_button(
+          canvas,
+          .flags    = debug_panel_is_open(world, menu->panelCamera) ? UiWidget_Disabled : 0,
+          .label    = ui_shape_scratch(UiShape_PhotoCamera),
+          .fontSize = 30,
+          .tooltip  = string_lit("Open the Camera settings panel"))) {
+    debug_panel_open(world, &menu->panelCamera, winEntity, debug_camera_panel_open);
   }
   ui_grid_next_row(canvas, &grid);
 
@@ -83,7 +94,7 @@ static void debug_action_bar_draw(
           .flags    = debug_panel_is_open(world, menu->panelGrid) ? UiWidget_Disabled : 0,
           .label    = ui_shape_scratch(UiShape_Grid4x4),
           .fontSize = 30,
-          .tooltip  = string_lit("Open the grid settings panel"))) {
+          .tooltip  = string_lit("Open the Grid settings panel"))) {
     debug_panel_open(world, &menu->panelGrid, winEntity, debug_grid_panel_open);
   }
   ui_grid_next_row(canvas, &grid);
@@ -93,7 +104,7 @@ static void debug_action_bar_draw(
           .flags    = debug_panel_is_open(world, menu->panelRend) ? UiWidget_Disabled : 0,
           .label    = ui_shape_scratch(UiShape_Brush),
           .fontSize = 30,
-          .tooltip  = string_lit("Open the renderer settings panel"))) {
+          .tooltip  = string_lit("Open the Renderer settings panel"))) {
     debug_panel_open(world, &menu->panelRend, winEntity, debug_rend_panel_open);
   }
   ui_grid_next_row(canvas, &grid);
