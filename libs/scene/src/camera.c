@@ -168,21 +168,6 @@ ecs_system_define(SceneCameraUpdateSys) {
     camera_update_move(cam, move, trans, win, deltaSeconds);
     camera_update_rotate(move, trans, win);
     camera_update_lock(move, win);
-
-    if (gap_window_key_pressed(win, GapKey_F1)) {
-      cam->flags &= ~SceneCameraFlags_Orthographic;
-      cam->persFov    = g_camPersFov;
-      trans->position = g_camPersPosition;
-      trans->rotation = geo_quat_angle_axis(geo_right, g_camPersAngle);
-    }
-    if (gap_window_key_pressed(win, GapKey_F2)) {
-      cam->flags |= SceneCameraFlags_Orthographic;
-      trans->position = geo_vector(0);
-      trans->rotation = geo_quat_look(geo_down, geo_forward);
-    }
-    if (gap_window_key_pressed(win, GapKey_F3)) {
-      cam->flags ^= SceneCameraFlags_Vertical;
-    }
   }
 }
 

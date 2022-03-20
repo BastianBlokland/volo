@@ -2,6 +2,7 @@
 #include "debug_camera.h"
 #include "ecs_world.h"
 #include "scene_camera.h"
+#include "scene_transform.h"
 #include "ui.h"
 
 // clang-format off
@@ -25,14 +26,41 @@ ecs_view_define(PanelUpdateView) {
   ecs_access_write(UiCanvasComp);
 }
 
-ecs_view_define(WindowView) { ecs_access_write(SceneCameraComp); }
+ecs_view_define(WindowView) {
+  ecs_access_write(SceneCameraComp);
+  ecs_access_write(SceneTransformComp);
+}
 
-static void
-camera_panel_draw_ortho(UiCanvasComp* canvas, UiGridState* grid, SceneCameraComp* camera) {
+static void camera_default_transform(const SceneCameraComp* camera, SceneTransformComp* transform) {
+  if (camera->flags & SceneCameraFlags_Orthographic) {
+    transform->position = geo_vector(0);
+    transform->rotation = geo_quat_look(geo_down, geo_forward);
+  } else {
+    transform->position = geo_vector(0, 1.5f, -3.0f);
+    transform->rotation = geo_quat_angle_axis(geo_right, 10 * math_deg_to_rad);
+  }
+}
+
+static void camera_panel_draw_ortho(
+    UiCanvasComp*       canvas,
+    UiGridState*        grid,
+    SceneCameraComp*    camera,
+    SceneTransformComp* transform) {
 
   ui_label(canvas, string_lit("Size"));
   ui_grid_next_col(canvas, grid);
   ui_slider(canvas, &camera->orthoSize, .min = 1, .max = 100, .tooltip = g_tooltipOrthoSize);
+  ui_grid_next_row(canvas, grid);
+
+  if (ui_button(canvas, .label = string_lit("Top"))) {
+    transform->position = geo_vector(0);
+    transform->rotation = geo_quat_look(geo_down, geo_forward);
+  }
+  ui_grid_next_col(canvas, grid);
+  if (ui_button(canvas, .label = string_lit("Front"))) {
+    transform->position = geo_vector(0);
+    transform->rotation = geo_quat_look(geo_forward, geo_up);
+  }
   ui_grid_next_row(canvas, grid);
 }
 
@@ -53,8 +81,11 @@ camera_panel_draw_pers(UiCanvasComp* canvas, UiGridState* grid, SceneCameraComp*
   ui_grid_next_row(canvas, grid);
 }
 
-static void
-camera_panel_draw(UiCanvasComp* canvas, DebugCameraPanelComp* panel, SceneCameraComp* camera) {
+static void camera_panel_draw(
+    UiCanvasComp*         canvas,
+    DebugCameraPanelComp* panel,
+    SceneCameraComp*      camera,
+    SceneTransformComp*   transform) {
   const String title = fmt_write_scratch("{} Camera Settings", fmt_ui_shape(PhotoCamera));
   ui_panel_begin(canvas, &panel->state, .title = title);
 
@@ -77,13 +108,14 @@ camera_panel_draw(UiCanvasComp* canvas, DebugCameraPanelComp* panel, SceneCamera
   ui_grid_next_row(canvas, &layoutGrid);
 
   if (orthographic) {
-    camera_panel_draw_ortho(canvas, &layoutGrid, camera);
+    camera_panel_draw_ortho(canvas, &layoutGrid, camera, transform);
   } else {
     camera_panel_draw_pers(canvas, &layoutGrid, camera);
   }
 
   if (ui_button(canvas, .label = string_lit("Defaults"), .tooltip = g_tooltipDefaults)) {
     scene_camera_to_default(camera);
+    camera_default_transform(camera, transform);
   }
 
   ui_panel_end(canvas, &panel->state);
@@ -100,10 +132,11 @@ ecs_system_define(DebugCameraUpdatePanelSys) {
     if (!ecs_view_maybe_jump(windowItr, panel->window)) {
       continue; // Window has been destroyed, or has no camera.
     }
-    SceneCameraComp* camera = ecs_view_write_t(windowItr, SceneCameraComp);
+    SceneCameraComp*    camera    = ecs_view_write_t(windowItr, SceneCameraComp);
+    SceneTransformComp* transform = ecs_view_write_t(windowItr, SceneTransformComp);
 
     ui_canvas_reset(canvas);
-    camera_panel_draw(canvas, panel, camera);
+    camera_panel_draw(canvas, panel, camera, transform);
 
     if (panel->state.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
