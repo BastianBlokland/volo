@@ -94,6 +94,10 @@ static void ui_slider_handle(
   ui_layout_move(canvas, ui_vector(normValue, 0.5f), UiBase_Current, Ui_XY);
   ui_layout_resize(canvas, UiAlign_MiddleCenter, handleSize, UiBase_Absolute, Ui_XY);
 
+  if (opts->flags & UiWidget_Disabled) {
+    ui_style_color_mult(canvas, 0.5);
+  }
+
   switch (status) {
   case UiStatus_Hovered:
     ui_style_outline(canvas, 3);
@@ -130,7 +134,9 @@ bool ui_slider_with_opts(UiCanvasComp* canvas, f32* input, const UiSliderOpts* o
   const UiId     barId    = ui_canvas_id_peek(canvas);
   const UiId     handleId = barId + 1;
   const UiStatus status =
-      math_max(ui_canvas_elem_status(canvas, barId), ui_canvas_elem_status(canvas, handleId));
+      opts->flags & UiWidget_Disabled
+          ? UiStatus_Idle
+          : math_max(ui_canvas_elem_status(canvas, barId), ui_canvas_elem_status(canvas, handleId));
 
   const f32      halfHandleSize = opts->handleSize * 0.5f;
   const UiRect   barRect        = ui_canvas_elem_rect(canvas, barId);

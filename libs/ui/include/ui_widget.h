@@ -27,12 +27,13 @@ typedef struct {
 } UiButtonOpts;
 
 typedef struct {
-  f32     min, max;
-  f32     barHeight;
-  f32     handleSize;
-  f32     step;
-  UiColor barColor;
-  String  tooltip;
+  UiWidgetFlags flags;
+  f32           min, max;
+  f32           barHeight;
+  f32           handleSize;
+  f32           step;
+  UiColor       barColor;
+  String        tooltip;
 } UiSliderOpts;
 
 typedef struct {
