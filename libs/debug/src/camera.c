@@ -15,6 +15,7 @@ static const String g_tooltipFov            = string_static("Field of view of th
 static const String g_tooltipVerticalAspect = string_static("Use the vertical dimension as the dominant dimension.");
 static const String g_tooltipNearDistance   = string_static("Distance (in meters) to the near clipping plane.");
 static const String g_tooltipExclude        = string_static("Exclude {} from being rendered.");
+static const String g_tooltipMoveSpeed      = string_static("Camera movement speed in meters per second.");
 static const String g_tooltipDefaults       = string_static("Reset all settings to their defaults.");
 
 // clang-format on
@@ -31,6 +32,7 @@ ecs_view_define(PanelUpdateView) {
 
 ecs_view_define(WindowView) {
   ecs_access_write(SceneCameraComp);
+  ecs_access_maybe_write(SceneCameraMovementComp);
   ecs_access_maybe_write(SceneTransformComp);
 }
 
@@ -112,10 +114,11 @@ camera_panel_draw_filters(UiCanvasComp* canvas, UiGridState* grid, SceneCameraCo
 }
 
 static void camera_panel_draw(
-    UiCanvasComp*         canvas,
-    DebugCameraPanelComp* panel,
-    SceneCameraComp*      camera,
-    SceneTransformComp*   transform) {
+    UiCanvasComp*            canvas,
+    DebugCameraPanelComp*    panel,
+    SceneCameraComp*         camera,
+    SceneCameraMovementComp* cameraMovement,
+    SceneTransformComp*      transform) {
   const String title = fmt_write_scratch("{} Camera Settings", fmt_ui_shape(PhotoCamera));
   ui_panel_begin(canvas, &panel->state, .title = title);
 
@@ -145,8 +148,19 @@ static void camera_panel_draw(
 
   camera_panel_draw_filters(canvas, &layoutGrid, camera);
 
+  if (cameraMovement) {
+    ui_label(canvas, string_lit("Move speed"));
+    ui_grid_next_col(canvas, &layoutGrid);
+    ui_slider(
+        canvas, &cameraMovement->moveSpeed, .min = 0.5, .max = 50, .tooltip = g_tooltipMoveSpeed);
+    ui_grid_next_row(canvas, &layoutGrid);
+  }
+
   if (ui_button(canvas, .label = string_lit("Defaults"), .tooltip = g_tooltipDefaults)) {
     scene_camera_to_default(camera);
+    if (cameraMovement) {
+      scene_camera_movement_to_default(cameraMovement);
+    }
     if (transform) {
       camera_default_transform(camera, transform);
     }
@@ -166,11 +180,13 @@ ecs_system_define(DebugCameraUpdatePanelSys) {
     if (!ecs_view_maybe_jump(windowItr, panel->window)) {
       continue; // Window has been destroyed, or has no camera.
     }
-    SceneCameraComp*    camera    = ecs_view_write_t(windowItr, SceneCameraComp);
+    SceneCameraComp*         camera         = ecs_view_write_t(windowItr, SceneCameraComp);
+    SceneCameraMovementComp* cameraMovement = ecs_view_write_t(windowItr, SceneCameraMovementComp);
+
     SceneTransformComp* transform = ecs_view_write_t(windowItr, SceneTransformComp);
 
     ui_canvas_reset(canvas);
-    camera_panel_draw(canvas, panel, camera, transform);
+    camera_panel_draw(canvas, panel, camera, cameraMovement, transform);
 
     if (panel->state.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
@@ -197,7 +213,7 @@ EcsEntityId debug_camera_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugCameraPanelComp,
-      .state  = ui_panel_init(ui_vector(310, 280)),
+      .state  = ui_panel_init(ui_vector(310, 320)),
       .window = window);
   return panelEntity;
 }
