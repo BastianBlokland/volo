@@ -102,10 +102,10 @@ static void ui_slider_handle(
 
   switch (status) {
   case UiStatus_Hovered:
-    ui_style_outline(canvas, 3);
+    ui_style_outline(canvas, 2);
     break;
   case UiStatus_Pressed:
-    ui_style_outline(canvas, 1);
+    ui_style_outline(canvas, 0);
     break;
   case UiStatus_Activated:
   case UiStatus_Idle:
@@ -178,7 +178,7 @@ static void ui_toggle_check(UiCanvasComp* canvas, const UiStatus status, const U
   ui_style_push(canvas);
 
   if (status == UiStatus_Hovered) {
-    ui_style_outline(canvas, 3);
+    ui_style_outline(canvas, 2);
   }
   if (opts->flags & UiWidget_Disabled) {
     ui_style_color_mult(canvas, g_uiDisabledMult);
@@ -209,7 +209,7 @@ bool ui_toggle_with_opts(UiCanvasComp* canvas, bool* input, const UiToggleOpts* 
   case UiStatus_Pressed:
   case UiStatus_Activated:
     ui_style_color_with_mult(canvas, opts->bgColor, 3);
-    ui_style_outline(canvas, 2);
+    ui_style_outline(canvas, 1);
     break;
   case UiStatus_Idle:
     ui_style_color(canvas, opts->bgColor);
@@ -235,8 +235,8 @@ bool ui_toggle_with_opts(UiCanvasComp* canvas, bool* input, const UiToggleOpts* 
 }
 
 static void ui_tooltip_background(
-    UiCanvasComp* canvas, const UiDir dir, const UiAlign align, const UiRect textRect) {
-  const UiVector size = ui_vector(textRect.width + 20, textRect.height + 10);
+    UiCanvasComp* canvas, const UiDir dir, const UiAlign align, const UiRect lastTextRect) {
+  const UiVector size = ui_vector(lastTextRect.width + 20, lastTextRect.height + 10);
 
   ui_layout_inner(canvas, UiBase_Cursor, align, size, UiBase_Absolute);
   ui_layout_move_dir(canvas, dir, 15, UiBase_Absolute);
@@ -252,16 +252,25 @@ static void ui_tooltip_text(
     const UiDir          dir,
     const UiAlign        align,
     const String         text,
+    const UiRect         lastRect,
     const UiTooltipOpts* opts) {
 
   ui_layout_inner(canvas, UiBase_Cursor, align, opts->maxSize, UiBase_Absolute);
   ui_layout_move_dir(canvas, dir, 25, UiBase_Absolute);
   ui_layout_move_dir(canvas, Ui_Down, 5, UiBase_Absolute);
 
+  if (dir == Ui_Left) {
+    /**
+     * Because we always draw the text left aligned it needs to be offsetted if the tooltip should
+     * be on the left side of the cursor.
+     */
+    ui_layout_move_dir(canvas, Ui_Right, opts->maxSize.width - lastRect.width, UiBase_Absolute);
+  }
+
   ui_style_color(canvas, ui_color_black);
   ui_style_outline(canvas, 0);
 
-  ui_canvas_draw_text(canvas, text, opts->fontSize, align, UiFlags_None);
+  ui_canvas_draw_text(canvas, text, opts->fontSize, UiAlign_TopLeft, UiFlags_None);
 }
 
 static UiDir ui_tooltip_dir(UiCanvasComp* canvas) {
@@ -296,15 +305,25 @@ bool ui_tooltip_with_opts(
 
   const UiId   backgroundId = ui_canvas_id_peek(canvas);
   const UiId   textId       = backgroundId + 1;
-  const UiRect textRect     = ui_canvas_elem_rect(canvas, textId);
+  const UiRect lastTextRect = ui_canvas_elem_rect(canvas, textId);
+  const bool   firstFrame   = lastTextRect.width == 0;
 
   ui_layout_push(canvas);
   ui_style_push(canvas);
 
-  ui_style_layer(canvas, UiLayer_Overlay);
+  /**
+   * To draw the tooltip background we need to know the size of the text. We achieve this by using
+   * the text rectangle of the last frame. If this is the first frame that we're drawing the tooltip
+   * then we skip the background and draw the text invisible.
+   */
 
-  ui_tooltip_background(canvas, dir, align, textRect);
-  ui_tooltip_text(canvas, dir, align, text, opts);
+  ui_style_layer(canvas, firstFrame ? UiLayer_Invisible : UiLayer_Overlay);
+  if (firstFrame) {
+    ui_canvas_id_skip(canvas);
+  } else {
+    ui_tooltip_background(canvas, dir, align, lastTextRect);
+  }
+  ui_tooltip_text(canvas, dir, align, text, lastTextRect, opts);
 
   ui_style_pop(canvas);
   ui_layout_pop(canvas);

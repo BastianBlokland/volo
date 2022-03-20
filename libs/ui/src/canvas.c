@@ -108,6 +108,8 @@ static void ui_canvas_output_glyph(void* userCtx, const UiGlyphData data, const 
   case UiLayer_Normal:
     rend_draw_add_instance(state->draw, mem_var(data), SceneTags_None, (GeoBox){0});
     break;
+  case UiLayer_Invisible:
+    break;
   case UiLayer_Overlay:
     *dynarray_push_t(&state->renderer->overlayGlyphs, UiGlyphData) = data;
     break;
