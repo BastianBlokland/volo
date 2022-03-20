@@ -1,10 +1,7 @@
-#include "asset_manager.h"
 #include "core_math.h"
-#include "ecs_utils.h"
 #include "ecs_world.h"
 #include "gap_window.h"
 #include "scene_camera.h"
-#include "scene_renderable.h"
 #include "scene_time.h"
 #include "scene_transform.h"
 
@@ -22,11 +19,7 @@ static const f32       g_camOrthoFar           = +1e4f;
 ecs_comp_define_public(SceneCameraComp);
 ecs_comp_define_public(SceneCameraMovementComp);
 
-ecs_comp_define(SceneCameraSkyComp);
-
 ecs_view_define(GlobalTimeView) { ecs_access_read(SceneTimeComp); }
-ecs_view_define(GlobalAssetsView) { ecs_access_write(AssetManagerComp); }
-ecs_view_define(SkyView) { ecs_access_with(SceneCameraSkyComp); }
 
 ecs_view_define(CameraCreateView) {
   ecs_access_with(GapWindowComp);
@@ -57,28 +50,6 @@ ecs_system_define(SceneCameraCreateSys) {
           .rotation = geo_quat_angle_axis(geo_right, g_camPersAngle));
     }
   }
-}
-
-ecs_system_define(SceneCameraCreateSkySys) {
-  if (ecs_utils_any(world, SkyView)) {
-    return;
-  }
-
-  EcsView*     view      = ecs_world_view_t(world, GlobalAssetsView);
-  EcsIterator* globalItr = ecs_view_maybe_at(view, ecs_world_global(world));
-  if (!globalItr) {
-    return;
-  }
-  AssetManagerComp* assets = ecs_view_write_t(globalItr, AssetManagerComp);
-
-  const EcsEntityId skyEntity = ecs_world_entity_create(world);
-  ecs_world_add_empty_t(world, skyEntity, SceneCameraSkyComp);
-  ecs_world_add_t(
-      world,
-      skyEntity,
-      SceneRenderableUniqueComp,
-      .graphic = asset_lookup(world, assets, string_lit("graphics/scene/sky.gra")));
-  ecs_world_add_t(world, skyEntity, SceneTagComp, .tags = SceneTags_Background);
 }
 
 static void camera_update_move(
@@ -175,16 +146,12 @@ ecs_system_define(SceneCameraUpdateSys) {
 ecs_module_init(scene_camera_module) {
   ecs_register_comp(SceneCameraComp);
   ecs_register_comp(SceneCameraMovementComp);
-  ecs_register_comp_empty(SceneCameraSkyComp);
 
   ecs_register_view(GlobalTimeView);
-  ecs_register_view(GlobalAssetsView);
-  ecs_register_view(SkyView);
   ecs_register_view(CameraCreateView);
   ecs_register_view(CameraUpdateView);
 
   ecs_register_system(SceneCameraCreateSys, ecs_view_id(CameraCreateView));
-  ecs_register_system(SceneCameraCreateSkySys, ecs_view_id(GlobalAssetsView), ecs_view_id(SkyView));
 
   ecs_register_system(
       SceneCameraUpdateSys, ecs_view_id(GlobalTimeView), ecs_view_id(CameraUpdateView));
