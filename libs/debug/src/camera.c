@@ -4,7 +4,8 @@
 #include "scene_camera.h"
 #include "ui.h"
 
-static const String g_tooltipFov = string_static("Perspective field of view in degrees");
+static const String g_tooltipFov          = string_static("Perspective field of view in degrees");
+static const String g_tooltipNearDistance = string_static("Distance to the near clip plane");
 
 ecs_comp_define(DebugCameraPanelComp) {
   UiPanelState state;
@@ -31,6 +32,11 @@ camera_panel_draw(UiCanvasComp* canvas, DebugCameraPanelComp* panel, SceneCamera
   if (ui_slider(canvas, &fovDegrees, .min = 10, .max = 150, .tooltip = g_tooltipFov)) {
     camera->persFov = fovDegrees * math_deg_to_rad;
   }
+  ui_grid_next_row(canvas, &layoutGrid);
+
+  ui_label(canvas, string_lit("Near distance"));
+  ui_grid_next_col(canvas, &layoutGrid);
+  ui_slider(canvas, &camera->persNear, .min = 0.001f, .max = 5, .tooltip = g_tooltipNearDistance);
   ui_grid_next_row(canvas, &layoutGrid);
 
   ui_panel_end(canvas, &panel->state);
