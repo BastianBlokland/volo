@@ -836,7 +836,7 @@ static void ttf_glyph_build(
     for (usize cur = start; cur != end; ++cur) {
       const bool  isLast      = (cur + 1) == end;
       const usize next        = isLast ? start : cur + 1; // Wraps around for the last entry.
-      const bool  curOnCurve  = (pointFlags[cur] & TtfGlyphFlags_OnCurvePoint) != 0;
+      const bool  curOnCurve  = cur == start || (pointFlags[cur] & TtfGlyphFlags_OnCurvePoint) != 0;
       const bool  nextOnCurve = (pointFlags[next] & TtfGlyphFlags_OnCurvePoint) != 0;
 
       if (nextOnCurve) {
