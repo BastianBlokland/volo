@@ -15,6 +15,7 @@
 
 typedef struct {
   Unicode cp;
+  u8      variation;
   u32     glyphIndex; // sentinel_u32 when character has no glyph (for example a space).
   f32     size;
   f32     offsetX, offsetY;
@@ -32,4 +33,4 @@ ecs_comp_extern_public(AssetFtxComp) {
 /**
  * Get a character based on a unicode codepoint.
  */
-const AssetFtxChar* asset_ftx_lookup(const AssetFtxComp*, Unicode);
+const AssetFtxChar* asset_ftx_lookup(const AssetFtxComp*, Unicode, u8 variation);

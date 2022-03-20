@@ -27,6 +27,7 @@ UiTextBuildResult ui_text_build(
     UiColor fontColor,
     u8      fontOutline,
     UiLayer fontLayer,
+    u8      fontVariation,
     UiAlign align,
     void*   userCtx,
     UiTextBuildCharFunc);

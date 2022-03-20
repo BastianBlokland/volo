@@ -17,6 +17,7 @@ typedef enum {
   UiCmd_StyleColorMult,
   UiCmd_StyleOutline,
   UiCmd_StyleLayer,
+  UiCmd_StyleVariation,
   UiCmd_DrawText,
   UiCmd_DrawGlyph,
 } UiCmdType;
@@ -57,6 +58,10 @@ typedef struct {
 } UiStyleLayer;
 
 typedef struct {
+  u8 value;
+} UiStyleVariation;
+
+typedef struct {
   UiId    id;
   String  text;
   u16     fontSize;
@@ -81,6 +86,7 @@ typedef struct {
     UiStyleColorMult styleColorMult;
     UiStyleOutline   styleOutline;
     UiStyleLayer     styleLayer;
+    UiStyleVariation styleVariation;
     UiDrawText       drawText;
     UiDrawGlyph      drawGlyph;
   };
@@ -105,6 +111,7 @@ void ui_cmd_push_style_color(UiCmdBuffer*, UiColor);
 void ui_cmd_push_style_color_mult(UiCmdBuffer*, f32 value);
 void ui_cmd_push_style_outline(UiCmdBuffer*, u8 outline);
 void ui_cmd_push_style_layer(UiCmdBuffer*, UiLayer);
+void ui_cmd_push_style_variation(UiCmdBuffer*, u8 variation);
 void ui_cmd_push_draw_text(UiCmdBuffer*, UiId, String text, u16 fontSize, UiAlign, UiFlags);
 void ui_cmd_push_draw_glyph(UiCmdBuffer*, UiId, Unicode cp, u16 maxCorner, UiFlags);
 
