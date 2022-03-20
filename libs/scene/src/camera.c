@@ -211,3 +211,7 @@ void scene_camera_to_default(SceneCameraComp* cam) {
   cam->persNear  = g_camPersNear;
   cam->flags &= ~SceneCameraFlags_Vertical;
 }
+
+void scene_camera_movement_to_default(SceneCameraMovementComp* camMovement) {
+  camMovement->moveSpeed = g_camMoveSpeed;
+}

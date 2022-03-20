@@ -6,6 +6,8 @@
 #include "ui_style.h"
 #include "ui_widget.h"
 
+static const f32 g_uiDisabledMult = 0.4f;
+
 void ui_label_with_opts(UiCanvasComp* canvas, const String text, const UiLabelOpts* opts) {
   ui_canvas_draw_text(canvas, text, opts->fontSize, opts->align, UiFlags_None);
 }
@@ -36,7 +38,7 @@ bool ui_button_with_opts(UiCanvasComp* canvas, const UiButtonOpts* opts) {
 
   ui_style_push(canvas);
   if (disabled) {
-    ui_style_color_mult(canvas, 0.5);
+    ui_style_color_mult(canvas, g_uiDisabledMult);
   }
   switch (status) {
   case UiStatus_Hovered:
@@ -95,7 +97,7 @@ static void ui_slider_handle(
   ui_layout_resize(canvas, UiAlign_MiddleCenter, handleSize, UiBase_Absolute, Ui_XY);
 
   if (opts->flags & UiWidget_Disabled) {
-    ui_style_color_mult(canvas, 0.5);
+    ui_style_color_mult(canvas, g_uiDisabledMult);
   }
 
   switch (status) {
@@ -178,15 +180,19 @@ static void ui_toggle_check(UiCanvasComp* canvas, const UiStatus status, const U
   if (status == UiStatus_Hovered) {
     ui_style_outline(canvas, 2);
   }
+  if (opts->flags & UiWidget_Disabled) {
+    ui_style_color_mult(canvas, g_uiDisabledMult);
+  }
   ui_canvas_draw_glyph(canvas, UiShape_Check, 0, UiFlags_None);
 
   ui_style_pop(canvas);
 }
 
 bool ui_toggle_with_opts(UiCanvasComp* canvas, bool* input, const UiToggleOpts* opts) {
-  const UiId     id     = ui_canvas_id_peek(canvas);
-  const UiStatus status = ui_canvas_elem_status(canvas, id);
-  const UiVector size   = {opts->size, opts->size};
+  const UiId     id = ui_canvas_id_peek(canvas);
+  const UiStatus status =
+      opts->flags & UiWidget_Disabled ? UiStatus_Idle : ui_canvas_elem_status(canvas, id);
+  const UiVector size = {opts->size, opts->size};
 
   if (status == UiStatus_Activated) {
     *input ^= true;

@@ -161,7 +161,7 @@ EcsEntityId debug_rend_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugRendPanelComp,
-      .state  = ui_panel_init(ui_vector(310, 280)),
+      .state  = ui_panel_init(ui_vector(310, 285)),
       .window = window);
   return panelEntity;
 }

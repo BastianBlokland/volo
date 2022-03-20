@@ -37,9 +37,10 @@ typedef struct {
 } UiSliderOpts;
 
 typedef struct {
-  f32     size;
-  UiColor bgColor;
-  String  tooltip;
+  UiWidgetFlags flags;
+  f32           size;
+  UiColor       bgColor;
+  String        tooltip;
 } UiToggleOpts;
 
 typedef struct {
