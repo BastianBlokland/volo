@@ -8,6 +8,7 @@
 #include "rend_draw.h"
 #include "scene_lifetime.h"
 #include "ui_register.h"
+#include "ui_settings.h"
 
 #include "builder_internal.h"
 #include "cmd_internal.h"
@@ -15,7 +16,6 @@
 
 #define ui_canvas_clip_rects_max 10
 #define ui_canvas_canvasses_max 100
-#define ui_canvas_ui_scale 1.0f
 
 typedef UiCanvasComp*       UiCanvasPtr;
 typedef const UiCanvasComp* UiCanvasConstPtr;
@@ -183,6 +183,7 @@ ecs_view_define(FtxView) { ecs_access_read(AssetFtxComp); }
 ecs_view_define(WindowView) {
   ecs_access_read(GapWindowComp);
   ecs_access_maybe_write(UiRendererComp);
+  ecs_access_maybe_read(UiSettingsComp);
 }
 ecs_view_define(CanvasView) { ecs_access_write(UiCanvasComp); }
 ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
@@ -207,21 +208,20 @@ ecs_system_define(UiCanvasInputSys) {
     if (!ecs_view_maybe_jump(windowItr, canvas->window)) {
       continue;
     }
-    const GapWindowComp* window      = ecs_view_read_t(windowItr, GapWindowComp);
-    const GapVector      windowSize  = gap_window_param(window, GapParam_WindowSize);
-    const GapVector      cursorDelta = gap_window_param(window, GapParam_CursorDelta);
-    const GapVector      cursorPos   = gap_window_param(window, GapParam_CursorPos);
+    const GapWindowComp*  window      = ecs_view_read_t(windowItr, GapWindowComp);
+    const UiSettingsComp* settings    = ecs_view_read_t(windowItr, UiSettingsComp);
+    const GapVector       windowSize  = gap_window_param(window, GapParam_WindowSize);
+    const GapVector       cursorDelta = gap_window_param(window, GapParam_CursorDelta);
+    const GapVector       cursorPos   = gap_window_param(window, GapParam_CursorPos);
 
     if (gap_window_events(window) & GapWindowEvents_FocusLost) {
       ui_canvas_set_active(canvas, sentinel_u64, UiStatus_Idle);
     }
 
-    canvas->resolution =
-        ui_vector(windowSize.x / ui_canvas_ui_scale, windowSize.y / ui_canvas_ui_scale);
-    canvas->inputDelta =
-        ui_vector(cursorDelta.x / ui_canvas_ui_scale, cursorDelta.y / ui_canvas_ui_scale);
-    canvas->inputPos =
-        ui_vector(cursorPos.x / ui_canvas_ui_scale, cursorPos.y / ui_canvas_ui_scale);
+    const f32 scale    = settings ? settings->scale : 1.0f;
+    canvas->resolution = ui_vector(windowSize.x / scale, windowSize.y / scale);
+    canvas->inputDelta = ui_vector(cursorDelta.x / scale, cursorDelta.y / scale);
+    canvas->inputPos   = ui_vector(cursorPos.x / scale, cursorPos.y / scale);
   }
 }
 
@@ -241,6 +241,9 @@ static void ui_renderer_create(
       UiRendererComp,
       .draw          = drawEntity,
       .overlayGlyphs = dynarray_create_t(g_alloc_heap, UiGlyphData, 32));
+
+  UiSettingsComp* settings = ecs_world_add_t(world, window, UiSettingsComp);
+  ui_settings_to_default(settings);
 }
 
 static u32 ui_canvass_query(
@@ -267,9 +270,10 @@ ecs_system_define(UiRenderSys) {
   }
 
   for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, WindowView)); ecs_view_walk(itr);) {
-    const EcsEntityId    entity   = ecs_view_entity(itr);
-    const GapWindowComp* window   = ecs_view_read_t(itr, GapWindowComp);
-    UiRendererComp*      renderer = ecs_view_write_t(itr, UiRendererComp);
+    const EcsEntityId     entity   = ecs_view_entity(itr);
+    const GapWindowComp*  window   = ecs_view_read_t(itr, GapWindowComp);
+    UiRendererComp*       renderer = ecs_view_write_t(itr, UiRendererComp);
+    const UiSettingsComp* settings = ecs_view_read_t(itr, UiSettingsComp);
     if (!renderer) {
       ui_renderer_create(world, globalRes, entity);
       continue;
@@ -277,11 +281,12 @@ ecs_system_define(UiRenderSys) {
     RendDrawComp* draw = ecs_utils_write_t(world, DrawView, renderer->draw, RendDrawComp);
 
     const GapVector winSize     = gap_window_param(window, GapParam_WindowSize);
+    const f32       scale       = settings ? settings->scale : 1.0f;
     UiRenderState   renderState = {
-        .font         = font,
-        .renderer     = renderer,
-        .draw         = draw,
-        .clipRects[0] = {.size = {winSize.x / ui_canvas_ui_scale, winSize.y / ui_canvas_ui_scale}},
+        .font          = font,
+        .renderer      = renderer,
+        .draw          = draw,
+        .clipRects[0]  = {.size = {winSize.x / scale, winSize.y / scale}},
         .clipRectCount = 1,
     };
 
