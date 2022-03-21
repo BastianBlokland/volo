@@ -388,9 +388,7 @@ UiRect ui_canvas_elem_rect(const UiCanvasComp* comp, const UiId id) {
 }
 
 UiStatus ui_canvas_status(const UiCanvasComp* comp) { return comp->activeStatus; }
-
-UiVector ui_canvas_window_size(const UiCanvasComp* comp) { return comp->resolution; }
-
+UiVector ui_canvas_resolution(const UiCanvasComp* comp) { return comp->resolution; }
 UiVector ui_canvas_input_delta(const UiCanvasComp* comp) { return comp->inputDelta; }
 UiVector ui_canvas_input_pos(const UiCanvasComp* comp) { return comp->inputPos; }
 

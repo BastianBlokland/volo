@@ -44,24 +44,20 @@ UiId ui_canvas_id_peek(const UiCanvasComp*);
 void ui_canvas_id_skip(UiCanvasComp*);
 
 /**
+ * Query general canvas information.
+ */
+UiStatus ui_canvas_status(const UiCanvasComp*);
+UiVector ui_canvas_resolution(const UiCanvasComp*);
+UiVector ui_canvas_input_delta(const UiCanvasComp*);
+UiVector ui_canvas_input_pos(const UiCanvasComp*);
+
+/**
  * Query information about a specific element.
  * NOTE: Requires cross frame consistency of identifiers.
  */
 UiStatus     ui_canvas_elem_status(const UiCanvasComp*, UiId);
 TimeDuration ui_canvas_elem_status_duration(const UiCanvasComp*, UiId);
 UiRect       ui_canvas_elem_rect(const UiCanvasComp*, UiId);
-UiStatus     ui_canvas_status(const UiCanvasComp*);
-
-/**
- * Query information about the window.
- */
-UiVector ui_canvas_window_size(const UiCanvasComp*);
-
-/**
- * Query input information.
- */
-UiVector ui_canvas_input_delta(const UiCanvasComp*);
-UiVector ui_canvas_input_pos(const UiCanvasComp*);
 
 /**
  * Draw text in the current rectangle.

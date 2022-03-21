@@ -274,8 +274,8 @@ static void ui_tooltip_text(
 }
 
 static UiDir ui_tooltip_dir(UiCanvasComp* canvas) {
-  const f32 halfWindow = ui_canvas_window_size(canvas).x * 0.5f;
-  return ui_canvas_input_pos(canvas).x > halfWindow ? Ui_Left : Ui_Right;
+  const f32 halfCanvas = ui_canvas_resolution(canvas).width * 0.5f;
+  return ui_canvas_input_pos(canvas).x > halfCanvas ? Ui_Left : Ui_Right;
 }
 
 bool ui_tooltip_with_opts(
