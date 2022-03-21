@@ -25,14 +25,14 @@ const f32v2 c_unitTexCoords[c_verticesPerGlyph] = {
 };
 
 struct MetaData {
-  f32v4 resolution; // x, y size, z, w invSize
+  f32v4 canvasRes; // x + y = canvas size in ui-pixels, z + w = inverse of x + y.
   f32   glyphsPerDim;
   f32   invGlyphsPerDim; // 1.0 / glyphsPerDim
   f32v4 clipRects[10];
 };
 
 struct GlyphData {
-  f32v4 rect; // x, y = position, z, w = size
+  f32v4 rect; // x + y = position, z + w = size
   u32v4 data; // x = color,
               // y = atlasIndex,
               // z = 16b borderFrac 16b cornerFrac,
@@ -75,7 +75,7 @@ void main() {
   const f32v2 texOrigin =
       f32v2(mod(atlasIndex, u_meta.glyphsPerDim), floor(atlasIndex * u_meta.invGlyphsPerDim));
 
-  out_vertexPosition = ui_norm_to_ndc(uiPos * u_meta.resolution.zw);
+  out_vertexPosition = ui_norm_to_ndc(uiPos * u_meta.canvasRes.zw);
   out_uiPos          = uiPos;
   out_clipRect       = u_meta.clipRects[clipId];
   out_texCoord       = c_unitTexCoords[in_vertexIndex];

@@ -15,6 +15,7 @@
 
 #define ui_canvas_clip_rects_max 10
 #define ui_canvas_canvasses_max 100
+#define ui_canvas_ui_scale 1.0f
 
 typedef UiCanvasComp*       UiCanvasPtr;
 typedef const UiCanvasComp* UiCanvasConstPtr;
@@ -33,8 +34,8 @@ ecs_comp_define(UiCanvasComp) {
   EcsEntityId  window;
   UiCmdBuffer* cmdBuffer;
   UiId         nextId;
-  DynArray     elements; // UiElement[]
-  UiVector     windowSize;
+  DynArray     elements;   // UiElement[]
+  UiVector     resolution; // Resolution of the canvas in ui-pixels.
   UiVector     inputDelta, inputPos;
   UiId         activeId;
   UiStatus     activeStatus;
@@ -60,7 +61,7 @@ static i8 ui_canvas_ptr_compare_order(const void* a, const void* b) {
 
 typedef struct {
   ALIGNAS(16)
-  GeoVector resolution; // x, y size, z, w invSize
+  GeoVector canvasRes; // x + y = canvas size in ui-pixels, z + w = inverse of x + y.
   f32       glyphsPerDim;
   f32       invGlyphsPerDim;
   f32       padding[2];
@@ -70,20 +71,19 @@ typedef struct {
 ASSERT(sizeof(UiDrawMetaData) == 192, "Size needs to match the size defined in glsl");
 
 typedef struct {
-  const AssetFtxComp*  font;
-  const GapWindowComp* window;
-  UiRendererComp*      renderer;
-  RendDrawComp*        draw;
-  UiCanvasComp*        canvas;
-  UiRect               clipRects[ui_canvas_clip_rects_max];
-  u32                  clipRectCount;
+  const AssetFtxComp* font;
+  UiRendererComp*     renderer;
+  RendDrawComp*       draw;
+  UiCanvasComp*       canvas;
+  UiRect              clipRects[ui_canvas_clip_rects_max];
+  u32                 clipRectCount;
 } UiRenderState;
 
 static UiDrawMetaData ui_draw_metadata(const UiRenderState* state, const AssetFtxComp* font) {
-  const GapVector winSize = gap_window_param(state->window, GapParam_WindowSize);
-  UiDrawMetaData  meta    = {
-      .resolution =
-          geo_vector(winSize.width, winSize.height, 1.0f / winSize.width, 1.0f / winSize.height),
+  const UiVector canvasRes = state->canvas->resolution;
+  UiDrawMetaData meta      = {
+      .canvasRes = geo_vector(
+          canvasRes.width, canvasRes.height, 1.0f / canvasRes.width, 1.0f / canvasRes.height),
       .glyphsPerDim    = font->glyphsPerDim,
       .invGlyphsPerDim = 1.0f / (f32)font->glyphsPerDim,
   };
@@ -167,8 +167,9 @@ static UiBuildResult ui_canvas_build(UiRenderState* state) {
   mem_set(dynarray_at(&state->canvas->elements, 0, state->canvas->nextId), 0);
 
   const UiBuildCtx buildCtx = {
-      .window         = state->window,
       .font           = state->font,
+      .canvasRes      = state->canvas->resolution,
+      .inputPos       = state->canvas->inputPos,
       .userCtx        = state,
       .outputClipRect = &ui_canvas_output_clip_rect,
       .outputGlyph    = &ui_canvas_output_glyph,
@@ -215,9 +216,12 @@ ecs_system_define(UiCanvasInputSys) {
       ui_canvas_set_active(canvas, sentinel_u64, UiStatus_Idle);
     }
 
-    canvas->windowSize = ui_vector(windowSize.x, windowSize.y);
-    canvas->inputDelta = ui_vector(cursorDelta.x, cursorDelta.y);
-    canvas->inputPos   = ui_vector(cursorPos.x, cursorPos.y);
+    canvas->resolution =
+        ui_vector(windowSize.x / ui_canvas_ui_scale, windowSize.y / ui_canvas_ui_scale);
+    canvas->inputDelta =
+        ui_vector(cursorDelta.x / ui_canvas_ui_scale, cursorDelta.y / ui_canvas_ui_scale);
+    canvas->inputPos =
+        ui_vector(cursorPos.x / ui_canvas_ui_scale, cursorPos.y / ui_canvas_ui_scale);
   }
 }
 
@@ -274,11 +278,10 @@ ecs_system_define(UiRenderSys) {
 
     const GapVector winSize     = gap_window_param(window, GapParam_WindowSize);
     UiRenderState   renderState = {
-        .font          = font,
-        .window        = window,
-        .renderer      = renderer,
-        .draw          = draw,
-        .clipRects[0]  = {.size = {winSize.width, winSize.height}},
+        .font         = font,
+        .renderer     = renderer,
+        .draw         = draw,
+        .clipRects[0] = {.size = {winSize.x / ui_canvas_ui_scale, winSize.y / ui_canvas_ui_scale}},
         .clipRectCount = 1,
     };
 
@@ -386,7 +389,7 @@ UiRect ui_canvas_elem_rect(const UiCanvasComp* comp, const UiId id) {
 
 UiStatus ui_canvas_status(const UiCanvasComp* comp) { return comp->activeStatus; }
 
-UiVector ui_canvas_window_size(const UiCanvasComp* comp) { return comp->windowSize; }
+UiVector ui_canvas_window_size(const UiCanvasComp* comp) { return comp->resolution; }
 
 UiVector ui_canvas_input_delta(const UiCanvasComp* comp) { return comp->inputDelta; }
 UiVector ui_canvas_input_pos(const UiCanvasComp* comp) { return comp->inputPos; }
