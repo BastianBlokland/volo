@@ -71,10 +71,10 @@ static UiVector ui_resolve_vec(UiBuildState* state, const UiVector vec, const Ui
     const UiBuildContainer container = *ui_build_container_currect(state);
     return ui_vector(vec.x * container.rect.width, vec.y * container.rect.height);
   }
-  case UiBase_Window: {
+  case UiBase_Canvas: {
     return ui_vector(vec.x * state->ctx->canvasRes.width, vec.y * state->ctx->canvasRes.height);
   }
-  case UiBase_Cursor:
+  case UiBase_Input:
     return ui_vector(0, 0);
   }
   diag_crash();
@@ -92,9 +92,9 @@ static UiVector ui_resolve_origin(UiBuildState* state, const UiBase origin) {
     const UiBuildContainer container = *ui_build_container_currect(state);
     return ui_vector(container.rect.x, container.rect.y);
   }
-  case UiBase_Window:
+  case UiBase_Canvas:
     return ui_vector(0, 0);
-  case UiBase_Cursor: {
+  case UiBase_Input: {
     return state->ctx->inputPos;
   }
   }
