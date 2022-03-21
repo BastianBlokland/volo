@@ -60,13 +60,14 @@ static i8 ui_canvas_ptr_compare_order(const void* a, const void* b) {
 
 typedef struct {
   ALIGNAS(16)
-  f32    glyphsPerDim;
-  f32    invGlyphsPerDim;
-  f32    padding[2];
-  UiRect clipRects[10];
+  GeoVector resolution; // x, y size, z, w invSize
+  f32       glyphsPerDim;
+  f32       invGlyphsPerDim;
+  f32       padding[2];
+  UiRect    clipRects[10];
 } UiDrawMetaData;
 
-ASSERT(sizeof(UiDrawMetaData) == 176, "Size needs to match the size defined in glsl");
+ASSERT(sizeof(UiDrawMetaData) == 192, "Size needs to match the size defined in glsl");
 
 typedef struct {
   const AssetFtxComp*  font;
@@ -79,7 +80,10 @@ typedef struct {
 } UiRenderState;
 
 static UiDrawMetaData ui_draw_metadata(const UiRenderState* state, const AssetFtxComp* font) {
-  UiDrawMetaData meta = {
+  const GapVector winSize = gap_window_param(state->window, GapParam_WindowSize);
+  UiDrawMetaData  meta    = {
+      .resolution =
+          geo_vector(winSize.width, winSize.height, 1.0f / winSize.width, 1.0f / winSize.height),
       .glyphsPerDim    = font->glyphsPerDim,
       .invGlyphsPerDim = 1.0f / (f32)font->glyphsPerDim,
   };

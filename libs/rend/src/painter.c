@@ -26,13 +26,12 @@ static void ecs_destruct_painter(void* data) {
 
 typedef struct {
   ALIGNAS(16)
-  GeoVector resolution; // x, y size, z, w invSize
   GeoMatrix viewProj;
   GeoVector camPosition;
   GeoQuat   camRotation;
 } RendPainterGlobalData;
 
-ASSERT(sizeof(RendPainterGlobalData) == 112, "Size needs to match the size defined in glsl");
+ASSERT(sizeof(RendPainterGlobalData) == 96, "Size needs to match the size defined in glsl");
 
 ecs_view_define(GlobalView) {
   ecs_access_write(RendPlatformComp);
@@ -139,9 +138,7 @@ static bool painter_draw(
     const RendView  view     = rend_view_create(camEntity, &viewProj, cam->filter);
 
     const RendPainterGlobalData globalData = {
-        .viewProj   = viewProj,
-        .resolution = geo_vector(
-            resolution.width, resolution.height, 1.0f / resolution.width, 1.0f / resolution.height),
+        .viewProj    = viewProj,
         .camPosition = trans ? trans->position : geo_vector(0),
         .camRotation = trans ? trans->rotation : geo_quat_ident,
     };
