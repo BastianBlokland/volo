@@ -91,23 +91,24 @@ ecs_system_define(RendUpdateCamStatsSys) {
     const RvkRenderStats renderStats = rvk_canvas_stats(painter->canvas);
 
     rend_stats_update_str(&stats->gpuName, rvk_device_name(plat->device));
-    stats->renderSize[0]    = renderStats.forwardResolution.width;
-    stats->renderSize[1]    = renderStats.forwardResolution.height;
-    stats->draws            = renderStats.forwardDraws;
-    stats->instances        = renderStats.forwardInstances;
-    stats->renderTime       = renderStats.renderTime;
-    stats->limiterTime      = limiter->sleepTime;
-    stats->vertices         = renderStats.forwardVertices;
-    stats->primitives       = renderStats.forwardPrimitives;
-    stats->shadersVert      = renderStats.forwardShadersVert;
-    stats->shadersFrag      = renderStats.forwardShadersFrag;
-    stats->ramOccupied      = rvk_mem_occupied(plat->device->memPool, RvkMemLoc_Host);
-    stats->ramReserved      = rvk_mem_reserved(plat->device->memPool, RvkMemLoc_Host);
-    stats->vramOccupied     = rvk_mem_occupied(plat->device->memPool, RvkMemLoc_Dev);
-    stats->vramReserved     = rvk_mem_reserved(plat->device->memPool, RvkMemLoc_Dev);
-    stats->descSetsOccupied = rvk_desc_pool_sets_occupied(plat->device->descPool);
-    stats->descSetsReserved = rvk_desc_pool_sets_reserved(plat->device->descPool);
-    stats->descLayouts      = rvk_desc_pool_layouts(plat->device->descPool);
+    stats->renderSize[0]     = renderStats.forwardResolution.width;
+    stats->renderSize[1]     = renderStats.forwardResolution.height;
+    stats->draws             = renderStats.forwardDraws;
+    stats->instances         = renderStats.forwardInstances;
+    stats->renderTime        = renderStats.renderTime;
+    stats->waitForRenderTime = renderStats.waitForRenderTime;
+    stats->limiterTime       = limiter->sleepTime;
+    stats->vertices          = renderStats.forwardVertices;
+    stats->primitives        = renderStats.forwardPrimitives;
+    stats->shadersVert       = renderStats.forwardShadersVert;
+    stats->shadersFrag       = renderStats.forwardShadersFrag;
+    stats->ramOccupied       = rvk_mem_occupied(plat->device->memPool, RvkMemLoc_Host);
+    stats->ramReserved       = rvk_mem_reserved(plat->device->memPool, RvkMemLoc_Host);
+    stats->vramOccupied      = rvk_mem_occupied(plat->device->memPool, RvkMemLoc_Dev);
+    stats->vramReserved      = rvk_mem_reserved(plat->device->memPool, RvkMemLoc_Dev);
+    stats->descSetsOccupied  = rvk_desc_pool_sets_occupied(plat->device->descPool);
+    stats->descSetsReserved  = rvk_desc_pool_sets_reserved(plat->device->descPool);
+    stats->descLayouts       = rvk_desc_pool_layouts(plat->device->descPool);
     rend_stat_update_resources(world, stats->resources);
   }
 }

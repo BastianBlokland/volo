@@ -14,7 +14,7 @@ typedef enum {
 ecs_comp_extern_public(RendStatsComp) {
   String       gpuName;
   u32          renderSize[2];
-  TimeDuration renderTime;
+  TimeDuration renderTime, waitForRenderTime;
   TimeDuration limiterTime;
   u32          draws, instances;
   u64          vertices, primitives;
