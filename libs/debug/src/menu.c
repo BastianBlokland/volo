@@ -31,7 +31,7 @@ typedef enum {
 } DebugMenuFlags;
 
 typedef struct {
-  TimeDuration updateTime, limiterTime, renderTime;
+  TimeDuration updateTime, limiterTime, renderTime, waitForRenderTime;
 } DebugStats;
 
 ecs_comp_define(DebugMenuComp) {
@@ -197,6 +197,7 @@ debug_stats_draw(UiCanvasComp* canvas, const DebugStats* stats, const RendStatsC
   debug_stats_draw_dur(&str, stats->updateTime, string_lit("update time"), time_milliseconds(17), time_milliseconds(18));
   fmt_write(&str, "{}{<9} \arlimiter time\n", fmt_ui_color(stats->limiterTime < 0 ? g_debugWarnColor : ui_color_white), fmt_duration(stats->limiterTime));
   debug_stats_draw_dur(&str, stats->renderTime, string_lit("render time"), time_milliseconds(10), time_milliseconds(17));
+  fmt_write(&str, "{}{<9} \arrender wait time\n", fmt_ui_color(stats->waitForRenderTime > time_millisecond ? g_debugWarnColor : ui_color_white), fmt_duration(stats->waitForRenderTime));
   fmt_write(&str, "{<9} draws\n", fmt_int(rendStats->draws));
   fmt_write(&str, "{<9} instances\n", fmt_int(rendStats->instances));
   fmt_write(&str, "{<9} vertices\n", fmt_int(rendStats->vertices));
@@ -226,6 +227,8 @@ debug_stats_update(DebugStats* stats, const RendStatsComp* rendStats, const Scen
   stats->updateTime  = debug_smooth_duration(stats->updateTime, time ? time->delta : time_second);
   stats->limiterTime = debug_smooth_duration(stats->limiterTime, rendStats->limiterTime);
   stats->renderTime  = debug_smooth_duration(stats->renderTime, rendStats->renderTime);
+  stats->waitForRenderTime =
+      debug_smooth_duration(stats->waitForRenderTime, rendStats->waitForRenderTime);
 }
 
 ecs_system_define(DebugMenuUpdateSys) {
