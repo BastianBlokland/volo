@@ -7,6 +7,7 @@ message(STATUS "> library: debug")
 add_library(lib_debug STATIC
   src/camera.c
   src/grid.c
+  src/interface.c
   src/menu.c
   src/register.c
   src/rend.c

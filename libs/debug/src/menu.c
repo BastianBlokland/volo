@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "debug_camera.h"
 #include "debug_grid.h"
+#include "debug_interface.h"
 #include "debug_menu.h"
 #include "debug_rend.h"
 #include "ecs_world.h"
@@ -16,6 +17,7 @@ static const String  g_tooltipStatsDisable    = string_static("Disable the stati
 static const String  g_tooltipPanelCamera     = string_static("Open the Camera settings panel.");
 static const String  g_tooltipPanelGrid       = string_static("Open the Grid settings panel.");
 static const String  g_tooltipPanelRend       = string_static("Open the Renderer settings panel.");
+static const String  g_tooltipPanelInterface  = string_static("Open the Interface settings panel.");
 static const String  g_tooltipFullscreenEnter = string_static("Enter fullscreen.");
 static const String  g_tooltipFullscreenExit  = string_static("Exit fullscreen.");
 static const String  g_tooltipWindowOpen      = string_static("Open a new window.");
@@ -39,7 +41,7 @@ ecs_comp_define(DebugMenuComp) {
   DebugMenuFlags flags;
   DebugStats     stats;
   GapVector      lastWindowedSize;
-  EcsEntityId    panelCamera, panelGrid, panelRend;
+  EcsEntityId    panelCamera, panelGrid, panelRend, panelInterface;
 };
 
 static TimeDuration debug_smooth_duration(const TimeDuration old, const TimeDuration new) {
@@ -118,6 +120,16 @@ static void debug_action_bar_draw(
           .fontSize = 30,
           .tooltip  = g_tooltipPanelRend)) {
     debug_panel_open(world, &menu->panelRend, winEntity, debug_rend_panel_open);
+  }
+  ui_grid_next_row(canvas, &grid);
+
+  if (ui_button(
+          canvas,
+          .flags    = debug_panel_is_open(world, menu->panelInterface) ? UiWidget_Disabled : 0,
+          .label    = ui_shape_scratch(UiShape_FormatShapes),
+          .fontSize = 30,
+          .tooltip  = g_tooltipPanelInterface)) {
+    debug_panel_open(world, &menu->panelInterface, winEntity, debug_interface_panel_open);
   }
   ui_grid_next_row(canvas, &grid);
 
