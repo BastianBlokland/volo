@@ -7,18 +7,18 @@
 #include "ui_style.h"
 #include "ui_widget.h"
 
-static void ui_panel_clamp_to_window(UiCanvasComp* canvas, UiPanelState* state) {
-  const UiVector windowSize = ui_canvas_window_size(canvas);
-  if (windowSize.x < 1 || windowSize.y < 1) {
+static void ui_panel_clamp_to_canvas(UiCanvasComp* canvas, UiPanelState* state) {
+  const UiVector canvasRes = ui_canvas_resolution(canvas);
+  if (canvasRes.x < 1 || canvasRes.y < 1) {
     return;
   }
 
   if (state->flags & UiPanelFlags_Center) {
-    state->rect.pos.x = (windowSize.x - state->rect.width) * 0.5f;
-    state->rect.pos.y = (windowSize.y - state->rect.height) * 0.5f;
+    state->rect.pos.x = (canvasRes.x - state->rect.width) * 0.5f;
+    state->rect.pos.y = (canvasRes.y - state->rect.height) * 0.5f;
   } else {
-    state->rect.pos.x = math_clamp_f32(state->rect.pos.x, 0, windowSize.x - state->rect.width);
-    state->rect.pos.y = math_clamp_f32(state->rect.pos.y, 0, windowSize.y - state->rect.height);
+    state->rect.pos.x = math_clamp_f32(state->rect.pos.x, 0, canvasRes.x - state->rect.width);
+    state->rect.pos.y = math_clamp_f32(state->rect.pos.y, 0, canvasRes.y - state->rect.height);
   }
   state->flags &= ~UiPanelFlags_Center;
 }
@@ -100,7 +100,7 @@ static void ui_panel_topbar(UiCanvasComp* canvas, UiPanelState* state, const UiP
     state->rect.pos.x += inputDelta.x;
     state->rect.pos.y += inputDelta.y;
   }
-  ui_panel_clamp_to_window(canvas, state);
+  ui_panel_clamp_to_canvas(canvas, state);
 
   ui_layout_push(canvas);
 

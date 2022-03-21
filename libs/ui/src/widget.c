@@ -238,7 +238,7 @@ static void ui_tooltip_background(
     UiCanvasComp* canvas, const UiDir dir, const UiAlign align, const UiRect lastTextRect) {
   const UiVector size = ui_vector(lastTextRect.width + 20, lastTextRect.height + 10);
 
-  ui_layout_inner(canvas, UiBase_Cursor, align, size, UiBase_Absolute);
+  ui_layout_inner(canvas, UiBase_Input, align, size, UiBase_Absolute);
   ui_layout_move_dir(canvas, dir, 15, UiBase_Absolute);
 
   ui_style_color(canvas, ui_color_white);
@@ -255,14 +255,14 @@ static void ui_tooltip_text(
     const UiRect         lastRect,
     const UiTooltipOpts* opts) {
 
-  ui_layout_inner(canvas, UiBase_Cursor, align, opts->maxSize, UiBase_Absolute);
+  ui_layout_inner(canvas, UiBase_Input, align, opts->maxSize, UiBase_Absolute);
   ui_layout_move_dir(canvas, dir, 25, UiBase_Absolute);
   ui_layout_move_dir(canvas, Ui_Down, 5, UiBase_Absolute);
 
   if (dir == Ui_Left) {
     /**
      * Because we always draw the text left aligned it needs to be offsetted if the tooltip should
-     * be on the left side of the cursor.
+     * be on the left side of the input.
      */
     ui_layout_move_dir(canvas, Ui_Right, opts->maxSize.width - lastRect.width, UiBase_Absolute);
   }
@@ -274,8 +274,8 @@ static void ui_tooltip_text(
 }
 
 static UiDir ui_tooltip_dir(UiCanvasComp* canvas) {
-  const f32 halfWindow = ui_canvas_window_size(canvas).x * 0.5f;
-  return ui_canvas_input_pos(canvas).x > halfWindow ? Ui_Left : Ui_Right;
+  const f32 halfCanvas = ui_canvas_resolution(canvas).width * 0.5f;
+  return ui_canvas_input_pos(canvas).x > halfCanvas ? Ui_Left : Ui_Right;
 }
 
 bool ui_tooltip_with_opts(

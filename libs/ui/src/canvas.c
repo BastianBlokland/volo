@@ -8,6 +8,7 @@
 #include "rend_draw.h"
 #include "scene_lifetime.h"
 #include "ui_register.h"
+#include "ui_settings.h"
 
 #include "builder_internal.h"
 #include "cmd_internal.h"
@@ -33,8 +34,8 @@ ecs_comp_define(UiCanvasComp) {
   EcsEntityId  window;
   UiCmdBuffer* cmdBuffer;
   UiId         nextId;
-  DynArray     elements; // UiElement[]
-  UiVector     windowSize;
+  DynArray     elements;   // UiElement[]
+  UiVector     resolution; // Resolution of the canvas in ui-pixels.
   UiVector     inputDelta, inputPos;
   UiId         activeId;
   UiStatus     activeStatus;
@@ -60,26 +61,29 @@ static i8 ui_canvas_ptr_compare_order(const void* a, const void* b) {
 
 typedef struct {
   ALIGNAS(16)
-  f32    glyphsPerDim;
-  f32    invGlyphsPerDim;
-  f32    padding[2];
-  UiRect clipRects[10];
+  GeoVector canvasRes; // x + y = canvas size in ui-pixels, z + w = inverse of x + y.
+  f32       glyphsPerDim;
+  f32       invGlyphsPerDim;
+  f32       padding[2];
+  UiRect    clipRects[10];
 } UiDrawMetaData;
 
-ASSERT(sizeof(UiDrawMetaData) == 176, "Size needs to match the size defined in glsl");
+ASSERT(sizeof(UiDrawMetaData) == 192, "Size needs to match the size defined in glsl");
 
 typedef struct {
-  const AssetFtxComp*  font;
-  const GapWindowComp* window;
-  UiRendererComp*      renderer;
-  RendDrawComp*        draw;
-  UiCanvasComp*        canvas;
-  UiRect               clipRects[ui_canvas_clip_rects_max];
-  u32                  clipRectCount;
+  const AssetFtxComp* font;
+  UiRendererComp*     renderer;
+  RendDrawComp*       draw;
+  UiCanvasComp*       canvas;
+  UiRect              clipRects[ui_canvas_clip_rects_max];
+  u32                 clipRectCount;
 } UiRenderState;
 
 static UiDrawMetaData ui_draw_metadata(const UiRenderState* state, const AssetFtxComp* font) {
-  UiDrawMetaData meta = {
+  const UiVector canvasRes = state->canvas->resolution;
+  UiDrawMetaData meta      = {
+      .canvasRes = geo_vector(
+          canvasRes.width, canvasRes.height, 1.0f / canvasRes.width, 1.0f / canvasRes.height),
       .glyphsPerDim    = font->glyphsPerDim,
       .invGlyphsPerDim = 1.0f / (f32)font->glyphsPerDim,
   };
@@ -163,8 +167,9 @@ static UiBuildResult ui_canvas_build(UiRenderState* state) {
   mem_set(dynarray_at(&state->canvas->elements, 0, state->canvas->nextId), 0);
 
   const UiBuildCtx buildCtx = {
-      .window         = state->window,
       .font           = state->font,
+      .canvasRes      = state->canvas->resolution,
+      .inputPos       = state->canvas->inputPos,
       .userCtx        = state,
       .outputClipRect = &ui_canvas_output_clip_rect,
       .outputGlyph    = &ui_canvas_output_glyph,
@@ -178,6 +183,7 @@ ecs_view_define(FtxView) { ecs_access_read(AssetFtxComp); }
 ecs_view_define(WindowView) {
   ecs_access_read(GapWindowComp);
   ecs_access_maybe_write(UiRendererComp);
+  ecs_access_maybe_read(UiSettingsComp);
 }
 ecs_view_define(CanvasView) { ecs_access_write(UiCanvasComp); }
 ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
@@ -202,18 +208,20 @@ ecs_system_define(UiCanvasInputSys) {
     if (!ecs_view_maybe_jump(windowItr, canvas->window)) {
       continue;
     }
-    const GapWindowComp* window      = ecs_view_read_t(windowItr, GapWindowComp);
-    const GapVector      windowSize  = gap_window_param(window, GapParam_WindowSize);
-    const GapVector      cursorDelta = gap_window_param(window, GapParam_CursorDelta);
-    const GapVector      cursorPos   = gap_window_param(window, GapParam_CursorPos);
+    const GapWindowComp*  window      = ecs_view_read_t(windowItr, GapWindowComp);
+    const UiSettingsComp* settings    = ecs_view_read_t(windowItr, UiSettingsComp);
+    const GapVector       windowSize  = gap_window_param(window, GapParam_WindowSize);
+    const GapVector       cursorDelta = gap_window_param(window, GapParam_CursorDelta);
+    const GapVector       cursorPos   = gap_window_param(window, GapParam_CursorPos);
 
     if (gap_window_events(window) & GapWindowEvents_FocusLost) {
       ui_canvas_set_active(canvas, sentinel_u64, UiStatus_Idle);
     }
 
-    canvas->windowSize = ui_vector(windowSize.x, windowSize.y);
-    canvas->inputDelta = ui_vector(cursorDelta.x, cursorDelta.y);
-    canvas->inputPos   = ui_vector(cursorPos.x, cursorPos.y);
+    const f32 scale    = settings ? settings->scale : 1.0f;
+    canvas->resolution = ui_vector(windowSize.x / scale, windowSize.y / scale);
+    canvas->inputDelta = ui_vector(cursorDelta.x / scale, cursorDelta.y / scale);
+    canvas->inputPos   = ui_vector(cursorPos.x / scale, cursorPos.y / scale);
   }
 }
 
@@ -233,6 +241,9 @@ static void ui_renderer_create(
       UiRendererComp,
       .draw          = drawEntity,
       .overlayGlyphs = dynarray_create_t(g_alloc_heap, UiGlyphData, 32));
+
+  UiSettingsComp* settings = ecs_world_add_t(world, window, UiSettingsComp);
+  ui_settings_to_default(settings);
 }
 
 static u32 ui_canvass_query(
@@ -259,9 +270,10 @@ ecs_system_define(UiRenderSys) {
   }
 
   for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, WindowView)); ecs_view_walk(itr);) {
-    const EcsEntityId    entity   = ecs_view_entity(itr);
-    const GapWindowComp* window   = ecs_view_read_t(itr, GapWindowComp);
-    UiRendererComp*      renderer = ecs_view_write_t(itr, UiRendererComp);
+    const EcsEntityId     entity   = ecs_view_entity(itr);
+    const GapWindowComp*  window   = ecs_view_read_t(itr, GapWindowComp);
+    UiRendererComp*       renderer = ecs_view_write_t(itr, UiRendererComp);
+    const UiSettingsComp* settings = ecs_view_read_t(itr, UiSettingsComp);
     if (!renderer) {
       ui_renderer_create(world, globalRes, entity);
       continue;
@@ -269,12 +281,12 @@ ecs_system_define(UiRenderSys) {
     RendDrawComp* draw = ecs_utils_write_t(world, DrawView, renderer->draw, RendDrawComp);
 
     const GapVector winSize     = gap_window_param(window, GapParam_WindowSize);
+    const f32       scale       = settings ? settings->scale : 1.0f;
     UiRenderState   renderState = {
         .font          = font,
-        .window        = window,
         .renderer      = renderer,
         .draw          = draw,
-        .clipRects[0]  = {.size = {winSize.width, winSize.height}},
+        .clipRects[0]  = {.size = {winSize.x / scale, winSize.y / scale}},
         .clipRectCount = 1,
     };
 
@@ -381,9 +393,7 @@ UiRect ui_canvas_elem_rect(const UiCanvasComp* comp, const UiId id) {
 }
 
 UiStatus ui_canvas_status(const UiCanvasComp* comp) { return comp->activeStatus; }
-
-UiVector ui_canvas_window_size(const UiCanvasComp* comp) { return comp->windowSize; }
-
+UiVector ui_canvas_resolution(const UiCanvasComp* comp) { return comp->resolution; }
 UiVector ui_canvas_input_delta(const UiCanvasComp* comp) { return comp->inputDelta; }
 UiVector ui_canvas_input_pos(const UiCanvasComp* comp) { return comp->inputPos; }
 

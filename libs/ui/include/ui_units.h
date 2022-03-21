@@ -2,14 +2,14 @@
 
 /**
  * Ui coordinate base.
- * For example 0.5 Window units means the middle of the window.
+ * For example 0.5 Canvas units means the middle of the canvas.
  */
 typedef enum {
   UiBase_Absolute,
   UiBase_Current,
   UiBase_Container,
-  UiBase_Window,
-  UiBase_Cursor,
+  UiBase_Canvas,
+  UiBase_Input,
 } UiBase;
 
 /**

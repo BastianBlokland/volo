@@ -3,8 +3,7 @@
 #include "ui_canvas.h"
 
 // Internal forward declarations:
-typedef struct sGapWindowComp GapWindowComp;
-typedef struct sUiCmdBuffer   UiCmdBuffer;
+typedef struct sUiCmdBuffer UiCmdBuffer;
 
 typedef struct {
   ALIGNAS(16)
@@ -24,8 +23,8 @@ typedef void (*UiOutputGlyphFunc)(void* userCtx, UiGlyphData, UiLayer);
 typedef void (*UiOutputRect)(void* userCtx, UiId, UiRect);
 
 typedef struct {
-  const GapWindowComp* window;
   const AssetFtxComp*  font;
+  UiVector             canvasRes, inputPos;
   void*                userCtx;
   UiOutputClipRectFunc outputClipRect;
   UiOutputGlyphFunc    outputGlyph;

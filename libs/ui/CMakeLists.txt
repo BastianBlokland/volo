@@ -13,6 +13,7 @@ add_library(lib_ui STATIC
   src/panel.c
   src/register.c
   src/resource.c
+  src/settings.c
   src/shape.c
   src/style.c
   src/text.c

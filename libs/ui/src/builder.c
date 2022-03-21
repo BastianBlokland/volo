@@ -1,6 +1,5 @@
 #include "core_diag.h"
 #include "core_math.h"
-#include "gap_window.h"
 #include "ui_canvas.h"
 
 #include "builder_internal.h"
@@ -28,16 +27,15 @@ typedef struct {
 } UiBuildContainer;
 
 typedef struct {
-  const UiBuildCtx*    ctx;
-  const GapWindowComp* window;
-  const AssetFtxComp*  font;
-  UiRect               rectStack[ui_build_rect_stack_max];
-  u32                  rectStackCount;
-  UiBuildStyle         styleStack[ui_build_style_stack_max];
-  u32                  styleStackCount;
-  UiBuildContainer     containerStack[ui_build_container_stack_max];
-  u32                  containerStackCount;
-  UiId                 hoveredId;
+  const UiBuildCtx*   ctx;
+  const AssetFtxComp* font;
+  UiRect              rectStack[ui_build_rect_stack_max];
+  u32                 rectStackCount;
+  UiBuildStyle        styleStack[ui_build_style_stack_max];
+  u32                 styleStackCount;
+  UiBuildContainer    containerStack[ui_build_container_stack_max];
+  u32                 containerStackCount;
+  UiId                hoveredId;
 } UiBuildState;
 
 static UiRect* ui_build_rect_currect(UiBuildState* state) {
@@ -73,11 +71,10 @@ static UiVector ui_resolve_vec(UiBuildState* state, const UiVector vec, const Ui
     const UiBuildContainer container = *ui_build_container_currect(state);
     return ui_vector(vec.x * container.rect.width, vec.y * container.rect.height);
   }
-  case UiBase_Window: {
-    const GapVector winSize = gap_window_param(state->window, GapParam_WindowSize);
-    return ui_vector(vec.x * winSize.width, vec.y * winSize.height);
+  case UiBase_Canvas: {
+    return ui_vector(vec.x * state->ctx->canvasRes.width, vec.y * state->ctx->canvasRes.height);
   }
-  case UiBase_Cursor:
+  case UiBase_Input:
     return ui_vector(0, 0);
   }
   diag_crash();
@@ -95,11 +92,10 @@ static UiVector ui_resolve_origin(UiBuildState* state, const UiBase origin) {
     const UiBuildContainer container = *ui_build_container_currect(state);
     return ui_vector(container.rect.x, container.rect.y);
   }
-  case UiBase_Window:
+  case UiBase_Canvas:
     return ui_vector(0, 0);
-  case UiBase_Cursor: {
-    const GapVector cursorPos = gap_window_param(state->window, GapParam_CursorPos);
-    return ui_vector(cursorPos.x, cursorPos.y);
+  case UiBase_Input: {
+    return state->ctx->inputPos;
   }
   }
   diag_crash();
@@ -174,9 +170,8 @@ ui_build_cull(const UiBuildContainer container, const UiRect rect, const UiBuild
 
 static bool
 ui_build_is_hovered(UiBuildState* state, const UiBuildContainer container, const UiRect rect) {
-  const GapVector cursorPos   = gap_window_param(state->window, GapParam_CursorPos);
-  const UiVector  cursorUiPos = ui_vector(cursorPos.x, cursorPos.y);
-  return ui_rect_contains(rect, cursorUiPos) && ui_rect_contains(container.rect, cursorUiPos);
+  return ui_rect_contains(rect, state->ctx->inputPos) &&
+         ui_rect_contains(container.rect, state->ctx->inputPos);
 }
 
 static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
@@ -325,16 +320,15 @@ static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
 }
 
 UiBuildResult ui_build(const UiCmdBuffer* cmdBuffer, const UiBuildCtx* ctx) {
-  const GapVector winSize = gap_window_param(ctx->window, GapParam_WindowSize);
-  UiBuildState    state   = {
-      .ctx                 = ctx,
-      .window              = ctx->window,
-      .font                = ctx->font,
-      .rectStack[0]        = g_ui_defaultRect,
-      .rectStackCount      = 1,
-      .styleStack[0]       = {g_ui_defaultColor, g_ui_defaultOutline},
-      .styleStackCount     = 1,
-      .containerStack[0]   = {.rect.size = {winSize.width, winSize.height}, .clipId = 0},
+  UiBuildState state = {
+      .ctx             = ctx,
+      .font            = ctx->font,
+      .rectStack[0]    = g_ui_defaultRect,
+      .rectStackCount  = 1,
+      .styleStack[0]   = {g_ui_defaultColor, g_ui_defaultOutline},
+      .styleStackCount = 1,
+      .containerStack[0] =
+          {.rect.size = {ctx->canvasRes.width, ctx->canvasRes.height}, .clipId = 0},
       .containerStackCount = 1,
       .hoveredId           = sentinel_u64,
   };

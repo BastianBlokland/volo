@@ -3,7 +3,6 @@
 
 #include "binding.glsl"
 #include "color.glsl"
-#include "global.glsl"
 #include "instance.glsl"
 #include "ui.glsl"
 
@@ -26,21 +25,21 @@ const f32v2 c_unitTexCoords[c_verticesPerGlyph] = {
 };
 
 struct MetaData {
+  f32v4 canvasRes; // x + y = canvas size in ui-pixels, z + w = inverse of x + y.
   f32   glyphsPerDim;
   f32   invGlyphsPerDim; // 1.0 / glyphsPerDim
   f32v4 clipRects[10];
 };
 
 struct GlyphData {
-  f32v4 rect; // x, y = position, z, w = size
+  f32v4 rect; // x + y = position, z + w = size
   u32v4 data; // x = color,
               // y = atlasIndex,
               // z = 16b borderFrac 16b cornerFrac,
               // w = 8b clipId, 8b outlineWidth
 };
 
-bind_global_data(0) readonly uniform Global { GlobalData u_global; };
-bind_draw_data(0) readonly uniform Draw { MetaData u_draw; };
+bind_draw_data(0) readonly uniform Draw { MetaData u_meta; };
 bind_instance_data(0) readonly uniform Instance { GlyphData u_glyphs[c_maxInstances]; };
 
 bind_internal(0) out f32v2 out_uiPos;
@@ -74,14 +73,14 @@ void main() {
    * Compute the x and y position in the texture atlas based on the glyphIndex.
    */
   const f32v2 texOrigin =
-      f32v2(mod(atlasIndex, u_draw.glyphsPerDim), floor(atlasIndex * u_draw.invGlyphsPerDim));
+      f32v2(mod(atlasIndex, u_meta.glyphsPerDim), floor(atlasIndex * u_meta.invGlyphsPerDim));
 
-  out_vertexPosition = ui_norm_to_ndc(uiPos * u_global.resolution.zw);
+  out_vertexPosition = ui_norm_to_ndc(uiPos * u_meta.canvasRes.zw);
   out_uiPos          = uiPos;
-  out_clipRect       = u_draw.clipRects[clipId];
+  out_clipRect       = u_meta.clipRects[clipId];
   out_texCoord       = c_unitTexCoords[in_vertexIndex];
   out_texOrigin      = texOrigin;
-  out_texScale       = u_draw.invGlyphsPerDim;
+  out_texScale       = u_meta.invGlyphsPerDim;
   out_color          = glyphColor;
   out_invBorder      = 1.0 / (glyphSize.x * borderFrac);
   out_outlineWidth   = outlineWidth;
