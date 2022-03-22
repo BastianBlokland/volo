@@ -5,8 +5,9 @@
 
 #include "resource_internal.h"
 
-static const String g_ui_global_font    = string_static("fonts/ui.ftx");
-static const String g_ui_global_graphic = string_static("graphics/ui/canvas.gra");
+static const String g_uiGlobalFont         = string_static("fonts/ui.ftx");
+static const String g_uiGlobalGraphic      = string_static("graphics/ui/canvas.gra");
+static const String g_uiGlobalGraphicDebug = string_static("graphics/ui/canvas_debug.gra");
 
 typedef enum {
   UiGlobalRes_FontAcquired  = 1 << 0,
@@ -16,7 +17,7 @@ typedef enum {
 ecs_comp_define(UiGlobalResourcesComp) {
   UiGlobalResFlags flags;
   EcsEntityId      font;
-  EcsEntityId      graphic;
+  EcsEntityId      graphic, graphicDebug;
 };
 
 ecs_view_define(GlobalAssetsView) { ecs_access_write(AssetManagerComp); }
@@ -47,13 +48,14 @@ ecs_system_define(UiResourceInitSys) {
         world,
         ecs_world_global(world),
         UiGlobalResourcesComp,
-        .font    = asset_lookup(world, assets, g_ui_global_font),
-        .graphic = asset_lookup(world, assets, g_ui_global_graphic));
+        .font         = asset_lookup(world, assets, g_uiGlobalFont),
+        .graphic      = asset_lookup(world, assets, g_uiGlobalGraphic),
+        .graphicDebug = asset_lookup(world, assets, g_uiGlobalGraphicDebug));
     return;
   }
 
   if (!(globalResources->flags & (UiGlobalRes_FontAcquired | UiGlobalRes_FontUnloading))) {
-    log_i("Acquiring global font", log_param("id", fmt_text(g_ui_global_font)));
+    log_i("Acquiring global font", log_param("id", fmt_text(g_uiGlobalFont)));
     asset_acquire(world, globalResources->font);
     globalResources->flags |= UiGlobalRes_FontAcquired;
   }
@@ -71,7 +73,7 @@ ecs_system_define(UiResourceUnloadChangedFontsSys) {
   if (globalResources->flags & UiGlobalRes_FontAcquired && (isLoaded || isFailed) && hasChanged) {
     log_i(
         "Unloading global font",
-        log_param("id", fmt_text(g_ui_global_font)),
+        log_param("id", fmt_text(g_uiGlobalFont)),
         log_param("reason", fmt_text_lit("Asset changed")));
 
     asset_release(world, globalResources->font);
@@ -96,3 +98,6 @@ ecs_module_init(ui_resource_module) {
 
 EcsEntityId ui_resource_font(const UiGlobalResourcesComp* comp) { return comp->font; }
 EcsEntityId ui_resource_graphic(const UiGlobalResourcesComp* comp) { return comp->graphic; }
+EcsEntityId ui_resource_graphic_debug(const UiGlobalResourcesComp* comp) {
+  return comp->graphicDebug;
+}

@@ -5,9 +5,14 @@
 
 // clang-format off
 
-static const String g_tooltipScale    = string_static("User interface scaling factor.\nNote: Needs to be applied before taking effect.");
-static const String g_tooltipApply    = string_static("Apply outstanding interface setting changes.");
-static const String g_tooltipDefaults = string_static("Reset all settings to their defaults.");
+static const String g_tooltipScale        = string_static("User interface scaling factor.\nNote: Needs to be applied before taking effect.");
+static const String g_tooltipDebugShading = string_static("Enable the debug shading.\n\n"
+                                                          "Meaning:\n"
+                                                          "- \a#001CFFFF\a|01Blue\ar: Dark is fully inside the shape and light is on the shape's outer edge.\n"
+                                                          "- \a#FFFFFFFF\a|01White\ar: The shape's outline.\n"
+                                                          "- \a#00FF00FF\a|01Green\ar: Dark is on the shape's outer edge and light is fully outside the shape.\n");
+static const String g_tooltipApply        = string_static("Apply outstanding interface setting changes.");
+static const String g_tooltipDefaults     = string_static("Reset all settings to their defaults.");
 
 // clang-format on
 
@@ -38,6 +43,14 @@ static void interface_panel_draw(
   ui_label(canvas, string_lit("Scale factor"));
   ui_grid_next_col(canvas, &layoutGrid);
   ui_slider(canvas, &panel->newScale, .min = 0.5, .max = 2, .tooltip = g_tooltipScale);
+  ui_grid_next_row(canvas, &layoutGrid);
+
+  ui_label(canvas, string_lit("Debug shading"));
+  ui_grid_next_col(canvas, &layoutGrid);
+  bool debugShading = (settings->flags & UiSettingFlags_DebugShading) != 0;
+  if (ui_toggle(canvas, &debugShading, .tooltip = g_tooltipDebugShading)) {
+    settings->flags ^= UiSettingFlags_DebugShading;
+  }
   ui_grid_next_row(canvas, &layoutGrid);
 
   if (ui_button(canvas, .label = string_lit("Defaults"), .tooltip = g_tooltipDefaults)) {

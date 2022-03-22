@@ -6,3 +6,4 @@ ecs_comp_extern(UiGlobalResourcesComp);
 
 EcsEntityId ui_resource_font(const UiGlobalResourcesComp*);
 EcsEntityId ui_resource_graphic(const UiGlobalResourcesComp*);
+EcsEntityId ui_resource_graphic_debug(const UiGlobalResourcesComp*);

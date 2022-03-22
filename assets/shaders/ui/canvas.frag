@@ -5,6 +5,8 @@
 #include "color.glsl"
 #include "texture.glsl"
 
+bind_spec(0) const bool s_debug = false;
+
 const f32   c_smoothingPixels = 2;
 const f32v4 c_outlineColor    = f32v4(0.025, 0.025, 0.025, 0.95);
 const f32   c_outlineNormMax  = 0.9;  // Avoid the extremities of the sdf border to avoid artifacts.
@@ -112,5 +114,9 @@ void main() {
   const f32v4 color       = mix(in_color, c_outlineColor, outlineFrac);
   const f32   alpha       = get_glyph_alpha(distNorm, outlineNorm, smoothingNorm);
 
-  out_color = f32v4(color.rgb, color.a * alpha);
+  if (s_debug) {
+    out_color = f32v4(outlineFrac * alpha, (distNorm + 1) * 0.5, alpha, 1);
+  } else {
+    out_color = f32v4(color.rgb, color.a * alpha);
+  }
 }
