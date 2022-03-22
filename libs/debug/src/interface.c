@@ -1,3 +1,4 @@
+#include "core_array.h"
 #include "debug_interface.h"
 #include "ecs_world.h"
 #include "ui.h"
@@ -16,10 +17,20 @@ static const String g_tooltipDefaults     = string_static("Reset all settings to
 
 // clang-format on
 
+static const UiColor g_defaultColors[] = {
+    {255, 255, 255, 255},
+    {32, 255, 32, 255},
+    {255, 255, 32, 255},
+    {32, 255, 255, 255},
+    {232, 232, 232, 192},
+};
+static const u32 g_defaultColorMaxIndex = array_elems(g_defaultColors) - 1;
+
 ecs_comp_define(DebugInterfacePanelComp) {
   UiPanelState state;
   EcsEntityId  window;
   f32          newScale;
+  u32          defaultColorIndex;
 };
 
 ecs_view_define(WindowView) { ecs_access_write(UiSettingsComp); }
@@ -45,6 +56,13 @@ static void interface_panel_draw(
   ui_slider(canvas, &panel->newScale, .min = 0.5, .max = 2, .tooltip = g_tooltipScale);
   ui_grid_next_row(canvas, &layoutGrid);
 
+  ui_label(canvas, string_lit("Default color"));
+  ui_grid_next_col(canvas, &layoutGrid);
+  f32 defaultColor = panel->defaultColorIndex;
+  ui_slider(canvas, &defaultColor, .max = g_defaultColorMaxIndex, .step = 1);
+  settings->defaultColor = g_defaultColors[panel->defaultColorIndex = (u32)defaultColor];
+  ui_grid_next_row(canvas, &layoutGrid);
+
   ui_label(canvas, string_lit("Debug shading"));
   ui_grid_next_col(canvas, &layoutGrid);
   bool debugShading = (settings->flags & UiSettingFlags_DebugShading) != 0;
@@ -55,7 +73,8 @@ static void interface_panel_draw(
 
   if (ui_button(canvas, .label = string_lit("Defaults"), .tooltip = g_tooltipDefaults)) {
     ui_settings_to_default(settings);
-    panel->newScale = settings->scale;
+    panel->newScale          = settings->scale;
+    panel->defaultColorIndex = 0;
   }
   ui_grid_next_col(canvas, &layoutGrid);
   if (ui_button(

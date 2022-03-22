@@ -1,6 +1,7 @@
 #pragma once
 #include "asset_ftx.h"
 #include "ui_canvas.h"
+#include "ui_settings.h"
 
 // Internal forward declarations:
 typedef struct sUiCmdBuffer UiCmdBuffer;
@@ -23,12 +24,13 @@ typedef void (*UiOutputGlyphFunc)(void* userCtx, UiGlyphData, UiLayer);
 typedef void (*UiOutputRect)(void* userCtx, UiId, UiRect);
 
 typedef struct {
-  const AssetFtxComp*  font;
-  UiVector             canvasRes, inputPos;
-  void*                userCtx;
-  UiOutputClipRectFunc outputClipRect;
-  UiOutputGlyphFunc    outputGlyph;
-  UiOutputRect         outputRect;
+  const UiSettingsComp* settings;
+  const AssetFtxComp*   font;
+  UiVector              canvasRes, inputPos;
+  void*                 userCtx;
+  UiOutputClipRectFunc  outputClipRect;
+  UiOutputGlyphFunc     outputGlyph;
+  UiOutputRect          outputRect;
 } UiBuildCtx;
 
 typedef struct {

@@ -176,20 +176,20 @@ static void debug_stats_draw_dur(
     const TimeDuration threshold1,
     const TimeDuration threshold2) {
 
-  UiColor color = ui_color_white;
+  FormatArg colorArg = fmt_nop();
   if (dur > threshold2) {
-    color = g_debugErrorColor;
+    colorArg = fmt_ui_color(g_debugErrorColor);
   } else if (dur > threshold1) {
-    color = g_debugWarnColor;
+    colorArg = fmt_ui_color(g_debugWarnColor);
   }
   const f32 freq = 1.0f / (dur / (f32)time_second);
   fmt_write(
       str,
       "{}{<9} \ar{} ({}{}\ar hz)\n",
-      fmt_ui_color(color),
+      colorArg,
       fmt_duration(dur),
       fmt_text(label),
-      fmt_ui_color(color),
+      colorArg,
       fmt_float(freq, .minDecDigits = 1, .maxDecDigits = 1));
 }
 
@@ -207,9 +207,9 @@ debug_stats_draw(UiCanvasComp* canvas, const DebugStats* stats, const RendStatsC
   fmt_write(&str, "{}\n", fmt_text(rendStats->gpuName));
   fmt_write(&str, "{<4}x{<4} pixels\n", fmt_int(rendStats->renderSize[0]), fmt_int(rendStats->renderSize[1]));
   debug_stats_draw_dur(&str, stats->updateTime, string_lit("update time"), time_milliseconds(17), time_milliseconds(18));
-  fmt_write(&str, "{}{<9} \arlimiter time\n", fmt_ui_color(stats->limiterTime < 0 ? g_debugWarnColor : ui_color_white), fmt_duration(stats->limiterTime));
+  fmt_write(&str, "{}{<9} \arlimiter time\n", stats->limiterTime < 0 ? fmt_ui_color(g_debugWarnColor) : fmt_nop(), fmt_duration(stats->limiterTime));
   debug_stats_draw_dur(&str, stats->renderTime, string_lit("render time"), time_milliseconds(10), time_milliseconds(17));
-  fmt_write(&str, "{}{<9} \arrender wait time\n", fmt_ui_color(stats->waitForRenderTime > time_millisecond ? g_debugWarnColor : ui_color_white), fmt_duration(stats->waitForRenderTime));
+  fmt_write(&str, "{}{<9} \arrender wait time\n", stats->waitForRenderTime > time_millisecond ? fmt_ui_color(g_debugWarnColor) : fmt_nop(), fmt_duration(stats->waitForRenderTime));
   fmt_write(&str, "{<9} draws\n", fmt_int(rendStats->draws));
   fmt_write(&str, "{<9} instances\n", fmt_int(rendStats->instances));
   fmt_write(&str, "{<9} vertices\n", fmt_int(rendStats->vertices));

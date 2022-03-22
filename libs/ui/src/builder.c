@@ -10,9 +10,8 @@
 #define ui_build_style_stack_max 5
 #define ui_build_container_stack_max 5
 
-static const UiRect  g_ui_defaultRect    = {0, 0, 100, 100};
-static const UiColor g_ui_defaultColor   = {255, 255, 255, 255};
-static const u8      g_ui_defaultOutline = 1;
+static const UiRect g_ui_defaultRect    = {0, 0, 100, 100};
+static const u8     g_ui_defaultOutline = 1;
 
 typedef struct {
   UiColor color;
@@ -325,7 +324,7 @@ UiBuildResult ui_build(const UiCmdBuffer* cmdBuffer, const UiBuildCtx* ctx) {
       .font            = ctx->font,
       .rectStack[0]    = g_ui_defaultRect,
       .rectStackCount  = 1,
-      .styleStack[0]   = {g_ui_defaultColor, g_ui_defaultOutline},
+      .styleStack[0]   = {ctx->settings->defaultColor, g_ui_defaultOutline},
       .styleStackCount = 1,
       .containerStack[0] =
           {.rect.size = {ctx->canvasRes.width, ctx->canvasRes.height}, .clipId = 0},

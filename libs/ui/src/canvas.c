@@ -71,12 +71,13 @@ typedef struct {
 ASSERT(sizeof(UiDrawMetaData) == 192, "Size needs to match the size defined in glsl");
 
 typedef struct {
-  const AssetFtxComp* font;
-  UiRendererComp*     renderer;
-  RendDrawComp*       draw;
-  UiCanvasComp*       canvas;
-  UiRect              clipRects[ui_canvas_clip_rects_max];
-  u32                 clipRectCount;
+  const UiSettingsComp* settings;
+  const AssetFtxComp*   font;
+  UiRendererComp*       renderer;
+  RendDrawComp*         draw;
+  UiCanvasComp*         canvas;
+  UiRect                clipRects[ui_canvas_clip_rects_max];
+  u32                   clipRectCount;
 } UiRenderState;
 
 static UiDrawMetaData ui_draw_metadata(const UiRenderState* state, const AssetFtxComp* font) {
@@ -167,6 +168,7 @@ static UiBuildResult ui_canvas_build(UiRenderState* state) {
   mem_set(dynarray_at(&state->canvas->elements, 0, state->canvas->nextId), 0);
 
   const UiBuildCtx buildCtx = {
+      .settings       = state->settings,
       .font           = state->font,
       .canvasRes      = state->canvas->resolution,
       .inputPos       = state->canvas->inputPos,
@@ -287,6 +289,7 @@ ecs_system_define(UiRenderSys) {
     const GapVector winSize     = gap_window_param(window, GapParam_WindowSize);
     const f32       scale       = settings ? settings->scale : 1.0f;
     UiRenderState   renderState = {
+        .settings      = settings,
         .font          = font,
         .renderer      = renderer,
         .draw          = draw,
