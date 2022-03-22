@@ -225,15 +225,13 @@ ecs_system_define(UiCanvasInputSys) {
   }
 }
 
-static void ui_renderer_create(
-    EcsWorld* world, const UiGlobalResourcesComp* globalRes, const EcsEntityId window) {
+static void ui_renderer_create(EcsWorld* world, const EcsEntityId window) {
 
   const EcsEntityId drawEntity = ecs_world_entity_create(world);
   ecs_world_add_t(world, drawEntity, SceneLifetimeOwnerComp, .owner = window);
 
   RendDrawComp* draw = rend_draw_create(world, drawEntity, RendDrawFlags_NoInstanceFiltering);
   rend_draw_set_camera_filter(draw, window);
-  rend_draw_set_graphic(draw, ui_resource_graphic(globalRes));
 
   ecs_world_add_t(
       world,
@@ -275,10 +273,16 @@ ecs_system_define(UiRenderSys) {
     UiRendererComp*       renderer = ecs_view_write_t(itr, UiRendererComp);
     const UiSettingsComp* settings = ecs_view_read_t(itr, UiSettingsComp);
     if (!renderer) {
-      ui_renderer_create(world, globalRes, entity);
+      ui_renderer_create(world, entity);
       continue;
     }
+
     RendDrawComp* draw = ecs_utils_write_t(world, DrawView, renderer->draw, RendDrawComp);
+    if (settings->flags & UiSettingFlags_DebugShading) {
+      rend_draw_set_graphic(draw, ui_resource_graphic_debug(globalRes));
+    } else {
+      rend_draw_set_graphic(draw, ui_resource_graphic(globalRes));
+    }
 
     const GapVector winSize     = gap_window_param(window, GapParam_WindowSize);
     const f32       scale       = settings ? settings->scale : 1.0f;
