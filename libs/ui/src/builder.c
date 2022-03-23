@@ -10,9 +10,6 @@
 #define ui_build_style_stack_max 5
 #define ui_build_container_stack_max 5
 
-static const UiRect g_ui_defaultRect    = {0, 0, 100, 100};
-static const u8     g_ui_defaultOutline = 1;
-
 typedef struct {
   UiColor color;
   u8      outline;
@@ -320,14 +317,22 @@ static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
 
 UiBuildResult ui_build(const UiCmdBuffer* cmdBuffer, const UiBuildCtx* ctx) {
   UiBuildState state = {
-      .ctx             = ctx,
-      .font            = ctx->font,
-      .rectStack[0]    = g_ui_defaultRect,
-      .rectStackCount  = 1,
-      .styleStack[0]   = {ctx->settings->defaultColor, g_ui_defaultOutline},
+      .ctx            = ctx,
+      .font           = ctx->font,
+      .rectStack[0]   = {.width = 100, .height = 100},
+      .rectStackCount = 1,
+      .styleStack[0] =
+          {
+              .color     = ctx->settings->defaultColor,
+              .outline   = ctx->settings->defaultOutline,
+              .variation = ctx->settings->defaultVariation,
+          },
       .styleStackCount = 1,
       .containerStack[0] =
-          {.rect.size = {ctx->canvasRes.width, ctx->canvasRes.height}, .clipId = 0},
+          {
+              .rect.size = {ctx->canvasRes.width, ctx->canvasRes.height},
+              .clipId    = 0,
+          },
       .containerStackCount = 1,
       .hoveredId           = sentinel_u64,
   };

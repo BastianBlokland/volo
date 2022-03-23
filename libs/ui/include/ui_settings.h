@@ -10,6 +10,8 @@ ecs_comp_extern_public(UiSettingsComp) {
   UiSettingFlags flags;
   f32            scale;
   UiColor        defaultColor;
+  u8             defaultOutline;
+  u8             defaultVariation;
 };
 
 void ui_settings_to_default(UiSettingsComp*);
