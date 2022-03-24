@@ -1,6 +1,7 @@
 #include "core_diag.h"
 #include "core_math.h"
 #include "ui_canvas.h"
+#include "ui_shape.h"
 
 #include "builder_internal.h"
 #include "cmd_internal.h"
@@ -148,6 +149,38 @@ static void ui_build_text_char(void* userCtx, const UiTextCharInfo* info) {
       info->layer);
 }
 
+static void ui_build_glyph(
+    UiBuildState*      state,
+    const Unicode      cp,
+    const UiRect       rect,
+    const UiBuildStyle style,
+    const u16          maxCorner,
+    const u8           clipId) {
+  const AssetFtxChar* ch = asset_ftx_lookup(state->font, cp, style.variation);
+  if (sentinel_check(ch->glyphIndex)) {
+    return; // No glyph for the given codepoint.
+  }
+  const f32    halfMinDim = math_min(rect.width, rect.height) * 0.5f;
+  const f32    corner     = maxCorner ? math_min(maxCorner, halfMinDim) : halfMinDim;
+  const f32    border     = ch->border * corner * 2.0f;
+  const UiRect outputRect = {
+      .pos  = {rect.x - border, rect.y - border},
+      .size = {rect.width + border * 2, rect.height + border * 2},
+  };
+  state->ctx->outputGlyph(
+      state->ctx->userCtx,
+      (UiGlyphData){
+          .rect         = outputRect,
+          .color        = style.color,
+          .atlasIndex   = ch->glyphIndex,
+          .borderFrac   = (u16)(border / outputRect.size.width * u16_max),
+          .cornerFrac   = (u16)((corner + border) / outputRect.size.width * u16_max),
+          .clipId       = clipId,
+          .outlineWidth = style.outline,
+      },
+      style.layer);
+}
+
 static bool ui_rect_contains(const UiRect rect, const UiVector point) {
   const f32 minX = rect.x, minY = rect.y;
   const f32 maxX = minX + rect.width, maxY = minY + rect.height;
@@ -171,20 +204,23 @@ ui_build_is_hovered(UiBuildState* state, const UiBuildContainer container, const
 }
 
 static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
-  const UiRect           layoutRect = *ui_build_rect_currect(state);
-  const UiBuildStyle     style      = *ui_build_style_currect(state);
-  const UiBuildContainer container  = *ui_build_container_active(state);
+  const UiRect           rect      = *ui_build_rect_currect(state);
+  const UiBuildStyle     style     = *ui_build_style_currect(state);
+  const UiBuildContainer container = *ui_build_container_active(state);
 
-  if (ui_build_cull(container, layoutRect, style)) {
+  if (ui_build_cull(container, rect, style)) {
     return;
   }
-  if (cmd->flags & UiFlags_Interactable && ui_build_is_hovered(state, container, layoutRect)) {
+  const bool debugInspector = state->ctx->settings->flags & UiSettingFlags_DebugInspector;
+  const bool hoverable      = cmd->flags & UiFlags_Interactable || debugInspector;
+
+  if (hoverable && ui_build_is_hovered(state, container, rect)) {
     state->hoveredId = cmd->id;
   }
 
   const UiTextBuildResult result = ui_text_build(
       state->font,
-      layoutRect,
+      rect,
       cmd->text,
       cmd->fontSize,
       style.color,
@@ -199,41 +235,75 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
 }
 
 static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
-  const UiRect           layoutRect = *ui_build_rect_currect(state);
-  const UiBuildStyle     style      = *ui_build_style_currect(state);
-  const UiBuildContainer container  = *ui_build_container_active(state);
+  const UiRect           rect      = *ui_build_rect_currect(state);
+  const UiBuildStyle     style     = *ui_build_style_currect(state);
+  const UiBuildContainer container = *ui_build_container_active(state);
 
-  if (ui_build_cull(container, layoutRect, style)) {
+  if (ui_build_cull(container, rect, style)) {
     return;
   }
-  if (cmd->flags & UiFlags_Interactable && ui_build_is_hovered(state, container, layoutRect)) {
+  const bool debugInspector = state->ctx->settings->flags & UiSettingFlags_DebugInspector;
+  const bool hoverable      = cmd->flags & UiFlags_Interactable || debugInspector;
+
+  if (hoverable && ui_build_is_hovered(state, container, rect)) {
     state->hoveredId = cmd->id;
   }
-  state->ctx->outputRect(state->ctx->userCtx, cmd->id, layoutRect);
 
-  const AssetFtxChar* ch = asset_ftx_lookup(state->font, cmd->cp, style.variation);
-  if (sentinel_check(ch->glyphIndex)) {
-    return; // No glyph for the given codepoint.
-  }
-  const f32    halfMinDim = math_min(layoutRect.width, layoutRect.height) * 0.5f;
-  const f32    corner     = cmd->maxCorner ? math_min(cmd->maxCorner, halfMinDim) : halfMinDim;
-  const f32    border     = ch->border * corner * 2.0f;
-  const UiRect rect       = {
-      .pos  = {layoutRect.x - border, layoutRect.y - border},
-      .size = {layoutRect.width + border * 2, layoutRect.height + border * 2},
+  ui_build_glyph(state, cmd->cp, rect, style, cmd->maxCorner, container.clipId);
+
+  state->ctx->outputRect(state->ctx->userCtx, cmd->id, rect);
+}
+
+static void ui_build_debug_inspector(UiBuildState* state, const UiId id, const UiFlags flags) {
+  const UiRect           rect      = *ui_build_rect_currect(state);
+  const UiBuildStyle     style     = *ui_build_style_currect(state);
+  const UiBuildContainer container = *ui_build_container_active(state);
+
+  const UiBuildStyle styleShape     = {.color = {255, 0, 0, 178}, .layer = UiLayer_Overlay};
+  const UiBuildStyle styleContainer = {.color = {0, 0, 255, 178}, .layer = UiLayer_Overlay};
+  const UiBuildStyle styleText      = {
+      .color = ui_color_white, .outline = 4, .layer = UiLayer_Overlay, .variation = 1};
+
+  ui_build_glyph(state, UiShape_Square, container.rect, styleContainer, 5, 0);
+  ui_build_glyph(state, UiShape_Square, rect, styleShape, 5, 0);
+
+  DynString str = dynstring_create(g_alloc_scratch, usize_kibibyte);
+  fmt_write(&str, "Id        {}\n", fmt_int(id));
+  fmt_write(&str, "X         {}\n", fmt_float(rect.x, .maxDecDigits = 2));
+  fmt_write(&str, "Y         {}\n", fmt_float(rect.y, .maxDecDigits = 2));
+  fmt_write(&str, "Width     {}\n", fmt_float(rect.width, .maxDecDigits = 2));
+  fmt_write(&str, "Height    {}\n", fmt_float(rect.height, .maxDecDigits = 2));
+  fmt_write(
+      &str,
+      "Color     #{}{}{}{}\n",
+      fmt_int(style.color.r, .base = 16, .minDigits = 2),
+      fmt_int(style.color.g, .base = 16, .minDigits = 2),
+      fmt_int(style.color.b, .base = 16, .minDigits = 2),
+      fmt_int(style.color.a, .base = 16, .minDigits = 2));
+  fmt_write(&str, "Outline   {}\n", fmt_int(style.outline));
+  fmt_write(&str, "Layer     {}\n", fmt_int(style.layer));
+  fmt_write(&str, "Variation {}\n", fmt_int(style.variation));
+  fmt_write(&str, "ClipId    {}\n", fmt_int(container.clipId));
+  fmt_write(&str, "Interact  {}\n", fmt_int((flags & UiFlags_Interactable) != 0));
+
+  const f32    textSize = 500;
+  const u16    fontSize = 20;
+  const UiRect textRect = {
+      .pos  = {state->ctx->canvasRes.width * 0.5f, state->ctx->canvasRes.height - textSize},
+      .size = {textSize, textSize},
   };
-  state->ctx->outputGlyph(
-      state->ctx->userCtx,
-      (UiGlyphData){
-          .rect         = rect,
-          .color        = style.color,
-          .atlasIndex   = ch->glyphIndex,
-          .borderFrac   = (u16)(border / rect.size.width * u16_max),
-          .cornerFrac   = (u16)((corner + border) / rect.size.width * u16_max),
-          .clipId       = container.clipId,
-          .outlineWidth = style.outline,
-      },
-      style.layer);
+  ui_text_build(
+      state->font,
+      textRect,
+      dynstring_view(&str),
+      fontSize,
+      styleText.color,
+      styleText.outline,
+      styleText.layer,
+      styleText.variation,
+      UiAlign_TopLeft,
+      state,
+      &ui_build_text_char);
 }
 
 static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
@@ -308,9 +378,15 @@ static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
     break;
   case UiCmd_DrawText:
     ui_build_draw_text(state, &cmd->drawText);
+    if (UNLIKELY(cmd->drawText.id == state->ctx->debugElem)) {
+      ui_build_debug_inspector(state, cmd->drawText.id, cmd->drawText.flags);
+    }
     break;
   case UiCmd_DrawGlyph:
     ui_build_draw_glyph(state, &cmd->drawGlyph);
+    if (UNLIKELY(cmd->drawGlyph.id == state->ctx->debugElem)) {
+      ui_build_debug_inspector(state, cmd->drawGlyph.id, cmd->drawGlyph.flags);
+    }
     break;
   }
 }

@@ -3,7 +3,8 @@
 #include "ui_color.h"
 
 typedef enum {
-  UiSettingFlags_DebugShading = 1 << 0,
+  UiSettingFlags_DebugShading   = 1 << 0,
+  UiSettingFlags_DebugInspector = 1 << 1,
 } UiSettingFlags;
 
 ecs_comp_extern_public(UiSettingsComp) {

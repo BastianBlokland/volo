@@ -6,14 +6,18 @@
 
 // clang-format off
 
-static const String g_tooltipScale        = string_static("User interface scaling factor.\nNote: Needs to be applied before taking effect.");
-static const String g_tooltipDebugShading = string_static("Enable the debug shading.\n\n"
-                                                          "Meaning:\n"
-                                                          "- \a#001CFFFF\a|01Blue\ar: Dark is fully inside the shape and light is on the shape's outer edge.\n"
-                                                          "- \a#FFFFFFFF\a|01White\ar: The shape's outline.\n"
-                                                          "- \a#00FF00FF\a|01Green\ar: Dark is on the shape's outer edge and light is fully outside the shape.\n");
-static const String g_tooltipApply        = string_static("Apply outstanding interface setting changes.");
-static const String g_tooltipDefaults     = string_static("Reset all settings to their defaults.");
+static const String g_tooltipScale          = string_static("User interface scaling factor.\nNote: Needs to be applied before taking effect.");
+static const String g_tooltipDebugInspector = string_static("Enable the debug inspector.\n\n"
+                                                            "Meaning:\n"
+                                                            "- \a~red\a|01Red\ar: Element's rectangle.\n"
+                                                            "- \a~blue\a|01Blue\ar: Element's container rectangle.\n");
+static const String g_tooltipDebugShading   = string_static("Enable the debug shading.\n\n"
+                                                            "Meaning:\n"
+                                                            "- \a#001CFFFF\a|01Blue\ar: Dark is fully inside the shape and light is on the shape's outer edge.\n"
+                                                            "- \a#FFFFFFFF\a|01White\ar: The shape's outline.\n"
+                                                            "- \a#00FF00FF\a|01Green\ar: Dark is on the shape's outer edge and light is fully outside the shape.\n");
+static const String g_tooltipApply          = string_static("Apply outstanding interface setting changes.");
+static const String g_tooltipDefaults       = string_static("Reset all settings to their defaults.");
 
 // clang-format on
 
@@ -61,6 +65,14 @@ static void interface_panel_draw(
   f32 defaultColor = panel->defaultColorIndex;
   ui_slider(canvas, &defaultColor, .max = g_defaultColorMaxIndex, .step = 1);
   settings->defaultColor = g_defaultColors[panel->defaultColorIndex = (u32)defaultColor];
+  ui_grid_next_row(canvas, &layoutGrid);
+
+  ui_label(canvas, string_lit("Debug inspector"));
+  ui_grid_next_col(canvas, &layoutGrid);
+  bool debugInspector = (settings->flags & UiSettingFlags_DebugInspector) != 0;
+  if (ui_toggle(canvas, &debugInspector, .tooltip = g_tooltipDebugInspector)) {
+    settings->flags ^= UiSettingFlags_DebugInspector;
+  }
   ui_grid_next_row(canvas, &layoutGrid);
 
   ui_label(canvas, string_lit("Debug shading"));
@@ -134,7 +146,7 @@ EcsEntityId debug_interface_panel_open(EcsWorld* world, const EcsEntityId window
       world,
       panelEntity,
       DebugInterfacePanelComp,
-      .state  = ui_panel_init(ui_vector(310, 175)),
+      .state  = ui_panel_init(ui_vector(310, 215)),
       .window = window);
   return panelEntity;
 }

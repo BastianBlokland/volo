@@ -26,6 +26,7 @@ typedef void (*UiOutputRect)(void* userCtx, UiId, UiRect);
 typedef struct {
   const UiSettingsComp* settings;
   const AssetFtxComp*   font;
+  UiId                  debugElem;
   UiVector              canvasRes, inputPos;
   void*                 userCtx;
   UiOutputClipRectFunc  outputClipRect;

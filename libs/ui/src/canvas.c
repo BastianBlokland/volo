@@ -136,10 +136,21 @@ static void ui_canvas_set_active(UiCanvasComp* canvas, const UiId id, const UiSt
 }
 
 static void ui_canvas_update_interaction(
-    UiCanvasComp* canvas, const GapWindowComp* window, const UiId hoveredId) {
+    UiCanvasComp*        canvas,
+    UiSettingsComp*      settings,
+    const GapWindowComp* window,
+    const UiId           hoveredId) {
 
   const bool inputDown     = gap_window_key_down(window, GapKey_MouseLeft);
   const bool inputReleased = gap_window_key_released(window, GapKey_MouseLeft);
+
+  if (UNLIKELY(settings->flags & UiSettingFlags_DebugInspector)) {
+    if (inputReleased) {
+      settings->flags ^= UiSettingFlags_DebugInspector;
+    }
+    ui_canvas_set_active(canvas, hoveredId, UiStatus_Idle);
+    return; // Normal input is disabled while using the debug inspector.
+  }
 
   const bool hasActiveElem       = !sentinel_check(canvas->activeId);
   const bool activeElemIsHovered = canvas->activeId == hoveredId;
@@ -161,7 +172,7 @@ static void ui_canvas_update_interaction(
       canvas, hoveredId, sentinel_check(hoveredId) ? UiStatus_Idle : UiStatus_Hovered);
 }
 
-static UiBuildResult ui_canvas_build(UiRenderState* state) {
+static UiBuildResult ui_canvas_build(UiRenderState* state, const UiId debugElem) {
 
   // Ensure we have UiElement structures for all elements that are requested to be drawn.
   dynarray_resize(&state->canvas->elements, state->canvas->nextId);
@@ -170,6 +181,7 @@ static UiBuildResult ui_canvas_build(UiRenderState* state) {
   const UiBuildCtx buildCtx = {
       .settings       = state->settings,
       .font           = state->font,
+      .debugElem      = debugElem,
       .canvasRes      = state->canvas->resolution,
       .inputPos       = state->canvas->inputPos,
       .userCtx        = state,
@@ -185,7 +197,7 @@ ecs_view_define(FtxView) { ecs_access_read(AssetFtxComp); }
 ecs_view_define(WindowView) {
   ecs_access_read(GapWindowComp);
   ecs_access_maybe_write(UiRendererComp);
-  ecs_access_maybe_read(UiSettingsComp);
+  ecs_access_maybe_write(UiSettingsComp);
 }
 ecs_view_define(CanvasView) { ecs_access_write(UiCanvasComp); }
 ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
@@ -246,6 +258,13 @@ static void ui_renderer_create(EcsWorld* world, const EcsEntityId window) {
   ui_settings_to_default(settings);
 }
 
+static UiId ui_canvas_debug_elem(UiCanvasComp* canvas, const UiSettingsComp* settings) {
+  if (UNLIKELY(settings->flags & UiSettingFlags_DebugInspector)) {
+    return canvas->activeId;
+  }
+  return sentinel_u64;
+}
+
 static u32 ui_canvass_query(
     EcsWorld* world, const EcsEntityId window, UiCanvasPtr out[ui_canvas_canvasses_max]) {
   u32 count = 0;
@@ -270,10 +289,10 @@ ecs_system_define(UiRenderSys) {
   }
 
   for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, WindowView)); ecs_view_walk(itr);) {
-    const EcsEntityId     entity   = ecs_view_entity(itr);
-    const GapWindowComp*  window   = ecs_view_read_t(itr, GapWindowComp);
-    UiRendererComp*       renderer = ecs_view_write_t(itr, UiRendererComp);
-    const UiSettingsComp* settings = ecs_view_read_t(itr, UiSettingsComp);
+    const EcsEntityId    entity   = ecs_view_entity(itr);
+    const GapWindowComp* window   = ecs_view_read_t(itr, GapWindowComp);
+    UiRendererComp*      renderer = ecs_view_write_t(itr, UiRendererComp);
+    UiSettingsComp*      settings = ecs_view_write_t(itr, UiSettingsComp);
     if (!renderer) {
       ui_renderer_create(world, entity);
       continue;
@@ -305,9 +324,11 @@ ecs_system_define(UiRenderSys) {
     u32  hoveredCanvasIndex = sentinel_u32;
     UiId hoveredId;
     for (u32 i = 0; i != canvasCount; ++i) {
-      canvasses[i]->order        = i;
-      renderState.canvas         = canvasses[i];
-      const UiBuildResult result = ui_canvas_build(&renderState);
+      canvasses[i]->order = i;
+      renderState.canvas  = canvasses[i];
+
+      const UiId          debugElem = ui_canvas_debug_elem(canvasses[i], settings);
+      const UiBuildResult result    = ui_canvas_build(&renderState, debugElem);
       if (!sentinel_check(result.hoveredId)) {
         hoveredCanvasIndex = i;
         hoveredId          = result.hoveredId;
@@ -318,8 +339,9 @@ ecs_system_define(UiRenderSys) {
       hoveredCanvasIndex = sentinel_u32;
     }
     for (u32 i = 0; i != canvasCount; ++i) {
-      const bool isHovered = hoveredCanvasIndex == i;
-      ui_canvas_update_interaction(canvasses[i], window, isHovered ? hoveredId : sentinel_u64);
+      const bool isHovered   = hoveredCanvasIndex == i;
+      const UiId hoveredElem = isHovered ? hoveredId : sentinel_u64;
+      ui_canvas_update_interaction(canvasses[i], settings, window, hoveredElem);
     }
 
     // Add the overlay glyphs, at this stage all the normal glyphs have already been added.
