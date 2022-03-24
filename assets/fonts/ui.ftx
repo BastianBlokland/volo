@@ -13,6 +13,7 @@
       "id": "fonts/robotomono_medium.ttf",
       "variation": 1,
       "yOffset": -0.05,
+      "advanceMult": 1.1,
       "characters": "\u0020!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
     },
     {

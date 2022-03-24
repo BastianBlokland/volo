@@ -38,6 +38,7 @@ typedef struct {
   u8          variation;
   EcsEntityId asset;
   f32         yOffset;
+  f32         advanceMult;
   String      characters;
 } FtxDefFont;
 
@@ -65,6 +66,7 @@ static void ftx_datareg_init() {
     data_reg_field_t(g_dataReg, FtxDefFont, id, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, FtxDefFont, variation, data_prim_t(u8), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, FtxDefFont, yOffset, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, FtxDefFont, advanceMult, data_prim_t(f32), .flags = DataFlags_NotEmpty | DataFlags_Opt);
     data_reg_field_t(g_dataReg, FtxDefFont, characters, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
     data_reg_struct_t(g_dataReg, FtxDef);
@@ -215,6 +217,7 @@ typedef struct {
   const AssetFontComp* data;
   u8                   variation;
   f32                  yOffset;
+  f32                  advanceMult;
   String               characters;
 } FtxDefResolvedFont;
 
@@ -242,7 +245,7 @@ static void ftx_generate_font(
         .size       = inputChars[i].glyph->size,
         .offsetX    = inputChars[i].glyph->offsetX,
         .offsetY    = inputChars[i].glyph->offsetY + font.yOffset,
-        .advance    = inputChars[i].glyph->advance,
+        .advance    = inputChars[i].glyph->advance * font.advanceMult,
         .border     = def->border / (f32)def->glyphSize,
     };
     if (inputChars[i].glyph->segmentCount) {
@@ -353,10 +356,11 @@ ecs_system_define(FtxLoadAssetSys) {
         goto Error;
       }
       fonts[i] = (FtxDefResolvedFont){
-          .data       = ecs_view_read_t(fontItr, AssetFontComp),
-          .variation  = defFont->variation,
-          .yOffset    = defFont->yOffset,
-          .characters = defFont->characters,
+          .data        = ecs_view_read_t(fontItr, AssetFontComp),
+          .variation   = defFont->variation,
+          .yOffset     = defFont->yOffset,
+          .advanceMult = defFont->advanceMult == 0 ? 1.0f : defFont->advanceMult,
+          .characters  = defFont->characters,
       };
     }
 
