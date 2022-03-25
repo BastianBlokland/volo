@@ -66,10 +66,11 @@ static i8 ui_canvas_ptr_compare_order(const void* a, const void* b) {
 
 typedef struct {
   ALIGNAS(16)
-  GeoVector canvasRes; // x + y = canvas size in ui-pixels, z + w = inverse of x + y.
+  GeoVector canvasRes;      // x + y = canvas size in ui-pixels, z + w = inverse of x + y.
+  f32       invCanvasScale; // Inverse of the canvas scale.
   f32       glyphsPerDim;
   f32       invGlyphsPerDim;
-  f32       padding[2];
+  f32       padding[1];
   UiRect    clipRects[10];
 } UiDrawMetaData;
 
@@ -90,6 +91,7 @@ static UiDrawMetaData ui_draw_metadata(const UiRenderState* state, const AssetFt
   UiDrawMetaData meta      = {
       .canvasRes = geo_vector(
           canvasRes.width, canvasRes.height, 1.0f / canvasRes.width, 1.0f / canvasRes.height),
+      .invCanvasScale  = 1.0f / state->settings->scale,
       .glyphsPerDim    = font->glyphsPerDim,
       .invGlyphsPerDim = 1.0f / (f32)font->glyphsPerDim,
   };
