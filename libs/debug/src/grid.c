@@ -217,7 +217,7 @@ EcsEntityId debug_grid_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugGridPanelComp,
-      .state  = ui_panel_init(ui_vector(310, 280)),
+      .state  = ui_panel_init(ui_vector(310, 220)),
       .window = window);
   return panelEntity;
 }

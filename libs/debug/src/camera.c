@@ -213,7 +213,7 @@ EcsEntityId debug_camera_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugCameraPanelComp,
-      .state  = ui_panel_init(ui_vector(310, 320)),
+      .state  = ui_panel_init(ui_vector(310, 290)),
       .window = window);
   return panelEntity;
 }

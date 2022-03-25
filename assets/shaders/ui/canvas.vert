@@ -25,7 +25,8 @@ const f32v2 c_unitTexCoords[c_verticesPerGlyph] = {
 };
 
 struct MetaData {
-  f32v4 canvasRes; // x + y = canvas size in ui-pixels, z + w = inverse of x + y.
+  f32v4 canvasRes;      // x + y = canvas size in ui-pixels, z + w = inverse of x + y.
+  f32   invCanvasScale; // Inverse of the canvas scale.
   f32   glyphsPerDim;
   f32   invGlyphsPerDim; // 1.0 / glyphsPerDim
   f32v4 clipRects[10];
@@ -44,14 +45,15 @@ bind_instance_data(0) readonly uniform Instance { GlyphData u_glyphs[c_maxInstan
 
 bind_internal(0) out f32v2 out_uiPos;
 bind_internal(1) out f32v2 out_texCoord;
-bind_internal(2) out flat f32v4 out_clipRect;
-bind_internal(3) out flat f32v2 out_texOrigin;
-bind_internal(4) out flat f32 out_texScale;
-bind_internal(5) out flat f32v4 out_color;
-bind_internal(6) out flat f32 out_invBorder;
-bind_internal(7) out flat f32 out_outlineWidth;
-bind_internal(8) out flat f32 out_aspectRatio;
-bind_internal(9) out flat f32 out_cornerFrac;
+bind_internal(2) out flat f32 out_invCanvasScale;
+bind_internal(3) out flat f32v4 out_clipRect;
+bind_internal(4) out flat f32v2 out_texOrigin;
+bind_internal(5) out flat f32 out_texScale;
+bind_internal(6) out flat f32v4 out_color;
+bind_internal(7) out flat f32 out_invBorder;
+bind_internal(8) out flat f32 out_outlineWidth;
+bind_internal(9) out flat f32 out_aspectRatio;
+bind_internal(10) out flat f32 out_cornerFrac;
 
 void main() {
   const GlyphData glyphData    = u_glyphs[in_instanceIndex];
@@ -77,8 +79,9 @@ void main() {
 
   out_vertexPosition = ui_norm_to_ndc(uiPos * u_meta.canvasRes.zw);
   out_uiPos          = uiPos;
-  out_clipRect       = u_meta.clipRects[clipId];
   out_texCoord       = c_unitTexCoords[in_vertexIndex];
+  out_invCanvasScale = u_meta.invCanvasScale;
+  out_clipRect       = u_meta.clipRects[clipId];
   out_texOrigin      = texOrigin;
   out_texScale       = u_meta.invGlyphsPerDim;
   out_color          = glyphColor;
