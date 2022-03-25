@@ -231,7 +231,9 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
       state,
       &ui_build_text_char);
 
-  state->ctx->outputRect(state->ctx->userCtx, cmd->id, result.rect);
+  if (cmd->flags & UiFlags_TrackRect) {
+    state->ctx->outputRect(state->ctx->userCtx, cmd->id, result.rect);
+  }
 }
 
 static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
@@ -251,7 +253,9 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
 
   ui_build_glyph(state, cmd->cp, rect, style, cmd->maxCorner, container.clipId);
 
-  state->ctx->outputRect(state->ctx->userCtx, cmd->id, rect);
+  if (cmd->flags & UiFlags_TrackRect) {
+    state->ctx->outputRect(state->ctx->userCtx, cmd->id, rect);
+  }
 }
 
 static void ui_build_debug_inspector(UiBuildState* state, const UiId id, const UiFlags flags) {

@@ -24,6 +24,7 @@ typedef enum {
 typedef enum {
   UiFlags_None         = 0,
   UiFlags_Interactable = 1 << 0,
+  UiFlags_TrackRect    = 1 << 1,
 } UiFlags;
 
 ecs_comp_extern(UiCanvasComp);

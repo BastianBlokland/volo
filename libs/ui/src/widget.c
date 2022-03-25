@@ -80,7 +80,7 @@ static void ui_slider_bar(UiCanvasComp* canvas, const UiStatus status, const UiS
     ui_style_color(canvas, opts->barColor);
     break;
   }
-  ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_Interactable);
+  ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_Interactable | UiFlags_TrackRect);
 
   ui_style_pop(canvas);
   ui_layout_pop(canvas);
@@ -270,7 +270,7 @@ static void ui_tooltip_text(
   ui_style_color(canvas, ui_color_black);
   ui_style_outline(canvas, 0);
 
-  ui_canvas_draw_text(canvas, text, opts->fontSize, UiAlign_TopLeft, UiFlags_None);
+  ui_canvas_draw_text(canvas, text, opts->fontSize, UiAlign_TopLeft, UiFlags_TrackRect);
 }
 
 static UiDir ui_tooltip_dir(UiCanvasComp* canvas) {
