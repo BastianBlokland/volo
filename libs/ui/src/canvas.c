@@ -237,7 +237,7 @@ ecs_system_define(UiCanvasInputSys) {
       ui_canvas_set_active(canvas, sentinel_u64, UiStatus_Idle);
     }
 
-    if (gap_window_key_released(window, GapKey_MouseLeft)) {
+    if (gap_window_events(window) & GapWindowEvents_KeyPressed) {
       canvas->flags |= UiCanvasFlags_InputAny;
     } else {
       canvas->flags &= ~UiCanvasFlags_InputAny;
