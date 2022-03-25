@@ -7,18 +7,21 @@
 #include "ui_style.h"
 #include "ui_widget.h"
 
-static void ui_panel_clamp_to_canvas(UiCanvasComp* canvas, UiPanelState* state) {
-  const UiVector canvasRes = ui_canvas_resolution(canvas);
-  if (canvasRes.x < 1 || canvasRes.y < 1) {
-    return;
-  }
+static const f32 g_panelTopbarHeight = 23;
+static const u32 g_panelOutline      = 3;
 
+static void ui_panel_clamp_to_canvas(UiPanelState* state, const UiVector canvasRes) {
   if (state->flags & UiPanelFlags_Center) {
-    state->rect.pos.x = (canvasRes.x - state->rect.width) * 0.5f;
-    state->rect.pos.y = (canvasRes.y - state->rect.height) * 0.5f;
+    state->position.x = 0.5f;
+    state->position.y = 0.5f;
   } else {
-    state->rect.pos.x = math_clamp_f32(state->rect.pos.x, 0, canvasRes.x - state->rect.width);
-    state->rect.pos.y = math_clamp_f32(state->rect.pos.y, 0, canvasRes.y - state->rect.height);
+    const f32 halfWidthFrac  = (state->size.width * 0.5f) / canvasRes.width;
+    const f32 halfHeightFrac = (state->size.height * 0.5f) / canvasRes.height;
+    const f32 topBarFrac     = g_panelTopbarHeight / canvasRes.height;
+
+    state->position.x = math_clamp_f32(state->position.x, halfWidthFrac, 1 - halfWidthFrac);
+    state->position.y =
+        math_clamp_f32(state->position.y, halfHeightFrac, 1 - halfHeightFrac - topBarFrac);
   }
   state->flags &= ~UiPanelFlags_Center;
 }
@@ -87,26 +90,20 @@ static void ui_panel_topbar_background(UiCanvasComp* canvas) {
     break;
   }
 
-  ui_style_outline(canvas, 3);
+  ui_style_outline(canvas, g_panelOutline);
   ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_Interactable);
 
   ui_style_pop(canvas);
 }
 
 static void ui_panel_topbar(UiCanvasComp* canvas, UiPanelState* state, const UiPanelOpts* opts) {
-  const UiStatus status = ui_canvas_elem_status(canvas, ui_canvas_id_peek(canvas));
-  if (status == UiStatus_Pressed) {
-    const UiVector inputDelta = ui_canvas_input_delta(canvas);
-    state->rect.pos.x += inputDelta.x;
-    state->rect.pos.y += inputDelta.y;
-  }
-  ui_panel_clamp_to_canvas(canvas, state);
 
   ui_layout_push(canvas);
 
-  ui_layout_set(canvas, state->rect);
-  ui_layout_move(canvas, ui_vector(0, 1), UiBase_Current, Ui_Y);
-  ui_layout_resize(canvas, UiAlign_TopCenter, ui_vector(0, 23), UiBase_Absolute, Ui_Y);
+  ui_layout_move_dir(canvas, Ui_Up, 1, UiBase_Current);
+  ui_layout_move_dir(canvas, Ui_Up, g_panelOutline, UiBase_Absolute);
+  ui_layout_resize(
+      canvas, UiAlign_BottomCenter, ui_vector(0, g_panelTopbarHeight), UiBase_Absolute, Ui_Y);
 
   ui_panel_topbar_background(canvas);
   ui_panel_topbar_title(canvas, opts);
@@ -119,7 +116,7 @@ static void ui_panel_background(UiCanvasComp* canvas) {
   ui_style_push(canvas);
 
   ui_style_color(canvas, ui_color(64, 64, 64, 230));
-  ui_style_outline(canvas, 3);
+  ui_style_outline(canvas, g_panelOutline);
 
   ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_Interactable);
 
@@ -128,8 +125,8 @@ static void ui_panel_background(UiCanvasComp* canvas) {
 
 UiPanelState ui_panel_init(const UiVector size) {
   return (UiPanelState){
-      .flags     = UiPanelFlags_Center,
-      .rect.size = size,
+      .flags = UiPanelFlags_Center,
+      .size  = size,
   };
 }
 
@@ -137,13 +134,20 @@ void ui_panel_begin_with_opts(UiCanvasComp* canvas, UiPanelState* state, const U
   diag_assert_msg(!(state->flags & UiPanelFlags_Drawing), "The given panel is already being drawn");
   state->flags |= UiPanelFlags_Drawing;
 
-  ui_panel_topbar(canvas, state, opts);
+  const UiVector inputDelta = ui_canvas_input_delta(canvas);
+  const UiVector canvasRes  = ui_canvas_resolution(canvas);
+  const UiId     topbarId   = ui_canvas_id_peek(canvas);
+  if (ui_canvas_elem_status(canvas, topbarId) == UiStatus_Pressed) {
+    state->position.x += inputDelta.x / canvasRes.width;
+    state->position.y += inputDelta.y / canvasRes.height;
+  }
+  if (canvasRes.x > 0 && canvasRes.y > 0) {
+    ui_panel_clamp_to_canvas(state, canvasRes);
+  }
 
-  const UiRect containerRect = {
-      .pos  = state->rect.pos,
-      .size = ui_vector(state->rect.size.width, state->rect.size.height - 26),
-  };
-  ui_layout_set(canvas, containerRect);
+  ui_layout_move(canvas, state->position, UiBase_Canvas, Ui_XY);
+  ui_layout_resize(canvas, UiAlign_MiddleCenter, state->size, UiBase_Absolute, Ui_XY);
+  ui_panel_topbar(canvas, state, opts);
   ui_panel_background(canvas);
 
   ui_layout_container_push(canvas);
