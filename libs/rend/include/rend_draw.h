@@ -6,7 +6,8 @@
 
 typedef enum {
   RendDrawFlags_None                = 0,
-  RendDrawFlags_NoInstanceFiltering = 1 << 0,
+  RendDrawFlags_NoAutoClear         = 1 << 0,
+  RendDrawFlags_NoInstanceFiltering = 1 << 1,
 } RendDrawFlags;
 
 /**

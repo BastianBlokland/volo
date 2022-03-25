@@ -107,7 +107,10 @@ ecs_view_define(DrawWriteView) { ecs_access_write(RendDrawComp); }
 ecs_system_define(RendClearDrawsSys) {
   EcsView* drawView = ecs_world_view_t(world, DrawWriteView);
   for (EcsIterator* itr = ecs_view_itr(drawView); ecs_view_walk(itr);) {
-    ecs_view_write_t(itr, RendDrawComp)->instCount = 0;
+    RendDrawComp* drawComp = ecs_view_write_t(itr, RendDrawComp);
+    if (!(drawComp->flags & RendDrawFlags_NoAutoClear)) {
+      drawComp->instCount = 0;
+    }
   }
 }
 
