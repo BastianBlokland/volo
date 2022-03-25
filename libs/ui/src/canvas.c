@@ -24,22 +24,27 @@ typedef struct {
   UiRect rect;
 } UiElement;
 
+typedef enum {
+  UiCanvasFlags_InputAny = 1 << 0,
+} UiCanvasFlags;
+
 ecs_comp_define(UiRendererComp) {
   EcsEntityId draw;
   DynArray    overlayGlyphs; // UiGlyphData[]
 };
 
 ecs_comp_define(UiCanvasComp) {
-  i32          order;
-  EcsEntityId  window;
-  UiCmdBuffer* cmdBuffer;
-  UiId         nextId;
-  DynArray     elements;   // UiElement[]
-  UiVector     resolution; // Resolution of the canvas in ui-pixels.
-  UiVector     inputDelta, inputPos;
-  UiId         activeId;
-  UiStatus     activeStatus;
-  TimeSteady   activeStatusStart;
+  UiCanvasFlags flags;
+  i32           order;
+  EcsEntityId   window;
+  UiCmdBuffer*  cmdBuffer;
+  UiId          nextId;
+  DynArray      elements;   // UiElement[]
+  UiVector      resolution; // Resolution of the canvas in ui-pixels.
+  UiVector      inputDelta, inputPos;
+  UiId          activeId;
+  UiStatus      activeStatus;
+  TimeSteady    activeStatusStart;
 };
 
 static void ecs_destruct_renderer(void* data) {
@@ -230,6 +235,12 @@ ecs_system_define(UiCanvasInputSys) {
 
     if (gap_window_events(window) & GapWindowEvents_FocusLost) {
       ui_canvas_set_active(canvas, sentinel_u64, UiStatus_Idle);
+    }
+
+    if (gap_window_events(window) & GapWindowEvents_KeyPressed) {
+      canvas->flags |= UiCanvasFlags_InputAny;
+    } else {
+      canvas->flags &= ~UiCanvasFlags_InputAny;
     }
 
     const f32 scale    = settings ? settings->scale : 1.0f;
@@ -423,6 +434,9 @@ UiRect ui_canvas_elem_rect(const UiCanvasComp* comp, const UiId id) {
 
 UiStatus ui_canvas_status(const UiCanvasComp* comp) { return comp->activeStatus; }
 UiVector ui_canvas_resolution(const UiCanvasComp* comp) { return comp->resolution; }
+bool     ui_canvas_input_any(const UiCanvasComp* comp) {
+  return (comp->flags & UiCanvasFlags_InputAny) != 0;
+}
 UiVector ui_canvas_input_delta(const UiCanvasComp* comp) { return comp->inputDelta; }
 UiVector ui_canvas_input_pos(const UiCanvasComp* comp) { return comp->inputPos; }
 

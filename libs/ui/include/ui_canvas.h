@@ -48,6 +48,7 @@ void ui_canvas_id_skip(UiCanvasComp*);
  */
 UiStatus ui_canvas_status(const UiCanvasComp*);
 UiVector ui_canvas_resolution(const UiCanvasComp*);
+bool     ui_canvas_input_any(const UiCanvasComp*);
 UiVector ui_canvas_input_delta(const UiCanvasComp*);
 UiVector ui_canvas_input_pos(const UiCanvasComp*);
 

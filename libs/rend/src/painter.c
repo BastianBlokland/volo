@@ -29,9 +29,10 @@ typedef struct {
   GeoMatrix viewProj;
   GeoVector camPosition;
   GeoQuat   camRotation;
+  f32       aspectRatio;
 } RendPainterGlobalData;
 
-ASSERT(sizeof(RendPainterGlobalData) == 96, "Size needs to match the size defined in glsl");
+ASSERT(sizeof(RendPainterGlobalData) == 112, "Size needs to match the size defined in glsl");
 
 ecs_view_define(GlobalView) {
   ecs_access_write(RendPlatformComp);
@@ -141,6 +142,7 @@ static bool painter_draw(
         .viewProj    = viewProj,
         .camPosition = trans ? trans->position : geo_vector(0),
         .camRotation = trans ? trans->rotation : geo_quat_ident,
+        .aspectRatio = (f32)resolution.width / (f32)resolution.height,
     };
 
     RvkPass* forwardPass = rvk_canvas_pass_forward(painter->canvas);

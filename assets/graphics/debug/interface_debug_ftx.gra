@@ -1,0 +1,31 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/debug/texture_viewer.vert.spv"
+    },
+    {
+      "shaderId": "shaders/debug/texture_viewer.frag.spv",
+      "overrides": [
+        {
+          "name": "onlyRChannel",
+          "binding": 0,
+          "value": 1
+        }
+      ]
+    }
+  ],
+  "samplers": [
+    {
+      "textureId": "fonts/ui.ftx",
+      "wrap": "Clamp",
+      "filter": "Linear"
+    }
+  ],
+  "vertexCount": 4,
+  "renderOrder": 200,
+  "topology": "TriangleFan",
+  "rasterizer": "Fill",
+  "blend": "None",
+  "depth": "None",
+  "cull": "None"
+}
