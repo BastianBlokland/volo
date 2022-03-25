@@ -28,9 +28,14 @@ typedef enum {
   UiCanvasFlags_InputAny = 1 << 0,
 } UiCanvasFlags;
 
+typedef enum {
+  UiRendererFlags_Disabled = 1 << 0,
+} UiRendererFlags;
+
 ecs_comp_define(UiRendererComp) {
-  EcsEntityId draw;
-  DynArray    overlayGlyphs; // UiGlyphData[]
+  UiRendererFlags flags;
+  EcsEntityId     draw;
+  DynArray        overlayGlyphs; // UiGlyphData[]
 };
 
 ecs_comp_define(UiCanvasComp) {
@@ -308,6 +313,12 @@ ecs_system_define(UiRenderSys) {
     UiSettingsComp*      settings = ecs_view_write_t(itr, UiSettingsComp);
     if (!renderer) {
       ui_renderer_create(world, entity);
+      continue;
+    }
+    if (gap_window_key_released(window, GapKey_F12)) {
+      renderer->flags ^= UiRendererFlags_Disabled;
+    }
+    if (UNLIKELY(renderer->flags & UiRendererFlags_Disabled)) {
       continue;
     }
 
