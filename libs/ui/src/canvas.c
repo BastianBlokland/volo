@@ -21,8 +21,9 @@ typedef UiCanvasComp*       UiCanvasPtr;
 typedef const UiCanvasComp* UiCanvasConstPtr;
 
 typedef struct {
+  UiId   id;
   UiRect rect;
-} UiElement;
+} UiTrackedElem;
 
 typedef enum {
   UiCanvasFlags_InputAny = 1 << 0,
@@ -44,8 +45,8 @@ ecs_comp_define(UiCanvasComp) {
   EcsEntityId   window;
   UiCmdBuffer*  cmdBuffer;
   UiId          nextId;
-  DynArray      elements;   // UiElement[]
-  UiVector      resolution; // Resolution of the canvas in ui-pixels.
+  DynArray      trackedElems; // UiTrackedElem[]
+  UiVector      resolution;   // Resolution of the canvas in ui-pixels.
   UiVector      inputDelta, inputPos;
   UiId          activeId;
   UiStatus      activeStatus;
@@ -60,13 +61,17 @@ static void ecs_destruct_renderer(void* data) {
 static void ecs_destruct_canvas(void* data) {
   UiCanvasComp* comp = data;
   ui_cmdbuffer_destroy(comp->cmdBuffer);
-  dynarray_destroy(&comp->elements);
+  dynarray_destroy(&comp->trackedElems);
 }
 
-static i8 ui_canvas_ptr_compare_order(const void* a, const void* b) {
+static i8 ui_canvas_ptr_compare(const void* a, const void* b) {
   const UiCanvasConstPtr* canvasPtrA = a;
   const UiCanvasConstPtr* canvasPtrB = b;
   return compare_i32(&(*(canvasPtrA))->order, &(*canvasPtrB)->order);
+}
+
+static i8 ui_tracked_elem_compare(const void* a, const void* b) {
+  return compare_u64(field_ptr(a, UiTrackedElem, id), field_ptr(b, UiTrackedElem, id));
 }
 
 typedef struct {
@@ -104,11 +109,25 @@ static UiDrawMetaData ui_draw_metadata(const UiRenderState* state, const AssetFt
   return meta;
 }
 
-static const UiElement* ui_canvas_elem(const UiCanvasComp* canvas, const UiId id) {
-  if (id >= canvas->elements.size) {
-    return null;
+static const UiTrackedElem* ui_canvas_tracked_get(const UiCanvasComp* canvas, const UiId id) {
+  return dynarray_search_binary(
+      (DynArray*)&canvas->trackedElems,
+      ui_tracked_elem_compare,
+      mem_struct(UiTrackedElem, .id = id).ptr);
+}
+
+static UiTrackedElem* ui_canvas_tracked_add(UiCanvasComp* canvas, const UiId id) {
+  // TODO: This could be optimized to a single binary search if needed.
+  UiTrackedElem* elem = (UiTrackedElem*)ui_canvas_tracked_get(canvas, id);
+  if (!elem) {
+    elem = dynarray_insert_sorted_t(
+        (DynArray*)&canvas->trackedElems,
+        UiTrackedElem,
+        ui_tracked_elem_compare,
+        mem_struct(UiTrackedElem, .id = id).ptr);
+    elem->id = id;
   }
-  return dynarray_at_t(&canvas->elements, id, UiElement);
+  return elem;
 }
 
 static u8 ui_canvas_output_clip_rect(void* userCtx, const UiRect rect) {
@@ -134,8 +153,8 @@ static void ui_canvas_output_glyph(void* userCtx, const UiGlyphData data, const 
 }
 
 static void ui_canvas_output_rect(void* userCtx, const UiId id, const UiRect rect) {
-  UiRenderState* state                                         = userCtx;
-  dynarray_at_t(&state->canvas->elements, id, UiElement)->rect = rect;
+  UiRenderState* state                           = userCtx;
+  ui_canvas_tracked_add(state->canvas, id)->rect = rect;
 }
 
 static void ui_canvas_set_active(UiCanvasComp* canvas, const UiId id, const UiStatus status) {
@@ -185,10 +204,7 @@ static void ui_canvas_update_interaction(
 }
 
 static UiBuildResult ui_canvas_build(UiRenderState* state, const UiId debugElem) {
-
-  // Ensure we have UiElement structures for all elements that are requested to be drawn.
-  dynarray_resize(&state->canvas->elements, state->canvas->nextId);
-  mem_set(dynarray_at(&state->canvas->elements, 0, state->canvas->nextId), 0);
+  dynarray_clear(&state->canvas->trackedElems);
 
   const UiBuildCtx buildCtx = {
       .settings       = state->settings,
@@ -343,7 +359,7 @@ ecs_system_define(UiRenderSys) {
     UiCanvasPtr canvasses[ui_canvas_canvasses_max];
     const u32   canvasCount = ui_canvass_query(world, entity, canvasses);
 
-    sort_quicksort_t(canvasses, canvasses + canvasCount, UiCanvasPtr, ui_canvas_ptr_compare_order);
+    sort_quicksort_t(canvasses, canvasses + canvasCount, UiCanvasPtr, ui_canvas_ptr_compare);
 
     u32  hoveredCanvasIndex = sentinel_u32;
     UiId hoveredId;
@@ -410,9 +426,9 @@ EcsEntityId ui_canvas_create(EcsWorld* world, const EcsEntityId window) {
       world,
       canvasEntity,
       UiCanvasComp,
-      .window    = window,
-      .cmdBuffer = ui_cmdbuffer_create(g_alloc_heap),
-      .elements  = dynarray_create_t(g_alloc_heap, UiElement, 128));
+      .window       = window,
+      .cmdBuffer    = ui_cmdbuffer_create(g_alloc_heap),
+      .trackedElems = dynarray_create_t(g_alloc_heap, UiTrackedElem, 16));
 
   ui_canvas_to_front(canvas);
 
@@ -441,7 +457,7 @@ TimeDuration ui_canvas_elem_status_duration(const UiCanvasComp* comp, const UiId
 }
 
 UiRect ui_canvas_elem_rect(const UiCanvasComp* comp, const UiId id) {
-  const UiElement* elem = ui_canvas_elem(comp, id);
+  const UiTrackedElem* elem = ui_canvas_tracked_get(comp, id);
   return elem ? elem->rect : ui_rect(ui_vector(0, 0), ui_vector(0, 0));
 }
 
