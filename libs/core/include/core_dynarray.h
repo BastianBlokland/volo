@@ -193,6 +193,13 @@ void* dynarray_search_linear(DynArray*, CompareFunc, const void* target);
 void* dynarray_search_binary(DynArray*, CompareFunc, const void* target);
 
 /**
+ * Find an existing element matching the given target using a binary search or insert a new element.
+ * NOTE: Newly inserted elements are zero initialized.
+ * Pre-condition: array is sorted.
+ */
+void* dynarray_find_or_insert_sorted(DynArray*, CompareFunc, const void* target);
+
+/**
  * Shuffle the array using the given RandomNumberGenerator.
  */
 void dynarray_shuffle(DynArray*, Rng*);

@@ -20,6 +20,10 @@
 typedef UiCanvasComp*       UiCanvasPtr;
 typedef const UiCanvasComp* UiCanvasConstPtr;
 
+/**
+ * Element information that is tracked during ui build / render and can be queried next frame.
+ * NOTE: Cleared at the start of every ui-build.
+ */
 typedef struct {
   UiId   id;
   UiRect rect;
@@ -109,25 +113,11 @@ static UiDrawMetaData ui_draw_metadata(const UiRenderState* state, const AssetFt
   return meta;
 }
 
-static const UiTrackedElem* ui_canvas_tracked_get(const UiCanvasComp* canvas, const UiId id) {
-  return dynarray_search_binary(
-      (DynArray*)&canvas->trackedElems,
-      ui_tracked_elem_compare,
-      mem_struct(UiTrackedElem, .id = id).ptr);
-}
-
-static UiTrackedElem* ui_canvas_tracked_add(UiCanvasComp* canvas, const UiId id) {
-  // TODO: This could be optimized to a single binary search if needed.
-  UiTrackedElem* elem = (UiTrackedElem*)ui_canvas_tracked_get(canvas, id);
-  if (!elem) {
-    elem = dynarray_insert_sorted_t(
-        (DynArray*)&canvas->trackedElems,
-        UiTrackedElem,
-        ui_tracked_elem_compare,
-        mem_struct(UiTrackedElem, .id = id).ptr);
-    elem->id = id;
-  }
-  return elem;
+static UiTrackedElem* ui_canvas_tracked(UiCanvasComp* canvas, const UiId id) {
+  UiTrackedElem* res = dynarray_find_or_insert_sorted(
+      &canvas->trackedElems, ui_tracked_elem_compare, mem_struct(UiTrackedElem, .id = id).ptr);
+  res->id = id;
+  return res;
 }
 
 static u8 ui_canvas_output_clip_rect(void* userCtx, const UiRect rect) {
@@ -153,8 +143,8 @@ static void ui_canvas_output_glyph(void* userCtx, const UiGlyphData data, const 
 }
 
 static void ui_canvas_output_rect(void* userCtx, const UiId id, const UiRect rect) {
-  UiRenderState* state                           = userCtx;
-  ui_canvas_tracked_add(state->canvas, id)->rect = rect;
+  UiRenderState* state                       = userCtx;
+  ui_canvas_tracked(state->canvas, id)->rect = rect;
 }
 
 static void ui_canvas_set_active(UiCanvasComp* canvas, const UiId id, const UiStatus status) {
@@ -457,8 +447,7 @@ TimeDuration ui_canvas_elem_status_duration(const UiCanvasComp* comp, const UiId
 }
 
 UiRect ui_canvas_elem_rect(const UiCanvasComp* comp, const UiId id) {
-  const UiTrackedElem* elem = ui_canvas_tracked_get(comp, id);
-  return elem ? elem->rect : ui_rect(ui_vector(0, 0), ui_vector(0, 0));
+  return ui_canvas_tracked((UiCanvasComp*)comp, id)->rect;
 }
 
 UiStatus ui_canvas_status(const UiCanvasComp* comp) { return comp->activeStatus; }

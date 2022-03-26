@@ -159,6 +159,30 @@ void* dynarray_search_binary(DynArray* array, CompareFunc compare, const void* t
   return search_binary(mem_begin(mem), mem_end(mem), array->stride, compare, target);
 }
 
+void* dynarray_find_or_insert_sorted(DynArray* array, CompareFunc compare, const void* target) {
+  /**
+   * Do a binary-search for the first entry that compares 'greater', which means the target has to
+   * be the one before that. If its not that means the target is not in the array.
+   */
+  const Mem mem          = dynarray_at(array, 0, array->size);
+  void*     begin        = mem_begin(mem);
+  void*     end          = mem_end(mem);
+  void*     greater      = search_binary_greater(begin, end, array->stride, compare, target);
+  void*     greaterOrEnd = greater ? greater : end;
+
+  // Check if the entry before the greater entry matches the given target.
+  void* prev = bits_ptr_offset(greaterOrEnd, -(iptr)array->stride);
+  if (prev >= begin && compare(prev, target) == 0) {
+    return prev; // Existing entry found.
+  }
+
+  // Insert a new item at the 'greater' location (maintains sorting).
+  const usize idx = ((u8*)greaterOrEnd - (u8*)begin) / array->stride;
+  Mem         res = dynarray_insert(array, idx, 1);
+  mem_set(res, 0); // Clear the new memory.
+  return res.ptr;
+}
+
 void dynarray_shuffle(DynArray* array, Rng* rng) {
   const Mem mem = dynarray_at(array, 0, array->size);
   shuffle_fisheryates(rng, mem_begin(mem), mem_end(mem), array->stride);

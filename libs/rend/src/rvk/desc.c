@@ -277,11 +277,11 @@ VkDescriptorSetLayout rvk_desc_vklayout(RvkDescPool* pool, const RvkDescMeta* me
   thread_mutex_lock(pool->layoutLock);
 
   // Find an existing layout that matches the given descriptor meta or create a new one.
-  RvkDescLayout* tgt    = mem_struct(RvkDescLayout, .metaHash = hash).ptr;
-  RvkDescLayout* layout = dynarray_search_binary(&pool->layouts, rvk_desc_compare_layout, tgt);
+  RvkDescLayout* tgt = mem_struct(RvkDescLayout, .metaHash = hash).ptr;
+  RvkDescLayout* layout =
+      dynarray_find_or_insert_sorted(&pool->layouts, rvk_desc_compare_layout, tgt);
 
-  if (!layout) {
-    layout  = dynarray_insert_sorted_t(&pool->layouts, RvkDescLayout, rvk_desc_compare_layout, tgt);
+  if (layout->metaHash != hash) {
     *layout = (RvkDescLayout){
         .metaHash = hash,
         .meta     = *meta,
