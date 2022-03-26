@@ -33,6 +33,7 @@ typedef struct {
   UiBuildContainer    containerStack[ui_build_container_stack_max];
   u32                 containerStackCount;
   UiId                hoveredId;
+  UiLayer             hoveredLayer;
 } UiBuildState;
 
 static UiRect* ui_build_rect_currect(UiBuildState* state) {
@@ -197,8 +198,11 @@ ui_build_cull(const UiBuildContainer container, const UiRect rect, const UiBuild
   return !ui_rect_intersect(container.rect, rect, style.outline);
 }
 
-static bool
-ui_build_is_hovered(UiBuildState* state, const UiBuildContainer container, const UiRect rect) {
+static bool ui_build_is_hovered(
+    UiBuildState* state, const UiBuildContainer container, const UiRect rect, const UiLayer layer) {
+  if (!sentinel_check(state->hoveredId) && state->hoveredLayer > layer) {
+    return false; // Something is already hovered on a higher layer.
+  }
   return ui_rect_contains(rect, state->ctx->inputPos) &&
          ui_rect_contains(container.rect, state->ctx->inputPos);
 }
@@ -214,8 +218,9 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
   const bool debugInspector = state->ctx->settings->flags & UiSettingFlags_DebugInspector;
   const bool hoverable      = cmd->flags & UiFlags_Interactable || debugInspector;
 
-  if (hoverable && ui_build_is_hovered(state, container, rect)) {
-    state->hoveredId = cmd->id;
+  if (hoverable && ui_build_is_hovered(state, container, rect, style.layer)) {
+    state->hoveredId    = cmd->id;
+    state->hoveredLayer = style.layer;
   }
 
   const UiTextBuildResult result = ui_text_build(
@@ -247,8 +252,9 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
   const bool debugInspector = state->ctx->settings->flags & UiSettingFlags_DebugInspector;
   const bool hoverable      = cmd->flags & UiFlags_Interactable || debugInspector;
 
-  if (hoverable && ui_build_is_hovered(state, container, rect)) {
-    state->hoveredId = cmd->id;
+  if (hoverable && ui_build_is_hovered(state, container, rect, style.layer)) {
+    state->hoveredId    = cmd->id;
+    state->hoveredLayer = style.layer;
   }
 
   ui_build_glyph(state, cmd->cp, rect, style, cmd->maxCorner, container.clipId);
@@ -423,6 +429,7 @@ UiBuildResult ui_build(const UiCmdBuffer* cmdBuffer, const UiBuildCtx* ctx) {
   }
 
   return (UiBuildResult){
-      .hoveredId = state.hoveredId,
+      .hoveredId    = state.hoveredId,
+      .hoveredLayer = state.hoveredLayer,
   };
 }

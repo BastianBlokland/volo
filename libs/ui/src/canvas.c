@@ -374,16 +374,18 @@ ecs_system_define(UiRenderSys) {
 
     sort_quicksort_t(canvasses, canvasses + canvasCount, UiCanvasPtr, ui_canvas_ptr_compare);
 
-    u32  hoveredCanvasIndex = sentinel_u32;
-    UiId hoveredId;
+    u32     hoveredCanvasIndex = sentinel_u32;
+    UiLayer hoveredLayer       = 0;
+    UiId    hoveredId;
     for (u32 i = 0; i != canvasCount; ++i) {
       canvasses[i]->order = i;
       renderState.canvas  = canvasses[i];
 
       const UiId          debugElem = ui_canvas_debug_elem(canvasses[i], settings);
       const UiBuildResult result    = ui_canvas_build(&renderState, debugElem);
-      if (!sentinel_check(result.hoveredId)) {
+      if (!sentinel_check(result.hoveredId) && result.hoveredLayer >= hoveredLayer) {
         hoveredCanvasIndex = i;
+        hoveredLayer       = result.hoveredLayer;
         hoveredId          = result.hoveredId;
       }
     }
