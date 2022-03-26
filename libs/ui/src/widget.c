@@ -291,7 +291,18 @@ static UiSelectFlags ui_select_dropdown(
     UiStatus   status = ui_canvas_elem_status(canvas, id);
 
     ui_style_push(canvas);
-    ui_interactable_frame_style(canvas, opts->dropFrameColor, status);
+    switch (status) {
+    case UiStatus_Hovered:
+      ui_style_color_with_mult(canvas, opts->dropFrameColor, 2);
+      break;
+    case UiStatus_Pressed:
+    case UiStatus_Activated:
+      ui_style_color_with_mult(canvas, opts->dropFrameColor, 3);
+      break;
+    case UiStatus_Idle:
+      ui_style_color(canvas, opts->dropFrameColor);
+      break;
+    }
     ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_Interactable);
     ui_style_pop(canvas);
 
