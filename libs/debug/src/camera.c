@@ -132,7 +132,11 @@ static void camera_panel_draw(
   ui_grid_next_col(canvas, &layoutGrid);
   i32 projectionIdx = (camera->flags & SceneCameraFlags_Orthographic) != 0;
   if (ui_select(canvas, &projectionIdx, g_projectionNames, 2)) {
-    camera->flags ^= SceneCameraFlags_Orthographic;
+    if (projectionIdx == 1) {
+      camera->flags |= SceneCameraFlags_Orthographic;
+    } else {
+      camera->flags &= ~SceneCameraFlags_Orthographic;
+    }
   }
   ui_grid_next_row(canvas, &layoutGrid);
 
