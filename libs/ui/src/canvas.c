@@ -189,6 +189,7 @@ static void ui_canvas_update_interaction(
     const UiFlags        hoveredFlags) {
 
   const bool inputDown     = gap_window_key_down(window, GapKey_MouseLeft);
+  const bool inputPressed  = gap_window_key_pressed(window, GapKey_MouseLeft);
   const bool inputReleased = gap_window_key_released(window, GapKey_MouseLeft);
 
   if (UNLIKELY(settings->flags & UiSettingFlags_DebugInspector)) {
@@ -202,8 +203,9 @@ static void ui_canvas_update_interaction(
   const UiFlags activeFlags         = canvas->activeElemFlags;
   const bool    hasActiveElem       = !sentinel_check(canvas->activeId);
   const bool    activeElemIsHovered = canvas->activeId == hoveredId;
+  const bool    activeInput = activeFlags & UiFlags_InteractOnPress ? inputPressed : inputReleased;
 
-  if (hasActiveElem && activeElemIsHovered && inputReleased) {
+  if (hasActiveElem && activeElemIsHovered && activeInput) {
     ui_canvas_set_active(canvas, canvas->activeId, UiStatus_Activated);
     return;
   }

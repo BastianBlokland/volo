@@ -255,8 +255,10 @@ static void ui_select_header(
   if (isOpen) {
     ui_style_outline(canvas, 3);
   }
-  ui_canvas_draw_glyph(
-      canvas, UiShape_Square, 0, UiFlags_Interactable | UiFlags_InteractAllowSwitch);
+  const UiFlags flags =
+      isOpen ? (UiFlags_Interactable | UiFlags_InteractAllowSwitch)
+             : (UiFlags_Interactable | UiFlags_InteractOnPress | UiFlags_InteractAllowSwitch);
+  ui_canvas_draw_glyph(canvas, UiShape_Square, 0, flags);
   ui_style_pop(canvas);
 
   ui_style_push(canvas);

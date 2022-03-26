@@ -24,9 +24,9 @@ typedef enum {
 typedef enum {
   UiFlags_None                = 0,
   UiFlags_Interactable        = 1 << 0,
-  UiFlags_InteractAllowSwitch = 1 << 1, // Allow switching targets while holding input down.
-  UiFlags_TrackRect           = 1 << 2,
-
+  UiFlags_InteractOnPress     = 1 << 1, // Activate on 'Press' instead of 'Release'.
+  UiFlags_InteractAllowSwitch = 1 << 2, // Allow switching targets while holding input down.
+  UiFlags_TrackRect           = 1 << 3,
 } UiFlags;
 
 typedef enum {
