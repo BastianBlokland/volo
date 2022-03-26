@@ -125,7 +125,7 @@ static void ui_slider_handle(
     const String label = fmt_write_scratch("{}", fmt_float(value, .maxDecDigits = 2));
     ui_canvas_draw_text(canvas, label, 15, UiAlign_BottomCenter, UiFlags_None);
   } else {
-    ui_canvas_id_skip(canvas);
+    ui_canvas_id_skip(canvas, 1);
   }
 
   ui_style_pop(canvas);
@@ -223,7 +223,7 @@ bool ui_toggle_with_opts(UiCanvasComp* canvas, bool* input, const UiToggleOpts* 
   if (*input) {
     ui_toggle_check(canvas, status, opts);
   } else {
-    ui_canvas_id_skip(canvas);
+    ui_canvas_id_skip(canvas, 1);
   }
 
   if (!string_is_empty(opts->tooltip)) {
@@ -284,8 +284,7 @@ bool ui_tooltip_with_opts(
   const bool showTooltip = ui_canvas_elem_status(canvas, id) == UiStatus_Hovered &&
                            ui_canvas_elem_status_duration(canvas, id) >= time_second;
   if (!showTooltip) {
-    ui_canvas_id_skip(canvas);
-    ui_canvas_id_skip(canvas);
+    ui_canvas_id_skip(canvas, 2);
     return false;
   }
 
@@ -319,7 +318,7 @@ bool ui_tooltip_with_opts(
 
   ui_style_layer(canvas, firstFrame ? UiLayer_Invisible : UiLayer_Overlay);
   if (firstFrame) {
-    ui_canvas_id_skip(canvas);
+    ui_canvas_id_skip(canvas, 1);
   } else {
     ui_tooltip_background(canvas, dir, align, lastTextRect);
   }

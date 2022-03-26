@@ -461,7 +461,7 @@ void ui_canvas_to_front(UiCanvasComp* comp) { comp->order = i32_max; }
 void ui_canvas_to_back(UiCanvasComp* comp) { comp->order = i32_min; }
 
 UiId ui_canvas_id_peek(const UiCanvasComp* comp) { return comp->nextId; }
-void ui_canvas_id_skip(UiCanvasComp* comp) { ++comp->nextId; }
+void ui_canvas_id_skip(UiCanvasComp* comp, const u64 count) { comp->nextId += count; }
 
 UiStatus ui_canvas_elem_status(const UiCanvasComp* comp, const UiId id) {
   return id == comp->activeId ? comp->activeStatus : UiStatus_Idle;

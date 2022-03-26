@@ -46,7 +46,7 @@ void ui_canvas_to_back(UiCanvasComp*);
  * Query / manipulate values in the ui-id sequence.
  */
 UiId ui_canvas_id_peek(const UiCanvasComp*);
-void ui_canvas_id_skip(UiCanvasComp*);
+void ui_canvas_id_skip(UiCanvasComp*, u64 count);
 
 /**
  * Query general canvas information.
