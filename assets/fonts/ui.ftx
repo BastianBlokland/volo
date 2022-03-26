@@ -7,6 +7,7 @@
     {
       "id": "fonts/roboto_medium.ttf",
       "yOffset": -0.05,
+      "advanceMult": 1.05,
       "characters": "\u0020!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
     },
     {
