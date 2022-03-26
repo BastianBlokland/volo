@@ -43,6 +43,12 @@ void ui_canvas_to_front(UiCanvasComp*);
 void ui_canvas_to_back(UiCanvasComp*);
 
 /**
+ * Ignore interactions below the given layer.
+ * NOTE: Is cleared on canvas reset.
+ */
+void ui_canvas_min_interact_layer(UiCanvasComp*, UiLayer);
+
+/**
  * Query / manipulate values in the ui-id sequence.
  */
 UiId ui_canvas_id_peek(const UiCanvasComp*);

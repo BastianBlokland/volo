@@ -354,6 +354,7 @@ bool ui_select_with_opts(
   ui_style_push(canvas);
   if (isOpen) {
     ui_style_layer(canvas, UiLayer_Overlay);
+    ui_canvas_min_interact_layer(canvas, UiLayer_Overlay);
   }
   if (disabled) {
     ui_style_color_mult(canvas, g_uiDisabledMult);

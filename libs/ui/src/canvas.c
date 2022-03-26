@@ -60,6 +60,7 @@ ecs_comp_define(UiCanvasComp) {
   DynArray      trackedElems;    // UiTrackedElem[]
   DynArray      persistentElems; // UiPersistentElem[]
   UiVector      resolution;      // Resolution of the canvas in ui-pixels.
+  UiLayer       minInteractLayer;
   UiVector      inputDelta, inputPos;
   UiId          activeId;
   UiStatus      activeStatus;
@@ -287,7 +288,6 @@ ecs_system_define(UiCanvasInputSys) {
 }
 
 static void ui_renderer_create(EcsWorld* world, const EcsEntityId window) {
-
   const EcsEntityId drawEntity = ecs_world_entity_create(world);
   ecs_world_add_t(world, drawEntity, SceneLifetimeOwnerComp, .owner = window);
 
@@ -378,10 +378,11 @@ ecs_system_define(UiRenderSys) {
     UiLayer hoveredLayer       = 0;
     UiId    hoveredId;
     for (u32 i = 0; i != canvasCount; ++i) {
-      canvasses[i]->order = i;
-      renderState.canvas  = canvasses[i];
+      UiCanvasComp* canvas = canvasses[i];
+      canvas->order        = i;
+      renderState.canvas   = canvas;
 
-      const UiId          debugElem = ui_canvas_debug_elem(canvasses[i], settings);
+      const UiId          debugElem = ui_canvas_debug_elem(canvas, settings);
       const UiBuildResult result    = ui_canvas_build(&renderState, debugElem);
       if (!sentinel_check(result.hoveredId) && result.hoveredLayer >= hoveredLayer) {
         hoveredCanvasIndex = i;
@@ -394,9 +395,10 @@ ecs_system_define(UiRenderSys) {
       hoveredCanvasIndex = sentinel_u32;
     }
     for (u32 i = 0; i != canvasCount; ++i) {
-      const bool isHovered   = hoveredCanvasIndex == i;
-      const UiId hoveredElem = isHovered ? hoveredId : sentinel_u64;
-      ui_canvas_update_interaction(canvasses[i], settings, window, hoveredElem);
+      UiCanvasComp* canvas    = canvasses[i];
+      const bool    isHovered = hoveredCanvasIndex == i && hoveredLayer >= canvas->minInteractLayer;
+      const UiId    hoveredElem = isHovered ? hoveredId : sentinel_u64;
+      ui_canvas_update_interaction(canvas, settings, window, hoveredElem);
     }
 
     // Add the overlay glyphs, at this stage all the normal glyphs have already been added.
@@ -454,11 +456,16 @@ EcsEntityId ui_canvas_create(EcsWorld* world, const EcsEntityId window) {
 
 void ui_canvas_reset(UiCanvasComp* comp) {
   ui_cmdbuffer_clear(comp->cmdBuffer);
-  comp->nextId = 0;
+  comp->nextId           = 0;
+  comp->minInteractLayer = 0;
 }
 
 void ui_canvas_to_front(UiCanvasComp* comp) { comp->order = i32_max; }
 void ui_canvas_to_back(UiCanvasComp* comp) { comp->order = i32_min; }
+
+void ui_canvas_min_interact_layer(UiCanvasComp* comp, const UiLayer layer) {
+  comp->minInteractLayer = layer;
+}
 
 UiId ui_canvas_id_peek(const UiCanvasComp* comp) { return comp->nextId; }
 void ui_canvas_id_skip(UiCanvasComp* comp, const u64 count) { comp->nextId += count; }
