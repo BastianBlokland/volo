@@ -29,6 +29,14 @@ typedef struct {
   UiRect rect;
 } UiTrackedElem;
 
+/**
+ * Persistent element data.
+ */
+typedef struct {
+  UiId              id;
+  UiPersistentFlags flags;
+} UiPersistentElem;
+
 typedef enum {
   UiCanvasFlags_InputAny = 1 << 0,
 } UiCanvasFlags;
@@ -49,8 +57,9 @@ ecs_comp_define(UiCanvasComp) {
   EcsEntityId   window;
   UiCmdBuffer*  cmdBuffer;
   UiId          nextId;
-  DynArray      trackedElems; // UiTrackedElem[]
-  UiVector      resolution;   // Resolution of the canvas in ui-pixels.
+  DynArray      trackedElems;    // UiTrackedElem[]
+  DynArray      persistentElems; // UiPersistentElem[]
+  UiVector      resolution;      // Resolution of the canvas in ui-pixels.
   UiVector      inputDelta, inputPos;
   UiId          activeId;
   UiStatus      activeStatus;
@@ -66,6 +75,7 @@ static void ecs_destruct_canvas(void* data) {
   UiCanvasComp* comp = data;
   ui_cmdbuffer_destroy(comp->cmdBuffer);
   dynarray_destroy(&comp->trackedElems);
+  dynarray_destroy(&comp->persistentElems);
 }
 
 static i8 ui_canvas_ptr_compare(const void* a, const void* b) {
@@ -76,6 +86,10 @@ static i8 ui_canvas_ptr_compare(const void* a, const void* b) {
 
 static i8 ui_tracked_elem_compare(const void* a, const void* b) {
   return compare_u64(field_ptr(a, UiTrackedElem, id), field_ptr(b, UiTrackedElem, id));
+}
+
+static i8 ui_persistent_elem_compare(const void* a, const void* b) {
+  return compare_u64(field_ptr(a, UiPersistentElem, id), field_ptr(b, UiPersistentElem, id));
 }
 
 typedef struct {
@@ -116,6 +130,15 @@ static UiDrawMetaData ui_draw_metadata(const UiRenderState* state, const AssetFt
 static UiTrackedElem* ui_canvas_tracked(UiCanvasComp* canvas, const UiId id) {
   UiTrackedElem* res = dynarray_find_or_insert_sorted(
       &canvas->trackedElems, ui_tracked_elem_compare, mem_struct(UiTrackedElem, .id = id).ptr);
+  res->id = id;
+  return res;
+}
+
+static UiPersistentElem* ui_canvas_persistent(UiCanvasComp* canvas, const UiId id) {
+  UiPersistentElem* res = dynarray_find_or_insert_sorted(
+      &canvas->trackedElems,
+      ui_persistent_elem_compare,
+      mem_struct(UiPersistentElem, .id = id).ptr);
   res->id = id;
   return res;
 }
@@ -416,9 +439,10 @@ EcsEntityId ui_canvas_create(EcsWorld* world, const EcsEntityId window) {
       world,
       canvasEntity,
       UiCanvasComp,
-      .window       = window,
-      .cmdBuffer    = ui_cmdbuffer_create(g_alloc_heap),
-      .trackedElems = dynarray_create_t(g_alloc_heap, UiTrackedElem, 16));
+      .window          = window,
+      .cmdBuffer       = ui_cmdbuffer_create(g_alloc_heap),
+      .trackedElems    = dynarray_create_t(g_alloc_heap, UiTrackedElem, 16),
+      .persistentElems = dynarray_create_t(g_alloc_heap, UiPersistentElem, 16));
 
   ui_canvas_to_front(canvas);
 
@@ -457,6 +481,20 @@ bool     ui_canvas_input_any(const UiCanvasComp* comp) {
 }
 UiVector ui_canvas_input_delta(const UiCanvasComp* comp) { return comp->inputDelta; }
 UiVector ui_canvas_input_pos(const UiCanvasComp* comp) { return comp->inputPos; }
+
+UiPersistentFlags ui_canvas_persistent_flags(const UiCanvasComp* comp, const UiId id) {
+  return ui_canvas_persistent((UiCanvasComp*)comp, id)->flags;
+}
+
+void ui_canvas_persistent_flags_set(
+    UiCanvasComp* comp, const UiId id, const UiPersistentFlags flags) {
+  ui_canvas_persistent(comp, id)->flags |= flags;
+}
+
+void ui_canvas_persistent_flags_unset(
+    UiCanvasComp* comp, const UiId id, const UiPersistentFlags flags) {
+  ui_canvas_persistent(comp, id)->flags &= ~flags;
+}
 
 UiId ui_canvas_draw_text(
     UiCanvasComp* comp,

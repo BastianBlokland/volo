@@ -27,6 +27,10 @@ typedef enum {
   UiFlags_TrackRect    = 1 << 1,
 } UiFlags;
 
+typedef enum {
+  UiPersistentFlags_Open = 1 << 0,
+} UiPersistentFlags;
+
 ecs_comp_extern(UiCanvasComp);
 
 EcsEntityId ui_canvas_create(EcsWorld*, EcsEntityId window);
@@ -60,6 +64,13 @@ UiVector ui_canvas_input_pos(const UiCanvasComp*);
 UiStatus     ui_canvas_elem_status(const UiCanvasComp*, UiId);
 TimeDuration ui_canvas_elem_status_duration(const UiCanvasComp*, UiId);
 UiRect       ui_canvas_elem_rect(const UiCanvasComp*, UiId);
+
+/**
+ * Get or set persistent element state.
+ */
+UiPersistentFlags ui_canvas_persistent_flags(const UiCanvasComp*, UiId);
+void              ui_canvas_persistent_flags_set(UiCanvasComp*, UiId, UiPersistentFlags);
+void              ui_canvas_persistent_flags_unset(UiCanvasComp*, UiId, UiPersistentFlags);
 
 /**
  * Draw text in the current rectangle.
