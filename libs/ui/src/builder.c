@@ -34,6 +34,7 @@ typedef struct {
   u32                 containerStackCount;
   UiId                hoveredId;
   UiLayer             hoveredLayer;
+  UiFlags             hoveredFlags;
 } UiBuildState;
 
 static UiRect* ui_build_rect_currect(UiBuildState* state) {
@@ -221,6 +222,7 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
   if (hoverable && ui_build_is_hovered(state, container, rect, style.layer)) {
     state->hoveredId    = cmd->id;
     state->hoveredLayer = style.layer;
+    state->hoveredFlags = cmd->flags;
   }
 
   const UiTextBuildResult result = ui_text_build(
@@ -255,6 +257,7 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
   if (hoverable && ui_build_is_hovered(state, container, rect, style.layer)) {
     state->hoveredId    = cmd->id;
     state->hoveredLayer = style.layer;
+    state->hoveredFlags = cmd->flags;
   }
 
   ui_build_glyph(state, cmd->cp, rect, style, cmd->maxCorner, container.clipId);
@@ -432,5 +435,6 @@ UiBuildResult ui_build(const UiCmdBuffer* cmdBuffer, const UiBuildCtx* ctx) {
   return (UiBuildResult){
       .hoveredId    = state.hoveredId,
       .hoveredLayer = state.hoveredLayer,
+      .hoveredFlags = state.hoveredFlags,
   };
 }

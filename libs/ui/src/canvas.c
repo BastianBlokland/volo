@@ -65,6 +65,7 @@ ecs_comp_define(UiCanvasComp) {
   UiId          activeId;
   UiStatus      activeStatus;
   TimeSteady    activeStatusStart;
+  UiFlags       activeElemFlags;
 };
 
 static void ecs_destruct_renderer(void* data) {
@@ -184,7 +185,8 @@ static void ui_canvas_update_interaction(
     UiCanvasComp*        canvas,
     UiSettingsComp*      settings,
     const GapWindowComp* window,
-    const UiId           hoveredId) {
+    const UiId           hoveredId,
+    const UiFlags        hoveredFlags) {
 
   const bool inputDown     = gap_window_key_down(window, GapKey_MouseLeft);
   const bool inputReleased = gap_window_key_released(window, GapKey_MouseLeft);
@@ -197,8 +199,9 @@ static void ui_canvas_update_interaction(
     return; // Normal input is disabled while using the debug inspector.
   }
 
-  const bool hasActiveElem       = !sentinel_check(canvas->activeId);
-  const bool activeElemIsHovered = canvas->activeId == hoveredId;
+  const UiFlags activeFlags         = canvas->activeElemFlags;
+  const bool    hasActiveElem       = !sentinel_check(canvas->activeId);
+  const bool    activeElemIsHovered = canvas->activeId == hoveredId;
 
   if (hasActiveElem && activeElemIsHovered && inputReleased) {
     ui_canvas_set_active(canvas, canvas->activeId, UiStatus_Activated);
@@ -208,13 +211,17 @@ static void ui_canvas_update_interaction(
     ui_canvas_set_active(canvas, canvas->activeId, UiStatus_Pressed);
     return;
   }
-  if (inputDown) {
+  const bool allowSwitch =
+      activeFlags & UiFlags_InteractAllowSwitch && hoveredFlags & UiFlags_InteractAllowSwitch;
+
+  if (inputDown && !allowSwitch) {
     return; // Keep the same element active while holding down the input.
   }
 
   // Select a new active element.
   ui_canvas_set_active(
       canvas, hoveredId, sentinel_check(hoveredId) ? UiStatus_Idle : UiStatus_Hovered);
+  canvas->activeElemFlags = hoveredFlags;
 }
 
 static UiBuildResult ui_canvas_build(UiRenderState* state, const UiId debugElem) {
@@ -377,6 +384,7 @@ ecs_system_define(UiRenderSys) {
     u32     hoveredCanvasIndex = sentinel_u32;
     UiLayer hoveredLayer       = 0;
     UiId    hoveredId;
+    UiFlags hoveredFlags;
     for (u32 i = 0; i != canvasCount; ++i) {
       UiCanvasComp* canvas = canvasses[i];
       canvas->order        = i;
@@ -388,6 +396,7 @@ ecs_system_define(UiRenderSys) {
         hoveredCanvasIndex = i;
         hoveredLayer       = result.hoveredLayer;
         hoveredId          = result.hoveredId;
+        hoveredFlags       = result.hoveredFlags;
       }
     }
     if (gap_window_flags(window) & (GapWindowFlags_CursorHide | GapWindowFlags_CursorLock)) {
@@ -398,7 +407,7 @@ ecs_system_define(UiRenderSys) {
       UiCanvasComp* canvas    = canvasses[i];
       const bool    isHovered = hoveredCanvasIndex == i && hoveredLayer >= canvas->minInteractLayer;
       const UiId    hoveredElem = isHovered ? hoveredId : sentinel_u64;
-      ui_canvas_update_interaction(canvas, settings, window, hoveredElem);
+      ui_canvas_update_interaction(canvas, settings, window, hoveredElem, hoveredFlags);
     }
 
     // Add the overlay glyphs, at this stage all the normal glyphs have already been added.
