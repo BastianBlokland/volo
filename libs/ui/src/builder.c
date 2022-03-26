@@ -412,6 +412,7 @@ UiBuildResult ui_build(const UiCmdBuffer* cmdBuffer, const UiBuildCtx* ctx) {
               .color     = ctx->settings->defaultColor,
               .outline   = ctx->settings->defaultOutline,
               .variation = ctx->settings->defaultVariation,
+              .layer     = UiLayer_Normal,
           },
       .styleStackCount = 1,
       .containerStack[0] =
