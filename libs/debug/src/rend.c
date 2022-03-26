@@ -1,3 +1,4 @@
+#include "core_array.h"
 #include "ecs_world.h"
 #include "rend_reset.h"
 #include "rend_settings.h"
@@ -5,7 +6,12 @@
 
 // clang-format off
 
-static const String g_tooltipVSync          = string_static("Should presentation wait for VBlanks?");
+static const String g_tooltipPresent        = string_static("Presentation mode.\n\n"
+                                                            "Options:\n"
+                                                            "- \a~white\a|02Immediate\ar: Don't wait for a vblank but immediately output the new image.\n"
+                                                            "- \a~white\a|02VSync\ar: Wait for the next vblank to output the new image.\n"
+                                                            "- \a~white\a|02VSyncRelaxed\ar: Wait for the next vblank if the application is early, if the application is late then immediately output the new image.\n"
+                                                            "- \a~white\a|02Mailbox\ar: Wait for the next vblank to output a new image, but does not block acquiring a next image. If the application finishes another image before the vblank then it will replace the currently waiting image.");
 static const String g_tooltipScale          = string_static("Render resolution scale.");
 static const String g_tooltipLimiter        = string_static("Frame frequency limiter (in hz).\nNote: 0 disables the limiter.");
 static const String g_tooltipFrustumCulling = string_static("Should draws be culled if their bounds are outside of the view frustum?");
@@ -15,6 +21,13 @@ static const String g_tooltipDefaults       = string_static("Reset all settings 
 static const String g_tooltipReset          = string_static("Re-initialize the renderer.");
 
 // clang-format on
+
+static const String g_presentOptions[] = {
+    string_static("Immediate"),
+    string_static("VSync"),
+    string_static("VSyncRelaxed"),
+    string_static("Mailbox"),
+};
 
 ecs_comp_define(DebugRendPanelComp) {
   UiPanelState state;
@@ -41,12 +54,14 @@ static void rend_panel_draw(
 
   UiGridState layoutGrid = ui_grid_init(canvas, .size = {140, 25});
 
-  ui_label(canvas, string_lit("VSync"));
+  ui_label(canvas, string_lit("Present mode"));
   ui_grid_next_col(canvas, &layoutGrid);
-  bool vsync = settings->presentMode == RendPresentMode_VSyncRelaxed;
-  if (ui_toggle(canvas, &vsync, .tooltip = g_tooltipVSync)) {
-    settings->presentMode = vsync ? RendPresentMode_VSyncRelaxed : RendPresentMode_Immediate;
-  }
+  ui_select(
+      canvas,
+      (i32*)&settings->presentMode,
+      g_presentOptions,
+      array_elems(g_presentOptions),
+      .tooltip = g_tooltipPresent);
   ui_grid_next_row(canvas, &layoutGrid);
 
   ui_label(canvas, string_lit("Limiter"));
