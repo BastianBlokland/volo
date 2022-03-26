@@ -44,6 +44,13 @@ typedef struct {
 } UiToggleOpts;
 
 typedef struct {
+  UiWidgetFlags flags;
+  u16           fontSize;
+  UiColor       frameColor, dropFrameColor;
+  String        tooltip;
+} UiSelectOpts;
+
+typedef struct {
   u16      fontSize;
   UiVector maxSize;
 } UiTooltipOpts;
@@ -96,6 +103,18 @@ typedef struct {
     __VA_ARGS__}))
 
 /**
+ * Draw a select dropdown in the currently active canvas rectangle.
+ * Input value for the selected item is updated to the given i32 pointer.
+ * NOTE: Its important that the widget has a stable identifier in the canvas.
+ */
+#define ui_select(_CANVAS_, _VALUE_, _OPT_LABELS_, _OPT_COUNT_, ...)                               \
+  ui_select_with_opts((_CANVAS_), (_VALUE_), (_OPT_LABELS_), (_OPT_COUNT_), &((UiSelectOpts){      \
+    .fontSize               = 16,                                                                  \
+    .frameColor             = ui_color(32, 32, 32, 192),                                           \
+    .dropFrameColor         = ui_color(64, 64, 64, 235),                                           \
+    __VA_ARGS__}))
+
+/**
  * Draw a tooltip if the given element is being hovered.
  */
 #define ui_tooltip(_CANVAS_, _ID_, _TEXT_, ...) ui_tooltip_with_opts((_CANVAS_), (_ID_), (_TEXT_), \
@@ -110,4 +129,6 @@ void ui_label_with_opts(UiCanvasComp*, String text, const UiLabelOpts*);
 bool ui_button_with_opts(UiCanvasComp*, const UiButtonOpts*);
 bool ui_slider_with_opts(UiCanvasComp*, f32* value, const UiSliderOpts*);
 bool ui_toggle_with_opts(UiCanvasComp*, bool* value, const UiToggleOpts*);
+bool ui_select_with_opts(
+    UiCanvasComp*, i32* value, const String* options, u32 optionCount, const UiSelectOpts*);
 bool ui_tooltip_with_opts(UiCanvasComp*, UiId, String text, const UiTooltipOpts*);

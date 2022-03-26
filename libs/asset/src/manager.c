@@ -384,28 +384,14 @@ void asset_manager_create_mem(
 EcsEntityId asset_lookup(EcsWorld* world, AssetManagerComp* manager, const String id) {
   diag_assert_msg(!string_is_empty(id), "Asset id cannot be empty");
 
-  /**
-   * Find or create an asset entity.
-   * Do a binary-search for the first entry with a greater id hash, which means our asset has to be
-   * the one before that. If its not that means our asset is not in the lookup and should be
-   * inserted at the position of that greater element.
-   */
-  const u32   idHash  = bits_hash_32(id);
-  AssetEntry* begin   = dynarray_begin_t(&manager->lookup, AssetEntry);
-  AssetEntry* end     = dynarray_end_t(&manager->lookup, AssetEntry);
-  AssetEntry* greater = search_binary_greater_t(
-      begin, end, AssetEntry, asset_compare_entry, mem_struct(AssetEntry, .idHash = idHash).ptr);
-  AssetEntry* tgt = greater ? greater : end;
+  const AssetEntry tgt = {.idHash = bits_hash_32(id)};
+  AssetEntry* entry = dynarray_find_or_insert_sorted(&manager->lookup, asset_compare_entry, &tgt);
 
-  // Check if the entry before the greater entry matches the requested id.
-  if (tgt > begin && (tgt - 1)->idHash == idHash) {
-    return (tgt - 1)->asset; // Existing asset found.
+  if (entry->idHash != tgt.idHash) {
+    entry->idHash = tgt.idHash;
+    entry->asset  = asset_entity_create(world, id);
   }
-
-  // No asset found; create a new asset and insert it in the lookup.
-  const EcsEntityId newAsset                                    = asset_entity_create(world, id);
-  *dynarray_insert_t(&manager->lookup, tgt - begin, AssetEntry) = (AssetEntry){idHash, newAsset};
-  return newAsset;
+  return entry->asset;
 }
 
 void asset_acquire(EcsWorld* world, const EcsEntityId asset) {

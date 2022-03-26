@@ -311,4 +311,36 @@ spec(dynarray) {
 
     dynarray_destroy(&array);
   }
+
+  it("can find or insert a sorted entry") {
+    DynArray array = dynarray_create_over_t(mem_stack(256), u32);
+    check(array.size == 0);
+
+    u32  target = 0;
+    u32* found  = null;
+
+    target = 42;
+    found  = dynarray_find_or_insert_sorted(&array, compare_u32, &target);
+    check(array.size == 1);
+    check(*found == 0); // New entries are zero-initialized.
+    *found = 42;
+
+    target = 1337;
+    found  = dynarray_find_or_insert_sorted(&array, compare_u32, &target);
+    check(array.size == 2);
+    check(*found == 0); // New entries are zero-initialized.
+    *found = 1337;
+
+    target = 42;
+    found  = dynarray_find_or_insert_sorted(&array, compare_u32, &target);
+    check(array.size == 2);
+    check(*found == 42); // Existing entry is returned.
+
+    target = 1337;
+    found  = dynarray_find_or_insert_sorted(&array, compare_u32, &target);
+    check(array.size == 2);
+    check(*found == 1337); // Existing entry is returned.
+
+    dynarray_destroy(&array);
+  }
 }

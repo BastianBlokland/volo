@@ -22,9 +22,16 @@ typedef enum {
 } UiStatus;
 
 typedef enum {
-  UiFlags_None         = 0,
-  UiFlags_Interactable = 1 << 0,
+  UiFlags_None                = 0,
+  UiFlags_Interactable        = 1 << 0,
+  UiFlags_InteractOnPress     = 1 << 1, // Activate on 'Press' instead of 'Release'.
+  UiFlags_InteractAllowSwitch = 1 << 2, // Allow switching targets while holding input down.
+  UiFlags_TrackRect           = 1 << 3,
 } UiFlags;
+
+typedef enum {
+  UiPersistentFlags_Open = 1 << 0,
+} UiPersistentFlags;
 
 ecs_comp_extern(UiCanvasComp);
 
@@ -38,10 +45,16 @@ void ui_canvas_to_front(UiCanvasComp*);
 void ui_canvas_to_back(UiCanvasComp*);
 
 /**
+ * Ignore interactions below the given layer.
+ * NOTE: Is cleared on canvas reset.
+ */
+void ui_canvas_min_interact_layer(UiCanvasComp*, UiLayer);
+
+/**
  * Query / manipulate values in the ui-id sequence.
  */
 UiId ui_canvas_id_peek(const UiCanvasComp*);
-void ui_canvas_id_skip(UiCanvasComp*);
+void ui_canvas_id_skip(UiCanvasComp*, u64 count);
 
 /**
  * Query general canvas information.
@@ -59,6 +72,14 @@ UiVector ui_canvas_input_pos(const UiCanvasComp*);
 UiStatus     ui_canvas_elem_status(const UiCanvasComp*, UiId);
 TimeDuration ui_canvas_elem_status_duration(const UiCanvasComp*, UiId);
 UiRect       ui_canvas_elem_rect(const UiCanvasComp*, UiId);
+
+/**
+ * Get or set persistent element state.
+ */
+UiPersistentFlags ui_canvas_persistent_flags(const UiCanvasComp*, UiId);
+void              ui_canvas_persistent_flags_set(UiCanvasComp*, UiId, UiPersistentFlags);
+void              ui_canvas_persistent_flags_unset(UiCanvasComp*, UiId, UiPersistentFlags);
+void              ui_canvas_persistent_flags_toggle(UiCanvasComp*, UiId, UiPersistentFlags);
 
 /**
  * Draw text in the current rectangle.

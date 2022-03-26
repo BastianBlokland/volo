@@ -32,7 +32,14 @@ static const UiColor g_defaultColors[] = {
     {32, 255, 255, 255},
     {232, 232, 232, 192},
 };
-static const u32 g_defaultColorMaxIndex = array_elems(g_defaultColors) - 1;
+static const String g_defaultColorNames[] = {
+    string_static("\a#FFFFFFFFWhite"),
+    string_static("\a#32FF32FFGreen"),
+    string_static("\a#FFFF32FFYellow"),
+    string_static("\a#32FFFFFFAqua"),
+    string_static("\a#E8E8E8C0Silver"),
+};
+ASSERT(array_elems(g_defaultColors) == array_elems(g_defaultColorNames), "Missing names");
 
 typedef enum {
   DebugInterfaceFlags_DrawFtx = 1 << 0,
@@ -43,7 +50,7 @@ ecs_comp_define(DebugInterfacePanelComp) {
   EcsEntityId         window;
   DebugInterfaceFlags flags;
   f32                 newScale;
-  u32                 defaultColorIndex;
+  i32                 defaultColorIndex;
   EcsEntityId         debugFtxDraw;
 };
 
@@ -97,9 +104,8 @@ static void interface_panel_draw(
 
   ui_label(canvas, string_lit("Default color"));
   ui_grid_next_col(canvas, &layoutGrid);
-  f32 defaultColor = panel->defaultColorIndex;
-  ui_slider(canvas, &defaultColor, .max = g_defaultColorMaxIndex, .step = 1);
-  settings->defaultColor = g_defaultColors[panel->defaultColorIndex = (u32)defaultColor];
+  ui_select(canvas, &panel->defaultColorIndex, g_defaultColorNames, array_elems(g_defaultColors));
+  settings->defaultColor = g_defaultColors[panel->defaultColorIndex];
   ui_grid_next_row(canvas, &layoutGrid);
 
   ui_label(canvas, string_lit("Debug inspector"));

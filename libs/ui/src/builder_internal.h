@@ -35,7 +35,9 @@ typedef struct {
 } UiBuildCtx;
 
 typedef struct {
-  UiId hoveredId;
+  UiId    hoveredId;
+  UiLayer hoveredLayer;
+  UiFlags hoveredFlags;
 } UiBuildResult;
 
 UiBuildResult ui_build(const UiCmdBuffer*, const UiBuildCtx*);

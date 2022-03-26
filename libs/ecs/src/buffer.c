@@ -66,36 +66,16 @@ static BitSet ecs_buffer_mask(EcsBuffer* buffer, const EcsBufferMaskId id) {
   return dynarray_at(&buffer->masks, id, 1);
 }
 
-/**
- * Create a new 'EcsBufferEntity' structure. Is inserted sorted on the '.id' field.
- * NOTE: Should only be called once per 'EcsEntityId'.
- */
-static EcsBufferEntity* ecs_buffer_entity_create(EcsBuffer* buffer, const EcsEntityId id) {
-  EcsBufferEntity* result = dynarray_insert_sorted_t(
-      &buffer->entities,
-      EcsBufferEntity,
-      ecs_buffer_compare_entity,
-      mem_struct(EcsBufferEntity, .id = id).ptr);
-
-  *result = (EcsBufferEntity){
-      .id         = id,
-      .addMask    = ecs_buffer_mask_add(buffer),
-      .removeMask = ecs_buffer_mask_add(buffer),
-  };
-  return result;
-}
-
-/**
- * NOTE: Returns null if no entries exists for the given EcsEntityId.
- */
-static EcsBufferEntity* ecs_buffer_entity_find(EcsBuffer* buffer, const EcsEntityId id) {
-  return dynarray_search_binary(
-      &buffer->entities, ecs_buffer_compare_entity, mem_struct(EcsBufferEntity, .id = id).ptr);
-}
-
 static EcsBufferEntity* ecs_buffer_entity_get(EcsBuffer* buffer, const EcsEntityId id) {
-  EcsBufferEntity* result = ecs_buffer_entity_find(buffer, id);
-  return result ? result : ecs_buffer_entity_create(buffer, id);
+  EcsBufferEntity* result = dynarray_find_or_insert_sorted(
+      &buffer->entities, ecs_buffer_compare_entity, mem_struct(EcsBufferEntity, .id = id).ptr);
+
+  if (!result->id) {
+    result->id         = id;
+    result->addMask    = ecs_buffer_mask_add(buffer);
+    result->removeMask = ecs_buffer_mask_add(buffer);
+  }
+  return result;
 }
 
 /**

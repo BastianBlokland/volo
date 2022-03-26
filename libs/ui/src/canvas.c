@@ -20,9 +20,22 @@
 typedef UiCanvasComp*       UiCanvasPtr;
 typedef const UiCanvasComp* UiCanvasConstPtr;
 
+/**
+ * Element information that is tracked during ui build / render and can be queried next frame.
+ * NOTE: Cleared at the start of every ui-build.
+ */
 typedef struct {
+  UiId   id;
   UiRect rect;
-} UiElement;
+} UiTrackedElem;
+
+/**
+ * Persistent element data.
+ */
+typedef struct {
+  UiId              id;
+  UiPersistentFlags flags;
+} UiPersistentElem;
 
 typedef enum {
   UiCanvasFlags_InputAny = 1 << 0,
@@ -44,12 +57,15 @@ ecs_comp_define(UiCanvasComp) {
   EcsEntityId   window;
   UiCmdBuffer*  cmdBuffer;
   UiId          nextId;
-  DynArray      elements;   // UiElement[]
-  UiVector      resolution; // Resolution of the canvas in ui-pixels.
+  DynArray      trackedElems;    // UiTrackedElem[]
+  DynArray      persistentElems; // UiPersistentElem[]
+  UiVector      resolution;      // Resolution of the canvas in ui-pixels.
+  UiLayer       minInteractLayer;
   UiVector      inputDelta, inputPos;
   UiId          activeId;
   UiStatus      activeStatus;
   TimeSteady    activeStatusStart;
+  UiFlags       activeElemFlags;
 };
 
 static void ecs_destruct_renderer(void* data) {
@@ -60,13 +76,22 @@ static void ecs_destruct_renderer(void* data) {
 static void ecs_destruct_canvas(void* data) {
   UiCanvasComp* comp = data;
   ui_cmdbuffer_destroy(comp->cmdBuffer);
-  dynarray_destroy(&comp->elements);
+  dynarray_destroy(&comp->trackedElems);
+  dynarray_destroy(&comp->persistentElems);
 }
 
-static i8 ui_canvas_ptr_compare_order(const void* a, const void* b) {
+static i8 ui_canvas_ptr_compare(const void* a, const void* b) {
   const UiCanvasConstPtr* canvasPtrA = a;
   const UiCanvasConstPtr* canvasPtrB = b;
   return compare_i32(&(*(canvasPtrA))->order, &(*canvasPtrB)->order);
+}
+
+static i8 ui_tracked_elem_compare(const void* a, const void* b) {
+  return compare_u64(field_ptr(a, UiTrackedElem, id), field_ptr(b, UiTrackedElem, id));
+}
+
+static i8 ui_persistent_elem_compare(const void* a, const void* b) {
+  return compare_u64(field_ptr(a, UiPersistentElem, id), field_ptr(b, UiPersistentElem, id));
 }
 
 typedef struct {
@@ -104,11 +129,20 @@ static UiDrawMetaData ui_draw_metadata(const UiRenderState* state, const AssetFt
   return meta;
 }
 
-static const UiElement* ui_canvas_elem(const UiCanvasComp* canvas, const UiId id) {
-  if (id >= canvas->elements.size) {
-    return null;
-  }
-  return dynarray_at_t(&canvas->elements, id, UiElement);
+static UiTrackedElem* ui_canvas_tracked(UiCanvasComp* canvas, const UiId id) {
+  UiTrackedElem* res = dynarray_find_or_insert_sorted(
+      &canvas->trackedElems, ui_tracked_elem_compare, mem_struct(UiTrackedElem, .id = id).ptr);
+  res->id = id;
+  return res;
+}
+
+static UiPersistentElem* ui_canvas_persistent(UiCanvasComp* canvas, const UiId id) {
+  UiPersistentElem* res = dynarray_find_or_insert_sorted(
+      &canvas->persistentElems,
+      ui_persistent_elem_compare,
+      mem_struct(UiPersistentElem, .id = id).ptr);
+  res->id = id;
+  return res;
 }
 
 static u8 ui_canvas_output_clip_rect(void* userCtx, const UiRect rect) {
@@ -134,8 +168,8 @@ static void ui_canvas_output_glyph(void* userCtx, const UiGlyphData data, const 
 }
 
 static void ui_canvas_output_rect(void* userCtx, const UiId id, const UiRect rect) {
-  UiRenderState* state                                         = userCtx;
-  dynarray_at_t(&state->canvas->elements, id, UiElement)->rect = rect;
+  UiRenderState* state                       = userCtx;
+  ui_canvas_tracked(state->canvas, id)->rect = rect;
 }
 
 static void ui_canvas_set_active(UiCanvasComp* canvas, const UiId id, const UiStatus status) {
@@ -151,9 +185,11 @@ static void ui_canvas_update_interaction(
     UiCanvasComp*        canvas,
     UiSettingsComp*      settings,
     const GapWindowComp* window,
-    const UiId           hoveredId) {
+    const UiId           hoveredId,
+    const UiFlags        hoveredFlags) {
 
   const bool inputDown     = gap_window_key_down(window, GapKey_MouseLeft);
+  const bool inputPressed  = gap_window_key_pressed(window, GapKey_MouseLeft);
   const bool inputReleased = gap_window_key_released(window, GapKey_MouseLeft);
 
   if (UNLIKELY(settings->flags & UiSettingFlags_DebugInspector)) {
@@ -164,10 +200,12 @@ static void ui_canvas_update_interaction(
     return; // Normal input is disabled while using the debug inspector.
   }
 
-  const bool hasActiveElem       = !sentinel_check(canvas->activeId);
-  const bool activeElemIsHovered = canvas->activeId == hoveredId;
+  const UiFlags activeFlags         = canvas->activeElemFlags;
+  const bool    hasActiveElem       = !sentinel_check(canvas->activeId);
+  const bool    activeElemIsHovered = canvas->activeId == hoveredId;
+  const bool    activeInput = activeFlags & UiFlags_InteractOnPress ? inputPressed : inputReleased;
 
-  if (hasActiveElem && activeElemIsHovered && inputReleased) {
+  if (hasActiveElem && activeElemIsHovered && activeInput) {
     ui_canvas_set_active(canvas, canvas->activeId, UiStatus_Activated);
     return;
   }
@@ -175,20 +213,21 @@ static void ui_canvas_update_interaction(
     ui_canvas_set_active(canvas, canvas->activeId, UiStatus_Pressed);
     return;
   }
-  if (inputDown) {
+  const bool allowSwitch =
+      activeFlags & UiFlags_InteractAllowSwitch && hoveredFlags & UiFlags_InteractAllowSwitch;
+
+  if (inputDown && !allowSwitch) {
     return; // Keep the same element active while holding down the input.
   }
 
   // Select a new active element.
   ui_canvas_set_active(
       canvas, hoveredId, sentinel_check(hoveredId) ? UiStatus_Idle : UiStatus_Hovered);
+  canvas->activeElemFlags = hoveredFlags;
 }
 
 static UiBuildResult ui_canvas_build(UiRenderState* state, const UiId debugElem) {
-
-  // Ensure we have UiElement structures for all elements that are requested to be drawn.
-  dynarray_resize(&state->canvas->elements, state->canvas->nextId);
-  mem_set(dynarray_at(&state->canvas->elements, 0, state->canvas->nextId), 0);
+  dynarray_clear(&state->canvas->trackedElems);
 
   const UiBuildCtx buildCtx = {
       .settings       = state->settings,
@@ -258,7 +297,6 @@ ecs_system_define(UiCanvasInputSys) {
 }
 
 static void ui_renderer_create(EcsWorld* world, const EcsEntityId window) {
-
   const EcsEntityId drawEntity = ecs_world_entity_create(world);
   ecs_world_add_t(world, drawEntity, SceneLifetimeOwnerComp, .owner = window);
 
@@ -343,19 +381,24 @@ ecs_system_define(UiRenderSys) {
     UiCanvasPtr canvasses[ui_canvas_canvasses_max];
     const u32   canvasCount = ui_canvass_query(world, entity, canvasses);
 
-    sort_quicksort_t(canvasses, canvasses + canvasCount, UiCanvasPtr, ui_canvas_ptr_compare_order);
+    sort_quicksort_t(canvasses, canvasses + canvasCount, UiCanvasPtr, ui_canvas_ptr_compare);
 
-    u32  hoveredCanvasIndex = sentinel_u32;
-    UiId hoveredId;
+    u32     hoveredCanvasIndex = sentinel_u32;
+    UiLayer hoveredLayer       = 0;
+    UiId    hoveredId;
+    UiFlags hoveredFlags;
     for (u32 i = 0; i != canvasCount; ++i) {
-      canvasses[i]->order = i;
-      renderState.canvas  = canvasses[i];
+      UiCanvasComp* canvas = canvasses[i];
+      canvas->order        = i;
+      renderState.canvas   = canvas;
 
-      const UiId          debugElem = ui_canvas_debug_elem(canvasses[i], settings);
+      const UiId          debugElem = ui_canvas_debug_elem(canvas, settings);
       const UiBuildResult result    = ui_canvas_build(&renderState, debugElem);
-      if (!sentinel_check(result.hoveredId)) {
+      if (!sentinel_check(result.hoveredId) && result.hoveredLayer >= hoveredLayer) {
         hoveredCanvasIndex = i;
+        hoveredLayer       = result.hoveredLayer;
         hoveredId          = result.hoveredId;
+        hoveredFlags       = result.hoveredFlags;
       }
     }
     if (gap_window_flags(window) & (GapWindowFlags_CursorHide | GapWindowFlags_CursorLock)) {
@@ -363,9 +406,10 @@ ecs_system_define(UiRenderSys) {
       hoveredCanvasIndex = sentinel_u32;
     }
     for (u32 i = 0; i != canvasCount; ++i) {
-      const bool isHovered   = hoveredCanvasIndex == i;
-      const UiId hoveredElem = isHovered ? hoveredId : sentinel_u64;
-      ui_canvas_update_interaction(canvasses[i], settings, window, hoveredElem);
+      UiCanvasComp* canvas    = canvasses[i];
+      const bool    isHovered = hoveredCanvasIndex == i && hoveredLayer >= canvas->minInteractLayer;
+      const UiId    hoveredElem = isHovered ? hoveredId : sentinel_u64;
+      ui_canvas_update_interaction(canvas, settings, window, hoveredElem, hoveredFlags);
     }
 
     // Add the overlay glyphs, at this stage all the normal glyphs have already been added.
@@ -410,9 +454,10 @@ EcsEntityId ui_canvas_create(EcsWorld* world, const EcsEntityId window) {
       world,
       canvasEntity,
       UiCanvasComp,
-      .window    = window,
-      .cmdBuffer = ui_cmdbuffer_create(g_alloc_heap),
-      .elements  = dynarray_create_t(g_alloc_heap, UiElement, 128));
+      .window          = window,
+      .cmdBuffer       = ui_cmdbuffer_create(g_alloc_heap),
+      .trackedElems    = dynarray_create_t(g_alloc_heap, UiTrackedElem, 16),
+      .persistentElems = dynarray_create_t(g_alloc_heap, UiPersistentElem, 16));
 
   ui_canvas_to_front(canvas);
 
@@ -422,14 +467,19 @@ EcsEntityId ui_canvas_create(EcsWorld* world, const EcsEntityId window) {
 
 void ui_canvas_reset(UiCanvasComp* comp) {
   ui_cmdbuffer_clear(comp->cmdBuffer);
-  comp->nextId = 0;
+  comp->nextId           = 0;
+  comp->minInteractLayer = 0;
 }
 
 void ui_canvas_to_front(UiCanvasComp* comp) { comp->order = i32_max; }
 void ui_canvas_to_back(UiCanvasComp* comp) { comp->order = i32_min; }
 
+void ui_canvas_min_interact_layer(UiCanvasComp* comp, const UiLayer layer) {
+  comp->minInteractLayer = layer;
+}
+
 UiId ui_canvas_id_peek(const UiCanvasComp* comp) { return comp->nextId; }
-void ui_canvas_id_skip(UiCanvasComp* comp) { ++comp->nextId; }
+void ui_canvas_id_skip(UiCanvasComp* comp, const u64 count) { comp->nextId += count; }
 
 UiStatus ui_canvas_elem_status(const UiCanvasComp* comp, const UiId id) {
   return id == comp->activeId ? comp->activeStatus : UiStatus_Idle;
@@ -441,8 +491,7 @@ TimeDuration ui_canvas_elem_status_duration(const UiCanvasComp* comp, const UiId
 }
 
 UiRect ui_canvas_elem_rect(const UiCanvasComp* comp, const UiId id) {
-  const UiElement* elem = ui_canvas_elem(comp, id);
-  return elem ? elem->rect : ui_rect(ui_vector(0, 0), ui_vector(0, 0));
+  return ui_canvas_tracked((UiCanvasComp*)comp, id)->rect;
 }
 
 UiStatus ui_canvas_status(const UiCanvasComp* comp) { return comp->activeStatus; }
@@ -452,6 +501,25 @@ bool     ui_canvas_input_any(const UiCanvasComp* comp) {
 }
 UiVector ui_canvas_input_delta(const UiCanvasComp* comp) { return comp->inputDelta; }
 UiVector ui_canvas_input_pos(const UiCanvasComp* comp) { return comp->inputPos; }
+
+UiPersistentFlags ui_canvas_persistent_flags(const UiCanvasComp* comp, const UiId id) {
+  return ui_canvas_persistent((UiCanvasComp*)comp, id)->flags;
+}
+
+void ui_canvas_persistent_flags_set(
+    UiCanvasComp* comp, const UiId id, const UiPersistentFlags flags) {
+  ui_canvas_persistent(comp, id)->flags |= flags;
+}
+
+void ui_canvas_persistent_flags_unset(
+    UiCanvasComp* comp, const UiId id, const UiPersistentFlags flags) {
+  ui_canvas_persistent(comp, id)->flags &= ~flags;
+}
+
+void ui_canvas_persistent_flags_toggle(
+    UiCanvasComp* comp, const UiId id, const UiPersistentFlags flags) {
+  ui_canvas_persistent(comp, id)->flags ^= flags;
+}
 
 UiId ui_canvas_draw_text(
     UiCanvasComp* comp,

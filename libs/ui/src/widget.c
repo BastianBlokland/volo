@@ -8,38 +8,26 @@
 
 static const f32 g_uiDisabledMult = 0.4f;
 
-void ui_label_with_opts(UiCanvasComp* canvas, const String text, const UiLabelOpts* opts) {
-  ui_canvas_draw_text(canvas, text, opts->fontSize, opts->align, UiFlags_None);
-}
-
-bool ui_button_with_opts(UiCanvasComp* canvas, const UiButtonOpts* opts) {
-  const UiId     id       = ui_canvas_id_peek(canvas);
-  const bool     disabled = (opts->flags & UiWidget_Disabled) != 0;
-  const UiStatus status   = disabled ? UiStatus_Idle : ui_canvas_elem_status(canvas, id);
-
-  ui_style_push(canvas);
+static void
+ui_interactable_frame_style(UiCanvasComp* canvas, const UiColor color, const UiStatus status) {
   switch (status) {
   case UiStatus_Hovered:
-    ui_style_color_with_mult(canvas, opts->frameColor, 2);
+    ui_style_color_with_mult(canvas, color, 2);
     ui_style_outline(canvas, 3);
     break;
   case UiStatus_Pressed:
   case UiStatus_Activated:
-    ui_style_color_with_mult(canvas, opts->frameColor, 3);
+    ui_style_color_with_mult(canvas, color, 3);
     ui_style_outline(canvas, 1);
     break;
   case UiStatus_Idle:
-    ui_style_color(canvas, opts->frameColor);
+    ui_style_color(canvas, color);
     ui_style_outline(canvas, 2);
     break;
   }
-  ui_canvas_draw_glyph(canvas, UiShape_Circle, 10, UiFlags_Interactable);
-  ui_style_pop(canvas);
+}
 
-  ui_style_push(canvas);
-  if (disabled) {
-    ui_style_color_mult(canvas, g_uiDisabledMult);
-  }
+static void ui_interactable_text_style(UiCanvasComp* canvas, const UiStatus status) {
   switch (status) {
   case UiStatus_Hovered:
     ui_style_outline(canvas, 2);
@@ -51,6 +39,27 @@ bool ui_button_with_opts(UiCanvasComp* canvas, const UiButtonOpts* opts) {
   case UiStatus_Idle:
     break;
   }
+}
+
+void ui_label_with_opts(UiCanvasComp* canvas, const String text, const UiLabelOpts* opts) {
+  ui_canvas_draw_text(canvas, text, opts->fontSize, opts->align, UiFlags_None);
+}
+
+bool ui_button_with_opts(UiCanvasComp* canvas, const UiButtonOpts* opts) {
+  const UiId     id       = ui_canvas_id_peek(canvas);
+  const bool     disabled = (opts->flags & UiWidget_Disabled) != 0;
+  const UiStatus status   = disabled ? UiStatus_Idle : ui_canvas_elem_status(canvas, id);
+
+  ui_style_push(canvas);
+  ui_interactable_frame_style(canvas, opts->frameColor, status);
+  ui_canvas_draw_glyph(canvas, UiShape_Circle, 10, UiFlags_Interactable);
+  ui_style_pop(canvas);
+
+  ui_style_push(canvas);
+  if (disabled) {
+    ui_style_color_mult(canvas, g_uiDisabledMult);
+  }
+  ui_interactable_text_style(canvas, status);
   ui_canvas_draw_text(canvas, opts->label, opts->fontSize, UiAlign_MiddleCenter, UiFlags_None);
   ui_style_pop(canvas);
 
@@ -80,7 +89,7 @@ static void ui_slider_bar(UiCanvasComp* canvas, const UiStatus status, const UiS
     ui_style_color(canvas, opts->barColor);
     break;
   }
-  ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_Interactable);
+  ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_Interactable | UiFlags_TrackRect);
 
   ui_style_pop(canvas);
   ui_layout_pop(canvas);
@@ -125,7 +134,7 @@ static void ui_slider_handle(
     const String label = fmt_write_scratch("{}", fmt_float(value, .maxDecDigits = 2));
     ui_canvas_draw_text(canvas, label, 15, UiAlign_BottomCenter, UiFlags_None);
   } else {
-    ui_canvas_id_skip(canvas);
+    ui_canvas_id_skip(canvas, 1);
   }
 
   ui_style_pop(canvas);
@@ -223,7 +232,7 @@ bool ui_toggle_with_opts(UiCanvasComp* canvas, bool* input, const UiToggleOpts* 
   if (*input) {
     ui_toggle_check(canvas, status, opts);
   } else {
-    ui_canvas_id_skip(canvas);
+    ui_canvas_id_skip(canvas, 1);
   }
 
   if (!string_is_empty(opts->tooltip)) {
@@ -232,6 +241,149 @@ bool ui_toggle_with_opts(UiCanvasComp* canvas, bool* input, const UiToggleOpts* 
 
   ui_layout_pop(canvas);
   return status == UiStatus_Activated;
+}
+
+static void ui_select_header(
+    UiCanvasComp*       canvas,
+    const String        label,
+    const UiStatus      status,
+    const bool          isOpen,
+    const UiSelectOpts* opts) {
+
+  ui_style_push(canvas);
+  ui_interactable_frame_style(canvas, opts->frameColor, status);
+  if (isOpen) {
+    ui_style_outline(canvas, 3);
+  }
+  const UiFlags flags =
+      isOpen ? (UiFlags_Interactable | UiFlags_InteractAllowSwitch)
+             : (UiFlags_Interactable | UiFlags_InteractOnPress | UiFlags_InteractAllowSwitch);
+  ui_canvas_draw_glyph(canvas, UiShape_Square, 0, flags);
+  ui_style_pop(canvas);
+
+  ui_style_push(canvas);
+
+  ui_layout_push(canvas);
+  ui_interactable_text_style(canvas, status);
+  ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-10, 0), UiBase_Absolute, Ui_X);
+  ui_canvas_draw_text(canvas, label, opts->fontSize, UiAlign_MiddleLeft, UiFlags_None);
+
+  ui_layout_inner(canvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(20, 20), UiBase_Absolute);
+  ui_canvas_draw_glyph(canvas, isOpen ? UiShape_ExpandLess : UiShape_ExpandMore, 0, UiFlags_None);
+  ui_layout_pop(canvas);
+
+  ui_style_pop(canvas);
+}
+
+typedef enum {
+  UiSelectFlags_Changed = 1 << 0,
+  UiSelectFlags_Hovered = 1 << 1,
+} UiSelectFlags;
+
+static UiSelectFlags ui_select_dropdown(
+    UiCanvasComp*       canvas,
+    i32*                input,
+    const String*       options,
+    const u32           optionCount,
+    const UiSelectOpts* opts) {
+
+  ui_layout_push(canvas);
+  UiSelectFlags selectFlags = 0;
+  for (u32 i = 0; i != optionCount; ++i) {
+    ui_layout_next(canvas, Ui_Down, 2);
+    const UiId id     = ui_canvas_id_peek(canvas);
+    UiStatus   status = ui_canvas_elem_status(canvas, id);
+
+    ui_style_push(canvas);
+    ui_style_outline(canvas, 3);
+    switch (status) {
+    case UiStatus_Hovered:
+      ui_style_color_with_mult(canvas, opts->dropFrameColor, 2);
+      break;
+    case UiStatus_Pressed:
+    case UiStatus_Activated:
+      ui_style_color_with_mult(canvas, opts->dropFrameColor, 3);
+      break;
+    case UiStatus_Idle:
+      ui_style_color(canvas, opts->dropFrameColor);
+      break;
+    }
+    ui_canvas_draw_glyph(
+        canvas, UiShape_Square, 0, UiFlags_Interactable | UiFlags_InteractAllowSwitch);
+    ui_style_pop(canvas);
+
+    ui_layout_push(canvas);
+    ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-10, 0), UiBase_Absolute, Ui_X);
+
+    ui_style_push(canvas);
+    ui_interactable_text_style(canvas, status);
+    ui_canvas_draw_text(canvas, options[i], opts->fontSize, UiAlign_MiddleLeft, UiFlags_None);
+    ui_style_pop(canvas);
+
+    ui_layout_pop(canvas);
+
+    if (status >= UiStatus_Hovered) {
+      selectFlags |= UiSelectFlags_Hovered;
+    }
+    if (status == UiStatus_Activated) {
+      *input = i;
+      selectFlags |= UiSelectFlags_Changed;
+    }
+  }
+  ui_layout_pop(canvas);
+  return selectFlags;
+}
+
+bool ui_select_with_opts(
+    UiCanvasComp*       canvas,
+    i32*                input,
+    const String*       options,
+    const u32           optionCount,
+    const UiSelectOpts* opts) {
+
+  const UiId     headerId     = ui_canvas_id_peek(canvas);
+  const bool     disabled     = (opts->flags & UiWidget_Disabled) != 0;
+  const UiStatus headerStatus = disabled ? UiStatus_Idle : ui_canvas_elem_status(canvas, headerId);
+  UiSelectFlags  selectFlags  = 0;
+
+  if (headerStatus >= UiStatus_Hovered) {
+    selectFlags |= UiSelectFlags_Hovered;
+  }
+  if (headerStatus == UiStatus_Activated) {
+    ui_canvas_persistent_flags_toggle(canvas, headerId, UiPersistentFlags_Open);
+  }
+  const bool isOpen = (ui_canvas_persistent_flags(canvas, headerId) & UiPersistentFlags_Open) != 0;
+  const bool outOfBounds   = *input < 0 || *input >= (i32)optionCount;
+  const String headerLabel = outOfBounds ? string_lit("- Select -") : options[*input];
+
+  ui_style_push(canvas);
+  if (isOpen) {
+    ui_style_layer(canvas, UiLayer_Overlay);
+    ui_canvas_min_interact_layer(canvas, UiLayer_Overlay);
+  }
+  if (disabled) {
+    ui_style_color_mult(canvas, g_uiDisabledMult);
+  }
+  ui_select_header(canvas, headerLabel, headerStatus, isOpen, opts);
+
+  if (isOpen) {
+    selectFlags |= ui_select_dropdown(canvas, input, options, optionCount, opts);
+  } else {
+    ui_canvas_id_skip(canvas, optionCount * 2);
+  }
+  if (selectFlags & UiSelectFlags_Changed || disabled) {
+    ui_canvas_persistent_flags_unset(canvas, headerId, UiPersistentFlags_Open);
+  }
+  if (!(selectFlags & UiSelectFlags_Hovered) && ui_canvas_input_any(canvas)) {
+    ui_canvas_persistent_flags_unset(canvas, headerId, UiPersistentFlags_Open);
+  }
+
+  if (!string_is_empty(opts->tooltip)) {
+    ui_tooltip(canvas, headerId, opts->tooltip);
+  }
+
+  ui_style_pop(canvas);
+  return (selectFlags & UiSelectFlags_Changed) != 0;
 }
 
 static void ui_tooltip_background(
@@ -270,7 +422,7 @@ static void ui_tooltip_text(
   ui_style_color(canvas, ui_color_black);
   ui_style_outline(canvas, 0);
 
-  ui_canvas_draw_text(canvas, text, opts->fontSize, UiAlign_TopLeft, UiFlags_None);
+  ui_canvas_draw_text(canvas, text, opts->fontSize, UiAlign_TopLeft, UiFlags_TrackRect);
 }
 
 static UiDir ui_tooltip_dir(UiCanvasComp* canvas) {
@@ -284,8 +436,7 @@ bool ui_tooltip_with_opts(
   const bool showTooltip = ui_canvas_elem_status(canvas, id) == UiStatus_Hovered &&
                            ui_canvas_elem_status_duration(canvas, id) >= time_second;
   if (!showTooltip) {
-    ui_canvas_id_skip(canvas);
-    ui_canvas_id_skip(canvas);
+    ui_canvas_id_skip(canvas, 2);
     return false;
   }
 
@@ -319,7 +470,7 @@ bool ui_tooltip_with_opts(
 
   ui_style_layer(canvas, firstFrame ? UiLayer_Invisible : UiLayer_Overlay);
   if (firstFrame) {
-    ui_canvas_id_skip(canvas);
+    ui_canvas_id_skip(canvas, 1);
   } else {
     ui_tooltip_background(canvas, dir, align, lastTextRect);
   }
