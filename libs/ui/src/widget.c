@@ -252,6 +252,9 @@ static void ui_select_header(
 
   ui_style_push(canvas);
   ui_interactable_frame_style(canvas, opts->frameColor, status);
+  if (isOpen) {
+    ui_style_outline(canvas, 3);
+  }
   ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_Interactable);
   ui_style_pop(canvas);
 
@@ -282,15 +285,14 @@ static UiSelectFlags ui_select_dropdown(
     const UiSelectOpts* opts) {
 
   ui_layout_push(canvas);
-  ui_layout_move_dir(canvas, Ui_Down, 2, UiBase_Absolute);
-
   UiSelectFlags selectFlags = 0;
   for (u32 i = 0; i != optionCount; ++i) {
-    ui_layout_next(canvas, Ui_Down, 0);
+    ui_layout_next(canvas, Ui_Down, 2);
     const UiId id     = ui_canvas_id_peek(canvas);
     UiStatus   status = ui_canvas_elem_status(canvas, id);
 
     ui_style_push(canvas);
+    ui_style_outline(canvas, 3);
     switch (status) {
     case UiStatus_Hovered:
       ui_style_color_with_mult(canvas, opts->dropFrameColor, 2);
@@ -324,7 +326,6 @@ static UiSelectFlags ui_select_dropdown(
       selectFlags |= UiSelectFlags_Changed;
     }
   }
-
   ui_layout_pop(canvas);
   return selectFlags;
 }

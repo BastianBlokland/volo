@@ -111,7 +111,7 @@ typedef struct {
   ui_select_with_opts((_CANVAS_), (_VALUE_), (_OPT_LABELS_), (_OPT_COUNT_), &((UiSelectOpts){      \
     .fontSize               = 16,                                                                  \
     .frameColor             = ui_color(32, 32, 32, 192),                                           \
-    .dropFrameColor         = ui_color(48, 48, 48, 235),                                           \
+    .dropFrameColor         = ui_color(64, 64, 64, 235),                                           \
     __VA_ARGS__}))
 
 /**
