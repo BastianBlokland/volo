@@ -9,7 +9,6 @@
 
 // clang-format off
 
-static const String g_tooltipOrtho          = string_static("Use an orthographic projection instead of a perspective one.");
 static const String g_tooltipOrthoSize      = string_static("Size (in meters) of the dominant dimension of the orthographic projection.");
 static const String g_tooltipFov            = string_static("Field of view of the dominant dimension of the perspective projection.");
 static const String g_tooltipVerticalAspect = string_static("Use the vertical dimension as the dominant dimension.");
@@ -19,6 +18,11 @@ static const String g_tooltipMoveSpeed      = string_static("Camera movement spe
 static const String g_tooltipDefaults       = string_static("Reset all settings to their defaults.");
 
 // clang-format on
+
+static const String g_projectionNames[] = {
+    string_static("Perspective"),
+    string_static("Orthographic"),
+};
 
 ecs_comp_define(DebugCameraPanelComp) {
   UiPanelState state;
@@ -124,10 +128,10 @@ static void camera_panel_draw(
 
   UiGridState layoutGrid = ui_grid_init(canvas, .size = {140, 25});
 
-  ui_label(canvas, string_lit("Orthographic"));
+  ui_label(canvas, string_lit("Projection"));
   ui_grid_next_col(canvas, &layoutGrid);
-  bool orthographic = (camera->flags & SceneCameraFlags_Orthographic) != 0;
-  if (ui_toggle(canvas, &orthographic, .tooltip = g_tooltipOrtho)) {
+  i32 projectionIdx = (camera->flags & SceneCameraFlags_Orthographic) != 0;
+  if (ui_select(canvas, &projectionIdx, g_projectionNames, 2)) {
     camera->flags ^= SceneCameraFlags_Orthographic;
   }
   ui_grid_next_row(canvas, &layoutGrid);
@@ -140,7 +144,7 @@ static void camera_panel_draw(
   }
   ui_grid_next_row(canvas, &layoutGrid);
 
-  if (orthographic) {
+  if (projectionIdx == 1) {
     camera_panel_draw_ortho(canvas, &layoutGrid, camera, transform);
   } else {
     camera_panel_draw_pers(canvas, &layoutGrid, camera);
