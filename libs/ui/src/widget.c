@@ -329,7 +329,8 @@ bool ui_select_with_opts(
     const UiSelectOpts* opts) {
 
   const UiId     headerId     = ui_canvas_id_peek(canvas);
-  const UiStatus headerStatus = ui_canvas_elem_status(canvas, headerId);
+  const bool     disabled     = (opts->flags & UiWidget_Disabled) != 0;
+  const UiStatus headerStatus = disabled ? UiStatus_Idle : ui_canvas_elem_status(canvas, headerId);
   UiSelectFlags  selectFlags  = 0;
 
   if (headerStatus >= UiStatus_Hovered) {
@@ -346,6 +347,9 @@ bool ui_select_with_opts(
   if (isOpen) {
     ui_style_layer(canvas, UiLayer_Overlay);
   }
+  if (disabled) {
+    ui_style_color_mult(canvas, g_uiDisabledMult);
+  }
   ui_select_header(canvas, headerLabel, headerStatus, isOpen, opts);
 
   if (isOpen) {
@@ -353,7 +357,7 @@ bool ui_select_with_opts(
   } else {
     ui_canvas_id_skip(canvas, optionCount * 2);
   }
-  if (selectFlags & UiSelectFlags_Changed) {
+  if (selectFlags & UiSelectFlags_Changed || disabled) {
     ui_canvas_persistent_flags_unset(canvas, headerId, UiPersistentFlags_Open);
   }
   if (!(selectFlags & UiSelectFlags_Hovered) && ui_canvas_input_any(canvas)) {

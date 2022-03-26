@@ -44,9 +44,10 @@ typedef struct {
 } UiToggleOpts;
 
 typedef struct {
-  u16     fontSize;
-  UiColor frameColor, dropFrameColor;
-  String  tooltip;
+  UiWidgetFlags flags;
+  u16           fontSize;
+  UiColor       frameColor, dropFrameColor;
+  String        tooltip;
 } UiSelectOpts;
 
 typedef struct {
