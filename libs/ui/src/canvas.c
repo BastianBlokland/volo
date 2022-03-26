@@ -498,6 +498,11 @@ void ui_canvas_persistent_flags_unset(
   ui_canvas_persistent(comp, id)->flags &= ~flags;
 }
 
+void ui_canvas_persistent_flags_toggle(
+    UiCanvasComp* comp, const UiId id, const UiPersistentFlags flags) {
+  ui_canvas_persistent(comp, id)->flags ^= flags;
+}
+
 UiId ui_canvas_draw_text(
     UiCanvasComp* comp,
     const String  text,

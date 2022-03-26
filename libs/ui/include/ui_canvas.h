@@ -71,6 +71,7 @@ UiRect       ui_canvas_elem_rect(const UiCanvasComp*, UiId);
 UiPersistentFlags ui_canvas_persistent_flags(const UiCanvasComp*, UiId);
 void              ui_canvas_persistent_flags_set(UiCanvasComp*, UiId, UiPersistentFlags);
 void              ui_canvas_persistent_flags_unset(UiCanvasComp*, UiId, UiPersistentFlags);
+void              ui_canvas_persistent_flags_toggle(UiCanvasComp*, UiId, UiPersistentFlags);
 
 /**
  * Draw text in the current rectangle.
