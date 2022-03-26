@@ -136,7 +136,7 @@ static UiTrackedElem* ui_canvas_tracked(UiCanvasComp* canvas, const UiId id) {
 
 static UiPersistentElem* ui_canvas_persistent(UiCanvasComp* canvas, const UiId id) {
   UiPersistentElem* res = dynarray_find_or_insert_sorted(
-      &canvas->trackedElems,
+      &canvas->persistentElems,
       ui_persistent_elem_compare,
       mem_struct(UiPersistentElem, .id = id).ptr);
   res->id = id;
