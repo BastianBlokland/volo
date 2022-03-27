@@ -138,3 +138,4 @@ f64 math_round_f64(f64);
  * Clamp the given value between min (inclusive) and max (inclusive).
  */
 f32 math_clamp_f32(f32 val, f32 min, f32 max);
+f64 math_clamp_f64(f64 val, f64 min, f64 max);
