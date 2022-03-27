@@ -12,12 +12,12 @@
 
 // clang-format off
 
-static const String  g_tooltipStatsEnable     = string_static("Enable the statistics text.");
-static const String  g_tooltipStatsDisable    = string_static("Disable the statistics text.");
-static const String  g_tooltipPanelCamera     = string_static("Open the Camera settings panel.");
-static const String  g_tooltipPanelGrid       = string_static("Open the Grid settings panel.");
-static const String  g_tooltipPanelRend       = string_static("Open the Renderer settings panel.");
-static const String  g_tooltipPanelInterface  = string_static("Open the Interface settings panel.");
+static const String  g_tooltipStatsEnable     = string_static("Enable the \a.bStatistics\ar text.");
+static const String  g_tooltipStatsDisable    = string_static("Disable the \a.bStatistics\ar text.");
+static const String  g_tooltipPanelCamera     = string_static("Open the \a.bCamera settings\ar panel.");
+static const String  g_tooltipPanelGrid       = string_static("Open the \a.bGrid settings\ar panel.");
+static const String  g_tooltipPanelRend       = string_static("Open the \a.bRenderer settings\ar panel.");
+static const String  g_tooltipPanelInterface  = string_static("Open the \a.bInterface settings\ar panel.");
 static const String  g_tooltipFullscreenEnter = string_static("Enter fullscreen.");
 static const String  g_tooltipFullscreenExit  = string_static("Exit fullscreen.");
 static const String  g_tooltipWindowOpen      = string_static("Open a new window.");
@@ -204,15 +204,15 @@ debug_stats_draw(UiCanvasComp* canvas, const DebugStats* stats, const RendStatsC
   DynString str = dynstring_create(g_alloc_scratch, usize_kibibyte);
 
   // clang-format off
-  fmt_write(&str, "{}\n", fmt_text(rendStats->gpuName));
+  fmt_write(&str, "\a.b{}\ar\n", fmt_text(rendStats->gpuName));
   fmt_write(&str, "{<4}x{<4} pixels\n", fmt_int(rendStats->renderSize[0]), fmt_int(rendStats->renderSize[1]));
   debug_stats_draw_dur(&str, stats->updateTime, string_lit("update time"), time_milliseconds(17), time_milliseconds(18));
   fmt_write(&str, "{}{<9} \arlimiter time\n", stats->limiterTime < 0 ? fmt_ui_color(g_debugWarnColor) : fmt_nop(), fmt_duration(stats->limiterTime));
   debug_stats_draw_dur(&str, stats->renderTime, string_lit("render time"), time_milliseconds(10), time_milliseconds(17));
   fmt_write(&str, "{}{<9} \arrender wait time\n", stats->waitForRenderTime > time_millisecond ? fmt_ui_color(g_debugWarnColor) : fmt_nop(), fmt_duration(stats->waitForRenderTime));
-  fmt_write(&str, "{<9} draws\n", fmt_int(rendStats->draws));
+  fmt_write(&str, "{<9} draws\ar\n", fmt_int(rendStats->draws));
   fmt_write(&str, "{<9} instances\n", fmt_int(rendStats->instances));
-  fmt_write(&str, "{<9} vertices\n", fmt_int(rendStats->vertices));
+  fmt_write(&str, "{<9} vertices\ar\n", fmt_int(rendStats->vertices));
   fmt_write(&str, "{<9} triangles\n", fmt_int(rendStats->primitives));
   fmt_write(&str, "{<9} vertex shaders\n", fmt_int(rendStats->shadersVert));
   fmt_write(&str, "{<9} fragment shaders\n", fmt_int(rendStats->shadersFrag));

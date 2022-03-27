@@ -10,4 +10,5 @@ void ui_settings_to_default(UiSettingsComp* settings) {
   settings->defaultColor     = ui_color_white;
   settings->defaultOutline   = 1;
   settings->defaultVariation = 0;
+  settings->defaultWeight    = UiWeight_Normal;
 }

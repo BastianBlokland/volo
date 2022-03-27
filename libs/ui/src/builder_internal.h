@@ -15,6 +15,7 @@ typedef struct {
   u16     cornerFrac; // 'corner size' / rect.width * u16_max
   u8      clipId;
   u8      outlineWidth;
+  u8      weight;
 } UiGlyphData;
 
 ASSERT(sizeof(UiGlyphData) == 32, "Size needs to match the size defined in glsl");

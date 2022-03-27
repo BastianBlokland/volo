@@ -24,6 +24,7 @@ typedef struct {
   u8                  fontOutline, fontOutlineDefault;
   UiLayer             fontLayer;
   u8                  fontVariation;
+  UiWeight            fontWeight, fontWeightDefault;
   UiAlign             align;
   void*               userCtx;
   UiTextBuildCharFunc buildChar;
@@ -194,6 +195,7 @@ static void ui_text_build_char(UiTextBuildState* state, const UiTextLine* line, 
             .color   = state->fontColor,
             .outline = state->fontOutline,
             .layer   = state->fontLayer,
+            .weight  = state->fontWeight,
         });
   }
   state->cursor += ch->advance * state->fontSize;
@@ -206,6 +208,7 @@ static void ui_text_build_escape(UiTextBuildState* state, const UiEscape* esc) {
   case UiEscape_Reset:
     state->fontColor   = state->fontColorDefault;
     state->fontOutline = state->fontOutlineDefault;
+    state->fontWeight  = state->fontWeightDefault;
     break;
   case UiEscape_Color:
     state->fontColor = esc->escColor.value;
@@ -213,6 +216,8 @@ static void ui_text_build_escape(UiTextBuildState* state, const UiEscape* esc) {
   case UiEscape_Outline:
     state->fontOutline = esc->escOutline.value;
     break;
+  case UiEscape_Weight:
+    state->fontWeight = esc->escWeight.value;
   }
 }
 
@@ -253,6 +258,7 @@ UiTextBuildResult ui_text_build(
     const u8                  fontOutline,
     const UiLayer             fontLayer,
     const u8                  fontVariation,
+    const UiWeight            fontWeight,
     const UiAlign             align,
     void*                     userCtx,
     const UiTextBuildCharFunc buildChar) {
@@ -299,6 +305,8 @@ UiTextBuildResult ui_text_build(
       .fontOutlineDefault = fontOutline,
       .fontLayer          = fontLayer,
       .fontVariation      = fontVariation,
+      .fontWeight         = fontWeight,
+      .fontWeightDefault  = fontWeight,
       .align              = align,
       .userCtx            = userCtx,
       .buildChar          = buildChar,

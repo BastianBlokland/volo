@@ -37,7 +37,7 @@ struct GlyphData {
   u32v4 data; // x = color,
               // y = atlasIndex,
               // z = 16b borderFrac 16b cornerFrac,
-              // w = 8b clipId, 8b outlineWidth
+              // w = 8b clipId, 8b outlineWidth, 8b weight
 };
 
 bind_draw_data(0) readonly uniform Draw { MetaData u_meta; };
@@ -54,6 +54,21 @@ bind_internal(7) out flat f32 out_invBorder;
 bind_internal(8) out flat f32 out_outlineWidth;
 bind_internal(9) out flat f32 out_aspectRatio;
 bind_internal(10) out flat f32 out_cornerFrac;
+bind_internal(11) out flat f32 out_edgeShiftFrac;
+
+/**
+ * Compute the shape edge shift in fractions of the glyphs width.
+ */
+f32 get_edge_shift(const u32 weight) {
+  /**
+   * Possible weight values:
+   *   0: Light
+   *   1: Normal
+   *   2: Bold
+   *   3: Heavy
+   */
+  return (weight - 1.0) * 0.05;
+}
 
 void main() {
   const GlyphData glyphData    = u_glyphs[in_instanceIndex];
@@ -65,6 +80,7 @@ void main() {
   const f32       cornerFrac   = (glyphData.data.z >> 16) / f32(0xFFFF);
   const u32       clipId       = glyphData.data.w & 0xFF;
   const u32       outlineWidth = (glyphData.data.w >> 8) & 0xFF;
+  const u32       weight       = (glyphData.data.w >> 16) & 0xFF;
 
   /**
    * Compute the ui positions of the vertices.
@@ -89,4 +105,5 @@ void main() {
   out_outlineWidth   = outlineWidth;
   out_aspectRatio    = glyphSize.x / glyphSize.y;
   out_cornerFrac     = cornerFrac;
+  out_edgeShiftFrac  = get_edge_shift(weight);
 }

@@ -44,3 +44,8 @@ void ui_style_variation(UiCanvasComp* canvas, const u8 variation) {
   UiCmdBuffer* cmdBuffer = ui_canvas_cmd_buffer(canvas);
   ui_cmd_push_style_variation(cmdBuffer, variation);
 }
+
+void ui_style_weight(UiCanvasComp* canvas, const UiWeight weight) {
+  UiCmdBuffer* cmdBuffer = ui_canvas_cmd_buffer(canvas);
+  ui_cmd_push_style_weight(cmdBuffer, weight);
+}

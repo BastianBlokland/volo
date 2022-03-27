@@ -21,10 +21,11 @@ bind_internal(3) in flat f32v4 in_clipRect;     // Clipping rectangle in ui-pixe
 bind_internal(4) in flat f32v2 in_texOrigin;    // Origin of the glyph in the font atlas.
 bind_internal(5) in flat f32 in_texScale;       // Scale of the glyph in the font atlas.
 bind_internal(6) in flat f32v4 in_color;
-bind_internal(7) in flat f32 in_invBorder;    // 1.0 / borderPixelSize
-bind_internal(8) in flat f32 in_outlineWidth; // Desired outline size in ui-pixels.
-bind_internal(9) in flat f32 in_aspectRatio;  // Aspect ratio of the glyph
-bind_internal(10) in flat f32 in_cornerFrac;  // Corner size in fractions of the glyph width.
+bind_internal(7) in flat f32 in_invBorder;      // 1.0 / borderPixelSize
+bind_internal(8) in flat f32 in_outlineWidth;   // Desired outline size in ui-pixels.
+bind_internal(9) in flat f32 in_aspectRatio;    // Aspect ratio of the glyph
+bind_internal(10) in flat f32 in_cornerFrac;    // Corner size in fractions of the glyph width.
+bind_internal(11) in flat f32 in_edgeShiftFrac; // Pushes the edge in or out, in fractions of width.
 
 bind_internal(0) out f32v4 out_color;
 
@@ -110,7 +111,7 @@ void main() {
   const f32 smoothingNorm = min(c_smoothingPixels * in_invCanvasScale * in_invBorder, 1.0);
   const f32 outlineNorm   = min(in_outlineWidth * in_invBorder, c_outlineNormMax - smoothingNorm);
 
-  const f32   distNorm    = get_signed_dist_to_glyph(get_fontcoord());
+  const f32   distNorm    = get_signed_dist_to_glyph(get_fontcoord()) - in_edgeShiftFrac;
   const f32   outlineFrac = get_outline_frac(distNorm, outlineNorm, smoothingNorm);
   const f32v4 color       = mix(in_color, c_outlineColor, outlineFrac);
   const f32   alpha       = get_glyph_alpha(distNorm, outlineNorm, smoothingNorm);

@@ -103,6 +103,32 @@ static String ui_escape_read_outline(String input, UiEscape* out) {
   return input;
 }
 
+static String ui_escape_read_weight(String input, UiEscape* out) {
+  if (!ui_escape_check_min_chars(input, 1, out)) {
+    return input;
+  }
+  if (!out) {
+    return string_consume(input, 1); // Fast path in case the output is not needed.
+  }
+  switch (*string_begin(input)) {
+  case 'l':
+    *out = (UiEscape){.type = UiEscape_Weight, .escWeight = {.value = UiWeight_Light}};
+    break;
+  case 'n':
+    *out = (UiEscape){.type = UiEscape_Weight, .escWeight = {.value = UiWeight_Normal}};
+    break;
+  case 'b':
+    *out = (UiEscape){.type = UiEscape_Weight, .escWeight = {.value = UiWeight_Bold}};
+    break;
+  case 'h':
+    *out = (UiEscape){.type = UiEscape_Weight, .escWeight = {.value = UiWeight_Heavy}};
+    break;
+  default:
+    *out = ui_escape_invalid;
+  }
+  return string_consume(input, 1);
+}
+
 String ui_escape_read(String input, UiEscape* out) {
   u8 ch;
   input = format_read_char(input, &ch);
@@ -115,6 +141,8 @@ String ui_escape_read(String input, UiEscape* out) {
     return ui_escape_read_color_named(input, out);
   case '|':
     return ui_escape_read_outline(input, out);
+  case '.':
+    return ui_escape_read_weight(input, out);
   default:
     if (out) {
       *out = ui_escape_invalid;
@@ -134,4 +162,18 @@ String ui_escape_color_scratch(const UiColor color) {
 
 String ui_escape_outline_scratch(const u8 outline) {
   return fmt_write_scratch("\33|{}", fmt_int(outline, .base = 16, .minDigits = 2));
+}
+
+String ui_escape_weight_scratch(const UiWeight weight) {
+  switch (weight) {
+  case UiWeight_Light:
+    return string_lit("\33.l");
+  case UiWeight_Normal:
+    return string_lit("\33.n");
+  case UiWeight_Bold:
+    return string_lit("\33.b");
+  case UiWeight_Heavy:
+    return string_lit("\33.h");
+  }
+  diag_crash_msg("Unknown font weight: {}", fmt_int(weight));
 }

@@ -8,14 +8,14 @@
 
 static const String g_tooltipPresent        = string_static("Presentation mode.\n\n"
                                                             "Options:\n"
-                                                            "- \a~white\a|02Immediate\ar: Don't wait for a vblank but immediately output the new image.\n"
-                                                            "- \a~white\a|02VSync\ar: Wait for the next vblank to output the new image.\n"
-                                                            "- \a~white\a|02VSyncRelaxed\ar: Wait for the next vblank if the application is early, if the application is late then immediately output the new image.\n"
-                                                            "- \a~white\a|02Mailbox\ar: Wait for the next vblank to output a new image, but does not block acquiring a next image. If the application finishes another image before the vblank then it will replace the currently waiting image.");
+                                                            "- \a.bImmediate\ar: Don't wait for a vblank but immediately output the new image.\n"
+                                                            "- \a.bSync\ar: Wait for the next vblank to output the new image.\n"
+                                                            "- \a.bVSyncRelaxed\ar: Wait for the next vblank if the application is early, if the application is late then immediately output the new image.\n"
+                                                            "- \a.bMailbox\ar: Wait for the next vblank to output a new image, but does not block acquiring a next image. If the application finishes another image before the vblank then it will replace the currently waiting image.");
 static const String g_tooltipScale          = string_static("Render resolution scale.");
-static const String g_tooltipLimiter        = string_static("Frame frequency limiter (in hz).\nNote: 0 disables the limiter.");
+static const String g_tooltipLimiter        = string_static("Frame frequency limiter (in hz).\n\a.bNote\ar: 0 disables the limiter.");
 static const String g_tooltipFrustumCulling = string_static("Should draws be culled if their bounds are outside of the view frustum?");
-static const String g_tooltipValidation     = string_static("Should gpu api validation be enabled?\nNote: Requires a reset to take effect.");
+static const String g_tooltipValidation     = string_static("Should gpu api validation be enabled?\n\a.bNote\ar: Requires a reset to take effect.");
 static const String g_tooltipVerbose        = string_static("Should verbose logging be enabled?");
 static const String g_tooltipDefaults       = string_static("Reset all settings to their defaults.");
 static const String g_tooltipReset          = string_static("Re-initialize the renderer.");
