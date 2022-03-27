@@ -33,7 +33,7 @@ struct sRvkRenderer {
   RvkImagePhase      currentTargetPhase;
   RvkSize            currentResolution;
   RvkStopwatchRecord timeRecBegin, timeRecEnd;
-  TimeDuration       waitForRenderTime;
+  TimeDuration       waitForRenderDur;
 };
 
 static VkSemaphore rvk_semaphore_create(RvkDevice* dev) {
@@ -173,7 +173,7 @@ void rvk_renderer_wait_for_done(const RvkRenderer* rend) {
 
   rvk_call(vkWaitForFences, rend->dev->vkDev, 1, &rend->fenceRenderDone, true, u64_max);
 
-  ((RvkRenderer*)rend)->waitForRenderTime += time_steady_duration(waitStart, time_steady_clock());
+  ((RvkRenderer*)rend)->waitForRenderDur += time_steady_duration(waitStart, time_steady_clock());
 }
 
 RvkRenderStats rvk_renderer_stats(const RvkRenderer* rend) {
@@ -188,8 +188,8 @@ RvkRenderStats rvk_renderer_stats(const RvkRenderer* rend) {
   const u64 timestampEnd   = rvk_stopwatch_query(rend->stopwatch, rend->timeRecEnd);
 
   return (RvkRenderStats){
-      .renderTime         = time_nanoseconds(timestampEnd - timestampBegin),
-      .waitForRenderTime  = rend->waitForRenderTime,
+      .renderDur          = time_nanoseconds(timestampEnd - timestampBegin),
+      .waitForRenderDur   = rend->waitForRenderDur,
       .forwardResolution  = rend->currentResolution,
       .forwardDraws       = (u32)rvk_pass_stat(rend->forwardPass, RvkStat_Draws),
       .forwardInstances   = (u32)rvk_pass_stat(rend->forwardPass, RvkStat_Instances),
@@ -211,7 +211,7 @@ void rvk_renderer_begin(
   rend->currentTarget      = target;
   rend->currentTargetPhase = targetPhase;
   rend->currentResolution  = rvk_renderer_resolution(target, settings);
-  rend->waitForRenderTime  = 0;
+  rend->waitForRenderDur   = 0;
 
   rvk_renderer_wait_for_done(rend);
   rvk_uniform_reset(rend->uniformPool);

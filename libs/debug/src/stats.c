@@ -64,9 +64,9 @@ static void debug_stats_draw_interface(
   stats_draw_val_entry(canvas, string_lit("Device"), fmt_write_scratch("{}", fmt_text(rendStats->gpuName)));
   stats_draw_val_entry(canvas, string_lit("Resolution"), fmt_write_scratch("{}x{}", fmt_int(rendStats->renderSize[0]), fmt_int(rendStats->renderSize[1])));
   stats_draw_val_entry(canvas, string_lit("Update time"), fmt_write_scratch("{}", fmt_duration(time->delta)));
-  stats_draw_val_entry(canvas, string_lit("Limiter time"), fmt_write_scratch("{}", fmt_duration(rendStats->limiterTime)));
-  stats_draw_val_entry(canvas, string_lit("Render time"), fmt_write_scratch("{}", fmt_duration(rendStats->renderTime)));
-  stats_draw_val_entry(canvas, string_lit("Render wait-time"), fmt_write_scratch("{}", fmt_duration(rendStats->waitForRenderTime)));
+  stats_draw_val_entry(canvas, string_lit("Limiter time"), fmt_write_scratch("{}", fmt_duration(rendStats->limiterDur)));
+  stats_draw_val_entry(canvas, string_lit("Render time"), fmt_write_scratch("{}", fmt_duration(rendStats->renderDur)));
+  stats_draw_val_entry(canvas, string_lit("Render wait-time"), fmt_write_scratch("{}", fmt_duration(rendStats->waitForRenderDur)));
   stats_draw_val_entry(canvas, string_lit("Draws"), fmt_write_scratch("{}", fmt_int(rendStats->draws)));
   stats_draw_val_entry(canvas, string_lit("Instances"), fmt_write_scratch("{}", fmt_int(rendStats->instances)));
   stats_draw_val_entry(canvas, string_lit("Vertices"), fmt_write_scratch("{}", fmt_int(rendStats->vertices)));

@@ -26,8 +26,8 @@ ecs_system_define(RendFrameLimiterSys) {
   }
 
   if (!globalSettings->limiterFreq) {
-    limiter->sleepTime = 0;
-    limiter->freq      = 0;
+    limiter->sleepDur = 0;
+    limiter->freq     = 0;
     return; // Limiter not active.
   }
   if (globalSettings->limiterFreq != limiter->freq) {
@@ -43,17 +43,17 @@ ecs_system_define(RendFrameLimiterSys) {
   const TimeSteady   start          = time_steady_clock();
   const TimeDuration elapsed        = time_steady_duration(limiter->previousTime, start);
 
-  limiter->sleepTime = targetDuration - elapsed;
-  if (limiter->sleepTime > limiter->sleepOverhead) {
-    limiter->sleepTime -= limiter->sleepOverhead;
-    thread_sleep(limiter->sleepTime);
+  limiter->sleepDur = targetDuration - elapsed;
+  if (limiter->sleepDur > limiter->sleepOverhead) {
+    limiter->sleepDur -= limiter->sleepOverhead;
+    thread_sleep(limiter->sleepDur);
 
     /**
      * Keep a moving average of the additional time a 'thread_sleep()' takes to avoid always waking
      * up late.
      */
     const TimeDuration sinceStart = time_steady_duration(start, time_steady_clock());
-    limiter->sleepOverhead = (sinceStart - limiter->sleepTime + limiter->sleepOverhead * 99) / 100;
+    limiter->sleepOverhead = (sinceStart - limiter->sleepDur + limiter->sleepOverhead * 99) / 100;
   }
   limiter->previousTime = time_steady_clock();
 }

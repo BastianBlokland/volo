@@ -12,7 +12,7 @@ typedef struct sRvkPass   RvkPass;
 typedef struct sRvkRenderer RvkRenderer;
 
 typedef struct {
-  TimeDuration renderTime, waitForRenderTime;
+  TimeDuration renderDur, waitForRenderDur;
   RvkSize      forwardResolution;
   u32          forwardDraws, forwardInstances;
   u64          forwardVertices, forwardPrimitives;
