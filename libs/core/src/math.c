@@ -116,3 +116,13 @@ f32 math_clamp_f32(const f32 val, const f32 min, const f32 max) {
   }
   return val;
 }
+
+f64 math_clamp_f64(const f64 val, const f64 min, const f64 max) {
+  if (val <= min) {
+    return min;
+  }
+  if (val >= max) {
+    return max;
+  }
+  return val;
+}

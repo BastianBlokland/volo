@@ -12,10 +12,16 @@ typedef u32 RvkSwapchainIdx;
 
 typedef struct sRvkSwapchain RvkSwapchain;
 
-RvkSwapchain* rvk_swapchain_create(RvkDevice*, const GapWindowComp*);
-void          rvk_swapchain_destroy(RvkSwapchain*);
-RvkSize       rvk_swapchain_size(const RvkSwapchain*);
-RvkImage*     rvk_swapchain_image(const RvkSwapchain*, RvkSwapchainIdx);
+typedef struct {
+  TimeDuration presentDur;
+  TimeDuration acquireDur;
+} RvkSwapchainStats;
+
+RvkSwapchain*     rvk_swapchain_create(RvkDevice*, const GapWindowComp*);
+void              rvk_swapchain_destroy(RvkSwapchain*);
+RvkSwapchainStats rvk_swapchain_stats(const RvkSwapchain*);
+RvkSize           rvk_swapchain_size(const RvkSwapchain*);
+RvkImage*         rvk_swapchain_image(const RvkSwapchain*, RvkSwapchainIdx);
 
 /**
  * Acquire a new image to render into.

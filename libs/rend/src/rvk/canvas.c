@@ -6,7 +6,6 @@
 #include "canvas_internal.h"
 #include "device_internal.h"
 #include "renderer_internal.h"
-#include "swapchain_internal.h"
 
 typedef RvkRenderer* RvkRendererPtr;
 
@@ -51,9 +50,13 @@ void rvk_canvas_destroy(RvkCanvas* canvas) {
   alloc_free_t(g_alloc_heap, canvas);
 }
 
-RvkRenderStats rvk_canvas_stats(const RvkCanvas* canvas) {
+RvkRenderStats rvk_canvas_render_stats(const RvkCanvas* canvas) {
   RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
   return rvk_renderer_stats(renderer);
+}
+
+RvkSwapchainStats rvk_canvas_swapchain_stats(const RvkCanvas* canvas) {
+  return rvk_swapchain_stats(canvas->swapchain);
 }
 
 bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const RvkSize size) {

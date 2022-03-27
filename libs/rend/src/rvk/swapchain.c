@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_time.h"
 #include "gap_native.h"
 #include "log_logger.h"
 
@@ -34,6 +35,7 @@ struct sRvkSwapchain {
   RvkSwapchainFlags  flags;
   RvkSize            size;
   DynArray           images; // RvkImage[]
+  TimeDuration       lastAcquireDur, lastPresentDur;
 };
 
 static RvkSize rvk_surface_clamp_size(RvkSize size, const VkSurfaceCapabilitiesKHR* vkCaps) {
@@ -264,6 +266,13 @@ void rvk_swapchain_destroy(RvkSwapchain* swapchain) {
 
 RvkSize rvk_swapchain_size(const RvkSwapchain* swapchain) { return swapchain->size; }
 
+RvkSwapchainStats rvk_swapchain_stats(const RvkSwapchain* swapchain) {
+  return (RvkSwapchainStats){
+      .acquireDur = swapchain->lastAcquireDur,
+      .presentDur = swapchain->lastPresentDur,
+  };
+}
+
 RvkImage* rvk_swapchain_image(const RvkSwapchain* swapchain, const RvkSwapchainIdx idx) {
   diag_assert_msg(idx < swapchain->images.size, "Out of bound swapchain index");
   return dynarray_at_t(&swapchain->images, idx, RvkImage);
@@ -296,9 +305,11 @@ RvkSwapchainIdx rvk_swapchain_acquire(
     return sentinel_u32;
   }
 
-  u32      index;
-  VkResult result = vkAcquireNextImageKHR(
+  const TimeSteady acquireStart = time_steady_clock();
+  u32              index;
+  VkResult         result = vkAcquireNextImageKHR(
       swapchain->dev->vkDev, swapchain->vkSwapchain, u64_max, available, null, &index);
+  swapchain->lastAcquireDur = time_steady_duration(acquireStart, time_steady_clock());
 
   switch (result) {
   case VK_SUBOPTIMAL_KHR:
@@ -328,7 +339,10 @@ bool rvk_swapchain_present(RvkSwapchain* swapchain, VkSemaphore ready, const Rvk
       .pImageIndices      = &idx,
   };
 
-  VkResult result = vkQueuePresentKHR(swapchain->dev->vkGraphicsQueue, &presentInfo);
+  const TimeSteady presentStart = time_steady_clock();
+  VkResult         result       = vkQueuePresentKHR(swapchain->dev->vkGraphicsQueue, &presentInfo);
+  swapchain->lastPresentDur     = time_steady_duration(presentStart, time_steady_clock());
+
   switch (result) {
   case VK_SUBOPTIMAL_KHR:
     swapchain->flags |= RvkSwapchainFlags_OutOfDate;

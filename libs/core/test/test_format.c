@@ -251,7 +251,7 @@ spec(format) {
     DynString string = dynstring_create_over(mem_stack(128));
     for (usize i = 0; i != array_elems(data); ++i) {
       dynstring_clear(&string);
-      format_write_time_duration_pretty(&string, data[i].val);
+      format_write_time_duration_pretty(&string, data[i].val, &format_opts_float());
       check_eq_string(dynstring_view(&string), data[i].expected);
     }
     dynstring_destroy(&string);

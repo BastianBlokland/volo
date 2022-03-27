@@ -4,16 +4,15 @@
 #include "debug_interface.h"
 #include "debug_menu.h"
 #include "debug_rend.h"
+#include "debug_stats.h"
 #include "ecs_world.h"
 #include "gap_window.h"
-#include "rend_stats.h"
-#include "scene_time.h"
 #include "ui.h"
 
 // clang-format off
 
-static const String  g_tooltipStatsEnable     = string_static("Enable the \a.bStatistics\ar text.");
-static const String  g_tooltipStatsDisable    = string_static("Disable the \a.bStatistics\ar text.");
+static const String  g_tooltipStatsEnable     = string_static("Enable the \a.bStatistics\ar interface.");
+static const String  g_tooltipStatsDisable    = string_static("Disable the \a.bStatistics\ar interface.");
 static const String  g_tooltipPanelCamera     = string_static("Open the \a.bCamera settings\ar panel.");
 static const String  g_tooltipPanelGrid       = string_static("Open the \a.bGrid settings\ar panel.");
 static const String  g_tooltipPanelRend       = string_static("Open the \a.bRenderer settings\ar panel.");
@@ -22,33 +21,14 @@ static const String  g_tooltipFullscreenEnter = string_static("Enter fullscreen.
 static const String  g_tooltipFullscreenExit  = string_static("Exit fullscreen.");
 static const String  g_tooltipWindowOpen      = string_static("Open a new window.");
 static const String  g_tooltipWindowClose     = string_static("Close the current window. \a.l[Escape]\ar");
-static const f32     g_debugStatsSmoothFactor = 0.1f;
-static const UiColor g_debugWarnColor         = {255, 255, 0, 255};
-static const UiColor g_debugErrorColor        = {255, 0, 0, 255};
 
 // clang-format on
 
-typedef enum {
-  DebugMenuFlags_ShowStats = 1 << 0,
-} DebugMenuFlags;
-
-typedef struct {
-  TimeDuration updateTime, limiterTime, renderTime, waitForRenderTime;
-} DebugStats;
-
 ecs_comp_define(DebugMenuComp) {
-  EcsEntityId    window;
-  DebugMenuFlags flags;
-  DebugStats     stats;
-  GapVector      lastWindowedSize;
-  EcsEntityId    panelCamera, panelGrid, panelRend, panelInterface;
+  EcsEntityId window;
+  GapVector   lastWindowedSize;
+  EcsEntityId panelCamera, panelGrid, panelRend, panelInterface;
 };
-
-static TimeDuration debug_smooth_duration(const TimeDuration old, const TimeDuration new) {
-  return (TimeDuration)((f64)old + ((f64)(new - old) * g_debugStatsSmoothFactor));
-}
-
-ecs_view_define(DebugGlobalView) { ecs_access_read(SceneTimeComp); }
 
 ecs_view_define(MenuUpdateView) {
   ecs_access_write(DebugMenuComp);
@@ -57,7 +37,7 @@ ecs_view_define(MenuUpdateView) {
 
 ecs_view_define(WindowUpdateView) {
   ecs_access_write(GapWindowComp);
-  ecs_access_read(RendStatsComp);
+  ecs_access_write(DebugStatsComp);
 }
 
 static bool debug_panel_is_open(EcsWorld* world, EcsEntityId panel) {
@@ -78,18 +58,19 @@ static void debug_action_bar_draw(
     EcsWorld*         world,
     UiCanvasComp*     canvas,
     DebugMenuComp*    menu,
+    DebugStatsComp*   stats,
     GapWindowComp*    win,
     const EcsEntityId winEntity) {
 
   UiGridState grid = ui_grid_init(canvas, .align = UiAlign_TopRight, .size = {40, 40});
 
-  const bool statsEnabled = (menu->flags & DebugMenuFlags_ShowStats) != 0;
+  const bool statsEnabled = debug_stats_show(stats);
   if (ui_button(
           canvas,
           .label    = ui_shape_scratch(statsEnabled ? UiShape_LayersClear : UiShape_Layers),
           .fontSize = 30,
           .tooltip  = statsEnabled ? g_tooltipStatsDisable : g_tooltipStatsEnable)) {
-    menu->flags ^= DebugMenuFlags_ShowStats;
+    debug_stats_show_set(stats, !statsEnabled);
   }
   ui_grid_next_row(canvas, &grid);
 
@@ -169,85 +150,7 @@ static void debug_action_bar_draw(
   ui_grid_next_row(canvas, &grid);
 }
 
-static void debug_stats_draw_dur(
-    DynString*         str,
-    const TimeDuration dur,
-    const String       label,
-    const TimeDuration threshold1,
-    const TimeDuration threshold2) {
-
-  FormatArg colorArg = fmt_nop();
-  if (dur > threshold2) {
-    colorArg = fmt_ui_color(g_debugErrorColor);
-  } else if (dur > threshold1) {
-    colorArg = fmt_ui_color(g_debugWarnColor);
-  }
-  const f32 freq = 1.0f / (dur / (f32)time_second);
-  fmt_write(
-      str,
-      "{}{<9} \ar{} ({}{}\ar hz)\n",
-      colorArg,
-      fmt_duration(dur),
-      fmt_text(label),
-      colorArg,
-      fmt_float(freq, .minDecDigits = 1, .maxDecDigits = 1));
-}
-
-static void
-debug_stats_draw(UiCanvasComp* canvas, const DebugStats* stats, const RendStatsComp* rendStats) {
-  static const UiVector g_textAreaSize  = {500, 500};
-  static const f32      g_textEdgeSpace = 10;
-  ui_layout_inner(canvas, UiBase_Container, UiAlign_TopLeft, g_textAreaSize, UiBase_Absolute);
-  ui_layout_move_dir(canvas, Ui_Right, g_textEdgeSpace, UiBase_Absolute);
-  ui_layout_move_dir(canvas, Ui_Down, g_textEdgeSpace, UiBase_Absolute);
-
-  DynString str = dynstring_create(g_alloc_scratch, usize_kibibyte);
-
-  // clang-format off
-  fmt_write(&str, "\a.b{}\ar\n", fmt_text(rendStats->gpuName));
-  fmt_write(&str, "{<4}x{<4} pixels\n", fmt_int(rendStats->renderSize[0]), fmt_int(rendStats->renderSize[1]));
-  debug_stats_draw_dur(&str, stats->updateTime, string_lit("update time"), time_milliseconds(17), time_milliseconds(18));
-  fmt_write(&str, "{}{<9} \arlimiter time\n", stats->limiterTime < 0 ? fmt_ui_color(g_debugWarnColor) : fmt_nop(), fmt_duration(stats->limiterTime));
-  debug_stats_draw_dur(&str, stats->renderTime, string_lit("render time"), time_milliseconds(10), time_milliseconds(17));
-  fmt_write(&str, "{}{<9} \arrender wait time\n", stats->waitForRenderTime > time_millisecond ? fmt_ui_color(g_debugWarnColor) : fmt_nop(), fmt_duration(stats->waitForRenderTime));
-  fmt_write(&str, "{<9} draws\ar\n", fmt_int(rendStats->draws));
-  fmt_write(&str, "{<9} instances\n", fmt_int(rendStats->instances));
-  fmt_write(&str, "{<9} vertices\ar\n", fmt_int(rendStats->vertices));
-  fmt_write(&str, "{<9} triangles\n", fmt_int(rendStats->primitives));
-  fmt_write(&str, "{<9} vertex shaders\n", fmt_int(rendStats->shadersVert));
-  fmt_write(&str, "{<9} fragment shaders\n", fmt_int(rendStats->shadersFrag));
-  fmt_write(&str, "{<9} memory-main\n", fmt_size(alloc_stats_total()));
-  fmt_write(&str, "{<9} memory-renderer (reserved: {})\n", fmt_size(rendStats->ramOccupied), fmt_size(rendStats->ramReserved));
-  fmt_write(&str, "{<9} memory-gpu (reserved: {})\n", fmt_size(rendStats->vramOccupied), fmt_size(rendStats->vramReserved));
-  fmt_write(&str, "{<9} descriptor-sets (reserved: {})\n", fmt_int(rendStats->descSetsOccupied), fmt_int(rendStats->descSetsReserved));
-  fmt_write(&str, "{<9} descriptor-layouts\n", fmt_int(rendStats->descLayouts));
-  fmt_write(&str, "{<9} graphics\n", fmt_int(rendStats->resources[RendStatRes_Graphic]));
-  fmt_write(&str, "{<9} shaders\n", fmt_int(rendStats->resources[RendStatRes_Shader]));
-  fmt_write(&str, "{<9} meshes\n", fmt_int(rendStats->resources[RendStatRes_Mesh]));
-  fmt_write(&str, "{<9} textures\n", fmt_int(rendStats->resources[RendStatRes_Texture]));
-  // clang-format on
-
-  ui_style_push(canvas);
-  ui_style_outline(canvas, 2);
-  ui_style_variation(canvas, UiVariation_Monospace);
-  ui_label(canvas, dynstring_view(&str), .align = UiAlign_TopLeft);
-  ui_style_pop(canvas);
-}
-
-static void
-debug_stats_update(DebugStats* stats, const RendStatsComp* rendStats, const SceneTimeComp* time) {
-  stats->updateTime  = debug_smooth_duration(stats->updateTime, time ? time->delta : time_second);
-  stats->limiterTime = debug_smooth_duration(stats->limiterTime, rendStats->limiterTime);
-  stats->renderTime  = debug_smooth_duration(stats->renderTime, rendStats->renderTime);
-  stats->waitForRenderTime =
-      debug_smooth_duration(stats->waitForRenderTime, rendStats->waitForRenderTime);
-}
-
 ecs_system_define(DebugMenuUpdateSys) {
-  EcsView*             globalView = ecs_world_view_t(world, DebugGlobalView);
-  EcsIterator*         globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  const SceneTimeComp* time       = globalItr ? ecs_view_read_t(globalItr, SceneTimeComp) : null;
-
   EcsView*     windowView = ecs_world_view_t(world, WindowUpdateView);
   EcsIterator* windowItr  = ecs_view_itr(windowView);
 
@@ -259,39 +162,25 @@ ecs_system_define(DebugMenuUpdateSys) {
     if (!ecs_view_maybe_jump(windowItr, menu->window)) {
       continue;
     }
-    GapWindowComp*       win       = ecs_view_write_t(windowItr, GapWindowComp);
-    const EcsEntityId    winEntity = ecs_view_entity(windowItr);
-    const RendStatsComp* rendStats = ecs_view_read_t(windowItr, RendStatsComp);
-
-    if (time) {
-      debug_stats_update(&menu->stats, rendStats, time);
-    }
+    GapWindowComp*  win   = ecs_view_write_t(windowItr, GapWindowComp);
+    DebugStatsComp* stats = ecs_view_write_t(windowItr, DebugStatsComp);
 
     ui_canvas_reset(canvas);
-    if (menu->flags & DebugMenuFlags_ShowStats) {
-      debug_stats_draw(canvas, &menu->stats, rendStats);
-    }
-    debug_action_bar_draw(world, canvas, menu, win, winEntity);
+    debug_action_bar_draw(world, canvas, menu, stats, win, menu->window);
   }
 }
 
 ecs_module_init(debug_menu_module) {
   ecs_register_comp(DebugMenuComp);
-
-  ecs_register_view(DebugGlobalView);
   ecs_register_view(MenuUpdateView);
   ecs_register_view(WindowUpdateView);
 
   ecs_register_system(
-      DebugMenuUpdateSys,
-      ecs_view_id(DebugGlobalView),
-      ecs_view_id(MenuUpdateView),
-      ecs_view_id(WindowUpdateView));
+      DebugMenuUpdateSys, ecs_view_id(MenuUpdateView), ecs_view_id(WindowUpdateView));
 }
 
 EcsEntityId debug_menu_create(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId menuEntity = ui_canvas_create(world, window);
-  ecs_world_add_t(
-      world, menuEntity, DebugMenuComp, .window = window, .flags = DebugMenuFlags_ShowStats);
+  ecs_world_add_t(world, menuEntity, DebugMenuComp, .window = window);
   return menuEntity;
 }

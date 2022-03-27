@@ -11,6 +11,7 @@ add_library(lib_debug STATIC
   src/menu.c
   src/register.c
   src/rend.c
+  src/stats.c
   )
 target_include_directories(lib_debug PUBLIC include)
 target_link_libraries(lib_debug PRIVATE lib_gap)
