@@ -12,10 +12,11 @@
 #define ui_build_container_stack_max 5
 
 typedef struct {
-  UiColor color;
-  u8      outline;
-  UiLayer layer;
-  u8      variation;
+  UiColor  color;
+  u8       outline;
+  u8       variation;
+  UiWeight weight;
+  UiLayer  layer;
 } UiBuildStyle;
 
 typedef struct {
@@ -147,6 +148,7 @@ static void ui_build_text_char(void* userCtx, const UiTextCharInfo* info) {
           .cornerFrac   = (u16)(0.5f * u16_max),
           .clipId       = clipId,
           .outlineWidth = info->outline,
+          .weight       = info->weight,
       },
       info->layer);
 }
@@ -179,6 +181,7 @@ static void ui_build_glyph(
           .cornerFrac   = (u16)((corner + border) / outputRect.size.width * u16_max),
           .clipId       = clipId,
           .outlineWidth = style.outline,
+          .weight       = style.weight,
       },
       style.layer);
 }
@@ -234,6 +237,7 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
       style.outline,
       style.layer,
       style.variation,
+      style.weight,
       cmd->align,
       state,
       &ui_build_text_char);
@@ -275,7 +279,11 @@ static void ui_build_debug_inspector(UiBuildState* state, const UiId id, const U
   const UiBuildStyle styleShape     = {.color = {255, 0, 0, 178}, .layer = UiLayer_Overlay};
   const UiBuildStyle styleContainer = {.color = {0, 0, 255, 178}, .layer = UiLayer_Overlay};
   const UiBuildStyle styleText      = {
-      .color = ui_color_white, .outline = 4, .layer = UiLayer_Overlay, .variation = 1};
+      .color     = ui_color_white,
+      .outline   = 3,
+      .variation = 1,
+      .weight    = UiWeight_Bold,
+      .layer     = UiLayer_Overlay};
 
   ui_build_glyph(state, UiShape_Square, container.rect, styleContainer, 5, 0);
   ui_build_glyph(state, UiShape_Square, rect, styleShape, 5, 0);
@@ -314,6 +322,7 @@ static void ui_build_debug_inspector(UiBuildState* state, const UiId id, const U
       styleText.outline,
       styleText.layer,
       styleText.variation,
+      styleText.weight,
       UiAlign_TopLeft,
       state,
       &ui_build_text_char);
@@ -389,6 +398,9 @@ static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
   case UiCmd_StyleVariation:
     ui_build_style_currect(state)->variation = cmd->styleVariation.value;
     break;
+  case UiCmd_StyleWeight:
+    ui_build_style_currect(state)->weight = cmd->styleWeight.value;
+    break;
   case UiCmd_DrawText:
     ui_build_draw_text(state, &cmd->drawText);
     if (UNLIKELY(cmd->drawText.id == state->ctx->debugElem)) {
@@ -415,6 +427,7 @@ UiBuildResult ui_build(const UiCmdBuffer* cmdBuffer, const UiBuildCtx* ctx) {
               .color     = ctx->settings->defaultColor,
               .outline   = ctx->settings->defaultOutline,
               .variation = ctx->settings->defaultVariation,
+              .weight    = ctx->settings->defaultWeight,
               .layer     = UiLayer_Normal,
           },
       .styleStackCount = 1,

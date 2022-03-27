@@ -7,6 +7,7 @@ typedef enum {
   UiEscape_Reset,
   UiEscape_Color,
   UiEscape_Outline,
+  UiEscape_Weight,
 } UiEscapeType;
 
 typedef struct {
@@ -18,10 +19,15 @@ typedef struct {
 } UiEscapeOutline;
 
 typedef struct {
+  UiWeight value;
+} UiEscapeWeight;
+
+typedef struct {
   UiEscapeType type;
   union {
     UiEscapeColor   escColor;
     UiEscapeOutline escOutline;
+    UiEscapeWeight  escWeight;
   };
 } UiEscape;
 

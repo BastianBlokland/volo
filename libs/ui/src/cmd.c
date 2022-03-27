@@ -135,6 +135,14 @@ void ui_cmd_push_style_variation(UiCmdBuffer* buffer, const u8 variation) {
       }};
 }
 
+void ui_cmd_push_style_weight(UiCmdBuffer* buffer, const UiWeight weight) {
+  *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
+      .type        = UiCmd_StyleWeight,
+      .styleWeight = {
+          .value = weight,
+      }};
+}
+
 void ui_cmd_push_draw_text(
     UiCmdBuffer*  buffer,
     const UiId    id,

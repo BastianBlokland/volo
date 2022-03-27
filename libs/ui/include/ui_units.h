@@ -54,3 +54,14 @@ typedef enum {
   UiLayer_Normal,
   UiLayer_Overlay,
 } UiLayer;
+
+/**
+ * Ui Font Weight.
+ * NOTE: These values are depended upon by the renderer.
+ */
+typedef enum {
+  UiWeight_Light  = 0,
+  UiWeight_Normal = 1,
+  UiWeight_Bold   = 2,
+  UiWeight_Heavy  = 3,
+} UiWeight;
