@@ -421,6 +421,7 @@ static void ui_tooltip_text(
 
   ui_style_color(canvas, ui_color_black);
   ui_style_outline(canvas, 0);
+  ui_style_variation(canvas, opts->variation);
 
   ui_canvas_draw_text(canvas, text, opts->fontSize, UiAlign_TopLeft, UiFlags_TrackRect);
 }
