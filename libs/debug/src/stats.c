@@ -13,7 +13,13 @@ typedef enum {
 ecs_comp_define(DebugStatsComp) {
   DebugStatsFlags flags;
   EcsEntityId     canvas;
+  TimeDuration    frameDur;
 };
+
+static TimeDuration debug_smooth_dur(const TimeDuration old, const TimeDuration new) {
+  static const f32 g_smoothFactor = 0.1f;
+  return (TimeDuration)((f64)old + ((f64)(new - old) * g_smoothFactor));
+}
 
 static void stats_draw_bg(UiCanvasComp* canvas) {
   ui_style_push(canvas);
@@ -53,8 +59,22 @@ static void stats_draw_val_entry(UiCanvasComp* canvas, const String label, const
   ui_layout_next(canvas, Ui_Down, 0);
 }
 
+static void stats_draw_dur_entry(UiCanvasComp* canvas, const String label, const TimeDuration dur) {
+  FormatArg colorArg = fmt_nop();
+  if (dur > time_microseconds(33400)) {
+    colorArg = fmt_ui_color(ui_color_red);
+  } else if (dur > time_microseconds(16700)) {
+    colorArg = fmt_ui_color(ui_color_yellow);
+  }
+  const f32 freq = 1.0f / (dur / (f32)time_second);
+
+  // clang-format off
+  stats_draw_val_entry(canvas, label, fmt_write_scratch("{}{<6} {}hz", colorArg, fmt_duration(dur, .minDecDigits = 1), fmt_float(freq, .minDecDigits = 1, .maxDecDigits = 1)));
+  // clang-format on
+}
+
 static void debug_stats_draw_interface(
-    UiCanvasComp* canvas, const RendStatsComp* rendStats, const SceneTimeComp* time) {
+    UiCanvasComp* canvas, const DebugStatsComp* stats, const RendStatsComp* rendStats) {
 
   ui_layout_move_to(canvas, UiBase_Container, UiAlign_TopLeft, Ui_XY);
   ui_layout_resize(canvas, UiAlign_TopLeft, ui_vector(450, 25), UiBase_Absolute, Ui_XY);
@@ -63,10 +83,7 @@ static void debug_stats_draw_interface(
 
   stats_draw_val_entry(canvas, string_lit("Device"), fmt_write_scratch("{}", fmt_text(rendStats->gpuName)));
   stats_draw_val_entry(canvas, string_lit("Resolution"), fmt_write_scratch("{}x{}", fmt_int(rendStats->renderSize[0]), fmt_int(rendStats->renderSize[1])));
-  stats_draw_val_entry(canvas, string_lit("Update time"), fmt_write_scratch("{}", fmt_duration(time->delta)));
-  stats_draw_val_entry(canvas, string_lit("Limiter time"), fmt_write_scratch("{}", fmt_duration(rendStats->limiterDur)));
-  stats_draw_val_entry(canvas, string_lit("Render time"), fmt_write_scratch("{}", fmt_duration(rendStats->renderDur)));
-  stats_draw_val_entry(canvas, string_lit("Render wait-time"), fmt_write_scratch("{}", fmt_duration(rendStats->waitForRenderDur)));
+  stats_draw_dur_entry(canvas, string_lit("Frame time"), stats->frameDur);
   stats_draw_val_entry(canvas, string_lit("Draws"), fmt_write_scratch("{}", fmt_int(rendStats->draws)));
   stats_draw_val_entry(canvas, string_lit("Instances"), fmt_write_scratch("{}", fmt_int(rendStats->instances)));
   stats_draw_val_entry(canvas, string_lit("Vertices"), fmt_write_scratch("{}", fmt_int(rendStats->vertices)));
@@ -108,33 +125,34 @@ ecs_system_define(DebugStatsCreateSys) {
 }
 
 ecs_system_define(DebugStatsUpdateSys) {
-  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
-  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  if (!globalItr) {
-    return;
-  }
+  EcsView*             globalView = ecs_world_view_t(world, GlobalView);
+  EcsIterator*         globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  const SceneTimeComp* time       = globalItr ? ecs_view_read_t(globalItr, SceneTimeComp) : null;
+
   EcsIterator* canvasItr = ecs_view_itr(ecs_world_view_t(world, CanvasWrite));
 
   EcsView* statsView = ecs_world_view_t(world, StatsUpdateView);
   for (EcsIterator* itr = ecs_view_itr(statsView); ecs_view_walk(itr);) {
-    DebugStatsComp*      statsComp = ecs_view_write_t(itr, DebugStatsComp);
+    DebugStatsComp*      stats     = ecs_view_write_t(itr, DebugStatsComp);
     const RendStatsComp* rendStats = ecs_view_read_t(itr, RendStatsComp);
-    const SceneTimeComp* time      = ecs_view_read_t(globalItr, SceneTimeComp);
+
+    // Update statistics.
+    stats->frameDur = debug_smooth_dur(stats->frameDur, time ? time->delta : time_second);
 
     // Create or destroy the interface canvas as needed.
-    if (statsComp->flags & DebugStatsFlags_Show && !statsComp->canvas) {
-      statsComp->canvas = ui_canvas_create(world, ecs_view_entity(itr));
-    } else if (!(statsComp->flags & DebugStatsFlags_Show) && statsComp->canvas) {
-      ecs_world_entity_destroy(world, statsComp->canvas);
-      statsComp->canvas = 0;
+    if (stats->flags & DebugStatsFlags_Show && !stats->canvas) {
+      stats->canvas = ui_canvas_create(world, ecs_view_entity(itr));
+    } else if (!(stats->flags & DebugStatsFlags_Show) && stats->canvas) {
+      ecs_world_entity_destroy(world, stats->canvas);
+      stats->canvas = 0;
     }
 
     // Draw the interface.
-    if (statsComp->canvas && ecs_view_maybe_jump(canvasItr, statsComp->canvas)) {
+    if (stats->canvas && ecs_view_maybe_jump(canvasItr, stats->canvas)) {
       UiCanvasComp* canvas = ecs_view_write_t(canvasItr, UiCanvasComp);
       ui_canvas_reset(canvas);
       ui_canvas_to_back(canvas);
-      debug_stats_draw_interface(canvas, rendStats, time);
+      debug_stats_draw_interface(canvas, stats, rendStats);
     }
   }
 }
