@@ -157,8 +157,10 @@ struct sFormatArg {
 /**
  * Create an time duration formatting argument.
  */
-#define fmt_duration(_VAL_) ((FormatArg){                                                          \
-    .type = FormatArgType_Duration, .value_duration = (_VAL_)                                      \
+#define fmt_duration(_VAL_, ...) ((FormatArg){                                                     \
+    .type           = FormatArgType_Duration,                                                      \
+    .value_duration = (_VAL_),                                                                     \
+    .settings       = &format_opts_float(.maxDecDigits = 1, __VA_ARGS__)                           \
   })
 
 /**
@@ -366,7 +368,7 @@ typedef struct {
   ((FormatOptsTime){                                                                               \
     .timezone   = time_zone_utc,                                                                   \
     .terms      = FormatTimeTerms_All,                                                             \
-    .flags      = FormatTimeFlags_HumanReadable,                                                            \
+    .flags      = FormatTimeFlags_HumanReadable,                                                   \
     __VA_ARGS__                                                                                    \
   })
 
@@ -460,7 +462,7 @@ void format_write_mem(DynString*, Mem val);
  * Write a duration as human readable ascii characters.
  * Example output: '42.3s'.
  */
-void format_write_time_duration_pretty(DynString*, TimeDuration val);
+void format_write_time_duration_pretty(DynString*, TimeDuration val, const FormatOptsFloat*);
 
 /**
  * Date and time in iso-8601 format (https://en.wikipedia.org/wiki/ISO_8601).

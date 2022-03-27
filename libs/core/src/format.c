@@ -174,7 +174,7 @@ void format_write_arg(DynString* str, const FormatArg* arg) {
     format_write_mem(str, arg->value_mem);
     break;
   case FormatArgType_Duration:
-    format_write_time_duration_pretty(str, arg->value_duration);
+    format_write_time_duration_pretty(str, arg->value_duration, arg->settings);
     break;
   case FormatArgType_Time:
     format_write_time_iso8601(str, arg->value_time, arg->settings);
@@ -385,7 +385,8 @@ void format_write_mem(DynString* str, const Mem val) {
   }
 }
 
-void format_write_time_duration_pretty(DynString* str, const TimeDuration val) {
+void format_write_time_duration_pretty(
+    DynString* str, const TimeDuration val, const FormatOptsFloat* opts) {
   static struct {
     TimeDuration val;
     String       str;
@@ -402,7 +403,7 @@ void format_write_time_duration_pretty(DynString* str, const TimeDuration val) {
   usize              i      = 0;
   for (; (i + 1) != array_elems(units) && absVal >= units[i + 1].val; ++i)
     ;
-  format_write_float(str, (f64)val / (f64)units[i].val, .maxDecDigits = 1);
+  format_write_f64(str, (f64)val / (f64)units[i].val, opts);
   dynstring_append(str, units[i].str);
 }
 
