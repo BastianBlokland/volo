@@ -8,25 +8,48 @@
 #include "scene_time.h"
 #include "ui.h"
 
-static const f32 g_statsLabelWidth    = 160.0f;
+static const f32 g_statsLabelWidth    = 160;
 static const u8  g_statsBgAlpha       = 150;
-static const f32 g_statsAverageWindow = 5.0f;
+static const f32 g_statsAverageWindow = 10;
+
+#define stats_plot_size 16
 
 typedef enum {
   DebugStatsFlags_Show = 1 << 0,
 } DebugStatsFlags;
 
+typedef struct {
+  f32 values[stats_plot_size];
+  u32 cur;
+} DebugStatPlot;
+
 ecs_comp_define(DebugStatsComp) {
   DebugStatsFlags flags;
   EcsEntityId     canvas;
 
-  TimeDuration frameDur;
-  TimeDuration frameDurAvg;
-  f32          frameFreqAvg;
+  TimeDuration  frameDur;
+  TimeDuration  frameDurAvg;
+  DebugStatPlot frameDurVarianceUs; // In microseconds.
+  f32           frameFreqAvg;
 
   TimeDuration gpuRenderDurAvg;
   TimeDuration cpuLimiterDurAvg, cpuRendWaitDurAvg, cpuSwapAcquireDurAvg, cpuSwapPresentDurAvg;
 };
+
+static void debug_plot_add(DebugStatPlot* plot, const f32 value) {
+  plot->values[plot->cur] = value;
+  plot->cur               = (plot->cur + 1) % stats_plot_size;
+}
+
+static f32 debug_plot_max(const DebugStatPlot* plot) {
+  f32 max = plot->values[0];
+  for (u32 i = 1; i != stats_plot_size; ++i) {
+    if (plot->values[i] > max) {
+      max = plot->values[i];
+    }
+  }
+  return max;
+}
 
 static f64 debug_avg(const f64 oldAvg, const f64 new) {
   static const f64 g_invAverageWindow = 1.0f / g_statsAverageWindow;
@@ -79,19 +102,24 @@ static void stats_draw_val_entry(UiCanvasComp* canvas, const String label, const
 
 static void stats_draw_frametime(UiCanvasComp* canvas, const DebugStatsComp* stats) {
   FormatArg colorArg = fmt_nop();
-  if (stats->frameDur > time_microseconds(33400)) {
+  if (stats->frameDur > time_milliseconds(34)) {
     colorArg = fmt_ui_color(ui_color_red);
-  } else if (stats->frameDur > time_microseconds(16700)) {
+  } else if (stats->frameDur > time_milliseconds(17)) {
     colorArg = fmt_ui_color(ui_color_yellow);
   }
+  const f32    varianceUs = debug_plot_max(&stats->frameDurVarianceUs);
+  const String freqText   = fmt_write_scratch(
+      "{}hz", fmt_float(stats->frameFreqAvg, .minDecDigits = 1, .maxDecDigits = 1));
+
   stats_draw_val_entry(
       canvas,
       string_lit("Frame time"),
       fmt_write_scratch(
-          "{}{<6} {}hz",
+          "{}{<8}{<8}{>7} var",
           colorArg,
           fmt_duration(stats->frameDurAvg, .minDecDigits = 1),
-          fmt_float(stats->frameFreqAvg, .minDecDigits = 1, .maxDecDigits = 1)));
+          fmt_text(freqText),
+          fmt_duration((TimeDuration)(varianceUs * time_microsecond), .maxDecDigits = 0)));
 }
 
 typedef struct {
@@ -232,9 +260,12 @@ static void debug_stats_draw_interface(
 static void debug_stats_update(
     DebugStatsComp* stats, const RendStatsComp* rendStats, const SceneTimeComp* time) {
 
-  stats->frameDur     = time ? time->delta : time_second;
-  stats->frameDurAvg  = debug_avg_dur(stats->frameDurAvg, stats->frameDur);
-  stats->frameFreqAvg = 1.0f / (stats->frameDurAvg / (f32)time_second);
+  const TimeDuration prevFrameDur     = stats->frameDur;
+  stats->frameDur                     = time ? time->delta : time_second;
+  stats->frameDurAvg                  = debug_avg_dur(stats->frameDurAvg, stats->frameDur);
+  stats->frameFreqAvg                 = 1.0f / (stats->frameDurAvg / (f32)time_second);
+  const TimeDuration frameDurVariance = math_abs(stats->frameDur - prevFrameDur);
+  debug_plot_add(&stats->frameDurVarianceUs, (f32)(frameDurVariance / (f64)time_microsecond));
 
   stats->gpuRenderDurAvg   = debug_avg_dur(stats->gpuRenderDurAvg, rendStats->renderDur);
   stats->cpuLimiterDurAvg  = debug_avg_dur(stats->cpuLimiterDurAvg, rendStats->limiterDur);
