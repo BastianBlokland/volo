@@ -137,7 +137,7 @@ static void stats_draw_graph(
 
   f64 t = 0;
   for (u32 i = 0; i != sectionCount; ++i) {
-    const f64 frac = sections[i].frac;
+    const f64 frac = math_min(sections[i].frac, 1.0 - t);
     ui_layout_push(canvas);
     ui_layout_move(canvas, ui_vector((f32)t, 0), UiBase_Current, Ui_X);
     ui_layout_resize(canvas, UiAlign_BottomLeft, ui_vector((f32)frac, 0), UiBase_Current, Ui_X);
@@ -164,7 +164,7 @@ static void stats_draw_cpu_graph(UiCanvasComp* canvas, const DebugStatsComp* sta
 
   ui_layout_grow(
       canvas, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
-  ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-4, -4), UiBase_Absolute, Ui_XY);
+  ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-2, -2), UiBase_Absolute, Ui_XY);
 
   const f64 limiterFrac = math_clamp_f64(stats->cpuLimiterDurAvg / (f64)stats->frameDur, 0, 1);
   const f64 rendWaitDur = math_clamp_f64(stats->cpuRendWaitDurAvg / (f64)stats->frameDur, 0, 1);
@@ -205,7 +205,7 @@ static void stats_draw_gpu_graph(UiCanvasComp* canvas, const DebugStatsComp* sta
 
   ui_layout_grow(
       canvas, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
-  ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-4, -4), UiBase_Absolute, Ui_XY);
+  ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-2, -2), UiBase_Absolute, Ui_XY);
 
   const f64 renderFrac = math_clamp_f64(stats->gpuRenderDurAvg / (f64)stats->frameDur, 0, 1);
   const f64 idleFrac   = math_clamp_f64(1.0f - renderFrac, 0, 1);
