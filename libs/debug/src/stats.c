@@ -8,9 +8,9 @@
 #include "scene_time.h"
 #include "ui.h"
 
-static const f32 g_statsLabelWidth    = 160;
-static const u8  g_statsBgAlpha       = 150;
-static const f32 g_statsAverageWindow = 10;
+static const f32 g_statsLabelWidth       = 160;
+static const u8  g_statsBgAlpha          = 150;
+static const f32 g_statsInvAverageWindow = 1.0f / 10.0f;
 
 #define stats_plot_size 32
 
@@ -52,8 +52,7 @@ static f32 debug_plot_max(const DebugStatPlot* plot) {
 }
 
 static f64 debug_avg(const f64 oldAvg, const f64 new) {
-  static const f64 g_invAverageWindow = 1.0f / g_statsAverageWindow;
-  return oldAvg + (new - oldAvg) * g_invAverageWindow;
+  return oldAvg + (new - oldAvg) * g_statsInvAverageWindow;
 }
 
 static TimeDuration debug_avg_dur(const TimeDuration oldAvg, const TimeDuration new) {
