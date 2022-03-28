@@ -12,7 +12,7 @@ static const f32 g_statsLabelWidth    = 160;
 static const u8  g_statsBgAlpha       = 150;
 static const f32 g_statsAverageWindow = 10;
 
-#define stats_plot_size 16
+#define stats_plot_size 32
 
 typedef enum {
   DebugStatsFlags_Show = 1 << 0,
