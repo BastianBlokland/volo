@@ -4,6 +4,7 @@
 #include "debug_stats.h"
 #include "ecs_world.h"
 #include "gap_window.h"
+#include "rend_settings.h"
 #include "rend_stats.h"
 #include "scene_time.h"
 #include "ui.h"
@@ -31,6 +32,7 @@ ecs_comp_define(DebugStatsComp) {
   TimeDuration  frameDurAvg;
   DebugStatPlot frameDurVarianceUs; // In microseconds.
   f32           frameFreqAvg;
+  TimeDuration  frameDurDesired;
 
   TimeDuration gpuRenderDurAvg;
   TimeDuration cpuLimiterDurAvg, cpuRendWaitDurAvg, cpuSwapAcquireDurAvg, cpuSwapPresentDurAvg;
@@ -100,10 +102,13 @@ static void stats_draw_val_entry(UiCanvasComp* canvas, const String label, const
 }
 
 static void stats_draw_frametime(UiCanvasComp* canvas, const DebugStatsComp* stats) {
+  const f64 g_errorThreshold = 1.25;
+  const f64 g_warnThreshold  = 1.05;
+
   FormatArg colorArg = fmt_nop();
-  if (stats->frameDur > time_milliseconds(34)) {
+  if (stats->frameDur > stats->frameDurDesired * g_errorThreshold) {
     colorArg = fmt_ui_color(ui_color_red);
-  } else if (stats->frameDur > time_milliseconds(17)) {
+  } else if (stats->frameDur > stats->frameDurDesired * g_warnThreshold) {
     colorArg = fmt_ui_color(ui_color_yellow);
   }
   const f32    varianceUs = debug_plot_max(&stats->frameDurVarianceUs);
@@ -257,14 +262,21 @@ static void debug_stats_draw_interface(
 }
 
 static void debug_stats_update(
-    DebugStatsComp* stats, const RendStatsComp* rendStats, const SceneTimeComp* time) {
+    DebugStatsComp*               stats,
+    const RendStatsComp*          rendStats,
+    const RendGlobalSettingsComp* rendGlobalSettings,
+    const SceneTimeComp*          time) {
 
   const TimeDuration prevFrameDur     = stats->frameDur;
-  stats->frameDur                     = time ? time->delta : time_second;
+  stats->frameDur                     = time->delta;
   stats->frameDurAvg                  = debug_avg_dur(stats->frameDurAvg, stats->frameDur);
   stats->frameFreqAvg                 = 1.0f / (stats->frameDurAvg / (f32)time_second);
   const TimeDuration frameDurVariance = math_abs(stats->frameDur - prevFrameDur);
   debug_plot_add(&stats->frameDurVarianceUs, (f32)(frameDurVariance / (f64)time_microsecond));
+
+  stats->frameDurDesired = rendGlobalSettings->limiterFreq
+                               ? time_second / rendGlobalSettings->limiterFreq
+                               : time_second / 60;
 
   stats->gpuRenderDurAvg   = debug_avg_dur(stats->gpuRenderDurAvg, rendStats->renderDur);
   stats->cpuLimiterDurAvg  = debug_avg_dur(stats->cpuLimiterDurAvg, rendStats->limiterDur);
@@ -275,7 +287,10 @@ static void debug_stats_update(
       debug_avg_dur(stats->cpuSwapPresentDurAvg, rendStats->swapchainPresentDur);
 }
 
-ecs_view_define(GlobalView) { ecs_access_read(SceneTimeComp); }
+ecs_view_define(GlobalView) {
+  ecs_access_read(SceneTimeComp);
+  ecs_access_read(RendGlobalSettingsComp);
+}
 
 ecs_view_define(StatsCreateView) {
   ecs_access_with(GapWindowComp);
@@ -297,9 +312,14 @@ ecs_system_define(DebugStatsCreateSys) {
 }
 
 ecs_system_define(DebugStatsUpdateSys) {
-  EcsView*             globalView = ecs_world_view_t(world, GlobalView);
-  EcsIterator*         globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  const SceneTimeComp* time       = globalItr ? ecs_view_read_t(globalItr, SceneTimeComp) : null;
+  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return;
+  }
+  const SceneTimeComp*          time = ecs_view_read_t(globalItr, SceneTimeComp);
+  const RendGlobalSettingsComp* rendGlobalSettings =
+      ecs_view_read_t(globalItr, RendGlobalSettingsComp);
 
   EcsIterator* canvasItr = ecs_view_itr(ecs_world_view_t(world, CanvasWrite));
 
@@ -309,7 +329,7 @@ ecs_system_define(DebugStatsUpdateSys) {
     const RendStatsComp* rendStats = ecs_view_read_t(itr, RendStatsComp);
 
     // Update statistics.
-    debug_stats_update(stats, rendStats, time);
+    debug_stats_update(stats, rendStats, rendGlobalSettings, time);
 
     // Create or destroy the interface canvas as needed.
     if (stats->flags & DebugStatsFlags_Show && !stats->canvas) {
