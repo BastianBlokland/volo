@@ -293,12 +293,16 @@ static VkDevice rvk_device_create_internal(RvkDevice* dev) {
   }
 
   // Query supported features.
+  void* nextSupportedFeatures = null;
+#ifdef VK_KHR_present_wait
   VkPhysicalDevicePresentWaitFeaturesKHR supportedPresentWait = {
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR,
   };
+  nextSupportedFeatures = &supportedPresentWait;
+#endif
   VkPhysicalDeviceFeatures2 supportedFeatures = {
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-      .pNext = &supportedPresentWait,
+      .pNext = nextSupportedFeatures,
   };
   vkGetPhysicalDeviceFeatures2(dev->vkPhysDev, &supportedFeatures);
 
@@ -308,18 +312,24 @@ static VkDevice rvk_device_create_internal(RvkDevice* dev) {
   }
 
   // Add optional extensions.
-  const RendVkExts supportedExts  = rvk_device_exts_query(dev->vkPhysDev);
-  const String     presentWaitExt = string_lit("VK_KHR_present_wait");
+  const RendVkExts supportedExts = rvk_device_exts_query(dev->vkPhysDev);
+#ifdef VK_KHR_present_wait
+  const String presentWaitExt = string_lit("VK_KHR_present_wait");
   if (supportedPresentWait.presentWait && rvk_device_has_ext(supportedExts, presentWaitExt)) {
     extsToEnable[extsToEnableCount++] = "VK_KHR_present_id";
     extsToEnable[extsToEnableCount++] = "VK_KHR_present_wait";
     dev->flags |= RvkDeviceFlags_SupportPresentWait;
   }
+#endif
   rvk_vk_exts_free(supportedExts);
 
+  void* nextEnabledFeatures = null;
+#ifdef VK_KHR_present_wait
+  nextEnabledFeatures = &supportedPresentWait; // Enable 'presentWait' if supported.
+#endif
   VkPhysicalDevice16BitStorageFeatures float16IStorageFeatures = {
       .sType                    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES_KHR,
-      .pNext                    = &supportedPresentWait,
+      .pNext                    = nextEnabledFeatures,
       .storageBuffer16BitAccess = true,
       .uniformAndStorageBuffer16BitAccess = true,
   };
