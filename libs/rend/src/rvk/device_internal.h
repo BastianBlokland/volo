@@ -17,6 +17,7 @@ typedef enum {
   RvkDeviceFlags_SupportAnisotropy        = 1 << 2,
   RvkDeviceFlags_SupportFillNonSolid      = 1 << 3,
   RvkDeviceFlags_SupportWideLines         = 1 << 4,
+  RvkDeviceFlags_SupportPresentWait       = 1 << 5,
 } RvkDeviceFlags;
 
 typedef struct sRvkDevice {

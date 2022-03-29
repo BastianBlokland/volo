@@ -292,9 +292,20 @@ static VkDevice rvk_device_create_internal(RvkDevice* dev) {
 
   const char* extsToEnable[64];
   u32         extsToEnableCount = 0;
+
+  // Add required extensions.
   array_for_t(g_requiredExts, String, reqExt) {
     extsToEnable[extsToEnableCount++] = reqExt->ptr; // TODO: This is hacky as it assumes null-term.
   }
+
+  // Add optional extensions.
+  const RendVkExts supportedExts = rvk_device_exts_query(dev->vkPhysDev);
+  if (rvk_device_has_ext(supportedExts, string_lit("VK_KHR_present_wait"))) {
+    extsToEnable[extsToEnableCount++] = "VK_KHR_present_id";
+    extsToEnable[extsToEnableCount++] = "VK_KHR_present_wait";
+    dev->flags |= RvkDeviceFlags_SupportPresentWait;
+  }
+  rvk_vk_exts_free(supportedExts);
 
   VkPhysicalDevice16BitStorageFeatures float16IStorageFeatures = {
       .sType                    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES_KHR,
@@ -380,11 +391,12 @@ RvkDevice* rvk_device_create(const RendGlobalSettingsComp* globalSettings) {
 
   log_i(
       "Vulkan device created",
-      log_param("validation", fmt_bool(dev->flags & RvkDeviceFlags_Validation)),
       log_param("device-name", fmt_text(string_from_null_term(dev->vkProperties.deviceName))),
       log_param("graphics-queue-idx", fmt_int(dev->graphicsQueueIndex)),
       log_param("transfer-queue-idx", fmt_int(dev->transferQueueIndex)),
-      log_param("depth-format", fmt_text(rvk_format_info(dev->vkDepthFormat).name)));
+      log_param("depth-format", fmt_text(rvk_format_info(dev->vkDepthFormat).name)),
+      log_param("validation-enabled", fmt_bool(dev->flags & RvkDeviceFlags_Validation)),
+      log_param("present-wait-enabled", fmt_bool(dev->flags & RvkDeviceFlags_Validation)));
 
   return dev;
 }
