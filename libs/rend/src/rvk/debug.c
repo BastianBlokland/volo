@@ -39,16 +39,21 @@ static int rvk_messenger_severity_mask(const RvkDebugFlags flags) {
   int severity = 0;
   if (flags & RvkDebugFlags_Verbose) {
     severity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
+    severity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
   }
   severity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
   severity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
   return severity;
 }
 
-static int rvk_messenger_type_mask() {
-  return VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-         VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-         VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+static int rvk_messenger_type_mask(const RvkDebugFlags flags) {
+  int mask = 0;
+  mask |= VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT;
+  mask |= VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
+  if (flags & RvkDebugFlags_Verbose) {
+    mask |= VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+  }
+  return mask;
 }
 
 static String rvk_msg_type_label(const VkDebugUtilsMessageTypeFlagsEXT msgType) {
@@ -104,7 +109,7 @@ static void rvk_messenger_create(RvkDebug* dbg) {
   const VkDebugUtilsMessengerCreateInfoEXT createInfo = {
       .sType           = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
       .messageSeverity = rvk_messenger_severity_mask(dbg->flags),
-      .messageType     = rvk_messenger_type_mask(),
+      .messageType     = rvk_messenger_type_mask(dbg->flags),
       .pfnUserCallback = rvk_message_func,
       .pUserData       = dbg,
   };
