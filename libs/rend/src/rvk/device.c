@@ -247,24 +247,22 @@ static VkPhysicalDevice rvk_device_pick_physical_device(VkInstance vkInst) {
   return bestVkPhysDev;
 }
 
-static VkPhysicalDeviceFeatures rvk_device_pick_features(RvkDevice* dev) {
-  VkPhysicalDeviceFeatures supported = {0};
-  vkGetPhysicalDeviceFeatures(dev->vkPhysDev, &supported);
-
+static VkPhysicalDeviceFeatures
+rvk_device_pick_features(RvkDevice* dev, const VkPhysicalDeviceFeatures2* supported) {
   VkPhysicalDeviceFeatures result = {0};
-  if (supported.pipelineStatisticsQuery) {
+  if (supported->features.pipelineStatisticsQuery) {
     result.pipelineStatisticsQuery = true;
     dev->flags |= RvkDeviceFlags_SupportPipelineStatQuery;
   }
-  if (supported.samplerAnisotropy) {
+  if (supported->features.samplerAnisotropy) {
     result.samplerAnisotropy = true;
     dev->flags |= RvkDeviceFlags_SupportAnisotropy;
   }
-  if (supported.fillModeNonSolid) {
+  if (supported->features.fillModeNonSolid) {
     result.fillModeNonSolid = true;
     dev->flags |= RvkDeviceFlags_SupportFillNonSolid;
   }
-  if (supported.wideLines) {
+  if (supported->features.wideLines) {
     result.wideLines = true;
     dev->flags |= RvkDeviceFlags_SupportWideLines;
   }
@@ -272,6 +270,10 @@ static VkPhysicalDeviceFeatures rvk_device_pick_features(RvkDevice* dev) {
 }
 
 static VkDevice rvk_device_create_internal(RvkDevice* dev) {
+  const char* extsToEnable[64];
+  u32         extsToEnableCount = 0;
+
+  // Setup queues.
   const f32               queuePriorities[] = {1.0f, 0.5f};
   VkDeviceQueueCreateInfo queueCreateInfos[2];
   u32                     queueCreateInfoCount = 0;
@@ -290,8 +292,15 @@ static VkDevice rvk_device_create_internal(RvkDevice* dev) {
     };
   }
 
-  const char* extsToEnable[64];
-  u32         extsToEnableCount = 0;
+  // Query supported features.
+  VkPhysicalDevicePresentWaitFeaturesKHR supportedPresentWait = {
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR,
+  };
+  VkPhysicalDeviceFeatures2 supportedFeatures = {
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+      .pNext = &supportedPresentWait,
+  };
+  vkGetPhysicalDeviceFeatures2(dev->vkPhysDev, &supportedFeatures);
 
   // Add required extensions.
   array_for_t(g_requiredExts, String, reqExt) {
@@ -299,8 +308,9 @@ static VkDevice rvk_device_create_internal(RvkDevice* dev) {
   }
 
   // Add optional extensions.
-  const RendVkExts supportedExts = rvk_device_exts_query(dev->vkPhysDev);
-  if (rvk_device_has_ext(supportedExts, string_lit("VK_KHR_present_wait"))) {
+  const RendVkExts supportedExts  = rvk_device_exts_query(dev->vkPhysDev);
+  const String     presentWaitExt = string_lit("VK_KHR_present_wait");
+  if (supportedPresentWait.presentWait && rvk_device_has_ext(supportedExts, presentWaitExt)) {
     extsToEnable[extsToEnableCount++] = "VK_KHR_present_id";
     extsToEnable[extsToEnableCount++] = "VK_KHR_present_wait";
     dev->flags |= RvkDeviceFlags_SupportPresentWait;
@@ -309,17 +319,18 @@ static VkDevice rvk_device_create_internal(RvkDevice* dev) {
 
   VkPhysicalDevice16BitStorageFeatures float16IStorageFeatures = {
       .sType                    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES_KHR,
+      .pNext                    = &supportedPresentWait,
       .storageBuffer16BitAccess = true,
       .uniformAndStorageBuffer16BitAccess = true,
   };
-  VkPhysicalDeviceFeatures2 features = {
+  VkPhysicalDeviceFeatures2 featuresToEnable = {
       .sType    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
       .pNext    = &float16IStorageFeatures,
-      .features = rvk_device_pick_features(dev),
+      .features = rvk_device_pick_features(dev, &supportedFeatures),
   };
   VkDeviceCreateInfo createInfo = {
       .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-      .pNext                   = &features,
+      .pNext                   = &featuresToEnable,
       .pQueueCreateInfos       = queueCreateInfos,
       .queueCreateInfoCount    = queueCreateInfoCount,
       .enabledExtensionCount   = extsToEnableCount,
@@ -396,7 +407,7 @@ RvkDevice* rvk_device_create(const RendGlobalSettingsComp* globalSettings) {
       log_param("transfer-queue-idx", fmt_int(dev->transferQueueIndex)),
       log_param("depth-format", fmt_text(rvk_format_info(dev->vkDepthFormat).name)),
       log_param("validation-enabled", fmt_bool(dev->flags & RvkDeviceFlags_Validation)),
-      log_param("present-wait-enabled", fmt_bool(dev->flags & RvkDeviceFlags_Validation)));
+      log_param("present-wait-enabled", fmt_bool(dev->flags & RvkDeviceFlags_SupportPresentWait)));
 
   return dev;
 }
