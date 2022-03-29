@@ -12,7 +12,11 @@ typedef struct sRvkRepository RvkRepository;
 typedef struct sRvkTransferer RvkTransferer;
 
 typedef enum {
-  RvkDeviceFlags_Validation = 1 << 0,
+  RvkDeviceFlags_Validation               = 1 << 0,
+  RvkDeviceFlags_SupportPipelineStatQuery = 1 << 1,
+  RvkDeviceFlags_SupportAnisotropy        = 1 << 2,
+  RvkDeviceFlags_SupportFillNonSolid      = 1 << 3,
+  RvkDeviceFlags_SupportWideLines         = 1 << 4,
 } RvkDeviceFlags;
 
 typedef struct sRvkDevice {
@@ -22,7 +26,6 @@ typedef struct sRvkDevice {
   VkAllocationCallbacks            vkAlloc;
   VkPhysicalDevice                 vkPhysDev;
   VkPhysicalDeviceProperties       vkProperties;
-  VkPhysicalDeviceFeatures         vkSupportedFeatures;
   VkPhysicalDeviceMemoryProperties vkMemProperties;
   VkDevice                         vkDev;
   VkFormat                         vkDepthFormat;

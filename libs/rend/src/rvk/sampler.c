@@ -71,7 +71,7 @@ static VkSampler rvk_vksampler_create(
       .maxLod                  = mipLevels,
   };
 
-  if (dev->vkSupportedFeatures.samplerAnisotropy) {
+  if (dev->flags & RvkDeviceFlags_SupportAnisotropy) {
     samplerInfo.anisotropyEnable = aniso != RvkSamplerAniso_None;
     samplerInfo.maxAnisotropy    = rvk_sampler_aniso_level(aniso);
   }

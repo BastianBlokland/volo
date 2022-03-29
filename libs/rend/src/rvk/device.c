@@ -16,14 +16,14 @@ static const String g_validationLayer  = string_static("VK_LAYER_KHRONOS_validat
 static const String g_validationExts[] = {
     string_static("VK_EXT_debug_utils"),
 };
-static VkValidationFeatureEnableEXT g_validationEnabledFeatures[] = {
+static const VkValidationFeatureEnableEXT g_validationEnabledFeatures[] = {
     VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
     VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
 #if VK_EXT_VALIDATION_FEATURES_SPEC_VERSION >= 4
     VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT,
 #endif
 };
-static String g_requiredExts[] = {
+static const String g_requiredExts[] = {
     string_static("VK_KHR_swapchain"),
     string_static("VK_KHR_16bit_storage"),
 };
@@ -248,18 +248,25 @@ static VkPhysicalDevice rvk_device_pick_physical_device(VkInstance vkInst) {
 }
 
 static VkPhysicalDeviceFeatures rvk_device_pick_features(RvkDevice* dev) {
+  VkPhysicalDeviceFeatures supported = {0};
+  vkGetPhysicalDeviceFeatures(dev->vkPhysDev, &supported);
+
   VkPhysicalDeviceFeatures result = {0};
-  if (dev->vkSupportedFeatures.pipelineStatisticsQuery) {
+  if (supported.pipelineStatisticsQuery) {
     result.pipelineStatisticsQuery = true;
+    dev->flags |= RvkDeviceFlags_SupportPipelineStatQuery;
   }
-  if (dev->vkSupportedFeatures.samplerAnisotropy) {
+  if (supported.samplerAnisotropy) {
     result.samplerAnisotropy = true;
+    dev->flags |= RvkDeviceFlags_SupportAnisotropy;
   }
-  if (dev->vkSupportedFeatures.fillModeNonSolid) {
+  if (supported.fillModeNonSolid) {
     result.fillModeNonSolid = true;
+    dev->flags |= RvkDeviceFlags_SupportFillNonSolid;
   }
-  if (dev->vkSupportedFeatures.wideLines) {
+  if (supported.wideLines) {
     result.wideLines = true;
+    dev->flags |= RvkDeviceFlags_SupportWideLines;
   }
   return result;
 }
@@ -283,26 +290,29 @@ static VkDevice rvk_device_create_internal(RvkDevice* dev) {
     };
   }
 
-  const VkPhysicalDevice16BitStorageFeatures float16IStorageFeatures = {
+  const char* extsToEnable[64];
+  u32         extsToEnableCount = 0;
+  array_for_t(g_requiredExts, String, reqExt) {
+    extsToEnable[extsToEnableCount++] = reqExt->ptr; // TODO: This is hacky as it assumes null-term.
+  }
+
+  VkPhysicalDevice16BitStorageFeatures float16IStorageFeatures = {
       .sType                    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES_KHR,
       .storageBuffer16BitAccess = true,
       .uniformAndStorageBuffer16BitAccess = true,
   };
-
-  const char* extensionsToEnabled[array_elems(g_requiredExts)];
-  for (u32 i = 0; i != array_elems(g_requiredExts); ++i) {
-    extensionsToEnabled[i] = g_requiredExts[i].ptr;
-  }
-
-  const VkPhysicalDeviceFeatures featuresToEnable = rvk_device_pick_features(dev);
-  VkDeviceCreateInfo             createInfo       = {
+  VkPhysicalDeviceFeatures2 features = {
+      .sType    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+      .pNext    = &float16IStorageFeatures,
+      .features = rvk_device_pick_features(dev),
+  };
+  VkDeviceCreateInfo createInfo = {
       .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-      .pNext                   = &float16IStorageFeatures,
+      .pNext                   = &features,
       .pQueueCreateInfos       = queueCreateInfos,
       .queueCreateInfoCount    = queueCreateInfoCount,
-      .enabledExtensionCount   = array_elems(extensionsToEnabled),
-      .ppEnabledExtensionNames = extensionsToEnabled,
-      .pEnabledFeatures        = &featuresToEnable,
+      .enabledExtensionCount   = extsToEnableCount,
+      .ppEnabledExtensionNames = extsToEnable,
   };
 
   VkDevice result;
@@ -342,7 +352,6 @@ RvkDevice* rvk_device_create(const RendGlobalSettingsComp* globalSettings) {
   dev->transferQueueIndex = rvk_device_pick_transfer_queue(dev->vkPhysDev);
 
   vkGetPhysicalDeviceProperties(dev->vkPhysDev, &dev->vkProperties);
-  vkGetPhysicalDeviceFeatures(dev->vkPhysDev, &dev->vkSupportedFeatures);
   vkGetPhysicalDeviceMemoryProperties(dev->vkPhysDev, &dev->vkMemProperties);
 
   dev->vkDev = rvk_device_create_internal(dev);

@@ -71,7 +71,7 @@ RvkStatRecorder* rvk_statrecorder_create(RvkDevice* dev) {
       .retrieveResultsMutex = thread_mutex_create(g_alloc_heap),
   };
 
-  if (dev->vkSupportedFeatures.pipelineStatisticsQuery) {
+  if (dev->flags & RvkDeviceFlags_SupportPipelineStatQuery) {
     sr->vkQueryPool = rvk_querypool_create(dev);
     sr->flags |= RvkStatRecorder_Supported;
   } else {
