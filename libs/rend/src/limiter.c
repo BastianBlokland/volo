@@ -16,17 +16,15 @@ ecs_view_define(GlobalView) {
 
 ecs_view_define(PainterView) { ecs_access_read(RendPainterComp); }
 
-static TimeDuration rend_wait_for_present(EcsWorld* world) {
-  const TimeSteady start = time_steady_clock();
-  /**
-   * Wait for all painters to have presented their previous (last frame) image to the user.
-   */
+/**
+ * Wait for all painters to have presented their previous (last frame) image to the user.
+ */
+static void rend_wait_for_present(EcsWorld* world) {
   EcsView* painterView = ecs_world_view_t(world, PainterView);
   for (EcsIterator* itr = ecs_view_itr(painterView); ecs_view_walk(itr);) {
     const RendPainterComp* painter = ecs_view_read_t(itr, RendPainterComp);
     rvk_canvas_for_prev_present(painter->canvas);
   }
-  return time_steady_duration(start, time_steady_clock());
 }
 
 ecs_system_define(RendFrameLimiterSys) {
@@ -43,22 +41,12 @@ ecs_system_define(RendFrameLimiterSys) {
   }
 
   // Wait for the previous frame's image to be presented to the user.
-  const TimeDuration waitForPresentTime = rend_wait_for_present(world);
+  rend_wait_for_present(world);
 
   if (!globalSettings->limiterFreq) {
-    limiter->sleepDur = waitForPresentTime;
-    limiter->freq     = 0;
+    limiter->sleepDur = 0;
     return; // Limiter not active.
   }
-  if (globalSettings->limiterFreq != limiter->freq) {
-    /**
-     * Very crude way of 'syncing' up to the last presented image.
-     */
-    thread_sleep(time_milliseconds(50));
-    limiter->freq         = globalSettings->limiterFreq;
-    limiter->previousTime = time_steady_clock();
-  }
-
   const TimeDuration targetDuration = time_second / globalSettings->limiterFreq;
   const TimeSteady   start          = time_steady_clock();
   const TimeDuration elapsed        = time_steady_duration(limiter->previousTime, start);
@@ -76,7 +64,6 @@ ecs_system_define(RendFrameLimiterSys) {
     limiter->sleepOverhead = (sinceStart - limiter->sleepDur + limiter->sleepOverhead * 99) / 100;
   }
   limiter->previousTime = time_steady_clock();
-  limiter->sleepDur += waitForPresentTime;
 }
 
 ecs_module_init(rend_limiter_module) {

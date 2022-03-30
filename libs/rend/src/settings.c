@@ -18,5 +18,5 @@ void rend_settings_to_default(RendSettingsComp* settings) {
 
 void rend_global_settings_to_default(RendGlobalSettingsComp* settings) {
   settings->flags       = 0;
-  settings->limiterFreq = 60;
+  settings->limiterFreq = 0;
 }
