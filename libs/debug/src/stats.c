@@ -185,14 +185,14 @@ static void stats_draw_cpu_graph(UiCanvasComp* canvas, const DebugStatsComp* sta
       {rendWaitDur, ui_color(255, 0, 0, 178)},
       {presAcqFrac, ui_color(128, 0, 128, 178)},
       {presEnqFrac, ui_color(0, 0, 255, 178)},
-      {presWaitFrac, ui_color(128, 128, 128, 128)},
+      {presWaitFrac, ui_color(0, 128, 128, 128)},
       {limiterFrac, ui_color(128, 128, 128, 128)},
   };
   const String tooltip = fmt_write_scratch(
       "\a~red\a.bWait for gpu\ar:    {<8}\n"
       "\a~purple\a.bPresent acquire\ar: {<8}\n"
       "\a~blue\a.bPresent enqueue\ar: {<8}\n"
-      "\a.bPresent wait\ar:    {<8}\n"
+      "\a~teal\a.bPresent wait\ar:    {<8}\n"
       "\a.bLimiter\ar:         {<8}",
       fmt_duration(stats->rendWaitDurAvg, .minDecDigits = 1),
       fmt_duration(stats->presentAcqDurAvg, .minDecDigits = 1),
