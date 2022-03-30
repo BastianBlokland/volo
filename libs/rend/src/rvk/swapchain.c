@@ -390,7 +390,7 @@ bool rvk_swapchain_enqueue_present(
   }
 }
 
-void rvk_swapchain_wait_for_present(RvkSwapchain* swapchain, const u32 numBehind) {
+void rvk_swapchain_wait_for_present(const RvkSwapchain* swapchain, const u32 numBehind) {
   if (numBehind >= swapchain->curPresentId) {
     /**
      * Out of bound presentation-ids are considered to be already presented.
@@ -400,7 +400,8 @@ void rvk_swapchain_wait_for_present(RvkSwapchain* swapchain, const u32 numBehind
   }
 #ifdef VK_KHR_present_wait
   if (swapchain->vkWaitForPresentFunc) {
-    const TimeSteady startTime = time_steady_clock();
+    RvkSwapchain*    mutableSwapchain = (RvkSwapchain*)swapchain;
+    const TimeSteady startTime        = time_steady_clock();
 
     VkResult result = swapchain->vkWaitForPresentFunc(
         swapchain->dev->vkDev,
@@ -408,11 +409,11 @@ void rvk_swapchain_wait_for_present(RvkSwapchain* swapchain, const u32 numBehind
         swapchain->curPresentId - numBehind,
         u64_max);
 
-    swapchain->lastPresentWaitDur = time_steady_duration(startTime, time_steady_clock());
+    mutableSwapchain->lastPresentWaitDur = time_steady_duration(startTime, time_steady_clock());
 
     switch (result) {
     case VK_ERROR_OUT_OF_DATE_KHR:
-      swapchain->flags |= RvkSwapchainFlags_OutOfDate;
+      mutableSwapchain->flags |= RvkSwapchainFlags_OutOfDate;
       log_d(
           "Out-of-date swapchain detected during wait",
           log_param("id", fmt_int(swapchain->curPresentId)));

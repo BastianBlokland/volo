@@ -45,4 +45,4 @@ bool rvk_swapchain_enqueue_present(RvkSwapchain*, VkSemaphore, RvkSwapchainIdx);
  *
  * NOTE: Is a no-op if the device and/or driver does not support tracking presentations.
  */
-void rvk_swapchain_wait_for_present(RvkSwapchain*, u32 numBehind);
+void rvk_swapchain_wait_for_present(const RvkSwapchain*, u32 numBehind);
