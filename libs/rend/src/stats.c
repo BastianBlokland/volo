@@ -100,6 +100,7 @@ ecs_system_define(RendUpdateCamStatsSys) {
     stats->waitForRenderDur  = renderStats.waitForRenderDur;
     stats->presentAcquireDur = swapchainStats.acquireDur;
     stats->presentEnqueueDur = swapchainStats.presentEnqueueDur;
+    stats->presentWaitDur    = swapchainStats.presentWaitDur;
     stats->limiterDur        = limiter->sleepDur;
     stats->vertices          = renderStats.forwardVertices;
     stats->primitives        = renderStats.forwardPrimitives;
