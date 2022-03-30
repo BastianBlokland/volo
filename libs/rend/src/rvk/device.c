@@ -293,16 +293,24 @@ static VkDevice rvk_device_create_internal(RvkDevice* dev) {
   }
 
   // Query supported features.
-  void* nextSupportedFeatures = null;
-#ifdef VK_KHR_present_wait
-  VkPhysicalDevicePresentWaitFeaturesKHR supportedPresentWait = {
-      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR,
+  void* nextOptFeature = null;
+#ifdef VK_KHR_present_id
+  VkPhysicalDevicePresentIdFeaturesKHR optFeaturePresentId = {
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_ID_FEATURES_KHR,
+      .pNext = nextOptFeature,
   };
-  nextSupportedFeatures = &supportedPresentWait;
+  nextOptFeature = &optFeaturePresentId;
+#endif
+#ifdef VK_KHR_present_wait
+  VkPhysicalDevicePresentWaitFeaturesKHR optFeaturePresentWait = {
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR,
+      .pNext = nextOptFeature,
+  };
+  nextOptFeature = &optFeaturePresentWait;
 #endif
   VkPhysicalDeviceFeatures2 supportedFeatures = {
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-      .pNext = nextSupportedFeatures,
+      .pNext = nextOptFeature,
   };
   vkGetPhysicalDeviceFeatures2(dev->vkPhysDev, &supportedFeatures);
 
@@ -312,24 +320,22 @@ static VkDevice rvk_device_create_internal(RvkDevice* dev) {
   }
 
   // Add optional extensions.
-  const RendVkExts supportedExts = rvk_device_exts_query(dev->vkPhysDev);
-#ifdef VK_KHR_present_wait
-  const String presentWaitExt = string_lit("VK_KHR_present_wait");
-  if (supportedPresentWait.presentWait && rvk_device_has_ext(supportedExts, presentWaitExt)) {
+#ifdef VK_KHR_present_id
+  if (optFeaturePresentId.presentId) {
     extsToEnable[extsToEnableCount++] = "VK_KHR_present_id";
+    dev->flags |= RvkDeviceFlags_SupportPresentId;
+  }
+#endif
+#ifdef VK_KHR_present_wait
+  if (optFeaturePresentWait.presentWait) {
     extsToEnable[extsToEnableCount++] = "VK_KHR_present_wait";
     dev->flags |= RvkDeviceFlags_SupportPresentWait;
   }
 #endif
-  rvk_vk_exts_free(supportedExts);
 
-  void* nextEnabledFeatures = null;
-#ifdef VK_KHR_present_wait
-  nextEnabledFeatures = &supportedPresentWait; // Enable 'presentWait' if supported.
-#endif
   VkPhysicalDevice16BitStorageFeatures float16IStorageFeatures = {
       .sType                    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES_KHR,
-      .pNext                    = nextEnabledFeatures,
+      .pNext                    = nextOptFeature, // Enable all supported optional features.
       .storageBuffer16BitAccess = true,
       .uniformAndStorageBuffer16BitAccess = true,
   };
@@ -417,6 +423,7 @@ RvkDevice* rvk_device_create(const RendGlobalSettingsComp* globalSettings) {
       log_param("transfer-queue-idx", fmt_int(dev->transferQueueIndex)),
       log_param("depth-format", fmt_text(rvk_format_info(dev->vkDepthFormat).name)),
       log_param("validation-enabled", fmt_bool(dev->flags & RvkDeviceFlags_Validation)),
+      log_param("present-id-enabled", fmt_bool(dev->flags & RvkDeviceFlags_SupportPresentId)),
       log_param("present-wait-enabled", fmt_bool(dev->flags & RvkDeviceFlags_SupportPresentWait)));
 
   return dev;
