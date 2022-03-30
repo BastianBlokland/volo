@@ -36,6 +36,7 @@ struct sRvkSwapchain {
   RvkSize            size;
   DynArray           images; // RvkImage[]
   TimeDuration       lastAcquireDur, lastPresentDur;
+  u64                curPresentId; // NOTE: Present-id zero is unused.
 };
 
 static RvkSize rvk_surface_clamp_size(RvkSize size, const VkSurfaceCapabilitiesKHR* vkCaps) {
@@ -330,8 +331,23 @@ bool rvk_swapchain_present(RvkSwapchain* swapchain, VkSemaphore ready, const Rvk
   RvkImage* image = rvk_swapchain_image(swapchain, idx);
   rvk_image_assert_phase(image, RvkImagePhase_Present);
 
+  const void* nextPresentData = null;
+
+  ++swapchain->curPresentId;
+#ifdef VK_KHR_present_id
+  const VkPresentIdKHR presentIdData = {
+      .sType          = VK_STRUCTURE_TYPE_PRESENT_ID_KHR,
+      .pNext          = nextPresentData,
+      .swapchainCount = 1,
+      .pPresentIds    = &swapchain->curPresentId,
+  };
+  if (swapchain->dev->flags & RvkDeviceFlags_SupportPresentId) {
+    nextPresentData = &presentIdData;
+  }
+#endif
   const VkPresentInfoKHR presentInfo = {
       .sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+      .pNext              = nextPresentData,
       .waitSemaphoreCount = 1,
       .pWaitSemaphores    = &ready,
       .swapchainCount     = 1,
@@ -346,11 +362,15 @@ bool rvk_swapchain_present(RvkSwapchain* swapchain, VkSemaphore ready, const Rvk
   switch (result) {
   case VK_SUBOPTIMAL_KHR:
     swapchain->flags |= RvkSwapchainFlags_OutOfDate;
-    log_d("Sub-optimal swapchain detected during present");
+    log_d(
+        "Sub-optimal swapchain detected during present",
+        log_param("id", fmt_int(swapchain->curPresentId)));
     return true; // Presenting will still succeed.
   case VK_ERROR_OUT_OF_DATE_KHR:
     swapchain->flags |= RvkSwapchainFlags_OutOfDate;
-    log_d("Out-of-date swapchain detected during present");
+    log_d(
+        "Out-of-date swapchain detected during present",
+        log_param("id", fmt_int(swapchain->curPresentId)));
     return false; // Presenting will fail.
   default:
     rvk_check(string_lit("vkQueuePresentKHR"), result);
