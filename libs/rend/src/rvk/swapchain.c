@@ -35,7 +35,7 @@ struct sRvkSwapchain {
   RvkSwapchainFlags  flags;
   RvkSize            size;
   DynArray           images; // RvkImage[]
-  TimeDuration       lastAcquireDur, lastPresentDur;
+  TimeDuration       lastAcquireDur, lastPresentEnqueueDur;
   u64                curPresentId; // NOTE: Present-id zero is unused.
 };
 
@@ -269,8 +269,8 @@ RvkSize rvk_swapchain_size(const RvkSwapchain* swapchain) { return swapchain->si
 
 RvkSwapchainStats rvk_swapchain_stats(const RvkSwapchain* swapchain) {
   return (RvkSwapchainStats){
-      .acquireDur = swapchain->lastAcquireDur,
-      .presentDur = swapchain->lastPresentDur,
+      .acquireDur        = swapchain->lastAcquireDur,
+      .presentEnqueueDur = swapchain->lastPresentEnqueueDur,
   };
 }
 
@@ -327,7 +327,8 @@ RvkSwapchainIdx rvk_swapchain_acquire(
   }
 }
 
-bool rvk_swapchain_present(RvkSwapchain* swapchain, VkSemaphore ready, const RvkSwapchainIdx idx) {
+bool rvk_swapchain_enqueue_present(
+    RvkSwapchain* swapchain, VkSemaphore ready, const RvkSwapchainIdx idx) {
   RvkImage* image = rvk_swapchain_image(swapchain, idx);
   rvk_image_assert_phase(image, RvkImagePhase_Present);
 
@@ -357,7 +358,7 @@ bool rvk_swapchain_present(RvkSwapchain* swapchain, VkSemaphore ready, const Rvk
 
   const TimeSteady presentStart = time_steady_clock();
   VkResult         result       = vkQueuePresentKHR(swapchain->dev->vkGraphicsQueue, &presentInfo);
-  swapchain->lastPresentDur     = time_steady_duration(presentStart, time_steady_clock());
+  swapchain->lastPresentEnqueueDur = time_steady_duration(presentStart, time_steady_clock());
 
   switch (result) {
   case VK_SUBOPTIMAL_KHR:

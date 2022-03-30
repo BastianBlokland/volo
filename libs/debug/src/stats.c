@@ -35,7 +35,9 @@ ecs_comp_define(DebugStatsComp) {
   TimeDuration  frameDurDesired;
 
   TimeDuration gpuRenderDurAvg;
-  TimeDuration cpuLimiterDurAvg, cpuRendWaitDurAvg, cpuSwapAcquireDurAvg, cpuSwapPresentDurAvg;
+  TimeDuration limiterDurAvg;
+  TimeDuration rendWaitDurAvg;
+  TimeDuration presentAcquireDurAvg, presentEnqueueDurAvg;
 };
 
 static void debug_plot_add(DebugStatPlot* plot, const f32 value) {
@@ -170,10 +172,10 @@ static void stats_draw_cpu_graph(UiCanvasComp* canvas, const DebugStatsComp* sta
       canvas, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
   ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-2, -2), UiBase_Absolute, Ui_XY);
 
-  const f64 limiterFrac = math_clamp_f64(stats->cpuLimiterDurAvg / (f64)stats->frameDur, 0, 1);
-  const f64 rendWaitDur = math_clamp_f64(stats->cpuRendWaitDurAvg / (f64)stats->frameDur, 0, 1);
-  const f64 acquireFrac = math_clamp_f64(stats->cpuSwapAcquireDurAvg / (f64)stats->frameDur, 0, 1);
-  const f64 presentFrac = math_clamp_f64(stats->cpuSwapPresentDurAvg / (f64)stats->frameDur, 0, 1);
+  const f64 limiterFrac = math_clamp_f64(stats->limiterDurAvg / (f64)stats->frameDur, 0, 1);
+  const f64 rendWaitDur = math_clamp_f64(stats->rendWaitDurAvg / (f64)stats->frameDur, 0, 1);
+  const f64 acquireFrac = math_clamp_f64(stats->presentAcquireDurAvg / (f64)stats->frameDur, 0, 1);
+  const f64 presentFrac = math_clamp_f64(stats->presentEnqueueDurAvg / (f64)stats->frameDur, 0, 1);
   const f64 busyFrac =
       math_clamp_f64(1.0f - limiterFrac - rendWaitDur - acquireFrac - presentFrac, 0, 1);
 
@@ -185,14 +187,14 @@ static void stats_draw_cpu_graph(UiCanvasComp* canvas, const DebugStatsComp* sta
       {limiterFrac, ui_color(128, 128, 128, 128)},
   };
   const String tooltip = fmt_write_scratch(
-      "\a~red\a.bWait for gpu\ar:      {<7}\n"
-      "\a~purple\a.bSwapchain acquire\ar: {<7}\n"
-      "\a~blue\a.bSwapchain present\ar: {<7}\n"
-      "\a.bLimiter\ar:           {<7}",
-      fmt_duration(stats->cpuRendWaitDurAvg, .minDecDigits = 1),
-      fmt_duration(stats->cpuSwapAcquireDurAvg, .minDecDigits = 1),
-      fmt_duration(stats->cpuSwapPresentDurAvg, .minDecDigits = 1),
-      fmt_duration(stats->cpuLimiterDurAvg, .minDecDigits = 1));
+      "\a~red\a.bWait for gpu\ar:    {<7}\n"
+      "\a~purple\a.bPresent acquire\ar: {<7}\n"
+      "\a~blue\a.bPresent enqueue\ar: {<7}\n"
+      "\a.bLimiter\ar:         {<7}",
+      fmt_duration(stats->rendWaitDurAvg, .minDecDigits = 1),
+      fmt_duration(stats->presentAcquireDurAvg, .minDecDigits = 1),
+      fmt_duration(stats->presentEnqueueDurAvg, .minDecDigits = 1),
+      fmt_duration(stats->limiterDurAvg, .minDecDigits = 1));
   stats_draw_graph(canvas, sections, array_elems(sections), tooltip);
 
   ui_style_pop(canvas);
@@ -278,13 +280,13 @@ static void debug_stats_update(
                                ? time_second / rendGlobalSettings->limiterFreq
                                : time_second / 60;
 
-  stats->gpuRenderDurAvg   = debug_avg_dur(stats->gpuRenderDurAvg, rendStats->renderDur);
-  stats->cpuLimiterDurAvg  = debug_avg_dur(stats->cpuLimiterDurAvg, rendStats->limiterDur);
-  stats->cpuRendWaitDurAvg = debug_avg_dur(stats->cpuRendWaitDurAvg, rendStats->waitForRenderDur);
-  stats->cpuSwapAcquireDurAvg =
-      debug_avg_dur(stats->cpuSwapAcquireDurAvg, rendStats->swapchainAquireDur);
-  stats->cpuSwapPresentDurAvg =
-      debug_avg_dur(stats->cpuSwapPresentDurAvg, rendStats->swapchainPresentDur);
+  stats->gpuRenderDurAvg = debug_avg_dur(stats->gpuRenderDurAvg, rendStats->renderDur);
+  stats->limiterDurAvg   = debug_avg_dur(stats->limiterDurAvg, rendStats->limiterDur);
+  stats->rendWaitDurAvg  = debug_avg_dur(stats->rendWaitDurAvg, rendStats->waitForRenderDur);
+  stats->presentAcquireDurAvg =
+      debug_avg_dur(stats->presentAcquireDurAvg, rendStats->presentAcquireDur);
+  stats->presentEnqueueDurAvg =
+      debug_avg_dur(stats->presentEnqueueDurAvg, rendStats->presentEnqueueDur);
 }
 
 ecs_view_define(GlobalView) {

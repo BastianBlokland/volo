@@ -90,7 +90,7 @@ void rvk_canvas_end(RvkCanvas* canvas) {
   rvk_renderer_end(renderer);
 
   const VkSemaphore imageDoneSemaphore = rvk_renderer_semaphore_done(renderer);
-  rvk_swapchain_present(canvas->swapchain, imageDoneSemaphore, canvas->swapchainIdx);
+  rvk_swapchain_enqueue_present(canvas->swapchain, imageDoneSemaphore, canvas->swapchainIdx);
 
   canvas->swapchainIdx = sentinel_u32;
   canvas->rendererIdx ^= 1;
