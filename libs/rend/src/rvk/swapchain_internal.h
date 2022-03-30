@@ -14,7 +14,7 @@ typedef struct sRvkSwapchain RvkSwapchain;
 
 typedef struct {
   TimeDuration acquireDur;
-  TimeDuration presentEnqueueDur;
+  TimeDuration presentEnqueueDur, presentWaitDur;
 } RvkSwapchainStats;
 
 RvkSwapchain*     rvk_swapchain_create(RvkDevice*, const GapWindowComp*);
@@ -35,3 +35,14 @@ RvkSwapchainIdx rvk_swapchain_acquire(RvkSwapchain*, const RendSettingsComp*, Vk
  * Image is presented when the provided semaphore is signaled.
  */
 bool rvk_swapchain_enqueue_present(RvkSwapchain*, VkSemaphore, RvkSwapchainIdx);
+
+/**
+ * Wait for a previously enqueued presentation to be shown to the user.
+ * The 'numBehind' argument controls which presentation to wait for:
+ * - '0' means the last enqueued presentation.
+ * - '1' means the previous enqueued presentation.
+ * etc.
+ *
+ * NOTE: Is a no-op if the device and/or driver does not support tracking presentations.
+ */
+void rvk_swapchain_wait_for_present(RvkSwapchain*, u32 numBehind);

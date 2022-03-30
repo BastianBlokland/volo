@@ -35,8 +35,12 @@ struct sRvkSwapchain {
   RvkSwapchainFlags  flags;
   RvkSize            size;
   DynArray           images; // RvkImage[]
-  TimeDuration       lastAcquireDur, lastPresentEnqueueDur;
+  TimeDuration       lastAcquireDur, lastPresentEnqueueDur, lastPresentWaitDur;
   u64                curPresentId; // NOTE: Present-id zero is unused.
+
+#ifdef VK_KHR_present_wait
+  PFN_vkWaitForPresentKHR vkWaitForPresentFunc;
+#endif
 };
 
 static RvkSize rvk_surface_clamp_size(RvkSize size, const VkSurfaceCapabilitiesKHR* vkCaps) {
@@ -250,6 +254,12 @@ RvkSwapchain* rvk_swapchain_create(RvkDevice* dev, const GapWindowComp* window) 
   if (!supported) {
     diag_crash_msg("Vulkan device does not support presenting to the given surface");
   }
+
+#ifdef VK_KHR_present_wait
+  if (dev->flags & RvkDeviceFlags_SupportPresentWait) {
+    swapchain->vkWaitForPresentFunc = rvk_func_load_instance(dev->vkInst, vkWaitForPresentKHR);
+  }
+#endif
   return swapchain;
 }
 
@@ -271,6 +281,7 @@ RvkSwapchainStats rvk_swapchain_stats(const RvkSwapchain* swapchain) {
   return (RvkSwapchainStats){
       .acquireDur        = swapchain->lastAcquireDur,
       .presentEnqueueDur = swapchain->lastPresentEnqueueDur,
+      .presentWaitDur    = swapchain->lastPresentWaitDur,
   };
 }
 
@@ -356,9 +367,9 @@ bool rvk_swapchain_enqueue_present(
       .pImageIndices      = &idx,
   };
 
-  const TimeSteady presentStart = time_steady_clock();
-  VkResult         result       = vkQueuePresentKHR(swapchain->dev->vkGraphicsQueue, &presentInfo);
-  swapchain->lastPresentEnqueueDur = time_steady_duration(presentStart, time_steady_clock());
+  const TimeSteady startTime = time_steady_clock();
+  VkResult         result    = vkQueuePresentKHR(swapchain->dev->vkGraphicsQueue, &presentInfo);
+  swapchain->lastPresentEnqueueDur = time_steady_duration(startTime, time_steady_clock());
 
   switch (result) {
   case VK_SUBOPTIMAL_KHR:
@@ -377,4 +388,38 @@ bool rvk_swapchain_enqueue_present(
     rvk_check(string_lit("vkQueuePresentKHR"), result);
     return true;
   }
+}
+
+void rvk_swapchain_wait_for_present(RvkSwapchain* swapchain, const u32 numBehind) {
+  if (numBehind >= swapchain->curPresentId) {
+    /**
+     * Out of bound presentation-ids are considered to be already presented.
+     * This is convenient for the calling code as it doesn't need the special case the first frame.
+     */
+    return;
+  }
+#ifdef VK_KHR_present_wait
+  if (swapchain->vkWaitForPresentFunc) {
+    const TimeSteady startTime = time_steady_clock();
+
+    VkResult result = swapchain->vkWaitForPresentFunc(
+        swapchain->dev->vkDev,
+        swapchain->vkSwapchain,
+        swapchain->curPresentId - numBehind,
+        u64_max);
+
+    swapchain->lastPresentWaitDur = time_steady_duration(startTime, time_steady_clock());
+
+    switch (result) {
+    case VK_ERROR_OUT_OF_DATE_KHR:
+      swapchain->flags |= RvkSwapchainFlags_OutOfDate;
+      log_d(
+          "Out-of-date swapchain detected during wait",
+          log_param("id", fmt_int(swapchain->curPresentId)));
+      break;
+    default:
+      rvk_check(string_lit("vkWaitForPresentKHR"), result);
+    }
+  }
+#endif
 }
