@@ -11,7 +11,7 @@
 
 static const f32 g_statsLabelWidth       = 160;
 static const u8  g_statsBgAlpha          = 150;
-static const f32 g_statsInvAverageWindow = 1.0f / 10.0f;
+static const f32 g_statsInvAverageWindow = 1.0f / 5.0f;
 
 #define stats_plot_size 32
 
