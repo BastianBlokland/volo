@@ -172,27 +172,27 @@ static void stats_draw_cpu_graph(UiCanvasComp* canvas, const DebugStatsComp* sta
       canvas, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
   ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-2, -2), UiBase_Absolute, Ui_XY);
 
-  const f64 limiterFrac  = math_clamp_f64(stats->limiterDurAvg / (f64)stats->frameDur, 0, 1);
   const f64 rendWaitDur  = math_clamp_f64(stats->rendWaitDurAvg / (f64)stats->frameDur, 0, 1);
   const f64 presAcqFrac  = math_clamp_f64(stats->presentAcqDurAvg / (f64)stats->frameDur, 0, 1);
   const f64 presEnqFrac  = math_clamp_f64(stats->presentEnqDurAvg / (f64)stats->frameDur, 0, 1);
   const f64 presWaitFrac = math_clamp_f64(stats->presentWaitDurAvg / (f64)stats->frameDur, 0, 1);
+  const f64 limiterFrac  = math_clamp_f64(stats->limiterDurAvg / (f64)stats->frameDur, 0, 1);
   const f64 busyFrac     = math_clamp_f64(
-      1.0f - limiterFrac - rendWaitDur - presAcqFrac - presEnqFrac - presWaitFrac, 0, 1);
+      1.0f - rendWaitDur - presAcqFrac - presEnqFrac - presWaitFrac - limiterFrac, 0, 1);
 
   const StatGraphSection sections[] = {
       {busyFrac, ui_color(0, 128, 0, 178)},
       {rendWaitDur, ui_color(255, 0, 0, 178)},
       {presAcqFrac, ui_color(128, 0, 128, 178)},
       {presEnqFrac, ui_color(0, 0, 255, 178)},
-      {presWaitFrac, ui_color(0, 128, 128, 178)},
+      {presWaitFrac, ui_color(128, 128, 128, 128)},
       {limiterFrac, ui_color(128, 128, 128, 128)},
   };
   const String tooltip = fmt_write_scratch(
       "\a~red\a.bWait for gpu\ar:    {<8}\n"
       "\a~purple\a.bPresent acquire\ar: {<8}\n"
       "\a~blue\a.bPresent enqueue\ar: {<8}\n"
-      "\a~teal\a.bPresent wait\ar:    {<8}\n"
+      "\a.bPresent wait\ar:    {<8}\n"
       "\a.bLimiter\ar:         {<8}",
       fmt_duration(stats->rendWaitDurAvg, .minDecDigits = 1),
       fmt_duration(stats->presentAcqDurAvg, .minDecDigits = 1),
