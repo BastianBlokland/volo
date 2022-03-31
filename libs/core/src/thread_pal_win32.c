@@ -6,7 +6,7 @@
 #include "thread_internal.h"
 
 #include <Windows.h>
-#include <timeapi.h>
+#include <mmsystem.h> // Part of the Windows Multimedia API (winmm.lib).
 
 /**
  * Requested minimum OS scheduling interval in milliseconds.
