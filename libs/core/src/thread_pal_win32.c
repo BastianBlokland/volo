@@ -6,6 +6,26 @@
 #include "thread_internal.h"
 
 #include <Windows.h>
+#include <mmsystem.h> // Part of the Windows Multimedia API (winmm.lib).
+
+/**
+ * Requested minimum OS scheduling interval in milliseconds.
+ * This is a tradeoff between overhead due to many context switches if set too low and taking a long
+ * time to wake threads when set too high.
+ */
+static const u32 g_win32SchedulingInterval = 2;
+
+void thread_pal_init() {
+  if (timeBeginPeriod(g_win32SchedulingInterval) != TIMERR_NOERROR) {
+    diag_assert_fail("Failed to set win32 scheduling interval");
+  }
+}
+
+void thread_pal_teardown() {
+  if (timeEndPeriod(g_win32SchedulingInterval) != TIMERR_NOERROR) {
+    diag_assert_fail("Failed to restore win32 scheduling interval");
+  }
+}
 
 i64 thread_pal_pid() { return GetCurrentProcessId(); }
 i64 thread_pal_tid() { return GetCurrentThreadId(); }
@@ -114,22 +134,16 @@ void thread_pal_join(ThreadHandle thread) {
 void thread_pal_yield() { SwitchToThread(); }
 
 void thread_pal_sleep(const TimeDuration duration) {
-  static const TimeDuration g_minSleep = time_milliseconds(15);
-
   /**
-   * On Win32 Sleep() only has granularity to about 10 - 15ms due to the default scheduling period.
+   * On Win32 Sleep() only has granularity up to the scheduling period.
    * To sill provide support for short sleeps we do the bulk of the waiting using Sleep() and then
    * do a loop of yielding our timeslice until the desired duration is met.
-   *
-   * TODO: Is it worth it to change the global scheduling period?
-   * Requires linking with the Winmm dll.
-   * https://docs.microsoft.com/en-us/windows/win32/api/timeapi/nf-timeapi-timebeginperiod
    */
   TimeSteady start = time_steady_clock();
 
   // Bulk of the sleeping.
-  if (duration > g_minSleep) {
-    Sleep((DWORD)((duration - g_minSleep) / time_millisecond));
+  if (duration > time_milliseconds(g_win32SchedulingInterval)) {
+    Sleep((DWORD)((duration - time_milliseconds(g_win32SchedulingInterval)) / time_millisecond));
   }
 
   // Wait for the remaining time by yielding our timeslice.

@@ -27,6 +27,7 @@ void thread_init_thread();
  * Fired once when the core library is torn down.
  */
 void alloc_teardown();
+void thread_teardown();
 void tty_teardown();
 
 /**

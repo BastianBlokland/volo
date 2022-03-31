@@ -57,6 +57,9 @@ target_include_directories(lib_core PUBLIC include)
 if(${VOLO_PLATFORM} STREQUAL "linux")
   # Link against the math library on linux.
   target_link_libraries(lib_core PRIVATE m)
+elseif(${VOLO_PLATFORM} STREQUAL "win32")
+  # Link against 'winmm.lib' (Windows Multimedia API) for controlling the scheduling interval.
+  target_link_libraries(lib_core winmm.lib)
 endif()
 
 add_executable(lib_core_test
