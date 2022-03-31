@@ -10,6 +10,9 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 
+void thread_pal_init() {}
+void thread_pal_teardown() {}
+
 i64 thread_pal_pid() { return syscall(SYS_getpid); }
 i64 thread_pal_tid() { return syscall(SYS_gettid); }
 

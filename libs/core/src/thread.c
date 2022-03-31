@@ -42,12 +42,16 @@ THREAD_LOCAL String g_thread_name;
 u16                 g_thread_core_count;
 
 void thread_init() {
+  thread_pal_init();
+
   g_thread_pid        = thread_pal_pid();
   g_thread_main_tid   = thread_pal_tid();
   g_thread_name       = string_lit("volo_main");
   g_thread_core_count = thread_pal_core_count();
   thread_pal_set_name(g_thread_name);
 }
+
+void thread_teardown() { thread_pal_teardown(); }
 
 void thread_init_thread() { g_thread_tid = thread_pal_tid(); }
 

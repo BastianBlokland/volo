@@ -11,6 +11,9 @@
 ASSERT(false, "Unsupported platform");
 #endif
 
+void thread_pal_init();
+void thread_pal_teardown();
+
 i64  thread_pal_pid();
 i64  thread_pal_tid();
 u16  thread_pal_core_count();
