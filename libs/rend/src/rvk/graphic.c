@@ -243,7 +243,7 @@ static VkPrimitiveTopology rvk_pipeline_input_topology(const RvkGraphic* graphic
 }
 
 static VkPolygonMode rvk_pipeline_polygonmode(RvkGraphic* graphic) {
-  if (!graphic->device->vkSupportedFeatures.fillModeNonSolid) {
+  if (!(graphic->device->flags & RvkDeviceFlags_SupportFillNonSolid)) {
     return VK_POLYGON_MODE_FILL;
   }
   switch (graphic->rasterizer) {
@@ -261,7 +261,7 @@ static VkPolygonMode rvk_pipeline_polygonmode(RvkGraphic* graphic) {
 
 static f32 rvk_pipeline_linewidth(RvkGraphic* graphic) {
   RvkDevice* dev = graphic->device;
-  if (!dev->vkSupportedFeatures.wideLines) {
+  if (!(dev->flags & RvkDeviceFlags_SupportWideLines)) {
     return 1.0f;
   }
   return math_clamp_f32(

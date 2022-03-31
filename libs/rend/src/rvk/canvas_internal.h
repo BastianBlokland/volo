@@ -29,3 +29,9 @@ RvkSwapchainStats rvk_canvas_swapchain_stats(const RvkCanvas*);
 bool     rvk_canvas_begin(RvkCanvas*, const RendSettingsComp*, RvkSize);
 RvkPass* rvk_canvas_pass_forward(RvkCanvas*);
 void     rvk_canvas_end(RvkCanvas*);
+
+/**
+ * Wait for the previously rendered image to be presented to the user.
+ * NOTE: Is a no-op if the device and/or driver does not support tracking presentations.
+ */
+void rvk_canvas_for_prev_present(const RvkCanvas*);

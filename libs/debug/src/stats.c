@@ -4,6 +4,7 @@
 #include "debug_stats.h"
 #include "ecs_world.h"
 #include "gap_window.h"
+#include "rend_settings.h"
 #include "rend_stats.h"
 #include "scene_time.h"
 #include "ui.h"
@@ -31,9 +32,14 @@ ecs_comp_define(DebugStatsComp) {
   TimeDuration  frameDurAvg;
   DebugStatPlot frameDurVarianceUs; // In microseconds.
   f32           frameFreqAvg;
+  TimeDuration  frameDurDesired;
 
-  TimeDuration gpuRenderDurAvg;
-  TimeDuration cpuLimiterDurAvg, cpuRendWaitDurAvg, cpuSwapAcquireDurAvg, cpuSwapPresentDurAvg;
+  TimeDuration limiterDur;
+  TimeDuration rendWaitDur;
+  TimeDuration presentAcqDur, presentEnqDur, presentWaitDur;
+  TimeDuration gpuRenderDur;
+
+  f64 rendWaitFrac, presAcqFrac, presEnqFrac, presWaitFrac, limiterFrac, gpuRenderFrac;
 };
 
 static void debug_plot_add(DebugStatPlot* plot, const f32 value) {
@@ -51,12 +57,14 @@ static f32 debug_plot_max(const DebugStatPlot* plot) {
   return max;
 }
 
-static f64 debug_avg(const f64 oldAvg, const f64 new) {
-  return oldAvg + (new - oldAvg) * g_statsInvAverageWindow;
+static void debug_avg(f64* value, const f64 new) {
+  *value += (new - *value) * g_statsInvAverageWindow;
 }
 
-static TimeDuration debug_avg_dur(const TimeDuration oldAvg, const TimeDuration new) {
-  return (TimeDuration)debug_avg((f64)oldAvg, (f64) new);
+static void debug_avg_dur(TimeDuration* value, const TimeDuration new) {
+  f64 floatVal = (f64)*value;
+  debug_avg(&floatVal, (f64) new);
+  *value = (TimeDuration)floatVal;
 }
 
 static void stats_draw_bg(UiCanvasComp* canvas) {
@@ -100,10 +108,13 @@ static void stats_draw_val_entry(UiCanvasComp* canvas, const String label, const
 }
 
 static void stats_draw_frametime(UiCanvasComp* canvas, const DebugStatsComp* stats) {
+  const f64 g_errorThreshold = 1.25;
+  const f64 g_warnThreshold  = 1.05;
+
   FormatArg colorArg = fmt_nop();
-  if (stats->frameDur > time_milliseconds(34)) {
+  if (stats->frameDur > stats->frameDurDesired * g_errorThreshold) {
     colorArg = fmt_ui_color(ui_color_red);
-  } else if (stats->frameDur > time_milliseconds(17)) {
+  } else if (stats->frameDur > stats->frameDurDesired * g_warnThreshold) {
     colorArg = fmt_ui_color(ui_color_yellow);
   }
   const f32    varianceUs = debug_plot_max(&stats->frameDurVarianceUs);
@@ -165,29 +176,28 @@ static void stats_draw_cpu_graph(UiCanvasComp* canvas, const DebugStatsComp* sta
       canvas, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
   ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-2, -2), UiBase_Absolute, Ui_XY);
 
-  const f64 limiterFrac = math_clamp_f64(stats->cpuLimiterDurAvg / (f64)stats->frameDur, 0, 1);
-  const f64 rendWaitDur = math_clamp_f64(stats->cpuRendWaitDurAvg / (f64)stats->frameDur, 0, 1);
-  const f64 acquireFrac = math_clamp_f64(stats->cpuSwapAcquireDurAvg / (f64)stats->frameDur, 0, 1);
-  const f64 presentFrac = math_clamp_f64(stats->cpuSwapPresentDurAvg / (f64)stats->frameDur, 0, 1);
-  const f64 busyFrac =
-      math_clamp_f64(1.0f - limiterFrac - rendWaitDur - acquireFrac - presentFrac, 0, 1);
+  const f64 busyFrac = 1.0f - stats->rendWaitFrac - stats->presAcqFrac - stats->presEnqFrac -
+                       stats->presWaitFrac - stats->limiterFrac;
 
   const StatGraphSection sections[] = {
       {busyFrac, ui_color(0, 128, 0, 178)},
-      {rendWaitDur, ui_color(255, 0, 0, 178)},
-      {acquireFrac, ui_color(128, 0, 128, 178)},
-      {presentFrac, ui_color(0, 0, 255, 178)},
-      {limiterFrac, ui_color(128, 128, 128, 128)},
+      {stats->rendWaitFrac, ui_color(255, 0, 0, 178)},
+      {stats->presAcqFrac, ui_color(128, 0, 128, 178)},
+      {stats->presEnqFrac, ui_color(0, 0, 255, 178)},
+      {stats->presWaitFrac, ui_color(0, 128, 128, 128)},
+      {stats->limiterFrac, ui_color(128, 128, 128, 128)},
   };
   const String tooltip = fmt_write_scratch(
-      "\a~red\a.bWait for gpu\ar:      {<7}\n"
-      "\a~purple\a.bSwapchain acquire\ar: {<7}\n"
-      "\a~blue\a.bSwapchain present\ar: {<7}\n"
-      "\a.bLimiter\ar:           {<7}",
-      fmt_duration(stats->cpuRendWaitDurAvg, .minDecDigits = 1),
-      fmt_duration(stats->cpuSwapAcquireDurAvg, .minDecDigits = 1),
-      fmt_duration(stats->cpuSwapPresentDurAvg, .minDecDigits = 1),
-      fmt_duration(stats->cpuLimiterDurAvg, .minDecDigits = 1));
+      "\a~red\a.bWait for gpu\ar:    {<8}\n"
+      "\a~purple\a.bPresent acquire\ar: {<8}\n"
+      "\a~blue\a.bPresent enqueue\ar: {<8}\n"
+      "\a~teal\a.bPresent wait\ar:    {<8}\n"
+      "\a.bLimiter\ar:         {<8}",
+      fmt_duration(stats->rendWaitDur, .minDecDigits = 1),
+      fmt_duration(stats->presentAcqDur, .minDecDigits = 1),
+      fmt_duration(stats->presentEnqDur, .minDecDigits = 1),
+      fmt_duration(stats->presentWaitDur, .minDecDigits = 1),
+      fmt_duration(stats->limiterDur, .minDecDigits = 1));
   stats_draw_graph(canvas, sections, array_elems(sections), tooltip);
 
   ui_style_pop(canvas);
@@ -206,15 +216,14 @@ static void stats_draw_gpu_graph(UiCanvasComp* canvas, const DebugStatsComp* sta
       canvas, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
   ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-2, -2), UiBase_Absolute, Ui_XY);
 
-  const f64 renderFrac = math_clamp_f64(stats->gpuRenderDurAvg / (f64)stats->frameDur, 0, 1);
-  const f64 idleFrac   = math_clamp_f64(1.0f - renderFrac, 0, 1);
+  const f64 idleFrac = 1.0f - stats->gpuRenderFrac;
 
   const StatGraphSection sections[] = {
-      {renderFrac, ui_color(0, 128, 0, 178)},
+      {stats->gpuRenderFrac, ui_color(0, 128, 0, 178)},
       {idleFrac, ui_color(128, 128, 128, 128)},
   };
   const String tooltip = fmt_write_scratch(
-      "\a~green\a.bRender\ar: {<7}", fmt_duration(stats->gpuRenderDurAvg, .minDecDigits = 1));
+      "\a~green\a.bRender\ar: {<7}", fmt_duration(stats->gpuRenderDur, .minDecDigits = 1));
   stats_draw_graph(canvas, sections, array_elems(sections), tooltip);
 
   ui_layout_next(canvas, Ui_Down, 0);
@@ -257,25 +266,42 @@ static void debug_stats_draw_interface(
 }
 
 static void debug_stats_update(
-    DebugStatsComp* stats, const RendStatsComp* rendStats, const SceneTimeComp* time) {
+    DebugStatsComp*               stats,
+    const RendStatsComp*          rendStats,
+    const RendGlobalSettingsComp* rendGlobalSettings,
+    const SceneTimeComp*          time) {
 
-  const TimeDuration prevFrameDur     = stats->frameDur;
-  stats->frameDur                     = time ? time->delta : time_second;
-  stats->frameDurAvg                  = debug_avg_dur(stats->frameDurAvg, stats->frameDur);
+  const TimeDuration prevFrameDur = stats->frameDur;
+  stats->frameDur                 = time->delta;
+  debug_avg_dur(&stats->frameDurAvg, stats->frameDur);
   stats->frameFreqAvg                 = 1.0f / (stats->frameDurAvg / (f32)time_second);
   const TimeDuration frameDurVariance = math_abs(stats->frameDur - prevFrameDur);
   debug_plot_add(&stats->frameDurVarianceUs, (f32)(frameDurVariance / (f64)time_microsecond));
 
-  stats->gpuRenderDurAvg   = debug_avg_dur(stats->gpuRenderDurAvg, rendStats->renderDur);
-  stats->cpuLimiterDurAvg  = debug_avg_dur(stats->cpuLimiterDurAvg, rendStats->limiterDur);
-  stats->cpuRendWaitDurAvg = debug_avg_dur(stats->cpuRendWaitDurAvg, rendStats->waitForRenderDur);
-  stats->cpuSwapAcquireDurAvg =
-      debug_avg_dur(stats->cpuSwapAcquireDurAvg, rendStats->swapchainAquireDur);
-  stats->cpuSwapPresentDurAvg =
-      debug_avg_dur(stats->cpuSwapPresentDurAvg, rendStats->swapchainPresentDur);
+  stats->frameDurDesired = rendGlobalSettings->limiterFreq
+                               ? time_second / rendGlobalSettings->limiterFreq
+                               : time_second / 60; // TODO: This assumes a 60 hz display.
+
+  stats->limiterDur     = rendStats->limiterDur;
+  stats->rendWaitDur    = rendStats->waitForRenderDur;
+  stats->presentAcqDur  = rendStats->presentAcquireDur;
+  stats->presentEnqDur  = rendStats->presentEnqueueDur;
+  stats->presentWaitDur = rendStats->presentWaitDur;
+  stats->gpuRenderDur   = rendStats->renderDur;
+
+  const f64 timeRef = (f64)stats->frameDur;
+  debug_avg(&stats->rendWaitFrac, math_clamp_f64(stats->rendWaitDur / timeRef, 0, 1));
+  debug_avg(&stats->presAcqFrac, math_clamp_f64(stats->presentAcqDur / timeRef, 0, 1));
+  debug_avg(&stats->presEnqFrac, math_clamp_f64(stats->presentEnqDur / timeRef, 0, 1));
+  debug_avg(&stats->presWaitFrac, math_clamp_f64(stats->presentWaitDur / timeRef, 0, 1));
+  debug_avg(&stats->limiterFrac, math_clamp_f64(stats->limiterDur / timeRef, 0, 1));
+  debug_avg(&stats->gpuRenderFrac, math_clamp_f64(stats->gpuRenderDur / timeRef, 0, 1));
 }
 
-ecs_view_define(GlobalView) { ecs_access_read(SceneTimeComp); }
+ecs_view_define(GlobalView) {
+  ecs_access_read(SceneTimeComp);
+  ecs_access_read(RendGlobalSettingsComp);
+}
 
 ecs_view_define(StatsCreateView) {
   ecs_access_with(GapWindowComp);
@@ -297,9 +323,14 @@ ecs_system_define(DebugStatsCreateSys) {
 }
 
 ecs_system_define(DebugStatsUpdateSys) {
-  EcsView*             globalView = ecs_world_view_t(world, GlobalView);
-  EcsIterator*         globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  const SceneTimeComp* time       = globalItr ? ecs_view_read_t(globalItr, SceneTimeComp) : null;
+  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return;
+  }
+  const SceneTimeComp*          time = ecs_view_read_t(globalItr, SceneTimeComp);
+  const RendGlobalSettingsComp* rendGlobalSettings =
+      ecs_view_read_t(globalItr, RendGlobalSettingsComp);
 
   EcsIterator* canvasItr = ecs_view_itr(ecs_world_view_t(world, CanvasWrite));
 
@@ -309,7 +340,7 @@ ecs_system_define(DebugStatsUpdateSys) {
     const RendStatsComp* rendStats = ecs_view_read_t(itr, RendStatsComp);
 
     // Update statistics.
-    debug_stats_update(stats, rendStats, time);
+    debug_stats_update(stats, rendStats, rendGlobalSettings, time);
 
     // Create or destroy the interface canvas as needed.
     if (stats->flags & DebugStatsFlags_Show && !stats->canvas) {

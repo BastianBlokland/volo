@@ -16,14 +16,14 @@ static const String g_validationLayer  = string_static("VK_LAYER_KHRONOS_validat
 static const String g_validationExts[] = {
     string_static("VK_EXT_debug_utils"),
 };
-static VkValidationFeatureEnableEXT g_validationEnabledFeatures[] = {
+static const VkValidationFeatureEnableEXT g_validationEnabledFeatures[] = {
     VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
     VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
 #if VK_EXT_VALIDATION_FEATURES_SPEC_VERSION >= 4
     VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT,
 #endif
 };
-static String g_requiredExts[] = {
+static const String g_requiredExts[] = {
     string_static("VK_KHR_swapchain"),
     string_static("VK_KHR_16bit_storage"),
 };
@@ -247,24 +247,33 @@ static VkPhysicalDevice rvk_device_pick_physical_device(VkInstance vkInst) {
   return bestVkPhysDev;
 }
 
-static VkPhysicalDeviceFeatures rvk_device_pick_features(RvkDevice* dev) {
+static VkPhysicalDeviceFeatures
+rvk_device_pick_features(RvkDevice* dev, const VkPhysicalDeviceFeatures2* supported) {
   VkPhysicalDeviceFeatures result = {0};
-  if (dev->vkSupportedFeatures.pipelineStatisticsQuery) {
+  if (supported->features.pipelineStatisticsQuery) {
     result.pipelineStatisticsQuery = true;
+    dev->flags |= RvkDeviceFlags_SupportPipelineStatQuery;
   }
-  if (dev->vkSupportedFeatures.samplerAnisotropy) {
+  if (supported->features.samplerAnisotropy) {
     result.samplerAnisotropy = true;
+    dev->flags |= RvkDeviceFlags_SupportAnisotropy;
   }
-  if (dev->vkSupportedFeatures.fillModeNonSolid) {
+  if (supported->features.fillModeNonSolid) {
     result.fillModeNonSolid = true;
+    dev->flags |= RvkDeviceFlags_SupportFillNonSolid;
   }
-  if (dev->vkSupportedFeatures.wideLines) {
+  if (supported->features.wideLines) {
     result.wideLines = true;
+    dev->flags |= RvkDeviceFlags_SupportWideLines;
   }
   return result;
 }
 
 static VkDevice rvk_device_create_internal(RvkDevice* dev) {
+  const char* extsToEnable[64];
+  u32         extsToEnableCount = 0;
+
+  // Setup queues.
   const f32               queuePriorities[] = {1.0f, 0.5f};
   VkDeviceQueueCreateInfo queueCreateInfos[2];
   u32                     queueCreateInfoCount = 0;
@@ -283,26 +292,65 @@ static VkDevice rvk_device_create_internal(RvkDevice* dev) {
     };
   }
 
-  const VkPhysicalDevice16BitStorageFeatures float16IStorageFeatures = {
+  // Query supported features.
+  void* nextOptFeature = null;
+#ifdef VK_KHR_present_id
+  VkPhysicalDevicePresentIdFeaturesKHR optFeaturePresentId = {
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_ID_FEATURES_KHR,
+      .pNext = nextOptFeature,
+  };
+  nextOptFeature = &optFeaturePresentId;
+#endif
+#ifdef VK_KHR_present_wait
+  VkPhysicalDevicePresentWaitFeaturesKHR optFeaturePresentWait = {
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR,
+      .pNext = nextOptFeature,
+  };
+  nextOptFeature = &optFeaturePresentWait;
+#endif
+  VkPhysicalDeviceFeatures2 supportedFeatures = {
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+      .pNext = nextOptFeature,
+  };
+  vkGetPhysicalDeviceFeatures2(dev->vkPhysDev, &supportedFeatures);
+
+  // Add required extensions.
+  array_for_t(g_requiredExts, String, reqExt) {
+    extsToEnable[extsToEnableCount++] = reqExt->ptr; // TODO: This is hacky as it assumes null-term.
+  }
+
+  // Add optional extensions.
+#ifdef VK_KHR_present_id
+  if (optFeaturePresentId.presentId) {
+    extsToEnable[extsToEnableCount++] = "VK_KHR_present_id";
+    dev->flags |= RvkDeviceFlags_SupportPresentId;
+  }
+#endif
+#ifdef VK_KHR_present_wait
+  if (optFeaturePresentWait.presentWait) {
+    extsToEnable[extsToEnableCount++] = "VK_KHR_present_wait";
+    dev->flags |= RvkDeviceFlags_SupportPresentWait;
+  }
+#endif
+
+  VkPhysicalDevice16BitStorageFeatures float16IStorageFeatures = {
       .sType                    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES_KHR,
+      .pNext                    = nextOptFeature, // Enable all supported optional features.
       .storageBuffer16BitAccess = true,
       .uniformAndStorageBuffer16BitAccess = true,
   };
-
-  const char* extensionsToEnabled[array_elems(g_requiredExts)];
-  for (u32 i = 0; i != array_elems(g_requiredExts); ++i) {
-    extensionsToEnabled[i] = g_requiredExts[i].ptr;
-  }
-
-  const VkPhysicalDeviceFeatures featuresToEnable = rvk_device_pick_features(dev);
-  VkDeviceCreateInfo             createInfo       = {
+  VkPhysicalDeviceFeatures2 featuresToEnable = {
+      .sType    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+      .pNext    = &float16IStorageFeatures,
+      .features = rvk_device_pick_features(dev, &supportedFeatures),
+  };
+  VkDeviceCreateInfo createInfo = {
       .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-      .pNext                   = &float16IStorageFeatures,
+      .pNext                   = &featuresToEnable,
       .pQueueCreateInfos       = queueCreateInfos,
       .queueCreateInfoCount    = queueCreateInfoCount,
-      .enabledExtensionCount   = array_elems(extensionsToEnabled),
-      .ppEnabledExtensionNames = extensionsToEnabled,
-      .pEnabledFeatures        = &featuresToEnable,
+      .enabledExtensionCount   = extsToEnableCount,
+      .ppEnabledExtensionNames = extsToEnable,
   };
 
   VkDevice result;
@@ -342,7 +390,6 @@ RvkDevice* rvk_device_create(const RendGlobalSettingsComp* globalSettings) {
   dev->transferQueueIndex = rvk_device_pick_transfer_queue(dev->vkPhysDev);
 
   vkGetPhysicalDeviceProperties(dev->vkPhysDev, &dev->vkProperties);
-  vkGetPhysicalDeviceFeatures(dev->vkPhysDev, &dev->vkSupportedFeatures);
   vkGetPhysicalDeviceMemoryProperties(dev->vkPhysDev, &dev->vkMemProperties);
 
   dev->vkDev = rvk_device_create_internal(dev);
@@ -371,11 +418,13 @@ RvkDevice* rvk_device_create(const RendGlobalSettingsComp* globalSettings) {
 
   log_i(
       "Vulkan device created",
-      log_param("validation", fmt_bool(dev->flags & RvkDeviceFlags_Validation)),
       log_param("device-name", fmt_text(string_from_null_term(dev->vkProperties.deviceName))),
       log_param("graphics-queue-idx", fmt_int(dev->graphicsQueueIndex)),
       log_param("transfer-queue-idx", fmt_int(dev->transferQueueIndex)),
-      log_param("depth-format", fmt_text(rvk_format_info(dev->vkDepthFormat).name)));
+      log_param("depth-format", fmt_text(rvk_format_info(dev->vkDepthFormat).name)),
+      log_param("validation-enabled", fmt_bool(dev->flags & RvkDeviceFlags_Validation)),
+      log_param("present-id-enabled", fmt_bool(dev->flags & RvkDeviceFlags_SupportPresentId)),
+      log_param("present-wait-enabled", fmt_bool(dev->flags & RvkDeviceFlags_SupportPresentWait)));
 
   return dev;
 }

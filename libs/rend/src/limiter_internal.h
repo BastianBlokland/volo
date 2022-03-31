@@ -4,7 +4,6 @@
 
 ecs_comp_extern_public(RendLimiterComp) {
   TimeDuration sleepDur;
-  u16          freq;
   TimeSteady   previousTime;
   TimeDuration sleepOverhead;
 };
