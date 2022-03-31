@@ -180,7 +180,7 @@ static void stats_draw_cpu_graph(UiCanvasComp* canvas, const DebugStatsComp* sta
                        stats->presWaitFrac - stats->limiterFrac;
 
   const StatGraphSection sections[] = {
-      {busyFrac, ui_color(0, 128, 0, 178)},
+      {math_max(busyFrac, 0), ui_color(0, 128, 0, 178)},
       {stats->rendWaitFrac, ui_color(255, 0, 0, 178)},
       {stats->presAcqFrac, ui_color(128, 0, 128, 178)},
       {stats->presEnqFrac, ui_color(0, 0, 255, 178)},
@@ -220,7 +220,7 @@ static void stats_draw_gpu_graph(UiCanvasComp* canvas, const DebugStatsComp* sta
 
   const StatGraphSection sections[] = {
       {stats->gpuRenderFrac, ui_color(0, 128, 0, 178)},
-      {idleFrac, ui_color(128, 128, 128, 128)},
+      {math_max(idleFrac, 0), ui_color(128, 128, 128, 128)},
   };
   const String tooltip = fmt_write_scratch(
       "\a~green\a.bRender\ar: {<7}", fmt_duration(stats->gpuRenderDur, .minDecDigits = 1));
