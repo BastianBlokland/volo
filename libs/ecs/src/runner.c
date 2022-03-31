@@ -17,7 +17,7 @@
 
 /**
  * Meta systems:
- * - Flush (Applies entity layout modifications).
+ * - Flush (applies entity layout modifications).
  */
 #define graph_meta_task_count 1
 
@@ -92,12 +92,19 @@ static void graph_system_task(void* context) {
 }
 
 static JobTaskId graph_insert_flush(EcsRunner* runner) {
+  /**
+   * Insert a task to flush the world (applies entity layout modifications).
+   *
+   * NOTE: Register the job with 'ThreadAffinity' to handle component destructors that need to be
+   * ran on the same thread as its systems (because they need to cleanup thread-local data).
+   * This is unfortunately hard to avoid with some of the win32 apis that use thread-local queues.
+   */
   return jobs_graph_add_task(
       runner->graph,
       string_lit("Flush"),
       graph_runner_flush_task,
       mem_struct(MetaTaskData, .runner = runner),
-      JobTaskFlags_None);
+      JobTaskFlags_ThreadAffinity);
 }
 
 static JobTaskId

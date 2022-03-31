@@ -504,10 +504,10 @@ GapPal* gap_pal_create(Allocator* alloc) {
 
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){
-             .alloc          = alloc,
-             .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
-             .moduleInstance = instance,
-             .owningThreadId = g_thread_tid,
+      .alloc          = alloc,
+      .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
+      .moduleInstance = instance,
+      .owningThreadId = g_thread_tid,
   };
 
   MAYBE_UNUSED const GapVector screenSize =
@@ -634,26 +634,16 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 }
 
 void gap_pal_window_destroy(GapPal* pal, const GapWindowId windowId) {
+  pal_check_thread_ownership(pal);
 
-  const bool destroyNativeResources = g_thread_tid == pal->owningThreadId;
-  if (destroyNativeResources) {
-    if (!DestroyWindow((HWND)windowId)) {
-      pal_crash_with_win32_err(string_lit("DestroyWindow"));
-    }
-  } else {
-    log_w(
-        "Failed to destroy win32 window resources",
-        log_param("id", fmt_int(windowId)),
-        log_param("reason", fmt_text_lit("Destroyed from non-owning thread")));
+  if (!DestroyWindow((HWND)windowId)) {
+    pal_crash_with_win32_err(string_lit("DestroyWindow"));
   }
-
   for (usize i = 0; i != pal->windows.size; ++i) {
     GapPalWindow* window = dynarray_at_t(&pal->windows, i, GapPalWindow);
     if (window->id == windowId) {
-      if (destroyNativeResources) {
-        if (!UnregisterClass(window->className.ptr, pal->moduleInstance)) {
-          pal_crash_with_win32_err(string_lit("UnregisterClass"));
-        }
+      if (!UnregisterClass(window->className.ptr, pal->moduleInstance)) {
+        pal_crash_with_win32_err(string_lit("UnregisterClass"));
       }
       alloc_free(pal->alloc, window->className);
       dynarray_remove_unordered(&pal->windows, i, 1);

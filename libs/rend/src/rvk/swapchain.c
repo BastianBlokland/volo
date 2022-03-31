@@ -403,15 +403,19 @@ void rvk_swapchain_wait_for_present(const RvkSwapchain* swapchain, const u32 num
     RvkSwapchain*    mutableSwapchain = (RvkSwapchain*)swapchain;
     const TimeSteady startTime        = time_steady_clock();
 
-    VkResult result = swapchain->vkWaitForPresentFunc(
+    const TimeDuration timeout = time_second / 30;
+    VkResult           result  = swapchain->vkWaitForPresentFunc(
         swapchain->dev->vkDev,
         swapchain->vkSwapchain,
         swapchain->curPresentId - numBehind,
-        u64_max);
+        timeout);
 
     mutableSwapchain->lastPresentWaitDur = time_steady_duration(startTime, time_steady_clock());
 
     switch (result) {
+    case VK_TIMEOUT:
+      log_d("Swapchain wait timed-out", log_param("id", fmt_int(swapchain->curPresentId)));
+      break;
     case VK_ERROR_OUT_OF_DATE_KHR:
       mutableSwapchain->flags |= RvkSwapchainFlags_OutOfDate;
       log_d(
