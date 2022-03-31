@@ -19,8 +19,9 @@ typedef enum {
 } GapWindowRequests;
 
 ecs_comp_define(GapWindowComp) {
-  String title;
-  uptr   nativeAppHandle;
+  GapPal* pal;
+  String  title;
+  uptr    nativeAppHandle;
 
   GapWindowId       id;
   GapWindowEvents   events : 16;
@@ -33,6 +34,9 @@ ecs_comp_define(GapWindowComp) {
 
 static void ecs_destruct_window_comp(void* data) {
   GapWindowComp* comp = data;
+  if (comp->pal) {
+    gap_pal_window_destroy(comp->pal, comp->id);
+  }
   if (!string_is_empty(comp->title)) {
     string_free(g_alloc_heap, comp->title);
   }
@@ -68,6 +72,7 @@ static void window_update(
     GapWindowComp*    window,
     const EcsEntityId windowEntity) {
 
+  window->pal             = platform->pal;
   window->nativeAppHandle = gap_pal_native_app_handle(platform->pal);
 
   // Clear the events of the previous tick.
@@ -157,8 +162,6 @@ static void window_update(
   }
 
   if (window_should_close(window)) {
-    gap_pal_window_destroy(platform->pal, window->id);
-    window->events |= GapWindowEvents_Closed;
     ecs_world_entity_destroy(world, windowEntity);
   }
 
@@ -182,7 +185,7 @@ ecs_system_define(GapWindowUpdateSys) {
 }
 
 ecs_module_init(gap_window_module) {
-  ecs_register_comp(GapWindowComp, .destructor = ecs_destruct_window_comp);
+  ecs_register_comp(GapWindowComp, .destructor = ecs_destruct_window_comp, .destructOrder = 20);
 
   ecs_register_view(GapPlatformView);
   ecs_register_view(GapWindowView);

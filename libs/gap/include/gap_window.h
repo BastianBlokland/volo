@@ -14,9 +14,8 @@ typedef enum {
   GapWindowEvents_KeyReleased    = 1 << 3,
   GapWindowEvents_TitleUpdated   = 1 << 4,
   GapWindowEvents_CloseRequested = 1 << 5,
-  GapWindowEvents_Closed         = 1 << 6,
-  GapWindowEvents_FocusGained    = 1 << 7,
-  GapWindowEvents_FocusLost      = 1 << 8,
+  GapWindowEvents_FocusGained    = 1 << 6,
+  GapWindowEvents_FocusLost      = 1 << 7,
 } GapWindowEvents;
 
 /**
