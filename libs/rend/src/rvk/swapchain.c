@@ -186,21 +186,21 @@ rvk_swapchain_init(RvkSwapchain* swapchain, const RendSettingsComp* settings, Rv
 
   const VkSwapchainKHR           oldSwapchain = swapchain->vkSwapchain;
   const VkSwapchainCreateInfoKHR createInfo   = {
-      .sType              = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-      .surface            = swapchain->vkSurf,
-      .minImageCount      = rvk_pick_imagecount(&vkCaps, settings),
-      .imageFormat        = swapchain->vkSurfFormat.format,
-      .imageColorSpace    = swapchain->vkSurfFormat.colorSpace,
-      .imageExtent.width  = size.width,
-      .imageExtent.height = size.height,
-      .imageArrayLayers   = 1,
-      .imageUsage         = VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-      .imageSharingMode   = VK_SHARING_MODE_EXCLUSIVE,
-      .preTransform       = vkCaps.currentTransform,
-      .compositeAlpha     = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-      .presentMode        = presentMode,
-      .clipped            = true,
-      .oldSwapchain       = oldSwapchain,
+        .sType              = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+        .surface            = swapchain->vkSurf,
+        .minImageCount      = rvk_pick_imagecount(&vkCaps, settings),
+        .imageFormat        = swapchain->vkSurfFormat.format,
+        .imageColorSpace    = swapchain->vkSurfFormat.colorSpace,
+        .imageExtent.width  = size.width,
+        .imageExtent.height = size.height,
+        .imageArrayLayers   = 1,
+        .imageUsage         = VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+        .imageSharingMode   = VK_SHARING_MODE_EXCLUSIVE,
+        .preTransform       = vkCaps.currentTransform,
+        .compositeAlpha     = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+        .presentMode        = presentMode,
+        .clipped            = true,
+        .oldSwapchain       = oldSwapchain,
   };
   rvk_call(vkCreateSwapchainKHR, vkDev, &createInfo, vkAlloc, &swapchain->vkSwapchain);
   if (oldSwapchain) {
@@ -238,10 +238,10 @@ RvkSwapchain* rvk_swapchain_create(RvkDevice* dev, const GapWindowComp* window) 
   VkSurfaceKHR  vkSurf    = rvk_surface_create(dev, window);
   RvkSwapchain* swapchain = alloc_alloc_t(g_alloc_heap, RvkSwapchain);
   *swapchain              = (RvkSwapchain){
-      .dev          = dev,
-      .vkSurf       = vkSurf,
-      .vkSurfFormat = rvk_pick_surface_format(dev, vkSurf),
-      .images       = dynarray_create_t(g_alloc_heap, RvkImage, 3),
+                   .dev          = dev,
+                   .vkSurf       = vkSurf,
+                   .vkSurfFormat = rvk_pick_surface_format(dev, vkSurf),
+                   .images       = dynarray_create_t(g_alloc_heap, RvkImage, 3),
   };
 
   VkBool32 supported;
@@ -414,7 +414,10 @@ void rvk_swapchain_wait_for_present(const RvkSwapchain* swapchain, const u32 num
 
     switch (result) {
     case VK_TIMEOUT:
-      log_d("Swapchain wait timed-out", log_param("id", fmt_int(swapchain->curPresentId)));
+      /**
+       * Maximum wait-time has elapsed, either GPU is producing frames VERY slow or the driver
+       * decided not to present this image.
+       */
       break;
     case VK_ERROR_OUT_OF_DATE_KHR:
       mutableSwapchain->flags |= RvkSwapchainFlags_OutOfDate;
