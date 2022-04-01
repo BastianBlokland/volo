@@ -50,8 +50,8 @@ typedef enum {
  * Ui Glyph Layer.
  */
 typedef enum {
-  UiLayer_Invisible,
   UiLayer_Normal,
+  UiLayer_Invisible,
   UiLayer_Overlay,
 } UiLayer;
 
