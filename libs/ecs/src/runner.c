@@ -53,6 +53,7 @@ struct sEcsRunner {
   u32        flags;
   JobTaskId* systemTaskLookup;
   Allocator* alloc;
+  Mem        jobMem;
 };
 
 THREAD_LOCAL bool        g_ecsRunningSystem;
@@ -173,9 +174,9 @@ static void runner_collect_systems(EcsRunner* runner, RunnerSystemEntry* output)
   for (EcsSystemId sysId = 0; sysId != systemCount; ++sysId) {
     EcsSystemDef* sysDef = dynarray_at_t(&def->systems, sysId, EcsSystemDef);
     output[sysId]        = (RunnerSystemEntry){
-        .id    = sysId,
-        .order = sysDef->order,
-        .def   = sysDef,
+               .id    = sysId,
+               .order = sysDef->order,
+               .def   = sysDef,
     };
   }
 
@@ -217,11 +218,11 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
 
   EcsRunner* runner = alloc_alloc_t(alloc, EcsRunner);
   *runner           = (EcsRunner){
-      .world            = world,
-      .graph            = jobs_graph_create(alloc, string_lit("ecs_runner"), taskCount),
-      .flags            = flags,
-      .systemTaskLookup = alloc_array_t(alloc, JobTaskId, systemCount),
-      .alloc            = alloc,
+                .world            = world,
+                .graph            = jobs_graph_create(alloc, string_lit("ecs_runner"), taskCount),
+                .flags            = flags,
+                .systemTaskLookup = alloc_array_t(alloc, JobTaskId, systemCount),
+                .alloc            = alloc,
   };
 
   RunnerSystemEntry* systems = alloc_array_t(alloc, RunnerSystemEntry, systemCount);
@@ -242,6 +243,11 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
   if (flags & EcsRunnerFlags_DumpGraphDot) {
     graph_dump_dot(runner);
   }
+
+  // Allocate the runtime memory required to run the graph (reused for every run).
+  // NOTE: +64 for bump allocator overhead.
+  const usize jobMemSize = jobs_scheduler_mem_size(runner->graph) + 64;
+  runner->jobMem         = alloc_alloc(alloc, jobMemSize, jobs_scheduler_mem_align(runner->graph));
   return runner;
 }
 
@@ -251,6 +257,7 @@ void ecs_runner_destroy(EcsRunner* runner) {
   const EcsDef* def = ecs_world_def(runner->world);
   alloc_free_array_t(runner->alloc, runner->systemTaskLookup, def->systems.size);
   jobs_graph_destroy(runner->graph);
+  alloc_free(runner->alloc, runner->jobMem);
   alloc_free_t(runner->alloc, runner);
 }
 
@@ -266,10 +273,11 @@ bool ecs_running(const EcsRunner* runner) {
 
 JobId ecs_run_async(EcsRunner* runner) {
   diag_assert_msg(!ecs_running(runner), "Runner is currently already running");
+  Allocator* jobAlloc = alloc_bump_create(runner->jobMem);
 
   runner->flags |= EcsRunnerPrivateFlags_Running;
   ecs_world_busy_set(runner->world);
-  return jobs_scheduler_run(runner->graph);
+  return jobs_scheduler_run(runner->graph, jobAlloc);
 }
 
 void ecs_run_sync(EcsRunner* runner) {

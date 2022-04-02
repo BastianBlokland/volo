@@ -37,7 +37,7 @@ void scheduler_teardown() {
   dynarray_destroy(&g_runningJobs);
 }
 
-JobId jobs_scheduler_run(JobGraph* graph) {
+JobId jobs_scheduler_run(JobGraph* graph, Allocator* alloc) {
   diag_assert_msg(jobs_graph_validate(graph), "Given job graph is invalid");
   diag_assert_msg(g_jobsIsWorker, "Only job-workers can run jobs");
 
@@ -46,7 +46,7 @@ JobId jobs_scheduler_run(JobGraph* graph) {
     return id; // Job has no roots tasks; nothing to do.
   }
 
-  Job* job = job_create(g_alloc_heap, id, graph);
+  Job* job = job_create(alloc, id, graph);
   thread_mutex_lock(g_jobMutex);
   *dynarray_push_t(&g_runningJobs, Job*) = job;
   thread_mutex_unlock(g_jobMutex);
@@ -100,7 +100,7 @@ void jobs_scheduler_finish(Job* job) {
   thread_mutex_lock(g_jobMutex);
   {
     // Cleanup job data.
-    job_destroy(g_alloc_heap, job);
+    job_destroy(job);
 
     // Remove it from 'g_runningJobs'.
     for (usize i = 0; i != g_runningJobs.size; ++i) {
@@ -114,3 +114,6 @@ void jobs_scheduler_finish(Job* job) {
   thread_mutex_unlock(g_jobMutex);
   thread_cond_broadcast(g_jobCondition);
 }
+
+usize jobs_scheduler_mem_size(const JobGraph* graph) { return job_mem_req_size(graph); }
+usize jobs_scheduler_mem_align(const JobGraph* graph) { return job_mem_req_align(graph); }

@@ -12,7 +12,7 @@ typedef u64 JobId;
  * Returns a handle to the running job.
  * Pre-condition: g_jobsIsWorker == true
  */
-JobId jobs_scheduler_run(JobGraph* graph);
+JobId jobs_scheduler_run(JobGraph* graph, Allocator*);
 
 /**
  * Check if the given job has finished yet.
@@ -33,3 +33,9 @@ void jobs_scheduler_wait(JobId);
  * Pre-condition: g_jobsIsWorking == false
  */
 void jobs_scheduler_wait_help(JobId);
+
+/**
+ * Query the required memory size and alignment to run the given job graph.
+ */
+usize jobs_scheduler_mem_size(const JobGraph*);
+usize jobs_scheduler_mem_align(const JobGraph*);
