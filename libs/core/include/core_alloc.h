@@ -137,8 +137,9 @@ void alloc_reset(Allocator*);
  * NOTE: Does not include global memory, stacks and memory allocated by external apis.
  */
 typedef struct {
-  u32   totalPages;
-  usize totalBytes;
+  u32   pageCount;
+  usize pageTotal;   // Total number of bytes allocated by the page allocator.
+  u64   pageCounter; // Incremented on every page allocation.
 } AllocStats;
 
 AllocStats alloc_stats_query();

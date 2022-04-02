@@ -91,8 +91,9 @@ void alloc_reset(Allocator* allocator) {
 
 AllocStats alloc_stats_query() {
   return (AllocStats){
-      .totalPages = alloc_page_allocated_pages(),
-      .totalBytes = alloc_page_allocated_size(),
+      .pageCount   = alloc_page_allocated_pages(),
+      .pageTotal   = alloc_page_allocated_size(),
+      .pageCounter = alloc_page_counter(),
   };
 }
 

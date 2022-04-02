@@ -12,6 +12,7 @@ typedef struct {
   Allocator api;
   usize     pageSize;
   i64       allocatedPages;
+  i64       counter; // Incremented on every allocation.
 } AllocatorPage;
 
 static u32 alloc_page_num_pages(AllocatorPage* allocPage, const usize size) {
@@ -36,6 +37,7 @@ static Mem alloc_page_alloc(Allocator* allocator, const usize size, const usize 
   }
 
   thread_atomic_add_i64(&allocPage->allocatedPages, pages);
+  thread_atomic_add_i64(&allocPage->counter, 1);
   return mem_create(res, size);
 }
 
@@ -62,14 +64,14 @@ static AllocatorPage g_allocatorIntern;
 Allocator* alloc_page_init() {
   const size_t pageSize = getpagesize();
   g_allocatorIntern     = (AllocatorPage){
-      .api =
-          {
-              .alloc   = alloc_page_alloc,
-              .free    = alloc_page_free,
-              .maxSize = alloc_page_max_size,
-              .reset   = null,
+          .api =
+              {
+                  .alloc   = alloc_page_alloc,
+                  .free    = alloc_page_free,
+                  .maxSize = alloc_page_max_size,
+                  .reset   = null,
           },
-      .pageSize = pageSize,
+          .pageSize = pageSize,
   };
   return (Allocator*)&g_allocatorIntern;
 }
@@ -81,3 +83,5 @@ u32 alloc_page_allocated_pages() {
 usize alloc_page_allocated_size() {
   return alloc_page_allocated_pages() * g_allocatorIntern.pageSize;
 }
+
+u64 alloc_page_counter() { return (u64)thread_atomic_load_i64(&g_allocatorIntern.counter); }

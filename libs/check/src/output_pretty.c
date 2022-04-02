@@ -126,7 +126,7 @@ static void output_test_finished(
 
 static String output_run_stats_str(const TimeDuration dur) {
   const AllocStats allocStats = alloc_stats_query();
-  return fmt_write_scratch("{}, {}", fmt_duration(dur), fmt_size(allocStats.totalBytes));
+  return fmt_write_scratch("{}, {}", fmt_duration(dur), fmt_size(allocStats.pageTotal));
 }
 
 static void output_run_finished(
