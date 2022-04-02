@@ -222,6 +222,20 @@ usize ecs_storage_archetype_count_empty(const EcsStorage* storage) {
   return count;
 }
 
+usize ecs_storage_archetype_total_size(const EcsStorage* storage) {
+  usize result = 0;
+  dynarray_for_t(&storage->archetypes, EcsArchetype, arch) {
+    result += ecs_archetype_total_size(arch);
+  }
+  return result;
+}
+
+u32 ecs_storage_archetype_total_chunks(const EcsStorage* storage) {
+  u32 result = 0;
+  dynarray_for_t(&storage->archetypes, EcsArchetype, arch) { result += arch->chunkCount; }
+  return result;
+}
+
 usize ecs_storage_archetype_entities_per_chunk(const EcsStorage* storage, const EcsArchetypeId id) {
   return ecs_storage_archetype_ptr(storage, id)->entitiesPerChunk;
 }

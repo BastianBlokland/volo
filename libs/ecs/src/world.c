@@ -362,8 +362,10 @@ void ecs_world_flush_internal(EcsWorld* world) {
 
 EcsWorldStats ecs_world_stats_query(const EcsWorld* world) {
   return (EcsWorldStats){
-      .entityCount         = ecs_storage_entity_count(&world->storage),
-      .archetypeCount      = (u32)ecs_storage_archetype_count(&world->storage),
-      .archetypeEmptyCount = (u32)ecs_storage_archetype_count_empty(&world->storage),
+      .entityCount          = ecs_storage_entity_count(&world->storage),
+      .archetypeCount       = (u32)ecs_storage_archetype_count(&world->storage),
+      .archetypeEmptyCount  = (u32)ecs_storage_archetype_count_empty(&world->storage),
+      .archetypeTotalSize   = (u32)ecs_storage_archetype_total_size(&world->storage),
+      .archetypeTotalChunks = (u32)ecs_storage_archetype_total_chunks(&world->storage),
   };
 }

@@ -173,6 +173,10 @@ void ecs_archetype_destroy(EcsArchetype* archetype) {
   alloc_free(g_alloc_heap, mem_create(archetype->chunks, sizeof(void*) * ecs_archetype_max_chunks));
 }
 
+usize ecs_archetype_total_size(const EcsArchetype* archetype) {
+  return archetype->chunkCount * ecs_archetype_chunk_size;
+}
+
 u32 ecs_archetype_add(EcsArchetype* archetype, const EcsEntityId id) {
   if (archetype->entityCount == archetype->chunkCount * archetype->entitiesPerChunk) {
     // Not a enough space left; allocate a new chunk.

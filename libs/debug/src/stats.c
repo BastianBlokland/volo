@@ -305,7 +305,8 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Views"), fmt_write_scratch("{}", fmt_int(ecs_def_view_count(ecsDef))));
     stats_draw_val_entry(canvas, string_lit("Systems"), fmt_write_scratch("{}", fmt_int(ecs_def_system_count(ecsDef))));
     stats_draw_val_entry(canvas, string_lit("Entities"), fmt_write_scratch("{}", fmt_int(ecsStats->entityCount)));
-    stats_draw_val_entry(canvas, string_lit("Archetypes"), fmt_write_scratch("{<6} empty: {}", fmt_int(ecsStats->archetypeCount), fmt_int(ecsStats->archetypeEmptyCount)));
+    stats_draw_val_entry(canvas, string_lit("Archetypes"), fmt_write_scratch("{<8} empty:  {}", fmt_int(ecsStats->archetypeCount), fmt_int(ecsStats->archetypeEmptyCount)));
+    stats_draw_val_entry(canvas, string_lit("Archetype data"), fmt_write_scratch("{<8} chunks: {}", fmt_size(ecsStats->archetypeTotalSize), fmt_int(ecsStats->archetypeTotalChunks)));
   }
   // clang-format on
 }
