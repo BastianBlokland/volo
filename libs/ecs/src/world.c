@@ -184,8 +184,6 @@ void ecs_world_destroy(EcsWorld* world) {
 
   ecs_def_unfreeze((EcsDef*)world->def);
 
-  MAYBE_UNUSED const usize archetypeCount = ecs_storage_archetype_count(&world->storage);
-
   // Finalize (invoke destructors) all components on all entities.
   ecs_storage_queue_finalize_all(&world->storage, &world->finalizer);
   ecs_buffer_queue_finalize_all(&world->buffer, &world->finalizer);
@@ -199,7 +197,7 @@ void ecs_world_destroy(EcsWorld* world) {
   dynarray_for_t(&world->views, EcsView, view) { ecs_view_destroy(world->alloc, world->def, view); }
   dynarray_destroy(&world->views);
 
-  log_d("Ecs world destroyed", log_param("archetypes", fmt_int(archetypeCount)));
+  log_d("Ecs world destroyed");
 
   alloc_free_t(world->alloc, world);
 }
