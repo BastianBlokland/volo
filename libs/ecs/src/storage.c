@@ -142,6 +142,10 @@ bool ecs_storage_entity_exists(const EcsStorage* storage, const EcsEntityId id) 
   return ecs_storage_entity_info_ptr((EcsStorage*)storage, id) != null;
 }
 
+u32 ecs_storage_entity_count(const EcsStorage* storage) {
+  return entity_allocator_count_active(&storage->entityAllocator);
+}
+
 BitSet ecs_storage_entity_mask(EcsStorage* storage, const EcsEntityId id) {
   EcsEntityInfo* info = ecs_storage_entity_info_ptr(storage, id);
   if (!info) {

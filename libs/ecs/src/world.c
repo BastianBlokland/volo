@@ -361,3 +361,9 @@ void ecs_world_flush_internal(EcsWorld* world) {
   }
   ecs_buffer_clear(&world->buffer);
 }
+
+EcsWorldStats ecs_world_stats_query(const EcsWorld* world) {
+  return (EcsWorldStats){
+      .entityCount = ecs_storage_entity_count(&world->storage),
+  };
+}

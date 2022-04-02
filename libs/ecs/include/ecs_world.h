@@ -123,3 +123,12 @@ void ecs_world_remove(EcsWorld*, EcsEntityId, EcsCompId);
  * Pre-condition: !ecs_world_busy()
  */
 void ecs_world_flush(EcsWorld*);
+
+typedef struct {
+  u32 entityCount; // Amount of entities that exist in the world.
+} EcsWorldStats;
+
+/**
+ * Query statistics for the given world.
+ */
+EcsWorldStats ecs_world_stats_query(const EcsWorld*);
