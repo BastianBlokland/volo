@@ -132,6 +132,7 @@ typedef struct {
   u32          archetypeCount, archetypeEmptyCount;
   u32          archetypeTotalSize, archetypeTotalChunks;
   TimeDuration lastFlushDur;
+  u32          lastFlushEntities;
 } EcsWorldStats;
 
 /**

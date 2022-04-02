@@ -313,6 +313,7 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Archetypes"), fmt_write_scratch("{<8} empty:  {}", fmt_int(ecsStats->archetypeCount), fmt_int(ecsStats->archetypeEmptyCount)));
     stats_draw_val_entry(canvas, string_lit("Archetype data"), fmt_write_scratch("{<8} chunks: {}", fmt_size(ecsStats->archetypeTotalSize), fmt_int(ecsStats->archetypeTotalChunks)));
     stats_draw_val_entry(canvas, string_lit("Flush duration"), fmt_write_scratch("{<8} max:    {}", fmt_duration(ecsStats->lastFlushDur), fmt_duration(maxFlushTime)));
+    stats_draw_val_entry(canvas, string_lit("Flush entities"), fmt_write_scratch("{}", fmt_int(ecsStats->lastFlushEntities)));
   }
   // clang-format on
 }
