@@ -301,6 +301,7 @@ static void debug_stats_draw_interface(
   }
   if(stats_draw_section(canvas, string_lit("ECS"))) {
     stats_draw_val_entry(canvas, string_lit("Entities"), fmt_write_scratch("{}", fmt_int(ecsStats->entityCount)));
+    stats_draw_val_entry(canvas, string_lit("Archetypes"), fmt_write_scratch("{}", fmt_int(ecsStats->archetypeCount)));
   }
   // clang-format on
 }

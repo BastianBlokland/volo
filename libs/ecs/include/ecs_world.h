@@ -126,6 +126,7 @@ void ecs_world_flush(EcsWorld*);
 
 typedef struct {
   u32 entityCount; // Amount of entities that exist in the world.
+  u32 archetypeCount;
 } EcsWorldStats;
 
 /**
