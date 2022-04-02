@@ -3,9 +3,19 @@
 
 #include "job_internal.h"
 
+usize job_mem_req_size(const JobGraph* graph) {
+  return sizeof(Job) + sizeof(JobTaskData) * jobs_graph_task_count(graph);
+}
+
+usize job_mem_req_align(const JobGraph* graph) {
+  (void)graph;
+  return job_size;
+}
+
 Job* job_create(Allocator* alloc, const JobId id, const JobGraph* graph) {
-  const usize size = sizeof(Job) + sizeof(JobTaskData) * jobs_graph_task_count(graph);
-  Job*        data = alloc_alloc(alloc, size, job_size).ptr;
+  const usize size  = job_mem_req_size(graph);
+  const usize align = job_mem_req_align(graph);
+  Job*        data  = alloc_alloc(alloc, size, align).ptr;
 
   // Initialize per-job data.
   data->id           = id;

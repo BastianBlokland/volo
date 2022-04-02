@@ -114,3 +114,6 @@ void jobs_scheduler_finish(Job* job) {
   thread_mutex_unlock(g_jobMutex);
   thread_cond_broadcast(g_jobCondition);
 }
+
+usize jobs_scheduler_mem_size(const JobGraph* graph) { return job_mem_req_size(graph); }
+usize jobs_scheduler_mem_align(const JobGraph* graph) { return job_mem_req_align(graph); }

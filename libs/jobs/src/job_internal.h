@@ -28,5 +28,8 @@ typedef struct {
 
 ASSERT(sizeof(Job) == job_size, "Invalid Job size");
 
+usize job_mem_req_size(const JobGraph*);
+usize job_mem_req_align(const JobGraph*);
+
 Job* job_create(Allocator*, const JobId id, const JobGraph*);
 void job_destroy(Allocator*, Job*);
