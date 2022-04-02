@@ -92,4 +92,13 @@ void alloc_heap_teardown() {
   }
 }
 
+u64 alloc_heap_allocated_blocks() {
+  u64 result = 0;
+  for (usize i = 0; i != block_bucket_count; ++i) {
+    Allocator* allocBlock = g_allocatorIntern.blockBuckets[i];
+    result += alloc_block_allocated_blocks(allocBlock);
+  }
+  return result;
+}
+
 u64 alloc_heap_counter() { return (u64)thread_atomic_load_i64(&g_allocatorIntern.counter); }

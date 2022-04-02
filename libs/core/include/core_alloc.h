@@ -140,6 +140,7 @@ typedef struct {
   u32   pageCount;
   usize pageTotal;      // Total number of bytes allocated by the page allocator.
   u64   pageCounter;    // Incremented on every page allocation.
+  u64   heapActive;     // Total number of active allocations in the heap allocator.
   u64   heapCounter;    // Incremented on every heap allocation.
   u64   persistCounter; // Incremented on every persistent allocation.
 } AllocStats;
