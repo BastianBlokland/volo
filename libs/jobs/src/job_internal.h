@@ -22,6 +22,7 @@ ASSERT(sizeof(JobTaskData) == job_size, "Invalid JobTaskData size");
 typedef struct {
   ALIGNAS(job_size) JobId id;
   const JobGraph* graph;
+  Allocator*      jobAlloc;
   i64             dependencies; // Remaining dependencies (leaf tasks).
   JobTaskData     taskData[];   // Allocated after this struct.
 } Job;
@@ -32,4 +33,4 @@ usize job_mem_req_size(const JobGraph*);
 usize job_mem_req_align(const JobGraph*);
 
 Job* job_create(Allocator*, const JobId id, const JobGraph*);
-void job_destroy(Allocator*, Job*);
+void job_destroy(Job*);

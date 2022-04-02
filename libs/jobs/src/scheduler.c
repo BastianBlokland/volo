@@ -100,7 +100,7 @@ void jobs_scheduler_finish(Job* job) {
   thread_mutex_lock(g_jobMutex);
   {
     // Cleanup job data.
-    job_destroy(g_alloc_heap, job);
+    job_destroy(job);
 
     // Remove it from 'g_runningJobs'.
     for (usize i = 0; i != g_runningJobs.size; ++i) {

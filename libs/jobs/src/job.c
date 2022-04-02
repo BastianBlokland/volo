@@ -20,6 +20,7 @@ Job* job_create(Allocator* alloc, const JobId id, const JobGraph* graph) {
   // Initialize per-job data.
   data->id           = id;
   data->graph        = graph;
+  data->jobAlloc     = alloc;
   data->dependencies = (i64)jobs_graph_task_leaf_count(graph);
 
   // Initialize per-task data.
@@ -30,7 +31,6 @@ Job* job_create(Allocator* alloc, const JobId id, const JobGraph* graph) {
   return data;
 }
 
-void job_destroy(Allocator* alloc, Job* job) {
-  const usize size = sizeof(Job) + sizeof(JobTaskData) * jobs_graph_task_count(job->graph);
-  alloc_free(alloc, mem_create(job, size));
+void job_destroy(Job* job) {
+  alloc_free(job->jobAlloc, mem_create(job, job_mem_req_size(job->graph)));
 }
