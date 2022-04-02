@@ -30,19 +30,12 @@ void ecs_def_destroy(EcsDef*);
 void ecs_def_register_module(EcsDef*, String name, EcsModuleInit);
 
 /**
- * Retrieve the amount of registered components.
+ * Retrieve the amount of registered components / views / systems / modules.
  */
-usize ecs_def_comp_count(const EcsDef*);
-
-/**
- * Retrieve the amount of registered views.
- */
-usize ecs_def_view_count(const EcsDef*);
-
-/**
- * Retrieve the amount of registered systems.
- */
-usize ecs_def_system_count(const EcsDef*);
+u32 ecs_def_comp_count(const EcsDef*);
+u32 ecs_def_view_count(const EcsDef*);
+u32 ecs_def_system_count(const EcsDef*);
+u32 ecs_def_module_count(const EcsDef*);
 
 /**
  * Retrieve the name of a component.
