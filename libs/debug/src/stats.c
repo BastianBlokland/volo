@@ -256,7 +256,8 @@ static void debug_stats_draw_interface(
     UiCanvasComp*         canvas,
     const DebugStatsComp* stats,
     const RendStatsComp*  rendStats,
-    const AllocStats*     allocStats) {
+    const AllocStats*     allocStats,
+    const EcsWorldStats*  ecsStats) {
 
   ui_layout_move_to(canvas, UiBase_Container, UiAlign_TopLeft, Ui_XY);
   ui_layout_resize(canvas, UiAlign_TopLeft, ui_vector(450, 25), UiBase_Absolute, Ui_XY);
@@ -297,6 +298,9 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Persist counter"), fmt_write_scratch("count:  {<6} {}delta: {}\ar", fmt_int(allocStats->persistCounter), persistDeltaColor, fmt_int(persistDelta)));
     stats_draw_val_entry(canvas, string_lit("Renderer"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->ramOccupied), fmt_size(rendStats->ramReserved)));
     stats_draw_val_entry(canvas, string_lit("GPU (on device)"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->vramOccupied), fmt_size(rendStats->vramReserved)));
+  }
+  if(stats_draw_section(canvas, string_lit("ECS"))) {
+    stats_draw_val_entry(canvas, string_lit("Entities"), fmt_write_scratch("{}", fmt_int(ecsStats->entityCount)));
   }
   // clang-format on
 }
@@ -375,6 +379,7 @@ ecs_system_define(DebugStatsUpdateSys) {
     DebugStatsComp*      stats      = ecs_view_write_t(itr, DebugStatsComp);
     const RendStatsComp* rendStats  = ecs_view_read_t(itr, RendStatsComp);
     const AllocStats     allocStats = alloc_stats_query();
+    const EcsWorldStats  ecsStats   = ecs_world_stats_query(world);
 
     // Update statistics.
     debug_stats_update(stats, rendStats, rendGlobalSettings, time);
@@ -392,7 +397,7 @@ ecs_system_define(DebugStatsUpdateSys) {
       UiCanvasComp* canvas = ecs_view_write_t(canvasItr, UiCanvasComp);
       ui_canvas_reset(canvas);
       ui_canvas_to_back(canvas);
-      debug_stats_draw_interface(canvas, stats, rendStats, &allocStats);
+      debug_stats_draw_interface(canvas, stats, rendStats, &allocStats, &ecsStats);
     }
 
     stats->allocPrevPageCounter    = allocStats.pageCounter;
