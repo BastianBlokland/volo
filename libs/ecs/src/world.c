@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_time.h"
 #include "ecs_runner.h"
 #include "log_logger.h"
 
@@ -30,6 +31,8 @@ struct sEcsWorld {
   EcsWorldFlags flags;
   EcsEntityId   globalEntity;
   Allocator*    alloc;
+
+  TimeDuration lastFlushDur;
 };
 
 #define ecs_comp_mask_stack(_DEF_) mem_stack(bits_to_bytes(ecs_def_comp_count(_DEF_)) + 1)
@@ -316,6 +319,8 @@ void ecs_world_busy_unset(EcsWorld* world) {
 }
 
 void ecs_world_flush_internal(EcsWorld* world) {
+  const TimeSteady startTime = time_steady_clock();
+
   ecs_storage_flush_new_entities(&world->storage);
 
   BitSet      tmpMask     = ecs_comp_mask_stack(world->def);
@@ -358,6 +363,8 @@ void ecs_world_flush_internal(EcsWorld* world) {
     ecs_world_apply_added_comps(&world->storage, &world->buffer, i, curCompMask);
   }
   ecs_buffer_clear(&world->buffer);
+
+  world->lastFlushDur = time_steady_duration(startTime, time_steady_clock());
 }
 
 EcsWorldStats ecs_world_stats_query(const EcsWorld* world) {
@@ -367,5 +374,6 @@ EcsWorldStats ecs_world_stats_query(const EcsWorld* world) {
       .archetypeEmptyCount  = (u32)ecs_storage_archetype_count_empty(&world->storage),
       .archetypeTotalSize   = (u32)ecs_storage_archetype_total_size(&world->storage),
       .archetypeTotalChunks = (u32)ecs_storage_archetype_total_chunks(&world->storage),
+      .lastFlushDur         = world->lastFlushDur,
   };
 }
