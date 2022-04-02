@@ -48,6 +48,8 @@ ecs_comp_define(DebugStatsComp) {
   f64 rendWaitFrac, presAcqFrac, presEnqFrac, presWaitFrac, limiterFrac, gpuRenderFrac;
 
   u64 allocPrevPageCounter, allocPrevHeapCounter, allocPrevPersistCounter;
+
+  DebugStatPlot ecsFlushDurUs; // In microseconds.
 };
 
 static void debug_plot_add(DebugStatPlot* plot, const f32 value) {
@@ -256,7 +258,9 @@ static void debug_stats_draw_interface(
     UiCanvasComp*         canvas,
     const DebugStatsComp* stats,
     const RendStatsComp*  rendStats,
-    const AllocStats*     allocStats) {
+    const AllocStats*     allocStats,
+    const EcsDef*         ecsDef,
+    const EcsWorldStats*  ecsStats) {
 
   ui_layout_move_to(canvas, UiBase_Container, UiAlign_TopLeft, Ui_XY);
   ui_layout_resize(canvas, UiAlign_TopLeft, ui_vector(450, 25), UiBase_Absolute, Ui_XY);
@@ -298,6 +302,19 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Renderer"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->ramOccupied), fmt_size(rendStats->ramReserved)));
     stats_draw_val_entry(canvas, string_lit("GPU (on device)"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->vramOccupied), fmt_size(rendStats->vramReserved)));
   }
+  if(stats_draw_section(canvas, string_lit("ECS"))) {
+    const TimeDuration maxFlushTime = (TimeDuration)(debug_plot_max(&stats->ecsFlushDurUs) * (f64)time_microsecond);
+
+    stats_draw_val_entry(canvas, string_lit("Components"), fmt_write_scratch("{}", fmt_int(ecs_def_comp_count(ecsDef))));
+    stats_draw_val_entry(canvas, string_lit("Views"), fmt_write_scratch("{}", fmt_int(ecs_def_view_count(ecsDef))));
+    stats_draw_val_entry(canvas, string_lit("Systems"), fmt_write_scratch("{}", fmt_int(ecs_def_system_count(ecsDef))));
+    stats_draw_val_entry(canvas, string_lit("Modules"), fmt_write_scratch("{}", fmt_int(ecs_def_module_count(ecsDef))));
+    stats_draw_val_entry(canvas, string_lit("Entities"), fmt_write_scratch("{}", fmt_int(ecsStats->entityCount)));
+    stats_draw_val_entry(canvas, string_lit("Archetypes"), fmt_write_scratch("{<8} empty:  {}", fmt_int(ecsStats->archetypeCount), fmt_int(ecsStats->archetypeEmptyCount)));
+    stats_draw_val_entry(canvas, string_lit("Archetype data"), fmt_write_scratch("{<8} chunks: {}", fmt_size(ecsStats->archetypeTotalSize), fmt_int(ecsStats->archetypeTotalChunks)));
+    stats_draw_val_entry(canvas, string_lit("Flush duration"), fmt_write_scratch("{<8} max:    {}", fmt_duration(ecsStats->lastFlushDur), fmt_duration(maxFlushTime)));
+    stats_draw_val_entry(canvas, string_lit("Flush entities"), fmt_write_scratch("{}", fmt_int(ecsStats->lastFlushEntities)));
+  }
   // clang-format on
 }
 
@@ -305,7 +322,8 @@ static void debug_stats_update(
     DebugStatsComp*               stats,
     const RendStatsComp*          rendStats,
     const RendGlobalSettingsComp* rendGlobalSettings,
-    const SceneTimeComp*          time) {
+    const SceneTimeComp*          time,
+    const EcsWorldStats*          ecsStats) {
 
   const TimeDuration prevFrameDur = stats->frameDur;
   stats->frameDur                 = time->delta;
@@ -332,6 +350,8 @@ static void debug_stats_update(
   debug_avg(&stats->presWaitFrac, math_clamp_f64(stats->presentWaitDur / timeRef, 0, 1));
   debug_avg(&stats->limiterFrac, math_clamp_f64(stats->limiterDur / timeRef, 0, 1));
   debug_avg(&stats->gpuRenderFrac, math_clamp_f64(stats->gpuRenderDur / timeRef, 0, 1));
+
+  debug_plot_add(&stats->ecsFlushDurUs, (f32)(ecsStats->lastFlushDur / (f64)time_microsecond));
 }
 
 ecs_view_define(GlobalView) {
@@ -375,9 +395,11 @@ ecs_system_define(DebugStatsUpdateSys) {
     DebugStatsComp*      stats      = ecs_view_write_t(itr, DebugStatsComp);
     const RendStatsComp* rendStats  = ecs_view_read_t(itr, RendStatsComp);
     const AllocStats     allocStats = alloc_stats_query();
+    const EcsDef*        ecsDef     = ecs_world_def(world);
+    const EcsWorldStats  ecsStats   = ecs_world_stats_query(world);
 
     // Update statistics.
-    debug_stats_update(stats, rendStats, rendGlobalSettings, time);
+    debug_stats_update(stats, rendStats, rendGlobalSettings, time, &ecsStats);
 
     // Create or destroy the interface canvas as needed.
     if (stats->flags & DebugStatsFlags_Show && !stats->canvas) {
@@ -392,7 +414,7 @@ ecs_system_define(DebugStatsUpdateSys) {
       UiCanvasComp* canvas = ecs_view_write_t(canvasItr, UiCanvasComp);
       ui_canvas_reset(canvas);
       ui_canvas_to_back(canvas);
-      debug_stats_draw_interface(canvas, stats, rendStats, &allocStats);
+      debug_stats_draw_interface(canvas, stats, rendStats, &allocStats, ecsDef, &ecsStats);
     }
 
     stats->allocPrevPageCounter    = allocStats.pageCounter;

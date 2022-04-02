@@ -8,7 +8,6 @@
 ASSERT((ecs_starting_free_indices % 8) == 0, "ecs_starting_free_indices should be byte aligned");
 
 EntityAllocator entity_allocator_create(Allocator* alloc) {
-
   // Start with 'ecs_starting_free_indices' amount of free indices.
   DynBitSet freeIndices = dynbitset_create(alloc, ecs_starting_free_indices);
   dynbitset_set_all(&freeIndices, ecs_starting_free_indices);
@@ -59,4 +58,15 @@ void entity_allocator_free(EntityAllocator* entityAllocator, const EcsEntityId i
     dynbitset_set(&entityAllocator->freeIndices, ecs_entity_id_index(id));
   }
   thread_spinlock_unlock(&entityAllocator->lock);
+}
+
+u32 entity_allocator_count_active(const EntityAllocator* entityAllocator) {
+  u32 result;
+  thread_spinlock_lock((ThreadSpinLock*)&entityAllocator->lock);
+  {
+    const usize totalFree = bitset_count(dynbitset_view(&entityAllocator->freeIndices));
+    result                = (u32)(entityAllocator->totalIndices - totalFree);
+  }
+  thread_spinlock_unlock((ThreadSpinLock*)&entityAllocator->lock);
+  return result;
 }

@@ -83,9 +83,10 @@ void ecs_def_register_module(EcsDef* def, const String name, const EcsModuleInit
   *dynarray_push_t(&def->modules, EcsModuleDef) = ecs_module_create(def, name, initRoutine);
 }
 
-usize ecs_def_comp_count(const EcsDef* def) { return def->components.size; }
-
-usize ecs_def_view_count(const EcsDef* def) { return def->views.size; }
+u32 ecs_def_comp_count(const EcsDef* def) { return (u32)def->components.size; }
+u32 ecs_def_view_count(const EcsDef* def) { return (u32)def->views.size; }
+u32 ecs_def_system_count(const EcsDef* def) { return (u32)def->systems.size; }
+u32 ecs_def_module_count(const EcsDef* def) { return (u32)def->modules.size; }
 
 String ecs_def_comp_name(const EcsDef* def, const EcsCompId id) {
   return ecs_def_comp(def, id)->name;

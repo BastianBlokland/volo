@@ -24,3 +24,9 @@ EcsEntityId entity_allocator_alloc(EntityAllocator*);
  * Release an entity-id.
  */
 void entity_allocator_free(EntityAllocator*, EcsEntityId);
+
+/**
+ * Count the amount of active (allocated and not yet freed) entities.
+ * NOTE: Relatively expensive as it has to walk the entire freeIndices bitset.
+ */
+u32 entity_allocator_count_active(const EntityAllocator*);

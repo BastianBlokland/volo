@@ -86,10 +86,7 @@ EcsStorage ecs_storage_create(Allocator* alloc, const EcsDef* def) {
 }
 
 void ecs_storage_destroy(EcsStorage* storage) {
-  for (EcsArchetypeId archId = 0; archId != storage->archetypes.size; ++archId) {
-    EcsArchetype* arch = dynarray_at_t(&storage->archetypes, archId, EcsArchetype);
-    ecs_archetype_destroy(arch);
-  }
+  dynarray_for_t(&storage->archetypes, EcsArchetype, arch) { ecs_archetype_destroy(arch); }
   dynarray_destroy(&storage->archetypes);
 
   entity_allocator_destroy(&storage->entityAllocator);
@@ -140,6 +137,10 @@ bool ecs_storage_entity_exists(const EcsStorage* storage, const EcsEntityId id) 
     return true;
   }
   return ecs_storage_entity_info_ptr((EcsStorage*)storage, id) != null;
+}
+
+u32 ecs_storage_entity_count(const EcsStorage* storage) {
+  return entity_allocator_count_active(&storage->entityAllocator);
 }
 
 BitSet ecs_storage_entity_mask(EcsStorage* storage, const EcsEntityId id) {
@@ -214,6 +215,26 @@ void ecs_storage_entity_destroy(EcsStorage* storage, const EcsEntityId id) {
 }
 
 usize ecs_storage_archetype_count(const EcsStorage* storage) { return storage->archetypes.size; }
+
+usize ecs_storage_archetype_count_empty(const EcsStorage* storage) {
+  usize count = 0;
+  dynarray_for_t(&storage->archetypes, EcsArchetype, arch) { count += arch->entityCount == 0; }
+  return count;
+}
+
+usize ecs_storage_archetype_total_size(const EcsStorage* storage) {
+  usize result = 0;
+  dynarray_for_t(&storage->archetypes, EcsArchetype, arch) {
+    result += ecs_archetype_total_size(arch);
+  }
+  return result;
+}
+
+u32 ecs_storage_archetype_total_chunks(const EcsStorage* storage) {
+  u32 result = 0;
+  dynarray_for_t(&storage->archetypes, EcsArchetype, arch) { result += (u32)arch->chunkCount; }
+  return result;
+}
 
 usize ecs_storage_archetype_entities_per_chunk(const EcsStorage* storage, const EcsArchetypeId id) {
   return ecs_storage_archetype_ptr(storage, id)->entitiesPerChunk;

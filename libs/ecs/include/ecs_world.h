@@ -10,6 +10,9 @@ typedef struct sEcsDef EcsDef;
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;
 
+// Forward declare from 'core_time.h'.
+typedef i64 TimeDuration;
+
 typedef struct sEcsWorld EcsWorld;
 
 /**
@@ -123,3 +126,16 @@ void ecs_world_remove(EcsWorld*, EcsEntityId, EcsCompId);
  * Pre-condition: !ecs_world_busy()
  */
 void ecs_world_flush(EcsWorld*);
+
+typedef struct {
+  u32          entityCount; // Amount of entities that exist in the world.
+  u32          archetypeCount, archetypeEmptyCount;
+  u32          archetypeTotalSize, archetypeTotalChunks;
+  TimeDuration lastFlushDur;
+  u32          lastFlushEntities;
+} EcsWorldStats;
+
+/**
+ * Query statistics for the given world.
+ */
+EcsWorldStats ecs_world_stats_query(const EcsWorld*);
