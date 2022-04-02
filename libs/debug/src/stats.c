@@ -286,7 +286,7 @@ static void debug_stats_draw_interface(
     const i64       pageDelta         = allocStats->pageCounter - stats->allocPrevPageCounter;
     const FormatArg pageDeltaColor    = pageDelta > 0 ? fmt_ui_color(ui_color_red) : fmt_nop();
     const i64       heapDelta         = allocStats->heapCounter - stats->allocPrevHeapCounter;
-    const FormatArg heapDeltaColor    = pageDelta > 0 ? fmt_ui_color(ui_color_yellow) : fmt_nop();
+    const FormatArg heapDeltaColor    = heapDelta > 0 ? fmt_ui_color(ui_color_yellow) : fmt_nop();
     const i64       persistDelta      = allocStats->persistCounter - stats->allocPrevPersistCounter;
     const FormatArg persistDeltaColor = persistDelta > 0 ? fmt_ui_color(ui_color_red) : fmt_nop();
 
