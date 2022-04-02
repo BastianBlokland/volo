@@ -42,6 +42,7 @@ u64        alloc_page_counter(); // Incremented on every page allocation.
 
 Allocator* alloc_persist_init();
 void       alloc_persist_teardown();
+u64        alloc_persist_counter(); // Incremented on every persist allocation.
 
 Allocator* alloc_scratch_init();
 void       alloc_scratch_teardown();

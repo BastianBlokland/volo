@@ -91,10 +91,11 @@ void alloc_reset(Allocator* allocator) {
 
 AllocStats alloc_stats_query() {
   return (AllocStats){
-      .pageCount   = alloc_page_allocated_pages(),
-      .pageTotal   = alloc_page_allocated_size(),
-      .pageCounter = alloc_page_counter(),
-      .heapCounter = alloc_heap_counter(),
+      .pageCount      = alloc_page_allocated_pages(),
+      .pageTotal      = alloc_page_allocated_size(),
+      .pageCounter    = alloc_page_counter(),
+      .heapCounter    = alloc_heap_counter(),
+      .persistCounter = alloc_persist_counter(),
   };
 }
 
