@@ -301,7 +301,7 @@ static void debug_stats_draw_interface(
   }
   if(stats_draw_section(canvas, string_lit("ECS"))) {
     stats_draw_val_entry(canvas, string_lit("Entities"), fmt_write_scratch("{}", fmt_int(ecsStats->entityCount)));
-    stats_draw_val_entry(canvas, string_lit("Archetypes"), fmt_write_scratch("{}", fmt_int(ecsStats->archetypeCount)));
+    stats_draw_val_entry(canvas, string_lit("Archetypes"), fmt_write_scratch("{<6} empty: {}", fmt_int(ecsStats->archetypeCount), fmt_int(ecsStats->archetypeEmptyCount)));
   }
   // clang-format on
 }

@@ -86,10 +86,7 @@ EcsStorage ecs_storage_create(Allocator* alloc, const EcsDef* def) {
 }
 
 void ecs_storage_destroy(EcsStorage* storage) {
-  for (EcsArchetypeId archId = 0; archId != storage->archetypes.size; ++archId) {
-    EcsArchetype* arch = dynarray_at_t(&storage->archetypes, archId, EcsArchetype);
-    ecs_archetype_destroy(arch);
-  }
+  dynarray_for_t(&storage->archetypes, EcsArchetype, arch) { ecs_archetype_destroy(arch); }
   dynarray_destroy(&storage->archetypes);
 
   entity_allocator_destroy(&storage->entityAllocator);
@@ -218,6 +215,12 @@ void ecs_storage_entity_destroy(EcsStorage* storage, const EcsEntityId id) {
 }
 
 usize ecs_storage_archetype_count(const EcsStorage* storage) { return storage->archetypes.size; }
+
+usize ecs_storage_archetype_count_empty(const EcsStorage* storage) {
+  usize count = 0;
+  dynarray_for_t(&storage->archetypes, EcsArchetype, arch) { count += arch->entityCount == 0; }
+  return count;
+}
 
 usize ecs_storage_archetype_entities_per_chunk(const EcsStorage* storage, const EcsArchetypeId id) {
   return ecs_storage_archetype_ptr(storage, id)->entitiesPerChunk;
