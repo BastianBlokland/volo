@@ -56,6 +56,11 @@ typedef struct {
   u8       variation;
 } UiTooltipOpts;
 
+typedef struct {
+  String label;
+  u16    fontSize;
+} UiSectionOpts;
+
 // clang-format off
 
 /**
@@ -124,6 +129,14 @@ typedef struct {
     .maxSize  = {400, 400},                                                                        \
     __VA_ARGS__}))
 
+/**
+ * Draw a collapsable section.
+ */
+#define ui_section(_CANVAS_, ...) ui_section_with_opts((_CANVAS_),                                 \
+  &((UiSectionOpts){                                                                               \
+    .fontSize = 15,                                                                                \
+    __VA_ARGS__}))
+
 // clang-format on
 
 void ui_label_with_opts(UiCanvasComp*, String text, const UiLabelOpts*);
@@ -133,3 +146,4 @@ bool ui_toggle_with_opts(UiCanvasComp*, bool* value, const UiToggleOpts*);
 bool ui_select_with_opts(
     UiCanvasComp*, i32* value, const String* options, u32 optionCount, const UiSelectOpts*);
 bool ui_tooltip_with_opts(UiCanvasComp*, UiId, String text, const UiTooltipOpts*);
+bool ui_section_with_opts(UiCanvasComp*, const UiSectionOpts*);
