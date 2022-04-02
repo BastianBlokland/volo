@@ -115,6 +115,7 @@ static void stats_draw_val_entry(UiCanvasComp* canvas, const String label, const
 }
 
 static bool stats_draw_section(UiCanvasComp* canvas, const String label) {
+  ui_canvas_id_next_block(canvas);
   stats_draw_bg(canvas, DebugBgFlags_Section);
   const bool isOpen = ui_section(canvas, .label = label);
   ui_layout_next(canvas, Ui_Down, 0);
