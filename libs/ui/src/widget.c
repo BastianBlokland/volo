@@ -497,13 +497,13 @@ bool ui_section_with_opts(UiCanvasComp* canvas, const UiSectionOpts* opts) {
   ui_interactable_text_style(canvas, status);
 
   ui_layout_push(canvas);
-  ui_layout_inner(canvas, UiBase_Current, UiAlign_MiddleLeft, ui_vector(20, 20), UiBase_Absolute);
+  ui_layout_inner(canvas, UiBase_Current, UiAlign_MiddleLeft, ui_vector(15, 15), UiBase_Absolute);
   ui_canvas_draw_glyph(
       canvas, isOpen ? UiShape_UnfoldLess : UiShape_UnfoldMore, 0, UiFlags_Interactable);
   ui_layout_pop(canvas);
 
   ui_layout_push(canvas);
-  ui_layout_grow(canvas, UiAlign_MiddleRight, ui_vector(-20, 0), UiBase_Absolute, Ui_X);
+  ui_layout_grow(canvas, UiAlign_MiddleRight, ui_vector(-15, 0), UiBase_Absolute, Ui_X);
   ui_canvas_draw_text(
       canvas, opts->label, opts->fontSize, UiAlign_MiddleLeft, UiFlags_Interactable);
   ui_layout_pop(canvas);
