@@ -37,7 +37,7 @@ void scheduler_teardown() {
   dynarray_destroy(&g_runningJobs);
 }
 
-JobId jobs_scheduler_run(JobGraph* graph) {
+JobId jobs_scheduler_run(JobGraph* graph, Allocator* alloc) {
   diag_assert_msg(jobs_graph_validate(graph), "Given job graph is invalid");
   diag_assert_msg(g_jobsIsWorker, "Only job-workers can run jobs");
 
@@ -46,7 +46,7 @@ JobId jobs_scheduler_run(JobGraph* graph) {
     return id; // Job has no roots tasks; nothing to do.
   }
 
-  Job* job = job_create(g_alloc_heap, id, graph);
+  Job* job = job_create(alloc, id, graph);
   thread_mutex_lock(g_jobMutex);
   *dynarray_push_t(&g_runningJobs, Job*) = job;
   thread_mutex_unlock(g_jobMutex);

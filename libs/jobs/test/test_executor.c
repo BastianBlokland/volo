@@ -75,10 +75,10 @@ spec(executor) {
       }
     }
 
-    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph));
+    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph, g_alloc_page));
     check_eq_int((usize)counter, g_numTasks);
 
-    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph));
+    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph, g_alloc_page));
     check_eq_int((usize)counter, g_numTasks * 2);
 
     jobs_graph_destroy(jobGraph);
@@ -111,10 +111,10 @@ spec(executor) {
       }
     }
 
-    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph));
+    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph, g_alloc_page));
     check_eq_int((usize)counter, 0);
 
-    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph));
+    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph, g_alloc_page));
     check_eq_int((usize)counter, 0);
 
     jobs_graph_destroy(jobGraph);
@@ -135,10 +135,10 @@ spec(executor) {
           task_flags);
     }
 
-    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph));
+    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph, g_alloc_page));
     check_eq_int((usize)counter, g_numTasks);
 
-    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph));
+    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph, g_alloc_page));
     check_eq_int((usize)counter, g_numTasks * 2);
 
     jobs_graph_destroy(jobGraph);
@@ -175,7 +175,7 @@ spec(executor) {
       rootLayer = false;
     }
 
-    jobs_scheduler_wait_help(jobs_scheduler_run(graph));
+    jobs_scheduler_wait_help(jobs_scheduler_run(graph, g_alloc_page));
     check_eq_int(data[0], sum);
 
     dynarray_destroy(&dependencies);
@@ -206,7 +206,7 @@ spec(executor) {
       jobs_graph_task_depend(graph, initTask, task);
     }
 
-    jobs_scheduler_wait_help(jobs_scheduler_run(graph));
+    jobs_scheduler_wait_help(jobs_scheduler_run(graph, g_alloc_page));
     array_for_t(data, i64, val) { check_eq_int(*val, 42); }
 
     jobs_graph_destroy(graph);
@@ -227,8 +227,8 @@ spec(executor) {
           task_flags | JobTaskFlags_ThreadAffinity);
     }
 
-    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph));
-    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph));
+    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph, g_alloc_page));
+    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph, g_alloc_page));
 
     jobs_graph_destroy(jobGraph);
   }
@@ -250,8 +250,8 @@ spec(executor) {
       }
     }
 
-    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph));
-    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph));
+    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph, g_alloc_page));
+    jobs_scheduler_wait_help(jobs_scheduler_run(jobGraph, g_alloc_page));
 
     jobs_graph_destroy(jobGraph);
   }

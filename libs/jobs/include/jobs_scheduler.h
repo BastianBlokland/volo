@@ -12,7 +12,7 @@ typedef u64 JobId;
  * Returns a handle to the running job.
  * Pre-condition: g_jobsIsWorker == true
  */
-JobId jobs_scheduler_run(JobGraph* graph);
+JobId jobs_scheduler_run(JobGraph* graph, Allocator*);
 
 /**
  * Check if the given job has finished yet.

@@ -173,9 +173,9 @@ static void runner_collect_systems(EcsRunner* runner, RunnerSystemEntry* output)
   for (EcsSystemId sysId = 0; sysId != systemCount; ++sysId) {
     EcsSystemDef* sysDef = dynarray_at_t(&def->systems, sysId, EcsSystemDef);
     output[sysId]        = (RunnerSystemEntry){
-        .id    = sysId,
-        .order = sysDef->order,
-        .def   = sysDef,
+               .id    = sysId,
+               .order = sysDef->order,
+               .def   = sysDef,
     };
   }
 
@@ -217,11 +217,11 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
 
   EcsRunner* runner = alloc_alloc_t(alloc, EcsRunner);
   *runner           = (EcsRunner){
-      .world            = world,
-      .graph            = jobs_graph_create(alloc, string_lit("ecs_runner"), taskCount),
-      .flags            = flags,
-      .systemTaskLookup = alloc_array_t(alloc, JobTaskId, systemCount),
-      .alloc            = alloc,
+                .world            = world,
+                .graph            = jobs_graph_create(alloc, string_lit("ecs_runner"), taskCount),
+                .flags            = flags,
+                .systemTaskLookup = alloc_array_t(alloc, JobTaskId, systemCount),
+                .alloc            = alloc,
   };
 
   RunnerSystemEntry* systems = alloc_array_t(alloc, RunnerSystemEntry, systemCount);
@@ -269,7 +269,7 @@ JobId ecs_run_async(EcsRunner* runner) {
 
   runner->flags |= EcsRunnerPrivateFlags_Running;
   ecs_world_busy_set(runner->world);
-  return jobs_scheduler_run(runner->graph);
+  return jobs_scheduler_run(runner->graph, g_alloc_page);
 }
 
 void ecs_run_sync(EcsRunner* runner) {
