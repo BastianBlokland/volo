@@ -11,9 +11,15 @@
 
 static const f32 g_statsLabelWidth       = 160;
 static const u8  g_statsBgAlpha          = 150;
+static const u8  g_statsSectionBgAlpha   = 200;
 static const f32 g_statsInvAverageWindow = 1.0f / 10.0f;
 
 #define stats_plot_size 32
+
+typedef enum {
+  DebugBgFlags_None    = 0,
+  DebugBgFlags_Section = 1 << 0,
+} DebugBgFlags;
 
 typedef enum {
   DebugStatsFlags_Show = 1 << 0,
@@ -67,9 +73,10 @@ static void debug_avg_dur(TimeDuration* value, const TimeDuration new) {
   *value = (TimeDuration)floatVal;
 }
 
-static void stats_draw_bg(UiCanvasComp* canvas) {
+static void stats_draw_bg(UiCanvasComp* canvas, const DebugBgFlags flags) {
   ui_style_push(canvas);
-  ui_style_color(canvas, ui_color(0, 0, 0, g_statsBgAlpha));
+  const u8 alpha = flags & DebugBgFlags_Section ? g_statsSectionBgAlpha : g_statsBgAlpha;
+  ui_style_color(canvas, ui_color(0, 0, 0, alpha));
   ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_None);
   ui_style_pop(canvas);
 }
@@ -101,10 +108,17 @@ static void stats_draw_value(UiCanvasComp* canvas, const String value) {
 }
 
 static void stats_draw_val_entry(UiCanvasComp* canvas, const String label, const String value) {
-  stats_draw_bg(canvas);
+  stats_draw_bg(canvas, DebugBgFlags_None);
   stats_draw_label(canvas, label);
   stats_draw_value(canvas, value);
   ui_layout_next(canvas, Ui_Down, 0);
+}
+
+static bool stats_draw_section(UiCanvasComp* canvas, const String label) {
+  stats_draw_bg(canvas, DebugBgFlags_Section);
+  const bool isOpen = ui_section(canvas, .label = label);
+  ui_layout_next(canvas, Ui_Down, 0);
+  return isOpen;
 }
 
 static void stats_draw_frametime(UiCanvasComp* canvas, const DebugStatsComp* stats) {
@@ -168,7 +182,7 @@ static void stats_draw_graph(
 }
 
 static void stats_draw_cpu_graph(UiCanvasComp* canvas, const DebugStatsComp* stats) {
-  stats_draw_bg(canvas);
+  stats_draw_bg(canvas, DebugBgFlags_None);
   stats_draw_label(canvas, string_lit("CPU"));
 
   ui_layout_push(canvas);
@@ -208,7 +222,7 @@ static void stats_draw_cpu_graph(UiCanvasComp* canvas, const DebugStatsComp* sta
 }
 
 static void stats_draw_gpu_graph(UiCanvasComp* canvas, const DebugStatsComp* stats) {
-  stats_draw_bg(canvas);
+  stats_draw_bg(canvas, DebugBgFlags_None);
   stats_draw_label(canvas, string_lit("GPU"));
 
   ui_layout_push(canvas);
@@ -242,28 +256,31 @@ static void debug_stats_draw_interface(
   ui_layout_resize(canvas, UiAlign_TopLeft, ui_vector(450, 25), UiBase_Absolute, Ui_XY);
 
   // clang-format off
-
-  stats_draw_val_entry(canvas, string_lit("Device"), fmt_write_scratch("{}", fmt_text(rendStats->gpuName)));
-  stats_draw_val_entry(canvas, string_lit("Resolution"), fmt_write_scratch("{}x{}", fmt_int(rendStats->renderSize[0]), fmt_int(rendStats->renderSize[1])));
   stats_draw_frametime(canvas, stats);
   stats_draw_cpu_graph(canvas, stats);
   stats_draw_gpu_graph(canvas, stats);
-  stats_draw_val_entry(canvas, string_lit("Draws"), fmt_write_scratch("{}", fmt_int(rendStats->draws)));
-  stats_draw_val_entry(canvas, string_lit("Instances"), fmt_write_scratch("{}", fmt_int(rendStats->instances)));
-  stats_draw_val_entry(canvas, string_lit("Vertices"), fmt_write_scratch("{}", fmt_int(rendStats->vertices)));
-  stats_draw_val_entry(canvas, string_lit("Triangles"), fmt_write_scratch("{}", fmt_int(rendStats->primitives)));
-  stats_draw_val_entry(canvas, string_lit("Vertex shaders"), fmt_write_scratch("{}", fmt_int(rendStats->shadersVert)));
-  stats_draw_val_entry(canvas, string_lit("Fragment shaders"), fmt_write_scratch("{}", fmt_int(rendStats->shadersFrag)));
-  stats_draw_val_entry(canvas, string_lit("Memory main"), fmt_write_scratch("{}", fmt_size(alloc_stats_total())));
-  stats_draw_val_entry(canvas, string_lit("Memory renderer"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->ramOccupied), fmt_size(rendStats->ramReserved)));
-  stats_draw_val_entry(canvas, string_lit("Memory gpu"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->vramOccupied), fmt_size(rendStats->vramReserved)));
-  stats_draw_val_entry(canvas, string_lit("Descriptor sets"), fmt_write_scratch("{<8} reserved: {}", fmt_int(rendStats->descSetsOccupied), fmt_int(rendStats->descSetsReserved)));
-  stats_draw_val_entry(canvas, string_lit("Descriptor layouts"), fmt_write_scratch("{}", fmt_int(rendStats->descLayouts)));
-  stats_draw_val_entry(canvas, string_lit("Graphic resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Graphic])));
-  stats_draw_val_entry(canvas, string_lit("Shader resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Shader])));
-  stats_draw_val_entry(canvas, string_lit("Mesh resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Mesh])));
-  stats_draw_val_entry(canvas, string_lit("Texture resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Texture])));
 
+  if(stats_draw_section(canvas, string_lit("Renderer"))) {
+    stats_draw_val_entry(canvas, string_lit("Device"), fmt_write_scratch("{}", fmt_text(rendStats->gpuName)));
+    stats_draw_val_entry(canvas, string_lit("Resolution"), fmt_write_scratch("{}x{}", fmt_int(rendStats->renderSize[0]), fmt_int(rendStats->renderSize[1])));
+    stats_draw_val_entry(canvas, string_lit("Draws"), fmt_write_scratch("{}", fmt_int(rendStats->draws)));
+    stats_draw_val_entry(canvas, string_lit("Instances"), fmt_write_scratch("{}", fmt_int(rendStats->instances)));
+    stats_draw_val_entry(canvas, string_lit("Vertices"), fmt_write_scratch("{}", fmt_int(rendStats->vertices)));
+    stats_draw_val_entry(canvas, string_lit("Triangles"), fmt_write_scratch("{}", fmt_int(rendStats->primitives)));
+    stats_draw_val_entry(canvas, string_lit("Vertex shaders"), fmt_write_scratch("{}", fmt_int(rendStats->shadersVert)));
+    stats_draw_val_entry(canvas, string_lit("Fragment shaders"), fmt_write_scratch("{}", fmt_int(rendStats->shadersFrag)));
+    stats_draw_val_entry(canvas, string_lit("Descriptor sets"), fmt_write_scratch("{<3} reserved: {}", fmt_int(rendStats->descSetsOccupied), fmt_int(rendStats->descSetsReserved)));
+    stats_draw_val_entry(canvas, string_lit("Descriptor layouts"), fmt_write_scratch("{}", fmt_int(rendStats->descLayouts)));
+    stats_draw_val_entry(canvas, string_lit("Graphic resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Graphic])));
+    stats_draw_val_entry(canvas, string_lit("Shader resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Shader])));
+    stats_draw_val_entry(canvas, string_lit("Mesh resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Mesh])));
+    stats_draw_val_entry(canvas, string_lit("Texture resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Texture])));
+  }
+  if(stats_draw_section(canvas, string_lit("Memory"))) {
+    stats_draw_val_entry(canvas, string_lit("Memory main"), fmt_write_scratch("{}", fmt_size(alloc_stats_total())));
+    stats_draw_val_entry(canvas, string_lit("Memory renderer"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->ramOccupied), fmt_size(rendStats->ramReserved)));
+    stats_draw_val_entry(canvas, string_lit("Memory gpu"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->vramOccupied), fmt_size(rendStats->vramReserved)));
+  }
   // clang-format on
 }
 
