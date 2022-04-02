@@ -40,6 +40,11 @@ usize ecs_def_comp_count(const EcsDef*);
 usize ecs_def_view_count(const EcsDef*);
 
 /**
+ * Retrieve the amount of registered systems.
+ */
+usize ecs_def_system_count(const EcsDef*);
+
+/**
  * Retrieve the name of a component.
  *
  * Pre-condition: EcsCompId is a valid component-id registered to the given EcsDef.

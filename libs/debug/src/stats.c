@@ -257,6 +257,7 @@ static void debug_stats_draw_interface(
     const DebugStatsComp* stats,
     const RendStatsComp*  rendStats,
     const AllocStats*     allocStats,
+    const EcsDef*         ecsDef,
     const EcsWorldStats*  ecsStats) {
 
   ui_layout_move_to(canvas, UiBase_Container, UiAlign_TopLeft, Ui_XY);
@@ -300,6 +301,9 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("GPU (on device)"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->vramOccupied), fmt_size(rendStats->vramReserved)));
   }
   if(stats_draw_section(canvas, string_lit("ECS"))) {
+    stats_draw_val_entry(canvas, string_lit("Components"), fmt_write_scratch("{}", fmt_int(ecs_def_comp_count(ecsDef))));
+    stats_draw_val_entry(canvas, string_lit("Views"), fmt_write_scratch("{}", fmt_int(ecs_def_view_count(ecsDef))));
+    stats_draw_val_entry(canvas, string_lit("Systems"), fmt_write_scratch("{}", fmt_int(ecs_def_system_count(ecsDef))));
     stats_draw_val_entry(canvas, string_lit("Entities"), fmt_write_scratch("{}", fmt_int(ecsStats->entityCount)));
     stats_draw_val_entry(canvas, string_lit("Archetypes"), fmt_write_scratch("{<6} empty: {}", fmt_int(ecsStats->archetypeCount), fmt_int(ecsStats->archetypeEmptyCount)));
   }
@@ -380,6 +384,7 @@ ecs_system_define(DebugStatsUpdateSys) {
     DebugStatsComp*      stats      = ecs_view_write_t(itr, DebugStatsComp);
     const RendStatsComp* rendStats  = ecs_view_read_t(itr, RendStatsComp);
     const AllocStats     allocStats = alloc_stats_query();
+    const EcsDef*        ecsDef     = ecs_world_def(world);
     const EcsWorldStats  ecsStats   = ecs_world_stats_query(world);
 
     // Update statistics.
@@ -398,7 +403,7 @@ ecs_system_define(DebugStatsUpdateSys) {
       UiCanvasComp* canvas = ecs_view_write_t(canvasItr, UiCanvasComp);
       ui_canvas_reset(canvas);
       ui_canvas_to_back(canvas);
-      debug_stats_draw_interface(canvas, stats, rendStats, &allocStats, &ecsStats);
+      debug_stats_draw_interface(canvas, stats, rendStats, &allocStats, ecsDef, &ecsStats);
     }
 
     stats->allocPrevPageCounter    = allocStats.pageCounter;

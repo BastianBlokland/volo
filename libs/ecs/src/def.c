@@ -87,6 +87,8 @@ usize ecs_def_comp_count(const EcsDef* def) { return def->components.size; }
 
 usize ecs_def_view_count(const EcsDef* def) { return def->views.size; }
 
+usize ecs_def_system_count(const EcsDef* def) { return def->systems.size; }
+
 String ecs_def_comp_name(const EcsDef* def, const EcsCompId id) {
   return ecs_def_comp(def, id)->name;
 }
