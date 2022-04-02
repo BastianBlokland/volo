@@ -162,8 +162,8 @@ void ui_cmd_push_draw_text(
   *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
       .type     = UiCmd_DrawText,
       .drawText = {
-          .id       = id,
-          .text     = string_dup(buffer->allocTransient, text),
+          .id   = id,
+          .text = string_is_empty(text) ? string_empty : string_dup(buffer->allocTransient, text),
           .fontSize = fontSize,
           .align    = align,
           .flags    = flags,

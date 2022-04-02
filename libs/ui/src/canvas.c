@@ -529,9 +529,7 @@ UiId ui_canvas_draw_text(
     const UiFlags flags) {
 
   const UiId id = comp->nextId++;
-  if (!string_is_empty(text)) {
-    ui_cmd_push_draw_text(comp->cmdBuffer, id, text, fontSize, align, flags);
-  }
+  ui_cmd_push_draw_text(comp->cmdBuffer, id, text, fontSize, align, flags);
   return id;
 }
 
