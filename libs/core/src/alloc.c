@@ -94,6 +94,7 @@ AllocStats alloc_stats_query() {
       .pageCount   = alloc_page_allocated_pages(),
       .pageTotal   = alloc_page_allocated_size(),
       .pageCounter = alloc_page_counter(),
+      .heapCounter = alloc_heap_counter(),
   };
 }
 

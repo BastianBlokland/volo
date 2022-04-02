@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_annotation.h"
 #include "core_bits.h"
+#include "core_thread.h"
 
 #include "alloc_internal.h"
 
@@ -17,6 +18,9 @@ ASSERT(block_bucket_count == 8, "Unexpected bucket count");
 typedef struct {
   Allocator  api;
   Allocator* blockBuckets[block_bucket_count];
+
+  // TODO: Investigate perf implications, in theory could be behind a debug define.
+  i64 counter; // Incremented on every allocation.
 } AllocatorHeap;
 
 static usize alloc_heap_pow_index(const usize size) {
@@ -38,6 +42,7 @@ static Allocator* alloc_heap_sub_allocator(AllocatorHeap* allocHeap, const usize
 static Mem alloc_heap_alloc(Allocator* allocator, const usize size, const usize align) {
   AllocatorHeap* allocHeap = (AllocatorHeap*)allocator;
   Allocator*     allocSub  = alloc_heap_sub_allocator(allocHeap, size);
+  thread_atomic_add_i64(&allocHeap->counter, 1);
   return alloc_alloc(allocSub, size, align);
 }
 
@@ -86,3 +91,5 @@ void alloc_heap_teardown() {
     alloc_block_destroy(allocBlock);
   }
 }
+
+u64 alloc_heap_counter() { return (u64)thread_atomic_load_i64(&g_allocatorIntern.counter); }

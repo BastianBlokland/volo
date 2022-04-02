@@ -33,6 +33,7 @@ struct sAllocator {
 
 Allocator* alloc_heap_init();
 void       alloc_heap_teardown();
+u64        alloc_heap_counter(); // Incremented on every heap allocation.
 
 Allocator* alloc_page_init();
 u32        alloc_page_allocated_pages();

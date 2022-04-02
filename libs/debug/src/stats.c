@@ -47,7 +47,7 @@ ecs_comp_define(DebugStatsComp) {
 
   f64 rendWaitFrac, presAcqFrac, presEnqFrac, presWaitFrac, limiterFrac, gpuRenderFrac;
 
-  u64 allocPrevPageCounter;
+  u64 allocPrevPageCounter, allocPrevHeapCounter;
 };
 
 static void debug_plot_add(DebugStatPlot* plot, const f32 value) {
@@ -285,9 +285,12 @@ static void debug_stats_draw_interface(
   if(stats_draw_section(canvas, string_lit("Memory"))) {
     const i64       pageDelta      = allocStats->pageCounter - stats->allocPrevPageCounter;
     const FormatArg pageDeltaColor = pageDelta > 0 ? fmt_ui_color(ui_color_red) : fmt_nop();
+    const i64       heapDelta      = allocStats->heapCounter - stats->allocPrevHeapCounter;
+    const FormatArg heapDeltaColor = pageDelta > 0 ? fmt_ui_color(ui_color_yellow) : fmt_nop();
 
     stats_draw_val_entry(canvas, string_lit("Main"), fmt_write_scratch("{<11} pages: {}", fmt_size(allocStats->pageTotal), fmt_int(allocStats->pageCount)));
-    stats_draw_val_entry(canvas, string_lit("Page counter"), fmt_write_scratch("page: {<5} {}delta: {}\ar", fmt_int(allocStats->pageCounter), pageDeltaColor, fmt_int(pageDelta)));
+    stats_draw_val_entry(canvas, string_lit("Page counter"), fmt_write_scratch("count: {<5} {}delta: {}\ar", fmt_int(allocStats->pageCounter), pageDeltaColor, fmt_int(pageDelta)));
+    stats_draw_val_entry(canvas, string_lit("Heap counter"), fmt_write_scratch("count: {<5} {}delta: {}\ar", fmt_int(allocStats->heapCounter), heapDeltaColor, fmt_int(heapDelta)));
     stats_draw_val_entry(canvas, string_lit("Renderer"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->ramOccupied), fmt_size(rendStats->ramReserved)));
     stats_draw_val_entry(canvas, string_lit("GPU (on device)"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->vramOccupied), fmt_size(rendStats->vramReserved)));
   }
@@ -389,6 +392,7 @@ ecs_system_define(DebugStatsUpdateSys) {
     }
 
     stats->allocPrevPageCounter = allocStats.pageCounter;
+    stats->allocPrevHeapCounter = allocStats.heapCounter;
   }
 }
 
