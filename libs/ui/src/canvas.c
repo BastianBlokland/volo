@@ -1,4 +1,5 @@
 #include "asset_ftx.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_sort.h"
 #include "ecs_utils.h"
@@ -481,6 +482,10 @@ void ui_canvas_min_interact_layer(UiCanvasComp* comp, const UiLayer layer) {
 UiId ui_canvas_id_peek(const UiCanvasComp* comp) { return comp->nextId; }
 void ui_canvas_id_skip(UiCanvasComp* comp, const u64 count) { comp->nextId += count; }
 
+void ui_canvas_id_next_block(UiCanvasComp* comp) {
+  comp->nextId = bits_align_64(comp->nextId, 1024);
+}
+
 UiStatus ui_canvas_elem_status(const UiCanvasComp* comp, const UiId id) {
   return id == comp->activeId ? comp->activeStatus : UiStatus_Idle;
 }
@@ -529,9 +534,7 @@ UiId ui_canvas_draw_text(
     const UiFlags flags) {
 
   const UiId id = comp->nextId++;
-  if (!string_is_empty(text)) {
-    ui_cmd_push_draw_text(comp->cmdBuffer, id, text, fontSize, align, flags);
-  }
+  ui_cmd_push_draw_text(comp->cmdBuffer, id, text, fontSize, align, flags);
   return id;
 }
 

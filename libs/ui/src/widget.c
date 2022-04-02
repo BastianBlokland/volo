@@ -481,3 +481,33 @@ bool ui_tooltip_with_opts(
   ui_layout_pop(canvas);
   return true;
 }
+
+bool ui_section_with_opts(UiCanvasComp* canvas, const UiSectionOpts* opts) {
+  const UiId     iconId = ui_canvas_id_peek(canvas);
+  const UiId     textId = iconId + 1;
+  const UiStatus status =
+      math_max(ui_canvas_elem_status(canvas, iconId), ui_canvas_elem_status(canvas, textId));
+  if (status == UiStatus_Activated) {
+    ui_canvas_persistent_flags_toggle(canvas, iconId, UiPersistentFlags_Open);
+  }
+  const bool isOpen = (ui_canvas_persistent_flags(canvas, iconId) & UiPersistentFlags_Open) != 0;
+
+  ui_style_push(canvas);
+  ui_style_weight(canvas, UiWeight_Bold);
+  ui_interactable_text_style(canvas, status);
+
+  ui_layout_push(canvas);
+  ui_layout_inner(canvas, UiBase_Current, UiAlign_MiddleLeft, ui_vector(15, 15), UiBase_Absolute);
+  ui_canvas_draw_glyph(
+      canvas, isOpen ? UiShape_UnfoldLess : UiShape_UnfoldMore, 0, UiFlags_Interactable);
+  ui_layout_pop(canvas);
+
+  ui_layout_push(canvas);
+  ui_layout_grow(canvas, UiAlign_MiddleRight, ui_vector(-15, 0), UiBase_Absolute, Ui_X);
+  ui_canvas_draw_text(
+      canvas, opts->label, opts->fontSize, UiAlign_MiddleLeft, UiFlags_Interactable);
+  ui_layout_pop(canvas);
+
+  ui_style_pop(canvas);
+  return isOpen;
+}

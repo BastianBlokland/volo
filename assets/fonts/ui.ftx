@@ -7,20 +7,20 @@
     {
       "id": "fonts/roboto_medium.ttf",
       "yOffset": -0.05,
-      "advanceMult": 1.05,
+      "extraAdvance": 0.05,
       "characters": "\u0020!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
     },
     {
       "id": "fonts/robotomono_medium.ttf",
       "variation": 1,
       "yOffset": -0.05,
-      "advanceMult": 1.1,
+      "extraAdvance": 0.05,
       "characters": "\u0020!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
     },
     {
       "id": "fonts/materialicons_regular.ttf",
       "yOffset": -0.20,
-      "characters": "\uE9E4\uEF5B\uE3AE\uE1DB\uEA5F\uE069\uE338\uE4FC\uE80E\uE5CA\uE9BA\uE5D0\uE5D1\uE53B\uE53C\uE89E\uE312\uE5CD\uF016\uE412\uE25E\uE5CF\uE5CE"
+      "characters": "\uE9E4\uEF5B\uE3AE\uE1DB\uEA5F\uE069\uE338\uE4FC\uE80E\uE5CA\uE9BA\uE5D0\uE5D1\uE53B\uE53C\uE89E\uE312\uE5CD\uF016\uE412\uE25E\uE5CF\uE5CE\uE5D7\uE5D6"
     },
     {
       "id": "fonts/shapes.ttf",

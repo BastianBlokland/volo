@@ -55,6 +55,7 @@ void ui_canvas_min_interact_layer(UiCanvasComp*, UiLayer);
  */
 UiId ui_canvas_id_peek(const UiCanvasComp*);
 void ui_canvas_id_skip(UiCanvasComp*, u64 count);
+void ui_canvas_id_next_block(UiCanvasComp*);
 
 /**
  * Query general canvas information.
