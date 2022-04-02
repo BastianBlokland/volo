@@ -17,6 +17,8 @@ typedef struct {
   Allocator      api;
   Allocator*     chunkedAlloc;
   ThreadSpinLock spinLock;
+
+  i64 counter; // Incremented on every allocation.
 } AllocatorPersist;
 
 static void alloc_persist_lock(AllocatorPersist* allocPersist) {
@@ -32,6 +34,7 @@ static Mem alloc_persist_alloc(Allocator* allocator, const usize size, const usi
 
   alloc_persist_lock(allocPersist);
   const Mem result = alloc_alloc(allocPersist->chunkedAlloc, size, align);
+  ++allocPersist->counter;
   alloc_persist_unlock(allocPersist);
   return result;
 }
@@ -65,4 +68,11 @@ void alloc_persist_teardown() {
   diag_assert(g_allocatorIntern.chunkedAlloc);
   alloc_chunked_destroy(g_allocatorIntern.chunkedAlloc);
   g_allocatorIntern = (AllocatorPersist){0};
+}
+
+u64 alloc_persist_counter() {
+  alloc_persist_lock(&g_allocatorIntern);
+  const u64 result = (u64)g_allocatorIntern.counter;
+  alloc_persist_unlock(&g_allocatorIntern);
+  return result;
 }

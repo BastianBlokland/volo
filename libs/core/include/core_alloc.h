@@ -133,7 +133,16 @@ usize alloc_max_size(Allocator*);
 void alloc_reset(Allocator*);
 
 /**
- * Retrieve the total amount of bytes allocated from the OS.
+ * Allocation statistics.
  * NOTE: Does not include global memory, stacks and memory allocated by external apis.
  */
-usize alloc_stats_total();
+typedef struct {
+  u32   pageCount;
+  usize pageTotal;      // Total number of bytes allocated by the page allocator.
+  u64   pageCounter;    // Incremented on every page allocation.
+  u64   heapActive;     // Total number of active allocations in the heap allocator.
+  u64   heapCounter;    // Incremented on every heap allocation.
+  u64   persistCounter; // Incremented on every persistent allocation.
+} AllocStats;
+
+AllocStats alloc_stats_query();

@@ -9,9 +9,9 @@
 #include <sanitizer/asan_interface.h>
 #endif
 
-Allocator*   g_alloc_heap;
-Allocator*   g_alloc_page;
-Allocator*   g_alloc_persist;
+Allocator*              g_alloc_heap;
+Allocator*              g_alloc_page;
+Allocator*              g_alloc_persist;
 THREAD_LOCAL Allocator* g_alloc_scratch;
 
 static void alloc_verify_allocator(const Allocator* allocator) {
@@ -89,7 +89,16 @@ void alloc_reset(Allocator* allocator) {
   allocator->reset(allocator);
 }
 
-usize alloc_stats_total() { return alloc_page_allocated_size(); }
+AllocStats alloc_stats_query() {
+  return (AllocStats){
+      .pageCount      = alloc_page_allocated_pages(),
+      .pageTotal      = alloc_page_allocated_size(),
+      .pageCounter    = alloc_page_counter(),
+      .heapActive     = alloc_heap_allocated_blocks(),
+      .heapCounter    = alloc_heap_counter(),
+      .persistCounter = alloc_persist_counter(),
+  };
+}
 
 void alloc_tag_free(Mem mem, const AllocMemType type) {
   static const u8 g_tags[AllocMemType_Count] = {0xAA, 0xAB};

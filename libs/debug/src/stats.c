@@ -46,6 +46,8 @@ ecs_comp_define(DebugStatsComp) {
   TimeDuration gpuRenderDur;
 
   f64 rendWaitFrac, presAcqFrac, presEnqFrac, presWaitFrac, limiterFrac, gpuRenderFrac;
+
+  u64 allocPrevPageCounter, allocPrevHeapCounter, allocPrevPersistCounter;
 };
 
 static void debug_plot_add(DebugStatPlot* plot, const f32 value) {
@@ -251,7 +253,10 @@ static void stats_draw_gpu_graph(UiCanvasComp* canvas, const DebugStatsComp* sta
 }
 
 static void debug_stats_draw_interface(
-    UiCanvasComp* canvas, const DebugStatsComp* stats, const RendStatsComp* rendStats) {
+    UiCanvasComp*         canvas,
+    const DebugStatsComp* stats,
+    const RendStatsComp*  rendStats,
+    const AllocStats*     allocStats) {
 
   ui_layout_move_to(canvas, UiBase_Container, UiAlign_TopLeft, Ui_XY);
   ui_layout_resize(canvas, UiAlign_TopLeft, ui_vector(450, 25), UiBase_Absolute, Ui_XY);
@@ -278,9 +283,20 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Texture resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Texture])));
   }
   if(stats_draw_section(canvas, string_lit("Memory"))) {
-    stats_draw_val_entry(canvas, string_lit("Memory main"), fmt_write_scratch("{}", fmt_size(alloc_stats_total())));
-    stats_draw_val_entry(canvas, string_lit("Memory renderer"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->ramOccupied), fmt_size(rendStats->ramReserved)));
-    stats_draw_val_entry(canvas, string_lit("Memory gpu"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->vramOccupied), fmt_size(rendStats->vramReserved)));
+    const i64       pageDelta         = allocStats->pageCounter - stats->allocPrevPageCounter;
+    const FormatArg pageDeltaColor    = pageDelta > 0 ? fmt_ui_color(ui_color_red) : fmt_nop();
+    const i64       heapDelta         = allocStats->heapCounter - stats->allocPrevHeapCounter;
+    const FormatArg heapDeltaColor    = pageDelta > 0 ? fmt_ui_color(ui_color_yellow) : fmt_nop();
+    const i64       persistDelta      = allocStats->persistCounter - stats->allocPrevPersistCounter;
+    const FormatArg persistDeltaColor = persistDelta > 0 ? fmt_ui_color(ui_color_red) : fmt_nop();
+
+    stats_draw_val_entry(canvas, string_lit("Main"), fmt_write_scratch("{<11} pages: {}", fmt_size(allocStats->pageTotal), fmt_int(allocStats->pageCount)));
+    stats_draw_val_entry(canvas, string_lit("Page counter"), fmt_write_scratch("count:  {<6} {}delta: {}\ar", fmt_int(allocStats->pageCounter), pageDeltaColor, fmt_int(pageDelta)));
+    stats_draw_val_entry(canvas, string_lit("Heap"), fmt_write_scratch("active: {}", fmt_int(allocStats->heapActive)));
+    stats_draw_val_entry(canvas, string_lit("Heap counter"), fmt_write_scratch("count:  {<6} {}delta: {}\ar", fmt_int(allocStats->heapCounter), heapDeltaColor, fmt_int(heapDelta)));
+    stats_draw_val_entry(canvas, string_lit("Persist counter"), fmt_write_scratch("count:  {<6} {}delta: {}\ar", fmt_int(allocStats->persistCounter), persistDeltaColor, fmt_int(persistDelta)));
+    stats_draw_val_entry(canvas, string_lit("Renderer"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->ramOccupied), fmt_size(rendStats->ramReserved)));
+    stats_draw_val_entry(canvas, string_lit("GPU (on device)"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->vramOccupied), fmt_size(rendStats->vramReserved)));
   }
   // clang-format on
 }
@@ -356,8 +372,9 @@ ecs_system_define(DebugStatsUpdateSys) {
 
   EcsView* statsView = ecs_world_view_t(world, StatsUpdateView);
   for (EcsIterator* itr = ecs_view_itr(statsView); ecs_view_walk(itr);) {
-    DebugStatsComp*      stats     = ecs_view_write_t(itr, DebugStatsComp);
-    const RendStatsComp* rendStats = ecs_view_read_t(itr, RendStatsComp);
+    DebugStatsComp*      stats      = ecs_view_write_t(itr, DebugStatsComp);
+    const RendStatsComp* rendStats  = ecs_view_read_t(itr, RendStatsComp);
+    const AllocStats     allocStats = alloc_stats_query();
 
     // Update statistics.
     debug_stats_update(stats, rendStats, rendGlobalSettings, time);
@@ -375,8 +392,12 @@ ecs_system_define(DebugStatsUpdateSys) {
       UiCanvasComp* canvas = ecs_view_write_t(canvasItr, UiCanvasComp);
       ui_canvas_reset(canvas);
       ui_canvas_to_back(canvas);
-      debug_stats_draw_interface(canvas, stats, rendStats);
+      debug_stats_draw_interface(canvas, stats, rendStats, &allocStats);
     }
+
+    stats->allocPrevPageCounter    = allocStats.pageCounter;
+    stats->allocPrevHeapCounter    = allocStats.heapCounter;
+    stats->allocPrevPersistCounter = allocStats.persistCounter;
   }
 }
 
