@@ -125,7 +125,8 @@ static void output_test_finished(
 }
 
 static String output_run_stats_str(const TimeDuration dur) {
-  return fmt_write_scratch("{}, {}", fmt_duration(dur), fmt_size(alloc_stats_total()));
+  const AllocStats allocStats = alloc_stats_query();
+  return fmt_write_scratch("{}, {}", fmt_duration(dur), fmt_size(allocStats.totalBytes));
 }
 
 static void output_run_finished(
@@ -160,20 +161,20 @@ static void output_destroy(CheckOutput* out) {
 CheckOutput* check_output_pretty(Allocator* alloc, File* file, const CheckRunFlags runFlags) {
   CheckOutputPretty* prettyOut = alloc_alloc_t(alloc, CheckOutputPretty);
   *prettyOut                   = (CheckOutputPretty){
-      .api =
-          {
-              .runStarted      = output_run_started,
-              .testsDiscovered = output_tests_discovered,
-              .testSkipped     = output_test_skipped,
-              .testFinished    = output_test_finished,
-              .runFinished     = output_run_finished,
-              .destroy         = output_destroy,
+                        .api =
+                            {
+                                .runStarted      = output_run_started,
+                                .testsDiscovered = output_tests_discovered,
+                                .testSkipped     = output_test_skipped,
+                                .testFinished    = output_test_finished,
+                                .runFinished     = output_run_finished,
+                                .destroy         = output_destroy,
           },
-      .alloc     = alloc,
-      .file      = file,
-      .suiteName = path_stem(g_path_executable),
-      .runFlags  = runFlags,
-      .style     = tty_isatty(file),
+                        .alloc     = alloc,
+                        .file      = file,
+                        .suiteName = path_stem(g_path_executable),
+                        .runFlags  = runFlags,
+                        .style     = tty_isatty(file),
   };
   return (CheckOutput*)prettyOut;
 }

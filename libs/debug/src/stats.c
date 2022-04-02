@@ -278,9 +278,10 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Texture resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Texture])));
   }
   if(stats_draw_section(canvas, string_lit("Memory"))) {
-    stats_draw_val_entry(canvas, string_lit("Memory main"), fmt_write_scratch("{}", fmt_size(alloc_stats_total())));
-    stats_draw_val_entry(canvas, string_lit("Memory renderer"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->ramOccupied), fmt_size(rendStats->ramReserved)));
-    stats_draw_val_entry(canvas, string_lit("Memory gpu"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->vramOccupied), fmt_size(rendStats->vramReserved)));
+    const AllocStats allocStats = alloc_stats_query();
+    stats_draw_val_entry(canvas, string_lit("Main"), fmt_write_scratch("{<8} pages: {}", fmt_size(allocStats.totalBytes), fmt_int(allocStats.totalPages)));
+    stats_draw_val_entry(canvas, string_lit("Renderer"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->ramOccupied), fmt_size(rendStats->ramReserved)));
+    stats_draw_val_entry(canvas, string_lit("GPU (on device)"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->vramOccupied), fmt_size(rendStats->vramReserved)));
   }
   // clang-format on
 }
