@@ -121,11 +121,11 @@ typedef struct {
 static UiDrawMetaData ui_draw_metadata(const UiRenderState* state, const AssetFtxComp* font) {
   const UiVector canvasRes = state->canvas->resolution;
   UiDrawMetaData meta      = {
-           .canvasRes = geo_vector(
+      .canvasRes = geo_vector(
           canvasRes.width, canvasRes.height, 1.0f / canvasRes.width, 1.0f / canvasRes.height),
-           .invCanvasScale  = 1.0f / state->settings->scale,
-           .glyphsPerDim    = font->glyphsPerDim,
-           .invGlyphsPerDim = 1.0f / (f32)font->glyphsPerDim,
+      .invCanvasScale  = 1.0f / state->settings->scale,
+      .glyphsPerDim    = font->glyphsPerDim,
+      .invGlyphsPerDim = 1.0f / (f32)font->glyphsPerDim,
   };
   mem_cpy(mem_var(meta.clipRects), mem_var(state->clipRects));
   return meta;
@@ -377,12 +377,12 @@ ecs_system_define(UiRenderSys) {
     const f32       scale       = settings ? settings->scale : 1.0f;
     const UiVector  canvasSize  = ui_vector(winSize.x / scale, winSize.y / scale);
     UiRenderState   renderState = {
-          .settings      = settings,
-          .font          = font,
-          .renderer      = renderer,
-          .draw          = draw,
-          .clipRects[0]  = {.size = canvasSize},
-          .clipRectCount = 1,
+        .settings      = settings,
+        .font          = font,
+        .renderer      = renderer,
+        .draw          = draw,
+        .clipRects[0]  = {.size = canvasSize},
+        .clipRectCount = 1,
     };
 
     UiCanvasPtr canvasses[ui_canvas_canvasses_max];
@@ -419,6 +419,12 @@ ecs_system_define(UiRenderSys) {
       ui_canvas_update_interaction(canvas, settings, window, hoveredElem, hoveredFlags);
     }
 
+    stats->canvasSize        = canvasSize;
+    stats->canvasCount       = canvasCount;
+    stats->glyphCount        = rend_draw_instance_count(draw);
+    stats->glyphOverlayCount = (u32)renderer->overlayGlyphs.size;
+    stats->clipRectCount     = renderState.clipRectCount;
+
     // Add the overlay glyphs, at this stage all the normal glyphs have already been added.
     dynarray_for_t(&renderer->overlayGlyphs, UiGlyphData, glyph) {
       rend_draw_add_instance(draw, mem_var(*glyph), SceneTags_None, (GeoBox){0});
@@ -428,9 +434,6 @@ ecs_system_define(UiRenderSys) {
     // Set the metadata.
     const UiDrawMetaData meta = ui_draw_metadata(&renderState, font);
     rend_draw_set_data(draw, mem_var(meta));
-
-    stats->canvasSize  = canvasSize;
-    stats->canvasCount = canvasCount;
   }
 }
 
@@ -511,7 +514,7 @@ UiRect ui_canvas_elem_rect(const UiCanvasComp* comp, const UiId id) {
 UiStatus ui_canvas_status(const UiCanvasComp* comp) { return comp->activeStatus; }
 UiVector ui_canvas_resolution(const UiCanvasComp* comp) { return comp->resolution; }
 bool     ui_canvas_input_any(const UiCanvasComp* comp) {
-      return (comp->flags & UiCanvasFlags_InputAny) != 0;
+  return (comp->flags & UiCanvasFlags_InputAny) != 0;
 }
 UiVector ui_canvas_input_delta(const UiCanvasComp* comp) { return comp->inputDelta; }
 UiVector ui_canvas_input_pos(const UiCanvasComp* comp) { return comp->inputPos; }

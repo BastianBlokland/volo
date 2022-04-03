@@ -5,4 +5,6 @@
 ecs_comp_extern_public(UiStatsComp) {
   UiVector canvasSize;
   u32      canvasCount;
+  u32      glyphCount, glyphOverlayCount;
+  u32      clipRectCount;
 };
