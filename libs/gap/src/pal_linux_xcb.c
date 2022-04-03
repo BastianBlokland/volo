@@ -8,6 +8,8 @@
 #include <xcb/xcb_icccm.h>
 #include <xcb/xfixes.h>
 #include <xcb/xkb.h>
+#include <xkbcommon/xkbcommon-x11.h>
+#include <xkbcommon/xkbcommon.h>
 
 #define pal_window_min_width 128
 #define pal_window_min_height 128
@@ -43,6 +45,9 @@ struct sGapPal {
   xcb_screen_t*     xcbScreen;
   GapPalXcbExtFlags extensions;
   GapPalFlags       flags;
+
+  struct xkb_context* xkbContext;
+  i32                 keyboardDeviceId;
 
   xcb_atom_t xcbProtoMsgAtom;
   xcb_atom_t xcbDeleteMsgAtom;
@@ -241,6 +246,43 @@ static GapKey pal_xcb_translate_key(const xcb_keycode_t key) {
   return GapKey_None;
 }
 
+static void pal_xkb_log_callback(
+    struct xkb_context* context, enum xkb_log_level level, const char* format, va_list args) {
+  (void)context;
+  Mem       buffer = mem_stack(256);
+  const int chars  = vsnprintf(buffer.ptr, buffer.size, format, args);
+  if (UNLIKELY(chars < 0)) {
+    diag_crash_msg("vsnprintf() failed for xkb log message");
+  }
+  LogLevel logLevel;
+  String   typeLabel;
+  switch (level) {
+  case XKB_LOG_LEVEL_CRITICAL:
+  case XKB_LOG_LEVEL_ERROR:
+  default:
+    logLevel  = LogLevel_Error;
+    typeLabel = string_lit("error");
+    break;
+  case XKB_LOG_LEVEL_WARNING:
+    logLevel  = LogLevel_Warn;
+    typeLabel = string_lit("warn");
+    break;
+  case XKB_LOG_LEVEL_INFO:
+    logLevel  = LogLevel_Info;
+    typeLabel = string_lit("info");
+    break;
+  case XKB_LOG_LEVEL_DEBUG:
+    logLevel  = LogLevel_Debug;
+    typeLabel = string_lit("debug");
+    break;
+  }
+  log(g_logger,
+      logLevel,
+      "xkb {} log",
+      log_param("type", fmt_text(typeLabel)),
+      log_param("message", fmt_text(string_slice(buffer, 0, chars))));
+}
+
 static void pal_xcb_check_con(GapPal* pal) {
   const int error = xcb_connection_has_error(pal->xcbConnection);
   if (UNLIKELY(error)) {
@@ -355,9 +397,23 @@ static bool pal_xkb_init(GapPal* pal) {
   MAYBE_UNUSED const u16 versionMinor = reply->serverMinor;
   free(reply);
 
+  pal->xkbContext = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+  if (UNLIKELY(!pal->xkbContext)) {
+    log_w("Failed to initialize the xkb-common context");
+    return false;
+  }
+  xkb_context_set_log_level(pal->xkbContext, XKB_LOG_LEVEL_INFO);
+  xkb_context_set_log_fn(pal->xkbContext, pal_xkb_log_callback);
+  pal->keyboardDeviceId = xkb_x11_get_core_keyboard_device_id(pal->xcbConnection);
+  if (UNLIKELY(pal->keyboardDeviceId < 0)) {
+    log_w("Failed to to retrieve the keyboard device-id");
+    return false;
+  }
+
   log_i(
       "Initialized xkb extension",
-      log_param("version", fmt_list_lit(fmt_int(versionMajor), fmt_int(versionMinor))));
+      log_param("version", fmt_list_lit(fmt_int(versionMajor), fmt_int(versionMinor))),
+      log_param("keyboard-device-id", fmt_int(pal->keyboardDeviceId)));
   return true;
 }
 
@@ -525,6 +581,10 @@ GapPal* gap_pal_create(Allocator* alloc) {
 void gap_pal_destroy(GapPal* pal) {
   while (pal->windows.size) {
     gap_pal_window_destroy(pal, dynarray_at_t(&pal->windows, 0, GapPalWindow)->id);
+  }
+
+  if (pal->xkbContext) {
+    xkb_context_unref(pal->xkbContext);
   }
 
   xcb_disconnect(pal->xcbConnection);
