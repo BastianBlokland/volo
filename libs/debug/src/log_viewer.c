@@ -11,13 +11,14 @@
 
 #define log_tracker_mask (LogMask_Info | LogMask_Warn | LogMask_Error)
 #define log_tracker_max_message_size 128
-#define log_tracker_max_age time_seconds(5)
+#define log_tracker_max_age time_seconds(10)
 
 typedef struct {
-  TimeReal timestamp;
-  LogLevel lvl;
-  u32      length;
-  u8       data[log_tracker_max_message_size];
+  TimeReal  timestamp;
+  LogLevel  lvl;
+  SourceLoc srcLoc;
+  u32       length;
+  u8        data[log_tracker_max_message_size];
 } DebugLogMessage;
 
 /**
@@ -46,10 +47,10 @@ static void debug_log_sink_write(
   }
   thread_spinlock_lock(&debugSink->messagesLock);
   {
-    (void)srcLoc;
     (void)params;
     DebugLogMessage* msg = dynarray_push_t(&debugSink->messages, DebugLogMessage);
     msg->lvl             = lvl;
+    msg->srcLoc          = srcLoc;
     msg->timestamp       = timestamp;
     msg->length          = math_min((u32)message.size, log_tracker_max_message_size);
     mem_cpy(mem_create(msg->data, msg->length), string_slice(message, 0, msg->length));
@@ -146,15 +147,21 @@ static UiColor debug_log_bg_color(const LogLevel lvl) {
 
 static void debug_log_draw_message(UiCanvasComp* canvas, const DebugLogMessage* msg) {
   const String str = mem_create(msg->data, msg->length);
+
   ui_style_push(canvas);
   ui_style_color(canvas, debug_log_bg_color(msg->lvl));
-  ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_None);
+  const UiId bgId = ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_Interactable);
   ui_style_pop(canvas);
 
   ui_layout_push(canvas);
   ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-10, 0), UiBase_Absolute, Ui_X);
   ui_canvas_draw_text(canvas, str, 15, UiAlign_MiddleLeft, UiFlags_None);
   ui_layout_pop(canvas);
+
+  ui_tooltip(
+      canvas,
+      bgId,
+      fmt_write_scratch("{}:{}", fmt_text(msg->srcLoc.file), fmt_int(msg->srcLoc.line)));
 }
 
 static void debug_log_draw_messages(UiCanvasComp* canvas, const DebugLogTrackerComp* tracker) {
