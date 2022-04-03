@@ -15,6 +15,7 @@ add_library(lib_ui STATIC
   src/resource.c
   src/settings.c
   src/shape.c
+  src/stats.c
   src/style.c
   src/text.c
   src/widget.c

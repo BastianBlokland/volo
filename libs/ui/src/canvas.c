@@ -10,6 +10,7 @@
 #include "scene_lifetime.h"
 #include "ui_register.h"
 #include "ui_settings.h"
+#include "ui_stats.h"
 
 #include "builder_internal.h"
 #include "cmd_internal.h"
@@ -120,11 +121,11 @@ typedef struct {
 static UiDrawMetaData ui_draw_metadata(const UiRenderState* state, const AssetFtxComp* font) {
   const UiVector canvasRes = state->canvas->resolution;
   UiDrawMetaData meta      = {
-      .canvasRes = geo_vector(
+           .canvasRes = geo_vector(
           canvasRes.width, canvasRes.height, 1.0f / canvasRes.width, 1.0f / canvasRes.height),
-      .invCanvasScale  = 1.0f / state->settings->scale,
-      .glyphsPerDim    = font->glyphsPerDim,
-      .invGlyphsPerDim = 1.0f / (f32)font->glyphsPerDim,
+           .invCanvasScale  = 1.0f / state->settings->scale,
+           .glyphsPerDim    = font->glyphsPerDim,
+           .invGlyphsPerDim = 1.0f / (f32)font->glyphsPerDim,
   };
   mem_cpy(mem_var(meta.clipRects), mem_var(state->clipRects));
   return meta;
@@ -250,6 +251,7 @@ ecs_view_define(WindowView) {
   ecs_access_read(GapWindowComp);
   ecs_access_maybe_write(UiRendererComp);
   ecs_access_maybe_write(UiSettingsComp);
+  ecs_access_maybe_write(UiStatsComp);
 }
 ecs_view_define(CanvasView) { ecs_access_write(UiCanvasComp); }
 ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
@@ -313,6 +315,8 @@ static void ui_renderer_create(EcsWorld* world, const EcsEntityId window) {
 
   UiSettingsComp* settings = ecs_world_add_t(world, window, UiSettingsComp);
   ui_settings_to_default(settings);
+
+  ecs_world_add_t(world, window, UiStatsComp);
 }
 
 static UiId ui_canvas_debug_elem(UiCanvasComp* canvas, const UiSettingsComp* settings) {
@@ -350,6 +354,7 @@ ecs_system_define(UiRenderSys) {
     const GapWindowComp* window   = ecs_view_read_t(itr, GapWindowComp);
     UiRendererComp*      renderer = ecs_view_write_t(itr, UiRendererComp);
     UiSettingsComp*      settings = ecs_view_write_t(itr, UiSettingsComp);
+    UiStatsComp*         stats    = ecs_view_write_t(itr, UiStatsComp);
     if (!renderer) {
       ui_renderer_create(world, entity);
       continue;
@@ -370,13 +375,14 @@ ecs_system_define(UiRenderSys) {
 
     const GapVector winSize     = gap_window_param(window, GapParam_WindowSize);
     const f32       scale       = settings ? settings->scale : 1.0f;
+    const UiVector  canvasSize  = ui_vector(winSize.x / scale, winSize.y / scale);
     UiRenderState   renderState = {
-        .settings      = settings,
-        .font          = font,
-        .renderer      = renderer,
-        .draw          = draw,
-        .clipRects[0]  = {.size = {winSize.x / scale, winSize.y / scale}},
-        .clipRectCount = 1,
+          .settings      = settings,
+          .font          = font,
+          .renderer      = renderer,
+          .draw          = draw,
+          .clipRects[0]  = {.size = canvasSize},
+          .clipRectCount = 1,
     };
 
     UiCanvasPtr canvasses[ui_canvas_canvasses_max];
@@ -422,6 +428,9 @@ ecs_system_define(UiRenderSys) {
     // Set the metadata.
     const UiDrawMetaData meta = ui_draw_metadata(&renderState, font);
     rend_draw_set_data(draw, mem_var(meta));
+
+    stats->canvasSize  = canvasSize;
+    stats->canvasCount = canvasCount;
   }
 }
 
@@ -502,7 +511,7 @@ UiRect ui_canvas_elem_rect(const UiCanvasComp* comp, const UiId id) {
 UiStatus ui_canvas_status(const UiCanvasComp* comp) { return comp->activeStatus; }
 UiVector ui_canvas_resolution(const UiCanvasComp* comp) { return comp->resolution; }
 bool     ui_canvas_input_any(const UiCanvasComp* comp) {
-  return (comp->flags & UiCanvasFlags_InputAny) != 0;
+      return (comp->flags & UiCanvasFlags_InputAny) != 0;
 }
 UiVector ui_canvas_input_delta(const UiCanvasComp* comp) { return comp->inputDelta; }
 UiVector ui_canvas_input_pos(const UiCanvasComp* comp) { return comp->inputPos; }
