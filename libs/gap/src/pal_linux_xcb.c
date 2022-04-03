@@ -47,7 +47,8 @@ struct sGapPal {
   GapPalFlags       flags;
 
   struct xkb_context* xkbContext;
-  i32                 keyboardDeviceId;
+  i32                 xkbDeviceId;
+  struct xkb_keymap*  xkbKeymap;
 
   xcb_atom_t xcbProtoMsgAtom;
   xcb_atom_t xcbDeleteMsgAtom;
@@ -404,16 +405,22 @@ static bool pal_xkb_init(GapPal* pal) {
   }
   xkb_context_set_log_level(pal->xkbContext, XKB_LOG_LEVEL_INFO);
   xkb_context_set_log_fn(pal->xkbContext, pal_xkb_log_callback);
-  pal->keyboardDeviceId = xkb_x11_get_core_keyboard_device_id(pal->xcbConnection);
-  if (UNLIKELY(pal->keyboardDeviceId < 0)) {
-    log_w("Failed to to retrieve the keyboard device-id");
+  pal->xkbDeviceId = xkb_x11_get_core_keyboard_device_id(pal->xcbConnection);
+  if (UNLIKELY(pal->xkbDeviceId < 0)) {
+    log_w("Failed to to retrieve the xkb keyboard device-id");
+    return false;
+  }
+  pal->xkbKeymap = xkb_x11_keymap_new_from_device(
+      pal->xkbContext, pal->xcbConnection, pal->xkbDeviceId, XKB_KEYMAP_COMPILE_NO_FLAGS);
+  if (!pal->xkbKeymap) {
+    log_w("Failed to to retrieve the xkb keyboard keymap");
     return false;
   }
 
   log_i(
       "Initialized xkb extension",
       log_param("version", fmt_list_lit(fmt_int(versionMajor), fmt_int(versionMinor))),
-      log_param("keyboard-device-id", fmt_int(pal->keyboardDeviceId)));
+      log_param("keyboard-device-id", fmt_int(pal->xkbDeviceId)));
   return true;
 }
 
@@ -586,6 +593,9 @@ void gap_pal_destroy(GapPal* pal) {
   if (pal->xkbContext) {
     xkb_context_unref(pal->xkbContext);
   }
+  if (pal->xkbKeymap) {
+    xkb_keymap_unref(pal->xkbKeymap);
+  }
 
   xcb_disconnect(pal->xcbConnection);
   log_i("Xcb disconnected");
@@ -704,8 +714,8 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 
   const xcb_cw_t valuesMask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
   const u32      values[2]  = {
-      pal->xcbScreen->black_pixel,
-      g_xcbWindowEventMask,
+            pal->xcbScreen->black_pixel,
+            g_xcbWindowEventMask,
   };
 
   xcb_create_window(
