@@ -130,7 +130,6 @@ static void ui_build_text_char(void* userCtx, const UiTextCharInfo* info) {
   UiBuildState* state = userCtx;
   const u8 clipId = info->layer == UiLayer_Overlay ? 0 : ui_build_container_currect(state)->clipId;
 
-  // NOTE: Take the border into account as the glyph will need to be drawn bigger to compensate.
   const f32      border = info->ch->border * info->size;
   const f32      size   = (info->ch->size + info->ch->border * 2.0f) * info->size;
   const UiVector pos    = {
