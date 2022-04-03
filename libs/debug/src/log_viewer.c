@@ -161,7 +161,7 @@ static void debug_log_draw_message(UiCanvasComp* canvas, const DebugLogMessage* 
   ui_tooltip(
       canvas,
       bgId,
-      fmt_write_scratch("{}:{}", fmt_text(msg->srcLoc.file), fmt_int(msg->srcLoc.line)));
+      fmt_write_scratch("{}:{}", fmt_path(msg->srcLoc.file), fmt_int(msg->srcLoc.line)));
 }
 
 static void debug_log_draw_messages(UiCanvasComp* canvas, const DebugLogTrackerComp* tracker) {
