@@ -2,6 +2,7 @@
 #include "debug_camera.h"
 #include "debug_grid.h"
 #include "debug_interface.h"
+#include "debug_log_viewer.h"
 #include "debug_menu.h"
 #include "debug_rend.h"
 #include "debug_stats.h"
@@ -180,7 +181,9 @@ ecs_module_init(debug_menu_module) {
 }
 
 EcsEntityId debug_menu_create(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId menuEntity = ui_canvas_create(world, window);
+  const EcsEntityId menuEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
   ecs_world_add_t(world, menuEntity, DebugMenuComp, .window = window);
+
+  debug_log_viewer_create(world, window);
   return menuEntity;
 }

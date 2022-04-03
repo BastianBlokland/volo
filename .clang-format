@@ -20,6 +20,7 @@ AllowAllParametersOfDeclarationOnNextLine: true
 BinPackArguments: false
 BinPackParameters: false
 IncludeBlocks: Regroup
+IncludeIsMainRegex: "not-used"
 IncludeCategories:
   - Regex: '^".*_internal.h"$'
     SortPriority: 2
