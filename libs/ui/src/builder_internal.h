@@ -36,6 +36,7 @@ typedef struct {
 } UiBuildCtx;
 
 typedef struct {
+  u32     commandCount;
   UiId    hoveredId;
   UiLayer hoveredLayer;
   UiFlags hoveredFlags;

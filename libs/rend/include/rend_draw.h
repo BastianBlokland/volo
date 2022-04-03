@@ -22,6 +22,11 @@ ecs_comp_extern(RendDrawComp);
 RendDrawComp* rend_draw_create(EcsWorld*, EcsEntityId entity, RendDrawFlags);
 
 /**
+ * Get the amount of instances added to this draw.
+ */
+u32 rend_draw_instance_count(const RendDrawComp*);
+
+/**
  * Update the graphic asset used for the draw.
  */
 void rend_draw_set_graphic(RendDrawComp*, EcsEntityId graphic);

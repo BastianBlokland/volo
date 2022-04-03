@@ -103,6 +103,7 @@ typedef struct sUiCmdBuffer UiCmdBuffer;
 UiCmdBuffer* ui_cmdbuffer_create(Allocator*);
 void         ui_cmdbuffer_destroy(UiCmdBuffer*);
 void         ui_cmdbuffer_clear(UiCmdBuffer*);
+u32          ui_cmdbuffer_count(const UiCmdBuffer*);
 
 void ui_cmd_push_rect_push(UiCmdBuffer*);
 void ui_cmd_push_rect_pop(UiCmdBuffer*);

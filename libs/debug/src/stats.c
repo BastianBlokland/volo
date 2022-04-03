@@ -8,6 +8,7 @@
 #include "rend_stats.h"
 #include "scene_time.h"
 #include "ui.h"
+#include "ui_stats.h"
 
 static const f32 g_statsLabelWidth       = 160;
 static const u8  g_statsBgAlpha          = 150;
@@ -260,7 +261,8 @@ static void debug_stats_draw_interface(
     const RendStatsComp*  rendStats,
     const AllocStats*     allocStats,
     const EcsDef*         ecsDef,
-    const EcsWorldStats*  ecsStats) {
+    const EcsWorldStats*  ecsStats,
+    const UiStatsComp*    uiStats) {
 
   ui_layout_move_to(canvas, UiBase_Container, UiAlign_TopLeft, Ui_XY);
   ui_layout_resize(canvas, UiAlign_TopLeft, ui_vector(450, 25), UiBase_Absolute, Ui_XY);
@@ -315,6 +317,15 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Flush duration"), fmt_write_scratch("{<8} max:    {}", fmt_duration(ecsStats->lastFlushDur), fmt_duration(maxFlushTime)));
     stats_draw_val_entry(canvas, string_lit("Flush entities"), fmt_write_scratch("{}", fmt_int(ecsStats->lastFlushEntities)));
   }
+  if(stats_draw_section(canvas, string_lit("Interface"))) {
+    stats_draw_val_entry(canvas, string_lit("Canvas size"), fmt_write_scratch("{}x{}", fmt_float(uiStats->canvasSize.x, .maxDecDigits = 0), fmt_float(uiStats->canvasSize.y, .maxDecDigits = 0)));
+    stats_draw_val_entry(canvas, string_lit("Canvasses"), fmt_write_scratch("{}", fmt_int(uiStats->canvasCount)));
+    stats_draw_val_entry(canvas, string_lit("Tracked elements"), fmt_write_scratch("{}", fmt_int(uiStats->trackedElemCount)));
+    stats_draw_val_entry(canvas, string_lit("Persistent elements"), fmt_write_scratch("{}", fmt_int(uiStats->persistElemCount)));
+    stats_draw_val_entry(canvas, string_lit("Glyphs"), fmt_write_scratch("{<8} overlay: {}", fmt_int(uiStats->glyphCount), fmt_int(uiStats->glyphOverlayCount)));
+    stats_draw_val_entry(canvas, string_lit("Clip-rects"), fmt_write_scratch("{}", fmt_int(uiStats->clipRectCount)));
+    stats_draw_val_entry(canvas, string_lit("Commands"), fmt_write_scratch("{}", fmt_int(uiStats->commandCount)));
+  }
   // clang-format on
 }
 
@@ -367,6 +378,7 @@ ecs_view_define(StatsCreateView) {
 ecs_view_define(StatsUpdateView) {
   ecs_access_write(DebugStatsComp);
   ecs_access_read(RendStatsComp);
+  ecs_access_read(UiStatsComp);
 }
 
 ecs_view_define(CanvasWrite) { ecs_access_write(UiCanvasComp); }
@@ -394,6 +406,7 @@ ecs_system_define(DebugStatsUpdateSys) {
   for (EcsIterator* itr = ecs_view_itr(statsView); ecs_view_walk(itr);) {
     DebugStatsComp*      stats      = ecs_view_write_t(itr, DebugStatsComp);
     const RendStatsComp* rendStats  = ecs_view_read_t(itr, RendStatsComp);
+    const UiStatsComp*   uiStats    = ecs_view_read_t(itr, UiStatsComp);
     const AllocStats     allocStats = alloc_stats_query();
     const EcsDef*        ecsDef     = ecs_world_def(world);
     const EcsWorldStats  ecsStats   = ecs_world_stats_query(world);
@@ -414,7 +427,7 @@ ecs_system_define(DebugStatsUpdateSys) {
       UiCanvasComp* canvas = ecs_view_write_t(canvasItr, UiCanvasComp);
       ui_canvas_reset(canvas);
       ui_canvas_to_back(canvas);
-      debug_stats_draw_interface(canvas, stats, rendStats, &allocStats, ecsDef, &ecsStats);
+      debug_stats_draw_interface(canvas, stats, rendStats, &allocStats, ecsDef, &ecsStats, uiStats);
     }
 
     stats->allocPrevPageCounter    = allocStats.pageCounter;

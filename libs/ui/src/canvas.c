@@ -10,6 +10,7 @@
 #include "scene_lifetime.h"
 #include "ui_register.h"
 #include "ui_settings.h"
+#include "ui_stats.h"
 
 #include "builder_internal.h"
 #include "cmd_internal.h"
@@ -250,6 +251,7 @@ ecs_view_define(WindowView) {
   ecs_access_read(GapWindowComp);
   ecs_access_maybe_write(UiRendererComp);
   ecs_access_maybe_write(UiSettingsComp);
+  ecs_access_maybe_write(UiStatsComp);
 }
 ecs_view_define(CanvasView) { ecs_access_write(UiCanvasComp); }
 ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
@@ -313,6 +315,8 @@ static void ui_renderer_create(EcsWorld* world, const EcsEntityId window) {
 
   UiSettingsComp* settings = ecs_world_add_t(world, window, UiSettingsComp);
   ui_settings_to_default(settings);
+
+  ecs_world_add_t(world, window, UiStatsComp);
 }
 
 static UiId ui_canvas_debug_elem(UiCanvasComp* canvas, const UiSettingsComp* settings) {
@@ -350,6 +354,7 @@ ecs_system_define(UiRenderSys) {
     const GapWindowComp* window   = ecs_view_read_t(itr, GapWindowComp);
     UiRendererComp*      renderer = ecs_view_write_t(itr, UiRendererComp);
     UiSettingsComp*      settings = ecs_view_write_t(itr, UiSettingsComp);
+    UiStatsComp*         stats    = ecs_view_write_t(itr, UiStatsComp);
     if (!renderer) {
       ui_renderer_create(world, entity);
       continue;
@@ -357,6 +362,11 @@ ecs_system_define(UiRenderSys) {
     if (gap_window_key_released(window, GapKey_F12)) {
       renderer->flags ^= UiRendererFlags_Disabled;
     }
+
+    stats->trackedElemCount = 0;
+    stats->persistElemCount = 0;
+    stats->commandCount     = 0;
+
     if (UNLIKELY(renderer->flags & UiRendererFlags_Disabled)) {
       continue;
     }
@@ -370,12 +380,13 @@ ecs_system_define(UiRenderSys) {
 
     const GapVector winSize     = gap_window_param(window, GapParam_WindowSize);
     const f32       scale       = settings ? settings->scale : 1.0f;
+    const UiVector  canvasSize  = ui_vector(winSize.x / scale, winSize.y / scale);
     UiRenderState   renderState = {
         .settings      = settings,
         .font          = font,
         .renderer      = renderer,
         .draw          = draw,
-        .clipRects[0]  = {.size = {winSize.x / scale, winSize.y / scale}},
+        .clipRects[0]  = {.size = canvasSize},
         .clipRectCount = 1,
     };
 
@@ -401,17 +412,28 @@ ecs_system_define(UiRenderSys) {
         hoveredId          = result.hoveredId;
         hoveredFlags       = result.hoveredFlags;
       }
+      stats->commandCount += result.commandCount;
     }
     if (gap_window_flags(window) & (GapWindowFlags_CursorHide | GapWindowFlags_CursorLock)) {
       // When the cursor is hidden or locked its be considered to not be 'hovering' over ui.
       hoveredCanvasIndex = sentinel_u32;
     }
+
     for (u32 i = 0; i != canvasCount; ++i) {
       UiCanvasComp* canvas    = canvasses[i];
       const bool    isHovered = hoveredCanvasIndex == i && hoveredLayer >= canvas->minInteractLayer;
       const UiId    hoveredElem = isHovered ? hoveredId : sentinel_u64;
       ui_canvas_update_interaction(canvas, settings, window, hoveredElem, hoveredFlags);
+
+      stats->trackedElemCount += (u32)canvas->trackedElems.size;
+      stats->persistElemCount += (u32)canvas->persistentElems.size;
     }
+
+    stats->canvasSize        = canvasSize;
+    stats->canvasCount       = canvasCount;
+    stats->glyphCount        = rend_draw_instance_count(draw);
+    stats->glyphOverlayCount = (u32)renderer->overlayGlyphs.size;
+    stats->clipRectCount     = renderState.clipRectCount;
 
     // Add the overlay glyphs, at this stage all the normal glyphs have already been added.
     dynarray_for_t(&renderer->overlayGlyphs, UiGlyphData, glyph) {
