@@ -49,6 +49,7 @@ struct sGapPal {
   struct xkb_context* xkbContext;
   i32                 xkbDeviceId;
   struct xkb_keymap*  xkbKeymap;
+  struct xkb_state*   xkbState;
 
   xcb_atom_t xcbProtoMsgAtom;
   xcb_atom_t xcbDeleteMsgAtom;
@@ -416,6 +417,12 @@ static bool pal_xkb_init(GapPal* pal) {
     log_w("Failed to to retrieve the xkb keyboard keymap");
     return false;
   }
+  pal->xkbState =
+      xkb_x11_state_new_from_device(pal->xkbKeymap, pal->xcbConnection, pal->xkbDeviceId);
+  if (!pal->xkbKeymap) {
+    log_w("Failed to to retrieve the xkb keyboard state");
+    return false;
+  }
 
   log_i(
       "Initialized xkb extension",
@@ -595,6 +602,9 @@ void gap_pal_destroy(GapPal* pal) {
   }
   if (pal->xkbKeymap) {
     xkb_keymap_unref(pal->xkbKeymap);
+  }
+  if (pal->xkbState) {
+    xkb_state_unref(pal->xkbState);
   }
 
   xcb_disconnect(pal->xcbConnection);
