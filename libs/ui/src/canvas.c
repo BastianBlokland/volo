@@ -362,6 +362,11 @@ ecs_system_define(UiRenderSys) {
     if (gap_window_key_released(window, GapKey_F12)) {
       renderer->flags ^= UiRendererFlags_Disabled;
     }
+
+    stats->trackedElemCount = 0;
+    stats->persistElemCount = 0;
+    stats->commandCount     = 0;
+
     if (UNLIKELY(renderer->flags & UiRendererFlags_Disabled)) {
       continue;
     }
@@ -407,14 +412,12 @@ ecs_system_define(UiRenderSys) {
         hoveredId          = result.hoveredId;
         hoveredFlags       = result.hoveredFlags;
       }
+      stats->commandCount += result.commandCount;
     }
     if (gap_window_flags(window) & (GapWindowFlags_CursorHide | GapWindowFlags_CursorLock)) {
       // When the cursor is hidden or locked its be considered to not be 'hovering' over ui.
       hoveredCanvasIndex = sentinel_u32;
     }
-
-    stats->trackedElemCount = 0;
-    stats->persistElemCount = 0;
 
     for (u32 i = 0; i != canvasCount; ++i) {
       UiCanvasComp* canvas    = canvasses[i];

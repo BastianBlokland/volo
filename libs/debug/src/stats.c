@@ -324,6 +324,7 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Persistent elements"), fmt_write_scratch("{}", fmt_int(uiStats->persistElemCount)));
     stats_draw_val_entry(canvas, string_lit("Glyphs"), fmt_write_scratch("{<8} overlay: {}", fmt_int(uiStats->glyphCount), fmt_int(uiStats->glyphOverlayCount)));
     stats_draw_val_entry(canvas, string_lit("Clip-rects"), fmt_write_scratch("{}", fmt_int(uiStats->clipRectCount)));
+    stats_draw_val_entry(canvas, string_lit("Commands"), fmt_write_scratch("{}", fmt_int(uiStats->commandCount)));
   }
   // clang-format on
 }

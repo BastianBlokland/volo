@@ -33,6 +33,8 @@ void ui_cmdbuffer_clear(UiCmdBuffer* buffer) {
   alloc_reset(buffer->allocTransient);
 }
 
+u32 ui_cmdbuffer_count(const UiCmdBuffer* buffer) { return (u32)buffer->commands.size; }
+
 void ui_cmd_push_rect_push(UiCmdBuffer* buffer) {
   *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){.type = UiCmd_RectPush};
 }

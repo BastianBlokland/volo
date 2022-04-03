@@ -446,6 +446,7 @@ UiBuildResult ui_build(const UiCmdBuffer* cmdBuffer, const UiBuildCtx* ctx) {
   }
 
   return (UiBuildResult){
+      .commandCount = ui_cmdbuffer_count(cmdBuffer),
       .hoveredId    = state.hoveredId,
       .hoveredLayer = state.hoveredLayer,
       .hoveredFlags = state.hoveredFlags,

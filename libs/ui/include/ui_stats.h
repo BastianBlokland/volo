@@ -8,4 +8,5 @@ ecs_comp_extern_public(UiStatsComp) {
   u32      trackedElemCount, persistElemCount;
   u32      glyphCount, glyphOverlayCount;
   u32      clipRectCount;
+  u32      commandCount;
 };
