@@ -17,7 +17,7 @@ static void ui_panel_clamp_to_canvas(UiPanelState* state, const UiVector canvasR
   } else {
     const f32 halfWidthFrac  = (state->size.width * 0.5f) / canvasRes.width;
     const f32 halfHeightFrac = (state->size.height * 0.5f) / canvasRes.height;
-    const f32 topBarFrac     = g_panelTopbarHeight / canvasRes.height;
+    const f32 topBarFrac     = (g_panelTopbarHeight + g_panelOutline) / canvasRes.height;
 
     state->position.x = math_clamp_f32(state->position.x, halfWidthFrac, 1 - halfWidthFrac);
     state->position.y =
