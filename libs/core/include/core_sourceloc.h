@@ -12,8 +12,11 @@ typedef struct {
 /**
  * Return a String containing the current source-file path.
  */
+#if defined(__FILE_NAME__)
+#define source_file() string_lit(__FILE_NAME__)
+#else
 #define source_file() string_lit(__FILE__)
-
+#endif
 /**
  * Return a 'u32' containing the current source line number.
  */
