@@ -210,7 +210,7 @@ ecs_module_init(debug_log_viewer_module) {
 }
 
 EcsEntityId debug_log_viewer_create(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId viewerEntity = ui_canvas_create(world, window);
+  const EcsEntityId viewerEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToBack);
   ecs_world_add_empty_t(world, viewerEntity, DebugLogViewerComp);
   return viewerEntity;
 }

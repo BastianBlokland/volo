@@ -33,9 +33,15 @@ typedef enum {
   UiPersistentFlags_Open = 1 << 0,
 } UiPersistentFlags;
 
+typedef enum {
+  UiCanvasCreateFlags_None    = 0,
+  UiCanvasCreateFlags_ToFront = 1 << 0,
+  UiCanvasCreateFlags_ToBack  = 1 << 1,
+} UiCanvasCreateFlags;
+
 ecs_comp_extern(UiCanvasComp);
 
-EcsEntityId ui_canvas_create(EcsWorld*, EcsEntityId window);
+EcsEntityId ui_canvas_create(EcsWorld*, EcsEntityId window, UiCanvasCreateFlags);
 void        ui_canvas_reset(UiCanvasComp*);
 
 /**

@@ -416,7 +416,7 @@ ecs_system_define(DebugStatsUpdateSys) {
 
     // Create or destroy the interface canvas as needed.
     if (stats->flags & DebugStatsFlags_Show && !stats->canvas) {
-      stats->canvas = ui_canvas_create(world, ecs_view_entity(itr));
+      stats->canvas = ui_canvas_create(world, ecs_view_entity(itr), UiCanvasCreateFlags_ToBack);
     } else if (!(stats->flags & DebugStatsFlags_Show) && stats->canvas) {
       ecs_world_entity_destroy(world, stats->canvas);
       stats->canvas = 0;
@@ -426,7 +426,6 @@ ecs_system_define(DebugStatsUpdateSys) {
     if (stats->canvas && ecs_view_maybe_jump(canvasItr, stats->canvas)) {
       UiCanvasComp* canvas = ecs_view_write_t(canvasItr, UiCanvasComp);
       ui_canvas_reset(canvas);
-      ui_canvas_to_back(canvas);
       debug_stats_draw_interface(canvas, stats, rendStats, &allocStats, ecsDef, &ecsStats, uiStats);
     }
 

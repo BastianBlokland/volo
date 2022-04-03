@@ -181,7 +181,7 @@ ecs_module_init(debug_menu_module) {
 }
 
 EcsEntityId debug_menu_create(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId menuEntity = ui_canvas_create(world, window);
+  const EcsEntityId menuEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
   ecs_world_add_t(world, menuEntity, DebugMenuComp, .window = window);
 
   debug_log_viewer_create(world, window);
