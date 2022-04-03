@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_diag.h"
 #include "core_math.h"
 #include "core_thread.h"
 #include "core_time.h"
@@ -8,10 +9,9 @@
 #include "log_sink.h"
 #include "ui.h"
 
-//#define log_tracker_mask (LogMask_Warn | LogMask_Error)
-#define log_tracker_mask (LogMask_All)
+#define log_tracker_mask (LogMask_Info | LogMask_Warn | LogMask_Error)
 #define log_tracker_max_message_size 128
-#define log_tracker_max_age time_seconds(2)
+#define log_tracker_max_age time_seconds(5)
 
 typedef struct {
   TimeReal timestamp;
@@ -52,7 +52,7 @@ static void debug_log_sink_write(
     msg->lvl             = lvl;
     msg->timestamp       = timestamp;
     msg->length          = math_min((u32)message.size, log_tracker_max_message_size);
-    mem_cpy(mem_create(msg->data, msg->length), string_consume(message, msg->length));
+    mem_cpy(mem_create(msg->data, msg->length), string_slice(message, 0, msg->length));
   }
   thread_spinlock_unlock(&debugSink->messagesLock);
 }
@@ -90,16 +90,22 @@ DebugLogSink* debug_log_sink_create() {
 }
 
 ecs_comp_define(DebugLogTrackerComp) { DebugLogSink* sink; };
+ecs_comp_define(DebugLogViewerComp);
 
 static void ecs_destruct_log_tracker(void* data) {
   DebugLogTrackerComp* comp = data;
   debug_log_sink_destroy((LogSink*)comp->sink);
 }
 
-ecs_view_define(DebugLogGlobalView) { ecs_access_write(DebugLogTrackerComp); }
+ecs_view_define(LogTrackerGlobalView) { ecs_access_write(DebugLogTrackerComp); }
+
+ecs_view_define(LogViewerDrawView) {
+  ecs_access_with(DebugLogViewerComp);
+  ecs_access_write(UiCanvasComp);
+}
 
 static DebugLogTrackerComp* debug_log_tracker_global(EcsWorld* world) {
-  EcsView*     globalView = ecs_world_view_t(world, DebugLogGlobalView);
+  EcsView*     globalView = ecs_world_view_t(world, LogTrackerGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   return globalItr ? ecs_view_write_t(globalItr, DebugLogTrackerComp) : null;
 }
@@ -113,18 +119,91 @@ debug_log_tracker_create(EcsWorld* world, const EcsEntityId entity, Logger* logg
 }
 
 ecs_system_define(DebugLogUpdateSys) {
-  DebugLogTrackerComp* viewerGlobal = debug_log_tracker_global(world);
-  if (!viewerGlobal) {
-    viewerGlobal = debug_log_tracker_create(world, ecs_world_global(world), g_logger);
+  DebugLogTrackerComp* trackerGlobal = debug_log_tracker_global(world);
+  if (!trackerGlobal) {
+    debug_log_tracker_create(world, ecs_world_global(world), g_logger);
+    return;
   }
   const TimeReal oldestToKeep = time_real_offset(time_real_clock(), -log_tracker_max_age);
-  debug_log_sink_prune_older(viewerGlobal->sink, oldestToKeep);
+  debug_log_sink_prune_older(trackerGlobal->sink, oldestToKeep);
+}
+
+static UiColor debug_log_bg_color(const LogLevel lvl) {
+  switch (lvl) {
+  case LogLevel_Debug:
+    return ui_color(0, 0, 48, 230);
+  case LogLevel_Info:
+    return ui_color(0, 48, 0, 230);
+  case LogLevel_Warn:
+    return ui_color(48, 48, 0, 230);
+  case LogLevel_Error:
+    return ui_color(48, 0, 0, 230);
+  case LogLevel_Count:
+    break;
+  }
+  diag_crash();
+}
+
+static void debug_log_draw_message(UiCanvasComp* canvas, const DebugLogMessage* msg) {
+  const String str = mem_create(msg->data, msg->length);
+  ui_style_push(canvas);
+  ui_style_color(canvas, debug_log_bg_color(msg->lvl));
+  ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_None);
+  ui_style_pop(canvas);
+
+  ui_layout_push(canvas);
+  ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-10, 0), UiBase_Absolute, Ui_X);
+  ui_canvas_draw_text(canvas, str, 15, UiAlign_MiddleLeft, UiFlags_None);
+  ui_layout_pop(canvas);
+}
+
+static void debug_log_draw_messages(UiCanvasComp* canvas, const DebugLogTrackerComp* tracker) {
+  ui_layout_move_to(canvas, UiBase_Container, UiAlign_TopCenter, Ui_XY);
+  ui_layout_resize(canvas, UiAlign_TopLeft, ui_vector(0.5, 0), UiBase_Container, Ui_X);
+  ui_layout_resize(canvas, UiAlign_TopLeft, ui_vector(0, 20), UiBase_Absolute, Ui_Y);
+
+  ui_style_outline(canvas, 0);
+
+  thread_spinlock_lock(&tracker->sink->messagesLock);
+  {
+    dynarray_for_t(&tracker->sink->messages, DebugLogMessage, msg) {
+      debug_log_draw_message(canvas, msg);
+      ui_layout_next(canvas, Ui_Down, 0);
+    }
+  }
+  thread_spinlock_unlock(&tracker->sink->messagesLock);
+}
+
+ecs_system_define(DebugLogDrawSys) {
+  DebugLogTrackerComp* trackerGlobal = debug_log_tracker_global(world);
+  if (!trackerGlobal) {
+    return;
+  }
+
+  EcsView* drawView = ecs_world_view_t(world, LogViewerDrawView);
+  for (EcsIterator* itr = ecs_view_itr(drawView); ecs_view_walk(itr);) {
+    UiCanvasComp* canvas = ecs_view_write_t(itr, UiCanvasComp);
+
+    ui_canvas_reset(canvas);
+    ui_canvas_to_back(canvas);
+    debug_log_draw_messages(canvas, trackerGlobal);
+  }
 }
 
 ecs_module_init(debug_log_viewer_module) {
   ecs_register_comp(DebugLogTrackerComp, .destructor = ecs_destruct_log_tracker);
+  ecs_register_comp_empty(DebugLogViewerComp);
 
-  ecs_register_view(DebugLogGlobalView);
+  ecs_register_view(LogTrackerGlobalView);
+  ecs_register_view(LogViewerDrawView);
 
-  ecs_register_system(DebugLogUpdateSys, ecs_view_id(DebugLogGlobalView));
+  ecs_register_system(DebugLogUpdateSys, ecs_view_id(LogTrackerGlobalView));
+  ecs_register_system(
+      DebugLogDrawSys, ecs_view_id(LogTrackerGlobalView), ecs_view_id(LogViewerDrawView));
+}
+
+EcsEntityId debug_log_viewer_create(EcsWorld* world, const EcsEntityId window) {
+  const EcsEntityId viewerEntity = ui_canvas_create(world, window);
+  ecs_world_add_empty_t(world, viewerEntity, DebugLogViewerComp);
+  return viewerEntity;
 }
