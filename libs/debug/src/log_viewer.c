@@ -1,9 +1,22 @@
 #include "core_alloc.h"
+#include "core_math.h"
 #include "core_thread.h"
 #include "ecs_world.h"
 #include "log.h"
+#include "log_logger.h"
 #include "log_sink.h"
 #include "ui.h"
+
+//#define log_viewer_mask (LogMask_Warn | LogMask_Error)
+#define log_viewer_mask (LogMask_All)
+#define log_viewer_max_message_size 128
+
+typedef struct {
+  TimeReal timestamp;
+  LogLevel lvl;
+  u32      length;
+  u8       data[log_viewer_max_message_size];
+} DebugLogMessage;
 
 /**
  * Sink that will receive logger messages.
@@ -12,8 +25,10 @@
  * to achieve this it has a basic ref-counter.
  */
 typedef struct {
-  LogSink api;
-  i64     refCounter;
+  LogSink        api;
+  i64            refCounter;
+  ThreadSpinLock messagesLock;
+  DynArray       messages; // DebugLogMessage[].
 } DebugLogSink;
 
 static void debug_log_sink_write(
@@ -24,25 +39,37 @@ static void debug_log_sink_write(
     String          message,
     const LogParam* params) {
   DebugLogSink* debugSink = (DebugLogSink*)sink;
-
-  (void)debugSink;
-  (void)lvl;
-  (void)srcLoc;
-  (void)timestamp;
-  (void)message;
-  (void)params;
+  if ((log_viewer_mask & (1 << lvl)) == 0) {
+    return;
+  }
+  thread_spinlock_lock(&debugSink->messagesLock);
+  {
+    (void)srcLoc;
+    (void)params;
+    DebugLogMessage* msg = dynarray_push_t(&debugSink->messages, DebugLogMessage);
+    msg->lvl             = lvl;
+    msg->timestamp       = timestamp;
+    msg->length          = math_min((u32)message.size, log_viewer_max_message_size);
+    mem_cpy(mem_create(msg->data, msg->length), string_consume(message, msg->length));
+  }
+  thread_spinlock_unlock(&debugSink->messagesLock);
 }
 
 static void debug_log_sink_destroy(LogSink* sink) {
   DebugLogSink* debugSink = (DebugLogSink*)sink;
   if (thread_atomic_sub_i64(&debugSink->refCounter, 1) == 1) {
+    dynarray_destroy(&debugSink->messages);
     alloc_free_t(g_alloc_heap, debugSink);
   }
 }
 
 DebugLogSink* debug_log_sink_create() {
   DebugLogSink* sink = alloc_alloc_t(g_alloc_heap, DebugLogSink);
-  *sink = (DebugLogSink){.api = {.write = debug_log_sink_write, .destroy = debug_log_sink_destroy}};
+
+  *sink = (DebugLogSink){
+      .api      = {.write = debug_log_sink_write, .destroy = debug_log_sink_destroy},
+      .messages = dynarray_create_t(g_alloc_heap, DebugLogMessage, 64),
+  };
   return sink;
 }
 
