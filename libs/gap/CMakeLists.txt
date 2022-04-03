@@ -17,15 +17,17 @@ target_link_libraries(lib_gap PUBLIC lib_core)
 target_link_libraries(lib_gap PUBLIC lib_ecs)
 
 # On linux use the xcb (https://xcb.freedesktop.org/) bindings for the x window server.
-# For debian based systems: apt install libxcb1-dev libxcb-xkb-dev libxcb-xfixes0-dev libxcb-icccm4-dev
+# For debian based systems: apt install libxcb1-dev libxcb-xkb-dev libxkbcommon-dev libxcb-xfixes0-dev libxcb-icccm4-dev
 if(${VOLO_PLATFORM} STREQUAL "linux")
-  message(STATUS "> Configuring xcb (with xkb, xfixes and icccm extensions) package")
+  message(STATUS "> Configuring xcb (with xkb, xkbcommon, xfixes and icccm extensions) package")
   find_package(xcb REQUIRED)
   find_package(xcb-xkb REQUIRED)
+  find_package(xkbcommon REQUIRED)
   find_package(xcb-xfixes REQUIRED)
   find_package(xcb-icccm REQUIRED)
   target_link_libraries(lib_gap PRIVATE xcb-icccm)
   target_link_libraries(lib_gap PRIVATE xcb-xfixes)
   target_link_libraries(lib_gap PRIVATE xcb-xkb)
+  target_link_libraries(lib_gap PRIVATE xkbcommon)
   target_link_libraries(lib_gap PRIVATE xcb)
 endif()
