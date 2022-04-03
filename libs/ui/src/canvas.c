@@ -412,11 +412,18 @@ ecs_system_define(UiRenderSys) {
       // When the cursor is hidden or locked its be considered to not be 'hovering' over ui.
       hoveredCanvasIndex = sentinel_u32;
     }
+
+    stats->trackedElemCount = 0;
+    stats->persistElemCount = 0;
+
     for (u32 i = 0; i != canvasCount; ++i) {
       UiCanvasComp* canvas    = canvasses[i];
       const bool    isHovered = hoveredCanvasIndex == i && hoveredLayer >= canvas->minInteractLayer;
       const UiId    hoveredElem = isHovered ? hoveredId : sentinel_u64;
       ui_canvas_update_interaction(canvas, settings, window, hoveredElem, hoveredFlags);
+
+      stats->trackedElemCount += (u32)canvas->trackedElems.size;
+      stats->persistElemCount += (u32)canvas->persistentElems.size;
     }
 
     stats->canvasSize        = canvasSize;
