@@ -136,7 +136,7 @@ static UiColor debug_log_bg_color(const LogLevel lvl) {
   case LogLevel_Info:
     return ui_color(0, 48, 0, 230);
   case LogLevel_Warn:
-    return ui_color(48, 48, 0, 230);
+    return ui_color(96, 96, 0, 230);
   case LogLevel_Error:
     return ui_color(48, 0, 0, 230);
   case LogLevel_Count:
