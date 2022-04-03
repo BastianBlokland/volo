@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_math.h"
 #include "core_thread.h"
+#include "core_time.h"
 #include "ecs_world.h"
 #include "log.h"
 #include "log_logger.h"
@@ -10,6 +11,7 @@
 //#define log_viewer_mask (LogMask_Warn | LogMask_Error)
 #define log_viewer_mask (LogMask_All)
 #define log_viewer_max_message_size 128
+#define log_viewer_max_age time_seconds(2)
 
 typedef struct {
   TimeReal timestamp;
@@ -28,7 +30,7 @@ typedef struct {
   LogSink        api;
   i64            refCounter;
   ThreadSpinLock messagesLock;
-  DynArray       messages; // DebugLogMessage[].
+  DynArray       messages; // DebugLogMessage[], sorted on timestamp.
 } DebugLogSink;
 
 static void debug_log_sink_write(
@@ -61,6 +63,20 @@ static void debug_log_sink_destroy(LogSink* sink) {
     dynarray_destroy(&debugSink->messages);
     alloc_free_t(g_alloc_heap, debugSink);
   }
+}
+
+static void debug_log_sink_prune_older(DebugLogSink* debugSink, const TimeReal timestamp) {
+  thread_spinlock_lock(&debugSink->messagesLock);
+  {
+    usize keepIndex = 0;
+    for (; keepIndex != debugSink->messages.size; ++keepIndex) {
+      if (dynarray_at_t(&debugSink->messages, keepIndex, DebugLogMessage)->timestamp >= timestamp) {
+        break;
+      }
+    }
+    dynarray_remove(&debugSink->messages, 0, keepIndex);
+  }
+  thread_spinlock_unlock(&debugSink->messagesLock);
 }
 
 DebugLogSink* debug_log_sink_create() {
@@ -101,6 +117,8 @@ ecs_system_define(DebugLogUpdateSys) {
   if (!viewerGlobal) {
     viewerGlobal = debug_log_viewer_create(world, ecs_world_global(world), g_logger);
   }
+  const TimeReal oldestToKeep = time_real_offset(time_real_clock(), -log_viewer_max_age);
+  debug_log_sink_prune_older(viewerGlobal->sink, oldestToKeep);
 }
 
 ecs_module_init(debug_log_viewer_module) {
