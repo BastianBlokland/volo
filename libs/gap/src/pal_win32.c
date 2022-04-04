@@ -119,139 +119,139 @@ static GapVector pal_client_to_screen(const GapWindowId windowId, const GapVecto
   return gap_vector((i32)point.x, (i32)point.y);
 }
 
-static GapKey pal_win32_translate_key(const WPARAM key) {
-  switch (key) {
-  case VK_SHIFT:
+static GapKey pal_win32_translate_key(const u8 scanCode) {
+  switch (scanCode) {
+  case 0x2A:
     return GapKey_Shift;
-  case VK_CONTROL:
+  case 0x1D:
     return GapKey_Control;
-  case VK_BACK:
+  case 0x0E:
     return GapKey_Backspace;
-  case VK_DELETE:
+  case 0x53:
     return GapKey_Delete;
-  case VK_TAB:
+  case 0x0F:
     return GapKey_Tab;
-  case VK_OEM_3:
+  case 0x29:
     return GapKey_Tilde;
-  case VK_RETURN:
+  case 0x1C:
     return GapKey_Return;
-  case VK_ESCAPE:
+  case 0x01:
     return GapKey_Escape;
-  case VK_SPACE:
+  case 0x39:
     return GapKey_Space;
-  case VK_OEM_PLUS:
+  case 0x0D:
     return GapKey_Plus;
-  case VK_OEM_MINUS:
+  case 0x0C:
     return GapKey_Minus;
-  case VK_UP:
+  case 0x48:
     return GapKey_ArrowUp;
-  case VK_DOWN:
+  case 0x50:
     return GapKey_ArrowDown;
-  case VK_RIGHT:
+  case 0x4D:
     return GapKey_ArrowRight;
-  case VK_LEFT:
+  case 0x4B:
     return GapKey_ArrowLeft;
 
-  case 0x41: // VK_A
+  case 0x1E:
     return GapKey_A;
-  case 0x42: // VK_B
+  case 0x30:
     return GapKey_B;
-  case 0x43: // VK_C
+  case 0x2E:
     return GapKey_C;
-  case 0x44: // VK_D
+  case 0x20:
     return GapKey_D;
-  case 0x45: // VK_E
+  case 0x12:
     return GapKey_E;
-  case 0x46: // VK_F
+  case 0x21:
     return GapKey_F;
-  case 0x47: // VK_G
+  case 0x22:
     return GapKey_G;
-  case 0x48: // VK_H
+  case 0x23:
     return GapKey_H;
-  case 0x49: // VK_I
+  case 0x17:
     return GapKey_I;
-  case 0x4A: // VK_J
+  case 0x24:
     return GapKey_J;
-  case 0x4B: // VK_K
+  case 0x25:
     return GapKey_K;
-  case 0x4C: // VK_L
+  case 0x26:
     return GapKey_L;
-  case 0x4D: // VK_M
+  case 0x32:
     return GapKey_M;
-  case 0x4E: // VK_N
+  case 0x31:
     return GapKey_N;
-  case 0x4F: // VK_O
+  case 0x18:
     return GapKey_O;
-  case 0x50: // VK_P
+  case 0x19:
     return GapKey_P;
-  case 0x51: // VK_Q
+  case 0x10:
     return GapKey_Q;
-  case 0x52: // VK_R
+  case 0x13:
     return GapKey_R;
-  case 0x53: // VK_S
+  case 0x1F:
     return GapKey_S;
-  case 0x54: // VK_T
+  case 0x14:
     return GapKey_T;
-  case 0x55: // VK_U
+  case 0x16:
     return GapKey_U;
-  case 0x56: // VK_V
+  case 0x2F:
     return GapKey_V;
-  case 0x57: // VK_W
+  case 0x11:
     return GapKey_W;
-  case 0x58: // VK_X
+  case 0x2D:
     return GapKey_X;
-  case 0x59: // VK_Y
+  case 0x15:
     return GapKey_Y;
-  case 0x5A: // VK_Z
+  case 0x2C:
     return GapKey_Z;
 
-  case 0x30: // VK_0
+  case 0x0B:
     return GapKey_Alpha0;
-  case 0x31: // VK_1
+  case 0x02:
     return GapKey_Alpha1;
-  case 0x32: // VK_2
+  case 0x03:
     return GapKey_Alpha2;
-  case 0x33: // VK_3
+  case 0x04:
     return GapKey_Alpha3;
-  case 0x34: // VK_4
+  case 0x05:
     return GapKey_Alpha4;
-  case 0x35: // VK_5
+  case 0x06:
     return GapKey_Alpha5;
-  case 0x36: // VK_6
+  case 0x07:
     return GapKey_Alpha6;
-  case 0x37: // VK_7
+  case 0x08:
     return GapKey_Alpha7;
-  case 0x38: // VK_8
+  case 0x09:
     return GapKey_Alpha8;
-  case 0x39: // VK_9
+  case 0x0A:
     return GapKey_Alpha9;
 
-  case VK_F1:
+  case 0x3B:
     return GapKey_F1;
-  case VK_F2:
+  case 0x3C:
     return GapKey_F2;
-  case VK_F3:
+  case 0x3D:
     return GapKey_F3;
-  case VK_F4:
+  case 0x3E:
     return GapKey_F4;
-  case VK_F5:
+  case 0x3F:
     return GapKey_F5;
-  case VK_F6:
+  case 0x40:
     return GapKey_F6;
-  case VK_F7:
+  case 0x41:
     return GapKey_F7;
-  case VK_F8:
+  case 0x42:
     return GapKey_F8;
-  case VK_F9:
+  case 0x43:
     return GapKey_F9;
-  case VK_F10:
+  case 0x44:
     return GapKey_F10;
-  case VK_F11:
+  case 0x57:
     return GapKey_F11;
-  case VK_F12:
+  case 0x58:
     return GapKey_F12;
   }
-  // log_d("Unrecognised win32 key", log_param("keycode", fmt_int(key, .base = 16)));
+  // log_d("Unrecognised win32 key", log_param("scancode", fmt_int(scanCode, .base = 16)));
   return GapKey_None;
 }
 
@@ -451,12 +451,16 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
     pal_event_release(window, GapKey_MouseMiddle);
     pal_cursor_interaction_end(window);
     return true;
-  case WM_KEYDOWN:
-    pal_event_press(window, pal_win32_translate_key(wParam));
+  case WM_KEYDOWN: {
+    const u8 scanCode = LOBYTE(HIWORD(lParam));
+    pal_event_press(window, pal_win32_translate_key(scanCode));
     return true;
-  case WM_KEYUP:
-    pal_event_release(window, pal_win32_translate_key(wParam));
+  }
+  case WM_KEYUP: {
+    const u8 scanCode = LOBYTE(HIWORD(lParam));
+    pal_event_release(window, pal_win32_translate_key(scanCode));
     return true;
+  }
   case WM_MOUSEWHEEL: {
     const i32 scrollY    = GET_WHEEL_DELTA_WPARAM(wParam);
     const i32 scrollSign = math_sign(scrollY);
