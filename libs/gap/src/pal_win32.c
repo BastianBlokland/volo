@@ -3,6 +3,7 @@
 #include "core_path.h"
 #include "core_rng.h"
 #include "core_thread.h"
+#include "core_utf8.h"
 #include "core_winutils.h"
 #include "log_logger.h"
 
@@ -26,6 +27,7 @@ typedef struct {
   GapKeySet         keysPressed, keysReleased, keysDown;
   GapVector         lastWindowedPosition;
   bool              inModalLoop;
+  DynString         textInput;
 } GapPalWindow;
 
 typedef enum {
@@ -82,6 +84,8 @@ static void pal_clear_volatile(GapPal* pal) {
     window->params[GapParam_ScrollDelta] = gap_vector(0, 0);
 
     window->flags &= ~GapPalWindowFlags_Volatile;
+
+    dynstring_clear(&window->textInput);
   }
 }
 
@@ -467,6 +471,14 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
         window, gap_vector(math_max(1, math_abs(scrollX) / WHEEL_DELTA) * scrollSign, 0));
     return true;
   }
+  case WM_CHAR: {
+    /**
+     * WParam contains the utf-16 unicode value.
+     * TODO: Figure out how to handle utf-16 surrogate pairs, should we resolve them at this level?
+     */
+    utf8_cp_write(&window->textInput, (Unicode)wParam);
+    return true;
+  }
   default:
     return false;
   }
@@ -504,10 +516,10 @@ GapPal* gap_pal_create(Allocator* alloc) {
 
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){
-      .alloc          = alloc,
-      .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
-      .moduleInstance = instance,
-      .owningThreadId = g_thread_tid,
+             .alloc          = alloc,
+             .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
+             .moduleInstance = instance,
+             .owningThreadId = g_thread_tid,
   };
 
   MAYBE_UNUSED const GapVector screenSize =
@@ -623,6 +635,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       .params[GapParam_WindowSize] = realClientSize,
       .flags                       = GapPalWindowFlags_Focussed,
       .lastWindowedPosition        = position,
+      .textInput                   = dynstring_create(g_alloc_heap, 64),
   };
 
   log_i(
@@ -646,6 +659,7 @@ void gap_pal_window_destroy(GapPal* pal, const GapWindowId windowId) {
         pal_crash_with_win32_err(string_lit("UnregisterClass"));
       }
       alloc_free(pal->alloc, window->className);
+      dynstring_destroy(&window->textInput);
       dynarray_remove_unordered(&pal->windows, i, 1);
       break;
     }
@@ -673,6 +687,11 @@ const GapKeySet* gap_pal_window_keys_released(const GapPal* pal, const GapWindow
 
 const GapKeySet* gap_pal_window_keys_down(const GapPal* pal, const GapWindowId windowId) {
   return &pal_window((GapPal*)pal, windowId)->keysDown;
+}
+
+String gap_pal_window_text_input(const GapPal* pal, const GapWindowId windowId) {
+  const GapPalWindow* window = pal_window((GapPal*)pal, windowId);
+  return dynstring_view(&window->textInput);
 }
 
 void gap_pal_window_title_set(GapPal* pal, const GapWindowId windowId, const String title) {
