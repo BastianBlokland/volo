@@ -105,3 +105,9 @@ bool gap_window_key_released(const GapWindowComp*, GapKey);
  * Test if the given key is currently being held down.
  */
 bool gap_window_key_down(const GapWindowComp*, GapKey);
+
+/**
+ * Retrieve the text that was entered this tick.
+ * NOTE: Takes the user's keyboard layout into account.
+ */
+String gap_window_text_input(const GapWindowComp*);
