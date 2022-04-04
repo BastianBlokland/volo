@@ -165,8 +165,8 @@ static void debug_log_draw_message(UiCanvasComp* canvas, const DebugLogMessage* 
 }
 
 static void debug_log_draw_messages(UiCanvasComp* canvas, const DebugLogTrackerComp* tracker) {
-  ui_layout_move_to(canvas, UiBase_Container, UiAlign_TopCenter, Ui_XY);
-  ui_layout_resize(canvas, UiAlign_TopLeft, ui_vector(0.5, 0), UiBase_Container, Ui_X);
+  ui_layout_move_to(canvas, UiBase_Container, UiAlign_TopRight, Ui_XY);
+  ui_layout_resize(canvas, UiAlign_TopRight, ui_vector(500, 0), UiBase_Absolute, Ui_X);
   ui_layout_resize(canvas, UiAlign_TopLeft, ui_vector(0, 20), UiBase_Absolute, Ui_Y);
 
   ui_style_outline(canvas, 0);
