@@ -562,21 +562,30 @@ static void pal_event_cursor(GapPal* pal, const GapWindowId windowId, const GapV
   window->flags |= GapPalWindowFlags_CursorMoved;
 }
 
-static void pal_event_press(GapPal* pal, const GapWindowId windowId, const xcb_keycode_t keyCode) {
-
+static void pal_event_press(GapPal* pal, const GapWindowId windowId, const GapKey key) {
   GapPalWindow* window = pal_maybe_window(pal, windowId);
-  if (UNLIKELY(!window)) {
-    return;
-  }
-  const GapKey key = pal_xcb_translate_key(keyCode);
-  if (key != GapKey_None && !gap_keyset_test(&window->keysDown, key)) {
+  if (window && key != GapKey_None && !gap_keyset_test(&window->keysDown, key)) {
     gap_keyset_set(&window->keysPressed, key);
     gap_keyset_set(&window->keysDown, key);
     window->flags |= GapPalWindowFlags_KeyPressed;
   }
-  if (pal->extensions & GapPalXcbExtFlags_Xkb) {
-    xkb_state_update_key(pal->xkbState, keyCode, XKB_KEY_DOWN);
+}
 
+static void pal_event_release(GapPal* pal, const GapWindowId windowId, const GapKey key) {
+  GapPalWindow* window = pal_maybe_window(pal, windowId);
+  if (window && key != GapKey_None && gap_keyset_test(&window->keysDown, key)) {
+    gap_keyset_set(&window->keysReleased, key);
+    gap_keyset_unset(&window->keysDown, key);
+    window->flags |= GapPalWindowFlags_KeyReleased;
+  }
+}
+
+static void pal_event_text(GapPal* pal, const GapWindowId windowId, const xcb_keycode_t keyCode) {
+  GapPalWindow* window = pal_maybe_window(pal, windowId);
+  if (UNLIKELY(!window)) {
+    return;
+  }
+  if (pal->extensions & GapPalXcbExtFlags_Xkb) {
     char      buffer[32];
     const int textSize = xkb_state_key_get_utf8(pal->xkbState, keyCode, buffer, sizeof(buffer));
     dynstring_append(&window->textInput, mem_create(buffer, textSize));
@@ -585,23 +594,6 @@ static void pal_event_press(GapPal* pal, const GapWindowId windowId, const xcb_k
      * Xkb is not supported on this platform.
      * TODO: As a fallback we could implement a simple manual English ascii keymap.
      */
-  }
-}
-
-static void
-pal_event_release(GapPal* pal, const GapWindowId windowId, const xcb_keycode_t keyCode) {
-  GapPalWindow* window = pal_maybe_window(pal, windowId);
-  if (UNLIKELY(!window)) {
-    return;
-  }
-  const GapKey key = pal_xcb_translate_key(keyCode);
-  if (window && key != GapKey_None && gap_keyset_test(&window->keysDown, key)) {
-    gap_keyset_set(&window->keysReleased, key);
-    gap_keyset_unset(&window->keysDown, key);
-    window->flags |= GapPalWindowFlags_KeyReleased;
-  }
-  if (pal->extensions & GapPalXcbExtFlags_Xkb) {
-    xkb_state_update_key(pal->xkbState, keyCode, XKB_KEY_UP);
   }
 }
 
@@ -740,12 +732,19 @@ void gap_pal_update(GapPal* pal) {
 
     case XCB_KEY_PRESS: {
       const xcb_key_press_event_t* pressMsg = (const void*)evt;
-      pal_event_press(pal, pressMsg->event, pressMsg->detail);
+      pal_event_press(pal, pressMsg->event, pal_xcb_translate_key(pressMsg->detail));
+      if (pal->extensions & GapPalXcbExtFlags_Xkb) {
+        xkb_state_update_key(pal->xkbState, pressMsg->detail, XKB_KEY_DOWN);
+      }
+      pal_event_text(pal, pressMsg->event, pressMsg->detail);
     } break;
 
     case XCB_KEY_RELEASE: {
       const xcb_key_release_event_t* releaseMsg = (const void*)evt;
-      pal_event_release(pal, releaseMsg->event, releaseMsg->detail);
+      pal_event_release(pal, releaseMsg->event, pal_xcb_translate_key(releaseMsg->detail));
+      if (pal->extensions & GapPalXcbExtFlags_Xkb) {
+        xkb_state_update_key(pal->xkbState, releaseMsg->detail, XKB_KEY_UP);
+      }
     } break;
     }
   }
