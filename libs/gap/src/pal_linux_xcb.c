@@ -424,10 +424,16 @@ static bool pal_xkb_init(GapPal* pal) {
     return false;
   }
 
+  const xkb_layout_index_t layoutCount   = xkb_keymap_num_layouts(pal->xkbKeymap);
+  const char*              layoutNameRaw = xkb_keymap_layout_get_name(pal->xkbKeymap, 0);
+  const String layoutName = layoutNameRaw ? string_from_null_term(layoutNameRaw) : string_empty;
+
   log_i(
-      "Initialized xkb extension",
+      "Initialized xkb keyboard extension",
       log_param("version", fmt_list_lit(fmt_int(versionMajor), fmt_int(versionMinor))),
-      log_param("keyboard-device-id", fmt_int(pal->xkbDeviceId)));
+      log_param("device-id", fmt_int(pal->xkbDeviceId)),
+      log_param("layout-count", fmt_int(layoutCount)),
+      log_param("main-layout-name", fmt_text(layoutName)));
   return true;
 }
 
