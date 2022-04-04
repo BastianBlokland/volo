@@ -121,7 +121,8 @@ static GapVector pal_client_to_screen(const GapWindowId windowId, const GapVecto
 
 static GapKey pal_win32_translate_key(const u8 scanCode) {
   switch (scanCode) {
-  case 0x2A:
+  case 0x2A: // Left-shift.
+  case 0x36: // Right-shift.
     return GapKey_Shift;
   case 0x1D:
     return GapKey_Control;
@@ -140,9 +141,19 @@ static GapKey pal_win32_translate_key(const u8 scanCode) {
   case 0x39:
     return GapKey_Space;
   case 0x0D:
+  case 0x4E: // Numpad +.
     return GapKey_Plus;
   case 0x0C:
+  case 0x4A: // Numpad -.
     return GapKey_Minus;
+  case 0x47:
+    return GapKey_Home;
+  case 0x4F:
+    return GapKey_End;
+  case 0x49:
+    return GapKey_PageUp;
+  case 0x51:
+    return GapKey_PageDown;
   case 0x48:
     return GapKey_ArrowUp;
   case 0x50:

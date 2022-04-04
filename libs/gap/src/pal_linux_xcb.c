@@ -115,11 +115,11 @@ static String pal_xcb_err_str(const int xcbErrCode) {
 
 static GapKey pal_xcb_translate_key(const xcb_keycode_t key) {
   switch (key) {
-  case 0x32:
-  case 0x3E:
+  case 0x32: // Left-shift.
+  case 0x3E: // Right-shift.
     return GapKey_Shift;
-  case 0x25:
-  case 0x69:
+  case 0x25: // Left-control.
+  case 0x69: // Right-control.
     return GapKey_Control;
   case 0x16:
     return GapKey_Backspace;
@@ -136,9 +136,19 @@ static GapKey pal_xcb_translate_key(const xcb_keycode_t key) {
   case 0x41:
     return GapKey_Space;
   case 0x14:
+  case 0x56: // Numpad +.
     return GapKey_Plus;
   case 0x15:
+  case 0x52: // Numpad -.
     return GapKey_Minus;
+  case 0x6E:
+    return GapKey_Home;
+  case 0x73:
+    return GapKey_End;
+  case 0x70:
+    return GapKey_PageUp;
+  case 0x75:
+    return GapKey_PageDown;
   case 0x6F:
     return GapKey_ArrowUp;
   case 0x74:
