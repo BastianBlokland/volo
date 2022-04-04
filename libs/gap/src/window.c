@@ -30,6 +30,7 @@ ecs_comp_define(GapWindowComp) {
   GapWindowMode     mode : 8;
   GapKeySet         keysPressed, keysReleased, keysDown;
   GapVector         params[GapParam_Count];
+  DynString         inputText;
 };
 
 static void ecs_destruct_window_comp(void* data) {
@@ -40,6 +41,7 @@ static void ecs_destruct_window_comp(void* data) {
   if (!string_is_empty(comp->title)) {
     string_free(g_alloc_heap, comp->title);
   }
+  dynstring_destroy(&comp->inputText);
 }
 
 static String window_default_title_scratch(const GapWindowComp* window) {
@@ -160,6 +162,8 @@ static void window_update(
       window->params[GapParam_CursorPos] = tgtPos;
     }
   }
+  dynstring_clear(&window->inputText);
+  dynstring_append(&window->inputText, gap_pal_window_input_text(platform->pal, window->id));
 
   if (window_should_close(window)) {
     ecs_world_entity_destroy(world, windowEntity);
@@ -211,7 +215,8 @@ EcsEntityId gap_window_create(EcsWorld* world, const GapWindowFlags flags, const
       .id                          = sentinel_u32,
       .events                      = GapWindowEvents_Initializing,
       .requests                    = GapWindowRequests_Create,
-      .params[GapParam_WindowSize] = size);
+      .params[GapParam_WindowSize] = size,
+      .inputText                   = dynstring_create(g_alloc_heap, 64));
 
   gap_window_flags_set(comp, flags);
   return windowEntity;
@@ -278,6 +283,8 @@ bool gap_window_key_released(const GapWindowComp* comp, const GapKey key) {
 bool gap_window_key_down(const GapWindowComp* comp, const GapKey key) {
   return gap_keyset_test(&comp->keysDown, key);
 }
+
+String gap_window_input_text(const GapWindowComp* comp) { return dynstring_view(&comp->inputText); }
 
 GapNativeWm gap_native_wm() { return gap_pal_native_wm(); }
 

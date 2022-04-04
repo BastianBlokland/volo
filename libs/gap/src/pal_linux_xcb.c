@@ -8,6 +8,8 @@
 #include <xcb/xcb_icccm.h>
 #include <xcb/xfixes.h>
 #include <xcb/xkb.h>
+#include <xkbcommon/xkbcommon-x11.h>
+#include <xkbcommon/xkbcommon.h>
 
 #define pal_window_min_width 128
 #define pal_window_min_height 128
@@ -33,6 +35,7 @@ typedef struct {
   GapVector         params[GapParam_Count];
   GapPalWindowFlags flags : 16;
   GapKeySet         keysPressed, keysReleased, keysDown;
+  DynString         inputText;
 } GapPalWindow;
 
 struct sGapPal {
@@ -43,6 +46,11 @@ struct sGapPal {
   xcb_screen_t*     xcbScreen;
   GapPalXcbExtFlags extensions;
   GapPalFlags       flags;
+
+  struct xkb_context* xkbContext;
+  i32                 xkbDeviceId;
+  struct xkb_keymap*  xkbKeymap;
+  struct xkb_state*   xkbState;
 
   xcb_atom_t xcbProtoMsgAtom;
   xcb_atom_t xcbDeleteMsgAtom;
@@ -81,6 +89,8 @@ static void pal_clear_volatile(GapPal* pal) {
     window->params[GapParam_ScrollDelta] = gap_vector(0, 0);
 
     window->flags &= ~GapPalWindowFlags_Volatile;
+
+    dynstring_clear(&window->inputText);
   }
 }
 
@@ -105,11 +115,11 @@ static String pal_xcb_err_str(const int xcbErrCode) {
 
 static GapKey pal_xcb_translate_key(const xcb_keycode_t key) {
   switch (key) {
-  case 0x32:
-  case 0x3E:
+  case 0x32: // Left-shift.
+  case 0x3E: // Right-shift.
     return GapKey_Shift;
-  case 0x25:
-  case 0x69:
+  case 0x25: // Left-control.
+  case 0x69: // Right-control.
     return GapKey_Control;
   case 0x16:
     return GapKey_Backspace;
@@ -126,9 +136,19 @@ static GapKey pal_xcb_translate_key(const xcb_keycode_t key) {
   case 0x41:
     return GapKey_Space;
   case 0x14:
+  case 0x56: // Numpad +.
     return GapKey_Plus;
   case 0x15:
+  case 0x52: // Numpad -.
     return GapKey_Minus;
+  case 0x6E:
+    return GapKey_Home;
+  case 0x73:
+    return GapKey_End;
+  case 0x70:
+    return GapKey_PageUp;
+  case 0x75:
+    return GapKey_PageDown;
   case 0x6F:
     return GapKey_ArrowUp;
   case 0x74:
@@ -239,6 +259,43 @@ static GapKey pal_xcb_translate_key(const xcb_keycode_t key) {
   }
   // log_d("Unrecognised xcb key", log_param("keycode", fmt_int(key, .base = 16)));
   return GapKey_None;
+}
+
+static void pal_xkb_log_callback(
+    struct xkb_context* context, enum xkb_log_level level, const char* format, va_list args) {
+  (void)context;
+  Mem       buffer = mem_stack(256);
+  const int chars  = vsnprintf(buffer.ptr, buffer.size, format, args);
+  if (UNLIKELY(chars < 0)) {
+    diag_crash_msg("vsnprintf() failed for xkb log message");
+  }
+  LogLevel logLevel;
+  String   typeLabel;
+  switch (level) {
+  case XKB_LOG_LEVEL_CRITICAL:
+  case XKB_LOG_LEVEL_ERROR:
+  default:
+    logLevel  = LogLevel_Error;
+    typeLabel = string_lit("error");
+    break;
+  case XKB_LOG_LEVEL_WARNING:
+    logLevel  = LogLevel_Warn;
+    typeLabel = string_lit("warn");
+    break;
+  case XKB_LOG_LEVEL_INFO:
+    logLevel  = LogLevel_Info;
+    typeLabel = string_lit("info");
+    break;
+  case XKB_LOG_LEVEL_DEBUG:
+    logLevel  = LogLevel_Debug;
+    typeLabel = string_lit("debug");
+    break;
+  }
+  log(g_logger,
+      logLevel,
+      "xkb {} log",
+      log_param("type", fmt_text(typeLabel)),
+      log_param("message", fmt_text(string_slice(buffer, 0, chars))));
 }
 
 static void pal_xcb_check_con(GapPal* pal) {
@@ -355,9 +412,41 @@ static bool pal_xkb_init(GapPal* pal) {
   MAYBE_UNUSED const u16 versionMinor = reply->serverMinor;
   free(reply);
 
+  pal->xkbContext = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+  if (UNLIKELY(!pal->xkbContext)) {
+    log_w("Failed to initialize the xkb-common context");
+    return false;
+  }
+  xkb_context_set_log_level(pal->xkbContext, XKB_LOG_LEVEL_INFO);
+  xkb_context_set_log_fn(pal->xkbContext, pal_xkb_log_callback);
+  pal->xkbDeviceId = xkb_x11_get_core_keyboard_device_id(pal->xcbConnection);
+  if (UNLIKELY(pal->xkbDeviceId < 0)) {
+    log_w("Failed to to retrieve the xkb keyboard device-id");
+    return false;
+  }
+  pal->xkbKeymap = xkb_x11_keymap_new_from_device(
+      pal->xkbContext, pal->xcbConnection, pal->xkbDeviceId, XKB_KEYMAP_COMPILE_NO_FLAGS);
+  if (!pal->xkbKeymap) {
+    log_w("Failed to to retrieve the xkb keyboard keymap");
+    return false;
+  }
+  pal->xkbState =
+      xkb_x11_state_new_from_device(pal->xkbKeymap, pal->xcbConnection, pal->xkbDeviceId);
+  if (!pal->xkbKeymap) {
+    log_w("Failed to to retrieve the xkb keyboard state");
+    return false;
+  }
+
+  const xkb_layout_index_t layoutCount   = xkb_keymap_num_layouts(pal->xkbKeymap);
+  const char*              layoutNameRaw = xkb_keymap_layout_get_name(pal->xkbKeymap, 0);
+  const String layoutName = layoutNameRaw ? string_from_null_term(layoutNameRaw) : string_empty;
+
   log_i(
-      "Initialized xkb extension",
-      log_param("version", fmt_list_lit(fmt_int(versionMajor), fmt_int(versionMinor))));
+      "Initialized xkb keyboard extension",
+      log_param("version", fmt_list_lit(fmt_int(versionMajor), fmt_int(versionMinor))),
+      log_param("device-id", fmt_int(pal->xkbDeviceId)),
+      log_param("layout-count", fmt_int(layoutCount)),
+      log_param("main-layout-name", fmt_text(layoutName)));
   return true;
 }
 
@@ -491,6 +580,23 @@ static void pal_event_release(GapPal* pal, const GapWindowId windowId, const Gap
   }
 }
 
+static void pal_event_text(GapPal* pal, const GapWindowId windowId, const xcb_keycode_t keyCode) {
+  GapPalWindow* window = pal_maybe_window(pal, windowId);
+  if (UNLIKELY(!window)) {
+    return;
+  }
+  if (pal->extensions & GapPalXcbExtFlags_Xkb) {
+    char      buffer[32];
+    const int textSize = xkb_state_key_get_utf8(pal->xkbState, keyCode, buffer, sizeof(buffer));
+    dynstring_append(&window->inputText, mem_create(buffer, textSize));
+  } else {
+    /**
+     * Xkb is not supported on this platform.
+     * TODO: As a fallback we could implement a simple manual English ascii keymap.
+     */
+  }
+}
+
 static void pal_event_scroll(GapPal* pal, const GapWindowId windowId, const GapVector delta) {
   GapPalWindow* window = pal_maybe_window(pal, windowId);
   if (window) {
@@ -525,6 +631,16 @@ GapPal* gap_pal_create(Allocator* alloc) {
 void gap_pal_destroy(GapPal* pal) {
   while (pal->windows.size) {
     gap_pal_window_destroy(pal, dynarray_at_t(&pal->windows, 0, GapPalWindow)->id);
+  }
+
+  if (pal->xkbContext) {
+    xkb_context_unref(pal->xkbContext);
+  }
+  if (pal->xkbKeymap) {
+    xkb_keymap_unref(pal->xkbKeymap);
+  }
+  if (pal->xkbState) {
+    xkb_state_unref(pal->xkbState);
   }
 
   xcb_disconnect(pal->xcbConnection);
@@ -617,11 +733,18 @@ void gap_pal_update(GapPal* pal) {
     case XCB_KEY_PRESS: {
       const xcb_key_press_event_t* pressMsg = (const void*)evt;
       pal_event_press(pal, pressMsg->event, pal_xcb_translate_key(pressMsg->detail));
+      if (pal->extensions & GapPalXcbExtFlags_Xkb) {
+        xkb_state_update_key(pal->xkbState, pressMsg->detail, XKB_KEY_DOWN);
+      }
+      pal_event_text(pal, pressMsg->event, pressMsg->detail);
     } break;
 
     case XCB_KEY_RELEASE: {
       const xcb_key_release_event_t* releaseMsg = (const void*)evt;
       pal_event_release(pal, releaseMsg->event, pal_xcb_translate_key(releaseMsg->detail));
+      if (pal->extensions & GapPalXcbExtFlags_Xkb) {
+        xkb_state_update_key(pal->xkbState, releaseMsg->detail, XKB_KEY_UP);
+      }
     } break;
     }
   }
@@ -682,6 +805,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       .id                          = id,
       .params[GapParam_WindowSize] = size,
       .flags                       = GapPalWindowFlags_Focussed,
+      .inputText                   = dynstring_create(g_alloc_heap, 64),
   };
 
   log_i("Window created", log_param("id", fmt_int(id)), log_param("size", gap_vector_fmt(size)));
@@ -699,7 +823,9 @@ void gap_pal_window_destroy(GapPal* pal, const GapWindowId windowId) {
   }
 
   for (usize i = 0; i != pal->windows.size; ++i) {
-    if (dynarray_at_t(&pal->windows, i, GapPalWindow)->id == windowId) {
+    GapPalWindow* window = dynarray_at_t(&pal->windows, i, GapPalWindow);
+    if (window->id == windowId) {
+      dynstring_destroy(&window->inputText);
       dynarray_remove_unordered(&pal->windows, i, 1);
       break;
     }
@@ -727,6 +853,11 @@ const GapKeySet* gap_pal_window_keys_released(const GapPal* pal, const GapWindow
 
 const GapKeySet* gap_pal_window_keys_down(const GapPal* pal, const GapWindowId windowId) {
   return &pal_window((GapPal*)pal, windowId)->keysDown;
+}
+
+String gap_pal_window_input_text(const GapPal* pal, const GapWindowId windowId) {
+  const GapPalWindow* window = pal_window((GapPal*)pal, windowId);
+  return dynstring_view(&window->inputText);
 }
 
 void gap_pal_window_title_set(GapPal* pal, const GapWindowId windowId, const String title) {
