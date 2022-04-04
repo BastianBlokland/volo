@@ -27,7 +27,7 @@ typedef struct {
   GapKeySet         keysPressed, keysReleased, keysDown;
   GapVector         lastWindowedPosition;
   bool              inModalLoop;
-  DynString         textInput;
+  DynString         inputText;
 } GapPalWindow;
 
 typedef enum {
@@ -85,7 +85,7 @@ static void pal_clear_volatile(GapPal* pal) {
 
     window->flags &= ~GapPalWindowFlags_Volatile;
 
-    dynstring_clear(&window->textInput);
+    dynstring_clear(&window->inputText);
   }
 }
 
@@ -491,7 +491,7 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
      * WParam contains the utf-16 unicode value.
      * TODO: Figure out how to handle utf-16 surrogate pairs, should we resolve them at this level?
      */
-    utf8_cp_write(&window->textInput, (Unicode)wParam);
+    utf8_cp_write(&window->inputText, (Unicode)wParam);
     return true;
   }
   default:
@@ -531,10 +531,10 @@ GapPal* gap_pal_create(Allocator* alloc) {
 
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){
-             .alloc          = alloc,
-             .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
-             .moduleInstance = instance,
-             .owningThreadId = g_thread_tid,
+      .alloc          = alloc,
+      .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
+      .moduleInstance = instance,
+      .owningThreadId = g_thread_tid,
   };
 
   MAYBE_UNUSED const GapVector screenSize =
@@ -650,7 +650,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       .params[GapParam_WindowSize] = realClientSize,
       .flags                       = GapPalWindowFlags_Focussed,
       .lastWindowedPosition        = position,
-      .textInput                   = dynstring_create(g_alloc_heap, 64),
+      .inputText                   = dynstring_create(g_alloc_heap, 64),
   };
 
   log_i(
@@ -674,7 +674,7 @@ void gap_pal_window_destroy(GapPal* pal, const GapWindowId windowId) {
         pal_crash_with_win32_err(string_lit("UnregisterClass"));
       }
       alloc_free(pal->alloc, window->className);
-      dynstring_destroy(&window->textInput);
+      dynstring_destroy(&window->inputText);
       dynarray_remove_unordered(&pal->windows, i, 1);
       break;
     }
@@ -704,9 +704,9 @@ const GapKeySet* gap_pal_window_keys_down(const GapPal* pal, const GapWindowId w
   return &pal_window((GapPal*)pal, windowId)->keysDown;
 }
 
-String gap_pal_window_text_input(const GapPal* pal, const GapWindowId windowId) {
+String gap_pal_window_input_text(const GapPal* pal, const GapWindowId windowId) {
   const GapPalWindow* window = pal_window((GapPal*)pal, windowId);
-  return dynstring_view(&window->textInput);
+  return dynstring_view(&window->inputText);
 }
 
 void gap_pal_window_title_set(GapPal* pal, const GapWindowId windowId, const String title) {

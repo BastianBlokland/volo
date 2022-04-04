@@ -110,4 +110,4 @@ bool gap_window_key_down(const GapWindowComp*, GapKey);
  * Retrieve the text that was entered this tick.
  * NOTE: Takes the user's keyboard layout into account.
  */
-String gap_window_text_input(const GapWindowComp*);
+String gap_window_input_text(const GapWindowComp*);

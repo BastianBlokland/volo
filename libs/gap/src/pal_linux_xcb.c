@@ -35,7 +35,7 @@ typedef struct {
   GapVector         params[GapParam_Count];
   GapPalWindowFlags flags : 16;
   GapKeySet         keysPressed, keysReleased, keysDown;
-  DynString         textInput;
+  DynString         inputText;
 } GapPalWindow;
 
 struct sGapPal {
@@ -90,7 +90,7 @@ static void pal_clear_volatile(GapPal* pal) {
 
     window->flags &= ~GapPalWindowFlags_Volatile;
 
-    dynstring_clear(&window->textInput);
+    dynstring_clear(&window->inputText);
   }
 }
 
@@ -588,7 +588,7 @@ static void pal_event_text(GapPal* pal, const GapWindowId windowId, const xcb_ke
   if (pal->extensions & GapPalXcbExtFlags_Xkb) {
     char      buffer[32];
     const int textSize = xkb_state_key_get_utf8(pal->xkbState, keyCode, buffer, sizeof(buffer));
-    dynstring_append(&window->textInput, mem_create(buffer, textSize));
+    dynstring_append(&window->inputText, mem_create(buffer, textSize));
   } else {
     /**
      * Xkb is not supported on this platform.
@@ -805,7 +805,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       .id                          = id,
       .params[GapParam_WindowSize] = size,
       .flags                       = GapPalWindowFlags_Focussed,
-      .textInput                   = dynstring_create(g_alloc_heap, 64),
+      .inputText                   = dynstring_create(g_alloc_heap, 64),
   };
 
   log_i("Window created", log_param("id", fmt_int(id)), log_param("size", gap_vector_fmt(size)));
@@ -825,7 +825,7 @@ void gap_pal_window_destroy(GapPal* pal, const GapWindowId windowId) {
   for (usize i = 0; i != pal->windows.size; ++i) {
     GapPalWindow* window = dynarray_at_t(&pal->windows, i, GapPalWindow);
     if (window->id == windowId) {
-      dynstring_destroy(&window->textInput);
+      dynstring_destroy(&window->inputText);
       dynarray_remove_unordered(&pal->windows, i, 1);
       break;
     }
@@ -855,9 +855,9 @@ const GapKeySet* gap_pal_window_keys_down(const GapPal* pal, const GapWindowId w
   return &pal_window((GapPal*)pal, windowId)->keysDown;
 }
 
-String gap_pal_window_text_input(const GapPal* pal, const GapWindowId windowId) {
+String gap_pal_window_input_text(const GapPal* pal, const GapWindowId windowId) {
   const GapPalWindow* window = pal_window((GapPal*)pal, windowId);
-  return dynstring_view(&window->textInput);
+  return dynstring_view(&window->inputText);
 }
 
 void gap_pal_window_title_set(GapPal* pal, const GapWindowId windowId, const String title) {
