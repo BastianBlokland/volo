@@ -41,6 +41,7 @@ GapVector         gap_pal_window_param(const GapPal*, GapWindowId, GapParam);
 const GapKeySet*  gap_pal_window_keys_pressed(const GapPal*, GapWindowId);
 const GapKeySet*  gap_pal_window_keys_released(const GapPal*, GapWindowId);
 const GapKeySet*  gap_pal_window_keys_down(const GapPal*, GapWindowId);
+String            gap_pal_window_text_input(const GapPal*, GapWindowId);
 void              gap_pal_window_title_set(GapPal*, GapWindowId, String);
 void              gap_pal_window_resize(GapPal*, GapWindowId, GapVector size, bool fullscreen);
 void              gap_pal_window_cursor_hide(GapPal*, GapWindowId, bool hidden);

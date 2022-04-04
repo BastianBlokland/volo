@@ -35,6 +35,7 @@ typedef struct {
   GapVector         params[GapParam_Count];
   GapPalWindowFlags flags : 16;
   GapKeySet         keysPressed, keysReleased, keysDown;
+  DynString         textInput;
 } GapPalWindow;
 
 struct sGapPal {
@@ -88,6 +89,8 @@ static void pal_clear_volatile(GapPal* pal) {
     window->params[GapParam_ScrollDelta] = gap_vector(0, 0);
 
     window->flags &= ~GapPalWindowFlags_Volatile;
+
+    dynstring_clear(&window->textInput);
   }
 }
 
@@ -549,21 +552,46 @@ static void pal_event_cursor(GapPal* pal, const GapWindowId windowId, const GapV
   window->flags |= GapPalWindowFlags_CursorMoved;
 }
 
-static void pal_event_press(GapPal* pal, const GapWindowId windowId, const GapKey key) {
+static void pal_event_press(GapPal* pal, const GapWindowId windowId, const xcb_keycode_t keyCode) {
+
   GapPalWindow* window = pal_maybe_window(pal, windowId);
-  if (window && key != GapKey_None && !gap_keyset_test(&window->keysDown, key)) {
+  if (UNLIKELY(!window)) {
+    return;
+  }
+  const GapKey key = pal_xcb_translate_key(keyCode);
+  if (key != GapKey_None && !gap_keyset_test(&window->keysDown, key)) {
     gap_keyset_set(&window->keysPressed, key);
     gap_keyset_set(&window->keysDown, key);
     window->flags |= GapPalWindowFlags_KeyPressed;
   }
+  if (pal->extensions & GapPalXcbExtFlags_Xkb) {
+    xkb_state_update_key(pal->xkbState, keyCode, XKB_KEY_DOWN);
+
+    char      buffer[32];
+    const int textSize = xkb_state_key_get_utf8(pal->xkbState, keyCode, buffer, sizeof(buffer));
+    dynstring_append(&window->textInput, mem_create(buffer, textSize));
+  } else {
+    /**
+     * Xkb is not supported on this platform.
+     * TODO: As a fallback we could implement a simple manual English ascii keymap.
+     */
+  }
 }
 
-static void pal_event_release(GapPal* pal, const GapWindowId windowId, const GapKey key) {
+static void
+pal_event_release(GapPal* pal, const GapWindowId windowId, const xcb_keycode_t keyCode) {
   GapPalWindow* window = pal_maybe_window(pal, windowId);
+  if (UNLIKELY(!window)) {
+    return;
+  }
+  const GapKey key = pal_xcb_translate_key(keyCode);
   if (window && key != GapKey_None && gap_keyset_test(&window->keysDown, key)) {
     gap_keyset_set(&window->keysReleased, key);
     gap_keyset_unset(&window->keysDown, key);
     window->flags |= GapPalWindowFlags_KeyReleased;
+  }
+  if (pal->extensions & GapPalXcbExtFlags_Xkb) {
+    xkb_state_update_key(pal->xkbState, keyCode, XKB_KEY_UP);
   }
 }
 
@@ -702,12 +730,12 @@ void gap_pal_update(GapPal* pal) {
 
     case XCB_KEY_PRESS: {
       const xcb_key_press_event_t* pressMsg = (const void*)evt;
-      pal_event_press(pal, pressMsg->event, pal_xcb_translate_key(pressMsg->detail));
+      pal_event_press(pal, pressMsg->event, pressMsg->detail);
     } break;
 
     case XCB_KEY_RELEASE: {
       const xcb_key_release_event_t* releaseMsg = (const void*)evt;
-      pal_event_release(pal, releaseMsg->event, pal_xcb_translate_key(releaseMsg->detail));
+      pal_event_release(pal, releaseMsg->event, releaseMsg->detail);
     } break;
     }
   }
@@ -730,8 +758,8 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 
   const xcb_cw_t valuesMask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
   const u32      values[2]  = {
-            pal->xcbScreen->black_pixel,
-            g_xcbWindowEventMask,
+      pal->xcbScreen->black_pixel,
+      g_xcbWindowEventMask,
   };
 
   xcb_create_window(
@@ -768,6 +796,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       .id                          = id,
       .params[GapParam_WindowSize] = size,
       .flags                       = GapPalWindowFlags_Focussed,
+      .textInput                   = dynstring_create(g_alloc_heap, 64),
   };
 
   log_i("Window created", log_param("id", fmt_int(id)), log_param("size", gap_vector_fmt(size)));
@@ -785,7 +814,9 @@ void gap_pal_window_destroy(GapPal* pal, const GapWindowId windowId) {
   }
 
   for (usize i = 0; i != pal->windows.size; ++i) {
-    if (dynarray_at_t(&pal->windows, i, GapPalWindow)->id == windowId) {
+    GapPalWindow* window = dynarray_at_t(&pal->windows, i, GapPalWindow);
+    if (window->id == windowId) {
+      dynstring_destroy(&window->textInput);
       dynarray_remove_unordered(&pal->windows, i, 1);
       break;
     }
@@ -813,6 +844,11 @@ const GapKeySet* gap_pal_window_keys_released(const GapPal* pal, const GapWindow
 
 const GapKeySet* gap_pal_window_keys_down(const GapPal* pal, const GapWindowId windowId) {
   return &pal_window((GapPal*)pal, windowId)->keysDown;
+}
+
+String gap_pal_window_text_input(const GapPal* pal, const GapWindowId windowId) {
+  const GapPalWindow* window = pal_window((GapPal*)pal, windowId);
+  return dynstring_view(&window->textInput);
 }
 
 void gap_pal_window_title_set(GapPal* pal, const GapWindowId windowId, const String title) {
