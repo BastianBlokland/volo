@@ -1,6 +1,10 @@
 #pragma once
 #include "core_string.h"
 
+/**
+ * Represents a physical key (independent of the users keyboard layout).
+ * NOTE: Care must be taken when changing these values, they are potentially serialized.
+ */
 typedef enum {
   GapKey_None      = -1,
   GapKey_MouseLeft = 0,
