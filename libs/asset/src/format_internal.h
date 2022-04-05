@@ -5,6 +5,7 @@ typedef enum {
   AssetFormat_Atx,
   AssetFormat_Ftx,
   AssetFormat_Gra,
+  AssetFormat_Imp,
   AssetFormat_Obj,
   AssetFormat_Pme,
   AssetFormat_Ppm,
