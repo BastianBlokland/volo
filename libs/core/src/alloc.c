@@ -9,9 +9,9 @@
 #include <sanitizer/asan_interface.h>
 #endif
 
-Allocator*              g_alloc_heap;
-Allocator*              g_alloc_page;
-Allocator*              g_alloc_persist;
+Allocator*   g_alloc_heap;
+Allocator*   g_alloc_page;
+Allocator*   g_alloc_persist;
 THREAD_LOCAL Allocator* g_alloc_scratch;
 
 static void alloc_verify_allocator(const Allocator* allocator) {
@@ -65,6 +65,7 @@ Mem alloc_alloc(Allocator* allocator, const usize size, const usize align) {
 
 void alloc_free(Allocator* allocator, Mem mem) {
   alloc_verify_allocator(allocator);
+  diag_assert_msg(mem.size, "alloc_free: 0 byte allocations are not valid");
 
   if (LIKELY(allocator->free)) {
     allocator->free(allocator, mem);
