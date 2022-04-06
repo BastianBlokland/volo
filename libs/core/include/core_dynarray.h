@@ -206,5 +206,6 @@ void dynarray_shuffle(DynArray*, Rng*);
 
 /**
  * Allocate a new array and copy this DynArray's contents into it.
+ * NOTE: Returns null when the array is empty.
  */
 void* dynarray_copy_as_new(const DynArray*, Allocator*);
