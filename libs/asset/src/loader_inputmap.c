@@ -189,8 +189,12 @@ ecs_comp_define_public(AssetInputMapComp);
 
 static void ecs_destruct_inputmap_comp(void* data) {
   AssetInputMapComp* comp = data;
-  alloc_free_array_t(g_alloc_heap, comp->actions, comp->actionCount);
-  alloc_free_array_t(g_alloc_heap, comp->bindings, comp->bindingCount);
+  if (comp->actions) {
+    alloc_free_array_t(g_alloc_heap, comp->actions, comp->actionCount);
+  }
+  if (comp->bindings) {
+    alloc_free_array_t(g_alloc_heap, comp->bindings, comp->bindingCount);
+  }
 }
 
 ecs_view_define(InputMapUnloadView) {
