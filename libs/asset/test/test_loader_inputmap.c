@@ -162,6 +162,23 @@ spec(loader_inputmap) {
     };
   }
 
+  it("can unload inputmap assets") {
+    const AssetMemRecord record = {.id = string_lit("test.imp"), .data = g_testData[1].text};
+    asset_manager_create_mem(world, AssetManagerFlags_None, &record, 1);
+    ecs_world_flush(world);
+
+    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+    const EcsEntityId asset   = asset_lookup(world, manager, string_lit("test.imp"));
+
+    asset_acquire(world, asset);
+    asset_test_wait(runner);
+    check(ecs_world_has_t(world, asset, AssetInputMapComp));
+
+    asset_release(world, asset);
+    asset_test_wait(runner);
+    check(!ecs_world_has_t(world, asset, AssetInputMapComp));
+  }
+
   teardown() {
     ecs_runner_destroy(runner);
     ecs_world_destroy(world);
