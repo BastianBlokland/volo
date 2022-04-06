@@ -104,6 +104,42 @@ static const struct {
     },
 };
 
+static const struct {
+  String id;
+  String text;
+} g_errorTestData[] = {
+    {
+        .id   = string_static("invalid-json.imp"),
+        .text = string_static("Hello World"),
+    },
+    {
+        .id   = string_static("no-bindings.imp"),
+        .text = string_static("{ \"actions\": [ {"
+                              "    \"name\": \"Jump\","
+                              "    \"bindings\": []"
+                              "     }"
+                              "]}"),
+    },
+    {
+        .id   = string_static("duplicate-action-name.imp"),
+        .text = string_static("{ \"actions\": [ {"
+                              "    \"name\": \"Test\","
+                              "    \"bindings\": [ {"
+                              "        \"type\": \"Down\","
+                              "        \"key\":  \"Space\""
+                              "      } ]"
+                              "    }, {"
+                              "    \"name\": \"Test\","
+                              "    \"bindings\": [ {"
+                              "       \"type\": \"Down\","
+                              "       \"key\":  \"Space\""
+                              "      } ]"
+                              "    }"
+                              "]}"),
+    },
+
+};
+
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
 ecs_view_define(AssetView) { ecs_access_read(AssetInputMapComp); }
 
@@ -177,6 +213,25 @@ spec(loader_inputmap) {
     asset_release(world, asset);
     asset_test_wait(runner);
     check(!ecs_world_has_t(world, asset, AssetInputMapComp));
+  }
+
+  it("fails when loading invalid inputmap files") {
+    AssetMemRecord records[array_elems(g_errorTestData)];
+    for (usize i = 0; i != array_elems(g_errorTestData); ++i) {
+      records[i] = (AssetMemRecord){.id = g_errorTestData[i].id, .data = g_errorTestData[i].text};
+    }
+    asset_manager_create_mem(world, AssetManagerFlags_None, records, array_elems(g_errorTestData));
+    ecs_world_flush(world);
+
+    for (usize i = 0; i != array_elems(g_errorTestData); ++i) {
+      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+      const EcsEntityId asset   = asset_lookup(world, manager, records[i].id);
+      asset_acquire(world, asset);
+      asset_test_wait(runner);
+
+      check(ecs_world_has_t(world, asset, AssetFailedComp));
+      check(!ecs_world_has_t(world, asset, AssetInputMapComp));
+    }
   }
 
   teardown() {
