@@ -1,0 +1,71 @@
+{
+  "actions": [
+    {
+      "name": "CameraMoveForward",
+      "bindings": [
+        {
+          "type": "Down",
+          "key": "W"
+        }
+      ]
+    },
+    {
+      "name": "CameraMoveBackward",
+      "bindings": [
+        {
+          "type": "Down",
+          "key": "S"
+        }
+      ]
+    },
+    {
+      "name": "CameraMoveRight",
+      "bindings": [
+        {
+          "type": "Down",
+          "key": "D"
+        }
+      ]
+    },
+    {
+      "name": "CameraMoveLeft",
+      "bindings": [
+        {
+          "type": "Down",
+          "key": "A"
+        }
+      ]
+    },
+    {
+      "name": "CameraLookEnable",
+      "bindings": [
+        {
+          "type": "Down",
+          "key": "MouseRight"
+        },
+        {
+          "type": "Down",
+          "key": "Control"
+        }
+      ]
+    },
+    {
+      "name": "CameraFastMove",
+      "bindings": [
+        {
+          "type": "Down",
+          "key": "Shift"
+        }
+      ]
+    },
+    {
+      "name": "CameraInputLock",
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "Tab"
+        }
+      ]
+    }
+  ]
+}
