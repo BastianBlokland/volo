@@ -167,10 +167,11 @@ static void asset_inputmap_build(
     InputMapError*          err) {
 
   array_ptr_for_t(def->actions, AssetInputActionDef, actionDef) {
-    const AssetInputAction action = {
+    const usize            bindingCount = actionDef->bindings.count;
+    const AssetInputAction action       = {
         .nameHash     = bits_hash_32(actionDef->name),
         .bindingIndex = outBindings->size,
-        .bindingCount = actionDef->bindings.count,
+        .bindingCount = bindingCount,
     };
     if (dynarray_search_binary(outActions, asset_inputmap_compare_action, &action)) {
       *err = InputMapError_DuplicateAction;
@@ -178,9 +179,10 @@ static void asset_inputmap_build(
     }
     *dynarray_insert_sorted_t(
         outActions, AssetInputAction, asset_inputmap_compare_action, &action) = action;
+
     mem_cpy(
-        dynarray_push(outBindings, actionDef->bindings.count),
-        mem_create(actionDef->bindings.values, actionDef->bindings.count));
+        dynarray_push(outBindings, bindingCount),
+        mem_create(actionDef->bindings.values, sizeof(AssetInputBinding) * bindingCount));
   }
   *err = InputMapError_None;
 }
