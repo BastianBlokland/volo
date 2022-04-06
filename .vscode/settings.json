@@ -17,6 +17,7 @@
     "*.atx": "json",
     "*.ftx": "json",
     "*.gra": "json",
+    "*.imp": "json",
     "*.pme": "json",
     "*.ptx": "json",
   },
