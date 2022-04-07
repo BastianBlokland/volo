@@ -5,6 +5,7 @@
 message(STATUS "> library: input")
 
 add_library(lib_input STATIC
+  src/manager.c
   src/register.c
   src/resource.c
   )
