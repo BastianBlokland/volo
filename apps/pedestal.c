@@ -7,6 +7,7 @@
 #include "debug.h"
 #include "ecs.h"
 #include "gap.h"
+#include "input.h"
 #include "jobs.h"
 #include "log.h"
 #include "rend_register.h"
@@ -250,6 +251,7 @@ static int app_run(const String assetPath) {
   asset_register(def);
   debug_register(def);
   gap_register(def);
+  input_register(def);
   rend_register(def);
   scene_register(def);
   ui_register(def);
