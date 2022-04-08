@@ -416,8 +416,8 @@ ecs_system_define(UiRenderSys) {
       }
       stats->commandCount += result.commandCount;
     }
-    if (gap_window_flags(window) & (GapWindowFlags_CursorHide | GapWindowFlags_CursorLock)) {
-      // When the cursor is hidden or locked its be considered to not be 'hovering' over ui.
+    if (input_cursor_mode(input) == InputCursorMode_Locked) {
+      // When the cursor is locked its be considered to not be 'hovering' over ui.
       hoveredCanvasIndex = sentinel_u32;
     }
 
