@@ -150,9 +150,9 @@ ecs_module_init(loader_inputmap_test_module) {
 
 spec(loader_inputmap) {
 
-  EcsDef*    def;
-  EcsWorld*  world;
-  EcsRunner* runner;
+  EcsDef*    def    = null;
+  EcsWorld*  world  = null;
+  EcsRunner* runner = null;
 
   setup() {
     def = ecs_def_create(g_alloc_heap);

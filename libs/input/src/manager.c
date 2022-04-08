@@ -1,5 +1,6 @@
 #include "asset_inputmap.h"
 #include "core_alloc.h"
+#include "core_diag.h"
 #include "core_dynarray.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
@@ -51,6 +52,7 @@ static bool input_binding_satisfied(const AssetInputBinding* binding, const GapW
   case AssetInputType_Down:
     return gap_window_key_down(win, binding->key);
   }
+  diag_crash();
 }
 
 static bool input_action_satisfied(

@@ -169,9 +169,9 @@ static void asset_inputmap_build(
   array_ptr_for_t(def->actions, AssetInputActionDef, actionDef) {
     const usize            bindingCount = actionDef->bindings.count;
     const AssetInputAction action       = {
-        .nameHash     = bits_hash_32(actionDef->name),
-        .bindingIndex = outBindings->size,
-        .bindingCount = bindingCount,
+              .nameHash     = bits_hash_32(actionDef->name),
+              .bindingIndex = (u16)outBindings->size,
+              .bindingCount = (u16)bindingCount,
     };
     if (dynarray_search_binary(outActions, asset_inputmap_compare_action, &action)) {
       *err = InputMapError_DuplicateAction;
