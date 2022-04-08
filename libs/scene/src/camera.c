@@ -20,8 +20,8 @@ static const f32       g_camOrthoFar           = +1e4f;
 ecs_comp_define_public(SceneCameraComp);
 ecs_comp_define_public(SceneCameraMovementComp);
 
-ecs_view_define(GlobalTimeView) {
-  ecs_access_read(InputManagerComp);
+ecs_view_define(GlobalView) {
+  ecs_access_write(InputManagerComp);
   ecs_access_read(SceneTimeComp);
 }
 
@@ -86,11 +86,10 @@ static void camera_update_move(
   }
 }
 
-static void camera_update_rotate(
-    const SceneCameraMovementComp* move, SceneTransformComp* trans, const InputManagerComp* input) {
-
-  const GeoVector left       = geo_quat_rotate(trans->rotation, geo_left);
-  const bool      lookEnable = input_triggered_lit(input, "CameraLookEnable") || move->locked;
+static void camera_update_rotate(SceneTransformComp* trans, const InputManagerComp* input) {
+  const GeoVector left         = geo_quat_rotate(trans->rotation, geo_left);
+  const bool      cursorLocked = input_cursor_mode(input) == InputCursorMode_Locked;
+  const bool      lookEnable   = input_triggered_lit(input, "CameraLookEnable") || cursorLocked;
 
   if (lookEnable) {
     const f32 deltaX = input_cursor_delta_x(input) * g_camRotateSensitivity;
@@ -102,42 +101,25 @@ static void camera_update_rotate(
   }
 }
 
-static void camera_update_lock(
-    SceneCameraMovementComp* move, const InputManagerComp* input, GapWindowComp* win) {
-  if (gap_window_events(win) & GapWindowEvents_FocusLost) {
-    move->locked = false;
-  }
-  if (input_triggered_lit(input, "CameraInputLock")) {
-    if (move->locked) {
-      gap_window_flags_unset(win, GapWindowFlags_CursorLock | GapWindowFlags_CursorHide);
-    } else {
-      gap_window_flags_set(win, GapWindowFlags_CursorLock | GapWindowFlags_CursorHide);
-    }
-    move->locked ^= true;
-  }
-}
-
 ecs_view_define(CameraUpdateView) {
   ecs_access_write(SceneCameraComp);
   ecs_access_write(SceneCameraMovementComp);
   ecs_access_write(SceneTransformComp);
-  ecs_access_write(GapWindowComp);
 }
 
 ecs_system_define(SceneCameraUpdateSys) {
-  EcsView*     view      = ecs_world_view_t(world, GlobalTimeView);
+  EcsView*     view      = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr = ecs_view_maybe_at(view, ecs_world_global(world));
   if (!globalItr) {
     return;
   }
-  const InputManagerComp* input        = ecs_view_read_t(globalItr, InputManagerComp);
-  const SceneTimeComp*    time         = ecs_view_read_t(globalItr, SceneTimeComp);
-  const f32               deltaSeconds = time->delta / (f32)time_second;
+  InputManagerComp*    input        = ecs_view_write_t(globalItr, InputManagerComp);
+  const SceneTimeComp* time         = ecs_view_read_t(globalItr, SceneTimeComp);
+  const f32            deltaSeconds = time->delta / (f32)time_second;
 
   EcsView* cameraView = ecs_world_view_t(world, CameraUpdateView);
   for (EcsIterator* itr = ecs_view_itr(cameraView); ecs_view_walk(itr);) {
     SceneCameraComp*         cam   = ecs_view_write_t(itr, SceneCameraComp);
-    GapWindowComp*           win   = ecs_view_write_t(itr, GapWindowComp);
     SceneTransformComp*      trans = ecs_view_write_t(itr, SceneTransformComp);
     SceneCameraMovementComp* move  = ecs_view_write_t(itr, SceneCameraMovementComp);
 
@@ -145,8 +127,7 @@ ecs_system_define(SceneCameraUpdateSys) {
       continue; // Ignore input for camera's where the window is not active.
     }
     camera_update_move(cam, move, trans, input, deltaSeconds);
-    camera_update_rotate(move, trans, input);
-    camera_update_lock(move, input, win);
+    camera_update_rotate(trans, input);
   }
 }
 
@@ -154,18 +135,16 @@ ecs_module_init(scene_camera_module) {
   ecs_register_comp(SceneCameraComp);
   ecs_register_comp(SceneCameraMovementComp);
 
-  ecs_register_view(GlobalTimeView);
+  ecs_register_view(GlobalView);
   ecs_register_view(CameraCreateView);
   ecs_register_view(CameraUpdateView);
 
   ecs_register_system(SceneCameraCreateSys, ecs_view_id(CameraCreateView));
 
-  ecs_register_system(
-      SceneCameraUpdateSys, ecs_view_id(GlobalTimeView), ecs_view_id(CameraUpdateView));
+  ecs_register_system(SceneCameraUpdateSys, ecs_view_id(GlobalView), ecs_view_id(CameraUpdateView));
 }
 
 GeoMatrix scene_camera_proj(const SceneCameraComp* cam, const f32 aspect) {
-
   if (cam->flags & SceneCameraFlags_Orthographic) {
     if (cam->flags & SceneCameraFlags_Vertical) {
       return geo_matrix_proj_ortho_ver(cam->orthoSize, aspect, g_camOrthoNear, g_camOrthoFar);

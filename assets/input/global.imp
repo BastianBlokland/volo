@@ -140,15 +140,6 @@
       ]
     },
     {
-      "name": "CameraInputLock",
-      "bindings": [
-        {
-          "type": "Pressed",
-          "key": "Tab"
-        }
-      ]
-    },
-    {
       "name": "DisableUiToggle",
       "bindings": [
         {
@@ -163,6 +154,15 @@
         {
           "type": "Pressed",
           "key": "Escape"
+        }
+      ]
+    },
+    {
+      "name": "InputCursorLock",
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "Tab"
         }
       ]
     }

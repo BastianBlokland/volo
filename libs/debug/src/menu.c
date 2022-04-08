@@ -32,7 +32,7 @@ ecs_comp_define(DebugMenuComp) {
   EcsEntityId panelCamera, panelGrid, panelRend, panelInterface;
 };
 
-ecs_view_define(GlobalView) { ecs_access_read(InputManagerComp); }
+ecs_view_define(GlobalView) { ecs_access_write(InputManagerComp); }
 
 ecs_view_define(MenuUpdateView) {
   ecs_access_write(DebugMenuComp);
@@ -160,7 +160,12 @@ ecs_system_define(DebugMenuUpdateSys) {
   if (!globalItr) {
     return; // Global dependencies not initialized yet.
   }
-  const InputManagerComp* input = ecs_view_read_t(globalItr, InputManagerComp);
+  InputManagerComp* input = ecs_view_write_t(globalItr, InputManagerComp);
+
+  // TODO: This does not belong here.
+  if (input_triggered_lit(input, "InputCursorLock")) {
+    input_cursor_mode_set(input, input_cursor_mode(input) ^ 1);
+  }
 
   EcsView*     windowView = ecs_world_view_t(world, WindowUpdateView);
   EcsIterator* windowItr  = ecs_view_itr(windowView);
@@ -179,11 +184,7 @@ ecs_system_define(DebugMenuUpdateSys) {
     ui_canvas_reset(canvas);
     debug_action_bar_draw(world, canvas, menu, stats, win, menu->window);
 
-    /**
-     * Close the window on input.
-     * TODO: Does this belong here? Perhaps it should be the responsibilty of the application.
-     * However the debug action bar does have a button to close the window also.
-     */
+    // TODO: This does not belong here.
     if (input_active_window(input) == menu->window && input_triggered_lit(input, "WindowClose")) {
       gap_window_close(win);
     }

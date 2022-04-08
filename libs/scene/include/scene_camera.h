@@ -17,10 +17,7 @@ ecs_comp_extern_public(SceneCameraComp) {
   SceneTagFilter   filter;
 };
 
-ecs_comp_extern_public(SceneCameraMovementComp) {
-  f32  moveSpeed;
-  bool locked;
-};
+ecs_comp_extern_public(SceneCameraMovementComp) { f32 moveSpeed; };
 
 GeoMatrix scene_camera_proj(const SceneCameraComp*, f32 aspect);
 

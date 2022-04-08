@@ -9,9 +9,10 @@
 #include "resource_internal.h"
 
 ecs_comp_define(InputManagerComp) {
-  EcsEntityId activeWindow;
-  GapVector   cursorDelta;
-  DynArray    triggeredActions; // u32[], name hashes of the triggered actions. Not sorted.
+  EcsEntityId     activeWindow;
+  InputCursorMode cursorMode;
+  GapVector       cursorDelta;
+  DynArray        triggeredActions; // u32[], name hashes of the triggered actions. Not sorted.
 };
 
 static void ecs_destruct_input_manager(void* data) {
@@ -24,7 +25,7 @@ ecs_view_define(GlobalView) {
   ecs_access_maybe_write(InputManagerComp);
 }
 
-ecs_view_define(WindowView) { ecs_access_read(GapWindowComp); }
+ecs_view_define(WindowView) { ecs_access_write(GapWindowComp); }
 
 ecs_view_define(InputMapView) { ecs_access_read(AssetInputMapComp); }
 
@@ -41,22 +42,22 @@ static const AssetInputMapComp* input_global_map(EcsWorld* world, const EcsEntit
   return itr ? ecs_view_read_t(itr, AssetInputMapComp) : null;
 }
 
-static bool input_binding_satisfied(const AssetInputBinding* binding, const GapWindowComp* window) {
+static bool input_binding_satisfied(const AssetInputBinding* binding, const GapWindowComp* win) {
   switch (binding->type) {
   case AssetInputType_Pressed:
-    return gap_window_key_pressed(window, binding->key);
+    return gap_window_key_pressed(win, binding->key);
   case AssetInputType_Released:
-    return gap_window_key_released(window, binding->key);
+    return gap_window_key_released(win, binding->key);
   case AssetInputType_Down:
-    return gap_window_key_down(window, binding->key);
+    return gap_window_key_down(win, binding->key);
   }
 }
 
 static bool input_action_satisfied(
-    const AssetInputMapComp* map, const AssetInputAction* action, const GapWindowComp* window) {
+    const AssetInputMapComp* map, const AssetInputAction* action, const GapWindowComp* win) {
   for (usize i = 0; i != action->bindingCount; ++i) {
     const AssetInputBinding* binding = &map->bindings[action->bindingIndex + i];
-    if (input_binding_satisfied(binding, window)) {
+    if (input_binding_satisfied(binding, win)) {
       return true;
     }
   }
@@ -68,9 +69,38 @@ static void input_refresh_active_window(EcsWorld* world, InputManagerComp* manag
     manager->activeWindow = 0;
   }
   for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, WindowView)); ecs_view_walk(itr);) {
-    const GapWindowComp* window = ecs_view_read_t(itr, GapWindowComp);
-    if (!manager->activeWindow || gap_window_events(window) & GapWindowEvents_FocusGained) {
+    GapWindowComp* win            = ecs_view_write_t(itr, GapWindowComp);
+    const bool     isActiveWindow = manager->activeWindow == ecs_view_entity(itr);
+    if (!manager->activeWindow && gap_window_events(win) & GapWindowEvents_Focussed) {
       manager->activeWindow = ecs_view_entity(itr);
+    } else if (gap_window_events(win) & GapWindowEvents_FocusGained) {
+      manager->activeWindow = ecs_view_entity(itr);
+    } else if (isActiveWindow && gap_window_events(win) & GapWindowEvents_FocusLost) {
+      manager->activeWindow = 0;
+      gap_window_flags_unset(win, GapWindowFlags_CursorLock | GapWindowFlags_CursorHide);
+    }
+  }
+}
+
+static void input_update_cursor(InputManagerComp* manager, GapWindowComp* win) {
+  manager->cursorDelta = gap_window_param(win, GapParam_CursorDelta);
+
+  switch (manager->cursorMode) {
+  case InputCursorMode_Normal:
+    gap_window_flags_unset(win, GapWindowFlags_CursorLock | GapWindowFlags_CursorHide);
+    break;
+  case InputCursorMode_Locked:
+    gap_window_flags_set(win, GapWindowFlags_CursorLock | GapWindowFlags_CursorHide);
+    break;
+  }
+}
+
+static void input_update_triggered(
+    InputManagerComp* manager, const AssetInputMapComp* map, GapWindowComp* win) {
+  for (usize i = 0; i != map->actionCount; ++i) {
+    const AssetInputAction* action = &map->actions[i];
+    if (input_action_satisfied(map, action, win)) {
+      *dynarray_push_t(&manager->triggeredActions, u32) = action->nameHash;
     }
   }
 }
@@ -99,16 +129,10 @@ ecs_system_define(InputUpdateSys) {
   if (!manager->activeWindow) {
     return; // No window currently active.
   }
-  const GapWindowComp* window =
-      ecs_utils_read_t(world, WindowView, manager->activeWindow, GapWindowComp);
+  GapWindowComp* win = ecs_utils_write_t(world, WindowView, manager->activeWindow, GapWindowComp);
 
-  manager->cursorDelta = gap_window_param(window, GapParam_CursorDelta);
-  for (usize i = 0; i != map->actionCount; ++i) {
-    const AssetInputAction* action = &map->actions[i];
-    if (input_action_satisfied(map, action, window)) {
-      *dynarray_push_t(&manager->triggeredActions, u32) = action->nameHash;
-    }
-  }
+  input_update_cursor(manager, win);
+  input_update_triggered(manager, map, win);
 }
 
 ecs_module_init(input_manager_module) {
@@ -123,6 +147,12 @@ ecs_module_init(input_manager_module) {
 }
 
 EcsEntityId input_active_window(const InputManagerComp* manager) { return manager->activeWindow; }
+
+InputCursorMode input_cursor_mode(const InputManagerComp* manager) { return manager->cursorMode; }
+
+void input_cursor_mode_set(InputManagerComp* manager, const InputCursorMode newMode) {
+  manager->cursorMode = newMode;
+}
 
 f32 input_cursor_delta_x(const InputManagerComp* manager) { return manager->cursorDelta.x; }
 f32 input_cursor_delta_y(const InputManagerComp* manager) { return manager->cursorDelta.y; }
