@@ -119,6 +119,8 @@ ecs_module_init(input_manager_module) {
       InputUpdateSys, ecs_view_id(GlobalView), ecs_view_id(WindowView), ecs_view_id(InputMapView));
 }
 
+EcsEntityId input_active_window(const InputManagerComp* manager) { return manager->activeWindow; }
+
 bool input_triggered(const InputManagerComp* manager, const String action) {
   return input_triggered_hash(manager, bits_hash_32(action));
 }

@@ -50,7 +50,7 @@
       ]
     },
     {
-      "name": "CameraFastMove",
+      "name": "CameraMoveBoost",
       "bindings": [
         {
           "type": "Down",
