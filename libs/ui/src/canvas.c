@@ -362,7 +362,7 @@ ecs_system_define(UiRenderSys) {
       continue;
     }
     const bool windowInputActive = input_active_window(input) == entity;
-    if (windowInputActive && input_triggered(input, string_lit("UiDisableToggle"))) {
+    if (windowInputActive && input_triggered(input, string_lit("DisableUiToggle"))) {
       renderer->flags ^= UiRendererFlags_Disabled;
     }
 

@@ -8,6 +8,7 @@
 #include "debug_stats.h"
 #include "ecs_world.h"
 #include "gap_window.h"
+#include "input.h"
 #include "ui.h"
 
 // clang-format off
@@ -21,7 +22,7 @@ static const String  g_tooltipPanelInterface  = string_static("Open the \a.bInte
 static const String  g_tooltipFullscreenEnter = string_static("Enter fullscreen.");
 static const String  g_tooltipFullscreenExit  = string_static("Exit fullscreen.");
 static const String  g_tooltipWindowOpen      = string_static("Open a new window.");
-static const String  g_tooltipWindowClose     = string_static("Close the current window. \a.l[Escape]\ar");
+static const String  g_tooltipWindowClose     = string_static("Close the current window.");
 
 // clang-format on
 
@@ -30,6 +31,8 @@ ecs_comp_define(DebugMenuComp) {
   GapVector   lastWindowedSize;
   EcsEntityId panelCamera, panelGrid, panelRend, panelInterface;
 };
+
+ecs_view_define(GlobalView) { ecs_access_read(InputManagerComp); }
 
 ecs_view_define(MenuUpdateView) {
   ecs_access_write(DebugMenuComp);
@@ -152,6 +155,13 @@ static void debug_action_bar_draw(
 }
 
 ecs_system_define(DebugMenuUpdateSys) {
+  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return; // Global dependencies not initialized yet.
+  }
+  const InputManagerComp* input = ecs_view_read_t(globalItr, InputManagerComp);
+
   EcsView*     windowView = ecs_world_view_t(world, WindowUpdateView);
   EcsIterator* windowItr  = ecs_view_itr(windowView);
 
@@ -168,16 +178,31 @@ ecs_system_define(DebugMenuUpdateSys) {
 
     ui_canvas_reset(canvas);
     debug_action_bar_draw(world, canvas, menu, stats, win, menu->window);
+
+    /**
+     * Close the window on input.
+     * TODO: Does this belong here? Perhaps it should be the responsibilty of the application.
+     * However the debug action bar does have a button to close the window also.
+     */
+    if (input_active_window(input) == menu->window &&
+        input_triggered(input, string_lit("WindowClose"))) {
+      gap_window_close(win);
+    }
   }
 }
 
 ecs_module_init(debug_menu_module) {
   ecs_register_comp(DebugMenuComp);
+
+  ecs_register_view(GlobalView);
   ecs_register_view(MenuUpdateView);
   ecs_register_view(WindowUpdateView);
 
   ecs_register_system(
-      DebugMenuUpdateSys, ecs_view_id(MenuUpdateView), ecs_view_id(WindowUpdateView));
+      DebugMenuUpdateSys,
+      ecs_view_id(GlobalView),
+      ecs_view_id(MenuUpdateView),
+      ecs_view_id(WindowUpdateView));
 }
 
 EcsEntityId debug_menu_create(EcsWorld* world, const EcsEntityId window) {

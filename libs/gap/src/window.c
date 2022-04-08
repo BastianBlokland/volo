@@ -62,9 +62,6 @@ static bool window_should_close(GapWindowComp* win) {
   if (win->flags & GapWindowFlags_CloseOnRequest && win->events & GapWindowEvents_CloseRequested) {
     return true;
   }
-  if (win->flags & GapWindowFlags_CloseOnEscape && gap_window_key_pressed(win, GapKey_Escape)) {
-    return true;
-  }
   return false;
 }
 

@@ -68,11 +68,20 @@
       ]
     },
     {
-      "name": "UiDisableToggle",
+      "name": "DisableUiToggle",
       "bindings": [
         {
           "type": "Pressed",
           "key": "F12"
+        }
+      ]
+    },
+    {
+      "name": "WindowClose",
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "Escape"
         }
       ]
     }
