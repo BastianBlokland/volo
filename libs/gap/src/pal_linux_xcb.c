@@ -527,6 +527,8 @@ static void pal_event_focus_lost(GapPal* pal, const GapWindowId windowId) {
   window->flags &= ~GapPalWindowFlags_Focussed;
   window->flags |= GapPalWindowFlags_FocusLost;
 
+  gap_keyset_clear(&window->keysDown);
+
   log_d("Window focus lost", log_param("id", fmt_int(windowId)));
 }
 
