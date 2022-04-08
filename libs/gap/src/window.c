@@ -117,8 +117,13 @@ static void window_update(
   if (palFlags & GapPalWindowFlags_CursorMoved) {
     const GapVector oldPos = window->params[GapParam_CursorPos];
     const GapVector newPos = gap_pal_window_param(platform->pal, window->id, GapParam_CursorPos);
-    window->params[GapParam_CursorDelta] = gap_vector_sub(newPos, oldPos);
-    window->params[GapParam_CursorPos]   = newPos;
+    window->params[GapParam_CursorPos] = newPos;
+    if (palFlags & GapPalWindowFlags_FocusGained) {
+      // NOTE: When gaining focus use delta zero to avoid jumps due to cursor moved in background.
+      window->params[GapParam_CursorDelta] = gap_vector(0, 0);
+    } else {
+      window->params[GapParam_CursorDelta] = gap_vector_sub(newPos, oldPos);
+    }
   } else {
     window->params[GapParam_CursorDelta] = gap_vector(0, 0);
   }
