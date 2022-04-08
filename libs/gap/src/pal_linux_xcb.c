@@ -489,6 +489,21 @@ static void pal_init_extensions(GapPal* pal) {
   pal->extensions |= GapPalXcbExtFlags_Icccm; // NOTE: No initialization is needed for ICCCM.
 }
 
+static GapVector pal_query_cursor_pos(GapPal* pal, const GapWindowId windowId) {
+  xcb_generic_error_t*       err = null;
+  xcb_query_pointer_reply_t* reply =
+      pal_xcb_call(pal->xcbConnection, xcb_query_pointer, &err, (xcb_window_t)windowId);
+
+  if (UNLIKELY(err)) {
+    log_w(
+        "Failed to query the x11 cursor position",
+        log_param("window-id", fmt_int(windowId)),
+        log_param("error", fmt_int(err->error_code)));
+    return gap_vector(0, 0);
+  }
+  return gap_vector(reply->win_x, reply->win_y);
+}
+
 static void
 pal_set_window_min_size(GapPal* pal, const GapWindowId windowId, const GapVector minSize) {
   diag_assert(pal->extensions & GapPalXcbExtFlags_Icccm);
@@ -526,6 +541,8 @@ static void pal_event_focus_lost(GapPal* pal, const GapWindowId windowId) {
 
   window->flags &= ~GapPalWindowFlags_Focussed;
   window->flags |= GapPalWindowFlags_FocusLost;
+
+  gap_keyset_clear(&window->keysDown);
 
   log_d("Window focus lost", log_param("id", fmt_int(windowId)));
 }
@@ -669,6 +686,11 @@ void gap_pal_update(GapPal* pal) {
     case XCB_FOCUS_IN: {
       const xcb_focus_in_event_t* focusInMsg = (const void*)evt;
       pal_event_focus_gained(pal, focusInMsg->event);
+
+      if (pal_maybe_window(pal, focusInMsg->event)) {
+        // Update the cursor as it was probably moved since we where focussed last.
+        pal_event_cursor(pal, focusInMsg->event, pal_query_cursor_pos(pal, focusInMsg->event));
+      }
     } break;
 
     case XCB_FOCUS_OUT: {
@@ -804,7 +826,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   *dynarray_push_t(&pal->windows, GapPalWindow) = (GapPalWindow){
       .id                          = id,
       .params[GapParam_WindowSize] = size,
-      .flags                       = GapPalWindowFlags_Focussed,
+      .flags                       = GapPalWindowFlags_Focussed | GapPalWindowFlags_FocusGained,
       .inputText                   = dynstring_create(g_alloc_heap, 64),
   };
 

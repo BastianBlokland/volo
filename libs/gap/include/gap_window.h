@@ -14,8 +14,9 @@ typedef enum {
   GapWindowEvents_KeyReleased    = 1 << 3,
   GapWindowEvents_TitleUpdated   = 1 << 4,
   GapWindowEvents_CloseRequested = 1 << 5,
-  GapWindowEvents_FocusGained    = 1 << 6,
-  GapWindowEvents_FocusLost      = 1 << 7,
+  GapWindowEvents_FocusGained    = 1 << 6, // Did the window gain focus this tick.
+  GapWindowEvents_FocusLost      = 1 << 7, // Did the window lose focus this tick.
+  GapWindowEvents_Focussed       = 1 << 8, // Does the window have focus this tick.
 } GapWindowEvents;
 
 /**
@@ -25,13 +26,12 @@ typedef enum {
   GapWindowFlags_None            = 0,
   GapWindowFlags_CloseOnInterupt = 1 << 0,
   GapWindowFlags_CloseOnRequest  = 1 << 1,
-  GapWindowFlags_CloseOnEscape   = 1 << 2,
-  GapWindowFlags_CursorHide      = 1 << 3,
-  GapWindowFlags_CursorLock      = 1 << 4,
-  GapWindowFlags_DefaultTitle    = 1 << 5,
+  GapWindowFlags_CursorHide      = 1 << 2,
+  GapWindowFlags_CursorLock      = 1 << 3,
+  GapWindowFlags_DefaultTitle    = 1 << 4,
 
-  GapWindowFlags_Default = GapWindowFlags_CloseOnInterupt | GapWindowFlags_CloseOnRequest |
-                           GapWindowFlags_CloseOnEscape | GapWindowFlags_DefaultTitle,
+  GapWindowFlags_Default =
+      GapWindowFlags_CloseOnInterupt | GapWindowFlags_CloseOnRequest | GapWindowFlags_DefaultTitle,
 } GapWindowFlags;
 
 typedef enum {

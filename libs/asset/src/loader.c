@@ -19,6 +19,9 @@ AssetLoader asset_loader(const AssetFormat format) {
   case AssetFormat_Gra: {
     RET_LOADER(gra);
   }
+  case AssetFormat_Imp: {
+    RET_LOADER(imp);
+  }
   case AssetFormat_Obj: {
     RET_LOADER(obj);
   }

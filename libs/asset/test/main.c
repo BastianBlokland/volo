@@ -15,6 +15,7 @@ int main(const int argc, const char** argv) {
   register_spec(check, loader_font_ttf);
   register_spec(check, loader_ftx);
   register_spec(check, loader_graphic);
+  register_spec(check, loader_inputmap);
   register_spec(check, loader_mesh_obj);
   register_spec(check, loader_raw);
   register_spec(check, loader_shader_spv);

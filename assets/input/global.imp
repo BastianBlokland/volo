@@ -1,0 +1,170 @@
+{
+  "actions": [
+    {
+      "name": "PedestalPrev",
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "ArrowLeft"
+        }
+      ]
+    },
+    {
+      "name": "PedestalNext",
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "ArrowRight"
+        }
+      ]
+    },
+    {
+      "name": "PedestalTogglePause",
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "Backspace"
+        }
+      ]
+    },
+    {
+      "name": "PedestalSetInstCount0",
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "Alpha0"
+        }
+      ]
+    },
+    {
+      "name": "PedestalSetInstCount1",
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "Alpha1"
+        }
+      ]
+    },
+    {
+      "name": "PedestalSetInstCount64",
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "Alpha2"
+        }
+      ]
+    },
+    {
+      "name": "PedestalSetInstCount512",
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "Alpha3"
+        }
+      ]
+    },
+    {
+      "name": "PedestalSetInstCount1024",
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "Alpha4"
+        }
+      ]
+    },
+    {
+      "name": "PedestalSetInstCount4096",
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "Alpha5"
+        }
+      ]
+    },
+    {
+      "name": "CameraMoveForward",
+      "bindings": [
+        {
+          "type": "Down",
+          "key": "W"
+        }
+      ]
+    },
+    {
+      "name": "CameraMoveBackward",
+      "bindings": [
+        {
+          "type": "Down",
+          "key": "S"
+        }
+      ]
+    },
+    {
+      "name": "CameraMoveRight",
+      "bindings": [
+        {
+          "type": "Down",
+          "key": "D"
+        }
+      ]
+    },
+    {
+      "name": "CameraMoveLeft",
+      "bindings": [
+        {
+          "type": "Down",
+          "key": "A"
+        }
+      ]
+    },
+    {
+      "name": "CameraLookEnable",
+      "bindings": [
+        {
+          "type": "Down",
+          "key": "MouseRight"
+        },
+        {
+          "type": "Down",
+          "key": "Control"
+        }
+      ]
+    },
+    {
+      "name": "CameraMoveBoost",
+      "bindings": [
+        {
+          "type": "Down",
+          "key": "Shift"
+        }
+      ]
+    },
+    {
+      "name": "DisableUiToggle",
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "F12"
+        }
+      ]
+    },
+    {
+      "name": "WindowClose",
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "Escape"
+        }
+      ]
+    },
+    {
+      "name": "InputCursorLock",
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "Tab"
+        }
+      ]
+    }
+  ]
+}

@@ -62,9 +62,6 @@ static bool window_should_close(GapWindowComp* win) {
   if (win->flags & GapWindowFlags_CloseOnRequest && win->events & GapWindowEvents_CloseRequested) {
     return true;
   }
-  if (win->flags & GapWindowFlags_CloseOnEscape && gap_window_key_pressed(win, GapKey_Escape)) {
-    return true;
-  }
   return false;
 }
 
@@ -120,8 +117,13 @@ static void window_update(
   if (palFlags & GapPalWindowFlags_CursorMoved) {
     const GapVector oldPos = window->params[GapParam_CursorPos];
     const GapVector newPos = gap_pal_window_param(platform->pal, window->id, GapParam_CursorPos);
-    window->params[GapParam_CursorDelta] = gap_vector_sub(newPos, oldPos);
-    window->params[GapParam_CursorPos]   = newPos;
+    window->params[GapParam_CursorPos] = newPos;
+    if (palFlags & GapPalWindowFlags_FocusGained) {
+      // NOTE: When gaining focus use delta zero to avoid jumps due to cursor moved in background.
+      window->params[GapParam_CursorDelta] = gap_vector(0, 0);
+    } else {
+      window->params[GapParam_CursorDelta] = gap_vector_sub(newPos, oldPos);
+    }
   } else {
     window->params[GapParam_CursorDelta] = gap_vector(0, 0);
   }
@@ -150,10 +152,9 @@ static void window_update(
   }
   if (palFlags & GapPalWindowFlags_FocusLost) {
     window->events |= GapWindowEvents_FocusLost;
-    // Unlock and unhide cursor.
-    window->flags &= ~(GapWindowFlags_CursorHide | GapWindowFlags_CursorLock);
-    gap_pal_window_cursor_capture(platform->pal, window->id, false);
-    gap_pal_window_cursor_hide(platform->pal, window->id, false);
+  }
+  if (palFlags & GapPalWindowFlags_Focussed) {
+    window->events |= GapWindowEvents_Focussed;
   }
   if (window->flags & GapWindowFlags_CursorLock) {
     const GapVector tgtPos = gap_vector_div(window->params[GapParam_WindowSize], 2);

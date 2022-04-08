@@ -7,6 +7,7 @@
 #include "debug.h"
 #include "ecs.h"
 #include "gap.h"
+#include "input.h"
 #include "jobs.h"
 #include "log.h"
 #include "rend_register.h"
@@ -90,9 +91,10 @@ ecs_comp_define(AppComp) {
 ecs_comp_define(SubjectComp);
 
 ecs_view_define(GlobalView) {
+  ecs_access_read(InputManagerComp);
+  ecs_access_read(SceneTimeComp);
   ecs_access_write(AssetManagerComp);
   ecs_access_write(AppComp);
-  ecs_access_read(SceneTimeComp);
 }
 
 ecs_view_define(WindowView) { ecs_access_write(GapWindowComp); }
@@ -151,57 +153,53 @@ ecs_system_define(AppUpdateSys) {
   if (!globalItr) {
     return;
   }
-  AppComp*          app    = ecs_view_write_t(globalItr, AppComp);
-  AssetManagerComp* assets = ecs_view_write_t(globalItr, AssetManagerComp);
+  AssetManagerComp*       assets = ecs_view_write_t(globalItr, AssetManagerComp);
+  AppComp*                app    = ecs_view_write_t(globalItr, AppComp);
+  const InputManagerComp* input  = ecs_view_read_t(globalItr, InputManagerComp);
 
-  EcsView* windowView = ecs_world_view_t(world, WindowView);
-  for (EcsIterator* windowItr = ecs_view_itr(windowView); ecs_view_walk(windowItr);) {
-    GapWindowComp* window = ecs_view_write_t(windowItr, GapWindowComp);
+  if (input_triggered_lit(input, "PedestalPrev")) {
+    app->subjectIndex = (app->subjectIndex + 1) % array_elems(g_subjects);
+    app->flags |= AppFlags_Dirty;
+  }
+  if (input_triggered_lit(input, "PedestalNext")) {
+    app->subjectIndex = (app->subjectIndex ? app->subjectIndex : array_elems(g_subjects)) - 1;
+    app->flags |= AppFlags_Dirty;
+  }
+  if (input_triggered_lit(input, "PedestalTogglePause")) {
+    app->flags ^= AppFlags_Rotate;
+  }
+  if (input_triggered_lit(input, "PedestalSetInstCount0")) {
+    app->subjectCount = 0;
+    app->flags |= AppFlags_Dirty;
+  }
+  if (input_triggered_lit(input, "PedestalSetInstCount1")) {
+    app->subjectCount = 1;
+    app->flags |= AppFlags_Dirty;
+  }
+  if (input_triggered_lit(input, "PedestalSetInstCount64")) {
+    app->subjectCount = 64;
+    app->flags |= AppFlags_Dirty;
+  }
+  if (input_triggered_lit(input, "PedestalSetInstCount512")) {
+    app->subjectCount = 512;
+    app->flags |= AppFlags_Dirty;
+  }
+  if (input_triggered_lit(input, "PedestalSetInstCount1024")) {
+    app->subjectCount = 1024;
+    app->flags |= AppFlags_Dirty;
+  }
+  if (input_triggered_lit(input, "PedestalSetInstCount4096")) {
+    app->subjectCount = 4096;
+    app->flags |= AppFlags_Dirty;
+  }
 
-    if (gap_window_key_pressed(window, GapKey_ArrowRight)) {
-      app->subjectIndex = (app->subjectIndex + 1) % array_elems(g_subjects);
-      app->flags |= AppFlags_Dirty;
+  if (app->flags & AppFlags_Dirty) {
+    EcsView* objectView = ecs_world_view_t(world, ObjectView);
+    for (EcsIterator* objItr = ecs_view_itr(objectView); ecs_view_walk(objItr);) {
+      ecs_world_entity_destroy(world, ecs_view_entity(objItr));
     }
-    if (gap_window_key_pressed(window, GapKey_ArrowLeft)) {
-      app->subjectIndex = (app->subjectIndex ? app->subjectIndex : array_elems(g_subjects)) - 1;
-      app->flags |= AppFlags_Dirty;
-    }
-    if (gap_window_key_pressed(window, GapKey_Backspace)) {
-      app->flags ^= AppFlags_Rotate;
-    }
-    if (gap_window_key_pressed(window, GapKey_Alpha1)) {
-      app->subjectCount = 1;
-      app->flags |= AppFlags_Dirty;
-    }
-    if (gap_window_key_pressed(window, GapKey_Alpha2)) {
-      app->subjectCount = 64;
-      app->flags |= AppFlags_Dirty;
-    }
-    if (gap_window_key_pressed(window, GapKey_Alpha3)) {
-      app->subjectCount = 512;
-      app->flags |= AppFlags_Dirty;
-    }
-    if (gap_window_key_pressed(window, GapKey_Alpha4)) {
-      app->subjectCount = 1024;
-      app->flags |= AppFlags_Dirty;
-    }
-    if (gap_window_key_pressed(window, GapKey_Alpha5)) {
-      app->subjectCount = 4096;
-      app->flags |= AppFlags_Dirty;
-    }
-    if (gap_window_key_pressed(window, GapKey_Alpha0)) {
-      app->subjectCount = 0;
-      app->flags |= AppFlags_Dirty;
-    }
-
-    if (app->flags & AppFlags_Dirty) {
-      EcsView* objectView = ecs_world_view_t(world, ObjectView);
-      for (EcsIterator* objItr = ecs_view_itr(objectView); ecs_view_walk(objItr);) {
-        ecs_world_entity_destroy(world, ecs_view_entity(objItr));
-      }
-      spawn_objects(world, app, assets);
-      app->flags &= ~AppFlags_Dirty;
-    }
+    spawn_objects(world, app, assets);
+    app->flags &= ~AppFlags_Dirty;
   }
 }
 
@@ -234,8 +232,7 @@ ecs_module_init(app_pedestal_module) {
   ecs_register_view(WindowView);
   ecs_register_view(ObjectView);
 
-  ecs_register_system(
-      AppUpdateSys, ecs_view_id(GlobalView), ecs_view_id(WindowView), ecs_view_id(ObjectView));
+  ecs_register_system(AppUpdateSys, ecs_view_id(GlobalView), ecs_view_id(ObjectView));
   ecs_register_system(AppSetRotationSys, ecs_view_id(GlobalView), ecs_view_id(ObjectView));
 }
 
@@ -250,6 +247,7 @@ static int app_run(const String assetPath) {
   asset_register(def);
   debug_register(def);
   gap_register(def);
+  input_register(def);
   rend_register(def);
   scene_register(def);
   ui_register(def);

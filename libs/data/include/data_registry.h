@@ -98,4 +98,7 @@ DataType data_reg_enum(DataReg*, String name);
 #define data_reg_const_t(_REG_, _PARENT_, _ENTRY_)                                                 \
   data_reg_const((_REG_), t_##_PARENT_, string_lit(#_ENTRY_), _PARENT_##_##_ENTRY_);
 
+#define data_reg_const_custom(_REG_, _PARENT_, _NAME_, _VALUE_)                                    \
+  data_reg_const((_REG_), t_##_PARENT_, string_lit(#_NAME_), _VALUE_);
+
 void data_reg_const(DataReg*, DataType parent, String name, i32 value);

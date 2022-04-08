@@ -6,6 +6,7 @@
 #include "ecs_world.h"
 #include "gap_register.h"
 #include "gap_window.h"
+#include "input.h"
 #include "rend_draw.h"
 #include "scene_lifetime.h"
 #include "ui_register.h"
@@ -121,11 +122,11 @@ typedef struct {
 static UiDrawMetaData ui_draw_metadata(const UiRenderState* state, const AssetFtxComp* font) {
   const UiVector canvasRes = state->canvas->resolution;
   UiDrawMetaData meta      = {
-           .canvasRes = geo_vector(
+      .canvasRes = geo_vector(
           canvasRes.width, canvasRes.height, 1.0f / canvasRes.width, 1.0f / canvasRes.height),
-           .invCanvasScale  = 1.0f / state->settings->scale,
-           .glyphsPerDim    = font->glyphsPerDim,
-           .invGlyphsPerDim = 1.0f / (f32)font->glyphsPerDim,
+      .invCanvasScale  = 1.0f / state->settings->scale,
+      .glyphsPerDim    = font->glyphsPerDim,
+      .invGlyphsPerDim = 1.0f / (f32)font->glyphsPerDim,
   };
   mem_cpy(mem_var(meta.clipRects), mem_var(state->clipRects));
   return meta;
@@ -245,7 +246,10 @@ static UiBuildResult ui_canvas_build(UiRenderState* state, const UiId debugElem)
   return ui_build(state->canvas->cmdBuffer, &buildCtx);
 }
 
-ecs_view_define(GlobalResourcesView) { ecs_access_read(UiGlobalResourcesComp); }
+ecs_view_define(GlobalView) {
+  ecs_access_read(UiGlobalResourcesComp);
+  ecs_access_read(InputManagerComp);
+}
 ecs_view_define(FtxView) { ecs_access_read(AssetFtxComp); }
 ecs_view_define(WindowView) {
   ecs_access_read(GapWindowComp);
@@ -255,12 +259,6 @@ ecs_view_define(WindowView) {
 }
 ecs_view_define(CanvasView) { ecs_access_write(UiCanvasComp); }
 ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
-
-static const UiGlobalResourcesComp* ui_global_resources(EcsWorld* world) {
-  EcsView*     globalView = ecs_world_view_t(world, GlobalResourcesView);
-  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  return globalItr ? ecs_view_read_t(globalItr, UiGlobalResourcesComp) : null;
-}
 
 static const AssetFtxComp* ui_global_font(EcsWorld* world, const EcsEntityId entity) {
   EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(world, FtxView), entity);
@@ -340,10 +338,14 @@ static u32 ui_canvass_query(
 }
 
 ecs_system_define(UiRenderSys) {
-  const UiGlobalResourcesComp* globalRes = ui_global_resources(world);
-  if (!globalRes) {
-    return; // Global resources not initialized yet.
+  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return; // Global dependencies not initialized yet.
   }
+  const UiGlobalResourcesComp* globalRes = ecs_view_read_t(globalItr, UiGlobalResourcesComp);
+  const InputManagerComp*      input     = ecs_view_read_t(globalItr, InputManagerComp);
+
   const AssetFtxComp* font = ui_global_font(world, ui_resource_font(globalRes));
   if (!font) {
     return; // Global font not loaded yet.
@@ -359,7 +361,7 @@ ecs_system_define(UiRenderSys) {
       ui_renderer_create(world, entity);
       continue;
     }
-    if (gap_window_key_released(window, GapKey_F12)) {
+    if (input_active_window(input) == entity && input_triggered_lit(input, "DisableUiToggle")) {
       renderer->flags ^= UiRendererFlags_Disabled;
     }
 
@@ -382,12 +384,12 @@ ecs_system_define(UiRenderSys) {
     const f32       scale       = settings ? settings->scale : 1.0f;
     const UiVector  canvasSize  = ui_vector(winSize.x / scale, winSize.y / scale);
     UiRenderState   renderState = {
-          .settings      = settings,
-          .font          = font,
-          .renderer      = renderer,
-          .draw          = draw,
-          .clipRects[0]  = {.size = canvasSize},
-          .clipRectCount = 1,
+        .settings      = settings,
+        .font          = font,
+        .renderer      = renderer,
+        .draw          = draw,
+        .clipRects[0]  = {.size = canvasSize},
+        .clipRectCount = 1,
     };
 
     UiCanvasPtr canvasses[ui_canvas_canvasses_max];
@@ -414,8 +416,8 @@ ecs_system_define(UiRenderSys) {
       }
       stats->commandCount += result.commandCount;
     }
-    if (gap_window_flags(window) & (GapWindowFlags_CursorHide | GapWindowFlags_CursorLock)) {
-      // When the cursor is hidden or locked its be considered to not be 'hovering' over ui.
+    if (input_cursor_mode(input) == InputCursorMode_Locked) {
+      // When the cursor is locked its be considered to not be 'hovering' over ui.
       hoveredCanvasIndex = sentinel_u32;
     }
 
@@ -453,7 +455,7 @@ ecs_module_init(ui_canvas_module) {
 
   ecs_register_view(CanvasView);
   ecs_register_view(DrawView);
-  ecs_register_view(GlobalResourcesView);
+  ecs_register_view(GlobalView);
   ecs_register_view(FtxView);
   ecs_register_view(WindowView);
 
@@ -461,7 +463,7 @@ ecs_module_init(ui_canvas_module) {
 
   ecs_register_system(
       UiRenderSys,
-      ecs_view_id(GlobalResourcesView),
+      ecs_view_id(GlobalView),
       ecs_view_id(FtxView),
       ecs_view_id(WindowView),
       ecs_view_id(CanvasView),
@@ -529,7 +531,7 @@ UiRect ui_canvas_elem_rect(const UiCanvasComp* comp, const UiId id) {
 UiStatus ui_canvas_status(const UiCanvasComp* comp) { return comp->activeStatus; }
 UiVector ui_canvas_resolution(const UiCanvasComp* comp) { return comp->resolution; }
 bool     ui_canvas_input_any(const UiCanvasComp* comp) {
-      return (comp->flags & UiCanvasFlags_InputAny) != 0;
+  return (comp->flags & UiCanvasFlags_InputAny) != 0;
 }
 UiVector ui_canvas_input_delta(const UiCanvasComp* comp) { return comp->inputDelta; }
 UiVector ui_canvas_input_pos(const UiCanvasComp* comp) { return comp->inputPos; }

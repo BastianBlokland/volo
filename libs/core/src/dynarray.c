@@ -189,6 +189,9 @@ void dynarray_shuffle(DynArray* array, Rng* rng) {
 }
 
 void* dynarray_copy_as_new(const DynArray* array, Allocator* alloc) {
+  if (!array->size) {
+    return null;
+  }
   const Mem arrayMem = dynarray_at(array, 0, array->size);
   const Mem newMem   = alloc_alloc(alloc, arrayMem.size, array->align);
   mem_cpy(newMem, arrayMem);
