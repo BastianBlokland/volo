@@ -119,6 +119,17 @@ static GapVector pal_client_to_screen(const GapWindowId windowId, const GapVecto
   return gap_vector((i32)point.x, (i32)point.y);
 }
 
+static GapVector pal_query_cursor_pos(const GapWindowId windowId) {
+  POINT point;
+  if (!GetCursorPos(&point)) {
+    pal_crash_with_win32_err(string_lit("GetCursorPos"));
+  }
+  if (!ScreenToClient((HWND)windowId, &point)) {
+    pal_crash_with_win32_err(string_lit("ScreenToClient"));
+  }
+  return gap_vector((i32)point.x, (i32)point.y);
+}
+
 static GapKey pal_win32_translate_key(const u8 scanCode) {
   switch (scanCode) {
   case 0x2A: // Left-shift.
@@ -404,6 +415,9 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
   }
   case WM_SETFOCUS: {
     pal_event_focus_gained(window);
+
+    // Update the cursor as it was probably moved since we where focussed last.
+    pal_event_cursor(window, pal_query_cursor_pos(window->id));
     return true;
   }
   case WM_KILLFOCUS: {
@@ -533,10 +547,10 @@ GapPal* gap_pal_create(Allocator* alloc) {
 
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){
-      .alloc          = alloc,
-      .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
-      .moduleInstance = instance,
-      .owningThreadId = g_thread_tid,
+             .alloc          = alloc,
+             .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
+             .moduleInstance = instance,
+             .owningThreadId = g_thread_tid,
   };
 
   MAYBE_UNUSED const GapVector screenSize =
