@@ -489,6 +489,18 @@ static void pal_init_extensions(GapPal* pal) {
   pal->extensions |= GapPalXcbExtFlags_Icccm; // NOTE: No initialization is needed for ICCCM.
 }
 
+static GapVector pal_query_cursor_pos(GapPal* pal, const GapWindowId windowId) {
+  xcb_generic_error_t*       err = null;
+  xcb_query_pointer_reply_t* reply =
+      pal_xcb_call(pal->xcbConnection, xcb_query_pointer, &err, (xcb_window_t)windowId);
+
+  if (UNLIKELY(err)) {
+    log_w("Failed to query the x11 cursor position", log_param("error", fmt_int(err->error_code)));
+    return gap_vector(0, 0);
+  }
+  return gap_vector(reply->win_x, reply->win_y);
+}
+
 static void
 pal_set_window_min_size(GapPal* pal, const GapWindowId windowId, const GapVector minSize) {
   diag_assert(pal->extensions & GapPalXcbExtFlags_Icccm);
@@ -671,6 +683,9 @@ void gap_pal_update(GapPal* pal) {
     case XCB_FOCUS_IN: {
       const xcb_focus_in_event_t* focusInMsg = (const void*)evt;
       pal_event_focus_gained(pal, focusInMsg->event);
+
+      // Update the cursor as it was probably moved since we where focussed last.
+      pal_event_cursor(pal, focusInMsg->event, pal_query_cursor_pos(pal, focusInMsg->event));
     } break;
 
     case XCB_FOCUS_OUT: {
