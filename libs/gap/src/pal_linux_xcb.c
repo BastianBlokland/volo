@@ -495,7 +495,10 @@ static GapVector pal_query_cursor_pos(GapPal* pal, const GapWindowId windowId) {
       pal_xcb_call(pal->xcbConnection, xcb_query_pointer, &err, (xcb_window_t)windowId);
 
   if (UNLIKELY(err)) {
-    log_w("Failed to query the x11 cursor position", log_param("error", fmt_int(err->error_code)));
+    log_w(
+        "Failed to query the x11 cursor position",
+        log_param("window-id", fmt_int(windowId)),
+        log_param("error", fmt_int(err->error_code)));
     return gap_vector(0, 0);
   }
   return gap_vector(reply->win_x, reply->win_y);
@@ -684,8 +687,10 @@ void gap_pal_update(GapPal* pal) {
       const xcb_focus_in_event_t* focusInMsg = (const void*)evt;
       pal_event_focus_gained(pal, focusInMsg->event);
 
-      // Update the cursor as it was probably moved since we where focussed last.
-      pal_event_cursor(pal, focusInMsg->event, pal_query_cursor_pos(pal, focusInMsg->event));
+      if (pal_maybe_window(pal, focusInMsg->event)) {
+        // Update the cursor as it was probably moved since we where focussed last.
+        pal_event_cursor(pal, focusInMsg->event, pal_query_cursor_pos(pal, focusInMsg->event));
+      }
     } break;
 
     case XCB_FOCUS_OUT: {
