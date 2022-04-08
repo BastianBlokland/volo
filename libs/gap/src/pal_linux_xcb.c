@@ -806,7 +806,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   *dynarray_push_t(&pal->windows, GapPalWindow) = (GapPalWindow){
       .id                          = id,
       .params[GapParam_WindowSize] = size,
-      .flags                       = GapPalWindowFlags_Focussed,
+      .flags                       = GapPalWindowFlags_Focussed | GapPalWindowFlags_FocusGained,
       .inputText                   = dynstring_create(g_alloc_heap, 64),
   };
 

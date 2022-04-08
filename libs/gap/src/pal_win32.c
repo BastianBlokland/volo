@@ -650,7 +650,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       .id                          = id,
       .className                   = className,
       .params[GapParam_WindowSize] = realClientSize,
-      .flags                       = GapPalWindowFlags_Focussed,
+      .flags                       = GapPalWindowFlags_Focussed | GapPalWindowFlags_FocusGained,
       .lastWindowedPosition        = position,
       .inputText                   = dynstring_create(g_alloc_heap, 64),
   };
