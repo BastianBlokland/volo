@@ -10,6 +10,7 @@
 
 ecs_comp_define(InputManagerComp) {
   EcsEntityId activeWindow;
+  GapVector   cursorDelta;
   DynArray    triggeredActions; // u32[], name hashes of the triggered actions. Not sorted.
 };
 
@@ -84,7 +85,9 @@ ecs_system_define(InputUpdateSys) {
   if (!manager) {
     manager = input_manager_create(world);
   }
-  dynarray_clear(&manager->triggeredActions); // Clear the previous tick's triggered actions.
+  // Clear the previous tick's data.
+  manager->cursorDelta = gap_vector(0, 0);
+  dynarray_clear(&manager->triggeredActions);
 
   const InputResourcesComp* resources = ecs_view_read_t(globalItr, InputResourcesComp);
   const AssetInputMapComp*  map       = input_global_map(world, input_resource_map(resources));
@@ -99,6 +102,7 @@ ecs_system_define(InputUpdateSys) {
   const GapWindowComp* window =
       ecs_utils_read_t(world, WindowView, manager->activeWindow, GapWindowComp);
 
+  manager->cursorDelta = gap_window_param(window, GapParam_CursorDelta);
   for (usize i = 0; i != map->actionCount; ++i) {
     const AssetInputAction* action = &map->actions[i];
     if (input_action_satisfied(map, action, window)) {
@@ -119,6 +123,9 @@ ecs_module_init(input_manager_module) {
 }
 
 EcsEntityId input_active_window(const InputManagerComp* manager) { return manager->activeWindow; }
+
+f32 input_cursor_delta_x(const InputManagerComp* manager) { return manager->cursorDelta.x; }
+f32 input_cursor_delta_y(const InputManagerComp* manager) { return manager->cursorDelta.y; }
 
 bool input_triggered_hash(const InputManagerComp* manager, const u32 actionHash) {
   dynarray_for_t(&manager->triggeredActions, u32, triggeredActionHash) {

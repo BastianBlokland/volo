@@ -15,6 +15,12 @@ ecs_comp_extern(InputManagerComp);
 EcsEntityId input_active_window(const InputManagerComp*);
 
 /**
+ * Check how much the cursor was moved this tick.
+ */
+f32 input_cursor_delta_x(const InputManagerComp*);
+f32 input_cursor_delta_y(const InputManagerComp*);
+
+/**
  * Check if an input action was triggered this tick.
  */
 #define input_triggered_lit(_MANAGER_, _ACTION_LIT_)                                               \

@@ -87,17 +87,14 @@ static void camera_update_move(
 }
 
 static void camera_update_rotate(
-    const SceneCameraMovementComp* move,
-    SceneTransformComp*            trans,
-    const InputManagerComp*        input,
-    const GapWindowComp*           win) {
+    const SceneCameraMovementComp* move, SceneTransformComp* trans, const InputManagerComp* input) {
 
   const GeoVector left       = geo_quat_rotate(trans->rotation, geo_left);
   const bool      lookEnable = input_triggered_lit(input, "CameraLookEnable") || move->locked;
 
   if (lookEnable) {
-    const f32 deltaX = gap_window_param(win, GapParam_CursorDelta).x * g_camRotateSensitivity;
-    const f32 deltaY = gap_window_param(win, GapParam_CursorDelta).y * g_camRotateSensitivity;
+    const f32 deltaX = input_cursor_delta_x(input) * g_camRotateSensitivity;
+    const f32 deltaY = input_cursor_delta_y(input) * g_camRotateSensitivity;
 
     trans->rotation = geo_quat_mul(geo_quat_angle_axis(left, deltaY), trans->rotation);
     trans->rotation = geo_quat_mul(geo_quat_angle_axis(geo_up, deltaX), trans->rotation);
@@ -148,7 +145,7 @@ ecs_system_define(SceneCameraUpdateSys) {
       continue; // Ignore input for camera's where the window is not active.
     }
     camera_update_move(cam, move, trans, input, deltaSeconds);
-    camera_update_rotate(move, trans, input, win);
+    camera_update_rotate(move, trans, input);
     camera_update_lock(move, input, win);
   }
 }
