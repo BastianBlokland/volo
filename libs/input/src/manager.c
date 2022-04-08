@@ -1,6 +1,5 @@
 #include "asset_inputmap.h"
 #include "core_alloc.h"
-#include "core_bits.h"
 #include "core_dynarray.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
@@ -120,10 +119,6 @@ ecs_module_init(input_manager_module) {
 }
 
 EcsEntityId input_active_window(const InputManagerComp* manager) { return manager->activeWindow; }
-
-bool input_triggered(const InputManagerComp* manager, const String action) {
-  return input_triggered_hash(manager, bits_hash_32(action));
-}
 
 bool input_triggered_hash(const InputManagerComp* manager, const u32 actionHash) {
   dynarray_for_t(&manager->triggeredActions, u32, triggeredActionHash) {

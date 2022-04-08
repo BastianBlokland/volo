@@ -184,8 +184,7 @@ ecs_system_define(DebugMenuUpdateSys) {
      * TODO: Does this belong here? Perhaps it should be the responsibilty of the application.
      * However the debug action bar does have a button to close the window also.
      */
-    if (input_active_window(input) == menu->window &&
-        input_triggered(input, string_lit("WindowClose"))) {
+    if (input_active_window(input) == menu->window && input_triggered_lit(input, "WindowClose")) {
       gap_window_close(win);
     }
   }

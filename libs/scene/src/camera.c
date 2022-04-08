@@ -62,7 +62,7 @@ static void camera_update_move(
     SceneTransformComp*            trans,
     const InputManagerComp*        input,
     const f32                      deltaSeconds) {
-  const bool boosted   = input_triggered(input, string_lit("CameraMoveBoost"));
+  const bool boosted   = input_triggered_lit(input, "CameraMoveBoost");
   const f32  moveSpeed = move->moveSpeed * (boosted ? g_camMoveSpeedBoostMult : 1.0f);
   const f32  posDelta  = deltaSeconds * moveSpeed;
 
@@ -70,18 +70,18 @@ static void camera_update_move(
   const GeoVector up      = geo_quat_rotate(trans->rotation, geo_up);
   const GeoVector forward = geo_quat_rotate(trans->rotation, geo_forward);
 
-  if (input_triggered(input, string_lit("CameraMoveForward"))) {
+  if (input_triggered_lit(input, "CameraMoveForward")) {
     const GeoVector dir = cam->flags & SceneCameraFlags_Orthographic ? up : forward;
     trans->position     = geo_vector_add(trans->position, geo_vector_mul(dir, posDelta));
   }
-  if (input_triggered(input, string_lit("CameraMoveBackward"))) {
+  if (input_triggered_lit(input, "CameraMoveBackward")) {
     const GeoVector dir = cam->flags & SceneCameraFlags_Orthographic ? up : forward;
     trans->position     = geo_vector_sub(trans->position, geo_vector_mul(dir, posDelta));
   }
-  if (input_triggered(input, string_lit("CameraMoveRight"))) {
+  if (input_triggered_lit(input, "CameraMoveRight")) {
     trans->position = geo_vector_add(trans->position, geo_vector_mul(right, posDelta));
   }
-  if (input_triggered(input, string_lit("CameraMoveLeft"))) {
+  if (input_triggered_lit(input, "CameraMoveLeft")) {
     trans->position = geo_vector_sub(trans->position, geo_vector_mul(right, posDelta));
   }
 }
@@ -92,8 +92,8 @@ static void camera_update_rotate(
     const InputManagerComp*        input,
     const GapWindowComp*           win) {
 
-  const GeoVector left  = geo_quat_rotate(trans->rotation, geo_left);
-  const bool lookEnable = input_triggered(input, string_lit("CameraLookEnable")) || move->locked;
+  const GeoVector left       = geo_quat_rotate(trans->rotation, geo_left);
+  const bool      lookEnable = input_triggered_lit(input, "CameraLookEnable") || move->locked;
 
   if (lookEnable) {
     const f32 deltaX = gap_window_param(win, GapParam_CursorDelta).x * g_camRotateSensitivity;
@@ -110,7 +110,7 @@ static void camera_update_lock(
   if (gap_window_events(win) & GapWindowEvents_FocusLost) {
     move->locked = false;
   }
-  if (input_triggered(input, string_lit("CameraInputLock"))) {
+  if (input_triggered_lit(input, "CameraInputLock")) {
     if (move->locked) {
       gap_window_flags_unset(win, GapWindowFlags_CursorLock | GapWindowFlags_CursorHide);
     } else {
