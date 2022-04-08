@@ -1,6 +1,8 @@
+#include "asset_inputmap.h"
 #include "core_alloc.h"
 #include "core_bits.h"
 #include "core_dynarray.h"
+#include "ecs_utils.h"
 #include "ecs_world.h"
 #include "gap_window.h"
 #include "input_manager.h"
@@ -24,6 +26,8 @@ ecs_view_define(GlobalView) {
 
 ecs_view_define(WindowView) { ecs_access_read(GapWindowComp); }
 
+ecs_view_define(InputMapView) { ecs_access_read(AssetInputMapComp); }
+
 static InputManagerComp* input_manager_create(EcsWorld* world) {
   return ecs_world_add_t(
       world,
@@ -32,7 +36,34 @@ static InputManagerComp* input_manager_create(EcsWorld* world) {
       .triggeredActions = dynarray_create_t(g_alloc_heap, u32, 8));
 }
 
-static void input_active_window_refresh(EcsWorld* world, InputManagerComp* manager) {
+static const AssetInputMapComp* input_global_map(EcsWorld* world, const EcsEntityId entity) {
+  EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(world, InputMapView), entity);
+  return itr ? ecs_view_read_t(itr, AssetInputMapComp) : null;
+}
+
+static bool input_binding_satisfied(const AssetInputBinding* binding, const GapWindowComp* window) {
+  switch (binding->type) {
+  case AssetInputType_Pressed:
+    return gap_window_key_pressed(window, binding->key);
+  case AssetInputType_Released:
+    return gap_window_key_released(window, binding->key);
+  case AssetInputType_Down:
+    return gap_window_key_down(window, binding->key);
+  }
+}
+
+static bool input_action_satisfied(
+    const AssetInputMapComp* map, const AssetInputAction* action, const GapWindowComp* window) {
+  for (usize i = 0; i != action->bindingCount; ++i) {
+    const AssetInputBinding* binding = &map->bindings[action->bindingIndex + i];
+    if (input_binding_satisfied(binding, window)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+static void input_refresh_active_window(EcsWorld* world, InputManagerComp* manager) {
   if (manager->activeWindow && !ecs_world_exists(world, manager->activeWindow)) {
     manager->activeWindow = 0;
   }
@@ -50,14 +81,31 @@ ecs_system_define(InputUpdateSys) {
   if (!globalItr) {
     return;
   }
-  const InputResourcesComp* resources = ecs_view_read_t(globalItr, InputResourcesComp);
-  InputManagerComp*         manager   = ecs_view_write_t(globalItr, InputManagerComp);
+  InputManagerComp* manager = ecs_view_write_t(globalItr, InputManagerComp);
   if (!manager) {
     manager = input_manager_create(world);
   }
-  input_active_window_refresh(world, manager);
+  dynarray_clear(&manager->triggeredActions); // Clear the previous tick's triggered actions.
 
-  (void)resources;
+  const InputResourcesComp* resources = ecs_view_read_t(globalItr, InputResourcesComp);
+  const AssetInputMapComp*  map       = input_global_map(world, input_resource_map(resources));
+  if (!map) {
+    return; // Inputmap not loaded yet.
+  }
+
+  input_refresh_active_window(world, manager);
+  if (!manager->activeWindow) {
+    return; // No window currently active.
+  }
+  const GapWindowComp* window =
+      ecs_utils_read_t(world, WindowView, manager->activeWindow, GapWindowComp);
+
+  for (usize i = 0; i != map->actionCount; ++i) {
+    const AssetInputAction* action = &map->actions[i];
+    if (input_action_satisfied(map, action, window)) {
+      *dynarray_push_t(&manager->triggeredActions, u32) = action->nameHash;
+    }
+  }
 }
 
 ecs_module_init(input_manager_module) {
@@ -65,8 +113,10 @@ ecs_module_init(input_manager_module) {
 
   ecs_register_view(GlobalView);
   ecs_register_view(WindowView);
+  ecs_register_view(InputMapView);
 
-  ecs_register_system(InputUpdateSys, ecs_view_id(GlobalView), ecs_view_id(WindowView));
+  ecs_register_system(
+      InputUpdateSys, ecs_view_id(GlobalView), ecs_view_id(WindowView), ecs_view_id(InputMapView));
 }
 
 bool input_triggered(const InputManagerComp* manager, const String action) {
