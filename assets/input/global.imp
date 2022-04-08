@@ -66,6 +66,15 @@
           "key": "Tab"
         }
       ]
+    },
+    {
+      "name": "UiDisableToggle",
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "F12"
+        }
+      ]
     }
   ]
 }
