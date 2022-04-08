@@ -152,6 +152,9 @@ static void window_update(
     gap_pal_window_cursor_capture(platform->pal, window->id, false);
     gap_pal_window_cursor_hide(platform->pal, window->id, false);
   }
+  if (palFlags & GapPalWindowFlags_Focussed) {
+    window->events |= GapWindowEvents_Focussed;
+  }
   if (window->flags & GapWindowFlags_CursorLock) {
     const GapVector tgtPos = gap_vector_div(window->params[GapParam_WindowSize], 2);
     if (!gap_vector_equal(window->params[GapParam_CursorPos], tgtPos)) {
