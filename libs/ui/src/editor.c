@@ -13,7 +13,7 @@ struct sUiEditor {
   Allocator*    alloc;
   UiEditorFlags flags;
   UiId          textElement;
-  DynString     buffer;
+  DynString     buffer, displayBuffer;
 };
 
 static usize editor_cp_bytes_at(UiEditor* editor, const usize index) {
@@ -70,19 +70,27 @@ static void editor_input_text(UiEditor* editor, String text) {
   }
 }
 
+static void editor_update_display(UiEditor* editor) {
+  dynstring_clear(&editor->displayBuffer);
+  dynstring_append(&editor->displayBuffer, dynstring_view(&editor->buffer));
+  dynstring_append_char(&editor->displayBuffer, '|');
+}
+
 UiEditor* ui_editor_create(Allocator* alloc) {
   UiEditor* editor = alloc_alloc_t(alloc, UiEditor);
 
   *editor = (UiEditor){
-      .alloc       = alloc,
-      .textElement = sentinel_u64,
-      .buffer      = dynstring_create(alloc, 512),
+      .alloc         = alloc,
+      .textElement   = sentinel_u64,
+      .buffer        = dynstring_create(alloc, 256),
+      .displayBuffer = dynstring_create(alloc, 256),
   };
   return editor;
 }
 
 void ui_editor_destroy(UiEditor* editor) {
   dynstring_destroy(&editor->buffer);
+  dynstring_destroy(&editor->displayBuffer);
   alloc_free_t(editor->alloc, editor);
 }
 
@@ -93,6 +101,8 @@ bool ui_editor_active(const UiEditor* editor) {
 UiId ui_editor_element(const UiEditor* editor) { return editor->textElement; }
 
 String ui_editor_result(const UiEditor* editor) { return dynstring_view(&editor->buffer); }
+
+String ui_editor_display(const UiEditor* editor) { return dynstring_view(&editor->displayBuffer); }
 
 void ui_editor_start(UiEditor* editor, const String initialText, const UiId element) {
   diag_assert(utf8_validate(initialText));
@@ -118,6 +128,8 @@ void ui_editor_update(UiEditor* editor, const GapWindowComp* win) {
   if (gap_window_key_pressed(win, GapKey_Escape) || gap_window_key_pressed(win, GapKey_Return)) {
     ui_editor_stop(editor);
   }
+
+  editor_update_display(editor);
 }
 
 void ui_editor_stop(UiEditor* editor) {
