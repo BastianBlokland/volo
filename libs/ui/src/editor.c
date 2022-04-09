@@ -117,4 +117,7 @@ void ui_editor_update(UiEditor* editor, const GapWindowComp* win) {
   editor_input_text(editor, gap_window_input_text(win));
 }
 
-void ui_editor_stop(UiEditor* editor) { editor->flags &= ~UiEditorFlags_Active; }
+void ui_editor_stop(UiEditor* editor) {
+  editor->flags &= ~UiEditorFlags_Active;
+  editor->textElement = sentinel_u64;
+}

@@ -125,11 +125,11 @@ typedef struct {
 static UiDrawMetaData ui_draw_metadata(const UiRenderState* state, const AssetFtxComp* font) {
   const UiVector canvasRes = state->canvas->resolution;
   UiDrawMetaData meta      = {
-           .canvasRes = geo_vector(
+      .canvasRes = geo_vector(
           canvasRes.width, canvasRes.height, 1.0f / canvasRes.width, 1.0f / canvasRes.height),
-           .invCanvasScale  = 1.0f / state->settings->scale,
-           .glyphsPerDim    = font->glyphsPerDim,
-           .invGlyphsPerDim = 1.0f / (f32)font->glyphsPerDim,
+      .invCanvasScale  = 1.0f / state->settings->scale,
+      .glyphsPerDim    = font->glyphsPerDim,
+      .invGlyphsPerDim = 1.0f / (f32)font->glyphsPerDim,
   };
   mem_cpy(mem_var(meta.clipRects), mem_var(state->clipRects));
   return meta;
@@ -194,10 +194,6 @@ static void ui_canvas_update_interaction(
     const UiId           hoveredId,
     const UiFlags        hoveredFlags) {
 
-  if (ui_editor_active(canvas->textEditor)) {
-    ui_editor_update(canvas->textEditor, window);
-  }
-
   const bool inputDown     = gap_window_key_down(window, GapKey_MouseLeft);
   const bool inputPressed  = gap_window_key_pressed(window, GapKey_MouseLeft);
   const bool inputReleased = gap_window_key_released(window, GapKey_MouseLeft);
@@ -255,7 +251,7 @@ static UiBuildResult ui_canvas_build(UiRenderState* state, const UiId debugElem)
 
 ecs_view_define(GlobalView) {
   ecs_access_read(UiGlobalResourcesComp);
-  ecs_access_read(InputManagerComp);
+  ecs_access_write(InputManagerComp);
 }
 ecs_view_define(FtxView) { ecs_access_read(AssetFtxComp); }
 ecs_view_define(WindowView) {
@@ -351,7 +347,7 @@ ecs_system_define(UiRenderSys) {
     return; // Global dependencies not initialized yet.
   }
   const UiGlobalResourcesComp* globalRes = ecs_view_read_t(globalItr, UiGlobalResourcesComp);
-  const InputManagerComp*      input     = ecs_view_read_t(globalItr, InputManagerComp);
+  InputManagerComp*            input     = ecs_view_write_t(globalItr, InputManagerComp);
 
   const AssetFtxComp* font = ui_global_font(world, ui_resource_font(globalRes));
   if (!font) {
@@ -391,12 +387,12 @@ ecs_system_define(UiRenderSys) {
     const f32       scale       = settings ? settings->scale : 1.0f;
     const UiVector  canvasSize  = ui_vector(winSize.x / scale, winSize.y / scale);
     UiRenderState   renderState = {
-          .settings      = settings,
-          .font          = font,
-          .renderer      = renderer,
-          .draw          = draw,
-          .clipRects[0]  = {.size = canvasSize},
-          .clipRectCount = 1,
+        .settings      = settings,
+        .font          = font,
+        .renderer      = renderer,
+        .draw          = draw,
+        .clipRects[0]  = {.size = canvasSize},
+        .clipRectCount = 1,
     };
 
     UiCanvasPtr canvasses[ui_canvas_canvasses_max];
@@ -428,15 +424,28 @@ ecs_system_define(UiRenderSys) {
       hoveredCanvasIndex = sentinel_u32;
     }
 
-    for (u32 i = 0; i != canvasCount; ++i) {
+    bool textEditActive = false;
+    for (u32 i = canvasCount; i-- > 0;) { // Interate from the top canvas to the bottom canvas.
       UiCanvasComp* canvas    = canvasses[i];
       const bool    isHovered = hoveredCanvasIndex == i && hoveredLayer >= canvas->minInteractLayer;
       const UiId    hoveredElem = isHovered ? hoveredId : sentinel_u64;
       ui_canvas_update_interaction(canvas, settings, window, hoveredElem, hoveredFlags);
 
+      if (ui_editor_active(canvas->textEditor)) {
+        const bool isTextEditorHovered = hoveredElem == ui_editor_element(canvas->textEditor);
+        const bool deselect = gap_window_key_down(window, GapKey_MouseLeft) && !isTextEditorHovered;
+        if (textEditActive || deselect) {
+          ui_editor_stop(canvas->textEditor);
+        } else {
+          textEditActive = true;
+          ui_editor_update(canvas->textEditor, window);
+        }
+      }
+
       stats->trackedElemCount += (u32)canvas->trackedElems.size;
       stats->persistElemCount += (u32)canvas->persistentElems.size;
     }
+    input_layer_set(input, textEditActive ? InputLayer_TextInput : InputLayer_Normal);
 
     stats->canvasSize        = canvasSize;
     stats->canvasCount       = canvasCount;
@@ -539,7 +548,7 @@ UiRect ui_canvas_elem_rect(const UiCanvasComp* comp, const UiId id) {
 UiStatus ui_canvas_status(const UiCanvasComp* comp) { return comp->activeStatus; }
 UiVector ui_canvas_resolution(const UiCanvasComp* comp) { return comp->resolution; }
 bool     ui_canvas_input_any(const UiCanvasComp* comp) {
-      return (comp->flags & UiCanvasFlags_InputAny) != 0;
+  return (comp->flags & UiCanvasFlags_InputAny) != 0;
 }
 UiVector ui_canvas_input_delta(const UiCanvasComp* comp) { return comp->inputDelta; }
 UiVector ui_canvas_input_pos(const UiCanvasComp* comp) { return comp->inputPos; }
