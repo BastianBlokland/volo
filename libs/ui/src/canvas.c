@@ -15,6 +15,7 @@
 
 #include "builder_internal.h"
 #include "cmd_internal.h"
+#include "editor_internal.h"
 #include "resource_internal.h"
 
 #define ui_canvas_clip_rects_max 10
@@ -59,6 +60,7 @@ ecs_comp_define(UiCanvasComp) {
   i32           order;
   EcsEntityId   window;
   UiCmdBuffer*  cmdBuffer;
+  UiEditor*     textEditor;
   UiId          nextId;
   DynArray      trackedElems;    // UiTrackedElem[]
   DynArray      persistentElems; // UiPersistentElem[]
@@ -79,6 +81,7 @@ static void ecs_destruct_renderer(void* data) {
 static void ecs_destruct_canvas(void* data) {
   UiCanvasComp* comp = data;
   ui_cmdbuffer_destroy(comp->cmdBuffer);
+  ui_editor_destroy(comp->textEditor);
   dynarray_destroy(&comp->trackedElems);
   dynarray_destroy(&comp->persistentElems);
 }
@@ -122,11 +125,11 @@ typedef struct {
 static UiDrawMetaData ui_draw_metadata(const UiRenderState* state, const AssetFtxComp* font) {
   const UiVector canvasRes = state->canvas->resolution;
   UiDrawMetaData meta      = {
-      .canvasRes = geo_vector(
+           .canvasRes = geo_vector(
           canvasRes.width, canvasRes.height, 1.0f / canvasRes.width, 1.0f / canvasRes.height),
-      .invCanvasScale  = 1.0f / state->settings->scale,
-      .glyphsPerDim    = font->glyphsPerDim,
-      .invGlyphsPerDim = 1.0f / (f32)font->glyphsPerDim,
+           .invCanvasScale  = 1.0f / state->settings->scale,
+           .glyphsPerDim    = font->glyphsPerDim,
+           .invGlyphsPerDim = 1.0f / (f32)font->glyphsPerDim,
   };
   mem_cpy(mem_var(meta.clipRects), mem_var(state->clipRects));
   return meta;
@@ -190,6 +193,10 @@ static void ui_canvas_update_interaction(
     const GapWindowComp* window,
     const UiId           hoveredId,
     const UiFlags        hoveredFlags) {
+
+  if (ui_editor_active(canvas->textEditor)) {
+    ui_editor_update(canvas->textEditor, window);
+  }
 
   const bool inputDown     = gap_window_key_down(window, GapKey_MouseLeft);
   const bool inputPressed  = gap_window_key_pressed(window, GapKey_MouseLeft);
@@ -384,12 +391,12 @@ ecs_system_define(UiRenderSys) {
     const f32       scale       = settings ? settings->scale : 1.0f;
     const UiVector  canvasSize  = ui_vector(winSize.x / scale, winSize.y / scale);
     UiRenderState   renderState = {
-        .settings      = settings,
-        .font          = font,
-        .renderer      = renderer,
-        .draw          = draw,
-        .clipRects[0]  = {.size = canvasSize},
-        .clipRectCount = 1,
+          .settings      = settings,
+          .font          = font,
+          .renderer      = renderer,
+          .draw          = draw,
+          .clipRects[0]  = {.size = canvasSize},
+          .clipRectCount = 1,
     };
 
     UiCanvasPtr canvasses[ui_canvas_canvasses_max];
@@ -482,6 +489,7 @@ ui_canvas_create(EcsWorld* world, const EcsEntityId window, const UiCanvasCreate
       UiCanvasComp,
       .window          = window,
       .cmdBuffer       = ui_cmdbuffer_create(g_alloc_heap),
+      .textEditor      = ui_editor_create(g_alloc_heap),
       .trackedElems    = dynarray_create_t(g_alloc_heap, UiTrackedElem, 16),
       .persistentElems = dynarray_create_t(g_alloc_heap, UiPersistentElem, 16));
 
@@ -531,7 +539,7 @@ UiRect ui_canvas_elem_rect(const UiCanvasComp* comp, const UiId id) {
 UiStatus ui_canvas_status(const UiCanvasComp* comp) { return comp->activeStatus; }
 UiVector ui_canvas_resolution(const UiCanvasComp* comp) { return comp->resolution; }
 bool     ui_canvas_input_any(const UiCanvasComp* comp) {
-  return (comp->flags & UiCanvasFlags_InputAny) != 0;
+      return (comp->flags & UiCanvasFlags_InputAny) != 0;
 }
 UiVector ui_canvas_input_delta(const UiCanvasComp* comp) { return comp->inputDelta; }
 UiVector ui_canvas_input_pos(const UiCanvasComp* comp) { return comp->inputPos; }
@@ -565,6 +573,33 @@ UiId ui_canvas_draw_text(
   const UiId id = comp->nextId++;
   ui_cmd_push_draw_text(comp->cmdBuffer, id, text, fontSize, align, flags);
   return id;
+}
+
+UiId ui_canvas_draw_text_editable(
+    UiCanvasComp* comp,
+    DynString*    text,
+    const u16     fontSize,
+    const UiAlign align,
+    const UiFlags flags) {
+
+  const UiId textId = ui_canvas_id_peek(comp);
+  if (ui_editor_element(comp->textEditor) == textId) {
+    /**
+     * The text is currently being edited, return the edited text.
+     */
+    dynstring_clear(text);
+    dynstring_append(text, ui_editor_result(comp->textEditor));
+
+  } else if (ui_canvas_elem_status(comp, textId) == UiStatus_Activated) {
+    /**
+     * Start editor when the element is activated.
+     */
+    ui_editor_start(comp->textEditor, dynstring_view(text), textId);
+  }
+  const String  textView   = dynstring_view(text);
+  const UiFlags totalFlags = flags | UiFlags_Interactable | UiFlags_AllowWordBreak;
+  ui_canvas_draw_text(comp, textView, fontSize, align, totalFlags);
+  return textId;
 }
 
 UiId ui_canvas_draw_glyph(
