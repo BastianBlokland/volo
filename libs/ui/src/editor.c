@@ -110,11 +110,14 @@ void ui_editor_start(UiEditor* editor, const String initialText, const UiId elem
 void ui_editor_update(UiEditor* editor, const GapWindowComp* win) {
   diag_assert(editor->flags & UiEditorFlags_Active);
 
+  editor_input_text(editor, gap_window_input_text(win));
   if (gap_window_key_pressed(win, GapKey_Backspace)) {
     // TODO: How to handle key repeat?
     editor_cp_erase_last(editor);
   }
-  editor_input_text(editor, gap_window_input_text(win));
+  if (gap_window_key_pressed(win, GapKey_Escape) || gap_window_key_pressed(win, GapKey_Return)) {
+    ui_editor_stop(editor);
+  }
 }
 
 void ui_editor_stop(UiEditor* editor) {
