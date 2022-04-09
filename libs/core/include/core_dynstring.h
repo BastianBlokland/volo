@@ -66,6 +66,12 @@ void dynstring_append_chars(DynString*, u8, usize amount);
 void dynstring_insert_chars(DynString*, u8, usize idx, usize amount);
 
 /**
+ * Remove 'amount' characters from the given dynamic-string.
+ * NOTE: characters being single byte values, not Unicode codepoints.
+ */
+void dynstring_erase_chars(DynString*, usize idx, usize amount);
+
+/**
  * .Append 'amount' empty space at the end of the dynamic-string.
  * NOTE: the new space is NOT initialized and its up to the caller to write to it.
  */

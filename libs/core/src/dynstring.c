@@ -17,20 +17,27 @@ String dynstring_view(const DynString* dynstring) {
 
 void dynstring_clear(DynString* dynstring) { dynarray_clear(dynstring); }
 
-void dynstring_append(DynString* dynstring, String value) {
+void dynstring_append(DynString* dynstring, const String value) {
   mem_cpy(dynarray_push(dynstring, value.size), value);
 }
 
-void dynstring_append_char(DynString* dynstring, u8 val) { *dynarray_push_t(dynstring, u8) = val; }
+void dynstring_append_char(DynString* dynstring, const u8 val) {
+  *dynarray_push_t(dynstring, u8) = val;
+}
 
-void dynstring_append_chars(DynString* dynstring, u8 val, usize amount) {
+void dynstring_append_chars(DynString* dynstring, const u8 val, const usize amount) {
   mem_set(dynarray_push(dynstring, amount), val);
 }
 
-void dynstring_insert_chars(DynString* dynstring, u8 val, usize idx, usize amount) {
+void dynstring_insert_chars(
+    DynString* dynstring, const u8 val, const usize idx, const usize amount) {
   mem_set(dynarray_insert(dynstring, idx, amount), val);
 }
 
-String dynstring_push(DynString* dynstring, usize amount) {
+void dynstring_erase_chars(DynString* dynstring, const usize idx, const usize amount) {
+  dynarray_remove(dynstring, idx, amount);
+}
+
+String dynstring_push(DynString* dynstring, const usize amount) {
   return dynarray_push(dynstring, amount);
 }
