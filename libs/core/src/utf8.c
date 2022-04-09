@@ -12,6 +12,17 @@ static bool utf8_cp_valid(const Unicode cp) { return cp <= utf8_cp_max; }
 
 bool utf8_contchar(const u8 c) { return (c & 0b11000000) == 0b10000000; }
 
+bool utf8_validate(String str) {
+  Unicode cp;
+  while (!string_is_empty(str)) {
+    str = utf8_cp_read(str, &cp);
+    if (!cp) {
+      return false;
+    }
+  }
+  return true;
+}
+
 usize utf8_cp_count(String str) {
   usize result = 0;
   mem_for_u8(str, itr) {

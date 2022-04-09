@@ -9,6 +9,11 @@ spec(utf8) {
                     "ንጉሥ አይከሰስ።,แผ่นดินฮั่นเสื่อมโทรมแสนสังเวช,Зарегистрируйтесь,გთხოვთ ახლავე გაიაროთ⎪⎢⎜ "
                     "⎳aⁱ-bⁱ⎟⎥⎪▁▂▃▄▅▆▇█∀∂∈ℝ∧∪≡∞");
 
+  it("can validate utf8 strings") {
+    check(utf8_validate(string_empty));
+    check(utf8_validate(testStr));
+  }
+
   it("can count codepoints in a utf8 string") {
     check_eq_int(utf8_cp_count(string_empty), 0);
     check_eq_int(utf8_cp_count(string_lit("Hello")), 5);

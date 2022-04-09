@@ -8,6 +8,11 @@
 bool utf8_contchar(u8);
 
 /**
+ * Test if the given string contains valid utf8.
+ */
+bool utf8_validate(String);
+
+/**
  * Count the amount of unicode code-points in the given (utf8) string.
  * Pre-condition: Input string is valid utf8.
  */
