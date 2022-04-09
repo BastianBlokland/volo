@@ -22,6 +22,7 @@ typedef struct {
 
 UiTextBuildResult ui_text_build(
     const AssetFtxComp*,
+    UiFlags  flags,
     UiRect   totalRect,
     String   text,
     f32      fontSize,

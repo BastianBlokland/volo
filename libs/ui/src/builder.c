@@ -133,8 +133,8 @@ static void ui_build_text_char(void* userCtx, const UiTextCharInfo* info) {
   const f32      border = info->ch->border * info->size;
   const f32      size   = (info->ch->size + info->ch->border * 2.0f) * info->size;
   const UiVector pos    = {
-      info->pos.x + info->ch->offsetX * info->size - border,
-      info->pos.y + info->ch->offsetY * info->size - border,
+         info->pos.x + info->ch->offsetX * info->size - border,
+         info->pos.y + info->ch->offsetY * info->size - border,
   };
 
   state->ctx->outputGlyph(
@@ -229,6 +229,7 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
 
   const UiTextBuildResult result = ui_text_build(
       state->font,
+      cmd->flags,
       rect,
       cmd->text,
       cmd->fontSize,
@@ -278,11 +279,11 @@ static void ui_build_debug_inspector(UiBuildState* state, const UiId id, const U
   const UiBuildStyle styleShape     = {.color = {255, 0, 0, 178}, .layer = UiLayer_Overlay};
   const UiBuildStyle styleContainer = {.color = {0, 0, 255, 178}, .layer = UiLayer_Overlay};
   const UiBuildStyle styleText      = {
-      .color     = ui_color_white,
-      .outline   = 3,
-      .variation = 1,
-      .weight    = UiWeight_Bold,
-      .layer     = UiLayer_Overlay};
+           .color     = ui_color_white,
+           .outline   = 3,
+           .variation = 1,
+           .weight    = UiWeight_Bold,
+           .layer     = UiLayer_Overlay};
 
   ui_build_glyph(state, UiShape_Square, container.rect, styleContainer, 5, 0);
   ui_build_glyph(state, UiShape_Square, rect, styleShape, 5, 0);
@@ -314,6 +315,7 @@ static void ui_build_debug_inspector(UiBuildState* state, const UiId id, const U
   };
   ui_text_build(
       state->font,
+      UiFlags_None,
       textRect,
       dynstring_view(&str),
       fontSize,

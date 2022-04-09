@@ -57,6 +57,7 @@ static bool ui_text_is_seperator(const Unicode cp) {
  */
 static String ui_text_line(
     const AssetFtxComp* font,
+    const UiFlags       flags,
     const String        text,
     const f32           maxWidth,
     const f32           fontSize,
@@ -89,8 +90,9 @@ static String ui_text_line(
     Unicode cp;
     remainingText = utf8_cp_read(remainingText, &cp);
 
-    const bool isSeperator = ui_text_is_seperator(cp);
-    if ((isSeperator && !wasSeperator) || firstWord) {
+    const bool isSeperator    = ui_text_is_seperator(cp);
+    const bool allowWordBreak = firstWord || flags & UiFlags_AllowWordBreak;
+    if ((isSeperator && !wasSeperator) || allowWordBreak) {
       cursorConsumed.charIndex = text.size - remainingText.size - utf8_cp_bytes(cp);
       cursorAccepted           = cursorConsumed;
     }
@@ -251,6 +253,7 @@ static void ui_text_build_line(UiTextBuildState* state, const UiTextLine* line) 
 
 UiTextBuildResult ui_text_build(
     const AssetFtxComp*       font,
+    const UiFlags             flags,
     const UiRect              totalRect,
     const String              text,
     const f32                 fontSize,
@@ -283,8 +286,8 @@ UiTextBuildResult ui_text_build(
       break;
     }
     const usize lineIndex = lineCount++;
-    remText =
-        ui_text_line(font, remText, totalRect.width, fontSize, fontVariation, &lines[lineIndex]);
+    remText               = ui_text_line(
+        font, flags, remText, totalRect.width, fontSize, fontVariation, &lines[lineIndex]);
 
     lines[lineIndex].posY = lineY;
     totalWidth            = math_max(totalWidth, lines[lineIndex].size.width);
