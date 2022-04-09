@@ -10,22 +10,6 @@
 
 static bool utf8_cp_valid(const Unicode cp) { return cp <= utf8_cp_max; }
 
-static u8 utf8_charcount_from_first(const u8 c) {
-  if ((c & 0b10000000) == 0) {
-    return 1;
-  }
-  if ((c & 0b11100000) == 0b11000000) {
-    return 2;
-  }
-  if ((c & 0b11110000) == 0b11100000) {
-    return 3;
-  }
-  if ((c & 0b11111000) == 0b11110000) {
-    return 4;
-  }
-  return 0; // Invalid utf8 char.
-}
-
 bool utf8_contchar(const u8 c) { return (c & 0b11000000) == 0b10000000; }
 
 usize utf8_cp_count(String str) {
@@ -49,6 +33,22 @@ usize utf8_cp_bytes(const Unicode cp) {
     return 3;
   }
   return 4;
+}
+
+usize utf8_cp_bytes_from_first(const u8 c) {
+  if ((c & 0b10000000) == 0) {
+    return 1;
+  }
+  if ((c & 0b11100000) == 0b11000000) {
+    return 2;
+  }
+  if ((c & 0b11110000) == 0b11100000) {
+    return 3;
+  }
+  if ((c & 0b11111000) == 0b11110000) {
+    return 4;
+  }
+  return 0; // Invalid utf8 char.
 }
 
 void utf8_cp_write(DynString* str, const Unicode cp) {
@@ -92,7 +92,7 @@ String utf8_cp_read(String utf8, Unicode* out) {
   u8* chars = string_begin(utf8);
 
   // Find out how many utf8 characters this codepoint consists.
-  const u8 charCount = utf8_charcount_from_first(chars[0]);
+  const usize charCount = utf8_cp_bytes_from_first(chars[0]);
   if (UNLIKELY(!charCount)) {
     *out = 0;
     return string_consume(utf8, 1);

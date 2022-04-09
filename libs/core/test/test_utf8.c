@@ -22,6 +22,15 @@ spec(utf8) {
     check_eq_int(utf8_cp_bytes(0x1D459), 4);
   }
 
+  it("can compute the total utf8 bytes from the starting character") {
+    check_eq_int(utf8_cp_bytes_from_first("a"[0]), 1);
+    check_eq_int(utf8_cp_bytes_from_first("Λ"[0]), 2);
+    check_eq_int(utf8_cp_bytes_from_first("�"[0]), 3);
+    check_eq_int(utf8_cp_bytes_from_first("�"[0]), 3);
+    check_eq_int(utf8_cp_bytes_from_first("𝑙"[0]), 4);
+    check_eq_int(utf8_cp_bytes_from_first(0), 1);
+  }
+
   it("can encode codepoints as utf8") {
     struct {
       Unicode cp;

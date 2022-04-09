@@ -19,6 +19,12 @@ usize utf8_cp_count(String);
 usize utf8_cp_bytes(Unicode);
 
 /**
+ * Given a utf8 starting character, returns the total amount of utf8 bytes for the codepoint.
+ * NOTE: Returns 0 when the given character is not a valid utf8 starting character.
+ */
+usize utf8_cp_bytes_from_first(u8);
+
+/**
  * Write a utf8 string (1 - 4 bytes) for a Unicode codepoint.
  */
 void utf8_cp_write(DynString*, Unicode);
