@@ -196,6 +196,10 @@ static usize ui_text_byte_index(UiTextBuildState* state, const String str) {
   return (u8*)str.ptr - (u8*)state->totalText.ptr;
 }
 
+static UiColor ui_text_color_alpha_mul(const UiColor color, const u8 alpha) {
+  return ui_color(color.r, color.g, color.b, (u8)(color.a * (alpha / 255.0f)));
+}
+
 static void ui_text_build_char(
     UiTextBuildState* state,
     const UiTextLine* line,
@@ -230,7 +234,7 @@ static void ui_text_build_char(
   state->cursor += advance;
 }
 
-static void ui_text_build_cursor(UiTextBuildState* state, const UiTextLine* line) {
+static void ui_text_build_cursor(UiTextBuildState* state, const UiTextLine* line, const u8 alpha) {
   const AssetFtxChar* ch = asset_ftx_lookup(state->font, UiShape_CursorVertialBar, 0);
   if (!sentinel_check(ch->glyphIndex)) {
     state->buildChar(
@@ -239,7 +243,7 @@ static void ui_text_build_cursor(UiTextBuildState* state, const UiTextLine* line
             .ch      = ch,
             .pos     = ui_text_char_pos(state, line),
             .size    = state->fontSize,
-            .color   = state->fontColor,
+            .color   = ui_text_color_alpha_mul(state->fontColor, alpha),
             .outline = state->fontOutline,
             .layer   = UiLayer_Overlay,
             .weight  = 1,
@@ -267,7 +271,7 @@ ui_text_build_escape(UiTextBuildState* state, const UiTextLine* line, const UiEs
     state->fontWeight = esc->escWeight.value;
     break;
   case UiEscape_Cursor:
-    ui_text_build_cursor(state, line);
+    ui_text_build_cursor(state, line, esc->escCursor.alpha);
     break;
   }
 }

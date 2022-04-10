@@ -130,9 +130,16 @@ static String ui_escape_read_weight(String input, UiEscape* out) {
 }
 
 static String ui_escape_read_cursor(String input, UiEscape* out) {
-  if (out) {
-    *out = (UiEscape){.type = UiEscape_Cursor};
+  if (!ui_escape_check_min_chars(input, 2, out)) {
+    return input;
   }
+  if (!out) {
+    return string_consume(input, 2); // Fast path in case the output is not needed.
+  }
+  u8 alpha;
+  input = ui_escape_read_byte_hex(input, &alpha);
+
+  *out = (UiEscape){.type = UiEscape_Cursor, .escOutline = {.value = alpha}};
   return input;
 }
 

@@ -15,7 +15,7 @@
  * - Switch to 'normal' weight:   [ESC].n          example: \a.n
  * - Switch to 'bold' weight:     [ESC].b          example: \a.b
  * - Switch to 'heavy' weight:    [ESC].h          example: \a.h
- * - Draw a cursor:               [ESC]c           example: \ac
+ * - Draw a cursor with alpha:    [ESC]cFF         example: \acFF
  *
  * NOTE: The 'Bell' character is supported as an alternative to the normal 'ESC' character. Reason
  * is C has \a shorthand for the bell character.

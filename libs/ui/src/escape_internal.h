@@ -24,11 +24,16 @@ typedef struct {
 } UiEscapeWeight;
 
 typedef struct {
+  u8 alpha;
+} UiEscapeCursor;
+
+typedef struct {
   UiEscapeType type;
   union {
     UiEscapeColor   escColor;
     UiEscapeOutline escOutline;
     UiEscapeWeight  escWeight;
+    UiEscapeCursor  escCursor;
   };
 } UiEscape;
 

@@ -8,7 +8,7 @@
 #include "editor_internal.h"
 #include "escape_internal.h"
 
-static const String g_editorCursorEsc = string_static(uni_esc "c");
+static const String g_editorCursorEsc = string_static(uni_esc "cFF");
 
 typedef enum {
   UiEditorFlags_Active      = 1 << 0,
