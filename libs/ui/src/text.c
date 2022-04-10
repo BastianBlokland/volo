@@ -265,6 +265,7 @@ ui_text_build_escape(UiTextBuildState* state, const UiTextLine* line, const UiEs
     break;
   case UiEscape_Weight:
     state->fontWeight = esc->escWeight.value;
+    break;
   case UiEscape_Cursor:
     ui_text_build_cursor(state, line);
     break;
