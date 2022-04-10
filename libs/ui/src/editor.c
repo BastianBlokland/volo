@@ -129,12 +129,20 @@ static void editor_insert_text(UiEditor* editor, String text) {
   }
 }
 
-static void editor_erase_prev(UiEditor* editor) {
-  const usize indexToErase = editor_prev_index(editor, editor->cursor);
-  if (!sentinel_check(indexToErase)) {
-    const usize chars = editor_cp_bytes_at(editor, indexToErase);
-    dynstring_erase_chars(&editor->text, indexToErase, chars);
-    editor->cursor -= chars;
+static void editor_erase_prev(UiEditor* editor, const UiEditorStride stride) {
+  usize eraseFrom;
+  switch (stride) {
+  case UiEditorStride_Codepoint:
+    eraseFrom = editor_prev_index(editor, editor->cursor);
+    break;
+  case UiEditorStride_Word:
+    eraseFrom = editor_prev_word_start_index(editor, editor->cursor);
+    break;
+  }
+  if (!sentinel_check(eraseFrom)) {
+    const usize bytesToErase = editor->cursor - eraseFrom;
+    dynstring_erase_chars(&editor->text, eraseFrom, bytesToErase);
+    editor->cursor -= bytesToErase;
   }
 }
 
@@ -236,7 +244,7 @@ void ui_editor_update(UiEditor* editor, const GapWindowComp* win) {
   editor_insert_text(editor, gap_window_input_text(win));
 
   if (gap_window_key_pressed(win, GapKey_Backspace)) {
-    editor_erase_prev(editor);
+    editor_erase_prev(editor, editor_stride_from_key_modifiers(win));
   }
   if (gap_window_key_pressed(win, GapKey_Delete)) {
     editor_erase_current(editor);
