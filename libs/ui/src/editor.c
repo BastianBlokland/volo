@@ -281,6 +281,9 @@ void ui_editor_update(UiEditor* editor, const GapWindowComp* win, const UiBuildH
 
   editor_insert_text(editor, gap_window_input_text(win));
 
+  if (gap_window_key_pressed(win, GapKey_Tab)) {
+    editor_insert_cp(editor, Unicode_HorizontalTab);
+  }
   if (gap_window_key_pressed(win, GapKey_Backspace)) {
     editor_erase_prev(editor, editor_stride_from_key_modifiers(win));
   }
