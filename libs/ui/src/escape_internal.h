@@ -8,6 +8,7 @@ typedef enum {
   UiEscape_Color,
   UiEscape_Outline,
   UiEscape_Weight,
+  UiEscape_Cursor,
 } UiEscapeType;
 
 typedef struct {

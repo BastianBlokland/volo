@@ -14,6 +14,7 @@ struct sUiEditor {
   UiEditorFlags flags;
   UiId          textElement;
   DynString     buffer, displayBuffer;
+  u32           cursor;
 };
 
 static usize editor_cp_bytes_at(UiEditor* editor, const usize index) {
@@ -73,7 +74,7 @@ static void editor_input_text(UiEditor* editor, String text) {
 static void editor_update_display(UiEditor* editor) {
   dynstring_clear(&editor->displayBuffer);
   dynstring_append(&editor->displayBuffer, dynstring_view(&editor->buffer));
-  dynstring_append_char(&editor->displayBuffer, '|');
+  dynstring_insert(&editor->displayBuffer, string_lit(uni_esc "c"), editor->cursor);
 }
 
 UiEditor* ui_editor_create(Allocator* alloc) {
@@ -127,6 +128,12 @@ void ui_editor_update(UiEditor* editor, const GapWindowComp* win) {
   }
   if (gap_window_key_pressed(win, GapKey_Escape) || gap_window_key_pressed(win, GapKey_Return)) {
     ui_editor_stop(editor);
+  }
+  if (gap_window_key_pressed(win, GapKey_ArrowLeft)) {
+    --editor->cursor;
+  }
+  if (gap_window_key_pressed(win, GapKey_ArrowRight)) {
+    ++editor->cursor;
   }
 
   editor_update_display(editor);

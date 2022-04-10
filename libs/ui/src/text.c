@@ -3,6 +3,7 @@
 #include "core_unicode.h"
 #include "core_utf8.h"
 #include "log_logger.h"
+#include "ui_shape.h"
 
 #include "escape_internal.h"
 #include "text_internal.h"
@@ -203,7 +204,25 @@ static void ui_text_build_char(UiTextBuildState* state, const UiTextLine* line, 
   state->cursor += ch->advance * state->fontSize;
 }
 
-static void ui_text_build_escape(UiTextBuildState* state, const UiEscape* esc) {
+static void ui_text_build_cursor(UiTextBuildState* state, const UiTextLine* line) {
+  const AssetFtxChar* ch = asset_ftx_lookup(state->font, UiShape_CursorVertialBar, 0);
+  if (!sentinel_check(ch->glyphIndex)) {
+    state->buildChar(
+        state->userCtx,
+        &(UiTextCharInfo){
+            .ch      = ch,
+            .pos     = ui_text_char_pos(state, line),
+            .size    = state->fontSize,
+            .color   = state->fontColor,
+            .outline = state->fontOutline,
+            .layer   = UiLayer_Overlay,
+            .weight  = 1,
+        });
+  }
+}
+
+static void
+ui_text_build_escape(UiTextBuildState* state, const UiTextLine* line, const UiEscape* esc) {
   switch (esc->type) {
   case UiEscape_Invalid:
     break;
@@ -220,6 +239,9 @@ static void ui_text_build_escape(UiTextBuildState* state, const UiEscape* esc) {
     break;
   case UiEscape_Weight:
     state->fontWeight = esc->escWeight.value;
+  case UiEscape_Cursor:
+    ui_text_build_cursor(state, line);
+    break;
   }
 }
 
@@ -244,7 +266,7 @@ static void ui_text_build_line(UiTextBuildState* state, const UiTextLine* line) 
     case Unicode_Escape:
     case Unicode_Bell:
       remainingText = ui_escape_read(remainingText, &esc);
-      ui_text_build_escape(state, &esc);
+      ui_text_build_escape(state, line, &esc);
       continue;
     }
     ui_text_build_char(state, line, cp);
