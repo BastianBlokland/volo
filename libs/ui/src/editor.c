@@ -50,17 +50,6 @@ static usize editor_cp_prev(UiEditor* editor, const usize index) {
   return sentinel_usize;
 }
 
-static void editor_cp_erase(UiEditor* editor, const usize index) {
-  dynstring_erase_chars(&editor->text, index, editor_cp_bytes_at(editor, index));
-}
-
-static void editor_cp_erase_last(UiEditor* editor) {
-  const usize toErase = editor_cp_prev(editor, editor->text.size);
-  if (!sentinel_check(toErase)) {
-    editor_cp_erase(editor, toErase);
-  }
-}
-
 static bool editor_validate_input_cp(const Unicode cp) {
   if (ascii_is_control(cp)) {
     return false; // Control characters like tab / backspace are handled separately.
@@ -85,6 +74,15 @@ static void editor_insert_text(UiEditor* editor, String text) {
     if (cp && editor_validate_input_cp(cp)) {
       editor_insert_cp(editor, cp);
     }
+  }
+}
+
+static void editor_erase_prev(UiEditor* editor) {
+  const usize toErase = editor_cp_prev(editor, editor->cursor);
+  if (!sentinel_check(toErase)) {
+    const usize chars = editor_cp_bytes_at(editor, toErase);
+    dynstring_erase_chars(&editor->text, toErase, chars);
+    editor->cursor -= chars;
   }
 }
 
@@ -155,8 +153,7 @@ void ui_editor_update(UiEditor* editor, const GapWindowComp* win) {
   editor_insert_text(editor, gap_window_input_text(win));
 
   if (gap_window_key_pressed(win, GapKey_Backspace)) {
-    // TODO: How to handle key repeat?
-    editor_cp_erase_last(editor);
+    editor_erase_prev(editor);
   }
   if (gap_window_key_pressed(win, GapKey_ArrowRight)) {
     editor_cursor_next(editor);
