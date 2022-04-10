@@ -1,10 +1,12 @@
 #include "core_ascii.h"
 #include "core_diag.h"
+#include "core_math.h"
 #include "core_unicode.h"
 #include "core_utf8.h"
 #include "gap_input.h"
 
 #include "editor_internal.h"
+#include "escape_internal.h"
 
 static const String g_editorCursorEsc = string_static(uni_esc "c");
 
@@ -27,7 +29,7 @@ struct sUiEditor {
 };
 
 static bool editor_cp_is_valid(const Unicode cp) {
-  if (ascii_is_control(cp)) {
+  if (cp < 0x1f) {
     return false; // Control characters like tab / backspace are handled separately.
   }
   if (ascii_is_newline(cp)) {
@@ -122,8 +124,17 @@ static void editor_insert_text(UiEditor* editor, String text) {
   while (!string_is_empty(text)) {
     Unicode cp;
     text = utf8_cp_read(text, &cp);
-    if (cp && editor_cp_is_valid(cp)) {
-      editor_insert_cp(editor, cp);
+    switch (cp) {
+    case Unicode_Escape:
+    case Unicode_Bell:
+      // Skip over escape sequences, editing text with escape sequences is not supported atm.
+      text = ui_escape_read(text, null);
+      break;
+    default:
+      if (editor_cp_is_valid(cp)) {
+        editor_insert_cp(editor, cp);
+      }
+      break;
     }
   }
 }
@@ -212,7 +223,11 @@ static usize editor_display_index_to_text_index(UiEditor* editor, const usize di
   if (displayIndex <= editor->cursor) {
     return displayIndex;
   }
-  return displayIndex - g_editorCursorEsc.size;
+  /**
+   * NOTE: The 'math_min' is here in case the display string didn't match the internal text string.
+   * This can only happen if the initial text contained invalid utf8 or escape sequences.
+   */
+  return math_min(displayIndex - g_editorCursorEsc.size, editor->text.size);
 }
 
 UiEditor* ui_editor_create(Allocator* alloc) {
@@ -244,18 +259,15 @@ String ui_editor_result(const UiEditor* editor) { return dynstring_view(&editor-
 String ui_editor_display(const UiEditor* editor) { return dynstring_view(&editor->displayText); }
 
 void ui_editor_start(UiEditor* editor, const String initialText, const UiId element) {
-  diag_assert(utf8_validate(initialText));
-
   if (ui_editor_active(editor)) {
     ui_editor_stop(editor);
   }
   editor->flags |= UiEditorFlags_Active | UiEditorFlags_FirstUpdate;
   editor->textElement = element;
+  editor->cursor      = 0;
 
   dynstring_clear(&editor->text);
-  dynstring_append(&editor->text, initialText);
-
-  editor_cursor_to_end(editor);
+  editor_insert_text(editor, initialText);
 }
 
 void ui_editor_update(UiEditor* editor, const GapWindowComp* win, const UiBuildHover hover) {

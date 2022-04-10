@@ -8,6 +8,7 @@
  * Text Editor.
  *
  * Simple line editor operating on utf8 text, only supporting a single line at the moment.
+ * NOTE: Does not support editing text with escape sequences (they are stripped out).
  */
 
 typedef struct sUiEditor UiEditor;
