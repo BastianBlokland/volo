@@ -6,7 +6,7 @@
 /**
  * Text Editor.
  *
- * Simple line editor operating on utf8 text.
+ * Simple line editor operating on utf8 text, only supporting a single line at the moment.
  */
 
 typedef struct sUiEditor UiEditor;

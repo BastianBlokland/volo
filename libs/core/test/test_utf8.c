@@ -18,6 +18,9 @@ spec(utf8) {
     check_eq_int(utf8_cp_count(string_empty), 0);
     check_eq_int(utf8_cp_count(string_lit("Hello")), 5);
     check_eq_int(utf8_cp_count(testStr), 184);
+
+    check_eq_int(string_lit("Привет, мир").size, 20);
+    check_eq_int(utf8_cp_count(string_lit("Привет, мир")), 11);
   }
 
   it("can compute the required utf8 bytes") {
