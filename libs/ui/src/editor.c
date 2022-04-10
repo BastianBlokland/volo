@@ -1,6 +1,7 @@
 #include "core_ascii.h"
 #include "core_diag.h"
 #include "core_math.h"
+#include "core_time.h"
 #include "core_unicode.h"
 #include "core_utf8.h"
 #include "gap_input.h"
@@ -8,11 +9,13 @@
 #include "editor_internal.h"
 #include "escape_internal.h"
 
-static const String g_editorCursorEsc = string_static(uni_esc "cFF");
+static const String g_editorCursorOnEsc  = string_static(uni_esc "cFF");
+static const String g_editorCursorOffEsc = string_static(uni_esc "c00");
 
 typedef enum {
   UiEditorFlags_Active      = 1 << 0,
   UiEditorFlags_FirstUpdate = 1 << 1,
+  UiEditorFlags_Dirty       = 1 << 2,
 } UiEditorFlags;
 
 typedef enum {
@@ -26,10 +29,11 @@ struct sUiEditor {
   UiId          textElement;
   DynString     text, displayText;
   usize         cursor;
+  TimeSteady    lastInteractTime;
 };
 
 static bool editor_cp_is_valid(const Unicode cp) {
-  if (cp < 0x1f) {
+  if (cp < 0x1f || cp == 127) {
     return false; // Control characters like tab / backspace are handled separately.
   }
   if (ascii_is_newline(cp)) {
@@ -118,6 +122,7 @@ static void editor_insert_cp(UiEditor* editor, const Unicode cp) {
   utf8_cp_write(&buffer, cp);
   dynstring_insert(&editor->text, dynstring_view(&buffer), editor->cursor);
   editor->cursor += buffer.size;
+  editor->flags |= UiEditorFlags_Dirty;
 }
 
 static void editor_insert_text(UiEditor* editor, String text) {
@@ -153,6 +158,7 @@ static void editor_erase_prev(UiEditor* editor, const UiEditorStride stride) {
     const usize bytesToErase = editor->cursor - eraseFrom;
     dynstring_erase_chars(&editor->text, eraseFrom, bytesToErase);
     editor->cursor -= bytesToErase;
+    editor->flags |= UiEditorFlags_Dirty;
   }
 }
 
@@ -171,10 +177,18 @@ static void editor_erase_current(UiEditor* editor, const UiEditorStride stride) 
   }
   const usize bytesToErase = eraseTo - editor->cursor;
   dynstring_erase_chars(&editor->text, editor->cursor, bytesToErase);
+  editor->flags |= UiEditorFlags_Dirty;
 }
 
-static void editor_cursor_to_start(UiEditor* editor) { editor->cursor = 0; }
-static void editor_cursor_to_end(UiEditor* editor) { editor->cursor = editor->text.size; }
+static void editor_cursor_to_start(UiEditor* editor) {
+  editor->cursor = 0;
+  editor->flags |= UiEditorFlags_Dirty;
+}
+
+static void editor_cursor_to_end(UiEditor* editor) {
+  editor->cursor = editor->text.size;
+  editor->flags |= UiEditorFlags_Dirty;
+}
 
 static void editor_cursor_next(UiEditor* editor, const UiEditorStride stride) {
   usize next;
@@ -187,6 +201,7 @@ static void editor_cursor_next(UiEditor* editor, const UiEditorStride stride) {
     break;
   }
   editor->cursor = sentinel_check(next) ? editor->text.size : next;
+  editor->flags |= UiEditorFlags_Dirty;
 }
 
 static void editor_cursor_prev(UiEditor* editor, const UiEditorStride stride) {
@@ -200,6 +215,7 @@ static void editor_cursor_prev(UiEditor* editor, const UiEditorStride stride) {
     break;
   }
   editor->cursor = sentinel_check(prev) ? 0 : prev;
+  editor->flags |= UiEditorFlags_Dirty;
 }
 
 static UiEditorStride editor_stride_from_key_modifiers(const GapWindowComp* win) {
@@ -209,10 +225,17 @@ static UiEditorStride editor_stride_from_key_modifiers(const GapWindowComp* win)
   return UiEditorStride_Codepoint;
 }
 
-static void editor_update_display(UiEditor* editor) {
+static void editor_update_display(UiEditor* editor, const TimeSteady timeNow) {
   dynstring_clear(&editor->displayText);
   dynstring_append(&editor->displayText, dynstring_view(&editor->text));
-  dynstring_insert(&editor->displayText, g_editorCursorEsc, editor->cursor);
+
+  static const TimeDuration g_blinkDelay    = time_second;
+  static const TimeDuration g_blinkInterval = time_second;
+
+  const TimeDuration sinceInteract = time_steady_duration(editor->lastInteractTime, timeNow);
+  const bool cursor = sinceInteract < g_blinkDelay || ((sinceInteract / g_blinkInterval) % 2) == 0;
+  dynstring_insert(
+      &editor->displayText, cursor ? g_editorCursorOnEsc : g_editorCursorOffEsc, editor->cursor);
 }
 
 static usize editor_display_index_to_text_index(UiEditor* editor, const usize displayIndex) {
@@ -227,7 +250,7 @@ static usize editor_display_index_to_text_index(UiEditor* editor, const usize di
    * NOTE: The 'math_min' is here in case the display string didn't match the internal text string.
    * This can only happen if the initial text contained invalid utf8 or escape sequences.
    */
-  return math_min(displayIndex - g_editorCursorEsc.size, editor->text.size);
+  return math_min(displayIndex - g_editorCursorOnEsc.size, editor->text.size);
 }
 
 UiEditor* ui_editor_create(Allocator* alloc) {
@@ -262,7 +285,7 @@ void ui_editor_start(UiEditor* editor, const String initialText, const UiId elem
   if (ui_editor_active(editor)) {
     ui_editor_stop(editor);
   }
-  editor->flags |= UiEditorFlags_Active | UiEditorFlags_FirstUpdate;
+  editor->flags |= UiEditorFlags_Active | UiEditorFlags_FirstUpdate | UiEditorFlags_Dirty;
   editor->textElement = element;
   editor->cursor      = 0;
 
@@ -277,6 +300,7 @@ void ui_editor_update(UiEditor* editor, const GapWindowComp* win, const UiBuildH
   const bool cursorToHovered = (firstUpdate || gap_window_key_down(win, GapKey_MouseLeft));
   if (cursorToHovered && hover.id == editor->textElement) {
     editor->cursor = editor_display_index_to_text_index(editor, hover.textCharIndex);
+    editor->flags |= UiEditorFlags_Dirty;
   }
 
   editor_insert_text(editor, gap_window_input_text(win));
@@ -306,9 +330,12 @@ void ui_editor_update(UiEditor* editor, const GapWindowComp* win, const UiBuildH
     ui_editor_stop(editor);
   }
 
-  editor_update_display(editor);
-
-  editor->flags &= ~UiEditorFlags_FirstUpdate;
+  const TimeSteady timeNow = time_steady_clock();
+  if (editor->flags & UiEditorFlags_Dirty) {
+    editor->lastInteractTime = timeNow;
+  }
+  editor_update_display(editor, timeNow);
+  editor->flags &= ~(UiEditorFlags_FirstUpdate | UiEditorFlags_Dirty);
 }
 
 void ui_editor_stop(UiEditor* editor) {

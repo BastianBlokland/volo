@@ -235,6 +235,9 @@ static void ui_text_build_char(
 }
 
 static void ui_text_build_cursor(UiTextBuildState* state, const UiTextLine* line, const u8 alpha) {
+  if (!alpha) {
+    return; // No need to render cursors with 0 alpha.
+  }
   const AssetFtxChar* ch = asset_ftx_lookup(state->font, UiShape_CursorVertialBar, 0);
   if (!sentinel_check(ch->glyphIndex)) {
     state->buildChar(
