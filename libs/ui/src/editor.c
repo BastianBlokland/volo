@@ -86,6 +86,13 @@ static void editor_erase_prev(UiEditor* editor) {
   }
 }
 
+static void editor_erase_current(UiEditor* editor) {
+  if (editor->cursor != editor->text.size) {
+    const usize chars = editor_cp_bytes_at(editor, editor->cursor);
+    dynstring_erase_chars(&editor->text, editor->cursor, chars);
+  }
+}
+
 static void editor_cursor_to_end(UiEditor* editor) { editor->cursor = (u32)editor->text.size; }
 
 static void editor_cursor_next(UiEditor* editor) {
@@ -154,6 +161,9 @@ void ui_editor_update(UiEditor* editor, const GapWindowComp* win) {
 
   if (gap_window_key_pressed(win, GapKey_Backspace)) {
     editor_erase_prev(editor);
+  }
+  if (gap_window_key_pressed(win, GapKey_Delete)) {
+    editor_erase_current(editor);
   }
   if (gap_window_key_pressed(win, GapKey_ArrowRight)) {
     editor_cursor_next(editor);
