@@ -8,7 +8,7 @@
 #include "escape_internal.h"
 #include "text_internal.h"
 
-#define ui_text_tab_size 4
+#define ui_text_tab_size 8
 #define ui_text_max_lines 100
 
 typedef struct {
@@ -39,7 +39,8 @@ static f32 ui_text_next_tabstop(
     const AssetFtxComp* font, const f32 cursor, const f32 fontSize, const u8 fontVariation) {
   const f32 spaceAdvance = asset_ftx_lookup(font, Unicode_Space, fontVariation)->advance * fontSize;
   const f32 tabSize      = spaceAdvance * ui_text_tab_size;
-  return cursor + tabSize - math_mod_f32(cursor + 1, tabSize);
+  const f32 toNextTabstop = tabSize - math_mod_f32(cursor + spaceAdvance, tabSize);
+  return cursor + toNextTabstop;
 }
 
 static bool ui_text_is_seperator(const Unicode cp) {
