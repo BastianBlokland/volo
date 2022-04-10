@@ -61,9 +61,20 @@ void dynstring_append_char(DynString*, u8);
 void dynstring_append_chars(DynString*, u8, usize amount);
 
 /**
+ * Insert a substring at a specific index in the given dynamic-string.
+ */
+void dynstring_insert(DynString*, String, usize idx);
+
+/**
  * Insert 'amount' characters at a specific index in the given dynamic-string.
  */
 void dynstring_insert_chars(DynString*, u8, usize idx, usize amount);
+
+/**
+ * Remove 'amount' characters from the given dynamic-string.
+ * NOTE: characters being single byte values, not Unicode codepoints.
+ */
+void dynstring_erase_chars(DynString*, usize idx, usize amount);
 
 /**
  * .Append 'amount' empty space at the end of the dynamic-string.

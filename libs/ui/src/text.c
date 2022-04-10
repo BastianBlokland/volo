@@ -3,6 +3,7 @@
 #include "core_unicode.h"
 #include "core_utf8.h"
 #include "log_logger.h"
+#include "ui_shape.h"
 
 #include "escape_internal.h"
 #include "text_internal.h"
@@ -18,24 +19,27 @@ typedef struct {
 
 typedef struct {
   const AssetFtxComp* font;
-  UiRect              rect;
-  f32                 fontSize;
+  const String        totalText;
+  const UiRect        rect;
+  const f32           fontSize;
   UiColor             fontColor, fontColorDefault;
   u8                  fontOutline, fontOutlineDefault;
-  UiLayer             fontLayer;
-  u8                  fontVariation;
+  const UiLayer       fontLayer;
+  const u8            fontVariation;
   UiWeight            fontWeight, fontWeightDefault;
-  UiAlign             align;
+  const UiAlign       align;
   void*               userCtx;
   UiTextBuildCharFunc buildChar;
   f32                 cursor;
+  const UiVector      inputPosition;
+  usize               hoveredCharIndex;
 } UiTextBuildState;
 
 static f32 ui_text_next_tabstop(
     const AssetFtxComp* font, const f32 cursor, const f32 fontSize, const u8 fontVariation) {
   const f32 spaceAdvance = asset_ftx_lookup(font, Unicode_Space, fontVariation)->advance * fontSize;
   const f32 tabSize      = spaceAdvance * ui_text_tab_size;
-  return cursor + tabSize - math_mod_f32(cursor, tabSize);
+  return cursor + tabSize - math_mod_f32(cursor + 1, tabSize);
 }
 
 static bool ui_text_is_seperator(const Unicode cp) {
@@ -57,6 +61,7 @@ static bool ui_text_is_seperator(const Unicode cp) {
  */
 static String ui_text_line(
     const AssetFtxComp* font,
+    const UiFlags       flags,
     const String        text,
     const f32           maxWidth,
     const f32           fontSize,
@@ -89,8 +94,9 @@ static String ui_text_line(
     Unicode cp;
     remainingText = utf8_cp_read(remainingText, &cp);
 
-    const bool isSeperator = ui_text_is_seperator(cp);
-    if ((isSeperator && !wasSeperator) || firstWord) {
+    const bool isSeperator    = ui_text_is_seperator(cp);
+    const bool allowWordBreak = firstWord || flags & UiFlags_AllowWordBreak;
+    if ((isSeperator && !wasSeperator) || allowWordBreak) {
       cursorConsumed.charIndex = text.size - remainingText.size - utf8_cp_bytes(cp);
       cursorAccepted           = cursorConsumed;
     }
@@ -183,8 +189,49 @@ static UiVector ui_text_char_pos(UiTextBuildState* state, const UiTextLine* line
   diag_crash();
 }
 
-static void ui_text_build_char(UiTextBuildState* state, const UiTextLine* line, const Unicode cp) {
-  const AssetFtxChar* ch = asset_ftx_lookup(state->font, cp, state->fontVariation);
+/**
+ * Get the byte-index into the total text.
+ */
+static usize ui_text_byte_index(UiTextBuildState* state, const String str) {
+  return (u8*)str.ptr - (u8*)state->totalText.ptr;
+}
+
+static void ui_text_build_char(
+    UiTextBuildState* state,
+    const UiTextLine* line,
+    const Unicode     cp,
+    const usize       nextCharByteIndex) {
+
+  const AssetFtxChar* ch      = asset_ftx_lookup(state->font, cp, state->fontVariation);
+  const UiVector      pos     = ui_text_char_pos(state, line);
+  const f32           advance = ch->advance * state->fontSize;
+
+  if (pos.x + advance * 0.5f < state->inputPosition.x) {
+    /**
+     * Input is beyond the middle of this character, move the hoveredCharIndex to the next char.
+     * TODO: For multi-line support this would need to check if we're within the current line.
+     */
+    state->hoveredCharIndex = nextCharByteIndex;
+  }
+
+  if (!sentinel_check(ch->glyphIndex)) {
+    state->buildChar(
+        state->userCtx,
+        &(UiTextCharInfo){
+            .ch      = ch,
+            .pos     = pos,
+            .size    = state->fontSize,
+            .color   = state->fontColor,
+            .outline = state->fontOutline,
+            .layer   = state->fontLayer,
+            .weight  = state->fontWeight,
+        });
+  }
+  state->cursor += advance;
+}
+
+static void ui_text_build_cursor(UiTextBuildState* state, const UiTextLine* line) {
+  const AssetFtxChar* ch = asset_ftx_lookup(state->font, UiShape_CursorVertialBar, 0);
   if (!sentinel_check(ch->glyphIndex)) {
     state->buildChar(
         state->userCtx,
@@ -194,14 +241,14 @@ static void ui_text_build_char(UiTextBuildState* state, const UiTextLine* line, 
             .size    = state->fontSize,
             .color   = state->fontColor,
             .outline = state->fontOutline,
-            .layer   = state->fontLayer,
-            .weight  = state->fontWeight,
+            .layer   = UiLayer_Overlay,
+            .weight  = 1,
         });
   }
-  state->cursor += ch->advance * state->fontSize;
 }
 
-static void ui_text_build_escape(UiTextBuildState* state, const UiEscape* esc) {
+static void
+ui_text_build_escape(UiTextBuildState* state, const UiTextLine* line, const UiEscape* esc) {
   switch (esc->type) {
   case UiEscape_Invalid:
     break;
@@ -218,6 +265,10 @@ static void ui_text_build_escape(UiTextBuildState* state, const UiEscape* esc) {
     break;
   case UiEscape_Weight:
     state->fontWeight = esc->escWeight.value;
+    break;
+  case UiEscape_Cursor:
+    ui_text_build_cursor(state, line);
+    break;
   }
 }
 
@@ -242,16 +293,19 @@ static void ui_text_build_line(UiTextBuildState* state, const UiTextLine* line) 
     case Unicode_Escape:
     case Unicode_Bell:
       remainingText = ui_escape_read(remainingText, &esc);
-      ui_text_build_escape(state, &esc);
+      ui_text_build_escape(state, line, &esc);
       continue;
     }
-    ui_text_build_char(state, line, cp);
+    const usize nextCharByteIndex = ui_text_byte_index(state, remainingText);
+    ui_text_build_char(state, line, cp, nextCharByteIndex);
   }
 }
 
 UiTextBuildResult ui_text_build(
     const AssetFtxComp*       font,
+    const UiFlags             flags,
     const UiRect              totalRect,
+    const UiVector            inputPosition,
     const String              text,
     const f32                 fontSize,
     const UiColor             fontColor,
@@ -283,8 +337,8 @@ UiTextBuildResult ui_text_build(
       break;
     }
     const usize lineIndex = lineCount++;
-    remText =
-        ui_text_line(font, remText, totalRect.width, fontSize, fontVariation, &lines[lineIndex]);
+    remText               = ui_text_line(
+        font, flags, remText, totalRect.width, fontSize, fontVariation, &lines[lineIndex]);
 
     lines[lineIndex].posY = lineY;
     totalWidth            = math_max(totalWidth, lines[lineIndex].size.width);
@@ -297,6 +351,7 @@ UiTextBuildResult ui_text_build(
    */
   UiTextBuildState state = {
       .font               = font,
+      .totalText          = text,
       .rect               = rect,
       .fontSize           = fontSize,
       .fontColor          = fontColor,
@@ -310,13 +365,15 @@ UiTextBuildResult ui_text_build(
       .align              = align,
       .userCtx            = userCtx,
       .buildChar          = buildChar,
+      .inputPosition      = inputPosition,
   };
   for (usize i = 0; i != lineCount; ++i) {
     ui_text_build_line(&state, &lines[i]);
   }
 
   return (UiTextBuildResult){
-      .rect      = rect,
-      .lineCount = lineCount,
+      .rect             = rect,
+      .lineCount        = lineCount,
+      .hoveredCharIndex = state.hoveredCharIndex,
   };
 }

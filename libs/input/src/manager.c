@@ -11,6 +11,7 @@
 
 ecs_comp_define(InputManagerComp) {
   EcsEntityId     activeWindow;
+  InputLayer      layer;
   InputCursorMode cursorMode;
   GapVector       cursorDelta;
   DynArray        triggeredActions; // u32[], name hashes of the triggered actions. Not sorted.
@@ -99,6 +100,14 @@ static void input_update_cursor(InputManagerComp* manager, GapWindowComp* win) {
 
 static void input_update_triggered(
     InputManagerComp* manager, const AssetInputMapComp* map, GapWindowComp* win) {
+
+  if (manager->layer != InputLayer_Normal) {
+    /**
+     * At the moment the mappings are either all enabled or all disabled.
+     * In the future this could be configurable for each action in the input map.
+     */
+    return;
+  }
   for (usize i = 0; i != map->actionCount; ++i) {
     const AssetInputAction* action = &map->actions[i];
     if (input_action_satisfied(map, action, win)) {
@@ -150,9 +159,11 @@ ecs_module_init(input_manager_module) {
 
 EcsEntityId input_active_window(const InputManagerComp* manager) { return manager->activeWindow; }
 
-InputCursorMode input_cursor_mode(const InputManagerComp* manager) { return manager->cursorMode; }
+InputLayer input_layer(const InputManagerComp* manager) { return manager->layer; }
+void input_layer_set(InputManagerComp* manager, const InputLayer layer) { manager->layer = layer; }
 
-void input_cursor_mode_set(InputManagerComp* manager, const InputCursorMode newMode) {
+InputCursorMode input_cursor_mode(const InputManagerComp* manager) { return manager->cursorMode; }
+void            input_cursor_mode_set(InputManagerComp* manager, const InputCursorMode newMode) {
   manager->cursorMode = newMode;
 }
 

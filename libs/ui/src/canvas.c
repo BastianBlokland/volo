@@ -15,6 +15,7 @@
 
 #include "builder_internal.h"
 #include "cmd_internal.h"
+#include "editor_internal.h"
 #include "resource_internal.h"
 
 #define ui_canvas_clip_rects_max 10
@@ -59,6 +60,7 @@ ecs_comp_define(UiCanvasComp) {
   i32           order;
   EcsEntityId   window;
   UiCmdBuffer*  cmdBuffer;
+  UiEditor*     textEditor;
   UiId          nextId;
   DynArray      trackedElems;    // UiTrackedElem[]
   DynArray      persistentElems; // UiPersistentElem[]
@@ -79,6 +81,7 @@ static void ecs_destruct_renderer(void* data) {
 static void ecs_destruct_canvas(void* data) {
   UiCanvasComp* comp = data;
   ui_cmdbuffer_destroy(comp->cmdBuffer);
+  ui_editor_destroy(comp->textEditor);
   dynarray_destroy(&comp->trackedElems);
   dynarray_destroy(&comp->persistentElems);
 }
@@ -248,7 +251,7 @@ static UiBuildResult ui_canvas_build(UiRenderState* state, const UiId debugElem)
 
 ecs_view_define(GlobalView) {
   ecs_access_read(UiGlobalResourcesComp);
-  ecs_access_read(InputManagerComp);
+  ecs_access_write(InputManagerComp);
 }
 ecs_view_define(FtxView) { ecs_access_read(AssetFtxComp); }
 ecs_view_define(WindowView) {
@@ -344,7 +347,7 @@ ecs_system_define(UiRenderSys) {
     return; // Global dependencies not initialized yet.
   }
   const UiGlobalResourcesComp* globalRes = ecs_view_read_t(globalItr, UiGlobalResourcesComp);
-  const InputManagerComp*      input     = ecs_view_read_t(globalItr, InputManagerComp);
+  InputManagerComp*            input     = ecs_view_write_t(globalItr, InputManagerComp);
 
   const AssetFtxComp* font = ui_global_font(world, ui_resource_font(globalRes));
   if (!font) {
@@ -397,10 +400,8 @@ ecs_system_define(UiRenderSys) {
 
     sort_quicksort_t(canvasses, canvasses + canvasCount, UiCanvasPtr, ui_canvas_ptr_compare);
 
-    u32     hoveredCanvasIndex = sentinel_u32;
-    UiLayer hoveredLayer       = 0;
-    UiId    hoveredId;
-    UiFlags hoveredFlags;
+    u32          hoveredCanvasIndex = sentinel_u32;
+    UiBuildHover hover              = {0};
     for (u32 i = 0; i != canvasCount; ++i) {
       UiCanvasComp* canvas = canvasses[i];
       canvas->order        = i;
@@ -408,11 +409,9 @@ ecs_system_define(UiRenderSys) {
 
       const UiId          debugElem = ui_canvas_debug_elem(canvas, settings);
       const UiBuildResult result    = ui_canvas_build(&renderState, debugElem);
-      if (!sentinel_check(result.hoveredId) && result.hoveredLayer >= hoveredLayer) {
+      if (!sentinel_check(result.hover.id) && result.hover.layer >= hover.layer) {
         hoveredCanvasIndex = i;
-        hoveredLayer       = result.hoveredLayer;
-        hoveredId          = result.hoveredId;
-        hoveredFlags       = result.hoveredFlags;
+        hover              = result.hover;
       }
       stats->commandCount += result.commandCount;
     }
@@ -421,15 +420,28 @@ ecs_system_define(UiRenderSys) {
       hoveredCanvasIndex = sentinel_u32;
     }
 
-    for (u32 i = 0; i != canvasCount; ++i) {
+    bool textEditActive = false;
+    for (u32 i = canvasCount; i-- > 0;) { // Interate from the top canvas to the bottom canvas.
       UiCanvasComp* canvas    = canvasses[i];
-      const bool    isHovered = hoveredCanvasIndex == i && hoveredLayer >= canvas->minInteractLayer;
-      const UiId    hoveredElem = isHovered ? hoveredId : sentinel_u64;
-      ui_canvas_update_interaction(canvas, settings, window, hoveredElem, hoveredFlags);
+      const bool    isHovered = hoveredCanvasIndex == i && hover.layer >= canvas->minInteractLayer;
+      const UiId    hoveredElem = isHovered ? hover.id : sentinel_u64;
+      ui_canvas_update_interaction(canvas, settings, window, hoveredElem, hover.flags);
+
+      if (ui_editor_active(canvas->textEditor)) {
+        const bool isTextEditorHovered = hoveredElem == ui_editor_element(canvas->textEditor);
+        const bool deselect = gap_window_key_down(window, GapKey_MouseLeft) && !isTextEditorHovered;
+        if (textEditActive || deselect) {
+          ui_editor_stop(canvas->textEditor);
+        } else {
+          textEditActive = true;
+          ui_editor_update(canvas->textEditor, window, hover);
+        }
+      }
 
       stats->trackedElemCount += (u32)canvas->trackedElems.size;
       stats->persistElemCount += (u32)canvas->persistentElems.size;
     }
+    input_layer_set(input, textEditActive ? InputLayer_TextInput : InputLayer_Normal);
 
     stats->canvasSize        = canvasSize;
     stats->canvasCount       = canvasCount;
@@ -482,6 +494,7 @@ ui_canvas_create(EcsWorld* world, const EcsEntityId window, const UiCanvasCreate
       UiCanvasComp,
       .window          = window,
       .cmdBuffer       = ui_cmdbuffer_create(g_alloc_heap),
+      .textEditor      = ui_editor_create(g_alloc_heap),
       .trackedElems    = dynarray_create_t(g_alloc_heap, UiTrackedElem, 16),
       .persistentElems = dynarray_create_t(g_alloc_heap, UiPersistentElem, 16));
 
@@ -565,6 +578,34 @@ UiId ui_canvas_draw_text(
   const UiId id = comp->nextId++;
   ui_cmd_push_draw_text(comp->cmdBuffer, id, text, fontSize, align, flags);
   return id;
+}
+
+UiId ui_canvas_draw_text_editable(
+    UiCanvasComp* comp,
+    DynString*    text,
+    const u16     fontSize,
+    const UiAlign align,
+    const UiFlags flags) {
+
+  const UiId textId        = ui_canvas_id_peek(comp);
+  String     displayString = dynstring_view(text);
+  if (ui_editor_element(comp->textEditor) == textId) {
+    /**
+     * The text is currently being edited, return the edited text.
+     */
+    dynstring_clear(text);
+    dynstring_append(text, ui_editor_result(comp->textEditor));
+    displayString = ui_editor_display(comp->textEditor);
+
+  } else if (ui_canvas_elem_status(comp, textId) == UiStatus_Activated) {
+    /**
+     * Start editor when the element is activated.
+     */
+    ui_editor_start(comp->textEditor, dynstring_view(text), textId);
+  }
+  const UiFlags totalFlags = flags | UiFlags_Interactable | UiFlags_AllowWordBreak;
+  ui_canvas_draw_text(comp, displayString, fontSize, align, totalFlags);
+  return textId;
 }
 
 UiId ui_canvas_draw_glyph(

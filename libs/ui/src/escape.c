@@ -129,6 +129,13 @@ static String ui_escape_read_weight(String input, UiEscape* out) {
   return string_consume(input, 1);
 }
 
+static String ui_escape_read_cursor(String input, UiEscape* out) {
+  if (out) {
+    *out = (UiEscape){.type = UiEscape_Cursor};
+  }
+  return input;
+}
+
 String ui_escape_read(String input, UiEscape* out) {
   u8 ch;
   input = format_read_char(input, &ch);
@@ -143,6 +150,8 @@ String ui_escape_read(String input, UiEscape* out) {
     return ui_escape_read_outline(input, out);
   case '.':
     return ui_escape_read_weight(input, out);
+  case 'c':
+    return ui_escape_read_cursor(input, out);
   default:
     if (out) {
       *out = ui_escape_invalid;

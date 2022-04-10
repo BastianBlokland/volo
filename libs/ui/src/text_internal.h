@@ -18,11 +18,18 @@ typedef void (*UiTextBuildCharFunc)(void* userCtx, const UiTextCharInfo*);
 typedef struct {
   UiRect rect;
   u32    lineCount;
+  /**
+   * Byte index of the hovered character.
+   * TODO: Does not support multi-line text atm (always returns a char on the last visible line).
+   */
+  usize hoveredCharIndex;
 } UiTextBuildResult;
 
 UiTextBuildResult ui_text_build(
     const AssetFtxComp*,
+    UiFlags  flags,
     UiRect   totalRect,
+    UiVector inputPos,
     String   text,
     f32      fontSize,
     UiColor  fontColor,

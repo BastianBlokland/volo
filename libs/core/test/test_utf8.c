@@ -9,10 +9,18 @@ spec(utf8) {
                     "ንጉሥ አይከሰስ።,แผ่นดินฮั่นเสื่อมโทรมแสนสังเวช,Зарегистрируйтесь,გთხოვთ ახლავე გაიაროთ⎪⎢⎜ "
                     "⎳aⁱ-bⁱ⎟⎥⎪▁▂▃▄▅▆▇█∀∂∈ℝ∧∪≡∞");
 
+  it("can validate utf8 strings") {
+    check(utf8_validate(string_empty));
+    check(utf8_validate(testStr));
+  }
+
   it("can count codepoints in a utf8 string") {
     check_eq_int(utf8_cp_count(string_empty), 0);
     check_eq_int(utf8_cp_count(string_lit("Hello")), 5);
     check_eq_int(utf8_cp_count(testStr), 184);
+
+    check_eq_int(string_lit("Привет, мир").size, 20);
+    check_eq_int(utf8_cp_count(string_lit("Привет, мир")), 11);
   }
 
   it("can compute the required utf8 bytes") {
@@ -20,6 +28,15 @@ spec(utf8) {
     check_eq_int(utf8_cp_bytes(0x39B), 2);
     check_eq_int(utf8_cp_bytes(0xE3F), 3);
     check_eq_int(utf8_cp_bytes(0x1D459), 4);
+  }
+
+  it("can compute the total utf8 bytes from the starting character") {
+    check_eq_int(utf8_cp_bytes_from_first("a"[0]), 1);
+    check_eq_int(utf8_cp_bytes_from_first("Λ"[0]), 2);
+    check_eq_int(utf8_cp_bytes_from_first("�"[0]), 3);
+    check_eq_int(utf8_cp_bytes_from_first("�"[0]), 3);
+    check_eq_int(utf8_cp_bytes_from_first("𝑙"[0]), 4);
+    check_eq_int(utf8_cp_bytes_from_first(0), 1);
   }
 
   it("can encode codepoints as utf8") {

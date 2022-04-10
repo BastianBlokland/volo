@@ -5,6 +5,7 @@
 #define UI_SHAPES                                                                                  \
   X(0xF000, Square)                                                                                \
   X(0xF001, Circle)                                                                                \
+  X(0xF002, CursorVertialBar)                                                                      \
   X(0xE5CA, Check)                                                                                 \
   X(0xE5CF, ExpandMore)                                                                            \
   X(0xE5CE, ExpandLess)                                                                            \

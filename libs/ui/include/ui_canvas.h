@@ -27,6 +27,7 @@ typedef enum {
   UiFlags_InteractOnPress     = 1 << 1, // Activate on 'Press' instead of 'Release'.
   UiFlags_InteractAllowSwitch = 1 << 2, // Allow switching targets while holding input down.
   UiFlags_TrackRect           = 1 << 3,
+  UiFlags_AllowWordBreak      = 1 << 4, // Allow breaking up text in the middle of words.
 } UiFlags;
 
 typedef enum {
@@ -92,6 +93,7 @@ void              ui_canvas_persistent_flags_toggle(UiCanvasComp*, UiId, UiPersi
  * Draw text in the current rectangle.
  */
 UiId ui_canvas_draw_text(UiCanvasComp*, String text, u16 fontSize, UiAlign, UiFlags);
+UiId ui_canvas_draw_text_editable(UiCanvasComp*, DynString* text, u16 fontSize, UiAlign, UiFlags);
 
 /**
  * Draw a single glyph in the current rectangle.
