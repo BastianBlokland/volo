@@ -180,6 +180,18 @@ static void editor_erase_current(UiEditor* editor, const UiEditorStride stride) 
   editor->flags |= UiEditorFlags_Dirty;
 }
 
+static bool editor_cursor_valid_index(UiEditor* editor, const usize index) {
+  if (index > editor->text.size) {
+    return false; // Out of bounds.
+  }
+  if (index == editor->text.size) {
+    return true; // At the end of the text.
+  }
+  // Validate that the index is the start of a utf8 codepoint.
+  const String total = dynstring_view(&editor->text);
+  return !utf8_contchar(*string_at(total, index));
+}
+
 static void editor_cursor_to_start(UiEditor* editor) {
   editor->cursor = 0;
   editor->flags |= UiEditorFlags_Dirty;
@@ -243,14 +255,15 @@ static usize editor_display_index_to_text_index(UiEditor* editor, const usize di
    * The displayed string contains a cursor which does not exist in the real text.
    * If the given position is beyond the cursor we substract the cursor sequence to compensate.
    */
-  if (displayIndex <= editor->cursor) {
-    return displayIndex;
+  usize index = displayIndex;
+  if (index > editor->cursor) {
+    index -= g_editorCursorOnEsc.size;
   }
-  /**
-   * NOTE: The 'math_min' is here in case the display string didn't match the internal text string.
-   * This can only happen if the initial text contained invalid utf8 or escape sequences.
-   */
-  return math_min(displayIndex - g_editorCursorOnEsc.size, editor->text.size);
+  if (!editor_cursor_valid_index(editor, index)) {
+    // NOTE: This can only happen if the initial text contained invalid utf8 or an escape sequence.
+    return editor->text.size;
+  }
+  return index;
 }
 
 UiEditor* ui_editor_create(Allocator* alloc) {
