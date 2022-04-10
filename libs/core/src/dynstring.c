@@ -29,6 +29,10 @@ void dynstring_append_chars(DynString* dynstring, const u8 val, const usize amou
   mem_set(dynarray_push(dynstring, amount), val);
 }
 
+void dynstring_insert(DynString* dynstring, const String str, const usize idx) {
+  mem_cpy(dynarray_insert(dynstring, idx, str.size), str);
+}
+
 void dynstring_insert_chars(
     DynString* dynstring, const u8 val, const usize idx, const usize amount) {
   mem_set(dynarray_insert(dynstring, idx, amount), val);

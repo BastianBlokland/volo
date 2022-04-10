@@ -53,6 +53,19 @@ spec(dynstring) {
     dynstring_destroy(&string);
   }
 
+  it("can insert substrings at specific indices") {
+    DynString string = dynstring_create_over(mem_stack(128));
+
+    dynstring_insert(&string, string_lit("World"), 0);
+    dynstring_insert(&string, string_lit("Hello"), 0);
+    dynstring_insert(&string, string_lit(" "), 5);
+    dynstring_insert(&string, string_lit("!"), 11);
+
+    check_eq_string(dynstring_view(&string), string_lit("Hello World!"));
+
+    dynstring_destroy(&string);
+  }
+
   it("can insert character sequences at specific indices") {
     DynString string = dynstring_create_over(mem_stack(128));
 
