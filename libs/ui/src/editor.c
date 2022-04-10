@@ -43,14 +43,6 @@ static bool editor_cp_is_seperator(const Unicode cp) {
   }
 }
 
-static usize editor_cp_bytes_at(UiEditor* editor, const usize index) {
-  diag_assert(index < editor->text.size);
-
-  const u8 ch = *string_at(dynstring_view(&editor->text), index);
-  diag_assert(!utf8_contchar(ch)); // Should be a utf8 starting char.
-  return utf8_cp_bytes_from_first(ch);
-}
-
 static Unicode editor_cp_at(UiEditor* editor, const usize index) {
   diag_assert(index < editor->text.size);
 
@@ -149,11 +141,21 @@ static void editor_erase_prev(UiEditor* editor, const UiEditorStride stride) {
   }
 }
 
-static void editor_erase_current(UiEditor* editor) {
-  if (editor->cursor != editor->text.size) {
-    const usize chars = editor_cp_bytes_at(editor, editor->cursor);
-    dynstring_erase_chars(&editor->text, editor->cursor, chars);
+static void editor_erase_current(UiEditor* editor, const UiEditorStride stride) {
+  usize eraseTo;
+  switch (stride) {
+  case UiEditorStride_Codepoint:
+    eraseTo = editor_next_index(editor, editor->cursor);
+    break;
+  case UiEditorStride_Word:
+    eraseTo = editor_next_word_start_index(editor, editor->cursor);
+    break;
   }
+  if (sentinel_check(eraseTo)) {
+    eraseTo = editor->text.size; // No next found, just erase until the end.
+  }
+  const usize bytesToErase = eraseTo - editor->cursor;
+  dynstring_erase_chars(&editor->text, editor->cursor, bytesToErase);
 }
 
 static void editor_cursor_to_start(UiEditor* editor) { editor->cursor = 0; }
@@ -250,7 +252,7 @@ void ui_editor_update(UiEditor* editor, const GapWindowComp* win) {
     editor_erase_prev(editor, editor_stride_from_key_modifiers(win));
   }
   if (gap_window_key_pressed(win, GapKey_Delete)) {
-    editor_erase_current(editor);
+    editor_erase_current(editor, editor_stride_from_key_modifiers(win));
   }
   if (gap_window_key_pressed(win, GapKey_ArrowRight)) {
     editor_cursor_next(editor, editor_stride_from_key_modifiers(win));
