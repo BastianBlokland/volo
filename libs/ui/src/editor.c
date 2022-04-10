@@ -93,7 +93,8 @@ static void editor_erase_current(UiEditor* editor) {
   }
 }
 
-static void editor_cursor_to_end(UiEditor* editor) { editor->cursor = (u32)editor->text.size; }
+static void editor_cursor_to_start(UiEditor* editor) { editor->cursor = 0; }
+static void editor_cursor_to_end(UiEditor* editor) { editor->cursor = editor->text.size; }
 
 static void editor_cursor_next(UiEditor* editor) {
   const usize prev = editor_cp_next(editor, editor->cursor);
@@ -170,6 +171,12 @@ void ui_editor_update(UiEditor* editor, const GapWindowComp* win) {
   }
   if (gap_window_key_pressed(win, GapKey_ArrowLeft)) {
     editor_cursor_prev(editor);
+  }
+  if (gap_window_key_pressed(win, GapKey_Home)) {
+    editor_cursor_to_start(editor);
+  }
+  if (gap_window_key_pressed(win, GapKey_End)) {
+    editor_cursor_to_end(editor);
   }
   if (gap_window_key_pressed(win, GapKey_Escape) || gap_window_key_pressed(win, GapKey_Return)) {
     ui_editor_stop(editor);
