@@ -9,6 +9,11 @@ typedef enum {
   UiEditorFlags_Active = 1 << 0,
 } UiEditorFlags;
 
+typedef enum {
+  UiEditorStride_Codepoint,
+  UiEditorStride_Word,
+} UiEditorStride;
+
 struct sUiEditor {
   Allocator*    alloc;
   UiEditorFlags flags;
@@ -17,20 +22,45 @@ struct sUiEditor {
   usize         cursor;
 };
 
+static bool editor_cp_is_valid(const Unicode cp) {
+  if (ascii_is_control(cp)) {
+    return false; // Control characters like tab / backspace are handled separately.
+  }
+  if (ascii_is_newline(cp)) {
+    return false; // Multi line editing is not supported at this time.
+  }
+  return true;
+}
+
+static bool editor_cp_is_seperator(const Unicode cp) {
+  switch (cp) {
+  case Unicode_Space:
+  case Unicode_ZeroWidthSpace:
+  case Unicode_HorizontalTab:
+    return true;
+  default:
+    return false;
+  }
+}
+
 static usize editor_cp_bytes_at(UiEditor* editor, const usize index) {
+  diag_assert(index < editor->text.size);
+
   const u8 ch = *string_at(dynstring_view(&editor->text), index);
   diag_assert(!utf8_contchar(ch)); // Should be a utf8 starting char.
   return utf8_cp_bytes_from_first(ch);
 }
 
-// static Unicode editor_cp_at(UiEditor* editor, const usize index) {
-//   const String total = dynstring_view(&editor->buffer);
-//   Unicode      cp;
-//   utf8_cp_read(string_consume(total, index), &cp);
-//   return cp;
-// }
+static Unicode editor_cp_at(UiEditor* editor, const usize index) {
+  diag_assert(index < editor->text.size);
 
-static usize editor_cp_next(UiEditor* editor, const usize index) {
+  const String total = dynstring_view(&editor->text);
+  Unicode      cp;
+  utf8_cp_read(string_consume(total, index), &cp);
+  return cp;
+}
+
+static usize editor_next_index(UiEditor* editor, const usize index) {
   String str = dynstring_view(&editor->text);
   for (usize i = index + 1; i < str.size; ++i) {
     if (!utf8_contchar(*string_at(str, i))) {
@@ -40,7 +70,7 @@ static usize editor_cp_next(UiEditor* editor, const usize index) {
   return sentinel_usize;
 }
 
-static usize editor_cp_prev(UiEditor* editor, const usize index) {
+static usize editor_prev_index(UiEditor* editor, const usize index) {
   String str = dynstring_view(&editor->text);
   for (usize i = index; i-- > 0;) {
     if (!utf8_contchar(*string_at(str, i))) {
@@ -50,14 +80,36 @@ static usize editor_cp_prev(UiEditor* editor, const usize index) {
   return sentinel_usize;
 }
 
-static bool editor_validate_input_cp(const Unicode cp) {
-  if (ascii_is_control(cp)) {
-    return false; // Control characters like tab / backspace are handled separately.
+static usize editor_word_end_index(UiEditor* editor, usize index) {
+  while (true) {
+    const usize nextIndex = editor_next_index(editor, index);
+    if (sentinel_check(nextIndex)) {
+      return editor->text.size; // Return the end index when no more characters are found.
+    }
+    const Unicode nextCp = editor_cp_at(editor, nextIndex);
+    if (editor_cp_is_seperator(nextCp)) {
+      return index + utf8_cp_bytes(nextCp);
+    }
+    index = nextIndex;
   }
-  if (ascii_is_newline(cp)) {
-    return false; // Multi line editing is not supported at this time.
+}
+
+static usize editor_prev_word_start_index(UiEditor* editor, usize index) {
+  bool foundStartingWord = false;
+  while (true) {
+    const usize prevIndex = editor_prev_index(editor, index);
+    if (sentinel_check(prevIndex)) {
+      return index;
+    }
+    if (editor_cp_is_seperator(editor_cp_at(editor, prevIndex))) {
+      if (foundStartingWord) {
+        return index;
+      }
+    } else {
+      foundStartingWord = true;
+    }
+    index = prevIndex;
   }
-  return true;
 }
 
 static void editor_insert_cp(UiEditor* editor, const Unicode cp) {
@@ -71,17 +123,17 @@ static void editor_insert_text(UiEditor* editor, String text) {
   while (!string_is_empty(text)) {
     Unicode cp;
     text = utf8_cp_read(text, &cp);
-    if (cp && editor_validate_input_cp(cp)) {
+    if (cp && editor_cp_is_valid(cp)) {
       editor_insert_cp(editor, cp);
     }
   }
 }
 
 static void editor_erase_prev(UiEditor* editor) {
-  const usize toErase = editor_cp_prev(editor, editor->cursor);
-  if (!sentinel_check(toErase)) {
-    const usize chars = editor_cp_bytes_at(editor, toErase);
-    dynstring_erase_chars(&editor->text, toErase, chars);
+  const usize indexToErase = editor_prev_index(editor, editor->cursor);
+  if (!sentinel_check(indexToErase)) {
+    const usize chars = editor_cp_bytes_at(editor, indexToErase);
+    dynstring_erase_chars(&editor->text, indexToErase, chars);
     editor->cursor -= chars;
   }
 }
@@ -96,14 +148,37 @@ static void editor_erase_current(UiEditor* editor) {
 static void editor_cursor_to_start(UiEditor* editor) { editor->cursor = 0; }
 static void editor_cursor_to_end(UiEditor* editor) { editor->cursor = editor->text.size; }
 
-static void editor_cursor_next(UiEditor* editor) {
-  const usize prev = editor_cp_next(editor, editor->cursor);
-  editor->cursor   = sentinel_check(prev) ? editor->text.size : prev;
+static void editor_cursor_next(UiEditor* editor, const UiEditorStride stride) {
+  usize next;
+  switch (stride) {
+  case UiEditorStride_Codepoint:
+    next = editor_next_index(editor, editor->cursor);
+    break;
+  case UiEditorStride_Word:
+    next = editor_word_end_index(editor, editor->cursor);
+    break;
+  }
+  editor->cursor = sentinel_check(next) ? editor->text.size : next;
 }
 
-static void editor_cursor_prev(UiEditor* editor) {
-  const usize prev = editor_cp_prev(editor, editor->cursor);
-  editor->cursor   = sentinel_check(prev) ? 0 : prev;
+static void editor_cursor_prev(UiEditor* editor, const UiEditorStride stride) {
+  usize prev;
+  switch (stride) {
+  case UiEditorStride_Codepoint:
+    prev = editor_prev_index(editor, editor->cursor);
+    break;
+  case UiEditorStride_Word:
+    prev = editor_prev_word_start_index(editor, editor->cursor);
+    break;
+  }
+  editor->cursor = sentinel_check(prev) ? 0 : prev;
+}
+
+static UiEditorStride editor_stride_from_key_modifiers(const GapWindowComp* win) {
+  if (gap_window_key_down(win, GapKey_Control)) {
+    return UiEditorStride_Word;
+  }
+  return UiEditorStride_Codepoint;
 }
 
 static void editor_update_display(UiEditor* editor) {
@@ -167,10 +242,10 @@ void ui_editor_update(UiEditor* editor, const GapWindowComp* win) {
     editor_erase_current(editor);
   }
   if (gap_window_key_pressed(win, GapKey_ArrowRight)) {
-    editor_cursor_next(editor);
+    editor_cursor_next(editor, editor_stride_from_key_modifiers(win));
   }
   if (gap_window_key_pressed(win, GapKey_ArrowLeft)) {
-    editor_cursor_prev(editor);
+    editor_cursor_prev(editor, editor_stride_from_key_modifiers(win));
   }
   if (gap_window_key_pressed(win, GapKey_Home)) {
     editor_cursor_to_start(editor);
