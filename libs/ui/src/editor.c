@@ -80,15 +80,18 @@ static usize editor_prev_index(UiEditor* editor, const usize index) {
   return sentinel_usize;
 }
 
-static usize editor_word_end_index(UiEditor* editor, usize index) {
+static usize editor_next_word_start_index(UiEditor* editor, usize index) {
+  bool startingWordEnded = false;
   while (true) {
     const usize nextIndex = editor_next_index(editor, index);
     if (sentinel_check(nextIndex)) {
       return editor->text.size; // Return the end index when no more characters are found.
     }
-    const Unicode nextCp = editor_cp_at(editor, nextIndex);
-    if (editor_cp_is_seperator(nextCp)) {
-      return index + utf8_cp_bytes(nextCp);
+    const Unicode nextCp      = editor_cp_at(editor, nextIndex);
+    const bool    isSeperator = editor_cp_is_seperator(nextCp);
+    startingWordEnded |= isSeperator;
+    if (!isSeperator && startingWordEnded) {
+      return nextIndex;
     }
     index = nextIndex;
   }
@@ -163,7 +166,7 @@ static void editor_cursor_next(UiEditor* editor, const UiEditorStride stride) {
     next = editor_next_index(editor, editor->cursor);
     break;
   case UiEditorStride_Word:
-    next = editor_word_end_index(editor, editor->cursor);
+    next = editor_next_word_start_index(editor, editor->cursor);
     break;
   }
   editor->cursor = sentinel_check(next) ? editor->text.size : next;
