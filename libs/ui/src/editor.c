@@ -2,11 +2,15 @@
 #include "core_diag.h"
 #include "core_unicode.h"
 #include "core_utf8.h"
+#include "gap_input.h"
 
 #include "editor_internal.h"
 
+static const String g_editorCursorEsc = string_static(uni_esc "c");
+
 typedef enum {
-  UiEditorFlags_Active = 1 << 0,
+  UiEditorFlags_Active      = 1 << 0,
+  UiEditorFlags_FirstUpdate = 1 << 1,
 } UiEditorFlags;
 
 typedef enum {
@@ -197,7 +201,18 @@ static UiEditorStride editor_stride_from_key_modifiers(const GapWindowComp* win)
 static void editor_update_display(UiEditor* editor) {
   dynstring_clear(&editor->displayText);
   dynstring_append(&editor->displayText, dynstring_view(&editor->text));
-  dynstring_insert(&editor->displayText, string_lit(uni_esc "c"), editor->cursor);
+  dynstring_insert(&editor->displayText, g_editorCursorEsc, editor->cursor);
+}
+
+static usize editor_display_index_to_text_index(UiEditor* editor, const usize displayIndex) {
+  /**
+   * The displayed string contains a cursor which does not exist in the real text.
+   * If the given position is beyond the cursor we substract the cursor sequence to compensate.
+   */
+  if (displayIndex <= editor->cursor) {
+    return displayIndex;
+  }
+  return displayIndex - g_editorCursorEsc.size;
 }
 
 UiEditor* ui_editor_create(Allocator* alloc) {
@@ -234,7 +249,7 @@ void ui_editor_start(UiEditor* editor, const String initialText, const UiId elem
   if (ui_editor_active(editor)) {
     ui_editor_stop(editor);
   }
-  editor->flags |= UiEditorFlags_Active;
+  editor->flags |= UiEditorFlags_Active | UiEditorFlags_FirstUpdate;
   editor->textElement = element;
 
   dynstring_clear(&editor->text);
@@ -243,8 +258,14 @@ void ui_editor_start(UiEditor* editor, const String initialText, const UiId elem
   editor_cursor_to_end(editor);
 }
 
-void ui_editor_update(UiEditor* editor, const GapWindowComp* win) {
+void ui_editor_update(UiEditor* editor, const GapWindowComp* win, const UiBuildHover hover) {
   diag_assert(editor->flags & UiEditorFlags_Active);
+
+  const bool firstUpdate     = (editor->flags & UiEditorFlags_FirstUpdate) != 0;
+  const bool cursorToHovered = (firstUpdate || gap_window_key_down(win, GapKey_MouseLeft));
+  if (cursorToHovered && hover.id == editor->textElement) {
+    editor->cursor = editor_display_index_to_text_index(editor, hover.textCharIndex);
+  }
 
   editor_insert_text(editor, gap_window_input_text(win));
 
@@ -271,6 +292,8 @@ void ui_editor_update(UiEditor* editor, const GapWindowComp* win) {
   }
 
   editor_update_display(editor);
+
+  editor->flags &= ~UiEditorFlags_FirstUpdate;
 }
 
 void ui_editor_stop(UiEditor* editor) {

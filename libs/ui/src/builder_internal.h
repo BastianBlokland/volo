@@ -36,10 +36,20 @@ typedef struct {
 } UiBuildCtx;
 
 typedef struct {
-  u32     commandCount;
-  UiId    hoveredId;
-  UiLayer hoveredLayer;
-  UiFlags hoveredFlags;
+  UiId    id;
+  UiLayer layer;
+  UiFlags flags;
+  /**
+   * Index of the character that was hovered in the text.
+   * NOTE: Is 'sentinel_usize' when the hovered element wasn't text.
+   * TODO: Does not support multi-line text atm (always returns a char on the last visible line).
+   */
+  usize textCharIndex;
+} UiBuildHover;
+
+typedef struct {
+  u32          commandCount;
+  UiBuildHover hover;
 } UiBuildResult;
 
 UiBuildResult ui_build(const UiCmdBuffer*, const UiBuildCtx*);

@@ -1,7 +1,8 @@
 #pragma once
 #include "core_alloc.h"
 #include "gap_window.h"
-#include "ui_canvas.h"
+
+#include "builder_internal.h"
 
 /**
  * Text Editor.
@@ -20,5 +21,5 @@ String ui_editor_result(const UiEditor*);  // Current result text.
 String ui_editor_display(const UiEditor*); // String to render while editing.
 
 void ui_editor_start(UiEditor*, String initialText, UiId element);
-void ui_editor_update(UiEditor*, const GapWindowComp*);
+void ui_editor_update(UiEditor*, const GapWindowComp*, UiBuildHover);
 void ui_editor_stop(UiEditor*);

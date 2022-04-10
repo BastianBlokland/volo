@@ -33,9 +33,7 @@ typedef struct {
   u32                 styleStackCount;
   UiBuildContainer    containerStack[ui_build_container_stack_max];
   u32                 containerStackCount;
-  UiId                hoveredId;
-  UiLayer             hoveredLayer;
-  UiFlags             hoveredFlags;
+  UiBuildHover        hover;
 } UiBuildState;
 
 static UiRect* ui_build_rect_currect(UiBuildState* state) {
@@ -133,8 +131,8 @@ static void ui_build_text_char(void* userCtx, const UiTextCharInfo* info) {
   const f32      border = info->ch->border * info->size;
   const f32      size   = (info->ch->size + info->ch->border * 2.0f) * info->size;
   const UiVector pos    = {
-         info->pos.x + info->ch->offsetX * info->size - border,
-         info->pos.y + info->ch->offsetY * info->size - border,
+      info->pos.x + info->ch->offsetX * info->size - border,
+      info->pos.y + info->ch->offsetY * info->size - border,
   };
 
   state->ctx->outputGlyph(
@@ -203,7 +201,7 @@ ui_build_cull(const UiBuildContainer container, const UiRect rect, const UiBuild
 
 static bool ui_build_is_hovered(
     UiBuildState* state, const UiBuildContainer container, const UiRect rect, const UiLayer layer) {
-  if (!sentinel_check(state->hoveredId) && state->hoveredLayer > layer) {
+  if (!sentinel_check(state->hover.id) && state->hover.layer > layer) {
     return false; // Something is already hovered on a higher layer.
   }
   return ui_rect_contains(rect, state->ctx->inputPos) &&
@@ -218,19 +216,12 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
   if (ui_build_cull(container, rect, style)) {
     return;
   }
-  const bool debugInspector = state->ctx->settings->flags & UiSettingFlags_DebugInspector;
-  const bool hoverable      = cmd->flags & UiFlags_Interactable || debugInspector;
-
-  if (hoverable && ui_build_is_hovered(state, container, rect, style.layer)) {
-    state->hoveredId    = cmd->id;
-    state->hoveredLayer = style.layer;
-    state->hoveredFlags = cmd->flags;
-  }
 
   const UiTextBuildResult result = ui_text_build(
       state->font,
       cmd->flags,
       rect,
+      state->ctx->inputPos,
       cmd->text,
       cmd->fontSize,
       style.color,
@@ -241,6 +232,17 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
       cmd->align,
       state,
       &ui_build_text_char);
+
+  const bool debugInspector = state->ctx->settings->flags & UiSettingFlags_DebugInspector;
+  const bool hoverable      = cmd->flags & UiFlags_Interactable || debugInspector;
+  if (hoverable && ui_build_is_hovered(state, container, rect, style.layer)) {
+    state->hover = (UiBuildHover){
+        .id            = cmd->id,
+        .layer         = style.layer,
+        .flags         = cmd->flags,
+        .textCharIndex = result.hoveredCharIndex,
+    };
+  }
 
   if (cmd->flags & UiFlags_TrackRect) {
     state->ctx->outputRect(state->ctx->userCtx, cmd->id, result.rect);
@@ -259,9 +261,12 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
   const bool hoverable      = cmd->flags & UiFlags_Interactable || debugInspector;
 
   if (hoverable && ui_build_is_hovered(state, container, rect, style.layer)) {
-    state->hoveredId    = cmd->id;
-    state->hoveredLayer = style.layer;
-    state->hoveredFlags = cmd->flags;
+    state->hover = (UiBuildHover){
+        .id            = cmd->id,
+        .layer         = style.layer,
+        .flags         = cmd->flags,
+        .textCharIndex = sentinel_usize,
+    };
   }
 
   ui_build_glyph(state, cmd->cp, rect, style, cmd->maxCorner, container.clipId);
@@ -279,11 +284,11 @@ static void ui_build_debug_inspector(UiBuildState* state, const UiId id, const U
   const UiBuildStyle styleShape     = {.color = {255, 0, 0, 178}, .layer = UiLayer_Overlay};
   const UiBuildStyle styleContainer = {.color = {0, 0, 255, 178}, .layer = UiLayer_Overlay};
   const UiBuildStyle styleText      = {
-           .color     = ui_color_white,
-           .outline   = 3,
-           .variation = 1,
-           .weight    = UiWeight_Bold,
-           .layer     = UiLayer_Overlay};
+      .color     = ui_color_white,
+      .outline   = 3,
+      .variation = 1,
+      .weight    = UiWeight_Bold,
+      .layer     = UiLayer_Overlay};
 
   ui_build_glyph(state, UiShape_Square, container.rect, styleContainer, 5, 0);
   ui_build_glyph(state, UiShape_Square, rect, styleShape, 5, 0);
@@ -317,6 +322,7 @@ static void ui_build_debug_inspector(UiBuildState* state, const UiId id, const U
       state->font,
       UiFlags_None,
       textRect,
+      state->ctx->inputPos,
       dynstring_view(&str),
       fontSize,
       styleText.color,
@@ -438,7 +444,11 @@ UiBuildResult ui_build(const UiCmdBuffer* cmdBuffer, const UiBuildCtx* ctx) {
               .clipId    = 0,
           },
       .containerStackCount = 1,
-      .hoveredId           = sentinel_u64,
+      .hover =
+          {
+              .id            = sentinel_u64,
+              .textCharIndex = sentinel_usize,
+          },
   };
 
   UiCmd* cmd = null;
@@ -448,8 +458,6 @@ UiBuildResult ui_build(const UiCmdBuffer* cmdBuffer, const UiBuildCtx* ctx) {
 
   return (UiBuildResult){
       .commandCount = ui_cmdbuffer_count(cmdBuffer),
-      .hoveredId    = state.hoveredId,
-      .hoveredLayer = state.hoveredLayer,
-      .hoveredFlags = state.hoveredFlags,
+      .hover        = state.hover,
   };
 }

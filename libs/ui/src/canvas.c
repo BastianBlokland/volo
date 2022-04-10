@@ -125,11 +125,11 @@ typedef struct {
 static UiDrawMetaData ui_draw_metadata(const UiRenderState* state, const AssetFtxComp* font) {
   const UiVector canvasRes = state->canvas->resolution;
   UiDrawMetaData meta      = {
-           .canvasRes = geo_vector(
+      .canvasRes = geo_vector(
           canvasRes.width, canvasRes.height, 1.0f / canvasRes.width, 1.0f / canvasRes.height),
-           .invCanvasScale  = 1.0f / state->settings->scale,
-           .glyphsPerDim    = font->glyphsPerDim,
-           .invGlyphsPerDim = 1.0f / (f32)font->glyphsPerDim,
+      .invCanvasScale  = 1.0f / state->settings->scale,
+      .glyphsPerDim    = font->glyphsPerDim,
+      .invGlyphsPerDim = 1.0f / (f32)font->glyphsPerDim,
   };
   mem_cpy(mem_var(meta.clipRects), mem_var(state->clipRects));
   return meta;
@@ -387,12 +387,12 @@ ecs_system_define(UiRenderSys) {
     const f32       scale       = settings ? settings->scale : 1.0f;
     const UiVector  canvasSize  = ui_vector(winSize.x / scale, winSize.y / scale);
     UiRenderState   renderState = {
-          .settings      = settings,
-          .font          = font,
-          .renderer      = renderer,
-          .draw          = draw,
-          .clipRects[0]  = {.size = canvasSize},
-          .clipRectCount = 1,
+        .settings      = settings,
+        .font          = font,
+        .renderer      = renderer,
+        .draw          = draw,
+        .clipRects[0]  = {.size = canvasSize},
+        .clipRectCount = 1,
     };
 
     UiCanvasPtr canvasses[ui_canvas_canvasses_max];
@@ -400,10 +400,8 @@ ecs_system_define(UiRenderSys) {
 
     sort_quicksort_t(canvasses, canvasses + canvasCount, UiCanvasPtr, ui_canvas_ptr_compare);
 
-    u32     hoveredCanvasIndex = sentinel_u32;
-    UiLayer hoveredLayer       = 0;
-    UiId    hoveredId;
-    UiFlags hoveredFlags;
+    u32          hoveredCanvasIndex = sentinel_u32;
+    UiBuildHover hover              = {0};
     for (u32 i = 0; i != canvasCount; ++i) {
       UiCanvasComp* canvas = canvasses[i];
       canvas->order        = i;
@@ -411,11 +409,9 @@ ecs_system_define(UiRenderSys) {
 
       const UiId          debugElem = ui_canvas_debug_elem(canvas, settings);
       const UiBuildResult result    = ui_canvas_build(&renderState, debugElem);
-      if (!sentinel_check(result.hoveredId) && result.hoveredLayer >= hoveredLayer) {
+      if (!sentinel_check(result.hover.id) && result.hover.layer >= hover.layer) {
         hoveredCanvasIndex = i;
-        hoveredLayer       = result.hoveredLayer;
-        hoveredId          = result.hoveredId;
-        hoveredFlags       = result.hoveredFlags;
+        hover              = result.hover;
       }
       stats->commandCount += result.commandCount;
     }
@@ -427,9 +423,9 @@ ecs_system_define(UiRenderSys) {
     bool textEditActive = false;
     for (u32 i = canvasCount; i-- > 0;) { // Interate from the top canvas to the bottom canvas.
       UiCanvasComp* canvas    = canvasses[i];
-      const bool    isHovered = hoveredCanvasIndex == i && hoveredLayer >= canvas->minInteractLayer;
-      const UiId    hoveredElem = isHovered ? hoveredId : sentinel_u64;
-      ui_canvas_update_interaction(canvas, settings, window, hoveredElem, hoveredFlags);
+      const bool    isHovered = hoveredCanvasIndex == i && hover.layer >= canvas->minInteractLayer;
+      const UiId    hoveredElem = isHovered ? hover.id : sentinel_u64;
+      ui_canvas_update_interaction(canvas, settings, window, hoveredElem, hover.flags);
 
       if (ui_editor_active(canvas->textEditor)) {
         const bool isTextEditorHovered = hoveredElem == ui_editor_element(canvas->textEditor);
@@ -438,7 +434,7 @@ ecs_system_define(UiRenderSys) {
           ui_editor_stop(canvas->textEditor);
         } else {
           textEditActive = true;
-          ui_editor_update(canvas->textEditor, window);
+          ui_editor_update(canvas->textEditor, window, hover);
         }
       }
 
@@ -548,7 +544,7 @@ UiRect ui_canvas_elem_rect(const UiCanvasComp* comp, const UiId id) {
 UiStatus ui_canvas_status(const UiCanvasComp* comp) { return comp->activeStatus; }
 UiVector ui_canvas_resolution(const UiCanvasComp* comp) { return comp->resolution; }
 bool     ui_canvas_input_any(const UiCanvasComp* comp) {
-      return (comp->flags & UiCanvasFlags_InputAny) != 0;
+  return (comp->flags & UiCanvasFlags_InputAny) != 0;
 }
 UiVector ui_canvas_input_delta(const UiCanvasComp* comp) { return comp->inputDelta; }
 UiVector ui_canvas_input_pos(const UiCanvasComp* comp) { return comp->inputPos; }
