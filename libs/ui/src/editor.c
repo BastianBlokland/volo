@@ -71,12 +71,19 @@ static bool editor_validate_input_cp(const Unicode cp) {
   return true;
 }
 
-static void editor_input_text(UiEditor* editor, String text) {
+static void editor_insert_cp(UiEditor* editor, const Unicode cp) {
+  DynString buffer = dynstring_create_over(mem_stack(4));
+  utf8_cp_write(&buffer, cp);
+  dynstring_insert(&editor->text, dynstring_view(&buffer), editor->cursor);
+  editor->cursor += buffer.size;
+}
+
+static void editor_insert_text(UiEditor* editor, String text) {
   while (!string_is_empty(text)) {
     Unicode cp;
     text = utf8_cp_read(text, &cp);
     if (cp && editor_validate_input_cp(cp)) {
-      utf8_cp_write(&editor->text, cp);
+      editor_insert_cp(editor, cp);
     }
   }
 }
@@ -145,7 +152,8 @@ void ui_editor_start(UiEditor* editor, const String initialText, const UiId elem
 void ui_editor_update(UiEditor* editor, const GapWindowComp* win) {
   diag_assert(editor->flags & UiEditorFlags_Active);
 
-  editor_input_text(editor, gap_window_input_text(win));
+  editor_insert_text(editor, gap_window_input_text(win));
+
   if (gap_window_key_pressed(win, GapKey_Backspace)) {
     // TODO: How to handle key repeat?
     editor_cp_erase_last(editor);
