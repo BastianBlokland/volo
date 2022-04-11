@@ -35,12 +35,11 @@ typedef struct {
   usize               hoveredCharIndex;
 } UiTextBuildState;
 
-static f32 ui_text_next_tabstop(
+static f32 ui_text_to_tabstop(
     const AssetFtxComp* font, const f32 cursor, const f32 fontSize, const u8 fontVariation) {
   const f32 spaceAdvance = asset_ftx_lookup(font, Unicode_Space, fontVariation)->advance * fontSize;
   const f32 tabSize      = spaceAdvance * ui_text_tab_size;
-  const f32 toNextTabstop = tabSize - math_mod_f32(cursor + spaceAdvance, tabSize);
-  return cursor + toNextTabstop;
+  return tabSize - math_mod_f32(cursor + spaceAdvance, tabSize);
 }
 
 static bool ui_text_is_seperator(const Unicode cp) {
@@ -114,8 +113,8 @@ static String ui_text_line(
       cursorConsumed.pixel = 0;
       break;
     case Unicode_HorizontalTab:
-      cursorConsumed.pixel =
-          ui_text_next_tabstop(font, cursorConsumed.pixel, fontSize, fontVariation);
+      cursorConsumed.pixel +=
+          ui_text_to_tabstop(font, cursorConsumed.pixel, fontSize, fontVariation);
       break;
     case Unicode_ZeroWidthSpace:
       break;
@@ -201,15 +200,8 @@ static UiColor ui_text_color_alpha_mul(const UiColor color, const u8 alpha) {
   return ui_color(color.r, color.g, color.b, (u8)(color.a * (alpha / 255.0f)));
 }
 
-static void ui_text_build_char(
-    UiTextBuildState* state,
-    const UiTextLine* line,
-    const Unicode     cp,
-    const usize       nextCharByteIndex) {
-
-  const AssetFtxChar* ch      = asset_ftx_lookup(state->font, cp, state->fontVariation);
-  const UiVector      pos     = ui_text_char_pos(state, line);
-  const f32           advance = ch->advance * state->fontSize;
+static void ui_text_update_hover(
+    UiTextBuildState* state, const UiVector pos, const f32 advance, const usize nextCharByteIndex) {
 
   if (pos.x + advance * 0.5f < state->inputPosition.x) {
     /**
@@ -218,6 +210,14 @@ static void ui_text_build_char(
      */
     state->hoveredCharIndex = nextCharByteIndex;
   }
+}
+
+static void ui_text_build_char(
+    UiTextBuildState* state, const UiVector pos, const Unicode cp, const usize nextCharByteIndex) {
+
+  const AssetFtxChar* ch      = asset_ftx_lookup(state->font, cp, state->fontVariation);
+  const f32           advance = ch->advance * state->fontSize;
+  ui_text_update_hover(state, pos, advance, nextCharByteIndex);
 
   if (!sentinel_check(ch->glyphIndex)) {
     state->buildChar(
@@ -287,25 +287,32 @@ static void ui_text_build_line(UiTextBuildState* state, const UiTextLine* line) 
     Unicode cp;
     remainingText = utf8_cp_read(remainingText, &cp);
 
+    const UiVector pos               = ui_text_char_pos(state, line);
+    const usize    nextCharByteIndex = ui_text_byte_index(state, remainingText);
+
     UiEscape esc;
-    switch ((u32)cp) {
+    switch (cp) {
     case Unicode_CarriageReturn:
       state->cursor = 0;
-      continue;
-    case Unicode_HorizontalTab:
-      state->cursor =
-          ui_text_next_tabstop(state->font, state->cursor, state->fontSize, state->fontVariation);
-      continue;
+      break;
+    case Unicode_HorizontalTab: {
+      const f32 advance =
+          ui_text_to_tabstop(state->font, state->cursor, state->fontSize, state->fontVariation);
+      ui_text_update_hover(state, pos, advance, nextCharByteIndex);
+      state->cursor += advance;
+      break;
+    }
     case Unicode_ZeroWidthSpace:
-      continue;
+      break;
     case Unicode_Escape:
     case Unicode_Bell:
       remainingText = ui_escape_read(remainingText, &esc);
       ui_text_build_escape(state, line, &esc);
-      continue;
+      break;
+    default:
+      ui_text_build_char(state, pos, cp, nextCharByteIndex);
+      break;
     }
-    const usize nextCharByteIndex = ui_text_byte_index(state, remainingText);
-    ui_text_build_char(state, line, cp, nextCharByteIndex);
   }
 }
 
