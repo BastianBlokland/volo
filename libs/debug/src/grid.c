@@ -122,7 +122,7 @@ static void grid_panel_draw(UiCanvasComp* canvas, DebugGridPanelComp* panel, Deb
   const String title = fmt_write_scratch("{} Grid Settings", fmt_ui_shape(Grid4x4));
   ui_panel_begin(canvas, &panel->state, .title = title);
 
-  UiGridState layoutGrid = ui_grid_init(canvas, .size = {140, 25});
+  UiGridState layoutGrid = ui_grid_init(canvas, .size = {150, 25});
 
   ui_label(canvas, string_lit("Show"));
   ui_grid_next_col(canvas, &layoutGrid);
@@ -217,7 +217,7 @@ EcsEntityId debug_grid_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugGridPanelComp,
-      .state  = ui_panel_init(ui_vector(310, 220)),
+      .state  = ui_panel_init(ui_vector(330, 220)),
       .window = window);
   return panelEntity;
 }
