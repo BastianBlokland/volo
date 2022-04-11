@@ -23,6 +23,11 @@ typedef enum {
   UiEditorStride_Word,
 } UiEditorStride;
 
+typedef enum {
+  UiEditorSource_InitialText,
+  UiEditorSource_UserTyped,
+} UiEditorSource;
+
 struct sUiEditor {
   Allocator*    alloc;
   UiEditorFlags flags;
@@ -32,9 +37,24 @@ struct sUiEditor {
   TimeSteady    lastInteractTime;
 };
 
-static bool editor_cp_is_valid(const Unicode cp) {
+static bool editor_cp_is_valid(const Unicode cp, const UiEditorSource source) {
+  /**
+   * Source specific rules.
+   */
+  switch (source) {
+  case UiEditorSource_InitialText:
+    if (cp == Unicode_HorizontalTab) {
+      return true; // Tab characters are supported in text but when typing are handled separately.
+    }
+    break;
+  case UiEditorSource_UserTyped:
+    break;
+  }
+  /**
+   * Generic rules.
+   */
   if (cp < 0x1f || cp == 127) {
-    return false; // Control characters like tab / backspace are handled separately.
+    return false; // Control characters like delete / backspace are handled separately.
   }
   if (ascii_is_newline(cp)) {
     return false; // Multi line editing is not supported at this time.
@@ -125,7 +145,7 @@ static void editor_insert_cp(UiEditor* editor, const Unicode cp) {
   editor->flags |= UiEditorFlags_Dirty;
 }
 
-static void editor_insert_text(UiEditor* editor, String text) {
+static void editor_insert_text(UiEditor* editor, String text, const UiEditorSource source) {
   while (!string_is_empty(text)) {
     Unicode cp;
     text = utf8_cp_read(text, &cp);
@@ -136,7 +156,7 @@ static void editor_insert_text(UiEditor* editor, String text) {
       text = ui_escape_read(text, null);
       break;
     default:
-      if (editor_cp_is_valid(cp)) {
+      if (editor_cp_is_valid(cp, source)) {
         editor_insert_cp(editor, cp);
       }
       break;
@@ -303,7 +323,7 @@ void ui_editor_start(UiEditor* editor, const String initialText, const UiId elem
   editor->cursor      = 0;
 
   dynstring_clear(&editor->text);
-  editor_insert_text(editor, initialText);
+  editor_insert_text(editor, initialText, UiEditorSource_InitialText);
 }
 
 void ui_editor_update(UiEditor* editor, const GapWindowComp* win, const UiBuildHover hover) {
@@ -316,7 +336,7 @@ void ui_editor_update(UiEditor* editor, const GapWindowComp* win, const UiBuildH
     editor->flags |= UiEditorFlags_Dirty;
   }
 
-  editor_insert_text(editor, gap_window_input_text(win));
+  editor_insert_text(editor, gap_window_input_text(win), UiEditorSource_UserTyped);
 
   if (gap_window_key_pressed(win, GapKey_Tab)) {
     editor_insert_cp(editor, Unicode_HorizontalTab);
