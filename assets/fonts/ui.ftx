@@ -3,6 +3,7 @@
   "glyphSize": 64,
   "border": 32,
   "lineSpacing": 0.2,
+  "baseline": 0.3,
   "fonts": [
     {
       "id": "fonts/roboto_medium.ttf",

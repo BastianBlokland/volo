@@ -20,12 +20,13 @@ typedef struct {
   f32     size;
   f32     offsetX, offsetY;
   f32     advance;
-  f32     border;
+  f32     border; // Size of the sdf border.
 } AssetFtxChar;
 
 ecs_comp_extern_public(AssetFtxComp) {
   u32           glyphsPerDim;
   f32           lineSpacing;
+  f32           baseline;   // How far glyphs can extend below the rectangle.
   AssetFtxChar* characters; // Sorted on the unicode codepoint.
   usize         characterCount;
 };

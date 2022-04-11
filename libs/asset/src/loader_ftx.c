@@ -46,6 +46,7 @@ typedef struct {
   u32 size, glyphSize;
   u32 border;
   f32 lineSpacing;
+  f32 baseline;
   struct {
     FtxDefFont* values;
     usize       count;
@@ -74,6 +75,7 @@ static void ftx_datareg_init() {
     data_reg_field_t(g_dataReg, FtxDef, glyphSize, data_prim_t(u32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, FtxDef, border, data_prim_t(u32));
     data_reg_field_t(g_dataReg, FtxDef, lineSpacing, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, FtxDef, baseline, data_prim_t(f32));
     data_reg_field_t(g_dataReg, FtxDef, fonts, t_FtxDefFont, .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
     // clang-format on
 
@@ -295,6 +297,7 @@ static void ftx_generate(
   *outFtx = (AssetFtxComp){
       .glyphsPerDim   = glyphsPerDim,
       .lineSpacing    = def->lineSpacing,
+      .baseline       = def->baseline,
       .characters     = dynarray_copy_as_new(&chars, g_alloc_heap),
       .characterCount = chars.size,
   };
