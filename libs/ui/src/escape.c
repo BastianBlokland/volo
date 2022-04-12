@@ -89,6 +89,24 @@ static String ui_escape_read_color_named(const String input, UiEscape* out) {
   return input;
 }
 
+static String ui_escape_read_background(String input, UiEscape* out) {
+  if (!ui_escape_check_min_chars(input, 8, out)) {
+    return input;
+  }
+  if (!out) {
+    return string_consume(input, 8); // Fast path in case the output is not needed.
+  }
+
+  UiColor color;
+  input = ui_escape_read_byte_hex(input, &color.r);
+  input = ui_escape_read_byte_hex(input, &color.g);
+  input = ui_escape_read_byte_hex(input, &color.b);
+  input = ui_escape_read_byte_hex(input, &color.a);
+
+  *out = (UiEscape){.type = UiEscape_Background, .escBackground = {.value = color}};
+  return input;
+}
+
 static String ui_escape_read_outline(String input, UiEscape* out) {
   if (!ui_escape_check_min_chars(input, 2, out)) {
     return input;
@@ -153,6 +171,8 @@ String ui_escape_read(String input, UiEscape* out) {
     return ui_escape_read_color(input, out);
   case '~':
     return ui_escape_read_color_named(input, out);
+  case '@':
+    return ui_escape_read_background(input, out);
   case '|':
     return ui_escape_read_outline(input, out);
   case '.':

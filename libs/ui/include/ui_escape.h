@@ -10,6 +10,7 @@
  * - Reset the style to default:  [ESC]r           example: \ar
  * - Switch to a specific color:  [ESC]#RRGGBBAA   example: \a#FF0000FF
  * - Switch to a named color:     [ESC]~NAME       example: \a~red
+ * - Start a text background:     [ESC]@RRGGBBAA   example: \a@FF0000FF (NOTE: End with reset).
  * - Switch the outline width:    [ESC]|FF         example: \a|10
  * - Switch to 'light' weight:    [ESC].l          example: \a.l
  * - Switch to 'normal' weight:   [ESC].n          example: \a.n

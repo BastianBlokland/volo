@@ -6,6 +6,7 @@ typedef enum {
   UiEscape_Invalid,
   UiEscape_Reset,
   UiEscape_Color,
+  UiEscape_Background,
   UiEscape_Outline,
   UiEscape_Weight,
   UiEscape_Cursor,
@@ -14,6 +15,10 @@ typedef enum {
 typedef struct {
   UiColor value;
 } UiEscapeColor;
+
+typedef struct {
+  UiColor value;
+} UiEscapeBackground;
 
 typedef struct {
   u8 value;
@@ -30,10 +35,11 @@ typedef struct {
 typedef struct {
   UiEscapeType type;
   union {
-    UiEscapeColor   escColor;
-    UiEscapeOutline escOutline;
-    UiEscapeWeight  escWeight;
-    UiEscapeCursor  escCursor;
+    UiEscapeColor      escColor;
+    UiEscapeBackground escBackground;
+    UiEscapeOutline    escOutline;
+    UiEscapeWeight     escWeight;
+    UiEscapeCursor     escCursor;
   };
 } UiEscape;
 
