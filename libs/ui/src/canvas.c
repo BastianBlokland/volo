@@ -428,8 +428,8 @@ ecs_system_define(UiRenderSys) {
       ui_canvas_update_interaction(canvas, settings, window, hoveredElem, hover.flags);
 
       if (ui_editor_active(canvas->textEditor)) {
-        const bool isTextEditorHovered = hoveredElem == ui_editor_element(canvas->textEditor);
-        const bool deselect = gap_window_key_down(window, GapKey_MouseLeft) && !isTextEditorHovered;
+        const bool isEditorHovered = hoveredElem == ui_editor_element(canvas->textEditor);
+        const bool deselect = gap_window_key_released(window, GapKey_MouseLeft) && !isEditorHovered;
         if (textEditActive || deselect) {
           ui_editor_stop(canvas->textEditor);
         } else {
