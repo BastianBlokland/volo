@@ -53,10 +53,10 @@ static bool editor_cp_is_valid(const Unicode cp, const UiEditorSource source) {
   /**
    * Generic rules.
    */
-  if (cp < 0x1f || cp == 127) {
+  if (unicode_is_ascii(cp) && ascii_is_control(cp)) {
     return false; // Control characters like delete / backspace are handled separately.
   }
-  if (ascii_is_newline(cp)) {
+  if (unicode_is_ascii(cp) && ascii_is_newline(cp)) {
     return false; // Multi line editing is not supported at this time.
   }
   return true;
