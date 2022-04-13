@@ -438,13 +438,15 @@ void ui_editor_start(UiEditor* editor, const String initialText, const UiId elem
 
 void ui_editor_update(UiEditor* editor, const GapWindowComp* win, const UiBuildHover hover) {
   diag_assert(editor->flags & UiEditorFlags_Active);
-  const bool isHovered       = hover.id == editor->textElement;
-  const bool firstUpdate     = (editor->flags & UiEditorFlags_FirstUpdate) != 0;
-  const bool cursorToHovered = firstUpdate || gap_window_key_down(win, GapKey_MouseLeft);
+  const bool isHovered   = hover.id == editor->textElement;
+  const bool firstUpdate = (editor->flags & UiEditorFlags_FirstUpdate) != 0;
 
-  if (cursorToHovered && hover.id == editor->textElement) {
+  if (firstUpdate || gap_window_key_down(win, GapKey_MouseLeft)) {
+    // When holding down the mouse button set the cursor to the hovered character index.
+    if (isHovered && !sentinel_check(hover.textCharIndex)) {
     const usize index = editor_visual_index_to_text_index(editor, hover.textCharIndex);
     editor_cursor_set(editor, index);
+    }
   }
 
   if (gap_window_key_down(win, GapKey_Shift) && !(editor->flags & UiEditorFlags_SelectMode)) {
