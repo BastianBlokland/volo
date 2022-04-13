@@ -326,13 +326,13 @@ static void editor_visual_text_update(UiEditor* editor) {
 
 static usize editor_visual_index_to_text_index(UiEditor* editor, const usize visualIndex) {
   /**
-   * To map from the visual text to the real text we need to substrac the space that the visual
+   * To map from the visual text to the real text we need to substract the space that the visual
    * slices (for example the cursor) take.
    */
   usize index = visualIndex;
-  for (usize i = ui_editor_max_visual_slices; i-- > 0;) {
-    if (index > editor->visualSlices[i].index) {
-      index -= editor->visualSlices[i].text.size;
+  array_for_t(editor->visualSlices, UiEditorVisualSlice, visualSlice) {
+    if (index > visualSlice->index) {
+      index -= visualSlice->text.size;
     }
   }
   diag_assert(editor_cursor_valid_index(editor, index));
