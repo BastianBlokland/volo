@@ -444,15 +444,18 @@ void ui_editor_update(UiEditor* editor, const GapWindowComp* win, const UiBuildH
   if (firstUpdate || gap_window_key_down(win, GapKey_MouseLeft)) {
     // When holding down the mouse button set the cursor to the hovered character index.
     if (isHovered && !sentinel_check(hover.textCharIndex)) {
-    const usize index = editor_visual_index_to_text_index(editor, hover.textCharIndex);
-    editor_cursor_set(editor, index);
+      const usize index = editor_visual_index_to_text_index(editor, hover.textCharIndex);
+      editor_cursor_set(editor, index);
     }
   }
 
-  if (gap_window_key_down(win, GapKey_Shift) && !(editor->flags & UiEditorFlags_SelectMode)) {
+  const bool shouldSelect =
+      gap_window_key_down(win, GapKey_MouseLeft) || gap_window_key_down(win, GapKey_Shift);
+  if (shouldSelect && !(editor->flags & UiEditorFlags_SelectMode)) {
     editor_select_mode_start(editor);
   }
-  if (gap_window_key_released(win, GapKey_Shift)) {
+  if (gap_window_key_released(win, GapKey_MouseLeft) ||
+      gap_window_key_released(win, GapKey_Shift)) {
     editor_select_mode_stop(editor);
   }
 
