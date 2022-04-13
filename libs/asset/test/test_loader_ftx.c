@@ -41,6 +41,7 @@ static const AssetMemRecord g_testData[] = {
                               "  \"size\": 64,"
                               "  \"glyphSize\": 32,"
                               "  \"border\": 3,"
+                              "  \"baseline\": 0.3,"
                               "  \"fonts\": [{ \"id\": \"font.ttf\", \"characters\": \"1\"}]"
                               "}"),
     },
@@ -53,6 +54,7 @@ static const AssetMemRecord g_errorTestData[] = {
                               "  \"size\": 64,"
                               "  \"glyphSize\": 32,"
                               "  \"border\": 3,"
+                              "  \"baseline\": 0.3,"
                               "  \"fonts\": [{ \"characters\": \"1\"}]"
                               "}"),
     },
@@ -62,6 +64,7 @@ static const AssetMemRecord g_errorTestData[] = {
                               "  \"size\": 64,"
                               "  \"glyphSize\": 32,"
                               "  \"border\": 3,"
+                              "  \"baseline\": 0.3,"
                               "  \"fonts\": [{ \"id\": \"\", \"characters\": \"1\"}]"
                               "}"),
     },
@@ -71,6 +74,7 @@ static const AssetMemRecord g_errorTestData[] = {
                               "  \"size\": 64,"
                               "  \"glyphSize\": 32,"
                               "  \"border\": 3,"
+                              "  \"baseline\": 0.3,"
                               "  \"fonts\": [{ \"id\": \"missing.ttf\", \"characters\": \"1\"}]"
                               "}"),
     },
@@ -80,6 +84,7 @@ static const AssetMemRecord g_errorTestData[] = {
                               "  \"size\": 42,"
                               "  \"glyphSize\": 32,"
                               "  \"border\": 3,"
+                              "  \"baseline\": 0.3,"
                               "  \"fonts\": [{ \"id\": \"font.ttf\", \"characters\": \"1\"}]"
                               "}"),
     },
@@ -89,6 +94,7 @@ static const AssetMemRecord g_errorTestData[] = {
                               "  \"size\": 64,"
                               "  \"glyphSize\": 32,"
                               "  \"border\": 3,"
+                              "  \"baseline\": 0.3,"
                               "  \"fonts\": [{ \"id\": \"font.ttf\", \"characters\": \"1111\"}]"
                               "}"),
     },
