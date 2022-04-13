@@ -21,6 +21,9 @@ typedef enum {
   UiEditorFlags_Active      = 1 << 0,
   UiEditorFlags_FirstUpdate = 1 << 1,
   UiEditorFlags_Dirty       = 1 << 2,
+  UiEditorFlags_Select      = 1 << 3,
+
+  EiEditorFlags_Volatile = UiEditorFlags_FirstUpdate | UiEditorFlags_Dirty
 } UiEditorFlags;
 
 typedef enum {
@@ -47,7 +50,7 @@ struct sUiEditor {
   UiId                textElement;
   DynString           text;
   usize               cursor;
-  usize               selectStart, selectEnd;
+  usize               selectStart, selectEnd, selectPivot;
   TimeSteady          lastInteractTime;
   DynString           visualText;
   UiEditorVisualSlice visualSlices[ui_editor_max_visual_slices]; // Sorted by index.
@@ -237,9 +240,13 @@ static bool editor_cursor_valid_index(UiEditor* editor, const usize index) {
 }
 
 static void editor_cursor_set(UiEditor* editor, const usize index) {
-  editor->cursor      = index;
-  editor->selectStart = index;
-  editor->selectEnd   = index;
+  if (editor->flags & UiEditorFlags_Select) {
+    editor->selectStart = index > editor->selectPivot ? editor->selectPivot : index;
+    editor->selectEnd   = index < editor->selectPivot ? editor->selectPivot : index;
+  } else { // !select
+    editor->selectStart = editor->selectEnd = index;
+  }
+  editor->cursor = index;
   editor->flags |= UiEditorFlags_Dirty;
 }
 
@@ -404,6 +411,14 @@ void ui_editor_start(UiEditor* editor, const String initialText, const UiId elem
 void ui_editor_update(UiEditor* editor, const GapWindowComp* win, const UiBuildHover hover) {
   diag_assert(editor->flags & UiEditorFlags_Active);
 
+  if (gap_window_key_pressed(win, GapKey_Shift)) {
+    editor->selectPivot = editor->cursor;
+    editor->flags |= UiEditorFlags_Select;
+  }
+  if (gap_window_key_released(win, GapKey_Shift)) {
+    editor->flags &= ~UiEditorFlags_Select;
+  }
+
   const bool firstUpdate     = (editor->flags & UiEditorFlags_FirstUpdate) != 0;
   const bool cursorToHovered = (firstUpdate || gap_window_key_down(win, GapKey_MouseLeft));
   if (cursorToHovered && hover.id == editor->textElement) {
@@ -444,7 +459,7 @@ void ui_editor_update(UiEditor* editor, const GapWindowComp* win, const UiBuildH
   }
   editor_visual_slices_update(editor, timeNow);
   editor_visual_text_update(editor);
-  editor->flags &= ~(UiEditorFlags_FirstUpdate | UiEditorFlags_Dirty);
+  editor->flags &= ~EiEditorFlags_Volatile;
 }
 
 void ui_editor_stop(UiEditor* editor) {
