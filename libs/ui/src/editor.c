@@ -90,10 +90,14 @@ static bool editor_cp_is_valid(const Unicode cp, const UiEditorSource source) {
 }
 
 static bool editor_cp_is_seperator(const Unicode cp) {
-  switch (cp) {
+  switch ((u32)cp) {
   case Unicode_Space:
   case Unicode_ZeroWidthSpace:
   case Unicode_HorizontalTab:
+  case '.':
+  case ',':
+  case ':':
+  case ';':
     return true;
   default:
     return false;
@@ -260,7 +264,7 @@ static void editor_erase_current(UiEditor* editor, const UiEditorStride stride) 
     eraseTo = editor_next_index(editor, editor->cursor);
     break;
   case UiEditorStride_Word:
-    eraseTo = editor_next_word_start_index(editor, editor->cursor);
+    eraseTo = editor_cur_word_end_index(editor, editor->cursor);
     break;
   }
   if (sentinel_check(eraseTo)) {
