@@ -386,7 +386,7 @@ static void ui_text_build_line(UiTextBuildState* state, const UiTextLine* line) 
 static void ui_text_build_background(UiTextBuildState* state, const UiTextBackground* bg) {
   const UiVector startPos       = ui_text_char_pos(state, bg->line, bg->start);
   const UiVector endPos         = ui_text_char_pos(state, bg->line, bg->end);
-  const f32      xPadding       = state->fontSize * 0.1f;
+  const f32      xPadding       = state->fontSize * 0.05f;
   const f32      yBottomPadding = state->fontSize * state->font->baseline;
   const UiRect   rect           = {
                   .pos = ui_vector(startPos.x - xPadding, startPos.y - yBottomPadding),
