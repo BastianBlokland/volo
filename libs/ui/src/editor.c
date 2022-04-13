@@ -275,6 +275,15 @@ static void editor_erase_current(UiEditor* editor, const UiEditorStride stride) 
   editor_cursor_set(editor, editor->cursor); // NOTE: Important for updating the select indices.
 }
 
+static void editor_select_mode_start(UiEditor* editor) {
+  editor->selectPivot = editor->cursor;
+  editor->flags |= UiEditorFlags_SelectMode;
+}
+
+static void editor_select_mode_stop(UiEditor* editor) {
+  editor->flags &= ~UiEditorFlags_SelectMode;
+}
+
 static void editor_insert_cp(UiEditor* editor, const Unicode cp) {
   DynString buffer = dynstring_create_over(mem_stack(4));
   utf8_cp_write(&buffer, cp);
@@ -282,8 +291,7 @@ static void editor_insert_cp(UiEditor* editor, const Unicode cp) {
   editor_cursor_set(editor, editor->cursor + buffer.size);
 }
 
-static bool editor_insert_text(UiEditor* editor, String text, const UiEditorSource source) {
-  bool insertedAny = false;
+static void editor_insert_text(UiEditor* editor, String text, const UiEditorSource source) {
   while (!string_is_empty(text)) {
     Unicode cp;
     text = utf8_cp_read(text, &cp);
@@ -295,23 +303,13 @@ static bool editor_insert_text(UiEditor* editor, String text, const UiEditorSour
       break;
     default:
       if (editor_cp_is_valid(cp, source)) {
+        editor_select_mode_stop(editor);
         editor_erase_selection(editor);
         editor_insert_cp(editor, cp);
-        insertedAny = true;
       }
       break;
     }
   }
-  return insertedAny;
-}
-
-static void editor_select_mode_start(UiEditor* editor) {
-  editor->selectPivot = editor->cursor;
-  editor->flags |= UiEditorFlags_SelectMode;
-}
-
-static void editor_select_mode_stop(UiEditor* editor) {
-  editor->flags &= ~UiEditorFlags_SelectMode;
 }
 
 static UiEditorStride editor_stride_from_key_modifiers(const GapWindowComp* win) {
@@ -442,7 +440,7 @@ void ui_editor_update(UiEditor* editor, const GapWindowComp* win, const UiBuildH
   diag_assert(editor->flags & UiEditorFlags_Active);
   const bool isHovered       = hover.id == editor->textElement;
   const bool firstUpdate     = (editor->flags & UiEditorFlags_FirstUpdate) != 0;
-  const bool cursorToHovered = (firstUpdate || gap_window_key_down(win, GapKey_MouseLeft));
+  const bool cursorToHovered = firstUpdate || gap_window_key_down(win, GapKey_MouseLeft);
 
   if (cursorToHovered && hover.id == editor->textElement) {
     const usize index = editor_visual_index_to_text_index(editor, hover.textCharIndex);
@@ -456,10 +454,7 @@ void ui_editor_update(UiEditor* editor, const GapWindowComp* win, const UiBuildH
     editor_select_mode_stop(editor);
   }
 
-  if (editor_insert_text(editor, gap_window_input_text(win), UiEditorSource_UserTyped)) {
-    editor_select_mode_stop(editor);
-    editor->selectBegin = editor->selectEnd = editor->cursor;
-  }
+  editor_insert_text(editor, gap_window_input_text(win), UiEditorSource_UserTyped);
 
   if (gap_window_key_pressed(win, GapKey_Tab)) {
     editor_insert_cp(editor, Unicode_HorizontalTab);
@@ -479,10 +474,18 @@ void ui_editor_update(UiEditor* editor, const GapWindowComp* win, const UiBuildH
     }
   }
   if (gap_window_key_pressed(win, GapKey_ArrowRight)) {
-    editor_cursor_next(editor, editor_stride_from_key_modifiers(win));
+    if (editor_has_selection(editor) && !(editor->flags & UiEditorFlags_SelectMode)) {
+      editor_cursor_set(editor, editor->selectEnd);
+    } else {
+      editor_cursor_next(editor, editor_stride_from_key_modifiers(win));
+    }
   }
   if (gap_window_key_pressed(win, GapKey_ArrowLeft)) {
-    editor_cursor_prev(editor, editor_stride_from_key_modifiers(win));
+    if (editor_has_selection(editor) && !(editor->flags & UiEditorFlags_SelectMode)) {
+      editor_cursor_set(editor, editor->selectBegin);
+    } else {
+      editor_cursor_prev(editor, editor_stride_from_key_modifiers(win));
+    }
   }
   if (gap_window_key_pressed(win, GapKey_Home)) {
     editor_cursor_to_start(editor);
