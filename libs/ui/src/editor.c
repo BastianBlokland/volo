@@ -274,6 +274,10 @@ static void editor_cursor_prev(UiEditor* editor, const UiEditorStride stride) {
   editor->flags |= UiEditorFlags_Dirty;
 }
 
+static bool editor_has_selection(UiEditor* editor) {
+  return editor->selectStart != editor->selectEnd;
+}
+
 static UiEditorStride editor_stride_from_key_modifiers(const GapWindowComp* win) {
   if (gap_window_key_down(win, GapKey_Control)) {
     return UiEditorStride_Word;
@@ -301,7 +305,7 @@ static void editor_visual_slices_update(UiEditor* editor, const TimeSteady timeN
   }
 
   // Add the selection visual slices.
-  if (editor->selectStart != editor->selectEnd) {
+  if (editor_has_selection(editor)) {
     editor->visualSlices[sliceIdx++] = (UiEditorVisualSlice){
         .text  = g_editorSelectStartEsc,
         .index = editor->selectStart,
