@@ -454,8 +454,10 @@ void ui_editor_update(UiEditor* editor, const GapWindowComp* win, const UiBuildH
   if (shouldSelect && !(editor->flags & UiEditorFlags_SelectMode)) {
     editor_select_mode_start(editor);
   }
-  if (gap_window_key_released(win, GapKey_MouseLeft) ||
-      gap_window_key_released(win, GapKey_Shift)) {
+  if (gap_window_key_released(win, GapKey_MouseLeft) && !gap_window_key_down(win, GapKey_Shift)) {
+    editor_select_mode_stop(editor);
+  }
+  if (gap_window_key_released(win, GapKey_Shift)) {
     editor_select_mode_stop(editor);
   }
 
