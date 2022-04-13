@@ -339,9 +339,7 @@ ui_text_build_escape(UiTextBuildState* state, const UiTextLine* line, const UiEs
     state->fontWeight = esc->escWeight.value;
     break;
   case UiEscape_Cursor:
-    if (esc->escCursor.alpha) {
-      ui_text_build_cursor(state, line, esc->escCursor.alpha);
-    }
+    ui_text_build_cursor(state, line, esc->escCursor.alpha);
     break;
   }
 }
@@ -391,8 +389,8 @@ static void ui_text_build_background(UiTextBuildState* state, const UiTextBackgr
   const f32      xPadding       = state->fontSize * 0.1f;
   const f32      yBottomPadding = state->fontSize * state->font->baseline;
   const UiRect   rect           = {
-      .pos = ui_vector(startPos.x - xPadding, startPos.y - yBottomPadding),
-      .size = ui_vector(endPos.x + xPadding * 2.0f - startPos.x, bg->line->size.y + yBottomPadding),
+                  .pos = ui_vector(startPos.x - xPadding, startPos.y - yBottomPadding),
+                  .size = ui_vector(endPos.x + xPadding * 2.0f - startPos.x, bg->line->size.y + yBottomPadding),
   };
   state->buildBackground(
       state->userCtx,
