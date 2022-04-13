@@ -498,7 +498,7 @@ void ui_editor_update(UiEditor* editor, const GapWindowComp* win, const UiBuildH
   if (gap_window_key_pressed(win, GapKey_End)) {
     editor_cursor_to_end(editor);
   }
-  if (gap_window_key_released(win, GapKey_MouseLeft) && !isHovered) {
+  if (gap_window_key_pressed(win, GapKey_MouseLeft) && !isHovered) {
     ui_editor_stop(editor);
     return;
   }
