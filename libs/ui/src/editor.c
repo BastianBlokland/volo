@@ -236,15 +236,15 @@ static bool editor_cursor_valid_index(UiEditor* editor, const usize index) {
   return !utf8_contchar(*string_at(total, index));
 }
 
-static void editor_cursor_to_start(UiEditor* editor) {
-  editor->cursor = 0;
+static void editor_cursor_set(UiEditor* editor, const usize index) {
+  editor->cursor      = index;
+  editor->selectStart = index;
+  editor->selectEnd   = index;
   editor->flags |= UiEditorFlags_Dirty;
 }
 
-static void editor_cursor_to_end(UiEditor* editor) {
-  editor->cursor = editor->text.size;
-  editor->flags |= UiEditorFlags_Dirty;
-}
+static void editor_cursor_to_start(UiEditor* editor) { editor_cursor_set(editor, 0); }
+static void editor_cursor_to_end(UiEditor* editor) { editor_cursor_set(editor, editor->text.size); }
 
 static void editor_cursor_next(UiEditor* editor, const UiEditorStride stride) {
   usize next;
@@ -256,8 +256,7 @@ static void editor_cursor_next(UiEditor* editor, const UiEditorStride stride) {
     next = editor_next_word_start_index(editor, editor->cursor);
     break;
   }
-  editor->cursor = sentinel_check(next) ? editor->text.size : next;
-  editor->flags |= UiEditorFlags_Dirty;
+  editor_cursor_set(editor, sentinel_check(next) ? editor->text.size : next);
 }
 
 static void editor_cursor_prev(UiEditor* editor, const UiEditorStride stride) {
@@ -270,8 +269,7 @@ static void editor_cursor_prev(UiEditor* editor, const UiEditorStride stride) {
     prev = editor_prev_word_start_index(editor, editor->cursor);
     break;
   }
-  editor->cursor = sentinel_check(prev) ? 0 : prev;
-  editor->flags |= UiEditorFlags_Dirty;
+  editor_cursor_set(editor, sentinel_check(prev) ? 0 : prev);
 }
 
 static bool editor_has_selection(UiEditor* editor) {
@@ -409,8 +407,8 @@ void ui_editor_update(UiEditor* editor, const GapWindowComp* win, const UiBuildH
   const bool firstUpdate     = (editor->flags & UiEditorFlags_FirstUpdate) != 0;
   const bool cursorToHovered = (firstUpdate || gap_window_key_down(win, GapKey_MouseLeft));
   if (cursorToHovered && hover.id == editor->textElement) {
-    editor->cursor = editor_visual_index_to_text_index(editor, hover.textCharIndex);
-    editor->flags |= UiEditorFlags_Dirty;
+    const usize index = editor_visual_index_to_text_index(editor, hover.textCharIndex);
+    editor_cursor_set(editor, index);
   }
 
   editor_insert_text(editor, gap_window_input_text(win), UiEditorSource_UserTyped);
