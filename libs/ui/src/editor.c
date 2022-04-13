@@ -11,9 +11,11 @@
 #include "editor_internal.h"
 #include "escape_internal.h"
 
-#define ui_editor_max_visual_slices 1
+#define ui_editor_max_visual_slices 3
 
-static const String g_editorCursorEsc = string_static(uni_esc "cFF");
+static const String g_editorCursorEsc      = string_static(uni_esc "cFF");
+static const String g_editorSelectStartEsc = string_static(uni_esc "@0000FF88" uni_esc "|00");
+static const String g_editorSelectEndEsc   = string_static(uni_esc "r");
 
 typedef enum {
   UiEditorFlags_Active      = 1 << 0,
@@ -40,13 +42,13 @@ typedef struct {
 } UiEditorVisualSlice;
 
 struct sUiEditor {
-  Allocator*    alloc;
-  UiEditorFlags flags;
-  UiId          textElement;
-  DynString     text;
-  usize         cursor;
-  TimeSteady    lastInteractTime;
-
+  Allocator*          alloc;
+  UiEditorFlags       flags;
+  UiId                textElement;
+  DynString           text;
+  usize               cursor;
+  usize               selectStart, selectEnd;
+  TimeSteady          lastInteractTime;
   DynString           visualText;
   UiEditorVisualSlice visualSlices[ui_editor_max_visual_slices]; // Sorted by index.
 };
@@ -287,12 +289,27 @@ static void editor_visual_slices_update(UiEditor* editor, const TimeSteady timeN
   editor_visual_slices_clear(editor);
   u32 sliceIdx = 0;
 
-  // Add the cursor visual element.
+  // Add the cursor visual slice.
   static const TimeDuration g_blinkDelay    = time_second;
   static const TimeDuration g_blinkInterval = time_second;
   const TimeDuration durSinceInteract = time_steady_duration(editor->lastInteractTime, timeNow);
   if (durSinceInteract < g_blinkDelay || ((durSinceInteract / g_blinkInterval) % 2) == 0) {
-    editor->visualSlices[sliceIdx++] = (UiEditorVisualSlice){g_editorCursorEsc, editor->cursor};
+    editor->visualSlices[sliceIdx++] = (UiEditorVisualSlice){
+        .text  = g_editorCursorEsc,
+        .index = editor->cursor,
+    };
+  }
+
+  // Add the selection visual slices.
+  if (editor->selectStart != editor->selectEnd) {
+    editor->visualSlices[sliceIdx++] = (UiEditorVisualSlice){
+        .text  = g_editorSelectStartEsc,
+        .index = editor->selectStart,
+    };
+    editor->visualSlices[sliceIdx++] = (UiEditorVisualSlice){
+        .text  = g_editorSelectEndEsc,
+        .index = editor->selectEnd,
+    };
   }
 
   // Sort the slices by index.
