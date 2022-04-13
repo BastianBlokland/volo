@@ -14,14 +14,14 @@
 #define ui_editor_max_visual_slices 3
 
 static const String g_editorCursorEsc      = string_static(uni_esc "cFF");
-static const String g_editorSelectStartEsc = string_static(uni_esc "@0000FF88" uni_esc "|00");
+static const String g_editorSelectBeginEsc = string_static(uni_esc "@0000FF88" uni_esc "|00");
 static const String g_editorSelectEndEsc   = string_static(uni_esc "r");
 
 typedef enum {
   UiEditorFlags_Active      = 1 << 0,
   UiEditorFlags_FirstUpdate = 1 << 1,
   UiEditorFlags_Dirty       = 1 << 2,
-  UiEditorFlags_Select      = 1 << 3,
+  UiEditorFlags_SelectMode  = 1 << 3,
 
   EiEditorFlags_Volatile = UiEditorFlags_FirstUpdate | UiEditorFlags_Dirty
 } UiEditorFlags;
@@ -50,7 +50,7 @@ struct sUiEditor {
   UiId                textElement;
   DynString           text;
   usize               cursor;
-  usize               selectStart, selectEnd, selectPivot;
+  usize               selectBegin, selectEnd, selectPivot;
   TimeSteady          lastInteractTime;
   DynString           visualText;
   UiEditorVisualSlice visualSlices[ui_editor_max_visual_slices]; // Sorted by index.
@@ -164,69 +164,6 @@ static usize editor_prev_word_start_index(UiEditor* editor, usize index) {
   }
 }
 
-static void editor_insert_cp(UiEditor* editor, const Unicode cp) {
-  DynString buffer = dynstring_create_over(mem_stack(4));
-  utf8_cp_write(&buffer, cp);
-  dynstring_insert(&editor->text, dynstring_view(&buffer), editor->cursor);
-  editor->cursor += buffer.size;
-  editor->flags |= UiEditorFlags_Dirty;
-}
-
-static void editor_insert_text(UiEditor* editor, String text, const UiEditorSource source) {
-  while (!string_is_empty(text)) {
-    Unicode cp;
-    text = utf8_cp_read(text, &cp);
-    switch (cp) {
-    case Unicode_Escape:
-    case Unicode_Bell:
-      // Skip over escape sequences, editing text with escape sequences is not supported atm.
-      text = ui_escape_read(text, null);
-      break;
-    default:
-      if (editor_cp_is_valid(cp, source)) {
-        editor_insert_cp(editor, cp);
-      }
-      break;
-    }
-  }
-}
-
-static void editor_erase_prev(UiEditor* editor, const UiEditorStride stride) {
-  usize eraseFrom;
-  switch (stride) {
-  case UiEditorStride_Codepoint:
-    eraseFrom = editor_prev_index(editor, editor->cursor);
-    break;
-  case UiEditorStride_Word:
-    eraseFrom = editor_prev_word_start_index(editor, editor->cursor);
-    break;
-  }
-  if (!sentinel_check(eraseFrom)) {
-    const usize bytesToErase = editor->cursor - eraseFrom;
-    dynstring_erase_chars(&editor->text, eraseFrom, bytesToErase);
-    editor->cursor -= bytesToErase;
-    editor->flags |= UiEditorFlags_Dirty;
-  }
-}
-
-static void editor_erase_current(UiEditor* editor, const UiEditorStride stride) {
-  usize eraseTo;
-  switch (stride) {
-  case UiEditorStride_Codepoint:
-    eraseTo = editor_next_index(editor, editor->cursor);
-    break;
-  case UiEditorStride_Word:
-    eraseTo = editor_next_word_start_index(editor, editor->cursor);
-    break;
-  }
-  if (sentinel_check(eraseTo)) {
-    eraseTo = editor->text.size; // No next found, just erase until the end.
-  }
-  const usize bytesToErase = eraseTo - editor->cursor;
-  dynstring_erase_chars(&editor->text, editor->cursor, bytesToErase);
-  editor->flags |= UiEditorFlags_Dirty;
-}
-
 static bool editor_cursor_valid_index(UiEditor* editor, const usize index) {
   if (index > editor->text.size) {
     return false; // Out of bounds.
@@ -240,11 +177,13 @@ static bool editor_cursor_valid_index(UiEditor* editor, const usize index) {
 }
 
 static void editor_cursor_set(UiEditor* editor, const usize index) {
-  if (editor->flags & UiEditorFlags_Select) {
-    editor->selectStart = index > editor->selectPivot ? editor->selectPivot : index;
+  diag_assert(editor_cursor_valid_index(editor, index));
+
+  if (editor->flags & UiEditorFlags_SelectMode) {
+    editor->selectBegin = index > editor->selectPivot ? editor->selectPivot : index;
     editor->selectEnd   = index < editor->selectPivot ? editor->selectPivot : index;
   } else { // !select
-    editor->selectStart = editor->selectEnd = index;
+    editor->selectBegin = editor->selectEnd = index;
   }
   editor->cursor = index;
   editor->flags |= UiEditorFlags_Dirty;
@@ -279,8 +218,86 @@ static void editor_cursor_prev(UiEditor* editor, const UiEditorStride stride) {
   editor_cursor_set(editor, sentinel_check(prev) ? 0 : prev);
 }
 
+static void editor_insert_cp(UiEditor* editor, const Unicode cp) {
+  DynString buffer = dynstring_create_over(mem_stack(4));
+  utf8_cp_write(&buffer, cp);
+  dynstring_insert(&editor->text, dynstring_view(&buffer), editor->cursor);
+  editor_cursor_set(editor, editor->cursor + buffer.size);
+}
+
+static void editor_insert_text(UiEditor* editor, String text, const UiEditorSource source) {
+  while (!string_is_empty(text)) {
+    Unicode cp;
+    text = utf8_cp_read(text, &cp);
+    switch (cp) {
+    case Unicode_Escape:
+    case Unicode_Bell:
+      // Skip over escape sequences, editing text with escape sequences is not supported atm.
+      text = ui_escape_read(text, null);
+      break;
+    default:
+      if (editor_cp_is_valid(cp, source)) {
+        editor_insert_cp(editor, cp);
+      }
+      break;
+    }
+  }
+}
+
+static void editor_erase_prev(UiEditor* editor, const UiEditorStride stride) {
+  usize eraseFrom;
+  switch (stride) {
+  case UiEditorStride_Codepoint:
+    eraseFrom = editor_prev_index(editor, editor->cursor);
+    break;
+  case UiEditorStride_Word:
+    eraseFrom = editor_prev_word_start_index(editor, editor->cursor);
+    break;
+  }
+  if (!sentinel_check(eraseFrom)) {
+    const usize bytesToErase = editor->cursor - eraseFrom;
+    dynstring_erase_chars(&editor->text, eraseFrom, bytesToErase);
+
+    if (editor->selectPivot >= editor->cursor) {
+      editor->selectPivot -= bytesToErase;
+    }
+    editor_cursor_set(editor, editor->cursor - bytesToErase);
+  }
+}
+
+static void editor_erase_current(UiEditor* editor, const UiEditorStride stride) {
+  usize eraseTo;
+  switch (stride) {
+  case UiEditorStride_Codepoint:
+    eraseTo = editor_next_index(editor, editor->cursor);
+    break;
+  case UiEditorStride_Word:
+    eraseTo = editor_next_word_start_index(editor, editor->cursor);
+    break;
+  }
+  if (sentinel_check(eraseTo)) {
+    eraseTo = editor->text.size; // No next found, just erase until the end.
+  }
+  const usize bytesToErase = eraseTo - editor->cursor;
+  dynstring_erase_chars(&editor->text, editor->cursor, bytesToErase);
+
+  if (editor->selectPivot > editor->cursor) {
+    editor->selectPivot -= bytesToErase;
+  }
+  editor_cursor_set(editor, editor->cursor); // NOTE: Important for updating the select indices.
+}
+
 static bool editor_has_selection(UiEditor* editor) {
-  return editor->selectStart != editor->selectEnd;
+  return editor->selectBegin != editor->selectEnd;
+}
+
+static void editor_select_mode_start(UiEditor* editor) {
+  editor->selectPivot = editor->cursor;
+  editor->flags |= UiEditorFlags_SelectMode;
+}
+
+static void editor_select_mode_stop(UiEditor* editor) {
+  editor->flags &= ~UiEditorFlags_SelectMode;
 }
 
 static UiEditorStride editor_stride_from_key_modifiers(const GapWindowComp* win) {
@@ -312,8 +329,8 @@ static void editor_visual_slices_update(UiEditor* editor, const TimeSteady timeN
   // Add the selection visual slices.
   if (editor_has_selection(editor)) {
     editor->visualSlices[sliceIdx++] = (UiEditorVisualSlice){
-        .text  = g_editorSelectStartEsc,
-        .index = editor->selectStart,
+        .text  = g_editorSelectBeginEsc,
+        .index = editor->selectBegin,
     };
     editor->visualSlices[sliceIdx++] = (UiEditorVisualSlice){
         .text  = g_editorSelectEndEsc,
@@ -361,7 +378,6 @@ static usize editor_visual_index_to_text_index(UiEditor* editor, const usize vis
       index -= visualSlice->text.size;
     }
   }
-  diag_assert(editor_cursor_valid_index(editor, index));
   return index;
 }
 
@@ -399,7 +415,7 @@ void ui_editor_start(UiEditor* editor, const String initialText, const UiId elem
   }
   editor->flags |= UiEditorFlags_Active | UiEditorFlags_FirstUpdate | UiEditorFlags_Dirty;
   editor->textElement = element;
-  editor->cursor      = 0;
+  editor->cursor = editor->selectBegin = editor->selectEnd = 0;
 
   dynstring_clear(&editor->text);
   editor_insert_text(editor, initialText, UiEditorSource_InitialText);
@@ -410,17 +426,10 @@ void ui_editor_start(UiEditor* editor, const String initialText, const UiId elem
 
 void ui_editor_update(UiEditor* editor, const GapWindowComp* win, const UiBuildHover hover) {
   diag_assert(editor->flags & UiEditorFlags_Active);
-
-  if (gap_window_key_pressed(win, GapKey_Shift)) {
-    editor->selectPivot = editor->cursor;
-    editor->flags |= UiEditorFlags_Select;
-  }
-  if (gap_window_key_released(win, GapKey_Shift)) {
-    editor->flags &= ~UiEditorFlags_Select;
-  }
-
+  const bool isHovered       = hover.id == editor->textElement;
   const bool firstUpdate     = (editor->flags & UiEditorFlags_FirstUpdate) != 0;
   const bool cursorToHovered = (firstUpdate || gap_window_key_down(win, GapKey_MouseLeft));
+
   if (cursorToHovered && hover.id == editor->textElement) {
     const usize index = editor_visual_index_to_text_index(editor, hover.textCharIndex);
     editor_cursor_set(editor, index);
@@ -428,6 +437,12 @@ void ui_editor_update(UiEditor* editor, const GapWindowComp* win, const UiBuildH
 
   editor_insert_text(editor, gap_window_input_text(win), UiEditorSource_UserTyped);
 
+  if (gap_window_key_down(win, GapKey_Shift) && !(editor->flags & UiEditorFlags_SelectMode)) {
+    editor_select_mode_start(editor);
+  }
+  if (gap_window_key_released(win, GapKey_Shift)) {
+    editor_select_mode_stop(editor);
+  }
   if (gap_window_key_pressed(win, GapKey_Tab)) {
     editor_insert_cp(editor, Unicode_HorizontalTab);
   }
@@ -449,8 +464,13 @@ void ui_editor_update(UiEditor* editor, const GapWindowComp* win, const UiBuildH
   if (gap_window_key_pressed(win, GapKey_End)) {
     editor_cursor_to_end(editor);
   }
+  if (gap_window_key_released(win, GapKey_MouseLeft) && !isHovered) {
+    ui_editor_stop(editor);
+    return;
+  }
   if (gap_window_key_pressed(win, GapKey_Escape) || gap_window_key_pressed(win, GapKey_Return)) {
     ui_editor_stop(editor);
+    return;
   }
 
   const TimeSteady timeNow = time_steady_clock();
@@ -463,6 +483,7 @@ void ui_editor_update(UiEditor* editor, const GapWindowComp* win, const UiBuildH
 }
 
 void ui_editor_stop(UiEditor* editor) {
-  editor->flags &= ~UiEditorFlags_Active;
+  editor_select_mode_stop(editor);
+  editor->flags &= ~(UiEditorFlags_Active | EiEditorFlags_Volatile);
   editor->textElement = sentinel_u64;
 }
