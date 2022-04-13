@@ -22,3 +22,8 @@ typedef enum {
   Unicode_Delete         = 0x7F,
   Unicode_ZeroWidthSpace = 0x200B,
 } Unicode;
+
+/**
+ * Test if the given unicode codepoint is an ascii character (<= 127).
+ */
+bool unicode_is_ascii(Unicode);

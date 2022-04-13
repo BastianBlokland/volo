@@ -50,6 +50,7 @@ add_library(lib_core STATIC
   src/time.c
   src/tty_pal.c
   src/tty.c
+  src/unicode.c
   src/utf8.c
   src/winutils.c
   )
@@ -94,6 +95,7 @@ add_executable(lib_core_test
   test/test_string.c
   test/test_thread.c
   test/test_time.c
+  test/test_unicode.c
   test/test_utf8.c
   test/test_winutils.c
   )
