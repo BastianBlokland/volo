@@ -59,6 +59,9 @@ static bool editor_cp_is_valid(const Unicode cp, const UiEditorSource source) {
   if (unicode_is_ascii(cp) && ascii_is_newline(cp)) {
     return false; // Multi line editing is not supported at this time.
   }
+  if (cp == Unicode_ZeroWidthSpace) {
+    return false; // Invisible characters (which also no not advance the cursor) are not supported.
+  }
   return true;
 }
 
