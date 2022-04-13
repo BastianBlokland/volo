@@ -1,6 +1,8 @@
+#include "core_array.h"
 #include "core_ascii.h"
 #include "core_diag.h"
 #include "core_math.h"
+#include "core_sort.h"
 #include "core_time.h"
 #include "core_unicode.h"
 #include "core_utf8.h"
@@ -9,8 +11,9 @@
 #include "editor_internal.h"
 #include "escape_internal.h"
 
-static const String g_editorCursorOnEsc  = string_static(uni_esc "cFF");
-static const String g_editorCursorOffEsc = string_static(uni_esc "c00");
+#define ui_editor_max_visual_slices 1
+
+static const String g_editorCursorEsc = string_static(uni_esc "cFF");
 
 typedef enum {
   UiEditorFlags_Active      = 1 << 0,
@@ -28,14 +31,30 @@ typedef enum {
   UiEditorSource_UserTyped,
 } UiEditorSource;
 
+/**
+ * Visual-slices are used to track exta elements in the visual text (for example the cursor).
+ */
+typedef struct {
+  String text;
+  usize  index; // Index into the actual text.
+} UiEditorVisualSlice;
+
 struct sUiEditor {
   Allocator*    alloc;
   UiEditorFlags flags;
   UiId          textElement;
-  DynString     text, visualText;
+  DynString     text;
   usize         cursor;
   TimeSteady    lastInteractTime;
+
+  DynString           visualText;
+  UiEditorVisualSlice visualSlices[ui_editor_max_visual_slices]; // Sorted by index.
 };
+
+static i8 ui_visual_slice_compare(const void* a, const void* b) {
+  return compare_usize(
+      field_ptr(a, UiEditorVisualSlice, index), field_ptr(b, UiEditorVisualSlice, index));
+}
 
 static bool editor_cp_is_valid(const Unicode cp, const UiEditorSource source) {
   /**
@@ -260,33 +279,63 @@ static UiEditorStride editor_stride_from_key_modifiers(const GapWindowComp* win)
   return UiEditorStride_Codepoint;
 }
 
-static void editor_update_visual_text(UiEditor* editor, const TimeSteady timeNow) {
-  dynstring_clear(&editor->visualText);
-  dynstring_append(&editor->visualText, dynstring_view(&editor->text));
+static void editor_visual_slices_clear(UiEditor* editor) {
+  mem_set(array_mem(editor->visualSlices), 0);
+}
 
+static void editor_visual_slices_update(UiEditor* editor, const TimeSteady timeNow) {
+  editor_visual_slices_clear(editor);
+  u32 sliceIdx = 0;
+
+  // Add the cursor visual element.
   static const TimeDuration g_blinkDelay    = time_second;
   static const TimeDuration g_blinkInterval = time_second;
+  const TimeDuration durSinceInteract = time_steady_duration(editor->lastInteractTime, timeNow);
+  if (durSinceInteract < g_blinkDelay || ((durSinceInteract / g_blinkInterval) % 2) == 0) {
+    editor->visualSlices[sliceIdx++] = (UiEditorVisualSlice){g_editorCursorEsc, editor->cursor};
+  }
 
-  const TimeDuration sinceInteract = time_steady_duration(editor->lastInteractTime, timeNow);
-  const bool cursor = sinceInteract < g_blinkDelay || ((sinceInteract / g_blinkInterval) % 2) == 0;
-  dynstring_insert(
-      &editor->visualText, cursor ? g_editorCursorOnEsc : g_editorCursorOffEsc, editor->cursor);
+  // Sort the slices by index.
+  sort_quicksort_t(
+      &editor->visualSlices[0],
+      &editor->visualSlices[sliceIdx],
+      UiEditorVisualSlice,
+      ui_visual_slice_compare);
+}
+
+static void editor_visual_text_update(UiEditor* editor) {
+  dynstring_clear(&editor->visualText);
+
+  /**
+   * The visual text consists of both the real text and additional visual elements (eg the cursor).
+   * NOTE: The visual slices are sorted by index.
+   */
+  const String text    = dynstring_view(&editor->text);
+  usize        textIdx = 0;
+  array_for_t(editor->visualSlices, UiEditorVisualSlice, visualSlice) {
+    if (!string_is_empty(visualSlice->text)) {
+      const String beforeText = string_slice(text, textIdx, visualSlice->index - textIdx);
+      dynstring_append(&editor->visualText, beforeText);
+      dynstring_append(&editor->visualText, visualSlice->text);
+      textIdx = visualSlice->index;
+    }
+  }
+  const String remainingText = string_slice(text, textIdx, text.size - textIdx);
+  dynstring_append(&editor->visualText, remainingText);
 }
 
 static usize editor_visual_index_to_text_index(UiEditor* editor, const usize visualIndex) {
   /**
-   * The visual text contains additional elements (for example a cursor) which does not exist in
-   * the real text.
-   * If the given position is beyond the cursor we substract the cursor sequence to compensate.
+   * To map from the visual text to the real text we need to substrac the space that the visual
+   * slices (for example the cursor) take.
    */
   usize index = visualIndex;
-  if (index > editor->cursor) {
-    index -= g_editorCursorOnEsc.size;
+  for (usize i = ui_editor_max_visual_slices; i-- > 0;) {
+    if (index > editor->visualSlices[i].index) {
+      index -= editor->visualSlices[i].text.size;
+    }
   }
-  if (!editor_cursor_valid_index(editor, index)) {
-    // NOTE: This can only happen if the initial text contained invalid utf8 or an escape sequence.
-    return editor->text.size;
-  }
+  diag_assert(editor_cursor_valid_index(editor, index));
   return index;
 }
 
@@ -328,6 +377,9 @@ void ui_editor_start(UiEditor* editor, const String initialText, const UiId elem
 
   dynstring_clear(&editor->text);
   editor_insert_text(editor, initialText, UiEditorSource_InitialText);
+
+  editor_visual_slices_clear(editor);
+  editor_visual_text_update(editor);
 }
 
 void ui_editor_update(UiEditor* editor, const GapWindowComp* win, const UiBuildHover hover) {
@@ -371,7 +423,8 @@ void ui_editor_update(UiEditor* editor, const GapWindowComp* win, const UiBuildH
   if (editor->flags & UiEditorFlags_Dirty) {
     editor->lastInteractTime = timeNow;
   }
-  editor_update_visual_text(editor, timeNow);
+  editor_visual_slices_update(editor, timeNow);
+  editor_visual_text_update(editor);
   editor->flags &= ~(UiEditorFlags_FirstUpdate | UiEditorFlags_Dirty);
 }
 
