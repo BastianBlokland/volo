@@ -32,7 +32,7 @@ struct sUiEditor {
   Allocator*    alloc;
   UiEditorFlags flags;
   UiId          textElement;
-  DynString     text, displayText;
+  DynString     text, visualText;
   usize         cursor;
   TimeSteady    lastInteractTime;
 };
@@ -260,9 +260,9 @@ static UiEditorStride editor_stride_from_key_modifiers(const GapWindowComp* win)
   return UiEditorStride_Codepoint;
 }
 
-static void editor_update_display(UiEditor* editor, const TimeSteady timeNow) {
-  dynstring_clear(&editor->displayText);
-  dynstring_append(&editor->displayText, dynstring_view(&editor->text));
+static void editor_update_visual_text(UiEditor* editor, const TimeSteady timeNow) {
+  dynstring_clear(&editor->visualText);
+  dynstring_append(&editor->visualText, dynstring_view(&editor->text));
 
   static const TimeDuration g_blinkDelay    = time_second;
   static const TimeDuration g_blinkInterval = time_second;
@@ -270,15 +270,16 @@ static void editor_update_display(UiEditor* editor, const TimeSteady timeNow) {
   const TimeDuration sinceInteract = time_steady_duration(editor->lastInteractTime, timeNow);
   const bool cursor = sinceInteract < g_blinkDelay || ((sinceInteract / g_blinkInterval) % 2) == 0;
   dynstring_insert(
-      &editor->displayText, cursor ? g_editorCursorOnEsc : g_editorCursorOffEsc, editor->cursor);
+      &editor->visualText, cursor ? g_editorCursorOnEsc : g_editorCursorOffEsc, editor->cursor);
 }
 
-static usize editor_display_index_to_text_index(UiEditor* editor, const usize displayIndex) {
+static usize editor_visual_index_to_text_index(UiEditor* editor, const usize visualIndex) {
   /**
-   * The displayed string contains a cursor which does not exist in the real text.
+   * The visual text contains additional elements (for example a cursor) which does not exist in
+   * the real text.
    * If the given position is beyond the cursor we substract the cursor sequence to compensate.
    */
-  usize index = displayIndex;
+  usize index = visualIndex;
   if (index > editor->cursor) {
     index -= g_editorCursorOnEsc.size;
   }
@@ -296,14 +297,14 @@ UiEditor* ui_editor_create(Allocator* alloc) {
       .alloc       = alloc,
       .textElement = sentinel_u64,
       .text        = dynstring_create(alloc, 256),
-      .displayText = dynstring_create(alloc, 256),
+      .visualText  = dynstring_create(alloc, 256),
   };
   return editor;
 }
 
 void ui_editor_destroy(UiEditor* editor) {
   dynstring_destroy(&editor->text);
-  dynstring_destroy(&editor->displayText);
+  dynstring_destroy(&editor->visualText);
   alloc_free_t(editor->alloc, editor);
 }
 
@@ -313,9 +314,9 @@ bool ui_editor_active(const UiEditor* editor) {
 
 UiId ui_editor_element(const UiEditor* editor) { return editor->textElement; }
 
-String ui_editor_result(const UiEditor* editor) { return dynstring_view(&editor->text); }
+String ui_editor_result_text(const UiEditor* editor) { return dynstring_view(&editor->text); }
 
-String ui_editor_display(const UiEditor* editor) { return dynstring_view(&editor->displayText); }
+String ui_editor_visual_text(const UiEditor* editor) { return dynstring_view(&editor->visualText); }
 
 void ui_editor_start(UiEditor* editor, const String initialText, const UiId element) {
   if (ui_editor_active(editor)) {
@@ -335,7 +336,7 @@ void ui_editor_update(UiEditor* editor, const GapWindowComp* win, const UiBuildH
   const bool firstUpdate     = (editor->flags & UiEditorFlags_FirstUpdate) != 0;
   const bool cursorToHovered = (firstUpdate || gap_window_key_down(win, GapKey_MouseLeft));
   if (cursorToHovered && hover.id == editor->textElement) {
-    editor->cursor = editor_display_index_to_text_index(editor, hover.textCharIndex);
+    editor->cursor = editor_visual_index_to_text_index(editor, hover.textCharIndex);
     editor->flags |= UiEditorFlags_Dirty;
   }
 
@@ -370,7 +371,7 @@ void ui_editor_update(UiEditor* editor, const GapWindowComp* win, const UiBuildH
   if (editor->flags & UiEditorFlags_Dirty) {
     editor->lastInteractTime = timeNow;
   }
-  editor_update_display(editor, timeNow);
+  editor_update_visual_text(editor, timeNow);
   editor->flags &= ~(UiEditorFlags_FirstUpdate | UiEditorFlags_Dirty);
 }
 
