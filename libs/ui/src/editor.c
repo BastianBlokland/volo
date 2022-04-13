@@ -165,7 +165,7 @@ static usize editor_prev_word_start_index(UiEditor* editor, usize index) {
 }
 
 static bool editor_cursor_valid_index(UiEditor* editor, const usize index) {
-  if (index > editor->text.size) {
+  if (index > editor->text.size + 1) {
     return false; // Out of bounds.
   }
   if (index == editor->text.size) {
@@ -218,30 +218,18 @@ static void editor_cursor_prev(UiEditor* editor, const UiEditorStride stride) {
   editor_cursor_set(editor, sentinel_check(prev) ? 0 : prev);
 }
 
-static void editor_insert_cp(UiEditor* editor, const Unicode cp) {
-  DynString buffer = dynstring_create_over(mem_stack(4));
-  utf8_cp_write(&buffer, cp);
-  dynstring_insert(&editor->text, dynstring_view(&buffer), editor->cursor);
-  editor_cursor_set(editor, editor->cursor + buffer.size);
+static bool editor_has_selection(UiEditor* editor) {
+  return editor->selectBegin != editor->selectEnd;
 }
 
-static void editor_insert_text(UiEditor* editor, String text, const UiEditorSource source) {
-  while (!string_is_empty(text)) {
-    Unicode cp;
-    text = utf8_cp_read(text, &cp);
-    switch (cp) {
-    case Unicode_Escape:
-    case Unicode_Bell:
-      // Skip over escape sequences, editing text with escape sequences is not supported atm.
-      text = ui_escape_read(text, null);
-      break;
-    default:
-      if (editor_cp_is_valid(cp, source)) {
-        editor_insert_cp(editor, cp);
-      }
-      break;
-    }
+static void editor_erase_selection(UiEditor* editor) {
+  const usize bytesToErase = editor->selectEnd - editor->selectBegin;
+  dynstring_erase_chars(&editor->text, editor->selectBegin, bytesToErase);
+  editor->selectPivot = editor->selectEnd = editor->selectBegin;
+  if (editor->cursor > editor->selectBegin) {
+    editor_cursor_set(editor, editor->cursor - bytesToErase);
   }
+  editor->flags |= UiEditorFlags_Dirty;
 }
 
 static void editor_erase_prev(UiEditor* editor, const UiEditorStride stride) {
@@ -287,8 +275,34 @@ static void editor_erase_current(UiEditor* editor, const UiEditorStride stride) 
   editor_cursor_set(editor, editor->cursor); // NOTE: Important for updating the select indices.
 }
 
-static bool editor_has_selection(UiEditor* editor) {
-  return editor->selectBegin != editor->selectEnd;
+static void editor_insert_cp(UiEditor* editor, const Unicode cp) {
+  DynString buffer = dynstring_create_over(mem_stack(4));
+  utf8_cp_write(&buffer, cp);
+  dynstring_insert(&editor->text, dynstring_view(&buffer), editor->cursor);
+  editor_cursor_set(editor, editor->cursor + buffer.size);
+}
+
+static bool editor_insert_text(UiEditor* editor, String text, const UiEditorSource source) {
+  bool insertedAny = false;
+  while (!string_is_empty(text)) {
+    Unicode cp;
+    text = utf8_cp_read(text, &cp);
+    switch (cp) {
+    case Unicode_Escape:
+    case Unicode_Bell:
+      // Skip over escape sequences, editing text with escape sequences is not supported atm.
+      text = ui_escape_read(text, null);
+      break;
+    default:
+      if (editor_cp_is_valid(cp, source)) {
+        editor_erase_selection(editor);
+        editor_insert_cp(editor, cp);
+        insertedAny = true;
+      }
+      break;
+    }
+  }
+  return insertedAny;
 }
 
 static void editor_select_mode_start(UiEditor* editor) {
@@ -435,22 +449,34 @@ void ui_editor_update(UiEditor* editor, const GapWindowComp* win, const UiBuildH
     editor_cursor_set(editor, index);
   }
 
-  editor_insert_text(editor, gap_window_input_text(win), UiEditorSource_UserTyped);
-
   if (gap_window_key_down(win, GapKey_Shift) && !(editor->flags & UiEditorFlags_SelectMode)) {
     editor_select_mode_start(editor);
   }
   if (gap_window_key_released(win, GapKey_Shift)) {
     editor_select_mode_stop(editor);
   }
+
+  if (editor_insert_text(editor, gap_window_input_text(win), UiEditorSource_UserTyped)) {
+    editor_select_mode_stop(editor);
+    editor->selectBegin = editor->selectEnd = editor->cursor;
+  }
+
   if (gap_window_key_pressed(win, GapKey_Tab)) {
     editor_insert_cp(editor, Unicode_HorizontalTab);
   }
   if (gap_window_key_pressed(win, GapKey_Backspace)) {
-    editor_erase_prev(editor, editor_stride_from_key_modifiers(win));
+    if (editor_has_selection(editor)) {
+      editor_erase_selection(editor);
+    } else {
+      editor_erase_prev(editor, editor_stride_from_key_modifiers(win));
+    }
   }
   if (gap_window_key_pressed(win, GapKey_Delete)) {
-    editor_erase_current(editor, editor_stride_from_key_modifiers(win));
+    if (editor_has_selection(editor)) {
+      editor_erase_selection(editor);
+    } else {
+      editor_erase_current(editor, editor_stride_from_key_modifiers(win));
+    }
   }
   if (gap_window_key_pressed(win, GapKey_ArrowRight)) {
     editor_cursor_next(editor, editor_stride_from_key_modifiers(win));
