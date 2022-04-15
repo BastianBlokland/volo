@@ -508,7 +508,13 @@ void ui_editor_update(UiEditor* editor, const GapWindowComp* win, const UiBuildH
     editor_select_mode_stop(editor);
   }
 
-  editor_insert_text(editor, gap_window_input_text(win), UiEditorSource_UserTyped);
+  if (gap_window_key_down(win, GapKey_Control)) {
+    if (gap_window_key_pressed(win, GapKey_A)) {
+      editor_select_line(editor);
+    }
+  } else {
+    editor_insert_text(editor, gap_window_input_text(win), UiEditorSource_UserTyped);
+  }
 
   if (gap_window_key_pressed(win, GapKey_Tab)) {
     editor_insert_cp(editor, Unicode_HorizontalTab);
