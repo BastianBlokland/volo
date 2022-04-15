@@ -41,6 +41,7 @@ int main(const int argc, const char** argv) {
   register_spec(check, string);
   register_spec(check, thread);
   register_spec(check, time);
+  register_spec(check, unicode);
   register_spec(check, utf8);
   register_spec(check, winutils);
 

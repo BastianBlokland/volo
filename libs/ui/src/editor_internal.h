@@ -16,10 +16,10 @@ typedef struct sUiEditor UiEditor;
 UiEditor* ui_editor_create(Allocator*);
 void      ui_editor_destroy(UiEditor*);
 
-bool   ui_editor_active(const UiEditor*);  // Is the editor currently active.
-UiId   ui_editor_element(const UiEditor*); // Currently editing element.
-String ui_editor_result(const UiEditor*);  // Current result text.
-String ui_editor_display(const UiEditor*); // String to render while editing.
+bool   ui_editor_active(const UiEditor*);      // Is the editor currently active.
+UiId   ui_editor_element(const UiEditor*);     // Currently editing element.
+String ui_editor_result_text(const UiEditor*); // Current result text.
+String ui_editor_visual_text(const UiEditor*); // String to render while editing.
 
 void ui_editor_start(UiEditor*, String initialText, UiId element);
 void ui_editor_update(UiEditor*, const GapWindowComp*, UiBuildHover);

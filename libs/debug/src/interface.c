@@ -12,13 +12,13 @@
 static const String g_tooltipScale          = string_static("User interface scaling factor.\n\a.bNote\ar: Needs to be applied before taking effect.");
 static const String g_tooltipDebugInspector = string_static("Enable the debug inspector.\n\n"
                                                             "Meaning:\n"
-                                                            "- \a~red\a.bRed\ar: Element's rectangle.\n"
-                                                            "- \a~blue\a.bBlue\ar: Element's container rectangle.\n");
+                                                            "- \a|01\a~red\a.bRed\ar: Element's rectangle.\n"
+                                                            "- \a|01\a~blue\a.bBlue\ar: Element's container rectangle.\n");
 static const String g_tooltipDebugShading   = string_static("Enable the debug shading.\n\n"
                                                             "Meaning:\n"
-                                                            "- \a#001CFFFF\a.bBlue\ar: Dark is fully inside the shape and light is on the shape's outer edge.\n"
+                                                            "- \a#001CFFFF\a|01\a.bBlue\ar: Dark is fully inside the shape and light is on the shape's outer edge.\n"
                                                             "- \a#FFFFFFFF\a|01White\ar: The shape's outline.\n"
-                                                            "- \a#00FF00FF\a.bGreen\ar: Dark is on the shape's outer edge and light is fully outside the shape.\n");
+                                                            "- \a#00FF00FF\a|01\a.bGreen\ar: Dark is on the shape's outer edge and light is fully outside the shape.\n");
 static const String g_tooltipDebugFtx       = string_static("Show the \a.bFont TeXture\ar used for the interface rendering.");
 static const String g_tooltipApply          = string_static("Apply outstanding interface setting changes.");
 static const String g_tooltipDefaults       = string_static("Reset all settings to their defaults.");
@@ -92,7 +92,7 @@ static void interface_panel_draw(
   const String title = fmt_write_scratch("{} Interface Settings", fmt_ui_shape(FormatShapes));
   ui_panel_begin(canvas, &panel->state, .title = title);
 
-  UiGridState layoutGrid = ui_grid_init(canvas, .size = {140, 25});
+  UiGridState layoutGrid = ui_grid_init(canvas, .size = {150, 25});
 
   bool dirty = false;
   dirty |= panel->newScale != settings->scale;
@@ -215,7 +215,7 @@ EcsEntityId debug_interface_panel_open(EcsWorld* world, const EcsEntityId window
       world,
       panelEntity,
       DebugInterfacePanelComp,
-      .state  = ui_panel_init(ui_vector(310, 220)),
+      .state  = ui_panel_init(ui_vector(330, 220)),
       .window = window);
   return panelEntity;
 }

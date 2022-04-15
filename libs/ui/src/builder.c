@@ -124,32 +124,6 @@ static void ui_build_set_size(UiBuildState* state, const UiVector val, const UiA
   }
 }
 
-static void ui_build_text_char(void* userCtx, const UiTextCharInfo* info) {
-  UiBuildState* state = userCtx;
-  const u8 clipId = info->layer == UiLayer_Overlay ? 0 : ui_build_container_currect(state)->clipId;
-
-  const f32      border = info->ch->border * info->size;
-  const f32      size   = (info->ch->size + info->ch->border * 2.0f) * info->size;
-  const UiVector pos    = {
-      info->pos.x + info->ch->offsetX * info->size - border,
-      info->pos.y + info->ch->offsetY * info->size - border,
-  };
-
-  state->ctx->outputGlyph(
-      state->ctx->userCtx,
-      (UiGlyphData){
-          .rect         = {pos, ui_vector(size, size)},
-          .color        = info->color,
-          .atlasIndex   = info->ch->glyphIndex,
-          .borderFrac   = (u16)(border / size * u16_max),
-          .cornerFrac   = (u16)(0.5f * u16_max),
-          .clipId       = clipId,
-          .outlineWidth = info->outline,
-          .weight       = info->weight,
-      },
-      info->layer);
-}
-
 static void ui_build_glyph(
     UiBuildState*      state,
     const Unicode      cp,
@@ -181,6 +155,44 @@ static void ui_build_glyph(
           .weight       = style.weight,
       },
       style.layer);
+}
+
+static void ui_build_text_char(void* userCtx, const UiTextCharInfo* info) {
+  UiBuildState* state = userCtx;
+
+  const u8  clipId = info->layer == UiLayer_Overlay ? 0 : ui_build_container_currect(state)->clipId;
+  const f32 border = info->ch->border * info->size;
+  const f32 size   = (info->ch->size + info->ch->border * 2.0f) * info->size;
+  const UiVector pos = {
+      info->pos.x + info->ch->offsetX * info->size - border,
+      info->pos.y + info->ch->offsetY * info->size - border,
+  };
+  state->ctx->outputGlyph(
+      state->ctx->userCtx,
+      (UiGlyphData){
+          .rect         = {pos, ui_vector(size, size)},
+          .color        = info->color,
+          .atlasIndex   = info->ch->glyphIndex,
+          .borderFrac   = (u16)(border / size * u16_max),
+          .cornerFrac   = (u16)(0.5f * u16_max),
+          .clipId       = clipId,
+          .outlineWidth = info->outline,
+          .weight       = info->weight,
+      },
+      info->layer);
+}
+
+static void ui_build_text_background(void* userCtx, const UiTextBackgroundInfo* info) {
+  UiBuildState* state = userCtx;
+
+  const u8 clipId = info->layer == UiLayer_Overlay ? 0 : ui_build_container_currect(state)->clipId;
+  const UiBuildStyle style = {
+      .color  = info->color,
+      .weight = UiWeight_Normal,
+      .layer  = info->layer,
+  };
+  const u8 maxCorner = 4; // Roundedness of the backgrounds.
+  ui_build_glyph(state, UiShape_Circle, info->rect, style, maxCorner, clipId);
 }
 
 static bool ui_rect_contains(const UiRect rect, const UiVector point) {
@@ -231,7 +243,8 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
       style.weight,
       cmd->align,
       state,
-      &ui_build_text_char);
+      &ui_build_text_char,
+      &ui_build_text_background);
 
   const bool debugInspector = state->ctx->settings->flags & UiSettingFlags_DebugInspector;
   const bool hoverable      = cmd->flags & UiFlags_Interactable || debugInspector;
@@ -294,23 +307,23 @@ static void ui_build_debug_inspector(UiBuildState* state, const UiId id, const U
   ui_build_glyph(state, UiShape_Square, rect, styleShape, 5, 0);
 
   DynString str = dynstring_create(g_alloc_scratch, usize_kibibyte);
-  fmt_write(&str, "Id        {}\n", fmt_int(id));
-  fmt_write(&str, "X         {}\n", fmt_float(rect.x, .maxDecDigits = 2));
-  fmt_write(&str, "Y         {}\n", fmt_float(rect.y, .maxDecDigits = 2));
-  fmt_write(&str, "Width     {}\n", fmt_float(rect.width, .maxDecDigits = 2));
-  fmt_write(&str, "Height    {}\n", fmt_float(rect.height, .maxDecDigits = 2));
+  fmt_write(&str, "Id\t\t{}\n", fmt_int(id));
+  fmt_write(&str, "X\t\t{}\n", fmt_float(rect.x, .maxDecDigits = 2));
+  fmt_write(&str, "Y\t\t{}\n", fmt_float(rect.y, .maxDecDigits = 2));
+  fmt_write(&str, "Width\t\t{}\n", fmt_float(rect.width, .maxDecDigits = 2));
+  fmt_write(&str, "Height\t\t{}\n", fmt_float(rect.height, .maxDecDigits = 2));
   fmt_write(
       &str,
-      "Color     #{}{}{}{}\n",
+      "Color\t\t#{}{}{}{}\n",
       fmt_int(style.color.r, .base = 16, .minDigits = 2),
       fmt_int(style.color.g, .base = 16, .minDigits = 2),
       fmt_int(style.color.b, .base = 16, .minDigits = 2),
       fmt_int(style.color.a, .base = 16, .minDigits = 2));
-  fmt_write(&str, "Outline   {}\n", fmt_int(style.outline));
-  fmt_write(&str, "Layer     {}\n", fmt_int(style.layer));
-  fmt_write(&str, "Variation {}\n", fmt_int(style.variation));
-  fmt_write(&str, "ClipId    {}\n", fmt_int(container.clipId));
-  fmt_write(&str, "Interact  {}\n", fmt_int((flags & UiFlags_Interactable) != 0));
+  fmt_write(&str, "Outline\t{}\n", fmt_int(style.outline));
+  fmt_write(&str, "Layer\t\t{}\n", fmt_int(style.layer));
+  fmt_write(&str, "Variation\t{}\n", fmt_int(style.variation));
+  fmt_write(&str, "ClipId\t\t{}\n", fmt_int(container.clipId));
+  fmt_write(&str, "Interact\t{}\n", fmt_int((flags & UiFlags_Interactable) != 0));
 
   const f32    textSize = 500;
   const u16    fontSize = 20;
@@ -332,7 +345,8 @@ static void ui_build_debug_inspector(UiBuildState* state, const UiId id, const U
       styleText.weight,
       UiAlign_TopLeft,
       state,
-      &ui_build_text_char);
+      &ui_build_text_char,
+      &ui_build_text_background);
 }
 
 static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {

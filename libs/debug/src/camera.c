@@ -126,7 +126,7 @@ static void camera_panel_draw(
   const String title = fmt_write_scratch("{} Camera Settings", fmt_ui_shape(PhotoCamera));
   ui_panel_begin(canvas, &panel->state, .title = title);
 
-  UiGridState layoutGrid = ui_grid_init(canvas, .size = {140, 25});
+  UiGridState layoutGrid = ui_grid_init(canvas, .size = {150, 25});
 
   ui_label(canvas, string_lit("Projection"));
   ui_grid_next_col(canvas, &layoutGrid);
@@ -221,7 +221,7 @@ EcsEntityId debug_camera_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugCameraPanelComp,
-      .state  = ui_panel_init(ui_vector(310, 290)),
+      .state  = ui_panel_init(ui_vector(330, 290)),
       .window = window);
   return panelEntity;
 }

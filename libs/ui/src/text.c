@@ -10,6 +10,26 @@
 
 #define ui_text_tab_size 8
 #define ui_text_max_lines 100
+#define ui_text_max_backgrounds 50
+
+typedef struct {
+  const AssetFtxComp*       font;
+  const String              totalText;
+  const UiRect              rect;
+  const f32                 fontSize;
+  UiColor                   fontColor, fontColorDefault;
+  u8                        fontOutline, fontOutlineDefault;
+  const UiLayer             fontLayer;
+  const u8                  fontVariation;
+  UiWeight                  fontWeight, fontWeightDefault;
+  const UiAlign             align;
+  void*                     userCtx;
+  UiTextBuildCharFunc       buildChar;
+  UiTextBuildBackgroundFunc buildBackground;
+  f32                       cursor;
+  const UiVector            inputPosition;
+  usize                     hoveredCharIndex;
+} UiTextBuildState;
 
 typedef struct {
   String   text;
@@ -18,29 +38,46 @@ typedef struct {
 } UiTextLine;
 
 typedef struct {
-  const AssetFtxComp* font;
-  const String        totalText;
-  const UiRect        rect;
-  const f32           fontSize;
-  UiColor             fontColor, fontColorDefault;
-  u8                  fontOutline, fontOutlineDefault;
-  const UiLayer       fontLayer;
-  const u8            fontVariation;
-  UiWeight            fontWeight, fontWeightDefault;
-  const UiAlign       align;
-  void*               userCtx;
-  UiTextBuildCharFunc buildChar;
-  f32                 cursor;
-  const UiVector      inputPosition;
-  usize               hoveredCharIndex;
-} UiTextBuildState;
+  const UiTextLine* line;
+  UiColor           color;
+  f32               start, end;
+} UiTextBackground;
 
-static f32 ui_text_next_tabstop(
+typedef struct {
+  UiTextBackground values[ui_text_max_backgrounds];
+  u32              count, active;
+} UiTextBackgroundCollector;
+
+static void ui_text_background_start(
+    UiTextBackgroundCollector* collector,
+    const UiTextLine*          line,
+    const UiColor              color,
+    const f32                  xPos) {
+  diag_assert(sentinel_check(collector->active));
+  if (UNLIKELY(collector->count == ui_text_max_backgrounds)) {
+    log_w("Ui text background count exceeds maximum");
+    return;
+  }
+  collector->active                    = collector->count++;
+  collector->values[collector->active] = (UiTextBackground){
+      .line  = line,
+      .color = color,
+      .start = xPos,
+  };
+}
+
+static void ui_text_background_end(UiTextBackgroundCollector* collector, const f32 xPos) {
+  if (!sentinel_check(collector->active)) {
+    collector->values[collector->active].end = xPos;
+    collector->active                        = sentinel_u32;
+  }
+}
+
+static f32 ui_text_to_tabstop(
     const AssetFtxComp* font, const f32 cursor, const f32 fontSize, const u8 fontVariation) {
   const f32 spaceAdvance = asset_ftx_lookup(font, Unicode_Space, fontVariation)->advance * fontSize;
   const f32 tabSize      = spaceAdvance * ui_text_tab_size;
-  const f32 toNextTabstop = tabSize - math_mod_f32(cursor + spaceAdvance, tabSize);
-  return cursor + toNextTabstop;
+  return tabSize - math_mod_f32(cursor + spaceAdvance, tabSize);
 }
 
 static bool ui_text_is_seperator(const Unicode cp) {
@@ -61,13 +98,14 @@ static bool ui_text_is_seperator(const Unicode cp) {
  * NOTE: Returns the remaining text that did not fit on the current line.
  */
 static String ui_text_line(
-    const AssetFtxComp* font,
-    const UiFlags       flags,
-    const String        text,
-    const f32           maxWidth,
-    const f32           fontSize,
-    const u8            fontVariation,
-    UiTextLine*         out) {
+    const AssetFtxComp*        font,
+    const UiFlags              flags,
+    const String               text,
+    const f32                  maxWidth,
+    const f32                  fontSize,
+    const u8                   fontVariation,
+    UiTextBackgroundCollector* bgCollector,
+    UiTextLine*                out) {
 
   if (UNLIKELY(maxWidth < fontSize)) {
     // Width is too small to fit even a single character.
@@ -114,16 +152,25 @@ static String ui_text_line(
       cursorConsumed.pixel = 0;
       break;
     case Unicode_HorizontalTab:
-      cursorConsumed.pixel =
-          ui_text_next_tabstop(font, cursorConsumed.pixel, fontSize, fontVariation);
+      cursorConsumed.pixel +=
+          ui_text_to_tabstop(font, cursorConsumed.pixel, fontSize, fontVariation);
       break;
     case Unicode_ZeroWidthSpace:
       break;
     case Unicode_Escape:
-    case Unicode_Bell:
-      remainingText            = ui_escape_read(remainingText, null);
+    case Unicode_Bell: {
+      UiEscape esc;
+      remainingText            = ui_escape_read(remainingText, &esc);
       cursorConsumed.charIndex = text.size - remainingText.size;
+
+      if (esc.type == UiEscape_Background || esc.type == UiEscape_Reset) {
+        ui_text_background_end(bgCollector, cursorAccepted.pixel);
+      }
+      if (esc.type == UiEscape_Background) {
+        ui_text_background_start(bgCollector, out, esc.escBackground.value, cursorAccepted.pixel);
+      }
       break;
+    }
     default:
       cursorConsumed.pixel += asset_ftx_lookup(font, cp, fontVariation)->advance * fontSize;
       break;
@@ -134,6 +181,7 @@ static String ui_text_line(
   }
 
 End:
+  ui_text_background_end(bgCollector, cursorAccepted.pixel);
   *out = (UiTextLine){
       .text = string_slice(text, 0, cursorAccepted.charIndex),
       .size = ui_vector(cursorAccepted.pixel, fontSize),
@@ -169,23 +217,23 @@ static UiRect ui_text_inner_rect(const UiRect rect, const UiVector size, const U
   diag_crash();
 }
 
-static UiVector ui_text_char_pos(UiTextBuildState* state, const UiTextLine* line) {
+static UiVector ui_text_char_pos(UiTextBuildState* state, const UiTextLine* line, const f32 posX) {
   const UiRect rect = state->rect;
-  const f32    posY = rect.y + rect.height - line->posY;
+  const f32    resY = rect.y + rect.height - line->posY;
   switch (state->align) {
   case UiAlign_TopLeft:
   case UiAlign_MiddleLeft:
   case UiAlign_BottomLeft:
-    return ui_vector(rect.x + state->cursor, posY);
+    return ui_vector(rect.x + posX, resY);
   case UiAlign_TopCenter:
   case UiAlign_MiddleCenter:
   case UiAlign_BottomCenter:
-    return ui_vector(rect.x + (rect.width - line->size.x) * 0.5f + state->cursor, posY);
+    return ui_vector(rect.x + (rect.width - line->size.x) * 0.5f + posX, resY);
     break;
   case UiAlign_TopRight:
   case UiAlign_MiddleRight:
   case UiAlign_BottomRight:
-    return ui_vector(rect.x + rect.width - line->size.x + state->cursor, posY);
+    return ui_vector(rect.x + rect.width - line->size.x + posX, resY);
   }
   diag_crash();
 }
@@ -201,23 +249,39 @@ static UiColor ui_text_color_alpha_mul(const UiColor color, const u8 alpha) {
   return ui_color(color.r, color.g, color.b, (u8)(color.a * (alpha / 255.0f)));
 }
 
-static void ui_text_build_char(
+static void ui_text_update_hover(
     UiTextBuildState* state,
-    const UiTextLine* line,
-    const Unicode     cp,
-    const usize       nextCharByteIndex) {
+    const UiVector    pos,
+    const f32         advance,
+    const usize       charIndex,
+    const usize       nextCharIndex) {
 
-  const AssetFtxChar* ch      = asset_ftx_lookup(state->font, cp, state->fontVariation);
-  const UiVector      pos     = ui_text_char_pos(state, line);
-  const f32           advance = ch->advance * state->fontSize;
+  if (UNLIKELY(sentinel_check(state->hoveredCharIndex))) {
+    /**
+     * This is the first (selectable) character, make it the initial hovered-character.
+     */
+    state->hoveredCharIndex = charIndex;
+  }
 
   if (pos.x + advance * 0.5f < state->inputPosition.x) {
     /**
      * Input is beyond the middle of this character, move the hoveredCharIndex to the next char.
      * TODO: For multi-line support this would need to check if we're within the current line.
      */
-    state->hoveredCharIndex = nextCharByteIndex;
+    state->hoveredCharIndex = nextCharIndex;
   }
+}
+
+static void ui_text_build_char(
+    UiTextBuildState* state,
+    const UiVector    pos,
+    const Unicode     cp,
+    const usize       charIndex,
+    const usize       nextCharIndex) {
+
+  const AssetFtxChar* ch      = asset_ftx_lookup(state->font, cp, state->fontVariation);
+  const f32           advance = ch->advance * state->fontSize;
+  ui_text_update_hover(state, pos, advance, charIndex, nextCharIndex);
 
   if (!sentinel_check(ch->glyphIndex)) {
     state->buildChar(
@@ -236,16 +300,13 @@ static void ui_text_build_char(
 }
 
 static void ui_text_build_cursor(UiTextBuildState* state, const UiTextLine* line, const u8 alpha) {
-  if (!alpha) {
-    return; // No need to render cursors with 0 alpha.
-  }
   const AssetFtxChar* ch = asset_ftx_lookup(state->font, UiShape_CursorVertialBar, 0);
   if (!sentinel_check(ch->glyphIndex)) {
     state->buildChar(
         state->userCtx,
         &(UiTextCharInfo){
             .ch      = ch,
-            .pos     = ui_text_char_pos(state, line),
+            .pos     = ui_text_char_pos(state, line, state->cursor),
             .size    = state->fontSize,
             .color   = ui_text_color_alpha_mul(state->fontColor, alpha),
             .outline = state->fontOutline,
@@ -268,6 +329,9 @@ ui_text_build_escape(UiTextBuildState* state, const UiTextLine* line, const UiEs
   case UiEscape_Color:
     state->fontColor = esc->escColor.value;
     break;
+  case UiEscape_Background:
+    // NOTE: Handled in the line collecting phase.
+    break;
   case UiEscape_Outline:
     state->fontOutline = esc->escOutline.value;
     break;
@@ -283,56 +347,85 @@ ui_text_build_escape(UiTextBuildState* state, const UiTextLine* line, const UiEs
 static void ui_text_build_line(UiTextBuildState* state, const UiTextLine* line) {
   state->cursor        = 0;
   String remainingText = line->text;
+  usize  charIndex     = ui_text_byte_index(state, remainingText);
   while (!string_is_empty(remainingText)) {
     Unicode cp;
     remainingText = utf8_cp_read(remainingText, &cp);
 
+    const UiVector pos           = ui_text_char_pos(state, line, state->cursor);
+    usize          nextCharIndex = ui_text_byte_index(state, remainingText);
+
     UiEscape esc;
-    switch ((u32)cp) {
+    switch (cp) {
     case Unicode_CarriageReturn:
       state->cursor = 0;
-      continue;
-    case Unicode_HorizontalTab:
-      state->cursor =
-          ui_text_next_tabstop(state->font, state->cursor, state->fontSize, state->fontVariation);
-      continue;
+      break;
+    case Unicode_HorizontalTab: {
+      const f32 advance =
+          ui_text_to_tabstop(state->font, state->cursor, state->fontSize, state->fontVariation);
+      ui_text_update_hover(state, pos, advance, charIndex, nextCharIndex);
+      state->cursor += advance;
+      break;
+    }
     case Unicode_ZeroWidthSpace:
-      continue;
+      break;
     case Unicode_Escape:
     case Unicode_Bell:
       remainingText = ui_escape_read(remainingText, &esc);
+      nextCharIndex = ui_text_byte_index(state, remainingText);
       ui_text_build_escape(state, line, &esc);
-      continue;
+      break;
+    default:
+      ui_text_build_char(state, pos, cp, charIndex, nextCharIndex);
+      break;
     }
-    const usize nextCharByteIndex = ui_text_byte_index(state, remainingText);
-    ui_text_build_char(state, line, cp, nextCharByteIndex);
+    charIndex = nextCharIndex;
   }
 }
 
+static void ui_text_build_background(UiTextBuildState* state, const UiTextBackground* bg) {
+  const UiVector startPos       = ui_text_char_pos(state, bg->line, bg->start);
+  const UiVector endPos         = ui_text_char_pos(state, bg->line, bg->end);
+  const f32      yBottomPadding = state->fontSize * state->font->baseline;
+  const UiRect   rect           = {
+                  .pos  = ui_vector(startPos.x, startPos.y - yBottomPadding),
+                  .size = ui_vector(endPos.x - startPos.x, bg->line->size.y + yBottomPadding),
+  };
+  state->buildBackground(
+      state->userCtx,
+      &(UiTextBackgroundInfo){
+          .rect  = rect,
+          .color = bg->color,
+          .layer = state->fontLayer,
+      });
+}
+
 UiTextBuildResult ui_text_build(
-    const AssetFtxComp*       font,
-    const UiFlags             flags,
-    const UiRect              totalRect,
-    const UiVector            inputPosition,
-    const String              text,
-    const f32                 fontSize,
-    const UiColor             fontColor,
-    const u8                  fontOutline,
-    const UiLayer             fontLayer,
-    const u8                  fontVariation,
-    const UiWeight            fontWeight,
-    const UiAlign             align,
-    void*                     userCtx,
-    const UiTextBuildCharFunc buildChar) {
+    const AssetFtxComp*             font,
+    const UiFlags                   flags,
+    const UiRect                    totalRect,
+    const UiVector                  inputPosition,
+    const String                    text,
+    const f32                       fontSize,
+    const UiColor                   fontColor,
+    const u8                        fontOutline,
+    const UiLayer                   fontLayer,
+    const u8                        fontVariation,
+    const UiWeight                  fontWeight,
+    const UiAlign                   align,
+    void*                           userCtx,
+    const UiTextBuildCharFunc       buildChar,
+    const UiTextBuildBackgroundFunc buildBackground) {
 
   /**
-   * Compute all lines.
+   * Compute all lines and backgrounds.
    */
-  UiTextLine lines[ui_text_max_lines];
-  u32        lineCount  = 0;
-  f32        lineY      = 0;
-  f32        totalWidth = 0;
-  String     remText    = text;
+  UiTextBackgroundCollector bgCollector = {.active = sentinel_u32};
+  UiTextLine                lines[ui_text_max_lines];
+  u32                       lineCount  = 0;
+  f32                       lineY      = 0;
+  f32                       totalWidth = 0;
+  String                    remText    = text;
   while (!string_is_empty(remText)) {
     const f32 lineHeight = lineCount ? (1 + font->lineSpacing) * fontSize : fontSize;
     if (lineY + lineHeight >= totalRect.height - font->lineSpacing * fontSize) {
@@ -346,7 +439,14 @@ UiTextBuildResult ui_text_build(
     }
     const usize lineIndex = lineCount++;
     remText               = ui_text_line(
-        font, flags, remText, totalRect.width, fontSize, fontVariation, &lines[lineIndex]);
+        font,
+        flags,
+        remText,
+        totalRect.width,
+        fontSize,
+        fontVariation,
+        &bgCollector,
+        &lines[lineIndex]);
 
     lines[lineIndex].posY = lineY;
     totalWidth            = math_max(totalWidth, lines[lineIndex].size.width);
@@ -354,9 +454,6 @@ UiTextBuildResult ui_text_build(
   const UiVector size = ui_vector(totalWidth, lineY + (font->lineSpacing * 2) * fontSize);
   const UiRect   rect = ui_text_inner_rect(totalRect, size, align);
 
-  /**
-   * Draw all lines.
-   */
   UiTextBuildState state = {
       .font               = font,
       .totalText          = text,
@@ -373,8 +470,21 @@ UiTextBuildResult ui_text_build(
       .align              = align,
       .userCtx            = userCtx,
       .buildChar          = buildChar,
+      .buildBackground    = buildBackground,
       .inputPosition      = inputPosition,
+      .hoveredCharIndex   = sentinel_usize,
   };
+
+  /**
+   * Draw all backgrounds.
+   */
+  for (usize i = 0; i != bgCollector.count; ++i) {
+    ui_text_build_background(&state, &bgCollector.values[i]);
+  }
+
+  /**
+   * Draw all lines.
+   */
   for (usize i = 0; i != lineCount; ++i) {
     ui_text_build_line(&state, &lines[i]);
   }

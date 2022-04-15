@@ -125,11 +125,11 @@ typedef struct {
 static UiDrawMetaData ui_draw_metadata(const UiRenderState* state, const AssetFtxComp* font) {
   const UiVector canvasRes = state->canvas->resolution;
   UiDrawMetaData meta      = {
-      .canvasRes = geo_vector(
+           .canvasRes = geo_vector(
           canvasRes.width, canvasRes.height, 1.0f / canvasRes.width, 1.0f / canvasRes.height),
-      .invCanvasScale  = 1.0f / state->settings->scale,
-      .glyphsPerDim    = font->glyphsPerDim,
-      .invGlyphsPerDim = 1.0f / (f32)font->glyphsPerDim,
+           .invCanvasScale  = 1.0f / state->settings->scale,
+           .glyphsPerDim    = font->glyphsPerDim,
+           .invGlyphsPerDim = 1.0f / (f32)font->glyphsPerDim,
   };
   mem_cpy(mem_var(meta.clipRects), mem_var(state->clipRects));
   return meta;
@@ -387,12 +387,12 @@ ecs_system_define(UiRenderSys) {
     const f32       scale       = settings ? settings->scale : 1.0f;
     const UiVector  canvasSize  = ui_vector(winSize.x / scale, winSize.y / scale);
     UiRenderState   renderState = {
-        .settings      = settings,
-        .font          = font,
-        .renderer      = renderer,
-        .draw          = draw,
-        .clipRects[0]  = {.size = canvasSize},
-        .clipRectCount = 1,
+          .settings      = settings,
+          .font          = font,
+          .renderer      = renderer,
+          .draw          = draw,
+          .clipRects[0]  = {.size = canvasSize},
+          .clipRectCount = 1,
     };
 
     UiCanvasPtr canvasses[ui_canvas_canvasses_max];
@@ -428,9 +428,7 @@ ecs_system_define(UiRenderSys) {
       ui_canvas_update_interaction(canvas, settings, window, hoveredElem, hover.flags);
 
       if (ui_editor_active(canvas->textEditor)) {
-        const bool isTextEditorHovered = hoveredElem == ui_editor_element(canvas->textEditor);
-        const bool deselect = gap_window_key_down(window, GapKey_MouseLeft) && !isTextEditorHovered;
-        if (textEditActive || deselect) {
+        if (textEditActive) { // A text editor on a higher canvas is already active.
           ui_editor_stop(canvas->textEditor);
         } else {
           textEditActive = true;
@@ -544,7 +542,7 @@ UiRect ui_canvas_elem_rect(const UiCanvasComp* comp, const UiId id) {
 UiStatus ui_canvas_status(const UiCanvasComp* comp) { return comp->activeStatus; }
 UiVector ui_canvas_resolution(const UiCanvasComp* comp) { return comp->resolution; }
 bool     ui_canvas_input_any(const UiCanvasComp* comp) {
-  return (comp->flags & UiCanvasFlags_InputAny) != 0;
+      return (comp->flags & UiCanvasFlags_InputAny) != 0;
 }
 UiVector ui_canvas_input_delta(const UiCanvasComp* comp) { return comp->inputDelta; }
 UiVector ui_canvas_input_pos(const UiCanvasComp* comp) { return comp->inputPos; }
@@ -587,24 +585,24 @@ UiId ui_canvas_draw_text_editable(
     const UiAlign align,
     const UiFlags flags) {
 
-  const UiId textId        = ui_canvas_id_peek(comp);
-  String     displayString = dynstring_view(text);
+  const UiId textId = ui_canvas_id_peek(comp);
+  String     visualText;
   if (ui_editor_element(comp->textEditor) == textId) {
-    /**
-     * The text is currently being edited, return the edited text.
-     */
+    // The text is currently being edited, return the edited text.
     dynstring_clear(text);
-    dynstring_append(text, ui_editor_result(comp->textEditor));
-    displayString = ui_editor_display(comp->textEditor);
+    dynstring_append(text, ui_editor_result_text(comp->textEditor));
+    visualText = ui_editor_visual_text(comp->textEditor);
 
   } else if (ui_canvas_elem_status(comp, textId) == UiStatus_Activated) {
-    /**
-     * Start editor when the element is activated.
-     */
+    // Start editor when the element is activated.
     ui_editor_start(comp->textEditor, dynstring_view(text), textId);
+    visualText = ui_editor_visual_text(comp->textEditor);
+  } else {
+    visualText = dynstring_view(text);
   }
-  const UiFlags totalFlags = flags | UiFlags_Interactable | UiFlags_AllowWordBreak;
-  ui_canvas_draw_text(comp, displayString, fontSize, align, totalFlags);
+  const UiFlags totalFlags =
+      flags | UiFlags_Interactable | UiFlags_AllowWordBreak | UiFlags_InteractOnPress;
+  ui_canvas_draw_text(comp, visualText, fontSize, align, totalFlags);
   return textId;
 }
 
