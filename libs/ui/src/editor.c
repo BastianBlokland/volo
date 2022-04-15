@@ -13,9 +13,12 @@
 
 #define ui_editor_max_visual_slices 3
 
-static const String g_editorCursorEsc      = string_static(uni_esc "cFF");
-static const String g_editorSelectBeginEsc = string_static(uni_esc "@0000FF88" uni_esc "|00");
-static const String g_editorSelectEndEsc   = string_static(uni_esc "r");
+static const String       g_editorCursorEsc      = string_static(uni_esc "cFF");
+static const String       g_editorSelectBeginEsc = string_static(uni_esc "@0000FF88" uni_esc "|00");
+static const String       g_editorSelectEndEsc   = string_static(uni_esc "r");
+static const TimeDuration g_editorDoubleClickInterval = time_milliseconds(500);
+static const TimeDuration g_editorBlinkDelay          = time_second;
+static const TimeDuration g_editorBlinkInterval       = time_second;
 
 typedef enum {
   UiEditorFlags_Active      = 1 << 0,
@@ -52,6 +55,8 @@ struct sUiEditor {
   usize               cursor;
   usize               selectBegin, selectEnd, selectPivot;
   TimeSteady          lastInteractTime;
+  u32                 clickRepeat;
+  TimeSteady          lastClickTime;
   DynString           visualText;
   UiEditorVisualSlice visualSlices[ui_editor_max_visual_slices]; // Sorted by index.
 };
@@ -133,7 +138,7 @@ static usize editor_prev_index(UiEditor* editor, const usize index) {
   return sentinel_usize;
 }
 
-static usize editor_cur_word_end_index(UiEditor* editor, usize index) {
+static usize editor_word_end_index(UiEditor* editor, usize index) {
   bool foundStartingWord = false;
   while (true) {
     const usize nextIndex = editor_next_index(editor, index);
@@ -150,7 +155,7 @@ static usize editor_cur_word_end_index(UiEditor* editor, usize index) {
   }
 }
 
-static usize editor_prev_word_start_index(UiEditor* editor, usize index) {
+static usize editor_word_start_index(UiEditor* editor, usize index) {
   bool foundStartingWord = false;
   while (true) {
     const usize prevIndex = editor_prev_index(editor, index);
@@ -203,7 +208,7 @@ static void editor_cursor_next(UiEditor* editor, const UiEditorStride stride) {
     next = editor_next_index(editor, editor->cursor);
     break;
   case UiEditorStride_Word:
-    next = editor_cur_word_end_index(editor, editor->cursor);
+    next = editor_word_end_index(editor, editor->cursor);
     break;
   }
   editor_cursor_set(editor, sentinel_check(next) ? editor->text.size : next);
@@ -216,7 +221,7 @@ static void editor_cursor_prev(UiEditor* editor, const UiEditorStride stride) {
     prev = editor_prev_index(editor, editor->cursor);
     break;
   case UiEditorStride_Word:
-    prev = editor_prev_word_start_index(editor, editor->cursor);
+    prev = editor_word_start_index(editor, editor->cursor);
     break;
   }
   editor_cursor_set(editor, sentinel_check(prev) ? 0 : prev);
@@ -243,7 +248,7 @@ static void editor_erase_prev(UiEditor* editor, const UiEditorStride stride) {
     eraseFrom = editor_prev_index(editor, editor->cursor);
     break;
   case UiEditorStride_Word:
-    eraseFrom = editor_prev_word_start_index(editor, editor->cursor);
+    eraseFrom = editor_word_start_index(editor, editor->cursor);
     break;
   }
   if (!sentinel_check(eraseFrom)) {
@@ -264,7 +269,7 @@ static void editor_erase_current(UiEditor* editor, const UiEditorStride stride) 
     eraseTo = editor_next_index(editor, editor->cursor);
     break;
   case UiEditorStride_Word:
-    eraseTo = editor_cur_word_end_index(editor, editor->cursor);
+    eraseTo = editor_word_end_index(editor, editor->cursor);
     break;
   }
   if (sentinel_check(eraseTo)) {
@@ -286,6 +291,20 @@ static void editor_select_mode_start(UiEditor* editor) {
 
 static void editor_select_mode_stop(UiEditor* editor) {
   editor->flags &= ~UiEditorFlags_SelectMode;
+}
+
+static void editor_select_line(UiEditor* editor) {
+  editor_cursor_set(editor, editor->text.size);
+  editor->selectBegin = 0;
+  editor->selectEnd   = editor->text.size;
+}
+
+static void editor_select_word(UiEditor* editor) {
+  const usize begin = editor_word_start_index(editor, editor->cursor);
+  const usize end   = editor_word_end_index(editor, editor->cursor);
+  editor_cursor_set(editor, end);
+  editor->selectBegin = begin;
+  editor->selectEnd   = end;
 }
 
 static void editor_insert_cp(UiEditor* editor, const Unicode cp) {
@@ -332,10 +351,8 @@ static void editor_visual_slices_update(UiEditor* editor, const TimeSteady timeN
   u32 sliceIdx = 0;
 
   // Add the cursor visual slice.
-  static const TimeDuration g_blinkDelay    = time_second;
-  static const TimeDuration g_blinkInterval = time_second;
-  const TimeDuration durSinceInteract = time_steady_duration(editor->lastInteractTime, timeNow);
-  if (durSinceInteract < g_blinkDelay || ((durSinceInteract / g_blinkInterval) % 2) == 0) {
+  const TimeDuration sinceInteract = time_steady_duration(editor->lastInteractTime, timeNow);
+  if (sinceInteract < g_editorBlinkDelay || ((sinceInteract / g_editorBlinkInterval) % 2) == 0) {
     editor->visualSlices[sliceIdx++] = (UiEditorVisualSlice){
         .text  = g_editorCursorEsc,
         .index = editor->cursor,
@@ -430,7 +447,9 @@ void ui_editor_start(UiEditor* editor, const String initialText, const UiId elem
     ui_editor_stop(editor);
   }
   editor->flags |= UiEditorFlags_Active | UiEditorFlags_FirstUpdate | UiEditorFlags_Dirty;
-  editor->textElement = element;
+  editor->textElement   = element;
+  editor->lastClickTime = time_steady_clock(); // NOTE: Assumes that a click trigged this start.
+  editor->clickRepeat   = 0;
   editor->cursor = editor->selectBegin = editor->selectEnd = 0;
 
   dynstring_clear(&editor->text);
@@ -442,14 +461,38 @@ void ui_editor_start(UiEditor* editor, const String initialText, const UiId elem
 
 void ui_editor_update(UiEditor* editor, const GapWindowComp* win, const UiBuildHover hover) {
   diag_assert(editor->flags & UiEditorFlags_Active);
-  const bool isHovered   = hover.id == editor->textElement;
-  const bool firstUpdate = (editor->flags & UiEditorFlags_FirstUpdate) != 0;
+  const bool       isHovering     = hover.id == editor->textElement;
+  const bool       isHoveringChar = isHovering && !sentinel_check(hover.textCharIndex);
+  const bool       dragging    = gap_window_key_down(win, GapKey_MouseLeft) && !editor->clickRepeat;
+  const bool       firstUpdate = (editor->flags & UiEditorFlags_FirstUpdate) != 0;
+  const TimeSteady timeNow     = time_steady_clock();
 
-  if (firstUpdate || gap_window_key_down(win, GapKey_MouseLeft)) {
-    // When holding down the mouse button set the cursor to the hovered character index.
-    if (isHovered && !sentinel_check(hover.textCharIndex)) {
-      const usize index = editor_visual_index_to_text_index(editor, hover.textCharIndex);
-      editor_cursor_set(editor, index);
+  if ((firstUpdate || dragging) && isHoveringChar) {
+    editor_cursor_set(editor, editor_visual_index_to_text_index(editor, hover.textCharIndex));
+  }
+
+  if (gap_window_key_pressed(win, GapKey_MouseLeft)) {
+    if (isHoveringChar) {
+      if (time_steady_duration(editor->lastClickTime, timeNow) < g_editorDoubleClickInterval) {
+        ++editor->clickRepeat;
+      } else {
+        editor->clickRepeat = 0;
+      }
+      switch (editor->clickRepeat % 3) {
+      case 0:
+        editor_cursor_set(editor, editor_visual_index_to_text_index(editor, hover.textCharIndex));
+        break;
+      case 1:
+        editor_select_word(editor);
+        break;
+      case 2:
+        editor_select_line(editor);
+        break;
+      }
+      editor->lastClickTime = timeNow;
+    } else {
+      ui_editor_stop(editor);
+      return;
     }
   }
 
@@ -504,16 +547,11 @@ void ui_editor_update(UiEditor* editor, const GapWindowComp* win, const UiBuildH
   if (gap_window_key_pressed(win, GapKey_End)) {
     editor_cursor_to_end(editor);
   }
-  if (gap_window_key_pressed(win, GapKey_MouseLeft) && !isHovered) {
-    ui_editor_stop(editor);
-    return;
-  }
   if (gap_window_key_pressed(win, GapKey_Escape) || gap_window_key_pressed(win, GapKey_Return)) {
     ui_editor_stop(editor);
     return;
   }
 
-  const TimeSteady timeNow = time_steady_clock();
   if (editor->flags & UiEditorFlags_Dirty) {
     editor->lastInteractTime = timeNow;
   }
