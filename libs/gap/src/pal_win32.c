@@ -24,7 +24,7 @@ typedef struct {
   Mem               className;
   GapVector         params[GapParam_Count];
   GapPalWindowFlags flags : 16;
-  GapKeySet         keysPressed, keysReleased, keysDown;
+  GapKeySet         keysPressed, keysPressedWithRepeat, keysReleased, keysDown;
   GapVector         lastWindowedPosition;
   bool              inModalLoop;
   DynString         inputText;
@@ -79,6 +79,7 @@ static GapPalWindow* pal_window(GapPal* pal, const GapWindowId id) {
 static void pal_clear_volatile(GapPal* pal) {
   dynarray_for_t(&pal->windows, GapPalWindow, window) {
     gap_keyset_clear(&window->keysPressed);
+    gap_keyset_clear(&window->keysPressedWithRepeat);
     gap_keyset_clear(&window->keysReleased);
 
     window->params[GapParam_ScrollDelta] = gap_vector(0, 0);
@@ -350,9 +351,12 @@ static void pal_event_cursor(GapPalWindow* window, const GapVector newPos) {
 }
 
 static void pal_event_press(GapPalWindow* window, const GapKey key) {
-  if (key != GapKey_None && !gap_keyset_test(&window->keysDown, key)) {
-    gap_keyset_set(&window->keysPressed, key);
-    gap_keyset_set(&window->keysDown, key);
+  if (key != GapKey_None) {
+    gap_keyset_set(&window->keysPressedWithRepeat, key);
+    if (!gap_keyset_test(&window->keysDown, key)) {
+      gap_keyset_set(&window->keysPressed, key);
+      gap_keyset_set(&window->keysDown, key);
+    }
     window->flags |= GapPalWindowFlags_KeyPressed;
   }
 }
@@ -710,6 +714,11 @@ gap_pal_window_param(const GapPal* pal, const GapWindowId windowId, const GapPar
 
 const GapKeySet* gap_pal_window_keys_pressed(const GapPal* pal, const GapWindowId windowId) {
   return &pal_window((GapPal*)pal, windowId)->keysPressed;
+}
+
+const GapKeySet*
+gap_pal_window_keys_pressed_with_repeat(const GapPal* pal, const GapWindowId windowId) {
+  return &pal_window((GapPal*)pal, windowId)->keysPressedWithRepeat;
 }
 
 const GapKeySet* gap_pal_window_keys_released(const GapPal* pal, const GapWindowId windowId) {
