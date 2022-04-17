@@ -28,7 +28,7 @@ ecs_comp_define(GapWindowComp) {
   GapWindowFlags    flags : 8;
   GapWindowRequests requests : 8;
   GapWindowMode     mode : 8;
-  GapKeySet         keysPressed, keysReleased, keysDown;
+  GapKeySet         keysPressed, keysPressedWithRepeat, keysReleased, keysDown;
   GapVector         params[GapParam_Count];
   DynString         inputText;
 };
@@ -135,10 +135,13 @@ static void window_update(
   }
   if (palFlags & GapPalWindowFlags_KeyPressed) {
     window->keysPressed = *gap_pal_window_keys_pressed(platform->pal, window->id);
-    window->keysDown    = *gap_pal_window_keys_down(platform->pal, window->id);
+    window->keysPressedWithRepeat =
+        *gap_pal_window_keys_pressed_with_repeat(platform->pal, window->id);
+    window->keysDown = *gap_pal_window_keys_down(platform->pal, window->id);
     window->events |= GapWindowEvents_KeyPressed;
   } else {
     gap_keyset_clear(&window->keysPressed);
+    gap_keyset_clear(&window->keysPressedWithRepeat);
   }
   if (palFlags & GapPalWindowFlags_KeyReleased) {
     window->keysReleased = *gap_pal_window_keys_released(platform->pal, window->id);
@@ -275,6 +278,10 @@ GapVector gap_window_param(const GapWindowComp* comp, const GapParam param) {
 
 bool gap_window_key_pressed(const GapWindowComp* comp, const GapKey key) {
   return gap_keyset_test(&comp->keysPressed, key);
+}
+
+bool gap_window_key_pressed_with_repeat(const GapWindowComp* comp, const GapKey key) {
+  return gap_keyset_test(&comp->keysPressedWithRepeat, key);
 }
 
 bool gap_window_key_released(const GapWindowComp* comp, const GapKey key) {

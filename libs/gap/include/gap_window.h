@@ -95,6 +95,7 @@ GapVector gap_window_param(const GapWindowComp*, GapParam);
  * Test if the given key was pressed this tick.
  */
 bool gap_window_key_pressed(const GapWindowComp*, GapKey);
+bool gap_window_key_pressed_with_repeat(const GapWindowComp*, GapKey);
 
 /**
  * Test if the given key was released this tick.

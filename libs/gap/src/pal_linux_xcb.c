@@ -34,7 +34,7 @@ typedef struct {
   GapWindowId       id;
   GapVector         params[GapParam_Count];
   GapPalWindowFlags flags : 16;
-  GapKeySet         keysPressed, keysReleased, keysDown;
+  GapKeySet         keysPressed, keysPressedWithRepeat, keysReleased, keysDown;
   DynString         inputText;
 } GapPalWindow;
 
@@ -84,6 +84,7 @@ static GapPalWindow* pal_window(GapPal* pal, const GapWindowId id) {
 static void pal_clear_volatile(GapPal* pal) {
   dynarray_for_t(&pal->windows, GapPalWindow, window) {
     gap_keyset_clear(&window->keysPressed);
+    gap_keyset_clear(&window->keysPressedWithRepeat);
     gap_keyset_clear(&window->keysReleased);
 
     window->params[GapParam_ScrollDelta] = gap_vector(0, 0);
@@ -581,9 +582,12 @@ static void pal_event_cursor(GapPal* pal, const GapWindowId windowId, const GapV
 
 static void pal_event_press(GapPal* pal, const GapWindowId windowId, const GapKey key) {
   GapPalWindow* window = pal_maybe_window(pal, windowId);
-  if (window && key != GapKey_None && !gap_keyset_test(&window->keysDown, key)) {
-    gap_keyset_set(&window->keysPressed, key);
-    gap_keyset_set(&window->keysDown, key);
+  if (window && key != GapKey_None) {
+    gap_keyset_set(&window->keysPressedWithRepeat, key);
+    if (!gap_keyset_test(&window->keysDown, key)) {
+      gap_keyset_set(&window->keysPressed, key);
+      gap_keyset_set(&window->keysDown, key);
+    }
     window->flags |= GapPalWindowFlags_KeyPressed;
   }
 }
@@ -789,8 +793,8 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 
   const xcb_cw_t valuesMask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
   const u32      values[2]  = {
-      pal->xcbScreen->black_pixel,
-      g_xcbWindowEventMask,
+            pal->xcbScreen->black_pixel,
+            g_xcbWindowEventMask,
   };
 
   xcb_create_window(
@@ -867,6 +871,11 @@ gap_pal_window_param(const GapPal* pal, const GapWindowId windowId, const GapPar
 
 const GapKeySet* gap_pal_window_keys_pressed(const GapPal* pal, const GapWindowId windowId) {
   return &pal_window((GapPal*)pal, windowId)->keysPressed;
+}
+
+const GapKeySet*
+gap_pal_window_keys_pressed_with_repeat(const GapPal* pal, const GapWindowId windowId) {
+  return &pal_window((GapPal*)pal, windowId)->keysPressedWithRepeat;
 }
 
 const GapKeySet* gap_pal_window_keys_released(const GapPal* pal, const GapWindowId windowId) {

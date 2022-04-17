@@ -39,6 +39,7 @@ void              gap_pal_window_destroy(GapPal*, GapWindowId);
 GapPalWindowFlags gap_pal_window_flags(const GapPal*, GapWindowId);
 GapVector         gap_pal_window_param(const GapPal*, GapWindowId, GapParam);
 const GapKeySet*  gap_pal_window_keys_pressed(const GapPal*, GapWindowId);
+const GapKeySet*  gap_pal_window_keys_pressed_with_repeat(const GapPal*, GapWindowId);
 const GapKeySet*  gap_pal_window_keys_released(const GapPal*, GapWindowId);
 const GapKeySet*  gap_pal_window_keys_down(const GapPal*, GapWindowId);
 String            gap_pal_window_input_text(const GapPal*, GapWindowId);
