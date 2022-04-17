@@ -519,28 +519,28 @@ void ui_editor_update(UiEditor* editor, const GapWindowComp* win, const UiBuildH
   if (gap_window_key_pressed(win, GapKey_Tab)) {
     editor_insert_cp(editor, Unicode_HorizontalTab);
   }
-  if (gap_window_key_pressed(win, GapKey_Backspace)) {
+  if (gap_window_key_pressed_with_repeat(win, GapKey_Backspace)) {
     if (editor_has_selection(editor)) {
       editor_erase_selection(editor);
     } else {
       editor_erase_prev(editor, editor_stride_from_key_modifiers(win));
     }
   }
-  if (gap_window_key_pressed(win, GapKey_Delete)) {
+  if (gap_window_key_pressed_with_repeat(win, GapKey_Delete)) {
     if (editor_has_selection(editor)) {
       editor_erase_selection(editor);
     } else {
       editor_erase_current(editor, editor_stride_from_key_modifiers(win));
     }
   }
-  if (gap_window_key_pressed(win, GapKey_ArrowRight)) {
+  if (gap_window_key_pressed_with_repeat(win, GapKey_ArrowRight)) {
     if (editor_has_selection(editor) && !(editor->flags & UiEditorFlags_SelectMode)) {
       editor_cursor_set(editor, editor->selectEnd);
     } else {
       editor_cursor_next(editor, editor_stride_from_key_modifiers(win));
     }
   }
-  if (gap_window_key_pressed(win, GapKey_ArrowLeft)) {
+  if (gap_window_key_pressed_with_repeat(win, GapKey_ArrowLeft)) {
     if (editor_has_selection(editor) && !(editor->flags & UiEditorFlags_SelectMode)) {
       editor_cursor_set(editor, editor->selectBegin);
     } else {
