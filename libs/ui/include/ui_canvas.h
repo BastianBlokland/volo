@@ -28,6 +28,7 @@ typedef enum {
   UiFlags_InteractAllowSwitch = 1 << 2, // Allow switching targets while holding input down.
   UiFlags_TrackRect           = 1 << 3,
   UiFlags_AllowWordBreak      = 1 << 4, // Allow breaking up text in the middle of words.
+  UiFlags_SingleLine          = 1 << 5, // Only draw the first line of the text.
 } UiFlags;
 
 typedef enum {

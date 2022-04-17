@@ -450,6 +450,10 @@ UiTextBuildResult ui_text_build(
 
     lines[lineIndex].posY = lineY;
     totalWidth            = math_max(totalWidth, lines[lineIndex].size.width);
+
+    if (flags & UiFlags_SingleLine) {
+      break;
+    }
   }
   const UiVector size = ui_vector(totalWidth, lineY + (font->lineSpacing * 2) * fontSize);
   const UiRect   rect = ui_text_inner_rect(totalRect, size, align);

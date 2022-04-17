@@ -600,8 +600,8 @@ UiId ui_canvas_draw_text_editable(
   } else {
     visualText = dynstring_view(text);
   }
-  const UiFlags totalFlags =
-      flags | UiFlags_Interactable | UiFlags_AllowWordBreak | UiFlags_InteractOnPress;
+  const UiFlags totalFlags = flags | UiFlags_Interactable | UiFlags_AllowWordBreak |
+                             UiFlags_SingleLine | UiFlags_InteractOnPress;
   ui_canvas_draw_text(comp, visualText, fontSize, align, totalFlags);
   return textId;
 }
