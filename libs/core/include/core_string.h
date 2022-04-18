@@ -97,6 +97,7 @@ String string_combine_raw(Allocator*, const String* parts);
  * Pre-condition: Given string has to be the full allocated string, not a substring.
  */
 void string_free(Allocator*, String);
+void string_maybe_free(Allocator*, String);
 
 /**
  * Compare strings a and b character wise.

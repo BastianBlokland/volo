@@ -38,9 +38,7 @@ static void ecs_destruct_window_comp(void* data) {
   if (comp->pal) {
     gap_pal_window_destroy(comp->pal, comp->id);
   }
-  if (!string_is_empty(comp->title)) {
-    string_free(g_alloc_heap, comp->title);
-  }
+  string_maybe_free(g_alloc_heap, comp->title);
   dynstring_destroy(&comp->inputText);
 }
 
@@ -265,9 +263,7 @@ void gap_window_resize(GapWindowComp* comp, const GapVector size, const GapWindo
 String gap_window_title_get(const GapWindowComp* window) { return window->title; }
 
 void gap_window_title_set(GapWindowComp* window, const String newTitle) {
-  if (!string_is_empty(window->title)) {
-    string_free(g_alloc_heap, window->title);
-  }
+  string_maybe_free(g_alloc_heap, window->title);
   window->title = string_is_empty(newTitle) ? string_empty : string_dup(g_alloc_heap, newTitle);
   window->requests |= GapWindowRequests_UpdateTitle;
 }
