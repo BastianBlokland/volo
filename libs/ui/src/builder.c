@@ -250,15 +250,22 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
   const bool hoverable      = cmd->flags & UiFlags_Interactable || debugInspector;
   if (hoverable && ui_build_is_hovered(state, container, rect, style.layer)) {
     state->hover = (UiBuildHover){
-        .id            = cmd->id,
-        .layer         = style.layer,
-        .flags         = cmd->flags,
-        .textCharIndex = result.hoveredCharIndex,
+        .id    = cmd->id,
+        .layer = style.layer,
+        .flags = cmd->flags,
     };
   }
 
   if (cmd->flags & UiFlags_TrackRect) {
     state->ctx->outputRect(state->ctx->userCtx, cmd->id, result.rect);
+  }
+  if (cmd->flags & UiFlags_TrackTextInfo) {
+    state->ctx->outputTextInfo(
+        state->ctx->userCtx,
+        cmd->id,
+        (UiBuildTextInfo){
+            .hoveredCharIndex = result.hoveredCharIndex,
+        });
   }
 }
 
@@ -275,10 +282,9 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
 
   if (hoverable && ui_build_is_hovered(state, container, rect, style.layer)) {
     state->hover = (UiBuildHover){
-        .id            = cmd->id,
-        .layer         = style.layer,
-        .flags         = cmd->flags,
-        .textCharIndex = sentinel_usize,
+        .id    = cmd->id,
+        .layer = style.layer,
+        .flags = cmd->flags,
     };
   }
 
@@ -458,11 +464,7 @@ UiBuildResult ui_build(const UiCmdBuffer* cmdBuffer, const UiBuildCtx* ctx) {
               .clipId    = 0,
           },
       .containerStackCount = 1,
-      .hover =
-          {
-              .id            = sentinel_u64,
-              .textCharIndex = sentinel_usize,
-          },
+      .hover               = {.id = sentinel_u64},
   };
 
   UiCmd* cmd = null;

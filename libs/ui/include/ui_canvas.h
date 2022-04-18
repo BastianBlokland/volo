@@ -26,9 +26,10 @@ typedef enum {
   UiFlags_Interactable        = 1 << 0,
   UiFlags_InteractOnPress     = 1 << 1, // Activate on 'Press' instead of 'Release'.
   UiFlags_InteractAllowSwitch = 1 << 2, // Allow switching targets while holding input down.
-  UiFlags_TrackRect           = 1 << 3,
-  UiFlags_AllowWordBreak      = 1 << 4, // Allow breaking up text in the middle of words.
-  UiFlags_SingleLine          = 1 << 5, // Only draw the first line of the text.
+  UiFlags_TrackRect           = 1 << 3, // Allows querying the elem with 'ui_canvas_elem_rect()'.
+  UiFlags_TrackTextInfo       = 1 << 4, // Internal use only atm.
+  UiFlags_AllowWordBreak      = 1 << 5, // Allow breaking up text in the middle of words.
+  UiFlags_SingleLine          = 1 << 6, // Only draw the first line of the text.
 } UiFlags;
 
 typedef enum {

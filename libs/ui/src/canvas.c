@@ -29,8 +29,9 @@ typedef const UiCanvasComp* UiCanvasConstPtr;
  * NOTE: Cleared at the start of every ui-build.
  */
 typedef struct {
-  UiId   id;
-  UiRect rect;
+  UiId            id;
+  UiRect          rect;
+  UiBuildTextInfo textInfo;
 } UiTrackedElem;
 
 /**
@@ -125,11 +126,11 @@ typedef struct {
 static UiDrawMetaData ui_draw_metadata(const UiRenderState* state, const AssetFtxComp* font) {
   const UiVector canvasRes = state->canvas->resolution;
   UiDrawMetaData meta      = {
-           .canvasRes = geo_vector(
+      .canvasRes = geo_vector(
           canvasRes.width, canvasRes.height, 1.0f / canvasRes.width, 1.0f / canvasRes.height),
-           .invCanvasScale  = 1.0f / state->settings->scale,
-           .glyphsPerDim    = font->glyphsPerDim,
-           .invGlyphsPerDim = 1.0f / (f32)font->glyphsPerDim,
+      .invCanvasScale  = 1.0f / state->settings->scale,
+      .glyphsPerDim    = font->glyphsPerDim,
+      .invGlyphsPerDim = 1.0f / (f32)font->glyphsPerDim,
   };
   mem_cpy(mem_var(meta.clipRects), mem_var(state->clipRects));
   return meta;
@@ -176,6 +177,11 @@ static void ui_canvas_output_glyph(void* userCtx, const UiGlyphData data, const 
 static void ui_canvas_output_rect(void* userCtx, const UiId id, const UiRect rect) {
   UiRenderState* state                       = userCtx;
   ui_canvas_tracked(state->canvas, id)->rect = rect;
+}
+
+static void ui_canvas_output_text_info(void* userCtx, const UiId id, const UiBuildTextInfo info) {
+  UiRenderState* state                           = userCtx;
+  ui_canvas_tracked(state->canvas, id)->textInfo = info;
 }
 
 static void ui_canvas_set_active(UiCanvasComp* canvas, const UiId id, const UiStatus status) {
@@ -245,6 +251,7 @@ static UiBuildResult ui_canvas_build(UiRenderState* state, const UiId debugElem)
       .outputClipRect = &ui_canvas_output_clip_rect,
       .outputGlyph    = &ui_canvas_output_glyph,
       .outputRect     = &ui_canvas_output_rect,
+      .outputTextInfo = &ui_canvas_output_text_info,
   };
   return ui_build(state->canvas->cmdBuffer, &buildCtx);
 }
@@ -387,12 +394,12 @@ ecs_system_define(UiRenderSys) {
     const f32       scale       = settings ? settings->scale : 1.0f;
     const UiVector  canvasSize  = ui_vector(winSize.x / scale, winSize.y / scale);
     UiRenderState   renderState = {
-          .settings      = settings,
-          .font          = font,
-          .renderer      = renderer,
-          .draw          = draw,
-          .clipRects[0]  = {.size = canvasSize},
-          .clipRectCount = 1,
+        .settings      = settings,
+        .font          = font,
+        .renderer      = renderer,
+        .draw          = draw,
+        .clipRects[0]  = {.size = canvasSize},
+        .clipRectCount = 1,
     };
 
     UiCanvasPtr canvasses[ui_canvas_canvasses_max];
@@ -431,8 +438,9 @@ ecs_system_define(UiRenderSys) {
         if (textEditActive) { // A text editor on a higher canvas is already active.
           ui_editor_stop(canvas->textEditor);
         } else {
-          textEditActive = true;
-          ui_editor_update(canvas->textEditor, window, hover);
+          textEditActive         = true;
+          UiTrackedElem* tracked = ui_canvas_tracked(canvas, ui_editor_element(canvas->textEditor));
+          ui_editor_update(canvas->textEditor, window, hover, tracked->textInfo);
         }
       }
 
@@ -542,7 +550,7 @@ UiRect ui_canvas_elem_rect(const UiCanvasComp* comp, const UiId id) {
 UiStatus ui_canvas_status(const UiCanvasComp* comp) { return comp->activeStatus; }
 UiVector ui_canvas_resolution(const UiCanvasComp* comp) { return comp->resolution; }
 bool     ui_canvas_input_any(const UiCanvasComp* comp) {
-      return (comp->flags & UiCanvasFlags_InputAny) != 0;
+  return (comp->flags & UiCanvasFlags_InputAny) != 0;
 }
 UiVector ui_canvas_input_delta(const UiCanvasComp* comp) { return comp->inputDelta; }
 UiVector ui_canvas_input_pos(const UiCanvasComp* comp) { return comp->inputPos; }
@@ -579,30 +587,31 @@ UiId ui_canvas_draw_text(
 }
 
 UiId ui_canvas_draw_text_editable(
-    UiCanvasComp* comp,
-    DynString*    text,
-    const u16     fontSize,
-    const UiAlign align,
-    const UiFlags flags) {
+    UiCanvasComp* comp, DynString* text, const u16 fontSize, const UiAlign align, UiFlags flags) {
 
   const UiId textId = ui_canvas_id_peek(comp);
-  String     visualText;
+  flags |=
+      UiFlags_Interactable | UiFlags_AllowWordBreak | UiFlags_SingleLine | UiFlags_InteractOnPress;
+
+  String visualText;
   if (ui_editor_element(comp->textEditor) == textId) {
     // The text is currently being edited, return the edited text.
     dynstring_clear(text);
     dynstring_append(text, ui_editor_result_text(comp->textEditor));
     visualText = ui_editor_visual_text(comp->textEditor);
+    flags |= UiFlags_TrackTextInfo;
 
   } else if (ui_canvas_elem_status(comp, textId) == UiStatus_Activated) {
     // Start editor when the element is activated.
     ui_editor_start(comp->textEditor, dynstring_view(text), textId);
     visualText = ui_editor_visual_text(comp->textEditor);
+    flags |= UiFlags_TrackTextInfo;
+
   } else {
     visualText = dynstring_view(text);
   }
-  const UiFlags totalFlags = flags | UiFlags_Interactable | UiFlags_AllowWordBreak |
-                             UiFlags_SingleLine | UiFlags_InteractOnPress;
-  ui_canvas_draw_text(comp, visualText, fontSize, align, totalFlags);
+
+  ui_canvas_draw_text(comp, visualText, fontSize, align, flags);
   return textId;
 }
 
