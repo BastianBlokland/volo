@@ -50,6 +50,18 @@ static void pal_check_thread_ownership(GapPal* pal) {
   }
 }
 
+static void pal_dpi_init() {
+  static bool g_initialized;
+  if (!g_initialized) {
+    // Mark the process as dpi-aware to avoid Win32 scaling the window output.
+    // TODO: Provide an api to query a window's dpi to be able to control ui scaling.
+    if (!SetProcessDPIAware()) {
+      diag_crash_msg("Failed to set win32 dpi awareness");
+    }
+    g_initialized = true;
+  }
+}
+
 static void pal_crash_with_win32_err(String api) {
   const DWORD err = GetLastError();
   diag_crash_msg(
@@ -543,6 +555,7 @@ pal_window_proc(const HWND wnd, const UINT msg, const WPARAM wParam, const LPARA
 }
 
 GapPal* gap_pal_create(Allocator* alloc) {
+  pal_dpi_init();
 
   HMODULE instance = GetModuleHandle(null);
   if (!instance) {
