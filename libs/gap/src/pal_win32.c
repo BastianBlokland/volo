@@ -3,6 +3,7 @@
 #include "core_path.h"
 #include "core_rng.h"
 #include "core_thread.h"
+#include "core_time.h"
 #include "core_utf8.h"
 #include "core_winutils.h"
 #include "log_logger.h"
@@ -568,10 +569,10 @@ GapPal* gap_pal_create(Allocator* alloc) {
 
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){
-             .alloc          = alloc,
-             .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
-             .moduleInstance = instance,
-             .owningThreadId = g_thread_tid,
+      .alloc          = alloc,
+      .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
+      .moduleInstance = instance,
+      .owningThreadId = g_thread_tid,
   };
 
   MAYBE_UNUSED const GapVector screenSize =
@@ -940,6 +941,11 @@ Done:
 
 String gap_pal_window_clip_paste_result(GapPal* pal, const GapWindowId windowId) {
   return pal_maybe_window(pal, windowId)->clipPaste;
+}
+
+TimeDuration gap_pal_doubleclick_interval() {
+  const UINT doubleClickMilliseconds = GetDoubleClickTime();
+  return time_milliseconds(doubleClickMilliseconds);
 }
 
 GapNativeWm gap_pal_native_wm() { return GapNativeWm_Win32; }

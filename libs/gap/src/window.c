@@ -318,6 +318,11 @@ void gap_window_clip_paste(GapWindowComp* comp) { comp->requests |= GapWindowReq
 
 String gap_window_clip_paste_result(const GapWindowComp* comp) { return comp->clipPaste; }
 
+TimeDuration gap_window_doubleclick_interval(const GapWindowComp* comp) {
+  (void)comp;
+  return gap_pal_doubleclick_interval();
+}
+
 GapNativeWm gap_native_wm() { return gap_pal_native_wm(); }
 
 uptr gap_native_window_handle(const GapWindowComp* comp) { return (uptr)comp->id; }

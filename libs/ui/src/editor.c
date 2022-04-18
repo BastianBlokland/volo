@@ -17,9 +17,8 @@
 static const String       g_editorCursorEsc      = string_static(uni_esc "cFF");
 static const String       g_editorSelectBeginEsc = string_static(uni_esc "@0000FF88" uni_esc "|00");
 static const String       g_editorSelectEndEsc   = string_static(uni_esc "r");
-static const TimeDuration g_editorDoubleClickInterval = time_milliseconds(500);
-static const TimeDuration g_editorBlinkDelay          = time_second;
-static const TimeDuration g_editorBlinkInterval       = time_second;
+static const TimeDuration g_editorBlinkDelay     = time_second;
+static const TimeDuration g_editorBlinkInterval  = time_second;
 
 typedef enum {
   UiEditorFlags_Active      = 1 << 0,
@@ -490,7 +489,8 @@ void ui_editor_update(
 
   if (gap_window_key_pressed(win, GapKey_MouseLeft)) {
     if (isHovering && !sentinel_check(textInfo.hoveredCharIndex)) {
-      if (time_steady_duration(editor->lastClickTime, timeNow) < g_editorDoubleClickInterval) {
+      const TimeDuration sinceLastClick = time_steady_duration(editor->lastClickTime, timeNow);
+      if (sinceLastClick < gap_window_doubleclick_interval(win)) {
         ++editor->clickRepeat;
       } else {
         editor->clickRepeat = 0;

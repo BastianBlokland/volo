@@ -1,5 +1,6 @@
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_time.h"
 #include "log_logger.h"
 
 #include "pal_internal.h"
@@ -1222,6 +1223,13 @@ void gap_pal_window_clip_paste(GapPal* pal, const GapWindowId windowId) {
 
 String gap_pal_window_clip_paste_result(GapPal* pal, const GapWindowId windowId) {
   return pal_maybe_window(pal, windowId)->clipPaste;
+}
+
+TimeDuration gap_pal_doubleclick_interval() {
+  /**
+   * Unfortunately x11 does not expose the concept of the system's 'double click time'.
+   */
+  return time_milliseconds(500);
 }
 
 GapNativeWm gap_pal_native_wm() { return GapNativeWm_Xcb; }
