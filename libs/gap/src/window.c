@@ -16,6 +16,7 @@ typedef enum {
   GapWindowRequests_UpdateTitle      = 1 << 3,
   GapWindowRequests_UpdateCursorHide = 1 << 4,
   GapWindowRequests_UpdateCursorLock = 1 << 5,
+  GapWindowRequests_ClipPaste        = 1 << 6,
 } GapWindowRequests;
 
 ecs_comp_define(GapWindowComp) {
@@ -31,6 +32,7 @@ ecs_comp_define(GapWindowComp) {
   GapKeySet         keysPressed, keysPressedWithRepeat, keysReleased, keysDown;
   GapVector         params[GapParam_Count];
   DynString         inputText;
+  String            clipCopy, clipPaste;
 };
 
 static void ecs_destruct_window_comp(void* data) {
@@ -40,6 +42,8 @@ static void ecs_destruct_window_comp(void* data) {
   }
   string_maybe_free(g_alloc_heap, comp->title);
   dynstring_destroy(&comp->inputText);
+  string_maybe_free(g_alloc_heap, comp->clipCopy);
+  string_maybe_free(g_alloc_heap, comp->clipPaste);
 }
 
 static String window_default_title_scratch(const GapWindowComp* window) {
@@ -69,30 +73,30 @@ static void window_update(
     GapWindowComp*    window,
     const EcsEntityId windowEntity) {
 
-  window->pal             = platform->pal;
-  window->nativeAppHandle = gap_pal_native_app_handle(platform->pal);
+  GapPal* pal             = platform->pal;
+  window->pal             = pal;
+  window->nativeAppHandle = gap_pal_native_app_handle(pal);
 
   // Clear the events of the previous tick.
   window->events = 0;
 
   if (window->requests & GapWindowRequests_Create) {
-    window->id = gap_pal_window_create(platform->pal, window->params[GapParam_WindowSize]);
+    window->id = gap_pal_window_create(pal, window->params[GapParam_WindowSize]);
     if (window->flags & GapWindowFlags_DefaultTitle) {
       gap_window_title_set(window, window_default_title_scratch(window));
     }
   }
   if (window->requests & GapWindowRequests_UpdateTitle) {
-    gap_pal_window_title_set(platform->pal, window->id, window->title);
+    gap_pal_window_title_set(pal, window->id, window->title);
     window->events |= GapWindowEvents_TitleUpdated;
   }
   if (window->requests & GapWindowRequests_Resize) {
     const bool fullscreen = window->mode == GapWindowMode_Fullscreen;
-    gap_pal_window_resize(
-        platform->pal, window->id, window->params[GapParam_WindowSize], fullscreen);
+    gap_pal_window_resize(pal, window->id, window->params[GapParam_WindowSize], fullscreen);
   }
   if (window->requests & GapWindowRequests_UpdateCursorHide) {
     const bool hidden = (window->flags & GapWindowFlags_CursorHide) != 0;
-    gap_pal_window_cursor_hide(platform->pal, window->id, hidden);
+    gap_pal_window_cursor_hide(pal, window->id, hidden);
   }
   if (window->requests & GapWindowRequests_UpdateCursorLock) {
     const bool locked = (window->flags & GapWindowFlags_CursorLock) != 0;
@@ -100,21 +104,29 @@ static void window_update(
      * Capturing the cursor allows receiving mouse inputs even if the cursor is no longer over the
      * window. This is usefull as you can then do bigger sweeps without losing the lock.
      */
-    gap_pal_window_cursor_capture(platform->pal, window->id, locked);
+    gap_pal_window_cursor_capture(pal, window->id, locked);
+  }
+  if (!string_is_empty(window->clipCopy)) {
+    gap_pal_window_clip_copy(pal, window->id, window->clipCopy);
+    string_free(g_alloc_heap, window->clipCopy);
+    window->clipCopy = string_empty;
+  }
+  if (window->requests & GapWindowRequests_ClipPaste) {
+    gap_pal_window_clip_paste(pal, window->id);
   }
 
-  const GapPalWindowFlags palFlags = gap_pal_window_flags(platform->pal, window->id);
+  const GapPalWindowFlags palFlags = gap_pal_window_flags(pal, window->id);
   if (palFlags & GapPalWindowFlags_CloseRequested) {
     window->events |= GapWindowEvents_CloseRequested;
   }
   if (palFlags & GapPalWindowFlags_Resized) {
-    const GapVector size = gap_pal_window_param(platform->pal, window->id, GapParam_WindowSize);
+    const GapVector size = gap_pal_window_param(pal, window->id, GapParam_WindowSize);
     window->params[GapParam_WindowSize] = size;
     window->events |= GapWindowEvents_Resized;
   }
   if (palFlags & GapPalWindowFlags_CursorMoved) {
-    const GapVector oldPos = window->params[GapParam_CursorPos];
-    const GapVector newPos = gap_pal_window_param(platform->pal, window->id, GapParam_CursorPos);
+    const GapVector oldPos             = window->params[GapParam_CursorPos];
+    const GapVector newPos             = gap_pal_window_param(pal, window->id, GapParam_CursorPos);
     window->params[GapParam_CursorPos] = newPos;
     if (palFlags & GapPalWindowFlags_FocusGained) {
       // NOTE: When gaining focus use delta zero to avoid jumps due to cursor moved in background.
@@ -126,24 +138,23 @@ static void window_update(
     window->params[GapParam_CursorDelta] = gap_vector(0, 0);
   }
   if (palFlags & GapPalWindowFlags_Scrolled) {
-    const GapVector delta = gap_pal_window_param(platform->pal, window->id, GapParam_ScrollDelta);
+    const GapVector delta = gap_pal_window_param(pal, window->id, GapParam_ScrollDelta);
     window->params[GapParam_ScrollDelta] = delta;
   } else {
     window->params[GapParam_ScrollDelta] = gap_vector(0, 0);
   }
   if (palFlags & GapPalWindowFlags_KeyPressed) {
-    window->keysPressed = *gap_pal_window_keys_pressed(platform->pal, window->id);
-    window->keysPressedWithRepeat =
-        *gap_pal_window_keys_pressed_with_repeat(platform->pal, window->id);
-    window->keysDown = *gap_pal_window_keys_down(platform->pal, window->id);
+    window->keysPressed           = *gap_pal_window_keys_pressed(pal, window->id);
+    window->keysPressedWithRepeat = *gap_pal_window_keys_pressed_with_repeat(pal, window->id);
+    window->keysDown              = *gap_pal_window_keys_down(pal, window->id);
     window->events |= GapWindowEvents_KeyPressed;
   } else {
     gap_keyset_clear(&window->keysPressed);
     gap_keyset_clear(&window->keysPressedWithRepeat);
   }
   if (palFlags & GapPalWindowFlags_KeyReleased) {
-    window->keysReleased = *gap_pal_window_keys_released(platform->pal, window->id);
-    window->keysDown     = *gap_pal_window_keys_down(platform->pal, window->id);
+    window->keysReleased = *gap_pal_window_keys_released(pal, window->id);
+    window->keysDown     = *gap_pal_window_keys_down(pal, window->id);
     window->events |= GapWindowEvents_KeyReleased;
   } else {
     gap_keyset_clear(&window->keysReleased);
@@ -160,12 +171,20 @@ static void window_update(
   if (window->flags & GapWindowFlags_CursorLock) {
     const GapVector tgtPos = gap_vector_div(window->params[GapParam_WindowSize], 2);
     if (!gap_vector_equal(window->params[GapParam_CursorPos], tgtPos)) {
-      gap_pal_window_cursor_set(platform->pal, window->id, tgtPos);
+      gap_pal_window_cursor_set(pal, window->id, tgtPos);
       window->params[GapParam_CursorPos] = tgtPos;
     }
   }
   dynstring_clear(&window->inputText);
-  dynstring_append(&window->inputText, gap_pal_window_input_text(platform->pal, window->id));
+  dynstring_append(&window->inputText, gap_pal_window_input_text(pal, window->id));
+
+  string_maybe_free(g_alloc_heap, window->clipPaste);
+  if (palFlags & GapPalWindowFlags_ClipPaste) {
+    window->clipPaste = string_dup(g_alloc_heap, gap_pal_window_clip_paste_result(pal, window->id));
+    window->events |= GapWindowEvents_ClipPaste;
+  } else {
+    window->clipPaste = string_empty;
+  }
 
   if (window_should_close(window)) {
     ecs_world_entity_destroy(world, windowEntity);
@@ -289,6 +308,15 @@ bool gap_window_key_down(const GapWindowComp* comp, const GapKey key) {
 }
 
 String gap_window_input_text(const GapWindowComp* comp) { return dynstring_view(&comp->inputText); }
+
+void gap_window_clip_copy(GapWindowComp* comp, const String value) {
+  string_maybe_free(g_alloc_heap, comp->clipCopy);
+  comp->clipCopy = string_is_empty(value) ? string_empty : string_dup(g_alloc_heap, value);
+}
+
+void gap_window_clip_paste(GapWindowComp* comp) { comp->requests |= GapWindowRequests_ClipPaste; }
+
+String gap_window_clip_paste_result(const GapWindowComp* comp) { return comp->clipPaste; }
 
 GapNativeWm gap_native_wm() { return gap_pal_native_wm(); }
 
