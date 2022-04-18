@@ -865,6 +865,41 @@ void gap_pal_window_cursor_set(GapPal* pal, const GapWindowId windowId, const Ga
   pal_window((GapPal*)pal, windowId)->params[GapParam_CursorPos] = position;
 }
 
+void gap_pal_window_clip_copy(GapPal* pal, const GapWindowId windowId, const String value) {
+  (void)pal;
+
+  if (!OpenClipboard((HWND)windowId)) {
+    pal_crash_with_win32_err(string_lit("OpenClipboard"));
+  }
+  if (!EmptyClipboard()) {
+    pal_crash_with_win32_err(string_lit("EmptyClipboard"));
+  }
+  /**
+   * Allocate a movable global memory object for the data and copy the value into it.
+   * NOTE: Converts the value from utf8 to utf16 for compatiblity with Win32's 'UNICODETEXT' format.
+   * TODO: We should convert '\n' to '\r\n' for compatiblity with other Win32 applications.
+   */
+  const usize wcharByteSize = winutils_to_widestr_size(value);
+  if (sentinel_check(wcharByteSize)) {
+    goto Done; // Input is invalid utf8. TODO: Crash with error?
+  }
+  const HGLOBAL clipMemAlloc = GlobalAlloc(GMEM_MOVEABLE, wcharByteSize);
+  if (!clipMemAlloc) {
+    goto Done; // Allocation failed. TODO: Crash with error?
+  }
+  void* clipMemPtr = GlobalLock(clipMemAlloc); // Lock the moveable allocation for copying.
+  winutils_to_widestr(mem_create(clipMemPtr, wcharByteSize), value);
+  GlobalUnlock(clipMemAlloc);
+
+  if (!SetClipboardData(CF_UNICODETEXT, clipMemAlloc)) {
+    pal_crash_with_win32_err(string_lit("SetClipboardData"));
+  }
+Done:
+  if (!CloseClipboard()) {
+    pal_crash_with_win32_err(string_lit("CloseClipboard"));
+  }
+}
+
 GapNativeWm gap_pal_native_wm() { return GapNativeWm_Win32; }
 
 uptr gap_pal_native_app_handle(const GapPal* pal) { return (uptr)pal->moduleInstance; }
