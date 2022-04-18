@@ -48,6 +48,12 @@ typedef struct {
   usize  index; // Index into the actual text.
 } UiEditorVisualSlice;
 
+typedef struct {
+  u32        repeat;
+  TimeSteady lastTime;
+  GapVector  lastPos;
+} UiEditorClickInfo;
+
 struct sUiEditor {
   Allocator*          alloc;
   UiEditorFlags       flags;
@@ -56,8 +62,7 @@ struct sUiEditor {
   usize               cursor;
   usize               selectBegin, selectEnd, selectPivot;
   TimeSteady          lastInteractTime;
-  u32                 clickRepeat;
-  TimeSteady          lastClickTime;
+  UiEditorClickInfo   click;
   DynString           visualText;
   UiEditorVisualSlice visualSlices[ui_editor_max_visual_slices]; // Sorted by index.
 };
@@ -412,6 +417,25 @@ static void editor_visual_text_update(UiEditor* editor) {
   dynstring_append(&editor->visualText, remainingText);
 }
 
+static void editor_click(UiEditorClickInfo* click, GapWindowComp* win, const TimeSteady timeNow) {
+  static const i32 g_maxMovement = 15;
+
+  const GapVector cursorPos    = gap_window_param(win, GapParam_CursorPos);
+  const i32       cursorDeltaX = math_abs(click->lastPos.x - cursorPos.x);
+  const i32       cursorDeltaY = math_abs(click->lastPos.y - cursorPos.y);
+  const bool      cursorIdle   = cursorDeltaX < g_maxMovement && cursorDeltaY < g_maxMovement;
+  click->lastPos               = cursorPos;
+
+  const TimeDuration sinceLastClick = time_steady_duration(click->lastTime, timeNow);
+  click->lastTime                   = timeNow;
+
+  if (cursorIdle && sinceLastClick <= gap_window_doubleclick_interval(win)) {
+    ++click->repeat;
+  } else {
+    click->repeat = 0;
+  }
+}
+
 static usize editor_visual_index_to_text_index(UiEditor* editor, const usize visualIndex) {
   /**
    * To map from the visual text to the real text we need to substract the space that the visual
@@ -459,9 +483,7 @@ void ui_editor_start(UiEditor* editor, const String initialText, const UiId elem
     ui_editor_stop(editor);
   }
   editor->flags |= UiEditorFlags_Active | UiEditorFlags_FirstUpdate | UiEditorFlags_Dirty;
-  editor->textElement   = element;
-  editor->lastClickTime = time_steady_clock(); // NOTE: Assumes that a click trigged this start.
-  editor->clickRepeat   = 0;
+  editor->textElement = element;
   editor->cursor = editor->selectBegin = editor->selectEnd = 0;
 
   dynstring_clear(&editor->text);
@@ -478,24 +500,20 @@ void ui_editor_update(
     const UiBuildTextInfo textInfo) {
 
   diag_assert(editor->flags & UiEditorFlags_Active);
-  const bool       isHovering  = hover.id == editor->textElement;
-  const bool       dragging    = gap_window_key_down(win, GapKey_MouseLeft) && !editor->clickRepeat;
+  const bool       isHovering = hover.id == editor->textElement;
+  const bool       dragging   = gap_window_key_down(win, GapKey_MouseLeft) && !editor->click.repeat;
   const bool       firstUpdate = (editor->flags & UiEditorFlags_FirstUpdate) != 0;
   const TimeSteady timeNow     = time_steady_clock();
 
-  if ((firstUpdate || dragging) && !sentinel_check(textInfo.hoveredCharIndex)) {
+  if (dragging && !sentinel_check(textInfo.hoveredCharIndex)) {
     editor_cursor_set(editor, editor_visual_index_to_text_index(editor, textInfo.hoveredCharIndex));
   }
 
-  if (gap_window_key_pressed(win, GapKey_MouseLeft)) {
+  // NOTE: Assumes that the editor was started by a click.
+  if (gap_window_key_pressed(win, GapKey_MouseLeft) || firstUpdate) {
+    editor_click(&editor->click, win, timeNow);
     if (isHovering && !sentinel_check(textInfo.hoveredCharIndex)) {
-      const TimeDuration sinceLastClick = time_steady_duration(editor->lastClickTime, timeNow);
-      if (sinceLastClick < gap_window_doubleclick_interval(win)) {
-        ++editor->clickRepeat;
-      } else {
-        editor->clickRepeat = 0;
-      }
-      switch (editor->clickRepeat % 3) {
+      switch (editor->click.repeat % 3) {
       case 0:
         editor_cursor_set(
             editor, editor_visual_index_to_text_index(editor, textInfo.hoveredCharIndex));
@@ -507,8 +525,7 @@ void ui_editor_update(
         editor_select_line(editor);
         break;
       }
-      editor->lastClickTime = timeNow;
-    } else {
+    } else if (!firstUpdate) {
       ui_editor_stop(editor);
       return;
     }
@@ -601,4 +618,5 @@ void ui_editor_stop(UiEditor* editor) {
   editor_select_mode_stop(editor);
   editor->flags &= ~(UiEditorFlags_Active | EiEditorFlags_Volatile);
   editor->textElement = sentinel_u64;
+  editor->click       = (UiEditorClickInfo){0};
 }
