@@ -37,6 +37,7 @@ typedef enum {
 typedef enum {
   UiEditorSource_InitialText,
   UiEditorSource_UserTyped,
+  UiEditorSource_Clipboard,
 } UiEditorSource;
 
 /**
@@ -72,6 +73,7 @@ static bool editor_cp_is_valid(const Unicode cp, const UiEditorSource source) {
    */
   switch (source) {
   case UiEditorSource_InitialText:
+  case UiEditorSource_Clipboard:
     if (cp == Unicode_HorizontalTab) {
       return true; // Tab characters are supported in text but when typing are handled separately.
     }
@@ -229,6 +231,11 @@ static void editor_cursor_prev(UiEditor* editor, const UiEditorStride stride) {
 
 static bool editor_has_selection(UiEditor* editor) {
   return editor->selectBegin != editor->selectEnd;
+}
+
+static String editor_selection(UiEditor* editor) {
+  const String totalText = dynstring_view(&editor->text);
+  return string_slice(totalText, editor->selectBegin, editor->selectEnd - editor->selectBegin);
 }
 
 static void editor_erase_selection(UiEditor* editor) {
@@ -459,7 +466,7 @@ void ui_editor_start(UiEditor* editor, const String initialText, const UiId elem
   editor_visual_text_update(editor);
 }
 
-void ui_editor_update(UiEditor* editor, const GapWindowComp* win, const UiBuildHover hover) {
+void ui_editor_update(UiEditor* editor, GapWindowComp* win, const UiBuildHover hover) {
   diag_assert(editor->flags & UiEditorFlags_Active);
   const bool       isHovering     = hover.id == editor->textElement;
   const bool       isHoveringChar = isHovering && !sentinel_check(hover.textCharIndex);
@@ -512,8 +519,21 @@ void ui_editor_update(UiEditor* editor, const GapWindowComp* win, const UiBuildH
     if (gap_window_key_pressed(win, GapKey_A)) {
       editor_select_line(editor);
     }
+    if (gap_window_key_pressed(win, GapKey_C)) {
+      gap_window_clip_copy(win, editor_selection(editor));
+    }
+    if (gap_window_key_pressed(win, GapKey_X)) {
+      gap_window_clip_copy(win, editor_selection(editor));
+      editor_erase_selection(editor);
+    }
+    if (gap_window_key_pressed(win, GapKey_V)) {
+      gap_window_clip_paste(win);
+    }
   } else {
     editor_insert_text(editor, gap_window_input_text(win), UiEditorSource_UserTyped);
+  }
+  if (gap_window_events(win) & GapWindowEvents_ClipPaste) {
+    editor_insert_text(editor, gap_window_clip_paste_result(win), UiEditorSource_Clipboard);
   }
 
   if (gap_window_key_pressed(win, GapKey_Tab)) {

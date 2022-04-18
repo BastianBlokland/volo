@@ -17,6 +17,7 @@ typedef enum {
   GapWindowEvents_FocusGained    = 1 << 6, // Did the window gain focus this tick.
   GapWindowEvents_FocusLost      = 1 << 7, // Did the window lose focus this tick.
   GapWindowEvents_Focussed       = 1 << 8, // Does the window have focus this tick.
+  GapWindowEvents_ClipPaste      = 1 << 9, // Was a value pasted from the clipboard this tick.
 } GapWindowEvents;
 
 /**
@@ -112,3 +113,16 @@ bool gap_window_key_down(const GapWindowComp*, GapKey);
  * NOTE: Takes the user's keyboard layout into account.
  */
 String gap_window_input_text(const GapWindowComp*);
+
+/**
+ * Copy a value to the clipboard.
+ */
+void gap_window_clip_copy(GapWindowComp*, String value);
+
+/**
+ * Paste a value from the clipboard.
+ * NOTE: This is an asynchronous operation, after placing a paste request the 'ClipPaste' event will
+ * be raised when a value has been retrieved from the clipboard.
+ */
+void   gap_window_clip_paste(GapWindowComp*);
+String gap_window_clip_paste_result(const GapWindowComp*);

@@ -16,9 +16,7 @@ ecs_comp_define_public(RendStatsComp);
 
 static void ecs_destruct_rend_stats_comp(void* data) {
   RendStatsComp* comp = data;
-  if (!string_is_empty(comp->gpuName)) {
-    string_free(g_alloc_heap, comp->gpuName);
-  }
+  string_maybe_free(g_alloc_heap, comp->gpuName);
 }
 
 static void rend_stats_update_str(String* strPtr, const String newStr) {

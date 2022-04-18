@@ -22,11 +22,12 @@ typedef enum {
   GapPalWindowFlags_Focussed       = 1 << 7,
   GapPalWindowFlags_FocusLost      = 1 << 8,
   GapPalWindowFlags_FocusGained    = 1 << 9,
+  GapPalWindowFlags_ClipPaste      = 1 << 10,
 
-  GapPalWindowFlags_Volatile = GapPalWindowFlags_CloseRequested | GapPalWindowFlags_Resized |
-                               GapPalWindowFlags_CursorMoved | GapPalWindowFlags_Scrolled |
-                               GapPalWindowFlags_KeyPressed | GapPalWindowFlags_KeyReleased |
-                               GapPalWindowFlags_FocusLost | GapPalWindowFlags_FocusGained,
+  GapPalWindowFlags_Volatile =
+      GapPalWindowFlags_CloseRequested | GapPalWindowFlags_Resized | GapPalWindowFlags_CursorMoved |
+      GapPalWindowFlags_Scrolled | GapPalWindowFlags_KeyPressed | GapPalWindowFlags_KeyReleased |
+      GapPalWindowFlags_FocusLost | GapPalWindowFlags_FocusGained | GapPalWindowFlags_ClipPaste,
 } GapPalWindowFlags;
 
 typedef struct sGapPal GapPal;
@@ -48,6 +49,9 @@ void              gap_pal_window_resize(GapPal*, GapWindowId, GapVector size, bo
 void              gap_pal_window_cursor_hide(GapPal*, GapWindowId, bool hidden);
 void              gap_pal_window_cursor_capture(GapPal*, GapWindowId, bool captured);
 void              gap_pal_window_cursor_set(GapPal*, GapWindowId, GapVector position);
+void              gap_pal_window_clip_copy(GapPal*, GapWindowId, String value);
+void              gap_pal_window_clip_paste(GapPal*, GapWindowId);
+String            gap_pal_window_clip_paste_result(GapPal*, GapWindowId);
 
 GapNativeWm gap_pal_native_wm();
 uptr        gap_pal_native_app_handle(const GapPal*);

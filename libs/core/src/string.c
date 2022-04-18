@@ -47,6 +47,12 @@ String string_combine_raw(Allocator* alloc, const String* parts) {
 
 void string_free(Allocator* alloc, String str) { alloc_free(alloc, str); }
 
+void string_maybe_free(Allocator* alloc, String str) {
+  if (!string_is_empty(str)) {
+    alloc_free(alloc, str);
+  }
+}
+
 i8 string_cmp(String a, String b) { return mem_cmp(a, b); }
 
 bool string_eq(String a, String b) { return mem_eq(a, b); }

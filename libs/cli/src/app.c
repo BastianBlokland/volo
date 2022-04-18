@@ -20,14 +20,10 @@ CliApp* cli_app_create(Allocator* alloc, const String desc) {
 }
 
 void cli_app_destroy(CliApp* app) {
-  if (!string_is_empty(app->desc)) {
-    string_free(app->alloc, app->desc);
-  }
+  string_maybe_free(app->alloc, app->desc);
 
   dynarray_for_t(&app->options, CliOption, opt) {
-    if (opt->desc.ptr) {
-      string_free(app->alloc, opt->desc);
-    }
+    string_maybe_free(app->alloc, opt->desc);
     switch (opt->type) {
     case CliOptionType_Flag:
       string_free(app->alloc, opt->dataFlag.name);

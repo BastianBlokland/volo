@@ -16,9 +16,7 @@ static void data_destroy_internal(const DestroyCtx*);
 
 static void data_destroy_string(const DestroyCtx* ctx) {
   const String val = *mem_as_t(ctx->data, String);
-  if (!string_is_empty(val)) {
-    string_free(ctx->alloc, val);
-  }
+  string_maybe_free(ctx->alloc, val);
 }
 
 static void data_destroy_struct(const DestroyCtx* ctx) {

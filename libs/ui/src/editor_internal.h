@@ -22,5 +22,5 @@ String ui_editor_result_text(const UiEditor*); // Current result text.
 String ui_editor_visual_text(const UiEditor*); // String to render while editing.
 
 void ui_editor_start(UiEditor*, String initialText, UiId element);
-void ui_editor_update(UiEditor*, const GapWindowComp*, UiBuildHover);
+void ui_editor_update(UiEditor*, GapWindowComp*, UiBuildHover);
 void ui_editor_stop(UiEditor*);

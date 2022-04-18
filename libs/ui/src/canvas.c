@@ -255,7 +255,7 @@ ecs_view_define(GlobalView) {
 }
 ecs_view_define(FtxView) { ecs_access_read(AssetFtxComp); }
 ecs_view_define(WindowView) {
-  ecs_access_read(GapWindowComp);
+  ecs_access_write(GapWindowComp);
   ecs_access_maybe_write(UiRendererComp);
   ecs_access_maybe_write(UiSettingsComp);
   ecs_access_maybe_write(UiStatsComp);
@@ -355,11 +355,11 @@ ecs_system_define(UiRenderSys) {
   }
 
   for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, WindowView)); ecs_view_walk(itr);) {
-    const EcsEntityId    entity   = ecs_view_entity(itr);
-    const GapWindowComp* window   = ecs_view_read_t(itr, GapWindowComp);
-    UiRendererComp*      renderer = ecs_view_write_t(itr, UiRendererComp);
-    UiSettingsComp*      settings = ecs_view_write_t(itr, UiSettingsComp);
-    UiStatsComp*         stats    = ecs_view_write_t(itr, UiStatsComp);
+    const EcsEntityId entity   = ecs_view_entity(itr);
+    GapWindowComp*    window   = ecs_view_write_t(itr, GapWindowComp);
+    UiRendererComp*   renderer = ecs_view_write_t(itr, UiRendererComp);
+    UiSettingsComp*   settings = ecs_view_write_t(itr, UiSettingsComp);
+    UiStatsComp*      stats    = ecs_view_write_t(itr, UiStatsComp);
     if (!renderer) {
       ui_renderer_create(world, entity);
       continue;
