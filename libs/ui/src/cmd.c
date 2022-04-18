@@ -3,7 +3,7 @@
 
 #include "cmd_internal.h"
 
-#define ui_cmdbuffer_transient_chunk_size (8 * usize_kibibyte)
+#define ui_cmdbuffer_transient_chunk_size (16 * usize_kibibyte)
 #define ui_cmdbuffer_max_text_size (8 * usize_kibibyte)
 
 struct sUiCmdBuffer {
