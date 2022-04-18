@@ -982,7 +982,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       (xcb_window_t)id,
       pal->atomProtoMsg,
       XCB_ATOM_ATOM,
-      sizeof(xcb_atom_t) * 4,
+      sizeof(xcb_atom_t) * 8,
       1,
       &pal->atomDeleteMsg);
 
