@@ -53,5 +53,7 @@ void              gap_pal_window_clip_copy(GapPal*, GapWindowId, String value);
 void              gap_pal_window_clip_paste(GapPal*, GapWindowId);
 String            gap_pal_window_clip_paste_result(GapPal*, GapWindowId);
 
+TimeDuration gap_pal_doubleclick_interval();
+
 GapNativeWm gap_pal_native_wm();
 uptr        gap_pal_native_app_handle(const GapPal*);

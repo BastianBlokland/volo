@@ -4,6 +4,9 @@
 #include "gap_input.h"
 #include "gap_vector.h"
 
+// Forward declare from 'core_time.h'.
+typedef i64 TimeDuration;
+
 /**
  * Notification flags for events that occurred this tick.
  */
@@ -126,3 +129,8 @@ void gap_window_clip_copy(GapWindowComp*, String value);
  */
 void   gap_window_clip_paste(GapWindowComp*);
 String gap_window_clip_paste_result(const GapWindowComp*);
+
+/**
+ * Retrieve the system's double click interval.
+ */
+TimeDuration gap_window_doubleclick_interval(const GapWindowComp*);
