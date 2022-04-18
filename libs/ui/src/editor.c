@@ -12,6 +12,7 @@
 #include "escape_internal.h"
 
 #define ui_editor_max_visual_slices 3
+#define ui_editor_max_text_size (4 * usize_kibibyte)
 
 static const String       g_editorCursorEsc      = string_static(uni_esc "cFF");
 static const String       g_editorSelectBeginEsc = string_static(uni_esc "@0000FF88" uni_esc "|00");
@@ -317,6 +318,11 @@ static void editor_select_word(UiEditor* editor) {
 static void editor_insert_cp(UiEditor* editor, const Unicode cp) {
   DynString buffer = dynstring_create_over(mem_stack(4));
   utf8_cp_write(&buffer, cp);
+
+  if (UNLIKELY((editor->text.size + buffer.size) > ui_editor_max_text_size)) {
+    return; // TODO: Log a warning?
+  }
+
   dynstring_insert(&editor->text, dynstring_view(&buffer), editor->cursor);
   editor_cursor_set(editor, editor->cursor + buffer.size);
 }
