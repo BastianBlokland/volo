@@ -20,9 +20,19 @@ typedef struct {
 
 ASSERT(sizeof(UiGlyphData) == 32, "Size needs to match the size defined in glsl");
 
+typedef struct {
+  /**
+   * Index of the character that was hovered in the text.
+   * NOTE: Is 'sentinel_usize' when no character was hovered.
+   * TODO: Does not support multi-line text atm (always returns a char on the last visible line).
+   */
+  usize hoveredCharIndex;
+} UiBuildTextInfo;
+
 typedef u8 (*UiOutputClipRectFunc)(void* userCtx, UiRect);
 typedef void (*UiOutputGlyphFunc)(void* userCtx, UiGlyphData, UiLayer);
 typedef void (*UiOutputRect)(void* userCtx, UiId, UiRect);
+typedef void (*UiOutputTextInfo)(void* userCtx, UiId, UiBuildTextInfo);
 
 typedef struct {
   const UiSettingsComp* settings;
@@ -33,18 +43,13 @@ typedef struct {
   UiOutputClipRectFunc  outputClipRect;
   UiOutputGlyphFunc     outputGlyph;
   UiOutputRect          outputRect;
+  UiOutputTextInfo      outputTextInfo;
 } UiBuildCtx;
 
 typedef struct {
   UiId    id;
   UiLayer layer;
   UiFlags flags;
-  /**
-   * Index of the character that was hovered in the text.
-   * NOTE: Is 'sentinel_usize' when the hovered element wasn't text.
-   * TODO: Does not support multi-line text atm (always returns a char on the last visible line).
-   */
-  usize textCharIndex;
 } UiBuildHover;
 
 typedef struct {

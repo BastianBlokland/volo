@@ -472,20 +472,24 @@ void ui_editor_start(UiEditor* editor, const String initialText, const UiId elem
   editor_visual_text_update(editor);
 }
 
-void ui_editor_update(UiEditor* editor, GapWindowComp* win, const UiBuildHover hover) {
+void ui_editor_update(
+    UiEditor*             editor,
+    GapWindowComp*        win,
+    const UiBuildHover    hover,
+    const UiBuildTextInfo textInfo) {
+
   diag_assert(editor->flags & UiEditorFlags_Active);
-  const bool       isHovering     = hover.id == editor->textElement;
-  const bool       isHoveringChar = isHovering && !sentinel_check(hover.textCharIndex);
+  const bool       isHovering  = hover.id == editor->textElement;
   const bool       dragging    = gap_window_key_down(win, GapKey_MouseLeft) && !editor->clickRepeat;
   const bool       firstUpdate = (editor->flags & UiEditorFlags_FirstUpdate) != 0;
   const TimeSteady timeNow     = time_steady_clock();
 
-  if ((firstUpdate || dragging) && isHoveringChar) {
-    editor_cursor_set(editor, editor_visual_index_to_text_index(editor, hover.textCharIndex));
+  if ((firstUpdate || dragging) && !sentinel_check(textInfo.hoveredCharIndex)) {
+    editor_cursor_set(editor, editor_visual_index_to_text_index(editor, textInfo.hoveredCharIndex));
   }
 
   if (gap_window_key_pressed(win, GapKey_MouseLeft)) {
-    if (isHoveringChar) {
+    if (isHovering && !sentinel_check(textInfo.hoveredCharIndex)) {
       if (time_steady_duration(editor->lastClickTime, timeNow) < g_editorDoubleClickInterval) {
         ++editor->clickRepeat;
       } else {
@@ -493,7 +497,8 @@ void ui_editor_update(UiEditor* editor, GapWindowComp* win, const UiBuildHover h
       }
       switch (editor->clickRepeat % 3) {
       case 0:
-        editor_cursor_set(editor, editor_visual_index_to_text_index(editor, hover.textCharIndex));
+        editor_cursor_set(
+            editor, editor_visual_index_to_text_index(editor, textInfo.hoveredCharIndex));
         break;
       case 1:
         editor_select_word(editor);
