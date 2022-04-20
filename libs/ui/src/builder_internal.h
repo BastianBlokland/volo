@@ -21,6 +21,9 @@ typedef struct {
 ASSERT(sizeof(UiGlyphData) == 32, "Size needs to match the size defined in glsl");
 
 typedef struct {
+  u32 lineCount;
+  u32 maxLineCharWidth;
+
   /**
    * Index of the character that was hovered in the text.
    * NOTE: Is 'sentinel_usize' when no character was hovered.

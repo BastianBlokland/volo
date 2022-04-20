@@ -264,6 +264,8 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
         state->ctx->userCtx,
         cmd->id,
         (UiBuildTextInfo){
+            .lineCount        = result.lineCount,
+            .maxLineCharWidth = result.maxLineCharWidth,
             .hoveredCharIndex = result.hoveredCharIndex,
         });
   }
@@ -303,11 +305,11 @@ static void ui_build_debug_inspector(UiBuildState* state, const UiId id, const U
   const UiBuildStyle styleShape     = {.color = {255, 0, 0, 178}, .layer = UiLayer_Overlay};
   const UiBuildStyle styleContainer = {.color = {0, 0, 255, 178}, .layer = UiLayer_Overlay};
   const UiBuildStyle styleText      = {
-      .color     = ui_color_white,
-      .outline   = 3,
-      .variation = 1,
-      .weight    = UiWeight_Bold,
-      .layer     = UiLayer_Overlay};
+           .color     = ui_color_white,
+           .outline   = 3,
+           .variation = 1,
+           .weight    = UiWeight_Bold,
+           .layer     = UiLayer_Overlay};
 
   ui_build_glyph(state, UiShape_Square, container.rect, styleContainer, 5, 0);
   ui_build_glyph(state, UiShape_Square, rect, styleShape, 5, 0);

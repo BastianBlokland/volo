@@ -422,10 +422,11 @@ UiTextBuildResult ui_text_build(
    */
   UiTextBackgroundCollector bgCollector = {.active = sentinel_u32};
   UiTextLine                lines[ui_text_max_lines];
-  u32                       lineCount  = 0;
-  f32                       lineY      = 0;
-  f32                       totalWidth = 0;
-  String                    remText    = text;
+  u32                       lineCount        = 0;
+  f32                       lineY            = 0;
+  f32                       totalWidth       = 0;
+  u32                       maxLineCharWidth = 0;
+  String                    remText          = text;
   while (!string_is_empty(remText)) {
     const f32 lineHeight = lineCount ? (1 + font->lineSpacing) * fontSize : fontSize;
     if (lineY + lineHeight >= totalRect.height - font->lineSpacing * fontSize) {
@@ -450,6 +451,7 @@ UiTextBuildResult ui_text_build(
 
     lines[lineIndex].posY = lineY;
     totalWidth            = math_max(totalWidth, lines[lineIndex].size.width);
+    maxLineCharWidth      = math_max(maxLineCharWidth, (u32)lines[lineIndex].text.size);
 
     if (flags & UiFlags_SingleLine) {
       break;
@@ -496,6 +498,7 @@ UiTextBuildResult ui_text_build(
   return (UiTextBuildResult){
       .rect             = rect,
       .lineCount        = lineCount,
+      .maxLineCharWidth = maxLineCharWidth,
       .hoveredCharIndex = state.hoveredCharIndex,
   };
 }

@@ -26,6 +26,7 @@ typedef void (*UiTextBuildBackgroundFunc)(void* userCtx, const UiTextBackgroundI
 typedef struct {
   UiRect rect;
   u32    lineCount;
+  u32    maxLineCharWidth;
   /**
    * Byte index of the hovered character.
    * TODO: Does not support multi-line text atm (always returns a char on the last visible line).

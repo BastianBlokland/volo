@@ -63,6 +63,7 @@ struct sUiEditor {
   usize               selectBegin, selectEnd, selectPivot;
   TimeSteady          lastInteractTime;
   UiEditorClickInfo   click;
+  usize               viewportOffset;
   DynString           visualText;
   UiEditorVisualSlice visualSlices[ui_editor_max_visual_slices]; // Sorted by index.
 };
@@ -380,11 +381,11 @@ static void editor_visual_slices_update(UiEditor* editor, const TimeSteady timeN
   if (editor_has_selection(editor)) {
     editor->visualSlices[sliceIdx++] = (UiEditorVisualSlice){
         .text  = g_editorSelectBeginEsc,
-        .index = editor->selectBegin,
+        .index = math_max(editor->viewportOffset, editor->selectBegin),
     };
     editor->visualSlices[sliceIdx++] = (UiEditorVisualSlice){
         .text  = g_editorSelectEndEsc,
-        .index = editor->selectEnd,
+        .index = math_max(editor->viewportOffset, editor->selectEnd),
     };
   }
 
@@ -404,17 +405,21 @@ static void editor_visual_text_update(UiEditor* editor) {
    * NOTE: The visual slices are sorted by index.
    */
   const String text    = dynstring_view(&editor->text);
-  usize        textIdx = 0;
+  usize        textIdx = editor->viewportOffset;
   array_for_t(editor->visualSlices, UiEditorVisualSlice, visualSlice) {
-    if (!string_is_empty(visualSlice->text)) {
+    if (visualSlice->index >= textIdx && !string_is_empty(visualSlice->text)) {
       const String beforeText = string_slice(text, textIdx, visualSlice->index - textIdx);
       dynstring_append(&editor->visualText, beforeText);
       dynstring_append(&editor->visualText, visualSlice->text);
       textIdx = visualSlice->index;
     }
   }
-  const String remainingText = string_slice(text, textIdx, text.size - textIdx);
-  dynstring_append(&editor->visualText, remainingText);
+  if (text.size > textIdx) {
+    const String remainingText = string_slice(text, textIdx, text.size - textIdx);
+    dynstring_append(&editor->visualText, remainingText);
+  }
+  // NOTE: Pad the end so the viewport logic knows there is space for additional text.
+  dynstring_append_chars(&editor->visualText, ' ', 64);
 }
 
 static void editor_click(UiEditorClickInfo* click, GapWindowComp* win, const TimeSteady timeNow) {
@@ -436,18 +441,44 @@ static void editor_click(UiEditorClickInfo* click, GapWindowComp* win, const Tim
   }
 }
 
+/**
+ * Map from an index in the visual text  (including cursor etc) to the real text.
+ */
 static usize editor_visual_index_to_text_index(UiEditor* editor, const usize visualIndex) {
-  /**
-   * To map from the visual text to the real text we need to substract the space that the visual
-   * slices (for example the cursor) take.
-   */
-  usize index = visualIndex;
+  usize index = editor->viewportOffset + visualIndex;
   array_for_t(editor->visualSlices, UiEditorVisualSlice, visualSlice) {
-    if (index > visualSlice->index) {
+    if (visualSlice->index >= editor->viewportOffset && visualSlice->index < index) {
       index -= visualSlice->text.size;
     }
   }
-  return index;
+  return math_min(index, editor->text.size);
+}
+
+/**
+ * Update the viewport to keep the cursor in the visible area of the text.
+ */
+static void editor_viewport_update(UiEditor* editor, const UiBuildTextInfo textInfo) {
+  const usize viewportLeft = editor->viewportOffset;
+  const usize cursorPrev   = editor_prev_index(editor, editor->cursor);
+  const usize leftRef      = sentinel_check(cursorPrev) ? editor->cursor : cursorPrev;
+  if (leftRef < viewportLeft) {
+    editor->viewportOffset -= viewportLeft - leftRef;
+  }
+
+  const usize viewportRight = editor_visual_index_to_text_index(editor, textInfo.maxLineCharWidth);
+  const usize cursorNext    = editor_next_index(editor, editor->cursor);
+  const usize rightRef      = sentinel_check(cursorNext) ? editor->cursor : cursorNext;
+  if (rightRef > viewportRight) {
+    editor->viewportOffset += rightRef - viewportRight;
+  }
+
+  if (!editor_cursor_valid_index(editor, editor->viewportOffset)) {
+    /**
+     * The viewport starts at an invalid index (probably in the middle of a non-ascii character).
+     * Fix up by moving it to the start of the next character.
+     */
+    editor->viewportOffset = editor_next_index(editor, editor->viewportOffset);
+  }
 }
 
 UiEditor* ui_editor_create(Allocator* alloc) {
@@ -489,6 +520,7 @@ void ui_editor_start(UiEditor* editor, const String initialText, const UiId elem
   dynstring_clear(&editor->text);
   editor_insert_text(editor, initialText, UiEditorSource_InitialText);
 
+  editor->viewportOffset = 0;
   editor_visual_slices_clear(editor);
   editor_visual_text_update(editor);
 }
@@ -609,6 +641,7 @@ void ui_editor_update(
   if (editor->flags & UiEditorFlags_Dirty) {
     editor->lastInteractTime = timeNow;
   }
+  editor_viewport_update(editor, textInfo);
   editor_visual_slices_update(editor, timeNow);
   editor_visual_text_update(editor);
   editor->flags &= ~EiEditorFlags_Volatile;
