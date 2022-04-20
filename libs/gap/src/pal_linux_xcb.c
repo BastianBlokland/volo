@@ -7,6 +7,7 @@
 
 #include <stdlib.h>
 #include <xcb/xcb.h>
+#include <xcb/xcb_cursor.h>
 #include <xcb/xcb_icccm.h>
 #include <xcb/xfixes.h>
 #include <xcb/xkb.h>
@@ -15,7 +16,7 @@
 
 /**
  * X11 client implementation using the xcb library.
- * Optionally uses the xkb, xfixes and icccm extensions.
+ * Optionally uses the xkb, xfixes, icccm and cursor-util extensions.
  *
  * Standard: https://www.x.org/docs/ICCCM/icccm.pdf
  * Xcb: https://xcb.freedesktop.org/manual/
