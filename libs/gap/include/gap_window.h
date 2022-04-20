@@ -1,6 +1,7 @@
 #pragma once
 #include "ecs_entity.h"
 #include "ecs_module.h"
+#include "gap_cursor.h"
 #include "gap_input.h"
 #include "gap_vector.h"
 

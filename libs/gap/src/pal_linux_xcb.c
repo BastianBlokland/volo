@@ -67,6 +67,7 @@ struct sGapPal {
   struct xkb_state*   xkbState;
 
   xcb_cursor_context_t* cursorCtx;
+  xcb_cursor_t          cursors[GapCursor_Count];
 
   xcb_atom_t atomProtoMsg, atomDeleteMsg, atomWmState, atomWmStateFullscreen,
       atomWmStateBypassCompositor, atomClipboard, atomVoloClipboard, atomTargets, atomUtf8String,
@@ -527,6 +528,11 @@ static bool pal_cursorutil_init(GapPal* pal) {
     return false;
   }
 
+  pal->cursors[GapCursor_Click]     = xcb_cursor_load_cursor(pal->cursorCtx, "hand1");
+  pal->cursors[GapCursor_Text]      = xcb_cursor_load_cursor(pal->cursorCtx, "xterm");
+  pal->cursors[GapCursor_Busy]      = xcb_cursor_load_cursor(pal->cursorCtx, "watch");
+  pal->cursors[GapCursor_Crosshair] = xcb_cursor_load_cursor(pal->cursorCtx, "crosshair");
+
   log_i("Initialized cursor-util xcb extension");
   return true;
 }
@@ -826,6 +832,11 @@ void gap_pal_destroy(GapPal* pal) {
   }
   if (pal->xkbState) {
     xkb_state_unref(pal->xkbState);
+  }
+  array_for_t(pal->cursors, xcb_cursor_t, cursor) {
+    if (*cursor != XCB_NONE) {
+      xcb_free_cursor(pal->xcbConnection, *cursor);
+    }
   }
   if (pal->cursorCtx) {
     xcb_cursor_context_free(pal->cursorCtx);
@@ -1185,7 +1196,15 @@ void gap_pal_window_cursor_capture(GapPal* pal, const GapWindowId windowId, cons
   (void)captured;
 }
 
-void gap_pal_window_cursor_set(GapPal* pal, const GapWindowId windowId, const GapVector position) {
+void gap_pal_window_cursor_set(GapPal* pal, const GapWindowId windowId, const GapCursor cursor) {
+  if (pal->extensions & GapPalXcbExtFlags_CursorUtil) {
+    xcb_change_window_attributes(
+        pal->xcbConnection, (xcb_window_t)windowId, XCB_CW_CURSOR, &pal->cursors[cursor]);
+  }
+}
+
+void gap_pal_window_cursor_pos_set(
+    GapPal* pal, const GapWindowId windowId, const GapVector position) {
   GapPalWindow* window = pal_maybe_window(pal, windowId);
   diag_assert(window);
 

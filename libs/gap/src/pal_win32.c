@@ -569,10 +569,10 @@ GapPal* gap_pal_create(Allocator* alloc) {
 
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){
-      .alloc          = alloc,
-      .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
-      .moduleInstance = instance,
-      .owningThreadId = g_thread_tid,
+             .alloc          = alloc,
+             .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
+             .moduleInstance = instance,
+             .owningThreadId = g_thread_tid,
   };
 
   MAYBE_UNUSED const GapVector screenSize =
@@ -849,7 +849,8 @@ void gap_pal_window_cursor_capture(GapPal* pal, const GapWindowId windowId, cons
   }
 }
 
-void gap_pal_window_cursor_set(GapPal* pal, const GapWindowId windowId, const GapVector position) {
+void gap_pal_window_cursor_pos_set(
+    GapPal* pal, const GapWindowId windowId, const GapVector position) {
   pal_check_thread_ownership(pal);
 
   GapPalWindow* window = pal_maybe_window(pal, windowId);

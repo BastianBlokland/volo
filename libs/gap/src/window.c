@@ -171,7 +171,7 @@ static void window_update(
   if (window->flags & GapWindowFlags_CursorLock) {
     const GapVector tgtPos = gap_vector_div(window->params[GapParam_WindowSize], 2);
     if (!gap_vector_equal(window->params[GapParam_CursorPos], tgtPos)) {
-      gap_pal_window_cursor_set(pal, window->id, tgtPos);
+      gap_pal_window_cursor_pos_set(pal, window->id, tgtPos);
       window->params[GapParam_CursorPos] = tgtPos;
     }
   }
