@@ -47,11 +47,6 @@ typedef enum {
 } UiCanvasFlags;
 
 typedef enum {
-  UiInteractType_None,
-  UiInteractType_Text,
-} UiInteractType;
-
-typedef enum {
   UiRendererFlags_Disabled = 1 << 0,
 } UiRendererFlags;
 
@@ -318,6 +313,9 @@ static void ui_canvas_cursor_update(GapWindowComp* window, const UiInteractType 
   case UiInteractType_None:
     gap_window_cursor_set(window, GapCursor_Normal);
     break;
+  case UiInteractType_Action:
+    gap_window_cursor_set(window, GapCursor_Click);
+    break;
   case UiInteractType_Text:
     gap_window_cursor_set(window, GapCursor_Text);
     break;
@@ -549,6 +547,10 @@ void ui_canvas_min_interact_layer(UiCanvasComp* comp, const UiLayer layer) {
   comp->minInteractLayer = layer;
 }
 
+void ui_canvas_interact_type(UiCanvasComp* comp, const UiInteractType type) {
+  comp->interactType = type;
+}
+
 UiId ui_canvas_id_peek(const UiCanvasComp* comp) { return comp->nextId; }
 void ui_canvas_id_skip(UiCanvasComp* comp, const u64 count) { comp->nextId += count; }
 
@@ -636,7 +638,7 @@ UiId ui_canvas_draw_text_editable(
   }
 
   if (status >= UiStatus_Hovered) {
-    comp->interactType = UiInteractType_Text;
+    ui_canvas_interact_type(comp, UiInteractType_Text);
   }
 
   ui_canvas_draw_text(comp, visualText, fontSize, align, flags);

@@ -21,6 +21,15 @@ typedef enum {
   UiStatus_Activated,
 } UiStatus;
 
+/**
+ * Indicates the possible user interaction.
+ */
+typedef enum {
+  UiInteractType_None,   // No interaction possible (eg. normal cursor).
+  UiInteractType_Action, // Action (aka click) interaction possible (eg. hand cursor).
+  UiInteractType_Text,   // Text editing interaction possible (eg. text cursor).
+} UiInteractType;
+
 typedef enum {
   UiFlags_None                = 0,
   UiFlags_Interactable        = 1 << 0,
@@ -58,6 +67,11 @@ void ui_canvas_to_back(UiCanvasComp*);
  * NOTE: Is cleared on canvas reset.
  */
 void ui_canvas_min_interact_layer(UiCanvasComp*, UiLayer);
+
+/**
+ * Set the possible interaction type (used to provide user feedback, eg a different cursor).
+ */
+void ui_canvas_interact_type(UiCanvasComp*, UiInteractType);
 
 /**
  * Query / manipulate values in the ui-id sequence.
