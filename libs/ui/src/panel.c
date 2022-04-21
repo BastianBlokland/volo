@@ -45,6 +45,9 @@ static void ui_panel_topbar_close_button(UiCanvasComp* canvas, UiPanelState* sta
   if (status == UiStatus_Activated) {
     state->flags |= UiPanelFlags_Close;
   }
+  if (status >= UiStatus_Hovered) {
+    ui_canvas_interact_type(canvas, UiInteractType_Action);
+  }
 
   UiVector size;
   switch (status) {
@@ -137,9 +140,13 @@ void ui_panel_begin_with_opts(UiCanvasComp* canvas, UiPanelState* state, const U
   const UiVector inputDelta = ui_canvas_input_delta(canvas);
   const UiVector canvasRes  = ui_canvas_resolution(canvas);
   const UiId     topbarId   = ui_canvas_id_peek(canvas);
-  if (ui_canvas_elem_status(canvas, topbarId) == UiStatus_Pressed) {
+  const UiStatus dragStatus = ui_canvas_elem_status(canvas, topbarId);
+  if (dragStatus == UiStatus_Pressed) {
     state->position.x += inputDelta.x / canvasRes.width;
     state->position.y += inputDelta.y / canvasRes.height;
+  }
+  if (dragStatus >= UiStatus_Hovered) {
+    ui_canvas_interact_type(canvas, UiInteractType_Drag);
   }
   if (canvasRes.x > 0 && canvasRes.y > 0) {
     ui_panel_clamp_to_canvas(state, canvasRes);
