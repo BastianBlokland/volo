@@ -63,6 +63,10 @@ bool ui_button_with_opts(UiCanvasComp* canvas, const UiButtonOpts* opts) {
   ui_canvas_draw_text(canvas, opts->label, opts->fontSize, UiAlign_MiddleCenter, UiFlags_None);
   ui_style_pop(canvas);
 
+  if (status >= UiStatus_Hovered) {
+    ui_canvas_interact_type(canvas, UiInteractType_Action);
+  }
+
   if (!string_is_empty(opts->tooltip)) {
     ui_tooltip(canvas, id, opts->tooltip);
   }
@@ -169,6 +173,10 @@ bool ui_slider_with_opts(UiCanvasComp* canvas, f32* input, const UiSliderOpts* o
   ui_slider_bar(canvas, status, opts);
   ui_slider_handle(canvas, status, normValue, opts);
 
+  if (status >= UiStatus_Hovered) {
+    ui_canvas_interact_type(canvas, UiInteractType_Action);
+  }
+
   if (!string_is_empty(opts->tooltip)) {
     ui_tooltip(canvas, barId, opts->tooltip);
     ui_tooltip(canvas, handleId, opts->tooltip);
@@ -233,6 +241,10 @@ bool ui_toggle_with_opts(UiCanvasComp* canvas, bool* input, const UiToggleOpts* 
     ui_toggle_check(canvas, status, opts);
   } else {
     ui_canvas_id_skip(canvas, 1);
+  }
+
+  if (status >= UiStatus_Hovered) {
+    ui_canvas_interact_type(canvas, UiInteractType_Action);
   }
 
   if (!string_is_empty(opts->tooltip)) {
@@ -329,6 +341,10 @@ static UiSelectFlags ui_select_dropdown(
       *input = i;
       selectFlags |= UiSelectFlags_Changed;
     }
+
+    if (status >= UiStatus_Hovered) {
+      ui_canvas_interact_type(canvas, UiInteractType_Action);
+    }
   }
   ui_layout_pop(canvas);
   return selectFlags;
@@ -380,6 +396,10 @@ bool ui_select_with_opts(
 
   if (!string_is_empty(opts->tooltip)) {
     ui_tooltip(canvas, headerId, opts->tooltip);
+  }
+
+  if (headerStatus >= UiStatus_Hovered) {
+    ui_canvas_interact_type(canvas, UiInteractType_Action);
   }
 
   ui_style_pop(canvas);
@@ -507,6 +527,10 @@ bool ui_section_with_opts(UiCanvasComp* canvas, const UiSectionOpts* opts) {
   ui_canvas_draw_text(
       canvas, opts->label, opts->fontSize, UiAlign_MiddleLeft, UiFlags_Interactable);
   ui_layout_pop(canvas);
+
+  if (status >= UiStatus_Hovered) {
+    ui_canvas_interact_type(canvas, UiInteractType_Action);
+  }
 
   ui_style_pop(canvas);
   return isOpen;
