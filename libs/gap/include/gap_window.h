@@ -1,6 +1,7 @@
 #pragma once
 #include "ecs_entity.h"
 #include "ecs_module.h"
+#include "gap_cursor.h"
 #include "gap_input.h"
 #include "gap_vector.h"
 
@@ -110,6 +111,11 @@ bool gap_window_key_released(const GapWindowComp*, GapKey);
  * Test if the given key is currently being held down.
  */
 bool gap_window_key_down(const GapWindowComp*, GapKey);
+
+/**
+ * Update the window cursor.
+ */
+void gap_window_cursor_set(GapWindowComp*, GapCursor);
 
 /**
  * Retrieve the text that was entered this tick.

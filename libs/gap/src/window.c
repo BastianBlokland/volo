@@ -16,7 +16,8 @@ typedef enum {
   GapWindowRequests_UpdateTitle      = 1 << 3,
   GapWindowRequests_UpdateCursorHide = 1 << 4,
   GapWindowRequests_UpdateCursorLock = 1 << 5,
-  GapWindowRequests_ClipPaste        = 1 << 6,
+  GapWindowRequests_UpdateCursorType = 1 << 6,
+  GapWindowRequests_ClipPaste        = 1 << 7,
 } GapWindowRequests;
 
 ecs_comp_define(GapWindowComp) {
@@ -33,6 +34,7 @@ ecs_comp_define(GapWindowComp) {
   GapVector         params[GapParam_Count];
   DynString         inputText;
   String            clipCopy, clipPaste;
+  GapCursor         cursor;
 };
 
 static void ecs_destruct_window_comp(void* data) {
@@ -106,6 +108,9 @@ static void window_update(
      */
     gap_pal_window_cursor_capture(pal, window->id, locked);
   }
+  if (window->requests & GapWindowRequests_UpdateCursorType) {
+    gap_pal_window_cursor_set(pal, window->id, window->cursor);
+  }
   if (!string_is_empty(window->clipCopy)) {
     gap_pal_window_clip_copy(pal, window->id, window->clipCopy);
     string_free(g_alloc_heap, window->clipCopy);
@@ -171,7 +176,7 @@ static void window_update(
   if (window->flags & GapWindowFlags_CursorLock) {
     const GapVector tgtPos = gap_vector_div(window->params[GapParam_WindowSize], 2);
     if (!gap_vector_equal(window->params[GapParam_CursorPos], tgtPos)) {
-      gap_pal_window_cursor_set(pal, window->id, tgtPos);
+      gap_pal_window_cursor_pos_set(pal, window->id, tgtPos);
       window->params[GapParam_CursorPos] = tgtPos;
     }
   }
@@ -305,6 +310,13 @@ bool gap_window_key_released(const GapWindowComp* comp, const GapKey key) {
 
 bool gap_window_key_down(const GapWindowComp* comp, const GapKey key) {
   return gap_keyset_test(&comp->keysDown, key);
+}
+
+void gap_window_cursor_set(GapWindowComp* comp, const GapCursor cursor) {
+  if (comp->cursor != cursor) {
+    comp->cursor = cursor;
+    comp->requests |= GapWindowRequests_UpdateCursorType;
+  }
 }
 
 String gap_window_input_text(const GapWindowComp* comp) { return dynstring_view(&comp->inputText); }

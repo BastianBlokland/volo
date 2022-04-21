@@ -57,21 +57,22 @@ ecs_comp_define(UiRendererComp) {
 };
 
 ecs_comp_define(UiCanvasComp) {
-  UiCanvasFlags flags;
-  i32           order;
-  EcsEntityId   window;
-  UiCmdBuffer*  cmdBuffer;
-  UiEditor*     textEditor;
-  UiId          nextId;
-  DynArray      trackedElems;    // UiTrackedElem[]
-  DynArray      persistentElems; // UiPersistentElem[]
-  UiVector      resolution;      // Resolution of the canvas in ui-pixels.
-  UiLayer       minInteractLayer;
-  UiVector      inputDelta, inputPos;
-  UiId          activeId;
-  UiStatus      activeStatus;
-  TimeSteady    activeStatusStart;
-  UiFlags       activeElemFlags;
+  UiCanvasFlags  flags;
+  i32            order;
+  EcsEntityId    window;
+  UiCmdBuffer*   cmdBuffer;
+  UiEditor*      textEditor;
+  UiId           nextId;
+  DynArray       trackedElems;    // UiTrackedElem[]
+  DynArray       persistentElems; // UiPersistentElem[]
+  UiVector       resolution;      // Resolution of the canvas in ui-pixels.
+  UiLayer        minInteractLayer;
+  UiVector       inputDelta, inputPos;
+  UiId           activeId;
+  UiStatus       activeStatus;
+  TimeSteady     activeStatusStart;
+  UiFlags        activeElemFlags;
+  UiInteractType interactType;
 };
 
 static void ecs_destruct_renderer(void* data) {
@@ -307,6 +308,23 @@ ecs_system_define(UiCanvasInputSys) {
   }
 }
 
+static void ui_canvas_cursor_update(GapWindowComp* window, const UiInteractType interact) {
+  switch (interact) {
+  case UiInteractType_None:
+    gap_window_cursor_set(window, GapCursor_Normal);
+    break;
+  case UiInteractType_Action:
+    gap_window_cursor_set(window, GapCursor_Click);
+    break;
+  case UiInteractType_Drag:
+    gap_window_cursor_set(window, GapCursor_Crosshair);
+    break;
+  case UiInteractType_Text:
+    gap_window_cursor_set(window, GapCursor_Text);
+    break;
+  }
+}
+
 static void ui_renderer_create(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId drawEntity = ecs_world_entity_create(world);
   ecs_world_add_t(world, drawEntity, SceneLifetimeOwnerComp, .owner = window);
@@ -407,8 +425,9 @@ ecs_system_define(UiRenderSys) {
 
     sort_quicksort_t(canvasses, canvasses + canvasCount, UiCanvasPtr, ui_canvas_ptr_compare);
 
-    u32          hoveredCanvasIndex = sentinel_u32;
-    UiBuildHover hover              = {0};
+    UiInteractType interactType       = UiInteractType_None;
+    u32            hoveredCanvasIndex = sentinel_u32;
+    UiBuildHover   hover              = {0};
     for (u32 i = 0; i != canvasCount; ++i) {
       UiCanvasComp* canvas = canvasses[i];
       canvas->order        = i;
@@ -419,7 +438,10 @@ ecs_system_define(UiRenderSys) {
       if (!sentinel_check(result.hover.id) && result.hover.layer >= hover.layer) {
         hoveredCanvasIndex = i;
         hover              = result.hover;
+        interactType       = canvas->interactType;
       }
+      canvas->interactType = UiInteractType_None; // Interact type does not persist across frames.
+
       stats->commandCount += result.commandCount;
     }
     if (input_cursor_mode(input) == InputCursorMode_Locked) {
@@ -448,6 +470,7 @@ ecs_system_define(UiRenderSys) {
       stats->persistElemCount += (u32)canvas->persistentElems.size;
     }
     input_layer_set(input, textEditActive ? InputLayer_TextInput : InputLayer_Normal);
+    ui_canvas_cursor_update(window, interactType);
 
     stats->canvasSize        = canvasSize;
     stats->canvasCount       = canvasCount;
@@ -527,6 +550,10 @@ void ui_canvas_min_interact_layer(UiCanvasComp* comp, const UiLayer layer) {
   comp->minInteractLayer = layer;
 }
 
+void ui_canvas_interact_type(UiCanvasComp* comp, const UiInteractType type) {
+  comp->interactType = type;
+}
+
 UiId ui_canvas_id_peek(const UiCanvasComp* comp) { return comp->nextId; }
 void ui_canvas_id_skip(UiCanvasComp* comp, const u64 count) { comp->nextId += count; }
 
@@ -589,7 +616,9 @@ UiId ui_canvas_draw_text(
 UiId ui_canvas_draw_text_editable(
     UiCanvasComp* comp, DynString* text, const u16 fontSize, const UiAlign align, UiFlags flags) {
 
-  const UiId textId = ui_canvas_id_peek(comp);
+  const UiId     textId = ui_canvas_id_peek(comp);
+  const UiStatus status = ui_canvas_elem_status(comp, textId);
+
   flags |=
       UiFlags_Interactable | UiFlags_AllowWordBreak | UiFlags_SingleLine | UiFlags_InteractOnPress;
 
@@ -601,7 +630,7 @@ UiId ui_canvas_draw_text_editable(
     visualText = ui_editor_visual_text(comp->textEditor);
     flags |= UiFlags_TrackTextInfo;
 
-  } else if (ui_canvas_elem_status(comp, textId) == UiStatus_Activated) {
+  } else if (status == UiStatus_Activated) {
     // Start editor when the element is activated.
     ui_editor_start(comp->textEditor, dynstring_view(text), textId);
     visualText = ui_editor_visual_text(comp->textEditor);
@@ -609,6 +638,10 @@ UiId ui_canvas_draw_text_editable(
 
   } else {
     visualText = dynstring_view(text);
+  }
+
+  if (status >= UiStatus_Hovered) {
+    ui_canvas_interact_type(comp, UiInteractType_Text);
   }
 
   ui_canvas_draw_text(comp, visualText, fontSize, align, flags);

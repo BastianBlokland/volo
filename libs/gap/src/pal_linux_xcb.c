@@ -7,6 +7,7 @@
 
 #include <stdlib.h>
 #include <xcb/xcb.h>
+#include <xcb/xcb_cursor.h>
 #include <xcb/xcb_icccm.h>
 #include <xcb/xfixes.h>
 #include <xcb/xkb.h>
@@ -15,7 +16,7 @@
 
 /**
  * X11 client implementation using the xcb library.
- * Optionally uses the xkb, xfixes and icccm extensions.
+ * Optionally uses the xkb, xfixes, icccm and cursor-util extensions.
  *
  * Standard: https://www.x.org/docs/ICCCM/icccm.pdf
  * Xcb: https://xcb.freedesktop.org/manual/
@@ -31,9 +32,10 @@
   _FUNC_##_reply((_CON_), _FUNC_((_CON_), __VA_ARGS__), (_ERR_))
 
 typedef enum {
-  GapPalXcbExtFlags_Xkb    = 1 << 0,
-  GapPalXcbExtFlags_XFixes = 1 << 1,
-  GapPalXcbExtFlags_Icccm  = 1 << 2,
+  GapPalXcbExtFlags_Xkb        = 1 << 0,
+  GapPalXcbExtFlags_XFixes     = 1 << 1,
+  GapPalXcbExtFlags_Icccm      = 1 << 2,
+  GapPalXcbExtFlags_CursorUtil = 1 << 3,
 } GapPalXcbExtFlags;
 
 typedef enum {
@@ -63,6 +65,9 @@ struct sGapPal {
   i32                 xkbDeviceId;
   struct xkb_keymap*  xkbKeymap;
   struct xkb_state*   xkbState;
+
+  xcb_cursor_context_t* cursorCtx;
+  xcb_cursor_t          cursors[GapCursor_Count];
 
   xcb_atom_t atomProtoMsg, atomDeleteMsg, atomWmState, atomWmStateFullscreen,
       atomWmStateBypassCompositor, atomClipboard, atomVoloClipboard, atomTargets, atomUtf8String,
@@ -485,7 +490,7 @@ static bool pal_xkb_init(GapPal* pal) {
 }
 
 /**
- * Initialize xfixes extension, contains various cursor utilities.
+ * Initialize xfixes extension, contains various cursor visibility utilities.
  */
 static bool pal_xfixes_init(GapPal* pal) {
   xcb_generic_error_t*              err   = null;
@@ -513,6 +518,25 @@ static bool pal_xfixes_init(GapPal* pal) {
   return true;
 }
 
+/**
+ * Initialize the cursor-util extension.
+ */
+static bool pal_cursorutil_init(GapPal* pal) {
+  const int res = xcb_cursor_context_new(pal->xcbConnection, pal->xcbScreen, &pal->cursorCtx);
+  if (res != 0) {
+    log_w("Failed to initialize the cursor-util xcb extension", log_param("error", fmt_int(res)));
+    return false;
+  }
+
+  pal->cursors[GapCursor_Click]     = xcb_cursor_load_cursor(pal->cursorCtx, "hand1");
+  pal->cursors[GapCursor_Text]      = xcb_cursor_load_cursor(pal->cursorCtx, "xterm");
+  pal->cursors[GapCursor_Busy]      = xcb_cursor_load_cursor(pal->cursorCtx, "watch");
+  pal->cursors[GapCursor_Crosshair] = xcb_cursor_load_cursor(pal->cursorCtx, "crosshair");
+
+  log_i("Initialized cursor-util xcb extension");
+  return true;
+}
+
 static void pal_init_extensions(GapPal* pal) {
   if (pal_xkb_init(pal)) {
     pal->extensions |= GapPalXcbExtFlags_Xkb;
@@ -521,6 +545,9 @@ static void pal_init_extensions(GapPal* pal) {
     pal->extensions |= GapPalXcbExtFlags_XFixes;
   }
   pal->extensions |= GapPalXcbExtFlags_Icccm; // NOTE: No initialization is needed for ICCCM.
+  if (pal_cursorutil_init(pal)) {
+    pal->extensions |= GapPalXcbExtFlags_CursorUtil;
+  }
 }
 
 static GapVector pal_query_cursor_pos(GapPal* pal, const GapWindowId windowId) {
@@ -805,6 +832,14 @@ void gap_pal_destroy(GapPal* pal) {
   }
   if (pal->xkbState) {
     xkb_state_unref(pal->xkbState);
+  }
+  array_for_t(pal->cursors, xcb_cursor_t, cursor) {
+    if (*cursor != XCB_NONE) {
+      xcb_free_cursor(pal->xcbConnection, *cursor);
+    }
+  }
+  if (pal->cursorCtx) {
+    xcb_cursor_context_free(pal->cursorCtx);
   }
 
   xcb_disconnect(pal->xcbConnection);
@@ -1161,7 +1196,16 @@ void gap_pal_window_cursor_capture(GapPal* pal, const GapWindowId windowId, cons
   (void)captured;
 }
 
-void gap_pal_window_cursor_set(GapPal* pal, const GapWindowId windowId, const GapVector position) {
+void gap_pal_window_cursor_set(GapPal* pal, const GapWindowId windowId, const GapCursor cursor) {
+  if (pal->extensions & GapPalXcbExtFlags_CursorUtil) {
+    xcb_change_window_attributes(
+        pal->xcbConnection, (xcb_window_t)windowId, XCB_CW_CURSOR, &pal->cursors[cursor]);
+    xcb_flush(pal->xcbConnection);
+  }
+}
+
+void gap_pal_window_cursor_pos_set(
+    GapPal* pal, const GapWindowId windowId, const GapVector position) {
   GapPalWindow* window = pal_maybe_window(pal, windowId);
   diag_assert(window);
 
