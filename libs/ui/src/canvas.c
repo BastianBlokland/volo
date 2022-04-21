@@ -1,7 +1,6 @@
 #include "asset_ftx.h"
 #include "core_bits.h"
 #include "core_diag.h"
-#include "core_math.h"
 #include "core_sort.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
@@ -438,8 +437,8 @@ ecs_system_define(UiRenderSys) {
       if (!sentinel_check(result.hover.id) && result.hover.layer >= hover.layer) {
         hoveredCanvasIndex = i;
         hover              = result.hover;
+        interactType       = canvas->interactType;
       }
-      interactType         = math_max(interactType, canvas->interactType);
       canvas->interactType = UiInteractType_None; // Interact type does not persist across frames.
 
       stats->commandCount += result.commandCount;
