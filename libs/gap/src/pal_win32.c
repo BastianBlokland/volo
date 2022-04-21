@@ -30,6 +30,7 @@ typedef struct {
   bool              inModalLoop;
   DynString         inputText;
   String            clipPaste;
+  GapCursor         cursor;
 } GapPalWindow;
 
 typedef enum {
@@ -44,23 +45,13 @@ struct sGapPal {
   HINSTANCE   moduleInstance;
   i64         owningThreadId;
   GapPalFlags flags;
+
+  HCURSOR cursors[GapCursor_Count];
 };
 
 static void pal_check_thread_ownership(GapPal* pal) {
   if (g_thread_tid != pal->owningThreadId) {
     diag_crash_msg("Called from non-owning thread: {}", fmt_int(g_thread_tid));
-  }
-}
-
-static void pal_dpi_init() {
-  static bool g_initialized;
-  if (!g_initialized) {
-    // Mark the process as dpi-aware to avoid Win32 scaling the window output.
-    // TODO: Provide an api to query a window's dpi to be able to control ui scaling.
-    if (!SetProcessDPIAware()) {
-      diag_crash_msg("Failed to set win32 dpi awareness");
-    }
-    g_initialized = true;
   }
 }
 
@@ -88,6 +79,26 @@ static GapPalWindow* pal_window(GapPal* pal, const GapWindowId id) {
     diag_crash_msg("Unknown window: {}", fmt_int(id));
   }
   return window;
+}
+
+static void pal_dpi_init() {
+  static bool g_initialized;
+  if (!g_initialized) {
+    // Mark the process as dpi-aware to avoid Win32 scaling the window output.
+    // TODO: Provide an api to query a window's dpi to be able to control ui scaling.
+    if (!SetProcessDPIAware()) {
+      diag_crash_msg("Failed to set win32 dpi awareness");
+    }
+    g_initialized = true;
+  }
+}
+
+static void pal_cursors_init(GapPal* pal) {
+  pal->cursors[GapCursor_Normal]    = LoadCursor(null, IDC_ARROW);
+  pal->cursors[GapCursor_Click]     = LoadCursor(null, IDC_HAND);
+  pal->cursors[GapCursor_Text]      = LoadCursor(null, IDC_IBEAM);
+  pal->cursors[GapCursor_Busy]      = LoadCursor(null, IDC_WAIT);
+  pal->cursors[GapCursor_Crosshair] = LoadCursor(null, IDC_CROSS);
 }
 
 static void pal_clear_volatile(GapPal* pal) {
@@ -531,6 +542,10 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
     utf8_cp_write(&window->inputText, (Unicode)wParam);
     return true;
   }
+  case WM_SETCURSOR: {
+    SetCursor(pal->cursors[window->cursor]);
+    return true;
+  }
   default:
     return false;
   }
@@ -574,6 +589,7 @@ GapPal* gap_pal_create(Allocator* alloc) {
              .moduleInstance = instance,
              .owningThreadId = g_thread_tid,
   };
+  pal_cursors_init(pal);
 
   MAYBE_UNUSED const GapVector screenSize =
       gap_vector(GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
@@ -847,6 +863,10 @@ void gap_pal_window_cursor_capture(GapPal* pal, const GapWindowId windowId, cons
     ReleaseCapture();
     pal->flags &= ~GapPalFlags_CursorCaptured;
   }
+}
+
+void gap_pal_window_cursor_set(GapPal* pal, const GapWindowId windowId, const GapCursor cursor) {
+  pal_maybe_window(pal, windowId)->cursor = cursor;
 }
 
 void gap_pal_window_cursor_pos_set(
