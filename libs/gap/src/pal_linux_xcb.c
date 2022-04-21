@@ -992,8 +992,8 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 
   const xcb_cw_t valuesMask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
   const u32      values[2]  = {
-            pal->xcbScreen->black_pixel,
-            g_xcbWindowEventMask,
+      pal->xcbScreen->black_pixel,
+      g_xcbWindowEventMask,
   };
 
   xcb_create_window(
@@ -1200,6 +1200,7 @@ void gap_pal_window_cursor_set(GapPal* pal, const GapWindowId windowId, const Ga
   if (pal->extensions & GapPalXcbExtFlags_CursorUtil) {
     xcb_change_window_attributes(
         pal->xcbConnection, (xcb_window_t)windowId, XCB_CW_CURSOR, &pal->cursors[cursor]);
+    xcb_flush(pal->xcbConnection);
   }
 }
 
