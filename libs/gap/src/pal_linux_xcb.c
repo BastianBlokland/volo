@@ -528,10 +528,11 @@ static bool pal_cursorutil_init(GapPal* pal) {
     return false;
   }
 
-  pal->cursors[GapCursor_Click]     = xcb_cursor_load_cursor(pal->cursorCtx, "hand1");
-  pal->cursors[GapCursor_Text]      = xcb_cursor_load_cursor(pal->cursorCtx, "xterm");
-  pal->cursors[GapCursor_Busy]      = xcb_cursor_load_cursor(pal->cursorCtx, "watch");
-  pal->cursors[GapCursor_Crosshair] = xcb_cursor_load_cursor(pal->cursorCtx, "crosshair");
+  pal->cursors[GapCursor_Click]      = xcb_cursor_load_cursor(pal->cursorCtx, "hand1");
+  pal->cursors[GapCursor_Text]       = xcb_cursor_load_cursor(pal->cursorCtx, "xterm");
+  pal->cursors[GapCursor_Busy]       = xcb_cursor_load_cursor(pal->cursorCtx, "watch");
+  pal->cursors[GapCursor_Crosshair]  = xcb_cursor_load_cursor(pal->cursorCtx, "crosshair");
+  pal->cursors[GapCursor_ResizeDiag] = xcb_cursor_load_cursor(pal->cursorCtx, "top_left_corner");
 
   log_i("Initialized cursor-util xcb extension");
   return true;
@@ -992,8 +993,8 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 
   const xcb_cw_t valuesMask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
   const u32      values[2]  = {
-      pal->xcbScreen->black_pixel,
-      g_xcbWindowEventMask,
+            pal->xcbScreen->black_pixel,
+            g_xcbWindowEventMask,
   };
 
   xcb_create_window(
