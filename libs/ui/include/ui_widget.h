@@ -51,15 +51,24 @@ typedef struct {
 } UiSelectOpts;
 
 typedef struct {
-  u16      fontSize;
-  UiVector maxSize;
-  u8       variation;
+  UiWidgetFlags flags;
+  u16           fontSize;
+  UiVector      maxSize;
+  u8            variation;
 } UiTooltipOpts;
 
 typedef struct {
   String label;
   u16    fontSize;
 } UiSectionOpts;
+
+typedef struct {
+  UiWidgetFlags flags;
+  u16           fontSize;
+  UiColor       frameColor;
+  String        placeholder;
+  String        tooltip;
+} UiTextboxOpts;
 
 // clang-format off
 
@@ -137,6 +146,17 @@ typedef struct {
     .fontSize = 15,                                                                                \
     __VA_ARGS__}))
 
+/**
+ * Draw editable textbox.
+* NOTE: Its important that the widget has a stable identifier in the canvas.
+ */
+#define ui_textbox(_CANVAS_, _DYN_TEXT_, ...) ui_textbox_with_opts((_CANVAS_), (_DYN_TEXT_),       \
+  &((UiTextboxOpts){                                                                               \
+    .fontSize    = 16,                                                                             \
+    .frameColor  = ui_color(32, 32, 32, 192),                                                      \
+    .placeholder = string_lit("..."),                                                              \
+    __VA_ARGS__}))
+
 // clang-format on
 
 void ui_label_with_opts(UiCanvasComp*, String text, const UiLabelOpts*);
@@ -147,3 +167,4 @@ bool ui_select_with_opts(
     UiCanvasComp*, i32* value, const String* options, u32 optionCount, const UiSelectOpts*);
 bool ui_tooltip_with_opts(UiCanvasComp*, UiId, String text, const UiTooltipOpts*);
 bool ui_section_with_opts(UiCanvasComp*, const UiSectionOpts*);
+bool ui_textbox_with_opts(UiCanvasComp*, DynString*, const UiTextboxOpts*);
