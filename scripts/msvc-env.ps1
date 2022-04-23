@@ -27,7 +27,7 @@ param(
 )
 
 function Info([string] $message) {
-  Write-Host $message
+  Write-Output $message
 }
 
 function Fail([string] $message) {
