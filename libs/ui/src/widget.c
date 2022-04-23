@@ -571,7 +571,7 @@ bool ui_textbox_with_opts(UiCanvasComp* canvas, DynString* text, const UiTextbox
   bool changed = false;
 
   // Draw text.
-  static const f32 g_textInset = 2;
+  static const f32 g_textInset = 3;
   ui_layout_push(canvas);
   ui_layout_grow(canvas, UiAlign_MiddleRight, ui_vector(-g_textInset, 0), UiBase_Absolute, Ui_X);
   ui_style_push(canvas);
@@ -602,4 +602,26 @@ bool ui_textbox_with_opts(UiCanvasComp* canvas, DynString* text, const UiTextbox
   }
 
   return changed;
+}
+
+bool ui_numbox_with_opts(UiCanvasComp* canvas, f64* input, const UiNumboxOpts* opts) {
+  DynString text = dynstring_create_over(mem_stack(64));
+  format_write_f64(&text, *input, &format_opts_float(.maxDecDigits = 4));
+  if (ui_textbox(
+          canvas,
+          &text,
+          .flags         = opts->flags,
+          .type          = UiTextbox_Digits,
+          .fontSize      = opts->fontSize,
+          .maxTextLength = 64,
+          .frameColor    = opts->frameColor,
+          .tooltip       = opts->tooltip)) {
+    format_read_f64(dynstring_view(&text), input);
+    if (opts->step > f64_epsilon) {
+      *input = math_round_f64(*input / opts->step) * opts->step;
+    }
+    *input = math_clamp_f64(*input, opts->min, opts->max);
+    return true;
+  }
+  return false;
 }
