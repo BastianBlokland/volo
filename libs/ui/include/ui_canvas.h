@@ -31,6 +31,10 @@ typedef enum {
 } UiInteractType;
 
 typedef enum {
+  UiTextFilter_DigitsOnly = 1 << 0,
+} UiTextFilter;
+
+typedef enum {
   UiFlags_None                = 0,
   UiFlags_Interactable        = 1 << 0,
   UiFlags_InteractOnPress     = 1 << 1, // Activate on 'Press' instead of 'Release'.
@@ -114,7 +118,7 @@ UiId ui_canvas_draw_text_editor(UiCanvasComp*, u16 fontSize, UiAlign, UiFlags);
 /**
  * Interact with the canvas's text editor.
  */
-void   ui_canvas_text_editor_start(UiCanvasComp*, String text, UiId, usize maxTextLength);
+void   ui_canvas_text_editor_start(UiCanvasComp*, String text, usize maxLen, UiId, UiTextFilter);
 void   ui_canvas_text_editor_stop(UiCanvasComp*);
 bool   ui_canvas_text_editor_active(UiCanvasComp*, UiId);
 String ui_canvas_text_editor_result(UiCanvasComp*);

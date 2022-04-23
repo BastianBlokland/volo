@@ -13,6 +13,11 @@ typedef enum {
   UiWidget_Disabled = 1 << 0,
 } UiWidgetFlags;
 
+typedef enum {
+  UiTextbox_Normal,
+  UiTextbox_Digits,
+} UiTextboxType;
+
 typedef struct {
   u16     fontSize;
   UiAlign align;
@@ -64,6 +69,7 @@ typedef struct {
 
 typedef struct {
   UiWidgetFlags flags;
+  UiTextboxType type;
   u16           fontSize;
   usize         maxTextLength;
   UiColor       frameColor;

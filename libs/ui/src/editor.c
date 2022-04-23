@@ -56,6 +56,7 @@ typedef struct {
 struct sUiEditor {
   Allocator*          alloc;
   UiEditorFlags       flags;
+  UiTextFilter        filter;
   UiId                textElement;
   DynString           text;
   usize               maxTextLength;
@@ -73,7 +74,17 @@ static i8 ui_visual_slice_compare(const void* a, const void* b) {
       field_ptr(a, UiEditorVisualSlice, index), field_ptr(b, UiEditorVisualSlice, index));
 }
 
-static bool editor_cp_is_valid(const Unicode cp, const UiEditorSource source) {
+static bool
+editor_cp_is_valid(const Unicode cp, const UiTextFilter filter, const UiEditorSource source) {
+  /**
+   * Filter rules.
+   */
+  if (filter & UiTextFilter_DigitsOnly) {
+    if (!unicode_is_ascii(cp)) {
+      return false;
+    }
+    return ascii_is_digit(cp) || cp == '.' || cp == '-' || cp == '+' || cp == 'e';
+  }
   /**
    * Source specific rules.
    */
@@ -343,7 +354,7 @@ static void editor_insert_text(UiEditor* editor, String text, const UiEditorSour
       text = ui_escape_read(text, null);
       break;
     default:
-      if (editor_cp_is_valid(cp, source)) {
+      if (editor_cp_is_valid(cp, editor->filter, source)) {
         editor_select_mode_stop(editor);
         editor_erase_selection(editor);
         editor_insert_cp(editor, cp);
@@ -510,13 +521,18 @@ String ui_editor_result_text(const UiEditor* editor) { return dynstring_view(&ed
 String ui_editor_visual_text(const UiEditor* editor) { return dynstring_view(&editor->visualText); }
 
 void ui_editor_start(
-    UiEditor* editor, const String initialText, const UiId element, const usize maxTextLength) {
+    UiEditor*          editor,
+    const String       initialText,
+    const usize        maxLen,
+    const UiId         element,
+    const UiTextFilter filter) {
   if (ui_editor_active(editor)) {
     ui_editor_stop(editor);
   }
   editor->flags |= UiEditorFlags_Active | UiEditorFlags_FirstUpdate | UiEditorFlags_Dirty;
+  editor->filter        = filter;
   editor->textElement   = element;
-  editor->maxTextLength = maxTextLength;
+  editor->maxTextLength = maxLen;
   editor->cursor = editor->selectBegin = editor->selectEnd = 0;
 
   dynstring_clear(&editor->text);

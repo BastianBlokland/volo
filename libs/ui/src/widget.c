@@ -561,7 +561,8 @@ bool ui_textbox_with_opts(UiCanvasComp* canvas, DynString* text, const UiTextbox
 
   // Start editing on press.
   if (!editing && status == UiStatus_Activated) {
-    ui_canvas_text_editor_start(canvas, dynstring_view(text), textId, opts->maxTextLength);
+    const UiTextFilter filter = opts->type == UiTextbox_Digits ? UiTextFilter_DigitsOnly : 0;
+    ui_canvas_text_editor_start(canvas, dynstring_view(text), textId, opts->maxTextLength, filter);
     editing = true;
   }
 
