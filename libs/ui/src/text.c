@@ -457,7 +457,7 @@ UiTextBuildResult ui_text_build(
       break;
     }
   }
-  const UiVector size = ui_vector(totalWidth, lineY + (font->lineSpacing * 2) * fontSize);
+  const UiVector size = ui_vector(totalWidth, lineY + font->baseline * fontSize);
   const UiRect   rect = ui_text_inner_rect(totalRect, size, align);
 
   UiTextBuildState state = {
