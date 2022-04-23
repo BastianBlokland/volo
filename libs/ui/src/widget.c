@@ -454,7 +454,8 @@ static UiDir ui_tooltip_dir(UiCanvasComp* canvas) {
 bool ui_tooltip_with_opts(
     UiCanvasComp* canvas, const UiId id, const String text, const UiTooltipOpts* opts) {
 
-  const bool showTooltip = ui_canvas_elem_status(canvas, id) == UiStatus_Hovered &&
+  const bool showTooltip = (opts->flags & UiWidget_Disabled) == 0 &&
+                           ui_canvas_elem_status(canvas, id) == UiStatus_Hovered &&
                            ui_canvas_elem_status_duration(canvas, id) >= time_second;
   if (!showTooltip) {
     ui_canvas_id_skip(canvas, 2);
@@ -534,4 +535,93 @@ bool ui_section_with_opts(UiCanvasComp* canvas, const UiSectionOpts* opts) {
 
   ui_style_pop(canvas);
   return isOpen;
+}
+
+bool ui_textbox_with_opts(UiCanvasComp* canvas, DynString* text, const UiTextboxOpts* opts) {
+  const UiId     frameId  = ui_canvas_id_peek(canvas);
+  const UiId     textId   = frameId + 1;
+  const bool     disabled = (opts->flags & UiWidget_Disabled) != 0;
+  bool           editing  = ui_canvas_text_editor_active(canvas, textId);
+  const UiStatus status   = disabled ? UiStatus_Idle : ui_canvas_elem_status(canvas, textId);
+
+  // Draw frame.
+  ui_style_push(canvas);
+  if (editing) {
+    ui_style_color_with_mult(canvas, opts->frameColor, 1.2f);
+    ui_style_outline(canvas, 1);
+  } else if (status >= UiStatus_Hovered) {
+    ui_style_color_with_mult(canvas, opts->frameColor, 2);
+    ui_style_outline(canvas, 3);
+  } else {
+    ui_style_color(canvas, opts->frameColor);
+    ui_style_outline(canvas, 2);
+  }
+  ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_None);
+  ui_style_pop(canvas);
+
+  // Start editing on press.
+  if (!editing && status == UiStatus_Activated) {
+    const UiTextFilter filter = opts->type == UiTextbox_Digits ? UiTextFilter_DigitsOnly : 0;
+    ui_canvas_text_editor_start(canvas, dynstring_view(text), textId, opts->maxTextLength, filter);
+    editing = true;
+  }
+
+  const UiFlags flags =
+      UiFlags_AllowWordBreak | UiFlags_SingleLine | UiFlags_Interactable | UiFlags_InteractOnPress;
+  bool changed = false;
+
+  // Draw text.
+  static const f32 g_textInset = 3;
+  ui_layout_push(canvas);
+  ui_layout_grow(canvas, UiAlign_MiddleRight, ui_vector(-g_textInset, 0), UiBase_Absolute, Ui_X);
+  ui_style_push(canvas);
+  if (disabled) {
+    ui_style_color_mult(canvas, g_uiDisabledMult);
+  }
+  if (editing) {
+    const String newText = ui_canvas_text_editor_result(canvas);
+    if (!string_eq(dynstring_view(text), newText)) {
+      dynstring_clear(text);
+      dynstring_append(text, newText);
+      changed = true;
+    }
+    ui_canvas_draw_text_editor(canvas, opts->fontSize, UiAlign_MiddleLeft, flags);
+  } else {
+    const String inputText = text->size ? dynstring_view(text) : opts->placeholder;
+    ui_canvas_draw_text(canvas, inputText, opts->fontSize, UiAlign_MiddleLeft, flags);
+  }
+  ui_style_pop(canvas);
+  ui_layout_pop(canvas);
+
+  if (!string_is_empty(opts->tooltip)) {
+    ui_tooltip(canvas, textId, opts->tooltip, .flags = editing ? UiWidget_Disabled : 0);
+  }
+
+  if (status >= UiStatus_Hovered) {
+    ui_canvas_interact_type(canvas, UiInteractType_Text);
+  }
+
+  return changed;
+}
+
+bool ui_numbox_with_opts(UiCanvasComp* canvas, f64* input, const UiNumboxOpts* opts) {
+  DynString text = dynstring_create_over(mem_stack(64));
+  format_write_f64(&text, *input, &format_opts_float(.maxDecDigits = 4));
+  if (ui_textbox(
+          canvas,
+          &text,
+          .flags         = opts->flags,
+          .type          = UiTextbox_Digits,
+          .fontSize      = opts->fontSize,
+          .maxTextLength = 64,
+          .frameColor    = opts->frameColor,
+          .tooltip       = opts->tooltip)) {
+    format_read_f64(dynstring_view(&text), input);
+    if (opts->step > f64_epsilon) {
+      *input = math_round_f64(*input / opts->step) * opts->step;
+    }
+    *input = math_clamp_f64(*input, opts->min, opts->max);
+    return true;
+  }
+  return false;
 }

@@ -13,6 +13,11 @@ typedef enum {
   UiWidget_Disabled = 1 << 0,
 } UiWidgetFlags;
 
+typedef enum {
+  UiTextbox_Normal,
+  UiTextbox_Digits,
+} UiTextboxType;
+
 typedef struct {
   u16     fontSize;
   UiAlign align;
@@ -51,15 +56,35 @@ typedef struct {
 } UiSelectOpts;
 
 typedef struct {
-  u16      fontSize;
-  UiVector maxSize;
-  u8       variation;
+  UiWidgetFlags flags;
+  u16           fontSize;
+  UiVector      maxSize;
+  u8            variation;
 } UiTooltipOpts;
 
 typedef struct {
   String label;
   u16    fontSize;
 } UiSectionOpts;
+
+typedef struct {
+  UiWidgetFlags flags;
+  UiTextboxType type;
+  u16           fontSize;
+  usize         maxTextLength;
+  UiColor       frameColor;
+  String        placeholder;
+  String        tooltip;
+} UiTextboxOpts;
+
+typedef struct {
+  UiWidgetFlags flags;
+  f64           min, max;
+  f64           step;
+  u16           fontSize;
+  UiColor       frameColor;
+  String        tooltip;
+} UiNumboxOpts;
 
 // clang-format off
 
@@ -137,6 +162,29 @@ typedef struct {
     .fontSize = 15,                                                                                \
     __VA_ARGS__}))
 
+/**
+ * Draw editable text box.
+* NOTE: Its important that the widget has a stable identifier in the canvas.
+ */
+#define ui_textbox(_CANVAS_, _DYN_TEXT_, ...) ui_textbox_with_opts((_CANVAS_), (_DYN_TEXT_),       \
+  &((UiTextboxOpts){                                                                               \
+    .fontSize      = 16,                                                                           \
+    .maxTextLength = usize_kibibyte,                                                               \
+    .frameColor    = ui_color(32, 32, 32, 192),                                                    \
+    .placeholder   = string_lit("..."),                                                            \
+    __VA_ARGS__}))
+
+/**
+ * Draw editable number box.
+* NOTE: Its important that the widget has a stable identifier in the canvas.
+ */
+#define ui_numbox(_CANVAS_, _VALUE_, ...) ui_numbox_with_opts((_CANVAS_), (_VALUE_),               \
+  &((UiNumboxOpts){                                                                                \
+    .max        = f64_max,                                                                         \
+    .fontSize   = 16,                                                                              \
+    .frameColor = ui_color(32, 32, 32, 192),                                                       \
+    __VA_ARGS__}))
+
 // clang-format on
 
 void ui_label_with_opts(UiCanvasComp*, String text, const UiLabelOpts*);
@@ -147,3 +195,5 @@ bool ui_select_with_opts(
     UiCanvasComp*, i32* value, const String* options, u32 optionCount, const UiSelectOpts*);
 bool ui_tooltip_with_opts(UiCanvasComp*, UiId, String text, const UiTooltipOpts*);
 bool ui_section_with_opts(UiCanvasComp*, const UiSectionOpts*);
+bool ui_textbox_with_opts(UiCanvasComp*, DynString*, const UiTextboxOpts*);
+bool ui_numbox_with_opts(UiCanvasComp*, f64*, const UiNumboxOpts*);

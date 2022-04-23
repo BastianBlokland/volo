@@ -26,10 +26,13 @@ typedef enum {
  */
 typedef enum {
   UiInteractType_None,   // No interaction possible (eg. normal cursor).
-  UiInteractType_Action, // Action (aka click) interaction possible (eg. hand cursor).
-  UiInteractType_Drag,   // Drag interaction possible (eg. crosshair cursor).
+  UiInteractType_Action, // Action (click) interaction possible (eg. hand cursor).
   UiInteractType_Text,   // Text editing interaction possible (eg. text cursor).
 } UiInteractType;
+
+typedef enum {
+  UiTextFilter_DigitsOnly = 1 << 0,
+} UiTextFilter;
 
 typedef enum {
   UiFlags_None                = 0,
@@ -110,7 +113,15 @@ void              ui_canvas_persistent_flags_toggle(UiCanvasComp*, UiId, UiPersi
  * Draw text in the current rectangle.
  */
 UiId ui_canvas_draw_text(UiCanvasComp*, String text, u16 fontSize, UiAlign, UiFlags);
-UiId ui_canvas_draw_text_editable(UiCanvasComp*, DynString* text, u16 fontSize, UiAlign, UiFlags);
+UiId ui_canvas_draw_text_editor(UiCanvasComp*, u16 fontSize, UiAlign, UiFlags);
+
+/**
+ * Interact with the canvas's text editor.
+ */
+void   ui_canvas_text_editor_start(UiCanvasComp*, String text, usize maxLen, UiId, UiTextFilter);
+void   ui_canvas_text_editor_stop(UiCanvasComp*);
+bool   ui_canvas_text_editor_active(UiCanvasComp*, UiId);
+String ui_canvas_text_editor_result(UiCanvasComp*);
 
 /**
  * Draw a single glyph in the current rectangle.

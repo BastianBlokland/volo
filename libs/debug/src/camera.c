@@ -159,8 +159,10 @@ static void camera_panel_draw(
   if (cameraMovement) {
     ui_label(canvas, string_lit("Move speed"));
     ui_grid_next_col(canvas, &layoutGrid);
-    ui_slider(
-        canvas, &cameraMovement->moveSpeed, .min = 0.5, .max = 50, .tooltip = g_tooltipMoveSpeed);
+    f64 moveSpeed = cameraMovement->moveSpeed;
+    if (ui_numbox(canvas, &moveSpeed, .tooltip = g_tooltipMoveSpeed)) {
+      cameraMovement->moveSpeed = (f32)moveSpeed;
+    }
     ui_grid_next_row(canvas, &layoutGrid);
   }
 
