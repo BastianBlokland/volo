@@ -146,7 +146,7 @@ void ui_panel_begin_with_opts(UiCanvasComp* canvas, UiPanelState* state, const U
     state->position.y += inputDelta.y / canvasRes.height;
   }
   if (dragStatus >= UiStatus_Hovered) {
-    ui_canvas_interact_type(canvas, UiInteractType_Drag);
+    ui_canvas_interact_type(canvas, UiInteractType_Action);
   }
   if (canvasRes.x > 0 && canvasRes.y > 0) {
     ui_panel_clamp_to_canvas(state, canvasRes);

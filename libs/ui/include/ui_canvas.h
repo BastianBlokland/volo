@@ -26,8 +26,7 @@ typedef enum {
  */
 typedef enum {
   UiInteractType_None,   // No interaction possible (eg. normal cursor).
-  UiInteractType_Action, // Action (aka click) interaction possible (eg. hand cursor).
-  UiInteractType_Drag,   // Drag interaction possible (eg. crosshair cursor).
+  UiInteractType_Action, // Action (click / drag) interaction possible (eg. hand cursor).
   UiInteractType_Text,   // Text editing interaction possible (eg. text cursor).
 } UiInteractType;
 
