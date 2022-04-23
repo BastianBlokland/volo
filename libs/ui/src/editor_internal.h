@@ -21,6 +21,6 @@ UiId   ui_editor_element(const UiEditor*);     // Currently editing element.
 String ui_editor_result_text(const UiEditor*); // Current result text.
 String ui_editor_visual_text(const UiEditor*); // String to render while editing.
 
-void ui_editor_start(UiEditor*, String initialText, UiId element);
+void ui_editor_start(UiEditor*, String initialText, UiId element, usize maxTextLength);
 void ui_editor_update(UiEditor*, GapWindowComp*, UiBuildHover, UiBuildTextInfo);
 void ui_editor_stop(UiEditor*);

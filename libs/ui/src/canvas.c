@@ -619,8 +619,9 @@ UiId ui_canvas_draw_text_editor(
   return id;
 }
 
-void ui_canvas_text_editor_start(UiCanvasComp* comp, const String text, const UiId id) {
-  ui_editor_start(comp->textEditor, text, id);
+void ui_canvas_text_editor_start(
+    UiCanvasComp* comp, const String text, const UiId id, const usize maxTextLength) {
+  ui_editor_start(comp->textEditor, text, id, maxTextLength);
 }
 
 void ui_canvas_text_editor_stop(UiCanvasComp* comp) { ui_editor_stop(comp->textEditor); }

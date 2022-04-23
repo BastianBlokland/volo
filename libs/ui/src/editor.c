@@ -12,7 +12,6 @@
 #include "escape_internal.h"
 
 #define ui_editor_max_visual_slices 3
-#define ui_editor_max_text_size (4 * usize_kibibyte)
 
 static const String       g_editorCursorEsc      = string_static(uni_esc "cFF");
 static const String       g_editorSelectBeginEsc = string_static(uni_esc "@0000FF88" uni_esc "|00");
@@ -59,6 +58,7 @@ struct sUiEditor {
   UiEditorFlags       flags;
   UiId                textElement;
   DynString           text;
+  usize               maxTextLength;
   usize               cursor;
   usize               selectBegin, selectEnd, selectPivot;
   TimeSteady          lastInteractTime;
@@ -324,8 +324,8 @@ static void editor_insert_cp(UiEditor* editor, const Unicode cp) {
   DynString buffer = dynstring_create_over(mem_stack(4));
   utf8_cp_write(&buffer, cp);
 
-  if (UNLIKELY((editor->text.size + buffer.size) > ui_editor_max_text_size)) {
-    return; // TODO: Log a warning?
+  if (UNLIKELY((editor->text.size + buffer.size) > editor->maxTextLength)) {
+    return;
   }
 
   dynstring_insert(&editor->text, dynstring_view(&buffer), editor->cursor);
@@ -509,12 +509,14 @@ String ui_editor_result_text(const UiEditor* editor) { return dynstring_view(&ed
 
 String ui_editor_visual_text(const UiEditor* editor) { return dynstring_view(&editor->visualText); }
 
-void ui_editor_start(UiEditor* editor, const String initialText, const UiId element) {
+void ui_editor_start(
+    UiEditor* editor, const String initialText, const UiId element, const usize maxTextLength) {
   if (ui_editor_active(editor)) {
     ui_editor_stop(editor);
   }
   editor->flags |= UiEditorFlags_Active | UiEditorFlags_FirstUpdate | UiEditorFlags_Dirty;
-  editor->textElement = element;
+  editor->textElement   = element;
+  editor->maxTextLength = maxTextLength;
   editor->cursor = editor->selectBegin = editor->selectEnd = 0;
 
   dynstring_clear(&editor->text);

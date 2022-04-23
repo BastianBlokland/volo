@@ -65,6 +65,7 @@ typedef struct {
 typedef struct {
   UiWidgetFlags flags;
   u16           fontSize;
+  usize         maxTextLength;
   UiColor       frameColor;
   String        placeholder;
   String        tooltip;
@@ -152,9 +153,10 @@ typedef struct {
  */
 #define ui_textbox(_CANVAS_, _DYN_TEXT_, ...) ui_textbox_with_opts((_CANVAS_), (_DYN_TEXT_),       \
   &((UiTextboxOpts){                                                                               \
-    .fontSize    = 16,                                                                             \
-    .frameColor  = ui_color(32, 32, 32, 192),                                                      \
-    .placeholder = string_lit("..."),                                                              \
+    .fontSize      = 16,                                                                           \
+    .maxTextLength = usize_kibibyte,                                                               \
+    .frameColor    = ui_color(32, 32, 32, 192),                                                    \
+    .placeholder   = string_lit("..."),                                                            \
     __VA_ARGS__}))
 
 // clang-format on

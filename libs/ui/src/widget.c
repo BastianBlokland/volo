@@ -561,7 +561,7 @@ bool ui_textbox_with_opts(UiCanvasComp* canvas, DynString* text, const UiTextbox
 
   // Start editing on press.
   if (!editing && status == UiStatus_Activated) {
-    ui_canvas_text_editor_start(canvas, dynstring_view(text), textId);
+    ui_canvas_text_editor_start(canvas, dynstring_view(text), textId, opts->maxTextLength);
     editing = true;
   }
 
