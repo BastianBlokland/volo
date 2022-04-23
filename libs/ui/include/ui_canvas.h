@@ -109,7 +109,15 @@ void              ui_canvas_persistent_flags_toggle(UiCanvasComp*, UiId, UiPersi
  * Draw text in the current rectangle.
  */
 UiId ui_canvas_draw_text(UiCanvasComp*, String text, u16 fontSize, UiAlign, UiFlags);
-UiId ui_canvas_draw_text_editable(UiCanvasComp*, DynString* text, u16 fontSize, UiAlign, UiFlags);
+UiId ui_canvas_draw_text_editor(UiCanvasComp*, u16 fontSize, UiAlign, UiFlags);
+
+/**
+ * Interact with the canvas's text editor.
+ */
+void   ui_canvas_text_editor_start(UiCanvasComp*, String text, UiId);
+void   ui_canvas_text_editor_stop(UiCanvasComp*);
+bool   ui_canvas_text_editor_active(UiCanvasComp*, UiId);
+String ui_canvas_text_editor_result(UiCanvasComp*);
 
 /**
  * Draw a single glyph in the current rectangle.
