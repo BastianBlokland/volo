@@ -544,8 +544,11 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
     return true;
   }
   case WM_SETCURSOR: {
-    SetCursor(pal->cursors[window->cursor]);
-    return true;
+    if (window->cursor != GapCursor_Normal) {
+      SetCursor(pal->cursors[window->cursor]);
+      return true;
+    }
+    return false;
   }
   default:
     return false;
