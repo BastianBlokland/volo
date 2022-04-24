@@ -13,6 +13,7 @@ typedef enum {
 typedef struct {
   UiVector     position; // In fractions of the canvas size.
   UiVector     size;     // In ui-pixels.
+  UiVector     minSize;  // In ui-pixels.
   UiPanelFlags flags;
 } UiPanelState;
 
