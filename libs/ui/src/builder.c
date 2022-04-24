@@ -223,6 +223,19 @@ ui_build_cull(const UiBuildContainer container, const UiRect rect, const UiBuild
   return !ui_rect_intersect(container.rect, rect, style.outline);
 }
 
+static UiRect ui_build_clip(const UiBuildContainer container, const UiRect rect) {
+  const f32 minX = math_max(rect.x, container.rect.x);
+  const f32 minY = math_max(rect.y, container.rect.y);
+  const f32 maxX = math_min(rect.x + rect.width, container.rect.x + container.rect.width);
+  const f32 maxY = math_min(rect.y + rect.height, container.rect.y + container.rect.height);
+  return (UiRect){
+      .x      = minX,
+      .y      = minY,
+      .width  = maxX - minX,
+      .height = maxY - minY,
+  };
+}
+
 static bool ui_build_is_hovered(
     UiBuildState* state, const UiBuildContainer container, const UiRect rect, const UiLayer layer) {
   if (!sentinel_check(state->hover.id) && state->hover.layer > layer) {
@@ -317,11 +330,11 @@ static void ui_build_debug_inspector(UiBuildState* state, const UiId id, const U
   const UiBuildStyle styleShape     = {.color = {255, 0, 0, 178}, .layer = UiLayer_Overlay};
   const UiBuildStyle styleContainer = {.color = {0, 0, 255, 178}, .layer = UiLayer_Overlay};
   const UiBuildStyle styleText      = {
-      .color     = ui_color_white,
-      .outline   = 3,
-      .variation = 1,
-      .weight    = UiWeight_Bold,
-      .layer     = UiLayer_Overlay};
+           .color     = ui_color_white,
+           .outline   = 3,
+           .variation = 1,
+           .weight    = UiWeight_Bold,
+           .layer     = UiLayer_Overlay};
 
   ui_build_glyph(state, UiShape_Square, container.rect, styleContainer, 5, 0);
   ui_build_glyph(state, UiShape_Square, rect, styleShape, 5, 0);
@@ -407,7 +420,8 @@ static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
   } break;
   case UiCmd_ContainerPush: {
     diag_assert(state->containerStackCount < ui_build_container_stack_max);
-    const UiRect rect                                   = *ui_build_rect_currect(state);
+    const UiBuildContainer currentContainer = *ui_build_container_active(state);
+    const UiRect           rect = ui_build_clip(currentContainer, *ui_build_rect_currect(state));
     state->containerStack[state->containerStackCount++] = (UiBuildContainer){
         .rect   = rect,
         .clipId = state->ctx->outputClipRect(state->ctx->userCtx, rect),
