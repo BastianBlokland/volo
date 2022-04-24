@@ -6,4 +6,5 @@
 #include "ui_register.h"
 #include "ui_shape.h"
 #include "ui_style.h"
+#include "ui_table.h"
 #include "ui_widget.h"
