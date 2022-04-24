@@ -106,7 +106,7 @@ static void stats_draw_value(UiCanvasComp* canvas, const String value) {
 
   ui_style_variation(canvas, UiVariation_Monospace);
   ui_style_weight(canvas, UiWeight_Bold);
-  ui_label(canvas, value);
+  ui_label(canvas, value, .selectable = true);
 
   ui_style_pop(canvas);
   ui_layout_pop(canvas);

@@ -550,6 +550,7 @@ void ui_editor_update(
     const UiBuildTextInfo textInfo) {
 
   diag_assert(editor->flags & UiEditorFlags_Active);
+  const bool       readonly   = (editor->flags & UiTextFilter_Readonly) != 0;
   const bool       isHovering = hover.id == editor->textElement;
   const bool       dragging   = gap_window_key_down(win, GapKey_MouseLeft) && !editor->click.repeat;
   const bool       firstUpdate = (editor->flags & UiEditorFlags_FirstUpdate) != 0;
@@ -600,31 +601,33 @@ void ui_editor_update(
     if (gap_window_key_pressed(win, GapKey_C)) {
       gap_window_clip_copy(win, editor_selection(editor));
     }
-    if (gap_window_key_pressed(win, GapKey_X)) {
+    if (gap_window_key_pressed(win, GapKey_X) && !readonly) {
       gap_window_clip_copy(win, editor_selection(editor));
       editor_erase_selection(editor);
     }
-    if (gap_window_key_pressed(win, GapKey_V)) {
+    if (gap_window_key_pressed(win, GapKey_V) && !readonly) {
       gap_window_clip_paste(win);
     }
-  } else {
-    editor_insert_text(editor, gap_window_input_text(win), UiEditorSource_UserTyped);
+  } else /* !gap_window_key_down(win, GapKey_Control) */ {
+    if (!readonly) {
+      editor_insert_text(editor, gap_window_input_text(win), UiEditorSource_UserTyped);
+    }
   }
-  if (gap_window_events(win) & GapWindowEvents_ClipPaste) {
+  if (gap_window_events(win) & GapWindowEvents_ClipPaste && !readonly) {
     editor_insert_text(editor, gap_window_clip_paste_result(win), UiEditorSource_Clipboard);
   }
 
-  if (gap_window_key_pressed(win, GapKey_Tab)) {
+  if (gap_window_key_pressed(win, GapKey_Tab) && !readonly) {
     editor_insert_cp(editor, Unicode_HorizontalTab);
   }
-  if (gap_window_key_pressed_with_repeat(win, GapKey_Backspace)) {
+  if (gap_window_key_pressed_with_repeat(win, GapKey_Backspace) && !readonly) {
     if (editor_has_selection(editor)) {
       editor_erase_selection(editor);
     } else {
       editor_erase_prev(editor, editor_stride_from_key_modifiers(win));
     }
   }
-  if (gap_window_key_pressed_with_repeat(win, GapKey_Delete)) {
+  if (gap_window_key_pressed_with_repeat(win, GapKey_Delete) && !readonly) {
     if (editor_has_selection(editor)) {
       editor_erase_selection(editor);
     } else {

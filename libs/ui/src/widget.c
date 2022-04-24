@@ -41,8 +41,36 @@ static void ui_interactable_text_style(UiCanvasComp* canvas, const UiStatus stat
   }
 }
 
+static void ui_label_selectable(UiCanvasComp* canvas, const String text, const UiLabelOpts* opts) {
+  const UiId     id       = ui_canvas_id_peek(canvas);
+  const UiStatus status   = ui_canvas_elem_status(canvas, id);
+  bool           selected = ui_canvas_text_editor_active(canvas, id);
+
+  if (!selected && status == UiStatus_Activated) {
+    ui_canvas_text_editor_start(canvas, text, id, text.size, UiTextFilter_Readonly);
+    selected = true;
+  }
+
+  const UiFlags flags =
+      UiFlags_AllowWordBreak | UiFlags_SingleLine | UiFlags_Interactable | UiFlags_InteractOnPress;
+
+  if (selected) {
+    ui_canvas_draw_text_editor(canvas, opts->fontSize, UiAlign_MiddleLeft, flags);
+  } else {
+    ui_canvas_draw_text(canvas, text, opts->fontSize, UiAlign_MiddleLeft, flags);
+  }
+
+  if (status >= UiStatus_Hovered) {
+    ui_canvas_interact_type(canvas, UiInteractType_Text);
+  }
+}
+
 void ui_label_with_opts(UiCanvasComp* canvas, const String text, const UiLabelOpts* opts) {
-  ui_canvas_draw_text(canvas, text, opts->fontSize, opts->align, UiFlags_None);
+  if (opts->selectable) {
+    ui_label_selectable(canvas, text, opts);
+  } else {
+    ui_canvas_draw_text(canvas, text, opts->fontSize, opts->align, UiFlags_None);
+  }
 }
 
 bool ui_button_with_opts(UiCanvasComp* canvas, const UiButtonOpts* opts) {
