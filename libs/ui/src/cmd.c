@@ -15,10 +15,10 @@ struct sUiCmdBuffer {
 UiCmdBuffer* ui_cmdbuffer_create(Allocator* alloc) {
   UiCmdBuffer* buffer = alloc_alloc_t(alloc, UiCmdBuffer);
   *buffer             = (UiCmdBuffer){
-      .commands = dynarray_create_t(alloc, UiCmd, 128),
-      .alloc    = alloc,
-      .allocTransient =
-          alloc_chunked_create(g_alloc_page, alloc_bump_create, ui_cmdbuffer_transient_chunk_size)};
+                  .commands = dynarray_create_t(alloc, UiCmd, 128),
+                  .alloc    = alloc,
+                  .allocTransient =
+                      alloc_chunked_create(g_alloc_page, alloc_bump_create, ui_cmdbuffer_transient_chunk_size)};
   return buffer;
 }
 
@@ -67,6 +67,22 @@ void ui_cmd_push_rect_size(
           .size  = size,
           .units = units,
           .axis  = axis,
+      }};
+}
+
+void ui_cmd_push_rect_size_to(
+    UiCmdBuffer*   buffer,
+    const UiBase   origin,
+    const UiVector offset,
+    const UiBase   units,
+    const UiAxis   axis) {
+  *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
+      .type       = UiCmd_RectSizeTo,
+      .rectSizeTo = {
+          .origin = origin,
+          .offset = offset,
+          .units  = units,
+          .axis   = axis,
       }};
 }
 

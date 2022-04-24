@@ -124,6 +124,18 @@ static void ui_build_set_size(UiBuildState* state, const UiVector val, const UiA
   }
 }
 
+static void ui_build_set_size_to(UiBuildState* state, const UiVector val, const UiAxis axis) {
+  UiRect* rect = ui_build_rect_currect(state);
+  if (axis & Ui_X) {
+    rect->width = math_abs(val.x - rect->x);
+    rect->x     = math_min(rect->x, val.x);
+  }
+  if (axis & Ui_Y) {
+    rect->height = math_abs(val.y - rect->y);
+    rect->y      = math_min(rect->y, val.y);
+  }
+}
+
 static void ui_build_glyph(
     UiBuildState*      state,
     const Unicode      cp,
@@ -305,11 +317,11 @@ static void ui_build_debug_inspector(UiBuildState* state, const UiId id, const U
   const UiBuildStyle styleShape     = {.color = {255, 0, 0, 178}, .layer = UiLayer_Overlay};
   const UiBuildStyle styleContainer = {.color = {0, 0, 255, 178}, .layer = UiLayer_Overlay};
   const UiBuildStyle styleText      = {
-           .color     = ui_color_white,
-           .outline   = 3,
-           .variation = 1,
-           .weight    = UiWeight_Bold,
-           .layer     = UiLayer_Overlay};
+      .color     = ui_color_white,
+      .outline   = 3,
+      .variation = 1,
+      .weight    = UiWeight_Bold,
+      .layer     = UiLayer_Overlay};
 
   ui_build_glyph(state, UiShape_Square, container.rect, styleContainer, 5, 0);
   ui_build_glyph(state, UiShape_Square, rect, styleShape, 5, 0);
@@ -377,6 +389,13 @@ static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
   case UiCmd_RectSize:
     ui_build_set_size(
         state, ui_resolve_vec(state, cmd->rectSize.size, cmd->rectSize.units), cmd->rectSize.axis);
+    break;
+  case UiCmd_RectSizeTo:
+    ui_build_set_size_to(
+        state,
+        ui_resolve_pos(
+            state, cmd->rectSizeTo.origin, cmd->rectSizeTo.offset, cmd->rectSizeTo.units),
+        cmd->rectSizeTo.axis);
     break;
   case UiCmd_RectSizeGrow: {
     const UiVector cur   = ui_build_rect_currect(state)->size;

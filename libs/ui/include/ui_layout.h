@@ -32,6 +32,7 @@ void ui_layout_next(UiCanvasComp*, UiDir, f32 spacing);
  */
 void ui_layout_grow(UiCanvasComp*, UiAlign origin, UiVector delta, UiBase units, UiAxis);
 void ui_layout_resize(UiCanvasComp*, UiAlign origin, UiVector size, UiBase units, UiAxis);
+void ui_layout_resize_to(UiCanvasComp*, UiBase, UiAlign, UiAxis);
 
 /**
  * Set a specific rectangle.

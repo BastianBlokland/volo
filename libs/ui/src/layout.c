@@ -172,6 +172,41 @@ void ui_layout_resize(
   }
 }
 
+void ui_layout_resize_to(
+    UiCanvasComp* canvas, const UiBase base, const UiAlign align, const UiAxis axis) {
+
+  UiCmdBuffer* cmdBuffer = ui_canvas_cmd_buffer(canvas);
+  switch (align) {
+  case UiAlign_TopLeft:
+    ui_cmd_push_rect_size_to(cmdBuffer, base, ui_vector(0.0, 1.0), base, axis);
+    break;
+  case UiAlign_TopCenter:
+    ui_cmd_push_rect_size_to(cmdBuffer, base, ui_vector(0.5, 1.0), base, axis);
+    break;
+  case UiAlign_TopRight:
+    ui_cmd_push_rect_size_to(cmdBuffer, base, ui_vector(1.0, 1.0), base, axis);
+    break;
+  case UiAlign_MiddleLeft:
+    ui_cmd_push_rect_size_to(cmdBuffer, base, ui_vector(0.0, 0.5), base, axis);
+    break;
+  case UiAlign_MiddleCenter:
+    ui_cmd_push_rect_size_to(cmdBuffer, base, ui_vector(0.5, 0.5), base, axis);
+    break;
+  case UiAlign_MiddleRight:
+    ui_cmd_push_rect_size_to(cmdBuffer, base, ui_vector(1.0, 0.5), base, axis);
+    break;
+  case UiAlign_BottomLeft:
+    ui_cmd_push_rect_size_to(cmdBuffer, base, ui_vector(0.0, 0.0), base, axis);
+    break;
+  case UiAlign_BottomCenter:
+    ui_cmd_push_rect_size_to(cmdBuffer, base, ui_vector(0.5, 0.0), base, axis);
+    break;
+  case UiAlign_BottomRight:
+    ui_cmd_push_rect_size_to(cmdBuffer, base, ui_vector(1.0, 0.0), base, axis);
+    break;
+  }
+}
+
 void ui_layout_set(UiCanvasComp* canvas, const UiRect rect) {
   UiCmdBuffer* cmdBuffer = ui_canvas_cmd_buffer(canvas);
   ui_cmd_push_rect_pos(cmdBuffer, UiBase_Absolute, rect.pos, UiBase_Absolute, Ui_XY);
