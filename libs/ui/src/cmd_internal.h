@@ -8,6 +8,7 @@ typedef enum {
   UiCmd_RectPop,
   UiCmd_RectPos,
   UiCmd_RectSize,
+  UiCmd_RectSizeTo,
   UiCmd_RectSizeGrow,
   UiCmd_ContainerPush,
   UiCmd_ContainerPop,
@@ -35,6 +36,13 @@ typedef struct {
   UiBase   units;
   UiAxis   axis;
 } UiRectSize;
+
+typedef struct {
+  UiBase   origin;
+  UiVector offset;
+  UiBase   units;
+  UiAxis   axis;
+} UiRectSizeTo;
 
 typedef struct {
   UiVector delta;
@@ -86,6 +94,7 @@ typedef struct {
   union {
     UiRectPos        rectPos;
     UiRectSize       rectSize;
+    UiRectSizeTo     rectSizeTo;
     UiRectSizeGrow   rectSizeGrow;
     UiStyleColor     styleColor;
     UiStyleColorMult styleColorMult;
@@ -109,6 +118,7 @@ void ui_cmd_push_rect_push(UiCmdBuffer*);
 void ui_cmd_push_rect_pop(UiCmdBuffer*);
 void ui_cmd_push_rect_pos(UiCmdBuffer*, UiBase origin, UiVector offset, UiBase units, UiAxis);
 void ui_cmd_push_rect_size(UiCmdBuffer*, UiVector size, UiBase units, UiAxis);
+void ui_cmd_push_rect_size_to(UiCmdBuffer*, UiBase origin, UiVector offset, UiBase units, UiAxis);
 void ui_cmd_push_rect_size_grow(UiCmdBuffer*, UiVector delta, UiBase units, UiAxis);
 void ui_cmd_push_container_push(UiCmdBuffer*);
 void ui_cmd_push_container_pop(UiCmdBuffer*);

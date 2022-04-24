@@ -316,6 +316,9 @@ static void ui_canvas_cursor_update(GapWindowComp* window, const UiInteractType 
   case UiInteractType_Action:
     gap_window_cursor_set(window, GapCursor_Click);
     break;
+  case UiInteractType_Resize:
+    gap_window_cursor_set(window, GapCursor_ResizeDiag);
+    break;
   case UiInteractType_Text:
     gap_window_cursor_set(window, GapCursor_Text);
     break;

@@ -5,16 +5,16 @@
 ecs_comp_extern(UiCanvasComp);
 
 typedef enum {
-  UiPanelFlags_Center  = 1 << 0,
-  UiPanelFlags_Close   = 1 << 1,
-  UiPanelFlags_Drawing = 1 << 2,
+  UiPanelFlags_Close   = 1 << 0,
+  UiPanelFlags_Drawing = 1 << 1,
 } UiPanelFlags;
 
 typedef struct {
   UiVector     position; // In fractions of the canvas size.
   UiVector     size;     // In ui-pixels.
+  UiVector     minSize;  // In ui-pixels.
   UiPanelFlags flags;
-} UiPanelState;
+} UiPanel;
 
 typedef struct {
   String title;
@@ -23,7 +23,17 @@ typedef struct {
 // clang-format off
 
 /**
- * Draws a basic movable panel and sets an active container for drawing its contents.
+ * Create a layout panel.
+ */
+#define ui_panel(_SIZE_, ...) ((UiPanel){                                                          \
+  .position = ui_vector(0.5f, 0.5f),                                                               \
+  .size     = (_SIZE_),                                                                            \
+  .minSize  = ui_vector(100, 100),                                                                 \
+  __VA_ARGS__                                                                                      \
+  })
+
+/**
+ * Draws a basic movable / resizable panel and sets an active container for drawing its contents.
  * NOTE: Should be followed by a 'ui_panel_end()'.
  * NOTE: Its important that the panel has a stable identifier in the canvas.
  */
@@ -32,6 +42,5 @@ typedef struct {
 
 // clang-format on
 
-UiPanelState ui_panel_init(UiVector size);
-void         ui_panel_begin_with_opts(UiCanvasComp*, UiPanelState*, const UiPanelOpts*);
-void         ui_panel_end(UiCanvasComp*, UiPanelState*);
+void ui_panel_begin_with_opts(UiCanvasComp*, UiPanel*, const UiPanelOpts*);
+void ui_panel_end(UiCanvasComp*, UiPanel*);

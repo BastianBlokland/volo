@@ -172,6 +172,41 @@ void ui_layout_resize(
   }
 }
 
+void ui_layout_resize_to(
+    UiCanvasComp* canvas, const UiBase base, const UiAlign align, const UiAxis axis) {
+
+  UiCmdBuffer* cmdBuffer = ui_canvas_cmd_buffer(canvas);
+  switch (align) {
+  case UiAlign_TopLeft:
+    ui_cmd_push_rect_size_to(cmdBuffer, base, ui_vector(0.0, 1.0), base, axis);
+    break;
+  case UiAlign_TopCenter:
+    ui_cmd_push_rect_size_to(cmdBuffer, base, ui_vector(0.5, 1.0), base, axis);
+    break;
+  case UiAlign_TopRight:
+    ui_cmd_push_rect_size_to(cmdBuffer, base, ui_vector(1.0, 1.0), base, axis);
+    break;
+  case UiAlign_MiddleLeft:
+    ui_cmd_push_rect_size_to(cmdBuffer, base, ui_vector(0.0, 0.5), base, axis);
+    break;
+  case UiAlign_MiddleCenter:
+    ui_cmd_push_rect_size_to(cmdBuffer, base, ui_vector(0.5, 0.5), base, axis);
+    break;
+  case UiAlign_MiddleRight:
+    ui_cmd_push_rect_size_to(cmdBuffer, base, ui_vector(1.0, 0.5), base, axis);
+    break;
+  case UiAlign_BottomLeft:
+    ui_cmd_push_rect_size_to(cmdBuffer, base, ui_vector(0.0, 0.0), base, axis);
+    break;
+  case UiAlign_BottomCenter:
+    ui_cmd_push_rect_size_to(cmdBuffer, base, ui_vector(0.5, 0.0), base, axis);
+    break;
+  case UiAlign_BottomRight:
+    ui_cmd_push_rect_size_to(cmdBuffer, base, ui_vector(1.0, 0.0), base, axis);
+    break;
+  }
+}
+
 void ui_layout_set(UiCanvasComp* canvas, const UiRect rect) {
   UiCmdBuffer* cmdBuffer = ui_canvas_cmd_buffer(canvas);
   ui_cmd_push_rect_pos(cmdBuffer, UiBase_Absolute, rect.pos, UiBase_Absolute, Ui_XY);
@@ -188,72 +223,4 @@ void ui_layout_inner(
     const UiBase   units) {
   ui_layout_move_to(canvas, parent, align, Ui_XY);
   ui_layout_resize(canvas, align, size, units, Ui_XY);
-}
-
-static UiDir ui_grid_col_dir(const UiAlign align) {
-  switch (align) {
-  case UiAlign_TopLeft:
-  case UiAlign_MiddleLeft:
-  case UiAlign_BottomLeft:
-    return Ui_Right;
-  case UiAlign_TopCenter:
-  case UiAlign_MiddleCenter:
-  case UiAlign_BottomCenter:
-  case UiAlign_TopRight:
-  case UiAlign_MiddleRight:
-  case UiAlign_BottomRight:
-    return Ui_Left;
-  }
-  diag_crash();
-}
-
-static UiDir ui_grid_row_dir(const UiAlign align) {
-  switch (align) {
-  case UiAlign_TopLeft:
-  case UiAlign_TopCenter:
-  case UiAlign_TopRight:
-  case UiAlign_MiddleLeft:
-  case UiAlign_MiddleCenter:
-  case UiAlign_MiddleRight:
-    return Ui_Down;
-  case UiAlign_BottomLeft:
-  case UiAlign_BottomCenter:
-  case UiAlign_BottomRight:
-    return Ui_Up;
-  }
-  diag_crash();
-}
-
-UiGridState ui_grid_init_with_opts(UiCanvasComp* canvas, const UiGridOpts* opts) {
-  ui_layout_move_to(canvas, opts->parent, opts->align, Ui_XY);
-  ui_layout_resize(canvas, opts->align, opts->size, opts->units, Ui_XY);
-
-  ui_layout_move_dir(canvas, ui_grid_col_dir(opts->align), opts->spacing, opts->units);
-  ui_layout_move_dir(canvas, ui_grid_row_dir(opts->align), opts->spacing, opts->units);
-
-  return (UiGridState){
-      .colDir  = ui_grid_col_dir(opts->align),
-      .rowDir  = ui_grid_row_dir(opts->align),
-      .size    = opts->size,
-      .spacing = opts->spacing,
-      .units   = opts->units,
-  };
-}
-
-void ui_grid_next_col(UiCanvasComp* canvas, UiGridState* state) {
-  ui_layout_move_dir(canvas, state->colDir, state->size.width, state->units);
-  ui_layout_move_dir(canvas, state->colDir, state->spacing, state->units);
-  ++state->col;
-}
-
-void ui_grid_next_row(UiCanvasComp* canvas, UiGridState* state) {
-  if (state->col) {
-    ui_layout_move_dir(canvas, state->colDir, -state->size.width * state->col, state->units);
-    ui_layout_move_dir(canvas, state->colDir, -state->spacing * state->col, state->units);
-    state->col = 0;
-  }
-
-  ui_layout_move_dir(canvas, state->rowDir, state->size.height, state->units);
-  ui_layout_move_dir(canvas, state->rowDir, state->spacing, state->units);
-  ++state->row;
 }
