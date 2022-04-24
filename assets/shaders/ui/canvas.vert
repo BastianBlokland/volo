@@ -23,13 +23,14 @@ const f32v2 c_unitTexCoords[c_verticesPerGlyph] = {
     f32v2(1, 0),
     f32v2(0, 0),
 };
+const u32 c_maxClipRects = 25;
 
 struct MetaData {
   f32v4 canvasRes;      // x + y = canvas size in ui-pixels, z + w = inverse of x + y.
   f32   invCanvasScale; // Inverse of the canvas scale.
   f32   glyphsPerDim;
   f32   invGlyphsPerDim; // 1.0 / glyphsPerDim
-  f32v4 clipRects[10];
+  f32v4 clipRects[c_maxClipRects];
 };
 
 struct GlyphData {

@@ -18,7 +18,7 @@
 #include "editor_internal.h"
 #include "resource_internal.h"
 
-#define ui_canvas_clip_rects_max 10
+#define ui_canvas_clip_rects_max 25
 #define ui_canvas_canvasses_max 100
 
 typedef UiCanvasComp*       UiCanvasPtr;
@@ -109,10 +109,10 @@ typedef struct {
   f32       glyphsPerDim;
   f32       invGlyphsPerDim;
   f32       padding[1];
-  UiRect    clipRects[10];
+  UiRect    clipRects[ui_canvas_clip_rects_max];
 } UiDrawMetaData;
 
-ASSERT(sizeof(UiDrawMetaData) == 192, "Size needs to match the size defined in glsl");
+ASSERT(sizeof(UiDrawMetaData) == 432, "Size needs to match the size defined in glsl");
 
 typedef struct {
   const UiSettingsComp* settings;
