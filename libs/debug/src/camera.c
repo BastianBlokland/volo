@@ -51,49 +51,45 @@ static void camera_default_transform(const SceneCameraComp* camera, SceneTransfo
 }
 
 static void camera_panel_draw_ortho(
-    UiCanvasComp*       canvas,
-    UiGridState*        grid,
-    SceneCameraComp*    camera,
-    SceneTransformComp* transform) {
+    UiCanvasComp* canvas, UiTable* table, SceneCameraComp* camera, SceneTransformComp* transform) {
 
+  ui_table_next_row(canvas, table);
   ui_label(canvas, string_lit("Size"));
-  ui_grid_next_col(canvas, grid);
+  ui_table_next_column(canvas, table);
   ui_slider(canvas, &camera->orthoSize, .min = 1, .max = 100, .tooltip = g_tooltipOrthoSize);
-  ui_grid_next_row(canvas, grid);
 
   if (transform) {
+    ui_table_next_row(canvas, table);
     if (ui_button(canvas, .label = string_lit("Top"))) {
       transform->position = geo_vector(0);
       transform->rotation = geo_quat_look(geo_down, geo_forward);
     }
-    ui_grid_next_col(canvas, grid);
+    ui_table_next_column(canvas, table);
     if (ui_button(canvas, .label = string_lit("Front"))) {
       transform->position = geo_vector(0);
       transform->rotation = geo_quat_look(geo_forward, geo_up);
     }
-    ui_grid_next_row(canvas, grid);
   }
 }
 
-static void
-camera_panel_draw_pers(UiCanvasComp* canvas, UiGridState* grid, SceneCameraComp* camera) {
+static void camera_panel_draw_pers(UiCanvasComp* canvas, UiTable* table, SceneCameraComp* camera) {
 
+  ui_table_next_row(canvas, table);
   ui_label(canvas, string_lit("Field of view"));
-  ui_grid_next_col(canvas, grid);
+  ui_table_next_column(canvas, table);
   f32 fovDegrees = camera->persFov * math_rad_to_deg;
   if (ui_slider(canvas, &fovDegrees, .min = 10, .max = 150, .tooltip = g_tooltipFov)) {
     camera->persFov = fovDegrees * math_deg_to_rad;
   }
-  ui_grid_next_row(canvas, grid);
 
+  ui_table_next_row(canvas, table);
   ui_label(canvas, string_lit("Near distance"));
-  ui_grid_next_col(canvas, grid);
+  ui_table_next_column(canvas, table);
   ui_slider(canvas, &camera->persNear, .min = 0.001f, .max = 5, .tooltip = g_tooltipNearDistance);
-  ui_grid_next_row(canvas, grid);
 }
 
 static void
-camera_panel_draw_filters(UiCanvasComp* canvas, UiGridState* grid, SceneCameraComp* camera) {
+camera_panel_draw_filters(UiCanvasComp* canvas, UiTable* table, SceneCameraComp* camera) {
   static const struct {
     SceneTags tag;
     String    name;
@@ -107,13 +103,13 @@ camera_panel_draw_filters(UiCanvasComp* canvas, UiGridState* grid, SceneCameraCo
     const String tooltip =
         format_write_formatted_scratch(g_tooltipExclude, fmt_args(fmt_text(name)));
 
+    ui_table_next_row(canvas, table);
     ui_label(canvas, fmt_write_scratch("Exclude {}", fmt_text(name)));
-    ui_grid_next_col(canvas, grid);
+    ui_table_next_column(canvas, table);
     bool illegal = (camera->filter.illegal & g_filters[i].tag) != 0;
     if (ui_toggle(canvas, &illegal, .tooltip = tooltip)) {
       camera->filter.illegal ^= g_filters[i].tag;
     }
-    ui_grid_next_row(canvas, grid);
   }
 }
 
@@ -126,10 +122,13 @@ static void camera_panel_draw(
   const String title = fmt_write_scratch("{} Camera Settings", fmt_ui_shape(PhotoCamera));
   ui_panel_begin(canvas, &panel->state, .title = title);
 
-  UiGridState layoutGrid = ui_grid_init(canvas, .size = {150, 25});
+  UiTable table = ui_table();
+  ui_table_add_column(&table, UiTableColumn_Fixed, 150);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Projection"));
-  ui_grid_next_col(canvas, &layoutGrid);
+  ui_table_next_column(canvas, &table);
   i32 projectionIdx = (camera->flags & SceneCameraFlags_Orthographic) != 0;
   if (ui_select(canvas, &projectionIdx, g_projectionNames, 2)) {
     if (projectionIdx == 1) {
@@ -138,34 +137,34 @@ static void camera_panel_draw(
       camera->flags &= ~SceneCameraFlags_Orthographic;
     }
   }
-  ui_grid_next_row(canvas, &layoutGrid);
 
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Vertical aspect"));
-  ui_grid_next_col(canvas, &layoutGrid);
+  ui_table_next_column(canvas, &table);
   bool vertical = (camera->flags & SceneCameraFlags_Vertical) != 0;
   if (ui_toggle(canvas, &vertical, .tooltip = g_tooltipVerticalAspect)) {
     camera->flags ^= SceneCameraFlags_Vertical;
   }
-  ui_grid_next_row(canvas, &layoutGrid);
 
   if (projectionIdx == 1) {
-    camera_panel_draw_ortho(canvas, &layoutGrid, camera, transform);
+    camera_panel_draw_ortho(canvas, &table, camera, transform);
   } else {
-    camera_panel_draw_pers(canvas, &layoutGrid, camera);
+    camera_panel_draw_pers(canvas, &table, camera);
   }
 
-  camera_panel_draw_filters(canvas, &layoutGrid, camera);
+  camera_panel_draw_filters(canvas, &table, camera);
 
   if (cameraMovement) {
+    ui_table_next_row(canvas, &table);
     ui_label(canvas, string_lit("Move speed"));
-    ui_grid_next_col(canvas, &layoutGrid);
+    ui_table_next_column(canvas, &table);
     f64 moveSpeed = cameraMovement->moveSpeed;
     if (ui_numbox(canvas, &moveSpeed, .tooltip = g_tooltipMoveSpeed)) {
       cameraMovement->moveSpeed = (f32)moveSpeed;
     }
-    ui_grid_next_row(canvas, &layoutGrid);
   }
 
+  ui_table_next_row(canvas, &table);
   if (ui_button(canvas, .label = string_lit("Defaults"), .tooltip = g_tooltipDefaults)) {
     scene_camera_to_default(camera);
     if (cameraMovement) {

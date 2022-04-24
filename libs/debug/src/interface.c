@@ -92,53 +92,56 @@ static void interface_panel_draw(
   const String title = fmt_write_scratch("{} Interface Settings", fmt_ui_shape(FormatShapes));
   ui_panel_begin(canvas, &panel->state, .title = title);
 
-  UiGridState layoutGrid = ui_grid_init(canvas, .size = {150, 25});
+  UiTable table = ui_table();
+  ui_table_add_column(&table, UiTableColumn_Fixed, 150);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   bool dirty = false;
   dirty |= panel->newScale != settings->scale;
 
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Scale factor"));
-  ui_grid_next_col(canvas, &layoutGrid);
+  ui_table_next_column(canvas, &table);
   ui_slider(canvas, &panel->newScale, .min = 0.5, .max = 2, .tooltip = g_tooltipScale);
-  ui_grid_next_row(canvas, &layoutGrid);
 
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Default color"));
-  ui_grid_next_col(canvas, &layoutGrid);
+  ui_table_next_column(canvas, &table);
   ui_select(canvas, &panel->defaultColorIndex, g_defaultColorNames, array_elems(g_defaultColors));
   settings->defaultColor = g_defaultColors[panel->defaultColorIndex];
-  ui_grid_next_row(canvas, &layoutGrid);
 
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug inspector"));
-  ui_grid_next_col(canvas, &layoutGrid);
+  ui_table_next_column(canvas, &table);
   bool debugInspector = (settings->flags & UiSettingFlags_DebugInspector) != 0;
   if (ui_toggle(canvas, &debugInspector, .tooltip = g_tooltipDebugInspector)) {
     settings->flags ^= UiSettingFlags_DebugInspector;
   }
-  ui_grid_next_row(canvas, &layoutGrid);
 
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug shading"));
-  ui_grid_next_col(canvas, &layoutGrid);
+  ui_table_next_column(canvas, &table);
   bool debugShading = (settings->flags & UiSettingFlags_DebugShading) != 0;
   if (ui_toggle(canvas, &debugShading, .tooltip = g_tooltipDebugShading)) {
     settings->flags ^= UiSettingFlags_DebugShading;
   }
-  ui_grid_next_row(canvas, &layoutGrid);
 
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug Ftx"));
-  ui_grid_next_col(canvas, &layoutGrid);
+  ui_table_next_column(canvas, &table);
   bool debugFtx = (panel->flags & DebugInterfaceFlags_DrawFtx) != 0;
   if (ui_toggle(canvas, &debugFtx, .tooltip = g_tooltipDebugFtx)) {
     panel->flags ^= DebugInterfaceFlags_DrawFtx;
   }
-  ui_grid_next_row(canvas, &layoutGrid);
 
+  ui_table_next_row(canvas, &table);
   if (ui_button(canvas, .label = string_lit("Defaults"), .tooltip = g_tooltipDefaults)) {
     ui_settings_to_default(settings);
     panel->flags             = 0;
     panel->newScale          = settings->scale;
     panel->defaultColorIndex = 0;
   }
-  ui_grid_next_col(canvas, &layoutGrid);
+  ui_table_next_column(canvas, &table);
   if (ui_button(
           canvas,
           .label      = string_lit("Apply"),

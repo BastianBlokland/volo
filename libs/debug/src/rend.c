@@ -52,29 +52,32 @@ static void rend_panel_draw(
   const String title = fmt_write_scratch("{} Renderer Settings", fmt_ui_shape(Brush));
   ui_panel_begin(canvas, &panel->state, .title = title);
 
-  UiGridState layoutGrid = ui_grid_init(canvas, .size = {150, 25});
+  UiTable table = ui_table();
+  ui_table_add_column(&table, UiTableColumn_Fixed, 150);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Present mode"));
-  ui_grid_next_col(canvas, &layoutGrid);
+  ui_table_next_column(canvas, &table);
   ui_select(
       canvas,
       (i32*)&settings->presentMode,
       g_presentOptions,
       array_elems(g_presentOptions),
       .tooltip = g_tooltipPresent);
-  ui_grid_next_row(canvas, &layoutGrid);
 
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Limiter"));
-  ui_grid_next_col(canvas, &layoutGrid);
+  ui_table_next_column(canvas, &table);
   f32 limiterFreq = globalSettings->limiterFreq;
   if (ui_slider(
           canvas, &limiterFreq, .min = 0, .max = 240, .step = 30, .tooltip = g_tooltipLimiter)) {
     globalSettings->limiterFreq = (u16)limiterFreq;
   }
-  ui_grid_next_row(canvas, &layoutGrid);
 
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Scale"));
-  ui_grid_next_col(canvas, &layoutGrid);
+  ui_table_next_column(canvas, &table);
   ui_slider(
       canvas,
       &settings->resolutionScale,
@@ -82,37 +85,37 @@ static void rend_panel_draw(
       .max     = 2.0f,
       .step    = 0.1f,
       .tooltip = g_tooltipScale);
-  ui_grid_next_row(canvas, &layoutGrid);
 
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Frustum culling"));
-  ui_grid_next_col(canvas, &layoutGrid);
+  ui_table_next_column(canvas, &table);
   bool frustumCulling = (settings->flags & RendFlags_FrustumCulling) != 0;
   if (ui_toggle(canvas, &frustumCulling, .tooltip = g_tooltipFrustumCulling)) {
     settings->flags ^= RendFlags_FrustumCulling;
   }
-  ui_grid_next_row(canvas, &layoutGrid);
 
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Validation"));
-  ui_grid_next_col(canvas, &layoutGrid);
+  ui_table_next_column(canvas, &table);
   bool validation = (globalSettings->flags & RendGlobalFlags_Validation) != 0;
   if (ui_toggle(canvas, &validation, .tooltip = g_tooltipValidation)) {
     globalSettings->flags ^= RendGlobalFlags_Validation;
   }
-  ui_grid_next_row(canvas, &layoutGrid);
 
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Verbose"));
-  ui_grid_next_col(canvas, &layoutGrid);
+  ui_table_next_column(canvas, &table);
   bool verbose = (globalSettings->flags & RendGlobalFlags_Verbose) != 0;
   if (ui_toggle(canvas, &verbose, .tooltip = g_tooltipVerbose)) {
     globalSettings->flags ^= RendGlobalFlags_Verbose;
   }
-  ui_grid_next_row(canvas, &layoutGrid);
 
+  ui_table_next_row(canvas, &table);
   if (ui_button(canvas, .label = string_lit("Defaults"), .tooltip = g_tooltipDefaults)) {
     rend_settings_to_default(settings);
     rend_global_settings_to_default(globalSettings);
   }
-  ui_grid_next_col(canvas, &layoutGrid);
+  ui_table_next_column(canvas, &table);
   if (ui_button(
           canvas,
           .label      = string_lit("Reset"),

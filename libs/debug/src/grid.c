@@ -122,21 +122,24 @@ static void grid_panel_draw(UiCanvasComp* canvas, DebugGridPanelComp* panel, Deb
   const String title = fmt_write_scratch("{} Grid Settings", fmt_ui_shape(Grid4x4));
   ui_panel_begin(canvas, &panel->state, .title = title);
 
-  UiGridState layoutGrid = ui_grid_init(canvas, .size = {150, 25});
+  UiTable table = ui_table();
+  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Show"));
-  ui_grid_next_col(canvas, &layoutGrid);
+  ui_table_next_column(canvas, &table);
   ui_toggle(canvas, &grid->show, .tooltip = g_tooltipShow);
-  ui_grid_next_row(canvas, &layoutGrid);
 
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Cell size"));
-  ui_grid_next_col(canvas, &layoutGrid);
+  ui_table_next_column(canvas, &table);
   ui_slider(
       canvas, &grid->cellSize, .min = 0.1f, .max = 4, .step = 0.1f, .tooltip = g_tooltipCellSize);
-  ui_grid_next_row(canvas, &layoutGrid);
 
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Highlight"));
-  ui_grid_next_col(canvas, &layoutGrid);
+  ui_table_next_column(canvas, &table);
   ui_slider(
       canvas,
       &grid->highlightInterval,
@@ -144,10 +147,10 @@ static void grid_panel_draw(UiCanvasComp* canvas, DebugGridPanelComp* panel, Deb
       .max     = 10,
       .step    = 1,
       .tooltip = g_tooltipHighlight);
-  ui_grid_next_row(canvas, &layoutGrid);
 
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Segments"));
-  ui_grid_next_col(canvas, &layoutGrid);
+  ui_table_next_column(canvas, &table);
   ui_slider(
       canvas,
       &grid->segmentCount,
@@ -155,10 +158,10 @@ static void grid_panel_draw(UiCanvasComp* canvas, DebugGridPanelComp* panel, Deb
       .max     = 1000,
       .step    = 50,
       .tooltip = g_tooltipSegments);
-  ui_grid_next_row(canvas, &layoutGrid);
 
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Fade"));
-  ui_grid_next_col(canvas, &layoutGrid);
+  ui_table_next_column(canvas, &table);
   ui_slider(canvas, &grid->fadeFraction, .tooltip = g_tooltipFade);
 
   ui_panel_end(canvas, &panel->state);

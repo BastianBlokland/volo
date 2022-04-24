@@ -66,8 +66,10 @@ static void debug_action_bar_draw(
     GapWindowComp*    win,
     const EcsEntityId winEntity) {
 
-  UiGridState grid = ui_grid_init(canvas, .align = UiAlign_TopRight, .size = {40, 40});
+  UiTable table = ui_table(.align = UiAlign_TopRight, .rowHeight = 40);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 40);
 
+  ui_table_next_row(canvas, &table);
   const bool statsEnabled = debug_stats_show(stats);
   if (ui_button(
           canvas,
@@ -76,8 +78,8 @@ static void debug_action_bar_draw(
           .tooltip  = statsEnabled ? g_tooltipStatsDisable : g_tooltipStatsEnable)) {
     debug_stats_show_set(stats, !statsEnabled);
   }
-  ui_grid_next_row(canvas, &grid);
 
+  ui_table_next_row(canvas, &table);
   if (ui_button(
           canvas,
           .flags    = debug_panel_is_open(world, menu->panelCamera) ? UiWidget_Disabled : 0,
@@ -86,8 +88,8 @@ static void debug_action_bar_draw(
           .tooltip  = g_tooltipPanelCamera)) {
     debug_panel_open(world, &menu->panelCamera, winEntity, debug_camera_panel_open);
   }
-  ui_grid_next_row(canvas, &grid);
 
+  ui_table_next_row(canvas, &table);
   if (ui_button(
           canvas,
           .flags    = debug_panel_is_open(world, menu->panelGrid) ? UiWidget_Disabled : 0,
@@ -96,8 +98,8 @@ static void debug_action_bar_draw(
           .tooltip  = g_tooltipPanelGrid)) {
     debug_panel_open(world, &menu->panelGrid, winEntity, debug_grid_panel_open);
   }
-  ui_grid_next_row(canvas, &grid);
 
+  ui_table_next_row(canvas, &table);
   if (ui_button(
           canvas,
           .flags    = debug_panel_is_open(world, menu->panelRend) ? UiWidget_Disabled : 0,
@@ -106,8 +108,8 @@ static void debug_action_bar_draw(
           .tooltip  = g_tooltipPanelRend)) {
     debug_panel_open(world, &menu->panelRend, winEntity, debug_rend_panel_open);
   }
-  ui_grid_next_row(canvas, &grid);
 
+  ui_table_next_row(canvas, &table);
   if (ui_button(
           canvas,
           .flags    = debug_panel_is_open(world, menu->panelInterface) ? UiWidget_Disabled : 0,
@@ -116,8 +118,8 @@ static void debug_action_bar_draw(
           .tooltip  = g_tooltipPanelInterface)) {
     debug_panel_open(world, &menu->panelInterface, winEntity, debug_interface_panel_open);
   }
-  ui_grid_next_row(canvas, &grid);
 
+  ui_table_next_row(canvas, &table);
   const bool fullscreen = gap_window_mode(win) == GapWindowMode_Fullscreen;
   if (ui_button(
           canvas,
@@ -131,8 +133,8 @@ static void debug_action_bar_draw(
       gap_window_resize(win, gap_vector(0, 0), GapWindowMode_Fullscreen);
     }
   }
-  ui_grid_next_row(canvas, &grid);
 
+  ui_table_next_row(canvas, &table);
   if (ui_button(
           canvas,
           .label    = ui_shape_scratch(UiShape_OpenInNew),
@@ -142,8 +144,8 @@ static void debug_action_bar_draw(
     const EcsEntityId newWindow = gap_window_create(world, GapWindowFlags_Default, g_newWindowSize);
     debug_menu_create(world, newWindow);
   }
-  ui_grid_next_row(canvas, &grid);
 
+  ui_table_next_row(canvas, &table);
   if (ui_button(
           canvas,
           .label    = ui_shape_scratch(UiShape_Logout),
@@ -151,7 +153,6 @@ static void debug_action_bar_draw(
           .tooltip  = g_tooltipWindowClose)) {
     gap_window_close(win);
   }
-  ui_grid_next_row(canvas, &grid);
 }
 
 ecs_system_define(DebugMenuUpdateSys) {
