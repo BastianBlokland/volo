@@ -25,12 +25,25 @@ static void ui_panel_update_drag_and_resize(
   const f32 halfMinWidthFrac  = panel->minSize.width * 0.5f * invCanvasWidth;
   const f32 halfHeightFrac    = panel->size.height * 0.5f * invCanvasHeight;
   const f32 halfMinHeightFrac = panel->minSize.height * 0.5f * invCanvasHeight;
-  const f32 topBarFrac        = (g_panelTopbarHeight + g_panelOutline) * invCanvasHeight;
 
   if (ui_canvas_elem_status(canvas, dragHandleId) == UiStatus_Pressed) {
     panel->position.x += inputDelta.x * invCanvasWidth;
     panel->position.y += inputDelta.y * invCanvasHeight;
   }
+
+  // Clamp the position to the canvas.
+  const f32 topBarFrac = (g_panelTopbarHeight + g_panelOutline) * invCanvasHeight;
+  if (panel->position.x >= 1 - halfWidthFrac) {
+    panel->position.x = 1 - halfWidthFrac;
+  } else if (panel->position.x <= halfWidthFrac) {
+    panel->position.x = halfWidthFrac;
+  }
+  if (panel->position.y <= halfHeightFrac) {
+    panel->position.y = halfHeightFrac;
+  } else if (panel->position.y >= 1 - halfHeightFrac - topBarFrac) {
+    panel->position.y = 1 - halfHeightFrac - topBarFrac;
+  }
+
   if (ui_canvas_elem_status(canvas, resizeHandleId) == UiStatus_Pressed) {
     // Apply the x resizing (clamped to the canvas).
     f32 xDeltaFrac = inputDelta.x * invCanvasWidth;
@@ -53,18 +66,6 @@ static void ui_panel_update_drag_and_resize(
     }
     panel->position.y += yDeltaFrac * 0.5f;
     panel->size.y -= yDeltaFrac * canvasRes.height;
-  }
-
-  // Clamp the position to the canvas.
-  if (panel->position.x >= 1 - halfWidthFrac) {
-    panel->position.x = 1 - halfWidthFrac;
-  } else if (panel->position.x <= halfWidthFrac) {
-    panel->position.x = halfWidthFrac;
-  }
-  if (panel->position.y <= halfHeightFrac) {
-    panel->position.y = halfHeightFrac;
-  } else if (panel->position.y >= 1 - halfHeightFrac - topBarFrac) {
-    panel->position.y = 1 - halfHeightFrac - topBarFrac;
   }
 }
 
