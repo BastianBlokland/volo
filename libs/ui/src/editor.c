@@ -550,7 +550,7 @@ void ui_editor_update(
     const UiBuildTextInfo textInfo) {
 
   diag_assert(editor->flags & UiEditorFlags_Active);
-  const bool       readonly   = (editor->flags & UiTextFilter_Readonly) != 0;
+  const bool       readonly   = (editor->filter & UiTextFilter_Readonly) != 0;
   const bool       isHovering = hover.id == editor->textElement;
   const bool       dragging   = gap_window_key_down(win, GapKey_MouseLeft) && !editor->click.repeat;
   const bool       firstUpdate = (editor->flags & UiEditorFlags_FirstUpdate) != 0;
