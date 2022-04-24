@@ -31,7 +31,8 @@ typedef enum {
 } UiInteractType;
 
 typedef enum {
-  UiTextFilter_DigitsOnly = 1 << 0,
+  UiTextFilter_Readonly   = 1 << 0,
+  UiTextFilter_DigitsOnly = 1 << 1,
 } UiTextFilter;
 
 typedef enum {
