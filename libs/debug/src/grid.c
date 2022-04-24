@@ -35,8 +35,8 @@ ecs_comp_define(DebugGridComp) {
 };
 
 ecs_comp_define(DebugGridPanelComp) {
-  UiPanelState state;
-  EcsEntityId  window;
+  UiPanel     panel;
+  EcsEntityId window;
 };
 
 ecs_view_define(GlobalAssetsView) { ecs_access_write(AssetManagerComp); }
@@ -118,9 +118,10 @@ ecs_system_define(DebugGridDrawSys) {
   }
 }
 
-static void grid_panel_draw(UiCanvasComp* canvas, DebugGridPanelComp* panel, DebugGridComp* grid) {
+static void
+grid_panel_draw(UiCanvasComp* canvas, DebugGridPanelComp* panelComp, DebugGridComp* grid) {
   const String title = fmt_write_scratch("{} Grid Settings", fmt_ui_shape(Grid4x4));
-  ui_panel_begin(canvas, &panel->state, .title = title);
+  ui_panel_begin(canvas, &panelComp->panel, .title = title);
 
   UiTable table = ui_table();
   ui_table_add_column(&table, UiTableColumn_Fixed, 100);
@@ -164,7 +165,7 @@ static void grid_panel_draw(UiCanvasComp* canvas, DebugGridPanelComp* panel, Deb
   ui_table_next_column(canvas, &table);
   ui_slider(canvas, &grid->fadeFraction, .tooltip = g_tooltipFade);
 
-  ui_panel_end(canvas, &panel->state);
+  ui_panel_end(canvas, &panelComp->panel);
 }
 
 ecs_system_define(DebugGridUpdatePanelSys) {
@@ -172,10 +173,10 @@ ecs_system_define(DebugGridUpdatePanelSys) {
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
-    DebugGridPanelComp* panel  = ecs_view_write_t(itr, DebugGridPanelComp);
-    UiCanvasComp*       canvas = ecs_view_write_t(itr, UiCanvasComp);
+    DebugGridPanelComp* panelComp = ecs_view_write_t(itr, DebugGridPanelComp);
+    UiCanvasComp*       canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
-    if (!ecs_view_maybe_jump(gridItr, panel->window)) {
+    if (!ecs_view_maybe_jump(gridItr, panelComp->window)) {
       // The window has been destroyed, this panel will be destroyed next frame.
       continue;
     }
@@ -183,9 +184,9 @@ ecs_system_define(DebugGridUpdatePanelSys) {
 
     ui_canvas_reset(canvas);
 
-    grid_panel_draw(canvas, panel, grid);
+    grid_panel_draw(canvas, panelComp, grid);
 
-    if (panel->state.flags & UiPanelFlags_Close) {
+    if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
     }
     if (ui_canvas_status(canvas) >= UiStatus_Pressed) {
@@ -220,7 +221,7 @@ EcsEntityId debug_grid_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugGridPanelComp,
-      .state  = ui_panel_init(ui_vector(330, 220)),
+      .panel  = ui_panel(ui_vector(330, 220)),
       .window = window);
   return panelEntity;
 }

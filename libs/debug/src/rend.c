@@ -30,8 +30,8 @@ static const String g_presentOptions[] = {
 };
 
 ecs_comp_define(DebugRendPanelComp) {
-  UiPanelState state;
-  EcsEntityId  window;
+  UiPanel     panel;
+  EcsEntityId window;
 };
 
 ecs_view_define(GlobalView) { ecs_access_write(RendGlobalSettingsComp); }
@@ -45,12 +45,12 @@ ecs_view_define(PanelUpdateView) {
 static void rend_panel_draw(
     EcsWorld*               world,
     UiCanvasComp*           canvas,
-    DebugRendPanelComp*     panel,
+    DebugRendPanelComp*     panelComp,
     RendSettingsComp*       settings,
     RendGlobalSettingsComp* globalSettings) {
 
   const String title = fmt_write_scratch("{} Renderer Settings", fmt_ui_shape(Brush));
-  ui_panel_begin(canvas, &panel->state, .title = title);
+  ui_panel_begin(canvas, &panelComp->panel, .title = title);
 
   UiTable table = ui_table();
   ui_table_add_column(&table, UiTableColumn_Fixed, 150);
@@ -124,7 +124,7 @@ static void rend_panel_draw(
     rend_reset(world);
   }
 
-  ui_panel_end(canvas, &panel->state);
+  ui_panel_end(canvas, &panelComp->panel);
 }
 
 ecs_system_define(DebugRendUpdatePanelSys) {
@@ -139,18 +139,18 @@ ecs_system_define(DebugRendUpdatePanelSys) {
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
-    DebugRendPanelComp* panel  = ecs_view_write_t(itr, DebugRendPanelComp);
-    UiCanvasComp*       canvas = ecs_view_write_t(itr, UiCanvasComp);
+    DebugRendPanelComp* panelComp = ecs_view_write_t(itr, DebugRendPanelComp);
+    UiCanvasComp*       canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
-    if (!ecs_view_maybe_jump(windowItr, panel->window)) {
+    if (!ecs_view_maybe_jump(windowItr, panelComp->window)) {
       continue; // Window has been destroyed, or has no render settings.
     }
     RendSettingsComp* settings = ecs_view_write_t(windowItr, RendSettingsComp);
 
     ui_canvas_reset(canvas);
-    rend_panel_draw(world, canvas, panel, settings, globalSettings);
+    rend_panel_draw(world, canvas, panelComp, settings, globalSettings);
 
-    if (panel->state.flags & UiPanelFlags_Close) {
+    if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
     }
     if (ui_canvas_status(canvas) >= UiStatus_Pressed) {
@@ -179,7 +179,7 @@ EcsEntityId debug_rend_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugRendPanelComp,
-      .state  = ui_panel_init(ui_vector(330, 255)),
+      .panel  = ui_panel(ui_vector(330, 255)),
       .window = window);
   return panelEntity;
 }

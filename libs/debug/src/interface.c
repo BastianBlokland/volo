@@ -46,7 +46,7 @@ typedef enum {
 } DebugInterfaceFlags;
 
 ecs_comp_define(DebugInterfacePanelComp) {
-  UiPanelState        state;
+  UiPanel             panel;
   EcsEntityId         window;
   DebugInterfaceFlags flags;
   f32                 newScale;
@@ -87,28 +87,29 @@ static EcsEntityId debug_ftx_draw_create(
 }
 
 static void interface_panel_draw(
-    UiCanvasComp* canvas, DebugInterfacePanelComp* panel, UiSettingsComp* settings) {
+    UiCanvasComp* canvas, DebugInterfacePanelComp* panelComp, UiSettingsComp* settings) {
 
   const String title = fmt_write_scratch("{} Interface Settings", fmt_ui_shape(FormatShapes));
-  ui_panel_begin(canvas, &panel->state, .title = title);
+  ui_panel_begin(canvas, &panelComp->panel, .title = title);
 
   UiTable table = ui_table();
   ui_table_add_column(&table, UiTableColumn_Fixed, 150);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   bool dirty = false;
-  dirty |= panel->newScale != settings->scale;
+  dirty |= panelComp->newScale != settings->scale;
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Scale factor"));
   ui_table_next_column(canvas, &table);
-  ui_slider(canvas, &panel->newScale, .min = 0.5, .max = 2, .tooltip = g_tooltipScale);
+  ui_slider(canvas, &panelComp->newScale, .min = 0.5, .max = 2, .tooltip = g_tooltipScale);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Default color"));
   ui_table_next_column(canvas, &table);
-  ui_select(canvas, &panel->defaultColorIndex, g_defaultColorNames, array_elems(g_defaultColors));
-  settings->defaultColor = g_defaultColors[panel->defaultColorIndex];
+  ui_select(
+      canvas, &panelComp->defaultColorIndex, g_defaultColorNames, array_elems(g_defaultColors));
+  settings->defaultColor = g_defaultColors[panelComp->defaultColorIndex];
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug inspector"));
@@ -129,17 +130,17 @@ static void interface_panel_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug Ftx"));
   ui_table_next_column(canvas, &table);
-  bool debugFtx = (panel->flags & DebugInterfaceFlags_DrawFtx) != 0;
+  bool debugFtx = (panelComp->flags & DebugInterfaceFlags_DrawFtx) != 0;
   if (ui_toggle(canvas, &debugFtx, .tooltip = g_tooltipDebugFtx)) {
-    panel->flags ^= DebugInterfaceFlags_DrawFtx;
+    panelComp->flags ^= DebugInterfaceFlags_DrawFtx;
   }
 
   ui_table_next_row(canvas, &table);
   if (ui_button(canvas, .label = string_lit("Defaults"), .tooltip = g_tooltipDefaults)) {
     ui_settings_to_default(settings);
-    panel->flags             = 0;
-    panel->newScale          = settings->scale;
-    panel->defaultColorIndex = 0;
+    panelComp->flags             = 0;
+    panelComp->newScale          = settings->scale;
+    panelComp->defaultColorIndex = 0;
   }
   ui_table_next_column(canvas, &table);
   if (ui_button(
@@ -148,10 +149,10 @@ static void interface_panel_draw(
           .frameColor = dirty ? ui_color(0, 178, 0, 192) : ui_color(32, 32, 32, 192),
           .flags      = dirty ? 0 : UiWidget_Disabled,
           .tooltip    = g_tooltipApply)) {
-    settings->scale = panel->newScale;
+    settings->scale = panelComp->newScale;
   }
 
-  ui_panel_end(canvas, &panel->state);
+  ui_panel_end(canvas, &panelComp->panel);
 }
 
 ecs_system_define(DebugInterfaceUpdatePanelSys) {
@@ -164,32 +165,32 @@ ecs_system_define(DebugInterfaceUpdatePanelSys) {
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
-    const EcsEntityId        entity = ecs_view_entity(itr);
-    DebugInterfacePanelComp* panel  = ecs_view_write_t(itr, DebugInterfacePanelComp);
-    UiCanvasComp*            canvas = ecs_view_write_t(itr, UiCanvasComp);
+    const EcsEntityId        entity    = ecs_view_entity(itr);
+    DebugInterfacePanelComp* panelComp = ecs_view_write_t(itr, DebugInterfacePanelComp);
+    UiCanvasComp*            canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
-    if (!ecs_view_maybe_jump(windowItr, panel->window)) {
+    if (!ecs_view_maybe_jump(windowItr, panelComp->window)) {
       continue; // Window has been destroyed, or has no ui settings.
     }
     UiSettingsComp* settings = ecs_view_write_t(windowItr, UiSettingsComp);
 
-    if (panel->newScale == 0) {
-      panel->newScale = settings->scale;
+    if (panelComp->newScale == 0) {
+      panelComp->newScale = settings->scale;
     }
 
     ui_canvas_reset(canvas);
-    interface_panel_draw(canvas, panel, settings);
+    interface_panel_draw(canvas, panelComp, settings);
 
-    if (panel->flags & DebugInterfaceFlags_DrawFtx && !panel->debugFtxDraw) {
-      panel->debugFtxDraw = debug_ftx_draw_create(world, assets, entity, panel->window);
+    if (panelComp->flags & DebugInterfaceFlags_DrawFtx && !panelComp->debugFtxDraw) {
+      panelComp->debugFtxDraw = debug_ftx_draw_create(world, assets, entity, panelComp->window);
     }
-    if (panel->debugFtxDraw && ui_canvas_input_any(canvas)) {
-      ecs_world_entity_destroy(world, panel->debugFtxDraw);
-      panel->flags &= ~DebugInterfaceFlags_DrawFtx;
-      panel->debugFtxDraw = 0;
+    if (panelComp->debugFtxDraw && ui_canvas_input_any(canvas)) {
+      ecs_world_entity_destroy(world, panelComp->debugFtxDraw);
+      panelComp->flags &= ~DebugInterfaceFlags_DrawFtx;
+      panelComp->debugFtxDraw = 0;
     }
 
-    if (panel->state.flags & UiPanelFlags_Close) {
+    if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, entity);
     }
     if (ui_canvas_status(canvas) >= UiStatus_Pressed) {
@@ -218,7 +219,7 @@ EcsEntityId debug_interface_panel_open(EcsWorld* world, const EcsEntityId window
       world,
       panelEntity,
       DebugInterfacePanelComp,
-      .state  = ui_panel_init(ui_vector(330, 220)),
+      .panel  = ui_panel(ui_vector(330, 220)),
       .window = window);
   return panelEntity;
 }

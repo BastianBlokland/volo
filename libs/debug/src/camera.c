@@ -25,8 +25,8 @@ static const String g_projectionNames[] = {
 };
 
 ecs_comp_define(DebugCameraPanelComp) {
-  UiPanelState state;
-  EcsEntityId  window;
+  UiPanel     panel;
+  EcsEntityId window;
 };
 
 ecs_view_define(PanelUpdateView) {
@@ -115,12 +115,12 @@ camera_panel_draw_filters(UiCanvasComp* canvas, UiTable* table, SceneCameraComp*
 
 static void camera_panel_draw(
     UiCanvasComp*            canvas,
-    DebugCameraPanelComp*    panel,
+    DebugCameraPanelComp*    panelComp,
     SceneCameraComp*         camera,
     SceneCameraMovementComp* cameraMovement,
     SceneTransformComp*      transform) {
   const String title = fmt_write_scratch("{} Camera Settings", fmt_ui_shape(PhotoCamera));
-  ui_panel_begin(canvas, &panel->state, .title = title);
+  ui_panel_begin(canvas, &panelComp->panel, .title = title);
 
   UiTable table = ui_table();
   ui_table_add_column(&table, UiTableColumn_Fixed, 150);
@@ -175,7 +175,7 @@ static void camera_panel_draw(
     }
   }
 
-  ui_panel_end(canvas, &panel->state);
+  ui_panel_end(canvas, &panelComp->panel);
 }
 
 ecs_system_define(DebugCameraUpdatePanelSys) {
@@ -183,10 +183,10 @@ ecs_system_define(DebugCameraUpdatePanelSys) {
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
-    DebugCameraPanelComp* panel  = ecs_view_write_t(itr, DebugCameraPanelComp);
-    UiCanvasComp*         canvas = ecs_view_write_t(itr, UiCanvasComp);
+    DebugCameraPanelComp* panelComp = ecs_view_write_t(itr, DebugCameraPanelComp);
+    UiCanvasComp*         canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
-    if (!ecs_view_maybe_jump(windowItr, panel->window)) {
+    if (!ecs_view_maybe_jump(windowItr, panelComp->window)) {
       continue; // Window has been destroyed, or has no camera.
     }
     SceneCameraComp*         camera         = ecs_view_write_t(windowItr, SceneCameraComp);
@@ -195,9 +195,9 @@ ecs_system_define(DebugCameraUpdatePanelSys) {
     SceneTransformComp* transform = ecs_view_write_t(windowItr, SceneTransformComp);
 
     ui_canvas_reset(canvas);
-    camera_panel_draw(canvas, panel, camera, cameraMovement, transform);
+    camera_panel_draw(canvas, panelComp, camera, cameraMovement, transform);
 
-    if (panel->state.flags & UiPanelFlags_Close) {
+    if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
     }
     if (ui_canvas_status(canvas) >= UiStatus_Pressed) {
@@ -222,7 +222,7 @@ EcsEntityId debug_camera_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugCameraPanelComp,
-      .state  = ui_panel_init(ui_vector(330, 290)),
+      .panel  = ui_panel(ui_vector(330, 290)),
       .window = window);
   return panelEntity;
 }

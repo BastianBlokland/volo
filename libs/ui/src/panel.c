@@ -11,7 +11,7 @@ static const f32 g_panelTopbarHeight = 23;
 static const u32 g_panelOutline      = 3;
 
 static void ui_panel_update_drag_and_resize(
-    UiCanvasComp* canvas, UiPanelState* state, const UiId dragHandleId, const UiId resizeHandleId) {
+    UiCanvasComp* canvas, UiPanel* panel, const UiId dragHandleId, const UiId resizeHandleId) {
   const UiVector canvasRes = ui_canvas_resolution(canvas);
   if (UNLIKELY(canvasRes.x <= 0 || canvasRes.y <= 0)) {
     return;
@@ -21,57 +21,50 @@ static void ui_panel_update_drag_and_resize(
   const f32      invCanvasWidth  = 1.0f / canvasRes.width;
   const f32      invCanvasHeight = 1.0f / canvasRes.height;
 
-  if (state->flags & UiPanelFlags_Center) {
-    state->position.x = 0.5f;
-    state->position.y = 0.5f;
-    state->flags &= ~UiPanelFlags_Center;
-    return;
-  }
-
-  const f32 halfWidthFrac     = state->size.width * 0.5f * invCanvasWidth;
-  const f32 halfMinWidthFrac  = state->minSize.width * 0.5f * invCanvasWidth;
-  const f32 halfHeightFrac    = state->size.height * 0.5f * invCanvasHeight;
-  const f32 halfMinHeightFrac = state->minSize.height * 0.5f * invCanvasHeight;
+  const f32 halfWidthFrac     = panel->size.width * 0.5f * invCanvasWidth;
+  const f32 halfMinWidthFrac  = panel->minSize.width * 0.5f * invCanvasWidth;
+  const f32 halfHeightFrac    = panel->size.height * 0.5f * invCanvasHeight;
+  const f32 halfMinHeightFrac = panel->minSize.height * 0.5f * invCanvasHeight;
   const f32 topBarFrac        = (g_panelTopbarHeight + g_panelOutline) * invCanvasHeight;
 
   if (ui_canvas_elem_status(canvas, dragHandleId) == UiStatus_Pressed) {
-    state->position.x += inputDelta.x * invCanvasWidth;
-    state->position.y += inputDelta.y * invCanvasHeight;
+    panel->position.x += inputDelta.x * invCanvasWidth;
+    panel->position.y += inputDelta.y * invCanvasHeight;
   }
   if (ui_canvas_elem_status(canvas, resizeHandleId) == UiStatus_Pressed) {
     // Apply the x resizing (clamped to the canvas).
     f32 xDeltaFrac = inputDelta.x * invCanvasWidth;
-    if (state->position.x + halfWidthFrac + xDeltaFrac > 1) {
-      xDeltaFrac += 1 - (state->position.x + halfWidthFrac + xDeltaFrac);
+    if (panel->position.x + halfWidthFrac + xDeltaFrac > 1) {
+      xDeltaFrac += 1 - (panel->position.x + halfWidthFrac + xDeltaFrac);
     }
     if (halfWidthFrac + xDeltaFrac < halfMinWidthFrac) {
       xDeltaFrac += halfMinWidthFrac - (halfWidthFrac + xDeltaFrac);
     }
-    state->position.x += xDeltaFrac * 0.5f;
-    state->size.x += xDeltaFrac * canvasRes.width;
+    panel->position.x += xDeltaFrac * 0.5f;
+    panel->size.x += xDeltaFrac * canvasRes.width;
 
     // Apply the y resizing (clamped to the canvas).
     f32 yDeltaFrac = inputDelta.y * invCanvasHeight;
-    if (state->position.y - halfHeightFrac + yDeltaFrac < 0) {
-      yDeltaFrac -= state->position.y - halfHeightFrac + yDeltaFrac;
+    if (panel->position.y - halfHeightFrac + yDeltaFrac < 0) {
+      yDeltaFrac -= panel->position.y - halfHeightFrac + yDeltaFrac;
     }
     if (halfHeightFrac - yDeltaFrac < halfMinHeightFrac) {
       yDeltaFrac -= halfMinHeightFrac - (halfHeightFrac - yDeltaFrac);
     }
-    state->position.y += yDeltaFrac * 0.5f;
-    state->size.y -= yDeltaFrac * canvasRes.height;
+    panel->position.y += yDeltaFrac * 0.5f;
+    panel->size.y -= yDeltaFrac * canvasRes.height;
   }
 
   // Clamp the position to the canvas.
-  if (state->position.x >= 1 - halfWidthFrac) {
-    state->position.x = 1 - halfWidthFrac;
-  } else if (state->position.x <= halfWidthFrac) {
-    state->position.x = halfWidthFrac;
+  if (panel->position.x >= 1 - halfWidthFrac) {
+    panel->position.x = 1 - halfWidthFrac;
+  } else if (panel->position.x <= halfWidthFrac) {
+    panel->position.x = halfWidthFrac;
   }
-  if (state->position.y <= halfHeightFrac) {
-    state->position.y = halfHeightFrac;
-  } else if (state->position.y >= 1 - halfHeightFrac - topBarFrac) {
-    state->position.y = 1 - halfHeightFrac - topBarFrac;
+  if (panel->position.y <= halfHeightFrac) {
+    panel->position.y = halfHeightFrac;
+  } else if (panel->position.y >= 1 - halfHeightFrac - topBarFrac) {
+    panel->position.y = 1 - halfHeightFrac - topBarFrac;
   }
 }
 
@@ -84,7 +77,7 @@ static void ui_panel_topbar_title(UiCanvasComp* canvas, const UiPanelOpts* opts)
   ui_layout_pop(canvas);
 }
 
-static void ui_panel_topbar_close_button(UiCanvasComp* canvas, UiPanelState* state) {
+static void ui_panel_topbar_close_button(UiCanvasComp* canvas, UiPanel* panel) {
   ui_layout_push(canvas);
   ui_style_push(canvas);
 
@@ -92,7 +85,7 @@ static void ui_panel_topbar_close_button(UiCanvasComp* canvas, UiPanelState* sta
   const UiStatus status = ui_canvas_elem_status(canvas, id);
 
   if (status == UiStatus_Activated) {
-    state->flags |= UiPanelFlags_Close;
+    panel->flags |= UiPanelFlags_Close;
   }
   if (status >= UiStatus_Hovered) {
     ui_canvas_interact_type(canvas, UiInteractType_Action);
@@ -148,7 +141,7 @@ static void ui_panel_topbar_background(UiCanvasComp* canvas) {
   ui_style_pop(canvas);
 }
 
-static void ui_panel_topbar(UiCanvasComp* canvas, UiPanelState* state, const UiPanelOpts* opts) {
+static void ui_panel_topbar(UiCanvasComp* canvas, UiPanel* panel, const UiPanelOpts* opts) {
   ui_layout_push(canvas);
 
   ui_layout_move_dir(canvas, Ui_Up, 1, UiBase_Current);
@@ -158,7 +151,7 @@ static void ui_panel_topbar(UiCanvasComp* canvas, UiPanelState* state, const UiP
 
   ui_panel_topbar_background(canvas);
   ui_panel_topbar_title(canvas, opts);
-  ui_panel_topbar_close_button(canvas, state);
+  ui_panel_topbar_close_button(canvas, panel);
 
   ui_layout_pop(canvas);
 }
@@ -188,35 +181,27 @@ static void ui_panel_resize_handle(UiCanvasComp* canvas) {
   }
 }
 
-UiPanelState ui_panel_init(const UiVector size) {
-  return (UiPanelState){
-      .flags   = UiPanelFlags_Center,
-      .size    = size,
-      .minSize = ui_vector(100, 100),
-  };
-}
-
-void ui_panel_begin_with_opts(UiCanvasComp* canvas, UiPanelState* state, const UiPanelOpts* opts) {
-  diag_assert_msg(!(state->flags & UiPanelFlags_Drawing), "The given panel is already being drawn");
-  state->flags |= UiPanelFlags_Drawing;
+void ui_panel_begin_with_opts(UiCanvasComp* canvas, UiPanel* panel, const UiPanelOpts* opts) {
+  diag_assert_msg(!(panel->flags & UiPanelFlags_Drawing), "The given panel is already being drawn");
+  panel->flags |= UiPanelFlags_Drawing;
 
   const UiId resizeHandleId = ui_canvas_id_peek(canvas);
   const UiId dragHandleId   = resizeHandleId + 1;
-  ui_panel_update_drag_and_resize(canvas, state, dragHandleId, resizeHandleId);
+  ui_panel_update_drag_and_resize(canvas, panel, dragHandleId, resizeHandleId);
 
-  ui_layout_move(canvas, state->position, UiBase_Canvas, Ui_XY);
-  ui_layout_resize(canvas, UiAlign_MiddleCenter, state->size, UiBase_Absolute, Ui_XY);
+  ui_layout_move(canvas, panel->position, UiBase_Canvas, Ui_XY);
+  ui_layout_resize(canvas, UiAlign_MiddleCenter, panel->size, UiBase_Absolute, Ui_XY);
 
   ui_panel_resize_handle(canvas);
-  ui_panel_topbar(canvas, state, opts);
+  ui_panel_topbar(canvas, panel, opts);
   ui_panel_background(canvas);
 
   ui_layout_container_push(canvas);
 }
 
-void ui_panel_end(UiCanvasComp* canvas, UiPanelState* state) {
-  diag_assert_msg(state->flags & UiPanelFlags_Drawing, "The given panel is not being drawn");
-  state->flags &= ~UiPanelFlags_Drawing;
+void ui_panel_end(UiCanvasComp* canvas, UiPanel* panel) {
+  diag_assert_msg(panel->flags & UiPanelFlags_Drawing, "The given panel is not being drawn");
+  panel->flags &= ~UiPanelFlags_Drawing;
 
   ui_layout_container_pop(canvas);
 }
