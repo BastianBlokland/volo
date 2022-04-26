@@ -3,6 +3,7 @@
 #include "core_unicode.h"
 
 #define UI_SHAPES                                                                                  \
+  X(0x0020, Empty)                                                                                 \
   X(0xF000, Square)                                                                                \
   X(0xF001, Circle)                                                                                \
   X(0xF002, CursorVertialBar)                                                                      \

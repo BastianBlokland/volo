@@ -173,8 +173,7 @@ static void ui_panel_resize_handle(UiCanvasComp* canvas) {
   ui_layout_push(canvas);
   ui_style_push(canvas);
   ui_layout_inner(canvas, UiBase_Current, UiAlign_BottomRight, ui_vector(25, 25), UiBase_Absolute);
-  ui_style_layer(canvas, UiLayer_Invisible);
-  const UiId handleId = ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_Interactable);
+  const UiId handleId = ui_canvas_draw_glyph(canvas, UiShape_Empty, 0, UiFlags_Interactable);
   ui_layout_pop(canvas);
   ui_style_pop(canvas);
 
