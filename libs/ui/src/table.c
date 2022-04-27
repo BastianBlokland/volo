@@ -1,5 +1,8 @@
 #include "core_diag.h"
+#include "ui_canvas.h"
 #include "ui_layout.h"
+#include "ui_shape.h"
+#include "ui_style.h"
 #include "ui_table.h"
 
 static UiDir ui_table_column_dir(const UiAlign align) {
@@ -136,4 +139,22 @@ void ui_table_next_column(UiCanvasComp* canvas, UiTable* table) {
     ui_layout_grow(canvas, table->align, ui_vector(-table->spacing.x, 0), UiBase_Absolute, Ui_X);
   } break;
   }
+}
+
+void ui_table_draw_row_bg(UiCanvasComp* canvas, const UiTable* table) {
+  ui_layout_push(canvas);
+
+  const UiAlign endAlign = ui_table_align_opposite(table->align);
+  ui_layout_move_to(canvas, table->parent, table->align, Ui_X);
+  ui_layout_resize_to(canvas, table->parent, endAlign, Ui_X);
+  ui_layout_grow(
+      canvas, UiAlign_MiddleCenter, ui_vector(0, table->spacing.y), UiBase_Absolute, Ui_Y);
+
+  ui_style_push(canvas);
+  ui_style_color(canvas, ui_color(48, 48, 48, 192));
+  ui_style_outline(canvas, 1);
+  ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_None);
+  ui_style_pop(canvas);
+
+  ui_layout_pop(canvas);
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include "ecs_module.h"
+#include "ui_color.h"
 #include "ui_rect.h"
 #include "ui_units.h"
 
@@ -70,3 +71,8 @@ void ui_table_next_row(UiCanvasComp*, UiTable*);
  * Pre-condition: ui_table_active()
  */
 void ui_table_next_column(UiCanvasComp*, UiTable*);
+
+/**
+ * Draw a background for the current row.
+ */
+void ui_table_draw_row_bg(UiCanvasComp*, const UiTable*);
