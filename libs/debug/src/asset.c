@@ -10,6 +10,7 @@ typedef enum {
   DebugAssetStatus_Changed,
   DebugAssetStatus_LoadedUnreferenced,
   DebugAssetStatus_LoadedReferenced,
+  DebugAssetStatus_Loading,
   DebugAssetStatus_Failed,
 } DebugAssetStatus;
 
@@ -59,6 +60,8 @@ static void asset_info_query(DebugAssetPanelComp* panelComp, EcsWorld* world) {
     DebugAssetStatus status;
     if (ecs_world_has_t(world, entity, AssetFailedComp)) {
       status = DebugAssetStatus_Failed;
+    } else if (asset_is_loading(assetComp)) {
+      status = DebugAssetStatus_Loading;
     } else if (ecs_world_has_t(world, entity, AssetLoadedComp)) {
       status = asset_ref_count(assetComp) ? DebugAssetStatus_LoadedReferenced
                                           : DebugAssetStatus_LoadedUnreferenced;
@@ -88,6 +91,8 @@ static UiColor asset_info_bg_color(const DebugAssetInfo* asset) {
     return ui_color(16, 64, 16, 192);
   case DebugAssetStatus_LoadedUnreferenced:
     return ui_color(16, 16, 64, 192);
+  case DebugAssetStatus_Loading:
+    return ui_color(16, 64, 64, 192);
   case DebugAssetStatus_Failed:
     return ui_color(64, 16, 16, 192);
   }
