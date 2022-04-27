@@ -17,7 +17,7 @@ typedef enum {
 typedef struct {
   String           id;
   DebugAssetStatus status;
-  u32              refCount;
+  u32              refCount, loadCount;
 } DebugAssetInfo;
 
 ecs_comp_define(DebugAssetPanelComp) {
@@ -72,9 +72,10 @@ static void asset_info_query(DebugAssetPanelComp* panelComp, EcsWorld* world) {
     }
 
     *dynarray_push_t(&panelComp->assets, DebugAssetInfo) = (DebugAssetInfo){
-        .id       = asset_id(assetComp),
-        .status   = status,
-        .refCount = asset_ref_count(assetComp),
+        .id        = asset_id(assetComp),
+        .status    = status,
+        .refCount  = asset_ref_count(assetComp),
+        .loadCount = asset_load_count(assetComp),
     };
   }
 
@@ -106,6 +107,7 @@ static void asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelCom
   UiTable table = ui_table(.spacing = ui_vector(5, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 350);
   ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
 
   const u32 numAssets = (u32)panelComp->assets.size;
   ui_scrollview_begin(canvas, &panelComp->scrollview, ui_table_height(&table, numAssets));
@@ -119,6 +121,8 @@ static void asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelCom
     if (asset->refCount) {
       ui_label(canvas, fmt_write_scratch("refs: {}", fmt_int(asset->refCount)));
     }
+    ui_table_next_column(canvas, &table);
+    ui_label(canvas, fmt_write_scratch("loads: {}", fmt_int(asset->loadCount)));
   }
 
   ui_scrollview_end(canvas, &panelComp->scrollview);
@@ -162,7 +166,7 @@ EcsEntityId debug_asset_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugAssetPanelComp,
-      .panel      = ui_panel(ui_vector(500, 400)),
+      .panel      = ui_panel(ui_vector(600, 400)),
       .scrollview = ui_scrollview(),
       .assets     = dynarray_create_t(g_alloc_heap, DebugAssetInfo, 256));
   return panelEntity;

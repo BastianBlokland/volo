@@ -46,6 +46,7 @@ ecs_comp_define(AssetComp) {
   u32        refCount;
   u32        unloadTicks;
   AssetFlags flags;
+  u32        loadCount; // NOTE: Only used for debug purposes.
 };
 
 ecs_comp_define(AssetLoadedComp);
@@ -155,6 +156,8 @@ static bool asset_manager_load(
   if (manager->flags & AssetManagerFlags_TrackChanges) {
     asset_repo_changes_watch(manager->repo, asset->id, (u64)assetEntity);
   }
+
+  ++asset->loadCount;
 
   log_d(
       "Asset load started",
@@ -403,6 +406,8 @@ void asset_release(EcsWorld* world, const EcsEntityId asset) {
 }
 
 u32 asset_ref_count(const AssetComp* asset) { return asset->refCount; }
+
+u32 asset_load_count(const AssetComp* asset) { return asset->loadCount; }
 
 bool asset_is_loading(const AssetComp* asset) { return (asset->flags & AssetFlags_Loading) != 0; }
 
