@@ -402,6 +402,8 @@ void asset_release(EcsWorld* world, const EcsEntityId asset) {
   ecs_world_add_t(world, asset, AssetDirtyComp, .numRelease = 1);
 }
 
+u32 asset_ref_count(const AssetComp* asset) { return asset->refCount; }
+
 void asset_register_dep(EcsWorld* world, EcsEntityId asset, const EcsEntityId dependency) {
   diag_assert(asset);
   diag_assert(dependency);

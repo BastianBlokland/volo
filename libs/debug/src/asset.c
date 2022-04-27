@@ -8,13 +8,15 @@
 typedef enum {
   DebugAssetStatus_Idle,
   DebugAssetStatus_Changed,
-  DebugAssetStatus_Loaded,
+  DebugAssetStatus_LoadedUnreferenced,
+  DebugAssetStatus_LoadedReferenced,
   DebugAssetStatus_Failed,
 } DebugAssetStatus;
 
 typedef struct {
   String           id;
   DebugAssetStatus status;
+  u32              refCount;
 } DebugAssetInfo;
 
 ecs_comp_define(DebugAssetPanelComp) {
@@ -58,7 +60,8 @@ static void asset_info_query(DebugAssetPanelComp* panelComp, EcsWorld* world) {
     if (ecs_world_has_t(world, entity, AssetFailedComp)) {
       status = DebugAssetStatus_Failed;
     } else if (ecs_world_has_t(world, entity, AssetLoadedComp)) {
-      status = DebugAssetStatus_Loaded;
+      status = asset_ref_count(assetComp) ? DebugAssetStatus_LoadedReferenced
+                                          : DebugAssetStatus_LoadedUnreferenced;
     } else if (ecs_world_has_t(world, entity, AssetChangedComp)) {
       status = DebugAssetStatus_Changed;
     } else {
@@ -66,8 +69,9 @@ static void asset_info_query(DebugAssetPanelComp* panelComp, EcsWorld* world) {
     }
 
     *dynarray_push_t(&panelComp->assets, DebugAssetInfo) = (DebugAssetInfo){
-        .id     = asset_id(assetComp),
-        .status = status,
+        .id       = asset_id(assetComp),
+        .status   = status,
+        .refCount = asset_ref_count(assetComp),
     };
   }
 
@@ -80,8 +84,10 @@ static UiColor asset_info_bg_color(const DebugAssetInfo* asset) {
     return ui_color(48, 48, 48, 192);
   case DebugAssetStatus_Changed:
     return ui_color(48, 48, 16, 192);
-  case DebugAssetStatus_Loaded:
+  case DebugAssetStatus_LoadedReferenced:
     return ui_color(16, 64, 16, 192);
+  case DebugAssetStatus_LoadedUnreferenced:
+    return ui_color(16, 16, 64, 192);
   case DebugAssetStatus_Failed:
     return ui_color(64, 16, 16, 192);
   }
@@ -93,7 +99,8 @@ static void asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelCom
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
 
   UiTable table = ui_table(.spacing = ui_vector(5, 5));
-  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 350);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
 
   const u32 numAssets = (u32)panelComp->assets.size;
   ui_scrollview_begin(canvas, &panelComp->scrollview, ui_table_height(&table, numAssets));
@@ -103,6 +110,10 @@ static void asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelCom
     ui_table_draw_row_bg(canvas, &table, asset_info_bg_color(asset));
 
     ui_label(canvas, asset->id);
+    ui_table_next_column(canvas, &table);
+    if (asset->refCount) {
+      ui_label(canvas, fmt_write_scratch("refs: {}", fmt_int(asset->refCount)));
+    }
   }
 
   ui_scrollview_end(canvas, &panelComp->scrollview);
