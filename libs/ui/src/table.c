@@ -141,7 +141,7 @@ void ui_table_next_column(UiCanvasComp* canvas, UiTable* table) {
   }
 }
 
-void ui_table_draw_row_bg(UiCanvasComp* canvas, const UiTable* table) {
+void ui_table_draw_row_bg(UiCanvasComp* canvas, const UiTable* table, const UiColor color) {
   ui_layout_push(canvas);
 
   const UiAlign endAlign = ui_table_align_opposite(table->align);
@@ -151,7 +151,7 @@ void ui_table_draw_row_bg(UiCanvasComp* canvas, const UiTable* table) {
       canvas, UiAlign_MiddleCenter, ui_vector(0, table->spacing.y), UiBase_Absolute, Ui_Y);
 
   ui_style_push(canvas);
-  ui_style_color(canvas, ui_color(48, 48, 48, 192));
+  ui_style_color_with_mult(canvas, color, table->row % 2 ? 0.85f : 1.0f);
   ui_style_outline(canvas, 1);
   ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_None);
   ui_style_pop(canvas);

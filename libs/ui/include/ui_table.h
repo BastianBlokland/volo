@@ -75,4 +75,4 @@ void ui_table_next_column(UiCanvasComp*, UiTable*);
 /**
  * Draw a background for the current row.
  */
-void ui_table_draw_row_bg(UiCanvasComp*, const UiTable*);
+void ui_table_draw_row_bg(UiCanvasComp*, const UiTable*, UiColor color);

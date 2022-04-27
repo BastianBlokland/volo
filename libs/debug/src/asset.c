@@ -1,11 +1,18 @@
 #include "asset_manager.h"
 #include "core_alloc.h"
+#include "core_diag.h"
 #include "debug_asset.h"
 #include "ecs_world.h"
 #include "ui.h"
 
+typedef enum {
+  DebugAssetStatus_Unloaded,
+  DebugAssetStatus_Loaded,
+} DebugAssetStatus;
+
 typedef struct {
-  String id;
+  String           id;
+  DebugAssetStatus status;
 } DebugAssetInfo;
 
 ecs_comp_define(DebugAssetPanelComp) {
@@ -20,7 +27,14 @@ static void ecs_destruct_asset_panel(void* data) {
 }
 
 static i8 compare_asset_info(const void* a, const void* b) {
-  return compare_string(field_ptr(a, DebugAssetInfo, id), field_ptr(b, DebugAssetInfo, id));
+  const DebugAssetInfo* assetA = a;
+  const DebugAssetInfo* assetB = b;
+
+  i8 statusOrder = compare_u32_reverse(&assetA->status, &assetB->status);
+  if (!statusOrder) {
+    statusOrder = compare_string(&assetA->id, &assetB->id);
+  }
+  return statusOrder;
 }
 
 ecs_view_define(AssetView) { ecs_access_read(AssetComp); }
@@ -35,13 +49,33 @@ static void asset_info_query(DebugAssetPanelComp* panelComp, EcsWorld* world) {
 
   EcsView* assetView = ecs_world_view_t(world, AssetView);
   for (EcsIterator* itr = ecs_view_itr(assetView); ecs_view_walk(itr);) {
-    const AssetComp* assetComp                           = ecs_view_read_t(itr, AssetComp);
+    const EcsEntityId entity    = ecs_view_entity(itr);
+    const AssetComp*  assetComp = ecs_view_read_t(itr, AssetComp);
+
+    DebugAssetStatus status;
+    if (ecs_world_has_t(world, entity, AssetLoadedComp)) {
+      status = DebugAssetStatus_Loaded;
+    } else {
+      status = DebugAssetStatus_Unloaded;
+    }
+
     *dynarray_push_t(&panelComp->assets, DebugAssetInfo) = (DebugAssetInfo){
-        .id = asset_id(assetComp),
+        .id     = asset_id(assetComp),
+        .status = status,
     };
   }
 
   dynarray_sort(&panelComp->assets, compare_asset_info);
+}
+
+static UiColor asset_info_bg_color(const DebugAssetInfo* asset) {
+  switch (asset->status) {
+  case DebugAssetStatus_Unloaded:
+    return ui_color(48, 48, 48, 192);
+  case DebugAssetStatus_Loaded:
+    return ui_color(16, 64, 16, 192);
+  }
+  diag_crash();
 }
 
 static void asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelComp) {
@@ -54,13 +88,11 @@ static void asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelCom
   const u32 numAssets = (u32)panelComp->assets.size;
   ui_scrollview_begin(canvas, &panelComp->scrollview, ui_table_height(&table, numAssets));
 
-  for (u32 i = 0; i != numAssets; ++i) {
-    const DebugAssetInfo* info = dynarray_at_t(&panelComp->assets, i, DebugAssetInfo);
+  dynarray_for_t(&panelComp->assets, DebugAssetInfo, asset) {
     ui_table_next_row(canvas, &table);
-    if (i % 2) {
-      ui_table_draw_row_bg(canvas, &table);
-    }
-    ui_label(canvas, info->id);
+    ui_table_draw_row_bg(canvas, &table, asset_info_bg_color(asset));
+
+    ui_label(canvas, asset->id);
   }
 
   ui_scrollview_end(canvas, &panelComp->scrollview);
