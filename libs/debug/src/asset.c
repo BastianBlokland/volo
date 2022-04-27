@@ -6,8 +6,10 @@
 #include "ui.h"
 
 typedef enum {
-  DebugAssetStatus_Unloaded,
+  DebugAssetStatus_Idle,
+  DebugAssetStatus_Changed,
   DebugAssetStatus_Loaded,
+  DebugAssetStatus_Failed,
 } DebugAssetStatus;
 
 typedef struct {
@@ -53,10 +55,14 @@ static void asset_info_query(DebugAssetPanelComp* panelComp, EcsWorld* world) {
     const AssetComp*  assetComp = ecs_view_read_t(itr, AssetComp);
 
     DebugAssetStatus status;
-    if (ecs_world_has_t(world, entity, AssetLoadedComp)) {
+    if (ecs_world_has_t(world, entity, AssetFailedComp)) {
+      status = DebugAssetStatus_Failed;
+    } else if (ecs_world_has_t(world, entity, AssetLoadedComp)) {
       status = DebugAssetStatus_Loaded;
+    } else if (ecs_world_has_t(world, entity, AssetChangedComp)) {
+      status = DebugAssetStatus_Changed;
     } else {
-      status = DebugAssetStatus_Unloaded;
+      status = DebugAssetStatus_Idle;
     }
 
     *dynarray_push_t(&panelComp->assets, DebugAssetInfo) = (DebugAssetInfo){
@@ -70,10 +76,14 @@ static void asset_info_query(DebugAssetPanelComp* panelComp, EcsWorld* world) {
 
 static UiColor asset_info_bg_color(const DebugAssetInfo* asset) {
   switch (asset->status) {
-  case DebugAssetStatus_Unloaded:
+  case DebugAssetStatus_Idle:
     return ui_color(48, 48, 48, 192);
+  case DebugAssetStatus_Changed:
+    return ui_color(48, 48, 16, 192);
   case DebugAssetStatus_Loaded:
     return ui_color(16, 64, 16, 192);
+  case DebugAssetStatus_Failed:
+    return ui_color(64, 16, 16, 192);
   }
   diag_crash();
 }
