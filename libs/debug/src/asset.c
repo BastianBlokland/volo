@@ -48,15 +48,19 @@ static void asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelCom
   const String title = fmt_write_scratch("{} Asset Debug", fmt_ui_shape(Storage));
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
 
-  UiTable table = ui_table();
+  UiTable table = ui_table(.spacing = ui_vector(5, 5));
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   const u32 numAssets = (u32)panelComp->assets.size;
   ui_scrollview_begin(canvas, &panelComp->scrollview, ui_table_height(&table, numAssets));
 
-  dynarray_for_t(&panelComp->assets, DebugAssetInfo, asset) {
+  for (u32 i = 0; i != numAssets; ++i) {
+    const DebugAssetInfo* info = dynarray_at_t(&panelComp->assets, i, DebugAssetInfo);
     ui_table_next_row(canvas, &table);
-    ui_label(canvas, asset->id);
+    if (i % 2) {
+      ui_table_draw_row_bg(canvas, &table);
+    }
+    ui_label(canvas, info->id);
   }
 
   ui_scrollview_end(canvas, &panelComp->scrollview);
