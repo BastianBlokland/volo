@@ -1,5 +1,6 @@
 #include "asset_manager.h"
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_diag.h"
 #include "debug_asset.h"
 #include "ecs_world.h"
@@ -12,6 +13,8 @@ typedef enum {
   DebugAssetStatus_LoadedReferenced,
   DebugAssetStatus_Loading,
   DebugAssetStatus_Failed,
+
+  DebugAssetStatus_Count,
 } DebugAssetStatus;
 
 typedef struct {
@@ -40,6 +43,19 @@ static i8 compare_asset_info(const void* a, const void* b) {
     statusOrder = compare_string(&assetA->id, &assetB->id);
   }
   return statusOrder;
+}
+
+static String debug_asset_status_str(const DebugAssetStatus status) {
+  static const String g_names[] = {
+      string_static("Idle"),
+      string_static("Changed"),
+      string_static("Loaded"),
+      string_static("Loaded [Ref]"),
+      string_static("Loading"),
+      string_static("Failed"),
+  };
+  ASSERT(array_elems(g_names) == DebugAssetStatus_Count, "Incorrect number of names");
+  return g_names[status];
 }
 
 ecs_view_define(AssetView) { ecs_access_read(AssetComp); }
@@ -96,6 +112,8 @@ static UiColor asset_info_bg_color(const DebugAssetInfo* asset) {
     return ui_color(16, 64, 64, 192);
   case DebugAssetStatus_Failed:
     return ui_color(64, 16, 16, 192);
+  case DebugAssetStatus_Count:
+    break;
   }
   diag_crash();
 }
@@ -104,10 +122,11 @@ static void asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelCom
   const String title = fmt_write_scratch("{} Asset Debug", fmt_ui_shape(Storage));
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
 
-  UiTable table = ui_table(.spacing = ui_vector(5, 5));
+  UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 350);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 150);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 75);
 
   const u32 numAssets = (u32)panelComp->assets.size;
   ui_scrollview_begin(canvas, &panelComp->scrollview, ui_table_height(&table, numAssets));
@@ -117,6 +136,8 @@ static void asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelCom
     ui_table_draw_row_bg(canvas, &table, asset_info_bg_color(asset));
 
     ui_label(canvas, asset->id);
+    ui_table_next_column(canvas, &table);
+    ui_label(canvas, debug_asset_status_str(asset->status));
     ui_table_next_column(canvas, &table);
     if (asset->refCount) {
       ui_label(canvas, fmt_write_scratch("refs: {}", fmt_int(asset->refCount)));
@@ -166,7 +187,7 @@ EcsEntityId debug_asset_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugAssetPanelComp,
-      .panel      = ui_panel(ui_vector(600, 400)),
+      .panel      = ui_panel(ui_vector(750, 500)),
       .scrollview = ui_scrollview(),
       .assets     = dynarray_create_t(g_alloc_heap, DebugAssetInfo, 256));
   return panelEntity;
