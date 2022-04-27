@@ -57,8 +57,14 @@ static UiAlign ui_table_align_opposite(const UiAlign align) {
   diag_crash();
 }
 
+f32 ui_table_height(const UiTable* table, const u32 rows) {
+  return rows * table->rowHeight + (rows + 1) * table->spacing.y;
+}
+
+bool ui_table_active(const UiTable* table) { return !sentinel_check(table->row); }
+
 void ui_table_add_column(UiTable* table, const UiTableColumnType type, const f32 width) {
-  diag_assert_msg(sentinel_check(table->row), "Column cannot be added: Row is already active");
+  diag_assert_msg(!ui_table_active(table), "Column cannot be added: Table is already active");
   diag_assert_msg(table->columnCount < ui_table_max_columns, "Max column count exceeded");
   table->columns[table->columnCount++] = (UiTableColumn){
       .type  = type,
@@ -66,8 +72,35 @@ void ui_table_add_column(UiTable* table, const UiTableColumnType type, const f32
   };
 }
 
+void ui_table_next_row(UiCanvasComp* canvas, UiTable* table) {
+  const UiDir rowDir = ui_table_row_dir(table->align);
+
+  if (!ui_table_active(table)) {
+    /**
+     * First row: Initialize the position and cell height.
+     */
+    ui_layout_move_to(canvas, table->parent, table->align, Ui_Y);
+    ui_layout_resize(canvas, table->align, ui_vector(0, table->rowHeight), UiBase_Absolute, Ui_Y);
+    ui_layout_move_dir(canvas, rowDir, table->spacing.y, UiBase_Absolute);
+    table->row = 0;
+  } else {
+    /**
+     * Continuation row: Advance the y position.
+     */
+    const f32 offset = table->rowHeight + table->spacing.y;
+    ui_layout_move_dir(canvas, rowDir, offset, UiBase_Absolute);
+    ++table->row;
+  }
+
+  /**
+   * Initialize the first column.
+   */
+  table->column = sentinel_u32;
+  ui_table_next_column(canvas, table);
+}
+
 void ui_table_next_column(UiCanvasComp* canvas, UiTable* table) {
-  diag_assert_msg(!sentinel_check(table->row), "Column cannot be advanced: No row is active");
+  diag_assert_msg(ui_table_active(table), "Column cannot be advanced: No row is active");
   const UiDir columnDir = ui_table_column_dir(table->align);
 
   if (sentinel_check(table->column)) {
@@ -103,31 +136,4 @@ void ui_table_next_column(UiCanvasComp* canvas, UiTable* table) {
     ui_layout_grow(canvas, table->align, ui_vector(-table->spacing.x, 0), UiBase_Absolute, Ui_X);
   } break;
   }
-}
-
-void ui_table_next_row(UiCanvasComp* canvas, UiTable* table) {
-  const UiDir rowDir = ui_table_row_dir(table->align);
-
-  if (sentinel_check(table->row)) {
-    /**
-     * First row: Initialize the position and cell height.
-     */
-    ui_layout_move_to(canvas, table->parent, table->align, Ui_Y);
-    ui_layout_resize(canvas, table->align, ui_vector(0, table->rowHeight), UiBase_Absolute, Ui_Y);
-    ui_layout_move_dir(canvas, rowDir, table->spacing.y, UiBase_Absolute);
-    table->row = 0;
-  } else {
-    /**
-     * Continuation row: Advance the y position.
-     */
-    const f32 offset = table->rowHeight + table->spacing.y;
-    ui_layout_move_dir(canvas, rowDir, offset, UiBase_Absolute);
-    ++table->row;
-  }
-
-  /**
-   * Initialize the first column.
-   */
-  table->column = sentinel_u32;
-  ui_table_next_column(canvas, table);
 }
