@@ -61,6 +61,13 @@ bool ui_table_active(const UiTable*);
 void ui_table_add_column(UiTable*, UiTableColumnType, f32 width);
 
 /**
+ * Reset the table to the initial state.
+ * NOTE: Use 'ui_table_next_row()' to activate the first row.
+ * Pre-condition: ui_table_active()
+ */
+void ui_table_reset(UiTable*);
+
+/**
  * Sets the active rectangle to the first column in the next row.
  * NOTE: If no row is currently active then the first row becomes the active row.
  */

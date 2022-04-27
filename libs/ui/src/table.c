@@ -75,6 +75,11 @@ void ui_table_add_column(UiTable* table, const UiTableColumnType type, const f32
   };
 }
 
+void ui_table_reset(UiTable* table) {
+  table->row    = sentinel_u32;
+  table->column = sentinel_u32;
+}
+
 void ui_table_next_row(UiCanvasComp* canvas, UiTable* table) {
   const UiDir rowDir = ui_table_row_dir(table->align);
 
