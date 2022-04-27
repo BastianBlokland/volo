@@ -94,6 +94,7 @@ UiVector ui_canvas_resolution(const UiCanvasComp*);
 bool     ui_canvas_input_any(const UiCanvasComp*);
 UiVector ui_canvas_input_delta(const UiCanvasComp*);
 UiVector ui_canvas_input_pos(const UiCanvasComp*);
+UiVector ui_canvas_input_scroll(const UiCanvasComp*);
 
 /**
  * Query information about a specific element.

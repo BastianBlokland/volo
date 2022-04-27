@@ -20,7 +20,10 @@ typedef struct {
 } UiBuildStyle;
 
 typedef struct {
-  UiRect rect;
+  /**
+   * Logic rectangle is not clipped by the parent container, clipRect however is.
+   */
+  UiRect logicRect, clipRect;
   u8     clipId;
 } UiBuildContainer;
 
@@ -67,7 +70,7 @@ static UiVector ui_resolve_vec(UiBuildState* state, const UiVector vec, const Ui
   }
   case UiBase_Container: {
     const UiBuildContainer container = *ui_build_container_currect(state);
-    return ui_vector(vec.x * container.rect.width, vec.y * container.rect.height);
+    return ui_vector(vec.x * container.logicRect.width, vec.y * container.logicRect.height);
   }
   case UiBase_Canvas: {
     return ui_vector(vec.x * state->ctx->canvasRes.width, vec.y * state->ctx->canvasRes.height);
@@ -88,7 +91,7 @@ static UiVector ui_resolve_origin(UiBuildState* state, const UiBase origin) {
   }
   case UiBase_Container: {
     const UiBuildContainer container = *ui_build_container_currect(state);
-    return ui_vector(container.rect.x, container.rect.y);
+    return ui_vector(container.logicRect.x, container.logicRect.y);
   }
   case UiBase_Canvas:
     return ui_vector(0, 0);
@@ -220,7 +223,20 @@ static bool ui_rect_intersect(const UiRect a, const UiRect b, const f32 padding)
 
 static bool
 ui_build_cull(const UiBuildContainer container, const UiRect rect, const UiBuildStyle style) {
-  return !ui_rect_intersect(container.rect, rect, style.outline);
+  return !ui_rect_intersect(container.clipRect, rect, style.outline);
+}
+
+static UiRect ui_build_clip(const UiBuildContainer container, const UiRect rect) {
+  const f32 minX = math_max(rect.x, container.clipRect.x);
+  const f32 minY = math_max(rect.y, container.clipRect.y);
+  const f32 maxX = math_min(rect.x + rect.width, container.clipRect.x + container.clipRect.width);
+  const f32 maxY = math_min(rect.y + rect.height, container.clipRect.y + container.clipRect.height);
+  return (UiRect){
+      .x      = minX,
+      .y      = minY,
+      .width  = maxX - minX,
+      .height = maxY - minY,
+  };
 }
 
 static bool ui_build_is_hovered(
@@ -229,7 +245,7 @@ static bool ui_build_is_hovered(
     return false; // Something is already hovered on a higher layer.
   }
   return ui_rect_contains(rect, state->ctx->inputPos) &&
-         ui_rect_contains(container.rect, state->ctx->inputPos);
+         ui_rect_contains(container.clipRect, state->ctx->inputPos);
 }
 
 static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
@@ -314,16 +330,18 @@ static void ui_build_debug_inspector(UiBuildState* state, const UiId id, const U
   const UiBuildStyle     style     = *ui_build_style_currect(state);
   const UiBuildContainer container = *ui_build_container_active(state);
 
-  const UiBuildStyle styleShape     = {.color = {255, 0, 0, 178}, .layer = UiLayer_Overlay};
-  const UiBuildStyle styleContainer = {.color = {0, 0, 255, 178}, .layer = UiLayer_Overlay};
-  const UiBuildStyle styleText      = {
+  const UiBuildStyle styleShape          = {.color = {255, 0, 0, 178}, .layer = UiLayer_Overlay};
+  const UiBuildStyle styleContainerLogic = {.color = {0, 0, 255, 178}, .layer = UiLayer_Overlay};
+  const UiBuildStyle styleContainerClip  = {.color = {0, 255, 0, 178}, .layer = UiLayer_Overlay};
+  const UiBuildStyle styleText           = {
       .color     = ui_color_white,
       .outline   = 3,
       .variation = 1,
       .weight    = UiWeight_Bold,
       .layer     = UiLayer_Overlay};
 
-  ui_build_glyph(state, UiShape_Square, container.rect, styleContainer, 5, 0);
+  ui_build_glyph(state, UiShape_Square, container.logicRect, styleContainerLogic, 5, 0);
+  ui_build_glyph(state, UiShape_Square, container.clipRect, styleContainerClip, 5, 0);
   ui_build_glyph(state, UiShape_Square, rect, styleShape, 5, 0);
 
   DynString str = dynstring_create(g_alloc_scratch, usize_kibibyte);
@@ -407,10 +425,13 @@ static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
   } break;
   case UiCmd_ContainerPush: {
     diag_assert(state->containerStackCount < ui_build_container_stack_max);
-    const UiRect rect                                   = *ui_build_rect_currect(state);
+    const UiBuildContainer currentContainer = *ui_build_container_active(state);
+    const UiRect           logicRect        = *ui_build_rect_currect(state);
+    const UiRect           clipRect         = ui_build_clip(currentContainer, logicRect);
     state->containerStack[state->containerStackCount++] = (UiBuildContainer){
-        .rect   = rect,
-        .clipId = state->ctx->outputClipRect(state->ctx->userCtx, rect),
+        .logicRect = logicRect,
+        .clipRect  = clipRect,
+        .clipId    = state->ctx->outputClipRect(state->ctx->userCtx, clipRect),
     };
   } break;
   case UiCmd_ContainerPop:
@@ -481,8 +502,9 @@ UiBuildResult ui_build(const UiCmdBuffer* cmdBuffer, const UiBuildCtx* ctx) {
       .styleStackCount = 1,
       .containerStack[0] =
           {
-              .rect.size = {ctx->canvasRes.width, ctx->canvasRes.height},
-              .clipId    = 0,
+              .logicRect.size = {ctx->canvasRes.width, ctx->canvasRes.height},
+              .clipRect.size  = {ctx->canvasRes.width, ctx->canvasRes.height},
+              .clipId         = 0,
           },
       .containerStackCount = 1,
       .hover               = {.id = sentinel_u64},

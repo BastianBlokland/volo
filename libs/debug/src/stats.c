@@ -181,7 +181,7 @@ static void stats_draw_graph(
   }
   if (!string_is_empty(tooltip)) {
     const UiId id = ui_canvas_id_peek(canvas);
-    ui_canvas_draw_glyph(canvas, Unicode_Space, 0, UiFlags_Interactable); // Invisible rect.
+    ui_canvas_draw_glyph(canvas, UiShape_Empty, 0, UiFlags_Interactable); // Invisible rect.
     ui_tooltip(canvas, id, tooltip, .variation = UiVariation_Monospace);
   }
   ui_style_pop(canvas);

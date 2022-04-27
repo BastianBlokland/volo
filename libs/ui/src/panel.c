@@ -174,7 +174,7 @@ static void ui_panel_resize_handle(UiCanvasComp* canvas) {
   ui_style_push(canvas);
   ui_layout_inner(canvas, UiBase_Current, UiAlign_BottomRight, ui_vector(25, 25), UiBase_Absolute);
   ui_style_layer(canvas, UiLayer_Invisible);
-  const UiId handleId = ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_Interactable);
+  const UiId handleId = ui_canvas_draw_glyph(canvas, UiShape_Empty, 0, UiFlags_Interactable);
   ui_layout_pop(canvas);
   ui_style_pop(canvas);
 
@@ -184,8 +184,8 @@ static void ui_panel_resize_handle(UiCanvasComp* canvas) {
 }
 
 void ui_panel_begin_with_opts(UiCanvasComp* canvas, UiPanel* panel, const UiPanelOpts* opts) {
-  diag_assert_msg(!(panel->flags & UiPanelFlags_Drawing), "The given panel is already being drawn");
-  panel->flags |= UiPanelFlags_Drawing;
+  diag_assert_msg(!(panel->flags & UiPanelFlags_Active), "The given panel is already active");
+  panel->flags |= UiPanelFlags_Active;
 
   const UiId resizeHandleId = ui_canvas_id_peek(canvas);
   const UiId dragHandleId   = resizeHandleId + 1;
@@ -202,8 +202,8 @@ void ui_panel_begin_with_opts(UiCanvasComp* canvas, UiPanel* panel, const UiPane
 }
 
 void ui_panel_end(UiCanvasComp* canvas, UiPanel* panel) {
-  diag_assert_msg(panel->flags & UiPanelFlags_Drawing, "The given panel is not being drawn");
-  panel->flags &= ~UiPanelFlags_Drawing;
+  diag_assert_msg(panel->flags & UiPanelFlags_Active, "The given panel is not active");
+  panel->flags &= ~UiPanelFlags_Active;
 
   ui_layout_container_pop(canvas);
 }

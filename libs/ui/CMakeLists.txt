@@ -14,6 +14,7 @@ add_library(lib_ui STATIC
   src/panel.c
   src/register.c
   src/resource.c
+  src/scrollview.c
   src/settings.c
   src/shape.c
   src/stats.c
