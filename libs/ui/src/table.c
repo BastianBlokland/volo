@@ -4,6 +4,7 @@
 #include "ui_shape.h"
 #include "ui_style.h"
 #include "ui_table.h"
+#include "ui_units.h"
 
 static UiDir ui_table_column_dir(const UiAlign align) {
   switch (align) {
@@ -149,17 +150,33 @@ void ui_table_next_column(UiCanvasComp* canvas, UiTable* table) {
 void ui_table_draw_row_bg(UiCanvasComp* canvas, const UiTable* table, const UiColor color) {
   ui_layout_push(canvas);
 
-  const UiAlign endAlign = ui_table_align_opposite(table->align);
+  // Fill the entire row, including the space between rows.
+  ui_layout_grow(canvas, UiAlign_MiddleCenter, table->spacing, UiBase_Absolute, Ui_Y);
+
+  const UiDir columnDir = ui_table_column_dir(table->align);
+
   ui_layout_move_to(canvas, table->parent, table->align, Ui_X);
-  ui_layout_resize_to(canvas, table->parent, endAlign, Ui_X);
-  ui_layout_grow(
-      canvas, UiAlign_MiddleCenter, ui_vector(0, table->spacing.y), UiBase_Absolute, Ui_Y);
+  for (u32 column = 0; column != table->columnCount; ++column) {
+    if (column) {
+      const f32 offset = table->columns[column - 1].width + table->spacing.x;
+      ui_layout_move_dir(canvas, columnDir, offset, UiBase_Absolute);
+    }
+    switch (table->columns[column].type) {
+    case UiTableColumn_Fixed: {
+      const UiVector cellSize = ui_vector(table->columns[column].width + table->spacing.x, 0);
+      ui_layout_resize(canvas, table->align, cellSize, UiBase_Absolute, Ui_X);
+    } break;
+    case UiTableColumn_Flexible: {
+      const UiAlign endAlign = ui_table_align_opposite(table->align);
+      ui_layout_resize_to(canvas, table->parent, endAlign, Ui_X);
+    } break;
+    }
 
-  ui_style_push(canvas);
-  ui_style_color_with_mult(canvas, color, table->row % 2 ? 0.85f : 1.0f);
-  ui_style_outline(canvas, 1);
-  ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_None);
-  ui_style_pop(canvas);
-
+    ui_style_push(canvas);
+    ui_style_color_with_mult(canvas, color, table->row % 2 ? 0.85f : 1.0f);
+    ui_style_outline(canvas, 1);
+    ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_None);
+    ui_style_pop(canvas);
+  }
   ui_layout_pop(canvas);
 }
