@@ -125,8 +125,18 @@ static void asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelCom
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 350);
   ui_table_add_column(&table, UiTableColumn_Fixed, 100);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
-  ui_table_add_column(&table, UiTableColumn_Flexible, 75);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 50);
+
+  ui_table_draw_header(
+      canvas,
+      &table,
+      (const UiTableColumnName[]){
+          {string_lit("Id"), string_lit("Asset identifier.")},
+          {string_lit("Status"), string_lit("Current asset status.")},
+          {string_lit("Refs"), string_lit("Current reference counter.")},
+          {string_lit("Loads"), string_lit("How many times has this asset been loaded.")},
+      });
 
   const u32 numAssets = (u32)panelComp->assets.size;
   ui_scrollview_begin(canvas, &panelComp->scrollview, ui_table_height(&table, numAssets));
@@ -140,10 +150,10 @@ static void asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelCom
     ui_label(canvas, debug_asset_status_str(asset->status));
     ui_table_next_column(canvas, &table);
     if (asset->refCount) {
-      ui_label(canvas, fmt_write_scratch("refs: {}", fmt_int(asset->refCount)));
+      ui_label(canvas, fmt_write_scratch("{}", fmt_int(asset->refCount)));
     }
     ui_table_next_column(canvas, &table);
-    ui_label(canvas, fmt_write_scratch("loads: {}", fmt_int(asset->loadCount)));
+    ui_label(canvas, fmt_write_scratch("{}", fmt_int(asset->loadCount)));
   }
 
   ui_scrollview_end(canvas, &panelComp->scrollview);
