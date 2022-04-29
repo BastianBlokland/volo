@@ -411,6 +411,10 @@ u32 asset_load_count(const AssetComp* asset) { return asset->loadCount; }
 
 bool asset_is_loading(const AssetComp* asset) { return (asset->flags & AssetFlags_Loading) != 0; }
 
+u32 asset_ticks_until_unload(const AssetComp* asset) {
+  return asset_max_unload_delay - asset->unloadTicks;
+}
+
 void asset_register_dep(EcsWorld* world, EcsEntityId asset, const EcsEntityId dependency) {
   diag_assert(asset);
   diag_assert(dependency);

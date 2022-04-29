@@ -20,7 +20,7 @@ typedef enum {
 typedef struct {
   String           id;
   DebugAssetStatus status;
-  u32              refCount, loadCount;
+  u32              refCount, loadCount, ticksUntilUnload;
 } DebugAssetInfo;
 
 ecs_comp_define(DebugAssetPanelComp) {
@@ -88,10 +88,11 @@ static void asset_info_query(DebugAssetPanelComp* panelComp, EcsWorld* world) {
     }
 
     *dynarray_push_t(&panelComp->assets, DebugAssetInfo) = (DebugAssetInfo){
-        .id        = asset_id(assetComp),
-        .status    = status,
-        .refCount  = asset_ref_count(assetComp),
-        .loadCount = asset_load_count(assetComp),
+        .id               = asset_id(assetComp),
+        .status           = status,
+        .refCount         = asset_ref_count(assetComp),
+        .loadCount        = asset_load_count(assetComp),
+        .ticksUntilUnload = asset_ticks_until_unload(assetComp),
     };
   }
 
@@ -126,7 +127,8 @@ static void asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelCom
   ui_table_add_column(&table, UiTableColumn_Fixed, 350);
   ui_table_add_column(&table, UiTableColumn_Fixed, 100);
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
-  ui_table_add_column(&table, UiTableColumn_Flexible, 50);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_draw_header(
       canvas,
@@ -136,6 +138,8 @@ static void asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelCom
           {string_lit("Status"), string_lit("Current asset status.")},
           {string_lit("Refs"), string_lit("Current reference counter.")},
           {string_lit("Loads"), string_lit("How many times has this asset been loaded.")},
+          {string_lit("Unload delay"),
+           string_lit("How many ticks until this asset will be unloaded.")},
       });
 
   const u32 numAssets = (u32)panelComp->assets.size;
@@ -154,6 +158,10 @@ static void asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelCom
     }
     ui_table_next_column(canvas, &table);
     ui_label(canvas, fmt_write_scratch("{}", fmt_int(asset->loadCount)));
+    ui_table_next_column(canvas, &table);
+    if (asset->status == DebugAssetStatus_LoadedUnreferenced) {
+      ui_label(canvas, fmt_write_scratch("{}", fmt_int(asset->ticksUntilUnload)));
+    }
   }
 
   ui_scrollview_end(canvas, &panelComp->scrollview);
