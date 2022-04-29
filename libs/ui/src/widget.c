@@ -41,7 +41,7 @@ static void ui_interactable_text_style(UiCanvasComp* canvas, const UiStatus stat
   }
 }
 
-static void ui_label_selectable(UiCanvasComp* canvas, const String text, const UiLabelOpts* opts) {
+static UiId ui_label_selectable(UiCanvasComp* canvas, const String text, const UiLabelOpts* opts) {
   const UiId     id       = ui_canvas_id_peek(canvas);
   const UiStatus status   = ui_canvas_elem_status(canvas, id);
   bool           selected = ui_canvas_text_editor_active(canvas, id);
@@ -63,13 +63,19 @@ static void ui_label_selectable(UiCanvasComp* canvas, const String text, const U
   if (status >= UiStatus_Hovered) {
     ui_canvas_interact_type(canvas, UiInteractType_Text);
   }
+  return id;
 }
 
 void ui_label_with_opts(UiCanvasComp* canvas, const String text, const UiLabelOpts* opts) {
+  UiId id;
   if (opts->selectable) {
-    ui_label_selectable(canvas, text, opts);
+    id = ui_label_selectable(canvas, text, opts);
   } else {
-    ui_canvas_draw_text(canvas, text, opts->fontSize, opts->align, UiFlags_None);
+    const UiFlags flags = !string_is_empty(opts->tooltip) ? UiFlags_Interactable : UiFlags_None;
+    id                  = ui_canvas_draw_text(canvas, text, opts->fontSize, opts->align, flags);
+  }
+  if (!string_is_empty(opts->tooltip)) {
+    ui_tooltip(canvas, id, opts->tooltip);
   }
 }
 

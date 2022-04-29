@@ -22,6 +22,7 @@ typedef struct {
   u16     fontSize;
   UiAlign align;
   bool    selectable; // NOTE: Only supports single-line text.
+  String  tooltip;
 } UiLabelOpts;
 
 typedef struct {
