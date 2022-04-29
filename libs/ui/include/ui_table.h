@@ -19,6 +19,10 @@ typedef struct {
 } UiTableColumn;
 
 typedef struct {
+  String label, tooltip;
+} UiTableColumnName;
+
+typedef struct {
   UiBase        parent;
   UiAlign       align;
   f32           rowHeight;
@@ -78,6 +82,13 @@ void ui_table_next_row(UiCanvasComp*, UiTable*);
  * Pre-condition: ui_table_active()
  */
 void ui_table_next_column(UiCanvasComp*, UiTable*);
+
+/**
+ * Draw a table header.
+ * NOTE: Set the current rectangle to remaining content area for the table.
+ * Pre-condition: array_size(UiTableColumnName) == table->columnCount.
+ */
+void ui_table_draw_header(UiCanvasComp*, const UiTable*, const UiTableColumnName[]);
 
 /**
  * Draw a background for the current row.
