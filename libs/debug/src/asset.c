@@ -50,7 +50,7 @@ static String debug_asset_status_str(const DebugAssetStatus status) {
       string_static("Idle"),
       string_static("Changed"),
       string_static("Loaded"),
-      string_static("Loaded [Ref]"),
+      string_static("Loaded"),
       string_static("Loading"),
       string_static("Failed"),
   };
@@ -124,7 +124,7 @@ static void asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelCom
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 350);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 150);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
   ui_table_add_column(&table, UiTableColumn_Fixed, 75);
   ui_table_add_column(&table, UiTableColumn_Flexible, 75);
 
