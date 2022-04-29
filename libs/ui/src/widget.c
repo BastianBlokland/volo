@@ -511,6 +511,7 @@ bool ui_tooltip_with_opts(
 
   ui_layout_push(canvas);
   ui_style_push(canvas);
+  ui_style_weight(canvas, UiWeight_Normal);
 
   /**
    * To draw the tooltip background we need to know the size of the text. We achieve this by using
