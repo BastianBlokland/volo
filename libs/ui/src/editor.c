@@ -122,6 +122,8 @@ static bool editor_cp_is_seperator(const Unicode cp) {
   case ',':
   case ':':
   case ';':
+  case '/':
+  case '\\':
     return true;
   default:
     return false;
