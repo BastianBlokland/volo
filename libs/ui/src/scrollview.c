@@ -6,7 +6,7 @@
 #include "ui_shape.h"
 #include "ui_style.h"
 
-static const f32 g_scrollSensitivity = 15;
+static const f32 g_scrollSensitivity = 30;
 static const f32 g_scrollBarWidth    = 10;
 
 typedef enum {

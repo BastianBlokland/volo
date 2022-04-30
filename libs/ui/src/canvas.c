@@ -306,7 +306,7 @@ ecs_system_define(UiCanvasInputSys) {
     canvas->resolution  = ui_vector(windowSize.x / scale, windowSize.y / scale);
     canvas->inputDelta  = ui_vector(cursorDelta.x / scale, cursorDelta.y / scale);
     canvas->inputPos    = ui_vector(cursorPos.x / scale, cursorPos.y / scale);
-    canvas->inputScroll = ui_vector(scrollDelta.x / scale, scrollDelta.y / scale);
+    canvas->inputScroll = ui_vector(scrollDelta.x, scrollDelta.y);
   }
 }
 
