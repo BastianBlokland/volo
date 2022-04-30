@@ -548,8 +548,14 @@ void ui_editor_update(
     GapWindowComp*        win,
     const UiBuildHover    hover,
     const UiBuildTextInfo textInfo) {
-
   diag_assert(editor->flags & UiEditorFlags_Active);
+
+  if (!textInfo.lineCount) {
+    // Text was not drawn this frame or the given space was too small for a single line.
+    ui_editor_stop(editor);
+    return;
+  }
+
   const bool       readonly   = (editor->filter & UiTextFilter_Readonly) != 0;
   const bool       isHovering = hover.id == editor->textElement;
   const bool       dragging   = gap_window_key_down(win, GapKey_MouseLeft) && !editor->click.repeat;
