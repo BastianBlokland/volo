@@ -23,17 +23,41 @@ typedef enum {
   DebugAssetStatus_Count,
 } DebugAssetStatus;
 
+typedef enum {
+  DebugAssetSortMode_Id,
+  DebugAssetSortMode_Status,
+
+  DebugAssetSortMode_Count,
+} DebugAssetSortMode;
+
 typedef struct {
   String           id;
   DebugAssetStatus status;
   u32              refCount, loadCount, ticksUntilUnload;
 } DebugAssetInfo;
 
+static const String g_statusNames[] = {
+    string_static("Idle"),
+    string_static("Changed"),
+    string_static("Loaded"),
+    string_static("Loaded"),
+    string_static("Loading"),
+    string_static("Failed"),
+};
+ASSERT(array_elems(g_statusNames) == DebugAssetStatus_Count, "Incorrect number of names");
+
+static const String g_sortModeNames[] = {
+    string_static("Id"),
+    string_static("Status"),
+};
+ASSERT(array_elems(g_sortModeNames) == DebugAssetSortMode_Count, "Incorrect number of names");
+
 ecs_comp_define(DebugAssetPanelComp) {
-  UiPanel      panel;
-  UiScrollview scrollview;
-  DynString    idFilter;
-  DynArray     assets; // DebugAssetInfo[]
+  UiPanel            panel;
+  UiScrollview       scrollview;
+  DynString          idFilter;
+  DebugAssetSortMode sortMode;
+  DynArray           assets; // DebugAssetInfo[]
 };
 
 static void ecs_destruct_asset_panel(void* data) {
@@ -42,7 +66,14 @@ static void ecs_destruct_asset_panel(void* data) {
   dynarray_destroy(&comp->assets);
 }
 
-static i8 compare_asset_info(const void* a, const void* b) {
+static i8 compare_asset_info_id(const void* a, const void* b) {
+  const DebugAssetInfo* assetA = a;
+  const DebugAssetInfo* assetB = b;
+
+  return compare_string(&assetA->id, &assetB->id);
+}
+
+static i8 compare_asset_info_status(const void* a, const void* b) {
   const DebugAssetInfo* assetA = a;
   const DebugAssetInfo* assetB = b;
 
@@ -51,19 +82,6 @@ static i8 compare_asset_info(const void* a, const void* b) {
     statusOrder = compare_string(&assetA->id, &assetB->id);
   }
   return statusOrder;
-}
-
-static String debug_asset_status_str(const DebugAssetStatus status) {
-  static const String g_names[] = {
-      string_static("Idle"),
-      string_static("Changed"),
-      string_static("Loaded"),
-      string_static("Loaded"),
-      string_static("Loading"),
-      string_static("Failed"),
-  };
-  ASSERT(array_elems(g_names) == DebugAssetStatus_Count, "Incorrect number of names");
-  return g_names[status];
 }
 
 ecs_view_define(AssetView) { ecs_access_read(AssetComp); }
@@ -118,7 +136,16 @@ static void asset_info_query(DebugAssetPanelComp* panelComp, EcsWorld* world) {
     };
   }
 
-  dynarray_sort(&panelComp->assets, compare_asset_info);
+  switch (panelComp->sortMode) {
+  case DebugAssetSortMode_Id:
+    dynarray_sort(&panelComp->assets, compare_asset_info_id);
+    break;
+  case DebugAssetSortMode_Status:
+    dynarray_sort(&panelComp->assets, compare_asset_info_status);
+    break;
+  case DebugAssetSortMode_Count:
+    break;
+  }
 }
 
 static UiColor asset_info_bg_color(const DebugAssetInfo* asset) {
@@ -141,18 +168,24 @@ static UiColor asset_info_bg_color(const DebugAssetInfo* asset) {
   diag_crash();
 }
 
-static void asset_filter_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelComp) {
+static void asset_options_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelComp) {
   ui_layout_push(canvas);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
   ui_table_add_column(&table, UiTableColumn_Fixed, 250);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Filter:"));
   ui_table_next_column(canvas, &table);
   ui_textbox(
       canvas, &panelComp->idFilter, .placeholder = string_lit("*"), .tooltip = g_tooltipFilter);
+  ui_table_next_column(canvas, &table);
+  ui_label(canvas, string_lit("Sort:"));
+  ui_table_next_column(canvas, &table);
+  ui_select(canvas, (i32*)&panelComp->sortMode, g_sortModeNames, DebugAssetSortMode_Count);
 
   ui_layout_pop(canvas);
 }
@@ -161,7 +194,7 @@ static void asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelCom
   const String title = fmt_write_scratch("{} Asset Debug", fmt_ui_shape(Storage));
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
 
-  asset_filter_draw(canvas, panelComp);
+  asset_options_draw(canvas, panelComp);
 
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -30), UiBase_Absolute, Ui_Y);
   ui_layout_container_push(canvas);
@@ -194,7 +227,7 @@ static void asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelCom
 
     ui_label(canvas, asset->id);
     ui_table_next_column(canvas, &table);
-    ui_label(canvas, debug_asset_status_str(asset->status));
+    ui_label(canvas, g_statusNames[asset->status]);
     ui_table_next_column(canvas, &table);
     if (asset->refCount) {
       ui_label(canvas, fmt_write_scratch("{}", fmt_int(asset->refCount)));
@@ -252,6 +285,7 @@ EcsEntityId debug_asset_panel_open(EcsWorld* world, const EcsEntityId window) {
       .panel      = ui_panel(ui_vector(750, 500)),
       .scrollview = ui_scrollview(),
       .idFilter   = dynstring_create(g_alloc_heap, 32),
+      .sortMode   = DebugAssetSortMode_Status,
       .assets     = dynarray_create_t(g_alloc_heap, DebugAssetInfo, 256));
   return panelEntity;
 }
