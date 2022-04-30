@@ -6,6 +6,12 @@
 #include "ecs_world.h"
 #include "ui.h"
 
+// clang-format off
+
+static const String g_tooltipFilter = string_static("Filter assets by identifier.\nSupports glob characters \a.b*\ar and \a.b?\ar.");
+
+// clang-format on
+
 typedef enum {
   DebugAssetStatus_Idle,
   DebugAssetStatus_Changed,
@@ -26,11 +32,13 @@ typedef struct {
 ecs_comp_define(DebugAssetPanelComp) {
   UiPanel      panel;
   UiScrollview scrollview;
+  DynString    idFilter;
   DynArray     assets; // DebugAssetInfo[]
 };
 
 static void ecs_destruct_asset_panel(void* data) {
   DebugAssetPanelComp* comp = data;
+  dynstring_destroy(&comp->idFilter);
   dynarray_destroy(&comp->assets);
 }
 
@@ -65,6 +73,16 @@ ecs_view_define(PanelUpdateView) {
   ecs_access_write(UiCanvasComp);
 }
 
+static bool asset_filter(DebugAssetPanelComp* panelComp, const AssetComp* assetComp) {
+  if (string_is_empty(panelComp->idFilter)) {
+    return true;
+  }
+  const String assetId   = asset_id(assetComp);
+  const String rawFilter = dynstring_view(&panelComp->idFilter);
+  const String filter    = fmt_write_scratch("*{}*", fmt_text(rawFilter));
+  return string_match_glob(assetId, filter, StringMatchFlags_IgnoreCase);
+}
+
 static void asset_info_query(DebugAssetPanelComp* panelComp, EcsWorld* world) {
   dynarray_clear(&panelComp->assets);
 
@@ -72,6 +90,10 @@ static void asset_info_query(DebugAssetPanelComp* panelComp, EcsWorld* world) {
   for (EcsIterator* itr = ecs_view_itr(assetView); ecs_view_walk(itr);) {
     const EcsEntityId entity    = ecs_view_entity(itr);
     const AssetComp*  assetComp = ecs_view_read_t(itr, AssetComp);
+
+    if (!asset_filter(panelComp, assetComp)) {
+      continue;
+    }
 
     DebugAssetStatus status;
     if (ecs_world_has_t(world, entity, AssetFailedComp)) {
@@ -119,9 +141,30 @@ static UiColor asset_info_bg_color(const DebugAssetInfo* asset) {
   diag_crash();
 }
 
+static void asset_filter_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelComp) {
+  ui_layout_push(canvas);
+
+  UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 250);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Filter:"));
+  ui_table_next_column(canvas, &table);
+  ui_textbox(
+      canvas, &panelComp->idFilter, .placeholder = string_lit("*"), .tooltip = g_tooltipFilter);
+
+  ui_layout_pop(canvas);
+}
+
 static void asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelComp) {
   const String title = fmt_write_scratch("{} Asset Debug", fmt_ui_shape(Storage));
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
+
+  asset_filter_draw(canvas, panelComp);
+
+  ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -30), UiBase_Absolute, Ui_Y);
+  ui_layout_container_push(canvas);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 350);
@@ -165,6 +208,7 @@ static void asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelCom
   }
 
   ui_scrollview_end(canvas, &panelComp->scrollview);
+  ui_layout_container_pop(canvas);
   ui_panel_end(canvas, &panelComp->panel);
 }
 
@@ -207,6 +251,7 @@ EcsEntityId debug_asset_panel_open(EcsWorld* world, const EcsEntityId window) {
       DebugAssetPanelComp,
       .panel      = ui_panel(ui_vector(750, 500)),
       .scrollview = ui_scrollview(),
+      .idFilter   = dynstring_create(g_alloc_heap, 32),
       .assets     = dynarray_create_t(g_alloc_heap, DebugAssetInfo, 256));
   return panelEntity;
 }
