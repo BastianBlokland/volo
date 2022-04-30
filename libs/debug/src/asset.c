@@ -202,8 +202,8 @@ static void asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelCom
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 350);
   ui_table_add_column(&table, UiTableColumn_Fixed, 100);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_draw_header(
