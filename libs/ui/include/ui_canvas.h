@@ -85,7 +85,9 @@ void ui_canvas_interact_type(UiCanvasComp*, UiInteractType);
  */
 UiId ui_canvas_id_peek(const UiCanvasComp*);
 void ui_canvas_id_skip(UiCanvasComp*, u64 count);
-void ui_canvas_id_next_block(UiCanvasComp*);
+void ui_canvas_id_block_next(UiCanvasComp*);
+void ui_canvas_id_block_index(UiCanvasComp*, u32 index); // Set explicit idx in current block.
+void ui_canvas_id_block_string(UiCanvasComp*, String);   // Set explicit idx based on a string.
 
 /**
  * Query general canvas information.

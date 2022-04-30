@@ -127,11 +127,11 @@ typedef struct {
 static UiDrawMetaData ui_draw_metadata(const UiRenderState* state, const AssetFtxComp* font) {
   const UiVector canvasRes = state->canvas->resolution;
   UiDrawMetaData meta      = {
-      .canvasRes = geo_vector(
+           .canvasRes = geo_vector(
           canvasRes.width, canvasRes.height, 1.0f / canvasRes.width, 1.0f / canvasRes.height),
-      .invCanvasScale  = 1.0f / state->settings->scale,
-      .glyphsPerDim    = font->glyphsPerDim,
-      .invGlyphsPerDim = 1.0f / (f32)font->glyphsPerDim,
+           .invCanvasScale  = 1.0f / state->settings->scale,
+           .glyphsPerDim    = font->glyphsPerDim,
+           .invGlyphsPerDim = 1.0f / (f32)font->glyphsPerDim,
   };
   mem_cpy(mem_var(meta.clipRects), mem_var(state->clipRects));
   return meta;
@@ -414,12 +414,12 @@ ecs_system_define(UiRenderSys) {
     const f32       scale       = settings ? settings->scale : 1.0f;
     const UiVector  canvasSize  = ui_vector(winSize.x / scale, winSize.y / scale);
     UiRenderState   renderState = {
-        .settings      = settings,
-        .font          = font,
-        .renderer      = renderer,
-        .draw          = draw,
-        .clipRects[0]  = {.size = canvasSize},
-        .clipRectCount = 1,
+          .settings      = settings,
+          .font          = font,
+          .renderer      = renderer,
+          .draw          = draw,
+          .clipRects[0]  = {.size = canvasSize},
+          .clipRectCount = 1,
     };
 
     UiCanvasPtr canvasses[ui_canvas_canvasses_max];
@@ -559,8 +559,19 @@ void ui_canvas_interact_type(UiCanvasComp* comp, const UiInteractType type) {
 UiId ui_canvas_id_peek(const UiCanvasComp* comp) { return comp->nextId; }
 void ui_canvas_id_skip(UiCanvasComp* comp, const u64 count) { comp->nextId += count; }
 
-void ui_canvas_id_next_block(UiCanvasComp* comp) {
-  comp->nextId = bits_align_64(comp->nextId, 1024);
+void ui_canvas_id_block_next(UiCanvasComp* comp) {
+  // Jump to the next 32 bit id space.
+  comp->nextId = bits_align_64(comp->nextId, u64_lit(1) << 32);
+}
+
+void ui_canvas_id_block_index(UiCanvasComp* comp, u32 index) {
+  const u64 blockEnd   = bits_align_64(comp->nextId + 1, u64_lit(1) << 32);
+  const u64 blockBegin = blockEnd - (u64_lit(1) << 32);
+  comp->nextId         = blockBegin + index;
+}
+
+void ui_canvas_id_block_string(UiCanvasComp* comp, const String str) {
+  ui_canvas_id_block_index(comp, bits_hash_32(str));
 }
 
 UiStatus ui_canvas_elem_status(const UiCanvasComp* comp, const UiId id) {
@@ -579,7 +590,7 @@ UiRect ui_canvas_elem_rect(const UiCanvasComp* comp, const UiId id) {
 UiStatus ui_canvas_status(const UiCanvasComp* comp) { return comp->activeStatus; }
 UiVector ui_canvas_resolution(const UiCanvasComp* comp) { return comp->resolution; }
 bool     ui_canvas_input_any(const UiCanvasComp* comp) {
-  return (comp->flags & UiCanvasFlags_InputAny) != 0;
+      return (comp->flags & UiCanvasFlags_InputAny) != 0;
 }
 UiVector ui_canvas_input_delta(const UiCanvasComp* comp) { return comp->inputDelta; }
 UiVector ui_canvas_input_pos(const UiCanvasComp* comp) { return comp->inputPos; }
