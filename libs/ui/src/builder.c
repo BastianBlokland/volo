@@ -249,7 +249,7 @@ static bool ui_build_is_hovered(
 }
 
 static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
-  const UiRect           rect      = *ui_build_rect_currect(state);
+  UiRect                 rect      = *ui_build_rect_currect(state);
   const UiBuildStyle     style     = *ui_build_style_currect(state);
   const UiBuildContainer container = *ui_build_container_active(state);
 
@@ -273,6 +273,10 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
       state,
       &ui_build_text_char,
       &ui_build_text_background);
+
+  if (cmd->flags & UiFlags_TightTextRect) {
+    rect = result.rect;
+  }
 
   const bool debugInspector = state->ctx->settings->flags & UiSettingFlags_DebugInspector;
   const bool hoverable      = cmd->flags & UiFlags_Interactable || debugInspector;
@@ -334,11 +338,11 @@ static void ui_build_debug_inspector(UiBuildState* state, const UiId id, const U
   const UiBuildStyle styleContainerLogic = {.color = {0, 0, 255, 178}, .layer = UiLayer_Overlay};
   const UiBuildStyle styleContainerClip  = {.color = {0, 255, 0, 178}, .layer = UiLayer_Overlay};
   const UiBuildStyle styleText           = {
-      .color     = ui_color_white,
-      .outline   = 3,
-      .variation = 1,
-      .weight    = UiWeight_Bold,
-      .layer     = UiLayer_Overlay};
+                .color     = ui_color_white,
+                .outline   = 3,
+                .variation = 1,
+                .weight    = UiWeight_Bold,
+                .layer     = UiLayer_Overlay};
 
   ui_build_glyph(state, UiShape_Square, container.logicRect, styleContainerLogic, 5, 0);
   ui_build_glyph(state, UiShape_Square, container.clipRect, styleContainerClip, 5, 0);

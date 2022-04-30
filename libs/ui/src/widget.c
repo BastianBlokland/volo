@@ -51,8 +51,8 @@ static UiId ui_label_selectable(UiCanvasComp* canvas, const String text, const U
     selected = true;
   }
 
-  const UiFlags flags =
-      UiFlags_AllowWordBreak | UiFlags_SingleLine | UiFlags_Interactable | UiFlags_InteractOnPress;
+  const UiFlags flags = UiFlags_AllowWordBreak | UiFlags_SingleLine | UiFlags_Interactable |
+                        UiFlags_InteractOnPress | UiFlags_TightTextRect;
 
   if (selected) {
     ui_canvas_draw_text_editor(canvas, opts->fontSize, UiAlign_MiddleLeft, flags);
