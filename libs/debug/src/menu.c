@@ -14,17 +14,17 @@
 
 // clang-format off
 
-static const String  g_tooltipStatsEnable     = string_static("Enable the \a.bStatistics\ar interface.");
-static const String  g_tooltipStatsDisable    = string_static("Disable the \a.bStatistics\ar interface.");
-static const String  g_tooltipPanelAsset      = string_static("Open the \a.bAsset Debug\ar panel.");
-static const String  g_tooltipPanelCamera     = string_static("Open the \a.bCamera settings\ar panel.");
-static const String  g_tooltipPanelGrid       = string_static("Open the \a.bGrid settings\ar panel.");
-static const String  g_tooltipPanelRend       = string_static("Open the \a.bRenderer settings\ar panel.");
-static const String  g_tooltipPanelInterface  = string_static("Open the \a.bInterface settings\ar panel.");
-static const String  g_tooltipFullscreenEnter = string_static("Enter fullscreen.");
-static const String  g_tooltipFullscreenExit  = string_static("Exit fullscreen.");
-static const String  g_tooltipWindowOpen      = string_static("Open a new window.");
-static const String  g_tooltipWindowClose     = string_static("Close the current window.");
+static const String g_tooltipStatsEnable     = string_static("Enable the \a.bStatistics\ar interface.");
+static const String g_tooltipStatsDisable    = string_static("Disable the \a.bStatistics\ar interface.");
+static const String g_tooltipPanelAsset      = string_static("Open the \a.bAsset Debug\ar panel.");
+static const String g_tooltipPanelCamera     = string_static("Open the \a.bCamera settings\ar panel.");
+static const String g_tooltipPanelGrid       = string_static("Open the \a.bGrid settings\ar panel.");
+static const String g_tooltipPanelRend       = string_static("Open the \a.bRenderer settings\ar panel.");
+static const String g_tooltipPanelInterface  = string_static("Open the \a.bInterface settings\ar panel.");
+static const String g_tooltipFullscreenEnter = string_static("Enter fullscreen.");
+static const String g_tooltipFullscreenExit  = string_static("Exit fullscreen.");
+static const String g_tooltipWindowOpen      = string_static("Open a new window.");
+static const String g_tooltipWindowClose     = string_static("Close the current window.");
 
 // clang-format on
 
