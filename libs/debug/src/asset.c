@@ -228,7 +228,7 @@ static void asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelCom
 
     ui_canvas_id_block_string(canvas, asset->id); // Set a stable id based on the asset id.
 
-    ui_label(canvas, asset->id);
+    ui_label(canvas, asset->id, .selectable = true);
     ui_table_next_column(canvas, &table);
     ui_label(canvas, g_statusNames[asset->status]);
     ui_table_next_column(canvas, &table);
