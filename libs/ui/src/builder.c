@@ -427,11 +427,22 @@ static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
     diag_assert(state->containerStackCount < ui_build_container_stack_max);
     const UiBuildContainer currentContainer = *ui_build_container_active(state);
     const UiRect           logicRect        = *ui_build_rect_currect(state);
-    const UiRect           clipRect         = ui_build_clip(currentContainer, logicRect);
+    UiRect                 clipRect;
+    u8                     clipId;
+    switch (cmd->containerPush.clip) {
+    case UiClip_None:
+      clipRect = currentContainer.clipRect;
+      clipId   = currentContainer.clipId;
+      break;
+    case UiClip_Rect:
+      clipRect = ui_build_clip(currentContainer, logicRect);
+      clipId   = state->ctx->outputClipRect(state->ctx->userCtx, clipRect);
+      break;
+    }
     state->containerStack[state->containerStackCount++] = (UiBuildContainer){
         .logicRect = logicRect,
         .clipRect  = clipRect,
-        .clipId    = state->ctx->outputClipRect(state->ctx->userCtx, clipRect),
+        .clipId    = clipId,
     };
   } break;
   case UiCmd_ContainerPop:

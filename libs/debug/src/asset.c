@@ -196,8 +196,8 @@ static void asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelCom
 
   asset_options_draw(canvas, panelComp);
 
-  ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -30), UiBase_Absolute, Ui_Y);
-  ui_layout_container_push(canvas);
+  ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
+  ui_layout_container_push(canvas, UiClip_None);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 350);

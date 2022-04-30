@@ -15,10 +15,10 @@ struct sUiCmdBuffer {
 UiCmdBuffer* ui_cmdbuffer_create(Allocator* alloc) {
   UiCmdBuffer* buffer = alloc_alloc_t(alloc, UiCmdBuffer);
   *buffer             = (UiCmdBuffer){
-                  .commands = dynarray_create_t(alloc, UiCmd, 128),
-                  .alloc    = alloc,
-                  .allocTransient =
-                      alloc_chunked_create(g_alloc_page, alloc_bump_create, ui_cmdbuffer_transient_chunk_size)};
+      .commands = dynarray_create_t(alloc, UiCmd, 128),
+      .alloc    = alloc,
+      .allocTransient =
+          alloc_chunked_create(g_alloc_page, alloc_bump_create, ui_cmdbuffer_transient_chunk_size)};
   return buffer;
 }
 
@@ -97,8 +97,12 @@ void ui_cmd_push_rect_size_grow(
       }};
 }
 
-void ui_cmd_push_container_push(UiCmdBuffer* buffer) {
-  *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){.type = UiCmd_ContainerPush};
+void ui_cmd_push_container_push(UiCmdBuffer* buffer, const UiClip clip) {
+  *dynarray_push_t(&buffer->commands, UiCmd) = (UiCmd){
+      .type          = UiCmd_ContainerPush,
+      .containerPush = {
+          .clip = clip,
+      }};
 }
 
 void ui_cmd_push_container_pop(UiCmdBuffer* buffer) {
