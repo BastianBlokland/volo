@@ -286,7 +286,7 @@ EcsEntityId debug_asset_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugAssetPanelComp,
-      .panel      = ui_panel(ui_vector(750, 500)),
+      .panel      = ui_panel(ui_vector(800, 500)),
       .scrollview = ui_scrollview(),
       .idFilter   = dynstring_create(g_alloc_heap, 32),
       .sortMode   = DebugAssetSortMode_Status,
