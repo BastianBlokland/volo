@@ -6,7 +6,7 @@
 #include "ui_shape.h"
 #include "ui_style.h"
 
-static const f32 g_scrollSensitivity = 15;
+static const f32 g_scrollSensitivity = 30;
 static const f32 g_scrollBarWidth    = 10;
 
 typedef enum {
@@ -139,7 +139,7 @@ void ui_scrollview_begin(UiCanvasComp* canvas, UiScrollview* scrollview, const f
   // Push a container with the viewport rect to clip the content within the viewport.
   ui_layout_grow(
       canvas, UiAlign_MiddleLeft, ui_vector(-g_scrollBarWidth, 0), UiBase_Absolute, Ui_X);
-  ui_layout_container_push(canvas);
+  ui_layout_container_push(canvas, UiClip_Rect);
 
   // Push a container with the content rect.
   ui_layout_move_dir(canvas, Ui_Up, scrollview->offset, UiBase_Absolute);
@@ -147,7 +147,7 @@ void ui_scrollview_begin(UiCanvasComp* canvas, UiScrollview* scrollview, const f
     ui_layout_grow(
         canvas, UiAlign_TopCenter, ui_vector(0, status.offscreenHeight), UiBase_Absolute, Ui_Y);
   }
-  ui_layout_container_push(canvas);
+  ui_layout_container_push(canvas, UiClip_None);
 }
 
 void ui_scrollview_end(UiCanvasComp* canvas, UiScrollview* scrollview) {

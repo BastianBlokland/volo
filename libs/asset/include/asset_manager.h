@@ -64,3 +64,11 @@ void asset_acquire(EcsWorld*, EcsEntityId assetEntity);
  * Pre-condition: Previously acquired using 'asset_acquire()'.
  */
 void asset_release(EcsWorld*, EcsEntityId assetEntity);
+
+/**
+ * Debug apis.
+ */
+u32  asset_ref_count(const AssetComp*);
+u32  asset_load_count(const AssetComp*);
+bool asset_is_loading(const AssetComp*);
+u32  asset_ticks_until_unload(const AssetComp*);

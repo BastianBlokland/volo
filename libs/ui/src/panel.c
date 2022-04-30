@@ -198,7 +198,7 @@ void ui_panel_begin_with_opts(UiCanvasComp* canvas, UiPanel* panel, const UiPane
   ui_panel_topbar(canvas, panel, opts);
   ui_panel_background(canvas);
 
-  ui_layout_container_push(canvas);
+  ui_layout_container_push(canvas, UiClip_Rect);
 }
 
 void ui_panel_end(UiCanvasComp* canvas, UiPanel* panel) {

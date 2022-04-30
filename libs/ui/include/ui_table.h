@@ -1,5 +1,6 @@
 #pragma once
 #include "ecs_module.h"
+#include "ui_color.h"
 #include "ui_rect.h"
 #include "ui_units.h"
 
@@ -16,6 +17,10 @@ typedef struct {
   UiTableColumnType type;
   f32               width;
 } UiTableColumn;
+
+typedef struct {
+  String label, tooltip;
+} UiTableColumnName;
 
 typedef struct {
   UiBase        parent;
@@ -60,6 +65,13 @@ bool ui_table_active(const UiTable*);
 void ui_table_add_column(UiTable*, UiTableColumnType, f32 width);
 
 /**
+ * Reset the table to the initial state.
+ * NOTE: Use 'ui_table_next_row()' to activate the first row.
+ * Pre-condition: ui_table_active()
+ */
+void ui_table_reset(UiTable*);
+
+/**
  * Sets the active rectangle to the first column in the next row.
  * NOTE: If no row is currently active then the first row becomes the active row.
  */
@@ -70,3 +82,15 @@ void ui_table_next_row(UiCanvasComp*, UiTable*);
  * Pre-condition: ui_table_active()
  */
 void ui_table_next_column(UiCanvasComp*, UiTable*);
+
+/**
+ * Draw a table header.
+ * NOTE: Set the current rectangle to remaining content area for the table.
+ * Pre-condition: array_size(UiTableColumnName) == table->columnCount.
+ */
+void ui_table_draw_header(UiCanvasComp*, const UiTable*, const UiTableColumnName[]);
+
+/**
+ * Draw a background for the current row.
+ */
+void ui_table_draw_row_bg(UiCanvasComp*, const UiTable*, UiColor color);

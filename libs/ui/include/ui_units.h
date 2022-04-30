@@ -65,3 +65,11 @@ typedef enum {
   UiWeight_Bold   = 2,
   UiWeight_Heavy  = 3,
 } UiWeight;
+
+/**
+ * Ui Clipping Mode.
+ */
+typedef enum {
+  UiClip_None,
+  UiClip_Rect,
+} UiClip;

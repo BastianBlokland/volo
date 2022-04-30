@@ -88,6 +88,7 @@ spec(bits) {
     check(bits_ispow2_64(34359738368));
     check(!bits_ispow2_64(68719476735));
     check(bits_ispow2_64(68719476736));
+    check(bits_ispow2_64(u64_lit(1) << 32));
     check(bits_ispow2_64(u64_lit(9223372036854775808)));
   }
 
