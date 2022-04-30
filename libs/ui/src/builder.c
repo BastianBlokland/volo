@@ -7,9 +7,9 @@
 #include "cmd_internal.h"
 #include "text_internal.h"
 
-#define ui_build_rect_stack_max 5
-#define ui_build_style_stack_max 5
-#define ui_build_container_stack_max 5
+#define ui_build_rect_stack_max 10
+#define ui_build_style_stack_max 10
+#define ui_build_container_stack_max 10
 
 typedef struct {
   UiColor  color;
