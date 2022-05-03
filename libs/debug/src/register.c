@@ -9,5 +9,6 @@ void debug_register(EcsDef* def) {
   ecs_register_module(def, debug_log_viewer_module);
   ecs_register_module(def, debug_menu_module);
   ecs_register_module(def, debug_rend_module);
+  ecs_register_module(def, debug_shape_module);
   ecs_register_module(def, debug_stats_module);
 }
