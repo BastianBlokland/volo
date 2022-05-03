@@ -7,7 +7,7 @@
       "shaderId": "shaders/debug/shape.frag.spv"
     }
   ],
-  "meshId": "meshes/cube.pme",
+  "meshId": "meshes/debug/shape_cube.pme",
   "renderOrder": 50,
   "topology": "Triangles",
   "rasterizer": "Fill",

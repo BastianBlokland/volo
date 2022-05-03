@@ -11,6 +11,8 @@
 typedef enum {
   DebugShapeType_BoxFill,
   DebugShapeType_BoxWire,
+  DebugShapeType_SphereFill,
+  DebugShapeType_SphereWire,
 
   DebugShapeType_Count,
 } DebugShapeType;
@@ -21,15 +23,24 @@ typedef struct {
 } DebugShapeBox;
 
 typedef struct {
+  GeoVector position;
+  f32       radius;
+  GeoColor  color;
+} DebugShapeSphere;
+
+typedef struct {
   DebugShapeType type;
   union {
-    DebugShapeBox data_box;
+    DebugShapeBox    data_box;
+    DebugShapeSphere data_sphere;
   };
 } DebugShape;
 
 static const String g_debugGraphics[DebugShapeType_Count] = {
-    [DebugShapeType_BoxFill] = string_static("graphics/debug/shape_box_fill.gra"),
-    [DebugShapeType_BoxWire] = string_static("graphics/debug/shape_box_wire.gra"),
+    [DebugShapeType_BoxFill]    = string_static("graphics/debug/shape_box_fill.gra"),
+    [DebugShapeType_BoxWire]    = string_static("graphics/debug/shape_box_wire.gra"),
+    [DebugShapeType_SphereFill] = string_static("graphics/debug/shape_sphere_fill.gra"),
+    [DebugShapeType_SphereWire] = string_static("graphics/debug/shape_sphere_wire.gra"),
 };
 
 ecs_comp_define(DebugShapeRendererComp) { EcsEntityId drawEntities[DebugShapeType_Count]; };
@@ -112,14 +123,23 @@ ecs_system_define(DebugShapeRenderSys) {
       switch (shape->type) {
       case DebugShapeType_BoxFill:
       case DebugShapeType_BoxWire: {
-        /**
-         * TODO: Wire boxes should not be drawn using a triangle box mesh.
-         */
         const DrawData data = {
             .pos   = geo_box_center(&shape->data_box.box),
             .rot   = geo_quat_ident,
             .scale = geo_box_size(&shape->data_box.box),
             .color = shape->data_box.color,
+        };
+        rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, shape->data_box.box);
+        continue;
+      }
+      case DebugShapeType_SphereFill:
+      case DebugShapeType_SphereWire: {
+        const DrawData data = {
+            .pos   = shape->data_sphere.position,
+            .rot   = geo_quat_ident,
+            .scale = geo_vector(
+                shape->data_sphere.radius, shape->data_sphere.radius, shape->data_sphere.radius),
+            .color = shape->data_sphere.color,
         };
         rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, shape->data_box.box);
         continue;
@@ -171,5 +191,21 @@ void debug_shape_box_wire(DebugShapeCanvasComp* comp, const GeoBox box, const Ge
   *dynarray_push_t(&comp->shapes, DebugShape) = (DebugShape){
       .type     = DebugShapeType_BoxWire,
       .data_box = {.box = box, .color = color},
+  };
+}
+
+void debug_shape_sphere_fill(
+    DebugShapeCanvasComp* comp, const GeoVector pos, const f32 radius, const GeoColor color) {
+  *dynarray_push_t(&comp->shapes, DebugShape) = (DebugShape){
+      .type        = DebugShapeType_SphereFill,
+      .data_sphere = {.position = pos, .radius = radius, .color = color},
+  };
+}
+
+void debug_shape_sphere_wire(
+    DebugShapeCanvasComp* comp, const GeoVector pos, const f32 radius, const GeoColor color) {
+  *dynarray_push_t(&comp->shapes, DebugShape) = (DebugShape){
+      .type        = DebugShapeType_SphereWire,
+      .data_sphere = {.position = pos, .radius = radius, .color = color},
   };
 }
