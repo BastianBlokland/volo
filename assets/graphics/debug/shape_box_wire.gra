@@ -1,0 +1,18 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/debug/shape.vert.spv"
+    },
+    {
+      "shaderId": "shaders/debug/shape.frag.spv"
+    }
+  ],
+  "meshId": "meshes/cube.pme",
+  "renderOrder": 50,
+  "topology": "Triangles",
+  "rasterizer": "Lines",
+  "lineWidth": 2,
+  "blend": "Alpha",
+  "depth": "Always",
+  "cull": "None"
+}

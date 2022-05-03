@@ -9,6 +9,8 @@ configure_shaders(volo_shaders
   SOURCES
     shaders/debug/grid.vert
     shaders/debug/grid.frag
+    shaders/debug/shape.vert
+    shaders/debug/shape.frag
     shaders/debug/texture_viewer.vert
     shaders/debug/texture_viewer.frag
     shaders/scene/sky.vert

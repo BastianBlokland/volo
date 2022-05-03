@@ -9,7 +9,8 @@
 #include "rend_draw.h"
 
 typedef enum {
-  DebugShapeType_Box,
+  DebugShapeType_BoxFill,
+  DebugShapeType_BoxWire,
 
   DebugShapeType_Count,
 } DebugShapeType;
@@ -27,7 +28,8 @@ typedef struct {
 } DebugShape;
 
 static const String g_debugGraphics[DebugShapeType_Count] = {
-    [DebugShapeType_Box] = string_static("graphics/debug/shape_box_alpha.gra"),
+    [DebugShapeType_BoxFill] = string_static("graphics/debug/shape_box_fill.gra"),
+    [DebugShapeType_BoxWire] = string_static("graphics/debug/shape_box_wire.gra"),
 };
 
 ecs_comp_define(DebugShapeRendererComp) { EcsEntityId drawEntities[DebugShapeType_Count]; };
@@ -98,10 +100,30 @@ ecs_system_define(DebugShapeRenderSys) {
       ecs_view_jump(drawItr, renderer->drawEntities[shape->type]);
       RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
 
+      typedef struct {
+        ALIGNAS(16)
+        GeoVector pos;
+        GeoQuat   rot;
+        GeoVector scale;
+        GeoColor  color;
+      } DrawData;
+      ASSERT(sizeof(DrawData) == 64, "Size needs to match the size defined in glsl");
+
       switch (shape->type) {
-      case DebugShapeType_Box:
-        rend_draw_add_instance(draw, mem_empty, SceneTags_Debug, shape->data_box.box);
+      case DebugShapeType_BoxFill:
+      case DebugShapeType_BoxWire: {
+        /**
+         * TODO: Wire boxes should not be drawn using a triangle box mesh.
+         */
+        const DrawData data = {
+            .pos   = geo_box_center(&shape->data_box.box),
+            .rot   = geo_quat_ident,
+            .scale = geo_box_size(&shape->data_box.box),
+            .color = shape->data_box.color,
+        };
+        rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, shape->data_box.box);
         continue;
+      }
       case DebugShapeType_Count:
         break;
       }
@@ -138,9 +160,16 @@ DebugShapeCanvasComp* debug_shape_canvas_create(EcsWorld* world, const EcsEntity
       .shapes = dynarray_create_t(g_alloc_heap, DebugShape, 64));
 }
 
-void debug_draw_shape_box(DebugShapeCanvasComp* comp, const GeoBox box, const GeoColor color) {
+void debug_shape_box_fill(DebugShapeCanvasComp* comp, const GeoBox box, const GeoColor color) {
   *dynarray_push_t(&comp->shapes, DebugShape) = (DebugShape){
-      .type     = DebugShapeType_Box,
+      .type     = DebugShapeType_BoxFill,
+      .data_box = {.box = box, .color = color},
+  };
+}
+
+void debug_shape_box_wire(DebugShapeCanvasComp* comp, const GeoBox box, const GeoColor color) {
+  *dynarray_push_t(&comp->shapes, DebugShape) = (DebugShape){
+      .type     = DebugShapeType_BoxWire,
       .data_box = {.box = box, .color = color},
   };
 }
