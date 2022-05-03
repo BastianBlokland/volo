@@ -135,14 +135,19 @@ ecs_system_define(DebugShapeRenderSys) {
       }
       case DebugShapeType_SphereFill:
       case DebugShapeType_SphereWire: {
+        const GeoVector pos    = shape->data_sphere.position;
+        const f32       radius = shape->data_sphere.radius;
+        const GeoBox    bounds = {
+            .min = geo_vector(pos.x - radius, pos.y - radius, pos.z - radius),
+            .max = geo_vector(pos.x + radius, pos.y + radius, pos.z + radius),
+        };
         const DrawData data = {
-            .pos   = shape->data_sphere.position,
+            .pos   = pos,
             .rot   = geo_quat_ident,
-            .scale = geo_vector(
-                shape->data_sphere.radius, shape->data_sphere.radius, shape->data_sphere.radius),
+            .scale = geo_vector(radius, radius, radius),
             .color = shape->data_sphere.color,
         };
-        rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, shape->data_box.box);
+        rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, bounds);
         continue;
       }
       case DebugShapeType_Count:
