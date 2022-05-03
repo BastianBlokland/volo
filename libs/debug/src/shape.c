@@ -19,6 +19,7 @@ typedef enum {
 
 typedef struct {
   GeoBox   box;
+  GeoQuat  rot;
   GeoColor color;
 } DebugShapeBox;
 
@@ -125,7 +126,7 @@ ecs_system_define(DebugShapeRenderSys) {
       case DebugShapeType_BoxWire: {
         const DrawData data = {
             .pos   = geo_box_center(&shape->data_box.box),
-            .rot   = geo_quat_ident,
+            .rot   = shape->data_box.rot,
             .scale = geo_box_size(&shape->data_box.box),
             .color = shape->data_box.color,
         };
@@ -180,17 +181,19 @@ DebugShapeCanvasComp* debug_shape_canvas_create(EcsWorld* world, const EcsEntity
       .shapes = dynarray_create_t(g_alloc_heap, DebugShape, 64));
 }
 
-void debug_shape_box_fill(DebugShapeCanvasComp* comp, const GeoBox box, const GeoColor color) {
+void debug_shape_box_fill(
+    DebugShapeCanvasComp* comp, const GeoBox box, const GeoQuat rot, const GeoColor color) {
   *dynarray_push_t(&comp->shapes, DebugShape) = (DebugShape){
       .type     = DebugShapeType_BoxFill,
-      .data_box = {.box = box, .color = color},
+      .data_box = {.box = box, .rot = rot, .color = color},
   };
 }
 
-void debug_shape_box_wire(DebugShapeCanvasComp* comp, const GeoBox box, const GeoColor color) {
+void debug_shape_box_wire(
+    DebugShapeCanvasComp* comp, const GeoBox box, const GeoQuat rot, const GeoColor color) {
   *dynarray_push_t(&comp->shapes, DebugShape) = (DebugShape){
       .type     = DebugShapeType_BoxWire,
-      .data_box = {.box = box, .color = color},
+      .data_box = {.box = box, .rot = rot, .color = color},
   };
 }
 

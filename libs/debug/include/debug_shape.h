@@ -14,7 +14,7 @@ DebugShapeCanvasComp* debug_shape_canvas_create(EcsWorld*, EcsEntityId entity);
 /**
  * Draw primitives.
  */
-void debug_shape_box_fill(DebugShapeCanvasComp*, GeoBox, GeoColor);
-void debug_shape_box_wire(DebugShapeCanvasComp*, GeoBox, GeoColor);
+void debug_shape_box_fill(DebugShapeCanvasComp*, GeoBox, GeoQuat, GeoColor);
+void debug_shape_box_wire(DebugShapeCanvasComp*, GeoBox, GeoQuat, GeoColor);
 void debug_shape_sphere_fill(DebugShapeCanvasComp*, GeoVector pos, f32 radius, GeoColor);
 void debug_shape_sphere_wire(DebugShapeCanvasComp*, GeoVector pos, f32 radius, GeoColor);
