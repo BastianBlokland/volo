@@ -79,7 +79,7 @@ static EcsEntityId debug_ftx_draw_create(
 
   RendDrawComp* draw = rend_draw_create(world, drawEntity, RendDrawFlags_NoAutoClear);
   rend_draw_set_graphic(
-      draw, asset_lookup(world, assets, string_lit("graphics/debug/interface_debug_ftx.gra")));
+      draw, asset_lookup(world, assets, string_lit("graphics/debug/interface_ftx.gra")));
   rend_draw_set_camera_filter(draw, windowEntity);
   rend_draw_add_instance(draw, mem_empty, SceneTags_Debug, geo_box_inverted3());
 
