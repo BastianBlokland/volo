@@ -70,6 +70,11 @@ static void physics_draw_bounds_aligned(
   debug_shape_box_wire(shapeCanvas, aabb, geo_quat_ident, geo_color(0.0f, 0.0f, 1.0f, 0.5f));
 }
 
+static void physics_draw_pivot(DebugShapeCanvasComp* shapeCanvas, const GeoVector position) {
+  const f32 radius = 0.02f;
+  debug_shape_sphere_wire(shapeCanvas, position, radius, geo_color(1.0f, 0.0f, 0.0f, 1.0f));
+}
+
 ecs_system_define(DebugPhysicsDrawSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -88,6 +93,7 @@ ecs_system_define(DebugPhysicsDrawSys) {
 
     physics_draw_bounds_rotated(shapeCanvas, position, rotation, bounds, scale);
     physics_draw_bounds_aligned(shapeCanvas, position, rotation, bounds, scale);
+    physics_draw_pivot(shapeCanvas, position);
   }
 }
 
