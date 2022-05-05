@@ -11,6 +11,7 @@ add_library(lib_debug STATIC
   src/interface.c
   src/log_viewer.c
   src/menu.c
+  src/physics.c
   src/register.c
   src/rend.c
   src/shape.c
