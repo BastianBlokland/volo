@@ -18,3 +18,4 @@ void debug_shape_box_fill(DebugShapeComp*, GeoVector pos, GeoQuat, GeoVector siz
 void debug_shape_box_wire(DebugShapeComp*, GeoVector pos, GeoQuat, GeoVector size, GeoColor);
 void debug_shape_sphere_fill(DebugShapeComp*, GeoVector pos, f32 radius, GeoColor);
 void debug_shape_sphere_wire(DebugShapeComp*, GeoVector pos, f32 radius, GeoColor);
+void debug_shape_sphere_overlay(DebugShapeComp*, GeoVector pos, f32 radius, GeoColor);

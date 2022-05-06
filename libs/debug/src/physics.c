@@ -75,8 +75,8 @@ static void physics_draw_bounds_aligned(
 }
 
 static void physics_draw_pivot(DebugShapeComp* shape, const GeoVector position) {
-  const f32 radius = 0.02f;
-  debug_shape_sphere_wire(shape, position, radius, geo_color(1.0f, 0.0f, 0.0f, 1.0f));
+  const f32 radius = 0.025f;
+  debug_shape_sphere_overlay(shape, position, radius, geo_color(1.0f, 0.0f, 0.0f, 1.0f));
 }
 
 ecs_system_define(DebugPhysicsDrawSys) {

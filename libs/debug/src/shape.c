@@ -13,6 +13,7 @@ typedef enum {
   DebugShapeType_BoxWire,
   DebugShapeType_SphereFill,
   DebugShapeType_SphereWire,
+  DebugShapeType_SphereOverlay,
 
   DebugShapeType_Count,
 } DebugShapeType;
@@ -39,10 +40,11 @@ typedef struct {
 } DebugShape;
 
 static const String g_debugGraphics[DebugShapeType_Count] = {
-    [DebugShapeType_BoxFill]    = string_static("graphics/debug/shape_box_fill.gra"),
-    [DebugShapeType_BoxWire]    = string_static("graphics/debug/shape_box_wire.gra"),
-    [DebugShapeType_SphereFill] = string_static("graphics/debug/shape_sphere_fill.gra"),
-    [DebugShapeType_SphereWire] = string_static("graphics/debug/shape_sphere_wire.gra"),
+    [DebugShapeType_BoxFill]       = string_static("graphics/debug/shape_box_fill.gra"),
+    [DebugShapeType_BoxWire]       = string_static("graphics/debug/shape_box_wire.gra"),
+    [DebugShapeType_SphereFill]    = string_static("graphics/debug/shape_sphere_fill.gra"),
+    [DebugShapeType_SphereWire]    = string_static("graphics/debug/shape_sphere_wire.gra"),
+    [DebugShapeType_SphereOverlay] = string_static("graphics/debug/shape_sphere_overlay.gra"),
 };
 
 ecs_comp_define(DebugShapeRendererComp) { EcsEntityId drawEntities[DebugShapeType_Count]; };
@@ -136,7 +138,8 @@ ecs_system_define(DebugShapeRenderSys) {
         continue;
       }
       case DebugShapeType_SphereFill:
-      case DebugShapeType_SphereWire: {
+      case DebugShapeType_SphereWire:
+      case DebugShapeType_SphereOverlay: {
         const GeoVector pos    = entry->data_sphere.pos;
         const f32       radius = entry->data_sphere.radius;
         const GeoBox    bounds = {
@@ -221,6 +224,14 @@ void debug_shape_sphere_wire(
     DebugShapeComp* comp, const GeoVector pos, const f32 radius, const GeoColor color) {
   *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
       .type        = DebugShapeType_SphereWire,
+      .data_sphere = {.pos = pos, .radius = radius, .color = color},
+  };
+}
+
+void debug_shape_sphere_overlay(
+    DebugShapeComp* comp, const GeoVector pos, const f32 radius, const GeoColor color) {
+  *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
+      .type        = DebugShapeType_SphereOverlay,
       .data_sphere = {.pos = pos, .radius = radius, .color = color},
   };
 }
