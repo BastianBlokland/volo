@@ -4,17 +4,18 @@
 #include "geo_box.h"
 #include "geo_color.h"
 
-ecs_comp_extern(DebugShapeCanvasComp);
+ecs_comp_extern(DebugShapeComp);
 
 /**
- * Add a new debug-shape canvas component to the given entity.
+ * Add a new debug-shape component to the given entity.
  */
-DebugShapeCanvasComp* debug_shape_canvas_create(EcsWorld*, EcsEntityId entity);
+DebugShapeComp* debug_shape_create(EcsWorld*, EcsEntityId entity);
 
 /**
  * Draw primitives.
  */
-void debug_shape_box_fill(DebugShapeCanvasComp*, GeoBox, GeoQuat, GeoColor);
-void debug_shape_box_wire(DebugShapeCanvasComp*, GeoBox, GeoQuat, GeoColor);
-void debug_shape_sphere_fill(DebugShapeCanvasComp*, GeoVector pos, f32 radius, GeoColor);
-void debug_shape_sphere_wire(DebugShapeCanvasComp*, GeoVector pos, f32 radius, GeoColor);
+void debug_shape_box_fill(DebugShapeComp*, GeoVector pos, GeoQuat, GeoVector size, GeoColor);
+void debug_shape_box_wire(DebugShapeComp*, GeoVector pos, GeoQuat, GeoVector size, GeoColor);
+void debug_shape_sphere_fill(DebugShapeComp*, GeoVector pos, f32 radius, GeoColor);
+void debug_shape_sphere_wire(DebugShapeComp*, GeoVector pos, f32 radius, GeoColor);
+void debug_shape_sphere_overlay(DebugShapeComp*, GeoVector pos, f32 radius, GeoColor);

@@ -31,7 +31,8 @@
   X(0xE5CD, Close)                                                                                 \
   X(0xF016, Grid4x4)                                                                               \
   X(0xE412, PhotoCamera)                                                                           \
-  X(0xE25E, FormatShapes)
+  X(0xE25E, FormatShapes)                                                                          \
+  X(0xE9FE, ViewInAr)
 
 enum {
 #define X(_UNICODE_, _NAME_) UiShape_##_NAME_ = _UNICODE_,
