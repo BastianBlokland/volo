@@ -18,13 +18,14 @@ typedef enum {
 } DebugShapeType;
 
 typedef struct {
-  GeoBox   box;
-  GeoQuat  rot;
-  GeoColor color;
+  GeoVector pos;
+  GeoQuat   rot;
+  GeoVector size;
+  GeoColor  color;
 } DebugShapeBox;
 
 typedef struct {
-  GeoVector position;
+  GeoVector pos;
   f32       radius;
   GeoColor  color;
 } DebugShapeSphere;
@@ -124,18 +125,19 @@ ecs_system_define(DebugShapeRenderSys) {
       switch (shape->type) {
       case DebugShapeType_BoxFill:
       case DebugShapeType_BoxWire: {
-        const DrawData data = {
-            .pos   = geo_box_center(&shape->data_box.box),
+        const GeoBox   bounds = geo_box_inverted3(); // TODO: Compute bounds.
+        const DrawData data   = {
+            .pos   = shape->data_box.pos,
             .rot   = shape->data_box.rot,
-            .scale = geo_box_size(&shape->data_box.box),
+            .scale = shape->data_box.size,
             .color = shape->data_box.color,
         };
-        rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, shape->data_box.box);
+        rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, bounds);
         continue;
       }
       case DebugShapeType_SphereFill:
       case DebugShapeType_SphereWire: {
-        const GeoVector pos    = shape->data_sphere.position;
+        const GeoVector pos    = shape->data_sphere.pos;
         const f32       radius = shape->data_sphere.radius;
         const GeoBox    bounds = {
             .min = geo_vector(pos.x - radius, pos.y - radius, pos.z - radius),
@@ -187,18 +189,26 @@ DebugShapeCanvasComp* debug_shape_canvas_create(EcsWorld* world, const EcsEntity
 }
 
 void debug_shape_box_fill(
-    DebugShapeCanvasComp* comp, const GeoBox box, const GeoQuat rot, const GeoColor color) {
+    DebugShapeCanvasComp* comp,
+    const GeoVector       pos,
+    const GeoQuat         rot,
+    const GeoVector       size,
+    const GeoColor        color) {
   *dynarray_push_t(&comp->shapes, DebugShape) = (DebugShape){
       .type     = DebugShapeType_BoxFill,
-      .data_box = {.box = box, .rot = rot, .color = color},
+      .data_box = {.pos = pos, .rot = rot, .size = size, .color = color},
   };
 }
 
 void debug_shape_box_wire(
-    DebugShapeCanvasComp* comp, const GeoBox box, const GeoQuat rot, const GeoColor color) {
+    DebugShapeCanvasComp* comp,
+    const GeoVector       pos,
+    const GeoQuat         rot,
+    const GeoVector       size,
+    const GeoColor        color) {
   *dynarray_push_t(&comp->shapes, DebugShape) = (DebugShape){
       .type     = DebugShapeType_BoxWire,
-      .data_box = {.box = box, .rot = rot, .color = color},
+      .data_box = {.pos = pos, .rot = rot, .size = size, .color = color},
   };
 }
 
@@ -206,7 +216,7 @@ void debug_shape_sphere_fill(
     DebugShapeCanvasComp* comp, const GeoVector pos, const f32 radius, const GeoColor color) {
   *dynarray_push_t(&comp->shapes, DebugShape) = (DebugShape){
       .type        = DebugShapeType_SphereFill,
-      .data_sphere = {.position = pos, .radius = radius, .color = color},
+      .data_sphere = {.pos = pos, .radius = radius, .color = color},
   };
 }
 
@@ -214,6 +224,6 @@ void debug_shape_sphere_wire(
     DebugShapeCanvasComp* comp, const GeoVector pos, const f32 radius, const GeoColor color) {
   *dynarray_push_t(&comp->shapes, DebugShape) = (DebugShape){
       .type        = DebugShapeType_SphereWire,
-      .data_sphere = {.position = pos, .radius = radius, .color = color},
+      .data_sphere = {.pos = pos, .radius = radius, .color = color},
   };
 }

@@ -50,24 +50,28 @@ ecs_system_define(DebugPhysicsUpdatePanelSys) {
 
 static void physics_draw_bounds_rotated(
     DebugShapeCanvasComp* shapeCanvas,
-    const GeoVector       position,
-    const GeoQuat         rotation,
+    const GeoVector       pos,
+    const GeoQuat         rot,
     const GeoBox          bounds,
     const f32             scale) {
-  const GeoBox aabb = geo_box_transform3(&bounds, position, geo_quat_ident, scale);
-  debug_shape_box_fill(shapeCanvas, aabb, rotation, geo_color(0.0f, 1.0f, 0.0f, 0.2f));
-  debug_shape_box_wire(shapeCanvas, aabb, rotation, geo_color(0.0f, 1.0f, 0.0f, 0.5f));
+  const GeoVector size = geo_vector_mul(geo_box_size(&bounds), scale);
+  const GeoVector center =
+      geo_vector_add(geo_quat_rotate(rot, geo_vector_mul(geo_box_center(&bounds), scale)), pos);
+  debug_shape_box_fill(shapeCanvas, center, rot, size, geo_color(0.0f, 1.0f, 0.0f, 0.2f));
+  debug_shape_box_wire(shapeCanvas, center, rot, size, geo_color(0.0f, 1.0f, 0.0f, 0.5f));
 }
 
 static void physics_draw_bounds_aligned(
-    DebugShapeCanvasComp* shapeCanvas,
-    const GeoVector       position,
-    const GeoQuat         rotation,
+    DebugShapeCanvasComp* canvas,
+    const GeoVector       pos,
+    const GeoQuat         rot,
     const GeoBox          bounds,
     const f32             scale) {
-  const GeoBox aabb = geo_box_transform3(&bounds, position, rotation, scale);
-  debug_shape_box_fill(shapeCanvas, aabb, geo_quat_ident, geo_color(0.0f, 0.0f, 1.0f, 0.2f));
-  debug_shape_box_wire(shapeCanvas, aabb, geo_quat_ident, geo_color(0.0f, 0.0f, 1.0f, 0.5f));
+  const GeoBox    aabb   = geo_box_transform3(&bounds, pos, rot, scale);
+  const GeoVector center = geo_box_center(&aabb);
+  const GeoVector size   = geo_box_size(&aabb);
+  debug_shape_box_fill(canvas, center, geo_quat_ident, size, geo_color(0.0f, 0.0f, 1.0f, 0.2f));
+  debug_shape_box_wire(canvas, center, geo_quat_ident, size, geo_color(0.0f, 0.0f, 1.0f, 0.5f));
 }
 
 static void physics_draw_pivot(DebugShapeCanvasComp* shapeCanvas, const GeoVector position) {
@@ -85,15 +89,15 @@ ecs_system_define(DebugPhysicsDrawSys) {
 
   EcsView* objectView = ecs_world_view_t(world, ObjectView);
   for (EcsIterator* itr = ecs_view_itr(objectView); ecs_view_walk(itr);) {
-    const GeoVector       position  = ecs_view_read_t(itr, SceneTransformComp)->position;
-    const GeoQuat         rotation  = ecs_view_read_t(itr, SceneTransformComp)->rotation;
+    const GeoVector       pos       = ecs_view_read_t(itr, SceneTransformComp)->position;
+    const GeoQuat         rot       = ecs_view_read_t(itr, SceneTransformComp)->rotation;
     const GeoBox          bounds    = ecs_view_read_t(itr, SceneBoundsComp)->local;
     const SceneScaleComp* scaleComp = ecs_view_read_t(itr, SceneScaleComp);
     const f32             scale     = scaleComp ? scaleComp->scale : 1.0f;
 
-    physics_draw_bounds_rotated(shapeCanvas, position, rotation, bounds, scale);
-    physics_draw_bounds_aligned(shapeCanvas, position, rotation, bounds, scale);
-    physics_draw_pivot(shapeCanvas, position);
+    physics_draw_bounds_rotated(shapeCanvas, pos, rot, bounds, scale);
+    physics_draw_bounds_aligned(shapeCanvas, pos, rot, bounds, scale);
+    physics_draw_pivot(shapeCanvas, pos);
   }
 }
 
