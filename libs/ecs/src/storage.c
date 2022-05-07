@@ -247,7 +247,7 @@ usize ecs_storage_archetype_total_size(const EcsStorage* storage) {
 
 u32 ecs_storage_archetype_total_chunks(const EcsStorage* storage) {
   u32 result = 0;
-  dynarray_for_t(&storage->archetypes, EcsArchetype, arch) { result += (u32)arch->chunkCount; }
+  dynarray_for_t(&storage->archetypes, EcsArchetype, arch) { result += arch->chunkCount; }
   return result;
 }
 
