@@ -174,9 +174,12 @@ static void physics_panel_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelCom
   const u32 numComps = (u32)panelComp->components.size;
   ui_scrollview_begin(canvas, &panelComp->scrollview, ui_table_height(&table, numComps));
 
+  ui_canvas_id_block_next(canvas); // Start the list of assets on its own id block.
   dynarray_for_t(&panelComp->components, DebugEcsCompInfo, compInfo) {
     ui_table_next_row(canvas, &table);
     ui_table_draw_row_bg(canvas, &table, comp_info_bg_color(compInfo));
+
+    ui_canvas_id_block_index(canvas, compInfo->id); // Set a stable canvas id based on the comp id.
 
     ui_label(canvas, fmt_write_scratch("{}", fmt_int(compInfo->id)));
     ui_table_next_column(canvas, &table);
@@ -192,6 +195,7 @@ static void physics_panel_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelCom
     ui_table_next_column(canvas, &table);
     ui_label(canvas, fmt_write_scratch("{}", fmt_size(compInfo->numEntities * compInfo->size)));
   }
+  ui_canvas_id_block_next(canvas);
 
   ui_scrollview_end(canvas, &panelComp->scrollview);
   ui_layout_container_pop(canvas);
