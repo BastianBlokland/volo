@@ -21,8 +21,8 @@ typedef struct {
   u32    compCount;
   u16*   compOffsetsAndSizes; // u16 offsets[compCount], u16 sizes[compCount].
   void** chunks;              // void* chunks[chunkCount].
-  usize  chunkCount;
-  usize  entityCount;
+  u32    chunkCount;
+  u32    entityCount;
 } EcsArchetype;
 
 ASSERT(sizeof(EcsArchetype) == ecs_archetype_size, "Invalid archetype size");

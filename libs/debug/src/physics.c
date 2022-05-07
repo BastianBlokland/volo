@@ -17,10 +17,7 @@ typedef enum {
 
 ecs_comp_define(DebugPhysicsSettingsComp) { DebugPhysicsFlags flags; };
 
-ecs_comp_define(DebugPhysicsPanelComp) {
-  UiPanel     panel;
-  EcsEntityId window;
-};
+ecs_comp_define(DebugPhysicsPanelComp) { UiPanel panel; };
 
 ecs_view_define(SettingsUpdateView) { ecs_access_write(DebugPhysicsSettingsComp); }
 
@@ -186,10 +183,6 @@ ecs_module_init(debug_physics_module) {
 EcsEntityId debug_physics_panel_open(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
   ecs_world_add_t(
-      world,
-      panelEntity,
-      DebugPhysicsPanelComp,
-      .panel  = ui_panel(ui_vector(330, 255)),
-      .window = window);
+      world, panelEntity, DebugPhysicsPanelComp, .panel = ui_panel(ui_vector(330, 255)));
   return panelEntity;
 }
