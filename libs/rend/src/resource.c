@@ -592,7 +592,7 @@ ecs_system_define(RendResUnloadUpdateSys) {
       ++unloadComp->state;
     } break;
     case RendResUnloadState_Destroy: {
-      rend_resource_teardown(world, entity);
+      rend_resource_teardown(world, resComp, entity);
       ++unloadComp->state;
     } break;
     case RendResUnloadState_Done: {
@@ -663,7 +663,10 @@ bool rend_resource_request(EcsWorld* world, const EcsEntityId assetEntity) {
 
 void rend_resource_mark_used(RendResComp* resComp) { resComp->flags |= RendResFlags_Used; }
 
-void rend_resource_teardown(EcsWorld* world, const EcsEntityId entity) {
+void rend_resource_teardown(EcsWorld* world, const RendResComp* res, const EcsEntityId entity) {
+  if (res->state > RendResLoadState_AssetAcquire && res->state < RendResLoadState_FinishedSuccess) {
+    asset_release(world, entity);
+  }
   ecs_world_remove_t(world, entity, RendResComp);
   ecs_utils_maybe_remove_t(world, entity, RendResUnloadComp);
   ecs_utils_maybe_remove_t(world, entity, RendResFinishedComp);

@@ -37,5 +37,5 @@ bool rend_resource_request(EcsWorld* world, EcsEntityId assetEntity);
  */
 void rend_resource_mark_used(RendResComp*);
 
-void rend_resource_teardown(EcsWorld* world, EcsEntityId entity);
+void rend_resource_teardown(EcsWorld* world, const RendResComp*, EcsEntityId entity);
 void rend_resource_teardown_global(EcsWorld* world);

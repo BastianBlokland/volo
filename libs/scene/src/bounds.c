@@ -7,142 +7,150 @@
 #include "ecs_world.h"
 #include "scene_bounds.h"
 #include "scene_renderable.h"
-#include "scene_transform.h"
 
 #define scene_bounds_max_loads 16
 
 ecs_comp_define_public(SceneBoundsComp);
 
-/**
- * When computing a graphic's bounds we store it on the graphic entity to avoid having to re-compute
- * it (and thus load the graphic + mesh) later.
- */
-ecs_comp_define(SceneGraphicBoundsComp) { GeoBox localBounds; };
-
 typedef enum {
   SceneBoundsState_Start,
   SceneBoundsState_LoadGraphic,
   SceneBoundsState_LoadMesh,
+  SceneBoundsState_Finished,
 } SceneBoundsState;
 
-ecs_comp_define(SceneBoundsInitComp) {
+/**
+ * NOTE: On the graphic asset.
+ */
+ecs_comp_define(SceneGraphicBoundsComp) {
   SceneBoundsState state;
-  EcsEntityId      graphic, mesh;
+  EcsEntityId      mesh;
   GeoBox           localBounds;
 };
 
-ecs_view_define(BoundsInitView) {
-  ecs_access_read(SceneRenderableComp);
-  ecs_access_maybe_write(SceneBoundsInitComp);
-  ecs_access_without(SceneBoundsComp);
-}
-ecs_view_define(GraphicView) { ecs_access_read(AssetGraphicComp); }
-ecs_view_define(GraphicBoundsView) { ecs_access_read(SceneGraphicBoundsComp); }
-ecs_view_define(MeshView) { ecs_access_read(AssetMeshComp); }
+ecs_comp_define(SceneGraphicBoundsLoadedComp);
 
 static void ecs_combine_graphic_bounds(void* dataA, void* dataB) {
   SceneGraphicBoundsComp* boundsA = dataA;
   SceneGraphicBoundsComp* boundsB = dataB;
 
-  MAYBE_UNUSED const bool identical =
-      geo_vector_equal(boundsA->localBounds.min, boundsB->localBounds.min, 1e-3f) &&
-      geo_vector_equal(boundsA->localBounds.max, boundsB->localBounds.max, 1e-3f);
-
-  diag_assert_msg(identical, "Only identical graphic-bounds can be combined");
+  diag_assert_msg(
+      boundsA->state == SceneBoundsState_Start && boundsB->state == SceneBoundsState_Start,
+      "Graphic-bounds can only be combined in the starting phase");
 }
 
-static void scene_bounds_init_done(EcsWorld* world, EcsIterator* itr) {
-  const EcsEntityId          entity   = ecs_view_entity(itr);
-  const SceneBoundsInitComp* initComp = ecs_view_read_t(itr, SceneBoundsInitComp);
-  if (initComp->graphic) {
-    asset_release(world, initComp->graphic);
-  }
-  if (initComp->mesh) {
-    asset_release(world, initComp->mesh);
-  }
-  ecs_world_remove_t(world, entity, SceneBoundsInitComp);
-  ecs_world_add_t(world, entity, SceneBoundsComp, .local = initComp->localBounds);
+ecs_view_define(BoundsInitView) {
+  ecs_access_read(SceneRenderableComp);
+  ecs_access_without(SceneBoundsComp);
 }
+
+ecs_view_define(GraphicBoundsView) { ecs_access_read(SceneGraphicBoundsComp); }
+
+ecs_system_define(SceneBoundsInitSys) {
+  EcsView*     initView   = ecs_world_view_t(world, BoundsInitView);
+  EcsIterator* gBoundsItr = ecs_view_itr(ecs_world_view_t(world, GraphicBoundsView));
+
+  u32 startedLoads = 0;
+
+  for (EcsIterator* itr = ecs_view_itr(initView); ecs_view_walk(itr);) {
+    const EcsEntityId          entity     = ecs_view_entity(itr);
+    const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
+    const EcsEntityId          graphic    = renderable->graphic;
+    if (!graphic) {
+      ecs_world_add_t(world, entity, SceneBoundsComp, .local = geo_box_inverted3());
+      continue;
+    }
+
+    if (ecs_view_maybe_jump(gBoundsItr, graphic)) {
+      const SceneGraphicBoundsComp* gBounds = ecs_view_read_t(gBoundsItr, SceneGraphicBoundsComp);
+      if (gBounds->state == SceneBoundsState_Finished) {
+        ecs_world_add_t(world, entity, SceneBoundsComp, .local = gBounds->localBounds);
+      }
+      continue;
+    }
+
+    if (++startedLoads > scene_bounds_max_loads) {
+      continue; // Limit the amount of loads to start in a single frame.
+    }
+    ecs_world_add_t(world, graphic, SceneGraphicBoundsComp, .localBounds = geo_box_inverted3());
+  }
+}
+
+ecs_view_define(BoundsLoadView) {
+  ecs_access_write(SceneGraphicBoundsComp);
+  ecs_access_maybe_read(AssetGraphicComp);
+  ecs_access_without(SceneGraphicBoundsLoadedComp);
+}
+ecs_view_define(MeshView) { ecs_access_read(AssetMeshComp); }
 
 static bool scene_asset_is_loaded(EcsWorld* world, const EcsEntityId asset) {
   return ecs_world_has_t(world, asset, AssetLoadedComp) ||
          ecs_world_has_t(world, asset, AssetFailedComp);
 }
 
-ecs_system_define(SceneBoundsInitSys) {
-  EcsView*     initView         = ecs_world_view_t(world, BoundsInitView);
-  EcsIterator* graphicItr       = ecs_view_itr(ecs_world_view_t(world, GraphicView));
-  EcsIterator* graphicBoundsItr = ecs_view_itr(ecs_world_view_t(world, GraphicBoundsView));
-  EcsIterator* meshItr          = ecs_view_itr(ecs_world_view_t(world, MeshView));
+static void scene_bounds_load_done(EcsWorld* world, EcsIterator* itr) {
+  const EcsEntityId       entity     = ecs_view_entity(itr);
+  SceneGraphicBoundsComp* boundsComp = ecs_view_write_t(itr, SceneGraphicBoundsComp);
 
-  u32 startedLoads = 0;
+  asset_release(world, entity);
+  if (boundsComp->mesh) {
+    asset_release(world, boundsComp->mesh);
+  }
+  boundsComp->state = SceneBoundsState_Finished;
+  ecs_world_add_empty_t(world, entity, SceneGraphicBoundsLoadedComp);
+}
 
-  for (EcsIterator* itr = ecs_view_itr(initView); ecs_view_walk(itr);) {
-    const EcsEntityId    entity   = ecs_view_entity(itr);
-    SceneBoundsInitComp* initComp = ecs_view_write_t(itr, SceneBoundsInitComp);
-    if (!initComp) {
-      ecs_world_add_t(world, entity, SceneBoundsInitComp, .localBounds = geo_box_inverted3());
-      continue;
-    }
-    switch (initComp->state) {
+ecs_system_define(SceneBoundsLoadSys) {
+  EcsView*     loadView = ecs_world_view_t(world, BoundsLoadView);
+  EcsIterator* meshItr  = ecs_view_itr(ecs_world_view_t(world, MeshView));
+
+  for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
+    const EcsEntityId       entity     = ecs_view_entity(itr);
+    SceneGraphicBoundsComp* boundsComp = ecs_view_write_t(itr, SceneGraphicBoundsComp);
+    const AssetGraphicComp* graphic    = ecs_view_read_t(itr, AssetGraphicComp);
+    switch (boundsComp->state) {
     case SceneBoundsState_Start: {
-      const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
-      if (!renderable->graphic) {
-        scene_bounds_init_done(world, itr);
-        break;
-      }
-      if (ecs_view_maybe_jump(graphicBoundsItr, renderable->graphic)) {
-        // Graphic already has bounds computed; use them to avoid reloading the graphic + mesh.
-        initComp->localBounds =
-            ecs_view_read_t(graphicBoundsItr, SceneGraphicBoundsComp)->localBounds;
-        scene_bounds_init_done(world, itr);
-        break;
-      }
-      if (++startedLoads > scene_bounds_max_loads) {
-        continue; // Limit the amount of loads to start in a single frame.
-      }
-      initComp->graphic = renderable->graphic;
-      asset_acquire(world, renderable->graphic);
-      ++initComp->state;
+      asset_acquire(world, entity);
+      ++boundsComp->state;
       // Fallthrough.
     }
     case SceneBoundsState_LoadGraphic: {
-      if (!scene_asset_is_loaded(world, initComp->graphic)) {
+      if (!scene_asset_is_loaded(world, entity)) {
         break; // Graphic has not loaded yet; wait.
       }
-      if (!ecs_view_maybe_jump(graphicItr, initComp->graphic)) {
-        scene_bounds_init_done(world, itr);
+      if (!graphic) {
+        scene_bounds_load_done(world, itr);
         break; // Graphic failed to load, or was of unexpected type.
       }
-      const AssetGraphicComp* graphic = ecs_view_read_t(graphicItr, AssetGraphicComp);
       if (!graphic->mesh) {
-        scene_bounds_init_done(world, itr);
+        scene_bounds_load_done(world, itr);
         break; // Graphic did not have a mesh.
       }
-      initComp->mesh = graphic->mesh;
+      boundsComp->mesh = graphic->mesh;
       asset_acquire(world, graphic->mesh);
-      ++initComp->state;
+      ++boundsComp->state;
       // Fallthrough.
     }
     case SceneBoundsState_LoadMesh: {
-      if (!scene_asset_is_loaded(world, initComp->mesh)) {
+      if (!scene_asset_is_loaded(world, boundsComp->mesh)) {
         break; // Graphic has not loaded yet; wait.
       }
-      if (ecs_view_maybe_jump(meshItr, initComp->mesh)) {
+      if (ecs_view_maybe_jump(meshItr, boundsComp->mesh)) {
         const AssetMeshComp* mesh = ecs_view_read_t(meshItr, AssetMeshComp);
-        initComp->localBounds     = mesh->positionBounds;
-        ecs_world_add_t(
-            world, initComp->graphic, SceneGraphicBoundsComp, .localBounds = mesh->positionBounds);
+        boundsComp->localBounds   = mesh->positionBounds;
       }
-      scene_bounds_init_done(world, itr);
+      scene_bounds_load_done(world, itr);
       break;
     }
+    case SceneBoundsState_Finished:
+      diag_crash();
     }
   }
 }
 
 ecs_view_define(DirtyGraphicsView) {
   ecs_access_with(SceneGraphicBoundsComp);
+  ecs_access_with(SceneGraphicBoundsLoadedComp);
   ecs_access_with(AssetChangedComp);
 }
 
@@ -158,6 +166,7 @@ ecs_system_define(SceneClearDirtyBoundsSys) {
   EcsView* dirtyGraphicsView = ecs_world_view_t(world, DirtyGraphicsView);
   for (EcsIterator* itr = ecs_view_itr(dirtyGraphicsView); ecs_view_walk(itr);) {
     ecs_world_remove_t(world, ecs_view_entity(itr), SceneGraphicBoundsComp);
+    ecs_world_remove_t(world, ecs_view_entity(itr), SceneGraphicBoundsLoadedComp);
   }
 
   /**
@@ -175,21 +184,21 @@ ecs_system_define(SceneClearDirtyBoundsSys) {
 ecs_module_init(scene_bounds_module) {
   ecs_register_comp(SceneBoundsComp);
   ecs_register_comp(SceneGraphicBoundsComp, .combinator = ecs_combine_graphic_bounds);
-  ecs_register_comp(SceneBoundsInitComp);
+  ecs_register_comp_empty(SceneGraphicBoundsLoadedComp);
 
   ecs_register_view(BoundsInitView);
-  ecs_register_view(GraphicView);
   ecs_register_view(GraphicBoundsView);
+
+  ecs_register_view(BoundsLoadView);
   ecs_register_view(MeshView);
+
   ecs_register_view(DirtyGraphicsView);
   ecs_register_view(RenderablesWithBoundsView);
 
   ecs_register_system(
-      SceneBoundsInitSys,
-      ecs_view_id(BoundsInitView),
-      ecs_view_id(GraphicView),
-      ecs_view_id(GraphicBoundsView),
-      ecs_view_id(MeshView));
+      SceneBoundsInitSys, ecs_view_id(BoundsInitView), ecs_view_id(GraphicBoundsView));
+
+  ecs_register_system(SceneBoundsLoadSys, ecs_view_id(BoundsLoadView), ecs_view_id(MeshView));
 
   ecs_register_system(
       SceneClearDirtyBoundsSys,
