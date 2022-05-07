@@ -1,4 +1,5 @@
 #include "debug_physics.h"
+#include "debug_register.h"
 #include "debug_shape.h"
 #include "ecs_world.h"
 #include "scene_bounds.h"
@@ -174,7 +175,10 @@ ecs_module_init(debug_physics_module) {
 
   ecs_register_system(
       DebugPhysicsUpdatePanelSys, ecs_view_id(SettingsUpdateView), ecs_view_id(PanelUpdateView));
+
   ecs_register_system(DebugPhysicsDrawSys, ecs_view_id(GlobalDrawView), ecs_view_id(ObjectView));
+
+  ecs_order(DebugPhysicsDrawSys, DebugOrder_PhysicsDebugDraw);
 }
 
 EcsEntityId debug_physics_panel_open(EcsWorld* world, const EcsEntityId window) {

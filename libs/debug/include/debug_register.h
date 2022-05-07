@@ -2,7 +2,8 @@
 #include "ecs_def.h"
 
 enum {
-  DebugOrder_ShapeRender = 800,
+  DebugOrder_PhysicsDebugDraw = 700,
+  DebugOrder_ShapeRender      = 800,
 };
 
 /**
