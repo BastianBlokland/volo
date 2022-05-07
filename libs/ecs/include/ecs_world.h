@@ -140,3 +140,4 @@ typedef struct {
  */
 EcsWorldStats ecs_world_stats_query(const EcsWorld*);
 u32           ecs_world_archetype_count_with_comp(const EcsWorld*, EcsCompId);
+u32           ecs_world_entity_count_with_comp(const EcsWorld*, EcsCompId);

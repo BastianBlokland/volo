@@ -8,7 +8,7 @@ typedef struct {
   EcsCompId id;
   String    name;
   u32       size, align;
-  u32       numArchetypes;
+  u32       numArchetypes, numEntities;
 } DebugEcsCompInfo;
 
 ecs_comp_define(DebugEcsPanelComp) {
@@ -38,6 +38,7 @@ static void comp_info_query(DebugEcsPanelComp* panelComp, EcsWorld* world) {
         .size          = (u32)ecs_def_comp_size(def, id),
         .align         = (u32)ecs_def_comp_align(def, id),
         .numArchetypes = ecs_world_archetype_count_with_comp(world, id),
+        .numEntities   = ecs_world_entity_count_with_comp(world, id),
     };
   }
 }
@@ -52,6 +53,8 @@ static void physics_panel_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelCom
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
   ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_draw_header(
       canvas,
@@ -62,6 +65,8 @@ static void physics_panel_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelCom
           {string_lit("Size"), string_lit("Component size (in bytes).")},
           {string_lit("Align"), string_lit("Component required minimum alignment (in bytes).")},
           {string_lit("Archetypes"), string_lit("Number of archetypes with this component.")},
+          {string_lit("Entities"), string_lit("Number of entities with this component.")},
+          {string_lit("Total size"), string_lit("Total size taken up by this component.")},
       });
 
   const u32 numComps = (u32)panelComp->components.size;
@@ -80,6 +85,10 @@ static void physics_panel_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelCom
     ui_label(canvas, fmt_write_scratch("{}", fmt_int(compInfo->align)));
     ui_table_next_column(canvas, &table);
     ui_label(canvas, fmt_write_scratch("{}", fmt_int(compInfo->numArchetypes)));
+    ui_table_next_column(canvas, &table);
+    ui_label(canvas, fmt_write_scratch("{}", fmt_int(compInfo->numEntities)));
+    ui_table_next_column(canvas, &table);
+    ui_label(canvas, fmt_write_scratch("{}", fmt_size(compInfo->numEntities * compInfo->size)));
   }
 
   ui_scrollview_end(canvas, &panelComp->scrollview);

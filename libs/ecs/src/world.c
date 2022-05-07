@@ -384,3 +384,7 @@ EcsWorldStats ecs_world_stats_query(const EcsWorld* world) {
 u32 ecs_world_archetype_count_with_comp(const EcsWorld* world, const EcsCompId comp) {
   return ecs_storage_archetype_count_with_comp(&world->storage, comp);
 }
+
+u32 ecs_world_entity_count_with_comp(const EcsWorld* world, const EcsCompId comp) {
+  return ecs_storage_entity_count_with_comp(&world->storage, comp);
+}

@@ -143,6 +143,14 @@ u32 ecs_storage_entity_count(const EcsStorage* storage) {
   return entity_allocator_count_active(&storage->entityAllocator);
 }
 
+u32 ecs_storage_entity_count_with_comp(const EcsStorage* storage, const EcsCompId comp) {
+  u32 count = 0;
+  dynarray_for_t(&storage->archetypes, EcsArchetype, arch) {
+    count += bitset_test(arch->mask, comp) * arch->entityCount;
+  }
+  return count;
+}
+
 BitSet ecs_storage_entity_mask(EcsStorage* storage, const EcsEntityId id) {
   EcsEntityInfo* info = ecs_storage_entity_info_ptr(storage, id);
   if (!info) {
@@ -198,7 +206,6 @@ void ecs_storage_entity_move(
 }
 
 void ecs_storage_entity_destroy(EcsStorage* storage, const EcsEntityId id) {
-
   EcsEntityInfo* info = ecs_storage_entity_info_ptr(storage, id);
   diag_assert_msg(info, "Missing entity-info for entity '{}'", fmt_int(id));
 

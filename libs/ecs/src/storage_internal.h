@@ -32,6 +32,7 @@ void ecs_storage_queue_finalize_all(EcsStorage*, EcsFinalizer*);
 EcsEntityId    ecs_storage_entity_create(EcsStorage*);
 bool           ecs_storage_entity_exists(const EcsStorage*, EcsEntityId);
 u32            ecs_storage_entity_count(const EcsStorage*);
+u32            ecs_storage_entity_count_with_comp(const EcsStorage*, EcsCompId);
 BitSet         ecs_storage_entity_mask(EcsStorage*, EcsEntityId);
 EcsArchetypeId ecs_storage_entity_archetype(EcsStorage*, EcsEntityId);
 void           ecs_storage_entity_move(EcsStorage*, EcsEntityId, EcsArchetypeId newArchetypeId);
