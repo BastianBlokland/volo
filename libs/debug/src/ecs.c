@@ -14,11 +14,13 @@ typedef struct {
 ecs_comp_define(DebugEcsPanelComp) {
   UiPanel      panel;
   UiScrollview scrollview;
+  DynString    nameFilter;
   DynArray     components; // DebugEcsCompInfo[]
 };
 
 static void ecs_destruct_ecs_panel(void* data) {
   DebugEcsPanelComp* comp = data;
+  dynstring_destroy(&comp->nameFilter);
   dynarray_destroy(&comp->components);
 }
 
@@ -27,11 +29,24 @@ ecs_view_define(PanelUpdateView) {
   ecs_access_write(UiCanvasComp);
 }
 
+static bool comp_filter(DebugEcsPanelComp* panelComp, const EcsDef* def, const EcsCompId comp) {
+  if (string_is_empty(panelComp->nameFilter)) {
+    return true;
+  }
+  const String rawFilter = dynstring_view(&panelComp->nameFilter);
+  const String filter    = fmt_write_scratch("*{}*", fmt_text(rawFilter));
+  return string_match_glob(ecs_def_comp_name(def, comp), filter, StringMatchFlags_IgnoreCase);
+}
+
 static void comp_info_query(DebugEcsPanelComp* panelComp, EcsWorld* world) {
   dynarray_clear(&panelComp->components);
 
   const EcsDef* def = ecs_world_def(world);
   for (EcsCompId id = 0; id != ecs_def_comp_count(def); ++id) {
+    if (!comp_filter(panelComp, def, id)) {
+      continue;
+    }
+
     *dynarray_push_t(&panelComp->components, DebugEcsCompInfo) = (DebugEcsCompInfo){
         .id            = id,
         .name          = ecs_def_comp_name(def, id),
@@ -43,9 +58,28 @@ static void comp_info_query(DebugEcsPanelComp* panelComp, EcsWorld* world) {
   }
 }
 
+static void comp_options_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp) {
+  ui_layout_push(canvas);
+
+  UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 250);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Filter:"));
+  ui_table_next_column(canvas, &table);
+  ui_textbox(canvas, &panelComp->nameFilter, .placeholder = string_lit("*"));
+
+  ui_layout_pop(canvas);
+}
+
 static void physics_panel_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp) {
   const String title = fmt_write_scratch("{} Ecs Debug", fmt_ui_shape(Extension));
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
+
+  comp_options_draw(canvas, panelComp);
+  ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
+  ui_layout_container_push(canvas, UiClip_None);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
@@ -92,6 +126,7 @@ static void physics_panel_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelCom
   }
 
   ui_scrollview_end(canvas, &panelComp->scrollview);
+  ui_layout_container_pop(canvas);
   ui_panel_end(canvas, &panelComp->panel);
 }
 
@@ -131,6 +166,8 @@ EcsEntityId debug_ecs_panel_open(EcsWorld* world, const EcsEntityId window) {
       panelEntity,
       DebugEcsPanelComp,
       .panel      = ui_panel(ui_vector(800, 500)),
+      .scrollview = ui_scrollview(),
+      .nameFilter = dynstring_create(g_alloc_heap, 32),
       .components = dynarray_create_t(g_alloc_heap, DebugEcsCompInfo, 256));
   return panelEntity;
 }
