@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "debug_ecs.h"
 #include "debug_register.h"
 #include "ecs_world.h"
@@ -11,17 +12,56 @@ typedef struct {
   u32       numArchetypes, numEntities;
 } DebugEcsCompInfo;
 
+typedef enum {
+  DebugCompSortMode_Id,
+  DebugCompSortMode_Name,
+  DebugCompSortMode_Size,
+  DebugCompSortMode_Archetypes,
+  DebugCompSortMode_Entities,
+
+  DebugCompSortMode_Count,
+} DebugCompSortMode;
+
+static const String g_compSortModeNames[] = {
+    string_static("Id"),
+    string_static("Name"),
+    string_static("Size"),
+    string_static("Archetypes"),
+    string_static("Entities"),
+};
+ASSERT(array_elems(g_compSortModeNames) == DebugCompSortMode_Count, "Incorrect number of names");
+
 ecs_comp_define(DebugEcsPanelComp) {
-  UiPanel      panel;
-  UiScrollview scrollview;
-  DynString    nameFilter;
-  DynArray     components; // DebugEcsCompInfo[]
+  UiPanel           panel;
+  UiScrollview      scrollview;
+  DynString         nameFilter;
+  DebugCompSortMode compSortMode;
+  DynArray          components; // DebugEcsCompInfo[]
 };
 
 static void ecs_destruct_ecs_panel(void* data) {
   DebugEcsPanelComp* comp = data;
   dynstring_destroy(&comp->nameFilter);
   dynarray_destroy(&comp->components);
+}
+
+static i8 compare_comp_info_name(const void* a, const void* b) {
+  return compare_string(field_ptr(a, DebugEcsCompInfo, name), field_ptr(b, DebugEcsCompInfo, name));
+}
+
+static i8 compare_comp_info_size(const void* a, const void* b) {
+  return compare_u32_reverse(
+      field_ptr(a, DebugEcsCompInfo, size), field_ptr(b, DebugEcsCompInfo, size));
+}
+
+static i8 compare_comp_info_archetypes(const void* a, const void* b) {
+  return compare_u32_reverse(
+      field_ptr(a, DebugEcsCompInfo, numArchetypes), field_ptr(b, DebugEcsCompInfo, numArchetypes));
+}
+
+static i8 compare_comp_info_entities(const void* a, const void* b) {
+  return compare_u32_reverse(
+      field_ptr(a, DebugEcsCompInfo, numEntities), field_ptr(b, DebugEcsCompInfo, numEntities));
 }
 
 ecs_view_define(PanelUpdateView) {
@@ -56,6 +96,24 @@ static void comp_info_query(DebugEcsPanelComp* panelComp, EcsWorld* world) {
         .numEntities   = ecs_world_entity_count_with_comp(world, id),
     };
   }
+
+  switch (panelComp->compSortMode) {
+  case DebugCompSortMode_Name:
+    dynarray_sort(&panelComp->components, compare_comp_info_name);
+    break;
+  case DebugCompSortMode_Size:
+    dynarray_sort(&panelComp->components, compare_comp_info_size);
+    break;
+  case DebugCompSortMode_Archetypes:
+    dynarray_sort(&panelComp->components, compare_comp_info_archetypes);
+    break;
+  case DebugCompSortMode_Entities:
+    dynarray_sort(&panelComp->components, compare_comp_info_entities);
+    break;
+  case DebugCompSortMode_Id:
+  case DebugCompSortMode_Count:
+    break;
+  }
 }
 
 static UiColor comp_info_bg_color(const DebugEcsCompInfo* compInfo) {
@@ -68,11 +126,17 @@ static void comp_options_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp
   UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
   ui_table_add_column(&table, UiTableColumn_Fixed, 250);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 150);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Filter:"));
   ui_table_next_column(canvas, &table);
   ui_textbox(canvas, &panelComp->nameFilter, .placeholder = string_lit("*"));
+  ui_table_next_column(canvas, &table);
+  ui_label(canvas, string_lit("Sort:"));
+  ui_table_next_column(canvas, &table);
+  ui_select(canvas, (i32*)&panelComp->compSortMode, g_compSortModeNames, DebugCompSortMode_Count);
 
   ui_layout_pop(canvas);
 }
@@ -169,9 +233,10 @@ EcsEntityId debug_ecs_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugEcsPanelComp,
-      .panel      = ui_panel(ui_vector(800, 500)),
-      .scrollview = ui_scrollview(),
-      .nameFilter = dynstring_create(g_alloc_heap, 32),
-      .components = dynarray_create_t(g_alloc_heap, DebugEcsCompInfo, 256));
+      .panel        = ui_panel(ui_vector(800, 500)),
+      .scrollview   = ui_scrollview(),
+      .nameFilter   = dynstring_create(g_alloc_heap, 32),
+      .compSortMode = DebugCompSortMode_Entities,
+      .components   = dynarray_create_t(g_alloc_heap, DebugEcsCompInfo, 256));
   return panelEntity;
 }
