@@ -159,12 +159,12 @@ EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
 
   EcsWorld* world = alloc_alloc_t(alloc, EcsWorld);
   *world          = (EcsWorld){
-      .def       = def,
-      .finalizer = ecs_finalizer_create(alloc, def),
-      .storage   = ecs_storage_create(alloc, def),
-      .views     = dynarray_create_t(alloc, EcsView, ecs_def_view_count(def)),
-      .buffer    = ecs_buffer_create(alloc, def),
-      .alloc     = alloc,
+               .def       = def,
+               .finalizer = ecs_finalizer_create(alloc, def),
+               .storage   = ecs_storage_create(alloc, def),
+               .views     = dynarray_create_t(alloc, EcsView, ecs_def_view_count(def)),
+               .buffer    = ecs_buffer_create(alloc, def),
+               .alloc     = alloc,
   };
   world->globalEntity = ecs_storage_entity_create(&world->storage);
 
@@ -372,11 +372,15 @@ void ecs_world_flush_internal(EcsWorld* world) {
 EcsWorldStats ecs_world_stats_query(const EcsWorld* world) {
   return (EcsWorldStats){
       .entityCount          = ecs_storage_entity_count(&world->storage),
-      .archetypeCount       = (u32)ecs_storage_archetype_count(&world->storage),
-      .archetypeEmptyCount  = (u32)ecs_storage_archetype_count_empty(&world->storage),
+      .archetypeCount       = ecs_storage_archetype_count(&world->storage),
+      .archetypeEmptyCount  = ecs_storage_archetype_count_empty(&world->storage),
       .archetypeTotalSize   = (u32)ecs_storage_archetype_total_size(&world->storage),
       .archetypeTotalChunks = (u32)ecs_storage_archetype_total_chunks(&world->storage),
       .lastFlushDur         = world->lastFlushDur,
       .lastFlushEntities    = world->lastFlushEntities,
   };
+}
+
+u32 ecs_world_archetype_count_with_comp(const EcsWorld* world, const EcsCompId comp) {
+  return ecs_storage_archetype_count_with_comp(&world->storage, comp);
 }

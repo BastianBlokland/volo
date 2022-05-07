@@ -214,11 +214,19 @@ void ecs_storage_entity_destroy(EcsStorage* storage, const EcsEntityId id) {
   entity_allocator_free(&storage->entityAllocator, id);
 }
 
-usize ecs_storage_archetype_count(const EcsStorage* storage) { return storage->archetypes.size; }
+u32 ecs_storage_archetype_count(const EcsStorage* storage) { return (u32)storage->archetypes.size; }
 
-usize ecs_storage_archetype_count_empty(const EcsStorage* storage) {
-  usize count = 0;
+u32 ecs_storage_archetype_count_empty(const EcsStorage* storage) {
+  u32 count = 0;
   dynarray_for_t(&storage->archetypes, EcsArchetype, arch) { count += arch->entityCount == 0; }
+  return count;
+}
+
+u32 ecs_storage_archetype_count_with_comp(const EcsStorage* storage, const EcsCompId comp) {
+  u32 count = 0;
+  dynarray_for_t(&storage->archetypes, EcsArchetype, arch) {
+    count += bitset_test(arch->mask, comp);
+  }
   return count;
 }
 

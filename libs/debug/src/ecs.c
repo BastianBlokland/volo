@@ -8,6 +8,7 @@ typedef struct {
   EcsCompId id;
   String    name;
   u32       size, align;
+  u32       numArchetypes;
 } DebugEcsCompInfo;
 
 ecs_comp_define(DebugEcsPanelComp) {
@@ -32,10 +33,11 @@ static void comp_info_query(DebugEcsPanelComp* panelComp, EcsWorld* world) {
   const EcsDef* def = ecs_world_def(world);
   for (EcsCompId id = 0; id != ecs_def_comp_count(def); ++id) {
     *dynarray_push_t(&panelComp->components, DebugEcsCompInfo) = (DebugEcsCompInfo){
-        .id    = id,
-        .name  = ecs_def_comp_name(def, id),
-        .size  = (u32)ecs_def_comp_size(def, id),
-        .align = (u32)ecs_def_comp_align(def, id),
+        .id            = id,
+        .name          = ecs_def_comp_name(def, id),
+        .size          = (u32)ecs_def_comp_size(def, id),
+        .align         = (u32)ecs_def_comp_align(def, id),
+        .numArchetypes = ecs_world_archetype_count_with_comp(world, id),
     };
   }
 }
@@ -49,6 +51,7 @@ static void physics_panel_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelCom
   ui_table_add_column(&table, UiTableColumn_Fixed, 300);
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
 
   ui_table_draw_header(
       canvas,
@@ -58,6 +61,7 @@ static void physics_panel_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelCom
           {string_lit("Name"), string_lit("Component name.")},
           {string_lit("Size"), string_lit("Component size (in bytes).")},
           {string_lit("Align"), string_lit("Component required minimum alignment (in bytes).")},
+          {string_lit("Archetypes"), string_lit("Number of archetypes with this component.")},
       });
 
   const u32 numComps = (u32)panelComp->components.size;
@@ -74,6 +78,8 @@ static void physics_panel_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelCom
     ui_label(canvas, fmt_write_scratch("{}", fmt_int(compInfo->size)));
     ui_table_next_column(canvas, &table);
     ui_label(canvas, fmt_write_scratch("{}", fmt_int(compInfo->align)));
+    ui_table_next_column(canvas, &table);
+    ui_label(canvas, fmt_write_scratch("{}", fmt_int(compInfo->numArchetypes)));
   }
 
   ui_scrollview_end(canvas, &panelComp->scrollview);
