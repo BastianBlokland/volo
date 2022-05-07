@@ -36,7 +36,7 @@ ecs_view_define(PanelUpdateView) {
 
 ecs_view_define(ObjectView) {
   ecs_access_read(SceneTransformComp);
-  ecs_access_read(SceneBoundsComp);
+  ecs_access_maybe_read(SceneBoundsComp);
   ecs_access_maybe_read(SceneScaleComp);
 }
 
@@ -146,20 +146,22 @@ ecs_system_define(DebugPhysicsDrawSys) {
   DebugShapeComp* shape      = ecs_view_write_t(globalItr, DebugShapeComp);
   EcsView*        objectView = ecs_world_view_t(world, ObjectView);
   for (EcsIterator* itr = ecs_view_itr(objectView); ecs_view_walk(itr);) {
-    const GeoVector       pos       = ecs_view_read_t(itr, SceneTransformComp)->position;
-    const GeoQuat         rot       = ecs_view_read_t(itr, SceneTransformComp)->rotation;
-    const GeoBox          bounds    = ecs_view_read_t(itr, SceneBoundsComp)->local;
-    const SceneScaleComp* scaleComp = ecs_view_read_t(itr, SceneScaleComp);
-    const f32             scale     = scaleComp ? scaleComp->scale : 1.0f;
+    const GeoVector        pos        = ecs_view_read_t(itr, SceneTransformComp)->position;
+    const GeoQuat          rot        = ecs_view_read_t(itr, SceneTransformComp)->rotation;
+    const SceneBoundsComp* boundsComp = ecs_view_read_t(itr, SceneBoundsComp);
+    const SceneScaleComp*  scaleComp  = ecs_view_read_t(itr, SceneScaleComp);
+    const f32              scale      = scaleComp ? scaleComp->scale : 1.0f;
 
     if (settings->flags & DebugPhysicsFlags_DrawPivot) {
       physics_draw_pivot(shape, pos);
     }
-    if (settings->flags & DebugPhysicsFlags_DrawBoundsLocal) {
-      physics_draw_bounds_local(shape, pos, rot, bounds, scale);
-    }
-    if (settings->flags & DebugPhysicsFlags_DrawBoundsGlobal) {
-      physics_draw_bounds_global(shape, pos, rot, bounds, scale);
+    if (boundsComp && !geo_box_is_inverted3(&boundsComp->local)) {
+      if (settings->flags & DebugPhysicsFlags_DrawBoundsLocal) {
+        physics_draw_bounds_local(shape, pos, rot, boundsComp->local, scale);
+      }
+      if (settings->flags & DebugPhysicsFlags_DrawBoundsGlobal) {
+        physics_draw_bounds_global(shape, pos, rot, boundsComp->local, scale);
+      }
     }
   }
 }
