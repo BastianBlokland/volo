@@ -58,6 +58,10 @@ static void comp_info_query(DebugEcsPanelComp* panelComp, EcsWorld* world) {
   }
 }
 
+static UiColor comp_info_bg_color(const DebugEcsCompInfo* compInfo) {
+  return compInfo->numEntities ? ui_color(16, 64, 16, 192) : ui_color(48, 48, 48, 192);
+}
+
 static void comp_options_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp) {
   ui_layout_push(canvas);
 
@@ -108,7 +112,7 @@ static void physics_panel_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelCom
 
   dynarray_for_t(&panelComp->components, DebugEcsCompInfo, compInfo) {
     ui_table_next_row(canvas, &table);
-    ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
+    ui_table_draw_row_bg(canvas, &table, comp_info_bg_color(compInfo));
 
     ui_label(canvas, fmt_write_scratch("{}", fmt_int(compInfo->id)));
     ui_table_next_column(canvas, &table);
