@@ -58,7 +58,9 @@ ecs_system_define(RendInstanceFillDrawsSys) {
     const GeoVector position = transformComp ? transformComp->position : geo_vector(0);
     const GeoQuat   rotation = transformComp ? transformComp->rotation : geo_quat_ident;
     const f32       scale    = scaleComp ? scaleComp->scale : 1.0f;
-    const GeoBox    aabb     = geo_box_transform3(&boundsComp->local, position, rotation, scale);
+    const GeoBox    aabb     = geo_box_is_inverted3(&boundsComp->local)
+                                   ? geo_box_inverted3()
+                                   : geo_box_transform3(&boundsComp->local, position, rotation, scale);
 
     rend_draw_add_instance(
         draw,
