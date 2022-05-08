@@ -7,6 +7,7 @@
 #include "core_time.h"
 #include "ecs_runner.h"
 #include "jobs_dot.h"
+#include "jobs_executor.h"
 #include "jobs_graph.h"
 #include "jobs_scheduler.h"
 #include "log_logger.h"
@@ -98,7 +99,7 @@ static void graph_system_task(void* context) {
   g_ecsRunningRunner   = null;
 
   const TimeDuration dur = time_steady_duration(startTime, time_steady_clock());
-  ecs_world_stats_update_sys(data->world, data->id, dur);
+  ecs_world_stats_update_sys(data->world, data->id, g_jobsWorkerId, dur);
 }
 
 static JobTaskId graph_insert_flush(EcsRunner* runner) {

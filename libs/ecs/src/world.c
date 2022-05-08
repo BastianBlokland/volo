@@ -327,11 +327,13 @@ void ecs_world_busy_unset(EcsWorld* world) {
   world->flags &= ~EcsWorldFlags_Busy;
 }
 
-void ecs_world_stats_update_sys(EcsWorld* world, const EcsSystemId id, const TimeDuration dur) {
+void ecs_world_stats_update_sys(
+    EcsWorld* world, const EcsSystemId id, const JobWorkerId workerId, const TimeDuration dur) {
   static const f64 g_invAvgWindow = 1.0 / 15.0;
 
   world->sysStats[id].avgDur += (TimeDuration)((dur - world->sysStats[id].avgDur) * g_invAvgWindow);
-  world->sysStats[id].lastDur = dur;
+  world->sysStats[id].lastDur  = dur;
+  world->sysStats[id].workerId = workerId;
 }
 
 void ecs_world_flush_internal(EcsWorld* world) {
