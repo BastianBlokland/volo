@@ -26,7 +26,7 @@ ecs_system_define(SceneCreateSkySys) {
   ecs_world_add_t(
       world,
       entity,
-      SceneRenderableUniqueComp,
+      SceneRenderableComp,
       .graphic = asset_lookup(world, assets, string_lit("graphics/scene/sky.gra")));
   ecs_world_add_t(world, entity, SceneTagComp, .tags = SceneTags_Background);
 }
