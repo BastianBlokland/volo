@@ -73,7 +73,7 @@ static JobTaskFlags graph_system_task_flags(const EcsSystemDef* systemDef) {
 }
 
 static void graph_runner_flush_task(void* context) {
-  MetaTaskData* data = context;
+  const MetaTaskData* data = context;
   ecs_world_flush_internal(data->runner->world);
 
   data->runner->flags &= ~EcsRunnerPrivateFlags_Running;
@@ -81,7 +81,7 @@ static void graph_runner_flush_task(void* context) {
 }
 
 static void graph_system_task(void* context) {
-  SystemTaskData* data = context;
+  const SystemTaskData* data = context;
 
   g_ecsRunningSystem   = true;
   g_ecsRunningSystemId = data->id;
