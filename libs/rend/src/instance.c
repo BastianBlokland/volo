@@ -27,12 +27,6 @@ ecs_view_define(RenderableView) {
   ecs_access_maybe_read(SceneScaleComp);
 }
 
-ecs_view_define(RenderableUniqueView) {
-  ecs_access_read(SceneRenderableUniqueComp);
-  ecs_access_maybe_read(SceneTagComp);
-  ecs_access_maybe_write(RendDrawComp);
-}
-
 ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
 
 ecs_system_define(RendInstanceFillDrawsSys) {
@@ -64,7 +58,9 @@ ecs_system_define(RendInstanceFillDrawsSys) {
     const GeoVector position = transformComp ? transformComp->position : geo_vector(0);
     const GeoQuat   rotation = transformComp ? transformComp->rotation : geo_quat_ident;
     const f32       scale    = scaleComp ? scaleComp->scale : 1.0f;
-    const GeoBox    aabb     = geo_box_transform3(&boundsComp->local, position, rotation, scale);
+    const GeoBox    aabb     = geo_box_is_inverted3(&boundsComp->local)
+                                   ? geo_box_inverted3()
+                                   : geo_box_transform3(&boundsComp->local, position, rotation, scale);
 
     rend_draw_add_instance(
         draw,
@@ -77,39 +73,11 @@ ecs_system_define(RendInstanceFillDrawsSys) {
   }
 }
 
-ecs_system_define(RendInstanceFillUniqueDrawsSys) {
-  EcsView* renderableView = ecs_world_view_t(world, RenderableUniqueView);
-  for (EcsIterator* itr = ecs_view_itr(renderableView); ecs_view_walk(itr);) {
-    const SceneRenderableUniqueComp* renderable = ecs_view_read_t(itr, SceneRenderableUniqueComp);
-    if (renderable->flags & SceneRenderable_Hide) {
-      continue;
-    }
-
-    const SceneTagComp* tagComp = ecs_view_read_t(itr, SceneTagComp);
-    const Mem           data    = scene_renderable_unique_data_get(renderable);
-    const SceneTags     tags    = tagComp ? tagComp->tags : SceneTags_Default;
-
-    RendDrawComp* draw = ecs_view_write_t(itr, RendDrawComp);
-    if (UNLIKELY(!draw)) {
-      rend_draw_create(world, ecs_view_entity(itr), RendDrawFlags_None);
-      continue;
-    }
-
-    rend_draw_set_graphic(draw, renderable->graphic);
-    rend_draw_set_vertex_count(draw, renderable->vertexCountOverride);
-    const GeoBox aabb = geo_box_inverted3(); // No bounds known for unique draws.
-    rend_draw_add_instance(draw, data, tags, aabb);
-  }
-}
-
 ecs_module_init(rend_instance_module) {
   ecs_register_view(RenderableView);
-  ecs_register_view(RenderableUniqueView);
   ecs_register_view(DrawView);
 
   ecs_register_system(RendInstanceFillDrawsSys, ecs_view_id(RenderableView), ecs_view_id(DrawView));
-  ecs_register_system(RendInstanceFillUniqueDrawsSys, ecs_view_id(RenderableUniqueView));
 
   ecs_order(RendInstanceFillDrawsSys, RendOrder_DrawCollect);
-  ecs_order(RendInstanceFillUniqueDrawsSys, RendOrder_DrawCollect);
 }

@@ -19,19 +19,3 @@ ecs_comp_extern_public(SceneRenderableComp) {
   SceneRenderableFlags flags;
   EcsEntityId          graphic;
 };
-
-/**
- * Indicates that the entity should be rendered with the given graphic.
- *
- * Draws will not be batched and no instance data will be automatically provided.
- */
-ecs_comp_extern_public(SceneRenderableUniqueComp) {
-  SceneRenderableFlags flags;
-  EcsEntityId          graphic;
-  u32                  vertexCountOverride;
-  Mem                  instDataMem;
-  usize                instDataSize;
-};
-
-Mem scene_renderable_unique_data_get(const SceneRenderableUniqueComp*);
-Mem scene_renderable_unique_data_set(SceneRenderableUniqueComp*, usize size);

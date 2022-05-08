@@ -12,7 +12,7 @@ typedef enum {
 
 /**
  * Low level api for submitting draws.
- * In most cases the scene apis should be preferred (SceneRenderable / SceneRenderableUnique).
+ * In most cases the scene apis should be preferred (SceneRenderableComp).
  */
 ecs_comp_extern(RendDrawComp);
 
