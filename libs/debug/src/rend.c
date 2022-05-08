@@ -22,6 +22,17 @@ static const String g_tooltipReset          = string_static("Re-initialize the r
 
 // clang-format on
 
+typedef enum {
+  DebugRendTab_Settings,
+
+  DebugRendTab_Count,
+} DebugRendTab;
+
+static const String g_rendTabNames[] = {
+    string_static("Settings"),
+};
+ASSERT(array_elems(g_rendTabNames) == DebugRendTab_Count, "Incorrect number of names");
+
 static const String g_presentOptions[] = {
     string_static("Immediate"),
     string_static("VSync"),
@@ -34,27 +45,14 @@ ecs_comp_define(DebugRendPanelComp) {
   EcsEntityId window;
 };
 
-ecs_view_define(GlobalView) { ecs_access_write(RendGlobalSettingsComp); }
-ecs_view_define(WindowView) { ecs_access_write(RendSettingsComp); }
-
-ecs_view_define(PanelUpdateView) {
-  ecs_access_write(DebugRendPanelComp);
-  ecs_access_write(UiCanvasComp);
-}
-
-static void rend_panel_draw(
+static void rend_settings_tab_draw(
     EcsWorld*               world,
     UiCanvasComp*           canvas,
-    DebugRendPanelComp*     panelComp,
     RendSettingsComp*       settings,
     RendGlobalSettingsComp* globalSettings) {
-
-  const String title = fmt_write_scratch("{} Renderer Settings", fmt_ui_shape(Brush));
-  ui_panel_begin(canvas, &panelComp->panel, .title = title);
-
   UiTable table = ui_table();
-  ui_table_add_column(&table, UiTableColumn_Fixed, 150);
-  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 200);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 200);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Present mode"));
@@ -123,8 +121,38 @@ static void rend_panel_draw(
           .tooltip    = g_tooltipReset)) {
     rend_reset(world);
   }
+}
+
+static void rend_panel_draw(
+    EcsWorld*               world,
+    UiCanvasComp*           canvas,
+    DebugRendPanelComp*     panelComp,
+    RendSettingsComp*       settings,
+    RendGlobalSettingsComp* globalSettings) {
+
+  const String title = fmt_write_scratch("{} Renderer Settings", fmt_ui_shape(Brush));
+  ui_panel_begin(
+      canvas,
+      &panelComp->panel,
+      .title    = title,
+      .tabNames = g_rendTabNames,
+      .tabCount = DebugRendTab_Count);
+
+  switch (panelComp->panel.activeTab) {
+  case DebugRendTab_Settings:
+    rend_settings_tab_draw(world, canvas, settings, globalSettings);
+    break;
+  }
 
   ui_panel_end(canvas, &panelComp->panel);
+}
+
+ecs_view_define(GlobalView) { ecs_access_write(RendGlobalSettingsComp); }
+ecs_view_define(WindowView) { ecs_access_write(RendSettingsComp); }
+
+ecs_view_define(PanelUpdateView) {
+  ecs_access_write(DebugRendPanelComp);
+  ecs_access_write(UiCanvasComp);
 }
 
 ecs_system_define(DebugRendUpdatePanelSys) {
@@ -179,7 +207,7 @@ EcsEntityId debug_rend_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugRendPanelComp,
-      .panel  = ui_panel(ui_vector(330, 255)),
+      .panel  = ui_panel(ui_vector(500, 400)),
       .window = window);
   return panelEntity;
 }
