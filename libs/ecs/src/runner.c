@@ -83,6 +83,8 @@ static void graph_runner_flush_task(void* context) {
 static void graph_system_task(void* context) {
   const SystemTaskData* data = context;
 
+  const TimeSteady startTime = time_steady_clock();
+
   g_ecsRunningSystem   = true;
   g_ecsRunningSystemId = data->id;
 
@@ -90,6 +92,9 @@ static void graph_system_task(void* context) {
 
   g_ecsRunningSystem   = false;
   g_ecsRunningSystemId = sentinel_u16;
+
+  const TimeDuration dur = time_steady_duration(startTime, time_steady_clock());
+  ecs_world_stats_update_sys(data->world, data->id, dur);
 }
 
 static JobTaskId graph_insert_flush(EcsRunner* runner) {

@@ -34,6 +34,8 @@ struct sEcsWorld {
 
   TimeDuration lastFlushDur;
   u32          lastFlushEntities;
+
+  EcsWorldSysStats* sysStats;
 };
 
 #define ecs_comp_mask_stack(_DEF_) mem_stack(bits_to_bytes(ecs_def_comp_count(_DEF_)) + 1)
@@ -159,12 +161,13 @@ EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
 
   EcsWorld* world = alloc_alloc_t(alloc, EcsWorld);
   *world          = (EcsWorld){
-               .def       = def,
-               .finalizer = ecs_finalizer_create(alloc, def),
-               .storage   = ecs_storage_create(alloc, def),
-               .views     = dynarray_create_t(alloc, EcsView, ecs_def_view_count(def)),
-               .buffer    = ecs_buffer_create(alloc, def),
-               .alloc     = alloc,
+      .def       = def,
+      .finalizer = ecs_finalizer_create(alloc, def),
+      .storage   = ecs_storage_create(alloc, def),
+      .views     = dynarray_create_t(alloc, EcsView, ecs_def_view_count(def)),
+      .buffer    = ecs_buffer_create(alloc, def),
+      .alloc     = alloc,
+      .sysStats  = alloc_array_t(alloc, EcsWorldSysStats, ecs_def_system_count(def)),
   };
   world->globalEntity = ecs_storage_entity_create(&world->storage);
 
@@ -200,6 +203,8 @@ void ecs_world_destroy(EcsWorld* world) {
 
   dynarray_for_t(&world->views, EcsView, view) { ecs_view_destroy(world->alloc, world->def, view); }
   dynarray_destroy(&world->views);
+
+  alloc_free_array_t(world->alloc, world->sysStats, ecs_def_system_count(world->def));
 
   log_d("Ecs world destroyed");
 
@@ -319,6 +324,13 @@ void ecs_world_busy_unset(EcsWorld* world) {
   world->flags &= ~EcsWorldFlags_Busy;
 }
 
+void ecs_world_stats_update_sys(EcsWorld* world, const EcsSystemId id, const TimeDuration dur) {
+  static const f64 g_invAvgWindow = 1.0 / 15.0;
+
+  world->sysStats[id].avgDur += (TimeDuration)((dur - world->sysStats[id].avgDur) * g_invAvgWindow);
+  world->sysStats[id].lastDur = dur;
+}
+
 void ecs_world_flush_internal(EcsWorld* world) {
   const TimeSteady startTime = time_steady_clock();
 
@@ -378,6 +390,7 @@ EcsWorldStats ecs_world_stats_query(const EcsWorld* world) {
       .archetypeTotalChunks = (u32)ecs_storage_archetype_total_chunks(&world->storage),
       .lastFlushDur         = world->lastFlushDur,
       .lastFlushEntities    = world->lastFlushEntities,
+      .sysStats             = world->sysStats,
   };
 }
 

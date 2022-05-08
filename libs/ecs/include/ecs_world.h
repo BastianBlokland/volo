@@ -128,11 +128,18 @@ void ecs_world_remove(EcsWorld*, EcsEntityId, EcsCompId);
 void ecs_world_flush(EcsWorld*);
 
 typedef struct {
-  u32          entityCount; // Amount of entities that exist in the world.
-  u32          archetypeCount, archetypeEmptyCount;
-  u32          archetypeTotalSize, archetypeTotalChunks;
-  TimeDuration lastFlushDur;
-  u32          lastFlushEntities;
+  ALIGNAS(64) // Align to 64 bytes to avoid false-sharing of cachelines.
+  TimeDuration lastDur;
+  TimeDuration avgDur;
+} EcsWorldSysStats;
+
+typedef struct {
+  u32                     entityCount; // Amount of entities that exist in the world.
+  u32                     archetypeCount, archetypeEmptyCount;
+  u32                     archetypeTotalSize, archetypeTotalChunks;
+  TimeDuration            lastFlushDur;
+  u32                     lastFlushEntities;
+  const EcsWorldSysStats* sysStats; // NOT a copy; values are continuously updated non atomically.
 } EcsWorldStats;
 
 /**
