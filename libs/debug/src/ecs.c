@@ -15,6 +15,8 @@ typedef struct {
 typedef struct {
   EcsSystemId id;
   String      name;
+  EcsViewId*  views;
+  u32         viewCount;
 } DebugEcsSysInfo;
 
 typedef enum {
@@ -209,7 +211,7 @@ static void comp_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelCo
     ui_table_next_row(canvas, &table);
     ui_table_draw_row_bg(canvas, &table, comp_info_bg_color(compInfo));
 
-    ui_canvas_id_block_index(canvas, compInfo->id); // Set a stable canvas id based on the comp id.
+    ui_canvas_id_block_index(canvas, compInfo->id * 10); // Set a stable id based on the comp id.
 
     ui_label(canvas, fmt_write_scratch("{}", fmt_int(compInfo->id)));
     ui_table_next_column(canvas, &table);
@@ -241,8 +243,10 @@ static void sys_info_query(DebugEcsPanelComp* panelComp, EcsWorld* world) {
     }
 
     *dynarray_push_t(&panelComp->systems, DebugEcsSysInfo) = (DebugEcsSysInfo){
-        .id   = id,
-        .name = ecs_def_system_name(def, id),
+        .id        = id,
+        .name      = ecs_def_system_name(def, id),
+        .views     = ecs_def_system_views(def, id).values,
+        .viewCount = (u32)ecs_def_system_views(def, id).count,
     };
   }
 
@@ -277,7 +281,18 @@ static void sys_options_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp)
   ui_layout_pop(canvas);
 }
 
-static void sys_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp) {
+static String sys_views_tooltip_scratch(const EcsDef* ecsDef, const DebugEcsSysInfo* sysInfo) {
+  DynString str = dynstring_create_over(alloc_alloc(g_alloc_scratch, 2 * usize_kibibyte, 1));
+  dynstring_append(&str, string_lit("Views:\n"));
+  for (u32 i = 0; i != sysInfo->viewCount; ++i) {
+    const EcsViewId viewId = sysInfo->views[i];
+    fmt_write(&str, "  [{}] {}\n", fmt_int(viewId), fmt_text(ecs_def_view_name(ecsDef, viewId)));
+  }
+  return dynstring_view(&str);
+}
+
+static void
+sys_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, const EcsDef* ecsDef) {
   sys_options_draw(canvas, panelComp);
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
   ui_layout_container_push(canvas, UiClip_None);
@@ -285,13 +300,16 @@ static void sys_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelCom
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
   ui_table_add_column(&table, UiTableColumn_Fixed, 350);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
 
   ui_table_draw_header(
       canvas,
       &table,
       (const UiTableColumnName[]){
           {string_lit("Id"), string_lit("System identifier.")},
-          {string_lit("Name"), string_lit("System name.")}});
+          {string_lit("Name"), string_lit("System name.")},
+          {string_lit("Views"), string_lit("Amount of views the system accesses.")},
+      });
 
   const u32 numSystems = (u32)panelComp->systems.size;
   ui_scrollview_begin(canvas, &panelComp->scrollview, ui_table_height(&table, numSystems));
@@ -301,11 +319,16 @@ static void sys_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelCom
     ui_table_next_row(canvas, &table);
     ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
 
-    ui_canvas_id_block_index(canvas, sysInfo->id); // Set a stable canvas id based on the comp id.
+    ui_canvas_id_block_index(canvas, sysInfo->id * 10); // Set a stable id based on the comp id.
 
     ui_label(canvas, fmt_write_scratch("{}", fmt_int(sysInfo->id)));
     ui_table_next_column(canvas, &table);
     ui_label(canvas, sysInfo->name, .selectable = true);
+    ui_table_next_column(canvas, &table);
+    ui_label(
+        canvas,
+        fmt_write_scratch("{}", fmt_int(sysInfo->viewCount)),
+        .tooltip = sys_views_tooltip_scratch(ecsDef, sysInfo));
   }
   ui_canvas_id_block_next(canvas);
 
@@ -329,7 +352,7 @@ static void ecs_panel_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, E
     break;
   case DebugEcsTab_Systems:
     sys_info_query(panelComp, world);
-    sys_panel_tab_draw(canvas, panelComp);
+    sys_panel_tab_draw(canvas, panelComp, ecs_world_def(world));
     break;
   }
 
