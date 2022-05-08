@@ -24,6 +24,7 @@ typedef struct {
   EcsSystemId  id;
   String       name;
   JobTaskId    taskId;
+  JobWorkerId  workerId;
   EcsViewId*   views;
   u32          viewCount;
   TimeDuration duration;
@@ -65,6 +66,7 @@ typedef enum {
   DebugSysSortMode_Id,
   DebugSysSortMode_Name,
   DebugSysSortMode_Task,
+  DebugSysSortMode_Worker,
   DebugSysSortMode_Duration,
 
   DebugSysSortMode_Count,
@@ -74,6 +76,7 @@ static const String g_sysSortModeNames[] = {
     string_static("Id"),
     string_static("Name"),
     string_static("Task"),
+    string_static("Worker"),
     string_static("Duration"),
 };
 ASSERT(array_elems(g_sysSortModeNames) == DebugSysSortMode_Count, "Incorrect number of names");
@@ -125,6 +128,16 @@ static i8 sys_compare_info_name(const void* a, const void* b) {
 
 static i8 sys_compare_info_task(const void* a, const void* b) {
   return compare_u32(field_ptr(a, DebugEcsSysInfo, taskId), field_ptr(b, DebugEcsSysInfo, taskId));
+}
+
+static i8 sys_compare_info_worker(const void* a, const void* b) {
+  const DebugEcsSysInfo* sysA        = a;
+  const DebugEcsSysInfo* sysB        = b;
+  i8                     workerOrder = compare_u16(&sysA->workerId, &sysB->workerId);
+  if (!workerOrder) {
+    workerOrder = compare_u32(&sysA->taskId, &sysB->taskId);
+  }
+  return workerOrder;
 }
 
 static i8 sys_compare_info_duration(const void* a, const void* b) {
@@ -275,6 +288,7 @@ static void sys_info_query(DebugEcsPanelComp* panelComp, EcsWorld* world) {
           .id        = id,
           .name      = ecs_def_system_name(def, id),
           .taskId    = ecs_runner_graph_task(g_ecsRunningRunner, id),
+          .workerId  = stats.sysStats[id].workerId,
           .views     = ecs_def_system_views(def, id).values,
           .viewCount = (u32)ecs_def_system_views(def, id).count,
           .duration  = stats.sysStats[id].avgDur,
@@ -291,6 +305,9 @@ static void sys_info_query(DebugEcsPanelComp* panelComp, EcsWorld* world) {
     break;
   case DebugSysSortMode_Task:
     dynarray_sort(&panelComp->systems, sys_compare_info_task);
+    break;
+  case DebugSysSortMode_Worker:
+    dynarray_sort(&panelComp->systems, sys_compare_info_worker);
     break;
   case DebugSysSortMode_Duration:
     dynarray_sort(&panelComp->systems, sys_compare_info_duration);
@@ -358,8 +375,9 @@ sys_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, const Ecs
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
   ui_table_add_column(&table, UiTableColumn_Fixed, 325);
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_draw_header(
       canvas,
@@ -368,6 +386,7 @@ sys_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, const Ecs
           {string_lit("Id"), string_lit("System identifier.")},
           {string_lit("Name"), string_lit("System name.")},
           {string_lit("Task"), string_lit("Identifier of the job-graph task of this system.")},
+          {string_lit("Worker"), string_lit("Identifier job-worker that ran this system last.")},
           {string_lit("Views"), string_lit("Amount of views the system accesses.")},
           {string_lit("Duration"), string_lit("Last execution duration of this system.")},
       });
@@ -387,6 +406,8 @@ sys_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, const Ecs
     ui_label(canvas, sysInfo->name, .selectable = true);
     ui_table_next_column(canvas, &table);
     ui_label(canvas, fmt_write_scratch("{}", fmt_int(sysInfo->taskId)));
+    ui_table_next_column(canvas, &table);
+    ui_label(canvas, fmt_write_scratch("{}", fmt_int(sysInfo->workerId)));
     ui_table_next_column(canvas, &table);
     ui_label(
         canvas,
