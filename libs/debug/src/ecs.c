@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "debug_ecs.h"
 #include "debug_register.h"
+#include "ecs_runner.h"
 #include "ecs_world.h"
 #include "ui.h"
 
@@ -15,6 +16,7 @@ typedef struct {
 typedef struct {
   EcsSystemId  id;
   String       name;
+  JobTaskId    taskId;
   EcsViewId*   views;
   u32          viewCount;
   TimeDuration duration;
@@ -55,6 +57,7 @@ ASSERT(array_elems(g_compSortModeNames) == DebugCompSortMode_Count, "Incorrect n
 typedef enum {
   DebugSysSortMode_Id,
   DebugSysSortMode_Name,
+  DebugSysSortMode_Task,
   DebugSysSortMode_Duration,
 
   DebugSysSortMode_Count,
@@ -63,6 +66,7 @@ typedef enum {
 static const String g_sysSortModeNames[] = {
     string_static("Id"),
     string_static("Name"),
+    string_static("Task"),
     string_static("Duration"),
 };
 ASSERT(array_elems(g_sysSortModeNames) == DebugSysSortMode_Count, "Incorrect number of names");
@@ -105,6 +109,10 @@ static i8 comp_compare_info_entities(const void* a, const void* b) {
 
 static i8 sys_compare_info_name(const void* a, const void* b) {
   return compare_string(field_ptr(a, DebugEcsSysInfo, name), field_ptr(b, DebugEcsSysInfo, name));
+}
+
+static i8 sys_compare_info_task(const void* a, const void* b) {
+  return compare_u32(field_ptr(a, DebugEcsSysInfo, taskId), field_ptr(b, DebugEcsSysInfo, taskId));
 }
 
 static i8 sys_compare_info_duration(const void* a, const void* b) {
@@ -254,6 +262,7 @@ static void sys_info_query(DebugEcsPanelComp* panelComp, EcsWorld* world) {
     *dynarray_push_t(&panelComp->systems, DebugEcsSysInfo) = (DebugEcsSysInfo){
         .id        = id,
         .name      = ecs_def_system_name(def, id),
+        .taskId    = ecs_runner_graph_task(g_ecsRunningRunner, id),
         .views     = ecs_def_system_views(def, id).values,
         .viewCount = (u32)ecs_def_system_views(def, id).count,
         .duration  = stats.sysStats[id].avgDur,
@@ -263,6 +272,9 @@ static void sys_info_query(DebugEcsPanelComp* panelComp, EcsWorld* world) {
   switch (panelComp->sysSortMode) {
   case DebugSysSortMode_Name:
     dynarray_sort(&panelComp->systems, sys_compare_info_name);
+    break;
+  case DebugSysSortMode_Task:
+    dynarray_sort(&panelComp->systems, sys_compare_info_task);
     break;
   case DebugSysSortMode_Duration:
     dynarray_sort(&panelComp->systems, sys_compare_info_duration);
@@ -322,7 +334,8 @@ sys_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, const Ecs
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 350);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 325);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
   ui_table_add_column(&table, UiTableColumn_Fixed, 100);
 
@@ -332,6 +345,7 @@ sys_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, const Ecs
       (const UiTableColumnName[]){
           {string_lit("Id"), string_lit("System identifier.")},
           {string_lit("Name"), string_lit("System name.")},
+          {string_lit("Task"), string_lit("Identifier of the job-graph task of this system.")},
           {string_lit("Views"), string_lit("Amount of views the system accesses.")},
           {string_lit("Duration"), string_lit("Last execution duration of this system.")},
       });
@@ -349,6 +363,8 @@ sys_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, const Ecs
     ui_label(canvas, fmt_write_scratch("{}", fmt_int(sysInfo->id)));
     ui_table_next_column(canvas, &table);
     ui_label(canvas, sysInfo->name, .selectable = true);
+    ui_table_next_column(canvas, &table);
+    ui_label(canvas, fmt_write_scratch("{}", fmt_int(sysInfo->taskId)));
     ui_table_next_column(canvas, &table);
     ui_label(
         canvas,
@@ -428,6 +444,7 @@ EcsEntityId debug_ecs_panel_open(EcsWorld* world, const EcsEntityId window) {
       .scrollview   = ui_scrollview(),
       .nameFilter   = dynstring_create(g_alloc_heap, 32),
       .compSortMode = DebugCompSortMode_Entities,
+      .sysSortMode  = DebugSysSortMode_Task,
       .components   = dynarray_create_t(g_alloc_heap, DebugEcsCompInfo, 256),
       .systems      = dynarray_create_t(g_alloc_heap, DebugEcsSysInfo, 256));
   return panelEntity;
