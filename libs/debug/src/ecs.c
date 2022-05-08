@@ -13,6 +13,17 @@ typedef struct {
 } DebugEcsCompInfo;
 
 typedef enum {
+  DebugEcsTab_Components,
+
+  DebugEcsTab_Count,
+} DebugEcsTab;
+
+static const String g_ecsTabNames[] = {
+    string_static("Components"),
+};
+ASSERT(array_elems(g_ecsTabNames) == DebugEcsTab_Count, "Incorrect number of names");
+
+typedef enum {
   DebugCompSortMode_Id,
   DebugCompSortMode_Name,
   DebugCompSortMode_Size,
@@ -141,10 +152,7 @@ static void comp_options_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp
   ui_layout_pop(canvas);
 }
 
-static void physics_panel_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp) {
-  const String title = fmt_write_scratch("{} Ecs Debug", fmt_ui_shape(Extension));
-  ui_panel_begin(canvas, &panelComp->panel, .title = title);
-
+static void ecs_panel_tab_components_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp) {
   comp_options_draw(canvas, panelComp);
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
   ui_layout_container_push(canvas, UiClip_None);
@@ -199,10 +207,27 @@ static void physics_panel_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelCom
 
   ui_scrollview_end(canvas, &panelComp->scrollview);
   ui_layout_container_pop(canvas);
+}
+
+static void ecs_panel_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp) {
+  const String title = fmt_write_scratch("{} Ecs Debug", fmt_ui_shape(Extension));
+  ui_panel_begin(
+      canvas,
+      &panelComp->panel,
+      .title    = title,
+      .tabNames = g_ecsTabNames,
+      .tabCount = DebugEcsTab_Count);
+
+  switch (panelComp->panel.activeTab) {
+  case DebugEcsTab_Components:
+    ecs_panel_tab_components_draw(canvas, panelComp);
+    break;
+  }
+
   ui_panel_end(canvas, &panelComp->panel);
 }
 
-ecs_system_define(DebugPhysicsUpdatePanelSys) {
+ecs_system_define(DebugEcsUpdatePanelSys) {
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
     const EcsEntityId  entity    = ecs_view_entity(itr);
@@ -212,7 +237,7 @@ ecs_system_define(DebugPhysicsUpdatePanelSys) {
     comp_info_query(panelComp, world);
 
     ui_canvas_reset(canvas);
-    physics_panel_draw(canvas, panelComp);
+    ecs_panel_draw(canvas, panelComp);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, entity);
@@ -228,7 +253,7 @@ ecs_module_init(debug_ecs_module) {
 
   ecs_register_view(PanelUpdateView);
 
-  ecs_register_system(DebugPhysicsUpdatePanelSys, ecs_view_id(PanelUpdateView));
+  ecs_register_system(DebugEcsUpdatePanelSys, ecs_view_id(PanelUpdateView));
 }
 
 EcsEntityId debug_ecs_panel_open(EcsWorld* world, const EcsEntityId window) {
