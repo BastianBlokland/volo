@@ -161,12 +161,76 @@ static void ui_panel_topbar(UiCanvasComp* canvas, UiPanel* panel, const UiPanelO
 static void ui_panel_background(UiCanvasComp* canvas) {
   ui_style_push(canvas);
 
-  ui_style_color(canvas, ui_color(64, 64, 64, 230));
+  ui_style_color(canvas, ui_color(64, 64, 64, 220));
   ui_style_outline(canvas, g_panelOutline);
 
   ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_Interactable);
 
   ui_style_pop(canvas);
+}
+
+static void ui_panel_tabs(UiCanvasComp* canvas, UiPanel* panel, const UiPanelOpts* opts) {
+  static const f32     g_barHeight        = 25;
+  static const f32     g_tabWidth         = 150;
+  static const f32     g_spacing          = 2;
+  static const UiColor g_tabInactiveColor = {32, 32, 32, 230};
+
+  ui_layout_container_push(canvas, UiClip_Rect);
+
+  ui_layout_push(canvas);
+  ui_layout_move_to(canvas, UiBase_Current, UiAlign_TopLeft, Ui_XY);
+  ui_layout_resize(canvas, UiAlign_TopLeft, ui_vector(0, g_barHeight), UiBase_Absolute, Ui_Y);
+
+  for (u32 i = 0; i != opts->tabCount; ++i) {
+    const bool   isActive = i == panel->activeTab;
+    const String name     = opts->tabNames[i];
+    ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(g_tabWidth, 0), UiBase_Absolute, Ui_X);
+
+    if (!isActive) {
+      ui_style_push(canvas);
+      const UiId     id     = ui_canvas_id_peek(canvas);
+      const UiStatus status = ui_canvas_elem_status(canvas, id);
+      switch (status) {
+      case UiStatus_Hovered:
+        ui_style_color_with_mult(canvas, g_tabInactiveColor, 2);
+        break;
+      case UiStatus_Pressed:
+      case UiStatus_Activated:
+        ui_style_color_with_mult(canvas, g_tabInactiveColor, 3);
+        break;
+      case UiStatus_Idle:
+        ui_style_color(canvas, g_tabInactiveColor);
+        break;
+      }
+      ui_style_outline(canvas, 2);
+      ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_Interactable);
+      ui_style_pop(canvas);
+
+      if (status >= UiStatus_Hovered) {
+        ui_canvas_interact_type(canvas, UiInteractType_Action);
+      }
+      if (status == UiStatus_Activated) {
+        panel->activeTab = i;
+      }
+      ui_tooltip(canvas, id, fmt_write_scratch("Switch to the \a.b{}\ar tab.", fmt_text(name)));
+    }
+
+    ui_label(canvas, name, .align = UiAlign_MiddleCenter);
+    ui_layout_move_dir(canvas, Ui_Right, g_tabWidth + g_spacing, UiBase_Absolute);
+  }
+
+  ui_layout_resize_to(canvas, UiBase_Container, UiAlign_MiddleRight, Ui_X);
+  ui_style_push(canvas);
+  ui_style_color(canvas, ui_color(16, 16, 16, 210));
+  ui_style_outline(canvas, 2);
+  ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_None);
+  ui_style_pop(canvas);
+
+  ui_layout_pop(canvas);
+  ui_layout_container_pop(canvas);
+
+  ui_layout_grow(
+      canvas, UiAlign_BottomCenter, ui_vector(0, -(g_barHeight + 5)), UiBase_Absolute, Ui_Y);
 }
 
 static void ui_panel_resize_handle(UiCanvasComp* canvas) {
@@ -197,6 +261,9 @@ void ui_panel_begin_with_opts(UiCanvasComp* canvas, UiPanel* panel, const UiPane
   ui_panel_resize_handle(canvas);
   ui_panel_topbar(canvas, panel, opts);
   ui_panel_background(canvas);
+  if (opts->tabCount) {
+    ui_panel_tabs(canvas, panel, opts);
+  }
 
   ui_layout_container_push(canvas, UiClip_Rect);
 }

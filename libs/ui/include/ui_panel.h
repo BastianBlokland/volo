@@ -14,10 +14,13 @@ typedef struct {
   UiVector     size;     // In ui-pixels.
   UiVector     minSize;  // In ui-pixels.
   UiPanelFlags flags;
+  u32          activeTab;
 } UiPanel;
 
 typedef struct {
-  String title;
+  String        title;
+  const String* tabNames;
+  const u32     tabCount;
 } UiPanelOpts;
 
 // clang-format off
