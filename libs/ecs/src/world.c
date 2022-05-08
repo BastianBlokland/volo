@@ -159,15 +159,16 @@ ecs_world_new_comps_mask(EcsBuffer* buffer, const usize idx, const BitSet curren
 EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
   ecs_def_freeze((EcsDef*)def);
 
-  EcsWorld* world = alloc_alloc_t(alloc, EcsWorld);
-  *world          = (EcsWorld){
+  const usize sysCount = ecs_def_system_count(def);
+  EcsWorld*   world    = alloc_alloc_t(alloc, EcsWorld);
+  *world               = (EcsWorld){
       .def       = def,
       .finalizer = ecs_finalizer_create(alloc, def),
       .storage   = ecs_storage_create(alloc, def),
       .views     = dynarray_create_t(alloc, EcsView, ecs_def_view_count(def)),
       .buffer    = ecs_buffer_create(alloc, def),
       .alloc     = alloc,
-      .sysStats  = alloc_array_t(alloc, EcsWorldSysStats, ecs_def_system_count(def)),
+      .sysStats  = sysCount ? alloc_array_t(alloc, EcsWorldSysStats, sysCount) : null,
   };
   world->globalEntity = ecs_storage_entity_create(&world->storage);
 
@@ -204,7 +205,9 @@ void ecs_world_destroy(EcsWorld* world) {
   dynarray_for_t(&world->views, EcsView, view) { ecs_view_destroy(world->alloc, world->def, view); }
   dynarray_destroy(&world->views);
 
-  alloc_free_array_t(world->alloc, world->sysStats, ecs_def_system_count(world->def));
+  if (world->sysStats) {
+    alloc_free_array_t(world->alloc, world->sysStats, ecs_def_system_count(world->def));
+  }
 
   log_d("Ecs world destroyed");
 
