@@ -32,6 +32,7 @@ typedef enum {
  */
 extern THREAD_LOCAL bool        g_ecsRunningSystem;
 extern THREAD_LOCAL EcsSystemId g_ecsRunningSystemId;
+extern THREAD_LOCAL const EcsRunner* g_ecsRunningRunner;
 
 /**
  * Create a new Ecs runner for the given world.

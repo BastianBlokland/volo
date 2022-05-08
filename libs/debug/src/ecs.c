@@ -2,8 +2,16 @@
 #include "core_array.h"
 #include "debug_ecs.h"
 #include "debug_register.h"
+#include "ecs_runner.h"
 #include "ecs_world.h"
 #include "ui.h"
+
+// clang-format off
+
+static const String g_tooltipFilter = string_static("Filter entries by name.\nSupports glob characters \a.b*\ar and \a.b?\ar.");
+static const String g_tooltipFreeze = string_static("Freeze the data set (halts data collection).");
+
+// clang-format on
 
 typedef struct {
   EcsCompId id;
@@ -13,10 +21,13 @@ typedef struct {
 } DebugEcsCompInfo;
 
 typedef struct {
-  EcsSystemId id;
-  String      name;
-  EcsViewId*  views;
-  u32         viewCount;
+  EcsSystemId  id;
+  String       name;
+  JobTaskId    taskId;
+  JobWorkerId  workerId;
+  EcsViewId*   views;
+  u32          viewCount;
+  TimeDuration duration;
 } DebugEcsSysInfo;
 
 typedef enum {
@@ -54,6 +65,9 @@ ASSERT(array_elems(g_compSortModeNames) == DebugCompSortMode_Count, "Incorrect n
 typedef enum {
   DebugSysSortMode_Id,
   DebugSysSortMode_Name,
+  DebugSysSortMode_Task,
+  DebugSysSortMode_Worker,
+  DebugSysSortMode_Duration,
 
   DebugSysSortMode_Count,
 } DebugSysSortMode;
@@ -61,6 +75,9 @@ typedef enum {
 static const String g_sysSortModeNames[] = {
     string_static("Id"),
     string_static("Name"),
+    string_static("Task"),
+    string_static("Worker"),
+    string_static("Duration"),
 };
 ASSERT(array_elems(g_sysSortModeNames) == DebugSysSortMode_Count, "Incorrect number of names");
 
@@ -70,6 +87,7 @@ ecs_comp_define(DebugEcsPanelComp) {
   DynString         nameFilter;
   DebugCompSortMode compSortMode;
   DebugSysSortMode  sysSortMode;
+  bool              freeze;
   DynArray          components; // DebugEcsCompInfo[]
   DynArray          systems;    // DebugEcsSysInfo[]
 };
@@ -100,8 +118,31 @@ static i8 comp_compare_info_entities(const void* a, const void* b) {
       field_ptr(a, DebugEcsCompInfo, numEntities), field_ptr(b, DebugEcsCompInfo, numEntities));
 }
 
+static i8 sys_compare_info_id(const void* a, const void* b) {
+  return compare_u32(field_ptr(a, DebugEcsSysInfo, id), field_ptr(b, DebugEcsSysInfo, id));
+}
+
 static i8 sys_compare_info_name(const void* a, const void* b) {
   return compare_string(field_ptr(a, DebugEcsSysInfo, name), field_ptr(b, DebugEcsSysInfo, name));
+}
+
+static i8 sys_compare_info_task(const void* a, const void* b) {
+  return compare_u32(field_ptr(a, DebugEcsSysInfo, taskId), field_ptr(b, DebugEcsSysInfo, taskId));
+}
+
+static i8 sys_compare_info_worker(const void* a, const void* b) {
+  const DebugEcsSysInfo* sysA        = a;
+  const DebugEcsSysInfo* sysB        = b;
+  i8                     workerOrder = compare_u16(&sysA->workerId, &sysB->workerId);
+  if (!workerOrder) {
+    workerOrder = compare_u32(&sysA->taskId, &sysB->taskId);
+  }
+  return workerOrder;
+}
+
+static i8 sys_compare_info_duration(const void* a, const void* b) {
+  return compare_u64_reverse(
+      field_ptr(a, DebugEcsSysInfo, duration), field_ptr(b, DebugEcsSysInfo, duration));
 }
 
 static bool ecs_panel_filter(DebugEcsPanelComp* panelComp, const String name) {
@@ -167,7 +208,8 @@ static void comp_options_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Filter:"));
   ui_table_next_column(canvas, &table);
-  ui_textbox(canvas, &panelComp->nameFilter, .placeholder = string_lit("*"));
+  ui_textbox(
+      canvas, &panelComp->nameFilter, .placeholder = string_lit("*"), .tooltip = g_tooltipFilter);
   ui_table_next_column(canvas, &table);
   ui_label(canvas, string_lit("Sort:"));
   ui_table_next_column(canvas, &table);
@@ -234,30 +276,55 @@ static void comp_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelCo
 }
 
 static void sys_info_query(DebugEcsPanelComp* panelComp, EcsWorld* world) {
-  dynarray_clear(&panelComp->systems);
-
-  const EcsDef* def = ecs_world_def(world);
-  for (EcsSystemId id = 0; id != ecs_def_system_count(def); ++id) {
-    if (!ecs_panel_filter(panelComp, ecs_def_system_name(def, id))) {
-      continue;
+  if (!panelComp->freeze) {
+    dynarray_clear(&panelComp->systems);
+    const EcsWorldStats stats = ecs_world_stats_query(world);
+    const EcsDef*       def   = ecs_world_def(world);
+    for (EcsSystemId id = 0; id != ecs_def_system_count(def); ++id) {
+      if (!ecs_panel_filter(panelComp, ecs_def_system_name(def, id))) {
+        continue;
+      }
+      *dynarray_push_t(&panelComp->systems, DebugEcsSysInfo) = (DebugEcsSysInfo){
+          .id        = id,
+          .name      = ecs_def_system_name(def, id),
+          .taskId    = ecs_runner_graph_task(g_ecsRunningRunner, id),
+          .workerId  = stats.sysStats[id].workerId,
+          .views     = ecs_def_system_views(def, id).values,
+          .viewCount = (u32)ecs_def_system_views(def, id).count,
+          .duration  = stats.sysStats[id].avgDur,
+      };
     }
-
-    *dynarray_push_t(&panelComp->systems, DebugEcsSysInfo) = (DebugEcsSysInfo){
-        .id        = id,
-        .name      = ecs_def_system_name(def, id),
-        .views     = ecs_def_system_views(def, id).values,
-        .viewCount = (u32)ecs_def_system_views(def, id).count,
-    };
   }
 
   switch (panelComp->sysSortMode) {
+  case DebugSysSortMode_Id:
+    dynarray_sort(&panelComp->systems, sys_compare_info_id);
+    break;
   case DebugSysSortMode_Name:
     dynarray_sort(&panelComp->systems, sys_compare_info_name);
     break;
-  case DebugSysSortMode_Id:
+  case DebugSysSortMode_Task:
+    dynarray_sort(&panelComp->systems, sys_compare_info_task);
+    break;
+  case DebugSysSortMode_Worker:
+    dynarray_sort(&panelComp->systems, sys_compare_info_worker);
+    break;
+  case DebugSysSortMode_Duration:
+    dynarray_sort(&panelComp->systems, sys_compare_info_duration);
+    break;
   case DebugSysSortMode_Count:
     break;
   }
+}
+
+static UiColor sys_info_bg_color(const DebugEcsSysInfo* compInfo) {
+  if (compInfo->duration >= time_millisecond) {
+    return ui_color(64, 16, 16, 192);
+  }
+  if (compInfo->duration >= time_microseconds(500)) {
+    return ui_color(78, 78, 16, 192);
+  }
+  return ui_color(48, 48, 48, 192);
 }
 
 static void sys_options_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp) {
@@ -268,15 +335,22 @@ static void sys_options_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp)
   ui_table_add_column(&table, UiTableColumn_Fixed, 250);
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
   ui_table_add_column(&table, UiTableColumn_Fixed, 150);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Filter:"));
   ui_table_next_column(canvas, &table);
-  ui_textbox(canvas, &panelComp->nameFilter, .placeholder = string_lit("*"));
+  ui_textbox(
+      canvas, &panelComp->nameFilter, .placeholder = string_lit("*"), .tooltip = g_tooltipFilter);
   ui_table_next_column(canvas, &table);
   ui_label(canvas, string_lit("Sort:"));
   ui_table_next_column(canvas, &table);
   ui_select(canvas, (i32*)&panelComp->sysSortMode, g_sysSortModeNames, DebugSysSortMode_Count);
+  ui_table_next_column(canvas, &table);
+  ui_label(canvas, string_lit("Freeze:"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle(canvas, &panelComp->freeze, .tooltip = g_tooltipFreeze);
 
   ui_layout_pop(canvas);
 }
@@ -299,8 +373,11 @@ sys_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, const Ecs
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 350);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 325);
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_draw_header(
       canvas,
@@ -308,7 +385,10 @@ sys_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, const Ecs
       (const UiTableColumnName[]){
           {string_lit("Id"), string_lit("System identifier.")},
           {string_lit("Name"), string_lit("System name.")},
+          {string_lit("Task"), string_lit("Identifier of the job-graph task of this system.")},
+          {string_lit("Worker"), string_lit("Identifier job-worker that ran this system last.")},
           {string_lit("Views"), string_lit("Amount of views the system accesses.")},
+          {string_lit("Duration"), string_lit("Last execution duration of this system.")},
       });
 
   const u32 numSystems = (u32)panelComp->systems.size;
@@ -317,7 +397,7 @@ sys_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, const Ecs
   ui_canvas_id_block_next(canvas); // Start the list of systems on its own id block.
   dynarray_for_t(&panelComp->systems, DebugEcsSysInfo, sysInfo) {
     ui_table_next_row(canvas, &table);
-    ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
+    ui_table_draw_row_bg(canvas, &table, sys_info_bg_color(sysInfo));
 
     ui_canvas_id_block_index(canvas, sysInfo->id * 10); // Set a stable id based on the comp id.
 
@@ -325,10 +405,16 @@ sys_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, const Ecs
     ui_table_next_column(canvas, &table);
     ui_label(canvas, sysInfo->name, .selectable = true);
     ui_table_next_column(canvas, &table);
+    ui_label(canvas, fmt_write_scratch("{}", fmt_int(sysInfo->taskId)));
+    ui_table_next_column(canvas, &table);
+    ui_label(canvas, fmt_write_scratch("{}", fmt_int(sysInfo->workerId)));
+    ui_table_next_column(canvas, &table);
     ui_label(
         canvas,
         fmt_write_scratch("{}", fmt_int(sysInfo->viewCount)),
         .tooltip = sys_views_tooltip_scratch(ecsDef, sysInfo));
+    ui_table_next_column(canvas, &table);
+    ui_label(canvas, fmt_write_scratch("{}", fmt_duration(sysInfo->duration)));
   }
   ui_canvas_id_block_next(canvas);
 
@@ -401,6 +487,7 @@ EcsEntityId debug_ecs_panel_open(EcsWorld* world, const EcsEntityId window) {
       .scrollview   = ui_scrollview(),
       .nameFilter   = dynstring_create(g_alloc_heap, 32),
       .compSortMode = DebugCompSortMode_Entities,
+      .sysSortMode  = DebugSysSortMode_Task,
       .components   = dynarray_create_t(g_alloc_heap, DebugEcsCompInfo, 256),
       .systems      = dynarray_create_t(g_alloc_heap, DebugEcsSysInfo, 256));
   return panelEntity;

@@ -7,6 +7,7 @@
 #include "core_time.h"
 #include "ecs_runner.h"
 #include "jobs_dot.h"
+#include "jobs_executor.h"
 #include "jobs_graph.h"
 #include "jobs_scheduler.h"
 #include "log_logger.h"
@@ -36,6 +37,7 @@ typedef struct {
 } MetaTaskData;
 
 typedef struct {
+  const EcsRunner* runner;
   EcsWorld*        world;
   EcsSystemId      id;
   EcsSystemRoutine routine;
@@ -58,6 +60,7 @@ struct sEcsRunner {
 
 THREAD_LOCAL bool        g_ecsRunningSystem;
 THREAD_LOCAL EcsSystemId g_ecsRunningSystemId = sentinel_u16;
+THREAD_LOCAL const EcsRunner* g_ecsRunningRunner;
 
 static i8 compare_system_entry(const void* a, const void* b) {
   return compare_i32(
@@ -73,7 +76,7 @@ static JobTaskFlags graph_system_task_flags(const EcsSystemDef* systemDef) {
 }
 
 static void graph_runner_flush_task(void* context) {
-  MetaTaskData* data = context;
+  const MetaTaskData* data = context;
   ecs_world_flush_internal(data->runner->world);
 
   data->runner->flags &= ~EcsRunnerPrivateFlags_Running;
@@ -81,15 +84,22 @@ static void graph_runner_flush_task(void* context) {
 }
 
 static void graph_system_task(void* context) {
-  SystemTaskData* data = context;
+  const SystemTaskData* data = context;
+
+  const TimeSteady startTime = time_steady_clock();
 
   g_ecsRunningSystem   = true;
   g_ecsRunningSystemId = data->id;
+  g_ecsRunningRunner   = data->runner;
 
   data->routine(data->world);
 
   g_ecsRunningSystem   = false;
   g_ecsRunningSystemId = sentinel_u16;
+  g_ecsRunningRunner   = null;
+
+  const TimeDuration dur = time_steady_duration(startTime, time_steady_clock());
+  ecs_world_stats_update_sys(data->world, data->id, g_jobsWorkerId, dur);
 }
 
 static JobTaskId graph_insert_flush(EcsRunner* runner) {
@@ -115,7 +125,11 @@ graph_insert_system(EcsRunner* runner, const EcsSystemId systemId, const EcsSyst
       systemDef->name,
       graph_system_task,
       mem_struct(
-          SystemTaskData, .world = runner->world, .id = systemId, .routine = systemDef->routine),
+          SystemTaskData,
+          .runner  = runner,
+          .world   = runner->world,
+          .id      = systemId,
+          .routine = systemDef->routine),
       graph_system_task_flags(systemDef));
 };
 
@@ -174,9 +188,9 @@ static void runner_collect_systems(EcsRunner* runner, RunnerSystemEntry* output)
   for (EcsSystemId sysId = 0; sysId != systemCount; ++sysId) {
     EcsSystemDef* sysDef = dynarray_at_t(&def->systems, sysId, EcsSystemDef);
     output[sysId]        = (RunnerSystemEntry){
-               .id    = sysId,
-               .order = sysDef->order,
-               .def   = sysDef,
+        .id    = sysId,
+        .order = sysDef->order,
+        .def   = sysDef,
     };
   }
 
@@ -218,11 +232,11 @@ EcsRunner* ecs_runner_create(Allocator* alloc, EcsWorld* world, const EcsRunnerF
 
   EcsRunner* runner = alloc_alloc_t(alloc, EcsRunner);
   *runner           = (EcsRunner){
-                .world            = world,
-                .graph            = jobs_graph_create(alloc, string_lit("ecs_runner"), taskCount),
-                .flags            = flags,
-                .systemTaskLookup = alloc_array_t(alloc, JobTaskId, systemCount),
-                .alloc            = alloc,
+      .world            = world,
+      .graph            = jobs_graph_create(alloc, string_lit("ecs_runner"), taskCount),
+      .flags            = flags,
+      .systemTaskLookup = alloc_array_t(alloc, JobTaskId, systemCount),
+      .alloc            = alloc,
   };
 
   RunnerSystemEntry* systems = alloc_array_t(alloc, RunnerSystemEntry, systemCount);

@@ -34,6 +34,8 @@ static void ecs_combine_graphic_bounds(void* dataA, void* dataB) {
   SceneGraphicBoundsComp* boundsA = dataA;
   SceneGraphicBoundsComp* boundsB = dataB;
 
+  (void)boundsA;
+  (void)boundsB;
   diag_assert_msg(
       boundsA->state == SceneBoundsState_Start && boundsB->state == SceneBoundsState_Start,
       "Graphic-bounds can only be combined in the starting phase");
