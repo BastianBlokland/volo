@@ -43,7 +43,8 @@ EcsIterator* ecs_view_walk(EcsIterator* itr) {
     return null;
   }
 
-  const EcsArchetypeId id = *dynarray_at_t(&view->archetypes, itr->archetypeIdx, EcsArchetypeId);
+  const u32            archIdx = itr->archetypeIdx;
+  const EcsArchetypeId id      = *(dynarray_begin_t(&view->archetypes, EcsArchetypeId) + archIdx);
   if (LIKELY(ecs_storage_itr_walk(view->storage, itr, id))) {
     return itr;
   }

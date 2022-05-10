@@ -39,14 +39,15 @@ static EcsArchetype* ecs_storage_archetype_ptr(const EcsStorage* storage, const 
   if (sentinel_check(id)) {
     return null;
   }
-  return dynarray_at_t(&storage->archetypes, id, EcsArchetype);
+  return dynarray_begin_t(&storage->archetypes, EcsArchetype) + id;
 }
 
 static EcsEntityInfo* ecs_storage_entity_info_ptr(EcsStorage* storage, const EcsEntityId id) {
   if (UNLIKELY(ecs_entity_id_index(id) >= storage->entities.size)) {
     return null;
   }
-  EcsEntityInfo* info = dynarray_at_t(&storage->entities, ecs_entity_id_index(id), EcsEntityInfo);
+  const u32      index = ecs_entity_id_index(id);
+  EcsEntityInfo* info  = dynarray_begin_t(&storage->entities, EcsEntityInfo) + index;
   return info->serial == ecs_entity_id_serial(id) ? info : null;
 }
 
