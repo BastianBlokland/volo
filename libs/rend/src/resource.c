@@ -647,6 +647,8 @@ ecs_module_init(rend_resource_module) {
   ecs_order(RendResUnloadUnusedSys, RendOrder_DrawExecute + 1);
 }
 
+i32 rend_res_render_order(const RendResGraphicComp* comp) { return comp->graphic->renderOrder; }
+
 bool rend_resource_request(EcsWorld* world, const EcsEntityId assetEntity) {
   if (ecs_world_has_t(world, assetEntity, RendResUnloadComp)) {
     return false; // Asset is currently in the process of being unloaded.

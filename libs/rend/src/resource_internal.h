@@ -1,6 +1,7 @@
 #pragma once
 #include "ecs_entity.h"
 #include "ecs_module.h"
+#include "rend_resource.h"
 
 // Internal forward declarations:
 typedef struct sRvkGraphic RvkGraphic;
@@ -8,7 +9,6 @@ typedef struct sRvkShader  RvkShader;
 typedef struct sRvkMesh    RvkMesh;
 typedef struct sRvkTexture RvkTexture;
 
-ecs_comp_extern(RendResComp);
 ecs_comp_extern_public(RendResGraphicComp) { RvkGraphic* graphic; };
 ecs_comp_extern_public(RendResShaderComp) { RvkShader* shader; };
 ecs_comp_extern_public(RendResMeshComp) { RvkMesh* mesh; };

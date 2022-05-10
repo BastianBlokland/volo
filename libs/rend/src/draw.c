@@ -153,9 +153,13 @@ rend_draw_create(EcsWorld* world, const EcsEntityId entity, const RendDrawFlags 
   return ecs_world_add_t(world, entity, RendDrawComp, .flags = flags);
 }
 
+EcsEntityId rend_draw_graphic(const RendDrawComp* draw) { return draw->graphic; }
+
 u32 rend_draw_instance_count(const RendDrawComp* draw) { return draw->instCount; }
 
-EcsEntityId rend_draw_graphic(const RendDrawComp* draw) { return draw->graphic; }
+u32 rend_draw_data_size(const RendDrawComp* draw) { return draw->dataSize; }
+
+u32 rend_draw_data_inst_size(const RendDrawComp* draw) { return draw->instDataSize; }
 
 bool rend_draw_gather(RendDrawComp* draw, const RendView* view, const RendSettingsComp* settings) {
   if (draw->cameraFilter && view->camera != draw->cameraFilter) {
