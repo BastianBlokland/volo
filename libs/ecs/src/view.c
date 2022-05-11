@@ -23,7 +23,15 @@ usize ecs_view_comp_count(EcsView* view) { return view->compCount; }
 
 bool ecs_view_contains(EcsView* view, const EcsEntityId entity) {
   const EcsArchetypeId archetype = ecs_storage_entity_archetype(view->storage, entity);
-  return dynarray_search_binary(&view->archetypes, ecs_compare_archetype, &archetype) != null;
+  dynarray_for_t(&view->archetypes, EcsArchetypeId, trackedArchetype) {
+    if (*trackedArchetype == archetype) {
+      return true;
+    }
+    if (*trackedArchetype > archetype) {
+      return false;
+    }
+  }
+  return false;
 }
 
 EcsIterator* ecs_view_itr_create(Mem mem, EcsView* view) {
