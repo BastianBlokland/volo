@@ -138,9 +138,9 @@ void ecs_view_destroy(Allocator* alloc, const EcsDef* def, EcsView* view) {
   dynarray_destroy(&view->archetypes);
 }
 
-BitSet ecs_view_mask(const EcsView* view, EcsViewMaskType type) {
+BitSet ecs_view_mask(const EcsView* view, const EcsViewMaskType type) {
   const usize bytesPerMask = ecs_def_mask_size(view->def);
-  return mem_slice(view->masks, bytesPerMask * type, ecs_def_mask_size(view->def));
+  return mem_create(bits_ptr_offset(view->masks.ptr, bytesPerMask * type), bytesPerMask);
 }
 
 bool ecs_view_conflict(const EcsView* a, const EcsView* b) {
