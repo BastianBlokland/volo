@@ -10,7 +10,7 @@
 // Note: Not a hard limit, will grow beyond this if needed.
 #define ecs_starting_entities_capacity 1024
 
-#define ecs_comp_mask_stack(_DEF_) mem_stack(bits_to_bytes(ecs_def_comp_count(_DEF_)) + 1)
+#define ecs_comp_mask_stack(_DEF_) mem_stack(ecs_def_mask_size(_DEF_))
 
 typedef struct {
   u32            serial;

@@ -12,14 +12,16 @@
 /**
  * Compute the index for the given component type.
  * Pre-condition: bitset_test(mask, id)
+ * Pre-condition: bits_aligned(mask.size, sizeof(u32))
  */
-static u16 ecs_iterator_comp_index(const BitSet mask, const EcsCompId id) {
-  u16      byteIdx = bits_to_bytes(id);
-  const u8 byte    = (u8)(*mem_at_u8(mask, byteIdx) << (8 - bit_in_byte(id)));
-  u16      result  = intrinsic_popcnt_32(byte);
-  while (byteIdx) {
-    --byteIdx;
-    result += intrinsic_popcnt_32(*mem_at_u8(mask, byteIdx));
+static u32 ecs_iterator_comp_index(const BitSet mask, const EcsCompId id) {
+  const u32* words   = mask.ptr;
+  u32        wordIdx = bits_to_words(id);
+  const u32  word    = words[wordIdx] << (31u - bit_in_word(id));
+  u32        result  = intrinsic_popcnt_32(word) - 1;
+  while (wordIdx) {
+    --wordIdx;
+    result += intrinsic_popcnt_32(words[wordIdx]);
   }
   return result;
 }

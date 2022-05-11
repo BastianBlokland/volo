@@ -38,7 +38,7 @@ struct sEcsWorld {
   EcsWorldSysStats* sysStats;
 };
 
-#define ecs_comp_mask_stack(_DEF_) mem_stack(bits_to_bytes(ecs_def_comp_count(_DEF_)) + 1)
+#define ecs_comp_mask_stack(_DEF_) mem_stack(ecs_def_mask_size(_DEF_))
 
 static usize
 ecs_world_archetype_track(EcsWorld* world, const EcsArchetypeId id, const BitSet mask) {
@@ -162,13 +162,13 @@ EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
   const usize sysCount = ecs_def_system_count(def);
   EcsWorld*   world    = alloc_alloc_t(alloc, EcsWorld);
   *world               = (EcsWorld){
-      .def       = def,
-      .finalizer = ecs_finalizer_create(alloc, def),
-      .storage   = ecs_storage_create(alloc, def),
-      .views     = dynarray_create_t(alloc, EcsView, ecs_def_view_count(def)),
-      .buffer    = ecs_buffer_create(alloc, def),
-      .alloc     = alloc,
-      .sysStats  = sysCount ? alloc_array_t(alloc, EcsWorldSysStats, sysCount) : null,
+                    .def       = def,
+                    .finalizer = ecs_finalizer_create(alloc, def),
+                    .storage   = ecs_storage_create(alloc, def),
+                    .views     = dynarray_create_t(alloc, EcsView, ecs_def_view_count(def)),
+                    .buffer    = ecs_buffer_create(alloc, def),
+                    .alloc     = alloc,
+                    .sysStats  = sysCount ? alloc_array_t(alloc, EcsWorldSysStats, sysCount) : null,
   };
   world->globalEntity = ecs_storage_entity_create(&world->storage);
 

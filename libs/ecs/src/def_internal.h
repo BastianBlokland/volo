@@ -6,6 +6,12 @@
 
 #define ecs_comp_max_size 1024
 
+/**
+ * Compute the required size for a component mask.
+ * NOTE: Rounded up to word (32 bit value) size.
+ */
+#define ecs_def_mask_size(_DEF_) ((bits_to_words(ecs_def_comp_count(_DEF_)) + 1) * sizeof(u32))
+
 typedef struct {
   String            name;
   usize             size, align;

@@ -7,11 +7,6 @@
 #include "storage_internal.h"
 #include "view_internal.h"
 
-static usize ecs_view_bytes_per_mask(const EcsDef* def) {
-  const usize compCount = ecs_def_comp_count(def);
-  return bits_to_bytes(compCount) + 1;
-}
-
 static bool ecs_view_matches(const EcsView* view, BitSet mask) {
   return bitset_all_of(mask, ecs_view_mask(view, EcsViewMask_FilterWith)) &&
          !bitset_any_of(mask, ecs_view_mask(view, EcsViewMask_FilterWithout));
@@ -112,7 +107,7 @@ EcsView ecs_view_create(
     Allocator* alloc, EcsStorage* storage, const EcsDef* def, const EcsViewDef* viewDef) {
   diag_assert(alloc && def);
 
-  const usize bytesPerMask = ecs_view_bytes_per_mask(def);
+  const usize bytesPerMask = ecs_def_mask_size(def);
   Mem         masksMem     = alloc_alloc(alloc, bytesPerMask * 4, 1);
   mem_set(masksMem, 0);
 
@@ -139,13 +134,13 @@ EcsView ecs_view_create(
 }
 
 void ecs_view_destroy(Allocator* alloc, const EcsDef* def, EcsView* view) {
-  alloc_free(alloc, mem_create(view->masks.ptr, ecs_view_bytes_per_mask(def) * 4));
+  alloc_free(alloc, mem_create(view->masks.ptr, ecs_def_mask_size(def) * 4));
   dynarray_destroy(&view->archetypes);
 }
 
 BitSet ecs_view_mask(const EcsView* view, EcsViewMaskType type) {
-  const usize bytesPerMask = ecs_view_bytes_per_mask(view->def);
-  return mem_slice(view->masks, bytesPerMask * type, ecs_view_bytes_per_mask(view->def));
+  const usize bytesPerMask = ecs_def_mask_size(view->def);
+  return mem_slice(view->masks, bytesPerMask * type, ecs_def_mask_size(view->def));
 }
 
 bool ecs_view_conflict(const EcsView* a, const EcsView* b) {

@@ -2,10 +2,10 @@
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_math.h"
-#include "ecs_def.h"
 #include "log_logger.h"
 
 #include "buffer_internal.h"
+#include "def_internal.h"
 
 /**
  * Modifications are stored per entity. Entity data is kept sorted so a binary-search can be
@@ -130,7 +130,7 @@ static EcsBufferCompData* ecs_buffer_compdata_add(
 EcsBuffer ecs_buffer_create(Allocator* alloc, const EcsDef* def) {
   return (EcsBuffer){
       .def      = def,
-      .masks    = dynarray_create(alloc, (u16)bits_to_bytes(ecs_def_comp_count(def)) + 1, 1, 256),
+      .masks    = dynarray_create(alloc, (u16)ecs_def_mask_size(def), 1, 256),
       .entities = dynarray_create_t(alloc, EcsBufferEntity, 256),
       .compDataAllocator =
           alloc_chunked_create(g_alloc_page, alloc_bump_create, ecs_buffer_compdata_chunk_size),
