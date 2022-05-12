@@ -6,7 +6,6 @@
 #include "log_logger.h"
 
 #include "buffer_internal.h"
-#include "comp_internal.h"
 #include "def_internal.h"
 #include "finalizer_internal.h"
 #include "storage_internal.h"

@@ -3,6 +3,8 @@
 #include "ecs_comp.h"
 #include "ecs_entity.h"
 
+#include "comp_internal.h"
+
 #define ecs_iterator_size_max 64
 
 typedef struct sEcsIterator EcsIterator;
@@ -25,4 +27,7 @@ ASSERT(sizeof(EcsIterator) < ecs_iterator_size_max, "EcsIterator size exceeds th
 EcsIterator* ecs_iterator_create(Mem mem, BitSet mask);
 EcsIterator* ecs_iterator_create_with_count(Mem mem, BitSet mask, usize compCount);
 void         ecs_iterator_reset(EcsIterator*);
-Mem          ecs_iterator_access(const EcsIterator*, EcsCompId);
+
+static inline Mem ecs_iterator_access(const EcsIterator* itr, const EcsCompId id) {
+  return itr->comps[ecs_comp_index(itr->mask, id)];
+}

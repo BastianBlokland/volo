@@ -3,7 +3,6 @@
 #include "ecs_runner.h"
 
 #include "archetype_internal.h"
-#include "comp_internal.h"
 #include "def_internal.h"
 #include "entity_allocator_internal.h"
 #include "storage_internal.h"

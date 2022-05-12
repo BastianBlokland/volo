@@ -4,7 +4,6 @@
 #include "core_diag.h"
 #include "ecs_def.h"
 
-#include "comp_internal.h"
 #include "storage_internal.h"
 #include "view_internal.h"
 
