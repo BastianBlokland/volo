@@ -161,6 +161,7 @@ macro(set_msvc_compile_options)
 
   # Optimization settings.
   add_compile_options(/O2)
+  add_compile_options(/GS-) # Disable 'Buffer Security Check'.
 
   # Debug options.
   add_compile_options(/Zi)
