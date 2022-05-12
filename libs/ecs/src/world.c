@@ -101,7 +101,7 @@ static void ecs_world_apply_added_comps(
     const EcsCompId compId   = ecs_buffer_comp_id(bufferItr);
     const Mem       compData = ecs_buffer_comp_data(buffer, bufferItr);
 
-    if (!bitset_test(initializedComps, compId)) {
+    if (!ecs_comp_has(initializedComps, compId)) {
       mem_cpy(ecs_iterator_access(storageItr, compId), compData);
       bitset_set(initializedComps, compId);
       continue;
@@ -267,7 +267,7 @@ bool ecs_world_has(EcsWorld* world, const EcsEntityId entity, const EcsCompId co
       fmt_int(entity));
 
   const BitSet entityMask = ecs_storage_entity_mask(&world->storage, entity);
-  return bitset_test(entityMask, comp);
+  return entityMask.size ? ecs_comp_has(entityMask, comp) : false;
 }
 
 void* ecs_world_add(

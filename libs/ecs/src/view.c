@@ -12,13 +12,6 @@ static bool ecs_view_matches(const EcsView* view, BitSet mask) {
          !bitset_any_of(mask, ecs_view_mask(view, EcsViewMask_FilterWithout));
 }
 
-MAYBE_UNUSED static bool
-ecs_view_mask_test(const EcsView* view, const EcsViewMaskType type, const EcsCompId comp) {
-  const BitSet mask    = ecs_view_mask(view, type);
-  const usize  byteIdx = bits_to_bytes(comp);
-  return (*mem_at_u8(mask, byteIdx) & (1u << bit_in_byte(comp))) != 0;
-}
-
 usize ecs_view_comp_count(EcsView* view) { return view->compCount; }
 
 bool ecs_view_contains(EcsView* view, const EcsEntityId entity) {
@@ -96,7 +89,7 @@ const void* ecs_view_read(const EcsIterator* itr, const EcsCompId comp) {
   MAYBE_UNUSED EcsView* view = itr->context;
 
   diag_assert_msg(
-      ecs_view_mask_test(view, EcsViewMask_AccessRead, comp),
+      ecs_comp_has(ecs_view_mask(view, EcsViewMask_AccessRead), comp),
       "View {} does not have read-access to component {}",
       fmt_text(view->viewDef->name),
       fmt_text(ecs_def_comp_name(view->def, comp)));
@@ -110,7 +103,7 @@ void* ecs_view_write(const EcsIterator* itr, const EcsCompId comp) {
   MAYBE_UNUSED EcsView* view = itr->context;
 
   diag_assert_msg(
-      ecs_view_mask_test(view, EcsViewMask_AccessWrite, comp),
+      ecs_comp_has(ecs_view_mask(view, EcsViewMask_AccessWrite), comp),
       "View {} does not have write-access to component {}",
       fmt_text(view->viewDef->name),
       fmt_text(ecs_def_comp_name(view->def, comp)));
@@ -122,7 +115,7 @@ EcsView ecs_view_create(
     Allocator* alloc, EcsStorage* storage, const EcsDef* def, const EcsViewDef* viewDef) {
   diag_assert(alloc && def);
 
-  const Mem masksMem = alloc_alloc(alloc, ecs_comp_mask_size(def) * 4, 1);
+  const Mem masksMem = alloc_alloc(alloc, ecs_comp_mask_size(def) * 4, ecs_comp_mask_align);
   mem_set(masksMem, 0);
 
   EcsView view = {

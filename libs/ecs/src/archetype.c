@@ -82,7 +82,7 @@ ecs_archetype_itr_init_pointers(EcsArchetype* archetype, EcsIterator* itr, EcsAr
   for (usize i = 0; i != itr->compCount; ++i, ++compId) {
     compId = (EcsCompId)bitset_next(itr->mask, compId);
 
-    if (UNLIKELY(!bitset_test(archetype->mask, compId))) {
+    if (UNLIKELY(!ecs_comp_has(archetype->mask, compId))) {
       // Requested component is not present on the archetype; set the pointer to null.
       // NOTE: The null pointer can still be 'advanced' while walking as the stride is also 0.
       itr->comps[i] = mem_empty;
@@ -147,7 +147,7 @@ EcsArchetype ecs_archetype_create(const EcsDef* def, BitSet mask) {
   }
 
   return (EcsArchetype){
-      .mask                = alloc_dup(g_alloc_heap, mask, 1),
+      .mask                = alloc_dup(g_alloc_heap, mask, ecs_comp_mask_align),
       .entitiesPerChunk    = entitiesPerChunk,
       .compOffsetsAndSizes = compOffsets,
       .compCount           = compCount,

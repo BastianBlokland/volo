@@ -145,7 +145,7 @@ u32 ecs_storage_entity_count(const EcsStorage* storage) {
 u32 ecs_storage_entity_count_with_comp(const EcsStorage* storage, const EcsCompId comp) {
   u32 count = 0;
   dynarray_for_t(&storage->archetypes, EcsArchetype, arch) {
-    count += bitset_test(arch->mask, comp) * arch->entityCount;
+    count += ecs_comp_has(arch->mask, comp) * arch->entityCount;
   }
   return count;
 }
@@ -231,7 +231,7 @@ u32 ecs_storage_archetype_count_empty(const EcsStorage* storage) {
 u32 ecs_storage_archetype_count_with_comp(const EcsStorage* storage, const EcsCompId comp) {
   u32 count = 0;
   dynarray_for_t(&storage->archetypes, EcsArchetype, arch) {
-    count += bitset_test(arch->mask, comp);
+    count += ecs_comp_has(arch->mask, comp);
   }
   return count;
 }

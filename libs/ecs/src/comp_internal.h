@@ -15,6 +15,11 @@
 #define ecs_comp_max_size 1024
 
 /**
+ * Required alignment for a component mask.
+ */
+#define ecs_comp_mask_align sizeof(u64)
+
+/**
  * Compute the required size for a component mask.
  * NOTE: Rounded up to the next dword (64 bit value).
  */
@@ -42,4 +47,13 @@ static inline u32 ecs_comp_index(const BitSet mask, const EcsCompId id) {
     result += _mm_popcnt_u64(dwords[dwordIdx]);
   }
   return result;
+}
+
+/**
+ * Test if the component is set in the given mask.
+ * Pre-condition: mask.size == ecs_comp_mask_size
+ */
+static inline bool ecs_comp_has(const BitSet mask, const EcsCompId id) {
+  const usize byteIdx = bits_to_bytes(id);
+  return (*mem_at_u8(mask, byteIdx) & (1u << bit_in_byte(id))) != 0;
 }
