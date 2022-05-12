@@ -52,7 +52,7 @@ static EcsEntityInfo* ecs_storage_entity_info_ptr(EcsStorage* storage, const Ecs
 static void ecs_storage_queue_finalize_itr(EcsFinalizer* finalizer, EcsIterator* itr) {
   EcsCompId compId = 0;
   for (usize i = 0; i != itr->compCount; ++i, ++compId) {
-    compId = (EcsCompId)bitset_next(itr->mask, compId);
+    compId = ecs_comp_next(itr->mask, compId);
     ecs_finalizer_push(finalizer, compId, itr->comps[i].ptr);
   }
 }

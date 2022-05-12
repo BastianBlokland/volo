@@ -23,6 +23,16 @@
 #define bytes_to_bits(_BYTES_) ((_BYTES_)*8)
 
 /**
+ * Convert number of words (32 bit values) to bits. Multiply by 32.
+ */
+#define words_to_bits(_WORDS_) ((_WORDS_)*32)
+
+/**
+ * Convert number of dwords (64 bit values) to bits. Multiply by 64.
+ */
+#define dwords_to_bits(_DWORDS_) ((_DWORDS_)*64)
+
+/**
  * Retrieve the index of the given bit in its byte. Modulo 8.
  */
 #define bit_in_byte(_BIT_) ((_BIT_)&0b111)

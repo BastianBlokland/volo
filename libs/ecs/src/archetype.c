@@ -80,7 +80,7 @@ ecs_archetype_itr_init_pointers(EcsArchetype* archetype, EcsIterator* itr, EcsAr
 
   EcsCompId compId = 0;
   for (usize i = 0; i != itr->compCount; ++i, ++compId) {
-    compId = (EcsCompId)bitset_next(itr->mask, compId);
+    compId = ecs_comp_next(itr->mask, compId);
 
     if (UNLIKELY(!ecs_comp_has(archetype->mask, compId))) {
       // Requested component is not present on the archetype; set the pointer to null.

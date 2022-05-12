@@ -4,8 +4,8 @@
 #include "ecs_comp.h"
 
 /**
- * NOTE: Intel intrinsics used for 64 bit popcnt which has wide spread support. If needed a 32 bit
- * fallback can be created.
+ * NOTE: Intel intrinsics used for 64 bit popcnt and bit-scan-forward which have wide spread
+ * support. If needed 32 bits fallback can be created.
  */
 #include <immintrin.h>
 
@@ -42,7 +42,7 @@ static inline bool ecs_comp_has(const BitSet mask, const EcsCompId id) {
 }
 
 /**
- * Compute the index for the given component type.
+ * Compute the index for the given component identifier.
  * Pre-condition: ecs_comp_has(mask, id)
  * Pre-condition: bits_aligned(mask.size, sizeof(u64))
  */
@@ -56,4 +56,29 @@ static inline u32 ecs_comp_index(const BitSet mask, const EcsCompId id) {
     result += _mm_popcnt_u64(dwords[dwordIdx]);
   }
   return result;
+}
+
+/**
+ * Compute the next component identifier in the given mask.
+ * Pre-condition: ecs_comp_has(mask, id)
+ * Pre-condition: id is not the last component in the mask.
+ */
+static inline EcsCompId ecs_comp_next(const BitSet mask, const EcsCompId id) {
+  const u64* dwords   = mask.ptr;
+  u64        dwordIdx = bits_to_dwords(id);
+  u64        dword    = dwords[dwordIdx] >> bit_in_dword(id);
+  if (dword) {
+    u64 trailing;
+    _BitScanForward64(&trailing, dword);
+    return id + trailing; // Aka ctz (count trailing zeroes).
+  }
+  for (++dwordIdx; dwordIdx != mask.size; ++dwordIdx) {
+    dword = dwords[dwordIdx];
+    if (dword) {
+      u64 trailing;
+      _BitScanForward64(&trailing, dword); // Aka ctz (count trailing zeroes).
+      return dwords_to_bits(dwordIdx) + trailing;
+    }
+  }
+  UNREACHABLE
 }
