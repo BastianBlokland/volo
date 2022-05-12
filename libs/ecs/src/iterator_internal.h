@@ -28,6 +28,6 @@ EcsIterator* ecs_iterator_create(Mem mem, BitSet mask);
 EcsIterator* ecs_iterator_create_with_count(Mem mem, BitSet mask, usize compCount);
 void         ecs_iterator_reset(EcsIterator*);
 
-static inline Mem ecs_iterator_access(const EcsIterator* itr, const EcsCompId id) {
+INLINE_HINT static Mem ecs_iterator_access(const EcsIterator* itr, const EcsCompId id) {
   return itr->comps[ecs_comp_index(itr->mask, id)];
 }
