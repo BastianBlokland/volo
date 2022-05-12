@@ -276,7 +276,8 @@ EcsArchetypeId ecs_storage_archetype_create(EcsStorage* storage, const BitSet ma
 }
 
 bool ecs_storage_itr_walk(EcsStorage* storage, EcsIterator* itr, const EcsArchetypeId id) {
-  return ecs_archetype_itr_walk(ecs_storage_archetype_ptr(storage, id), itr);
+  EcsArchetype* archetype = dynarray_begin_t(&storage->archetypes, EcsArchetype) + id;
+  return ecs_archetype_itr_walk(archetype, itr);
 }
 
 void ecs_storage_itr_jump(EcsStorage* storage, EcsIterator* itr, const EcsEntityId id) {
