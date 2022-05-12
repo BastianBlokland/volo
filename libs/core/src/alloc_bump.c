@@ -3,6 +3,11 @@
 
 #include "alloc_internal.h"
 
+/**
+ * Tag the entire memory region on reset to help detecting 'Use After Free'.
+ */
+#define bump_reset_guard_enable 0
+
 struct AllocatorBump {
   Allocator api;
   u8*       head;
@@ -46,8 +51,9 @@ static void alloc_bump_reset(Allocator* allocator) {
   struct AllocatorBump* allocatorBump = (struct AllocatorBump*)allocator;
   allocatorBump->head                 = bits_ptr_offset(allocator, sizeof(struct AllocatorBump));
 
-  // NOTE: Tag the memory to detect UAF, could be tied to a define in the future.
+#if bump_reset_guard_enable
   alloc_tag_guard(mem_from_to(allocatorBump->head, allocatorBump->tail), AllocMemType_Normal);
+#endif
 }
 
 Allocator* alloc_bump_create(Mem mem) {
