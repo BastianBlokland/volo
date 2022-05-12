@@ -3,14 +3,13 @@
 #include "ecs_runner.h"
 
 #include "archetype_internal.h"
+#include "comp_internal.h"
 #include "def_internal.h"
 #include "entity_allocator_internal.h"
 #include "storage_internal.h"
 
 // Note: Not a hard limit, will grow beyond this if needed.
 #define ecs_starting_entities_capacity 1024
-
-#define ecs_comp_mask_stack(_DEF_) mem_stack(ecs_def_mask_size(_DEF_))
 
 typedef struct {
   u32            serial;

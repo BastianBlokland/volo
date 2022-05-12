@@ -6,6 +6,7 @@
 #include "log_logger.h"
 
 #include "buffer_internal.h"
+#include "comp_internal.h"
 #include "def_internal.h"
 #include "finalizer_internal.h"
 #include "storage_internal.h"
@@ -37,8 +38,6 @@ struct sEcsWorld {
 
   EcsWorldSysStats* sysStats;
 };
-
-#define ecs_comp_mask_stack(_DEF_) mem_stack(ecs_def_mask_size(_DEF_))
 
 static usize
 ecs_world_archetype_track(EcsWorld* world, const EcsArchetypeId id, const BitSet mask) {

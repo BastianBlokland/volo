@@ -4,14 +4,6 @@
 
 #include "module_internal.h"
 
-#define ecs_comp_max_size 1024
-
-/**
- * Compute the required size for a component mask.
- * NOTE: Rounded up to dword (64 bit value) size.
- */
-#define ecs_def_mask_size(_DEF_) ((bits_to_dwords((_DEF_)->components.size) + 1) * sizeof(u64))
-
 typedef struct {
   String            name;
   usize             size, align;

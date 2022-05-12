@@ -5,6 +5,7 @@
 #include "log_logger.h"
 
 #include "buffer_internal.h"
+#include "comp_internal.h"
 #include "def_internal.h"
 
 /**
@@ -130,7 +131,7 @@ static EcsBufferCompData* ecs_buffer_compdata_add(
 EcsBuffer ecs_buffer_create(Allocator* alloc, const EcsDef* def) {
   return (EcsBuffer){
       .def      = def,
-      .masks    = dynarray_create(alloc, (u16)ecs_def_mask_size(def), 1, 256),
+      .masks    = dynarray_create(alloc, (u16)ecs_comp_mask_size(def), 1, 256),
       .entities = dynarray_create_t(alloc, EcsBufferEntity, 256),
       .compDataAllocator =
           alloc_chunked_create(g_alloc_page, alloc_bump_create, ecs_buffer_compdata_chunk_size),

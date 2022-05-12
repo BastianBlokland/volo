@@ -4,6 +4,7 @@
 #include "core_diag.h"
 #include "ecs_def.h"
 
+#include "comp_internal.h"
 #include "storage_internal.h"
 #include "view_internal.h"
 
@@ -122,8 +123,7 @@ EcsView ecs_view_create(
     Allocator* alloc, EcsStorage* storage, const EcsDef* def, const EcsViewDef* viewDef) {
   diag_assert(alloc && def);
 
-  const usize bytesPerMask = ecs_def_mask_size(def);
-  Mem         masksMem     = alloc_alloc(alloc, bytesPerMask * 4, 1);
+  const Mem masksMem = alloc_alloc(alloc, ecs_comp_mask_size(def) * 4, 1);
   mem_set(masksMem, 0);
 
   EcsView view = {
@@ -149,12 +149,12 @@ EcsView ecs_view_create(
 }
 
 void ecs_view_destroy(Allocator* alloc, const EcsDef* def, EcsView* view) {
-  alloc_free(alloc, mem_create(view->masks.ptr, ecs_def_mask_size(def) * 4));
+  alloc_free(alloc, mem_create(view->masks.ptr, ecs_comp_mask_size(def) * 4));
   dynarray_destroy(&view->archetypes);
 }
 
 BitSet ecs_view_mask(const EcsView* view, const EcsViewMaskType type) {
-  const usize bytesPerMask = ecs_def_mask_size(view->def);
+  const usize bytesPerMask = ecs_comp_mask_size(view->def);
   return mem_create(bits_ptr_offset(view->masks.ptr, bytesPerMask * type), bytesPerMask);
 }
 
