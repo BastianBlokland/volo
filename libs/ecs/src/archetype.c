@@ -69,7 +69,7 @@ static EcsArchetypeLoc ecs_archetype_location(EcsArchetype* archetype, const u32
   return (EcsArchetypeLoc){.chunkIdx = chunkIdx, .indexInChunk = indexInChunk};
 }
 
-static void
+INLINE_HINT static void
 ecs_archetype_itr_init_pointers(EcsArchetype* archetype, EcsIterator* itr, EcsArchetypeLoc loc) {
   const u16* compOffsets = archetype->compOffsetsAndSizes;
   const u16* compSizes   = archetype->compOffsetsAndSizes + archetype->compCount;
