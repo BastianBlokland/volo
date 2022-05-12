@@ -13,6 +13,11 @@
 #define bits_to_words(_BITS_) ((_BITS_) >> 5)
 
 /**
+ * Convert number of bits to number of dwords (64 bit values). Divide by 64.
+ */
+#define bits_to_dwords(_BITS_) ((_BITS_) >> 6)
+
+/**
  * Convert number of bytes to bits. Multiply by 8.
  */
 #define bytes_to_bits(_BYTES_) ((_BYTES_)*8)
@@ -26,6 +31,11 @@
  * Retrieve the index of the given bit in its word (32 bit value). Modulo 32.
  */
 #define bit_in_word(_BIT_) ((_BIT_)&0b11111)
+
+/**
+ * Retrieve the index of the given bit in its dword (64 bit value). Modulo 64.
+ */
+#define bit_in_dword(_BIT_) ((_BIT_)&0b111111)
 
 /**
  * Count how many bits are set in a mask.
