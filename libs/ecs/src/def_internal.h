@@ -8,9 +8,9 @@
 
 /**
  * Compute the required size for a component mask.
- * NOTE: Rounded up to word (32 bit value) size.
+ * NOTE: Rounded up to dword (64 bit value) size.
  */
-#define ecs_def_mask_size(_DEF_) ((bits_to_words((_DEF_)->components.size) + 1) * sizeof(u32))
+#define ecs_def_mask_size(_DEF_) ((bits_to_dwords((_DEF_)->components.size) + 1) * sizeof(u64))
 
 typedef struct {
   String            name;
