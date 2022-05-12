@@ -37,6 +37,17 @@
 #define NORETURN _Noreturn
 
 /**
+ * Indicates that this code-path cannot be reached.
+ */
+#if defined(VOLO_CLANG) || defined(VOLO_GCC)
+#define UNREACHABLE __builtin_unreachable();
+#elif defined(VOLO_MSVC)
+#define UNREACHABLE __assume(false);
+#else
+ASSERT(false, "Unsupported compiler");
+#endif
+
+/**
  * Hint to the compiler that its okay for a variable or function to be unused.
  */
 #if defined(VOLO_CLANG) || defined(VOLO_GCC)
