@@ -40,13 +40,21 @@ static EcsArchetype* ecs_storage_archetype_ptr(const EcsStorage* storage, const 
   return dynarray_begin_t(&storage->archetypes, EcsArchetype) + id;
 }
 
+/**
+ * NOTE: Does not perform bounds checking, use 'ecs_storage_entity_info_ptr' when unsure.
+ */
+static EcsEntityInfo*
+ecs_storage_entity_info_ptr_unsafe(EcsStorage* storage, const EcsEntityId id) {
+  const u32      index = ecs_entity_id_index(id);
+  EcsEntityInfo* info  = dynarray_begin_t(&storage->entities, EcsEntityInfo) + index;
+  return info->serial == ecs_entity_id_serial(id) ? info : null;
+}
+
 static EcsEntityInfo* ecs_storage_entity_info_ptr(EcsStorage* storage, const EcsEntityId id) {
   if (UNLIKELY(ecs_entity_id_index(id) >= storage->entities.size)) {
     return null;
   }
-  const u32      index = ecs_entity_id_index(id);
-  EcsEntityInfo* info  = dynarray_begin_t(&storage->entities, EcsEntityInfo) + index;
-  return info->serial == ecs_entity_id_serial(id) ? info : null;
+  return ecs_storage_entity_info_ptr_unsafe(storage, id);
 }
 
 static void ecs_storage_queue_finalize_itr(EcsFinalizer* finalizer, EcsIterator* itr) {
@@ -135,7 +143,7 @@ bool ecs_storage_entity_exists(const EcsStorage* storage, const EcsEntityId id) 
     // Out of bounds entity means it was created but not flushed yet.
     return true;
   }
-  return ecs_storage_entity_info_ptr((EcsStorage*)storage, id) != null;
+  return ecs_storage_entity_info_ptr_unsafe((EcsStorage*)storage, id) != null;
 }
 
 u32 ecs_storage_entity_count(const EcsStorage* storage) {
@@ -170,7 +178,7 @@ EcsArchetypeId ecs_storage_entity_archetype(EcsStorage* storage, const EcsEntity
 void ecs_storage_entity_move(
     EcsStorage* storage, const EcsEntityId id, const EcsArchetypeId newArchetypeId) {
 
-  EcsEntityInfo* info              = ecs_storage_entity_info_ptr(storage, id);
+  EcsEntityInfo* info              = ecs_storage_entity_info_ptr_unsafe(storage, id);
   EcsArchetype*  oldArchetype      = ecs_storage_archetype_ptr(storage, info->archetype);
   const u32      oldArchetypeIndex = info->archetypeIndex;
   EcsArchetype*  newArchetype      = ecs_storage_archetype_ptr(storage, newArchetypeId);
@@ -199,7 +207,7 @@ void ecs_storage_entity_move(
   if (oldArchetype) {
     const EcsEntityId movedEntity = ecs_archetype_remove(oldArchetype, oldArchetypeIndex);
     if (ecs_entity_valid(movedEntity)) {
-      ecs_storage_entity_info_ptr(storage, movedEntity)->archetypeIndex = oldArchetypeIndex;
+      ecs_storage_entity_info_ptr_unsafe(storage, movedEntity)->archetypeIndex = oldArchetypeIndex;
     }
   }
 }
@@ -212,7 +220,8 @@ void ecs_storage_entity_destroy(EcsStorage* storage, const EcsEntityId id) {
   if (archetype) {
     const EcsEntityId movedEntity = ecs_archetype_remove(archetype, info->archetypeIndex);
     if (ecs_entity_valid(movedEntity)) {
-      ecs_storage_entity_info_ptr(storage, movedEntity)->archetypeIndex = info->archetypeIndex;
+      ecs_storage_entity_info_ptr_unsafe(storage, movedEntity)->archetypeIndex =
+          info->archetypeIndex;
     }
   }
 
@@ -281,7 +290,7 @@ bool ecs_storage_itr_walk(EcsStorage* storage, EcsIterator* itr, const EcsArchet
 }
 
 void ecs_storage_itr_jump(EcsStorage* storage, EcsIterator* itr, const EcsEntityId id) {
-  EcsEntityInfo* info      = ecs_storage_entity_info_ptr(storage, id);
+  EcsEntityInfo* info      = ecs_storage_entity_info_ptr_unsafe(storage, id);
   EcsArchetype*  archetype = ecs_storage_archetype_ptr(storage, info->archetype);
   ecs_archetype_itr_jump(archetype, itr, info->archetypeIndex);
 }
