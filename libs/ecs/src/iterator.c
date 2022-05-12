@@ -3,25 +3,23 @@
 
 #include "iterator_internal.h"
 
-#if defined(VOLO_MSVC)
-#define intrinsic_popcnt_32(_MASK_) __popcnt(_MASK_)
-#else
-#define intrinsic_popcnt_32(_MASK_) __builtin_popcount(_MASK_);
-#endif
+#include <immintrin.h>
+
+#define intrinsic_popcnt_64(_MASK_) _mm_popcnt_u64(_MASK_)
 
 /**
  * Compute the index for the given component type.
  * Pre-condition: bitset_test(mask, id)
- * Pre-condition: bits_aligned(mask.size, sizeof(u32))
+ * Pre-condition: bits_aligned(mask.size, sizeof(u64))
  */
-static u32 ecs_iterator_comp_index(const BitSet mask, const EcsCompId id) {
-  const u32* words   = mask.ptr;
-  u32        wordIdx = bits_to_words(id);
-  const u32  word    = words[wordIdx] << (31u - bit_in_word(id));
-  u32        result  = intrinsic_popcnt_32(word) - 1;
-  while (wordIdx) {
-    --wordIdx;
-    result += intrinsic_popcnt_32(words[wordIdx]);
+static u64 ecs_iterator_comp_index(const BitSet mask, const EcsCompId id) {
+  const u64* dwords   = mask.ptr;
+  u64        dwordIdx = bits_to_dwords(id);
+  const u64  dword    = dwords[dwordIdx] << (63u - bit_in_dword(id));
+  u64        result   = intrinsic_popcnt_64(dword) - 1;
+  while (dwordIdx) {
+    --dwordIdx;
+    result += intrinsic_popcnt_64(dwords[dwordIdx]);
   }
   return result;
 }
