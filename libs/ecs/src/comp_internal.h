@@ -32,11 +32,11 @@
  * Pre-condition: bitset_test(mask, id)
  * Pre-condition: bits_aligned(mask.size, sizeof(u64))
  */
-static inline u64 ecs_comp_index(const BitSet mask, const EcsCompId id) {
+static inline u32 ecs_comp_index(const BitSet mask, const EcsCompId id) {
   const u64* dwords   = mask.ptr;
   u64        dwordIdx = bits_to_dwords(id);
   const u64  dword    = dwords[dwordIdx] << (63u - bit_in_dword(id));
-  u64        result   = _mm_popcnt_u64(dword) - 1;
+  u32        result   = _mm_popcnt_u64(dword) - 1;
   while (dwordIdx) {
     --dwordIdx;
     result += _mm_popcnt_u64(dwords[dwordIdx]);
