@@ -33,8 +33,17 @@
 #define ecs_comp_mask_stack(_DEF_) mem_stack(ecs_comp_mask_size(_DEF_))
 
 /**
+ * Test if the component is set in the given mask.
+ * Pre-condition: mask.size == ecs_comp_mask_size
+ */
+static inline bool ecs_comp_has(const BitSet mask, const EcsCompId id) {
+  const usize byteIdx = bits_to_bytes(id);
+  return (*mem_at_u8(mask, byteIdx) & (1u << bit_in_byte(id))) != 0;
+}
+
+/**
  * Compute the index for the given component type.
- * Pre-condition: bitset_test(mask, id)
+ * Pre-condition: ecs_comp_has(mask, id)
  * Pre-condition: bits_aligned(mask.size, sizeof(u64))
  */
 static inline u32 ecs_comp_index(const BitSet mask, const EcsCompId id) {
@@ -47,13 +56,4 @@ static inline u32 ecs_comp_index(const BitSet mask, const EcsCompId id) {
     result += _mm_popcnt_u64(dwords[dwordIdx]);
   }
   return result;
-}
-
-/**
- * Test if the component is set in the given mask.
- * Pre-condition: mask.size == ecs_comp_mask_size
- */
-static inline bool ecs_comp_has(const BitSet mask, const EcsCompId id) {
-  const usize byteIdx = bits_to_bytes(id);
-  return (*mem_at_u8(mask, byteIdx) & (1u << bit_in_byte(id))) != 0;
 }
