@@ -261,7 +261,7 @@ bool ecs_world_has(EcsWorld* world, const EcsEntityId entity, const EcsCompId co
   diag_assert_msg(ecs_entity_valid(entity), "{} is an invalid entity", fmt_int(entity));
 
   diag_assert_msg(
-      ecs_world_exists(world, entity),
+      ecs_storage_entity_exists(&world->storage, entity),
       "Unable to check for {} on entity {}, reason: entity does not exist",
       fmt_text(ecs_def_comp_name(world->def, comp)),
       fmt_int(entity));
@@ -276,7 +276,7 @@ void* ecs_world_add(
   diag_assert_msg(ecs_entity_valid(entity), "{} is an invalid entity", fmt_int(entity));
 
   diag_assert_msg(
-      ecs_world_exists(world, entity),
+      ecs_storage_entity_exists(&world->storage, entity),
       "Unable to add {} to entity {}, reason: entity does not exist",
       fmt_text(ecs_def_comp_name(world->def, comp)),
       fmt_int(entity));
@@ -292,7 +292,7 @@ void ecs_world_remove(EcsWorld* world, const EcsEntityId entity, const EcsCompId
   diag_assert_msg(ecs_entity_valid(entity), "{} is an invalid entity", fmt_int(entity));
 
   diag_assert_msg(
-      ecs_world_exists(world, entity),
+      ecs_storage_entity_exists(&world->storage, entity),
       "Unable to remove {} from entity {}, reason: entity does not exist",
       fmt_text(ecs_def_comp_name(world->def, comp)),
       fmt_int(entity));
