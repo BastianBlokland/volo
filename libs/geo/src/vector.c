@@ -4,17 +4,35 @@
 #include "core_math.h"
 #include "geo_vector.h"
 
+#define geo_vec_simd_enable 1
+
+#if geo_vec_simd_enable
+#include "simd_sse_internal.h"
+#endif
+
 bool geo_vector_equal(const GeoVector a, const GeoVector b, const f32 threshold) {
   const GeoVector diff = geo_vector_sub(a, b);
   return geo_vector_mag_sqr(diff) <= (threshold * threshold);
 }
 
 GeoVector geo_vector_add(const GeoVector a, const GeoVector b) {
+#if geo_vec_simd_enable
+  GeoVector res;
+  simd_vec_store(simd_vec_add(simd_vec_load(a.comps), simd_vec_load(b.comps)), res.comps);
+  return res;
+#else
   return geo_vector(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w);
+#endif
 }
 
 GeoVector geo_vector_sub(const GeoVector a, const GeoVector b) {
+#if geo_vec_simd_enable
+  GeoVector res;
+  simd_vec_store(simd_vec_sub(simd_vec_load(a.comps), simd_vec_load(b.comps)), res.comps);
+  return res;
+#else
   return geo_vector(a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w);
+#endif
 }
 
 GeoVector geo_vector_mul(const GeoVector v, const f32 scalar) {
