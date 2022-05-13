@@ -38,8 +38,6 @@ struct sEcsWorld {
   EcsWorldSysStats* sysStats;
 };
 
-#define ecs_comp_mask_stack(_DEF_) mem_stack(bits_to_bytes(ecs_def_comp_count(_DEF_)) + 1)
-
 static usize
 ecs_world_archetype_track(EcsWorld* world, const EcsArchetypeId id, const BitSet mask) {
   usize trackingViews = 0;
@@ -103,7 +101,7 @@ static void ecs_world_apply_added_comps(
     const EcsCompId compId   = ecs_buffer_comp_id(bufferItr);
     const Mem       compData = ecs_buffer_comp_data(buffer, bufferItr);
 
-    if (!bitset_test(initializedComps, compId)) {
+    if (!ecs_comp_has(initializedComps, compId)) {
       mem_cpy(ecs_iterator_access(storageItr, compId), compData);
       bitset_set(initializedComps, compId);
       continue;
@@ -162,13 +160,13 @@ EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
   const usize sysCount = ecs_def_system_count(def);
   EcsWorld*   world    = alloc_alloc_t(alloc, EcsWorld);
   *world               = (EcsWorld){
-      .def       = def,
-      .finalizer = ecs_finalizer_create(alloc, def),
-      .storage   = ecs_storage_create(alloc, def),
-      .views     = dynarray_create_t(alloc, EcsView, ecs_def_view_count(def)),
-      .buffer    = ecs_buffer_create(alloc, def),
-      .alloc     = alloc,
-      .sysStats  = sysCount ? alloc_array_t(alloc, EcsWorldSysStats, sysCount) : null,
+                    .def       = def,
+                    .finalizer = ecs_finalizer_create(alloc, def),
+                    .storage   = ecs_storage_create(alloc, def),
+                    .views     = dynarray_create_t(alloc, EcsView, ecs_def_view_count(def)),
+                    .buffer    = ecs_buffer_create(alloc, def),
+                    .alloc     = alloc,
+                    .sysStats  = sysCount ? alloc_array_t(alloc, EcsWorldSysStats, sysCount) : null,
   };
   world->globalEntity = ecs_storage_entity_create(&world->storage);
 
@@ -263,13 +261,13 @@ bool ecs_world_has(EcsWorld* world, const EcsEntityId entity, const EcsCompId co
   diag_assert_msg(ecs_entity_valid(entity), "{} is an invalid entity", fmt_int(entity));
 
   diag_assert_msg(
-      ecs_world_exists(world, entity),
+      ecs_storage_entity_exists(&world->storage, entity),
       "Unable to check for {} on entity {}, reason: entity does not exist",
       fmt_text(ecs_def_comp_name(world->def, comp)),
       fmt_int(entity));
 
   const BitSet entityMask = ecs_storage_entity_mask(&world->storage, entity);
-  return bitset_test(entityMask, comp);
+  return entityMask.size ? ecs_comp_has(entityMask, comp) : false;
 }
 
 void* ecs_world_add(
@@ -278,7 +276,7 @@ void* ecs_world_add(
   diag_assert_msg(ecs_entity_valid(entity), "{} is an invalid entity", fmt_int(entity));
 
   diag_assert_msg(
-      ecs_world_exists(world, entity),
+      ecs_storage_entity_exists(&world->storage, entity),
       "Unable to add {} to entity {}, reason: entity does not exist",
       fmt_text(ecs_def_comp_name(world->def, comp)),
       fmt_int(entity));
@@ -294,7 +292,7 @@ void ecs_world_remove(EcsWorld* world, const EcsEntityId entity, const EcsCompId
   diag_assert_msg(ecs_entity_valid(entity), "{} is an invalid entity", fmt_int(entity));
 
   diag_assert_msg(
-      ecs_world_exists(world, entity),
+      ecs_storage_entity_exists(&world->storage, entity),
       "Unable to remove {} from entity {}, reason: entity does not exist",
       fmt_text(ecs_def_comp_name(world->def, comp)),
       fmt_int(entity));

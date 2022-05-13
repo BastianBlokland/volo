@@ -1,5 +1,6 @@
 #include "core_diag.h"
 
+#include "comp_internal.h"
 #include "def_internal.h"
 
 struct sEcsModuleBuilder {
@@ -54,7 +55,7 @@ ecs_module_register_view(EcsModuleBuilder* builder, EcsViewId* var, const EcsVie
 
 void ecs_module_access_with(EcsViewBuilder* builder, const EcsCompId comp) {
   diag_assert_msg(
-      !bitset_test(builder->filterWithout, comp),
+      !ecs_comp_has(builder->filterWithout, comp),
       "Unable to apply 'with' acesss as component '{}' is already marked as 'without'",
       fmt_text(ecs_def_comp_name(builder->def, comp)));
 
@@ -63,11 +64,11 @@ void ecs_module_access_with(EcsViewBuilder* builder, const EcsCompId comp) {
 
 void ecs_module_access_without(EcsViewBuilder* builder, const EcsCompId comp) {
   diag_assert_msg(
-      !bitset_test(builder->filterWith, comp),
+      !ecs_comp_has(builder->filterWith, comp),
       "Unable to apply 'without' acesss as component '{}' is already marked as 'with'",
       fmt_text(ecs_def_comp_name(builder->def, comp)));
   diag_assert_msg(
-      !bitset_test(builder->accessRead, comp),
+      !ecs_comp_has(builder->accessRead, comp),
       "Unable to apply 'without' acesss as component '{}' is already marked with 'read' access",
       fmt_text(ecs_def_comp_name(builder->def, comp)));
 
@@ -76,7 +77,7 @@ void ecs_module_access_without(EcsViewBuilder* builder, const EcsCompId comp) {
 
 void ecs_module_access_read(EcsViewBuilder* builder, const EcsCompId comp) {
   diag_assert_msg(
-      !bitset_test(builder->filterWithout, comp),
+      !ecs_comp_has(builder->filterWithout, comp),
       "Unable to apply 'read' access as component '{}' is already marked as 'without'",
       fmt_text(ecs_def_comp_name(builder->def, comp)));
 
@@ -86,7 +87,7 @@ void ecs_module_access_read(EcsViewBuilder* builder, const EcsCompId comp) {
 
 void ecs_module_access_write(EcsViewBuilder* builder, const EcsCompId comp) {
   diag_assert_msg(
-      !bitset_test(builder->filterWithout, comp),
+      !ecs_comp_has(builder->filterWithout, comp),
       "Unable to apply 'write' access as component '{}' is already marked as 'without'",
       fmt_text(ecs_def_comp_name(builder->def, comp)));
 
@@ -97,7 +98,7 @@ void ecs_module_access_write(EcsViewBuilder* builder, const EcsCompId comp) {
 
 void ecs_module_access_maybe_read(EcsViewBuilder* builder, const EcsCompId comp) {
   diag_assert_msg(
-      !bitset_test(builder->filterWithout, comp),
+      !ecs_comp_has(builder->filterWithout, comp),
       "Unable to apply 'maybe-read' access as component '{}' is already marked as 'without'",
       fmt_text(ecs_def_comp_name(builder->def, comp)));
 
@@ -106,7 +107,7 @@ void ecs_module_access_maybe_read(EcsViewBuilder* builder, const EcsCompId comp)
 
 void ecs_module_access_maybe_write(EcsViewBuilder* builder, const EcsCompId comp) {
   diag_assert_msg(
-      !bitset_test(builder->filterWithout, comp),
+      !ecs_comp_has(builder->filterWithout, comp),
       "Unable to apply 'maybe-write' access as component '{}' is already marked as 'without'",
       fmt_text(ecs_def_comp_name(builder->def, comp)));
 

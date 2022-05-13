@@ -4,9 +4,9 @@
 #include "core_math.h"
 #include "core_types.h"
 
-usize bitset_size(BitSet bits) { return bytes_to_bits(bits.size); }
+usize bitset_size(const BitSet bits) { return bytes_to_bits(bits.size); }
 
-bool bitset_test(BitSet bits, usize idx) {
+bool bitset_test(const BitSet bits, const usize idx) {
   const usize byteIdx = bits_to_bytes(idx);
   if (byteIdx >= bits.size) {
     return false;
@@ -14,13 +14,13 @@ bool bitset_test(BitSet bits, usize idx) {
   return (*mem_at_u8(bits, byteIdx) & (1u << bit_in_byte(idx))) != 0;
 }
 
-usize bitset_count(BitSet bits) {
+usize bitset_count(const BitSet bits) {
   usize result = 0;
   mem_for_u8(bits, itr) { result += bits_popcnt_32(*itr); }
   return result;
 }
 
-bool bitset_any(BitSet bits) {
+bool bitset_any(const BitSet bits) {
   mem_for_u8(bits, itr) {
     if (*itr) {
       return true;
@@ -29,7 +29,7 @@ bool bitset_any(BitSet bits) {
   return false;
 }
 
-bool bitset_any_of(BitSet bits, BitSet other) {
+bool bitset_any_of(const BitSet bits, const BitSet other) {
   const usize byteCount = math_min(bits.size, other.size);
   for (usize i = 0; i != byteCount; ++i) {
     u8* byte      = mem_at_u8(bits, i);
@@ -41,7 +41,7 @@ bool bitset_any_of(BitSet bits, BitSet other) {
   return false;
 }
 
-bool bitset_all_of(BitSet bits, BitSet other) {
+bool bitset_all_of(const BitSet bits, const BitSet other) {
   diag_assert(bits.size >= other.size);
   for (usize i = 0; i != other.size; ++i) {
     u8* byte      = mem_at_u8(bits, i);
@@ -53,7 +53,7 @@ bool bitset_all_of(BitSet bits, BitSet other) {
   return true;
 }
 
-usize bitset_next(BitSet bits, usize idx) {
+usize bitset_next(const BitSet bits, const usize idx) {
   if (UNLIKELY(idx >= bitset_size(bits))) {
     return sentinel_usize;
   }
@@ -71,7 +71,7 @@ usize bitset_next(BitSet bits, usize idx) {
   return sentinel_usize;
 }
 
-usize bitset_index(BitSet bits, usize idx) {
+usize bitset_index(const BitSet bits, const usize idx) {
   diag_assert(bitset_test(bits, idx));
   usize    byteIdx = bits_to_bytes(idx);
   const u8 byte    = (u8)(*mem_at_u8(bits, byteIdx) << (8 - bit_in_byte(idx)));
@@ -83,12 +83,12 @@ usize bitset_index(BitSet bits, usize idx) {
   return result;
 }
 
-void bitset_set(BitSet bits, usize idx) {
+void bitset_set(const BitSet bits, const usize idx) {
   diag_assert(idx < bitset_size(bits));
   *mem_at_u8(bits, bits_to_bytes(idx)) |= 1u << bit_in_byte(idx);
 }
 
-void bitset_set_all(BitSet bits, usize idx) {
+void bitset_set_all(const BitSet bits, const usize idx) {
   diag_assert(idx < bitset_size(bits));
   const usize byteIdx = bits_to_bytes(idx);
 
@@ -118,14 +118,14 @@ void bitset_set_all(BitSet bits, usize idx) {
   }
 }
 
-void bitset_clear(BitSet bits, usize idx) {
+void bitset_clear(const BitSet bits, const usize idx) {
   diag_assert(idx < bitset_size(bits));
   *mem_at_u8(bits, bits_to_bytes(idx)) &= ~(1u << bit_in_byte(idx));
 }
 
-void bitset_clear_all(BitSet bits) { mem_set(bits, 0); }
+void bitset_clear_all(const BitSet bits) { mem_set(bits, 0); }
 
-void bitset_or(BitSet bits, BitSet other) {
+void bitset_or(const BitSet bits, const BitSet other) {
   diag_assert(bits.size >= other.size);
   for (usize i = 0; i != other.size; ++i) {
     u8* byte      = mem_at_u8(bits, i);
@@ -134,7 +134,7 @@ void bitset_or(BitSet bits, BitSet other) {
   }
 }
 
-void bitset_and(BitSet bits, BitSet other) {
+void bitset_and(const BitSet bits, const BitSet other) {
   diag_assert(bits.size <= other.size);
   for (usize i = 0; i != bits.size; ++i) {
     u8* byte      = mem_at_u8(bits, i);
@@ -143,7 +143,7 @@ void bitset_and(BitSet bits, BitSet other) {
   }
 }
 
-void bitset_xor(BitSet bits, BitSet other) {
+void bitset_xor(const BitSet bits, const BitSet other) {
   diag_assert(bits.size <= other.size);
   for (usize i = 0; i != bits.size; ++i) {
     u8* byte      = mem_at_u8(bits, i);

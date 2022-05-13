@@ -57,10 +57,6 @@ static void ecs_archetype_chunk_destroy(void* chunk) {
   alloc_free(g_alloc_page, mem_create(chunk, ecs_archetype_chunk_size));
 }
 
-static usize ecs_archetype_comp_idx(EcsArchetype* archetype, const EcsCompId id) {
-  return bitset_index(archetype->mask, id);
-}
-
 static EcsEntityId* ecs_archetype_entity_ptr(EcsArchetype* archetype, const u32 index) {
   const usize chunkIdx     = index / archetype->entitiesPerChunk;
   const usize indexInChunk = index - (chunkIdx * archetype->entitiesPerChunk);
@@ -73,7 +69,7 @@ static EcsArchetypeLoc ecs_archetype_location(EcsArchetype* archetype, const u32
   return (EcsArchetypeLoc){.chunkIdx = chunkIdx, .indexInChunk = indexInChunk};
 }
 
-static void
+INLINE_HINT static void
 ecs_archetype_itr_init_pointers(EcsArchetype* archetype, EcsIterator* itr, EcsArchetypeLoc loc) {
   const u16* compOffsets = archetype->compOffsetsAndSizes;
   const u16* compSizes   = archetype->compOffsetsAndSizes + archetype->compCount;
@@ -84,16 +80,16 @@ ecs_archetype_itr_init_pointers(EcsArchetype* archetype, EcsIterator* itr, EcsAr
 
   EcsCompId compId = 0;
   for (usize i = 0; i != itr->compCount; ++i, ++compId) {
-    compId = (EcsCompId)bitset_next(itr->mask, compId);
+    compId = ecs_comp_next(itr->mask, compId);
 
-    if (UNLIKELY(!bitset_test(archetype->mask, compId))) {
+    if (UNLIKELY(!ecs_comp_has(archetype->mask, compId))) {
       // Requested component is not present on the archetype; set the pointer to null.
       // NOTE: The null pointer can still be 'advanced' while walking as the stride is also 0.
       itr->comps[i] = mem_empty;
       continue;
     }
 
-    const usize compIdx    = ecs_archetype_comp_idx(archetype, compId);
+    const u32   compIdx    = ecs_comp_index(archetype->mask, compId);
     const usize compOffset = compOffsets[compIdx];
     const usize compSize   = compSizes[compIdx];
     itr->comps[i].ptr      = bits_ptr_offset(chunkData, compOffset + compSize * loc.indexInChunk);
@@ -151,7 +147,7 @@ EcsArchetype ecs_archetype_create(const EcsDef* def, BitSet mask) {
   }
 
   return (EcsArchetype){
-      .mask                = alloc_dup(g_alloc_heap, mask, 1),
+      .mask                = alloc_dup(g_alloc_heap, mask, ecs_comp_mask_align),
       .entitiesPerChunk    = entitiesPerChunk,
       .compOffsetsAndSizes = compOffsets,
       .compCount           = compCount,
@@ -250,8 +246,8 @@ void ecs_archetype_copy_across(
   const EcsArchetypeLoc srcLoc = ecs_archetype_location(src, srcIdx);
 
   bitset_for(mask, comp) {
-    const usize dstCompIdx = ecs_archetype_comp_idx(dst, (EcsCompId)comp);
-    const usize srcCompIdx = ecs_archetype_comp_idx(src, (EcsCompId)comp);
+    const u32   dstCompIdx = ecs_comp_index(dst->mask, (EcsCompId)comp);
+    const u32   srcCompIdx = ecs_comp_index(src->mask, (EcsCompId)comp);
     const usize compSize   = dstCompSizes[dstCompIdx];
 
     u8* dstChunkData = bits_ptr_offset(dst->chunks[dstLoc.chunkIdx], dstCompOffsets[dstCompIdx]);

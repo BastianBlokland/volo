@@ -1,3 +1,4 @@
+#include "core_bits.h"
 #include "core_diag.h"
 
 #include "iterator_internal.h"
@@ -11,11 +12,11 @@ EcsIterator* ecs_iterator_create_with_count(Mem mem, BitSet mask, usize compCoun
 
   EcsIterator* itr = mem_as_t(mem, EcsIterator);
   *itr             = (EcsIterator){
-      .mask           = mask,
-      .compCount      = compCount,
-      .archetypeIdx   = 0,
-      .chunkIdx       = u32_max,
-      .chunkRemaining = 0,
+                  .mask           = mask,
+                  .compCount      = compCount,
+                  .archetypeIdx   = 0,
+                  .chunkIdx       = u32_max,
+                  .chunkRemaining = 0,
   };
   return itr;
 }
@@ -24,8 +25,4 @@ void ecs_iterator_reset(EcsIterator* itr) {
   itr->archetypeIdx   = 0;
   itr->chunkIdx       = u32_max;
   itr->chunkRemaining = 0;
-}
-
-Mem ecs_iterator_access(const EcsIterator* itr, const EcsCompId id) {
-  return itr->comps[bitset_index(itr->mask, id)];
 }

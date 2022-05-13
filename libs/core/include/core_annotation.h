@@ -37,6 +37,17 @@
 #define NORETURN _Noreturn
 
 /**
+ * Indicates that this code-path cannot be reached.
+ */
+#if defined(VOLO_CLANG) || defined(VOLO_GCC)
+#define UNREACHABLE __builtin_unreachable();
+#elif defined(VOLO_MSVC)
+#define UNREACHABLE __assume(false);
+#else
+ASSERT(false, "Unsupported compiler");
+#endif
+
+/**
  * Hint to the compiler that its okay for a variable or function to be unused.
  */
 #if defined(VOLO_CLANG) || defined(VOLO_GCC)
@@ -45,6 +56,17 @@
 #define MAYBE_UNUSED __pragma(warning(suppress : 4100 4101))
 #else
 #define MAYBE_UNUSED
+#endif
+
+/**
+ * Hint to the compiler that this function should be inlined.
+ */
+#if defined(VOLO_CLANG) || defined(VOLO_GCC)
+#define INLINE_HINT __attribute__((always_inline)) inline
+#elif defined(VOLO_MSVC)
+#define INLINE_HINT __forceinline
+#else
+#define INLINE_HINT
 #endif
 
 /**

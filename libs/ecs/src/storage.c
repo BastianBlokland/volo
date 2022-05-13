@@ -10,8 +10,6 @@
 // Note: Not a hard limit, will grow beyond this if needed.
 #define ecs_starting_entities_capacity 1024
 
-#define ecs_comp_mask_stack(_DEF_) mem_stack(bits_to_bytes(ecs_def_comp_count(_DEF_)) + 1)
-
 typedef struct {
   u32            serial;
   EcsArchetypeId archetype;
@@ -39,21 +37,30 @@ static EcsArchetype* ecs_storage_archetype_ptr(const EcsStorage* storage, const 
   if (sentinel_check(id)) {
     return null;
   }
-  return dynarray_at_t(&storage->archetypes, id, EcsArchetype);
+  return dynarray_begin_t(&storage->archetypes, EcsArchetype) + id;
+}
+
+/**
+ * NOTE: Does not perform bounds checking, use 'ecs_storage_entity_info_ptr' when unsure.
+ */
+static EcsEntityInfo*
+ecs_storage_entity_info_ptr_unsafe(EcsStorage* storage, const EcsEntityId id) {
+  const u32      index = ecs_entity_id_index(id);
+  EcsEntityInfo* info  = dynarray_begin_t(&storage->entities, EcsEntityInfo) + index;
+  return info->serial == ecs_entity_id_serial(id) ? info : null;
 }
 
 static EcsEntityInfo* ecs_storage_entity_info_ptr(EcsStorage* storage, const EcsEntityId id) {
   if (UNLIKELY(ecs_entity_id_index(id) >= storage->entities.size)) {
     return null;
   }
-  EcsEntityInfo* info = dynarray_at_t(&storage->entities, ecs_entity_id_index(id), EcsEntityInfo);
-  return info->serial == ecs_entity_id_serial(id) ? info : null;
+  return ecs_storage_entity_info_ptr_unsafe(storage, id);
 }
 
 static void ecs_storage_queue_finalize_itr(EcsFinalizer* finalizer, EcsIterator* itr) {
   EcsCompId compId = 0;
   for (usize i = 0; i != itr->compCount; ++i, ++compId) {
-    compId = (EcsCompId)bitset_next(itr->mask, compId);
+    compId = ecs_comp_next(itr->mask, compId);
     ecs_finalizer_push(finalizer, compId, itr->comps[i].ptr);
   }
 }
@@ -136,7 +143,7 @@ bool ecs_storage_entity_exists(const EcsStorage* storage, const EcsEntityId id) 
     // Out of bounds entity means it was created but not flushed yet.
     return true;
   }
-  return ecs_storage_entity_info_ptr((EcsStorage*)storage, id) != null;
+  return ecs_storage_entity_info_ptr_unsafe((EcsStorage*)storage, id) != null;
 }
 
 u32 ecs_storage_entity_count(const EcsStorage* storage) {
@@ -146,7 +153,7 @@ u32 ecs_storage_entity_count(const EcsStorage* storage) {
 u32 ecs_storage_entity_count_with_comp(const EcsStorage* storage, const EcsCompId comp) {
   u32 count = 0;
   dynarray_for_t(&storage->archetypes, EcsArchetype, arch) {
-    count += bitset_test(arch->mask, comp) * arch->entityCount;
+    count += ecs_comp_has(arch->mask, comp) * arch->entityCount;
   }
   return count;
 }
@@ -171,7 +178,7 @@ EcsArchetypeId ecs_storage_entity_archetype(EcsStorage* storage, const EcsEntity
 void ecs_storage_entity_move(
     EcsStorage* storage, const EcsEntityId id, const EcsArchetypeId newArchetypeId) {
 
-  EcsEntityInfo* info              = ecs_storage_entity_info_ptr(storage, id);
+  EcsEntityInfo* info              = ecs_storage_entity_info_ptr_unsafe(storage, id);
   EcsArchetype*  oldArchetype      = ecs_storage_archetype_ptr(storage, info->archetype);
   const u32      oldArchetypeIndex = info->archetypeIndex;
   EcsArchetype*  newArchetype      = ecs_storage_archetype_ptr(storage, newArchetypeId);
@@ -200,7 +207,7 @@ void ecs_storage_entity_move(
   if (oldArchetype) {
     const EcsEntityId movedEntity = ecs_archetype_remove(oldArchetype, oldArchetypeIndex);
     if (ecs_entity_valid(movedEntity)) {
-      ecs_storage_entity_info_ptr(storage, movedEntity)->archetypeIndex = oldArchetypeIndex;
+      ecs_storage_entity_info_ptr_unsafe(storage, movedEntity)->archetypeIndex = oldArchetypeIndex;
     }
   }
 }
@@ -213,7 +220,8 @@ void ecs_storage_entity_destroy(EcsStorage* storage, const EcsEntityId id) {
   if (archetype) {
     const EcsEntityId movedEntity = ecs_archetype_remove(archetype, info->archetypeIndex);
     if (ecs_entity_valid(movedEntity)) {
-      ecs_storage_entity_info_ptr(storage, movedEntity)->archetypeIndex = info->archetypeIndex;
+      ecs_storage_entity_info_ptr_unsafe(storage, movedEntity)->archetypeIndex =
+          info->archetypeIndex;
     }
   }
 
@@ -232,7 +240,7 @@ u32 ecs_storage_archetype_count_empty(const EcsStorage* storage) {
 u32 ecs_storage_archetype_count_with_comp(const EcsStorage* storage, const EcsCompId comp) {
   u32 count = 0;
   dynarray_for_t(&storage->archetypes, EcsArchetype, arch) {
-    count += bitset_test(arch->mask, comp);
+    count += ecs_comp_has(arch->mask, comp);
   }
   return count;
 }
@@ -277,11 +285,12 @@ EcsArchetypeId ecs_storage_archetype_create(EcsStorage* storage, const BitSet ma
 }
 
 bool ecs_storage_itr_walk(EcsStorage* storage, EcsIterator* itr, const EcsArchetypeId id) {
-  return ecs_archetype_itr_walk(ecs_storage_archetype_ptr(storage, id), itr);
+  EcsArchetype* archetype = dynarray_begin_t(&storage->archetypes, EcsArchetype) + id;
+  return ecs_archetype_itr_walk(archetype, itr);
 }
 
 void ecs_storage_itr_jump(EcsStorage* storage, EcsIterator* itr, const EcsEntityId id) {
-  EcsEntityInfo* info      = ecs_storage_entity_info_ptr(storage, id);
+  EcsEntityInfo* info      = ecs_storage_entity_info_ptr_unsafe(storage, id);
   EcsArchetype*  archetype = ecs_storage_archetype_ptr(storage, info->archetype);
   ecs_archetype_itr_jump(archetype, itr, info->archetypeIndex);
 }

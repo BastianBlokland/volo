@@ -7,11 +7,6 @@
 #include "storage_internal.h"
 #include "view_internal.h"
 
-static usize ecs_view_bytes_per_mask(const EcsDef* def) {
-  const usize compCount = ecs_def_comp_count(def);
-  return bits_to_bytes(compCount) + 1;
-}
-
 static bool ecs_view_matches(const EcsView* view, BitSet mask) {
   return bitset_all_of(mask, ecs_view_mask(view, EcsViewMask_FilterWith)) &&
          !bitset_any_of(mask, ecs_view_mask(view, EcsViewMask_FilterWithout));
@@ -21,7 +16,15 @@ usize ecs_view_comp_count(EcsView* view) { return view->compCount; }
 
 bool ecs_view_contains(EcsView* view, const EcsEntityId entity) {
   const EcsArchetypeId archetype = ecs_storage_entity_archetype(view->storage, entity);
-  return dynarray_search_binary(&view->archetypes, ecs_compare_archetype, &archetype) != null;
+  dynarray_for_t(&view->archetypes, EcsArchetypeId, trackedArchetype) {
+    if (*trackedArchetype == archetype) {
+      return true;
+    }
+    if (*trackedArchetype > archetype) {
+      return false;
+    }
+  }
+  return false;
 }
 
 EcsIterator* ecs_view_itr_create(Mem mem, EcsView* view) {
@@ -43,7 +46,8 @@ EcsIterator* ecs_view_walk(EcsIterator* itr) {
     return null;
   }
 
-  const EcsArchetypeId id = *dynarray_at_t(&view->archetypes, itr->archetypeIdx, EcsArchetypeId);
+  const u32            archIdx = itr->archetypeIdx;
+  const EcsArchetypeId id      = *(dynarray_begin_t(&view->archetypes, EcsArchetypeId) + archIdx);
   if (LIKELY(ecs_storage_itr_walk(view->storage, itr, id))) {
     return itr;
   }
@@ -80,12 +84,12 @@ EcsEntityId ecs_view_entity(const EcsIterator* itr) {
 }
 
 const void* ecs_view_read(const EcsIterator* itr, const EcsCompId comp) {
-  diag_assert_msg(itr && itr->entity, "Iterator has not been initialized");
+  diag_assert_msg(itr->entity, "Iterator has not been initialized");
 
   MAYBE_UNUSED EcsView* view = itr->context;
 
   diag_assert_msg(
-      bitset_test(ecs_view_mask(view, EcsViewMask_AccessRead), comp),
+      ecs_comp_has(ecs_view_mask(view, EcsViewMask_AccessRead), comp),
       "View {} does not have read-access to component {}",
       fmt_text(view->viewDef->name),
       fmt_text(ecs_def_comp_name(view->def, comp)));
@@ -94,12 +98,12 @@ const void* ecs_view_read(const EcsIterator* itr, const EcsCompId comp) {
 }
 
 void* ecs_view_write(const EcsIterator* itr, const EcsCompId comp) {
-  diag_assert_msg(itr && itr->entity, "Iterator has not been initialized");
+  diag_assert_msg(itr->entity, "Iterator has not been initialized");
 
   MAYBE_UNUSED EcsView* view = itr->context;
 
   diag_assert_msg(
-      bitset_test(ecs_view_mask(view, EcsViewMask_AccessWrite), comp),
+      ecs_comp_has(ecs_view_mask(view, EcsViewMask_AccessWrite), comp),
       "View {} does not have write-access to component {}",
       fmt_text(view->viewDef->name),
       fmt_text(ecs_def_comp_name(view->def, comp)));
@@ -111,8 +115,7 @@ EcsView ecs_view_create(
     Allocator* alloc, EcsStorage* storage, const EcsDef* def, const EcsViewDef* viewDef) {
   diag_assert(alloc && def);
 
-  const usize bytesPerMask = ecs_view_bytes_per_mask(def);
-  Mem         masksMem     = alloc_alloc(alloc, bytesPerMask * 4, 1);
+  const Mem masksMem = alloc_alloc(alloc, ecs_comp_mask_size(def) * 4, ecs_comp_mask_align);
   mem_set(masksMem, 0);
 
   EcsView view = {
@@ -138,13 +141,13 @@ EcsView ecs_view_create(
 }
 
 void ecs_view_destroy(Allocator* alloc, const EcsDef* def, EcsView* view) {
-  alloc_free(alloc, mem_create(view->masks.ptr, ecs_view_bytes_per_mask(def) * 4));
+  alloc_free(alloc, mem_create(view->masks.ptr, ecs_comp_mask_size(def) * 4));
   dynarray_destroy(&view->archetypes);
 }
 
-BitSet ecs_view_mask(const EcsView* view, EcsViewMaskType type) {
-  const usize bytesPerMask = ecs_view_bytes_per_mask(view->def);
-  return mem_slice(view->masks, bytesPerMask * type, ecs_view_bytes_per_mask(view->def));
+BitSet ecs_view_mask(const EcsView* view, const EcsViewMaskType type) {
+  const usize bytesPerMask = ecs_comp_mask_size(view->def);
+  return mem_create(bits_ptr_offset(view->masks.ptr, bytesPerMask * type), bytesPerMask);
 }
 
 bool ecs_view_conflict(const EcsView* a, const EcsView* b) {

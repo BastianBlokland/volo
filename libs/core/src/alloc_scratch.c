@@ -6,6 +6,7 @@
 
 #define scratch_heap_size (usize_mebibyte * 1)
 #define scratch_max_alloc_size (usize_kibibyte * 64)
+#define scratch_guard_enable 0
 #define scratch_guard_size (usize_kibibyte * 128)
 
 typedef struct {
@@ -17,10 +18,8 @@ typedef struct {
 /**
  * Tag a fixed-size region in-front of the scratch write head. This aids in detecting when the
  * application holds onto scratch memory for too long (and thus is about to be overwritten).
- *
- * NOTE: In the future this could be enabled / disabled through a special define.
  */
-static void alloc_scratch_tag_guard(AllocatorScratch* allocScratch, const usize size) {
+MAYBE_UNUSED static void alloc_scratch_tag_guard(AllocatorScratch* allocScratch, const usize size) {
   const usize memUntilEnd = mem_end(allocScratch->memory) - allocScratch->head;
   if (memUntilEnd > size) {
     alloc_tag_guard(mem_create(allocScratch->head, size), AllocMemType_Scratch);
@@ -31,7 +30,6 @@ static void alloc_scratch_tag_guard(AllocatorScratch* allocScratch, const usize 
 }
 
 static Mem alloc_scratch_alloc(Allocator* allocator, const usize size, const usize align) {
-
   AllocatorScratch* allocScratch = (AllocatorScratch*)allocator;
 
   if (UNLIKELY(size > scratch_max_alloc_size)) {
@@ -49,7 +47,9 @@ static Mem alloc_scratch_alloc(Allocator* allocator, const usize size, const usi
 
   allocScratch->head = alignedHead + size;
 
+#if scratch_guard_enable
   alloc_scratch_tag_guard(allocScratch, scratch_guard_size);
+#endif
 
   return mem_create(alignedHead, size);
 }
