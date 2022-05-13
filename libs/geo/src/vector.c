@@ -70,12 +70,16 @@ GeoVector geo_vector_norm(const GeoVector v) {
 }
 
 f32 geo_vector_dot(const GeoVector a, const GeoVector b) {
+#if geo_vec_simd_enable
+  return simd_vec_x(simd_vec_dot4(simd_vec_load(a.comps), simd_vec_load(b.comps)));
+#else
   f32 res = 0;
   res += a.x * b.x;
   res += a.y * b.y;
   res += a.z * b.z;
   res += a.w * b.w;
   return res;
+#endif
 }
 
 GeoVector geo_vector_cross3(const GeoVector a, const GeoVector b) {
