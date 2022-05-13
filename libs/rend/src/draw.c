@@ -184,8 +184,8 @@ bool rend_draw_gather(RendDrawComp* draw, const RendView* view, const RendSettin
 
   draw->outputInstCount = 0;
   for (u32 i = 0; i != draw->instCount; ++i) {
-    const SceneTags instTags = mem_as_t(draw->instTagsMem, SceneTags)[i];
-    const GeoBox*   instAabb = &mem_as_t(draw->instAabbMem, GeoBox)[i];
+    const SceneTags instTags = ((SceneTags*)draw->instTagsMem.ptr)[i];
+    const GeoBox*   instAabb = &((GeoBox*)draw->instAabbMem.ptr)[i];
     if (!rend_view_visible(view, instTags, instAabb, settings)) {
       continue;
     }
@@ -254,7 +254,7 @@ void rend_draw_add_instance(
     rend_draw_ensure_storage(&draw->instTagsMem, draw->instCount * sizeof(SceneTags), 1);
     rend_draw_ensure_storage(&draw->instAabbMem, draw->instCount * sizeof(GeoBox), alignof(GeoBox));
 
-    mem_as_t(draw->instTagsMem, SceneTags)[draw->instCount - 1] = tags;
-    mem_as_t(draw->instAabbMem, GeoBox)[draw->instCount - 1]    = aabb;
+    ((SceneTags*)draw->instTagsMem.ptr)[draw->instCount - 1] = tags;
+    ((GeoBox*)draw->instAabbMem.ptr)[draw->instCount - 1]    = aabb;
   }
 }
