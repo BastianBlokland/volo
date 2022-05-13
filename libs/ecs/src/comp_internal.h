@@ -4,8 +4,8 @@
 #include "ecs_comp.h"
 
 /**
- * NOTE: Intel intrinsics used for 64 bit popcnt and bit-scan-forward which have wide spread
- * support. If needed 32 bits fallback can be created.
+ * NOTE: Intel intrinsics used for 64 bit popcnt and bit-scan-forward. If needed 32 bits fallback
+ * can be created.
  */
 #include <immintrin.h>
 
@@ -50,10 +50,10 @@ INLINE_HINT static u32 ecs_comp_index(const BitSet mask, const EcsCompId id) {
   const u64* dwords   = mask.ptr;
   u64        dwordIdx = bits_to_dwords(id);
   const u64  dword    = dwords[dwordIdx] << (63u - bit_in_dword(id));
-  u32        result   = _mm_popcnt_u64(dword) - 1;
+  u32        result   = (u32)_mm_popcnt_u64(dword) - 1;
   while (dwordIdx) {
     --dwordIdx;
-    result += _mm_popcnt_u64(dwords[dwordIdx]);
+    result += (u32)_mm_popcnt_u64(dwords[dwordIdx]);
   }
   return result;
 }
@@ -68,15 +68,23 @@ INLINE_HINT static EcsCompId ecs_comp_next(const BitSet mask, const EcsCompId id
   u64        dwordIdx = bits_to_dwords(id);
   u64        dword    = dwords[dwordIdx] >> bit_in_dword(id);
   if (dword) {
+#if defined(VOLO_MSVC)
     u64 trailing;
     _BitScanForward64(&trailing, dword);
-    return id + trailing; // Aka ctz (count trailing zeroes).
+#else
+    const u64 trailing = __builtin_ctzll(dword);
+#endif
+    return id + trailing;
   }
   for (++dwordIdx; dwordIdx != mask.size; ++dwordIdx) {
     dword = dwords[dwordIdx];
     if (dword) {
+#if defined(VOLO_MSVC)
       u64 trailing;
-      _BitScanForward64(&trailing, dword); // Aka ctz (count trailing zeroes).
+      _BitScanForward64(&trailing, dword);
+#else
+      const u64 trailing = __builtin_ctzll(dword);
+#endif
       return dwords_to_bits(dwordIdx) + trailing;
     }
   }
