@@ -8,4 +8,4 @@
 # More info: https://gitlab.freedesktop.org/xorg/lib/libxcb-cursor/
 #
 
-findpkg(LIB "xcb-cursor-util" HEADER "xcb/xcb_cursor.h")
+findpkg(LIB "xcb-cursor" HEADER "xcb/xcb_cursor.h")
