@@ -62,7 +62,7 @@ ASSERT(false, "Unsupported compiler");
  * Hint to the compiler that this function should be inlined.
  */
 #if defined(VOLO_CLANG) || defined(VOLO_GCC)
-#define INLINE_HINT __attribute__((always_inline))
+#define INLINE_HINT __attribute__((always_inline)) inline
 #elif defined(VOLO_MSVC)
 #define INLINE_HINT __forceinline
 #else
