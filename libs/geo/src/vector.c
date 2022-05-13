@@ -36,12 +36,24 @@ GeoVector geo_vector_sub(const GeoVector a, const GeoVector b) {
 }
 
 GeoVector geo_vector_mul(const GeoVector v, const f32 scalar) {
+#if geo_vec_simd_enable
+  GeoVector res;
+  simd_vec_store(simd_vec_mul(simd_vec_load(v.comps), simd_vec_broadcast(scalar)), res.comps);
+  return res;
+#else
   return geo_vector(v.x * scalar, v.y * scalar, v.z * scalar, v.w * scalar);
+#endif
 }
 
 GeoVector geo_vector_div(const GeoVector v, const f32 scalar) {
   diag_assert(scalar != 0);
+#if geo_vec_simd_enable
+  GeoVector res;
+  simd_vec_store(simd_vec_div(simd_vec_load(v.comps), simd_vec_broadcast(scalar)), res.comps);
+  return res;
+#else
   return geo_vector(v.x / scalar, v.y / scalar, v.z / scalar, v.w / scalar);
+#endif
 }
 
 f32 geo_vector_mag_sqr(const GeoVector v) { return geo_vector_dot(v, v); }

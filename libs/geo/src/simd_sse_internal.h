@@ -19,10 +19,20 @@ INLINE_HINT static void simd_vec_store(const SimdVec vec, f32 values[4]) {
   _mm_store_ps(values, vec);
 }
 
+INLINE_HINT static SimdVec simd_vec_broadcast(const f32 value) { return _mm_set1_ps(value); }
+
 INLINE_HINT static SimdVec simd_vec_add(const SimdVec a, const SimdVec b) {
   return _mm_add_ps(a, b);
 }
 
 INLINE_HINT static SimdVec simd_vec_sub(const SimdVec a, const SimdVec b) {
   return _mm_sub_ps(a, b);
+}
+
+INLINE_HINT static SimdVec simd_vec_mul(const SimdVec a, const SimdVec b) {
+  return _mm_mul_ps(a, b);
+}
+
+INLINE_HINT static SimdVec simd_vec_div(const SimdVec a, const SimdVec b) {
+  return _mm_div_ps(a, b);
 }
