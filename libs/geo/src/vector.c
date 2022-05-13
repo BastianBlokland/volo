@@ -56,7 +56,14 @@ GeoVector geo_vector_div(const GeoVector v, const f32 scalar) {
 #endif
 }
 
-f32 geo_vector_mag_sqr(const GeoVector v) { return geo_vector_dot(v, v); }
+f32 geo_vector_mag_sqr(const GeoVector v) {
+#if geo_vec_simd_enable
+  const SimdVec tmp = simd_vec_load(v.comps);
+  return simd_vec_x(simd_vec_dot4(tmp, tmp));
+#else
+  return geo_vector_dot(v, v);
+#endif
+}
 
 f32 geo_vector_mag(const GeoVector v) {
   const f32 sqrMag = geo_vector_mag_sqr(v);
