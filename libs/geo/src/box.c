@@ -1,11 +1,37 @@
 #include "core_array.h"
 #include "geo_box.h"
 
+#define geo_box_simd_enable 1
+
+#if geo_box_simd_enable
+#include "simd_sse_internal.h"
+#endif
+
 GeoVector geo_box_center(const GeoBox* b) {
+#if geo_box_simd_enable
+  const SimdVec min  = simd_vec_load(b->min.comps);
+  const SimdVec max  = simd_vec_load(b->max.comps);
+  const SimdVec half = simd_vec_broadcast(0.5f);
+
+  GeoVector res;
+  simd_vec_store(simd_vec_mul(simd_vec_add(min, max), half), res.comps);
+  return res;
+#else
   return geo_vector_mul(geo_vector_add(b->min, b->max), .5f);
+#endif
 }
 
-GeoVector geo_box_size(const GeoBox* b) { return geo_vector_sub(b->max, b->min); }
+GeoVector geo_box_size(const GeoBox* b) {
+#if geo_box_simd_enable
+  const SimdVec min = simd_vec_load(b->min.comps);
+  const SimdVec max = simd_vec_load(b->max.comps);
+  GeoVector     res;
+  simd_vec_store(simd_vec_sub(max, min), res.comps);
+  return res;
+#else
+  return geo_vector_sub(b->max, b->min);
+#endif
+}
 
 GeoBox geo_box_inverted2() {
   const GeoVector min = {f32_max, f32_max};
