@@ -3,6 +3,10 @@
 
 #include <immintrin.h>
 
+/**
+ * SIMD vector utilities using SSE, SSE2 and SSE3 instructions, all introduced in the Pentium 4 era.
+ */
+
 typedef __m128 SimdVec;
 
 #define simd_vec_splat(_VEC_, _COMP_)                                                              \
@@ -89,13 +93,10 @@ INLINE_HINT static SimdVec simd_vec_qmul(const SimdVec xyzw, const SimdVec abcd)
 
   // = (xb - ya, zb - wa, wd - zc, yd - xc)
   const SimdVec ZnXWY = _mm_hsub_ps(_mm_mul_ps(xyzw, baba), _mm_mul_ps(wzyx, dcdc));
-
   // = (xd + yc, zd + wc, wb + za, yb + xa)
   const SimdVec XZYnW = _mm_hadd_ps(_mm_mul_ps(xyzw, dcdc), _mm_mul_ps(wzyx, baba));
-
   // = (xd + yc, zd + wc, wd - zc, yd - xc)
   const SimdVec t1 = _mm_shuffle_ps(XZYnW, ZnXWY, _MM_SHUFFLE(3, 2, 1, 0));
-
   // = (zb - wa, xb - ya, yb + xa, wb + za)
   const SimdVec t2 = _mm_shuffle_ps(ZnXWY, XZYnW, _MM_SHUFFLE(2, 3, 0, 1));
 
