@@ -6,9 +6,9 @@
 
 #include "intrinsic_internal.h"
 
-#define geo_vec_simd_enable 1
+#define geo_quat_simd_enable 1
 
-#if geo_vec_simd_enable
+#if geo_quat_simd_enable
 #include "simd_sse_internal.h"
 #endif
 
@@ -16,7 +16,7 @@ GeoQuat geo_quat_angle_axis(const GeoVector axis, const f32 angle) {
   /**
    * TODO: Should we add the pre-condition that the axis should be a unit vector?
    */
-#if geo_vec_simd_enable
+#if geo_quat_simd_enable
   const SimdVec axisVec    = simd_vec_load(axis.comps);
   const SimdVec axisSqrMag = simd_vec_dot4(axisVec, axisVec);
   if (simd_vec_x(axisSqrMag) <= f32_epsilon) {
@@ -52,7 +52,7 @@ f32 geo_quat_angle(const GeoQuat q) {
 }
 
 GeoQuat geo_quat_mul(const GeoQuat a, const GeoQuat b) {
-#if geo_vec_simd_enable
+#if geo_quat_simd_enable
   GeoQuat res;
   simd_vec_store(simd_quat_mul(simd_vec_load(a.comps), simd_vec_load(b.comps)), res.comps);
   return res;
@@ -67,7 +67,7 @@ GeoQuat geo_quat_mul(const GeoQuat a, const GeoQuat b) {
 }
 
 GeoVector geo_quat_rotate(const GeoQuat q, const GeoVector v) {
-#if geo_vec_simd_enable
+#if geo_quat_simd_enable
   GeoVector res;
   simd_vec_store(simd_quat_rotate(simd_vec_load(q.comps), simd_vec_load(v.comps)), res.comps);
   return res;
@@ -102,7 +102,7 @@ GeoQuat geo_quat_inv(const GeoQuat q) {
 }
 
 GeoQuat geo_quat_norm(const GeoQuat q) {
-#if geo_vec_simd_enable
+#if geo_quat_simd_enable
   GeoQuat res;
   simd_vec_store(simd_quat_norm(simd_vec_load(q.comps)), res.comps);
   return res;
