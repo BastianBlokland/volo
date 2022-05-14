@@ -35,7 +35,7 @@ INLINE_HINT static SimdVec simd_vec_clear_w(const SimdVec vec) {
 }
 
 INLINE_HINT static SimdVec simd_vec_set(const f32 a, const f32 b, const f32 c, const f32 d) {
-  return _mm_set_ps(a, b, c, d);
+  return _mm_set_ps(d, c, b, a);
 }
 
 INLINE_HINT static SimdVec simd_vec_broadcast(const f32 value) { return _mm_set1_ps(value); }
