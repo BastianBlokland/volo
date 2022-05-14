@@ -5,6 +5,9 @@
 
 typedef __m128 SimdVec;
 
+#define simd_vec_splat(_VEC_, _COMP_)                                                              \
+  _mm_shuffle_ps((_VEC_), (_VEC_), _MM_SHUFFLE(_COMP_, _COMP_, _COMP_, _COMP_))
+
 /**
  * Load 4 (128 bit aligned) float values into a Simd vector.
  * Pre-condition: bits_aligned_ptr(values, 16)
