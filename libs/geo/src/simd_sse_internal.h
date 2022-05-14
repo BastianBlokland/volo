@@ -86,10 +86,10 @@ INLINE_HINT static SimdVec simd_vec_qmul(const SimdVec xyzw, const SimdVec abcd)
   // = (xd + yc, zd + wc, wd - zc, yd - xc)
   const SimdVec t1 = _mm_shuffle_ps(XZYnW, ZnXWY, _MM_SHUFFLE(3, 2, 1, 0));
 
-  // = = (zb - wa, xb - ya, yb + xa, wb + za)
+  // = (zb - wa, xb - ya, yb + xa, wb + za)
   const SimdVec t2 = _mm_shuffle_ps(ZnXWY, XZYnW, _MM_SHUFFLE(2, 3, 0, 1));
 
-  // = (xd+yc-zb+wa, xb-ya+zd+wc, wd-zc+yb+xa, yd-xc+wb+za)
+  // = (xd + yc - zb + wa, xb - ya + zd + wc, wd - zc + yb + xa, yd - xc + wb + za)
   const SimdVec XZWY = _mm_addsub_ps(t1, t2);
   return _mm_shuffle_ps(XZWY, XZWY, _MM_SHUFFLE(2, 1, 3, 0));
 }
