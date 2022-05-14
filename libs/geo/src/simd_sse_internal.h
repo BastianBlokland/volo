@@ -48,6 +48,8 @@ INLINE_HINT static SimdVec simd_vec_dot4(const SimdVec a, const SimdVec b) {
   return _mm_shuffle_ps(t4, t4, _MM_SHUFFLE(2, 2, 2, 2)); // Splat the result.
 }
 
+INLINE_HINT static SimdVec simd_vec_sqrt(const SimdVec a) { return _mm_sqrt_ps(a); }
+
 INLINE_HINT static SimdVec simd_vec_qmul(const SimdVec xyzw, const SimdVec abcd) {
   /**
    * Multiply two quaternions.
