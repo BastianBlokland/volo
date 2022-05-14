@@ -47,3 +47,34 @@ INLINE_HINT static SimdVec simd_vec_dot4(const SimdVec a, const SimdVec b) {
   const SimdVec t4 = _mm_add_ps(t3, t2); // z = (a.y * b.y) + (a.w * b.w) + (a.x * b.x) + (a.z *b.z)
   return _mm_shuffle_ps(t4, t4, _MM_SHUFFLE(2, 2, 2, 2)); // Splat the result.
 }
+
+INLINE_HINT static SimdVec simd_vec_qmul(const SimdVec xyzw, const SimdVec abcd) {
+  /**
+   * Multiply two quaternions.
+   * Source: https://momchil-velikov.blogspot.com/2013/10/fast-sse-quternion-multiplication.html
+   */
+  const SimdVec wzyx = _mm_shuffle_ps(xyzw, xyzw, _MM_SHUFFLE(0, 1, 2, 3));
+  const SimdVec baba = _mm_shuffle_ps(abcd, abcd, _MM_SHUFFLE(0, 1, 0, 1));
+  const SimdVec dcdc = _mm_shuffle_ps(abcd, abcd, _MM_SHUFFLE(2, 3, 2, 3));
+
+  /**
+   * Naming: Variable names below indicate the parts of the result quat (X,Y,Z,W).
+   * nX stands for -X and similarly for the other components.
+   */
+
+  // = (xb - ya, zb - wa, wd - zc, yd - xc)
+  const SimdVec ZnXWY = _mm_hsub_ps(_mm_mul_ps(xyzw, baba), _mm_mul_ps(wzyx, dcdc));
+
+  // = (xd + yc, zd + wc, wb + za, yb + xa)
+  const SimdVec XZYnW = _mm_hadd_ps(_mm_mul_ps(xyzw, dcdc), _mm_mul_ps(wzyx, baba));
+
+  // = (xd + yc, zd + wc, wd - zc, yd - xc)
+  const SimdVec t1 = _mm_shuffle_ps(XZYnW, ZnXWY, _MM_SHUFFLE(3, 2, 1, 0));
+
+  // = = (zb - wa, xb - ya, yb + xa, wb + za)
+  const SimdVec t2 = _mm_shuffle_ps(ZnXWY, XZYnW, _MM_SHUFFLE(2, 3, 0, 1));
+
+  // = (xd+yc-zb+wa, xb-ya+zd+wc, wd-zc+yb+xa, yd-xc+wb+za)
+  const SimdVec XZWY = _mm_addsub_ps(t1, t2);
+  return _mm_shuffle_ps(XZWY, XZWY, _MM_SHUFFLE(2, 1, 3, 0));
+}

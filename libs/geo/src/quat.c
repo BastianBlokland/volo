@@ -4,6 +4,12 @@
 #include "geo_quat.h"
 #include "geo_vector.h"
 
+#define geo_vec_simd_enable 1
+
+#if geo_vec_simd_enable
+#include "simd_sse_internal.h"
+#endif
+
 GeoQuat geo_quat_angle_axis(const GeoVector axis, const f32 angle) {
   // TODO: Should we instaed just add the pre-condition that the axis should be a unit vector?
   const f32 axisMag = geo_vector_mag(axis);
@@ -27,12 +33,18 @@ f32 geo_quat_angle(const GeoQuat q) {
 }
 
 GeoQuat geo_quat_mul(const GeoQuat a, const GeoQuat b) {
+#if geo_vec_simd_enable
+  GeoQuat res;
+  simd_vec_store(simd_vec_qmul(simd_vec_load(a.comps), simd_vec_load(b.comps)), res.comps);
+  return res;
+#else
   return (GeoQuat){
       .x = a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
       .y = a.w * b.y + a.y * b.w + a.z * b.x - a.x * b.z,
       .z = a.w * b.z + a.z * b.w + a.x * b.y - a.y * b.x,
       .w = a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z,
   };
+#endif
 }
 
 GeoVector geo_quat_rotate(const GeoQuat q, const GeoVector vec) {
