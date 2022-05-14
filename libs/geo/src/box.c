@@ -48,7 +48,14 @@ GeoBox geo_box_inverted3() {
 bool geo_box_is_inverted2(const GeoBox* b) { return b->min.x > b->max.x || b->min.y > b->max.y; }
 
 bool geo_box_is_inverted3(const GeoBox* b) {
+#if geo_box_simd_enable
+  const SimdVec min = simd_vec_load(b->min.comps);
+  const SimdVec max = simd_vec_load(b->max.comps);
+  // NOTE: The non-simd impl doesn't take the w into account, is it worth ignoring it here also?
+  return simd_vec_any_true(simd_vec_greater(min, max));
+#else
   return b->min.x > b->max.x || b->min.y > b->max.y || b->min.z > b->max.z;
+#endif
 }
 
 GeoBox geo_box_encapsulate2(const GeoBox* b, const GeoVector point) {
@@ -74,9 +81,7 @@ GeoBox geo_box_encapsulate3(const GeoBox* b, const GeoVector point) {
   simd_vec_store(min, newBox.min.comps);
   simd_vec_store(max, newBox.max.comps);
 
-  // NOTE: Preserve the w values to match the non-simd implementation.
-  newBox.min.w = b->min.w;
-  newBox.max.w = b->max.w;
+  // NOTE: The non-simd impl preserves the w values, is it worth preserving them here also?
   return newBox;
 #else
   GeoBox newBox = *b;
