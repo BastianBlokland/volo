@@ -217,10 +217,10 @@ ecs_system_define(AppSetRotationSys) {
     return;
   }
 
-  EcsView* objectView = ecs_world_view_t(world, ObjectView);
+  const GeoQuat newRot     = geo_quat_angle_axis(geo_up, timeSeconds * g_pedestalRotateSpeed);
+  EcsView*      objectView = ecs_world_view_t(world, ObjectView);
   for (EcsIterator* objItr = ecs_view_itr(objectView); ecs_view_walk(objItr);) {
-    SceneTransformComp* transComp = ecs_view_write_t(objItr, SceneTransformComp);
-    transComp->rotation = geo_quat_angle_axis(geo_up, timeSeconds * g_pedestalRotateSpeed);
+    ecs_view_write_t(objItr, SceneTransformComp)->rotation = newRot;
   }
 }
 
