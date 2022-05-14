@@ -39,11 +39,11 @@ INLINE_HINT static SimdVec simd_vec_div(const SimdVec a, const SimdVec b) {
   return _mm_div_ps(a, b);
 }
 
-INLINE_HINT static SimdVec simd_vec_dot4(const SimdVec a, SimdVec b) {
-  SimdVec tmp = _mm_mul_ps(a, b);
-  b           = _mm_shuffle_ps(b, tmp, _MM_SHUFFLE(1, 0, 0, 0)); // w = a.y * b.y
-  b           = _mm_add_ps(b, tmp);
-  tmp         = _mm_shuffle_ps(tmp, b, _MM_SHUFFLE(0, 3, 0, 0)); // z = (a.y * b.y) + (a.w * b.w)
-  tmp         = _mm_add_ps(tmp, b); // z = (a.y * b.y) + (a.w * b.w) + (a.x * b.x) + (a.z * b.z)
-  return _mm_shuffle_ps(tmp, tmp, _MM_SHUFFLE(2, 2, 2, 2)); // Splat the result.
+INLINE_HINT static SimdVec simd_vec_dot4(const SimdVec a, const SimdVec b) {
+  const SimdVec mul = _mm_mul_ps(a, b);
+  const SimdVec t1  = _mm_shuffle_ps(b, mul, _MM_SHUFFLE(1, 0, 0, 0)); // w = a.y * b.y
+  const SimdVec t2  = _mm_add_ps(t1, mul);
+  const SimdVec t3 = _mm_shuffle_ps(mul, t2, _MM_SHUFFLE(0, 3, 0, 0)); // z = (a.y *b.y) + (a.w*b.w)
+  const SimdVec t4 = _mm_add_ps(t3, t2); // z = (a.y * b.y) + (a.w * b.w) + (a.x * b.x) + (a.z *b.z)
+  return _mm_shuffle_ps(t4, t4, _MM_SHUFFLE(2, 2, 2, 2)); // Splat the result.
 }
