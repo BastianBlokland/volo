@@ -96,10 +96,16 @@ f32 geo_vector_dot(const GeoVector a, const GeoVector b) {
 }
 
 GeoVector geo_vector_cross3(const GeoVector a, const GeoVector b) {
+#if geo_vec_simd_enable
+  GeoVector res;
+  simd_vec_store(simd_vec_cross3(simd_vec_load(a.comps), simd_vec_load(b.comps)), res.comps);
+  return res;
+#else
   const f32 x = a.y * b.z - a.z * b.y;
   const f32 y = a.z * b.x - a.x * b.z;
   const f32 z = a.x * b.y - a.y * b.x;
   return geo_vector(x, y, z);
+#endif
 }
 
 f32 geo_vector_angle(const GeoVector from, const GeoVector to) {

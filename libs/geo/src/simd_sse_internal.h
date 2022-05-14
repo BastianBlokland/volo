@@ -21,6 +21,12 @@ INLINE_HINT static void simd_vec_store(const SimdVec vec, f32 values[4]) {
 
 INLINE_HINT static f32 simd_vec_x(const SimdVec vec) { return _mm_cvtss_f32(vec); }
 
+INLINE_HINT static SimdVec simd_vec_clear_w(const SimdVec vec) {
+  static const u32 g_mask[4] = {~u32_lit(0), ~u32_lit(0), ~u32_lit(0), 0};
+  // NOTE: Can we do this without a memory load?
+  return _mm_and_ps(vec, simd_vec_load((f32*)g_mask));
+}
+
 INLINE_HINT static SimdVec simd_vec_broadcast(const f32 value) { return _mm_set1_ps(value); }
 
 INLINE_HINT static SimdVec simd_vec_add(const SimdVec a, const SimdVec b) {
@@ -46,6 +52,16 @@ INLINE_HINT static SimdVec simd_vec_dot4(const SimdVec a, const SimdVec b) {
 }
 
 INLINE_HINT static SimdVec simd_vec_sqrt(const SimdVec a) { return _mm_sqrt_ps(a); }
+
+INLINE_HINT static SimdVec simd_vec_cross3(const SimdVec a, const SimdVec b) {
+  const SimdVec t1  = _mm_shuffle_ps(a, a, _MM_SHUFFLE(3, 0, 2, 1));   // = (a.y, a.z, a.x, a.w)
+  const SimdVec t2  = _mm_shuffle_ps(b, b, _MM_SHUFFLE(3, 1, 0, 2));   // = (b.z, b.x, b.y, b.w)
+  SimdVec       res = _mm_mul_ps(t1, t2);                              // Perform the left operation
+  const SimdVec t3  = _mm_shuffle_ps(t1, t1, _MM_SHUFFLE(3, 0, 2, 1)); // = (a.z, a.x, a.y, a.w)
+  const SimdVec t4  = _mm_shuffle_ps(t2, t2, _MM_SHUFFLE(3, 1, 0, 2)); // = (b.y, b.z, b.x, b.w)
+  res               = _mm_sub_ps(res, _mm_mul_ps(t3, t4)); // Perform the right operation
+  return simd_vec_clear_w(res);
+}
 
 INLINE_HINT static SimdVec simd_vec_qmul(const SimdVec xyzw, const SimdVec abcd) {
   /**
