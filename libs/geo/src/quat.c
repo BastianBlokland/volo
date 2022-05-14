@@ -4,6 +4,8 @@
 #include "geo_quat.h"
 #include "geo_vector.h"
 
+#include "intrinsic_internal.h"
+
 #define geo_vec_simd_enable 1
 
 #if geo_vec_simd_enable
@@ -11,14 +13,31 @@
 #endif
 
 GeoQuat geo_quat_angle_axis(const GeoVector axis, const f32 angle) {
-  // TODO: Should we instaed just add the pre-condition that the axis should be a unit vector?
+  /**
+   * TODO: Should we add the pre-condition that the axis should be a unit vector?
+   */
+#if geo_vec_simd_enable
+  const SimdVec axisVec    = simd_vec_load(axis.comps);
+  const SimdVec axisSqrMag = simd_vec_dot4(axisVec, axisVec);
+  if (simd_vec_x(axisSqrMag) <= f32_epsilon) {
+    return geo_quat_ident;
+  }
+  const SimdVec axisMag    = simd_vec_sqrt(axisSqrMag);
+  const SimdVec axisUnit   = simd_vec_div(axisVec, axisMag);
+  const f32     halfHandle = angle * 0.5f;
+  GeoQuat       res;
+  simd_vec_store(simd_vec_mul(axisUnit, simd_vec_broadcast(intrinsic_sinf(halfHandle))), res.comps);
+  res.w = intrinsic_cosf(halfHandle);
+  return res;
+#else
   const f32 axisMag = geo_vector_mag(axis);
   if (axisMag <= f32_epsilon) {
     return geo_quat_ident;
   }
   const GeoVector unitVecAxis = geo_vector_div(axis, axisMag);
-  const GeoVector vec         = geo_vector_mul(unitVecAxis, math_sin_f32(angle * .5f));
-  return (GeoQuat){vec.x, vec.y, vec.z, math_cos_f32(angle * .5f)};
+  const GeoVector vec         = geo_vector_mul(unitVecAxis, intrinsic_sinf(angle * .5f));
+  return (GeoQuat){vec.x, vec.y, vec.z, intrinsic_cosf(angle * .5f)};
+#endif
 }
 
 GeoQuat geo_quat_from_to(const GeoQuat from, const GeoQuat to) {
