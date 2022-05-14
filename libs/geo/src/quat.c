@@ -35,7 +35,7 @@ f32 geo_quat_angle(const GeoQuat q) {
 GeoQuat geo_quat_mul(const GeoQuat a, const GeoQuat b) {
 #if geo_vec_simd_enable
   GeoQuat res;
-  simd_vec_store(simd_vec_qmul(simd_vec_load(a.comps), simd_vec_load(b.comps)), res.comps);
+  simd_vec_store(simd_quat_mul(simd_vec_load(a.comps), simd_vec_load(b.comps)), res.comps);
   return res;
 #else
   return (GeoQuat){
@@ -49,21 +49,8 @@ GeoQuat geo_quat_mul(const GeoQuat a, const GeoQuat b) {
 
 GeoVector geo_quat_rotate(const GeoQuat q, const GeoVector v) {
 #if geo_vec_simd_enable
-  const SimdVec quat       = simd_vec_load(q.comps);
-  const SimdVec scalar     = simd_vec_splat(quat, 3);
-  const SimdVec two        = simd_vec_broadcast(2.0f);
-  const SimdVec scalar2    = simd_vec_mul(scalar, two);
-  const SimdVec vec        = simd_vec_load(v.comps);
-  const SimdVec axis       = simd_vec_clear_w(quat);
-  const SimdVec axisSqrMag = simd_vec_dot4(axis, axis);
-  const SimdVec dot        = simd_vec_dot4(axis, vec);
-
-  const SimdVec a = simd_vec_mul(axis, simd_vec_mul(dot, two));
-  const SimdVec b = simd_vec_mul(vec, simd_vec_sub(simd_vec_mul(scalar, scalar), axisSqrMag));
-  const SimdVec c = simd_vec_mul(simd_vec_cross3(axis, vec), scalar2);
-
   GeoVector res;
-  simd_vec_store(simd_vec_add(simd_vec_add(a, b), c), res.comps);
+  simd_vec_store(simd_quat_rotate(simd_vec_load(q.comps), simd_vec_load(v.comps)), res.comps);
   return res;
 #else
   const GeoVector axis       = {q.x, q.y, q.z};

@@ -61,7 +61,7 @@ INLINE_HINT static SimdVec simd_vec_dot4(const SimdVec a, const SimdVec b) {
 INLINE_HINT static SimdVec simd_vec_dot3(const SimdVec a, const SimdVec b) {
   const SimdVec mul = _mm_mul_ps(a, b);
   const SimdVec t1  = simd_vec_clear_w(mul);
-  const SimdVec t2  = _mm_hadd_ps(t1, t2);
+  const SimdVec t2  = _mm_hadd_ps(t1, t1);
   return _mm_hadd_ps(t2, t2);
 }
 
@@ -77,7 +77,7 @@ INLINE_HINT static SimdVec simd_vec_cross3(const SimdVec a, const SimdVec b) {
   return simd_vec_clear_w(res);
 }
 
-INLINE_HINT static SimdVec simd_vec_qmul(const SimdVec xyzw, const SimdVec abcd) {
+INLINE_HINT static SimdVec simd_quat_mul(const SimdVec xyzw, const SimdVec abcd) {
   /**
    * Multiply two quaternions.
    * Source: https://momchil-velikov.blogspot.com/2013/10/fast-sse-quternion-multiplication.html
@@ -103,4 +103,22 @@ INLINE_HINT static SimdVec simd_vec_qmul(const SimdVec xyzw, const SimdVec abcd)
   // = (xd + yc - zb + wa, xb - ya + zd + wc, wd - zc + yb + xa, yd - xc + wb + za)
   const SimdVec XZWY = _mm_addsub_ps(t1, t2);
   return _mm_shuffle_ps(XZWY, XZWY, _MM_SHUFFLE(2, 1, 3, 0));
+}
+
+INLINE_HINT static SimdVec simd_quat_rotate(const SimdVec quat, const SimdVec vec) {
+  /**
+   * NOTE: Very naive translation of our scalar implementation.
+   */
+  const SimdVec scalar     = simd_vec_splat(quat, 3);
+  const SimdVec two        = simd_vec_broadcast(2.0f);
+  const SimdVec scalar2    = simd_vec_mul(scalar, two);
+  const SimdVec axis       = simd_vec_clear_w(quat);
+  const SimdVec axisSqrMag = simd_vec_dot4(axis, axis);
+  const SimdVec dot        = simd_vec_dot4(axis, vec);
+
+  const SimdVec a = simd_vec_mul(axis, simd_vec_mul(dot, two));
+  const SimdVec b = simd_vec_mul(vec, simd_vec_sub(simd_vec_mul(scalar, scalar), axisSqrMag));
+  const SimdVec c = simd_vec_mul(simd_vec_cross3(axis, vec), scalar2);
+
+  return simd_vec_add(simd_vec_add(a, b), c);
 }
