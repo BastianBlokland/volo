@@ -4,33 +4,76 @@
 #include "core_math.h"
 #include "geo_vector.h"
 
+#define geo_vec_simd_enable 1
+
+#if geo_vec_simd_enable
+#include "simd_sse_internal.h"
+#endif
+
 bool geo_vector_equal(const GeoVector a, const GeoVector b, const f32 threshold) {
   const GeoVector diff = geo_vector_sub(a, b);
   return geo_vector_mag_sqr(diff) <= (threshold * threshold);
 }
 
 GeoVector geo_vector_add(const GeoVector a, const GeoVector b) {
+#if geo_vec_simd_enable
+  GeoVector res;
+  simd_vec_store(simd_vec_add(simd_vec_load(a.comps), simd_vec_load(b.comps)), res.comps);
+  return res;
+#else
   return geo_vector(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w);
+#endif
 }
 
 GeoVector geo_vector_sub(const GeoVector a, const GeoVector b) {
+#if geo_vec_simd_enable
+  GeoVector res;
+  simd_vec_store(simd_vec_sub(simd_vec_load(a.comps), simd_vec_load(b.comps)), res.comps);
+  return res;
+#else
   return geo_vector(a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w);
+#endif
 }
 
 GeoVector geo_vector_mul(const GeoVector v, const f32 scalar) {
+#if geo_vec_simd_enable
+  GeoVector res;
+  simd_vec_store(simd_vec_mul(simd_vec_load(v.comps), simd_vec_broadcast(scalar)), res.comps);
+  return res;
+#else
   return geo_vector(v.x * scalar, v.y * scalar, v.z * scalar, v.w * scalar);
+#endif
 }
 
 GeoVector geo_vector_div(const GeoVector v, const f32 scalar) {
   diag_assert(scalar != 0);
+#if geo_vec_simd_enable
+  GeoVector res;
+  simd_vec_store(simd_vec_div(simd_vec_load(v.comps), simd_vec_broadcast(scalar)), res.comps);
+  return res;
+#else
   return geo_vector(v.x / scalar, v.y / scalar, v.z / scalar, v.w / scalar);
+#endif
 }
 
-f32 geo_vector_mag_sqr(const GeoVector v) { return geo_vector_dot(v, v); }
+f32 geo_vector_mag_sqr(const GeoVector v) {
+#if geo_vec_simd_enable
+  const SimdVec tmp = simd_vec_load(v.comps);
+  return simd_vec_x(simd_vec_dot4(tmp, tmp));
+#else
+  return geo_vector_dot(v, v);
+#endif
+}
 
 f32 geo_vector_mag(const GeoVector v) {
+#if geo_vec_simd_enable
+  const SimdVec tmp = simd_vec_load(v.comps);
+  const SimdVec dot = simd_vec_dot4(tmp, tmp);
+  return simd_vec_x(dot) != 0 ? simd_vec_x(simd_vec_sqrt(dot)) : 0;
+#else
   const f32 sqrMag = geo_vector_mag_sqr(v);
   return sqrMag != 0 ? math_sqrt_f32(sqrMag) : 0;
+#endif
 }
 
 GeoVector geo_vector_norm(const GeoVector v) {
@@ -40,19 +83,29 @@ GeoVector geo_vector_norm(const GeoVector v) {
 }
 
 f32 geo_vector_dot(const GeoVector a, const GeoVector b) {
+#if geo_vec_simd_enable
+  return simd_vec_x(simd_vec_dot4(simd_vec_load(a.comps), simd_vec_load(b.comps)));
+#else
   f32 res = 0;
   res += a.x * b.x;
   res += a.y * b.y;
   res += a.z * b.z;
   res += a.w * b.w;
   return res;
+#endif
 }
 
 GeoVector geo_vector_cross3(const GeoVector a, const GeoVector b) {
+#if geo_vec_simd_enable
+  GeoVector res;
+  simd_vec_store(simd_vec_cross3(simd_vec_load(a.comps), simd_vec_load(b.comps)), res.comps);
+  return res;
+#else
   const f32 x = a.y * b.z - a.z * b.y;
   const f32 y = a.z * b.x - a.x * b.z;
   const f32 z = a.x * b.y - a.y * b.x;
   return geo_vector(x, y, z);
+#endif
 }
 
 f32 geo_vector_angle(const GeoVector from, const GeoVector to) {
