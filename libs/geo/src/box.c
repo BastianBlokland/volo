@@ -65,6 +65,20 @@ GeoBox geo_box_encapsulate2(const GeoBox* b, const GeoVector point) {
 }
 
 GeoBox geo_box_encapsulate3(const GeoBox* b, const GeoVector point) {
+#if geo_box_simd_enable
+  const SimdVec p   = simd_vec_load(point.comps);
+  const SimdVec min = simd_vec_min(simd_vec_load(b->min.comps), p);
+  const SimdVec max = simd_vec_max(simd_vec_load(b->max.comps), p);
+
+  GeoBox newBox;
+  simd_vec_store(min, newBox.min.comps);
+  simd_vec_store(max, newBox.max.comps);
+
+  // NOTE: Is there a smarter way to preseve the w values?
+  newBox.min.w = b->min.w;
+  newBox.max.w = b->max.w;
+  return newBox;
+#else
   GeoBox newBox = *b;
   for (usize i = 0; i != 3; ++i) {
     if (point.comps[i] < newBox.min.comps[i]) {
@@ -75,6 +89,7 @@ GeoBox geo_box_encapsulate3(const GeoBox* b, const GeoVector point) {
     }
   }
   return newBox;
+#endif
 }
 
 void geo_box_corners3(const GeoBox* box, GeoVector corners[8]) {

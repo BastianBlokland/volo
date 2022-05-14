@@ -52,6 +52,14 @@ INLINE_HINT static SimdVec simd_vec_div(const SimdVec a, const SimdVec b) {
   return _mm_div_ps(a, b);
 }
 
+INLINE_HINT static SimdVec simd_vec_min(const SimdVec a, const SimdVec b) {
+  return _mm_min_ps(a, b);
+}
+
+INLINE_HINT static SimdVec simd_vec_max(const SimdVec a, const SimdVec b) {
+  return _mm_max_ps(a, b);
+}
+
 INLINE_HINT static SimdVec simd_vec_dot4(const SimdVec a, const SimdVec b) {
   const SimdVec mul = _mm_mul_ps(a, b);
   const SimdVec t1  = _mm_hadd_ps(mul, mul);
