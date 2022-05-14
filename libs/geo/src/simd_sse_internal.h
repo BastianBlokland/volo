@@ -122,3 +122,9 @@ INLINE_HINT static SimdVec simd_quat_rotate(const SimdVec quat, const SimdVec ve
 
   return simd_vec_add(simd_vec_add(a, b), c);
 }
+
+INLINE_HINT static SimdVec simd_quat_norm(const SimdVec quat) {
+  const SimdVec sqrMag = simd_vec_dot4(quat, quat);
+  const SimdVec mag    = simd_vec_sqrt(sqrMag);
+  return simd_vec_div(quat, mag);
+}

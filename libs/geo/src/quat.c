@@ -102,9 +102,15 @@ GeoQuat geo_quat_inv(const GeoQuat q) {
 }
 
 GeoQuat geo_quat_norm(const GeoQuat q) {
+#if geo_vec_simd_enable
+  GeoQuat res;
+  simd_vec_store(simd_quat_norm(simd_vec_load(q.comps)), res.comps);
+  return res;
+#else
   const f32 mag = geo_vector_mag((GeoVector){q.x, q.y, q.z, q.w});
   diag_assert(mag != 0);
   return (GeoQuat){q.x / mag, q.y / mag, q.z / mag, q.w / mag};
+#endif
 }
 
 GeoQuat geo_quat_look(const GeoVector forward, const GeoVector upRef) {
