@@ -74,7 +74,7 @@ GeoBox geo_box_encapsulate3(const GeoBox* b, const GeoVector point) {
   simd_vec_store(min, newBox.min.comps);
   simd_vec_store(max, newBox.max.comps);
 
-  // NOTE: Is there a smarter way to preseve the w values?
+  // NOTE: Preserve the w values to match the non-simd implementation.
   newBox.min.w = b->min.w;
   newBox.max.w = b->max.w;
   return newBox;
@@ -105,6 +105,31 @@ void geo_box_corners3(const GeoBox* box, GeoVector corners[8]) {
 
 GeoBox
 geo_box_transform3(const GeoBox* box, const GeoVector pos, const GeoQuat rot, const f32 scale) {
+#if geo_box_simd_enable
+  SimdVec       min      = simd_vec_broadcast(f32_max);
+  SimdVec       max      = simd_vec_broadcast(f32_min);
+  const SimdVec posVec   = simd_vec_load(pos.comps);
+  const SimdVec quatVec  = simd_vec_load(rot.comps);
+  const SimdVec scaleVec = simd_vec_broadcast(scale);
+
+  GeoVector points[8];
+  geo_box_corners3(box, points);
+
+  for (usize i = 0; i != array_elems(points); ++i) {
+    SimdVec point = simd_vec_load(points[i].comps);
+    point         = simd_vec_mul(point, scaleVec);
+    point         = simd_quat_rotate(quatVec, point);
+    point         = simd_vec_add(point, posVec);
+
+    min = simd_vec_min(min, point);
+    max = simd_vec_max(max, point);
+  }
+
+  GeoBox newBox;
+  simd_vec_store(min, newBox.min.comps);
+  simd_vec_store(max, newBox.max.comps);
+  return newBox;
+#else
   GeoVector points[8];
   geo_box_corners3(box, points);
 
@@ -114,4 +139,5 @@ geo_box_transform3(const GeoBox* box, const GeoVector pos, const GeoQuat rot, co
     newBox            = geo_box_encapsulate3(&newBox, p);
   }
   return newBox;
+#endif
 }
