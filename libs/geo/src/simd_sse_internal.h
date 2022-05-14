@@ -34,6 +34,10 @@ INLINE_HINT static SimdVec simd_vec_clear_w(const SimdVec vec) {
   return _mm_and_ps(vec, simd_vec_load((f32*)g_mask));
 }
 
+INLINE_HINT static SimdVec simd_vec_set(const f32 a, const f32 b, const f32 c, const f32 d) {
+  return _mm_set_ps(a, b, c, d);
+}
+
 INLINE_HINT static SimdVec simd_vec_broadcast(const f32 value) { return _mm_set1_ps(value); }
 
 INLINE_HINT static SimdVec simd_vec_add(const SimdVec a, const SimdVec b) {

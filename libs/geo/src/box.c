@@ -112,17 +112,23 @@ geo_box_transform3(const GeoBox* box, const GeoVector pos, const GeoQuat rot, co
   const SimdVec quatVec  = simd_vec_load(rot.comps);
   const SimdVec scaleVec = simd_vec_broadcast(scale);
 
-  GeoVector points[8];
-  geo_box_corners3(box, points);
+  SimdVec points[8];
+  points[0] = simd_vec_set(box->min.x, box->min.y, box->min.z, 0);
+  points[1] = simd_vec_set(box->min.x, box->min.y, box->max.z, 0);
+  points[2] = simd_vec_set(box->max.x, box->min.y, box->min.z, 0);
+  points[3] = simd_vec_set(box->max.x, box->min.y, box->max.z, 0);
+  points[4] = simd_vec_set(box->min.x, box->max.y, box->min.z, 0);
+  points[5] = simd_vec_set(box->min.x, box->max.y, box->max.z, 0);
+  points[6] = simd_vec_set(box->max.x, box->max.y, box->min.z, 0);
+  points[7] = simd_vec_set(box->max.x, box->max.y, box->max.z, 0);
 
   for (usize i = 0; i != array_elems(points); ++i) {
-    SimdVec point = simd_vec_load(points[i].comps);
-    point         = simd_vec_mul(point, scaleVec);
-    point         = simd_quat_rotate(quatVec, point);
-    point         = simd_vec_add(point, posVec);
+    points[i] = simd_vec_mul(points[i], scaleVec);
+    points[i] = simd_quat_rotate(quatVec, points[i]);
+    points[i] = simd_vec_add(points[i], posVec);
 
-    min = simd_vec_min(min, point);
-    max = simd_vec_max(max, point);
+    min = simd_vec_min(min, points[i]);
+    max = simd_vec_max(max, points[i]);
   }
 
   GeoBox newBox;
