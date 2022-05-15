@@ -64,14 +64,12 @@ INLINE_HINT static EcsCompId ecs_comp_next(const BitSet mask, const EcsCompId id
   u64        dwordIdx = bits_to_dwords(id);
   u64        dword    = dwords[dwordIdx] >> bit_in_dword(id);
   if (dword) {
-    intrinsic_ctz_64(trailing, dword);
-    return id + trailing;
+    return id + intrinsic_ctz_64(dword);
   }
   for (++dwordIdx; dwordIdx != mask.size; ++dwordIdx) {
     dword = dwords[dwordIdx];
     if (dword) {
-      intrinsic_ctz_64(trailing, dword);
-      return dwords_to_bits(dwordIdx) + trailing;
+      return dwords_to_bits(dwordIdx) + intrinsic_ctz_64(dword);
     }
   }
   UNREACHABLE
