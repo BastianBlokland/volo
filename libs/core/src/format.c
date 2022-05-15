@@ -38,8 +38,10 @@ INLINE_HINT static void format_mem_consume_inplace(Mem* mem, const usize amount)
   mem->size -= amount;
 }
 
+INLINE_HINT static bool format_ascii_is_digit(const u8 c) { return c >= '0' && c <= '9'; }
+
 INLINE_HINT static u8 format_ascii_to_integer(const u8 c) {
-  if (c >= '0' && c <= '9') {
+  if (format_ascii_is_digit(c)) {
     return c - '0';
   }
   if (c >= 'a' && c <= 'f') {
@@ -705,7 +707,7 @@ String format_read_f64(String input, f64* output) {
       format_mem_consume_inplace(&input, 1);
       continue;
     }
-    if (!ascii_is_digit(ch)) {
+    if (!format_ascii_is_digit(ch)) {
       break;
     }
 
