@@ -8,7 +8,7 @@
     }
   ],
   "meshId": "meshes/debug/shape_cylinder.pme",
-  "renderOrder": 50,
+  "renderOrder": 62,
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "Alpha",
