@@ -1,6 +1,7 @@
 #include "asset_mesh.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -73,12 +74,20 @@ static String obj_error_str(const ObjError err) {
   return g_msgs[err];
 }
 
-static String obj_consume_optional(const String input, const String toConsume, bool* outConsumed) {
+INLINE_HINT static void obj_mem_consume_inplace(Mem* mem, const usize amount) {
+  mem->ptr = bits_ptr_offset(mem->ptr, amount);
+  mem->size -= amount;
+}
+
+static String obj_consume_optional(String input, const String toConsume, bool* outConsumed) {
   const bool consume = string_starts_with(input, toConsume);
   if (outConsumed) {
     *outConsumed = consume;
   }
-  return consume ? string_consume(input, toConsume.size) : input;
+  if (consume) {
+    obj_mem_consume_inplace(&input, toConsume.size);
+  }
+  return input;
 }
 
 /**
@@ -225,7 +234,7 @@ static String obj_read_face(String input, ObjData* data, ObjError* err) {
     case '\t':
     case 0x0B:
     case 0x0C:
-      input = string_consume(input, 1); // Ignore Ascii whitespace characters.
+      obj_mem_consume_inplace(&input, 1); // Ignore Ascii whitespace characters.
       break;
     case '\r':
     case '\n':
@@ -262,10 +271,10 @@ static String obj_read_data(String input, ObjData* data, ObjError* err) {
     case 0x0B:
     case 0x0C:
     case '\r':
-      input = string_consume(input, 1); // Ignore Ascii whitespace characters.
+      obj_mem_consume_inplace(&input, 1); // Ignore Ascii whitespace characters.
       break;
     case 'v':
-      input = string_consume(input, 1); // Consume 'v'.
+      obj_mem_consume_inplace(&input, 1); // Consume 'v'.
       if (UNLIKELY(!input.size)) {
         *err = ObjError_UnexpectedEndOfFile;
         goto End;
@@ -276,11 +285,11 @@ static String obj_read_data(String input, ObjData* data, ObjError* err) {
         input = obj_read_position(input, data, err);
         break;
       case 't':
-        input = string_consume(input, 1); // Consume 't'.
+        obj_mem_consume_inplace(&input, 1); // Consume 't'.
         input = obj_read_texcoord(input, data, err);
         break;
       case 'n':
-        input = string_consume(input, 1); // Consume 'n'.
+        obj_mem_consume_inplace(&input, 1); // Consume 'n'.
         input = obj_read_normal(input, data, err);
         break;
       default:
@@ -289,7 +298,7 @@ static String obj_read_data(String input, ObjData* data, ObjError* err) {
       }
       break;
     case 'f':
-      input = string_consume(input, 1); // Consume 'f'.
+      obj_mem_consume_inplace(&input, 1); // Consume 'f'.
       input = obj_read_face(input, data, err);
       break;
     default:
