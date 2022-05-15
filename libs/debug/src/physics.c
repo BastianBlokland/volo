@@ -100,7 +100,7 @@ ecs_system_define(DebugPhysicsUpdatePanelSys) {
 
 static void physics_draw_pivot(DebugShapeComp* shape, const GeoVector position) {
   const f32 radius = 0.025f;
-  debug_shape_sphere_overlay(shape, position, radius, geo_color(1.0f, 0.0f, 0.0f, 1.0f));
+  debug_sphere_overlay(shape, position, radius, geo_color(1.0f, 0.0f, 0.0f, 1.0f));
 }
 
 static void physics_draw_bounds_local(
@@ -112,8 +112,8 @@ static void physics_draw_bounds_local(
   const GeoVector size = geo_vector_mul(geo_box_size(&bounds), scale);
   const GeoVector center =
       geo_vector_add(geo_quat_rotate(rot, geo_vector_mul(geo_box_center(&bounds), scale)), pos);
-  debug_shape_box_fill(shape, center, rot, size, geo_color(0.0f, 1.0f, 0.0f, 0.2f));
-  debug_shape_box_wire(shape, center, rot, size, geo_color(0.0f, 1.0f, 0.0f, 0.5f));
+  debug_box_fill(shape, center, rot, size, geo_color(0.0f, 1.0f, 0.0f, 0.2f));
+  debug_box_wire(shape, center, rot, size, geo_color(0.0f, 1.0f, 0.0f, 0.5f));
 }
 
 static void physics_draw_bounds_global(
@@ -125,8 +125,8 @@ static void physics_draw_bounds_global(
   const GeoBox    aabb   = geo_box_transform3(&bounds, pos, rot, scale);
   const GeoVector center = geo_box_center(&aabb);
   const GeoVector size   = geo_box_size(&aabb);
-  debug_shape_box_fill(canvas, center, geo_quat_ident, size, geo_color(0.0f, 0.0f, 1.0f, 0.2f));
-  debug_shape_box_wire(canvas, center, geo_quat_ident, size, geo_color(0.0f, 0.0f, 1.0f, 0.5f));
+  debug_box_fill(canvas, center, geo_quat_ident, size, geo_color(0.0f, 0.0f, 1.0f, 0.2f));
+  debug_box_wire(canvas, center, geo_quat_ident, size, geo_color(0.0f, 0.0f, 1.0f, 0.5f));
 }
 
 ecs_system_define(DebugPhysicsDrawSys) {

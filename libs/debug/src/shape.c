@@ -129,10 +129,10 @@ ecs_system_define(DebugShapeRenderSys) {
       case DebugShapeType_BoxWire: {
         const GeoBox   bounds = geo_box_inverted3(); // TODO: Compute bounds.
         const DrawData data   = {
-            .pos   = entry->data_box.pos,
-            .rot   = entry->data_box.rot,
-            .scale = entry->data_box.size,
-            .color = entry->data_box.color,
+              .pos   = entry->data_box.pos,
+              .rot   = entry->data_box.rot,
+              .scale = entry->data_box.size,
+              .color = entry->data_box.color,
         };
         rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, bounds);
         continue;
@@ -143,8 +143,8 @@ ecs_system_define(DebugShapeRenderSys) {
         const GeoVector pos    = entry->data_sphere.pos;
         const f32       radius = entry->data_sphere.radius;
         const GeoBox    bounds = {
-            .min = geo_vector(pos.x - radius, pos.y - radius, pos.z - radius),
-            .max = geo_vector(pos.x + radius, pos.y + radius, pos.z + radius),
+               .min = geo_vector(pos.x - radius, pos.y - radius, pos.z - radius),
+               .max = geo_vector(pos.x + radius, pos.y + radius, pos.z + radius),
         };
         const DrawData data = {
             .pos   = pos,
@@ -188,7 +188,7 @@ DebugShapeComp* debug_shape_create(EcsWorld* world, const EcsEntityId entity) {
       world, entity, DebugShapeComp, .entries = dynarray_create_t(g_alloc_heap, DebugShape, 64));
 }
 
-void debug_shape_box_fill(
+void debug_box_fill(
     DebugShapeComp* comp,
     const GeoVector pos,
     const GeoQuat   rot,
@@ -200,7 +200,7 @@ void debug_shape_box_fill(
   };
 }
 
-void debug_shape_box_wire(
+void debug_box_wire(
     DebugShapeComp* comp,
     const GeoVector pos,
     const GeoQuat   rot,
@@ -212,7 +212,7 @@ void debug_shape_box_wire(
   };
 }
 
-void debug_shape_sphere_fill(
+void debug_sphere_fill(
     DebugShapeComp* comp, const GeoVector pos, const f32 radius, const GeoColor color) {
   *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
       .type        = DebugShapeType_SphereFill,
@@ -220,7 +220,7 @@ void debug_shape_sphere_fill(
   };
 }
 
-void debug_shape_sphere_wire(
+void debug_sphere_wire(
     DebugShapeComp* comp, const GeoVector pos, const f32 radius, const GeoColor color) {
   *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
       .type        = DebugShapeType_SphereWire,
@@ -228,7 +228,7 @@ void debug_shape_sphere_wire(
   };
 }
 
-void debug_shape_sphere_overlay(
+void debug_sphere_overlay(
     DebugShapeComp* comp, const GeoVector pos, const f32 radius, const GeoColor color) {
   *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
       .type        = DebugShapeType_SphereOverlay,
