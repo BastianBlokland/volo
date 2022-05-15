@@ -66,7 +66,7 @@ INLINE_HINT static EcsCompId ecs_comp_next(const BitSet mask, const EcsCompId id
   if (dword) {
     return id + intrinsic_ctz_64(dword);
   }
-  for (++dwordIdx; dwordIdx != mask.size; ++dwordIdx) {
+  for (++dwordIdx;; ++dwordIdx) {
     dword = dwords[dwordIdx];
     if (dword) {
       return dwords_to_bits(dwordIdx) + intrinsic_ctz_64(dword);
