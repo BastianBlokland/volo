@@ -3,16 +3,18 @@
 #include "debug_shape.h"
 #include "ecs_world.h"
 #include "scene_bounds.h"
+#include "scene_camera.h"
 #include "scene_transform.h"
 #include "ui.h"
 
 typedef enum {
-  DebugPhysicsFlags_DrawBoundsLocal  = 1 << 0,
-  DebugPhysicsFlags_DrawBoundsGlobal = 1 << 1,
-  DebugPhysicsFlags_DrawPivot        = 1 << 2,
+  DebugPhysicsFlags_DrawPivot        = 1 << 0,
+  DebugPhysicsFlags_DrawOrientation  = 1 << 1,
+  DebugPhysicsFlags_DrawBoundsLocal  = 1 << 2,
+  DebugPhysicsFlags_DrawBoundsGlobal = 1 << 3,
 
-  DebugPhysicsFlags_DrawAny = DebugPhysicsFlags_DrawBoundsLocal |
-                              DebugPhysicsFlags_DrawBoundsGlobal | DebugPhysicsFlags_DrawPivot
+  DebugPhysicsFlags_DrawAny = DebugPhysicsFlags_DrawPivot | DebugPhysicsFlags_DrawOrientation |
+                              DebugPhysicsFlags_DrawBoundsLocal | DebugPhysicsFlags_DrawBoundsGlobal
 } DebugPhysicsFlags;
 
 ecs_comp_define(DebugPhysicsSettingsComp) { DebugPhysicsFlags flags; };
@@ -32,9 +34,10 @@ ecs_view_define(PanelUpdateView) {
 }
 
 ecs_view_define(ObjectView) {
-  ecs_access_read(SceneTransformComp);
   ecs_access_maybe_read(SceneBoundsComp);
   ecs_access_maybe_read(SceneScaleComp);
+  ecs_access_read(SceneTransformComp);
+  ecs_access_without(SceneCameraComp);
 }
 
 static void physics_panel_draw(
@@ -52,6 +55,14 @@ static void physics_panel_draw(
   bool drawPivot = (settings->flags & DebugPhysicsFlags_DrawPivot) != 0;
   if (ui_toggle(canvas, &drawPivot)) {
     settings->flags ^= DebugPhysicsFlags_DrawPivot;
+  }
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Draw orientation"));
+  ui_table_next_column(canvas, &table);
+  bool drawOrientation = (settings->flags & DebugPhysicsFlags_DrawOrientation) != 0;
+  if (ui_toggle(canvas, &drawOrientation)) {
+    settings->flags ^= DebugPhysicsFlags_DrawOrientation;
   }
 
   ui_table_next_row(canvas, &table);
@@ -98,11 +109,6 @@ ecs_system_define(DebugPhysicsUpdatePanelSys) {
   }
 }
 
-static void physics_draw_pivot(DebugShapeComp* shape, const GeoVector position) {
-  const f32 radius = 0.025f;
-  debug_shape_sphere_overlay(shape, position, radius, geo_color(1.0f, 0.0f, 0.0f, 1.0f));
-}
-
 static void physics_draw_bounds_local(
     DebugShapeComp* shape,
     const GeoVector pos,
@@ -112,8 +118,8 @@ static void physics_draw_bounds_local(
   const GeoVector size = geo_vector_mul(geo_box_size(&bounds), scale);
   const GeoVector center =
       geo_vector_add(geo_quat_rotate(rot, geo_vector_mul(geo_box_center(&bounds), scale)), pos);
-  debug_shape_box_fill(shape, center, rot, size, geo_color(0.0f, 1.0f, 0.0f, 0.2f));
-  debug_shape_box_wire(shape, center, rot, size, geo_color(0.0f, 1.0f, 0.0f, 0.5f));
+  debug_box_fill(shape, center, rot, size, geo_color(0.0f, 1.0f, 0.0f, 0.2f));
+  debug_box_wire(shape, center, rot, size, geo_color(0.0f, 1.0f, 0.0f, 0.5f));
 }
 
 static void physics_draw_bounds_global(
@@ -125,8 +131,8 @@ static void physics_draw_bounds_global(
   const GeoBox    aabb   = geo_box_transform3(&bounds, pos, rot, scale);
   const GeoVector center = geo_box_center(&aabb);
   const GeoVector size   = geo_box_size(&aabb);
-  debug_shape_box_fill(canvas, center, geo_quat_ident, size, geo_color(0.0f, 0.0f, 1.0f, 0.2f));
-  debug_shape_box_wire(canvas, center, geo_quat_ident, size, geo_color(0.0f, 0.0f, 1.0f, 0.5f));
+  debug_box_fill(canvas, center, geo_quat_ident, size, geo_color(0.0f, 0.0f, 1.0f, 0.2f));
+  debug_box_wire(canvas, center, geo_quat_ident, size, geo_color(0.0f, 0.0f, 1.0f, 0.5f));
 }
 
 ecs_system_define(DebugPhysicsDrawSys) {
@@ -150,7 +156,10 @@ ecs_system_define(DebugPhysicsDrawSys) {
     const f32              scale      = scaleComp ? scaleComp->scale : 1.0f;
 
     if (settings->flags & DebugPhysicsFlags_DrawPivot) {
-      physics_draw_pivot(shape, pos);
+      debug_sphere_overlay(shape, pos, 0.025f, geo_color(1.0f, 1.0f, 0.0f, 1.0f));
+    }
+    if (settings->flags & DebugPhysicsFlags_DrawOrientation) {
+      debug_orientation_overlay(shape, pos, rot, 1.0f);
     }
     if (boundsComp && !geo_box_is_inverted3(&boundsComp->local)) {
       if (settings->flags & DebugPhysicsFlags_DrawBoundsLocal) {

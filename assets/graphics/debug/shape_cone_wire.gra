@@ -7,11 +7,12 @@
       "shaderId": "shaders/debug/shape.frag.spv"
     }
   ],
-  "meshId": "meshes/debug/shape_sphere.pme",
-  "renderOrder": 61,
+  "meshId": "meshes/debug/shape_cone.pme",
+  "renderOrder": 53,
   "topology": "Triangles",
-  "rasterizer": "Fill",
+  "rasterizer": "Lines",
+  "lineWidth": 1,
   "blend": "Alpha",
-  "depth": "None",
-  "cull": "Back"
+  "depth": "Always",
+  "cull": "None"
 }

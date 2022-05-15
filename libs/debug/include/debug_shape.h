@@ -14,8 +14,17 @@ DebugShapeComp* debug_shape_create(EcsWorld*, EcsEntityId entity);
 /**
  * Draw primitives.
  */
-void debug_shape_box_fill(DebugShapeComp*, GeoVector pos, GeoQuat, GeoVector size, GeoColor);
-void debug_shape_box_wire(DebugShapeComp*, GeoVector pos, GeoQuat, GeoVector size, GeoColor);
-void debug_shape_sphere_fill(DebugShapeComp*, GeoVector pos, f32 radius, GeoColor);
-void debug_shape_sphere_wire(DebugShapeComp*, GeoVector pos, f32 radius, GeoColor);
-void debug_shape_sphere_overlay(DebugShapeComp*, GeoVector pos, f32 radius, GeoColor);
+void debug_box_fill(DebugShapeComp*, GeoVector pos, GeoQuat, GeoVector size, GeoColor);
+void debug_box_wire(DebugShapeComp*, GeoVector pos, GeoQuat, GeoVector size, GeoColor);
+void debug_box_overlay(DebugShapeComp*, GeoVector pos, GeoQuat, GeoVector size, GeoColor);
+void debug_sphere_fill(DebugShapeComp*, GeoVector pos, f32 radius, GeoColor);
+void debug_sphere_wire(DebugShapeComp*, GeoVector pos, f32 radius, GeoColor);
+void debug_sphere_overlay(DebugShapeComp*, GeoVector pos, f32 radius, GeoColor);
+void debug_cylinder_fill(DebugShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor);
+void debug_cylinder_wire(DebugShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor);
+void debug_cylinder_overlay(DebugShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor);
+void debug_cone_fill(DebugShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor);
+void debug_cone_wire(DebugShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor);
+void debug_cone_overlay(DebugShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor);
+void debug_arrow_overlay(DebugShapeComp*, GeoVector begin, GeoVector end, f32 radius, GeoColor);
+void debug_orientation_overlay(DebugShapeComp*, GeoVector pos, GeoQuat, f32 size);

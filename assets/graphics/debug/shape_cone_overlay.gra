@@ -7,8 +7,8 @@
       "shaderId": "shaders/debug/shape.frag.spv"
     }
   ],
-  "meshId": "meshes/debug/shape_sphere.pme",
-  "renderOrder": 61,
+  "meshId": "meshes/debug/shape_cone.pme",
+  "renderOrder": 63,
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "Alpha",
