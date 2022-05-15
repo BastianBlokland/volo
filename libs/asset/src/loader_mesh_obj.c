@@ -99,13 +99,26 @@ INLINE_HINT static bool obj_starts_with_char(const String str, const u8 ch) {
   return *mem_begin(str) == ch;
 }
 
-static String obj_consume_optional(String input, const String toConsume, bool* outConsumed) {
+INLINE_HINT static String
+obj_consume_optional(String input, const String toConsume, bool* outConsumed) {
   const bool consume = obj_starts_with(input, toConsume);
   if (outConsumed) {
     *outConsumed = consume;
   }
   if (consume) {
     obj_mem_consume_inplace(&input, toConsume.size);
+  }
+  return input;
+}
+
+INLINE_HINT static String
+obj_consume_optional_char(String input, const u8 toConsume, bool* outConsumed) {
+  const bool consume = obj_starts_with_char(input, toConsume);
+  if (outConsumed) {
+    *outConsumed = consume;
+  }
+  if (consume) {
+    obj_mem_consume_inplace(&input, 1);
   }
   return input;
 }
@@ -207,14 +220,14 @@ static String obj_read_vertex(String input, ObjData* data, ObjError* err) {
   ObjVertex vertex = {.texcoordIndex = sentinel_u32, .normalIndex = sentinel_u32};
 
   // Position index (optionally prefixed by 'v').
-  input = obj_consume_optional(input, string_lit("v"), null);
+  input = obj_consume_optional_char(input, 'v', null);
   input = obj_read_index(input, data->positions.size, &vertex.positionIndex, err);
   if (UNLIKELY(*err)) {
     return input;
   }
 
   bool consumed;
-  input = obj_consume_optional(input, string_lit("/"), &consumed);
+  input = obj_consume_optional_char(input, '/', &consumed);
   if (!consumed) {
     goto Success; // Vertex only specifies a position, this is perfectly valid.
   }
@@ -226,7 +239,7 @@ static String obj_read_vertex(String input, ObjData* data, ObjError* err) {
       return input;
     }
   }
-  input = obj_consume_optional(input, string_lit("/"), &consumed);
+  input = obj_consume_optional_char(input, '/', &consumed);
   if (consumed) {
     // Normal index (optionally prefixed by 'vn').
     input = obj_consume_optional(input, string_lit("vn"), null);
@@ -282,7 +295,7 @@ End:
   return input;
 }
 
-INLINE_HINT static String obj_read_data(String input, ObjData* data, ObjError* err) {
+static String obj_read_data(String input, ObjData* data, ObjError* err) {
   while (LIKELY(input.size && !*err)) {
     switch (*string_begin(input)) {
     case ' ':
