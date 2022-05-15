@@ -348,3 +348,26 @@ void debug_cone_overlay(
       .data_cylOrCone = {.bottom = bottom, .top = top, .radius = radius, .color = color},
   };
 }
+
+void debug_arrow_overlay(
+    DebugShapeComp* comp,
+    const GeoVector begin,
+    const GeoVector end,
+    const f32       radius,
+    const GeoColor  color) {
+  static const f32 g_tipLengthMult  = 2.0f;
+  static const f32 g_baseRadiusMult = 0.25f;
+
+  const GeoVector toEnd = geo_vector_sub(end, begin);
+  const f32       dist  = geo_vector_mag(toEnd);
+  const GeoVector dir   = dist > f32_epsilon ? geo_vector_div(toEnd, dist) : geo_forward;
+
+  const f32       tipLength = radius * g_tipLengthMult;
+  const GeoVector tipStart  = geo_vector_sub(end, geo_vector_mul(dir, tipLength));
+  debug_cone_overlay(comp, tipStart, end, radius, color);
+
+  const f32 baseLength = dist - tipLength;
+  if (baseLength > f32_epsilon) {
+    debug_cylinder_overlay(comp, begin, tipStart, radius * g_baseRadiusMult, color);
+  }
+}
