@@ -63,7 +63,8 @@ static void ecs_combine_draw(void* dataA, void* dataB) {
   ecs_destruct_draw(drawB);
 }
 
-static void rend_draw_ensure_storage(Mem* mem, const usize neededSize, const usize align) {
+INLINE_HINT static void
+rend_draw_ensure_storage(Mem* mem, const usize neededSize, const usize align) {
   if (UNLIKELY(mem->size < neededSize)) {
     const Mem newMem = alloc_alloc(g_alloc_heap, bits_nextpow2(neededSize), align);
     if (mem_valid(*mem)) {
