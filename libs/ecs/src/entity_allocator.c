@@ -32,7 +32,7 @@ EcsEntityId entity_allocator_alloc(EntityAllocator* entityAllocator) {
     serial = ++entityAllocator->serialCounter;
 
     // Try to find a free index.
-    index = (u32)bitset_next(dynbitset_view(&entityAllocator->freeIndices), 0);
+    index = (u32)dynbitset_next(&entityAllocator->freeIndices, 0);
     if (sentinel_check(index)) {
       // No existing free index found, add one at the end.
       index = (u32)entityAllocator->totalIndices++;

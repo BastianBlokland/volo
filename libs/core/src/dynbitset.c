@@ -1,6 +1,8 @@
 #include "core_bits.h"
 #include "core_dynbitset.h"
 
+#include "intrinsic_internal.h"
+
 #define dynbitset_align sizeof(u64)
 
 static usize bitset_required_bytes(const usize bit) {
@@ -33,6 +35,25 @@ bool dynbitset_test(const DynBitSet* dynbitset, const usize idx) {
     return false;
   }
   return (*mem_at_u8(dynbitset_view(dynbitset), byteIdx) & (1u << bit_in_byte(idx))) != 0;
+}
+
+usize dynbitset_next(const DynBitSet* dynbitset, const usize idx) {
+  if (UNLIKELY(idx >= bytes_to_bits(dynbitset->size))) {
+    return sentinel_usize;
+  }
+  const u64* dwords   = dynbitset->data.ptr;
+  u64        dwordIdx = bits_to_dwords(idx);
+  u64        dword    = dwords[dwordIdx] >> bit_in_dword(idx);
+  if (dword) {
+    return idx + intrinsic_ctz_64(dword);
+  }
+  for (++dwordIdx; dwordIdx * sizeof(u64) != dynbitset->data.size; ++dwordIdx) {
+    dword = dwords[dwordIdx];
+    if (dword) {
+      return dwords_to_bits(dwordIdx) + intrinsic_ctz_64(dword);
+    }
+  }
+  return sentinel_usize;
 }
 
 void dynbitset_set(DynBitSet* dynbitset, const usize idx) {

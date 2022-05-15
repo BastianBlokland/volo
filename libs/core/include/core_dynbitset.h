@@ -41,6 +41,12 @@ BitSet dynbitset_view(const DynBitSet*);
 bool dynbitset_test(const DynBitSet*, usize idx);
 
 /**
+ * Return the next set bit starting from the given index.
+ * NOTE: Returns 'sentinel_usize' if there are no more set bits.
+ */
+usize dynbitset_next(const DynBitSet*, usize idx);
+
+/**
  * Set the bit at the given index.
  */
 void dynbitset_set(DynBitSet*, usize idx);
