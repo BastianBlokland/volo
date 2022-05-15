@@ -371,3 +371,23 @@ void debug_arrow_overlay(
     debug_cylinder_overlay(comp, begin, tipStart, radius * g_baseRadiusMult, color);
   }
 }
+
+void debug_orientation_overlay(
+    DebugShapeComp* comp, const GeoVector pos, const GeoQuat rot, const f32 size) {
+  static const f32 g_startOffsetMult = 0.05f;
+  static const f32 g_radiusMult      = 0.1f;
+
+  const GeoVector right   = geo_quat_rotate(rot, geo_right);
+  const GeoVector up      = geo_quat_rotate(rot, geo_up);
+  const GeoVector forward = geo_quat_rotate(rot, geo_forward);
+  const f32       radius  = size * g_radiusMult;
+
+  const GeoVector startRight = geo_vector_add(pos, geo_vector_mul(right, g_startOffsetMult));
+  debug_arrow_overlay(comp, startRight, geo_vector_add(pos, right), radius, geo_color_red);
+
+  const GeoVector startUp = geo_vector_add(pos, geo_vector_mul(up, g_startOffsetMult));
+  debug_arrow_overlay(comp, startUp, geo_vector_add(pos, up), radius, geo_color_green);
+
+  const GeoVector startForward = geo_vector_add(pos, geo_vector_mul(forward, g_startOffsetMult));
+  debug_arrow_overlay(comp, startForward, geo_vector_add(pos, forward), radius, geo_color_blue);
+}

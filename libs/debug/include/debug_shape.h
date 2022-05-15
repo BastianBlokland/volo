@@ -26,3 +26,4 @@ void debug_cone_fill(DebugShapeComp*, GeoVector bottom, GeoVector top, f32 radiu
 void debug_cone_wire(DebugShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor);
 void debug_cone_overlay(DebugShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor);
 void debug_arrow_overlay(DebugShapeComp*, GeoVector begin, GeoVector end, f32 radius, GeoColor);
+void debug_orientation_overlay(DebugShapeComp*, GeoVector pos, GeoQuat rot, f32 size);
