@@ -158,7 +158,7 @@ static void tga_read_pixel_unchecked(u8* data, const TgaFlags flags, AssetTextur
   }
 }
 
-INLINE_HINT static void tga_mem_consume(Mem* mem, const usize amount) {
+INLINE_HINT static void tga_mem_consume_inplace(Mem* mem, const usize amount) {
   mem->ptr = bits_ptr_offset(mem->ptr, amount);
   mem->size -= amount;
 }
@@ -219,7 +219,7 @@ static Mem tga_read_pixels_rle(
           return input;
         }
         u8 packetHeader = *mem_begin(input);
-        tga_mem_consume(&input, 1);
+        tga_mem_consume_inplace(&input, 1);
         const bool isRlePacket = (packetHeader & 0b10000000) != 0; // Msb indicates packet type.
         packetRefPixel         = isRlePacket ? i : u32_max;
         packetRem              = packetHeader & 0b01111111; // Remaining 7 bits are the rep count.
@@ -239,7 +239,7 @@ static Mem tga_read_pixels_rle(
       } else {
         // No reference pixel; Read a new pixel value.
         tga_read_pixel_unchecked(mem_begin(input), flags, &out[i]);
-        tga_mem_consume(&input, pixelSize);
+        tga_mem_consume_inplace(&input, pixelSize);
       }
     }
   }
