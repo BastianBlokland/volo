@@ -118,6 +118,6 @@ INLINE_HINT static u8 intrinsic_clz_64(const u64 mask) {
   _BitScanReverse64(&result, mask);
   return (u8)(63u - result);
 #else
-  return __builtin_clz(mask);
+  return __builtin_clzll(mask);
 #endif
 }
