@@ -11,6 +11,7 @@
 typedef enum {
   DebugShapeType_BoxFill,
   DebugShapeType_BoxWire,
+  DebugShapeType_BoxOverlay,
   DebugShapeType_SphereFill,
   DebugShapeType_SphereWire,
   DebugShapeType_SphereOverlay,
@@ -55,6 +56,7 @@ typedef struct {
 static const String g_debugGraphics[DebugShapeType_Count] = {
     [DebugShapeType_BoxFill]         = string_static("graphics/debug/shape_box_fill.gra"),
     [DebugShapeType_BoxWire]         = string_static("graphics/debug/shape_box_wire.gra"),
+    [DebugShapeType_BoxOverlay]      = string_static("graphics/debug/shape_box_overlay.gra"),
     [DebugShapeType_SphereFill]      = string_static("graphics/debug/shape_sphere_fill.gra"),
     [DebugShapeType_SphereWire]      = string_static("graphics/debug/shape_sphere_wire.gra"),
     [DebugShapeType_SphereOverlay]   = string_static("graphics/debug/shape_sphere_overlay.gra"),
@@ -145,7 +147,8 @@ ecs_system_define(DebugShapeRenderSys) {
 
       switch (entry->type) {
       case DebugShapeType_BoxFill:
-      case DebugShapeType_BoxWire: {
+      case DebugShapeType_BoxWire:
+      case DebugShapeType_BoxOverlay: {
         const GeoBox   bounds = geo_box_inverted3(); // TODO: Compute bounds.
         const DrawData data   = {
               .pos   = entry->data_box.pos,
@@ -249,6 +252,18 @@ void debug_box_wire(
     const GeoColor  color) {
   *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
       .type     = DebugShapeType_BoxWire,
+      .data_box = {.pos = pos, .rot = rot, .size = size, .color = color},
+  };
+}
+
+void debug_box_overlay(
+    DebugShapeComp* comp,
+    const GeoVector pos,
+    const GeoQuat   rot,
+    const GeoVector size,
+    const GeoColor  color) {
+  *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
+      .type     = DebugShapeType_BoxOverlay,
       .data_box = {.pos = pos, .rot = rot, .size = size, .color = color},
   };
 }
