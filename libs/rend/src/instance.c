@@ -7,6 +7,8 @@
 
 #include "draw_internal.h"
 
+#define rend_instance_max_draw_create 16
+
 typedef struct {
   ALIGNAS(16)
   GeoVector posAndScale; // xyz: position, w: scale.
@@ -33,6 +35,8 @@ ecs_system_define(RendInstanceFillDrawsSys) {
   EcsView* renderableView = ecs_world_view_t(world, RenderableView);
   EcsView* drawView       = ecs_world_view_t(world, DrawView);
 
+  u32 createdDraws = 0;
+
   EcsIterator* drawItr = ecs_view_itr(drawView);
   for (EcsIterator* renderableItr = ecs_view_itr(renderableView); ecs_view_walk(renderableItr);) {
     const SceneRenderableComp* renderable = ecs_view_read_t(renderableItr, SceneRenderableComp);
@@ -47,6 +51,9 @@ ecs_system_define(RendInstanceFillDrawsSys) {
     const SceneTags           tags          = tagComp ? tagComp->tags : SceneTags_Default;
 
     if (UNLIKELY(!ecs_world_has_t(world, renderable->graphic, RendDrawComp))) {
+      if (++createdDraws > rend_instance_max_draw_create) {
+        continue; // Limit the amount of new draws to create per frame.
+      }
       RendDrawComp* draw = rend_draw_create(world, renderable->graphic, RendDrawFlags_None);
       rend_draw_set_graphic(draw, renderable->graphic);
       continue;
