@@ -14,6 +14,9 @@ typedef enum {
   DebugShapeType_SphereFill,
   DebugShapeType_SphereWire,
   DebugShapeType_SphereOverlay,
+  DebugShapeType_CylinderFill,
+  DebugShapeType_CylinderWire,
+  DebugShapeType_CylinderOverlay,
 
   DebugShapeType_Count,
 } DebugShapeType;
@@ -32,19 +35,29 @@ typedef struct {
 } DebugShapeSphere;
 
 typedef struct {
+  GeoVector begin, end;
+  f32       radius;
+  GeoColor  color;
+} DebugShapeCylinder;
+
+typedef struct {
   DebugShapeType type;
   union {
-    DebugShapeBox    data_box;
-    DebugShapeSphere data_sphere;
+    DebugShapeBox      data_box;
+    DebugShapeSphere   data_sphere;
+    DebugShapeCylinder data_cylinder;
   };
 } DebugShape;
 
 static const String g_debugGraphics[DebugShapeType_Count] = {
-    [DebugShapeType_BoxFill]       = string_static("graphics/debug/shape_box_fill.gra"),
-    [DebugShapeType_BoxWire]       = string_static("graphics/debug/shape_box_wire.gra"),
-    [DebugShapeType_SphereFill]    = string_static("graphics/debug/shape_sphere_fill.gra"),
-    [DebugShapeType_SphereWire]    = string_static("graphics/debug/shape_sphere_wire.gra"),
-    [DebugShapeType_SphereOverlay] = string_static("graphics/debug/shape_sphere_overlay.gra"),
+    [DebugShapeType_BoxFill]         = string_static("graphics/debug/shape_box_fill.gra"),
+    [DebugShapeType_BoxWire]         = string_static("graphics/debug/shape_box_wire.gra"),
+    [DebugShapeType_SphereFill]      = string_static("graphics/debug/shape_sphere_fill.gra"),
+    [DebugShapeType_SphereWire]      = string_static("graphics/debug/shape_sphere_wire.gra"),
+    [DebugShapeType_SphereOverlay]   = string_static("graphics/debug/shape_sphere_overlay.gra"),
+    [DebugShapeType_CylinderFill]    = string_static("graphics/debug/shape_cylinder_fill.gra"),
+    [DebugShapeType_CylinderWire]    = string_static("graphics/debug/shape_cylinder_wire.gra"),
+    [DebugShapeType_CylinderOverlay] = string_static("graphics/debug/shape_cylinder_overlay.gra"),
 };
 
 ecs_comp_define(DebugShapeRendererComp) { EcsEntityId drawEntities[DebugShapeType_Count]; };
@@ -155,6 +168,25 @@ ecs_system_define(DebugShapeRenderSys) {
         rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, bounds);
         continue;
       }
+      case DebugShapeType_CylinderFill:
+      case DebugShapeType_CylinderWire:
+      case DebugShapeType_CylinderOverlay: {
+        const GeoBox    bounds = geo_box_inverted3(); // TODO: Compute bounds.
+        const GeoVector pos    = entry->data_cylinder.begin;
+        const GeoVector toEnd  = geo_vector_sub(entry->data_cylinder.end, pos);
+        const f32       dist   = geo_vector_mag(toEnd);
+        if (UNLIKELY(dist < f32_epsilon)) {
+          continue;
+        }
+        const DrawData data = {
+            .pos   = pos,
+            .rot   = geo_quat_look(geo_vector_div(toEnd, dist), geo_up),
+            .scale = {entry->data_cylinder.radius, entry->data_cylinder.radius, dist},
+            .color = entry->data_cylinder.color,
+        };
+        rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, bounds);
+        continue;
+      }
       case DebugShapeType_Count:
         break;
       }
@@ -233,5 +265,41 @@ void debug_sphere_overlay(
   *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
       .type        = DebugShapeType_SphereOverlay,
       .data_sphere = {.pos = pos, .radius = radius, .color = color},
+  };
+}
+
+void debug_cylinder_fill(
+    DebugShapeComp* comp,
+    const GeoVector begin,
+    const GeoVector end,
+    const f32       radius,
+    const GeoColor  color) {
+  *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
+      .type          = DebugShapeType_CylinderFill,
+      .data_cylinder = {.begin = begin, .end = end, .radius = radius, .color = color},
+  };
+}
+
+void debug_cylinder_wire(
+    DebugShapeComp* comp,
+    const GeoVector begin,
+    const GeoVector end,
+    const f32       radius,
+    const GeoColor  color) {
+  *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
+      .type          = DebugShapeType_CylinderWire,
+      .data_cylinder = {.begin = begin, .end = end, .radius = radius, .color = color},
+  };
+}
+
+void debug_cylinder_overlay(
+    DebugShapeComp* comp,
+    const GeoVector begin,
+    const GeoVector end,
+    const f32       radius,
+    const GeoColor  color) {
+  *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
+      .type          = DebugShapeType_CylinderOverlay,
+      .data_cylinder = {.begin = begin, .end = end, .radius = radius, .color = color},
   };
 }

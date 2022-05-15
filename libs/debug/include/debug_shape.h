@@ -19,3 +19,6 @@ void debug_box_wire(DebugShapeComp*, GeoVector pos, GeoQuat, GeoVector size, Geo
 void debug_sphere_fill(DebugShapeComp*, GeoVector pos, f32 radius, GeoColor);
 void debug_sphere_wire(DebugShapeComp*, GeoVector pos, f32 radius, GeoColor);
 void debug_sphere_overlay(DebugShapeComp*, GeoVector pos, f32 radius, GeoColor);
+void debug_cylinder_fill(DebugShapeComp*, GeoVector begin, GeoVector end, f32 radius, GeoColor);
+void debug_cylinder_wire(DebugShapeComp*, GeoVector begin, GeoVector end, f32 radius, GeoColor);
+void debug_cylinder_overlay(DebugShapeComp*, GeoVector begin, GeoVector end, f32 radius, GeoColor);
