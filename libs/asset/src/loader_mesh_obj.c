@@ -262,7 +262,7 @@ End:
   return input;
 }
 
-static String obj_read_data(String input, ObjData* data, ObjError* err) {
+INLINE_HINT static String obj_read_data(String input, ObjData* data, ObjError* err) {
   while (LIKELY(input.size && !*err)) {
     switch (*string_begin(input)) {
     case ' ':
