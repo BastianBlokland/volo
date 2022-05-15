@@ -35,7 +35,7 @@ typedef struct {
 } DebugShapeSphere;
 
 typedef struct {
-  GeoVector begin, end;
+  GeoVector bottom, top;
   f32       radius;
   GeoColor  color;
 } DebugShapeCylinder;
@@ -172,15 +172,15 @@ ecs_system_define(DebugShapeRenderSys) {
       case DebugShapeType_CylinderWire:
       case DebugShapeType_CylinderOverlay: {
         const GeoBox    bounds = geo_box_inverted3(); // TODO: Compute bounds.
-        const GeoVector pos    = entry->data_cylinder.begin;
-        const GeoVector toEnd  = geo_vector_sub(entry->data_cylinder.end, pos);
-        const f32       dist   = geo_vector_mag(toEnd);
+        const GeoVector bottom = entry->data_cylinder.bottom;
+        const GeoVector toTop  = geo_vector_sub(entry->data_cylinder.top, bottom);
+        const f32       dist   = geo_vector_mag(toTop);
         if (UNLIKELY(dist < f32_epsilon)) {
           continue;
         }
         const DrawData data = {
-            .pos   = pos,
-            .rot   = geo_quat_look(geo_vector_div(toEnd, dist), geo_up),
+            .pos   = bottom,
+            .rot   = geo_quat_look(geo_vector_div(toTop, dist), geo_up),
             .scale = {entry->data_cylinder.radius, entry->data_cylinder.radius, dist},
             .color = entry->data_cylinder.color,
         };
@@ -270,36 +270,36 @@ void debug_sphere_overlay(
 
 void debug_cylinder_fill(
     DebugShapeComp* comp,
-    const GeoVector begin,
-    const GeoVector end,
+    const GeoVector bottom,
+    const GeoVector top,
     const f32       radius,
     const GeoColor  color) {
   *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
       .type          = DebugShapeType_CylinderFill,
-      .data_cylinder = {.begin = begin, .end = end, .radius = radius, .color = color},
+      .data_cylinder = {.bottom = bottom, .top = top, .radius = radius, .color = color},
   };
 }
 
 void debug_cylinder_wire(
     DebugShapeComp* comp,
-    const GeoVector begin,
-    const GeoVector end,
+    const GeoVector bottom,
+    const GeoVector top,
     const f32       radius,
     const GeoColor  color) {
   *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
       .type          = DebugShapeType_CylinderWire,
-      .data_cylinder = {.begin = begin, .end = end, .radius = radius, .color = color},
+      .data_cylinder = {.bottom = bottom, .top = top, .radius = radius, .color = color},
   };
 }
 
 void debug_cylinder_overlay(
     DebugShapeComp* comp,
-    const GeoVector begin,
-    const GeoVector end,
+    const GeoVector bottom,
+    const GeoVector top,
     const f32       radius,
     const GeoColor  color) {
   *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
       .type          = DebugShapeType_CylinderOverlay,
-      .data_cylinder = {.begin = begin, .end = end, .radius = radius, .color = color},
+      .data_cylinder = {.bottom = bottom, .top = top, .radius = radius, .color = color},
   };
 }
