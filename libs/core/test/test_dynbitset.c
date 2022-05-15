@@ -12,14 +12,16 @@ spec(dynbitset) {
     dynbitset_destroy(&bitset);
   }
 
-  it("always has a size that is a multiple of 8") {
+  it("always has a size that is a multiple of 64") {
     Allocator* alloc = alloc_bump_create_stack(128);
 
     DynBitSet bitset = dynbitset_create(alloc, 8);
     dynbitset_set(&bitset, 1);
-    check_eq_int(dynbitset_size(&bitset), 8);
+    check_eq_int(dynbitset_size(&bitset), 64);
     dynbitset_set(&bitset, 42);
-    check_eq_int(dynbitset_size(&bitset), 48);
+    check_eq_int(dynbitset_size(&bitset), 64);
+    dynbitset_set(&bitset, 70);
+    check_eq_int(dynbitset_size(&bitset), 128);
     dynbitset_destroy(&bitset);
   }
 
@@ -32,7 +34,7 @@ spec(dynbitset) {
     check(!dynbitset_test(&bitset, 42));
 
     dynbitset_set(&bitset, 42);
-    check_eq_int(dynbitset_size(&bitset), 48); // Nearest 8 bit aligned size.
+    check_eq_int(dynbitset_size(&bitset), 64); // Nearest 64 bit aligned size.
 
     check(dynbitset_test(&bitset, 42));
     check(!dynbitset_test(&bitset, 41));
