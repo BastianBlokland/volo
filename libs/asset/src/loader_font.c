@@ -13,9 +13,9 @@
 #if defined(VOLO_MSVC)
 #include <math.h>
 #pragma intrinsic(sqrt)
-#define intrinsic_sqrt sqrt
+#define intrinsic_sqrt_f32 sqrtf
 #else
-#define intrinsic_sqrt __builtin_sqrt
+#define intrinsic_sqrt_f32 __builtin_sqrtf
 #endif
 
 ecs_comp_define_public(AssetFontComp);
@@ -108,7 +108,7 @@ static f32 font_math_dist_sqr(const AssetFontPoint start, const AssetFontPoint e
 
 static f32 font_math_dist(const AssetFontPoint start, const AssetFontPoint end) {
   const f32 distSqr = font_math_dist_sqr(start, end);
-  return intrinsic_sqrt(distSqr);
+  return intrinsic_sqrt_f32(distSqr);
 }
 
 static AssetFontPoint
@@ -267,6 +267,6 @@ f32 asset_font_glyph_dist(
     }
     }
   }
-  const f32 minDist = intrinsic_sqrt(minDistSqr);
+  const f32 minDist = intrinsic_sqrt_f32(minDistSqr);
   return minDist * (inside ? -1.0f : 1.0f);
 }
