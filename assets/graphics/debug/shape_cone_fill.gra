@@ -1,0 +1,17 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/debug/shape.vert.spv"
+    },
+    {
+      "shaderId": "shaders/debug/shape.frag.spv"
+    }
+  ],
+  "meshId": "meshes/debug/shape_cone.pme",
+  "renderOrder": 50,
+  "topology": "Triangles",
+  "rasterizer": "Fill",
+  "blend": "Alpha",
+  "depth": "Less",
+  "cull": "Back"
+}

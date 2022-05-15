@@ -22,3 +22,6 @@ void debug_sphere_overlay(DebugShapeComp*, GeoVector pos, f32 radius, GeoColor);
 void debug_cylinder_fill(DebugShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor);
 void debug_cylinder_wire(DebugShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor);
 void debug_cylinder_overlay(DebugShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor);
+void debug_cone_fill(DebugShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor);
+void debug_cone_wire(DebugShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor);
+void debug_cone_overlay(DebugShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor);

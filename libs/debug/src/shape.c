@@ -17,6 +17,9 @@ typedef enum {
   DebugShapeType_CylinderFill,
   DebugShapeType_CylinderWire,
   DebugShapeType_CylinderOverlay,
+  DebugShapeType_ConeFill,
+  DebugShapeType_ConeWire,
+  DebugShapeType_ConeOverlay,
 
   DebugShapeType_Count,
 } DebugShapeType;
@@ -38,14 +41,14 @@ typedef struct {
   GeoVector bottom, top;
   f32       radius;
   GeoColor  color;
-} DebugShapeCylinder;
+} DebugShapeCylOrCone;
 
 typedef struct {
   DebugShapeType type;
   union {
-    DebugShapeBox      data_box;
-    DebugShapeSphere   data_sphere;
-    DebugShapeCylinder data_cylinder;
+    DebugShapeBox       data_box;
+    DebugShapeSphere    data_sphere;
+    DebugShapeCylOrCone data_cylOrCone;
   };
 } DebugShape;
 
@@ -58,6 +61,9 @@ static const String g_debugGraphics[DebugShapeType_Count] = {
     [DebugShapeType_CylinderFill]    = string_static("graphics/debug/shape_cylinder_fill.gra"),
     [DebugShapeType_CylinderWire]    = string_static("graphics/debug/shape_cylinder_wire.gra"),
     [DebugShapeType_CylinderOverlay] = string_static("graphics/debug/shape_cylinder_overlay.gra"),
+    [DebugShapeType_ConeFill]        = string_static("graphics/debug/shape_cone_fill.gra"),
+    [DebugShapeType_ConeWire]        = string_static("graphics/debug/shape_cone_wire.gra"),
+    [DebugShapeType_ConeOverlay]     = string_static("graphics/debug/shape_cone_overlay.gra"),
 };
 
 ecs_comp_define(DebugShapeRendererComp) { EcsEntityId drawEntities[DebugShapeType_Count]; };
@@ -170,10 +176,13 @@ ecs_system_define(DebugShapeRenderSys) {
       }
       case DebugShapeType_CylinderFill:
       case DebugShapeType_CylinderWire:
-      case DebugShapeType_CylinderOverlay: {
+      case DebugShapeType_CylinderOverlay:
+      case DebugShapeType_ConeFill:
+      case DebugShapeType_ConeWire:
+      case DebugShapeType_ConeOverlay: {
         const GeoBox    bounds = geo_box_inverted3(); // TODO: Compute bounds.
-        const GeoVector bottom = entry->data_cylinder.bottom;
-        const GeoVector toTop  = geo_vector_sub(entry->data_cylinder.top, bottom);
+        const GeoVector bottom = entry->data_cylOrCone.bottom;
+        const GeoVector toTop  = geo_vector_sub(entry->data_cylOrCone.top, bottom);
         const f32       dist   = geo_vector_mag(toTop);
         if (UNLIKELY(dist < f32_epsilon)) {
           continue;
@@ -181,8 +190,8 @@ ecs_system_define(DebugShapeRenderSys) {
         const DrawData data = {
             .pos   = bottom,
             .rot   = geo_quat_look(geo_vector_div(toTop, dist), geo_up),
-            .scale = {entry->data_cylinder.radius, entry->data_cylinder.radius, dist},
-            .color = entry->data_cylinder.color,
+            .scale = {entry->data_cylOrCone.radius, entry->data_cylOrCone.radius, dist},
+            .color = entry->data_cylOrCone.color,
         };
         rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, bounds);
         continue;
@@ -275,8 +284,8 @@ void debug_cylinder_fill(
     const f32       radius,
     const GeoColor  color) {
   *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
-      .type          = DebugShapeType_CylinderFill,
-      .data_cylinder = {.bottom = bottom, .top = top, .radius = radius, .color = color},
+      .type           = DebugShapeType_CylinderFill,
+      .data_cylOrCone = {.bottom = bottom, .top = top, .radius = radius, .color = color},
   };
 }
 
@@ -287,8 +296,8 @@ void debug_cylinder_wire(
     const f32       radius,
     const GeoColor  color) {
   *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
-      .type          = DebugShapeType_CylinderWire,
-      .data_cylinder = {.bottom = bottom, .top = top, .radius = radius, .color = color},
+      .type           = DebugShapeType_CylinderWire,
+      .data_cylOrCone = {.bottom = bottom, .top = top, .radius = radius, .color = color},
   };
 }
 
@@ -299,7 +308,43 @@ void debug_cylinder_overlay(
     const f32       radius,
     const GeoColor  color) {
   *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
-      .type          = DebugShapeType_CylinderOverlay,
-      .data_cylinder = {.bottom = bottom, .top = top, .radius = radius, .color = color},
+      .type           = DebugShapeType_CylinderOverlay,
+      .data_cylOrCone = {.bottom = bottom, .top = top, .radius = radius, .color = color},
+  };
+}
+
+void debug_cone_fill(
+    DebugShapeComp* comp,
+    const GeoVector bottom,
+    const GeoVector top,
+    const f32       radius,
+    const GeoColor  color) {
+  *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
+      .type           = DebugShapeType_ConeFill,
+      .data_cylOrCone = {.bottom = bottom, .top = top, .radius = radius, .color = color},
+  };
+}
+
+void debug_cone_wire(
+    DebugShapeComp* comp,
+    const GeoVector bottom,
+    const GeoVector top,
+    const f32       radius,
+    const GeoColor  color) {
+  *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
+      .type           = DebugShapeType_ConeWire,
+      .data_cylOrCone = {.bottom = bottom, .top = top, .radius = radius, .color = color},
+  };
+}
+
+void debug_cone_overlay(
+    DebugShapeComp* comp,
+    const GeoVector bottom,
+    const GeoVector top,
+    const f32       radius,
+    const GeoColor  color) {
+  *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
+      .type           = DebugShapeType_ConeOverlay,
+      .data_cylOrCone = {.bottom = bottom, .top = top, .radius = radius, .color = color},
   };
 }
