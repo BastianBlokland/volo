@@ -4,6 +4,8 @@
 #include "core_math.h"
 #include "core_types.h"
 
+#include "intrinsic_internal.h"
+
 usize bitset_size(const BitSet bits) { return bytes_to_bits(bits.size); }
 
 bool bitset_test(const BitSet bits, const usize idx) {
@@ -16,7 +18,7 @@ bool bitset_test(const BitSet bits, const usize idx) {
 
 usize bitset_count(const BitSet bits) {
   usize result = 0;
-  mem_for_u8(bits, itr) { result += bits_popcnt_32(*itr); }
+  mem_for_u8(bits, itr) { result += intrinsic_popcnt_32(*itr); }
   return result;
 }
 
@@ -60,12 +62,12 @@ usize bitset_next(const BitSet bits, const usize idx) {
   usize byteIdx = bits_to_bytes(idx);
   u8    byte    = *mem_at_u8(bits, byteIdx) >> bit_in_byte(idx);
   if (byte) {
-    return idx + bits_ctz_32(byte);
+    return idx + intrinsic_ctz_32(byte);
   }
   for (++byteIdx; byteIdx != bits.size; ++byteIdx) {
     byte = *mem_at_u8(bits, byteIdx);
     if (byte) {
-      return bytes_to_bits(byteIdx) + bits_ctz_32(byte);
+      return bytes_to_bits(byteIdx) + intrinsic_ctz_32(byte);
     }
   }
   return sentinel_usize;
@@ -75,10 +77,10 @@ usize bitset_index(const BitSet bits, const usize idx) {
   diag_assert(bitset_test(bits, idx));
   usize    byteIdx = bits_to_bytes(idx);
   const u8 byte    = (u8)(*mem_at_u8(bits, byteIdx) << (8 - bit_in_byte(idx)));
-  usize    result  = bits_popcnt_32(byte);
+  usize    result  = intrinsic_popcnt_32(byte);
   while (byteIdx) {
     --byteIdx;
-    result += bits_popcnt_32(*mem_at_u8(bits, byteIdx));
+    result += intrinsic_popcnt_32(*mem_at_u8(bits, byteIdx));
   }
   return result;
 }
