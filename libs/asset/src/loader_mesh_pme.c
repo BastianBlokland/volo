@@ -359,29 +359,29 @@ static void pme_generate_cone(PmeGenerator* gen) {
   const f32 invNumSegs = 1.0f / numSegs;
   const f32 radius     = 0.5f;
   for (u32 i = 0; i != numSegs; ++i) {
-    const f32 angleMax = i * segStep;
-    const f32 angleMin = angleMax - segStep;
+    const f32 angleRight = i * segStep;
+    const f32 angleLeft  = angleRight - segStep;
 
-    const GeoVector minPos = {math_sin_f32(angleMin), math_cos_f32(angleMin), -1};
-    const GeoVector minNrm = {minPos.x, minPos.y};
-    const GeoVector minTex = {i * invNumSegs, 0};
+    const GeoVector leftPos = {math_sin_f32(angleLeft), math_cos_f32(angleLeft), -1};
+    const GeoVector leftNrm = {leftPos.x, leftPos.y};
+    const GeoVector leftTex = {i * invNumSegs, 0};
 
-    const GeoVector maxPos = {math_sin_f32(angleMax), math_cos_f32(angleMax), -1};
-    GeoVector       maxNrm = {maxPos.x, maxPos.y};
-    const GeoVector maxTex = {(i + 1.0f) * invNumSegs, 0};
+    const GeoVector rightPos = {math_sin_f32(angleRight), math_cos_f32(angleRight), -1};
+    const GeoVector rightNrm = {rightPos.x, rightPos.y};
+    const GeoVector rightTex = {(i + 1.0f) * invNumSegs, 0};
 
-    const GeoVector topTex = {(minTex.x + maxTex.x) * 0.5f, 1};
-    const GeoVector topNrm =
-        geo_vector_norm(geo_vector((minPos.x + maxPos.x) * 0.5f, (minPos.y + maxPos.y) * 0.5f));
+    const GeoVector topTex = {(leftTex.x + rightTex.x) * 0.5f, 1};
+    const GeoVector topNrm = geo_vector_norm(
+        geo_vector((leftPos.x + rightPos.x) * 0.5f, (leftPos.y + rightPos.y) * 0.5f));
 
     // Add side triangle.
-    pme_push_vert_nrm(gen, geo_vector_mul(minPos, radius), minTex, minNrm);
+    pme_push_vert_nrm(gen, geo_vector_mul(leftPos, radius), leftTex, leftNrm);
     pme_push_vert_nrm(gen, geo_vector(0, 0, 0.5f), topTex, topNrm);
-    pme_push_vert_nrm(gen, geo_vector_mul(maxPos, radius), maxTex, maxNrm);
+    pme_push_vert_nrm(gen, geo_vector_mul(rightPos, radius), rightTex, rightNrm);
 
     // Add bottom triangle.
-    pme_push_vert_nrm(gen, geo_vector_mul(minPos, radius), minTex, geo_backward);
-    pme_push_vert_nrm(gen, geo_vector_mul(maxPos, radius), maxTex, geo_backward);
+    pme_push_vert_nrm(gen, geo_vector_mul(leftPos, radius), leftTex, geo_backward);
+    pme_push_vert_nrm(gen, geo_vector_mul(rightPos, radius), rightTex, geo_backward);
     pme_push_vert_nrm(gen, geo_vector(0, 0, -0.5f), topTex, geo_backward);
   }
 
