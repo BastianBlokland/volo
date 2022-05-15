@@ -79,8 +79,28 @@ INLINE_HINT static void obj_mem_consume_inplace(Mem* mem, const usize amount) {
   mem->size -= amount;
 }
 
+INLINE_HINT static bool obj_starts_with(const String str, const String start) {
+  if (UNLIKELY(start.size > str.size)) {
+    return false;
+  }
+  u8* strItr = mem_begin(str);
+  for (u8* startItr = mem_begin(start); startItr != mem_end(start); ++startItr, ++strItr) {
+    if (*strItr != *startItr) {
+      return false;
+    }
+  }
+  return true;
+}
+
+INLINE_HINT static bool obj_starts_with_char(const String str, const u8 ch) {
+  if (UNLIKELY(!str.size)) {
+    return false;
+  }
+  return *mem_begin(str) == ch;
+}
+
 static String obj_consume_optional(String input, const String toConsume, bool* outConsumed) {
-  const bool consume = string_starts_with(input, toConsume);
+  const bool consume = obj_starts_with(input, toConsume);
   if (outConsumed) {
     *outConsumed = consume;
   }
@@ -198,7 +218,7 @@ static String obj_read_vertex(String input, ObjData* data, ObjError* err) {
   if (!consumed) {
     goto Success; // Vertex only specifies a position, this is perfectly valid.
   }
-  if (!string_starts_with(input, string_lit("/"))) {
+  if (!obj_starts_with_char(input, '/')) {
     // Texcoord index (optionally prefixed by 'vt').
     input = obj_consume_optional(input, string_lit("vt"), null);
     input = obj_read_index(input, data->texcoords.size, &vertex.texcoordIndex, err);
