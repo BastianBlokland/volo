@@ -36,6 +36,7 @@ typedef enum {
   PmeType_Cube,
   PmeType_Capsule,
   PmeType_Cone,
+  PmeType_Cylinder,
 } PmeType;
 
 typedef struct {
@@ -69,6 +70,7 @@ static void pme_datareg_init() {
     data_reg_const_t(g_dataReg, PmeType, Cube);
     data_reg_const_t(g_dataReg, PmeType, Capsule);
     data_reg_const_t(g_dataReg, PmeType, Cone);
+    data_reg_const_t(g_dataReg, PmeType, Cylinder);
 
     data_reg_enum_t(g_dataReg, PmeAxis);
     data_reg_const_t(g_dataReg, PmeAxis, Up);
@@ -159,6 +161,8 @@ static usize pme_max_verts(PmeDef* def) {
     return (math_max(4, def->subdivisions) + 2) * (math_max(4, def->subdivisions) + 2) * 4;
   case PmeType_Cone:
     return math_max(4, def->subdivisions) * 2 * 3;
+  case PmeType_Cylinder:
+    return math_max(4, def->subdivisions) * 4 * 3;
   }
   diag_crash();
 }
@@ -389,6 +393,56 @@ static void pme_generate_cone(PmeGenerator* gen) {
   asset_mesh_compute_tangents(gen->builder);
 }
 
+static void pme_generate_cylinder(PmeGenerator* gen) {
+  const u32 numSegs    = math_max(4, gen->def->subdivisions);
+  const f32 segStep    = math_pi_f32 * 2.0f / numSegs;
+  const f32 invNumSegs = 1.0f / numSegs;
+  const f32 radius     = 0.5f;
+  for (u32 i = 0; i != numSegs; ++i) {
+    const f32 angleRight = i * segStep;
+    const f32 angleLeft  = angleRight - segStep;
+    const f32 leftX = math_sin_f32(angleLeft), leftY = math_cos_f32(angleLeft);
+    const f32 rightX = math_sin_f32(angleRight), rightY = math_cos_f32(angleRight);
+
+    const GeoVector leftBottomPos = {leftX, leftY, -1};
+    const GeoVector leftTopPos    = {leftX, leftY, 1};
+    const GeoVector leftNrm       = {leftX, leftY};
+    const GeoVector leftBottomTex = {i * invNumSegs, 0};
+    const GeoVector leftTopTex    = {i * invNumSegs, 1};
+
+    const GeoVector rightBottomPos = {rightX, rightY, -1};
+    const GeoVector rightTopPos    = {rightX, rightY, 1};
+    const GeoVector rightNrm       = {rightX, rightY};
+    const GeoVector rightBottomTex = {(i + 1.0f) * invNumSegs, 0};
+    const GeoVector rightTopTex    = {(i + 1.0f) * invNumSegs, 1};
+
+    // Add side triangle 1.
+    pme_push_vert_nrm(gen, geo_vector_mul(leftBottomPos, radius), leftBottomTex, leftNrm);
+    pme_push_vert_nrm(gen, geo_vector_mul(leftTopPos, radius), leftTopTex, leftNrm);
+    pme_push_vert_nrm(gen, geo_vector_mul(rightBottomPos, radius), rightBottomTex, rightNrm);
+
+    // Add side triangle 2.
+    pme_push_vert_nrm(gen, geo_vector_mul(leftTopPos, radius), leftTopTex, leftNrm);
+    pme_push_vert_nrm(gen, geo_vector_mul(rightTopPos, radius), rightTopTex, rightNrm);
+    pme_push_vert_nrm(gen, geo_vector_mul(rightBottomPos, radius), rightBottomTex, rightNrm);
+
+    // Add top triangle.
+    const GeoVector centerTopTex = {(leftTopTex.x + rightTopTex.x) * 0.5f, 1};
+    pme_push_vert_nrm(gen, geo_vector_mul(leftTopPos, radius), leftTopTex, geo_forward);
+    pme_push_vert_nrm(gen, geo_vector(0, 0, 0.5f), centerTopTex, geo_forward);
+    pme_push_vert_nrm(gen, geo_vector_mul(rightTopPos, radius), rightTopTex, geo_forward);
+
+    // Add bottom triangle.
+    const GeoVector centerBottomTex = {(leftBottomTex.x + rightBottomTex.x) * 0.5f, 0};
+    pme_push_vert_nrm(gen, geo_vector_mul(leftBottomPos, radius), leftBottomTex, geo_backward);
+    pme_push_vert_nrm(gen, geo_vector_mul(rightBottomPos, radius), rightBottomTex, geo_backward);
+    pme_push_vert_nrm(gen, geo_vector(0, 0, -0.5f), centerBottomTex, geo_backward);
+  }
+
+  // TODO: Compute the tangents directly instead of this separate pass.
+  asset_mesh_compute_tangents(gen->builder);
+}
+
 static void pme_generate(PmeGenerator* gen) {
   switch (gen->def->type) {
   case PmeType_Triangle:
@@ -406,6 +460,9 @@ static void pme_generate(PmeGenerator* gen) {
   } break;
   case PmeType_Cone:
     pme_generate_cone(gen);
+    break;
+  case PmeType_Cylinder:
+    pme_generate_cylinder(gen);
     break;
   }
 }
