@@ -60,7 +60,8 @@ static UiBuildContainer* ui_build_container_active(UiBuildState* state) {
                                         : ui_build_container_currect(state);
 }
 
-static UiVector ui_resolve_vec(UiBuildState* state, const UiVector vec, const UiBase units) {
+INLINE_HINT static UiVector
+ui_resolve_vec(UiBuildState* state, const UiVector vec, const UiBase units) {
   switch (units) {
   case UiBase_Absolute:
     return vec;
@@ -102,7 +103,7 @@ static UiVector ui_resolve_origin(UiBuildState* state, const UiBase origin) {
   diag_crash();
 }
 
-static UiVector ui_resolve_pos(
+INLINE_HINT static UiVector ui_resolve_pos(
     UiBuildState* state, const UiBase origin, const UiVector offset, const UiBase units) {
   const UiVector originVec = ui_resolve_origin(state, origin);
   const UiVector offsetVec = ui_resolve_vec(state, offset, units);
@@ -391,7 +392,7 @@ static void ui_build_debug_inspector(UiBuildState* state, const UiId id, const U
       &ui_build_text_background);
 }
 
-static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
+INLINE_HINT static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
   switch (cmd->type) {
   case UiCmd_RectPush:
     diag_assert(state->rectStackCount < ui_build_rect_stack_max);

@@ -1,6 +1,7 @@
 #include "asset_texture.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -157,6 +158,11 @@ static void tga_read_pixel_unchecked(u8* data, const TgaFlags flags, AssetTextur
   }
 }
 
+INLINE_HINT static void tga_mem_consume_inplace(Mem* mem, const usize amount) {
+  mem->ptr = bits_ptr_offset(mem->ptr, amount);
+  mem->size -= amount;
+}
+
 static Mem tga_read_pixels_uncompressed(
     Mem                  input,
     const u32            width,
@@ -212,8 +218,8 @@ static Mem tga_read_pixels_rle(
           *err = TgaError_MalformedRlePixels;
           return input;
         }
-        u8 packetHeader;
-        input                  = mem_consume_u8(input, &packetHeader);
+        u8 packetHeader = *mem_begin(input);
+        tga_mem_consume_inplace(&input, 1);
         const bool isRlePacket = (packetHeader & 0b10000000) != 0; // Msb indicates packet type.
         packetRefPixel         = isRlePacket ? i : u32_max;
         packetRem              = packetHeader & 0b01111111; // Remaining 7 bits are the rep count.
@@ -233,7 +239,7 @@ static Mem tga_read_pixels_rle(
       } else {
         // No reference pixel; Read a new pixel value.
         tga_read_pixel_unchecked(mem_begin(input), flags, &out[i]);
-        input = mem_consume(input, pixelSize);
+        tga_mem_consume_inplace(&input, pixelSize);
       }
     }
   }

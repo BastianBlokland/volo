@@ -63,7 +63,8 @@ static void ecs_combine_draw(void* dataA, void* dataB) {
   ecs_destruct_draw(drawB);
 }
 
-static void rend_draw_ensure_storage(Mem* mem, const usize neededSize, const usize align) {
+INLINE_HINT static void
+rend_draw_ensure_storage(Mem* mem, const usize neededSize, const usize align) {
   if (UNLIKELY(mem->size < neededSize)) {
     const Mem newMem = alloc_alloc(g_alloc_heap, bits_nextpow2(neededSize), align);
     if (mem_valid(*mem)) {
@@ -75,11 +76,13 @@ static void rend_draw_ensure_storage(Mem* mem, const usize neededSize, const usi
 }
 
 static Mem rend_draw_inst_data(const RendDrawComp* draw, const u32 instance) {
-  return mem_slice(draw->instDataMem, instance * draw->instDataSize, draw->instDataSize);
+  const usize offset = instance * draw->instDataSize;
+  return mem_create(bits_ptr_offset(draw->instDataMem.ptr, offset), draw->instDataSize);
 }
 
 static Mem rend_draw_inst_output_data(const RendDrawComp* draw, const u32 instance) {
-  return mem_slice(draw->instDataOutput, instance * draw->instDataSize, draw->instDataSize);
+  const usize offset = instance * draw->instDataSize;
+  return mem_create(bits_ptr_offset(draw->instDataOutput.ptr, offset), draw->instDataSize);
 }
 
 /**

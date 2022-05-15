@@ -64,15 +64,40 @@ INLINE_HINT static EcsCompId ecs_comp_next(const BitSet mask, const EcsCompId id
   u64        dwordIdx = bits_to_dwords(id);
   u64        dword    = dwords[dwordIdx] >> bit_in_dword(id);
   if (dword) {
-    intrinsic_ctz_64(trailing, dword);
-    return id + trailing;
+    return id + intrinsic_ctz_64(dword);
   }
-  for (++dwordIdx; dwordIdx != mask.size; ++dwordIdx) {
+  for (++dwordIdx;; ++dwordIdx) {
     dword = dwords[dwordIdx];
     if (dword) {
-      intrinsic_ctz_64(trailing, dword);
-      return dwords_to_bits(dwordIdx) + trailing;
+      return dwords_to_bits(dwordIdx) + intrinsic_ctz_64(dword);
     }
   }
   UNREACHABLE
+}
+
+/**
+ * Test if two component masks are equal.
+ */
+INLINE_HINT static EcsCompId ecs_comp_mask_eq(const BitSet a, const BitSet b) {
+  const u64* dwordsA    = a.ptr;
+  const u64* dwordsAEnd = bits_ptr_offset(a.ptr, a.size);
+  const u64* dwordsB    = b.ptr;
+  for (; dwordsA != dwordsAEnd; ++dwordsA, ++dwordsB) {
+    if (*dwordsA != *dwordsB) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Count the number of components in the mask.
+ */
+INLINE_HINT static u32 ecs_comp_mask_count(const BitSet mask) {
+  u32        result    = 0;
+  const u64* dwordsEnd = bits_ptr_offset(mask.ptr, mask.size);
+  for (const u64* dword = mask.ptr; dword != dwordsEnd; ++dword) {
+    result += intrinsic_popcnt_64(*dword);
+  }
+  return result;
 }

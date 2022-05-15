@@ -1,6 +1,7 @@
 #include "asset_mesh.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -73,12 +74,53 @@ static String obj_error_str(const ObjError err) {
   return g_msgs[err];
 }
 
-static String obj_consume_optional(const String input, const String toConsume, bool* outConsumed) {
-  const bool consume = string_starts_with(input, toConsume);
+INLINE_HINT static void obj_mem_consume_inplace(Mem* mem, const usize amount) {
+  mem->ptr = bits_ptr_offset(mem->ptr, amount);
+  mem->size -= amount;
+}
+
+INLINE_HINT static bool obj_starts_with(const String str, const String start) {
+  if (UNLIKELY(start.size > str.size)) {
+    return false;
+  }
+  u8* strItr = mem_begin(str);
+  for (u8* startItr = mem_begin(start); startItr != mem_end(start); ++startItr, ++strItr) {
+    if (*strItr != *startItr) {
+      return false;
+    }
+  }
+  return true;
+}
+
+INLINE_HINT static bool obj_starts_with_char(const String str, const u8 ch) {
+  if (UNLIKELY(!str.size)) {
+    return false;
+  }
+  return *mem_begin(str) == ch;
+}
+
+INLINE_HINT static String
+obj_consume_optional(String input, const String toConsume, bool* outConsumed) {
+  const bool consume = obj_starts_with(input, toConsume);
   if (outConsumed) {
     *outConsumed = consume;
   }
-  return consume ? string_consume(input, toConsume.size) : input;
+  if (consume) {
+    obj_mem_consume_inplace(&input, toConsume.size);
+  }
+  return input;
+}
+
+INLINE_HINT static String
+obj_consume_optional_char(String input, const u8 toConsume, bool* outConsumed) {
+  const bool consume = obj_starts_with_char(input, toConsume);
+  if (outConsumed) {
+    *outConsumed = consume;
+  }
+  if (consume) {
+    obj_mem_consume_inplace(&input, 1);
+  }
+  return input;
 }
 
 /**
@@ -178,18 +220,18 @@ static String obj_read_vertex(String input, ObjData* data, ObjError* err) {
   ObjVertex vertex = {.texcoordIndex = sentinel_u32, .normalIndex = sentinel_u32};
 
   // Position index (optionally prefixed by 'v').
-  input = obj_consume_optional(input, string_lit("v"), null);
+  input = obj_consume_optional_char(input, 'v', null);
   input = obj_read_index(input, data->positions.size, &vertex.positionIndex, err);
   if (UNLIKELY(*err)) {
     return input;
   }
 
   bool consumed;
-  input = obj_consume_optional(input, string_lit("/"), &consumed);
+  input = obj_consume_optional_char(input, '/', &consumed);
   if (!consumed) {
     goto Success; // Vertex only specifies a position, this is perfectly valid.
   }
-  if (!string_starts_with(input, string_lit("/"))) {
+  if (!obj_starts_with_char(input, '/')) {
     // Texcoord index (optionally prefixed by 'vt').
     input = obj_consume_optional(input, string_lit("vt"), null);
     input = obj_read_index(input, data->texcoords.size, &vertex.texcoordIndex, err);
@@ -197,7 +239,7 @@ static String obj_read_vertex(String input, ObjData* data, ObjError* err) {
       return input;
     }
   }
-  input = obj_consume_optional(input, string_lit("/"), &consumed);
+  input = obj_consume_optional_char(input, '/', &consumed);
   if (consumed) {
     // Normal index (optionally prefixed by 'vn').
     input = obj_consume_optional(input, string_lit("vn"), null);
@@ -225,7 +267,7 @@ static String obj_read_face(String input, ObjData* data, ObjError* err) {
     case '\t':
     case 0x0B:
     case 0x0C:
-      input = string_consume(input, 1); // Ignore Ascii whitespace characters.
+      obj_mem_consume_inplace(&input, 1); // Ignore Ascii whitespace characters.
       break;
     case '\r':
     case '\n':
@@ -262,10 +304,10 @@ static String obj_read_data(String input, ObjData* data, ObjError* err) {
     case 0x0B:
     case 0x0C:
     case '\r':
-      input = string_consume(input, 1); // Ignore Ascii whitespace characters.
+      obj_mem_consume_inplace(&input, 1); // Ignore Ascii whitespace characters.
       break;
     case 'v':
-      input = string_consume(input, 1); // Consume 'v'.
+      obj_mem_consume_inplace(&input, 1); // Consume 'v'.
       if (UNLIKELY(!input.size)) {
         *err = ObjError_UnexpectedEndOfFile;
         goto End;
@@ -276,11 +318,11 @@ static String obj_read_data(String input, ObjData* data, ObjError* err) {
         input = obj_read_position(input, data, err);
         break;
       case 't':
-        input = string_consume(input, 1); // Consume 't'.
+        obj_mem_consume_inplace(&input, 1); // Consume 't'.
         input = obj_read_texcoord(input, data, err);
         break;
       case 'n':
-        input = string_consume(input, 1); // Consume 'n'.
+        obj_mem_consume_inplace(&input, 1); // Consume 'n'.
         input = obj_read_normal(input, data, err);
         break;
       default:
@@ -289,7 +331,7 @@ static String obj_read_data(String input, ObjData* data, ObjError* err) {
       }
       break;
     case 'f':
-      input = string_consume(input, 1); // Consume 'f'.
+      obj_mem_consume_inplace(&input, 1); // Consume 'f'.
       input = obj_read_face(input, data, err);
       break;
     default:

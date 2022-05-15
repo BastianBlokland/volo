@@ -2,6 +2,7 @@
 #include "core_annotation.h"
 #include "core_array.h"
 #include "core_ascii.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_format.h"
@@ -28,6 +29,30 @@ typedef struct {
   FormatReplOpt opt;
 } FormatRepl;
 
+INLINE_HINT static Mem format_mem_consume(const Mem mem, const usize amount) {
+  return mem_create(bits_ptr_offset(mem.ptr, amount), mem.size - amount);
+}
+
+INLINE_HINT static void format_mem_consume_inplace(Mem* mem, const usize amount) {
+  mem->ptr = bits_ptr_offset(mem->ptr, amount);
+  mem->size -= amount;
+}
+
+INLINE_HINT static bool format_ascii_is_digit(const u8 c) { return c >= '0' && c <= '9'; }
+
+INLINE_HINT static u8 format_ascii_to_integer(const u8 c) {
+  if (format_ascii_is_digit(c)) {
+    return c - '0';
+  }
+  if (c >= 'a' && c <= 'f') {
+    return c - ('a' - 10);
+  }
+  if (c >= 'A' && c <= 'F') {
+    return c - ('A' - 10);
+  }
+  return sentinel_u8;
+}
+
 /**
  * Parse option for a format replacement.
  * At the moment a single option is supported. But can be expanded to a comma seperated list of
@@ -40,15 +65,15 @@ static FormatReplOpt format_replacement_parse_opt(String str) {
     switch (*string_begin(str)) {
     case '>':
       result.kind = FormatReplOptKind_PadLeft;
-      str         = string_consume(str, 1); // Consume the '>'.
+      format_mem_consume_inplace(&str, 1); // Consume the '>'.
       break;
     case '<':
       result.kind = FormatReplOptKind_PadRight;
-      str         = string_consume(str, 1); // Consume the '<'.
+      format_mem_consume_inplace(&str, 1); // Consume the '<'.
       break;
     case ':':
       result.kind = FormatReplOptKind_PadCenter;
-      str         = string_consume(str, 1); // Consume the ':'.
+      format_mem_consume_inplace(&str, 1); // Consume the ':'.
       break;
     }
     if (result.kind) {
@@ -74,7 +99,7 @@ static bool format_replacement_find(String str, FormatRepl* result) {
   if (sentinel_check(startIdx)) {
     return false;
   }
-  const usize len = string_find_first(string_consume(str, startIdx), string_lit("}"));
+  const usize len = string_find_first(format_mem_consume(str, startIdx), string_lit("}"));
   if (sentinel_check(len)) {
     return false;
   }
@@ -125,7 +150,7 @@ void format_write_formatted(DynString* str, String format, const FormatArg* argH
 
       ++argHead;
     }
-    format = string_consume(format, repl.end);
+    format_mem_consume_inplace(&format, repl.end);
   }
 }
 
@@ -521,7 +546,7 @@ void format_write_text_wrapped(
       default:
         goto WhitespaceProcessed; // Non-whitespace character.
       }
-      val = string_consume(val, 1);
+      format_mem_consume_inplace(&val, 1);
     }
   WhitespaceProcessed:
 
@@ -544,7 +569,7 @@ void format_write_text_wrapped(
     // Write word to output.
     dynstring_append(str, word);
     column += word.size;
-    val = string_consume(val, word.size);
+    format_mem_consume_inplace(&val, word.size);
   }
 }
 
@@ -584,7 +609,7 @@ String format_read_char(String input, u8* output) {
   u8 result = '\0';
   if (LIKELY(!string_is_empty(input))) {
     result = *string_begin(input);
-    input  = string_consume(input, 1);
+    format_mem_consume_inplace(&input, 1);
   }
   if (LIKELY(output)) {
     *output = result;
@@ -607,7 +632,7 @@ String format_read_line(const String input, String* output) {
       *string_at(input, lineEnd + 1) == '\n') {
     ++lineEnd;
   }
-  return string_consume(input, lineEnd + 1);
+  return format_mem_consume(input, lineEnd + 1);
 }
 
 String format_read_whitespace(const String input, String* output) {
@@ -617,7 +642,7 @@ String format_read_whitespace(const String input, String* output) {
   if (output) {
     *output = string_slice(input, 0, idx);
   }
-  return string_consume(input, idx);
+  return format_mem_consume(input, idx);
 }
 
 static String format_read_sign(String input, i8* output) {
@@ -627,7 +652,7 @@ static String format_read_sign(String input, i8* output) {
     case '-':
       sign = -1;
     case '+':
-      input = string_consume(input, 1);
+      format_mem_consume_inplace(&input, 1);
       break;
     }
   }
@@ -641,7 +666,7 @@ String format_read_u64(const String input, u64* output, const u8 base) {
   usize idx = 0;
   u64   res = 0;
   for (; idx != input.size; ++idx) {
-    const u8 val = ascii_to_integer(*string_at(input, idx));
+    const u8 val = format_ascii_to_integer(*string_at(input, idx));
     if (sentinel_check(val) || val >= base) {
       break; // Not a digit, stop reading.
     }
@@ -651,7 +676,7 @@ String format_read_u64(const String input, u64* output, const u8 base) {
   if (output) {
     *output = res;
   }
-  return string_consume(input, idx);
+  return format_mem_consume(input, idx);
 }
 
 String format_read_i64(String input, i64* output, u8 base) {
@@ -679,10 +704,10 @@ String format_read_f64(String input, f64* output) {
     const char ch = *string_begin(input);
     if (ch == '.' && !passedDecPoint) {
       passedDecPoint = true;
-      input          = string_consume(input, 1);
+      format_mem_consume_inplace(&input, 1);
       continue;
     }
-    if (!ascii_is_digit(ch)) {
+    if (!format_ascii_is_digit(ch)) {
       break;
     }
 
@@ -690,13 +715,13 @@ String format_read_f64(String input, f64* output) {
     if (passedDecPoint) {
       divider *= 10.0;
     }
-    input = string_consume(input, 1);
+    format_mem_consume_inplace(&input, 1);
   }
 
   // Optionally read an exponent.
   if (!string_is_empty(input) && (*string_begin(input) == 'e' || *string_begin(input) == 'E')) {
     i64 exp = 0;
-    input   = format_read_i64(string_consume(input, 1), &exp, 10);
+    input   = format_read_i64(format_mem_consume(input, 1), &exp, 10);
     // TODO: Consider how to report too big / too small exponents.
     if (exp >= 0) {
       divider /= math_pow10_u64(math_min((u8)exp, 19));

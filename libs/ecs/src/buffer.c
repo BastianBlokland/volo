@@ -44,9 +44,9 @@ typedef struct {
 } EcsBufferEntity;
 
 static i8 ecs_buffer_compare_entity(const void* a, const void* b) {
-  const EcsEntityId* entityA = field_ptr(a, EcsBufferEntity, id);
-  const EcsEntityId* entityB = field_ptr(b, EcsBufferEntity, id);
-  return ecs_compare_entity(entityA, entityB);
+  const u32 serialA = ecs_entity_id_serial(((const EcsBufferEntity*)a)->id);
+  const u32 serialB = ecs_entity_id_serial(((const EcsBufferEntity*)b)->id);
+  return serialA < serialB ? -1 : serialA > serialB ? 1 : 0;
 }
 
 /**

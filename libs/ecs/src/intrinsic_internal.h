@@ -5,10 +5,15 @@
 
 #define intrinsic_popcnt_64 _mm_popcnt_u64
 
+/**
+ * Pre-condition: mask != 0.
+ */
+INLINE_HINT static u8 intrinsic_ctz_64(const u64 mask) {
 #if defined(VOLO_MSVC)
-#define intrinsic_ctz_64(_VAR_, _MASK_) u64 _VAR_; _BitScanForward64(&_VAR_, (_MASK_))
+  unsigned long res;
+  _BitScanForward64(&res, mask);
+  return res;
 #else
-#define intrinsic_ctz_64(_VAR_, _MASK_) u64 _VAR_ = __builtin_ctzll(_MASK_)
+  return __builtin_ctzll(mask);
 #endif
-
-// clang-format on
+}

@@ -1,80 +1,38 @@
 #include "core_bits.h"
 #include "core_diag.h"
 
-#include <immintrin.h>
+#include "intrinsic_internal.h"
 
-#if defined(VOLO_MSVC)
-#include "intrin.h"
-#pragma intrinsic(_BitScanForward)
-#pragma intrinsic(_BitScanReverse)
-#endif
+u8 bits_popcnt_32(const u32 mask) { return intrinsic_popcnt_32(mask); }
 
-u8 bits_popcnt_32(const u32 mask) {
-#if defined(VOLO_MSVC)
-  return __popcnt(mask);
-#else
-  return __builtin_popcount(mask);
-#endif
-}
-
-u8 bits_popcnt_64(const u64 mask) {
-#if defined(VOLO_MSVC)
-  return __popcnt64(mask);
-#else
-  return __builtin_popcountll(mask);
-#endif
-}
+u8 bits_popcnt_64(const u64 mask) { return intrinsic_popcnt_64(mask); }
 
 u8 bits_ctz_32(const u32 mask) {
   if (mask == 0u) {
     return 32;
   }
-#if defined(VOLO_MSVC)
-  unsigned long result;
-  _BitScanForward(&result, mask);
-  return (u8)result;
-#else
-  return __builtin_ctz(mask);
-#endif
+  return intrinsic_ctz_32(mask);
 }
 
 u8 bits_ctz_64(const u64 mask) {
   if (mask == 0u) {
     return 64;
   }
-#if defined(VOLO_MSVC)
-  unsigned long result;
-  _BitScanForward64(&result, mask);
-  return (u8)result;
-#else
-  return __builtin_ctzll(mask);
-#endif
+  return intrinsic_ctz_64(mask);
 }
 
 u8 bits_clz_32(const u32 mask) {
   if (mask == 0u) {
     return 32u;
   }
-#if defined(VOLO_MSVC)
-  unsigned long result;
-  _BitScanReverse(&result, mask);
-  return (u32)(31u - result);
-#else
-  return __builtin_clz(mask);
-#endif
+  return intrinsic_clz_32(mask);
 }
 
 u8 bits_clz_64(const u64 mask) {
   if (mask == 0u) {
     return 64u;
   }
-#if defined(VOLO_MSVC)
-  unsigned long result;
-  _BitScanReverse64(&result, mask);
-  return (u8)(63u - result);
-#else
-  return __builtin_clzll(mask);
-#endif
+  return intrinsic_clz_64(mask);
 }
 
 bool bits_ispow2_32(const u32 val) {

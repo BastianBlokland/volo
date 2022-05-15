@@ -127,7 +127,7 @@ static void ecs_archetype_copy_internal(EcsArchetype* archetype, const u32 dst, 
 EcsArchetype ecs_archetype_create(const EcsDef* def, BitSet mask) {
   diag_assert_msg(bitset_any(mask), "Archetype needs to contain atleast a single component");
 
-  const u32 compCount        = (u32)bitset_count(mask);
+  const u32 compCount        = ecs_comp_mask_count(mask);
   const u32 entitiesPerChunk = ecs_archetype_entities_per_chunk(def, mask);
   diag_assert_msg(entitiesPerChunk, "At least one entity has to fit in an archetype chunk");
 

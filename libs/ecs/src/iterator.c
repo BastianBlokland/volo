@@ -4,7 +4,7 @@
 #include "iterator_internal.h"
 
 EcsIterator* ecs_iterator_create(Mem mem, BitSet mask) {
-  return ecs_iterator_create_with_count(mem, mask, bitset_count(mask));
+  return ecs_iterator_create_with_count(mem, mask, ecs_comp_mask_count(mask));
 }
 
 EcsIterator* ecs_iterator_create_with_count(Mem mem, BitSet mask, usize compCount) {

@@ -77,12 +77,16 @@ void dynarray_clear(DynArray* array) {
 Mem dynarray_at(const DynArray* array, const usize idx, const usize count) {
   diag_assert(array);
   diag_assert(idx + count <= array->size);
-  return mem_slice(array->data, array->stride * idx, array->stride * count);
+  const usize offset = array->stride * idx;
+  const usize size   = array->stride * count;
+  return mem_create(bits_ptr_offset(array->data.ptr, offset), size);
 }
 
 Mem dynarray_push(DynArray* array, const usize count) {
   dynarray_resize(array, array->size + count);
-  return mem_slice(array->data, array->stride * (array->size - count), array->stride * count);
+  const usize offset = array->stride * (array->size - count);
+  const usize size   = array->stride * count;
+  return mem_create(bits_ptr_offset(array->data.ptr, offset), size);
 }
 
 void dynarray_pop(DynArray* array, usize count) {

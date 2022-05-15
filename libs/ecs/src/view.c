@@ -136,7 +136,7 @@ EcsView ecs_view_create(
 
   viewDef->initRoutine(&viewBuilder);
 
-  view.compCount = bitset_count(ecs_view_mask(&view, EcsViewMask_AccessRead));
+  view.compCount = ecs_comp_mask_count(ecs_view_mask(&view, EcsViewMask_AccessRead));
   return view;
 }
 

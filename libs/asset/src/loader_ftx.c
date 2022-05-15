@@ -131,11 +131,13 @@ static String ftx_error_str(const FtxError err) {
 }
 
 static i8 ftx_compare_char_cp(const void* a, const void* b) {
-  const i8 result = compare_u32(field_ptr(a, AssetFtxChar, cp), field_ptr(b, AssetFtxChar, cp));
+  const AssetFtxChar* charA  = a;
+  const AssetFtxChar* charB  = b;
+  const i8            result = charA->cp < charB->cp ? -1 : charA->cp > charB->cp ? 1 : 0;
   if (LIKELY(result != 0)) {
     return result;
   }
-  return compare_u8(field_ptr(a, AssetFtxChar, variation), field_ptr(b, AssetFtxChar, variation));
+  return charA->variation < charB->variation ? -1 : charA->variation > charB->variation ? 1 : 0;
 }
 
 typedef struct {

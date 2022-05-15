@@ -32,7 +32,7 @@ EcsEntityId entity_allocator_alloc(EntityAllocator* entityAllocator) {
     serial = ++entityAllocator->serialCounter;
 
     // Try to find a free index.
-    index = (u32)bitset_next(dynbitset_view(&entityAllocator->freeIndices), 0);
+    index = (u32)dynbitset_next(&entityAllocator->freeIndices, 0);
     if (sentinel_check(index)) {
       // No existing free index found, add one at the end.
       index = (u32)entityAllocator->totalIndices++;
@@ -64,7 +64,7 @@ u32 entity_allocator_count_active(const EntityAllocator* entityAllocator) {
   u32 result;
   thread_spinlock_lock((ThreadSpinLock*)&entityAllocator->lock);
   {
-    const usize totalFree = bitset_count(dynbitset_view(&entityAllocator->freeIndices));
+    const usize totalFree = dynbitset_count(&entityAllocator->freeIndices);
     result                = (u32)(entityAllocator->totalIndices - totalFree);
   }
   thread_spinlock_unlock((ThreadSpinLock*)&entityAllocator->lock);

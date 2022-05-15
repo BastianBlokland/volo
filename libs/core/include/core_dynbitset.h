@@ -29,6 +29,11 @@ void dynbitset_destroy(DynBitSet*);
 usize dynbitset_size(const DynBitSet*);
 
 /**
+ * Count all the set bits.
+ */
+usize dynbitset_count(const DynBitSet*);
+
+/**
  * Retreive a bitset-view over the entire dynamic-bitset.
  * NOTE: This bitset is invalidated when using any of the mutating dynamic-bitset apis.
  */
@@ -39,6 +44,12 @@ BitSet dynbitset_view(const DynBitSet*);
  * NOTE: Out of bounds bits are considered unset.
  */
 bool dynbitset_test(const DynBitSet*, usize idx);
+
+/**
+ * Return the next set bit starting from the given index.
+ * NOTE: Returns 'sentinel_usize' if there are no more set bits.
+ */
+usize dynbitset_next(const DynBitSet*, usize idx);
 
 /**
  * Set the bit at the given index.

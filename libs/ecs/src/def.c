@@ -6,24 +6,24 @@
 #include "def_internal.h"
 #include "module_internal.h"
 
-static const EcsCompDef* ecs_def_comp(const EcsDef* def, const EcsCompId id) {
+INLINE_HINT static const EcsCompDef* ecs_def_comp(const EcsDef* def, const EcsCompId id) {
   diag_assert_msg(id < def->components.size, "Invalid component id '{}'", fmt_int(id));
-  return dynarray_at_t(&def->components, (usize)id, EcsCompDef);
+  return dynarray_begin_t(&def->components, EcsCompDef) + id;
 }
 
 static const EcsViewDef* ecs_def_view(const EcsDef* def, const EcsViewId id) {
   diag_assert_msg(id < def->views.size, "Invalid view id '{}'", fmt_int(id));
-  return dynarray_at_t(&def->views, (usize)id, EcsViewDef);
+  return dynarray_begin_t(&def->views, EcsViewDef) + id;
 }
 
 static const EcsSystemDef* ecs_def_system(const EcsDef* def, const EcsSystemId id) {
   diag_assert_msg(id < def->systems.size, "Invalid system id '{}'", fmt_int(id));
-  return dynarray_at_t(&def->systems, (usize)id, EcsSystemDef);
+  return dynarray_begin_t(&def->systems, EcsSystemDef) + id;
 }
 
 static EcsSystemDef* ecs_def_system_mutable(EcsDef* def, const EcsSystemId id) {
   diag_assert_msg(id < def->systems.size, "Invalid system id '{}'", fmt_int(id));
-  return dynarray_at_t(&def->systems, (usize)id, EcsSystemDef);
+  return dynarray_begin_t(&def->systems, EcsSystemDef) + id;
 }
 
 MAYBE_UNUSED static const EcsModuleDef*
