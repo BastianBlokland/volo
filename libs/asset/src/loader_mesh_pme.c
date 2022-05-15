@@ -35,6 +35,7 @@ typedef enum {
   PmeType_Quad,
   PmeType_Cube,
   PmeType_Capsule,
+  PmeType_Cone,
 } PmeType;
 
 typedef struct {
@@ -67,6 +68,7 @@ static void pme_datareg_init() {
     data_reg_const_t(g_dataReg, PmeType, Quad);
     data_reg_const_t(g_dataReg, PmeType, Cube);
     data_reg_const_t(g_dataReg, PmeType, Capsule);
+    data_reg_const_t(g_dataReg, PmeType, Cone);
 
     data_reg_enum_t(g_dataReg, PmeAxis);
     data_reg_const_t(g_dataReg, PmeAxis, Up);
@@ -155,6 +157,8 @@ static usize pme_max_verts(PmeDef* def) {
     return (def->subdivisions + 1) * (def->subdivisions + 1) * 4 * 6;
   case PmeType_Capsule:
     return (math_max(4, def->subdivisions) + 2) * (math_max(4, def->subdivisions) + 2) * 4;
+  case PmeType_Cone:
+    return math_max(4, def->subdivisions) * 2 * 3;
   }
   diag_crash();
 }
@@ -349,6 +353,42 @@ static void pme_generate_capsule(PmeGenerator* gen, const f32 height) {
   asset_mesh_compute_tangents(gen->builder);
 }
 
+static void pme_generate_cone(PmeGenerator* gen) {
+  const u32 numSegs    = math_max(4, gen->def->subdivisions);
+  const f32 segStep    = math_pi_f32 * 2.0f / numSegs;
+  const f32 invNumSegs = 1.0f / numSegs;
+  const f32 radius     = 0.5f;
+  for (u32 i = 0; i != numSegs; ++i) {
+    const f32 angleMax = i * segStep;
+    const f32 angleMin = angleMax - segStep;
+
+    const GeoVector minPos = {math_sin_f32(angleMin), math_cos_f32(angleMin), -1};
+    const GeoVector minNrm = {minPos.x, minPos.y};
+    const GeoVector minTex = {i * invNumSegs, 0};
+
+    const GeoVector maxPos = {math_sin_f32(angleMax), math_cos_f32(angleMax), -1};
+    GeoVector       maxNrm = {maxPos.x, maxPos.y};
+    const GeoVector maxTex = {(i + 1.0f) * invNumSegs, 0};
+
+    const GeoVector topTex = {0.5f, 1};
+    const GeoVector topNrm =
+        geo_vector_norm(geo_vector((minPos.x + maxPos.x) * 0.5f, (minPos.y + maxPos.y) * 0.5f));
+
+    // Add side triangle.
+    pme_push_vert_nrm(gen, geo_vector_mul(minPos, radius), minTex, minNrm);
+    pme_push_vert_nrm(gen, geo_vector(0, 0, 0.5f), topTex, topNrm);
+    pme_push_vert_nrm(gen, geo_vector_mul(maxPos, radius), maxTex, maxNrm);
+
+    // Add bottom triangle.
+    pme_push_vert_nrm(gen, geo_vector_mul(minPos, radius), minTex, geo_backward);
+    pme_push_vert_nrm(gen, geo_vector_mul(maxPos, radius), maxTex, geo_backward);
+    pme_push_vert_nrm(gen, geo_vector(0, 0, -0.5f), topTex, geo_backward);
+  }
+
+  // TODO: Compute the tangents directly instead of this separate pass.
+  asset_mesh_compute_tangents(gen->builder);
+}
+
 static void pme_generate(PmeGenerator* gen) {
   switch (gen->def->type) {
   case PmeType_Triangle:
@@ -364,6 +404,9 @@ static void pme_generate(PmeGenerator* gen) {
     const f32 height = 1.0f / pme_def_axis_scale(gen->def) * gen->def->length;
     pme_generate_capsule(gen, height);
   } break;
+  case PmeType_Cone:
+    pme_generate_cone(gen);
+    break;
   }
 }
 
