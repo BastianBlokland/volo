@@ -74,3 +74,18 @@ INLINE_HINT static EcsCompId ecs_comp_next(const BitSet mask, const EcsCompId id
   }
   UNREACHABLE
 }
+
+/**
+ * Test if two component masks are equal.
+ */
+INLINE_HINT static EcsCompId ecs_comp_mask_eq(const BitSet a, const BitSet b) {
+  const u64* dwordsA    = a.ptr;
+  const u64* dwordsAEnd = bits_ptr_offset(a.ptr, a.size);
+  const u64* dwordsB    = b.ptr;
+  for (; dwordsA != dwordsAEnd; ++dwordsA, ++dwordsB) {
+    if (*dwordsA != *dwordsB) {
+      return false;
+    }
+  }
+  return true;
+}
