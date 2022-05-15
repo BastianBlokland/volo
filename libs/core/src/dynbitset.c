@@ -25,6 +25,16 @@ void dynbitset_destroy(DynBitSet* dynbitset) { dynarray_destroy(dynbitset); }
 
 usize dynbitset_size(const DynBitSet* dynbitset) { return bytes_to_bits(dynbitset->size); }
 
+usize dynbitset_count(const DynBitSet* dynbitset) {
+  usize       result    = 0;
+  const u64*  dwords    = dynbitset->data.ptr;
+  const usize wordCount = dynbitset->size / sizeof(u64);
+  for (usize i = 0; i != wordCount; ++i) {
+    result += intrinsic_popcnt_64(dwords[i]);
+  }
+  return result;
+}
+
 BitSet dynbitset_view(const DynBitSet* dynbitset) {
   return mem_create(bits_ptr_offset(dynbitset->data.ptr, 0), dynbitset->size);
 }

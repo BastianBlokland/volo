@@ -25,6 +25,22 @@ spec(dynbitset) {
     dynbitset_destroy(&bitset);
   }
 
+  it("can count set bits") {
+    Allocator* alloc  = alloc_bump_create_stack(128);
+    DynBitSet  bitset = dynbitset_create(alloc, 0);
+
+    dynbitset_set(&bitset, 0);
+    dynbitset_set(&bitset, 63);
+    dynbitset_set(&bitset, 42);
+    dynbitset_set(&bitset, 64);
+    dynbitset_set(&bitset, 99);
+    dynbitset_set(&bitset, 51);
+    dynbitset_set(&bitset, 143);
+    dynbitset_set(&bitset, 243);
+
+    check_eq_int(dynbitset_count(&bitset), 8);
+  }
+
   it("can test for set bits") {
     Allocator* alloc  = alloc_bump_create_stack(128);
     DynBitSet  bitset = dynbitset_create(alloc, 0);

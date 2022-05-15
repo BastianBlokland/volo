@@ -64,7 +64,7 @@ u32 entity_allocator_count_active(const EntityAllocator* entityAllocator) {
   u32 result;
   thread_spinlock_lock((ThreadSpinLock*)&entityAllocator->lock);
   {
-    const usize totalFree = bitset_count(dynbitset_view(&entityAllocator->freeIndices));
+    const usize totalFree = dynbitset_count(&entityAllocator->freeIndices);
     result                = (u32)(entityAllocator->totalIndices - totalFree);
   }
   thread_spinlock_unlock((ThreadSpinLock*)&entityAllocator->lock);

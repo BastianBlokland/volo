@@ -29,6 +29,11 @@ void dynbitset_destroy(DynBitSet*);
 usize dynbitset_size(const DynBitSet*);
 
 /**
+ * Count all the set bits.
+ */
+usize dynbitset_count(const DynBitSet*);
+
+/**
  * Retreive a bitset-view over the entire dynamic-bitset.
  * NOTE: This bitset is invalidated when using any of the mutating dynamic-bitset apis.
  */
