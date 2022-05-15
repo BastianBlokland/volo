@@ -89,3 +89,15 @@ INLINE_HINT static EcsCompId ecs_comp_mask_eq(const BitSet a, const BitSet b) {
   }
   return true;
 }
+
+/**
+ * Count the number of components in the mask.
+ */
+INLINE_HINT static u32 ecs_comp_mask_count(const BitSet mask) {
+  u32        result    = 0;
+  const u64* dwordsEnd = bits_ptr_offset(mask.ptr, mask.size);
+  for (const u64* dword = mask.ptr; dword != dwordsEnd; ++dword) {
+    result += intrinsic_popcnt_64(*dword);
+  }
+  return result;
+}

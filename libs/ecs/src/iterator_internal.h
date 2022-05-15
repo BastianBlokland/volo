@@ -22,7 +22,8 @@ struct sEcsIterator {
 ASSERT(sizeof(EcsIterator) < ecs_iterator_size_max, "EcsIterator size exceeds the maximum");
 
 #define ecs_iterator_stack(_MASK_)                                                                 \
-  ecs_iterator_create(mem_stack(sizeof(EcsIterator) + bitset_count(_MASK_) * sizeof(Mem)), (_MASK_))
+  ecs_iterator_create(                                                                             \
+      mem_stack(sizeof(EcsIterator) + ecs_comp_mask_count(_MASK_) * sizeof(Mem)), (_MASK_))
 
 EcsIterator* ecs_iterator_create(Mem mem, BitSet mask);
 EcsIterator* ecs_iterator_create_with_count(Mem mem, BitSet mask, usize compCount);

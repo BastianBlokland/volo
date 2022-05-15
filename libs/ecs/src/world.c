@@ -63,7 +63,7 @@ static EcsArchetypeId ecs_world_archetype_find_or_create(EcsWorld* world, const 
 #if defined(VOLO_ECS_WORLD_LOGGING_VERBOSE)
   log_d(
       "Ecs archetype created",
-      log_param("components", fmt_int(bitset_count(mask))),
+      log_param("components", fmt_int(ecs_comp_mask_count(mask))),
       log_param(
           "entities-per-chunk",
           fmt_int(ecs_storage_archetype_entities_per_chunk(&world->storage, newId))),
