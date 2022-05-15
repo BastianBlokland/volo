@@ -38,6 +38,19 @@ INLINE_HINT static void format_mem_consume_inplace(Mem* mem, const usize amount)
   mem->size -= amount;
 }
 
+INLINE_HINT static u8 format_ascii_to_integer(const u8 c) {
+  if (c >= '0' && c <= '9') {
+    return c - '0';
+  }
+  if (c >= 'a' && c <= 'f') {
+    return c - ('a' - 10);
+  }
+  if (c >= 'A' && c <= 'F') {
+    return c - ('A' - 10);
+  }
+  return sentinel_u8;
+}
+
 /**
  * Parse option for a format replacement.
  * At the moment a single option is supported. But can be expanded to a comma seperated list of
@@ -651,7 +664,7 @@ String format_read_u64(const String input, u64* output, const u8 base) {
   usize idx = 0;
   u64   res = 0;
   for (; idx != input.size; ++idx) {
-    const u8 val = ascii_to_integer(*string_at(input, idx));
+    const u8 val = format_ascii_to_integer(*string_at(input, idx));
     if (sentinel_check(val) || val >= base) {
       break; // Not a digit, stop reading.
     }
