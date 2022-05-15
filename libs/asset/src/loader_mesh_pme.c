@@ -370,7 +370,7 @@ static void pme_generate_cone(PmeGenerator* gen) {
     GeoVector       maxNrm = {maxPos.x, maxPos.y};
     const GeoVector maxTex = {(i + 1.0f) * invNumSegs, 0};
 
-    const GeoVector topTex = {0.5f, 1};
+    const GeoVector topTex = {(minTex.x + maxTex.x) * 0.5f, 1};
     const GeoVector topNrm =
         geo_vector_norm(geo_vector((minPos.x + maxPos.x) * 0.5f, (minPos.y + maxPos.y) * 0.5f));
 
