@@ -473,21 +473,37 @@ Error:
 
 const AssetFtxChar*
 asset_ftx_lookup(const AssetFtxComp* comp, const Unicode cp, const u8 variation) {
-  const AssetFtxChar* ch = search_binary_t(
-      comp->characters,
-      comp->characters + comp->characterCount,
-      AssetFtxChar,
-      ftx_compare_char_cp,
-      mem_struct(AssetFtxChar, .cp = cp, .variation = variation).ptr);
 
-  if (UNLIKELY(!ch)) {
-    if (variation) {
-      // Try with the default variation.
-      return asset_ftx_lookup(comp, cp, 0);
+  /**
+   * Binary scan to find a character with a matching code-point.
+   * Looks for a character with the same variation otherwise variation 0 is returned.
+   */
+  const AssetFtxChar* begin      = comp->characters;
+  const AssetFtxChar* end        = comp->characters + comp->characterCount;
+  const AssetFtxChar* matchingCp = null;
+  while (begin < end) {
+    const usize         elems  = end - begin;
+    const AssetFtxChar* middle = begin + (elems / 2);
+    if (middle->cp == cp) {
+      if (middle->variation == variation) {
+        return middle;
+      }
+      matchingCp = middle;
     }
-
-    // Return the 'missing' character, is guaranteed to exist.
-    return &comp->characters[0];
+    if (middle->cp > cp || (middle->cp == cp && middle->variation > variation)) {
+      end = middle; // Disregard everything after (and including) middle.
+    } else {
+      begin = middle + 1; // Discard everything before (and including) middle.
+    }
   }
-  return ch;
+  if (matchingCp) {
+    /**
+     * Preferred variation was not found, walk backwards to variation 0 and return that.
+     */
+    for (; matchingCp->variation; --matchingCp)
+      ;
+    return matchingCp;
+  }
+  // Return the 'missing' character, is guaranteed to exist.
+  return &comp->characters[0];
 }
