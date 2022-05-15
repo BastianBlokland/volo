@@ -6,7 +6,7 @@
 #include "def_internal.h"
 #include "module_internal.h"
 
-static const EcsCompDef* ecs_def_comp(const EcsDef* def, const EcsCompId id) {
+INLINE_HINT static const EcsCompDef* ecs_def_comp(const EcsDef* def, const EcsCompId id) {
   diag_assert_msg(id < def->components.size, "Invalid component id '{}'", fmt_int(id));
   return dynarray_begin_t(&def->components, EcsCompDef) + id;
 }
