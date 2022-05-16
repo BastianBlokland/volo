@@ -21,6 +21,7 @@ typedef enum {
   DebugShapeType_ConeFill,
   DebugShapeType_ConeWire,
   DebugShapeType_ConeOverlay,
+  DebugShapeType_LineOverlay,
 
   DebugShapeType_Count,
 } DebugShapeType;
@@ -45,11 +46,17 @@ typedef struct {
 } DebugShapeCylOrCone;
 
 typedef struct {
+  GeoVector start, end;
+  GeoColor  color;
+} DebugShapeLine;
+
+typedef struct {
   DebugShapeType type;
   union {
     DebugShapeBox       data_box;
     DebugShapeSphere    data_sphere;
     DebugShapeCylOrCone data_cylOrCone;
+    DebugShapeLine      data_line;
   };
 } DebugShape;
 
@@ -66,6 +73,7 @@ static const String g_debugGraphics[DebugShapeType_Count] = {
     [DebugShapeType_ConeFill]        = string_static("graphics/debug/shape_cone_fill.gra"),
     [DebugShapeType_ConeWire]        = string_static("graphics/debug/shape_cone_wire.gra"),
     [DebugShapeType_ConeOverlay]     = string_static("graphics/debug/shape_cone_overlay.gra"),
+    [DebugShapeType_LineOverlay]     = string_static("graphics/debug/shape_line_overlay.gra"),
 };
 
 ecs_comp_define(DebugShapeRendererComp) { EcsEntityId drawEntities[DebugShapeType_Count]; };
@@ -145,6 +153,13 @@ ecs_system_define(DebugShapeRenderSys) {
       } DrawMeshData;
       ASSERT(sizeof(DrawMeshData) == 64, "Size needs to match the size defined in glsl");
 
+      typedef struct {
+        ALIGNAS(16)
+        GeoVector positions[2];
+        GeoColor  color;
+      } DrawLineData;
+      ASSERT(sizeof(DrawLineData) == 48, "Size needs to match the size defined in glsl");
+
       switch (entry->type) {
       case DebugShapeType_BoxFill:
       case DebugShapeType_BoxWire:
@@ -195,6 +210,16 @@ ecs_system_define(DebugShapeRenderSys) {
             .rot   = geo_quat_look(geo_vector_div(toTop, dist), geo_up),
             .scale = {entry->data_cylOrCone.radius, entry->data_cylOrCone.radius, dist},
             .color = entry->data_cylOrCone.color,
+        };
+        rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, bounds);
+        continue;
+      }
+      case DebugShapeType_LineOverlay: {
+        const GeoBox       bounds = geo_box_inverted3(); // TODO: Compute bounds.
+        const DrawLineData data   = {
+            .positions[0] = entry->data_line.start,
+            .positions[1] = entry->data_line.end,
+            .color        = entry->data_line.color,
         };
         rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, bounds);
         continue;
@@ -361,6 +386,14 @@ void debug_cone_overlay(
   *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
       .type           = DebugShapeType_ConeOverlay,
       .data_cylOrCone = {.bottom = bottom, .top = top, .radius = radius, .color = color},
+  };
+}
+
+void debug_line_overlay(
+    DebugShapeComp* comp, const GeoVector start, const GeoVector end, const GeoColor color) {
+  *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
+      .type      = DebugShapeType_LineOverlay,
+      .data_line = {.start = start, .end = end, .color = color},
   };
 }
 
