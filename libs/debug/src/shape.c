@@ -142,19 +142,19 @@ ecs_system_define(DebugShapeRenderSys) {
         GeoQuat   rot;
         GeoVector scale;
         GeoColor  color;
-      } DrawData;
-      ASSERT(sizeof(DrawData) == 64, "Size needs to match the size defined in glsl");
+      } DrawMeshData;
+      ASSERT(sizeof(DrawMeshData) == 64, "Size needs to match the size defined in glsl");
 
       switch (entry->type) {
       case DebugShapeType_BoxFill:
       case DebugShapeType_BoxWire:
       case DebugShapeType_BoxOverlay: {
-        const GeoBox   bounds = geo_box_inverted3(); // TODO: Compute bounds.
-        const DrawData data   = {
-              .pos   = entry->data_box.pos,
-              .rot   = entry->data_box.rot,
-              .scale = entry->data_box.size,
-              .color = entry->data_box.color,
+        const GeoBox       bounds = geo_box_inverted3(); // TODO: Compute bounds.
+        const DrawMeshData data   = {
+            .pos   = entry->data_box.pos,
+            .rot   = entry->data_box.rot,
+            .scale = entry->data_box.size,
+            .color = entry->data_box.color,
         };
         rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, bounds);
         continue;
@@ -165,10 +165,10 @@ ecs_system_define(DebugShapeRenderSys) {
         const GeoVector pos    = entry->data_sphere.pos;
         const f32       radius = entry->data_sphere.radius;
         const GeoBox    bounds = {
-               .min = geo_vector(pos.x - radius, pos.y - radius, pos.z - radius),
-               .max = geo_vector(pos.x + radius, pos.y + radius, pos.z + radius),
+            .min = geo_vector(pos.x - radius, pos.y - radius, pos.z - radius),
+            .max = geo_vector(pos.x + radius, pos.y + radius, pos.z + radius),
         };
-        const DrawData data = {
+        const DrawMeshData data = {
             .pos   = pos,
             .rot   = geo_quat_ident,
             .scale = geo_vector(radius, radius, radius),
@@ -190,7 +190,7 @@ ecs_system_define(DebugShapeRenderSys) {
         if (UNLIKELY(dist < f32_epsilon)) {
           continue;
         }
-        const DrawData data = {
+        const DrawMeshData data = {
             .pos   = bottom,
             .rot   = geo_quat_look(geo_vector_div(toTop, dist), geo_up),
             .scale = {entry->data_cylOrCone.radius, entry->data_cylOrCone.radius, dist},
