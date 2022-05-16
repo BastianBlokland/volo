@@ -26,5 +26,6 @@ void debug_cylinder_overlay(DebugShapeComp*, GeoVector bottom, GeoVector top, f3
 void debug_cone_fill(DebugShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor);
 void debug_cone_wire(DebugShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor);
 void debug_cone_overlay(DebugShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor);
+void debug_line_overlay(DebugShapeComp*, GeoVector start, GeoVector end, GeoColor);
 void debug_arrow_overlay(DebugShapeComp*, GeoVector begin, GeoVector end, f32 radius, GeoColor);
 void debug_orientation_overlay(DebugShapeComp*, GeoVector pos, GeoQuat, f32 size);

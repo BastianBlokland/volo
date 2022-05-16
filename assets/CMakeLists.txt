@@ -7,21 +7,22 @@ message(STATUS "> assets")
 configure_shaders(volo_shaders
   INCLUDE_DIR shaders/include
   SOURCES
-    shaders/debug/grid.vert
     shaders/debug/grid.frag
-    shaders/debug/shape.vert
+    shaders/debug/grid.vert
+    shaders/debug/shape_line.vert
+    shaders/debug/shape_mesh.vert
     shaders/debug/shape.frag
-    shaders/debug/texture_viewer.vert
     shaders/debug/texture_viewer.frag
-    shaders/scene/sky.vert
+    shaders/debug/texture_viewer.vert
+    shaders/demo/terrain.frag
+    shaders/demo/terrain.vert
     shaders/scene/sky_cubemap.frag
     shaders/scene/sky_procedural.frag
-    shaders/ui/canvas.vert
-    shaders/ui/canvas.frag
-    shaders/demo/terrain.vert
-    shaders/demo/terrain.frag
-    shaders/standard.vert
+    shaders/scene/sky.vert
     shaders/standard.frag
+    shaders/standard.vert
+    shaders/ui/canvas.frag
+    shaders/ui/canvas.vert
   )
 
 if(${EXTERNAL_ASSETS})
@@ -30,26 +31,26 @@ if(${EXTERNAL_ASSETS})
     REMOTE_URL "https://www.bastian.tech/assets"
     FILES
       bunny.obj
-      head/head.obj
-      head/lambertian.tga
-      corset/corset.obj
-      corset/corset_diff.tga
-      corset/corset_nrm.tga
-      cayo/cayo.obj
       cayo/cayo_diff.tga
       cayo/cayo_nrm.tga
-      pedestal/pedestal.obj
+      cayo/cayo.obj
+      corset/corset_diff.tga
+      corset/corset_nrm.tga
+      corset/corset.obj
+      head/head.obj
+      head/lambertian.tga
       pedestal/pedestal_diff.tga
       pedestal/pedestal_nrm.tga
-      testimages/ducks.tga
+      pedestal/pedestal.obj
+      skybox/sorsele_back.tga
+      skybox/sorsele_down.tga
+      skybox/sorsele_front.tga
+      skybox/sorsele_left.tga
+      skybox/sorsele_right.tga
+      skybox/sorsele_up.tga
       terrain/terrain_color.tga
       terrain/terrain_height.r32
-      skybox/sorsele_front.tga
-      skybox/sorsele_back.tga
-      skybox/sorsele_up.tga
-      skybox/sorsele_down.tga
-      skybox/sorsele_right.tga
-      skybox/sorsele_left.tga
+      testimages/ducks.tga
     )
 endif()
 

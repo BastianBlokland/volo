@@ -1,7 +1,7 @@
 {
   "shaders": [
     {
-      "shaderId": "shaders/debug/shape.vert.spv"
+      "shaderId": "shaders/debug/shape_mesh.vert.spv"
     },
     {
       "shaderId": "shaders/debug/shape.frag.spv"
