@@ -75,8 +75,8 @@ spec(matrix) {
     check_eq_vector(geo_vector_perspective_div(v1), geo_vector(0, 0, 0.42f));
 
     // Reversed-z depth with infinite far plane, so infinite z is at depth 0.
-    const GeoVector v2 = geo_matrix_transform(&i, geo_vector(0, 0, f32_epsilon, 1));
-    check_eq_vector(geo_vector_perspective_div(v2), geo_vector(0, 0, f32_inf, 0));
+    const GeoVector v2 = geo_matrix_transform(&i, geo_vector(0, 0, 0.000001f, 1));
+    check_eq_vector(geo_vector_perspective_div(v2), geo_vector(0, 0, 420000, 0));
   }
 
   it("roundtrips when inverting") {
