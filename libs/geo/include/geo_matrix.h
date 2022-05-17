@@ -59,6 +59,11 @@ GeoVector geo_matrix_transform3_point(const GeoMatrix*, GeoVector);
 GeoMatrix geo_matrix_transpose(const GeoMatrix*);
 
 /**
+ * Return a new matrix that is the inverse of the given matrix.
+ */
+GeoMatrix geo_matrix_inverse(const GeoMatrix*);
+
+/**
  * Create a translation matrix.
  */
 GeoMatrix geo_matrix_translate(GeoVector translation);

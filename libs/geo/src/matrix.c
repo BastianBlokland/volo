@@ -90,6 +90,75 @@ GeoMatrix geo_matrix_transpose(const GeoMatrix* m) {
       }};
 }
 
+GeoMatrix geo_matrix_inverse(const GeoMatrix* m) {
+  /**
+   * 4x4 Matrix inverse routine generated using 'N-Matrix-Programmer' by: 'willnode'.
+   * Repository: https://github.com/willnode/N-Matrix-Programmer
+   */
+  const f32 a2323 = m->columns[2].z * m->columns[3].w - m->columns[3].z * m->columns[2].w;
+  const f32 a1323 = m->columns[1].z * m->columns[3].w - m->columns[3].z * m->columns[1].w;
+  const f32 a1223 = m->columns[1].z * m->columns[2].w - m->columns[2].z * m->columns[1].w;
+  const f32 a0323 = m->columns[0].z * m->columns[3].w - m->columns[3].z * m->columns[0].w;
+  const f32 a0223 = m->columns[0].z * m->columns[2].w - m->columns[2].z * m->columns[0].w;
+  const f32 a0123 = m->columns[0].z * m->columns[1].w - m->columns[1].z * m->columns[0].w;
+  const f32 a2313 = m->columns[2].y * m->columns[3].w - m->columns[3].y * m->columns[2].w;
+  const f32 a1313 = m->columns[1].y * m->columns[3].w - m->columns[3].y * m->columns[1].w;
+  const f32 a1213 = m->columns[1].y * m->columns[2].w - m->columns[2].y * m->columns[1].w;
+  const f32 a2312 = m->columns[2].y * m->columns[3].z - m->columns[3].y * m->columns[2].z;
+  const f32 a1312 = m->columns[1].y * m->columns[3].z - m->columns[3].y * m->columns[1].z;
+  const f32 a1212 = m->columns[1].y * m->columns[2].z - m->columns[2].y * m->columns[1].z;
+  const f32 a0313 = m->columns[0].y * m->columns[3].w - m->columns[3].y * m->columns[0].w;
+  const f32 a0213 = m->columns[0].y * m->columns[2].w - m->columns[2].y * m->columns[0].w;
+  const f32 a0312 = m->columns[0].y * m->columns[3].z - m->columns[3].y * m->columns[0].z;
+  const f32 a0212 = m->columns[0].y * m->columns[2].z - m->columns[2].y * m->columns[0].z;
+  const f32 a0113 = m->columns[0].y * m->columns[1].w - m->columns[1].y * m->columns[0].w;
+  const f32 a0112 = m->columns[0].y * m->columns[1].z - m->columns[1].y * m->columns[0].z;
+
+  f32 det =
+      (m->columns[0].x *
+           (m->columns[1].y * a2323 - m->columns[2].y * a1323 + m->columns[3].y * a1223) -
+       m->columns[1].x *
+           (m->columns[0].y * a2323 - m->columns[2].y * a0323 + m->columns[3].y * a0223) +
+       m->columns[2].x *
+           (m->columns[0].y * a1323 - m->columns[1].y * a0323 + m->columns[3].y * a0123) -
+       m->columns[3].x *
+           (m->columns[0].y * a1223 - m->columns[1].y * a0223 + m->columns[2].y * a0123));
+
+  diag_assert_msg(det > f32_epsilon, "Non invertable matrix");
+  det = 1.0f / det;
+
+  return (GeoMatrix){
+      .columns[0] =
+          {
+              det * (m->columns[1].y * a2323 - m->columns[2].y * a1323 + m->columns[3].y * a1223),
+              det * -(m->columns[0].y * a2323 - m->columns[2].y * a0323 + m->columns[3].y * a0223),
+              det * (m->columns[0].y * a1323 - m->columns[1].y * a0323 + m->columns[3].y * a0123),
+              det * -(m->columns[0].y * a1223 - m->columns[1].y * a0223 + m->columns[2].y * a0123),
+          },
+      .columns[1] =
+          {
+              det * -(m->columns[1].x * a2323 - m->columns[2].x * a1323 + m->columns[3].x * a1223),
+              det * (m->columns[0].x * a2323 - m->columns[2].x * a0323 + m->columns[3].x * a0223),
+              det * -(m->columns[0].x * a1323 - m->columns[1].x * a0323 + m->columns[3].x * a0123),
+              det * (m->columns[0].x * a1223 - m->columns[1].x * a0223 + m->columns[2].x * a0123),
+          },
+      .columns[2] =
+          {
+              det * (m->columns[1].x * a2313 - m->columns[2].x * a1313 + m->columns[3].x * a1213),
+              det * -(m->columns[0].x * a2313 - m->columns[2].x * a0313 + m->columns[3].x * a0213),
+              det * (m->columns[0].x * a1313 - m->columns[1].x * a0313 + m->columns[3].x * a0113),
+              det * -(m->columns[0].x * a1213 - m->columns[1].x * a0213 + m->columns[2].x * a0113),
+          },
+      .columns[3] =
+          {
+              det * -(m->columns[1].x * a2312 - m->columns[2].x * a1312 + m->columns[3].x * a1212),
+              det * (m->columns[0].x * a2312 - m->columns[2].x * a0312 + m->columns[3].x * a0212),
+              det * -(m->columns[0].x * a1312 - m->columns[1].x * a0312 + m->columns[3].x * a0112),
+              det * (m->columns[0].x * a1212 - m->columns[1].x * a0212 + m->columns[2].x * a0112),
+          },
+  };
+}
+
 GeoMatrix geo_matrix_translate(const GeoVector translation) {
   /**
    * [ 1,  0,  0,  x ]

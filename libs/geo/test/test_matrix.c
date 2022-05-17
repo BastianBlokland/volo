@@ -53,6 +53,42 @@ spec(matrix) {
     check_eq_matrix(geo_matrix_transpose(&t), m);
   }
 
+  it("can invert orthogonal projection matrices") {
+    const GeoMatrix m = geo_matrix_proj_ortho(10, 5, -2, 2);
+    const GeoMatrix i = geo_matrix_inverse(&m);
+    check_eq_vector(geo_matrix_transform(&i, geo_vector(0, 0, .5f, 1)), geo_vector(0, 0, 0, 1));
+    check_eq_vector(geo_matrix_transform(&i, geo_vector(+1, 0, .5f, 1)), geo_vector(+5, 0, 0, 1));
+    check_eq_vector(geo_matrix_transform(&i, geo_vector(-1, 0, .5f, 1)), geo_vector(-5, 0, 0, 1));
+    check_eq_vector(geo_matrix_transform(&i, geo_vector(-1, -2, .5f, 1)), geo_vector(-5, 5, 0, 1));
+    check_eq_vector(geo_matrix_transform(&i, geo_vector(-1, 2, .5f, 1)), geo_vector(-5, -5, 0, 1));
+    check_eq_vector(geo_matrix_transform(&i, geo_vector(-1, 0, 1, 1)), geo_vector(-5, 0, -2, 1));
+    check_eq_vector(geo_matrix_transform(&i, geo_vector(-1, 0, 0, 1)), geo_vector(-5, 0, +2, 1));
+  }
+
+  it("can invert perspective projection matrices") {
+    const f32       fov = 90 * math_deg_to_rad;
+    const GeoMatrix m   = geo_matrix_proj_pers(fov, fov, 0.42f);
+    const GeoMatrix i   = geo_matrix_inverse(&m);
+
+    // Reversed-z depth so, near plane is at depth 1.
+    const GeoVector v1 = geo_matrix_transform(&i, geo_vector(0, 0, 1, 1));
+    check_eq_vector(geo_vector_perspective_div(v1), geo_vector(0, 0, 0.42f));
+
+    // Reversed-z depth with infinite far plane, so infinite z is at depth 0.
+    const GeoVector v2 = geo_matrix_transform(&i, geo_vector(0, 0, f32_epsilon, 1));
+    check_eq_vector(geo_vector_perspective_div(v2), geo_vector(0, 0, f32_inf, 0));
+  }
+
+  it("roundtrips when inverting") {
+    const GeoMatrix m1A = geo_matrix_rotate_x(math_pi_f32 * .25f);
+    const GeoMatrix m1B = geo_matrix_scale(geo_vector(1, 2, 3));
+    const GeoMatrix m1  = geo_matrix_mul(&m1A, &m1B);
+    const GeoMatrix m2  = geo_matrix_inverse(&m1);
+    const GeoMatrix m3  = geo_matrix_inverse(&m2);
+
+    check_eq_matrix(m3, m1);
+  }
+
   it("returns the same matrix when multiplying with the identity matrix") {
     const GeoMatrix mA = {
         .columns = {{1, 4, 7}, {2, 5, 8}, {3, 6, 9}},
@@ -188,10 +224,10 @@ spec(matrix) {
 
   it("scales vectors to clip-space when transforming by an perspective projection matrix") {
     const f32       fov = 90 * math_deg_to_rad;
-    const GeoMatrix m   = geo_matrix_proj_pers(fov, fov, 1);
+    const GeoMatrix m   = geo_matrix_proj_pers(fov, fov, 0.42f);
 
     // Reversed-z depth so, near plane is at depth 1.
-    const GeoVector v1 = geo_matrix_transform(&m, geo_vector(0, 0, 1, 1));
+    const GeoVector v1 = geo_matrix_transform(&m, geo_vector(0, 0, 0.42f, 1));
     check_eq_vector(geo_vector_perspective_div(v1), geo_vector(0, 0, 1));
 
     // Reversed-z depth with infinite far plane, so infinite z is at depth 0.
