@@ -439,3 +439,41 @@ void debug_orientation_overlay(
   const GeoVector startForward = geo_vector_add(pos, geo_vector_mul(forward, g_startOffsetMult));
   debug_arrow_overlay(comp, startForward, geo_vector_add(pos, forward), radius, geo_color_blue);
 }
+
+void debug_frustum_overlay(DebugShapeComp* comp, const GeoMatrix* viewProj, const GeoColor color) {
+  const GeoMatrix invViewProj = geo_matrix_inverse(viewProj);
+  const f32       nearNdc     = 1.0f;
+  const f32       farNdc      = 0.0001f; // NOTE: Using reverse-z with infinite far-plane.
+
+  GeoVector points[] = {
+      geo_vector(-1, -1, nearNdc, 1),
+      geo_vector(1, -1, nearNdc, 1),
+      geo_vector(1, 1, nearNdc, 1),
+      geo_vector(-1, 1, nearNdc, 1),
+      geo_vector(-1, -1, farNdc, 1),
+      geo_vector(1, -1, farNdc, 1),
+      geo_vector(1, 1, farNdc, 1),
+      geo_vector(-1, 1, farNdc, 1),
+  };
+  array_for_t(points, GeoVector, v) {
+    *v = geo_vector_perspective_div(geo_matrix_transform(&invViewProj, *v));
+  }
+
+  // Near plane.
+  debug_line_overlay(comp, points[0], points[1], color);
+  debug_line_overlay(comp, points[1], points[2], color);
+  debug_line_overlay(comp, points[2], points[3], color);
+  debug_line_overlay(comp, points[3], points[0], color);
+
+  // Far plane.
+  debug_line_overlay(comp, points[4], points[5], color);
+  debug_line_overlay(comp, points[5], points[6], color);
+  debug_line_overlay(comp, points[6], points[7], color);
+  debug_line_overlay(comp, points[7], points[4], color);
+
+  // Connecting lines.
+  debug_line_overlay(comp, points[0], points[4], color);
+  debug_line_overlay(comp, points[1], points[5], color);
+  debug_line_overlay(comp, points[2], points[6], color);
+  debug_line_overlay(comp, points[3], points[7], color);
+}
