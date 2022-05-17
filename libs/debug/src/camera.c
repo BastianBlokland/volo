@@ -1,7 +1,10 @@
 #include "core_array.h"
 #include "core_math.h"
 #include "debug_camera.h"
+#include "debug_register.h"
+#include "debug_shape.h"
 #include "ecs_world.h"
+#include "gap_window.h"
 #include "scene_camera.h"
 #include "scene_tag.h"
 #include "scene_transform.h"
@@ -12,6 +15,7 @@
 static const String g_tooltipOrthoSize      = string_static("Size (in meters) of the dominant dimension of the orthographic projection.");
 static const String g_tooltipFov            = string_static("Field of view of the dominant dimension of the perspective projection.");
 static const String g_tooltipVerticalAspect = string_static("Use the vertical dimension as the dominant dimension.");
+static const String g_tooltipDebugFrustum   = string_static("Visualize the camera frustum.");
 static const String g_tooltipNearDistance   = string_static("Distance (in meters) to the near clipping plane.");
 static const String g_tooltipExclude        = string_static("Exclude {} from being rendered.");
 static const String g_tooltipMoveSpeed      = string_static("Camera movement speed in meters per second.");
@@ -73,7 +77,6 @@ static void camera_panel_draw_ortho(
 }
 
 static void camera_panel_draw_pers(UiCanvasComp* canvas, UiTable* table, SceneCameraComp* camera) {
-
   ui_table_next_row(canvas, table);
   ui_label(canvas, string_lit("Field of view"));
   ui_table_next_column(canvas, table);
@@ -152,6 +155,14 @@ static void camera_panel_draw(
     camera_panel_draw_pers(canvas, &table, camera);
   }
 
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Debug frustum"));
+  ui_table_next_column(canvas, &table);
+  bool debugFrustum = (camera->flags & SceneCameraFlags_DebugFrustum) != 0;
+  if (ui_toggle(canvas, &debugFrustum, .tooltip = g_tooltipDebugFrustum)) {
+    camera->flags ^= SceneCameraFlags_DebugFrustum;
+  }
+
   camera_panel_draw_filters(canvas, &table, camera);
 
   if (cameraMovement) {
@@ -206,14 +217,56 @@ ecs_system_define(DebugCameraUpdatePanelSys) {
   }
 }
 
+ecs_view_define(GlobalDrawView) { ecs_access_write(DebugShapeComp); }
+
+ecs_view_define(DrawView) {
+  ecs_access_read(GapWindowComp);
+  ecs_access_read(SceneCameraComp);
+  ecs_access_maybe_read(SceneTransformComp);
+}
+
+ecs_system_define(DebugCameraDrawSys) {
+  EcsView*     globalView = ecs_world_view_t(world, GlobalDrawView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return;
+  }
+  DebugShapeComp* shape = ecs_view_write_t(globalItr, DebugShapeComp);
+
+  EcsView* drawView = ecs_world_view_t(world, DrawView);
+  for (EcsIterator* itr = ecs_view_itr(drawView); ecs_view_walk(itr);) {
+    const SceneCameraComp* cam = ecs_view_read_t(itr, SceneCameraComp);
+    if (!(cam->flags & SceneCameraFlags_DebugFrustum)) {
+      continue;
+    }
+
+    const GapWindowComp*      win   = ecs_view_read_t(itr, GapWindowComp);
+    const SceneTransformComp* trans = ecs_view_read_t(itr, SceneTransformComp);
+
+    const GapVector winSize  = gap_window_param(win, GapParam_WindowSize);
+    const f32       aspect   = (f32)winSize.width / (f32)winSize.height;
+    const GeoMatrix proj     = scene_camera_proj(cam, aspect);
+    const GeoMatrix view     = trans ? scene_transform_matrix_inv(trans) : geo_matrix_ident();
+    const GeoMatrix viewProj = geo_matrix_mul(&proj, &view);
+
+    debug_frustum_overlay(shape, &viewProj, geo_color_white);
+  }
+}
+
 ecs_module_init(debug_camera_module) {
   ecs_register_comp(DebugCameraPanelComp);
 
   ecs_register_view(PanelUpdateView);
   ecs_register_view(WindowView);
+  ecs_register_view(GlobalDrawView);
+  ecs_register_view(DrawView);
 
   ecs_register_system(
       DebugCameraUpdatePanelSys, ecs_view_id(PanelUpdateView), ecs_view_id(WindowView));
+
+  ecs_register_system(DebugCameraDrawSys, ecs_view_id(GlobalDrawView), ecs_view_id(DrawView));
+
+  ecs_order(DebugCameraDrawSys, DebugOrder_PhysicsDebugDraw);
 }
 
 EcsEntityId debug_camera_panel_open(EcsWorld* world, const EcsEntityId window) {
@@ -222,7 +275,7 @@ EcsEntityId debug_camera_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugCameraPanelComp,
-      .panel  = ui_panel(ui_vector(330, 290)),
+      .panel  = ui_panel(ui_vector(330, 325)),
       .window = window);
   return panelEntity;
 }
