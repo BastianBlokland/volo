@@ -32,4 +32,5 @@ void debug_cone_overlay(DebugShapeComp*, GeoVector bottom, GeoVector top, f32 ra
 void debug_line_overlay(DebugShapeComp*, GeoVector start, GeoVector end, GeoColor);
 void debug_arrow_overlay(DebugShapeComp*, GeoVector begin, GeoVector end, f32 radius, GeoColor);
 void debug_orientation_overlay(DebugShapeComp*, GeoVector pos, GeoQuat, f32 size);
-void debug_frustum_overlay(DebugShapeComp*, const GeoMatrix* viewProj, GeoColor color);
+void debug_plane_overlay(DebugShapeComp*, GeoVector pos, GeoQuat, GeoColor);
+void debug_frustum_overlay(DebugShapeComp*, const GeoMatrix* viewProj, GeoColor);

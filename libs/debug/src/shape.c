@@ -491,6 +491,18 @@ void debug_orientation_overlay(
   debug_arrow_overlay(comp, startForward, geo_vector_add(pos, forward), radius, geo_color_blue);
 }
 
+void debug_plane_overlay(
+    DebugShapeComp* comp, const GeoVector pos, const GeoQuat rot, const GeoColor color) {
+  const f32 quadSize = 1.0f;
+  debug_quad_overlay(comp, pos, rot, quadSize, quadSize, color);
+
+  const f32       arrowLength = 1.0f;
+  const f32       arrowRadius = 0.1f;
+  const GeoVector arrowNorm   = geo_quat_rotate(rot, geo_forward);
+  const GeoVector arrowEnd    = geo_vector_add(pos, geo_vector_mul(arrowNorm, arrowLength));
+  debug_arrow_overlay(comp, pos, arrowEnd, arrowRadius, color);
+}
+
 void debug_frustum_overlay(DebugShapeComp* comp, const GeoMatrix* viewProj, const GeoColor color) {
   const GeoMatrix invViewProj = geo_matrix_inverse(viewProj);
   const f32       nearNdc     = 1.0f;
