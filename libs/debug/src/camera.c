@@ -245,11 +245,23 @@ ecs_system_define(DebugCameraDrawSys) {
 
     const GapVector winSize  = gap_window_param(win, GapParam_WindowSize);
     const f32       aspect   = (f32)winSize.width / (f32)winSize.height;
+    const GeoVector camPos   = trans ? trans->position : geo_vector(0);
+    const GeoVector camFwd   = trans ? geo_quat_rotate(trans->rotation, geo_forward) : geo_forward;
     const GeoMatrix proj     = scene_camera_proj(cam, aspect);
     const GeoMatrix view     = trans ? scene_transform_matrix_inv(trans) : geo_matrix_ident();
     const GeoMatrix viewProj = geo_matrix_mul(&proj, &view);
 
     debug_frustum_overlay(shape, &viewProj, geo_color_white);
+
+    GeoPlane frustumPlanes[4];
+    geo_matrix_frustum4(&viewProj, frustumPlanes);
+
+    const GeoVector planeRefPos = geo_vector_add(camPos, geo_vector_mul(camFwd, 5));
+    array_for_t(frustumPlanes, GeoPlane, p) {
+      const GeoVector pos = geo_plane_closest_point(p, planeRefPos);
+      const GeoQuat   rot = geo_quat_look(p->normal, camFwd);
+      debug_plane_overlay(shape, pos, rot, geo_color(1, 1, 0, 0.25f));
+    }
   }
 }
 
