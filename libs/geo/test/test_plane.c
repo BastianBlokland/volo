@@ -22,4 +22,12 @@ spec(plane) {
     check_eq_vector(p3.normal, n3);
     check_eq_float(p3.distance, 20.57911, 1e-4f);
   }
+
+  it("can find the closest point") {
+    const GeoVector position = {1, -42, 2};
+    const GeoPlane  p1       = geo_plane_at(geo_up, position);
+
+    check_eq_vector(geo_plane_closest_point(&p1, geo_vector(1, 0, 2)), geo_vector(1, -42, 2));
+    check_eq_vector(geo_plane_closest_point(&p1, geo_vector(42, -42, 42)), geo_vector(42, -42, 42));
+  }
 }
