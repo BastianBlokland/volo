@@ -9,22 +9,33 @@
 #include "rend_draw.h"
 
 typedef enum {
-  DebugShapeType_BoxFill,
-  DebugShapeType_BoxWire,
-  DebugShapeType_BoxOverlay,
-  DebugShapeType_QuadFill,
-  DebugShapeType_QuadWire,
-  DebugShapeType_QuadOverlay,
-  DebugShapeType_SphereFill,
-  DebugShapeType_SphereWire,
-  DebugShapeType_SphereOverlay,
-  DebugShapeType_CylinderFill,
-  DebugShapeType_CylinderWire,
-  DebugShapeType_CylinderOverlay,
-  DebugShapeType_ConeFill,
-  DebugShapeType_ConeWire,
-  DebugShapeType_ConeOverlay,
-  DebugShapeType_LineOverlay,
+  DebugShapeType_Box,
+  DebugShapeType_BoxFill    = DebugShapeType_Box + DebugShape_Fill,
+  DebugShapeType_BoxWire    = DebugShapeType_Box + DebugShape_Wire,
+  DebugShapeType_BoxOverlay = DebugShapeType_Box + DebugShape_Overlay,
+
+  DebugShapeType_Quad,
+  DebugShapeType_QuadFill    = DebugShapeType_Quad + DebugShape_Fill,
+  DebugShapeType_QuadWire    = DebugShapeType_Quad + DebugShape_Wire,
+  DebugShapeType_QuadOverlay = DebugShapeType_Quad + DebugShape_Overlay,
+
+  DebugShapeType_Sphere,
+  DebugShapeType_SphereFill    = DebugShapeType_Sphere + DebugShape_Fill,
+  DebugShapeType_SphereWire    = DebugShapeType_Sphere + DebugShape_Wire,
+  DebugShapeType_SphereOverlay = DebugShapeType_Sphere + DebugShape_Overlay,
+
+  DebugShapeType_Cylinder,
+  DebugShapeType_CylinderFill    = DebugShapeType_Cylinder + DebugShape_Fill,
+  DebugShapeType_CylinderWire    = DebugShapeType_Cylinder + DebugShape_Wire,
+  DebugShapeType_CylinderOverlay = DebugShapeType_Cylinder + DebugShape_Overlay,
+
+  DebugShapeType_Cone,
+  DebugShapeType_ConeFill    = DebugShapeType_Cone + DebugShape_Fill,
+  DebugShapeType_ConeWire    = DebugShapeType_Cone + DebugShape_Wire,
+  DebugShapeType_ConeOverlay = DebugShapeType_Cone + DebugShape_Overlay,
+
+  DebugShapeType_Line,
+  DebugShapeType_LineOverlay = DebugShapeType_Line + DebugShape_Overlay,
 
   DebugShapeType_Count,
 } DebugShapeType;
@@ -112,6 +123,9 @@ static DebugShapeRendererComp* debug_shape_renderer(EcsWorld* world) {
 
 static EcsEntityId
 debug_shape_draw_create(EcsWorld* world, AssetManagerComp* assets, const DebugShapeType shape) {
+  if (string_is_empty(g_debugGraphics[shape])) {
+    return 0;
+  }
   const EcsEntityId entity        = ecs_world_entity_create(world);
   RendDrawComp*     draw          = rend_draw_create(world, entity, RendDrawFlags_None);
   const EcsEntityId graphicEntity = asset_lookup(world, assets, g_debugGraphics[shape]);
@@ -223,6 +237,7 @@ ecs_system_define(DebugShapeRenderSys) {
         rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, bounds);
         continue;
       }
+      case DebugShapeType_Line:
       case DebugShapeType_LineOverlay: {
         const GeoBox       bounds = geo_box_inverted3(); // TODO: Compute bounds.
         const DrawLineData data   = {
@@ -266,189 +281,81 @@ DebugShapeComp* debug_shape_create(EcsWorld* world, const EcsEntityId entity) {
       world, entity, DebugShapeComp, .entries = dynarray_create_t(g_alloc_heap, DebugShape, 64));
 }
 
-void debug_box_fill(
-    DebugShapeComp* comp,
-    const GeoVector pos,
-    const GeoQuat   rot,
-    const GeoVector size,
-    const GeoColor  color) {
+void debug_box(
+    DebugShapeComp*      comp,
+    const GeoVector      pos,
+    const GeoQuat        rot,
+    const GeoVector      size,
+    const GeoColor       color,
+    const DebugShapeMode mode) {
   *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
-      .type           = DebugShapeType_BoxFill,
+      .type           = DebugShapeType_Box + mode,
       .data_boxOrQuad = {.pos = pos, .rot = rot, .size = size, .color = color},
   };
 }
 
-void debug_box_wire(
-    DebugShapeComp* comp,
-    const GeoVector pos,
-    const GeoQuat   rot,
-    const GeoVector size,
-    const GeoColor  color) {
-  *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
-      .type           = DebugShapeType_BoxWire,
-      .data_boxOrQuad = {.pos = pos, .rot = rot, .size = size, .color = color},
-  };
-}
-
-void debug_box_overlay(
-    DebugShapeComp* comp,
-    const GeoVector pos,
-    const GeoQuat   rot,
-    const GeoVector size,
-    const GeoColor  color) {
-  *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
-      .type           = DebugShapeType_BoxOverlay,
-      .data_boxOrQuad = {.pos = pos, .rot = rot, .size = size, .color = color},
-  };
-}
-
-void debug_quad_fill(
-    DebugShapeComp* comp,
-    const GeoVector pos,
-    const GeoQuat   rot,
-    const f32       sizeX,
-    const f32       sizeY,
-    const GeoColor  color) {
+void debug_quad(
+    DebugShapeComp*      comp,
+    const GeoVector      pos,
+    const GeoQuat        rot,
+    const f32            sizeX,
+    const f32            sizeY,
+    const GeoColor       color,
+    const DebugShapeMode mode) {
   const GeoVector size                         = geo_vector(sizeX, sizeY, 1.0f);
   *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
-      .type           = DebugShapeType_QuadFill,
+      .type           = DebugShapeType_Quad + mode,
       .data_boxOrQuad = {.pos = pos, .rot = rot, .size = size, .color = color},
   };
 }
 
-void debug_quad_wire(
-    DebugShapeComp* comp,
-    const GeoVector pos,
-    const GeoQuat   rot,
-    const f32       sizeX,
-    const f32       sizeY,
-    const GeoColor  color) {
-  const GeoVector size                         = geo_vector(sizeX, sizeY, 1.0f);
+void debug_sphere(
+    DebugShapeComp*      comp,
+    const GeoVector      pos,
+    const f32            radius,
+    const GeoColor       color,
+    const DebugShapeMode mode) {
   *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
-      .type           = DebugShapeType_QuadWire,
-      .data_boxOrQuad = {.pos = pos, .rot = rot, .size = size, .color = color},
-  };
-}
-
-void debug_quad_overlay(
-    DebugShapeComp* comp,
-    const GeoVector pos,
-    const GeoQuat   rot,
-    const f32       sizeX,
-    const f32       sizeY,
-    const GeoColor  color) {
-  const GeoVector size                         = geo_vector(sizeX, sizeY, 1.0f);
-  *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
-      .type           = DebugShapeType_QuadOverlay,
-      .data_boxOrQuad = {.pos = pos, .rot = rot, .size = size, .color = color},
-  };
-}
-
-void debug_sphere_fill(
-    DebugShapeComp* comp, const GeoVector pos, const f32 radius, const GeoColor color) {
-  *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
-      .type        = DebugShapeType_SphereFill,
+      .type        = DebugShapeType_Sphere + mode,
       .data_sphere = {.pos = pos, .radius = radius, .color = color},
   };
 }
 
-void debug_sphere_wire(
-    DebugShapeComp* comp, const GeoVector pos, const f32 radius, const GeoColor color) {
+void debug_cylinder(
+    DebugShapeComp*      comp,
+    const GeoVector      bottom,
+    const GeoVector      top,
+    const f32            radius,
+    const GeoColor       color,
+    const DebugShapeMode mode) {
   *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
-      .type        = DebugShapeType_SphereWire,
-      .data_sphere = {.pos = pos, .radius = radius, .color = color},
-  };
-}
-
-void debug_sphere_overlay(
-    DebugShapeComp* comp, const GeoVector pos, const f32 radius, const GeoColor color) {
-  *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
-      .type        = DebugShapeType_SphereOverlay,
-      .data_sphere = {.pos = pos, .radius = radius, .color = color},
-  };
-}
-
-void debug_cylinder_fill(
-    DebugShapeComp* comp,
-    const GeoVector bottom,
-    const GeoVector top,
-    const f32       radius,
-    const GeoColor  color) {
-  *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
-      .type           = DebugShapeType_CylinderFill,
+      .type           = DebugShapeType_Cylinder + mode,
       .data_cylOrCone = {.bottom = bottom, .top = top, .radius = radius, .color = color},
   };
 }
 
-void debug_cylinder_wire(
-    DebugShapeComp* comp,
-    const GeoVector bottom,
-    const GeoVector top,
-    const f32       radius,
-    const GeoColor  color) {
+void debug_cone(
+    DebugShapeComp*      comp,
+    const GeoVector      bottom,
+    const GeoVector      top,
+    const f32            radius,
+    const GeoColor       color,
+    const DebugShapeMode mode) {
   *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
-      .type           = DebugShapeType_CylinderWire,
+      .type           = DebugShapeType_Cone + mode,
       .data_cylOrCone = {.bottom = bottom, .top = top, .radius = radius, .color = color},
   };
 }
 
-void debug_cylinder_overlay(
-    DebugShapeComp* comp,
-    const GeoVector bottom,
-    const GeoVector top,
-    const f32       radius,
-    const GeoColor  color) {
-  *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
-      .type           = DebugShapeType_CylinderOverlay,
-      .data_cylOrCone = {.bottom = bottom, .top = top, .radius = radius, .color = color},
-  };
-}
-
-void debug_cone_fill(
-    DebugShapeComp* comp,
-    const GeoVector bottom,
-    const GeoVector top,
-    const f32       radius,
-    const GeoColor  color) {
-  *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
-      .type           = DebugShapeType_ConeFill,
-      .data_cylOrCone = {.bottom = bottom, .top = top, .radius = radius, .color = color},
-  };
-}
-
-void debug_cone_wire(
-    DebugShapeComp* comp,
-    const GeoVector bottom,
-    const GeoVector top,
-    const f32       radius,
-    const GeoColor  color) {
-  *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
-      .type           = DebugShapeType_ConeWire,
-      .data_cylOrCone = {.bottom = bottom, .top = top, .radius = radius, .color = color},
-  };
-}
-
-void debug_cone_overlay(
-    DebugShapeComp* comp,
-    const GeoVector bottom,
-    const GeoVector top,
-    const f32       radius,
-    const GeoColor  color) {
-  *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
-      .type           = DebugShapeType_ConeOverlay,
-      .data_cylOrCone = {.bottom = bottom, .top = top, .radius = radius, .color = color},
-  };
-}
-
-void debug_line_overlay(
+void debug_line(
     DebugShapeComp* comp, const GeoVector start, const GeoVector end, const GeoColor color) {
   *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
-      .type      = DebugShapeType_LineOverlay,
+      .type      = DebugShapeType_Line + DebugShape_Overlay,
       .data_line = {.start = start, .end = end, .color = color},
   };
 }
 
-void debug_arrow_overlay(
+void debug_arrow(
     DebugShapeComp* comp,
     const GeoVector begin,
     const GeoVector end,
@@ -463,15 +370,15 @@ void debug_arrow_overlay(
 
   const f32       tipLength = radius * g_tipLengthMult;
   const GeoVector tipStart  = geo_vector_sub(end, geo_vector_mul(dir, tipLength));
-  debug_cone_overlay(comp, tipStart, end, radius, color);
+  debug_cone(comp, tipStart, end, radius, color, DebugShape_Overlay);
 
   const f32 baseLength = dist - tipLength;
   if (baseLength > f32_epsilon) {
-    debug_cylinder_overlay(comp, begin, tipStart, radius * g_baseRadiusMult, color);
+    debug_cylinder(comp, begin, tipStart, radius * g_baseRadiusMult, color, DebugShape_Overlay);
   }
 }
 
-void debug_orientation_overlay(
+void debug_orientation(
     DebugShapeComp* comp, const GeoVector pos, const GeoQuat rot, const f32 size) {
   static const f32 g_startOffsetMult = 0.05f;
   static const f32 g_radiusMult      = 0.1f;
@@ -482,28 +389,28 @@ void debug_orientation_overlay(
   const f32       radius  = size * g_radiusMult;
 
   const GeoVector startRight = geo_vector_add(pos, geo_vector_mul(right, g_startOffsetMult));
-  debug_arrow_overlay(comp, startRight, geo_vector_add(pos, right), radius, geo_color_red);
+  debug_arrow(comp, startRight, geo_vector_add(pos, right), radius, geo_color_red);
 
   const GeoVector startUp = geo_vector_add(pos, geo_vector_mul(up, g_startOffsetMult));
-  debug_arrow_overlay(comp, startUp, geo_vector_add(pos, up), radius, geo_color_green);
+  debug_arrow(comp, startUp, geo_vector_add(pos, up), radius, geo_color_green);
 
   const GeoVector startForward = geo_vector_add(pos, geo_vector_mul(forward, g_startOffsetMult));
-  debug_arrow_overlay(comp, startForward, geo_vector_add(pos, forward), radius, geo_color_blue);
+  debug_arrow(comp, startForward, geo_vector_add(pos, forward), radius, geo_color_blue);
 }
 
-void debug_plane_overlay(
+void debug_plane(
     DebugShapeComp* comp, const GeoVector pos, const GeoQuat rot, const GeoColor color) {
   const f32 quadSize = 1.0f;
-  debug_quad_overlay(comp, pos, rot, quadSize, quadSize, color);
+  debug_quad(comp, pos, rot, quadSize, quadSize, color, DebugShape_Overlay);
 
   const f32       arrowLength = 1.0f;
   const f32       arrowRadius = 0.1f;
   const GeoVector arrowNorm   = geo_quat_rotate(rot, geo_forward);
   const GeoVector arrowEnd    = geo_vector_add(pos, geo_vector_mul(arrowNorm, arrowLength));
-  debug_arrow_overlay(comp, pos, arrowEnd, arrowRadius, color);
+  debug_arrow(comp, pos, arrowEnd, arrowRadius, color);
 }
 
-void debug_frustum_overlay(DebugShapeComp* comp, const GeoMatrix* viewProj, const GeoColor color) {
+void debug_frustum(DebugShapeComp* comp, const GeoMatrix* viewProj, const GeoColor color) {
   const GeoMatrix invViewProj = geo_matrix_inverse(viewProj);
   const f32       nearNdc     = 1.0f;
   const f32       farNdc      = 0.0001f; // NOTE: Using reverse-z with infinite far-plane.
@@ -523,20 +430,20 @@ void debug_frustum_overlay(DebugShapeComp* comp, const GeoMatrix* viewProj, cons
   }
 
   // Near plane.
-  debug_line_overlay(comp, points[0], points[1], color);
-  debug_line_overlay(comp, points[1], points[2], color);
-  debug_line_overlay(comp, points[2], points[3], color);
-  debug_line_overlay(comp, points[3], points[0], color);
+  debug_line(comp, points[0], points[1], color);
+  debug_line(comp, points[1], points[2], color);
+  debug_line(comp, points[2], points[3], color);
+  debug_line(comp, points[3], points[0], color);
 
   // Far plane.
-  debug_line_overlay(comp, points[4], points[5], color);
-  debug_line_overlay(comp, points[5], points[6], color);
-  debug_line_overlay(comp, points[6], points[7], color);
-  debug_line_overlay(comp, points[7], points[4], color);
+  debug_line(comp, points[4], points[5], color);
+  debug_line(comp, points[5], points[6], color);
+  debug_line(comp, points[6], points[7], color);
+  debug_line(comp, points[7], points[4], color);
 
   // Connecting lines.
-  debug_line_overlay(comp, points[0], points[4], color);
-  debug_line_overlay(comp, points[1], points[5], color);
-  debug_line_overlay(comp, points[2], points[6], color);
-  debug_line_overlay(comp, points[3], points[7], color);
+  debug_line(comp, points[0], points[4], color);
+  debug_line(comp, points[1], points[5], color);
+  debug_line(comp, points[2], points[6], color);
+  debug_line(comp, points[3], points[7], color);
 }
