@@ -118,8 +118,8 @@ static void physics_draw_bounds_local(
   const GeoVector size = geo_vector_mul(geo_box_size(&bounds), scale);
   const GeoVector center =
       geo_vector_add(geo_quat_rotate(rot, geo_vector_mul(geo_box_center(&bounds), scale)), pos);
-  debug_box_fill(shape, center, rot, size, geo_color(0.0f, 1.0f, 0.0f, 0.2f));
-  debug_box_wire(shape, center, rot, size, geo_color(0.0f, 1.0f, 0.0f, 0.5f));
+  debug_box(shape, center, rot, size, geo_color(0, 1, 0, 0.2f), DebugShape_Fill);
+  debug_box(shape, center, rot, size, geo_color(0, 1, 0, 0.5f), DebugShape_Wire);
 }
 
 static void physics_draw_bounds_global(
@@ -131,8 +131,8 @@ static void physics_draw_bounds_global(
   const GeoBox    aabb   = geo_box_transform3(&bounds, pos, rot, scale);
   const GeoVector center = geo_box_center(&aabb);
   const GeoVector size   = geo_box_size(&aabb);
-  debug_box_fill(canvas, center, geo_quat_ident, size, geo_color(0.0f, 0.0f, 1.0f, 0.2f));
-  debug_box_wire(canvas, center, geo_quat_ident, size, geo_color(0.0f, 0.0f, 1.0f, 0.5f));
+  debug_box(canvas, center, geo_quat_ident, size, geo_color(0, 0, 1, 0.2f), DebugShape_Fill);
+  debug_box(canvas, center, geo_quat_ident, size, geo_color(0, 0, 1, 0.5f), DebugShape_Wire);
 }
 
 ecs_system_define(DebugPhysicsDrawSys) {
@@ -156,10 +156,10 @@ ecs_system_define(DebugPhysicsDrawSys) {
     const f32              scale      = scaleComp ? scaleComp->scale : 1.0f;
 
     if (settings->flags & DebugPhysicsFlags_DrawPivot) {
-      debug_sphere_overlay(shape, pos, 0.025f, geo_color(1.0f, 1.0f, 0.0f, 1.0f));
+      debug_sphere(shape, pos, 0.025f, geo_color(1.0f, 1.0f, 0.0f, 1.0f), DebugShape_Overlay);
     }
     if (settings->flags & DebugPhysicsFlags_DrawOrientation) {
-      debug_orientation_overlay(shape, pos, rot, 1.0f);
+      debug_orientation(shape, pos, rot, 1.0f);
     }
     if (boundsComp && !geo_box_is_inverted3(&boundsComp->local)) {
       if (settings->flags & DebugPhysicsFlags_DrawBoundsLocal) {

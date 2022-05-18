@@ -4,6 +4,12 @@
 #include "geo_color.h"
 #include "geo_matrix.h"
 
+typedef enum {
+  DebugShape_Fill,
+  DebugShape_Wire,
+  DebugShape_Overlay,
+} DebugShapeMode;
+
 ecs_comp_extern(DebugShapeComp);
 
 /**
@@ -11,26 +17,20 @@ ecs_comp_extern(DebugShapeComp);
  */
 DebugShapeComp* debug_shape_create(EcsWorld*, EcsEntityId entity);
 
+// clang-format off
+
 /**
  * Draw primitives.
  */
-void debug_box_fill(DebugShapeComp*, GeoVector pos, GeoQuat, GeoVector size, GeoColor);
-void debug_box_wire(DebugShapeComp*, GeoVector pos, GeoQuat, GeoVector size, GeoColor);
-void debug_box_overlay(DebugShapeComp*, GeoVector pos, GeoQuat, GeoVector size, GeoColor);
-void debug_quad_fill(DebugShapeComp*, GeoVector pos, GeoQuat, f32 sizeX, f32 sizeY, GeoColor);
-void debug_quad_wire(DebugShapeComp*, GeoVector pos, GeoQuat, f32 sizeX, f32 sizeY, GeoColor);
-void debug_quad_overlay(DebugShapeComp*, GeoVector pos, GeoQuat, f32 sizeX, f32 sizeY, GeoColor);
-void debug_sphere_fill(DebugShapeComp*, GeoVector pos, f32 radius, GeoColor);
-void debug_sphere_wire(DebugShapeComp*, GeoVector pos, f32 radius, GeoColor);
-void debug_sphere_overlay(DebugShapeComp*, GeoVector pos, f32 radius, GeoColor);
-void debug_cylinder_fill(DebugShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor);
-void debug_cylinder_wire(DebugShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor);
-void debug_cylinder_overlay(DebugShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor);
-void debug_cone_fill(DebugShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor);
-void debug_cone_wire(DebugShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor);
-void debug_cone_overlay(DebugShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor);
-void debug_line_overlay(DebugShapeComp*, GeoVector start, GeoVector end, GeoColor);
-void debug_arrow_overlay(DebugShapeComp*, GeoVector begin, GeoVector end, f32 radius, GeoColor);
-void debug_orientation_overlay(DebugShapeComp*, GeoVector pos, GeoQuat, f32 size);
-void debug_plane_overlay(DebugShapeComp*, GeoVector pos, GeoQuat, GeoColor);
-void debug_frustum_overlay(DebugShapeComp*, const GeoMatrix* viewProj, GeoColor);
+void debug_box(DebugShapeComp*, GeoVector pos, GeoQuat, GeoVector size, GeoColor, DebugShapeMode);
+void debug_quad(DebugShapeComp*, GeoVector pos, GeoQuat, f32 sizeX, f32 sizeY, GeoColor, DebugShapeMode);
+void debug_sphere(DebugShapeComp*, GeoVector pos, f32 radius, GeoColor, DebugShapeMode);
+void debug_cylinder(DebugShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor, DebugShapeMode);
+void debug_cone(DebugShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor, DebugShapeMode);
+void debug_line(DebugShapeComp*, GeoVector start, GeoVector end, GeoColor);
+void debug_arrow(DebugShapeComp*, GeoVector begin, GeoVector end, f32 radius, GeoColor);
+void debug_orientation(DebugShapeComp*, GeoVector pos, GeoQuat, f32 size);
+void debug_plane(DebugShapeComp*, GeoVector pos, GeoQuat, GeoColor);
+void debug_frustum(DebugShapeComp*, const GeoMatrix* viewProj, GeoColor);
+
+// clang-format on

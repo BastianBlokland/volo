@@ -251,7 +251,7 @@ ecs_system_define(DebugCameraDrawSys) {
     const GeoMatrix view     = trans ? scene_transform_matrix_inv(trans) : geo_matrix_ident();
     const GeoMatrix viewProj = geo_matrix_mul(&proj, &view);
 
-    debug_frustum_overlay(shape, &viewProj, geo_color_white);
+    debug_frustum(shape, &viewProj, geo_color_white);
 
     GeoPlane frustumPlanes[4];
     geo_matrix_frustum4(&viewProj, frustumPlanes);
@@ -260,7 +260,7 @@ ecs_system_define(DebugCameraDrawSys) {
     array_for_t(frustumPlanes, GeoPlane, p) {
       const GeoVector pos = geo_plane_closest_point(p, planeRefPos);
       const GeoQuat   rot = geo_quat_look(p->normal, camFwd);
-      debug_plane_overlay(shape, pos, rot, geo_color(1, 1, 0, 0.25f));
+      debug_plane(shape, pos, rot, geo_color(1, 1, 0, 0.25f));
     }
   }
 }
