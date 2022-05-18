@@ -11,3 +11,8 @@ GeoPlane geo_plane_at(const GeoVector normal, const GeoVector position) {
   assert_normalized(normal);
   return (GeoPlane){.normal = normal, .distance = -geo_vector_dot(normal, position)};
 }
+
+GeoVector geo_plane_closest_point(const GeoPlane* plane, const GeoVector point) {
+  const f32 dist = geo_vector_dot(plane->normal, point) + plane->distance;
+  return geo_vector_sub(point, geo_vector_mul(plane->normal, dist));
+}

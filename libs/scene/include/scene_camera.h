@@ -7,6 +7,7 @@ typedef enum {
   SceneCameraFlags_None         = 0,
   SceneCameraFlags_Vertical     = 1 << 1,
   SceneCameraFlags_Orthographic = 1 << 2,
+  SceneCameraFlags_DebugFrustum = 1 << 3, // Visualize the frustum for debugging purposes.
 } SceneCameraFlags;
 
 ecs_comp_extern_public(SceneCameraComp) {

@@ -8,7 +8,7 @@
     }
   ],
   "meshId": "meshes/debug/shape_sphere.pme",
-  "renderOrder": 51,
+  "renderOrder": 54,
   "topology": "Triangles",
   "rasterizer": "Lines",
   "lineWidth": 1,

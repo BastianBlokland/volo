@@ -12,6 +12,9 @@ typedef enum {
   DebugShapeType_BoxFill,
   DebugShapeType_BoxWire,
   DebugShapeType_BoxOverlay,
+  DebugShapeType_QuadFill,
+  DebugShapeType_QuadWire,
+  DebugShapeType_QuadOverlay,
   DebugShapeType_SphereFill,
   DebugShapeType_SphereWire,
   DebugShapeType_SphereOverlay,
@@ -31,7 +34,7 @@ typedef struct {
   GeoQuat   rot;
   GeoVector size;
   GeoColor  color;
-} DebugShapeBox;
+} DebugShapeBoxOrQuad;
 
 typedef struct {
   GeoVector pos;
@@ -53,7 +56,7 @@ typedef struct {
 typedef struct {
   DebugShapeType type;
   union {
-    DebugShapeBox       data_box;
+    DebugShapeBoxOrQuad data_boxOrQuad;
     DebugShapeSphere    data_sphere;
     DebugShapeCylOrCone data_cylOrCone;
     DebugShapeLine      data_line;
@@ -64,6 +67,9 @@ static const String g_debugGraphics[DebugShapeType_Count] = {
     [DebugShapeType_BoxFill]         = string_static("graphics/debug/shape_box_fill.gra"),
     [DebugShapeType_BoxWire]         = string_static("graphics/debug/shape_box_wire.gra"),
     [DebugShapeType_BoxOverlay]      = string_static("graphics/debug/shape_box_overlay.gra"),
+    [DebugShapeType_QuadFill]        = string_static("graphics/debug/shape_quad_fill.gra"),
+    [DebugShapeType_QuadWire]        = string_static("graphics/debug/shape_quad_wire.gra"),
+    [DebugShapeType_QuadOverlay]     = string_static("graphics/debug/shape_quad_overlay.gra"),
     [DebugShapeType_SphereFill]      = string_static("graphics/debug/shape_sphere_fill.gra"),
     [DebugShapeType_SphereWire]      = string_static("graphics/debug/shape_sphere_wire.gra"),
     [DebugShapeType_SphereOverlay]   = string_static("graphics/debug/shape_sphere_overlay.gra"),
@@ -163,13 +169,16 @@ ecs_system_define(DebugShapeRenderSys) {
       switch (entry->type) {
       case DebugShapeType_BoxFill:
       case DebugShapeType_BoxWire:
-      case DebugShapeType_BoxOverlay: {
+      case DebugShapeType_BoxOverlay:
+      case DebugShapeType_QuadFill:
+      case DebugShapeType_QuadWire:
+      case DebugShapeType_QuadOverlay: {
         const GeoBox       bounds = geo_box_inverted3(); // TODO: Compute bounds.
         const DrawMeshData data   = {
-            .pos   = entry->data_box.pos,
-            .rot   = entry->data_box.rot,
-            .scale = entry->data_box.size,
-            .color = entry->data_box.color,
+            .pos   = entry->data_boxOrQuad.pos,
+            .rot   = entry->data_boxOrQuad.rot,
+            .scale = entry->data_boxOrQuad.size,
+            .color = entry->data_boxOrQuad.color,
         };
         rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, bounds);
         continue;
@@ -264,8 +273,8 @@ void debug_box_fill(
     const GeoVector size,
     const GeoColor  color) {
   *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
-      .type     = DebugShapeType_BoxFill,
-      .data_box = {.pos = pos, .rot = rot, .size = size, .color = color},
+      .type           = DebugShapeType_BoxFill,
+      .data_boxOrQuad = {.pos = pos, .rot = rot, .size = size, .color = color},
   };
 }
 
@@ -276,8 +285,8 @@ void debug_box_wire(
     const GeoVector size,
     const GeoColor  color) {
   *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
-      .type     = DebugShapeType_BoxWire,
-      .data_box = {.pos = pos, .rot = rot, .size = size, .color = color},
+      .type           = DebugShapeType_BoxWire,
+      .data_boxOrQuad = {.pos = pos, .rot = rot, .size = size, .color = color},
   };
 }
 
@@ -288,8 +297,50 @@ void debug_box_overlay(
     const GeoVector size,
     const GeoColor  color) {
   *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
-      .type     = DebugShapeType_BoxOverlay,
-      .data_box = {.pos = pos, .rot = rot, .size = size, .color = color},
+      .type           = DebugShapeType_BoxOverlay,
+      .data_boxOrQuad = {.pos = pos, .rot = rot, .size = size, .color = color},
+  };
+}
+
+void debug_quad_fill(
+    DebugShapeComp* comp,
+    const GeoVector pos,
+    const GeoQuat   rot,
+    const f32       sizeX,
+    const f32       sizeY,
+    const GeoColor  color) {
+  const GeoVector size                         = geo_vector(sizeX, sizeY, 1.0f);
+  *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
+      .type           = DebugShapeType_QuadFill,
+      .data_boxOrQuad = {.pos = pos, .rot = rot, .size = size, .color = color},
+  };
+}
+
+void debug_quad_wire(
+    DebugShapeComp* comp,
+    const GeoVector pos,
+    const GeoQuat   rot,
+    const f32       sizeX,
+    const f32       sizeY,
+    const GeoColor  color) {
+  const GeoVector size                         = geo_vector(sizeX, sizeY, 1.0f);
+  *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
+      .type           = DebugShapeType_QuadWire,
+      .data_boxOrQuad = {.pos = pos, .rot = rot, .size = size, .color = color},
+  };
+}
+
+void debug_quad_overlay(
+    DebugShapeComp* comp,
+    const GeoVector pos,
+    const GeoQuat   rot,
+    const f32       sizeX,
+    const f32       sizeY,
+    const GeoColor  color) {
+  const GeoVector size                         = geo_vector(sizeX, sizeY, 1.0f);
+  *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
+      .type           = DebugShapeType_QuadOverlay,
+      .data_boxOrQuad = {.pos = pos, .rot = rot, .size = size, .color = color},
   };
 }
 
@@ -438,4 +489,54 @@ void debug_orientation_overlay(
 
   const GeoVector startForward = geo_vector_add(pos, geo_vector_mul(forward, g_startOffsetMult));
   debug_arrow_overlay(comp, startForward, geo_vector_add(pos, forward), radius, geo_color_blue);
+}
+
+void debug_plane_overlay(
+    DebugShapeComp* comp, const GeoVector pos, const GeoQuat rot, const GeoColor color) {
+  const f32 quadSize = 1.0f;
+  debug_quad_overlay(comp, pos, rot, quadSize, quadSize, color);
+
+  const f32       arrowLength = 1.0f;
+  const f32       arrowRadius = 0.1f;
+  const GeoVector arrowNorm   = geo_quat_rotate(rot, geo_forward);
+  const GeoVector arrowEnd    = geo_vector_add(pos, geo_vector_mul(arrowNorm, arrowLength));
+  debug_arrow_overlay(comp, pos, arrowEnd, arrowRadius, color);
+}
+
+void debug_frustum_overlay(DebugShapeComp* comp, const GeoMatrix* viewProj, const GeoColor color) {
+  const GeoMatrix invViewProj = geo_matrix_inverse(viewProj);
+  const f32       nearNdc     = 1.0f;
+  const f32       farNdc      = 0.0001f; // NOTE: Using reverse-z with infinite far-plane.
+
+  GeoVector points[] = {
+      geo_vector(-1, -1, nearNdc, 1),
+      geo_vector(1, -1, nearNdc, 1),
+      geo_vector(1, 1, nearNdc, 1),
+      geo_vector(-1, 1, nearNdc, 1),
+      geo_vector(-1, -1, farNdc, 1),
+      geo_vector(1, -1, farNdc, 1),
+      geo_vector(1, 1, farNdc, 1),
+      geo_vector(-1, 1, farNdc, 1),
+  };
+  array_for_t(points, GeoVector, v) {
+    *v = geo_vector_perspective_div(geo_matrix_transform(&invViewProj, *v));
+  }
+
+  // Near plane.
+  debug_line_overlay(comp, points[0], points[1], color);
+  debug_line_overlay(comp, points[1], points[2], color);
+  debug_line_overlay(comp, points[2], points[3], color);
+  debug_line_overlay(comp, points[3], points[0], color);
+
+  // Far plane.
+  debug_line_overlay(comp, points[4], points[5], color);
+  debug_line_overlay(comp, points[5], points[6], color);
+  debug_line_overlay(comp, points[6], points[7], color);
+  debug_line_overlay(comp, points[7], points[4], color);
+
+  // Connecting lines.
+  debug_line_overlay(comp, points[0], points[4], color);
+  debug_line_overlay(comp, points[1], points[5], color);
+  debug_line_overlay(comp, points[2], points[6], color);
+  debug_line_overlay(comp, points[3], points[7], color);
 }

@@ -8,7 +8,7 @@
     }
   ],
   "vertexCount": 2,
-  "renderOrder": 64,
+  "renderOrder": 63,
   "lineWidth": 2,
   "topology": "Lines",
   "rasterizer": "Lines",

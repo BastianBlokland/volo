@@ -7,8 +7,8 @@
       "shaderId": "shaders/debug/shape.frag.spv"
     }
   ],
-  "meshId": "meshes/debug/shape_box.pme",
-  "renderOrder": 50,
+  "meshId": "meshes/debug/shape_quad.pme",
+  "renderOrder": 53,
   "topology": "Triangles",
   "rasterizer": "Lines",
   "lineWidth": 1,

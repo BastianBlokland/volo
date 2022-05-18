@@ -1,8 +1,8 @@
 #pragma once
 #include "ecs_entity.h"
 #include "ecs_module.h"
-#include "geo_box.h"
 #include "geo_color.h"
+#include "geo_matrix.h"
 
 ecs_comp_extern(DebugShapeComp);
 
@@ -17,6 +17,9 @@ DebugShapeComp* debug_shape_create(EcsWorld*, EcsEntityId entity);
 void debug_box_fill(DebugShapeComp*, GeoVector pos, GeoQuat, GeoVector size, GeoColor);
 void debug_box_wire(DebugShapeComp*, GeoVector pos, GeoQuat, GeoVector size, GeoColor);
 void debug_box_overlay(DebugShapeComp*, GeoVector pos, GeoQuat, GeoVector size, GeoColor);
+void debug_quad_fill(DebugShapeComp*, GeoVector pos, GeoQuat, f32 sizeX, f32 sizeY, GeoColor);
+void debug_quad_wire(DebugShapeComp*, GeoVector pos, GeoQuat, f32 sizeX, f32 sizeY, GeoColor);
+void debug_quad_overlay(DebugShapeComp*, GeoVector pos, GeoQuat, f32 sizeX, f32 sizeY, GeoColor);
 void debug_sphere_fill(DebugShapeComp*, GeoVector pos, f32 radius, GeoColor);
 void debug_sphere_wire(DebugShapeComp*, GeoVector pos, f32 radius, GeoColor);
 void debug_sphere_overlay(DebugShapeComp*, GeoVector pos, f32 radius, GeoColor);
@@ -29,3 +32,5 @@ void debug_cone_overlay(DebugShapeComp*, GeoVector bottom, GeoVector top, f32 ra
 void debug_line_overlay(DebugShapeComp*, GeoVector start, GeoVector end, GeoColor);
 void debug_arrow_overlay(DebugShapeComp*, GeoVector begin, GeoVector end, f32 radius, GeoColor);
 void debug_orientation_overlay(DebugShapeComp*, GeoVector pos, GeoQuat, f32 size);
+void debug_plane_overlay(DebugShapeComp*, GeoVector pos, GeoQuat, GeoColor);
+void debug_frustum_overlay(DebugShapeComp*, const GeoMatrix* viewProj, GeoColor);

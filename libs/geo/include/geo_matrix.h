@@ -135,4 +135,4 @@ GeoMatrix geo_matrix_proj_pers_hor(f32 horAngle, f32 aspect, f32 zNear);
  * [2] = Top plane.
  * [3] = Bottom plane.
  */
-void geo_matrix_frustum4(const GeoMatrix* proj, GeoPlane out[4]);
+void geo_matrix_frustum4(const GeoMatrix* viewProj, GeoPlane out[4]);
