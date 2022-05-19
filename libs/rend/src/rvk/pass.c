@@ -290,15 +290,15 @@ static void rvk_pass_draw_submit(RvkPass* pass, const RvkPassDraw* draw) {
   const bool  hasGlobalData = (pass->flags & RvkPassPrivateFlags_BoundGlobalData) != 0;
   RvkGraphic* graphic       = draw->graphic;
 
-  if (UNLIKELY(graphic->flags & RvkGraphicFlags_GlobalData && !hasGlobalData)) {
+  if (UNLIKELY(graphic->flags & RvkGraphicFlags_RequireGlobalData && !hasGlobalData)) {
     log_w("Graphic requires global data", log_param("graphic", fmt_text(graphic->dbgName)));
     return;
   }
-  if (UNLIKELY(graphic->flags & RvkGraphicFlags_DrawData && !draw->drawData.size)) {
+  if (UNLIKELY(graphic->flags & RvkGraphicFlags_RequireDrawData && !draw->drawData.size)) {
     log_w("Graphic requires draw data", log_param("graphic", fmt_text(graphic->dbgName)));
     return;
   }
-  if (UNLIKELY(graphic->flags & RvkGraphicFlags_InstanceData && !draw->instDataStride)) {
+  if (UNLIKELY(graphic->flags & RvkGraphicFlags_RequireInstanceData && !draw->instDataStride)) {
     log_w("Graphic requires instance data", log_param("graphic", fmt_text(graphic->dbgName)));
     return;
   }
@@ -323,7 +323,8 @@ static void rvk_pass_draw_submit(RvkPass* pass, const RvkPassDraw* draw) {
   }
 
   diag_assert(draw->instDataStride * draw->instCount == draw->instData.size);
-  const u32 dataStride = graphic->flags & RvkGraphicFlags_InstanceData ? draw->instDataStride : 0;
+  const u32 dataStride =
+      graphic->flags & RvkGraphicFlags_RequireInstanceData ? draw->instDataStride : 0;
 
   for (u32 remInstCount = draw->instCount, dataOffset = 0; remInstCount != 0;) {
     const u32 instCount = rvk_pass_instances_per_draw(pass, remInstCount, dataStride);

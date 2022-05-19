@@ -646,7 +646,7 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, VkRender
       graphic->flags |= RvkGraphicFlags_Invalid;
     }
     if (globalDescMeta.bindings[0] == RvkDescKind_UniformBufferDynamic) {
-      graphic->flags |= RvkGraphicFlags_GlobalData;
+      graphic->flags |= RvkGraphicFlags_RequireGlobalData;
     }
 
     // Prepare draw set bindings.
@@ -656,7 +656,7 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, VkRender
       graphic->flags |= RvkGraphicFlags_Invalid;
     }
     if (drawDescMeta.bindings[0] == RvkDescKind_UniformBufferDynamic) {
-      graphic->flags |= RvkGraphicFlags_DrawData;
+      graphic->flags |= RvkGraphicFlags_RequireDrawData;
     }
 
     // Prepare instance set bindings.
@@ -666,7 +666,7 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, VkRender
       graphic->flags |= RvkGraphicFlags_Invalid;
     }
     if (instanceDescMeta.bindings[0] == RvkDescKind_UniformBufferDynamic) {
-      graphic->flags |= RvkGraphicFlags_InstanceData;
+      graphic->flags |= RvkGraphicFlags_RequireInstanceData;
     }
 
     // Prepare graphic set bindings.
