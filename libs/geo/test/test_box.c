@@ -41,7 +41,7 @@ spec(box) {
   it("creates a zero-sized box around a point when encapsulating it in inverted box") {
     const GeoVector p = {.1337f, -42, 123};
     GeoBox          b = geo_box_inverted3();
-    b                 = geo_box_encapsulate3(&b, p);
+    b                 = geo_box_encapsulate(&b, p);
     check_eq_vector(geo_box_center(&b), p);
     check_eq_vector(geo_box_size(&b), geo_vector(0));
   }
@@ -51,9 +51,9 @@ spec(box) {
     const GeoVector p2 = {.1337f, 0, +2};
     const GeoVector p3 = {.1337f, 0, +1};
     GeoBox          b  = geo_box_inverted3();
-    b                  = geo_box_encapsulate3(&b, p1);
-    b                  = geo_box_encapsulate3(&b, p2);
-    b                  = geo_box_encapsulate3(&b, p3);
+    b                  = geo_box_encapsulate(&b, p1);
+    b                  = geo_box_encapsulate(&b, p2);
+    b                  = geo_box_encapsulate(&b, p3);
 
     check_eq_vector(geo_box_size(&b), geo_vector(0, 0, 3));
   }

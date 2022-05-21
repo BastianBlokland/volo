@@ -71,7 +71,7 @@ GeoBox geo_box_encapsulate2(const GeoBox* b, const GeoVector point) {
   return newBox;
 }
 
-GeoBox geo_box_encapsulate3(const GeoBox* b, const GeoVector point) {
+GeoBox geo_box_encapsulate(const GeoBox* b, const GeoVector point) {
 #if geo_box_simd_enable
   const SimdVec p   = simd_vec_load(point.comps);
   const SimdVec min = simd_vec_min(simd_vec_load(b->min.comps), p);
@@ -80,20 +80,12 @@ GeoBox geo_box_encapsulate3(const GeoBox* b, const GeoVector point) {
   GeoBox newBox;
   simd_vec_store(min, newBox.min.comps);
   simd_vec_store(max, newBox.max.comps);
-
-  // NOTE: The non-simd impl preserves the w values, is it worth preserving them here also?
   return newBox;
 #else
-  GeoBox newBox = *b;
-  for (usize i = 0; i != 3; ++i) {
-    if (point.comps[i] < newBox.min.comps[i]) {
-      newBox.min.comps[i] = point.comps[i];
-    }
-    if (point.comps[i] > newBox.max.comps[i]) {
-      newBox.max.comps[i] = point.comps[i];
-    }
-  }
-  return newBox;
+  return (GeoBox){
+      .min = geo_vector_min(b->min, point),
+      .max = geo_vector_max(b->max, point),
+  };
 #endif
 }
 
@@ -147,7 +139,7 @@ geo_box_transform3(const GeoBox* box, const GeoVector pos, const GeoQuat rot, co
   GeoBox newBox = geo_box_inverted3();
   for (usize i = 0; i != array_elems(points); ++i) {
     const GeoVector p = geo_vector_add(geo_quat_rotate(rot, geo_vector_mul(points[i], scale)), pos);
-    newBox            = geo_box_encapsulate3(&newBox, p);
+    newBox            = geo_box_encapsulate(&newBox, p);
   }
   return newBox;
 #endif
@@ -189,6 +181,12 @@ GeoBox geo_box_from_cone(const GeoVector bottom, const GeoVector top, const f32 
   const GeoVector axisDir   = geo_vector_sqrt(geo_vector_sub(geo_vector(1, 1, 1), dirSqr));
   const GeoVector axisDelta = geo_vector_mul(axisDir, radius);
 
+  return (GeoBox){
+      .min = geo_vector_min(geo_vector_sub(bottom, axisDelta), top),
+      .max = geo_vector_max(geo_vector_add(bottom, axisDelta), top),
+  };
+#endif
+}
   const GeoBox box = {
       .min = geo_vector_sub(bottom, axisDelta),
       .max = geo_vector_add(bottom, axisDelta),

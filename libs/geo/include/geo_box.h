@@ -37,7 +37,7 @@ bool geo_box_is_inverted3(const GeoBox*);
  * Compute a new box that encapsulates the existing box and the new point.
  */
 GeoBox geo_box_encapsulate2(const GeoBox*, GeoVector point);
-GeoBox geo_box_encapsulate3(const GeoBox*, GeoVector point);
+GeoBox geo_box_encapsulate(const GeoBox*, GeoVector point);
 
 /**
  * Retrieve the 8 cornsers of the 3d box.

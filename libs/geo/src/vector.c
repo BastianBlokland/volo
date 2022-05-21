@@ -159,6 +159,36 @@ GeoVector geo_vector_lerp(const GeoVector x, const GeoVector y, const f32 t) {
   };
 }
 
+GeoVector geo_vector_min(const GeoVector x, const GeoVector y) {
+#if geo_vec_simd_enable
+  GeoVector res;
+  simd_vec_store(simd_vec_min(simd_vec_load(x.comps), simd_vec_load(y.comps)), res.comps);
+  return res;
+#else
+  return (GeoVector){
+      .x = math_min(x.x, y.x),
+      .y = math_min(x.y, y.y),
+      .z = math_min(x.z, y.z),
+      .w = math_min(x.w, y.w),
+  };
+#endif
+}
+
+GeoVector geo_vector_max(const GeoVector x, const GeoVector y) {
+#if geo_vec_simd_enable
+  GeoVector res;
+  simd_vec_store(simd_vec_max(simd_vec_load(x.comps), simd_vec_load(y.comps)), res.comps);
+  return res;
+#else
+  return (GeoVector){
+      .x = math_max(x.x, y.x),
+      .y = math_max(x.y, y.y),
+      .z = math_max(x.z, y.z),
+      .w = math_max(x.w, y.w),
+  };
+#endif
+}
+
 GeoVector geo_vector_sqrt(const GeoVector v) {
 #if geo_vec_simd_enable
   GeoVector res;
