@@ -219,7 +219,7 @@ static RvkDescSet rvk_pass_alloc_dyn_desc(RvkPass* pass, const RvkDescMeta* meta
 static void rvk_pass_bind_dyn_mesh(RvkPass* pass, RvkGraphic* graphic, RvkMesh* mesh) {
   const RvkDescMeta meta    = {.bindings[0] = RvkDescKind_StorageBuffer};
   const RvkDescSet  descSet = rvk_pass_alloc_dyn_desc(pass, &meta);
-  rvk_desc_set_attach_buffer(graphic->descSet, 0, &mesh->vertexBuffer, 0);
+  rvk_desc_set_attach_buffer(descSet, 0, &mesh->vertexBuffer, 0);
 
   VkDescriptorSet vkDescSet = rvk_desc_set_vkset(descSet);
   vkCmdBindDescriptorSets(
