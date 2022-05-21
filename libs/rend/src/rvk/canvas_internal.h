@@ -7,13 +7,19 @@
 #include "types_internal.h"
 
 // Internal forward declarations:
-typedef struct sRvkDevice RvkDevice;
-typedef struct sRvkPass   RvkPass;
+typedef struct sRvkDevice     RvkDevice;
+typedef struct sRvkPass       RvkPass;
+typedef struct sRvkRepository RvkRepository;
 
 typedef struct sRvkCanvas RvkCanvas;
 
 RvkCanvas* rvk_canvas_create(RvkDevice*, const GapWindowComp*);
 void       rvk_canvas_destroy(RvkCanvas*);
+
+/**
+ * Get a pointer to the device's resource repository.
+ */
+RvkRepository* rvk_canvas_repository(RvkCanvas* canvas);
 
 /**
  * Query statistics about the previous submitted draw.
