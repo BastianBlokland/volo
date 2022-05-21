@@ -216,3 +216,10 @@ GeoBox geo_box_from_cone(const GeoVector bottom, const GeoVector top, const f32 
   };
 #endif
 }
+
+GeoBox geo_box_from_line(const GeoVector from, const GeoVector to) {
+  return (GeoBox){
+      .min = geo_vector_min(from, to),
+      .max = geo_vector_max(from, to),
+  };
+}

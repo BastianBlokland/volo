@@ -64,3 +64,8 @@ GeoBox geo_box_from_cylinder(GeoVector bottom, GeoVector top, f32 radius);
  * Calculate the bounding box of a cone.
  */
 GeoBox geo_box_from_cone(GeoVector bottom, GeoVector top, f32 radius);
+
+/**
+ * Calculate the bounding box of a line.
+ */
+GeoBox geo_box_from_line(GeoVector from, GeoVector to);

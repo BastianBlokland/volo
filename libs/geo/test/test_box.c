@@ -153,4 +153,14 @@ spec(box) {
       check_eq_vector(box.max, geo_vector(7, 2, 1));
     }
   }
+
+  it("can compute the bounding box of a line") {
+    const GeoVector lineStart = {6, 0, 0};
+    const GeoVector lineEnd   = {5, 1, 0};
+    const GeoBox    box       = geo_box_from_line(lineStart, lineEnd);
+
+    check_eq_vector(geo_box_size(&box), geo_vector(1, 1, 0));
+    check_eq_vector(box.min, geo_vector(5, 0, 0));
+    check_eq_vector(box.max, geo_vector(6, 1, 0));
+  }
 }
