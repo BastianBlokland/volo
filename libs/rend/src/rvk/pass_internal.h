@@ -10,6 +10,7 @@
 typedef struct sRvkDevice      RvkDevice;
 typedef struct sRvkGraphic     RvkGraphic;
 typedef struct sRvkImage       RvkImage;
+typedef struct sRvkMesh        RvkMesh;
 typedef struct sRvkUniformPool RvkUniformPool;
 
 typedef struct sRvkPass RvkPass;
@@ -25,6 +26,7 @@ typedef enum {
 
 typedef struct sRvkPassDraw {
   RvkGraphic* graphic;
+  RvkMesh*    dynMesh; // Dynamic (late bound) mesh to use in this draw.
   u32         vertexCountOverride;
   Mem         drawData;
   u32         instCount;
@@ -46,6 +48,7 @@ u64       rvk_pass_stat(RvkPass*, RvkStat);
 
 void rvk_pass_setup(RvkPass*, RvkSize size);
 bool rvk_pass_prepare(RvkPass*, RvkGraphic*);
+bool rvk_pass_prepare_mesh(RvkPass*, RvkMesh*);
 
 void rvk_pass_begin(RvkPass*, GeoColor clearColor);
 void rvk_pass_draw(RvkPass*, Mem globalData, RvkPassDrawList);

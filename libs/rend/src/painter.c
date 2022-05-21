@@ -15,6 +15,7 @@
 #include "rvk/canvas_internal.h"
 #include "rvk/graphic_internal.h"
 #include "rvk/pass_internal.h"
+#include "rvk/repository_internal.h"
 
 ecs_comp_define_public(RendPainterComp);
 
@@ -77,6 +78,11 @@ static GeoMatrix painter_view_proj_matrix(
   return geo_matrix_mul(&proj, &view);
 }
 
+static RvkGraphic* painter_wireframe_graphic(RvkCanvas* canvas) {
+  RvkRepository* repository = rvk_canvas_repository(canvas);
+  return rvk_repository_graphic_get(repository, RvkRepositoryId_WireframeGraphic);
+}
+
 static void painter_draw_forward(
     RendPainterComp*             painter,
     const RendSettingsComp*      settings,
@@ -102,7 +108,15 @@ static void painter_draw_forward(
     RvkGraphic* graphic = ecs_view_write_t(graphicItr, RendResGraphicComp)->graphic;
 
     if (rvk_pass_prepare(forwardPass, graphic)) {
-      *dynarray_push_t(&painter->drawBuffer, RvkPassDraw) = rend_draw_output(draw, graphic);
+      *dynarray_push_t(&painter->drawBuffer, RvkPassDraw) = rend_draw_output(draw, graphic, null);
+    }
+
+    RvkMesh* mesh = graphic->mesh;
+    if (settings->flags & RendFlags_Wireframe && mesh) {
+      RvkGraphic* wireGfx = painter_wireframe_graphic(painter->canvas);
+      if (rvk_pass_prepare(forwardPass, wireGfx) && rvk_pass_prepare_mesh(forwardPass, mesh)) {
+        *dynarray_push_t(&painter->drawBuffer, RvkPassDraw) = rend_draw_output(draw, wireGfx, mesh);
+      }
     }
   }
 

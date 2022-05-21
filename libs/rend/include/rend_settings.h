@@ -3,6 +3,7 @@
 
 typedef enum {
   RendFlags_FrustumCulling = 1 << 0,
+  RendFlags_Wireframe      = 1 << 1,
 } RendFlags;
 
 typedef enum {

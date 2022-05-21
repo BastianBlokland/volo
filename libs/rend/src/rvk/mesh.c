@@ -90,7 +90,6 @@ RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const Strin
 }
 
 void rvk_mesh_destroy(RvkMesh* mesh) {
-
   RvkDevice* dev = mesh->device;
   rvk_buffer_destroy(&mesh->vertexBuffer, dev);
   rvk_buffer_destroy(&mesh->indexBuffer, dev);
@@ -102,13 +101,17 @@ void rvk_mesh_destroy(RvkMesh* mesh) {
 }
 
 bool rvk_mesh_prepare(RvkMesh* mesh) {
+  if (mesh->flags & RvkMeshFlags_Ready) {
+    return true;
+  }
   RvkDevice* dev = mesh->device;
-
   if (!rvk_transfer_poll(dev->transferer, mesh->vertexTransfer)) {
     return false;
   }
   if (!rvk_transfer_poll(dev->transferer, mesh->indexTransfer)) {
     return false;
   }
-  return true; // All resources have been transferred to the device.
+  // All resources have been transferred to the device.
+  mesh->flags |= RvkMeshFlags_Ready;
+  return true;
 }

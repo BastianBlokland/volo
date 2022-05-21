@@ -50,6 +50,8 @@ void rvk_canvas_destroy(RvkCanvas* canvas) {
   alloc_free_t(g_alloc_heap, canvas);
 }
 
+RvkRepository* rvk_canvas_repository(RvkCanvas* canvas) { return canvas->device->repository; }
+
 RvkRenderStats rvk_canvas_render_stats(const RvkCanvas* canvas) {
   RvkRenderer* renderer = canvas->renderers[canvas->rendererIdx];
   return rvk_renderer_stats(renderer);
@@ -97,7 +99,7 @@ void rvk_canvas_end(RvkCanvas* canvas) {
   canvas->flags &= ~RvkCanvasFlags_Active;
 }
 
-void rvk_canvas_for_prev_present(const RvkCanvas* canvas) {
+void rvk_canvas_wait_for_prev_present(const RvkCanvas* canvas) {
   const u32 numBehind = 1;
   rvk_swapchain_wait_for_present(canvas->swapchain, numBehind);
 }

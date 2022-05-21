@@ -36,6 +36,7 @@ struct sRvkPass {
   VkFramebuffer    vkFrameBuffer;
   VkCommandBuffer  vkCmdBuf;
   RvkUniformPool*  uniformPool;
+  DynArray         dynDescSets; // RvkDescSet[]
 };
 
 static VkRenderPass rvk_renderpass_create(RvkDevice* dev, const RvkPassFlags flags) {
@@ -204,6 +205,42 @@ static void rvk_pass_resource_destroy(RvkPass* pass) {
   vkDestroyFramebuffer(pass->dev->vkDev, pass->vkFrameBuffer, &pass->dev->vkAlloc);
 }
 
+static void rvk_pass_free_dyn_desc(RvkPass* pass) {
+  dynarray_for_t(&pass->dynDescSets, RvkDescSet, set) { rvk_desc_free(*set); }
+  dynarray_clear(&pass->dynDescSets);
+}
+
+static RvkDescSet rvk_pass_alloc_dyn_desc(RvkPass* pass, const RvkDescMeta* meta) {
+  const RvkDescSet res                             = rvk_desc_alloc(pass->dev->descPool, meta);
+  *dynarray_push_t(&pass->dynDescSets, RvkDescSet) = res;
+  return res;
+}
+
+static void rvk_pass_bind_dyn_mesh(RvkPass* pass, RvkGraphic* graphic, RvkMesh* mesh) {
+  diag_assert_msg(mesh->flags & RvkMeshFlags_Ready, "Mesh is not ready for binding");
+
+  const RvkDescMeta meta    = {.bindings[0] = RvkDescKind_StorageBuffer};
+  const RvkDescSet  descSet = rvk_pass_alloc_dyn_desc(pass, &meta);
+  rvk_desc_set_attach_buffer(descSet, 0, &mesh->vertexBuffer, 0);
+
+  VkDescriptorSet vkDescSet = rvk_desc_set_vkset(descSet);
+  vkCmdBindDescriptorSets(
+      pass->vkCmdBuf,
+      VK_PIPELINE_BIND_POINT_GRAPHICS,
+      graphic->vkPipelineLayout,
+      RvkGraphicSet_Dynamic,
+      1,
+      &vkDescSet,
+      0,
+      null);
+
+  vkCmdBindIndexBuffer(
+      pass->vkCmdBuf,
+      mesh->indexBuffer.vkBuffer,
+      0,
+      sizeof(AssetMeshIndex) == 2 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32);
+}
+
 RvkPass* rvk_pass_create(
     RvkDevice*         dev,
     VkCommandBuffer    vkCmdBuf,
@@ -212,23 +249,26 @@ RvkPass* rvk_pass_create(
 
   RvkPass* pass = alloc_alloc_t(g_alloc_heap, RvkPass);
   *pass         = (RvkPass){
-      .dev            = dev,
-      .statrecorder   = rvk_statrecorder_create(dev),
-      .vkRendPass     = rvk_renderpass_create(dev, flags),
-      .vkGlobalLayout = rvk_global_layout_create(dev, rvk_uniform_vkdesclayout(uniformPool)),
-      .vkCmdBuf       = vkCmdBuf,
-      .uniformPool    = uniformPool,
-      .flags          = flags,
+              .dev            = dev,
+              .statrecorder   = rvk_statrecorder_create(dev),
+              .vkRendPass     = rvk_renderpass_create(dev, flags),
+              .vkGlobalLayout = rvk_global_layout_create(dev, rvk_uniform_vkdesclayout(uniformPool)),
+              .vkCmdBuf       = vkCmdBuf,
+              .uniformPool    = uniformPool,
+              .flags          = flags,
+              .dynDescSets    = dynarray_create_t(g_alloc_heap, RvkDescSet, 64),
   };
   return pass;
 }
 
 void rvk_pass_destroy(RvkPass* pass) {
+  rvk_pass_free_dyn_desc(pass);
 
   rvk_statrecorder_destroy(pass->statrecorder);
   rvk_pass_resource_destroy(pass);
   vkDestroyRenderPass(pass->dev->vkDev, pass->vkRendPass, &pass->dev->vkAlloc);
   vkDestroyPipelineLayout(pass->dev->vkDev, pass->vkGlobalLayout, &pass->dev->vkAlloc);
+  dynarray_destroy(&pass->dynDescSets);
 
   alloc_free_t(g_alloc_heap, pass);
 }
@@ -247,6 +287,7 @@ void rvk_pass_setup(RvkPass* pass, const RvkSize size) {
   diag_assert_msg(size.width && size.height, "Pass cannot be zero sized");
 
   rvk_statrecorder_reset(pass->statrecorder, pass->vkCmdBuf);
+  rvk_pass_free_dyn_desc(pass); // Free last frame's dynamic descriptors.
 
   if (rvk_size_equal(pass->size, size)) {
     return;
@@ -259,6 +300,11 @@ void rvk_pass_setup(RvkPass* pass, const RvkSize size) {
 bool rvk_pass_prepare(RvkPass* pass, RvkGraphic* graphic) {
   diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
   return rvk_graphic_prepare(graphic, pass->vkCmdBuf, pass->vkRendPass);
+}
+
+bool rvk_pass_prepare_mesh(RvkPass* pass, RvkMesh* mesh) {
+  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
+  return rvk_mesh_prepare(mesh);
 }
 
 void rvk_pass_begin(RvkPass* pass, const GeoColor clearColor) {
@@ -290,15 +336,19 @@ static void rvk_pass_draw_submit(RvkPass* pass, const RvkPassDraw* draw) {
   const bool  hasGlobalData = (pass->flags & RvkPassPrivateFlags_BoundGlobalData) != 0;
   RvkGraphic* graphic       = draw->graphic;
 
-  if (UNLIKELY(graphic->flags & RvkGraphicFlags_GlobalData && !hasGlobalData)) {
+  if (UNLIKELY(graphic->flags & RvkGraphicFlags_RequireGlobalData && !hasGlobalData)) {
     log_w("Graphic requires global data", log_param("graphic", fmt_text(graphic->dbgName)));
     return;
   }
-  if (UNLIKELY(graphic->flags & RvkGraphicFlags_DrawData && !draw->drawData.size)) {
+  if (UNLIKELY(graphic->flags & RvkGraphicFlags_RequireDynamicMesh && !draw->dynMesh)) {
+    log_w("Graphic requires a dynamic mesh", log_param("graphic", fmt_text(graphic->dbgName)));
+    return;
+  }
+  if (UNLIKELY(graphic->flags & RvkGraphicFlags_RequireDrawData && !draw->drawData.size)) {
     log_w("Graphic requires draw data", log_param("graphic", fmt_text(graphic->dbgName)));
     return;
   }
-  if (UNLIKELY(graphic->flags & RvkGraphicFlags_InstanceData && !draw->instDataStride)) {
+  if (UNLIKELY(graphic->flags & RvkGraphicFlags_RequireInstanceData && !draw->instDataStride)) {
     log_w("Graphic requires instance data", log_param("graphic", fmt_text(graphic->dbgName)));
     return;
   }
@@ -317,13 +367,21 @@ static void rvk_pass_draw_submit(RvkPass* pass, const RvkPassDraw* draw) {
 
   rvk_graphic_bind(graphic, pass->vkCmdBuf);
 
+  if (draw->dynMesh) {
+    rvk_pass_bind_dyn_mesh(pass, graphic, draw->dynMesh);
+  }
   if (draw->drawData.size) {
     rvk_uniform_bind(
-        pass->uniformPool, draw->drawData, pass->vkCmdBuf, graphic->vkPipelineLayout, 2);
+        pass->uniformPool,
+        draw->drawData,
+        pass->vkCmdBuf,
+        graphic->vkPipelineLayout,
+        RvkGraphicSet_Draw);
   }
 
   diag_assert(draw->instDataStride * draw->instCount == draw->instData.size);
-  const u32 dataStride = graphic->flags & RvkGraphicFlags_InstanceData ? draw->instDataStride : 0;
+  const u32 dataStride =
+      graphic->flags & RvkGraphicFlags_RequireInstanceData ? draw->instDataStride : 0;
 
   for (u32 remInstCount = draw->instCount, dataOffset = 0; remInstCount != 0;) {
     const u32 instCount = rvk_pass_instances_per_draw(pass, remInstCount, dataStride);
@@ -336,12 +394,13 @@ static void rvk_pass_draw_submit(RvkPass* pass, const RvkPassDraw* draw) {
           mem_slice(draw->instData, dataOffset, dataSize),
           pass->vkCmdBuf,
           graphic->vkPipelineLayout,
-          3);
+          RvkGraphicSet_Instance);
       dataOffset += dataSize;
     }
 
-    if (graphic->mesh) {
-      vkCmdDrawIndexed(pass->vkCmdBuf, graphic->mesh->indexCount, instCount, 0, 0, 0);
+    if (draw->dynMesh || graphic->mesh) {
+      const u32 indexCount = draw->dynMesh ? draw->dynMesh->indexCount : graphic->mesh->indexCount;
+      vkCmdDrawIndexed(pass->vkCmdBuf, indexCount, instCount, 0, 0, 0);
     } else {
       const u32 vertexCount =
           draw->vertexCountOverride ? draw->vertexCountOverride : graphic->vertexCount;

@@ -7,12 +7,14 @@
 typedef enum {
   RvkRepositoryType_None,
   RvkRepositoryType_Texture,
+  RvkRepositoryType_Graphic,
 } RvkRepositoryType;
 
 typedef struct {
   RvkRepositoryType type;
   union {
     RvkTexture* texture;
+    RvkGraphic* graphic;
   };
 } RvkRepositoryEntry;
 
@@ -24,6 +26,7 @@ String rvk_repository_id_str(const RvkRepositoryId id) {
   static const String g_names[] = {
       string_static("MissingTexture"),
       string_static("MissingTextureCube"),
+      string_static("WireframeGraphic"),
   };
   ASSERT(array_elems(g_names) == RvkRepositoryId_Count, "Incorrect number of names");
   return g_names[id];
@@ -42,6 +45,11 @@ void rvk_repository_texture_set(RvkRepository* repo, const RvkRepositoryId id, R
   repo->entries[id].texture = tex;
 }
 
+void rvk_repository_graphic_set(RvkRepository* repo, const RvkRepositoryId id, RvkGraphic* gra) {
+  repo->entries[id].type    = RvkRepositoryType_Graphic;
+  repo->entries[id].graphic = gra;
+}
+
 RvkTexture* rvk_repository_texture_get(const RvkRepository* repo, const RvkRepositoryId id) {
   if (UNLIKELY(repo->entries[id].type != RvkRepositoryType_Texture)) {
     diag_crash_msg(
@@ -49,4 +57,13 @@ RvkTexture* rvk_repository_texture_get(const RvkRepository* repo, const RvkRepos
         fmt_text(rvk_repository_id_str(id)));
   }
   return repo->entries[id].texture;
+}
+
+RvkGraphic* rvk_repository_graphic_get(const RvkRepository* repo, const RvkRepositoryId id) {
+  if (UNLIKELY(repo->entries[id].type != RvkRepositoryType_Graphic)) {
+    diag_crash_msg(
+        "Repository asset '{}' cannot be found or is of the wrong type",
+        fmt_text(rvk_repository_id_str(id)));
+  }
+  return repo->entries[id].graphic;
 }

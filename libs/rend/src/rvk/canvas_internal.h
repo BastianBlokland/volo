@@ -7,13 +7,19 @@
 #include "types_internal.h"
 
 // Internal forward declarations:
-typedef struct sRvkDevice RvkDevice;
-typedef struct sRvkPass   RvkPass;
+typedef struct sRvkDevice     RvkDevice;
+typedef struct sRvkPass       RvkPass;
+typedef struct sRvkRepository RvkRepository;
 
 typedef struct sRvkCanvas RvkCanvas;
 
 RvkCanvas* rvk_canvas_create(RvkDevice*, const GapWindowComp*);
 void       rvk_canvas_destroy(RvkCanvas*);
+
+/**
+ * Get a pointer to the device's resource repository.
+ */
+RvkRepository* rvk_canvas_repository(RvkCanvas* canvas);
 
 /**
  * Query statistics about the previous submitted draw.
@@ -34,4 +40,4 @@ void     rvk_canvas_end(RvkCanvas*);
  * Wait for the previously rendered image to be presented to the user.
  * NOTE: Is a no-op if the device and/or driver does not support tracking presentations.
  */
-void rvk_canvas_for_prev_present(const RvkCanvas*);
+void rvk_canvas_wait_for_prev_present(const RvkCanvas*);

@@ -68,11 +68,6 @@ static const Subject   g_subjects[]          = {
         .position = {.y = 1.3f},
         .scale    = 3.0f,
     },
-    {
-        .graphic  = string_static("graphics/demo/head_wire.gra"),
-        .position = {.y = 1.3f},
-        .scale    = 3.0f,
-    },
 };
 
 typedef enum {

@@ -151,6 +151,13 @@ static void rend_settings_tab_draw(
   if (ui_toggle(canvas, &frustumCulling, .tooltip = g_tooltipFrustumCulling)) {
     settings->flags ^= RendFlags_FrustumCulling;
   }
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Wireframe"));
+  ui_table_next_column(canvas, &table);
+  bool wireframe = (settings->flags & RendFlags_Wireframe) != 0;
+  if (ui_toggle(canvas, &wireframe)) {
+    settings->flags ^= RendFlags_Wireframe;
+  }
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Validation"));
