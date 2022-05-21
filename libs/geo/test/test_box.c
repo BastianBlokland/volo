@@ -86,4 +86,27 @@ spec(box) {
     check_eq_vector(transBox.min, geo_vector(0, 1, -3));
     check_eq_vector(transBox.max, geo_vector(4, 5, 1));
   }
+
+  it("can compute the bounding box of a cone") {
+    {
+      const GeoVector coneBottom = {5, 0, 0};
+      const GeoVector coneTop    = {5, 1, 0};
+      const f32       coneRadius = 1.0f;
+      const GeoBox    box        = geo_box_from_cone(coneBottom, coneTop, coneRadius);
+
+      check_eq_vector(geo_box_size(&box), geo_vector(2, 1, 2));
+      check_eq_vector(box.min, geo_vector(4, 0, -1));
+      check_eq_vector(box.max, geo_vector(6, 1, 1));
+    }
+    {
+      const GeoVector coneBottom = {5, 0, 0};
+      const GeoVector coneTop    = {5, 0, 1};
+      const f32       coneRadius = 2.0f;
+      const GeoBox    box        = geo_box_from_cone(coneBottom, coneTop, coneRadius);
+
+      check_eq_vector(geo_box_size(&box), geo_vector(4, 4, 1));
+      check_eq_vector(box.min, geo_vector(3, -2, 0));
+      check_eq_vector(box.max, geo_vector(7, 2, 1));
+    }
+  }
 }

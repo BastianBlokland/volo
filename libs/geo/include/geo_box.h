@@ -49,3 +49,8 @@ void geo_box_corners3(const GeoBox*, GeoVector corners[8]);
  * NOTE: The resulting box is still axis aligned so can be substantially larger then the original.
  */
 GeoBox geo_box_transform3(const GeoBox*, GeoVector offset, GeoQuat rotation, f32 scale);
+
+/**
+ * Calculate the bounding box of a cone.
+ */
+GeoBox geo_box_from_cone(GeoVector bottom, GeoVector top, f32 radius);
