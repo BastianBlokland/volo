@@ -51,6 +51,11 @@ void geo_box_corners3(const GeoBox*, GeoVector corners[8]);
 GeoBox geo_box_transform3(const GeoBox*, GeoVector offset, GeoQuat rotation, f32 scale);
 
 /**
+ * Calculate the bounding box of a sphere.
+ */
+GeoBox geo_box_from_sphere(GeoVector, f32 radius);
+
+/**
  * Calculate the bounding box of a cone.
  */
 GeoBox geo_box_from_cone(GeoVector bottom, GeoVector top, f32 radius);

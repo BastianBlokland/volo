@@ -153,6 +153,22 @@ geo_box_transform3(const GeoBox* box, const GeoVector pos, const GeoQuat rot, co
 #endif
 }
 
+GeoBox geo_box_from_sphere(const GeoVector pos, const f32 radius) {
+#if geo_box_simd_enable
+  const SimdVec vPos    = simd_vec_load(pos.comps);
+  const SimdVec vRadius = simd_vec_clear_w(simd_vec_broadcast(radius));
+  GeoBox        newBox;
+  simd_vec_store(simd_vec_sub(vPos, vRadius), newBox.min.comps);
+  simd_vec_store(simd_vec_add(vPos, vRadius), newBox.max.comps);
+  return newBox;
+#else
+  return (GeoBox){
+      .min = geo_vector(pos.x - radius, pos.y - radius, pos.z - radius),
+      .max = geo_vector(pos.x + radius, pos.y + radius, pos.z + radius),
+  };
+#endif
+}
+
 GeoBox geo_box_from_cone(const GeoVector bottom, const GeoVector top, const f32 radius) {
 #if geo_box_simd_enable
   const SimdVec vBottom   = simd_vec_load(bottom.comps);

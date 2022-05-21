@@ -209,16 +209,16 @@ ecs_system_define(DebugShapeRenderSys) {
       case DebugShapeType_SphereOverlay: {
         const GeoVector pos    = entry->data_sphere.pos;
         const f32       radius = entry->data_sphere.radius;
-        const GeoBox    bounds = {
-               .min = geo_vector(pos.x - radius, pos.y - radius, pos.z - radius),
-               .max = geo_vector(pos.x + radius, pos.y + radius, pos.z + radius),
-        };
+        if (UNLIKELY(radius < f32_epsilon)) {
+          continue;
+        }
         const DrawMeshData data = {
             .pos   = pos,
             .rot   = geo_quat_ident,
             .scale = geo_vector(radius, radius, radius),
             .color = entry->data_sphere.color,
         };
+        const GeoBox bounds = geo_box_from_sphere(pos, radius);
         rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, bounds);
         continue;
       }

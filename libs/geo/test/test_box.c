@@ -87,6 +87,27 @@ spec(box) {
     check_eq_vector(transBox.max, geo_vector(4, 5, 1));
   }
 
+  it("can compute the bounding box of a sphere") {
+    {
+      const GeoVector p      = {5, 0, 0};
+      const f32       radius = 1.0f;
+      const GeoBox    box    = geo_box_from_sphere(p, radius);
+
+      check_eq_vector(geo_box_size(&box), geo_vector(2, 2, 2));
+      check_eq_vector(box.min, geo_vector(4, -1, -1));
+      check_eq_vector(box.max, geo_vector(6, 1, 1));
+    }
+    {
+      const GeoVector p      = {5, -1, 0};
+      const f32       radius = 1.5f;
+      const GeoBox    box    = geo_box_from_sphere(p, radius);
+
+      check_eq_vector(geo_box_size(&box), geo_vector(3, 3, 3));
+      check_eq_vector(box.min, geo_vector(3.5f, -2.5f, -1.5f));
+      check_eq_vector(box.max, geo_vector(6.5f, 0.5f, 1.5f));
+    }
+  }
+
   it("can compute the bounding box of a cone") {
     {
       const GeoVector coneBottom = {5, 0, 0};
