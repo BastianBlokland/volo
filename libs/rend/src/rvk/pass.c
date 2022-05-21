@@ -231,6 +231,12 @@ static void rvk_pass_bind_dyn_mesh(RvkPass* pass, RvkGraphic* graphic, RvkMesh* 
       &vkDescSet,
       0,
       null);
+
+  vkCmdBindIndexBuffer(
+      pass->vkCmdBuf,
+      mesh->indexBuffer.vkBuffer,
+      0,
+      sizeof(AssetMeshIndex) == 2 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32);
 }
 
 RvkPass* rvk_pass_create(
@@ -241,14 +247,14 @@ RvkPass* rvk_pass_create(
 
   RvkPass* pass = alloc_alloc_t(g_alloc_heap, RvkPass);
   *pass         = (RvkPass){
-      .dev            = dev,
-      .statrecorder   = rvk_statrecorder_create(dev),
-      .vkRendPass     = rvk_renderpass_create(dev, flags),
-      .vkGlobalLayout = rvk_global_layout_create(dev, rvk_uniform_vkdesclayout(uniformPool)),
-      .vkCmdBuf       = vkCmdBuf,
-      .uniformPool    = uniformPool,
-      .flags          = flags,
-      .dynDescSets    = dynarray_create_t(g_alloc_heap, RvkDescSet, 64),
+              .dev            = dev,
+              .statrecorder   = rvk_statrecorder_create(dev),
+              .vkRendPass     = rvk_renderpass_create(dev, flags),
+              .vkGlobalLayout = rvk_global_layout_create(dev, rvk_uniform_vkdesclayout(uniformPool)),
+              .vkCmdBuf       = vkCmdBuf,
+              .uniformPool    = uniformPool,
+              .flags          = flags,
+              .dynDescSets    = dynarray_create_t(g_alloc_heap, RvkDescSet, 64),
   };
   return pass;
 }
@@ -390,8 +396,9 @@ static void rvk_pass_draw_submit(RvkPass* pass, const RvkPassDraw* draw) {
       dataOffset += dataSize;
     }
 
-    if (graphic->mesh) {
-      vkCmdDrawIndexed(pass->vkCmdBuf, graphic->mesh->indexCount, instCount, 0, 0, 0);
+    if (draw->dynMesh || graphic->mesh) {
+      const u32 indexCount = draw->dynMesh ? draw->dynMesh->indexCount : graphic->mesh->indexCount;
+      vkCmdDrawIndexed(pass->vkCmdBuf, indexCount, instCount, 0, 0, 0);
     } else {
       const u32 vertexCount =
           draw->vertexCountOverride ? draw->vertexCountOverride : graphic->vertexCount;
