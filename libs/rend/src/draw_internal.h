@@ -5,4 +5,4 @@
 #include "view_internal.h"
 
 bool        rend_draw_gather(RendDrawComp*, const RendView*, const RendSettingsComp*);
-RvkPassDraw rend_draw_output(const RendDrawComp*, RvkGraphic* graphic);
+RvkPassDraw rend_draw_output(const RendDrawComp*, RvkGraphic* graphic, RvkMesh* dynMesh);
