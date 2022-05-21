@@ -45,7 +45,14 @@ typedef struct {
   GeoQuat   rot;
   GeoVector size;
   GeoColor  color;
-} DebugShapeBoxOrQuad;
+} DebugShapeBox;
+
+typedef struct {
+  GeoVector pos;
+  GeoQuat   rot;
+  f32       sizeX, sizeY;
+  GeoColor  color;
+} DebugShapeQuad;
 
 typedef struct {
   GeoVector pos;
@@ -73,11 +80,12 @@ typedef struct {
 typedef struct {
   DebugShapeType type;
   union {
-    DebugShapeBoxOrQuad data_boxOrQuad;
-    DebugShapeSphere    data_sphere;
-    DebugShapeCylinder  data_cylinder;
-    DebugShapeCone      data_cone;
-    DebugShapeLine      data_line;
+    DebugShapeBox      data_box;
+    DebugShapeQuad     data_quad;
+    DebugShapeSphere   data_sphere;
+    DebugShapeCylinder data_cylinder;
+    DebugShapeCone     data_cone;
+    DebugShapeLine     data_line;
   };
 } DebugShape;
 
@@ -190,16 +198,26 @@ ecs_system_define(DebugShapeRenderSys) {
       switch (entry->type) {
       case DebugShapeType_BoxFill:
       case DebugShapeType_BoxWire:
-      case DebugShapeType_BoxOverlay:
+      case DebugShapeType_BoxOverlay: {
+        const GeoBox       bounds = geo_box_inverted3(); // TODO: Compute bounds.
+        const DrawMeshData data   = {
+            .pos   = entry->data_box.pos,
+            .rot   = entry->data_box.rot,
+            .scale = entry->data_box.size,
+            .color = entry->data_box.color,
+        };
+        rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, bounds);
+        continue;
+      }
       case DebugShapeType_QuadFill:
       case DebugShapeType_QuadWire:
       case DebugShapeType_QuadOverlay: {
         const GeoBox       bounds = geo_box_inverted3(); // TODO: Compute bounds.
         const DrawMeshData data   = {
-              .pos   = entry->data_boxOrQuad.pos,
-              .rot   = entry->data_boxOrQuad.rot,
-              .scale = entry->data_boxOrQuad.size,
-              .color = entry->data_boxOrQuad.color,
+            .pos   = entry->data_quad.pos,
+            .rot   = entry->data_quad.rot,
+            .scale = geo_vector(entry->data_quad.sizeX, entry->data_quad.sizeY, 1),
+            .color = entry->data_quad.color,
         };
         rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, bounds);
         continue;
@@ -314,8 +332,8 @@ void debug_box(
     const GeoColor       color,
     const DebugShapeMode mode) {
   *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
-      .type           = DebugShapeType_Box + mode,
-      .data_boxOrQuad = {.pos = pos, .rot = rot, .size = size, .color = color},
+      .type     = DebugShapeType_Box + mode,
+      .data_box = {.pos = pos, .rot = rot, .size = size, .color = color},
   };
 }
 
@@ -327,10 +345,9 @@ void debug_quad(
     const f32            sizeY,
     const GeoColor       color,
     const DebugShapeMode mode) {
-  const GeoVector size                         = geo_vector(sizeX, sizeY, 1.0f);
   *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
-      .type           = DebugShapeType_Quad + mode,
-      .data_boxOrQuad = {.pos = pos, .rot = rot, .size = size, .color = color},
+      .type      = DebugShapeType_Quad + mode,
+      .data_quad = {.pos = pos, .rot = rot, .sizeX = sizeX, .sizeY = sizeY, .color = color},
   };
 }
 
