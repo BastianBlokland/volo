@@ -97,7 +97,7 @@ void rvk_canvas_end(RvkCanvas* canvas) {
   canvas->flags &= ~RvkCanvasFlags_Active;
 }
 
-void rvk_canvas_for_prev_present(const RvkCanvas* canvas) {
+void rvk_canvas_wait_for_prev_present(const RvkCanvas* canvas) {
   const u32 numBehind = 1;
   rvk_swapchain_wait_for_present(canvas->swapchain, numBehind);
 }

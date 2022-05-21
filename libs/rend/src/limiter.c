@@ -23,7 +23,7 @@ static void rend_wait_for_present(EcsWorld* world) {
   EcsView* painterView = ecs_world_view_t(world, PainterView);
   for (EcsIterator* itr = ecs_view_itr(painterView); ecs_view_walk(itr);) {
     const RendPainterComp* painter = ecs_view_read_t(itr, RendPainterComp);
-    rvk_canvas_for_prev_present(painter->canvas);
+    rvk_canvas_wait_for_prev_present(painter->canvas);
   }
 }
 
