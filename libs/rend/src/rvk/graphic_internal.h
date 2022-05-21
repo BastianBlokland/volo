@@ -12,6 +12,14 @@ typedef struct sRvkShader         RvkShader;
 typedef struct sRvkShaderOverride RvkShaderOverride;
 typedef struct sRvkTexture        RvkTexture;
 
+enum {
+  RvkGraphicSet_Global   = 0,
+  RvkGraphicSet_Graphic  = 1,
+  RvkGraphicSet_Dynamic  = 2,
+  RvkGraphicSet_Draw     = 3,
+  RvkGraphicSet_Instance = 4,
+};
+
 #define rvk_graphic_shaders_max 2
 #define rvk_graphic_samplers_max 4
 
@@ -23,9 +31,10 @@ typedef struct {
 typedef enum {
   RvkGraphicFlags_Ready               = 1 << 0,
   RvkGraphicFlags_RequireGlobalData   = 1 << 1,
-  RvkGraphicFlags_RequireDrawData     = 1 << 2,
-  RvkGraphicFlags_RequireInstanceData = 1 << 3,
-  RvkGraphicFlags_Invalid             = 1 << 4,
+  RvkGraphicFlags_RequireDynamicMesh  = 1 << 2,
+  RvkGraphicFlags_RequireDrawData     = 1 << 3,
+  RvkGraphicFlags_RequireInstanceData = 1 << 4,
+  RvkGraphicFlags_Invalid             = 1 << 5,
 } RvkGraphicFlags;
 
 typedef struct {

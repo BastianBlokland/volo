@@ -36,6 +36,7 @@ struct sRvkPass {
   VkFramebuffer    vkFrameBuffer;
   VkCommandBuffer  vkCmdBuf;
   RvkUniformPool*  uniformPool;
+  DynArray         dynDescSets; // RvkDescSet[]
 };
 
 static VkRenderPass rvk_renderpass_create(RvkDevice* dev, const RvkPassFlags flags) {
@@ -204,6 +205,34 @@ static void rvk_pass_resource_destroy(RvkPass* pass) {
   vkDestroyFramebuffer(pass->dev->vkDev, pass->vkFrameBuffer, &pass->dev->vkAlloc);
 }
 
+static void rvk_pass_free_dyn_desc(RvkPass* pass) {
+  dynarray_for_t(&pass->dynDescSets, RvkDescSet, set) { rvk_desc_free(*set); }
+  dynarray_clear(&pass->dynDescSets);
+}
+
+static RvkDescSet rvk_pass_alloc_dyn_desc(RvkPass* pass, const RvkDescMeta* meta) {
+  const RvkDescSet res                             = rvk_desc_alloc(pass->dev->descPool, meta);
+  *dynarray_push_t(&pass->dynDescSets, RvkDescSet) = res;
+  return res;
+}
+
+static void rvk_pass_bind_dyn_mesh(RvkPass* pass, RvkGraphic* graphic, RvkMesh* mesh) {
+  const RvkDescMeta meta    = {.bindings[0] = RvkDescKind_StorageBuffer};
+  const RvkDescSet  descSet = rvk_pass_alloc_dyn_desc(pass, &meta);
+  rvk_desc_set_attach_buffer(graphic->descSet, 0, &mesh->vertexBuffer, 0);
+
+  VkDescriptorSet vkDescSet = rvk_desc_set_vkset(descSet);
+  vkCmdBindDescriptorSets(
+      pass->vkCmdBuf,
+      VK_PIPELINE_BIND_POINT_GRAPHICS,
+      graphic->vkPipelineLayout,
+      RvkGraphicSet_Dynamic,
+      1,
+      &vkDescSet,
+      0,
+      null);
+}
+
 RvkPass* rvk_pass_create(
     RvkDevice*         dev,
     VkCommandBuffer    vkCmdBuf,
@@ -219,16 +248,19 @@ RvkPass* rvk_pass_create(
       .vkCmdBuf       = vkCmdBuf,
       .uniformPool    = uniformPool,
       .flags          = flags,
+      .dynDescSets    = dynarray_create_t(g_alloc_heap, RvkDescSet, 64),
   };
   return pass;
 }
 
 void rvk_pass_destroy(RvkPass* pass) {
+  rvk_pass_free_dyn_desc(pass);
 
   rvk_statrecorder_destroy(pass->statrecorder);
   rvk_pass_resource_destroy(pass);
   vkDestroyRenderPass(pass->dev->vkDev, pass->vkRendPass, &pass->dev->vkAlloc);
   vkDestroyPipelineLayout(pass->dev->vkDev, pass->vkGlobalLayout, &pass->dev->vkAlloc);
+  dynarray_destroy(&pass->dynDescSets);
 
   alloc_free_t(g_alloc_heap, pass);
 }
@@ -247,6 +279,7 @@ void rvk_pass_setup(RvkPass* pass, const RvkSize size) {
   diag_assert_msg(size.width && size.height, "Pass cannot be zero sized");
 
   rvk_statrecorder_reset(pass->statrecorder, pass->vkCmdBuf);
+  rvk_pass_free_dyn_desc(pass); // Free last frame's dynamic descriptors.
 
   if (rvk_size_equal(pass->size, size)) {
     return;
@@ -294,6 +327,10 @@ static void rvk_pass_draw_submit(RvkPass* pass, const RvkPassDraw* draw) {
     log_w("Graphic requires global data", log_param("graphic", fmt_text(graphic->dbgName)));
     return;
   }
+  if (UNLIKELY(graphic->flags & RvkGraphicFlags_RequireDynamicMesh && !draw->dynMesh)) {
+    log_w("Graphic requires a dynamic mesh", log_param("graphic", fmt_text(graphic->dbgName)));
+    return;
+  }
   if (UNLIKELY(graphic->flags & RvkGraphicFlags_RequireDrawData && !draw->drawData.size)) {
     log_w("Graphic requires draw data", log_param("graphic", fmt_text(graphic->dbgName)));
     return;
@@ -317,9 +354,16 @@ static void rvk_pass_draw_submit(RvkPass* pass, const RvkPassDraw* draw) {
 
   rvk_graphic_bind(graphic, pass->vkCmdBuf);
 
+  if (draw->dynMesh) {
+    rvk_pass_bind_dyn_mesh(pass, graphic, draw->dynMesh);
+  }
   if (draw->drawData.size) {
     rvk_uniform_bind(
-        pass->uniformPool, draw->drawData, pass->vkCmdBuf, graphic->vkPipelineLayout, 2);
+        pass->uniformPool,
+        draw->drawData,
+        pass->vkCmdBuf,
+        graphic->vkPipelineLayout,
+        RvkGraphicSet_Draw);
   }
 
   diag_assert(draw->instDataStride * draw->instCount == draw->instData.size);
@@ -337,7 +381,7 @@ static void rvk_pass_draw_submit(RvkPass* pass, const RvkPassDraw* draw) {
           mem_slice(draw->instData, dataOffset, dataSize),
           pass->vkCmdBuf,
           graphic->vkPipelineLayout,
-          3);
+          RvkGraphicSet_Instance);
       dataOffset += dataSize;
     }
 
