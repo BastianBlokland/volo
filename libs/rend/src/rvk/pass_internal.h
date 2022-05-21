@@ -48,6 +48,7 @@ u64       rvk_pass_stat(RvkPass*, RvkStat);
 
 void rvk_pass_setup(RvkPass*, RvkSize size);
 bool rvk_pass_prepare(RvkPass*, RvkGraphic*);
+bool rvk_pass_prepare_mesh(RvkPass*, RvkMesh*);
 
 void rvk_pass_begin(RvkPass*, GeoColor clearColor);
 void rvk_pass_draw(RvkPass*, Mem globalData, RvkPassDrawList);

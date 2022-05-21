@@ -294,6 +294,11 @@ bool rvk_pass_prepare(RvkPass* pass, RvkGraphic* graphic) {
   return rvk_graphic_prepare(graphic, pass->vkCmdBuf, pass->vkRendPass);
 }
 
+bool rvk_pass_prepare_mesh(RvkPass* pass, RvkMesh* mesh) {
+  diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
+  return rvk_mesh_prepare(mesh);
+}
+
 void rvk_pass_begin(RvkPass* pass, const GeoColor clearColor) {
   diag_assert_msg(pass->flags & RvkPassPrivateFlags_Setup, "Pass not setup");
   diag_assert_msg(!(pass->flags & RvkPassPrivateFlags_Active), "Pass already active");
