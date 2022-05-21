@@ -99,7 +99,8 @@ static void rend_draw_request_graphic(
     return;
   }
   if (++*numRequests < rend_max_res_requests) {
-    rend_resource_request(world, entity);
+    const bool isPersistent = false;
+    rend_resource_request(world, entity, isPersistent);
   }
 }
 
