@@ -23,6 +23,8 @@ configure_shaders(volo_shaders
     shaders/standard.vert
     shaders/ui/canvas.frag
     shaders/ui/canvas.vert
+    shaders/wireframe.frag
+    shaders/wireframe.vert
   )
 
 if(${EXTERNAL_ASSETS})

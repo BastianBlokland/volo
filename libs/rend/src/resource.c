@@ -25,8 +25,8 @@ ecs_comp_define_public(RendResMeshComp);
 ecs_comp_define_public(RendResTextureComp);
 
 ecs_comp_define(RendGlobalResComp) {
-  EcsEntityId missingTex;
-  EcsEntityId missingTexCube;
+  EcsEntityId missingTex, missingTexCube;
+  EcsEntityId wireframeGraphic;
 };
 ecs_comp_define(RendGlobalResLoadedComp);
 
@@ -190,6 +190,19 @@ static bool rend_res_set_wellknown_texture(
   return false;
 }
 
+static bool rend_res_set_wellknown_graphic(
+    EcsWorld* world, RendPlatformComp* plat, const RvkRepositoryId id, const EcsEntityId entity) {
+
+  EcsView* graphicView = ecs_world_view_t(world, GraphicWriteView);
+  if (ecs_view_contains(graphicView, entity)) {
+    RendResGraphicComp* comp =
+        ecs_utils_write(graphicView, entity, ecs_comp_id(RendResGraphicComp));
+    rvk_repository_graphic_set(plat->device->repository, id, comp->graphic);
+    return true;
+  }
+  return false;
+}
+
 ecs_view_define(GlobalResourceUpdateView) {
   ecs_access_write(RendPlatformComp);
   ecs_access_write(AssetManagerComp);
@@ -216,6 +229,8 @@ ecs_system_define(RendGlobalResourceLoadSys) {
         rend_resource_request_persistent(world, assetMan, string_lit("textures/missing.ptx"));
     resComp->missingTexCube =
         rend_resource_request_persistent(world, assetMan, string_lit("textures/missing_cube.atx"));
+    resComp->wireframeGraphic =
+        rend_resource_request_persistent(world, assetMan, string_lit("graphics/wireframe.gra"));
   }
 
   // Wait for all global resources to be loaded.
@@ -224,6 +239,8 @@ ecs_system_define(RendGlobalResourceLoadSys) {
       world, plat, RvkRepositoryId_MissingTexture, resComp->missingTex);
   ready &= rend_res_set_wellknown_texture(
       world, plat, RvkRepositoryId_MissingTextureCube, resComp->missingTexCube);
+  ready &= rend_res_set_wellknown_graphic(
+      world, plat, RvkRepositoryId_WireframeGraphic, resComp->wireframeGraphic);
   if (!ready) {
     return;
   }
@@ -626,7 +643,8 @@ ecs_module_init(rend_resource_module) {
   ecs_register_system(
       RendGlobalResourceLoadSys,
       ecs_register_view(GlobalResourceUpdateView),
-      ecs_view_id(TextureWriteView));
+      ecs_view_id(TextureWriteView),
+      ecs_view_id(GraphicWriteView));
 
   ecs_register_system(
       RendResLoadSys,
