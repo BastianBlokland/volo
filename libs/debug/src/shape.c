@@ -148,13 +148,18 @@ debug_shape_draw_create(EcsWorld* world, AssetManagerComp* assets, const DebugSh
   return entity;
 }
 
-void debug_shape_renderer_create(EcsWorld* world, AssetManagerComp* assets) {
+static void debug_shape_renderer_create(EcsWorld* world, AssetManagerComp* assets) {
   DebugShapeRendererComp* renderer =
       ecs_world_add_t(world, ecs_world_global(world), DebugShapeRendererComp);
 
   for (DebugShapeType shape = 0; shape != DebugShapeType_Count; ++shape) {
     renderer->drawEntities[shape] = debug_shape_draw_create(world, assets, shape);
   }
+}
+
+static GeoBox debug_box_bounds(const GeoVector pos, const GeoQuat rot, const GeoVector size) {
+  const GeoBox b = (GeoBox){.min = geo_vector_mul(size, -0.5f), .max = geo_vector_mul(size, 0.5f)};
+  return geo_box_transform3(&b, pos, rot, 1);
 }
 
 ecs_system_define(DebugShapeRenderSys) {
@@ -199,13 +204,14 @@ ecs_system_define(DebugShapeRenderSys) {
       case DebugShapeType_BoxFill:
       case DebugShapeType_BoxWire:
       case DebugShapeType_BoxOverlay: {
-        const GeoBox       bounds = geo_box_inverted3(); // TODO: Compute bounds.
-        const DrawMeshData data   = {
+        const DrawMeshData data = {
             .pos   = entry->data_box.pos,
             .rot   = entry->data_box.rot,
             .scale = entry->data_box.size,
             .color = entry->data_box.color,
         };
+        const GeoBox bounds =
+            debug_box_bounds(entry->data_box.pos, entry->data_box.rot, entry->data_box.size);
         rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, bounds);
         continue;
       }
