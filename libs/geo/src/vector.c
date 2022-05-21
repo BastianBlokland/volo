@@ -45,6 +45,16 @@ GeoVector geo_vector_mul(const GeoVector v, const f32 scalar) {
 #endif
 }
 
+GeoVector geo_vector_mul_comps(const GeoVector a, const GeoVector b) {
+#if geo_vec_simd_enable
+  GeoVector res;
+  simd_vec_store(simd_vec_mul(simd_vec_load(a.comps), simd_vec_load(b.comps)), res.comps);
+  return res;
+#else
+  return geo_vector(a.x * b.x, a.y * b.y, a.z * b.z, a.w * b.w);
+#endif
+}
+
 GeoVector geo_vector_div(const GeoVector v, const f32 scalar) {
   diag_assert(scalar != 0);
 #if geo_vec_simd_enable

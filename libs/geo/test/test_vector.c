@@ -55,6 +55,12 @@ spec(vector) {
         geo_vector(.x = -2, .y = -4, .z = -6));
   }
 
+  it("multiplies each component when mutliplying component-wise") {
+    const GeoVector v1 = {.x = 10, .y = 20, .z = 10, .w = 2};
+    const GeoVector v2 = {.x = 2, .y = 3, .z = -4, .w = 0};
+    check_eq_vector(geo_vector_mul_comps(v1, v2), geo_vector(.x = 20, .y = 60, .z = -40, .w = 0));
+  }
+
   it("divides each component by the scalar when dividing") {
     check_eq_vector(
         geo_vector_div(geo_vector(.x = 5, .y = -2.1f, .z = 6, .w = 8), 2),

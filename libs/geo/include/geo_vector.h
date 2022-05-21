@@ -47,6 +47,7 @@ GeoVector geo_vector_sub(GeoVector a, GeoVector b);
  * Compute a vector where each component is the result of multiplying with the scalar.
  */
 GeoVector geo_vector_mul(GeoVector, f32 scalar);
+GeoVector geo_vector_mul_comps(GeoVector, GeoVector);
 
 /**
  * Compute a vector where each component is the result of dividing by the scalar.
