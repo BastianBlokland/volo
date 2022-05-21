@@ -189,10 +189,10 @@ ecs_system_define(DebugShapeRenderSys) {
       case DebugShapeType_QuadOverlay: {
         const GeoBox       bounds = geo_box_inverted3(); // TODO: Compute bounds.
         const DrawMeshData data   = {
-            .pos   = entry->data_boxOrQuad.pos,
-            .rot   = entry->data_boxOrQuad.rot,
-            .scale = entry->data_boxOrQuad.size,
-            .color = entry->data_boxOrQuad.color,
+              .pos   = entry->data_boxOrQuad.pos,
+              .rot   = entry->data_boxOrQuad.rot,
+              .scale = entry->data_boxOrQuad.size,
+              .color = entry->data_boxOrQuad.color,
         };
         rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, bounds);
         continue;
@@ -203,8 +203,8 @@ ecs_system_define(DebugShapeRenderSys) {
         const GeoVector pos    = entry->data_sphere.pos;
         const f32       radius = entry->data_sphere.radius;
         const GeoBox    bounds = {
-            .min = geo_vector(pos.x - radius, pos.y - radius, pos.z - radius),
-            .max = geo_vector(pos.x + radius, pos.y + radius, pos.z + radius),
+               .min = geo_vector(pos.x - radius, pos.y - radius, pos.z - radius),
+               .max = geo_vector(pos.x + radius, pos.y + radius, pos.z + radius),
         };
         const DrawMeshData data = {
             .pos   = pos,
@@ -241,9 +241,9 @@ ecs_system_define(DebugShapeRenderSys) {
       case DebugShapeType_LineOverlay: {
         const GeoBox       bounds = geo_box_inverted3(); // TODO: Compute bounds.
         const DrawLineData data   = {
-            .positions[0] = entry->data_line.start,
-            .positions[1] = entry->data_line.end,
-            .color        = entry->data_line.color,
+              .positions[0] = entry->data_line.start,
+              .positions[1] = entry->data_line.end,
+              .color        = entry->data_line.color,
         };
         rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, bounds);
         continue;
@@ -389,13 +389,16 @@ void debug_orientation(
   const f32       radius  = size * g_radiusMult;
 
   const GeoVector startRight = geo_vector_add(pos, geo_vector_mul(right, g_startOffsetMult));
-  debug_arrow(comp, startRight, geo_vector_add(pos, right), radius, geo_color_red);
+  const GeoVector endRight   = geo_vector_add(pos, geo_vector_mul(right, size));
+  debug_arrow(comp, startRight, endRight, radius, geo_color_red);
 
   const GeoVector startUp = geo_vector_add(pos, geo_vector_mul(up, g_startOffsetMult));
-  debug_arrow(comp, startUp, geo_vector_add(pos, up), radius, geo_color_green);
+  const GeoVector endUp   = geo_vector_add(pos, geo_vector_mul(up, size));
+  debug_arrow(comp, startUp, endUp, radius, geo_color_green);
 
   const GeoVector startForward = geo_vector_add(pos, geo_vector_mul(forward, g_startOffsetMult));
-  debug_arrow(comp, startForward, geo_vector_add(pos, forward), radius, geo_color_blue);
+  const GeoVector endForward   = geo_vector_add(pos, geo_vector_mul(forward, size));
+  debug_arrow(comp, startForward, endForward, radius, geo_color_blue);
 }
 
 void debug_plane(

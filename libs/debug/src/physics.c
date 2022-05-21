@@ -159,7 +159,7 @@ ecs_system_define(DebugPhysicsDrawSys) {
       debug_sphere(shape, pos, 0.025f, geo_color(1.0f, 1.0f, 0.0f, 1.0f), DebugShape_Overlay);
     }
     if (settings->flags & DebugPhysicsFlags_DrawOrientation) {
-      debug_orientation(shape, pos, rot, 1.0f);
+      debug_orientation(shape, pos, rot, 0.25f);
     }
     if (boundsComp && !geo_box_is_inverted3(&boundsComp->local)) {
       if (settings->flags & DebugPhysicsFlags_DrawBoundsLocal) {
