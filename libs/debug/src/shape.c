@@ -264,12 +264,12 @@ ecs_system_define(DebugShapeRenderSys) {
       }
       case DebugShapeType_Line:
       case DebugShapeType_LineOverlay: {
-        const GeoBox       bounds = geo_box_inverted3(); // TODO: Compute bounds.
-        const DrawLineData data   = {
+        const DrawLineData data = {
               .positions[0] = entry->data_line.start,
               .positions[1] = entry->data_line.end,
               .color        = entry->data_line.color,
         };
+        const GeoBox bounds = geo_box_from_line(entry->data_line.start, entry->data_line.end);
         rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, bounds);
         continue;
       }
