@@ -700,7 +700,7 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, VkRender
     }
     if (UNLIKELY(graphic->mesh && graphic->flags & RvkGraphicFlags_RequireDynamicMesh)) {
       log_e(
-          "Graphic cannot require both a normal and a dynamic mesh ",
+          "Graphic cannot use both a normal and a dynamic mesh ",
           log_param("graphic", fmt_text(graphic->dbgName)));
       graphic->flags |= RvkGraphicFlags_Invalid;
     }
