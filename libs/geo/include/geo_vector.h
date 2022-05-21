@@ -101,6 +101,12 @@ GeoVector geo_vector_reflect(GeoVector, GeoVector nrm);
 GeoVector geo_vector_lerp(GeoVector x, GeoVector y, f32 t);
 
 /**
+ * Calculate the square root of elements x, y, z and w.
+ * Pre-condition: vec.x >= 0 && vec.y >= 0 && vec.z >= 0 && vec.w >= 0
+ */
+GeoVector geo_vector_sqrt(GeoVector);
+
+/**
  * Perspective divide: divide the vector by its w component.
  */
 GeoVector geo_vector_perspective_div(GeoVector);

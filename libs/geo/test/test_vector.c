@@ -168,6 +168,11 @@ spec(vector) {
     check_eq_vector(geo_vector_lerp(v1, v2, .5), v3);
   }
 
+  it("can compute the square root of components") {
+    const GeoVector v = {.x = 16, .y = 64, .z = 256};
+    check_eq_vector(geo_vector_sqrt(v), geo_vector(4, 8, 16));
+  }
+
   it("divides each component by w when performing a perspective divide") {
     const GeoVector v1 = {.x = 1, .y = 2, .z = 4, .w = 4};
     const GeoVector v2 = {.x = .25, .y = .5, .z = 1};

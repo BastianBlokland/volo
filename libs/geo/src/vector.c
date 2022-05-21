@@ -139,6 +139,16 @@ GeoVector geo_vector_lerp(const GeoVector x, const GeoVector y, const f32 t) {
   };
 }
 
+GeoVector geo_vector_sqrt(const GeoVector v) {
+#if geo_vec_simd_enable
+  GeoVector res;
+  simd_vec_store(simd_vec_sqrt(simd_vec_load(v.comps)), res.comps);
+  return res;
+#else
+  return geo_vector(math_sqrt_f32(v.x), math_sqrt_f32(v.y), math_sqrt_f32(v.z), math_sqrt_f32(v.w));
+#endif
+}
+
 GeoVector geo_vector_perspective_div(const GeoVector v) {
   return geo_vector_div(geo_vector(v.x, v.y, v.z), v.w);
 }
