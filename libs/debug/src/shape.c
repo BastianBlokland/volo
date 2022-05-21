@@ -225,9 +225,9 @@ ecs_system_define(DebugShapeRenderSys) {
       case DebugShapeType_CylinderFill:
       case DebugShapeType_CylinderWire:
       case DebugShapeType_CylinderOverlay: {
-        const GeoBox    bounds = geo_box_inverted3(); // TODO: Compute bounds.
         const GeoVector bottom = entry->data_cylinder.bottom;
-        const GeoVector toTop  = geo_vector_sub(entry->data_cylinder.top, bottom);
+        const GeoVector top    = entry->data_cylinder.top;
+        const GeoVector toTop  = geo_vector_sub(top, bottom);
         const f32       dist   = geo_vector_mag(toTop);
         if (UNLIKELY(dist < f32_epsilon)) {
           continue;
@@ -238,6 +238,7 @@ ecs_system_define(DebugShapeRenderSys) {
             .scale = {entry->data_cylinder.radius, entry->data_cylinder.radius, dist},
             .color = entry->data_cylinder.color,
         };
+        const GeoBox bounds = geo_box_from_cylinder(bottom, top, entry->data_cylinder.radius);
         rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, bounds);
         continue;
       }
