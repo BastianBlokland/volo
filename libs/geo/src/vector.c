@@ -66,6 +66,16 @@ GeoVector geo_vector_div(const GeoVector v, const f32 scalar) {
 #endif
 }
 
+GeoVector geo_vector_div_comps(const GeoVector a, const GeoVector b) {
+#if geo_vec_simd_enable
+  GeoVector res;
+  simd_vec_store(simd_vec_div(simd_vec_load(a.comps), simd_vec_load(b.comps)), res.comps);
+  return res;
+#else
+  return geo_vector(a.x / b.x, a.y / b.y, a.z / b.z, a.w / b.w);
+#endif
+}
+
 f32 geo_vector_mag_sqr(const GeoVector v) {
 #if geo_vec_simd_enable
   const SimdVec tmp = simd_vec_load(v.comps);

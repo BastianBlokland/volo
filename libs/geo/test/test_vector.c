@@ -71,6 +71,12 @@ spec(vector) {
         geo_vector(.x = -.5, .y = -1, .z = -1.5));
   }
 
+  it("multiplies each component when dividing component-wise") {
+    const GeoVector v1 = {.x = 20, .y = 60, .z = 10, .w = 2};
+    const GeoVector v2 = {.x = 2, .y = 3, .z = -4, .w = 1};
+    check_eq_vector(geo_vector_div_comps(v1, v2), geo_vector(.x = 10, .y = 20, .z = -2.5f, .w = 2));
+  }
+
   it("sums all the squared components when calculating the squared magnitude") {
     check_eq_float(geo_vector_mag_sqr(geo_vector(.x = 1, .y = 2, .z = 3, .w = 4)), 30, 1e-6f);
     check_eq_float(geo_vector_mag_sqr(geo_vector(.x = 1, .y = 2, .z = 3)), 14, 1e-6f);

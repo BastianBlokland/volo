@@ -53,6 +53,7 @@ GeoVector geo_vector_mul_comps(GeoVector, GeoVector);
  * Compute a vector where each component is the result of dividing by the scalar.
  */
 GeoVector geo_vector_div(GeoVector, f32 scalar);
+GeoVector geo_vector_div_comps(GeoVector, GeoVector);
 
 /**
  * Calculate the magnitude of the vector squared.
