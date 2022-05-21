@@ -111,8 +111,9 @@ static void painter_draw_forward(
       *dynarray_push_t(&painter->drawBuffer, RvkPassDraw) = rend_draw_output(draw, graphic, null);
     }
 
-    RvkMesh* mesh = graphic->mesh;
-    if (settings->flags & RendFlags_Wireframe && mesh) {
+    RvkMesh*   mesh             = graphic->mesh;
+    const bool standardGeometry = (rend_draw_flags(draw) & RendDrawFlags_StandardGeometry) != 0;
+    if (settings->flags & RendFlags_Wireframe && standardGeometry && mesh) {
       RvkGraphic* wireGfx = painter_wireframe_graphic(painter->canvas);
       if (rvk_pass_prepare(forwardPass, wireGfx) && rvk_pass_prepare_mesh(forwardPass, mesh)) {
         *dynarray_push_t(&painter->drawBuffer, RvkPassDraw) = rend_draw_output(draw, wireGfx, mesh);
