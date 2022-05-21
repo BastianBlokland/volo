@@ -37,7 +37,7 @@ bool geo_box_is_inverted3(const GeoBox*);
  * Compute a new box that encapsulates the existing box and the new point.
  */
 GeoBox geo_box_encapsulate2(const GeoBox*, GeoVector point);
-GeoBox geo_box_encapsulate3(const GeoBox*, GeoVector point);
+GeoBox geo_box_encapsulate(const GeoBox*, GeoVector point);
 
 /**
  * Retrieve the 8 cornsers of the 3d box.
@@ -49,3 +49,23 @@ void geo_box_corners3(const GeoBox*, GeoVector corners[8]);
  * NOTE: The resulting box is still axis aligned so can be substantially larger then the original.
  */
 GeoBox geo_box_transform3(const GeoBox*, GeoVector offset, GeoQuat rotation, f32 scale);
+
+/**
+ * Calculate the bounding box of a sphere.
+ */
+GeoBox geo_box_from_sphere(GeoVector, f32 radius);
+
+/**
+ * Calculate the bounding box of a cylinder.
+ */
+GeoBox geo_box_from_cylinder(GeoVector bottom, GeoVector top, f32 radius);
+
+/**
+ * Calculate the bounding box of a cone.
+ */
+GeoBox geo_box_from_cone(GeoVector bottom, GeoVector top, f32 radius);
+
+/**
+ * Calculate the bounding box of a line.
+ */
+GeoBox geo_box_from_line(GeoVector from, GeoVector to);

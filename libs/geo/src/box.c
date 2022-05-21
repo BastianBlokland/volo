@@ -71,7 +71,7 @@ GeoBox geo_box_encapsulate2(const GeoBox* b, const GeoVector point) {
   return newBox;
 }
 
-GeoBox geo_box_encapsulate3(const GeoBox* b, const GeoVector point) {
+GeoBox geo_box_encapsulate(const GeoBox* b, const GeoVector point) {
 #if geo_box_simd_enable
   const SimdVec p   = simd_vec_load(point.comps);
   const SimdVec min = simd_vec_min(simd_vec_load(b->min.comps), p);
@@ -80,20 +80,12 @@ GeoBox geo_box_encapsulate3(const GeoBox* b, const GeoVector point) {
   GeoBox newBox;
   simd_vec_store(min, newBox.min.comps);
   simd_vec_store(max, newBox.max.comps);
-
-  // NOTE: The non-simd impl preserves the w values, is it worth preserving them here also?
   return newBox;
 #else
-  GeoBox newBox = *b;
-  for (usize i = 0; i != 3; ++i) {
-    if (point.comps[i] < newBox.min.comps[i]) {
-      newBox.min.comps[i] = point.comps[i];
-    }
-    if (point.comps[i] > newBox.max.comps[i]) {
-      newBox.max.comps[i] = point.comps[i];
-    }
-  }
-  return newBox;
+  return (GeoBox){
+      .min = geo_vector_min(b->min, point),
+      .max = geo_vector_max(b->max, point),
+  };
 #endif
 }
 
@@ -147,8 +139,87 @@ geo_box_transform3(const GeoBox* box, const GeoVector pos, const GeoQuat rot, co
   GeoBox newBox = geo_box_inverted3();
   for (usize i = 0; i != array_elems(points); ++i) {
     const GeoVector p = geo_vector_add(geo_quat_rotate(rot, geo_vector_mul(points[i], scale)), pos);
-    newBox            = geo_box_encapsulate3(&newBox, p);
+    newBox            = geo_box_encapsulate(&newBox, p);
   }
   return newBox;
 #endif
+}
+
+GeoBox geo_box_from_sphere(const GeoVector pos, const f32 radius) {
+#if geo_box_simd_enable
+  const SimdVec vPos    = simd_vec_load(pos.comps);
+  const SimdVec vRadius = simd_vec_clear_w(simd_vec_broadcast(radius));
+  GeoBox        newBox;
+  simd_vec_store(simd_vec_sub(vPos, vRadius), newBox.min.comps);
+  simd_vec_store(simd_vec_add(vPos, vRadius), newBox.max.comps);
+  return newBox;
+#else
+  return (GeoBox){
+      .min = geo_vector(pos.x - radius, pos.y - radius, pos.z - radius),
+      .max = geo_vector(pos.x + radius, pos.y + radius, pos.z + radius),
+  };
+#endif
+}
+
+GeoBox geo_box_from_cylinder(const GeoVector bottom, const GeoVector top, const f32 radius) {
+#if geo_box_simd_enable
+  const SimdVec vBottom   = simd_vec_load(bottom.comps);
+  const SimdVec vTop      = simd_vec_load(top.comps);
+  const SimdVec toTop     = simd_vec_sub(vTop, vBottom);
+  const SimdVec lengthSqr = simd_vec_dot3(toTop, toTop);
+  const SimdVec dirSqr    = simd_vec_div(simd_vec_mul(toTop, toTop), lengthSqr);
+  const SimdVec axisDir   = simd_vec_sqrt(simd_vec_sub(simd_vec_broadcast(1.0f), dirSqr));
+  const SimdVec axisDelta = simd_vec_clear_w(simd_vec_mul(axisDir, simd_vec_broadcast(radius)));
+  GeoBox        res;
+  simd_vec_store(
+      simd_vec_min(simd_vec_sub(vBottom, axisDelta), simd_vec_sub(vTop, axisDelta)), res.min.comps);
+  simd_vec_store(
+      simd_vec_max(simd_vec_add(vBottom, axisDelta), simd_vec_add(vTop, axisDelta)), res.max.comps);
+  return res;
+#else
+  const GeoVector toTop     = geo_vector_sub(top, bottom);
+  const f32       lengthSqr = geo_vector_mag_sqr(toTop);
+  const GeoVector dirSqr    = geo_vector_div(geo_vector_mul_comps(toTop, toTop), lengthSqr);
+  const GeoVector axisDir   = geo_vector_sqrt(geo_vector_sub(geo_vector(1, 1, 1), dirSqr));
+  const GeoVector axisDelta = geo_vector_mul(axisDir, radius);
+
+  return (GeoBox){
+      .min = geo_vector_min(geo_vector_sub(bottom, axisDelta), geo_vector_sub(top, axisDelta)),
+      .max = geo_vector_max(geo_vector_add(bottom, axisDelta), geo_vector_add(top, axisDelta)),
+  };
+#endif
+}
+
+GeoBox geo_box_from_cone(const GeoVector bottom, const GeoVector top, const f32 radius) {
+#if geo_box_simd_enable
+  const SimdVec vBottom   = simd_vec_load(bottom.comps);
+  const SimdVec vTop      = simd_vec_load(top.comps);
+  const SimdVec toTop     = simd_vec_sub(vTop, vBottom);
+  const SimdVec lengthSqr = simd_vec_dot3(toTop, toTop);
+  const SimdVec dirSqr    = simd_vec_div(simd_vec_mul(toTop, toTop), lengthSqr);
+  const SimdVec axisDir   = simd_vec_sqrt(simd_vec_sub(simd_vec_broadcast(1.0f), dirSqr));
+  const SimdVec axisDelta = simd_vec_clear_w(simd_vec_mul(axisDir, simd_vec_broadcast(radius)));
+  GeoBox        res;
+  simd_vec_store(simd_vec_min(simd_vec_sub(vBottom, axisDelta), vTop), res.min.comps);
+  simd_vec_store(simd_vec_max(simd_vec_add(vBottom, axisDelta), vTop), res.max.comps);
+  return res;
+#else
+  const GeoVector toTop     = geo_vector_sub(top, bottom);
+  const f32       lengthSqr = geo_vector_mag_sqr(toTop);
+  const GeoVector dirSqr    = geo_vector_div(geo_vector_mul_comps(toTop, toTop), lengthSqr);
+  const GeoVector axisDir   = geo_vector_sqrt(geo_vector_sub(geo_vector(1, 1, 1), dirSqr));
+  const GeoVector axisDelta = geo_vector_mul(axisDir, radius);
+
+  return (GeoBox){
+      .min = geo_vector_min(geo_vector_sub(bottom, axisDelta), top),
+      .max = geo_vector_max(geo_vector_add(bottom, axisDelta), top),
+  };
+#endif
+}
+
+GeoBox geo_box_from_line(const GeoVector from, const GeoVector to) {
+  return (GeoBox){
+      .min = geo_vector_min(from, to),
+      .max = geo_vector_max(from, to),
+  };
 }

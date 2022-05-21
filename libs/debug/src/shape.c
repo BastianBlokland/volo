@@ -45,7 +45,14 @@ typedef struct {
   GeoQuat   rot;
   GeoVector size;
   GeoColor  color;
-} DebugShapeBoxOrQuad;
+} DebugShapeBox;
+
+typedef struct {
+  GeoVector pos;
+  GeoQuat   rot;
+  f32       sizeX, sizeY;
+  GeoColor  color;
+} DebugShapeQuad;
 
 typedef struct {
   GeoVector pos;
@@ -57,7 +64,13 @@ typedef struct {
   GeoVector bottom, top;
   f32       radius;
   GeoColor  color;
-} DebugShapeCylOrCone;
+} DebugShapeCylinder;
+
+typedef struct {
+  GeoVector bottom, top;
+  f32       radius;
+  GeoColor  color;
+} DebugShapeCone;
 
 typedef struct {
   GeoVector start, end;
@@ -67,10 +80,12 @@ typedef struct {
 typedef struct {
   DebugShapeType type;
   union {
-    DebugShapeBoxOrQuad data_boxOrQuad;
-    DebugShapeSphere    data_sphere;
-    DebugShapeCylOrCone data_cylOrCone;
-    DebugShapeLine      data_line;
+    DebugShapeBox      data_box;
+    DebugShapeQuad     data_quad;
+    DebugShapeSphere   data_sphere;
+    DebugShapeCylinder data_cylinder;
+    DebugShapeCone     data_cone;
+    DebugShapeLine     data_line;
   };
 } DebugShape;
 
@@ -133,13 +148,18 @@ debug_shape_draw_create(EcsWorld* world, AssetManagerComp* assets, const DebugSh
   return entity;
 }
 
-void debug_shape_renderer_create(EcsWorld* world, AssetManagerComp* assets) {
+static void debug_shape_renderer_create(EcsWorld* world, AssetManagerComp* assets) {
   DebugShapeRendererComp* renderer =
       ecs_world_add_t(world, ecs_world_global(world), DebugShapeRendererComp);
 
   for (DebugShapeType shape = 0; shape != DebugShapeType_Count; ++shape) {
     renderer->drawEntities[shape] = debug_shape_draw_create(world, assets, shape);
   }
+}
+
+static GeoBox debug_box_bounds(const GeoVector pos, const GeoQuat rot, const GeoVector size) {
+  const GeoBox b = (GeoBox){.min = geo_vector_mul(size, -0.5f), .max = geo_vector_mul(size, 0.5f)};
+  return geo_box_transform3(&b, pos, rot, 1);
 }
 
 ecs_system_define(DebugShapeRenderSys) {
@@ -183,17 +203,31 @@ ecs_system_define(DebugShapeRenderSys) {
       switch (entry->type) {
       case DebugShapeType_BoxFill:
       case DebugShapeType_BoxWire:
-      case DebugShapeType_BoxOverlay:
+      case DebugShapeType_BoxOverlay: {
+        const DrawMeshData data = {
+            .pos   = entry->data_box.pos,
+            .rot   = entry->data_box.rot,
+            .scale = entry->data_box.size,
+            .color = entry->data_box.color,
+        };
+        const GeoBox bounds =
+            debug_box_bounds(entry->data_box.pos, entry->data_box.rot, entry->data_box.size);
+        rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, bounds);
+        continue;
+      }
       case DebugShapeType_QuadFill:
       case DebugShapeType_QuadWire:
       case DebugShapeType_QuadOverlay: {
-        const GeoBox       bounds = geo_box_inverted3(); // TODO: Compute bounds.
-        const DrawMeshData data   = {
-            .pos   = entry->data_boxOrQuad.pos,
-            .rot   = entry->data_boxOrQuad.rot,
-            .scale = entry->data_boxOrQuad.size,
-            .color = entry->data_boxOrQuad.color,
+        const DrawMeshData data = {
+            .pos   = entry->data_quad.pos,
+            .rot   = entry->data_quad.rot,
+            .scale = geo_vector(entry->data_quad.sizeX, entry->data_quad.sizeY, 1),
+            .color = entry->data_quad.color,
         };
+        const GeoBox bounds = debug_box_bounds(
+            entry->data_quad.pos,
+            entry->data_quad.rot,
+            geo_vector(entry->data_quad.sizeX, entry->data_quad.sizeY));
         rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, bounds);
         continue;
       }
@@ -202,28 +236,25 @@ ecs_system_define(DebugShapeRenderSys) {
       case DebugShapeType_SphereOverlay: {
         const GeoVector pos    = entry->data_sphere.pos;
         const f32       radius = entry->data_sphere.radius;
-        const GeoBox    bounds = {
-            .min = geo_vector(pos.x - radius, pos.y - radius, pos.z - radius),
-            .max = geo_vector(pos.x + radius, pos.y + radius, pos.z + radius),
-        };
+        if (UNLIKELY(radius < f32_epsilon)) {
+          continue;
+        }
         const DrawMeshData data = {
             .pos   = pos,
             .rot   = geo_quat_ident,
             .scale = geo_vector(radius, radius, radius),
             .color = entry->data_sphere.color,
         };
+        const GeoBox bounds = geo_box_from_sphere(pos, radius);
         rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, bounds);
         continue;
       }
       case DebugShapeType_CylinderFill:
       case DebugShapeType_CylinderWire:
-      case DebugShapeType_CylinderOverlay:
-      case DebugShapeType_ConeFill:
-      case DebugShapeType_ConeWire:
-      case DebugShapeType_ConeOverlay: {
-        const GeoBox    bounds = geo_box_inverted3(); // TODO: Compute bounds.
-        const GeoVector bottom = entry->data_cylOrCone.bottom;
-        const GeoVector toTop  = geo_vector_sub(entry->data_cylOrCone.top, bottom);
+      case DebugShapeType_CylinderOverlay: {
+        const GeoVector bottom = entry->data_cylinder.bottom;
+        const GeoVector top    = entry->data_cylinder.top;
+        const GeoVector toTop  = geo_vector_sub(top, bottom);
         const f32       dist   = geo_vector_mag(toTop);
         if (UNLIKELY(dist < f32_epsilon)) {
           continue;
@@ -231,20 +262,41 @@ ecs_system_define(DebugShapeRenderSys) {
         const DrawMeshData data = {
             .pos   = bottom,
             .rot   = geo_quat_look(geo_vector_div(toTop, dist), geo_up),
-            .scale = {entry->data_cylOrCone.radius, entry->data_cylOrCone.radius, dist},
-            .color = entry->data_cylOrCone.color,
+            .scale = {entry->data_cylinder.radius, entry->data_cylinder.radius, dist},
+            .color = entry->data_cylinder.color,
         };
+        const GeoBox bounds = geo_box_from_cylinder(bottom, top, entry->data_cylinder.radius);
+        rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, bounds);
+        continue;
+      }
+      case DebugShapeType_ConeFill:
+      case DebugShapeType_ConeWire:
+      case DebugShapeType_ConeOverlay: {
+        const GeoVector bottom = entry->data_cone.bottom;
+        const GeoVector top    = entry->data_cone.top;
+        const GeoVector toTop  = geo_vector_sub(top, bottom);
+        const f32       dist   = geo_vector_mag(toTop);
+        if (UNLIKELY(dist < f32_epsilon)) {
+          continue;
+        }
+        const DrawMeshData data = {
+            .pos   = bottom,
+            .rot   = geo_quat_look(geo_vector_div(toTop, dist), geo_up),
+            .scale = {entry->data_cone.radius, entry->data_cone.radius, dist},
+            .color = entry->data_cone.color,
+        };
+        const GeoBox bounds = geo_box_from_cone(bottom, top, entry->data_cone.radius);
         rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, bounds);
         continue;
       }
       case DebugShapeType_Line:
       case DebugShapeType_LineOverlay: {
-        const GeoBox       bounds = geo_box_inverted3(); // TODO: Compute bounds.
-        const DrawLineData data   = {
+        const DrawLineData data = {
             .positions[0] = entry->data_line.start,
             .positions[1] = entry->data_line.end,
             .color        = entry->data_line.color,
         };
+        const GeoBox bounds = geo_box_from_line(entry->data_line.start, entry->data_line.end);
         rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, bounds);
         continue;
       }
@@ -289,8 +341,8 @@ void debug_box(
     const GeoColor       color,
     const DebugShapeMode mode) {
   *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
-      .type           = DebugShapeType_Box + mode,
-      .data_boxOrQuad = {.pos = pos, .rot = rot, .size = size, .color = color},
+      .type     = DebugShapeType_Box + mode,
+      .data_box = {.pos = pos, .rot = rot, .size = size, .color = color},
   };
 }
 
@@ -302,10 +354,9 @@ void debug_quad(
     const f32            sizeY,
     const GeoColor       color,
     const DebugShapeMode mode) {
-  const GeoVector size                         = geo_vector(sizeX, sizeY, 1.0f);
   *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
-      .type           = DebugShapeType_Quad + mode,
-      .data_boxOrQuad = {.pos = pos, .rot = rot, .size = size, .color = color},
+      .type      = DebugShapeType_Quad + mode,
+      .data_quad = {.pos = pos, .rot = rot, .sizeX = sizeX, .sizeY = sizeY, .color = color},
   };
 }
 
@@ -329,8 +380,8 @@ void debug_cylinder(
     const GeoColor       color,
     const DebugShapeMode mode) {
   *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
-      .type           = DebugShapeType_Cylinder + mode,
-      .data_cylOrCone = {.bottom = bottom, .top = top, .radius = radius, .color = color},
+      .type          = DebugShapeType_Cylinder + mode,
+      .data_cylinder = {.bottom = bottom, .top = top, .radius = radius, .color = color},
   };
 }
 
@@ -342,8 +393,8 @@ void debug_cone(
     const GeoColor       color,
     const DebugShapeMode mode) {
   *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
-      .type           = DebugShapeType_Cone + mode,
-      .data_cylOrCone = {.bottom = bottom, .top = top, .radius = radius, .color = color},
+      .type      = DebugShapeType_Cone + mode,
+      .data_cone = {.bottom = bottom, .top = top, .radius = radius, .color = color},
   };
 }
 
@@ -389,13 +440,16 @@ void debug_orientation(
   const f32       radius  = size * g_radiusMult;
 
   const GeoVector startRight = geo_vector_add(pos, geo_vector_mul(right, g_startOffsetMult));
-  debug_arrow(comp, startRight, geo_vector_add(pos, right), radius, geo_color_red);
+  const GeoVector endRight   = geo_vector_add(pos, geo_vector_mul(right, size));
+  debug_arrow(comp, startRight, endRight, radius, geo_color_red);
 
   const GeoVector startUp = geo_vector_add(pos, geo_vector_mul(up, g_startOffsetMult));
-  debug_arrow(comp, startUp, geo_vector_add(pos, up), radius, geo_color_green);
+  const GeoVector endUp   = geo_vector_add(pos, geo_vector_mul(up, size));
+  debug_arrow(comp, startUp, endUp, radius, geo_color_green);
 
   const GeoVector startForward = geo_vector_add(pos, geo_vector_mul(forward, g_startOffsetMult));
-  debug_arrow(comp, startForward, geo_vector_add(pos, forward), radius, geo_color_blue);
+  const GeoVector endForward   = geo_vector_add(pos, geo_vector_mul(forward, size));
+  debug_arrow(comp, startForward, endForward, radius, geo_color_blue);
 }
 
 void debug_plane(

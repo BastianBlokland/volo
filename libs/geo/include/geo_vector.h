@@ -47,11 +47,13 @@ GeoVector geo_vector_sub(GeoVector a, GeoVector b);
  * Compute a vector where each component is the result of multiplying with the scalar.
  */
 GeoVector geo_vector_mul(GeoVector, f32 scalar);
+GeoVector geo_vector_mul_comps(GeoVector, GeoVector);
 
 /**
  * Compute a vector where each component is the result of dividing by the scalar.
  */
 GeoVector geo_vector_div(GeoVector, f32 scalar);
+GeoVector geo_vector_div_comps(GeoVector, GeoVector);
 
 /**
  * Calculate the magnitude of the vector squared.
@@ -99,6 +101,18 @@ GeoVector geo_vector_reflect(GeoVector, GeoVector nrm);
  * NOTE: Does not clamp t (so can extrapolate too).
  */
 GeoVector geo_vector_lerp(GeoVector x, GeoVector y, f32 t);
+
+/**
+ * Calculate the minimum / maximum value per component.
+ */
+GeoVector geo_vector_min(GeoVector x, GeoVector y);
+GeoVector geo_vector_max(GeoVector x, GeoVector y);
+
+/**
+ * Calculate the square root of elements x, y, z and w.
+ * Pre-condition: vec.x >= 0 && vec.y >= 0 && vec.z >= 0 && vec.w >= 0
+ */
+GeoVector geo_vector_sqrt(GeoVector);
 
 /**
  * Perspective divide: divide the vector by its w component.

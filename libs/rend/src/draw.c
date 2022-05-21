@@ -157,6 +157,8 @@ rend_draw_create(EcsWorld* world, const EcsEntityId entity, const RendDrawFlags 
   return ecs_world_add_t(world, entity, RendDrawComp, .flags = flags);
 }
 
+RendDrawFlags rend_draw_flags(const RendDrawComp* draw) { return draw->flags; }
+
 EcsEntityId rend_draw_graphic(const RendDrawComp* draw) { return draw->graphic; }
 
 u32 rend_draw_instance_count(const RendDrawComp* draw) { return draw->instCount; }

@@ -55,6 +55,12 @@ spec(vector) {
         geo_vector(.x = -2, .y = -4, .z = -6));
   }
 
+  it("multiplies each component when mutliplying component-wise") {
+    const GeoVector v1 = {.x = 10, .y = 20, .z = 10, .w = 2};
+    const GeoVector v2 = {.x = 2, .y = 3, .z = -4, .w = 0};
+    check_eq_vector(geo_vector_mul_comps(v1, v2), geo_vector(.x = 20, .y = 60, .z = -40, .w = 0));
+  }
+
   it("divides each component by the scalar when dividing") {
     check_eq_vector(
         geo_vector_div(geo_vector(.x = 5, .y = -2.1f, .z = 6, .w = 8), 2),
@@ -63,6 +69,12 @@ spec(vector) {
     check_eq_vector(
         geo_vector_div(geo_vector(.x = 1, .y = 2, .z = 3), -2),
         geo_vector(.x = -.5, .y = -1, .z = -1.5));
+  }
+
+  it("multiplies each component when dividing component-wise") {
+    const GeoVector v1 = {.x = 20, .y = 60, .z = 10, .w = 2};
+    const GeoVector v2 = {.x = 2, .y = 3, .z = -4, .w = 1};
+    check_eq_vector(geo_vector_div_comps(v1, v2), geo_vector(.x = 10, .y = 20, .z = -2.5f, .w = 2));
   }
 
   it("sums all the squared components when calculating the squared magnitude") {
@@ -166,6 +178,23 @@ spec(vector) {
     const GeoVector v2 = {.x = 20, .y = 40, .z = 20};
     const GeoVector v3 = {.x = 15, .y = 30, .z = 15};
     check_eq_vector(geo_vector_lerp(v1, v2, .5), v3);
+  }
+
+  it("can compute the minimum value of each component") {
+    const GeoVector v1 = {.x = 2, .y = 6, .z = -5, .w = 5};
+    const GeoVector v2 = {.x = 4, .y = -2, .z = 6, .w = 5};
+    check_eq_vector(geo_vector_min(v1, v2), geo_vector(2, -2, -5, 5));
+  }
+
+  it("can compute the maximum value of each component") {
+    const GeoVector v1 = {.x = 2, .y = 6, .z = -5, .w = 5};
+    const GeoVector v2 = {.x = 4, .y = -2, .z = 6, .w = 5};
+    check_eq_vector(geo_vector_max(v1, v2), geo_vector(4, 6, 6, 5));
+  }
+
+  it("can compute the square root of components") {
+    const GeoVector v = {.x = 16, .y = 64, .z = 256};
+    check_eq_vector(geo_vector_sqrt(v), geo_vector(4, 8, 16));
   }
 
   it("divides each component by w when performing a perspective divide") {

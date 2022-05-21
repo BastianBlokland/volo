@@ -6,8 +6,9 @@
 
 typedef enum {
   RendDrawFlags_None                = 0,
-  RendDrawFlags_NoAutoClear         = 1 << 0,
-  RendDrawFlags_NoInstanceFiltering = 1 << 1,
+  RendDrawFlags_StandardGeometry    = 1 << 0, // Uses the standard instance data format.
+  RendDrawFlags_NoAutoClear         = 1 << 1,
+  RendDrawFlags_NoInstanceFiltering = 1 << 2,
 } RendDrawFlags;
 
 /**
@@ -24,10 +25,11 @@ RendDrawComp* rend_draw_create(EcsWorld*, EcsEntityId entity, RendDrawFlags);
 /**
  * Query information about this draw.
  */
-EcsEntityId rend_draw_graphic(const RendDrawComp*);
-u32         rend_draw_instance_count(const RendDrawComp*);
-u32         rend_draw_data_size(const RendDrawComp*);
-u32         rend_draw_data_inst_size(const RendDrawComp*);
+RendDrawFlags rend_draw_flags(const RendDrawComp*);
+EcsEntityId   rend_draw_graphic(const RendDrawComp*);
+u32           rend_draw_instance_count(const RendDrawComp*);
+u32           rend_draw_data_size(const RendDrawComp*);
+u32           rend_draw_data_inst_size(const RendDrawComp*);
 
 /**
  * Update the graphic asset used for the draw.

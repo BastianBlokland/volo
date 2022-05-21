@@ -45,6 +45,16 @@ GeoVector geo_vector_mul(const GeoVector v, const f32 scalar) {
 #endif
 }
 
+GeoVector geo_vector_mul_comps(const GeoVector a, const GeoVector b) {
+#if geo_vec_simd_enable
+  GeoVector res;
+  simd_vec_store(simd_vec_mul(simd_vec_load(a.comps), simd_vec_load(b.comps)), res.comps);
+  return res;
+#else
+  return geo_vector(a.x * b.x, a.y * b.y, a.z * b.z, a.w * b.w);
+#endif
+}
+
 GeoVector geo_vector_div(const GeoVector v, const f32 scalar) {
   diag_assert(scalar != 0);
 #if geo_vec_simd_enable
@@ -53,6 +63,16 @@ GeoVector geo_vector_div(const GeoVector v, const f32 scalar) {
   return res;
 #else
   return geo_vector(v.x / scalar, v.y / scalar, v.z / scalar, v.w / scalar);
+#endif
+}
+
+GeoVector geo_vector_div_comps(const GeoVector a, const GeoVector b) {
+#if geo_vec_simd_enable
+  GeoVector res;
+  simd_vec_store(simd_vec_div(simd_vec_load(a.comps), simd_vec_load(b.comps)), res.comps);
+  return res;
+#else
+  return geo_vector(a.x / b.x, a.y / b.y, a.z / b.z, a.w / b.w);
 #endif
 }
 
@@ -131,12 +151,61 @@ GeoVector geo_vector_reflect(const GeoVector v, const GeoVector nrm) {
 }
 
 GeoVector geo_vector_lerp(const GeoVector x, const GeoVector y, const f32 t) {
+#if geo_vec_simd_enable
+  const SimdVec vX = simd_vec_load(x.comps);
+  const SimdVec vY = simd_vec_load(y.comps);
+  const SimdVec vT = simd_vec_broadcast(t);
+  GeoVector     res;
+  simd_vec_store(simd_vec_add(vX, simd_vec_mul(simd_vec_sub(vY, vX), vT)), res.comps);
+  return res;
+#else
   return (GeoVector){
       .x = math_lerp(x.x, y.x, t),
       .y = math_lerp(x.y, y.y, t),
       .z = math_lerp(x.z, y.z, t),
       .w = math_lerp(x.w, y.w, t),
   };
+#endif
+}
+
+GeoVector geo_vector_min(const GeoVector x, const GeoVector y) {
+#if geo_vec_simd_enable
+  GeoVector res;
+  simd_vec_store(simd_vec_min(simd_vec_load(x.comps), simd_vec_load(y.comps)), res.comps);
+  return res;
+#else
+  return (GeoVector){
+      .x = math_min(x.x, y.x),
+      .y = math_min(x.y, y.y),
+      .z = math_min(x.z, y.z),
+      .w = math_min(x.w, y.w),
+  };
+#endif
+}
+
+GeoVector geo_vector_max(const GeoVector x, const GeoVector y) {
+#if geo_vec_simd_enable
+  GeoVector res;
+  simd_vec_store(simd_vec_max(simd_vec_load(x.comps), simd_vec_load(y.comps)), res.comps);
+  return res;
+#else
+  return (GeoVector){
+      .x = math_max(x.x, y.x),
+      .y = math_max(x.y, y.y),
+      .z = math_max(x.z, y.z),
+      .w = math_max(x.w, y.w),
+  };
+#endif
+}
+
+GeoVector geo_vector_sqrt(const GeoVector v) {
+#if geo_vec_simd_enable
+  GeoVector res;
+  simd_vec_store(simd_vec_sqrt(simd_vec_load(v.comps)), res.comps);
+  return res;
+#else
+  return geo_vector(math_sqrt_f32(v.x), math_sqrt_f32(v.y), math_sqrt_f32(v.z), math_sqrt_f32(v.w));
+#endif
 }
 
 GeoVector geo_vector_perspective_div(const GeoVector v) {

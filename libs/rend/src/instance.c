@@ -54,7 +54,8 @@ ecs_system_define(RendInstanceFillDrawsSys) {
       if (++createdDraws > rend_instance_max_draw_create) {
         continue; // Limit the amount of new draws to create per frame.
       }
-      RendDrawComp* draw = rend_draw_create(world, renderable->graphic, RendDrawFlags_None);
+      const RendDrawFlags flags = RendDrawFlags_StandardGeometry;
+      RendDrawComp*       draw  = rend_draw_create(world, renderable->graphic, flags);
       rend_draw_set_graphic(draw, renderable->graphic);
       continue;
     }
