@@ -151,12 +151,21 @@ GeoVector geo_vector_reflect(const GeoVector v, const GeoVector nrm) {
 }
 
 GeoVector geo_vector_lerp(const GeoVector x, const GeoVector y, const f32 t) {
+#if geo_vec_simd_enable
+  const SimdVec vX = simd_vec_load(x.comps);
+  const SimdVec vY = simd_vec_load(y.comps);
+  const SimdVec vT = simd_vec_broadcast(t);
+  GeoVector     res;
+  simd_vec_store(simd_vec_add(vX, simd_vec_mul(simd_vec_sub(vY, vX), vT)), res.comps);
+  return res;
+#else
   return (GeoVector){
       .x = math_lerp(x.x, y.x, t),
       .y = math_lerp(x.y, y.y, t),
       .z = math_lerp(x.z, y.z, t),
       .w = math_lerp(x.w, y.w, t),
   };
+#endif
 }
 
 GeoVector geo_vector_min(const GeoVector x, const GeoVector y) {
