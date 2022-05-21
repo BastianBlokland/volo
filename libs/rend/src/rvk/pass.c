@@ -217,6 +217,8 @@ static RvkDescSet rvk_pass_alloc_dyn_desc(RvkPass* pass, const RvkDescMeta* meta
 }
 
 static void rvk_pass_bind_dyn_mesh(RvkPass* pass, RvkGraphic* graphic, RvkMesh* mesh) {
+  diag_assert_msg(mesh->flags & RvkMeshFlags_Ready, "Mesh is not ready for binding");
+
   const RvkDescMeta meta    = {.bindings[0] = RvkDescKind_StorageBuffer};
   const RvkDescSet  descSet = rvk_pass_alloc_dyn_desc(pass, &meta);
   rvk_desc_set_attach_buffer(descSet, 0, &mesh->vertexBuffer, 0);
