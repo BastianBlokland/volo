@@ -677,6 +677,11 @@ bool rend_res_is_failed(const RendResComp* comp) {
   return comp->state == RendResLoadState_FinishedFailure;
 }
 
+bool rend_res_is_unused(const RendResComp* comp) {
+  // NOTE: Checking for at least 1 tick of being unused to avoid depending on system order.
+  return comp->unusedTicks > 1;
+}
+
 u64 rend_res_ticks_until_unload(const RendResComp* comp) {
   if (comp->unusedTicks > g_rendResUnloadUnusedAfterTicks) {
     return 0;

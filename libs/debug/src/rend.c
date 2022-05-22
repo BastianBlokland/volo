@@ -106,7 +106,7 @@ typedef struct {
 typedef struct {
   String           name;
   DebugRendResType type;
-  bool             isLoading, isFailed;
+  bool             isLoading, isFailed, isUnused;
   u64              ticksTillUnload;
 } DebugResourceInfo;
 
@@ -462,6 +462,7 @@ static void rend_resource_info_query(DebugRendPanelComp* panelComp, EcsWorld* wo
           .type            = type,
           .isLoading       = rend_res_is_loading(resComp),
           .isFailed        = rend_res_is_failed(resComp),
+          .isUnused        = rend_res_is_unused(resComp),
           .ticksTillUnload = rend_res_ticks_until_unload(resComp),
       };
     }
@@ -485,6 +486,9 @@ static UiColor rend_resource_bg_color(const DebugResourceInfo* resInfo) {
   }
   if (resInfo->isFailed) {
     return ui_color(64, 16, 16, 192);
+  }
+  if (resInfo->isUnused) {
+    return ui_color(16, 16, 64, 192);
   }
   return ui_color(48, 48, 48, 192);
 }
@@ -523,7 +527,9 @@ static void rend_resource_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* pan
     ui_table_next_column(canvas, &table);
     ui_label(canvas, fmt_write_scratch("{}", fmt_text(g_resTypeNames[resInfo->type])));
     ui_table_next_column(canvas, &table);
-    ui_label(canvas, fmt_write_scratch("{}", fmt_int(resInfo->ticksTillUnload)));
+    if (resInfo->isUnused) {
+      ui_label(canvas, fmt_write_scratch("{}", fmt_int(resInfo->ticksTillUnload)));
+    }
   }
   ui_canvas_id_block_next(canvas);
 

@@ -15,6 +15,7 @@ ecs_comp_extern(RendResTextureComp);
  */
 bool rend_res_is_loading(const RendResComp*);
 bool rend_res_is_failed(const RendResComp*);
+bool rend_res_is_unused(const RendResComp*);
 u64  rend_res_ticks_until_unload(const RendResComp*);
 
 /**
