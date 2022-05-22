@@ -68,6 +68,25 @@ static const String g_resSortNames[] = {
 };
 ASSERT(array_elems(g_resSortNames) == DebugRendResSort_Count, "Incorrect number of names");
 
+typedef enum {
+  DebugRendResType_Unknown,
+  DebugRendResType_Graphic,
+  DebugRendResType_Shader,
+  DebugRendResType_Mesh,
+  DebugRendResType_Texture,
+
+  DebugRendResType_Count,
+} DebugRendResType;
+
+static const String g_resTypeNames[] = {
+    string_static("Unknown"),
+    string_static("Graphic"),
+    string_static("Shader"),
+    string_static("Mesh"),
+    string_static("Texture"),
+};
+ASSERT(array_elems(g_resTypeNames) == DebugRendResType_Count, "Incorrect number of names");
+
 static const String g_presentOptions[] = {
     string_static("Immediate"),
     string_static("VSync"),
@@ -83,7 +102,8 @@ typedef struct {
 } DebugDrawInfo;
 
 typedef struct {
-  String name;
+  String           name;
+  DebugRendResType type;
 } DebugResourceInfo;
 
 ecs_comp_define(DebugRendPanelComp) {
@@ -109,6 +129,10 @@ ecs_view_define(GraphicView) {
 ecs_view_define(ResourceView) {
   ecs_access_read(RendResComp);
   ecs_access_read(AssetComp);
+  ecs_access_maybe_read(RendResGraphicComp);
+  ecs_access_maybe_read(RendResShaderComp);
+  ecs_access_maybe_read(RendResMeshComp);
+  ecs_access_maybe_read(RendResTextureComp);
 }
 
 static void ecs_destruct_rend_panel(void* data) {
@@ -403,8 +427,24 @@ static void rend_resource_info_query(DebugRendPanelComp* panelComp, EcsWorld* wo
       if (!rend_panel_filter(panelComp, name)) {
         continue;
       }
+      const RendResGraphicComp* graphic = ecs_view_read_t(itr, RendResGraphicComp);
+      const RendResShaderComp*  shader  = ecs_view_read_t(itr, RendResShaderComp);
+      const RendResMeshComp*    mesh    = ecs_view_read_t(itr, RendResMeshComp);
+      const RendResTextureComp* texture = ecs_view_read_t(itr, RendResTextureComp);
+
+      DebugRendResType type = DebugRendResType_Unknown;
+      if (graphic) {
+        type = DebugRendResType_Graphic;
+      } else if (shader) {
+        type = DebugRendResType_Shader;
+      } else if (mesh) {
+        type = DebugRendResType_Mesh;
+      } else if (texture) {
+        type = DebugRendResType_Texture;
+      }
       *dynarray_push_t(&panelComp->resources, DebugResourceInfo) = (DebugResourceInfo){
           .name = name,
+          .type = type,
       };
     }
   }
@@ -425,12 +465,14 @@ static void rend_resource_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* pan
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 250);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
 
   ui_table_draw_header(
       canvas,
       &table,
       (const UiTableColumnName[]){
           {string_lit("Name"), string_lit("Name of the resource.")},
+          {string_lit("Type"), string_lit("Type of the resource.")},
       });
 
   const u32 numResources = (u32)panelComp->resources.size;
@@ -444,6 +486,8 @@ static void rend_resource_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* pan
     ui_canvas_id_block_string(canvas, resInfo->name); // Set a stable canvas id.
 
     ui_label(canvas, resInfo->name, .selectable = true);
+    ui_table_next_column(canvas, &table);
+    ui_label(canvas, fmt_write_scratch("{}", fmt_text(g_resTypeNames[resInfo->type])));
   }
   ui_canvas_id_block_next(canvas);
 
