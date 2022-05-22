@@ -106,6 +106,7 @@ typedef struct {
 typedef struct {
   String           name;
   DebugRendResType type;
+  bool             isLoading, isFailed;
 } DebugResourceInfo;
 
 ecs_comp_define(DebugRendPanelComp) {
@@ -434,8 +435,9 @@ static void rend_resource_info_query(DebugRendPanelComp* panelComp, EcsWorld* wo
     dynarray_clear(&panelComp->resources);
     EcsView* resourceView = ecs_world_view_t(world, ResourceView);
     for (EcsIterator* itr = ecs_view_itr(resourceView); ecs_view_walk(itr);) {
-      const AssetComp* assetComp = ecs_view_read_t(itr, AssetComp);
-      const String     name      = asset_id(assetComp);
+      const RendResComp* resComp   = ecs_view_read_t(itr, RendResComp);
+      const AssetComp*   assetComp = ecs_view_read_t(itr, AssetComp);
+      const String       name      = asset_id(assetComp);
       if (!rend_panel_filter(panelComp, name)) {
         continue;
       }
@@ -455,8 +457,10 @@ static void rend_resource_info_query(DebugRendPanelComp* panelComp, EcsWorld* wo
         type = DebugRendResType_Texture;
       }
       *dynarray_push_t(&panelComp->resources, DebugResourceInfo) = (DebugResourceInfo){
-          .name = name,
-          .type = type,
+          .name      = name,
+          .type      = type,
+          .isLoading = rend_res_is_loading(resComp),
+          .isFailed  = rend_res_is_failed(resComp),
       };
     }
   }
@@ -471,6 +475,16 @@ static void rend_resource_info_query(DebugRendPanelComp* panelComp, EcsWorld* wo
   case DebugRendResSort_Count:
     break;
   }
+}
+
+static UiColor rend_resource_bg_color(const DebugResourceInfo* resInfo) {
+  if (resInfo->isLoading) {
+    return ui_color(16, 64, 64, 192);
+  }
+  if (resInfo->isFailed) {
+    return ui_color(64, 16, 16, 192);
+  }
+  return ui_color(48, 48, 48, 192);
 }
 
 static void rend_resource_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* panelComp) {
@@ -496,7 +510,7 @@ static void rend_resource_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* pan
   ui_canvas_id_block_next(canvas); // Start the list of resources on its own id block.
   dynarray_for_t(&panelComp->resources, DebugResourceInfo, resInfo) {
     ui_table_next_row(canvas, &table);
-    ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
+    ui_table_draw_row_bg(canvas, &table, rend_resource_bg_color(resInfo));
 
     ui_canvas_id_block_string(canvas, resInfo->name); // Set a stable canvas id.
 
