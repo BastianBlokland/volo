@@ -25,12 +25,14 @@ static const String g_tooltipVerbose        = string_static("Should verbose logg
 static const String g_tooltipDefaults       = string_static("Reset all settings to their defaults.");
 static const String g_tooltipReset          = string_static("Re-initialize the renderer.");
 static const String g_tooltipFreeze         = string_static("Freeze the data set (halts data collection).");
+static const String g_tooltipResourceFilter = string_static("Filter resources by name.\nSupports glob characters \a.b*\ar and \a.b?\ar.");
 
 // clang-format on
 
 typedef enum {
   DebugRendTab_Settings,
   DebugRendTab_Draws,
+  DebugRendTab_Resources,
 
   DebugRendTab_Count,
 } DebugRendTab;
@@ -38,21 +40,54 @@ typedef enum {
 static const String g_rendTabNames[] = {
     string_static("Settings"),
     string_static("Draws"),
+    string_static("Resources"),
 };
 ASSERT(array_elems(g_rendTabNames) == DebugRendTab_Count, "Incorrect number of names");
 
 typedef enum {
-  DebugRendDrawMode_Graphic,
-  DebugRendDrawMode_RenderOrder,
+  DebugRendDrawSort_Graphic,
+  DebugRendDrawSort_RenderOrder,
 
-  DebugRendDrawMode_Count,
-} DebugRendDrawMode;
+  DebugRendDrawSort_Count,
+} DebugRendDrawSort;
 
-static const String g_drawSortModeNames[] = {
+static const String g_drawSortNames[] = {
     string_static("Graphic"),
     string_static("Order"),
 };
-ASSERT(array_elems(g_drawSortModeNames) == DebugRendDrawMode_Count, "Incorrect number of names");
+ASSERT(array_elems(g_drawSortNames) == DebugRendDrawSort_Count, "Incorrect number of names");
+
+typedef enum {
+  DebugRendResSort_Name,
+  DebugRendResSort_Type,
+
+  DebugRendResSort_Count,
+} DebugRendResSort;
+
+static const String g_resSortNames[] = {
+    string_static("Name"),
+    string_static("Type"),
+};
+ASSERT(array_elems(g_resSortNames) == DebugRendResSort_Count, "Incorrect number of names");
+
+typedef enum {
+  DebugRendResType_Unknown,
+  DebugRendResType_Graphic,
+  DebugRendResType_Shader,
+  DebugRendResType_Mesh,
+  DebugRendResType_Texture,
+
+  DebugRendResType_Count,
+} DebugRendResType;
+
+static const String g_resTypeNames[] = {
+    string_static("Unknown"),
+    string_static("Graphic"),
+    string_static("Shader"),
+    string_static("Mesh"),
+    string_static("Texture"),
+};
+ASSERT(array_elems(g_resTypeNames) == DebugRendResType_Count, "Incorrect number of names");
 
 static const String g_presentOptions[] = {
     string_static("Immediate"),
@@ -68,12 +103,22 @@ typedef struct {
   u32    dataSize, dataInstSize;
 } DebugDrawInfo;
 
+typedef struct {
+  String           name;
+  DebugRendResType type;
+  bool             isLoading, isFailed, isUnused;
+  u64              ticksTillUnload;
+} DebugResourceInfo;
+
 ecs_comp_define(DebugRendPanelComp) {
   UiPanel           panel;
   EcsEntityId       window;
   UiScrollview      scrollview;
-  DebugRendDrawMode drawSortMode;
-  DynArray          draws; // DebugDrawInfo[]
+  DynString         nameFilter;
+  DebugRendDrawSort drawSortMode;
+  DebugRendResSort  resSortMode;
+  DynArray          draws;     // DebugDrawInfo[]
+  DynArray          resources; // DebugResourceInfo[]
   bool              freeze;
   bool              hideEmptyDraws;
 };
@@ -85,9 +130,20 @@ ecs_view_define(GraphicView) {
   ecs_access_maybe_read(RendResGraphicComp);
 }
 
+ecs_view_define(ResourceView) {
+  ecs_access_read(RendResComp);
+  ecs_access_read(AssetComp);
+  ecs_access_maybe_read(RendResGraphicComp);
+  ecs_access_maybe_read(RendResShaderComp);
+  ecs_access_maybe_read(RendResMeshComp);
+  ecs_access_maybe_read(RendResTextureComp);
+}
+
 static void ecs_destruct_rend_panel(void* data) {
   DebugRendPanelComp* comp = data;
+  dynstring_destroy(&comp->nameFilter);
   dynarray_destroy(&comp->draws);
+  dynarray_destroy(&comp->resources);
 }
 
 static i8 rend_draw_compare_name(const void* a, const void* b) {
@@ -103,6 +159,30 @@ static i8 rend_draw_compare_render_order(const void* a, const void* b) {
     order = compare_string(&drawA->graphicName, &drawB->graphicName);
   }
   return order;
+}
+
+static i8 rend_resource_compare_name(const void* a, const void* b) {
+  return compare_string(
+      field_ptr(a, DebugResourceInfo, name), field_ptr(b, DebugResourceInfo, name));
+}
+
+static i8 rend_resource_compare_type(const void* a, const void* b) {
+  const DebugResourceInfo* resA  = a;
+  const DebugResourceInfo* resB  = b;
+  i8                       order = compare_i32(&resA->type, &resB->type);
+  if (!order) {
+    order = compare_string(&resA->name, &resB->name);
+  }
+  return order;
+}
+
+static bool rend_panel_filter(DebugRendPanelComp* panelComp, const String name) {
+  if (string_is_empty(panelComp->nameFilter)) {
+    return true;
+  }
+  const String rawFilter = dynstring_view(&panelComp->nameFilter);
+  const String filter    = fmt_write_scratch("*{}*", fmt_text(rawFilter));
+  return string_match_glob(name, filter, StringMatchFlags_IgnoreCase);
 }
 
 static void rend_settings_tab_draw(
@@ -208,7 +288,7 @@ static void rend_draw_options_draw(UiCanvasComp* canvas, DebugRendPanelComp* pan
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Sort:"));
   ui_table_next_column(canvas, &table);
-  ui_select(canvas, (i32*)&panelComp->drawSortMode, g_drawSortModeNames, DebugRendDrawMode_Count);
+  ui_select(canvas, (i32*)&panelComp->drawSortMode, g_drawSortNames, DebugRendDrawSort_Count);
   ui_table_next_column(canvas, &table);
   ui_label(canvas, string_lit("Freeze:"));
   ui_table_next_column(canvas, &table);
@@ -255,13 +335,13 @@ static void rend_draw_info_query(DebugRendPanelComp* panelComp, EcsWorld* world)
   }
 
   switch (panelComp->drawSortMode) {
-  case DebugRendDrawMode_Graphic:
+  case DebugRendDrawSort_Graphic:
     dynarray_sort(&panelComp->draws, rend_draw_compare_name);
     break;
-  case DebugRendDrawMode_RenderOrder:
+  case DebugRendDrawSort_RenderOrder:
     dynarray_sort(&panelComp->draws, rend_draw_compare_render_order);
     break;
-  case DebugRendDrawMode_Count:
+  case DebugRendDrawSort_Count:
     break;
   }
 }
@@ -320,6 +400,143 @@ static void rend_draw_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* panelCo
   ui_layout_container_pop(canvas);
 }
 
+static void rend_resource_options_draw(UiCanvasComp* canvas, DebugRendPanelComp* panelComp) {
+  ui_layout_push(canvas);
+
+  UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 250);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 150);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 25);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Filter:"));
+  ui_table_next_column(canvas, &table);
+  ui_textbox(
+      canvas,
+      &panelComp->nameFilter,
+      .placeholder = string_lit("*"),
+      .tooltip     = g_tooltipResourceFilter);
+  ui_table_next_column(canvas, &table);
+  ui_label(canvas, string_lit("Sort:"));
+  ui_table_next_column(canvas, &table);
+  ui_select(canvas, (i32*)&panelComp->resSortMode, g_resSortNames, DebugRendResSort_Count);
+  ui_table_next_column(canvas, &table);
+  ui_label(canvas, string_lit("Freeze:"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle(canvas, &panelComp->freeze, .tooltip = g_tooltipFreeze);
+
+  ui_layout_pop(canvas);
+}
+
+static void rend_resource_info_query(DebugRendPanelComp* panelComp, EcsWorld* world) {
+  if (!panelComp->freeze) {
+    dynarray_clear(&panelComp->resources);
+    EcsView* resourceView = ecs_world_view_t(world, ResourceView);
+    for (EcsIterator* itr = ecs_view_itr(resourceView); ecs_view_walk(itr);) {
+      const RendResComp* resComp   = ecs_view_read_t(itr, RendResComp);
+      const AssetComp*   assetComp = ecs_view_read_t(itr, AssetComp);
+      const String       name      = asset_id(assetComp);
+      if (!rend_panel_filter(panelComp, name)) {
+        continue;
+      }
+      const RendResGraphicComp* graphic = ecs_view_read_t(itr, RendResGraphicComp);
+      const RendResShaderComp*  shader  = ecs_view_read_t(itr, RendResShaderComp);
+      const RendResMeshComp*    mesh    = ecs_view_read_t(itr, RendResMeshComp);
+      const RendResTextureComp* texture = ecs_view_read_t(itr, RendResTextureComp);
+
+      DebugRendResType type = DebugRendResType_Unknown;
+      if (graphic) {
+        type = DebugRendResType_Graphic;
+      } else if (shader) {
+        type = DebugRendResType_Shader;
+      } else if (mesh) {
+        type = DebugRendResType_Mesh;
+      } else if (texture) {
+        type = DebugRendResType_Texture;
+      }
+      *dynarray_push_t(&panelComp->resources, DebugResourceInfo) = (DebugResourceInfo){
+          .name            = name,
+          .type            = type,
+          .isLoading       = rend_res_is_loading(resComp),
+          .isFailed        = rend_res_is_failed(resComp),
+          .isUnused        = rend_res_is_unused(resComp),
+          .ticksTillUnload = rend_res_ticks_until_unload(resComp),
+      };
+    }
+  }
+
+  switch (panelComp->resSortMode) {
+  case DebugRendResSort_Name:
+    dynarray_sort(&panelComp->resources, rend_resource_compare_name);
+    break;
+  case DebugRendResSort_Type:
+    dynarray_sort(&panelComp->resources, rend_resource_compare_type);
+    break;
+  case DebugRendResSort_Count:
+    break;
+  }
+}
+
+static UiColor rend_resource_bg_color(const DebugResourceInfo* resInfo) {
+  if (resInfo->isLoading) {
+    return ui_color(16, 64, 64, 192);
+  }
+  if (resInfo->isFailed) {
+    return ui_color(64, 16, 16, 192);
+  }
+  if (resInfo->isUnused) {
+    return ui_color(16, 16, 64, 192);
+  }
+  return ui_color(48, 48, 48, 192);
+}
+
+static void rend_resource_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* panelComp) {
+  rend_resource_options_draw(canvas, panelComp);
+  ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
+  ui_layout_container_push(canvas, UiClip_None);
+
+  UiTable table = ui_table(.spacing = ui_vector(10, 5));
+  ui_table_add_column(&table, UiTableColumn_Fixed, 250);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+
+  ui_table_draw_header(
+      canvas,
+      &table,
+      (const UiTableColumnName[]){
+          {string_lit("Name"), string_lit("Name of the resource.")},
+          {string_lit("Type"), string_lit("Type of the resource.")},
+          {string_lit("Unload delay"),
+           string_lit("How many ticks until resource asset will be unloaded.")},
+      });
+
+  const u32 numResources = (u32)panelComp->resources.size;
+  ui_scrollview_begin(canvas, &panelComp->scrollview, ui_table_height(&table, numResources));
+
+  ui_canvas_id_block_next(canvas); // Start the list of resources on its own id block.
+  dynarray_for_t(&panelComp->resources, DebugResourceInfo, resInfo) {
+    ui_table_next_row(canvas, &table);
+    ui_table_draw_row_bg(canvas, &table, rend_resource_bg_color(resInfo));
+
+    ui_canvas_id_block_string(canvas, resInfo->name); // Set a stable canvas id.
+
+    ui_label(canvas, resInfo->name, .selectable = true);
+    ui_table_next_column(canvas, &table);
+    ui_label(canvas, fmt_write_scratch("{}", fmt_text(g_resTypeNames[resInfo->type])));
+    ui_table_next_column(canvas, &table);
+    if (resInfo->isUnused) {
+      ui_label(canvas, fmt_write_scratch("{}", fmt_int(resInfo->ticksTillUnload)));
+    }
+  }
+  ui_canvas_id_block_next(canvas);
+
+  ui_scrollview_end(canvas, &panelComp->scrollview);
+  ui_layout_container_pop(canvas);
+}
+
 static void rend_panel_draw(
     EcsWorld*               world,
     UiCanvasComp*           canvas,
@@ -342,6 +559,10 @@ static void rend_panel_draw(
   case DebugRendTab_Draws:
     rend_draw_info_query(panelComp, world);
     rend_draw_tab_draw(canvas, panelComp);
+    break;
+  case DebugRendTab_Resources:
+    rend_resource_info_query(panelComp, world);
+    rend_resource_tab_draw(canvas, panelComp);
     break;
   }
 
@@ -393,6 +614,7 @@ ecs_module_init(debug_rend_module) {
 
   ecs_register_view(DrawView);
   ecs_register_view(GraphicView);
+  ecs_register_view(ResourceView);
   ecs_register_view(GlobalView);
   ecs_register_view(WindowView);
   ecs_register_view(PanelUpdateView);
@@ -401,6 +623,7 @@ ecs_module_init(debug_rend_module) {
       DebugRendUpdatePanelSys,
       ecs_view_id(DrawView),
       ecs_view_id(GraphicView),
+      ecs_view_id(ResourceView),
       ecs_view_id(PanelUpdateView),
       ecs_view_id(WindowView),
       ecs_view_id(GlobalView));
@@ -418,8 +641,11 @@ EcsEntityId debug_rend_panel_open(EcsWorld* world, const EcsEntityId window) {
       .panel          = ui_panel(ui_vector(700, 400)),
       .window         = window,
       .scrollview     = ui_scrollview(),
-      .drawSortMode   = DebugRendDrawMode_RenderOrder,
+      .nameFilter     = dynstring_create(g_alloc_heap, 32),
+      .drawSortMode   = DebugRendDrawSort_RenderOrder,
+      .resSortMode    = DebugRendResSort_Type,
       .draws          = dynarray_create_t(g_alloc_heap, DebugDrawInfo, 256),
+      .resources      = dynarray_create_t(g_alloc_heap, DebugResourceInfo, 256),
       .hideEmptyDraws = true);
   return panelEntity;
 }

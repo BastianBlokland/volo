@@ -669,6 +669,26 @@ ecs_module_init(rend_resource_module) {
   ecs_order(RendResUnloadUnusedSys, RendOrder_DrawExecute + 1);
 }
 
+bool rend_res_is_loading(const RendResComp* comp) {
+  return comp->state < RendResLoadState_FinishedSuccess;
+}
+
+bool rend_res_is_failed(const RendResComp* comp) {
+  return comp->state == RendResLoadState_FinishedFailure;
+}
+
+bool rend_res_is_unused(const RendResComp* comp) {
+  // NOTE: Checking for at least 1 tick of being unused to avoid depending on system order.
+  return comp->unusedTicks > 1;
+}
+
+u64 rend_res_ticks_until_unload(const RendResComp* comp) {
+  if (comp->unusedTicks > g_rendResUnloadUnusedAfterTicks) {
+    return 0;
+  }
+  return g_rendResUnloadUnusedAfterTicks - comp->unusedTicks;
+}
+
 i32 rend_res_render_order(const RendResGraphicComp* comp) { return comp->graphic->renderOrder; }
 
 bool rend_resource_request(EcsWorld* world, const EcsEntityId assetEntity, const bool persistent) {
