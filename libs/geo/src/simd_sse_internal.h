@@ -109,8 +109,7 @@ INLINE_HINT static SimdVec simd_vec_cross3(const SimdVec a, const SimdVec b) {
   SimdVec       res = _mm_mul_ps(t1, t2);                              // Perform the left operation
   const SimdVec t3  = _mm_shuffle_ps(t1, t1, _MM_SHUFFLE(3, 0, 2, 1)); // = (a.z, a.x, a.y, a.w)
   const SimdVec t4  = _mm_shuffle_ps(t2, t2, _MM_SHUFFLE(3, 1, 0, 2)); // = (b.y, b.z, b.x, b.w)
-  res               = _mm_sub_ps(res, _mm_mul_ps(t3, t4)); // Perform the right operation
-  return simd_vec_clear_w(res);
+  return _mm_sub_ps(res, _mm_mul_ps(t3, t4)); // Perform the right operation
 }
 
 INLINE_HINT static SimdVec simd_quat_mul(const SimdVec xyzw, const SimdVec abcd) {
@@ -142,21 +141,11 @@ INLINE_HINT static SimdVec simd_quat_mul(const SimdVec xyzw, const SimdVec abcd)
 }
 
 INLINE_HINT static SimdVec simd_quat_rotate(const SimdVec quat, const SimdVec vec) {
-  /**
-   * NOTE: Very naive translation of our scalar implementation.
-   */
-  const SimdVec scalar     = simd_vec_splat(quat, 3);
-  const SimdVec two        = simd_vec_broadcast(2.0f);
-  const SimdVec scalar2    = simd_vec_mul(scalar, two);
-  const SimdVec axis       = simd_vec_clear_w(quat);
-  const SimdVec axisSqrMag = simd_vec_dot4(axis, axis);
-  const SimdVec dot        = simd_vec_dot4(axis, vec);
-
-  const SimdVec a = simd_vec_mul(axis, simd_vec_mul(dot, two));
-  const SimdVec b = simd_vec_mul(vec, simd_vec_sub(simd_vec_mul(scalar, scalar), axisSqrMag));
-  const SimdVec c = simd_vec_mul(simd_vec_cross3(axis, vec), scalar2);
-
-  return simd_vec_add(simd_vec_add(a, b), c);
+  const SimdVec scalar = simd_vec_splat(quat, 3);
+  const SimdVec axis   = simd_vec_clear_w(quat);
+  const SimdVec a      = simd_vec_cross3(axis, vec);
+  const SimdVec b      = simd_vec_cross3(axis, simd_vec_add(a, simd_vec_mul(vec, scalar)));
+  return simd_vec_add(vec, simd_vec_mul(b, simd_vec_broadcast(2.0f)));
 }
 
 INLINE_HINT static SimdVec simd_quat_norm(const SimdVec quat) {
