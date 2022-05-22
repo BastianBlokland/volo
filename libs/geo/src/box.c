@@ -223,3 +223,20 @@ GeoBox geo_box_from_line(const GeoVector from, const GeoVector to) {
       .max = geo_vector_max(from, to),
   };
 }
+
+bool geo_box_intersect_frustum4(const GeoBox* box, const GeoPlane frustum[4]) {
+  if (geo_box_is_inverted3(box)) {
+    return true;
+  }
+  for (usize i = 0; i != 4; ++i) {
+    const GeoVector max = {
+        .x = frustum[i].normal.x > 0 ? box->max.x : box->min.x,
+        .y = frustum[i].normal.y > 0 ? box->max.y : box->min.y,
+        .z = frustum[i].normal.z > 0 ? box->max.z : box->min.z,
+    };
+    if (-geo_vector_dot(frustum[i].normal, max) > frustum[i].distance) {
+      return false;
+    }
+  }
+  return true;
+}
