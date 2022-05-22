@@ -25,45 +25,45 @@
 #pragma intrinsic(sqrtf)
 #pragma intrinsic(tanf)
 
-#define intrinsic_acosf acosf
-#define intrinsic_asinf asinf
-#define intrinsic_atan2f atan2f
-#define intrinsic_atanf atanf
-#define intrinsic_ceil ceil
-#define intrinsic_ceilf ceilf
-#define intrinsic_cosf cosf
-#define intrinsic_floor floor
-#define intrinsic_floorf floorf
-#define intrinsic_fmodf fmodf
-#define intrinsic_logf logf
-#define intrinsic_powf powf
-#define intrinsic_round round
-#define intrinsic_roundf roundf
-#define intrinsic_sinf sinf
-#define intrinsic_sqrt sqrt
-#define intrinsic_sqrtf sqrtf
-#define intrinsic_tanf tanf
+#define intrinsic_acos_f32 acosf
+#define intrinsic_asin_f32 asinf
+#define intrinsic_atan2_f32 atan2f
+#define intrinsic_atan_f32 atanf
+#define intrinsic_ceil_f64 ceil
+#define intrinsic_ceil_f32 ceilf
+#define intrinsic_cos_f32 cosf
+#define intrinsic_floor_f64 floor
+#define intrinsic_floor_f32 floorf
+#define intrinsic_fmod_f32 fmodf
+#define intrinsic_log_f32 logf
+#define intrinsic_pow_f32 powf
+#define intrinsic_round_f64 round
+#define intrinsic_round_f32 roundf
+#define intrinsic_sin_f32 sinf
+#define intrinsic_sqrt_f64 sqrt
+#define intrinsic_sqrt_f32 sqrtf
+#define intrinsic_tan_f32 tanf
 
 #else
 
-#define intrinsic_acosf __builtin_acosf
-#define intrinsic_asinf __builtin_asinf
-#define intrinsic_atan2f __builtin_atan2f
-#define intrinsic_atanf __builtin_atanf
-#define intrinsic_ceil __builtin_ceil
-#define intrinsic_ceilf __builtin_ceilf
-#define intrinsic_cosf __builtin_cosf
-#define intrinsic_floor __builtin_floor
-#define intrinsic_floorf __builtin_floorf
-#define intrinsic_fmodf __builtin_fmodf
-#define intrinsic_logf __builtin_logf
-#define intrinsic_powf __builtin_powf
-#define intrinsic_round __builtin_round
-#define intrinsic_roundf __builtin_roundf
-#define intrinsic_sinf __builtin_sinf
-#define intrinsic_sqrt __builtin_sqrt
-#define intrinsic_sqrtf __builtin_sqrtf
-#define intrinsic_tanf __builtin_tanf
+#define intrinsic_acos_f32 __builtin_acosf
+#define intrinsic_asin_f32 __builtin_asinf
+#define intrinsic_atan2_f32 __builtin_atan2f
+#define intrinsic_atan_f32 __builtin_atanf
+#define intrinsic_ceil_f64 __builtin_ceil
+#define intrinsic_ceil_f32 __builtin_ceilf
+#define intrinsic_cos_f32 __builtin_cosf
+#define intrinsic_floor_f64 __builtin_floor
+#define intrinsic_floor_f32 __builtin_floorf
+#define intrinsic_fmod_f32 __builtin_fmodf
+#define intrinsic_log_f32 __builtin_logf
+#define intrinsic_pow_f32 __builtin_powf
+#define intrinsic_round_f64 __builtin_round
+#define intrinsic_round_f32 __builtin_roundf
+#define intrinsic_sin_f32 __builtin_sinf
+#define intrinsic_sqrt_f64 __builtin_sqrt
+#define intrinsic_sqrt_f32 __builtin_sqrtf
+#define intrinsic_tan_f32 __builtin_tanf
 
 #endif
 
