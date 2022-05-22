@@ -57,12 +57,14 @@ static void dynarray_resize_grow(DynArray* array, const usize size) {
   array->data = newMem;
 }
 
-INLINE_HINT void dynarray_resize(DynArray* array, const usize size) {
+INLINE_HINT static void dynarray_resize_internal(DynArray* array, const usize size) {
   if (UNLIKELY(size * array->stride > array->data.size)) {
     dynarray_resize_grow(array, size);
   }
   array->size = size;
 }
+
+void dynarray_resize(DynArray* array, const usize size) { dynarray_resize_internal(array, size); }
 
 void dynarray_clear(DynArray* array) { array->size = 0; }
 
@@ -74,7 +76,7 @@ Mem dynarray_at(const DynArray* array, const usize idx, const usize count) {
 }
 
 Mem dynarray_push(DynArray* array, const usize count) {
-  dynarray_resize(array, array->size + count);
+  dynarray_resize_internal(array, array->size + count);
   const usize offset = array->stride * (array->size - count);
   const usize size   = array->stride * count;
   return mem_create(bits_ptr_offset(array->data.ptr, offset), size);
@@ -82,7 +84,7 @@ Mem dynarray_push(DynArray* array, const usize count) {
 
 void dynarray_pop(DynArray* array, usize count) {
   diag_assert(count <= array->size);
-  dynarray_resize(array, array->size - count);
+  dynarray_resize_internal(array, array->size - count);
 }
 
 void dynarray_remove(DynArray* array, const usize idx, const usize count) {
@@ -114,7 +116,7 @@ Mem dynarray_insert(DynArray* array, const usize idx, const usize count) {
   diag_assert(idx <= array->size);
 
   const usize entriesToMove = array->size - idx;
-  dynarray_resize(array, array->size + count);
+  dynarray_resize_internal(array, array->size + count);
   if (entriesToMove) {
     const Mem dst = dynarray_at(array, idx + count, entriesToMove);
     const Mem src = dynarray_at(array, idx, entriesToMove);
