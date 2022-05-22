@@ -107,6 +107,7 @@ typedef struct {
   String           name;
   DebugRendResType type;
   bool             isLoading, isFailed;
+  u64              ticksTillUnload;
 } DebugResourceInfo;
 
 ecs_comp_define(DebugRendPanelComp) {
@@ -457,10 +458,11 @@ static void rend_resource_info_query(DebugRendPanelComp* panelComp, EcsWorld* wo
         type = DebugRendResType_Texture;
       }
       *dynarray_push_t(&panelComp->resources, DebugResourceInfo) = (DebugResourceInfo){
-          .name      = name,
-          .type      = type,
-          .isLoading = rend_res_is_loading(resComp),
-          .isFailed  = rend_res_is_failed(resComp),
+          .name            = name,
+          .type            = type,
+          .isLoading       = rend_res_is_loading(resComp),
+          .isFailed        = rend_res_is_failed(resComp),
+          .ticksTillUnload = rend_res_ticks_until_unload(resComp),
       };
     }
   }
@@ -495,6 +497,7 @@ static void rend_resource_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* pan
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 250);
   ui_table_add_column(&table, UiTableColumn_Fixed, 75);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
 
   ui_table_draw_header(
       canvas,
@@ -502,6 +505,8 @@ static void rend_resource_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* pan
       (const UiTableColumnName[]){
           {string_lit("Name"), string_lit("Name of the resource.")},
           {string_lit("Type"), string_lit("Type of the resource.")},
+          {string_lit("Unload delay"),
+           string_lit("How many ticks until resource asset will be unloaded.")},
       });
 
   const u32 numResources = (u32)panelComp->resources.size;
@@ -517,6 +522,8 @@ static void rend_resource_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* pan
     ui_label(canvas, resInfo->name, .selectable = true);
     ui_table_next_column(canvas, &table);
     ui_label(canvas, fmt_write_scratch("{}", fmt_text(g_resTypeNames[resInfo->type])));
+    ui_table_next_column(canvas, &table);
+    ui_label(canvas, fmt_write_scratch("{}", fmt_int(resInfo->ticksTillUnload)));
   }
   ui_canvas_id_block_next(canvas);
 
