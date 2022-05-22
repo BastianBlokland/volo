@@ -22,12 +22,14 @@ GeoQuat geo_quat_angle_axis(const GeoVector axis, const f32 angle) {
   if (simd_vec_x(axisSqrMag) <= f32_epsilon) {
     return geo_quat_ident;
   }
-  const SimdVec axisMag    = simd_vec_sqrt(axisSqrMag);
-  const SimdVec axisUnit   = simd_vec_div(axisVec, axisMag);
-  const f32     halfHandle = angle * 0.5f;
+  const SimdVec axisMag      = simd_vec_sqrt(axisSqrMag);
+  const SimdVec axisUnit     = simd_vec_div(axisVec, axisMag);
+  const f32     halfHandle   = angle * 0.5f;
+  const f32     sinHalfAngle = intrinsic_sin_f32(halfHandle);
+  const f32     cosHalfAngle = intrinsic_cos_f32(halfHandle);
   GeoQuat       res;
-  simd_vec_store(simd_vec_mul(axisUnit, simd_vec_broadcast(intrinsic_sinf(halfHandle))), res.comps);
-  res.w = intrinsic_cosf(halfHandle);
+  simd_vec_store(simd_vec_mul(axisUnit, simd_vec_broadcast(sinHalfAngle)), res.comps);
+  res.w = cosHalfAngle;
   return res;
 #else
   const f32 axisMag = geo_vector_mag(axis);
@@ -35,8 +37,8 @@ GeoQuat geo_quat_angle_axis(const GeoVector axis, const f32 angle) {
     return geo_quat_ident;
   }
   const GeoVector unitVecAxis = geo_vector_div(axis, axisMag);
-  const GeoVector vec         = geo_vector_mul(unitVecAxis, intrinsic_sinf(angle * .5f));
-  return (GeoQuat){vec.x, vec.y, vec.z, intrinsic_cosf(angle * .5f)};
+  const GeoVector vec         = geo_vector_mul(unitVecAxis, intrinsic_sin_f32(angle * .5f));
+  return (GeoQuat){vec.x, vec.y, vec.z, intrinsic_cos_f32(angle * .5f)};
 #endif
 }
 
