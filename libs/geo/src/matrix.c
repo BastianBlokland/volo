@@ -2,6 +2,12 @@
 #include "core_math.h"
 #include "geo_matrix.h"
 
+#define geo_matrix_simd_enable 1
+
+#if geo_matrix_simd_enable
+#include "simd_sse_internal.h"
+#endif
+
 static void assert_normalized(const GeoVector v) {
   MAYBE_UNUSED const f32 sqrMag = geo_vector_mag_sqr(v);
   diag_assert_msg(math_abs(sqrMag - 1) < 1e-4, "Given vector is not normalized");
@@ -264,13 +270,41 @@ GeoMatrix geo_matrix_rotate(const GeoVector right, const GeoVector up, const Geo
 }
 
 GeoMatrix geo_matrix_rotate_look(const GeoVector forward, const GeoVector upRef) {
+#if geo_matrix_simd_enable
+  const SimdVec vForward       = simd_vec_load(forward.comps);
+  const SimdVec vForwardSqrMag = simd_vec_dot3(vForward, vForward);
+  if (UNLIKELY(simd_vec_x(vForwardSqrMag) <= f32_epsilon)) {
+    return geo_matrix_ident();
+  }
+
+  const SimdVec vUpRef       = simd_vec_load(upRef.comps);
+  const SimdVec vUpRefSqrMag = simd_vec_dot3(vUpRef, vUpRef);
+  if (UNLIKELY(simd_vec_x(vUpRefSqrMag) <= f32_epsilon)) {
+    return geo_matrix_ident();
+  }
+
+  const SimdVec vForwardMag  = simd_vec_sqrt(vForwardSqrMag);
+  const SimdVec vForwardNorm = simd_vec_div(vForward, vForwardMag);
+  const SimdVec vRight       = simd_vec_cross3(vUpRef, vForwardNorm);
+  const SimdVec vRightSqrMag = simd_vec_dot3(vRight, vRight);
+  const SimdVec vRightNorm   = LIKELY(simd_vec_x(vRightSqrMag) > f32_epsilon)
+                                   ? simd_vec_div(vRight, simd_vec_sqrt(vRightSqrMag))
+                                   : simd_vec_set(1, 0, 0, 0);
+  const SimdVec vUpNorm      = simd_vec_cross3(vForwardNorm, vRightNorm);
+
+  GeoMatrix res;
+  simd_vec_store(vRightNorm, res.columns[0].comps);
+  simd_vec_store(vUpNorm, res.columns[1].comps);
+  simd_vec_store(vForwardNorm, res.columns[2].comps);
+  simd_vec_store(simd_vec_set(0, 0, 0, 1), res.columns[3].comps);
+  return res;
+#else
   if (UNLIKELY(geo_vector_mag_sqr(forward) <= f32_epsilon)) {
     return geo_matrix_ident();
   }
   if (UNLIKELY(geo_vector_mag_sqr(upRef) <= f32_epsilon)) {
     return geo_matrix_ident();
   }
-
   const GeoVector fwdNorm     = geo_vector_norm(forward);
   GeoVector       right       = geo_vector_cross3(upRef, fwdNorm);
   const f32       rightMagSqr = geo_vector_mag_sqr(right);
@@ -281,6 +315,7 @@ GeoMatrix geo_matrix_rotate_look(const GeoVector forward, const GeoVector upRef)
   }
   const GeoVector upNorm = geo_vector_cross3(fwdNorm, right);
   return geo_matrix_rotate(right, upNorm, fwdNorm);
+#endif
 }
 
 GeoMatrix geo_matrix_from_quat(const GeoQuat quat) {
