@@ -25,6 +25,7 @@ static const String g_tooltipVerbose        = string_static("Should verbose logg
 static const String g_tooltipDefaults       = string_static("Reset all settings to their defaults.");
 static const String g_tooltipReset          = string_static("Re-initialize the renderer.");
 static const String g_tooltipFreeze         = string_static("Freeze the data set (halts data collection).");
+static const String g_tooltipResourceFilter = string_static("Filter resources by name.\nSupports glob characters \a.b*\ar and \a.b?\ar.");
 
 // clang-format on
 
@@ -74,6 +75,7 @@ ecs_comp_define(DebugRendPanelComp) {
   UiPanel           panel;
   EcsEntityId       window;
   UiScrollview      scrollview;
+  DynString         nameFilter;
   DebugRendDrawMode drawSortMode;
   DynArray          draws; // DebugDrawInfo[]
   bool              freeze;
@@ -89,6 +91,7 @@ ecs_view_define(GraphicView) {
 
 static void ecs_destruct_rend_panel(void* data) {
   DebugRendPanelComp* comp = data;
+  dynstring_destroy(&comp->nameFilter);
   dynarray_destroy(&comp->draws);
 }
 
@@ -322,7 +325,30 @@ static void rend_draw_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* panelCo
   ui_layout_container_pop(canvas);
 }
 
+static void rend_resources_options_draw(UiCanvasComp* canvas, DebugRendPanelComp* panelComp) {
+  ui_layout_push(canvas);
+
+  UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 250);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Filter:"));
+  ui_table_next_column(canvas, &table);
+  ui_textbox(
+      canvas,
+      &panelComp->nameFilter,
+      .placeholder = string_lit("*"),
+      .tooltip     = g_tooltipResourceFilter);
+
+  ui_layout_pop(canvas);
+}
+
 static void rend_resources_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* panelComp) {
+  rend_resources_options_draw(canvas, panelComp);
+  ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
+  ui_layout_container_push(canvas, UiClip_None);
+
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 250);
   ui_table_add_column(&table, UiTableColumn_Fixed, 75);
@@ -335,7 +361,7 @@ static void rend_resources_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* pa
           {string_lit("B"), string_lit("Test B.")},
       });
 
-  (void)panelComp;
+  ui_layout_container_pop(canvas);
 }
 
 static void rend_panel_draw(
@@ -439,6 +465,7 @@ EcsEntityId debug_rend_panel_open(EcsWorld* world, const EcsEntityId window) {
       .panel          = ui_panel(ui_vector(700, 400)),
       .window         = window,
       .scrollview     = ui_scrollview(),
+      .nameFilter     = dynstring_create(g_alloc_heap, 32),
       .drawSortMode   = DebugRendDrawMode_RenderOrder,
       .draws          = dynarray_create_t(g_alloc_heap, DebugDrawInfo, 256),
       .hideEmptyDraws = true);
