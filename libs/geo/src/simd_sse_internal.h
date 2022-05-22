@@ -26,6 +26,8 @@ INLINE_HINT static void simd_vec_store(const SimdVec vec, f32 values[4]) {
   _mm_store_ps(values, vec);
 }
 
+INLINE_HINT static SimdVec simd_vec_zero() { return _mm_setzero_ps(); }
+
 INLINE_HINT static f32 simd_vec_x(const SimdVec vec) { return _mm_cvtss_f32(vec); }
 
 INLINE_HINT static SimdVec simd_vec_clear_w(const SimdVec vec) {
