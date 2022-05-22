@@ -31,6 +31,7 @@ static const String g_tooltipFreeze         = string_static("Freeze the data set
 typedef enum {
   DebugRendTab_Settings,
   DebugRendTab_Draws,
+  DebugRendTab_Resources,
 
   DebugRendTab_Count,
 } DebugRendTab;
@@ -38,6 +39,7 @@ typedef enum {
 static const String g_rendTabNames[] = {
     string_static("Settings"),
     string_static("Draws"),
+    string_static("Resources"),
 };
 ASSERT(array_elems(g_rendTabNames) == DebugRendTab_Count, "Incorrect number of names");
 
@@ -320,6 +322,22 @@ static void rend_draw_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* panelCo
   ui_layout_container_pop(canvas);
 }
 
+static void rend_resources_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* panelComp) {
+  UiTable table = ui_table(.spacing = ui_vector(10, 5));
+  ui_table_add_column(&table, UiTableColumn_Fixed, 250);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
+
+  ui_table_draw_header(
+      canvas,
+      &table,
+      (const UiTableColumnName[]){
+          {string_lit("A"), string_lit("Test A.")},
+          {string_lit("B"), string_lit("Test B.")},
+      });
+
+  (void)panelComp;
+}
+
 static void rend_panel_draw(
     EcsWorld*               world,
     UiCanvasComp*           canvas,
@@ -342,6 +360,9 @@ static void rend_panel_draw(
   case DebugRendTab_Draws:
     rend_draw_info_query(panelComp, world);
     rend_draw_tab_draw(canvas, panelComp);
+    break;
+  case DebugRendTab_Resources:
+    rend_resources_tab_draw(canvas, panelComp);
     break;
   }
 
