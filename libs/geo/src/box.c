@@ -225,6 +225,23 @@ GeoBox geo_box_from_line(const GeoVector from, const GeoVector to) {
 }
 
 bool geo_box_intersect_frustum4(const GeoBox* box, const GeoPlane frustum[4]) {
+#if geo_box_simd_enable
+  const SimdVec boxMin = simd_vec_load(box->min.comps);
+  const SimdVec boxMax = simd_vec_load(box->max.comps);
+  if (simd_vec_any_true(simd_vec_greater(boxMin, boxMax))) {
+    return true; // Box is inverted.
+  }
+  for (usize i = 0; i != 4; ++i) {
+    const SimdVec planeNorm           = simd_vec_load(frustum[i].normal.comps);
+    const SimdVec greaterThenZeroMask = simd_vec_greater(planeNorm, simd_vec_zero());
+    const SimdVec max                 = simd_vec_select(boxMin, boxMax, greaterThenZeroMask);
+    const SimdVec dot                 = simd_vec_dot4(planeNorm, max);
+    if (-simd_vec_x(dot) > frustum[i].distance) {
+      return false;
+    }
+  }
+  return true;
+#else
   if (geo_box_is_inverted3(box)) {
     return true;
   }
@@ -239,4 +256,5 @@ bool geo_box_intersect_frustum4(const GeoBox* box, const GeoPlane frustum[4]) {
     }
   }
   return true;
+#endif
 }
