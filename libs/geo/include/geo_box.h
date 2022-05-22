@@ -41,7 +41,7 @@ GeoBox geo_box_encapsulate2(const GeoBox*, GeoVector point);
 GeoBox geo_box_encapsulate(const GeoBox*, GeoVector point);
 
 /**
- * Retrieve the 8 cornsers of the 3d box.
+ * Retrieve the 8 corners of the 3d box.
  */
 void geo_box_corners3(const GeoBox*, GeoVector corners[8]);
 

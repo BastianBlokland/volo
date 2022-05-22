@@ -35,17 +35,13 @@ DynArray dynarray_create_over(Mem memory, const u32 stride) {
 }
 
 void dynarray_destroy(DynArray* array) {
-  diag_assert(array);
   if (array->alloc && LIKELY(mem_valid(array->data))) {
     // Having a allocator pointer (and a valid allocation) means we should free the backing memory.
     alloc_free(array->alloc, array->data);
   }
 }
 
-usize dynarray_size(const DynArray* array) {
-  diag_assert(array);
-  return array->size;
-}
+usize dynarray_size(const DynArray* array) { return array->size; }
 
 static void dynarray_resize_grow(DynArray* array, const usize size) {
   diag_assert_msg(array->alloc, "DynArray without an allocator ran out of memory");
@@ -61,21 +57,18 @@ static void dynarray_resize_grow(DynArray* array, const usize size) {
   array->data = newMem;
 }
 
-void dynarray_resize(DynArray* array, const usize size) {
-  diag_assert(array);
-  if (size * array->stride > array->data.size) {
+INLINE_HINT static void dynarray_resize_internal(DynArray* array, const usize size) {
+  if (UNLIKELY(size * array->stride > array->data.size)) {
     dynarray_resize_grow(array, size);
   }
   array->size = size;
 }
 
-void dynarray_clear(DynArray* array) {
-  diag_assert(array);
-  array->size = 0;
-}
+void dynarray_resize(DynArray* array, const usize size) { dynarray_resize_internal(array, size); }
+
+void dynarray_clear(DynArray* array) { array->size = 0; }
 
 Mem dynarray_at(const DynArray* array, const usize idx, const usize count) {
-  diag_assert(array);
   diag_assert(idx + count <= array->size);
   const usize offset = array->stride * idx;
   const usize size   = array->stride * count;
@@ -83,20 +76,18 @@ Mem dynarray_at(const DynArray* array, const usize idx, const usize count) {
 }
 
 Mem dynarray_push(DynArray* array, const usize count) {
-  dynarray_resize(array, array->size + count);
+  dynarray_resize_internal(array, array->size + count);
   const usize offset = array->stride * (array->size - count);
   const usize size   = array->stride * count;
   return mem_create(bits_ptr_offset(array->data.ptr, offset), size);
 }
 
 void dynarray_pop(DynArray* array, usize count) {
-  diag_assert(array);
   diag_assert(count <= array->size);
-  dynarray_resize(array, array->size - count);
+  dynarray_resize_internal(array, array->size - count);
 }
 
 void dynarray_remove(DynArray* array, const usize idx, const usize count) {
-  diag_assert(array);
   diag_assert(array->size >= idx + count);
 
   const usize newSize       = array->size - count;
@@ -110,7 +101,6 @@ void dynarray_remove(DynArray* array, const usize idx, const usize count) {
 }
 
 void dynarray_remove_unordered(DynArray* array, const usize idx, const usize count) {
-  diag_assert(array);
   diag_assert(array->size >= idx + count);
 
   const usize entriesToMove = math_min(count, array->size - (idx + count));
@@ -123,11 +113,10 @@ void dynarray_remove_unordered(DynArray* array, const usize idx, const usize cou
 }
 
 Mem dynarray_insert(DynArray* array, const usize idx, const usize count) {
-  diag_assert(array);
   diag_assert(idx <= array->size);
 
   const usize entriesToMove = array->size - idx;
-  dynarray_resize(array, array->size + count);
+  dynarray_resize_internal(array, array->size + count);
   if (entriesToMove) {
     const Mem dst = dynarray_at(array, idx + count, entriesToMove);
     const Mem src = dynarray_at(array, idx, entriesToMove);

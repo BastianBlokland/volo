@@ -16,6 +16,12 @@
 #define intrinsic_memcpy __builtin_memcpy
 #endif
 
+#define rend_draw_simd_enable 1
+
+#if rend_draw_simd_enable
+#include <immintrin.h>
+#endif
+
 #define rend_min_align 16
 #define rend_max_res_requests 16
 
@@ -86,6 +92,20 @@ rend_draw_ensure_storage(Mem* mem, const usize neededSize, const usize align) {
 INLINE_HINT static usize rend_draw_align(const usize val, const usize align) {
   const usize rem = val & (align - 1);
   return val + (rem ? align - rem : 0);
+}
+
+/**
+ * Pre-condition: bits_is_aligned(size, 16)
+ */
+INLINE_HINT static void rend_draw_memcpy(u8* dst, const u8* src, const usize size) {
+#if rend_draw_simd_enable
+  const void* end = bits_ptr_offset(src, size);
+  for (; src != end; src += 16, dst += 16) {
+    _mm_stream_si128((__m128i*)dst, _mm_stream_load_si128((__m128i*)src));
+  }
+#else
+  intrinsic_memcpy(dst, src, size);
+#endif
 }
 
 static Mem rend_draw_inst_data(const RendDrawComp* draw, const u32 instance) {
@@ -210,7 +230,7 @@ bool rend_draw_gather(RendDrawComp* draw, const RendView* view, const RendSettin
     }
     const Mem outputMem   = rend_draw_inst_output_data(draw, draw->outputInstCount++);
     const Mem instDataMem = rend_draw_inst_data(draw, i);
-    intrinsic_memcpy(outputMem.ptr, instDataMem.ptr, instDataMem.size);
+    rend_draw_memcpy(outputMem.ptr, instDataMem.ptr, instDataMem.size);
   }
   return draw->outputInstCount != 0;
 }
@@ -250,7 +270,7 @@ void rend_draw_set_vertex_count(RendDrawComp* comp, const u32 vertexCount) {
 
 void rend_draw_set_data(RendDrawComp* draw, const Mem data) {
   rend_draw_ensure_storage(&draw->dataMem, data.size, rend_min_align);
-  intrinsic_memcpy(draw->dataMem.ptr, data.ptr, data.size);
+  rend_draw_memcpy(draw->dataMem.ptr, data.ptr, data.size);
   draw->dataSize = (u32)data.size;
 }
 
@@ -269,7 +289,7 @@ void rend_draw_add_instance(
   rend_draw_ensure_storage(
       &draw->instDataMem, draw->instCount * draw->instDataSize, rend_min_align);
 
-  intrinsic_memcpy(rend_draw_inst_data(draw, draw->instCount - 1).ptr, data.ptr, data.size);
+  rend_draw_memcpy(rend_draw_inst_data(draw, draw->instCount - 1).ptr, data.ptr, data.size);
 
   if (!(draw->flags & RendDrawFlags_NoInstanceFiltering)) {
     rend_draw_ensure_storage(&draw->instTagsMem, draw->instCount * sizeof(SceneTags), 1);
