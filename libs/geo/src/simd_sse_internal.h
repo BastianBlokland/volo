@@ -83,6 +83,11 @@ INLINE_HINT static SimdVec simd_vec_select(const SimdVec a, const SimdVec b, con
   return _mm_blendv_ps(a, b, mask);
 }
 
+INLINE_HINT static SimdVec simd_vec_abs(const SimdVec a) {
+  const SimdVec signBit = _mm_set1_ps(-0.0f);
+  return _mm_andnot_ps(signBit, a);
+}
+
 INLINE_HINT static SimdVec simd_vec_dot4(const SimdVec a, const SimdVec b) {
   const SimdVec mul = _mm_mul_ps(a, b);
   const SimdVec t1  = _mm_hadd_ps(mul, mul);

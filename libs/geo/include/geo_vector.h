@@ -34,6 +34,11 @@ ASSERT(alignof(GeoVector) == 16, "GeoVector has to be aligned to 128 bits");
 bool geo_vector_equal(GeoVector a, GeoVector b, f32 threshold);
 
 /**
+ * Compute the absolute value of each component.
+ */
+GeoVector geo_vector_abs(GeoVector);
+
+/**
  * Compute a vector where each component is the result of adding the component of both vectors.
  */
 GeoVector geo_vector_add(GeoVector a, GeoVector b);

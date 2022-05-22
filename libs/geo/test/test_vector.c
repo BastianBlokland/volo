@@ -21,6 +21,14 @@ spec(vector) {
     check(!geo_vector_equal(geo_vector(.x = -.1f), geo_vector(.x = -.1f, .w = .1f), 1e-6f));
   }
 
+  it("can compute the absolute value of each component") {
+    check_eq_vector(geo_vector_abs(geo_vector(0, 0, 0, 0)), geo_vector(0, 0, 0, 0));
+    check_eq_vector(geo_vector_abs(geo_vector(1, 1, 1, 1)), geo_vector(1, 1, 1, 1));
+    check_eq_vector(geo_vector_abs(geo_vector(-1, -1, -1, -1)), geo_vector(1, 1, 1, 1));
+    check_eq_vector(
+        geo_vector_abs(geo_vector(-0.0f, -0.001f, 42, -1337)), geo_vector(0, 0.001f, 42, 1337));
+  }
+
   it("sums all components when adding") {
     check_eq_vector(
         geo_vector_add(
