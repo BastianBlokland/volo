@@ -15,6 +15,16 @@ bool geo_vector_equal(const GeoVector a, const GeoVector b, const f32 threshold)
   return geo_vector_mag_sqr(diff) <= (threshold * threshold);
 }
 
+GeoVector geo_vector_abs(const GeoVector vec) {
+#if geo_vec_simd_enable
+  GeoVector res;
+  simd_vec_store(simd_vec_abs(simd_vec_load(vec.comps)), res.comps);
+  return res;
+#else
+  return geo_vector(math_abs(vec.x), math_abs(vec.y), math_abs(vec.z), math_abs(vec.w));
+#endif
+}
+
 GeoVector geo_vector_add(const GeoVector a, const GeoVector b) {
 #if geo_vec_simd_enable
   GeoVector res;

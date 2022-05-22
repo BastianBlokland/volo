@@ -1,4 +1,5 @@
 #pragma once
+#include "geo_plane.h"
 #include "geo_quat.h"
 #include "geo_vector.h"
 
@@ -69,3 +70,9 @@ GeoBox geo_box_from_cone(GeoVector bottom, GeoVector top, f32 radius);
  * Calculate the bounding box of a line.
  */
 GeoBox geo_box_from_line(GeoVector from, GeoVector to);
+
+/**
+ * Test if the box intersects the given four frustum planes.
+ * NOTE: If the given box is inverted its considered to always be intersecting.
+ */
+bool geo_box_intersect_frustum4(const GeoBox*, const GeoPlane frustum[4]);

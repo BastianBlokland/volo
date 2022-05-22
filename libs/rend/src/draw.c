@@ -8,6 +8,14 @@
 #include "reset_internal.h"
 #include "resource_internal.h"
 
+#if defined(VOLO_MSVC)
+#include <string.h>
+#pragma intrinsic(memcpy)
+#define intrinsic_memcpy memcpy
+#else
+#define intrinsic_memcpy __builtin_memcpy
+#endif
+
 #define rend_min_align 16
 #define rend_max_res_requests 16
 
@@ -73,6 +81,11 @@ rend_draw_ensure_storage(Mem* mem, const usize neededSize, const usize align) {
     }
     *mem = newMem;
   }
+}
+
+INLINE_HINT static usize rend_draw_align(const usize val, const usize align) {
+  const usize rem = val & (align - 1);
+  return val + (rem ? align - rem : 0);
 }
 
 static Mem rend_draw_inst_data(const RendDrawComp* draw, const u32 instance) {
@@ -195,8 +208,9 @@ bool rend_draw_gather(RendDrawComp* draw, const RendView* view, const RendSettin
     if (!rend_view_visible(view, instTags, instAabb, settings)) {
       continue;
     }
-    const Mem outputMem = rend_draw_inst_output_data(draw, draw->outputInstCount++);
-    mem_cpy(outputMem, rend_draw_inst_data(draw, i));
+    const Mem outputMem   = rend_draw_inst_output_data(draw, draw->outputInstCount++);
+    const Mem instDataMem = rend_draw_inst_data(draw, i);
+    intrinsic_memcpy(outputMem.ptr, instDataMem.ptr, instDataMem.size);
   }
   return draw->outputInstCount != 0;
 }
@@ -236,26 +250,26 @@ void rend_draw_set_vertex_count(RendDrawComp* comp, const u32 vertexCount) {
 
 void rend_draw_set_data(RendDrawComp* draw, const Mem data) {
   rend_draw_ensure_storage(&draw->dataMem, data.size, rend_min_align);
-  mem_cpy(draw->dataMem, data);
+  intrinsic_memcpy(draw->dataMem.ptr, data.ptr, data.size);
   draw->dataSize = (u32)data.size;
 }
 
 void rend_draw_add_instance(
     RendDrawComp* draw, const Mem data, const SceneTags tags, const GeoBox aabb) {
 
-  if (UNLIKELY(bits_align(data.size, rend_min_align) != draw->instDataSize)) {
+  if (UNLIKELY(rend_draw_align(data.size, rend_min_align) != draw->instDataSize)) {
     /**
      * Instance data-size changed; Clear any previously added instances.
      */
     draw->instCount    = 0;
-    draw->instDataSize = bits_align((u32)data.size, rend_min_align);
+    draw->instDataSize = (u32)rend_draw_align(data.size, rend_min_align);
   }
 
   ++draw->instCount;
   rend_draw_ensure_storage(
       &draw->instDataMem, draw->instCount * draw->instDataSize, rend_min_align);
 
-  mem_cpy(rend_draw_inst_data(draw, draw->instCount - 1), data);
+  intrinsic_memcpy(rend_draw_inst_data(draw, draw->instCount - 1).ptr, data.ptr, data.size);
 
   if (!(draw->flags & RendDrawFlags_NoInstanceFiltering)) {
     rend_draw_ensure_storage(&draw->instTagsMem, draw->instCount * sizeof(SceneTags), 1);

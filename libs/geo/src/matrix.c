@@ -2,6 +2,14 @@
 #include "core_math.h"
 #include "geo_matrix.h"
 
+#include "intrinsic_internal.h"
+
+#define geo_matrix_simd_enable 1
+
+#if geo_matrix_simd_enable
+#include "simd_sse_internal.h"
+#endif
+
 static void assert_normalized(const GeoVector v) {
   MAYBE_UNUSED const f32 sqrMag = geo_vector_mag_sqr(v);
   diag_assert_msg(math_abs(sqrMag - 1) < 1e-4, "Given vector is not normalized");
@@ -198,8 +206,8 @@ GeoMatrix geo_matrix_rotate_x(const f32 angle) {
    * [ 0,  sin, cos,  0 ]
    * [ 0,  0,   0,    1 ]
    */
-  const f32 c = math_cos_f32(angle);
-  const f32 s = math_sin_f32(angle);
+  const f32 c = intrinsic_cos_f32(angle);
+  const f32 s = intrinsic_sin_f32(angle);
   return (GeoMatrix){
       .columns = {
           {1, 0, 0, 0},
@@ -216,8 +224,8 @@ GeoMatrix geo_matrix_rotate_y(const f32 angle) {
    * [ -sin, 0,  cos, 0 ]
    * [ 0,    0,  0,   1 ]
    */
-  const f32 c = math_cos_f32(angle);
-  const f32 s = math_sin_f32(angle);
+  const f32 c = intrinsic_cos_f32(angle);
+  const f32 s = intrinsic_sin_f32(angle);
   return (GeoMatrix){
       .columns = {
           {c, 0, -s, 0},
@@ -234,8 +242,8 @@ GeoMatrix geo_matrix_rotate_z(const f32 angle) {
    * [ 0,   0,    1,  0 ]
    * [ 0,   0,    0,  1 ]
    */
-  const f32 c = math_cos_f32(angle);
-  const f32 s = math_sin_f32(angle);
+  const f32 c = intrinsic_cos_f32(angle);
+  const f32 s = intrinsic_sin_f32(angle);
   return (GeoMatrix){
       .columns = {
           {c, s, 0, 0},
@@ -264,23 +272,52 @@ GeoMatrix geo_matrix_rotate(const GeoVector right, const GeoVector up, const Geo
 }
 
 GeoMatrix geo_matrix_rotate_look(const GeoVector forward, const GeoVector upRef) {
+#if geo_matrix_simd_enable
+  const SimdVec vForward       = simd_vec_load(forward.comps);
+  const SimdVec vForwardSqrMag = simd_vec_dot3(vForward, vForward);
+  if (UNLIKELY(simd_vec_x(vForwardSqrMag) <= f32_epsilon)) {
+    return geo_matrix_ident();
+  }
+
+  const SimdVec vUpRef       = simd_vec_load(upRef.comps);
+  const SimdVec vUpRefSqrMag = simd_vec_dot3(vUpRef, vUpRef);
+  if (UNLIKELY(simd_vec_x(vUpRefSqrMag) <= f32_epsilon)) {
+    return geo_matrix_ident();
+  }
+
+  const SimdVec vForwardMag  = simd_vec_sqrt(vForwardSqrMag);
+  const SimdVec vForwardNorm = simd_vec_div(vForward, vForwardMag);
+  const SimdVec vRight       = simd_vec_cross3(vUpRef, vForwardNorm);
+  const SimdVec vRightSqrMag = simd_vec_dot3(vRight, vRight);
+  const SimdVec vRightNorm   = LIKELY(simd_vec_x(vRightSqrMag) > f32_epsilon)
+                                   ? simd_vec_div(vRight, simd_vec_sqrt(vRightSqrMag))
+                                   : simd_vec_set(1, 0, 0, 0);
+  const SimdVec vUpNorm      = simd_vec_cross3(vForwardNorm, vRightNorm);
+
+  GeoMatrix res;
+  simd_vec_store(vRightNorm, res.columns[0].comps);
+  simd_vec_store(vUpNorm, res.columns[1].comps);
+  simd_vec_store(vForwardNorm, res.columns[2].comps);
+  simd_vec_store(simd_vec_set(0, 0, 0, 1), res.columns[3].comps);
+  return res;
+#else
   if (UNLIKELY(geo_vector_mag_sqr(forward) <= f32_epsilon)) {
     return geo_matrix_ident();
   }
   if (UNLIKELY(geo_vector_mag_sqr(upRef) <= f32_epsilon)) {
     return geo_matrix_ident();
   }
-
   const GeoVector fwdNorm     = geo_vector_norm(forward);
   GeoVector       right       = geo_vector_cross3(upRef, fwdNorm);
   const f32       rightMagSqr = geo_vector_mag_sqr(right);
   if (LIKELY(rightMagSqr > f32_epsilon)) {
-    right = geo_vector_div(right, math_sqrt_f32(rightMagSqr));
+    right = geo_vector_div(right, intrinsic_sqrt_f32(rightMagSqr));
   } else {
     right = geo_right;
   }
   const GeoVector upNorm = geo_vector_cross3(fwdNorm, right);
   return geo_matrix_rotate(right, upNorm, fwdNorm);
+#endif
 }
 
 GeoMatrix geo_matrix_from_quat(const GeoQuat quat) {
@@ -318,7 +355,7 @@ GeoQuat geo_matrix_to_quat(const GeoMatrix* m) {
   const f32 trace = m->columns[0].x + m->columns[1].y + m->columns[2].z; // Sum of diag elements.
   if (trace > f32_epsilon) {
     // Trace is positive
-    const f32 s = math_sqrt_f32(trace + 1) * 2;
+    const f32 s = intrinsic_sqrt_f32(trace + 1) * 2;
     return (GeoQuat){
         .x = (m->columns[1].z - m->columns[2].y) / s,
         .y = (m->columns[2].x - m->columns[0].z) / s,
@@ -331,7 +368,7 @@ GeoQuat geo_matrix_to_quat(const GeoMatrix* m) {
   // Find the biggest diagonal element.
   if (m->columns[0].x > m->columns[1].y && m->columns[0].x > m->columns[2].z) {
     // [0, 0] is the biggest.
-    const f32 s = math_sqrt_f32(1 + m->columns[0].x - m->columns[1].y - m->columns[2].z) * 2;
+    const f32 s = intrinsic_sqrt_f32(1 + m->columns[0].x - m->columns[1].y - m->columns[2].z) * 2;
     return (GeoQuat){
         .x = s * .25f,
         .y = (m->columns[1].x + m->columns[0].y) / s,
@@ -342,7 +379,7 @@ GeoQuat geo_matrix_to_quat(const GeoMatrix* m) {
 
   if (m->columns[1].y > m->columns[2].z) {
     // [1, 1] is the biggest.
-    const f32 s = math_sqrt_f32(1 + m->columns[1].y - m->columns[0].x - m->columns[2].z) * 2;
+    const f32 s = intrinsic_sqrt_f32(1 + m->columns[1].y - m->columns[0].x - m->columns[2].z) * 2;
     return (GeoQuat){
         .x = (m->columns[1].x + m->columns[0].y) / s,
         .y = s * .25f,
@@ -352,7 +389,7 @@ GeoQuat geo_matrix_to_quat(const GeoMatrix* m) {
   }
 
   // [2, 2] is the biggest.
-  const f32 s = math_sqrt_f32(1 + m->columns[2].z - m->columns[0].x - m->columns[1].y) * 2;
+  const f32 s = intrinsic_sqrt_f32(1 + m->columns[2].z - m->columns[0].x - m->columns[1].y) * 2;
   return (GeoQuat){
       .x = (m->columns[2].x + m->columns[0].z) / s,
       .y = (m->columns[2].y + m->columns[1].z) / s,
@@ -402,20 +439,20 @@ GeoMatrix geo_matrix_proj_pers(const f32 horAngle, const f32 verAngle, const f32
    */
   return (GeoMatrix){
       .columns = {
-          {1 / math_tan_f32(horAngle * .5f), 0, 0, 0},
-          {0, -(1 / math_tan_f32(verAngle * .5f)), 0, 0},
+          {1 / intrinsic_tan_f32(horAngle * .5f), 0, 0, 0},
+          {0, -(1 / intrinsic_tan_f32(verAngle * .5f)), 0, 0},
           {0, 0, 0, 1},
           {0, 0, zNear, 0},
       }};
 }
 
 GeoMatrix geo_matrix_proj_pers_ver(const f32 verAngle, const f32 aspect, const f32 zNear) {
-  const f32 horAngle = math_atan_f32(math_tan_f32(verAngle * .5f) * aspect) * 2.f;
+  const f32 horAngle = intrinsic_atan_f32(intrinsic_tan_f32(verAngle * .5f) * aspect) * 2.f;
   return geo_matrix_proj_pers(horAngle, verAngle, zNear);
 }
 
 GeoMatrix geo_matrix_proj_pers_hor(const f32 horAngle, const f32 aspect, const f32 zNear) {
-  const f32 verAngle = math_atan_f32(math_tan_f32(horAngle * .5f) / aspect) * 2.f;
+  const f32 verAngle = intrinsic_atan_f32(intrinsic_tan_f32(horAngle * .5f) / aspect) * 2.f;
   return geo_matrix_proj_pers(horAngle, verAngle, zNear);
 }
 

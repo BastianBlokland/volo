@@ -4,7 +4,7 @@
 #include <immintrin.h>
 
 /**
- * SIMD vector utilities using SSE, SSE2 and SSE3 instructions, all introduced in the Pentium 4 era.
+ * SIMD vector utilities using SSE, SSE2 and SSE3, SSE4 and SSE4.1 instructions.
  */
 
 typedef __m128 SimdVec;
@@ -25,6 +25,8 @@ INLINE_HINT static SimdVec simd_vec_load(const f32 values[4]) { return _mm_load_
 INLINE_HINT static void simd_vec_store(const SimdVec vec, f32 values[4]) {
   _mm_store_ps(values, vec);
 }
+
+INLINE_HINT static SimdVec simd_vec_zero() { return _mm_setzero_ps(); }
 
 INLINE_HINT static f32 simd_vec_x(const SimdVec vec) { return _mm_cvtss_f32(vec); }
 
@@ -76,6 +78,15 @@ INLINE_HINT static bool simd_vec_any_true(const SimdVec a) { return _mm_movemask
 INLINE_HINT static bool simd_vec_any_false(const SimdVec a) { return _mm_movemask_ps(a) != 0xffff; }
 INLINE_HINT static bool simd_vec_all_true(const SimdVec a) { return _mm_movemask_ps(a) == 0xffff; }
 INLINE_HINT static bool simd_vec_all_false(const SimdVec a) { return _mm_movemask_ps(a) == 0x0000; }
+
+INLINE_HINT static SimdVec simd_vec_select(const SimdVec a, const SimdVec b, const SimdVec mask) {
+  return _mm_blendv_ps(a, b, mask);
+}
+
+INLINE_HINT static SimdVec simd_vec_abs(const SimdVec a) {
+  const SimdVec signBit = _mm_set1_ps(-0.0f);
+  return _mm_andnot_ps(signBit, a);
+}
 
 INLINE_HINT static SimdVec simd_vec_dot4(const SimdVec a, const SimdVec b) {
   const SimdVec mul = _mm_mul_ps(a, b);
