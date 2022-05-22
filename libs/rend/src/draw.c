@@ -101,7 +101,7 @@ INLINE_HINT static void rend_draw_memcpy(u8* dst, const u8* src, const usize siz
 #if rend_draw_simd_enable
   const void* end = bits_ptr_offset(src, size);
   for (; src != end; src += 16, dst += 16) {
-    _mm_stream_si128((__m128i*)dst, _mm_stream_load_si128((const __m128i*)src));
+    _mm_stream_si128((__m128i*)dst, _mm_stream_load_si128((__m128i*)src));
   }
 #else
   intrinsic_memcpy(dst, src, size);
