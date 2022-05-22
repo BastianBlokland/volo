@@ -331,6 +331,8 @@ static void rend_resources_options_draw(UiCanvasComp* canvas, DebugRendPanelComp
   UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
   ui_table_add_column(&table, UiTableColumn_Fixed, 250);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 25);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Filter:"));
@@ -340,6 +342,10 @@ static void rend_resources_options_draw(UiCanvasComp* canvas, DebugRendPanelComp
       &panelComp->nameFilter,
       .placeholder = string_lit("*"),
       .tooltip     = g_tooltipResourceFilter);
+  ui_table_next_column(canvas, &table);
+  ui_label(canvas, string_lit("Freeze:"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle(canvas, &panelComp->freeze, .tooltip = g_tooltipFreeze);
 
   ui_layout_pop(canvas);
 }
