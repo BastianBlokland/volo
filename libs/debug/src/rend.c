@@ -59,12 +59,14 @@ ASSERT(array_elems(g_drawSortNames) == DebugRendDrawSort_Count, "Incorrect numbe
 
 typedef enum {
   DebugRendResSort_Name,
+  DebugRendResSort_Type,
 
   DebugRendResSort_Count,
 } DebugRendResSort;
 
 static const String g_resSortNames[] = {
     string_static("Name"),
+    string_static("Type"),
 };
 ASSERT(array_elems(g_resSortNames) == DebugRendResSort_Count, "Incorrect number of names");
 
@@ -160,6 +162,16 @@ static i8 rend_draw_compare_render_order(const void* a, const void* b) {
 static i8 rend_resource_compare_name(const void* a, const void* b) {
   return compare_string(
       field_ptr(a, DebugResourceInfo, name), field_ptr(b, DebugResourceInfo, name));
+}
+
+static i8 rend_resource_compare_type(const void* a, const void* b) {
+  const DebugResourceInfo* resA  = a;
+  const DebugResourceInfo* resB  = b;
+  i8                       order = compare_i32(&resA->type, &resB->type);
+  if (!order) {
+    order = compare_string(&resA->name, &resB->name);
+  }
+  return order;
 }
 
 static bool rend_panel_filter(DebugRendPanelComp* panelComp, const String name) {
@@ -453,6 +465,9 @@ static void rend_resource_info_query(DebugRendPanelComp* panelComp, EcsWorld* wo
   case DebugRendResSort_Name:
     dynarray_sort(&panelComp->resources, rend_resource_compare_name);
     break;
+  case DebugRendResSort_Type:
+    dynarray_sort(&panelComp->resources, rend_resource_compare_type);
+    break;
   case DebugRendResSort_Count:
     break;
   }
@@ -601,7 +616,7 @@ EcsEntityId debug_rend_panel_open(EcsWorld* world, const EcsEntityId window) {
       .scrollview     = ui_scrollview(),
       .nameFilter     = dynstring_create(g_alloc_heap, 32),
       .drawSortMode   = DebugRendDrawSort_RenderOrder,
-      .resSortMode    = DebugRendResSort_Name,
+      .resSortMode    = DebugRendResSort_Type,
       .draws          = dynarray_create_t(g_alloc_heap, DebugDrawInfo, 256),
       .resources      = dynarray_create_t(g_alloc_heap, DebugResourceInfo, 256),
       .hideEmptyDraws = true);
