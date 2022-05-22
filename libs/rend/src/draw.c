@@ -83,6 +83,11 @@ rend_draw_ensure_storage(Mem* mem, const usize neededSize, const usize align) {
   }
 }
 
+INLINE_HINT static usize rend_draw_align(const usize val, const usize align) {
+  const usize rem = val & (align - 1);
+  return val + (rem ? align - rem : 0);
+}
+
 static Mem rend_draw_inst_data(const RendDrawComp* draw, const u32 instance) {
   const usize offset = instance * draw->instDataSize;
   return mem_create(bits_ptr_offset(draw->instDataMem.ptr, offset), draw->instDataSize);
@@ -252,12 +257,12 @@ void rend_draw_set_data(RendDrawComp* draw, const Mem data) {
 void rend_draw_add_instance(
     RendDrawComp* draw, const Mem data, const SceneTags tags, const GeoBox aabb) {
 
-  if (UNLIKELY(bits_align(data.size, rend_min_align) != draw->instDataSize)) {
+  if (UNLIKELY(rend_draw_align(data.size, rend_min_align) != draw->instDataSize)) {
     /**
      * Instance data-size changed; Clear any previously added instances.
      */
     draw->instCount    = 0;
-    draw->instDataSize = bits_align((u32)data.size, rend_min_align);
+    draw->instDataSize = (u32)rend_draw_align(data.size, rend_min_align);
   }
 
   ++draw->instCount;
