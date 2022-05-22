@@ -60,6 +60,7 @@ ASSERT(array_elems(g_drawSortNames) == DebugRendDrawSort_Count, "Incorrect numbe
 typedef enum {
   DebugRendResSort_Name,
   DebugRendResSort_Type,
+  DebugRendResSort_Size,
 
   DebugRendResSort_Count,
 } DebugRendResSort;
@@ -67,6 +68,7 @@ typedef enum {
 static const String g_resSortNames[] = {
     string_static("Name"),
     string_static("Type"),
+    string_static("Size"),
 };
 ASSERT(array_elems(g_resSortNames) == DebugRendResSort_Count, "Incorrect number of names");
 
@@ -108,6 +110,7 @@ typedef struct {
   DebugRendResType type;
   bool             isLoading, isFailed, isUnused;
   u64              ticksTillUnload;
+  usize            dataSize;
 } DebugResourceInfo;
 
 ecs_comp_define(DebugRendPanelComp) {
@@ -170,6 +173,16 @@ static i8 rend_resource_compare_type(const void* a, const void* b) {
   const DebugResourceInfo* resA  = a;
   const DebugResourceInfo* resB  = b;
   i8                       order = compare_i32(&resA->type, &resB->type);
+  if (!order) {
+    order = compare_string(&resA->name, &resB->name);
+  }
+  return order;
+}
+
+static i8 rend_resource_compare_size(const void* a, const void* b) {
+  const DebugResourceInfo* resA  = a;
+  const DebugResourceInfo* resB  = b;
+  i8                       order = compare_usize_reverse(&resA->dataSize, &resB->dataSize);
   if (!order) {
     order = compare_string(&resA->name, &resB->name);
   }
@@ -447,15 +460,18 @@ static void rend_resource_info_query(DebugRendPanelComp* panelComp, EcsWorld* wo
       const RendResMeshComp*    mesh    = ecs_view_read_t(itr, RendResMeshComp);
       const RendResTextureComp* texture = ecs_view_read_t(itr, RendResTextureComp);
 
-      DebugRendResType type = DebugRendResType_Unknown;
+      DebugRendResType type     = DebugRendResType_Unknown;
+      usize            dataSize = 0;
       if (graphic) {
         type = DebugRendResType_Graphic;
       } else if (shader) {
         type = DebugRendResType_Shader;
       } else if (mesh) {
-        type = DebugRendResType_Mesh;
+        type     = DebugRendResType_Mesh;
+        dataSize = rend_res_mesh_data_size(mesh);
       } else if (texture) {
-        type = DebugRendResType_Texture;
+        type     = DebugRendResType_Texture;
+        dataSize = rend_res_texture_data_size(texture);
       }
       *dynarray_push_t(&panelComp->resources, DebugResourceInfo) = (DebugResourceInfo){
           .name            = name,
@@ -464,6 +480,7 @@ static void rend_resource_info_query(DebugRendPanelComp* panelComp, EcsWorld* wo
           .isFailed        = rend_res_is_failed(resComp),
           .isUnused        = rend_res_is_unused(resComp),
           .ticksTillUnload = rend_res_ticks_until_unload(resComp),
+          .dataSize        = dataSize,
       };
     }
   }
@@ -474,6 +491,9 @@ static void rend_resource_info_query(DebugRendPanelComp* panelComp, EcsWorld* wo
     break;
   case DebugRendResSort_Type:
     dynarray_sort(&panelComp->resources, rend_resource_compare_type);
+    break;
+  case DebugRendResSort_Size:
+    dynarray_sort(&panelComp->resources, rend_resource_compare_size);
     break;
   case DebugRendResSort_Count:
     break;
@@ -501,7 +521,8 @@ static void rend_resource_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* pan
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 250);
   ui_table_add_column(&table, UiTableColumn_Fixed, 75);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 125);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 100);
 
   ui_table_draw_header(
       canvas,
@@ -511,6 +532,7 @@ static void rend_resource_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* pan
           {string_lit("Type"), string_lit("Type of the resource.")},
           {string_lit("Unload delay"),
            string_lit("How many ticks until resource asset will be unloaded.")},
+          {string_lit("Size"), string_lit("Data size of the resource.")},
       });
 
   const u32 numResources = (u32)panelComp->resources.size;
@@ -529,6 +551,10 @@ static void rend_resource_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* pan
     ui_table_next_column(canvas, &table);
     if (resInfo->isUnused) {
       ui_label(canvas, fmt_write_scratch("{}", fmt_int(resInfo->ticksTillUnload)));
+    }
+    ui_table_next_column(canvas, &table);
+    if (resInfo->dataSize) {
+      ui_label(canvas, fmt_write_scratch("{}", fmt_size(resInfo->dataSize)));
     }
   }
   ui_canvas_id_block_next(canvas);
@@ -643,7 +669,7 @@ EcsEntityId debug_rend_panel_open(EcsWorld* world, const EcsEntityId window) {
       .scrollview     = ui_scrollview(),
       .nameFilter     = dynstring_create(g_alloc_heap, 32),
       .drawSortMode   = DebugRendDrawSort_RenderOrder,
-      .resSortMode    = DebugRendResSort_Type,
+      .resSortMode    = DebugRendResSort_Size,
       .draws          = dynarray_create_t(g_alloc_heap, DebugDrawInfo, 256),
       .resources      = dynarray_create_t(g_alloc_heap, DebugResourceInfo, 256),
       .hideEmptyDraws = true);

@@ -689,6 +689,14 @@ u64 rend_res_ticks_until_unload(const RendResComp* comp) {
   return g_rendResUnloadUnusedAfterTicks - comp->unusedTicks;
 }
 
+usize rend_res_mesh_data_size(const RendResMeshComp* comp) {
+  return comp->mesh->vertexBuffer.size + comp->mesh->indexBuffer.size;
+}
+
+usize rend_res_texture_data_size(const RendResTextureComp* comp) {
+  return comp->texture->image.mem.size;
+}
+
 i32 rend_res_render_order(const RendResGraphicComp* comp) { return comp->graphic->renderOrder; }
 
 bool rend_resource_request(EcsWorld* world, const EcsEntityId assetEntity, const bool persistent) {
