@@ -162,6 +162,10 @@ static GeoBox debug_box_bounds(const GeoVector pos, const GeoQuat rot, const Geo
   return geo_box_transform3(&b, pos, rot, 1);
 }
 
+INLINE_HINT static void debug_shape_add(DebugShapeComp* comp, const DebugShape shape) {
+  *((DebugShape*)dynarray_push(&comp->entries, 1).ptr) = shape;
+}
+
 ecs_system_define(DebugShapeRenderSys) {
   AssetManagerComp* assets = ui_asset_manager(world);
   if (!assets) {
@@ -340,10 +344,12 @@ void debug_box(
     const GeoVector      size,
     const GeoColor       color,
     const DebugShapeMode mode) {
-  *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
-      .type     = DebugShapeType_Box + mode,
-      .data_box = {.pos = pos, .rot = rot, .size = size, .color = color},
-  };
+  debug_shape_add(
+      comp,
+      (DebugShape){
+          .type     = DebugShapeType_Box + mode,
+          .data_box = {.pos = pos, .rot = rot, .size = size, .color = color},
+      });
 }
 
 void debug_quad(
@@ -354,10 +360,12 @@ void debug_quad(
     const f32            sizeY,
     const GeoColor       color,
     const DebugShapeMode mode) {
-  *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
-      .type      = DebugShapeType_Quad + mode,
-      .data_quad = {.pos = pos, .rot = rot, .sizeX = sizeX, .sizeY = sizeY, .color = color},
-  };
+  debug_shape_add(
+      comp,
+      (DebugShape){
+          .type      = DebugShapeType_Quad + mode,
+          .data_quad = {.pos = pos, .rot = rot, .sizeX = sizeX, .sizeY = sizeY, .color = color},
+      });
 }
 
 void debug_sphere(
@@ -366,10 +374,12 @@ void debug_sphere(
     const f32            radius,
     const GeoColor       color,
     const DebugShapeMode mode) {
-  *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
-      .type        = DebugShapeType_Sphere + mode,
-      .data_sphere = {.pos = pos, .radius = radius, .color = color},
-  };
+  debug_shape_add(
+      comp,
+      (DebugShape){
+          .type        = DebugShapeType_Sphere + mode,
+          .data_sphere = {.pos = pos, .radius = radius, .color = color},
+      });
 }
 
 void debug_cylinder(
@@ -379,10 +389,12 @@ void debug_cylinder(
     const f32            radius,
     const GeoColor       color,
     const DebugShapeMode mode) {
-  *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
-      .type          = DebugShapeType_Cylinder + mode,
-      .data_cylinder = {.bottom = bottom, .top = top, .radius = radius, .color = color},
-  };
+  debug_shape_add(
+      comp,
+      (DebugShape){
+          .type          = DebugShapeType_Cylinder + mode,
+          .data_cylinder = {.bottom = bottom, .top = top, .radius = radius, .color = color},
+      });
 }
 
 void debug_cone(
@@ -392,18 +404,22 @@ void debug_cone(
     const f32            radius,
     const GeoColor       color,
     const DebugShapeMode mode) {
-  *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
-      .type      = DebugShapeType_Cone + mode,
-      .data_cone = {.bottom = bottom, .top = top, .radius = radius, .color = color},
-  };
+  debug_shape_add(
+      comp,
+      (DebugShape){
+          .type      = DebugShapeType_Cone + mode,
+          .data_cone = {.bottom = bottom, .top = top, .radius = radius, .color = color},
+      });
 }
 
 void debug_line(
     DebugShapeComp* comp, const GeoVector start, const GeoVector end, const GeoColor color) {
-  *dynarray_push_t(&comp->entries, DebugShape) = (DebugShape){
-      .type      = DebugShapeType_Line + DebugShape_Overlay,
-      .data_line = {.start = start, .end = end, .color = color},
-  };
+  debug_shape_add(
+      comp,
+      (DebugShape){
+          .type      = DebugShapeType_Line + DebugShape_Overlay,
+          .data_line = {.start = start, .end = end, .color = color},
+      });
 }
 
 void debug_arrow(
