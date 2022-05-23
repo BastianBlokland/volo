@@ -11,6 +11,7 @@ add_library(lib_asset STATIC
   src/loader_ftx.c
   src/loader_graphic.c
   src/loader_inputmap.c
+  src/loader_mesh_gltf.c
   src/loader_mesh_obj.c
   src/loader_mesh_pme.c
   src/loader_mesh.c

@@ -16,6 +16,9 @@ AssetLoader asset_loader(const AssetFormat format) {
   case AssetFormat_Ftx: {
     RET_LOADER(ftx);
   }
+  case AssetFormat_Gltf: {
+    RET_LOADER(gltf);
+  }
   case AssetFormat_Gra: {
     RET_LOADER(gra);
   }
