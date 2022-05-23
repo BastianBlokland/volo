@@ -28,7 +28,7 @@
       "anisotropy": "x4"
     }
   ],
-  "meshId": "external/corset/corset.obj",
+  "meshId": "external/corset/corset_gltf.gltf",
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "None",

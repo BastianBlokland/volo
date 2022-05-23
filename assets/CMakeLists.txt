@@ -38,6 +38,8 @@ if(${EXTERNAL_ASSETS})
       cayo/cayo.obj
       corset/corset_diff.tga
       corset/corset_nrm.tga
+      corset/corset_gltf.gltf
+      corset/corset_gltf.bin
       corset/corset.obj
       head/head.obj
       head/lambertian.tga
