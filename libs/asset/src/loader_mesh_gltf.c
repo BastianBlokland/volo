@@ -11,6 +11,8 @@
  * Format specification: https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html
  */
 
+ecs_module_init(asset_gltf_module) {}
+
 void asset_load_gltf(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   (void)world;
   (void)id;
