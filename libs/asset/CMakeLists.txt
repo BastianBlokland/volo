@@ -34,6 +34,7 @@ add_library(lib_asset STATIC
   )
 target_include_directories(lib_asset PUBLIC include)
 target_link_libraries(lib_asset PRIVATE lib_data)
+target_link_libraries(lib_asset PRIVATE lib_json)
 target_link_libraries(lib_asset PRIVATE lib_log)
 target_link_libraries(lib_asset PUBLIC lib_core)
 target_link_libraries(lib_asset PUBLIC lib_ecs)
