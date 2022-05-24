@@ -38,9 +38,11 @@ static void ecs_destruct_gltf_load_comp(void* data) {
 typedef enum {
   GltfError_None = 0,
   GltfError_InvalidJson,
-  GltfError_MalformedStructure,
+  GltfError_MalformedFile,
   GltfError_MalformedAsset,
+  GltfError_MalformedRequiredExtensions,
   GltfError_MissingVersion,
+  GltfError_UnsupportedExtensions,
   GltfError_UnsupportedVersion,
 
   GltfError_Count,
@@ -50,9 +52,11 @@ static String gltf_error_str(const GltfError err) {
   static const String g_msgs[] = {
       string_static("None"),
       string_static("Invalid json"),
-      string_static("Malformed gltf structure"),
-      string_static("Gltf asset metadata malformed"),
+      string_static("Malformed gltf file"),
+      string_static("Gltf 'asset' field malformed"),
+      string_static("Gltf 'extensionsRequired' field malformed"),
       string_static("Gltf version specification missing"),
+      string_static("Gltf file requires an unsupported extension"),
       string_static("Unsupported gltf version"),
   };
   ASSERT(array_elems(g_msgs) == GltfError_Count, "Incorrect number of gltf-error messages");
@@ -93,6 +97,20 @@ static void gltf_parse_metadata(AssetGltfLoadComp* load, GltfMetaData* outMeta, 
   *err = GltfError_None;
 }
 
+static bool gltf_validate_required_extensions(AssetGltfLoadComp* load, GltfError* err) {
+  const JsonVal field = json_field(load->jsonDoc, load->jsonRoot, string_lit("extensionsRequired"));
+  if (sentinel_check(field)) {
+    *err = GltfError_None;
+    return true; // No extensions are required.
+  }
+  if (json_type(load->jsonDoc, field) != JsonType_Array) {
+    *err = GltfError_MalformedRequiredExtensions;
+    return false;
+  }
+  // NOTE: No extensions are suppored at this time.
+  return json_elem_count(load->jsonDoc, field) == 0;
+}
+
 ecs_view_define(LoadView) { ecs_access_write(AssetGltfLoadComp); }
 
 /**
@@ -103,9 +121,7 @@ ecs_system_define(GltfLoadAssetSys) {
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
     const EcsEntityId  entity = ecs_view_entity(itr);
     AssetGltfLoadComp* load   = ecs_view_write_t(itr, AssetGltfLoadComp);
-
-    GltfError err = GltfError_None;
-
+    GltfError          err    = GltfError_None;
     switch (load->phase) {
     case GltfLoadPhase_MetaData: {
       GltfMetaData meta;
@@ -115,6 +131,14 @@ ecs_system_define(GltfLoadAssetSys) {
       }
       if (meta.versionMajor != 2 && meta.versionMinor != 0) {
         err = GltfError_UnsupportedVersion;
+        goto Error;
+      }
+      const bool extensionsSupported = gltf_validate_required_extensions(load, &err);
+      if (err) {
+        goto Error;
+      }
+      if (!extensionsSupported) {
+        err = GltfError_UnsupportedExtensions;
         goto Error;
       }
       ++load->phase;
@@ -149,7 +173,7 @@ void asset_load_gltf(EcsWorld* world, const String id, const EcsEntityId entity,
   }
 
   if (json_type(jsonDoc, jsonRes.type) != JsonType_Object) {
-    gltf_load_fail(world, entity, GltfError_MalformedStructure);
+    gltf_load_fail(world, entity, GltfError_MalformedFile);
     json_destroy(jsonDoc);
     return;
   }
