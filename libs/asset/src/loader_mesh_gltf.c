@@ -100,6 +100,26 @@ static bool gltf_check_val(AssetGltfLoadComp* load, const JsonVal jVal, const Js
   return !sentinel_check(jVal) && json_type(load->jDoc, jVal) == type;
 }
 
+static bool
+gltf_field_u32(AssetGltfLoadComp* load, const JsonVal jVal, const String name, u32* out) {
+  const JsonVal jField = json_field(load->jDoc, jVal, name);
+  if (!gltf_check_val(load, jField, JsonType_Number)) {
+    return false;
+  }
+  *out = (u32)json_number(load->jDoc, jField);
+  return true;
+}
+
+static bool
+gltf_field_string(AssetGltfLoadComp* load, const JsonVal jVal, const String name, String* out) {
+  const JsonVal jField = json_field(load->jDoc, jVal, name);
+  if (!gltf_check_val(load, jField, JsonType_String)) {
+    return false;
+  }
+  *out = json_string(load->jDoc, jField);
+  return true;
+}
+
 static void gltf_parse_version(AssetGltfLoadComp* load, String str, GltfError* err) {
   str = format_read_u64(str, &load->meta.versionMajor, 10);
   if (string_is_empty(str)) {
@@ -121,12 +141,12 @@ static void gltf_parse_meta(AssetGltfLoadComp* load, GltfError* err) {
     *err = GltfError_MalformedAsset;
     return;
   }
-  const JsonVal version = json_field(load->jDoc, asset, string_lit("version"));
-  if (!gltf_check_val(load, version, JsonType_String)) {
+  String versionString;
+  if (!gltf_field_string(load, asset, string_lit("version"), &versionString)) {
     *err = GltfError_MissingVersion;
     return;
   }
-  gltf_parse_version(load, json_string(load->jDoc, version), err);
+  gltf_parse_version(load, versionString, err);
   if (*err) {
     return;
   }
@@ -161,20 +181,20 @@ static void gltf_buffers_acquire(
     goto Error;
   }
   json_for_elems(load->jDoc, buffersField, bufferElem) {
-    const JsonVal length = json_field(load->jDoc, bufferElem, string_lit("byteLength"));
-    if (!gltf_check_val(load, length, JsonType_Number)) {
+    u32 byteLength;
+    if (!gltf_field_u32(load, bufferElem, string_lit("byteLength"), &byteLength)) {
       goto Error;
     }
-    const JsonVal uri = json_field(load->jDoc, bufferElem, string_lit("uri"));
-    if (!gltf_check_val(load, uri, JsonType_String)) {
+    String uri;
+    if (!gltf_field_string(load, bufferElem, string_lit("uri"), &uri)) {
       goto Error;
     }
-    const String      id     = gltf_buffer_asset_id(load, json_string(load->jDoc, uri));
+    const String      id     = gltf_buffer_asset_id(load, uri);
     const EcsEntityId entity = asset_lookup(world, manager, id);
     asset_acquire(world, entity);
 
     *dynarray_push_t(&load->buffers, GltfBuffer) = (GltfBuffer){
-        .length = (u32)json_number(load->jDoc, length),
+        .length = byteLength,
         .entity = entity,
     };
   }
