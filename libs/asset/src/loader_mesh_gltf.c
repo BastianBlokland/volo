@@ -178,6 +178,9 @@ static bool gltf_check_val(AssetGltfLoadComp* load, const JsonVal jVal, const Js
 
 static bool
 gltf_field_u32(AssetGltfLoadComp* load, const JsonVal jVal, const String name, u32* out) {
+  if (json_type(load->jDoc, jVal) != JsonType_Object) {
+    return false;
+  }
   const JsonVal jField = json_field(load->jDoc, jVal, name);
   if (!gltf_check_val(load, jField, JsonType_Number)) {
     return false;
@@ -188,6 +191,9 @@ gltf_field_u32(AssetGltfLoadComp* load, const JsonVal jVal, const String name, u
 
 static bool
 gltf_field_string(AssetGltfLoadComp* load, const JsonVal jVal, const String name, String* out) {
+  if (json_type(load->jDoc, jVal) != JsonType_Object) {
+    return false;
+  }
   const JsonVal jField = json_field(load->jDoc, jVal, name);
   if (!gltf_check_val(load, jField, JsonType_String)) {
     return false;
@@ -423,11 +429,17 @@ static void gltf_parse_primitives(AssetGltfLoadComp* load, GltfError* err) {
     goto Error;
   }
   json_for_elems(load->jDoc, meshes, mesh) {
+    if (json_type(load->jDoc, mesh) != JsonType_Object) {
+      goto Error;
+    }
     const JsonVal primitives = json_field(load->jDoc, mesh, string_lit("primitives"));
     if (!gltf_check_val(load, primitives, JsonType_Array)) {
       goto Error;
     }
     json_for_elems(load->jDoc, primitives, primitive) {
+      if (json_type(load->jDoc, primitive) != JsonType_Object) {
+        goto Error;
+      }
       const JsonVal attributes = json_field(load->jDoc, primitive, string_lit("attributes"));
       if (!gltf_check_val(load, attributes, JsonType_Object)) {
         goto Error;
