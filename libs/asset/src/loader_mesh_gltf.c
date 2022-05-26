@@ -17,6 +17,7 @@
  * GLTF (GL Transmission Format) 2.0.
  * Format specification: https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html
  *
+ * NOTE: Only a small subset of the gltf format is supported at this time.
  * NOTE: Gltf buffer-data uses little-endian byte-order and 2's complement integers, and this loader
  * assumes the host system matches that.
  */
@@ -27,6 +28,7 @@ typedef enum {
   GltfLoadPhase_BuffersWait,
   GltfLoadPhase_BufferViews,
   GltfLoadPhase_Accessors,
+  GltfLoadPhase_Primitives,
 } GltfLoadPhase;
 
 typedef struct {
@@ -71,6 +73,13 @@ typedef struct {
   u32 count;
 } GltfAccessor;
 
+typedef struct {
+  u32 accessorPosition;
+  u32 accessorNormal;
+  u32 accessorTexcoord;
+  u32 accessorIndices;
+} GltfPrimitive;
+
 ecs_comp_define(AssetGltfLoadComp) {
   String        assetId;
   GltfLoadPhase phase;
@@ -80,6 +89,7 @@ ecs_comp_define(AssetGltfLoadComp) {
   DynArray      buffers;     // GltfBuffer[].
   DynArray      bufferViews; // GltfBufferView[].
   DynArray      accessors;   // GltfAccessor[].
+  DynArray      primitives;  // GltfPrimitive[].
 };
 
 static void ecs_destruct_gltf_load_comp(void* data) {
@@ -88,6 +98,7 @@ static void ecs_destruct_gltf_load_comp(void* data) {
   dynarray_destroy(&comp->buffers);
   dynarray_destroy(&comp->bufferViews);
   dynarray_destroy(&comp->accessors);
+  dynarray_destroy(&comp->primitives);
 }
 
 u32 gltf_component_size(const GltfAccessorType type) {
@@ -117,6 +128,7 @@ typedef enum {
   GltfError_MalformedBufferViews,
   GltfError_MalformedAccessors,
   GltfError_MalformedAccessorType,
+  GltfError_MalformedPrimitives,
   GltfError_MissingVersion,
   GltfError_InvalidBuffer,
   GltfError_UnsupportedExtensions,
@@ -137,6 +149,7 @@ static String gltf_error_str(const GltfError err) {
       string_static("Gltf 'bufferViews' field malformed"),
       string_static("Gltf 'accessors' field malformed"),
       string_static("Invalid accessor type"),
+      string_static("Gltf 'primitives' field malformed"),
       string_static("Gltf version specification missing"),
       string_static("Gltf invalid buffer"),
       string_static("Gltf file requires an unsupported extension"),
@@ -181,6 +194,14 @@ gltf_field_string(AssetGltfLoadComp* load, const JsonVal jVal, const String name
   }
   *out = json_string(load->jDoc, jField);
   return true;
+}
+
+static bool
+gltf_field_accessor(AssetGltfLoadComp* load, const JsonVal jVal, const String name, u32* out) {
+  if (!gltf_field_u32(load, jVal, name, out)) {
+    return false;
+  }
+  return *out < load->accessors.size;
 }
 
 static void gltf_parse_version(AssetGltfLoadComp* load, String str, GltfError* err) {
@@ -393,7 +414,54 @@ static void gltf_parse_accessors(AssetGltfLoadComp* load, GltfError* err) {
   return;
 
 Error:
-  *err = GltfError_MalformedBufferViews;
+  *err = GltfError_MalformedAccessors;
+}
+
+static void gltf_parse_primitives(AssetGltfLoadComp* load, GltfError* err) {
+  const JsonVal meshes = json_field(load->jDoc, load->jRoot, string_lit("meshes"));
+  if (!gltf_check_val(load, meshes, JsonType_Array)) {
+    goto Error;
+  }
+  json_for_elems(load->jDoc, meshes, mesh) {
+    const JsonVal primitives = json_field(load->jDoc, mesh, string_lit("primitives"));
+    if (!gltf_check_val(load, primitives, JsonType_Array)) {
+      goto Error;
+    }
+    json_for_elems(load->jDoc, primitives, primitive) {
+      const JsonVal attributes = json_field(load->jDoc, primitive, string_lit("attributes"));
+      if (!gltf_check_val(load, attributes, JsonType_Object)) {
+        goto Error;
+      }
+      u32 accessorPosition;
+      if (!gltf_field_accessor(load, attributes, string_lit("POSITION"), &accessorPosition)) {
+        goto Error;
+      }
+      u32 accessorNormal;
+      if (!gltf_field_accessor(load, attributes, string_lit("NORMAL"), &accessorNormal)) {
+        goto Error;
+      }
+      u32 accessorTexcoord;
+      if (!gltf_field_accessor(load, attributes, string_lit("TEXCOORD_0"), &accessorTexcoord)) {
+        goto Error;
+      }
+      u32 accessorIndices;
+      if (!gltf_field_accessor(load, primitive, string_lit("indices"), &accessorIndices)) {
+        // TODO: Handle primitives without index buffers.
+        goto Error;
+      }
+      *dynarray_push_t(&load->primitives, GltfPrimitive) = (GltfPrimitive){
+          .accessorPosition = accessorPosition,
+          .accessorNormal   = accessorNormal,
+          .accessorTexcoord = accessorTexcoord,
+          .accessorIndices  = accessorIndices,
+      };
+    }
+  }
+  *err = GltfError_None;
+  return;
+
+Error:
+  *err = GltfError_MalformedPrimitives;
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
@@ -467,6 +535,13 @@ ecs_system_define(GltfLoadAssetSys) {
         goto Error;
       }
       ++load->phase;
+    // Fallthrough.
+    case GltfLoadPhase_Primitives:
+      gltf_parse_primitives(load, &err);
+      if (err) {
+        goto Error;
+      }
+      ++load->phase;
       // Fallthrough.
     }
 
@@ -518,5 +593,6 @@ void asset_load_gltf(EcsWorld* world, const String id, const EcsEntityId entity,
       .jRoot       = jsonRes.type,
       .buffers     = dynarray_create_t(g_alloc_heap, GltfBuffer, 1),
       .bufferViews = dynarray_create_t(g_alloc_heap, GltfBufferView, 8),
-      .accessors   = dynarray_create_t(g_alloc_heap, GltfAccessor, 8));
+      .accessors   = dynarray_create_t(g_alloc_heap, GltfAccessor, 8),
+      .primitives  = dynarray_create_t(g_alloc_heap, GltfPrimitive, 4));
 }
