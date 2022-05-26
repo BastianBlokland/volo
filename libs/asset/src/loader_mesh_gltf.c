@@ -16,6 +16,9 @@
 /**
  * GLTF (GL Transmission Format) 2.0.
  * Format specification: https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html
+ *
+ * NOTE: Gltf buffer-data uses little-endian byte-order and 2's complement integers, and this loader
+ * assumes the host system matches that.
  */
 
 typedef enum {
@@ -23,6 +26,7 @@ typedef enum {
   GltfLoadPhase_BuffersAcquire,
   GltfLoadPhase_BuffersWait,
   GltfLoadPhase_BufferViews,
+  GltfLoadPhase_Accessors,
 } GltfLoadPhase;
 
 typedef struct {
@@ -39,6 +43,34 @@ typedef struct {
   String data;
 } GltfBufferView;
 
+typedef enum {
+  GltfAccessorType_Min = 5120,
+
+  GltfAccessorType_i8 = GltfAccessorType_Min,
+  GltfAccessorType_u8,
+  GltfAccessorType_i16,
+  GltfAccessorType_u16,
+  GltfAccessorType_u32,
+  GltfAccessorType_f32,
+
+  GltfAccessorType_Max,
+} GltfAccessorType;
+
+typedef struct {
+  GltfAccessorType compType;
+  u32              compCount;
+  union {
+    void* data_raw;
+    i8*   data_i8;
+    u8*   data_u8;
+    i16*  data_i16;
+    u16*  data_u16;
+    u32*  data_u32;
+    f32*  data_f32;
+  };
+  u32 count;
+} GltfAccessor;
+
 ecs_comp_define(AssetGltfLoadComp) {
   String        assetId;
   GltfLoadPhase phase;
@@ -47,6 +79,7 @@ ecs_comp_define(AssetGltfLoadComp) {
   GltfMeta      meta;
   DynArray      buffers;     // GltfBuffer[].
   DynArray      bufferViews; // GltfBufferView[].
+  DynArray      accessors;   // GltfAccessor[].
 };
 
 static void ecs_destruct_gltf_load_comp(void* data) {
@@ -54,6 +87,23 @@ static void ecs_destruct_gltf_load_comp(void* data) {
   json_destroy(comp->jDoc);
   dynarray_destroy(&comp->buffers);
   dynarray_destroy(&comp->bufferViews);
+  dynarray_destroy(&comp->accessors);
+}
+
+u32 gltf_component_size(const GltfAccessorType type) {
+  switch (type) {
+  case GltfAccessorType_i8:
+  case GltfAccessorType_u8:
+    return 1;
+  case GltfAccessorType_i16:
+  case GltfAccessorType_u16:
+    return 2;
+  case GltfAccessorType_u32:
+  case GltfAccessorType_f32:
+    return 4;
+  default:
+    UNREACHABLE;
+  }
 }
 
 typedef enum {
@@ -65,6 +115,8 @@ typedef enum {
   GltfError_MalformedRequiredExtensions,
   GltfError_MalformedBuffers,
   GltfError_MalformedBufferViews,
+  GltfError_MalformedAccessors,
+  GltfError_MalformedAccessorType,
   GltfError_MissingVersion,
   GltfError_InvalidBuffer,
   GltfError_UnsupportedExtensions,
@@ -83,6 +135,8 @@ static String gltf_error_str(const GltfError err) {
       string_static("Gltf 'extensionsRequired' field malformed"),
       string_static("Gltf 'buffers' field malformed"),
       string_static("Gltf 'bufferViews' field malformed"),
+      string_static("Gltf 'accessors' field malformed"),
+      string_static("Invalid accessor type"),
       string_static("Gltf version specification missing"),
       string_static("Gltf invalid buffer"),
       string_static("Gltf file requires an unsupported extension"),
@@ -250,6 +304,98 @@ Error:
   *err = GltfError_MalformedBufferViews;
 }
 
+static void gltf_parse_accessor_type(const String typeString, u32* outCompCount, GltfError* err) {
+  if (string_eq(typeString, string_lit("SCALAR"))) {
+    *outCompCount = 1;
+    goto Success;
+  }
+  if (string_eq(typeString, string_lit("VEC2"))) {
+    *outCompCount = 2;
+    goto Success;
+  }
+  if (string_eq(typeString, string_lit("VEC3"))) {
+    *outCompCount = 3;
+    goto Success;
+  }
+  if (string_eq(typeString, string_lit("VEC4"))) {
+    *outCompCount = 4;
+    goto Success;
+  }
+  if (string_eq(typeString, string_lit("MAT2"))) {
+    *outCompCount = 8;
+    goto Success;
+  }
+  if (string_eq(typeString, string_lit("MAT3"))) {
+    *outCompCount = 12;
+    goto Success;
+  }
+  if (string_eq(typeString, string_lit("MAT4"))) {
+    *outCompCount = 16;
+    goto Success;
+  }
+  *err = GltfError_MalformedAccessorType;
+  return;
+
+Success:
+  *err = GltfError_None;
+}
+
+static void gltf_parse_accessors(AssetGltfLoadComp* load, GltfError* err) {
+  const JsonVal accessors = json_field(load->jDoc, load->jRoot, string_lit("accessors"));
+  if (!gltf_check_val(load, accessors, JsonType_Array)) {
+    goto Error;
+  }
+  json_for_elems(load->jDoc, accessors, accessor) {
+    u32 viewIndex;
+    if (!gltf_field_u32(load, accessor, string_lit("bufferView"), &viewIndex)) {
+      goto Error;
+    }
+    if (viewIndex >= load->bufferViews.size) {
+      goto Error;
+    }
+    u32 byteOffset;
+    if (!gltf_field_u32(load, accessor, string_lit("byteOffset"), &byteOffset)) {
+      byteOffset = 0;
+    }
+    GltfAccessorType compType;
+    if (!gltf_field_u32(load, accessor, string_lit("componentType"), &compType)) {
+      goto Error;
+    }
+    if (compType < GltfAccessorType_Min || compType > GltfAccessorType_Max) {
+      goto Error;
+    }
+    u32 count;
+    if (!gltf_field_u32(load, accessor, string_lit("count"), &count)) {
+      goto Error;
+    }
+    String typeString;
+    if (!gltf_field_string(load, accessor, string_lit("type"), &typeString)) {
+      goto Error;
+    }
+    u32 compCount;
+    gltf_parse_accessor_type(typeString, &compCount, err);
+    if (*err) {
+      goto Error;
+    }
+    const u32    compSize = gltf_component_size(compType);
+    const String viewData = dynarray_at_t(&load->bufferViews, viewIndex, GltfBufferView)->data;
+    if (byteOffset + compSize * compCount * count > viewData.size) {
+      goto Error;
+    }
+    *dynarray_push_t(&load->accessors, GltfAccessor) = (GltfAccessor){
+        .compType  = compType,
+        .compCount = compCount,
+        .data_raw  = mem_at_u8(viewData, byteOffset),
+        .count     = count,
+    };
+  }
+  *err = GltfError_None;
+  return;
+
+Error:
+  *err = GltfError_MalformedBufferViews;
+}
+
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
 ecs_view_define(LoadView) { ecs_access_write(AssetGltfLoadComp); }
 ecs_view_define(BufferView) { ecs_access_read(AssetRawComp); }
@@ -272,23 +418,21 @@ ecs_system_define(GltfLoadAssetSys) {
 
     GltfError err = GltfError_None;
     switch (load->phase) {
-    case GltfLoadPhase_Meta: {
+    case GltfLoadPhase_Meta:
       gltf_parse_meta(load, &err);
       if (err) {
         goto Error;
       }
       ++load->phase;
       // Fallthrough.
-    }
-    case GltfLoadPhase_BuffersAcquire: {
+    case GltfLoadPhase_BuffersAcquire:
       gltf_buffers_acquire(load, world, manager, &err);
       if (err) {
         goto Error;
       }
       ++load->phase;
       goto Next;
-    }
-    case GltfLoadPhase_BuffersWait: {
+    case GltfLoadPhase_BuffersWait:
       dynarray_for_t(&load->buffers, GltfBuffer, buffer) {
         if (ecs_world_has_t(world, buffer->entity, AssetFailedComp)) {
           err = GltfError_InvalidBuffer;
@@ -310,15 +454,20 @@ ecs_system_define(GltfLoadAssetSys) {
       }
       ++load->phase;
       // Fallthrough.
-    }
-    case GltfLoadPhase_BufferViews: {
+    case GltfLoadPhase_BufferViews:
       gltf_parse_bufferviews(load, &err);
       if (err) {
         goto Error;
       }
       ++load->phase;
       // Fallthrough.
-    }
+    case GltfLoadPhase_Accessors:
+      gltf_parse_accessors(load, &err);
+      if (err) {
+        goto Error;
+      }
+      ++load->phase;
+      // Fallthrough.
     }
 
   Error:
@@ -368,5 +517,6 @@ void asset_load_gltf(EcsWorld* world, const String id, const EcsEntityId entity,
       .jDoc        = jsonDoc,
       .jRoot       = jsonRes.type,
       .buffers     = dynarray_create_t(g_alloc_heap, GltfBuffer, 1),
-      .bufferViews = dynarray_create_t(g_alloc_heap, GltfBufferView, 8));
+      .bufferViews = dynarray_create_t(g_alloc_heap, GltfBufferView, 8),
+      .accessors   = dynarray_create_t(g_alloc_heap, GltfAccessor, 8));
 }
