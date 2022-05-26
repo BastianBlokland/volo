@@ -73,11 +73,24 @@ typedef struct {
   u32 count;
 } GltfAccessor;
 
+typedef enum {
+  GltfPrimitiveMode_Points,
+  GltfPrimitiveMode_Lines,
+  GltfPrimitiveMode_LineLoop,
+  GltfPrimitiveMode_LineStrip,
+  GltfPrimitiveMode_Triangles,
+  GltfPrimitiveMode_TriangleStrip,
+  GltfPrimitiveMode_TriangleFan,
+
+  GltfPrimitiveMode_Max,
+} GltfPrimitiveMode;
+
 typedef struct {
-  u32 accessorPosition;
-  u32 accessorNormal;
-  u32 accessorTexcoord;
-  u32 accessorIndices;
+  GltfPrimitiveMode mode;
+  u32               accessorPosition;
+  u32               accessorNormal;
+  u32               accessorTexcoord;
+  u32               accessorIndices;
 } GltfPrimitive;
 
 ecs_comp_define(AssetGltfLoadComp) {
@@ -424,6 +437,10 @@ Error:
 }
 
 static void gltf_parse_primitives(AssetGltfLoadComp* load, GltfError* err) {
+  /**
+   * NOTE: This loader doesn not support multiple meshes at this time and just combines all primives
+   * into a single array.
+   */
   const JsonVal meshes = json_field(load->jDoc, load->jRoot, string_lit("meshes"));
   if (!gltf_check_val(load, meshes, JsonType_Array)) {
     goto Error;
@@ -438,6 +455,13 @@ static void gltf_parse_primitives(AssetGltfLoadComp* load, GltfError* err) {
     }
     json_for_elems(load->jDoc, primitives, primitive) {
       if (json_type(load->jDoc, primitive) != JsonType_Object) {
+        goto Error;
+      }
+      GltfPrimitiveMode mode;
+      if (!gltf_field_u32(load, primitive, string_lit("mode"), &mode)) {
+        mode = GltfPrimitiveMode_Triangles;
+      }
+      if (mode > GltfPrimitiveMode_Max) {
         goto Error;
       }
       const JsonVal attributes = json_field(load->jDoc, primitive, string_lit("attributes"));
@@ -462,6 +486,7 @@ static void gltf_parse_primitives(AssetGltfLoadComp* load, GltfError* err) {
         goto Error;
       }
       *dynarray_push_t(&load->primitives, GltfPrimitive) = (GltfPrimitive){
+          .mode             = mode,
           .accessorPosition = accessorPosition,
           .accessorNormal   = accessorNormal,
           .accessorTexcoord = accessorTexcoord,
