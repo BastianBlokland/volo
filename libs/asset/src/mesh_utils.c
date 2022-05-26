@@ -129,6 +129,8 @@ void asset_mesh_builder_override_bounds(AssetMeshBuilder* builder, const GeoBox 
 }
 
 AssetMeshComp asset_mesh_create(const AssetMeshBuilder* builder) {
+  diag_assert_msg(builder->indices.size, "Empty mesh is invalid");
+
   const usize vertCount = builder->vertices.size;
   const Mem   vertMem =
       alloc_alloc(g_alloc_heap, vertCount * sizeof(AssetMeshVertex), alignof(AssetMeshVertex));
