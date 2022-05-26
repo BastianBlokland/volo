@@ -86,6 +86,7 @@ typedef struct {
   GltfPrimitiveMode mode;
   u32               accessPosition;
   u32               accessNormal;
+  u32               accessTangent;
   u32               accessTexcoord;
   u32               accessIndices;
 } GltfPrimitive;
@@ -142,6 +143,7 @@ typedef enum {
   GltfError_MalformedPrimitiveIndices,
   GltfError_MalformedPrimitivePositions,
   GltfError_MalformedPrimitiveNormals,
+  GltfError_MalformedPrimitiveTangents,
   GltfError_MalformedPrimitiveTexcoords,
   GltfError_MissingVersion,
   GltfError_InvalidBuffer,
@@ -169,6 +171,7 @@ static String gltf_error_str(const GltfError err) {
       string_static("Malformed primitive indices"),
       string_static("Malformed primitive positions"),
       string_static("Malformed primitive normals"),
+      string_static("Malformed primitive tangents"),
       string_static("Malformed primitive texcoords"),
       string_static("Gltf version specification missing"),
       string_static("Gltf invalid buffer"),
@@ -488,6 +491,9 @@ static void gltf_parse_primitives(AssetGltfLoadComp* load, GltfError* err) {
       if (!gltf_field_u32(load, attributes, string_lit("NORMAL"), &result->accessNormal)) {
         goto Error;
       }
+      if (!gltf_field_u32(load, attributes, string_lit("TANGENT"), &result->accessTangent)) {
+        goto Error;
+      }
       if (!gltf_field_u32(load, attributes, string_lit("TEXCOORD_0"), &result->accessTexcoord)) {
         goto Error;
       }
@@ -542,6 +548,10 @@ static void gltf_build_mesh(AssetGltfLoadComp* load, AssetMeshComp* outMesh, Glt
       *err = GltfError_MalformedPrimitiveNormals;
       return;
     }
+    if (!gltf_check_accessor(load, primitive->accessTangent, GltfAccessorType_f32, 4)) {
+      *err = GltfError_MalformedPrimitiveTangents;
+      return;
+    }
     if (!gltf_check_accessor(load, primitive->accessTexcoord, GltfAccessorType_f32, 2)) {
       *err = GltfError_MalformedPrimitiveTexcoords;
       return;
@@ -555,20 +565,28 @@ static void gltf_build_mesh(AssetGltfLoadComp* load, AssetMeshComp* outMesh, Glt
     const u32  posCount   = accessors[primitive->accessPosition].count;
     const f32* normals    = accessors[primitive->accessNormal].data_f32;
     const u32  nrmCount   = accessors[primitive->accessNormal].count;
+    const f32* tangents   = accessors[primitive->accessTangent].data_f32;
+    const u32  tanCount   = accessors[primitive->accessTangent].count;
     const f32* texcoords  = accessors[primitive->accessTexcoord].data_f32;
     const u32  texCount   = accessors[primitive->accessTexcoord].count;
     const u16* indices    = accessors[primitive->accessIndices].data_u16;
     const u32  indexCount = accessors[primitive->accessIndices].count;
 
+    if (posCount != nrmCount || posCount != tanCount || posCount != texCount) {
+      *err = GltfError_MalformedPrimitiveIndices;
+      goto Cleanup;
+    }
+
     for (u32 i = 0; i != indexCount; ++i) {
       const u32 vertIdx = indices[i];
-      if (UNLIKELY(vertIdx >= posCount || vertIdx >= nrmCount || vertIdx >= texCount)) {
+      if (UNLIKELY(vertIdx >= posCount)) {
         *err = GltfError_MalformedPrimitiveIndices;
         goto Cleanup;
       }
 
       const f32* vertPos = &positions[vertIdx * 3];
       const f32* vertNrm = &normals[vertIdx * 3];
+      const f32* vertTan = &tangents[vertIdx * 4];
       const f32* vertTex = &texcoords[vertIdx * 2];
 
       /**
@@ -579,11 +597,11 @@ static void gltf_build_mesh(AssetGltfLoadComp* load, AssetMeshComp* outMesh, Glt
           (AssetMeshVertex){
               .position = geo_vector(vertPos[0], vertPos[1], vertPos[2]),
               .normal   = geo_vector(vertNrm[0], vertNrm[1], vertNrm[2]),
+              .tangent  = geo_vector(vertTan[0], vertTan[1], vertTan[2], vertTan[3]),
               .texcoord = geo_vector(vertTex[0], 1.0f - vertTex[1]),
           });
     }
   }
-  asset_mesh_compute_tangents(builder);
   *outMesh = asset_mesh_create(builder);
   *err     = GltfError_None;
 
