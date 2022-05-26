@@ -29,6 +29,7 @@ typedef enum {
   GltfLoadPhase_BufferViews,
   GltfLoadPhase_Accessors,
   GltfLoadPhase_Primitives,
+  GltfLoadPhase_Build,
 } GltfLoadPhase;
 
 typedef struct {
@@ -46,16 +47,12 @@ typedef struct {
 } GltfBufferView;
 
 typedef enum {
-  GltfAccessorType_Min = 5120,
-
-  GltfAccessorType_i8 = GltfAccessorType_Min,
-  GltfAccessorType_u8,
-  GltfAccessorType_i16,
-  GltfAccessorType_u16,
-  GltfAccessorType_u32,
-  GltfAccessorType_f32,
-
-  GltfAccessorType_Max,
+  GltfAccessorType_i8  = 5120,
+  GltfAccessorType_u8  = 5121,
+  GltfAccessorType_i16 = 5122,
+  GltfAccessorType_u16 = 5123,
+  GltfAccessorType_u32 = 5125,
+  GltfAccessorType_f32 = 5126,
 } GltfAccessorType;
 
 typedef struct {
@@ -87,10 +84,10 @@ typedef enum {
 
 typedef struct {
   GltfPrimitiveMode mode;
-  u32               accessorPosition;
-  u32               accessorNormal;
-  u32               accessorTexcoord;
-  u32               accessorIndices;
+  u32               accessPosition;
+  u32               accessNormal;
+  u32               accessTexcoord;
+  u32               accessIndices;
 } GltfPrimitive;
 
 ecs_comp_define(AssetGltfLoadComp) {
@@ -142,10 +139,16 @@ typedef enum {
   GltfError_MalformedAccessors,
   GltfError_MalformedAccessorType,
   GltfError_MalformedPrimitives,
+  GltfError_MalformedPrimitiveIndices,
+  GltfError_MalformedPrimitivePositions,
+  GltfError_MalformedPrimitiveNormals,
+  GltfError_MalformedPrimitiveTexcoords,
   GltfError_MissingVersion,
   GltfError_InvalidBuffer,
   GltfError_UnsupportedExtensions,
   GltfError_UnsupportedVersion,
+  GltfError_UnsupportedPrimitiveMode,
+  GltfError_NoPrimitives,
 
   GltfError_Count,
 } GltfError;
@@ -163,10 +166,16 @@ static String gltf_error_str(const GltfError err) {
       string_static("Gltf 'accessors' field malformed"),
       string_static("Invalid accessor type"),
       string_static("Gltf 'primitives' field malformed"),
+      string_static("Malformed primitive indices"),
+      string_static("Malformed primitive positions"),
+      string_static("Malformed primitive normals"),
+      string_static("Malformed primitive texcoords"),
       string_static("Gltf version specification missing"),
       string_static("Gltf invalid buffer"),
       string_static("Gltf file requires an unsupported extension"),
       string_static("Unsupported gltf version"),
+      string_static("Unsupported primitive mode, only triangle primitives supported"),
+      string_static("Gltf mesh does not have any primitives"),
   };
   ASSERT(array_elems(g_msgs) == GltfError_Count, "Incorrect number of gltf-error messages");
   return g_msgs[err];
@@ -213,14 +222,6 @@ gltf_field_string(AssetGltfLoadComp* load, const JsonVal jVal, const String name
   }
   *out = json_string(load->jDoc, jField);
   return true;
-}
-
-static bool
-gltf_field_accessor(AssetGltfLoadComp* load, const JsonVal jVal, const String name, u32* out) {
-  if (!gltf_field_u32(load, jVal, name, out)) {
-    return false;
-  }
-  return *out < load->accessors.size;
 }
 
 static void gltf_parse_version(AssetGltfLoadComp* load, String str, GltfError* err) {
@@ -380,6 +381,19 @@ Success:
   *err = GltfError_None;
 }
 
+static bool gtlf_check_accessor_type(const GltfAccessorType type) {
+  switch (type) {
+  case GltfAccessorType_i8:
+  case GltfAccessorType_u8:
+  case GltfAccessorType_i16:
+  case GltfAccessorType_u16:
+  case GltfAccessorType_u32:
+  case GltfAccessorType_f32:
+    return true;
+  }
+  return false;
+}
+
 static void gltf_parse_accessors(AssetGltfLoadComp* load, GltfError* err) {
   const JsonVal accessors = json_field(load->jDoc, load->jRoot, string_lit("accessors"));
   if (!gltf_check_val(load, accessors, JsonType_Array)) {
@@ -401,7 +415,7 @@ static void gltf_parse_accessors(AssetGltfLoadComp* load, GltfError* err) {
     if (!gltf_field_u32(load, accessor, string_lit("componentType"), &compType)) {
       goto Error;
     }
-    if (compType < GltfAccessorType_Min || compType > GltfAccessorType_Max) {
+    if (!gtlf_check_accessor_type(compType)) {
       goto Error;
     }
     u32 count;
@@ -457,41 +471,30 @@ static void gltf_parse_primitives(AssetGltfLoadComp* load, GltfError* err) {
       if (json_type(load->jDoc, primitive) != JsonType_Object) {
         goto Error;
       }
-      GltfPrimitiveMode mode;
-      if (!gltf_field_u32(load, primitive, string_lit("mode"), &mode)) {
-        mode = GltfPrimitiveMode_Triangles;
+      GltfPrimitive* result = dynarray_push_t(&load->primitives, GltfPrimitive);
+      if (!gltf_field_u32(load, primitive, string_lit("mode"), &result->mode)) {
+        result->mode = GltfPrimitiveMode_Triangles;
       }
-      if (mode > GltfPrimitiveMode_Max) {
+      if (result->mode > GltfPrimitiveMode_Max) {
         goto Error;
       }
       const JsonVal attributes = json_field(load->jDoc, primitive, string_lit("attributes"));
       if (!gltf_check_val(load, attributes, JsonType_Object)) {
         goto Error;
       }
-      u32 accessorPosition;
-      if (!gltf_field_accessor(load, attributes, string_lit("POSITION"), &accessorPosition)) {
+      if (!gltf_field_u32(load, attributes, string_lit("POSITION"), &result->accessPosition)) {
         goto Error;
       }
-      u32 accessorNormal;
-      if (!gltf_field_accessor(load, attributes, string_lit("NORMAL"), &accessorNormal)) {
+      if (!gltf_field_u32(load, attributes, string_lit("NORMAL"), &result->accessNormal)) {
         goto Error;
       }
-      u32 accessorTexcoord;
-      if (!gltf_field_accessor(load, attributes, string_lit("TEXCOORD_0"), &accessorTexcoord)) {
+      if (!gltf_field_u32(load, attributes, string_lit("TEXCOORD_0"), &result->accessTexcoord)) {
         goto Error;
       }
-      u32 accessorIndices;
-      if (!gltf_field_accessor(load, primitive, string_lit("indices"), &accessorIndices)) {
+      if (!gltf_field_u32(load, primitive, string_lit("indices"), &result->accessIndices)) {
         // TODO: Handle primitives without index buffers.
         goto Error;
       }
-      *dynarray_push_t(&load->primitives, GltfPrimitive) = (GltfPrimitive){
-          .mode             = mode,
-          .accessorPosition = accessorPosition,
-          .accessorNormal   = accessorNormal,
-          .accessorTexcoord = accessorTexcoord,
-          .accessorIndices  = accessorIndices,
-      };
     }
   }
   *err = GltfError_None;
@@ -499,6 +502,93 @@ static void gltf_parse_primitives(AssetGltfLoadComp* load, GltfError* err) {
 
 Error:
   *err = GltfError_MalformedPrimitives;
+}
+
+static bool gltf_check_accessor(
+    AssetGltfLoadComp* load, const u32 index, const GltfAccessorType type, const u32 compCount) {
+  GltfAccessor* accessors = dynarray_begin_t(&load->accessors, GltfAccessor);
+  if (index >= load->accessors.size) {
+    return false;
+  }
+  return accessors[index].compType == type && accessors[index].compCount == compCount;
+}
+
+static void gltf_build_mesh(AssetGltfLoadComp* load, AssetMeshComp* outMesh, GltfError* err) {
+  if (!load->primitives.size) {
+    *err = GltfError_NoPrimitives;
+    return;
+  }
+  GltfAccessor* accessors        = dynarray_begin_t(&load->accessors, GltfAccessor);
+  usize         totalVertexCount = 0;
+  dynarray_for_t(&load->primitives, GltfPrimitive, primitive) {
+    if (primitive->mode != GltfPrimitiveMode_Triangles) {
+      *err = GltfError_UnsupportedPrimitiveMode;
+      return;
+    }
+    if (!gltf_check_accessor(load, primitive->accessIndices, GltfAccessorType_u16, 1)) {
+      *err = GltfError_MalformedPrimitiveIndices;
+      return;
+    }
+    if (accessors[primitive->accessIndices].count % 3) {
+      *err = GltfError_MalformedPrimitiveIndices;
+      return;
+    }
+    totalVertexCount += accessors[primitive->accessIndices].count;
+    if (!gltf_check_accessor(load, primitive->accessPosition, GltfAccessorType_f32, 3)) {
+      *err = GltfError_MalformedPrimitivePositions;
+      return;
+    }
+    if (!gltf_check_accessor(load, primitive->accessNormal, GltfAccessorType_f32, 3)) {
+      *err = GltfError_MalformedPrimitiveNormals;
+      return;
+    }
+    if (!gltf_check_accessor(load, primitive->accessTexcoord, GltfAccessorType_f32, 2)) {
+      *err = GltfError_MalformedPrimitiveTexcoords;
+      return;
+    }
+  }
+
+  AssetMeshBuilder* builder = asset_mesh_builder_create(g_alloc_heap, totalVertexCount);
+
+  dynarray_for_t(&load->primitives, GltfPrimitive, primitive) {
+    const f32* positions  = accessors[primitive->accessPosition].data_f32;
+    const u32  posCount   = accessors[primitive->accessPosition].count;
+    const f32* normals    = accessors[primitive->accessNormal].data_f32;
+    const u32  nrmCount   = accessors[primitive->accessNormal].count;
+    const f32* texcoords  = accessors[primitive->accessTexcoord].data_f32;
+    const u32  texCount   = accessors[primitive->accessTexcoord].count;
+    const u16* indices    = accessors[primitive->accessIndices].data_u16;
+    const u32  indexCount = accessors[primitive->accessIndices].count;
+
+    for (u32 i = 0; i != indexCount; ++i) {
+      const u32 vertIdx = indices[i];
+      if (UNLIKELY(vertIdx >= posCount || vertIdx >= nrmCount || vertIdx >= texCount)) {
+        *err = GltfError_MalformedPrimitiveIndices;
+        goto Cleanup;
+      }
+
+      const f32* vertPos = &positions[vertIdx * 3];
+      const f32* vertNrm = &normals[vertIdx * 3];
+      const f32* vertTex = &texcoords[vertIdx * 2];
+
+      /**
+       * NOTE: Flip the texture coordinate y axis as Gltf uses upper-left as the origin.
+       */
+      asset_mesh_builder_push(
+          builder,
+          (AssetMeshVertex){
+              .position = geo_vector(vertPos[0], vertPos[1], vertPos[2]),
+              .normal   = geo_vector(vertNrm[0], vertNrm[1], vertNrm[2]),
+              .texcoord = geo_vector(vertTex[0], 1.0f - vertTex[1]),
+          });
+    }
+  }
+  asset_mesh_compute_tangents(builder);
+  *outMesh = asset_mesh_create(builder);
+  *err     = GltfError_None;
+
+Cleanup:
+  asset_mesh_builder_destroy(builder);
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
@@ -572,7 +662,7 @@ ecs_system_define(GltfLoadAssetSys) {
         goto Error;
       }
       ++load->phase;
-    // Fallthrough.
+      // Fallthrough.
     case GltfLoadPhase_Primitives:
       gltf_parse_primitives(load, &err);
       if (err) {
@@ -580,10 +670,22 @@ ecs_system_define(GltfLoadAssetSys) {
       }
       ++load->phase;
       // Fallthrough.
+    case GltfLoadPhase_Build: {
+      AssetMeshComp result;
+      gltf_build_mesh(load, &result, &err);
+      if (err) {
+        goto Error;
+      }
+      *ecs_world_add_t(world, entity, AssetMeshComp) = result;
+      ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+      goto Cleanup;
+    }
     }
 
   Error:
     gltf_load_fail(world, entity, err);
+
+  Cleanup:
     dynarray_for_t(&load->buffers, GltfBuffer, buffer) { asset_release(world, buffer->entity); }
     ecs_world_remove_t(world, entity, AssetGltfLoadComp);
 
