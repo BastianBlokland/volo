@@ -1,4 +1,5 @@
 #include "asset_mesh.h"
+#include "asset_raw.h"
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
@@ -20,6 +21,7 @@
 typedef enum {
   GltfLoadPhase_MetaLoad,
   GltfLoadPhase_BuffersAcquire,
+  GltfLoadPhase_BuffersWait,
 } GltfLoadPhase;
 
 typedef struct {
@@ -29,6 +31,7 @@ typedef struct {
 typedef struct {
   u32         length;
   EcsEntityId entity;
+  String      data; // NOTE: Available after the BuffersWait phase.
 } GltfBuffer;
 
 ecs_comp_define(AssetGltfLoadComp) {
@@ -55,6 +58,7 @@ typedef enum {
   GltfError_MalformedRequiredExtensions,
   GltfError_MalformedBuffers,
   GltfError_MissingVersion,
+  GltfError_InvalidBuffer,
   GltfError_UnsupportedExtensions,
   GltfError_UnsupportedVersion,
 
@@ -71,6 +75,7 @@ static String gltf_error_str(const GltfError err) {
       string_static("Gltf 'extensionsRequired' field malformed"),
       string_static("Gltf 'buffers' field malformed"),
       string_static("Gltf version specification missing"),
+      string_static("Gltf invalid buffer"),
       string_static("Gltf file requires an unsupported extension"),
       string_static("Unsupported gltf version"),
   };
@@ -182,6 +187,7 @@ Error:
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
 ecs_view_define(LoadView) { ecs_access_write(AssetGltfLoadComp); }
+ecs_view_define(BufferView) { ecs_access_read(AssetRawComp); }
 
 /**
  * Update all active loads.
@@ -192,7 +198,9 @@ ecs_system_define(GltfLoadAssetSys) {
     return;
   }
 
-  EcsView* loadView = ecs_world_view_t(world, LoadView);
+  EcsView*     loadView  = ecs_world_view_t(world, LoadView);
+  EcsIterator* bufferItr = ecs_view_itr(ecs_world_view_t(world, BufferView));
+
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
     const EcsEntityId  entity = ecs_view_entity(itr);
     AssetGltfLoadComp* load   = ecs_view_write_t(itr, AssetGltfLoadComp);
@@ -215,11 +223,32 @@ ecs_system_define(GltfLoadAssetSys) {
       ++load->phase;
       goto Next;
     }
+    case GltfLoadPhase_BuffersWait: {
+      dynarray_for_t(&load->buffers, GltfBuffer, buffer) {
+        if (ecs_world_has_t(world, buffer->entity, AssetFailedComp)) {
+          err = GltfError_InvalidBuffer;
+          goto Error;
+        }
+        if (!ecs_world_has_t(world, buffer->entity, AssetLoadedComp)) {
+          goto Next; // Wait for the buffer to be loaded.
+        }
+        if (!ecs_view_maybe_jump(bufferItr, buffer->entity)) {
+          err = GltfError_InvalidBuffer;
+          goto Error;
+        }
+        const String data = ecs_view_read_t(bufferItr, AssetRawComp)->data;
+        if (data.size < buffer->length) {
+          err = GltfError_InvalidBuffer;
+          goto Error;
+        }
+        buffer->data = string_slice(data, 0, buffer->length);
+      }
+    }
     }
 
   Error:
     gltf_load_fail(world, entity, err);
-    dynarray_for_t(&load->buffers, GltfBuffer, entry) { asset_release(world, entry->entity); }
+    dynarray_for_t(&load->buffers, GltfBuffer, buffer) { asset_release(world, buffer->entity); }
     ecs_world_remove_t(world, entity, AssetGltfLoadComp);
 
   Next:
@@ -232,8 +261,10 @@ ecs_module_init(asset_gltf_module) {
 
   ecs_register_view(ManagerView);
   ecs_register_view(LoadView);
+  ecs_register_view(BufferView);
 
-  ecs_register_system(GltfLoadAssetSys, ecs_view_id(ManagerView), ecs_view_id(LoadView));
+  ecs_register_system(
+      GltfLoadAssetSys, ecs_view_id(ManagerView), ecs_view_id(LoadView), ecs_view_id(BufferView));
 }
 
 void asset_load_gltf(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
@@ -258,7 +289,7 @@ void asset_load_gltf(EcsWorld* world, const String id, const EcsEntityId entity,
       world,
       entity,
       AssetGltfLoadComp,
-      .assetId = path_parent(id),
+      .assetId = id,
       .jDoc    = jsonDoc,
       .jRoot   = jsonRes.type,
       .buffers = dynarray_create_t(g_alloc_heap, GltfBuffer, 1));

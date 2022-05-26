@@ -193,7 +193,7 @@ static void atx_generate(
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
 ecs_view_define(LoadView) { ecs_access_write(AssetAtxLoadComp); }
-ecs_view_define(TextureView) { ecs_access_write(AssetTextureComp); }
+ecs_view_define(TextureView) { ecs_access_read(AssetTextureComp); }
 
 /**
  * Update all active loads.
