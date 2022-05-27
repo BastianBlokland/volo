@@ -32,10 +32,12 @@ if(${EXTERNAL_ASSETS})
     PATH ${CMAKE_CURRENT_SOURCE_DIR}/external
     REMOTE_URL "https://www.bastian.tech/assets"
     FILES
+      antiquecamera/camera.bin
+      antiquecamera/camera.gltf
       boombox/boombox_diff.tga
+      boombox/boombox_nrm.tga
       boombox/boombox.bin
       boombox/boombox.gltf
-      boombox/boombox_nrm.tga
       bunny.obj
       cayo/cayo_diff.tga
       cayo/cayo_nrm.tga
