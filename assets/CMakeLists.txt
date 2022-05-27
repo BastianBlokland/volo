@@ -48,6 +48,10 @@ if(${EXTERNAL_ASSETS})
       corset/corset_nrm.tga
       head/head.obj
       head/lambertian.tga
+      normal_tangent_mirror_test/normal_tangent_mirror_test_diff.tga
+      normal_tangent_mirror_test/normal_tangent_mirror_test_nrm.tga
+      normal_tangent_mirror_test/normal_tangent_mirror_test.bin
+      normal_tangent_mirror_test/normal_tangent_mirror_test.gltf
       normal_tangent_test/normal_tangent_test_diff.tga
       normal_tangent_test/normal_tangent_test_nrm.tga
       normal_tangent_test/normal_tangent_test.bin

@@ -44,7 +44,7 @@ static const Subject   g_subjects[]          = {
         .scale    = 1.0f,
     },
     {
-        .graphic  = string_static("graphics/demo/normal_tangent_test.gra"),
+        .graphic  = string_static("graphics/demo/normal_tangent_mirror_test.gra"),
         .position = {.y = 1.25f},
         .scale    = 0.5f,
     },
