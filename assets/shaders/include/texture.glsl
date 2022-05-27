@@ -22,10 +22,9 @@ f32v3 texture_normal(
     const f32v2     texcoord,
     const f32v3     normalRef,
     const f32v4     tangentRef) {
-
   const f32v3 tangent   = normalize(tangentRef.xyz);
   const f32v3 normal    = normalize(normalRef);
-  const f32v3 bitangent = normalize(cross(normal, tangent) * tangentRef.w);
+  const f32v3 bitangent = normalize(cross(tangent, normal) * tangentRef.w);
   const f32m3 rotMatrix = f32m3(tangent, bitangent, normal);
   return rotMatrix * normalize(texture(normalSampler, texcoord).xyz * 2.0 - 1.0);
 }
