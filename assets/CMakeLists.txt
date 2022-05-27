@@ -32,15 +32,18 @@ if(${EXTERNAL_ASSETS})
     PATH ${CMAKE_CURRENT_SOURCE_DIR}/external
     REMOTE_URL "https://www.bastian.tech/assets"
     FILES
+      boombox/boombox_diff.tga
+      boombox/boombox.bin
+      boombox/boombox.gltf
+      boombox/boombox_nrm.tga
       bunny.obj
       cayo/cayo_diff.tga
       cayo/cayo_nrm.tga
       cayo/cayo.obj
       corset/corset_diff.tga
-      corset/corset_nrm.tga
-      corset/corset_gltf.gltf
       corset/corset_gltf.bin
-      corset/corset.obj
+      corset/corset_gltf.gltf
+      corset/corset_nrm.tga
       head/head.obj
       head/lambertian.tga
       pedestal/pedestal_diff.tga
