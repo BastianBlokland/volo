@@ -221,18 +221,18 @@ void pme_push_triangle(PmeGenerator* gen) {
       const f32 xMid = (x + y * 0.5f + 0.5f) * step;
       const f32 xMax = (x + y * 0.5f + 1.0f) * step;
 
-      pme_push_vert(gen, geo_vector(xMin - 0.5f, yMin - 0.5f), geo_vector(xMin, yMin));
-      pme_push_vert(gen, geo_vector(xMid - 0.5f, yMax - 0.5f), geo_vector(xMid, yMax));
       pme_push_vert(gen, geo_vector(xMax - 0.5f, yMin - 0.5f), geo_vector(xMax, yMin));
+      pme_push_vert(gen, geo_vector(xMid - 0.5f, yMax - 0.5f), geo_vector(xMid, yMax));
+      pme_push_vert(gen, geo_vector(xMin - 0.5f, yMin - 0.5f), geo_vector(xMin, yMin));
 
       if (y) {
         /**
          * Fill in the hole in the row below us.
          */
         const f32 yLastRow = yMin - step;
-        pme_push_vert(gen, geo_vector(xMin - 0.5f, yMin - 0.5f), geo_vector(xMin, yMin));
-        pme_push_vert(gen, geo_vector(xMax - 0.5f, yMin - 0.5f), geo_vector(xMax, yMin));
         pme_push_vert(gen, geo_vector(xMid - 0.5f, yLastRow - 0.5f), geo_vector(xMid, yLastRow));
+        pme_push_vert(gen, geo_vector(xMax - 0.5f, yMin - 0.5f), geo_vector(xMax, yMin));
+        pme_push_vert(gen, geo_vector(xMin - 0.5f, yMin - 0.5f), geo_vector(xMin, yMin));
       }
     }
   }
@@ -251,12 +251,12 @@ void pme_push_quad(PmeGenerator* gen) {
       const f32 xMin = x * step;
       const f32 xMax = xMin + step;
 
+      pme_push_vert(gen, geo_vector(xMin - 0.5f, yMin - 0.5f), geo_vector(xMin, yMin));
+      pme_push_vert(gen, geo_vector(xMax - 0.5f, yMax - 0.5f), geo_vector(xMax, yMax));
       pme_push_vert(gen, geo_vector(xMin - 0.5f, yMax - 0.5f), geo_vector(xMin, yMax));
-      pme_push_vert(gen, geo_vector(xMax - 0.5f, yMax - 0.5f), geo_vector(xMax, yMax));
       pme_push_vert(gen, geo_vector(xMin - 0.5f, yMin - 0.5f), geo_vector(xMin, yMin));
-      pme_push_vert(gen, geo_vector(xMax - 0.5f, yMax - 0.5f), geo_vector(xMax, yMax));
       pme_push_vert(gen, geo_vector(xMax - 0.5f, yMin - 0.5f), geo_vector(xMax, yMin));
-      pme_push_vert(gen, geo_vector(xMin - 0.5f, yMin - 0.5f), geo_vector(xMin, yMin));
+      pme_push_vert(gen, geo_vector(xMax - 0.5f, yMax - 0.5f), geo_vector(xMax, yMax));
     }
   }
 }
@@ -341,14 +341,14 @@ static void pme_generate_capsule(PmeGenerator* gen, const f32 height) {
       const f32 texXMax = (h + 1.0f) * invNumSegs;
 
       if (v) {
-        pme_push_vert_nrm(gen, geo_vector_mul(posA, radius), geo_vector(texXMin, texYMin), posA);
-        pme_push_vert_nrm(gen, geo_vector_mul(posB, radius), geo_vector(texXMin, texYMax), posB);
         pme_push_vert_nrm(gen, geo_vector_mul(posC, radius), geo_vector(texXMax, texYMax), posC);
+        pme_push_vert_nrm(gen, geo_vector_mul(posB, radius), geo_vector(texXMin, texYMax), posB);
+        pme_push_vert_nrm(gen, geo_vector_mul(posA, radius), geo_vector(texXMin, texYMin), posA);
       }
       if (v != numSegs - 1) {
-        pme_push_vert_nrm(gen, geo_vector_mul(posA, radius), geo_vector(texXMin, texYMin), posA);
-        pme_push_vert_nrm(gen, geo_vector_mul(posC, radius), geo_vector(texXMax, texYMax), posC);
         pme_push_vert_nrm(gen, geo_vector_mul(posD, radius), geo_vector(texXMax, texYMin), posD);
+        pme_push_vert_nrm(gen, geo_vector_mul(posC, radius), geo_vector(texXMax, texYMax), posC);
+        pme_push_vert_nrm(gen, geo_vector_mul(posA, radius), geo_vector(texXMin, texYMin), posA);
       }
     }
   }
@@ -379,14 +379,14 @@ static void pme_generate_cone(PmeGenerator* gen) {
         geo_vector((leftPos.x + rightPos.x) * 0.5f, (leftPos.y + rightPos.y) * 0.5f));
 
     // Add side triangle.
-    pme_push_vert_nrm(gen, geo_vector_mul(leftPos, radius), leftTex, leftNrm);
-    pme_push_vert_nrm(gen, geo_vector(0, 0, 0.5f), topTex, topNrm);
     pme_push_vert_nrm(gen, geo_vector_mul(rightPos, radius), rightTex, rightNrm);
+    pme_push_vert_nrm(gen, geo_vector(0, 0, 0.5f), topTex, topNrm);
+    pme_push_vert_nrm(gen, geo_vector_mul(leftPos, radius), leftTex, leftNrm);
 
     // Add bottom triangle.
-    pme_push_vert_nrm(gen, geo_vector_mul(leftPos, radius), leftTex, geo_backward);
-    pme_push_vert_nrm(gen, geo_vector_mul(rightPos, radius), rightTex, geo_backward);
     pme_push_vert_nrm(gen, geo_vector(0, 0, -0.5f), topTex, geo_backward);
+    pme_push_vert_nrm(gen, geo_vector_mul(rightPos, radius), rightTex, geo_backward);
+    pme_push_vert_nrm(gen, geo_vector_mul(leftPos, radius), leftTex, geo_backward);
   }
 
   // TODO: Compute the tangents directly instead of this separate pass.
@@ -417,26 +417,26 @@ static void pme_generate_cylinder(PmeGenerator* gen) {
     const GeoVector rightTopTex    = {(i + 1.0f) * invNumSegs, 1};
 
     // Add side triangle 1.
-    pme_push_vert_nrm(gen, geo_vector_mul(leftBottomPos, radius), leftBottomTex, leftNrm);
-    pme_push_vert_nrm(gen, geo_vector_mul(leftTopPos, radius), leftTopTex, leftNrm);
     pme_push_vert_nrm(gen, geo_vector_mul(rightBottomPos, radius), rightBottomTex, rightNrm);
+    pme_push_vert_nrm(gen, geo_vector_mul(leftTopPos, radius), leftTopTex, leftNrm);
+    pme_push_vert_nrm(gen, geo_vector_mul(leftBottomPos, radius), leftBottomTex, leftNrm);
 
     // Add side triangle 2.
-    pme_push_vert_nrm(gen, geo_vector_mul(leftTopPos, radius), leftTopTex, leftNrm);
-    pme_push_vert_nrm(gen, geo_vector_mul(rightTopPos, radius), rightTopTex, rightNrm);
     pme_push_vert_nrm(gen, geo_vector_mul(rightBottomPos, radius), rightBottomTex, rightNrm);
+    pme_push_vert_nrm(gen, geo_vector_mul(rightTopPos, radius), rightTopTex, rightNrm);
+    pme_push_vert_nrm(gen, geo_vector_mul(leftTopPos, radius), leftTopTex, leftNrm);
 
     // Add top triangle.
     const GeoVector centerTopTex = {(leftTopTex.x + rightTopTex.x) * 0.5f, 1};
-    pme_push_vert_nrm(gen, geo_vector_mul(leftTopPos, radius), leftTopTex, geo_forward);
-    pme_push_vert_nrm(gen, geo_vector(0, 0, 0.5f), centerTopTex, geo_forward);
     pme_push_vert_nrm(gen, geo_vector_mul(rightTopPos, radius), rightTopTex, geo_forward);
+    pme_push_vert_nrm(gen, geo_vector(0, 0, 0.5f), centerTopTex, geo_forward);
+    pme_push_vert_nrm(gen, geo_vector_mul(leftTopPos, radius), leftTopTex, geo_forward);
 
     // Add bottom triangle.
     const GeoVector centerBottomTex = {(leftBottomTex.x + rightBottomTex.x) * 0.5f, 0};
-    pme_push_vert_nrm(gen, geo_vector_mul(leftBottomPos, radius), leftBottomTex, geo_backward);
-    pme_push_vert_nrm(gen, geo_vector_mul(rightBottomPos, radius), rightBottomTex, geo_backward);
     pme_push_vert_nrm(gen, geo_vector(0, 0, -0.5f), centerBottomTex, geo_backward);
+    pme_push_vert_nrm(gen, geo_vector_mul(rightBottomPos, radius), rightBottomTex, geo_backward);
+    pme_push_vert_nrm(gen, geo_vector_mul(leftBottomPos, radius), leftBottomTex, geo_backward);
   }
 
   // TODO: Compute the tangents directly instead of this separate pass.

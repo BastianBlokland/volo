@@ -152,7 +152,7 @@ AssetMeshComp asset_mesh_create(const AssetMeshBuilder* builder) {
 }
 
 GeoVector asset_mesh_tri_norm(const GeoVector a, const GeoVector b, const GeoVector c) {
-  const GeoVector surface = geo_vector_cross3(geo_vector_sub(b, a), geo_vector_sub(c, a));
+  const GeoVector surface = geo_vector_cross3(geo_vector_sub(c, a), geo_vector_sub(b, a));
   if (UNLIKELY(geo_vector_mag_sqr(surface) <= f32_epsilon)) {
     return geo_forward; // Triangle with zero area has technically no normal.
   }

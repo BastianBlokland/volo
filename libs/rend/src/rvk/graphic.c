@@ -382,7 +382,7 @@ rvk_pipeline_create(RvkGraphic* graphic, VkPipelineLayout layout, VkRenderPass v
       .polygonMode = rvk_pipeline_polygonmode(graphic),
       .lineWidth   = rvk_pipeline_linewidth(graphic),
       .cullMode    = rvk_pipeline_cullmode(graphic),
-      .frontFace   = VK_FRONT_FACE_CLOCKWISE,
+      .frontFace   = VK_FRONT_FACE_COUNTER_CLOCKWISE,
   };
   const VkPipelineMultisampleStateCreateInfo multisampling = {
       .sType                = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
@@ -521,16 +521,16 @@ RvkGraphic*
 rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset, const String dbgName) {
   RvkGraphic* graphic = alloc_alloc_t(g_alloc_heap, RvkGraphic);
   *graphic            = (RvkGraphic){
-                 .device      = dev,
-                 .dbgName     = string_dup(g_alloc_heap, dbgName),
-                 .topology    = asset->topology,
-                 .rasterizer  = asset->rasterizer,
-                 .lineWidth   = asset->lineWidth,
-                 .renderOrder = asset->renderOrder,
-                 .blend       = asset->blend,
-                 .depth       = asset->depth,
-                 .cull        = asset->cull,
-                 .vertexCount = asset->vertexCount,
+      .device      = dev,
+      .dbgName     = string_dup(g_alloc_heap, dbgName),
+      .topology    = asset->topology,
+      .rasterizer  = asset->rasterizer,
+      .lineWidth   = asset->lineWidth,
+      .renderOrder = asset->renderOrder,
+      .blend       = asset->blend,
+      .depth       = asset->depth,
+      .cull        = asset->cull,
+      .vertexCount = asset->vertexCount,
   };
 
   log_d(

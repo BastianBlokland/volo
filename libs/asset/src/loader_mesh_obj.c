@@ -387,9 +387,9 @@ static void obj_triangulate(const ObjData* data, AssetMeshBuilder* builder) {
           .texcoord = obj_get_texcoord(data, inC),
       };
 
-      asset_mesh_builder_push(builder, vertA);
-      asset_mesh_builder_push(builder, vertB);
       asset_mesh_builder_push(builder, vertC);
+      asset_mesh_builder_push(builder, vertB);
+      asset_mesh_builder_push(builder, vertA);
     }
   }
 }
