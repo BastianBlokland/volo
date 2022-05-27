@@ -492,7 +492,7 @@ static void gltf_parse_primitives(AssetGltfLoadComp* load, GltfError* err) {
         goto Error;
       }
       if (!gltf_field_u32(load, attributes, string_lit("TANGENT"), &result->accessTangent)) {
-        goto Error;
+        result->accessTangent = sentinel_u32; // Tangents are optional.
       }
       if (!gltf_field_u32(load, attributes, string_lit("TEXCOORD_0"), &result->accessTexcoord)) {
         goto Error;
@@ -520,12 +520,17 @@ static bool gltf_check_accessor(
 }
 
 static void gltf_build_mesh(AssetGltfLoadComp* load, AssetMeshComp* outMesh, GltfError* err) {
+  typedef enum {
+    BuildFlags_HasTangents = 1 << 0,
+  } BuildFlags;
+
   if (!load->primitives.size) {
     *err = GltfError_NoPrimitives;
     return;
   }
   GltfAccessor* accessors        = dynarray_begin_t(&load->accessors, GltfAccessor);
   usize         totalVertexCount = 0;
+  BuildFlags    flags            = 0;
   dynarray_for_t(&load->primitives, GltfPrimitive, primitive) {
     if (primitive->mode != GltfPrimitiveMode_Triangles) {
       *err = GltfError_UnsupportedPrimitiveMode;
@@ -548,9 +553,12 @@ static void gltf_build_mesh(AssetGltfLoadComp* load, AssetMeshComp* outMesh, Glt
       *err = GltfError_MalformedPrimitiveNormals;
       return;
     }
-    if (!gltf_check_accessor(load, primitive->accessTangent, GltfAccessorType_f32, 4)) {
-      *err = GltfError_MalformedPrimitiveTangents;
-      return;
+    if (!sentinel_check(primitive->accessTangent)) {
+      if (!gltf_check_accessor(load, primitive->accessTangent, GltfAccessorType_f32, 4)) {
+        *err = GltfError_MalformedPrimitiveTangents;
+        return;
+      }
+      flags |= BuildFlags_HasTangents;
     }
     if (!gltf_check_accessor(load, primitive->accessTexcoord, GltfAccessorType_f32, 2)) {
       *err = GltfError_MalformedPrimitiveTexcoords;
@@ -565,28 +573,35 @@ static void gltf_build_mesh(AssetGltfLoadComp* load, AssetMeshComp* outMesh, Glt
     const u32  posCount   = accessors[primitive->accessPosition].count;
     const f32* normals    = accessors[primitive->accessNormal].data_f32;
     const u32  nrmCount   = accessors[primitive->accessNormal].count;
-    const f32* tangents   = accessors[primitive->accessTangent].data_f32;
-    const u32  tanCount   = accessors[primitive->accessTangent].count;
     const f32* texcoords  = accessors[primitive->accessTexcoord].data_f32;
     const u32  texCount   = accessors[primitive->accessTexcoord].count;
     const u16* indices    = accessors[primitive->accessIndices].data_u16;
     const u32  indexCount = accessors[primitive->accessIndices].count;
-
-    if (posCount != nrmCount || posCount != tanCount || posCount != texCount) {
+    if (posCount != nrmCount || posCount != texCount) {
       *err = GltfError_MalformedPrimitiveIndices;
       goto Cleanup;
     }
-
+    const f32* tangents;
+    u32        tanCount;
+    if (flags & BuildFlags_HasTangents) {
+      tangents = accessors[primitive->accessTangent].data_f32;
+      tanCount = accessors[primitive->accessTangent].count;
+      if (posCount != tanCount) {
+        *err = GltfError_MalformedPrimitiveTangents;
+        goto Cleanup;
+      }
+    }
     for (u32 i = 0; i != indexCount; ++i) {
       const u32 vertIdx = indices[i];
       if (UNLIKELY(vertIdx >= posCount)) {
         *err = GltfError_MalformedPrimitiveIndices;
         goto Cleanup;
       }
+      static const f32 g_vecZero[4] = {0};
 
       const f32* vertPos = &positions[vertIdx * 3];
       const f32* vertNrm = &normals[vertIdx * 3];
-      const f32* vertTan = &tangents[vertIdx * 4];
+      const f32* vertTan = flags & BuildFlags_HasTangents ? &tangents[vertIdx * 4] : g_vecZero;
       const f32* vertTex = &texcoords[vertIdx * 2];
 
       /**
@@ -602,6 +617,9 @@ static void gltf_build_mesh(AssetGltfLoadComp* load, AssetMeshComp* outMesh, Glt
               .texcoord = geo_vector(vertTex[0], 1.0f - vertTex[1]),
           });
     }
+  }
+  if (!(flags & BuildFlags_HasTangents)) {
+    asset_mesh_compute_tangents(builder);
   }
   *outMesh = asset_mesh_create(builder);
   *err     = GltfError_None;
