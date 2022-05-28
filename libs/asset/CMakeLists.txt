@@ -46,6 +46,7 @@ add_executable(lib_asset_test
   test/test_loader_ftx.c
   test/test_loader_graphic.c
   test/test_loader_inputmap.c
+  test/test_loader_mesh_gltf.c
   test/test_loader_mesh_obj.c
   test/test_loader_raw.c
   test/test_loader_shader_spv.c

@@ -11,16 +11,17 @@ int main(const int argc, const char** argv) {
   log_add_sink(g_logger, log_sink_json_default(g_alloc_heap, LogMask_All));
 
   CheckDef* check = check_create(g_alloc_heap);
-  register_spec(check, manager);
   register_spec(check, loader_font_ttf);
   register_spec(check, loader_ftx);
   register_spec(check, loader_graphic);
   register_spec(check, loader_inputmap);
+  register_spec(check, loader_mesh_gltf);
   register_spec(check, loader_mesh_obj);
   register_spec(check, loader_raw);
   register_spec(check, loader_shader_spv);
   register_spec(check, loader_texture_ppm);
   register_spec(check, loader_texture_tga);
+  register_spec(check, manager);
 
   const int exitCode = check_app(check, argc, argv);
 
