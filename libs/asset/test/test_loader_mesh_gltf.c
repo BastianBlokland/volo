@@ -16,6 +16,41 @@ static const struct {
   usize           indexCount;
 } g_testData[] = {
     {
+        .id           = string_static("triangle.gltf"),
+        .bufferId     = string_static("triangle.bin"),
+        .bufferBase64 = string_static("AAAAAAAAAAAAAAAAAACAPwAAAAAAAAAAAAAAAAAAgD8AAAAA"),
+        .text =
+            string_static("{ \"scene\" : 0,"
+                          "  \"scenes\" : [ { \"nodes\" : [ 0 ] } ],"
+                          "  \"nodes\" : [ { \"mesh\" : 0 } ],"
+                          "  \"meshes\" : [ {"
+                          "    \"primitives\" : [ { \"attributes\" : { \"POSITION\" : 0 } } ] } ],"
+                          "  \"buffers\" : [ { \"uri\" : \"triangle.bin\", \"byteLength\" : 36 } ],"
+                          "  \"bufferViews\" : [ {"
+                          "     \"buffer\" : 0, \"byteLength\" : 36, \"target\" : 34962 } ],"
+                          "  \"accessors\" : [ {"
+                          "      \"bufferView\" : 0,"
+                          "      \"byteOffset\" : 0,"
+                          "      \"componentType\" : 5126,"
+                          "      \"count\" : 3,"
+                          "      \"type\" : \"VEC3\","
+                          "      \"max\" : [ 1.0, 1.0, 0.0 ],"
+                          "      \"min\" : [ 0.0, 0.0, 0.0 ]"
+                          "    }"
+                          "  ],"
+                          "  \"asset\" : { \"version\" : \"2.0\" }"
+                          "}"),
+        .vertices =
+            {
+                {.position = {0, 0, 0}, .normal = {0, 0, -1}, .tangent = {1, 0, 0, 1}},
+                {.position = {1, 0, 0}, .normal = {0, 0, -1}, .tangent = {1, 0, 0, 1}},
+                {.position = {0, 1, 0}, .normal = {0, 0, -1}, .tangent = {1, 0, 0, 1}},
+            },
+        .vertexCount = 3,
+        .indices     = {0, 1, 2},
+        .indexCount  = 3,
+    },
+    {
         .id       = string_static("triangle_indexed.gltf"),
         .bufferId = string_static("triangle_indexed.bin"),
         .bufferBase64 =
@@ -111,7 +146,7 @@ spec(loader_mesh_gltf) {
 
     for (usize i = 0; i != array_elems(g_testData); ++i) {
       AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-      const EcsEntityId asset   = asset_lookup(world, manager, records[i].id);
+      const EcsEntityId asset   = asset_lookup(world, manager, records[i * 2].id);
       asset_acquire(world, asset);
 
       asset_test_wait(runner);
