@@ -46,6 +46,7 @@ if(${EXTERNAL_ASSETS})
       corset/corset_gltf.bin
       corset/corset_gltf.gltf
       corset/corset_nrm.tga
+      dragon.obj
       head/head.obj
       head/lambertian.tga
       normal_tangent_mirror_test/normal_tangent_mirror_test_diff.tga
