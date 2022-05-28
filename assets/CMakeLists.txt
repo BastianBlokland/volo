@@ -65,6 +65,9 @@ if(${EXTERNAL_ASSETS})
       skybox/sorsele_left.tga
       skybox/sorsele_right.tga
       skybox/sorsele_up.tga
+      suzanne/suzanne_diff.tga
+      suzanne/suzanne.bin
+      suzanne/suzanne.gltf
       terrain/terrain_color.tga
       terrain/terrain_height.r32
       testimages/ducks.tga
