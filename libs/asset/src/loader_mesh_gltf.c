@@ -1,7 +1,6 @@
 #include "asset_mesh.h"
 #include "asset_raw.h"
 #include "core_alloc.h"
-#include "core_annotation.h"
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_path.h"
@@ -13,8 +12,6 @@
 #include "manager_internal.h"
 #include "mesh_utils_internal.h"
 #include "repo_internal.h"
-
-OPTIMIZE_OFF();
 
 /**
  * GLTF (GL Transmission Format) 2.0.
