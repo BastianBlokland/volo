@@ -526,7 +526,7 @@ typedef enum {
 
 typedef struct {
   GltfFlags flags;
-  usize     vertexCount;
+  u32       vertexCount;
 } GltfBuildMeta;
 
 static GltfBuildMeta gltf_build_validate(AssetGltfLoadComp* ld, GltfError* err) {
@@ -535,7 +535,7 @@ static GltfBuildMeta gltf_build_validate(AssetGltfLoadComp* ld, GltfError* err) 
     goto Error;
   }
   GltfAccessor* accessors   = dynarray_begin_t(&ld->accessors, GltfAccessor);
-  usize         vertexCount = 0;
+  u32           vertexCount = 0;
   GltfFlags     flags       = GltfFlags_HasTexcoords | GltfFlags_HasNormals | GltfFlags_HasTangents;
   dynarray_for_t(&ld->primitives, GltfPrim, primitive) {
     if (primitive->mode != GltfPrimMode_Triangles) {
@@ -555,10 +555,15 @@ static GltfBuildMeta gltf_build_validate(AssetGltfLoadComp* ld, GltfError* err) 
       *err = GltfError_MalformedPrimitivePositions;
       goto Error;
     }
+    const u32 attrCount = accessors[primitive->accessPosition].count;
     if (sentinel_check(primitive->accessTexcoord)) {
       flags &= ~GltfFlags_HasTexcoords;
     } else {
       if (!gltf_check_accessor(ld, primitive->accessTexcoord, GltfAccessorType_f32, 2)) {
+        *err = GltfError_MalformedPrimitiveTexcoords;
+        goto Error;
+      }
+      if (accessors[primitive->accessTexcoord].count != attrCount) {
         *err = GltfError_MalformedPrimitiveTexcoords;
         goto Error;
       }
@@ -570,11 +575,19 @@ static GltfBuildMeta gltf_build_validate(AssetGltfLoadComp* ld, GltfError* err) 
         *err = GltfError_MalformedPrimitiveNormals;
         goto Error;
       }
+      if (accessors[primitive->accessNormal].count != attrCount) {
+        *err = GltfError_MalformedPrimitiveNormals;
+        goto Error;
+      }
     }
     if (sentinel_check(primitive->accessTangent)) {
       flags &= ~GltfFlags_HasTangents;
     } else {
       if (!gltf_check_accessor(ld, primitive->accessTangent, GltfAccessorType_f32, 4)) {
+        *err = GltfError_MalformedPrimitiveTangents;
+        goto Error;
+      }
+      if (accessors[primitive->accessTangent].count != attrCount) {
         *err = GltfError_MalformedPrimitiveTangents;
         goto Error;
       }
@@ -605,31 +618,18 @@ static void gltf_build_mesh(AssetGltfLoadComp* ld, AssetMeshComp* outMesh, GltfE
   dynarray_for_t(&ld->primitives, GltfPrim, primitive) {
     positions = accessors[primitive->accessPosition].data_f32;
     attrCount = accessors[primitive->accessPosition].count;
-
     if (flags & GltfFlags_HasTexcoords) {
       texcoords = accessors[primitive->accessTexcoord].data_f32;
-      if (accessors[primitive->accessTexcoord].count != attrCount) {
-        *err = GltfError_MalformedPrimitiveTexcoords;
-        goto Cleanup;
-      }
     }
     if (flags & GltfFlags_HasNormals) {
       normals = accessors[primitive->accessNormal].data_f32;
-      if (accessors[primitive->accessNormal].count != attrCount) {
-        *err = GltfError_MalformedPrimitiveNormals;
-        goto Cleanup;
-      }
     }
     if (flags & GltfFlags_HasTangents) {
       tangents = accessors[primitive->accessTangent].data_f32;
-      if (accessors[primitive->accessTangent].count != attrCount) {
-        *err = GltfError_MalformedPrimitiveTangents;
-        goto Cleanup;
-      }
     }
-
     indices    = accessors[primitive->accessIndices].data_u16;
     indexCount = accessors[primitive->accessIndices].count;
+
     for (u32 i = 0; i != indexCount; ++i) {
       const u32 attr = indices[i];
       if (UNLIKELY(attr >= attrCount)) {
