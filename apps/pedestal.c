@@ -44,6 +44,16 @@ static const Subject   g_subjects[]          = {
         .scale    = 1.0f,
     },
     {
+        .graphic  = string_static("graphics/demo/normal_tangent_mirror_test.gra"),
+        .position = {.y = 1.25f},
+        .scale    = 0.5f,
+    },
+    {
+        .graphic  = string_static("graphics/demo/suzanne.gra"),
+        .position = {.y = 1.25f},
+        .scale    = 0.5f,
+    },
+    {
         .graphic  = string_static("graphics/demo/terrain.gra"),
         .position = {.y = 0.5f},
         .scale    = 1.5f,
@@ -54,6 +64,11 @@ static const Subject   g_subjects[]          = {
         .scale    = 0.75f,
     },
     {
+        .graphic  = string_static("graphics/demo/dragon.gra"),
+        .position = {.y = 1.05f},
+        .scale    = 2.0f,
+    },
+    {
         .graphic  = string_static("graphics/demo/cayo.gra"),
         .position = {.y = 0.5f},
         .scale    = 0.8f,
@@ -61,7 +76,17 @@ static const Subject   g_subjects[]          = {
     {
         .graphic  = string_static("graphics/demo/corset.gra"),
         .position = {.y = 0.5f},
-        .scale    = 0.6f,
+        .scale    = 30.0f,
+    },
+    {
+        .graphic  = string_static("graphics/demo/boombox.gra"),
+        .position = {.y = 0.95f},
+        .scale    = 50.0f,
+    },
+    {
+        .graphic  = string_static("graphics/demo/antiquecamera.gra"),
+        .position = {.y = 0.5f},
+        .scale    = 0.125f,
     },
     {
         .graphic  = string_static("graphics/demo/head.gra"),

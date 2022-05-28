@@ -153,7 +153,7 @@ bool json_add_field(JsonDoc*, JsonVal object, JsonVal name, JsonVal val);
 bool json_add_field_str(JsonDoc*, JsonVal object, String name, JsonVal val);
 
 /**
- * Retrieve a textual represention of a json type.
+ * Retrieve a textual representation of a json type.
  */
 String json_type_str(JsonType);
 

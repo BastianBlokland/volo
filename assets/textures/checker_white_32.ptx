@@ -1,0 +1,8 @@
+{
+  "type": "Checker",
+  "channels": 4,
+  "size": 32,
+  "frequency": 16,
+  "power": 1,
+  "seed": 1
+}

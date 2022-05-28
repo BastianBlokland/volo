@@ -8,6 +8,7 @@
 
 static const AssetMemRecord g_records[] = {
     {.id = string_static("a.raw"), .data = string_static("Hello World")},
+    {.id = string_static("b.bin"), .data = string_static("Hello World")},
 };
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
@@ -39,14 +40,16 @@ spec(loader_raw) {
   it("can load raw assets") {
     AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
 
-    const EcsEntityId asset = asset_lookup(world, manager, string_lit("a.raw"));
-    asset_acquire(world, asset);
+    array_for_t(g_records, AssetMemRecord, record) {
+      const EcsEntityId asset = asset_lookup(world, manager, record->id);
+      asset_acquire(world, asset);
 
-    asset_test_wait(runner);
+      asset_test_wait(runner);
 
-    check_require(ecs_world_has_t(world, asset, AssetLoadedComp));
-    const AssetRawComp* assetRaw = ecs_utils_read_t(world, AssetView, asset, AssetRawComp);
-    check_eq_string(assetRaw->data, string_lit("Hello World"));
+      check_require(ecs_world_has_t(world, asset, AssetLoadedComp));
+      const AssetRawComp* assetRaw = ecs_utils_read_t(world, AssetView, asset, AssetRawComp);
+      check_eq_string(assetRaw->data, record->data);
+    }
   }
 
   it("can unload raw assets") {

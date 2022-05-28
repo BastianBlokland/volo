@@ -7,28 +7,36 @@
       "shaderId": "shaders/standard.frag.spv",
       "overrides": [
         {
-          "name": "normalMap",
-          "binding": 1,
+          "name": "reflectSkybox",
+          "binding": 2,
           "value": 1
+        },
+        {
+          "name": "reflectFrac",
+          "binding": 3,
+          "value": 0.8
         }
       ]
     }
   ],
   "samplers": [
     {
-      "textureId": "external/corset/corset_diff.tga",
+      "textureId": "textures/white.ptx",
       "wrap": "Clamp",
       "filter": "Linear",
-      "anisotropy": "x4"
+      "anisotropy": "None"
     },
     {
-      "textureId": "external/corset/corset_nrm.tga",
+      "textureId": "textures/zero.ptx"
+    },
+    {
+      "textureId": "textures/demo/skybox.atx",
       "wrap": "Clamp",
       "filter": "Linear",
-      "anisotropy": "x4"
+      "anisotropy": "None"
     }
   ],
-  "meshId": "external/corset/corset_gltf.gltf",
+  "meshId": "external/dragon.obj",
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "None",

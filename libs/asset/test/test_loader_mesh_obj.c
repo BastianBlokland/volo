@@ -23,8 +23,8 @@ static const struct {
         .vertices =
             {
                 {{1, 4, 7}, .normal = {0, 0, 1}, .tangent = {1, 0, 0, 1}},
-                {{2, 5, 8}, .normal = {0, 0, 1}, .tangent = {1, 0, 0, 1}},
                 {{3, 6, 9}, .normal = {0, 0, 1}, .tangent = {1, 0, 0, 1}},
+                {{2, 5, 8}, .normal = {0, 0, 1}, .tangent = {1, 0, 0, 1}},
             },
         .vertexCount = 3,
         .indices     = {0, 1, 2},
@@ -42,8 +42,8 @@ static const struct {
         .vertices =
             {
                 {{1, 4, 7}, .normal = {1, 0, 0}, .tangent = {1, 0, 0, 1}},
-                {{2, 5, 8}, .normal = {0, 1, 0}, .tangent = {1, 0, 0, 1}},
                 {{3, 6, 9}, .normal = {0, 0, 1}, .tangent = {1, 0, 0, 1}},
+                {{2, 5, 8}, .normal = {0, 1, 0}, .tangent = {1, 0, 0, 1}},
             },
         .vertexCount = 3,
         .indices     = {0, 1, 2},
@@ -61,8 +61,8 @@ static const struct {
         .vertices =
             {
                 {{1, 4, 7}, .normal = {0, 0, 1}, .tangent = {1, 0, 0, 1}, .texcoord = {0.1f, 0.5f}},
-                {{2, 5, 8}, .normal = {0, 0, 1}, .tangent = {1, 0, 0, 1}, .texcoord = {0.3f, 0.5f}},
                 {{3, 6, 9}, .normal = {0, 0, 1}, .tangent = {1, 0, 0, 1}, .texcoord = {0.5f, 0.5f}},
+                {{2, 5, 8}, .normal = {0, 0, 1}, .tangent = {1, 0, 0, 1}, .texcoord = {0.3f, 0.5f}},
             },
         .vertexCount = 3,
         .indices     = {0, 1, 2},
@@ -83,8 +83,8 @@ static const struct {
         .vertices =
             {
                 {{1, 4, 7}, .normal = {1, 0, 0}, .tangent = {1, 0, 0, 1}, .texcoord = {0.1f, 0.5f}},
-                {{2, 5, 8}, .normal = {0, 1, 0}, .tangent = {1, 0, 0, 1}, .texcoord = {0.3f, 0.5f}},
                 {{3, 6, 9}, .normal = {0, 0, 1}, .tangent = {1, 0, 0, 1}, .texcoord = {0.5f, 0.5f}},
+                {{2, 5, 8}, .normal = {0, 1, 0}, .tangent = {1, 0, 0, 1}, .texcoord = {0.3f, 0.5f}},
             },
         .vertexCount = 3,
         .indices     = {0, 1, 2},
@@ -104,8 +104,8 @@ static const struct {
         .vertices =
             {
                 {{1, 4, 7}, .normal = {0, 0, 1}, .tangent = {1, 0, 0, 1}},
-                {{2, 5, 8}, .normal = {0, 0, 1}, .tangent = {1, 0, 0, 1}},
                 {{3, 6, 9}, .normal = {0, 0, 1}, .tangent = {1, 0, 0, 1}},
+                {{2, 5, 8}, .normal = {0, 0, 1}, .tangent = {1, 0, 0, 1}},
             },
         .vertexCount = 3,
         .indices     = {0, 1, 2, 0, 1, 2, 0, 1, 2},
@@ -114,8 +114,8 @@ static const struct {
     {
         .id   = string_static("triangulate.obj"),
         .text = string_static("v -0.5 -0.5 0.0 \n"
-                              "v 0.5 -0.5 0.0 \n"
                               "v -0.5 0.5 0.0 \n"
+                              "v 0.5 -0.5 0.0 \n"
                               "v 0.5 0.5 0.0 \n"
                               "f 1 2 3 4 \n"),
         .vertices =
@@ -126,7 +126,7 @@ static const struct {
                 {{+0.5, +0.5, 0}, .normal = {0, 0, 1}, .tangent = {1, 0, 0, 1}},
             },
         .vertexCount = 4,
-        .indices     = {0, 1, 2, 0, 2, 3},
+        .indices     = {0, 1, 2, 0, 3, 1},
         .indexCount  = 6,
     },
     {
@@ -142,11 +142,11 @@ static const struct {
         .vertices =
             {
                 {{1, 2, 3}, .normal = {0, 0, 1}, .tangent = {1, 0, 0, 1}},
-                {{4, 5, 6}, .normal = {0, 0, 1}, .tangent = {1, 0, 0, 1}},
                 {{7, 8, 9}, .normal = {0, 0, 1}, .tangent = {1, 0, 0, 1}},
+                {{4, 5, 6}, .normal = {0, 0, 1}, .tangent = {1, 0, 0, 1}},
                 {{16, 17, 18}, .normal = {0, 0, 1}, .tangent = {1, 0, 0, 1}},
-                {{13, 14, 15}, .normal = {0, 0, 1}, .tangent = {1, 0, 0, 1}},
                 {{10, 11, 12}, .normal = {0, 0, 1}, .tangent = {1, 0, 0, 1}},
+                {{13, 14, 15}, .normal = {0, 0, 1}, .tangent = {1, 0, 0, 1}},
             },
         .vertexCount = 6,
         .indices     = {0, 1, 2, 3, 4, 5},
@@ -166,8 +166,8 @@ static const struct {
         .vertices =
             {
                 {{1, 4, 7}, .normal = {0, 0, 1}, .tangent = {1, 0, 0, 1}},
-                {{2, 5, 8}, .normal = {0, 0, 1}, .tangent = {1, 0, 0, 1}},
                 {{3, 6, 9}, .normal = {0, 0, 1}, .tangent = {1, 0, 0, 1}},
+                {{2, 5, 8}, .normal = {0, 0, 1}, .tangent = {1, 0, 0, 1}},
             },
         .vertexCount = 3,
         .indices     = {0, 1, 2},
@@ -182,8 +182,8 @@ static const struct {
         .vertices =
             {
                 {{1, 4, 7}, .normal = {0, 0, 1}, .tangent = {1, 0, 0, 1}},
-                {{2, 5, 8}, .normal = {0, 0, 1}, .tangent = {1, 0, 0, 1}},
                 {{3, 6, 9}, .normal = {0, 0, 1}, .tangent = {1, 0, 0, 1}},
+                {{2, 5, 8}, .normal = {0, 0, 1}, .tangent = {1, 0, 0, 1}},
             },
         .vertexCount = 3,
         .indices     = {0, 1, 2},
