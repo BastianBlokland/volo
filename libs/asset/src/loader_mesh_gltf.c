@@ -636,12 +636,14 @@ static void gltf_build_mesh(AssetGltfLoadComp* ld, AssetMeshComp* outMesh, GltfE
         *err = GltfError_MalformedPrimitiveIndices;
         goto Cleanup;
       }
-      static const f32 g_vecZero[4] = {0};
+      static const f32 g_zeroTex[4] = {[1] = 1.0f}; // NOTE: y of 1 because we flip the y.
+      static const f32 g_zeroNrm[4] = {0.0f};
+      static const f32 g_zeroTan[4] = {0.0f};
 
       const f32* vertPos = &positions[attr * 3];
-      const f32* vertTex = flags & GltfFlags_HasTexcoords ? &texcoords[indices[i] * 2] : g_vecZero;
-      const f32* vertNrm = flags & GltfFlags_HasNormals ? &normals[attr * 3] : g_vecZero;
-      const f32* vertTan = flags & GltfFlags_HasTangents ? &tangents[attr * 4] : g_vecZero;
+      const f32* vertTex = flags & GltfFlags_HasTexcoords ? &texcoords[indices[i] * 2] : g_zeroTex;
+      const f32* vertNrm = flags & GltfFlags_HasNormals ? &normals[attr * 3] : g_zeroNrm;
+      const f32* vertTan = flags & GltfFlags_HasTangents ? &tangents[attr * 4] : g_zeroTan;
 
       /**
        * NOTE: Flip the z-axis to convert from right-handed to left-handed coordinate system.
