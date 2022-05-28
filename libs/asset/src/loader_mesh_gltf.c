@@ -277,6 +277,9 @@ static void gltf_parse_meta(AssetGltfLoadComp* ld, GltfError* err) {
 
 static String gltf_buffer_asset_id(AssetGltfLoadComp* ld, const String uri) {
   const String root = path_parent(ld->assetId);
+  if (string_is_empty(root)) {
+    return uri;
+  }
   return fmt_write_scratch("{}/{}", fmt_text(root), fmt_text(uri));
 }
 
