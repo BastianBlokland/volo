@@ -85,10 +85,10 @@ typedef enum {
 typedef struct {
   GltfPrimMode mode;
   u32          accessPosition;
-  u32          accessTexcoord;
-  u32          accessNormal;
-  u32          accessTangent;
-  u32          accessIndices;
+  u32          accessTexcoord; // Optional.
+  u32          accessNormal;   // Optional.
+  u32          accessTangent;  // Optional.
+  u32          accessIndices;  // Optional.
 } GltfPrim;
 
 ecs_comp_define(AssetGltfLoadComp) {
@@ -493,8 +493,7 @@ static void gltf_parse_primitives(AssetGltfLoadComp* ld, GltfError* err) {
         result->accessTangent = sentinel_u32; // Tangents are optional.
       }
       if (!gltf_field_u32(ld, primitive, string_lit("indices"), &result->accessIndices)) {
-        // TODO: Handle primitives without index buffers.
-        goto Error;
+        result->accessIndices = sentinel_u32; // Indices are optional.
       }
     }
   }
@@ -539,20 +538,30 @@ static GltfBuildMeta gltf_build_validate(AssetGltfLoadComp* ld, GltfError* err) 
       *err = GltfError_UnsupportedPrimitiveMode;
       goto Error;
     }
-    if (!gltf_check_accessor(ld, primitive->accessIndices, GltfAccessorType_u16, 1)) {
-      *err = GltfError_MalformedPrimitiveIndices;
-      goto Error;
-    }
-    if (accessors[primitive->accessIndices].count % 3) {
-      *err = GltfError_MalformedPrimitiveIndices;
-      goto Error;
-    }
-    vertexCount += accessors[primitive->accessIndices].count;
     if (!gltf_check_accessor(ld, primitive->accessPosition, GltfAccessorType_f32, 3)) {
       *err = GltfError_MalformedPrimitivePositions;
       goto Error;
     }
     const u32 attrCount = accessors[primitive->accessPosition].count;
+    if (sentinel_check(primitive->accessIndices)) {
+      // Non-indexed primitive.
+      if (attrCount % 3) {
+        *err = GltfError_MalformedPrimitivePositions;
+        goto Error;
+      }
+      vertexCount += attrCount;
+    } else {
+      // Indexed primitive.
+      if (!gltf_check_accessor(ld, primitive->accessIndices, GltfAccessorType_u16, 1)) {
+        *err = GltfError_MalformedPrimitiveIndices;
+        goto Error;
+      }
+      if (accessors[primitive->accessIndices].count % 3) {
+        *err = GltfError_MalformedPrimitiveIndices;
+        goto Error;
+      }
+      vertexCount += accessors[primitive->accessIndices].count;
+    }
     if (sentinel_check(primitive->accessTexcoord)) {
       flags &= ~GltfFlags_HasTexcoords;
     } else {
@@ -610,7 +619,7 @@ static void gltf_build_mesh(AssetGltfLoadComp* ld, AssetMeshComp* outMesh, GltfE
   typedef const f32* AccessorF32;
   AccessorF32        positions, texcoords, normals, tangents;
   AccessorU16        indices;
-  u32                attrCount, indexCount;
+  u32                attrCount, vertexCount;
 
   dynarray_for_t(&ld->primitives, GltfPrim, primitive) {
     positions = accessors[primitive->accessPosition].data_f32;
@@ -624,11 +633,15 @@ static void gltf_build_mesh(AssetGltfLoadComp* ld, AssetMeshComp* outMesh, GltfE
     if (flags & GltfFlags_HasTangents) {
       tangents = accessors[primitive->accessTangent].data_f32;
     }
-    indices    = accessors[primitive->accessIndices].data_u16;
-    indexCount = accessors[primitive->accessIndices].count;
-
-    for (u32 i = 0; i != indexCount; ++i) {
-      const u32 attr = indices[i];
+    const bool indexed = !sentinel_check(primitive->accessIndices);
+    if (indexed) {
+      indices     = accessors[primitive->accessIndices].data_u16;
+      vertexCount = accessors[primitive->accessIndices].count;
+    } else {
+      vertexCount = attrCount;
+    }
+    for (u32 i = 0; i != vertexCount; ++i) {
+      const u32 attr = indexed ? indices[i] : i;
       if (UNLIKELY(attr >= attrCount)) {
         *err = GltfError_MalformedPrimitiveIndices;
         goto Cleanup;
@@ -638,7 +651,7 @@ static void gltf_build_mesh(AssetGltfLoadComp* ld, AssetMeshComp* outMesh, GltfE
       static const f32 g_zeroTan[4] = {0.0f};
 
       const f32* vertPos = &positions[attr * 3];
-      const f32* vertTex = flags & GltfFlags_HasTexcoords ? &texcoords[indices[i] * 2] : g_zeroTex;
+      const f32* vertTex = flags & GltfFlags_HasTexcoords ? &texcoords[attr * 2] : g_zeroTex;
       const f32* vertNrm = flags & GltfFlags_HasNormals ? &normals[attr * 3] : g_zeroNrm;
       const f32* vertTan = flags & GltfFlags_HasTangents ? &tangents[attr * 4] : g_zeroTan;
 
