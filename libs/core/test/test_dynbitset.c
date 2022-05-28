@@ -64,11 +64,14 @@ spec(dynbitset) {
   }
 
   it("returns an invalid next-bit if there are no set bits") {
-    Allocator* alloc  = alloc_bump_create_stack(128);
+    Allocator* alloc  = alloc_bump_create_stack(1024);
     DynBitSet  bitset = dynbitset_create(alloc, 0);
+    mem_set(dynarray_push(&bitset, 32), 0);
 
     check(sentinel_check(dynbitset_next(&bitset, 0)));
+    check(sentinel_check(bitset_next(dynbitset_view(&bitset), 0)));
     check(sentinel_check(dynbitset_next(&bitset, 63)));
+    check(sentinel_check(bitset_next(dynbitset_view(&bitset), 63)));
   }
 
   it("returns each bit for a mask with all bits set") {

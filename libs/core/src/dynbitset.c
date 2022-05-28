@@ -57,7 +57,7 @@ usize dynbitset_next(const DynBitSet* dynbitset, const usize idx) {
   if (dword) {
     return idx + intrinsic_ctz_64(dword);
   }
-  for (++dwordIdx; dwordIdx * sizeof(u64) != dynbitset->data.size; ++dwordIdx) {
+  for (++dwordIdx; dwordIdx * sizeof(u64) != dynbitset->size; ++dwordIdx) {
     dword = dwords[dwordIdx];
     if (dword) {
       return dwords_to_bits(dwordIdx) + intrinsic_ctz_64(dword);
