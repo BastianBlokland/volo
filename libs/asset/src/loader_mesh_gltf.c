@@ -417,7 +417,7 @@ static void gltf_parse_accessors(AssetGltfLoadComp* ld, GltfError* err) {
     if (!gltf_field_u32(ld, accessor, string_lit("byteOffset"), &byteOffset)) {
       byteOffset = 0;
     }
-    if (!gltf_field_u32(ld, accessor, string_lit("componentType"), &result->compType)) {
+    if (!gltf_field_u32(ld, accessor, string_lit("componentType"), (u32*)&result->compType)) {
       goto Error;
     }
     if (!gtlf_check_accessor_type(result->compType)) {
@@ -470,7 +470,7 @@ static void gltf_parse_primitives(AssetGltfLoadComp* ld, GltfError* err) {
         goto Error;
       }
       GltfPrim* result = dynarray_push_t(&ld->primitives, GltfPrim);
-      if (!gltf_field_u32(ld, primitive, string_lit("mode"), &result->mode)) {
+      if (!gltf_field_u32(ld, primitive, string_lit("mode"), (u32*)&result->mode)) {
         result->mode = GltfPrimMode_Triangles;
       }
       if (result->mode > GltfPrimMode_Max) {
@@ -617,8 +617,8 @@ static void gltf_build_mesh(AssetGltfLoadComp* ld, AssetMeshComp* outMesh, GltfE
 
   typedef const u16* AccessorU16;
   typedef const f32* AccessorF32;
-  AccessorF32        positions, texcoords, normals, tangents;
-  AccessorU16        indices;
+  AccessorF32        positions = null, texcoords = null, normals = null, tangents = null;
+  AccessorU16        indices = null;
   u32                attrCount, vertexCount;
 
   dynarray_for_t(&ld->primitives, GltfPrim, primitive) {
