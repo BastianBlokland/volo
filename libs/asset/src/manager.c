@@ -32,6 +32,7 @@ typedef enum {
   AssetFlags_Loading = 1 << 0,
   AssetFlags_Loaded  = 1 << 1,
   AssetFlags_Failed  = 1 << 2,
+  AssetFlags_Cleanup = 1 << 3,
   AssetFlags_Active  = AssetFlags_Loading | AssetFlags_Loaded | AssetFlags_Failed,
 } AssetFlags;
 
@@ -247,6 +248,15 @@ ecs_system_define(AssetUpdateDirtySys) {
       goto AssetUpdateDone;
     }
 
+    if (assetComp->flags & AssetFlags_Cleanup) {
+      /**
+       * Actual data cleanup will be performed by the loader responsible for this asset-type.
+       */
+      assetComp->flags &= ~AssetFlags_Cleanup;
+      updateRequired = assetComp->refCount > 0;
+      goto AssetUpdateDone;
+    }
+
     if (assetComp->refCount && !(assetComp->flags & AssetFlags_Active)) {
       assetComp->unloadTicks = 0;
       /**
@@ -303,12 +313,11 @@ ecs_system_define(AssetUpdateDirtySys) {
     if (unload && assetComp->flags & AssetFlags_Loaded) {
       /**
        * Asset should be unloaded.
-       * Actual data cleanup will be performed by the loader responsible for this asset-type.
        */
       ecs_world_remove_t(world, entity, AssetLoadedComp);
       ecs_utils_maybe_remove_t(world, entity, AssetInstantUnloadComp);
       assetComp->flags &= ~AssetFlags_Loaded;
-      updateRequired = false;
+      assetComp->flags |= AssetFlags_Cleanup;
       goto AssetUpdateDone;
     }
 

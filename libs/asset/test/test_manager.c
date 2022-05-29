@@ -161,6 +161,37 @@ spec(manager) {
     check_eq_string(asset_id(comp), string_lit("a.raw"));
   }
 
+  it("delays load-after-unload by one frame") {
+    /**
+     * Regression test for when the asset cleanup systems runs in the same frame as the new load,
+     * causing a crash due to duplicate component add.
+     */
+
+    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+
+    const EcsEntityId entity = asset_lookup(world, manager, string_lit("a.raw"));
+    asset_acquire(world, entity);
+    ecs_world_flush(world);
+
+    ecs_run_sync(runner);
+
+    check(ecs_world_has_t(world, entity, AssetLoadedComp));
+    check(ecs_world_has_t(world, entity, AssetRawComp));
+
+    asset_release(world, entity);
+
+    ecs_run_sync(runner);
+
+    asset_acquire(world, entity);
+
+    ecs_run_sync(runner);
+    ecs_run_sync(runner);
+    ecs_run_sync(runner);
+
+    check(ecs_world_has_t(world, entity, AssetLoadedComp));
+    check(ecs_world_has_t(world, entity, AssetRawComp));
+  }
+
   teardown() {
     ecs_runner_destroy(runner);
     ecs_world_destroy(world);
