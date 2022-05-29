@@ -156,6 +156,7 @@ void asset_mesh_builder_override_bounds(AssetMeshBuilder* builder, const GeoBox 
 
 AssetMeshComp asset_mesh_create(const AssetMeshBuilder* builder) {
   diag_assert_msg(builder->indexData.size, "Empty mesh is invalid");
+  diag_assert(!builder->skinData.size || builder->skinData.size == builder->vertexData.size);
 
   const usize vertCount = builder->vertexData.size;
   const usize idxCount  = builder->indexData.size;
