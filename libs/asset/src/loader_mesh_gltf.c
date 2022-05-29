@@ -17,7 +17,8 @@
  * GLTF (GL Transmission Format) 2.0.
  * Format specification: https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html
  *
- * NOTE: Only meshes[0] is imported.
+ * NOTE: Only meshes[0] and skins[0] are imported.
+ * NOTE: Assumes that skinning information in meshes[0] matches the skin[0] skeleton.
  *
  * NOTE: Gltf buffer-data uses little-endian byte-order and 2's complement integers, and this loader
  * assumes the host system matches that.
@@ -30,6 +31,7 @@ typedef enum {
   GltfLoadPhase_BufferViews,
   GltfLoadPhase_Accessors,
   GltfLoadPhase_Primitives,
+  GltfLoadPhase_Skin,
   GltfLoadPhase_Build,
 } GltfLoadPhase;
 
@@ -85,13 +87,13 @@ typedef enum {
 
 typedef struct {
   GltfPrimMode mode;
-  u32          accIndices; // Optional.
-  u32          accPosition;
-  u32          accTexcoord; // Optional.
-  u32          accNormal;   // Optional.
-  u32          accTangent;  // Optional.
-  u32          accJoints;   // Optional.
-  u32          accWeights;  // Optional.
+  u32          accIndices;  // Accessor index [Optional].
+  u32          accPosition; // Accessor index.
+  u32          accTexcoord; // Accessor index [Optional].
+  u32          accNormal;   // Accessor index [Optional].
+  u32          accTangent;  // Accessor index [Optional].
+  u32          accJoints;   // Accessor index [Optional].
+  u32          accWeights;  // Accessor index [Optional].
 } GltfPrim;
 
 ecs_comp_define(AssetGltfLoadComp) {
@@ -100,10 +102,11 @@ ecs_comp_define(AssetGltfLoadComp) {
   JsonDoc*      jDoc;
   JsonVal       jRoot;
   GltfMeta      meta;
-  DynArray      buffers;     // GltfBuffer[].
-  DynArray      bufferViews; // GltfBufferView[].
-  DynArray      accessors;   // GltfAccessor[].
-  DynArray      primitives;  // GltfPrim[].
+  DynArray      buffers;            // GltfBuffer[].
+  DynArray      bufferViews;        // GltfBufferView[].
+  DynArray      accessors;          // GltfAccessor[].
+  DynArray      primitives;         // GltfPrim[].
+  u32           accInvBindMatrixes; // Accessor index [Optional].
 };
 
 static void ecs_destruct_gltf_load_comp(void* data) {
@@ -150,6 +153,7 @@ typedef enum {
   GltfError_MalformedPrimTexcoords,
   GltfError_MalformedPrimJoints,
   GltfError_MalformedPrimWeights,
+  GltfError_MalformedSkin,
   GltfError_JointCountExceedsMaximum,
   GltfError_MissingVersion,
   GltfError_InvalidBuffer,
@@ -181,6 +185,7 @@ static String gltf_error_str(const GltfError err) {
       string_static("Malformed primitive texcoords"),
       string_static("Malformed primitive joints"),
       string_static("Malformed primitive weights"),
+      string_static("Malformed skin"),
       string_static("Joint count exceeds maximum"),
       string_static("Gltf version specification missing"),
       string_static("Gltf invalid buffer"),
@@ -465,7 +470,7 @@ static void gltf_parse_primitives(AssetGltfLoadComp* ld, GltfError* err) {
   if (!gltf_check_val(ld, meshes, JsonType_Array) || !json_elem_count(ld->jDoc, meshes)) {
     goto Error;
   }
-  const JsonVal mesh = json_elem(ld->jDoc, meshes, 0);
+  const JsonVal mesh = json_elem_begin(ld->jDoc, meshes);
   if (json_type(ld->jDoc, mesh) != JsonType_Object) {
     goto Error;
   }
@@ -515,6 +520,29 @@ static void gltf_parse_primitives(AssetGltfLoadComp* ld, GltfError* err) {
 
 Error:
   *err = GltfError_MalformedPrims;
+}
+
+static void gltf_parse_skin(AssetGltfLoadComp* ld, GltfError* err) {
+  /**
+   * NOTE: This loader only supports a single skin.
+   */
+  const JsonVal skins = json_field(ld->jDoc, ld->jRoot, string_lit("skins"));
+  if (!gltf_check_val(ld, skins, JsonType_Array) || !json_elem_count(ld->jDoc, skins)) {
+    goto Success; // Skinning is optional.
+  }
+  const JsonVal skin = json_elem_begin(ld->jDoc, skins);
+  if (json_type(ld->jDoc, skin) != JsonType_Object) {
+    goto Error;
+  }
+  if (!gltf_field_u32(ld, skin, string_lit("inverseBindMatrices"), &ld->accInvBindMatrixes)) {
+    goto Error;
+  }
+Success:
+  *err = GltfError_None;
+  return;
+
+Error:
+  *err = GltfError_MalformedSkin;
 }
 
 static bool gltf_check_access(
@@ -776,7 +804,14 @@ ecs_system_define(GltfLoadAssetSys) {
         goto Error;
       }
       ++ld->phase;
-      // Fallthrough.
+    // Fallthrough.
+    case GltfLoadPhase_Skin:
+      gltf_parse_skin(ld, &err);
+      if (err) {
+        goto Error;
+      }
+      ++ld->phase;
+      // Fallthrough
     case GltfLoadPhase_Build: {
       AssetMeshComp result;
       gltf_build_mesh(ld, &result, &err);
