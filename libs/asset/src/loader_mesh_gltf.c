@@ -527,27 +527,25 @@ static bool gltf_check_accessor(
 }
 
 typedef enum {
-  GltfFlags_Valid        = 1 << 0,
-  GltfFlags_HasTexcoords = 1 << 1,
-  GltfFlags_HasNormals   = 1 << 2,
-  GltfFlags_HasTangents  = 1 << 3,
-  GltfFlags_HasSkinning  = 1 << 4,
-} GltfFlags;
+  GltfFeature_Texcoords = 1 << 1,
+  GltfFeature_Normals   = 1 << 2,
+  GltfFeature_Tangents  = 1 << 3,
+  GltfFeature_Skinning  = 1 << 4,
+} GltfFeature;
 
 typedef struct {
-  GltfFlags flags;
-  u32       vertexCount;
-} GltfBuildMeta;
+  GltfFeature features;
+  u32         vertexCount;
+} GltfMeshMeta;
 
-static GltfBuildMeta gltf_build_validate(AssetGltfLoadComp* ld, GltfError* err) {
+static GltfMeshMeta gltf_mesh_meta(AssetGltfLoadComp* ld, GltfError* err) {
   if (!ld->primitives.size) {
     *err = GltfError_NoPrimitives;
     goto Error;
   }
   GltfAccessor* accessors   = dynarray_begin_t(&ld->accessors, GltfAccessor);
   u32           vertexCount = 0;
-  GltfFlags     flags =
-      GltfFlags_HasTexcoords | GltfFlags_HasNormals | GltfFlags_HasTangents | GltfFlags_HasSkinning;
+  GltfFeature   features    = ~0; // Assume we have all features until accessors are missing.
   dynarray_for_t(&ld->primitives, GltfPrim, primitive) {
     if (primitive->mode != GltfPrimMode_Triangles) {
       *err = GltfError_UnsupportedPrimitiveMode;
@@ -578,7 +576,7 @@ static GltfBuildMeta gltf_build_validate(AssetGltfLoadComp* ld, GltfError* err) 
       vertexCount += accessors[primitive->accessIndices].count;
     }
     if (sentinel_check(primitive->accessTexcoord)) {
-      flags &= ~GltfFlags_HasTexcoords;
+      features &= ~GltfFeature_Texcoords;
     } else {
       if (!gltf_check_accessor(ld, primitive->accessTexcoord, GltfAccessorType_f32, 2)) {
         *err = GltfError_MalformedPrimitiveTexcoords;
@@ -590,7 +588,7 @@ static GltfBuildMeta gltf_build_validate(AssetGltfLoadComp* ld, GltfError* err) 
       }
     }
     if (sentinel_check(primitive->accessNormal)) {
-      flags &= ~GltfFlags_HasNormals;
+      features &= ~GltfFeature_Normals;
     } else {
       if (!gltf_check_accessor(ld, primitive->accessNormal, GltfAccessorType_f32, 3)) {
         *err = GltfError_MalformedPrimitiveNormals;
@@ -602,7 +600,7 @@ static GltfBuildMeta gltf_build_validate(AssetGltfLoadComp* ld, GltfError* err) 
       }
     }
     if (sentinel_check(primitive->accessTangent)) {
-      flags &= ~GltfFlags_HasTangents;
+      features &= ~GltfFeature_Tangents;
     } else {
       if (!gltf_check_accessor(ld, primitive->accessTangent, GltfAccessorType_f32, 4)) {
         *err = GltfError_MalformedPrimitiveTangents;
@@ -614,7 +612,7 @@ static GltfBuildMeta gltf_build_validate(AssetGltfLoadComp* ld, GltfError* err) 
       }
     }
     if (sentinel_check(primitive->accessJoints)) {
-      flags &= ~GltfFlags_HasSkinning;
+      features &= ~GltfFeature_Skinning;
     } else {
       if (!gltf_check_accessor(ld, primitive->accessJoints, GltfAccessorType_u16, 4)) {
         *err = GltfError_MalformedPrimitiveJoints;
@@ -634,19 +632,17 @@ static GltfBuildMeta gltf_build_validate(AssetGltfLoadComp* ld, GltfError* err) 
       }
     }
   }
-  flags |= GltfFlags_Valid;
-  return (GltfBuildMeta){.flags = flags, .vertexCount = vertexCount};
+  return (GltfMeshMeta){.features = features, .vertexCount = vertexCount};
 
 Error:
-  return (GltfBuildMeta){0};
+  return (GltfMeshMeta){0};
 }
 
 static void gltf_build_mesh(AssetGltfLoadComp* ld, AssetMeshComp* outMesh, GltfError* err) {
-  GltfBuildMeta meta = gltf_build_validate(ld, err);
+  GltfMeshMeta meta = gltf_mesh_meta(ld, err);
   if (*err) {
     return;
   }
-  const GltfFlags   flags     = meta.flags;
   AssetMeshBuilder* builder   = asset_mesh_builder_create(g_alloc_heap, meta.vertexCount);
   GltfAccessor*     accessors = dynarray_begin_t(&ld->accessors, GltfAccessor);
 
@@ -659,16 +655,16 @@ static void gltf_build_mesh(AssetGltfLoadComp* ld, AssetMeshComp* outMesh, GltfE
   dynarray_for_t(&ld->primitives, GltfPrim, primitive) {
     positions = accessors[primitive->accessPosition].data_f32;
     attrCount = accessors[primitive->accessPosition].count;
-    if (flags & GltfFlags_HasTexcoords) {
+    if (meta.features & GltfFeature_Texcoords) {
       texcoords = accessors[primitive->accessTexcoord].data_f32;
     }
-    if (flags & GltfFlags_HasNormals) {
+    if (meta.features & GltfFeature_Normals) {
       normals = accessors[primitive->accessNormal].data_f32;
     }
-    if (flags & GltfFlags_HasTangents) {
+    if (meta.features & GltfFeature_Tangents) {
       tangents = accessors[primitive->accessTangent].data_f32;
     }
-    if (flags & GltfFlags_HasSkinning) {
+    if (meta.features & GltfFeature_Skinning) {
       joints  = accessors[primitive->accessJoints].data_u16;
       weights = accessors[primitive->accessWeights].data_f32;
     }
@@ -690,9 +686,9 @@ static void gltf_build_mesh(AssetGltfLoadComp* ld, AssetMeshComp* outMesh, GltfE
       static const f32 g_zeroTan[4] = {0.0f};
 
       const f32* vertPos = &positions[attr * 3];
-      const f32* vertTex = flags & GltfFlags_HasTexcoords ? &texcoords[attr * 2] : g_zeroTex;
-      const f32* vertNrm = flags & GltfFlags_HasNormals ? &normals[attr * 3] : g_zeroNrm;
-      const f32* vertTan = flags & GltfFlags_HasTangents ? &tangents[attr * 4] : g_zeroTan;
+      const f32* vertTex = meta.features & GltfFeature_Texcoords ? &texcoords[attr * 2] : g_zeroTex;
+      const f32* vertNrm = meta.features & GltfFeature_Normals ? &normals[attr * 3] : g_zeroNrm;
+      const f32* vertTan = meta.features & GltfFeature_Tangents ? &tangents[attr * 4] : g_zeroTan;
 
       /**
        * NOTE: Flip the z-axis to convert from right-handed to left-handed coordinate system.
@@ -707,7 +703,7 @@ static void gltf_build_mesh(AssetGltfLoadComp* ld, AssetMeshComp* outMesh, GltfE
               .texcoord = geo_vector(vertTex[0], 1.0f - vertTex[1]),
           });
 
-      if (flags & GltfFlags_HasSkinning) {
+      if (meta.features & GltfFeature_Skinning) {
         const u16* vertJoints = &joints[attr * 4];
         const f32* vertWeight = &weights[attr * 4];
         const u16  j0 = vertJoints[0], j1 = vertJoints[1], j2 = vertJoints[2], j3 = vertJoints[3];
@@ -726,10 +722,10 @@ static void gltf_build_mesh(AssetGltfLoadComp* ld, AssetMeshComp* outMesh, GltfE
       }
     }
   }
-  if (!(flags & GltfFlags_HasNormals)) {
+  if (!(meta.features & GltfFeature_Normals)) {
     asset_mesh_compute_flat_normals(builder);
   }
-  if (!(flags & GltfFlags_HasTangents)) {
+  if (!(meta.features & GltfFeature_Tangents)) {
     asset_mesh_compute_tangents(builder);
   }
   *outMesh = asset_mesh_create(builder);
