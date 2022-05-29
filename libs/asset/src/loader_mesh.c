@@ -8,8 +8,11 @@ ecs_comp_define_public(AssetMeshComp);
 
 static void ecs_destruct_mesh_comp(void* data) {
   AssetMeshComp* comp = data;
-  alloc_free_array_t(g_alloc_heap, comp->vertices, comp->vertexCount);
-  alloc_free_array_t(g_alloc_heap, comp->indices, comp->indexCount);
+  alloc_free_array_t(g_alloc_heap, comp->vertexData, comp->vertexCount);
+  if (comp->skinData) {
+    alloc_free_array_t(g_alloc_heap, comp->skinData, comp->vertexCount);
+  }
+  alloc_free_array_t(g_alloc_heap, comp->indexData, comp->indexCount);
 }
 
 ecs_view_define(UnloadView) {

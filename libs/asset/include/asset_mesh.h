@@ -11,13 +11,19 @@ typedef struct {
   GeoVector position; // x, y, z position
   GeoVector normal;   // x, y, z normal
   GeoVector tangent;  // z, y, z tangent, w tangent handedness
-  GeoVector texcoord; // x, y texcoord1
+  GeoVector texcoord; // x, y texcoord0
 } AssetMeshVertex;
 
+typedef struct {
+  u8  bones[4];   // bone indices.
+  f32 weights[4]; // bone weights.
+} AssetMeshSkin;
+
 ecs_comp_extern_public(AssetMeshComp) {
-  const AssetMeshVertex* vertices;
+  const AssetMeshVertex* vertexData;
+  const AssetMeshSkin*   skinData; // NOTE: null if the mesh has no skinning.
   usize                  vertexCount;
-  const AssetMeshIndex*  indices;
+  const AssetMeshIndex*  indexData;
   usize                  indexCount;
   GeoBox                 positionBounds, texcoordBounds;
 };
