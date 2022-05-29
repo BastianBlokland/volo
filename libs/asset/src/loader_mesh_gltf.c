@@ -84,11 +84,13 @@ typedef enum {
 
 typedef struct {
   GltfPrimMode mode;
+  u32          accessIndices; // Optional.
   u32          accessPosition;
   u32          accessTexcoord; // Optional.
   u32          accessNormal;   // Optional.
   u32          accessTangent;  // Optional.
-  u32          accessIndices;  // Optional.
+  u32          accessJoints;   // Optional.
+  u32          accessWeights;  // Optional.
 } GltfPrim;
 
 ecs_comp_define(AssetGltfLoadComp) {
@@ -145,6 +147,8 @@ typedef enum {
   GltfError_MalformedPrimitiveNormals,
   GltfError_MalformedPrimitiveTangents,
   GltfError_MalformedPrimitiveTexcoords,
+  GltfError_MalformedPrimitiveJoints,
+  GltfError_MalformedPrimitiveWeights,
   GltfError_MissingVersion,
   GltfError_InvalidBuffer,
   GltfError_UnsupportedExtensions,
@@ -173,6 +177,8 @@ static String gltf_error_str(const GltfError err) {
       string_static("Malformed primitive normals"),
       string_static("Malformed primitive tangents"),
       string_static("Malformed primitive texcoords"),
+      string_static("Malformed primitive joints"),
+      string_static("Malformed primitive weights"),
       string_static("Gltf version specification missing"),
       string_static("Gltf invalid buffer"),
       string_static("Gltf file requires an unsupported extension"),
@@ -476,6 +482,9 @@ static void gltf_parse_primitives(AssetGltfLoadComp* ld, GltfError* err) {
       if (result->mode > GltfPrimMode_Max) {
         goto Error;
       }
+      if (!gltf_field_u32(ld, primitive, string_lit("indices"), &result->accessIndices)) {
+        result->accessIndices = sentinel_u32; // Indices are optional.
+      }
       const JsonVal attributes = json_field(ld->jDoc, primitive, string_lit("attributes"));
       if (!gltf_check_val(ld, attributes, JsonType_Object)) {
         goto Error;
@@ -492,8 +501,11 @@ static void gltf_parse_primitives(AssetGltfLoadComp* ld, GltfError* err) {
       if (!gltf_field_u32(ld, attributes, string_lit("TANGENT"), &result->accessTangent)) {
         result->accessTangent = sentinel_u32; // Tangents are optional.
       }
-      if (!gltf_field_u32(ld, primitive, string_lit("indices"), &result->accessIndices)) {
-        result->accessIndices = sentinel_u32; // Indices are optional.
+      if (!gltf_field_u32(ld, attributes, string_lit("JOINTS_0"), &result->accessJoints)) {
+        result->accessJoints = sentinel_u32; // Joints are optional.
+      }
+      if (!gltf_field_u32(ld, attributes, string_lit("WEIGHTS_0"), &result->accessWeights)) {
+        result->accessWeights = sentinel_u32; // Weights are optional.
       }
     }
   }
@@ -518,6 +530,7 @@ typedef enum {
   GltfFlags_HasTexcoords = 1 << 1,
   GltfFlags_HasNormals   = 1 << 2,
   GltfFlags_HasTangents  = 1 << 3,
+  GltfFlags_HasSkinning  = 1 << 4,
 } GltfFlags;
 
 typedef struct {
@@ -532,7 +545,8 @@ static GltfBuildMeta gltf_build_validate(AssetGltfLoadComp* ld, GltfError* err) 
   }
   GltfAccessor* accessors   = dynarray_begin_t(&ld->accessors, GltfAccessor);
   u32           vertexCount = 0;
-  GltfFlags     flags       = GltfFlags_HasTexcoords | GltfFlags_HasNormals | GltfFlags_HasTangents;
+  GltfFlags     flags =
+      GltfFlags_HasTexcoords | GltfFlags_HasNormals | GltfFlags_HasTangents | GltfFlags_HasSkinning;
   dynarray_for_t(&ld->primitives, GltfPrim, primitive) {
     if (primitive->mode != GltfPrimMode_Triangles) {
       *err = GltfError_UnsupportedPrimitiveMode;
@@ -598,6 +612,26 @@ static GltfBuildMeta gltf_build_validate(AssetGltfLoadComp* ld, GltfError* err) 
         goto Error;
       }
     }
+    if (sentinel_check(primitive->accessJoints)) {
+      flags &= ~GltfFlags_HasSkinning;
+    } else {
+      if (!gltf_check_accessor(ld, primitive->accessJoints, GltfAccessorType_u16, 4)) {
+        *err = GltfError_MalformedPrimitiveJoints;
+        goto Error;
+      }
+      if (accessors[primitive->accessJoints].count != attrCount) {
+        *err = GltfError_MalformedPrimitiveJoints;
+        goto Error;
+      }
+      if (!gltf_check_accessor(ld, primitive->accessWeights, GltfAccessorType_f32, 4)) {
+        *err = GltfError_MalformedPrimitiveWeights;
+        goto Error;
+      }
+      if (accessors[primitive->accessJoints].count != attrCount) {
+        *err = GltfError_MalformedPrimitiveWeights;
+        goto Error;
+      }
+    }
   }
   flags |= GltfFlags_Valid;
   return (GltfBuildMeta){.flags = flags, .vertexCount = vertexCount};
@@ -617,8 +651,8 @@ static void gltf_build_mesh(AssetGltfLoadComp* ld, AssetMeshComp* outMesh, GltfE
 
   typedef const u16* AccessorU16;
   typedef const f32* AccessorF32;
-  AccessorF32        positions = null, texcoords = null, normals = null, tangents = null;
-  AccessorU16        indices = null;
+  AccessorF32        positions, texcoords, normals, tangents, weights;
+  AccessorU16        indices, joints;
   u32                attrCount, vertexCount;
 
   dynarray_for_t(&ld->primitives, GltfPrim, primitive) {
@@ -632,6 +666,10 @@ static void gltf_build_mesh(AssetGltfLoadComp* ld, AssetMeshComp* outMesh, GltfE
     }
     if (flags & GltfFlags_HasTangents) {
       tangents = accessors[primitive->accessTangent].data_f32;
+    }
+    if (flags & GltfFlags_HasSkinning) {
+      joints  = accessors[primitive->accessJoints].data_u16;
+      weights = accessors[primitive->accessWeights].data_f32;
     }
     const bool indexed = !sentinel_check(primitive->accessIndices);
     if (indexed) {
@@ -659,7 +697,7 @@ static void gltf_build_mesh(AssetGltfLoadComp* ld, AssetMeshComp* outMesh, GltfE
        * NOTE: Flip the z-axis to convert from right-handed to left-handed coordinate system.
        * NOTE: Flip the texture coordinate y axis as Gltf uses upper-left as the origin.
        */
-      asset_mesh_builder_push(
+      const AssetMeshIndex vertIdx = asset_mesh_builder_push(
           builder,
           (AssetMeshVertex){
               .position = geo_vector(vertPos[0], vertPos[1], vertPos[2] * -1.0f),
@@ -667,6 +705,19 @@ static void gltf_build_mesh(AssetGltfLoadComp* ld, AssetMeshComp* outMesh, GltfE
               .tangent  = geo_vector(vertTan[0], vertTan[1], vertTan[2] * -1.0f, vertTan[3]),
               .texcoord = geo_vector(vertTex[0], 1.0f - vertTex[1]),
           });
+
+      if (flags & GltfFlags_HasSkinning) {
+        // TODO: Validate that bones don't exceed u8_max.
+        const u16* vertBones  = &joints[attr * 4];
+        const f32* vertWeight = &weights[attr * 4];
+        asset_mesh_builder_set_skin(
+            builder,
+            vertIdx,
+            (AssetMeshSkin){
+                .bones   = {(u8)vertBones[0], (u8)vertBones[1], (u8)vertBones[2], (u8)vertBones[3]},
+                .weights = {vertWeight[0], vertWeight[1], vertWeight[2], vertWeight[3]},
+            });
+      }
     }
   }
   if (!(flags & GltfFlags_HasNormals)) {
