@@ -60,6 +60,8 @@ if(${EXTERNAL_ASSETS})
       pedestal/pedestal_diff.tga
       pedestal/pedestal_nrm.tga
       pedestal/pedestal.obj
+      rigged-simple/rigged-simple.bin
+      rigged-simple/rigged-simple.gltf
       skybox/sorsele_back.tga
       skybox/sorsele_down.tga
       skybox/sorsele_front.tga
