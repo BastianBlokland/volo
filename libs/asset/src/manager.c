@@ -321,6 +321,13 @@ ecs_system_define(AssetUpdateDirtySys) {
       goto AssetUpdateDone;
     }
 
+    if (assetComp->refCount && assetComp->flags & AssetFlags_Loaded) {
+      /**
+       * Asset was already loaded, no need for further updates.
+       */
+      updateRequired = false;
+    }
+
   AssetUpdateDone:
     dirtyComp->numAcquire = 0;
     dirtyComp->numRelease = 0;

@@ -33,6 +33,7 @@ typedef enum {
 typedef struct {
   String           id;
   DebugAssetStatus status;
+  bool             dirty;
   u32              refCount, loadCount, ticksUntilUnload;
 } DebugAssetInfo;
 
@@ -130,6 +131,7 @@ static void asset_info_query(DebugAssetPanelComp* panelComp, EcsWorld* world) {
     *dynarray_push_t(&panelComp->assets, DebugAssetInfo) = (DebugAssetInfo){
         .id               = asset_id(assetComp),
         .status           = status,
+        .dirty            = ecs_world_has_t(world, entity, AssetDirtyComp),
         .refCount         = asset_ref_count(assetComp),
         .loadCount        = asset_load_count(assetComp),
         .ticksUntilUnload = asset_ticks_until_unload(assetComp),
@@ -201,9 +203,10 @@ static void asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelCom
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 350);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 90);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 70);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 70);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 70);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_draw_header(
@@ -212,6 +215,7 @@ static void asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelCom
       (const UiTableColumnName[]){
           {string_lit("Id"), string_lit("Asset identifier.")},
           {string_lit("Status"), string_lit("Current asset status.")},
+          {string_lit("Dirty"), string_lit("Does the asset need processing at this time.")},
           {string_lit("Refs"), string_lit("Current reference counter.")},
           {string_lit("Loads"), string_lit("How many times has this asset been loaded.")},
           {string_lit("Unload delay"),
@@ -231,6 +235,8 @@ static void asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelCom
     ui_label(canvas, asset->id, .selectable = true);
     ui_table_next_column(canvas, &table);
     ui_label(canvas, g_statusNames[asset->status]);
+    ui_table_next_column(canvas, &table);
+    ui_label(canvas, fmt_write_scratch("{}", fmt_bool(asset->dirty)));
     ui_table_next_column(canvas, &table);
     if (asset->refCount) {
       ui_label(canvas, fmt_write_scratch("{}", fmt_int(asset->refCount)));
@@ -286,7 +292,7 @@ EcsEntityId debug_asset_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugAssetPanelComp,
-      .panel      = ui_panel(ui_vector(800, 500)),
+      .panel      = ui_panel(ui_vector(850, 500)),
       .scrollview = ui_scrollview(),
       .idFilter   = dynstring_create(g_alloc_heap, 32),
       .sortMode   = DebugAssetSortMode_Status,
