@@ -48,17 +48,17 @@ typedef struct {
 } GltfBufferView;
 
 typedef enum {
-  GltfAccessorType_i8  = 5120,
-  GltfAccessorType_u8  = 5121,
-  GltfAccessorType_i16 = 5122,
-  GltfAccessorType_u16 = 5123,
-  GltfAccessorType_u32 = 5125,
-  GltfAccessorType_f32 = 5126,
-} GltfAccessorType;
+  GltfType_i8  = 5120,
+  GltfType_u8  = 5121,
+  GltfType_i16 = 5122,
+  GltfType_u16 = 5123,
+  GltfType_u32 = 5125,
+  GltfType_f32 = 5126,
+} GltfType;
 
 typedef struct {
-  GltfAccessorType compType;
-  u32              compCount;
+  GltfType compType;
+  u32      compCount;
   union {
     void* data_raw;
     i8*   data_i8;
@@ -85,13 +85,13 @@ typedef enum {
 
 typedef struct {
   GltfPrimMode mode;
-  u32          accessIndices; // Optional.
-  u32          accessPosition;
-  u32          accessTexcoord; // Optional.
-  u32          accessNormal;   // Optional.
-  u32          accessTangent;  // Optional.
-  u32          accessJoints;   // Optional.
-  u32          accessWeights;  // Optional.
+  u32          accIndices; // Optional.
+  u32          accPosition;
+  u32          accTexcoord; // Optional.
+  u32          accNormal;   // Optional.
+  u32          accTangent;  // Optional.
+  u32          accJoints;   // Optional.
+  u32          accWeights;  // Optional.
 } GltfPrim;
 
 ecs_comp_define(AssetGltfLoadComp) {
@@ -115,16 +115,16 @@ static void ecs_destruct_gltf_load_comp(void* data) {
   dynarray_destroy(&comp->primitives);
 }
 
-u32 gltf_component_size(const GltfAccessorType type) {
+u32 gltf_component_size(const GltfType type) {
   switch (type) {
-  case GltfAccessorType_i8:
-  case GltfAccessorType_u8:
+  case GltfType_i8:
+  case GltfType_u8:
     return 1;
-  case GltfAccessorType_i16:
-  case GltfAccessorType_u16:
+  case GltfType_i16:
+  case GltfType_u16:
     return 2;
-  case GltfAccessorType_u32:
-  case GltfAccessorType_f32:
+  case GltfType_u32:
+  case GltfType_f32:
     return 4;
   default:
     UNREACHABLE;
@@ -142,14 +142,14 @@ typedef enum {
   GltfError_MalformedBufferViews,
   GltfError_MalformedAccessors,
   GltfError_MalformedAccessorType,
-  GltfError_MalformedPrimitives,
-  GltfError_MalformedPrimitiveIndices,
-  GltfError_MalformedPrimitivePositions,
-  GltfError_MalformedPrimitiveNormals,
-  GltfError_MalformedPrimitiveTangents,
-  GltfError_MalformedPrimitiveTexcoords,
-  GltfError_MalformedPrimitiveJoints,
-  GltfError_MalformedPrimitiveWeights,
+  GltfError_MalformedPrims,
+  GltfError_MalformedPrimIndices,
+  GltfError_MalformedPrimPositions,
+  GltfError_MalformedPrimNormals,
+  GltfError_MalformedPrimTangents,
+  GltfError_MalformedPrimTexcoords,
+  GltfError_MalformedPrimJoints,
+  GltfError_MalformedPrimWeights,
   GltfError_JointCountExceedsMaximum,
   GltfError_MissingVersion,
   GltfError_InvalidBuffer,
@@ -395,14 +395,14 @@ Success:
   *err = GltfError_None;
 }
 
-static bool gtlf_check_accessor_type(const GltfAccessorType type) {
+static bool gtlf_check_access_type(const GltfType type) {
   switch (type) {
-  case GltfAccessorType_i8:
-  case GltfAccessorType_u8:
-  case GltfAccessorType_i16:
-  case GltfAccessorType_u16:
-  case GltfAccessorType_u32:
-  case GltfAccessorType_f32:
+  case GltfType_i8:
+  case GltfType_u8:
+  case GltfType_i16:
+  case GltfType_u16:
+  case GltfType_u32:
+  case GltfType_f32:
     return true;
   }
   return false;
@@ -429,7 +429,7 @@ static void gltf_parse_accessors(AssetGltfLoadComp* ld, GltfError* err) {
     if (!gltf_field_u32(ld, accessor, string_lit("componentType"), (u32*)&result->compType)) {
       goto Error;
     }
-    if (!gtlf_check_accessor_type(result->compType)) {
+    if (!gtlf_check_access_type(result->compType)) {
       goto Error;
     }
     if (!gltf_field_u32(ld, accessor, string_lit("count"), &result->count)) {
@@ -484,41 +484,41 @@ static void gltf_parse_primitives(AssetGltfLoadComp* ld, GltfError* err) {
     if (result->mode > GltfPrimMode_Max) {
       goto Error;
     }
-    if (!gltf_field_u32(ld, primitive, string_lit("indices"), &result->accessIndices)) {
-      result->accessIndices = sentinel_u32; // Indices are optional.
+    if (!gltf_field_u32(ld, primitive, string_lit("indices"), &result->accIndices)) {
+      result->accIndices = sentinel_u32; // Indices are optional.
     }
     const JsonVal attributes = json_field(ld->jDoc, primitive, string_lit("attributes"));
     if (!gltf_check_val(ld, attributes, JsonType_Object)) {
       goto Error;
     }
-    if (!gltf_field_u32(ld, attributes, string_lit("POSITION"), &result->accessPosition)) {
+    if (!gltf_field_u32(ld, attributes, string_lit("POSITION"), &result->accPosition)) {
       goto Error;
     }
-    if (!gltf_field_u32(ld, attributes, string_lit("TEXCOORD_0"), &result->accessTexcoord)) {
-      result->accessTexcoord = sentinel_u32; // Texcoords are optional.
+    if (!gltf_field_u32(ld, attributes, string_lit("TEXCOORD_0"), &result->accTexcoord)) {
+      result->accTexcoord = sentinel_u32; // Texcoords are optional.
     }
-    if (!gltf_field_u32(ld, attributes, string_lit("NORMAL"), &result->accessNormal)) {
-      result->accessNormal = sentinel_u32; // Normals are optional.
+    if (!gltf_field_u32(ld, attributes, string_lit("NORMAL"), &result->accNormal)) {
+      result->accNormal = sentinel_u32; // Normals are optional.
     }
-    if (!gltf_field_u32(ld, attributes, string_lit("TANGENT"), &result->accessTangent)) {
-      result->accessTangent = sentinel_u32; // Tangents are optional.
+    if (!gltf_field_u32(ld, attributes, string_lit("TANGENT"), &result->accTangent)) {
+      result->accTangent = sentinel_u32; // Tangents are optional.
     }
-    if (!gltf_field_u32(ld, attributes, string_lit("JOINTS_0"), &result->accessJoints)) {
-      result->accessJoints = sentinel_u32; // Joints are optional.
+    if (!gltf_field_u32(ld, attributes, string_lit("JOINTS_0"), &result->accJoints)) {
+      result->accJoints = sentinel_u32; // Joints are optional.
     }
-    if (!gltf_field_u32(ld, attributes, string_lit("WEIGHTS_0"), &result->accessWeights)) {
-      result->accessWeights = sentinel_u32; // Weights are optional.
+    if (!gltf_field_u32(ld, attributes, string_lit("WEIGHTS_0"), &result->accWeights)) {
+      result->accWeights = sentinel_u32; // Weights are optional.
     }
   }
   *err = GltfError_None;
   return;
 
 Error:
-  *err = GltfError_MalformedPrimitives;
+  *err = GltfError_MalformedPrims;
 }
 
-static bool gltf_check_accessor(
-    AssetGltfLoadComp* ld, const u32 index, const GltfAccessorType type, const u32 compCount) {
+static bool gltf_check_access(
+    AssetGltfLoadComp* ld, const u32 index, const GltfType type, const u32 compCount) {
   GltfAccessor* accessors = dynarray_begin_t(&ld->accessors, GltfAccessor);
   if (index >= ld->accessors.size) {
     return false;
@@ -539,103 +539,66 @@ typedef struct {
 } GltfMeshMeta;
 
 static GltfMeshMeta gltf_mesh_meta(AssetGltfLoadComp* ld, GltfError* err) {
-  if (!ld->primitives.size) {
-    *err = GltfError_NoPrimitives;
-    goto Error;
+#define verify(_EXPR_, _ERR_)                                                                      \
+  if (UNLIKELY(!(_EXPR_))) {                                                                       \
+    *err = GltfError_##_ERR_;                                                                      \
+    goto Error;                                                                                    \
   }
+
+  verify(ld->primitives.size, NoPrimitives);
+
   GltfAccessor* accessors   = dynarray_begin_t(&ld->accessors, GltfAccessor);
   u32           vertexCount = 0;
   GltfFeature   features    = ~0; // Assume we have all features until accessors are missing.
-  dynarray_for_t(&ld->primitives, GltfPrim, primitive) {
-    if (primitive->mode != GltfPrimMode_Triangles) {
-      *err = GltfError_UnsupportedPrimitiveMode;
-      goto Error;
-    }
-    if (!gltf_check_accessor(ld, primitive->accessPosition, GltfAccessorType_f32, 3)) {
-      *err = GltfError_MalformedPrimitivePositions;
-      goto Error;
-    }
-    const u32 attrCount = accessors[primitive->accessPosition].count;
-    if (sentinel_check(primitive->accessIndices)) {
+  dynarray_for_t(&ld->primitives, GltfPrim, prim) {
+
+    verify(prim->mode == GltfPrimMode_Triangles, UnsupportedPrimitiveMode);
+    verify(gltf_check_access(ld, prim->accPosition, GltfType_f32, 3), MalformedPrimPositions);
+
+    const u32 attrCount = accessors[prim->accPosition].count;
+    if (sentinel_check(prim->accIndices)) {
       // Non-indexed primitive.
-      if (attrCount % 3) {
-        *err = GltfError_MalformedPrimitivePositions;
-        goto Error;
-      }
+      verify((attrCount % 3) == 0, MalformedPrimPositions);
       vertexCount += attrCount;
     } else {
       // Indexed primitive.
-      if (!gltf_check_accessor(ld, primitive->accessIndices, GltfAccessorType_u16, 1)) {
-        *err = GltfError_MalformedPrimitiveIndices;
-        goto Error;
-      }
-      if (accessors[primitive->accessIndices].count % 3) {
-        *err = GltfError_MalformedPrimitiveIndices;
-        goto Error;
-      }
-      vertexCount += accessors[primitive->accessIndices].count;
+      verify(gltf_check_access(ld, prim->accIndices, GltfType_u16, 1), MalformedPrimIndices);
+      verify((accessors[prim->accIndices].count % 3) == 0, MalformedPrimIndices);
+      vertexCount += accessors[prim->accIndices].count;
     }
-    if (sentinel_check(primitive->accessTexcoord)) {
+    if (sentinel_check(prim->accTexcoord)) {
       features &= ~GltfFeature_Texcoords;
     } else {
-      if (!gltf_check_accessor(ld, primitive->accessTexcoord, GltfAccessorType_f32, 2)) {
-        *err = GltfError_MalformedPrimitiveTexcoords;
-        goto Error;
-      }
-      if (accessors[primitive->accessTexcoord].count != attrCount) {
-        *err = GltfError_MalformedPrimitiveTexcoords;
-        goto Error;
-      }
+      verify(gltf_check_access(ld, prim->accTexcoord, GltfType_f32, 2), MalformedPrimTexcoords);
+      verify(accessors[prim->accTexcoord].count == attrCount, MalformedPrimTexcoords);
     }
-    if (sentinel_check(primitive->accessNormal)) {
+    if (sentinel_check(prim->accNormal)) {
       features &= ~GltfFeature_Normals;
     } else {
-      if (!gltf_check_accessor(ld, primitive->accessNormal, GltfAccessorType_f32, 3)) {
-        *err = GltfError_MalformedPrimitiveNormals;
-        goto Error;
-      }
-      if (accessors[primitive->accessNormal].count != attrCount) {
-        *err = GltfError_MalformedPrimitiveNormals;
-        goto Error;
-      }
+      verify(gltf_check_access(ld, prim->accNormal, GltfType_f32, 3), MalformedPrimNormals);
+      verify(accessors[prim->accNormal].count == attrCount, MalformedPrimNormals);
     }
-    if (sentinel_check(primitive->accessTangent)) {
+    if (sentinel_check(prim->accTangent)) {
       features &= ~GltfFeature_Tangents;
     } else {
-      if (!gltf_check_accessor(ld, primitive->accessTangent, GltfAccessorType_f32, 4)) {
-        *err = GltfError_MalformedPrimitiveTangents;
-        goto Error;
-      }
-      if (accessors[primitive->accessTangent].count != attrCount) {
-        *err = GltfError_MalformedPrimitiveTangents;
-        goto Error;
-      }
+      verify(gltf_check_access(ld, prim->accTangent, GltfType_f32, 4), MalformedPrimTangents);
+      verify(accessors[prim->accTangent].count == attrCount, MalformedPrimTangents);
     }
-    if (sentinel_check(primitive->accessJoints)) {
+    if (sentinel_check(prim->accJoints)) {
       features &= ~GltfFeature_Skinning;
     } else {
-      if (!gltf_check_accessor(ld, primitive->accessJoints, GltfAccessorType_u16, 4)) {
-        *err = GltfError_MalformedPrimitiveJoints;
-        goto Error;
-      }
-      if (accessors[primitive->accessJoints].count != attrCount) {
-        *err = GltfError_MalformedPrimitiveJoints;
-        goto Error;
-      }
-      if (!gltf_check_accessor(ld, primitive->accessWeights, GltfAccessorType_f32, 4)) {
-        *err = GltfError_MalformedPrimitiveWeights;
-        goto Error;
-      }
-      if (accessors[primitive->accessJoints].count != attrCount) {
-        *err = GltfError_MalformedPrimitiveWeights;
-        goto Error;
-      }
+      verify(gltf_check_access(ld, prim->accJoints, GltfType_u16, 4), MalformedPrimJoints);
+      verify(accessors[prim->accJoints].count == attrCount, MalformedPrimJoints);
+      verify(gltf_check_access(ld, prim->accWeights, GltfType_f32, 4), MalformedPrimWeights);
+      verify(accessors[prim->accJoints].count == attrCount, MalformedPrimWeights);
     }
   }
   return (GltfMeshMeta){.features = features, .vertexCount = vertexCount};
 
 Error:
   return (GltfMeshMeta){0};
+
+#undef verify
 }
 
 static void gltf_build_mesh(AssetGltfLoadComp* ld, AssetMeshComp* outMesh, GltfError* err) {
@@ -653,32 +616,32 @@ static void gltf_build_mesh(AssetGltfLoadComp* ld, AssetMeshComp* outMesh, GltfE
   u32                attrCount, vertexCount;
 
   dynarray_for_t(&ld->primitives, GltfPrim, primitive) {
-    positions = accessors[primitive->accessPosition].data_f32;
-    attrCount = accessors[primitive->accessPosition].count;
+    positions = accessors[primitive->accPosition].data_f32;
+    attrCount = accessors[primitive->accPosition].count;
     if (meta.features & GltfFeature_Texcoords) {
-      texcoords = accessors[primitive->accessTexcoord].data_f32;
+      texcoords = accessors[primitive->accTexcoord].data_f32;
     }
     if (meta.features & GltfFeature_Normals) {
-      normals = accessors[primitive->accessNormal].data_f32;
+      normals = accessors[primitive->accNormal].data_f32;
     }
     if (meta.features & GltfFeature_Tangents) {
-      tangents = accessors[primitive->accessTangent].data_f32;
+      tangents = accessors[primitive->accTangent].data_f32;
     }
     if (meta.features & GltfFeature_Skinning) {
-      joints  = accessors[primitive->accessJoints].data_u16;
-      weights = accessors[primitive->accessWeights].data_f32;
+      joints  = accessors[primitive->accJoints].data_u16;
+      weights = accessors[primitive->accWeights].data_f32;
     }
-    const bool indexed = !sentinel_check(primitive->accessIndices);
+    const bool indexed = !sentinel_check(primitive->accIndices);
     if (indexed) {
-      indices     = accessors[primitive->accessIndices].data_u16;
-      vertexCount = accessors[primitive->accessIndices].count;
+      indices     = accessors[primitive->accIndices].data_u16;
+      vertexCount = accessors[primitive->accIndices].count;
     } else {
       vertexCount = attrCount;
     }
     for (u32 i = 0; i != vertexCount; ++i) {
       const u32 attr = indexed ? indices[i] : i;
       if (UNLIKELY(attr >= attrCount)) {
-        *err = GltfError_MalformedPrimitiveIndices;
+        *err = GltfError_MalformedPrimIndices;
         goto Cleanup;
       }
       static const f32 g_zeroTex[4] = {[1] = 1.0f}; // NOTE: y of 1 because we flip the y.
