@@ -106,6 +106,7 @@ ecs_comp_define(AssetGltfLoadComp) {
   DynArray      bufferViews;        // GltfBufferView[].
   DynArray      accessors;          // GltfAccessor[].
   DynArray      primitives;         // GltfPrim[].
+  DynArray      jointNodeIndices;   // u32[].
   u32           accInvBindMatrixes; // Accessor index [Optional].
 };
 
@@ -116,6 +117,7 @@ static void ecs_destruct_gltf_load_comp(void* data) {
   dynarray_destroy(&comp->bufferViews);
   dynarray_destroy(&comp->accessors);
   dynarray_destroy(&comp->primitives);
+  dynarray_destroy(&comp->jointNodeIndices);
 }
 
 u32 gltf_component_size(const GltfType type) {
@@ -537,6 +539,16 @@ static void gltf_parse_skin(AssetGltfLoadComp* ld, GltfError* err) {
   if (!gltf_field_u32(ld, skin, string_lit("inverseBindMatrices"), &ld->accInvBindMatrixes)) {
     goto Error;
   }
+  const JsonVal joints = json_field(ld->jDoc, skin, string_lit("joints"));
+  if (!gltf_check_val(ld, joints, JsonType_Array) || !json_elem_count(ld->jDoc, joints)) {
+    goto Error;
+  }
+  json_for_elems(ld->jDoc, joints, joint) {
+    if (UNLIKELY(json_type(ld->jDoc, joint) != JsonType_Number)) {
+      goto Error;
+    }
+    *dynarray_push_t(&ld->jointNodeIndices, u32) = (u32)joint;
+  }
 Success:
   *err = GltfError_None;
   return;
@@ -869,11 +881,12 @@ void asset_load_gltf(EcsWorld* world, const String id, const EcsEntityId entity,
       world,
       entity,
       AssetGltfLoadComp,
-      .assetId     = id,
-      .jDoc        = jsonDoc,
-      .jRoot       = jsonRes.type,
-      .buffers     = dynarray_create_t(g_alloc_heap, GltfBuffer, 1),
-      .bufferViews = dynarray_create_t(g_alloc_heap, GltfBufferView, 8),
-      .accessors   = dynarray_create_t(g_alloc_heap, GltfAccessor, 8),
-      .primitives  = dynarray_create_t(g_alloc_heap, GltfPrim, 4));
+      .assetId          = id,
+      .jDoc             = jsonDoc,
+      .jRoot            = jsonRes.type,
+      .buffers          = dynarray_create_t(g_alloc_heap, GltfBuffer, 1),
+      .bufferViews      = dynarray_create_t(g_alloc_heap, GltfBufferView, 8),
+      .accessors        = dynarray_create_t(g_alloc_heap, GltfAccessor, 8),
+      .primitives       = dynarray_create_t(g_alloc_heap, GltfPrim, 4),
+      .jointNodeIndices = dynarray_create_t(g_alloc_heap, u32, 0));
 }
