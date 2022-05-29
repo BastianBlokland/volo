@@ -707,14 +707,15 @@ static void gltf_build_mesh(AssetGltfLoadComp* ld, AssetMeshComp* outMesh, GltfE
           });
 
       if (flags & GltfFlags_HasSkinning) {
-        // TODO: Validate that bones don't exceed u8_max.
-        const u16* vertBones  = &joints[attr * 4];
+        // TODO: Validate that joints don't exceed u8_max.
+        const u16* vertJoints = &joints[attr * 4];
         const f32* vertWeight = &weights[attr * 4];
         asset_mesh_builder_set_skin(
             builder,
             vertIdx,
             (AssetMeshSkin){
-                .bones   = {(u8)vertBones[0], (u8)vertBones[1], (u8)vertBones[2], (u8)vertBones[3]},
+                .joints =
+                    {(u8)vertJoints[0], (u8)vertJoints[1], (u8)vertJoints[2], (u8)vertJoints[3]},
                 .weights = {vertWeight[0], vertWeight[1], vertWeight[2], vertWeight[3]},
             });
       }

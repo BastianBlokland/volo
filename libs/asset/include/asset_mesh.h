@@ -15,8 +15,8 @@ typedef struct {
 } AssetMeshVertex;
 
 typedef struct {
-  u8  bones[4];   // bone indices.
-  f32 weights[4]; // bone weights.
+  u8  joints[4];  // joint indices.
+  f32 weights[4]; // joint weights.
 } AssetMeshSkin;
 
 ecs_comp_extern_public(AssetMeshComp) {
