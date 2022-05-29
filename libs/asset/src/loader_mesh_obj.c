@@ -388,7 +388,7 @@ static void obj_triangulate(const ObjData* data, AssetMeshBuilder* builder) {
       };
 
       /**
-       * NOTE: Convert from clock-wise winding to counter-clockwise by submiting in opposite order.
+       * NOTE: Convert from clock-wise winding to counter-clockwise by submitting in opposite order.
        */
       asset_mesh_builder_push(builder, vertA);
       asset_mesh_builder_push(builder, vertC);
