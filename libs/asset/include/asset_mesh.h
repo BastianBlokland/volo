@@ -4,6 +4,8 @@
 #include "geo_vector.h"
 
 #define asset_mesh_indices_max u32_max
+#define asset_mesh_joints_max 16
+ASSERT(asset_mesh_joints_max <= u8_max, "Joint indices should be representable by a u8");
 
 typedef u32 AssetMeshIndex;
 

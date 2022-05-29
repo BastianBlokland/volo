@@ -149,6 +149,7 @@ typedef enum {
   GltfError_MalformedPrimitiveTexcoords,
   GltfError_MalformedPrimitiveJoints,
   GltfError_MalformedPrimitiveWeights,
+  GltfError_JointCountExceedsMaximum,
   GltfError_MissingVersion,
   GltfError_InvalidBuffer,
   GltfError_UnsupportedExtensions,
@@ -179,6 +180,7 @@ static String gltf_error_str(const GltfError err) {
       string_static("Malformed primitive texcoords"),
       string_static("Malformed primitive joints"),
       string_static("Malformed primitive weights"),
+      string_static("Joint count exceeds maximum"),
       string_static("Gltf version specification missing"),
       string_static("Gltf invalid buffer"),
       string_static("Gltf file requires an unsupported extension"),
@@ -707,15 +709,19 @@ static void gltf_build_mesh(AssetGltfLoadComp* ld, AssetMeshComp* outMesh, GltfE
           });
 
       if (flags & GltfFlags_HasSkinning) {
-        // TODO: Validate that joints don't exceed u8_max.
         const u16* vertJoints = &joints[attr * 4];
         const f32* vertWeight = &weights[attr * 4];
+        const u16  j0 = vertJoints[0], j1 = vertJoints[1], j2 = vertJoints[2], j3 = vertJoints[3];
+        enum { JointMax = asset_mesh_joints_max };
+        if (UNLIKELY(j0 >= JointMax || j1 >= JointMax || j2 >= JointMax || j3 >= JointMax)) {
+          *err = GltfError_JointCountExceedsMaximum;
+          goto Cleanup;
+        }
         asset_mesh_builder_set_skin(
             builder,
             vertIdx,
             (AssetMeshSkin){
-                .joints =
-                    {(u8)vertJoints[0], (u8)vertJoints[1], (u8)vertJoints[2], (u8)vertJoints[3]},
+                .joints  = {(u8)j0, (u8)j1, (u8)j2, (u8)j3},
                 .weights = {vertWeight[0], vertWeight[1], vertWeight[2], vertWeight[3]},
             });
       }
