@@ -17,7 +17,8 @@
  * GLTF (GL Transmission Format) 2.0.
  * Format specification: https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html
  *
- * NOTE: Only a small subset of the gltf format is supported at this time.
+ * NOTE: Only meshes[0] is imported.
+ *
  * NOTE: Gltf buffer-data uses little-endian byte-order and 2's complement integers, and this loader
  * assumes the host system matches that.
  */
@@ -458,57 +459,55 @@ Error:
 
 static void gltf_parse_primitives(AssetGltfLoadComp* ld, GltfError* err) {
   /**
-   * NOTE: This loader does not support multiple meshes at this time and just combines all
-   * primitives into a single array.
+   * NOTE: This loader only supports a single mesh.
    */
   const JsonVal meshes = json_field(ld->jDoc, ld->jRoot, string_lit("meshes"));
-  if (!gltf_check_val(ld, meshes, JsonType_Array)) {
+  if (!gltf_check_val(ld, meshes, JsonType_Array) || !json_elem_count(ld->jDoc, meshes)) {
     goto Error;
   }
-  json_for_elems(ld->jDoc, meshes, mesh) {
-    if (json_type(ld->jDoc, mesh) != JsonType_Object) {
+  const JsonVal mesh = json_elem(ld->jDoc, meshes, 0);
+  if (json_type(ld->jDoc, mesh) != JsonType_Object) {
+    goto Error;
+  }
+  const JsonVal primitives = json_field(ld->jDoc, mesh, string_lit("primitives"));
+  if (!gltf_check_val(ld, primitives, JsonType_Array)) {
+    goto Error;
+  }
+  json_for_elems(ld->jDoc, primitives, primitive) {
+    if (json_type(ld->jDoc, primitive) != JsonType_Object) {
       goto Error;
     }
-    const JsonVal primitives = json_field(ld->jDoc, mesh, string_lit("primitives"));
-    if (!gltf_check_val(ld, primitives, JsonType_Array)) {
+    GltfPrim* result = dynarray_push_t(&ld->primitives, GltfPrim);
+    if (!gltf_field_u32(ld, primitive, string_lit("mode"), (u32*)&result->mode)) {
+      result->mode = GltfPrimMode_Triangles;
+    }
+    if (result->mode > GltfPrimMode_Max) {
       goto Error;
     }
-    json_for_elems(ld->jDoc, primitives, primitive) {
-      if (json_type(ld->jDoc, primitive) != JsonType_Object) {
-        goto Error;
-      }
-      GltfPrim* result = dynarray_push_t(&ld->primitives, GltfPrim);
-      if (!gltf_field_u32(ld, primitive, string_lit("mode"), (u32*)&result->mode)) {
-        result->mode = GltfPrimMode_Triangles;
-      }
-      if (result->mode > GltfPrimMode_Max) {
-        goto Error;
-      }
-      if (!gltf_field_u32(ld, primitive, string_lit("indices"), &result->accessIndices)) {
-        result->accessIndices = sentinel_u32; // Indices are optional.
-      }
-      const JsonVal attributes = json_field(ld->jDoc, primitive, string_lit("attributes"));
-      if (!gltf_check_val(ld, attributes, JsonType_Object)) {
-        goto Error;
-      }
-      if (!gltf_field_u32(ld, attributes, string_lit("POSITION"), &result->accessPosition)) {
-        goto Error;
-      }
-      if (!gltf_field_u32(ld, attributes, string_lit("TEXCOORD_0"), &result->accessTexcoord)) {
-        result->accessTexcoord = sentinel_u32; // Texcoords are optional.
-      }
-      if (!gltf_field_u32(ld, attributes, string_lit("NORMAL"), &result->accessNormal)) {
-        result->accessNormal = sentinel_u32; // Normals are optional.
-      }
-      if (!gltf_field_u32(ld, attributes, string_lit("TANGENT"), &result->accessTangent)) {
-        result->accessTangent = sentinel_u32; // Tangents are optional.
-      }
-      if (!gltf_field_u32(ld, attributes, string_lit("JOINTS_0"), &result->accessJoints)) {
-        result->accessJoints = sentinel_u32; // Joints are optional.
-      }
-      if (!gltf_field_u32(ld, attributes, string_lit("WEIGHTS_0"), &result->accessWeights)) {
-        result->accessWeights = sentinel_u32; // Weights are optional.
-      }
+    if (!gltf_field_u32(ld, primitive, string_lit("indices"), &result->accessIndices)) {
+      result->accessIndices = sentinel_u32; // Indices are optional.
+    }
+    const JsonVal attributes = json_field(ld->jDoc, primitive, string_lit("attributes"));
+    if (!gltf_check_val(ld, attributes, JsonType_Object)) {
+      goto Error;
+    }
+    if (!gltf_field_u32(ld, attributes, string_lit("POSITION"), &result->accessPosition)) {
+      goto Error;
+    }
+    if (!gltf_field_u32(ld, attributes, string_lit("TEXCOORD_0"), &result->accessTexcoord)) {
+      result->accessTexcoord = sentinel_u32; // Texcoords are optional.
+    }
+    if (!gltf_field_u32(ld, attributes, string_lit("NORMAL"), &result->accessNormal)) {
+      result->accessNormal = sentinel_u32; // Normals are optional.
+    }
+    if (!gltf_field_u32(ld, attributes, string_lit("TANGENT"), &result->accessTangent)) {
+      result->accessTangent = sentinel_u32; // Tangents are optional.
+    }
+    if (!gltf_field_u32(ld, attributes, string_lit("JOINTS_0"), &result->accessJoints)) {
+      result->accessJoints = sentinel_u32; // Joints are optional.
+    }
+    if (!gltf_field_u32(ld, attributes, string_lit("WEIGHTS_0"), &result->accessWeights)) {
+      result->accessWeights = sentinel_u32; // Weights are optional.
     }
   }
   *err = GltfError_None;
