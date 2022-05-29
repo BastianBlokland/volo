@@ -192,6 +192,32 @@ spec(manager) {
     check(ecs_world_has_t(world, entity, AssetRawComp));
   }
 
+  it("clears the dirty state after loading") {
+    AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+
+    const EcsEntityId entity = asset_lookup(world, manager, string_lit("a.raw"));
+    asset_acquire(world, entity);
+    ecs_world_flush(world);
+
+    check(ecs_world_has_t(world, entity, AssetDirtyComp));
+
+    asset_test_wait(runner);
+
+    check(ecs_world_has_t(world, entity, AssetLoadedComp));
+    check(ecs_world_has_t(world, entity, AssetRawComp));
+    check(!ecs_world_has_t(world, entity, AssetDirtyComp));
+
+    /**
+     * When acquiring the asset when its already loaded the dirty state should be cleared
+     * immediately.
+     */
+    asset_acquire(world, entity);
+    ecs_world_flush(world);
+    check(ecs_world_has_t(world, entity, AssetDirtyComp));
+    ecs_run_sync(runner);
+    check(!ecs_world_has_t(world, entity, AssetDirtyComp));
+  }
+
   teardown() {
     ecs_runner_destroy(runner);
     ecs_world_destroy(world);

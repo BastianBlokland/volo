@@ -26,6 +26,7 @@ ecs_comp_extern(AssetComp);
 ecs_comp_extern(AssetFailedComp);
 ecs_comp_extern(AssetLoadedComp);
 ecs_comp_extern(AssetChangedComp);
+ecs_comp_extern(AssetDirtyComp);
 
 /**
  * Retrieve the identifier for the given asset.
