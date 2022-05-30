@@ -549,6 +549,10 @@ static void gltf_parse_skin(AssetGltfLoadComp* ld, GltfError* err) {
     }
     *dynarray_push_t(&ld->jointNodeIndices, u32) = (u32)joint;
   }
+  if (ld->jointNodeIndices.size > asset_mesh_joints_max) {
+    *err = GltfError_JointCountExceedsMaximum;
+    return;
+  }
 Success:
   *err = GltfError_None;
   return;
@@ -710,9 +714,9 @@ static void gltf_build_mesh(AssetGltfLoadComp* ld, AssetMeshComp* outMesh, GltfE
         const u16* vertJoints = &joints[attr * 4];
         const f32* vertWeight = &weights[attr * 4];
         const u16  j0 = vertJoints[0], j1 = vertJoints[1], j2 = vertJoints[2], j3 = vertJoints[3];
-        enum { JointMax = asset_mesh_joints_max };
-        if (UNLIKELY(j0 >= JointMax || j1 >= JointMax || j2 >= JointMax || j3 >= JointMax)) {
-          *err = GltfError_JointCountExceedsMaximum;
+        const u32  jointMax = (u32)ld->jointNodeIndices.size;
+        if (UNLIKELY(j0 >= jointMax || j1 >= jointMax || j2 >= jointMax || j3 >= jointMax)) {
+          *err = GltfError_MalformedPrimJoints;
           goto Cleanup;
         }
         asset_mesh_builder_set_skin(
