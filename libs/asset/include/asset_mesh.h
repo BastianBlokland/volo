@@ -3,6 +3,9 @@
 #include "geo_box.h"
 #include "geo_vector.h"
 
+// Forward declare from 'geo_matrix.h'.
+typedef union uGeoMatrix GeoMatrix;
+
 #define asset_mesh_indices_max u32_max
 #define asset_mesh_joints_max 16
 ASSERT(asset_mesh_joints_max <= u8_max, "Joint indices should be representable by a u8");
@@ -28,4 +31,9 @@ ecs_comp_extern_public(AssetMeshComp) {
   const AssetMeshIndex*  indexData;
   usize                  indexCount;
   GeoBox                 positionBounds, texcoordBounds;
+};
+
+ecs_comp_extern_public(AssetMeshSkeletonComp) {
+  u8               jointCount;
+  const GeoMatrix* invBindMatrices; // From world to local bind space for a joint.
 };

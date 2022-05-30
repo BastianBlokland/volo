@@ -19,7 +19,7 @@
  * - Output depth: 0 - 1.
  */
 
-typedef union {
+typedef union uGeoMatrix {
   GeoVector columns[4];
   ALIGNAS(16) f32 comps[16];
 } GeoMatrix;

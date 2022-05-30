@@ -6,6 +6,7 @@
 #include "core_path.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
+#include "geo_matrix.h"
 #include "json_read.h"
 #include "log_logger.h"
 
@@ -28,11 +29,7 @@ typedef enum {
   GltfLoadPhase_Meta,
   GltfLoadPhase_BuffersAcquire,
   GltfLoadPhase_BuffersWait,
-  GltfLoadPhase_BufferViews,
-  GltfLoadPhase_Accessors,
-  GltfLoadPhase_Primitives,
-  GltfLoadPhase_Skin,
-  GltfLoadPhase_Build,
+  GltfLoadPhase_Parse,
 } GltfLoadPhase;
 
 typedef struct {
@@ -107,7 +104,7 @@ ecs_comp_define(AssetGltfLoadComp) {
   DynArray      accessors;          // GltfAccessor[].
   DynArray      primitives;         // GltfPrim[].
   DynArray      jointNodeIndices;   // u32[].
-  u32           accInvBindMatrixes; // Accessor index [Optional].
+  u32           accInvBindMatrices; // Accessor index [Optional].
 };
 
 static void ecs_destruct_gltf_load_comp(void* data) {
@@ -156,6 +153,7 @@ typedef enum {
   GltfError_MalformedPrimJoints,
   GltfError_MalformedPrimWeights,
   GltfError_MalformedSkin,
+  GltfError_MalformedInvBindMatrices,
   GltfError_JointCountExceedsMaximum,
   GltfError_MissingVersion,
   GltfError_InvalidBuffer,
@@ -188,6 +186,7 @@ static String gltf_error_str(const GltfError err) {
       string_static("Malformed primitive joints"),
       string_static("Malformed primitive weights"),
       string_static("Malformed skin"),
+      string_static("Malformed inverse bind matrices"),
       string_static("Joint count exceeds maximum"),
       string_static("Gltf version specification missing"),
       string_static("Gltf invalid buffer"),
@@ -536,7 +535,7 @@ static void gltf_parse_skin(AssetGltfLoadComp* ld, GltfError* err) {
   if (json_type(ld->jDoc, skin) != JsonType_Object) {
     goto Error;
   }
-  if (!gltf_field_u32(ld, skin, string_lit("inverseBindMatrices"), &ld->accInvBindMatrixes)) {
+  if (!gltf_field_u32(ld, skin, string_lit("inverseBindMatrices"), &ld->accInvBindMatrices)) {
     goto Error;
   }
   const JsonVal joints = json_field(ld->jDoc, skin, string_lit("joints"));
@@ -645,7 +644,7 @@ Error:
 #undef verify
 }
 
-static void gltf_build_mesh(AssetGltfLoadComp* ld, AssetMeshComp* outMesh, GltfError* err) {
+static void gltf_build_mesh(AssetGltfLoadComp* ld, AssetMeshComp* out, GltfError* err) {
   GltfMeshMeta meta = gltf_mesh_meta(ld, err);
   if (*err) {
     return;
@@ -735,11 +734,35 @@ static void gltf_build_mesh(AssetGltfLoadComp* ld, AssetMeshComp* outMesh, GltfE
   if (!(meta.features & GltfFeature_Tangents)) {
     asset_mesh_compute_tangents(builder);
   }
-  *outMesh = asset_mesh_create(builder);
-  *err     = GltfError_None;
+  *out = asset_mesh_create(builder);
+  *err = GltfError_None;
 
 Cleanup:
   asset_mesh_builder_destroy(builder);
+}
+
+static void gltf_build_skeleton(AssetGltfLoadComp* ld, AssetMeshSkeletonComp* out, GltfError* err) {
+  const u32 jointCount     = (u32)ld->jointNodeIndices.size;
+  const u32 invBindMatSize = sizeof(GeoMatrix) * jointCount;
+  diag_assert(jointCount);
+
+  GltfAccessor* accessors = dynarray_begin_t(&ld->accessors, GltfAccessor);
+  if (!gltf_check_access(ld, ld->accInvBindMatrices, GltfType_f32, 16)) {
+    *err = GltfError_MalformedInvBindMatrices;
+    return;
+  }
+  if (accessors[ld->accInvBindMatrices].count < jointCount) {
+    *err = GltfError_MalformedInvBindMatrices;
+    return;
+  }
+  /**
+   * Gltf also uses column-major 4x4 f32 matrices, so we can just mem-copy it to the result.
+   */
+  const Mem resInvBindMatMem = alloc_alloc(g_alloc_heap, invBindMatSize, alignof(GeoMatrix));
+  mem_cpy(resInvBindMatMem, mem_create(accessors[ld->accInvBindMatrices].data_raw, invBindMatSize));
+
+  *out = (AssetMeshSkeletonComp){.jointCount = jointCount, .invBindMatrices = resInvBindMatMem.ptr};
+  *err = GltfError_None;
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
@@ -800,41 +823,37 @@ ecs_system_define(GltfLoadAssetSys) {
       }
       ++ld->phase;
       // Fallthrough.
-    case GltfLoadPhase_BufferViews:
+    case GltfLoadPhase_Parse: {
       gltf_parse_bufferviews(ld, &err);
       if (err) {
         goto Error;
       }
-      ++ld->phase;
-      // Fallthrough.
-    case GltfLoadPhase_Accessors:
       gltf_parse_accessors(ld, &err);
       if (err) {
         goto Error;
       }
-      ++ld->phase;
-      // Fallthrough.
-    case GltfLoadPhase_Primitives:
       gltf_parse_primitives(ld, &err);
       if (err) {
         goto Error;
       }
-      ++ld->phase;
-    // Fallthrough.
-    case GltfLoadPhase_Skin:
       gltf_parse_skin(ld, &err);
       if (err) {
         goto Error;
       }
-      ++ld->phase;
-      // Fallthrough
-    case GltfLoadPhase_Build: {
-      AssetMeshComp result;
-      gltf_build_mesh(ld, &result, &err);
+      AssetMeshComp resultMesh;
+      gltf_build_mesh(ld, &resultMesh, &err);
       if (err) {
         goto Error;
       }
-      *ecs_world_add_t(world, entity, AssetMeshComp) = result;
+      *ecs_world_add_t(world, entity, AssetMeshComp) = resultMesh;
+      if (ld->jointNodeIndices.size) {
+        AssetMeshSkeletonComp resultSkeleton;
+        gltf_build_skeleton(ld, &resultSkeleton, &err);
+        if (err) {
+          goto Error;
+        }
+        *ecs_world_add_t(world, entity, AssetMeshSkeletonComp) = resultSkeleton;
+      }
       ecs_world_add_empty_t(world, entity, AssetLoadedComp);
       goto Cleanup;
     }
