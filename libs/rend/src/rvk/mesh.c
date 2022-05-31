@@ -7,6 +7,8 @@
 #include "mesh_internal.h"
 #include "transfer_internal.h"
 
+#define rvk_mesh_vertex_align 16
+
 typedef struct {
   ALIGNAS(16)
   f16 data1[4]; // x, y, z position
@@ -15,28 +17,62 @@ typedef struct {
   f16 data4[4]; // x, y, z tangent, w tangent handedness
 } RvkVertexPacked;
 
+ASSERT(sizeof(RvkVertexPacked) == 32, "Unexpected vertex size");
+ASSERT(alignof(RvkVertexPacked) == rvk_mesh_vertex_align, "Unexpected vertex alignment");
+
+typedef struct {
+  ALIGNAS(16)
+  f16 data1[4]; // x, y, z position
+  f16 data2[4]; // x, y texcoord
+  f16 data3[4]; // x, y, z normal
+  u16 data4[4]; // x jointIndex0, y jointIndex1, z jointIndex2, w jointIndex3,
+  f16 data5[4]; // x jointWeight0, y jointWeight1, z jointWeight2, w jointWeight3
+} RvkVertexSkinnedPacked;
+
+ASSERT(sizeof(RvkVertexSkinnedPacked) == 48, "Unexpected vertex size");
+ASSERT(alignof(RvkVertexSkinnedPacked) == rvk_mesh_vertex_align, "Unexpected vertex alignment");
+
 /**
- * Compatible with the VertexPacked structure defined in 'vertex.glsl' using the std140 glsl layout.
- * TODO: 24 byte structure size is achieveable using the std140 glsl layout for buffers.
+ * Compatible with the structures defined in 'vertex.glsl' using the std140 glsl layout.
  */
 
-ASSERT(sizeof(RvkVertexPacked) == 32, "Unexpected vertex size");
-ASSERT(alignof(RvkVertexPacked) == 16, "Unexpected vertex alignment");
-
 #define rvk_mesh_max_scratch_size (64 * usize_kibibyte)
+
+static bool rvk_mesh_skinned(const AssetMeshComp* asset) { return asset->skinData != null; }
+
+static u32 rvk_mesh_vertex_size(const AssetMeshComp* asset) {
+  return rvk_mesh_skinned(asset) ? sizeof(RvkVertexSkinnedPacked) : sizeof(RvkVertexPacked);
+}
 
 static Mem rvk_mesh_to_device_vertices(Allocator* alloc, const AssetMeshComp* asset) {
   diag_assert_msg(asset->vertexCount, "Mesh asset does not contain any vertices");
 
-  const usize bufferSize = sizeof(RvkVertexPacked) * asset->vertexCount;
-  Mem         buffer     = alloc_alloc(alloc, bufferSize, alignof(RvkVertexPacked));
+  const usize bufferSize = rvk_mesh_vertex_size(asset) * asset->vertexCount;
+  Mem         buffer     = alloc_alloc(alloc, bufferSize, rvk_mesh_vertex_align);
 
-  RvkVertexPacked* output = mem_as_t(buffer, RvkVertexPacked);
-  for (usize i = 0; i != asset->vertexCount; ++i) {
-    geo_vector_pack_f16(asset->vertexData[i].position, output[i].data1);
-    geo_vector_pack_f16(asset->vertexData[i].texcoord, output[i].data2);
-    geo_vector_pack_f16(asset->vertexData[i].normal, output[i].data3);
-    geo_vector_pack_f16(asset->vertexData[i].tangent, output[i].data4);
+  if (rvk_mesh_skinned(asset)) {
+    RvkVertexSkinnedPacked* output = mem_as_t(buffer, RvkVertexSkinnedPacked);
+    for (usize i = 0; i != asset->vertexCount; ++i) {
+      geo_vector_pack_f16(asset->vertexData[i].position, output[i].data1);
+      geo_vector_pack_f16(asset->vertexData[i].texcoord, output[i].data2);
+      geo_vector_pack_f16(asset->vertexData[i].normal, output[i].data3);
+      geo_vector_pack_f16(asset->vertexData[i].tangent, output[i].data4);
+
+      output[i].data4[0] = asset->skinData[i].joints[0];
+      output[i].data4[1] = asset->skinData[i].joints[1];
+      output[i].data4[2] = asset->skinData[i].joints[2];
+      output[i].data4[3] = asset->skinData[i].joints[3];
+
+      geo_vector_pack_f16(asset->skinData[i].weights, output[i].data5);
+    }
+  } else {
+    RvkVertexPacked* output = mem_as_t(buffer, RvkVertexPacked);
+    for (usize i = 0; i != asset->vertexCount; ++i) {
+      geo_vector_pack_f16(asset->vertexData[i].position, output[i].data1);
+      geo_vector_pack_f16(asset->vertexData[i].texcoord, output[i].data2);
+      geo_vector_pack_f16(asset->vertexData[i].normal, output[i].data3);
+      geo_vector_pack_f16(asset->vertexData[i].tangent, output[i].data4);
+    }
   }
   return buffer;
 }
@@ -50,7 +86,8 @@ RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const Strin
       .indexCount  = (u32)asset->indexCount,
   };
 
-  const bool useScratch = sizeof(RvkVertexPacked) * asset->vertexCount < rvk_mesh_max_scratch_size;
+  const u32  vertexSize    = rvk_mesh_vertex_size(asset);
+  const bool useScratch    = vertexSize * asset->vertexCount < rvk_mesh_max_scratch_size;
   Allocator* verticesAlloc = useScratch ? g_alloc_scratch : g_alloc_heap;
   const Mem  verticesMem   = rvk_mesh_to_device_vertices(verticesAlloc, asset);
 
@@ -70,6 +107,7 @@ RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const Strin
   log_d(
       "Vulkan mesh created",
       log_param("name", fmt_text(dbgName)),
+      log_param("skinned", fmt_bool(rvk_mesh_skinned(asset))),
       log_param("vertices", fmt_int(mesh->vertexCount)),
       log_param("indices", fmt_int(mesh->indexCount)),
       log_param("vertex-memory", fmt_size(mesh->vertexBuffer.mem.size)),

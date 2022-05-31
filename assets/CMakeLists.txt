@@ -19,6 +19,7 @@ configure_shaders(volo_shaders
     shaders/scene/sky_cubemap.frag
     shaders/scene/sky_procedural.frag
     shaders/scene/sky.vert
+    shaders/standard_skinned.vert
     shaders/standard.frag
     shaders/standard.vert
     shaders/ui/canvas.frag

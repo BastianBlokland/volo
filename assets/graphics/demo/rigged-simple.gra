@@ -1,7 +1,7 @@
 {
   "shaders": [
     {
-      "shaderId": "shaders/standard.vert.spv"
+      "shaderId": "shaders/standard_skinned.vert.spv"
     },
     {
       "shaderId": "shaders/standard.frag.spv",
