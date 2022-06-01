@@ -20,7 +20,7 @@ static void ecs_destruct_mesh_comp(void* data) {
 
 static void ecs_destruct_mesh_skeleton_comp(void* data) {
   AssetMeshSkeletonComp* comp = data;
-  alloc_free_array_t(g_alloc_heap, comp->invBindMatrices, comp->jointCount);
+  alloc_free_array_t(g_alloc_heap, comp->jointInvBindTransforms, comp->jointCount);
 }
 
 ecs_view_define(UnloadView) {

@@ -758,7 +758,10 @@ static void gltf_build_skeleton(AssetGltfLoadComp* ld, AssetMeshSkeletonComp* ou
   const Mem resInvBindMatMem = alloc_alloc(g_alloc_heap, invBindMatSize, alignof(GeoMatrix));
   mem_cpy(resInvBindMatMem, mem_create(accessors[ld->accInvBindMatrices].data_raw, invBindMatSize));
 
-  *out = (AssetMeshSkeletonComp){.jointCount = jointCount, .invBindMatrices = resInvBindMatMem.ptr};
+  *out = (AssetMeshSkeletonComp){
+      .jointCount             = jointCount,
+      .jointInvBindTransforms = resInvBindMatMem.ptr,
+  };
   *err = GltfError_None;
 }
 

@@ -14,7 +14,7 @@ struct InstanceData {
 struct InstanceSkinnedData {
   f32v4 posAndScale;                  // x, y, z position, w scale
   f32v4 rot;                          // x, y, z, w rotation quaternion
-  f32m4 jointTransforms[c_maxJoints]; // Transformation matrix per joint.
+  f32m4 jointTransforms[c_maxJoints]; // Transformation matrices relative to the bind pose.
 };
 
 #endif // INCLUDE_INSTANCE
