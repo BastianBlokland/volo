@@ -9,7 +9,9 @@
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_graphic_data(0) readonly buffer MeshSkinned { VertexSkinnedPacked[] u_vertices; };
-bind_instance_data(0) readonly uniform Instance { InstanceData[c_maxInstances] u_instances; };
+bind_instance_data(0) readonly uniform InstanceSkinned {
+  InstanceSkinnedData[c_maxInstances] u_instances;
+};
 
 bind_internal(0) out f32v3 out_worldPosition;
 bind_internal(1) out f32v3 out_worldNormal;

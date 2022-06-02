@@ -219,3 +219,11 @@ ecs_module_init(scene_skeleton_module) {
   ecs_register_system(
       SceneSkeletonTemplateLoadSys, ecs_view_id(TemplateLoadView), ecs_view_id(MeshView));
 }
+
+void scene_skeleton_joint_delta(
+    const SceneSkeletonComp* skeleton, const SceneSkeletonTemplateComp* templ, GeoMatrix* out) {
+  diag_assert(skeleton->jointCount == templ->jointCount);
+  for (u32 i = 0; i != skeleton->jointCount; ++i) {
+    out[i] = geo_matrix_mul(&skeleton->jointTransforms[i], &templ->jointInvBindTransforms[i]);
+  }
+}

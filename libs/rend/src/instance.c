@@ -1,3 +1,4 @@
+#include "core_diag.h"
 #include "ecs_world.h"
 #include "rend_register.h"
 #include "scene_bounds.h"
@@ -9,12 +10,24 @@
 #include "draw_internal.h"
 
 #define rend_instance_max_draw_create 16
+#define rend_instance_max_joints 16
 
 typedef struct {
   ALIGNAS(16)
   GeoVector posAndScale; // xyz: position, w: scale.
   GeoQuat   rot;
 } RendInstanceData;
+
+ASSERT(sizeof(RendInstanceData) == 32, "Size needs to match the size defined in glsl");
+
+typedef struct {
+  ALIGNAS(16)
+  GeoVector posAndScale; // xyz: position, w: scale.
+  GeoQuat   rot;
+  GeoMatrix jointDelta[rend_instance_max_joints];
+} RendInstanceSkinnedData;
+
+ASSERT(sizeof(RendInstanceSkinnedData) == 1056, "Size needs to match the size defined in glsl");
 
 ecs_view_define(RenderableView) {
   ecs_access_read(SceneRenderableComp);
@@ -26,7 +39,10 @@ ecs_view_define(RenderableView) {
   ecs_access_maybe_read(SceneScaleComp);
 }
 
-ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
+ecs_view_define(DrawView) {
+  ecs_access_write(RendDrawComp);
+  ecs_access_maybe_read(SceneSkeletonTemplateComp);
+}
 
 ecs_system_define(RendInstanceFillDrawsSys) {
   EcsView* renderableView = ecs_world_view_t(world, RenderableView);
@@ -45,6 +61,7 @@ ecs_system_define(RendInstanceFillDrawsSys) {
     const SceneTransformComp* transformComp = ecs_view_read_t(renderableItr, SceneTransformComp);
     const SceneScaleComp*     scaleComp     = ecs_view_read_t(renderableItr, SceneScaleComp);
     const SceneBoundsComp*    boundsComp    = ecs_view_read_t(renderableItr, SceneBoundsComp);
+    const SceneSkeletonComp*  skeletonComp  = ecs_view_read_t(renderableItr, SceneSkeletonComp);
     const SceneTags           tags          = tagComp ? tagComp->tags : SceneTags_Default;
 
     if (UNLIKELY(!ecs_world_has_t(world, renderable->graphic, RendDrawComp))) {
@@ -67,14 +84,23 @@ ecs_system_define(RendInstanceFillDrawsSys) {
                                    ? geo_box_inverted3()
                                    : geo_box_transform3(&boundsComp->local, position, rotation, scale);
 
-    rend_draw_add_instance(
-        draw,
-        mem_struct(
-            RendInstanceData,
-            .posAndScale = geo_vector(position.x, position.y, position.z, scale),
-            .rot         = rotation),
-        tags,
-        aabb);
+    const bool isSkinned = skeletonComp->jointCount != 0;
+    if (isSkinned) {
+      diag_assert(skeletonComp->jointCount <= rend_instance_max_joints);
+      const SceneSkeletonTemplateComp* templ = ecs_view_read_t(drawItr, SceneSkeletonTemplateComp);
+      RendInstanceSkinnedData          data  = {
+          .posAndScale = geo_vector(position.x, position.y, position.z, scale),
+          .rot         = rotation,
+      };
+      scene_skeleton_joint_delta(skeletonComp, templ, data.jointDelta);
+      rend_draw_add_instance(draw, mem_var(data), tags, aabb);
+    } else /* !isSkinned */ {
+      const RendInstanceData data = {
+          .posAndScale = geo_vector(position.x, position.y, position.z, scale),
+          .rot         = rotation,
+      };
+      rend_draw_add_instance(draw, mem_var(data), tags, aabb);
+    }
   }
 }
 
