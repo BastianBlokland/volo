@@ -25,8 +25,9 @@ typedef struct {
   f16 data1[4]; // x, y, z position
   f16 data2[4]; // x, y texcoord
   f16 data3[4]; // x, y, z normal
-  u16 data4[4]; // x jointIndex0, y jointIndex1, z jointIndex2, w jointIndex3,
-  f16 data5[4]; // x jointWeight0, y jointWeight1, z jointWeight2, w jointWeight3
+  f16 data4[4]; // x, y, z tangent, w tangent handedness
+  u16 data5[4]; // x jointIndex0, y jointIndex1, z jointIndex2, w jointIndex3,
+  f16 data6[4]; // x jointWeight0, y jointWeight1, z jointWeight2, w jointWeight3
 } RvkVertexSkinnedPacked;
 
 ASSERT(sizeof(RvkVertexSkinnedPacked) == 48, "Unexpected vertex size");
@@ -58,12 +59,12 @@ static Mem rvk_mesh_to_device_vertices(Allocator* alloc, const AssetMeshComp* as
       geo_vector_pack_f16(asset->vertexData[i].normal, output[i].data3);
       geo_vector_pack_f16(asset->vertexData[i].tangent, output[i].data4);
 
-      output[i].data4[0] = asset->skinData[i].joints[0];
-      output[i].data4[1] = asset->skinData[i].joints[1];
-      output[i].data4[2] = asset->skinData[i].joints[2];
-      output[i].data4[3] = asset->skinData[i].joints[3];
+      output[i].data5[0] = asset->skinData[i].joints[0];
+      output[i].data5[1] = asset->skinData[i].joints[1];
+      output[i].data5[2] = asset->skinData[i].joints[2];
+      output[i].data5[3] = asset->skinData[i].joints[3];
 
-      geo_vector_pack_f16(asset->skinData[i].weights, output[i].data5);
+      geo_vector_pack_f16(asset->skinData[i].weights, output[i].data6);
     }
   } else {
     RvkVertexPacked* output = mem_as_t(buffer, RvkVertexPacked);
