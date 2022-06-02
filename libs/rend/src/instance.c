@@ -2,6 +2,7 @@
 #include "rend_register.h"
 #include "scene_bounds.h"
 #include "scene_renderable.h"
+#include "scene_skeleton.h"
 #include "scene_tag.h"
 #include "scene_transform.h"
 
@@ -17,12 +18,8 @@ typedef struct {
 
 ecs_view_define(RenderableView) {
   ecs_access_read(SceneRenderableComp);
-
-  /**
-   * NOTE: At the moment only entities who's bounds are allready calculated are drawn. This avoids
-   * the issue that entities are needlessly drawn while their bounds are being calculated.
-   */
   ecs_access_read(SceneBoundsComp);
+  ecs_access_read(SceneSkeletonComp);
 
   ecs_access_maybe_read(SceneTagComp);
   ecs_access_maybe_read(SceneTransformComp);

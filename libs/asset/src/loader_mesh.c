@@ -48,3 +48,10 @@ ecs_module_init(asset_mesh_module) {
 
   ecs_register_system(UnloadMeshAssetSys, ecs_view_id(UnloadView));
 }
+
+const GeoMatrix*
+asset_mesh_inv_bind_transforms_create(Allocator* alloc, const AssetMeshSkeletonComp* skeleton) {
+  const usize size   = sizeof(GeoMatrix) * skeleton->jointCount;
+  const Mem   orgMem = mem_create(skeleton->jointInvBindTransforms, size);
+  return alloc_dup(alloc, orgMem, alignof(GeoMatrix)).ptr;
+}

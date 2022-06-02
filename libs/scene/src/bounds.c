@@ -135,7 +135,7 @@ ecs_system_define(SceneBoundsTemplateLoadSys) {
     }
     case BoundsTemplateState_LoadMesh: {
       if (!scene_asset_is_loaded(world, templateComp->mesh)) {
-        break; // Graphic has not loaded yet; wait.
+        break; // Mesh has not loaded yet; wait.
       }
       if (ecs_view_maybe_jump(meshItr, templateComp->mesh)) {
         const AssetMeshComp* mesh = ecs_view_read_t(meshItr, AssetMeshComp);
