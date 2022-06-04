@@ -93,11 +93,6 @@ typedef struct {
   u32          accWeights;  // Accessor index [Optional].
 } GltfPrim;
 
-typedef struct {
-  u32 accInput;  // Accessor input.
-  u32 accOutput; // Accessor output.
-} GltfSampler;
-
 typedef enum {
   GltfChannelTarget_Translation,
   GltfChannelTarget_Rotation,
@@ -105,7 +100,8 @@ typedef enum {
 } GltfChannelTarget;
 
 typedef struct {
-  u32               samplerIndex;
+  u32               accInput;  // Accessor index.
+  u32               accOutput; // Accessor index.
   u32               nodeIndex;
   GltfChannelTarget target;
 } GltfChannel;
@@ -126,7 +122,6 @@ ecs_comp_define(AssetGltfLoadComp) {
   DynArray      accessors;          // GltfAccessor[].
   DynArray      primitives;         // GltfPrim[].
   DynArray      jointNodeIndices;   // u32[].
-  DynArray      samplers;           // GltfSampler[].
   DynArray      channels;           // GltfChannel[].
   DynArray      animations;         // GltfAnim[].
   u32           accInvBindMatrices; // Accessor index [Optional].
@@ -140,7 +135,6 @@ static void ecs_destruct_gltf_load_comp(void* data) {
   dynarray_destroy(&comp->accessors);
   dynarray_destroy(&comp->primitives);
   dynarray_destroy(&comp->jointNodeIndices);
-  dynarray_destroy(&comp->samplers);
   dynarray_destroy(&comp->channels);
   dynarray_destroy(&comp->animations);
 }
@@ -617,6 +611,12 @@ static void gltf_parse_animations(AssetGltfLoadComp* ld, GltfError* err) {
   if (!gltf_check_val(ld, animations, JsonType_Array) || !json_elem_count(ld->jDoc, animations)) {
     goto Success; // Animations are optional.
   }
+
+  enum { GltfMaxSamplerCount = 1024 };
+  u32 samplerAccInput[GltfMaxSamplerCount];
+  u32 samplerAccOutput[GltfMaxSamplerCount];
+  u32 samplerCount;
+
   json_for_elems(ld->jDoc, animations, anim) {
     if (json_type(ld->jDoc, anim) != JsonType_Object) {
       goto Error;
@@ -625,19 +625,21 @@ static void gltf_parse_animations(AssetGltfLoadComp* ld, GltfError* err) {
     resultAnim->name     = gltf_parse_name(ld, anim);
 
     const JsonVal samplers = json_field(ld->jDoc, anim, string_lit("samplers"));
-    if (!gltf_check_val(ld, samplers, JsonType_Array) || !json_elem_count(ld->jDoc, samplers)) {
+    if (!gltf_check_val(ld, samplers, JsonType_Array)) {
       goto Error;
     }
-    const u32 samplerStartIndex = (u32)ld->samplers.size;
+    samplerCount = 0;
     json_for_elems(ld->jDoc, samplers, sampler) {
       if (json_type(ld->jDoc, sampler) != JsonType_Object) {
         goto Error;
       }
-      GltfSampler* resultSampler = dynarray_push_t(&ld->samplers, GltfSampler);
-      if (!gltf_field_u32(ld, sampler, string_lit("input"), &resultSampler->accInput)) {
+      if (!gltf_field_u32(ld, sampler, string_lit("input"), &samplerAccInput[samplerCount])) {
         goto Error;
       }
-      if (!gltf_field_u32(ld, sampler, string_lit("output"), &resultSampler->accOutput)) {
+      if (!gltf_field_u32(ld, sampler, string_lit("output"), &samplerAccOutput[samplerCount])) {
+        goto Error;
+      }
+      if (++samplerCount == GltfMaxSamplerCount) {
         goto Error;
       }
       // TODO: Validate that the interpolation mode is 'LINEAR'.
@@ -654,14 +656,16 @@ static void gltf_parse_animations(AssetGltfLoadComp* ld, GltfError* err) {
         goto Error;
       }
       GltfChannel* resultChannel = dynarray_push_t(&ld->channels, GltfChannel);
-      u32          samplerRelativeIndex;
-      if (!gltf_field_u32(ld, channel, string_lit("sampler"), &samplerRelativeIndex)) {
+      u32          samplerIndex;
+      if (!gltf_field_u32(ld, channel, string_lit("sampler"), &samplerIndex)) {
         goto Error;
       }
-      resultChannel->samplerIndex = samplerStartIndex + samplerRelativeIndex;
-      if (resultChannel->samplerIndex >= ld->samplers.size) {
+      if (samplerIndex >= samplerCount) {
         goto Error;
       }
+      resultChannel->accInput  = samplerAccInput[samplerIndex];
+      resultChannel->accOutput = samplerAccOutput[samplerIndex];
+
       const JsonVal target = json_field(ld->jDoc, channel, string_lit("target"));
       if (!gltf_check_val(ld, target, JsonType_Object)) {
         goto Error;
@@ -1043,7 +1047,6 @@ void asset_load_gltf(EcsWorld* world, const String id, const EcsEntityId entity,
       .accessors        = dynarray_create_t(g_alloc_heap, GltfAccessor, 8),
       .primitives       = dynarray_create_t(g_alloc_heap, GltfPrim, 4),
       .jointNodeIndices = dynarray_create_t(g_alloc_heap, u32, 0),
-      .samplers         = dynarray_create_t(g_alloc_heap, GltfSampler, 0),
       .channels         = dynarray_create_t(g_alloc_heap, GltfChannel, 0),
       .animations       = dynarray_create_t(g_alloc_heap, GltfAnim, 0));
 }
