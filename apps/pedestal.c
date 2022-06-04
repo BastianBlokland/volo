@@ -59,6 +59,11 @@ static const Subject   g_subjects[]          = {
         .scale    = 0.25f,
     },
     {
+        .graphic  = string_static("graphics/demo/fox.gra"),
+        .position = {.y = 0.5f},
+        .scale    = 0.015f,
+    },
+    {
         .graphic  = string_static("graphics/demo/terrain.gra"),
         .position = {.y = 0.5f},
         .scale    = 1.5f,
