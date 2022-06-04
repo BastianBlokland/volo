@@ -764,7 +764,7 @@ static GltfMeshMeta gltf_mesh_meta(AssetGltfLoadComp* ld, GltfError* err) {
       verify(gltf_check_access(ld, prim->accJoints, GltfType_u16, 4), MalformedPrimJoints);
       verify(accessors[prim->accJoints].count == attrCount, MalformedPrimJoints);
       verify(gltf_check_access(ld, prim->accWeights, GltfType_f32, 4), MalformedPrimWeights);
-      verify(accessors[prim->accJoints].count == attrCount, MalformedPrimWeights);
+      verify(accessors[prim->accWeights].count == attrCount, MalformedPrimWeights);
     }
   }
   return (GltfMeshMeta){.features = features, .vertexCount = vertexCount};
