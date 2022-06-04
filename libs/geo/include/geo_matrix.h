@@ -35,7 +35,7 @@ GeoMatrix geo_matrix_ident();
 
 /**
  * Retrieve a row from the matrix.
- * NOTE: Matrix is stored as column-major so perfer using columns.
+ * NOTE: Matrix is stored as column-major so prefer using columns.
  * Pre-condition: index < 4
  */
 GeoVector geo_matrix_row(const GeoMatrix*, usize index);
