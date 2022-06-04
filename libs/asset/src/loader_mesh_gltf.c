@@ -94,7 +94,13 @@ typedef struct {
 } GltfPrim;
 
 typedef struct {
+  u32 accInput;  // Accessor input.
+  u32 accOutput; // Accessor output.
+} GltfSampler;
+
+typedef struct {
   String name; // NOTE: Allocated in the json document (or empty).
+  u32    samplerIndex, samplerCount;
 } GltfAnim;
 
 ecs_comp_define(AssetGltfLoadComp) {
@@ -108,6 +114,7 @@ ecs_comp_define(AssetGltfLoadComp) {
   DynArray      accessors;          // GltfAccessor[].
   DynArray      primitives;         // GltfPrim[].
   DynArray      jointNodeIndices;   // u32[].
+  DynArray      samplers;           // GltfSampler[].
   DynArray      animations;         // GltfAnim[].
   u32           accInvBindMatrices; // Accessor index [Optional].
 };
@@ -120,6 +127,7 @@ static void ecs_destruct_gltf_load_comp(void* data) {
   dynarray_destroy(&comp->accessors);
   dynarray_destroy(&comp->primitives);
   dynarray_destroy(&comp->jointNodeIndices);
+  dynarray_destroy(&comp->samplers);
   dynarray_destroy(&comp->animations);
 }
 
@@ -247,6 +255,12 @@ gltf_field_str(AssetGltfLoadComp* ld, const JsonVal jVal, const String name, Str
   }
   *out = json_string(ld->jDoc, jField);
   return true;
+}
+
+static String gltf_parse_name(AssetGltfLoadComp* ld, const JsonVal obj) {
+  const JsonVal nameVal = json_field(ld->jDoc, obj, string_lit("name"));
+  return gltf_check_val(ld, nameVal, JsonType_String) ? json_string(ld->jDoc, nameVal)
+                                                      : string_empty;
 }
 
 static void gltf_parse_version(AssetGltfLoadComp* ld, String str, GltfError* err) {
@@ -577,10 +591,28 @@ static void gltf_parse_animations(AssetGltfLoadComp* ld, GltfError* err) {
     if (json_type(ld->jDoc, anim) != JsonType_Object) {
       goto Error;
     }
-    GltfAnim*     result  = dynarray_push_t(&ld->animations, GltfAnim);
-    const JsonVal nameVal = json_field(ld->jDoc, anim, string_lit("name"));
-    result->name = gltf_check_val(ld, nameVal, JsonType_String) ? json_string(ld->jDoc, nameVal)
-                                                                : string_empty;
+    GltfAnim* resultAnim = dynarray_push_t(&ld->animations, GltfAnim);
+    resultAnim->name     = gltf_parse_name(ld, anim);
+
+    const JsonVal samplers = json_field(ld->jDoc, anim, string_lit("samplers"));
+    if (!gltf_check_val(ld, samplers, JsonType_Array) || !json_elem_count(ld->jDoc, samplers)) {
+      goto Error;
+    }
+    resultAnim->samplerIndex = (u32)ld->samplers.size;
+    resultAnim->samplerCount = json_elem_count(ld->jDoc, samplers);
+    json_for_elems(ld->jDoc, samplers, sampler) {
+      if (json_type(ld->jDoc, anim) != JsonType_Object) {
+        goto Error;
+      }
+      GltfSampler* resultSampler = dynarray_push_t(&ld->samplers, GltfSampler);
+      if (!gltf_field_u32(ld, sampler, string_lit("input"), &resultSampler->accInput)) {
+        goto Error;
+      }
+      if (!gltf_field_u32(ld, sampler, string_lit("output"), &resultSampler->accOutput)) {
+        goto Error;
+      }
+      // TODO: Validate that the interpolation mode is 'LINEAR'.
+    }
   }
 Success:
   *err = GltfError_None;
@@ -945,6 +977,7 @@ void asset_load_gltf(EcsWorld* world, const String id, const EcsEntityId entity,
       .bufferViews      = dynarray_create_t(g_alloc_heap, GltfBufferView, 8),
       .accessors        = dynarray_create_t(g_alloc_heap, GltfAccessor, 8),
       .primitives       = dynarray_create_t(g_alloc_heap, GltfPrim, 4),
-      .animations       = dynarray_create_t(g_alloc_heap, GltfAnim, 0),
-      .jointNodeIndices = dynarray_create_t(g_alloc_heap, u32, 0));
+      .jointNodeIndices = dynarray_create_t(g_alloc_heap, u32, 0),
+      .samplers         = dynarray_create_t(g_alloc_heap, GltfSampler, 0),
+      .animations       = dynarray_create_t(g_alloc_heap, GltfAnim, 0));
 }
