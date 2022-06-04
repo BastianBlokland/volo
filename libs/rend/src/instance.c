@@ -10,7 +10,7 @@
 #include "draw_internal.h"
 
 #define rend_instance_max_draw_create 16
-#define rend_instance_max_joints 16
+#define rend_instance_max_joints 32
 
 typedef struct {
   ALIGNAS(16)
@@ -27,7 +27,7 @@ typedef struct {
   GeoMatrix jointDelta[rend_instance_max_joints];
 } RendInstanceSkinnedData;
 
-ASSERT(sizeof(RendInstanceSkinnedData) == 1056, "Size needs to match the size defined in glsl");
+ASSERT(sizeof(RendInstanceSkinnedData) == 2080, "Size needs to match the size defined in glsl");
 
 ecs_view_define(RenderableView) {
   ecs_access_read(SceneRenderableComp);
@@ -89,8 +89,8 @@ ecs_system_define(RendInstanceFillDrawsSys) {
       diag_assert(skeletonComp->jointCount <= rend_instance_max_joints);
       const SceneSkeletonTemplateComp* templ = ecs_view_read_t(drawItr, SceneSkeletonTemplateComp);
       RendInstanceSkinnedData          data  = {
-          .posAndScale = geo_vector(position.x, position.y, position.z, scale),
-          .rot         = rotation,
+                    .posAndScale = geo_vector(position.x, position.y, position.z, scale),
+                    .rot         = rotation,
       };
       scene_skeleton_joint_delta(skeletonComp, templ, data.jointDelta);
       rend_draw_add_instance(draw, mem_var(data), tags, aabb);

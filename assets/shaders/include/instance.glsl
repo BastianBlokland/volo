@@ -4,7 +4,7 @@
 #include "types.glsl"
 
 const u32 c_maxInstances = 2048;
-const u32 c_maxJoints    = 16; // Needs to match the maximum in rend_instance.c
+const u32 c_maxJoints    = 32; // Needs to match the maximum in rend_instance.c
 
 struct InstanceData {
   f32v4 posAndScale; // x, y, z position, w scale
