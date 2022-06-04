@@ -93,6 +93,10 @@ typedef struct {
   u32          accWeights;  // Accessor index [Optional].
 } GltfPrim;
 
+typedef struct {
+  String name; // NOTE: Allocated in the json document (or empty).
+} GltfAnim;
+
 ecs_comp_define(AssetGltfLoadComp) {
   String        assetId;
   GltfLoadPhase phase;
@@ -104,6 +108,7 @@ ecs_comp_define(AssetGltfLoadComp) {
   DynArray      accessors;          // GltfAccessor[].
   DynArray      primitives;         // GltfPrim[].
   DynArray      jointNodeIndices;   // u32[].
+  DynArray      animations;         // GltfAnim[].
   u32           accInvBindMatrices; // Accessor index [Optional].
 };
 
@@ -115,6 +120,7 @@ static void ecs_destruct_gltf_load_comp(void* data) {
   dynarray_destroy(&comp->accessors);
   dynarray_destroy(&comp->primitives);
   dynarray_destroy(&comp->jointNodeIndices);
+  dynarray_destroy(&comp->animations);
 }
 
 u32 gltf_component_size(const GltfType type) {
@@ -153,6 +159,7 @@ typedef enum {
   GltfError_MalformedPrimJoints,
   GltfError_MalformedPrimWeights,
   GltfError_MalformedSkin,
+  GltfError_MalformedAnimation,
   GltfError_MalformedInvBindMatrices,
   GltfError_JointCountExceedsMaximum,
   GltfError_MissingVersion,
@@ -186,6 +193,7 @@ static String gltf_error_str(const GltfError err) {
       string_static("Malformed primitive joints"),
       string_static("Malformed primitive weights"),
       string_static("Malformed skin"),
+      string_static("Malformed animation"),
       string_static("Malformed inverse bind matrices"),
       string_static("Joint count exceeds maximum"),
       string_static("Gltf version specification missing"),
@@ -560,6 +568,28 @@ Error:
   *err = GltfError_MalformedSkin;
 }
 
+static void gltf_parse_animations(AssetGltfLoadComp* ld, GltfError* err) {
+  const JsonVal animations = json_field(ld->jDoc, ld->jRoot, string_lit("animations"));
+  if (!gltf_check_val(ld, animations, JsonType_Array) || !json_elem_count(ld->jDoc, animations)) {
+    goto Success; // Animations are optional.
+  }
+  json_for_elems(ld->jDoc, animations, anim) {
+    if (json_type(ld->jDoc, anim) != JsonType_Object) {
+      goto Error;
+    }
+    GltfAnim*     result  = dynarray_push_t(&ld->animations, GltfAnim);
+    const JsonVal nameVal = json_field(ld->jDoc, anim, string_lit("name"));
+    result->name = gltf_check_val(ld, nameVal, JsonType_String) ? json_string(ld->jDoc, nameVal)
+                                                                : string_empty;
+  }
+Success:
+  *err = GltfError_None;
+  return;
+
+Error:
+  *err = GltfError_MalformedAnimation;
+}
+
 static bool gltf_check_access(
     AssetGltfLoadComp* ld, const u32 index, const GltfType type, const u32 compCount) {
   GltfAccessor* accessors = dynarray_begin_t(&ld->accessors, GltfAccessor);
@@ -840,6 +870,10 @@ ecs_system_define(GltfLoadAssetSys) {
       if (err) {
         goto Error;
       }
+      gltf_parse_animations(ld, &err);
+      if (err) {
+        goto Error;
+      }
       AssetMeshComp resultMesh;
       gltf_build_mesh(ld, &resultMesh, &err);
       if (err) {
@@ -911,5 +945,6 @@ void asset_load_gltf(EcsWorld* world, const String id, const EcsEntityId entity,
       .bufferViews      = dynarray_create_t(g_alloc_heap, GltfBufferView, 8),
       .accessors        = dynarray_create_t(g_alloc_heap, GltfAccessor, 8),
       .primitives       = dynarray_create_t(g_alloc_heap, GltfPrim, 4),
+      .animations       = dynarray_create_t(g_alloc_heap, GltfAnim, 0),
       .jointNodeIndices = dynarray_create_t(g_alloc_heap, u32, 0));
 }
