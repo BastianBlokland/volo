@@ -100,6 +100,7 @@ typedef struct {
 
 typedef struct {
   u32 samplerIndex;
+  u32 nodeIndex;
 } GltfChannel;
 
 typedef struct {
@@ -636,6 +637,13 @@ static void gltf_parse_animations(AssetGltfLoadComp* ld, GltfError* err) {
       }
       resultChannel->samplerIndex = samplerStartIndex + samplerRelativeIndex;
       if (resultChannel->samplerIndex >= ld->samplers.size) {
+        goto Error;
+      }
+      const JsonVal target = json_field(ld->jDoc, channel, string_lit("target"));
+      if (!gltf_check_val(ld, target, JsonType_Object)) {
+        goto Error;
+      }
+      if (!gltf_field_u32(ld, target, string_lit("node"), &resultChannel->nodeIndex)) {
         goto Error;
       }
     }
