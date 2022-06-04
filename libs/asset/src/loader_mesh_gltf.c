@@ -99,8 +99,12 @@ typedef struct {
 } GltfSampler;
 
 typedef struct {
+  u32 samplerIndex;
+} GltfChannel;
+
+typedef struct {
   String name; // NOTE: Allocated in the json document (or empty).
-  u32    samplerIndex, samplerCount;
+  u32    channelIndex, channelCount;
 } GltfAnim;
 
 ecs_comp_define(AssetGltfLoadComp) {
@@ -115,6 +119,7 @@ ecs_comp_define(AssetGltfLoadComp) {
   DynArray      primitives;         // GltfPrim[].
   DynArray      jointNodeIndices;   // u32[].
   DynArray      samplers;           // GltfSampler[].
+  DynArray      channels;           // GltfChannel[].
   DynArray      animations;         // GltfAnim[].
   u32           accInvBindMatrices; // Accessor index [Optional].
 };
@@ -128,6 +133,7 @@ static void ecs_destruct_gltf_load_comp(void* data) {
   dynarray_destroy(&comp->primitives);
   dynarray_destroy(&comp->jointNodeIndices);
   dynarray_destroy(&comp->samplers);
+  dynarray_destroy(&comp->channels);
   dynarray_destroy(&comp->animations);
 }
 
@@ -598,10 +604,9 @@ static void gltf_parse_animations(AssetGltfLoadComp* ld, GltfError* err) {
     if (!gltf_check_val(ld, samplers, JsonType_Array) || !json_elem_count(ld->jDoc, samplers)) {
       goto Error;
     }
-    resultAnim->samplerIndex = (u32)ld->samplers.size;
-    resultAnim->samplerCount = json_elem_count(ld->jDoc, samplers);
+    const u32 samplerStartIndex = (u32)ld->samplers.size;
     json_for_elems(ld->jDoc, samplers, sampler) {
-      if (json_type(ld->jDoc, anim) != JsonType_Object) {
+      if (json_type(ld->jDoc, sampler) != JsonType_Object) {
         goto Error;
       }
       GltfSampler* resultSampler = dynarray_push_t(&ld->samplers, GltfSampler);
@@ -612,6 +617,27 @@ static void gltf_parse_animations(AssetGltfLoadComp* ld, GltfError* err) {
         goto Error;
       }
       // TODO: Validate that the interpolation mode is 'LINEAR'.
+    }
+
+    const JsonVal channels = json_field(ld->jDoc, anim, string_lit("channels"));
+    if (!gltf_check_val(ld, channels, JsonType_Array) || !json_elem_count(ld->jDoc, channels)) {
+      goto Error;
+    }
+    resultAnim->channelIndex = (u32)ld->channels.size;
+    resultAnim->channelCount = json_elem_count(ld->jDoc, channels);
+    json_for_elems(ld->jDoc, channels, channel) {
+      if (json_type(ld->jDoc, channel) != JsonType_Object) {
+        goto Error;
+      }
+      GltfChannel* resultChannel = dynarray_push_t(&ld->channels, GltfChannel);
+      u32          samplerRelativeIndex;
+      if (!gltf_field_u32(ld, channel, string_lit("sampler"), &samplerRelativeIndex)) {
+        goto Error;
+      }
+      resultChannel->samplerIndex = samplerStartIndex + samplerRelativeIndex;
+      if (resultChannel->samplerIndex >= ld->samplers.size) {
+        goto Error;
+      }
     }
   }
 Success:
@@ -979,5 +1005,6 @@ void asset_load_gltf(EcsWorld* world, const String id, const EcsEntityId entity,
       .primitives       = dynarray_create_t(g_alloc_heap, GltfPrim, 4),
       .jointNodeIndices = dynarray_create_t(g_alloc_heap, u32, 0),
       .samplers         = dynarray_create_t(g_alloc_heap, GltfSampler, 0),
+      .channels         = dynarray_create_t(g_alloc_heap, GltfChannel, 0),
       .animations       = dynarray_create_t(g_alloc_heap, GltfAnim, 0));
 }
