@@ -79,6 +79,12 @@ GeoVector geo_matrix_to_translation(const GeoMatrix*);
 GeoMatrix geo_matrix_scale(GeoVector scale);
 
 /**
+ * Extract the scale (magnitude) vector from the given matrix.
+ * NOTE: Scale sign is not extracted.
+ */
+GeoVector geo_matrix_to_scale(const GeoMatrix*);
+
+/**
  * Create a rotation matrix around one of the dimensions.
  * NOTE: Angle is in radians.
  */

@@ -137,6 +137,17 @@ spec(matrix) {
     check_eq_vector(geo_matrix_to_translation(&m2), vec);
   }
 
+  it("can extract the scale vector") {
+    const GeoVector scale = geo_vector(1.42f, 2.42f, 1.3337f);
+    const GeoMatrix mT    = geo_matrix_translate(geo_vector(42.0f, -1337.0f, .1f));
+    const GeoMatrix mR    = geo_matrix_rotate_x(math_pi_f32 * .25f);
+    const GeoMatrix mS    = geo_matrix_scale(scale);
+    const GeoMatrix m1    = geo_matrix_mul(&mT, &mR);
+    const GeoMatrix m2    = geo_matrix_mul(&m1, &mS);
+
+    check_eq_vector(geo_matrix_to_scale(&m2), scale);
+  }
+
   it("returns a vector 45 degrees rotated when transforming by a rotate by 45 matrix") {
     const f32       angle = math_pi_f32 * .25f;
     const GeoMatrix mX    = geo_matrix_rotate_x(angle);

@@ -203,6 +203,14 @@ GeoMatrix geo_matrix_scale(const GeoVector scale) {
       }};
 }
 
+GeoVector geo_matrix_to_scale(const GeoMatrix* m) {
+  const GeoVector xAxis = geo_matrix_transform3(m, geo_right);
+  const GeoVector yAxis = geo_matrix_transform3(m, geo_up);
+  const GeoVector zAxis = geo_matrix_transform3(m, geo_forward);
+
+  return geo_vector(geo_vector_mag(xAxis), geo_vector_mag(yAxis), geo_vector_mag(zAxis));
+}
+
 GeoMatrix geo_matrix_rotate_x(const f32 angle) {
   /**
    * [ 1,  0,   0,    0 ]
