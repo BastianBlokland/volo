@@ -118,6 +118,11 @@ GeoMatrix geo_matrix_from_quat(GeoQuat);
 GeoQuat geo_matrix_to_quat(const GeoMatrix*);
 
 /**
+ * Construct transformation matrix from the given translation, rotation and scale.
+ */
+GeoMatrix geo_matrix_trs(GeoVector t, GeoQuat r, GeoVector s);
+
+/**
  * Create an orthographic projection matrix.
  * NOTE: Uses reversed-z depth so near objects are at depth 1 and far at 0.
  */

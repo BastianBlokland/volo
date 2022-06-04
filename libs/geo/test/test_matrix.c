@@ -148,6 +148,23 @@ spec(matrix) {
     check_eq_vector(geo_matrix_to_scale(&m2), scale);
   }
 
+  it("can be decomposed and recomposed") {
+    const GeoVector orgT = geo_vector(42.0f, -1337.0f, .1f);
+    const GeoQuat   orgR = geo_quat_angle_axis(geo_right, math_pi_f32 * .25f);
+
+    const GeoMatrix mT   = geo_matrix_translate(orgT);
+    const GeoMatrix mR   = geo_matrix_from_quat(orgR);
+    const GeoMatrix mOrg = geo_matrix_mul(&mT, &mR);
+
+    const GeoVector extTranslation = geo_matrix_to_translation(&mOrg);
+    check_eq_vector(extTranslation, orgT);
+
+    const GeoQuat extRotation = geo_matrix_to_quat(&mOrg);
+    check_eq_quat(extRotation, orgR);
+
+    check_eq_matrix(geo_matrix_trs(extTranslation, extRotation, geo_vector(1, 1, 1)), mOrg);
+  }
+
   it("returns a vector 45 degrees rotated when transforming by a rotate by 45 matrix") {
     const f32       angle = math_pi_f32 * .25f;
     const GeoMatrix mX    = geo_matrix_rotate_x(angle);

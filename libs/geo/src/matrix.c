@@ -410,6 +410,15 @@ GeoQuat geo_matrix_to_quat(const GeoMatrix* m) {
   };
 }
 
+GeoMatrix geo_matrix_trs(const GeoVector t, const GeoQuat r, const GeoVector s) {
+  const GeoMatrix mT = geo_matrix_translate(t);
+  const GeoMatrix mR = geo_matrix_from_quat(r);
+  const GeoMatrix mS = geo_matrix_scale(s);
+
+  const GeoMatrix temp = geo_matrix_mul(&mT, &mR);
+  return geo_matrix_mul(&temp, &mS);
+}
+
 GeoMatrix
 geo_matrix_proj_ortho(const f32 width, const f32 height, const f32 zNear, const f32 zFar) {
   /**
