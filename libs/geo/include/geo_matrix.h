@@ -69,6 +69,11 @@ GeoMatrix geo_matrix_inverse(const GeoMatrix*);
 GeoMatrix geo_matrix_translate(GeoVector translation);
 
 /**
+ * Extract the translation vector from the given matrix.
+ */
+GeoVector geo_matrix_to_translation(const GeoMatrix*);
+
+/**
  * Create a scale matrix.
  */
 GeoMatrix geo_matrix_scale(GeoVector scale);

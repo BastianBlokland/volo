@@ -183,6 +183,10 @@ GeoMatrix geo_matrix_translate(const GeoVector translation) {
       }};
 }
 
+GeoVector geo_matrix_to_translation(const GeoMatrix* m) {
+  return geo_vector(m->columns[3].x, m->columns[3].y, m->columns[3].z, 0);
+}
+
 GeoMatrix geo_matrix_scale(const GeoVector scale) {
   /**
    * [ sx, 0,  0,  0 ]

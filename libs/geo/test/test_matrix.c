@@ -126,6 +126,17 @@ spec(matrix) {
     check_eq_vector(geo_matrix_transform(&m, geo_vector(2, 3, 4, 0)), geo_vector(2, 6, 12, 0));
   }
 
+  it("can extract the translation vector") {
+    const GeoVector vec = geo_vector(42.0f, -1337.0f, .1f);
+    const GeoMatrix mT  = geo_matrix_translate(vec);
+    const GeoMatrix mR  = geo_matrix_rotate_x(math_pi_f32 * .25f);
+    const GeoMatrix mS  = geo_matrix_scale(geo_vector(1, 2, 3));
+    const GeoMatrix m1  = geo_matrix_mul(&mT, &mR);
+    const GeoMatrix m2  = geo_matrix_mul(&m1, &mS);
+
+    check_eq_vector(geo_matrix_to_translation(&m2), vec);
+  }
+
   it("returns a vector 45 degrees rotated when transforming by a rotate by 45 matrix") {
     const f32       angle = math_pi_f32 * .25f;
     const GeoMatrix mX    = geo_matrix_rotate_x(angle);
