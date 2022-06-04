@@ -98,9 +98,16 @@ typedef struct {
   u32 accOutput; // Accessor output.
 } GltfSampler;
 
+typedef enum {
+  GltfChannelTarget_Translation,
+  GltfChannelTarget_Rotation,
+  GltfChannelTarget_Scale,
+} GltfChannelTarget;
+
 typedef struct {
-  u32 samplerIndex;
-  u32 nodeIndex;
+  u32               samplerIndex;
+  u32               nodeIndex;
+  GltfChannelTarget target;
 } GltfChannel;
 
 typedef struct {
@@ -589,6 +596,22 @@ Error:
   *err = GltfError_MalformedSkin;
 }
 
+static void gltf_parse_channel_target(const String str, GltfChannelTarget* out, GltfError* err) {
+  static const String g_names[] = {
+      string_static("translation"),
+      string_static("rotation"),
+      string_static("scale"),
+  };
+  for (u32 i = 0; i != array_elems(g_names); ++i) {
+    if (string_eq(str, g_names[i])) {
+      *out = i;
+      *err = GltfError_None;
+      return;
+    }
+  }
+  *err = GltfError_MalformedAnimation;
+}
+
 static void gltf_parse_animations(AssetGltfLoadComp* ld, GltfError* err) {
   const JsonVal animations = json_field(ld->jDoc, ld->jRoot, string_lit("animations"));
   if (!gltf_check_val(ld, animations, JsonType_Array) || !json_elem_count(ld->jDoc, animations)) {
@@ -644,6 +667,14 @@ static void gltf_parse_animations(AssetGltfLoadComp* ld, GltfError* err) {
         goto Error;
       }
       if (!gltf_field_u32(ld, target, string_lit("node"), &resultChannel->nodeIndex)) {
+        goto Error;
+      }
+      const JsonVal path = json_field(ld->jDoc, target, string_lit("path"));
+      if (!gltf_check_val(ld, path, JsonType_String)) {
+        goto Error;
+      }
+      gltf_parse_channel_target(json_string(ld->jDoc, path), &resultChannel->target, err);
+      if (*err) {
         goto Error;
       }
     }
