@@ -42,13 +42,13 @@ static AssetMeshSnapshot asset_mesh_snapshot(const AssetMeshBuilder* builder, Al
   const Mem   idxMem  = mem_slice(mem, orgVertMem.size + orgSkinMem.size, orgIdxMem.size);
 
   mem_cpy(vertMem, orgVertMem);
-  mem_cpy(skinMem, skinMem);
+  mem_cpy(skinMem, orgSkinMem);
   mem_cpy(idxMem, orgIdxMem);
 
   return (AssetMeshSnapshot){
       .mem         = mem,
       .vertexData  = mem_as_t(vertMem, AssetMeshVertex),
-      .skinData    = skinMem.size ? mem_as_t(vertMem, AssetMeshSkin) : null,
+      .skinData    = skinMem.size ? mem_as_t(skinMem, AssetMeshSkin) : null,
       .indexData   = mem_as_t(idxMem, AssetMeshIndex),
       .vertexCount = builder->vertexData.size,
       .indexCount  = builder->indexData.size,
