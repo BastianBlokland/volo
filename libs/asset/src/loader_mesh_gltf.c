@@ -117,7 +117,8 @@ ecs_comp_define(AssetGltfLoadComp) {
   JsonDoc*      jDoc;
   JsonVal       jRoot;
   GltfMeta      meta;
-  DynArray      buffers;                // GltfBuffer[].
+  GltfBuffer*   buffers;
+  u32           bufferCount;
   DynArray      bufferViews;            // GltfBufferView[].
   DynArray      accessors;              // GltfAccessor[].
   DynArray      primitives;             // GltfPrim[].
@@ -130,7 +131,9 @@ ecs_comp_define(AssetGltfLoadComp) {
 static void ecs_destruct_gltf_load_comp(void* data) {
   AssetGltfLoadComp* comp = data;
   json_destroy(comp->jDoc);
-  dynarray_destroy(&comp->buffers);
+  if (comp->bufferCount) {
+    alloc_free_array_t(g_alloc_heap, comp->buffers, comp->bufferCount);
+  }
   dynarray_destroy(&comp->bufferViews);
   dynarray_destroy(&comp->accessors);
   dynarray_destroy(&comp->primitives);
@@ -344,6 +347,13 @@ static void gltf_buffers_acquire(
   if (!gltf_check_val(ld, buffers, JsonType_Array)) {
     goto Error;
   }
+  ld->bufferCount = json_elem_count(ld->jDoc, buffers);
+  if (!ld->bufferCount) {
+    goto Error;
+  }
+  ld->buffers        = alloc_array_t(g_alloc_heap, GltfBuffer, ld->bufferCount);
+  GltfBuffer* outItr = ld->buffers;
+
   json_for_elems(ld->jDoc, buffers, bufferElem) {
     u32 byteLength;
     if (!gltf_field_u32(ld, bufferElem, string_lit("byteLength"), &byteLength)) {
@@ -357,7 +367,7 @@ static void gltf_buffers_acquire(
     const EcsEntityId entity = asset_lookup(world, manager, id);
     asset_acquire(world, entity);
 
-    *dynarray_push_t(&ld->buffers, GltfBuffer) = (GltfBuffer){
+    *outItr++ = (GltfBuffer){
         .length = byteLength,
         .entity = entity,
     };
@@ -379,7 +389,7 @@ static void gltf_parse_bufferviews(AssetGltfLoadComp* ld, GltfError* err) {
     if (!gltf_field_u32(ld, bufferView, string_lit("buffer"), &bufferIndex)) {
       goto Error;
     }
-    if (bufferIndex >= ld->buffers.size) {
+    if (bufferIndex >= ld->bufferCount) {
       goto Error;
     }
     u32 byteOffset;
@@ -390,12 +400,11 @@ static void gltf_parse_bufferviews(AssetGltfLoadComp* ld, GltfError* err) {
     if (!gltf_field_u32(ld, bufferView, string_lit("byteLength"), &byteLength)) {
       goto Error;
     }
-    const String bufferData = dynarray_at_t(&ld->buffers, bufferIndex, GltfBuffer)->data;
-    if (byteOffset + byteLength > bufferData.size) {
+    if (byteOffset + byteLength > ld->buffers[bufferIndex].data.size) {
       goto Error;
     }
     *dynarray_push_t(&ld->bufferViews, GltfBufferView) = (GltfBufferView){
-        .data = string_slice(bufferData, byteOffset, byteLength),
+        .data = string_slice(ld->buffers[bufferIndex].data, byteOffset, byteLength),
     };
   }
   *err = GltfError_None;
@@ -964,7 +973,7 @@ ecs_system_define(GltfLoadAssetSys) {
       ++ld->phase;
       goto Next;
     case GltfLoadPhase_BuffersWait:
-      dynarray_for_t(&ld->buffers, GltfBuffer, buffer) {
+      for (GltfBuffer* buffer = ld->buffers; buffer != ld->buffers + ld->bufferCount; ++buffer) {
         if (ecs_world_has_t(world, buffer->entity, AssetFailedComp)) {
           err = GltfError_InvalidBuffer;
           goto Error;
@@ -1029,7 +1038,9 @@ ecs_system_define(GltfLoadAssetSys) {
     gltf_load_fail(world, entity, err);
 
   Cleanup:
-    dynarray_for_t(&ld->buffers, GltfBuffer, buffer) { asset_release(world, buffer->entity); }
+    for (GltfBuffer* buffer = ld->buffers; buffer != ld->buffers + ld->bufferCount; ++buffer) {
+      asset_release(world, buffer->entity);
+    }
     ecs_world_remove_t(world, entity, AssetGltfLoadComp);
 
   Next:
@@ -1073,7 +1084,6 @@ void asset_load_gltf(EcsWorld* world, const String id, const EcsEntityId entity,
       .assetId          = id,
       .jDoc             = jsonDoc,
       .jRoot            = jsonRes.type,
-      .buffers          = dynarray_create_t(g_alloc_heap, GltfBuffer, 1),
       .bufferViews      = dynarray_create_t(g_alloc_heap, GltfBufferView, 8),
       .accessors        = dynarray_create_t(g_alloc_heap, GltfAccessor, 8),
       .primitives       = dynarray_create_t(g_alloc_heap, GltfPrim, 4),
