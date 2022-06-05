@@ -117,13 +117,14 @@ ecs_comp_define(AssetGltfLoadComp) {
   JsonDoc*      jDoc;
   JsonVal       jRoot;
   GltfMeta      meta;
-  DynArray      buffers;            // GltfBuffer[].
-  DynArray      bufferViews;        // GltfBufferView[].
-  DynArray      accessors;          // GltfAccessor[].
-  DynArray      primitives;         // GltfPrim[].
-  DynArray      jointNodeIndices;   // u32[].
-  DynArray      animations;         // GltfAnim[].
-  u32           accInvBindMatrices; // Accessor index [Optional].
+  DynArray      buffers;                // GltfBuffer[].
+  DynArray      bufferViews;            // GltfBufferView[].
+  DynArray      accessors;              // GltfAccessor[].
+  DynArray      primitives;             // GltfPrim[].
+  DynArray      jointNodeIndices;       // u32[].
+  DynArray      animations;             // GltfAnim[].
+  u32           accInvBindMatrices;     // Accessor index [Optional].
+  u32           skeletonRootJointIndex; // [Optional].
 };
 
 static void ecs_destruct_gltf_load_comp(void* data) {
@@ -590,6 +591,14 @@ static void gltf_parse_skin(AssetGltfLoadComp* ld, GltfError* err) {
   if (ld->jointNodeIndices.size > asset_mesh_joints_max) {
     *err = GltfError_JointCountExceedsMaximum;
     return;
+  }
+  u32 skeletonNodeIndex;
+  if (!gltf_field_u32(ld, skin, string_lit("skeleton"), &skeletonNodeIndex)) {
+    goto Error;
+  }
+  ld->skeletonRootJointIndex = gltf_joint_index(ld, skeletonNodeIndex);
+  if (sentinel_check(ld->skeletonRootJointIndex)) {
+    goto Error;
   }
 Success:
   *err = GltfError_None;
