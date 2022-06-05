@@ -112,20 +112,21 @@ typedef struct {
 } GltfAnim;
 
 ecs_comp_define(AssetGltfLoadComp) {
-  String        assetId;
-  GltfLoadPhase phase;
-  JsonDoc*      jDoc;
-  JsonVal       jRoot;
-  GltfMeta      meta;
-  GltfBuffer*   buffers;
-  u32           bufferCount;
-  DynArray      bufferViews;            // GltfBufferView[].
-  DynArray      accessors;              // GltfAccessor[].
-  DynArray      primitives;             // GltfPrim[].
-  DynArray      jointNodeIndices;       // u32[].
-  DynArray      animations;             // GltfAnim[].
-  u32           accInvBindMatrices;     // Accessor index [Optional].
-  u32           skeletonRootJointIndex; // [Optional].
+  String          assetId;
+  GltfLoadPhase   phase;
+  JsonDoc*        jDoc;
+  JsonVal         jRoot;
+  GltfMeta        meta;
+  GltfBuffer*     buffers;
+  u32             bufferCount;
+  GltfBufferView* bufferViews;
+  u32             bufferViewCount;
+  DynArray        accessors;              // GltfAccessor[].
+  DynArray        primitives;             // GltfPrim[].
+  DynArray        jointNodeIndices;       // u32[].
+  DynArray        animations;             // GltfAnim[].
+  u32             accInvBindMatrices;     // Accessor index [Optional].
+  u32             skeletonRootJointIndex; // [Optional].
 };
 
 static void ecs_destruct_gltf_load_comp(void* data) {
@@ -134,7 +135,9 @@ static void ecs_destruct_gltf_load_comp(void* data) {
   if (comp->bufferCount) {
     alloc_free_array_t(g_alloc_heap, comp->buffers, comp->bufferCount);
   }
-  dynarray_destroy(&comp->bufferViews);
+  if (comp->bufferViewCount) {
+    alloc_free_array_t(g_alloc_heap, comp->bufferViews, comp->bufferViewCount);
+  }
   dynarray_destroy(&comp->accessors);
   dynarray_destroy(&comp->primitives);
   dynarray_destroy(&comp->jointNodeIndices);
@@ -384,6 +387,13 @@ static void gltf_parse_bufferviews(AssetGltfLoadComp* ld, GltfError* err) {
   if (!gltf_check_val(ld, bufferViews, JsonType_Array)) {
     goto Error;
   }
+  ld->bufferViewCount = json_elem_count(ld->jDoc, bufferViews);
+  if (!ld->bufferCount) {
+    goto Error;
+  }
+  ld->bufferViews        = alloc_array_t(g_alloc_heap, GltfBufferView, ld->bufferViewCount);
+  GltfBufferView* outItr = ld->bufferViews;
+
   json_for_elems(ld->jDoc, bufferViews, bufferView) {
     u32 bufferIndex;
     if (!gltf_field_u32(ld, bufferView, string_lit("buffer"), &bufferIndex)) {
@@ -403,7 +413,7 @@ static void gltf_parse_bufferviews(AssetGltfLoadComp* ld, GltfError* err) {
     if (byteOffset + byteLength > ld->buffers[bufferIndex].data.size) {
       goto Error;
     }
-    *dynarray_push_t(&ld->bufferViews, GltfBufferView) = (GltfBufferView){
+    *outItr++ = (GltfBufferView){
         .data = string_slice(ld->buffers[bufferIndex].data, byteOffset, byteLength),
     };
   }
@@ -474,7 +484,7 @@ static void gltf_parse_accessors(AssetGltfLoadComp* ld, GltfError* err) {
     if (!gltf_field_u32(ld, accessor, string_lit("bufferView"), &viewIndex)) {
       goto Error;
     }
-    if (viewIndex >= ld->bufferViews.size) {
+    if (viewIndex >= ld->bufferViewCount) {
       goto Error;
     }
     u32 byteOffset;
@@ -499,7 +509,7 @@ static void gltf_parse_accessors(AssetGltfLoadComp* ld, GltfError* err) {
       goto Error;
     }
     const u32    compSize = gltf_component_size(result->compType);
-    const String viewData = dynarray_at_t(&ld->bufferViews, viewIndex, GltfBufferView)->data;
+    const String viewData = ld->bufferViews[viewIndex].data;
     if (byteOffset + compSize * result->compCount * result->count > viewData.size) {
       goto Error;
     }
@@ -1084,7 +1094,6 @@ void asset_load_gltf(EcsWorld* world, const String id, const EcsEntityId entity,
       .assetId          = id,
       .jDoc             = jsonDoc,
       .jRoot            = jsonRes.type,
-      .bufferViews      = dynarray_create_t(g_alloc_heap, GltfBufferView, 8),
       .accessors        = dynarray_create_t(g_alloc_heap, GltfAccessor, 8),
       .primitives       = dynarray_create_t(g_alloc_heap, GltfPrim, 4),
       .jointNodeIndices = dynarray_create_t(g_alloc_heap, u32, 0),
