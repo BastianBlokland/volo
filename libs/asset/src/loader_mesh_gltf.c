@@ -107,6 +107,10 @@ typedef struct {
 } GltfAnimChannel;
 
 typedef struct {
+  u32 nodeIndex;
+} GltfJoint;
+
+typedef struct {
   String          name; // NOTE: Allocated in the json document (or empty).
   GltfAnimChannel channels[asset_mesh_joints_max][GltfAnimTarget_Count];
 } GltfAnim;
@@ -121,8 +125,8 @@ ecs_comp_define(AssetGltfLoadComp) {
   GltfView*     views;
   GltfAccess*   access;
   GltfPrim*     prims;
+  GltfJoint*    joints;
   GltfAnim*     anims;
-  u32*          jointNodeIndices;
   u32           bufferCount;
   u32           viewCount;
   u32           accessCount;
@@ -149,7 +153,7 @@ static void ecs_destruct_gltf_load_comp(void* data) {
     alloc_free_array_t(g_alloc_heap, comp->prims, comp->primCount);
   }
   if (comp->jointCount) {
-    alloc_free_array_t(g_alloc_heap, comp->jointNodeIndices, comp->jointCount);
+    alloc_free_array_t(g_alloc_heap, comp->joints, comp->jointCount);
   }
   if (comp->animCount) {
     alloc_free_array_t(g_alloc_heap, comp->anims, comp->animCount);
@@ -284,7 +288,7 @@ gltf_field_str(AssetGltfLoadComp* ld, const JsonVal jVal, const String name, Str
 
 static u32 gltf_joint_index(AssetGltfLoadComp* ld, const u32 nodeIndex) {
   for (u32 i = 0; i != ld->jointCount; ++i) {
-    if (ld->jointNodeIndices[i] == nodeIndex) {
+    if (ld->joints[i].nodeIndex == nodeIndex) {
       return i;
     }
   }
@@ -630,13 +634,13 @@ static void gltf_parse_skin(AssetGltfLoadComp* ld, GltfError* err) {
     *err = GltfError_JointCountExceedsMaximum;
     return;
   }
-  ld->jointNodeIndices = alloc_array_t(g_alloc_heap, u32, ld->jointCount);
-  u32* outNodeIndex    = ld->jointNodeIndices;
+  ld->joints          = alloc_array_t(g_alloc_heap, GltfJoint, ld->jointCount);
+  GltfJoint* outJoint = ld->joints;
   json_for_elems(ld->jDoc, joints, joint) {
     if (UNLIKELY(json_type(ld->jDoc, joint) != JsonType_Number)) {
       goto Error;
     }
-    *outNodeIndex++ = (u32)json_number(ld->jDoc, joint);
+    *outJoint++ = (GltfJoint){.nodeIndex = (u32)json_number(ld->jDoc, joint)};
   }
   u32 skeletonNodeIndex;
   if (!gltf_field_u32(ld, skin, string_lit("skeleton"), &skeletonNodeIndex)) {
