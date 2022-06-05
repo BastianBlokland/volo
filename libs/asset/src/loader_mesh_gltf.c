@@ -127,7 +127,8 @@ ecs_comp_define(AssetGltfLoadComp) {
   u32           primCount;
   u32*          jointNodeIndices;
   u32           jointCount;
-  DynArray      animations;             // GltfAnim[].
+  GltfAnim*     anims;
+  u32           animCount;
   u32           accInvBindMats;         // Access index [Optional].
   u32           skeletonRootJointIndex; // [Optional].
 };
@@ -150,7 +151,9 @@ static void ecs_destruct_gltf_load_comp(void* data) {
   if (comp->jointCount) {
     alloc_free_array_t(g_alloc_heap, comp->jointNodeIndices, comp->jointCount);
   }
-  dynarray_destroy(&comp->animations);
+  if (comp->animCount) {
+    alloc_free_array_t(g_alloc_heap, comp->anims, comp->animCount);
+  }
 }
 
 u32 gltf_component_size(const GltfType type) {
@@ -676,9 +679,15 @@ static void gltf_clear_anim_channels(GltfAnim* anim) {
 
 static void gltf_parse_animations(AssetGltfLoadComp* ld, GltfError* err) {
   const JsonVal animations = json_field(ld->jDoc, ld->jRoot, string_lit("animations"));
-  if (!gltf_check_val(ld, animations, JsonType_Array) || !json_elem_count(ld->jDoc, animations)) {
+  if (!gltf_check_val(ld, animations, JsonType_Array)) {
     goto Success; // Animations are optional.
   }
+  ld->animCount = json_elem_count(ld->jDoc, animations);
+  if (!ld->animCount) {
+    goto Error;
+  }
+  ld->anims         = alloc_array_t(g_alloc_heap, GltfAnim, ld->animCount);
+  GltfAnim* outAnim = ld->anims;
 
   enum { GltfMaxSamplerCount = 1024 };
   u32 samplerAccInput[GltfMaxSamplerCount];
@@ -689,8 +698,7 @@ static void gltf_parse_animations(AssetGltfLoadComp* ld, GltfError* err) {
     if (json_type(ld->jDoc, anim) != JsonType_Object) {
       goto Error;
     }
-    GltfAnim* result = dynarray_push_t(&ld->animations, GltfAnim);
-    result->name     = gltf_parse_name(ld, anim);
+    outAnim->name = gltf_parse_name(ld, anim);
 
     const JsonVal samplers = json_field(ld->jDoc, anim, string_lit("samplers"));
     if (!gltf_check_val(ld, samplers, JsonType_Array)) {
@@ -713,7 +721,7 @@ static void gltf_parse_animations(AssetGltfLoadComp* ld, GltfError* err) {
       // TODO: Validate that the interpolation mode is 'LINEAR'.
     }
 
-    gltf_clear_anim_channels(result);
+    gltf_clear_anim_channels(outAnim);
     const JsonVal channels = json_field(ld->jDoc, anim, string_lit("channels"));
     if (!gltf_check_val(ld, channels, JsonType_Array) || !json_elem_count(ld->jDoc, channels)) {
       goto Error;
@@ -751,10 +759,11 @@ static void gltf_parse_animations(AssetGltfLoadComp* ld, GltfError* err) {
       if (*err) {
         goto Error;
       }
-      result->channels[jointIndex][channelTarget] = (GltfAnimChannel){
+      outAnim->channels[jointIndex][channelTarget] = (GltfAnimChannel){
           .accInput  = samplerAccInput[samplerIndex],
           .accOutput = samplerAccOutput[samplerIndex],
       };
+      ++outAnim;
     }
   }
 Success:
@@ -1112,7 +1121,6 @@ void asset_load_gltf(EcsWorld* world, const String id, const EcsEntityId entity,
       .assetId                = id,
       .jDoc                   = jsonDoc,
       .jRoot                  = jsonRes.type,
-      .animations             = dynarray_create_t(g_alloc_heap, GltfAnim, 0),
       .accInvBindMats         = sentinel_u32,
       .skeletonRootJointIndex = sentinel_u32);
 }
