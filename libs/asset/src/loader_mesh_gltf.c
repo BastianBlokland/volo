@@ -107,7 +107,8 @@ typedef struct {
 } GltfAnimChannel;
 
 typedef struct {
-  u32 nodeIndex;
+  u32    nodeIndex;
+  String name; // NOTE: Allocated in the json document (or empty).
 } GltfJoint;
 
 typedef struct {
@@ -196,6 +197,7 @@ typedef enum {
   GltfError_MalformedPrimJoints,
   GltfError_MalformedPrimWeights,
   GltfError_MalformedSkin,
+  GltfError_MalformedNodes,
   GltfError_MalformedAnimation,
   GltfError_MalformedInvBindMatrices,
   GltfError_JointCountExceedsMaximum,
@@ -231,6 +233,7 @@ static String gltf_error_str(const GltfError err) {
       string_static("Malformed primitive joints"),
       string_static("Malformed primitive weights"),
       string_static("Malformed skin"),
+      string_static("Malformed nodes"),
       string_static("Malformed animation"),
       string_static("Malformed inverse bind matrices"),
       string_static("Joint count exceeds maximum"),
@@ -660,6 +663,29 @@ Error:
   *err = GltfError_MalformedSkin;
 }
 
+static void gltf_parse_skeleton_nodes(AssetGltfLoadComp* ld, GltfError* err) {
+  const JsonVal nodes = json_field(ld->jDoc, ld->jRoot, string_lit("nodes"));
+  if (!gltf_check_val(ld, nodes, JsonType_Array) || !json_elem_count(ld->jDoc, nodes)) {
+    goto Error;
+  }
+  u32 nodeIndex = 0;
+  json_for_elems(ld->jDoc, nodes, node) {
+    const u32 jointIndex = gltf_joint_index(ld, nodeIndex);
+    if (sentinel_check(jointIndex)) {
+      goto Next; // This node is not part of the skeleton.
+    }
+    ld->joints[jointIndex].name = gltf_parse_name(ld, node);
+
+  Next:
+    ++nodeIndex;
+  }
+  *err = GltfError_None;
+  return;
+
+Error:
+  *err = GltfError_MalformedNodes;
+}
+
 static void gltf_parse_anim_target(const String str, GltfAnimTarget* out, GltfError* err) {
   static const String g_names[] = {
       string_static("translation"),
@@ -1058,6 +1084,10 @@ ecs_system_define(GltfLoadAssetSys) {
         goto Error;
       }
       gltf_parse_skin(ld, &err);
+      if (err) {
+        goto Error;
+      }
+      gltf_parse_skeleton_nodes(ld, &err);
       if (err) {
         goto Error;
       }
