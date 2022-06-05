@@ -113,21 +113,21 @@ typedef struct {
 
 ecs_comp_define(AssetGltfLoadComp) {
   String        assetId;
-  GltfLoadPhase phase;
   JsonDoc*      jDoc;
   JsonVal       jRoot;
+  GltfLoadPhase phase;
   GltfMeta      meta;
   GltfBuffer*   buffers;
-  u32           bufferCount;
   GltfView*     views;
-  u32           viewCount;
   GltfAccess*   access;
-  u32           accessCount;
   GltfPrim*     prims;
-  u32           primCount;
-  u32*          jointNodeIndices;
-  u32           jointCount;
   GltfAnim*     anims;
+  u32*          jointNodeIndices;
+  u32           bufferCount;
+  u32           viewCount;
+  u32           accessCount;
+  u32           primCount;
+  u32           jointCount;
   u32           animCount;
   u32           accInvBindMats;         // Access index [Optional].
   u32           skeletonRootJointIndex; // [Optional].
