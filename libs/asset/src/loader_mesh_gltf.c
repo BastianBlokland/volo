@@ -44,7 +44,7 @@ typedef struct {
 
 typedef struct {
   String data;
-} GltfBufferView;
+} GltfView;
 
 typedef enum {
   GltfType_i8  = 5120,
@@ -112,22 +112,22 @@ typedef struct {
 } GltfAnim;
 
 ecs_comp_define(AssetGltfLoadComp) {
-  String          assetId;
-  GltfLoadPhase   phase;
-  JsonDoc*        jDoc;
-  JsonVal         jRoot;
-  GltfMeta        meta;
-  GltfBuffer*     buffers;
-  u32             bufferCount;
-  GltfBufferView* bufferViews;
-  u32             bufferViewCount;
-  GltfAccessor*   accessors;
-  u32             accessorCount;
-  DynArray        primitives;             // GltfPrim[].
-  DynArray        jointNodeIndices;       // u32[].
-  DynArray        animations;             // GltfAnim[].
-  u32             accInvBindMatrices;     // Accessor index [Optional].
-  u32             skeletonRootJointIndex; // [Optional].
+  String        assetId;
+  GltfLoadPhase phase;
+  JsonDoc*      jDoc;
+  JsonVal       jRoot;
+  GltfMeta      meta;
+  GltfBuffer*   buffers;
+  u32           bufferCount;
+  GltfView*     views;
+  u32           viewCount;
+  GltfAccessor* accessors;
+  u32           accessorCount;
+  DynArray      primitives;             // GltfPrim[].
+  DynArray      jointNodeIndices;       // u32[].
+  DynArray      animations;             // GltfAnim[].
+  u32           accInvBindMatrices;     // Accessor index [Optional].
+  u32           skeletonRootJointIndex; // [Optional].
 };
 
 static void ecs_destruct_gltf_load_comp(void* data) {
@@ -136,8 +136,8 @@ static void ecs_destruct_gltf_load_comp(void* data) {
   if (comp->bufferCount) {
     alloc_free_array_t(g_alloc_heap, comp->buffers, comp->bufferCount);
   }
-  if (comp->bufferViewCount) {
-    alloc_free_array_t(g_alloc_heap, comp->bufferViews, comp->bufferViewCount);
+  if (comp->viewCount) {
+    alloc_free_array_t(g_alloc_heap, comp->views, comp->viewCount);
   }
   if (comp->accessorCount) {
     alloc_free_array_t(g_alloc_heap, comp->accessors, comp->accessorCount);
@@ -385,19 +385,19 @@ Error:
   *err = GltfError_MalformedBuffers;
 }
 
-static void gltf_parse_bufferviews(AssetGltfLoadComp* ld, GltfError* err) {
-  const JsonVal bufferViews = json_field(ld->jDoc, ld->jRoot, string_lit("bufferViews"));
-  if (!gltf_check_val(ld, bufferViews, JsonType_Array)) {
+static void gltf_parse_views(AssetGltfLoadComp* ld, GltfError* err) {
+  const JsonVal views = json_field(ld->jDoc, ld->jRoot, string_lit("bufferViews"));
+  if (!gltf_check_val(ld, views, JsonType_Array)) {
     goto Error;
   }
-  ld->bufferViewCount = json_elem_count(ld->jDoc, bufferViews);
-  if (!ld->bufferCount) {
+  ld->viewCount = json_elem_count(ld->jDoc, views);
+  if (!ld->viewCount) {
     goto Error;
   }
-  ld->bufferViews        = alloc_array_t(g_alloc_heap, GltfBufferView, ld->bufferViewCount);
-  GltfBufferView* outItr = ld->bufferViews;
+  ld->views        = alloc_array_t(g_alloc_heap, GltfView, ld->viewCount);
+  GltfView* outItr = ld->views;
 
-  json_for_elems(ld->jDoc, bufferViews, bufferView) {
+  json_for_elems(ld->jDoc, views, bufferView) {
     u32 bufferIndex;
     if (!gltf_field_u32(ld, bufferView, string_lit("buffer"), &bufferIndex)) {
       goto Error;
@@ -416,7 +416,7 @@ static void gltf_parse_bufferviews(AssetGltfLoadComp* ld, GltfError* err) {
     if (byteOffset + byteLength > ld->buffers[bufferIndex].data.size) {
       goto Error;
     }
-    *outItr++ = (GltfBufferView){
+    *outItr++ = (GltfView){
         .data = string_slice(ld->buffers[bufferIndex].data, byteOffset, byteLength),
     };
   }
@@ -493,7 +493,7 @@ static void gltf_parse_accessors(AssetGltfLoadComp* ld, GltfError* err) {
     if (!gltf_field_u32(ld, accessor, string_lit("bufferView"), &viewIndex)) {
       goto Error;
     }
-    if (viewIndex >= ld->bufferViewCount) {
+    if (viewIndex >= ld->viewCount) {
       goto Error;
     }
     u32 byteOffset;
@@ -518,7 +518,7 @@ static void gltf_parse_accessors(AssetGltfLoadComp* ld, GltfError* err) {
       goto Error;
     }
     const u32    compSize = gltf_component_size(outItr->compType);
-    const String viewData = ld->bufferViews[viewIndex].data;
+    const String viewData = ld->views[viewIndex].data;
     if (byteOffset + compSize * outItr->compCount * outItr->count > viewData.size) {
       goto Error;
     }
@@ -1012,7 +1012,7 @@ ecs_system_define(GltfLoadAssetSys) {
       ++ld->phase;
       // Fallthrough.
     case GltfLoadPhase_Parse: {
-      gltf_parse_bufferviews(ld, &err);
+      gltf_parse_views(ld, &err);
       if (err) {
         goto Error;
       }
