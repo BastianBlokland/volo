@@ -121,7 +121,8 @@ ecs_comp_define(AssetGltfLoadComp) {
   u32             bufferCount;
   GltfBufferView* bufferViews;
   u32             bufferViewCount;
-  DynArray        accessors;              // GltfAccessor[].
+  GltfAccessor*   accessors;
+  u32             accessorCount;
   DynArray        primitives;             // GltfPrim[].
   DynArray        jointNodeIndices;       // u32[].
   DynArray        animations;             // GltfAnim[].
@@ -138,7 +139,9 @@ static void ecs_destruct_gltf_load_comp(void* data) {
   if (comp->bufferViewCount) {
     alloc_free_array_t(g_alloc_heap, comp->bufferViews, comp->bufferViewCount);
   }
-  dynarray_destroy(&comp->accessors);
+  if (comp->accessorCount) {
+    alloc_free_array_t(g_alloc_heap, comp->accessors, comp->accessorCount);
+  }
   dynarray_destroy(&comp->primitives);
   dynarray_destroy(&comp->jointNodeIndices);
   dynarray_destroy(&comp->animations);
@@ -478,9 +481,15 @@ static void gltf_parse_accessors(AssetGltfLoadComp* ld, GltfError* err) {
   if (!gltf_check_val(ld, accessors, JsonType_Array)) {
     goto Error;
   }
+  ld->accessorCount = json_elem_count(ld->jDoc, accessors);
+  if (!ld->bufferCount) {
+    goto Error;
+  }
+  ld->accessors        = alloc_array_t(g_alloc_heap, GltfAccessor, ld->accessorCount);
+  GltfAccessor* outItr = ld->accessors;
+
   json_for_elems(ld->jDoc, accessors, accessor) {
-    GltfAccessor* result = dynarray_push_t(&ld->accessors, GltfAccessor);
-    u32           viewIndex;
+    u32 viewIndex;
     if (!gltf_field_u32(ld, accessor, string_lit("bufferView"), &viewIndex)) {
       goto Error;
     }
@@ -491,29 +500,30 @@ static void gltf_parse_accessors(AssetGltfLoadComp* ld, GltfError* err) {
     if (!gltf_field_u32(ld, accessor, string_lit("byteOffset"), &byteOffset)) {
       byteOffset = 0;
     }
-    if (!gltf_field_u32(ld, accessor, string_lit("componentType"), (u32*)&result->compType)) {
+    if (!gltf_field_u32(ld, accessor, string_lit("componentType"), (u32*)&outItr->compType)) {
       goto Error;
     }
-    if (!gtlf_check_access_type(result->compType)) {
+    if (!gtlf_check_access_type(outItr->compType)) {
       goto Error;
     }
-    if (!gltf_field_u32(ld, accessor, string_lit("count"), &result->count)) {
+    if (!gltf_field_u32(ld, accessor, string_lit("count"), &outItr->count)) {
       goto Error;
     }
     String typeString;
     if (!gltf_field_str(ld, accessor, string_lit("type"), &typeString)) {
       goto Error;
     }
-    gltf_parse_accessor_type(typeString, &result->compCount, err);
+    gltf_parse_accessor_type(typeString, &outItr->compCount, err);
     if (*err) {
       goto Error;
     }
-    const u32    compSize = gltf_component_size(result->compType);
+    const u32    compSize = gltf_component_size(outItr->compType);
     const String viewData = ld->bufferViews[viewIndex].data;
-    if (byteOffset + compSize * result->compCount * result->count > viewData.size) {
+    if (byteOffset + compSize * outItr->compCount * outItr->count > viewData.size) {
       goto Error;
     }
-    result->data_raw = mem_at_u8(viewData, byteOffset);
+    outItr->data_raw = mem_at_u8(viewData, byteOffset);
+    ++outItr;
   }
   *err = GltfError_None;
   return;
@@ -743,11 +753,10 @@ Error:
 
 static bool gltf_check_access(
     AssetGltfLoadComp* ld, const u32 index, const GltfType type, const u32 compCount) {
-  GltfAccessor* accessors = dynarray_begin_t(&ld->accessors, GltfAccessor);
-  if (index >= ld->accessors.size) {
+  if (index >= ld->accessorCount) {
     return false;
   }
-  return accessors[index].compType == type && accessors[index].compCount == compCount;
+  return ld->accessors[index].compType == type && ld->accessors[index].compCount == compCount;
 }
 
 typedef enum {
@@ -771,15 +780,14 @@ static GltfMeshMeta gltf_mesh_meta(AssetGltfLoadComp* ld, GltfError* err) {
 
   verify(ld->primitives.size, NoPrimitives);
 
-  GltfAccessor* accessors   = dynarray_begin_t(&ld->accessors, GltfAccessor);
-  u32           vertexCount = 0;
-  GltfFeature   features    = ~0; // Assume we have all features until accessors are missing.
+  u32         vertexCount = 0;
+  GltfFeature features    = ~0; // Assume we have all features until accessors are missing.
   dynarray_for_t(&ld->primitives, GltfPrim, prim) {
 
     verify(prim->mode == GltfPrimMode_Triangles, UnsupportedPrimitiveMode);
     verify(gltf_check_access(ld, prim->accPosition, GltfType_f32, 3), MalformedPrimPositions);
 
-    const u32 attrCount = accessors[prim->accPosition].count;
+    const u32 attrCount = ld->accessors[prim->accPosition].count;
     if (sentinel_check(prim->accIndices)) {
       // Non-indexed primitive.
       verify((attrCount % 3) == 0, MalformedPrimPositions);
@@ -787,34 +795,34 @@ static GltfMeshMeta gltf_mesh_meta(AssetGltfLoadComp* ld, GltfError* err) {
     } else {
       // Indexed primitive.
       verify(gltf_check_access(ld, prim->accIndices, GltfType_u16, 1), MalformedPrimIndices);
-      verify((accessors[prim->accIndices].count % 3) == 0, MalformedPrimIndices);
-      vertexCount += accessors[prim->accIndices].count;
+      verify((ld->accessors[prim->accIndices].count % 3) == 0, MalformedPrimIndices);
+      vertexCount += ld->accessors[prim->accIndices].count;
     }
     if (sentinel_check(prim->accTexcoord)) {
       features &= ~GltfFeature_Texcoords;
     } else {
       verify(gltf_check_access(ld, prim->accTexcoord, GltfType_f32, 2), MalformedPrimTexcoords);
-      verify(accessors[prim->accTexcoord].count == attrCount, MalformedPrimTexcoords);
+      verify(ld->accessors[prim->accTexcoord].count == attrCount, MalformedPrimTexcoords);
     }
     if (sentinel_check(prim->accNormal)) {
       features &= ~GltfFeature_Normals;
     } else {
       verify(gltf_check_access(ld, prim->accNormal, GltfType_f32, 3), MalformedPrimNormals);
-      verify(accessors[prim->accNormal].count == attrCount, MalformedPrimNormals);
+      verify(ld->accessors[prim->accNormal].count == attrCount, MalformedPrimNormals);
     }
     if (sentinel_check(prim->accTangent)) {
       features &= ~GltfFeature_Tangents;
     } else {
       verify(gltf_check_access(ld, prim->accTangent, GltfType_f32, 4), MalformedPrimTangents);
-      verify(accessors[prim->accTangent].count == attrCount, MalformedPrimTangents);
+      verify(ld->accessors[prim->accTangent].count == attrCount, MalformedPrimTangents);
     }
     if (sentinel_check(prim->accJoints)) {
       features &= ~GltfFeature_Skinning;
     } else {
       verify(gltf_check_access(ld, prim->accJoints, GltfType_u16, 4), MalformedPrimJoints);
-      verify(accessors[prim->accJoints].count == attrCount, MalformedPrimJoints);
+      verify(ld->accessors[prim->accJoints].count == attrCount, MalformedPrimJoints);
       verify(gltf_check_access(ld, prim->accWeights, GltfType_f32, 4), MalformedPrimWeights);
-      verify(accessors[prim->accWeights].count == attrCount, MalformedPrimWeights);
+      verify(ld->accessors[prim->accWeights].count == attrCount, MalformedPrimWeights);
     }
   }
   return (GltfMeshMeta){.features = features, .vertexCount = vertexCount};
@@ -830,8 +838,7 @@ static void gltf_build_mesh(AssetGltfLoadComp* ld, AssetMeshComp* out, GltfError
   if (*err) {
     return;
   }
-  AssetMeshBuilder* builder   = asset_mesh_builder_create(g_alloc_heap, meta.vertexCount);
-  GltfAccessor*     accessors = dynarray_begin_t(&ld->accessors, GltfAccessor);
+  AssetMeshBuilder* builder = asset_mesh_builder_create(g_alloc_heap, meta.vertexCount);
 
   typedef const u16* AccessorU16;
   typedef const f32* AccessorF32;
@@ -840,25 +847,25 @@ static void gltf_build_mesh(AssetGltfLoadComp* ld, AssetMeshComp* out, GltfError
   u32                attrCount, vertexCount;
 
   dynarray_for_t(&ld->primitives, GltfPrim, primitive) {
-    positions = accessors[primitive->accPosition].data_f32;
-    attrCount = accessors[primitive->accPosition].count;
+    positions = ld->accessors[primitive->accPosition].data_f32;
+    attrCount = ld->accessors[primitive->accPosition].count;
     if (meta.features & GltfFeature_Texcoords) {
-      texcoords = accessors[primitive->accTexcoord].data_f32;
+      texcoords = ld->accessors[primitive->accTexcoord].data_f32;
     }
     if (meta.features & GltfFeature_Normals) {
-      normals = accessors[primitive->accNormal].data_f32;
+      normals = ld->accessors[primitive->accNormal].data_f32;
     }
     if (meta.features & GltfFeature_Tangents) {
-      tangents = accessors[primitive->accTangent].data_f32;
+      tangents = ld->accessors[primitive->accTangent].data_f32;
     }
     if (meta.features & GltfFeature_Skinning) {
-      joints  = accessors[primitive->accJoints].data_u16;
-      weights = accessors[primitive->accWeights].data_f32;
+      joints  = ld->accessors[primitive->accJoints].data_u16;
+      weights = ld->accessors[primitive->accWeights].data_f32;
     }
     const bool indexed = !sentinel_check(primitive->accIndices);
     if (indexed) {
-      indices     = accessors[primitive->accIndices].data_u16;
-      vertexCount = accessors[primitive->accIndices].count;
+      indices     = ld->accessors[primitive->accIndices].data_u16;
+      vertexCount = ld->accessors[primitive->accIndices].count;
     } else {
       vertexCount = attrCount;
     }
@@ -924,12 +931,11 @@ static void gltf_build_skeleton(AssetGltfLoadComp* ld, AssetMeshSkeletonComp* ou
   const u32 invBindMatSize = sizeof(GeoMatrix) * jointCount;
   diag_assert(jointCount);
 
-  GltfAccessor* accessors = dynarray_begin_t(&ld->accessors, GltfAccessor);
   if (!gltf_check_access(ld, ld->accInvBindMatrices, GltfType_f32, 16)) {
     *err = GltfError_MalformedInvBindMatrices;
     return;
   }
-  if (accessors[ld->accInvBindMatrices].count < jointCount) {
+  if (ld->accessors[ld->accInvBindMatrices].count < jointCount) {
     *err = GltfError_MalformedInvBindMatrices;
     return;
   }
@@ -937,7 +943,8 @@ static void gltf_build_skeleton(AssetGltfLoadComp* ld, AssetMeshSkeletonComp* ou
    * Gltf also uses column-major 4x4 f32 matrices, so we can just mem-copy it to the result.
    */
   const Mem resInvBindMatMem = alloc_alloc(g_alloc_heap, invBindMatSize, alignof(GeoMatrix));
-  mem_cpy(resInvBindMatMem, mem_create(accessors[ld->accInvBindMatrices].data_raw, invBindMatSize));
+  mem_cpy(
+      resInvBindMatMem, mem_create(ld->accessors[ld->accInvBindMatrices].data_raw, invBindMatSize));
 
   *out = (AssetMeshSkeletonComp){
       .jointCount             = jointCount,
@@ -1094,7 +1101,6 @@ void asset_load_gltf(EcsWorld* world, const String id, const EcsEntityId entity,
       .assetId          = id,
       .jDoc             = jsonDoc,
       .jRoot            = jsonRes.type,
-      .accessors        = dynarray_create_t(g_alloc_heap, GltfAccessor, 8),
       .primitives       = dynarray_create_t(g_alloc_heap, GltfPrim, 4),
       .jointNodeIndices = dynarray_create_t(g_alloc_heap, u32, 0),
       .animations       = dynarray_create_t(g_alloc_heap, GltfAnim, 0));
