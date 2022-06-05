@@ -204,6 +204,7 @@ typedef enum {
   GltfError_UnsupportedExtensions,
   GltfError_UnsupportedVersion,
   GltfError_UnsupportedPrimitiveMode,
+  GltfError_UnsupportedInterpolationMode,
   GltfError_NoPrimitives,
 
   GltfError_Count,
@@ -238,6 +239,7 @@ static String gltf_error_str(const GltfError err) {
       string_static("Gltf file requires an unsupported extension"),
       string_static("Unsupported gltf version"),
       string_static("Unsupported primitive mode, only triangle primitives supported"),
+      string_static("Unsupported interpolation mode, only linear interpolation supported"),
       string_static("Gltf mesh does not have any primitives"),
   };
   ASSERT(array_elems(g_msgs) == GltfError_Count, "Incorrect number of gltf-error messages");
@@ -722,7 +724,14 @@ static void gltf_parse_animations(AssetGltfLoadComp* ld, GltfError* err) {
       if (++samplerCount == GltfMaxSamplerCount) {
         goto Error;
       }
-      // TODO: Validate that the interpolation mode is 'LINEAR'.
+      const JsonVal interpolation = json_field(ld->jDoc, sampler, string_lit("interpolation"));
+      if (!gltf_check_val(ld, interpolation, JsonType_String)) {
+        continue; // 'interpolation' is optional, default is 'LINEAR'.
+      }
+      if (!string_eq(json_string(ld->jDoc, interpolation), string_lit("LINEAR"))) {
+        *err = GltfError_UnsupportedInterpolationMode;
+        return;
+      }
     }
 
     gltf_clear_anim_channels(outAnim);
