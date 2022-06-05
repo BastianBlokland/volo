@@ -84,13 +84,13 @@ typedef enum {
 
 typedef struct {
   GltfPrimMode mode;
-  u32          accIndices;  // Accessor index [Optional].
-  u32          accPosition; // Accessor index.
-  u32          accTexcoord; // Accessor index [Optional].
-  u32          accNormal;   // Accessor index [Optional].
-  u32          accTangent;  // Accessor index [Optional].
-  u32          accJoints;   // Accessor index [Optional].
-  u32          accWeights;  // Accessor index [Optional].
+  u32          accIndices;  // Access index [Optional].
+  u32          accPosition; // Access index.
+  u32          accTexcoord; // Access index [Optional].
+  u32          accNormal;   // Access index [Optional].
+  u32          accTangent;  // Access index [Optional].
+  u32          accJoints;   // Access index [Optional].
+  u32          accWeights;  // Access index [Optional].
 } GltfPrim;
 
 typedef enum {
@@ -102,8 +102,8 @@ typedef enum {
 } GltfAnimTarget;
 
 typedef struct {
-  u32 accInput;  // Accessor index [Optional].
-  u32 accOutput; // Accessor index [Optional].
+  u32 accInput;  // Access index [Optional].
+  u32 accOutput; // Access index [Optional].
 } GltfAnimChannel;
 
 typedef struct {
@@ -126,7 +126,7 @@ ecs_comp_define(AssetGltfLoadComp) {
   DynArray      primitives;             // GltfPrim[].
   DynArray      jointNodeIndices;       // u32[].
   DynArray      animations;             // GltfAnim[].
-  u32           accInvBindMatrices;     // Accessor index [Optional].
+  u32           accInvBindMats;         // Access index [Optional].
   u32           skeletonRootJointIndex; // [Optional].
 };
 
@@ -604,7 +604,7 @@ static void gltf_parse_skin(AssetGltfLoadComp* ld, GltfError* err) {
   if (json_type(ld->jDoc, skin) != JsonType_Object) {
     goto Error;
   }
-  if (!gltf_field_u32(ld, skin, string_lit("inverseBindMatrices"), &ld->accInvBindMatrices)) {
+  if (!gltf_field_u32(ld, skin, string_lit("inverseBindMatrices"), &ld->accInvBindMats)) {
     goto Error;
   }
   const JsonVal joints = json_field(ld->jDoc, skin, string_lit("joints"));
@@ -931,11 +931,11 @@ static void gltf_build_skeleton(AssetGltfLoadComp* ld, AssetMeshSkeletonComp* ou
   const u32 invBindMatSize = sizeof(GeoMatrix) * jointCount;
   diag_assert(jointCount);
 
-  if (!gltf_check_access(ld, ld->accInvBindMatrices, GltfType_f32, 16)) {
+  if (!gltf_check_access(ld, ld->accInvBindMats, GltfType_f32, 16)) {
     *err = GltfError_MalformedInvBindMatrices;
     return;
   }
-  if (ld->access[ld->accInvBindMatrices].count < jointCount) {
+  if (ld->access[ld->accInvBindMats].count < jointCount) {
     *err = GltfError_MalformedInvBindMatrices;
     return;
   }
@@ -943,8 +943,7 @@ static void gltf_build_skeleton(AssetGltfLoadComp* ld, AssetMeshSkeletonComp* ou
    * Gltf also uses column-major 4x4 f32 matrices, so we can just mem-copy it to the result.
    */
   const Mem resInvBindMatMem = alloc_alloc(g_alloc_heap, invBindMatSize, alignof(GeoMatrix));
-  mem_cpy(
-      resInvBindMatMem, mem_create(ld->access[ld->accInvBindMatrices].data_raw, invBindMatSize));
+  mem_cpy(resInvBindMatMem, mem_create(ld->access[ld->accInvBindMats].data_raw, invBindMatSize));
 
   *out = (AssetMeshSkeletonComp){
       .jointCount             = jointCount,
