@@ -670,11 +670,27 @@ static void gltf_parse_skeleton_nodes(AssetGltfLoadComp* ld, GltfError* err) {
   }
   u32 nodeIndex = 0;
   json_for_elems(ld->jDoc, nodes, node) {
+    if (UNLIKELY(json_type(ld->jDoc, node) != JsonType_Object)) {
+      goto Error;
+    }
     const u32 jointIndex = gltf_joint_index(ld, nodeIndex);
     if (sentinel_check(jointIndex)) {
       goto Next; // This node is not part of the skeleton.
     }
     ld->joints[jointIndex].name = gltf_parse_name(ld, node);
+
+    const JsonVal children = json_field(ld->jDoc, node, string_lit("children"));
+    if (gltf_check_val(ld, children, JsonType_Array)) {
+      const u32 childCount = json_elem_count(ld->jDoc, children);
+      json_for_elems(ld->jDoc, children, child) {
+        if (UNLIKELY(json_type(ld->jDoc, child) != JsonType_Number)) {
+          goto Error;
+        }
+        const u32 childJointIndex = gltf_joint_index(ld, (u32)json_number(ld->jDoc, child));
+        (void)childCount;
+        (void)childJointIndex;
+      }
+    }
 
   Next:
     ++nodeIndex;
