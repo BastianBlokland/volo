@@ -820,8 +820,8 @@ static void gltf_parse_animations(AssetGltfLoadComp* ld, GltfError* err) {
           .accOutput = samplerAccOutput[samplerIndex],
       };
     }
-      ++outAnim;
-    }
+    ++outAnim;
+  }
 Success:
   *err = GltfError_None;
   return;
@@ -1004,8 +1004,20 @@ Cleanup:
   asset_mesh_builder_destroy(builder);
 }
 
+static GeoMatrix gltf_inv_bind_transform(AssetGltfLoadComp* ld, const u32 jointIndex) {
+  const void* rawData = ld->access[ld->accInvBindMats].data_raw;
+  /**
+   * Gltf also uses column-major 4x4 f32 matrices, the only post-processing needed is converting
+   * from a right-handed to a left-handed coordinate system.
+   */
+  static const GeoMatrix g_negateZMatrix = {
+      {{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, -1, 0}, {0, 0, 0, 1}},
+  };
+  const GeoMatrix* org = &((const GeoMatrix*)rawData)[jointIndex];
+  return geo_matrix_mul(org, &g_negateZMatrix);
+}
+
 static void gltf_build_skeleton(AssetGltfLoadComp* ld, AssetMeshSkeletonComp* out, GltfError* err) {
-  const u32 invBindMatSize = sizeof(GeoMatrix) * ld->jointCount;
   diag_assert(ld->jointCount);
 
   if (!gltf_check_access(ld, ld->accInvBindMats, GltfType_f32, 16)) {
@@ -1016,15 +1028,14 @@ static void gltf_build_skeleton(AssetGltfLoadComp* ld, AssetMeshSkeletonComp* ou
     *err = GltfError_MalformedInvBindMatrices;
     return;
   }
-  /**
-   * Gltf also uses column-major 4x4 f32 matrices, so we can just mem-copy it to the result.
-   */
-  const Mem resInvBindMatMem = alloc_alloc(g_alloc_heap, invBindMatSize, alignof(GeoMatrix));
-  mem_cpy(resInvBindMatMem, mem_create(ld->access[ld->accInvBindMats].data_raw, invBindMatSize));
 
+  GeoMatrix* resInvBindTransforms = alloc_array_t(g_alloc_heap, GeoMatrix, ld->jointCount);
+  for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
+    resInvBindTransforms[jointIndex] = gltf_inv_bind_transform(ld, jointIndex);
+  }
   *out = (AssetMeshSkeletonComp){
       .jointCount             = ld->jointCount,
-      .jointInvBindTransforms = resInvBindMatMem.ptr,
+      .jointInvBindTransforms = resInvBindTransforms,
   };
   *err = GltfError_None;
 }
