@@ -132,7 +132,7 @@ GeoMatrix geo_matrix_inverse(const GeoMatrix* m) {
        m->columns[3].x *
            (m->columns[0].y * a1223 - m->columns[1].y * a0223 + m->columns[2].y * a0123));
 
-  diag_assert_msg(det > f32_epsilon, "Non invertible matrix");
+  diag_assert_msg(det != 0.0f, "Non invertible matrix");
   det = 1.0f / det;
 
   return (GeoMatrix){
