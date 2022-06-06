@@ -743,6 +743,8 @@ static void gltf_parse_animations(AssetGltfLoadComp* ld, GltfError* err) {
   u32 samplerCount;
 
   json_for_elems(ld->jDoc, animations, anim) {
+    gltf_clear_anim_channels(outAnim);
+
     if (json_type(ld->jDoc, anim) != JsonType_Object) {
       goto Error;
     }
@@ -776,7 +778,6 @@ static void gltf_parse_animations(AssetGltfLoadComp* ld, GltfError* err) {
       }
     }
 
-    gltf_clear_anim_channels(outAnim);
     const JsonVal channels = json_field(ld->jDoc, anim, string_lit("channels"));
     if (!gltf_check_val(ld, channels, JsonType_Array) || !json_elem_count(ld->jDoc, channels)) {
       goto Error;
@@ -818,9 +819,9 @@ static void gltf_parse_animations(AssetGltfLoadComp* ld, GltfError* err) {
           .accInput  = samplerAccInput[samplerIndex],
           .accOutput = samplerAccOutput[samplerIndex],
       };
+    }
       ++outAnim;
     }
-  }
 Success:
   *err = GltfError_None;
   return;
