@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_dynarray.h"
+#include "debug_register.h"
 #include "debug_text.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -23,8 +24,14 @@ static void ecs_destruct_text(void* data) {
   alloc_chunked_destroy(comp->allocTransient);
 }
 
+ecs_system_define(DebugTextRenderSys) {}
+
 ecs_module_init(debug_text_module) {
   ecs_register_comp(DebugTextComp, .destructor = ecs_destruct_text);
+
+  ecs_register_system(DebugTextRenderSys);
+
+  ecs_order(DebugTextRenderSys, DebugOrder_TextRender);
 }
 
 DebugTextComp* debug_text_create(EcsWorld* world, const EcsEntityId entity) {
