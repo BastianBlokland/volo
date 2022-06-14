@@ -17,6 +17,7 @@ add_library(lib_debug STATIC
   src/rend.c
   src/shape.c
   src/stats.c
+  src/text.c
   )
 target_include_directories(lib_debug PUBLIC include)
 target_link_libraries(lib_debug PRIVATE lib_gap)
