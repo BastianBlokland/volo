@@ -24,12 +24,22 @@ static void ecs_destruct_text(void* data) {
   alloc_chunked_destroy(comp->allocTransient);
 }
 
-ecs_system_define(DebugTextRenderSys) {}
+ecs_view_define(TextView) { ecs_access_write(DebugTextComp); }
+
+ecs_system_define(DebugTextRenderSys) {
+  for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, TextView)); ecs_view_walk(itr);) {
+    DebugTextComp* textComp = ecs_view_write_t(itr, DebugTextComp);
+
+    dynarray_clear(&textComp->entries);
+  }
+}
 
 ecs_module_init(debug_text_module) {
   ecs_register_comp(DebugTextComp, .destructor = ecs_destruct_text);
 
-  ecs_register_system(DebugTextRenderSys);
+  ecs_register_view(TextView);
+
+  ecs_register_system(DebugTextRenderSys, ecs_view_id(TextView));
 
   ecs_order(DebugTextRenderSys, DebugOrder_TextRender);
 }

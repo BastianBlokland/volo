@@ -3,8 +3,8 @@
 
 enum {
   DebugOrder_PhysicsDebugDraw = 700,
+  DebugOrder_TextRender       = 750,
   DebugOrder_ShapeRender      = 800,
-  DebugOrder_TextRender       = 800,
 };
 
 /**
