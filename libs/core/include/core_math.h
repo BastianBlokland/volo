@@ -111,6 +111,11 @@ f32 math_atan2_f32(f32 x, f32 y);
 f32 math_pow_f32(f32 base, f32 exp);
 
 /**
+ * Compute the natural logarithm e raised to the power of exp.
+ */
+f32 math_exp_f32(f32 exp);
+
+/**
  * Compute the integer part of the given value (removes the fractional part).
  */
 f32 math_trunc_f32(f32);

@@ -207,12 +207,12 @@ void ui_layout_resize_to(
   }
 }
 
-void ui_layout_set(UiCanvasComp* canvas, const UiRect rect) {
+void ui_layout_set(UiCanvasComp* canvas, const UiRect rect, const UiBase base) {
   UiCmdBuffer* cmdBuffer = ui_canvas_cmd_buffer(canvas);
-  ui_cmd_push_rect_pos(cmdBuffer, UiBase_Absolute, rect.pos, UiBase_Absolute, Ui_XY);
+  ui_cmd_push_rect_pos(cmdBuffer, base, rect.pos, base, Ui_XY);
 
   diag_assert_msg(rect.size.x >= 0.0f && rect.size.y >= 0.0f, "Negative sizes are not supported");
-  ui_cmd_push_rect_size(cmdBuffer, rect.size, UiBase_Absolute, Ui_XY);
+  ui_cmd_push_rect_size(cmdBuffer, rect.size, base, Ui_XY);
 }
 
 void ui_layout_inner(
