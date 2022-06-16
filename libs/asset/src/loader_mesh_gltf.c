@@ -1030,12 +1030,16 @@ static void gltf_build_skeleton(AssetGltfLoadComp* ld, AssetMeshSkeletonComp* ou
   }
 
   GeoMatrix* resInvBindTransforms = alloc_array_t(g_alloc_heap, GeoMatrix, ld->jointCount);
+  String*    resJointNames        = alloc_array_t(g_alloc_heap, String, ld->jointCount);
   for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
     resInvBindTransforms[jointIndex] = gltf_inv_bind_transform(ld, jointIndex);
+    resJointNames[jointIndex]        = string_dup(g_alloc_heap, ld->joints[jointIndex].name);
   }
+
   *out = (AssetMeshSkeletonComp){
       .jointCount             = ld->jointCount,
       .jointInvBindTransforms = resInvBindTransforms,
+      .jointNames             = resJointNames,
   };
   *err = GltfError_None;
 }

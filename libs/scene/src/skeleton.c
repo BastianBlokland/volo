@@ -26,6 +26,7 @@ ecs_comp_define(SceneSkeletonTemplateComp) {
   EcsEntityId           mesh;
   u32                   jointCount;
   const GeoMatrix*      jointInvBindTransforms;
+  const String*         jointNames;
 };
 
 ecs_comp_define(SceneSkeletonTemplateLoadedComp);
@@ -51,7 +52,11 @@ static void ecs_combine_skeleton_template(void* dataA, void* dataB) {
 static void ecs_destruct_skeleton_template_comp(void* data) {
   SceneSkeletonTemplateComp* comp = data;
   if (comp->jointCount) {
+    for (u32 i = 0; i != comp->jointCount; ++i) {
+      string_free(g_alloc_heap, comp->jointNames[i]);
+    }
     alloc_free_array_t(g_alloc_heap, comp->jointInvBindTransforms, comp->jointCount);
+    alloc_free_array_t(g_alloc_heap, comp->jointNames, comp->jointCount);
   }
 }
 
@@ -138,6 +143,7 @@ static void scene_asset_template_init(
   template->jointCount = meshSkeleton->jointCount;
   template->jointInvBindTransforms =
       asset_mesh_inv_bind_transforms_create(g_alloc_heap, meshSkeleton);
+  template->jointNames = asset_mesh_joint_names_create(g_alloc_heap, meshSkeleton);
 }
 
 static void scene_skeleton_template_load_done(EcsWorld* world, EcsIterator* itr) {
@@ -226,4 +232,9 @@ void scene_skeleton_joint_delta(
   for (u32 i = 0; i != skeleton->jointCount; ++i) {
     out[i] = geo_matrix_mul(&skeleton->jointTransforms[i], &templ->jointInvBindTransforms[i]);
   }
+}
+
+String scene_skeleton_joint_name(const SceneSkeletonTemplateComp* templ, const u32 jointIndex) {
+  diag_assert(jointIndex < templ->jointCount);
+  return templ->jointNames[jointIndex];
 }

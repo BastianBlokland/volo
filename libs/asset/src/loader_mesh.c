@@ -20,7 +20,12 @@ static void ecs_destruct_mesh_comp(void* data) {
 
 static void ecs_destruct_mesh_skeleton_comp(void* data) {
   AssetMeshSkeletonComp* comp = data;
+
+  for (u32 i = 0; i != comp->jointCount; ++i) {
+    string_free(g_alloc_heap, comp->jointNames[i]);
+  }
   alloc_free_array_t(g_alloc_heap, comp->jointInvBindTransforms, comp->jointCount);
+  alloc_free_array_t(g_alloc_heap, comp->jointNames, comp->jointCount);
 }
 
 ecs_view_define(UnloadView) {
@@ -54,4 +59,13 @@ asset_mesh_inv_bind_transforms_create(Allocator* alloc, const AssetMeshSkeletonC
   const usize size   = sizeof(GeoMatrix) * skeleton->jointCount;
   const Mem   orgMem = mem_create(skeleton->jointInvBindTransforms, size);
   return alloc_dup(alloc, orgMem, alignof(GeoMatrix)).ptr;
+}
+
+const String*
+asset_mesh_joint_names_create(Allocator* alloc, const AssetMeshSkeletonComp* skeleton) {
+  String* res = alloc_array_t(alloc, String, skeleton->jointCount);
+  for (u32 jointIndex = 0; jointIndex != skeleton->jointCount; ++jointIndex) {
+    res[jointIndex] = string_dup(alloc, skeleton->jointNames[jointIndex]);
+  }
+  return res;
 }

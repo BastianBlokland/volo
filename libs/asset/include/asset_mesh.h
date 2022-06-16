@@ -36,6 +36,8 @@ ecs_comp_extern_public(AssetMeshComp) {
 ecs_comp_extern_public(AssetMeshSkeletonComp) {
   u8               jointCount;
   const GeoMatrix* jointInvBindTransforms; // From world to local bind space for a joint.
+  const String*    jointNames;
 };
 
 const GeoMatrix* asset_mesh_inv_bind_transforms_create(Allocator*, const AssetMeshSkeletonComp*);
+const String*    asset_mesh_joint_names_create(Allocator*, const AssetMeshSkeletonComp*);

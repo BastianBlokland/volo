@@ -11,3 +11,5 @@ ecs_comp_extern_public(SceneSkeletonComp) {
 
 void scene_skeleton_joint_delta(
     const SceneSkeletonComp*, const SceneSkeletonTemplateComp*, GeoMatrix* out);
+
+String scene_skeleton_joint_name(const SceneSkeletonTemplateComp*, u32 jointIndex);
