@@ -20,6 +20,7 @@
 #pragma intrinsic(fmodf)
 #pragma intrinsic(logf)
 #pragma intrinsic(powf)
+#pragma intrinsic(expf)
 #pragma intrinsic(sinf)
 #pragma intrinsic(sqrt)
 #pragma intrinsic(sqrtf)
@@ -37,6 +38,7 @@
 #define intrinsic_fmod_f32 fmodf
 #define intrinsic_log_f32 logf
 #define intrinsic_pow_f32 powf
+#define intrinsic_exp_f32 expf
 #define intrinsic_round_f64 round
 #define intrinsic_round_f32 roundf
 #define intrinsic_sin_f32 sinf
@@ -58,6 +60,7 @@
 #define intrinsic_fmod_f32 __builtin_fmodf
 #define intrinsic_log_f32 __builtin_logf
 #define intrinsic_pow_f32 __builtin_powf
+#define intrinsic_exp_f32 __builtin_expf
 #define intrinsic_round_f64 __builtin_round
 #define intrinsic_round_f32 __builtin_roundf
 #define intrinsic_sin_f32 __builtin_sinf
