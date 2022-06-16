@@ -37,5 +37,5 @@ void ui_layout_resize_to(UiCanvasComp*, UiBase, UiAlign, UiAxis);
 /**
  * Set a specific rectangle.
  */
-void ui_layout_set(UiCanvasComp*, UiRect);
+void ui_layout_set(UiCanvasComp*, UiRect, UiBase);
 void ui_layout_inner(UiCanvasComp*, UiBase parent, UiAlign, UiVector size, UiBase units);
