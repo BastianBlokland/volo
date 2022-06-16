@@ -9,7 +9,7 @@
 #include "ui_canvas.h"
 #include "ui_layout.h"
 
-#define debug_text_transient_chunk_size (4 * usize_kibibyte)
+#define debug_text_transient_chunk_size (32 * usize_kibibyte)
 #define debug_text_transient_max 512
 #define debug_text_size 14
 
