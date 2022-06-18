@@ -22,10 +22,10 @@ static void ecs_destruct_mesh_skeleton_comp(void* data) {
   AssetMeshSkeletonComp* comp = data;
 
   for (u32 i = 0; i != comp->jointCount; ++i) {
-    string_free(g_alloc_heap, comp->jointNames[i]);
+    string_free(g_alloc_heap, comp->joints[i].name);
   }
-  alloc_free_array_t(g_alloc_heap, comp->jointInvBindTransforms, comp->jointCount);
-  alloc_free_array_t(g_alloc_heap, comp->jointNames, comp->jointCount);
+  alloc_free_array_t(g_alloc_heap, comp->joints, comp->jointCount);
+  alloc_free_array_t(g_alloc_heap, comp->childIndices, comp->jointCount);
 }
 
 ecs_view_define(UnloadView) {
@@ -54,18 +54,23 @@ ecs_module_init(asset_mesh_module) {
   ecs_register_system(UnloadMeshAssetSys, ecs_view_id(UnloadView));
 }
 
-const GeoMatrix*
-asset_mesh_inv_bind_transforms_create(Allocator* alloc, const AssetMeshSkeletonComp* skeleton) {
-  const usize size   = sizeof(GeoMatrix) * skeleton->jointCount;
-  const Mem   orgMem = mem_create(skeleton->jointInvBindTransforms, size);
-  return alloc_dup(alloc, orgMem, alignof(GeoMatrix)).ptr;
-}
-
-const String*
-asset_mesh_joint_names_create(Allocator* alloc, const AssetMeshSkeletonComp* skeleton) {
-  String* res = alloc_array_t(alloc, String, skeleton->jointCount);
+const AssetMeshJoint*
+asset_mesh_joints_create(Allocator* alloc, const AssetMeshSkeletonComp* skeleton) {
+  AssetMeshJoint* res = alloc_array_t(alloc, AssetMeshJoint, skeleton->jointCount);
   for (u32 jointIndex = 0; jointIndex != skeleton->jointCount; ++jointIndex) {
-    res[jointIndex] = string_dup(alloc, skeleton->jointNames[jointIndex]);
+    res[jointIndex] = (AssetMeshJoint){
+        .invBindTransform = skeleton->joints[jointIndex].invBindTransform,
+        .childIndex       = skeleton->joints[jointIndex].childIndex,
+        .childCount       = skeleton->joints[jointIndex].childCount,
+        .name             = string_dup(alloc, skeleton->joints[jointIndex].name),
+    };
   }
   return res;
+}
+
+const u32*
+asset_mesh_child_indices_create(Allocator* alloc, const AssetMeshSkeletonComp* skeleton) {
+  const usize size   = sizeof(u32) * skeleton->jointCount;
+  const Mem   orgMem = mem_create(skeleton->childIndices, size);
+  return alloc_dup(alloc, orgMem, alignof(u32)).ptr;
 }

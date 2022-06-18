@@ -1,10 +1,7 @@
 #pragma once
 #include "ecs_module.h"
 #include "geo_box.h"
-#include "geo_vector.h"
-
-// Forward declare from 'geo_matrix.h'.
-typedef union uGeoMatrix GeoMatrix;
+#include "geo_matrix.h"
 
 #define asset_mesh_indices_max u32_max
 #define asset_mesh_joints_max 32
@@ -33,11 +30,17 @@ ecs_comp_extern_public(AssetMeshComp) {
   GeoBox                 positionBounds, texcoordBounds;
 };
 
+typedef struct {
+  GeoMatrix invBindTransform; // From world to local bind space for a joint.
+  u32       childIndex, childCount;
+  String    name;
+} AssetMeshJoint;
+
 ecs_comp_extern_public(AssetMeshSkeletonComp) {
-  u8               jointCount;
-  const GeoMatrix* jointInvBindTransforms; // From world to local bind space for a joint.
-  const String*    jointNames;
+  u8                    jointCount;
+  const AssetMeshJoint* joints;
+  const u32*            childIndices;
 };
 
-const GeoMatrix* asset_mesh_inv_bind_transforms_create(Allocator*, const AssetMeshSkeletonComp*);
-const String*    asset_mesh_joint_names_create(Allocator*, const AssetMeshSkeletonComp*);
+const AssetMeshJoint* asset_mesh_joints_create(Allocator*, const AssetMeshSkeletonComp*);
+const u32*            asset_mesh_child_indices_create(Allocator*, const AssetMeshSkeletonComp*);

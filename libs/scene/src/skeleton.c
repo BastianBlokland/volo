@@ -25,8 +25,8 @@ ecs_comp_define(SceneSkeletonTemplateComp) {
   SkeletonTemplateState state;
   EcsEntityId           mesh;
   u32                   jointCount;
-  const GeoMatrix*      jointInvBindTransforms;
-  const String*         jointNames;
+  const AssetMeshJoint* joints;
+  const u32*            childIndices;
 };
 
 ecs_comp_define(SceneSkeletonTemplateLoadedComp);
@@ -53,10 +53,10 @@ static void ecs_destruct_skeleton_template_comp(void* data) {
   SceneSkeletonTemplateComp* comp = data;
   if (comp->jointCount) {
     for (u32 i = 0; i != comp->jointCount; ++i) {
-      string_free(g_alloc_heap, comp->jointNames[i]);
+      string_free(g_alloc_heap, comp->joints[i].name);
     }
-    alloc_free_array_t(g_alloc_heap, comp->jointInvBindTransforms, comp->jointCount);
-    alloc_free_array_t(g_alloc_heap, comp->jointNames, comp->jointCount);
+    alloc_free_array_t(g_alloc_heap, comp->joints, comp->jointCount);
+    alloc_free_array_t(g_alloc_heap, comp->childIndices, comp->jointCount);
   }
 }
 
@@ -81,7 +81,7 @@ static void scene_skeleton_init_from_template(
 
   GeoMatrix* jointTransforms = alloc_array_t(g_alloc_heap, GeoMatrix, template->jointCount);
   for (u32 i = 0; i != template->jointCount; ++i) {
-    jointTransforms[i] = geo_matrix_inverse(&template->jointInvBindTransforms[i]);
+    jointTransforms[i] = geo_matrix_inverse(&template->joints[i].invBindTransform);
   }
   ecs_world_add_t(
       world,
@@ -140,10 +140,9 @@ static bool scene_asset_is_loaded(EcsWorld* world, const EcsEntityId asset) {
 
 static void scene_asset_template_init(
     SceneSkeletonTemplateComp* template, const AssetMeshSkeletonComp* meshSkeleton) {
-  template->jointCount = meshSkeleton->jointCount;
-  template->jointInvBindTransforms =
-      asset_mesh_inv_bind_transforms_create(g_alloc_heap, meshSkeleton);
-  template->jointNames = asset_mesh_joint_names_create(g_alloc_heap, meshSkeleton);
+  template->jointCount   = meshSkeleton->jointCount;
+  template->joints       = asset_mesh_joints_create(g_alloc_heap, meshSkeleton);
+  template->childIndices = asset_mesh_child_indices_create(g_alloc_heap, meshSkeleton);
 }
 
 static void scene_skeleton_template_load_done(EcsWorld* world, EcsIterator* itr) {
@@ -230,11 +229,11 @@ void scene_skeleton_joint_delta(
     const SceneSkeletonComp* skeleton, const SceneSkeletonTemplateComp* templ, GeoMatrix* out) {
   diag_assert(skeleton->jointCount == templ->jointCount);
   for (u32 i = 0; i != skeleton->jointCount; ++i) {
-    out[i] = geo_matrix_mul(&skeleton->jointTransforms[i], &templ->jointInvBindTransforms[i]);
+    out[i] = geo_matrix_mul(&skeleton->jointTransforms[i], &templ->joints[i].invBindTransform);
   }
 }
 
 String scene_skeleton_joint_name(const SceneSkeletonTemplateComp* templ, const u32 jointIndex) {
   diag_assert(jointIndex < templ->jointCount);
-  return templ->jointNames[jointIndex];
+  return templ->joints[jointIndex].name;
 }

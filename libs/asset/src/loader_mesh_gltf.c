@@ -108,6 +108,7 @@ typedef struct {
 
 typedef struct {
   u32    nodeIndex;
+  u32    childIndex, childCount;
   String name; // NOTE: Allocated in the json document (or empty).
 } GltfJoint;
 
@@ -128,6 +129,7 @@ ecs_comp_define(AssetGltfLoadComp) {
   GltfPrim*     prims;
   GltfJoint*    joints;
   GltfAnim*     anims;
+  u32*          childIndices;
   u32           bufferCount;
   u32           viewCount;
   u32           accessCount;
@@ -155,6 +157,7 @@ static void ecs_destruct_gltf_load_comp(void* data) {
   }
   if (comp->jointCount) {
     alloc_free_array_t(g_alloc_heap, comp->joints, comp->jointCount);
+    alloc_free_array_t(g_alloc_heap, comp->childIndices, comp->jointCount);
   }
   if (comp->animCount) {
     alloc_free_array_t(g_alloc_heap, comp->anims, comp->animCount);
@@ -639,7 +642,9 @@ static void gltf_parse_skin(AssetGltfLoadComp* ld, GltfError* err) {
     *err = GltfError_JointCountExceedsMaximum;
     return;
   }
-  ld->joints          = alloc_array_t(g_alloc_heap, GltfJoint, ld->jointCount);
+  ld->joints       = alloc_array_t(g_alloc_heap, GltfJoint, ld->jointCount);
+  ld->childIndices = alloc_array_t(g_alloc_heap, u32, ld->jointCount);
+
   GltfJoint* outJoint = ld->joints;
   json_for_elems(ld->jDoc, joints, joint) {
     if (UNLIKELY(json_type(ld->jDoc, joint) != JsonType_Number)) {
@@ -668,7 +673,8 @@ static void gltf_parse_skeleton_nodes(AssetGltfLoadComp* ld, GltfError* err) {
   if (!gltf_check_val(ld, nodes, JsonType_Array) || !json_elem_count(ld->jDoc, nodes)) {
     goto Error;
   }
-  u32 nodeIndex = 0;
+  u32 childIndicesCount = 0;
+  u32 nodeIndex         = 0;
   json_for_elems(ld->jDoc, nodes, node) {
     if (UNLIKELY(json_type(ld->jDoc, node) != JsonType_Object)) {
       goto Error;
@@ -681,14 +687,18 @@ static void gltf_parse_skeleton_nodes(AssetGltfLoadComp* ld, GltfError* err) {
 
     const JsonVal children = json_field(ld->jDoc, node, string_lit("children"));
     if (gltf_check_val(ld, children, JsonType_Array)) {
-      const u32 childCount = json_elem_count(ld->jDoc, children);
+      ld->joints[jointIndex].childIndex = childIndicesCount;
+      ld->joints[jointIndex].childCount = json_elem_count(ld->jDoc, children);
+
       json_for_elems(ld->jDoc, children, child) {
         if (UNLIKELY(json_type(ld->jDoc, child) != JsonType_Number)) {
           goto Error;
         }
         const u32 childJointIndex = gltf_joint_index(ld, (u32)json_number(ld->jDoc, child));
-        (void)childCount;
-        (void)childJointIndex;
+        ld->childIndices[childIndicesCount++] = childJointIndex;
+        if (UNLIKELY(childIndicesCount >= ld->jointCount)) {
+          goto Error;
+        }
       }
     }
 
@@ -1029,17 +1039,25 @@ static void gltf_build_skeleton(AssetGltfLoadComp* ld, AssetMeshSkeletonComp* ou
     return;
   }
 
-  GeoMatrix* resInvBindTransforms = alloc_array_t(g_alloc_heap, GeoMatrix, ld->jointCount);
-  String*    resJointNames        = alloc_array_t(g_alloc_heap, String, ld->jointCount);
+  AssetMeshJoint* resJoints = alloc_array_t(g_alloc_heap, AssetMeshJoint, ld->jointCount);
   for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
-    resInvBindTransforms[jointIndex] = gltf_inv_bind_transform(ld, jointIndex);
-    resJointNames[jointIndex]        = string_dup(g_alloc_heap, ld->joints[jointIndex].name);
+    resJoints[jointIndex] = (AssetMeshJoint){
+        .invBindTransform = gltf_inv_bind_transform(ld, jointIndex),
+        .childIndex       = ld->joints[jointIndex].childIndex,
+        .childCount       = ld->joints[jointIndex].childCount,
+        .name             = string_dup(g_alloc_heap, ld->joints[jointIndex].name),
+    };
   }
 
+  u32* resChildIndices = alloc_array_t(g_alloc_heap, u32, ld->jointCount);
+  mem_cpy(
+      mem_create(resChildIndices, sizeof(u32) * ld->jointCount),
+      mem_create(ld->childIndices, sizeof(u32) * ld->jointCount));
+
   *out = (AssetMeshSkeletonComp){
-      .jointCount             = ld->jointCount,
-      .jointInvBindTransforms = resInvBindTransforms,
-      .jointNames             = resJointNames,
+      .jointCount   = ld->jointCount,
+      .joints       = resJoints,
+      .childIndices = resChildIndices,
   };
   *err = GltfError_None;
 }
