@@ -108,8 +108,8 @@ typedef struct {
 
 typedef struct {
   u32    nodeIndex;
-  u32    childIndex, childCount;
-  String name; // NOTE: Allocated in the json document (or empty).
+  u32    childBegin, childCount; // Indices into the 'childIndices' array.
+  String name;                   // NOTE: Allocated in the json document (or empty).
 } GltfJoint;
 
 typedef struct {
@@ -687,7 +687,7 @@ static void gltf_parse_skeleton_nodes(AssetGltfLoadComp* ld, GltfError* err) {
 
     const JsonVal children = json_field(ld->jDoc, node, string_lit("children"));
     if (gltf_check_val(ld, children, JsonType_Array)) {
-      ld->joints[jointIndex].childIndex = childIndicesCount;
+      ld->joints[jointIndex].childBegin = childIndicesCount;
       ld->joints[jointIndex].childCount = json_elem_count(ld->jDoc, children);
 
       json_for_elems(ld->jDoc, children, child) {
@@ -1043,7 +1043,7 @@ static void gltf_build_skeleton(AssetGltfLoadComp* ld, AssetMeshSkeletonComp* ou
   for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
     resJoints[jointIndex] = (AssetMeshJoint){
         .invBindTransform = gltf_inv_bind_transform(ld, jointIndex),
-        .childIndex       = ld->joints[jointIndex].childIndex,
+        .childBegin       = ld->joints[jointIndex].childBegin,
         .childCount       = ld->joints[jointIndex].childCount,
         .name             = string_dup(g_alloc_heap, ld->joints[jointIndex].name),
     };

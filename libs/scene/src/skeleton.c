@@ -25,8 +25,8 @@ ecs_comp_define(SceneSkeletonTemplateComp) {
   SkeletonTemplateState state;
   EcsEntityId           mesh;
   u32                   jointCount;
-  const AssetMeshJoint* joints;
   const u32*            childIndices;
+  SceneSkeletonJoint*   joints;
 };
 
 ecs_comp_define(SceneSkeletonTemplateLoadedComp);
@@ -138,11 +138,22 @@ static bool scene_asset_is_loaded(EcsWorld* world, const EcsEntityId asset) {
          ecs_world_has_t(world, asset, AssetFailedComp);
 }
 
-static void scene_asset_template_init(
-    SceneSkeletonTemplateComp* template, const AssetMeshSkeletonComp* meshSkeleton) {
-  template->jointCount   = meshSkeleton->jointCount;
-  template->joints       = asset_mesh_joints_create(g_alloc_heap, meshSkeleton);
-  template->childIndices = asset_mesh_child_indices_create(g_alloc_heap, meshSkeleton);
+static void
+scene_asset_template_init(SceneSkeletonTemplateComp* template, const AssetMeshSkeletonComp* asset) {
+  template->jointCount = asset->jointCount;
+
+  const Mem assetChildIndicesMem = mem_create(asset->childIndices, sizeof(u32) * asset->jointCount);
+  template->childIndices         = alloc_dup(g_alloc_heap, assetChildIndicesMem, alignof(u32)).ptr;
+
+  template->joints = alloc_array_t(g_alloc_heap, SceneSkeletonJoint, asset->jointCount);
+  for (u32 jointIndex = 0; jointIndex != asset->jointCount; ++jointIndex) {
+    template->joints[jointIndex] = (SceneSkeletonJoint){
+        .invBindTransform = asset->joints[jointIndex].invBindTransform,
+        .childIndices     = &template->childIndices[asset->joints[jointIndex].childBegin],
+        .childCount       = asset->joints[jointIndex].childCount,
+        .name             = string_dup(g_alloc_heap, asset->joints[jointIndex].name),
+    };
+  }
 }
 
 static void scene_skeleton_template_load_done(EcsWorld* world, EcsIterator* itr) {
@@ -225,15 +236,16 @@ ecs_module_init(scene_skeleton_module) {
       SceneSkeletonTemplateLoadSys, ecs_view_id(TemplateLoadView), ecs_view_id(MeshView));
 }
 
+const SceneSkeletonJoint*
+scene_skeleton_joint(const SceneSkeletonTemplateComp* templ, const u32 jointIndex) {
+  diag_assert(jointIndex < templ->jointCount);
+  return &templ->joints[jointIndex];
+}
+
 void scene_skeleton_joint_delta(
     const SceneSkeletonComp* skeleton, const SceneSkeletonTemplateComp* templ, GeoMatrix* out) {
   diag_assert(skeleton->jointCount == templ->jointCount);
   for (u32 i = 0; i != skeleton->jointCount; ++i) {
     out[i] = geo_matrix_mul(&skeleton->jointTransforms[i], &templ->joints[i].invBindTransform);
   }
-}
-
-String scene_skeleton_joint_name(const SceneSkeletonTemplateComp* templ, const u32 jointIndex) {
-  diag_assert(jointIndex < templ->jointCount);
-  return templ->joints[jointIndex].name;
 }

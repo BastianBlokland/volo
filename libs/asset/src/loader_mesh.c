@@ -53,24 +53,3 @@ ecs_module_init(asset_mesh_module) {
 
   ecs_register_system(UnloadMeshAssetSys, ecs_view_id(UnloadView));
 }
-
-const AssetMeshJoint*
-asset_mesh_joints_create(Allocator* alloc, const AssetMeshSkeletonComp* skeleton) {
-  AssetMeshJoint* res = alloc_array_t(alloc, AssetMeshJoint, skeleton->jointCount);
-  for (u32 jointIndex = 0; jointIndex != skeleton->jointCount; ++jointIndex) {
-    res[jointIndex] = (AssetMeshJoint){
-        .invBindTransform = skeleton->joints[jointIndex].invBindTransform,
-        .childIndex       = skeleton->joints[jointIndex].childIndex,
-        .childCount       = skeleton->joints[jointIndex].childCount,
-        .name             = string_dup(alloc, skeleton->joints[jointIndex].name),
-    };
-  }
-  return res;
-}
-
-const u32*
-asset_mesh_child_indices_create(Allocator* alloc, const AssetMeshSkeletonComp* skeleton) {
-  const usize size   = sizeof(u32) * skeleton->jointCount;
-  const Mem   orgMem = mem_create(skeleton->childIndices, size);
-  return alloc_dup(alloc, orgMem, alignof(u32)).ptr;
-}

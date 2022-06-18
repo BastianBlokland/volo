@@ -187,7 +187,7 @@ static void physics_draw_skeleton(
     debug_arrow(shapes, jointPos, geo_vector_add(jointPos, jointY), g_arrowSize, geo_color_green);
     debug_arrow(shapes, jointPos, geo_vector_add(jointPos, jointZ), g_arrowSize, geo_color_blue);
 
-    const String jointName = scene_skeleton_joint_name(skeletonTemplate, i);
+    const String jointName = scene_skeleton_joint(skeletonTemplate, i)->name;
     debug_text(text, geo_vector_add(jointPos, geo_vector(0, 0.02f, 0)), jointName);
   }
 }

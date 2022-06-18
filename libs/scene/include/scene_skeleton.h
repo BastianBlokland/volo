@@ -2,6 +2,13 @@
 #include "ecs_module.h"
 #include "geo_matrix.h"
 
+typedef struct {
+  GeoMatrix  invBindTransform;
+  const u32* childIndices;
+  u32        childCount;
+  String     name;
+} SceneSkeletonJoint;
+
 ecs_comp_extern(SceneSkeletonTemplateComp);
 
 ecs_comp_extern_public(SceneSkeletonComp) {
@@ -9,7 +16,7 @@ ecs_comp_extern_public(SceneSkeletonComp) {
   GeoMatrix* jointTransforms;
 };
 
+const SceneSkeletonJoint* scene_skeleton_joint(const SceneSkeletonTemplateComp*, u32 jointIndex);
+
 void scene_skeleton_joint_delta(
     const SceneSkeletonComp*, const SceneSkeletonTemplateComp*, GeoMatrix* out);
-
-String scene_skeleton_joint_name(const SceneSkeletonTemplateComp*, u32 jointIndex);

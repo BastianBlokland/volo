@@ -31,8 +31,8 @@ ecs_comp_extern_public(AssetMeshComp) {
 };
 
 typedef struct {
-  GeoMatrix invBindTransform; // From world to local bind space for a joint.
-  u32       childIndex, childCount;
+  GeoMatrix invBindTransform;       // From world to local bind space for a joint.
+  u32       childBegin, childCount; // Indices into the 'childIndices' array.
   String    name;
 } AssetMeshJoint;
 
@@ -41,6 +41,3 @@ ecs_comp_extern_public(AssetMeshSkeletonComp) {
   const AssetMeshJoint* joints;
   const u32*            childIndices;
 };
-
-const AssetMeshJoint* asset_mesh_joints_create(Allocator*, const AssetMeshSkeletonComp*);
-const u32*            asset_mesh_child_indices_create(Allocator*, const AssetMeshSkeletonComp*);
