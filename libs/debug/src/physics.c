@@ -168,24 +168,35 @@ static void physics_draw_skeleton(
   static const f32 g_arrowLength = 0.1f;
   static const f32 g_arrowSize   = 0.01f;
   const f32        jointScaleMul = (1.0f / scale) * g_arrowLength;
+  const GeoMatrix  transform     = geo_matrix_trs(pos, rot, geo_vector(scale, scale, scale));
 
-  const GeoMatrix transform = geo_matrix_trs(pos, rot, geo_vector(scale, scale, scale));
+  GeoMatrix* jointMatrices = mem_stack(sizeof(GeoMatrix) * skeleton->jointCount).ptr;
   for (u32 i = 0; i != skeleton->jointCount; ++i) {
-    const GeoMatrix jointTransform = geo_matrix_mul(&transform, &skeleton->jointTransforms[i]);
-    const GeoVector jointPos       = geo_matrix_to_translation(&jointTransform);
+    jointMatrices[i] = geo_matrix_mul(&transform, &skeleton->jointTransforms[i]);
+  }
 
-    const GeoVector jointRefX = geo_matrix_transform3_point(&jointTransform, geo_right);
+  for (u32 i = 0; i != skeleton->jointCount; ++i) {
+    const SceneSkeletonJoint* jointInfo = scene_skeleton_joint(skeletonTemplate, i);
+    const GeoVector           jointPos  = geo_matrix_to_translation(&jointMatrices[i]);
+
+    const GeoVector jointRefX = geo_matrix_transform3_point(&jointMatrices[i], geo_right);
     const GeoVector jointX    = geo_vector_mul(geo_vector_sub(jointRefX, jointPos), jointScaleMul);
 
-    const GeoVector jointRefY = geo_matrix_transform3_point(&jointTransform, geo_up);
+    const GeoVector jointRefY = geo_matrix_transform3_point(&jointMatrices[i], geo_up);
     const GeoVector jointY    = geo_vector_mul(geo_vector_sub(jointRefY, jointPos), jointScaleMul);
 
-    const GeoVector jointRefZ = geo_matrix_transform3_point(&jointTransform, geo_forward);
+    const GeoVector jointRefZ = geo_matrix_transform3_point(&jointMatrices[i], geo_forward);
     const GeoVector jointZ    = geo_vector_mul(geo_vector_sub(jointRefZ, jointPos), jointScaleMul);
 
     debug_arrow(shapes, jointPos, geo_vector_add(jointPos, jointX), g_arrowSize, geo_color_red);
     debug_arrow(shapes, jointPos, geo_vector_add(jointPos, jointY), g_arrowSize, geo_color_green);
     debug_arrow(shapes, jointPos, geo_vector_add(jointPos, jointZ), g_arrowSize, geo_color_blue);
+
+    for (u32 childNum = 0; childNum != jointInfo->childCount; ++childNum) {
+      const u32       childIndex = jointInfo->childIndices[childNum];
+      const GeoVector childPos   = geo_matrix_to_translation(&jointMatrices[childIndex]);
+      debug_line(shapes, jointPos, childPos, geo_color_white);
+    }
 
     const String jointName = scene_skeleton_joint(skeletonTemplate, i)->name;
     debug_text(text, geo_vector_add(jointPos, geo_vector(0, 0.02f, 0)), jointName);
