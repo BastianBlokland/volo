@@ -12,6 +12,12 @@ typedef struct sAllocator Allocator;
 typedef struct sStringTable StringTable;
 
 /**
+ * Global StringTable.
+ * NOTE: Thread-safe.
+ */
+extern StringTable* g_stringtable;
+
+/**
  * Create a new StringTable instance.
  * Destroy using 'stringtable_destroy()'.
  */
