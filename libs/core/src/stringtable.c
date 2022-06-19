@@ -3,6 +3,7 @@
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_stringtable.h"
+#include "core_thread.h"
 
 #define stringtable_chunk_size (32 * usize_kibibyte)
 #define stringtable_string_size_max 512
@@ -23,6 +24,7 @@ typedef struct {
 
 struct sStringTable {
   Allocator*       alloc; // Allocator for string the meta-data.
+  ThreadSpinLock   slotsLock;
   u32              slotCount, slotCountUsed;
   StringTableSlot* slots;
   Allocator*       dataAlloc; // Allocator for string the string character data.
@@ -96,7 +98,12 @@ void stringtable_destroy(StringTable* table) {
 }
 
 String stringtable_lookup(const StringTable* table, const StringHash hash) {
-  return stringtable_slot(table->slots, table->slotCount, hash)->data;
+  StringTable* tableMutable = (StringTable*)table;
+  String       res;
+  thread_spinlock_lock(&tableMutable->slotsLock);
+  res = stringtable_slot(table->slots, table->slotCount, hash)->data;
+  thread_spinlock_unlock(&tableMutable->slotsLock);
+  return res;
 }
 
 void stringtable_add(StringTable* table, const String str) {
@@ -106,25 +113,30 @@ void stringtable_add(StringTable* table, const String str) {
       fmt_size(str.size));
 
   const StringHash hash = string_hash(str);
-  StringTableSlot* slot = stringtable_slot(table->slots, table->slotCount, hash);
-  if (slot->hash) {
-    /**
-     * String already existed in the table.
-     */
-    diag_assert_msg(string_eq(str, slot->data), "StringHash collision in StringTable");
-  } else {
-    /**
-     * New entry in the table.
-     * Copy the string data into the table's data-allocator and initial the values in the slot.
-     */
-    slot->hash = hash;
-    if (LIKELY(!string_is_empty(str))) {
-      slot->data = string_dup(table->dataAlloc, str);
-      diag_assert_msg(slot->data.ptr, "StringTable allocator ran out of space");
-    }
-    ++table->slotCountUsed;
-    if (UNLIKELY(stringtable_should_grow(table))) {
-      stringtable_grow(table);
+
+  thread_spinlock_lock(&table->slotsLock);
+  {
+    StringTableSlot* slot = stringtable_slot(table->slots, table->slotCount, hash);
+    if (slot->hash) {
+      /**
+       * String already existed in the table.
+       */
+      diag_assert_msg(string_eq(str, slot->data), "StringHash collision in StringTable");
+    } else {
+      /**
+       * New entry in the table.
+       * Copy the string data into the table's data-allocator and initial the values in the slot.
+       */
+      slot->hash = hash;
+      if (LIKELY(!string_is_empty(str))) {
+        slot->data = string_dup(table->dataAlloc, str);
+        diag_assert_msg(slot->data.ptr, "StringTable allocator ran out of space");
+      }
+      ++table->slotCountUsed;
+      if (UNLIKELY(stringtable_should_grow(table))) {
+        stringtable_grow(table);
+      }
     }
   }
+  thread_spinlock_unlock(&table->slotsLock);
 }

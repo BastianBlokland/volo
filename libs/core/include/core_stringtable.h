@@ -25,12 +25,14 @@ void stringtable_destroy(StringTable*);
 /**
  * Lookup a textual representation of the given hash.
  * NOTE: If the hash has not been added to the table an empty String is returned.
+ * NOTE: Thread-safe.
  */
 String stringtable_lookup(const StringTable*, StringHash);
 
 /**
  * Add the given string to the StringTable.
  * NOTE: This is a no-op if the string is already in the table.
+ * NOTE: Thread-safe.
  * Pre-condition: string.size <= 512
  */
 void stringtable_add(StringTable*, String);
