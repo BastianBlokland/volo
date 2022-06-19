@@ -6,7 +6,7 @@ typedef struct {
   GeoMatrix  invBindTransform;
   const u32* childIndices;
   u32        childCount;
-  String     name;
+  StringHash nameHash;
 } SceneSkeletonJoint;
 
 ecs_comp_extern(SceneSkeletonTemplateComp);

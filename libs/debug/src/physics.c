@@ -1,4 +1,5 @@
 #include "asset_manager.h"
+#include "core_stringtable.h"
 #include "debug_physics.h"
 #include "debug_register.h"
 #include "debug_shape.h"
@@ -199,8 +200,9 @@ static void physics_draw_skeleton(
       debug_line(shapes, jointPos, childPos, geo_color_white);
     }
 
-    const String   jointName = scene_skeleton_joint(skeletonTemplate, i)->name;
-    const GeoColor color     = isRootJoint ? geo_color_red : geo_color_white;
+    const StringHash jointNameHash = scene_skeleton_joint(skeletonTemplate, i)->nameHash;
+    const String     jointName     = stringtable_lookup(g_stringtable, jointNameHash);
+    const GeoColor   color         = isRootJoint ? geo_color_red : geo_color_white;
     debug_text(text, geo_vector_add(jointPos, geo_vector(0, 0.02f, 0)), jointName, color);
   }
 }
