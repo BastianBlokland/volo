@@ -54,6 +54,16 @@ static const Subject   g_subjects[]          = {
         .scale    = 0.5f,
     },
     {
+        .graphic  = string_static("graphics/demo/rigged-simple.gra"),
+        .position = {.y = 1.0f},
+        .scale    = 0.25f,
+    },
+    {
+        .graphic  = string_static("graphics/demo/fox.gra"),
+        .position = {.y = 0.5f},
+        .scale    = 0.015f,
+    },
+    {
         .graphic  = string_static("graphics/demo/terrain.gra"),
         .position = {.y = 0.5f},
         .scale    = 1.5f,
@@ -82,11 +92,6 @@ static const Subject   g_subjects[]          = {
         .graphic  = string_static("graphics/demo/boombox.gra"),
         .position = {.y = 0.95f},
         .scale    = 50.0f,
-    },
-    {
-        .graphic  = string_static("graphics/demo/antiquecamera.gra"),
-        .position = {.y = 0.5f},
-        .scale    = 0.125f,
     },
     {
         .graphic  = string_static("graphics/demo/head.gra"),

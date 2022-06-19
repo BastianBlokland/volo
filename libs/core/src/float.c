@@ -49,7 +49,7 @@ static f16 float_f32_to_f16_soft(const f32 val) {
    * IEEE-754 16-bit floating-point format (without infinity):
    * 1-5-10, exp-15, +-131008.0, +-6.1035156E-5, +-5.9604645E-8, 3.311 digits
    *
-   * Source: Awnser of user 'ProjectPhysX' on the following StackOverflow question:
+   * Source: Answer by user 'ProjectPhysX' on the following StackOverflow question:
    * https://stackoverflow.com/questions/1659440/32-bit-to-16-bit-floating-point-conversion
    */
 

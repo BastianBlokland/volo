@@ -1,7 +1,7 @@
 {
   "shaders": [
     {
-      "shaderId": "shaders/standard.vert.spv"
+      "shaderId": "shaders/standard_skinned.vert.spv"
     },
     {
       "shaderId": "shaders/standard.frag.spv"
@@ -9,13 +9,13 @@
   ],
   "samplers": [
     {
-      "textureId": "textures/checker_white_32.ptx",
+      "textureId": "external/fox/fox_diff.tga",
       "wrap": "Clamp",
-      "filter": "Nearest",
-      "anisotropy": "None"
+      "filter": "Linear",
+      "anisotropy": "x4"
     }
   ],
-  "meshId": "external/antiquecamera/camera.gltf",
+  "meshId": "external/fox/fox.gltf",
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "None",

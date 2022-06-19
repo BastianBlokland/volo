@@ -132,6 +132,11 @@ GeoVector geo_vector_quantize(GeoVector, u8 maxMantissaBits);
 GeoVector geo_vector_quantize3(GeoVector, u8 maxMantissaBits);
 
 /**
+ * Pack a vector to 16 bit floats.
+ */
+void geo_vector_pack_f16(GeoVector, f16 out[4]);
+
+/**
  * Create a formatting argument for a vector.
  * NOTE: _VEC_ is expanded multiple times, so care must be taken when providing complex expressions.
  */

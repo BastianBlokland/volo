@@ -132,7 +132,7 @@ GeoMatrix geo_matrix_inverse(const GeoMatrix* m) {
        m->columns[3].x *
            (m->columns[0].y * a1223 - m->columns[1].y * a0223 + m->columns[2].y * a0123));
 
-  diag_assert_msg(det > f32_epsilon, "Non invertable matrix");
+  diag_assert_msg(det != 0.0f, "Non invertible matrix");
   det = 1.0f / det;
 
   return (GeoMatrix){
@@ -183,6 +183,10 @@ GeoMatrix geo_matrix_translate(const GeoVector translation) {
       }};
 }
 
+GeoVector geo_matrix_to_translation(const GeoMatrix* m) {
+  return geo_vector(m->columns[3].x, m->columns[3].y, m->columns[3].z, 0);
+}
+
 GeoMatrix geo_matrix_scale(const GeoVector scale) {
   /**
    * [ sx, 0,  0,  0 ]
@@ -197,6 +201,14 @@ GeoMatrix geo_matrix_scale(const GeoVector scale) {
           {0, 0, scale.z, 0},
           {0, 0, 0, 1},
       }};
+}
+
+GeoVector geo_matrix_to_scale(const GeoMatrix* m) {
+  const GeoVector xAxis = geo_matrix_transform3(m, geo_right);
+  const GeoVector yAxis = geo_matrix_transform3(m, geo_up);
+  const GeoVector zAxis = geo_matrix_transform3(m, geo_forward);
+
+  return geo_vector(geo_vector_mag(xAxis), geo_vector_mag(yAxis), geo_vector_mag(zAxis));
 }
 
 GeoMatrix geo_matrix_rotate_x(const f32 angle) {
@@ -396,6 +408,15 @@ GeoQuat geo_matrix_to_quat(const GeoMatrix* m) {
       .z = s * .25f,
       .w = (m->columns[0].y - m->columns[1].x) / s,
   };
+}
+
+GeoMatrix geo_matrix_trs(const GeoVector t, const GeoQuat r, const GeoVector s) {
+  const GeoMatrix mT = geo_matrix_translate(t);
+  const GeoMatrix mR = geo_matrix_from_quat(r);
+  const GeoMatrix mS = geo_matrix_scale(s);
+
+  const GeoMatrix temp = geo_matrix_mul(&mT, &mR);
+  return geo_matrix_mul(&temp, &mS);
 }
 
 GeoMatrix

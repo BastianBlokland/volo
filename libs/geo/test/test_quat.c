@@ -98,6 +98,43 @@ spec(quat) {
     }
   }
 
+  it("can spherically interpolate between two values") {
+    {
+      const GeoQuat q1 = geo_quat_angle_axis(geo_right, 2.0f);
+      const GeoQuat q2 = geo_quat_angle_axis(geo_right, 1.0f);
+      check_eq_quat(geo_quat_slerp(q1, q2, 0.0f), geo_quat_angle_axis(geo_right, 2.0f));
+      check_eq_quat(geo_quat_slerp(q1, q2, 0.5f), geo_quat_angle_axis(geo_right, 1.5f));
+      check_eq_quat(geo_quat_slerp(q1, q2, 1.0f), geo_quat_angle_axis(geo_right, 1.0f));
+      check_eq_quat(geo_quat_slerp(q1, q2, 1.5f), geo_quat_angle_axis(geo_right, 0.5f));
+    }
+    {
+      const GeoQuat q1 = geo_quat_angle_axis(geo_up, 2.0f);
+      const GeoQuat q2 = geo_quat_angle_axis(geo_up, 1.0f);
+      check_eq_quat(geo_quat_slerp(q1, q2, 0.0f), geo_quat_angle_axis(geo_up, 2.0f));
+      check_eq_quat(geo_quat_slerp(q1, q2, 0.5f), geo_quat_angle_axis(geo_up, 1.5f));
+      check_eq_quat(geo_quat_slerp(q1, q2, 1.0f), geo_quat_angle_axis(geo_up, 1.0f));
+      check_eq_quat(geo_quat_slerp(q1, q2, 1.5f), geo_quat_angle_axis(geo_up, 0.5f));
+    }
+    {
+      const GeoQuat q1 = geo_quat_angle_axis(geo_forward, 2.0f);
+      const GeoQuat q2 = geo_quat_angle_axis(geo_forward, 1.0f);
+      check_eq_quat(geo_quat_slerp(q1, q2, 0.0f), geo_quat_angle_axis(geo_forward, 2.0f));
+      check_eq_quat(geo_quat_slerp(q1, q2, 0.5f), geo_quat_angle_axis(geo_forward, 1.5f));
+      check_eq_quat(geo_quat_slerp(q1, q2, 1.0f), geo_quat_angle_axis(geo_forward, 1.0f));
+      check_eq_quat(geo_quat_slerp(q1, q2, 1.5f), geo_quat_angle_axis(geo_forward, 0.5f));
+    }
+    {
+      const GeoQuat q1 = geo_quat_look(geo_forward, geo_up);
+      const GeoQuat q2 = geo_quat_look(geo_backward, geo_up);
+      check_eq_quat(geo_quat_slerp(q1, q2, 0.5f), geo_quat_look(geo_right, geo_up));
+    }
+    {
+      const GeoQuat q1 = geo_quat_look(geo_forward, geo_up);
+      const GeoQuat q2 = geo_quat_look(geo_forward, geo_up);
+      check_eq_quat(geo_quat_slerp(q1, q2, 0.5f), geo_quat_look(geo_forward, geo_up));
+    }
+  }
+
   it("lists all components when formatted") {
     check_eq_string(
         fmt_write_scratch("{}", geo_quat_fmt(geo_quat_ident)), string_lit("0, 0, 0, 1"));

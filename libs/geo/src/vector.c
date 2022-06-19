@@ -238,3 +238,10 @@ GeoVector geo_vector_quantize3(const GeoVector v, const u8 maxMantissaBits) {
       .z = float_quantize_f32(v.z, maxMantissaBits),
   };
 }
+
+void geo_vector_pack_f16(const GeoVector v, f16 out[4]) {
+  out[0] = float_f32_to_f16(v.x);
+  out[1] = float_f32_to_f16(v.y);
+  out[2] = float_f32_to_f16(v.z);
+  out[3] = float_f32_to_f16(v.w);
+}

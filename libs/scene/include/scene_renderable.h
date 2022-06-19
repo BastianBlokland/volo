@@ -12,6 +12,7 @@ typedef enum {
  * The following instance data will automatically be provided to the graphic:
  * - Position (if the entity has a SceneTransformComp)
  * - Rotation (if the entity has a SceneTransformComp)
+ * - Scale (if the entity has a SceneTransformComp)
  *
  * Draws will automatically be batched with other renderables using the same graphic.
  */

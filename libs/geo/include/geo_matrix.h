@@ -19,7 +19,7 @@
  * - Output depth: 0 - 1.
  */
 
-typedef union {
+typedef union uGeoMatrix {
   GeoVector columns[4];
   ALIGNAS(16) f32 comps[16];
 } GeoMatrix;
@@ -35,7 +35,7 @@ GeoMatrix geo_matrix_ident();
 
 /**
  * Retrieve a row from the matrix.
- * NOTE: Matrix is stored as column-major so perfer using columns.
+ * NOTE: Matrix is stored as column-major so prefer using columns.
  * Pre-condition: index < 4
  */
 GeoVector geo_matrix_row(const GeoMatrix*, usize index);
@@ -69,9 +69,20 @@ GeoMatrix geo_matrix_inverse(const GeoMatrix*);
 GeoMatrix geo_matrix_translate(GeoVector translation);
 
 /**
+ * Extract the translation vector from the given matrix.
+ */
+GeoVector geo_matrix_to_translation(const GeoMatrix*);
+
+/**
  * Create a scale matrix.
  */
 GeoMatrix geo_matrix_scale(GeoVector scale);
+
+/**
+ * Extract the scale (magnitude) vector from the given matrix.
+ * NOTE: Scale sign is not extracted.
+ */
+GeoVector geo_matrix_to_scale(const GeoMatrix*);
 
 /**
  * Create a rotation matrix around one of the dimensions.
@@ -105,6 +116,11 @@ GeoMatrix geo_matrix_from_quat(GeoQuat);
  * Pre-condition: matrix has to be an orthogonal matrix.
  */
 GeoQuat geo_matrix_to_quat(const GeoMatrix*);
+
+/**
+ * Construct transformation matrix from the given translation, rotation and scale.
+ */
+GeoMatrix geo_matrix_trs(GeoVector t, GeoQuat r, GeoVector s);
 
 /**
  * Create an orthographic projection matrix.

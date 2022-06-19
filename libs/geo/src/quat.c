@@ -119,3 +119,41 @@ GeoQuat geo_quat_look(const GeoVector forward, const GeoVector upRef) {
   const GeoMatrix m = geo_matrix_rotate_look(forward, upRef);
   return geo_matrix_to_quat(&m);
 }
+
+GeoQuat geo_quat_slerp(const GeoQuat a, const GeoQuat b, const f32 t) {
+  /**
+   * Walk from one quaternion to another along the unit sphere in 4-dimensional space.
+   *
+   * Implementation based on:
+   * https://www.euclideanspace.com/maths/algebra/realNormedAlgebra/quaternions/slerp
+   */
+
+  // Calculate the angle between the quaternions.
+  const f32 cosHalfTheta = a.w * b.w + a.x * b.x + a.y * b.y + a.z * b.z;
+  // if a == b or a == -b then theta == 0 and we can return a
+  if (math_abs(cosHalfTheta) >= 1.0f) {
+    return a;
+  }
+
+  const f32 halfTheta    = math_acos_f32(cosHalfTheta);
+  const f32 sinHalfTheta = math_sqrt_f32(1.0f - cosHalfTheta * cosHalfTheta);
+  // if theta == 180 degrees then result is not fully defined
+  // we could rotate around any axis normal to a or b
+  if (math_abs(sinHalfTheta) < 0.001f) {
+    return (GeoQuat){
+        .x = a.x * 0.5f + b.x * 0.5f,
+        .y = a.y * 0.5f + b.y * 0.5f,
+        .z = a.z * 0.5f + b.z * 0.5f,
+        .w = a.w * 0.5f + b.w * 0.5f,
+    };
+  }
+
+  const f32 ratioA = math_sin_f32((1.0f - t) * halfTheta) / sinHalfTheta;
+  const f32 ratioB = math_sin_f32(t * halfTheta) / sinHalfTheta;
+  return (GeoQuat){
+      .w = a.w * ratioA + b.w * ratioB,
+      .x = a.x * ratioA + b.x * ratioB,
+      .y = a.y * ratioA + b.y * ratioB,
+      .z = a.z * ratioA + b.z * ratioB,
+  };
+}

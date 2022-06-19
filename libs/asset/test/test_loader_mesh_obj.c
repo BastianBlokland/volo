@@ -266,7 +266,7 @@ spec(loader_mesh_obj) {
       // Verify the vertices.
       check_require(mesh->vertexCount == g_testData[i].vertexCount);
       for (usize j = 0; j != g_testData[i].vertexCount; ++j) {
-        const AssetMeshVertex* vert         = &mesh->vertices[j];
+        const AssetMeshVertex* vert         = &mesh->vertexData[j];
         const AssetMeshVertex* vertExpected = &g_testData[i].vertices[j];
         check(geo_vector_equal(vert->position, vertExpected->position, 1e-6f));
         check(geo_vector_equal(vert->normal, vertExpected->normal, 1e-6f));
@@ -276,7 +276,7 @@ spec(loader_mesh_obj) {
       // Verify the indices.
       check_require(mesh->indexCount == g_testData[i].indexCount);
       for (usize j = 0; j != g_testData[i].indexCount; ++j) {
-        check_eq_int(mesh->indices[j], g_testData[i].indices[j]);
+        check_eq_int(mesh->indexData[j], g_testData[i].indices[j]);
       }
     };
   }

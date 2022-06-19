@@ -19,6 +19,7 @@ configure_shaders(volo_shaders
     shaders/scene/sky_cubemap.frag
     shaders/scene/sky_procedural.frag
     shaders/scene/sky.vert
+    shaders/standard_skinned.vert
     shaders/standard.frag
     shaders/standard.vert
     shaders/ui/canvas.frag
@@ -32,8 +33,6 @@ if(${EXTERNAL_ASSETS})
     PATH ${CMAKE_CURRENT_SOURCE_DIR}/external
     REMOTE_URL "https://www.bastian.tech/assets"
     FILES
-      antiquecamera/camera.bin
-      antiquecamera/camera.gltf
       boombox/boombox_diff.tga
       boombox/boombox_nrm.tga
       boombox/boombox.bin
@@ -47,6 +46,9 @@ if(${EXTERNAL_ASSETS})
       corset/corset_gltf.gltf
       corset/corset_nrm.tga
       dragon.obj
+      fox/fox_diff.tga
+      fox/fox.bin
+      fox/fox.gltf
       head/head.obj
       head/lambertian.tga
       normal_tangent_mirror_test/normal_tangent_mirror_test_diff.tga
@@ -60,6 +62,8 @@ if(${EXTERNAL_ASSETS})
       pedestal/pedestal_diff.tga
       pedestal/pedestal_nrm.tga
       pedestal/pedestal.obj
+      rigged-simple/rigged-simple.bin
+      rigged-simple/rigged-simple.gltf
       skybox/sorsele_back.tga
       skybox/sorsele_down.tga
       skybox/sorsele_front.tga
