@@ -16,6 +16,8 @@ ecs_comp_extern_public(SceneSkeletonComp) {
   GeoMatrix* jointTransforms;
 };
 
+u32 scene_skeleton_root_index(const SceneSkeletonTemplateComp*);
+
 const SceneSkeletonJoint* scene_skeleton_joint(const SceneSkeletonTemplateComp*, u32 jointIndex);
 
 void scene_skeleton_joint_delta(

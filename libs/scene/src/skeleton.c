@@ -27,6 +27,7 @@ ecs_comp_define(SceneSkeletonTemplateComp) {
   u32                   jointCount;
   const u32*            childIndices;
   SceneSkeletonJoint*   joints;
+  u32                   jointRootIndex;
 };
 
 ecs_comp_define(SceneSkeletonTemplateLoadedComp);
@@ -140,7 +141,8 @@ static bool scene_asset_is_loaded(EcsWorld* world, const EcsEntityId asset) {
 
 static void
 scene_asset_template_init(SceneSkeletonTemplateComp* template, const AssetMeshSkeletonComp* asset) {
-  template->jointCount = asset->jointCount;
+  template->jointCount     = asset->jointCount;
+  template->jointRootIndex = asset->rootJointIndex;
 
   const Mem assetChildIndicesMem = mem_create(asset->childIndices, sizeof(u32) * asset->jointCount);
   template->childIndices         = alloc_dup(g_alloc_heap, assetChildIndicesMem, alignof(u32)).ptr;
@@ -234,6 +236,10 @@ ecs_module_init(scene_skeleton_module) {
 
   ecs_register_system(
       SceneSkeletonTemplateLoadSys, ecs_view_id(TemplateLoadView), ecs_view_id(MeshView));
+}
+
+u32 scene_skeleton_root_index(const SceneSkeletonTemplateComp* templ) {
+  return templ->jointRootIndex;
 }
 
 const SceneSkeletonJoint*

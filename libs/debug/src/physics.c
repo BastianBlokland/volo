@@ -176,8 +176,9 @@ static void physics_draw_skeleton(
   }
 
   for (u32 i = 0; i != skeleton->jointCount; ++i) {
-    const SceneSkeletonJoint* jointInfo = scene_skeleton_joint(skeletonTemplate, i);
-    const GeoVector           jointPos  = geo_matrix_to_translation(&jointMatrices[i]);
+    const bool                isRootJoint = i == scene_skeleton_root_index(skeletonTemplate);
+    const SceneSkeletonJoint* jointInfo   = scene_skeleton_joint(skeletonTemplate, i);
+    const GeoVector           jointPos    = geo_matrix_to_translation(&jointMatrices[i]);
 
     const GeoVector jointRefX = geo_matrix_transform3_point(&jointMatrices[i], geo_right);
     const GeoVector jointX    = geo_vector_mul(geo_vector_sub(jointRefX, jointPos), jointScaleMul);
@@ -198,8 +199,9 @@ static void physics_draw_skeleton(
       debug_line(shapes, jointPos, childPos, geo_color_white);
     }
 
-    const String jointName = scene_skeleton_joint(skeletonTemplate, i)->name;
-    debug_text(text, geo_vector_add(jointPos, geo_vector(0, 0.02f, 0)), jointName);
+    const String   jointName = scene_skeleton_joint(skeletonTemplate, i)->name;
+    const GeoColor color     = isRootJoint ? geo_color_red : geo_color_white;
+    debug_text(text, geo_vector_add(jointPos, geo_vector(0, 0.02f, 0)), jointName, color);
   }
 }
 

@@ -40,4 +40,5 @@ ecs_comp_extern_public(AssetMeshSkeletonComp) {
   u8                    jointCount;
   const AssetMeshJoint* joints;
   const u32*            childIndices;
+  u32                   rootJointIndex;
 };

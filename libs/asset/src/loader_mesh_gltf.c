@@ -136,8 +136,8 @@ ecs_comp_define(AssetGltfLoadComp) {
   u32           primCount;
   u32           jointCount;
   u32           animCount;
-  u32           accInvBindMats;         // Access index [Optional].
-  u32           skeletonRootJointIndex; // [Optional].
+  u32           accInvBindMats; // Access index [Optional].
+  u32           rootJointIndex; // [Optional].
 };
 
 static void ecs_destruct_gltf_load_comp(void* data) {
@@ -656,8 +656,8 @@ static void gltf_parse_skin(AssetGltfLoadComp* ld, GltfError* err) {
   if (!gltf_field_u32(ld, skin, string_lit("skeleton"), &skeletonNodeIndex)) {
     goto Error;
   }
-  ld->skeletonRootJointIndex = gltf_joint_index(ld, skeletonNodeIndex);
-  if (sentinel_check(ld->skeletonRootJointIndex)) {
+  ld->rootJointIndex = gltf_joint_index(ld, skeletonNodeIndex);
+  if (sentinel_check(ld->rootJointIndex)) {
     goto Error;
   }
 Success:
@@ -1055,9 +1055,10 @@ static void gltf_build_skeleton(AssetGltfLoadComp* ld, AssetMeshSkeletonComp* ou
       mem_create(ld->childIndices, sizeof(u32) * ld->jointCount));
 
   *out = (AssetMeshSkeletonComp){
-      .jointCount   = ld->jointCount,
-      .joints       = resJoints,
-      .childIndices = resChildIndices,
+      .jointCount     = ld->jointCount,
+      .joints         = resJoints,
+      .childIndices   = resChildIndices,
+      .rootJointIndex = sentinel_check(ld->rootJointIndex) ? 0 : ld->rootJointIndex,
   };
   *err = GltfError_None;
 }
@@ -1211,9 +1212,9 @@ void asset_load_gltf(EcsWorld* world, const String id, const EcsEntityId entity,
       world,
       entity,
       AssetGltfLoadComp,
-      .assetId                = id,
-      .jDoc                   = jsonDoc,
-      .jRoot                  = jsonRes.type,
-      .accInvBindMats         = sentinel_u32,
-      .skeletonRootJointIndex = sentinel_u32);
+      .assetId        = id,
+      .jDoc           = jsonDoc,
+      .jRoot          = jsonRes.type,
+      .accInvBindMats = sentinel_u32,
+      .rootJointIndex = sentinel_u32);
 }
