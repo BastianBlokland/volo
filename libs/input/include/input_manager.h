@@ -45,6 +45,6 @@ f32             input_cursor_delta_y(const InputManagerComp*);
  * Check if an input action was triggered this tick.
  */
 #define input_triggered_lit(_MANAGER_, _ACTION_LIT_)                                               \
-  input_triggered_hash((_MANAGER_), string_hash(string_lit(_ACTION_LIT_)))
+  input_triggered_hash((_MANAGER_), string_hash_lit(_ACTION_LIT_))
 
 bool input_triggered_hash(const InputManagerComp*, StringHash actionHash);

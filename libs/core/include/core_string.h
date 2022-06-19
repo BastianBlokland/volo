@@ -83,6 +83,11 @@ typedef enum {
       (_ALLOC_), (const String[]){VA_ARGS_SKIP_FIRST(0, ##__VA_ARGS__, string_empty)})
 
 /**
+ * Create a StringHash from a character literal.
+ */
+#define string_hash_lit(_LIT_) string_hash(string_lit(_LIT_))
+
+/**
  * Create a 32 bit hash of the given string.
  */
 StringHash string_hash(String);
