@@ -8,8 +8,11 @@ spec(stringtable) {
   setup() { table = stringtable_create(g_alloc_heap); }
 
   it("can lookup strings from hashes") {
-    const String     str  = string_lit("Hello World");
+    const String str = string_lit("Hello World");
+
+    check_eq_int(stringtable_count(table), 0);
     const StringHash hash = stringtable_add(table, str);
+    check_eq_int(stringtable_count(table), 1);
 
     check_eq_string(stringtable_lookup(table, hash), str);
   }
@@ -22,6 +25,8 @@ spec(stringtable) {
       const String str = fmt_write_scratch("My String {}", fmt_int(i));
       stringtable_add(table, str);
     }
+
+    check_eq_int(stringtable_count(table), count);
 
     // Retrieve all strings.
     for (u32 i = 0; i != count; ++i) {

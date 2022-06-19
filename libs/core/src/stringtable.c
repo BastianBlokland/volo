@@ -104,6 +104,15 @@ void stringtable_destroy(StringTable* table) {
   alloc_free_t(table->alloc, table);
 }
 
+u32 stringtable_count(const StringTable* table) {
+  StringTable* tableMutable = (StringTable*)table;
+  u32          res;
+  thread_spinlock_lock(&tableMutable->slotsLock);
+  res = table->slotCountUsed;
+  thread_spinlock_unlock(&tableMutable->slotsLock);
+  return res;
+}
+
 String stringtable_lookup(const StringTable* table, const StringHash hash) {
   StringTable* tableMutable = (StringTable*)table;
   String       res;

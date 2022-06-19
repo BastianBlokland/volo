@@ -29,6 +29,11 @@ StringTable* stringtable_create(Allocator*);
 void stringtable_destroy(StringTable*);
 
 /**
+ * Lookup the amount of strings in the given StringTable.
+ */
+u32 stringtable_count(const StringTable*);
+
+/**
  * Lookup a textual representation of the given hash.
  * NOTE: If the hash has not been added to the table an empty String is returned.
  * NOTE: Thread-safe.
