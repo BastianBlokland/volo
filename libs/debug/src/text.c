@@ -8,6 +8,7 @@
 #include "scene_transform.h"
 #include "ui_canvas.h"
 #include "ui_layout.h"
+#include "ui_style.h"
 
 #define debug_text_transient_chunk_size (32 * usize_kibibyte)
 #define debug_text_transient_max 512
@@ -16,6 +17,7 @@
 typedef struct {
   GeoVector pos;
   String    text;
+  GeoColor  color;
 } DebugText3D;
 
 ecs_comp_define(DebugTextComp) {
@@ -61,6 +63,10 @@ static GeoVector debug_text_canvas_pos(const GeoMatrix* viewProj, const GeoVecto
   const GeoVector persDivPos = geo_vector_perspective_div(ndcPos);
   const GeoVector normPos    = geo_vector_mul(geo_vector_add(persDivPos, geo_vector(1, 1)), 0.5f);
   return geo_vector(normPos.x, 1.0f - normPos.y, persDivPos.z);
+}
+
+static UiColor debug_text_to_ui_color(const GeoColor c) {
+  return ui_color((u8)(c.r * 255), (u8)(c.g * 255), (u8)(c.b * 255), (u8)(c.a * 255));
 }
 
 ecs_system_define(DebugTextInitSys) {
@@ -109,6 +115,7 @@ ecs_system_define(DebugTextRenderSys) {
             ui_vector(canvasPos.x - canvasSize.x * 0.5f, canvasPos.y - canvasSize.y * 0.5f),
             canvasSize,
         };
+        ui_style_color(canvas, debug_text_to_ui_color(entry->color));
         ui_layout_set(canvas, canvasRect, UiBase_Canvas);
         ui_canvas_draw_text(
             canvas, entry->text, debug_text_size, UiAlign_MiddleCenter, UiFlags_None);
@@ -154,7 +161,7 @@ DebugTextComp* debug_text_create(EcsWorld* world, const EcsEntityId entity) {
           alloc_chunked_create(g_alloc_page, alloc_bump_create, debug_text_transient_chunk_size));
 }
 
-void debug_text(DebugTextComp* comp, const GeoVector pos, const String text) {
+void debug_text(DebugTextComp* comp, const GeoVector pos, const String text, const GeoColor color) {
   if (UNLIKELY(text.size > debug_text_transient_max)) {
     log_e(
         "Debug text size exceeds maximum",
@@ -167,7 +174,8 @@ void debug_text(DebugTextComp* comp, const GeoVector pos, const String text) {
   }
   // TODO: Report error when the transient allocator runs out of space.
   *dynarray_push_t(&comp->entries, DebugText3D) = (DebugText3D){
-      .pos  = pos,
-      .text = string_dup(comp->allocTransient, text),
+      .pos   = pos,
+      .text  = string_dup(comp->allocTransient, text),
+      .color = color,
   };
 }
