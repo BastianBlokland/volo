@@ -6,6 +6,11 @@
 
 spec(string) {
 
+  it("can hash a string") {
+    check_eq_int(string_hash_lit("Hello World"), string_hash_lit("Hello World"));
+    check_eq_int(string_hash_lit(""), string_hash_lit(""));
+  }
+
   it("can create a string from a null-terminated character array") {
     check_eq_string(string_from_null_term("Hello World"), string_lit("Hello World"));
     check_eq_string(string_from_null_term("Hello\0World"), string_lit("Hello"));
