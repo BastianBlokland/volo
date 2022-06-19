@@ -41,4 +41,4 @@ String stringtable_lookup(const StringTable*, StringHash);
  * NOTE: Thread-safe.
  * Pre-condition: string.size <= 512
  */
-void stringtable_add(StringTable*, String);
+StringHash stringtable_add(StringTable*, String);

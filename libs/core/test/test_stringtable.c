@@ -9,8 +9,7 @@ spec(stringtable) {
 
   it("can lookup strings from hashes") {
     const String     str  = string_lit("Hello World");
-    const StringHash hash = string_hash(str);
-    stringtable_add(table, str);
+    const StringHash hash = stringtable_add(table, str);
 
     check_eq_string(stringtable_lookup(table, hash), str);
   }

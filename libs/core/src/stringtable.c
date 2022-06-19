@@ -113,7 +113,7 @@ String stringtable_lookup(const StringTable* table, const StringHash hash) {
   return res;
 }
 
-void stringtable_add(StringTable* table, const String str) {
+StringHash stringtable_add(StringTable* table, const String str) {
   diag_assert_msg(
       str.size <= stringtable_string_size_max,
       "String size '{}' exceeds maximum",
@@ -146,4 +146,5 @@ void stringtable_add(StringTable* table, const String str) {
     }
   }
   thread_spinlock_unlock(&table->slotsLock);
+  return hash;
 }
