@@ -1,5 +1,4 @@
 #include "core_alloc.h"
-#include "core_bits.h"
 #include "core_dynarray.h"
 #include "core_path.h"
 #include "log_logger.h"
@@ -7,8 +6,8 @@
 #include "repo_internal.h"
 
 typedef struct {
-  u32    idHash;
-  String data;
+  StringHash idHash;
+  String     data;
 } RepoEntry;
 
 typedef struct {
@@ -17,14 +16,14 @@ typedef struct {
 } AssetRepoMem;
 
 static i8 asset_compare_entry(const void* a, const void* b) {
-  return compare_u32(field_ptr(a, RepoEntry, idHash), field_ptr(b, RepoEntry, idHash));
+  return compare_stringhash(field_ptr(a, RepoEntry, idHash), field_ptr(b, RepoEntry, idHash));
 }
 
 static AssetSource* asset_source_mem_open(AssetRepo* repo, const String id) {
   AssetRepoMem* repoMem = (AssetRepoMem*)repo;
 
   const AssetFormat fmt    = asset_format_from_ext(path_extension(id));
-  const u32         idHash = bits_hash_32(id);
+  const StringHash  idHash = string_hash(id);
   const RepoEntry*  entry  = dynarray_search_binary(
       &repoMem->entries, asset_compare_entry, mem_struct(RepoEntry, .idHash = idHash).ptr);
 
@@ -63,7 +62,7 @@ AssetRepo* asset_repo_create_mem(const AssetMemRecord* records, const usize reco
 
   for (usize i = 0; i != recordCount; ++i) {
     RepoEntry entry = {
-        .idHash = bits_hash_32(records[i].id),
+        .idHash = string_hash(records[i].id),
         .data   = string_dup(g_alloc_heap, records[i].data),
     };
     *dynarray_insert_sorted_t(&repo->entries, RepoEntry, asset_compare_entry, &entry) = entry;

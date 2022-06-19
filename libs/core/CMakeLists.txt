@@ -44,6 +44,7 @@ add_library(lib_core STATIC
   src/signal.c
   src/sort.c
   src/string.c
+  src/stringtable.c
   src/thread_pal.c
   src/thread.c
   src/time_pal.c
@@ -93,6 +94,7 @@ add_executable(lib_core_test
   test/test_shuffle.c
   test/test_sort.c
   test/test_string.c
+  test/test_stringtable.c
   test/test_thread.c
   test/test_time.c
   test/test_unicode.c

@@ -18,8 +18,8 @@ typedef struct {
 } AssetInputBinding;
 
 typedef struct {
-  u32 nameHash;
-  u16 bindingIndex, bindingCount; // Stored in the bindings array.
+  StringHash nameHash;
+  u16        bindingIndex, bindingCount; // Stored in the bindings array.
 } AssetInputAction;
 
 ecs_comp_extern_public(AssetInputMapComp) {

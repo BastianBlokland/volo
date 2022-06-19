@@ -3,7 +3,6 @@
 #include "core_alloc.h"
 #include "core_annotation.h"
 #include "core_array.h"
-#include "core_bits.h"
 #include "ecs.h"
 
 #include "utils_internal.h"
@@ -185,7 +184,7 @@ spec(loader_inputmap) {
         const AssetInputAction* actualAction   = &map->actions[a];
         const TestActionData*   expectedAction = &g_testData[i].actions[a];
 
-        check_eq_int(actualAction->nameHash, bits_hash_32(expectedAction->name));
+        check_eq_int(actualAction->nameHash, string_hash(expectedAction->name));
         check_require(actualAction->bindingCount == expectedAction->bindingCount);
         for (usize b = 0; b != expectedAction->bindingCount; ++b) {
           const AssetInputBinding* actualBinding   = &map->bindings[actualAction->bindingIndex + b];

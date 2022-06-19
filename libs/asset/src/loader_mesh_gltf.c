@@ -5,6 +5,7 @@
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_path.h"
+#include "core_stringtable.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "geo_matrix.h"
@@ -111,11 +112,11 @@ typedef struct {
   u32              nodeIndex;
   AssetMeshAnimPtr childData;
   u32              childCount;
-  String           name; // NOTE: Allocated in the json document (or empty).
+  StringHash       nameHash;
 } GltfJoint;
 
 typedef struct {
-  String          name; // NOTE: Allocated in the json document (or empty).
+  StringHash      nameHash;
   GltfAnimChannel channels[asset_mesh_joints_max][GltfAnimTarget_Count];
 } GltfAnim;
 
@@ -305,10 +306,12 @@ static u32 gltf_joint_index(AssetGltfLoadComp* ld, const u32 nodeIndex) {
   return sentinel_u32;
 }
 
-static String gltf_parse_name(AssetGltfLoadComp* ld, const JsonVal obj) {
+static StringHash gltf_parse_name(AssetGltfLoadComp* ld, const JsonVal obj) {
   const JsonVal nameVal = json_field(ld->jDoc, obj, string_lit("name"));
-  return gltf_check_val(ld, nameVal, JsonType_String) ? json_string(ld->jDoc, nameVal)
-                                                      : string_empty;
+  if (gltf_check_val(ld, nameVal, JsonType_String)) {
+    return stringtable_add(g_stringtable, json_string(ld->jDoc, nameVal));
+  }
+  return stringtable_add(g_stringtable, string_empty);
 }
 
 static void gltf_parse_version(AssetGltfLoadComp* ld, String str, GltfError* err) {
@@ -702,7 +705,7 @@ static void gltf_parse_skeleton_nodes(AssetGltfLoadComp* ld, GltfError* err) {
     if (sentinel_check(jointIndex)) {
       goto Next; // This node is not part of the skeleton.
     }
-    ld->joints[jointIndex].name = gltf_parse_name(ld, node);
+    ld->joints[jointIndex].nameHash = gltf_parse_name(ld, node);
 
     const JsonVal children = json_field(ld->jDoc, node, string_lit("children"));
     if (gltf_check_val(ld, children, JsonType_Array)) {
@@ -774,7 +777,7 @@ static void gltf_parse_animations(AssetGltfLoadComp* ld, GltfError* err) {
     if (json_type(ld->jDoc, anim) != JsonType_Object) {
       goto Error;
     }
-    outAnim->name = gltf_parse_name(ld, anim);
+    outAnim->nameHash = gltf_parse_name(ld, anim);
 
     const JsonVal samplers = json_field(ld->jDoc, anim, string_lit("samplers"));
     if (!gltf_check_val(ld, samplers, JsonType_Array)) {
@@ -1061,7 +1064,7 @@ static void gltf_build_skeleton(AssetGltfLoadComp* ld, AssetMeshSkeletonComp* ou
         .invBindTransform = gltf_inv_bind_transform(ld, jointIndex),
         .childData        = ld->joints[jointIndex].childData,
         .childCount       = ld->joints[jointIndex].childCount,
-        .name             = string_dup(g_alloc_heap, ld->joints[jointIndex].name),
+        .nameHash         = ld->joints[jointIndex].nameHash,
     };
   }
 

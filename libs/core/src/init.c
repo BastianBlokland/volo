@@ -14,6 +14,7 @@ void core_init() {
     float_init();
     thread_init();
     time_init();
+    stringtable_init();
   }
 
   if (!g_initializedThread) {
@@ -35,6 +36,7 @@ void core_init() {
 
 void core_teardown() {
   if (g_thread_tid == g_thread_main_tid && g_intialized) {
+    stringtable_teardown();
     tty_teardown();
   }
   if (g_initializedThread) {

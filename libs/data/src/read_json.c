@@ -35,7 +35,7 @@ static void data_register_alloc(const ReadCtx* ctx, const Mem allocation) {
 }
 
 static const DataDeclField* data_field_by_name(const DataDeclStruct* data, const String name) {
-  const u32 nameHash = bits_hash_32(name);
+  const StringHash nameHash = string_hash(name);
   dynarray_for_t(&data->fields, DataDeclField, fieldDecl) {
     if (fieldDecl->id.hash == nameHash) {
       return fieldDecl;
@@ -226,8 +226,8 @@ static void data_read_json_struct(const ReadCtx* ctx, DataReadResult* res) {
 }
 
 static void data_read_json_enum_string(const ReadCtx* ctx, DataReadResult* res) {
-  const DataDecl* decl      = data_decl(ctx->reg, ctx->meta.type);
-  const u32       valueHash = bits_hash_32(json_string(ctx->doc, ctx->val));
+  const DataDecl*  decl      = data_decl(ctx->reg, ctx->meta.type);
+  const StringHash valueHash = string_hash(json_string(ctx->doc, ctx->val));
 
   dynarray_for_t(&decl->val_enum.consts, DataDeclConst, constDecl) {
     if (constDecl->id.hash == valueHash) {

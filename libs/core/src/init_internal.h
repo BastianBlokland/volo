@@ -13,6 +13,7 @@ void signal_init();
 void thread_init();
 void time_init();
 void tty_init();
+void stringtable_init();
 
 /**
  * Thread initialization routines.
@@ -29,6 +30,7 @@ void thread_init_thread();
 void alloc_teardown();
 void thread_teardown();
 void tty_teardown();
+void stringtable_teardown();
 
 /**
  * Thread teardown routines.

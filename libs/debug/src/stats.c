@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_math.h"
+#include "core_stringtable.h"
 #include "debug_stats.h"
 #include "ecs_world.h"
 #include "gap_window.h"
@@ -49,6 +50,7 @@ ecs_comp_define(DebugStatsComp) {
   f64 rendWaitFrac, presAcqFrac, presEnqFrac, presWaitFrac, limiterFrac, gpuRenderFrac;
 
   u64 allocPrevPageCounter, allocPrevHeapCounter, allocPrevPersistCounter;
+  u32 globalStringCount;
 
   DebugStatPlot ecsFlushDurUs; // In microseconds.
 };
@@ -303,6 +305,7 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Persist counter"), fmt_write_scratch("count:  {<6} {}delta: {}\ar", fmt_int(allocStats->persistCounter), persistDeltaColor, fmt_int(persistDelta)));
     stats_draw_val_entry(canvas, string_lit("Renderer"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->ramOccupied), fmt_size(rendStats->ramReserved)));
     stats_draw_val_entry(canvas, string_lit("GPU (on device)"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->vramOccupied), fmt_size(rendStats->vramReserved)));
+    stats_draw_val_entry(canvas, string_lit("StringTable"), fmt_write_scratch("global: {}", fmt_int(stats->globalStringCount)));
   }
   if(stats_draw_section(canvas, string_lit("ECS"))) {
     const TimeDuration maxFlushTime = (TimeDuration)(debug_plot_max(&stats->ecsFlushDurUs) * (f64)time_microsecond);
@@ -361,6 +364,8 @@ static void debug_stats_update(
   debug_avg(&stats->presWaitFrac, math_clamp_f64(stats->presentWaitDur / timeRef, 0, 1));
   debug_avg(&stats->limiterFrac, math_clamp_f64(stats->limiterDur / timeRef, 0, 1));
   debug_avg(&stats->gpuRenderFrac, math_clamp_f64(stats->gpuRenderDur / timeRef, 0, 1));
+
+  stats->globalStringCount = stringtable_count(g_stringtable);
 
   debug_plot_add(&stats->ecsFlushDurUs, (f32)(ecsStats->lastFlushDur / (f64)time_microsecond));
 }
