@@ -16,7 +16,7 @@ spec(stringtable) {
   }
 
   it("can store many strings") {
-    const u32 count = 64;
+    const u32 count = 267;
 
     // Add all strings.
     for (u32 i = 0; i != count; ++i) {
