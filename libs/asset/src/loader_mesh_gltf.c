@@ -2,6 +2,7 @@
 #include "asset_raw.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_path.h"
 #include "ecs_utils.h"
@@ -107,9 +108,10 @@ typedef struct {
 } GltfAnimChannel;
 
 typedef struct {
-  u32    nodeIndex;
-  u32    childBegin, childCount; // Indices into the 'childIndices' array.
-  String name;                   // NOTE: Allocated in the json document (or empty).
+  u32              nodeIndex;
+  AssetMeshAnimPtr childData;
+  u32              childCount;
+  String           name; // NOTE: Allocated in the json document (or empty).
 } GltfJoint;
 
 typedef struct {
@@ -129,7 +131,7 @@ ecs_comp_define(AssetGltfLoadComp) {
   GltfPrim*     prims;
   GltfJoint*    joints;
   GltfAnim*     anims;
-  u32*          childIndices;
+  DynArray      animData; // u8[].
   u32           bufferCount;
   u32           viewCount;
   u32           accessCount;
@@ -157,11 +159,11 @@ static void ecs_destruct_gltf_load_comp(void* data) {
   }
   if (comp->jointCount) {
     alloc_free_array_t(g_alloc_heap, comp->joints, comp->jointCount);
-    alloc_free_array_t(g_alloc_heap, comp->childIndices, comp->jointCount);
   }
   if (comp->animCount) {
     alloc_free_array_t(g_alloc_heap, comp->anims, comp->animCount);
   }
+  dynarray_destroy(&comp->animData);
 }
 
 u32 gltf_component_size(const GltfType type) {
@@ -492,6 +494,25 @@ static bool gtlf_check_access_type(const GltfType type) {
   return false;
 }
 
+#define gltf_anim_data_begin_t(_LOAD_COMP_, _TYPE_)                                                \
+  gltf_anim_data_begin((_LOAD_COMP_), alignof(_TYPE_))
+
+#define gltf_anim_data_push_t(_LOAD_COMP_, _DATA_)                                                 \
+  gltf_anim_data_push((_LOAD_COMP_), mem_var(_DATA_), alignof(_DATA_))
+
+static AssetMeshAnimPtr gltf_anim_data_begin(AssetGltfLoadComp* ld, const u32 align) {
+  // Insert padding to reach the requested alignment.
+  dynarray_push(&ld->animData, bits_padding_32((u32)ld->animData.size, align));
+  return (u32)ld->animData.size;
+}
+
+static AssetMeshAnimPtr
+gltf_anim_data_push(AssetGltfLoadComp* ld, const Mem data, const u32 align) {
+  const AssetMeshAnimPtr res = gltf_anim_data_begin(ld, align);
+  mem_cpy(dynarray_push(&ld->animData, data.size), data);
+  return res;
+}
+
 static void gltf_parse_accessors(AssetGltfLoadComp* ld, GltfError* err) {
   const JsonVal accessors = json_field(ld->jDoc, ld->jRoot, string_lit("accessors"));
   if (!gltf_check_val(ld, accessors, JsonType_Array)) {
@@ -642,8 +663,7 @@ static void gltf_parse_skin(AssetGltfLoadComp* ld, GltfError* err) {
     *err = GltfError_JointCountExceedsMaximum;
     return;
   }
-  ld->joints       = alloc_array_t(g_alloc_heap, GltfJoint, ld->jointCount);
-  ld->childIndices = alloc_array_t(g_alloc_heap, u32, ld->jointCount);
+  ld->joints = alloc_array_t(g_alloc_heap, GltfJoint, ld->jointCount);
 
   GltfJoint* outJoint = ld->joints;
   json_for_elems(ld->jDoc, joints, joint) {
@@ -673,8 +693,7 @@ static void gltf_parse_skeleton_nodes(AssetGltfLoadComp* ld, GltfError* err) {
   if (!gltf_check_val(ld, nodes, JsonType_Array) || !json_elem_count(ld->jDoc, nodes)) {
     goto Error;
   }
-  u32 childIndicesCount = 0;
-  u32 nodeIndex         = 0;
+  u32 nodeIndex = 0;
   json_for_elems(ld->jDoc, nodes, node) {
     if (UNLIKELY(json_type(ld->jDoc, node) != JsonType_Object)) {
       goto Error;
@@ -687,7 +706,7 @@ static void gltf_parse_skeleton_nodes(AssetGltfLoadComp* ld, GltfError* err) {
 
     const JsonVal children = json_field(ld->jDoc, node, string_lit("children"));
     if (gltf_check_val(ld, children, JsonType_Array)) {
-      ld->joints[jointIndex].childBegin = childIndicesCount;
+      ld->joints[jointIndex].childData  = gltf_anim_data_begin_t(ld, u32);
       ld->joints[jointIndex].childCount = json_elem_count(ld->jDoc, children);
 
       json_for_elems(ld->jDoc, children, child) {
@@ -695,10 +714,7 @@ static void gltf_parse_skeleton_nodes(AssetGltfLoadComp* ld, GltfError* err) {
           goto Error;
         }
         const u32 childJointIndex = gltf_joint_index(ld, (u32)json_number(ld->jDoc, child));
-        ld->childIndices[childIndicesCount++] = childJointIndex;
-        if (UNLIKELY(childIndicesCount >= ld->jointCount)) {
-          goto Error;
-        }
+        gltf_anim_data_push_t(ld, childJointIndex);
       }
     }
 
@@ -1043,22 +1059,17 @@ static void gltf_build_skeleton(AssetGltfLoadComp* ld, AssetMeshSkeletonComp* ou
   for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
     resJoints[jointIndex] = (AssetMeshJoint){
         .invBindTransform = gltf_inv_bind_transform(ld, jointIndex),
-        .childBegin       = ld->joints[jointIndex].childBegin,
+        .childData        = ld->joints[jointIndex].childData,
         .childCount       = ld->joints[jointIndex].childCount,
         .name             = string_dup(g_alloc_heap, ld->joints[jointIndex].name),
     };
   }
 
-  u32* resChildIndices = alloc_array_t(g_alloc_heap, u32, ld->jointCount);
-  mem_cpy(
-      mem_create(resChildIndices, sizeof(u32) * ld->jointCount),
-      mem_create(ld->childIndices, sizeof(u32) * ld->jointCount));
-
   *out = (AssetMeshSkeletonComp){
       .jointCount     = ld->jointCount,
       .joints         = resJoints,
-      .childIndices   = resChildIndices,
       .rootJointIndex = sentinel_check(ld->rootJointIndex) ? 0 : ld->rootJointIndex,
+      .animData = alloc_dup(g_alloc_heap, dynarray_at(&ld->animData, 0, ld->animData.size), 1),
   };
   *err = GltfError_None;
 }
@@ -1216,5 +1227,6 @@ void asset_load_gltf(EcsWorld* world, const String id, const EcsEntityId entity,
       .jDoc           = jsonDoc,
       .jRoot          = jsonRes.type,
       .accInvBindMats = sentinel_u32,
-      .rootJointIndex = sentinel_u32);
+      .rootJointIndex = sentinel_u32,
+      .animData       = dynarray_create(g_alloc_heap, 1, 1, 0));
 }

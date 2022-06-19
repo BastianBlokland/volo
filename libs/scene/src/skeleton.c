@@ -25,9 +25,9 @@ ecs_comp_define(SceneSkeletonTemplateComp) {
   SkeletonTemplateState state;
   EcsEntityId           mesh;
   u32                   jointCount;
-  const u32*            childIndices;
   SceneSkeletonJoint*   joints;
   u32                   jointRootIndex;
+  Mem                   animData;
 };
 
 ecs_comp_define(SceneSkeletonTemplateLoadedComp);
@@ -57,7 +57,7 @@ static void ecs_destruct_skeleton_template_comp(void* data) {
       string_free(g_alloc_heap, comp->joints[i].name);
     }
     alloc_free_array_t(g_alloc_heap, comp->joints, comp->jointCount);
-    alloc_free_array_t(g_alloc_heap, comp->childIndices, comp->jointCount);
+    alloc_free(g_alloc_heap, comp->animData);
   }
 }
 
@@ -144,16 +144,15 @@ scene_asset_template_init(SceneSkeletonTemplateComp* template, const AssetMeshSk
   template->jointCount     = asset->jointCount;
   template->jointRootIndex = asset->rootJointIndex;
 
-  const Mem assetChildIndicesMem = mem_create(asset->childIndices, sizeof(u32) * asset->jointCount);
-  template->childIndices         = alloc_dup(g_alloc_heap, assetChildIndicesMem, alignof(u32)).ptr;
+  template->animData = alloc_dup(g_alloc_heap, asset->animData, 1);
 
   template->joints = alloc_array_t(g_alloc_heap, SceneSkeletonJoint, asset->jointCount);
   for (u32 jointIndex = 0; jointIndex != asset->jointCount; ++jointIndex) {
     template->joints[jointIndex] = (SceneSkeletonJoint){
         .invBindTransform = asset->joints[jointIndex].invBindTransform,
-        .childIndices     = &template->childIndices[asset->joints[jointIndex].childBegin],
-        .childCount       = asset->joints[jointIndex].childCount,
-        .name             = string_dup(g_alloc_heap, asset->joints[jointIndex].name),
+        .childIndices = (u32*)mem_at_u8(template->animData, asset->joints[jointIndex].childData),
+        .childCount   = asset->joints[jointIndex].childCount,
+        .name         = string_dup(g_alloc_heap, asset->joints[jointIndex].name),
     };
   }
 }

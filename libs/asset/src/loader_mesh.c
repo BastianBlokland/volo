@@ -25,7 +25,7 @@ static void ecs_destruct_mesh_skeleton_comp(void* data) {
     string_free(g_alloc_heap, comp->joints[i].name);
   }
   alloc_free_array_t(g_alloc_heap, comp->joints, comp->jointCount);
-  alloc_free_array_t(g_alloc_heap, comp->childIndices, comp->jointCount);
+  alloc_free(g_alloc_heap, comp->animData);
 }
 
 ecs_view_define(UnloadView) {

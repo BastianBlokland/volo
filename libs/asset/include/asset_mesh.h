@@ -8,6 +8,7 @@
 ASSERT(asset_mesh_joints_max <= u8_max, "Joint indices should be representable by a u8");
 
 typedef u32 AssetMeshIndex;
+typedef u32 AssetMeshAnimPtr;
 
 typedef struct {
   GeoVector position; // x, y, z position
@@ -31,14 +32,15 @@ ecs_comp_extern_public(AssetMeshComp) {
 };
 
 typedef struct {
-  GeoMatrix invBindTransform;       // From world to local bind space for a joint.
-  u32       childBegin, childCount; // Indices into the 'childIndices' array.
-  String    name;
+  GeoMatrix        invBindTransform; // From world to local bind space for a joint.
+  AssetMeshAnimPtr childData;
+  u32              childCount;
+  String           name;
 } AssetMeshJoint;
 
 ecs_comp_extern_public(AssetMeshSkeletonComp) {
   u8                    jointCount;
   const AssetMeshJoint* joints;
-  const u32*            childIndices;
   u32                   rootJointIndex;
+  Mem                   animData;
 };
