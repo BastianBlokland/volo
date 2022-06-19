@@ -3,8 +3,8 @@
 #include "data_registry.h"
 
 typedef struct {
-  String name;
-  u32    hash;
+  String     name;
+  StringHash hash;
 } DataId;
 
 typedef struct {

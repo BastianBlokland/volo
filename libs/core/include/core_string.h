@@ -11,6 +11,17 @@ typedef struct sAllocator Allocator;
  */
 typedef Mem String;
 
+/**
+ * 32-bit hash of a string.
+ *
+ * String hashes are cheaper to pass around and compare to each-other then pointers to character
+ * data on the heap. In general string hashes are not reversible, but the textual representation can
+ * be stored in a StringTable to make it reversible.
+ *
+ * NOTE: This assumes each string that is used in the program hashes to a unique 32 bit value.
+ */
+typedef u32 StringHash;
+
 typedef enum {
   StringMatchFlags_None       = 0,
   StringMatchFlags_IgnoreCase = 1 << 0,
@@ -70,6 +81,11 @@ typedef enum {
 #define string_combine(_ALLOC_, ...)                                                               \
   string_combine_raw(                                                                              \
       (_ALLOC_), (const String[]){VA_ARGS_SKIP_FIRST(0, ##__VA_ARGS__, string_empty)})
+
+/**
+ * Create a 32 bit hash of the given string.
+ */
+StringHash string_hash(String);
 
 /**
  * Create a string from a null-terminated character pointer.

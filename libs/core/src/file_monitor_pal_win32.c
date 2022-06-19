@@ -1,6 +1,5 @@
 #include "core_alloc.h"
 #include "core_annotation.h"
-#include "core_bits.h"
 #include "core_file.h"
 #include "core_file_monitor.h"
 
@@ -20,24 +19,24 @@
  */
 
 typedef struct {
-  File*    handle;
-  u32      pathHash;
-  String   path;
-  u64      userData;
-  TimeReal lastModTime;
+  File*      handle;
+  StringHash pathHash;
+  String     path;
+  u64        userData;
+  TimeReal   lastModTime;
 } FileWatch;
 
 struct sFileMonitor {
   Allocator* alloc;
   DynArray   watches;  // FileWatch[], kept sorted on the pathHash.
-  DynArray   modFiles; // u32[] (file hashes)
+  DynArray   modFiles; // StringHash[] (file hashes)
 };
 
 static i8 watch_compare_path(const void* a, const void* b) {
-  return compare_u32(field_ptr(a, FileWatch, pathHash), field_ptr(b, FileWatch, pathHash));
+  return compare_stringhash(field_ptr(a, FileWatch, pathHash), field_ptr(b, FileWatch, pathHash));
 }
 
-static FileWatch* file_watch_by_path(FileMonitor* monitor, const u32 pathHash) {
+static FileWatch* file_watch_by_path(FileMonitor* monitor, const StringHash pathHash) {
   return dynarray_search_binary(
       &monitor->watches, watch_compare_path, mem_struct(FileWatch, .pathHash = pathHash).ptr);
 }
@@ -76,8 +75,8 @@ static void monitor_scan_modified_files(FileMonitor* monitor) {
   dynarray_for_t(&monitor->watches, FileWatch, watch) {
     const TimeReal newModTime = file_stat_sync(watch->handle).modTime;
     if (newModTime > watch->lastModTime && monitor_file_can_be_read(watch->path)) {
-      *dynarray_push_t(&monitor->modFiles, u32) = watch->pathHash;
-      watch->lastModTime                        = newModTime;
+      *dynarray_push_t(&monitor->modFiles, StringHash) = watch->pathHash;
+      watch->lastModTime                               = newModTime;
     }
   }
 }
@@ -87,7 +86,7 @@ FileMonitor* file_monitor_create(Allocator* alloc) {
   *monitor             = (FileMonitor){
                   .alloc    = alloc,
                   .watches  = dynarray_create_t(alloc, FileWatch, 64),
-                  .modFiles = dynarray_create_t(alloc, u32, 16),
+                  .modFiles = dynarray_create_t(alloc, StringHash, 16),
   };
   return monitor;
 }
@@ -104,7 +103,7 @@ void file_monitor_destroy(FileMonitor* monitor) {
 }
 
 FileMonitorResult file_monitor_watch(FileMonitor* monitor, const String path, const u64 userData) {
-  const u32 pathHash = bits_hash_32(path);
+  const StringHash pathHash = string_hash(path);
   if (file_watch_by_path(monitor, pathHash)) {
     return FileMonitorResult_AlreadyWatching;
   }
@@ -130,10 +129,10 @@ bool file_monitor_poll(FileMonitor* monitor, FileMonitorEvent* out) {
   }
 
   if (monitor->modFiles.size) {
-    const u32 pathHash = *dynarray_at_t(&monitor->modFiles, monitor->modFiles.size - 1, u32);
+    const StringHash p = *dynarray_at_t(&monitor->modFiles, monitor->modFiles.size - 1, StringHash);
     dynarray_pop(&monitor->modFiles, 1);
 
-    const FileWatch* watch = file_watch_by_path(monitor, pathHash);
+    const FileWatch* watch = file_watch_by_path(monitor, p);
     *out                   = (FileMonitorEvent){
                           .path     = watch->path,
                           .userData = watch->userData,

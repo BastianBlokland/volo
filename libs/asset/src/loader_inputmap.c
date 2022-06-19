@@ -1,7 +1,6 @@
 #include "asset_inputmap.h"
 #include "core_alloc.h"
 #include "core_array.h"
-#include "core_bits.h"
 #include "core_search.h"
 #include "core_thread.h"
 #include "data.h"
@@ -140,7 +139,7 @@ static void inputmap_datareg_init() {
 }
 
 static i8 asset_inputmap_compare_action(const void* a, const void* b) {
-  return compare_u32(
+  return compare_stringhash(
       field_ptr(a, AssetInputAction, nameHash), field_ptr(b, AssetInputAction, nameHash));
 }
 
@@ -169,7 +168,7 @@ static void asset_inputmap_build(
   array_ptr_for_t(def->actions, AssetInputActionDef, actionDef) {
     const usize            bindingCount = actionDef->bindings.count;
     const AssetInputAction action       = {
-              .nameHash     = bits_hash_32(actionDef->name),
+              .nameHash     = string_hash(actionDef->name),
               .bindingIndex = (u16)outBindings->size,
               .bindingCount = (u16)bindingCount,
     };
@@ -270,7 +269,8 @@ Cleanup:
   dynarray_destroy(&bindings);
 }
 
-const AssetInputAction* asset_inputmap_get(const AssetInputMapComp* inputMap, const u32 nameHash) {
+const AssetInputAction*
+asset_inputmap_get(const AssetInputMapComp* inputMap, const StringHash nameHash) {
   return search_binary_t(
       inputMap->actions,
       inputMap->actions + inputMap->actionCount,

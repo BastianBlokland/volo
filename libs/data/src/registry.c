@@ -16,7 +16,7 @@ static DataType data_alloc_type(DataReg* reg) {
 }
 
 static DataId data_id_create(Allocator* alloc, const String name) {
-  return (DataId){.name = string_dup(alloc, name), .hash = bits_hash_32(name)};
+  return (DataId){.name = string_dup(alloc, name), .hash = string_hash(name)};
 }
 
 static void data_id_destroy(Allocator* alloc, DataId id) { string_free(alloc, id.name); }
@@ -39,8 +39,8 @@ MAYBE_UNUSED static DataType data_type_by_id(const DataReg* reg, const DataId id
 DataReg* data_reg_create(Allocator* alloc) {
   DataReg* reg = alloc_alloc_t(alloc, DataReg);
   *reg         = (DataReg){
-      .types = dynarray_create_t(alloc, DataDecl, 64),
-      .alloc = alloc,
+              .types = dynarray_create_t(alloc, DataDecl, 64),
+              .alloc = alloc,
   };
 
 #define X(_T_)                                                                                     \

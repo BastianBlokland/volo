@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_ascii.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_math.h"
 #include "core_sentinel.h"
@@ -15,6 +16,8 @@
 #define strlen __builtin_strlen
 
 #endif
+
+StringHash string_hash(const String str) { return bits_hash_32(str); }
 
 String string_from_null_term(const char* ptr) {
   return (String){

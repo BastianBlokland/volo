@@ -571,7 +571,7 @@ void ui_canvas_id_block_index(UiCanvasComp* comp, u32 index) {
 }
 
 void ui_canvas_id_block_string(UiCanvasComp* comp, const String str) {
-  ui_canvas_id_block_index(comp, bits_hash_32(str));
+  ui_canvas_id_block_index(comp, string_hash(str));
 }
 
 UiStatus ui_canvas_elem_status(const UiCanvasComp* comp, const UiId id) {

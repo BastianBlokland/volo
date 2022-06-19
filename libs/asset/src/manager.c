@@ -1,6 +1,5 @@
 #include "asset_manager.h"
 #include "core_alloc.h"
-#include "core_bits.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_search.h"
@@ -24,7 +23,7 @@
 #define asset_max_unload_delay 200
 
 typedef struct {
-  u32         idHash;
+  StringHash  idHash;
   EcsEntityId asset;
 } AssetEntry;
 
@@ -124,7 +123,7 @@ static void ecs_combine_asset_dependency(void* dataA, void* dataB) {
 }
 
 static i8 asset_compare_entry(const void* a, const void* b) {
-  return compare_u32(field_ptr(a, AssetEntry, idHash), field_ptr(b, AssetEntry, idHash));
+  return compare_stringhash(field_ptr(a, AssetEntry, idHash), field_ptr(b, AssetEntry, idHash));
 }
 
 static void
@@ -403,7 +402,7 @@ void asset_manager_create_mem(
 EcsEntityId asset_lookup(EcsWorld* world, AssetManagerComp* manager, const String id) {
   diag_assert_msg(!string_is_empty(id), "Asset id cannot be empty");
 
-  const AssetEntry tgt = {.idHash = bits_hash_32(id)};
+  const AssetEntry tgt = {.idHash = string_hash(id)};
   AssetEntry* entry = dynarray_find_or_insert_sorted(&manager->lookup, asset_compare_entry, &tgt);
 
   if (entry->idHash != tgt.idHash) {
