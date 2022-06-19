@@ -39,6 +39,7 @@ int main(const int argc, const char** argv) {
   register_spec(check, shuffle);
   register_spec(check, sort);
   register_spec(check, string);
+  register_spec(check, stringtable);
   register_spec(check, thread);
   register_spec(check, time);
   register_spec(check, unicode);
