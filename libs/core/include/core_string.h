@@ -19,6 +19,7 @@ typedef Mem String;
  * be stored in a StringTable to make it reversible.
  *
  * NOTE: This assumes each string that is used in the program hashes to a unique 32 bit value.
+ * NOTE: Meant for short strings, preferably less then 128 bytes.
  */
 typedef u32 StringHash;
 
