@@ -1068,10 +1068,20 @@ static void gltf_build_skeleton(AssetGltfLoadComp* ld, AssetMeshSkeletonComp* ou
     };
   }
 
+  AssetMeshAnimation* resAnims =
+      ld->animCount ? alloc_array_t(g_alloc_heap, AssetMeshAnimation, ld->animCount) : null;
+  for (u32 animIndex = 0; animIndex != ld->animCount; ++animIndex) {
+    resAnims[animIndex] = (AssetMeshAnimation){
+        .nameHash = ld->anims[animIndex].nameHash,
+    };
+  }
+
   *out = (AssetMeshSkeletonComp){
       .jointCount     = ld->jointCount,
       .joints         = resJoints,
       .rootJointIndex = sentinel_check(ld->rootJointIndex) ? 0 : ld->rootJointIndex,
+      .anims          = resAnims,
+      .animCount      = ld->animCount,
       .animData = alloc_dup(g_alloc_heap, dynarray_at(&ld->animData, 0, ld->animData.size), 1),
   };
   *err = GltfError_None;

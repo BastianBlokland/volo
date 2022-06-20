@@ -18,16 +18,22 @@ typedef enum {
   SkeletonTemplateState_Finished,
 } SkeletonTemplateState;
 
+typedef struct {
+  StringHash nameHash;
+} SceneSkeletonAnimation;
+
 /**
  * NOTE: On the graphic asset.
  */
 ecs_comp_define(SceneSkeletonTemplateComp) {
-  SkeletonTemplateState state;
-  EcsEntityId           mesh;
-  u32                   jointCount;
-  SceneSkeletonJoint*   joints;
-  u32                   jointRootIndex;
-  Mem                   animData;
+  SkeletonTemplateState   state;
+  EcsEntityId             mesh;
+  u32                     jointCount;
+  SceneSkeletonJoint*     joints;
+  u32                     jointRootIndex;
+  SceneSkeletonAnimation* anims;
+  u32                     animCount;
+  Mem                     animData;
 };
 
 ecs_comp_define(SceneSkeletonTemplateLoadedComp);
@@ -54,6 +60,9 @@ static void ecs_destruct_skeleton_template_comp(void* data) {
   SceneSkeletonTemplateComp* comp = data;
   if (comp->jointCount) {
     alloc_free_array_t(g_alloc_heap, comp->joints, comp->jointCount);
+    if (comp->animCount) {
+      alloc_free_array_t(g_alloc_heap, comp->anims, comp->animCount);
+    }
     alloc_free(g_alloc_heap, comp->animData);
   }
 }
@@ -138,18 +147,25 @@ static bool scene_asset_is_loaded(EcsWorld* world, const EcsEntityId asset) {
 
 static void
 scene_asset_template_init(SceneSkeletonTemplateComp* template, const AssetMeshSkeletonComp* asset) {
-  template->jointCount     = asset->jointCount;
   template->jointRootIndex = asset->rootJointIndex;
+  template->animData       = alloc_dup(g_alloc_heap, asset->animData, 1);
 
-  template->animData = alloc_dup(g_alloc_heap, asset->animData, 1);
-
-  template->joints = alloc_array_t(g_alloc_heap, SceneSkeletonJoint, asset->jointCount);
+  template->joints     = alloc_array_t(g_alloc_heap, SceneSkeletonJoint, asset->jointCount);
+  template->jointCount = asset->jointCount;
   for (u32 jointIndex = 0; jointIndex != asset->jointCount; ++jointIndex) {
     template->joints[jointIndex] = (SceneSkeletonJoint){
         .invBindTransform = asset->joints[jointIndex].invBindTransform,
         .childIndices = (u32*)mem_at_u8(template->animData, asset->joints[jointIndex].childData),
         .childCount   = asset->joints[jointIndex].childCount,
         .nameHash     = asset->joints[jointIndex].nameHash,
+    };
+  }
+
+  template->anims     = alloc_array_t(g_alloc_heap, SceneSkeletonAnimation, asset->animCount);
+  template->animCount = asset->animCount;
+  for (u32 animIndex = 0; animIndex != asset->animCount; ++animIndex) {
+    template->anims[animIndex] = (SceneSkeletonAnimation){
+        .nameHash = asset->anims[animIndex].nameHash,
     };
   }
 }

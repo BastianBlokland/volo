@@ -38,9 +38,15 @@ typedef struct {
   StringHash       nameHash;
 } AssetMeshJoint;
 
+typedef struct {
+  StringHash nameHash;
+} AssetMeshAnimation;
+
 ecs_comp_extern_public(AssetMeshSkeletonComp) {
-  u8                    jointCount;
-  const AssetMeshJoint* joints;
-  u32                   rootJointIndex;
-  Mem                   animData;
+  u8                        jointCount;
+  const AssetMeshJoint*     joints;
+  u32                       rootJointIndex;
+  const AssetMeshAnimation* anims;
+  u32                       animCount;
+  Mem                       animData;
 };
