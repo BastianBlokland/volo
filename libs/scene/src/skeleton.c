@@ -19,7 +19,14 @@ typedef enum {
 } SkeletonTemplateState;
 
 typedef struct {
-  StringHash nameHash;
+  u32        frameCount;
+  const f32* times;
+  const f32* values;
+} SceneSkeletonChannel;
+
+typedef struct {
+  StringHash           nameHash;
+  SceneSkeletonChannel joints[asset_mesh_joints_max][AssetMeshAnimTarget_Count];
 } SceneSkeletonAnim;
 
 /**
@@ -164,9 +171,19 @@ scene_asset_template_init(SceneSkeletonTemplateComp* template, const AssetMeshSk
   template->anims     = alloc_array_t(g_alloc_heap, SceneSkeletonAnim, asset->animCount);
   template->animCount = asset->animCount;
   for (u32 animIndex = 0; animIndex != asset->animCount; ++animIndex) {
-    template->anims[animIndex] = (SceneSkeletonAnim){
-        .nameHash = asset->anims[animIndex].nameHash,
-    };
+    const AssetMeshAnim* assetAnim      = &asset->anims[animIndex];
+    template->anims[animIndex].nameHash = assetAnim->nameHash;
+    for (u32 jointIndex = 0; jointIndex != asset->jointCount; ++jointIndex) {
+      for (AssetMeshAnimTarget target = 0; target != AssetMeshAnimTarget_Count; ++target) {
+        const AssetMeshAnimChannel* assetChannel = &assetAnim->joints[jointIndex][target];
+
+        template->anims[animIndex].joints[jointIndex][target] = (SceneSkeletonChannel){
+            .frameCount = assetChannel->frameCount,
+            .times      = (const f32*)mem_at_u8(template->animData, assetChannel->timeData),
+            .values     = (const f32*)mem_at_u8(template->animData, assetChannel->valueData),
+        };
+      }
+    }
   }
 }
 

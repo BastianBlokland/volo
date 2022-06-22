@@ -1100,7 +1100,7 @@ static void gltf_build_skeleton(AssetGltfLoadComp* ld, AssetMeshSkeletonComp* ou
   for (u32 animIndex = 0; animIndex != ld->animCount; ++animIndex) {
     resAnims[animIndex].nameHash = ld->anims[animIndex].nameHash;
 
-    for (u32 jointIndex = 0; jointIndex != AssetMeshAnimTarget_Count; ++jointIndex) {
+    for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
       for (AssetMeshAnimTarget target = 0; target != AssetMeshAnimTarget_Count; ++target) {
         const GltfAnimChannel* channel    = &ld->anims[animIndex].channels[jointIndex][target];
         AssetMeshAnimChannel*  resChannel = &resAnims[animIndex].joints[jointIndex][target];
