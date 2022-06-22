@@ -38,15 +38,30 @@ typedef struct {
   StringHash       nameHash;
 } AssetMeshJoint;
 
+typedef enum {
+  AssetMeshAnimTarget_Translation,
+  AssetMeshAnimTarget_Rotation,
+  AssetMeshAnimTarget_Scale,
+
+  AssetMeshAnimTarget_Count,
+} AssetMeshAnimTarget;
+
 typedef struct {
-  StringHash nameHash;
-} AssetMeshAnimation;
+  u32              frameCount;
+  AssetMeshAnimPtr timeData;
+  AssetMeshAnimPtr valueData;
+} AssetMeshAnimChannel;
+
+typedef struct {
+  StringHash           nameHash;
+  AssetMeshAnimChannel joints[asset_mesh_joints_max][AssetMeshAnimTarget_Count];
+} AssetMeshAnim;
 
 ecs_comp_extern_public(AssetMeshSkeletonComp) {
-  u8                        jointCount;
-  const AssetMeshJoint*     joints;
-  u32                       rootJointIndex;
-  const AssetMeshAnimation* anims;
-  u32                       animCount;
-  Mem                       animData;
+  u8                    jointCount;
+  const AssetMeshJoint* joints;
+  u32                   rootJointIndex;
+  const AssetMeshAnim*  anims;
+  u32                   animCount;
+  Mem                   animData;
 };

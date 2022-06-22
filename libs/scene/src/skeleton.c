@@ -20,20 +20,20 @@ typedef enum {
 
 typedef struct {
   StringHash nameHash;
-} SceneSkeletonAnimation;
+} SceneSkeletonAnim;
 
 /**
  * NOTE: On the graphic asset.
  */
 ecs_comp_define(SceneSkeletonTemplateComp) {
-  SkeletonTemplateState   state;
-  EcsEntityId             mesh;
-  u32                     jointCount;
-  SceneSkeletonJoint*     joints;
-  u32                     jointRootIndex;
-  SceneSkeletonAnimation* anims;
-  u32                     animCount;
-  Mem                     animData;
+  SkeletonTemplateState state;
+  EcsEntityId           mesh;
+  u32                   jointCount;
+  SceneSkeletonJoint*   joints;
+  u32                   jointRootIndex;
+  SceneSkeletonAnim*    anims;
+  u32                   animCount;
+  Mem                   animData;
 };
 
 ecs_comp_define(SceneSkeletonTemplateLoadedComp);
@@ -161,10 +161,10 @@ scene_asset_template_init(SceneSkeletonTemplateComp* template, const AssetMeshSk
     };
   }
 
-  template->anims     = alloc_array_t(g_alloc_heap, SceneSkeletonAnimation, asset->animCount);
+  template->anims     = alloc_array_t(g_alloc_heap, SceneSkeletonAnim, asset->animCount);
   template->animCount = asset->animCount;
   for (u32 animIndex = 0; animIndex != asset->animCount; ++animIndex) {
-    template->anims[animIndex] = (SceneSkeletonAnimation){
+    template->anims[animIndex] = (SceneSkeletonAnim){
         .nameHash = asset->anims[animIndex].nameHash,
     };
   }

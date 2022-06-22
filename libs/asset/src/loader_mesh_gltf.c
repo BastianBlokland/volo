@@ -95,14 +95,6 @@ typedef struct {
   u32          accWeights;  // Access index [Optional].
 } GltfPrim;
 
-typedef enum {
-  GltfAnimTarget_Translation,
-  GltfAnimTarget_Rotation,
-  GltfAnimTarget_Scale,
-
-  GltfAnimTarget_Count,
-} GltfAnimTarget;
-
 typedef struct {
   u32 accInput;  // Access index [Optional].
   u32 accOutput; // Access index [Optional].
@@ -117,7 +109,7 @@ typedef struct {
 
 typedef struct {
   StringHash      nameHash;
-  GltfAnimChannel channels[asset_mesh_joints_max][GltfAnimTarget_Count];
+  GltfAnimChannel channels[asset_mesh_joints_max][AssetMeshAnimTarget_Count];
 } GltfAnim;
 
 ecs_comp_define(AssetGltfLoadComp) {
@@ -516,6 +508,14 @@ gltf_anim_data_push(AssetGltfLoadComp* ld, const Mem data, const u32 align) {
   return res;
 }
 
+static AssetMeshAnimPtr gltf_anim_data_push_access(AssetGltfLoadComp* ld, const u32 acc) {
+  const u32 elemSize = gltf_component_size(ld->access[acc].compType) * ld->access[acc].compCount;
+  const AssetMeshAnimPtr res = gltf_anim_data_begin(ld, bits_nextpow2(elemSize));
+  const Mem accessorMem = mem_create(ld->access[acc].data_raw, elemSize * ld->access[acc].count);
+  mem_cpy(dynarray_push(&ld->animData, accessorMem.size), accessorMem);
+  return res;
+}
+
 static void gltf_parse_accessors(AssetGltfLoadComp* ld, GltfError* err) {
   const JsonVal accessors = json_field(ld->jDoc, ld->jRoot, string_lit("accessors"));
   if (!gltf_check_val(ld, accessors, JsonType_Array)) {
@@ -731,7 +731,7 @@ Error:
   *err = GltfError_MalformedNodes;
 }
 
-static void gltf_parse_anim_target(const String str, GltfAnimTarget* out, GltfError* err) {
+static void gltf_parse_anim_target(const String str, AssetMeshAnimTarget* out, GltfError* err) {
   static const String g_names[] = {
       string_static("translation"),
       string_static("rotation"),
@@ -748,9 +748,11 @@ static void gltf_parse_anim_target(const String str, GltfAnimTarget* out, GltfEr
 }
 
 static void gltf_clear_anim_channels(GltfAnim* anim) {
-  array_for_t(anim->channels, GltfAnimChannel, channel) {
-    channel->accInput  = sentinel_u32;
-    channel->accOutput = sentinel_u32;
+  for (u32 jointIndex = 0; jointIndex != asset_mesh_joints_max; ++jointIndex) {
+    for (AssetMeshAnimTarget target = 0; target != AssetMeshAnimTarget_Count; ++target) {
+      anim->channels[jointIndex][target].accInput  = sentinel_u32;
+      anim->channels[jointIndex][target].accOutput = sentinel_u32;
+    }
   }
 }
 
@@ -839,11 +841,12 @@ static void gltf_parse_animations(AssetGltfLoadComp* ld, GltfError* err) {
       if (!gltf_check_val(ld, path, JsonType_String)) {
         goto Error;
       }
-      GltfAnimTarget channelTarget;
+      AssetMeshAnimTarget channelTarget;
       gltf_parse_anim_target(json_string(ld->jDoc, path), &channelTarget, err);
       if (*err) {
         goto Error;
       }
+      diag_assert(samplerAccInput[samplerIndex]);
       outAnim->channels[jointIndex][channelTarget] = (GltfAnimChannel){
           .accInput  = samplerAccInput[samplerIndex],
           .accOutput = samplerAccOutput[samplerIndex],
@@ -1058,6 +1061,30 @@ static void gltf_build_skeleton(AssetGltfLoadComp* ld, AssetMeshSkeletonComp* ou
     return;
   }
 
+  for (u32 animIndex = 0; animIndex != ld->animCount; ++animIndex) {
+    for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
+      for (AssetMeshAnimTarget target = 0; target != AssetMeshAnimTarget_Count; ++target) {
+        const GltfAnimChannel* channel = &ld->anims[animIndex].channels[jointIndex][target];
+        if (sentinel_check(channel->accInput)) {
+          continue;
+        }
+        if (!gltf_check_access(ld, channel->accInput, GltfType_f32, 1)) {
+          *err = GltfError_MalformedAnimation;
+          return;
+        }
+        const u32 requiredComponents = target == AssetMeshAnimTarget_Rotation ? 4 : 3;
+        if (!gltf_check_access(ld, channel->accOutput, GltfType_f32, requiredComponents)) {
+          *err = GltfError_MalformedAnimation;
+          return;
+        }
+        if (ld->access[channel->accInput].count != ld->access[channel->accOutput].count) {
+          *err = GltfError_MalformedAnimation;
+          return;
+        }
+      }
+    }
+  }
+
   AssetMeshJoint* resJoints = alloc_array_t(g_alloc_heap, AssetMeshJoint, ld->jointCount);
   for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
     resJoints[jointIndex] = (AssetMeshJoint){
@@ -1068,12 +1095,27 @@ static void gltf_build_skeleton(AssetGltfLoadComp* ld, AssetMeshSkeletonComp* ou
     };
   }
 
-  AssetMeshAnimation* resAnims =
-      ld->animCount ? alloc_array_t(g_alloc_heap, AssetMeshAnimation, ld->animCount) : null;
+  AssetMeshAnim* resAnims =
+      ld->animCount ? alloc_array_t(g_alloc_heap, AssetMeshAnim, ld->animCount) : null;
   for (u32 animIndex = 0; animIndex != ld->animCount; ++animIndex) {
-    resAnims[animIndex] = (AssetMeshAnimation){
-        .nameHash = ld->anims[animIndex].nameHash,
-    };
+    resAnims[animIndex].nameHash = ld->anims[animIndex].nameHash;
+
+    for (u32 jointIndex = 0; jointIndex != AssetMeshAnimTarget_Count; ++jointIndex) {
+      for (AssetMeshAnimTarget target = 0; target != AssetMeshAnimTarget_Count; ++target) {
+        const GltfAnimChannel* channel    = &ld->anims[animIndex].channels[jointIndex][target];
+        AssetMeshAnimChannel*  resChannel = &resAnims[animIndex].joints[jointIndex][target];
+
+        if (sentinel_check(channel->accInput)) {
+          *resChannel = (AssetMeshAnimChannel){0};
+          continue;
+        }
+        *resChannel = (AssetMeshAnimChannel){
+            .frameCount = ld->access[channel->accInput].count,
+            .timeData   = gltf_anim_data_push_access(ld, channel->accInput),
+            .valueData  = gltf_anim_data_push_access(ld, channel->accOutput),
+        };
+      }
+    }
   }
 
   *out = (AssetMeshSkeletonComp){
