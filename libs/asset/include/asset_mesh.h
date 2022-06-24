@@ -32,7 +32,6 @@ ecs_comp_extern_public(AssetMeshComp) {
 };
 
 typedef struct {
-  GeoMatrix        invBindTransform; // From world to local bind space for a joint.
   AssetMeshAnimPtr childData;
   u32              childCount;
   StringHash       nameHash;
@@ -60,6 +59,7 @@ typedef struct {
 ecs_comp_extern_public(AssetMeshSkeletonComp) {
   const AssetMeshJoint* joints;
   const AssetMeshAnim*  anims;
+  AssetMeshAnimPtr      invBindMats; // From world to local bind space per joint.
   u8                    jointCount;
   u32                   animCount;
   u32                   rootJointIndex;

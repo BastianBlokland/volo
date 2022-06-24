@@ -39,6 +39,7 @@ ecs_comp_define(SceneSkeletonTemplateComp) {
   EcsEntityId           mesh;
   SceneSkeletonJoint*   joints;
   SceneSkeletonAnim*    anims;
+  const GeoMatrix*      invBindMats;
   u32                   jointCount;
   u32                   animCount;
   u32                   jointRootIndex;
@@ -110,7 +111,7 @@ static void scene_skeleton_init_from_template(
 
   GeoMatrix* jointTransforms = alloc_array_t(g_alloc_heap, GeoMatrix, tl->jointCount);
   for (u32 i = 0; i != tl->jointCount; ++i) {
-    jointTransforms[i] = geo_matrix_inverse(&tl->joints[i].invBindTransform);
+    jointTransforms[i] = geo_matrix_inverse(&tl->invBindMats[i]);
   }
   ecs_world_add_t(
       world,
@@ -164,10 +165,9 @@ scene_asset_template_init(SceneSkeletonTemplateComp* tl, const AssetMeshSkeleton
   tl->jointCount = asset->jointCount;
   for (u32 jointIndex = 0; jointIndex != asset->jointCount; ++jointIndex) {
     tl->joints[jointIndex] = (SceneSkeletonJoint){
-        .invBindTransform = asset->joints[jointIndex].invBindTransform,
-        .childIndices     = (u32*)mem_at_u8(tl->animData, asset->joints[jointIndex].childData),
-        .childCount       = asset->joints[jointIndex].childCount,
-        .nameHash         = asset->joints[jointIndex].nameHash,
+        .childIndices = (u32*)mem_at_u8(tl->animData, asset->joints[jointIndex].childData),
+        .childCount   = asset->joints[jointIndex].childCount,
+        .nameHash     = asset->joints[jointIndex].nameHash,
     };
   }
 
@@ -188,6 +188,8 @@ scene_asset_template_init(SceneSkeletonTemplateComp* tl, const AssetMeshSkeleton
       }
     }
   }
+
+  tl->invBindMats = (const GeoMatrix*)mem_at_u8(tl->animData, asset->invBindMats);
 }
 
 static void scene_skeleton_template_load_done(EcsWorld* world, EcsIterator* itr) {
@@ -425,6 +427,6 @@ void scene_skeleton_joint_delta(
     const SceneSkeletonComp* sk, const SceneSkeletonTemplateComp* tl, GeoMatrix* out) {
   diag_assert(sk->jointCount == tl->jointCount);
   for (u32 i = 0; i != sk->jointCount; ++i) {
-    out[i] = geo_matrix_mul(&sk->jointTransforms[i], &tl->joints[i].invBindTransform);
+    out[i] = geo_matrix_mul(&sk->jointTransforms[i], &tl->invBindMats[i]);
   }
 }

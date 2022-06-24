@@ -1136,10 +1136,9 @@ static void gltf_build_skeleton(AssetGltfLoadComp* ld, AssetMeshSkeletonComp* ou
   AssetMeshJoint* resJoints = alloc_array_t(g_alloc_heap, AssetMeshJoint, ld->jointCount);
   for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
     resJoints[jointIndex] = (AssetMeshJoint){
-        .invBindTransform = gltf_inv_bind_transform(ld, jointIndex),
-        .childData        = ld->joints[jointIndex].childData,
-        .childCount       = ld->joints[jointIndex].childCount,
-        .nameHash         = ld->joints[jointIndex].nameHash,
+        .childData  = ld->joints[jointIndex].childData,
+        .childCount = ld->joints[jointIndex].childCount,
+        .nameHash   = ld->joints[jointIndex].nameHash,
     };
   }
 
@@ -1182,12 +1181,19 @@ static void gltf_build_skeleton(AssetGltfLoadComp* ld, AssetMeshSkeletonComp* ou
     }
   }
 
+  AssetMeshAnimPtr invBindMats = gltf_anim_data_begin_t(ld, GeoMatrix);
+  for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
+    const GeoMatrix invBindMat = gltf_inv_bind_transform(ld, jointIndex);
+    gltf_anim_data_push_t(ld, invBindMat);
+  }
+
   *out = (AssetMeshSkeletonComp){
-      .jointCount     = ld->jointCount,
       .joints         = resJoints,
-      .rootJointIndex = sentinel_check(ld->rootJointIndex) ? 0 : ld->rootJointIndex,
       .anims          = resAnims,
+      .invBindMats    = invBindMats,
+      .jointCount     = ld->jointCount,
       .animCount      = ld->animCount,
+      .rootJointIndex = sentinel_check(ld->rootJointIndex) ? 0 : ld->rootJointIndex,
       .animData = alloc_dup(g_alloc_heap, dynarray_at(&ld->animData, 0, ld->animData.size), 1),
   };
   *err = GltfError_None;

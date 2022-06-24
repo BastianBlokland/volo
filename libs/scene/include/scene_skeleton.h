@@ -3,7 +3,6 @@
 #include "geo_matrix.h"
 
 typedef struct {
-  GeoMatrix  invBindTransform;
   const u32* childIndices;
   u32        childCount;
   StringHash nameHash;
