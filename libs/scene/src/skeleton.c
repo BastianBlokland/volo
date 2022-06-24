@@ -32,6 +32,7 @@ typedef struct {
 
 typedef struct {
   StringHash           nameHash;
+  f32                  duration;
   SceneSkeletonChannel joints[asset_mesh_joints_max][AssetMeshAnimTarget_Count];
 } SceneSkeletonAnim;
 
@@ -180,6 +181,8 @@ scene_asset_template_init(SceneSkeletonTemplateComp* tl, const AssetMeshSkeleton
   for (u32 animIndex = 0; animIndex != asset->animCount; ++animIndex) {
     const AssetMeshAnim* assetAnim = &asset->anims[animIndex];
     tl->anims[animIndex].nameHash  = assetAnim->nameHash;
+    tl->anims[animIndex].duration  = assetAnim->duration;
+
     for (u32 jointIndex = 0; jointIndex != asset->jointCount; ++jointIndex) {
       for (AssetMeshAnimTarget target = 0; target != AssetMeshAnimTarget_Count; ++target) {
         const AssetMeshAnimChannel* assetChannel = &assetAnim->joints[jointIndex][target];
@@ -342,11 +345,11 @@ ecs_system_define(SceneSkeletonUpdateSys) {
       continue;
     }
 
-    sk->playHead += deltaSeconds;
-    sk->playHead = math_mod_f32(sk->playHead, 1.15f);
-
     ecs_view_jump(templateItr, renderable->graphic);
     const SceneSkeletonTemplateComp* tl = ecs_view_read_t(templateItr, SceneSkeletonTemplateComp);
+
+    sk->playHead += deltaSeconds;
+    sk->playHead = math_mod_f32(sk->playHead, tl->anims[2].duration);
 
     sk->jointTransforms[tl->jointRootIndex] = geo_matrix_ident();
     scene_animation_sample(tl, tl->jointRootIndex, sk->playHead, sk->jointTransforms);

@@ -53,6 +53,7 @@ typedef struct {
 
 typedef struct {
   StringHash           nameHash;
+  f32                  duration;
   AssetMeshAnimChannel joints[asset_mesh_joints_max][AssetMeshAnimTarget_Count];
 } AssetMeshAnim;
 

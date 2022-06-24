@@ -4,6 +4,7 @@
 #include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_math.h"
 #include "core_path.h"
 #include "core_stringtable.h"
 #include "ecs_utils.h"
@@ -511,6 +512,15 @@ static bool gtlf_check_access_type(const GltfType type) {
     return true;
   }
   return false;
+}
+
+static f32 gltf_access_max_f32(AssetGltfLoadComp* ld, const u32 acc) {
+  diag_assert(ld->access[acc].compType == GltfType_f32);
+  f32 res = f32_min;
+  for (u32 i = 0; i != ld->access[acc].compCount * ld->access[acc].count; ++i) {
+    res = math_max(res, ld->access[acc].data_f32[i]);
+  }
+  return res;
 }
 
 #define gltf_anim_data_begin_t(_LOAD_COMP_, _TYPE_)                                                \
@@ -1155,6 +1165,7 @@ static void gltf_build_skeleton(AssetGltfLoadComp* ld, AssetMeshSkeletonComp* ou
       ld->animCount ? alloc_array_t(g_alloc_heap, AssetMeshAnim, ld->animCount) : null;
   for (u32 animIndex = 0; animIndex != ld->animCount; ++animIndex) {
     resAnims[animIndex].nameHash = ld->anims[animIndex].nameHash;
+    f32 duration                 = 0;
 
     for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
       const bool       needsMirror = jointIndex == ld->rootJointIndex; // R to L coord conversion.
@@ -1165,6 +1176,9 @@ static void gltf_build_skeleton(AssetGltfLoadComp* ld, AssetMeshSkeletonComp* ou
         AssetMeshAnimChannel*  resChannel = &resAnims[animIndex].joints[jointIndex][target];
 
         if (!sentinel_check(channel->accInput)) {
+          const f32 channelDur = gltf_access_max_f32(ld, channel->accInput);
+          duration             = math_max(duration, channelDur);
+
           // TODO: Support mirroring (for R to L coord conv) when animating the scale of the root.
           *resChannel = (AssetMeshAnimChannel){
               .frameCount = ld->access[channel->accInput].count,
@@ -1194,6 +1208,7 @@ static void gltf_build_skeleton(AssetGltfLoadComp* ld, AssetMeshSkeletonComp* ou
         }
       }
     }
+    resAnims[animIndex].duration = duration;
   }
 
   *out = (AssetMeshSkeletonComp){
