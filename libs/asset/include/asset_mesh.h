@@ -32,7 +32,7 @@ ecs_comp_extern_public(AssetMeshComp) {
 };
 
 typedef struct {
-  AssetMeshAnimPtr childData;
+  AssetMeshAnimPtr childData; // u32[childCount].
   u32              childCount;
   StringHash       nameHash;
 } AssetMeshJoint;
@@ -47,8 +47,8 @@ typedef enum {
 
 typedef struct {
   u32              frameCount;
-  AssetMeshAnimPtr timeData;
-  AssetMeshAnimPtr valueData;
+  AssetMeshAnimPtr timeData;  // f32[frameCount].
+  AssetMeshAnimPtr valueData; // (GeoVector | GeoQuat)[frameCount].
 } AssetMeshAnimChannel;
 
 typedef struct {
@@ -59,7 +59,7 @@ typedef struct {
 ecs_comp_extern_public(AssetMeshSkeletonComp) {
   const AssetMeshJoint* joints;
   const AssetMeshAnim*  anims;
-  AssetMeshAnimPtr      invBindMats; // From world to local bind space per joint.
+  AssetMeshAnimPtr      invBindMats; // GeoMatrix[jointCount]. From world to local bind space.
   u8                    jointCount;
   u32                   animCount;
   u32                   rootJointIndex;

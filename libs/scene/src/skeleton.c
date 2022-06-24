@@ -23,7 +23,11 @@ typedef enum {
 typedef struct {
   u32        frameCount;
   const f32* times;
-  const f32* values;
+  union {
+    void*            values_raw;
+    const GeoVector* values_vec;
+    const GeoQuat*   values_quat;
+  };
 } SceneSkeletonChannel;
 
 typedef struct {
@@ -165,7 +169,7 @@ scene_asset_template_init(SceneSkeletonTemplateComp* tl, const AssetMeshSkeleton
   tl->jointCount = asset->jointCount;
   for (u32 jointIndex = 0; jointIndex != asset->jointCount; ++jointIndex) {
     tl->joints[jointIndex] = (SceneSkeletonJoint){
-        .childIndices = (u32*)mem_at_u8(tl->animData, asset->joints[jointIndex].childData),
+        .childIndices = (const u32*)mem_at_u8(tl->animData, asset->joints[jointIndex].childData),
         .childCount   = asset->joints[jointIndex].childCount,
         .nameHash     = asset->joints[jointIndex].nameHash,
     };
@@ -183,7 +187,7 @@ scene_asset_template_init(SceneSkeletonTemplateComp* tl, const AssetMeshSkeleton
         tl->anims[animIndex].joints[jointIndex][target] = (SceneSkeletonChannel){
             .frameCount = assetChannel->frameCount,
             .times      = (const f32*)mem_at_u8(tl->animData, assetChannel->timeData),
-            .values     = (const f32*)mem_at_u8(tl->animData, assetChannel->valueData),
+            .values_raw = mem_at_u8(tl->animData, assetChannel->valueData),
         };
       }
     }
@@ -274,23 +278,6 @@ static u32 scene_animation_to_frame(const SceneSkeletonChannel* ch, const f32 t)
   return ch->frameCount - 1;
 }
 
-static GeoVector scene_animation_sample_vec3(const SceneSkeletonChannel* ch, const u32 frame) {
-  return (GeoVector){
-      ch->values[frame * 3 + 0],
-      ch->values[frame * 3 + 1],
-      ch->values[frame * 3 + 2],
-  };
-}
-
-static GeoQuat scene_animation_sample_quat(const SceneSkeletonChannel* ch, const u32 frame) {
-  return (GeoQuat){
-      ch->values[frame * 4 + 0],
-      ch->values[frame * 4 + 1],
-      ch->values[frame * 4 + 2],
-      ch->values[frame * 4 + 3],
-  };
-}
-
 static GeoVector scene_animation_sample_translation(const SceneSkeletonChannel* ch, const f32 t) {
   const u32 fromFrame = scene_animation_from_frame(ch, t);
   const u32 toFrame   = scene_animation_to_frame(ch, t);
@@ -298,8 +285,7 @@ static GeoVector scene_animation_sample_translation(const SceneSkeletonChannel* 
   const f32 toT       = ch->times[toFrame];
   const f32 frac      = math_unlerp(fromT, toT, t);
 
-  return geo_vector_lerp(
-      scene_animation_sample_vec3(ch, fromFrame), scene_animation_sample_vec3(ch, toFrame), frac);
+  return geo_vector_lerp(ch->values_vec[fromFrame], ch->values_vec[toFrame], frac);
 }
 
 static GeoQuat scene_animation_sample_rotation(const SceneSkeletonChannel* ch, const f32 t) {
@@ -309,8 +295,7 @@ static GeoQuat scene_animation_sample_rotation(const SceneSkeletonChannel* ch, c
   const f32 toT       = ch->times[toFrame];
   const f32 frac      = math_unlerp(fromT, toT, t);
 
-  return geo_quat_slerp(
-      scene_animation_sample_quat(ch, fromFrame), scene_animation_sample_quat(ch, toFrame), frac);
+  return geo_quat_slerp(ch->values_quat[fromFrame], ch->values_quat[toFrame], frac);
 }
 
 static void scene_animation_sample(
@@ -334,11 +319,7 @@ static void scene_animation_sample(
     out[joint] = geo_matrix_mul(&out[joint], &mat);
   }
   {
-    const f32 scaleX = chS->values[0];
-    const f32 scaleY = chS->values[1];
-    const f32 scaleZ = chS->values[2];
-
-    const GeoMatrix mat = geo_matrix_scale(geo_vector(scaleX, scaleY, scaleZ));
+    const GeoMatrix mat = geo_matrix_scale(chS->values_vec[0]);
     out[joint]          = geo_matrix_mul(&out[joint], &mat);
   }
 

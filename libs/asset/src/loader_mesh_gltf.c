@@ -105,9 +105,9 @@ typedef struct {
   AssetMeshAnimPtr childData;
   u32              childCount;
   StringHash       nameHash;
-  GeoVector        translation;
-  GeoQuat          rotation;
-  GeoVector        scale;
+  GeoVector        trans; // x,y,z vector.
+  GeoVector        rot;   // x,y,z,w quaternion.
+  GeoVector        scale; // x,y,z vector.
 } GltfJoint;
 
 typedef struct {
@@ -309,43 +309,25 @@ static StringHash gltf_parse_name(AssetGltfLoadComp* ld, const JsonVal obj) {
   return stringtable_add(g_stringtable, string_empty);
 }
 
-static GeoVector gltf_parse_translation(AssetGltfLoadComp* ld, const JsonVal val) {
-  GeoVector res = {0};
+static void gltf_parse_f32_elem(AssetGltfLoadComp* ld, const JsonVal val, const u32 i, f32* out) {
   if (gltf_check_val(ld, val, JsonType_Array)) {
-    for (u32 i = 0; i != 3; ++i) {
-      const JsonVal elem = json_elem(ld->jDoc, val, i);
-      if (gltf_check_val(ld, elem, JsonType_Number)) {
-        res.comps[i] = (f32)json_number(ld->jDoc, elem);
-      }
+    const JsonVal elem = json_elem(ld->jDoc, val, i);
+    if (gltf_check_val(ld, elem, JsonType_Number)) {
+      *out = (f32)json_number(ld->jDoc, elem);
     }
   }
-  return res;
 }
 
-static GeoQuat gltf_parse_rotation(AssetGltfLoadComp* ld, const JsonVal val) {
-  GeoQuat res = {0};
-  if (gltf_check_val(ld, val, JsonType_Array)) {
-    for (u32 i = 0; i != 4; ++i) {
-      const JsonVal elem = json_elem(ld->jDoc, val, i);
-      if (gltf_check_val(ld, elem, JsonType_Number)) {
-        res.comps[i] = (f32)json_number(ld->jDoc, elem);
-      }
-    }
+static void gltf_parse_vec3(AssetGltfLoadComp* ld, const JsonVal val, GeoVector* out) {
+  for (u32 i = 0; i != 3; ++i) {
+    gltf_parse_f32_elem(ld, val, i, &out->comps[i]);
   }
-  return res;
 }
 
-static GeoVector gltf_parse_scale(AssetGltfLoadComp* ld, const JsonVal val) {
-  GeoVector res = {1, 1, 1};
-  if (gltf_check_val(ld, val, JsonType_Array)) {
-    for (u32 i = 0; i != 3; ++i) {
-      const JsonVal elem = json_elem(ld->jDoc, val, i);
-      if (gltf_check_val(ld, elem, JsonType_Number)) {
-        res.comps[i] = (f32)json_number(ld->jDoc, elem);
-      }
-    }
+static void gltf_parse_vec4(AssetGltfLoadComp* ld, const JsonVal val, GeoVector* out) {
+  for (u32 i = 0; i != 4; ++i) {
+    gltf_parse_f32_elem(ld, val, i, &out->comps[i]);
   }
-  return res;
 }
 
 static void gltf_parse_version(AssetGltfLoadComp* ld, String str, GltfError* err) {
@@ -558,6 +540,30 @@ static AssetMeshAnimPtr gltf_anim_data_push_access(AssetGltfLoadComp* ld, const 
   return res;
 }
 
+static AssetMeshAnimPtr gltf_anim_data_push_access_vec(AssetGltfLoadComp* ld, const u32 acc) {
+  diag_assert(ld->access[acc].compType == GltfType_f32);
+  const f32* src = ld->access[acc].data_raw;
+
+  const AssetMeshAnimPtr res = gltf_anim_data_begin_t(ld, GeoVector);
+  switch (ld->access[acc].compCount) {
+  case 4:
+    for (u32 i = 0; i != ld->access[acc].count * 4; i += 4) {
+      const GeoVector v = geo_vector(src[i + 0], src[i + 1], src[i + 2], src[i + 3]);
+      gltf_anim_data_push_t(ld, v);
+    }
+    break;
+  case 3:
+    for (u32 i = 0; i != ld->access[acc].count * 3; i += 3) {
+      const GeoVector v = geo_vector(src[i + 0], src[i + 1], src[i + 2]);
+      gltf_anim_data_push_t(ld, v);
+    }
+    break;
+  default:
+    diag_crash();
+  }
+  return res;
+}
+
 static void gltf_parse_accessors(AssetGltfLoadComp* ld, GltfError* err) {
   const JsonVal accessors = json_field(ld->jDoc, ld->jRoot, string_lit("accessors"));
   if (!gltf_check_val(ld, accessors, JsonType_Array)) {
@@ -747,18 +753,22 @@ static void gltf_parse_skeleton_nodes(AssetGltfLoadComp* ld, GltfError* err) {
     if (sentinel_check(jointIndex)) {
       goto Next; // This node is not part of the skeleton.
     }
-    ld->joints[jointIndex].nameHash = gltf_parse_name(ld, node);
-    ld->joints[jointIndex].translation =
-        gltf_parse_translation(ld, json_field(ld->jDoc, node, string_lit("translation")));
-    ld->joints[jointIndex].rotation =
-        gltf_parse_rotation(ld, json_field(ld->jDoc, node, string_lit("rotation")));
-    ld->joints[jointIndex].scale =
-        gltf_parse_scale(ld, json_field(ld->jDoc, node, string_lit("scale")));
+    GltfJoint* out = &ld->joints[jointIndex];
+    out->nameHash  = gltf_parse_name(ld, node);
+
+    out->trans = geo_vector(0);
+    gltf_parse_vec3(ld, json_field(ld->jDoc, node, string_lit("translation")), &out->trans);
+
+    out->rot = geo_vector(0, 0, 0, 1);
+    gltf_parse_vec4(ld, json_field(ld->jDoc, node, string_lit("rotation")), &out->rot);
+
+    out->scale = geo_vector(1, 1, 1);
+    gltf_parse_vec3(ld, json_field(ld->jDoc, node, string_lit("scale")), &out->trans);
 
     const JsonVal children = json_field(ld->jDoc, node, string_lit("children"));
     if (gltf_check_val(ld, children, JsonType_Array)) {
-      ld->joints[jointIndex].childData  = gltf_anim_data_begin_t(ld, u32);
-      ld->joints[jointIndex].childCount = json_elem_count(ld->jDoc, children);
+      out->childData  = gltf_anim_data_begin_t(ld, u32);
+      out->childCount = json_elem_count(ld->jDoc, children);
 
       json_for_elems(ld->jDoc, children, child) {
         if (UNLIKELY(json_type(ld->jDoc, child) != JsonType_Number)) {
@@ -1159,16 +1169,16 @@ static void gltf_build_skeleton(AssetGltfLoadComp* ld, AssetMeshSkeletonComp* ou
           *resChannel = (AssetMeshAnimChannel){
               .frameCount = ld->access[channel->accInput].count,
               .timeData   = gltf_anim_data_push_access(ld, channel->accInput),
-              .valueData  = gltf_anim_data_push_access(ld, channel->accOutput),
+              .valueData  = gltf_anim_data_push_access_vec(ld, channel->accOutput),
           };
         } else {
           *resChannel = (AssetMeshAnimChannel){.frameCount = 1, .timeData = defaultTimeData};
           switch (target) {
           case AssetMeshAnimTarget_Translation:
-            resChannel->valueData = gltf_anim_data_push_t(ld, ld->joints[jointIndex].translation);
+            resChannel->valueData = gltf_anim_data_push_t(ld, ld->joints[jointIndex].trans);
             break;
           case AssetMeshAnimTarget_Rotation:
-            resChannel->valueData = gltf_anim_data_push_t(ld, ld->joints[jointIndex].rotation);
+            resChannel->valueData = gltf_anim_data_push_t(ld, ld->joints[jointIndex].rot);
             break;
           case AssetMeshAnimTarget_Scale:
             resChannel->valueData = gltf_anim_data_push_t(ld, ld->joints[jointIndex].scale);
