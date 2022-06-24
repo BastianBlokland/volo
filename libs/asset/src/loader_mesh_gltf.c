@@ -1157,11 +1157,15 @@ static void gltf_build_skeleton(AssetGltfLoadComp* ld, AssetMeshSkeletonComp* ou
     resAnims[animIndex].nameHash = ld->anims[animIndex].nameHash;
 
     for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
+      const bool       needsMirror = jointIndex == ld->rootJointIndex; // R to L coord conversion.
+      const GltfJoint* joint       = ld->joints + jointIndex;
+
       for (AssetMeshAnimTarget target = 0; target != AssetMeshAnimTarget_Count; ++target) {
         const GltfAnimChannel* channel    = &ld->anims[animIndex].channels[jointIndex][target];
         AssetMeshAnimChannel*  resChannel = &resAnims[animIndex].joints[jointIndex][target];
 
         if (!sentinel_check(channel->accInput)) {
+          // TODO: Support mirroring (for R to L coord conv) when animating the scale of the root.
           *resChannel = (AssetMeshAnimChannel){
               .frameCount = ld->access[channel->accInput].count,
               .timeData   = gltf_anim_data_push_access(ld, channel->accInput),
@@ -1171,13 +1175,18 @@ static void gltf_build_skeleton(AssetGltfLoadComp* ld, AssetMeshSkeletonComp* ou
           *resChannel = (AssetMeshAnimChannel){.frameCount = 1, .timeData = defaultTimeData};
           switch (target) {
           case AssetMeshAnimTarget_Translation:
-            resChannel->valueData = gltf_anim_data_push_t(ld, ld->joints[jointIndex].trans);
+            resChannel->valueData = gltf_anim_data_push_t(ld, joint->trans);
             break;
           case AssetMeshAnimTarget_Rotation:
-            resChannel->valueData = gltf_anim_data_push_t(ld, ld->joints[jointIndex].rot);
+            resChannel->valueData = gltf_anim_data_push_t(ld, joint->rot);
             break;
           case AssetMeshAnimTarget_Scale:
-            resChannel->valueData = gltf_anim_data_push_t(ld, ld->joints[jointIndex].scale);
+            if (needsMirror) {
+              const GeoVector mirror = geo_vector(joint->scale.x, joint->scale.y, -joint->scale.z);
+              resChannel->valueData  = gltf_anim_data_push_t(ld, mirror);
+            } else {
+              resChannel->valueData = gltf_anim_data_push_t(ld, joint->scale);
+            }
             break;
           case AssetMeshAnimTarget_Count:
             break;

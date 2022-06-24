@@ -349,13 +349,6 @@ ecs_system_define(SceneSkeletonUpdateSys) {
     const SceneSkeletonTemplateComp* tl = ecs_view_read_t(templateItr, SceneSkeletonTemplateComp);
 
     sk->jointTransforms[tl->jointRootIndex] = geo_matrix_ident();
-
-    static const GeoMatrix g_negateZMatrix = {
-        {{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, -1, 0}, {0, 0, 0, 1}},
-    };
-    sk->jointTransforms[tl->jointRootIndex] =
-        geo_matrix_mul(&sk->jointTransforms[tl->jointRootIndex], &g_negateZMatrix);
-
     scene_animation_sample(tl, tl->jointRootIndex, sk->playHead, sk->jointTransforms);
   }
 }
