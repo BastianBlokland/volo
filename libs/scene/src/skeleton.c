@@ -278,7 +278,7 @@ static u32 scene_animation_to_frame(const SceneSkeletonChannel* ch, const f32 t)
   return ch->frameCount - 1;
 }
 
-static GeoVector scene_animation_sample_translation(const SceneSkeletonChannel* ch, const f32 t) {
+static GeoVector scene_animation_sample_vec3(const SceneSkeletonChannel* ch, const f32 t) {
   const u32 fromFrame = scene_animation_from_frame(ch, t);
   const u32 toFrame   = scene_animation_to_frame(ch, t);
   const f32 fromT     = ch->times[fromFrame];
@@ -288,7 +288,7 @@ static GeoVector scene_animation_sample_translation(const SceneSkeletonChannel* 
   return geo_vector_lerp(ch->values_vec[fromFrame], ch->values_vec[toFrame], frac);
 }
 
-static GeoQuat scene_animation_sample_rotation(const SceneSkeletonChannel* ch, const f32 t) {
+static GeoQuat scene_animation_sample_quat(const SceneSkeletonChannel* ch, const f32 t) {
   const u32 fromFrame = scene_animation_from_frame(ch, t);
   const u32 toFrame   = scene_animation_to_frame(ch, t);
   const f32 fromT     = ch->times[fromFrame];
@@ -306,22 +306,14 @@ static void scene_animation_sample(
   const SceneSkeletonChannel* chR = &anim->joints[joint][AssetMeshAnimTarget_Rotation];
   const SceneSkeletonChannel* chS = &anim->joints[joint][AssetMeshAnimTarget_Scale];
 
-  {
+  const GeoMatrix tMat = geo_matrix_translate(scene_animation_sample_vec3(chT, t));
+  out[joint]           = geo_matrix_mul(&out[joint], &tMat);
 
-    const GeoVector v   = scene_animation_sample_translation(chT, t);
-    const GeoMatrix mat = geo_matrix_translate(v);
-    out[joint]          = geo_matrix_mul(&out[joint], &mat);
-  }
-  {
-    GeoQuat   q   = scene_animation_sample_rotation(chR, t);
-    GeoMatrix mat = geo_matrix_from_quat(q);
+  GeoMatrix qMat = geo_matrix_from_quat(scene_animation_sample_quat(chR, t));
+  out[joint]     = geo_matrix_mul(&out[joint], &qMat);
 
-    out[joint] = geo_matrix_mul(&out[joint], &mat);
-  }
-  {
-    const GeoMatrix mat = geo_matrix_scale(chS->values_vec[0]);
-    out[joint]          = geo_matrix_mul(&out[joint], &mat);
-  }
+  const GeoMatrix sMat = geo_matrix_scale(scene_animation_sample_vec3(chS, t));
+  out[joint]           = geo_matrix_mul(&out[joint], &sMat);
 
   for (u32 childNum = 0; childNum != tl->joints[joint].childCount; ++childNum) {
     const u32 childIndex = tl->joints[joint].childIndices[childNum];
