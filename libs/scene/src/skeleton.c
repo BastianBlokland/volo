@@ -61,6 +61,11 @@ static void ecs_destruct_skeleton_comp(void* data) {
   }
 }
 
+static void ecs_destruct_animation_comp(void* data) {
+  SceneAnimationComp* anim = data;
+  alloc_free_array_t(g_alloc_heap, anim->layers, anim->layerCount);
+}
+
 static void ecs_combine_skeleton_template(void* dataA, void* dataB) {
   MAYBE_UNUSED SceneSkeletonTemplateComp* tlA = dataA;
   MAYBE_UNUSED SceneSkeletonTemplateComp* tlB = dataB;
@@ -125,7 +130,12 @@ static void scene_skeleton_init_from_template(
       SceneSkeletonComp,
       .jointCount      = tl->jointCount,
       .jointTransforms = jointTransforms);
-  ecs_world_add_t(world, entity, SceneAnimationComp);
+
+  SceneAnimLayer* layers = alloc_array_t(g_alloc_heap, SceneAnimLayer, tl->animCount);
+  for (u32 i = 0; i != tl->animCount; ++i) {
+    layers[i] = (SceneAnimLayer){.nameHash = tl->anims[i].nameHash};
+  }
+  ecs_world_add_t(world, entity, SceneAnimationComp, .layers = layers, .layerCount = tl->animCount);
 }
 
 ecs_system_define(SceneSkeletonInitSys) {
@@ -306,7 +316,7 @@ static GeoQuat scene_animation_sample_quat(const SceneSkeletonChannel* ch, const
 
 static void scene_animation_sample(
     const SceneSkeletonTemplateComp* tl, const u32 joint, const f32 t, GeoMatrix* out) {
-  const SceneSkeletonAnim* anim = &tl->anims[2];
+  const SceneSkeletonAnim* anim = &tl->anims[0];
 
   const SceneSkeletonChannel* chT = &anim->joints[joint][AssetMeshAnimTarget_Translation];
   const SceneSkeletonChannel* chR = &anim->joints[joint][AssetMeshAnimTarget_Rotation];
@@ -348,17 +358,21 @@ ecs_system_define(SceneSkeletonUpdateSys) {
     ecs_view_jump(templateItr, renderable->graphic);
     const SceneSkeletonTemplateComp* tl = ecs_view_read_t(templateItr, SceneSkeletonTemplateComp);
 
-    anim->playHead += deltaSeconds;
-    anim->playHead = math_mod_f32(anim->playHead, tl->anims[2].duration);
+    for (u32 i = 0; i != anim->layerCount; ++i) {
+      SceneAnimLayer* layer = &anim->layers[i];
+
+      layer->time += deltaSeconds;
+      layer->time = math_mod_f32(layer->time, tl->anims[i].duration);
+    }
 
     sk->jointTransforms[tl->jointRootIndex] = geo_matrix_ident();
-    scene_animation_sample(tl, tl->jointRootIndex, anim->playHead, sk->jointTransforms);
+    scene_animation_sample(tl, tl->jointRootIndex, anim->layers[0].time, sk->jointTransforms);
   }
 }
 
 ecs_module_init(scene_skeleton_module) {
   ecs_register_comp(SceneSkeletonComp, .destructor = ecs_destruct_skeleton_comp);
-  ecs_register_comp(SceneAnimationComp);
+  ecs_register_comp(SceneAnimationComp, .destructor = ecs_destruct_animation_comp);
   ecs_register_comp(
       SceneSkeletonTemplateComp,
       .combinator = ecs_combine_skeleton_template,

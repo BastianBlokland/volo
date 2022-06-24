@@ -15,7 +15,15 @@ ecs_comp_extern_public(SceneSkeletonComp) {
   GeoMatrix* jointTransforms;
 };
 
-ecs_comp_extern_public(SceneAnimationComp) { f32 playHead; };
+typedef struct {
+  f32        time;
+  StringHash nameHash;
+} SceneAnimLayer;
+
+ecs_comp_extern_public(SceneAnimationComp) {
+  SceneAnimLayer* layers;
+  u32             layerCount;
+};
 
 u32 scene_skeleton_root_index(const SceneSkeletonTemplateComp*);
 
