@@ -28,15 +28,10 @@
  */
 
 typedef enum {
-  GltfLoadPhase_Meta,
   GltfLoadPhase_BuffersAcquire,
   GltfLoadPhase_BuffersWait,
   GltfLoadPhase_Parse,
 } GltfLoadPhase;
-
-typedef struct {
-  u64 versionMajor, versionMinor;
-} GltfMeta;
 
 typedef struct {
   u32         length;
@@ -120,7 +115,6 @@ ecs_comp_define(AssetGltfLoadComp) {
   JsonDoc*      jDoc;
   JsonVal       jRoot;
   GltfLoadPhase phase;
-  GltfMeta      meta;
   GltfBuffer*   buffers;
   GltfView*     views;
   GltfAccess*   access;
@@ -166,9 +160,6 @@ typedef enum {
   GltfError_None = 0,
   GltfError_InvalidJson,
   GltfError_MalformedFile,
-  GltfError_MalformedAsset,
-  GltfError_MalformedVersion,
-  GltfError_MalformedRequiredExtensions,
   GltfError_MalformedBuffers,
   GltfError_MalformedBufferViews,
   GltfError_MalformedAccessors,
@@ -186,10 +177,7 @@ typedef enum {
   GltfError_MalformedAnimation,
   GltfError_MalformedInvBindMatrices,
   GltfError_JointCountExceedsMaximum,
-  GltfError_MissingVersion,
   GltfError_InvalidBuffer,
-  GltfError_UnsupportedExtensions,
-  GltfError_UnsupportedVersion,
   GltfError_UnsupportedPrimitiveMode,
   GltfError_UnsupportedInterpolationMode,
   GltfError_NoPrimitives,
@@ -202,9 +190,6 @@ static String gltf_error_str(const GltfError err) {
       string_static("None"),
       string_static("Invalid json"),
       string_static("Malformed gltf file"),
-      string_static("Gltf 'asset' field malformed"),
-      string_static("Gltf malformed version string"),
-      string_static("Gltf 'extensionsRequired' field malformed"),
       string_static("Gltf 'buffers' field malformed"),
       string_static("Gltf 'bufferViews' field malformed"),
       string_static("Gltf 'accessors' field malformed"),
@@ -222,10 +207,7 @@ static String gltf_error_str(const GltfError err) {
       string_static("Malformed animation"),
       string_static("Malformed inverse bind matrices"),
       string_static("Joint count exceeds maximum"),
-      string_static("Gltf version specification missing"),
       string_static("Gltf invalid buffer"),
-      string_static("Gltf file requires an unsupported extension"),
-      string_static("Unsupported gltf version"),
       string_static("Unsupported primitive mode, only triangle primitives supported"),
       string_static("Unsupported interpolation mode, only linear interpolation supported"),
       string_static("Gltf mesh does not have any primitives"),
@@ -328,55 +310,6 @@ static void gltf_parse_vec4(AssetGltfLoadComp* ld, const JsonVal val, GeoVector*
   for (u32 i = 0; i != 4; ++i) {
     gltf_parse_f32_elem(ld, val, i, &out->comps[i]);
   }
-}
-
-static void gltf_parse_version(AssetGltfLoadComp* ld, String str, GltfError* err) {
-  str = format_read_u64(str, &ld->meta.versionMajor, 10);
-  if (string_is_empty(str)) {
-    ld->meta.versionMinor = 0;
-    *err                  = GltfError_None;
-    return;
-  }
-  if (*string_begin(str) != '.') {
-    *err = GltfError_MalformedVersion;
-    return;
-  }
-  format_read_u64(string_consume(str, 1), &ld->meta.versionMinor, 10);
-  *err = GltfError_None;
-}
-
-static void gltf_parse_meta(AssetGltfLoadComp* ld, GltfError* err) {
-  const JsonVal asset = json_field(ld->jDoc, ld->jRoot, string_lit("asset"));
-  if (!gltf_check_val(ld, asset, JsonType_Object)) {
-    *err = GltfError_MalformedAsset;
-    return;
-  }
-  String versionStr;
-  if (!gltf_field_str(ld, asset, string_lit("version"), &versionStr)) {
-    *err = GltfError_MissingVersion;
-    return;
-  }
-  gltf_parse_version(ld, versionStr, err);
-  if (*err) {
-    return;
-  }
-  if (ld->meta.versionMajor != 2 && ld->meta.versionMinor != 0) {
-    *err = GltfError_UnsupportedVersion;
-    return;
-  }
-  const JsonVal extensions = json_field(ld->jDoc, ld->jRoot, string_lit("extensionsRequired"));
-  if (!sentinel_check(extensions)) {
-    if (!gltf_check_val(ld, extensions, JsonType_Array)) {
-      *err = GltfError_MalformedRequiredExtensions;
-      return;
-    }
-    // NOTE: No extensions are suppored at this time.
-    if (json_elem_count(ld->jDoc, extensions) != 0) {
-      *err = GltfError_UnsupportedExtensions;
-      return;
-    }
-  }
-  *err = GltfError_None;
 }
 
 static String gltf_buffer_asset_id(AssetGltfLoadComp* ld, const String uri) {
@@ -1240,13 +1173,6 @@ ecs_system_define(GltfLoadAssetSys) {
 
     GltfError err = GltfError_None;
     switch (ld->phase) {
-    case GltfLoadPhase_Meta:
-      gltf_parse_meta(ld, &err);
-      if (err) {
-        goto Error;
-      }
-      ++ld->phase;
-      // Fallthrough.
     case GltfLoadPhase_BuffersAcquire:
       gltf_buffers_acquire(ld, world, manager, &err);
       if (err) {
