@@ -523,22 +523,21 @@ static f32 gltf_access_max_f32(AssetGltfLoadComp* ld, const u32 acc) {
   return res;
 }
 
-#define gltf_anim_data_begin_t(_LOAD_COMP_, _TYPE_)                                                \
-  gltf_anim_data_begin((_LOAD_COMP_), alignof(_TYPE_))
-
-#define gltf_anim_data_push_t(_LOAD_COMP_, _DATA_)                                                 \
-  gltf_anim_data_push((_LOAD_COMP_), mem_var(_DATA_), alignof(_DATA_))
-
 static AssetMeshAnimPtr gltf_anim_data_begin(AssetGltfLoadComp* ld, const u32 align) {
   // Insert padding to reach the requested alignment.
   dynarray_push(&ld->animData, bits_padding_32((u32)ld->animData.size, align));
   return (u32)ld->animData.size;
 }
 
-static AssetMeshAnimPtr
-gltf_anim_data_push(AssetGltfLoadComp* ld, const Mem data, const u32 align) {
-  const AssetMeshAnimPtr res = gltf_anim_data_begin(ld, align);
-  mem_cpy(dynarray_push(&ld->animData, data.size), data);
+static AssetMeshAnimPtr gltf_anim_data_push_f32(AssetGltfLoadComp* ld, const f32 val) {
+  const AssetMeshAnimPtr res                             = gltf_anim_data_begin(ld, alignof(f32));
+  *((f32*)dynarray_push(&ld->animData, sizeof(f32)).ptr) = val;
+  return res;
+}
+
+static AssetMeshAnimPtr gltf_anim_data_push_vec(AssetGltfLoadComp* ld, const GeoVector val) {
+  const AssetMeshAnimPtr res = gltf_anim_data_begin(ld, alignof(GeoVector));
+  *((GeoVector*)dynarray_push(&ld->animData, sizeof(GeoVector)).ptr) = val;
   return res;
 }
 
@@ -556,7 +555,7 @@ static AssetMeshAnimPtr gltf_anim_data_push_access_vec(AssetGltfLoadComp* ld, co
   const u32  compCount      = ld->access[acc].compCount;
   const u32  totalCompCount = compCount * ld->access[acc].count;
 
-  const AssetMeshAnimPtr res = gltf_anim_data_begin_t(ld, GeoVector);
+  const AssetMeshAnimPtr res = gltf_anim_data_begin(ld, alignof(GeoVector));
   for (u32 i = 0; i != totalCompCount; i += compCount) {
     mem_cpy(
         dynarray_push(&ld->animData, sizeof(f32) * 4),
@@ -570,7 +569,7 @@ static AssetMeshAnimPtr gltf_anim_data_push_access_mat(AssetGltfLoadComp* ld, co
   diag_assert(ld->access[acc].compCount == 16);
 
   const GeoMatrix*       src = ld->access[acc].data_raw;
-  const AssetMeshAnimPtr res = gltf_anim_data_begin_t(ld, GeoMatrix);
+  const AssetMeshAnimPtr res = gltf_anim_data_begin(ld, alignof(GeoMatrix));
   for (u32 i = 0; i != ld->access[acc].count; ++i) {
     /**
      * Gltf also uses column-major 4x4 f32 matrices, the only post-processing needed is converting
@@ -785,7 +784,7 @@ static void gltf_parse_skeleton_nodes(AssetGltfLoadComp* ld, GltfError* err) {
 
     const JsonVal children = json_field(ld->jDoc, node, string_lit("children"));
     if (gltf_check_val(ld, children, JsonType_Array)) {
-      out->childData  = gltf_anim_data_begin_t(ld, u32);
+      out->childData  = gltf_anim_data_begin(ld, alignof(u32));
       out->childCount = json_elem_count(ld->jDoc, children);
 
       json_for_elems(ld->jDoc, children, child) {
@@ -793,7 +792,7 @@ static void gltf_parse_skeleton_nodes(AssetGltfLoadComp* ld, GltfError* err) {
           goto Error;
         }
         const u32 childJointIndex = gltf_joint_index(ld, (u32)json_number(ld->jDoc, child));
-        gltf_anim_data_push_t(ld, childJointIndex);
+        *((u32*)dynarray_push(&ld->animData, sizeof(u32)).ptr) = childJointIndex;
       }
     }
 
@@ -1157,9 +1156,6 @@ static void gltf_build_skeleton(AssetGltfLoadComp* ld, AssetMeshSkeletonComp* ou
     };
   }
 
-  static const f32 g_defaultTime   = 0.0f;
-  AssetMeshAnimPtr defaultTimeData = gltf_anim_data_push_t(ld, g_defaultTime);
-
   AssetMeshAnim* resAnims =
       ld->animCount ? alloc_array_t(g_alloc_heap, AssetMeshAnim, ld->animCount) : null;
   for (u32 animIndex = 0; animIndex != ld->animCount; ++animIndex) {
@@ -1185,20 +1181,21 @@ static void gltf_build_skeleton(AssetGltfLoadComp* ld, AssetMeshSkeletonComp* ou
               .valueData  = gltf_anim_data_push_access_vec(ld, channel->accOutput),
           };
         } else {
-          *resChannel = (AssetMeshAnimChannel){.frameCount = 1, .timeData = defaultTimeData};
+          *resChannel = (AssetMeshAnimChannel){
+              .frameCount = 1, .timeData = gltf_anim_data_push_f32(ld, 0.0f)};
           switch (target) {
           case AssetMeshAnimTarget_Translation:
-            resChannel->valueData = gltf_anim_data_push_t(ld, joint->trans);
+            resChannel->valueData = gltf_anim_data_push_vec(ld, joint->trans);
             break;
           case AssetMeshAnimTarget_Rotation:
-            resChannel->valueData = gltf_anim_data_push_t(ld, joint->rot);
+            resChannel->valueData = gltf_anim_data_push_vec(ld, joint->rot);
             break;
           case AssetMeshAnimTarget_Scale:
             if (needsMirror) {
               const GeoVector mirror = geo_vector(joint->scale.x, joint->scale.y, -joint->scale.z);
-              resChannel->valueData  = gltf_anim_data_push_t(ld, mirror);
+              resChannel->valueData  = gltf_anim_data_push_vec(ld, mirror);
             } else {
-              resChannel->valueData = gltf_anim_data_push_t(ld, joint->scale);
+              resChannel->valueData = gltf_anim_data_push_vec(ld, joint->scale);
             }
             break;
           case AssetMeshAnimTarget_Count:
