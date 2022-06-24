@@ -555,6 +555,24 @@ static AssetMeshAnimPtr gltf_anim_data_push_access_vec(AssetGltfLoadComp* ld, co
   return res;
 }
 
+static AssetMeshAnimPtr gltf_anim_data_push_access_mat(AssetGltfLoadComp* ld, const u32 acc) {
+  diag_assert(ld->access[acc].compType == GltfType_f32);
+  diag_assert(ld->access[acc].compCount == 16);
+
+  const GeoMatrix*       src = ld->access[acc].data_raw;
+  const AssetMeshAnimPtr res = gltf_anim_data_begin_t(ld, GeoMatrix);
+  for (u32 i = 0; i != ld->access[acc].count; ++i) {
+    /**
+     * Gltf also uses column-major 4x4 f32 matrices, the only post-processing needed is converting
+     * from a right-handed to a left-handed coordinate system.
+     */
+    static const GeoMatrix g_negZMat = {{{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, -1, 0}, {0, 0, 0, 1}}};
+    const GeoMatrix        mat       = geo_matrix_mul(&src[i], &g_negZMat);
+    mem_cpy(dynarray_push(&ld->animData, sizeof(GeoMatrix)), mem_var(mat));
+  }
+  return res;
+}
+
 static void gltf_parse_accessors(AssetGltfLoadComp* ld, GltfError* err) {
   const JsonVal accessors = json_field(ld->jDoc, ld->jRoot, string_lit("accessors"));
   if (!gltf_check_val(ld, accessors, JsonType_Array)) {
@@ -1085,19 +1103,6 @@ Cleanup:
   asset_mesh_builder_destroy(builder);
 }
 
-static GeoMatrix gltf_inv_bind_transform(AssetGltfLoadComp* ld, const u32 jointIndex) {
-  const void* rawData = ld->access[ld->accInvBindMats].data_raw;
-  /**
-   * Gltf also uses column-major 4x4 f32 matrices, the only post-processing needed is converting
-   * from a right-handed to a left-handed coordinate system.
-   */
-  static const GeoMatrix g_negateZMatrix = {
-      {{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, -1, 0}, {0, 0, 0, 1}},
-  };
-  const GeoMatrix* org = &((const GeoMatrix*)rawData)[jointIndex];
-  return geo_matrix_mul(org, &g_negateZMatrix);
-}
-
 static void gltf_build_skeleton(AssetGltfLoadComp* ld, AssetMeshSkeletonComp* out, GltfError* err) {
   diag_assert(ld->jointCount);
 
@@ -1182,16 +1187,10 @@ static void gltf_build_skeleton(AssetGltfLoadComp* ld, AssetMeshSkeletonComp* ou
     }
   }
 
-  AssetMeshAnimPtr invBindMats = gltf_anim_data_begin_t(ld, GeoMatrix);
-  for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
-    const GeoMatrix invBindMat = gltf_inv_bind_transform(ld, jointIndex);
-    gltf_anim_data_push_t(ld, invBindMat);
-  }
-
   *out = (AssetMeshSkeletonComp){
       .joints         = resJoints,
       .anims          = resAnims,
-      .invBindMats    = invBindMats,
+      .invBindMats    = gltf_anim_data_push_access_mat(ld, ld->accInvBindMats),
       .jointCount     = ld->jointCount,
       .animCount      = ld->animCount,
       .rootJointIndex = sentinel_check(ld->rootJointIndex) ? 0 : ld->rootJointIndex,
