@@ -23,9 +23,19 @@ static void animation_panel_draw(
   if (anim) {
     UiTable table = ui_table(.spacing = ui_vector(10, 5));
     ui_table_add_column(&table, UiTableColumn_Fixed, 100);
-    ui_table_add_column(&table, UiTableColumn_Fixed, 50);
-    ui_table_add_column(&table, UiTableColumn_Flexible, 0);
+    ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+    ui_table_add_column(&table, UiTableColumn_Fixed, 150);
 
+    ui_table_draw_header(
+        canvas,
+        &table,
+        (const UiTableColumnName[]){
+            {string_lit("Name"), string_lit("Animation name.")},
+            {string_lit("Time"), string_lit("Current playback time.")},
+            {string_lit("Progress"), string_lit("Current playback progress.")},
+        });
+
+    ui_layout_container_push(canvas, UiClip_None);
     for (u32 layerIdx = 0; layerIdx != anim->layerCount; ++layerIdx) {
       SceneAnimLayer* layer = &anim->layers[layerIdx];
       const String    name  = stringtable_lookup(g_stringtable, layer->nameHash);
@@ -38,9 +48,16 @@ static void animation_panel_draw(
 
       ui_label(
           canvas,
-          fmt_write_scratch("{}", fmt_float(layer->time, .minDecDigits = 2, .maxDecDigits = 2)));
+          fmt_write_scratch(
+              "{} / {}",
+              fmt_float(layer->time, .minDecDigits = 2, .maxDecDigits = 2),
+              fmt_float(layer->duration, .minDecDigits = 2, .maxDecDigits = 2)));
+      ui_table_next_column(canvas, &table);
+
+      ui_slider(canvas, &layer->time, .min = 0, .max = layer->duration);
       ui_table_next_column(canvas, &table);
     }
+    ui_layout_container_pop(canvas);
   } else {
     ui_label(canvas, string_lit("No animated entities found"), .align = UiAlign_MiddleCenter);
   }

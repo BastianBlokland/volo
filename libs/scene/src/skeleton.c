@@ -133,7 +133,8 @@ static void scene_skeleton_init_from_template(
 
   SceneAnimLayer* layers = alloc_array_t(g_alloc_heap, SceneAnimLayer, tl->animCount);
   for (u32 i = 0; i != tl->animCount; ++i) {
-    layers[i] = (SceneAnimLayer){.nameHash = tl->anims[i].nameHash};
+    const SceneSkeletonAnim* anim = &tl->anims[i];
+    layers[i] = (SceneAnimLayer){.nameHash = anim->nameHash, .duration = anim->duration};
   }
   ecs_world_add_t(world, entity, SceneAnimationComp, .layers = layers, .layerCount = tl->animCount);
 }
