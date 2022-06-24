@@ -12,6 +12,7 @@
 #define scene_skeleton_max_loads 16
 
 ecs_comp_define_public(SceneSkeletonComp);
+ecs_comp_define_public(SceneAnimationComp);
 
 typedef enum {
   SkeletonTemplateState_Start,
@@ -124,6 +125,7 @@ static void scene_skeleton_init_from_template(
       SceneSkeletonComp,
       .jointCount      = tl->jointCount,
       .jointTransforms = jointTransforms);
+  ecs_world_add_t(world, entity, SceneAnimationComp);
 }
 
 ecs_system_define(SceneSkeletonInitSys) {
@@ -261,6 +263,7 @@ ecs_system_define(SceneSkeletonTemplateLoadSys) {
 ecs_view_define(UpdateView) {
   ecs_access_read(SceneRenderableComp);
   ecs_access_write(SceneSkeletonComp);
+  ecs_access_write(SceneAnimationComp);
 }
 
 static u32 scene_animation_from_frame(const SceneSkeletonChannel* ch, const f32 t) {
@@ -340,24 +343,22 @@ ecs_system_define(SceneSkeletonUpdateSys) {
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
     const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
     SceneSkeletonComp*         sk         = ecs_view_write_t(itr, SceneSkeletonComp);
-
-    if (!sk->jointCount) {
-      continue;
-    }
+    SceneAnimationComp*        anim       = ecs_view_write_t(itr, SceneAnimationComp);
 
     ecs_view_jump(templateItr, renderable->graphic);
     const SceneSkeletonTemplateComp* tl = ecs_view_read_t(templateItr, SceneSkeletonTemplateComp);
 
-    sk->playHead += deltaSeconds;
-    sk->playHead = math_mod_f32(sk->playHead, tl->anims[2].duration);
+    anim->playHead += deltaSeconds;
+    anim->playHead = math_mod_f32(anim->playHead, tl->anims[2].duration);
 
     sk->jointTransforms[tl->jointRootIndex] = geo_matrix_ident();
-    scene_animation_sample(tl, tl->jointRootIndex, sk->playHead, sk->jointTransforms);
+    scene_animation_sample(tl, tl->jointRootIndex, anim->playHead, sk->jointTransforms);
   }
 }
 
 ecs_module_init(scene_skeleton_module) {
   ecs_register_comp(SceneSkeletonComp, .destructor = ecs_destruct_skeleton_comp);
+  ecs_register_comp(SceneAnimationComp);
   ecs_register_comp(
       SceneSkeletonTemplateComp,
       .combinator = ecs_combine_skeleton_template,
