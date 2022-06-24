@@ -25,9 +25,9 @@ typedef struct {
 ecs_comp_extern_public(AssetMeshComp) {
   const AssetMeshVertex* vertexData;
   const AssetMeshSkin*   skinData; // NOTE: null if the mesh has no skinning.
-  usize                  vertexCount;
   const AssetMeshIndex*  indexData;
-  usize                  indexCount;
+  u32                    vertexCount;
+  u32                    indexCount;
   GeoBox                 positionBounds, texcoordBounds;
 };
 
@@ -58,10 +58,10 @@ typedef struct {
 } AssetMeshAnim;
 
 ecs_comp_extern_public(AssetMeshSkeletonComp) {
-  u8                    jointCount;
   const AssetMeshJoint* joints;
-  u32                   rootJointIndex;
   const AssetMeshAnim*  anims;
+  u8                    jointCount;
   u32                   animCount;
+  u32                   rootJointIndex;
   Mem                   animData;
 };

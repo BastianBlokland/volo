@@ -21,7 +21,7 @@ typedef struct {
   AssetMeshVertex* vertexData;
   AssetMeshSkin*   skinData;
   AssetMeshIndex*  indexData;
-  usize            vertexCount, indexCount;
+  u32              vertexCount, indexCount;
 } AssetMeshSnapshot;
 
 static AssetMeshSnapshot asset_mesh_snapshot(const AssetMeshBuilder* builder, Allocator* alloc) {
@@ -50,12 +50,12 @@ static AssetMeshSnapshot asset_mesh_snapshot(const AssetMeshBuilder* builder, Al
       .vertexData  = mem_as_t(vertMem, AssetMeshVertex),
       .skinData    = skinMem.size ? mem_as_t(skinMem, AssetMeshSkin) : null,
       .indexData   = mem_as_t(idxMem, AssetMeshIndex),
-      .vertexCount = builder->vertexData.size,
-      .indexCount  = builder->indexData.size,
+      .vertexCount = (u32)builder->vertexData.size,
+      .indexCount  = (u32)builder->indexData.size,
   };
 }
 
-AssetMeshBuilder* asset_mesh_builder_create(Allocator* alloc, const usize maxVertexCount) {
+AssetMeshBuilder* asset_mesh_builder_create(Allocator* alloc, const u32 maxVertexCount) {
   AssetMeshBuilder* builder = alloc_alloc_t(alloc, AssetMeshBuilder);
 
   *builder = (AssetMeshBuilder){
@@ -158,8 +158,8 @@ AssetMeshComp asset_mesh_create(const AssetMeshBuilder* builder) {
   diag_assert_msg(builder->indexData.size, "Empty mesh is invalid");
   diag_assert(!builder->skinData.size || builder->skinData.size == builder->vertexData.size);
 
-  const usize vertCount = builder->vertexData.size;
-  const usize idxCount  = builder->indexData.size;
+  const u32 vertCount = (u32)builder->vertexData.size;
+  const u32 idxCount  = (u32)builder->indexData.size;
 
   return (AssetMeshComp){
       .vertexData     = dynarray_copy_as_new(&builder->vertexData, g_alloc_heap),
@@ -192,7 +192,7 @@ void asset_mesh_compute_flat_normals(AssetMeshBuilder* builder) {
   asset_mesh_builder_clear(builder);
 
   diag_assert((snapshot.indexCount % 3) == 0); // Input has to be triangles.
-  for (usize i = 0; i != snapshot.indexCount; i += 3) {
+  for (u32 i = 0; i != snapshot.indexCount; i += 3) {
     AssetMeshVertex* vA = &snapshot.vertexData[snapshot.indexData[i + 0]];
     AssetMeshVertex* vB = &snapshot.vertexData[snapshot.indexData[i + 1]];
     AssetMeshVertex* vC = &snapshot.vertexData[snapshot.indexData[i + 2]];

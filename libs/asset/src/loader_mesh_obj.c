@@ -372,7 +372,7 @@ static void obj_triangulate(const ObjData* data, AssetMeshBuilder* builder) {
         .texcoord = obj_get_texcoord(data, inA),
     };
 
-    for (usize i = 2; i < face->vertexCount; ++i) {
+    for (u32 i = 2; i < face->vertexCount; ++i) {
       const ObjVertex*      inB   = &vertices[face->vertexIndex + i - 1];
       const AssetMeshVertex vertB = {
           .position = positions[inB->positionIndex],
@@ -426,7 +426,7 @@ void asset_load_obj(EcsWorld* world, const String id, const EcsEntityId entity, 
     goto Done;
   }
 
-  const usize numVerts = (usize)data.totalTris * 3;
+  const u32 numVerts = data.totalTris * 3;
   if (numVerts > asset_mesh_indices_max) {
     obj_load_fail(world, entity, ObjError_TooManyVertices);
     goto Done;
