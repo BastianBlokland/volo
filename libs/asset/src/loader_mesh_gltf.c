@@ -163,22 +163,6 @@ static void ecs_destruct_gltf_load_comp(void* data) {
   dynarray_destroy(&comp->animData);
 }
 
-u32 gltf_component_size(const GltfType type) {
-  switch (type) {
-  case GltfType_i8:
-  case GltfType_u8:
-    return 1;
-  case GltfType_i16:
-  case GltfType_u16:
-    return 2;
-  case GltfType_u32:
-  case GltfType_f32:
-    return 4;
-  default:
-    UNREACHABLE;
-  }
-}
-
 typedef enum {
   GltfError_None = 0,
   GltfError_InvalidJson,
@@ -262,6 +246,22 @@ static void gltf_load_fail_msg(
 
 static void gltf_load_fail(EcsWorld* world, const EcsEntityId entity, const GltfError err) {
   gltf_load_fail_msg(world, entity, err, gltf_error_str(err));
+}
+
+INLINE_HINT u32 gltf_comp_size(const GltfType type) {
+  switch (type) {
+  case GltfType_i8:
+  case GltfType_u8:
+    return 1;
+  case GltfType_i16:
+  case GltfType_u16:
+    return 2;
+  case GltfType_u32:
+  case GltfType_f32:
+    return 4;
+  default:
+    UNREACHABLE;
+  }
 }
 
 static bool gltf_check_val(AssetGltfLoadComp* ld, const JsonVal jVal, const JsonType type) {
@@ -543,7 +543,7 @@ gltf_anim_data_push(AssetGltfLoadComp* ld, const Mem data, const u32 align) {
 }
 
 static AssetMeshAnimPtr gltf_anim_data_push_access(AssetGltfLoadComp* ld, const u32 acc) {
-  const u32 elemSize = gltf_component_size(ld->access[acc].compType) * ld->access[acc].compCount;
+  const u32 elemSize         = gltf_comp_size(ld->access[acc].compType) * ld->access[acc].compCount;
   const AssetMeshAnimPtr res = gltf_anim_data_begin(ld, bits_nextpow2(elemSize));
   const Mem accessorMem = mem_create(ld->access[acc].data_raw, elemSize * ld->access[acc].count);
   mem_cpy(dynarray_push(&ld->animData, accessorMem.size), accessorMem);
@@ -624,9 +624,8 @@ static void gltf_parse_accessors(AssetGltfLoadComp* ld, GltfError* err) {
     if (*err) {
       goto Error;
     }
-    const u32    compSize = gltf_component_size(out->compType);
     const String viewData = ld->views[viewIndex].data;
-    if (byteOffset + compSize * out->compCount * out->count > viewData.size) {
+    if (byteOffset + gltf_comp_size(out->compType) * out->compCount * out->count > viewData.size) {
       goto Error;
     }
     out->data_raw = mem_at_u8(viewData, byteOffset);
