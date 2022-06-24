@@ -22,6 +22,7 @@
   X(0xE5D1, FullscreenExit)                                                                        \
   X(0xE5D6, UnfoldLess)                                                                            \
   X(0xE5D7, UnfoldMore)                                                                            \
+  X(0xE71C, Animation)                                                                             \
   X(0xE80E, Whatshot)                                                                              \
   X(0xE87B, Extension)                                                                             \
   X(0xE89E, OpenInNew)                                                                             \

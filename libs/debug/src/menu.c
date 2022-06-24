@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "debug_animation.h"
 #include "debug_asset.h"
 #include "debug_camera.h"
 #include "debug_ecs.h"
@@ -18,6 +19,7 @@
 
 static const String g_tooltipStatsEnable     = string_static("Enable the \a.bStatistics\ar interface.");
 static const String g_tooltipStatsDisable    = string_static("Disable the \a.bStatistics\ar interface.");
+static const String g_tooltipPanelAnimation  = string_static("Open the \a.bAnimation Debug\ar panel.");
 static const String g_tooltipPanelAsset      = string_static("Open the \a.bAsset Debug\ar panel.");
 static const String g_tooltipPanelPhysics    = string_static("Open the \a.bPhysics Debug\ar panel.");
 static const String g_tooltipPanelEcs        = string_static("Open the \a.bEcs Debug\ar panel.");
@@ -35,7 +37,14 @@ static const String g_tooltipWindowClose     = string_static("Close the current 
 ecs_comp_define(DebugMenuComp) {
   EcsEntityId window;
   GapVector   lastWindowedSize;
-  EcsEntityId panelAsset, panelPhysics, panelEcs, panelCamera, panelGrid, panelRend, panelInterface;
+  EcsEntityId panelAnimation;
+  EcsEntityId panelAsset;
+  EcsEntityId panelPhysics;
+  EcsEntityId panelEcs;
+  EcsEntityId panelCamera;
+  EcsEntityId panelGrid;
+  EcsEntityId panelRend;
+  EcsEntityId panelInterface;
 };
 
 ecs_view_define(GlobalView) { ecs_access_write(InputManagerComp); }
@@ -83,6 +92,16 @@ static void debug_action_bar_draw(
           .fontSize = 30,
           .tooltip  = statsEnabled ? g_tooltipStatsDisable : g_tooltipStatsEnable)) {
     debug_stats_show_set(stats, !statsEnabled);
+  }
+
+  ui_table_next_row(canvas, &table);
+  if (ui_button(
+          canvas,
+          .flags    = debug_panel_is_open(world, menu->panelAnimation) ? UiWidget_Disabled : 0,
+          .label    = ui_shape_scratch(UiShape_Animation),
+          .fontSize = 30,
+          .tooltip  = g_tooltipPanelAnimation)) {
+    debug_panel_open(world, &menu->panelAnimation, winEntity, debug_animation_panel_open);
   }
 
   ui_table_next_row(canvas, &table);
