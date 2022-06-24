@@ -247,15 +247,27 @@ INLINE_HINT u32 gltf_comp_size(const GltfType type) {
   }
 }
 
-static bool gltf_json_check(GltfLoad* ld, const JsonVal j, const JsonType type) {
-  return !sentinel_check(j) && json_type(ld->jDoc, j) == type;
+INLINE_HINT static bool gltf_json_check(GltfLoad* ld, const JsonVal v, const JsonType type) {
+  return LIKELY(!sentinel_check(v) && json_type(ld->jDoc, v) == type);
 }
 
-static bool gltf_json_field_u32(GltfLoad* ld, const JsonVal jVal, const String name, u32* out) {
-  if (json_type(ld->jDoc, jVal) != JsonType_Object) {
+static bool gltf_json_elem_f32(GltfLoad* ld, const JsonVal v, const u32 index, f32* out) {
+  if (!gltf_json_check(ld, v, JsonType_Array)) {
     return false;
   }
-  const JsonVal jField = json_field(ld->jDoc, jVal, name);
+  const JsonVal elem = json_elem(ld->jDoc, v, index);
+  if (!gltf_json_check(ld, elem, JsonType_Number)) {
+    return false;
+  }
+  *out = (f32)json_number(ld->jDoc, elem);
+  return true;
+}
+
+static bool gltf_json_field_u32(GltfLoad* ld, const JsonVal v, const String name, u32* out) {
+  if (!gltf_json_check(ld, v, JsonType_Object)) {
+    return false;
+  }
+  const JsonVal jField = json_field(ld->jDoc, v, name);
   if (!gltf_json_check(ld, jField, JsonType_Number)) {
     return false;
   }
@@ -263,16 +275,40 @@ static bool gltf_json_field_u32(GltfLoad* ld, const JsonVal jVal, const String n
   return true;
 }
 
-static bool gltf_json_field_str(GltfLoad* ld, const JsonVal jVal, const String name, String* out) {
-  if (json_type(ld->jDoc, jVal) != JsonType_Object) {
+static bool gltf_json_field_str(GltfLoad* ld, const JsonVal v, const String name, String* out) {
+  if (!gltf_json_check(ld, v, JsonType_Object)) {
     return false;
   }
-  const JsonVal jField = json_field(ld->jDoc, jVal, name);
+  const JsonVal jField = json_field(ld->jDoc, v, name);
   if (!gltf_json_check(ld, jField, JsonType_String)) {
     return false;
   }
   *out = json_string(ld->jDoc, jField);
   return true;
+}
+
+static bool gltf_json_field_vec3(GltfLoad* ld, const JsonVal v, const String name, GeoVector* out) {
+  if (UNLIKELY(json_type(ld->jDoc, v) != JsonType_Object)) {
+    return false;
+  }
+  const JsonVal jField  = json_field(ld->jDoc, v, name);
+  bool          success = true;
+  for (u32 i = 0; i != 3; ++i) {
+    success &= gltf_json_elem_f32(ld, jField, i, &out->comps[i]);
+  }
+  return success;
+}
+
+static bool gltf_json_field_vec4(GltfLoad* ld, const JsonVal v, const String name, GeoVector* out) {
+  if (UNLIKELY(json_type(ld->jDoc, v) != JsonType_Object)) {
+    return false;
+  }
+  const JsonVal jField  = json_field(ld->jDoc, v, name);
+  bool          success = true;
+  for (u32 i = 0; i != 4; ++i) {
+    success &= gltf_json_elem_f32(ld, jField, i, &out->comps[i]);
+  }
+  return success;
 }
 
 static u32 gltf_joint_index(GltfLoad* ld, const u32 nodeIndex) {
@@ -290,27 +326,6 @@ static StringHash gltf_parse_name(GltfLoad* ld, const JsonVal obj) {
     return stringtable_add(g_stringtable, json_string(ld->jDoc, nameVal));
   }
   return stringtable_add(g_stringtable, string_empty);
-}
-
-static void gltf_parse_f32_elem(GltfLoad* ld, const JsonVal val, const u32 i, f32* out) {
-  if (gltf_json_check(ld, val, JsonType_Array)) {
-    const JsonVal elem = json_elem(ld->jDoc, val, i);
-    if (gltf_json_check(ld, elem, JsonType_Number)) {
-      *out = (f32)json_number(ld->jDoc, elem);
-    }
-  }
-}
-
-static void gltf_parse_vec3(GltfLoad* ld, const JsonVal val, GeoVector* out) {
-  for (u32 i = 0; i != 3; ++i) {
-    gltf_parse_f32_elem(ld, val, i, &out->comps[i]);
-  }
-}
-
-static void gltf_parse_vec4(GltfLoad* ld, const JsonVal val, GeoVector* out) {
-  for (u32 i = 0; i != 4; ++i) {
-    gltf_parse_f32_elem(ld, val, i, &out->comps[i]);
-  }
 }
 
 static String gltf_buffer_asset_id(GltfLoad* ld, const String uri) {
@@ -706,13 +721,13 @@ static void gltf_parse_skeleton_nodes(GltfLoad* ld, GltfError* err) {
     out->nameHash  = gltf_parse_name(ld, node);
 
     out->trans = geo_vector(0);
-    gltf_parse_vec3(ld, json_field(ld->jDoc, node, string_lit("translation")), &out->trans);
+    gltf_json_field_vec3(ld, node, string_lit("translation"), &out->trans);
 
     out->rot = geo_vector(0, 0, 0, 1);
-    gltf_parse_vec4(ld, json_field(ld->jDoc, node, string_lit("rotation")), &out->rot);
+    gltf_json_field_vec4(ld, node, string_lit("rotation"), &out->rot);
 
     out->scale = geo_vector(1, 1, 1);
-    gltf_parse_vec3(ld, json_field(ld->jDoc, node, string_lit("scale")), &out->trans);
+    gltf_json_field_vec3(ld, node, string_lit("scale"), &out->trans);
 
     const JsonVal children = json_field(ld->jDoc, node, string_lit("children"));
     if (gltf_json_check(ld, children, JsonType_Array)) {
