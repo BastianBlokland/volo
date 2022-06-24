@@ -542,24 +542,15 @@ static AssetMeshAnimPtr gltf_anim_data_push_access(AssetGltfLoadComp* ld, const 
 
 static AssetMeshAnimPtr gltf_anim_data_push_access_vec(AssetGltfLoadComp* ld, const u32 acc) {
   diag_assert(ld->access[acc].compType == GltfType_f32);
-  const f32* src = ld->access[acc].data_raw;
+  const f32* src            = ld->access[acc].data_raw;
+  const u32  compCount      = ld->access[acc].compCount;
+  const u32  totalCompCount = compCount * ld->access[acc].count;
 
   const AssetMeshAnimPtr res = gltf_anim_data_begin_t(ld, GeoVector);
-  switch (ld->access[acc].compCount) {
-  case 4:
-    for (u32 i = 0; i != ld->access[acc].count * 4; i += 4) {
-      const GeoVector v = geo_vector(src[i + 0], src[i + 1], src[i + 2], src[i + 3]);
-      gltf_anim_data_push_t(ld, v);
-    }
-    break;
-  case 3:
-    for (u32 i = 0; i != ld->access[acc].count * 3; i += 3) {
-      const GeoVector v = geo_vector(src[i + 0], src[i + 1], src[i + 2]);
-      gltf_anim_data_push_t(ld, v);
-    }
-    break;
-  default:
-    diag_crash();
+  for (u32 i = 0; i != totalCompCount; i += compCount) {
+    mem_cpy(
+        dynarray_push(&ld->animData, sizeof(f32) * 4),
+        mem_create(&src[i], sizeof(f32) * compCount));
   }
   return res;
 }
