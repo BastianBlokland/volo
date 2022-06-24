@@ -133,8 +133,11 @@ static void scene_skeleton_init_from_template(
 
   SceneAnimLayer* layers = alloc_array_t(g_alloc_heap, SceneAnimLayer, tl->animCount);
   for (u32 i = 0; i != tl->animCount; ++i) {
-    const SceneSkeletonAnim* anim = &tl->anims[i];
-    layers[i] = (SceneAnimLayer){.nameHash = anim->nameHash, .duration = anim->duration};
+    layers[i] = (SceneAnimLayer){
+        .nameHash = tl->anims[i].nameHash,
+        .duration = tl->anims[i].duration,
+        .speed    = 1.0f,
+    };
   }
   ecs_world_add_t(world, entity, SceneAnimationComp, .layers = layers, .layerCount = tl->animCount);
 }
@@ -362,7 +365,7 @@ ecs_system_define(SceneSkeletonUpdateSys) {
     for (u32 i = 0; i != anim->layerCount; ++i) {
       SceneAnimLayer* layer = &anim->layers[i];
 
-      layer->time += deltaSeconds;
+      layer->time += deltaSeconds * layer->speed;
       layer->time = math_mod_f32(layer->time, tl->anims[i].duration);
     }
 

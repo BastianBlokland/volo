@@ -18,6 +18,7 @@ ecs_comp_extern_public(SceneSkeletonComp) {
 typedef struct {
   f32        time;
   f32        duration;
+  f32        speed;
   StringHash nameHash;
 } SceneAnimLayer;
 

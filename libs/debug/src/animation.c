@@ -25,6 +25,7 @@ static void animation_panel_draw(
     ui_table_add_column(&table, UiTableColumn_Fixed, 100);
     ui_table_add_column(&table, UiTableColumn_Fixed, 100);
     ui_table_add_column(&table, UiTableColumn_Fixed, 150);
+    ui_table_add_column(&table, UiTableColumn_Fixed, 150);
 
     ui_table_draw_header(
         canvas,
@@ -33,6 +34,7 @@ static void animation_panel_draw(
             {string_lit("Name"), string_lit("Animation name.")},
             {string_lit("Time"), string_lit("Current playback time.")},
             {string_lit("Progress"), string_lit("Current playback progress.")},
+            {string_lit("Speed"), string_lit("Current playback speed.")},
         });
 
     ui_layout_container_push(canvas, UiClip_None);
@@ -55,6 +57,9 @@ static void animation_panel_draw(
       ui_table_next_column(canvas, &table);
 
       ui_slider(canvas, &layer->time, .min = 0, .max = layer->duration);
+      ui_table_next_column(canvas, &table);
+
+      ui_slider(canvas, &layer->speed, .min = 0, .max = 5);
       ui_table_next_column(canvas, &table);
     }
     ui_layout_container_pop(canvas);
@@ -109,6 +114,6 @@ ecs_module_init(debug_animation_module) {
 EcsEntityId debug_animation_panel_open(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
   ecs_world_add_t(
-      world, panelEntity, DebugAnimationPanelComp, .panel = ui_panel(ui_vector(450, 300)));
+      world, panelEntity, DebugAnimationPanelComp, .panel = ui_panel(ui_vector(700, 200)));
   return panelEntity;
 }
