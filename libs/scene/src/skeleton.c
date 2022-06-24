@@ -37,31 +37,29 @@ typedef struct {
 ecs_comp_define(SceneSkeletonTemplateComp) {
   SkeletonTemplateState state;
   EcsEntityId           mesh;
-  u32                   jointCount;
   SceneSkeletonJoint*   joints;
-  u32                   jointRootIndex;
   SceneSkeletonAnim*    anims;
+  u32                   jointCount;
   u32                   animCount;
+  u32                   jointRootIndex;
   Mem                   animData;
 };
 
 ecs_comp_define(SceneSkeletonTemplateLoadedComp);
 
 static void ecs_destruct_skeleton_comp(void* data) {
-  SceneSkeletonComp* comp = data;
-  if (comp->jointCount) {
-    alloc_free_array_t(g_alloc_heap, comp->jointTransforms, comp->jointCount);
+  SceneSkeletonComp* sk = data;
+  if (sk->jointCount) {
+    alloc_free_array_t(g_alloc_heap, sk->jointTransforms, sk->jointCount);
   }
 }
 
 static void ecs_combine_skeleton_template(void* dataA, void* dataB) {
-  SceneSkeletonTemplateComp* tmplA = dataA;
-  SceneSkeletonTemplateComp* tmplB = dataB;
+  MAYBE_UNUSED SceneSkeletonTemplateComp* tlA = dataA;
+  MAYBE_UNUSED SceneSkeletonTemplateComp* tlB = dataB;
 
-  (void)tmplA;
-  (void)tmplB;
   diag_assert_msg(
-      tmplA->state == SkeletonTemplateState_Start && tmplB->state == SkeletonTemplateState_Start,
+      tlA->state == SkeletonTemplateState_Start && tlB->state == SkeletonTemplateState_Start,
       "Skeleton templates can only be combined in the starting phase");
 }
 
@@ -69,9 +67,11 @@ static void ecs_destruct_skeleton_template_comp(void* data) {
   SceneSkeletonTemplateComp* comp = data;
   if (comp->jointCount) {
     alloc_free_array_t(g_alloc_heap, comp->joints, comp->jointCount);
-    if (comp->animCount) {
-      alloc_free_array_t(g_alloc_heap, comp->anims, comp->animCount);
-    }
+  }
+  if (comp->animCount) {
+    alloc_free_array_t(g_alloc_heap, comp->anims, comp->animCount);
+  }
+  if (comp->animData.size) {
     alloc_free(g_alloc_heap, comp->animData);
   }
 }
@@ -101,22 +101,22 @@ static void scene_skeleton_init_empty(EcsWorld* world, const EcsEntityId entity)
 }
 
 static void scene_skeleton_init_from_template(
-    EcsWorld* world, const EcsEntityId entity, const SceneSkeletonTemplateComp* template) {
+    EcsWorld* world, const EcsEntityId entity, const SceneSkeletonTemplateComp* tl) {
 
-  if (!template->jointCount) {
+  if (!tl->jointCount) {
     scene_skeleton_init_empty(world, entity);
     return;
   }
 
-  GeoMatrix* jointTransforms = alloc_array_t(g_alloc_heap, GeoMatrix, template->jointCount);
-  for (u32 i = 0; i != template->jointCount; ++i) {
-    jointTransforms[i] = geo_matrix_inverse(&template->joints[i].invBindTransform);
+  GeoMatrix* jointTransforms = alloc_array_t(g_alloc_heap, GeoMatrix, tl->jointCount);
+  for (u32 i = 0; i != tl->jointCount; ++i) {
+    jointTransforms[i] = geo_matrix_inverse(&tl->joints[i].invBindTransform);
   }
   ecs_world_add_t(
       world,
       entity,
       SceneSkeletonComp,
-      .jointCount      = template->jointCount,
+      .jointCount      = tl->jointCount,
       .jointTransforms = jointTransforms);
 }
 
@@ -136,10 +136,9 @@ ecs_system_define(SceneSkeletonInitSys) {
     }
 
     if (ecs_view_maybe_jump(templateItr, graphic)) {
-      const SceneSkeletonTemplateComp* template =
-          ecs_view_read_t(templateItr, SceneSkeletonTemplateComp);
-      if (template->state == SkeletonTemplateState_Finished) {
-        scene_skeleton_init_from_template(world, entity, template);
+      const SceneSkeletonTemplateComp* tl = ecs_view_read_t(templateItr, SceneSkeletonTemplateComp);
+      if (tl->state == SkeletonTemplateState_Finished) {
+        scene_skeleton_init_from_template(world, entity, tl);
       }
       continue;
     }
@@ -157,34 +156,34 @@ static bool scene_asset_is_loaded(EcsWorld* world, const EcsEntityId asset) {
 }
 
 static void
-scene_asset_template_init(SceneSkeletonTemplateComp* template, const AssetMeshSkeletonComp* asset) {
-  template->jointRootIndex = asset->rootJointIndex;
-  template->animData       = alloc_dup(g_alloc_heap, asset->animData, 1);
+scene_asset_template_init(SceneSkeletonTemplateComp* tl, const AssetMeshSkeletonComp* asset) {
+  tl->jointRootIndex = asset->rootJointIndex;
+  tl->animData       = alloc_dup(g_alloc_heap, asset->animData, 1);
 
-  template->joints     = alloc_array_t(g_alloc_heap, SceneSkeletonJoint, asset->jointCount);
-  template->jointCount = asset->jointCount;
+  tl->joints     = alloc_array_t(g_alloc_heap, SceneSkeletonJoint, asset->jointCount);
+  tl->jointCount = asset->jointCount;
   for (u32 jointIndex = 0; jointIndex != asset->jointCount; ++jointIndex) {
-    template->joints[jointIndex] = (SceneSkeletonJoint){
+    tl->joints[jointIndex] = (SceneSkeletonJoint){
         .invBindTransform = asset->joints[jointIndex].invBindTransform,
-        .childIndices = (u32*)mem_at_u8(template->animData, asset->joints[jointIndex].childData),
-        .childCount   = asset->joints[jointIndex].childCount,
-        .nameHash     = asset->joints[jointIndex].nameHash,
+        .childIndices     = (u32*)mem_at_u8(tl->animData, asset->joints[jointIndex].childData),
+        .childCount       = asset->joints[jointIndex].childCount,
+        .nameHash         = asset->joints[jointIndex].nameHash,
     };
   }
 
-  template->anims     = alloc_array_t(g_alloc_heap, SceneSkeletonAnim, asset->animCount);
-  template->animCount = asset->animCount;
+  tl->anims     = alloc_array_t(g_alloc_heap, SceneSkeletonAnim, asset->animCount);
+  tl->animCount = asset->animCount;
   for (u32 animIndex = 0; animIndex != asset->animCount; ++animIndex) {
-    const AssetMeshAnim* assetAnim      = &asset->anims[animIndex];
-    template->anims[animIndex].nameHash = assetAnim->nameHash;
+    const AssetMeshAnim* assetAnim = &asset->anims[animIndex];
+    tl->anims[animIndex].nameHash  = assetAnim->nameHash;
     for (u32 jointIndex = 0; jointIndex != asset->jointCount; ++jointIndex) {
       for (AssetMeshAnimTarget target = 0; target != AssetMeshAnimTarget_Count; ++target) {
         const AssetMeshAnimChannel* assetChannel = &assetAnim->joints[jointIndex][target];
 
-        template->anims[animIndex].joints[jointIndex][target] = (SceneSkeletonChannel){
+        tl->anims[animIndex].joints[jointIndex][target] = (SceneSkeletonChannel){
             .frameCount = assetChannel->frameCount,
-            .times      = (const f32*)mem_at_u8(template->animData, assetChannel->timeData),
-            .values     = (const f32*)mem_at_u8(template->animData, assetChannel->valueData),
+            .times      = (const f32*)mem_at_u8(tl->animData, assetChannel->timeData),
+            .values     = (const f32*)mem_at_u8(tl->animData, assetChannel->valueData),
         };
       }
     }
@@ -192,14 +191,14 @@ scene_asset_template_init(SceneSkeletonTemplateComp* template, const AssetMeshSk
 }
 
 static void scene_skeleton_template_load_done(EcsWorld* world, EcsIterator* itr) {
-  const EcsEntityId entity            = ecs_view_entity(itr);
-  SceneSkeletonTemplateComp* template = ecs_view_write_t(itr, SceneSkeletonTemplateComp);
+  const EcsEntityId          entity = ecs_view_entity(itr);
+  SceneSkeletonTemplateComp* tl     = ecs_view_write_t(itr, SceneSkeletonTemplateComp);
 
   asset_release(world, entity);
-  if (template->mesh) {
-    asset_release(world, template->mesh);
+  if (tl->mesh) {
+    asset_release(world, tl->mesh);
   }
-  template->state = SkeletonTemplateState_Finished;
+  tl->state = SkeletonTemplateState_Finished;
   ecs_world_add_empty_t(world, entity, SceneSkeletonTemplateLoadedComp);
 }
 
@@ -208,13 +207,13 @@ ecs_system_define(SceneSkeletonTemplateLoadSys) {
   EcsIterator* meshItr  = ecs_view_itr(ecs_world_view_t(world, MeshView));
 
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
-    const EcsEntityId entity            = ecs_view_entity(itr);
-    SceneSkeletonTemplateComp* template = ecs_view_write_t(itr, SceneSkeletonTemplateComp);
-    const AssetGraphicComp* graphic     = ecs_view_read_t(itr, AssetGraphicComp);
-    switch (template->state) {
+    const EcsEntityId          entity  = ecs_view_entity(itr);
+    SceneSkeletonTemplateComp* tl      = ecs_view_write_t(itr, SceneSkeletonTemplateComp);
+    const AssetGraphicComp*    graphic = ecs_view_read_t(itr, AssetGraphicComp);
+    switch (tl->state) {
     case SkeletonTemplateState_Start: {
       asset_acquire(world, entity);
-      ++template->state;
+      ++tl->state;
       // Fallthrough.
     }
     case SkeletonTemplateState_LoadGraphic: {
@@ -229,17 +228,17 @@ ecs_system_define(SceneSkeletonTemplateLoadSys) {
         scene_skeleton_template_load_done(world, itr);
         break; // Graphic did not have a mesh.
       }
-      template->mesh = graphic->mesh;
+      tl->mesh = graphic->mesh;
       asset_acquire(world, graphic->mesh);
-      ++template->state;
+      ++tl->state;
       // Fallthrough.
     }
     case SkeletonTemplateState_LoadMesh: {
-      if (!scene_asset_is_loaded(world, template->mesh)) {
+      if (!scene_asset_is_loaded(world, tl->mesh)) {
         break; // Mesh has not loaded yet; wait.
       }
-      if (ecs_view_maybe_jump(meshItr, template->mesh)) {
-        scene_asset_template_init(template, ecs_view_read_t(meshItr, AssetMeshSkeletonComp));
+      if (ecs_view_maybe_jump(meshItr, tl->mesh)) {
+        scene_asset_template_init(tl, ecs_view_read_t(meshItr, AssetMeshSkeletonComp));
       }
       scene_skeleton_template_load_done(world, itr);
       break;
@@ -255,101 +254,96 @@ ecs_view_define(UpdateView) {
   ecs_access_write(SceneSkeletonComp);
 }
 
-static u32 scene_animation_from_frame(const SceneSkeletonChannel* channel, const f32 t) {
-  for (u32 i = 1; i != channel->frameCount; ++i) {
-    if (channel->times[i] > t) {
+static u32 scene_animation_from_frame(const SceneSkeletonChannel* ch, const f32 t) {
+  for (u32 i = 1; i != ch->frameCount; ++i) {
+    if (ch->times[i] > t) {
       return i - 1;
     }
   }
   return 0;
 }
 
-static u32 scene_animation_to_frame(const SceneSkeletonChannel* channel, const f32 t) {
-  for (u32 i = 0; i != channel->frameCount; ++i) {
-    if (channel->times[i] > t) {
+static u32 scene_animation_to_frame(const SceneSkeletonChannel* ch, const f32 t) {
+  for (u32 i = 0; i != ch->frameCount; ++i) {
+    if (ch->times[i] > t) {
       return i;
     }
   }
-  return channel->frameCount - 1;
+  return ch->frameCount - 1;
 }
 
-static GeoVector scene_animation_sample_vec3(const SceneSkeletonChannel* channel, const u32 frame) {
+static GeoVector scene_animation_sample_vec3(const SceneSkeletonChannel* ch, const u32 frame) {
   return (GeoVector){
-      channel->values[frame * 3 + 0],
-      channel->values[frame * 3 + 1],
-      channel->values[frame * 3 + 2],
+      ch->values[frame * 3 + 0],
+      ch->values[frame * 3 + 1],
+      ch->values[frame * 3 + 2],
   };
 }
 
-static GeoQuat scene_animation_sample_quat(const SceneSkeletonChannel* channel, const u32 frame) {
+static GeoQuat scene_animation_sample_quat(const SceneSkeletonChannel* ch, const u32 frame) {
   return (GeoQuat){
-      channel->values[frame * 4 + 0],
-      channel->values[frame * 4 + 1],
-      channel->values[frame * 4 + 2],
-      channel->values[frame * 4 + 3],
+      ch->values[frame * 4 + 0],
+      ch->values[frame * 4 + 1],
+      ch->values[frame * 4 + 2],
+      ch->values[frame * 4 + 3],
   };
 }
 
-static GeoVector
-scene_animation_sample_translation(const SceneSkeletonChannel* channel, const f32 t) {
-  const u32 fromFrame = scene_animation_from_frame(channel, t);
-  const u32 toFrame   = scene_animation_to_frame(channel, t);
-  const f32 fromT     = channel->times[fromFrame];
-  const f32 toT       = channel->times[toFrame];
+static GeoVector scene_animation_sample_translation(const SceneSkeletonChannel* ch, const f32 t) {
+  const u32 fromFrame = scene_animation_from_frame(ch, t);
+  const u32 toFrame   = scene_animation_to_frame(ch, t);
+  const f32 fromT     = ch->times[fromFrame];
+  const f32 toT       = ch->times[toFrame];
   const f32 frac      = math_unlerp(fromT, toT, t);
 
   return geo_vector_lerp(
-      scene_animation_sample_vec3(channel, fromFrame),
-      scene_animation_sample_vec3(channel, toFrame),
-      frac);
+      scene_animation_sample_vec3(ch, fromFrame), scene_animation_sample_vec3(ch, toFrame), frac);
 }
 
-static GeoQuat scene_animation_sample_rotation(const SceneSkeletonChannel* channel, const f32 t) {
-  const u32 fromFrame = scene_animation_from_frame(channel, t);
-  const u32 toFrame   = scene_animation_to_frame(channel, t);
-  const f32 fromT     = channel->times[fromFrame];
-  const f32 toT       = channel->times[toFrame];
+static GeoQuat scene_animation_sample_rotation(const SceneSkeletonChannel* ch, const f32 t) {
+  const u32 fromFrame = scene_animation_from_frame(ch, t);
+  const u32 toFrame   = scene_animation_to_frame(ch, t);
+  const f32 fromT     = ch->times[fromFrame];
+  const f32 toT       = ch->times[toFrame];
   const f32 frac      = math_unlerp(fromT, toT, t);
 
   return geo_quat_slerp(
-      scene_animation_sample_quat(channel, fromFrame),
-      scene_animation_sample_quat(channel, toFrame),
-      frac);
+      scene_animation_sample_quat(ch, fromFrame), scene_animation_sample_quat(ch, toFrame), frac);
 }
 
 static void scene_animation_sample(
-    const SceneSkeletonTemplateComp* template, const u32 joint, const f32 t, GeoMatrix* out) {
-  const SceneSkeletonAnim* anim = &template->anims[2];
+    const SceneSkeletonTemplateComp* tl, const u32 joint, const f32 t, GeoMatrix* out) {
+  const SceneSkeletonAnim* anim = &tl->anims[2];
 
-  const SceneSkeletonChannel* channelT = &anim->joints[joint][AssetMeshAnimTarget_Translation];
-  const SceneSkeletonChannel* channelR = &anim->joints[joint][AssetMeshAnimTarget_Rotation];
-  const SceneSkeletonChannel* channelS = &anim->joints[joint][AssetMeshAnimTarget_Scale];
+  const SceneSkeletonChannel* chT = &anim->joints[joint][AssetMeshAnimTarget_Translation];
+  const SceneSkeletonChannel* chR = &anim->joints[joint][AssetMeshAnimTarget_Rotation];
+  const SceneSkeletonChannel* chS = &anim->joints[joint][AssetMeshAnimTarget_Scale];
 
   {
 
-    const GeoVector v   = scene_animation_sample_translation(channelT, t);
+    const GeoVector v   = scene_animation_sample_translation(chT, t);
     const GeoMatrix mat = geo_matrix_translate(v);
     out[joint]          = geo_matrix_mul(&out[joint], &mat);
   }
   {
-    GeoQuat   q   = scene_animation_sample_rotation(channelR, t);
+    GeoQuat   q   = scene_animation_sample_rotation(chR, t);
     GeoMatrix mat = geo_matrix_from_quat(q);
 
     out[joint] = geo_matrix_mul(&out[joint], &mat);
   }
   {
-    const f32 scaleX = channelS->values[0];
-    const f32 scaleY = channelS->values[1];
-    const f32 scaleZ = channelS->values[2];
+    const f32 scaleX = chS->values[0];
+    const f32 scaleY = chS->values[1];
+    const f32 scaleZ = chS->values[2];
 
     const GeoMatrix mat = geo_matrix_scale(geo_vector(scaleX, scaleY, scaleZ));
     out[joint]          = geo_matrix_mul(&out[joint], &mat);
   }
 
-  for (u32 childNum = 0; childNum != template->joints[joint].childCount; ++childNum) {
-    const u32 childIndex = template->joints[joint].childIndices[childNum];
+  for (u32 childNum = 0; childNum != tl->joints[joint].childCount; ++childNum) {
+    const u32 childIndex = tl->joints[joint].childIndices[childNum];
     out[childIndex]      = out[joint];
-    scene_animation_sample(template, childIndex, t, out);
+    scene_animation_sample(tl, childIndex, t, out);
   }
 }
 
@@ -367,29 +361,27 @@ ecs_system_define(SceneSkeletonUpdateSys) {
 
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
     const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
-    SceneSkeletonComp*         skeleton   = ecs_view_write_t(itr, SceneSkeletonComp);
+    SceneSkeletonComp*         sk         = ecs_view_write_t(itr, SceneSkeletonComp);
 
-    if (!skeleton->jointCount) {
+    if (!sk->jointCount) {
       continue;
     }
 
-    skeleton->playHead += deltaSeconds;
-    skeleton->playHead = math_mod_f32(skeleton->playHead, 1.15f);
+    sk->playHead += deltaSeconds;
+    sk->playHead = math_mod_f32(sk->playHead, 1.15f);
 
     ecs_view_jump(templateItr, renderable->graphic);
-    const SceneSkeletonTemplateComp* template =
-        ecs_view_read_t(templateItr, SceneSkeletonTemplateComp);
+    const SceneSkeletonTemplateComp* tl = ecs_view_read_t(templateItr, SceneSkeletonTemplateComp);
 
-    skeleton->jointTransforms[template->jointRootIndex] = geo_matrix_ident();
+    sk->jointTransforms[tl->jointRootIndex] = geo_matrix_ident();
 
     static const GeoMatrix g_negateZMatrix = {
         {{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, -1, 0}, {0, 0, 0, 1}},
     };
-    skeleton->jointTransforms[template->jointRootIndex] =
-        geo_matrix_mul(&skeleton->jointTransforms[template->jointRootIndex], &g_negateZMatrix);
+    sk->jointTransforms[tl->jointRootIndex] =
+        geo_matrix_mul(&sk->jointTransforms[tl->jointRootIndex], &g_negateZMatrix);
 
-    scene_animation_sample(
-        template, template->jointRootIndex, skeleton->playHead, skeleton->jointTransforms);
+    scene_animation_sample(tl, tl->jointRootIndex, sk->playHead, sk->jointTransforms);
   }
 }
 
@@ -421,20 +413,18 @@ ecs_module_init(scene_skeleton_module) {
       ecs_view_id(SkeletonTemplateView));
 }
 
-u32 scene_skeleton_root_index(const SceneSkeletonTemplateComp* templ) {
-  return templ->jointRootIndex;
-}
+u32 scene_skeleton_root_index(const SceneSkeletonTemplateComp* tl) { return tl->jointRootIndex; }
 
 const SceneSkeletonJoint*
-scene_skeleton_joint(const SceneSkeletonTemplateComp* templ, const u32 jointIndex) {
-  diag_assert(jointIndex < templ->jointCount);
-  return &templ->joints[jointIndex];
+scene_skeleton_joint(const SceneSkeletonTemplateComp* tl, const u32 jointIndex) {
+  diag_assert(jointIndex < tl->jointCount);
+  return &tl->joints[jointIndex];
 }
 
 void scene_skeleton_joint_delta(
-    const SceneSkeletonComp* skeleton, const SceneSkeletonTemplateComp* templ, GeoMatrix* out) {
-  diag_assert(skeleton->jointCount == templ->jointCount);
-  for (u32 i = 0; i != skeleton->jointCount; ++i) {
-    out[i] = geo_matrix_mul(&skeleton->jointTransforms[i], &templ->joints[i].invBindTransform);
+    const SceneSkeletonComp* sk, const SceneSkeletonTemplateComp* tl, GeoMatrix* out) {
+  diag_assert(sk->jointCount == tl->jointCount);
+  for (u32 i = 0; i != sk->jointCount; ++i) {
+    out[i] = geo_matrix_mul(&sk->jointTransforms[i], &tl->joints[i].invBindTransform);
   }
 }
