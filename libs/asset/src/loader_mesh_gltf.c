@@ -245,16 +245,17 @@ INLINE_HINT u32 gltf_comp_size(const GltfType type) {
   }
 }
 
-static bool gltf_check_val(AssetGltfLoadComp* ld, const JsonVal jVal, const JsonType type) {
-  return !sentinel_check(jVal) && json_type(ld->jDoc, jVal) == type;
+static bool gltf_json_check(AssetGltfLoadComp* ld, const JsonVal j, const JsonType type) {
+  return !sentinel_check(j) && json_type(ld->jDoc, j) == type;
 }
 
-static bool gltf_field_u32(AssetGltfLoadComp* ld, const JsonVal jVal, const String name, u32* out) {
+static bool
+gltf_json_field_u32(AssetGltfLoadComp* ld, const JsonVal jVal, const String name, u32* out) {
   if (json_type(ld->jDoc, jVal) != JsonType_Object) {
     return false;
   }
   const JsonVal jField = json_field(ld->jDoc, jVal, name);
-  if (!gltf_check_val(ld, jField, JsonType_Number)) {
+  if (!gltf_json_check(ld, jField, JsonType_Number)) {
     return false;
   }
   *out = (u32)json_number(ld->jDoc, jField);
@@ -262,12 +263,12 @@ static bool gltf_field_u32(AssetGltfLoadComp* ld, const JsonVal jVal, const Stri
 }
 
 static bool
-gltf_field_str(AssetGltfLoadComp* ld, const JsonVal jVal, const String name, String* out) {
+gltf_json_field_str(AssetGltfLoadComp* ld, const JsonVal jVal, const String name, String* out) {
   if (json_type(ld->jDoc, jVal) != JsonType_Object) {
     return false;
   }
   const JsonVal jField = json_field(ld->jDoc, jVal, name);
-  if (!gltf_check_val(ld, jField, JsonType_String)) {
+  if (!gltf_json_check(ld, jField, JsonType_String)) {
     return false;
   }
   *out = json_string(ld->jDoc, jField);
@@ -285,16 +286,16 @@ static u32 gltf_joint_index(AssetGltfLoadComp* ld, const u32 nodeIndex) {
 
 static StringHash gltf_parse_name(AssetGltfLoadComp* ld, const JsonVal obj) {
   const JsonVal nameVal = json_field(ld->jDoc, obj, string_lit("name"));
-  if (gltf_check_val(ld, nameVal, JsonType_String)) {
+  if (gltf_json_check(ld, nameVal, JsonType_String)) {
     return stringtable_add(g_stringtable, json_string(ld->jDoc, nameVal));
   }
   return stringtable_add(g_stringtable, string_empty);
 }
 
 static void gltf_parse_f32_elem(AssetGltfLoadComp* ld, const JsonVal val, const u32 i, f32* out) {
-  if (gltf_check_val(ld, val, JsonType_Array)) {
+  if (gltf_json_check(ld, val, JsonType_Array)) {
     const JsonVal elem = json_elem(ld->jDoc, val, i);
-    if (gltf_check_val(ld, elem, JsonType_Number)) {
+    if (gltf_json_check(ld, elem, JsonType_Number)) {
       *out = (f32)json_number(ld->jDoc, elem);
     }
   }
@@ -323,7 +324,7 @@ static String gltf_buffer_asset_id(AssetGltfLoadComp* ld, const String uri) {
 static void gltf_buffers_acquire(
     AssetGltfLoadComp* ld, EcsWorld* world, AssetManagerComp* manager, GltfError* err) {
   const JsonVal buffers = json_field(ld->jDoc, ld->jRoot, string_lit("buffers"));
-  if (!gltf_check_val(ld, buffers, JsonType_Array)) {
+  if (!gltf_json_check(ld, buffers, JsonType_Array)) {
     goto Error;
   }
   ld->bufferCount = json_elem_count(ld->jDoc, buffers);
@@ -335,11 +336,11 @@ static void gltf_buffers_acquire(
 
   json_for_elems(ld->jDoc, buffers, bufferElem) {
     u32 byteLength;
-    if (!gltf_field_u32(ld, bufferElem, string_lit("byteLength"), &byteLength)) {
+    if (!gltf_json_field_u32(ld, bufferElem, string_lit("byteLength"), &byteLength)) {
       goto Error;
     }
     String uri;
-    if (!gltf_field_str(ld, bufferElem, string_lit("uri"), &uri)) {
+    if (!gltf_json_field_str(ld, bufferElem, string_lit("uri"), &uri)) {
       goto Error;
     }
     const String      id     = gltf_buffer_asset_id(ld, uri);
@@ -357,7 +358,7 @@ Error:
 
 static void gltf_parse_views(AssetGltfLoadComp* ld, GltfError* err) {
   const JsonVal views = json_field(ld->jDoc, ld->jRoot, string_lit("bufferViews"));
-  if (!gltf_check_val(ld, views, JsonType_Array)) {
+  if (!gltf_json_check(ld, views, JsonType_Array)) {
     goto Error;
   }
   ld->viewCount = json_elem_count(ld->jDoc, views);
@@ -369,18 +370,18 @@ static void gltf_parse_views(AssetGltfLoadComp* ld, GltfError* err) {
 
   json_for_elems(ld->jDoc, views, bufferView) {
     u32 bufferIndex;
-    if (!gltf_field_u32(ld, bufferView, string_lit("buffer"), &bufferIndex)) {
+    if (!gltf_json_field_u32(ld, bufferView, string_lit("buffer"), &bufferIndex)) {
       goto Error;
     }
     if (bufferIndex >= ld->bufferCount) {
       goto Error;
     }
     u32 byteOffset;
-    if (!gltf_field_u32(ld, bufferView, string_lit("byteOffset"), &byteOffset)) {
+    if (!gltf_json_field_u32(ld, bufferView, string_lit("byteOffset"), &byteOffset)) {
       byteOffset = 0;
     }
     u32 byteLength;
-    if (!gltf_field_u32(ld, bufferView, string_lit("byteLength"), &byteLength)) {
+    if (!gltf_json_field_u32(ld, bufferView, string_lit("byteLength"), &byteLength)) {
       goto Error;
     }
     if (byteOffset + byteLength > ld->buffers[bufferIndex].data.size) {
@@ -483,15 +484,14 @@ static AssetMeshAnimPtr gltf_anim_data_push_access(AssetGltfLoadComp* ld, const 
 
 static AssetMeshAnimPtr gltf_anim_data_push_access_vec(AssetGltfLoadComp* ld, const u32 acc) {
   diag_assert(ld->access[acc].compType == GltfType_f32);
-  const f32* src            = ld->access[acc].data_raw;
-  const u32  compCount      = ld->access[acc].compCount;
-  const u32  totalCompCount = compCount * ld->access[acc].count;
+  const u32 compCount      = ld->access[acc].compCount;
+  const u32 totalCompCount = compCount * ld->access[acc].count;
 
   const AssetMeshAnimPtr res = gltf_anim_data_begin(ld, alignof(GeoVector));
   for (u32 i = 0; i != totalCompCount; i += compCount) {
     mem_cpy(
         dynarray_push(&ld->animData, sizeof(f32) * 4),
-        mem_create(&src[i], sizeof(f32) * compCount));
+        mem_create(&ld->access[acc].data_f32[i], sizeof(f32) * compCount));
   }
   return res;
 }
@@ -516,7 +516,7 @@ static AssetMeshAnimPtr gltf_anim_data_push_access_mat(AssetGltfLoadComp* ld, co
 
 static void gltf_parse_accessors(AssetGltfLoadComp* ld, GltfError* err) {
   const JsonVal accessors = json_field(ld->jDoc, ld->jRoot, string_lit("accessors"));
-  if (!gltf_check_val(ld, accessors, JsonType_Array)) {
+  if (!gltf_json_check(ld, accessors, JsonType_Array)) {
     goto Error;
   }
   ld->accessCount = json_elem_count(ld->jDoc, accessors);
@@ -528,27 +528,27 @@ static void gltf_parse_accessors(AssetGltfLoadComp* ld, GltfError* err) {
 
   json_for_elems(ld->jDoc, accessors, accessor) {
     u32 viewIndex;
-    if (!gltf_field_u32(ld, accessor, string_lit("bufferView"), &viewIndex)) {
+    if (!gltf_json_field_u32(ld, accessor, string_lit("bufferView"), &viewIndex)) {
       goto Error;
     }
     if (viewIndex >= ld->viewCount) {
       goto Error;
     }
     u32 byteOffset;
-    if (!gltf_field_u32(ld, accessor, string_lit("byteOffset"), &byteOffset)) {
+    if (!gltf_json_field_u32(ld, accessor, string_lit("byteOffset"), &byteOffset)) {
       byteOffset = 0;
     }
-    if (!gltf_field_u32(ld, accessor, string_lit("componentType"), (u32*)&out->compType)) {
+    if (!gltf_json_field_u32(ld, accessor, string_lit("componentType"), (u32*)&out->compType)) {
       goto Error;
     }
     if (!gtlf_check_access_type(out->compType)) {
       goto Error;
     }
-    if (!gltf_field_u32(ld, accessor, string_lit("count"), &out->count)) {
+    if (!gltf_json_field_u32(ld, accessor, string_lit("count"), &out->count)) {
       goto Error;
     }
     String typeString;
-    if (!gltf_field_str(ld, accessor, string_lit("type"), &typeString)) {
+    if (!gltf_json_field_str(ld, accessor, string_lit("type"), &typeString)) {
       goto Error;
     }
     gltf_parse_accessor_type(typeString, &out->compCount, err);
@@ -574,7 +574,7 @@ static void gltf_parse_primitives(AssetGltfLoadComp* ld, GltfError* err) {
    * NOTE: This loader only supports a single mesh.
    */
   const JsonVal meshes = json_field(ld->jDoc, ld->jRoot, string_lit("meshes"));
-  if (!gltf_check_val(ld, meshes, JsonType_Array) || !json_elem_count(ld->jDoc, meshes)) {
+  if (!gltf_json_check(ld, meshes, JsonType_Array) || !json_elem_count(ld->jDoc, meshes)) {
     goto Error;
   }
   const JsonVal mesh = json_elem_begin(ld->jDoc, meshes);
@@ -582,7 +582,7 @@ static void gltf_parse_primitives(AssetGltfLoadComp* ld, GltfError* err) {
     goto Error;
   }
   const JsonVal primitives = json_field(ld->jDoc, mesh, string_lit("primitives"));
-  if (!gltf_check_val(ld, primitives, JsonType_Array)) {
+  if (!gltf_json_check(ld, primitives, JsonType_Array)) {
     goto Error;
   }
   ld->primCount = json_elem_count(ld->jDoc, primitives);
@@ -596,35 +596,35 @@ static void gltf_parse_primitives(AssetGltfLoadComp* ld, GltfError* err) {
     if (json_type(ld->jDoc, primitive) != JsonType_Object) {
       goto Error;
     }
-    if (!gltf_field_u32(ld, primitive, string_lit("mode"), (u32*)&out->mode)) {
+    if (!gltf_json_field_u32(ld, primitive, string_lit("mode"), (u32*)&out->mode)) {
       out->mode = GltfPrimMode_Triangles;
     }
     if (out->mode > GltfPrimMode_Max) {
       goto Error;
     }
-    if (!gltf_field_u32(ld, primitive, string_lit("indices"), &out->accIndices)) {
+    if (!gltf_json_field_u32(ld, primitive, string_lit("indices"), &out->accIndices)) {
       out->accIndices = sentinel_u32; // Indices are optional.
     }
     const JsonVal attributes = json_field(ld->jDoc, primitive, string_lit("attributes"));
-    if (!gltf_check_val(ld, attributes, JsonType_Object)) {
+    if (!gltf_json_check(ld, attributes, JsonType_Object)) {
       goto Error;
     }
-    if (!gltf_field_u32(ld, attributes, string_lit("POSITION"), &out->accPosition)) {
+    if (!gltf_json_field_u32(ld, attributes, string_lit("POSITION"), &out->accPosition)) {
       goto Error;
     }
-    if (!gltf_field_u32(ld, attributes, string_lit("TEXCOORD_0"), &out->accTexcoord)) {
+    if (!gltf_json_field_u32(ld, attributes, string_lit("TEXCOORD_0"), &out->accTexcoord)) {
       out->accTexcoord = sentinel_u32; // Texcoords are optional.
     }
-    if (!gltf_field_u32(ld, attributes, string_lit("NORMAL"), &out->accNormal)) {
+    if (!gltf_json_field_u32(ld, attributes, string_lit("NORMAL"), &out->accNormal)) {
       out->accNormal = sentinel_u32; // Normals are optional.
     }
-    if (!gltf_field_u32(ld, attributes, string_lit("TANGENT"), &out->accTangent)) {
+    if (!gltf_json_field_u32(ld, attributes, string_lit("TANGENT"), &out->accTangent)) {
       out->accTangent = sentinel_u32; // Tangents are optional.
     }
-    if (!gltf_field_u32(ld, attributes, string_lit("JOINTS_0"), &out->accJoints)) {
+    if (!gltf_json_field_u32(ld, attributes, string_lit("JOINTS_0"), &out->accJoints)) {
       out->accJoints = sentinel_u32; // Joints are optional.
     }
-    if (!gltf_field_u32(ld, attributes, string_lit("WEIGHTS_0"), &out->accWeights)) {
+    if (!gltf_json_field_u32(ld, attributes, string_lit("WEIGHTS_0"), &out->accWeights)) {
       out->accWeights = sentinel_u32; // Weights are optional.
     }
     ++out;
@@ -641,18 +641,18 @@ static void gltf_parse_skin(AssetGltfLoadComp* ld, GltfError* err) {
    * NOTE: This loader only supports a single skin.
    */
   const JsonVal skins = json_field(ld->jDoc, ld->jRoot, string_lit("skins"));
-  if (!gltf_check_val(ld, skins, JsonType_Array) || !json_elem_count(ld->jDoc, skins)) {
+  if (!gltf_json_check(ld, skins, JsonType_Array) || !json_elem_count(ld->jDoc, skins)) {
     goto Success; // Skinning is optional.
   }
   const JsonVal skin = json_elem_begin(ld->jDoc, skins);
   if (json_type(ld->jDoc, skin) != JsonType_Object) {
     goto Error;
   }
-  if (!gltf_field_u32(ld, skin, string_lit("inverseBindMatrices"), &ld->accInvBindMats)) {
+  if (!gltf_json_field_u32(ld, skin, string_lit("inverseBindMatrices"), &ld->accInvBindMats)) {
     goto Error;
   }
   const JsonVal joints = json_field(ld->jDoc, skin, string_lit("joints"));
-  if (!gltf_check_val(ld, joints, JsonType_Array)) {
+  if (!gltf_json_check(ld, joints, JsonType_Array)) {
     goto Error;
   }
   ld->jointCount = json_elem_count(ld->jDoc, joints);
@@ -673,7 +673,7 @@ static void gltf_parse_skin(AssetGltfLoadComp* ld, GltfError* err) {
     *outJoint++ = (GltfJoint){.nodeIndex = (u32)json_number(ld->jDoc, joint)};
   }
   u32 skeletonNodeIndex;
-  if (!gltf_field_u32(ld, skin, string_lit("skeleton"), &skeletonNodeIndex)) {
+  if (!gltf_json_field_u32(ld, skin, string_lit("skeleton"), &skeletonNodeIndex)) {
     goto Error;
   }
   ld->rootJointIndex = gltf_joint_index(ld, skeletonNodeIndex);
@@ -690,7 +690,7 @@ Error:
 
 static void gltf_parse_skeleton_nodes(AssetGltfLoadComp* ld, GltfError* err) {
   const JsonVal nodes = json_field(ld->jDoc, ld->jRoot, string_lit("nodes"));
-  if (!gltf_check_val(ld, nodes, JsonType_Array) || !json_elem_count(ld->jDoc, nodes)) {
+  if (!gltf_json_check(ld, nodes, JsonType_Array) || !json_elem_count(ld->jDoc, nodes)) {
     goto Error;
   }
   u32 nodeIndex = 0;
@@ -715,7 +715,7 @@ static void gltf_parse_skeleton_nodes(AssetGltfLoadComp* ld, GltfError* err) {
     gltf_parse_vec3(ld, json_field(ld->jDoc, node, string_lit("scale")), &out->trans);
 
     const JsonVal children = json_field(ld->jDoc, node, string_lit("children"));
-    if (gltf_check_val(ld, children, JsonType_Array)) {
+    if (gltf_json_check(ld, children, JsonType_Array)) {
       out->childData  = gltf_anim_data_begin(ld, alignof(u32));
       out->childCount = json_elem_count(ld->jDoc, children);
 
@@ -765,7 +765,7 @@ static void gltf_clear_anim_channels(GltfAnim* anim) {
 
 static void gltf_parse_animations(AssetGltfLoadComp* ld, GltfError* err) {
   const JsonVal animations = json_field(ld->jDoc, ld->jRoot, string_lit("animations"));
-  if (!gltf_check_val(ld, animations, JsonType_Array)) {
+  if (!gltf_json_check(ld, animations, JsonType_Array)) {
     goto Success; // Animations are optional.
   }
   ld->animCount = json_elem_count(ld->jDoc, animations);
@@ -789,7 +789,7 @@ static void gltf_parse_animations(AssetGltfLoadComp* ld, GltfError* err) {
     outAnim->nameHash = gltf_parse_name(ld, anim);
 
     const JsonVal samplers = json_field(ld->jDoc, anim, string_lit("samplers"));
-    if (!gltf_check_val(ld, samplers, JsonType_Array)) {
+    if (!gltf_json_check(ld, samplers, JsonType_Array)) {
       goto Error;
     }
     samplerCount = 0;
@@ -797,17 +797,18 @@ static void gltf_parse_animations(AssetGltfLoadComp* ld, GltfError* err) {
       if (json_type(ld->jDoc, sampler) != JsonType_Object) {
         goto Error;
       }
-      if (!gltf_field_u32(ld, sampler, string_lit("input"), &samplerAccInput[samplerCount])) {
+      if (!gltf_json_field_u32(ld, sampler, string_lit("input"), &samplerAccInput[samplerCount])) {
         goto Error;
       }
-      if (!gltf_field_u32(ld, sampler, string_lit("output"), &samplerAccOutput[samplerCount])) {
+      if (!gltf_json_field_u32(
+              ld, sampler, string_lit("output"), &samplerAccOutput[samplerCount])) {
         goto Error;
       }
       if (++samplerCount == GltfMaxSamplerCount) {
         goto Error;
       }
       const JsonVal interpolation = json_field(ld->jDoc, sampler, string_lit("interpolation"));
-      if (!gltf_check_val(ld, interpolation, JsonType_String)) {
+      if (!gltf_json_check(ld, interpolation, JsonType_String)) {
         continue; // 'interpolation' is optional, default is 'LINEAR'.
       }
       if (!string_eq(json_string(ld->jDoc, interpolation), string_lit("LINEAR"))) {
@@ -817,7 +818,7 @@ static void gltf_parse_animations(AssetGltfLoadComp* ld, GltfError* err) {
     }
 
     const JsonVal channels = json_field(ld->jDoc, anim, string_lit("channels"));
-    if (!gltf_check_val(ld, channels, JsonType_Array) || !json_elem_count(ld->jDoc, channels)) {
+    if (!gltf_json_check(ld, channels, JsonType_Array) || !json_elem_count(ld->jDoc, channels)) {
       goto Error;
     }
     json_for_elems(ld->jDoc, channels, channel) {
@@ -825,7 +826,7 @@ static void gltf_parse_animations(AssetGltfLoadComp* ld, GltfError* err) {
         goto Error;
       }
       u32 samplerIndex;
-      if (!gltf_field_u32(ld, channel, string_lit("sampler"), &samplerIndex)) {
+      if (!gltf_json_field_u32(ld, channel, string_lit("sampler"), &samplerIndex)) {
         goto Error;
       }
       if (samplerIndex >= samplerCount) {
@@ -833,11 +834,11 @@ static void gltf_parse_animations(AssetGltfLoadComp* ld, GltfError* err) {
       }
 
       const JsonVal target = json_field(ld->jDoc, channel, string_lit("target"));
-      if (!gltf_check_val(ld, target, JsonType_Object)) {
+      if (!gltf_json_check(ld, target, JsonType_Object)) {
         goto Error;
       }
       u32 nodeIndex;
-      if (!gltf_field_u32(ld, target, string_lit("node"), &nodeIndex)) {
+      if (!gltf_json_field_u32(ld, target, string_lit("node"), &nodeIndex)) {
         goto Error;
       }
       const u32 jointIndex = gltf_joint_index(ld, nodeIndex);
@@ -845,7 +846,7 @@ static void gltf_parse_animations(AssetGltfLoadComp* ld, GltfError* err) {
         goto Error;
       }
       const JsonVal path = json_field(ld->jDoc, target, string_lit("path"));
-      if (!gltf_check_val(ld, path, JsonType_String)) {
+      if (!gltf_json_check(ld, path, JsonType_String)) {
         goto Error;
       }
       AssetMeshAnimTarget channelTarget;
