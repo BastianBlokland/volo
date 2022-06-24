@@ -9,7 +9,6 @@
 #include "core_stringtable.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
-#include "geo_matrix.h"
 #include "json_read.h"
 #include "log_logger.h"
 
