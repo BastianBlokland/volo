@@ -165,7 +165,6 @@ typedef enum {
   GltfError_MalformedBuffers,
   GltfError_MalformedBufferViews,
   GltfError_MalformedAccessors,
-  GltfError_MalformedAccessorType,
   GltfError_MalformedPrims,
   GltfError_MalformedPrimIndices,
   GltfError_MalformedPrimPositions,
@@ -177,7 +176,6 @@ typedef enum {
   GltfError_MalformedSkin,
   GltfError_MalformedNodes,
   GltfError_MalformedAnimation,
-  GltfError_MalformedInvBindMatrices,
   GltfError_JointCountExceedsMaximum,
   GltfError_InvalidBuffer,
   GltfError_UnsupportedPrimitiveMode,
@@ -195,7 +193,6 @@ static String gltf_error_str(const GltfError err) {
       string_static("Gltf 'buffers' field malformed"),
       string_static("Gltf 'bufferViews' field malformed"),
       string_static("Gltf 'accessors' field malformed"),
-      string_static("Invalid accessor type"),
       string_static("Gltf 'primitives' field malformed"),
       string_static("Malformed primitive indices"),
       string_static("Malformed primitive positions"),
@@ -207,7 +204,6 @@ static String gltf_error_str(const GltfError err) {
       string_static("Malformed skin"),
       string_static("Malformed nodes"),
       string_static("Malformed animation"),
-      string_static("Malformed inverse bind matrices"),
       string_static("Joint count exceeds maximum"),
       string_static("Gltf invalid buffer"),
       string_static("Unsupported primitive mode, only triangle primitives supported"),
@@ -249,6 +245,10 @@ INLINE_HINT u32 gltf_comp_size(const GltfType type) {
 
 INLINE_HINT static bool gltf_json_check(GltfLoad* ld, const JsonVal v, const JsonType type) {
   return LIKELY(!sentinel_check(v) && json_type(ld->jDoc, v) == type);
+}
+
+static u32 gltf_json_elem_count(GltfLoad* ld, const JsonVal v) {
+  return gltf_json_check(ld, v, JsonType_Array) ? json_elem_count(ld->jDoc, v) : 0;
 }
 
 static bool gltf_json_elem_f32(GltfLoad* ld, const JsonVal v, const u32 index, f32* out) {
@@ -311,7 +311,13 @@ static bool gltf_json_field_vec4(GltfLoad* ld, const JsonVal v, const String nam
   return success;
 }
 
-static u32 gltf_joint_index(GltfLoad* ld, const u32 nodeIndex) {
+static void gltf_json_name(GltfLoad* ld, const JsonVal v, StringHash* out) {
+  String str;
+  *out = stringtable_add(
+      g_stringtable, gltf_json_field_str(ld, v, string_lit("name"), &str) ? str : string_empty);
+}
+
+static u32 gltf_node_to_joint_index(GltfLoad* ld, const u32 nodeIndex) {
   for (u32 i = 0; i != ld->jointCount; ++i) {
     if (ld->joints[i].nodeIndex == nodeIndex) {
       return i;
@@ -320,136 +326,12 @@ static u32 gltf_joint_index(GltfLoad* ld, const u32 nodeIndex) {
   return sentinel_u32;
 }
 
-static StringHash gltf_parse_name(GltfLoad* ld, const JsonVal obj) {
-  const JsonVal nameVal = json_field(ld->jDoc, obj, string_lit("name"));
-  if (gltf_json_check(ld, nameVal, JsonType_String)) {
-    return stringtable_add(g_stringtable, json_string(ld->jDoc, nameVal));
-  }
-  return stringtable_add(g_stringtable, string_empty);
-}
-
 static String gltf_buffer_asset_id(GltfLoad* ld, const String uri) {
   const String root = path_parent(ld->assetId);
-  if (string_is_empty(root)) {
-    return uri;
-  }
-  return fmt_write_scratch("{}/{}", fmt_text(root), fmt_text(uri));
+  return root.size ? fmt_write_scratch("{}/{}", fmt_text(root), fmt_text(uri)) : uri;
 }
 
-static void
-gltf_buffers_acquire(GltfLoad* ld, EcsWorld* world, AssetManagerComp* manager, GltfError* err) {
-  const JsonVal buffers = json_field(ld->jDoc, ld->jRoot, string_lit("buffers"));
-  if (!gltf_json_check(ld, buffers, JsonType_Array)) {
-    goto Error;
-  }
-  ld->bufferCount = json_elem_count(ld->jDoc, buffers);
-  if (!ld->bufferCount) {
-    goto Error;
-  }
-  ld->buffers     = alloc_array_t(g_alloc_heap, GltfBuffer, ld->bufferCount);
-  GltfBuffer* out = ld->buffers;
-
-  json_for_elems(ld->jDoc, buffers, bufferElem) {
-    u32 byteLength;
-    if (!gltf_json_field_u32(ld, bufferElem, string_lit("byteLength"), &byteLength)) {
-      goto Error;
-    }
-    String uri;
-    if (!gltf_json_field_str(ld, bufferElem, string_lit("uri"), &uri)) {
-      goto Error;
-    }
-    const String      id     = gltf_buffer_asset_id(ld, uri);
-    const EcsEntityId entity = asset_lookup(world, manager, id);
-    asset_acquire(world, entity);
-
-    *out++ = (GltfBuffer){.length = byteLength, .entity = entity};
-  }
-  *err = GltfError_None;
-  return;
-
-Error:
-  *err = GltfError_MalformedBuffers;
-}
-
-static void gltf_parse_views(GltfLoad* ld, GltfError* err) {
-  const JsonVal views = json_field(ld->jDoc, ld->jRoot, string_lit("bufferViews"));
-  if (!gltf_json_check(ld, views, JsonType_Array)) {
-    goto Error;
-  }
-  ld->viewCount = json_elem_count(ld->jDoc, views);
-  if (!ld->viewCount) {
-    goto Error;
-  }
-  ld->views     = alloc_array_t(g_alloc_heap, GltfView, ld->viewCount);
-  GltfView* out = ld->views;
-
-  json_for_elems(ld->jDoc, views, bufferView) {
-    u32 bufferIndex;
-    if (!gltf_json_field_u32(ld, bufferView, string_lit("buffer"), &bufferIndex)) {
-      goto Error;
-    }
-    if (bufferIndex >= ld->bufferCount) {
-      goto Error;
-    }
-    u32 byteOffset;
-    if (!gltf_json_field_u32(ld, bufferView, string_lit("byteOffset"), &byteOffset)) {
-      byteOffset = 0;
-    }
-    u32 byteLength;
-    if (!gltf_json_field_u32(ld, bufferView, string_lit("byteLength"), &byteLength)) {
-      goto Error;
-    }
-    if (byteOffset + byteLength > ld->buffers[bufferIndex].data.size) {
-      goto Error;
-    }
-    *out++ = (GltfView){
-        .data = string_slice(ld->buffers[bufferIndex].data, byteOffset, byteLength),
-    };
-  }
-  *err = GltfError_None;
-  return;
-
-Error:
-  *err = GltfError_MalformedBufferViews;
-}
-
-static void gltf_parse_accessor_type(const String typeString, u32* outCompCount, GltfError* err) {
-  if (string_eq(typeString, string_lit("SCALAR"))) {
-    *outCompCount = 1;
-    goto Success;
-  }
-  if (string_eq(typeString, string_lit("VEC2"))) {
-    *outCompCount = 2;
-    goto Success;
-  }
-  if (string_eq(typeString, string_lit("VEC3"))) {
-    *outCompCount = 3;
-    goto Success;
-  }
-  if (string_eq(typeString, string_lit("VEC4"))) {
-    *outCompCount = 4;
-    goto Success;
-  }
-  if (string_eq(typeString, string_lit("MAT2"))) {
-    *outCompCount = 8;
-    goto Success;
-  }
-  if (string_eq(typeString, string_lit("MAT3"))) {
-    *outCompCount = 12;
-    goto Success;
-  }
-  if (string_eq(typeString, string_lit("MAT4"))) {
-    *outCompCount = 16;
-    goto Success;
-  }
-  *err = GltfError_MalformedAccessorType;
-  return;
-
-Success:
-  *err = GltfError_None;
-}
-
-static bool gtlf_check_access_type(const GltfType type) {
+static bool gtlf_access_check_type(const GltfType type) {
   switch (type) {
   case GltfType_i8:
   case GltfType_u8:
@@ -460,6 +342,13 @@ static bool gtlf_check_access_type(const GltfType type) {
     return true;
   }
   return false;
+}
+
+static bool gltf_access_check(GltfLoad* ld, const u32 i, const GltfType type, const u32 compCount) {
+  if (UNLIKELY(i >= ld->accessCount)) {
+    return false;
+  }
+  return ld->access[i].compType == type && ld->access[i].compCount == compCount;
 }
 
 static f32 gltf_access_max_f32(GltfLoad* ld, const u32 acc) {
@@ -529,13 +418,102 @@ static AssetMeshAnimPtr gltf_anim_data_push_access_mat(GltfLoad* ld, const u32 a
   return res;
 }
 
-static void gltf_parse_accessors(GltfLoad* ld, GltfError* err) {
-  const JsonVal accessors = json_field(ld->jDoc, ld->jRoot, string_lit("accessors"));
-  if (!gltf_json_check(ld, accessors, JsonType_Array)) {
+static bool gltf_accessor_check(const String typeString, u32* outCompCount) {
+  if (string_eq(typeString, string_lit("SCALAR"))) {
+    *outCompCount = 1;
+    return true;
+  }
+  if (string_eq(typeString, string_lit("VEC2"))) {
+    *outCompCount = 2;
+    return true;
+  }
+  if (string_eq(typeString, string_lit("VEC3"))) {
+    *outCompCount = 3;
+    return true;
+  }
+  if (string_eq(typeString, string_lit("VEC4"))) {
+    *outCompCount = 4;
+    return true;
+  }
+  if (string_eq(typeString, string_lit("MAT2"))) {
+    *outCompCount = 8;
+    return true;
+  }
+  if (string_eq(typeString, string_lit("MAT3"))) {
+    *outCompCount = 12;
+    return true;
+  }
+  if (string_eq(typeString, string_lit("MAT4"))) {
+    *outCompCount = 16;
+    return true;
+  }
+  return false;
+}
+
+static void gltf_buffers_acquire(GltfLoad* ld, EcsWorld* w, AssetManagerComp* man, GltfError* err) {
+  const JsonVal buffers = json_field(ld->jDoc, ld->jRoot, string_lit("buffers"));
+  if (!(ld->bufferCount = gltf_json_elem_count(ld, buffers))) {
     goto Error;
   }
-  ld->accessCount = json_elem_count(ld->jDoc, accessors);
-  if (!ld->accessCount) {
+  ld->buffers     = alloc_array_t(g_alloc_heap, GltfBuffer, ld->bufferCount);
+  GltfBuffer* out = ld->buffers;
+
+  json_for_elems(ld->jDoc, buffers, bufferElem) {
+    if (!gltf_json_field_u32(ld, bufferElem, string_lit("byteLength"), &out->length)) {
+      goto Error;
+    }
+    String uri;
+    if (!gltf_json_field_str(ld, bufferElem, string_lit("uri"), &uri)) {
+      goto Error;
+    }
+    out->entity = asset_lookup(w, man, gltf_buffer_asset_id(ld, uri));
+    asset_acquire(w, out->entity);
+    ++out;
+  }
+  *err = GltfError_None;
+  return;
+
+Error:
+  *err = GltfError_MalformedBuffers;
+}
+
+static void gltf_parse_views(GltfLoad* ld, GltfError* err) {
+  const JsonVal views = json_field(ld->jDoc, ld->jRoot, string_lit("bufferViews"));
+  if (!(ld->viewCount = gltf_json_elem_count(ld, views))) {
+    goto Error;
+  }
+  ld->views     = alloc_array_t(g_alloc_heap, GltfView, ld->viewCount);
+  GltfView* out = ld->views;
+
+  json_for_elems(ld->jDoc, views, bufferView) {
+    u32 bufferIndex;
+    if (!gltf_json_field_u32(ld, bufferView, string_lit("buffer"), &bufferIndex)) {
+      goto Error;
+    }
+    if (bufferIndex >= ld->bufferCount) {
+      goto Error;
+    }
+    const GltfBuffer* buffer     = &ld->buffers[bufferIndex];
+    u32               byteOffset = 0, byteLength;
+    gltf_json_field_u32(ld, bufferView, string_lit("byteOffset"), &byteOffset);
+    if (!gltf_json_field_u32(ld, bufferView, string_lit("byteLength"), &byteLength)) {
+      goto Error;
+    }
+    if (byteOffset + byteLength > buffer->data.size) {
+      goto Error;
+    }
+    *out++ = (GltfView){.data = string_slice(buffer->data, byteOffset, byteLength)};
+  }
+  *err = GltfError_None;
+  return;
+
+Error:
+  *err = GltfError_MalformedBufferViews;
+}
+
+static void gltf_parse_accessors(GltfLoad* ld, GltfError* err) {
+  const JsonVal accessors = json_field(ld->jDoc, ld->jRoot, string_lit("accessors"));
+  if (!(ld->accessCount = gltf_json_elem_count(ld, accessors))) {
     goto Error;
   }
   ld->access      = alloc_array_t(g_alloc_heap, GltfAccess, ld->accessCount);
@@ -549,14 +527,12 @@ static void gltf_parse_accessors(GltfLoad* ld, GltfError* err) {
     if (viewIndex >= ld->viewCount) {
       goto Error;
     }
-    u32 byteOffset;
-    if (!gltf_json_field_u32(ld, accessor, string_lit("byteOffset"), &byteOffset)) {
-      byteOffset = 0;
-    }
+    u32 byteOffset = 0;
+    gltf_json_field_u32(ld, accessor, string_lit("byteOffset"), &byteOffset);
     if (!gltf_json_field_u32(ld, accessor, string_lit("componentType"), (u32*)&out->compType)) {
       goto Error;
     }
-    if (!gtlf_check_access_type(out->compType)) {
+    if (!gtlf_access_check_type(out->compType)) {
       goto Error;
     }
     if (!gltf_json_field_u32(ld, accessor, string_lit("count"), &out->count)) {
@@ -566,8 +542,7 @@ static void gltf_parse_accessors(GltfLoad* ld, GltfError* err) {
     if (!gltf_json_field_str(ld, accessor, string_lit("type"), &typeString)) {
       goto Error;
     }
-    gltf_parse_accessor_type(typeString, &out->compCount, err);
-    if (*err) {
+    if (!gltf_accessor_check(typeString, &out->compCount)) {
       goto Error;
     }
     const String viewData = ld->views[viewIndex].data;
@@ -589,7 +564,7 @@ static void gltf_parse_primitives(GltfLoad* ld, GltfError* err) {
    * NOTE: This loader only supports a single mesh.
    */
   const JsonVal meshes = json_field(ld->jDoc, ld->jRoot, string_lit("meshes"));
-  if (!gltf_json_check(ld, meshes, JsonType_Array) || !json_elem_count(ld->jDoc, meshes)) {
+  if (!gltf_json_elem_count(ld, meshes)) {
     goto Error;
   }
   const JsonVal mesh = json_elem_begin(ld->jDoc, meshes);
@@ -597,11 +572,7 @@ static void gltf_parse_primitives(GltfLoad* ld, GltfError* err) {
     goto Error;
   }
   const JsonVal primitives = json_field(ld->jDoc, mesh, string_lit("primitives"));
-  if (!gltf_json_check(ld, primitives, JsonType_Array)) {
-    goto Error;
-  }
-  ld->primCount = json_elem_count(ld->jDoc, primitives);
-  if (!ld->primCount) {
+  if (!(ld->primCount = gltf_json_elem_count(ld, primitives))) {
     goto Error;
   }
   ld->prims     = alloc_array_t(g_alloc_heap, GltfPrim, ld->primCount);
@@ -611,15 +582,13 @@ static void gltf_parse_primitives(GltfLoad* ld, GltfError* err) {
     if (json_type(ld->jDoc, primitive) != JsonType_Object) {
       goto Error;
     }
-    if (!gltf_json_field_u32(ld, primitive, string_lit("mode"), (u32*)&out->mode)) {
-      out->mode = GltfPrimMode_Triangles;
-    }
+    out->mode = GltfPrimMode_Triangles;
+    gltf_json_field_u32(ld, primitive, string_lit("mode"), (u32*)&out->mode);
     if (out->mode > GltfPrimMode_Max) {
       goto Error;
     }
-    if (!gltf_json_field_u32(ld, primitive, string_lit("indices"), &out->accIndices)) {
-      out->accIndices = sentinel_u32; // Indices are optional.
-    }
+    out->accIndices = sentinel_u32; // Indices are optional.
+    gltf_json_field_u32(ld, primitive, string_lit("indices"), &out->accIndices);
     const JsonVal attributes = json_field(ld->jDoc, primitive, string_lit("attributes"));
     if (!gltf_json_check(ld, attributes, JsonType_Object)) {
       goto Error;
@@ -627,21 +596,16 @@ static void gltf_parse_primitives(GltfLoad* ld, GltfError* err) {
     if (!gltf_json_field_u32(ld, attributes, string_lit("POSITION"), &out->accPosition)) {
       goto Error;
     }
-    if (!gltf_json_field_u32(ld, attributes, string_lit("TEXCOORD_0"), &out->accTexcoord)) {
-      out->accTexcoord = sentinel_u32; // Texcoords are optional.
-    }
-    if (!gltf_json_field_u32(ld, attributes, string_lit("NORMAL"), &out->accNormal)) {
-      out->accNormal = sentinel_u32; // Normals are optional.
-    }
-    if (!gltf_json_field_u32(ld, attributes, string_lit("TANGENT"), &out->accTangent)) {
-      out->accTangent = sentinel_u32; // Tangents are optional.
-    }
-    if (!gltf_json_field_u32(ld, attributes, string_lit("JOINTS_0"), &out->accJoints)) {
-      out->accJoints = sentinel_u32; // Joints are optional.
-    }
-    if (!gltf_json_field_u32(ld, attributes, string_lit("WEIGHTS_0"), &out->accWeights)) {
-      out->accWeights = sentinel_u32; // Weights are optional.
-    }
+    out->accTexcoord = sentinel_u32; // Texcoords are optional.
+    gltf_json_field_u32(ld, attributes, string_lit("TEXCOORD_0"), &out->accTexcoord);
+    out->accNormal = sentinel_u32; // Normals are optional.
+    gltf_json_field_u32(ld, attributes, string_lit("NORMAL"), &out->accNormal);
+    out->accTangent = sentinel_u32; // Tangents are optional.
+    gltf_json_field_u32(ld, attributes, string_lit("TANGENT"), &out->accTangent);
+    out->accJoints = sentinel_u32; // Joints are optional.
+    gltf_json_field_u32(ld, attributes, string_lit("JOINTS_0"), &out->accJoints);
+    out->accWeights = sentinel_u32; // Weights are optional.
+    gltf_json_field_u32(ld, attributes, string_lit("WEIGHTS_0"), &out->accWeights);
     ++out;
   }
   *err = GltfError_None;
@@ -656,7 +620,7 @@ static void gltf_parse_skin(GltfLoad* ld, GltfError* err) {
    * NOTE: This loader only supports a single skin.
    */
   const JsonVal skins = json_field(ld->jDoc, ld->jRoot, string_lit("skins"));
-  if (!gltf_json_check(ld, skins, JsonType_Array) || !json_elem_count(ld->jDoc, skins)) {
+  if (!gltf_json_elem_count(ld, skins)) {
     goto Success; // Skinning is optional.
   }
   const JsonVal skin = json_elem_begin(ld->jDoc, skins);
@@ -670,8 +634,7 @@ static void gltf_parse_skin(GltfLoad* ld, GltfError* err) {
   if (!gltf_json_check(ld, joints, JsonType_Array)) {
     goto Error;
   }
-  ld->jointCount = json_elem_count(ld->jDoc, joints);
-  if (!ld->jointCount) {
+  if (!(ld->jointCount = json_elem_count(ld->jDoc, joints))) {
     goto Error;
   }
   if (ld->jointCount > asset_mesh_joints_max) {
@@ -691,8 +654,7 @@ static void gltf_parse_skin(GltfLoad* ld, GltfError* err) {
   if (!gltf_json_field_u32(ld, skin, string_lit("skeleton"), &skeletonNodeIndex)) {
     goto Error;
   }
-  ld->rootJointIndex = gltf_joint_index(ld, skeletonNodeIndex);
-  if (sentinel_check(ld->rootJointIndex)) {
+  if (sentinel_check(ld->rootJointIndex = gltf_node_to_joint_index(ld, skeletonNodeIndex))) {
     goto Error;
   }
 Success:
@@ -705,20 +667,19 @@ Error:
 
 static void gltf_parse_skeleton_nodes(GltfLoad* ld, GltfError* err) {
   const JsonVal nodes = json_field(ld->jDoc, ld->jRoot, string_lit("nodes"));
-  if (!gltf_json_check(ld, nodes, JsonType_Array) || !json_elem_count(ld->jDoc, nodes)) {
+  if (!gltf_json_elem_count(ld, nodes)) {
     goto Error;
   }
-  u32 nodeIndex = 0;
+  u32 nodeIndex = 0, jointIndex;
   json_for_elems(ld->jDoc, nodes, node) {
     if (UNLIKELY(json_type(ld->jDoc, node) != JsonType_Object)) {
       goto Error;
     }
-    const u32 jointIndex = gltf_joint_index(ld, nodeIndex);
-    if (sentinel_check(jointIndex)) {
+    if (sentinel_check(jointIndex = gltf_node_to_joint_index(ld, nodeIndex))) {
       goto Next; // This node is not part of the skeleton.
     }
     GltfJoint* out = &ld->joints[jointIndex];
-    out->nameHash  = gltf_parse_name(ld, node);
+    gltf_json_name(ld, node, &out->nameHash);
 
     out->trans = geo_vector(0);
     gltf_json_field_vec3(ld, node, string_lit("translation"), &out->trans);
@@ -738,7 +699,7 @@ static void gltf_parse_skeleton_nodes(GltfLoad* ld, GltfError* err) {
         if (UNLIKELY(json_type(ld->jDoc, child) != JsonType_Number)) {
           goto Error;
         }
-        const u32 childJointIndex = gltf_joint_index(ld, (u32)json_number(ld->jDoc, child));
+        const u32 childJointIndex = gltf_node_to_joint_index(ld, (u32)json_number(ld->jDoc, child));
         *((u32*)dynarray_push(&ld->animData, sizeof(u32)).ptr) = childJointIndex;
       }
     }
@@ -753,20 +714,16 @@ Error:
   *err = GltfError_MalformedNodes;
 }
 
-static void gltf_parse_anim_target(const String str, AssetMeshAnimTarget* out, GltfError* err) {
+static bool gltf_anim_target(const String str, AssetMeshAnimTarget* out) {
   static const String g_names[] = {
-      string_static("translation"),
-      string_static("rotation"),
-      string_static("scale"),
-  };
+      string_static("translation"), string_static("rotation"), string_static("scale")};
   for (u32 i = 0; i != array_elems(g_names); ++i) {
     if (string_eq(str, g_names[i])) {
       *out = i;
-      *err = GltfError_None;
-      return;
+      return true;
     }
   }
-  *err = GltfError_MalformedAnimation;
+  return false;
 }
 
 static void gltf_clear_anim_channels(GltfAnim* anim) {
@@ -780,12 +737,8 @@ static void gltf_clear_anim_channels(GltfAnim* anim) {
 
 static void gltf_parse_animations(GltfLoad* ld, GltfError* err) {
   const JsonVal animations = json_field(ld->jDoc, ld->jRoot, string_lit("animations"));
-  if (!gltf_json_check(ld, animations, JsonType_Array)) {
+  if (!(ld->animCount = gltf_json_elem_count(ld, animations))) {
     goto Success; // Animations are optional.
-  }
-  ld->animCount = json_elem_count(ld->jDoc, animations);
-  if (!ld->animCount) {
-    goto Error;
   }
   ld->anims         = alloc_array_t(g_alloc_heap, GltfAnim, ld->animCount);
   GltfAnim* outAnim = ld->anims;
@@ -793,7 +746,7 @@ static void gltf_parse_animations(GltfLoad* ld, GltfError* err) {
   enum { GltfMaxSamplerCount = 1024 };
   u32 samplerAccInput[GltfMaxSamplerCount];
   u32 samplerAccOutput[GltfMaxSamplerCount];
-  u32 samplerCount;
+  u32 samplerCnt;
 
   json_for_elems(ld->jDoc, animations, anim) {
     gltf_clear_anim_channels(outAnim);
@@ -801,25 +754,24 @@ static void gltf_parse_animations(GltfLoad* ld, GltfError* err) {
     if (json_type(ld->jDoc, anim) != JsonType_Object) {
       goto Error;
     }
-    outAnim->nameHash = gltf_parse_name(ld, anim);
+    gltf_json_name(ld, anim, &outAnim->nameHash);
 
     const JsonVal samplers = json_field(ld->jDoc, anim, string_lit("samplers"));
     if (!gltf_json_check(ld, samplers, JsonType_Array)) {
       goto Error;
     }
-    samplerCount = 0;
+    samplerCnt = 0;
     json_for_elems(ld->jDoc, samplers, sampler) {
       if (json_type(ld->jDoc, sampler) != JsonType_Object) {
         goto Error;
       }
-      if (!gltf_json_field_u32(ld, sampler, string_lit("input"), &samplerAccInput[samplerCount])) {
+      if (!gltf_json_field_u32(ld, sampler, string_lit("input"), &samplerAccInput[samplerCnt])) {
         goto Error;
       }
-      if (!gltf_json_field_u32(
-              ld, sampler, string_lit("output"), &samplerAccOutput[samplerCount])) {
+      if (!gltf_json_field_u32(ld, sampler, string_lit("output"), &samplerAccOutput[samplerCnt])) {
         goto Error;
       }
-      if (++samplerCount == GltfMaxSamplerCount) {
+      if (++samplerCnt == GltfMaxSamplerCount) {
         goto Error;
       }
       const JsonVal interpolation = json_field(ld->jDoc, sampler, string_lit("interpolation"));
@@ -833,18 +785,18 @@ static void gltf_parse_animations(GltfLoad* ld, GltfError* err) {
     }
 
     const JsonVal channels = json_field(ld->jDoc, anim, string_lit("channels"));
-    if (!gltf_json_check(ld, channels, JsonType_Array) || !json_elem_count(ld->jDoc, channels)) {
+    if (!gltf_json_elem_count(ld, channels)) {
       goto Error;
     }
     json_for_elems(ld->jDoc, channels, channel) {
       if (json_type(ld->jDoc, channel) != JsonType_Object) {
         goto Error;
       }
-      u32 samplerIndex;
-      if (!gltf_json_field_u32(ld, channel, string_lit("sampler"), &samplerIndex)) {
+      u32 samplerIdx, nodeIdx, jointIdx;
+      if (!gltf_json_field_u32(ld, channel, string_lit("sampler"), &samplerIdx)) {
         goto Error;
       }
-      if (samplerIndex >= samplerCount) {
+      if (samplerIdx >= samplerCnt) {
         goto Error;
       }
 
@@ -852,12 +804,10 @@ static void gltf_parse_animations(GltfLoad* ld, GltfError* err) {
       if (!gltf_json_check(ld, target, JsonType_Object)) {
         goto Error;
       }
-      u32 nodeIndex;
-      if (!gltf_json_field_u32(ld, target, string_lit("node"), &nodeIndex)) {
+      if (!gltf_json_field_u32(ld, target, string_lit("node"), &nodeIdx)) {
         goto Error;
       }
-      const u32 jointIndex = gltf_joint_index(ld, nodeIndex);
-      if (sentinel_check(jointIndex)) {
+      if (sentinel_check(jointIdx = gltf_node_to_joint_index(ld, nodeIdx))) {
         goto Error;
       }
       const JsonVal path = json_field(ld->jDoc, target, string_lit("path"));
@@ -865,15 +815,12 @@ static void gltf_parse_animations(GltfLoad* ld, GltfError* err) {
         goto Error;
       }
       AssetMeshAnimTarget channelTarget;
-      gltf_parse_anim_target(json_string(ld->jDoc, path), &channelTarget, err);
-      if (*err) {
+      if (!gltf_anim_target(json_string(ld->jDoc, path), &channelTarget)) {
         goto Error;
       }
-      diag_assert(samplerAccInput[samplerIndex]);
-      outAnim->channels[jointIndex][channelTarget] = (GltfAnimChannel){
-          .accInput  = samplerAccInput[samplerIndex],
-          .accOutput = samplerAccOutput[samplerIndex],
-      };
+      diag_assert(samplerAccInput[samplerIdx]);
+      outAnim->channels[jointIdx][channelTarget] = (GltfAnimChannel){
+          .accInput = samplerAccInput[samplerIdx], .accOutput = samplerAccOutput[samplerIdx]};
     }
     ++outAnim;
   }
@@ -883,13 +830,6 @@ Success:
 
 Error:
   *err = GltfError_MalformedAnimation;
-}
-
-static bool gltf_check_access(GltfLoad* ld, const u32 i, const GltfType type, const u32 compCount) {
-  if (i >= ld->accessCount) {
-    return false;
-  }
-  return ld->access[i].compType == type && ld->access[i].compCount == compCount;
 }
 
 typedef enum {
@@ -905,11 +845,9 @@ typedef struct {
 } GltfMeshMeta;
 
 static GltfMeshMeta gltf_mesh_meta(GltfLoad* ld, GltfError* err) {
-#define verify(_EXPR_, _ERR_)                                                                      \
-  if (UNLIKELY(!(_EXPR_))) {                                                                       \
-    *err = GltfError_##_ERR_;                                                                      \
-    goto Error;                                                                                    \
-  }
+  // clang-format off
+#define verify(_EXPR_, _ERR_) if (UNLIKELY(!(_EXPR_))) { *err = GltfError_##_ERR_; goto Error; }
+  // clang-format on
 
   verify(ld->primCount, NoPrimitives);
 
@@ -917,7 +855,7 @@ static GltfMeshMeta gltf_mesh_meta(GltfLoad* ld, GltfError* err) {
   GltfFeature features    = ~0; // Assume we have all features until accessors are missing.
   for (GltfPrim* prim = ld->prims; prim != ld->prims + ld->primCount; ++prim) {
     verify(prim->mode == GltfPrimMode_Triangles, UnsupportedPrimitiveMode);
-    verify(gltf_check_access(ld, prim->accPosition, GltfType_f32, 3), MalformedPrimPositions);
+    verify(gltf_access_check(ld, prim->accPosition, GltfType_f32, 3), MalformedPrimPositions);
 
     const u32 attrCount = ld->access[prim->accPosition].count;
     if (sentinel_check(prim->accIndices)) {
@@ -926,34 +864,34 @@ static GltfMeshMeta gltf_mesh_meta(GltfLoad* ld, GltfError* err) {
       vertexCount += attrCount;
     } else {
       // Indexed primitive.
-      verify(gltf_check_access(ld, prim->accIndices, GltfType_u16, 1), MalformedPrimIndices);
+      verify(gltf_access_check(ld, prim->accIndices, GltfType_u16, 1), MalformedPrimIndices);
       verify((ld->access[prim->accIndices].count % 3) == 0, MalformedPrimIndices);
       vertexCount += ld->access[prim->accIndices].count;
     }
     if (sentinel_check(prim->accTexcoord)) {
       features &= ~GltfFeature_Texcoords;
     } else {
-      verify(gltf_check_access(ld, prim->accTexcoord, GltfType_f32, 2), MalformedPrimTexcoords);
+      verify(gltf_access_check(ld, prim->accTexcoord, GltfType_f32, 2), MalformedPrimTexcoords);
       verify(ld->access[prim->accTexcoord].count == attrCount, MalformedPrimTexcoords);
     }
     if (sentinel_check(prim->accNormal)) {
       features &= ~GltfFeature_Normals;
     } else {
-      verify(gltf_check_access(ld, prim->accNormal, GltfType_f32, 3), MalformedPrimNormals);
+      verify(gltf_access_check(ld, prim->accNormal, GltfType_f32, 3), MalformedPrimNormals);
       verify(ld->access[prim->accNormal].count == attrCount, MalformedPrimNormals);
     }
     if (sentinel_check(prim->accTangent)) {
       features &= ~GltfFeature_Tangents;
     } else {
-      verify(gltf_check_access(ld, prim->accTangent, GltfType_f32, 4), MalformedPrimTangents);
+      verify(gltf_access_check(ld, prim->accTangent, GltfType_f32, 4), MalformedPrimTangents);
       verify(ld->access[prim->accTangent].count == attrCount, MalformedPrimTangents);
     }
     if (sentinel_check(prim->accJoints)) {
       features &= ~GltfFeature_Skinning;
     } else {
-      verify(gltf_check_access(ld, prim->accJoints, GltfType_u16, 4), MalformedPrimJoints);
+      verify(gltf_access_check(ld, prim->accJoints, GltfType_u16, 4), MalformedPrimJoints);
       verify(ld->access[prim->accJoints].count == attrCount, MalformedPrimJoints);
-      verify(gltf_check_access(ld, prim->accWeights, GltfType_f32, 4), MalformedPrimWeights);
+      verify(gltf_access_check(ld, prim->accWeights, GltfType_f32, 4), MalformedPrimWeights);
       verify(ld->access[prim->accWeights].count == attrCount, MalformedPrimWeights);
     }
   }
@@ -1061,39 +999,36 @@ Cleanup:
 static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfError* err) {
   diag_assert(ld->jointCount);
 
-  if (!gltf_check_access(ld, ld->accInvBindMats, GltfType_f32, 16)) {
-    *err = GltfError_MalformedInvBindMatrices;
-    return;
+  if (!gltf_access_check(ld, ld->accInvBindMats, GltfType_f32, 16)) {
+    goto Error;
   }
   if (ld->access[ld->accInvBindMats].count < ld->jointCount) {
-    *err = GltfError_MalformedInvBindMatrices;
-    return;
+    goto Error;
   }
 
+  // Verify the accessors of all animated channels.
   for (u32 animIndex = 0; animIndex != ld->animCount; ++animIndex) {
     for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
       for (AssetMeshAnimTarget target = 0; target != AssetMeshAnimTarget_Count; ++target) {
         const GltfAnimChannel* channel = &ld->anims[animIndex].channels[jointIndex][target];
         if (sentinel_check(channel->accInput)) {
-          continue;
+          continue; // Channel is not animated.
         }
-        if (!gltf_check_access(ld, channel->accInput, GltfType_f32, 1)) {
-          *err = GltfError_MalformedAnimation;
-          return;
+        if (!gltf_access_check(ld, channel->accInput, GltfType_f32, 1)) {
+          goto Error;
         }
         const u32 requiredComponents = target == AssetMeshAnimTarget_Rotation ? 4 : 3;
-        if (!gltf_check_access(ld, channel->accOutput, GltfType_f32, requiredComponents)) {
-          *err = GltfError_MalformedAnimation;
-          return;
+        if (!gltf_access_check(ld, channel->accOutput, GltfType_f32, requiredComponents)) {
+          goto Error;
         }
         if (ld->access[channel->accInput].count != ld->access[channel->accOutput].count) {
-          *err = GltfError_MalformedAnimation;
-          return;
+          goto Error;
         }
       }
     }
   }
 
+  // Create the joint output structures.
   AssetMeshJoint* resJoints = alloc_array_t(g_alloc_heap, AssetMeshJoint, ld->jointCount);
   for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
     resJoints[jointIndex] = (AssetMeshJoint){
@@ -1103,6 +1038,7 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
     };
   }
 
+  // Create the animation output structures.
   AssetMeshAnim* resAnims =
       ld->animCount ? alloc_array_t(g_alloc_heap, AssetMeshAnim, ld->animCount) : null;
   for (u32 animIndex = 0; animIndex != ld->animCount; ++animIndex) {
@@ -1111,21 +1047,21 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
 
     for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
       const bool       needsMirror = jointIndex == ld->rootJointIndex; // R to L coord conversion.
-      const GltfJoint* joint       = ld->joints + jointIndex;
+      const GltfJoint* joint       = &ld->joints[jointIndex];
 
       for (AssetMeshAnimTarget target = 0; target != AssetMeshAnimTarget_Count; ++target) {
-        const GltfAnimChannel* channel    = &ld->anims[animIndex].channels[jointIndex][target];
+        const GltfAnimChannel* srcChannel = &ld->anims[animIndex].channels[jointIndex][target];
         AssetMeshAnimChannel*  resChannel = &resAnims[animIndex].joints[jointIndex][target];
 
-        if (!sentinel_check(channel->accInput)) {
-          const f32 channelDur = gltf_access_max_f32(ld, channel->accInput);
+        if (!sentinel_check(srcChannel->accInput)) {
+          const f32 channelDur = gltf_access_max_f32(ld, srcChannel->accInput);
           duration             = math_max(duration, channelDur);
 
           // TODO: Support mirroring (for R to L coord conv) when animating the scale of the root.
           *resChannel = (AssetMeshAnimChannel){
-              .frameCount = ld->access[channel->accInput].count,
-              .timeData   = gltf_anim_data_push_access(ld, channel->accInput),
-              .valueData  = gltf_anim_data_push_access_vec(ld, channel->accOutput),
+              .frameCount = ld->access[srcChannel->accInput].count,
+              .timeData   = gltf_anim_data_push_access(ld, srcChannel->accInput),
+              .valueData  = gltf_anim_data_push_access_vec(ld, srcChannel->accOutput),
           };
         } else {
           *resChannel = (AssetMeshAnimChannel){
@@ -1164,6 +1100,10 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
       .animData = alloc_dup(g_alloc_heap, dynarray_at(&ld->animData, 0, ld->animData.size), 1),
   };
   *err = GltfError_None;
+  return;
+
+Error:
+  *err = GltfError_MalformedAnimation;
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
