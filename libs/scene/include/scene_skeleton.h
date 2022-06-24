@@ -12,6 +12,7 @@ typedef struct {
 ecs_comp_extern(SceneSkeletonTemplateComp);
 
 ecs_comp_extern_public(SceneSkeletonComp) {
+  f32        playHead;
   u32        jointCount;
   GeoMatrix* jointTransforms;
 };

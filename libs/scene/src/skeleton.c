@@ -3,9 +3,11 @@
 #include "asset_mesh.h"
 #include "core_alloc.h"
 #include "core_diag.h"
+#include "core_math.h"
 #include "ecs_world.h"
 #include "scene_renderable.h"
 #include "scene_skeleton.h"
+#include "scene_time.h"
 
 #define scene_skeleton_max_loads 16
 
@@ -74,9 +76,22 @@ static void ecs_destruct_skeleton_template_comp(void* data) {
   }
 }
 
+ecs_view_define(GlobalView) { ecs_access_read(SceneTimeComp); }
+
+ecs_view_define(TemplateLoadView) {
+  ecs_access_write(SceneSkeletonTemplateComp);
+  ecs_access_maybe_read(AssetGraphicComp);
+  ecs_access_without(SceneSkeletonTemplateLoadedComp);
+}
+
 ecs_view_define(SkeletonInitView) {
   ecs_access_read(SceneRenderableComp);
   ecs_access_without(SceneSkeletonComp);
+}
+
+ecs_view_define(MeshView) {
+  ecs_access_with(AssetMeshComp);
+  ecs_access_read(AssetMeshSkeletonComp);
 }
 
 ecs_view_define(SkeletonTemplateView) { ecs_access_read(SceneSkeletonTemplateComp); }
@@ -134,17 +149,6 @@ ecs_system_define(SceneSkeletonInitSys) {
     }
     ecs_world_add_t(world, graphic, SceneSkeletonTemplateComp);
   }
-}
-
-ecs_view_define(TemplateLoadView) {
-  ecs_access_write(SceneSkeletonTemplateComp);
-  ecs_access_maybe_read(AssetGraphicComp);
-  ecs_access_without(SceneSkeletonTemplateLoadedComp);
-}
-
-ecs_view_define(MeshView) {
-  ecs_access_with(AssetMeshComp);
-  ecs_access_read(AssetMeshSkeletonComp);
 }
 
 static bool scene_asset_is_loaded(EcsWorld* world, const EcsEntityId asset) {
@@ -246,6 +250,149 @@ ecs_system_define(SceneSkeletonTemplateLoadSys) {
   }
 }
 
+ecs_view_define(UpdateView) {
+  ecs_access_read(SceneRenderableComp);
+  ecs_access_write(SceneSkeletonComp);
+}
+
+static u32 scene_animation_from_frame(const SceneSkeletonChannel* channel, const f32 t) {
+  for (u32 i = 1; i != channel->frameCount; ++i) {
+    if (channel->times[i] > t) {
+      return i - 1;
+    }
+  }
+  return 0;
+}
+
+static u32 scene_animation_to_frame(const SceneSkeletonChannel* channel, const f32 t) {
+  for (u32 i = 0; i != channel->frameCount; ++i) {
+    if (channel->times[i] > t) {
+      return i;
+    }
+  }
+  return channel->frameCount - 1;
+}
+
+static GeoVector scene_animation_sample_vec3(const SceneSkeletonChannel* channel, const u32 frame) {
+  return (GeoVector){
+      channel->values[frame * 3 + 0],
+      channel->values[frame * 3 + 1],
+      channel->values[frame * 3 + 2],
+  };
+}
+
+static GeoQuat scene_animation_sample_quat(const SceneSkeletonChannel* channel, const u32 frame) {
+  return (GeoQuat){
+      channel->values[frame * 4 + 0],
+      channel->values[frame * 4 + 1],
+      channel->values[frame * 4 + 2],
+      channel->values[frame * 4 + 3],
+  };
+}
+
+static GeoVector
+scene_animation_sample_translation(const SceneSkeletonChannel* channel, const f32 t) {
+  const u32 fromFrame = scene_animation_from_frame(channel, t);
+  const u32 toFrame   = scene_animation_to_frame(channel, t);
+  const f32 fromT     = channel->times[fromFrame];
+  const f32 toT       = channel->times[toFrame];
+  const f32 frac      = math_unlerp(fromT, toT, t);
+
+  return geo_vector_lerp(
+      scene_animation_sample_vec3(channel, fromFrame),
+      scene_animation_sample_vec3(channel, toFrame),
+      frac);
+}
+
+static GeoQuat scene_animation_sample_rotation(const SceneSkeletonChannel* channel, const f32 t) {
+  const u32 fromFrame = scene_animation_from_frame(channel, t);
+  const u32 toFrame   = scene_animation_to_frame(channel, t);
+  const f32 fromT     = channel->times[fromFrame];
+  const f32 toT       = channel->times[toFrame];
+  const f32 frac      = math_unlerp(fromT, toT, t);
+
+  return geo_quat_slerp(
+      scene_animation_sample_quat(channel, fromFrame),
+      scene_animation_sample_quat(channel, toFrame),
+      frac);
+}
+
+static void scene_animation_sample(
+    const SceneSkeletonTemplateComp* template, const u32 joint, const f32 t, GeoMatrix* out) {
+  const SceneSkeletonAnim* anim = &template->anims[2];
+
+  const SceneSkeletonChannel* channelT = &anim->joints[joint][AssetMeshAnimTarget_Translation];
+  const SceneSkeletonChannel* channelR = &anim->joints[joint][AssetMeshAnimTarget_Rotation];
+  const SceneSkeletonChannel* channelS = &anim->joints[joint][AssetMeshAnimTarget_Scale];
+
+  {
+
+    const GeoVector v   = scene_animation_sample_translation(channelT, t);
+    const GeoMatrix mat = geo_matrix_translate(v);
+    out[joint]          = geo_matrix_mul(&out[joint], &mat);
+  }
+  {
+    GeoQuat   q   = scene_animation_sample_rotation(channelR, t);
+    GeoMatrix mat = geo_matrix_from_quat(q);
+
+    out[joint] = geo_matrix_mul(&out[joint], &mat);
+  }
+  {
+    const f32 scaleX = channelS->values[0];
+    const f32 scaleY = channelS->values[1];
+    const f32 scaleZ = channelS->values[2];
+
+    const GeoMatrix mat = geo_matrix_scale(geo_vector(scaleX, scaleY, scaleZ));
+    out[joint]          = geo_matrix_mul(&out[joint], &mat);
+  }
+
+  for (u32 childNum = 0; childNum != template->joints[joint].childCount; ++childNum) {
+    const u32 childIndex = template->joints[joint].childIndices[childNum];
+    out[childIndex]      = out[joint];
+    scene_animation_sample(template, childIndex, t, out);
+  }
+}
+
+ecs_system_define(SceneSkeletonUpdateSys) {
+  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return;
+  }
+  const SceneTimeComp* time         = ecs_view_read_t(globalItr, SceneTimeComp);
+  const f32            deltaSeconds = time->delta / (f32)time_second;
+
+  EcsView*     updateView  = ecs_world_view_t(world, UpdateView);
+  EcsIterator* templateItr = ecs_view_itr(ecs_world_view_t(world, SkeletonTemplateView));
+
+  for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
+    const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
+    SceneSkeletonComp*         skeleton   = ecs_view_write_t(itr, SceneSkeletonComp);
+
+    if (!skeleton->jointCount) {
+      continue;
+    }
+
+    skeleton->playHead += deltaSeconds;
+    skeleton->playHead = math_mod_f32(skeleton->playHead, 1.15f);
+
+    ecs_view_jump(templateItr, renderable->graphic);
+    const SceneSkeletonTemplateComp* template =
+        ecs_view_read_t(templateItr, SceneSkeletonTemplateComp);
+
+    skeleton->jointTransforms[template->jointRootIndex] = geo_matrix_ident();
+
+    static const GeoMatrix g_negateZMatrix = {
+        {{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, -1, 0}, {0, 0, 0, 1}},
+    };
+    skeleton->jointTransforms[template->jointRootIndex] =
+        geo_matrix_mul(&skeleton->jointTransforms[template->jointRootIndex], &g_negateZMatrix);
+
+    scene_animation_sample(
+        template, template->jointRootIndex, skeleton->playHead, skeleton->jointTransforms);
+  }
+}
+
 ecs_module_init(scene_skeleton_module) {
   ecs_register_comp(SceneSkeletonComp, .destructor = ecs_destruct_skeleton_comp);
   ecs_register_comp(
@@ -254,17 +401,24 @@ ecs_module_init(scene_skeleton_module) {
       .destructor = ecs_destruct_skeleton_template_comp);
   ecs_register_comp_empty(SceneSkeletonTemplateLoadedComp);
 
-  ecs_register_view(SkeletonInitView);
-  ecs_register_view(SkeletonTemplateView);
-
+  ecs_register_view(GlobalView);
   ecs_register_view(TemplateLoadView);
+  ecs_register_view(SkeletonInitView);
   ecs_register_view(MeshView);
+  ecs_register_view(SkeletonTemplateView);
+  ecs_register_view(UpdateView);
 
   ecs_register_system(
       SceneSkeletonInitSys, ecs_view_id(SkeletonInitView), ecs_view_id(SkeletonTemplateView));
 
   ecs_register_system(
       SceneSkeletonTemplateLoadSys, ecs_view_id(TemplateLoadView), ecs_view_id(MeshView));
+
+  ecs_register_system(
+      SceneSkeletonUpdateSys,
+      ecs_view_id(GlobalView),
+      ecs_view_id(UpdateView),
+      ecs_view_id(SkeletonTemplateView));
 }
 
 u32 scene_skeleton_root_index(const SceneSkeletonTemplateComp* templ) {
