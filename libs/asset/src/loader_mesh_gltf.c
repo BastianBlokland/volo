@@ -1054,6 +1054,8 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
               .timeData   = gltf_anim_data_push_access(ld, srcChannel->accInput),
               .valueData  = gltf_anim_data_push_access_vec(ld, srcChannel->accOutput),
           };
+        } else {
+          *resChannel = (AssetMeshAnimChannel){0};
         }
       }
     }
