@@ -137,11 +137,10 @@ static void scene_skeleton_init_from_templ(
   SceneAnimLayer* layers = alloc_array_t(g_alloc_heap, SceneAnimLayer, tl->animCount);
   for (u32 i = 0; i != tl->animCount; ++i) {
     layers[i] = (SceneAnimLayer){
-        .animIndex = i,
-        .nameHash  = tl->anims[i].nameHash,
-        .duration  = tl->anims[i].duration,
-        .speed     = 1.0f,
-        .weight    = 1.0f,
+        .nameHash = tl->anims[i].nameHash,
+        .duration = tl->anims[i].duration,
+        .speed    = 1.0f,
+        .weight   = 1.0f,
     };
   }
   ecs_world_add_t(world, entity, SceneAnimationComp, .layers = layers, .layerCount = tl->animCount);
@@ -331,9 +330,10 @@ static GeoQuat anim_channel_get_quat(const SceneSkeletonChannel* ch, const f32 t
 static void anim_sample_layer(
     const SceneSkeletonTemplComp* tl,
     const SceneAnimLayer*         layer,
+    const u32                     layerIndex,
     f32*                          weights,
     SceneJointPose*               out) {
-  const SceneSkeletonAnim* anim = &tl->anims[layer->animIndex];
+  const SceneSkeletonAnim* anim = &tl->anims[layerIndex];
   for (u32 j = 0; j != tl->jointCount; ++j) {
     f32* weightT = &weights[j * AssetMeshAnimTarget_Count + AssetMeshAnimTarget_Translation];
     f32* weightR = &weights[j * AssetMeshAnimTarget_Count + AssetMeshAnimTarget_Rotation];
@@ -423,9 +423,9 @@ ecs_system_define(SceneSkeletonUpdateSys) {
     for (u32 i = 0; i != anim->layerCount; ++i) {
       SceneAnimLayer* layer = &anim->layers[i];
       layer->time += deltaSeconds * layer->speed;
-      layer->time = math_mod_f32(layer->time, tl->anims[layer->animIndex].duration);
+      layer->time = math_mod_f32(layer->time, tl->anims[i].duration);
       if (layer->weight > scene_weight_min) {
-        anim_sample_layer(tl, layer, weights, poses);
+        anim_sample_layer(tl, layer, i, weights, poses);
       }
     }
     anim_apply(tl, poses, sk->jointTransforms);
