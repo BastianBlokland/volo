@@ -284,6 +284,12 @@ ecs_view_define(UpdateView) {
   ecs_access_write(SceneAnimationComp);
 }
 
+static void scene_anim_sample_default(const SceneSkeletonTemplateComp* tl, SceneJointPose* out) {
+  for (u32 j = 0; j != tl->jointCount; ++j) {
+    out[j] = tl->defaultPose[j];
+  }
+}
+
 static u32 scene_animation_from_frame(const SceneSkeletonChannel* ch, const f32 t) {
   for (u32 i = 1; i != ch->frameCount; ++i) {
     if (ch->times[i] > t) {
@@ -322,39 +328,46 @@ static GeoQuat scene_animation_sample_quat(const SceneSkeletonChannel* ch, const
   return geo_quat_slerp(ch->values_quat[fromFrame], ch->values_quat[toFrame], frac);
 }
 
-static SceneJointPose
-scene_animation_sample_pose(const SceneSkeletonTemplateComp* tl, const u32 joint, const f32 t) {
-  const SceneSkeletonAnim* anim = &tl->anims[0];
+static void scene_anim_sample(
+    const SceneSkeletonTemplateComp* tl,
+    const SceneSkeletonAnim*         anim,
+    const f32                        t,
+    SceneJointPose*                  out) {
+  for (u32 j = 0; j != tl->jointCount; ++j) {
+    const SceneSkeletonChannel* chT = &anim->joints[j][AssetMeshAnimTarget_Translation];
+    if (chT->frameCount) {
+      out[j].t = scene_animation_sample_vec3(chT, t);
+    }
 
-  const SceneSkeletonChannel* chT = &anim->joints[joint][AssetMeshAnimTarget_Translation];
-  const SceneSkeletonChannel* chR = &anim->joints[joint][AssetMeshAnimTarget_Rotation];
-  const SceneSkeletonChannel* chS = &anim->joints[joint][AssetMeshAnimTarget_Scale];
+    const SceneSkeletonChannel* chR = &anim->joints[j][AssetMeshAnimTarget_Rotation];
+    if (chR->frameCount) {
+      out[j].r = scene_animation_sample_quat(chR, t);
+    }
 
-  return (SceneJointPose){
-      .t = chT->frameCount ? scene_animation_sample_vec3(chT, t) : tl->defaultPose[joint].t,
-      .r = chR->frameCount ? scene_animation_sample_quat(chR, t) : tl->defaultPose[joint].r,
-      .s = chS->frameCount ? scene_animation_sample_vec3(chS, t) : tl->defaultPose[joint].s,
-  };
+    const SceneSkeletonChannel* chS = &anim->joints[j][AssetMeshAnimTarget_Scale];
+    if (chS->frameCount) {
+      out[j].s = scene_animation_sample_vec3(chS, t);
+    }
+  }
 }
 
-static void scene_animation_sample(
-    const SceneSkeletonTemplateComp* tl, const u32 joint, const f32 t, GeoMatrix* out) {
+static void
+scene_anim_to_world(const SceneSkeletonTemplateComp* tl, SceneJointPose* poses, GeoMatrix* out) {
+  u32 stack[asset_mesh_joints_max] = {tl->jointRootIndex};
+  u32 stackCount                   = 1;
 
-  const SceneJointPose pose = scene_animation_sample_pose(tl, joint, t);
+  while (stackCount--) {
+    const u32       joint   = stack[stackCount];
+    const bool      isRoot  = joint == tl->jointRootIndex;
+    const GeoMatrix poseMat = geo_matrix_trs(poses[joint].t, poses[joint].r, poses[joint].s);
 
-  const GeoMatrix tMat = geo_matrix_translate(pose.t);
-  out[joint]           = geo_matrix_mul(&out[joint], &tMat);
+    out[joint] = isRoot ? poseMat : geo_matrix_mul(&out[joint], &poseMat);
 
-  GeoMatrix qMat = geo_matrix_from_quat(pose.r);
-  out[joint]     = geo_matrix_mul(&out[joint], &qMat);
-
-  const GeoMatrix sMat = geo_matrix_scale(pose.s);
-  out[joint]           = geo_matrix_mul(&out[joint], &sMat);
-
-  for (u32 childNum = 0; childNum != tl->joints[joint].childCount; ++childNum) {
-    const u32 childIndex = tl->joints[joint].childIndices[childNum];
-    out[childIndex]      = out[joint];
-    scene_animation_sample(tl, childIndex, t, out);
+    for (u32 childNum = 0; childNum != tl->joints[joint].childCount; ++childNum) {
+      const u32 childIndex = tl->joints[joint].childIndices[childNum];
+      out[childIndex]      = out[joint];
+      stack[stackCount++]  = childIndex;
+    }
   }
 }
 
@@ -370,6 +383,8 @@ ecs_system_define(SceneSkeletonUpdateSys) {
   EcsView*     updateView  = ecs_world_view_t(world, UpdateView);
   EcsIterator* templateItr = ecs_view_itr(ecs_world_view_t(world, SkeletonTemplateView));
 
+  SceneJointPose poses[asset_mesh_joints_max];
+
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
     const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
     SceneSkeletonComp*         sk         = ecs_view_write_t(itr, SceneSkeletonComp);
@@ -380,13 +395,13 @@ ecs_system_define(SceneSkeletonUpdateSys) {
 
     for (u32 i = 0; i != anim->layerCount; ++i) {
       SceneAnimLayer* layer = &anim->layers[i];
-
       layer->time += deltaSeconds * layer->speed;
       layer->time = math_mod_f32(layer->time, tl->anims[i].duration);
     }
 
-    sk->jointTransforms[tl->jointRootIndex] = geo_matrix_ident();
-    scene_animation_sample(tl, tl->jointRootIndex, anim->layers[0].time, sk->jointTransforms);
+    scene_anim_sample_default(tl, poses);
+    scene_anim_sample(tl, &tl->anims[2], anim->layers[2].time, poses);
+    scene_anim_to_world(tl, poses, sk->jointTransforms);
   }
 }
 
