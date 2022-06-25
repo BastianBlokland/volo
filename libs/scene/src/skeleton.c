@@ -45,7 +45,7 @@ ecs_comp_define(SceneSkeletonTemplateComp) {
   EcsEntityId           mesh;
   SceneSkeletonJoint*   joints;
   SceneSkeletonAnim*    anims;
-  const GeoMatrix*      invBindMats;
+  const GeoMatrix*      bindPoseInvMats;
   u32                   jointCount;
   u32                   animCount;
   u32                   jointRootIndex;
@@ -122,7 +122,7 @@ static void scene_skeleton_init_from_template(
 
   GeoMatrix* jointTransforms = alloc_array_t(g_alloc_heap, GeoMatrix, tl->jointCount);
   for (u32 i = 0; i != tl->jointCount; ++i) {
-    jointTransforms[i] = geo_matrix_inverse(&tl->invBindMats[i]);
+    jointTransforms[i] = geo_matrix_inverse(&tl->bindPoseInvMats[i]);
   }
   ecs_world_add_t(
       world,
@@ -212,7 +212,7 @@ scene_asset_template_init(SceneSkeletonTemplateComp* tl, const AssetMeshSkeleton
     }
   }
 
-  tl->invBindMats = (const GeoMatrix*)mem_at_u8(tl->animData, asset->invBindMats);
+  tl->bindPoseInvMats = (const GeoMatrix*)mem_at_u8(tl->animData, asset->bindPoseInvMats);
 }
 
 static void scene_skeleton_template_load_done(EcsWorld* world, EcsIterator* itr) {
@@ -415,6 +415,6 @@ void scene_skeleton_joint_delta(
     const SceneSkeletonComp* sk, const SceneSkeletonTemplateComp* tl, GeoMatrix* out) {
   diag_assert(sk->jointCount == tl->jointCount);
   for (u32 i = 0; i != sk->jointCount; ++i) {
-    out[i] = geo_matrix_mul(&sk->jointTransforms[i], &tl->invBindMats[i]);
+    out[i] = geo_matrix_mul(&sk->jointTransforms[i], &tl->bindPoseInvMats[i]);
   }
 }

@@ -60,7 +60,7 @@ typedef struct {
 ecs_comp_extern_public(AssetMeshSkeletonComp) {
   const AssetMeshJoint* joints;
   const AssetMeshAnim*  anims;
-  AssetMeshAnimPtr      invBindMats; // GeoMatrix[jointCount]. From world to local bind space.
+  AssetMeshAnimPtr      bindPoseInvMats; // GeoMatrix[jointCount]. From world to local bind space.
   u8                    jointCount;
   u32                   animCount;
   u32                   rootJointIndex;

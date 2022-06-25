@@ -128,8 +128,8 @@ ecs_comp_define(AssetGltfLoadComp) {
   u32           primCount;
   u32           jointCount;
   u32           animCount;
-  u32           accInvBindMats; // Access index [Optional].
-  u32           rootJointIndex; // [Optional].
+  u32           accBindPoseInvMats; // Access index [Optional].
+  u32           rootJointIndex;     // [Optional].
 };
 
 typedef AssetGltfLoadComp GltfLoad;
@@ -627,7 +627,7 @@ static void gltf_parse_skin(GltfLoad* ld, GltfError* err) {
   if (json_type(ld->jDoc, skin) != JsonType_Object) {
     goto Error;
   }
-  if (!gltf_json_field_u32(ld, skin, string_lit("inverseBindMatrices"), &ld->accInvBindMats)) {
+  if (!gltf_json_field_u32(ld, skin, string_lit("inverseBindMatrices"), &ld->accBindPoseInvMats)) {
     goto Error;
   }
   const JsonVal joints = json_field(ld->jDoc, skin, string_lit("joints"));
@@ -999,10 +999,10 @@ Cleanup:
 static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfError* err) {
   diag_assert(ld->jointCount);
 
-  if (!gltf_access_check(ld, ld->accInvBindMats, GltfType_f32, 16)) {
+  if (!gltf_access_check(ld, ld->accBindPoseInvMats, GltfType_f32, 16)) {
     goto Error;
   }
-  if (ld->access[ld->accInvBindMats].count < ld->jointCount) {
+  if (ld->access[ld->accBindPoseInvMats].count < ld->jointCount) {
     goto Error;
   }
 
@@ -1091,12 +1091,12 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
   }
 
   *out = (AssetMeshSkeletonComp){
-      .joints         = resJoints,
-      .anims          = resAnims,
-      .invBindMats    = gltf_anim_data_push_access_mat(ld, ld->accInvBindMats),
-      .jointCount     = ld->jointCount,
-      .animCount      = ld->animCount,
-      .rootJointIndex = sentinel_check(ld->rootJointIndex) ? 0 : ld->rootJointIndex,
+      .joints          = resJoints,
+      .anims           = resAnims,
+      .bindPoseInvMats = gltf_anim_data_push_access_mat(ld, ld->accBindPoseInvMats),
+      .jointCount      = ld->jointCount,
+      .animCount       = ld->animCount,
+      .rootJointIndex  = sentinel_check(ld->rootJointIndex) ? 0 : ld->rootJointIndex,
       .animData = alloc_dup(g_alloc_heap, dynarray_at(&ld->animData, 0, ld->animData.size), 1),
   };
   *err = GltfError_None;
@@ -1248,10 +1248,10 @@ void asset_load_gltf(EcsWorld* world, const String id, const EcsEntityId entity,
       world,
       entity,
       AssetGltfLoadComp,
-      .assetId        = id,
-      .jDoc           = jsonDoc,
-      .jRoot          = jsonRes.type,
-      .accInvBindMats = sentinel_u32,
-      .rootJointIndex = sentinel_u32,
-      .animData       = dynarray_create(g_alloc_heap, 1, 1, 0));
+      .assetId            = id,
+      .jDoc               = jsonDoc,
+      .jRoot              = jsonRes.type,
+      .accBindPoseInvMats = sentinel_u32,
+      .rootJointIndex     = sentinel_u32,
+      .animData           = dynarray_create(g_alloc_heap, 1, 1, 0));
 }
