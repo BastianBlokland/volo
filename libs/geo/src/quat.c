@@ -103,6 +103,21 @@ GeoQuat geo_quat_inv(const GeoQuat q) {
   return res;
 }
 
+GeoQuat geo_quat_flip(const GeoQuat q) {
+#if geo_quat_simd_enable
+  GeoQuat res;
+  simd_vec_store(simd_vec_mul(simd_vec_load(q.comps), simd_vec_broadcast(-1.0f)), res.comps);
+  return res;
+#else
+  return (GeoQuat){
+      .x = q.x * -1,
+      .y = q.y * -1,
+      .z = q.z * -1,
+      .w = q.w * -1,
+  };
+#endif
+}
+
 GeoQuat geo_quat_norm(const GeoQuat q) {
 #if geo_quat_simd_enable
   GeoQuat res;
