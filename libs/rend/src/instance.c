@@ -41,7 +41,7 @@ ecs_view_define(RenderableView) {
 
 ecs_view_define(DrawView) {
   ecs_access_write(RendDrawComp);
-  ecs_access_maybe_read(SceneSkeletonTemplateComp);
+  ecs_access_maybe_read(SceneSkeletonTemplComp);
 }
 
 ecs_system_define(RendInstanceFillDrawsSys) {
@@ -87,12 +87,12 @@ ecs_system_define(RendInstanceFillDrawsSys) {
     const bool isSkinned = skeletonComp->jointCount != 0;
     if (isSkinned) {
       diag_assert(skeletonComp->jointCount <= rend_instance_max_joints);
-      const SceneSkeletonTemplateComp* templ = ecs_view_read_t(drawItr, SceneSkeletonTemplateComp);
-      RendInstanceSkinnedData          data  = {
-                    .posAndScale = geo_vector(position.x, position.y, position.z, scale),
-                    .rot         = rotation,
+      const SceneSkeletonTemplComp* templ = ecs_view_read_t(drawItr, SceneSkeletonTemplComp);
+      RendInstanceSkinnedData       data  = {
+                 .posAndScale = geo_vector(position.x, position.y, position.z, scale),
+                 .rot         = rotation,
       };
-      scene_skeleton_joint_delta(skeletonComp, templ, data.jointDelta);
+      scene_skeleton_delta(skeletonComp, templ, data.jointDelta);
       rend_draw_add_instance(draw, mem_var(data), tags, aabb);
     } else /* !isSkinned */ {
       const RendInstanceData data = {

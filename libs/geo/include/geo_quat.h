@@ -55,10 +55,20 @@ GeoVector geo_quat_rotate(GeoQuat, GeoVector);
 GeoQuat geo_quat_inv(GeoQuat);
 
 /**
+ * Flip the given quaternions (represents the same rotation).
+ */
+GeoQuat geo_quat_flip(GeoQuat);
+
+/**
  * Calculate a normalized version of this quaternion (magnitude of 1).
  * Pre-condition: quaternion != 0
  */
 GeoQuat geo_quat_norm(GeoQuat);
+
+/**
+ * Calculate the dot product of two quaternions.
+ */
+f32 geo_quat_dot(GeoQuat a, GeoQuat b);
 
 /**
  * Computes a quaternion that rotates from the identity axes to a new axis system.

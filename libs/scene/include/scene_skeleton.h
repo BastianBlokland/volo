@@ -3,22 +3,33 @@
 #include "geo_matrix.h"
 
 typedef struct {
-  GeoMatrix  invBindTransform;
   const u32* childIndices;
   u32        childCount;
   StringHash nameHash;
 } SceneSkeletonJoint;
 
-ecs_comp_extern(SceneSkeletonTemplateComp);
+ecs_comp_extern(SceneSkeletonTemplComp);
 
 ecs_comp_extern_public(SceneSkeletonComp) {
   u32        jointCount;
   GeoMatrix* jointTransforms;
 };
 
-u32 scene_skeleton_root_index(const SceneSkeletonTemplateComp*);
+typedef struct {
+  f32        time;
+  f32        duration;
+  f32        speed;
+  f32        weight;
+  StringHash nameHash;
+} SceneAnimLayer;
 
-const SceneSkeletonJoint* scene_skeleton_joint(const SceneSkeletonTemplateComp*, u32 jointIndex);
+ecs_comp_extern_public(SceneAnimationComp) {
+  SceneAnimLayer* layers;
+  u32             layerCount;
+};
 
-void scene_skeleton_joint_delta(
-    const SceneSkeletonComp*, const SceneSkeletonTemplateComp*, GeoMatrix* out);
+u32 scene_skeleton_root_index(const SceneSkeletonTemplComp*);
+
+const SceneSkeletonJoint* scene_skeleton_joint(const SceneSkeletonTemplComp*, u32 index);
+
+void scene_skeleton_delta(const SceneSkeletonComp*, const SceneSkeletonTemplComp*, GeoMatrix* out);

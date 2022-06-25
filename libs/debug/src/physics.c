@@ -52,7 +52,7 @@ ecs_view_define(ObjectView) {
 
 ecs_view_define(GraphicView) {
   ecs_access_with(AssetComp);
-  ecs_access_maybe_read(SceneSkeletonTemplateComp);
+  ecs_access_maybe_read(SceneSkeletonTemplComp);
 }
 
 static void physics_panel_draw(
@@ -159,13 +159,13 @@ static void physics_draw_bounds_global(
 }
 
 static void physics_draw_skeleton(
-    DebugShapeComp*                  shapes,
-    DebugTextComp*                   text,
-    const SceneSkeletonComp*         skeleton,
-    const SceneSkeletonTemplateComp* skeletonTemplate,
-    const GeoVector                  pos,
-    const GeoQuat                    rot,
-    const f32                        scale) {
+    DebugShapeComp*               shapes,
+    DebugTextComp*                text,
+    const SceneSkeletonComp*      skeleton,
+    const SceneSkeletonTemplComp* skeletonTemplate,
+    const GeoVector               pos,
+    const GeoQuat                 rot,
+    const f32                     scale) {
   static const f32 g_arrowLength = 0.1f;
   static const f32 g_arrowSize   = 0.01f;
   const f32        jointScaleMul = (1.0f / scale) * g_arrowLength;
@@ -251,7 +251,7 @@ ecs_system_define(DebugPhysicsDrawSys) {
       }
     }
     if (skeletonComp && settings->flags & DebugPhysicsFlags_DrawSkeleton) {
-      const SceneSkeletonTemplateComp* tpl = ecs_view_read_t(graphicItr, SceneSkeletonTemplateComp);
+      const SceneSkeletonTemplComp* tpl = ecs_view_read_t(graphicItr, SceneSkeletonTemplComp);
       physics_draw_skeleton(shape, text, skeletonComp, tpl, pos, rot, scale);
     }
   }

@@ -140,12 +140,11 @@ void ui_table_next_column(UiCanvasComp* canvas, UiTable* table) {
   } break;
   case UiTableColumn_Flexible: {
     // Grow the cell to the end of the container.
-    const UiAlign endAlign = ui_table_align_opposite(table->align);
-    ui_layout_resize_to(canvas, table->parent, endAlign, Ui_X);
-    // Shrink the cell by the spacing (to avoid ending at the very edge of the container).
-    ui_layout_grow(canvas, table->align, ui_vector(-table->spacing.x, 0), UiBase_Absolute, Ui_X);
+    ui_layout_resize_to(canvas, table->parent, ui_table_align_opposite(table->align), Ui_X);
   } break;
   }
+  // Shrink the cell by the spacing (to avoid ending at the very edge of the container).
+  ui_layout_grow(canvas, table->align, ui_vector(-table->spacing.x, 0), UiBase_Absolute, Ui_X);
 }
 
 static void ui_table_draw_header_names(

@@ -4,7 +4,7 @@
 
 typedef struct sAssetMeshBuilder AssetMeshBuilder;
 
-AssetMeshBuilder* asset_mesh_builder_create(Allocator*, usize maxVertexCount);
+AssetMeshBuilder* asset_mesh_builder_create(Allocator*, u32 maxVertexCount);
 void              asset_mesh_builder_destroy(AssetMeshBuilder*);
 void              asset_mesh_builder_clear(AssetMeshBuilder*);
 AssetMeshIndex    asset_mesh_builder_push(AssetMeshBuilder*, AssetMeshVertex);

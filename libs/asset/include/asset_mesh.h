@@ -25,22 +25,45 @@ typedef struct {
 ecs_comp_extern_public(AssetMeshComp) {
   const AssetMeshVertex* vertexData;
   const AssetMeshSkin*   skinData; // NOTE: null if the mesh has no skinning.
-  usize                  vertexCount;
   const AssetMeshIndex*  indexData;
-  usize                  indexCount;
+  u32                    vertexCount;
+  u32                    indexCount;
   GeoBox                 positionBounds, texcoordBounds;
 };
 
 typedef struct {
-  GeoMatrix        invBindTransform; // From world to local bind space for a joint.
-  AssetMeshAnimPtr childData;
+  AssetMeshAnimPtr childData; // u32[childCount].
   u32              childCount;
   StringHash       nameHash;
 } AssetMeshJoint;
 
+typedef enum {
+  AssetMeshAnimTarget_Translation,
+  AssetMeshAnimTarget_Rotation,
+  AssetMeshAnimTarget_Scale,
+
+  AssetMeshAnimTarget_Count,
+} AssetMeshAnimTarget;
+
+typedef struct {
+  u32              frameCount;
+  AssetMeshAnimPtr timeData;  // f32[frameCount].
+  AssetMeshAnimPtr valueData; // (GeoVector | GeoQuat)[frameCount].
+} AssetMeshAnimChannel;
+
+typedef struct {
+  StringHash           nameHash;
+  f32                  duration;
+  AssetMeshAnimChannel joints[asset_mesh_joints_max][AssetMeshAnimTarget_Count];
+} AssetMeshAnim;
+
 ecs_comp_extern_public(AssetMeshSkeletonComp) {
-  u8                    jointCount;
   const AssetMeshJoint* joints;
+  const AssetMeshAnim*  anims;
+  AssetMeshAnimPtr      bindPoseInvMats; // GeoMatrix[jointCount]. From world to local bind space.
+  AssetMeshAnimPtr      defaultPose;     // (GeoVector | GeoQuat)[jointCount][3]. Local TRS.
+  u8                    jointCount;
+  u32                   animCount;
   u32                   rootJointIndex;
   Mem                   animData;
 };

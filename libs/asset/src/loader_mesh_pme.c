@@ -146,7 +146,7 @@ static f32 pme_def_axis_scale(const PmeDef* def) {
   diag_crash();
 }
 
-static usize pme_max_verts(PmeDef* def) {
+static u32 pme_max_verts(PmeDef* def) {
   /**
    * Get a conservative maximum amount of needed vertices.
    */
