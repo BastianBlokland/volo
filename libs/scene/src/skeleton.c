@@ -284,15 +284,9 @@ ecs_view_define(UpdateView) {
   ecs_access_write(SceneAnimationComp);
 }
 
-static void anim_sample_default(const SceneSkeletonTemplComp* tl, SceneJointPose* out) {
-  for (u32 j = 0; j != tl->jointCount; ++j) {
-    out[j] = tl->defaultPose[j];
-  }
-}
-
-static void anim_init_weights(const SceneSkeletonTemplComp* tl, f32* weights) {
+static void anim_set_weights_neg1(const SceneSkeletonTemplComp* tl, f32* weights) {
   for (u32 c = 0; c != tl->jointCount * 3; ++c) {
-    weights[c] = 1.0f;
+    weights[c] = -1.0f;
   }
 }
 
@@ -305,7 +299,7 @@ static u32 anim_find_frame(const SceneSkeletonChannel* ch, const f32 t) {
   return 0;
 }
 
-static GeoVector anim_channel_get_vec3(const SceneSkeletonChannel* ch, const f32 t) {
+static GeoVector anim_channel_get_vec(const SceneSkeletonChannel* ch, const f32 t) {
   const u32 frame = anim_find_frame(ch, t);
   if (frame == ch->frameCount - 1) {
     return ch->values_vec[frame];
@@ -327,6 +321,32 @@ static GeoQuat anim_channel_get_quat(const SceneSkeletonChannel* ch, const f32 t
   return geo_quat_slerp(ch->values_quat[frame], ch->values_quat[frame + 1], frac);
 }
 
+static void anim_blend_vec(const GeoVector v, const f32 weight, f32* outWeight, GeoVector* outVec) {
+  if (*outWeight < 0) {
+    *outVec    = v;
+    *outWeight = weight;
+  } else {
+    const f32 frac = (1.0f - *outWeight) * weight;
+    *outVec        = geo_vector_lerp(*outVec, v, frac);
+    *outWeight += frac;
+  }
+}
+
+static void anim_blend_quat(GeoQuat q, const f32 weight, f32* outWeight, GeoQuat* outQuat) {
+  if (*outWeight < 0) {
+    *outQuat   = q;
+    *outWeight = weight;
+  } else {
+    const f32 frac = (1.0f - *outWeight) * weight;
+    if (geo_quat_dot(q, *outQuat) < 0) {
+      // Compensate for quaternion double-cover (two quaternions representing the same rot).
+      q = geo_quat_flip(q);
+    }
+    *outQuat = geo_quat_slerp(*outQuat, q, frac);
+    *outWeight += frac;
+  }
+}
+
 static void anim_sample_layer(
     const SceneSkeletonTemplComp* tl,
     const SceneAnimLayer*         layer,
@@ -340,37 +360,35 @@ static void anim_sample_layer(
     f32* weightS = &weights[j * AssetMeshAnimTarget_Count + AssetMeshAnimTarget_Scale];
 
     const SceneSkeletonChannel* chT = &anim->joints[j][AssetMeshAnimTarget_Translation];
-    if (chT->frameCount) {
-      const f32 frac = *weightT * layer->weight;
-      if (frac > scene_weight_min) {
-        const GeoVector t = anim_channel_get_vec3(chT, layer->time);
-        out[j].t          = frac > scene_weight_max ? t : geo_vector_lerp(out[j].t, t, frac);
-        *weightT -= frac;
-      }
-    }
-
     const SceneSkeletonChannel* chR = &anim->joints[j][AssetMeshAnimTarget_Rotation];
-    if (chR->frameCount) {
-      const f32 frac = *weightR * layer->weight;
-      if (frac > scene_weight_min) {
-        GeoQuat r = anim_channel_get_quat(chR, layer->time);
-        if (geo_quat_dot(r, out[j].r) < 0) {
-          // Compensate for quaternion double-cover (two quaternions representing the same rot).
-          r = geo_quat_flip(r);
-        }
-        out[j].r = frac > scene_weight_max ? r : geo_quat_slerp(out[j].r, r, frac);
-        *weightR -= frac;
-      }
-    }
-
     const SceneSkeletonChannel* chS = &anim->joints[j][AssetMeshAnimTarget_Scale];
-    if (chS->frameCount) {
-      const f32 frac = *weightS * layer->weight;
-      if (frac > scene_weight_min) {
-        const GeoVector s = anim_channel_get_vec3(chS, layer->time);
-        out[j].s          = frac > scene_weight_max ? s : geo_vector_lerp(out[j].s, s, frac);
-        *weightS -= frac;
-      }
+
+    if (chT->frameCount && *weightT < scene_weight_max) {
+      anim_blend_vec(anim_channel_get_vec(chT, layer->time), layer->weight, weightT, &out[j].t);
+    }
+    if (chR->frameCount && *weightR < scene_weight_max) {
+      anim_blend_quat(anim_channel_get_quat(chR, layer->time), layer->weight, weightR, &out[j].r);
+    }
+    if (chS->frameCount && *weightS < scene_weight_max) {
+      anim_blend_vec(anim_channel_get_vec(chS, layer->time), layer->weight, weightS, &out[j].s);
+    }
+  }
+}
+
+static void anim_sample_def(const SceneSkeletonTemplComp* tl, f32* weights, SceneJointPose* out) {
+  for (u32 j = 0; j != tl->jointCount; ++j) {
+    f32* weightT = &weights[j * AssetMeshAnimTarget_Count + AssetMeshAnimTarget_Translation];
+    f32* weightR = &weights[j * AssetMeshAnimTarget_Count + AssetMeshAnimTarget_Rotation];
+    f32* weightS = &weights[j * AssetMeshAnimTarget_Count + AssetMeshAnimTarget_Scale];
+
+    if (*weightT < scene_weight_max) {
+      anim_blend_vec(tl->defaultPose[j].t, 1.0f, weightT, &out[j].t);
+    }
+    if (*weightR < scene_weight_max) {
+      anim_blend_quat(tl->defaultPose[j].r, 1.0f, weightR, &out[j].r);
+    }
+    if (*weightS < scene_weight_max) {
+      anim_blend_vec(tl->defaultPose[j].s, 1.0f, weightS, &out[j].s);
     }
   }
 }
@@ -417,8 +435,7 @@ ecs_system_define(SceneSkeletonUpdateSys) {
     ecs_view_jump(templItr, renderable->graphic);
     const SceneSkeletonTemplComp* tl = ecs_view_read_t(templItr, SceneSkeletonTemplComp);
 
-    anim_init_weights(tl, weights);
-    anim_sample_default(tl, poses);
+    anim_set_weights_neg1(tl, weights);
 
     for (u32 i = 0; i != anim->layerCount; ++i) {
       SceneAnimLayer* layer = &anim->layers[i];
@@ -428,6 +445,7 @@ ecs_system_define(SceneSkeletonUpdateSys) {
         anim_sample_layer(tl, layer, i, weights, poses);
       }
     }
+    anim_sample_def(tl, weights, poses);
     anim_apply(tl, poses, sk->jointTransforms);
   }
 }
