@@ -115,6 +115,19 @@ GeoQuat geo_quat_norm(const GeoQuat q) {
 #endif
 }
 
+f32 geo_quat_dot(const GeoQuat a, const GeoQuat b) {
+#if geo_quat_simd_enable
+  return simd_vec_x(simd_vec_dot4(simd_vec_load(a.comps), simd_vec_load(b.comps)));
+#else
+  f32 res = 0;
+  res += a.x * b.x;
+  res += a.y * b.y;
+  res += a.z * b.z;
+  res += a.w * b.w;
+  return res;
+#endif
+}
+
 GeoQuat geo_quat_look(const GeoVector forward, const GeoVector upRef) {
   const GeoMatrix m = geo_matrix_rotate_look(forward, upRef);
   return geo_matrix_to_quat(&m);
