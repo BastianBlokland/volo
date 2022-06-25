@@ -27,7 +27,11 @@ ecs_view_define(AnimationView) {
 ecs_view_define(SkeletonTemplView) { ecs_access_read(SceneSkeletonTemplComp); }
 
 static void animation_panel_draw_joints(
-    UiCanvasComp* canvas, UiTable* table, u32 layerIdx, const SceneSkeletonTemplComp* skelTempl) {
+    UiCanvasComp*                 canvas,
+    UiTable*                      table,
+    SceneAnimLayer*               layer,
+    const u32                     layerIdx,
+    const SceneSkeletonTemplComp* skelTempl) {
   const u32 jointCount = scene_skeleton_joint_count(skelTempl);
   for (u32 jointIdx = 0; jointIdx != jointCount; ++jointIdx) {
     const SceneSkeletonJoint* joint = scene_skeleton_joint(skelTempl, jointIdx);
@@ -44,6 +48,12 @@ static void animation_panel_draw_joints(
     ui_label(canvas, fmt_write_scratch("  {}", fmt_text(name)));
     ui_table_next_column(canvas, table);
 
+    bool enabled = (layer->mask.jointBits & (u64_lit(1) << jointIdx)) != 0;
+    if (ui_toggle(canvas, &enabled, .tooltip = string_lit("Enable / disable this joint."))) {
+      layer->mask.jointBits ^= u64_lit(1) << jointIdx;
+    }
+    ui_table_next_column(canvas, table);
+
     ui_label(
         canvas,
         fmt_write_scratch(
@@ -52,7 +62,6 @@ static void animation_panel_draw_joints(
             fmt_int(info.frameCountR, .minDigits = 2),
             fmt_int(info.frameCountS, .minDigits = 2)),
         .tooltip = string_lit("Frames (T / R / S"));
-    ui_table_next_column(canvas, table);
   }
 }
 
@@ -115,7 +124,7 @@ static void animation_panel_draw(
       ui_table_next_column(canvas, &table);
 
       if (open) {
-        animation_panel_draw_joints(canvas, &table, layerIdx, skelTempl);
+        animation_panel_draw_joints(canvas, &table, layer, layerIdx, skelTempl);
       }
     }
     ui_scrollview_end(canvas, &panelComp->scrollview);

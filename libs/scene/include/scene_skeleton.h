@@ -8,6 +8,10 @@ typedef struct {
   StringHash nameHash;
 } SceneSkeletonJoint;
 
+typedef struct {
+  u64 jointBits;
+} SceneSkeletonMask;
+
 ecs_comp_extern(SceneSkeletonTemplComp);
 
 ecs_comp_extern_public(SceneSkeletonComp) {
@@ -16,11 +20,12 @@ ecs_comp_extern_public(SceneSkeletonComp) {
 };
 
 typedef struct {
-  f32        time;
-  f32        duration;
-  f32        speed;
-  f32        weight;
-  StringHash nameHash;
+  f32               time;
+  f32               duration;
+  f32               speed;
+  f32               weight;
+  SceneSkeletonMask mask;
+  StringHash        nameHash;
 } SceneAnimLayer;
 
 typedef struct {

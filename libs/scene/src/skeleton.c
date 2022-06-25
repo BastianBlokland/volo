@@ -141,6 +141,7 @@ static void scene_skeleton_init_from_templ(
         .duration = tl->anims[i].duration,
         .speed    = 1.0f,
         .weight   = 1.0f,
+        .mask     = {~u64_lit(0)},
     };
   }
   ecs_world_add_t(world, entity, SceneAnimationComp, .layers = layers, .layerCount = tl->animCount);
@@ -347,6 +348,10 @@ static void anim_blend_quat(GeoQuat q, const f32 weight, f32* outWeight, GeoQuat
   }
 }
 
+INLINE_HINT static bool anim_mask_test(const SceneSkeletonMask* mask, const u32 joint) {
+  return (mask->jointBits & (u64_lit(1) << joint)) != 0;
+}
+
 static void anim_sample_layer(
     const SceneSkeletonTemplComp* tl,
     const SceneAnimLayer*         layer,
@@ -355,6 +360,10 @@ static void anim_sample_layer(
     SceneJointPose*               out) {
   const SceneSkeletonAnim* anim = &tl->anims[layerIndex];
   for (u32 j = 0; j != tl->jointCount; ++j) {
+    if (!anim_mask_test(&layer->mask, j)) {
+      continue; // Layer is disabled for this joint.
+    }
+
     f32* weightT = &weights[j * AssetMeshAnimTarget_Count + AssetMeshAnimTarget_Translation];
     f32* weightR = &weights[j * AssetMeshAnimTarget_Count + AssetMeshAnimTarget_Rotation];
     f32* weightS = &weights[j * AssetMeshAnimTarget_Count + AssetMeshAnimTarget_Scale];
