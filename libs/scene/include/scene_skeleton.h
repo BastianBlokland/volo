@@ -8,7 +8,7 @@ typedef struct {
   StringHash nameHash;
 } SceneSkeletonJoint;
 
-ecs_comp_extern(SceneSkeletonTemplateComp);
+ecs_comp_extern(SceneSkeletonTemplComp);
 
 ecs_comp_extern_public(SceneSkeletonComp) {
   u32        jointCount;
@@ -27,9 +27,8 @@ ecs_comp_extern_public(SceneAnimationComp) {
   u32             layerCount;
 };
 
-u32 scene_skeleton_root_index(const SceneSkeletonTemplateComp*);
+u32 scene_skeleton_root_index(const SceneSkeletonTemplComp*);
 
-const SceneSkeletonJoint* scene_skeleton_joint(const SceneSkeletonTemplateComp*, u32 jointIndex);
+const SceneSkeletonJoint* scene_skeleton_joint(const SceneSkeletonTemplComp*, u32 index);
 
-void scene_skeleton_joint_delta(
-    const SceneSkeletonComp*, const SceneSkeletonTemplateComp*, GeoMatrix* out);
+void scene_skeleton_delta(const SceneSkeletonComp*, const SceneSkeletonTemplComp*, GeoMatrix* out);
