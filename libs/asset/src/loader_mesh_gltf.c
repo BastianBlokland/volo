@@ -366,12 +366,6 @@ static AssetMeshAnimPtr gltf_anim_data_begin(GltfLoad* ld, const u32 align) {
   return (u32)ld->animData.size;
 }
 
-static AssetMeshAnimPtr gltf_anim_data_push_f32(GltfLoad* ld, const f32 val) {
-  const AssetMeshAnimPtr res                             = gltf_anim_data_begin(ld, alignof(f32));
-  *((f32*)dynarray_push(&ld->animData, sizeof(f32)).ptr) = val;
-  return res;
-}
-
 static AssetMeshAnimPtr gltf_anim_data_push_vec(GltfLoad* ld, const GeoVector val) {
   const AssetMeshAnimPtr res = gltf_anim_data_begin(ld, alignof(GeoVector));
   *((GeoVector*)dynarray_push(&ld->animData, sizeof(GeoVector)).ptr) = val;
@@ -1046,9 +1040,6 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
     f32 duration                 = 0;
 
     for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
-      const bool       needsMirror = jointIndex == ld->rootJointIndex; // R to L coord conversion.
-      const GltfJoint* joint       = &ld->joints[jointIndex];
-
       for (AssetMeshAnimTarget target = 0; target != AssetMeshAnimTarget_Count; ++target) {
         const GltfAnimChannel* srcChannel = &ld->anims[animIndex].channels[jointIndex][target];
         AssetMeshAnimChannel*  resChannel = &resAnims[animIndex].joints[jointIndex][target];
@@ -1063,37 +1054,30 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
               .timeData   = gltf_anim_data_push_access(ld, srcChannel->accInput),
               .valueData  = gltf_anim_data_push_access_vec(ld, srcChannel->accOutput),
           };
-        } else {
-          *resChannel = (AssetMeshAnimChannel){
-              .frameCount = 1, .timeData = gltf_anim_data_push_f32(ld, 0.0f)};
-          switch (target) {
-          case AssetMeshAnimTarget_Translation:
-            resChannel->valueData = gltf_anim_data_push_vec(ld, joint->trans);
-            break;
-          case AssetMeshAnimTarget_Rotation:
-            resChannel->valueData = gltf_anim_data_push_vec(ld, joint->rot);
-            break;
-          case AssetMeshAnimTarget_Scale:
-            if (needsMirror) {
-              const GeoVector mirror = geo_vector(joint->scale.x, joint->scale.y, -joint->scale.z);
-              resChannel->valueData  = gltf_anim_data_push_vec(ld, mirror);
-            } else {
-              resChannel->valueData = gltf_anim_data_push_vec(ld, joint->scale);
-            }
-            break;
-          case AssetMeshAnimTarget_Count:
-            break;
-          }
         }
       }
     }
     resAnims[animIndex].duration = duration;
   }
 
+  // Create the default pose output.
+  AssetMeshAnimPtr resDefaultPose = gltf_anim_data_begin(ld, alignof(GeoVector));
+  for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
+    const GltfJoint* joint = &ld->joints[jointIndex];
+
+    gltf_anim_data_push_vec(ld, joint->trans);
+    gltf_anim_data_push_vec(ld, joint->rot);
+
+    // Mirror the root to convert from a Right-handed coordinate system to a Left-Handed.
+    const GeoVector scaleMirror = geo_vector(joint->scale.x, joint->scale.y, -joint->scale.z);
+    gltf_anim_data_push_vec(ld, jointIndex == ld->rootJointIndex ? scaleMirror : joint->scale);
+  }
+
   *out = (AssetMeshSkeletonComp){
       .joints          = resJoints,
       .anims           = resAnims,
       .bindPoseInvMats = gltf_anim_data_push_access_mat(ld, ld->accBindPoseInvMats),
+      .defaultPose     = resDefaultPose,
       .jointCount      = ld->jointCount,
       .animCount       = ld->animCount,
       .rootJointIndex  = sentinel_check(ld->rootJointIndex) ? 0 : ld->rootJointIndex,

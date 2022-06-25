@@ -32,6 +32,12 @@ typedef struct {
 } SceneSkeletonChannel;
 
 typedef struct {
+  GeoVector t;
+  GeoQuat   r;
+  GeoVector s;
+} SceneJointPose;
+
+typedef struct {
   StringHash           nameHash;
   f32                  duration;
   SceneSkeletonChannel joints[asset_mesh_joints_max][AssetMeshAnimTarget_Count];
@@ -43,9 +49,10 @@ typedef struct {
 ecs_comp_define(SceneSkeletonTemplateComp) {
   SkeletonTemplateState state;
   EcsEntityId           mesh;
-  SceneSkeletonJoint*   joints;
-  SceneSkeletonAnim*    anims;
-  const GeoMatrix*      bindPoseInvMats;
+  SceneSkeletonJoint*   joints;          // [jointCount].
+  SceneSkeletonAnim*    anims;           // [animCount].
+  const GeoMatrix*      bindPoseInvMats; // [jointCount].
+  const SceneJointPose* defaultPose;     // [jointCount].
   u32                   jointCount;
   u32                   animCount;
   u32                   jointRootIndex;
@@ -120,16 +127,12 @@ static void scene_skeleton_init_from_template(
     return;
   }
 
-  GeoMatrix* jointTransforms = alloc_array_t(g_alloc_heap, GeoMatrix, tl->jointCount);
-  for (u32 i = 0; i != tl->jointCount; ++i) {
-    jointTransforms[i] = geo_matrix_inverse(&tl->bindPoseInvMats[i]);
-  }
   ecs_world_add_t(
       world,
       entity,
       SceneSkeletonComp,
       .jointCount      = tl->jointCount,
-      .jointTransforms = jointTransforms);
+      .jointTransforms = alloc_array_t(g_alloc_heap, GeoMatrix, tl->jointCount));
 
   SceneAnimLayer* layers = alloc_array_t(g_alloc_heap, SceneAnimLayer, tl->animCount);
   for (u32 i = 0; i != tl->animCount; ++i) {
@@ -213,6 +216,7 @@ scene_asset_template_init(SceneSkeletonTemplateComp* tl, const AssetMeshSkeleton
   }
 
   tl->bindPoseInvMats = (const GeoMatrix*)mem_at_u8(tl->animData, asset->bindPoseInvMats);
+  tl->defaultPose     = (const SceneJointPose*)mem_at_u8(tl->animData, asset->defaultPose);
 }
 
 static void scene_skeleton_template_load_done(EcsWorld* world, EcsIterator* itr) {
@@ -318,21 +322,33 @@ static GeoQuat scene_animation_sample_quat(const SceneSkeletonChannel* ch, const
   return geo_quat_slerp(ch->values_quat[fromFrame], ch->values_quat[toFrame], frac);
 }
 
-static void scene_animation_sample(
-    const SceneSkeletonTemplateComp* tl, const u32 joint, const f32 t, GeoMatrix* out) {
+static SceneJointPose
+scene_animation_sample_pose(const SceneSkeletonTemplateComp* tl, const u32 joint, const f32 t) {
   const SceneSkeletonAnim* anim = &tl->anims[0];
 
   const SceneSkeletonChannel* chT = &anim->joints[joint][AssetMeshAnimTarget_Translation];
   const SceneSkeletonChannel* chR = &anim->joints[joint][AssetMeshAnimTarget_Rotation];
   const SceneSkeletonChannel* chS = &anim->joints[joint][AssetMeshAnimTarget_Scale];
 
-  const GeoMatrix tMat = geo_matrix_translate(scene_animation_sample_vec3(chT, t));
+  return (SceneJointPose){
+      .t = chT->frameCount ? scene_animation_sample_vec3(chT, t) : tl->defaultPose[joint].t,
+      .r = chR->frameCount ? scene_animation_sample_quat(chR, t) : tl->defaultPose[joint].r,
+      .s = chS->frameCount ? scene_animation_sample_vec3(chS, t) : tl->defaultPose[joint].s,
+  };
+}
+
+static void scene_animation_sample(
+    const SceneSkeletonTemplateComp* tl, const u32 joint, const f32 t, GeoMatrix* out) {
+
+  const SceneJointPose pose = scene_animation_sample_pose(tl, joint, t);
+
+  const GeoMatrix tMat = geo_matrix_translate(pose.t);
   out[joint]           = geo_matrix_mul(&out[joint], &tMat);
 
-  GeoMatrix qMat = geo_matrix_from_quat(scene_animation_sample_quat(chR, t));
+  GeoMatrix qMat = geo_matrix_from_quat(pose.r);
   out[joint]     = geo_matrix_mul(&out[joint], &qMat);
 
-  const GeoMatrix sMat = geo_matrix_scale(scene_animation_sample_vec3(chS, t));
+  const GeoMatrix sMat = geo_matrix_scale(pose.s);
   out[joint]           = geo_matrix_mul(&out[joint], &sMat);
 
   for (u32 childNum = 0; childNum != tl->joints[joint].childCount; ++childNum) {
