@@ -10,6 +10,8 @@
 #include "scene_time.h"
 
 #define scene_skeleton_max_loads 16
+#define scene_weight_min 0.001f
+#define scene_weight_max 0.999f
 
 ecs_comp_define_public(SceneSkeletonComp);
 ecs_comp_define_public(SceneAnimationComp);
@@ -289,6 +291,12 @@ static void anim_sample_default(const SceneSkeletonTemplComp* tl, SceneJointPose
   }
 }
 
+static void anim_init_weights(const SceneSkeletonTemplComp* tl, f32* weights) {
+  for (u32 c = 0; c != tl->jointCount * 3; ++c) {
+    weights[c] = 1.0f;
+  }
+}
+
 static u32 anim_find_frame(const SceneSkeletonChannel* ch, const f32 t) {
   for (u32 i = 1; i != ch->frameCount; ++i) {
     if (ch->times[i] > t) {
@@ -321,27 +329,53 @@ static GeoQuat anim_channel_get_quat(const SceneSkeletonChannel* ch, const f32 t
 }
 
 static void anim_sample_layer(
-    const SceneSkeletonTemplComp* tl, const SceneAnimLayer* layer, SceneJointPose* out) {
+    const SceneSkeletonTemplComp* tl,
+    const SceneAnimLayer*         layer,
+    f32*                          weights,
+    SceneJointPose*               out) {
   const SceneSkeletonAnim* anim = &tl->anims[layer->animIndex];
   for (u32 j = 0; j != tl->jointCount; ++j) {
+    f32* weightT = &weights[j * AssetMeshAnimTarget_Count + AssetMeshAnimTarget_Translation];
+    f32* weightR = &weights[j * AssetMeshAnimTarget_Count + AssetMeshAnimTarget_Rotation];
+    f32* weightS = &weights[j * AssetMeshAnimTarget_Count + AssetMeshAnimTarget_Scale];
+
     const SceneSkeletonChannel* chT = &anim->joints[j][AssetMeshAnimTarget_Translation];
     if (chT->frameCount) {
-      out[j].t = anim_channel_get_vec3(chT, layer->time);
+      const f32 frac = *weightT * layer->weight;
+      if (frac > scene_weight_min) {
+        const GeoVector t = anim_channel_get_vec3(chT, layer->time);
+        out[j].t          = frac > scene_weight_max ? t : geo_vector_lerp(out[j].t, t, frac);
+        *weightT -= frac;
+      }
     }
 
     const SceneSkeletonChannel* chR = &anim->joints[j][AssetMeshAnimTarget_Rotation];
     if (chR->frameCount) {
-      out[j].r = anim_channel_get_quat(chR, layer->time);
+      const f32 frac = *weightR * layer->weight;
+      if (frac > scene_weight_min) {
+        GeoQuat r = anim_channel_get_quat(chR, layer->time);
+        if (geo_quat_dot(r, out[j].r) < 0) {
+          // Compensate for quaternion double-cover (two quaternions representing the same rot).
+          r = geo_quat_flip(r);
+        }
+        out[j].r = frac > scene_weight_max ? r : geo_quat_slerp(out[j].r, r, frac);
+        *weightR -= frac;
+      }
     }
 
     const SceneSkeletonChannel* chS = &anim->joints[j][AssetMeshAnimTarget_Scale];
     if (chS->frameCount) {
-      out[j].s = anim_channel_get_vec3(chS, layer->time);
+      const f32 frac = *weightS * layer->weight;
+      if (frac > scene_weight_min) {
+        const GeoVector s = anim_channel_get_vec3(chS, layer->time);
+        out[j].s          = frac > scene_weight_max ? s : geo_vector_lerp(out[j].s, s, frac);
+        *weightS -= frac;
+      }
     }
   }
 }
 
-static void anim_to_world(const SceneSkeletonTemplComp* tl, SceneJointPose* poses, GeoMatrix* out) {
+static void anim_apply(const SceneSkeletonTemplComp* tl, SceneJointPose* poses, GeoMatrix* out) {
   u32 stack[asset_mesh_joints_max] = {tl->jointRootIndex};
   u32 stackCount                   = 1;
 
@@ -372,7 +406,9 @@ ecs_system_define(SceneSkeletonUpdateSys) {
   EcsView*     updateView = ecs_world_view_t(world, UpdateView);
   EcsIterator* templItr   = ecs_view_itr(ecs_world_view_t(world, SkeletonTemplView));
 
-  SceneJointPose poses[asset_mesh_joints_max];
+  SceneJointPose poses[asset_mesh_joints_max];       // Per joint.
+  f32            weights[asset_mesh_joints_max * 3]; // Per joint per channel.
+
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
     const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
     SceneSkeletonComp*         sk         = ecs_view_write_t(itr, SceneSkeletonComp);
@@ -381,16 +417,18 @@ ecs_system_define(SceneSkeletonUpdateSys) {
     ecs_view_jump(templItr, renderable->graphic);
     const SceneSkeletonTemplComp* tl = ecs_view_read_t(templItr, SceneSkeletonTemplComp);
 
+    anim_init_weights(tl, weights);
     anim_sample_default(tl, poses);
+
     for (u32 i = 0; i != anim->layerCount; ++i) {
       SceneAnimLayer* layer = &anim->layers[i];
       layer->time += deltaSeconds * layer->speed;
-      layer->time = math_mod_f32(layer->time, tl->anims[i].duration);
-      if (layer->weight > 0.0f) {
-        anim_sample_layer(tl, layer, poses);
+      layer->time = math_mod_f32(layer->time, tl->anims[layer->animIndex].duration);
+      if (layer->weight > scene_weight_min) {
+        anim_sample_layer(tl, layer, weights, poses);
       }
     }
-    anim_to_world(tl, poses, sk->jointTransforms);
+    anim_apply(tl, poses, sk->jointTransforms);
   }
 }
 
