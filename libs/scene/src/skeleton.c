@@ -135,9 +135,10 @@ static void scene_skeleton_init_from_templ(
   SceneAnimLayer* layers = alloc_array_t(g_alloc_heap, SceneAnimLayer, tl->animCount);
   for (u32 i = 0; i != tl->animCount; ++i) {
     layers[i] = (SceneAnimLayer){
-        .nameHash = tl->anims[i].nameHash,
-        .duration = tl->anims[i].duration,
-        .speed    = 1.0f,
+        .animIndex = i,
+        .nameHash  = tl->anims[i].nameHash,
+        .duration  = tl->anims[i].duration,
+        .speed     = 1.0f,
     };
   }
   ecs_world_add_t(world, entity, SceneAnimationComp, .layers = layers, .layerCount = tl->animCount);
@@ -325,25 +326,23 @@ static GeoQuat scene_animation_sample_quat(const SceneSkeletonChannel* ch, const
   return geo_quat_slerp(ch->values_quat[fromFrame], ch->values_quat[toFrame], frac);
 }
 
-static void scene_anim_sample(
-    const SceneSkeletonTemplComp* tl,
-    const SceneSkeletonAnim*      anim,
-    const f32                     t,
-    SceneJointPose*               out) {
+static void scene_anim_sample_layer(
+    const SceneSkeletonTemplComp* tl, const SceneAnimLayer* layer, SceneJointPose* out) {
+  const SceneSkeletonAnim* anim = &tl->anims[layer->animIndex];
   for (u32 j = 0; j != tl->jointCount; ++j) {
     const SceneSkeletonChannel* chT = &anim->joints[j][AssetMeshAnimTarget_Translation];
     if (chT->frameCount) {
-      out[j].t = scene_animation_sample_vec3(chT, t);
+      out[j].t = scene_animation_sample_vec3(chT, layer->time);
     }
 
     const SceneSkeletonChannel* chR = &anim->joints[j][AssetMeshAnimTarget_Rotation];
     if (chR->frameCount) {
-      out[j].r = scene_animation_sample_quat(chR, t);
+      out[j].r = scene_animation_sample_quat(chR, layer->time);
     }
 
     const SceneSkeletonChannel* chS = &anim->joints[j][AssetMeshAnimTarget_Scale];
     if (chS->frameCount) {
-      out[j].s = scene_animation_sample_vec3(chS, t);
+      out[j].s = scene_animation_sample_vec3(chS, layer->time);
     }
   }
 }
@@ -397,7 +396,7 @@ ecs_system_define(SceneSkeletonUpdateSys) {
     }
 
     scene_anim_sample_default(tl, poses);
-    scene_anim_sample(tl, &tl->anims[2], anim->layers[2].time, poses);
+    scene_anim_sample_layer(tl, &anim->layers[2], poses);
     scene_anim_to_world(tl, poses, sk->jointTransforms);
   }
 }

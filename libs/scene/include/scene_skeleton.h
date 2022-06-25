@@ -16,6 +16,7 @@ ecs_comp_extern_public(SceneSkeletonComp) {
 };
 
 typedef struct {
+  u32        animIndex;
   f32        time;
   f32        duration;
   f32        speed;
