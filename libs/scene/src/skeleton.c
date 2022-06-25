@@ -480,9 +480,22 @@ ecs_module_init(scene_skeleton_module) {
 
 u32 scene_skeleton_root_index(const SceneSkeletonTemplComp* tl) { return tl->jointRootIndex; }
 
+u32 scene_skeleton_joint_count(const SceneSkeletonTemplComp* tl) { return tl->jointCount; }
+
 const SceneSkeletonJoint* scene_skeleton_joint(const SceneSkeletonTemplComp* tl, const u32 index) {
   diag_assert(index < tl->jointCount);
   return &tl->joints[index];
+}
+
+SceneAnimJointInfo
+scene_skeleton_anim_info(const SceneSkeletonTemplComp* tl, const u32 anim, const u32 joint) {
+  diag_assert(anim < tl->animCount);
+  diag_assert(joint < tl->jointCount);
+  return (SceneAnimJointInfo){
+      .frameCountT = tl->anims[anim].joints[joint][AssetMeshAnimTarget_Translation].frameCount,
+      .frameCountR = tl->anims[anim].joints[joint][AssetMeshAnimTarget_Rotation].frameCount,
+      .frameCountS = tl->anims[anim].joints[joint][AssetMeshAnimTarget_Scale].frameCount,
+  };
 }
 
 void scene_skeleton_delta(
