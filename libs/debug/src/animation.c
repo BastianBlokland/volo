@@ -26,6 +26,7 @@ static void animation_panel_draw(
     ui_table_add_column(&table, UiTableColumn_Fixed, 100);
     ui_table_add_column(&table, UiTableColumn_Fixed, 150);
     ui_table_add_column(&table, UiTableColumn_Fixed, 150);
+    ui_table_add_column(&table, UiTableColumn_Fixed, 100);
 
     ui_table_draw_header(
         canvas,
@@ -35,6 +36,7 @@ static void animation_panel_draw(
             {string_lit("Time"), string_lit("Current playback time.")},
             {string_lit("Progress"), string_lit("Current playback progress.")},
             {string_lit("Speed"), string_lit("Current playback speed.")},
+            {string_lit("Weight"), string_lit("Current playback weight.")},
         });
 
     ui_layout_container_push(canvas, UiClip_None);
@@ -56,10 +58,13 @@ static void animation_panel_draw(
               fmt_float(layer->duration, .minDecDigits = 2, .maxDecDigits = 2)));
       ui_table_next_column(canvas, &table);
 
-      ui_slider(canvas, &layer->time, .min = 0, .max = layer->duration);
+      ui_slider(canvas, &layer->time, .max = layer->duration);
       ui_table_next_column(canvas, &table);
 
-      ui_slider(canvas, &layer->speed, .min = 0, .max = 5);
+      ui_slider(canvas, &layer->speed, .max = 5);
+      ui_table_next_column(canvas, &table);
+
+      ui_slider(canvas, &layer->weight);
       ui_table_next_column(canvas, &table);
     }
     ui_layout_container_pop(canvas);

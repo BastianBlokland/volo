@@ -20,6 +20,7 @@ typedef struct {
   f32        time;
   f32        duration;
   f32        speed;
+  f32        weight;
   StringHash nameHash;
 } SceneAnimLayer;
 

@@ -139,6 +139,7 @@ static void scene_skeleton_init_from_templ(
         .nameHash  = tl->anims[i].nameHash,
         .duration  = tl->anims[i].duration,
         .speed     = 1.0f,
+        .weight    = 1.0f,
     };
   }
   ecs_world_add_t(world, entity, SceneAnimationComp, .layers = layers, .layerCount = tl->animCount);
@@ -288,7 +289,7 @@ static void anim_sample_default(const SceneSkeletonTemplComp* tl, SceneJointPose
   }
 }
 
-static u32 anim_from_frame(const SceneSkeletonChannel* ch, const f32 t) {
+static u32 anim_find_frame(const SceneSkeletonChannel* ch, const f32 t) {
   for (u32 i = 1; i != ch->frameCount; ++i) {
     if (ch->times[i] > t) {
       return i - 1;
@@ -297,33 +298,26 @@ static u32 anim_from_frame(const SceneSkeletonChannel* ch, const f32 t) {
   return 0;
 }
 
-static u32 anim_to_frame(const SceneSkeletonChannel* ch, const f32 t) {
-  for (u32 i = 0; i != ch->frameCount; ++i) {
-    if (ch->times[i] > t) {
-      return i;
-    }
+static GeoVector anim_channel_get_vec3(const SceneSkeletonChannel* ch, const f32 t) {
+  const u32 frame = anim_find_frame(ch, t);
+  if (frame == ch->frameCount - 1) {
+    return ch->values_vec[frame];
   }
-  return ch->frameCount - 1;
+  const f32 fromT = ch->times[frame];
+  const f32 toT   = ch->times[frame + 1];
+  const f32 frac  = math_unlerp(fromT, toT, t);
+  return geo_vector_lerp(ch->values_vec[frame], ch->values_vec[frame + 1], frac);
 }
 
-static GeoVector anim_sample_vec3(const SceneSkeletonChannel* ch, const f32 t) {
-  const u32 fromFrame = anim_from_frame(ch, t);
-  const u32 toFrame   = anim_to_frame(ch, t);
-  const f32 fromT     = ch->times[fromFrame];
-  const f32 toT       = ch->times[toFrame];
-  const f32 frac      = math_unlerp(fromT, toT, t);
-
-  return geo_vector_lerp(ch->values_vec[fromFrame], ch->values_vec[toFrame], frac);
-}
-
-static GeoQuat anim_sample_quat(const SceneSkeletonChannel* ch, const f32 t) {
-  const u32 fromFrame = anim_from_frame(ch, t);
-  const u32 toFrame   = anim_to_frame(ch, t);
-  const f32 fromT     = ch->times[fromFrame];
-  const f32 toT       = ch->times[toFrame];
-  const f32 frac      = math_unlerp(fromT, toT, t);
-
-  return geo_quat_slerp(ch->values_quat[fromFrame], ch->values_quat[toFrame], frac);
+static GeoQuat anim_channel_get_quat(const SceneSkeletonChannel* ch, const f32 t) {
+  const u32 frame = anim_find_frame(ch, t);
+  if (frame == ch->frameCount - 1) {
+    return ch->values_quat[frame];
+  }
+  const f32 fromT = ch->times[frame];
+  const f32 toT   = ch->times[frame + 1];
+  const f32 frac  = math_unlerp(fromT, toT, t);
+  return geo_quat_slerp(ch->values_quat[frame], ch->values_quat[frame + 1], frac);
 }
 
 static void anim_sample_layer(
@@ -332,17 +326,17 @@ static void anim_sample_layer(
   for (u32 j = 0; j != tl->jointCount; ++j) {
     const SceneSkeletonChannel* chT = &anim->joints[j][AssetMeshAnimTarget_Translation];
     if (chT->frameCount) {
-      out[j].t = anim_sample_vec3(chT, layer->time);
+      out[j].t = anim_channel_get_vec3(chT, layer->time);
     }
 
     const SceneSkeletonChannel* chR = &anim->joints[j][AssetMeshAnimTarget_Rotation];
     if (chR->frameCount) {
-      out[j].r = anim_sample_quat(chR, layer->time);
+      out[j].r = anim_channel_get_quat(chR, layer->time);
     }
 
     const SceneSkeletonChannel* chS = &anim->joints[j][AssetMeshAnimTarget_Scale];
     if (chS->frameCount) {
-      out[j].s = anim_sample_vec3(chS, layer->time);
+      out[j].s = anim_channel_get_vec3(chS, layer->time);
     }
   }
 }
@@ -379,7 +373,6 @@ ecs_system_define(SceneSkeletonUpdateSys) {
   EcsIterator* templItr   = ecs_view_itr(ecs_world_view_t(world, SkeletonTemplView));
 
   SceneJointPose poses[asset_mesh_joints_max];
-
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
     const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
     SceneSkeletonComp*         sk         = ecs_view_write_t(itr, SceneSkeletonComp);
@@ -388,14 +381,15 @@ ecs_system_define(SceneSkeletonUpdateSys) {
     ecs_view_jump(templItr, renderable->graphic);
     const SceneSkeletonTemplComp* tl = ecs_view_read_t(templItr, SceneSkeletonTemplComp);
 
+    anim_sample_default(tl, poses);
     for (u32 i = 0; i != anim->layerCount; ++i) {
       SceneAnimLayer* layer = &anim->layers[i];
       layer->time += deltaSeconds * layer->speed;
       layer->time = math_mod_f32(layer->time, tl->anims[i].duration);
+      if (layer->weight > 0.0f) {
+        anim_sample_layer(tl, layer, poses);
+      }
     }
-
-    anim_sample_default(tl, poses);
-    anim_sample_layer(tl, &anim->layers[2], poses);
     anim_to_world(tl, poses, sk->jointTransforms);
   }
 }
