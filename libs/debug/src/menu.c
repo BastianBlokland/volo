@@ -82,7 +82,7 @@ static void debug_action_bar_draw(
     const EcsEntityId winEntity) {
 
   UiTable table = ui_table(.align = UiAlign_TopRight, .rowHeight = 40);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 40);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
 
   ui_table_next_row(canvas, &table);
   const bool statsEnabled = debug_stats_show(stats);
