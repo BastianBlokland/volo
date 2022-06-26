@@ -32,20 +32,21 @@ static void animation_panel_draw_joints(
     SceneAnimLayer*               layer,
     const u32                     layerIdx,
     const SceneSkeletonTemplComp* skelTempl) {
-  const u32 jointCount = scene_skeleton_joint_count(skelTempl);
-  for (u32 jointIdx = 0; jointIdx != jointCount; ++jointIdx) {
-    const SceneSkeletonJoint* joint = scene_skeleton_joint(skelTempl, jointIdx);
-    const SceneAnimJointInfo  info  = scene_skeleton_anim_info(skelTempl, layerIdx, jointIdx);
-    const String              name  = stringtable_lookup(g_stringtable, joint->nameHash);
 
-    if (!info.frameCountT && !info.frameCountR && !info.frameCountS) {
-      continue;
-    }
+  u32 stack[scene_skeleton_joints_max] = {scene_skeleton_root_index(skelTempl)};
+  u32 depth[scene_skeleton_joints_max] = {0};
+  u32 stackCount                       = 1;
+
+  while (stackCount--) {
+    const u32                 jointIdx = stack[stackCount];
+    const SceneSkeletonJoint* joint    = scene_skeleton_joint(skelTempl, jointIdx);
+    const SceneAnimJointInfo  info     = scene_skeleton_anim_info(skelTempl, layerIdx, jointIdx);
+    const String              name     = stringtable_lookup(g_stringtable, joint->nameHash);
 
     ui_table_next_row(canvas, table);
     ui_table_draw_row_bg(canvas, table, ui_color(96, 96, 96, 192));
 
-    ui_label(canvas, fmt_write_scratch("  {}", fmt_text(name)));
+    ui_label(canvas, fmt_write_scratch("{}{}", fmt_padding(depth[stackCount] * 2), fmt_text(name)));
     ui_table_next_column(canvas, table);
 
     bool enabled = scene_skeleton_mask_test(&layer->mask, jointIdx);
@@ -62,6 +63,12 @@ static void animation_panel_draw_joints(
             fmt_int(info.frameCountR, .minDigits = 2),
             fmt_int(info.frameCountS, .minDigits = 2)),
         .tooltip = string_lit("Frames (T / R / S"));
+
+    const u32 childDepth = depth[stackCount] + 1;
+    for (u32 childNum = 0; childNum != joint->childCount; ++childNum) {
+      stack[stackCount]   = joint->childIndices[childNum];
+      depth[stackCount++] = childDepth;
+    }
   }
 }
 
@@ -75,7 +82,7 @@ static void animation_panel_draw(
 
   if (anim) {
     UiTable table = ui_table(.spacing = ui_vector(10, 5));
-    ui_table_add_column(&table, UiTableColumn_Fixed, 275);
+    ui_table_add_column(&table, UiTableColumn_Fixed, 300);
     ui_table_add_column(&table, UiTableColumn_Fixed, 125);
     ui_table_add_column(&table, UiTableColumn_Fixed, 150);
     ui_table_add_column(&table, UiTableColumn_Fixed, 150);
@@ -186,6 +193,6 @@ ecs_module_init(debug_animation_module) {
 EcsEntityId debug_animation_panel_open(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
   ecs_world_add_t(
-      world, panelEntity, DebugAnimationPanelComp, .panel = ui_panel(ui_vector(875, 300)));
+      world, panelEntity, DebugAnimationPanelComp, .panel = ui_panel(ui_vector(900, 300)));
   return panelEntity;
 }

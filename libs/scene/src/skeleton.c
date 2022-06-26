@@ -43,7 +43,7 @@ typedef struct {
 typedef struct {
   StringHash           nameHash;
   f32                  duration;
-  SceneSkeletonChannel joints[asset_mesh_joints_max][AssetMeshAnimTarget_Count];
+  SceneSkeletonChannel joints[scene_skeleton_joints_max][AssetMeshAnimTarget_Count];
 } SceneSkeletonAnim;
 
 /**
@@ -409,8 +409,8 @@ static void anim_sample_def(const SceneSkeletonTemplComp* tl, f32* weights, Scen
 }
 
 static void anim_apply(const SceneSkeletonTemplComp* tl, SceneJointPose* poses, GeoMatrix* out) {
-  u32 stack[asset_mesh_joints_max] = {tl->jointRootIndex};
-  u32 stackCount                   = 1;
+  u32 stack[scene_skeleton_joints_max] = {tl->jointRootIndex};
+  u32 stackCount                       = 1;
 
   while (stackCount--) {
     const u32       joint   = stack[stackCount];
@@ -439,8 +439,8 @@ ecs_system_define(SceneSkeletonUpdateSys) {
   EcsView*     updateView = ecs_world_view_t(world, UpdateView);
   EcsIterator* templItr   = ecs_view_itr(ecs_world_view_t(world, SkeletonTemplView));
 
-  SceneJointPose poses[asset_mesh_joints_max];       // Per joint.
-  f32            weights[asset_mesh_joints_max * 3]; // Per joint per channel.
+  SceneJointPose poses[scene_skeleton_joints_max];       // Per joint.
+  f32            weights[scene_skeleton_joints_max * 3]; // Per joint per channel.
 
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
     const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
