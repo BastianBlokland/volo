@@ -460,7 +460,11 @@ static void gltf_buffers_acquire(GltfLoad* ld, EcsWorld* w, AssetManagerComp* ma
     if (!gltf_json_field_str(ld, bufferElem, string_lit("uri"), &uri)) {
       goto Error;
     }
-    out->entity = asset_lookup(w, man, gltf_buffer_asset_id(ld, uri));
+    const String assetId = gltf_buffer_asset_id(ld, uri);
+    if (string_eq(assetId, ld->assetId)) {
+      goto Error; // Cannot load this same file again as a buffer.
+    }
+    out->entity = asset_lookup(w, man, assetId);
     asset_acquire(w, out->entity);
     ++out;
   }
