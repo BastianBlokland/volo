@@ -166,6 +166,9 @@ macro(set_msvc_compile_options)
   # Debug options.
   add_compile_options(/Zi)
 
+  # Statically link the runtime library.
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
+
 endmacro(set_msvc_compile_options)
 
 #
@@ -175,6 +178,7 @@ endmacro(set_msvc_compile_options)
 macro(set_compile_options)
 
   # Clear the default compiler options.
+  set(CMAKE_C_FLAGS "")
   set(CMAKE_C_FLAGS_DEBUG "")
   set(CMAKE_C_FLAGS_RELEASE "")
   set(CMAKE_C_FLAGS_RELWITHDEBINFO "")
