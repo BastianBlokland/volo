@@ -322,6 +322,17 @@ static void gltf_json_name(GltfLoad* ld, const JsonVal v, StringHash* out) {
       g_stringtable, gltf_json_field_str(ld, v, string_lit("name"), &str) ? str : string_empty);
 }
 
+static void gltf_json_transform(GltfLoad* ld, const JsonVal v, GltfTransform* out) {
+  out->t = geo_vector(0);
+  gltf_json_field_vec3(ld, v, string_lit("translation"), &out->t);
+
+  out->r = geo_quat_ident;
+  gltf_json_field_quat(ld, v, string_lit("rotation"), &out->r);
+
+  out->s = geo_vector(1, 1, 1);
+  gltf_json_field_vec3(ld, v, string_lit("scale"), &out->s);
+}
+
 static u32 gltf_node_to_joint_index(GltfLoad* ld, const u32 nodeIndex) {
   for (u32 i = 0; i != ld->jointCount; ++i) {
     if (ld->joints[i].nodeIndex == nodeIndex) {
@@ -704,16 +715,9 @@ static void gltf_parse_skeleton_nodes(GltfLoad* ld, GltfError* err) {
       goto Next; // This node is not part of the skeleton.
     }
     GltfJoint* out = &ld->joints[jointIndex];
+
     gltf_json_name(ld, node, &out->nameHash);
-
-    out->trans.t = geo_vector(0);
-    gltf_json_field_vec3(ld, node, string_lit("translation"), &out->trans.t);
-
-    out->trans.r = geo_quat_ident;
-    gltf_json_field_quat(ld, node, string_lit("rotation"), &out->trans.r);
-
-    out->trans.s = geo_vector(1, 1, 1);
-    gltf_json_field_vec3(ld, node, string_lit("scale"), &out->trans.s);
+    gltf_json_transform(ld, node, &out->trans);
 
     const JsonVal children = json_field(ld->jDoc, node, string_lit("children"));
     if (gltf_json_check(ld, children, JsonType_Array)) {
