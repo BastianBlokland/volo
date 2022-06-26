@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
+#include "core_thread.h"
 #include "core_time.h"
 #include "log_sink.h"
 
@@ -10,8 +11,9 @@
 typedef LogSink* LogSinkPtr;
 
 struct sLogger {
-  DynArray   sinks; // LogSink*[]
-  Allocator* alloc;
+  DynArray       sinks; // LogSink*[]
+  ThreadSpinLock sinksLock;
+  Allocator*     alloc;
 };
 
 Logger* g_logger = null;
@@ -81,7 +83,11 @@ void log_add_sink(Logger* logger, LogSink* sink) {
   diag_assert_msg(logger, "Logger not initialized");
   diag_assert_msg(sink, "Invalid sink");
 
+  thread_spinlock_lock(&logger->sinksLock);
+
   *dynarray_push_t(&logger->sinks, LogSink*) = sink;
+
+  thread_spinlock_unlock(&logger->sinksLock);
 }
 
 void log_append(Logger* logger, LogLevel lvl, SourceLoc loc, String str, const LogParam* params) {
@@ -91,7 +97,11 @@ void log_append(Logger* logger, LogLevel lvl, SourceLoc loc, String str, const L
   const String   message   = log_format_text_scratch(str, params);
   const TimeReal timestamp = time_real_clock();
 
+  thread_spinlock_lock(&logger->sinksLock);
+
   dynarray_for_t(&logger->sinks, LogSinkPtr, sink) {
     (*sink)->write(*sink, lvl, loc, timestamp, message, params);
   }
+
+  thread_spinlock_unlock(&logger->sinksLock);
 }
