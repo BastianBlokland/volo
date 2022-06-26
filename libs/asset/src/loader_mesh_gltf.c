@@ -449,7 +449,8 @@ static void gltf_buffers_acquire(GltfLoad* ld, EcsWorld* w, AssetManagerComp* ma
   if (!(ld->bufferCount = gltf_json_elem_count(ld, buffers))) {
     goto Error;
   }
-  ld->buffers     = alloc_array_t(g_alloc_heap, GltfBuffer, ld->bufferCount);
+  ld->buffers = alloc_array_t(g_alloc_heap, GltfBuffer, ld->bufferCount);
+  mem_set(mem_create(ld->buffers, sizeof(GltfBuffer) * ld->bufferCount), 0);
   GltfBuffer* out = ld->buffers;
 
   json_for_elems(ld->jDoc, buffers, bufferElem) {
@@ -1196,7 +1197,9 @@ ecs_system_define(GltfLoadAssetSys) {
 
   Cleanup:
     for (GltfBuffer* buffer = ld->buffers; buffer != ld->buffers + ld->bufferCount; ++buffer) {
-      asset_release(world, buffer->entity);
+      if (buffer->entity) {
+        asset_release(world, buffer->entity);
+      }
     }
     ecs_world_remove_t(world, entity, AssetGltfLoadComp);
 
