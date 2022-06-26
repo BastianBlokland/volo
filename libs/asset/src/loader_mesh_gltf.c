@@ -132,6 +132,7 @@ ecs_comp_define(AssetGltfLoadComp) {
   u32           primCount;
   u32           jointCount;
   u32           animCount;
+  GltfTransform sceneTrans;
   u32           accBindPoseInvMats; // Access index [Optional].
   u32           rootJointIndex;     // [Optional].
 };
@@ -629,6 +630,13 @@ Error:
   *err = GltfError_MalformedPrims;
 }
 
+static void gltf_parse_scene_transform(GltfLoad* ld, GltfError* err) {
+  ld->sceneTrans.t = geo_vector(0);
+  ld->sceneTrans.r = geo_quat_ident;
+  ld->sceneTrans.s = geo_vector(1, 1, -1); // Mirror z to convert from a right-handed coord system.
+  *err             = GltfError_None;
+}
+
 static void gltf_parse_skin(GltfLoad* ld, GltfError* err) {
   /**
    * NOTE: This loader only supports a single skin.
@@ -667,9 +675,9 @@ static void gltf_parse_skin(GltfLoad* ld, GltfError* err) {
   u32 skeletonNodeIndex;
   if (gltf_json_field_u32(ld, skin, string_lit("skeleton"), &skeletonNodeIndex)) {
     // Optional node index of the root of the skeleton.
-  if (sentinel_check(ld->rootJointIndex = gltf_node_to_joint_index(ld, skeletonNodeIndex))) {
-    goto Error;
-  }
+    if (sentinel_check(ld->rootJointIndex = gltf_node_to_joint_index(ld, skeletonNodeIndex))) {
+      goto Error;
+    }
   } else {
     ld->rootJointIndex = 0;
   }
@@ -1108,7 +1116,7 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
           const f32 channelDur = gltf_access_max_f32(ld, srcChannel->accInput);
           duration             = math_max(duration, channelDur);
 
-          // TODO: Support mirroring (for R to L coord conv) when animating the scale of the root.
+          // TODO: Apply the scene transform when animating the root.
           *resChannel = (AssetMeshAnimChannel){
               .frameCount = ld->access[srcChannel->accInput].count,
               .timeData   = gltf_anim_data_push_access(ld, srcChannel->accInput),
@@ -1126,13 +1134,15 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
   AssetMeshAnimPtr resDefaultPose = gltf_anim_data_begin(ld, alignof(GeoVector));
   for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
     const GltfJoint* joint = &ld->joints[jointIndex];
-
-    gltf_anim_data_push_vec(ld, joint->trans.t);
-    gltf_anim_data_push_quat(ld, joint->trans.r);
-
-    // Mirror the root to convert from a Right-handed coordinate system to a Left-Handed.
-    const GeoVector scaleMirror = geo_vector(joint->trans.s.x, joint->trans.s.y, -joint->trans.s.z);
-    gltf_anim_data_push_vec(ld, jointIndex == ld->rootJointIndex ? scaleMirror : joint->trans.s);
+    if (jointIndex == ld->rootJointIndex) {
+      gltf_anim_data_push_vec(ld, geo_vector_add(joint->trans.t, ld->sceneTrans.t));
+      gltf_anim_data_push_quat(ld, geo_quat_mul(joint->trans.r, ld->sceneTrans.r));
+      gltf_anim_data_push_vec(ld, geo_vector_mul_comps(joint->trans.s, ld->sceneTrans.s));
+    } else {
+      gltf_anim_data_push_vec(ld, joint->trans.t);
+      gltf_anim_data_push_quat(ld, joint->trans.r);
+      gltf_anim_data_push_vec(ld, joint->trans.s);
+    }
   }
 
   *out = (AssetMeshSkeletonComp){
@@ -1213,6 +1223,10 @@ ecs_system_define(GltfLoadAssetSys) {
         goto Error;
       }
       gltf_parse_primitives(ld, &err);
+      if (err) {
+        goto Error;
+      }
+      gltf_parse_scene_transform(ld, &err);
       if (err) {
         goto Error;
       }
