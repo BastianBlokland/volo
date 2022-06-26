@@ -137,22 +137,22 @@ typedef AssetGltfLoadComp GltfLoad;
 static void ecs_destruct_gltf_load_comp(void* data) {
   AssetGltfLoadComp* comp = data;
   json_destroy(comp->jDoc);
-  if (comp->bufferCount) {
+  if (comp->buffers) {
     alloc_free_array_t(g_alloc_heap, comp->buffers, comp->bufferCount);
   }
-  if (comp->viewCount) {
+  if (comp->views) {
     alloc_free_array_t(g_alloc_heap, comp->views, comp->viewCount);
   }
-  if (comp->accessCount) {
+  if (comp->access) {
     alloc_free_array_t(g_alloc_heap, comp->access, comp->accessCount);
   }
-  if (comp->primCount) {
+  if (comp->prims) {
     alloc_free_array_t(g_alloc_heap, comp->prims, comp->primCount);
   }
-  if (comp->jointCount) {
+  if (comp->joints) {
     alloc_free_array_t(g_alloc_heap, comp->joints, comp->jointCount);
   }
-  if (comp->animCount) {
+  if (comp->anims) {
     alloc_free_array_t(g_alloc_heap, comp->anims, comp->animCount);
   }
   dynarray_destroy(&comp->animData);
