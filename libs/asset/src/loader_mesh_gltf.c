@@ -972,8 +972,13 @@ static void gltf_build_mesh(GltfLoad* ld, AssetMeshComp* out, GltfError* err) {
           });
 
       if (meta.features & GltfFeature_Skinning) {
-        const u16*       vertJoints = &joints[attr * 4];
-        const GeoVector* vertWeight = (const GeoVector*)&weights[attr * 4];
+        const u16*      vertJoints  = &joints[attr * 4];
+        const GeoVector vertWeights = {
+            weights[attr * 4 + 0],
+            weights[attr * 4 + 1],
+            weights[attr * 4 + 2],
+            weights[attr * 4 + 3],
+        };
         const u16 j0 = vertJoints[0], j1 = vertJoints[1], j2 = vertJoints[2], j3 = vertJoints[3];
         const u32 jointMax = ld->jointCount;
         if (UNLIKELY(j0 >= jointMax || j1 >= jointMax || j2 >= jointMax || j3 >= jointMax)) {
@@ -983,7 +988,7 @@ static void gltf_build_mesh(GltfLoad* ld, AssetMeshComp* out, GltfError* err) {
         asset_mesh_builder_set_skin(
             builder,
             vertIdx,
-            (AssetMeshSkin){.joints = {(u8)j0, (u8)j1, (u8)j2, (u8)j3}, .weights = *vertWeight});
+            (AssetMeshSkin){.joints = {(u8)j0, (u8)j1, (u8)j2, (u8)j3}, .weights = vertWeights});
       }
     }
   }
