@@ -120,6 +120,11 @@ void bitset_set_all(const BitSet bits, const usize idx) {
   }
 }
 
+void bitset_flip(const BitSet bits, const usize idx) {
+  diag_assert(idx < bitset_size(bits));
+  *mem_at_u8(bits, bits_to_bytes(idx)) ^= 1u << bit_in_byte(idx);
+}
+
 void bitset_clear(const BitSet bits, const usize idx) {
   diag_assert(idx < bitset_size(bits));
   *mem_at_u8(bits, bits_to_bytes(idx)) &= ~(1u << bit_in_byte(idx));

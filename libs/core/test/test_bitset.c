@@ -179,6 +179,19 @@ spec(bitset) {
     }
   }
 
+  it("can flip bits") {
+    u64    val[8] = {0};
+    BitSet bits   = bitset_from_array(val);
+
+    for (u32 i = 0; i != 234; ++i) {
+      check(!bitset_test(bits, i));
+      bitset_flip(bits, i);
+      check(bitset_test(bits, i));
+      bitset_flip(bits, i);
+      check(!bitset_test(bits, i));
+    }
+  }
+
   it("can bitwise 'or' two bitsets") {
     BitSet evenBits64   = bitset_from_var((u64){0});
     BitSet unevenBits64 = bitset_from_var((u64){0});

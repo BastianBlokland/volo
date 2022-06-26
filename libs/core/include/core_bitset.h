@@ -94,6 +94,12 @@ void bitset_set(BitSet, usize idx);
 void bitset_set_all(BitSet, usize idx);
 
 /**
+ * Flip the bit at the given index.
+ * Pre-condition: idx < bitset_size
+ */
+void bitset_flip(BitSet, usize idx);
+
+/**
  * Unset the bit at the given index.
  * Pre-condition: idx < bitset_size
  */
