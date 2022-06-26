@@ -398,16 +398,21 @@ static AssetMeshAnimPtr gltf_anim_data_push_access_mat(GltfLoad* ld, const u32 a
   diag_assert(ld->access[acc].compType == GltfType_f32);
   diag_assert(ld->access[acc].compCount == 16);
 
-  const GeoMatrix*       src = ld->access[acc].data_raw;
-  const AssetMeshAnimPtr res = gltf_anim_data_begin(ld, alignof(GeoMatrix));
+  const u32              elemSize = sizeof(GeoMatrix);
+  const AssetMeshAnimPtr res      = gltf_anim_data_begin(ld, alignof(GeoMatrix));
   for (u32 i = 0; i != ld->access[acc].count; ++i) {
+    // NOTE: Mem copy it into a local variable to satisfy alignment requirements.
+    GeoMatrix src;
+    mem_cpy(mem_var(src), mem_create(ld->access[acc].data_u8 + i * elemSize, elemSize));
+
     /**
      * Gltf also uses column-major 4x4 f32 matrices, the only post-processing needed is converting
      * from a right-handed to a left-handed coordinate system.
      */
     static const GeoMatrix g_negZMat = {{{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, -1, 0}, {0, 0, 0, 1}}};
-    const GeoMatrix        mat       = geo_matrix_mul(&src[i], &g_negZMat);
-    mem_cpy(dynarray_push(&ld->animData, sizeof(GeoMatrix)), mem_var(mat));
+    src                              = geo_matrix_mul(&src, &g_negZMat);
+
+    mem_cpy(dynarray_push(&ld->animData, sizeof(GeoMatrix)), mem_var(src));
   }
   return res;
 }
