@@ -10,7 +10,6 @@
 #include "draw_internal.h"
 
 #define rend_instance_max_draw_create 16
-#define rend_instance_max_joints 32
 
 typedef struct {
   ALIGNAS(16)
@@ -24,10 +23,10 @@ typedef struct {
   ALIGNAS(16)
   GeoVector posAndScale; // xyz: position, w: scale.
   GeoQuat   rot;
-  GeoMatrix jointDelta[rend_instance_max_joints];
+  GeoMatrix jointDelta[scene_skeleton_joints_max];
 } RendInstanceSkinnedData;
 
-ASSERT(sizeof(RendInstanceSkinnedData) == 2080, "Size needs to match the size defined in glsl");
+ASSERT(sizeof(RendInstanceSkinnedData) == 4832, "Size needs to match the size defined in glsl");
 
 ecs_view_define(RenderableView) {
   ecs_access_read(SceneRenderableComp);
@@ -86,7 +85,6 @@ ecs_system_define(RendInstanceFillDrawsSys) {
 
     const bool isSkinned = skeletonComp->jointCount != 0;
     if (isSkinned) {
-      diag_assert(skeletonComp->jointCount <= rend_instance_max_joints);
       const SceneSkeletonTemplComp* templ = ecs_view_read_t(drawItr, SceneSkeletonTemplComp);
       RendInstanceSkinnedData       data  = {
                  .posAndScale = geo_vector(position.x, position.y, position.z, scale),

@@ -2,6 +2,7 @@
 #include "asset_manager.h"
 #include "asset_mesh.h"
 #include "core_alloc.h"
+#include "core_bitset.h"
 #include "core_diag.h"
 #include "core_math.h"
 #include "ecs_world.h"
@@ -141,8 +142,8 @@ static void scene_skeleton_init_from_templ(
         .duration = tl->anims[i].duration,
         .speed    = 1.0f,
         .weight   = 1.0f,
-        .mask     = {~u64_lit(0)},
     };
+    scene_skeleton_mask_set_all(&layers[i].mask);
   }
   ecs_world_add_t(world, entity, SceneAnimationComp, .layers = layers, .layerCount = tl->animCount);
 }
@@ -183,6 +184,8 @@ static bool scene_asset_is_loaded(EcsWorld* world, const EcsEntityId asset) {
 }
 
 static void scene_asset_templ_init(SceneSkeletonTemplComp* tl, const AssetMeshSkeletonComp* asset) {
+  diag_assert(asset->jointCount <= scene_skeleton_joints_max);
+
   tl->jointRootIndex = asset->rootJointIndex;
   tl->animData       = alloc_dup(g_alloc_heap, asset->animData, 1);
 
@@ -319,7 +322,14 @@ static GeoQuat anim_channel_get_quat(const SceneSkeletonChannel* ch, const f32 t
   const f32 fromT = ch->times[frame];
   const f32 toT   = ch->times[frame + 1];
   const f32 frac  = math_unlerp(fromT, toT, t);
-  return geo_quat_slerp(ch->values_quat[frame], ch->values_quat[frame + 1], frac);
+
+  const GeoQuat from = ch->values_quat[frame];
+  GeoQuat       to   = ch->values_quat[frame + 1];
+  if (geo_quat_dot(to, from) < 0) {
+    // Compensate for quaternion double-cover (two quaternions representing the same rot).
+    to = geo_quat_flip(to);
+  }
+  return geo_quat_slerp(from, to, frac);
 }
 
 static void anim_blend_vec(const GeoVector v, const f32 weight, f32* outWeight, GeoVector* outVec) {
@@ -348,10 +358,6 @@ static void anim_blend_quat(GeoQuat q, const f32 weight, f32* outWeight, GeoQuat
   }
 }
 
-INLINE_HINT static bool anim_mask_test(const SceneSkeletonMask* mask, const u32 joint) {
-  return (mask->jointBits & (u64_lit(1) << joint)) != 0;
-}
-
 static void anim_sample_layer(
     const SceneSkeletonTemplComp* tl,
     const SceneAnimLayer*         layer,
@@ -360,7 +366,7 @@ static void anim_sample_layer(
     SceneJointPose*               out) {
   const SceneSkeletonAnim* anim = &tl->anims[layerIndex];
   for (u32 j = 0; j != tl->jointCount; ++j) {
-    if (!anim_mask_test(&layer->mask, j)) {
+    if (!scene_skeleton_mask_test(&layer->mask, j)) {
       continue; // Layer is disabled for this joint.
     }
 
@@ -505,6 +511,30 @@ scene_skeleton_anim_info(const SceneSkeletonTemplComp* tl, const u32 anim, const
       .frameCountR = tl->anims[anim].joints[joint][AssetMeshAnimTarget_Rotation].frameCount,
       .frameCountS = tl->anims[anim].joints[joint][AssetMeshAnimTarget_Scale].frameCount,
   };
+}
+
+void scene_skeleton_mask_set(SceneSkeletonMask* mask, const u32 joint) {
+  bitset_set(bitset_from_array(mask->jointBits), joint);
+}
+
+void scene_skeleton_mask_set_all(SceneSkeletonMask* mask) {
+  bitset_set_all(bitset_from_array(mask->jointBits), scene_skeleton_joints_max);
+}
+
+void scene_skeleton_mask_clear(SceneSkeletonMask* mask, const u32 joint) {
+  bitset_clear(bitset_from_array(mask->jointBits), joint);
+}
+
+void scene_skeleton_mask_clear_all(SceneSkeletonMask* mask) {
+  bitset_clear_all(bitset_from_array(mask->jointBits));
+}
+
+void scene_skeleton_mask_flip(SceneSkeletonMask* mask, const u32 joint) {
+  bitset_flip(bitset_from_array(mask->jointBits), joint);
+}
+
+bool scene_skeleton_mask_test(const SceneSkeletonMask* mask, const u32 joint) {
+  return bitset_test(bitset_from_array(mask->jointBits), joint);
 }
 
 void scene_skeleton_delta(
