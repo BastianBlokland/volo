@@ -848,6 +848,28 @@ typedef struct {
   u32         vertexCount;
 } GltfMeshMeta;
 
+typedef enum {
+  GltfIndexMode_None,
+  GltfIndexMode_u16,
+  GltfIndexMode_u32,
+} GltfIndexMode;
+
+static bool gtlf_check_index_mode(GltfLoad* ld, const GltfPrim* prim, GltfIndexMode* out) {
+  if (sentinel_check(prim->accIndices)) {
+    *out = GltfIndexMode_None;
+    return true;
+  }
+  if (gltf_access_check(ld, prim->accIndices, GltfType_u16, 1)) {
+    *out = GltfIndexMode_u16;
+    return true;
+  }
+  if (gltf_access_check(ld, prim->accIndices, GltfType_u32, 1)) {
+    *out = GltfIndexMode_u32;
+    return true;
+  }
+  return false;
+}
+
 static GltfMeshMeta gltf_mesh_meta(GltfLoad* ld, GltfError* err) {
   // clang-format off
 #define verify(_EXPR_, _ERR_) if (UNLIKELY(!(_EXPR_))) { *err = GltfError_##_ERR_; goto Error; }
@@ -855,20 +877,22 @@ static GltfMeshMeta gltf_mesh_meta(GltfLoad* ld, GltfError* err) {
 
   verify(ld->primCount, NoPrimitives);
 
-  u32         vertexCount = 0;
   GltfFeature features    = ~0; // Assume we have all features until accessors are missing.
+  u32         vertexCount = 0;
   for (GltfPrim* prim = ld->prims; prim != ld->prims + ld->primCount; ++prim) {
     verify(prim->mode == GltfPrimMode_Triangles, UnsupportedPrimitiveMode);
     verify(gltf_access_check(ld, prim->accPosition, GltfType_f32, 3), MalformedPrimPositions);
 
+    GltfIndexMode indexMode;
+    verify(gtlf_check_index_mode(ld, prim, &indexMode), MalformedPrimIndices);
+
     const u32 attrCount = ld->access[prim->accPosition].count;
-    if (sentinel_check(prim->accIndices)) {
+    if (indexMode == GltfIndexMode_None) {
       // Non-indexed primitive.
       verify((attrCount % 3) == 0, MalformedPrimPositions);
       vertexCount += attrCount;
     } else {
       // Indexed primitive.
-      verify(gltf_access_check(ld, prim->accIndices, GltfType_u16, 1), MalformedPrimIndices);
       verify((ld->access[prim->accIndices].count % 3) == 0, MalformedPrimIndices);
       vertexCount += ld->access[prim->accIndices].count;
     }
@@ -917,7 +941,7 @@ static void gltf_build_mesh(GltfLoad* ld, AssetMeshComp* out, GltfError* err) {
   typedef const u16* AccessorU16;
   typedef const f32* AccessorF32;
   AccessorF32        positions, texcoords, normals, tangents, weights;
-  AccessorU16        indices, joints;
+  AccessorU16        joints;
   u32                attrCount, vertexCount;
 
   for (GltfPrim* prim = ld->prims; prim != ld->prims + ld->primCount; ++prim) {
@@ -936,15 +960,23 @@ static void gltf_build_mesh(GltfLoad* ld, AssetMeshComp* out, GltfError* err) {
       joints  = ld->access[prim->accJoints].data_u16;
       weights = ld->access[prim->accWeights].data_f32;
     }
-    const bool indexed = !sentinel_check(prim->accIndices);
-    if (indexed) {
-      indices     = ld->access[prim->accIndices].data_u16;
-      vertexCount = ld->access[prim->accIndices].count;
-    } else {
-      vertexCount = attrCount;
-    }
+    GltfIndexMode indexMode;
+    gtlf_check_index_mode(ld, prim, &indexMode);
+
+    vertexCount = indexMode == GltfIndexMode_None ? attrCount : ld->access[prim->accIndices].count;
     for (u32 i = 0; i != vertexCount; ++i) {
-      const u32 attr = indexed ? indices[i] : i;
+      u32 attr;
+      switch (indexMode) {
+      case GltfIndexMode_None:
+        attr = i;
+        break;
+      case GltfIndexMode_u16:
+        attr = ld->access[prim->accIndices].data_u16[i];
+        break;
+      case GltfIndexMode_u32:
+        attr = ld->access[prim->accIndices].data_u32[i];
+        break;
+      }
       if (UNLIKELY(attr >= attrCount)) {
         *err = GltfError_MalformedPrimIndices;
         goto Cleanup;
