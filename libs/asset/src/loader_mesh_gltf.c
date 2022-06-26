@@ -655,12 +655,15 @@ static void gltf_parse_skin(GltfLoad* ld, GltfError* err) {
     *outJoint++ = (GltfJoint){.nodeIndex = (u32)json_number(ld->jDoc, joint)};
   }
   u32 skeletonNodeIndex;
-  if (!gltf_json_field_u32(ld, skin, string_lit("skeleton"), &skeletonNodeIndex)) {
-    goto Error;
-  }
+  if (gltf_json_field_u32(ld, skin, string_lit("skeleton"), &skeletonNodeIndex)) {
+    // Optional node index of the root of the skeleton.
   if (sentinel_check(ld->rootJointIndex = gltf_node_to_joint_index(ld, skeletonNodeIndex))) {
     goto Error;
   }
+  } else {
+    ld->rootJointIndex = 0;
+  }
+
 Success:
   *err = GltfError_None;
   return;
