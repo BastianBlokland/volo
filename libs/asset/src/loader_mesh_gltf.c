@@ -96,13 +96,17 @@ typedef struct {
 } GltfAnimChannel;
 
 typedef struct {
+  GeoVector t;
+  GeoQuat   r;
+  GeoVector s;
+} GltfTransform;
+
+typedef struct {
   u32              nodeIndex;
   AssetMeshAnimPtr childData;
   u32              childCount;
   StringHash       nameHash;
-  GeoVector        trans; // x,y,z vector.
-  GeoVector        rot;   // x,y,z,w quaternion.
-  GeoVector        scale; // x,y,z vector.
+  GltfTransform    trans;
 } GltfJoint;
 
 typedef struct {
@@ -299,7 +303,7 @@ static bool gltf_json_field_vec3(GltfLoad* ld, const JsonVal v, const String nam
   return success;
 }
 
-static bool gltf_json_field_vec4(GltfLoad* ld, const JsonVal v, const String name, GeoVector* out) {
+static bool gltf_json_field_quat(GltfLoad* ld, const JsonVal v, const String name, GeoQuat* out) {
   if (UNLIKELY(json_type(ld->jDoc, v) != JsonType_Object)) {
     return false;
   }
@@ -369,6 +373,12 @@ static AssetMeshAnimPtr gltf_anim_data_begin(GltfLoad* ld, const u32 align) {
 static AssetMeshAnimPtr gltf_anim_data_push_vec(GltfLoad* ld, const GeoVector val) {
   const AssetMeshAnimPtr res = gltf_anim_data_begin(ld, alignof(GeoVector));
   *((GeoVector*)dynarray_push(&ld->animData, sizeof(GeoVector)).ptr) = val;
+  return res;
+}
+
+static AssetMeshAnimPtr gltf_anim_data_push_quat(GltfLoad* ld, const GeoQuat val) {
+  const AssetMeshAnimPtr res = gltf_anim_data_begin(ld, alignof(GeoQuat));
+  *((GeoQuat*)dynarray_push(&ld->animData, sizeof(GeoQuat)).ptr) = val;
   return res;
 }
 
@@ -688,14 +698,14 @@ static void gltf_parse_skeleton_nodes(GltfLoad* ld, GltfError* err) {
     GltfJoint* out = &ld->joints[jointIndex];
     gltf_json_name(ld, node, &out->nameHash);
 
-    out->trans = geo_vector(0);
-    gltf_json_field_vec3(ld, node, string_lit("translation"), &out->trans);
+    out->trans.t = geo_vector(0);
+    gltf_json_field_vec3(ld, node, string_lit("translation"), &out->trans.t);
 
-    out->rot = geo_vector(0, 0, 0, 1);
-    gltf_json_field_vec4(ld, node, string_lit("rotation"), &out->rot);
+    out->trans.r = geo_quat_ident;
+    gltf_json_field_quat(ld, node, string_lit("rotation"), &out->trans.r);
 
-    out->scale = geo_vector(1, 1, 1);
-    gltf_json_field_vec3(ld, node, string_lit("scale"), &out->trans);
+    out->trans.s = geo_vector(1, 1, 1);
+    gltf_json_field_vec3(ld, node, string_lit("scale"), &out->trans.s);
 
     const JsonVal children = json_field(ld->jDoc, node, string_lit("children"));
     if (gltf_json_check(ld, children, JsonType_Array)) {
@@ -1117,12 +1127,12 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
   for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
     const GltfJoint* joint = &ld->joints[jointIndex];
 
-    gltf_anim_data_push_vec(ld, joint->trans);
-    gltf_anim_data_push_vec(ld, joint->rot);
+    gltf_anim_data_push_vec(ld, joint->trans.t);
+    gltf_anim_data_push_quat(ld, joint->trans.r);
 
     // Mirror the root to convert from a Right-handed coordinate system to a Left-Handed.
-    const GeoVector scaleMirror = geo_vector(joint->scale.x, joint->scale.y, -joint->scale.z);
-    gltf_anim_data_push_vec(ld, jointIndex == ld->rootJointIndex ? scaleMirror : joint->scale);
+    const GeoVector scaleMirror = geo_vector(joint->trans.s.x, joint->trans.s.y, -joint->trans.s.z);
+    gltf_anim_data_push_vec(ld, jointIndex == ld->rootJointIndex ? scaleMirror : joint->trans.s);
   }
 
   *out = (AssetMeshSkeletonComp){
