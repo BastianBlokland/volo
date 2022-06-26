@@ -48,9 +48,9 @@ static void animation_panel_draw_joints(
     ui_label(canvas, fmt_write_scratch("  {}", fmt_text(name)));
     ui_table_next_column(canvas, table);
 
-    bool enabled = (layer->mask.jointBits & (u64_lit(1) << jointIdx)) != 0;
+    bool enabled = scene_skeleton_mask_test(&layer->mask, jointIdx);
     if (ui_toggle(canvas, &enabled, .tooltip = string_lit("Enable / disable this joint."))) {
-      layer->mask.jointBits ^= u64_lit(1) << jointIdx;
+      scene_skeleton_mask_flip(&layer->mask, jointIdx);
     }
     ui_table_next_column(canvas, table);
 
