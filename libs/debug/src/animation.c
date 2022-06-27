@@ -1,3 +1,4 @@
+#include "core_math.h"
 #include "core_stringtable.h"
 #include "debug_animation.h"
 #include "debug_register.h"
@@ -26,7 +27,32 @@ ecs_view_define(AnimationView) {
 
 ecs_view_define(SkeletonTemplView) { ecs_access_read(SceneSkeletonTemplComp); }
 
-static void animation_panel_draw_joints(
+static void anim_draw_vec(UiCanvasComp* canvas, const GeoVector v, const String tooltip) {
+  ui_label(
+      canvas,
+      fmt_write_scratch(
+          "{>4}, {>4}, {>4}",
+          fmt_float(v.x, .minDecDigits = 1, .maxDecDigits = 1, .expThresholdNeg = 0),
+          fmt_float(v.y, .minDecDigits = 1, .maxDecDigits = 1, .expThresholdNeg = 0),
+          fmt_float(v.z, .minDecDigits = 1, .maxDecDigits = 1, .expThresholdNeg = 0)),
+      .tooltip  = tooltip,
+      .fontSize = 13);
+}
+
+static void anim_draw_quat(UiCanvasComp* canvas, const GeoQuat q, const String tooltip) {
+  const GeoVector angles = geo_quat_to_euler(q);
+  ui_label(
+      canvas,
+      fmt_write_scratch(
+          "{>4}, {>4}, {>4}",
+          fmt_float(angles.x * math_rad_to_deg, .maxDecDigits = 0, .expThresholdNeg = 0),
+          fmt_float(angles.y * math_rad_to_deg, .maxDecDigits = 0, .expThresholdNeg = 0),
+          fmt_float(angles.z * math_rad_to_deg, .maxDecDigits = 0, .expThresholdNeg = 0)),
+      .tooltip  = tooltip,
+      .fontSize = 12);
+}
+
+static void anim_panel_draw_joints(
     UiCanvasComp*                 canvas,
     UiTable*                      table,
     SceneAnimLayer*               layer,
@@ -55,14 +81,30 @@ static void animation_panel_draw_joints(
     ui_label(canvas, fmt_write_scratch("{}{}", fmt_padding(padding), fmt_text(name)));
     ui_table_next_column(canvas, table);
 
-    ui_label(
-        canvas,
-        fmt_write_scratch(
-            "{} / {} / {}",
-            fmt_int(info.frameCountT, .minDigits = 2),
-            fmt_int(info.frameCountR, .minDigits = 2),
-            fmt_int(info.frameCountS, .minDigits = 2)),
-        .tooltip = string_lit("Frames (Translation / Rotation / Scale)"));
+    ui_style_push(canvas);
+    ui_style_variation(canvas, UiVariation_Monospace);
+
+    if (info.frameCountT) {
+      const GeoVector t = scene_skeleton_anim_get_t(skelTempl, layerIdx, jointIdx, layer->time);
+      anim_draw_vec(
+          canvas, t, fmt_write_scratch("Translation.\nFrames: {}.", fmt_int(info.frameCountT)));
+    }
+    ui_table_next_column(canvas, table);
+
+    if (info.frameCountR) {
+      const GeoQuat r = scene_skeleton_anim_get_r(skelTempl, layerIdx, jointIdx, layer->time);
+      anim_draw_quat(
+          canvas, r, fmt_write_scratch("Rotation.\nFrames: {}.", fmt_int(info.frameCountR)));
+    }
+    ui_table_next_column(canvas, table);
+
+    if (info.frameCountS) {
+      const GeoVector s = scene_skeleton_anim_get_s(skelTempl, layerIdx, jointIdx, layer->time);
+      anim_draw_vec(canvas, s, fmt_write_scratch("Scale.\nFrames: {}.", fmt_int(info.frameCountS)));
+    }
+    ui_table_next_column(canvas, table);
+
+    ui_style_pop(canvas);
 
     const u32 childDepth = depth[stackCount] + 1;
     for (u32 childNum = 0; childNum != joint->childCount; ++childNum) {
@@ -72,7 +114,7 @@ static void animation_panel_draw_joints(
   }
 }
 
-static void animation_panel_draw(
+static void anim_panel_draw(
     UiCanvasComp*                 canvas,
     DebugAnimationPanelComp*      panelComp,
     SceneAnimationComp*           anim,
@@ -83,9 +125,9 @@ static void animation_panel_draw(
   if (anim) {
     UiTable table = ui_table(.spacing = ui_vector(10, 5));
     ui_table_add_column(&table, UiTableColumn_Fixed, 300);
-    ui_table_add_column(&table, UiTableColumn_Fixed, 125);
-    ui_table_add_column(&table, UiTableColumn_Fixed, 125);
-    ui_table_add_column(&table, UiTableColumn_Fixed, 125);
+    ui_table_add_column(&table, UiTableColumn_Fixed, 135);
+    ui_table_add_column(&table, UiTableColumn_Fixed, 150);
+    ui_table_add_column(&table, UiTableColumn_Fixed, 135);
     ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
     ui_table_draw_header(
@@ -131,7 +173,7 @@ static void animation_panel_draw(
       ui_table_next_column(canvas, &table);
 
       if (open) {
-        animation_panel_draw_joints(canvas, &table, layer, layerIdx, skelTempl);
+        anim_panel_draw_joints(canvas, &table, layer, layerIdx, skelTempl);
       }
     }
     ui_scrollview_end(canvas, &panelComp->scrollview);
@@ -165,7 +207,7 @@ ecs_system_define(DebugAnimationUpdatePanelSys) {
     }
 
     ui_canvas_reset(canvas);
-    animation_panel_draw(canvas, panelComp, anim, skelTempl);
+    anim_panel_draw(canvas, panelComp, anim, skelTempl);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));

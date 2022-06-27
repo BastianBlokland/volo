@@ -513,6 +513,30 @@ scene_skeleton_anim_info(const SceneSkeletonTemplComp* tl, const u32 anim, const
   };
 }
 
+GeoVector scene_skeleton_anim_get_t(
+    const SceneSkeletonTemplComp* tl, const u32 anim, const u32 joint, const f32 time) {
+  const SceneSkeletonChannel* ch = &tl->anims[anim].joints[joint][AssetMeshAnimTarget_Translation];
+  diag_assert(anim < tl->animCount);
+  diag_assert(joint < tl->jointCount);
+  return ch->frameCount ? anim_channel_get_vec(ch, time) : geo_vector(0);
+}
+
+GeoQuat scene_skeleton_anim_get_r(
+    const SceneSkeletonTemplComp* tl, const u32 anim, const u32 joint, const f32 time) {
+  const SceneSkeletonChannel* ch = &tl->anims[anim].joints[joint][AssetMeshAnimTarget_Rotation];
+  diag_assert(anim < tl->animCount);
+  diag_assert(joint < tl->jointCount);
+  return ch->frameCount ? anim_channel_get_quat(ch, time) : geo_quat_ident;
+}
+
+GeoVector scene_skeleton_anim_get_s(
+    const SceneSkeletonTemplComp* tl, const u32 anim, const u32 joint, const f32 time) {
+  const SceneSkeletonChannel* ch = &tl->anims[anim].joints[joint][AssetMeshAnimTarget_Scale];
+  diag_assert(anim < tl->animCount);
+  diag_assert(joint < tl->jointCount);
+  return ch->frameCount ? anim_channel_get_vec(ch, time) : geo_vector(1, 1, 1);
+}
+
 void scene_skeleton_mask_set(SceneSkeletonMask* mask, const u32 joint) {
   bitset_set(bitset_from_array(mask->jointBits), joint);
 }
