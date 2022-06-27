@@ -185,3 +185,53 @@ GeoQuat geo_quat_slerp(const GeoQuat a, const GeoQuat b, const f32 t) {
       .z = a.z * ratioA + b.z * ratioB,
   };
 }
+
+GeoQuat geo_quat_from_euler(const GeoVector e) {
+  /**
+   * Implementation based on:
+   * https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
+   */
+
+  const f32 cy = math_cos_f32(e.z * 0.5f);
+  const f32 sy = math_sin_f32(e.z * 0.5f);
+  const f32 cp = math_cos_f32(e.y * 0.5f);
+  const f32 sp = math_sin_f32(e.y * 0.5f);
+  const f32 cr = math_cos_f32(e.x * 0.5f);
+  const f32 sr = math_sin_f32(e.x * 0.5f);
+
+  return (GeoQuat){
+      .x = sr * cp * cy - cr * sp * sy,
+      .y = cr * sp * cy + sr * cp * sy,
+      .z = cr * cp * sy - sr * sp * cy,
+      .w = cr * cp * cy + sr * sp * sy,
+  };
+}
+
+GeoVector geo_quat_to_euler(const GeoQuat q) {
+  /**
+   * Implementation based on:
+   * https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
+   */
+
+  const f32 sinrCosp = 2.0f * (q.w * q.x + q.y * q.z);
+  const f32 cosrCosp = 1.0f - 2.0f * (q.x * q.x + q.y * q.y);
+  const f32 roll     = math_atan2_f32(sinrCosp, cosrCosp);
+
+  const f32 sinp = 2.0f * (q.w * q.y - q.z * q.x);
+  f32       pitch;
+  if (UNLIKELY(math_abs(sinp) >= 1.0f)) {
+    pitch = math_pi_f32 * 0.5f * math_sign(sinp); // Out of range: default to 90 degrees.
+  } else {
+    pitch = math_asin_f32(sinp);
+  }
+
+  const f32 sinyCosp = 2.0f * (q.w * q.z + q.x * q.y);
+  const f32 cosyCosp = 1.0f - 2.0f * (q.y * q.y + q.z * q.z);
+  const f32 yaw      = math_atan2_f32(sinyCosp, cosyCosp);
+
+  return (GeoVector){
+      .x = roll,
+      .y = pitch,
+      .z = yaw,
+  };
+}

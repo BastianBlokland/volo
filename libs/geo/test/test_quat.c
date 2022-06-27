@@ -83,7 +83,7 @@ spec(quat) {
     check_eq_float(geo_vector_mag(geo_vector(qn.x, qn.y, qn.z, qn.w)), 1, 1e-6);
   }
 
-  it("can create a quaterion to rotate to the given axis system") {
+  it("can create a quaternion to rotate to the given axis system") {
     {
       const GeoVector newForward = geo_vector_norm(geo_vector(.42f, 13.37f, -42));
       const GeoQuat   q          = geo_quat_look(newForward, geo_up);
@@ -140,5 +140,38 @@ spec(quat) {
         fmt_write_scratch("{}", geo_quat_fmt(geo_quat_ident)), string_lit("0, 0, 0, 1"));
     check_eq_string(
         fmt_write_scratch("{}", geo_quat_fmt(((GeoQuat){1, 2, 3, 4}))), string_lit("1, 2, 3, 4"));
+  }
+
+  it("can be created from euler angles") {
+    check_eq_quat(geo_quat_from_euler(geo_vector(0, 0, 0)), geo_quat_ident);
+    check_eq_quat(
+        geo_quat_from_euler(geo_vector(0.42f, 0, 0)), geo_quat_angle_axis(geo_right, 0.42f));
+    check_eq_quat(geo_quat_from_euler(geo_vector(0, 0.42f, 0)), geo_quat_angle_axis(geo_up, 0.42f));
+    check_eq_quat(
+        geo_quat_from_euler(geo_vector(0, 0, 0.42f)), geo_quat_angle_axis(geo_forward, 0.42f));
+    check_eq_quat(
+        geo_quat_from_euler(geo_vector(0.1337f, 0, 0.42f)),
+        geo_quat_mul(
+            geo_quat_angle_axis(geo_forward, 0.42f), geo_quat_angle_axis(geo_right, 0.1337f)));
+  }
+
+  it("can be converted to euler angles") {
+    check_eq_vector(geo_quat_to_euler(geo_quat_ident), geo_vector(0, 0, 0));
+    check_eq_vector(
+        geo_quat_to_euler(geo_quat_angle_axis(geo_right, 0.42f)), geo_vector(0.42f, 0, 0));
+    check_eq_vector(geo_quat_to_euler(geo_quat_angle_axis(geo_up, 0.42f)), geo_vector(0, 0.42f, 0));
+    check_eq_vector(
+        geo_quat_to_euler(geo_quat_angle_axis(geo_forward, 0.42f)), geo_vector(0, 0, 0.42f));
+    check_eq_vector(
+        geo_quat_to_euler(geo_quat_mul(
+            geo_quat_angle_axis(geo_forward, 0.42f), geo_quat_angle_axis(geo_right, 0.1337f))),
+        geo_vector(0.1337f, 0, 0.42f));
+  }
+
+  it("roundtrips the euler conversion") {
+    const GeoQuat   q1 = geo_quat_from_euler(geo_vector(0.1337f, 1.2345f, 0.42f));
+    const GeoVector e  = geo_quat_to_euler(q1);
+    const GeoQuat   q2 = geo_quat_from_euler(e);
+    check_eq_quat(q1, q2);
   }
 }
