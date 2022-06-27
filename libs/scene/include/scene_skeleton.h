@@ -31,6 +31,12 @@ typedef struct {
 } SceneAnimLayer;
 
 typedef struct {
+  GeoVector t;
+  GeoQuat   r;
+  GeoVector s;
+} SceneJointPose;
+
+typedef struct {
   u32 frameCountT, frameCountR, frameCountS;
 } SceneAnimJointInfo;
 
@@ -45,9 +51,7 @@ u32                       scene_skeleton_joint_count(const SceneSkeletonTemplCom
 const SceneSkeletonJoint* scene_skeleton_joint(const SceneSkeletonTemplComp*, u32 index);
 SceneAnimJointInfo scene_skeleton_anim_info(const SceneSkeletonTemplComp*, u32 anim, u32 joint);
 
-GeoVector scene_skeleton_anim_get_t(const SceneSkeletonTemplComp*, u32 anim, u32 joint, f32 time);
-GeoQuat   scene_skeleton_anim_get_r(const SceneSkeletonTemplComp*, u32 anim, u32 joint, f32 time);
-GeoVector scene_skeleton_anim_get_s(const SceneSkeletonTemplComp*, u32 anim, u32 joint, f32 time);
+SceneJointPose scene_skeleton_sample(const SceneSkeletonTemplComp*, u32 anim, u32 joint, f32 time);
 
 void scene_skeleton_mask_set(SceneSkeletonMask*, u32 joint);
 void scene_skeleton_mask_set_all(SceneSkeletonMask*);

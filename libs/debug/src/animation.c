@@ -36,7 +36,7 @@ static void anim_draw_vec(UiCanvasComp* canvas, const GeoVector v, const String 
           fmt_float(v.y, .minDecDigits = 1, .maxDecDigits = 1, .expThresholdNeg = 0),
           fmt_float(v.z, .minDecDigits = 1, .maxDecDigits = 1, .expThresholdNeg = 0)),
       .tooltip  = tooltip,
-      .fontSize = 13);
+      .fontSize = 12);
 }
 
 static void anim_draw_quat(UiCanvasComp* canvas, const GeoQuat q, const String tooltip) {
@@ -84,23 +84,22 @@ static void anim_panel_draw_joints(
     ui_style_push(canvas);
     ui_style_variation(canvas, UiVariation_Monospace);
 
+    const SceneJointPose pose = scene_skeleton_sample(skelTempl, layerIdx, jointIdx, layer->time);
     if (info.frameCountT) {
-      const GeoVector t = scene_skeleton_anim_get_t(skelTempl, layerIdx, jointIdx, layer->time);
-      anim_draw_vec(
-          canvas, t, fmt_write_scratch("Translation.\nFrames: {}.", fmt_int(info.frameCountT)));
+      const u32 count = info.frameCountT;
+      anim_draw_vec(canvas, pose.t, fmt_write_scratch("Translation.\nFrames: {}.", fmt_int(count)));
     }
     ui_table_next_column(canvas, table);
 
     if (info.frameCountR) {
-      const GeoQuat r = scene_skeleton_anim_get_r(skelTempl, layerIdx, jointIdx, layer->time);
-      anim_draw_quat(
-          canvas, r, fmt_write_scratch("Rotation.\nFrames: {}.", fmt_int(info.frameCountR)));
+      const u32 count = info.frameCountR;
+      anim_draw_quat(canvas, pose.r, fmt_write_scratch("Rotation.\nFrames: {}.", fmt_int(count)));
     }
     ui_table_next_column(canvas, table);
 
     if (info.frameCountS) {
-      const GeoVector s = scene_skeleton_anim_get_s(skelTempl, layerIdx, jointIdx, layer->time);
-      anim_draw_vec(canvas, s, fmt_write_scratch("Scale.\nFrames: {}.", fmt_int(info.frameCountS)));
+      const u32 count = info.frameCountS;
+      anim_draw_vec(canvas, pose.s, fmt_write_scratch("Scale.\nFrames: {}.", fmt_int(count)));
     }
     ui_table_next_column(canvas, table);
 

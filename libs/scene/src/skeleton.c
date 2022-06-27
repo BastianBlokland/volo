@@ -35,12 +35,6 @@ typedef struct {
 } SceneSkeletonChannel;
 
 typedef struct {
-  GeoVector t;
-  GeoQuat   r;
-  GeoVector s;
-} SceneJointPose;
-
-typedef struct {
   StringHash           nameHash;
   f32                  duration;
   SceneSkeletonChannel joints[scene_skeleton_joints_max][AssetMeshAnimTarget_Count];
@@ -513,28 +507,20 @@ scene_skeleton_anim_info(const SceneSkeletonTemplComp* tl, const u32 anim, const
   };
 }
 
-GeoVector scene_skeleton_anim_get_t(
+SceneJointPose scene_skeleton_sample(
     const SceneSkeletonTemplComp* tl, const u32 anim, const u32 joint, const f32 time) {
-  const SceneSkeletonChannel* ch = &tl->anims[anim].joints[joint][AssetMeshAnimTarget_Translation];
   diag_assert(anim < tl->animCount);
   diag_assert(joint < tl->jointCount);
-  return ch->frameCount ? anim_channel_get_vec(ch, time) : geo_vector(0);
-}
 
-GeoQuat scene_skeleton_anim_get_r(
-    const SceneSkeletonTemplComp* tl, const u32 anim, const u32 joint, const f32 time) {
-  const SceneSkeletonChannel* ch = &tl->anims[anim].joints[joint][AssetMeshAnimTarget_Rotation];
-  diag_assert(anim < tl->animCount);
-  diag_assert(joint < tl->jointCount);
-  return ch->frameCount ? anim_channel_get_quat(ch, time) : geo_quat_ident;
-}
+  const SceneSkeletonChannel* chT = &tl->anims[anim].joints[joint][AssetMeshAnimTarget_Translation];
+  const SceneSkeletonChannel* chR = &tl->anims[anim].joints[joint][AssetMeshAnimTarget_Rotation];
+  const SceneSkeletonChannel* chS = &tl->anims[anim].joints[joint][AssetMeshAnimTarget_Scale];
 
-GeoVector scene_skeleton_anim_get_s(
-    const SceneSkeletonTemplComp* tl, const u32 anim, const u32 joint, const f32 time) {
-  const SceneSkeletonChannel* ch = &tl->anims[anim].joints[joint][AssetMeshAnimTarget_Scale];
-  diag_assert(anim < tl->animCount);
-  diag_assert(joint < tl->jointCount);
-  return ch->frameCount ? anim_channel_get_vec(ch, time) : geo_vector(1, 1, 1);
+  return (SceneJointPose){
+      .t = chT->frameCount ? anim_channel_get_vec(chT, time) : geo_vector(0),
+      .r = chR->frameCount ? anim_channel_get_quat(chR, time) : geo_quat_ident,
+      .s = chS->frameCount ? anim_channel_get_vec(chS, time) : geo_vector(1, 1, 1),
+  };
 }
 
 void scene_skeleton_mask_set(SceneSkeletonMask* mask, const u32 joint) {
