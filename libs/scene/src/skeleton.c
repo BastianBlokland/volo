@@ -35,15 +35,9 @@ typedef struct {
 } SceneSkeletonChannel;
 
 typedef struct {
-  GeoVector t;
-  GeoQuat   r;
-  GeoVector s;
-} SceneJointPose;
-
-typedef struct {
   StringHash           nameHash;
   f32                  duration;
-  SceneSkeletonChannel joints[asset_mesh_joints_max][AssetMeshAnimTarget_Count];
+  SceneSkeletonChannel joints[scene_skeleton_joints_max][AssetMeshAnimTarget_Count];
 } SceneSkeletonAnim;
 
 /**
@@ -409,8 +403,8 @@ static void anim_sample_def(const SceneSkeletonTemplComp* tl, f32* weights, Scen
 }
 
 static void anim_apply(const SceneSkeletonTemplComp* tl, SceneJointPose* poses, GeoMatrix* out) {
-  u32 stack[asset_mesh_joints_max] = {tl->jointRootIndex};
-  u32 stackCount                   = 1;
+  u32 stack[scene_skeleton_joints_max] = {tl->jointRootIndex};
+  u32 stackCount                       = 1;
 
   while (stackCount--) {
     const u32       joint   = stack[stackCount];
@@ -439,8 +433,8 @@ ecs_system_define(SceneSkeletonUpdateSys) {
   EcsView*     updateView = ecs_world_view_t(world, UpdateView);
   EcsIterator* templItr   = ecs_view_itr(ecs_world_view_t(world, SkeletonTemplView));
 
-  SceneJointPose poses[asset_mesh_joints_max];       // Per joint.
-  f32            weights[asset_mesh_joints_max * 3]; // Per joint per channel.
+  SceneJointPose poses[scene_skeleton_joints_max];       // Per joint.
+  f32            weights[scene_skeleton_joints_max * 3]; // Per joint per channel.
 
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
     const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
@@ -502,15 +496,37 @@ const SceneSkeletonJoint* scene_skeleton_joint(const SceneSkeletonTemplComp* tl,
   return &tl->joints[index];
 }
 
-SceneAnimJointInfo
-scene_skeleton_anim_info(const SceneSkeletonTemplComp* tl, const u32 anim, const u32 joint) {
-  diag_assert(anim < tl->animCount);
+SceneJointInfo
+scene_skeleton_info(const SceneSkeletonTemplComp* tl, const u32 layer, const u32 joint) {
+  diag_assert(layer < tl->animCount);
   diag_assert(joint < tl->jointCount);
-  return (SceneAnimJointInfo){
-      .frameCountT = tl->anims[anim].joints[joint][AssetMeshAnimTarget_Translation].frameCount,
-      .frameCountR = tl->anims[anim].joints[joint][AssetMeshAnimTarget_Rotation].frameCount,
-      .frameCountS = tl->anims[anim].joints[joint][AssetMeshAnimTarget_Scale].frameCount,
+  return (SceneJointInfo){
+      .frameCountT = tl->anims[layer].joints[joint][AssetMeshAnimTarget_Translation].frameCount,
+      .frameCountR = tl->anims[layer].joints[joint][AssetMeshAnimTarget_Rotation].frameCount,
+      .frameCountS = tl->anims[layer].joints[joint][AssetMeshAnimTarget_Scale].frameCount,
   };
+}
+
+SceneJointPose scene_skeleton_sample(
+    const SceneSkeletonTemplComp* tl, const u32 layer, const u32 joint, const f32 time) {
+  diag_assert(layer < tl->animCount);
+  diag_assert(joint < tl->jointCount);
+
+  const SceneSkeletonChannel* chT =
+      &tl->anims[layer].joints[joint][AssetMeshAnimTarget_Translation];
+  const SceneSkeletonChannel* chR = &tl->anims[layer].joints[joint][AssetMeshAnimTarget_Rotation];
+  const SceneSkeletonChannel* chS = &tl->anims[layer].joints[joint][AssetMeshAnimTarget_Scale];
+
+  return (SceneJointPose){
+      .t = chT->frameCount ? anim_channel_get_vec(chT, time) : geo_vector(0),
+      .r = chR->frameCount ? anim_channel_get_quat(chR, time) : geo_quat_ident,
+      .s = chS->frameCount ? anim_channel_get_vec(chS, time) : geo_vector(1, 1, 1),
+  };
+}
+
+SceneJointPose scene_skeleton_sample_def(const SceneSkeletonTemplComp* tl, const u32 joint) {
+  diag_assert(joint < tl->jointCount);
+  return tl->defaultPose[joint];
 }
 
 void scene_skeleton_mask_set(SceneSkeletonMask* mask, const u32 joint) {

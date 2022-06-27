@@ -126,7 +126,7 @@ static void camera_panel_draw(
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
 
   UiTable table = ui_table();
-  ui_table_add_column(&table, UiTableColumn_Fixed, 150);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 160);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_next_row(canvas, &table);
@@ -287,7 +287,7 @@ EcsEntityId debug_camera_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugCameraPanelComp,
-      .panel  = ui_panel(ui_vector(330, 325)),
+      .panel  = ui_panel(ui_vector(340, 325)),
       .window = window);
   return panelEntity;
 }
