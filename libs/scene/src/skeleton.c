@@ -497,7 +497,7 @@ const SceneSkeletonJoint* scene_skeleton_joint(const SceneSkeletonTemplComp* tl,
 }
 
 SceneJointInfo
-scene_skeleton_anim_info(const SceneSkeletonTemplComp* tl, const u32 layer, const u32 joint) {
+scene_skeleton_info(const SceneSkeletonTemplComp* tl, const u32 layer, const u32 joint) {
   diag_assert(layer < tl->animCount);
   diag_assert(joint < tl->jointCount);
   return (SceneJointInfo){
@@ -522,6 +522,11 @@ SceneJointPose scene_skeleton_sample(
       .r = chR->frameCount ? anim_channel_get_quat(chR, time) : geo_quat_ident,
       .s = chS->frameCount ? anim_channel_get_vec(chS, time) : geo_vector(1, 1, 1),
   };
+}
+
+SceneJointPose scene_skeleton_sample_def(const SceneSkeletonTemplComp* tl, const u32 joint) {
+  diag_assert(joint < tl->jointCount);
+  return tl->defaultPose[joint];
 }
 
 void scene_skeleton_mask_set(SceneSkeletonMask* mask, const u32 joint) {
