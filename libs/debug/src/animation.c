@@ -215,6 +215,8 @@ static void anim_panel_draw(
       if (open) {
         anim_draw_joints_layer(canvas, &table, layer, layerIdx, skelTempl);
       }
+
+      ui_canvas_id_block_next(canvas); // Use a consistent amount of ids regardless of if 'open'.
     }
 
     ui_table_next_row(canvas, &table);
