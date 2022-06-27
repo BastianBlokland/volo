@@ -66,7 +66,7 @@ static void anim_panel_draw_joints(
   while (stackCount--) {
     const u32                 jointIdx = stack[stackCount];
     const SceneSkeletonJoint* joint    = scene_skeleton_joint(skelTempl, jointIdx);
-    const SceneAnimJointInfo  info     = scene_skeleton_anim_info(skelTempl, layerIdx, jointIdx);
+    const SceneJointInfo      info     = scene_skeleton_info(skelTempl, layerIdx, jointIdx);
     const String              name     = stringtable_lookup(g_stringtable, joint->nameHash);
 
     ui_table_next_row(canvas, table);

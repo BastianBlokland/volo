@@ -38,7 +38,7 @@ typedef struct {
 
 typedef struct {
   u32 frameCountT, frameCountR, frameCountS;
-} SceneAnimJointInfo;
+} SceneJointInfo;
 
 ecs_comp_extern_public(SceneAnimationComp) {
   SceneAnimLayer* layers;
@@ -49,9 +49,9 @@ u32 scene_skeleton_root_index(const SceneSkeletonTemplComp*);
 
 u32                       scene_skeleton_joint_count(const SceneSkeletonTemplComp*);
 const SceneSkeletonJoint* scene_skeleton_joint(const SceneSkeletonTemplComp*, u32 index);
-SceneAnimJointInfo scene_skeleton_anim_info(const SceneSkeletonTemplComp*, u32 anim, u32 joint);
 
-SceneJointPose scene_skeleton_sample(const SceneSkeletonTemplComp*, u32 anim, u32 joint, f32 time);
+SceneJointInfo scene_skeleton_info(const SceneSkeletonTemplComp*, u32 layer, u32 joint);
+SceneJointPose scene_skeleton_sample(const SceneSkeletonTemplComp*, u32 layer, u32 joint, f32 time);
 
 void scene_skeleton_mask_set(SceneSkeletonMask*, u32 joint);
 void scene_skeleton_mask_set_all(SceneSkeletonMask*);

@@ -496,25 +496,26 @@ const SceneSkeletonJoint* scene_skeleton_joint(const SceneSkeletonTemplComp* tl,
   return &tl->joints[index];
 }
 
-SceneAnimJointInfo
-scene_skeleton_anim_info(const SceneSkeletonTemplComp* tl, const u32 anim, const u32 joint) {
-  diag_assert(anim < tl->animCount);
+SceneJointInfo
+scene_skeleton_anim_info(const SceneSkeletonTemplComp* tl, const u32 layer, const u32 joint) {
+  diag_assert(layer < tl->animCount);
   diag_assert(joint < tl->jointCount);
-  return (SceneAnimJointInfo){
-      .frameCountT = tl->anims[anim].joints[joint][AssetMeshAnimTarget_Translation].frameCount,
-      .frameCountR = tl->anims[anim].joints[joint][AssetMeshAnimTarget_Rotation].frameCount,
-      .frameCountS = tl->anims[anim].joints[joint][AssetMeshAnimTarget_Scale].frameCount,
+  return (SceneJointInfo){
+      .frameCountT = tl->anims[layer].joints[joint][AssetMeshAnimTarget_Translation].frameCount,
+      .frameCountR = tl->anims[layer].joints[joint][AssetMeshAnimTarget_Rotation].frameCount,
+      .frameCountS = tl->anims[layer].joints[joint][AssetMeshAnimTarget_Scale].frameCount,
   };
 }
 
 SceneJointPose scene_skeleton_sample(
-    const SceneSkeletonTemplComp* tl, const u32 anim, const u32 joint, const f32 time) {
-  diag_assert(anim < tl->animCount);
+    const SceneSkeletonTemplComp* tl, const u32 layer, const u32 joint, const f32 time) {
+  diag_assert(layer < tl->animCount);
   diag_assert(joint < tl->jointCount);
 
-  const SceneSkeletonChannel* chT = &tl->anims[anim].joints[joint][AssetMeshAnimTarget_Translation];
-  const SceneSkeletonChannel* chR = &tl->anims[anim].joints[joint][AssetMeshAnimTarget_Rotation];
-  const SceneSkeletonChannel* chS = &tl->anims[anim].joints[joint][AssetMeshAnimTarget_Scale];
+  const SceneSkeletonChannel* chT =
+      &tl->anims[layer].joints[joint][AssetMeshAnimTarget_Translation];
+  const SceneSkeletonChannel* chR = &tl->anims[layer].joints[joint][AssetMeshAnimTarget_Rotation];
+  const SceneSkeletonChannel* chS = &tl->anims[layer].joints[joint][AssetMeshAnimTarget_Scale];
 
   return (SceneJointPose){
       .t = chT->frameCount ? anim_channel_get_vec(chT, time) : geo_vector(0),
