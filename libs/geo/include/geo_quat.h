@@ -84,6 +84,16 @@ GeoQuat geo_quat_look(GeoVector forward, GeoVector upRef);
 GeoQuat geo_quat_slerp(GeoQuat a, GeoQuat b, f32 t);
 
 /**
+ * Compute a quaternion based on the given euler angles (in radians).
+ */
+GeoQuat geo_quat_from_euler(GeoVector);
+
+/**
+ * Convert the given quaternion to euler angles (in radians).
+ */
+GeoVector geo_quat_to_euler(GeoQuat q);
+
+/**
  * Create a formatting argument for a quaternion.
  * NOTE: _QUAT_ is expanded multiple times, so care must be taken when providing complex
  * expressions.
