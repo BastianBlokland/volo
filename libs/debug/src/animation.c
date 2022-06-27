@@ -31,7 +31,7 @@ static void anim_draw_vec(UiCanvasComp* canvas, const GeoVector v, const String 
   ui_label(
       canvas,
       fmt_write_scratch(
-          "{>4}, {>4}, {>4}",
+          "{>4} {>4} {>4}",
           fmt_float(v.x, .minDecDigits = 1, .maxDecDigits = 1, .expThresholdNeg = 0),
           fmt_float(v.y, .minDecDigits = 1, .maxDecDigits = 1, .expThresholdNeg = 0),
           fmt_float(v.z, .minDecDigits = 1, .maxDecDigits = 1, .expThresholdNeg = 0)),
@@ -44,7 +44,7 @@ static void anim_draw_quat(UiCanvasComp* canvas, const GeoQuat q, const String t
   ui_label(
       canvas,
       fmt_write_scratch(
-          "{>4}, {>4}, {>4}",
+          "{>4} {>4} {>4}",
           fmt_float(angles.x * math_rad_to_deg, .maxDecDigits = 0, .expThresholdNeg = 0),
           fmt_float(angles.y * math_rad_to_deg, .maxDecDigits = 0, .expThresholdNeg = 0),
           fmt_float(angles.z * math_rad_to_deg, .maxDecDigits = 0, .expThresholdNeg = 0)),
@@ -77,12 +77,14 @@ static void anim_draw_joints_layer(
       scene_skeleton_mask_flip(&layer->mask, jointIdx);
     }
 
-    const u32 padding = 6 + depth[stackCount] * 2;
-    ui_label(canvas, fmt_write_scratch("{}{}", fmt_padding(padding), fmt_text(name)));
-    ui_table_next_column(canvas, table);
-
     ui_style_push(canvas);
     ui_style_variation(canvas, UiVariation_Monospace);
+
+    ui_label(
+        canvas,
+        fmt_write_scratch("{}{}", fmt_padding(4 + depth[stackCount]), fmt_text(name)),
+        .fontSize = 12);
+    ui_table_next_column(canvas, table);
 
     const SceneJointPose pose = scene_skeleton_sample(skelTempl, layerIdx, jointIdx, layer->time);
     if (info.frameCountT) {
@@ -128,11 +130,14 @@ static void anim_draw_joints_def(
     ui_table_next_row(canvas, table);
     ui_table_draw_row_bg(canvas, table, ui_color(96, 96, 96, 192));
 
-    ui_label(canvas, fmt_write_scratch("{}{}", fmt_padding(depth[stackCount] * 2), fmt_text(name)));
-    ui_table_next_column(canvas, table);
-
     ui_style_push(canvas);
     ui_style_variation(canvas, UiVariation_Monospace);
+
+    ui_label(
+        canvas,
+        fmt_write_scratch("{}{}", fmt_padding(depth[stackCount]), fmt_text(name)),
+        .fontSize = 12);
+    ui_table_next_column(canvas, table);
 
     const SceneJointPose pose = scene_skeleton_sample_def(skelTempl, jointIdx);
     anim_draw_vec(canvas, pose.t, string_lit("Translation."));
@@ -164,10 +169,10 @@ static void anim_panel_draw(
 
   if (anim) {
     UiTable table = ui_table(.spacing = ui_vector(10, 5));
-    ui_table_add_column(&table, UiTableColumn_Fixed, 300);
-    ui_table_add_column(&table, UiTableColumn_Fixed, 135);
+    ui_table_add_column(&table, UiTableColumn_Fixed, 330);
+    ui_table_add_column(&table, UiTableColumn_Fixed, 140);
     ui_table_add_column(&table, UiTableColumn_Fixed, 150);
-    ui_table_add_column(&table, UiTableColumn_Fixed, 135);
+    ui_table_add_column(&table, UiTableColumn_Fixed, 140);
     ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
     ui_table_draw_header(
@@ -284,6 +289,6 @@ ecs_module_init(debug_animation_module) {
 EcsEntityId debug_animation_panel_open(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
   ecs_world_add_t(
-      world, panelEntity, DebugAnimationPanelComp, .panel = ui_panel(ui_vector(875, 300)));
+      world, panelEntity, DebugAnimationPanelComp, .panel = ui_panel(ui_vector(900, 300)));
   return panelEntity;
 }
