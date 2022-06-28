@@ -50,6 +50,7 @@ ecs_comp_define(SceneSkeletonTemplComp) {
   SceneSkeletonAnim*    anims;           // [animCount].
   const GeoMatrix*      bindPoseInvMats; // [jointCount].
   const SceneJointPose* defaultPose;     // [jointCount].
+  const SceneJointPose* rootTransform;   // [1].
   u32                   jointCount;
   u32                   animCount;
   u32                   jointRootIndex;
@@ -215,6 +216,7 @@ static void scene_asset_templ_init(SceneSkeletonTemplComp* tl, const AssetMeshSk
 
   tl->bindPoseInvMats = (const GeoMatrix*)mem_at_u8(tl->animData, asset->bindPoseInvMats);
   tl->defaultPose     = (const SceneJointPose*)mem_at_u8(tl->animData, asset->defaultPose);
+  tl->rootTransform   = (const SceneJointPose*)mem_at_u8(tl->animData, asset->rootTransform);
 }
 
 static void scene_skeleton_templ_load_done(EcsWorld* world, EcsIterator* itr) {
@@ -406,12 +408,14 @@ static void anim_apply(const SceneSkeletonTemplComp* tl, SceneJointPose* poses, 
   u32 stack[scene_skeleton_joints_max] = {tl->jointRootIndex};
   u32 stackCount                       = 1;
 
+  out[tl->jointRootIndex] =
+      geo_matrix_trs(tl->rootTransform->t, tl->rootTransform->r, tl->rootTransform->s);
+
   while (stackCount--) {
     const u32       joint   = stack[stackCount];
-    const bool      isRoot  = joint == tl->jointRootIndex;
     const GeoMatrix poseMat = geo_matrix_trs(poses[joint].t, poses[joint].r, poses[joint].s);
 
-    out[joint] = isRoot ? poseMat : geo_matrix_mul(&out[joint], &poseMat);
+    out[joint] = geo_matrix_mul(&out[joint], &poseMat);
 
     for (u32 childNum = 0; childNum != tl->joints[joint].childCount; ++childNum) {
       const u32 childIndex = tl->joints[joint].childIndices[childNum];
@@ -528,6 +532,8 @@ SceneJointPose scene_skeleton_sample_def(const SceneSkeletonTemplComp* tl, const
   diag_assert(joint < tl->jointCount);
   return tl->defaultPose[joint];
 }
+
+SceneJointPose scene_skeleton_root(const SceneSkeletonTemplComp* tl) { return *tl->rootTransform; }
 
 void scene_skeleton_mask_set(SceneSkeletonMask* mask, const u32 joint) {
   bitset_set(bitset_from_array(mask->jointBits), joint);
