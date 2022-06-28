@@ -16,7 +16,7 @@ GeoMatrix scene_transform_matrix(const SceneTransformComp* trans) {
 }
 
 GeoMatrix scene_transform_matrix_inv(const SceneTransformComp* trans) {
-  const GeoMatrix rot = geo_matrix_from_quat(geo_quat_inv(trans->rotation));
+  const GeoMatrix rot = geo_matrix_from_quat(geo_quat_inverse(trans->rotation));
   const GeoMatrix pos = geo_matrix_translate(geo_vector_mul(trans->position, -1));
   return geo_matrix_mul(&rot, &pos);
 }

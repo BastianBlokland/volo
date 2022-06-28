@@ -11,7 +11,7 @@ spec(quat) {
   }
 
   it("returns an identity quaternion when computing the inverse of a identity quaternion") {
-    check_eq_quat(geo_quat_inv(geo_quat_ident), geo_quat_ident);
+    check_eq_quat(geo_quat_inverse(geo_quat_ident), geo_quat_ident);
   }
 
   it("returns the same vector when rotating by an identity quaternion") {
@@ -58,7 +58,7 @@ spec(quat) {
   }
 
   it("can rotate vectors by the inverse of 90 degrees over y") {
-    const GeoQuat q = geo_quat_inv(geo_quat_angle_axis(geo_up, 90 * math_deg_to_rad));
+    const GeoQuat q = geo_quat_inverse(geo_quat_angle_axis(geo_up, 90 * math_deg_to_rad));
     check_eq_vector(geo_quat_rotate(q, geo_left), geo_backward);
   }
 
@@ -69,7 +69,7 @@ spec(quat) {
         42.42,
         1e-5);
 
-    const GeoQuat q2 = geo_quat_inv(q1);
+    const GeoQuat q2 = geo_quat_inverse(q1);
     check_eq_float(
         geo_vector_angle(geo_forward, geo_quat_rotate(q2, geo_forward)) * math_rad_to_deg,
         42.42,

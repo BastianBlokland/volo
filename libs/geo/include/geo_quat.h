@@ -52,7 +52,7 @@ GeoVector geo_quat_rotate(GeoQuat, GeoVector);
 /**
  * Compute the inverse of the given quaternion.
  */
-GeoQuat geo_quat_inv(GeoQuat);
+GeoQuat geo_quat_inverse(GeoQuat);
 
 /**
  * Flip the given quaternions (represents the same rotation).

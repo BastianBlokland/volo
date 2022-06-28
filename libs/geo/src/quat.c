@@ -43,7 +43,7 @@ GeoQuat geo_quat_angle_axis(const GeoVector axis, const f32 angle) {
 }
 
 GeoQuat geo_quat_from_to(const GeoQuat from, const GeoQuat to) {
-  GeoQuat toIdentity = geo_quat_inv(from);
+  const GeoQuat toIdentity = geo_quat_inverse(from);
   return geo_quat_mul(to, toIdentity);
 }
 
@@ -84,7 +84,7 @@ GeoVector geo_quat_rotate(const GeoQuat q, const GeoVector v) {
 #endif
 }
 
-GeoQuat geo_quat_inv(const GeoQuat q) {
+GeoQuat geo_quat_inverse(const GeoQuat q) {
   // Compute the conjugate ('transposing').
   GeoQuat res = {
       .x = q.x * -1,
