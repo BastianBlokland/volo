@@ -11,6 +11,7 @@
 #include "scene_time.h"
 
 #define scene_skeleton_max_loads 16
+#define scene_anim_duration_min 0.001f
 #define scene_weight_min 0.001f
 #define scene_weight_max 0.999f
 
@@ -452,8 +453,10 @@ ecs_system_define(SceneSkeletonUpdateSys) {
 
     for (u32 i = 0; i != anim->layerCount; ++i) {
       SceneAnimLayer* layer = &anim->layers[i];
-      layer->time += deltaSeconds * layer->speed;
-      layer->time = math_mod_f32(layer->time, tl->anims[i].duration);
+      if (LIKELY(tl->anims[i].duration > scene_anim_duration_min)) {
+        layer->time += deltaSeconds * layer->speed;
+        layer->time = math_mod_f32(layer->time, tl->anims[i].duration);
+      }
       if (layer->weight > scene_weight_min) {
         anim_sample_layer(tl, layer, i, weights, poses);
       }
