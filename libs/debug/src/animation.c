@@ -184,7 +184,7 @@ static void anim_panel_draw(
 
   if (anim) {
     UiTable table = ui_table(.spacing = ui_vector(10, 5));
-    ui_table_add_column(&table, UiTableColumn_Fixed, 275);
+    ui_table_add_column(&table, UiTableColumn_Fixed, 300);
     ui_table_add_column(&table, UiTableColumn_Fixed, 140);
     ui_table_add_column(&table, UiTableColumn_Fixed, 150);
     ui_table_add_column(&table, UiTableColumn_Fixed, 140);
