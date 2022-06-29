@@ -13,6 +13,7 @@
 ecs_comp_define(DebugAnimationPanelComp) {
   UiPanel      panel;
   UiScrollview scrollview;
+  u32          totalRows;
 };
 
 ecs_view_define(PanelUpdateView) {
@@ -201,8 +202,9 @@ static void anim_panel_draw(
             {string_lit("Weight"), string_lit("Current playback weight.")},
         });
 
-    const u32 maxEntries = (anim->layerCount + 1) * (1 + scene_skeleton_joint_count(skelTempl));
-    ui_scrollview_begin(canvas, &panelComp->scrollview, ui_table_height(&table, maxEntries));
+    const f32 totalHeight = ui_table_height(&table, panelComp->totalRows);
+    ui_scrollview_begin(canvas, &panelComp->scrollview, totalHeight);
+    panelComp->totalRows = 1; // Always draws the default layer.
 
     for (u32 layerIdx = 0; layerIdx != anim->layerCount; ++layerIdx) {
       SceneAnimLayer* layer = &anim->layers[layerIdx];
@@ -236,6 +238,8 @@ static void anim_panel_draw(
         anim_draw_joints_layer(canvas, &table, layer, layerIdx, skelTempl);
       }
 
+      panelComp->totalRows += 1 + (open ? scene_skeleton_joint_count(skelTempl) : 0);
+
       ui_canvas_id_block_next(canvas); // Use a consistent amount of ids regardless of if 'open'.
     }
 
@@ -243,6 +247,7 @@ static void anim_panel_draw(
     ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
     if (ui_section(canvas, .label = string_lit("<default>"))) {
       anim_draw_joints_def(canvas, &table, skelTempl);
+      panelComp->totalRows += scene_skeleton_joint_count(skelTempl) + 1;
     }
 
     ui_scrollview_end(canvas, &panelComp->scrollview);
