@@ -872,7 +872,7 @@ static void gltf_parse_animations(GltfLoad* ld, GltfError* err) {
         goto Error;
       }
       if (sentinel_check(jointIdx = gltf_node_to_joint_index(ld, nodeIdx))) {
-        goto Error;
+        continue; // Channel animates a node that is not part of the skeleton.
       }
       const JsonVal path = json_field(ld->jDoc, target, string_lit("path"));
       if (!gltf_json_check(ld, path, JsonType_String)) {
