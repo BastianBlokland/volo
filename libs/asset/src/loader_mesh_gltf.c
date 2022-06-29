@@ -756,15 +756,18 @@ static void gltf_parse_skeleton_nodes(GltfLoad* ld, GltfError* err) {
 
     const JsonVal children = json_field(ld->jDoc, node, string_lit("children"));
     if (gltf_json_check(ld, children, JsonType_Array)) {
-      out->childData  = gltf_anim_data_begin(ld, alignof(u32));
-      out->childCount = json_elem_count(ld->jDoc, children);
+      out->childData = gltf_anim_data_begin(ld, alignof(u32));
 
       json_for_elems(ld->jDoc, children, child) {
         if (UNLIKELY(json_type(ld->jDoc, child) != JsonType_Number)) {
           goto Error;
         }
         const u32 childJointIndex = gltf_node_to_joint_index(ld, (u32)json_number(ld->jDoc, child));
+        if (!sentinel_check(childJointIndex)) {
+          // Child is part of the skeleton: Add it to the children collection.
         *((u32*)dynarray_push(&ld->animData, sizeof(u32)).ptr) = childJointIndex;
+          ++out->childCount;
+        }
       }
     }
 
