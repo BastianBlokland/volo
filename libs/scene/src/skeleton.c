@@ -22,7 +22,8 @@ typedef enum {
   SkeletonTemplState_Start,
   SkeletonTemplState_LoadGraphic,
   SkeletonTemplState_LoadMesh,
-  SkeletonTemplState_Finished,
+  SkeletonTemplState_FinishedSuccess,
+  SkeletonTemplState_FinishedFailure,
 } SkeletonTemplState;
 
 typedef struct {
@@ -161,7 +162,7 @@ ecs_system_define(SceneSkeletonInitSys) {
 
     if (ecs_view_maybe_jump(templItr, graphic)) {
       const SceneSkeletonTemplComp* tl = ecs_view_read_t(templItr, SceneSkeletonTemplComp);
-      if (tl->state == SkeletonTemplState_Finished) {
+      if (tl->state == SkeletonTemplState_FinishedSuccess) {
         scene_skeleton_init_from_templ(world, entity, tl);
       }
       continue;
@@ -220,7 +221,7 @@ static void scene_asset_templ_init(SceneSkeletonTemplComp* tl, const AssetMeshSk
   tl->rootTransform   = (const SceneJointPose*)mem_at_u8(tl->animData, asset->rootTransform);
 }
 
-static void scene_skeleton_templ_load_done(EcsWorld* world, EcsIterator* itr) {
+static void scene_skeleton_templ_load_done(EcsWorld* world, EcsIterator* itr, const bool failure) {
   const EcsEntityId       entity = ecs_view_entity(itr);
   SceneSkeletonTemplComp* tl     = ecs_view_write_t(itr, SceneSkeletonTemplComp);
 
@@ -228,7 +229,7 @@ static void scene_skeleton_templ_load_done(EcsWorld* world, EcsIterator* itr) {
   if (tl->mesh) {
     asset_release(world, tl->mesh);
   }
-  tl->state = SkeletonTemplState_Finished;
+  tl->state = failure ? SkeletonTemplState_FinishedFailure : SkeletonTemplState_FinishedSuccess;
   ecs_world_add_empty_t(world, entity, SceneSkeletonTemplLoadedComp);
 }
 
@@ -251,11 +252,11 @@ ecs_system_define(SceneSkeletonTemplLoadSys) {
         break; // Graphic has not loaded yet; wait.
       }
       if (!graphic) {
-        scene_skeleton_templ_load_done(world, itr);
+        scene_skeleton_templ_load_done(world, itr, false);
         break; // Graphic failed to load, or was of unexpected type.
       }
       if (!graphic->mesh) {
-        scene_skeleton_templ_load_done(world, itr);
+        scene_skeleton_templ_load_done(world, itr, false);
         break; // Graphic did not have a mesh.
       }
       tl->mesh = graphic->mesh;
@@ -270,10 +271,12 @@ ecs_system_define(SceneSkeletonTemplLoadSys) {
       if (ecs_view_maybe_jump(meshItr, tl->mesh)) {
         scene_asset_templ_init(tl, ecs_view_read_t(meshItr, AssetMeshSkeletonComp));
       }
-      scene_skeleton_templ_load_done(world, itr);
+      const bool meshLoadFailure = ecs_world_has_t(world, tl->mesh, AssetFailedComp);
+      scene_skeleton_templ_load_done(world, itr, meshLoadFailure);
       break;
     }
-    case SkeletonTemplState_Finished:
+    case SkeletonTemplState_FinishedSuccess:
+    case SkeletonTemplState_FinishedFailure:
       diag_crash();
     }
   }
