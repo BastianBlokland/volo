@@ -279,12 +279,6 @@ ecs_system_define(SceneSkeletonTemplLoadSys) {
   }
 }
 
-ecs_view_define(UpdateView) {
-  ecs_access_read(SceneRenderableComp);
-  ecs_access_write(SceneSkeletonComp);
-  ecs_access_write(SceneAnimationComp);
-}
-
 static void anim_set_weights_neg1(const SceneSkeletonTemplComp* tl, f32* weights) {
   for (u32 c = 0; c != tl->jointCount * 3; ++c) {
     weights[c] = -1.0f;
@@ -426,6 +420,12 @@ static void anim_apply(const SceneSkeletonTemplComp* tl, SceneJointPose* poses, 
   }
 }
 
+ecs_view_define(UpdateView) {
+  ecs_access_read(SceneRenderableComp);
+  ecs_access_write(SceneSkeletonComp);
+  ecs_access_write(SceneAnimationComp);
+}
+
 ecs_system_define(SceneSkeletonUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -445,6 +445,13 @@ ecs_system_define(SceneSkeletonUpdateSys) {
     const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
     SceneSkeletonComp*         sk         = ecs_view_write_t(itr, SceneSkeletonComp);
     SceneAnimationComp*        anim       = ecs_view_write_t(itr, SceneAnimationComp);
+
+    if (UNLIKELY(!ecs_world_has_t(world, renderable->graphic, SceneSkeletonTemplLoadedComp))) {
+      // Template has been removed; reset the skeleton and animation.
+      ecs_world_remove_t(world, ecs_view_entity(itr), SceneSkeletonComp);
+      ecs_world_remove_t(world, ecs_view_entity(itr), SceneAnimationComp);
+      continue;
+    }
 
     ecs_view_jump(templItr, renderable->graphic);
     const SceneSkeletonTemplComp* tl = ecs_view_read_t(templItr, SceneSkeletonTemplComp);
@@ -466,6 +473,23 @@ ecs_system_define(SceneSkeletonUpdateSys) {
   }
 }
 
+ecs_view_define(DirtyTemplateView) {
+  ecs_access_with(SceneSkeletonTemplComp);
+  ecs_access_with(SceneSkeletonTemplLoadedComp);
+  ecs_access_with(AssetChangedComp);
+}
+
+ecs_system_define(SceneClearDirtyTemplateSys) {
+  /**
+   * Clear skeleton templates for changed graphic assets.
+   */
+  EcsView* dirtyTemplateView = ecs_world_view_t(world, DirtyTemplateView);
+  for (EcsIterator* itr = ecs_view_itr(dirtyTemplateView); ecs_view_walk(itr);) {
+    ecs_world_remove_t(world, ecs_view_entity(itr), SceneSkeletonTemplComp);
+    ecs_world_remove_t(world, ecs_view_entity(itr), SceneSkeletonTemplLoadedComp);
+  }
+}
+
 ecs_module_init(scene_skeleton_module) {
   ecs_register_comp(SceneSkeletonComp, .destructor = ecs_destruct_skeleton_comp);
   ecs_register_comp(SceneAnimationComp, .destructor = ecs_destruct_animation_comp);
@@ -481,6 +505,7 @@ ecs_module_init(scene_skeleton_module) {
   ecs_register_view(MeshView);
   ecs_register_view(SkeletonTemplView);
   ecs_register_view(UpdateView);
+  ecs_register_view(DirtyTemplateView);
 
   ecs_register_system(
       SceneSkeletonInitSys, ecs_view_id(SkeletonInitView), ecs_view_id(SkeletonTemplView));
@@ -492,6 +517,8 @@ ecs_module_init(scene_skeleton_module) {
       ecs_view_id(GlobalView),
       ecs_view_id(UpdateView),
       ecs_view_id(SkeletonTemplView));
+
+  ecs_register_system(SceneClearDirtyTemplateSys, ecs_view_id(DirtyTemplateView));
 }
 
 u32 scene_skeleton_root_index(const SceneSkeletonTemplComp* tl) { return tl->jointRootIndex; }
