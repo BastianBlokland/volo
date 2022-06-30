@@ -981,7 +981,9 @@ static GltfMeshMeta gltf_mesh_meta(GltfLoad* ld, GltfError* err) {
     if (sentinel_check(prim->accJoints)) {
       features &= ~GltfFeature_Skinning;
     } else {
-      verify(gltf_access_check(ld, prim->accJoints, GltfType_u16, 4), MalformedPrimJoints);
+      const bool validJoints = gltf_access_check(ld, prim->accJoints, GltfType_u8, 4) ||
+                               gltf_access_check(ld, prim->accJoints, GltfType_u16, 4);
+      verify(validJoints, MalformedPrimJoints);
       verify(ld->access[prim->accJoints].count == attrCount, MalformedPrimJoints);
       verify(gltf_access_check(ld, prim->accWeights, GltfType_f32, 4), MalformedPrimWeights);
       verify(ld->access[prim->accWeights].count == attrCount, MalformedPrimWeights);
@@ -995,6 +997,31 @@ Error:
 #undef verify
 }
 
+static void gltf_vertex_skin(
+    GltfLoad* ld, const GltfPrim* prim, const u32 attr, AssetMeshSkin* out, GltfError* err) {
+  /**
+   * Retrieve the 4 joint influences (joint-index + weight) for a vertex.
+   */
+  for (u32 i = 0; i != 4; ++i) {
+    out->weights.comps[i] = ld->access[prim->accWeights].data_f32[attr * 4 + i];
+    switch (ld->access[prim->accJoints].compType) {
+    case GltfType_u8:
+      out->joints[i] = ld->access[prim->accJoints].data_u8[attr * 4 + i];
+      break;
+    case GltfType_u16:
+      out->joints[i] = (u8)ld->access[prim->accJoints].data_u16[attr * 4 + i];
+      break;
+    default:
+      diag_crash();
+    }
+    if (UNLIKELY(out->joints[i] >= ld->jointCount)) {
+      *err = GltfError_MalformedPrimJoints;
+      return;
+    }
+  }
+  *err = GltfError_None;
+}
+
 static void gltf_build_mesh(GltfLoad* ld, AssetMeshComp* out, GltfError* err) {
   GltfMeshMeta meta = gltf_mesh_meta(ld, err);
   if (*err) {
@@ -1002,10 +1029,8 @@ static void gltf_build_mesh(GltfLoad* ld, AssetMeshComp* out, GltfError* err) {
   }
   AssetMeshBuilder* builder = asset_mesh_builder_create(g_alloc_heap, meta.vertexCount);
 
-  typedef const u16* AccessorU16;
   typedef const f32* AccessorF32;
-  AccessorF32        positions, texcoords, normals, tangents, weights;
-  AccessorU16        joints;
+  AccessorF32        positions, texcoords, normals, tangents;
   u32                attrCount, vertexCount;
 
   for (GltfPrim* prim = ld->prims; prim != ld->prims + ld->primCount; ++prim) {
@@ -1019,10 +1044,6 @@ static void gltf_build_mesh(GltfLoad* ld, AssetMeshComp* out, GltfError* err) {
     }
     if (meta.features & GltfFeature_Tangents) {
       tangents = ld->access[prim->accTangent].data_f32;
-    }
-    if (meta.features & GltfFeature_Skinning) {
-      joints  = ld->access[prim->accJoints].data_u16;
-      weights = ld->access[prim->accWeights].data_f32;
     }
     GltfIndexMode indexMode;
     gtlf_check_index_mode(ld, prim, &indexMode);
@@ -1068,23 +1089,12 @@ static void gltf_build_mesh(GltfLoad* ld, AssetMeshComp* out, GltfError* err) {
           });
 
       if (meta.features & GltfFeature_Skinning) {
-        const u16*      vertJoints  = &joints[attr * 4];
-        const GeoVector vertWeights = {
-            weights[attr * 4 + 0],
-            weights[attr * 4 + 1],
-            weights[attr * 4 + 2],
-            weights[attr * 4 + 3],
-        };
-        const u16 j0 = vertJoints[0], j1 = vertJoints[1], j2 = vertJoints[2], j3 = vertJoints[3];
-        const u32 jointMax = ld->jointCount;
-        if (UNLIKELY(j0 >= jointMax || j1 >= jointMax || j2 >= jointMax || j3 >= jointMax)) {
-          *err = GltfError_MalformedPrimJoints;
+        AssetMeshSkin skin;
+        gltf_vertex_skin(ld, prim, attr, &skin, err);
+        if (*err) {
           goto Cleanup;
         }
-        asset_mesh_builder_set_skin(
-            builder,
-            vertIdx,
-            (AssetMeshSkin){.joints = {(u8)j0, (u8)j1, (u8)j2, (u8)j3}, .weights = vertWeights});
+        asset_mesh_builder_set_skin(builder, vertIdx, skin);
       }
     }
   }
