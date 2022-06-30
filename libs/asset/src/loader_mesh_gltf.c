@@ -675,6 +675,7 @@ static void gltf_parse_scene_transform(GltfLoad* ld, GltfError* err) {
 
 Success:
   // Mirror z to convert from a right-handed coordinate system.
+  ld->sceneTrans.r = geo_quat_mul_comps(ld->sceneTrans.r, geo_vector(-1, -1, -1, 1));
   ld->sceneTrans.s = geo_vector_mul_comps(ld->sceneTrans.s, geo_vector(1, 1, -1));
   *err             = GltfError_None;
   return;
