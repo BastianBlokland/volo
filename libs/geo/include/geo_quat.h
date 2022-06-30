@@ -45,6 +45,11 @@ f32 geo_quat_angle(GeoQuat);
 GeoQuat geo_quat_mul(GeoQuat a, GeoQuat b);
 
 /**
+ * Compute a quaternion where each component is multiplied by the matching component of the vector.
+ */
+GeoQuat geo_quat_mul_comps(GeoQuat, GeoVector);
+
+/**
  * Compute a vector that is rotated based on the given quaternion.
  */
 GeoVector geo_quat_rotate(GeoQuat, GeoVector);

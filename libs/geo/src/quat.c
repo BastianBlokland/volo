@@ -68,6 +68,21 @@ GeoQuat geo_quat_mul(const GeoQuat a, const GeoQuat b) {
 #endif
 }
 
+GeoQuat geo_quat_mul_comps(const GeoQuat a, const GeoVector b) {
+#if geo_quat_simd_enable
+  GeoQuat res;
+  simd_vec_store(simd_vec_mul(simd_vec_load(a.comps), simd_vec_load(b.comps)), res.comps);
+  return res;
+#else
+  return (GeoQuat){
+      .x = a.x * b.x,
+      .y = a.y * b.y,
+      .z = a.z * b.z,
+      .w = a.w * b.w,
+  };
+#endif
+}
+
 GeoVector geo_quat_rotate(const GeoQuat q, const GeoVector v) {
 #if geo_quat_simd_enable
   GeoVector res;
