@@ -293,11 +293,11 @@ static void anim_set_weights_neg1(const SceneSkeletonTemplComp* tl, f32* weights
 
 static u32 anim_find_frame(const SceneSkeletonChannel* ch, const f32 t) {
   for (u32 i = 1; i != ch->frameCount; ++i) {
-    if (ch->times[i] > t) {
+    if (ch->times[i] >= t) {
       return i - 1;
     }
   }
-  return 0;
+  return ch->frameCount - 1;
 }
 
 static GeoVector anim_channel_get_vec(const SceneSkeletonChannel* ch, const f32 t) {
