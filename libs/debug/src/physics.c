@@ -251,7 +251,9 @@ ecs_system_define(DebugPhysicsDrawSys) {
     }
     if (skeletonComp && settings->flags & DebugPhysicsFlags_DrawSkeleton) {
       const SceneSkeletonTemplComp* tpl = ecs_view_read_t(graphicItr, SceneSkeletonTemplComp);
-      physics_draw_skeleton(shape, text, skeletonComp, tpl, pos, rot, scale);
+      if (tpl) {
+        physics_draw_skeleton(shape, text, skeletonComp, tpl, pos, rot, scale);
+      }
     }
   }
 }
