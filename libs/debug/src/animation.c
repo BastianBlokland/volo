@@ -183,7 +183,7 @@ static void anim_panel_draw(
   const String title = fmt_write_scratch("{} Animation Debug", fmt_ui_shape(Animation));
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
 
-  if (anim) {
+  if (anim && skelTempl) {
     UiTable table = ui_table(.spacing = ui_vector(10, 5));
     ui_table_add_column(&table, UiTableColumn_Fixed, 300);
     ui_table_add_column(&table, UiTableColumn_Fixed, 140);
@@ -277,7 +277,9 @@ ecs_system_define(DebugAnimationUpdatePanelSys) {
        */
       anim                      = ecs_view_write_t(animItr, SceneAnimationComp);
       const EcsEntityId graphic = ecs_view_read_t(animItr, SceneRenderableComp)->graphic;
-      skelTempl = ecs_utils_read_t(world, SkeletonTemplView, graphic, SceneSkeletonTemplComp);
+      skelTempl = ecs_view_contains(ecs_world_view_t(world, SkeletonTemplView), graphic)
+                      ? ecs_utils_read_t(world, SkeletonTemplView, graphic, SceneSkeletonTemplComp)
+                      : null;
     }
 
     ui_canvas_reset(canvas);
