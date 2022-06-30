@@ -86,12 +86,14 @@ ecs_system_define(RendInstanceFillDrawsSys) {
     const bool isSkinned = skeletonComp->jointCount != 0;
     if (isSkinned) {
       const SceneSkeletonTemplComp* templ = ecs_view_read_t(drawItr, SceneSkeletonTemplComp);
-      RendInstanceSkinnedData       data  = {
-                 .posAndScale = geo_vector(position.x, position.y, position.z, scale),
-                 .rot         = rotation,
-      };
-      scene_skeleton_delta(skeletonComp, templ, data.jointDelta);
-      rend_draw_add_instance(draw, mem_var(data), tags, aabb);
+      if (LIKELY(templ)) {
+        RendInstanceSkinnedData data = {
+            .posAndScale = geo_vector(position.x, position.y, position.z, scale),
+            .rot         = rotation,
+        };
+        scene_skeleton_delta(skeletonComp, templ, data.jointDelta);
+        rend_draw_add_instance(draw, mem_var(data), tags, aabb);
+      }
     } else /* !isSkinned */ {
       const RendInstanceData data = {
           .posAndScale = geo_vector(position.x, position.y, position.z, scale),

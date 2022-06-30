@@ -43,7 +43,7 @@ GeoQuat geo_quat_angle_axis(const GeoVector axis, const f32 angle) {
 }
 
 GeoQuat geo_quat_from_to(const GeoQuat from, const GeoQuat to) {
-  GeoQuat toIdentity = geo_quat_inv(from);
+  const GeoQuat toIdentity = geo_quat_inverse(from);
   return geo_quat_mul(to, toIdentity);
 }
 
@@ -68,6 +68,21 @@ GeoQuat geo_quat_mul(const GeoQuat a, const GeoQuat b) {
 #endif
 }
 
+GeoQuat geo_quat_mul_comps(const GeoQuat a, const GeoVector b) {
+#if geo_quat_simd_enable
+  GeoQuat res;
+  simd_vec_store(simd_vec_mul(simd_vec_load(a.comps), simd_vec_load(b.comps)), res.comps);
+  return res;
+#else
+  return (GeoQuat){
+      .x = a.x * b.x,
+      .y = a.y * b.y,
+      .z = a.z * b.z,
+      .w = a.w * b.w,
+  };
+#endif
+}
+
 GeoVector geo_quat_rotate(const GeoQuat q, const GeoVector v) {
 #if geo_quat_simd_enable
   GeoVector res;
@@ -84,7 +99,7 @@ GeoVector geo_quat_rotate(const GeoQuat q, const GeoVector v) {
 #endif
 }
 
-GeoQuat geo_quat_inv(const GeoQuat q) {
+GeoQuat geo_quat_inverse(const GeoQuat q) {
   // Compute the conjugate ('transposing').
   GeoQuat res = {
       .x = q.x * -1,
@@ -156,33 +171,26 @@ GeoQuat geo_quat_slerp(const GeoQuat a, const GeoQuat b, const f32 t) {
    * https://www.euclideanspace.com/maths/algebra/realNormedAlgebra/quaternions/slerp
    */
 
-  // Calculate the angle between the quaternions.
-  const f32 cosHalfTheta = a.w * b.w + a.x * b.x + a.y * b.y + a.z * b.z;
-  // if a == b or a == -b then theta == 0 and we can return a
-  if (math_abs(cosHalfTheta) >= 1.0f) {
-    return a;
+  const f32 dot  = geo_quat_dot(a, b);
+  const f32 sign = dot >= 0 ? 1.0f : -1.0f;
+  f32       tA, tB;
+
+  if (math_abs(dot) < 0.99999f) {
+    const f32 x = math_acos_f32(dot);
+    const f32 y = 1.0f / math_sin_f32(x);
+
+    tA = math_sin_f32((1.0f - t) * x) * y;
+    tB = math_sin_f32(t * x) * y * sign;
+  } else {
+    tA = 1.0f - t;
+    tB = t * sign;
   }
 
-  const f32 halfTheta    = math_acos_f32(cosHalfTheta);
-  const f32 sinHalfTheta = math_sqrt_f32(1.0f - cosHalfTheta * cosHalfTheta);
-  // if theta == 180 degrees then result is not fully defined
-  // we could rotate around any axis normal to a or b
-  if (math_abs(sinHalfTheta) < 0.001f) {
-    return (GeoQuat){
-        .x = a.x * 0.5f + b.x * 0.5f,
-        .y = a.y * 0.5f + b.y * 0.5f,
-        .z = a.z * 0.5f + b.z * 0.5f,
-        .w = a.w * 0.5f + b.w * 0.5f,
-    };
-  }
-
-  const f32 ratioA = math_sin_f32((1.0f - t) * halfTheta) / sinHalfTheta;
-  const f32 ratioB = math_sin_f32(t * halfTheta) / sinHalfTheta;
   return (GeoQuat){
-      .w = a.w * ratioA + b.w * ratioB,
-      .x = a.x * ratioA + b.x * ratioB,
-      .y = a.y * ratioA + b.y * ratioB,
-      .z = a.z * ratioA + b.z * ratioB,
+      a.x * tA + b.x * tB,
+      a.y * tA + b.y * tB,
+      a.z * tA + b.z * tB,
+      a.w * tA + b.w * tB,
   };
 }
 

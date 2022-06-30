@@ -178,6 +178,7 @@ typedef enum {
   GltfError_MalformedPrimTexcoords,
   GltfError_MalformedPrimJoints,
   GltfError_MalformedPrimWeights,
+  GltfError_MalformedSceneTransform,
   GltfError_MalformedSkin,
   GltfError_MalformedNodes,
   GltfError_MalformedAnimation,
@@ -206,6 +207,7 @@ static String gltf_error_str(const GltfError err) {
       string_static("Malformed primitive texcoords"),
       string_static("Malformed primitive joints"),
       string_static("Malformed primitive weights"),
+      string_static("Malformed scene transform"),
       string_static("Malformed skin"),
       string_static("Malformed nodes"),
       string_static("Malformed animation"),
@@ -266,6 +268,15 @@ static bool gltf_json_elem_f32(GltfLoad* ld, const JsonVal v, const u32 index, f
   }
   *out = (f32)json_number(ld->jDoc, elem);
   return true;
+}
+
+static bool gltf_json_elem_u32(GltfLoad* ld, const JsonVal v, const u32 index, u32* out) {
+  f32 outFloat;
+  if (gltf_json_elem_f32(ld, v, index, &outFloat)) {
+    *out = (u32)outFloat;
+    return true;
+  }
+  return false;
 }
 
 static bool gltf_json_field_u32(GltfLoad* ld, const JsonVal v, const String name, u32* out) {
@@ -382,15 +393,11 @@ static AssetMeshAnimPtr gltf_anim_data_begin(GltfLoad* ld, const u32 align) {
   return (u32)ld->animData.size;
 }
 
-static AssetMeshAnimPtr gltf_anim_data_push_vec(GltfLoad* ld, const GeoVector val) {
+static AssetMeshAnimPtr gltf_anim_data_push_trans(GltfLoad* ld, const GltfTransform val) {
   const AssetMeshAnimPtr res = gltf_anim_data_begin(ld, alignof(GeoVector));
-  *((GeoVector*)dynarray_push(&ld->animData, sizeof(GeoVector)).ptr) = val;
-  return res;
-}
-
-static AssetMeshAnimPtr gltf_anim_data_push_quat(GltfLoad* ld, const GeoQuat val) {
-  const AssetMeshAnimPtr res = gltf_anim_data_begin(ld, alignof(GeoQuat));
-  *((GeoQuat*)dynarray_push(&ld->animData, sizeof(GeoQuat)).ptr) = val;
+  *((GeoVector*)dynarray_push(&ld->animData, sizeof(GeoVector)).ptr) = val.t;
+  *((GeoQuat*)dynarray_push(&ld->animData, sizeof(GeoQuat)).ptr)     = val.r;
+  *((GeoVector*)dynarray_push(&ld->animData, sizeof(GeoVector)).ptr) = val.s;
   return res;
 }
 
@@ -644,8 +651,37 @@ Error:
 static void gltf_parse_scene_transform(GltfLoad* ld, GltfError* err) {
   ld->sceneTrans.t = geo_vector(0);
   ld->sceneTrans.r = geo_quat_ident;
-  ld->sceneTrans.s = geo_vector(1, 1, -1); // Mirror z to convert from a right-handed coord system.
+  ld->sceneTrans.s = geo_vector(1, 1, 1);
+
+  const JsonVal scenes = json_field(ld->jDoc, ld->jRoot, string_lit("scenes"));
+  if (!gltf_json_elem_count(ld, scenes)) {
+    goto Success; // Scene transform is optional.
+  }
+  const JsonVal scene = json_elem_begin(ld->jDoc, scenes);
+  if (!gltf_json_check(ld, scene, JsonType_Object)) {
+    goto Error;
+  }
+  const JsonVal rootNodes = json_field(ld->jDoc, scene, string_lit("nodes"));
+  u32           rootNodeIndex;
+  if (!gltf_json_elem_u32(ld, rootNodes, 0, &rootNodeIndex)) {
+    goto Success; // Scene transform is optional.
+  }
+  const JsonVal nodes = json_field(ld->jDoc, ld->jRoot, string_lit("nodes"));
+  if (gltf_json_elem_count(ld, nodes) <= rootNodeIndex) {
+    goto Error;
+  }
+  const JsonVal rootNode = json_elem(ld->jDoc, nodes, rootNodeIndex);
+  gltf_json_transform(ld, rootNode, &ld->sceneTrans);
+
+Success:
+  // Mirror z to convert from a right-handed coordinate system.
+  ld->sceneTrans.r = geo_quat_mul_comps(ld->sceneTrans.r, geo_vector(-1, -1, -1, 1));
+  ld->sceneTrans.s = geo_vector_mul_comps(ld->sceneTrans.s, geo_vector(1, 1, -1));
   *err             = GltfError_None;
+  return;
+
+Error:
+  *err = GltfError_MalformedSceneTransform;
 }
 
 static void gltf_parse_skin(GltfLoad* ld, GltfError* err) {
@@ -687,7 +723,8 @@ static void gltf_parse_skin(GltfLoad* ld, GltfError* err) {
   if (gltf_json_field_u32(ld, skin, string_lit("skeleton"), &skeletonNodeIndex)) {
     // Optional node index of the root of the skeleton.
     if (sentinel_check(ld->rootJointIndex = gltf_node_to_joint_index(ld, skeletonNodeIndex))) {
-      goto Error;
+      // Skeleton root is not a joint itself, this is allowed by the Gltf spec; Default to joint 0.
+      ld->rootJointIndex = 0;
     }
   } else {
     ld->rootJointIndex = 0;
@@ -721,15 +758,18 @@ static void gltf_parse_skeleton_nodes(GltfLoad* ld, GltfError* err) {
 
     const JsonVal children = json_field(ld->jDoc, node, string_lit("children"));
     if (gltf_json_check(ld, children, JsonType_Array)) {
-      out->childData  = gltf_anim_data_begin(ld, alignof(u32));
-      out->childCount = json_elem_count(ld->jDoc, children);
+      out->childData = gltf_anim_data_begin(ld, alignof(u32));
 
       json_for_elems(ld->jDoc, children, child) {
         if (UNLIKELY(json_type(ld->jDoc, child) != JsonType_Number)) {
           goto Error;
         }
         const u32 childJointIndex = gltf_node_to_joint_index(ld, (u32)json_number(ld->jDoc, child));
+        if (!sentinel_check(childJointIndex)) {
+          // Child is part of the skeleton: Add it to the children collection.
         *((u32*)dynarray_push(&ld->animData, sizeof(u32)).ptr) = childJointIndex;
+          ++out->childCount;
+        }
       }
     }
 
@@ -837,7 +877,7 @@ static void gltf_parse_animations(GltfLoad* ld, GltfError* err) {
         goto Error;
       }
       if (sentinel_check(jointIdx = gltf_node_to_joint_index(ld, nodeIdx))) {
-        goto Error;
+        continue; // Channel animates a node that is not part of the skeleton.
       }
       const JsonVal path = json_field(ld->jDoc, target, string_lit("path"));
       if (!gltf_json_check(ld, path, JsonType_String)) {
@@ -942,7 +982,9 @@ static GltfMeshMeta gltf_mesh_meta(GltfLoad* ld, GltfError* err) {
     if (sentinel_check(prim->accJoints)) {
       features &= ~GltfFeature_Skinning;
     } else {
-      verify(gltf_access_check(ld, prim->accJoints, GltfType_u16, 4), MalformedPrimJoints);
+      const bool validJoints = gltf_access_check(ld, prim->accJoints, GltfType_u8, 4) ||
+                               gltf_access_check(ld, prim->accJoints, GltfType_u16, 4);
+      verify(validJoints, MalformedPrimJoints);
       verify(ld->access[prim->accJoints].count == attrCount, MalformedPrimJoints);
       verify(gltf_access_check(ld, prim->accWeights, GltfType_f32, 4), MalformedPrimWeights);
       verify(ld->access[prim->accWeights].count == attrCount, MalformedPrimWeights);
@@ -956,6 +998,31 @@ Error:
 #undef verify
 }
 
+static void gltf_vertex_skin(
+    GltfLoad* ld, const GltfPrim* prim, const u32 attr, AssetMeshSkin* out, GltfError* err) {
+  /**
+   * Retrieve the 4 joint influences (joint-index + weight) for a vertex.
+   */
+  for (u32 i = 0; i != 4; ++i) {
+    out->weights.comps[i] = ld->access[prim->accWeights].data_f32[attr * 4 + i];
+    switch (ld->access[prim->accJoints].compType) {
+    case GltfType_u8:
+      out->joints[i] = ld->access[prim->accJoints].data_u8[attr * 4 + i];
+      break;
+    case GltfType_u16:
+      out->joints[i] = (u8)ld->access[prim->accJoints].data_u16[attr * 4 + i];
+      break;
+    default:
+      diag_crash();
+    }
+    if (UNLIKELY(out->joints[i] >= ld->jointCount)) {
+      *err = GltfError_MalformedPrimJoints;
+      return;
+    }
+  }
+  *err = GltfError_None;
+}
+
 static void gltf_build_mesh(GltfLoad* ld, AssetMeshComp* out, GltfError* err) {
   GltfMeshMeta meta = gltf_mesh_meta(ld, err);
   if (*err) {
@@ -963,10 +1030,8 @@ static void gltf_build_mesh(GltfLoad* ld, AssetMeshComp* out, GltfError* err) {
   }
   AssetMeshBuilder* builder = asset_mesh_builder_create(g_alloc_heap, meta.vertexCount);
 
-  typedef const u16* AccessorU16;
   typedef const f32* AccessorF32;
-  AccessorF32        positions, texcoords, normals, tangents, weights;
-  AccessorU16        joints;
+  AccessorF32        positions, texcoords, normals, tangents;
   u32                attrCount, vertexCount;
 
   for (GltfPrim* prim = ld->prims; prim != ld->prims + ld->primCount; ++prim) {
@@ -980,10 +1045,6 @@ static void gltf_build_mesh(GltfLoad* ld, AssetMeshComp* out, GltfError* err) {
     }
     if (meta.features & GltfFeature_Tangents) {
       tangents = ld->access[prim->accTangent].data_f32;
-    }
-    if (meta.features & GltfFeature_Skinning) {
-      joints  = ld->access[prim->accJoints].data_u16;
-      weights = ld->access[prim->accWeights].data_f32;
     }
     GltfIndexMode indexMode;
     gtlf_check_index_mode(ld, prim, &indexMode);
@@ -1029,23 +1090,12 @@ static void gltf_build_mesh(GltfLoad* ld, AssetMeshComp* out, GltfError* err) {
           });
 
       if (meta.features & GltfFeature_Skinning) {
-        const u16*      vertJoints  = &joints[attr * 4];
-        const GeoVector vertWeights = {
-            weights[attr * 4 + 0],
-            weights[attr * 4 + 1],
-            weights[attr * 4 + 2],
-            weights[attr * 4 + 3],
-        };
-        const u16 j0 = vertJoints[0], j1 = vertJoints[1], j2 = vertJoints[2], j3 = vertJoints[3];
-        const u32 jointMax = ld->jointCount;
-        if (UNLIKELY(j0 >= jointMax || j1 >= jointMax || j2 >= jointMax || j3 >= jointMax)) {
-          *err = GltfError_MalformedPrimJoints;
+        AssetMeshSkin skin;
+        gltf_vertex_skin(ld, prim, attr, &skin, err);
+        if (*err) {
           goto Cleanup;
         }
-        asset_mesh_builder_set_skin(
-            builder,
-            vertIdx,
-            (AssetMeshSkin){.joints = {(u8)j0, (u8)j1, (u8)j2, (u8)j3}, .weights = vertWeights});
+        asset_mesh_builder_set_skin(builder, vertIdx, skin);
       }
     }
   }
@@ -1120,7 +1170,6 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
           const f32 channelDur = gltf_access_max_f32(ld, srcChannel->accInput);
           duration             = math_max(duration, channelDur);
 
-          // TODO: Apply the scene transform when animating the root.
           *resChannel = (AssetMeshAnimChannel){
               .frameCount = ld->access[srcChannel->accInput].count,
               .timeData   = gltf_anim_data_push_access(ld, srcChannel->accInput),
@@ -1136,17 +1185,8 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
 
   // Create the default pose output.
   AssetMeshAnimPtr resDefaultPose = gltf_anim_data_begin(ld, alignof(GeoVector));
-  for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
-    const GltfJoint* joint = &ld->joints[jointIndex];
-    if (jointIndex == ld->rootJointIndex) {
-      gltf_anim_data_push_vec(ld, geo_vector_add(joint->trans.t, ld->sceneTrans.t));
-      gltf_anim_data_push_quat(ld, geo_quat_mul(joint->trans.r, ld->sceneTrans.r));
-      gltf_anim_data_push_vec(ld, geo_vector_mul_comps(joint->trans.s, ld->sceneTrans.s));
-    } else {
-      gltf_anim_data_push_vec(ld, joint->trans.t);
-      gltf_anim_data_push_quat(ld, joint->trans.r);
-      gltf_anim_data_push_vec(ld, joint->trans.s);
-    }
+  for (const GltfJoint* joint = ld->joints; joint != ld->joints + ld->jointCount; ++joint) {
+    gltf_anim_data_push_trans(ld, joint->trans);
   }
 
   *out = (AssetMeshSkeletonComp){
@@ -1154,6 +1194,7 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
       .anims           = resAnims,
       .bindPoseInvMats = gltf_anim_data_push_access_mat(ld, ld->accBindPoseInvMats),
       .defaultPose     = resDefaultPose,
+      .rootTransform   = gltf_anim_data_push_trans(ld, ld->sceneTrans),
       .jointCount      = ld->jointCount,
       .animCount       = ld->animCount,
       .rootJointIndex  = sentinel_check(ld->rootJointIndex) ? 0 : ld->rootJointIndex,

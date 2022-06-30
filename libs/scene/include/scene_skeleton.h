@@ -53,6 +53,7 @@ const SceneSkeletonJoint* scene_skeleton_joint(const SceneSkeletonTemplComp*, u3
 SceneJointInfo scene_skeleton_info(const SceneSkeletonTemplComp*, u32 layer, u32 joint);
 SceneJointPose scene_skeleton_sample(const SceneSkeletonTemplComp*, u32 layer, u32 joint, f32 time);
 SceneJointPose scene_skeleton_sample_def(const SceneSkeletonTemplComp*, u32 joint);
+SceneJointPose scene_skeleton_root(const SceneSkeletonTemplComp*);
 
 void scene_skeleton_mask_set(SceneSkeletonMask*, u32 joint);
 void scene_skeleton_mask_set_all(SceneSkeletonMask*);

@@ -166,9 +166,8 @@ static void physics_draw_skeleton(
     const GeoVector               pos,
     const GeoQuat                 rot,
     const f32                     scale) {
-  static const f32 g_arrowLength = 0.1f;
-  static const f32 g_arrowSize   = 0.01f;
-  const f32        jointScaleMul = (1.0f / scale) * g_arrowLength;
+  static const f32 g_arrowLength = 0.075f;
+  static const f32 g_arrowSize   = 0.0075f;
   const GeoMatrix  transform     = geo_matrix_trs(pos, rot, geo_vector(scale, scale, scale));
 
   GeoMatrix* jointMatrices = mem_stack(sizeof(GeoMatrix) * skeleton->jointCount).ptr;
@@ -181,14 +180,14 @@ static void physics_draw_skeleton(
     const SceneSkeletonJoint* jointInfo   = scene_skeleton_joint(skeletonTemplate, i);
     const GeoVector           jointPos    = geo_matrix_to_translation(&jointMatrices[i]);
 
-    const GeoVector jointRefX = geo_matrix_transform3_point(&jointMatrices[i], geo_right);
-    const GeoVector jointX    = geo_vector_mul(geo_vector_sub(jointRefX, jointPos), jointScaleMul);
+    const GeoVector jointRefX = geo_matrix_transform3(&jointMatrices[i], geo_right);
+    const GeoVector jointX    = geo_vector_mul(geo_vector_norm(jointRefX), g_arrowLength);
 
-    const GeoVector jointRefY = geo_matrix_transform3_point(&jointMatrices[i], geo_up);
-    const GeoVector jointY    = geo_vector_mul(geo_vector_sub(jointRefY, jointPos), jointScaleMul);
+    const GeoVector jointRefY = geo_matrix_transform3(&jointMatrices[i], geo_up);
+    const GeoVector jointY    = geo_vector_mul(geo_vector_norm(jointRefY), g_arrowLength);
 
-    const GeoVector jointRefZ = geo_matrix_transform3_point(&jointMatrices[i], geo_forward);
-    const GeoVector jointZ    = geo_vector_mul(geo_vector_sub(jointRefZ, jointPos), jointScaleMul);
+    const GeoVector jointRefZ = geo_matrix_transform3(&jointMatrices[i], geo_forward);
+    const GeoVector jointZ    = geo_vector_mul(geo_vector_norm(jointRefZ), g_arrowLength);
 
     debug_arrow(shapes, jointPos, geo_vector_add(jointPos, jointX), g_arrowSize, geo_color_red);
     debug_arrow(shapes, jointPos, geo_vector_add(jointPos, jointY), g_arrowSize, geo_color_green);
@@ -252,7 +251,9 @@ ecs_system_define(DebugPhysicsDrawSys) {
     }
     if (skeletonComp && settings->flags & DebugPhysicsFlags_DrawSkeleton) {
       const SceneSkeletonTemplComp* tpl = ecs_view_read_t(graphicItr, SceneSkeletonTemplComp);
-      physics_draw_skeleton(shape, text, skeletonComp, tpl, pos, rot, scale);
+      if (tpl) {
+        physics_draw_skeleton(shape, text, skeletonComp, tpl, pos, rot, scale);
+      }
     }
   }
 }

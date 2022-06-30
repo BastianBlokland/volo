@@ -13,6 +13,7 @@
 ecs_comp_define(DebugAnimationPanelComp) {
   UiPanel      panel;
   UiScrollview scrollview;
+  u32          totalRows;
 };
 
 ecs_view_define(PanelUpdateView) {
@@ -27,14 +28,15 @@ ecs_view_define(AnimationView) {
 
 ecs_view_define(SkeletonTemplView) { ecs_access_read(SceneSkeletonTemplComp); }
 
-static void anim_draw_vec(UiCanvasComp* canvas, const GeoVector v, const String tooltip) {
+static void
+anim_draw_vec(UiCanvasComp* canvas, const GeoVector v, const u8 digits, const String tooltip) {
   ui_label(
       canvas,
       fmt_write_scratch(
-          "{>4}, {>4}, {>4}",
-          fmt_float(v.x, .minDecDigits = 1, .maxDecDigits = 1, .expThresholdNeg = 0),
-          fmt_float(v.y, .minDecDigits = 1, .maxDecDigits = 1, .expThresholdNeg = 0),
-          fmt_float(v.z, .minDecDigits = 1, .maxDecDigits = 1, .expThresholdNeg = 0)),
+          "{>4} {>4} {>4}",
+          fmt_float(v.x, .minDecDigits = digits, .maxDecDigits = digits, .expThresholdNeg = 0),
+          fmt_float(v.y, .minDecDigits = digits, .maxDecDigits = digits, .expThresholdNeg = 0),
+          fmt_float(v.z, .minDecDigits = digits, .maxDecDigits = digits, .expThresholdNeg = 0)),
       .tooltip  = tooltip,
       .fontSize = 12);
 }
@@ -44,12 +46,40 @@ static void anim_draw_quat(UiCanvasComp* canvas, const GeoQuat q, const String t
   ui_label(
       canvas,
       fmt_write_scratch(
-          "{>4}, {>4}, {>4}",
+          "{>4} {>4} {>4}",
           fmt_float(angles.x * math_rad_to_deg, .maxDecDigits = 0, .expThresholdNeg = 0),
           fmt_float(angles.y * math_rad_to_deg, .maxDecDigits = 0, .expThresholdNeg = 0),
           fmt_float(angles.z * math_rad_to_deg, .maxDecDigits = 0, .expThresholdNeg = 0)),
       .tooltip  = tooltip,
       .fontSize = 12);
+}
+
+static void anim_draw_pose(UiCanvasComp* canvas, UiTable* table, const SceneJointPose pose) {
+  anim_draw_vec(canvas, pose.t, 1, string_lit("Translation."));
+  ui_table_next_column(canvas, table);
+  anim_draw_quat(canvas, pose.r, string_lit("Rotation."));
+  ui_table_next_column(canvas, table);
+  anim_draw_vec(canvas, pose.s, 2, string_lit("Scale."));
+  ui_table_next_column(canvas, table);
+}
+
+static void anim_draw_pose_animated(
+    UiCanvasComp* canvas, UiTable* table, const SceneJointPose pose, const SceneJointInfo info) {
+  if (info.frameCountT) {
+    const u32 count = info.frameCountT;
+    anim_draw_vec(
+        canvas, pose.t, 1, fmt_write_scratch("Translation.\nFrames: {}.", fmt_int(count)));
+  }
+  ui_table_next_column(canvas, table);
+  if (info.frameCountR) {
+    const u32 count = info.frameCountR;
+    anim_draw_quat(canvas, pose.r, fmt_write_scratch("Rotation.\nFrames: {}.", fmt_int(count)));
+  }
+  ui_table_next_column(canvas, table);
+  if (info.frameCountS) {
+    const u32 count = info.frameCountS;
+    anim_draw_vec(canvas, pose.s, 2, fmt_write_scratch("Scale.\nFrames: {}.", fmt_int(count)));
+  }
 }
 
 static void anim_draw_joints_layer(
@@ -58,6 +88,9 @@ static void anim_draw_joints_layer(
     SceneAnimLayer*               layer,
     const u32                     layerIdx,
     const SceneSkeletonTemplComp* skelTempl) {
+
+  ui_style_push(canvas);
+  ui_style_variation(canvas, UiVariation_Monospace);
 
   u32 stack[scene_skeleton_joints_max] = {scene_skeleton_root_index(skelTempl)};
   u32 depth[scene_skeleton_joints_max] = {0};
@@ -77,33 +110,15 @@ static void anim_draw_joints_layer(
       scene_skeleton_mask_flip(&layer->mask, jointIdx);
     }
 
-    const u32 padding = 6 + depth[stackCount] * 2;
-    ui_label(canvas, fmt_write_scratch("{}{}", fmt_padding(padding), fmt_text(name)));
+    ui_label(
+        canvas,
+        fmt_write_scratch("{}{}", fmt_padding(4 + depth[stackCount]), fmt_text(name)),
+        .fontSize = 12);
     ui_table_next_column(canvas, table);
-
-    ui_style_push(canvas);
-    ui_style_variation(canvas, UiVariation_Monospace);
 
     const SceneJointPose pose = scene_skeleton_sample(skelTempl, layerIdx, jointIdx, layer->time);
-    if (info.frameCountT) {
-      const u32 count = info.frameCountT;
-      anim_draw_vec(canvas, pose.t, fmt_write_scratch("Translation.\nFrames: {}.", fmt_int(count)));
-    }
+    anim_draw_pose_animated(canvas, table, pose, info);
     ui_table_next_column(canvas, table);
-
-    if (info.frameCountR) {
-      const u32 count = info.frameCountR;
-      anim_draw_quat(canvas, pose.r, fmt_write_scratch("Rotation.\nFrames: {}.", fmt_int(count)));
-    }
-    ui_table_next_column(canvas, table);
-
-    if (info.frameCountS) {
-      const u32 count = info.frameCountS;
-      anim_draw_vec(canvas, pose.s, fmt_write_scratch("Scale.\nFrames: {}.", fmt_int(count)));
-    }
-    ui_table_next_column(canvas, table);
-
-    ui_style_pop(canvas);
 
     const u32 childDepth = depth[stackCount] + 1;
     for (u32 childNum = 0; childNum != joint->childCount; ++childNum) {
@@ -111,13 +126,26 @@ static void anim_draw_joints_layer(
       depth[stackCount++] = childDepth;
     }
   }
+
+  ui_style_pop(canvas);
 }
 
 static void anim_draw_joints_def(
     UiCanvasComp* canvas, UiTable* table, const SceneSkeletonTemplComp* skelTempl) {
 
+  ui_style_push(canvas);
+  ui_style_variation(canvas, UiVariation_Monospace);
+
+  ui_table_next_row(canvas, table);
+  ui_table_draw_row_bg(canvas, table, ui_color(96, 96, 96, 192));
+  ui_label(canvas, string_lit("<root>"), .fontSize = 12);
+  ui_table_next_column(canvas, table);
+
+  const SceneJointPose rootPose = scene_skeleton_root(skelTempl);
+  anim_draw_pose(canvas, table, rootPose);
+
   u32 stack[scene_skeleton_joints_max] = {scene_skeleton_root_index(skelTempl)};
-  u32 depth[scene_skeleton_joints_max] = {0};
+  u32 depth[scene_skeleton_joints_max] = {1};
   u32 stackCount                       = 1;
 
   while (stackCount--) {
@@ -128,23 +156,14 @@ static void anim_draw_joints_def(
     ui_table_next_row(canvas, table);
     ui_table_draw_row_bg(canvas, table, ui_color(96, 96, 96, 192));
 
-    ui_label(canvas, fmt_write_scratch("{}{}", fmt_padding(depth[stackCount] * 2), fmt_text(name)));
+    ui_label(
+        canvas,
+        fmt_write_scratch("{}{}", fmt_padding(depth[stackCount]), fmt_text(name)),
+        .fontSize = 12);
     ui_table_next_column(canvas, table);
-
-    ui_style_push(canvas);
-    ui_style_variation(canvas, UiVariation_Monospace);
 
     const SceneJointPose pose = scene_skeleton_sample_def(skelTempl, jointIdx);
-    anim_draw_vec(canvas, pose.t, string_lit("Translation."));
-    ui_table_next_column(canvas, table);
-
-    anim_draw_quat(canvas, pose.r, string_lit("Rotation."));
-    ui_table_next_column(canvas, table);
-
-    anim_draw_vec(canvas, pose.s, string_lit("Scale."));
-    ui_table_next_column(canvas, table);
-
-    ui_style_pop(canvas);
+    anim_draw_pose(canvas, table, pose);
 
     const u32 childDepth = depth[stackCount] + 1;
     for (u32 childNum = 0; childNum != joint->childCount; ++childNum) {
@@ -152,6 +171,8 @@ static void anim_draw_joints_def(
       depth[stackCount++] = childDepth;
     }
   }
+
+  ui_style_pop(canvas);
 }
 
 static void anim_panel_draw(
@@ -162,12 +183,12 @@ static void anim_panel_draw(
   const String title = fmt_write_scratch("{} Animation Debug", fmt_ui_shape(Animation));
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
 
-  if (anim) {
+  if (anim && skelTempl) {
     UiTable table = ui_table(.spacing = ui_vector(10, 5));
     ui_table_add_column(&table, UiTableColumn_Fixed, 300);
-    ui_table_add_column(&table, UiTableColumn_Fixed, 135);
+    ui_table_add_column(&table, UiTableColumn_Fixed, 140);
     ui_table_add_column(&table, UiTableColumn_Fixed, 150);
-    ui_table_add_column(&table, UiTableColumn_Fixed, 135);
+    ui_table_add_column(&table, UiTableColumn_Fixed, 140);
     ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
     ui_table_draw_header(
@@ -181,8 +202,9 @@ static void anim_panel_draw(
             {string_lit("Weight"), string_lit("Current playback weight.")},
         });
 
-    const u32 maxEntries = (anim->layerCount + 1) * (1 + scene_skeleton_joint_count(skelTempl));
-    ui_scrollview_begin(canvas, &panelComp->scrollview, ui_table_height(&table, maxEntries));
+    const f32 totalHeight = ui_table_height(&table, panelComp->totalRows);
+    ui_scrollview_begin(canvas, &panelComp->scrollview, totalHeight);
+    panelComp->totalRows = 1; // Always draws the default layer.
 
     for (u32 layerIdx = 0; layerIdx != anim->layerCount; ++layerIdx) {
       SceneAnimLayer* layer = &anim->layers[layerIdx];
@@ -216,6 +238,8 @@ static void anim_panel_draw(
         anim_draw_joints_layer(canvas, &table, layer, layerIdx, skelTempl);
       }
 
+      panelComp->totalRows += 1 + (open ? scene_skeleton_joint_count(skelTempl) : 0);
+
       ui_canvas_id_block_next(canvas); // Use a consistent amount of ids regardless of if 'open'.
     }
 
@@ -223,6 +247,7 @@ static void anim_panel_draw(
     ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
     if (ui_section(canvas, .label = string_lit("<default>"))) {
       anim_draw_joints_def(canvas, &table, skelTempl);
+      panelComp->totalRows += scene_skeleton_joint_count(skelTempl) + 1;
     }
 
     ui_scrollview_end(canvas, &panelComp->scrollview);
@@ -252,7 +277,9 @@ ecs_system_define(DebugAnimationUpdatePanelSys) {
        */
       anim                      = ecs_view_write_t(animItr, SceneAnimationComp);
       const EcsEntityId graphic = ecs_view_read_t(animItr, SceneRenderableComp)->graphic;
-      skelTempl = ecs_utils_read_t(world, SkeletonTemplView, graphic, SceneSkeletonTemplComp);
+      skelTempl = ecs_view_contains(ecs_world_view_t(world, SkeletonTemplView), graphic)
+                      ? ecs_utils_read_t(world, SkeletonTemplView, graphic, SceneSkeletonTemplComp)
+                      : null;
     }
 
     ui_canvas_reset(canvas);

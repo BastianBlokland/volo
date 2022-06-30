@@ -11,6 +11,7 @@
 #include "scene_time.h"
 
 #define scene_skeleton_max_loads 16
+#define scene_anim_duration_min 0.001f
 #define scene_weight_min 0.001f
 #define scene_weight_max 0.999f
 
@@ -21,7 +22,8 @@ typedef enum {
   SkeletonTemplState_Start,
   SkeletonTemplState_LoadGraphic,
   SkeletonTemplState_LoadMesh,
-  SkeletonTemplState_Finished,
+  SkeletonTemplState_FinishedSuccess,
+  SkeletonTemplState_FinishedFailure,
 } SkeletonTemplState;
 
 typedef struct {
@@ -50,6 +52,7 @@ ecs_comp_define(SceneSkeletonTemplComp) {
   SceneSkeletonAnim*    anims;           // [animCount].
   const GeoMatrix*      bindPoseInvMats; // [jointCount].
   const SceneJointPose* defaultPose;     // [jointCount].
+  const SceneJointPose* rootTransform;   // [1].
   u32                   jointCount;
   u32                   animCount;
   u32                   jointRootIndex;
@@ -159,7 +162,7 @@ ecs_system_define(SceneSkeletonInitSys) {
 
     if (ecs_view_maybe_jump(templItr, graphic)) {
       const SceneSkeletonTemplComp* tl = ecs_view_read_t(templItr, SceneSkeletonTemplComp);
-      if (tl->state == SkeletonTemplState_Finished) {
+      if (tl->state == SkeletonTemplState_FinishedSuccess) {
         scene_skeleton_init_from_templ(world, entity, tl);
       }
       continue;
@@ -215,9 +218,10 @@ static void scene_asset_templ_init(SceneSkeletonTemplComp* tl, const AssetMeshSk
 
   tl->bindPoseInvMats = (const GeoMatrix*)mem_at_u8(tl->animData, asset->bindPoseInvMats);
   tl->defaultPose     = (const SceneJointPose*)mem_at_u8(tl->animData, asset->defaultPose);
+  tl->rootTransform   = (const SceneJointPose*)mem_at_u8(tl->animData, asset->rootTransform);
 }
 
-static void scene_skeleton_templ_load_done(EcsWorld* world, EcsIterator* itr) {
+static void scene_skeleton_templ_load_done(EcsWorld* world, EcsIterator* itr, const bool failure) {
   const EcsEntityId       entity = ecs_view_entity(itr);
   SceneSkeletonTemplComp* tl     = ecs_view_write_t(itr, SceneSkeletonTemplComp);
 
@@ -225,7 +229,7 @@ static void scene_skeleton_templ_load_done(EcsWorld* world, EcsIterator* itr) {
   if (tl->mesh) {
     asset_release(world, tl->mesh);
   }
-  tl->state = SkeletonTemplState_Finished;
+  tl->state = failure ? SkeletonTemplState_FinishedFailure : SkeletonTemplState_FinishedSuccess;
   ecs_world_add_empty_t(world, entity, SceneSkeletonTemplLoadedComp);
 }
 
@@ -248,11 +252,11 @@ ecs_system_define(SceneSkeletonTemplLoadSys) {
         break; // Graphic has not loaded yet; wait.
       }
       if (!graphic) {
-        scene_skeleton_templ_load_done(world, itr);
+        scene_skeleton_templ_load_done(world, itr, false);
         break; // Graphic failed to load, or was of unexpected type.
       }
       if (!graphic->mesh) {
-        scene_skeleton_templ_load_done(world, itr);
+        scene_skeleton_templ_load_done(world, itr, false);
         break; // Graphic did not have a mesh.
       }
       tl->mesh = graphic->mesh;
@@ -267,19 +271,15 @@ ecs_system_define(SceneSkeletonTemplLoadSys) {
       if (ecs_view_maybe_jump(meshItr, tl->mesh)) {
         scene_asset_templ_init(tl, ecs_view_read_t(meshItr, AssetMeshSkeletonComp));
       }
-      scene_skeleton_templ_load_done(world, itr);
+      const bool meshLoadFailure = ecs_world_has_t(world, tl->mesh, AssetFailedComp);
+      scene_skeleton_templ_load_done(world, itr, meshLoadFailure);
       break;
     }
-    case SkeletonTemplState_Finished:
+    case SkeletonTemplState_FinishedSuccess:
+    case SkeletonTemplState_FinishedFailure:
       diag_crash();
     }
   }
-}
-
-ecs_view_define(UpdateView) {
-  ecs_access_read(SceneRenderableComp);
-  ecs_access_write(SceneSkeletonComp);
-  ecs_access_write(SceneAnimationComp);
 }
 
 static void anim_set_weights_neg1(const SceneSkeletonTemplComp* tl, f32* weights) {
@@ -290,11 +290,11 @@ static void anim_set_weights_neg1(const SceneSkeletonTemplComp* tl, f32* weights
 
 static u32 anim_find_frame(const SceneSkeletonChannel* ch, const f32 t) {
   for (u32 i = 1; i != ch->frameCount; ++i) {
-    if (ch->times[i] > t) {
+    if (ch->times[i] >= t) {
       return i - 1;
     }
   }
-  return 0;
+  return ch->frameCount - 1;
 }
 
 static GeoVector anim_channel_get_vec(const SceneSkeletonChannel* ch, const f32 t) {
@@ -406,12 +406,14 @@ static void anim_apply(const SceneSkeletonTemplComp* tl, SceneJointPose* poses, 
   u32 stack[scene_skeleton_joints_max] = {tl->jointRootIndex};
   u32 stackCount                       = 1;
 
+  out[tl->jointRootIndex] =
+      geo_matrix_trs(tl->rootTransform->t, tl->rootTransform->r, tl->rootTransform->s);
+
   while (stackCount--) {
     const u32       joint   = stack[stackCount];
-    const bool      isRoot  = joint == tl->jointRootIndex;
     const GeoMatrix poseMat = geo_matrix_trs(poses[joint].t, poses[joint].r, poses[joint].s);
 
-    out[joint] = isRoot ? poseMat : geo_matrix_mul(&out[joint], &poseMat);
+    out[joint] = geo_matrix_mul(&out[joint], &poseMat);
 
     for (u32 childNum = 0; childNum != tl->joints[joint].childCount; ++childNum) {
       const u32 childIndex = tl->joints[joint].childIndices[childNum];
@@ -419,6 +421,12 @@ static void anim_apply(const SceneSkeletonTemplComp* tl, SceneJointPose* poses, 
       stack[stackCount++]  = childIndex;
     }
   }
+}
+
+ecs_view_define(UpdateView) {
+  ecs_access_read(SceneRenderableComp);
+  ecs_access_write(SceneSkeletonComp);
+  ecs_access_write(SceneAnimationComp);
 }
 
 ecs_system_define(SceneSkeletonUpdateSys) {
@@ -441,6 +449,13 @@ ecs_system_define(SceneSkeletonUpdateSys) {
     SceneSkeletonComp*         sk         = ecs_view_write_t(itr, SceneSkeletonComp);
     SceneAnimationComp*        anim       = ecs_view_write_t(itr, SceneAnimationComp);
 
+    if (UNLIKELY(!ecs_world_has_t(world, renderable->graphic, SceneSkeletonTemplLoadedComp))) {
+      // Template has been removed; reset the skeleton and animation.
+      ecs_world_remove_t(world, ecs_view_entity(itr), SceneSkeletonComp);
+      ecs_world_remove_t(world, ecs_view_entity(itr), SceneAnimationComp);
+      continue;
+    }
+
     ecs_view_jump(templItr, renderable->graphic);
     const SceneSkeletonTemplComp* tl = ecs_view_read_t(templItr, SceneSkeletonTemplComp);
 
@@ -448,14 +463,33 @@ ecs_system_define(SceneSkeletonUpdateSys) {
 
     for (u32 i = 0; i != anim->layerCount; ++i) {
       SceneAnimLayer* layer = &anim->layers[i];
-      layer->time += deltaSeconds * layer->speed;
-      layer->time = math_mod_f32(layer->time, tl->anims[i].duration);
+      if (LIKELY(tl->anims[i].duration > scene_anim_duration_min)) {
+        layer->time += deltaSeconds * layer->speed;
+        layer->time = math_mod_f32(layer->time, tl->anims[i].duration);
+      }
       if (layer->weight > scene_weight_min) {
         anim_sample_layer(tl, layer, i, weights, poses);
       }
     }
     anim_sample_def(tl, weights, poses);
     anim_apply(tl, poses, sk->jointTransforms);
+  }
+}
+
+ecs_view_define(DirtyTemplateView) {
+  ecs_access_with(SceneSkeletonTemplComp);
+  ecs_access_with(SceneSkeletonTemplLoadedComp);
+  ecs_access_with(AssetChangedComp);
+}
+
+ecs_system_define(SceneClearDirtyTemplateSys) {
+  /**
+   * Clear skeleton templates for changed graphic assets.
+   */
+  EcsView* dirtyTemplateView = ecs_world_view_t(world, DirtyTemplateView);
+  for (EcsIterator* itr = ecs_view_itr(dirtyTemplateView); ecs_view_walk(itr);) {
+    ecs_world_remove_t(world, ecs_view_entity(itr), SceneSkeletonTemplComp);
+    ecs_world_remove_t(world, ecs_view_entity(itr), SceneSkeletonTemplLoadedComp);
   }
 }
 
@@ -474,6 +508,7 @@ ecs_module_init(scene_skeleton_module) {
   ecs_register_view(MeshView);
   ecs_register_view(SkeletonTemplView);
   ecs_register_view(UpdateView);
+  ecs_register_view(DirtyTemplateView);
 
   ecs_register_system(
       SceneSkeletonInitSys, ecs_view_id(SkeletonInitView), ecs_view_id(SkeletonTemplView));
@@ -485,6 +520,8 @@ ecs_module_init(scene_skeleton_module) {
       ecs_view_id(GlobalView),
       ecs_view_id(UpdateView),
       ecs_view_id(SkeletonTemplView));
+
+  ecs_register_system(SceneClearDirtyTemplateSys, ecs_view_id(DirtyTemplateView));
 }
 
 u32 scene_skeleton_root_index(const SceneSkeletonTemplComp* tl) { return tl->jointRootIndex; }
@@ -528,6 +565,8 @@ SceneJointPose scene_skeleton_sample_def(const SceneSkeletonTemplComp* tl, const
   diag_assert(joint < tl->jointCount);
   return tl->defaultPose[joint];
 }
+
+SceneJointPose scene_skeleton_root(const SceneSkeletonTemplComp* tl) { return *tl->rootTransform; }
 
 void scene_skeleton_mask_set(SceneSkeletonMask* mask, const u32 joint) {
   bitset_set(bitset_from_array(mask->jointBits), joint);

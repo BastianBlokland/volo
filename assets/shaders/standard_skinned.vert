@@ -31,11 +31,14 @@ void main() {
       vert.jointWeights.w * u_instances[in_instanceIndex].jointDelta[vert.jointIndices.w];
 
   const f32v3 skinnedVertPos = (instanceSkinMat * f32v4(vert.position, 1)).xyz;
+  const f32v3 skinnedNormal  = f32m3(instanceSkinMat) * vert.normal;
+  const f32v4 skinnedTangent = f32v4(f32m3(instanceSkinMat) * vert.tangent.xyz, vert.tangent.w);
+
   const f32v3 worldPos = quat_rotate(instanceQuat, skinnedVertPos * instanceScale) + instancePos;
 
   out_vertexPosition = u_global.viewProj * f32v4(worldPos, 1);
   out_worldPosition  = worldPos;
-  out_worldNormal    = quat_rotate(instanceQuat, vert.normal);
-  out_worldTangent   = f32v4(quat_rotate(instanceQuat, vert.tangent.xyz), vert.tangent.w);
+  out_worldNormal    = quat_rotate(instanceQuat, skinnedNormal);
+  out_worldTangent   = f32v4(quat_rotate(instanceQuat, skinnedTangent.xyz), skinnedTangent.w);
   out_texcoord       = vert.texcoord;
 }
