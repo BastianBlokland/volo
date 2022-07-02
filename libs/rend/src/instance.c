@@ -62,12 +62,14 @@ ecs_system_define(RendInstanceFillDrawsSys) {
     const SceneBoundsComp*    boundsComp    = ecs_view_read_t(renderableItr, SceneBoundsComp);
     const SceneSkeletonComp*  skeletonComp  = ecs_view_read_t(renderableItr, SceneSkeletonComp);
     const SceneTags           tags          = tagComp ? tagComp->tags : SceneTags_Default;
+    const bool                isSkinned     = skeletonComp->jointCount != 0;
 
     if (UNLIKELY(!ecs_world_has_t(world, renderable->graphic, RendDrawComp))) {
       if (++createdDraws > rend_instance_max_draw_create) {
         continue; // Limit the amount of new draws to create per frame.
       }
-      const RendDrawFlags flags = RendDrawFlags_StandardGeometry;
+      const RendDrawFlags flags = isSkinned ? RendDrawFlags_StandardGeometry | RendDrawFlags_Skinned
+                                            : RendDrawFlags_StandardGeometry;
       RendDrawComp*       draw  = rend_draw_create(world, renderable->graphic, flags);
       rend_draw_set_graphic(draw, renderable->graphic);
       continue;
@@ -83,7 +85,6 @@ ecs_system_define(RendInstanceFillDrawsSys) {
                                    ? geo_box_inverted3()
                                    : geo_box_transform3(&boundsComp->local, position, rotation, scale);
 
-    const bool isSkinned = skeletonComp->jointCount != 0;
     if (isSkinned) {
       const SceneSkeletonTemplComp* templ = ecs_view_read_t(drawItr, SceneSkeletonTemplComp);
       if (LIKELY(templ)) {

@@ -9,6 +9,7 @@ typedef enum {
   RendDrawFlags_StandardGeometry    = 1 << 0, // Uses the standard instance data format.
   RendDrawFlags_NoAutoClear         = 1 << 1,
   RendDrawFlags_NoInstanceFiltering = 1 << 2,
+  RendDrawFlags_Skinned             = 1 << 3,
 } RendDrawFlags;
 
 /**
