@@ -27,6 +27,13 @@
  * assumes the host system matches that.
  */
 
+/**
+ * Multiplier to scale the bounds of skinned meshes.
+ * This is a very crude way of giving the animations some space to move the vertices while staying
+ * within bounds. An alternative solution would be to compute bounds per joint.
+ */
+#define gltf_skinned_bounds_mult 3.0f
+
 typedef enum {
   GltfLoadPhase_BuffersAcquire,
   GltfLoadPhase_BuffersWait,
@@ -767,7 +774,7 @@ static void gltf_parse_skeleton_nodes(GltfLoad* ld, GltfError* err) {
         const u32 childJointIndex = gltf_node_to_joint_index(ld, (u32)json_number(ld->jDoc, child));
         if (!sentinel_check(childJointIndex)) {
           // Child is part of the skeleton: Add it to the children collection.
-        *((u32*)dynarray_push(&ld->animData, sizeof(u32)).ptr) = childJointIndex;
+          *((u32*)dynarray_push(&ld->animData, sizeof(u32)).ptr) = childJointIndex;
           ++out->childCount;
         }
       }
@@ -1104,6 +1111,9 @@ static void gltf_build_mesh(GltfLoad* ld, AssetMeshComp* out, GltfError* err) {
   }
   if (!(meta.features & GltfFeature_Tangents)) {
     asset_mesh_compute_tangents(builder);
+  }
+  if (meta.features & GltfFeature_Skinning) {
+    asset_mesh_builder_grow_bounds(builder, gltf_skinned_bounds_mult);
   }
   *out = asset_mesh_create(builder);
   *err = GltfError_None;

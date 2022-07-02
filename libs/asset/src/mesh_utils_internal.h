@@ -10,7 +10,9 @@ void              asset_mesh_builder_clear(AssetMeshBuilder*);
 AssetMeshIndex    asset_mesh_builder_push(AssetMeshBuilder*, AssetMeshVertex);
 void              asset_mesh_builder_set_skin(AssetMeshBuilder*, AssetMeshIndex, AssetMeshSkin);
 void              asset_mesh_builder_override_bounds(AssetMeshBuilder*, GeoBox);
-AssetMeshComp     asset_mesh_create(const AssetMeshBuilder*);
+void              asset_mesh_builder_grow_bounds(AssetMeshBuilder*, f32 multiplier);
+
+AssetMeshComp asset_mesh_create(const AssetMeshBuilder*);
 
 GeoVector asset_mesh_tri_norm(GeoVector a, GeoVector b, GeoVector c);
 
