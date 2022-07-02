@@ -34,6 +34,11 @@ static const f32       g_pedestalPositionY   = 0.5f;
 static const f32       g_subjectSpacing      = 2.5f;
 static const Subject   g_subjects[]          = {
     {
+        .graphic  = string_static("graphics/demo/vanguard.gra"),
+        .position = {.y = 0.5f},
+        .scale    = 1.0f,
+    },
+    {
         .graphic  = string_static("graphics/cube.gra"),
         .position = {.y = 1},
         .scale    = 1.0f,

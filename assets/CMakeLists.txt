@@ -77,6 +77,10 @@ if(${EXTERNAL_ASSETS})
       terrain/terrain_color.tga
       terrain/terrain_height.r32
       testimages/ducks.tga
+      vanguard/vanguard_diff.tga
+      vanguard/vanguard_nrm.tga
+      vanguard/vanguard.bin
+      vanguard/vanguard.gltf
     )
 endif()
 
