@@ -154,6 +154,12 @@ void asset_mesh_builder_override_bounds(AssetMeshBuilder* builder, const GeoBox 
   builder->positionBounds = overrideBounds;
 }
 
+void asset_mesh_builder_grow_bounds(AssetMeshBuilder* builder, const f32 multiplier) {
+  const GeoVector center  = geo_box_center(&builder->positionBounds);
+  const GeoVector size    = geo_box_size(&builder->positionBounds);
+  builder->positionBounds = geo_box_from_center(center, geo_vector_mul(size, multiplier));
+}
+
 AssetMeshComp asset_mesh_create(const AssetMeshBuilder* builder) {
   diag_assert_msg(builder->indexData.size, "Empty mesh is invalid");
   diag_assert(!builder->skinData.size || builder->skinData.size == builder->vertexData.size);

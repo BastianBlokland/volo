@@ -14,6 +14,14 @@ spec(box) {
     check_eq_vector(geo_box_size(&b), geo_vector(2, 2, 2));
   }
 
+  it("can be created from a center and a size") {
+    const GeoVector center = {1, 2, 3};
+    const GeoVector size   = {2, 4, 6};
+    const GeoBox    b      = geo_box_from_center(center, size);
+    check_eq_vector(geo_box_center(&b), center);
+    check_eq_vector(geo_box_size(&b), size);
+  }
+
   it("can construct an infinitely small box") {
     const GeoBox    b    = geo_box_inverted3();
     const GeoVector size = geo_box_size(&b);

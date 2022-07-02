@@ -33,6 +33,14 @@ GeoVector geo_box_size(const GeoBox* b) {
 #endif
 }
 
+GeoBox geo_box_from_center(const GeoVector center, const GeoVector size) {
+  const GeoVector halfSize = geo_vector_mul(size, 0.5f);
+  return (GeoBox){
+      .min = geo_vector_sub(center, halfSize),
+      .max = geo_vector_add(center, halfSize),
+  };
+}
+
 GeoBox geo_box_inverted2() {
   const GeoVector min = {f32_max, f32_max};
   const GeoVector max = {f32_min, f32_min};

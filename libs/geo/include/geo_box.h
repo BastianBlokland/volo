@@ -22,8 +22,13 @@ GeoVector geo_box_center(const GeoBox*);
 GeoVector geo_box_size(const GeoBox*);
 
 /**
+ * Construct a box from a center and a size.
+ */
+GeoBox geo_box_from_center(GeoVector center, GeoVector size);
+
+/**
  * Construct an 'Inside out' (infinitely small) box.
- * Usefull as a starting point for encapsulating points.
+ * Useful as a starting point for encapsulating points.
  */
 GeoBox geo_box_inverted2();
 GeoBox geo_box_inverted3();
