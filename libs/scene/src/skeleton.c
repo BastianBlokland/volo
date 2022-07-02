@@ -482,7 +482,7 @@ ecs_view_define(DirtyTemplateView) {
   ecs_access_with(AssetChangedComp);
 }
 
-ecs_system_define(SceneClearDirtyTemplateSys) {
+ecs_system_define(SceneSkeletonClearDirtyTemplateSys) {
   /**
    * Clear skeleton templates for changed graphic assets.
    */
@@ -521,7 +521,7 @@ ecs_module_init(scene_skeleton_module) {
       ecs_view_id(UpdateView),
       ecs_view_id(SkeletonTemplView));
 
-  ecs_register_system(SceneClearDirtyTemplateSys, ecs_view_id(DirtyTemplateView));
+  ecs_register_system(SceneSkeletonClearDirtyTemplateSys, ecs_view_id(DirtyTemplateView));
 }
 
 u32 scene_skeleton_root_index(const SceneSkeletonTemplComp* tl) { return tl->jointRootIndex; }

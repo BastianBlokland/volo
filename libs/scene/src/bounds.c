@@ -13,31 +13,31 @@
 ecs_comp_define_public(SceneBoundsComp);
 
 typedef enum {
-  BoundsTemplateState_Start,
-  BoundsTemplateState_LoadGraphic,
-  BoundsTemplateState_LoadMesh,
-  BoundsTemplateState_Finished,
-} BoundsTemplateState;
+  BoundsTemplState_Start,
+  BoundsTemplState_LoadGraphic,
+  BoundsTemplState_LoadMesh,
+  BoundsTemplState_Finished,
+} BoundsTemplState;
 
 /**
  * NOTE: On the graphic asset.
  */
-ecs_comp_define(SceneBoundsTemplateComp) {
-  BoundsTemplateState state;
-  EcsEntityId         mesh;
-  GeoBox              localBounds;
+ecs_comp_define(SceneBoundsTemplComp) {
+  BoundsTemplState state;
+  EcsEntityId      mesh;
+  GeoBox           localBounds;
 };
 
-ecs_comp_define(SceneBoundsTemplateLoadedComp);
+ecs_comp_define(SceneBoundsTemplLoadedComp);
 
 static void ecs_combine_bounds_template(void* dataA, void* dataB) {
-  SceneBoundsTemplateComp* boundsA = dataA;
-  SceneBoundsTemplateComp* boundsB = dataB;
+  SceneBoundsTemplComp* boundsA = dataA;
+  SceneBoundsTemplComp* boundsB = dataB;
 
   (void)boundsA;
   (void)boundsB;
   diag_assert_msg(
-      boundsA->state == BoundsTemplateState_Start && boundsB->state == BoundsTemplateState_Start,
+      boundsA->state == BoundsTemplState_Start && boundsB->state == BoundsTemplState_Start,
       "Bounds templates can only be combined in the starting phase");
 }
 
@@ -46,11 +46,11 @@ ecs_view_define(BoundsInitView) {
   ecs_access_without(SceneBoundsComp);
 }
 
-ecs_view_define(BoundsTemplateView) { ecs_access_read(SceneBoundsTemplateComp); }
+ecs_view_define(BoundsTemplView) { ecs_access_read(SceneBoundsTemplComp); }
 
 ecs_system_define(SceneBoundsInitSys) {
   EcsView*     initView    = ecs_world_view_t(world, BoundsInitView);
-  EcsIterator* templateItr = ecs_view_itr(ecs_world_view_t(world, BoundsTemplateView));
+  EcsIterator* templateItr = ecs_view_itr(ecs_world_view_t(world, BoundsTemplView));
 
   u32 startedLoads = 0;
 
@@ -64,8 +64,8 @@ ecs_system_define(SceneBoundsInitSys) {
     }
 
     if (ecs_view_maybe_jump(templateItr, graphic)) {
-      const SceneBoundsTemplateComp* templ = ecs_view_read_t(templateItr, SceneBoundsTemplateComp);
-      if (templ->state == BoundsTemplateState_Finished) {
+      const SceneBoundsTemplComp* templ = ecs_view_read_t(templateItr, SceneBoundsTemplComp);
+      if (templ->state == BoundsTemplState_Finished) {
         ecs_world_add_t(world, entity, SceneBoundsComp, .local = templ->localBounds);
       }
       continue;
@@ -74,14 +74,14 @@ ecs_system_define(SceneBoundsInitSys) {
     if (++startedLoads > scene_bounds_max_loads) {
       continue; // Limit the amount of loads to start in a single frame.
     }
-    ecs_world_add_t(world, graphic, SceneBoundsTemplateComp, .localBounds = geo_box_inverted3());
+    ecs_world_add_t(world, graphic, SceneBoundsTemplComp, .localBounds = geo_box_inverted3());
   }
 }
 
 ecs_view_define(TemplateLoadView) {
-  ecs_access_write(SceneBoundsTemplateComp);
+  ecs_access_write(SceneBoundsTemplComp);
   ecs_access_maybe_read(AssetGraphicComp);
-  ecs_access_without(SceneBoundsTemplateLoadedComp);
+  ecs_access_without(SceneBoundsTemplLoadedComp);
 }
 ecs_view_define(MeshView) { ecs_access_read(AssetMeshComp); }
 
@@ -91,15 +91,15 @@ static bool scene_asset_is_loaded(EcsWorld* world, const EcsEntityId asset) {
 }
 
 static void scene_bounds_template_load_done(EcsWorld* world, EcsIterator* itr) {
-  const EcsEntityId        entity     = ecs_view_entity(itr);
-  SceneBoundsTemplateComp* boundsComp = ecs_view_write_t(itr, SceneBoundsTemplateComp);
+  const EcsEntityId     entity     = ecs_view_entity(itr);
+  SceneBoundsTemplComp* boundsComp = ecs_view_write_t(itr, SceneBoundsTemplComp);
 
   asset_release(world, entity);
   if (boundsComp->mesh) {
     asset_release(world, boundsComp->mesh);
   }
-  boundsComp->state = BoundsTemplateState_Finished;
-  ecs_world_add_empty_t(world, entity, SceneBoundsTemplateLoadedComp);
+  boundsComp->state = BoundsTemplState_Finished;
+  ecs_world_add_empty_t(world, entity, SceneBoundsTemplLoadedComp);
 }
 
 ecs_system_define(SceneBoundsTemplateLoadSys) {
@@ -107,16 +107,16 @@ ecs_system_define(SceneBoundsTemplateLoadSys) {
   EcsIterator* meshItr  = ecs_view_itr(ecs_world_view_t(world, MeshView));
 
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
-    const EcsEntityId        entity       = ecs_view_entity(itr);
-    SceneBoundsTemplateComp* templateComp = ecs_view_write_t(itr, SceneBoundsTemplateComp);
-    const AssetGraphicComp*  graphic      = ecs_view_read_t(itr, AssetGraphicComp);
+    const EcsEntityId       entity       = ecs_view_entity(itr);
+    SceneBoundsTemplComp*   templateComp = ecs_view_write_t(itr, SceneBoundsTemplComp);
+    const AssetGraphicComp* graphic      = ecs_view_read_t(itr, AssetGraphicComp);
     switch (templateComp->state) {
-    case BoundsTemplateState_Start: {
+    case BoundsTemplState_Start: {
       asset_acquire(world, entity);
       ++templateComp->state;
       // Fallthrough.
     }
-    case BoundsTemplateState_LoadGraphic: {
+    case BoundsTemplState_LoadGraphic: {
       if (!scene_asset_is_loaded(world, entity)) {
         break; // Graphic has not loaded yet; wait.
       }
@@ -133,7 +133,7 @@ ecs_system_define(SceneBoundsTemplateLoadSys) {
       ++templateComp->state;
       // Fallthrough.
     }
-    case BoundsTemplateState_LoadMesh: {
+    case BoundsTemplState_LoadMesh: {
       if (!scene_asset_is_loaded(world, templateComp->mesh)) {
         break; // Mesh has not loaded yet; wait.
       }
@@ -144,15 +144,15 @@ ecs_system_define(SceneBoundsTemplateLoadSys) {
       scene_bounds_template_load_done(world, itr);
       break;
     }
-    case BoundsTemplateState_Finished:
+    case BoundsTemplState_Finished:
       diag_crash();
     }
   }
 }
 
 ecs_view_define(DirtyGraphicsView) {
-  ecs_access_with(SceneBoundsTemplateComp);
-  ecs_access_with(SceneBoundsTemplateLoadedComp);
+  ecs_access_with(SceneBoundsTemplComp);
+  ecs_access_with(SceneBoundsTemplLoadedComp);
   ecs_access_with(AssetChangedComp);
 }
 
@@ -167,8 +167,8 @@ ecs_system_define(SceneClearDirtyBoundsSys) {
    */
   EcsView* dirtyGraphicsView = ecs_world_view_t(world, DirtyGraphicsView);
   for (EcsIterator* itr = ecs_view_itr(dirtyGraphicsView); ecs_view_walk(itr);) {
-    ecs_world_remove_t(world, ecs_view_entity(itr), SceneBoundsTemplateComp);
-    ecs_world_remove_t(world, ecs_view_entity(itr), SceneBoundsTemplateLoadedComp);
+    ecs_world_remove_t(world, ecs_view_entity(itr), SceneBoundsTemplComp);
+    ecs_world_remove_t(world, ecs_view_entity(itr), SceneBoundsTemplLoadedComp);
   }
 
   /**
@@ -185,11 +185,11 @@ ecs_system_define(SceneClearDirtyBoundsSys) {
 
 ecs_module_init(scene_bounds_module) {
   ecs_register_comp(SceneBoundsComp);
-  ecs_register_comp(SceneBoundsTemplateComp, .combinator = ecs_combine_bounds_template);
-  ecs_register_comp_empty(SceneBoundsTemplateLoadedComp);
+  ecs_register_comp(SceneBoundsTemplComp, .combinator = ecs_combine_bounds_template);
+  ecs_register_comp_empty(SceneBoundsTemplLoadedComp);
 
   ecs_register_view(BoundsInitView);
-  ecs_register_view(BoundsTemplateView);
+  ecs_register_view(BoundsTemplView);
 
   ecs_register_view(TemplateLoadView);
   ecs_register_view(MeshView);
@@ -198,7 +198,7 @@ ecs_module_init(scene_bounds_module) {
   ecs_register_view(RenderablesWithBoundsView);
 
   ecs_register_system(
-      SceneBoundsInitSys, ecs_view_id(BoundsInitView), ecs_view_id(BoundsTemplateView));
+      SceneBoundsInitSys, ecs_view_id(BoundsInitView), ecs_view_id(BoundsTemplView));
 
   ecs_register_system(
       SceneBoundsTemplateLoadSys, ecs_view_id(TemplateLoadView), ecs_view_id(MeshView));
