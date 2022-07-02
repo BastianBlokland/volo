@@ -295,7 +295,7 @@ static void rend_draw_options_draw(UiCanvasComp* canvas, DebugRendPanelComp* pan
   ui_table_add_column(&table, UiTableColumn_Fixed, 150);
   ui_table_add_column(&table, UiTableColumn_Fixed, 75);
   ui_table_add_column(&table, UiTableColumn_Fixed, 25);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 110);
   ui_table_add_column(&table, UiTableColumn_Fixed, 25);
 
   ui_table_next_row(canvas, &table);

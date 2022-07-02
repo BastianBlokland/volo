@@ -27,6 +27,7 @@ String rvk_repository_id_str(const RvkRepositoryId id) {
       string_static("MissingTexture"),
       string_static("MissingTextureCube"),
       string_static("WireframeGraphic"),
+      string_static("WireframeSkinnedGraphic"),
   };
   ASSERT(array_elems(g_names) == RvkRepositoryId_Count, "Incorrect number of names");
   return g_names[id];
