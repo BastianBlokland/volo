@@ -138,7 +138,7 @@ static void scene_skeleton_init_from_templ(
         .nameHash = tl->anims[i].nameHash,
         .duration = tl->anims[i].duration,
         .speed    = 1.0f,
-        .weight   = 1.0f,
+        .weight   = (i == tl->animCount - 1) ? 1.0f : 0.0f,
     };
     scene_skeleton_mask_set_all(&layers[i].mask);
   }
