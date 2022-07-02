@@ -78,9 +78,11 @@ static GeoMatrix painter_view_proj_matrix(
   return geo_matrix_mul(&proj, &view);
 }
 
-static RvkGraphic* painter_wireframe_graphic(RvkCanvas* canvas) {
+static RvkGraphic* painter_wireframe_graphic(RvkCanvas* canvas, const bool isSkinned) {
   RvkRepository* repository = rvk_canvas_repository(canvas);
-  return rvk_repository_graphic_get(repository, RvkRepositoryId_WireframeGraphic);
+  return rvk_repository_graphic_get(
+      repository,
+      isSkinned ? RvkRepositoryId_WireframeSkinnedGraphic : RvkRepositoryId_WireframeGraphic);
 }
 
 static void painter_draw_forward(
@@ -114,8 +116,8 @@ static void painter_draw_forward(
     RvkMesh*   mesh               = graphic->mesh;
     const bool isStandardGeometry = (rend_draw_flags(draw) & RendDrawFlags_StandardGeometry) != 0;
     const bool isSkinned          = (rend_draw_flags(draw) & RendDrawFlags_Skinned) != 0;
-    if (settings->flags & RendFlags_Wireframe && isStandardGeometry && !isSkinned && mesh) {
-      RvkGraphic* wireGfx = painter_wireframe_graphic(painter->canvas);
+    if (settings->flags & RendFlags_Wireframe && isStandardGeometry && mesh) {
+      RvkGraphic* wireGfx = painter_wireframe_graphic(painter->canvas, isSkinned);
       if (rvk_pass_prepare(forwardPass, wireGfx) && rvk_pass_prepare_mesh(forwardPass, mesh)) {
         *dynarray_push_t(&painter->drawBuffer, RvkPassDraw) = rend_draw_output(draw, wireGfx, mesh);
       }
