@@ -60,6 +60,5 @@ ecs_comp_extern_public(AssetMeshSkeletonComp) {
   AssetMeshAnimPtr     jointNames;      // StringHash[jointCount].
   u8                   jointCount;
   u32                  animCount;
-  u32                  rootJointIndex;
   Mem                  animData;
 };

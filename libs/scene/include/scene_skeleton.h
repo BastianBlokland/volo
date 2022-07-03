@@ -39,8 +39,6 @@ ecs_comp_extern_public(SceneAnimationComp) {
   u32             layerCount;
 };
 
-u32 scene_skeleton_root_index(const SceneSkeletonTemplComp*);
-
 u32        scene_skeleton_joint_count(const SceneSkeletonTemplComp*);
 StringHash scene_skeleton_joint_name(const SceneSkeletonTemplComp*, u32 jointIndex);
 u32        scene_skeleton_joint_parent(const SceneSkeletonTemplComp*, u32 jointIndex);

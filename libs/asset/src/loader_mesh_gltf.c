@@ -140,7 +140,6 @@ ecs_comp_define(AssetGltfLoadComp) {
   u32           animCount;
   GltfTransform sceneTrans;
   u32           accBindPoseInvMats; // Access index [Optional].
-  u32           rootJointIndex;     // [Optional].
 };
 
 typedef AssetGltfLoadComp GltfLoad;
@@ -731,16 +730,6 @@ static void gltf_parse_skin(GltfLoad* ld, GltfError* err) {
     }
     *outJoint++ = (GltfJoint){.nodeIndex = (u32)json_number(ld->jDoc, joint)};
   }
-  u32 skeletonNodeIndex;
-  if (gltf_json_field_u32(ld, skin, string_lit("skeleton"), &skeletonNodeIndex)) {
-    // Optional node index of the root of the skeleton.
-    if (sentinel_check(ld->rootJointIndex = gltf_node_to_joint_index(ld, skeletonNodeIndex))) {
-      // Skeleton root is not a joint itself, this is allowed by the Gltf spec; Default to joint 0.
-      ld->rootJointIndex = 0;
-    }
-  } else {
-    ld->rootJointIndex = 0;
-  }
 
 Success:
   *err = GltfError_None;
@@ -1247,7 +1236,6 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
       .jointNames      = resNames,
       .jointCount      = ld->jointCount,
       .animCount       = ld->animCount,
-      .rootJointIndex  = sentinel_check(ld->rootJointIndex) ? 0 : ld->rootJointIndex,
       .animData = alloc_dup(g_alloc_heap, dynarray_at(&ld->animData, 0, ld->animData.size), 1),
   };
   *err = GltfError_None;
@@ -1409,6 +1397,5 @@ void asset_load_gltf(EcsWorld* world, const String id, const EcsEntityId entity,
       .jDoc               = jsonDoc,
       .jRoot              = jsonRes.type,
       .accBindPoseInvMats = sentinel_u32,
-      .rootJointIndex     = sentinel_u32,
       .animData           = dynarray_create(g_alloc_heap, 1, 1, 0));
 }

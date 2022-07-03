@@ -56,7 +56,6 @@ ecs_comp_define(SceneSkeletonTemplComp) {
   const StringHash*     jointNames;      // [jointCount].
   u32                   jointCount;
   u32                   animCount;
-  u32                   jointRootIndex;
   Mem                   animData;
 };
 ecs_comp_define(SceneSkeletonTemplLoadedComp);
@@ -181,9 +180,8 @@ static bool scene_asset_is_loaded(EcsWorld* world, const EcsEntityId asset) {
 static void scene_asset_templ_init(SceneSkeletonTemplComp* tl, const AssetMeshSkeletonComp* asset) {
   diag_assert(asset->jointCount <= scene_skeleton_joints_max);
 
-  tl->jointRootIndex = asset->rootJointIndex;
-  tl->jointCount     = asset->jointCount;
-  tl->animData       = alloc_dup(g_alloc_heap, asset->animData, 1);
+  tl->jointCount = asset->jointCount;
+  tl->animData   = alloc_dup(g_alloc_heap, asset->animData, 1);
 
   tl->anims     = alloc_array_t(g_alloc_heap, SceneSkeletonAnim, asset->animCount);
   tl->animCount = asset->animCount;
@@ -508,8 +506,6 @@ ecs_module_init(scene_skeleton_module) {
 
   ecs_register_system(SceneSkeletonClearDirtyTemplateSys, ecs_view_id(DirtyTemplateView));
 }
-
-u32 scene_skeleton_root_index(const SceneSkeletonTemplComp* tl) { return tl->jointRootIndex; }
 
 u32 scene_skeleton_joint_count(const SceneSkeletonTemplComp* tl) { return tl->jointCount; }
 
