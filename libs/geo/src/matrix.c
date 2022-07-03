@@ -82,6 +82,14 @@ GeoMatrix geo_matrix_mul(const GeoMatrix* a, const GeoMatrix* b) {
 #endif
 }
 
+void geo_matrix_mul_batch(
+    const GeoMatrix* a, const GeoMatrix* b, GeoMatrix* restrict out, const u32 cnt) {
+  const GeoMatrix* aEnd = a + cnt;
+  for (; a != aEnd; ++a, ++b, ++out) {
+    *out = geo_matrix_mul(a, b);
+  }
+}
+
 GeoVector geo_matrix_transform(const GeoMatrix* m, const GeoVector vec) {
   return (GeoVector){
       .x = geo_vector_dot(geo_matrix_row(m, 0), vec),

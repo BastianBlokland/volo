@@ -581,9 +581,7 @@ bool scene_skeleton_mask_test(const SceneSkeletonMask* mask, const u32 joint) {
 }
 
 void scene_skeleton_delta(
-    const SceneSkeletonComp* sk, const SceneSkeletonTemplComp* tl, GeoMatrix* out) {
+    const SceneSkeletonComp* sk, const SceneSkeletonTemplComp* tl, GeoMatrix* restrict out) {
   diag_assert(sk->jointCount == tl->jointCount);
-  for (u32 i = 0; i != sk->jointCount; ++i) {
-    out[i] = geo_matrix_mul(&sk->jointTransforms[i], &tl->bindPoseInvMats[i]);
-  }
+  geo_matrix_mul_batch(sk->jointTransforms, tl->bindPoseInvMats, out, sk->jointCount);
 }

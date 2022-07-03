@@ -55,4 +55,5 @@ void scene_skeleton_mask_clear_all(SceneSkeletonMask*);
 void scene_skeleton_mask_flip(SceneSkeletonMask*, u32 joint);
 bool scene_skeleton_mask_test(const SceneSkeletonMask*, u32 joint);
 
-void scene_skeleton_delta(const SceneSkeletonComp*, const SceneSkeletonTemplComp*, GeoMatrix* out);
+void scene_skeleton_delta(
+    const SceneSkeletonComp*, const SceneSkeletonTemplComp*, GeoMatrix* restrict out);
