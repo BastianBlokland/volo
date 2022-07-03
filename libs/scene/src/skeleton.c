@@ -289,12 +289,22 @@ static void anim_set_weights_neg1(const SceneSkeletonTemplComp* tl, f32* weights
 }
 
 static u32 anim_find_frame(const SceneSkeletonChannel* ch, const f32 t) {
-  for (u32 i = 1; i != ch->frameCount; ++i) {
-    if (ch->times[i] >= t) {
-      return i - 1;
+  /**
+   * Binary search for the first frame with a higher time (and then return the frame before it).
+   */
+  u32 count = ch->frameCount;
+  u32 begin = 0;
+  while (count) {
+    const u32 step   = count / 2;
+    const u32 middle = begin + step;
+    if (ch->times[middle] < t) {
+      begin = middle + 1;
+      count -= step + 1;
+    } else {
+      count = step;
     }
   }
-  return ch->frameCount - 1;
+  return begin - (begin ? 1 : 0);
 }
 
 static GeoVector anim_channel_get_vec(const SceneSkeletonChannel* ch, const f32 t) {
@@ -320,7 +330,7 @@ static GeoQuat anim_channel_get_quat(const SceneSkeletonChannel* ch, const f32 t
   const GeoQuat from = ch->values_quat[frame];
   GeoQuat       to   = ch->values_quat[frame + 1];
   if (geo_quat_dot(to, from) < 0) {
-    // Compensate for quaternion double-cover (two quaternions representing the same rot).
+    // Compensate for quaternion double-cover (two quaternions representing the same rotation).
     to = geo_quat_flip(to);
   }
   return geo_quat_slerp(from, to, frac);
