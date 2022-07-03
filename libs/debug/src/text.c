@@ -10,7 +10,7 @@
 #include "ui_layout.h"
 #include "ui_style.h"
 
-#define debug_text_transient_chunk_size (32 * usize_kibibyte)
+#define debug_text_transient_chunk_size (64 * usize_kibibyte)
 #define debug_text_transient_max 512
 #define debug_text_size 14
 
@@ -112,8 +112,8 @@ ecs_system_define(DebugTextRenderSys) {
         }
         const UiVector canvasSize = ui_vector(0.2f, 0.1f);
         const UiRect   canvasRect = {
-            ui_vector(canvasPos.x - canvasSize.x * 0.5f, canvasPos.y - canvasSize.y * 0.5f),
-            canvasSize,
+              ui_vector(canvasPos.x - canvasSize.x * 0.5f, canvasPos.y - canvasSize.y * 0.5f),
+              canvasSize,
         };
         ui_style_color(canvas, debug_text_to_ui_color(entry->color));
         ui_layout_set(canvas, canvasRect, UiBase_Canvas);

@@ -45,6 +45,7 @@ GeoVector geo_matrix_row(const GeoMatrix*, usize index);
  * (dot product of the rows and columns).
  */
 GeoMatrix geo_matrix_mul(const GeoMatrix* a, const GeoMatrix* b);
+void geo_matrix_mul_batch(const GeoMatrix* a, const GeoMatrix* b, GeoMatrix* restrict out, u32 cnt);
 
 /**
  * Transform a vector by the given matrix.

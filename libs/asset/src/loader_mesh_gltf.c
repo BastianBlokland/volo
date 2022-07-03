@@ -109,11 +109,10 @@ typedef struct {
 } GltfTransform;
 
 typedef struct {
-  u32              nodeIndex;
-  AssetMeshAnimPtr childData;
-  u32              childCount;
-  StringHash       nameHash;
-  GltfTransform    trans;
+  u32           nodeIndex;
+  u32           parentIndex;
+  StringHash    nameHash;
+  GltfTransform trans;
 } GltfJoint;
 
 typedef struct {
@@ -141,7 +140,6 @@ ecs_comp_define(AssetGltfLoadComp) {
   u32           animCount;
   GltfTransform sceneTrans;
   u32           accBindPoseInvMats; // Access index [Optional].
-  u32           rootJointIndex;     // [Optional].
 };
 
 typedef AssetGltfLoadComp GltfLoad;
@@ -398,6 +396,12 @@ static AssetMeshAnimPtr gltf_anim_data_begin(GltfLoad* ld, const u32 align) {
   // Insert padding to reach the requested alignment.
   dynarray_push(&ld->animData, bits_padding_32((u32)ld->animData.size, align));
   return (u32)ld->animData.size;
+}
+
+static AssetMeshAnimPtr gltf_anim_data_push_u32(GltfLoad* ld, const u32 val) {
+  const AssetMeshAnimPtr res                             = gltf_anim_data_begin(ld, alignof(u32));
+  *((u32*)dynarray_push(&ld->animData, sizeof(u32)).ptr) = val;
+  return res;
 }
 
 static AssetMeshAnimPtr gltf_anim_data_push_trans(GltfLoad* ld, const GltfTransform val) {
@@ -726,16 +730,6 @@ static void gltf_parse_skin(GltfLoad* ld, GltfError* err) {
     }
     *outJoint++ = (GltfJoint){.nodeIndex = (u32)json_number(ld->jDoc, joint)};
   }
-  u32 skeletonNodeIndex;
-  if (gltf_json_field_u32(ld, skin, string_lit("skeleton"), &skeletonNodeIndex)) {
-    // Optional node index of the root of the skeleton.
-    if (sentinel_check(ld->rootJointIndex = gltf_node_to_joint_index(ld, skeletonNodeIndex))) {
-      // Skeleton root is not a joint itself, this is allowed by the Gltf spec; Default to joint 0.
-      ld->rootJointIndex = 0;
-    }
-  } else {
-    ld->rootJointIndex = 0;
-  }
 
 Success:
   *err = GltfError_None;
@@ -765,7 +759,6 @@ static void gltf_parse_skeleton_nodes(GltfLoad* ld, GltfError* err) {
 
     const JsonVal children = json_field(ld->jDoc, node, string_lit("children"));
     if (gltf_json_check(ld, children, JsonType_Array)) {
-      out->childData = gltf_anim_data_begin(ld, alignof(u32));
 
       json_for_elems(ld->jDoc, children, child) {
         if (UNLIKELY(json_type(ld->jDoc, child) != JsonType_Number)) {
@@ -773,9 +766,8 @@ static void gltf_parse_skeleton_nodes(GltfLoad* ld, GltfError* err) {
         }
         const u32 childJointIndex = gltf_node_to_joint_index(ld, (u32)json_number(ld->jDoc, child));
         if (!sentinel_check(childJointIndex)) {
-          // Child is part of the skeleton: Add it to the children collection.
-          *((u32*)dynarray_push(&ld->animData, sizeof(u32)).ptr) = childJointIndex;
-          ++out->childCount;
+          // Child is part of the skeleton: Set this joint as its parent.
+          ld->joints[childJointIndex].parentIndex = jointIndex;
         }
       }
     }
@@ -783,6 +775,7 @@ static void gltf_parse_skeleton_nodes(GltfLoad* ld, GltfError* err) {
   Next:
     ++nodeIndex;
   }
+
   *err = GltfError_None;
   return;
 
@@ -1122,6 +1115,31 @@ Cleanup:
   asset_mesh_builder_destroy(builder);
 }
 
+static bool gltf_skeleton_is_topologically_sorted(GltfLoad* ld) {
+  if (!ld->jointCount) {
+    return true;
+  }
+  u8 processed[bits_to_bytes(asset_mesh_joints_max) + 1] = {0};
+  for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
+    bitset_set(bitset_from_var(processed), jointIndex);
+    if (!bitset_test(bitset_from_var(processed), ld->joints[jointIndex].parentIndex)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+static void gltf_optimize_anim_channel_rot(GltfLoad* ld, const AssetMeshAnimChannel* ch) {
+  GeoQuat* rotPoses = dynarray_at(&ld->animData, ch->valueData, sizeof(GeoQuat)).ptr;
+  for (u32 i = 0; i != ch->frameCount; ++i) {
+    rotPoses[i] = geo_quat_norm(rotPoses[i]);
+    if (i && geo_quat_dot(rotPoses[i], rotPoses[i - 1]) < 0) {
+      // Compensate for quaternion double-cover (two quaternions representing the same rotation).
+      rotPoses[i] = geo_quat_flip(rotPoses[i]);
+    }
+  }
+}
+
 static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfError* err) {
   diag_assert(ld->jointCount);
 
@@ -1154,14 +1172,21 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
     }
   }
 
-  // Create the joint output structures.
-  AssetMeshJoint* resJoints = alloc_array_t(g_alloc_heap, AssetMeshJoint, ld->jointCount);
+  // Verify that the joint parents appear earlier then their children.
+  if (!gltf_skeleton_is_topologically_sorted(ld)) {
+    goto Error;
+  }
+
+  // Output the joint parent indices.
+  AssetMeshAnimPtr resParents = gltf_anim_data_begin(ld, alignof(u32));
   for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
-    resJoints[jointIndex] = (AssetMeshJoint){
-        .childData  = ld->joints[jointIndex].childData,
-        .childCount = ld->joints[jointIndex].childCount,
-        .nameHash   = ld->joints[jointIndex].nameHash,
-    };
+    gltf_anim_data_push_u32(ld, ld->joints[jointIndex].parentIndex);
+  }
+
+  // Output the joint name-hashes.
+  AssetMeshAnimPtr resNames = gltf_anim_data_begin(ld, alignof(StringHash));
+  for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
+    gltf_anim_data_push_u32(ld, ld->joints[jointIndex].nameHash);
   }
 
   // Create the animation output structures.
@@ -1185,6 +1210,9 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
               .timeData   = gltf_anim_data_push_access(ld, srcChannel->accInput),
               .valueData  = gltf_anim_data_push_access_vec(ld, srcChannel->accOutput),
           };
+          if (target == AssetMeshAnimTarget_Rotation) {
+            gltf_optimize_anim_channel_rot(ld, resChannel);
+          }
         } else {
           *resChannel = (AssetMeshAnimChannel){0};
         }
@@ -1200,14 +1228,14 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
   }
 
   *out = (AssetMeshSkeletonComp){
-      .joints          = resJoints,
       .anims           = resAnims,
       .bindPoseInvMats = gltf_anim_data_push_access_mat(ld, ld->accBindPoseInvMats),
       .defaultPose     = resDefaultPose,
       .rootTransform   = gltf_anim_data_push_trans(ld, ld->sceneTrans),
+      .parentIndices   = resParents,
+      .jointNames      = resNames,
       .jointCount      = ld->jointCount,
       .animCount       = ld->animCount,
-      .rootJointIndex  = sentinel_check(ld->rootJointIndex) ? 0 : ld->rootJointIndex,
       .animData = alloc_dup(g_alloc_heap, dynarray_at(&ld->animData, 0, ld->animData.size), 1),
   };
   *err = GltfError_None;
@@ -1369,6 +1397,5 @@ void asset_load_gltf(EcsWorld* world, const String id, const EcsEntityId entity,
       .jDoc               = jsonDoc,
       .jRoot              = jsonRes.type,
       .accBindPoseInvMats = sentinel_u32,
-      .rootJointIndex     = sentinel_u32,
       .animData           = dynarray_create(g_alloc_heap, 1, 1, 0));
 }
