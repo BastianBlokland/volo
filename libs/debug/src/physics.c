@@ -176,9 +176,8 @@ static void physics_draw_skeleton(
   }
 
   for (u32 i = 0; i != skeleton->jointCount; ++i) {
-    const bool                isRootJoint = i == scene_skeleton_root_index(skeletonTemplate);
-    const SceneSkeletonJoint* jointInfo   = scene_skeleton_joint(skeletonTemplate, i);
-    const GeoVector           jointPos    = geo_matrix_to_translation(&jointMatrices[i]);
+    const bool      isRootJoint = i == scene_skeleton_root_index(skeletonTemplate);
+    const GeoVector jointPos    = geo_matrix_to_translation(&jointMatrices[i]);
 
     const GeoVector jointRefX = geo_matrix_transform3(&jointMatrices[i], geo_right);
     const GeoVector jointX    = geo_vector_mul(geo_vector_norm(jointRefX), g_arrowLength);
@@ -193,10 +192,10 @@ static void physics_draw_skeleton(
     debug_arrow(shapes, jointPos, geo_vector_add(jointPos, jointY), g_arrowSize, geo_color_green);
     debug_arrow(shapes, jointPos, geo_vector_add(jointPos, jointZ), g_arrowSize, geo_color_blue);
 
-    for (u32 childNum = 0; childNum != jointInfo->childCount; ++childNum) {
-      const u32       childIndex = jointInfo->childIndices[childNum];
-      const GeoVector childPos   = geo_matrix_to_translation(&jointMatrices[childIndex]);
-      debug_line(shapes, jointPos, childPos, geo_color_white);
+    if (i) {
+      const u32       parentIndex = scene_skeleton_parent(skeletonTemplate, i);
+      const GeoVector parentPos   = geo_matrix_to_translation(&jointMatrices[parentIndex]);
+      debug_line(shapes, jointPos, parentPos, geo_color_white);
     }
 
     const StringHash jointNameHash = scene_skeleton_joint(skeletonTemplate, i)->nameHash;

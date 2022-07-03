@@ -529,6 +529,11 @@ const SceneSkeletonJoint* scene_skeleton_joint(const SceneSkeletonTemplComp* tl,
   return &tl->joints[index];
 }
 
+u32 scene_skeleton_parent(const SceneSkeletonTemplComp* tl, const u32 jointIndex) {
+  diag_assert(jointIndex < tl->jointCount);
+  return tl->parentIndices[jointIndex];
+}
+
 SceneJointInfo
 scene_skeleton_info(const SceneSkeletonTemplComp* tl, const u32 layer, const u32 joint) {
   diag_assert(layer < tl->animCount);

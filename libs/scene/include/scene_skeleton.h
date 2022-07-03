@@ -50,6 +50,8 @@ u32 scene_skeleton_root_index(const SceneSkeletonTemplComp*);
 u32                       scene_skeleton_joint_count(const SceneSkeletonTemplComp*);
 const SceneSkeletonJoint* scene_skeleton_joint(const SceneSkeletonTemplComp*, u32 index);
 
+u32 scene_skeleton_parent(const SceneSkeletonTemplComp*, u32 jointIndex);
+
 SceneJointInfo scene_skeleton_info(const SceneSkeletonTemplComp*, u32 layer, u32 joint);
 SceneJointPose scene_skeleton_sample(const SceneSkeletonTemplComp*, u32 layer, u32 joint, f32 time);
 SceneJointPose scene_skeleton_sample_def(const SceneSkeletonTemplComp*, u32 joint);
