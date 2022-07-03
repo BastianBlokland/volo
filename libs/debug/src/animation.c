@@ -92,39 +92,30 @@ static void anim_draw_joints_layer(
   ui_style_push(canvas);
   ui_style_variation(canvas, UiVariation_Monospace);
 
-  u32 stack[scene_skeleton_joints_max] = {scene_skeleton_root_index(skelTempl)};
-  u32 depth[scene_skeleton_joints_max] = {0};
-  u32 stackCount                       = 1;
+  u32 depthLookup[scene_skeleton_joints_max] = {0};
 
-  while (stackCount--) {
-    const u32                 jointIdx = stack[stackCount];
-    const SceneSkeletonJoint* joint    = scene_skeleton_joint(skelTempl, jointIdx);
-    const SceneJointInfo      info     = scene_skeleton_info(skelTempl, layerIdx, jointIdx);
-    const String              name     = stringtable_lookup(g_stringtable, joint->nameHash);
+  const u32 jointCount = scene_skeleton_joint_count(skelTempl);
+  for (u32 joint = 0; joint != jointCount; ++joint) {
+    const SceneSkeletonJoint* jointInfo = scene_skeleton_joint(skelTempl, joint);
+    const String              name      = stringtable_lookup(g_stringtable, jointInfo->nameHash);
+    const SceneJointInfo      info      = scene_skeleton_info(skelTempl, layerIdx, joint);
 
     ui_table_next_row(canvas, table);
     ui_table_draw_row_bg(canvas, table, ui_color(96, 96, 96, 192));
 
-    bool enabled = scene_skeleton_mask_test(&layer->mask, jointIdx);
+    bool enabled = scene_skeleton_mask_test(&layer->mask, joint);
     if (ui_toggle(canvas, &enabled, .tooltip = string_lit("Enable / disable this joint."))) {
-      scene_skeleton_mask_flip(&layer->mask, jointIdx);
+      scene_skeleton_mask_flip(&layer->mask, joint);
     }
 
+    const u32 depth = depthLookup[joint] = depthLookup[scene_skeleton_parent(skelTempl, joint)] + 1;
     ui_label(
-        canvas,
-        fmt_write_scratch("{}{}", fmt_padding(4 + depth[stackCount]), fmt_text(name)),
-        .fontSize = 12);
+        canvas, fmt_write_scratch("{}{}", fmt_padding(4 + depth), fmt_text(name)), .fontSize = 12);
     ui_table_next_column(canvas, table);
 
-    const SceneJointPose pose = scene_skeleton_sample(skelTempl, layerIdx, jointIdx, layer->time);
+    const SceneJointPose pose = scene_skeleton_sample(skelTempl, layerIdx, joint, layer->time);
     anim_draw_pose_animated(canvas, table, pose, info);
     ui_table_next_column(canvas, table);
-
-    const u32 childDepth = depth[stackCount] + 1;
-    for (u32 childNum = 0; childNum != joint->childCount; ++childNum) {
-      stack[stackCount]   = joint->childIndices[childNum];
-      depth[stackCount++] = childDepth;
-    }
   }
 
   ui_style_pop(canvas);
@@ -144,32 +135,23 @@ static void anim_draw_joints_def(
   const SceneJointPose rootPose = scene_skeleton_root(skelTempl);
   anim_draw_pose(canvas, table, rootPose);
 
-  u32 stack[scene_skeleton_joints_max] = {scene_skeleton_root_index(skelTempl)};
-  u32 depth[scene_skeleton_joints_max] = {1};
-  u32 stackCount                       = 1;
+  u32 depthLookup[scene_skeleton_joints_max] = {1};
 
-  while (stackCount--) {
-    const u32                 jointIdx = stack[stackCount];
-    const SceneSkeletonJoint* joint    = scene_skeleton_joint(skelTempl, jointIdx);
-    const String              name     = stringtable_lookup(g_stringtable, joint->nameHash);
+  const u32 jointCount = scene_skeleton_joint_count(skelTempl);
+  for (u32 joint = 0; joint != jointCount; ++joint) {
+    const SceneSkeletonJoint* jointInfo = scene_skeleton_joint(skelTempl, joint);
+    const String              name      = stringtable_lookup(g_stringtable, jointInfo->nameHash);
 
     ui_table_next_row(canvas, table);
     ui_table_draw_row_bg(canvas, table, ui_color(96, 96, 96, 192));
 
-    ui_label(
-        canvas,
-        fmt_write_scratch("{}{}", fmt_padding(depth[stackCount]), fmt_text(name)),
-        .fontSize = 12);
+    const u32 depth = depthLookup[joint] = depthLookup[scene_skeleton_parent(skelTempl, joint)] + 1;
+
+    ui_label(canvas, fmt_write_scratch("{}{}", fmt_padding(depth), fmt_text(name)), .fontSize = 12);
     ui_table_next_column(canvas, table);
 
-    const SceneJointPose pose = scene_skeleton_sample_def(skelTempl, jointIdx);
+    const SceneJointPose pose = scene_skeleton_sample_def(skelTempl, joint);
     anim_draw_pose(canvas, table, pose);
-
-    const u32 childDepth = depth[stackCount] + 1;
-    for (u32 childNum = 0; childNum != joint->childCount; ++childNum) {
-      stack[stackCount]   = joint->childIndices[childNum];
-      depth[stackCount++] = childDepth;
-    }
   }
 
   ui_style_pop(canvas);
