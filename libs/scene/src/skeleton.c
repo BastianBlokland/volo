@@ -2,6 +2,7 @@
 #include "asset_manager.h"
 #include "asset_mesh.h"
 #include "core_alloc.h"
+#include "core_bits.h"
 #include "core_bitset.h"
 #include "core_diag.h"
 #include "core_math.h"
@@ -577,7 +578,7 @@ void scene_skeleton_mask_flip(SceneSkeletonMask* mask, const u32 joint) {
 }
 
 bool scene_skeleton_mask_test(const SceneSkeletonMask* mask, const u32 joint) {
-  return bitset_test(bitset_from_array(mask->jointBits), joint);
+  return (mask->jointBits[bits_to_bytes(joint)] & (1u << bit_in_byte(joint))) != 0;
 }
 
 void scene_skeleton_delta(
