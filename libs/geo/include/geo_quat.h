@@ -89,13 +89,6 @@ GeoQuat geo_quat_look(GeoVector forward, GeoVector upRef);
 GeoQuat geo_quat_slerp(GeoQuat a, GeoQuat b, f32 t);
 
 /**
- * Calculate the linearly interpolated quaternion from x to y at time t.
- * NOTE: An approximation of 'geo_quat_slerp()'.
- * NOTE: Does not compensate for double-cover (two quaternions representing the same rotation).
- */
-GeoQuat geo_quat_fnlerp(GeoQuat a, GeoQuat b, f32 t);
-
-/**
  * Compute a quaternion based on the given euler angles (in radians).
  */
 GeoQuat geo_quat_from_euler(GeoVector);
