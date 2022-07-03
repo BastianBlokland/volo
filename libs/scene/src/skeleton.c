@@ -51,9 +51,10 @@ ecs_comp_define(SceneSkeletonTemplComp) {
   SceneSkeletonAnim*    anims;           // [animCount].
   const GeoMatrix*      bindPoseInvMats; // [jointCount].
   const SceneJointPose* defaultPose;     // [jointCount].
-  const SceneJointPose* rootTransform;   // [1].
+  const SceneJointPose* rootPose;        // [1].
   const u32*            parentIndices;   // [jointCount].
   const StringHash*     jointNames;      // [jointCount].
+  GeoMatrix             rootTransform;
   u32                   jointCount;
   u32                   animCount;
   Mem                   animData;
@@ -205,9 +206,10 @@ static void scene_asset_templ_init(SceneSkeletonTemplComp* tl, const AssetMeshSk
 
   tl->bindPoseInvMats = (const GeoMatrix*)mem_at_u8(tl->animData, asset->bindPoseInvMats);
   tl->defaultPose     = (const SceneJointPose*)mem_at_u8(tl->animData, asset->defaultPose);
-  tl->rootTransform   = (const SceneJointPose*)mem_at_u8(tl->animData, asset->rootTransform);
   tl->parentIndices   = (const u32*)mem_at_u8(tl->animData, asset->parentIndices);
   tl->jointNames      = (const StringHash*)mem_at_u8(tl->animData, asset->jointNames);
+  tl->rootPose        = (const SceneJointPose*)mem_at_u8(tl->animData, asset->rootTransform);
+  tl->rootTransform   = geo_matrix_trs(tl->rootPose->t, tl->rootPose->r, tl->rootPose->s);
 }
 
 static void scene_skeleton_templ_load_done(EcsWorld* world, EcsIterator* itr, const bool failure) {
@@ -398,7 +400,7 @@ static void anim_sample_def(const SceneSkeletonTemplComp* tl, f32* weights, Scen
 }
 
 static void anim_apply(const SceneSkeletonTemplComp* tl, SceneJointPose* poses, GeoMatrix* out) {
-  out[0] = geo_matrix_trs(tl->rootTransform->t, tl->rootTransform->r, tl->rootTransform->s);
+  out[0] = tl->rootTransform;
   for (u32 joint = 0; joint != tl->jointCount; ++joint) {
     const GeoMatrix poseMat     = geo_matrix_trs(poses[joint].t, poses[joint].r, poses[joint].s);
     const u32       parentIndex = tl->parentIndices[joint];
@@ -552,7 +554,7 @@ SceneJointPose scene_skeleton_sample_def(const SceneSkeletonTemplComp* tl, const
   return tl->defaultPose[joint];
 }
 
-SceneJointPose scene_skeleton_root(const SceneSkeletonTemplComp* tl) { return *tl->rootTransform; }
+SceneJointPose scene_skeleton_root(const SceneSkeletonTemplComp* tl) { return *tl->rootPose; }
 
 void scene_skeleton_mask_set(SceneSkeletonMask* mask, const u32 joint) {
   bitset_set(bitset_from_array(mask->jointBits), joint);
