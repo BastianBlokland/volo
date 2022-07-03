@@ -193,6 +193,40 @@ GeoQuat geo_quat_slerp(const GeoQuat a, const GeoQuat b, const f32 t) {
   };
 }
 
+GeoQuat geo_quat_fnlerp(GeoQuat a, GeoQuat b, f32 t) {
+/**
+ * N-Lerp with time adjustments to approximate S-Lerp.
+ * Based on: https://zeux.io/2015/07/23/approximating-slerp/
+ */
+#if geo_quat_simd_enable
+  const SimdVec vecA   = simd_vec_load(a.comps);
+  const SimdVec vecB   = simd_vec_load(b.comps);
+  const f32     absDot = simd_vec_x(simd_vec_abs(simd_vec_dot4(vecA, vecB)));
+  const f32     k      = 0.931872f + absDot * (-1.25654f + absDot * 0.331442f);
+  const f32     tB     = t + t * (t - 0.5f) * (t - 1) * k;
+  const f32     tA     = 1 - tB;
+
+  const SimdVec lerp = simd_vec_add(
+      simd_vec_mul(vecA, simd_vec_broadcast(tA)), simd_vec_mul(vecB, simd_vec_broadcast(tB)));
+
+  GeoQuat res;
+  simd_vec_store(simd_quat_norm_approx(lerp), res.comps);
+  return res;
+#else
+  const f32     absDot = math_abs(geo_quat_dot(a, b));
+  const f32     k      = 0.931872f + absDot * (-1.25654f + absDot * 0.331442f);
+  const f32     tB     = t + t * (t - 0.5f) * (t - 1) * k;
+  const f32     tA     = 1 - tB;
+  const GeoQuat res    = {
+         a.x * tA + b.x * tB,
+         a.y * tA + b.y * tB,
+         a.z * tA + b.z * tB,
+         a.w * tA + b.w * tB,
+  };
+  return geo_quat_norm(res);
+#endif
+}
+
 GeoQuat geo_quat_from_euler(const GeoVector e) {
   /**
    * Implementation based on:

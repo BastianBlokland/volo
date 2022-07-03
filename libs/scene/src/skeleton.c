@@ -320,7 +320,7 @@ static GeoQuat anim_channel_get_quat(const SceneSkeletonChannel* ch, const f32 t
 
   const GeoQuat from = ch->values_quat[frame];
   GeoQuat       to   = ch->values_quat[frame + 1];
-  return geo_quat_slerp(from, to, frac);
+  return geo_quat_fnlerp(from, to, frac);
 }
 
 static void anim_blend_vec(const GeoVector v, const f32 weight, f32* outWeight, GeoVector* outVec) {
@@ -344,7 +344,7 @@ static void anim_blend_quat(GeoQuat q, const f32 weight, f32* outWeight, GeoQuat
       // Compensate for quaternion double-cover (two quaternions representing the same rot).
       q = geo_quat_flip(q);
     }
-    *outQuat = geo_quat_slerp(*outQuat, q, frac);
+    *outQuat = geo_quat_fnlerp(*outQuat, q, frac);
     *outWeight += frac;
   }
 }
