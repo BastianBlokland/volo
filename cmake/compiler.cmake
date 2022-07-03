@@ -112,8 +112,8 @@ macro(set_clang_compile_options)
   add_compile_options(-ffast-math) # Enable (potentially lossy) floating point optimizations.
   add_compile_options(-mf16c) # Enable output of f16c (f32 <-> f16 converions)
   add_compile_options(-mfma) # Enable output of 'fused multiply-add' instructions.
-  # add_compile_options(-flto=full)
-  # add_link_options(-fuse-ld=lld -flto=full)
+  # add_compile_options(-flto=full) # Enable link-time optimization.
+  # add_link_options(-fuse-ld=lld -flto=full) # Enable link-time optimization.
 
   # Debug options.
   add_compile_options(-g -fno-omit-frame-pointer)
@@ -163,6 +163,7 @@ macro(set_msvc_compile_options)
   add_compile_options(/O2)
   add_compile_options(/fp:fast)  # Enable (potentially lossy) floating point optimizations.
   add_compile_options(/GS-) # Disable 'Buffer Security Check'.
+  # add_compile_options(/GL) # Enable link-time optimization.
 
   # Debug options.
   add_compile_options(/Zi)
