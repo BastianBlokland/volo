@@ -5,6 +5,7 @@
 
 /**
  * SIMD vector utilities using SSE, SSE2 and SSE3, SSE4 and SSE4.1 instructions.
+ * https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html
  */
 
 typedef __m128 SimdVec;
@@ -36,17 +37,21 @@ INLINE_HINT static SimdVec simd_vec_zero() { return _mm_setzero_ps(); }
 
 INLINE_HINT static f32 simd_vec_x(const SimdVec vec) { return _mm_cvtss_f32(vec); }
 
+INLINE_HINT static SimdVec simd_vec_set(const f32 a, const f32 b, const f32 c, const f32 d) {
+  return _mm_set_ps(d, c, b, a);
+}
+
+INLINE_HINT static SimdVec simd_vec_broadcast(const f32 value) { return _mm_set1_ps(value); }
+
 INLINE_HINT static SimdVec simd_vec_clear_w(const SimdVec vec) {
   static const u32 g_mask[4] = {~u32_lit(0), ~u32_lit(0), ~u32_lit(0), 0};
   // NOTE: Can we do this without a memory load?
   return _mm_and_ps(vec, simd_vec_load((f32*)g_mask));
 }
 
-INLINE_HINT static SimdVec simd_vec_set(const f32 a, const f32 b, const f32 c, const f32 d) {
-  return _mm_set_ps(d, c, b, a);
+INLINE_HINT static SimdVec simd_vec_w_one(const SimdVec vec) {
+  return _mm_blend_ps(vec, simd_vec_broadcast(1.0f), 0b1000);
 }
-
-INLINE_HINT static SimdVec simd_vec_broadcast(const f32 value) { return _mm_set1_ps(value); }
 
 INLINE_HINT static SimdVec simd_vec_add(const SimdVec a, const SimdVec b) {
   return _mm_add_ps(a, b);
