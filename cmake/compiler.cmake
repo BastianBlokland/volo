@@ -80,7 +80,7 @@ macro(set_gcc_compile_options)
   add_compile_options(-O3)
   # add_compile_options(-ffast-math) # Enable (potentially lossy) floating point optimizations.
   add_compile_options(-mf16c) # Enable output of f16c (f32 <-> f16 converions)
-  add_compile_options(-mfma) # Enable output of 'fused multiply-add' instructions.
+  # add_compile_options(-mfma) # Enable output of 'fused multiply-add' instructions.
 
   # Debug options.
   add_compile_options(-g)
@@ -111,7 +111,7 @@ macro(set_clang_compile_options)
   add_compile_options(-O3)
   # add_compile_options(-ffast-math) # Enable (potentially lossy) floating point optimizations.
   add_compile_options(-mf16c) # Enable output of f16c (f32 <-> f16 converions)
-  add_compile_options(-mfma) # Enable output of 'fused multiply-add' instructions.
+  # add_compile_options(-mfma) # Enable output of 'fused multiply-add' instructions.
   # add_compile_options(-flto=full) # Enable link-time optimization.
   # add_link_options(-fuse-ld=lld -flto=full) # Enable link-time optimization.
 
