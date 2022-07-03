@@ -171,8 +171,7 @@ GeoQuat geo_quat_slerp(const GeoQuat a, const GeoQuat b, const f32 t) {
    * https://www.euclideanspace.com/maths/algebra/realNormedAlgebra/quaternions/slerp
    */
 
-  const f32 dot  = geo_quat_dot(a, b);
-  const f32 sign = dot >= 0 ? 1.0f : -1.0f;
+  const f32 dot = geo_quat_dot(a, b);
   f32       tA, tB;
 
   if (math_abs(dot) < 0.99999f) {
@@ -180,10 +179,10 @@ GeoQuat geo_quat_slerp(const GeoQuat a, const GeoQuat b, const f32 t) {
     const f32 y = 1.0f / math_sin_f32(x);
 
     tA = math_sin_f32((1.0f - t) * x) * y;
-    tB = math_sin_f32(t * x) * y * sign;
+    tB = math_sin_f32(t * x) * y;
   } else {
     tA = 1.0f - t;
-    tB = t * sign;
+    tB = t;
   }
 
   return (GeoQuat){
