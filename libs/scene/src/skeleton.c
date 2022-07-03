@@ -53,6 +53,7 @@ ecs_comp_define(SceneSkeletonTemplComp) {
   const GeoMatrix*      bindPoseInvMats; // [jointCount].
   const SceneJointPose* defaultPose;     // [jointCount].
   const SceneJointPose* rootTransform;   // [1].
+  const u32*            parentIndices;
   u32                   jointCount;
   u32                   animCount;
   u32                   jointRootIndex;
@@ -219,6 +220,7 @@ static void scene_asset_templ_init(SceneSkeletonTemplComp* tl, const AssetMeshSk
   tl->bindPoseInvMats = (const GeoMatrix*)mem_at_u8(tl->animData, asset->bindPoseInvMats);
   tl->defaultPose     = (const SceneJointPose*)mem_at_u8(tl->animData, asset->defaultPose);
   tl->rootTransform   = (const SceneJointPose*)mem_at_u8(tl->animData, asset->rootTransform);
+  tl->parentIndices   = (const u32*)mem_at_u8(tl->animData, asset->parentIndices);
 }
 
 static void scene_skeleton_templ_load_done(EcsWorld* world, EcsIterator* itr, const bool failure) {
@@ -409,23 +411,11 @@ static void anim_sample_def(const SceneSkeletonTemplComp* tl, f32* weights, Scen
 }
 
 static void anim_apply(const SceneSkeletonTemplComp* tl, SceneJointPose* poses, GeoMatrix* out) {
-  u32 stack[scene_skeleton_joints_max] = {tl->jointRootIndex};
-  u32 stackCount                       = 1;
-
-  out[tl->jointRootIndex] =
-      geo_matrix_trs(tl->rootTransform->t, tl->rootTransform->r, tl->rootTransform->s);
-
-  while (stackCount--) {
-    const u32       joint   = stack[stackCount];
-    const GeoMatrix poseMat = geo_matrix_trs(poses[joint].t, poses[joint].r, poses[joint].s);
-
-    out[joint] = geo_matrix_mul(&out[joint], &poseMat);
-
-    for (u32 childNum = 0; childNum != tl->joints[joint].childCount; ++childNum) {
-      const u32 childIndex = tl->joints[joint].childIndices[childNum];
-      out[childIndex]      = out[joint];
-      stack[stackCount++]  = childIndex;
-    }
+  out[0] = geo_matrix_trs(tl->rootTransform->t, tl->rootTransform->r, tl->rootTransform->s);
+  for (u32 joint = 0; joint != tl->jointCount; ++joint) {
+    const GeoMatrix poseMat     = geo_matrix_trs(poses[joint].t, poses[joint].r, poses[joint].s);
+    const u32       parentIndex = tl->parentIndices[joint];
+    out[joint]                  = geo_matrix_mul(&out[parentIndex], &poseMat);
   }
 }
 

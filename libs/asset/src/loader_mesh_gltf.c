@@ -401,6 +401,12 @@ static AssetMeshAnimPtr gltf_anim_data_begin(GltfLoad* ld, const u32 align) {
   return (u32)ld->animData.size;
 }
 
+static AssetMeshAnimPtr gltf_anim_data_push_u32(GltfLoad* ld, const u32 val) {
+  const AssetMeshAnimPtr res                             = gltf_anim_data_begin(ld, alignof(u32));
+  *((u32*)dynarray_push(&ld->animData, sizeof(u32)).ptr) = val;
+  return res;
+}
+
 static AssetMeshAnimPtr gltf_anim_data_push_trans(GltfLoad* ld, const GltfTransform val) {
   const AssetMeshAnimPtr res = gltf_anim_data_begin(ld, alignof(GeoVector));
   *((GeoVector*)dynarray_push(&ld->animData, sizeof(GeoVector)).ptr) = val.t;
@@ -1197,6 +1203,11 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
     };
   }
 
+  AssetMeshAnimPtr resParents = gltf_anim_data_begin(ld, alignof(u32));
+  for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
+    gltf_anim_data_push_u32(ld, ld->joints[jointIndex].parentIndex);
+  }
+
   // Create the animation output structures.
   AssetMeshAnim* resAnims =
       ld->animCount ? alloc_array_t(g_alloc_heap, AssetMeshAnim, ld->animCount) : null;
@@ -1241,6 +1252,7 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
       .bindPoseInvMats = gltf_anim_data_push_access_mat(ld, ld->accBindPoseInvMats),
       .defaultPose     = resDefaultPose,
       .rootTransform   = gltf_anim_data_push_trans(ld, ld->sceneTrans),
+      .parentIndices   = resParents,
       .jointCount      = ld->jointCount,
       .animCount       = ld->animCount,
       .rootJointIndex  = sentinel_check(ld->rootJointIndex) ? 0 : ld->rootJointIndex,

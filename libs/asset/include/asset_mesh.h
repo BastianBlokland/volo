@@ -63,6 +63,7 @@ ecs_comp_extern_public(AssetMeshSkeletonComp) {
   AssetMeshAnimPtr      bindPoseInvMats; // GeoMatrix[jointCount]. From world to local bind space.
   AssetMeshAnimPtr      defaultPose;     // (GeoVector | GeoQuat)[jointCount][3]. Local TRS.
   AssetMeshAnimPtr      rootTransform;   // (GeoVector | GeoQuat)[3]. // TRS.
+  AssetMeshAnimPtr      parentIndices;   // u32[jointCount].
   u8                    jointCount;
   u32                   animCount;
   u32                   rootJointIndex;
