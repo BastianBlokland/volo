@@ -305,7 +305,7 @@ static GeoVector anim_channel_get_vec(const SceneSkeletonChannel* ch, const f32 
   }
   const f32 fromT = ch->times[frame];
   const f32 toT   = ch->times[frame + 1];
-  const f32 frac  = math_unlerp(fromT, toT, t);
+  const f32 frac  = (t - fromT) / (toT - fromT);
   return geo_vector_lerp(ch->values_vec[frame], ch->values_vec[frame + 1], frac);
 }
 
@@ -316,7 +316,7 @@ static GeoQuat anim_channel_get_quat(const SceneSkeletonChannel* ch, const f32 t
   }
   const f32 fromT = ch->times[frame];
   const f32 toT   = ch->times[frame + 1];
-  const f32 frac  = math_unlerp(fromT, toT, t);
+  const f32 frac  = (t - fromT) / (toT - fromT);
 
   const GeoQuat from = ch->values_quat[frame];
   GeoQuat       to   = ch->values_quat[frame + 1];
