@@ -329,10 +329,6 @@ static GeoQuat anim_channel_get_quat(const SceneSkeletonChannel* ch, const f32 t
 
   const GeoQuat from = ch->values_quat[frame];
   GeoQuat       to   = ch->values_quat[frame + 1];
-  if (geo_quat_dot(to, from) < 0) {
-    // Compensate for quaternion double-cover (two quaternions representing the same rotation).
-    to = geo_quat_flip(to);
-  }
   return geo_quat_slerp(from, to, frac);
 }
 

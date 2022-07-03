@@ -1122,6 +1122,17 @@ Cleanup:
   asset_mesh_builder_destroy(builder);
 }
 
+static void gltf_optimize_anim_channel_rot(GltfLoad* ld, const AssetMeshAnimChannel* ch) {
+  GeoQuat* rotPoses = dynarray_at(&ld->animData, ch->valueData, sizeof(GeoQuat)).ptr;
+  for (u32 i = 0; i != ch->frameCount; ++i) {
+    rotPoses[i] = geo_quat_norm(rotPoses[i]);
+    if (i && geo_quat_dot(rotPoses[i], rotPoses[i - 1]) < 0) {
+      // Compensate for quaternion double-cover (two quaternions representing the same rotation).
+      rotPoses[i] = geo_quat_flip(rotPoses[i]);
+    }
+  }
+}
+
 static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfError* err) {
   diag_assert(ld->jointCount);
 
@@ -1185,6 +1196,9 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
               .timeData   = gltf_anim_data_push_access(ld, srcChannel->accInput),
               .valueData  = gltf_anim_data_push_access_vec(ld, srcChannel->accOutput),
           };
+          if (target == AssetMeshAnimTarget_Rotation) {
+            gltf_optimize_anim_channel_rot(ld, resChannel);
+          }
         } else {
           *resChannel = (AssetMeshAnimChannel){0};
         }
