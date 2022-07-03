@@ -352,12 +352,55 @@ GeoMatrix geo_matrix_rotate_look(const GeoVector forward, const GeoVector upRef)
 }
 
 GeoMatrix geo_matrix_from_quat(const GeoQuat quat) {
-  /**
-   * [ 1 - 2y² - 2z²,   2xy + 2wz ,     2xz - 2wy,     0 ]
-   * [ 2xy - 2wz,       1 - 2x² - 2z²,  2yz + 2wx,     0 ]
-   * [ 2xz + 2wy,       2yz - 2wx,      1 - 2x² - 2y², 0 ]
-   * [ 0,               0,              0,             1 ]
-   */
+/**
+ * [ 1 - 2y² - 2z²,   2xy + 2wz ,     2xz - 2wy,     0 ]
+ * [ 2xy - 2wz,       1 - 2x² - 2z²,  2yz + 2wx,     0 ]
+ * [ 2xz + 2wy,       2yz - 2wx,      1 - 2x² - 2y², 0 ]
+ * [ 0,               0,              0,             1 ]
+ */
+#if geo_matrix_simd_enable
+  const SimdVec q  = simd_vec_load(quat.comps);
+  const SimdVec q0 = simd_vec_add(q, q);
+  SimdVec       q1 = simd_vec_mul(q, q0);
+
+  SimdVec v0 = simd_vec_permute(q1, 3, 0, 0, 1);
+  v0         = simd_vec_clear_w(v0);
+  SimdVec v1 = simd_vec_permute(q1, 3, 1, 2, 2);
+  v1         = simd_vec_clear_w(v1);
+  SimdVec r0 = simd_vec_sub(simd_vec_set(1, 1, 1, 0), v0);
+  r0         = simd_vec_sub(r0, v1);
+
+  v0 = simd_vec_permute(q, 3, 1, 0, 0);
+  v1 = simd_vec_permute(q0, 3, 2, 1, 2);
+  v0 = simd_vec_mul(v0, v1);
+
+  v1               = simd_vec_permute(q, 3, 3, 3, 3);
+  const SimdVec v2 = simd_vec_permute(q0, 3, 0, 2, 1);
+  v1               = simd_vec_mul(v1, v2);
+
+  const SimdVec r1 = simd_vec_add(v0, v1);
+  const SimdVec r2 = simd_vec_sub(v0, v1);
+
+  v0 = simd_vec_shuffle(r1, r2, 1, 0, 2, 1);
+  v0 = simd_vec_permute(v0, 1, 3, 2, 0);
+  v1 = simd_vec_shuffle(r1, r2, 2, 2, 0, 0);
+  v1 = simd_vec_permute(v1, 2, 0, 2, 0);
+
+  q1 = simd_vec_shuffle(r0, v0, 1, 0, 3, 0);
+  q1 = simd_vec_permute(q1, 1, 3, 2, 0);
+
+  GeoMatrix res;
+  simd_vec_store(q1, res.columns[0].comps);
+
+  q1 = simd_vec_shuffle(r0, v0, 3, 2, 3, 1);
+  q1 = simd_vec_permute(q1, 1, 3, 0, 2);
+  simd_vec_store(q1, res.columns[1].comps);
+
+  q1 = simd_vec_shuffle(v1, r0, 3, 2, 1, 0);
+  simd_vec_store(q1, res.columns[2].comps);
+  res.columns[3] = geo_vector(0, 0, 0, 1);
+  return res;
+#else
   const f32 x = quat.x;
   const f32 y = quat.y;
   const f32 z = quat.z;
@@ -370,6 +413,7 @@ GeoMatrix geo_matrix_from_quat(const GeoQuat quat) {
           {2 * x * z + 2 * w * y, 2 * y * z - 2 * w * x, 1 - 2 * x * x - 2 * y * y},
           {0, 0, 0, 1},
       }};
+#endif
 }
 
 GeoQuat geo_matrix_to_quat(const GeoMatrix* m) {
