@@ -1188,17 +1188,16 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
     goto Error;
   }
 
-  // Create the joint output structures.
-  AssetMeshJoint* resJoints = alloc_array_t(g_alloc_heap, AssetMeshJoint, ld->jointCount);
-  for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
-    resJoints[jointIndex] = (AssetMeshJoint){
-        .nameHash = ld->joints[jointIndex].nameHash,
-    };
-  }
-
+  // Output the joint parent indices.
   AssetMeshAnimPtr resParents = gltf_anim_data_begin(ld, alignof(u32));
   for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
     gltf_anim_data_push_u32(ld, ld->joints[jointIndex].parentIndex);
+  }
+
+  // Output the joint name-hashes.
+  AssetMeshAnimPtr resNames = gltf_anim_data_begin(ld, alignof(StringHash));
+  for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
+    gltf_anim_data_push_u32(ld, ld->joints[jointIndex].nameHash);
   }
 
   // Create the animation output structures.
@@ -1240,12 +1239,12 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
   }
 
   *out = (AssetMeshSkeletonComp){
-      .joints          = resJoints,
       .anims           = resAnims,
       .bindPoseInvMats = gltf_anim_data_push_access_mat(ld, ld->accBindPoseInvMats),
       .defaultPose     = resDefaultPose,
       .rootTransform   = gltf_anim_data_push_trans(ld, ld->sceneTrans),
       .parentIndices   = resParents,
+      .jointNames      = resNames,
       .jointCount      = ld->jointCount,
       .animCount       = ld->animCount,
       .rootJointIndex  = sentinel_check(ld->rootJointIndex) ? 0 : ld->rootJointIndex,

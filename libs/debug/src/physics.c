@@ -193,12 +193,12 @@ static void physics_draw_skeleton(
     debug_arrow(shapes, jointPos, geo_vector_add(jointPos, jointZ), g_arrowSize, geo_color_blue);
 
     if (i) {
-      const u32       parentIndex = scene_skeleton_parent(skeletonTemplate, i);
+      const u32       parentIndex = scene_skeleton_joint_parent(skeletonTemplate, i);
       const GeoVector parentPos   = geo_matrix_to_translation(&jointMatrices[parentIndex]);
       debug_line(shapes, jointPos, parentPos, geo_color_white);
     }
 
-    const StringHash jointNameHash = scene_skeleton_joint(skeletonTemplate, i)->nameHash;
+    const StringHash jointNameHash = scene_skeleton_joint_name(skeletonTemplate, i);
     const String     jointName     = stringtable_lookup(g_stringtable, jointNameHash);
     const GeoColor   color         = isRootJoint ? geo_color_red : geo_color_white;
     debug_text(text, geo_vector_add(jointPos, geo_vector(0, 0.02f, 0)), jointName, color);

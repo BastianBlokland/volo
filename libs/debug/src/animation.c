@@ -96,9 +96,9 @@ static void anim_draw_joints_layer(
 
   const u32 jointCount = scene_skeleton_joint_count(skelTempl);
   for (u32 joint = 0; joint != jointCount; ++joint) {
-    const SceneSkeletonJoint* jointInfo = scene_skeleton_joint(skelTempl, joint);
-    const String              name      = stringtable_lookup(g_stringtable, jointInfo->nameHash);
-    const SceneJointInfo      info      = scene_skeleton_info(skelTempl, layerIdx, joint);
+    const StringHash     nameHash = scene_skeleton_joint_name(skelTempl, joint);
+    const String         name     = stringtable_lookup(g_stringtable, nameHash);
+    const SceneJointInfo info     = scene_skeleton_info(skelTempl, layerIdx, joint);
 
     ui_table_next_row(canvas, table);
     ui_table_draw_row_bg(canvas, table, ui_color(96, 96, 96, 192));
@@ -108,7 +108,8 @@ static void anim_draw_joints_layer(
       scene_skeleton_mask_flip(&layer->mask, joint);
     }
 
-    const u32 depth = depthLookup[joint] = depthLookup[scene_skeleton_parent(skelTempl, joint)] + 1;
+    const u32 parent = scene_skeleton_joint_parent(skelTempl, joint);
+    const u32 depth = depthLookup[joint] = depthLookup[parent] + 1;
     ui_label(
         canvas, fmt_write_scratch("{}{}", fmt_padding(4 + depth), fmt_text(name)), .fontSize = 12);
     ui_table_next_column(canvas, table);
@@ -139,13 +140,14 @@ static void anim_draw_joints_def(
 
   const u32 jointCount = scene_skeleton_joint_count(skelTempl);
   for (u32 joint = 0; joint != jointCount; ++joint) {
-    const SceneSkeletonJoint* jointInfo = scene_skeleton_joint(skelTempl, joint);
-    const String              name      = stringtable_lookup(g_stringtable, jointInfo->nameHash);
+    const StringHash nameHash = scene_skeleton_joint_name(skelTempl, joint);
+    const String     name     = stringtable_lookup(g_stringtable, nameHash);
 
     ui_table_next_row(canvas, table);
     ui_table_draw_row_bg(canvas, table, ui_color(96, 96, 96, 192));
 
-    const u32 depth = depthLookup[joint] = depthLookup[scene_skeleton_parent(skelTempl, joint)] + 1;
+    const u32 parent = scene_skeleton_joint_parent(skelTempl, joint);
+    const u32 depth = depthLookup[joint] = depthLookup[parent] + 1;
 
     ui_label(canvas, fmt_write_scratch("{}{}", fmt_padding(depth), fmt_text(name)), .fontSize = 12);
     ui_table_next_column(canvas, table);

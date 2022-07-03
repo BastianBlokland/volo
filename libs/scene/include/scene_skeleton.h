@@ -5,10 +5,6 @@
 #define scene_skeleton_joints_max 75
 
 typedef struct {
-  StringHash nameHash;
-} SceneSkeletonJoint;
-
-typedef struct {
   u8 jointBits[scene_skeleton_joints_max / 8 + 1];
 } SceneSkeletonMask;
 
@@ -45,10 +41,9 @@ ecs_comp_extern_public(SceneAnimationComp) {
 
 u32 scene_skeleton_root_index(const SceneSkeletonTemplComp*);
 
-u32                       scene_skeleton_joint_count(const SceneSkeletonTemplComp*);
-const SceneSkeletonJoint* scene_skeleton_joint(const SceneSkeletonTemplComp*, u32 index);
-
-u32 scene_skeleton_parent(const SceneSkeletonTemplComp*, u32 jointIndex);
+u32        scene_skeleton_joint_count(const SceneSkeletonTemplComp*);
+StringHash scene_skeleton_joint_name(const SceneSkeletonTemplComp*, u32 jointIndex);
+u32        scene_skeleton_joint_parent(const SceneSkeletonTemplComp*, u32 jointIndex);
 
 SceneJointInfo scene_skeleton_info(const SceneSkeletonTemplComp*, u32 layer, u32 joint);
 SceneJointPose scene_skeleton_sample(const SceneSkeletonTemplComp*, u32 layer, u32 joint, f32 time);

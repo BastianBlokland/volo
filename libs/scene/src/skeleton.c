@@ -48,12 +48,12 @@ typedef struct {
 ecs_comp_define(SceneSkeletonTemplComp) {
   SkeletonTemplState    state;
   EcsEntityId           mesh;
-  SceneSkeletonJoint*   joints;          // [jointCount].
   SceneSkeletonAnim*    anims;           // [animCount].
   const GeoMatrix*      bindPoseInvMats; // [jointCount].
   const SceneJointPose* defaultPose;     // [jointCount].
   const SceneJointPose* rootTransform;   // [1].
-  const u32*            parentIndices;
+  const u32*            parentIndices;   // [jointCount].
+  const StringHash*     jointNames;      // [jointCount].
   u32                   jointCount;
   u32                   animCount;
   u32                   jointRootIndex;
@@ -84,9 +84,6 @@ static void ecs_combine_skeleton_templ(void* dataA, void* dataB) {
 
 static void ecs_destruct_skeleton_templ_comp(void* data) {
   SceneSkeletonTemplComp* comp = data;
-  if (comp->jointCount) {
-    alloc_free_array_t(g_alloc_heap, comp->joints, comp->jointCount);
-  }
   if (comp->animCount) {
     alloc_free_array_t(g_alloc_heap, comp->anims, comp->animCount);
   }
@@ -185,15 +182,8 @@ static void scene_asset_templ_init(SceneSkeletonTemplComp* tl, const AssetMeshSk
   diag_assert(asset->jointCount <= scene_skeleton_joints_max);
 
   tl->jointRootIndex = asset->rootJointIndex;
+  tl->jointCount     = asset->jointCount;
   tl->animData       = alloc_dup(g_alloc_heap, asset->animData, 1);
-
-  tl->joints     = alloc_array_t(g_alloc_heap, SceneSkeletonJoint, asset->jointCount);
-  tl->jointCount = asset->jointCount;
-  for (u32 jointIndex = 0; jointIndex != asset->jointCount; ++jointIndex) {
-    tl->joints[jointIndex] = (SceneSkeletonJoint){
-        .nameHash = asset->joints[jointIndex].nameHash,
-    };
-  }
 
   tl->anims     = alloc_array_t(g_alloc_heap, SceneSkeletonAnim, asset->animCount);
   tl->animCount = asset->animCount;
@@ -219,6 +209,7 @@ static void scene_asset_templ_init(SceneSkeletonTemplComp* tl, const AssetMeshSk
   tl->defaultPose     = (const SceneJointPose*)mem_at_u8(tl->animData, asset->defaultPose);
   tl->rootTransform   = (const SceneJointPose*)mem_at_u8(tl->animData, asset->rootTransform);
   tl->parentIndices   = (const u32*)mem_at_u8(tl->animData, asset->parentIndices);
+  tl->jointNames      = (const StringHash*)mem_at_u8(tl->animData, asset->jointNames);
 }
 
 static void scene_skeleton_templ_load_done(EcsWorld* world, EcsIterator* itr, const bool failure) {
@@ -522,12 +513,12 @@ u32 scene_skeleton_root_index(const SceneSkeletonTemplComp* tl) { return tl->joi
 
 u32 scene_skeleton_joint_count(const SceneSkeletonTemplComp* tl) { return tl->jointCount; }
 
-const SceneSkeletonJoint* scene_skeleton_joint(const SceneSkeletonTemplComp* tl, const u32 index) {
-  diag_assert(index < tl->jointCount);
-  return &tl->joints[index];
+StringHash scene_skeleton_joint_name(const SceneSkeletonTemplComp* tl, const u32 jointIndex) {
+  diag_assert(jointIndex < tl->jointCount);
+  return tl->jointNames[jointIndex];
 }
 
-u32 scene_skeleton_parent(const SceneSkeletonTemplComp* tl, const u32 jointIndex) {
+u32 scene_skeleton_joint_parent(const SceneSkeletonTemplComp* tl, const u32 jointIndex) {
   diag_assert(jointIndex < tl->jointCount);
   return tl->parentIndices[jointIndex];
 }
