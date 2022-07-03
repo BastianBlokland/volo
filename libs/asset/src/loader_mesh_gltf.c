@@ -109,12 +109,10 @@ typedef struct {
 } GltfTransform;
 
 typedef struct {
-  u32              nodeIndex;
-  AssetMeshAnimPtr childData;
-  u32              childCount;
-  u32              parentIndex;
-  StringHash       nameHash;
-  GltfTransform    trans;
+  u32           nodeIndex;
+  u32           parentIndex;
+  StringHash    nameHash;
+  GltfTransform trans;
 } GltfJoint;
 
 typedef struct {
@@ -772,7 +770,6 @@ static void gltf_parse_skeleton_nodes(GltfLoad* ld, GltfError* err) {
 
     const JsonVal children = json_field(ld->jDoc, node, string_lit("children"));
     if (gltf_json_check(ld, children, JsonType_Array)) {
-      out->childData = gltf_anim_data_begin(ld, alignof(u32));
 
       json_for_elems(ld->jDoc, children, child) {
         if (UNLIKELY(json_type(ld->jDoc, child) != JsonType_Number)) {
@@ -780,9 +777,7 @@ static void gltf_parse_skeleton_nodes(GltfLoad* ld, GltfError* err) {
         }
         const u32 childJointIndex = gltf_node_to_joint_index(ld, (u32)json_number(ld->jDoc, child));
         if (!sentinel_check(childJointIndex)) {
-          // Child is part of the skeleton: Add it to the children collection.
-          *((u32*)dynarray_push(&ld->animData, sizeof(u32)).ptr) = childJointIndex;
-          ++out->childCount;
+          // Child is part of the skeleton: Set this joint as its parent.
           ld->joints[childJointIndex].parentIndex = jointIndex;
         }
       }
@@ -1197,9 +1192,7 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
   AssetMeshJoint* resJoints = alloc_array_t(g_alloc_heap, AssetMeshJoint, ld->jointCount);
   for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
     resJoints[jointIndex] = (AssetMeshJoint){
-        .childData  = ld->joints[jointIndex].childData,
-        .childCount = ld->joints[jointIndex].childCount,
-        .nameHash   = ld->joints[jointIndex].nameHash,
+        .nameHash = ld->joints[jointIndex].nameHash,
     };
   }
 

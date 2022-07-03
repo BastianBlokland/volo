@@ -191,9 +191,7 @@ static void scene_asset_templ_init(SceneSkeletonTemplComp* tl, const AssetMeshSk
   tl->jointCount = asset->jointCount;
   for (u32 jointIndex = 0; jointIndex != asset->jointCount; ++jointIndex) {
     tl->joints[jointIndex] = (SceneSkeletonJoint){
-        .childIndices = (const u32*)mem_at_u8(tl->animData, asset->joints[jointIndex].childData),
-        .childCount   = asset->joints[jointIndex].childCount,
-        .nameHash     = asset->joints[jointIndex].nameHash,
+        .nameHash = asset->joints[jointIndex].nameHash,
     };
   }
 

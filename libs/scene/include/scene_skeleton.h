@@ -5,8 +5,6 @@
 #define scene_skeleton_joints_max 75
 
 typedef struct {
-  const u32* childIndices;
-  u32        childCount;
   StringHash nameHash;
 } SceneSkeletonJoint;
 

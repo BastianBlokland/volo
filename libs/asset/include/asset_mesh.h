@@ -32,9 +32,7 @@ ecs_comp_extern_public(AssetMeshComp) {
 };
 
 typedef struct {
-  AssetMeshAnimPtr childData; // u32[childCount].
-  u32              childCount;
-  StringHash       nameHash;
+  StringHash nameHash;
 } AssetMeshJoint;
 
 typedef enum {
