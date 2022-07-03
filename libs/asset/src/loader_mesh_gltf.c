@@ -112,6 +112,7 @@ typedef struct {
   u32              nodeIndex;
   AssetMeshAnimPtr childData;
   u32              childCount;
+  u32              parentIndex;
   StringHash       nameHash;
   GltfTransform    trans;
 } GltfJoint;
@@ -776,6 +777,7 @@ static void gltf_parse_skeleton_nodes(GltfLoad* ld, GltfError* err) {
           // Child is part of the skeleton: Add it to the children collection.
           *((u32*)dynarray_push(&ld->animData, sizeof(u32)).ptr) = childJointIndex;
           ++out->childCount;
+          ld->joints[childJointIndex].parentIndex = jointIndex;
         }
       }
     }
@@ -783,6 +785,7 @@ static void gltf_parse_skeleton_nodes(GltfLoad* ld, GltfError* err) {
   Next:
     ++nodeIndex;
   }
+
   *err = GltfError_None;
   return;
 
@@ -1122,6 +1125,20 @@ Cleanup:
   asset_mesh_builder_destroy(builder);
 }
 
+static bool gltf_skeleton_is_topologically_sorted(GltfLoad* ld) {
+  if (!ld->jointCount) {
+    return true;
+  }
+  u8 processed[bits_to_bytes(asset_mesh_joints_max) + 1] = {0};
+  for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
+    bitset_set(bitset_from_var(processed), jointIndex);
+    if (!bitset_test(bitset_from_var(processed), ld->joints[jointIndex].parentIndex)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 static void gltf_optimize_anim_channel_rot(GltfLoad* ld, const AssetMeshAnimChannel* ch) {
   GeoQuat* rotPoses = dynarray_at(&ld->animData, ch->valueData, sizeof(GeoQuat)).ptr;
   for (u32 i = 0; i != ch->frameCount; ++i) {
@@ -1163,6 +1180,11 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
         }
       }
     }
+  }
+
+  // Verify that the joint parents appear earlier then their children.
+  if (!gltf_skeleton_is_topologically_sorted(ld)) {
+    goto Error;
   }
 
   // Create the joint output structures.
