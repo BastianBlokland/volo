@@ -50,7 +50,7 @@ GeoQuat geo_quat_from_to(const GeoQuat from, const GeoQuat to) {
 f32 geo_quat_angle(const GeoQuat q) {
   const GeoVector axis    = geo_vector(q.x, q.y, q.z);
   const f32       axisMag = geo_vector_mag(axis);
-  return 2 * math_atan2_f32(axisMag, q.w);
+  return 2 * intrinsic_atan2_f32(axisMag, q.w);
 }
 
 GeoQuat geo_quat_mul(const GeoQuat a, const GeoQuat b) {
@@ -175,11 +175,11 @@ GeoQuat geo_quat_slerp(const GeoQuat a, const GeoQuat b, const f32 t) {
   f32       tA, tB;
 
   if (math_abs(dot) < 0.99999f) {
-    const f32 x = math_acos_f32(dot);
-    const f32 y = 1.0f / math_sin_f32(x);
+    const f32 x = intrinsic_acos_f32(dot);
+    const f32 y = 1.0f / intrinsic_sin_f32(x);
 
-    tA = math_sin_f32((1.0f - t) * x) * y;
-    tB = math_sin_f32(t * x) * y;
+    tA = intrinsic_sin_f32((1.0f - t) * x) * y;
+    tB = intrinsic_sin_f32(t * x) * y;
   } else {
     tA = 1.0f - t;
     tB = t;
@@ -199,12 +199,12 @@ GeoQuat geo_quat_from_euler(const GeoVector e) {
    * https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
    */
 
-  const f32 cy = math_cos_f32(e.z * 0.5f);
-  const f32 sy = math_sin_f32(e.z * 0.5f);
-  const f32 cp = math_cos_f32(e.y * 0.5f);
-  const f32 sp = math_sin_f32(e.y * 0.5f);
-  const f32 cr = math_cos_f32(e.x * 0.5f);
-  const f32 sr = math_sin_f32(e.x * 0.5f);
+  const f32 cy = intrinsic_cos_f32(e.z * 0.5f);
+  const f32 sy = intrinsic_sin_f32(e.z * 0.5f);
+  const f32 cp = intrinsic_cos_f32(e.y * 0.5f);
+  const f32 sp = intrinsic_sin_f32(e.y * 0.5f);
+  const f32 cr = intrinsic_cos_f32(e.x * 0.5f);
+  const f32 sr = intrinsic_sin_f32(e.x * 0.5f);
 
   return (GeoQuat){
       .x = sr * cp * cy - cr * sp * sy,
@@ -229,12 +229,12 @@ GeoVector geo_quat_to_euler(const GeoQuat q) {
   if (UNLIKELY(math_abs(sinp) >= 1.0f)) {
     pitch = math_pi_f32 * 0.5f * math_sign(sinp); // Out of range: default to 90 degrees.
   } else {
-    pitch = math_asin_f32(sinp);
+    pitch = intrinsic_asin_f32(sinp);
   }
 
   const f32 sinyCosp = 2.0f * (q.w * q.z + q.x * q.y);
   const f32 cosyCosp = 1.0f - 2.0f * (q.y * q.y + q.z * q.z);
-  const f32 yaw      = math_atan2_f32(sinyCosp, cosyCosp);
+  const f32 yaw      = intrinsic_atan2_f32(sinyCosp, cosyCosp);
 
   return (GeoVector){
       .x = roll,
