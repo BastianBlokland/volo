@@ -430,12 +430,20 @@ GeoQuat geo_matrix_to_quat(const GeoMatrix* m) {
 }
 
 GeoMatrix geo_matrix_trs(const GeoVector t, const GeoQuat r, const GeoVector s) {
-  const GeoMatrix mT = geo_matrix_translate(t);
-  const GeoMatrix mR = geo_matrix_from_quat(r);
-  const GeoMatrix mS = geo_matrix_scale(s);
+  GeoMatrix res = geo_matrix_from_quat(r);
 
-  const GeoMatrix temp = geo_matrix_mul(&mT, &mR);
-  return geo_matrix_mul(&temp, &mS);
+  // Apply scale.
+  for (usize col = 0; col != 3; ++col) {
+    res.columns[col].comps[0] = res.columns[col].x * s.comps[col];
+    res.columns[col].comps[1] = res.columns[col].y * s.comps[col];
+    res.columns[col].comps[2] = res.columns[col].z * s.comps[col];
+  }
+
+  // Apply translation.
+  res.columns[3].x = t.x;
+  res.columns[3].y = t.y;
+  res.columns[3].z = t.z;
+  return res;
 }
 
 GeoMatrix
