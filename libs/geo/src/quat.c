@@ -199,15 +199,28 @@ GeoQuat geo_quat_fnlerp(GeoQuat a, GeoQuat b, f32 t) {
  * Based on: https://zeux.io/2015/07/23/approximating-slerp/
  */
 #if geo_quat_simd_enable
-  const SimdVec vecA   = simd_vec_load(a.comps);
-  const SimdVec vecB   = simd_vec_load(b.comps);
-  const f32     absDot = simd_vec_x(simd_vec_abs(simd_vec_dot4(vecA, vecB)));
-  const f32     k      = 0.931872f + absDot * (-1.25654f + absDot * 0.331442f);
-  const f32     tB     = t + t * (t - 0.5f) * (t - 1) * k;
-  const f32     tA     = 1 - tB;
+  /**
+   * Very naive translation of the scalar version.
+   */
+  const SimdVec c1   = simd_vec_broadcast(0.931872f);
+  const SimdVec c2   = simd_vec_broadcast(-1.25654f);
+  const SimdVec c3   = simd_vec_broadcast(0.331442f);
+  const SimdVec one  = simd_vec_broadcast(1.0f);
+  const SimdVec half = simd_vec_broadcast(0.5f);
 
-  const SimdVec lerp = simd_vec_add(
-      simd_vec_mul(vecA, simd_vec_broadcast(tA)), simd_vec_mul(vecB, simd_vec_broadcast(tB)));
+  const SimdVec vA = simd_vec_load(a.comps);
+  const SimdVec vB = simd_vec_load(b.comps);
+  const SimdVec vT = simd_vec_broadcast(t);
+
+  const SimdVec tmp = simd_vec_mul(simd_vec_mul(vT, simd_vec_sub(vT, half)), simd_vec_sub(vT, one));
+
+  const SimdVec absDot = simd_vec_abs(simd_vec_dot4(vA, vB));
+  const SimdVec k =
+      simd_vec_add(c1, simd_vec_mul(absDot, simd_vec_add(c2, simd_vec_mul(absDot, c3))));
+  const SimdVec tB = simd_vec_add(vT, simd_vec_mul(tmp, k));
+  const SimdVec tA = simd_vec_sub(one, tB);
+
+  const SimdVec lerp = simd_vec_add(simd_vec_mul(vA, tA), simd_vec_mul(vB, tB));
 
   GeoQuat res;
   simd_vec_store(simd_quat_norm_approx(lerp), res.comps);
