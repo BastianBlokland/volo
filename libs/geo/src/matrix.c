@@ -54,6 +54,24 @@ GeoVector geo_matrix_row(const GeoMatrix* m, const usize index) {
 }
 
 GeoMatrix geo_matrix_mul(const GeoMatrix* a, const GeoMatrix* b) {
+#if geo_matrix_simd_enable
+  GeoMatrix     res;
+  const SimdVec col0 = simd_vec_load(a->columns[0].comps);
+  const SimdVec col1 = simd_vec_load(a->columns[1].comps);
+  const SimdVec col2 = simd_vec_load(a->columns[2].comps);
+  const SimdVec col3 = simd_vec_load(a->columns[3].comps);
+  for (usize i = 0; i != 4; ++i) {
+    const SimdVec rowX   = simd_vec_broadcast(b->columns[i].x);
+    const SimdVec rowY   = simd_vec_broadcast(b->columns[i].y);
+    const SimdVec rowZ   = simd_vec_broadcast(b->columns[i].z);
+    const SimdVec rowW   = simd_vec_broadcast(b->columns[i].w);
+    const SimdVec resCol = simd_vec_add(
+        simd_vec_add(simd_vec_mul(rowX, col0), simd_vec_mul(rowY, col1)),
+        simd_vec_add(simd_vec_mul(rowZ, col2), simd_vec_mul(rowW, col3)));
+    simd_vec_store(resCol, res.columns[i].comps);
+  }
+  return res;
+#else
   GeoMatrix res;
   for (usize col = 0; col != 4; ++col) {
     for (usize row = 0; row != 4; ++row) {
@@ -61,6 +79,7 @@ GeoMatrix geo_matrix_mul(const GeoMatrix* a, const GeoMatrix* b) {
     }
   }
   return res;
+#endif
 }
 
 GeoVector geo_matrix_transform(const GeoMatrix* m, const GeoVector vec) {
