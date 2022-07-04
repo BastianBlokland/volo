@@ -11,8 +11,13 @@
 #endif
 
 bool geo_vector_equal(const GeoVector a, const GeoVector b, const f32 threshold) {
-  const GeoVector diff = geo_vector_sub(a, b);
-  return geo_vector_mag_sqr(diff) <= (threshold * threshold);
+  const GeoVector diff = geo_vector_abs(geo_vector_sub(a, b));
+  return diff.x <= threshold && diff.y <= threshold && diff.z <= threshold && diff.w <= threshold;
+}
+
+bool geo_vector_equal3(const GeoVector a, const GeoVector b, const f32 threshold) {
+  const GeoVector diff = geo_vector_abs(geo_vector_sub(a, b));
+  return diff.x <= threshold && diff.y <= threshold && diff.z <= threshold;
 }
 
 GeoVector geo_vector_abs(const GeoVector vec) {

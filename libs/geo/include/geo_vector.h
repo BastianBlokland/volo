@@ -32,6 +32,7 @@ ASSERT(alignof(GeoVector) == 16, "GeoVector has to be aligned to 128 bits");
  * Check if the magnitude of the difference vector is less then the given threshold.
  */
 bool geo_vector_equal(GeoVector a, GeoVector b, f32 threshold);
+bool geo_vector_equal3(GeoVector a, GeoVector b, f32 threshold);
 
 /**
  * Compute the absolute value of each component.
