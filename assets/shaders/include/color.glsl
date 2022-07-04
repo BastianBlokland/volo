@@ -36,6 +36,16 @@ f32v4 color_from_u32(const u32 val) {
 }
 
 /**
+ * Create a color from 'Hue', 'Saturation', 'Value' components.
+ * Implementation based on: http://lolengine.net/blog/2013/07/27/rgb-to-hsv-in-glsl
+ */
+f32v3 color_from_hsv(const f32 h, const f32 s, const f32 v) {
+  const f32v4 k = f32v4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+  const f32v3 p = abs(fract(f32v3(h, h, h) + k.xyz) * 6.0 - k.www);
+  return v * mix(k.xxx, clamp(p - k.xxx, 0.0, 1.0), s);
+}
+
+/**
  * Decode a srgb encoded color to a linear color.
  * NOTE: Fast approximation, more info: https://en.wikipedia.org/wiki/SRGB
  */
