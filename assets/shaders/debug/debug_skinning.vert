@@ -2,21 +2,31 @@
 #extension GL_GOOGLE_include_directive : enable
 
 #include "binding.glsl"
+#include "color.glsl"
 #include "global.glsl"
+#include "hash.glsl"
 #include "instance.glsl"
 #include "quat.glsl"
 #include "vertex.glsl"
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
-bind_graphic_data(0) readonly buffer MeshSkinned { VertexSkinnedPacked[] u_vertices; };
+bind_dynamic_data(0) readonly buffer MeshSkinned { VertexSkinnedPacked[] u_vertices; };
 bind_instance_data(0) readonly uniform InstanceSkinned {
   InstanceSkinnedData[c_maxInstances] u_instances;
 };
 
-bind_internal(0) out f32v3 out_worldPosition;
-bind_internal(1) out f32v3 out_worldNormal;
-bind_internal(2) out f32v4 out_worldTangent;
-bind_internal(3) out f32v2 out_texcoord;
+f32v4 joint_color(const u32 jointIndex) {
+  return f32v4(color_from_hsv(hash_u32(jointIndex) / 4294967295.0, 1, 1), 1);
+}
+
+f32v4 vertex_color(const u32v4 jointIndices, const f32v4 jointWeights) {
+  return jointWeights.x * joint_color(jointIndices.x) +
+         jointWeights.y * joint_color(jointIndices.y) +
+         jointWeights.z * joint_color(jointIndices.z) +
+         jointWeights.w * joint_color(jointIndices.w);
+}
+
+bind_internal(0) out f32v4 out_color;
 
 void main() {
   const VertexSkinned vert = vert_skinned_unpack(u_vertices[in_vertexIndex]);
@@ -28,14 +38,8 @@ void main() {
       instance_skin_mat(u_instances[in_instanceIndex], vert.jointIndices, vert.jointWeights);
 
   const f32v3 skinnedVertPos = (instanceSkinMat * f32v4(vert.position, 1)).xyz;
-  const f32v3 skinnedNormal  = f32m3(instanceSkinMat) * vert.normal;
-  const f32v4 skinnedTangent = f32v4(f32m3(instanceSkinMat) * vert.tangent.xyz, vert.tangent.w);
-
   const f32v3 worldPos = quat_rotate(instanceQuat, skinnedVertPos * instanceScale) + instancePos;
 
   out_vertexPosition = u_global.viewProj * f32v4(worldPos, 1);
-  out_worldPosition  = worldPos;
-  out_worldNormal    = quat_rotate(instanceQuat, skinnedNormal);
-  out_worldTangent   = f32v4(quat_rotate(instanceQuat, skinnedTangent.xyz), skinnedTangent.w);
-  out_texcoord       = vert.texcoord;
+  out_color          = vertex_color(vert.jointIndices, vert.jointWeights);
 }

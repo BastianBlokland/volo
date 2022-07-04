@@ -1,0 +1,16 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/debug/debug_skinning.vert.spv"
+    },
+    {
+      "shaderId": "shaders/debug/debug_skinning.frag.spv"
+    }
+  ],
+  "renderOrder": 24,
+  "topology": "Triangles",
+  "rasterizer": "Fill",
+  "blend": "None",
+  "depth": "LessOrEqual",
+  "cull": "Back"
+}
