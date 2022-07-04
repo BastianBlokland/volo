@@ -65,21 +65,26 @@ static void anim_draw_pose(UiCanvasComp* canvas, UiTable* table, const SceneJoin
 
 static void anim_draw_pose_animated(
     UiCanvasComp* canvas, UiTable* table, const SceneJointPose pose, const SceneJointInfo info) {
+  ui_style_push(canvas);
   if (info.frameCountT) {
     const u32 count = info.frameCountT;
+    ui_style_color(canvas, count > 1 ? ui_color_yellow : ui_color_white);
     anim_draw_vec(
         canvas, pose.t, 1, fmt_write_scratch("Translation.\nFrames: {}.", fmt_int(count)));
   }
   ui_table_next_column(canvas, table);
   if (info.frameCountR) {
     const u32 count = info.frameCountR;
+    ui_style_color(canvas, count > 1 ? ui_color_yellow : ui_color_white);
     anim_draw_quat(canvas, pose.r, fmt_write_scratch("Rotation.\nFrames: {}.", fmt_int(count)));
   }
   ui_table_next_column(canvas, table);
   if (info.frameCountS) {
     const u32 count = info.frameCountS;
+    ui_style_color(canvas, count > 1 ? ui_color_yellow : ui_color_white);
     anim_draw_vec(canvas, pose.s, 2, fmt_write_scratch("Scale.\nFrames: {}.", fmt_int(count)));
   }
+  ui_style_pop(canvas);
 }
 
 static void anim_draw_joints_layer(
