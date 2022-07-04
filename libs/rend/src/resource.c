@@ -27,6 +27,7 @@ ecs_comp_define_public(RendResTextureComp);
 ecs_comp_define(RendGlobalResComp) {
   EcsEntityId missingTex, missingTexCube;
   EcsEntityId wireframeGraphic, wireframeSkinnedGraphic;
+  EcsEntityId debugSkinningGraphic;
 };
 ecs_comp_define(RendGlobalResLoadedComp);
 
@@ -235,6 +236,8 @@ ecs_system_define(RendGlobalResourceLoadSys) {
         rend_resource_request_persistent(world, assetMan, string_lit("graphics/wireframe.gra"));
     resComp->wireframeSkinnedGraphic = rend_resource_request_persistent(
         world, assetMan, string_lit("graphics/wireframe_skinned.gra"));
+    resComp->debugSkinningGraphic = rend_resource_request_persistent(
+        world, assetMan, string_lit("graphics/debug/debug_skinning.gra"));
   }
 
   // Wait for all global resources to be loaded.
@@ -247,6 +250,8 @@ ecs_system_define(RendGlobalResourceLoadSys) {
       world, plat, RvkRepositoryId_WireframeGraphic, resComp->wireframeGraphic);
   ready &= rend_res_set_wellknown_graphic(
       world, plat, RvkRepositoryId_WireframeSkinnedGraphic, resComp->wireframeSkinnedGraphic);
+  ready &= rend_res_set_wellknown_graphic(
+      world, plat, RvkRepositoryId_DebugSkinningGraphic, resComp->debugSkinningGraphic);
   if (!ready) {
     return;
   }

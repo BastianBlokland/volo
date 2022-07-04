@@ -85,6 +85,11 @@ static RvkGraphic* painter_wireframe_graphic(RvkCanvas* canvas, const bool isSki
       isSkinned ? RvkRepositoryId_WireframeSkinnedGraphic : RvkRepositoryId_WireframeGraphic);
 }
 
+static RvkGraphic* painter_debug_skinning_graphic(RvkCanvas* canvas) {
+  RvkRepository* repository = rvk_canvas_repository(canvas);
+  return rvk_repository_graphic_get(repository, RvkRepositoryId_DebugSkinningGraphic);
+}
+
 static void painter_draw_forward(
     RendPainterComp*             painter,
     const RendSettingsComp*      settings,
@@ -116,6 +121,12 @@ static void painter_draw_forward(
     RvkMesh*   mesh               = graphic->mesh;
     const bool isStandardGeometry = (rend_draw_flags(draw) & RendDrawFlags_StandardGeometry) != 0;
     const bool isSkinned          = (rend_draw_flags(draw) & RendDrawFlags_Skinned) != 0;
+    if (settings->flags & RendFlags_DebugSkinning && isStandardGeometry && isSkinned) {
+      RvkGraphic* skinDbg = painter_debug_skinning_graphic(painter->canvas);
+      if (rvk_pass_prepare(forwardPass, skinDbg) && rvk_pass_prepare_mesh(forwardPass, mesh)) {
+        *dynarray_push_t(&painter->drawBuffer, RvkPassDraw) = rend_draw_output(draw, skinDbg, mesh);
+      }
+    }
     if (settings->flags & RendFlags_Wireframe && isStandardGeometry && mesh) {
       RvkGraphic* wireGfx = painter_wireframe_graphic(painter->canvas, isSkinned);
       if (rvk_pass_prepare(forwardPass, wireGfx) && rvk_pass_prepare_mesh(forwardPass, mesh)) {
