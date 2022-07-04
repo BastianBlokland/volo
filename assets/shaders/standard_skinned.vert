@@ -25,10 +25,7 @@ void main() {
   const f32   instanceScale = u_instances[in_instanceIndex].posAndScale.w;
   const f32v4 instanceQuat  = u_instances[in_instanceIndex].rot;
   const f32m4 instanceSkinMat =
-      vert.jointWeights.x * u_instances[in_instanceIndex].jointDelta[vert.jointIndices.x] +
-      vert.jointWeights.y * u_instances[in_instanceIndex].jointDelta[vert.jointIndices.y] +
-      vert.jointWeights.z * u_instances[in_instanceIndex].jointDelta[vert.jointIndices.z] +
-      vert.jointWeights.w * u_instances[in_instanceIndex].jointDelta[vert.jointIndices.w];
+      instance_skin_mat(u_instances[in_instanceIndex], vert.jointIndices, vert.jointWeights);
 
   const f32v3 skinnedVertPos = (instanceSkinMat * f32v4(vert.position, 1)).xyz;
   const f32v3 skinnedNormal  = f32m3(instanceSkinMat) * vert.normal;

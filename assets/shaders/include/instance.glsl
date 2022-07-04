@@ -17,4 +17,15 @@ struct InstanceSkinnedData {
   f32m4 jointDelta[c_maxJoints]; // Transformation matrices relative to the bind pose.
 };
 
+/**
+ * Compute a skinning matrix that blends between 4 joints.
+ */
+f32m4 instance_skin_mat(
+    const InstanceSkinnedData data, const u32v4 jointIndices, const f32v4 jointWeights) {
+  return jointWeights.x * data.jointDelta[jointIndices.x] +
+         jointWeights.y * data.jointDelta[jointIndices.y] +
+         jointWeights.z * data.jointDelta[jointIndices.z] +
+         jointWeights.w * data.jointDelta[jointIndices.w];
+}
+
 #endif // INCLUDE_INSTANCE
