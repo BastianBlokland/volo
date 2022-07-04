@@ -1129,8 +1129,30 @@ static bool gltf_skeleton_is_topologically_sorted(GltfLoad* ld) {
   return true;
 }
 
+static void gltf_optimize_anim_channel(
+    GltfLoad* ld, AssetMeshAnimChannel* ch, const AssetMeshAnimTarget target) {
+
+  /**
+   * If a channel consist of only two frames and both are identical we can skip the interpolation.
+   */
+
+  typedef bool (*EqFunc)(GeoVector, GeoVector, f32);
+  const EqFunc eq = target == AssetMeshAnimTarget_Rotation ? geo_vector_equal : geo_vector_equal3;
+
+  GeoVector* data = dynarray_at(&ld->animData, ch->valueData, sizeof(GeoVector)).ptr;
+  if (ch->frameCount == 2 && eq(data[0], data[1], 1e-4f)) {
+    ch->frameCount = 1;
+  }
+}
+
 static void gltf_optimize_anim_channel_rot(GltfLoad* ld, const AssetMeshAnimChannel* ch) {
   GeoQuat* rotPoses = dynarray_at(&ld->animData, ch->valueData, sizeof(GeoQuat)).ptr;
+
+  /**
+   * Normalize all the quaternions and compensate for double-cover so they can be directly
+   * interpolated.
+   */
+
   for (u32 i = 0; i != ch->frameCount; ++i) {
     rotPoses[i] = geo_quat_norm(rotPoses[i]);
     if (i && geo_quat_dot(rotPoses[i], rotPoses[i - 1]) < 0) {
@@ -1210,6 +1232,7 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
               .timeData   = gltf_anim_data_push_access(ld, srcChannel->accInput),
               .valueData  = gltf_anim_data_push_access_vec(ld, srcChannel->accOutput),
           };
+          gltf_optimize_anim_channel(ld, resChannel, target);
           if (target == AssetMeshAnimTarget_Rotation) {
             gltf_optimize_anim_channel_rot(ld, resChannel);
           }
