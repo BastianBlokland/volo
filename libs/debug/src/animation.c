@@ -14,7 +14,10 @@ typedef enum {
   DebugAnimationFlags_DrawSkeleton = 1 << 0,
 } DebugAnimationFlags;
 
-ecs_comp_define(DebugAnimationSettingsComp) { DebugAnimationFlags flags; };
+ecs_comp_define(DebugAnimationSettingsComp) {
+  DebugAnimationFlags flags;
+  EcsEntityId         subject; // Animated entity being debugged.
+};
 
 ecs_comp_define(DebugAnimationPanelComp) {
   UiPanel      panel;
@@ -288,28 +291,30 @@ static DebugAnimationSettingsComp* debug_animation_settings_get_or_create(EcsWor
 
 ecs_system_define(DebugAnimationUpdatePanelSys) {
   DebugAnimationSettingsComp* settings = debug_animation_settings_get_or_create(world);
-  EcsIterator*                animItr  = ecs_view_itr(ecs_world_view_t(world, AnimationView));
+  EcsView*                    animView = ecs_world_view_t(world, AnimationView);
+
+  SceneAnimationComp*           anim      = null;
+  const SceneSkeletonTemplComp* skelTempl = null;
+
+  /**
+   * NOTE: Pick an entity to debug, at the moment we just pick the first animated entity.
+   */
+  EcsIterator* subjectItr = settings->subject ? ecs_view_maybe_at(animView, settings->subject)
+                                              : ecs_view_walk(ecs_view_itr(animView));
+  if (subjectItr) {
+    anim                      = ecs_view_write_t(subjectItr, SceneAnimationComp);
+    const EcsEntityId graphic = ecs_view_read_t(subjectItr, SceneRenderableComp)->graphic;
+    if (ecs_view_contains(ecs_world_view_t(world, SkeletonTemplView), graphic)) {
+      skelTempl = ecs_utils_read_t(world, SkeletonTemplView, graphic, SceneSkeletonTemplComp);
+    }
+  } else {
+    settings->subject = 0;
+  }
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
     DebugAnimationPanelComp* panelComp = ecs_view_write_t(itr, DebugAnimationPanelComp);
     UiCanvasComp*            canvas    = ecs_view_write_t(itr, UiCanvasComp);
-
-    SceneAnimationComp*           anim      = null;
-    const SceneSkeletonTemplComp* skelTempl = null;
-
-    ecs_view_itr_reset(animItr);
-    if (ecs_view_walk(animItr)) {
-      /**
-       * NOTE: At the moment we take the first animated object to debug, in the future a picker
-       * should be implemented.
-       */
-      anim                      = ecs_view_write_t(animItr, SceneAnimationComp);
-      const EcsEntityId graphic = ecs_view_read_t(animItr, SceneRenderableComp)->graphic;
-      if (ecs_view_contains(ecs_world_view_t(world, SkeletonTemplView), graphic)) {
-        skelTempl = ecs_utils_read_t(world, SkeletonTemplView, graphic, SceneSkeletonTemplComp);
-      }
-    }
 
     ui_canvas_reset(canvas);
     anim_panel_draw(canvas, panelComp, settings, anim, skelTempl);
