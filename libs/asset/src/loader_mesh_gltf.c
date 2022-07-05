@@ -111,6 +111,7 @@ typedef struct {
 typedef struct {
   u32           nodeIndex;
   u32           parentIndex;
+  u32           skinCount; // Amount of vertices skinned to this joint.
   StringHash    nameHash;
   GltfTransform trans;
 } GltfJoint;
@@ -1023,6 +1024,17 @@ static void gltf_vertex_skin(
   *err = GltfError_None;
 }
 
+static void gltf_track_skinned_vertex(GltfLoad* ld, const AssetMeshSkin* skin) {
+  /**
+   * Track how many vertices are skinned to each joint.
+   */
+  for (u32 i = 0; i != 4; ++i) {
+    if (skin->weights.comps[i] > 0.001f) {
+      ++ld->joints[skin->joints[i]].skinCount;
+    }
+  }
+}
+
 static void gltf_build_mesh(GltfLoad* ld, AssetMeshComp* out, GltfError* err) {
   GltfMeshMeta meta = gltf_mesh_meta(ld, err);
   if (*err) {
@@ -1096,6 +1108,7 @@ static void gltf_build_mesh(GltfLoad* ld, AssetMeshComp* out, GltfError* err) {
           goto Cleanup;
         }
         asset_mesh_builder_set_skin(builder, vertIdx, skin);
+        gltf_track_skinned_vertex(ld, &skin);
       }
     }
   }
@@ -1205,6 +1218,12 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
     gltf_anim_data_push_u32(ld, ld->joints[jointIndex].parentIndex);
   }
 
+  // Output the skinned-vertex counts per joint.
+  AssetMeshAnimPtr resSkinCounts = gltf_anim_data_begin(ld, alignof(u32));
+  for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
+    gltf_anim_data_push_u32(ld, ld->joints[jointIndex].skinCount);
+  }
+
   // Output the joint name-hashes.
   AssetMeshAnimPtr resNames = gltf_anim_data_begin(ld, alignof(StringHash));
   for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
@@ -1256,6 +1275,7 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
       .defaultPose     = resDefaultPose,
       .rootTransform   = gltf_anim_data_push_trans(ld, ld->sceneTrans),
       .parentIndices   = resParents,
+      .skinCounts      = resSkinCounts,
       .jointNames      = resNames,
       .jointCount      = ld->jointCount,
       .animCount       = ld->animCount,

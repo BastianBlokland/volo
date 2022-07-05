@@ -16,6 +16,7 @@ typedef enum {
   DebugAnimationFlags_DrawSkeleton        = 1 << 0,
   DebugAnimationFlags_DrawJointTransforms = 1 << 1,
   DebugAnimationFlags_DrawJointNames      = 1 << 2,
+  DebugAnimationFlags_DrawSkinCounts      = 1 << 3,
 } DebugAnimationFlags;
 
 ecs_comp_define(DebugAnimationSettingsComp) {
@@ -192,13 +193,15 @@ static void anim_panel_options_draw(UiCanvasComp* canvas, DebugAnimationSettings
   ui_layout_push(canvas);
 
   UiTable table = ui_table(.spacing = ui_vector(5, 5), .rowHeight = 20);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 55);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
   ui_table_add_column(&table, UiTableColumn_Fixed, 25);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 80);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
   ui_table_add_column(&table, UiTableColumn_Fixed, 25);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 80);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
   ui_table_add_column(&table, UiTableColumn_Fixed, 25);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 80);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 25);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
 
   ui_table_next_row(canvas, &table);
   ui_layout_move_dir(canvas, Ui_Right, 5, UiBase_Absolute);
@@ -227,6 +230,14 @@ static void anim_panel_options_draw(UiCanvasComp* canvas, DebugAnimationSettings
   }
   ui_table_next_column(canvas, &table);
   ui_label(canvas, string_lit("[Names]"), .fontSize = 14);
+  ui_table_next_column(canvas, &table);
+
+  bool drawSkinCounts = (settings->flags & DebugAnimationFlags_DrawSkinCounts) != 0;
+  if (ui_toggle(canvas, &drawSkinCounts)) {
+    settings->flags ^= DebugAnimationFlags_DrawSkinCounts;
+  }
+  ui_table_next_column(canvas, &table);
+  ui_label(canvas, string_lit("[Skin Counts]"), .fontSize = 14);
 
   ui_layout_pop(canvas);
 }
@@ -369,24 +380,24 @@ ecs_system_define(DebugAnimationUpdatePanelSys) {
 
 static void debug_draw_skeleton(
     DebugShapeComp*               shapes,
-    const SceneSkeletonComp*      skeleton,
     const SceneSkeletonTemplComp* skeletonTemplate,
+    const u32                     jointCount,
     const GeoMatrix*              jointMatrices) {
 
-  for (u32 i = 1; i != skeleton->jointCount; ++i) {
+  for (u32 i = 1; i != jointCount; ++i) {
     const u32       parentIndex = scene_skeleton_joint_parent(skeletonTemplate, i);
     const GeoVector jointPos    = geo_matrix_to_translation(&jointMatrices[i]);
     const GeoVector parentPos   = geo_matrix_to_translation(&jointMatrices[parentIndex]);
-    debug_line(shapes, jointPos, parentPos, geo_color_white);
+    debug_line(shapes, jointPos, parentPos, geo_color(1, 1, 1, 0.5f));
   }
 }
 
 static void debug_draw_joint_transforms(
-    DebugShapeComp* shapes, const SceneSkeletonComp* skeleton, const GeoMatrix* jointMatrices) {
+    DebugShapeComp* shapes, const u32 jointCount, const GeoMatrix* jointMatrices) {
   static const f32 g_arrowLength = 0.075f;
   static const f32 g_arrowSize   = 0.0075f;
 
-  for (u32 i = 0; i != skeleton->jointCount; ++i) {
+  for (u32 i = 0; i != jointCount; ++i) {
     const GeoVector jointPos = geo_matrix_to_translation(&jointMatrices[i]);
 
     const GeoVector jointRefX = geo_matrix_transform3(&jointMatrices[i], geo_right);
@@ -406,15 +417,28 @@ static void debug_draw_joint_transforms(
 
 static void debug_draw_joint_names(
     DebugTextComp*                text,
-    const SceneSkeletonComp*      skeleton,
     const SceneSkeletonTemplComp* skeletonTemplate,
+    const u32                     jointCount,
     const GeoMatrix*              jointMatrices) {
 
-  for (u32 i = 0; i != skeleton->jointCount; ++i) {
-    const GeoVector  jointPos      = geo_matrix_to_translation(&jointMatrices[i]);
-    const StringHash jointNameHash = scene_skeleton_joint_name(skeletonTemplate, i);
-    const String     jointName     = stringtable_lookup(g_stringtable, jointNameHash);
-    debug_text(text, geo_vector_add(jointPos, geo_vector(0, 0.02f, 0)), jointName, geo_color_white);
+  for (u32 i = 0; i != jointCount; ++i) {
+    const GeoVector  jointPos  = geo_matrix_to_translation(&jointMatrices[i]);
+    const StringHash jointName = scene_skeleton_joint_name(skeletonTemplate, i);
+    debug_text(text, jointPos, stringtable_lookup(g_stringtable, jointName), geo_color_white);
+  }
+}
+
+static void debug_draw_skin_counts(
+    DebugTextComp*                text,
+    const SceneSkeletonTemplComp* skeletonTemplate,
+    const u32                     jointCount,
+    const GeoMatrix*              jointMatrices) {
+
+  for (u32 i = 0; i != jointCount; ++i) {
+    const GeoVector jointPos  = geo_matrix_to_translation(&jointMatrices[i]);
+    const u32       skinCount = scene_skeleton_joint_skin_count(skeletonTemplate, i);
+    const GeoColor  color     = skinCount ? geo_color_white : geo_color_red;
+    debug_text(text, jointPos, fmt_write_scratch("{}", fmt_int(skinCount)), color);
   }
 }
 
@@ -456,13 +480,16 @@ ecs_system_define(DebugAnimationDrawSys) {
   }
 
   if (set->flags & DebugAnimationFlags_DrawSkeleton) {
-    debug_draw_skeleton(shape, skeleton, template, jointMatrices);
+    debug_draw_skeleton(shape, template, skeleton->jointCount, jointMatrices);
   }
   if (set->flags & DebugAnimationFlags_DrawJointTransforms) {
-    debug_draw_joint_transforms(shape, skeleton, jointMatrices);
+    debug_draw_joint_transforms(shape, skeleton->jointCount, jointMatrices);
   }
   if (set->flags & DebugAnimationFlags_DrawJointNames) {
-    debug_draw_joint_names(text, skeleton, template, jointMatrices);
+    debug_draw_joint_names(text, template, skeleton->jointCount, jointMatrices);
+  }
+  if (set->flags & DebugAnimationFlags_DrawSkinCounts) {
+    debug_draw_skin_counts(text, template, skeleton->jointCount, jointMatrices);
   }
 }
 
