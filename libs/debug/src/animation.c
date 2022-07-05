@@ -10,11 +10,19 @@
 #include "ui.h"
 #include "ui_style.h"
 
+typedef enum {
+  DebugAnimationFlags_DrawSkeleton = 1 << 0,
+} DebugAnimationFlags;
+
+ecs_comp_define(DebugAnimationSettingsComp) { DebugAnimationFlags flags; };
+
 ecs_comp_define(DebugAnimationPanelComp) {
   UiPanel      panel;
   UiScrollview scrollview;
   u32          totalRows;
 };
+
+ecs_view_define(SettingsWriteView) { ecs_access_write(DebugAnimationSettingsComp); }
 
 ecs_view_define(PanelUpdateView) {
   ecs_access_write(DebugAnimationPanelComp);
@@ -164,13 +172,36 @@ static void anim_draw_joints_def(
   ui_style_pop(canvas);
 }
 
+static void anim_panel_options_draw(UiCanvasComp* canvas, DebugAnimationSettingsComp* settings) {
+  ui_layout_push(canvas);
+
+  UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 25);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Draw skel:"));
+  ui_table_next_column(canvas, &table);
+  bool drawSkeleton = (settings->flags & DebugAnimationFlags_DrawSkeleton) != 0;
+  if (ui_toggle(canvas, &drawSkeleton)) {
+    settings->flags ^= DebugAnimationFlags_DrawSkeleton;
+  }
+
+  ui_layout_pop(canvas);
+}
+
 static void anim_panel_draw(
     UiCanvasComp*                 canvas,
     DebugAnimationPanelComp*      panelComp,
+    DebugAnimationSettingsComp*   settings,
     SceneAnimationComp*           anim,
     const SceneSkeletonTemplComp* skelTempl) {
   const String title = fmt_write_scratch("{} Animation Debug", fmt_ui_shape(Animation));
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
+
+  anim_panel_options_draw(canvas, settings);
+  ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
+  ui_layout_container_push(canvas, UiClip_None);
 
   if (anim && skelTempl) {
     UiTable table = ui_table(.spacing = ui_vector(10, 5));
@@ -244,11 +275,20 @@ static void anim_panel_draw(
     ui_label(canvas, string_lit("No animated entities found"), .align = UiAlign_MiddleCenter);
   }
 
+  ui_layout_container_pop(canvas);
   ui_panel_end(canvas, &panelComp->panel);
 }
 
+static DebugAnimationSettingsComp* debug_animation_settings_get_or_create(EcsWorld* world) {
+  EcsView*     view = ecs_world_view_t(world, SettingsWriteView);
+  EcsIterator* itr  = ecs_view_maybe_at(view, ecs_world_global(world));
+  return itr ? ecs_view_write_t(itr, DebugAnimationSettingsComp)
+             : ecs_world_add_t(world, ecs_world_global(world), DebugAnimationSettingsComp);
+}
+
 ecs_system_define(DebugAnimationUpdatePanelSys) {
-  EcsIterator* animItr = ecs_view_itr(ecs_world_view_t(world, AnimationView));
+  DebugAnimationSettingsComp* settings = debug_animation_settings_get_or_create(world);
+  EcsIterator*                animItr  = ecs_view_itr(ecs_world_view_t(world, AnimationView));
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
@@ -266,13 +306,13 @@ ecs_system_define(DebugAnimationUpdatePanelSys) {
        */
       anim                      = ecs_view_write_t(animItr, SceneAnimationComp);
       const EcsEntityId graphic = ecs_view_read_t(animItr, SceneRenderableComp)->graphic;
-      skelTempl = ecs_view_contains(ecs_world_view_t(world, SkeletonTemplView), graphic)
-                      ? ecs_utils_read_t(world, SkeletonTemplView, graphic, SceneSkeletonTemplComp)
-                      : null;
+      if (ecs_view_contains(ecs_world_view_t(world, SkeletonTemplView), graphic)) {
+        skelTempl = ecs_utils_read_t(world, SkeletonTemplView, graphic, SceneSkeletonTemplComp);
+      }
     }
 
     ui_canvas_reset(canvas);
-    anim_panel_draw(canvas, panelComp, anim, skelTempl);
+    anim_panel_draw(canvas, panelComp, settings, anim, skelTempl);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
@@ -284,14 +324,17 @@ ecs_system_define(DebugAnimationUpdatePanelSys) {
 }
 
 ecs_module_init(debug_animation_module) {
+  ecs_register_comp(DebugAnimationSettingsComp);
   ecs_register_comp(DebugAnimationPanelComp);
 
+  ecs_register_view(SettingsWriteView);
   ecs_register_view(PanelUpdateView);
   ecs_register_view(AnimationView);
   ecs_register_view(SkeletonTemplView);
 
   ecs_register_system(
       DebugAnimationUpdatePanelSys,
+      ecs_view_id(SettingsWriteView),
       ecs_view_id(PanelUpdateView),
       ecs_view_id(AnimationView),
       ecs_view_id(SkeletonTemplView));
