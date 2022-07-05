@@ -1,15 +1,12 @@
 #include "asset_manager.h"
-#include "core_stringtable.h"
 #include "debug_physics.h"
 #include "debug_register.h"
 #include "debug_shape.h"
-#include "debug_text.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
 #include "scene_bounds.h"
 #include "scene_camera.h"
 #include "scene_renderable.h"
-#include "scene_skeleton.h"
 #include "scene_transform.h"
 #include "ui.h"
 
@@ -18,11 +15,9 @@ typedef enum {
   DebugPhysicsFlags_DrawOrientation  = 1 << 1,
   DebugPhysicsFlags_DrawBoundsLocal  = 1 << 2,
   DebugPhysicsFlags_DrawBoundsGlobal = 1 << 3,
-  DebugPhysicsFlags_DrawSkeleton     = 1 << 4,
 
   DebugPhysicsFlags_DrawAny = DebugPhysicsFlags_DrawPivot | DebugPhysicsFlags_DrawOrientation |
-                              DebugPhysicsFlags_DrawBoundsLocal |
-                              DebugPhysicsFlags_DrawBoundsGlobal | DebugPhysicsFlags_DrawSkeleton
+                              DebugPhysicsFlags_DrawBoundsLocal | DebugPhysicsFlags_DrawBoundsGlobal
 } DebugPhysicsFlags;
 
 ecs_comp_define(DebugPhysicsSettingsComp) { DebugPhysicsFlags flags; };
@@ -34,7 +29,6 @@ ecs_view_define(SettingsUpdateView) { ecs_access_write(DebugPhysicsSettingsComp)
 ecs_view_define(GlobalDrawView) {
   ecs_access_read(DebugPhysicsSettingsComp);
   ecs_access_write(DebugShapeComp);
-  ecs_access_write(DebugTextComp);
 }
 
 ecs_view_define(PanelUpdateView) {
@@ -47,12 +41,6 @@ ecs_view_define(ObjectView) {
   ecs_access_read(SceneTransformComp);
   ecs_access_maybe_read(SceneBoundsComp);
   ecs_access_maybe_read(SceneScaleComp);
-  ecs_access_maybe_read(SceneSkeletonComp);
-}
-
-ecs_view_define(GraphicView) {
-  ecs_access_with(AssetComp);
-  ecs_access_maybe_read(SceneSkeletonTemplComp);
 }
 
 static void physics_panel_draw(
@@ -94,14 +82,6 @@ static void physics_panel_draw(
   bool drawBoundsGlobal = (settings->flags & DebugPhysicsFlags_DrawBoundsGlobal) != 0;
   if (ui_toggle(canvas, &drawBoundsGlobal)) {
     settings->flags ^= DebugPhysicsFlags_DrawBoundsGlobal;
-  }
-
-  ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Draw skeleton"));
-  ui_table_next_column(canvas, &table);
-  bool drawSkeleton = (settings->flags & DebugPhysicsFlags_DrawSkeleton) != 0;
-  if (ui_toggle(canvas, &drawSkeleton)) {
-    settings->flags ^= DebugPhysicsFlags_DrawSkeleton;
   }
 
   ui_panel_end(canvas, &panelComp->panel);
@@ -158,51 +138,6 @@ static void physics_draw_bounds_global(
   debug_box(shape, center, geo_quat_ident, size, geo_color(0, 0, 1, 0.5f), DebugShape_Wire);
 }
 
-static void physics_draw_skeleton(
-    DebugShapeComp*               shapes,
-    DebugTextComp*                text,
-    const SceneSkeletonComp*      skeleton,
-    const SceneSkeletonTemplComp* skeletonTemplate,
-    const GeoVector               pos,
-    const GeoQuat                 rot,
-    const f32                     scale) {
-  static const f32 g_arrowLength = 0.075f;
-  static const f32 g_arrowSize   = 0.0075f;
-  const GeoMatrix  transform     = geo_matrix_trs(pos, rot, geo_vector(scale, scale, scale));
-
-  GeoMatrix* jointMatrices = mem_stack(sizeof(GeoMatrix) * skeleton->jointCount).ptr;
-  for (u32 i = 0; i != skeleton->jointCount; ++i) {
-    jointMatrices[i] = geo_matrix_mul(&transform, &skeleton->jointTransforms[i]);
-  }
-
-  for (u32 i = 0; i != skeleton->jointCount; ++i) {
-    const GeoVector jointPos = geo_matrix_to_translation(&jointMatrices[i]);
-
-    const GeoVector jointRefX = geo_matrix_transform3(&jointMatrices[i], geo_right);
-    const GeoVector jointX    = geo_vector_mul(geo_vector_norm(jointRefX), g_arrowLength);
-
-    const GeoVector jointRefY = geo_matrix_transform3(&jointMatrices[i], geo_up);
-    const GeoVector jointY    = geo_vector_mul(geo_vector_norm(jointRefY), g_arrowLength);
-
-    const GeoVector jointRefZ = geo_matrix_transform3(&jointMatrices[i], geo_forward);
-    const GeoVector jointZ    = geo_vector_mul(geo_vector_norm(jointRefZ), g_arrowLength);
-
-    debug_arrow(shapes, jointPos, geo_vector_add(jointPos, jointX), g_arrowSize, geo_color_red);
-    debug_arrow(shapes, jointPos, geo_vector_add(jointPos, jointY), g_arrowSize, geo_color_green);
-    debug_arrow(shapes, jointPos, geo_vector_add(jointPos, jointZ), g_arrowSize, geo_color_blue);
-
-    if (i) {
-      const u32       parentIndex = scene_skeleton_joint_parent(skeletonTemplate, i);
-      const GeoVector parentPos   = geo_matrix_to_translation(&jointMatrices[parentIndex]);
-      debug_line(shapes, jointPos, parentPos, geo_color_white);
-    }
-
-    const StringHash jointNameHash = scene_skeleton_joint_name(skeletonTemplate, i);
-    const String     jointName     = stringtable_lookup(g_stringtable, jointNameHash);
-    debug_text(text, geo_vector_add(jointPos, geo_vector(0, 0.02f, 0)), jointName, geo_color_white);
-  }
-}
-
 ecs_system_define(DebugPhysicsDrawSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalDrawView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -215,22 +150,13 @@ ecs_system_define(DebugPhysicsDrawSys) {
   }
 
   DebugShapeComp* shape = ecs_view_write_t(globalItr, DebugShapeComp);
-  DebugTextComp*  text  = ecs_view_write_t(globalItr, DebugTextComp);
-
-  EcsIterator* graphicItr = ecs_view_itr(ecs_world_view_t(world, GraphicView));
 
   for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ObjectView)); ecs_view_walk(itr);) {
-    const SceneRenderableComp* renderable   = ecs_view_read_t(itr, SceneRenderableComp);
-    const GeoVector            pos          = ecs_view_read_t(itr, SceneTransformComp)->position;
-    const GeoQuat              rot          = ecs_view_read_t(itr, SceneTransformComp)->rotation;
-    const SceneBoundsComp*     boundsComp   = ecs_view_read_t(itr, SceneBoundsComp);
-    const SceneSkeletonComp*   skeletonComp = ecs_view_read_t(itr, SceneSkeletonComp);
-    const SceneScaleComp*      scaleComp    = ecs_view_read_t(itr, SceneScaleComp);
-    const f32                  scale        = scaleComp ? scaleComp->scale : 1.0f;
-
-    if (!ecs_view_maybe_jump(graphicItr, renderable->graphic)) {
-      continue; // Object has no graphic.
-    }
+    const GeoVector        pos        = ecs_view_read_t(itr, SceneTransformComp)->position;
+    const GeoQuat          rot        = ecs_view_read_t(itr, SceneTransformComp)->rotation;
+    const SceneBoundsComp* boundsComp = ecs_view_read_t(itr, SceneBoundsComp);
+    const SceneScaleComp*  scaleComp  = ecs_view_read_t(itr, SceneScaleComp);
+    const f32              scale      = scaleComp ? scaleComp->scale : 1.0f;
 
     if (settings->flags & DebugPhysicsFlags_DrawPivot) {
       debug_sphere(shape, pos, 0.025f, geo_color(1.0f, 1.0f, 0.0f, 1.0f), DebugShape_Overlay);
@@ -246,12 +172,6 @@ ecs_system_define(DebugPhysicsDrawSys) {
         physics_draw_bounds_global(shape, pos, rot, boundsComp->local, scale);
       }
     }
-    if (skeletonComp && settings->flags & DebugPhysicsFlags_DrawSkeleton) {
-      const SceneSkeletonTemplComp* tpl = ecs_view_read_t(graphicItr, SceneSkeletonTemplComp);
-      if (tpl) {
-        physics_draw_skeleton(shape, text, skeletonComp, tpl, pos, rot, scale);
-      }
-    }
   }
 }
 
@@ -263,16 +183,11 @@ ecs_module_init(debug_physics_module) {
   ecs_register_view(GlobalDrawView);
   ecs_register_view(PanelUpdateView);
   ecs_register_view(ObjectView);
-  ecs_register_view(GraphicView);
 
   ecs_register_system(
       DebugPhysicsUpdatePanelSys, ecs_view_id(SettingsUpdateView), ecs_view_id(PanelUpdateView));
 
-  ecs_register_system(
-      DebugPhysicsDrawSys,
-      ecs_view_id(GlobalDrawView),
-      ecs_view_id(ObjectView),
-      ecs_view_id(GraphicView));
+  ecs_register_system(DebugPhysicsDrawSys, ecs_view_id(GlobalDrawView), ecs_view_id(ObjectView));
 
   ecs_order(DebugPhysicsDrawSys, DebugOrder_PhysicsDebugDraw);
 }
