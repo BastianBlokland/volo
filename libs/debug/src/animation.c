@@ -11,10 +11,11 @@
 #include "scene_skeleton.h"
 #include "scene_transform.h"
 #include "ui.h"
-#include "ui_style.h"
 
 typedef enum {
-  DebugAnimationFlags_DrawSkeleton = 1 << 0,
+  DebugAnimationFlags_DrawSkeleton        = 1 << 0,
+  DebugAnimationFlags_DrawJointTransforms = 1 << 1,
+  DebugAnimationFlags_DrawJointNames      = 1 << 2,
 } DebugAnimationFlags;
 
 ecs_comp_define(DebugAnimationSettingsComp) {
@@ -190,17 +191,42 @@ static void anim_draw_joints_def(
 static void anim_panel_options_draw(UiCanvasComp* canvas, DebugAnimationSettingsComp* settings) {
   ui_layout_push(canvas);
 
-  UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 130);
+  UiTable table = ui_table(.spacing = ui_vector(5, 5), .rowHeight = 20);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 55);
   ui_table_add_column(&table, UiTableColumn_Fixed, 25);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 80);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 25);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 80);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 25);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 80);
 
   ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Draw skeleton:"));
+  ui_layout_move_dir(canvas, Ui_Right, 5, UiBase_Absolute);
+  ui_label(canvas, string_lit("Draw:"));
   ui_table_next_column(canvas, &table);
+
   bool drawSkeleton = (settings->flags & DebugAnimationFlags_DrawSkeleton) != 0;
   if (ui_toggle(canvas, &drawSkeleton)) {
     settings->flags ^= DebugAnimationFlags_DrawSkeleton;
   }
+  ui_table_next_column(canvas, &table);
+  ui_label(canvas, string_lit("[Skeleton]"), .fontSize = 14);
+  ui_table_next_column(canvas, &table);
+
+  bool drawJoints = (settings->flags & DebugAnimationFlags_DrawJointTransforms) != 0;
+  if (ui_toggle(canvas, &drawJoints)) {
+    settings->flags ^= DebugAnimationFlags_DrawJointTransforms;
+  }
+  ui_table_next_column(canvas, &table);
+  ui_label(canvas, string_lit("[Joints]"), .fontSize = 14);
+  ui_table_next_column(canvas, &table);
+
+  bool drawNames = (settings->flags & DebugAnimationFlags_DrawJointNames) != 0;
+  if (ui_toggle(canvas, &drawNames)) {
+    settings->flags ^= DebugAnimationFlags_DrawJointNames;
+  }
+  ui_table_next_column(canvas, &table);
+  ui_label(canvas, string_lit("[Names]"), .fontSize = 14);
 
   ui_layout_pop(canvas);
 }
@@ -294,7 +320,7 @@ static void anim_panel_draw(
   ui_panel_end(canvas, &panelComp->panel);
 }
 
-static DebugAnimationSettingsComp* debug_animation_settings_get_or_create(EcsWorld* world) {
+static DebugAnimationSettingsComp* anim_settings_get_or_create(EcsWorld* world) {
   EcsView*     view = ecs_world_view_t(world, SettingsWriteView);
   EcsIterator* itr  = ecs_view_maybe_at(view, ecs_world_global(world));
   return itr ? ecs_view_write_t(itr, DebugAnimationSettingsComp)
@@ -302,7 +328,7 @@ static DebugAnimationSettingsComp* debug_animation_settings_get_or_create(EcsWor
 }
 
 ecs_system_define(DebugAnimationUpdatePanelSys) {
-  DebugAnimationSettingsComp* settings = debug_animation_settings_get_or_create(world);
+  DebugAnimationSettingsComp* settings = anim_settings_get_or_create(world);
   EcsView*                    animView = ecs_world_view_t(world, AnimationView);
 
   SceneAnimationComp*           anim      = null;
@@ -343,20 +369,22 @@ ecs_system_define(DebugAnimationUpdatePanelSys) {
 
 static void debug_draw_skeleton(
     DebugShapeComp*               shapes,
-    DebugTextComp*                text,
     const SceneSkeletonComp*      skeleton,
     const SceneSkeletonTemplComp* skeletonTemplate,
-    const GeoVector               pos,
-    const GeoQuat                 rot,
-    const f32                     scale) {
+    const GeoMatrix*              jointMatrices) {
+
+  for (u32 i = 1; i != skeleton->jointCount; ++i) {
+    const u32       parentIndex = scene_skeleton_joint_parent(skeletonTemplate, i);
+    const GeoVector jointPos    = geo_matrix_to_translation(&jointMatrices[i]);
+    const GeoVector parentPos   = geo_matrix_to_translation(&jointMatrices[parentIndex]);
+    debug_line(shapes, jointPos, parentPos, geo_color_white);
+  }
+}
+
+static void debug_draw_joint_transforms(
+    DebugShapeComp* shapes, const SceneSkeletonComp* skeleton, const GeoMatrix* jointMatrices) {
   static const f32 g_arrowLength = 0.075f;
   static const f32 g_arrowSize   = 0.0075f;
-  const GeoMatrix  transform     = geo_matrix_trs(pos, rot, geo_vector(scale, scale, scale));
-
-  GeoMatrix* jointMatrices = mem_stack(sizeof(GeoMatrix) * skeleton->jointCount).ptr;
-  for (u32 i = 0; i != skeleton->jointCount; ++i) {
-    jointMatrices[i] = geo_matrix_mul(&transform, &skeleton->jointTransforms[i]);
-  }
 
   for (u32 i = 0; i != skeleton->jointCount; ++i) {
     const GeoVector jointPos = geo_matrix_to_translation(&jointMatrices[i]);
@@ -373,13 +401,17 @@ static void debug_draw_skeleton(
     debug_arrow(shapes, jointPos, geo_vector_add(jointPos, jointX), g_arrowSize, geo_color_red);
     debug_arrow(shapes, jointPos, geo_vector_add(jointPos, jointY), g_arrowSize, geo_color_green);
     debug_arrow(shapes, jointPos, geo_vector_add(jointPos, jointZ), g_arrowSize, geo_color_blue);
+  }
+}
 
-    if (i) {
-      const u32       parentIndex = scene_skeleton_joint_parent(skeletonTemplate, i);
-      const GeoVector parentPos   = geo_matrix_to_translation(&jointMatrices[parentIndex]);
-      debug_line(shapes, jointPos, parentPos, geo_color_white);
-    }
+static void debug_draw_joint_names(
+    DebugTextComp*                text,
+    const SceneSkeletonComp*      skeleton,
+    const SceneSkeletonTemplComp* skeletonTemplate,
+    const GeoMatrix*              jointMatrices) {
 
+  for (u32 i = 0; i != skeleton->jointCount; ++i) {
+    const GeoVector  jointPos      = geo_matrix_to_translation(&jointMatrices[i]);
     const StringHash jointNameHash = scene_skeleton_joint_name(skeletonTemplate, i);
     const String     jointName     = stringtable_lookup(g_stringtable, jointNameHash);
     debug_text(text, geo_vector_add(jointPos, geo_vector(0, 0.02f, 0)), jointName, geo_color_white);
@@ -403,23 +435,34 @@ ecs_system_define(DebugAnimationDrawSys) {
   if (!itr) {
     return;
   }
+  const EcsEntityId graphic = ecs_view_read_t(itr, SceneRenderableComp)->graphic;
+  if (!ecs_view_contains(templateView, graphic)) {
+    return;
+  }
 
   const SceneSkeletonComp* skeleton  = ecs_view_read_t(itr, SceneSkeletonComp);
   const GeoVector          pos       = ecs_view_read_t(itr, SceneTransformComp)->position;
   const GeoQuat            rot       = ecs_view_read_t(itr, SceneTransformComp)->rotation;
   const SceneScaleComp*    scaleComp = ecs_view_read_t(itr, SceneScaleComp);
   const f32                scale     = scaleComp ? scaleComp->scale : 1.0f;
-  const EcsEntityId        graphic   = ecs_view_read_t(itr, SceneRenderableComp)->graphic;
-
-  if (!ecs_view_contains(templateView, graphic)) {
-    return;
-  }
+  const GeoMatrix          transform = geo_matrix_trs(pos, rot, geo_vector(scale, scale, scale));
 
   const SceneSkeletonTemplComp* template =
       ecs_utils_read(templateView, graphic, ecs_comp_id(SceneSkeletonTemplComp));
 
+  GeoMatrix* jointMatrices = mem_stack(sizeof(GeoMatrix) * skeleton->jointCount).ptr;
+  for (u32 i = 0; i != skeleton->jointCount; ++i) {
+    jointMatrices[i] = geo_matrix_mul(&transform, &skeleton->jointTransforms[i]);
+  }
+
   if (set->flags & DebugAnimationFlags_DrawSkeleton) {
-    debug_draw_skeleton(shape, text, skeleton, template, pos, rot, scale);
+    debug_draw_skeleton(shape, skeleton, template, jointMatrices);
+  }
+  if (set->flags & DebugAnimationFlags_DrawJointTransforms) {
+    debug_draw_joint_transforms(shape, skeleton, jointMatrices);
+  }
+  if (set->flags & DebugAnimationFlags_DrawJointNames) {
+    debug_draw_joint_names(text, skeleton, template, jointMatrices);
   }
 }
 
