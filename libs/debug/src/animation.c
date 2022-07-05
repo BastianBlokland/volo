@@ -2,11 +2,14 @@
 #include "core_stringtable.h"
 #include "debug_animation.h"
 #include "debug_register.h"
+#include "debug_shape.h"
+#include "debug_text.h"
 #include "ecs_utils.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
 #include "scene_renderable.h"
 #include "scene_skeleton.h"
+#include "scene_transform.h"
 #include "ui.h"
 #include "ui_style.h"
 
@@ -34,10 +37,19 @@ ecs_view_define(PanelUpdateView) {
 
 ecs_view_define(AnimationView) {
   ecs_access_read(SceneRenderableComp);
+  ecs_access_read(SceneTransformComp);
+  ecs_access_read(SceneSkeletonComp);
+  ecs_access_maybe_read(SceneScaleComp);
   ecs_access_write(SceneAnimationComp);
 }
 
 ecs_view_define(SkeletonTemplView) { ecs_access_read(SceneSkeletonTemplComp); }
+
+ecs_view_define(GlobalDrawView) {
+  ecs_access_read(DebugAnimationSettingsComp);
+  ecs_access_write(DebugShapeComp);
+  ecs_access_write(DebugTextComp);
+}
 
 static void
 anim_draw_vec(UiCanvasComp* canvas, const GeoVector v, const u8 digits, const String tooltip) {
@@ -302,6 +314,7 @@ ecs_system_define(DebugAnimationUpdatePanelSys) {
   EcsIterator* subjectItr = settings->subject ? ecs_view_maybe_at(animView, settings->subject)
                                               : ecs_view_walk(ecs_view_itr(animView));
   if (subjectItr) {
+    settings->subject         = ecs_view_entity(subjectItr);
     anim                      = ecs_view_write_t(subjectItr, SceneAnimationComp);
     const EcsEntityId graphic = ecs_view_read_t(subjectItr, SceneRenderableComp)->graphic;
     if (ecs_view_contains(ecs_world_view_t(world, SkeletonTemplView), graphic)) {
@@ -328,6 +341,88 @@ ecs_system_define(DebugAnimationUpdatePanelSys) {
   }
 }
 
+static void debug_draw_skeleton(
+    DebugShapeComp*               shapes,
+    DebugTextComp*                text,
+    const SceneSkeletonComp*      skeleton,
+    const SceneSkeletonTemplComp* skeletonTemplate,
+    const GeoVector               pos,
+    const GeoQuat                 rot,
+    const f32                     scale) {
+  static const f32 g_arrowLength = 0.075f;
+  static const f32 g_arrowSize   = 0.0075f;
+  const GeoMatrix  transform     = geo_matrix_trs(pos, rot, geo_vector(scale, scale, scale));
+
+  GeoMatrix* jointMatrices = mem_stack(sizeof(GeoMatrix) * skeleton->jointCount).ptr;
+  for (u32 i = 0; i != skeleton->jointCount; ++i) {
+    jointMatrices[i] = geo_matrix_mul(&transform, &skeleton->jointTransforms[i]);
+  }
+
+  for (u32 i = 0; i != skeleton->jointCount; ++i) {
+    const GeoVector jointPos = geo_matrix_to_translation(&jointMatrices[i]);
+
+    const GeoVector jointRefX = geo_matrix_transform3(&jointMatrices[i], geo_right);
+    const GeoVector jointX    = geo_vector_mul(geo_vector_norm(jointRefX), g_arrowLength);
+
+    const GeoVector jointRefY = geo_matrix_transform3(&jointMatrices[i], geo_up);
+    const GeoVector jointY    = geo_vector_mul(geo_vector_norm(jointRefY), g_arrowLength);
+
+    const GeoVector jointRefZ = geo_matrix_transform3(&jointMatrices[i], geo_forward);
+    const GeoVector jointZ    = geo_vector_mul(geo_vector_norm(jointRefZ), g_arrowLength);
+
+    debug_arrow(shapes, jointPos, geo_vector_add(jointPos, jointX), g_arrowSize, geo_color_red);
+    debug_arrow(shapes, jointPos, geo_vector_add(jointPos, jointY), g_arrowSize, geo_color_green);
+    debug_arrow(shapes, jointPos, geo_vector_add(jointPos, jointZ), g_arrowSize, geo_color_blue);
+
+    if (i) {
+      const u32       parentIndex = scene_skeleton_joint_parent(skeletonTemplate, i);
+      const GeoVector parentPos   = geo_matrix_to_translation(&jointMatrices[parentIndex]);
+      debug_line(shapes, jointPos, parentPos, geo_color_white);
+    }
+
+    const StringHash jointNameHash = scene_skeleton_joint_name(skeletonTemplate, i);
+    const String     jointName     = stringtable_lookup(g_stringtable, jointNameHash);
+    debug_text(text, geo_vector_add(jointPos, geo_vector(0, 0.02f, 0)), jointName, geo_color_white);
+  }
+}
+
+ecs_system_define(DebugAnimationDrawSys) {
+  EcsView* globalView   = ecs_world_view_t(world, GlobalDrawView);
+  EcsView* animView     = ecs_world_view_t(world, AnimationView);
+  EcsView* templateView = ecs_world_view_t(world, SkeletonTemplView);
+
+  EcsIterator* globalItr = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return;
+  }
+  const DebugAnimationSettingsComp* set   = ecs_view_read_t(globalItr, DebugAnimationSettingsComp);
+  DebugShapeComp*                   shape = ecs_view_write_t(globalItr, DebugShapeComp);
+  DebugTextComp*                    text  = ecs_view_write_t(globalItr, DebugTextComp);
+
+  EcsIterator* itr = set->subject ? ecs_view_maybe_at(animView, set->subject) : null;
+  if (!itr) {
+    return;
+  }
+
+  const SceneSkeletonComp* skeleton  = ecs_view_read_t(itr, SceneSkeletonComp);
+  const GeoVector          pos       = ecs_view_read_t(itr, SceneTransformComp)->position;
+  const GeoQuat            rot       = ecs_view_read_t(itr, SceneTransformComp)->rotation;
+  const SceneScaleComp*    scaleComp = ecs_view_read_t(itr, SceneScaleComp);
+  const f32                scale     = scaleComp ? scaleComp->scale : 1.0f;
+  const EcsEntityId        graphic   = ecs_view_read_t(itr, SceneRenderableComp)->graphic;
+
+  if (!ecs_view_contains(templateView, graphic)) {
+    return;
+  }
+
+  const SceneSkeletonTemplComp* template =
+      ecs_utils_read(templateView, graphic, ecs_comp_id(SceneSkeletonTemplComp));
+
+  if (set->flags & DebugAnimationFlags_DrawSkeleton) {
+    debug_draw_skeleton(shape, text, skeleton, template, pos, rot, scale);
+  }
+}
+
 ecs_module_init(debug_animation_module) {
   ecs_register_comp(DebugAnimationSettingsComp);
   ecs_register_comp(DebugAnimationPanelComp);
@@ -336,6 +431,7 @@ ecs_module_init(debug_animation_module) {
   ecs_register_view(PanelUpdateView);
   ecs_register_view(AnimationView);
   ecs_register_view(SkeletonTemplView);
+  ecs_register_view(GlobalDrawView);
 
   ecs_register_system(
       DebugAnimationUpdatePanelSys,
@@ -343,6 +439,14 @@ ecs_module_init(debug_animation_module) {
       ecs_view_id(PanelUpdateView),
       ecs_view_id(AnimationView),
       ecs_view_id(SkeletonTemplView));
+
+  ecs_register_system(
+      DebugAnimationDrawSys,
+      ecs_view_id(GlobalDrawView),
+      ecs_view_id(AnimationView),
+      ecs_view_id(SkeletonTemplView));
+
+  ecs_order(DebugAnimationDrawSys, DebugOrder_AnimationDebugDraw);
 }
 
 EcsEntityId debug_animation_panel_open(EcsWorld* world, const EcsEntityId window) {
