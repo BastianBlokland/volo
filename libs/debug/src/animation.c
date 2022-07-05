@@ -191,11 +191,11 @@ static void anim_panel_options_draw(UiCanvasComp* canvas, DebugAnimationSettings
   ui_layout_push(canvas);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 130);
   ui_table_add_column(&table, UiTableColumn_Fixed, 25);
 
   ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Draw skel:"));
+  ui_label(canvas, string_lit("Draw skeleton:"));
   ui_table_next_column(canvas, &table);
   bool drawSkeleton = (settings->flags & DebugAnimationFlags_DrawSkeleton) != 0;
   if (ui_toggle(canvas, &drawSkeleton)) {
@@ -452,6 +452,6 @@ ecs_module_init(debug_animation_module) {
 EcsEntityId debug_animation_panel_open(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
   ecs_world_add_t(
-      world, panelEntity, DebugAnimationPanelComp, .panel = ui_panel(ui_vector(875, 300)));
+      world, panelEntity, DebugAnimationPanelComp, .panel = ui_panel(ui_vector(875, 350)));
   return panelEntity;
 }
