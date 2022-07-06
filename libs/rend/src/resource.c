@@ -19,10 +19,12 @@
 
 static const u32 g_rendResUnloadUnusedAfterTicks = 480; // NOTE: Less then 2 is not supported.
 
-static const struct {
+typedef struct {
   RvkRepositoryId repoId;
   String          assetId;
-} g_rendResGlobal[] = {
+} RendResGlobalDef;
+
+static const RendResGlobalDef g_rendResGlobal[] = {
     {RvkRepositoryId_MissingTexture, string_static("textures/missing.ptx")},
     {RvkRepositoryId_MissingTextureCube, string_static("textures/missing_cube.atx")},
     {RvkRepositoryId_WireframeGraphic, string_static("graphics/wireframe.gra")},
@@ -172,9 +174,9 @@ ecs_view_define(TextureWriteView) {
 }
 
 static bool rend_res_global_lookup(const String assetId, RvkRepositoryId* outRepoId) {
-  for (u32 i = 0; i != array_elems(g_rendResGlobal); ++i) {
-    if (string_eq(assetId, g_rendResGlobal[i].assetId)) {
-      *outRepoId = g_rendResGlobal[i].repoId;
+  array_for_t(g_rendResGlobal, RendResGlobalDef, res) {
+    if (string_eq(assetId, res->assetId)) {
+      *outRepoId = res->repoId;
       return true;
     }
   }
@@ -197,10 +199,9 @@ ecs_system_define(RendGlobalResourceInitSys) {
   }
   AssetManagerComp* assetMan = ecs_view_write_t(globalItr, AssetManagerComp);
 
-  for (u32 i = 0; i != array_elems(g_rendResGlobal); ++i) {
-    const EcsEntityId entity   = asset_lookup(world, assetMan, g_rendResGlobal[i].assetId);
-    const bool        isGlobal = true;
-    rend_resource_request(world, entity, isGlobal);
+  array_for_t(g_rendResGlobal, RendResGlobalDef, res) {
+    const bool isGlobal = true;
+    rend_resource_request(world, asset_lookup(world, assetMan, res->assetId), isGlobal);
   }
 
   ecs_world_add_empty_t(world, ecs_view_entity(globalItr), RendGlobalResInitializedComp);
