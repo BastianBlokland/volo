@@ -132,8 +132,7 @@ static void rend_draw_request_graphic(
     return;
   }
   if (++*numRequests < rend_max_res_requests) {
-    const bool isPersistent = false;
-    rend_res_request(world, entity, isPersistent);
+    rend_res_request(world, entity);
   }
 }
 

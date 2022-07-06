@@ -29,7 +29,7 @@ ecs_comp_extern(RendResUnloadComp);
  * NOTE: Can fail if the resource is currently being unloaded.
  * Returns 'true' if the resource was successfully requested, otherwise false.
  */
-bool rend_res_request(EcsWorld* world, EcsEntityId assetEntity, bool persistent);
+bool rend_res_request(EcsWorld* world, EcsEntityId assetEntity);
 
 /**
  * Mark this resource as in-use.
