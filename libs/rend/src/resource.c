@@ -25,11 +25,26 @@ typedef struct {
 } RendResGlobalDef;
 
 static const RendResGlobalDef g_rendResGlobal[] = {
-    {RvkRepositoryId_MissingTexture, string_static("textures/missing.ptx")},
-    {RvkRepositoryId_MissingTextureCube, string_static("textures/missing_cube.atx")},
-    {RvkRepositoryId_WireframeGraphic, string_static("graphics/wireframe.gra")},
-    {RvkRepositoryId_WireframeSkinnedGraphic, string_static("graphics/wireframe_skinned.gra")},
-    {RvkRepositoryId_DebugSkinningGraphic, string_static("graphics/debug/debug_skinning.gra")},
+    {
+        .repoId  = RvkRepositoryId_MissingTexture,
+        .assetId = string_static("textures/missing.ptx"),
+    },
+    {
+        .repoId  = RvkRepositoryId_MissingTextureCube,
+        .assetId = string_static("textures/missing_cube.atx"),
+    },
+    {
+        .repoId  = RvkRepositoryId_WireframeGraphic,
+        .assetId = string_static("graphics/wireframe.gra"),
+    },
+    {
+        .repoId  = RvkRepositoryId_WireframeSkinnedGraphic,
+        .assetId = string_static("graphics/wireframe_skinned.gra"),
+    },
+    {
+        .repoId  = RvkRepositoryId_DebugSkinningGraphic,
+        .assetId = string_static("graphics/debug/debug_skinning.gra"),
+    },
 };
 
 ecs_comp_define_public(RendResGraphicComp);
@@ -173,14 +188,13 @@ ecs_view_define(TextureWriteView) {
   ecs_access_write(RendResTextureComp);
 }
 
-static bool rend_res_global_lookup(const String assetId, RvkRepositoryId* outRepoId) {
+static const RendResGlobalDef* rend_res_global_lookup(const String assetId) {
   array_for_t(g_rendResGlobal, RendResGlobalDef, res) {
     if (string_eq(assetId, res->assetId)) {
-      *outRepoId = res->repoId;
-      return true;
+      return res;
     }
   }
-  return false;
+  return null;
 }
 
 ecs_view_define(GlobalResourceInitializeView) {
@@ -200,8 +214,8 @@ ecs_system_define(RendGlobalResourceInitSys) {
   AssetManagerComp* assetMan = ecs_view_write_t(globalItr, AssetManagerComp);
 
   array_for_t(g_rendResGlobal, RendResGlobalDef, res) {
-    const bool isGlobal = true;
-    rend_resource_request(world, asset_lookup(world, assetMan, res->assetId), isGlobal);
+    const bool isPersistent = true;
+    rend_resource_request(world, asset_lookup(world, assetMan, res->assetId), isPersistent);
   }
 
   ecs_world_add_empty_t(world, ecs_view_entity(globalItr), RendGlobalResInitializedComp);
@@ -354,9 +368,9 @@ static bool rend_res_create(RvkDevice* dev, EcsWorld* world, EcsIterator* resour
       rvk_graphic_sampler_add(graphic, textureComp->texture, ptr);
     }
 
-    RvkRepositoryId globalRepoId;
-    if (rend_res_global_lookup(id, &globalRepoId)) {
-      rvk_repository_graphic_set(dev->repository, globalRepoId, graphic);
+    const RendResGlobalDef* globalDef = rend_res_global_lookup(id);
+    if (globalDef) {
+      rvk_repository_graphic_set(dev->repository, globalDef->repoId, graphic);
     }
     return true;
   }
@@ -377,9 +391,9 @@ static bool rend_res_create(RvkDevice* dev, EcsWorld* world, EcsIterator* resour
     RvkTexture* tex = rvk_texture_create(dev, maybeAssetTexture, id);
     ecs_world_add_t(world, entity, RendResTextureComp, .texture = tex);
 
-    RvkRepositoryId globalRepoId;
-    if (rend_res_global_lookup(id, &globalRepoId)) {
-      rvk_repository_texture_set(dev->repository, globalRepoId, tex);
+    const RendResGlobalDef* globalDef = rend_res_global_lookup(id);
+    if (globalDef) {
+      rvk_repository_texture_set(dev->repository, globalDef->repoId, tex);
     }
     return true;
   }
