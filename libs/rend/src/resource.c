@@ -19,21 +19,27 @@
 
 static const u32 g_rendResUnloadUnusedAfterTicks = 480; // NOTE: Less then 2 is not supported.
 
+static const struct {
+  RvkRepositoryId repoId;
+  String          assetId;
+} g_rendResGlobal[] = {
+    {RvkRepositoryId_MissingTexture, string_static("textures/missing.ptx")},
+    {RvkRepositoryId_MissingTextureCube, string_static("textures/missing_cube.atx")},
+    {RvkRepositoryId_WireframeGraphic, string_static("graphics/wireframe.gra")},
+    {RvkRepositoryId_WireframeSkinnedGraphic, string_static("graphics/wireframe_skinned.gra")},
+    {RvkRepositoryId_DebugSkinningGraphic, string_static("graphics/debug/debug_skinning.gra")},
+};
+
 ecs_comp_define_public(RendResGraphicComp);
 ecs_comp_define_public(RendResShaderComp);
 ecs_comp_define_public(RendResMeshComp);
 ecs_comp_define_public(RendResTextureComp);
 
-ecs_comp_define(RendGlobalResComp) {
-  EcsEntityId missingTex, missingTexCube;
-  EcsEntityId wireframeGraphic, wireframeSkinnedGraphic;
-  EcsEntityId debugSkinningGraphic;
-};
-ecs_comp_define(RendGlobalResLoadedComp);
+ecs_comp_define(RendGlobalResInitializedComp);
 
 typedef enum {
   RendResFlags_Used       = 1 << 0,
-  RendResFlags_Persistent = 1 << 1,
+  RendResFlags_Persistent = 1 << 1, // Persistent assets cannot be unloaded.
 } RendResFlags;
 
 typedef enum {
@@ -150,11 +156,6 @@ ecs_view_define(PlatReadView) {
 
 ecs_view_define(ResWriteView) { ecs_access_write(RendResComp); }
 
-ecs_view_define(GraphicWriteView) {
-  ecs_access_with(RendResComp);
-  ecs_access_write(RendResGraphicComp);
-}
-
 ecs_view_define(ShaderWriteView) {
   ecs_access_with(RendResComp);
   ecs_access_write(RendResShaderComp);
@@ -170,92 +171,39 @@ ecs_view_define(TextureWriteView) {
   ecs_access_write(RendResTextureComp);
 }
 
-static EcsEntityId
-rend_res_request_persist(EcsWorld* world, AssetManagerComp* man, const String id) {
-  const EcsEntityId assetEntity  = asset_lookup(world, man, id);
-  const bool        isPersistent = true;
-  rend_resource_request(world, assetEntity, isPersistent);
-  return assetEntity;
-}
-
-static bool rend_res_set_wellknown_texture(
-    EcsWorld* world, RendPlatformComp* plat, const RvkRepositoryId id, const EcsEntityId entity) {
-
-  EcsView* textureView = ecs_world_view_t(world, TextureWriteView);
-  if (ecs_view_contains(textureView, entity)) {
-    RendResTextureComp* comp =
-        ecs_utils_write(textureView, entity, ecs_comp_id(RendResTextureComp));
-    rvk_repository_texture_set(plat->device->repository, id, comp->texture);
-    return true;
+static bool rend_res_global_lookup(const String assetId, RvkRepositoryId* outRepoId) {
+  for (u32 i = 0; i != array_elems(g_rendResGlobal); ++i) {
+    if (string_eq(assetId, g_rendResGlobal[i].assetId)) {
+      *outRepoId = g_rendResGlobal[i].repoId;
+      return true;
+    }
   }
   return false;
 }
 
-static bool rend_res_set_wellknown_graphic(
-    EcsWorld* world, RendPlatformComp* plat, const RvkRepositoryId id, const EcsEntityId entity) {
-
-  EcsView* graphicView = ecs_world_view_t(world, GraphicWriteView);
-  if (ecs_view_contains(graphicView, entity)) {
-    RendResGraphicComp* comp =
-        ecs_utils_write(graphicView, entity, ecs_comp_id(RendResGraphicComp));
-    rvk_repository_graphic_set(plat->device->repository, id, comp->graphic);
-    return true;
-  }
-  return false;
-}
-
-ecs_view_define(GlobalResourceUpdateView) {
-  ecs_access_write(RendPlatformComp);
+ecs_view_define(GlobalResourceInitializeView) {
   ecs_access_write(AssetManagerComp);
-  ecs_access_maybe_write(RendGlobalResComp);
-  ecs_access_without(RendGlobalResLoadedComp);
+  ecs_access_without(RendGlobalResInitializedComp);
   ecs_access_without(RendResetComp);
 }
 
 /**
- * Load all global resources.
+ * Initialize the global resources.
  */
-ecs_system_define(RendGlobalResourceLoadSys) {
-  EcsIterator* globalItr = ecs_view_first(ecs_world_view_t(world, GlobalResourceUpdateView));
+ecs_system_define(RendGlobalResourceInitSys) {
+  EcsIterator* globalItr = ecs_view_first(ecs_world_view_t(world, GlobalResourceInitializeView));
   if (!globalItr) {
     return;
   }
-  RendPlatformComp*  plat     = ecs_view_write_t(globalItr, RendPlatformComp);
-  AssetManagerComp*  assetMan = ecs_view_write_t(globalItr, AssetManagerComp);
-  RendGlobalResComp* resComp  = ecs_view_write_t(globalItr, RendGlobalResComp);
+  AssetManagerComp* assetMan = ecs_view_write_t(globalItr, AssetManagerComp);
 
-  if (!resComp) {
-    resComp = ecs_world_add_t(world, ecs_view_entity(globalItr), RendGlobalResComp);
-    resComp->missingTex =
-        rend_res_request_persist(world, assetMan, string_lit("textures/missing.ptx"));
-    resComp->missingTexCube =
-        rend_res_request_persist(world, assetMan, string_lit("textures/missing_cube.atx"));
-    resComp->wireframeGraphic =
-        rend_res_request_persist(world, assetMan, string_lit("graphics/wireframe.gra"));
-    resComp->wireframeSkinnedGraphic =
-        rend_res_request_persist(world, assetMan, string_lit("graphics/wireframe_skinned.gra"));
-    resComp->debugSkinningGraphic =
-        rend_res_request_persist(world, assetMan, string_lit("graphics/debug/debug_skinning.gra"));
+  for (u32 i = 0; i != array_elems(g_rendResGlobal); ++i) {
+    const EcsEntityId entity   = asset_lookup(world, assetMan, g_rendResGlobal[i].assetId);
+    const bool        isGlobal = true;
+    rend_resource_request(world, entity, isGlobal);
   }
 
-  // Wait for all global resources to be loaded.
-  bool ready = true;
-  ready &= rend_res_set_wellknown_texture(
-      world, plat, RvkRepositoryId_MissingTexture, resComp->missingTex);
-  ready &= rend_res_set_wellknown_texture(
-      world, plat, RvkRepositoryId_MissingTextureCube, resComp->missingTexCube);
-  ready &= rend_res_set_wellknown_graphic(
-      world, plat, RvkRepositoryId_WireframeGraphic, resComp->wireframeGraphic);
-  ready &= rend_res_set_wellknown_graphic(
-      world, plat, RvkRepositoryId_WireframeSkinnedGraphic, resComp->wireframeSkinnedGraphic);
-  ready &= rend_res_set_wellknown_graphic(
-      world, plat, RvkRepositoryId_DebugSkinningGraphic, resComp->debugSkinningGraphic);
-  if (!ready) {
-    return;
-  }
-
-  // Global resources load finished.
-  ecs_world_add_empty_t(world, ecs_view_entity(globalItr), RendGlobalResLoadedComp);
+  ecs_world_add_empty_t(world, ecs_view_entity(globalItr), RendGlobalResInitializedComp);
 }
 
 ecs_view_define(ResLoadView) {
@@ -362,11 +310,8 @@ static bool rend_res_create(RvkDevice* dev, EcsWorld* world, EcsIterator* resour
   const AssetTextureComp* maybeAssetTexture = ecs_view_read_t(resourceItr, AssetTextureComp);
 
   if (maybeAssetGraphic) {
-    RendResGraphicComp* graphicComp = ecs_world_add_t(
-        world,
-        entity,
-        RendResGraphicComp,
-        .graphic = rvk_graphic_create(dev, maybeAssetGraphic, id));
+    RvkGraphic* graphic = rvk_graphic_create(dev, maybeAssetGraphic, id);
+    ecs_world_add_t(world, entity, RendResGraphicComp, .graphic = graphic);
 
     // Add shaders.
     EcsView* shaderView = ecs_world_view_t(world, ShaderWriteView);
@@ -379,7 +324,7 @@ static bool rend_res_create(RvkDevice* dev, EcsWorld* world, EcsIterator* resour
       EcsIterator*       shaderItr  = ecs_view_at(shaderView, ptr->shader);
       RendResShaderComp* shaderComp = ecs_view_write_t(shaderItr, RendResShaderComp);
       rvk_graphic_shader_add(
-          graphicComp->graphic, shaderComp->shader, ptr->overrides.values, ptr->overrides.count);
+          graphic, shaderComp->shader, ptr->overrides.values, ptr->overrides.count);
     }
 
     // Add mesh.
@@ -392,7 +337,7 @@ static bool rend_res_create(RvkDevice* dev, EcsWorld* world, EcsIterator* resour
       }
       EcsIterator*     meshItr  = ecs_view_at(meshView, maybeAssetGraphic->mesh);
       RendResMeshComp* meshComp = ecs_view_write_t(meshItr, RendResMeshComp);
-      rvk_graphic_mesh_add(graphicComp->graphic, meshComp->mesh);
+      rvk_graphic_mesh_add(graphic, meshComp->mesh);
     }
 
     // Add samplers.
@@ -405,7 +350,12 @@ static bool rend_res_create(RvkDevice* dev, EcsWorld* world, EcsIterator* resour
       }
       EcsIterator*        textureItr  = ecs_view_at(textureView, ptr->texture);
       RendResTextureComp* textureComp = ecs_view_write_t(textureItr, RendResTextureComp);
-      rvk_graphic_sampler_add(graphicComp->graphic, textureComp->texture, ptr);
+      rvk_graphic_sampler_add(graphic, textureComp->texture, ptr);
+    }
+
+    RvkRepositoryId globalRepoId;
+    if (rend_res_global_lookup(id, &globalRepoId)) {
+      rvk_repository_graphic_set(dev->repository, globalRepoId, graphic);
     }
     return true;
   }
@@ -417,17 +367,19 @@ static bool rend_res_create(RvkDevice* dev, EcsWorld* world, EcsIterator* resour
   }
 
   if (maybeAssetMesh) {
-    ecs_world_add_t(
-        world, entity, RendResMeshComp, .mesh = rvk_mesh_create(dev, maybeAssetMesh, id));
+    RvkMesh* mesh = rvk_mesh_create(dev, maybeAssetMesh, id);
+    ecs_world_add_t(world, entity, RendResMeshComp, .mesh = mesh);
     return true;
   }
 
   if (maybeAssetTexture) {
-    ecs_world_add_t(
-        world,
-        entity,
-        RendResTextureComp,
-        .texture = rvk_texture_create(dev, maybeAssetTexture, id));
+    RvkTexture* tex = rvk_texture_create(dev, maybeAssetTexture, id);
+    ecs_world_add_t(world, entity, RendResTextureComp, .texture = tex);
+
+    RvkRepositoryId globalRepoId;
+    if (rend_res_global_lookup(id, &globalRepoId)) {
+      rvk_repository_texture_set(dev->repository, globalRepoId, tex);
+    }
     return true;
   }
 
@@ -570,7 +522,7 @@ ecs_system_define(RendResUnloadChangedSys) {
   for (EcsIterator* itr = ecs_view_itr(changedAssetsView); ecs_view_walk(itr);) {
     const String id = asset_id(ecs_view_read_t(itr, AssetComp));
     if (rend_res_is_persistent(ecs_view_read_t(itr, RendResComp))) {
-      continue; // Persistent assets cannot be unloaded.
+      continue; // Persistent resources cannot be unloaded.
     }
     log_i("Unloading resource due to changed asset", log_param("id", fmt_text(id)));
     ecs_world_add_t(
@@ -638,8 +590,7 @@ ecs_module_init(rend_resource_module) {
   ecs_register_comp(RendResMeshComp, .destructor = ecs_destruct_mesh_comp, .destructOrder = 3);
   ecs_register_comp(
       RendResTextureComp, .destructor = ecs_destruct_texture_comp, .destructOrder = 4);
-  ecs_register_comp(RendGlobalResComp);
-  ecs_register_comp_empty(RendGlobalResLoadedComp);
+  ecs_register_comp_empty(RendGlobalResInitializedComp);
   ecs_register_comp(
       RendResComp, .destructor = ecs_destruct_res_comp, .combinator = ecs_combine_resource);
   ecs_register_comp_empty(RendResFinishedComp);
@@ -648,15 +599,10 @@ ecs_module_init(rend_resource_module) {
   ecs_register_view(PlatReadView);
   ecs_register_view(ResWriteView);
   ecs_register_view(ShaderWriteView);
-  ecs_register_view(GraphicWriteView);
   ecs_register_view(MeshWriteView);
   ecs_register_view(TextureWriteView);
 
-  ecs_register_system(
-      RendGlobalResourceLoadSys,
-      ecs_register_view(GlobalResourceUpdateView),
-      ecs_view_id(TextureWriteView),
-      ecs_view_id(GraphicWriteView));
+  ecs_register_system(RendGlobalResourceInitSys, ecs_register_view(GlobalResourceInitializeView));
 
   ecs_register_system(
       RendResLoadSys,
@@ -741,6 +687,5 @@ void rend_resource_teardown(EcsWorld* world, const RendResComp* res, const EcsEn
 }
 
 void rend_resource_teardown_global(EcsWorld* world) {
-  ecs_utils_maybe_remove_t(world, ecs_world_global(world), RendGlobalResComp);
-  ecs_utils_maybe_remove_t(world, ecs_world_global(world), RendGlobalResLoadedComp);
+  ecs_utils_maybe_remove_t(world, ecs_world_global(world), RendGlobalResInitializedComp);
 }
