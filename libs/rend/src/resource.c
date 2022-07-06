@@ -32,8 +32,8 @@ ecs_comp_define(RendGlobalResComp) {
 ecs_comp_define(RendGlobalResLoadedComp);
 
 typedef enum {
-  RendResFlags_Used        = 1 << 0,
-  RendResFlags_NeverUnload = 1 << 1,
+  RendResFlags_Used       = 1 << 0,
+  RendResFlags_Persistent = 1 << 1,
 } RendResFlags;
 
 typedef enum {
@@ -65,7 +65,6 @@ ecs_comp_define(RendResComp) {
   DynArray         dependents;   // EcsEntityId[], resources that depend on this resource.
 };
 ecs_comp_define(RendResFinishedComp);
-ecs_comp_define(RendResNeverUnloadComp);
 ecs_comp_define(RendResUnloadComp) {
   RendResUnloadState state;
   RendUnloadFlags    flags;
@@ -172,11 +171,10 @@ ecs_view_define(TextureWriteView) {
 }
 
 static EcsEntityId
-rend_resource_request_persistent(EcsWorld* world, AssetManagerComp* man, const String id) {
+rend_res_request_persist(EcsWorld* world, AssetManagerComp* man, const String id) {
   const EcsEntityId assetEntity  = asset_lookup(world, man, id);
   const bool        isPersistent = true;
   rend_resource_request(world, assetEntity, isPersistent);
-  ecs_world_add_empty_t(world, assetEntity, RendResNeverUnloadComp);
   return assetEntity;
 }
 
@@ -229,15 +227,15 @@ ecs_system_define(RendGlobalResourceLoadSys) {
   if (!resComp) {
     resComp = ecs_world_add_t(world, ecs_view_entity(globalItr), RendGlobalResComp);
     resComp->missingTex =
-        rend_resource_request_persistent(world, assetMan, string_lit("textures/missing.ptx"));
+        rend_res_request_persist(world, assetMan, string_lit("textures/missing.ptx"));
     resComp->missingTexCube =
-        rend_resource_request_persistent(world, assetMan, string_lit("textures/missing_cube.atx"));
+        rend_res_request_persist(world, assetMan, string_lit("textures/missing_cube.atx"));
     resComp->wireframeGraphic =
-        rend_resource_request_persistent(world, assetMan, string_lit("graphics/wireframe.gra"));
-    resComp->wireframeSkinnedGraphic = rend_resource_request_persistent(
-        world, assetMan, string_lit("graphics/wireframe_skinned.gra"));
-    resComp->debugSkinningGraphic = rend_resource_request_persistent(
-        world, assetMan, string_lit("graphics/debug/debug_skinning.gra"));
+        rend_res_request_persist(world, assetMan, string_lit("graphics/wireframe.gra"));
+    resComp->wireframeSkinnedGraphic =
+        rend_res_request_persist(world, assetMan, string_lit("graphics/wireframe_skinned.gra"));
+    resComp->debugSkinningGraphic =
+        rend_res_request_persist(world, assetMan, string_lit("graphics/debug/debug_skinning.gra"));
   }
 
   // Wait for all global resources to be loaded.
@@ -300,7 +298,7 @@ static bool rend_res_dependencies_acquire(EcsWorld* world, EcsIterator* resource
   RendResComp*            resComp           = ecs_view_write_t(resourceItr, RendResComp);
   const AssetGraphicComp* maybeAssetGraphic = ecs_view_read_t(resourceItr, AssetGraphicComp);
   if (maybeAssetGraphic) {
-    const bool isPersistent = (resComp->flags & RendResFlags_NeverUnload) != 0;
+    const bool isPersistent = (resComp->flags & RendResFlags_Persistent) != 0;
 
     array_ptr_for_t(maybeAssetGraphic->shaders, AssetGraphicShader, ptr) {
       rend_resource_request(world, ptr->shader, isPersistent);
@@ -331,7 +329,7 @@ static bool rend_res_dependencies_wait(EcsWorld* world, EcsIterator* resourceItr
     if (!ecs_view_contains(dependencyView, *dep)) {
       // Re-request the resource as it could have been in the process of being unloaded when we
       // requested it the first time.
-      const bool isPersistent = (resComp->flags & RendResFlags_NeverUnload) != 0;
+      const bool isPersistent = (resComp->flags & RendResFlags_Persistent) != 0;
       rend_resource_request(world, *dep, isPersistent);
       ready = false;
       continue;
@@ -538,7 +536,7 @@ ecs_system_define(RendResUnloadUnusedSys) {
 
   for (EcsIterator* itr = ecs_view_itr(resourceUnloadView); ecs_view_walk(itr);) {
     RendResComp* resComp = ecs_view_write_t(itr, RendResComp);
-    if (LIKELY(resComp->flags & (RendResFlags_Used | RendResFlags_NeverUnload))) {
+    if (LIKELY(resComp->flags & (RendResFlags_Used | RendResFlags_Persistent))) {
       resComp->unusedTicks = 0;
       rend_res_mark_dependencies_used(resComp, resourceUnloadView);
       resComp->flags &= ~RendResFlags_Used;
@@ -546,9 +544,8 @@ ecs_system_define(RendResUnloadUnusedSys) {
     }
     const EcsEntityId entity      = ecs_view_entity(itr);
     const bool        isUnloading = ecs_world_has_t(world, entity, RendResUnloadComp);
-    const bool        neverUnload = ecs_world_has_t(world, entity, RendResNeverUnloadComp);
     const bool        failed      = resComp->state == RendResLoadState_FinishedFailure;
-    if (UNLIKELY(isUnloading || neverUnload || failed)) {
+    if (UNLIKELY(isUnloading || failed)) {
       continue;
     }
     if (resComp->unusedTicks++ > g_rendResUnloadUnusedAfterTicks) {
@@ -560,9 +557,9 @@ ecs_system_define(RendResUnloadUnusedSys) {
 ecs_view_define(UnloadChangedView) {
   ecs_access_read(AssetComp);
   ecs_access_with(AssetChangedComp);
+  ecs_access_read(RendResComp);
   ecs_access_with(RendResFinishedComp);
   ecs_access_without(RendResUnloadComp);
-  ecs_access_without(RendResNeverUnloadComp);
 }
 
 /**
@@ -572,6 +569,9 @@ ecs_system_define(RendResUnloadChangedSys) {
   EcsView* changedAssetsView = ecs_world_view_t(world, UnloadChangedView);
   for (EcsIterator* itr = ecs_view_itr(changedAssetsView); ecs_view_walk(itr);) {
     const String id = asset_id(ecs_view_read_t(itr, AssetComp));
+    if (rend_res_is_persistent(ecs_view_read_t(itr, RendResComp))) {
+      continue; // Persistent assets cannot be unloaded.
+    }
     log_i("Unloading resource due to changed asset", log_param("id", fmt_text(id)));
     ecs_world_add_t(
         world, ecs_view_entity(itr), RendResUnloadComp, .flags = RendUnloadFlags_UnloadDependents);
@@ -643,7 +643,6 @@ ecs_module_init(rend_resource_module) {
   ecs_register_comp(
       RendResComp, .destructor = ecs_destruct_res_comp, .combinator = ecs_combine_resource);
   ecs_register_comp_empty(RendResFinishedComp);
-  ecs_register_comp_empty(RendResNeverUnloadComp);
   ecs_register_comp(RendResUnloadComp, .combinator = ecs_combine_resource_unload);
 
   ecs_register_view(PlatReadView);
@@ -691,6 +690,10 @@ bool rend_res_is_unused(const RendResComp* comp) {
   return comp->unusedTicks > 1;
 }
 
+bool rend_res_is_persistent(const RendResComp* comp) {
+  return (comp->flags & RendResFlags_Persistent) != 0;
+}
+
 u64 rend_res_ticks_until_unload(const RendResComp* comp) {
   if (comp->unusedTicks > g_rendResUnloadUnusedAfterTicks) {
     return 0;
@@ -716,7 +719,7 @@ bool rend_resource_request(EcsWorld* world, const EcsEntityId assetEntity, const
       world,
       assetEntity,
       RendResComp,
-      .flags        = persistent ? RendResFlags_NeverUnload : RendResFlags_Used,
+      .flags        = persistent ? RendResFlags_Persistent : RendResFlags_Used,
       .dependencies = dynarray_create_t(g_alloc_heap, EcsEntityId, 0),
       .dependents   = dynarray_create_t(g_alloc_heap, EcsEntityId, 0));
   return true;
@@ -731,7 +734,6 @@ void rend_resource_teardown(EcsWorld* world, const RendResComp* res, const EcsEn
   ecs_world_remove_t(world, entity, RendResComp);
   ecs_utils_maybe_remove_t(world, entity, RendResUnloadComp);
   ecs_utils_maybe_remove_t(world, entity, RendResFinishedComp);
-  ecs_utils_maybe_remove_t(world, entity, RendResNeverUnloadComp);
   ecs_utils_maybe_remove_t(world, entity, RendResGraphicComp);
   ecs_utils_maybe_remove_t(world, entity, RendResShaderComp);
   ecs_utils_maybe_remove_t(world, entity, RendResMeshComp);
