@@ -14,6 +14,7 @@
 #include "resource_internal.h"
 #include "rvk/canvas_internal.h"
 #include "rvk/graphic_internal.h"
+#include "rvk/mesh_internal.h"
 #include "rvk/pass_internal.h"
 #include "rvk/repository_internal.h"
 
@@ -78,16 +79,18 @@ static GeoMatrix painter_view_proj_matrix(
   return geo_matrix_mul(&proj, &view);
 }
 
-static RvkGraphic* painter_wireframe_graphic(RvkCanvas* canvas, const bool isSkinned) {
-  RvkRepository* repository = rvk_canvas_repository(canvas);
-  return rvk_repository_graphic_get(
-      repository,
-      isSkinned ? RvkRepositoryId_WireframeSkinnedGraphic : RvkRepositoryId_WireframeGraphic);
-}
+static void painter_draw_override_dynmesh(
+    RendPainterComp*      painter,
+    RvkPass*              pass,
+    const RvkRepositoryId graphicId,
+    RendDrawComp*         orgDraw,
+    RvkMesh*              dynMesh) {
+  RvkRepository* repository = rvk_canvas_repository(painter->canvas);
+  RvkGraphic*    gra        = rvk_repository_graphic_get(repository, graphicId);
 
-static RvkGraphic* painter_debug_skinning_graphic(RvkCanvas* canvas) {
-  RvkRepository* repository = rvk_canvas_repository(canvas);
-  return rvk_repository_graphic_get(repository, RvkRepositoryId_DebugSkinningGraphic);
+  if (gra && rvk_pass_prepare(pass, gra) && rvk_pass_prepare_mesh(pass, dynMesh)) {
+    *dynarray_push_t(&painter->drawBuffer, RvkPassDraw) = rend_draw_output(orgDraw, gra, dynMesh);
+  }
 }
 
 static void painter_draw_forward(
@@ -118,19 +121,22 @@ static void painter_draw_forward(
       *dynarray_push_t(&painter->drawBuffer, RvkPassDraw) = rend_draw_output(draw, graphic, null);
     }
 
-    RvkMesh*   mesh               = graphic->mesh;
-    const bool isStandardGeometry = (rend_draw_flags(draw) & RendDrawFlags_StandardGeometry) != 0;
-    const bool isSkinned          = (rend_draw_flags(draw) & RendDrawFlags_Skinned) != 0;
-    if (settings->flags & RendFlags_DebugSkinning && isStandardGeometry && isSkinned) {
-      RvkGraphic* skinDbg = painter_debug_skinning_graphic(painter->canvas);
-      if (rvk_pass_prepare(forwardPass, skinDbg) && rvk_pass_prepare_mesh(forwardPass, mesh)) {
-        *dynarray_push_t(&painter->drawBuffer, RvkPassDraw) = rend_draw_output(draw, skinDbg, mesh);
+    if (graphic->mesh) {
+      const bool isStandardGeometry = (rend_draw_flags(draw) & RendDrawFlags_StandardGeometry) != 0;
+      const bool isSkinned          = (rend_draw_flags(draw) & RendDrawFlags_Skinned) != 0;
+
+      diag_assert_msg(
+          isSkinned == ((graphic->mesh->flags & RvkMeshFlags_Skinned) != 0),
+          "Skinned meshes can only be drawn using skinned draws");
+
+      if (settings->flags & RendFlags_DebugSkinning && isStandardGeometry && isSkinned) {
+        const RvkRepositoryId graphicId = RvkRepositoryId_DebugSkinningGraphic;
+        painter_draw_override_dynmesh(painter, forwardPass, graphicId, draw, graphic->mesh);
       }
-    }
-    if (settings->flags & RendFlags_Wireframe && isStandardGeometry && mesh) {
-      RvkGraphic* wireGfx = painter_wireframe_graphic(painter->canvas, isSkinned);
-      if (rvk_pass_prepare(forwardPass, wireGfx) && rvk_pass_prepare_mesh(forwardPass, mesh)) {
-        *dynarray_push_t(&painter->drawBuffer, RvkPassDraw) = rend_draw_output(draw, wireGfx, mesh);
+      if (settings->flags & RendFlags_Wireframe && isStandardGeometry) {
+        const RvkRepositoryId graphicId =
+            isSkinned ? RvkRepositoryId_WireframeSkinnedGraphic : RvkRepositoryId_WireframeGraphic;
+        painter_draw_override_dynmesh(painter, forwardPass, graphicId, draw, graphic->mesh);
       }
     }
   }
