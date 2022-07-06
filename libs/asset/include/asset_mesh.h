@@ -57,6 +57,7 @@ ecs_comp_extern_public(AssetMeshSkeletonComp) {
   AssetMeshAnimPtr     defaultPose;     // (GeoVector | GeoQuat)[jointCount][3]. Local TRS.
   AssetMeshAnimPtr     rootTransform;   // (GeoVector | GeoQuat)[3]. // TRS.
   AssetMeshAnimPtr     parentIndices;   // u32[jointCount].
+  AssetMeshAnimPtr     skinCounts;      // u32[jointCount]. Amount of verts skinned to each joint.
   AssetMeshAnimPtr     jointNames;      // StringHash[jointCount].
   u8                   jointCount;
   u32                  animCount;

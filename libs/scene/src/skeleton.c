@@ -54,6 +54,7 @@ ecs_comp_define(SceneSkeletonTemplComp) {
   const SceneJointPose* defaultPose;     // [jointCount].
   const SceneJointPose* rootPose;        // [1].
   const u32*            parentIndices;   // [jointCount].
+  const u32*            skinCounts;      // [jointCount]. Amount of verts skinned to each joint.
   const StringHash*     jointNames;      // [jointCount].
   GeoMatrix             rootTransform;
   u32                   jointCount;
@@ -208,6 +209,7 @@ static void scene_asset_templ_init(SceneSkeletonTemplComp* tl, const AssetMeshSk
   tl->bindPoseInvMats = (const GeoMatrix*)mem_at_u8(tl->animData, asset->bindPoseInvMats);
   tl->defaultPose     = (const SceneJointPose*)mem_at_u8(tl->animData, asset->defaultPose);
   tl->parentIndices   = (const u32*)mem_at_u8(tl->animData, asset->parentIndices);
+  tl->skinCounts      = (const u32*)mem_at_u8(tl->animData, asset->skinCounts);
   tl->jointNames      = (const StringHash*)mem_at_u8(tl->animData, asset->jointNames);
   tl->rootPose        = (const SceneJointPose*)mem_at_u8(tl->animData, asset->rootTransform);
   tl->rootTransform   = geo_matrix_trs(tl->rootPose->t, tl->rootPose->r, tl->rootPose->s);
@@ -520,6 +522,11 @@ StringHash scene_skeleton_joint_name(const SceneSkeletonTemplComp* tl, const u32
 u32 scene_skeleton_joint_parent(const SceneSkeletonTemplComp* tl, const u32 jointIndex) {
   diag_assert(jointIndex < tl->jointCount);
   return tl->parentIndices[jointIndex];
+}
+
+u32 scene_skeleton_joint_skin_count(const SceneSkeletonTemplComp* tl, const u32 jointIndex) {
+  diag_assert(jointIndex < tl->jointCount);
+  return tl->skinCounts[jointIndex];
 }
 
 SceneJointInfo
