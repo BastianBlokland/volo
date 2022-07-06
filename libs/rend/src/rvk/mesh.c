@@ -87,6 +87,10 @@ RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const Strin
       .indexCount  = (u32)asset->indexCount,
   };
 
+  if (rvk_mesh_skinned(asset)) {
+    mesh->flags |= RvkMeshFlags_Skinned;
+  }
+
   const u32  vertexSize    = rvk_mesh_vertex_size(asset);
   const bool useScratch    = vertexSize * asset->vertexCount < rvk_mesh_max_scratch_size;
   Allocator* verticesAlloc = useScratch ? g_alloc_scratch : g_alloc_heap;
@@ -108,7 +112,7 @@ RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const Strin
   log_d(
       "Vulkan mesh created",
       log_param("name", fmt_text(dbgName)),
-      log_param("skinned", fmt_bool(rvk_mesh_skinned(asset))),
+      log_param("skinned", fmt_bool((mesh->flags & RvkMeshFlags_Skinned) != 0)),
       log_param("vertices", fmt_int(mesh->vertexCount)),
       log_param("indices", fmt_int(mesh->indexCount)),
       log_param("vertex-memory", fmt_size(mesh->vertexBuffer.mem.size)),
