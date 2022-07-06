@@ -215,7 +215,7 @@ ecs_system_define(RendGlobalResourceInitSys) {
 
   array_for_t(g_rendResGlobal, RendResGlobalDef, res) {
     const bool isPersistent = true;
-    rend_resource_request(world, asset_lookup(world, assetMan, res->assetId), isPersistent);
+    rend_res_request(world, asset_lookup(world, assetMan, res->assetId), isPersistent);
   }
 
   ecs_world_add_empty_t(world, ecs_view_entity(globalItr), RendGlobalResInitializedComp);
@@ -264,17 +264,17 @@ static bool rend_res_dependencies_acquire(EcsWorld* world, EcsIterator* resource
     const bool isPersistent = (resComp->flags & RendResFlags_Persistent) != 0;
 
     array_ptr_for_t(maybeAssetGraphic->shaders, AssetGraphicShader, ptr) {
-      rend_resource_request(world, ptr->shader, isPersistent);
+      rend_res_request(world, ptr->shader, isPersistent);
       rend_res_add_dependency(resComp, ptr->shader);
     }
 
     if (maybeAssetGraphic->mesh) {
-      rend_resource_request(world, maybeAssetGraphic->mesh, isPersistent);
+      rend_res_request(world, maybeAssetGraphic->mesh, isPersistent);
       rend_res_add_dependency(resComp, maybeAssetGraphic->mesh);
     }
 
     array_ptr_for_t(maybeAssetGraphic->samplers, AssetGraphicSampler, ptr) {
-      rend_resource_request(world, ptr->texture, isPersistent);
+      rend_res_request(world, ptr->texture, isPersistent);
       rend_res_add_dependency(resComp, ptr->texture);
     }
   }
@@ -293,7 +293,7 @@ static bool rend_res_dependencies_wait(EcsWorld* world, EcsIterator* resourceItr
       // Re-request the resource as it could have been in the process of being unloaded when we
       // requested it the first time.
       const bool isPersistent = (resComp->flags & RendResFlags_Persistent) != 0;
-      rend_resource_request(world, *dep, isPersistent);
+      rend_res_request(world, *dep, isPersistent);
       ready = false;
       continue;
     }
@@ -589,7 +589,7 @@ ecs_system_define(RendResUnloadUpdateSys) {
       ++unloadComp->state;
     } break;
     case RendResUnloadState_Destroy: {
-      rend_resource_teardown(world, resComp, entity);
+      rend_res_teardown(world, resComp, entity);
       ++unloadComp->state;
     } break;
     case RendResUnloadState_Done: {
@@ -672,7 +672,7 @@ usize rend_res_texture_data_size(const RendResTextureComp* comp) {
 
 i32 rend_res_render_order(const RendResGraphicComp* comp) { return comp->graphic->renderOrder; }
 
-bool rend_resource_request(EcsWorld* world, const EcsEntityId assetEntity, const bool persistent) {
+bool rend_res_request(EcsWorld* world, const EcsEntityId assetEntity, const bool persistent) {
   if (ecs_world_has_t(world, assetEntity, RendResUnloadComp)) {
     return false; // Asset is currently in the process of being unloaded.
   }
@@ -686,9 +686,9 @@ bool rend_resource_request(EcsWorld* world, const EcsEntityId assetEntity, const
   return true;
 }
 
-void rend_resource_mark_used(RendResComp* resComp) { resComp->flags |= RendResFlags_Used; }
+void rend_res_mark_used(RendResComp* resComp) { resComp->flags |= RendResFlags_Used; }
 
-void rend_resource_teardown(EcsWorld* world, const RendResComp* res, const EcsEntityId entity) {
+void rend_res_teardown(EcsWorld* world, const RendResComp* res, const EcsEntityId entity) {
   if (res->state > RendResLoadState_AssetAcquire && res->state < RendResLoadState_FinishedSuccess) {
     asset_release(world, entity);
   }
@@ -701,6 +701,6 @@ void rend_resource_teardown(EcsWorld* world, const RendResComp* res, const EcsEn
   ecs_utils_maybe_remove_t(world, entity, RendResTextureComp);
 }
 
-void rend_resource_teardown_global(EcsWorld* world) {
+void rend_res_teardown_global(EcsWorld* world) {
   ecs_utils_maybe_remove_t(world, ecs_world_global(world), RendGlobalResInitializedComp);
 }

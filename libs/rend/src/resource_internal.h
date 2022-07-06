@@ -29,13 +29,13 @@ ecs_comp_extern(RendResUnloadComp);
  * NOTE: Can fail if the resource is currently being unloaded.
  * Returns 'true' if the resource was successfully requested, otherwise false.
  */
-bool rend_resource_request(EcsWorld* world, EcsEntityId assetEntity, bool persistent);
+bool rend_res_request(EcsWorld* world, EcsEntityId assetEntity, bool persistent);
 
 /**
  * Mark this resource as in-use.
  * Resources that haven't been used for a while will be unloaded.
  */
-void rend_resource_mark_used(RendResComp*);
+void rend_res_mark_used(RendResComp*);
 
-void rend_resource_teardown(EcsWorld* world, const RendResComp*, EcsEntityId entity);
-void rend_resource_teardown_global(EcsWorld* world);
+void rend_res_teardown(EcsWorld* world, const RendResComp*, EcsEntityId entity);
+void rend_res_teardown_global(EcsWorld* world);

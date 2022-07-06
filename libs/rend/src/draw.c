@@ -128,12 +128,12 @@ static void rend_draw_request_graphic(
    * (so it won't be unloaded). If its not loaded then start loading it.
    */
   if (LIKELY(ecs_view_maybe_jump(graphicItr, entity))) {
-    rend_resource_mark_used(ecs_view_write_t(graphicItr, RendResComp));
+    rend_res_mark_used(ecs_view_write_t(graphicItr, RendResComp));
     return;
   }
   if (++*numRequests < rend_max_res_requests) {
     const bool isPersistent = false;
-    rend_resource_request(world, entity, isPersistent);
+    rend_res_request(world, entity, isPersistent);
   }
 }
 
