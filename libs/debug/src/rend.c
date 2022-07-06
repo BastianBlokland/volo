@@ -105,12 +105,19 @@ typedef struct {
   u32    dataSize, dataInstSize;
 } DebugDrawInfo;
 
+typedef enum {
+  DebugRendResFlags_IsLoading    = 1 << 0,
+  DebugRendResFlags_IsFailed     = 1 << 1,
+  DebugRendResFlags_IsUnused     = 1 << 2,
+  DebugRendResFlags_IsPersistent = 1 << 3,
+} DebugRendResFlags;
+
 typedef struct {
-  String           name;
-  DebugRendResType type;
-  bool             isLoading, isFailed, isUnused;
-  u64              ticksTillUnload;
-  usize            dataSize;
+  String            name;
+  DebugRendResType  type;
+  DebugRendResFlags flags;
+  u64               ticksTillUnload;
+  usize             dataSize;
 } DebugResourceInfo;
 
 ecs_comp_define(DebugRendPanelComp) {
@@ -482,12 +489,16 @@ static void rend_resource_info_query(DebugRendPanelComp* panelComp, EcsWorld* wo
         type     = DebugRendResType_Texture;
         dataSize = rend_res_texture_data_size(texture);
       }
+      DebugRendResFlags flags = 0;
+      flags |= rend_res_is_loading(resComp) ? DebugRendResFlags_IsLoading : 0;
+      flags |= rend_res_is_failed(resComp) ? DebugRendResFlags_IsFailed : 0;
+      flags |= rend_res_is_unused(resComp) ? DebugRendResFlags_IsUnused : 0;
+      flags |= rend_res_is_persistent(resComp) ? DebugRendResFlags_IsPersistent : 0;
+
       *dynarray_push_t(&panelComp->resources, DebugResourceInfo) = (DebugResourceInfo){
           .name            = name,
           .type            = type,
-          .isLoading       = rend_res_is_loading(resComp),
-          .isFailed        = rend_res_is_failed(resComp),
-          .isUnused        = rend_res_is_unused(resComp),
+          .flags           = flags,
           .ticksTillUnload = rend_res_ticks_until_unload(resComp),
           .dataSize        = dataSize,
       };
@@ -510,13 +521,13 @@ static void rend_resource_info_query(DebugRendPanelComp* panelComp, EcsWorld* wo
 }
 
 static UiColor rend_resource_bg_color(const DebugResourceInfo* resInfo) {
-  if (resInfo->isLoading) {
+  if (resInfo->flags & DebugRendResFlags_IsLoading) {
     return ui_color(16, 64, 64, 192);
   }
-  if (resInfo->isFailed) {
+  if (resInfo->flags & DebugRendResFlags_IsFailed) {
     return ui_color(64, 16, 16, 192);
   }
-  if (resInfo->isUnused) {
+  if (resInfo->flags & DebugRendResFlags_IsUnused) {
     return ui_color(16, 16, 64, 192);
   }
   return ui_color(48, 48, 48, 192);
@@ -531,7 +542,8 @@ static void rend_resource_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* pan
   ui_table_add_column(&table, UiTableColumn_Fixed, 250);
   ui_table_add_column(&table, UiTableColumn_Fixed, 75);
   ui_table_add_column(&table, UiTableColumn_Fixed, 125);
-  ui_table_add_column(&table, UiTableColumn_Flexible, 100);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_draw_header(
       canvas,
@@ -542,6 +554,7 @@ static void rend_resource_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* pan
           {string_lit("Unload delay"),
            string_lit("How many ticks until resource asset will be unloaded.")},
           {string_lit("Size"), string_lit("Data size of the resource.")},
+          {string_lit("Persistent"), string_lit("Is the resource persistent.")},
       });
 
   const u32 numResources = (u32)panelComp->resources.size;
@@ -558,13 +571,16 @@ static void rend_resource_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* pan
     ui_table_next_column(canvas, &table);
     ui_label(canvas, fmt_write_scratch("{}", fmt_text(g_resTypeNames[resInfo->type])));
     ui_table_next_column(canvas, &table);
-    if (resInfo->isUnused) {
+    if (resInfo->flags & DebugRendResFlags_IsUnused) {
       ui_label(canvas, fmt_write_scratch("{}", fmt_int(resInfo->ticksTillUnload)));
     }
     ui_table_next_column(canvas, &table);
     if (resInfo->dataSize) {
       ui_label(canvas, fmt_write_scratch("{}", fmt_size(resInfo->dataSize)));
     }
+    ui_table_next_column(canvas, &table);
+    const bool isPersistent = (resInfo->flags & DebugRendResFlags_IsPersistent) != 0;
+    ui_label(canvas, fmt_write_scratch("{}", fmt_bool(isPersistent)));
   }
   ui_canvas_id_block_next(canvas);
 

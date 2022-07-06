@@ -9,7 +9,8 @@ typedef struct sRvkDevice RvkDevice;
 typedef struct sRvkPass   RvkPass;
 
 typedef enum {
-  RvkMeshFlags_Ready = 1 << 0,
+  RvkMeshFlags_Ready   = 1 << 0,
+  RvkMeshFlags_Skinned = 1 << 1,
 } RvkMeshFlags;
 
 typedef struct sRvkMesh {
