@@ -56,8 +56,6 @@ ecs_comp_define_public(RendResShaderComp);
 ecs_comp_define_public(RendResMeshComp);
 ecs_comp_define_public(RendResTextureComp);
 
-ecs_comp_define(RendGlobalResInitializedComp);
-
 typedef enum {
   RendResFlags_None               = 0,
   RendResFlags_Used               = 1 << 0,
@@ -218,32 +216,47 @@ static bool rend_res_request_internal(
   return true;
 }
 
-ecs_view_define(GlobalResourceInitializeView) {
+ecs_comp_define(RendResGlobalInitializedComp);
+ecs_comp_define(RendResGlobalComp);
+
+ecs_view_define(GlobalResourceInitView) {
   ecs_access_write(AssetManagerComp);
-  ecs_access_without(RendGlobalResInitializedComp);
-  ecs_access_without(RendResetComp);
+  ecs_access_without(RendResGlobalInitializedComp);
 }
 
-/**
- * Initialize the global resources.
- */
-ecs_system_define(RendGlobalResourceInitSys) {
-  EcsIterator* globalItr = ecs_view_first(ecs_world_view_t(world, GlobalResourceInitializeView));
-  if (!globalItr) {
-    return;
-  }
-  AssetManagerComp* assetMan = ecs_view_write_t(globalItr, AssetManagerComp);
+ecs_view_define(GlobalResourceRequestView) {
+  ecs_access_with(RendResGlobalComp);
+  ecs_access_without(RendResComp);
+  ecs_access_read(AssetComp);
+}
 
-  array_for_t(g_rendResGlobal, RendResGlobalDef, res) {
-    const EcsEntityId assetEntity = asset_lookup(world, assetMan, res->assetId);
-    RendResFlags      flags       = RendResFlags_Persistent;
-    if (!res->reloadable) {
+ecs_system_define(RendGlobalResourceUpdateSys) {
+  if (ecs_world_has_t(world, ecs_world_global(world), RendResetComp)) {
+    return; // Renderer is in the process of being reset.
+  }
+
+  EcsIterator* initItr = ecs_view_first(ecs_world_view_t(world, GlobalResourceInitView));
+  if (initItr) {
+    // Add a 'RendResGlobalComp' component to all global resource assets.
+    AssetManagerComp* assetManager = ecs_view_write_t(initItr, AssetManagerComp);
+    array_for_t(g_rendResGlobal, RendResGlobalDef, def) {
+      const EcsEntityId assetEntity = asset_lookup(world, assetManager, def->assetId);
+      ecs_world_add_empty_t(world, assetEntity, RendResGlobalComp);
+    }
+    ecs_world_add_empty_t(world, ecs_view_entity(initItr), RendResGlobalInitializedComp);
+  }
+
+  // Request all global resources to be loaded if they are currently not.
+  EcsView* requestView = ecs_world_view_t(world, GlobalResourceRequestView);
+  for (EcsIterator* itr = ecs_view_itr(requestView); ecs_view_walk(itr);) {
+    const AssetComp*        assetComp = ecs_view_read_t(itr, AssetComp);
+    const RendResGlobalDef* def       = rend_res_global_lookup(asset_id(assetComp));
+    RendResFlags            flags     = RendResFlags_Persistent;
+    if (!def->reloadable) {
       flags |= RendResFlags_IgnoreAssetChanges;
     }
-    rend_res_request_internal(world, assetEntity, flags);
+    rend_res_request_internal(world, ecs_view_entity(itr), flags);
   }
-
-  ecs_world_add_empty_t(world, ecs_view_entity(globalItr), RendGlobalResInitializedComp);
 }
 
 ecs_view_define(ResLoadView) {
@@ -632,6 +645,7 @@ ecs_system_define(RendResUnloadUpdateSys) {
       const RendResGlobalDef* globalDef = rend_res_global_lookup(asset_id(assetComp));
       if (globalDef) {
         // Resource had a global definition; unregister it from the repository.
+        diag_assert(globalDef->reloadable); // Only reloadable global assets can be unloaded.
         rvk_repository_unset(device->repository, globalDef->repoId);
       }
 
@@ -654,11 +668,12 @@ ecs_module_init(rend_resource_module) {
   ecs_register_comp(RendResMeshComp, .destructor = ecs_destruct_mesh_comp, .destructOrder = 3);
   ecs_register_comp(
       RendResTextureComp, .destructor = ecs_destruct_texture_comp, .destructOrder = 4);
-  ecs_register_comp_empty(RendGlobalResInitializedComp);
   ecs_register_comp(
       RendResComp, .destructor = ecs_destruct_res_comp, .combinator = ecs_combine_resource);
   ecs_register_comp_empty(RendResFinishedComp);
   ecs_register_comp(RendResUnloadComp, .combinator = ecs_combine_resource_unload);
+  ecs_register_comp_empty(RendResGlobalInitializedComp);
+  ecs_register_comp_empty(RendResGlobalComp);
 
   ecs_register_view(PlatReadView);
   ecs_register_view(ResWriteView);
@@ -666,7 +681,10 @@ ecs_module_init(rend_resource_module) {
   ecs_register_view(MeshWriteView);
   ecs_register_view(TextureWriteView);
 
-  ecs_register_system(RendGlobalResourceInitSys, ecs_register_view(GlobalResourceInitializeView));
+  ecs_register_system(
+      RendGlobalResourceUpdateSys,
+      ecs_register_view(GlobalResourceInitView),
+      ecs_register_view(GlobalResourceRequestView));
 
   ecs_register_system(
       RendResLoadSys,
@@ -741,8 +759,4 @@ void rend_res_teardown(EcsWorld* world, const RendResComp* res, const EcsEntityI
   ecs_utils_maybe_remove_t(world, entity, RendResShaderComp);
   ecs_utils_maybe_remove_t(world, entity, RendResMeshComp);
   ecs_utils_maybe_remove_t(world, entity, RendResTextureComp);
-}
-
-void rend_res_teardown_global(EcsWorld* world) {
-  ecs_utils_maybe_remove_t(world, ecs_world_global(world), RendGlobalResInitializedComp);
 }

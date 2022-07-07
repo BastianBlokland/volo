@@ -38,4 +38,3 @@ bool rend_res_request(EcsWorld* world, EcsEntityId assetEntity);
 void rend_res_mark_used(RendResComp*);
 
 void rend_res_teardown(EcsWorld* world, const RendResComp*, EcsEntityId entity);
-void rend_res_teardown_global(EcsWorld* world);

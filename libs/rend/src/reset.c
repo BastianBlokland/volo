@@ -21,7 +21,6 @@ ecs_system_define(RendResetSys) {
   log_i("Resetting renderer");
 
   rend_platform_teardown(world);
-  rend_res_teardown_global(world);
 
   EcsView* painterView = ecs_world_view_t(world, PainterView);
   for (EcsIterator* itr = ecs_view_itr(painterView); ecs_view_walk(itr);) {
