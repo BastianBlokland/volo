@@ -21,7 +21,6 @@ ecs_system_define(RendResetSys) {
   log_i("Resetting renderer");
 
   rend_platform_teardown(world);
-  rend_resource_teardown_global(world);
 
   EcsView* painterView = ecs_world_view_t(world, PainterView);
   for (EcsIterator* itr = ecs_view_itr(painterView); ecs_view_walk(itr);) {
@@ -31,7 +30,7 @@ ecs_system_define(RendResetSys) {
   EcsView* resourceView = ecs_world_view_t(world, ResourceView);
   for (EcsIterator* itr = ecs_view_itr(resourceView); ecs_view_walk(itr);) {
     const RendResComp* rendRes = ecs_view_read_t(itr, RendResComp);
-    rend_resource_teardown(world, rendRes, ecs_view_entity(itr));
+    rend_res_teardown(world, rendRes, ecs_view_entity(itr));
   }
 
   ecs_world_remove_t(world, ecs_world_global(world), RendResetComp);

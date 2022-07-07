@@ -43,13 +43,28 @@ RvkRepository* rvk_repository_create() {
 void rvk_repository_destroy(RvkRepository* repo) { alloc_free_t(g_alloc_heap, repo); }
 
 void rvk_repository_texture_set(RvkRepository* repo, const RvkRepositoryId id, RvkTexture* tex) {
+  diag_assert(!repo->entries[id].type || repo->entries[id].type == RvkRepositoryType_Texture);
   repo->entries[id].type    = RvkRepositoryType_Texture;
   repo->entries[id].texture = tex;
 }
 
 void rvk_repository_graphic_set(RvkRepository* repo, const RvkRepositoryId id, RvkGraphic* gra) {
+  diag_assert(!repo->entries[id].type || repo->entries[id].type == RvkRepositoryType_Graphic);
   repo->entries[id].type    = RvkRepositoryType_Graphic;
   repo->entries[id].graphic = gra;
+}
+
+void rvk_repository_unset(RvkRepository* repo, const RvkRepositoryId id) {
+  switch (repo->entries[id].type) {
+  case RvkRepositoryType_Texture:
+    repo->entries[id].texture = null;
+    break;
+  case RvkRepositoryType_Graphic:
+    repo->entries[id].graphic = null;
+    break;
+  case RvkRepositoryType_None:
+    break;
+  }
 }
 
 RvkTexture* rvk_repository_texture_get(const RvkRepository* repo, const RvkRepositoryId id) {
