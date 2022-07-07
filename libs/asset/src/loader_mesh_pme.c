@@ -37,6 +37,7 @@ typedef enum {
   PmeType_Capsule,
   PmeType_Cone,
   PmeType_Cylinder,
+  PmeType_Hemisphere,
 } PmeType;
 
 typedef struct {
@@ -71,6 +72,7 @@ static void pme_datareg_init() {
     data_reg_const_t(g_dataReg, PmeType, Capsule);
     data_reg_const_t(g_dataReg, PmeType, Cone);
     data_reg_const_t(g_dataReg, PmeType, Cylinder);
+    data_reg_const_t(g_dataReg, PmeType, Hemisphere);
 
     data_reg_enum_t(g_dataReg, PmeAxis);
     data_reg_const_t(g_dataReg, PmeAxis, Up);
@@ -163,6 +165,8 @@ static u32 pme_max_verts(PmeDef* def) {
     return math_max(4, def->subdivisions) * 2 * 3;
   case PmeType_Cylinder:
     return math_max(4, def->subdivisions) * 4 * 3;
+  case PmeType_Hemisphere:
+    return (math_max(4, def->subdivisions) + 2) * (math_max(4, def->subdivisions) + 2) * 2;
   }
   diag_crash();
 }
@@ -443,6 +447,61 @@ static void pme_generate_cylinder(PmeGenerator* gen) {
   asset_mesh_compute_tangents(gen->builder);
 }
 
+static void pme_generate_hemisphere(PmeGenerator* gen) {
+  const u32 numSegsHor    = math_max(4, gen->def->subdivisions);
+  const u32 numSegsVer    = numSegsHor / 2;
+  const f32 segStepVer    = math_pi_f32 * 0.5f / numSegsVer;
+  const f32 segStepHor    = math_pi_f32 * 2.0f / numSegsHor;
+  const f32 invNumSegsHor = 1.0f / numSegsHor;
+  const f32 invNumSegsVer = 1.0f / numSegsVer;
+  const f32 radius        = 0.5f;
+
+  /**
+   * Generate 2 triangles on each segment (except for the first) and an additional bottom one.
+   * TODO: Pretty inefficient as we generate the same point 4 times (each of the quad corners).
+   */
+
+  for (u32 v = 0; v != numSegsVer; ++v) {
+    const f32 vAngleMax = math_pi_f32 * 0.5f - v * segStepVer;
+    const f32 vAngleMin = vAngleMax - segStepVer;
+
+    const f32 texYMin = 1.0f - (v + 1.0f) * invNumSegsVer;
+    const f32 texYMax = 1.0f - v * invNumSegsVer;
+
+    for (u32 h = 0; h != numSegsHor; ++h) {
+      const f32 hAngleMax = h * segStepHor;
+      const f32 hAngleMin = hAngleMax - segStepHor;
+
+      const GeoVector posA = pme_capsule_position(vAngleMin, hAngleMin, 0);
+      const GeoVector posB = pme_capsule_position(vAngleMax, hAngleMin, 0);
+      const GeoVector posC = pme_capsule_position(vAngleMax, hAngleMax, 0);
+      const GeoVector posD = pme_capsule_position(vAngleMin, hAngleMax, 0);
+
+      const f32 texXMin = h * invNumSegsHor;
+      const f32 texXMax = (h + 1.0f) * invNumSegsHor;
+
+      if (v) {
+        pme_push_vert_nrm(gen, geo_vector_mul(posC, radius), geo_vector(texXMax, texYMax), posC);
+        pme_push_vert_nrm(gen, geo_vector_mul(posB, radius), geo_vector(texXMin, texYMax), posB);
+        pme_push_vert_nrm(gen, geo_vector_mul(posA, radius), geo_vector(texXMin, texYMin), posA);
+      }
+      pme_push_vert_nrm(gen, geo_vector_mul(posD, radius), geo_vector(texXMax, texYMin), posD);
+      pme_push_vert_nrm(gen, geo_vector_mul(posC, radius), geo_vector(texXMax, texYMax), posC);
+      pme_push_vert_nrm(gen, geo_vector_mul(posA, radius), geo_vector(texXMin, texYMin), posA);
+
+      if (v == numSegsVer - 1) {
+        const GeoVector nrm = geo_backward;
+        pme_push_vert_nrm(gen, geo_vector(0), geo_vector((texXMin + texXMax) * 0.5f, texYMin), nrm);
+        pme_push_vert_nrm(gen, geo_vector_mul(posD, radius), geo_vector(texXMax, texYMin), nrm);
+        pme_push_vert_nrm(gen, geo_vector_mul(posA, radius), geo_vector(texXMin, texYMin), nrm);
+      }
+    }
+  }
+
+  // TODO: Compute the tangents directly instead of this separate pass.
+  asset_mesh_compute_tangents(gen->builder);
+}
+
 static void pme_generate(PmeGenerator* gen) {
   switch (gen->def->type) {
   case PmeType_Triangle:
@@ -463,6 +522,9 @@ static void pme_generate(PmeGenerator* gen) {
     break;
   case PmeType_Cylinder:
     pme_generate_cylinder(gen);
+    break;
+  case PmeType_Hemisphere:
+    pme_generate_hemisphere(gen);
     break;
   }
 }
