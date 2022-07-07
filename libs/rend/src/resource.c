@@ -22,6 +22,7 @@ static const u32 g_rendResUnloadUnusedAfterTicks = 480; // NOTE: Less then 2 is 
 typedef struct {
   RvkRepositoryId repoId;
   String          assetId;
+  bool            reloadable;
 } RendResGlobalDef;
 
 static const RendResGlobalDef g_rendResGlobal[] = {
@@ -34,16 +35,19 @@ static const RendResGlobalDef g_rendResGlobal[] = {
         .assetId = string_static("textures/missing_cube.atx"),
     },
     {
-        .repoId  = RvkRepositoryId_WireframeGraphic,
-        .assetId = string_static("graphics/wireframe.gra"),
+        .repoId     = RvkRepositoryId_WireframeGraphic,
+        .assetId    = string_static("graphics/wireframe.gra"),
+        .reloadable = true,
     },
     {
-        .repoId  = RvkRepositoryId_WireframeSkinnedGraphic,
-        .assetId = string_static("graphics/wireframe_skinned.gra"),
+        .repoId     = RvkRepositoryId_WireframeSkinnedGraphic,
+        .assetId    = string_static("graphics/wireframe_skinned.gra"),
+        .reloadable = true,
     },
     {
-        .repoId  = RvkRepositoryId_DebugSkinningGraphic,
-        .assetId = string_static("graphics/debug/debug_skinning.gra"),
+        .repoId     = RvkRepositoryId_DebugSkinningGraphic,
+        .assetId    = string_static("graphics/debug/debug_skinning.gra"),
+        .reloadable = true,
     },
 };
 
@@ -231,8 +235,11 @@ ecs_system_define(RendGlobalResourceInitSys) {
   AssetManagerComp* assetMan = ecs_view_write_t(globalItr, AssetManagerComp);
 
   array_for_t(g_rendResGlobal, RendResGlobalDef, res) {
-    const EcsEntityId  assetEntity = asset_lookup(world, assetMan, res->assetId);
-    const RendResFlags flags       = RendResFlags_Persistent | RendResFlags_IgnoreAssetChanges;
+    const EcsEntityId assetEntity = asset_lookup(world, assetMan, res->assetId);
+    RendResFlags      flags       = RendResFlags_Persistent;
+    if (!res->reloadable) {
+      flags |= RendResFlags_IgnoreAssetChanges;
+    }
     rend_res_request_internal(world, assetEntity, flags);
   }
 
@@ -443,21 +450,26 @@ static void rend_res_finished_failure(EcsWorld* world, EcsIterator* resourceItr)
   ecs_world_add_empty_t(world, entity, RendResFinishedComp);
 }
 
+static const RendPlatformComp* rend_res_platform(EcsWorld* world) {
+  EcsView*     view = ecs_world_view_t(world, PlatReadView);
+  EcsIterator* itr  = ecs_view_maybe_at(view, ecs_world_global(world));
+  return itr ? ecs_view_read_t(itr, RendPlatformComp) : null;
+}
+
 /**
  * Update all active resource loads.
  */
 ecs_system_define(RendResLoadSys) {
-  EcsView*     globalView = ecs_world_view_t(world, PlatReadView);
-  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  if (!globalItr) {
+  const RendPlatformComp* platform = rend_res_platform(world);
+  if (!platform) {
     return;
   }
-  const RendPlatformComp* plat   = ecs_view_read_t(globalItr, RendPlatformComp);
-  RvkDevice*              device = plat->device;
   /**
    * NOTE: We're getting a mutable RvkDevice pointer from a read-access on RendPlatformComp. This
    * means we have to make sure that all api's we use from RvkDevice are actually thread-safe.
    */
+  RvkDevice* device = platform->device;
+
   EcsView* resourceView = ecs_world_view_t(world, ResLoadView);
   for (EcsIterator* itr = ecs_view_itr(resourceView); ecs_view_walk(itr);) {
     RendResComp* resComp = ecs_view_write_t(itr, RendResComp);
@@ -565,6 +577,7 @@ ecs_system_define(RendResUnloadChangedSys) {
 
 ecs_view_define(UnloadUpdateView) {
   ecs_access_read(RendResComp);
+  ecs_access_read(AssetComp);
   ecs_access_write(RendResUnloadComp);
 }
 
@@ -572,6 +585,16 @@ ecs_view_define(UnloadUpdateView) {
  * Update all active resource unloads.
  */
 ecs_system_define(RendResUnloadUpdateSys) {
+  const RendPlatformComp* platform = rend_res_platform(world);
+  if (!platform) {
+    return;
+  }
+  /**
+   * NOTE: We're getting a mutable RvkDevice pointer from a read-access on RendPlatformComp. This
+   * means we have to make sure that all api's we use from RvkDevice are actually thread-safe.
+   */
+  RvkDevice* device = platform->device;
+
   EcsView* unloadView = ecs_world_view_t(world, UnloadUpdateView);
 
   EcsView*     otherResView = ecs_world_view_t(world, ResWriteView);
@@ -580,6 +603,7 @@ ecs_system_define(RendResUnloadUpdateSys) {
   for (EcsIterator* itr = ecs_view_itr(unloadView); ecs_view_walk(itr);) {
     const EcsEntityId  entity     = ecs_view_entity(itr);
     const RendResComp* resComp    = ecs_view_read_t(itr, RendResComp);
+    const AssetComp*   assetComp  = ecs_view_read_t(itr, AssetComp);
     RendResUnloadComp* unloadComp = ecs_view_write_t(itr, RendResUnloadComp);
     switch (unloadComp->state) {
     case RendResUnloadState_UnloadDependents: {
@@ -604,6 +628,13 @@ ecs_system_define(RendResUnloadUpdateSys) {
           rend_res_remove_dependent(dependencyRes, *dependency);
         }
       }
+
+      const RendResGlobalDef* globalDef = rend_res_global_lookup(asset_id(assetComp));
+      if (globalDef) {
+        // Resource had a global definition; unregister it from the repository.
+        rvk_repository_unset(device->repository, globalDef->repoId);
+      }
+
       ++unloadComp->state;
     } break;
     case RendResUnloadState_Destroy: {
@@ -651,7 +682,10 @@ ecs_module_init(rend_resource_module) {
   ecs_register_system(RendResUnloadChangedSys, ecs_register_view(UnloadChangedView));
 
   ecs_register_system(
-      RendResUnloadUpdateSys, ecs_register_view(UnloadUpdateView), ecs_view_id(ResWriteView));
+      RendResUnloadUpdateSys,
+      ecs_view_id(PlatReadView),
+      ecs_register_view(UnloadUpdateView),
+      ecs_view_id(ResWriteView));
 
   ecs_order(RendResUnloadUnusedSys, RendOrder_DrawExecute + 1);
 }
