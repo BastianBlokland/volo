@@ -52,6 +52,7 @@ typedef struct {
   f32        length;
   f32        scaleX, scaleY, scaleZ;
   f32        offsetX, offsetY, offsetZ;
+  bool       uncapped;
   PmeBounds* bounds;
 } PmeDef;
 
@@ -101,6 +102,7 @@ static void pme_datareg_init() {
     data_reg_field_t(g_dataReg, PmeDef, offsetX, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, PmeDef, offsetY, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, PmeDef, offsetZ, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, PmeDef, uncapped, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, PmeDef, bounds, t_PmeBounds, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
     // clang-format on
 
@@ -387,10 +389,12 @@ static void pme_generate_cone(PmeGenerator* gen) {
     pme_push_vert_nrm(gen, geo_vector(0, 0, 0.5f), topTex, topNrm);
     pme_push_vert_nrm(gen, geo_vector_mul(leftPos, radius), leftTex, leftNrm);
 
-    // Add bottom triangle.
-    pme_push_vert_nrm(gen, geo_vector(0, 0, -0.5f), topTex, geo_backward);
-    pme_push_vert_nrm(gen, geo_vector_mul(rightPos, radius), rightTex, geo_backward);
-    pme_push_vert_nrm(gen, geo_vector_mul(leftPos, radius), leftTex, geo_backward);
+    if (!gen->def->uncapped) {
+      // Add bottom triangle.
+      pme_push_vert_nrm(gen, geo_vector(0, 0, -0.5f), topTex, geo_backward);
+      pme_push_vert_nrm(gen, geo_vector_mul(rightPos, radius), rightTex, geo_backward);
+      pme_push_vert_nrm(gen, geo_vector_mul(leftPos, radius), leftTex, geo_backward);
+    }
   }
 
   // TODO: Compute the tangents directly instead of this separate pass.
@@ -430,17 +434,19 @@ static void pme_generate_cylinder(PmeGenerator* gen) {
     pme_push_vert_nrm(gen, geo_vector_mul(rightTopPos, radius), rightTopTex, rightNrm);
     pme_push_vert_nrm(gen, geo_vector_mul(leftTopPos, radius), leftTopTex, leftNrm);
 
-    // Add top triangle.
-    const GeoVector centerTopTex = {(leftTopTex.x + rightTopTex.x) * 0.5f, 1};
-    pme_push_vert_nrm(gen, geo_vector_mul(rightTopPos, radius), rightTopTex, geo_forward);
-    pme_push_vert_nrm(gen, geo_vector(0, 0, 0.5f), centerTopTex, geo_forward);
-    pme_push_vert_nrm(gen, geo_vector_mul(leftTopPos, radius), leftTopTex, geo_forward);
+    if (!gen->def->uncapped) {
+      // Add top triangle.
+      const GeoVector centerTopTex = {(leftTopTex.x + rightTopTex.x) * 0.5f, 1};
+      pme_push_vert_nrm(gen, geo_vector_mul(rightTopPos, radius), rightTopTex, geo_forward);
+      pme_push_vert_nrm(gen, geo_vector(0, 0, 0.5f), centerTopTex, geo_forward);
+      pme_push_vert_nrm(gen, geo_vector_mul(leftTopPos, radius), leftTopTex, geo_forward);
 
-    // Add bottom triangle.
-    const GeoVector centerBottomTex = {(leftBottomTex.x + rightBottomTex.x) * 0.5f, 0};
-    pme_push_vert_nrm(gen, geo_vector(0, 0, -0.5f), centerBottomTex, geo_backward);
-    pme_push_vert_nrm(gen, geo_vector_mul(rightBottomPos, radius), rightBottomTex, geo_backward);
-    pme_push_vert_nrm(gen, geo_vector_mul(leftBottomPos, radius), leftBottomTex, geo_backward);
+      // Add bottom triangle.
+      const GeoVector centerBottomTex = {(leftBottomTex.x + rightBottomTex.x) * 0.5f, 0};
+      pme_push_vert_nrm(gen, geo_vector(0, 0, -0.5f), centerBottomTex, geo_backward);
+      pme_push_vert_nrm(gen, geo_vector_mul(rightBottomPos, radius), rightBottomTex, geo_backward);
+      pme_push_vert_nrm(gen, geo_vector_mul(leftBottomPos, radius), leftBottomTex, geo_backward);
+    }
   }
 
   // TODO: Compute the tangents directly instead of this separate pass.
@@ -489,7 +495,8 @@ static void pme_generate_hemisphere(PmeGenerator* gen) {
       pme_push_vert_nrm(gen, geo_vector_mul(posC, radius), geo_vector(texXMax, texYMax), posC);
       pme_push_vert_nrm(gen, geo_vector_mul(posA, radius), geo_vector(texXMin, texYMin), posA);
 
-      if (v == numSegsVer - 1) {
+      if ((v == numSegsVer - 1) && !gen->def->uncapped) {
+        // Add bottom triangle.
         const GeoVector nrm = geo_backward;
         pme_push_vert_nrm(gen, geo_vector(0), geo_vector((texXMin + texXMax) * 0.5f, texYMin), nrm);
         pme_push_vert_nrm(gen, geo_vector_mul(posD, radius), geo_vector(texXMax, texYMin), nrm);
