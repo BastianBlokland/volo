@@ -55,9 +55,10 @@ ecs_comp_define_public(RendResTextureComp);
 ecs_comp_define(RendGlobalResInitializedComp);
 
 typedef enum {
-  RendResFlags_None       = 0,
-  RendResFlags_Used       = 1 << 0,
-  RendResFlags_Persistent = 1 << 1, // Persistent assets cannot be unloaded.
+  RendResFlags_None               = 0,
+  RendResFlags_Used               = 1 << 0,
+  RendResFlags_Persistent         = 1 << 1, // Always considered in-use.
+  RendResFlags_IgnoreAssetChanges = 1 << 2, // Don't unload when the backend asset changes.
 } RendResFlags;
 
 typedef enum {
@@ -230,8 +231,9 @@ ecs_system_define(RendGlobalResourceInitSys) {
   AssetManagerComp* assetMan = ecs_view_write_t(globalItr, AssetManagerComp);
 
   array_for_t(g_rendResGlobal, RendResGlobalDef, res) {
-    const EcsEntityId assetEntity = asset_lookup(world, assetMan, res->assetId);
-    rend_res_request_internal(world, assetEntity, RendResFlags_Persistent);
+    const EcsEntityId  assetEntity = asset_lookup(world, assetMan, res->assetId);
+    const RendResFlags flags       = RendResFlags_Persistent | RendResFlags_IgnoreAssetChanges;
+    rend_res_request_internal(world, assetEntity, flags);
   }
 
   ecs_world_add_empty_t(world, ecs_view_entity(globalItr), RendGlobalResInitializedComp);
@@ -552,8 +554,8 @@ ecs_system_define(RendResUnloadChangedSys) {
   EcsView* changedAssetsView = ecs_world_view_t(world, UnloadChangedView);
   for (EcsIterator* itr = ecs_view_itr(changedAssetsView); ecs_view_walk(itr);) {
     const String id = asset_id(ecs_view_read_t(itr, AssetComp));
-    if (rend_res_is_persistent(ecs_view_read_t(itr, RendResComp))) {
-      continue; // Persistent resources cannot be unloaded.
+    if (ecs_view_read_t(itr, RendResComp)->flags & RendResFlags_IgnoreAssetChanges) {
+      continue;
     }
     log_i("Unloading resource due to changed asset", log_param("id", fmt_text(id)));
     ecs_world_add_t(
