@@ -1,0 +1,18 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/debug/shape_mesh.vert.spv"
+    },
+    {
+      "shaderId": "shaders/debug/shape.frag.spv"
+    }
+  ],
+  "meshId": "meshes/debug/shape_hemisphere_uncapped.pme",
+  "renderOrder": 52,
+  "topology": "Triangles",
+  "rasterizer": "Lines",
+  "lineWidth": 1,
+  "blend": "Alpha",
+  "depth": "Always",
+  "cull": "None"
+}

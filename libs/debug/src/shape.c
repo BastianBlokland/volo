@@ -24,6 +24,11 @@ typedef enum {
   DebugShapeType_SphereWire    = DebugShapeType_Sphere + DebugShape_Wire,
   DebugShapeType_SphereOverlay = DebugShapeType_Sphere + DebugShape_Overlay,
 
+  DebugShapeType_HemisphereUncapped,
+  DebugShapeType_HemisphereUncappedFill    = DebugShapeType_HemisphereUncapped + DebugShape_Fill,
+  DebugShapeType_HemisphereUncappedWire    = DebugShapeType_HemisphereUncapped + DebugShape_Wire,
+  DebugShapeType_HemisphereUncappedOverlay = DebugShapeType_HemisphereUncapped + DebugShape_Overlay,
+
   DebugShapeType_Cylinder,
   DebugShapeType_CylinderFill    = DebugShapeType_Cylinder + DebugShape_Fill,
   DebugShapeType_CylinderWire    = DebugShapeType_Cylinder + DebugShape_Wire,
@@ -61,6 +66,7 @@ typedef struct {
 
 typedef struct {
   GeoVector pos;
+  GeoQuat   rot;
   f32       radius;
   GeoColor  color;
 } DebugShapeSphere;
@@ -94,31 +100,36 @@ typedef struct {
   };
 } DebugShape;
 
+// clang-format off
 #define shape_graphic(_SHAPE_, _GRAPHIC_) [DebugShapeType_##_SHAPE_] = string_static(_GRAPHIC_)
 
 static const String g_debugGraphics[DebugShapeType_Count] = {
-    shape_graphic(BoxFill, "graphics/debug/shape_box_fill.gra"),
-    shape_graphic(BoxWire, "graphics/debug/shape_box_wire.gra"),
-    shape_graphic(BoxOverlay, "graphics/debug/shape_box_overlay.gra"),
-    shape_graphic(QuadFill, "graphics/debug/shape_quad_fill.gra"),
-    shape_graphic(QuadWire, "graphics/debug/shape_quad_wire.gra"),
-    shape_graphic(QuadOverlay, "graphics/debug/shape_quad_overlay.gra"),
-    shape_graphic(SphereFill, "graphics/debug/shape_sphere_fill.gra"),
-    shape_graphic(SphereWire, "graphics/debug/shape_sphere_wire.gra"),
-    shape_graphic(SphereOverlay, "graphics/debug/shape_sphere_overlay.gra"),
-    shape_graphic(CylinderFill, "graphics/debug/shape_cylinder_fill.gra"),
-    shape_graphic(CylinderWire, "graphics/debug/shape_cylinder_wire.gra"),
-    shape_graphic(CylinderOverlay, "graphics/debug/shape_cylinder_overlay.gra"),
-    shape_graphic(CylinderUncappedFill, "graphics/debug/shape_cylinder_uncapped_fill.gra"),
-    shape_graphic(CylinderUncappedWire, "graphics/debug/shape_cylinder_uncapped_wire.gra"),
-    shape_graphic(CylinderUncappedOverlay, "graphics/debug/shape_cylinder_uncapped_overlay.gra"),
-    shape_graphic(ConeFill, "graphics/debug/shape_cone_fill.gra"),
-    shape_graphic(ConeWire, "graphics/debug/shape_cone_wire.gra"),
-    shape_graphic(ConeOverlay, "graphics/debug/shape_cone_overlay.gra"),
-    shape_graphic(LineOverlay, "graphics/debug/shape_line_overlay.gra"),
+    shape_graphic(BoxFill,                    "graphics/debug/shape_box_fill.gra"),
+    shape_graphic(BoxWire,                    "graphics/debug/shape_box_wire.gra"),
+    shape_graphic(BoxOverlay,                 "graphics/debug/shape_box_overlay.gra"),
+    shape_graphic(QuadFill,                   "graphics/debug/shape_quad_fill.gra"),
+    shape_graphic(QuadWire,                   "graphics/debug/shape_quad_wire.gra"),
+    shape_graphic(QuadOverlay,                "graphics/debug/shape_quad_overlay.gra"),
+    shape_graphic(SphereFill,                 "graphics/debug/shape_sphere_fill.gra"),
+    shape_graphic(SphereWire,                 "graphics/debug/shape_sphere_wire.gra"),
+    shape_graphic(SphereOverlay,              "graphics/debug/shape_sphere_overlay.gra"),
+    shape_graphic(HemisphereUncappedFill,     "graphics/debug/shape_hemisphere_uncapped_fill.gra"),
+    shape_graphic(HemisphereUncappedWire,     "graphics/debug/shape_hemisphere_uncapped_wire.gra"),
+    shape_graphic(HemisphereUncappedOverlay,  "graphics/debug/shape_hemisphere_uncapped_overlay.gra"),
+    shape_graphic(CylinderFill,               "graphics/debug/shape_cylinder_fill.gra"),
+    shape_graphic(CylinderWire,               "graphics/debug/shape_cylinder_wire.gra"),
+    shape_graphic(CylinderOverlay,            "graphics/debug/shape_cylinder_overlay.gra"),
+    shape_graphic(CylinderUncappedFill,       "graphics/debug/shape_cylinder_uncapped_fill.gra"),
+    shape_graphic(CylinderUncappedWire,       "graphics/debug/shape_cylinder_uncapped_wire.gra"),
+    shape_graphic(CylinderUncappedOverlay,    "graphics/debug/shape_cylinder_uncapped_overlay.gra"),
+    shape_graphic(ConeFill,                   "graphics/debug/shape_cone_fill.gra"),
+    shape_graphic(ConeWire,                   "graphics/debug/shape_cone_wire.gra"),
+    shape_graphic(ConeOverlay,                "graphics/debug/shape_cone_overlay.gra"),
+    shape_graphic(LineOverlay,                "graphics/debug/shape_line_overlay.gra"),
 };
 
 #undef shape_graphic
+// clang-format on
 
 ecs_comp_define(DebugShapeRendererComp) { EcsEntityId drawEntities[DebugShapeType_Count]; };
 
@@ -249,7 +260,10 @@ ecs_system_define(DebugShapeRenderSys) {
       }
       case DebugShapeType_SphereFill:
       case DebugShapeType_SphereWire:
-      case DebugShapeType_SphereOverlay: {
+      case DebugShapeType_SphereOverlay:
+      case DebugShapeType_HemisphereUncappedFill:
+      case DebugShapeType_HemisphereUncappedWire:
+      case DebugShapeType_HemisphereUncappedOverlay: {
         const GeoVector pos    = entry->data_sphere.pos;
         const f32       radius = entry->data_sphere.radius;
         if (UNLIKELY(radius < f32_epsilon)) {
@@ -257,7 +271,7 @@ ecs_system_define(DebugShapeRenderSys) {
         }
         const DrawMeshData data = {
             .pos   = pos,
-            .rot   = geo_quat_ident,
+            .rot   = entry->data_sphere.rot,
             .scale = geo_vector(radius, radius, radius),
             .color = entry->data_sphere.color,
         };
