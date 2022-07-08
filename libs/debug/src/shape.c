@@ -29,6 +29,11 @@ typedef enum {
   DebugShapeType_CylinderWire    = DebugShapeType_Cylinder + DebugShape_Wire,
   DebugShapeType_CylinderOverlay = DebugShapeType_Cylinder + DebugShape_Overlay,
 
+  DebugShapeType_CylinderUncapped,
+  DebugShapeType_CylinderUncappedFill    = DebugShapeType_CylinderUncapped + DebugShape_Fill,
+  DebugShapeType_CylinderUncappedWire    = DebugShapeType_CylinderUncapped + DebugShape_Wire,
+  DebugShapeType_CylinderUncappedOverlay = DebugShapeType_CylinderUncapped + DebugShape_Overlay,
+
   DebugShapeType_Cone,
   DebugShapeType_ConeFill    = DebugShapeType_Cone + DebugShape_Fill,
   DebugShapeType_ConeWire    = DebugShapeType_Cone + DebugShape_Wire,
@@ -89,24 +94,31 @@ typedef struct {
   };
 } DebugShape;
 
+#define shape_graphic(_SHAPE_, _GRAPHIC_) [DebugShapeType_##_SHAPE_] = string_static(_GRAPHIC_)
+
 static const String g_debugGraphics[DebugShapeType_Count] = {
-    [DebugShapeType_BoxFill]         = string_static("graphics/debug/shape_box_fill.gra"),
-    [DebugShapeType_BoxWire]         = string_static("graphics/debug/shape_box_wire.gra"),
-    [DebugShapeType_BoxOverlay]      = string_static("graphics/debug/shape_box_overlay.gra"),
-    [DebugShapeType_QuadFill]        = string_static("graphics/debug/shape_quad_fill.gra"),
-    [DebugShapeType_QuadWire]        = string_static("graphics/debug/shape_quad_wire.gra"),
-    [DebugShapeType_QuadOverlay]     = string_static("graphics/debug/shape_quad_overlay.gra"),
-    [DebugShapeType_SphereFill]      = string_static("graphics/debug/shape_sphere_fill.gra"),
-    [DebugShapeType_SphereWire]      = string_static("graphics/debug/shape_sphere_wire.gra"),
-    [DebugShapeType_SphereOverlay]   = string_static("graphics/debug/shape_sphere_overlay.gra"),
-    [DebugShapeType_CylinderFill]    = string_static("graphics/debug/shape_cylinder_fill.gra"),
-    [DebugShapeType_CylinderWire]    = string_static("graphics/debug/shape_cylinder_wire.gra"),
-    [DebugShapeType_CylinderOverlay] = string_static("graphics/debug/shape_cylinder_overlay.gra"),
-    [DebugShapeType_ConeFill]        = string_static("graphics/debug/shape_cone_fill.gra"),
-    [DebugShapeType_ConeWire]        = string_static("graphics/debug/shape_cone_wire.gra"),
-    [DebugShapeType_ConeOverlay]     = string_static("graphics/debug/shape_cone_overlay.gra"),
-    [DebugShapeType_LineOverlay]     = string_static("graphics/debug/shape_line_overlay.gra"),
+    shape_graphic(BoxFill, "graphics/debug/shape_box_fill.gra"),
+    shape_graphic(BoxWire, "graphics/debug/shape_box_wire.gra"),
+    shape_graphic(BoxOverlay, "graphics/debug/shape_box_overlay.gra"),
+    shape_graphic(QuadFill, "graphics/debug/shape_quad_fill.gra"),
+    shape_graphic(QuadWire, "graphics/debug/shape_quad_wire.gra"),
+    shape_graphic(QuadOverlay, "graphics/debug/shape_quad_overlay.gra"),
+    shape_graphic(SphereFill, "graphics/debug/shape_sphere_fill.gra"),
+    shape_graphic(SphereWire, "graphics/debug/shape_sphere_wire.gra"),
+    shape_graphic(SphereOverlay, "graphics/debug/shape_sphere_overlay.gra"),
+    shape_graphic(CylinderFill, "graphics/debug/shape_cylinder_fill.gra"),
+    shape_graphic(CylinderWire, "graphics/debug/shape_cylinder_wire.gra"),
+    shape_graphic(CylinderOverlay, "graphics/debug/shape_cylinder_overlay.gra"),
+    shape_graphic(CylinderUncappedFill, "graphics/debug/shape_cylinder_uncapped_fill.gra"),
+    shape_graphic(CylinderUncappedWire, "graphics/debug/shape_cylinder_uncapped_wire.gra"),
+    shape_graphic(CylinderUncappedOverlay, "graphics/debug/shape_cylinder_uncapped_overlay.gra"),
+    shape_graphic(ConeFill, "graphics/debug/shape_cone_fill.gra"),
+    shape_graphic(ConeWire, "graphics/debug/shape_cone_wire.gra"),
+    shape_graphic(ConeOverlay, "graphics/debug/shape_cone_overlay.gra"),
+    shape_graphic(LineOverlay, "graphics/debug/shape_line_overlay.gra"),
 };
+
+#undef shape_graphic
 
 ecs_comp_define(DebugShapeRendererComp) { EcsEntityId drawEntities[DebugShapeType_Count]; };
 
@@ -255,7 +267,10 @@ ecs_system_define(DebugShapeRenderSys) {
       }
       case DebugShapeType_CylinderFill:
       case DebugShapeType_CylinderWire:
-      case DebugShapeType_CylinderOverlay: {
+      case DebugShapeType_CylinderOverlay:
+      case DebugShapeType_CylinderUncappedFill:
+      case DebugShapeType_CylinderUncappedWire:
+      case DebugShapeType_CylinderUncappedOverlay: {
         const GeoVector bottom = entry->data_cylinder.bottom;
         const GeoVector top    = entry->data_cylinder.top;
         const GeoVector toTop  = geo_vector_sub(top, bottom);
