@@ -1,0 +1,13 @@
+{
+  "type": "Cylinder",
+  "axis": "Forward",
+  "subdivisions": 8,
+  "uncapped": true,
+  "length": 1,
+  "scaleX": 2,
+  "scaleY": 2,
+  "scaleZ": 1,
+  "offsetX": 0,
+  "offsetY": 0,
+  "offsetZ": 0.5
+}

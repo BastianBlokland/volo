@@ -37,6 +37,7 @@ typedef enum {
   PmeType_Capsule,
   PmeType_Cone,
   PmeType_Cylinder,
+  PmeType_Hemisphere,
 } PmeType;
 
 typedef struct {
@@ -51,6 +52,7 @@ typedef struct {
   f32        length;
   f32        scaleX, scaleY, scaleZ;
   f32        offsetX, offsetY, offsetZ;
+  bool       uncapped;
   PmeBounds* bounds;
 } PmeDef;
 
@@ -71,6 +73,7 @@ static void pme_datareg_init() {
     data_reg_const_t(g_dataReg, PmeType, Capsule);
     data_reg_const_t(g_dataReg, PmeType, Cone);
     data_reg_const_t(g_dataReg, PmeType, Cylinder);
+    data_reg_const_t(g_dataReg, PmeType, Hemisphere);
 
     data_reg_enum_t(g_dataReg, PmeAxis);
     data_reg_const_t(g_dataReg, PmeAxis, Up);
@@ -99,6 +102,7 @@ static void pme_datareg_init() {
     data_reg_field_t(g_dataReg, PmeDef, offsetX, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, PmeDef, offsetY, data_prim_t(f32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, PmeDef, offsetZ, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, PmeDef, uncapped, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, PmeDef, bounds, t_PmeBounds, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
     // clang-format on
 
@@ -163,6 +167,8 @@ static u32 pme_max_verts(PmeDef* def) {
     return math_max(4, def->subdivisions) * 2 * 3;
   case PmeType_Cylinder:
     return math_max(4, def->subdivisions) * 4 * 3;
+  case PmeType_Hemisphere:
+    return (math_max(4, def->subdivisions) + 2) * (math_max(4, def->subdivisions) + 2) * 2;
   }
   diag_crash();
 }
@@ -383,10 +389,12 @@ static void pme_generate_cone(PmeGenerator* gen) {
     pme_push_vert_nrm(gen, geo_vector(0, 0, 0.5f), topTex, topNrm);
     pme_push_vert_nrm(gen, geo_vector_mul(leftPos, radius), leftTex, leftNrm);
 
-    // Add bottom triangle.
-    pme_push_vert_nrm(gen, geo_vector(0, 0, -0.5f), topTex, geo_backward);
-    pme_push_vert_nrm(gen, geo_vector_mul(rightPos, radius), rightTex, geo_backward);
-    pme_push_vert_nrm(gen, geo_vector_mul(leftPos, radius), leftTex, geo_backward);
+    if (!gen->def->uncapped) {
+      // Add bottom triangle.
+      pme_push_vert_nrm(gen, geo_vector(0, 0, -0.5f), topTex, geo_backward);
+      pme_push_vert_nrm(gen, geo_vector_mul(rightPos, radius), rightTex, geo_backward);
+      pme_push_vert_nrm(gen, geo_vector_mul(leftPos, radius), leftTex, geo_backward);
+    }
   }
 
   // TODO: Compute the tangents directly instead of this separate pass.
@@ -426,17 +434,75 @@ static void pme_generate_cylinder(PmeGenerator* gen) {
     pme_push_vert_nrm(gen, geo_vector_mul(rightTopPos, radius), rightTopTex, rightNrm);
     pme_push_vert_nrm(gen, geo_vector_mul(leftTopPos, radius), leftTopTex, leftNrm);
 
-    // Add top triangle.
-    const GeoVector centerTopTex = {(leftTopTex.x + rightTopTex.x) * 0.5f, 1};
-    pme_push_vert_nrm(gen, geo_vector_mul(rightTopPos, radius), rightTopTex, geo_forward);
-    pme_push_vert_nrm(gen, geo_vector(0, 0, 0.5f), centerTopTex, geo_forward);
-    pme_push_vert_nrm(gen, geo_vector_mul(leftTopPos, radius), leftTopTex, geo_forward);
+    if (!gen->def->uncapped) {
+      // Add top triangle.
+      const GeoVector centerTopTex = {(leftTopTex.x + rightTopTex.x) * 0.5f, 1};
+      pme_push_vert_nrm(gen, geo_vector_mul(rightTopPos, radius), rightTopTex, geo_forward);
+      pme_push_vert_nrm(gen, geo_vector(0, 0, 0.5f), centerTopTex, geo_forward);
+      pme_push_vert_nrm(gen, geo_vector_mul(leftTopPos, radius), leftTopTex, geo_forward);
 
-    // Add bottom triangle.
-    const GeoVector centerBottomTex = {(leftBottomTex.x + rightBottomTex.x) * 0.5f, 0};
-    pme_push_vert_nrm(gen, geo_vector(0, 0, -0.5f), centerBottomTex, geo_backward);
-    pme_push_vert_nrm(gen, geo_vector_mul(rightBottomPos, radius), rightBottomTex, geo_backward);
-    pme_push_vert_nrm(gen, geo_vector_mul(leftBottomPos, radius), leftBottomTex, geo_backward);
+      // Add bottom triangle.
+      const GeoVector centerBottomTex = {(leftBottomTex.x + rightBottomTex.x) * 0.5f, 0};
+      pme_push_vert_nrm(gen, geo_vector(0, 0, -0.5f), centerBottomTex, geo_backward);
+      pme_push_vert_nrm(gen, geo_vector_mul(rightBottomPos, radius), rightBottomTex, geo_backward);
+      pme_push_vert_nrm(gen, geo_vector_mul(leftBottomPos, radius), leftBottomTex, geo_backward);
+    }
+  }
+
+  // TODO: Compute the tangents directly instead of this separate pass.
+  asset_mesh_compute_tangents(gen->builder);
+}
+
+static void pme_generate_hemisphere(PmeGenerator* gen) {
+  const u32 numSegsHor    = math_max(4, gen->def->subdivisions);
+  const u32 numSegsVer    = numSegsHor / 2;
+  const f32 segStepVer    = math_pi_f32 * 0.5f / numSegsVer;
+  const f32 segStepHor    = math_pi_f32 * 2.0f / numSegsHor;
+  const f32 invNumSegsHor = 1.0f / numSegsHor;
+  const f32 invNumSegsVer = 1.0f / numSegsVer;
+  const f32 radius        = 0.5f;
+
+  /**
+   * Generate 2 triangles on each segment (except for the first) and an additional bottom one.
+   * TODO: Pretty inefficient as we generate the same point 4 times (each of the quad corners).
+   */
+
+  for (u32 v = 0; v != numSegsVer; ++v) {
+    const f32 vAngleMax = math_pi_f32 * 0.5f - v * segStepVer;
+    const f32 vAngleMin = vAngleMax - segStepVer;
+
+    const f32 texYMin = 1.0f - (v + 1.0f) * invNumSegsVer;
+    const f32 texYMax = 1.0f - v * invNumSegsVer;
+
+    for (u32 h = 0; h != numSegsHor; ++h) {
+      const f32 hAngleMax = h * segStepHor;
+      const f32 hAngleMin = hAngleMax - segStepHor;
+
+      const GeoVector posA = pme_capsule_position(vAngleMin, hAngleMin, 0);
+      const GeoVector posB = pme_capsule_position(vAngleMax, hAngleMin, 0);
+      const GeoVector posC = pme_capsule_position(vAngleMax, hAngleMax, 0);
+      const GeoVector posD = pme_capsule_position(vAngleMin, hAngleMax, 0);
+
+      const f32 texXMin = h * invNumSegsHor;
+      const f32 texXMax = (h + 1.0f) * invNumSegsHor;
+
+      if (v) {
+        pme_push_vert_nrm(gen, geo_vector_mul(posC, radius), geo_vector(texXMax, texYMax), posC);
+        pme_push_vert_nrm(gen, geo_vector_mul(posB, radius), geo_vector(texXMin, texYMax), posB);
+        pme_push_vert_nrm(gen, geo_vector_mul(posA, radius), geo_vector(texXMin, texYMin), posA);
+      }
+      pme_push_vert_nrm(gen, geo_vector_mul(posD, radius), geo_vector(texXMax, texYMin), posD);
+      pme_push_vert_nrm(gen, geo_vector_mul(posC, radius), geo_vector(texXMax, texYMax), posC);
+      pme_push_vert_nrm(gen, geo_vector_mul(posA, radius), geo_vector(texXMin, texYMin), posA);
+
+      if ((v == numSegsVer - 1) && !gen->def->uncapped) {
+        // Add bottom triangle.
+        const GeoVector nrm = geo_backward;
+        pme_push_vert_nrm(gen, geo_vector(0), geo_vector((texXMin + texXMax) * 0.5f, texYMin), nrm);
+        pme_push_vert_nrm(gen, geo_vector_mul(posD, radius), geo_vector(texXMax, texYMin), nrm);
+        pme_push_vert_nrm(gen, geo_vector_mul(posA, radius), geo_vector(texXMin, texYMin), nrm);
+      }
+    }
   }
 
   // TODO: Compute the tangents directly instead of this separate pass.
@@ -463,6 +529,9 @@ static void pme_generate(PmeGenerator* gen) {
     break;
   case PmeType_Cylinder:
     pme_generate_cylinder(gen);
+    break;
+  case PmeType_Hemisphere:
+    pme_generate_hemisphere(gen);
     break;
   }
 }
