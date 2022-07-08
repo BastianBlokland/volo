@@ -26,6 +26,7 @@ void debug_box(DebugShapeComp*, GeoVector pos, GeoQuat, GeoVector size, GeoColor
 void debug_quad(DebugShapeComp*, GeoVector pos, GeoQuat, f32 sizeX, f32 sizeY, GeoColor, DebugShapeMode);
 void debug_sphere(DebugShapeComp*, GeoVector pos, f32 radius, GeoColor, DebugShapeMode);
 void debug_cylinder(DebugShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor, DebugShapeMode);
+void debug_capsule(DebugShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor, DebugShapeMode);
 void debug_cone(DebugShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor, DebugShapeMode);
 void debug_line(DebugShapeComp*, GeoVector start, GeoVector end, GeoColor);
 void debug_arrow(DebugShapeComp*, GeoVector begin, GeoVector end, f32 radius, GeoColor);

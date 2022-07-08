@@ -426,6 +426,49 @@ void debug_cylinder(
       });
 }
 
+void debug_capsule(
+    DebugShapeComp*      comp,
+    const GeoVector      bottom,
+    const GeoVector      top,
+    const f32            radius,
+    const GeoColor       color,
+    const DebugShapeMode mode) {
+  GeoVector toTop = geo_vector_sub(top, bottom);
+  if (geo_vector_mag_sqr(toTop) < 1e-6f) {
+    toTop = geo_up;
+  }
+  const GeoVector toBottom = geo_vector_mul(toTop, -1.0f);
+
+  debug_shape_add(
+      comp,
+      (DebugShape){
+          .type          = DebugShapeType_CylinderUncapped + mode,
+          .data_cylinder = {.bottom = bottom, .top = top, .radius = radius, .color = color},
+      });
+
+  debug_shape_add(
+      comp,
+      (DebugShape){
+          .type = DebugShapeType_HemisphereUncapped + mode,
+          .data_sphere =
+              {.pos    = top,
+               .rot    = geo_quat_look(toTop, geo_forward),
+               .radius = radius,
+               .color  = color},
+      });
+
+  debug_shape_add(
+      comp,
+      (DebugShape){
+          .type = DebugShapeType_HemisphereUncapped + mode,
+          .data_sphere =
+              {.pos    = bottom,
+               .rot    = geo_quat_look(toBottom, geo_forward),
+               .radius = radius,
+               .color  = color},
+      });
+}
+
 void debug_cone(
     DebugShapeComp*      comp,
     const GeoVector      bottom,
