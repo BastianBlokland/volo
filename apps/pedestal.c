@@ -39,7 +39,7 @@ static const Subject   g_subjects[]          = {
         .graphic          = string_static("graphics/demo/vanguard.gra"),
         .position         = {.y = 0.5f},
         .scale            = 1.0f,
-        .collisionCapsule = {.offset = geo_vector(0, 0.3f, 0), .radius = 0.3f, .height = 1.2f},
+        .collisionCapsule = {.offset = {0, 0.3f, 0}, .radius = 0.3f, .height = 1.2f},
     },
     {
         .graphic          = string_static("graphics/cube.gra"),
@@ -58,7 +58,7 @@ static const Subject   g_subjects[]          = {
         .position = {.y = 1.25f},
         .scale    = 0.5f,
         .collisionCapsule =
-            {.offset    = geo_vector(-0.6f, 0, 0),
+            {.offset    = {-0.6f, 0, 0},
              .direction = SceneCollisionCapsule_Right,
              .radius    = 0.75f,
              .height    = 1.2f},
@@ -74,7 +74,7 @@ static const Subject   g_subjects[]          = {
         .position = {.y = 1.0f},
         .scale    = 0.25f,
         .collisionCapsule =
-            {.offset    = geo_vector(0, 0, -6),
+            {.offset    = {0, 0, -6},
              .direction = SceneCollisionCapsule_Forward,
              .radius    = 1,
              .height    = 6},
@@ -84,7 +84,7 @@ static const Subject   g_subjects[]          = {
         .position = {.y = 0.5f},
         .scale    = 0.015f,
         .collisionCapsule =
-            {.offset    = geo_vector(0, 40, -35),
+            {.offset    = {0, 40, -35},
              .direction = SceneCollisionCapsule_Forward,
              .radius    = 25,
              .height    = 80},
@@ -99,14 +99,14 @@ static const Subject   g_subjects[]          = {
         .graphic          = string_static("graphics/demo/bunny.gra"),
         .position         = {.y = 0.45f},
         .scale            = 0.75f,
-        .collisionCapsule = {.offset = geo_vector(-0.15f, 0.75f, 0.15f), .radius = 0.75f},
+        .collisionCapsule = {.offset = {-0.15f, 0.75f, 0.15f}, .radius = 0.75f},
     },
     {
         .graphic  = string_static("graphics/demo/dragon.gra"),
         .position = {.y = 1.05f},
         .scale    = 2.0f,
         .collisionCapsule =
-            {.offset    = geo_vector(0, 0, -0.1f),
+            {.offset    = {0, 0, -0.1f},
              .direction = SceneCollisionCapsule_Forward,
              .radius    = 0.3f,
              .height    = 0.25f},
@@ -115,14 +115,14 @@ static const Subject   g_subjects[]          = {
         .graphic          = string_static("graphics/demo/cayo.gra"),
         .position         = {.y = 0.5f},
         .scale            = 0.8f,
-        .collisionCapsule = {.offset = geo_vector(0, 0.4f, 0), .radius = 0.4f, .height = 1.2f},
+        .collisionCapsule = {.offset = {0, 0.4f, 0}, .radius = 0.4f, .height = 1.2f},
     },
     {
         .graphic  = string_static("graphics/demo/corset.gra"),
         .position = {.y = 0.5f},
         .scale    = 30.0f,
         .collisionCapsule =
-            {.offset = geo_vector(0, 0.01f, 0.003f), .radius = 0.012f, .height = 0.04f},
+            {.offset = {0, 0.01f, 0.003f}, .radius = 0.012f, .height = 0.04f},
     },
     {
         .graphic          = string_static("graphics/demo/boombox.gra"),
@@ -134,7 +134,7 @@ static const Subject   g_subjects[]          = {
         .graphic          = string_static("graphics/demo/head.gra"),
         .position         = {.y = 1.3f},
         .scale            = 3.0f,
-        .collisionCapsule = {.offset = geo_vector(0, -0.1f, -0.1f), .radius = 0.2f, .height = 0.1f},
+        .collisionCapsule = {.offset = {0, -0.1f, -0.1f}, .radius = 0.2f, .height = 0.1f},
     },
 };
 
