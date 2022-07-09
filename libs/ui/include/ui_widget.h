@@ -136,6 +136,17 @@ typedef struct {
     __VA_ARGS__}))
 
 /**
+ * Draw a flag toggle in the currently active canvas rectangle.
+ * Toggle the specified flag in the given u32 pointer's value.
+ * NOTE: Its important that the widget has a stable identifier in the canvas.
+ */
+#define ui_toggle_flag(_CANVAS_, _VALUE_, _FLAG_, ...) ui_toggle_flag_with_opts(                   \
+  (_CANVAS_), (_VALUE_), (_FLAG_), &((UiToggleOpts){                                                \
+    .size    = 20,                                                                                 \
+    .bgColor = ui_color(32, 32, 32, 192),                                                          \
+    __VA_ARGS__}))
+
+/**
  * Draw a select dropdown in the currently active canvas rectangle.
  * Input value for the selected item is updated to the given i32 pointer.
  * NOTE: Its important that the widget has a stable identifier in the canvas.
@@ -193,6 +204,7 @@ void ui_label_with_opts(UiCanvasComp*, String text, const UiLabelOpts*);
 bool ui_button_with_opts(UiCanvasComp*, const UiButtonOpts*);
 bool ui_slider_with_opts(UiCanvasComp*, f32* value, const UiSliderOpts*);
 bool ui_toggle_with_opts(UiCanvasComp*, bool* value, const UiToggleOpts*);
+bool ui_toggle_flag_with_opts(UiCanvasComp*, u32* value, u32 flag, const UiToggleOpts*);
 bool ui_select_with_opts(
     UiCanvasComp*, i32* value, const String* options, u32 optionCount, const UiSelectOpts*);
 bool ui_tooltip_with_opts(UiCanvasComp*, UiId, String text, const UiTooltipOpts*);

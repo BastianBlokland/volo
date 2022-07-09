@@ -247,42 +247,33 @@ static void rend_settings_tab_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Frustum culling"));
   ui_table_next_column(canvas, &table);
-  bool frustumCulling = (settings->flags & RendFlags_FrustumCulling) != 0;
-  if (ui_toggle(canvas, &frustumCulling, .tooltip = g_tooltipFrustumCulling)) {
-    settings->flags ^= RendFlags_FrustumCulling;
-  }
+  ui_toggle_flag(
+      canvas, (u32*)&settings->flags, RendFlags_FrustumCulling, .tooltip = g_tooltipFrustumCulling);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Wireframe"));
   ui_table_next_column(canvas, &table);
-  bool wireframe = (settings->flags & RendFlags_Wireframe) != 0;
-  if (ui_toggle(canvas, &wireframe)) {
-    settings->flags ^= RendFlags_Wireframe;
-  }
+  ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_Wireframe);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug Skinning"));
   ui_table_next_column(canvas, &table);
-  bool debugSkinning = (settings->flags & RendFlags_DebugSkinning) != 0;
-  if (ui_toggle(canvas, &debugSkinning)) {
-    settings->flags ^= RendFlags_DebugSkinning;
-  }
+  ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_DebugSkinning);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Validation"));
   ui_table_next_column(canvas, &table);
-  bool validation = (globalSettings->flags & RendGlobalFlags_Validation) != 0;
-  if (ui_toggle(canvas, &validation, .tooltip = g_tooltipValidation)) {
-    globalSettings->flags ^= RendGlobalFlags_Validation;
-  }
+  ui_toggle_flag(
+      canvas,
+      (u32*)&globalSettings->flags,
+      RendGlobalFlags_Validation,
+      .tooltip = g_tooltipValidation);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Verbose"));
   ui_table_next_column(canvas, &table);
-  bool verbose = (globalSettings->flags & RendGlobalFlags_Verbose) != 0;
-  if (ui_toggle(canvas, &verbose, .tooltip = g_tooltipVerbose)) {
-    globalSettings->flags ^= RendGlobalFlags_Verbose;
-  }
+  ui_toggle_flag(
+      canvas, (u32*)&globalSettings->flags, RendGlobalFlags_Verbose, .tooltip = g_tooltipVerbose);
 
   ui_table_next_row(canvas, &table);
   if (ui_button(canvas, .label = string_lit("Defaults"), .tooltip = g_tooltipDefaults)) {

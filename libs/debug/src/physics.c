@@ -55,34 +55,22 @@ static void physics_panel_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Draw pivot"));
   ui_table_next_column(canvas, &table);
-  bool drawPivot = (settings->flags & DebugPhysicsFlags_DrawPivot) != 0;
-  if (ui_toggle(canvas, &drawPivot)) {
-    settings->flags ^= DebugPhysicsFlags_DrawPivot;
-  }
+  ui_toggle_flag(canvas, (u32*)&settings->flags, DebugPhysicsFlags_DrawPivot);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Draw orientation"));
   ui_table_next_column(canvas, &table);
-  bool drawOrientation = (settings->flags & DebugPhysicsFlags_DrawOrientation) != 0;
-  if (ui_toggle(canvas, &drawOrientation)) {
-    settings->flags ^= DebugPhysicsFlags_DrawOrientation;
-  }
+  ui_toggle_flag(canvas, (u32*)&settings->flags, DebugPhysicsFlags_DrawOrientation);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Draw bounds local"));
   ui_table_next_column(canvas, &table);
-  bool drawBoundsLocal = (settings->flags & DebugPhysicsFlags_DrawBoundsLocal) != 0;
-  if (ui_toggle(canvas, &drawBoundsLocal)) {
-    settings->flags ^= DebugPhysicsFlags_DrawBoundsLocal;
-  }
+  ui_toggle_flag(canvas, (u32*)&settings->flags, DebugPhysicsFlags_DrawBoundsLocal);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Draw bounds global"));
   ui_table_next_column(canvas, &table);
-  bool drawBoundsGlobal = (settings->flags & DebugPhysicsFlags_DrawBoundsGlobal) != 0;
-  if (ui_toggle(canvas, &drawBoundsGlobal)) {
-    settings->flags ^= DebugPhysicsFlags_DrawBoundsGlobal;
-  }
+  ui_toggle_flag(canvas, (u32*)&settings->flags, DebugPhysicsFlags_DrawBoundsGlobal);
 
   ui_panel_end(canvas, &panelComp->panel);
 }

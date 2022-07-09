@@ -289,6 +289,16 @@ bool ui_toggle_with_opts(UiCanvasComp* canvas, bool* input, const UiToggleOpts* 
   return status == UiStatus_Activated;
 }
 
+bool ui_toggle_flag_with_opts(
+    UiCanvasComp* canvas, u32* value, const u32 flag, const UiToggleOpts* opts) {
+  bool set = (*value & flag) != 0;
+  if (ui_toggle_with_opts(canvas, &set, opts)) {
+    *value ^= flag;
+    return true;
+  }
+  return false;
+}
+
 static void ui_select_header(
     UiCanvasComp*       canvas,
     const String        label,

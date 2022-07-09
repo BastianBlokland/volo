@@ -208,34 +208,22 @@ static void anim_panel_options_draw(UiCanvasComp* canvas, DebugAnimationSettings
   ui_label(canvas, string_lit("Draw:"));
   ui_table_next_column(canvas, &table);
 
-  bool drawSkeleton = (settings->flags & DebugAnimationFlags_DrawSkeleton) != 0;
-  if (ui_toggle(canvas, &drawSkeleton)) {
-    settings->flags ^= DebugAnimationFlags_DrawSkeleton;
-  }
+  ui_toggle_flag(canvas, (u32*)&settings->flags, DebugAnimationFlags_DrawSkeleton);
   ui_table_next_column(canvas, &table);
   ui_label(canvas, string_lit("[Skeleton]"), .fontSize = 14);
   ui_table_next_column(canvas, &table);
 
-  bool drawJoints = (settings->flags & DebugAnimationFlags_DrawJointTransforms) != 0;
-  if (ui_toggle(canvas, &drawJoints)) {
-    settings->flags ^= DebugAnimationFlags_DrawJointTransforms;
-  }
+  ui_toggle_flag(canvas, (u32*)&settings->flags, DebugAnimationFlags_DrawJointTransforms);
   ui_table_next_column(canvas, &table);
   ui_label(canvas, string_lit("[Joints]"), .fontSize = 14);
   ui_table_next_column(canvas, &table);
 
-  bool drawNames = (settings->flags & DebugAnimationFlags_DrawJointNames) != 0;
-  if (ui_toggle(canvas, &drawNames)) {
-    settings->flags ^= DebugAnimationFlags_DrawJointNames;
-  }
+  ui_toggle_flag(canvas, (u32*)&settings->flags, DebugAnimationFlags_DrawJointNames);
   ui_table_next_column(canvas, &table);
   ui_label(canvas, string_lit("[Names]"), .fontSize = 14);
   ui_table_next_column(canvas, &table);
 
-  bool drawSkinCounts = (settings->flags & DebugAnimationFlags_DrawSkinCounts) != 0;
-  if (ui_toggle(canvas, &drawSkinCounts)) {
-    settings->flags ^= DebugAnimationFlags_DrawSkinCounts;
-  }
+  ui_toggle_flag(canvas, (u32*)&settings->flags, DebugAnimationFlags_DrawSkinCounts);
   ui_table_next_column(canvas, &table);
   ui_label(canvas, string_lit("[Skin Counts]"), .fontSize = 14);
 
