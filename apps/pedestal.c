@@ -12,6 +12,7 @@
 #include "log.h"
 #include "rend_register.h"
 #include "scene_camera.h"
+#include "scene_collision.h"
 #include "scene_register.h"
 #include "scene_renderable.h"
 #include "scene_time.h"
@@ -23,9 +24,10 @@
  */
 
 typedef struct {
-  String    graphic;
-  GeoVector position;
-  f32       scale;
+  String                graphic;
+  GeoVector             position;
+  f32                   scale;
+  SceneCollisionCapsule collisionCapsule;
 } Subject;
 
 static const GapVector g_windowSize          = {1024, 768};
@@ -34,74 +36,105 @@ static const f32       g_pedestalPositionY   = 0.5f;
 static const f32       g_subjectSpacing      = 2.5f;
 static const Subject   g_subjects[]          = {
     {
-        .graphic  = string_static("graphics/demo/vanguard.gra"),
-        .position = {.y = 0.5f},
-        .scale    = 1.0f,
+        .graphic          = string_static("graphics/demo/vanguard.gra"),
+        .position         = {.y = 0.5f},
+        .scale            = 1.0f,
+        .collisionCapsule = {.offset = geo_vector(0, 0.3f, 0), .radius = 0.3f, .height = 1.2f},
     },
     {
-        .graphic  = string_static("graphics/cube.gra"),
-        .position = {.y = 1},
-        .scale    = 1.0f,
+        .graphic          = string_static("graphics/cube.gra"),
+        .position         = {.y = 1},
+        .scale            = 1.0f,
+        .collisionCapsule = {.radius = 0.65f},
     },
     {
-        .graphic  = string_static("graphics/sphere.gra"),
-        .position = {.y = 1},
-        .scale    = 1.0f,
+        .graphic          = string_static("graphics/sphere.gra"),
+        .position         = {.y = 1},
+        .scale            = 1.0f,
+        .collisionCapsule = {.radius = 0.5f},
     },
     {
         .graphic  = string_static("graphics/demo/normal_tangent_mirror_test.gra"),
         .position = {.y = 1.25f},
         .scale    = 0.5f,
+        .collisionCapsule =
+            {.offset    = geo_vector(-0.6f, 0, 0),
+             .direction = SceneCollisionCapsule_Right,
+             .radius    = 0.75f,
+             .height    = 1.2f},
     },
     {
-        .graphic  = string_static("graphics/demo/suzanne.gra"),
-        .position = {.y = 1.25f},
-        .scale    = 0.5f,
+        .graphic          = string_static("graphics/demo/suzanne.gra"),
+        .position         = {.y = 1.25f},
+        .scale            = 0.5f,
+        .collisionCapsule = {.radius = 1},
     },
     {
         .graphic  = string_static("graphics/demo/rigged-simple.gra"),
         .position = {.y = 1.0f},
         .scale    = 0.25f,
+        .collisionCapsule =
+            {.offset    = geo_vector(0, 0, -6),
+             .direction = SceneCollisionCapsule_Forward,
+             .radius    = 1,
+             .height    = 6},
     },
     {
         .graphic  = string_static("graphics/demo/fox.gra"),
         .position = {.y = 0.5f},
         .scale    = 0.015f,
+        .collisionCapsule =
+            {.offset    = geo_vector(0, 40, -35),
+             .direction = SceneCollisionCapsule_Forward,
+             .radius    = 25,
+             .height    = 80},
     },
     {
-        .graphic  = string_static("graphics/demo/terrain.gra"),
-        .position = {.y = 0.5f},
-        .scale    = 1.5f,
+        .graphic          = string_static("graphics/demo/terrain.gra"),
+        .position         = {.y = 0.5f},
+        .scale            = 1.5f,
+        .collisionCapsule = {.radius = 0.5f},
     },
     {
-        .graphic  = string_static("graphics/demo/bunny.gra"),
-        .position = {.y = 0.45f},
-        .scale    = 0.75f,
+        .graphic          = string_static("graphics/demo/bunny.gra"),
+        .position         = {.y = 0.45f},
+        .scale            = 0.75f,
+        .collisionCapsule = {.offset = geo_vector(-0.15f, 0.75f, 0.15f), .radius = 0.75f},
     },
     {
         .graphic  = string_static("graphics/demo/dragon.gra"),
         .position = {.y = 1.05f},
         .scale    = 2.0f,
+        .collisionCapsule =
+            {.offset    = geo_vector(0, 0, -0.1f),
+             .direction = SceneCollisionCapsule_Forward,
+             .radius    = 0.3f,
+             .height    = 0.25f},
     },
     {
-        .graphic  = string_static("graphics/demo/cayo.gra"),
-        .position = {.y = 0.5f},
-        .scale    = 0.8f,
+        .graphic          = string_static("graphics/demo/cayo.gra"),
+        .position         = {.y = 0.5f},
+        .scale            = 0.8f,
+        .collisionCapsule = {.offset = geo_vector(0, 0.4f, 0), .radius = 0.4f, .height = 1.2f},
     },
     {
         .graphic  = string_static("graphics/demo/corset.gra"),
         .position = {.y = 0.5f},
         .scale    = 30.0f,
+        .collisionCapsule =
+            {.offset = geo_vector(0, 0.01f, 0.003f), .radius = 0.012f, .height = 0.04f},
     },
     {
-        .graphic  = string_static("graphics/demo/boombox.gra"),
-        .position = {.y = 0.95f},
-        .scale    = 50.0f,
+        .graphic          = string_static("graphics/demo/boombox.gra"),
+        .position         = {.y = 0.95f},
+        .scale            = 50.0f,
+        .collisionCapsule = {.radius = 0.01f},
     },
     {
-        .graphic  = string_static("graphics/demo/head.gra"),
-        .position = {.y = 1.3f},
-        .scale    = 3.0f,
+        .graphic          = string_static("graphics/demo/head.gra"),
+        .position         = {.y = 1.3f},
+        .scale            = 3.0f,
+        .collisionCapsule = {.offset = geo_vector(0, -0.1f, -0.1f), .radius = 0.2f, .height = 0.1f},
     },
 };
 
@@ -134,7 +167,7 @@ ecs_view_define(ObjectView) {
   ecs_access_write(SceneTransformComp);
 }
 
-static void spawn_object(
+static EcsEntityId spawn_object(
     EcsWorld*         world,
     AssetManagerComp* assets,
     const GeoVector   position,
@@ -145,6 +178,7 @@ static void spawn_object(
   ecs_world_add_t(world, e, SceneTransformComp, .position = position, .rotation = geo_quat_ident);
   ecs_world_add_t(world, e, SceneScaleComp, .scale = scale);
   ecs_world_add_empty_t(world, e, SubjectComp);
+  return e;
 }
 
 static void spawn_objects(EcsWorld* world, AppComp* app, AssetManagerComp* assets) {
@@ -158,13 +192,15 @@ static void spawn_objects(EcsWorld* world, AppComp* app, AssetManagerComp* asset
           (x - (columnCount - 1) * 0.5f) * g_subjectSpacing,
           (y - (rowCount - 1) * 0.5f) * g_subjectSpacing);
 
-      spawn_object(
+      const EcsEntityId e = spawn_object(
           world,
           assets,
           geo_vector_add(
               g_subjects[app->subjectIndex].position, geo_vector(gridPos.x, 0, gridPos.y)),
           g_subjects[app->subjectIndex].graphic,
           g_subjects[app->subjectIndex].scale);
+
+      scene_collision_add_capsule(world, e, g_subjects[app->subjectIndex].collisionCapsule);
 
       spawn_object(
           world,
