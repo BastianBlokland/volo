@@ -122,6 +122,8 @@ static void camera_panel_draw(
   const String title = fmt_write_scratch("{} Camera Settings", fmt_ui_shape(PhotoCamera));
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
 
+  u32* flags = (u32*)&camera->flags;
+
   UiTable table = ui_table();
   ui_table_add_column(&table, UiTableColumn_Fixed, 160);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
@@ -141,8 +143,7 @@ static void camera_panel_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Vertical aspect"));
   ui_table_next_column(canvas, &table);
-  ui_toggle_flag(
-      canvas, (u32*)&camera->flags, SceneCameraFlags_Vertical, .tooltip = g_tooltipVerticalAspect);
+  ui_toggle_flag(canvas, flags, SceneCameraFlags_Vertical, .tooltip = g_tooltipVerticalAspect);
 
   if (projectionIdx == 1) {
     camera_panel_draw_ortho(canvas, &table, camera, transform);
@@ -153,11 +154,7 @@ static void camera_panel_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug frustum"));
   ui_table_next_column(canvas, &table);
-  ui_toggle_flag(
-      canvas,
-      (u32*)&camera->flags,
-      SceneCameraFlags_DebugFrustum,
-      .tooltip = g_tooltipDebugFrustum);
+  ui_toggle_flag(canvas, flags, SceneCameraFlags_DebugFrustum, .tooltip = g_tooltipDebugFrustum);
 
   camera_panel_draw_filters(canvas, &table, camera);
 
@@ -198,8 +195,7 @@ ecs_system_define(DebugCameraUpdatePanelSys) {
     }
     SceneCameraComp*         camera         = ecs_view_write_t(windowItr, SceneCameraComp);
     SceneCameraMovementComp* cameraMovement = ecs_view_write_t(windowItr, SceneCameraMovementComp);
-
-    SceneTransformComp* transform = ecs_view_write_t(windowItr, SceneTransformComp);
+    SceneTransformComp*      transform      = ecs_view_write_t(windowItr, SceneTransformComp);
 
     ui_canvas_reset(canvas);
     camera_panel_draw(canvas, panelComp, camera, cameraMovement, transform);
@@ -221,6 +217,28 @@ ecs_view_define(DrawView) {
   ecs_access_maybe_read(SceneTransformComp);
 }
 
+static void debug_camera_draw_frustum(
+    DebugShapeComp*           shape,
+    const SceneCameraComp*    cam,
+    const SceneTransformComp* trans,
+    const f32                 aspect) {
+  const GeoMatrix viewProj = scene_camera_view_proj(cam, trans, aspect);
+  const GeoVector camPos   = trans ? trans->position : geo_vector(0);
+  const GeoVector camFwd   = trans ? geo_quat_rotate(trans->rotation, geo_forward) : geo_forward;
+
+  debug_frustum(shape, &viewProj, geo_color_white);
+
+  GeoPlane frustumPlanes[4];
+  geo_matrix_frustum4(&viewProj, frustumPlanes);
+
+  const GeoVector planeRefPos = geo_vector_add(camPos, geo_vector_mul(camFwd, 5));
+  array_for_t(frustumPlanes, GeoPlane, p) {
+    const GeoVector pos = geo_plane_closest_point(p, planeRefPos);
+    const GeoQuat   rot = geo_quat_look(p->normal, camFwd);
+    debug_plane(shape, pos, rot, geo_color(1, 1, 0, 0.25f));
+  }
+}
+
 ecs_system_define(DebugCameraDrawSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalDrawView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -231,32 +249,15 @@ ecs_system_define(DebugCameraDrawSys) {
 
   EcsView* drawView = ecs_world_view_t(world, DrawView);
   for (EcsIterator* itr = ecs_view_itr(drawView); ecs_view_walk(itr);) {
-    const SceneCameraComp* cam = ecs_view_read_t(itr, SceneCameraComp);
-    if (!(cam->flags & SceneCameraFlags_DebugFrustum)) {
-      continue;
-    }
-
+    const SceneCameraComp*    cam   = ecs_view_read_t(itr, SceneCameraComp);
     const GapWindowComp*      win   = ecs_view_read_t(itr, GapWindowComp);
     const SceneTransformComp* trans = ecs_view_read_t(itr, SceneTransformComp);
 
-    const GapVector winSize  = gap_window_param(win, GapParam_WindowSize);
-    const f32       aspect   = (f32)winSize.width / (f32)winSize.height;
-    const GeoVector camPos   = trans ? trans->position : geo_vector(0);
-    const GeoVector camFwd   = trans ? geo_quat_rotate(trans->rotation, geo_forward) : geo_forward;
-    const GeoMatrix proj     = scene_camera_proj(cam, aspect);
-    const GeoMatrix view     = trans ? scene_transform_matrix_inv(trans) : geo_matrix_ident();
-    const GeoMatrix viewProj = geo_matrix_mul(&proj, &view);
+    const GapVector winSize = gap_window_param(win, GapParam_WindowSize);
+    const f32       aspect  = (f32)winSize.width / (f32)winSize.height;
 
-    debug_frustum(shape, &viewProj, geo_color_white);
-
-    GeoPlane frustumPlanes[4];
-    geo_matrix_frustum4(&viewProj, frustumPlanes);
-
-    const GeoVector planeRefPos = geo_vector_add(camPos, geo_vector_mul(camFwd, 5));
-    array_for_t(frustumPlanes, GeoPlane, p) {
-      const GeoVector pos = geo_plane_closest_point(p, planeRefPos);
-      const GeoQuat   rot = geo_quat_look(p->normal, camFwd);
-      debug_plane(shape, pos, rot, geo_color(1, 1, 0, 0.25f));
+    if (cam->flags & SceneCameraFlags_DebugFrustum) {
+      debug_camera_draw_frustum(shape, cam, trans, aspect);
     }
   }
 }
