@@ -116,11 +116,11 @@ static void physics_draw_collision(
     const SceneScaleComp*     scale) {
   switch (collision->type) {
   case SceneCollisionType_Capsule: {
-    const GeoCapsule cap = scene_collision_geo_capsule(&collision->data_capsule, transform, scale);
+    const GeoCapsule c = scene_collision_world_capsule(&collision->data_capsule, transform, scale);
     const GeoColor   colorFill = geo_color(1, 0, 0, 0.2f);
     const GeoColor   colorWire = geo_color(1, 0, 0, 1);
-    debug_capsule(shape, cap.line.from, cap.line.to, cap.radius, colorFill, DebugShape_Fill);
-    debug_capsule(shape, cap.line.from, cap.line.to, cap.radius, colorWire, DebugShape_Wire);
+    debug_capsule(shape, c.line.from, c.line.to, c.radius, colorFill, DebugShape_Fill);
+    debug_capsule(shape, c.line.from, c.line.to, c.radius, colorWire, DebugShape_Wire);
   } break;
   }
 }

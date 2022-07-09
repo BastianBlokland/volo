@@ -38,5 +38,5 @@ void scene_collision_add_capsule(EcsWorld*, EcsEntityId entity, SceneCollisionCa
  * Compute a geometric capsule for the given capsule collision shape.
  * NOTE: SceneTransformComp and SceneScaleComp are optional.
  */
-GeoCapsule scene_collision_geo_capsule(
+GeoCapsule scene_collision_world_capsule(
     const SceneCollisionCapsule*, const SceneTransformComp*, const SceneScaleComp*);

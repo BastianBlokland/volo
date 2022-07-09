@@ -11,7 +11,7 @@ void scene_collision_add_capsule(
   ecs_world_add_t(world, entity, SceneCollisionComp, .data_capsule = capsule);
 }
 
-GeoCapsule scene_collision_geo_capsule(
+GeoCapsule scene_collision_world_capsule(
     const SceneCollisionCapsule* capsule,
     const SceneTransformComp*    transformComp,
     const SceneScaleComp*        scaleComp) {
