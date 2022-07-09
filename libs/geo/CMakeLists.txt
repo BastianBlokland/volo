@@ -7,6 +7,7 @@ message(STATUS "> library: geo")
 add_library(lib_geo STATIC
   src/box.c
   src/color.c
+  src/line.c
   src/matrix.c
   src/plane.c
   src/quat.c
@@ -18,6 +19,7 @@ target_link_libraries(lib_geo PUBLIC lib_core)
 add_executable(lib_geo_test
   test/main.c
   test/test_box.c
+  test/test_line.c
   test/test_matrix.c
   test/test_plane.c
   test/test_quat.c
