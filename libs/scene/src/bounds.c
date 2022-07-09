@@ -7,6 +7,7 @@
 #include "ecs_world.h"
 #include "scene_bounds.h"
 #include "scene_renderable.h"
+#include "scene_transform.h"
 
 #define scene_bounds_max_loads 16
 
@@ -207,4 +208,40 @@ ecs_module_init(scene_bounds_module) {
       SceneClearDirtyBoundsSys,
       ecs_view_id(DirtyGraphicsView),
       ecs_view_id(RenderablesWithBoundsView));
+}
+
+GeoBox scene_bounds_world(
+    const SceneBoundsComp*    boundsComp,
+    const SceneTransformComp* transformComp,
+    const SceneScaleComp*     scaleComp) {
+
+  if (geo_box_is_inverted3(&boundsComp->local)) {
+    return geo_box_inverted3();
+  }
+
+  const GeoVector basePos   = LIKELY(transformComp) ? transformComp->position : geo_vector(0);
+  const GeoQuat   baseRot   = LIKELY(transformComp) ? transformComp->rotation : geo_quat_ident;
+  const f32       baseScale = scaleComp ? scaleComp->scale : 1.0f;
+  return geo_box_transform3(&boundsComp->local, basePos, baseRot, baseScale);
+}
+
+GeoBoxRotated scene_bounds_world_rotated(
+    const SceneBoundsComp*    boundsComp,
+    const SceneTransformComp* transformComp,
+    const SceneScaleComp*     scaleComp) {
+
+  const GeoVector basePos   = LIKELY(transformComp) ? transformComp->position : geo_vector(0);
+  const GeoQuat   baseRot   = LIKELY(transformComp) ? transformComp->rotation : geo_quat_ident;
+  const f32       baseScale = scaleComp ? scaleComp->scale : 1.0f;
+
+  if (geo_box_is_inverted3(&boundsComp->local)) {
+    return (GeoBoxRotated){.box = geo_box_inverted3(), .rotation = baseRot};
+  }
+
+  const GeoVector size        = geo_vector_mul(geo_box_size(&boundsComp->local), baseScale);
+  const GeoVector localCenter = geo_box_center(&boundsComp->local);
+  const GeoVector center =
+      geo_vector_add(geo_quat_rotate(baseRot, geo_vector_mul(localCenter, baseScale)), basePos);
+
+  return (GeoBoxRotated){.box = geo_box_from_center(center, size), .rotation = baseRot};
 }

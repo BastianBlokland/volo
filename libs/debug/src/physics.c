@@ -6,6 +6,7 @@
 #include "ecs_world.h"
 #include "scene_bounds.h"
 #include "scene_camera.h"
+#include "scene_collision.h"
 #include "scene_renderable.h"
 #include "scene_transform.h"
 #include "ui.h"
@@ -13,11 +14,13 @@
 typedef enum {
   DebugPhysicsFlags_DrawPivot        = 1 << 0,
   DebugPhysicsFlags_DrawOrientation  = 1 << 1,
-  DebugPhysicsFlags_DrawBoundsLocal  = 1 << 2,
-  DebugPhysicsFlags_DrawBoundsGlobal = 1 << 3,
+  DebugPhysicsFlags_DrawCollision    = 1 << 2,
+  DebugPhysicsFlags_DrawBoundsLocal  = 1 << 3,
+  DebugPhysicsFlags_DrawBoundsGlobal = 1 << 4,
 
   DebugPhysicsFlags_DrawAny = DebugPhysicsFlags_DrawPivot | DebugPhysicsFlags_DrawOrientation |
-                              DebugPhysicsFlags_DrawBoundsLocal | DebugPhysicsFlags_DrawBoundsGlobal
+                              DebugPhysicsFlags_DrawCollision | DebugPhysicsFlags_DrawBoundsLocal |
+                              DebugPhysicsFlags_DrawBoundsGlobal
 } DebugPhysicsFlags;
 
 ecs_comp_define(DebugPhysicsSettingsComp) { DebugPhysicsFlags flags; };
@@ -39,6 +42,7 @@ ecs_view_define(PanelUpdateView) {
 ecs_view_define(ObjectView) {
   ecs_access_read(SceneRenderableComp);
   ecs_access_read(SceneTransformComp);
+  ecs_access_maybe_read(SceneCollisionComp);
   ecs_access_maybe_read(SceneBoundsComp);
   ecs_access_maybe_read(SceneScaleComp);
 }
@@ -61,6 +65,11 @@ static void physics_panel_draw(
   ui_label(canvas, string_lit("Draw orientation"));
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(canvas, (u32*)&settings->flags, DebugPhysicsFlags_DrawOrientation);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Draw collision"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, (u32*)&settings->flags, DebugPhysicsFlags_DrawCollision);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Draw bounds local"));
@@ -100,28 +109,42 @@ ecs_system_define(DebugPhysicsUpdatePanelSys) {
   }
 }
 
+static void physics_draw_collision(
+    DebugShapeComp*           shape,
+    const SceneCollisionComp* collision,
+    const SceneTransformComp* transform,
+    const SceneScaleComp*     scale) {
+  switch (collision->type) {
+  case SceneCollisionType_Capsule: {
+    const GeoCapsule c = scene_collision_world_capsule(&collision->data_capsule, transform, scale);
+    const GeoColor   colorFill = geo_color(1, 0, 0, 0.2f);
+    const GeoColor   colorWire = geo_color(1, 0, 0, 1);
+    debug_capsule(shape, c.line.from, c.line.to, c.radius, colorFill, DebugShape_Fill);
+    debug_capsule(shape, c.line.from, c.line.to, c.radius, colorWire, DebugShape_Wire);
+  } break;
+  }
+}
+
 static void physics_draw_bounds_local(
-    DebugShapeComp* shape,
-    const GeoVector pos,
-    const GeoQuat   rot,
-    const GeoBox    bounds,
-    const f32       scale) {
-  const GeoVector size = geo_vector_mul(geo_box_size(&bounds), scale);
-  const GeoVector center =
-      geo_vector_add(geo_quat_rotate(rot, geo_vector_mul(geo_box_center(&bounds), scale)), pos);
-  debug_box(shape, center, rot, size, geo_color(0, 1, 0, 0.2f), DebugShape_Fill);
-  debug_box(shape, center, rot, size, geo_color(0, 1, 0, 0.5f), DebugShape_Wire);
+    DebugShapeComp*           shape,
+    const SceneBoundsComp*    bounds,
+    const SceneTransformComp* transform,
+    const SceneScaleComp*     scale) {
+  const GeoBoxRotated b      = scene_bounds_world_rotated(bounds, transform, scale);
+  const GeoVector     center = geo_box_center(&b.box);
+  const GeoVector     size   = geo_box_size(&b.box);
+  debug_box(shape, center, b.rotation, size, geo_color(0, 1, 0, 0.2f), DebugShape_Fill);
+  debug_box(shape, center, b.rotation, size, geo_color(0, 1, 0, 0.5f), DebugShape_Wire);
 }
 
 static void physics_draw_bounds_global(
-    DebugShapeComp* shape,
-    const GeoVector pos,
-    const GeoQuat   rot,
-    const GeoBox    bounds,
-    const f32       scale) {
-  const GeoBox    aabb   = geo_box_transform3(&bounds, pos, rot, scale);
-  const GeoVector center = geo_box_center(&aabb);
-  const GeoVector size   = geo_box_size(&aabb);
+    DebugShapeComp*           shape,
+    const SceneBoundsComp*    bounds,
+    const SceneTransformComp* transform,
+    const SceneScaleComp*     scale) {
+  const GeoBox    b      = scene_bounds_world(bounds, transform, scale);
+  const GeoVector center = geo_box_center(&b);
+  const GeoVector size   = geo_box_size(&b);
   debug_box(shape, center, geo_quat_ident, size, geo_color(0, 0, 1, 0.2f), DebugShape_Fill);
   debug_box(shape, center, geo_quat_ident, size, geo_color(0, 0, 1, 0.5f), DebugShape_Wire);
 }
@@ -140,24 +163,27 @@ ecs_system_define(DebugPhysicsDrawSys) {
   DebugShapeComp* shape = ecs_view_write_t(globalItr, DebugShapeComp);
 
   for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ObjectView)); ecs_view_walk(itr);) {
-    const GeoVector        pos        = ecs_view_read_t(itr, SceneTransformComp)->position;
-    const GeoQuat          rot        = ecs_view_read_t(itr, SceneTransformComp)->rotation;
-    const SceneBoundsComp* boundsComp = ecs_view_read_t(itr, SceneBoundsComp);
-    const SceneScaleComp*  scaleComp  = ecs_view_read_t(itr, SceneScaleComp);
-    const f32              scale      = scaleComp ? scaleComp->scale : 1.0f;
+    const SceneTransformComp* transformComp = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneBoundsComp*    boundsComp    = ecs_view_read_t(itr, SceneBoundsComp);
+    const SceneCollisionComp* collisionComp = ecs_view_read_t(itr, SceneCollisionComp);
+    const SceneScaleComp*     scaleComp     = ecs_view_read_t(itr, SceneScaleComp);
 
     if (settings->flags & DebugPhysicsFlags_DrawPivot) {
-      debug_sphere(shape, pos, 0.025f, geo_color(1.0f, 1.0f, 0.0f, 1.0f), DebugShape_Overlay);
+      const GeoColor color = geo_color(1.0f, 1.0f, 0.0f, 1.0f);
+      debug_sphere(shape, transformComp->position, 0.025f, color, DebugShape_Overlay);
     }
     if (settings->flags & DebugPhysicsFlags_DrawOrientation) {
-      debug_orientation(shape, pos, rot, 0.25f);
+      debug_orientation(shape, transformComp->position, transformComp->rotation, 0.25f);
+    }
+    if (collisionComp && settings->flags & DebugPhysicsFlags_DrawCollision) {
+      physics_draw_collision(shape, collisionComp, transformComp, scaleComp);
     }
     if (boundsComp && !geo_box_is_inverted3(&boundsComp->local)) {
       if (settings->flags & DebugPhysicsFlags_DrawBoundsLocal) {
-        physics_draw_bounds_local(shape, pos, rot, boundsComp->local, scale);
+        physics_draw_bounds_local(shape, boundsComp, transformComp, scaleComp);
       }
       if (settings->flags & DebugPhysicsFlags_DrawBoundsGlobal) {
-        physics_draw_bounds_global(shape, pos, rot, boundsComp->local, scale);
+        physics_draw_bounds_global(shape, boundsComp, transformComp, scaleComp);
       }
     }
   }

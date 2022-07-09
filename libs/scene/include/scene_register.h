@@ -2,7 +2,8 @@
 #include "ecs_def.h"
 
 enum {
-  SceneOrder_TimeUpdate = -100,
+  SceneOrder_TimeUpdate      = -100,
+  SceneOrder_CollisionUpdate = 100,
 };
 
 /**
