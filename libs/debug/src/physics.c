@@ -126,16 +126,15 @@ static void physics_draw_collision(
 }
 
 static void physics_draw_bounds_local(
-    DebugShapeComp* shape,
-    const GeoVector pos,
-    const GeoQuat   rot,
-    const GeoBox    bounds,
-    const f32       scale) {
-  const GeoVector size = geo_vector_mul(geo_box_size(&bounds), scale);
-  const GeoVector center =
-      geo_vector_add(geo_quat_rotate(rot, geo_vector_mul(geo_box_center(&bounds), scale)), pos);
-  debug_box(shape, center, rot, size, geo_color(0, 1, 0, 0.2f), DebugShape_Fill);
-  debug_box(shape, center, rot, size, geo_color(0, 1, 0, 0.5f), DebugShape_Wire);
+    DebugShapeComp*           shape,
+    const SceneBoundsComp*    bounds,
+    const SceneTransformComp* transform,
+    const SceneScaleComp*     scale) {
+  const GeoBoxRotated b      = scene_bounds_world_rotated(bounds, transform, scale);
+  const GeoVector     center = geo_box_center(&b.box);
+  const GeoVector     size   = geo_box_size(&b.box);
+  debug_box(shape, center, b.rotation, size, geo_color(0, 1, 0, 0.2f), DebugShape_Fill);
+  debug_box(shape, center, b.rotation, size, geo_color(0, 1, 0, 0.5f), DebugShape_Wire);
 }
 
 static void physics_draw_bounds_global(
@@ -166,27 +165,28 @@ ecs_system_define(DebugPhysicsDrawSys) {
 
   for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ObjectView)); ecs_view_walk(itr);) {
     const SceneTransformComp* transformComp = ecs_view_read_t(itr, SceneTransformComp);
-    const GeoVector           pos           = transformComp->position;
-    const GeoQuat             rot           = transformComp->rotation;
     const SceneBoundsComp*    boundsComp    = ecs_view_read_t(itr, SceneBoundsComp);
     const SceneCollisionComp* collisionComp = ecs_view_read_t(itr, SceneCollisionComp);
     const SceneScaleComp*     scaleComp     = ecs_view_read_t(itr, SceneScaleComp);
-    const f32                 scale         = scaleComp ? scaleComp->scale : 1.0f;
 
     if (settings->flags & DebugPhysicsFlags_DrawPivot) {
-      debug_sphere(shape, pos, 0.025f, geo_color(1.0f, 1.0f, 0.0f, 1.0f), DebugShape_Overlay);
+      const GeoColor color = geo_color(1.0f, 1.0f, 0.0f, 1.0f);
+      debug_sphere(shape, transformComp->position, 0.025f, color, DebugShape_Overlay);
     }
     if (settings->flags & DebugPhysicsFlags_DrawOrientation) {
-      debug_orientation(shape, pos, rot, 0.25f);
+      debug_orientation(shape, transformComp->position, transformComp->rotation, 0.25f);
     }
     if (collisionComp && settings->flags & DebugPhysicsFlags_DrawCollision) {
       physics_draw_collision(shape, collisionComp, transformComp, scaleComp);
     }
     if (boundsComp && !geo_box_is_inverted3(&boundsComp->local)) {
       if (settings->flags & DebugPhysicsFlags_DrawBoundsLocal) {
-        physics_draw_bounds_local(shape, pos, rot, boundsComp->local, scale);
+        physics_draw_bounds_local(shape, boundsComp, transformComp, scaleComp);
       }
       if (settings->flags & DebugPhysicsFlags_DrawBoundsGlobal) {
+        const GeoVector pos   = transformComp->position;
+        const GeoQuat   rot   = transformComp->rotation;
+        const f32       scale = scaleComp ? scaleComp->scale : 1.0f;
         physics_draw_bounds_global(shape, pos, rot, boundsComp->local, scale);
       }
     }
