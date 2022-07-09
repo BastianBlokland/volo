@@ -166,6 +166,27 @@ GeoMatrix scene_camera_view_proj(
   return geo_matrix_mul(&p, &v);
 }
 
+GeoRay scene_camera_ray(
+    const SceneCameraComp*    cam,
+    const SceneTransformComp* trans,
+    const f32                 aspect,
+    const GeoVector           normScreenPos) {
+  const GeoMatrix viewProj    = scene_camera_view_proj(cam, trans, aspect);
+  const GeoMatrix invViewProj = geo_matrix_inverse(&viewProj);
+  const f32       ndcX        = normScreenPos.x * 2 - 1;
+  const f32       ndcY        = -normScreenPos.y * 2 + 1;
+  const f32       ndcNear     = 1.0f;
+  const f32       ndcFar      = 1e-8f; // NOTE: Using an infinitely far depth plane so avoid 0.
+
+  const GeoVector origNdc = geo_vector(ndcX, ndcY, ndcNear, 1);
+  const GeoVector orig    = geo_vector_perspective_div(geo_matrix_transform(&invViewProj, origNdc));
+
+  const GeoVector destNdc = geo_vector(ndcX, ndcY, ndcFar, 1);
+  const GeoVector dest    = geo_vector_perspective_div(geo_matrix_transform(&invViewProj, destNdc));
+
+  return (GeoRay){.point = orig, .direction = geo_vector_norm(geo_vector_sub(dest, orig))};
+}
+
 void scene_camera_to_default(SceneCameraComp* cam) {
   cam->persFov   = g_camPersFov;
   cam->orthoSize = g_camOrthoSize;

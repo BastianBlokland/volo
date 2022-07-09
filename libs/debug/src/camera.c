@@ -16,6 +16,7 @@ static const String g_tooltipOrthoSize      = string_static("Size (in meters) of
 static const String g_tooltipFov            = string_static("Field of view of the dominant dimension of the perspective projection.");
 static const String g_tooltipVerticalAspect = string_static("Use the vertical dimension as the dominant dimension.");
 static const String g_tooltipDebugFrustum   = string_static("Visualize the camera frustum.");
+static const String g_tooltipDebugInput     = string_static("Visualize the input ray.");
 static const String g_tooltipNearDistance   = string_static("Distance (in meters) to the near clipping plane.");
 static const String g_tooltipExclude        = string_static("Exclude {} from being rendered.");
 static const String g_tooltipMoveSpeed      = string_static("Camera movement speed in meters per second.");
@@ -152,9 +153,19 @@ static void camera_panel_draw(
   }
 
   ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Debug orientation"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, flags, SceneCameraFlags_DebugOrientation);
+
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug frustum"));
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(canvas, flags, SceneCameraFlags_DebugFrustum, .tooltip = g_tooltipDebugFrustum);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Debug input ray"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, flags, SceneCameraFlags_DebugInputRay, .tooltip = g_tooltipDebugInput);
 
   camera_panel_draw_filters(canvas, &table, camera);
 
@@ -239,6 +250,18 @@ static void debug_camera_draw_frustum(
   }
 }
 
+static void debug_camera_draw_input_ray(
+    DebugShapeComp*           shape,
+    const SceneCameraComp*    cam,
+    const SceneTransformComp* trans,
+    const f32                 aspect,
+    const GeoVector           inputPos) {
+  const GeoRay    ray   = scene_camera_ray(cam, trans, aspect, inputPos);
+  const GeoVector start = ray.point;
+  const GeoVector end   = geo_vector_add(start, geo_vector_mul(ray.direction, 1e10f));
+  debug_line(shape, start, end, geo_color_fuchsia);
+}
+
 ecs_system_define(DebugCameraDrawSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalDrawView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -253,11 +276,19 @@ ecs_system_define(DebugCameraDrawSys) {
     const GapWindowComp*      win   = ecs_view_read_t(itr, GapWindowComp);
     const SceneTransformComp* trans = ecs_view_read_t(itr, SceneTransformComp);
 
-    const GapVector winSize = gap_window_param(win, GapParam_WindowSize);
-    const f32       aspect  = (f32)winSize.width / (f32)winSize.height;
+    const GapVector winSize   = gap_window_param(win, GapParam_WindowSize);
+    const GapVector cursorPos = gap_window_param(win, GapParam_CursorPos);
+    const f32       aspect    = (f32)winSize.width / (f32)winSize.height;
+    const GeoVector inputPos  = {cursorPos.x / (f32)winSize.x, cursorPos.y / (f32)winSize.y};
 
+    if (trans && cam->flags & SceneCameraFlags_DebugOrientation) {
+      debug_orientation(shape, trans->position, trans->rotation, 0.25f);
+    }
     if (cam->flags & SceneCameraFlags_DebugFrustum) {
       debug_camera_draw_frustum(shape, cam, trans, aspect);
+    }
+    if (cam->flags & SceneCameraFlags_DebugInputRay) {
+      debug_camera_draw_input_ray(shape, cam, trans, aspect, inputPos);
     }
   }
 }
@@ -284,7 +315,7 @@ EcsEntityId debug_camera_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugCameraPanelComp,
-      .panel  = ui_panel(ui_vector(340, 325)),
+      .panel  = ui_panel(ui_vector(340, 400)),
       .window = window);
   return panelEntity;
 }

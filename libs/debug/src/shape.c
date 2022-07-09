@@ -555,7 +555,7 @@ void debug_plane(
 void debug_frustum(DebugShapeComp* comp, const GeoMatrix* viewProj, const GeoColor color) {
   const GeoMatrix invViewProj = geo_matrix_inverse(viewProj);
   const f32       nearNdc     = 1.0f;
-  const f32       farNdc      = 0.0001f; // NOTE: Using reverse-z with infinite far-plane.
+  const f32       farNdc      = 1e-8f; // NOTE: Using reverse-z with infinite far-plane.
 
   GeoVector points[] = {
       geo_vector(-1, -1, nearNdc, 1),
