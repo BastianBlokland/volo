@@ -158,6 +158,14 @@ GeoMatrix scene_camera_proj(const SceneCameraComp* cam, const f32 aspect) {
   return geo_matrix_proj_pers_hor(cam->persFov, aspect, cam->persNear);
 }
 
+GeoMatrix scene_camera_view_proj(
+    const SceneCameraComp* cam, const SceneTransformComp* trans, const f32 aspect) {
+
+  const GeoMatrix p = scene_camera_proj(cam, aspect);
+  const GeoMatrix v = LIKELY(trans) ? scene_transform_matrix_inv(trans) : geo_matrix_ident();
+  return geo_matrix_mul(&p, &v);
+}
+
 void scene_camera_to_default(SceneCameraComp* cam) {
   cam->persFov   = g_camPersFov;
   cam->orthoSize = g_camOrthoSize;

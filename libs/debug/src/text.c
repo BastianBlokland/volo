@@ -52,10 +52,7 @@ static GeoMatrix debug_text_view_proj(
     const SceneCameraComp* cam, const SceneTransformComp* trans, const UiCanvasComp* canvas) {
   const UiVector res    = ui_canvas_resolution(canvas);
   const f32      aspect = (f32)res.width / (f32)res.height;
-
-  const GeoMatrix proj = scene_camera_proj(cam, aspect);
-  const GeoMatrix view = trans ? scene_transform_matrix_inv(trans) : geo_matrix_ident();
-  return geo_matrix_mul(&proj, &view);
+  return scene_camera_view_proj(cam, trans, aspect);
 }
 
 static GeoVector debug_text_canvas_pos(const GeoMatrix* viewProj, const GeoVector pos) {

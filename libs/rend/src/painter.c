@@ -73,10 +73,11 @@ static GeoMatrix painter_view_proj_matrix(
   const GapVector winSize = gap_window_param(win, GapParam_WindowSize);
   const f32       aspect  = (f32)winSize.width / (f32)winSize.height;
 
-  const GeoMatrix proj = cam ? scene_camera_proj(cam, aspect)
-                             : geo_matrix_proj_ortho(2.0f, 2.0f / aspect, -100.0f, 100.0f);
-  const GeoMatrix view = trans ? scene_transform_matrix_inv(trans) : geo_matrix_ident();
-  return geo_matrix_mul(&proj, &view);
+  if (LIKELY(cam)) {
+    return scene_camera_view_proj(cam, trans, aspect);
+  }
+  // Fall back to a basic orthographic projection.
+  return geo_matrix_proj_ortho(2.0f, 2.0f / aspect, -100.0f, 100.0f);
 }
 
 static void painter_draw_override_dynmesh(
