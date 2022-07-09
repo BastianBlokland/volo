@@ -9,7 +9,13 @@ ecs_comp_extern(SceneScaleComp);
 ecs_comp_extern_public(SceneBoundsComp) { GeoBox local; };
 
 /**
- * Compute a geometric rotated box for the given bounds.
+ * Compute the world-space axis-aligned box for the given bounds.
+ * NOTE: SceneTransformComp and SceneScaleComp are optional.
+ */
+GeoBox scene_bounds_world(const SceneBoundsComp*, const SceneTransformComp*, const SceneScaleComp*);
+
+/**
+ * Compute the world-space rotated box for the given bounds.
  * NOTE: SceneTransformComp and SceneScaleComp are optional.
  */
 GeoBoxRotated scene_bounds_world_rotated(

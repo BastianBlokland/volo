@@ -210,6 +210,21 @@ ecs_module_init(scene_bounds_module) {
       ecs_view_id(RenderablesWithBoundsView));
 }
 
+GeoBox scene_bounds_world(
+    const SceneBoundsComp*    boundsComp,
+    const SceneTransformComp* transformComp,
+    const SceneScaleComp*     scaleComp) {
+
+  if (geo_box_is_inverted3(&boundsComp->local)) {
+    return geo_box_inverted3();
+  }
+
+  const GeoVector basePos   = LIKELY(transformComp) ? transformComp->position : geo_vector(0);
+  const GeoQuat   baseRot   = LIKELY(transformComp) ? transformComp->rotation : geo_quat_ident;
+  const f32       baseScale = scaleComp ? scaleComp->scale : 1.0f;
+  return geo_box_transform3(&boundsComp->local, basePos, baseRot, baseScale);
+}
+
 GeoBoxRotated scene_bounds_world_rotated(
     const SceneBoundsComp*    boundsComp,
     const SceneTransformComp* transformComp,
@@ -218,6 +233,10 @@ GeoBoxRotated scene_bounds_world_rotated(
   const GeoVector basePos   = LIKELY(transformComp) ? transformComp->position : geo_vector(0);
   const GeoQuat   baseRot   = LIKELY(transformComp) ? transformComp->rotation : geo_quat_ident;
   const f32       baseScale = scaleComp ? scaleComp->scale : 1.0f;
+
+  if (geo_box_is_inverted3(&boundsComp->local)) {
+    return (GeoBoxRotated){.box = geo_box_inverted3(), .rotation = baseRot};
+  }
 
   const GeoVector size        = geo_vector_mul(geo_box_size(&boundsComp->local), baseScale);
   const GeoVector localCenter = geo_box_center(&boundsComp->local);

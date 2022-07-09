@@ -138,14 +138,13 @@ static void physics_draw_bounds_local(
 }
 
 static void physics_draw_bounds_global(
-    DebugShapeComp* shape,
-    const GeoVector pos,
-    const GeoQuat   rot,
-    const GeoBox    bounds,
-    const f32       scale) {
-  const GeoBox    aabb   = geo_box_transform3(&bounds, pos, rot, scale);
-  const GeoVector center = geo_box_center(&aabb);
-  const GeoVector size   = geo_box_size(&aabb);
+    DebugShapeComp*           shape,
+    const SceneBoundsComp*    bounds,
+    const SceneTransformComp* transform,
+    const SceneScaleComp*     scale) {
+  const GeoBox    b      = scene_bounds_world(bounds, transform, scale);
+  const GeoVector center = geo_box_center(&b);
+  const GeoVector size   = geo_box_size(&b);
   debug_box(shape, center, geo_quat_ident, size, geo_color(0, 0, 1, 0.2f), DebugShape_Fill);
   debug_box(shape, center, geo_quat_ident, size, geo_color(0, 0, 1, 0.5f), DebugShape_Wire);
 }
@@ -184,10 +183,7 @@ ecs_system_define(DebugPhysicsDrawSys) {
         physics_draw_bounds_local(shape, boundsComp, transformComp, scaleComp);
       }
       if (settings->flags & DebugPhysicsFlags_DrawBoundsGlobal) {
-        const GeoVector pos   = transformComp->position;
-        const GeoQuat   rot   = transformComp->rotation;
-        const f32       scale = scaleComp ? scaleComp->scale : 1.0f;
-        physics_draw_bounds_global(shape, pos, rot, boundsComp->local, scale);
+        physics_draw_bounds_global(shape, boundsComp, transformComp, scaleComp);
       }
     }
   }
