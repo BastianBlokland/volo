@@ -14,3 +14,9 @@ typedef struct {
  */
 f32 geo_line_length(const GeoLine*);
 f32 geo_line_length_sqr(const GeoLine*);
+
+/**
+ * Compute the direction of the line.
+ * Pre-condition: geo_line_length(line) > 0
+ */
+GeoVector geo_line_direction(const GeoLine*);
