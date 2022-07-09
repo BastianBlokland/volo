@@ -114,26 +114,26 @@ static void interface_panel_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug inspector"));
   ui_table_next_column(canvas, &table);
-  bool debugInspector = (settings->flags & UiSettingFlags_DebugInspector) != 0;
-  if (ui_toggle(canvas, &debugInspector, .tooltip = g_tooltipDebugInspector)) {
-    settings->flags ^= UiSettingFlags_DebugInspector;
-  }
+  ui_toggle_flag(
+      canvas,
+      (u32*)&settings->flags,
+      UiSettingFlags_DebugInspector,
+      .tooltip = g_tooltipDebugInspector);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug shading"));
   ui_table_next_column(canvas, &table);
-  bool debugShading = (settings->flags & UiSettingFlags_DebugShading) != 0;
-  if (ui_toggle(canvas, &debugShading, .tooltip = g_tooltipDebugShading)) {
-    settings->flags ^= UiSettingFlags_DebugShading;
-  }
+  ui_toggle_flag(
+      canvas,
+      (u32*)&settings->flags,
+      UiSettingFlags_DebugShading,
+      .tooltip = g_tooltipDebugShading);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug Ftx"));
   ui_table_next_column(canvas, &table);
-  bool debugFtx = (panelComp->flags & DebugInterfaceFlags_DrawFtx) != 0;
-  if (ui_toggle(canvas, &debugFtx, .tooltip = g_tooltipDebugFtx)) {
-    panelComp->flags ^= DebugInterfaceFlags_DrawFtx;
-  }
+  ui_toggle_flag(
+      canvas, (u32*)&panelComp->flags, DebugInterfaceFlags_DrawFtx, .tooltip = g_tooltipDebugFtx);
 
   ui_table_next_row(canvas, &table);
   if (ui_button(canvas, .label = string_lit("Defaults"), .tooltip = g_tooltipDefaults)) {

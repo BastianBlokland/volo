@@ -109,10 +109,7 @@ camera_panel_draw_filters(UiCanvasComp* canvas, UiTable* table, SceneCameraComp*
     ui_table_next_row(canvas, table);
     ui_label(canvas, fmt_write_scratch("Exclude {}", fmt_text(name)));
     ui_table_next_column(canvas, table);
-    bool illegal = (camera->filter.illegal & g_filters[i].tag) != 0;
-    if (ui_toggle(canvas, &illegal, .tooltip = tooltip)) {
-      camera->filter.illegal ^= g_filters[i].tag;
-    }
+    ui_toggle_flag(canvas, (u32*)&camera->filter.illegal, g_filters[i].tag, .tooltip = tooltip);
   }
 }
 
@@ -144,10 +141,8 @@ static void camera_panel_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Vertical aspect"));
   ui_table_next_column(canvas, &table);
-  bool vertical = (camera->flags & SceneCameraFlags_Vertical) != 0;
-  if (ui_toggle(canvas, &vertical, .tooltip = g_tooltipVerticalAspect)) {
-    camera->flags ^= SceneCameraFlags_Vertical;
-  }
+  ui_toggle_flag(
+      canvas, (u32*)&camera->flags, SceneCameraFlags_Vertical, .tooltip = g_tooltipVerticalAspect);
 
   if (projectionIdx == 1) {
     camera_panel_draw_ortho(canvas, &table, camera, transform);
@@ -158,10 +153,11 @@ static void camera_panel_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug frustum"));
   ui_table_next_column(canvas, &table);
-  bool debugFrustum = (camera->flags & SceneCameraFlags_DebugFrustum) != 0;
-  if (ui_toggle(canvas, &debugFrustum, .tooltip = g_tooltipDebugFrustum)) {
-    camera->flags ^= SceneCameraFlags_DebugFrustum;
-  }
+  ui_toggle_flag(
+      canvas,
+      (u32*)&camera->flags,
+      SceneCameraFlags_DebugFrustum,
+      .tooltip = g_tooltipDebugFrustum);
 
   camera_panel_draw_filters(canvas, &table, camera);
 
