@@ -3,7 +3,7 @@
 
 /**
  * 4 component geometric spacial Vector.
- * Usefull for describing a position / offset in 2 / 3 / 4 dimensions.
+ * For describing a position / offset in 2 / 3 / 4 dimensions.
  */
 
 typedef union {

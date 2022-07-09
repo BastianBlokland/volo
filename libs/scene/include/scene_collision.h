@@ -1,7 +1,11 @@
 #pragma once
 #include "ecs_entity.h"
 #include "ecs_module.h"
-#include "geo_vector.h"
+#include "geo_capsule.h"
+
+// Forward declare from 'scene_transform.h'.
+ecs_comp_extern(SceneTransformComp);
+ecs_comp_extern(SceneScaleComp);
 
 typedef enum { SceneCollisionType_Capsule } SceneCollisionType;
 
@@ -25,4 +29,14 @@ ecs_comp_extern_public(SceneCollisionComp) {
   };
 };
 
+/**
+ * Add capsule collision to the given entity.
+ */
 void scene_collision_add_capsule(EcsWorld*, EcsEntityId entity, SceneCollisionCapsule);
+
+/**
+ * Compute a geometric capsule for the given capsule collision shape.
+ * NOTE: SceneTransformComp and SceneScaleComp are optional.
+ */
+GeoCapsule scene_collision_geo_capsule(
+    const SceneCollisionCapsule*, const SceneTransformComp*, const SceneScaleComp*);

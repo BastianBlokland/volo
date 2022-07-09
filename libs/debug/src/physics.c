@@ -111,22 +111,16 @@ ecs_system_define(DebugPhysicsUpdatePanelSys) {
 
 static void physics_draw_collision(
     DebugShapeComp*           shape,
-    const GeoVector           pos,
-    const GeoQuat             rot,
-    const f32                 scale,
-    const SceneCollisionComp* collision) {
+    const SceneCollisionComp* collision,
+    const SceneTransformComp* transform,
+    const SceneScaleComp*     scale) {
   switch (collision->type) {
   case SceneCollisionType_Capsule: {
-    static const GeoVector g_capsuleDir[] = {{0, 1, 0}, {0, 0, 1}, {1, 0, 0}};
-
-    const SceneCollisionCapsule* capsule = &collision->data_capsule;
-    const GeoVector worldOffset = geo_quat_rotate(rot, geo_vector_mul(capsule->offset, scale));
-    const GeoVector bottom      = geo_vector_add(pos, worldOffset);
-    const GeoVector dir         = geo_quat_rotate(rot, g_capsuleDir[capsule->direction]);
-    const GeoVector top    = geo_vector_add(bottom, geo_vector_mul(dir, capsule->height * scale));
-    const f32       radius = capsule->radius * scale;
-    debug_capsule(shape, bottom, top, radius, geo_color(1, 0, 0, 0.2f), DebugShape_Fill);
-    debug_capsule(shape, bottom, top, radius, geo_color(1, 0, 0, 1), DebugShape_Wire);
+    const GeoCapsule cap = scene_collision_geo_capsule(&collision->data_capsule, transform, scale);
+    const GeoColor   colorFill = geo_color(1, 0, 0, 0.2f);
+    const GeoColor   colorWire = geo_color(1, 0, 0, 1);
+    debug_capsule(shape, cap.line.from, cap.line.to, cap.radius, colorFill, DebugShape_Fill);
+    debug_capsule(shape, cap.line.from, cap.line.to, cap.radius, colorWire, DebugShape_Wire);
   } break;
   }
 }
@@ -171,8 +165,9 @@ ecs_system_define(DebugPhysicsDrawSys) {
   DebugShapeComp* shape = ecs_view_write_t(globalItr, DebugShapeComp);
 
   for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ObjectView)); ecs_view_walk(itr);) {
-    const GeoVector           pos           = ecs_view_read_t(itr, SceneTransformComp)->position;
-    const GeoQuat             rot           = ecs_view_read_t(itr, SceneTransformComp)->rotation;
+    const SceneTransformComp* transformComp = ecs_view_read_t(itr, SceneTransformComp);
+    const GeoVector           pos           = transformComp->position;
+    const GeoQuat             rot           = transformComp->rotation;
     const SceneBoundsComp*    boundsComp    = ecs_view_read_t(itr, SceneBoundsComp);
     const SceneCollisionComp* collisionComp = ecs_view_read_t(itr, SceneCollisionComp);
     const SceneScaleComp*     scaleComp     = ecs_view_read_t(itr, SceneScaleComp);
@@ -185,7 +180,7 @@ ecs_system_define(DebugPhysicsDrawSys) {
       debug_orientation(shape, pos, rot, 0.25f);
     }
     if (collisionComp && settings->flags & DebugPhysicsFlags_DrawCollision) {
-      physics_draw_collision(shape, pos, rot, scale, collisionComp);
+      physics_draw_collision(shape, collisionComp, transformComp, scaleComp);
     }
     if (boundsComp && !geo_box_is_inverted3(&boundsComp->local)) {
       if (settings->flags & DebugPhysicsFlags_DrawBoundsLocal) {
