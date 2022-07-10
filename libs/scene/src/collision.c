@@ -1,10 +1,13 @@
 #include "core_alloc.h"
+#include "core_annotation.h"
 #include "core_diag.h"
 #include "ecs_world.h"
 #include "geo_query.h"
 #include "scene_collision.h"
 #include "scene_register.h"
 #include "scene_transform.h"
+
+OPTIMIZE_OFF()
 
 ASSERT(sizeof(EcsEntityId) <= sizeof(u64), "EntityId's have to be storable with 64 bit integers");
 
@@ -44,9 +47,9 @@ static SceneCollisionRegistryComp* collision_registry_get_or_create(EcsWorld* wo
 }
 
 ecs_system_define(SceneCollisionUpdateSys) {
-  SceneCollisionRegistryComp* registry = collision_registry_get_or_create(world);
+  SceneCollisionRegistryComp* reg = collision_registry_get_or_create(world);
 
-  geo_query_env_clear(registry->queryEnv);
+  geo_query_env_clear(reg->queryEnv);
 
   EcsView* collisionEntities = ecs_world_view_t(world, CollisionEntityView);
   for (EcsIterator* itr = ecs_view_itr(collisionEntities); ecs_view_walk(itr);) {
@@ -61,9 +64,9 @@ ecs_system_define(SceneCollisionUpdateSys) {
       const GeoCapsule capsule = scene_collision_world_capsule(&collision->capsule, trans, scale);
       if (collision->capsule.height <= f32_epsilon) {
         const GeoSphere sphere = {.point = capsule.line.a, .radius = capsule.radius};
-        geo_query_insert_sphere(registry->queryEnv, sphere, id);
+        geo_query_insert_sphere(reg->queryEnv, sphere, id);
       } else {
-        geo_query_insert_capsule(registry->queryEnv, capsule, id);
+        geo_query_insert_capsule(reg->queryEnv, capsule, id);
       }
     } break;
     default:
@@ -88,6 +91,20 @@ ecs_module_init(scene_collision_module) {
 void scene_collision_add_capsule(
     EcsWorld* world, const EcsEntityId entity, const SceneCollisionCapsule capsule) {
   ecs_world_add_t(world, entity, SceneCollisionComp, .capsule = capsule);
+}
+
+bool scene_query_ray(const SceneCollisionRegistryComp* reg, const GeoRay* ray, SceneRayHit* out) {
+  GeoQueryRayHit hit;
+  if (geo_query_ray(reg->queryEnv, ray, &hit)) {
+    *out = (SceneRayHit){
+        .entity   = (EcsEntityId)hit.shapeId,
+        .position = geo_ray_position(ray, hit.time),
+        .normal   = hit.normal,
+        .time     = hit.time,
+    };
+    return true;
+  }
+  return false;
 }
 
 GeoCapsule scene_collision_world_capsule(

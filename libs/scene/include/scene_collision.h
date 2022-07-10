@@ -2,6 +2,7 @@
 #include "ecs_entity.h"
 #include "ecs_module.h"
 #include "geo_capsule.h"
+#include "geo_ray.h"
 
 // Forward declare from 'scene_transform.h'.
 ecs_comp_extern(SceneTransformComp);
@@ -35,9 +36,18 @@ ecs_comp_extern_public(SceneCollisionComp) {
 };
 
 /**
- * Add capsule collision to the given entity.
+ * Add a collision shape to the given entity.
  */
 void scene_collision_add_capsule(EcsWorld*, EcsEntityId entity, SceneCollisionCapsule);
+
+typedef struct {
+  EcsEntityId entity;
+  GeoVector   position;
+  GeoVector   normal;
+  f32         time;
+} SceneRayHit;
+
+bool scene_query_ray(const SceneCollisionRegistryComp*, const GeoRay* ray, SceneRayHit* out);
 
 /**
  * Compute a geometric capsule for the given capsule collision shape.

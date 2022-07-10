@@ -55,16 +55,16 @@ bool geo_query_ray(GeoQueryEnv* env, const GeoRay* ray, GeoQueryRayHit* outHit) 
   GeoSphere* spheresBegin = dynarray_begin_t(&env->spheres, GeoSphere);
   GeoSphere* spheresEnd   = dynarray_end_t(&env->spheres, GeoSphere);
   for (GeoSphere* itr = spheresBegin; itr != spheresEnd; ++itr) {
-    GeoVector surfaceNormal;
-    const f32 hitT = geo_sphere_intersect_ray(itr, ray, &surfaceNormal);
+    GeoVector normal;
+    const f32 hitT = geo_sphere_intersect_ray(itr, ray, &normal);
     if (hitT < 0.0) {
       continue; // Miss.
     }
     if (hitT < bestHit.time) {
-      bestHit.time          = hitT;
-      bestHit.shapeId       = *dynarray_at_t(&env->sphereIds, itr - spheresBegin, u64);
-      bestHit.surfaceNormal = surfaceNormal;
-      foundHit              = true;
+      bestHit.time    = hitT;
+      bestHit.shapeId = *dynarray_at_t(&env->sphereIds, itr - spheresBegin, u64);
+      bestHit.normal  = normal;
+      foundHit        = true;
     }
   }
 

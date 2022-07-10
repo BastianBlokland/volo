@@ -36,7 +36,7 @@ void geo_query_insert_capsule(GeoQueryEnv*, GeoCapsule, u64 id);
 typedef struct {
   f32       time;
   u64       shapeId;
-  GeoVector surfaceNormal;
+  GeoVector normal;
 } GeoQueryRayHit;
 
 /**
