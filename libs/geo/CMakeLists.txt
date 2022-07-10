@@ -11,6 +11,7 @@ add_library(lib_geo STATIC
   src/matrix.c
   src/plane.c
   src/quat.c
+  src/sphere.c
   src/vector.c
   )
 target_include_directories(lib_geo PUBLIC include)
@@ -23,6 +24,7 @@ add_executable(lib_geo_test
   test/test_matrix.c
   test/test_plane.c
   test/test_quat.c
+  test/test_sphere.c
   test/test_vector.c
   test/utils.c
   )

@@ -16,6 +16,7 @@ int main(const int argc, const char** argv) {
   register_spec(check, matrix);
   register_spec(check, plane);
   register_spec(check, quat);
+  register_spec(check, sphere);
   register_spec(check, vector);
 
   const int exitCode = check_app(check, argc, argv);

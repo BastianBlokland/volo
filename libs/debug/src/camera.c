@@ -258,7 +258,7 @@ static void debug_camera_draw_input_ray(
     const GeoVector           inputPos) {
   const GeoRay    ray   = scene_camera_ray(cam, trans, aspect, inputPos);
   const GeoVector start = ray.point;
-  const GeoVector end   = geo_vector_add(start, geo_vector_mul(ray.direction, 1e10f));
+  const GeoVector end   = geo_vector_add(start, geo_vector_mul(ray.dir, 1e10f));
   debug_line(shape, start, end, geo_color_fuchsia);
 }
 

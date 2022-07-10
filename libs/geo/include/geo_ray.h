@@ -7,5 +7,5 @@
 
 typedef struct {
   GeoVector point;
-  GeoVector direction; // Normalized.
+  GeoVector dir; // Normalized.
 } GeoRay;
