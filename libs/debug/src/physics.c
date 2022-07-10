@@ -1,12 +1,15 @@
 #include "asset_manager.h"
+#include "core_stringtable.h"
 #include "debug_physics.h"
 #include "debug_register.h"
 #include "debug_shape.h"
+#include "debug_text.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
 #include "scene_bounds.h"
 #include "scene_camera.h"
 #include "scene_collision.h"
+#include "scene_name.h"
 #include "scene_renderable.h"
 #include "scene_transform.h"
 #include "ui.h"
@@ -14,13 +17,14 @@
 typedef enum {
   DebugPhysicsFlags_DrawPivot        = 1 << 0,
   DebugPhysicsFlags_DrawOrientation  = 1 << 1,
-  DebugPhysicsFlags_DrawCollision    = 1 << 2,
-  DebugPhysicsFlags_DrawBoundsLocal  = 1 << 3,
-  DebugPhysicsFlags_DrawBoundsGlobal = 1 << 4,
+  DebugPhysicsFlags_DrawName         = 1 << 2,
+  DebugPhysicsFlags_DrawCollision    = 1 << 3,
+  DebugPhysicsFlags_DrawBoundsLocal  = 1 << 4,
+  DebugPhysicsFlags_DrawBoundsGlobal = 1 << 5,
 
   DebugPhysicsFlags_DrawAny = DebugPhysicsFlags_DrawPivot | DebugPhysicsFlags_DrawOrientation |
-                              DebugPhysicsFlags_DrawCollision | DebugPhysicsFlags_DrawBoundsLocal |
-                              DebugPhysicsFlags_DrawBoundsGlobal
+                              DebugPhysicsFlags_DrawName | DebugPhysicsFlags_DrawCollision |
+                              DebugPhysicsFlags_DrawBoundsLocal | DebugPhysicsFlags_DrawBoundsGlobal
 } DebugPhysicsFlags;
 
 ecs_comp_define(DebugPhysicsSettingsComp) { DebugPhysicsFlags flags; };
@@ -32,6 +36,7 @@ ecs_view_define(SettingsUpdateView) { ecs_access_write(DebugPhysicsSettingsComp)
 ecs_view_define(GlobalDrawView) {
   ecs_access_read(DebugPhysicsSettingsComp);
   ecs_access_write(DebugShapeComp);
+  ecs_access_write(DebugTextComp);
 }
 
 ecs_view_define(PanelUpdateView) {
@@ -42,6 +47,7 @@ ecs_view_define(PanelUpdateView) {
 ecs_view_define(ObjectView) {
   ecs_access_read(SceneRenderableComp);
   ecs_access_read(SceneTransformComp);
+  ecs_access_maybe_read(SceneNameComp);
   ecs_access_maybe_read(SceneCollisionComp);
   ecs_access_maybe_read(SceneBoundsComp);
   ecs_access_maybe_read(SceneScaleComp);
@@ -65,6 +71,11 @@ static void physics_panel_draw(
   ui_label(canvas, string_lit("Draw orientation"));
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(canvas, (u32*)&settings->flags, DebugPhysicsFlags_DrawOrientation);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Draw name"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, (u32*)&settings->flags, DebugPhysicsFlags_DrawName);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Draw collision"));
@@ -168,9 +179,11 @@ ecs_system_define(DebugPhysicsDrawSys) {
   }
 
   DebugShapeComp* shape = ecs_view_write_t(globalItr, DebugShapeComp);
+  DebugTextComp*  text  = ecs_view_write_t(globalItr, DebugTextComp);
 
   for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ObjectView)); ecs_view_walk(itr);) {
     const SceneTransformComp* transformComp = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneNameComp*      nameComp      = ecs_view_read_t(itr, SceneNameComp);
     const SceneBoundsComp*    boundsComp    = ecs_view_read_t(itr, SceneBoundsComp);
     const SceneCollisionComp* collisionComp = ecs_view_read_t(itr, SceneCollisionComp);
     const SceneScaleComp*     scaleComp     = ecs_view_read_t(itr, SceneScaleComp);
@@ -181,6 +194,11 @@ ecs_system_define(DebugPhysicsDrawSys) {
     }
     if (settings->flags & DebugPhysicsFlags_DrawOrientation) {
       debug_orientation(shape, transformComp->position, transformComp->rotation, 0.25f);
+    }
+    if (nameComp && settings->flags & DebugPhysicsFlags_DrawName) {
+      const String    name = stringtable_lookup(g_stringtable, nameComp->name);
+      const GeoVector pos  = geo_vector_add(transformComp->position, geo_vector_mul(geo_up, 0.1f));
+      debug_text(text, pos, name, geo_color_white);
     }
     if (collisionComp && settings->flags & DebugPhysicsFlags_DrawCollision) {
       physics_draw_collision(shape, collisionComp, transformComp, scaleComp);
