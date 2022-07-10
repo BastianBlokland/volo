@@ -1,12 +1,15 @@
 #include "core_array.h"
 #include "core_math.h"
+#include "core_stringtable.h"
 #include "debug_camera.h"
 #include "debug_register.h"
 #include "debug_shape.h"
+#include "debug_text.h"
 #include "ecs_world.h"
 #include "gap_window.h"
 #include "scene_camera.h"
 #include "scene_collision.h"
+#include "scene_name.h"
 #include "scene_tag.h"
 #include "scene_transform.h"
 #include "ui.h"
@@ -224,6 +227,7 @@ ecs_system_define(DebugCameraUpdatePanelSys) {
 ecs_view_define(GlobalDrawView) {
   ecs_access_read(SceneCollisionEnvComp);
   ecs_access_write(DebugShapeComp);
+  ecs_access_write(DebugTextComp);
 }
 
 ecs_view_define(DrawView) {
@@ -231,6 +235,8 @@ ecs_view_define(DrawView) {
   ecs_access_read(SceneCameraComp);
   ecs_access_maybe_read(SceneTransformComp);
 }
+
+ecs_view_define(NameView) { ecs_access_read(SceneNameComp); }
 
 static void debug_camera_draw_frustum(
     DebugShapeComp*           shape,
@@ -256,7 +262,9 @@ static void debug_camera_draw_frustum(
 
 static void debug_camera_draw_input_ray(
     DebugShapeComp*              shape,
+    DebugTextComp*               text,
     const SceneCollisionEnvComp* collisionEnv,
+    EcsView*                     nameView,
     const SceneCameraComp*       cam,
     const SceneTransformComp*    trans,
     const f32                    aspect,
@@ -269,8 +277,15 @@ static void debug_camera_draw_input_ray(
   SceneRayHit hit;
   if (scene_query_ray(collisionEnv, &ray, &hit)) {
     debug_sphere(shape, hit.position, 0.04f, geo_color_lime, DebugShape_Overlay);
-    const GeoVector lineEnd = geo_vector_add(hit.position, geo_vector_mul(hit.normal, 0.5f));
+    const GeoVector lineEnd = geo_vector_add(hit.position, geo_vector_mul(hit.normal, 0.25f));
     debug_arrow(shape, hit.position, lineEnd, 0.02f, geo_color_green);
+
+    EcsIterator* nameItr = ecs_view_itr(nameView);
+    if (ecs_view_maybe_jump(nameItr, hit.entity)) {
+      const SceneNameComp* nameComp = ecs_view_read_t(nameItr, SceneNameComp);
+      const GeoVector      pos      = geo_vector_add(hit.position, geo_vector_mul(geo_up, 0.1f));
+      debug_text(text, pos, stringtable_lookup(g_stringtable, nameComp->name), geo_color_white);
+    }
   }
 }
 
@@ -282,8 +297,11 @@ ecs_system_define(DebugCameraDrawSys) {
   }
   const SceneCollisionEnvComp* collisionEnv = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
   DebugShapeComp*              shape        = ecs_view_write_t(globalItr, DebugShapeComp);
+  DebugTextComp*               text         = ecs_view_write_t(globalItr, DebugTextComp);
 
+  EcsView* nameView = ecs_world_view_t(world, NameView);
   EcsView* drawView = ecs_world_view_t(world, DrawView);
+
   for (EcsIterator* itr = ecs_view_itr(drawView); ecs_view_walk(itr);) {
     const SceneCameraComp*    cam   = ecs_view_read_t(itr, SceneCameraComp);
     const GapWindowComp*      win   = ecs_view_read_t(itr, GapWindowComp);
@@ -301,7 +319,8 @@ ecs_system_define(DebugCameraDrawSys) {
       debug_camera_draw_frustum(shape, cam, trans, aspect);
     }
     if (cam->flags & SceneCameraFlags_DebugInputRay) {
-      debug_camera_draw_input_ray(shape, collisionEnv, cam, trans, aspect, inputPos);
+      debug_camera_draw_input_ray(
+          shape, text, collisionEnv, nameView, cam, trans, aspect, inputPos);
     }
   }
 }
@@ -313,11 +332,16 @@ ecs_module_init(debug_camera_module) {
   ecs_register_view(WindowView);
   ecs_register_view(GlobalDrawView);
   ecs_register_view(DrawView);
+  ecs_register_view(NameView);
 
   ecs_register_system(
       DebugCameraUpdatePanelSys, ecs_view_id(PanelUpdateView), ecs_view_id(WindowView));
 
-  ecs_register_system(DebugCameraDrawSys, ecs_view_id(GlobalDrawView), ecs_view_id(DrawView));
+  ecs_register_system(
+      DebugCameraDrawSys,
+      ecs_view_id(GlobalDrawView),
+      ecs_view_id(DrawView),
+      ecs_view_id(NameView));
 
   ecs_order(DebugCameraDrawSys, DebugOrder_PhysicsDebugDraw);
 }
