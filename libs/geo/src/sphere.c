@@ -3,7 +3,7 @@
 
 #include "intrinsic_internal.h"
 
-f32 geo_sphere_intersect_ray(const GeoSphere* sphere, const GeoRay* ray, GeoVector* outNormal) {
+f32 geo_sphere_intersect_ray(const GeoSphere* sphere, const GeoRay* ray) {
   /**
    * Additional information:
    * https://gdbooks.gitbooks.io/3dcollisions/content/Chapter3/raycast_sphere.html
@@ -23,13 +23,9 @@ f32 geo_sphere_intersect_ray(const GeoSphere* sphere, const GeoRay* ray, GeoVect
 
   // Test if ray is inside.
   if (toCenterDistSqr < sphere->radius * sphere->radius) {
-    *outNormal = geo_vector_mul(ray->dir, -1.0f);
     return a + f; // Reverse direction.
   }
 
   // Normal intersection.
-  const f32       rayT   = a - f;
-  const GeoVector rayPos = geo_vector_add(ray->point, geo_vector_mul(ray->dir, rayT));
-  *outNormal             = geo_vector_norm(geo_vector_sub(rayPos, sphere->point));
-  return rayT;
+  return a - f;
 }

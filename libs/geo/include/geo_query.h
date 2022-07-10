@@ -44,4 +44,4 @@ typedef struct {
  * Returns true if a shape was hit otherwise false.
  * NOTE: Hit information is written to the out pointer if true was returned.
  */
-bool geo_query_ray(GeoQueryEnv*, const GeoRay*, GeoQueryRayHit* outHit);
+bool geo_query_ray(const GeoQueryEnv*, const GeoRay*, GeoQueryRayHit* outHit);
