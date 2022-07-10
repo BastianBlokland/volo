@@ -47,3 +47,29 @@ void geo_query_insert_capsule(GeoQueryEnv* env, const GeoCapsule capsule, const 
   *dynarray_push_t(&env->capsules, GeoCapsule) = capsule;
   *dynarray_push_t(&env->capsuleIds, u64)      = id;
 }
+
+bool geo_query_ray(GeoQueryEnv* env, const GeoRay* ray, GeoQueryRayHit* outHit) {
+  GeoQueryRayHit bestHit  = {.time = f32_max};
+  bool           foundHit = false;
+
+  GeoSphere* spheresBegin = dynarray_begin_t(&env->spheres, GeoSphere);
+  GeoSphere* spheresEnd   = dynarray_end_t(&env->spheres, GeoSphere);
+  for (GeoSphere* itr = spheresBegin; itr != spheresEnd; ++itr) {
+    GeoVector surfaceNormal;
+    const f32 hitT = geo_sphere_intersect_ray(itr, ray, &surfaceNormal);
+    if (hitT < 0.0) {
+      continue; // Miss.
+    }
+    if (hitT < bestHit.time) {
+      bestHit.time          = hitT;
+      bestHit.shapeId       = *dynarray_at_t(&env->sphereIds, itr - spheresBegin, u64);
+      bestHit.surfaceNormal = surfaceNormal;
+      foundHit              = true;
+    }
+  }
+
+  if (foundHit) {
+    *outHit = bestHit;
+  }
+  return foundHit;
+}

@@ -1,5 +1,6 @@
 #pragma once
 #include "geo_capsule.h"
+#include "geo_ray.h"
 #include "geo_sphere.h"
 
 // Forward declare from 'core_alloc.h'.
@@ -31,3 +32,16 @@ void geo_query_env_clear(GeoQueryEnv*);
  */
 void geo_query_insert_sphere(GeoQueryEnv*, GeoSphere, u64 id);
 void geo_query_insert_capsule(GeoQueryEnv*, GeoCapsule, u64 id);
+
+typedef struct {
+  f32       time;
+  u64       shapeId;
+  GeoVector surfaceNormal;
+} GeoQueryRayHit;
+
+/**
+ * Query for a hit along the given ray.
+ * Returns true if a shape was hit otherwise false.
+ * NOTE: Hit information is written to the out pointer if true was returned.
+ */
+bool geo_query_ray(GeoQueryEnv*, const GeoRay*, GeoQueryRayHit* outHit);
