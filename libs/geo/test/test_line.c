@@ -27,7 +27,7 @@ spec(line) {
     }
   }
 
-  it("can find the time of the closest point on the line") {
+  it("can find the time closest to the given point") {
     {
       const GeoLine line = {{0, 1, 0}, {0, 1, 5}};
       check_eq_float(geo_line_closest_time(&line, geo_vector(0, 0, 0)), 0, 1e-6);
@@ -47,14 +47,16 @@ spec(line) {
     }
   }
 
-  it("can find the closest point on the line") {
+  it("can find the time closest to the given ray") {
     {
       const GeoLine line = {{0, 1, 0}, {0, 1, 5}};
-      check_eq_vector(geo_line_closest_point(&line, geo_vector(0, 0, 0)), geo_vector(0, 1, 0));
-      check_eq_vector(geo_line_closest_point(&line, geo_vector(0, 1, 5)), geo_vector(0, 1, 5));
-      check_eq_vector(geo_line_closest_point(&line, geo_vector(0, 2, -1)), geo_vector(0, 1, 0));
-      check_eq_vector(geo_line_closest_point(&line, geo_vector(0, 3, 6)), geo_vector(0, 1, 5));
-      check_eq_vector(geo_line_closest_point(&line, geo_vector(0, 4, 2.5f)), geo_vector(0, 1, 2.5));
+      const GeoRay  ray  = {.point = {1, 0, -10}, .dir = geo_up};
+      check_eq_float(geo_line_closest_time_ray(&line, &ray), 0, 1e-6);
+    }
+    {
+      const GeoLine line = {{0, 1, 0}, {0, 1, 5}};
+      const GeoRay  ray  = {.point = {1, 0, 10}, .dir = geo_up};
+      check_eq_float(geo_line_closest_time_ray(&line, &ray), 1, 1e-6);
     }
   }
 }

@@ -1,4 +1,5 @@
 #pragma once
+#include "geo_ray.h"
 #include "geo_vector.h"
 
 /**
@@ -22,11 +23,13 @@ f32 geo_line_length_sqr(const GeoLine*);
 GeoVector geo_line_direction(const GeoLine*);
 
 /**
- * Find the time on the line (0 - 1) that is the closest to the given point.
+ * Find the time on the line (0 - 1) that is the closest to the given point / ray.
  */
 f32 geo_line_closest_time(const GeoLine*, GeoVector point);
+f32 geo_line_closest_time_ray(const GeoLine*, const GeoRay* ray);
 
 /**
- * Find the closest position on the line to the given point.
+ * Find the closest position on the line to the given point / ray.
  */
 GeoVector geo_line_closest_point(const GeoLine*, GeoVector point);
+GeoVector geo_line_closest_point_ray(const GeoLine*, const GeoRay* ray);
