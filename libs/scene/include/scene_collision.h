@@ -30,7 +30,7 @@ typedef struct {
 ecs_comp_extern_public(SceneCollisionComp) {
   SceneCollisionType type;
   union {
-    SceneCollisionCapsule data_capsule;
+    SceneCollisionCapsule capsule;
   };
 };
 
