@@ -1,5 +1,4 @@
 #include "core_alloc.h"
-#include "core_annotation.h"
 #include "core_diag.h"
 #include "ecs_world.h"
 #include "geo_query.h"
@@ -7,25 +6,18 @@
 #include "scene_register.h"
 #include "scene_transform.h"
 
-OPTIMIZE_OFF()
-
 ASSERT(sizeof(EcsEntityId) <= sizeof(u64), "EntityId's have to be storable with 64 bit integers");
 
-typedef struct {
-  EcsEntityId entity;
-  GeoCapsule  capsule;
-} SceneCollisionRegistryEntry;
-
-ecs_comp_define(SceneCollisionRegistryComp) { GeoQueryEnv* queryEnv; };
+ecs_comp_define(SceneCollisionEnvComp) { GeoQueryEnv* queryEnv; };
 
 ecs_comp_define_public(SceneCollisionComp);
 
-static void ecs_destruct_collision_registry_comp(void* data) {
-  SceneCollisionRegistryComp* registry = data;
-  geo_query_env_destroy(registry->queryEnv);
+static void ecs_destruct_collision_env_comp(void* data) {
+  SceneCollisionEnvComp* env = data;
+  geo_query_env_destroy(env->queryEnv);
 }
 
-ecs_view_define(RegistryUpdateView) { ecs_access_write(SceneCollisionRegistryComp); }
+ecs_view_define(UpdateView) { ecs_access_write(SceneCollisionEnvComp); }
 
 ecs_view_define(CollisionEntityView) {
   ecs_access_read(SceneCollisionComp);
@@ -33,23 +25,23 @@ ecs_view_define(CollisionEntityView) {
   ecs_access_maybe_read(SceneScaleComp);
 }
 
-static SceneCollisionRegistryComp* collision_registry_get_or_create(EcsWorld* world) {
-  EcsView*     view = ecs_world_view_t(world, RegistryUpdateView);
+static SceneCollisionEnvComp* collision_env_get_or_create(EcsWorld* world) {
+  EcsView*     view = ecs_world_view_t(world, UpdateView);
   EcsIterator* itr  = ecs_view_maybe_at(view, ecs_world_global(world));
   if (LIKELY(itr)) {
-    return ecs_view_write_t(itr, SceneCollisionRegistryComp);
+    return ecs_view_write_t(itr, SceneCollisionEnvComp);
   }
   return ecs_world_add_t(
       world,
       ecs_world_global(world),
-      SceneCollisionRegistryComp,
+      SceneCollisionEnvComp,
       .queryEnv = geo_query_env_create(g_alloc_heap));
 }
 
 ecs_system_define(SceneCollisionUpdateSys) {
-  SceneCollisionRegistryComp* reg = collision_registry_get_or_create(world);
+  SceneCollisionEnvComp* env = collision_env_get_or_create(world);
 
-  geo_query_env_clear(reg->queryEnv);
+  geo_query_env_clear(env->queryEnv);
 
   EcsView* collisionEntities = ecs_world_view_t(world, CollisionEntityView);
   for (EcsIterator* itr = ecs_view_itr(collisionEntities); ecs_view_walk(itr);) {
@@ -64,9 +56,9 @@ ecs_system_define(SceneCollisionUpdateSys) {
       const GeoCapsule capsule = scene_collision_world_capsule(&collision->capsule, trans, scale);
       if (collision->capsule.height <= f32_epsilon) {
         const GeoSphere sphere = {.point = capsule.line.a, .radius = capsule.radius};
-        geo_query_insert_sphere(reg->queryEnv, sphere, id);
+        geo_query_insert_sphere(env->queryEnv, sphere, id);
       } else {
-        geo_query_insert_capsule(reg->queryEnv, capsule, id);
+        geo_query_insert_capsule(env->queryEnv, capsule, id);
       }
     } break;
     default:
@@ -76,14 +68,14 @@ ecs_system_define(SceneCollisionUpdateSys) {
 }
 
 ecs_module_init(scene_collision_module) {
-  ecs_register_comp(SceneCollisionRegistryComp, .destructor = ecs_destruct_collision_registry_comp);
+  ecs_register_comp(SceneCollisionEnvComp, .destructor = ecs_destruct_collision_env_comp);
   ecs_register_comp(SceneCollisionComp);
 
   ecs_register_view(CollisionEntityView);
-  ecs_register_view(RegistryUpdateView);
+  ecs_register_view(UpdateView);
 
   ecs_register_system(
-      SceneCollisionUpdateSys, ecs_view_id(RegistryUpdateView), ecs_view_id(CollisionEntityView));
+      SceneCollisionUpdateSys, ecs_view_id(UpdateView), ecs_view_id(CollisionEntityView));
 
   ecs_order(SceneCollisionUpdateSys, SceneOrder_CollisionUpdate);
 }
@@ -93,9 +85,9 @@ void scene_collision_add_capsule(
   ecs_world_add_t(world, entity, SceneCollisionComp, .capsule = capsule);
 }
 
-bool scene_query_ray(const SceneCollisionRegistryComp* reg, const GeoRay* ray, SceneRayHit* out) {
+bool scene_query_ray(const SceneCollisionEnvComp* env, const GeoRay* ray, SceneRayHit* out) {
   GeoQueryRayHit hit;
-  if (geo_query_ray(reg->queryEnv, ray, &hit)) {
+  if (geo_query_ray(env->queryEnv, ray, &hit)) {
     *out = (SceneRayHit){
         .entity   = (EcsEntityId)hit.shapeId,
         .position = geo_ray_position(ray, hit.time),

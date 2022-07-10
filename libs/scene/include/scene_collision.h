@@ -11,7 +11,7 @@ ecs_comp_extern(SceneScaleComp);
 /**
  * Global collision registry.
  */
-ecs_comp_extern(SceneCollisionRegistryComp);
+ecs_comp_extern(SceneCollisionEnvComp);
 
 typedef enum { SceneCollisionType_Capsule } SceneCollisionType;
 
@@ -47,7 +47,7 @@ typedef struct {
   f32         time;
 } SceneRayHit;
 
-bool scene_query_ray(const SceneCollisionRegistryComp*, const GeoRay* ray, SceneRayHit* out);
+bool scene_query_ray(const SceneCollisionEnvComp*, const GeoRay* ray, SceneRayHit* out);
 
 /**
  * Compute a geometric capsule for the given capsule collision shape.
