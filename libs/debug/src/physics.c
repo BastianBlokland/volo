@@ -115,6 +115,13 @@ static void physics_draw_collision(
     const SceneTransformComp* transform,
     const SceneScaleComp*     scale) {
   switch (collision->type) {
+  case SceneCollisionType_Sphere: {
+    const GeoSphere c         = scene_collision_world_sphere(&collision->sphere, transform, scale);
+    const GeoColor  colorFill = geo_color(1, 0, 0, 0.2f);
+    const GeoColor  colorWire = geo_color(1, 0, 0, 1);
+    debug_sphere(shape, c.point, c.radius, colorFill, DebugShape_Fill);
+    debug_sphere(shape, c.point, c.radius, colorWire, DebugShape_Wire);
+  } break;
   case SceneCollisionType_Capsule: {
     const GeoCapsule c = scene_collision_world_capsule(&collision->capsule, transform, scale);
     const GeoColor   colorFill = geo_color(1, 0, 0, 0.2f);

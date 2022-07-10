@@ -52,6 +52,10 @@ ecs_system_define(SceneCollisionUpdateSys) {
     const u64 id = (u64)ecs_view_entity(itr);
 
     switch (collision->type) {
+    case SceneCollisionType_Sphere: {
+      const GeoSphere sphere = scene_collision_world_sphere(&collision->sphere, trans, scale);
+      geo_query_insert_sphere(env->queryEnv, sphere, id);
+    } break;
     case SceneCollisionType_Capsule: {
       const GeoCapsule capsule = scene_collision_world_capsule(&collision->capsule, trans, scale);
       if (collision->capsule.height <= f32_epsilon) {
@@ -80,9 +84,16 @@ ecs_module_init(scene_collision_module) {
   ecs_order(SceneCollisionUpdateSys, SceneOrder_CollisionUpdate);
 }
 
+void scene_collision_add_sphere(
+    EcsWorld* world, const EcsEntityId entity, const SceneCollisionSphere sphere) {
+  ecs_world_add_t(
+      world, entity, SceneCollisionComp, .type = SceneCollisionType_Sphere, .sphere = sphere);
+}
+
 void scene_collision_add_capsule(
     EcsWorld* world, const EcsEntityId entity, const SceneCollisionCapsule capsule) {
-  ecs_world_add_t(world, entity, SceneCollisionComp, .capsule = capsule);
+  ecs_world_add_t(
+      world, entity, SceneCollisionComp, .type = SceneCollisionType_Capsule, .capsule = capsule);
 }
 
 bool scene_query_ray(const SceneCollisionEnvComp* env, const GeoRay* ray, SceneRayHit* out) {
@@ -99,19 +110,34 @@ bool scene_query_ray(const SceneCollisionEnvComp* env, const GeoRay* ray, SceneR
   return false;
 }
 
+GeoSphere scene_collision_world_sphere(
+    const SceneCollisionSphere* sphere,
+    const SceneTransformComp*   trans,
+    const SceneScaleComp*       scale) {
+
+  const GeoVector basePos   = LIKELY(trans) ? trans->position : geo_vector(0);
+  const GeoQuat   baseRot   = LIKELY(trans) ? trans->rotation : geo_quat_ident;
+  const f32       baseScale = scale ? scale->scale : 1.0f;
+
+  const GeoVector offset = geo_quat_rotate(baseRot, geo_vector_mul(sphere->offset, baseScale));
+  const GeoVector point  = geo_vector_add(basePos, offset);
+
+  return (GeoSphere){.point = point, .radius = sphere->radius * baseScale};
+}
+
 GeoCapsule scene_collision_world_capsule(
     const SceneCollisionCapsule* capsule,
-    const SceneTransformComp*    transformComp,
-    const SceneScaleComp*        scaleComp) {
+    const SceneTransformComp*    trans,
+    const SceneScaleComp*        scale) {
 
-  const GeoVector basePos   = LIKELY(transformComp) ? transformComp->position : geo_vector(0);
-  const GeoQuat   baseRot   = LIKELY(transformComp) ? transformComp->rotation : geo_quat_ident;
-  const f32       baseScale = scaleComp ? scaleComp->scale : 1.0f;
+  const GeoVector basePos   = LIKELY(trans) ? trans->position : geo_vector(0);
+  const GeoQuat   baseRot   = LIKELY(trans) ? trans->rotation : geo_quat_ident;
+  const f32       baseScale = scale ? scale->scale : 1.0f;
 
   static const GeoVector g_capsuleDir[] = {{0, 1, 0}, {0, 0, 1}, {1, 0, 0}};
 
   const GeoVector offset = geo_quat_rotate(baseRot, geo_vector_mul(capsule->offset, baseScale));
-  const GeoVector dir    = geo_quat_rotate(baseRot, g_capsuleDir[capsule->direction]);
+  const GeoVector dir    = geo_quat_rotate(baseRot, g_capsuleDir[capsule->dir]);
 
   const GeoVector bottom = geo_vector_add(basePos, offset);
   const GeoVector top    = geo_vector_add(bottom, geo_vector_mul(dir, capsule->height * baseScale));

@@ -58,10 +58,7 @@ static const Subject   g_subjects[]          = {
         .position = {.y = 1.25f},
         .scale    = 0.5f,
         .collisionCapsule =
-            {.offset    = {-0.6f, 0, 0},
-             .direction = SceneCollisionCapsule_Right,
-             .radius    = 0.75f,
-             .height    = 1.2f},
+            {.offset = {-0.6f, 0, 0}, .dir = SceneCollision_Right, .radius = 0.75f, .height = 1.2f},
     },
     {
         .graphic          = string_static("graphics/demo/suzanne.gra"),
@@ -74,20 +71,14 @@ static const Subject   g_subjects[]          = {
         .position = {.y = 1.0f},
         .scale    = 0.25f,
         .collisionCapsule =
-            {.offset    = {0, 0, -6},
-             .direction = SceneCollisionCapsule_Forward,
-             .radius    = 1,
-             .height    = 6},
+            {.offset = {0, 0, -6}, .dir = SceneCollision_Forward, .radius = 1, .height = 6},
     },
     {
         .graphic  = string_static("graphics/demo/fox.gra"),
         .position = {.y = 0.5f},
         .scale    = 0.015f,
         .collisionCapsule =
-            {.offset    = {0, 40, -35},
-             .direction = SceneCollisionCapsule_Forward,
-             .radius    = 25,
-             .height    = 80},
+            {.offset = {0, 40, -35}, .dir = SceneCollision_Forward, .radius = 25, .height = 80},
     },
     {
         .graphic          = string_static("graphics/demo/terrain.gra"),
@@ -106,10 +97,10 @@ static const Subject   g_subjects[]          = {
         .position = {.y = 1.05f},
         .scale    = 2.0f,
         .collisionCapsule =
-            {.offset    = {0, 0, -0.1f},
-             .direction = SceneCollisionCapsule_Forward,
-             .radius    = 0.3f,
-             .height    = 0.25f},
+            {.offset = {0, 0, -0.1f},
+             .dir    = SceneCollision_Forward,
+             .radius = 0.3f,
+             .height = 0.25f},
     },
     {
         .graphic          = string_static("graphics/demo/cayo.gra"),
@@ -118,11 +109,10 @@ static const Subject   g_subjects[]          = {
         .collisionCapsule = {.offset = {0, 0.4f, 0}, .radius = 0.4f, .height = 1.2f},
     },
     {
-        .graphic  = string_static("graphics/demo/corset.gra"),
-        .position = {.y = 0.5f},
-        .scale    = 30.0f,
-        .collisionCapsule =
-            {.offset = {0, 0.01f, 0.003f}, .radius = 0.012f, .height = 0.04f},
+        .graphic          = string_static("graphics/demo/corset.gra"),
+        .position         = {.y = 0.5f},
+        .scale            = 30.0f,
+        .collisionCapsule = {.offset = {0, 0.01f, 0.003f}, .radius = 0.012f, .height = 0.04f},
     },
     {
         .graphic          = string_static("graphics/demo/boombox.gra"),
