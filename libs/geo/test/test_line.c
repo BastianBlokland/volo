@@ -26,4 +26,35 @@ spec(line) {
       check_eq_vector(geo_line_direction(&line), geo_right);
     }
   }
+
+  it("can find the time of the closest point on the line") {
+    {
+      const GeoLine line = {{0, 1, 0}, {0, 1, 5}};
+      check_eq_float(geo_line_closest_time(&line, geo_vector(0, 0, 0)), 0, 1e-6);
+      check_eq_float(geo_line_closest_time(&line, geo_vector(0, 1, 5)), 1, 1e-6);
+      check_eq_float(geo_line_closest_time(&line, geo_vector(0, 2, -1)), 0, 1e-6);
+      check_eq_float(geo_line_closest_time(&line, geo_vector(0, 3, 6)), 1, 1e-6);
+      check_eq_float(geo_line_closest_time(&line, geo_vector(0, 4, 2.5f)), 0.5f, 1e-6);
+    }
+    {
+      const GeoLine line = {{-2, -2, -2}, {2, 2, 2}};
+      check_eq_float(geo_line_closest_time(&line, geo_vector(-2, -2, -2)), 0, 1e-6);
+      check_eq_float(geo_line_closest_time(&line, geo_vector(-3, -3, -3)), 0, 1e-6);
+      check_eq_float(geo_line_closest_time(&line, geo_vector(2, 2, 2)), 1, 1e-6);
+      check_eq_float(geo_line_closest_time(&line, geo_vector(3, 3, 3)), 1, 1e-6);
+      check_eq_float(geo_line_closest_time(&line, geo_vector(0, 0, 0)), 0.5f, 1e-6);
+      check_eq_float(geo_line_closest_time(&line, geo_vector(1, 2, 3)), 1, 1e-6);
+    }
+  }
+
+  it("can find the closest point on the line") {
+    {
+      const GeoLine line = {{0, 1, 0}, {0, 1, 5}};
+      check_eq_vector(geo_line_closest_point(&line, geo_vector(0, 0, 0)), geo_vector(0, 1, 0));
+      check_eq_vector(geo_line_closest_point(&line, geo_vector(0, 1, 5)), geo_vector(0, 1, 5));
+      check_eq_vector(geo_line_closest_point(&line, geo_vector(0, 2, -1)), geo_vector(0, 1, 0));
+      check_eq_vector(geo_line_closest_point(&line, geo_vector(0, 3, 6)), geo_vector(0, 1, 5));
+      check_eq_vector(geo_line_closest_point(&line, geo_vector(0, 4, 2.5f)), geo_vector(0, 1, 2.5));
+    }
+  }
 }
