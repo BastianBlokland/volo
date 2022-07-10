@@ -6,6 +6,7 @@
 #include "ecs_world.h"
 #include "gap_window.h"
 #include "scene_camera.h"
+#include "scene_collision.h"
 #include "scene_tag.h"
 #include "scene_transform.h"
 #include "ui.h"
@@ -220,7 +221,10 @@ ecs_system_define(DebugCameraUpdatePanelSys) {
   }
 }
 
-ecs_view_define(GlobalDrawView) { ecs_access_write(DebugShapeComp); }
+ecs_view_define(GlobalDrawView) {
+  ecs_access_read(SceneCollisionEnvComp);
+  ecs_access_write(DebugShapeComp);
+}
 
 ecs_view_define(DrawView) {
   ecs_access_read(GapWindowComp);
@@ -251,15 +255,23 @@ static void debug_camera_draw_frustum(
 }
 
 static void debug_camera_draw_input_ray(
-    DebugShapeComp*           shape,
-    const SceneCameraComp*    cam,
-    const SceneTransformComp* trans,
-    const f32                 aspect,
-    const GeoVector           inputPos) {
+    DebugShapeComp*              shape,
+    const SceneCollisionEnvComp* collisionEnv,
+    const SceneCameraComp*       cam,
+    const SceneTransformComp*    trans,
+    const f32                    aspect,
+    const GeoVector              inputPos) {
   const GeoRay    ray   = scene_camera_ray(cam, trans, aspect, inputPos);
   const GeoVector start = ray.point;
-  const GeoVector end   = geo_vector_add(start, geo_vector_mul(ray.direction, 1e10f));
+  const GeoVector end   = geo_vector_add(start, geo_vector_mul(ray.dir, 1e10f));
   debug_line(shape, start, end, geo_color_fuchsia);
+
+  SceneRayHit hit;
+  if (scene_query_ray(collisionEnv, &ray, &hit)) {
+    debug_sphere(shape, hit.position, 0.04f, geo_color_lime, DebugShape_Overlay);
+    const GeoVector lineEnd = geo_vector_add(hit.position, geo_vector_mul(hit.normal, 0.5f));
+    debug_arrow(shape, hit.position, lineEnd, 0.02f, geo_color_green);
+  }
 }
 
 ecs_system_define(DebugCameraDrawSys) {
@@ -268,7 +280,8 @@ ecs_system_define(DebugCameraDrawSys) {
   if (!globalItr) {
     return;
   }
-  DebugShapeComp* shape = ecs_view_write_t(globalItr, DebugShapeComp);
+  const SceneCollisionEnvComp* collisionEnv = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
+  DebugShapeComp*              shape        = ecs_view_write_t(globalItr, DebugShapeComp);
 
   EcsView* drawView = ecs_world_view_t(world, DrawView);
   for (EcsIterator* itr = ecs_view_itr(drawView); ecs_view_walk(itr);) {
@@ -288,7 +301,7 @@ ecs_system_define(DebugCameraDrawSys) {
       debug_camera_draw_frustum(shape, cam, trans, aspect);
     }
     if (cam->flags & SceneCameraFlags_DebugInputRay) {
-      debug_camera_draw_input_ray(shape, cam, trans, aspect, inputPos);
+      debug_camera_draw_input_ray(shape, collisionEnv, cam, trans, aspect, inputPos);
     }
   }
 }

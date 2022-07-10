@@ -1,28 +1,23 @@
 #include "core_alloc.h"
 #include "core_diag.h"
-#include "core_dynarray.h"
 #include "ecs_world.h"
+#include "geo_query.h"
 #include "scene_collision.h"
 #include "scene_register.h"
 #include "scene_transform.h"
 
-typedef struct {
-  EcsEntityId entity;
-  GeoCapsule  capsule;
-} SceneCollisionRegistryEntry;
+ASSERT(sizeof(EcsEntityId) <= sizeof(u64), "EntityId's have to be storable with 64 bit integers");
 
-ecs_comp_define(SceneCollisionRegistryComp) {
-  DynArray entries; //  SceneCollisionRegistryEntry[].
-};
+ecs_comp_define(SceneCollisionEnvComp) { GeoQueryEnv* queryEnv; };
 
 ecs_comp_define_public(SceneCollisionComp);
 
-static void ecs_destruct_collision_registry_comp(void* data) {
-  SceneCollisionRegistryComp* registry = data;
-  dynarray_destroy(&registry->entries);
+static void ecs_destruct_collision_env_comp(void* data) {
+  SceneCollisionEnvComp* env = data;
+  geo_query_env_destroy(env->queryEnv);
 }
 
-ecs_view_define(RegistryUpdateView) { ecs_access_write(SceneCollisionRegistryComp); }
+ecs_view_define(UpdateView) { ecs_access_write(SceneCollisionEnvComp); }
 
 ecs_view_define(CollisionEntityView) {
   ecs_access_read(SceneCollisionComp);
@@ -30,37 +25,45 @@ ecs_view_define(CollisionEntityView) {
   ecs_access_maybe_read(SceneScaleComp);
 }
 
-static SceneCollisionRegistryComp* collision_registry_get_or_create(EcsWorld* world) {
-  EcsView*     view = ecs_world_view_t(world, RegistryUpdateView);
+static SceneCollisionEnvComp* collision_env_get_or_create(EcsWorld* world) {
+  EcsView*     view = ecs_world_view_t(world, UpdateView);
   EcsIterator* itr  = ecs_view_maybe_at(view, ecs_world_global(world));
   if (LIKELY(itr)) {
-    return ecs_view_write_t(itr, SceneCollisionRegistryComp);
+    return ecs_view_write_t(itr, SceneCollisionEnvComp);
   }
   return ecs_world_add_t(
       world,
       ecs_world_global(world),
-      SceneCollisionRegistryComp,
-      .entries = dynarray_create_t(g_alloc_heap, SceneCollisionRegistryEntry, 512));
+      SceneCollisionEnvComp,
+      .queryEnv = geo_query_env_create(g_alloc_heap));
 }
 
 ecs_system_define(SceneCollisionUpdateSys) {
-  SceneCollisionRegistryComp* registry = collision_registry_get_or_create(world);
+  SceneCollisionEnvComp* env = collision_env_get_or_create(world);
 
-  dynarray_clear(&registry->entries);
+  geo_query_env_clear(env->queryEnv);
 
   EcsView* collisionEntities = ecs_world_view_t(world, CollisionEntityView);
   for (EcsIterator* itr = ecs_view_itr(collisionEntities); ecs_view_walk(itr);) {
     const SceneCollisionComp* collision = ecs_view_read_t(itr, SceneCollisionComp);
-    const SceneTransformComp* transform = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneTransformComp* trans     = ecs_view_read_t(itr, SceneTransformComp);
     const SceneScaleComp*     scale     = ecs_view_read_t(itr, SceneScaleComp);
 
-    switch (collision->type) {
-    case SceneCollisionType_Capsule: {
-      typedef SceneCollisionRegistryEntry Entry;
+    const u64 id = (u64)ecs_view_entity(itr);
 
-      Entry* entry   = dynarray_push_t(&registry->entries, Entry);
-      entry->entity  = ecs_view_entity(itr);
-      entry->capsule = scene_collision_world_capsule(&collision->data_capsule, transform, scale);
+    switch (collision->type) {
+    case SceneCollisionType_Sphere: {
+      const GeoSphere sphere = scene_collision_world_sphere(&collision->sphere, trans, scale);
+      geo_query_insert_sphere(env->queryEnv, sphere, id);
+    } break;
+    case SceneCollisionType_Capsule: {
+      const GeoCapsule capsule = scene_collision_world_capsule(&collision->capsule, trans, scale);
+      if (collision->capsule.height <= f32_epsilon) {
+        const GeoSphere sphere = {.point = capsule.line.a, .radius = capsule.radius};
+        geo_query_insert_sphere(env->queryEnv, sphere, id);
+      } else {
+        geo_query_insert_capsule(env->queryEnv, capsule, id);
+      }
     } break;
     default:
       diag_crash();
@@ -69,36 +72,72 @@ ecs_system_define(SceneCollisionUpdateSys) {
 }
 
 ecs_module_init(scene_collision_module) {
-  ecs_register_comp(SceneCollisionRegistryComp, .destructor = ecs_destruct_collision_registry_comp);
+  ecs_register_comp(SceneCollisionEnvComp, .destructor = ecs_destruct_collision_env_comp);
   ecs_register_comp(SceneCollisionComp);
 
   ecs_register_view(CollisionEntityView);
-  ecs_register_view(RegistryUpdateView);
+  ecs_register_view(UpdateView);
 
   ecs_register_system(
-      SceneCollisionUpdateSys, ecs_view_id(RegistryUpdateView), ecs_view_id(CollisionEntityView));
+      SceneCollisionUpdateSys, ecs_view_id(UpdateView), ecs_view_id(CollisionEntityView));
 
   ecs_order(SceneCollisionUpdateSys, SceneOrder_CollisionUpdate);
 }
 
+void scene_collision_add_sphere(
+    EcsWorld* world, const EcsEntityId entity, const SceneCollisionSphere sphere) {
+  ecs_world_add_t(
+      world, entity, SceneCollisionComp, .type = SceneCollisionType_Sphere, .sphere = sphere);
+}
+
 void scene_collision_add_capsule(
     EcsWorld* world, const EcsEntityId entity, const SceneCollisionCapsule capsule) {
-  ecs_world_add_t(world, entity, SceneCollisionComp, .data_capsule = capsule);
+  ecs_world_add_t(
+      world, entity, SceneCollisionComp, .type = SceneCollisionType_Capsule, .capsule = capsule);
+}
+
+bool scene_query_ray(const SceneCollisionEnvComp* env, const GeoRay* ray, SceneRayHit* out) {
+  GeoQueryRayHit hit;
+  if (geo_query_ray(env->queryEnv, ray, &hit)) {
+    *out = (SceneRayHit){
+        .entity   = (EcsEntityId)hit.shapeId,
+        .position = geo_ray_position(ray, hit.time),
+        .normal   = hit.normal,
+        .time     = hit.time,
+    };
+    return true;
+  }
+  return false;
+}
+
+GeoSphere scene_collision_world_sphere(
+    const SceneCollisionSphere* sphere,
+    const SceneTransformComp*   trans,
+    const SceneScaleComp*       scale) {
+
+  const GeoVector basePos   = LIKELY(trans) ? trans->position : geo_vector(0);
+  const GeoQuat   baseRot   = LIKELY(trans) ? trans->rotation : geo_quat_ident;
+  const f32       baseScale = scale ? scale->scale : 1.0f;
+
+  const GeoVector offset = geo_quat_rotate(baseRot, geo_vector_mul(sphere->offset, baseScale));
+  const GeoVector point  = geo_vector_add(basePos, offset);
+
+  return (GeoSphere){.point = point, .radius = sphere->radius * baseScale};
 }
 
 GeoCapsule scene_collision_world_capsule(
     const SceneCollisionCapsule* capsule,
-    const SceneTransformComp*    transformComp,
-    const SceneScaleComp*        scaleComp) {
+    const SceneTransformComp*    trans,
+    const SceneScaleComp*        scale) {
 
-  const GeoVector basePos   = LIKELY(transformComp) ? transformComp->position : geo_vector(0);
-  const GeoQuat   baseRot   = LIKELY(transformComp) ? transformComp->rotation : geo_quat_ident;
-  const f32       baseScale = scaleComp ? scaleComp->scale : 1.0f;
+  const GeoVector basePos   = LIKELY(trans) ? trans->position : geo_vector(0);
+  const GeoQuat   baseRot   = LIKELY(trans) ? trans->rotation : geo_quat_ident;
+  const f32       baseScale = scale ? scale->scale : 1.0f;
 
   static const GeoVector g_capsuleDir[] = {{0, 1, 0}, {0, 0, 1}, {1, 0, 0}};
 
   const GeoVector offset = geo_quat_rotate(baseRot, geo_vector_mul(capsule->offset, baseScale));
-  const GeoVector dir    = geo_quat_rotate(baseRot, g_capsuleDir[capsule->direction]);
+  const GeoVector dir    = geo_quat_rotate(baseRot, g_capsuleDir[capsule->dir]);
 
   const GeoVector bottom = geo_vector_add(basePos, offset);
   const GeoVector top    = geo_vector_add(bottom, geo_vector_mul(dir, capsule->height * baseScale));

@@ -184,7 +184,7 @@ GeoRay scene_camera_ray(
   const GeoVector destNdc = geo_vector(ndcX, ndcY, ndcFar, 1);
   const GeoVector dest    = geo_vector_perspective_div(geo_matrix_transform(&invViewProj, destNdc));
 
-  return (GeoRay){.point = orig, .direction = geo_vector_norm(geo_vector_sub(dest, orig))};
+  return (GeoRay){.point = orig, .dir = geo_vector_norm(geo_vector_sub(dest, orig))};
 }
 
 void scene_camera_to_default(SceneCameraComp* cam) {

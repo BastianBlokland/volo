@@ -12,9 +12,11 @@ int main(const int argc, const char** argv) {
 
   CheckDef* check = check_create(g_alloc_heap);
   register_spec(check, box);
+  register_spec(check, line);
   register_spec(check, matrix);
   register_spec(check, plane);
   register_spec(check, quat);
+  register_spec(check, sphere);
   register_spec(check, vector);
 
   const int exitCode = check_app(check, argc, argv);
