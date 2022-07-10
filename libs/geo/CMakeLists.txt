@@ -11,6 +11,7 @@ add_library(lib_geo STATIC
   src/matrix.c
   src/plane.c
   src/quat.c
+  src/query.c
   src/sphere.c
   src/vector.c
   )
