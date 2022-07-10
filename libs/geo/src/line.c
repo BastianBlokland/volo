@@ -39,7 +39,7 @@ f32 geo_line_closest_time_ray(const GeoLine* line, const GeoRay* ray) {
       return 0;
     }
     const f32 lineLength = geo_line_length(line);
-    if (dist > lineLength) {
+    if (dist >= lineLength) {
       return 1;
     }
     return dist / lineLength;
