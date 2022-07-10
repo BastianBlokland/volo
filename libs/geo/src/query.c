@@ -52,6 +52,9 @@ bool geo_query_ray(const GeoQueryEnv* env, const GeoRay* ray, GeoQueryRayHit* ou
   GeoQueryRayHit bestHit  = {.time = f32_max};
   bool           foundHit = false;
 
+  /**
+   * Spheres.
+   */
   const GeoSphere* spheresBegin = dynarray_begin_t(&env->spheres, GeoSphere);
   const GeoSphere* spheresEnd   = dynarray_end_t(&env->spheres, GeoSphere);
   for (const GeoSphere* itr = spheresBegin; itr != spheresEnd; ++itr) {
@@ -65,6 +68,25 @@ bool geo_query_ray(const GeoQueryEnv* env, const GeoRay* ray, GeoQueryRayHit* ou
       bestHit.shapeId        = *dynarray_at_t(&env->sphereIds, itr - spheresBegin, u64);
       bestHit.normal         = geo_vector_norm(geo_vector_sub(hitPos, itr->point));
       foundHit               = true;
+    }
+  }
+
+  /**
+   * Capsules.
+   */
+  const GeoCapsule* capsulesBegin = dynarray_begin_t(&env->capsules, GeoCapsule);
+  const GeoCapsule* capsulesEnd   = dynarray_end_t(&env->capsules, GeoCapsule);
+  for (const GeoCapsule* itr = capsulesBegin; itr != capsulesEnd; ++itr) {
+    GeoVector normal;
+    const f32 hitT = geo_capsule_intersect_ray(itr, ray, &normal);
+    if (hitT < 0.0) {
+      continue; // Miss.
+    }
+    if (hitT < bestHit.time) {
+      bestHit.time    = hitT;
+      bestHit.shapeId = *dynarray_at_t(&env->capsuleIds, itr - capsulesBegin, u64);
+      bestHit.normal  = normal;
+      foundHit        = true;
     }
   }
 
