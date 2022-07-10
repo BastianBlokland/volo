@@ -23,8 +23,7 @@ ecs_system_define(SceneNameInitSys) {
   EcsView* initView = ecs_world_view_t(world, NameInitView);
   for (EcsIterator* itr = ecs_view_itr(initView); ecs_view_walk(itr);) {
     const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
-    const EcsEntityId          graphic    = renderable->graphic;
-    if (ecs_world_exists(world, graphic) && ecs_view_maybe_jump(assetItr, graphic)) {
+    if (ecs_view_maybe_jump(assetItr, renderable->graphic)) {
       const AssetComp* assetComp = ecs_view_read_t(assetItr, AssetComp);
       const StringHash name      = stringtable_add(g_stringtable, path_stem(asset_id(assetComp)));
       ecs_world_add_t(world, ecs_view_entity(itr), SceneNameComp, .name = name);
