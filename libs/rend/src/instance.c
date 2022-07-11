@@ -15,18 +15,22 @@ typedef struct {
   ALIGNAS(16)
   GeoVector posAndScale; // xyz: position, w: scale.
   GeoQuat   rot;
+  u32       tags;
+  u32       padding[3];
 } RendInstanceData;
 
-ASSERT(sizeof(RendInstanceData) == 32, "Size needs to match the size defined in glsl");
+ASSERT(sizeof(RendInstanceData) == 48, "Size needs to match the size defined in glsl");
 
 typedef struct {
   ALIGNAS(16)
   GeoVector posAndScale; // xyz: position, w: scale.
   GeoQuat   rot;
+  u32       tags;
+  u32       padding[3];
   GeoMatrix jointDelta[scene_skeleton_joints_max];
 } RendInstanceSkinnedData;
 
-ASSERT(sizeof(RendInstanceSkinnedData) == 4832, "Size needs to match the size defined in glsl");
+ASSERT(sizeof(RendInstanceSkinnedData) == 4848, "Size needs to match the size defined in glsl");
 
 ecs_view_define(RenderableView) {
   ecs_access_read(SceneRenderableComp);
@@ -89,6 +93,7 @@ ecs_system_define(RendInstanceFillDrawsSys) {
         RendInstanceSkinnedData data = {
             .posAndScale = geo_vector(position.x, position.y, position.z, scale),
             .rot         = rotation,
+            .tags        = (u32)tags,
         };
         scene_skeleton_delta(skeletonComp, templ, data.jointDelta);
         rend_draw_add_instance(draw, mem_var(data), tags, aabb);
@@ -97,6 +102,7 @@ ecs_system_define(RendInstanceFillDrawsSys) {
       const RendInstanceData data = {
           .posAndScale = geo_vector(position.x, position.y, position.z, scale),
           .rot         = rotation,
+          .tags        = (u32)tags,
       };
       rend_draw_add_instance(draw, mem_var(data), tags, aabb);
     }

@@ -38,8 +38,11 @@ void       input_layer_set(InputManagerComp*, InputLayer);
 
 InputCursorMode input_cursor_mode(const InputManagerComp*);
 void            input_cursor_mode_set(InputManagerComp*, InputCursorMode);
-f32             input_cursor_delta_x(const InputManagerComp*);
-f32             input_cursor_delta_y(const InputManagerComp*);
+f32             input_cursor_x(const InputManagerComp*);       // Normalized.
+f32             input_cursor_y(const InputManagerComp*);       // Normalized.
+f32             input_cursor_delta_x(const InputManagerComp*); // Normalized.
+f32             input_cursor_delta_y(const InputManagerComp*); // Normalized.
+f32             input_cursor_aspect(const InputManagerComp*);  // Aspect ratio of cursor window.
 
 /**
  * Check if an input action was triggered this tick.

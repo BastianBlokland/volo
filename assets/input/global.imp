@@ -1,6 +1,15 @@
 {
   "actions": [
     {
+      "name": "PedestalSelect",
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "MouseLeft"
+        }
+      ]
+    },
+    {
       "name": "PedestalPrev",
       "bindings": [
         {

@@ -15,6 +15,7 @@
 #include "scene_collision.h"
 #include "scene_register.h"
 #include "scene_renderable.h"
+#include "scene_selection.h"
 #include "scene_time.h"
 #include "scene_transform.h"
 #include "ui.h"
@@ -146,11 +147,18 @@ ecs_comp_define(SubjectComp);
 ecs_view_define(GlobalView) {
   ecs_access_read(InputManagerComp);
   ecs_access_read(SceneTimeComp);
+  ecs_access_read(SceneCollisionEnvComp);
   ecs_access_write(AssetManagerComp);
   ecs_access_write(AppComp);
+  ecs_access_write(SceneSelectionComp);
 }
 
 ecs_view_define(WindowView) { ecs_access_write(GapWindowComp); }
+
+ecs_view_define(CameraView) {
+  ecs_access_write(SceneCameraComp);
+  ecs_access_write(SceneTransformComp);
+}
 
 ecs_view_define(ObjectView) {
   ecs_access_with(SubjectComp);
@@ -209,9 +217,11 @@ ecs_system_define(AppUpdateSys) {
   if (!globalItr) {
     return;
   }
-  AssetManagerComp*       assets = ecs_view_write_t(globalItr, AssetManagerComp);
-  AppComp*                app    = ecs_view_write_t(globalItr, AppComp);
-  const InputManagerComp* input  = ecs_view_read_t(globalItr, InputManagerComp);
+  AssetManagerComp*            assets       = ecs_view_write_t(globalItr, AssetManagerComp);
+  AppComp*                     app          = ecs_view_write_t(globalItr, AppComp);
+  const InputManagerComp*      input        = ecs_view_read_t(globalItr, InputManagerComp);
+  const SceneCollisionEnvComp* collisionEnv = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
+  SceneSelectionComp*          selection    = ecs_view_write_t(globalItr, SceneSelectionComp);
 
   if (input_triggered_lit(input, "PedestalPrev")) {
     app->subjectIndex = (app->subjectIndex + 1) % array_elems(g_subjects);
@@ -257,6 +267,22 @@ ecs_system_define(AppUpdateSys) {
     spawn_objects(world, app, assets);
     app->flags &= ~AppFlags_Dirty;
   }
+
+  const EcsEntityId activeWindow = input_active_window(input);
+  EcsIterator*      camItr = ecs_view_maybe_at(ecs_world_view_t(world, CameraView), activeWindow);
+  if (camItr && input_triggered_lit(input, "PedestalSelect")) {
+    const SceneCameraComp*    cam     = ecs_view_read_t(camItr, SceneCameraComp);
+    const SceneTransformComp* trans   = ecs_view_read_t(camItr, SceneTransformComp);
+    const GeoVector           normPos = geo_vector(input_cursor_x(input), input_cursor_y(input));
+    const GeoRay ray = scene_camera_ray(cam, trans, input_cursor_aspect(input), normPos);
+
+    SceneRayHit hit;
+    if (scene_query_ray(collisionEnv, &ray, &hit) && hit.entity != scene_selected(selection)) {
+      scene_select(selection, hit.entity);
+    } else {
+      scene_deselect(selection);
+    }
+  }
 }
 
 ecs_system_define(AppSetRotationSys) {
@@ -286,9 +312,11 @@ ecs_module_init(app_pedestal_module) {
 
   ecs_register_view(GlobalView);
   ecs_register_view(WindowView);
+  ecs_register_view(CameraView);
   ecs_register_view(ObjectView);
 
-  ecs_register_system(AppUpdateSys, ecs_view_id(GlobalView), ecs_view_id(ObjectView));
+  ecs_register_system(
+      AppUpdateSys, ecs_view_id(GlobalView), ecs_view_id(CameraView), ecs_view_id(ObjectView));
   ecs_register_system(AppSetRotationSys, ecs_view_id(GlobalView), ecs_view_id(ObjectView));
 }
 

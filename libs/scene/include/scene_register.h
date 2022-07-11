@@ -4,6 +4,7 @@
 enum {
   SceneOrder_TimeUpdate      = -100,
   SceneOrder_CollisionUpdate = 100,
+  SceneOrder_SelectionUpdate = 100,
 };
 
 /**

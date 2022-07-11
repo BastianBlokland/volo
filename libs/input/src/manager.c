@@ -6,6 +6,7 @@
 #include "ecs_world.h"
 #include "gap_window.h"
 #include "input_manager.h"
+#include "input_register.h"
 
 #include "resource_internal.h"
 
@@ -13,7 +14,9 @@ ecs_comp_define(InputManagerComp) {
   EcsEntityId     activeWindow;
   InputLayer      layer;
   InputCursorMode cursorMode;
-  GapVector       cursorDelta;
+  f32             cursorPosNorm[2];
+  f32             cursorDeltaNorm[2];
+  f32             cursorAspect; // Aspect ratio of the window that currently contains the cursor.
   DynArray        triggeredActions; // u32[], name hashes of the triggered actions. Not sorted.
 };
 
@@ -86,7 +89,15 @@ static void input_refresh_active_window(EcsWorld* world, InputManagerComp* manag
 }
 
 static void input_update_cursor(InputManagerComp* manager, GapWindowComp* win) {
-  manager->cursorDelta = gap_window_param(win, GapParam_CursorDelta);
+  const GapVector pos     = gap_window_param(win, GapParam_CursorPos);
+  const GapVector delta   = gap_window_param(win, GapParam_CursorDelta);
+  const GapVector winSize = gap_window_param(win, GapParam_WindowSize);
+
+  manager->cursorPosNorm[0]   = pos.x / (f32)winSize.x;
+  manager->cursorPosNorm[1]   = pos.y / (f32)winSize.y;
+  manager->cursorDeltaNorm[0] = delta.x / (f32)winSize.x;
+  manager->cursorDeltaNorm[1] = delta.y / (f32)winSize.y;
+  manager->cursorAspect       = (f32)winSize.width / (f32)winSize.height;
 
   switch (manager->cursorMode) {
   case InputCursorMode_Normal:
@@ -127,7 +138,8 @@ ecs_system_define(InputUpdateSys) {
     manager = input_manager_create(world);
   }
   // Clear the previous tick's data.
-  manager->cursorDelta = gap_vector(0, 0);
+  manager->cursorDeltaNorm[0] = 0;
+  manager->cursorDeltaNorm[1] = 0;
   dynarray_clear(&manager->triggeredActions);
 
   const InputResourcesComp* resources = ecs_view_read_t(globalItr, InputResourcesComp);
@@ -155,6 +167,8 @@ ecs_module_init(input_manager_module) {
 
   ecs_register_system(
       InputUpdateSys, ecs_view_id(GlobalView), ecs_view_id(WindowView), ecs_view_id(InputMapView));
+
+  ecs_order(InputUpdateSys, InputOrder_Read);
 }
 
 EcsEntityId input_active_window(const InputManagerComp* manager) { return manager->activeWindow; }
@@ -167,8 +181,11 @@ void            input_cursor_mode_set(InputManagerComp* manager, const InputCurs
   manager->cursorMode = newMode;
 }
 
-f32 input_cursor_delta_x(const InputManagerComp* manager) { return manager->cursorDelta.x; }
-f32 input_cursor_delta_y(const InputManagerComp* manager) { return manager->cursorDelta.y; }
+f32 input_cursor_x(const InputManagerComp* manager) { return manager->cursorPosNorm[0]; }
+f32 input_cursor_y(const InputManagerComp* manager) { return manager->cursorPosNorm[1]; }
+f32 input_cursor_delta_x(const InputManagerComp* manager) { return manager->cursorDeltaNorm[0]; }
+f32 input_cursor_delta_y(const InputManagerComp* manager) { return manager->cursorDeltaNorm[1]; }
+f32 input_cursor_aspect(const InputManagerComp* manager) { return manager->cursorAspect; }
 
 bool input_triggered_hash(const InputManagerComp* manager, const u32 actionHash) {
   dynarray_for_t(&manager->triggeredActions, u32, triggeredActionHash) {
