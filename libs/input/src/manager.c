@@ -6,6 +6,7 @@
 #include "ecs_world.h"
 #include "gap_window.h"
 #include "input_manager.h"
+#include "input_register.h"
 
 #include "resource_internal.h"
 
@@ -166,6 +167,8 @@ ecs_module_init(input_manager_module) {
 
   ecs_register_system(
       InputUpdateSys, ecs_view_id(GlobalView), ecs_view_id(WindowView), ecs_view_id(InputMapView));
+
+  ecs_order(InputUpdateSys, InputOrder_Read);
 }
 
 EcsEntityId input_active_window(const InputManagerComp* manager) { return manager->activeWindow; }
