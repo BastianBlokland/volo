@@ -8,7 +8,7 @@
 
 static const f32       g_camMoveSpeed          = 10.0f;
 static const f32       g_camMoveSpeedBoostMult = 4.0f;
-static const f32       g_camRotateSensitivity  = 0.0025f;
+static const f32       g_camRotateSensitivity  = 2.0f;
 static const f32       g_camPersFov            = 60.0f * math_deg_to_rad;
 static const f32       g_camPersNear           = 0.1f;
 static const GeoVector g_camPersPosition       = {0, 1.7f, -3.0f};
