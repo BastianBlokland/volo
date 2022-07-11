@@ -5,6 +5,7 @@
 #include "global.glsl"
 #include "light.glsl"
 #include "quat.glsl"
+#include "tags.glsl"
 #include "texture.glsl"
 
 bind_spec(0) const bool s_shade         = true;
@@ -22,6 +23,7 @@ bind_internal(0) in f32v3 in_worldPosition;
 bind_internal(1) in f32v3 in_worldNormal;  // NOTE: non-normalized
 bind_internal(2) in f32v4 in_worldTangent; // NOTE: non-normalized
 bind_internal(3) in f32v2 in_texcoord;
+bind_internal(4) in flat u32 in_tags;
 
 bind_internal(0) out f32v4 out_color;
 
@@ -48,4 +50,8 @@ void main() {
 
   const f32v4 diffuseWithRefl = compute_reflection(diffuse, normal, viewDir);
   out_color                   = light_color(shading, diffuseWithRefl);
+
+  if (tag_is_set(in_tags, tag_selected_bit)) {
+    out_color += (1.0 - abs(dot(normal, viewDir))) * 2.0;
+  }
 }

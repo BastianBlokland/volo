@@ -15,6 +15,7 @@ bind_internal(0) out f32v3 out_worldPosition;
 bind_internal(1) out f32v3 out_worldNormal;
 bind_internal(2) out f32v4 out_worldTangent;
 bind_internal(3) out f32v2 out_texcoord;
+bind_internal(4) out flat u32 out_tags;
 
 void main() {
   const Vertex vert = vert_unpack(u_vertices[in_vertexIndex]);
@@ -30,4 +31,5 @@ void main() {
   out_worldNormal    = quat_rotate(instanceQuat, vert.normal);
   out_worldTangent   = f32v4(quat_rotate(instanceQuat, vert.tangent.xyz), vert.tangent.w);
   out_texcoord       = vert.texcoord;
+  out_tags           = u_instances[in_instanceIndex].tagsAndPadding.x;
 }
