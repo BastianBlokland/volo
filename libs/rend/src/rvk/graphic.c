@@ -267,7 +267,7 @@ static f32 rvk_pipeline_linewidth(RvkGraphic* graphic) {
     return 1.0f;
   }
   return math_clamp_f32(
-      graphic->lineWidth,
+      graphic->lineWidth ? graphic->lineWidth : 1.0f,
       dev->vkProperties.limits.lineWidthRange[0],
       dev->vkProperties.limits.lineWidthRange[1]);
 }
@@ -521,16 +521,16 @@ RvkGraphic*
 rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset, const String dbgName) {
   RvkGraphic* graphic = alloc_alloc_t(g_alloc_heap, RvkGraphic);
   *graphic            = (RvkGraphic){
-      .device      = dev,
-      .dbgName     = string_dup(g_alloc_heap, dbgName),
-      .topology    = asset->topology,
-      .rasterizer  = asset->rasterizer,
-      .lineWidth   = asset->lineWidth,
-      .renderOrder = asset->renderOrder,
-      .blend       = asset->blend,
-      .depth       = asset->depth,
-      .cull        = asset->cull,
-      .vertexCount = asset->vertexCount,
+                 .device      = dev,
+                 .dbgName     = string_dup(g_alloc_heap, dbgName),
+                 .topology    = asset->topology,
+                 .rasterizer  = asset->rasterizer,
+                 .lineWidth   = asset->lineWidth,
+                 .renderOrder = asset->renderOrder,
+                 .blend       = asset->blend,
+                 .depth       = asset->depth,
+                 .cull        = asset->cull,
+                 .vertexCount = asset->vertexCount,
   };
 
   log_d(
