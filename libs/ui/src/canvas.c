@@ -452,7 +452,7 @@ ecs_system_define(UiRenderSys) {
     }
 
     bool textEditActive = false;
-    for (u32 i = canvasCount; i-- > 0;) { // Interate from the top canvas to the bottom canvas.
+    for (u32 i = canvasCount; i-- > 0;) { // Iterate from the top canvas to the bottom canvas.
       UiCanvasComp* canvas    = canvasses[i];
       const bool    isHovered = hoveredCanvasIndex == i && hover.layer >= canvas->minInteractLayer;
       const UiId    hoveredElem = isHovered ? hover.id : sentinel_u64;
@@ -471,7 +471,8 @@ ecs_system_define(UiRenderSys) {
       stats->trackedElemCount += (u32)canvas->trackedElems.size;
       stats->persistElemCount += (u32)canvas->persistentElems.size;
     }
-    input_layer_set(input, textEditActive ? InputLayer_TextInput : InputLayer_Normal);
+    input_blocker_update(input, InputBlocker_TextInput, textEditActive);
+    input_blocker_update(input, InputBlocker_HoveringUi, !sentinel_check(hoveredCanvasIndex));
     ui_canvas_cursor_update(window, interactType);
 
     stats->canvasSize        = canvasSize;

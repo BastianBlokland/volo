@@ -13,16 +13,6 @@ typedef enum {
 } InputCursorMode;
 
 /**
- * Controls which inputs are currently allowed:
- * - Normal:    All triggered mappings are active.
- * - TextInput: All triggered mappings are disabled.
- */
-typedef enum {
-  InputLayer_Normal,
-  InputLayer_TextInput,
-} InputLayer;
-
-/**
  * Global input manager component.
  */
 ecs_comp_extern(InputManagerComp);
@@ -33,8 +23,13 @@ ecs_comp_extern(InputManagerComp);
  */
 EcsEntityId input_active_window(const InputManagerComp*);
 
-InputLayer input_layer(const InputManagerComp*);
-void       input_layer_set(InputManagerComp*, InputLayer);
+typedef enum {
+  InputBlocker_TextInput    = 1 << 0,
+  InputBlocker_HoveringUi   = 1 << 1,
+  InputBlocker_CursorLocked = 1 << 2, // Managed by the input library.
+} InputBlocker;
+
+void input_blocker_update(InputManagerComp*, InputBlocker, bool value);
 
 InputCursorMode input_cursor_mode(const InputManagerComp*);
 void            input_cursor_mode_set(InputManagerComp*, InputCursorMode);

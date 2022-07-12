@@ -2,6 +2,11 @@
   "actions": [
     {
       "name": "PedestalSelect",
+      "blockers": [
+        "TextInput",
+        "HoveringUi",
+        "CursorLocked"
+      ],
       "bindings": [
         {
           "type": "Pressed",
@@ -11,6 +16,9 @@
     },
     {
       "name": "PedestalPrev",
+      "blockers": [
+        "TextInput"
+      ],
       "bindings": [
         {
           "type": "Pressed",
@@ -20,6 +28,9 @@
     },
     {
       "name": "PedestalNext",
+      "blockers": [
+        "TextInput"
+      ],
       "bindings": [
         {
           "type": "Pressed",
@@ -29,6 +40,9 @@
     },
     {
       "name": "PedestalTogglePause",
+      "blockers": [
+        "TextInput"
+      ],
       "bindings": [
         {
           "type": "Pressed",
@@ -38,6 +52,9 @@
     },
     {
       "name": "PedestalSetInstCount0",
+      "blockers": [
+        "TextInput"
+      ],
       "bindings": [
         {
           "type": "Pressed",
@@ -47,6 +64,9 @@
     },
     {
       "name": "PedestalSetInstCount1",
+      "blockers": [
+        "TextInput"
+      ],
       "bindings": [
         {
           "type": "Pressed",
@@ -56,6 +76,9 @@
     },
     {
       "name": "PedestalSetInstCount64",
+      "blockers": [
+        "TextInput"
+      ],
       "bindings": [
         {
           "type": "Pressed",
@@ -65,6 +88,9 @@
     },
     {
       "name": "PedestalSetInstCount512",
+      "blockers": [
+        "TextInput"
+      ],
       "bindings": [
         {
           "type": "Pressed",
@@ -74,6 +100,9 @@
     },
     {
       "name": "PedestalSetInstCount1024",
+      "blockers": [
+        "TextInput"
+      ],
       "bindings": [
         {
           "type": "Pressed",
@@ -83,6 +112,9 @@
     },
     {
       "name": "PedestalSetInstCount4096",
+      "blockers": [
+        "TextInput"
+      ],
       "bindings": [
         {
           "type": "Pressed",
@@ -92,6 +124,9 @@
     },
     {
       "name": "CameraMoveForward",
+      "blockers": [
+        "TextInput"
+      ],
       "bindings": [
         {
           "type": "Down",
@@ -101,6 +136,9 @@
     },
     {
       "name": "CameraMoveBackward",
+      "blockers": [
+        "TextInput"
+      ],
       "bindings": [
         {
           "type": "Down",
@@ -110,6 +148,9 @@
     },
     {
       "name": "CameraMoveRight",
+      "blockers": [
+        "TextInput"
+      ],
       "bindings": [
         {
           "type": "Down",
@@ -119,6 +160,9 @@
     },
     {
       "name": "CameraMoveLeft",
+      "blockers": [
+        "TextInput"
+      ],
       "bindings": [
         {
           "type": "Down",
@@ -128,6 +172,9 @@
     },
     {
       "name": "CameraLookEnable",
+      "blockers": [
+        "TextInput"
+      ],
       "bindings": [
         {
           "type": "Down",
@@ -141,6 +188,9 @@
     },
     {
       "name": "CameraMoveBoost",
+      "blockers": [
+        "TextInput"
+      ],
       "bindings": [
         {
           "type": "Down",
@@ -159,6 +209,9 @@
     },
     {
       "name": "WindowClose",
+      "blockers": [
+        "TextInput"
+      ],
       "bindings": [
         {
           "type": "Pressed",
@@ -168,6 +221,9 @@
     },
     {
       "name": "InputCursorLock",
+      "blockers": [
+        "TextInput"
+      ],
       "bindings": [
         {
           "type": "Pressed",

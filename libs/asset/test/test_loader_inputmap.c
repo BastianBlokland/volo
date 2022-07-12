@@ -9,6 +9,7 @@
 
 typedef struct {
   String            name;
+  u32               blockerBits;
   AssetInputBinding bindings[2];
   usize             bindingCount;
 } TestActionData;
@@ -101,6 +102,28 @@ static const struct {
             },
         .actionCount = 2,
     },
+    {
+        .id   = string_static("blockers.imp"),
+        .text = string_static("{ \"actions\": [ {"
+                              "    \"name\": \"Jump\","
+                              "    \"blockers\": [ \"HoveringUi\", \"TextInput\" ],"
+                              "    \"bindings\": [ {"
+                              "       \"type\": \"Pressed\","
+                              "       \"key\":  \"Space\""
+                              "        } ]"
+                              "     }"
+                              "]}"),
+        .actions =
+            {
+                {
+                    .name         = string_static("Jump"),
+                    .blockerBits  = 0b11,
+                    .bindings     = {{.type = AssetInputType_Pressed, .key = 11}},
+                    .bindingCount = 1,
+                },
+            },
+        .actionCount = 1,
+    },
 };
 
 static const struct {
@@ -185,6 +208,7 @@ spec(loader_inputmap) {
         const TestActionData*   expectedAction = &g_testData[i].actions[a];
 
         check_eq_int(actualAction->nameHash, string_hash(expectedAction->name));
+        check_eq_int(actualAction->blockerBits, expectedAction->blockerBits);
         check_require(actualAction->bindingCount == expectedAction->bindingCount);
         for (usize b = 0; b != expectedAction->bindingCount; ++b) {
           const AssetInputBinding* actualBinding   = &map->bindings[actualAction->bindingIndex + b];
