@@ -12,7 +12,7 @@
 
 ecs_comp_define(InputManagerComp) {
   EcsEntityId     activeWindow;
-  InputLayer      layer;
+  InputBlocker    blockers;
   InputCursorMode cursorMode;
   f32             cursorPosNorm[2];
   f32             cursorDeltaNorm[2];
@@ -112,11 +112,8 @@ static void input_update_cursor(InputManagerComp* manager, GapWindowComp* win) {
 static void input_update_triggered(
     InputManagerComp* manager, const AssetInputMapComp* map, GapWindowComp* win) {
 
-  if (manager->layer != InputLayer_Normal) {
-    /**
-     * At the moment the mappings are either all enabled or all disabled.
-     * In the future this could be configurable for each action in the input map.
-     */
+  if (manager->blockers) {
+    // TODO: Support specifying blockers per action.
     return;
   }
   for (usize i = 0; i != map->actionCount; ++i) {
@@ -173,8 +170,13 @@ ecs_module_init(input_manager_module) {
 
 EcsEntityId input_active_window(const InputManagerComp* manager) { return manager->activeWindow; }
 
-InputLayer input_layer(const InputManagerComp* manager) { return manager->layer; }
-void input_layer_set(InputManagerComp* manager, const InputLayer layer) { manager->layer = layer; }
+void input_blocker_update(InputManagerComp* manager, const InputBlocker blocker, const bool value) {
+  if (value) {
+    manager->blockers |= blocker;
+  } else {
+    manager->blockers &= ~blocker;
+  }
+}
 
 InputCursorMode input_cursor_mode(const InputManagerComp* manager) { return manager->cursorMode; }
 void            input_cursor_mode_set(InputManagerComp* manager, const InputCursorMode newMode) {
