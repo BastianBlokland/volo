@@ -17,6 +17,10 @@ static DataMeta g_dataInputMapDefMeta;
 typedef struct {
   String name;
   struct {
+    u32*  values;
+    usize count;
+  } blockers;
+  struct {
     AssetInputBinding* values;
     usize              count;
   } bindings;
@@ -117,6 +121,13 @@ static void inputmap_datareg_init() {
     data_reg_const_custom(g_dataReg, AssetInputKey, F11,          68);
     data_reg_const_custom(g_dataReg, AssetInputKey, F12,          69);
 
+    /**
+     * Blockers correspond to the 'InputBlocker' values as defined in 'input_manager.h'.
+     * NOTE: This is a virtual data type, meaning there is no matching AssetInputBlocker C type.
+     */
+    data_reg_enum_t(g_dataReg, AssetInputBlocker);
+    data_reg_const_custom(g_dataReg, AssetInputBlocker, TextInput, 0);
+
     data_reg_enum_t(g_dataReg, AssetInputType);
     data_reg_const_t(g_dataReg, AssetInputType, Pressed);
     data_reg_const_t(g_dataReg, AssetInputType, Released);
@@ -128,6 +139,7 @@ static void inputmap_datareg_init() {
 
     data_reg_struct_t(g_dataReg, AssetInputActionDef);
     data_reg_field_t(g_dataReg, AssetInputActionDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetInputActionDef, blockers, t_AssetInputBlocker, .container = DataContainer_Array, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, AssetInputActionDef, bindings, t_AssetInputBinding, .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
 
     data_reg_struct_t(g_dataReg, AssetInputMapDef);
@@ -160,6 +172,12 @@ static String inputmap_error_str(const InputMapError err) {
   return g_msgs[err];
 }
 
+static u32 asset_inputmap_blocker_bits(const AssetInputActionDef* def) {
+  u32 blockerBits = 0;
+  array_ptr_for_t(def->blockers, u32, blockerIndex) { blockerBits |= 1 << *blockerIndex; }
+  return blockerBits;
+}
+
 static void asset_inputmap_build(
     const AssetInputMapDef* def,
     DynArray*               outActions,  // AssetInputAction[], needs to be already initialized.
@@ -170,6 +188,7 @@ static void asset_inputmap_build(
     const usize            bindingCount = actionDef->bindings.count;
     const AssetInputAction action       = {
         .nameHash     = stringtable_add(g_stringtable, actionDef->name),
+        .blockerBits  = asset_inputmap_blocker_bits(actionDef),
         .bindingIndex = (u16)outBindings->size,
         .bindingCount = (u16)bindingCount,
     };

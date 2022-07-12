@@ -112,12 +112,11 @@ static void input_update_cursor(InputManagerComp* manager, GapWindowComp* win) {
 static void input_update_triggered(
     InputManagerComp* manager, const AssetInputMapComp* map, GapWindowComp* win) {
 
-  if (manager->blockers) {
-    // TODO: Support specifying blockers per action.
-    return;
-  }
   for (usize i = 0; i != map->actionCount; ++i) {
     const AssetInputAction* action = &map->actions[i];
+    if (manager->blockers & action->blockerBits) {
+      continue;
+    }
     if (input_action_satisfied(map, action, win)) {
       *dynarray_push_t(&manager->triggeredActions, u32) = action->nameHash;
     }
