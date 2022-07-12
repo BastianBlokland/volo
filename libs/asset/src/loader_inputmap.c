@@ -128,6 +128,7 @@ static void inputmap_datareg_init() {
     data_reg_enum_t(g_dataReg, AssetInputBlocker);
     data_reg_const_custom(g_dataReg, AssetInputBlocker, TextInput, 0);
     data_reg_const_custom(g_dataReg, AssetInputBlocker, HoveringUi, 1);
+    data_reg_const_custom(g_dataReg, AssetInputBlocker, CursorLocked, 2);
 
     data_reg_enum_t(g_dataReg, AssetInputType);
     data_reg_const_t(g_dataReg, AssetInputType, Pressed);

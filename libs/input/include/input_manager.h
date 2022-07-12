@@ -24,8 +24,9 @@ ecs_comp_extern(InputManagerComp);
 EcsEntityId input_active_window(const InputManagerComp*);
 
 typedef enum {
-  InputBlocker_TextInput  = 1 << 0,
-  InputBlocker_HoveringUi = 1 << 1,
+  InputBlocker_TextInput    = 1 << 0,
+  InputBlocker_HoveringUi   = 1 << 1,
+  InputBlocker_CursorLocked = 1 << 2, // Managed by the input library.
 } InputBlocker;
 
 void input_blocker_update(InputManagerComp*, InputBlocker, bool value);

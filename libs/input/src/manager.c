@@ -178,8 +178,18 @@ void input_blocker_update(InputManagerComp* manager, const InputBlocker blocker,
 }
 
 InputCursorMode input_cursor_mode(const InputManagerComp* manager) { return manager->cursorMode; }
-void            input_cursor_mode_set(InputManagerComp* manager, const InputCursorMode newMode) {
+
+void input_cursor_mode_set(InputManagerComp* manager, const InputCursorMode newMode) {
   manager->cursorMode = newMode;
+
+  switch (newMode) {
+  case InputCursorMode_Normal:
+    manager->blockers &= ~InputBlocker_CursorLocked;
+    break;
+  case InputCursorMode_Locked:
+    manager->blockers |= InputBlocker_CursorLocked;
+    break;
+  }
 }
 
 f32 input_cursor_x(const InputManagerComp* manager) { return manager->cursorPosNorm[0]; }
