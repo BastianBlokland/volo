@@ -106,7 +106,7 @@ static const struct {
         .id   = string_static("blockers.imp"),
         .text = string_static("{ \"actions\": [ {"
                               "    \"name\": \"Jump\","
-                              "    \"blockers\": [ \"TextInput\" ],"
+                              "    \"blockers\": [ \"HoveringUi\", \"TextInput\" ],"
                               "    \"bindings\": [ {"
                               "       \"type\": \"Pressed\","
                               "       \"key\":  \"Space\""
@@ -117,7 +117,7 @@ static const struct {
             {
                 {
                     .name         = string_static("Jump"),
-                    .blockerBits  = 1 << 0,
+                    .blockerBits  = 0b11,
                     .bindings     = {{.type = AssetInputType_Pressed, .key = 11}},
                     .bindingCount = 1,
                 },

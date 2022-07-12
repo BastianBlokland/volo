@@ -3,7 +3,8 @@
     {
       "name": "PedestalSelect",
       "blockers": [
-        "TextInput"
+        "TextInput",
+        "HoveringUi"
       ],
       "bindings": [
         {

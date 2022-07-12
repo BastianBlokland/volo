@@ -127,6 +127,7 @@ static void inputmap_datareg_init() {
      */
     data_reg_enum_t(g_dataReg, AssetInputBlocker);
     data_reg_const_custom(g_dataReg, AssetInputBlocker, TextInput, 0);
+    data_reg_const_custom(g_dataReg, AssetInputBlocker, HoveringUi, 1);
 
     data_reg_enum_t(g_dataReg, AssetInputType);
     data_reg_const_t(g_dataReg, AssetInputType, Pressed);
@@ -187,10 +188,10 @@ static void asset_inputmap_build(
   array_ptr_for_t(def->actions, AssetInputActionDef, actionDef) {
     const usize            bindingCount = actionDef->bindings.count;
     const AssetInputAction action       = {
-        .nameHash     = stringtable_add(g_stringtable, actionDef->name),
-        .blockerBits  = asset_inputmap_blocker_bits(actionDef),
-        .bindingIndex = (u16)outBindings->size,
-        .bindingCount = (u16)bindingCount,
+              .nameHash     = stringtable_add(g_stringtable, actionDef->name),
+              .blockerBits  = asset_inputmap_blocker_bits(actionDef),
+              .bindingIndex = (u16)outBindings->size,
+              .bindingCount = (u16)bindingCount,
     };
     if (dynarray_search_binary(outActions, asset_inputmap_compare_action, &action)) {
       *err = InputMapError_DuplicateAction;
