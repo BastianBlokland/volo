@@ -4,10 +4,10 @@
 #include "debug_register.h"
 #include "debug_shape.h"
 #include "debug_text.h"
-#include "ecs_utils.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
 #include "scene_renderable.h"
+#include "scene_selection.h"
 #include "scene_skeleton.h"
 #include "scene_transform.h"
 #include "ui.h"
@@ -19,10 +19,7 @@ typedef enum {
   DebugAnimationFlags_DrawSkinCounts      = 1 << 3,
 } DebugAnimationFlags;
 
-ecs_comp_define(DebugAnimationSettingsComp) {
-  DebugAnimationFlags flags;
-  EcsEntityId         subject; // Animated entity being debugged.
-};
+ecs_comp_define(DebugAnimationSettingsComp) { DebugAnimationFlags flags; };
 
 ecs_comp_define(DebugAnimationPanelComp) {
   UiPanel      panel;
@@ -32,12 +29,7 @@ ecs_comp_define(DebugAnimationPanelComp) {
 
 ecs_view_define(SettingsWriteView) { ecs_access_write(DebugAnimationSettingsComp); }
 
-ecs_view_define(PanelUpdateView) {
-  ecs_access_write(DebugAnimationPanelComp);
-  ecs_access_write(UiCanvasComp);
-}
-
-ecs_view_define(AnimationView) {
+ecs_view_define(SubjectView) {
   ecs_access_read(SceneRenderableComp);
   ecs_access_read(SceneTransformComp);
   ecs_access_read(SceneSkeletonComp);
@@ -47,10 +39,39 @@ ecs_view_define(AnimationView) {
 
 ecs_view_define(SkeletonTemplView) { ecs_access_read(SceneSkeletonTemplComp); }
 
-ecs_view_define(GlobalDrawView) {
-  ecs_access_read(DebugAnimationSettingsComp);
-  ecs_access_write(DebugShapeComp);
-  ecs_access_write(DebugTextComp);
+typedef struct {
+  bool                          valid;
+  GeoMatrix                     transform;
+  SceneAnimationComp*           animation;
+  const SceneSkeletonComp*      skeleton;
+  const SceneSkeletonTemplComp* skeletonTemplate;
+} DebugAnimSubject;
+
+static DebugAnimSubject debug_anim_subject(EcsWorld* world, const EcsEntityId entity) {
+  EcsView* subjectView   = ecs_world_view_t(world, SubjectView);
+  EcsView* skelTemplView = ecs_world_view_t(world, SkeletonTemplView);
+
+  EcsIterator* subjectItr = ecs_view_maybe_at(subjectView, entity);
+  if (!subjectItr) {
+    return (DebugAnimSubject){0};
+  }
+  const EcsEntityId graphic      = ecs_view_read_t(subjectItr, SceneRenderableComp)->graphic;
+  EcsIterator*      skelTemplItr = ecs_view_maybe_at(skelTemplView, graphic);
+  if (!skelTemplItr) {
+    return (DebugAnimSubject){0};
+  }
+
+  const GeoVector       pos       = ecs_view_read_t(subjectItr, SceneTransformComp)->position;
+  const GeoQuat         rot       = ecs_view_read_t(subjectItr, SceneTransformComp)->rotation;
+  const SceneScaleComp* scaleComp = ecs_view_read_t(subjectItr, SceneScaleComp);
+  const f32             scale     = scaleComp ? scaleComp->scale : 1.0f;
+  return (DebugAnimSubject){
+      .valid            = true,
+      .transform        = geo_matrix_trs(pos, rot, geo_vector(scale, scale, scale)),
+      .animation        = ecs_view_write_t(subjectItr, SceneAnimationComp),
+      .skeleton         = ecs_view_read_t(subjectItr, SceneSkeletonComp),
+      .skeletonTemplate = ecs_view_read_t(skelTemplItr, SceneSkeletonTemplComp),
+  };
 }
 
 static void
@@ -231,11 +252,10 @@ static void anim_panel_options_draw(UiCanvasComp* canvas, DebugAnimationSettings
 }
 
 static void anim_panel_draw(
-    UiCanvasComp*                 canvas,
-    DebugAnimationPanelComp*      panelComp,
-    DebugAnimationSettingsComp*   settings,
-    SceneAnimationComp*           anim,
-    const SceneSkeletonTemplComp* skelTempl) {
+    UiCanvasComp*               canvas,
+    DebugAnimationPanelComp*    panelComp,
+    DebugAnimationSettingsComp* settings,
+    const DebugAnimSubject      subject) {
   const String title = fmt_write_scratch("{} Animation Debug", fmt_ui_shape(Animation));
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
 
@@ -243,7 +263,7 @@ static void anim_panel_draw(
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
   ui_layout_container_push(canvas, UiClip_None);
 
-  if (anim && skelTempl) {
+  if (subject.valid) {
     UiTable table = ui_table(.spacing = ui_vector(10, 5));
     ui_table_add_column(&table, UiTableColumn_Fixed, 300);
     ui_table_add_column(&table, UiTableColumn_Fixed, 140);
@@ -266,8 +286,8 @@ static void anim_panel_draw(
     ui_scrollview_begin(canvas, &panelComp->scrollview, totalHeight);
     panelComp->totalRows = 1; // Always draws the default layer.
 
-    for (u32 layerIdx = 0; layerIdx != anim->layerCount; ++layerIdx) {
-      SceneAnimLayer* layer = &anim->layers[layerIdx];
+    for (u32 layerIdx = 0; layerIdx != subject.animation->layerCount; ++layerIdx) {
+      SceneAnimLayer* layer = &subject.animation->layers[layerIdx];
       const String    name  = stringtable_lookup(g_stringtable, layer->nameHash);
 
       ui_table_next_row(canvas, &table);
@@ -295,10 +315,10 @@ static void anim_panel_draw(
       ui_table_next_column(canvas, &table);
 
       if (open) {
-        anim_draw_joints_layer(canvas, &table, layer, layerIdx, skelTempl);
+        anim_draw_joints_layer(canvas, &table, layer, layerIdx, subject.skeletonTemplate);
       }
 
-      panelComp->totalRows += 1 + (open ? scene_skeleton_joint_count(skelTempl) : 0);
+      panelComp->totalRows += 1 + (open ? scene_skeleton_joint_count(subject.skeletonTemplate) : 0);
 
       ui_canvas_id_block_next(canvas); // Use a consistent amount of ids regardless of if 'open'.
     }
@@ -306,13 +326,13 @@ static void anim_panel_draw(
     ui_table_next_row(canvas, &table);
     ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
     if (ui_section(canvas, .label = string_lit("<default>"))) {
-      anim_draw_joints_def(canvas, &table, skelTempl);
-      panelComp->totalRows += scene_skeleton_joint_count(skelTempl) + 1;
+      anim_draw_joints_def(canvas, &table, subject.skeletonTemplate);
+      panelComp->totalRows += scene_skeleton_joint_count(subject.skeletonTemplate) + 1;
     }
 
     ui_scrollview_end(canvas, &panelComp->scrollview);
   } else {
-    ui_label(canvas, string_lit("No animated entities found"), .align = UiAlign_MiddleCenter);
+    ui_label(canvas, string_lit("Select an animated entity."), .align = UiAlign_MiddleCenter);
   }
 
   ui_layout_container_pop(canvas);
@@ -326,28 +346,23 @@ static DebugAnimationSettingsComp* anim_settings_get_or_create(EcsWorld* world) 
              : ecs_world_add_t(world, ecs_world_global(world), DebugAnimationSettingsComp);
 }
 
+ecs_view_define(PanelUpdateGlobalView) { ecs_access_read(SceneSelectionComp); }
+
+ecs_view_define(PanelUpdateView) {
+  ecs_access_write(DebugAnimationPanelComp);
+  ecs_access_write(UiCanvasComp);
+}
+
 ecs_system_define(DebugAnimationUpdatePanelSys) {
-  DebugAnimationSettingsComp* settings = anim_settings_get_or_create(world);
-  EcsView*                    animView = ecs_world_view_t(world, AnimationView);
-
-  SceneAnimationComp*           anim      = null;
-  const SceneSkeletonTemplComp* skelTempl = null;
-
-  /**
-   * NOTE: Pick an entity to debug, at the moment we just pick the first animated entity.
-   */
-  EcsIterator* subjectItr = settings->subject ? ecs_view_maybe_at(animView, settings->subject)
-                                              : ecs_view_walk(ecs_view_itr(animView));
-  if (subjectItr) {
-    settings->subject         = ecs_view_entity(subjectItr);
-    anim                      = ecs_view_write_t(subjectItr, SceneAnimationComp);
-    const EcsEntityId graphic = ecs_view_read_t(subjectItr, SceneRenderableComp)->graphic;
-    if (ecs_view_contains(ecs_world_view_t(world, SkeletonTemplView), graphic)) {
-      skelTempl = ecs_utils_read_t(world, SkeletonTemplView, graphic, SceneSkeletonTemplComp);
-    }
-  } else {
-    settings->subject = 0;
+  EcsView*     globalView = ecs_world_view_t(world, PanelUpdateGlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return;
   }
+  DebugAnimationSettingsComp* settings = anim_settings_get_or_create(world);
+
+  const SceneSelectionComp* selection = ecs_view_read_t(globalItr, SceneSelectionComp);
+  const DebugAnimSubject    subject   = debug_anim_subject(world, scene_selected(selection));
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
@@ -355,7 +370,7 @@ ecs_system_define(DebugAnimationUpdatePanelSys) {
     UiCanvasComp*            canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
-    anim_panel_draw(canvas, panelComp, settings, anim, skelTempl);
+    anim_panel_draw(canvas, panelComp, settings, subject);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
@@ -430,54 +445,48 @@ static void debug_draw_skin_counts(
   }
 }
 
-ecs_system_define(DebugAnimationDrawSys) {
-  EcsView* globalView   = ecs_world_view_t(world, GlobalDrawView);
-  EcsView* animView     = ecs_world_view_t(world, AnimationView);
-  EcsView* templateView = ecs_world_view_t(world, SkeletonTemplView);
+ecs_view_define(GlobalDrawView) {
+  ecs_access_read(DebugAnimationSettingsComp);
+  ecs_access_read(SceneSelectionComp);
+  ecs_access_write(DebugShapeComp);
+  ecs_access_write(DebugTextComp);
+}
 
-  EcsIterator* globalItr = ecs_view_maybe_at(globalView, ecs_world_global(world));
+ecs_system_define(DebugAnimationDrawSys) {
+  EcsView*     globalView = ecs_world_view_t(world, GlobalDrawView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
   }
+  const SceneSelectionComp*         selection = ecs_view_read_t(globalItr, SceneSelectionComp);
   const DebugAnimationSettingsComp* set   = ecs_view_read_t(globalItr, DebugAnimationSettingsComp);
   DebugShapeComp*                   shape = ecs_view_write_t(globalItr, DebugShapeComp);
   DebugTextComp*                    text  = ecs_view_write_t(globalItr, DebugTextComp);
 
-  EcsIterator* itr = set->subject ? ecs_view_maybe_at(animView, set->subject) : null;
-  if (!itr) {
-    return;
-  }
-  const EcsEntityId graphic = ecs_view_read_t(itr, SceneRenderableComp)->graphic;
-  if (!ecs_view_contains(templateView, graphic)) {
+  const DebugAnimSubject subject = debug_anim_subject(world, scene_selected(selection));
+  if (!subject.valid) {
     return;
   }
 
-  const SceneSkeletonComp* skeleton  = ecs_view_read_t(itr, SceneSkeletonComp);
-  const GeoVector          pos       = ecs_view_read_t(itr, SceneTransformComp)->position;
-  const GeoQuat            rot       = ecs_view_read_t(itr, SceneTransformComp)->rotation;
-  const SceneScaleComp*    scaleComp = ecs_view_read_t(itr, SceneScaleComp);
-  const f32                scale     = scaleComp ? scaleComp->scale : 1.0f;
-  const GeoMatrix          transform = geo_matrix_trs(pos, rot, geo_vector(scale, scale, scale));
-
-  const SceneSkeletonTemplComp* template =
-      ecs_utils_read(templateView, graphic, ecs_comp_id(SceneSkeletonTemplComp));
-
-  GeoMatrix* jointMatrices = mem_stack(sizeof(GeoMatrix) * skeleton->jointCount).ptr;
-  for (u32 i = 0; i != skeleton->jointCount; ++i) {
-    jointMatrices[i] = geo_matrix_mul(&transform, &skeleton->jointTransforms[i]);
+  GeoMatrix* jointMatrices = mem_stack(sizeof(GeoMatrix) * subject.skeleton->jointCount).ptr;
+  for (u32 i = 0; i != subject.skeleton->jointCount; ++i) {
+    jointMatrices[i] = geo_matrix_mul(&subject.transform, &subject.skeleton->jointTransforms[i]);
   }
 
   if (set->flags & DebugAnimationFlags_DrawSkeleton) {
-    debug_draw_skeleton(shape, template, skeleton->jointCount, jointMatrices);
+    debug_draw_skeleton(
+        shape, subject.skeletonTemplate, subject.skeleton->jointCount, jointMatrices);
   }
   if (set->flags & DebugAnimationFlags_DrawJointTransforms) {
-    debug_draw_joint_transforms(shape, skeleton->jointCount, jointMatrices);
+    debug_draw_joint_transforms(shape, subject.skeleton->jointCount, jointMatrices);
   }
   if (set->flags & DebugAnimationFlags_DrawJointNames) {
-    debug_draw_joint_names(text, template, skeleton->jointCount, jointMatrices);
+    debug_draw_joint_names(
+        text, subject.skeletonTemplate, subject.skeleton->jointCount, jointMatrices);
   }
   if (set->flags & DebugAnimationFlags_DrawSkinCounts) {
-    debug_draw_skin_counts(text, template, skeleton->jointCount, jointMatrices);
+    debug_draw_skin_counts(
+        text, subject.skeletonTemplate, subject.skeleton->jointCount, jointMatrices);
   }
 }
 
@@ -486,22 +495,24 @@ ecs_module_init(debug_animation_module) {
   ecs_register_comp(DebugAnimationPanelComp);
 
   ecs_register_view(SettingsWriteView);
+  ecs_register_view(PanelUpdateGlobalView);
   ecs_register_view(PanelUpdateView);
-  ecs_register_view(AnimationView);
+  ecs_register_view(SubjectView);
   ecs_register_view(SkeletonTemplView);
   ecs_register_view(GlobalDrawView);
 
   ecs_register_system(
       DebugAnimationUpdatePanelSys,
       ecs_view_id(SettingsWriteView),
+      ecs_view_id(PanelUpdateGlobalView),
       ecs_view_id(PanelUpdateView),
-      ecs_view_id(AnimationView),
+      ecs_view_id(SubjectView),
       ecs_view_id(SkeletonTemplView));
 
   ecs_register_system(
       DebugAnimationDrawSys,
       ecs_view_id(GlobalDrawView),
-      ecs_view_id(AnimationView),
+      ecs_view_id(SubjectView),
       ecs_view_id(SkeletonTemplView));
 
   ecs_order(DebugAnimationDrawSys, DebugOrder_AnimationDebugDraw);
