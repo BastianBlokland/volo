@@ -1,5 +1,7 @@
 #include "core_alloc.h"
+#include "core_diag.h"
 #include "core_dynarray.h"
+#include "core_math.h"
 #include "geo_query.h"
 
 struct sGeoQueryEnv {
@@ -9,6 +11,22 @@ struct sGeoQueryEnv {
   DynArray   capsules;   // GeoCapsule[].
   DynArray   capsuleIds; // u64[].
 };
+
+static void geo_query_validate_pos(const GeoVector vec) {
+  // Constrain the positions 1000 meters from the origin to avoid precision issues.
+  diag_assert_msg(
+      geo_vector_mag_sqr(vec) < (1e4f * 1e4f),
+      "Position ({}) is out of bounds",
+      geo_vector_fmt(vec));
+}
+
+static void geo_query_validate_dir(const GeoVector vec) {
+  diag_assert_msg(
+      math_abs(geo_vector_mag_sqr(vec) - 1.0f) < 1e-6f,
+      "Direction ({}) is not normalized",
+      geo_vector_fmt(vec));
+  return;
+}
 
 GeoQueryEnv* geo_query_env_create(Allocator* alloc) {
   GeoQueryEnv* env = alloc_alloc_t(alloc, GeoQueryEnv);
@@ -49,6 +67,9 @@ void geo_query_insert_capsule(GeoQueryEnv* env, const GeoCapsule capsule, const 
 }
 
 bool geo_query_ray(const GeoQueryEnv* env, const GeoRay* ray, GeoQueryRayHit* outHit) {
+  geo_query_validate_pos(ray->point);
+  geo_query_validate_dir(ray->dir);
+
   GeoQueryRayHit bestHit  = {.time = f32_max};
   bool           foundHit = false;
 
