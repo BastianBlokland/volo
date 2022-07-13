@@ -14,8 +14,8 @@ static const f32       g_camPersNear           = 0.1f;
 static const GeoVector g_camPersPosition       = {0, 1.7f, -3.0f};
 static const f32       g_camPersAngle          = 10 * math_deg_to_rad;
 static const f32       g_camOrthoSize          = 5.0f;
-static const f32       g_camOrthoNear          = -1e4f;
-static const f32       g_camOrthoFar           = +1e4f;
+static const f32       g_camOrthoNear          = -100.0f;
+static const f32       g_camOrthoFar           = +100.0f;
 
 ecs_comp_define_public(SceneCameraComp);
 ecs_comp_define_public(SceneCameraMovementComp);
