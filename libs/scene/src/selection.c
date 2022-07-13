@@ -34,7 +34,7 @@ static void scene_selection_tag_set(EcsWorld* world, const EcsEntityId entity) {
   if (ecs_view_maybe_jump(tagItr, entity)) {
     ecs_view_write_t(tagItr, SceneTagComp)->tags |= SceneTags_Selected;
   } else {
-    scene_tag_add(world, entity, SceneTags_Selected);
+    scene_tag_add(world, entity, SceneTags_Default | SceneTags_Selected);
   }
 }
 
