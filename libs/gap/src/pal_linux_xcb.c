@@ -288,7 +288,7 @@ static void pal_xkb_log_callback(
   Mem       buffer = mem_stack(256);
   const int chars  = vsnprintf(buffer.ptr, buffer.size, format, args);
   if (UNLIKELY(chars < 0)) {
-    diag_crash_msg("vsnprintf() failed for xkb log message");
+    diag_crash_msg("vsnprintf() failed for xcb xkb log message");
   }
   LogLevel logLevel;
   String   typeLabel;
@@ -314,7 +314,7 @@ static void pal_xkb_log_callback(
   }
   log(g_logger,
       logLevel,
-      "xkb {} log",
+      "Xcb xkb {} log",
       log_param("type", fmt_text(typeLabel)),
       log_param("message", fmt_text(string_slice(buffer, 0, chars))));
 }
@@ -439,7 +439,7 @@ static bool pal_xkb_init(GapPal* pal) {
       pal->xcbCon, xcb_xkb_use_extension, &err, XCB_XKB_MAJOR_VERSION, XCB_XKB_MINOR_VERSION);
 
   if (UNLIKELY(err)) {
-    log_w("Failed to initialize the xkb extension", log_param("error", fmt_int(err->error_code)));
+    log_w("Xcb failed to initialize the xkb ext", log_param("error", fmt_int(err->error_code)));
     free(reply);
     return false;
   }
@@ -450,25 +450,25 @@ static bool pal_xkb_init(GapPal* pal) {
 
   pal->xkbContext = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
   if (UNLIKELY(!pal->xkbContext)) {
-    log_w("Failed to initialize the xkb-common context");
+    log_w("Xcb failed to create the xkb-common context");
     return false;
   }
   xkb_context_set_log_level(pal->xkbContext, XKB_LOG_LEVEL_INFO);
   xkb_context_set_log_fn(pal->xkbContext, pal_xkb_log_callback);
   pal->xkbDeviceId = xkb_x11_get_core_keyboard_device_id(pal->xcbCon);
   if (UNLIKELY(pal->xkbDeviceId < 0)) {
-    log_w("Failed to to retrieve the xkb keyboard device-id");
+    log_w("Xcb failed to retrieve the xkb keyboard device-id");
     return false;
   }
   pal->xkbKeymap = xkb_x11_keymap_new_from_device(
       pal->xkbContext, pal->xcbCon, pal->xkbDeviceId, XKB_KEYMAP_COMPILE_NO_FLAGS);
   if (!pal->xkbKeymap) {
-    log_w("Failed to to retrieve the xkb keyboard keymap");
+    log_w("Xcb failed to retrieve the xkb keyboard keymap");
     return false;
   }
   pal->xkbState = xkb_x11_state_new_from_device(pal->xkbKeymap, pal->xcbCon, pal->xkbDeviceId);
   if (!pal->xkbKeymap) {
-    log_w("Failed to to retrieve the xkb keyboard state");
+    log_w("Xcb failed to retrieve the xkb keyboard state");
     return false;
   }
 
@@ -477,7 +477,7 @@ static bool pal_xkb_init(GapPal* pal) {
   const String layoutName = layoutNameRaw ? string_from_null_term(layoutNameRaw) : string_empty;
 
   log_i(
-      "Initialized xkb keyboard extension",
+      "Xcb initialized the xkb keyboard extension",
       log_param("version", fmt_list_lit(fmt_int(versionMajor), fmt_int(versionMinor))),
       log_param("device-id", fmt_int(pal->xkbDeviceId)),
       log_param("layout-count", fmt_int(layoutCount)),
@@ -498,18 +498,19 @@ static bool pal_xfixes_init(GapPal* pal) {
       XCB_XFIXES_MINOR_VERSION);
 
   if (UNLIKELY(err)) {
-    log_w(
-        "Failed to initialize the xfixes extension", log_param("error", fmt_int(err->error_code)));
+    log_w("Xcb failed to initialize the xfixes ext", log_param("error", fmt_int(err->error_code)));
     free(reply);
     return false;
   }
 
-  log_i(
-      "Initialized xfixes extension",
-      log_param(
-          "version", fmt_list_lit(fmt_int(reply->major_version), fmt_int(reply->minor_version))));
-
+  MAYBE_UNUSED const u16 versionMajor = reply->major_version;
+  MAYBE_UNUSED const u16 versionMinor = reply->minor_version;
   free(reply);
+
+  log_i(
+      "Xcb initialized the xfixes extension",
+      log_param("version", fmt_list_lit(fmt_int(versionMajor), fmt_int(versionMinor))));
+
   return true;
 }
 
@@ -519,9 +520,8 @@ static bool pal_xfixes_init(GapPal* pal) {
  */
 static bool pal_randr_init(GapPal* pal) {
   const xcb_query_extension_reply_t* data = xcb_get_extension_data(pal->xcbCon, &xcb_randr_id);
-
   if (UNLIKELY(!data->present)) {
-    log_w("RandR extension not present");
+    log_w("Xcb RandR extension not present");
     return false;
   }
 
@@ -530,17 +530,19 @@ static bool pal_randr_init(GapPal* pal) {
       pal->xcbCon, xcb_randr_query_version, &err, XCB_RANDR_MAJOR_VERSION, XCB_RANDR_MINOR_VERSION);
 
   if (UNLIKELY(err)) {
-    log_w("Failed to initialize the RandR extension", log_param("error", fmt_int(err->error_code)));
+    log_w("Xcb failed to initialize the RandR ext", log_param("error", fmt_int(err->error_code)));
     free(reply);
     return false;
   }
 
-  log_i(
-      "Initialized RandR extension",
-      log_param(
-          "version", fmt_list_lit(fmt_int(reply->major_version), fmt_int(reply->minor_version))));
-
+  MAYBE_UNUSED const u16 versionMajor = reply->major_version;
+  MAYBE_UNUSED const u16 versionMinor = reply->minor_version;
   free(reply);
+
+  log_i(
+      "Xcb initialized the RandR extension",
+      log_param("version", fmt_list_lit(fmt_int(versionMajor), fmt_int(versionMinor))));
+
   return true;
 }
 
@@ -550,7 +552,7 @@ static bool pal_randr_init(GapPal* pal) {
 static bool pal_cursorutil_init(GapPal* pal) {
   const int res = xcb_cursor_context_new(pal->xcbCon, pal->xcbScreen, &pal->cursorCtx);
   if (res != 0) {
-    log_w("Failed to initialize the cursor-util xcb extension", log_param("error", fmt_int(res)));
+    log_w("Xcb failed to initialize the cursor-util xcb ext", log_param("error", fmt_int(res)));
     return false;
   }
 
@@ -560,7 +562,7 @@ static bool pal_cursorutil_init(GapPal* pal) {
   pal->cursors[GapCursor_Crosshair]  = xcb_cursor_load_cursor(pal->cursorCtx, "crosshair");
   pal->cursors[GapCursor_ResizeDiag] = xcb_cursor_load_cursor(pal->cursorCtx, "top_left_corner");
 
-  log_i("Initialized cursor-util xcb extension");
+  log_i("Xcb initialized the cursor-util xcb extension");
   return true;
 }
 
@@ -587,7 +589,7 @@ static GapVector pal_query_cursor_pos(GapPal* pal, const GapWindowId windowId) {
 
   if (UNLIKELY(err)) {
     log_w(
-        "Failed to query the x11 cursor position",
+        "Xcb failed to query the x11 cursor position",
         log_param("window-id", fmt_int(windowId)),
         log_param("error", fmt_int(err->error_code)));
     return gap_vector(0, 0);
