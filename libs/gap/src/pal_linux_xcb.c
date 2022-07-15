@@ -6,6 +6,7 @@
 #include "pal_internal.h"
 
 #include <stdlib.h>
+#include <xcb/randr.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_cursor.h>
 #include <xcb/xcb_icccm.h>
@@ -16,7 +17,7 @@
 
 /**
  * X11 client implementation using the xcb library.
- * Optionally uses the xkb, xfixes, icccm and cursor-util extensions.
+ * Optionally uses the xkb, xfixes, icccm, randr and cursor-util extensions.
  *
  * Standard: https://www.x.org/docs/ICCCM/icccm.pdf
  * Xcb: https://xcb.freedesktop.org/manual/
@@ -35,7 +36,8 @@ typedef enum {
   GapPalXcbExtFlags_Xkb        = 1 << 0,
   GapPalXcbExtFlags_XFixes     = 1 << 1,
   GapPalXcbExtFlags_Icccm      = 1 << 2,
-  GapPalXcbExtFlags_CursorUtil = 1 << 3,
+  GapPalXcbExtFlags_Randr      = 1 << 3,
+  GapPalXcbExtFlags_CursorUtil = 1 << 4,
 } GapPalXcbExtFlags;
 
 typedef enum {
@@ -508,13 +510,48 @@ static bool pal_xfixes_init(GapPal* pal) {
     return false;
   }
 
-  MAYBE_UNUSED const u32 versionMajor = reply->major_version;
-  MAYBE_UNUSED const u32 versionMinor = reply->minor_version;
-  free(reply);
-
   log_i(
       "Initialized xfixes extension",
-      log_param("version", fmt_list_lit(fmt_int(versionMajor), fmt_int(versionMinor))));
+      log_param(
+          "version", fmt_list_lit(fmt_int(reply->major_version), fmt_int(reply->minor_version))));
+
+  free(reply);
+  return true;
+}
+
+/**
+ * Initialize the RandR extension.
+ * More info: https://xcb.freedesktop.org/manual/group__XCB__RandR__API.html
+ */
+static bool pal_randr_init(GapPal* pal) {
+  const xcb_query_extension_reply_t* data =
+      xcb_get_extension_data(pal->xcbConnection, &xcb_randr_id);
+
+  if (UNLIKELY(!data->present)) {
+    log_w("RandR extension not present");
+    return false;
+  }
+
+  xcb_generic_error_t*             err   = null;
+  xcb_randr_query_version_reply_t* reply = pal_xcb_call(
+      pal->xcbConnection,
+      xcb_randr_query_version,
+      &err,
+      XCB_RANDR_MAJOR_VERSION,
+      XCB_RANDR_MINOR_VERSION);
+
+  if (UNLIKELY(err)) {
+    log_w("Failed to initialize the RandR extension", log_param("error", fmt_int(err->error_code)));
+    free(reply);
+    return false;
+  }
+
+  log_i(
+      "Initialized RandR extension",
+      log_param(
+          "version", fmt_list_lit(fmt_int(reply->major_version), fmt_int(reply->minor_version))));
+
+  free(reply);
   return true;
 }
 
@@ -546,6 +583,9 @@ static void pal_init_extensions(GapPal* pal) {
     pal->extensions |= GapPalXcbExtFlags_XFixes;
   }
   pal->extensions |= GapPalXcbExtFlags_Icccm; // NOTE: No initialization is needed for ICCCM.
+  if (pal_randr_init(pal)) {
+    pal->extensions |= GapPalXcbExtFlags_Randr;
+  }
   if (pal_cursorutil_init(pal)) {
     pal->extensions |= GapPalXcbExtFlags_CursorUtil;
   }
@@ -993,8 +1033,8 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 
   const xcb_cw_t valuesMask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
   const u32      values[2]  = {
-            pal->xcbScreen->black_pixel,
-            g_xcbWindowEventMask,
+      pal->xcbScreen->black_pixel,
+      g_xcbWindowEventMask,
   };
 
   xcb_create_window(
