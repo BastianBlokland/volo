@@ -366,8 +366,9 @@ static void pal_xcb_connect(GapPal* pal) {
   // Find the screen for our connection.
   const xcb_setup_t*    setup     = xcb_get_setup(pal->xcbCon);
   xcb_screen_iterator_t screenItr = xcb_setup_roots_iterator(setup);
-  for (int i = screen; i > 0; --i, xcb_screen_next(&screenItr))
-    ;
+  if (!screenItr.data) {
+    diag_crash_msg("Xcb no screen found");
+  }
   pal->xcbScreen = screenItr.data;
 
   // Retrieve atoms to use while communicating with the x-server.
