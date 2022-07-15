@@ -663,7 +663,8 @@ static void pal_randr_query_displays(GapPal* pal) {
 }
 
 static GapVector pal_query_cursor_pos(GapPal* pal, const GapWindowId windowId) {
-  xcb_generic_error_t*       err = null;
+  GapVector                  result = gap_vector(0, 0);
+  xcb_generic_error_t*       err    = null;
   xcb_query_pointer_reply_t* reply =
       pal_xcb_call(pal->xcbCon, xcb_query_pointer, &err, (xcb_window_t)windowId);
 
@@ -672,9 +673,39 @@ static GapVector pal_query_cursor_pos(GapPal* pal, const GapWindowId windowId) {
         "Xcb failed to query the x11 cursor position",
         log_param("window-id", fmt_int(windowId)),
         log_param("error", fmt_int(err->error_code)));
-    return gap_vector(0, 0);
+    goto Return;
   }
-  return gap_vector(reply->win_x, reply->win_y);
+  result = gap_vector(reply->win_x, reply->win_y);
+
+Return:
+  free(reply);
+  return result;
+}
+
+static GapVector pal_query_window_pos(GapPal* pal, const GapWindowId windowId) {
+  GapVector                          result = gap_vector(0, 0);
+  xcb_generic_error_t*               err    = null;
+  xcb_translate_coordinates_reply_t* reply  = pal_xcb_call(
+      pal->xcbCon,
+      xcb_translate_coordinates,
+      &err,
+      (xcb_window_t)windowId,
+      pal->xcbScreen->root,
+      0,
+      0);
+
+  if (UNLIKELY(err)) {
+    log_w(
+        "Xcb failed to query the x11 window position",
+        log_param("window-id", fmt_int(windowId)),
+        log_param("error", fmt_int(err->error_code)));
+    goto Return;
+  }
+  result = gap_vector(reply->dst_x, reply->dst_y);
+
+Return:
+  free(reply);
+  return result;
 }
 
 static void
@@ -1024,9 +1055,11 @@ void gap_pal_update(GapPal* pal) {
       const GapVector newSize = gap_vector(configureMsg->width, configureMsg->height);
       pal_event_resize(pal, configureMsg->window, newSize);
 
-      const GapVector newScreenCenter =
-          gap_vector(configureMsg->x + newSize.width / 2, configureMsg->y + newSize.height / 2);
-      const GapPalDisplay* display = pal_maybe_display(pal, newScreenCenter);
+      const GapVector newPos = pal_query_window_pos(pal, configureMsg->window);
+      const GapVector newCenter =
+          gap_vector(newPos.x + newSize.width / 2, newPos.y + newSize.height / 2);
+
+      const GapPalDisplay* display = pal_maybe_display(pal, newCenter);
       if (display) {
         pal_event_dpi_changed(pal, configureMsg->window, display->dpi);
       }
