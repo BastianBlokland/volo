@@ -1,5 +1,6 @@
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_math.h"
 #include "core_time.h"
 #include "log_logger.h"
 
@@ -25,6 +26,7 @@
 
 #define pal_window_min_width 128
 #define pal_window_min_height 128
+#define pal_window_default_dpi 96.0f
 
 /**
  * Utility to make synchronous xcb calls.
@@ -51,6 +53,7 @@ typedef struct {
   GapKeySet         keysPressed, keysPressedWithRepeat, keysReleased, keysDown;
   DynString         inputText;
   String            clipCopy, clipPaste;
+  f32               dpi;
 } GapPalWindow;
 
 typedef struct {
@@ -103,6 +106,25 @@ static GapPalWindow* pal_window(GapPal* pal, const GapWindowId id) {
     diag_crash_msg("Unknown window: {}", fmt_int(id));
   }
   return window;
+}
+
+static GapPalDisplay* pal_maybe_display(GapPal* pal, const GapVector position) {
+  dynarray_for_t(&pal->displays, GapPalDisplay, display) {
+    if (position.x < display->position.x) {
+      continue;
+    }
+    if (position.y < display->position.y) {
+      continue;
+    }
+    if (position.x >= display->position.x + display->size.width) {
+      continue;
+    }
+    if (position.y >= display->position.y + display->size.height) {
+      continue;
+    }
+    return display;
+  }
+  return null;
 }
 
 static void pal_clear_volatile(GapPal* pal) {
@@ -621,7 +643,8 @@ static void pal_randr_query_displays(GapPal* pal) {
       }
       const GapVector position = gap_vector(crtc->x, crtc->y);
       const GapVector size     = gap_vector(crtc->width, crtc->height);
-      const f32       dpi      = crtc->width * 25.4f / output->mm_width;
+      const f32       dpi =
+          output->mm_width ? (crtc->width * 25.4f / output->mm_width) : pal_window_default_dpi;
 
       log_i(
           "Xcb display found",
@@ -709,6 +732,20 @@ static void pal_event_resize(GapPal* pal, const GapWindowId windowId, const GapV
       "Window resized",
       log_param("id", fmt_int(windowId)),
       log_param("size", gap_vector_fmt(newSize)));
+}
+
+static void pal_event_dpi_changed(GapPal* pal, const GapWindowId windowId, const f32 newDpi) {
+  GapPalWindow* window = pal_maybe_window(pal, windowId);
+  if (!window || math_abs(window->dpi - newDpi) < 1e-4f) {
+    return;
+  }
+  window->dpi = newDpi;
+  window->flags |= GapPalWindowFlags_DpiChanged;
+
+  log_d(
+      "Window dpi changed",
+      log_param("id", fmt_int(windowId)),
+      log_param("dpi", fmt_float(newDpi)));
 }
 
 static void pal_event_cursor(GapPal* pal, const GapWindowId windowId, const GapVector newPos) {
@@ -986,6 +1023,14 @@ void gap_pal_update(GapPal* pal) {
       const xcb_configure_notify_event_t* configureMsg = (const void*)evt;
       const GapVector newSize = gap_vector(configureMsg->width, configureMsg->height);
       pal_event_resize(pal, configureMsg->window, newSize);
+
+      const GapVector newScreenCenter =
+          gap_vector(configureMsg->x + newSize.width / 2, configureMsg->y + newSize.height / 2);
+      const GapPalDisplay* display = pal_maybe_display(pal, newScreenCenter);
+      if (display) {
+        pal_event_dpi_changed(pal, configureMsg->window, display->dpi);
+      }
+
     } break;
 
     case XCB_MOTION_NOTIFY: {
@@ -1129,6 +1174,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       .params[GapParam_WindowSize] = size,
       .flags                       = GapPalWindowFlags_Focussed | GapPalWindowFlags_FocusGained,
       .inputText                   = dynstring_create(g_alloc_heap, 64),
+      .dpi                         = pal_window_default_dpi,
   };
 
   log_i("Window created", log_param("id", fmt_int(id)), log_param("size", gap_vector_fmt(size)));
@@ -1364,6 +1410,10 @@ void gap_pal_window_clip_paste(GapPal* pal, const GapWindowId windowId) {
 
 String gap_pal_window_clip_paste_result(GapPal* pal, const GapWindowId windowId) {
   return pal_maybe_window(pal, windowId)->clipPaste;
+}
+
+f32 gap_pal_window_dpi(GapPal* pal, const GapWindowId windowId) {
+  return pal_maybe_window(pal, windowId)->dpi;
 }
 
 TimeDuration gap_pal_doubleclick_interval() {
