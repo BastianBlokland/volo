@@ -53,9 +53,16 @@ typedef struct {
   String            clipCopy, clipPaste;
 } GapPalWindow;
 
+typedef struct {
+  GapVector position;
+  GapVector size;
+  f32       dpi;
+} GapPalDisplay;
+
 struct sGapPal {
   Allocator* alloc;
-  DynArray   windows; // GapPalWindow[]
+  DynArray   windows;  // GapPalWindow[]
+  DynArray   displays; // GapPalDisplay[]
 
   xcb_connection_t* xcbCon;
   xcb_screen_t*     xcbScreen;
@@ -582,6 +589,56 @@ static void pal_init_extensions(GapPal* pal) {
   }
 }
 
+static void pal_randr_query_displays(GapPal* pal) {
+  diag_assert(pal->extensions & GapPalXcbExtFlags_Randr);
+  dynarray_clear(&pal->displays);
+
+  xcb_generic_error_t*                            err = null;
+  xcb_randr_get_screen_resources_current_reply_t* screen =
+      pal_xcb_call(pal->xcbCon, xcb_randr_get_screen_resources_current, &err, pal->xcbScreen->root);
+  if (UNLIKELY(err)) {
+    diag_crash_msg("Xcb failed to retrieve randr screen-info, err: {}", fmt_int(err->error_code));
+  }
+
+  const xcb_randr_output_t* outputs = xcb_randr_get_screen_resources_current_outputs(screen);
+  const u32 numOutputs              = xcb_randr_get_screen_resources_current_outputs_length(screen);
+  for (u32 i = 0; i < numOutputs; ++i) {
+    xcb_randr_get_output_info_reply_t* output =
+        pal_xcb_call(pal->xcbCon, xcb_randr_get_output_info, &err, outputs[i], 0);
+    if (UNLIKELY(err)) {
+      diag_crash_msg("Xcb failed to retrieve randr output-info, err: {}", fmt_int(err->error_code));
+    }
+    const String name = {
+        .ptr  = xcb_randr_get_output_info_name(output),
+        .size = xcb_randr_get_output_info_name_length(output),
+    };
+
+    if (output->crtc) {
+      xcb_randr_get_crtc_info_reply_t* crtc =
+          pal_xcb_call(pal->xcbCon, xcb_randr_get_crtc_info, &err, output->crtc, 0);
+      if (UNLIKELY(err)) {
+        diag_crash_msg("Xcb failed to retrieve randr crtc-info, err: {}", fmt_int(err->error_code));
+      }
+      const GapVector position = gap_vector(crtc->x, crtc->y);
+      const GapVector size     = gap_vector(crtc->width, crtc->height);
+      const f32       dpi      = crtc->width * 25.4f / output->mm_width;
+
+      log_i(
+          "Xcb display found",
+          log_param("name", fmt_text(name)),
+          log_param("position", gap_vector_fmt(position)),
+          log_param("size", gap_vector_fmt(size)),
+          log_param("dpi", fmt_float(dpi)));
+
+      *dynarray_push_t(&pal->displays, GapPalDisplay) =
+          (GapPalDisplay){.position = position, .size = size, .dpi = dpi};
+      free(crtc);
+    }
+    free(output);
+  }
+  free(screen);
+}
+
 static GapVector pal_query_cursor_pos(GapPal* pal, const GapWindowId windowId) {
   xcb_generic_error_t*       err = null;
   xcb_query_pointer_reply_t* reply =
@@ -831,7 +888,11 @@ static void pal_event_clip_paste_notify(GapPal* pal, const GapWindowId windowId)
 
 GapPal* gap_pal_create(Allocator* alloc) {
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
-  *pal        = (GapPal){.alloc = alloc, .windows = dynarray_create_t(alloc, GapPalWindow, 4)};
+  *pal        = (GapPal){
+      .alloc    = alloc,
+      .windows  = dynarray_create_t(alloc, GapPalWindow, 4),
+      .displays = dynarray_create_t(alloc, GapPalDisplay, 4),
+  };
 
   pal_xcb_connect(pal);
   pal_init_extensions(pal);
@@ -843,6 +904,10 @@ GapPal* gap_pal_create(Allocator* alloc) {
      * impossible to detect 'true' presses and releases. This flag disables that behaviour.
      */
     pal_xkb_enable_flag(pal, XCB_XKB_PER_CLIENT_FLAG_DETECTABLE_AUTO_REPEAT);
+  }
+
+  if (pal->extensions & GapPalXcbExtFlags_Randr) {
+    pal_randr_query_displays(pal);
   }
 
   xcb_flush(pal->xcbCon);
@@ -878,6 +943,7 @@ void gap_pal_destroy(GapPal* pal) {
   log_i("Xcb disconnected");
 
   dynarray_destroy(&pal->windows);
+  dynarray_destroy(&pal->displays);
   alloc_free_t(pal->alloc, pal);
 }
 
