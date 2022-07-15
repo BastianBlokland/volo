@@ -105,6 +105,11 @@ static void interface_panel_draw(
   ui_slider(canvas, &panelComp->newScale, .min = 0.5, .max = 2, .tooltip = g_tooltipScale);
 
   ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Dpi scaling"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, (u32*)&settings->flags, UiSettingFlags_DpiScaling);
+
+  ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Default color"));
   ui_table_next_column(canvas, &table);
   ui_select(
@@ -219,7 +224,7 @@ EcsEntityId debug_interface_panel_open(EcsWorld* world, const EcsEntityId window
       world,
       panelEntity,
       DebugInterfacePanelComp,
-      .panel  = ui_panel(ui_vector(330, 220)),
+      .panel  = ui_panel(ui_vector(330, 255)),
       .window = window);
   return panelEntity;
 }

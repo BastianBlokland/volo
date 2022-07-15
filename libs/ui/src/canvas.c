@@ -162,9 +162,10 @@ static UiPersistentElem* ui_canvas_persistent(UiCanvasComp* canvas, const UiId i
 }
 
 static f32 ui_window_scale(const GapWindowComp* window, const UiSettingsComp* settings) {
-  const f32 dpi      = gap_window_dpi(window);
-  const f32 dpiScale = math_max(dpi / ui_canvas_dpi_reference, ui_canvas_dpi_min_scale);
-  return dpiScale * (settings ? settings->scale : 1.0f);
+  const f32  dpi        = gap_window_dpi(window);
+  const bool dpiScaling = settings && (settings->flags & UiSettingFlags_DpiScaling) != 0;
+  const f32  dpiScale   = math_max(dpi / ui_canvas_dpi_reference, ui_canvas_dpi_min_scale);
+  return (dpiScaling ? dpiScale : 1.0f) * (settings ? settings->scale : 1.0f);
 }
 
 static u8 ui_canvas_output_clip_rect(void* userCtx, const UiRect rect) {
