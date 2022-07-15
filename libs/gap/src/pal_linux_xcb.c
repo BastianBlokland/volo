@@ -641,16 +641,18 @@ static void pal_randr_query_displays(GapPal* pal) {
       if (UNLIKELY(err)) {
         diag_crash_msg("Xcb failed to retrieve randr crtc-info, err: {}", fmt_int(err->error_code));
       }
-      const GapVector position = gap_vector(crtc->x, crtc->y);
-      const GapVector size     = gap_vector(crtc->width, crtc->height);
+      const GapVector position       = gap_vector(crtc->x, crtc->y);
+      const GapVector size           = gap_vector(crtc->width, crtc->height);
+      const GapVector physicalSizeMm = gap_vector(output->mm_width, output->mm_height);
       const f32       dpi =
-          output->mm_width ? (crtc->width * 25.4f / output->mm_width) : pal_window_default_dpi;
+          output->mm_width ? (crtc->width * 25.4f / physicalSizeMm.width) : pal_window_default_dpi;
 
       log_i(
           "Xcb display found",
           log_param("name", fmt_text(name)),
           log_param("position", gap_vector_fmt(position)),
           log_param("size", gap_vector_fmt(size)),
+          log_param("physical-size-mm", gap_vector_fmt(physicalSizeMm)),
           log_param("dpi", fmt_float(dpi)));
 
       *dynarray_push_t(&pal->displays, GapPalDisplay) =
