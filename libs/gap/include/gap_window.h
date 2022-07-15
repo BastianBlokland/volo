@@ -22,6 +22,7 @@ typedef enum {
   GapWindowEvents_FocusLost      = 1 << 7, // Did the window lose focus this tick.
   GapWindowEvents_Focussed       = 1 << 8, // Does the window have focus this tick.
   GapWindowEvents_ClipPaste      = 1 << 9, // Was a value pasted from the clipboard this tick.
+  GapWindowEvents_DpiChanged     = 1 << 10,
 } GapWindowEvents;
 
 /**
@@ -135,6 +136,11 @@ void gap_window_clip_copy(GapWindowComp*, String value);
  */
 void   gap_window_clip_paste(GapWindowComp*);
 String gap_window_clip_paste_result(const GapWindowComp*);
+
+/**
+ * Retrieve the window's current display density in 'Dots Per Inch'.
+ */
+f32 gap_window_dpi(const GapWindowComp*);
 
 /**
  * Retrieve the system's double click interval.

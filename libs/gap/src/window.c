@@ -35,6 +35,7 @@ ecs_comp_define(GapWindowComp) {
   DynString         inputText;
   String            clipCopy, clipPaste;
   GapCursor         cursor;
+  f32               dpi;
 };
 
 static void ecs_destruct_window_comp(void* data) {
@@ -83,7 +84,8 @@ static void window_update(
   window->events = 0;
 
   if (window->requests & GapWindowRequests_Create) {
-    window->id = gap_pal_window_create(pal, window->params[GapParam_WindowSize]);
+    window->id  = gap_pal_window_create(pal, window->params[GapParam_WindowSize]);
+    window->dpi = gap_pal_window_dpi(pal, window->id);
     if (window->flags & GapWindowFlags_DefaultTitle) {
       gap_window_title_set(window, window_default_title_scratch(window));
     }
@@ -163,6 +165,10 @@ static void window_update(
     window->events |= GapWindowEvents_KeyReleased;
   } else {
     gap_keyset_clear(&window->keysReleased);
+  }
+  if (palFlags & GapPalWindowFlags_DpiChanged) {
+    window->dpi = gap_pal_window_dpi(pal, window->id);
+    window->events |= GapWindowEvents_DpiChanged;
   }
   if (palFlags & GapPalWindowFlags_FocusGained) {
     window->events |= GapWindowEvents_FocusGained;
@@ -329,6 +335,8 @@ void gap_window_clip_copy(GapWindowComp* comp, const String value) {
 void gap_window_clip_paste(GapWindowComp* comp) { comp->requests |= GapWindowRequests_ClipPaste; }
 
 String gap_window_clip_paste_result(const GapWindowComp* comp) { return comp->clipPaste; }
+
+f32 gap_window_dpi(const GapWindowComp* comp) { return comp->dpi; }
 
 TimeDuration gap_window_doubleclick_interval(const GapWindowComp* comp) {
   (void)comp;
