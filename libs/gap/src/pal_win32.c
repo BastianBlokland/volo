@@ -737,6 +737,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   const RECT        realClientRect = pal_client_rect(id);
   const GapVector   realClientSize = gap_vector(
       realClientRect.right - realClientRect.left, realClientRect.bottom - realClientRect.top);
+  const f32 dpi = pal_query_dpi(id);
 
   *dynarray_push_t(&pal->windows, GapPalWindow) = (GapPalWindow){
       .id                          = id,
@@ -745,13 +746,14 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       .flags                       = GapPalWindowFlags_Focussed | GapPalWindowFlags_FocusGained,
       .lastWindowedPosition        = position,
       .inputText                   = dynstring_create(g_alloc_heap, 64),
-      .dpi                         = pal_query_dpi(id),
+      .dpi                         = dpi,
   };
 
   log_i(
       "Window created",
       log_param("id", fmt_int(id)),
-      log_param("size", gap_vector_fmt(realClientSize)));
+      log_param("size", gap_vector_fmt(realClientSize)),
+      log_param("dpi", fmt_float(dpi)));
 
   return id;
 }
