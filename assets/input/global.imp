@@ -254,6 +254,18 @@
           "key": "Minus"
         }
       ]
+    },
+    {
+      "name": "TimeStep",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "O"
+        }
+      ]
     }
   ]
 }

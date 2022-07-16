@@ -122,6 +122,9 @@ ecs_system_define(DebugTimeUpdateSys) {
     timeSettings->scale = math_max(0.0f, timeSettings->scale - 0.1f);
     log_i("Time scale down", log_param("scale", fmt_float(timeSettings->scale)));
   }
+  if (input_triggered_lit(input, "TimeStep")) {
+    timeSettings->flags |= SceneTimeFlags_Step;
+  }
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
