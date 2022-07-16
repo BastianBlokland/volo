@@ -54,3 +54,7 @@ ecs_module_init(scene_time_module) {
   ecs_register_system(SceneTimeUpdateSys, ecs_view_id(TimeUpdateView));
   ecs_order(SceneTimeUpdateSys, SceneOrder_TimeUpdate);
 }
+
+f32 scene_time_seconds(const SceneTimeComp* time) { return time->time / (f32)time_second; }
+
+f32 scene_delta_seconds(const SceneTimeComp* time) { return time->delta / (f32)time_second; }

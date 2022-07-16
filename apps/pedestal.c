@@ -36,96 +36,96 @@ static const f32       g_pedestalRotateSpeed = 25.0f * math_deg_to_rad;
 static const f32       g_pedestalPositionY   = 0.5f;
 static const f32       g_subjectSpacing      = 2.5f;
 static const Subject   g_subjects[]          = {
-    {
-        .graphic          = string_static("graphics/demo/vanguard.gra"),
-        .position         = {.y = 0.5f},
-        .scale            = 1.0f,
-        .collisionCapsule = {.offset = {0, 0.3f, 0}, .radius = 0.3f, .height = 1.2f},
+               {
+                   .graphic          = string_static("graphics/demo/vanguard.gra"),
+                   .position         = {.y = 0.5f},
+                   .scale            = 1.0f,
+                   .collisionCapsule = {.offset = {0, 0.3f, 0}, .radius = 0.3f, .height = 1.2f},
     },
-    {
-        .graphic          = string_static("graphics/cube.gra"),
-        .position         = {.y = 1},
-        .scale            = 1.0f,
-        .collisionCapsule = {.radius = 0.65f},
+               {
+                   .graphic          = string_static("graphics/cube.gra"),
+                   .position         = {.y = 1},
+                   .scale            = 1.0f,
+                   .collisionCapsule = {.radius = 0.65f},
     },
-    {
-        .graphic          = string_static("graphics/sphere.gra"),
-        .position         = {.y = 1},
-        .scale            = 1.0f,
-        .collisionCapsule = {.radius = 0.5f},
+               {
+                   .graphic          = string_static("graphics/sphere.gra"),
+                   .position         = {.y = 1},
+                   .scale            = 1.0f,
+                   .collisionCapsule = {.radius = 0.5f},
     },
-    {
-        .graphic  = string_static("graphics/demo/normal_tangent_mirror_test.gra"),
-        .position = {.y = 1.25f},
-        .scale    = 0.5f,
-        .collisionCapsule =
-            {.offset = {-0.6f, 0, 0}, .dir = SceneCollision_Right, .radius = 0.75f, .height = 1.2f},
+               {
+                   .graphic  = string_static("graphics/demo/normal_tangent_mirror_test.gra"),
+                   .position = {.y = 1.25f},
+                   .scale    = 0.5f,
+                   .collisionCapsule =
+                       {.offset = {-0.6f, 0, 0}, .dir = SceneCollision_Right, .radius = 0.75f, .height = 1.2f},
     },
-    {
-        .graphic          = string_static("graphics/demo/suzanne.gra"),
-        .position         = {.y = 1.25f},
-        .scale            = 0.5f,
-        .collisionCapsule = {.radius = 1},
+               {
+                   .graphic          = string_static("graphics/demo/suzanne.gra"),
+                   .position         = {.y = 1.25f},
+                   .scale            = 0.5f,
+                   .collisionCapsule = {.radius = 1},
     },
-    {
-        .graphic  = string_static("graphics/demo/rigged-simple.gra"),
-        .position = {.y = 1.0f},
-        .scale    = 0.25f,
-        .collisionCapsule =
-            {.offset = {0, 0, -6}, .dir = SceneCollision_Forward, .radius = 1, .height = 6},
+               {
+                   .graphic  = string_static("graphics/demo/rigged-simple.gra"),
+                   .position = {.y = 1.0f},
+                   .scale    = 0.25f,
+                   .collisionCapsule =
+                       {.offset = {0, 0, -6}, .dir = SceneCollision_Forward, .radius = 1, .height = 6},
     },
-    {
-        .graphic  = string_static("graphics/demo/fox.gra"),
-        .position = {.y = 0.5f},
-        .scale    = 0.015f,
-        .collisionCapsule =
-            {.offset = {0, 40, -35}, .dir = SceneCollision_Forward, .radius = 25, .height = 80},
+               {
+                   .graphic  = string_static("graphics/demo/fox.gra"),
+                   .position = {.y = 0.5f},
+                   .scale    = 0.015f,
+                   .collisionCapsule =
+                       {.offset = {0, 40, -35}, .dir = SceneCollision_Forward, .radius = 25, .height = 80},
     },
-    {
-        .graphic          = string_static("graphics/demo/terrain.gra"),
-        .position         = {.y = 0.5f},
-        .scale            = 1.5f,
-        .collisionCapsule = {.radius = 0.5f},
+               {
+                   .graphic          = string_static("graphics/demo/terrain.gra"),
+                   .position         = {.y = 0.5f},
+                   .scale            = 1.5f,
+                   .collisionCapsule = {.radius = 0.5f},
     },
-    {
-        .graphic          = string_static("graphics/demo/bunny.gra"),
-        .position         = {.y = 0.45f},
-        .scale            = 0.75f,
-        .collisionCapsule = {.offset = {-0.15f, 0.75f, 0.15f}, .radius = 0.75f},
+               {
+                   .graphic          = string_static("graphics/demo/bunny.gra"),
+                   .position         = {.y = 0.45f},
+                   .scale            = 0.75f,
+                   .collisionCapsule = {.offset = {-0.15f, 0.75f, 0.15f}, .radius = 0.75f},
     },
-    {
-        .graphic  = string_static("graphics/demo/dragon.gra"),
-        .position = {.y = 1.05f},
-        .scale    = 2.0f,
-        .collisionCapsule =
-            {.offset = {0, 0, -0.1f},
-             .dir    = SceneCollision_Forward,
-             .radius = 0.3f,
-             .height = 0.25f},
+               {
+                   .graphic  = string_static("graphics/demo/dragon.gra"),
+                   .position = {.y = 1.05f},
+                   .scale    = 2.0f,
+                   .collisionCapsule =
+                       {.offset = {0, 0, -0.1f},
+                        .dir    = SceneCollision_Forward,
+                        .radius = 0.3f,
+                        .height = 0.25f},
     },
-    {
-        .graphic          = string_static("graphics/demo/cayo.gra"),
-        .position         = {.y = 0.5f},
-        .scale            = 0.8f,
-        .collisionCapsule = {.offset = {0, 0.4f, 0}, .radius = 0.4f, .height = 1.2f},
+               {
+                   .graphic          = string_static("graphics/demo/cayo.gra"),
+                   .position         = {.y = 0.5f},
+                   .scale            = 0.8f,
+                   .collisionCapsule = {.offset = {0, 0.4f, 0}, .radius = 0.4f, .height = 1.2f},
     },
-    {
-        .graphic          = string_static("graphics/demo/corset.gra"),
-        .position         = {.y = 0.5f},
-        .scale            = 30.0f,
-        .collisionCapsule = {.offset = {0, 0.01f, 0.003f}, .radius = 0.012f, .height = 0.04f},
+               {
+                   .graphic          = string_static("graphics/demo/corset.gra"),
+                   .position         = {.y = 0.5f},
+                   .scale            = 30.0f,
+                   .collisionCapsule = {.offset = {0, 0.01f, 0.003f}, .radius = 0.012f, .height = 0.04f},
     },
-    {
-        .graphic          = string_static("graphics/demo/boombox.gra"),
-        .position         = {.y = 0.95f},
-        .scale            = 50.0f,
-        .collisionCapsule = {.radius = 0.01f},
+               {
+                   .graphic          = string_static("graphics/demo/boombox.gra"),
+                   .position         = {.y = 0.95f},
+                   .scale            = 50.0f,
+                   .collisionCapsule = {.radius = 0.01f},
     },
-    {
-        .graphic          = string_static("graphics/demo/head.gra"),
-        .position         = {.y = 1.3f},
-        .scale            = 3.0f,
-        .collisionCapsule = {.offset = {0, -0.1f, -0.1f}, .radius = 0.2f, .height = 0.1f},
+               {
+                   .graphic          = string_static("graphics/demo/head.gra"),
+                   .position         = {.y = 1.3f},
+                   .scale            = 3.0f,
+                   .collisionCapsule = {.offset = {0, -0.1f, -0.1f}, .radius = 0.2f, .height = 0.1f},
     },
 };
 
@@ -287,8 +287,7 @@ ecs_system_define(AppSetRotationSys) {
   if (!globalItr) {
     return;
   }
-  const SceneTimeComp* time        = ecs_view_read_t(globalItr, SceneTimeComp);
-  const f32            timeSeconds = time->time / (f32)time_second;
+  const f32 timeSeconds = scene_time_seconds(ecs_view_read_t(globalItr, SceneTimeComp));
 
   const GeoQuat newRot     = geo_quat_angle_axis(geo_up, timeSeconds * g_pedestalRotateSpeed);
   EcsView*      objectView = ecs_world_view_t(world, ObjectView);

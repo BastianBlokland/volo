@@ -9,3 +9,6 @@ ecs_comp_extern_public(SceneTimeComp) {
 };
 
 ecs_comp_extern_public(SceneTimeSettingsComp) { f32 scale; };
+
+f32 scene_time_seconds(const SceneTimeComp*);
+f32 scene_delta_seconds(const SceneTimeComp*);

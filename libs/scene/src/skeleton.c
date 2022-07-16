@@ -423,8 +423,7 @@ ecs_system_define(SceneSkeletonUpdateSys) {
   if (!globalItr) {
     return;
   }
-  const SceneTimeComp* time         = ecs_view_read_t(globalItr, SceneTimeComp);
-  const f32            deltaSeconds = time->delta / (f32)time_second;
+  const f32 deltaSeconds = scene_delta_seconds(ecs_view_read_t(globalItr, SceneTimeComp));
 
   EcsView*     updateView = ecs_world_view_t(world, UpdateView);
   EcsIterator* templItr   = ecs_view_itr(ecs_world_view_t(world, SkeletonTemplView));
