@@ -21,3 +21,5 @@ ecs_comp_extern_public(SceneTimeSettingsComp) {
 
 f32 scene_time_seconds(const SceneTimeComp*);
 f32 scene_delta_seconds(const SceneTimeComp*);
+f32 scene_real_time_seconds(const SceneTimeComp*);
+f32 scene_real_delta_seconds(const SceneTimeComp*);
