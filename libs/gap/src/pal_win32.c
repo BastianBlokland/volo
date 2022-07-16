@@ -10,6 +10,7 @@
 
 #include "pal_internal.h"
 
+#include <shellscalingapi.h>
 #include <windows.h>
 
 #define pal_window_min_width 128
@@ -84,9 +85,8 @@ static GapPalWindow* pal_window(GapPal* pal, const GapWindowId id) {
 static void pal_dpi_init() {
   static bool g_initialized;
   if (!g_initialized) {
-    // Mark the process as dpi-aware to avoid Win32 scaling the window output.
-    // TODO: Provide an api to query a window's dpi to be able to control ui scaling.
-    if (!SetProcessDPIAware()) {
+    // Mark the process as per-window dpi-aware.
+    if (SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE) != S_OK) {
       diag_crash_msg("Failed to set win32 dpi awareness");
     }
     g_initialized = true;
