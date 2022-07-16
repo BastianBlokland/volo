@@ -10,6 +10,7 @@
 #include "scene_collision.h"
 #include "scene_name.h"
 #include "scene_renderable.h"
+#include "scene_selection.h"
 #include "scene_transform.h"
 #include "ui.h"
 
@@ -31,7 +32,9 @@ ecs_comp_define(DebugInspectorSettingsComp) { DebugInspectorFlags flags; };
 
 ecs_comp_define(DebugInspectorPanelComp) { UiPanel panel; };
 
-ecs_view_define(SettingsUpdateView) { ecs_access_write(DebugInspectorSettingsComp); }
+ecs_view_define(SettingsWriteView) { ecs_access_write(DebugInspectorSettingsComp); }
+
+ecs_view_define(GlobalUpdateView) { ecs_access_read(SceneSelectionComp); }
 
 ecs_view_define(GlobalDrawView) {
   ecs_access_read(DebugInspectorSettingsComp);
@@ -44,7 +47,7 @@ ecs_view_define(PanelUpdateView) {
   ecs_access_write(UiCanvasComp);
 }
 
-ecs_view_define(ObjectView) {
+ecs_view_define(SubjectView) {
   ecs_access_read(SceneRenderableComp);
   ecs_access_read(SceneTransformComp);
   ecs_access_maybe_read(SceneNameComp);
@@ -75,6 +78,31 @@ static bool inspector_panel_section(UiCanvasComp* canvas, const String label) {
   }
   ui_layout_pop(canvas);
   return open;
+}
+
+static void inspector_panel_info(UiCanvasComp* canvas, UiTable* table, EcsIterator* subjectItr) {
+  ui_label(canvas, string_lit("Entity"));
+  ui_table_next_column(canvas, table);
+  if (subjectItr) {
+    const EcsEntityId entity = ecs_view_entity(subjectItr);
+    ui_canvas_draw_text(
+        canvas,
+        fmt_write_scratch("{}", fmt_int(entity, .base = 16)),
+        16,
+        UiAlign_MiddleLeft,
+        UiFlags_None);
+  }
+
+  ui_table_next_row(canvas, table);
+  ui_label(canvas, string_lit("Name"));
+  ui_table_next_column(canvas, table);
+  if (subjectItr) {
+    const SceneNameComp* nameComp = ecs_view_read_t(subjectItr, SceneNameComp);
+    if (nameComp) {
+      const String name = stringtable_lookup(g_stringtable, nameComp->name);
+      ui_canvas_draw_text(canvas, name, 16, UiAlign_MiddleLeft, UiFlags_None);
+    }
+  }
 }
 
 static void inspector_panel_settings(
@@ -114,13 +142,17 @@ static void inspector_panel_settings(
 static void inspector_panel_draw(
     UiCanvasComp*               canvas,
     DebugInspectorPanelComp*    panelComp,
-    DebugInspectorSettingsComp* settings) {
+    DebugInspectorSettingsComp* settings,
+    EcsIterator*                subjectItr) {
   const String title = fmt_write_scratch("{} Inspector Panel", fmt_ui_shape(ViewInAr));
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
 
   UiTable table = ui_table();
   ui_table_add_column(&table, UiTableColumn_Fixed, 175);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
+
+  ui_table_next_row(canvas, &table);
+  inspector_panel_info(canvas, &table, subjectItr);
 
   ui_table_next_row(canvas, &table);
   if (inspector_panel_section(canvas, string_lit("Settings"))) {
@@ -130,12 +162,24 @@ static void inspector_panel_draw(
   ui_panel_end(canvas, &panelComp->panel);
 }
 
+static DebugInspectorSettingsComp* inspector_settings_get_or_create(EcsWorld* world) {
+  EcsView*     view = ecs_world_view_t(world, SettingsWriteView);
+  EcsIterator* itr  = ecs_view_maybe_at(view, ecs_world_global(world));
+  return itr ? ecs_view_write_t(itr, DebugInspectorSettingsComp)
+             : ecs_world_add_t(world, ecs_world_global(world), DebugInspectorSettingsComp);
+}
+
 ecs_system_define(DebugInspectorUpdatePanelSys) {
-  EcsView*     settingsView = ecs_world_view_t(world, SettingsUpdateView);
-  EcsIterator* settingsItr  = ecs_view_maybe_at(settingsView, ecs_world_global(world));
-  DebugInspectorSettingsComp* settings =
-      settingsItr ? ecs_view_write_t(settingsItr, DebugInspectorSettingsComp)
-                  : ecs_world_add_t(world, ecs_world_global(world), DebugInspectorSettingsComp);
+  EcsView*     globalView = ecs_world_view_t(world, GlobalUpdateView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return;
+  }
+  const SceneSelectionComp*   selection = ecs_view_read_t(globalItr, SceneSelectionComp);
+  DebugInspectorSettingsComp* settings  = inspector_settings_get_or_create(world);
+
+  EcsView*     subjectView = ecs_world_view_t(world, SubjectView);
+  EcsIterator* subjectItr  = ecs_view_maybe_at(subjectView, scene_selected(selection));
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
@@ -144,7 +188,7 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
     UiCanvasComp*            canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
-    inspector_panel_draw(canvas, panelComp, settings);
+    inspector_panel_draw(canvas, panelComp, settings, subjectItr);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, entity);
@@ -217,7 +261,7 @@ ecs_system_define(DebugInspectorDrawSys) {
   DebugShapeComp* shape = ecs_view_write_t(globalItr, DebugShapeComp);
   DebugTextComp*  text  = ecs_view_write_t(globalItr, DebugTextComp);
 
-  for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ObjectView)); ecs_view_walk(itr);) {
+  for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, SubjectView)); ecs_view_walk(itr);) {
     const SceneTransformComp* transformComp = ecs_view_read_t(itr, SceneTransformComp);
     const SceneNameComp*      nameComp      = ecs_view_read_t(itr, SceneNameComp);
     const SceneBoundsComp*    boundsComp    = ecs_view_read_t(itr, SceneBoundsComp);
@@ -254,15 +298,20 @@ ecs_module_init(debug_inspector_module) {
   ecs_register_comp(DebugInspectorSettingsComp);
   ecs_register_comp(DebugInspectorPanelComp);
 
-  ecs_register_view(SettingsUpdateView);
+  ecs_register_view(SettingsWriteView);
+  ecs_register_view(GlobalUpdateView);
   ecs_register_view(GlobalDrawView);
   ecs_register_view(PanelUpdateView);
-  ecs_register_view(ObjectView);
+  ecs_register_view(SubjectView);
 
   ecs_register_system(
-      DebugInspectorUpdatePanelSys, ecs_view_id(SettingsUpdateView), ecs_view_id(PanelUpdateView));
+      DebugInspectorUpdatePanelSys,
+      ecs_view_id(GlobalUpdateView),
+      ecs_view_id(SettingsWriteView),
+      ecs_view_id(PanelUpdateView),
+      ecs_view_id(SubjectView));
 
-  ecs_register_system(DebugInspectorDrawSys, ecs_view_id(GlobalDrawView), ecs_view_id(ObjectView));
+  ecs_register_system(DebugInspectorDrawSys, ecs_view_id(GlobalDrawView), ecs_view_id(SubjectView));
 
   ecs_order(DebugInspectorDrawSys, DebugOrder_InspectorDebugDraw);
 }
