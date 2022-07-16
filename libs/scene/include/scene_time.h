@@ -11,6 +11,7 @@ ecs_comp_extern_public(SceneTimeComp) {
 typedef enum {
   SceneTimeFlags_None   = 0,
   SceneTimeFlags_Paused = 1 << 0,
+  SceneTimeFlags_Step   = 1 << 1, // Run a single tick with a fixed delta of 16.6 ms.
 } SceneTimeFlags;
 
 ecs_comp_extern_public(SceneTimeSettingsComp) {

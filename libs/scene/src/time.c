@@ -11,7 +11,7 @@ ecs_comp_define(SceneTimePrivateComp) { TimeSteady lastTime; };
 
 ecs_view_define(TimeUpdateView) {
   ecs_access_write(SceneTimeComp);
-  ecs_access_read(SceneTimeSettingsComp);
+  ecs_access_write(SceneTimeSettingsComp);
   ecs_access_write(SceneTimePrivateComp);
 }
 
@@ -29,24 +29,30 @@ ecs_system_define(SceneTimeUpdateSys) {
     scene_time_create(world);
     return;
   }
-  SceneTimeComp*               time         = ecs_view_write_t(globalItr, SceneTimeComp);
-  const SceneTimeSettingsComp* timeSettings = ecs_view_read_t(globalItr, SceneTimeSettingsComp);
-  SceneTimePrivateComp*        timePrivate  = ecs_view_write_t(globalItr, SceneTimePrivateComp);
+  SceneTimeComp*         time         = ecs_view_write_t(globalItr, SceneTimeComp);
+  SceneTimeSettingsComp* timeSettings = ecs_view_write_t(globalItr, SceneTimeSettingsComp);
+  SceneTimePrivateComp*  timePrivate  = ecs_view_write_t(globalItr, SceneTimePrivateComp);
 
-  const bool isPaused       = (timeSettings->flags & SceneTimeFlags_Paused) != 0;
-  const f32  effectiveScale = isPaused ? 0.0f : timeSettings->scale;
+  diag_assert_msg(timeSettings->scale >= 0.0f, "Time cannot flow backwards");
 
-  diag_assert_msg(effectiveScale >= 0.0f, "Time cannot flow backwards");
+  const TimeSteady   newSteadyTime = time_steady_clock();
+  const TimeDuration realDelta     = time_steady_duration(timePrivate->lastTime, newSteadyTime);
 
-  const TimeSteady   newSteadyTime   = time_steady_clock();
-  const TimeDuration deltaTime       = time_steady_duration(timePrivate->lastTime, newSteadyTime);
-  const TimeDuration deltaTimeScaled = (TimeDuration)(deltaTime * effectiveScale);
+  TimeDuration delta;
+  if (timeSettings->flags & SceneTimeFlags_Step) {
+    delta = (TimeDuration)(time_second / 60.0f * timeSettings->scale);
+    timeSettings->flags &= ~SceneTimeFlags_Step;
+  } else {
+    const bool isPaused       = (timeSettings->flags & SceneTimeFlags_Paused) != 0;
+    const f32  effectiveScale = isPaused ? 0.0f : timeSettings->scale;
+    delta                     = (TimeDuration)(realDelta * effectiveScale);
+  }
 
   ++time->ticks;
-  time->time += deltaTimeScaled;
-  time->realTime += deltaTime;
-  time->delta           = deltaTimeScaled;
-  time->realDelta       = deltaTime;
+  time->time += delta;
+  time->realTime += realDelta;
+  time->delta           = delta;
+  time->realDelta       = realDelta;
   timePrivate->lastTime = newSteadyTime;
 }
 
