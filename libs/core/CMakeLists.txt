@@ -61,7 +61,7 @@ if(${VOLO_PLATFORM} STREQUAL "linux")
   target_link_libraries(lib_core PRIVATE m)
 elseif(${VOLO_PLATFORM} STREQUAL "win32")
   # Link against 'winmm.lib' (Windows Multimedia API) for controlling the scheduling interval.
-  target_link_libraries(lib_core winmm.lib)
+  target_link_libraries(lib_core PRIVATE winmm.lib)
 endif()
 
 add_executable(lib_core_test
