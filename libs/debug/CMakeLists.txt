@@ -10,10 +10,10 @@ add_library(lib_debug STATIC
   src/camera.c
   src/ecs.c
   src/grid.c
+  src/inspector.c
   src/interface.c
   src/log_viewer.c
   src/menu.c
-  src/physics.c
   src/register.c
   src/rend.c
   src/shape.c
