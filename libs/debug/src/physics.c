@@ -55,7 +55,7 @@ ecs_view_define(ObjectView) {
 
 static void physics_panel_draw(
     UiCanvasComp* canvas, DebugPhysicsPanelComp* panelComp, DebugPhysicsSettingsComp* settings) {
-  const String title = fmt_write_scratch("{} Physics Debug", fmt_ui_shape(ViewInAr));
+  const String title = fmt_write_scratch("{} Physics Panel", fmt_ui_shape(ViewInAr));
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
 
   UiTable table = ui_table();

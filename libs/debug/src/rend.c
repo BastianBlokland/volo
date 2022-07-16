@@ -586,7 +586,7 @@ static void rend_panel_draw(
     RendSettingsComp*       settings,
     RendGlobalSettingsComp* globalSettings) {
 
-  const String title = fmt_write_scratch("{} Renderer Settings", fmt_ui_shape(Brush));
+  const String title = fmt_write_scratch("{} Renderer Panel", fmt_ui_shape(Brush));
   ui_panel_begin(
       canvas,
       &panelComp->panel,

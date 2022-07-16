@@ -90,7 +90,7 @@ static EcsEntityId debug_ftx_draw_create(
 static void interface_panel_draw(
     UiCanvasComp* canvas, DebugInterfacePanelComp* panelComp, UiSettingsComp* settings) {
 
-  const String title = fmt_write_scratch("{} Interface Settings", fmt_ui_shape(FormatShapes));
+  const String title = fmt_write_scratch("{} Interface Panel", fmt_ui_shape(FormatShapes));
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
 
   UiTable table = ui_table();

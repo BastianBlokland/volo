@@ -120,7 +120,7 @@ ecs_system_define(DebugGridDrawSys) {
 
 static void
 grid_panel_draw(UiCanvasComp* canvas, DebugGridPanelComp* panelComp, DebugGridComp* grid) {
-  const String title = fmt_write_scratch("{} Grid Settings", fmt_ui_shape(Grid4x4));
+  const String title = fmt_write_scratch("{} Grid Panel", fmt_ui_shape(Grid4x4));
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
 
   UiTable table = ui_table();
