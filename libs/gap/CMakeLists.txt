@@ -22,6 +22,7 @@ target_link_libraries(lib_gap PUBLIC lib_ecs)
 # apt install libxcb1-dev libxcb-xkb-dev libxkbcommon-dev libxkbcommon-x11-dev libxcb-xfixes0-dev libxcb-icccm4-dev libxcb-randr0-dev libxcb-cursor-dev
 #
 if(${VOLO_PLATFORM} STREQUAL "linux")
+
   message(STATUS "> Configuring xcb (with xkb, xkbcommon, xkbcommon-x11, xfixes, icccm, randr and cursor-util extensions) package")
   find_package(xcb REQUIRED)
   find_package(xcb-cursor REQUIRED)
@@ -39,7 +40,13 @@ if(${VOLO_PLATFORM} STREQUAL "linux")
   target_link_libraries(lib_gap PRIVATE xcb)
   target_link_libraries(lib_gap PRIVATE xkbcommon-x11)
   target_link_libraries(lib_gap PRIVATE xkbcommon)
+
 elseif(${VOLO_PLATFORM} STREQUAL "win32")
+
   # Link against 'shcore.lib' for dpi awareness apis.
-  target_link_libraries(lib_gap PRIVATE shcore.lib)
+  # NOTE: Exclude the gcc compiler because 'shcore.lib' is not available under MinGW at the moment.
+  if(NOT ${VOLO_COMPILER} STREQUAL "gcc")
+    target_link_libraries(lib_gap PRIVATE shcore.lib)
+  endif()
+
 endif()

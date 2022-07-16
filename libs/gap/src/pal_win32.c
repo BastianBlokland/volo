@@ -10,8 +10,12 @@
 
 #include "pal_internal.h"
 
-#include <shellscalingapi.h>
 #include <windows.h>
+
+#if !defined(__MINGW32__)
+#include <shellscalingapi.h>
+#define VOLO_WIN32_SHELL_SCALING_API
+#endif
 
 #define pal_window_min_width 128
 #define pal_window_min_height 128
@@ -88,9 +92,15 @@ static void pal_dpi_init() {
   static bool g_initialized;
   if (!g_initialized) {
     // Mark the process as per-window dpi-aware.
+#if defined(VOLO_WIN32_SHELL_SCALING_API)
     if (SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE) != S_OK) {
       diag_crash_msg("Failed to set win32 dpi awareness");
     }
+#else
+    if (!SetProcessDPIAware()) {
+      diag_crash_msg("Failed to set win32 dpi awareness");
+    }
+#endif
     g_initialized = true;
   }
 }
@@ -163,6 +173,7 @@ static GapVector pal_query_cursor_pos(const GapWindowId windowId) {
 }
 
 static u16 pal_query_dpi(const GapWindowId windowId) {
+#if defined(VOLO_WIN32_SHELL_SCALING_API)
   HMONITOR monitor = MonitorFromWindow((HWND)windowId, MONITOR_DEFAULTTONEAREST);
   if (UNLIKELY(!monitor)) {
     return pal_window_default_dpi;
@@ -172,6 +183,10 @@ static u16 pal_query_dpi(const GapWindowId windowId) {
     pal_crash_with_win32_err(string_lit("GetDpiForMonitor"));
   }
   return (u16)dpiX;
+#else
+  (void)windowId;
+  return pal_window_default_dpi;
+#endif
 }
 
 static GapKey pal_win32_translate_key(const u8 scanCode) {
@@ -624,10 +639,10 @@ GapPal* gap_pal_create(Allocator* alloc) {
 
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){
-             .alloc          = alloc,
-             .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
-             .moduleInstance = instance,
-             .owningThreadId = g_thread_tid,
+      .alloc          = alloc,
+      .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
+      .moduleInstance = instance,
+      .owningThreadId = g_thread_tid,
   };
   pal_cursors_init(pal);
 
