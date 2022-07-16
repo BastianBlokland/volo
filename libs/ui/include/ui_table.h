@@ -41,8 +41,8 @@ typedef struct {
   ((UiTable){                                                                                      \
       .parent    = UiBase_Container,                                                               \
       .align     = UiAlign_TopLeft,                                                                \
-      .rowHeight = 25,                                                                             \
-      .spacing   = ui_vector(10, 10),                                                              \
+      .rowHeight = 22,                                                                             \
+      .spacing   = ui_vector(8, 8),                                                                \
       .column    = sentinel_u32,                                                                   \
       .row       = sentinel_u32,                                                                   \
       __VA_ARGS__})
