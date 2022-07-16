@@ -181,6 +181,9 @@ static void stats_draw_graph(
     ui_layout_pop(canvas);
     t += frac;
   }
+
+  ui_canvas_id_block_next(canvas); // Component for the potentially fluctuating amount of sections.
+
   if (!string_is_empty(tooltip)) {
     const UiId id = ui_canvas_id_peek(canvas);
     ui_canvas_draw_glyph(canvas, UiShape_Empty, 0, UiFlags_Interactable); // Invisible rect.
