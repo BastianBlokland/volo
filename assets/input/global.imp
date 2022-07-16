@@ -218,6 +218,18 @@
           "key": "Tab"
         }
       ]
+    },
+    {
+      "name": "TimePauseToggle",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "P"
+        }
+      ]
     }
   ]
 }

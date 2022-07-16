@@ -1,5 +1,6 @@
 #include "ecs_world.h"
 #include "gap_window.h"
+#include "input_manager.h"
 #include "scene_time.h"
 #include "ui.h"
 
@@ -8,6 +9,7 @@ ecs_comp_define(DebugTimePanelComp) { UiPanel panel; };
 ecs_view_define(GlobalView) {
   ecs_access_read(SceneTimeComp);
   ecs_access_write(SceneTimeSettingsComp);
+  ecs_access_read(InputManagerComp);
 }
 
 ecs_view_define(PanelUpdateView) {
@@ -86,14 +88,19 @@ static void time_panel_draw(
   ui_panel_end(canvas, &panelComp->panel);
 }
 
-ecs_system_define(DebugTimeUpdatePanelSys) {
+ecs_system_define(DebugTimeUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
   }
-  const SceneTimeComp*   time         = ecs_view_read_t(globalItr, SceneTimeComp);
-  SceneTimeSettingsComp* timeSettings = ecs_view_write_t(globalItr, SceneTimeSettingsComp);
+  const InputManagerComp* input        = ecs_view_read_t(globalItr, InputManagerComp);
+  const SceneTimeComp*    time         = ecs_view_read_t(globalItr, SceneTimeComp);
+  SceneTimeSettingsComp*  timeSettings = ecs_view_write_t(globalItr, SceneTimeSettingsComp);
+
+  if (input_triggered_lit(input, "TimePauseToggle")) {
+    timeSettings->flags ^= SceneTimeFlags_Paused;
+  }
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
@@ -118,8 +125,7 @@ ecs_module_init(debug_time_module) {
   ecs_register_view(GlobalView);
   ecs_register_view(PanelUpdateView);
 
-  ecs_register_system(
-      DebugTimeUpdatePanelSys, ecs_view_id(PanelUpdateView), ecs_view_id(GlobalView));
+  ecs_register_system(DebugTimeUpdateSys, ecs_view_id(PanelUpdateView), ecs_view_id(GlobalView));
 }
 
 EcsEntityId debug_time_panel_open(EcsWorld* world, const EcsEntityId window) {
