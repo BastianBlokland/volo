@@ -336,7 +336,7 @@ static int app_run(const String assetPath) {
   debug_menu_create(world, window);
 
   ecs_world_add_t(
-      world, ecs_world_global(world), AppComp, .flags = AppFlags_Init, .subjectCount = 0);
+      world, ecs_world_global(world), AppComp, .flags = AppFlags_Init, .subjectCount = 1);
 
   do {
     ecs_run_sync(runner);
