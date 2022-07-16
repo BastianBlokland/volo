@@ -11,6 +11,7 @@
   X(0xE338, VideogameAsset)                                                                        \
   X(0xE3AE, Brush)                                                                                 \
   X(0xE412, PhotoCamera)                                                                           \
+  X(0xE425, Timer)                                                                                 \
   X(0xE4FC, QueryStats)                                                                            \
   X(0xE53B, Layers)                                                                                \
   X(0xE53C, LayersClear)                                                                           \
