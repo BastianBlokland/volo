@@ -1,3 +1,4 @@
+#include "core_diag.h"
 #include "core_time.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
@@ -31,6 +32,8 @@ ecs_system_define(SceneTimeUpdateSys) {
   SceneTimeComp*               time         = ecs_view_write_t(globalItr, SceneTimeComp);
   const SceneTimeSettingsComp* timeSettings = ecs_view_read_t(globalItr, SceneTimeSettingsComp);
   SceneTimePrivateComp*        timePrivate  = ecs_view_write_t(globalItr, SceneTimePrivateComp);
+
+  diag_assert_msg(timeSettings->scale >= 0.0f, "Time cannot flow backwards");
 
   const TimeSteady   newSteadyTime   = time_steady_clock();
   const TimeDuration deltaTime       = time_steady_duration(timePrivate->lastTime, newSteadyTime);
