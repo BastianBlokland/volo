@@ -26,7 +26,7 @@
 
 #define pal_window_min_width 128
 #define pal_window_min_height 128
-#define pal_window_default_dpi 96.0f
+#define pal_window_default_dpi 96
 
 /**
  * Utility to make synchronous xcb calls.
@@ -53,13 +53,13 @@ typedef struct {
   GapKeySet         keysPressed, keysPressedWithRepeat, keysReleased, keysDown;
   DynString         inputText;
   String            clipCopy, clipPaste;
-  f32               dpi;
+  u16               dpi;
 } GapPalWindow;
 
 typedef struct {
   GapVector position;
   GapVector size;
-  f32       dpi;
+  u16       dpi;
 } GapPalDisplay;
 
 struct sGapPal {
@@ -644,8 +644,9 @@ static void pal_randr_query_displays(GapPal* pal) {
       const GapVector position       = gap_vector(crtc->x, crtc->y);
       const GapVector size           = gap_vector(crtc->width, crtc->height);
       const GapVector physicalSizeMm = gap_vector(output->mm_width, output->mm_height);
-      const f32       dpi =
-          output->mm_width ? (crtc->width * 25.4f / physicalSizeMm.width) : pal_window_default_dpi;
+      const u16       dpi            = output->mm_width
+                                           ? (u16)math_round_f32(crtc->width * 25.4f / physicalSizeMm.width)
+                                           : pal_window_default_dpi;
 
       log_i(
           "Xcb display found",
@@ -653,7 +654,7 @@ static void pal_randr_query_displays(GapPal* pal) {
           log_param("position", gap_vector_fmt(position)),
           log_param("size", gap_vector_fmt(size)),
           log_param("physical-size-mm", gap_vector_fmt(physicalSizeMm)),
-          log_param("dpi", fmt_float(dpi)));
+          log_param("dpi", fmt_int(dpi)));
 
       *dynarray_push_t(&pal->displays, GapPalDisplay) =
           (GapPalDisplay){.position = position, .size = size, .dpi = dpi};
@@ -767,18 +768,16 @@ static void pal_event_resize(GapPal* pal, const GapWindowId windowId, const GapV
       log_param("size", gap_vector_fmt(newSize)));
 }
 
-static void pal_event_dpi_changed(GapPal* pal, const GapWindowId windowId, const f32 newDpi) {
+static void pal_event_dpi_changed(GapPal* pal, const GapWindowId windowId, const u16 newDpi) {
   GapPalWindow* window = pal_maybe_window(pal, windowId);
-  if (!window || math_abs(window->dpi - newDpi) < 1e-4f) {
+  if (!window || window->dpi == newDpi) {
     return;
   }
   window->dpi = newDpi;
   window->flags |= GapPalWindowFlags_DpiChanged;
 
   log_d(
-      "Window dpi changed",
-      log_param("id", fmt_int(windowId)),
-      log_param("dpi", fmt_float(newDpi)));
+      "Window dpi changed", log_param("id", fmt_int(windowId)), log_param("dpi", fmt_int(newDpi)));
 }
 
 static void pal_event_cursor(GapPal* pal, const GapWindowId windowId, const GapVector newPos) {
@@ -959,9 +958,9 @@ static void pal_event_clip_paste_notify(GapPal* pal, const GapWindowId windowId)
 GapPal* gap_pal_create(Allocator* alloc) {
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){
-      .alloc    = alloc,
-      .windows  = dynarray_create_t(alloc, GapPalWindow, 4),
-      .displays = dynarray_create_t(alloc, GapPalDisplay, 4),
+             .alloc    = alloc,
+             .windows  = dynarray_create_t(alloc, GapPalWindow, 4),
+             .displays = dynarray_create_t(alloc, GapPalDisplay, 4),
   };
 
   pal_xcb_connect(pal);
@@ -1170,8 +1169,8 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 
   const xcb_cw_t valuesMask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
   const u32      values[2]  = {
-      pal->xcbScreen->black_pixel,
-      g_xcbWindowEventMask,
+            pal->xcbScreen->black_pixel,
+            g_xcbWindowEventMask,
   };
 
   xcb_create_window(
@@ -1447,7 +1446,7 @@ String gap_pal_window_clip_paste_result(GapPal* pal, const GapWindowId windowId)
   return pal_maybe_window(pal, windowId)->clipPaste;
 }
 
-f32 gap_pal_window_dpi(GapPal* pal, const GapWindowId windowId) {
+u16 gap_pal_window_dpi(GapPal* pal, const GapWindowId windowId) {
   return pal_maybe_window(pal, windowId)->dpi;
 }
 

@@ -56,7 +56,7 @@ void              gap_pal_window_cursor_pos_set(GapPal*, GapWindowId, GapVector 
 void              gap_pal_window_clip_copy(GapPal*, GapWindowId, String value);
 void              gap_pal_window_clip_paste(GapPal*, GapWindowId);
 String            gap_pal_window_clip_paste_result(GapPal*, GapWindowId);
-f32               gap_pal_window_dpi(GapPal*, GapWindowId);
+u16               gap_pal_window_dpi(GapPal*, GapWindowId);
 
 TimeDuration gap_pal_doubleclick_interval();
 

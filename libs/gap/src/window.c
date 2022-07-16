@@ -35,7 +35,7 @@ ecs_comp_define(GapWindowComp) {
   DynString         inputText;
   String            clipCopy, clipPaste;
   GapCursor         cursor;
-  f32               dpi;
+  u16               dpi;
 };
 
 static void ecs_destruct_window_comp(void* data) {
@@ -336,7 +336,7 @@ void gap_window_clip_paste(GapWindowComp* comp) { comp->requests |= GapWindowReq
 
 String gap_window_clip_paste_result(const GapWindowComp* comp) { return comp->clipPaste; }
 
-f32 gap_window_dpi(const GapWindowComp* comp) { return comp->dpi; }
+u16 gap_window_dpi(const GapWindowComp* comp) { return comp->dpi; }
 
 TimeDuration gap_window_doubleclick_interval(const GapWindowComp* comp) {
   (void)comp;

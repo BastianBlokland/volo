@@ -25,7 +25,7 @@
 /**
  * Scaling is applied to match the dpi of a 27 inch 4k monitor.
  */
-#define ui_canvas_dpi_reference 163.3768768f
+#define ui_canvas_dpi_reference 163
 #define ui_canvas_dpi_min_scale 0.75f
 
 typedef UiCanvasComp*       UiCanvasPtr;
@@ -162,9 +162,9 @@ static UiPersistentElem* ui_canvas_persistent(UiCanvasComp* canvas, const UiId i
 }
 
 static f32 ui_window_scale(const GapWindowComp* window, const UiSettingsComp* settings) {
-  const f32  dpi        = gap_window_dpi(window);
+  const u16  dpi        = gap_window_dpi(window);
   const bool dpiScaling = settings && (settings->flags & UiSettingFlags_DpiScaling) != 0;
-  const f32  dpiScale   = math_max(dpi / ui_canvas_dpi_reference, ui_canvas_dpi_min_scale);
+  const f32  dpiScale   = math_max(dpi / (f32)ui_canvas_dpi_reference, ui_canvas_dpi_min_scale);
   return (dpiScaling ? dpiScale : 1.0f) * (settings ? settings->scale : 1.0f);
 }
 

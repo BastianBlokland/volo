@@ -15,7 +15,7 @@
 
 #define pal_window_min_width 128
 #define pal_window_min_height 128
-#define pal_window_default_dpi 96.0f
+#define pal_window_default_dpi 96
 
 ASSERT(sizeof(GapWindowId) >= sizeof(HWND), "GapWindowId should be able to represent a Win32 HWND")
 
@@ -33,7 +33,7 @@ typedef struct {
   DynString         inputText;
   String            clipPaste;
   GapCursor         cursor;
-  f32               dpi;
+  u16               dpi;
 } GapPalWindow;
 
 typedef enum {
@@ -162,7 +162,7 @@ static GapVector pal_query_cursor_pos(const GapWindowId windowId) {
   return gap_vector((i32)point.x, (i32)point.y);
 }
 
-static f32 pal_query_dpi(const GapWindowId windowId) {
+static u16 pal_query_dpi(const GapWindowId windowId) {
   HMONITOR monitor = MonitorFromWindow((HWND)windowId, MONITOR_DEFAULTTONEAREST);
   if (UNLIKELY(!monitor)) {
     return pal_window_default_dpi;
@@ -171,7 +171,7 @@ static f32 pal_query_dpi(const GapWindowId windowId) {
   if (UNLIKELY(GetDpiForMonitor(monitor, MDT_RAW_DPI, &dpiX, &dpiY) != S_OK)) {
     pal_crash_with_win32_err(string_lit("GetDpiForMonitor"));
   }
-  return dpiX;
+  return (u16)dpiX;
 }
 
 static GapKey pal_win32_translate_key(const u8 scanCode) {
@@ -376,8 +376,8 @@ static void pal_event_resize(GapPalWindow* window, const GapVector newSize) {
   }
 }
 
-static void pal_event_dpi_changed(GapPalWindow* window, const f32 newDpi) {
-  if (math_abs(window->dpi - newDpi) < 1e-4f) {
+static void pal_event_dpi_changed(GapPalWindow* window, const u16 newDpi) {
+  if (window->dpi == newDpi) {
     return;
   }
   window->dpi = newDpi;
@@ -386,7 +386,7 @@ static void pal_event_dpi_changed(GapPalWindow* window, const f32 newDpi) {
   log_d(
       "Window dpi changed",
       log_param("id", fmt_int(window->id)),
-      log_param("dpi", fmt_float(newDpi)));
+      log_param("dpi", fmt_int(newDpi)));
 }
 
 static void pal_event_cursor(GapPalWindow* window, const GapVector newPos) {
@@ -511,7 +511,7 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
      * NOTE: We're querying the actual raw display dpi instead of window's logical dpi. Reason is
      * that its much easier to get consistent cross-platform behaviour this way.
      */
-    const f32 newDpi = pal_query_dpi(window->id);
+    const u16 newDpi = pal_query_dpi(window->id);
     pal_event_dpi_changed(window, newDpi);
     return true;
   }
@@ -737,7 +737,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   const RECT        realClientRect = pal_client_rect(id);
   const GapVector   realClientSize = gap_vector(
       realClientRect.right - realClientRect.left, realClientRect.bottom - realClientRect.top);
-  const f32 dpi = pal_query_dpi(id);
+  const u16 dpi = pal_query_dpi(id);
 
   *dynarray_push_t(&pal->windows, GapPalWindow) = (GapPalWindow){
       .id                          = id,
@@ -753,7 +753,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       "Window created",
       log_param("id", fmt_int(id)),
       log_param("size", gap_vector_fmt(realClientSize)),
-      log_param("dpi", fmt_float(dpi)));
+      log_param("dpi", fmt_int(dpi)));
 
   return id;
 }
@@ -1007,7 +1007,7 @@ String gap_pal_window_clip_paste_result(GapPal* pal, const GapWindowId windowId)
   return pal_maybe_window(pal, windowId)->clipPaste;
 }
 
-f32 gap_pal_window_dpi(GapPal* pal, const GapWindowId windowId) {
+u16 gap_pal_window_dpi(GapPal* pal, const GapWindowId windowId) {
   return pal_maybe_window(pal, windowId)->dpi;
 }
 

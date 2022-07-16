@@ -140,7 +140,7 @@ String gap_window_clip_paste_result(const GapWindowComp*);
 /**
  * Retrieve the window's current display density in 'Dots Per Inch'.
  */
-f32 gap_window_dpi(const GapWindowComp*);
+u16 gap_window_dpi(const GapWindowComp*);
 
 /**
  * Retrieve the system's double click interval.
