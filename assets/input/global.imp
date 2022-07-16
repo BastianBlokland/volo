@@ -39,18 +39,6 @@
       ]
     },
     {
-      "name": "PedestalTogglePause",
-      "blockers": [
-        "TextInput"
-      ],
-      "bindings": [
-        {
-          "type": "Pressed",
-          "key": "Backspace"
-        }
-      ]
-    },
-    {
       "name": "PedestalSetInstCount0",
       "blockers": [
         "TextInput"
@@ -228,6 +216,54 @@
         {
           "type": "Pressed",
           "key": "Tab"
+        }
+      ]
+    },
+    {
+      "name": "TimePauseToggle",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "P"
+        }
+      ]
+    },
+    {
+      "name": "TimeScaleUp",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "Plus"
+        }
+      ]
+    },
+    {
+      "name": "TimeScaleDown",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "Minus"
+        }
+      ]
+    },
+    {
+      "name": "TimeStep",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "O"
         }
       ]
     }

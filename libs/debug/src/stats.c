@@ -340,7 +340,7 @@ static void debug_stats_update(
     const EcsWorldStats*          ecsStats) {
 
   const TimeDuration prevFrameDur = stats->frameDur;
-  stats->frameDur                 = time->delta;
+  stats->frameDur                 = time->realDelta;
   debug_avg_dur(&stats->frameDurAvg, stats->frameDur);
   stats->frameFreqAvg                 = 1.0f / (stats->frameDurAvg / (f32)time_second);
   const TimeDuration frameDurVariance = math_abs(stats->frameDur - prevFrameDur);

@@ -185,10 +185,10 @@ static GapKey pal_xcb_translate_key(const xcb_keycode_t key) {
     return GapKey_Escape;
   case 0x41:
     return GapKey_Space;
-  case 0x14:
+  case 0x15:
   case 0x56: // Numpad +.
     return GapKey_Plus;
-  case 0x15:
+  case 0x14:
   case 0x52: // Numpad -.
     return GapKey_Minus;
   case 0x6E:

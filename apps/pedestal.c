@@ -130,10 +130,9 @@ static const Subject   g_subjects[]          = {
 };
 
 typedef enum {
-  AppFlags_Dirty  = 1 << 0,
-  AppFlags_Rotate = 1 << 1,
+  AppFlags_Dirty = 1 << 0,
 
-  AppFlags_Init = AppFlags_Dirty | AppFlags_Rotate,
+  AppFlags_Init = AppFlags_Dirty,
 } AppFlags;
 
 ecs_comp_define(AppComp) {
@@ -231,9 +230,6 @@ ecs_system_define(AppUpdateSys) {
     app->subjectIndex = (app->subjectIndex ? app->subjectIndex : array_elems(g_subjects)) - 1;
     app->flags |= AppFlags_Dirty;
   }
-  if (input_triggered_lit(input, "PedestalTogglePause")) {
-    app->flags ^= AppFlags_Rotate;
-  }
   if (input_triggered_lit(input, "PedestalSetInstCount0")) {
     app->subjectCount = 0;
     app->flags |= AppFlags_Dirty;
@@ -291,13 +287,7 @@ ecs_system_define(AppSetRotationSys) {
   if (!globalItr) {
     return;
   }
-  const AppComp*       app         = ecs_view_read_t(globalItr, AppComp);
-  const SceneTimeComp* time        = ecs_view_read_t(globalItr, SceneTimeComp);
-  const f32            timeSeconds = time->time / (f32)time_second;
-
-  if (!(app->flags & AppFlags_Rotate)) {
-    return;
-  }
+  const f32 timeSeconds = scene_time_seconds(ecs_view_read_t(globalItr, SceneTimeComp));
 
   const GeoQuat newRot     = geo_quat_angle_axis(geo_up, timeSeconds * g_pedestalRotateSpeed);
   EcsView*      objectView = ecs_world_view_t(world, ObjectView);
@@ -346,7 +336,7 @@ static int app_run(const String assetPath) {
   debug_menu_create(world, window);
 
   ecs_world_add_t(
-      world, ecs_world_global(world), AppComp, .flags = AppFlags_Init, .subjectCount = 1);
+      world, ecs_world_global(world), AppComp, .flags = AppFlags_Init, .subjectCount = 0);
 
   do {
     ecs_run_sync(runner);

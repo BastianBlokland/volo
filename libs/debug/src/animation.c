@@ -256,7 +256,7 @@ static void anim_panel_draw(
     DebugAnimationPanelComp*    panelComp,
     DebugAnimationSettingsComp* settings,
     const DebugAnimSubject      subject) {
-  const String title = fmt_write_scratch("{} Animation Debug", fmt_ui_shape(Animation));
+  const String title = fmt_write_scratch("{} Animation Panel", fmt_ui_shape(Animation));
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
 
   anim_panel_options_draw(canvas, settings);

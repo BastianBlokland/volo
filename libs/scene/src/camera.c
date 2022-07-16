@@ -113,9 +113,8 @@ ecs_system_define(SceneCameraUpdateSys) {
   if (!globalItr) {
     return;
   }
-  InputManagerComp*    input        = ecs_view_write_t(globalItr, InputManagerComp);
-  const SceneTimeComp* time         = ecs_view_read_t(globalItr, SceneTimeComp);
-  const f32            deltaSeconds = time->delta / (f32)time_second;
+  InputManagerComp* input        = ecs_view_write_t(globalItr, InputManagerComp);
+  const f32         deltaSeconds = scene_delta_seconds(ecs_view_read_t(globalItr, SceneTimeComp));
 
   EcsView* cameraView = ecs_world_view_t(world, CameraUpdateView);
   for (EcsIterator* itr = ecs_view_itr(cameraView); ecs_view_walk(itr);) {

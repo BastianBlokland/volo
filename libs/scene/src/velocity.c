@@ -23,15 +23,15 @@ ecs_system_define(SceneVelocityApplySys) {
   if (!time) {
     return;
   }
+  const f32 deltaSeconds = scene_delta_seconds(time);
 
   EcsView* applyView = ecs_world_view_t(world, VelocityApplyView);
   for (EcsIterator* itr = ecs_view_itr(applyView); ecs_view_walk(itr);) {
     const SceneVelocityComp* velocity = ecs_view_read_t(itr, SceneVelocityComp);
     SceneTransformComp*      trans    = ecs_view_write_t(itr, SceneTransformComp);
 
-    const f32       deltaSeconds = time->delta / (f32)time_second;
-    const GeoVector posDelta     = geo_vector_mul(velocity->velocity, deltaSeconds);
-    trans->position              = geo_vector_add(trans->position, posDelta);
+    const GeoVector posDelta = geo_vector_mul(velocity->velocity, deltaSeconds);
+    trans->position          = geo_vector_add(trans->position, posDelta);
 
     const GeoVector rotDelta = geo_vector_mul(velocity->angularVelocity, deltaSeconds);
     trans->rotation = geo_quat_mul(trans->rotation, geo_quat_angle_axis(geo_forward, rotDelta.z));

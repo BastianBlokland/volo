@@ -193,7 +193,7 @@ static void asset_options_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelC
 }
 
 static void asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelComp) {
-  const String title = fmt_write_scratch("{} Asset Debug", fmt_ui_shape(Storage));
+  const String title = fmt_write_scratch("{} Asset Panel", fmt_ui_shape(Storage));
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
 
   asset_options_draw(canvas, panelComp);

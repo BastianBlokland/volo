@@ -423,7 +423,7 @@ sys_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, const Ecs
 }
 
 static void ecs_panel_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, EcsWorld* world) {
-  const String title = fmt_write_scratch("{} Ecs Debug", fmt_ui_shape(Extension));
+  const String title = fmt_write_scratch("{} Ecs Panel", fmt_ui_shape(Extension));
   ui_panel_begin(
       canvas,
       &panelComp->panel,
