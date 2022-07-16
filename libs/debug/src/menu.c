@@ -10,6 +10,7 @@
 #include "debug_physics.h"
 #include "debug_rend.h"
 #include "debug_stats.h"
+#include "debug_time.h"
 #include "ecs_world.h"
 #include "gap_window.h"
 #include "input.h"
@@ -19,6 +20,7 @@
 
 static const String g_tooltipStatsEnable     = string_static("Enable the \a.bStatistics\ar interface.");
 static const String g_tooltipStatsDisable    = string_static("Disable the \a.bStatistics\ar interface.");
+static const String g_tooltipPanelTime       = string_static("Open the \a.bTime\ar panel.");
 static const String g_tooltipPanelAnimation  = string_static("Open the \a.bAnimation\ar panel.");
 static const String g_tooltipPanelAsset      = string_static("Open the \a.bAsset\ar panel.");
 static const String g_tooltipPanelPhysics    = string_static("Open the \a.bPhysics\ar panel.");
@@ -37,6 +39,7 @@ static const String g_tooltipWindowClose     = string_static("Close the current 
 ecs_comp_define(DebugMenuComp) {
   EcsEntityId window;
   GapVector   lastWindowedSize;
+  EcsEntityId panelTime;
   EcsEntityId panelAnimation;
   EcsEntityId panelAsset;
   EcsEntityId panelPhysics;
@@ -92,6 +95,16 @@ static void debug_action_bar_draw(
           .fontSize = 30,
           .tooltip  = statsEnabled ? g_tooltipStatsDisable : g_tooltipStatsEnable)) {
     debug_stats_show_set(stats, !statsEnabled);
+  }
+
+  ui_table_next_row(canvas, &table);
+  if (ui_button(
+          canvas,
+          .flags    = debug_panel_is_open(world, menu->panelTime) ? UiWidget_Disabled : 0,
+          .label    = ui_shape_scratch(UiShape_Timer),
+          .fontSize = 30,
+          .tooltip  = g_tooltipPanelTime)) {
+    debug_panel_open(world, &menu->panelTime, winEntity, debug_time_panel_open);
   }
 
   ui_table_next_row(canvas, &table);
