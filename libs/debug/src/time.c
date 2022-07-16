@@ -2,6 +2,7 @@
 #include "ecs_world.h"
 #include "gap_window.h"
 #include "input_manager.h"
+#include "log.h"
 #include "scene_time.h"
 #include "ui.h"
 
@@ -101,12 +102,19 @@ ecs_system_define(DebugTimeUpdateSys) {
 
   if (input_triggered_lit(input, "TimePauseToggle")) {
     timeSettings->flags ^= SceneTimeFlags_Paused;
+    if (timeSettings->flags & SceneTimeFlags_Paused) {
+      log_i("Time paused");
+    } else {
+      log_i("Time resumed");
+    }
   }
   if (input_triggered_lit(input, "TimeScaleUp")) {
     timeSettings->scale += 0.1f;
+    log_i("Time scale up", log_param("scale", fmt_float(timeSettings->scale)));
   }
   if (input_triggered_lit(input, "TimeScaleDown")) {
     timeSettings->scale = math_max(0.0f, timeSettings->scale - 0.1f);
+    log_i("Time scale down", log_param("scale", fmt_float(timeSettings->scale)));
   }
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
