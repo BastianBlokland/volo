@@ -32,6 +32,7 @@ typedef struct {
   DynString         inputText;
   String            clipPaste;
   GapCursor         cursor;
+  f32               dpi;
 } GapPalWindow;
 
 typedef enum {
@@ -362,6 +363,19 @@ static void pal_event_resize(GapPalWindow* window, const GapVector newSize) {
   }
 }
 
+static void pal_event_dpi_changed(GapPalWindow* window, const f32 newDpi) {
+  if (math_abs(window->dpi - newDpi) < 1e-4f) {
+    return;
+  }
+  window->dpi = newDpi;
+  window->flags |= GapPalWindowFlags_DpiChanged;
+
+  log_d(
+      "Window dpi changed",
+      log_param("id", fmt_int(window->id)),
+      log_param("dpi", fmt_float(newDpi)));
+}
+
 static void pal_event_cursor(GapPalWindow* window, const GapVector newPos) {
   if (gap_vector_equal(window->params[GapParam_CursorPos], newPos)) {
     return;
@@ -477,6 +491,11 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
     LPMINMAXINFO minMaxInfo      = (LPMINMAXINFO)lParam;
     minMaxInfo->ptMinTrackSize.x = pal_window_min_width;
     minMaxInfo->ptMinTrackSize.y = pal_window_min_height;
+    return true;
+  }
+  case WM_DPICHANGED: {
+    const u16 newDpi = LOWORD(wParam);
+    pal_event_dpi_changed(window, newDpi);
     return true;
   }
   case WM_PAINT:
@@ -701,6 +720,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   const RECT        realClientRect = pal_client_rect(id);
   const GapVector   realClientSize = gap_vector(
       realClientRect.right - realClientRect.left, realClientRect.bottom - realClientRect.top);
+  const u16 dpi = GetDpiForWindow(windowHandle);
 
   *dynarray_push_t(&pal->windows, GapPalWindow) = (GapPalWindow){
       .id                          = id,
@@ -709,6 +729,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       .flags                       = GapPalWindowFlags_Focussed | GapPalWindowFlags_FocusGained,
       .lastWindowedPosition        = position,
       .inputText                   = dynstring_create(g_alloc_heap, 64),
+      .dpi                         = dpi,
   };
 
   log_i(
@@ -966,6 +987,10 @@ Done:
 
 String gap_pal_window_clip_paste_result(GapPal* pal, const GapWindowId windowId) {
   return pal_maybe_window(pal, windowId)->clipPaste;
+}
+
+f32 gap_pal_window_dpi(GapPal* pal, const GapWindowId windowId) {
+  return pal_maybe_window(pal, windowId)->dpi;
 }
 
 TimeDuration gap_pal_doubleclick_interval() {
