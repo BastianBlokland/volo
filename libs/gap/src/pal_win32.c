@@ -15,6 +15,7 @@
 
 #define pal_window_min_width 128
 #define pal_window_min_height 128
+#define pal_window_default_dpi 96.0f
 
 ASSERT(sizeof(GapWindowId) >= sizeof(HWND), "GapWindowId should be able to represent a Win32 HWND")
 
@@ -159,6 +160,18 @@ static GapVector pal_query_cursor_pos(const GapWindowId windowId) {
     pal_crash_with_win32_err(string_lit("ScreenToClient"));
   }
   return gap_vector((i32)point.x, (i32)point.y);
+}
+
+static f32 pal_query_dpi(const GapWindowId windowId) {
+  HMONITOR monitor = MonitorFromWindow((HWND)windowId, MONITOR_DEFAULTTONEAREST);
+  if (UNLIKELY(!monitor)) {
+    return pal_window_default_dpi;
+  }
+  UINT dpiX, dpiY;
+  if (UNLIKELY(GetDpiForMonitor(monitor, MDT_RAW_DPI, &dpiX, &dpiY) != S_OK)) {
+    pal_crash_with_win32_err(string_lit("GetDpiForMonitor"));
+  }
+  return dpiX;
 }
 
 static GapKey pal_win32_translate_key(const u8 scanCode) {
@@ -494,7 +507,11 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
     return true;
   }
   case WM_DPICHANGED: {
-    const u16 newDpi = LOWORD(wParam);
+    /**
+     * NOTE: We're querying the actual raw display dpi instead of window's logical dpi. Reason is
+     * that its much easier to get consistent cross-platform behaviour this way.
+     */
+    const f32 newDpi = pal_query_dpi(window->id);
     pal_event_dpi_changed(window, newDpi);
     return true;
   }
@@ -720,7 +737,6 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   const RECT        realClientRect = pal_client_rect(id);
   const GapVector   realClientSize = gap_vector(
       realClientRect.right - realClientRect.left, realClientRect.bottom - realClientRect.top);
-  const u16 dpi = GetDpiForWindow(windowHandle);
 
   *dynarray_push_t(&pal->windows, GapPalWindow) = (GapPalWindow){
       .id                          = id,
@@ -729,7 +745,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       .flags                       = GapPalWindowFlags_Focussed | GapPalWindowFlags_FocusGained,
       .lastWindowedPosition        = position,
       .inputText                   = dynstring_create(g_alloc_heap, 64),
-      .dpi                         = dpi,
+      .dpi                         = pal_query_dpi(id),
   };
 
   log_i(
