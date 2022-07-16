@@ -38,7 +38,7 @@ macro(set_win32_defines)
   message(STATUS "Configuring win32 platform defines")
 
   add_definitions(-DVOLO_WIN32)
-  add_definitions(-DWINVER=0x0602 -D_WIN32_WINNT=0x0602) # Target windows '8'
+  add_definitions(-DWINVER=0x0603 -D_WIN32_WINNT=0x0603) # Target windows '8.1'
   add_definitions(-DWIN32_LEAN_AND_MEAN) # Use a subset of the windows header.
   add_definitions(-DNOMINMAX) # Avoid the windows header defining the min / max macros.
   add_definitions(-DUNICODE) # Enable unicode support.
