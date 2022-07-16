@@ -39,4 +39,7 @@ if(${VOLO_PLATFORM} STREQUAL "linux")
   target_link_libraries(lib_gap PRIVATE xcb)
   target_link_libraries(lib_gap PRIVATE xkbcommon-x11)
   target_link_libraries(lib_gap PRIVATE xkbcommon)
+elseif(${VOLO_PLATFORM} STREQUAL "win32")
+  # Link against 'shcore.lib' for dpi awareness apis.
+  target_link_libraries(lib_gap PRIVATE shcore.lib)
 endif()
