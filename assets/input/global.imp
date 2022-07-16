@@ -39,18 +39,6 @@
       ]
     },
     {
-      "name": "PedestalTogglePause",
-      "blockers": [
-        "TextInput"
-      ],
-      "bindings": [
-        {
-          "type": "Pressed",
-          "key": "Backspace"
-        }
-      ]
-    },
-    {
       "name": "PedestalSetInstCount0",
       "blockers": [
         "TextInput"
