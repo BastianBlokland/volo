@@ -5,7 +5,10 @@
 
 ecs_comp_define(DebugTimePanelComp) { UiPanel panel; };
 
-ecs_view_define(GlobalView) { ecs_access_read(SceneTimeComp); }
+ecs_view_define(GlobalView) {
+  ecs_access_read(SceneTimeComp);
+  ecs_access_write(SceneTimeSettingsComp);
+}
 
 ecs_view_define(PanelUpdateView) {
   ecs_access_write(DebugTimePanelComp);
@@ -23,8 +26,23 @@ time_panel_stat(UiCanvasComp* canvas, UiTable* table, const String label, const 
   ui_style_pop(canvas);
 }
 
-static void
-time_panel_draw(UiCanvasComp* canvas, DebugTimePanelComp* panelComp, const SceneTimeComp* time) {
+static void time_panel_stat_dur(
+    UiCanvasComp* canvas, UiTable* table, const String label, const TimeDuration dur) {
+  time_panel_stat(
+      canvas,
+      table,
+      label,
+      fmt_write_scratch(
+          "{<8} ({})",
+          fmt_duration(dur, .minDecDigits = 1, .maxDecDigits = 1),
+          fmt_float(dur / (f32)time_second, .minDecDigits = 3, .maxDecDigits = 3)));
+}
+
+static void time_panel_draw(
+    UiCanvasComp*          canvas,
+    DebugTimePanelComp*    panelComp,
+    const SceneTimeComp*   time,
+    SceneTimeSettingsComp* timeSettings) {
   const String title = fmt_write_scratch("{} Time Panel", fmt_ui_shape(Timer));
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
 
@@ -33,28 +51,25 @@ time_panel_draw(UiCanvasComp* canvas, DebugTimePanelComp* panelComp, const Scene
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_next_row(canvas, &table);
-  time_panel_stat(
-      canvas,
-      &table,
-      string_lit("Time"),
-      fmt_write_scratch(
-          "{<8} ({})",
-          fmt_duration(time->time),
-          fmt_float(time->time / (f32)time_second, .minDecDigits = 3, .maxDecDigits = 3)));
+  time_panel_stat_dur(canvas, &table, string_lit("Time"), time->time);
 
   ui_table_next_row(canvas, &table);
-  time_panel_stat(
-      canvas,
-      &table,
-      string_lit("Delta"),
-      fmt_write_scratch(
-          "{<8} ({})",
-          fmt_duration(time->delta),
-          fmt_float(time->delta / (f32)time_second, .minDecDigits = 3, .maxDecDigits = 3)));
+  time_panel_stat_dur(canvas, &table, string_lit("Real Time"), time->realTime);
+
+  ui_table_next_row(canvas, &table);
+  time_panel_stat_dur(canvas, &table, string_lit("Delta"), time->delta);
+
+  ui_table_next_row(canvas, &table);
+  time_panel_stat_dur(canvas, &table, string_lit("Real Delta"), time->realDelta);
 
   ui_table_next_row(canvas, &table);
   time_panel_stat(
       canvas, &table, string_lit("Ticks"), fmt_write_scratch("{}", fmt_int(time->ticks)));
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Scale"));
+  ui_table_next_column(canvas, &table);
+  ui_slider(canvas, &timeSettings->scale, .max = 4);
 
   ui_panel_end(canvas, &panelComp->panel);
 }
@@ -65,7 +80,8 @@ ecs_system_define(DebugTimeUpdatePanelSys) {
   if (!globalItr) {
     return;
   }
-  const SceneTimeComp* time = ecs_view_read_t(globalItr, SceneTimeComp);
+  const SceneTimeComp*   time         = ecs_view_read_t(globalItr, SceneTimeComp);
+  SceneTimeSettingsComp* timeSettings = ecs_view_write_t(globalItr, SceneTimeSettingsComp);
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
@@ -73,7 +89,7 @@ ecs_system_define(DebugTimeUpdatePanelSys) {
     UiCanvasComp*       canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
-    time_panel_draw(canvas, panelComp, time);
+    time_panel_draw(canvas, panelComp, time, timeSettings);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));

@@ -5,22 +5,20 @@
 #include "scene_time.h"
 
 ecs_comp_define_public(SceneTimeComp);
-ecs_comp_define(SceneTimePrivateComp) { TimeSteady lastTime, startTime; };
+ecs_comp_define_public(SceneTimeSettingsComp);
+ecs_comp_define(SceneTimePrivateComp) { TimeSteady lastTime; };
 
 ecs_view_define(TimeUpdateView) {
   ecs_access_write(SceneTimeComp);
+  ecs_access_read(SceneTimeSettingsComp);
   ecs_access_write(SceneTimePrivateComp);
 }
 
 static void scene_time_create(EcsWorld* world) {
   const EcsEntityId entity = ecs_world_global(world);
   ecs_world_add_t(world, entity, SceneTimeComp);
-  ecs_world_add_t(
-      world,
-      entity,
-      SceneTimePrivateComp,
-      .lastTime  = time_steady_clock(),
-      .startTime = time_steady_clock());
+  ecs_world_add_t(world, entity, SceneTimeSettingsComp, .scale = 1.0f);
+  ecs_world_add_t(world, entity, SceneTimePrivateComp, .lastTime = time_steady_clock());
 }
 
 ecs_system_define(SceneTimeUpdateSys) {
@@ -30,20 +28,25 @@ ecs_system_define(SceneTimeUpdateSys) {
     scene_time_create(world);
     return;
   }
-  SceneTimeComp*        time        = ecs_view_write_t(globalItr, SceneTimeComp);
-  SceneTimePrivateComp* timePrivate = ecs_view_write_t(globalItr, SceneTimePrivateComp);
+  SceneTimeComp*               time         = ecs_view_write_t(globalItr, SceneTimeComp);
+  const SceneTimeSettingsComp* timeSettings = ecs_view_read_t(globalItr, SceneTimeSettingsComp);
+  SceneTimePrivateComp*        timePrivate  = ecs_view_write_t(globalItr, SceneTimePrivateComp);
 
-  const TimeSteady   newSteadyTime = time_steady_clock();
-  const TimeDuration deltaTime     = time_steady_duration(timePrivate->lastTime, newSteadyTime);
+  const TimeSteady   newSteadyTime   = time_steady_clock();
+  const TimeDuration deltaTime       = time_steady_duration(timePrivate->lastTime, newSteadyTime);
+  const TimeDuration deltaTimeScaled = (TimeDuration)(deltaTime * timeSettings->scale);
 
   ++time->ticks;
-  time->delta           = deltaTime;
-  time->time            = time_steady_duration(timePrivate->startTime, newSteadyTime);
+  time->time += deltaTimeScaled;
+  time->realTime += deltaTime;
+  time->delta           = deltaTimeScaled;
+  time->realDelta       = deltaTime;
   timePrivate->lastTime = newSteadyTime;
 }
 
 ecs_module_init(scene_time_module) {
   ecs_register_comp(SceneTimeComp);
+  ecs_register_comp(SceneTimeSettingsComp);
   ecs_register_comp(SceneTimePrivateComp);
 
   ecs_register_view(TimeUpdateView);

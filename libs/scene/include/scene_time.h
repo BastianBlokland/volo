@@ -3,6 +3,9 @@
 #include "ecs_module.h"
 
 ecs_comp_extern_public(SceneTimeComp) {
-  TimeDuration time, delta;
+  TimeDuration time, realTime;   // Real time is unaffected by scaling.
+  TimeDuration delta, realDelta; // Real delta is unaffected by scaling.
   u64          ticks;
 };
+
+ecs_comp_extern_public(SceneTimeSettingsComp) { f32 scale; };
