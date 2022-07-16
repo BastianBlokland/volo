@@ -13,6 +13,17 @@ ecs_view_define(PanelUpdateView) {
 }
 
 static void
+time_panel_stat(UiCanvasComp* canvas, UiTable* table, const String label, const String stat) {
+  ui_label(canvas, label);
+  ui_table_next_column(canvas, table);
+  ui_style_push(canvas);
+  ui_style_variation(canvas, UiVariation_Monospace);
+  ui_label(canvas, stat);
+  ui_canvas_draw_text(canvas, stat, 16, UiAlign_MiddleLeft, UiFlags_None);
+  ui_style_pop(canvas);
+}
+
+static void
 time_panel_draw(UiCanvasComp* canvas, DebugTimePanelComp* panelComp, const SceneTimeComp* time) {
   const String title = fmt_write_scratch("{} Time Panel", fmt_ui_shape(Timer));
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
@@ -21,7 +32,29 @@ time_panel_draw(UiCanvasComp* canvas, DebugTimePanelComp* panelComp, const Scene
   ui_table_add_column(&table, UiTableColumn_Fixed, 100);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
-  (void)time;
+  ui_table_next_row(canvas, &table);
+  time_panel_stat(
+      canvas,
+      &table,
+      string_lit("Time"),
+      fmt_write_scratch(
+          "{<8} ({})",
+          fmt_duration(time->time),
+          fmt_float(time->time / (f32)time_second, .minDecDigits = 3, .maxDecDigits = 3)));
+
+  ui_table_next_row(canvas, &table);
+  time_panel_stat(
+      canvas,
+      &table,
+      string_lit("Delta"),
+      fmt_write_scratch(
+          "{<8} ({})",
+          fmt_duration(time->delta),
+          fmt_float(time->delta / (f32)time_second, .minDecDigits = 3, .maxDecDigits = 3)));
+
+  ui_table_next_row(canvas, &table);
+  time_panel_stat(
+      canvas, &table, string_lit("Ticks"), fmt_write_scratch("{}", fmt_int(time->ticks)));
 
   ui_panel_end(canvas, &panelComp->panel);
 }
