@@ -1,3 +1,4 @@
+#include "core_math.h"
 #include "ecs_world.h"
 #include "gap_window.h"
 #include "input_manager.h"
@@ -101,6 +102,12 @@ ecs_system_define(DebugTimeUpdateSys) {
   if (input_triggered_lit(input, "TimePauseToggle")) {
     timeSettings->flags ^= SceneTimeFlags_Paused;
   }
+  if (input_triggered_lit(input, "TimeScaleUp")) {
+    timeSettings->scale += 0.1f;
+  }
+  if (input_triggered_lit(input, "TimeScaleDown")) {
+    timeSettings->scale = math_max(0.0f, timeSettings->scale - 0.1f);
+  }
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
@@ -130,6 +137,6 @@ ecs_module_init(debug_time_module) {
 
 EcsEntityId debug_time_panel_open(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
-  ecs_world_add_t(world, panelEntity, DebugTimePanelComp, .panel = ui_panel(ui_vector(330, 290)));
+  ecs_world_add_t(world, panelEntity, DebugTimePanelComp, .panel = ui_panel(ui_vector(350, 290)));
   return panelEntity;
 }

@@ -230,6 +230,30 @@
           "key": "P"
         }
       ]
+    },
+    {
+      "name": "TimeScaleUp",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "Plus"
+        }
+      ]
+    },
+    {
+      "name": "TimeScaleDown",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "Minus"
+        }
+      ]
     }
   ]
 }
