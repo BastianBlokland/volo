@@ -53,6 +53,64 @@ ecs_view_define(ObjectView) {
   ecs_access_maybe_read(SceneScaleComp);
 }
 
+static bool inspector_panel_section(UiCanvasComp* canvas, const String label) {
+  ui_canvas_id_block_next(canvas);
+
+  bool open;
+  ui_layout_push(canvas);
+  {
+    ui_layout_move_to(canvas, UiBase_Container, UiAlign_MiddleLeft, Ui_X);
+    ui_layout_resize_to(canvas, UiBase_Container, UiAlign_MiddleRight, Ui_X);
+
+    ui_style_push(canvas);
+    {
+      ui_style_color(canvas, ui_color(0, 0, 0, 128));
+      ui_style_outline(canvas, 2);
+      ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_None);
+    }
+    ui_style_pop(canvas);
+
+    ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-10, 0), UiBase_Absolute, Ui_X);
+    open = ui_section(canvas, .label = label);
+  }
+  ui_layout_pop(canvas);
+  return open;
+}
+
+static void inspector_panel_settings(
+    UiCanvasComp* canvas, UiTable* table, DebugInspectorSettingsComp* settings) {
+
+  ui_table_next_row(canvas, table);
+  ui_label(canvas, string_lit("Draw pivot"));
+  ui_table_next_column(canvas, table);
+  ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawPivot);
+
+  ui_table_next_row(canvas, table);
+  ui_label(canvas, string_lit("Draw orientation"));
+  ui_table_next_column(canvas, table);
+  ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawOrientation);
+
+  ui_table_next_row(canvas, table);
+  ui_label(canvas, string_lit("Draw name"));
+  ui_table_next_column(canvas, table);
+  ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawName);
+
+  ui_table_next_row(canvas, table);
+  ui_label(canvas, string_lit("Draw collision"));
+  ui_table_next_column(canvas, table);
+  ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawCollision);
+
+  ui_table_next_row(canvas, table);
+  ui_label(canvas, string_lit("Draw bounds local"));
+  ui_table_next_column(canvas, table);
+  ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawBoundsLocal);
+
+  ui_table_next_row(canvas, table);
+  ui_label(canvas, string_lit("Draw bounds global"));
+  ui_table_next_column(canvas, table);
+  ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawBoundsGlobal);
+}
+
 static void inspector_panel_draw(
     UiCanvasComp*               canvas,
     DebugInspectorPanelComp*    panelComp,
@@ -65,34 +123,9 @@ static void inspector_panel_draw(
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Draw pivot"));
-  ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawPivot);
-
-  ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Draw orientation"));
-  ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawOrientation);
-
-  ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Draw name"));
-  ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawName);
-
-  ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Draw collision"));
-  ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawCollision);
-
-  ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Draw bounds local"));
-  ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawBoundsLocal);
-
-  ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Draw bounds global"));
-  ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawBoundsGlobal);
+  if (inspector_panel_section(canvas, string_lit("Settings"))) {
+    inspector_panel_settings(canvas, &table, settings);
+  }
 
   ui_panel_end(canvas, &panelComp->panel);
 }
@@ -237,6 +270,6 @@ ecs_module_init(debug_inspector_module) {
 EcsEntityId debug_inspector_panel_open(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
   ecs_world_add_t(
-      world, panelEntity, DebugInspectorPanelComp, .panel = ui_panel(ui_vector(330, 255)));
+      world, panelEntity, DebugInspectorPanelComp, .panel = ui_panel(ui_vector(450, 350)));
   return panelEntity;
 }
