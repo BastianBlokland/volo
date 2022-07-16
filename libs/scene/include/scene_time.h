@@ -8,7 +8,15 @@ ecs_comp_extern_public(SceneTimeComp) {
   u64          ticks;
 };
 
-ecs_comp_extern_public(SceneTimeSettingsComp) { f32 scale; };
+typedef enum {
+  SceneTimeFlags_None   = 0,
+  SceneTimeFlags_Paused = 1 << 0,
+} SceneTimeFlags;
+
+ecs_comp_extern_public(SceneTimeSettingsComp) {
+  SceneTimeFlags flags;
+  f32            scale;
+};
 
 f32 scene_time_seconds(const SceneTimeComp*);
 f32 scene_delta_seconds(const SceneTimeComp*);

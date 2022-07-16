@@ -33,11 +33,14 @@ ecs_system_define(SceneTimeUpdateSys) {
   const SceneTimeSettingsComp* timeSettings = ecs_view_read_t(globalItr, SceneTimeSettingsComp);
   SceneTimePrivateComp*        timePrivate  = ecs_view_write_t(globalItr, SceneTimePrivateComp);
 
-  diag_assert_msg(timeSettings->scale >= 0.0f, "Time cannot flow backwards");
+  const bool isPaused       = (timeSettings->flags & SceneTimeFlags_Paused) != 0;
+  const f32  effectiveScale = isPaused ? 0.0f : timeSettings->scale;
+
+  diag_assert_msg(effectiveScale >= 0.0f, "Time cannot flow backwards");
 
   const TimeSteady   newSteadyTime   = time_steady_clock();
   const TimeDuration deltaTime       = time_steady_duration(timePrivate->lastTime, newSteadyTime);
-  const TimeDuration deltaTimeScaled = (TimeDuration)(deltaTime * timeSettings->scale);
+  const TimeDuration deltaTimeScaled = (TimeDuration)(deltaTime * effectiveScale);
 
   ++time->ticks;
   time->time += deltaTimeScaled;

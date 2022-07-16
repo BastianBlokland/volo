@@ -47,8 +47,19 @@ static void time_panel_draw(
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
 
   UiTable table = ui_table();
-  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 125);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Paused"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, (u32*)&timeSettings->flags, SceneTimeFlags_Paused);
+
+  const bool isPaused = (timeSettings->flags & SceneTimeFlags_Paused) != 0;
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Scale"));
+  ui_table_next_column(canvas, &table);
+  ui_slider(canvas, &timeSettings->scale, .max = 4, .flags = isPaused ? UiWidget_Disabled : 0);
 
   ui_table_next_row(canvas, &table);
   time_panel_stat_dur(canvas, &table, string_lit("Time"), time->time);
@@ -67,9 +78,10 @@ static void time_panel_draw(
       canvas, &table, string_lit("Ticks"), fmt_write_scratch("{}", fmt_int(time->ticks)));
 
   ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Scale"));
-  ui_table_next_column(canvas, &table);
-  ui_slider(canvas, &timeSettings->scale, .max = 4);
+  if (ui_button(canvas, .label = string_lit("Defaults"))) {
+    timeSettings->flags = SceneTimeFlags_None;
+    timeSettings->scale = 1.0f;
+  }
 
   ui_panel_end(canvas, &panelComp->panel);
 }
@@ -112,6 +124,6 @@ ecs_module_init(debug_time_module) {
 
 EcsEntityId debug_time_panel_open(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
-  ecs_world_add_t(world, panelEntity, DebugTimePanelComp, .panel = ui_panel(ui_vector(330, 220)));
+  ecs_world_add_t(world, panelEntity, DebugTimePanelComp, .panel = ui_panel(ui_vector(330, 290)));
   return panelEntity;
 }
