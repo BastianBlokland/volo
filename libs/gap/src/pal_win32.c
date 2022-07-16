@@ -12,8 +12,14 @@
 
 #include <windows.h>
 
+#if !defined(__MINGW32__)
+#include <shellscalingapi.h>
+#define VOLO_WIN32_SHELL_SCALING_API
+#endif
+
 #define pal_window_min_width 128
 #define pal_window_min_height 128
+#define pal_window_default_dpi 96
 
 ASSERT(sizeof(GapWindowId) >= sizeof(HWND), "GapWindowId should be able to represent a Win32 HWND")
 
@@ -31,6 +37,7 @@ typedef struct {
   DynString         inputText;
   String            clipPaste;
   GapCursor         cursor;
+  u16               dpi;
 } GapPalWindow;
 
 typedef enum {
@@ -84,11 +91,16 @@ static GapPalWindow* pal_window(GapPal* pal, const GapWindowId id) {
 static void pal_dpi_init() {
   static bool g_initialized;
   if (!g_initialized) {
-    // Mark the process as dpi-aware to avoid Win32 scaling the window output.
-    // TODO: Provide an api to query a window's dpi to be able to control ui scaling.
+    // Mark the process as per-window dpi-aware.
+#if defined(VOLO_WIN32_SHELL_SCALING_API)
+    if (SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE) != S_OK) {
+      diag_crash_msg("Failed to set win32 dpi awareness");
+    }
+#else
     if (!SetProcessDPIAware()) {
       diag_crash_msg("Failed to set win32 dpi awareness");
     }
+#endif
     g_initialized = true;
   }
 }
@@ -158,6 +170,23 @@ static GapVector pal_query_cursor_pos(const GapWindowId windowId) {
     pal_crash_with_win32_err(string_lit("ScreenToClient"));
   }
   return gap_vector((i32)point.x, (i32)point.y);
+}
+
+static u16 pal_query_dpi(const GapWindowId windowId) {
+#if defined(VOLO_WIN32_SHELL_SCALING_API)
+  HMONITOR monitor = MonitorFromWindow((HWND)windowId, MONITOR_DEFAULTTONEAREST);
+  if (UNLIKELY(!monitor)) {
+    return pal_window_default_dpi;
+  }
+  UINT dpiX, dpiY;
+  if (UNLIKELY(GetDpiForMonitor(monitor, MDT_RAW_DPI, &dpiX, &dpiY) != S_OK)) {
+    pal_crash_with_win32_err(string_lit("GetDpiForMonitor"));
+  }
+  return (u16)dpiX;
+#else
+  (void)windowId;
+  return pal_window_default_dpi;
+#endif
 }
 
 static GapKey pal_win32_translate_key(const u8 scanCode) {
@@ -362,6 +391,19 @@ static void pal_event_resize(GapPalWindow* window, const GapVector newSize) {
   }
 }
 
+static void pal_event_dpi_changed(GapPalWindow* window, const u16 newDpi) {
+  if (window->dpi == newDpi) {
+    return;
+  }
+  window->dpi = newDpi;
+  window->flags |= GapPalWindowFlags_DpiChanged;
+
+  log_d(
+      "Window dpi changed",
+      log_param("id", fmt_int(window->id)),
+      log_param("dpi", fmt_int(newDpi)));
+}
+
 static void pal_event_cursor(GapPalWindow* window, const GapVector newPos) {
   if (gap_vector_equal(window->params[GapParam_CursorPos], newPos)) {
     return;
@@ -479,6 +521,15 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
     minMaxInfo->ptMinTrackSize.y = pal_window_min_height;
     return true;
   }
+  case WM_DPICHANGED: {
+    /**
+     * NOTE: We're querying the actual raw display dpi instead of window's logical dpi. Reason is
+     * that its much easier to get consistent cross-platform behaviour this way.
+     */
+    const u16 newDpi = pal_query_dpi(window->id);
+    pal_event_dpi_changed(window, newDpi);
+    return true;
+  }
   case WM_PAINT:
     ValidateRect(wnd, null);
     return true;
@@ -588,10 +639,10 @@ GapPal* gap_pal_create(Allocator* alloc) {
 
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){
-             .alloc          = alloc,
-             .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
-             .moduleInstance = instance,
-             .owningThreadId = g_thread_tid,
+      .alloc          = alloc,
+      .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
+      .moduleInstance = instance,
+      .owningThreadId = g_thread_tid,
   };
   pal_cursors_init(pal);
 
@@ -701,6 +752,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   const RECT        realClientRect = pal_client_rect(id);
   const GapVector   realClientSize = gap_vector(
       realClientRect.right - realClientRect.left, realClientRect.bottom - realClientRect.top);
+  const u16 dpi = pal_query_dpi(id);
 
   *dynarray_push_t(&pal->windows, GapPalWindow) = (GapPalWindow){
       .id                          = id,
@@ -709,12 +761,14 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       .flags                       = GapPalWindowFlags_Focussed | GapPalWindowFlags_FocusGained,
       .lastWindowedPosition        = position,
       .inputText                   = dynstring_create(g_alloc_heap, 64),
+      .dpi                         = dpi,
   };
 
   log_i(
       "Window created",
       log_param("id", fmt_int(id)),
-      log_param("size", gap_vector_fmt(realClientSize)));
+      log_param("size", gap_vector_fmt(realClientSize)),
+      log_param("dpi", fmt_int(dpi)));
 
   return id;
 }
@@ -966,6 +1020,10 @@ Done:
 
 String gap_pal_window_clip_paste_result(GapPal* pal, const GapWindowId windowId) {
   return pal_maybe_window(pal, windowId)->clipPaste;
+}
+
+u16 gap_pal_window_dpi(GapPal* pal, const GapWindowId windowId) {
+  return pal_maybe_window(pal, windowId)->dpi;
 }
 
 TimeDuration gap_pal_doubleclick_interval() {

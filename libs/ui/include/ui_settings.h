@@ -4,8 +4,9 @@
 #include "ui_units.h"
 
 typedef enum {
-  UiSettingFlags_DebugShading   = 1 << 0,
-  UiSettingFlags_DebugInspector = 1 << 1,
+  UiSettingFlags_DpiScaling     = 1 << 0,
+  UiSettingFlags_DebugShading   = 1 << 1,
+  UiSettingFlags_DebugInspector = 1 << 2,
 } UiSettingFlags;
 
 ecs_comp_extern_public(UiSettingsComp) {

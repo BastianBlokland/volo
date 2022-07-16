@@ -19,22 +19,34 @@ target_link_libraries(lib_gap PUBLIC lib_ecs)
 #
 # On linux use the xcb (https://xcb.freedesktop.org/) bindings for the x window server.
 # For debian based systems:
-# apt install libxcb1-dev libxcb-xkb-dev libxkbcommon-dev libxkbcommon-x11-dev libxcb-xfixes0-dev libxcb-icccm4-dev libxcb-cursor-dev
+# apt install libxcb1-dev libxcb-xkb-dev libxkbcommon-dev libxkbcommon-x11-dev libxcb-xfixes0-dev libxcb-icccm4-dev libxcb-randr0-dev libxcb-cursor-dev
 #
 if(${VOLO_PLATFORM} STREQUAL "linux")
-  message(STATUS "> Configuring xcb (with xkb, xkbcommon, xkbcommon-x11, xfixes, icccm and cursor-util extensions) package")
+
+  message(STATUS "> Configuring xcb (with xkb, xkbcommon, xkbcommon-x11, xfixes, icccm, randr and cursor-util extensions) package")
   find_package(xcb REQUIRED)
   find_package(xcb-cursor REQUIRED)
   find_package(xcb-icccm REQUIRED)
+  find_package(xcb-randr REQUIRED)
   find_package(xcb-xfixes REQUIRED)
   find_package(xcb-xkb REQUIRED)
   find_package(xkbcommon REQUIRED)
   find_package(xkbcommon-x11 REQUIRED)
   target_link_libraries(lib_gap PRIVATE xcb-cursor)
   target_link_libraries(lib_gap PRIVATE xcb-icccm)
+  target_link_libraries(lib_gap PRIVATE xcb-randr)
   target_link_libraries(lib_gap PRIVATE xcb-xfixes)
   target_link_libraries(lib_gap PRIVATE xcb-xkb)
   target_link_libraries(lib_gap PRIVATE xcb)
   target_link_libraries(lib_gap PRIVATE xkbcommon-x11)
   target_link_libraries(lib_gap PRIVATE xkbcommon)
+
+elseif(${VOLO_PLATFORM} STREQUAL "win32")
+
+  # Link against 'shcore.lib' for dpi awareness apis.
+  # NOTE: Exclude the gcc compiler because 'shcore.lib' is not available under MinGW at the moment.
+  if(NOT ${VOLO_COMPILER} STREQUAL "gcc")
+    target_link_libraries(lib_gap PRIVATE shcore.lib)
+  endif()
+
 endif()

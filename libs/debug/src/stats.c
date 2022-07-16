@@ -133,11 +133,11 @@ static void stats_draw_frametime(UiCanvasComp* canvas, const DebugStatsComp* sta
   const f64 g_errorThreshold = 1.25;
   const f64 g_warnThreshold  = 1.05;
 
-  FormatArg colorArg = fmt_nop();
+  String colorText = string_empty;
   if (stats->frameDur > stats->frameDurDesired * g_errorThreshold) {
-    colorArg = fmt_ui_color(ui_color_red);
+    colorText = ui_escape_color_scratch(ui_color_red);
   } else if (stats->frameDur > stats->frameDurDesired * g_warnThreshold) {
-    colorArg = fmt_ui_color(ui_color_yellow);
+    colorText = ui_escape_color_scratch(ui_color_yellow);
   }
   const f32    varianceUs = debug_plot_max(&stats->frameDurVarianceUs);
   const String freqText   = fmt_write_scratch(
@@ -148,7 +148,7 @@ static void stats_draw_frametime(UiCanvasComp* canvas, const DebugStatsComp* sta
       string_lit("Frame time"),
       fmt_write_scratch(
           "{}{<8}{<8}{>7} var",
-          colorArg,
+          fmt_text(colorText),
           fmt_duration(stats->frameDurAvg, .minDecDigits = 1),
           fmt_text(freqText),
           fmt_duration((TimeDuration)(varianceUs * time_microsecond), .maxDecDigits = 0)));
