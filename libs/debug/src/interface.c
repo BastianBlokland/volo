@@ -10,6 +10,7 @@
 // clang-format off
 
 static const String g_tooltipScale          = string_static("User interface scaling factor.\n\a.bNote\ar: Needs to be applied before taking effect.");
+static const String g_tooltipDpiScaling     = string_static("Should the display's density (in 'dots per inch') be taken into account.");\
 static const String g_tooltipDebugInspector = string_static("Enable the debug inspector.\n\n"
                                                             "Meaning:\n"
                                                             "- \a|01\a~red\a.bRed\ar: Element's rectangle.\n"
@@ -107,7 +108,8 @@ static void interface_panel_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Dpi scaling"));
   ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, (u32*)&settings->flags, UiSettingFlags_DpiScaling);
+  ui_toggle_flag(
+      canvas, (u32*)&settings->flags, UiSettingFlags_DpiScaling, .tooltip = g_tooltipDpiScaling);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Default color"));
