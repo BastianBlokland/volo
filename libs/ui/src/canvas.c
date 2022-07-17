@@ -665,7 +665,7 @@ void ui_canvas_text_editor_start(
 
 void ui_canvas_text_editor_stop(UiCanvasComp* comp) { ui_editor_stop(comp->textEditor); }
 
-bool ui_canvas_text_editor_active(UiCanvasComp* comp, const UiId id) {
+bool ui_canvas_text_editor_active(const UiCanvasComp* comp, const UiId id) {
   return ui_editor_active(comp->textEditor) && ui_editor_element(comp->textEditor) == id;
 }
 

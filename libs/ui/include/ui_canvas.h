@@ -126,7 +126,7 @@ UiId ui_canvas_draw_text_editor(UiCanvasComp*, u16 fontSize, UiAlign, UiFlags);
  */
 void   ui_canvas_text_editor_start(UiCanvasComp*, String text, usize maxLen, UiId, UiTextFilter);
 void   ui_canvas_text_editor_stop(UiCanvasComp*);
-bool   ui_canvas_text_editor_active(UiCanvasComp*, UiId);
+bool   ui_canvas_text_editor_active(const UiCanvasComp*, UiId);
 String ui_canvas_text_editor_result(UiCanvasComp*);
 
 /**
