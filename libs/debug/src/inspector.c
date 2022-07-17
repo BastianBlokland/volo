@@ -58,11 +58,11 @@ ecs_view_define(PanelUpdateView) {
 ecs_view_define(SubjectView) {
   ecs_access_read(SceneRenderableComp);
   ecs_access_maybe_read(SceneNameComp);
-  ecs_access_maybe_read(SceneCollisionComp);
   ecs_access_write(SceneTransformComp);
+  ecs_access_maybe_write(SceneBoundsComp);
+  ecs_access_maybe_write(SceneCollisionComp);
   ecs_access_maybe_write(SceneScaleComp);
   ecs_access_maybe_write(SceneTagComp);
-  ecs_access_maybe_write(SceneBoundsComp);
 }
 
 static bool inspector_panel_section(UiCanvasComp* canvas, const String label) {
@@ -180,11 +180,8 @@ static void inspector_panel_draw_transform(
     DebugInspectorPanelComp* panelComp,
     UiTable*                 table,
     EcsIterator*             subject) {
-  if (!subject) {
-    return;
-  }
-  SceneTransformComp* transform = ecs_view_write_t(subject, SceneTransformComp);
-  SceneScaleComp*     scale     = ecs_view_write_t(subject, SceneScaleComp);
+  SceneTransformComp* transform = subject ? ecs_view_write_t(subject, SceneTransformComp) : null;
+  SceneScaleComp*     scale     = subject ? ecs_view_write_t(subject, SceneScaleComp) : null;
   if (!transform && !scale) {
     return;
   }
@@ -235,6 +232,66 @@ static void inspector_panel_draw_tags(
       ui_label(canvas, scene_tag_name(tag));
       ui_table_next_column(canvas, table);
       ui_toggle_flag(canvas, &tagComp->tags, tag);
+    }
+  }
+}
+
+static void inspector_panel_draw_collision(
+    UiCanvasComp*            canvas,
+    DebugInspectorPanelComp* panelComp,
+    UiTable*                 table,
+    EcsIterator*             subject) {
+  SceneCollisionComp* collision = subject ? ecs_view_write_t(subject, SceneCollisionComp) : null;
+  if (!collision) {
+    return;
+  }
+  inspector_panel_next(canvas, panelComp, table);
+  if (inspector_panel_section(canvas, string_lit("Collision"))) {
+    switch (collision->type) {
+    case SceneCollisionType_Sphere: {
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Type"));
+      ui_table_next_column(canvas, table);
+      inspector_panel_draw_value_string(canvas, string_lit("Sphere"));
+
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Offset"));
+      ui_table_next_column(canvas, table);
+      inspector_panel_draw_editor_vec(canvas, &collision->sphere.offset, 3);
+
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Radius"));
+      ui_table_next_column(canvas, table);
+      inspector_panel_draw_editor_float(canvas, &collision->sphere.radius);
+    } break;
+    case SceneCollisionType_Capsule: {
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Type"));
+      ui_table_next_column(canvas, table);
+      inspector_panel_draw_value_string(canvas, string_lit("Capsule"));
+
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Offset"));
+      ui_table_next_column(canvas, table);
+      inspector_panel_draw_editor_vec(canvas, &collision->capsule.offset, 3);
+
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Direction"));
+      ui_table_next_column(canvas, table);
+      static const String g_collisionDirNames[] = {
+          string_static("Up"), string_static("Forward"), string_static("Right")};
+      ui_select(canvas, (i32*)&collision->capsule.dir, g_collisionDirNames, 3);
+
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Radius"));
+      ui_table_next_column(canvas, table);
+      inspector_panel_draw_editor_float(canvas, &collision->capsule.radius);
+
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Height"));
+      ui_table_next_column(canvas, table);
+      inspector_panel_draw_editor_float(canvas, &collision->capsule.height);
+    } break;
     }
   }
 }
@@ -365,6 +422,9 @@ static void inspector_panel_draw(
   ui_canvas_id_block_next(canvas); // Draws a variable amount of elements; Skip over the id space.
 
   inspector_panel_draw_tags(canvas, panelComp, &table, subject);
+  ui_canvas_id_block_next(canvas); // Draws a variable amount of elements; Skip over the id space.
+
+  inspector_panel_draw_collision(canvas, panelComp, &table, subject);
   ui_canvas_id_block_next(canvas); // Draws a variable amount of elements; Skip over the id space.
 
   inspector_panel_draw_bounds(canvas, panelComp, &table, subject);
