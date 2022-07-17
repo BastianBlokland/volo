@@ -85,12 +85,7 @@ static void inspector_panel_info(UiCanvasComp* canvas, UiTable* table, EcsIterat
   ui_table_next_column(canvas, table);
   if (subjectItr) {
     const EcsEntityId entity = ecs_view_entity(subjectItr);
-    ui_canvas_draw_text(
-        canvas,
-        fmt_write_scratch("{}", fmt_int(entity, .base = 16)),
-        16,
-        UiAlign_MiddleLeft,
-        UiFlags_None);
+    ui_label(canvas, fmt_write_scratch("{}", fmt_int(entity, .base = 16)), .selectable = true);
   }
 
   ui_table_next_row(canvas, table);
@@ -100,7 +95,7 @@ static void inspector_panel_info(UiCanvasComp* canvas, UiTable* table, EcsIterat
     const SceneNameComp* nameComp = ecs_view_read_t(subjectItr, SceneNameComp);
     if (nameComp) {
       const String name = stringtable_lookup(g_stringtable, nameComp->name);
-      ui_canvas_draw_text(canvas, name, 16, UiAlign_MiddleLeft, UiFlags_None);
+      ui_label(canvas, name, .selectable = true);
     }
   }
 }
