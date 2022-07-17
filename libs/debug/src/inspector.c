@@ -55,7 +55,7 @@ ecs_view_define(PanelUpdateView) {
   ecs_access_write(UiCanvasComp);
 }
 
-ecs_view_define(SubjectView) {
+ecs_view_define(SubjectWriteView) {
   ecs_access_read(SceneRenderableComp);
   ecs_access_maybe_read(SceneNameComp);
   ecs_access_write(SceneTransformComp);
@@ -63,6 +63,16 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_write(SceneCollisionComp);
   ecs_access_maybe_write(SceneScaleComp);
   ecs_access_maybe_write(SceneTagComp);
+}
+
+ecs_view_define(SubjectReadView) {
+  ecs_access_read(SceneRenderableComp);
+  ecs_access_maybe_read(SceneNameComp);
+  ecs_access_read(SceneTransformComp);
+  ecs_access_maybe_read(SceneBoundsComp);
+  ecs_access_maybe_read(SceneCollisionComp);
+  ecs_access_maybe_read(SceneScaleComp);
+  ecs_access_maybe_read(SceneTagComp);
 }
 
 static bool inspector_panel_section(UiCanvasComp* canvas, const String label) {
@@ -456,7 +466,7 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
   const SceneSelectionComp*   selection = ecs_view_read_t(globalItr, SceneSelectionComp);
   DebugInspectorSettingsComp* settings  = inspector_settings_get_or_create(world);
 
-  EcsView*     subjectView = ecs_world_view_t(world, SubjectView);
+  EcsView*     subjectView = ecs_world_view_t(world, SubjectWriteView);
   EcsIterator* subjectItr  = ecs_view_maybe_at(subjectView, scene_selected(selection));
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
@@ -477,7 +487,7 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
   }
 }
 
-static void inspector_draw_collision(
+static void inspector_shape_draw_collision(
     DebugShapeComp*           shape,
     const SceneCollisionComp* collision,
     const SceneTransformComp* transform,
@@ -500,7 +510,7 @@ static void inspector_draw_collision(
   }
 }
 
-static void inspector_draw_bounds_local(
+static void inspector_shape_draw_bounds_local(
     DebugShapeComp*           shape,
     const SceneBoundsComp*    bounds,
     const SceneTransformComp* transform,
@@ -512,7 +522,7 @@ static void inspector_draw_bounds_local(
   debug_box(shape, center, b.rotation, size, geo_color(0, 1, 0, 0.5f), DebugShape_Wire);
 }
 
-static void inspector_draw_bounds_global(
+static void inspector_shape_draw_bounds_global(
     DebugShapeComp*           shape,
     const SceneBoundsComp*    bounds,
     const SceneTransformComp* transform,
@@ -524,49 +534,49 @@ static void inspector_draw_bounds_global(
   debug_box(shape, center, geo_quat_ident, size, geo_color(0, 0, 1, 0.5f), DebugShape_Wire);
 }
 
-ecs_system_define(DebugInspectorDrawSys) {
+ecs_system_define(DebugInspectorShapeDrawSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalDrawView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
   }
-  const DebugInspectorSettingsComp* settings =
-      ecs_view_read_t(globalItr, DebugInspectorSettingsComp);
-  if (!(settings->flags & DebugInspectorFlags_DrawAny)) {
+  const DebugInspectorSettingsComp* set = ecs_view_read_t(globalItr, DebugInspectorSettingsComp);
+  if (!(set->flags & DebugInspectorFlags_DrawAny)) {
     return;
   }
 
   DebugShapeComp* shape = ecs_view_write_t(globalItr, DebugShapeComp);
   DebugTextComp*  text  = ecs_view_write_t(globalItr, DebugTextComp);
 
-  for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, SubjectView)); ecs_view_walk(itr);) {
+  for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, SubjectReadView));
+       ecs_view_walk(itr);) {
     const SceneTransformComp* transformComp = ecs_view_read_t(itr, SceneTransformComp);
     const SceneNameComp*      nameComp      = ecs_view_read_t(itr, SceneNameComp);
     const SceneBoundsComp*    boundsComp    = ecs_view_read_t(itr, SceneBoundsComp);
     const SceneCollisionComp* collisionComp = ecs_view_read_t(itr, SceneCollisionComp);
     const SceneScaleComp*     scaleComp     = ecs_view_read_t(itr, SceneScaleComp);
 
-    if (settings->flags & DebugInspectorFlags_DrawPivot) {
+    if (set->flags & DebugInspectorFlags_DrawPivot) {
       const GeoColor color = geo_color(1.0f, 1.0f, 0.0f, 1.0f);
       debug_sphere(shape, transformComp->position, 0.025f, color, DebugShape_Overlay);
     }
-    if (settings->flags & DebugInspectorFlags_DrawOrientation) {
+    if (set->flags & DebugInspectorFlags_DrawOrientation) {
       debug_orientation(shape, transformComp->position, transformComp->rotation, 0.25f);
     }
-    if (nameComp && settings->flags & DebugInspectorFlags_DrawName) {
+    if (nameComp && set->flags & DebugInspectorFlags_DrawName) {
       const String    name = stringtable_lookup(g_stringtable, nameComp->name);
       const GeoVector pos  = geo_vector_add(transformComp->position, geo_vector_mul(geo_up, 0.1f));
       debug_text(text, pos, name, geo_color_white);
     }
-    if (collisionComp && settings->flags & DebugInspectorFlags_DrawCollision) {
-      inspector_draw_collision(shape, collisionComp, transformComp, scaleComp);
+    if (collisionComp && set->flags & DebugInspectorFlags_DrawCollision) {
+      inspector_shape_draw_collision(shape, collisionComp, transformComp, scaleComp);
     }
     if (boundsComp && !geo_box_is_inverted3(&boundsComp->local)) {
-      if (settings->flags & DebugInspectorFlags_DrawBoundsLocal) {
-        inspector_draw_bounds_local(shape, boundsComp, transformComp, scaleComp);
+      if (set->flags & DebugInspectorFlags_DrawBoundsLocal) {
+        inspector_shape_draw_bounds_local(shape, boundsComp, transformComp, scaleComp);
       }
-      if (settings->flags & DebugInspectorFlags_DrawBoundsGlobal) {
-        inspector_draw_bounds_global(shape, boundsComp, transformComp, scaleComp);
+      if (set->flags & DebugInspectorFlags_DrawBoundsGlobal) {
+        inspector_shape_draw_bounds_global(shape, boundsComp, transformComp, scaleComp);
       }
     }
   }
@@ -580,18 +590,20 @@ ecs_module_init(debug_inspector_module) {
   ecs_register_view(GlobalUpdateView);
   ecs_register_view(GlobalDrawView);
   ecs_register_view(PanelUpdateView);
-  ecs_register_view(SubjectView);
+  ecs_register_view(SubjectWriteView);
+  ecs_register_view(SubjectReadView);
 
   ecs_register_system(
       DebugInspectorUpdatePanelSys,
       ecs_view_id(GlobalUpdateView),
       ecs_view_id(SettingsWriteView),
       ecs_view_id(PanelUpdateView),
-      ecs_view_id(SubjectView));
+      ecs_view_id(SubjectWriteView));
 
-  ecs_register_system(DebugInspectorDrawSys, ecs_view_id(GlobalDrawView), ecs_view_id(SubjectView));
+  ecs_register_system(
+      DebugInspectorShapeDrawSys, ecs_view_id(GlobalDrawView), ecs_view_id(SubjectReadView));
 
-  ecs_order(DebugInspectorDrawSys, DebugOrder_InspectorDebugDraw);
+  ecs_order(DebugInspectorShapeDrawSys, DebugOrder_InspectorDebugDraw);
 }
 
 EcsEntityId debug_inspector_panel_open(EcsWorld* world, const EcsEntityId window) {
