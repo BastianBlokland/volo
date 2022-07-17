@@ -106,7 +106,7 @@ void ecs_storage_queue_finalize(
     EcsStorage* storage, EcsFinalizer* finalizer, const EcsEntityId id, const BitSet mask) {
 
   EcsEntityInfo* info = ecs_storage_entity_info_ptr(storage, id);
-  diag_assert_msg(info, "Missing entity-info for entity '{}'", fmt_int(id));
+  diag_assert_msg(info, "Missing entity-info for entity '{}'", fmt_int(id, .base = 16));
 
   EcsArchetype* archetype = ecs_storage_archetype_ptr(storage, info->archetype);
   if (archetype) {
@@ -214,7 +214,7 @@ void ecs_storage_entity_move(
 
 void ecs_storage_entity_destroy(EcsStorage* storage, const EcsEntityId id) {
   EcsEntityInfo* info = ecs_storage_entity_info_ptr(storage, id);
-  diag_assert_msg(info, "Missing entity-info for entity '{}'", fmt_int(id));
+  diag_assert_msg(info, "Missing entity-info for entity '{}'", fmt_int(id, .base = 16));
 
   EcsArchetype* archetype = ecs_storage_archetype_ptr(storage, info->archetype);
   if (archetype) {

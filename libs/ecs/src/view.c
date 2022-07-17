@@ -63,7 +63,7 @@ EcsIterator* ecs_view_jump(EcsIterator* itr, const EcsEntityId entity) {
       ecs_view_contains(view, entity),
       "View {} does not contain entity {}",
       fmt_text(view->viewDef->name),
-      fmt_int(entity));
+      fmt_int(entity, .base = 16));
 
   ecs_storage_itr_jump(view->storage, itr, entity);
   return itr;
