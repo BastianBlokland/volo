@@ -160,13 +160,13 @@ EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
   const usize sysCount = ecs_def_system_count(def);
   EcsWorld*   world    = alloc_alloc_t(alloc, EcsWorld);
   *world               = (EcsWorld){
-      .def       = def,
-      .finalizer = ecs_finalizer_create(alloc, def),
-      .storage   = ecs_storage_create(alloc, def),
-      .views     = dynarray_create_t(alloc, EcsView, ecs_def_view_count(def)),
-      .buffer    = ecs_buffer_create(alloc, def),
-      .alloc     = alloc,
-      .sysStats  = sysCount ? alloc_array_t(alloc, EcsWorldSysStats, sysCount) : null,
+                    .def       = def,
+                    .finalizer = ecs_finalizer_create(alloc, def),
+                    .storage   = ecs_storage_create(alloc, def),
+                    .views     = dynarray_create_t(alloc, EcsView, ecs_def_view_count(def)),
+                    .buffer    = ecs_buffer_create(alloc, def),
+                    .alloc     = alloc,
+                    .sysStats  = sysCount ? alloc_array_t(alloc, EcsWorldSysStats, sysCount) : null,
   };
   world->globalEntity = ecs_storage_entity_create(&world->storage);
 
@@ -306,6 +306,13 @@ void ecs_world_remove(EcsWorld* world, const EcsEntityId entity, const EcsCompId
   thread_spinlock_lock(&world->bufferLock);
   ecs_buffer_comp_remove(&world->buffer, entity, comp);
   thread_spinlock_unlock(&world->bufferLock);
+}
+
+EcsArchetypeId ecs_world_entity_archetype(const EcsWorld* world, const EcsEntityId entity) {
+  diag_assert(!ecs_world_busy(world) || g_ecsRunningSystem);
+  diag_assert_msg(ecs_entity_valid(entity), "{} is an invalid entity", fmt_int(entity, .base = 16));
+
+  return ecs_storage_entity_archetype(&world->storage, entity);
 }
 
 void ecs_world_flush(EcsWorld* world) {

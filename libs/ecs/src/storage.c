@@ -170,8 +170,8 @@ BitSet ecs_storage_entity_mask(EcsStorage* storage, const EcsEntityId id) {
   return archetype->mask;
 }
 
-EcsArchetypeId ecs_storage_entity_archetype(EcsStorage* storage, const EcsEntityId id) {
-  EcsEntityInfo* info = ecs_storage_entity_info_ptr(storage, id);
+EcsArchetypeId ecs_storage_entity_archetype(const EcsStorage* storage, const EcsEntityId id) {
+  EcsEntityInfo* info = ecs_storage_entity_info_ptr((EcsStorage*)storage, id);
   return !info ? sentinel_u32 : info->archetype;
 }
 
