@@ -68,5 +68,9 @@ ecs_module_init(scene_time_module) {
 }
 
 f32 scene_time_seconds(const SceneTimeComp* time) { return time->time / (f32)time_second; }
-
 f32 scene_delta_seconds(const SceneTimeComp* time) { return time->delta / (f32)time_second; }
+
+f32 scene_real_time_seconds(const SceneTimeComp* time) { return time->realTime / (f32)time_second; }
+f32 scene_real_delta_seconds(const SceneTimeComp* time) {
+  return time->realDelta / (f32)time_second;
+}

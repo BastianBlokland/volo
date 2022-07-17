@@ -106,7 +106,7 @@ void ecs_storage_queue_finalize(
     EcsStorage* storage, EcsFinalizer* finalizer, const EcsEntityId id, const BitSet mask) {
 
   EcsEntityInfo* info = ecs_storage_entity_info_ptr(storage, id);
-  diag_assert_msg(info, "Missing entity-info for entity '{}'", fmt_int(id));
+  diag_assert_msg(info, "Missing entity-info for entity '{}'", fmt_int(id, .base = 16));
 
   EcsArchetype* archetype = ecs_storage_archetype_ptr(storage, info->archetype);
   if (archetype) {
@@ -170,8 +170,8 @@ BitSet ecs_storage_entity_mask(EcsStorage* storage, const EcsEntityId id) {
   return archetype->mask;
 }
 
-EcsArchetypeId ecs_storage_entity_archetype(EcsStorage* storage, const EcsEntityId id) {
-  EcsEntityInfo* info = ecs_storage_entity_info_ptr(storage, id);
+EcsArchetypeId ecs_storage_entity_archetype(const EcsStorage* storage, const EcsEntityId id) {
+  EcsEntityInfo* info = ecs_storage_entity_info_ptr((EcsStorage*)storage, id);
   return !info ? sentinel_u32 : info->archetype;
 }
 
@@ -214,7 +214,7 @@ void ecs_storage_entity_move(
 
 void ecs_storage_entity_destroy(EcsStorage* storage, const EcsEntityId id) {
   EcsEntityInfo* info = ecs_storage_entity_info_ptr(storage, id);
-  diag_assert_msg(info, "Missing entity-info for entity '{}'", fmt_int(id));
+  diag_assert_msg(info, "Missing entity-info for entity '{}'", fmt_int(id, .base = 16));
 
   EcsArchetype* archetype = ecs_storage_archetype_ptr(storage, info->archetype);
   if (archetype) {
@@ -261,6 +261,11 @@ u32 ecs_storage_archetype_total_chunks(const EcsStorage* storage) {
 
 usize ecs_storage_archetype_entities_per_chunk(const EcsStorage* storage, const EcsArchetypeId id) {
   return ecs_storage_archetype_ptr(storage, id)->entitiesPerChunk;
+}
+
+BitSet ecs_storage_archetype_mask(const EcsStorage* storage, const EcsArchetypeId id) {
+  const EcsArchetype* archetype = ecs_storage_archetype_ptr(storage, id);
+  return archetype ? archetype->mask : mem_empty;
 }
 
 EcsArchetypeId ecs_storage_archetype_find(EcsStorage* storage, const BitSet mask) {

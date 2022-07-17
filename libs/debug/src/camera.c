@@ -343,7 +343,7 @@ ecs_module_init(debug_camera_module) {
       ecs_view_id(DrawView),
       ecs_view_id(NameView));
 
-  ecs_order(DebugCameraDrawSys, DebugOrder_PhysicsDebugDraw);
+  ecs_order(DebugCameraDrawSys, DebugOrder_CameraDebugDraw);
 }
 
 EcsEntityId debug_camera_panel_open(EcsWorld* world, const EcsEntityId window) {
@@ -352,7 +352,7 @@ EcsEntityId debug_camera_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugCameraPanelComp,
-      .panel  = ui_panel(ui_vector(340, 400)),
+      .panel  = ui_panel(ui_vector(340, 340)),
       .window = window);
   return panelEntity;
 }

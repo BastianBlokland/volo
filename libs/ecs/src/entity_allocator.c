@@ -51,7 +51,7 @@ void entity_allocator_free(EntityAllocator* entityAllocator, const EcsEntityId i
     diag_assert_msg(
         !dynbitset_test(&entityAllocator->freeIndices, ecs_entity_id_index(id)),
         "Entity {} was already freed before",
-        fmt_int(id));
+        fmt_int(id, .base = 16));
 
     // Mark the entity index as being free again (bit set to 1).
     // Note: This can grow the dynamic-bitset if this index was never free before.

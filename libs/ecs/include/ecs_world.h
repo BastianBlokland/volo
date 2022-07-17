@@ -1,5 +1,6 @@
 #pragma once
 #include "core_memory.h"
+#include "ecs_archetype.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
 #include "ecs_view.h"
@@ -12,6 +13,9 @@ typedef struct sAllocator Allocator;
 
 // Forward declare from 'core_time.h'.
 typedef i64 TimeDuration;
+
+// Forward declare from 'core_bitset.h'
+typedef Mem BitSet;
 
 // Forward declare from 'job_executor.h'.
 typedef u16 JobWorkerId;
@@ -121,6 +125,20 @@ void* ecs_world_add(EcsWorld*, EcsEntityId, EcsCompId, Mem data);
   ecs_world_remove((_WORLD_), (_ENTITY_), ecs_comp_id(_TYPE_))
 
 void ecs_world_remove(EcsWorld*, EcsEntityId, EcsCompId);
+
+/**
+ * Retrieve the identifier of the archetype the given entity belongs to.
+ * NOTE: Returns sentinel_u32 if the entity does not currently belong to an archetype (meaning it
+ * has no components).
+ * Pre-condition: !ecs_world_busy() || g_ecsRunningSystem
+ */
+EcsArchetypeId ecs_world_entity_archetype(const EcsWorld* world, EcsEntityId);
+
+/**
+ * Retrieve the component mask for the given archetype.
+ * Pre-condition: !ecs_world_busy() || g_ecsRunningSystem
+ */
+BitSet ecs_world_component_mask(const EcsWorld* world, EcsArchetypeId);
 
 /**
  * Flush any queued layout modifications.

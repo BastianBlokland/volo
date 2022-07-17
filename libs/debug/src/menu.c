@@ -4,10 +4,10 @@
 #include "debug_camera.h"
 #include "debug_ecs.h"
 #include "debug_grid.h"
+#include "debug_inspector.h"
 #include "debug_interface.h"
 #include "debug_log_viewer.h"
 #include "debug_menu.h"
-#include "debug_physics.h"
 #include "debug_rend.h"
 #include "debug_stats.h"
 #include "debug_time.h"
@@ -20,10 +20,10 @@
 
 static const String g_tooltipStatsEnable     = string_static("Enable the \a.bStatistics\ar interface.");
 static const String g_tooltipStatsDisable    = string_static("Disable the \a.bStatistics\ar interface.");
+static const String g_tooltipPanelInspector  = string_static("Open the \a.bInspector\ar panel.");
 static const String g_tooltipPanelTime       = string_static("Open the \a.bTime\ar panel.");
 static const String g_tooltipPanelAnimation  = string_static("Open the \a.bAnimation\ar panel.");
 static const String g_tooltipPanelAsset      = string_static("Open the \a.bAsset\ar panel.");
-static const String g_tooltipPanelPhysics    = string_static("Open the \a.bPhysics\ar panel.");
 static const String g_tooltipPanelEcs        = string_static("Open the \a.bEcs\ar panel.");
 static const String g_tooltipPanelCamera     = string_static("Open the \a.bCamera\ar panel.");
 static const String g_tooltipPanelGrid       = string_static("Open the \a.bGrid\ar panel.");
@@ -39,10 +39,10 @@ static const String g_tooltipWindowClose     = string_static("Close the current 
 ecs_comp_define(DebugMenuComp) {
   EcsEntityId window;
   GapVector   lastWindowedSize;
+  EcsEntityId panelInspector;
   EcsEntityId panelTime;
   EcsEntityId panelAnimation;
   EcsEntityId panelAsset;
-  EcsEntityId panelPhysics;
   EcsEntityId panelEcs;
   EcsEntityId panelCamera;
   EcsEntityId panelGrid;
@@ -100,6 +100,16 @@ static void debug_action_bar_draw(
   ui_table_next_row(canvas, &table);
   if (ui_button(
           canvas,
+          .flags    = debug_panel_is_open(world, menu->panelInspector) ? UiWidget_Disabled : 0,
+          .label    = ui_shape_scratch(UiShape_ViewInAr),
+          .fontSize = 30,
+          .tooltip  = g_tooltipPanelInspector)) {
+    debug_panel_open(world, &menu->panelInspector, winEntity, debug_inspector_panel_open);
+  }
+
+  ui_table_next_row(canvas, &table);
+  if (ui_button(
+          canvas,
           .flags    = debug_panel_is_open(world, menu->panelTime) ? UiWidget_Disabled : 0,
           .label    = ui_shape_scratch(UiShape_Timer),
           .fontSize = 30,
@@ -125,16 +135,6 @@ static void debug_action_bar_draw(
           .fontSize = 30,
           .tooltip  = g_tooltipPanelAsset)) {
     debug_panel_open(world, &menu->panelAsset, winEntity, debug_asset_panel_open);
-  }
-
-  ui_table_next_row(canvas, &table);
-  if (ui_button(
-          canvas,
-          .flags    = debug_panel_is_open(world, menu->panelPhysics) ? UiWidget_Disabled : 0,
-          .label    = ui_shape_scratch(UiShape_ViewInAr),
-          .fontSize = 30,
-          .tooltip  = g_tooltipPanelPhysics)) {
-    debug_panel_open(world, &menu->panelPhysics, winEntity, debug_physics_panel_open);
   }
 
   ui_table_next_row(canvas, &table);
