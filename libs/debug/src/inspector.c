@@ -57,12 +57,12 @@ ecs_view_define(PanelUpdateView) {
 
 ecs_view_define(SubjectView) {
   ecs_access_read(SceneRenderableComp);
+  ecs_access_maybe_read(SceneNameComp);
+  ecs_access_maybe_read(SceneCollisionComp);
   ecs_access_write(SceneTransformComp);
   ecs_access_maybe_write(SceneScaleComp);
   ecs_access_maybe_write(SceneTagComp);
-  ecs_access_maybe_read(SceneNameComp);
-  ecs_access_maybe_read(SceneCollisionComp);
-  ecs_access_maybe_read(SceneBoundsComp);
+  ecs_access_maybe_write(SceneBoundsComp);
 }
 
 static bool inspector_panel_section(UiCanvasComp* canvas, const String label) {
@@ -239,6 +239,38 @@ static void inspector_panel_draw_tags(
   }
 }
 
+static void inspector_panel_draw_bounds(
+    UiCanvasComp*            canvas,
+    DebugInspectorPanelComp* panelComp,
+    UiTable*                 table,
+    EcsIterator*             subject) {
+  SceneBoundsComp* boundsComp = subject ? ecs_view_write_t(subject, SceneBoundsComp) : null;
+  if (!boundsComp) {
+    return;
+  }
+  inspector_panel_next(canvas, panelComp, table);
+  if (!inspector_panel_section(canvas, string_lit("Bounds"))) {
+    return;
+  }
+  GeoVector center = geo_box_center(&boundsComp->local);
+  GeoVector size   = geo_box_size(&boundsComp->local);
+  bool      dirty  = false;
+
+  inspector_panel_next(canvas, panelComp, table);
+  ui_label(canvas, string_lit("Center"));
+  ui_table_next_column(canvas, table);
+  dirty |= inspector_panel_draw_editor_vec(canvas, &center, 3);
+
+  inspector_panel_next(canvas, panelComp, table);
+  ui_label(canvas, string_lit("Size"));
+  ui_table_next_column(canvas, table);
+  dirty |= inspector_panel_draw_editor_vec(canvas, &size, 3);
+
+  if (dirty) {
+    boundsComp->local = geo_box_from_center(center, size);
+  }
+}
+
 static void inspector_panel_draw_components(
     EcsWorld*                world,
     UiCanvasComp*            canvas,
@@ -333,6 +365,9 @@ static void inspector_panel_draw(
   ui_canvas_id_block_next(canvas); // Draws a variable amount of elements; Skip over the id space.
 
   inspector_panel_draw_tags(canvas, panelComp, &table, subject);
+  ui_canvas_id_block_next(canvas); // Draws a variable amount of elements; Skip over the id space.
+
+  inspector_panel_draw_bounds(canvas, panelComp, &table, subject);
   ui_canvas_id_block_next(canvas); // Draws a variable amount of elements; Skip over the id space.
 
   inspector_panel_draw_components(world, canvas, panelComp, &table, subject);
