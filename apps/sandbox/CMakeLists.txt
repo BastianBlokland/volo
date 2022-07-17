@@ -5,6 +5,7 @@
 message(STATUS "> application: sandbox")
 
 add_executable(app_sandbox
+  src/app.c
   src/main.c
   )
 
