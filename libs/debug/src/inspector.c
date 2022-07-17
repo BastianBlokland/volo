@@ -20,12 +20,14 @@
 #include "ui.h"
 
 typedef enum {
-  DebugInspectorFlags_DrawPivot        = 1 << 0,
-  DebugInspectorFlags_DrawOrientation  = 1 << 1,
-  DebugInspectorFlags_DrawName         = 1 << 2,
-  DebugInspectorFlags_DrawCollision    = 1 << 3,
-  DebugInspectorFlags_DrawBoundsLocal  = 1 << 4,
-  DebugInspectorFlags_DrawBoundsGlobal = 1 << 5,
+  DebugInspectorFlags_Open             = 1 << 0,
+  DebugInspectorFlags_DrawWhenClosed   = 1 << 1,
+  DebugInspectorFlags_DrawPivot        = 1 << 2,
+  DebugInspectorFlags_DrawOrientation  = 1 << 3,
+  DebugInspectorFlags_DrawName         = 1 << 4,
+  DebugInspectorFlags_DrawCollision    = 1 << 5,
+  DebugInspectorFlags_DrawBoundsLocal  = 1 << 6,
+  DebugInspectorFlags_DrawBoundsGlobal = 1 << 7,
 
   DebugInspectorFlags_DrawAny =
       DebugInspectorFlags_DrawPivot | DebugInspectorFlags_DrawOrientation |
@@ -38,10 +40,7 @@ typedef enum {
   DebugInspectorDraw_All,
 } DebugInspectorDrawMode;
 
-static const String g_drawModeNames[] = {
-    string_static("SelectedOnly"),
-    string_static("All"),
-};
+static const String g_drawModeNames[] = {string_static("SelectedOnly"), string_static("All")};
 
 ecs_comp_define(DebugInspectorSettingsComp) {
   DebugInspectorDrawMode mode;
@@ -394,6 +393,11 @@ static void inspector_panel_draw_settings(
     ui_select(canvas, (i32*)&settings->mode, g_drawModeNames, array_elems(g_drawModeNames));
 
     inspector_panel_next(canvas, panelComp, table);
+    ui_label(canvas, string_lit("Draw when closed"));
+    ui_table_next_column(canvas, table);
+    ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawWhenClosed);
+
+    inspector_panel_next(canvas, panelComp, table);
     ui_label(canvas, string_lit("Draw pivot"));
     ui_table_next_column(canvas, table);
     ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawPivot);
@@ -482,6 +486,7 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
   }
   const SceneSelectionComp*   selection = ecs_view_read_t(globalItr, SceneSelectionComp);
   DebugInspectorSettingsComp* settings  = inspector_settings_get_or_create(world);
+  settings->flags &= ~DebugInspectorFlags_Open;
 
   EcsView*     subjectView = ecs_world_view_t(world, SubjectWriteView);
   EcsIterator* subjectItr  = ecs_view_maybe_at(subjectView, scene_selected(selection));
@@ -492,6 +497,7 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
     DebugInspectorPanelComp* panelComp = ecs_view_write_t(itr, DebugInspectorPanelComp);
     UiCanvasComp*            canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
+    settings->flags |= DebugInspectorFlags_Open;
     ui_canvas_reset(canvas);
     inspector_panel_draw(world, canvas, panelComp, settings, subjectItr);
 
@@ -595,6 +601,10 @@ ecs_system_define(DebugInspectorShapeDrawSys) {
   }
   const DebugInspectorSettingsComp* set = ecs_view_read_t(globalItr, DebugInspectorSettingsComp);
   if (!(set->flags & DebugInspectorFlags_DrawAny)) {
+    return;
+  }
+  const bool isOpen = (set->flags & DebugInspectorFlags_Open) != 0;
+  if (!isOpen && !(set->flags & DebugInspectorFlags_DrawWhenClosed)) {
     return;
   }
 
