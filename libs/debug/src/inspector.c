@@ -33,8 +33,10 @@ typedef enum {
 ecs_comp_define(DebugInspectorSettingsComp) { DebugInspectorFlags flags; };
 
 ecs_comp_define(DebugInspectorPanelComp) {
-  UiPanel   panel;
-  GeoVector transformRotEulerDeg; // Local copy of rotation as euler angles to use while editing.
+  UiPanel      panel;
+  UiScrollview scrollview;
+  u32          totalRows;
+  GeoVector    transformRotEulerDeg; // Local copy of rotation as euler angles to use while editing.
 };
 
 ecs_view_define(SettingsWriteView) { ecs_access_write(DebugInspectorSettingsComp); }
@@ -82,6 +84,11 @@ static bool inspector_panel_section(UiCanvasComp* canvas, const String label) {
   return open;
 }
 
+static void inspector_panel_next(UiCanvasComp* cv, DebugInspectorPanelComp* panel, UiTable* table) {
+  ui_table_next_row(cv, table);
+  ++panel->totalRows;
+}
+
 static void inspector_panel_draw_value_string(UiCanvasComp* canvas, const String value) {
   ui_style_push(canvas);
   ui_style_variation(canvas, UiVariation_Monospace);
@@ -125,8 +132,12 @@ inspector_panel_draw_editor_vec(UiCanvasComp* canvas, GeoVector* val, const u8 n
 }
 
 static void inspector_panel_draw_entity_info(
-    EcsWorld* world, UiCanvasComp* canvas, UiTable* table, EcsIterator* subject) {
-  ui_table_next_row(canvas, table);
+    EcsWorld*                world,
+    UiCanvasComp*            canvas,
+    DebugInspectorPanelComp* panelComp,
+    UiTable*                 table,
+    EcsIterator*             subject) {
+  inspector_panel_next(canvas, panelComp, table);
   ui_label(canvas, string_lit("Entity identifier"));
   ui_table_next_column(canvas, table);
   if (subject) {
@@ -136,7 +147,7 @@ static void inspector_panel_draw_entity_info(
     inspector_panel_draw_value_none(canvas);
   }
 
-  ui_table_next_row(canvas, table);
+  inspector_panel_next(canvas, panelComp, table);
   ui_label(canvas, string_lit("Entity name"));
   ui_table_next_column(canvas, table);
   if (subject) {
@@ -148,7 +159,7 @@ static void inspector_panel_draw_entity_info(
     inspector_panel_draw_value_none(canvas);
   }
 
-  ui_table_next_row(canvas, table);
+  inspector_panel_next(canvas, panelComp, table);
   ui_label(canvas, string_lit("Entity archetype"));
   ui_table_next_column(canvas, table);
   if (subject) {
@@ -163,8 +174,8 @@ static void inspector_panel_draw_entity_info(
 
 static void inspector_panel_draw_transform(
     UiCanvasComp*            canvas,
-    UiTable*                 table,
     DebugInspectorPanelComp* panelComp,
+    UiTable*                 table,
     EcsIterator*             subject) {
   if (!subject) {
     return;
@@ -174,17 +185,17 @@ static void inspector_panel_draw_transform(
   if (!transform && !scale) {
     return;
   }
-  ui_table_next_row(canvas, table);
+  inspector_panel_next(canvas, panelComp, table);
   if (!inspector_panel_section(canvas, string_lit("Transform"))) {
     return;
   }
   if (transform) {
-    ui_table_next_row(canvas, table);
+    inspector_panel_next(canvas, panelComp, table);
     ui_label(canvas, string_lit("Position"));
     ui_table_next_column(canvas, table);
     inspector_panel_draw_editor_vec(canvas, &transform->position, 3);
 
-    ui_table_next_row(canvas, table);
+    inspector_panel_next(canvas, panelComp, table);
     ui_label(canvas, string_lit("Rotation"));
     ui_table_next_column(canvas, table);
     if (inspector_panel_draw_editor_vec(canvas, &panelComp->transformRotEulerDeg, 3)) {
@@ -196,7 +207,7 @@ static void inspector_panel_draw_transform(
     }
   }
   if (scale) {
-    ui_table_next_row(canvas, table);
+    inspector_panel_next(canvas, panelComp, table);
     ui_label(canvas, string_lit("Scale"));
     ui_table_next_column(canvas, table);
     inspector_panel_draw_editor_float(canvas, &scale->scale);
@@ -204,7 +215,11 @@ static void inspector_panel_draw_transform(
 }
 
 static void inspector_panel_draw_components(
-    EcsWorld* world, UiCanvasComp* canvas, UiTable* table, EcsIterator* subject) {
+    EcsWorld*                world,
+    UiCanvasComp*            canvas,
+    DebugInspectorPanelComp* panelComp,
+    UiTable*                 table,
+    EcsIterator*             subject) {
   if (!subject) {
     return;
   }
@@ -212,13 +227,13 @@ static void inspector_panel_draw_components(
   const BitSet         compMask  = ecs_world_component_mask(world, archetype);
   const u32            compCount = (u32)bitset_count(compMask);
 
-  ui_table_next_row(canvas, table);
+  inspector_panel_next(canvas, panelComp, table);
   if (inspector_panel_section(canvas, fmt_write_scratch("Components ({})", fmt_int(compCount)))) {
     const EcsDef* def = ecs_world_def(world);
     bitset_for(compMask, compId) {
       const String compName = ecs_def_comp_name(def, (EcsCompId)compId);
       const usize  compSize = ecs_def_comp_size(def, (EcsCompId)compId);
-      ui_table_next_row(canvas, table);
+      inspector_panel_next(canvas, panelComp, table);
       ui_label(canvas, compName);
       ui_table_next_column(canvas, table);
       inspector_panel_draw_value_string(
@@ -228,38 +243,42 @@ static void inspector_panel_draw_components(
 }
 
 static void inspector_panel_draw_settings(
-    UiCanvasComp* canvas, UiTable* table, DebugInspectorSettingsComp* settings) {
-  ui_table_next_row(canvas, table);
+    UiCanvasComp*               canvas,
+    DebugInspectorPanelComp*    panelComp,
+    UiTable*                    table,
+    DebugInspectorSettingsComp* settings) {
+  inspector_panel_next(canvas, panelComp, table);
+
   if (!inspector_panel_section(canvas, string_lit("Settings"))) {
     return;
   }
 
-  ui_table_next_row(canvas, table);
+  inspector_panel_next(canvas, panelComp, table);
   ui_label(canvas, string_lit("Draw pivot"));
   ui_table_next_column(canvas, table);
   ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawPivot);
 
-  ui_table_next_row(canvas, table);
+  inspector_panel_next(canvas, panelComp, table);
   ui_label(canvas, string_lit("Draw orientation"));
   ui_table_next_column(canvas, table);
   ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawOrientation);
 
-  ui_table_next_row(canvas, table);
+  inspector_panel_next(canvas, panelComp, table);
   ui_label(canvas, string_lit("Draw name"));
   ui_table_next_column(canvas, table);
   ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawName);
 
-  ui_table_next_row(canvas, table);
+  inspector_panel_next(canvas, panelComp, table);
   ui_label(canvas, string_lit("Draw collision"));
   ui_table_next_column(canvas, table);
   ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawCollision);
 
-  ui_table_next_row(canvas, table);
+  inspector_panel_next(canvas, panelComp, table);
   ui_label(canvas, string_lit("Draw bounds local"));
   ui_table_next_column(canvas, table);
   ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawBoundsLocal);
 
-  ui_table_next_row(canvas, table);
+  inspector_panel_next(canvas, panelComp, table);
   ui_label(canvas, string_lit("Draw bounds global"));
   ui_table_next_column(canvas, table);
   ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawBoundsGlobal);
@@ -278,18 +297,23 @@ static void inspector_panel_draw(
   ui_table_add_column(&table, UiTableColumn_Fixed, 175);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
-  inspector_panel_draw_entity_info(world, canvas, &table, subject);
+  const f32 totalHeight = ui_table_height(&table, panelComp->totalRows);
+  ui_scrollview_begin(canvas, &panelComp->scrollview, totalHeight);
+  panelComp->totalRows = 0;
+
+  inspector_panel_draw_entity_info(world, canvas, panelComp, &table, subject);
   ui_canvas_id_block_next(canvas); // Draws a variable amount of elements; Skip over the id space.
 
-  inspector_panel_draw_transform(canvas, &table, panelComp, subject);
+  inspector_panel_draw_transform(canvas, panelComp, &table, subject);
   ui_canvas_id_block_next(canvas); // Draws a variable amount of elements; Skip over the id space.
 
-  inspector_panel_draw_components(world, canvas, &table, subject);
+  inspector_panel_draw_components(world, canvas, panelComp, &table, subject);
   ui_canvas_id_block_next(canvas); // Draws a variable amount of elements; Skip over the id space.
 
-  inspector_panel_draw_settings(canvas, &table, settings);
+  inspector_panel_draw_settings(canvas, panelComp, &table, settings);
   ui_canvas_id_block_next(canvas); // Draws a variable amount of elements; Skip over the id space.
 
+  ui_scrollview_end(canvas, &panelComp->scrollview);
   ui_panel_end(canvas, &panelComp->panel);
 }
 
