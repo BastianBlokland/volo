@@ -60,9 +60,9 @@ ecs_comp_define(DebugInspectorPanelComp) {
 };
 
 ecs_view_define(SettingsWriteView) { ecs_access_write(DebugInspectorSettingsComp); }
-ecs_view_define(GlobalUpdateView) { ecs_access_read(SceneSelectionComp); }
+ecs_view_define(GlobalPanelUpdateView) { ecs_access_read(SceneSelectionComp); }
 
-ecs_view_define(GlobalDrawView) {
+ecs_view_define(GlobalShapeDrawView) {
   ecs_access_read(DebugInspectorSettingsComp);
   ecs_access_read(SceneSelectionComp);
   ecs_access_write(DebugShapeComp);
@@ -249,18 +249,17 @@ static void inspector_panel_draw_tags(
     UiTable*                 table,
     EcsIterator*             subject) {
   SceneTagComp* tagComp = subject ? ecs_view_write_t(subject, SceneTagComp) : null;
-  if (!tagComp) {
-    return;
-  }
-  const u32 tagCount = bits_popcnt(tagComp->tags);
-  inspector_panel_next(canvas, panelComp, table);
-  if (inspector_panel_section(canvas, fmt_write_scratch("Tags ({})", fmt_int(tagCount)))) {
-    for (u32 i = 0; i != SceneTags_Count; ++i) {
-      const SceneTags tag = 1 << i;
-      inspector_panel_next(canvas, panelComp, table);
-      ui_label(canvas, scene_tag_name(tag));
-      ui_table_next_column(canvas, table);
-      ui_toggle_flag(canvas, &tagComp->tags, tag);
+  if (tagComp) {
+    const u32 tagCount = bits_popcnt(tagComp->tags);
+    inspector_panel_next(canvas, panelComp, table);
+    if (inspector_panel_section(canvas, fmt_write_scratch("Tags ({})", fmt_int(tagCount)))) {
+      for (u32 i = 0; i != SceneTags_Count; ++i) {
+        const SceneTags tag = 1 << i;
+        inspector_panel_next(canvas, panelComp, table);
+        ui_label(canvas, scene_tag_name(tag));
+        ui_table_next_column(canvas, table);
+        ui_toggle_flag(canvas, &tagComp->tags, tag);
+      }
     }
   }
 }
@@ -271,56 +270,55 @@ static void inspector_panel_draw_collision(
     UiTable*                 table,
     EcsIterator*             subject) {
   SceneCollisionComp* collision = subject ? ecs_view_write_t(subject, SceneCollisionComp) : null;
-  if (!collision) {
-    return;
-  }
-  inspector_panel_next(canvas, panelComp, table);
-  if (inspector_panel_section(canvas, string_lit("Collision"))) {
-    switch (collision->type) {
-    case SceneCollisionType_Sphere: {
-      inspector_panel_next(canvas, panelComp, table);
-      ui_label(canvas, string_lit("Type"));
-      ui_table_next_column(canvas, table);
-      inspector_panel_draw_value_string(canvas, string_lit("Sphere"));
+  if (collision) {
+    inspector_panel_next(canvas, panelComp, table);
+    if (inspector_panel_section(canvas, string_lit("Collision"))) {
+      switch (collision->type) {
+      case SceneCollisionType_Sphere: {
+        inspector_panel_next(canvas, panelComp, table);
+        ui_label(canvas, string_lit("Type"));
+        ui_table_next_column(canvas, table);
+        inspector_panel_draw_value_string(canvas, string_lit("Sphere"));
 
-      inspector_panel_next(canvas, panelComp, table);
-      ui_label(canvas, string_lit("Offset"));
-      ui_table_next_column(canvas, table);
-      inspector_panel_draw_editor_vec(canvas, &collision->sphere.offset, 3);
+        inspector_panel_next(canvas, panelComp, table);
+        ui_label(canvas, string_lit("Offset"));
+        ui_table_next_column(canvas, table);
+        inspector_panel_draw_editor_vec(canvas, &collision->sphere.offset, 3);
 
-      inspector_panel_next(canvas, panelComp, table);
-      ui_label(canvas, string_lit("Radius"));
-      ui_table_next_column(canvas, table);
-      inspector_panel_draw_editor_float(canvas, &collision->sphere.radius);
-    } break;
-    case SceneCollisionType_Capsule: {
-      inspector_panel_next(canvas, panelComp, table);
-      ui_label(canvas, string_lit("Type"));
-      ui_table_next_column(canvas, table);
-      inspector_panel_draw_value_string(canvas, string_lit("Capsule"));
+        inspector_panel_next(canvas, panelComp, table);
+        ui_label(canvas, string_lit("Radius"));
+        ui_table_next_column(canvas, table);
+        inspector_panel_draw_editor_float(canvas, &collision->sphere.radius);
+      } break;
+      case SceneCollisionType_Capsule: {
+        inspector_panel_next(canvas, panelComp, table);
+        ui_label(canvas, string_lit("Type"));
+        ui_table_next_column(canvas, table);
+        inspector_panel_draw_value_string(canvas, string_lit("Capsule"));
 
-      inspector_panel_next(canvas, panelComp, table);
-      ui_label(canvas, string_lit("Offset"));
-      ui_table_next_column(canvas, table);
-      inspector_panel_draw_editor_vec(canvas, &collision->capsule.offset, 3);
+        inspector_panel_next(canvas, panelComp, table);
+        ui_label(canvas, string_lit("Offset"));
+        ui_table_next_column(canvas, table);
+        inspector_panel_draw_editor_vec(canvas, &collision->capsule.offset, 3);
 
-      inspector_panel_next(canvas, panelComp, table);
-      ui_label(canvas, string_lit("Direction"));
-      ui_table_next_column(canvas, table);
-      static const String g_collisionDirNames[] = {
-          string_static("Up"), string_static("Forward"), string_static("Right")};
-      ui_select(canvas, (i32*)&collision->capsule.dir, g_collisionDirNames, 3);
+        inspector_panel_next(canvas, panelComp, table);
+        ui_label(canvas, string_lit("Direction"));
+        ui_table_next_column(canvas, table);
+        static const String g_collisionDirNames[] = {
+            string_static("Up"), string_static("Forward"), string_static("Right")};
+        ui_select(canvas, (i32*)&collision->capsule.dir, g_collisionDirNames, 3);
 
-      inspector_panel_next(canvas, panelComp, table);
-      ui_label(canvas, string_lit("Radius"));
-      ui_table_next_column(canvas, table);
-      inspector_panel_draw_editor_float(canvas, &collision->capsule.radius);
+        inspector_panel_next(canvas, panelComp, table);
+        ui_label(canvas, string_lit("Radius"));
+        ui_table_next_column(canvas, table);
+        inspector_panel_draw_editor_float(canvas, &collision->capsule.radius);
 
-      inspector_panel_next(canvas, panelComp, table);
-      ui_label(canvas, string_lit("Height"));
-      ui_table_next_column(canvas, table);
-      inspector_panel_draw_editor_float(canvas, &collision->capsule.height);
-    } break;
+        inspector_panel_next(canvas, panelComp, table);
+        ui_label(canvas, string_lit("Height"));
+        ui_table_next_column(canvas, table);
+        inspector_panel_draw_editor_float(canvas, &collision->capsule.height);
+      } break;
+      }
     }
   }
 }
@@ -331,29 +329,27 @@ static void inspector_panel_draw_bounds(
     UiTable*                 table,
     EcsIterator*             subject) {
   SceneBoundsComp* boundsComp = subject ? ecs_view_write_t(subject, SceneBoundsComp) : null;
-  if (!boundsComp) {
-    return;
-  }
-  inspector_panel_next(canvas, panelComp, table);
-  if (!inspector_panel_section(canvas, string_lit("Bounds"))) {
-    return;
-  }
-  GeoVector center = geo_box_center(&boundsComp->local);
-  GeoVector size   = geo_box_size(&boundsComp->local);
-  bool      dirty  = false;
+  if (boundsComp) {
+    inspector_panel_next(canvas, panelComp, table);
+    if (inspector_panel_section(canvas, string_lit("Bounds"))) {
+      GeoVector center = geo_box_center(&boundsComp->local);
+      GeoVector size   = geo_box_size(&boundsComp->local);
+      bool      dirty  = false;
 
-  inspector_panel_next(canvas, panelComp, table);
-  ui_label(canvas, string_lit("Center"));
-  ui_table_next_column(canvas, table);
-  dirty |= inspector_panel_draw_editor_vec(canvas, &center, 3);
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Center"));
+      ui_table_next_column(canvas, table);
+      dirty |= inspector_panel_draw_editor_vec(canvas, &center, 3);
 
-  inspector_panel_next(canvas, panelComp, table);
-  ui_label(canvas, string_lit("Size"));
-  ui_table_next_column(canvas, table);
-  dirty |= inspector_panel_draw_editor_vec(canvas, &size, 3);
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Size"));
+      ui_table_next_column(canvas, table);
+      dirty |= inspector_panel_draw_editor_vec(canvas, &size, 3);
 
-  if (dirty) {
-    boundsComp->local = geo_box_from_center(center, size);
+      if (dirty) {
+        boundsComp->local = geo_box_from_center(center, size);
+      }
+    }
   }
 }
 
@@ -488,7 +484,7 @@ static DebugInspectorSettingsComp* inspector_settings_get_or_create(EcsWorld* wo
 }
 
 ecs_system_define(DebugInspectorUpdatePanelSys) {
-  EcsView*     globalView = ecs_world_view_t(world, GlobalUpdateView);
+  EcsView*     globalView = ecs_world_view_t(world, GlobalPanelUpdateView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
@@ -603,7 +599,7 @@ static void inspector_shape_draw_subject(
 }
 
 ecs_system_define(DebugInspectorShapeDrawSys) {
-  EcsView*     globalView = ecs_world_view_t(world, GlobalDrawView);
+  EcsView*     globalView = ecs_world_view_t(world, GlobalShapeDrawView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
@@ -642,21 +638,21 @@ ecs_module_init(debug_inspector_module) {
   ecs_register_comp(DebugInspectorPanelComp);
 
   ecs_register_view(SettingsWriteView);
-  ecs_register_view(GlobalUpdateView);
-  ecs_register_view(GlobalDrawView);
+  ecs_register_view(GlobalPanelUpdateView);
+  ecs_register_view(GlobalShapeDrawView);
   ecs_register_view(PanelUpdateView);
   ecs_register_view(SubjectWriteView);
   ecs_register_view(SubjectReadView);
 
   ecs_register_system(
       DebugInspectorUpdatePanelSys,
-      ecs_view_id(GlobalUpdateView),
+      ecs_view_id(GlobalPanelUpdateView),
       ecs_view_id(SettingsWriteView),
       ecs_view_id(PanelUpdateView),
       ecs_view_id(SubjectWriteView));
 
   ecs_register_system(
-      DebugInspectorShapeDrawSys, ecs_view_id(GlobalDrawView), ecs_view_id(SubjectReadView));
+      DebugInspectorShapeDrawSys, ecs_view_id(GlobalShapeDrawView), ecs_view_id(SubjectReadView));
 
   ecs_order(DebugInspectorShapeDrawSys, DebugOrder_InspectorDebugDraw);
 }
