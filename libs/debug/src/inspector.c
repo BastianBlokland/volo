@@ -1,4 +1,5 @@
 #include "asset_manager.h"
+#include "core_math.h"
 #include "core_stringtable.h"
 #include "debug_inspector.h"
 #include "debug_register.h"
@@ -29,7 +30,11 @@ typedef enum {
 } DebugInspectorFlags;
 
 ecs_comp_define(DebugInspectorSettingsComp) { DebugInspectorFlags flags; };
-ecs_comp_define(DebugInspectorPanelComp) { UiPanel panel; };
+
+ecs_comp_define(DebugInspectorPanelComp) {
+  UiPanel   panel;
+  GeoVector transformRotEulerDeg; // Local copy of rotation as euler angles to use while editing.
+};
 
 ecs_view_define(SettingsWriteView) { ecs_access_write(DebugInspectorSettingsComp); }
 ecs_view_define(GlobalUpdateView) { ecs_access_read(SceneSelectionComp); }
@@ -47,7 +52,7 @@ ecs_view_define(PanelUpdateView) {
 
 ecs_view_define(SubjectView) {
   ecs_access_read(SceneRenderableComp);
-  ecs_access_read(SceneTransformComp);
+  ecs_access_write(SceneTransformComp);
   ecs_access_maybe_read(SceneNameComp);
   ecs_access_maybe_read(SceneCollisionComp);
   ecs_access_maybe_read(SceneBoundsComp);
@@ -55,8 +60,6 @@ ecs_view_define(SubjectView) {
 }
 
 static bool inspector_panel_section(UiCanvasComp* canvas, const String label) {
-  ui_canvas_id_block_next(canvas);
-
   bool open;
   ui_layout_push(canvas);
   {
@@ -78,38 +81,84 @@ static bool inspector_panel_section(UiCanvasComp* canvas, const String label) {
   return open;
 }
 
-static void inspector_draw_no_selection(UiCanvasComp* canvas) {
+static void inspector_draw_value_none(UiCanvasComp* canvas) {
   ui_style_push(canvas);
   ui_style_color_mult(canvas, 0.75f);
-  ui_label(canvas, string_lit("< No selection >"));
+  ui_label(canvas, string_lit("< None >"));
   ui_style_pop(canvas);
 }
 
-static void inspector_panel_info(UiCanvasComp* canvas, UiTable* table, EcsIterator* subjectItr) {
+static bool inspector_draw_editor_vec(UiCanvasComp* canvas, GeoVector* vec, const u8 numComps) {
+  static const f32 g_spacing   = 10.0f;
+  const u8         numSpacings = numComps - 1;
+  const UiAlign    align       = UiAlign_MiddleLeft;
+  ui_layout_push(canvas);
+  ui_layout_resize(canvas, align, ui_vector(1.0f / numComps, 0), UiBase_Current, Ui_X);
+  ui_layout_grow(
+      canvas, align, ui_vector(numSpacings * -g_spacing / numComps, 0), UiBase_Absolute, Ui_X);
+
+  bool isDirty = false;
+  for (u8 comp = 0; comp != numComps; ++comp) {
+    f64 val = vec->comps[comp];
+    if (ui_numbox(canvas, &val, .min = f32_min, .flags = UiWidget_DirtyWhileEditing)) {
+      vec->comps[comp] = (f32)val;
+      isDirty          = true;
+    }
+    ui_layout_next(canvas, Ui_Right, g_spacing);
+  }
+  ui_layout_pop(canvas);
+  return isDirty;
+}
+
+static void inspector_draw_entity_info(UiCanvasComp* canvas, UiTable* table, EcsIterator* subject) {
+  ui_table_next_row(canvas, table);
   ui_label(canvas, string_lit("Entity identifier"));
   ui_table_next_column(canvas, table);
-  if (subjectItr) {
-    const EcsEntityId entity = ecs_view_entity(subjectItr);
+  if (subject) {
+    const EcsEntityId entity = ecs_view_entity(subject);
     ui_label(canvas, fmt_write_scratch("{}", fmt_int(entity, .base = 16)), .selectable = true);
   } else {
-    inspector_draw_no_selection(canvas);
+    inspector_draw_value_none(canvas);
   }
 
   ui_table_next_row(canvas, table);
   ui_label(canvas, string_lit("Entity name"));
   ui_table_next_column(canvas, table);
-  if (subjectItr) {
-    const SceneNameComp* nameComp = ecs_view_read_t(subjectItr, SceneNameComp);
+  if (subject) {
+    const SceneNameComp* nameComp = ecs_view_read_t(subject, SceneNameComp);
     if (nameComp) {
       const String name = stringtable_lookup(g_stringtable, nameComp->name);
       ui_label(canvas, name, .selectable = true);
     }
   } else {
-    inspector_draw_no_selection(canvas);
+    inspector_draw_value_none(canvas);
   }
 }
 
-static void inspector_panel_settings(
+static void inspector_panel_draw_transform(
+    UiCanvasComp*            canvas,
+    UiTable*                 table,
+    DebugInspectorPanelComp* panelComp,
+    SceneTransformComp*      transform) {
+
+  ui_table_next_row(canvas, table);
+  ui_label(canvas, string_lit("Position"));
+  ui_table_next_column(canvas, table);
+  inspector_draw_editor_vec(canvas, &transform->position, 3);
+
+  ui_table_next_row(canvas, table);
+  ui_label(canvas, string_lit("Rotation"));
+  ui_table_next_column(canvas, table);
+  if (inspector_draw_editor_vec(canvas, &panelComp->transformRotEulerDeg, 3)) {
+    const GeoVector eulerRad = geo_vector_mul(panelComp->transformRotEulerDeg, math_deg_to_rad);
+    transform->rotation      = geo_quat_from_euler(eulerRad);
+  } else {
+    const GeoVector eulerRad        = geo_quat_to_euler(transform->rotation);
+    panelComp->transformRotEulerDeg = geo_vector_mul(eulerRad, math_rad_to_deg);
+  }
+}
+
+static void inspector_panel_draw_settings(
     UiCanvasComp* canvas, UiTable* table, DebugInspectorSettingsComp* settings) {
 
   ui_table_next_row(canvas, table);
@@ -147,7 +196,7 @@ static void inspector_panel_draw(
     UiCanvasComp*               canvas,
     DebugInspectorPanelComp*    panelComp,
     DebugInspectorSettingsComp* settings,
-    EcsIterator*                subjectItr) {
+    EcsIterator*                subject) {
   const String title = fmt_write_scratch("{} Inspector Panel", fmt_ui_shape(ViewInAr));
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
 
@@ -155,12 +204,21 @@ static void inspector_panel_draw(
   ui_table_add_column(&table, UiTableColumn_Fixed, 175);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
-  ui_table_next_row(canvas, &table);
-  inspector_panel_info(canvas, &table, subjectItr);
+  inspector_draw_entity_info(canvas, &table, subject);
 
+  ui_canvas_id_block_next(canvas);
+  SceneTransformComp* trans = subject ? ecs_view_write_t(subject, SceneTransformComp) : null;
+  if (trans) {
+    ui_table_next_row(canvas, &table);
+    if (inspector_panel_section(canvas, string_lit("Transform"))) {
+      inspector_panel_draw_transform(canvas, &table, panelComp, trans);
+    }
+  }
+
+  ui_canvas_id_block_next(canvas);
   ui_table_next_row(canvas, &table);
   if (inspector_panel_section(canvas, string_lit("Settings"))) {
-    inspector_panel_settings(canvas, &table, settings);
+    inspector_panel_draw_settings(canvas, &table, settings);
   }
 
   ui_panel_end(canvas, &panelComp->panel);
