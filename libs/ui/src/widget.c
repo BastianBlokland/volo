@@ -646,7 +646,7 @@ bool ui_textbox_with_opts(UiCanvasComp* canvas, DynString* text, const UiTextbox
     ui_canvas_interact_type(canvas, UiInteractType_Text);
   }
 
-  return changed;
+  return changed || ((flags & UiWidget_DirtyWhileEditing) && editing);
 }
 
 bool ui_numbox_with_opts(UiCanvasComp* canvas, f64* input, const UiNumboxOpts* opts) {
