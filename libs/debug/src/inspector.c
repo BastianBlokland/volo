@@ -123,7 +123,8 @@ static bool inspector_draw_editor_vec(UiCanvasComp* canvas, GeoVector* val, cons
   return isDirty;
 }
 
-static void inspector_draw_entity_info(UiCanvasComp* canvas, UiTable* table, EcsIterator* subject) {
+static void inspector_draw_entity_info(
+    EcsWorld* world, UiCanvasComp* canvas, UiTable* table, EcsIterator* subject) {
   ui_table_next_row(canvas, table);
   ui_label(canvas, string_lit("Entity identifier"));
   ui_table_next_column(canvas, table);
@@ -141,6 +142,18 @@ static void inspector_draw_entity_info(UiCanvasComp* canvas, UiTable* table, Ecs
     const SceneNameComp* nameComp = ecs_view_read_t(subject, SceneNameComp);
     if (nameComp) {
       inspector_draw_value_string(canvas, stringtable_lookup(g_stringtable, nameComp->name));
+    }
+  } else {
+    inspector_draw_value_none(canvas);
+  }
+
+  ui_table_next_row(canvas, table);
+  ui_label(canvas, string_lit("Entity archetype"));
+  ui_table_next_column(canvas, table);
+  if (subject) {
+    const EcsArchetypeId archetype = ecs_world_entity_archetype(world, ecs_view_entity(subject));
+    if (!(sentinel_check(archetype))) {
+      inspector_draw_value_string(canvas, fmt_write_scratch("{}", fmt_int(archetype)));
     }
   } else {
     inspector_draw_value_none(canvas);
@@ -216,6 +229,7 @@ static void inspector_panel_draw_settings(
 }
 
 static void inspector_panel_draw(
+    EcsWorld*                   world,
     UiCanvasComp*               canvas,
     DebugInspectorPanelComp*    panelComp,
     DebugInspectorSettingsComp* settings,
@@ -227,7 +241,7 @@ static void inspector_panel_draw(
   ui_table_add_column(&table, UiTableColumn_Fixed, 175);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
-  inspector_draw_entity_info(canvas, &table, subject);
+  inspector_draw_entity_info(world, canvas, &table, subject);
 
   ui_canvas_id_block_next(canvas);
   if (subject && ecs_view_read_t(subject, SceneTransformComp)) {
@@ -272,7 +286,7 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
     UiCanvasComp*            canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
-    inspector_panel_draw(canvas, panelComp, settings, subjectItr);
+    inspector_panel_draw(world, canvas, panelComp, settings, subjectItr);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, entity);
