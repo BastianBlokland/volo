@@ -1,7 +1,7 @@
 {
   "shaders": [
     {
-      "shaderId": "shaders/standard.vert.spv"
+      "shaderId": "shaders/standard_skinned.vert.spv"
     },
     {
       "shaderId": "shaders/standard.frag.spv",
@@ -19,35 +19,35 @@
         {
           "name": "reflectFrac",
           "binding": 3,
-          "value": 0.6
+          "value": 0.1
         }
       ]
     }
   ],
   "samplers": [
     {
-      "textureId": "external/normal_tangent_mirror_test/normal_tangent_mirror_test_diff.tga",
+      "textureId": "external/vanguard/vanguard_diff.tga",
       "wrap": "Clamp",
       "filter": "Linear",
       "anisotropy": "x4"
     },
     {
-      "textureId": "external/normal_tangent_mirror_test/normal_tangent_mirror_test_nrm.tga",
+      "textureId": "external/vanguard/vanguard_nrm.tga",
       "wrap": "Clamp",
       "filter": "Linear",
       "anisotropy": "x4"
     },
     {
-      "textureId": "textures/demo/skybox.atx",
+      "textureId": "textures/sandbox/skybox.atx",
       "wrap": "Clamp",
       "filter": "Linear",
       "anisotropy": "None"
     }
   ],
-  "meshId": "external/normal_tangent_mirror_test/normal_tangent_mirror_test.gltf",
+  "meshId": "external/vanguard/vanguard.gltf",
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "None",
   "depth": "Less",
-  "cull": "None"
+  "cull": "Back"
 }

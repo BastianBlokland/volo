@@ -13,7 +13,7 @@
 #include "ui_register.h"
 
 static const GapVector g_windowSize  = {1920, 1080};
-static const String    g_unitGraphic = string_static("graphics/demo/vanguard.gra");
+static const String    g_unitGraphic = string_static("graphics/sandbox/vanguard.gra");
 
 ecs_comp_define(AppComp) { bool unitSpawned; };
 
