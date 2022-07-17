@@ -80,7 +80,7 @@ ecs_view_define(SubjectWriteView) {
   ecs_access_maybe_write(SceneCollisionComp);
   ecs_access_maybe_write(SceneScaleComp);
   ecs_access_maybe_write(SceneTagComp);
-  ecs_access_read(SceneRenderableComp);
+  ecs_access_write(SceneRenderableComp);
   ecs_access_write(SceneTransformComp);
 }
 
@@ -240,6 +240,24 @@ static void inspector_panel_draw_transform(
     ui_label(canvas, string_lit("Scale"));
     ui_table_next_column(canvas, table);
     inspector_panel_draw_editor_float(canvas, &scale->scale);
+  }
+}
+
+static void inspector_panel_draw_renderable(
+    UiCanvasComp*            canvas,
+    DebugInspectorPanelComp* panelComp,
+    UiTable*                 table,
+    EcsIterator*             subject) {
+  SceneRenderableComp* renderable = subject ? ecs_view_write_t(subject, SceneRenderableComp) : null;
+  if (renderable) {
+    inspector_panel_next(canvas, panelComp, table);
+    if (inspector_panel_section(canvas, string_lit("Renderable"))) {
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Graphic"));
+      ui_table_next_column(canvas, table);
+      inspector_panel_draw_value_string(
+          canvas, fmt_write_scratch("{}", fmt_int(renderable->graphic, .base = 16)));
+    }
   }
 }
 
@@ -453,6 +471,9 @@ static void inspector_panel_draw(
   inspector_panel_draw_transform(canvas, panelComp, &table, subject);
   ui_canvas_id_block_next(canvas); // Draws a variable amount of elements; Skip over the id space.
 
+  inspector_panel_draw_renderable(canvas, panelComp, &table, subject);
+  ui_canvas_id_block_next(canvas); // Draws a variable amount of elements; Skip over the id space.
+
   inspector_panel_draw_tags(canvas, panelComp, &table, subject);
   ui_canvas_id_block_next(canvas); // Draws a variable amount of elements; Skip over the id space.
 
@@ -660,6 +681,6 @@ ecs_module_init(debug_inspector_module) {
 EcsEntityId debug_inspector_panel_open(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
   ecs_world_add_t(
-      world, panelEntity, DebugInspectorPanelComp, .panel = ui_panel(ui_vector(500, 350)));
+      world, panelEntity, DebugInspectorPanelComp, .panel = ui_panel(ui_vector(500, 400)));
   return panelEntity;
 }
