@@ -54,18 +54,22 @@ static void time_panel_draw(
   ui_table_add_column(&table, UiTableColumn_Fixed, 125);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
+  const bool isPaused = (timeSettings->flags & SceneTimeFlags_Paused) != 0;
+
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Paused"));
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(canvas, (u32*)&timeSettings->flags, SceneTimeFlags_Paused);
-  ui_layout_push(canvas);
-  ui_layout_inner(canvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(75, 25), UiBase_Absolute);
-  if (ui_button(canvas, .label = string_lit("Step"))) {
-    timeSettings->flags |= SceneTimeFlags_Step;
+  if (isPaused) {
+    ui_layout_push(canvas);
+    ui_layout_inner(
+        canvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(100, 25), UiBase_Absolute);
+    if (ui_button(canvas, .label = string_lit("Step"))) {
+      timeSettings->flags |= SceneTimeFlags_Step;
+    }
+    ui_layout_pop(canvas);
   }
-  ui_layout_pop(canvas);
 
-  const bool isPaused = (timeSettings->flags & SceneTimeFlags_Paused) != 0;
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Scale"));
   ui_table_next_column(canvas, &table);
@@ -154,6 +158,6 @@ ecs_module_init(debug_time_module) {
 
 EcsEntityId debug_time_panel_open(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
-  ecs_world_add_t(world, panelEntity, DebugTimePanelComp, .panel = ui_panel(ui_vector(350, 250)));
+  ecs_world_add_t(world, panelEntity, DebugTimePanelComp, .panel = ui_panel(ui_vector(375, 250)));
   return panelEntity;
 }
