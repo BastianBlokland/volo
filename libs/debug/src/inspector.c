@@ -82,21 +82,21 @@ static bool inspector_panel_section(UiCanvasComp* canvas, const String label) {
   return open;
 }
 
-static void inspector_draw_value_string(UiCanvasComp* canvas, const String value) {
+static void inspector_panel_draw_value_string(UiCanvasComp* canvas, const String value) {
   ui_style_push(canvas);
   ui_style_variation(canvas, UiVariation_Monospace);
   ui_label(canvas, value, .selectable = true);
   ui_style_pop(canvas);
 }
 
-static void inspector_draw_value_none(UiCanvasComp* canvas) {
+static void inspector_panel_draw_value_none(UiCanvasComp* canvas) {
   ui_style_push(canvas);
   ui_style_color_mult(canvas, 0.75f);
-  inspector_draw_value_string(canvas, string_lit("< None >"));
+  inspector_panel_draw_value_string(canvas, string_lit("< None >"));
   ui_style_pop(canvas);
 }
 
-static bool inspector_draw_editor_float(UiCanvasComp* canvas, f32* val) {
+static bool inspector_panel_draw_editor_float(UiCanvasComp* canvas, f32* val) {
   f64 v = *val;
   if (ui_numbox(canvas, &v, .min = f32_min, .max = f32_max, .flags = UiWidget_DirtyWhileEditing)) {
     *val = (f32)v;
@@ -105,7 +105,8 @@ static bool inspector_draw_editor_float(UiCanvasComp* canvas, f32* val) {
   return false;
 }
 
-static bool inspector_draw_editor_vec(UiCanvasComp* canvas, GeoVector* val, const u8 numComps) {
+static bool
+inspector_panel_draw_editor_vec(UiCanvasComp* canvas, GeoVector* val, const u8 numComps) {
   static const f32 g_spacing   = 10.0f;
   const u8         numSpacings = numComps - 1;
   const UiAlign    align       = UiAlign_MiddleLeft;
@@ -116,23 +117,23 @@ static bool inspector_draw_editor_vec(UiCanvasComp* canvas, GeoVector* val, cons
 
   bool isDirty = false;
   for (u8 comp = 0; comp != numComps; ++comp) {
-    isDirty |= inspector_draw_editor_float(canvas, &val->comps[comp]);
+    isDirty |= inspector_panel_draw_editor_float(canvas, &val->comps[comp]);
     ui_layout_next(canvas, Ui_Right, g_spacing);
   }
   ui_layout_pop(canvas);
   return isDirty;
 }
 
-static void inspector_draw_entity_info(
+static void inspector_panel_draw_entity_info(
     EcsWorld* world, UiCanvasComp* canvas, UiTable* table, EcsIterator* subject) {
   ui_table_next_row(canvas, table);
   ui_label(canvas, string_lit("Entity identifier"));
   ui_table_next_column(canvas, table);
   if (subject) {
     const EcsEntityId entity = ecs_view_entity(subject);
-    inspector_draw_value_string(canvas, fmt_write_scratch("{}", fmt_int(entity, .base = 16)));
+    inspector_panel_draw_value_string(canvas, fmt_write_scratch("{}", fmt_int(entity, .base = 16)));
   } else {
-    inspector_draw_value_none(canvas);
+    inspector_panel_draw_value_none(canvas);
   }
 
   ui_table_next_row(canvas, table);
@@ -141,10 +142,10 @@ static void inspector_draw_entity_info(
   if (subject) {
     const SceneNameComp* nameComp = ecs_view_read_t(subject, SceneNameComp);
     if (nameComp) {
-      inspector_draw_value_string(canvas, stringtable_lookup(g_stringtable, nameComp->name));
+      inspector_panel_draw_value_string(canvas, stringtable_lookup(g_stringtable, nameComp->name));
     }
   } else {
-    inspector_draw_value_none(canvas);
+    inspector_panel_draw_value_none(canvas);
   }
 
   ui_table_next_row(canvas, table);
@@ -153,10 +154,10 @@ static void inspector_draw_entity_info(
   if (subject) {
     const EcsArchetypeId archetype = ecs_world_entity_archetype(world, ecs_view_entity(subject));
     if (!(sentinel_check(archetype))) {
-      inspector_draw_value_string(canvas, fmt_write_scratch("{}", fmt_int(archetype)));
+      inspector_panel_draw_value_string(canvas, fmt_write_scratch("{}", fmt_int(archetype)));
     }
   } else {
-    inspector_draw_value_none(canvas);
+    inspector_panel_draw_value_none(canvas);
   }
 }
 
@@ -181,12 +182,12 @@ static void inspector_panel_draw_transform(
     ui_table_next_row(canvas, table);
     ui_label(canvas, string_lit("Position"));
     ui_table_next_column(canvas, table);
-    inspector_draw_editor_vec(canvas, &transform->position, 3);
+    inspector_panel_draw_editor_vec(canvas, &transform->position, 3);
 
     ui_table_next_row(canvas, table);
     ui_label(canvas, string_lit("Rotation"));
     ui_table_next_column(canvas, table);
-    if (inspector_draw_editor_vec(canvas, &panelComp->transformRotEulerDeg, 3)) {
+    if (inspector_panel_draw_editor_vec(canvas, &panelComp->transformRotEulerDeg, 3)) {
       const GeoVector eulerRad = geo_vector_mul(panelComp->transformRotEulerDeg, math_deg_to_rad);
       transform->rotation      = geo_quat_from_euler(eulerRad);
     } else {
@@ -198,7 +199,7 @@ static void inspector_panel_draw_transform(
     ui_table_next_row(canvas, table);
     ui_label(canvas, string_lit("Scale"));
     ui_table_next_column(canvas, table);
-    inspector_draw_editor_float(canvas, &scale->scale);
+    inspector_panel_draw_editor_float(canvas, &scale->scale);
   }
 }
 
@@ -253,7 +254,7 @@ static void inspector_panel_draw(
   ui_table_add_column(&table, UiTableColumn_Fixed, 175);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
-  inspector_draw_entity_info(world, canvas, &table, subject);
+  inspector_panel_draw_entity_info(world, canvas, &table, subject);
   ui_canvas_id_block_next(canvas); // Draws a variable amount of elements; Skip over the id space.
 
   inspector_panel_draw_transform(canvas, &table, panelComp, subject);
