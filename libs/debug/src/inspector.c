@@ -203,6 +203,30 @@ static void inspector_panel_draw_transform(
   }
 }
 
+static void inspector_panel_draw_components(
+    EcsWorld* world, UiCanvasComp* canvas, UiTable* table, EcsIterator* subject) {
+  if (!subject) {
+    return;
+  }
+  const EcsArchetypeId archetype = ecs_world_entity_archetype(world, ecs_view_entity(subject));
+  const BitSet         compMask  = ecs_world_component_mask(world, archetype);
+  const u32            compCount = (u32)bitset_count(compMask);
+
+  ui_table_next_row(canvas, table);
+  if (inspector_panel_section(canvas, fmt_write_scratch("Components ({})", fmt_int(compCount)))) {
+    const EcsDef* def = ecs_world_def(world);
+    bitset_for(compMask, compId) {
+      const String compName = ecs_def_comp_name(def, (EcsCompId)compId);
+      const usize  compSize = ecs_def_comp_size(def, (EcsCompId)compId);
+      ui_table_next_row(canvas, table);
+      ui_label(canvas, compName);
+      ui_table_next_column(canvas, table);
+      inspector_panel_draw_value_string(
+          canvas, fmt_write_scratch("id: {<3} size: {}", fmt_int(compId), fmt_size(compSize)));
+    }
+  }
+}
+
 static void inspector_panel_draw_settings(
     UiCanvasComp* canvas, UiTable* table, DebugInspectorSettingsComp* settings) {
   ui_table_next_row(canvas, table);
@@ -258,6 +282,9 @@ static void inspector_panel_draw(
   ui_canvas_id_block_next(canvas); // Draws a variable amount of elements; Skip over the id space.
 
   inspector_panel_draw_transform(canvas, &table, panelComp, subject);
+  ui_canvas_id_block_next(canvas); // Draws a variable amount of elements; Skip over the id space.
+
+  inspector_panel_draw_components(world, canvas, &table, subject);
   ui_canvas_id_block_next(canvas); // Draws a variable amount of elements; Skip over the id space.
 
   inspector_panel_draw_settings(canvas, &table, settings);
