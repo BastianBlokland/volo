@@ -1,13 +1,12 @@
 #pragma once
 #include "core_dynarray.h"
 #include "core_thread.h"
+#include "ecs_archetype.h"
 #include "ecs_def.h"
 
 #include "entity_allocator_internal.h"
 #include "finalizer_internal.h"
 #include "iterator_internal.h"
-
-typedef u32 EcsArchetypeId;
 
 typedef struct {
   const EcsDef* def;
