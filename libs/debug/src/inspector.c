@@ -1,4 +1,5 @@
 #include "asset_manager.h"
+#include "core_diag.h"
 #include "core_math.h"
 #include "core_stringtable.h"
 #include "debug_inspector.h"
@@ -53,10 +54,10 @@ ecs_view_define(PanelUpdateView) {
 ecs_view_define(SubjectView) {
   ecs_access_read(SceneRenderableComp);
   ecs_access_write(SceneTransformComp);
+  ecs_access_maybe_write(SceneScaleComp);
   ecs_access_maybe_read(SceneNameComp);
   ecs_access_maybe_read(SceneCollisionComp);
   ecs_access_maybe_read(SceneBoundsComp);
-  ecs_access_maybe_read(SceneScaleComp);
 }
 
 static bool inspector_panel_section(UiCanvasComp* canvas, const String label) {
@@ -95,7 +96,16 @@ static void inspector_draw_value_none(UiCanvasComp* canvas) {
   ui_style_pop(canvas);
 }
 
-static bool inspector_draw_editor_vec(UiCanvasComp* canvas, GeoVector* vec, const u8 numComps) {
+static bool inspector_draw_editor_float(UiCanvasComp* canvas, f32* val) {
+  f64 v = *val;
+  if (ui_numbox(canvas, &v, .min = f32_min, .max = f32_max, .flags = UiWidget_DirtyWhileEditing)) {
+    *val = (f32)v;
+    return true;
+  }
+  return false;
+}
+
+static bool inspector_draw_editor_vec(UiCanvasComp* canvas, GeoVector* val, const u8 numComps) {
   static const f32 g_spacing   = 10.0f;
   const u8         numSpacings = numComps - 1;
   const UiAlign    align       = UiAlign_MiddleLeft;
@@ -106,11 +116,7 @@ static bool inspector_draw_editor_vec(UiCanvasComp* canvas, GeoVector* vec, cons
 
   bool isDirty = false;
   for (u8 comp = 0; comp != numComps; ++comp) {
-    f64 val = vec->comps[comp];
-    if (ui_numbox(canvas, &val, .min = f32_min, .flags = UiWidget_DirtyWhileEditing)) {
-      vec->comps[comp] = (f32)val;
-      isDirty          = true;
-    }
+    isDirty |= inspector_draw_editor_float(canvas, &val->comps[comp]);
     ui_layout_next(canvas, Ui_Right, g_spacing);
   }
   ui_layout_pop(canvas);
@@ -145,7 +151,11 @@ static void inspector_panel_draw_transform(
     UiCanvasComp*            canvas,
     UiTable*                 table,
     DebugInspectorPanelComp* panelComp,
-    SceneTransformComp*      transform) {
+    EcsIterator*             subject) {
+  diag_assert(subject);
+
+  SceneTransformComp* transform = ecs_view_write_t(subject, SceneTransformComp);
+  SceneScaleComp*     scale     = ecs_view_write_t(subject, SceneScaleComp);
 
   ui_table_next_row(canvas, table);
   ui_label(canvas, string_lit("Position"));
@@ -161,6 +171,13 @@ static void inspector_panel_draw_transform(
   } else {
     const GeoVector eulerRad        = geo_quat_to_euler(transform->rotation);
     panelComp->transformRotEulerDeg = geo_vector_mul(eulerRad, math_rad_to_deg);
+  }
+
+  if (scale) {
+    ui_table_next_row(canvas, table);
+    ui_label(canvas, string_lit("Scale"));
+    ui_table_next_column(canvas, table);
+    inspector_draw_editor_float(canvas, &scale->scale);
   }
 }
 
@@ -213,11 +230,10 @@ static void inspector_panel_draw(
   inspector_draw_entity_info(canvas, &table, subject);
 
   ui_canvas_id_block_next(canvas);
-  SceneTransformComp* trans = subject ? ecs_view_write_t(subject, SceneTransformComp) : null;
-  if (trans) {
+  if (subject && ecs_view_read_t(subject, SceneTransformComp)) {
     ui_table_next_row(canvas, &table);
     if (inspector_panel_section(canvas, string_lit("Transform"))) {
-      inspector_panel_draw_transform(canvas, &table, panelComp, trans);
+      inspector_panel_draw_transform(canvas, &table, panelComp, subject);
     }
   }
 
