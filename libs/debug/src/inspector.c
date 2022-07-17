@@ -1,4 +1,5 @@
 #include "asset_manager.h"
+#include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_math.h"
@@ -32,7 +33,20 @@ typedef enum {
       DebugInspectorFlags_DrawBoundsLocal | DebugInspectorFlags_DrawBoundsGlobal
 } DebugInspectorFlags;
 
-ecs_comp_define(DebugInspectorSettingsComp) { DebugInspectorFlags flags; };
+typedef enum {
+  DebugInspectorDraw_SelectedOnly,
+  DebugInspectorDraw_All,
+} DebugInspectorDrawMode;
+
+static const String g_drawModeNames[] = {
+    string_static("SelectedOnly"),
+    string_static("All"),
+};
+
+ecs_comp_define(DebugInspectorSettingsComp) {
+  DebugInspectorDrawMode mode;
+  DebugInspectorFlags    flags;
+};
 
 ecs_comp_define(DebugInspectorPanelComp) {
   UiPanel      panel;
@@ -373,40 +387,42 @@ static void inspector_panel_draw_settings(
     UiTable*                    table,
     DebugInspectorSettingsComp* settings) {
   inspector_panel_next(canvas, panelComp, table);
+  if (inspector_panel_section(canvas, string_lit("Settings"))) {
+    inspector_panel_next(canvas, panelComp, table);
+    ui_label(canvas, string_lit("Draw mode"));
+    ui_table_next_column(canvas, table);
+    ui_select(canvas, (i32*)&settings->mode, g_drawModeNames, array_elems(g_drawModeNames));
 
-  if (!inspector_panel_section(canvas, string_lit("Settings"))) {
-    return;
+    inspector_panel_next(canvas, panelComp, table);
+    ui_label(canvas, string_lit("Draw pivot"));
+    ui_table_next_column(canvas, table);
+    ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawPivot);
+
+    inspector_panel_next(canvas, panelComp, table);
+    ui_label(canvas, string_lit("Draw orientation"));
+    ui_table_next_column(canvas, table);
+    ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawOrientation);
+
+    inspector_panel_next(canvas, panelComp, table);
+    ui_label(canvas, string_lit("Draw name"));
+    ui_table_next_column(canvas, table);
+    ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawName);
+
+    inspector_panel_next(canvas, panelComp, table);
+    ui_label(canvas, string_lit("Draw collision"));
+    ui_table_next_column(canvas, table);
+    ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawCollision);
+
+    inspector_panel_next(canvas, panelComp, table);
+    ui_label(canvas, string_lit("Draw bounds local"));
+    ui_table_next_column(canvas, table);
+    ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawBoundsLocal);
+
+    inspector_panel_next(canvas, panelComp, table);
+    ui_label(canvas, string_lit("Draw bounds global"));
+    ui_table_next_column(canvas, table);
+    ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawBoundsGlobal);
   }
-
-  inspector_panel_next(canvas, panelComp, table);
-  ui_label(canvas, string_lit("Draw pivot"));
-  ui_table_next_column(canvas, table);
-  ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawPivot);
-
-  inspector_panel_next(canvas, panelComp, table);
-  ui_label(canvas, string_lit("Draw orientation"));
-  ui_table_next_column(canvas, table);
-  ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawOrientation);
-
-  inspector_panel_next(canvas, panelComp, table);
-  ui_label(canvas, string_lit("Draw name"));
-  ui_table_next_column(canvas, table);
-  ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawName);
-
-  inspector_panel_next(canvas, panelComp, table);
-  ui_label(canvas, string_lit("Draw collision"));
-  ui_table_next_column(canvas, table);
-  ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawCollision);
-
-  inspector_panel_next(canvas, panelComp, table);
-  ui_label(canvas, string_lit("Draw bounds local"));
-  ui_table_next_column(canvas, table);
-  ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawBoundsLocal);
-
-  inspector_panel_next(canvas, panelComp, table);
-  ui_label(canvas, string_lit("Draw bounds global"));
-  ui_table_next_column(canvas, table);
-  ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawBoundsGlobal);
 }
 
 static void inspector_panel_draw(
@@ -586,15 +602,20 @@ ecs_system_define(DebugInspectorShapeDrawSys) {
   DebugShapeComp*           shape     = ecs_view_write_t(globalItr, DebugShapeComp);
   DebugTextComp*            text      = ecs_view_write_t(globalItr, DebugTextComp);
 
-  EcsView*     subjectView = ecs_world_view_t(world, SubjectReadView);
-  EcsIterator* subjectItr  = ecs_view_maybe_at(subjectView, scene_selected(selection));
-  if (subjectItr) {
-    inspector_shape_draw_subject(shape, text, set, subjectItr);
+  EcsView* subjectView = ecs_world_view_t(world, SubjectReadView);
+  switch (set->mode) {
+  case DebugInspectorDraw_SelectedOnly: {
+    EcsIterator* subjectItr = ecs_view_maybe_at(subjectView, scene_selected(selection));
+    if (subjectItr) {
+      inspector_shape_draw_subject(shape, text, set, subjectItr);
+    }
+  } break;
+  case DebugInspectorDraw_All: {
+    for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
+      inspector_shape_draw_subject(shape, text, set, itr);
+    }
+  } break;
   }
-
-  // for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
-  //   inspector_shape_draw_subject(shape, text, set, itr);
-  // }
 }
 
 ecs_module_init(debug_inspector_module) {
