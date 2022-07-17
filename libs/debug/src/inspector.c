@@ -29,10 +29,15 @@ typedef enum {
   DebugInspectorFlags_DrawBoundsLocal  = 1 << 6,
   DebugInspectorFlags_DrawBoundsGlobal = 1 << 7,
 
+  DebugInspectorFlags_Default = DebugInspectorFlags_DrawPivot |
+                                DebugInspectorFlags_DrawOrientation |
+                                DebugInspectorFlags_DrawCollision,
+
   DebugInspectorFlags_DrawAny =
       DebugInspectorFlags_DrawPivot | DebugInspectorFlags_DrawOrientation |
       DebugInspectorFlags_DrawName | DebugInspectorFlags_DrawCollision |
-      DebugInspectorFlags_DrawBoundsLocal | DebugInspectorFlags_DrawBoundsGlobal
+      DebugInspectorFlags_DrawBoundsLocal | DebugInspectorFlags_DrawBoundsGlobal,
+
 } DebugInspectorFlags;
 
 typedef enum {
@@ -475,7 +480,11 @@ static DebugInspectorSettingsComp* inspector_settings_get_or_create(EcsWorld* wo
   EcsView*     view = ecs_world_view_t(world, SettingsWriteView);
   EcsIterator* itr  = ecs_view_maybe_at(view, ecs_world_global(world));
   return itr ? ecs_view_write_t(itr, DebugInspectorSettingsComp)
-             : ecs_world_add_t(world, ecs_world_global(world), DebugInspectorSettingsComp);
+             : ecs_world_add_t(
+                   world,
+                   ecs_world_global(world),
+                   DebugInspectorSettingsComp,
+                   .flags = DebugInspectorFlags_Default);
 }
 
 ecs_system_define(DebugInspectorUpdatePanelSys) {
