@@ -165,27 +165,35 @@ static void inspector_panel_draw_transform(
     UiTable*                 table,
     DebugInspectorPanelComp* panelComp,
     EcsIterator*             subject) {
-  diag_assert(subject);
-
+  if (!subject) {
+    return;
+  }
   SceneTransformComp* transform = ecs_view_write_t(subject, SceneTransformComp);
   SceneScaleComp*     scale     = ecs_view_write_t(subject, SceneScaleComp);
-
-  ui_table_next_row(canvas, table);
-  ui_label(canvas, string_lit("Position"));
-  ui_table_next_column(canvas, table);
-  inspector_draw_editor_vec(canvas, &transform->position, 3);
-
-  ui_table_next_row(canvas, table);
-  ui_label(canvas, string_lit("Rotation"));
-  ui_table_next_column(canvas, table);
-  if (inspector_draw_editor_vec(canvas, &panelComp->transformRotEulerDeg, 3)) {
-    const GeoVector eulerRad = geo_vector_mul(panelComp->transformRotEulerDeg, math_deg_to_rad);
-    transform->rotation      = geo_quat_from_euler(eulerRad);
-  } else {
-    const GeoVector eulerRad        = geo_quat_to_euler(transform->rotation);
-    panelComp->transformRotEulerDeg = geo_vector_mul(eulerRad, math_rad_to_deg);
+  if (!transform && !scale) {
+    return;
   }
+  ui_table_next_row(canvas, table);
+  if (!inspector_panel_section(canvas, string_lit("Transform"))) {
+    return;
+  }
+  if (transform) {
+    ui_table_next_row(canvas, table);
+    ui_label(canvas, string_lit("Position"));
+    ui_table_next_column(canvas, table);
+    inspector_draw_editor_vec(canvas, &transform->position, 3);
 
+    ui_table_next_row(canvas, table);
+    ui_label(canvas, string_lit("Rotation"));
+    ui_table_next_column(canvas, table);
+    if (inspector_draw_editor_vec(canvas, &panelComp->transformRotEulerDeg, 3)) {
+      const GeoVector eulerRad = geo_vector_mul(panelComp->transformRotEulerDeg, math_deg_to_rad);
+      transform->rotation      = geo_quat_from_euler(eulerRad);
+    } else {
+      const GeoVector eulerRad        = geo_quat_to_euler(transform->rotation);
+      panelComp->transformRotEulerDeg = geo_vector_mul(eulerRad, math_rad_to_deg);
+    }
+  }
   if (scale) {
     ui_table_next_row(canvas, table);
     ui_label(canvas, string_lit("Scale"));
@@ -196,6 +204,10 @@ static void inspector_panel_draw_transform(
 
 static void inspector_panel_draw_settings(
     UiCanvasComp* canvas, UiTable* table, DebugInspectorSettingsComp* settings) {
+  ui_table_next_row(canvas, table);
+  if (!inspector_panel_section(canvas, string_lit("Settings"))) {
+    return;
+  }
 
   ui_table_next_row(canvas, table);
   ui_label(canvas, string_lit("Draw pivot"));
@@ -242,20 +254,13 @@ static void inspector_panel_draw(
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   inspector_draw_entity_info(world, canvas, &table, subject);
+  ui_canvas_id_block_next(canvas); // Draws a variable amount of elements; Skip over the id space.
 
-  ui_canvas_id_block_next(canvas);
-  if (subject && ecs_view_read_t(subject, SceneTransformComp)) {
-    ui_table_next_row(canvas, &table);
-    if (inspector_panel_section(canvas, string_lit("Transform"))) {
-      inspector_panel_draw_transform(canvas, &table, panelComp, subject);
-    }
-  }
+  inspector_panel_draw_transform(canvas, &table, panelComp, subject);
+  ui_canvas_id_block_next(canvas); // Draws a variable amount of elements; Skip over the id space.
 
-  ui_canvas_id_block_next(canvas);
-  ui_table_next_row(canvas, &table);
-  if (inspector_panel_section(canvas, string_lit("Settings"))) {
-    inspector_panel_draw_settings(canvas, &table, settings);
-  }
+  inspector_panel_draw_settings(canvas, &table, settings);
+  ui_canvas_id_block_next(canvas); // Draws a variable amount of elements; Skip over the id space.
 
   ui_panel_end(canvas, &panelComp->panel);
 }
