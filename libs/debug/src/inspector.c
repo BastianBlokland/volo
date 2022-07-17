@@ -29,11 +29,9 @@ typedef enum {
 } DebugInspectorFlags;
 
 ecs_comp_define(DebugInspectorSettingsComp) { DebugInspectorFlags flags; };
-
 ecs_comp_define(DebugInspectorPanelComp) { UiPanel panel; };
 
 ecs_view_define(SettingsWriteView) { ecs_access_write(DebugInspectorSettingsComp); }
-
 ecs_view_define(GlobalUpdateView) { ecs_access_read(SceneSelectionComp); }
 
 ecs_view_define(GlobalDrawView) {
@@ -80,16 +78,25 @@ static bool inspector_panel_section(UiCanvasComp* canvas, const String label) {
   return open;
 }
 
+static void inspector_draw_no_selection(UiCanvasComp* canvas) {
+  ui_style_push(canvas);
+  ui_style_color_mult(canvas, 0.75f);
+  ui_label(canvas, string_lit("< No selection >"));
+  ui_style_pop(canvas);
+}
+
 static void inspector_panel_info(UiCanvasComp* canvas, UiTable* table, EcsIterator* subjectItr) {
-  ui_label(canvas, string_lit("Entity"));
+  ui_label(canvas, string_lit("Entity identifier"));
   ui_table_next_column(canvas, table);
   if (subjectItr) {
     const EcsEntityId entity = ecs_view_entity(subjectItr);
     ui_label(canvas, fmt_write_scratch("{}", fmt_int(entity, .base = 16)), .selectable = true);
+  } else {
+    inspector_draw_no_selection(canvas);
   }
 
   ui_table_next_row(canvas, table);
-  ui_label(canvas, string_lit("Name"));
+  ui_label(canvas, string_lit("Entity name"));
   ui_table_next_column(canvas, table);
   if (subjectItr) {
     const SceneNameComp* nameComp = ecs_view_read_t(subjectItr, SceneNameComp);
@@ -97,6 +104,8 @@ static void inspector_panel_info(UiCanvasComp* canvas, UiTable* table, EcsIterat
       const String name = stringtable_lookup(g_stringtable, nameComp->name);
       ui_label(canvas, name, .selectable = true);
     }
+  } else {
+    inspector_draw_no_selection(canvas);
   }
 }
 
