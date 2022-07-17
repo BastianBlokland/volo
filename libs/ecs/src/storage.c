@@ -263,6 +263,11 @@ usize ecs_storage_archetype_entities_per_chunk(const EcsStorage* storage, const 
   return ecs_storage_archetype_ptr(storage, id)->entitiesPerChunk;
 }
 
+BitSet ecs_storage_archetype_mask(const EcsStorage* storage, const EcsArchetypeId id) {
+  const EcsArchetype* archetype = ecs_storage_archetype_ptr(storage, id);
+  return archetype ? archetype->mask : mem_empty;
+}
+
 EcsArchetypeId ecs_storage_archetype_find(EcsStorage* storage, const BitSet mask) {
   for (EcsArchetypeId archId = 0; archId != storage->archetypes.size; ++archId) {
     EcsArchetype* arch = dynarray_begin_t(&storage->archetypes, EcsArchetype) + archId;

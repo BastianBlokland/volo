@@ -43,6 +43,7 @@ u32            ecs_storage_archetype_count_with_comp(const EcsStorage*, EcsCompI
 usize          ecs_storage_archetype_total_size(const EcsStorage*);
 u32            ecs_storage_archetype_total_chunks(const EcsStorage*);
 usize          ecs_storage_archetype_entities_per_chunk(const EcsStorage*, EcsArchetypeId);
+BitSet         ecs_storage_archetype_mask(const EcsStorage*, EcsArchetypeId);
 EcsArchetypeId ecs_storage_archetype_find(EcsStorage*, BitSet mask);
 EcsArchetypeId ecs_storage_archetype_create(EcsStorage*, BitSet mask);
 

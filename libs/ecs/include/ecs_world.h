@@ -14,6 +14,9 @@ typedef struct sAllocator Allocator;
 // Forward declare from 'core_time.h'.
 typedef i64 TimeDuration;
 
+// Forward declare from 'core_bitset.h'
+typedef Mem BitSet;
+
 // Forward declare from 'job_executor.h'.
 typedef u16 JobWorkerId;
 
@@ -130,6 +133,12 @@ void ecs_world_remove(EcsWorld*, EcsEntityId, EcsCompId);
  * Pre-condition: !ecs_world_busy() || g_ecsRunningSystem
  */
 EcsArchetypeId ecs_world_entity_archetype(const EcsWorld* world, EcsEntityId);
+
+/**
+ * Retrieve the component mask for the given archetype.
+ * Pre-condition: !ecs_world_busy() || g_ecsRunningSystem
+ */
+BitSet ecs_world_component_mask(const EcsWorld* world, EcsArchetypeId);
 
 /**
  * Flush any queued layout modifications.

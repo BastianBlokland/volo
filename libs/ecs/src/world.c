@@ -315,6 +315,16 @@ EcsArchetypeId ecs_world_entity_archetype(const EcsWorld* world, const EcsEntity
   return ecs_storage_entity_archetype(&world->storage, entity);
 }
 
+BitSet ecs_world_component_mask(const EcsWorld* world, const EcsArchetypeId archetype) {
+  diag_assert(!ecs_world_busy(world) || g_ecsRunningSystem);
+  diag_assert_msg(
+      sentinel_check(archetype) || (archetype < ecs_storage_archetype_count(&world->storage)),
+      "{} is an invalid archetype",
+      fmt_int(archetype));
+
+  return ecs_storage_archetype_mask(&world->storage, archetype);
+}
+
 void ecs_world_flush(EcsWorld* world) {
   diag_assert_msg(!g_ecsRunningSystem, "World cannot be flushed from a system");
   diag_assert(!ecs_world_busy(world));
