@@ -50,9 +50,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 message(STATUS "Configuring libraries")
 add_subdirectory(libs)
 
-message(STATUS "Configuring tools")
-add_subdirectory(tools)
-
 message(STATUS "Configuring applications")
 add_subdirectory(apps)
 
