@@ -1,4 +1,5 @@
 #include "asset_manager.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_math.h"
 #include "core_stringtable.h"
@@ -13,6 +14,7 @@
 #include "scene_name.h"
 #include "scene_renderable.h"
 #include "scene_selection.h"
+#include "scene_tag.h"
 #include "scene_transform.h"
 #include "ui.h"
 
@@ -57,6 +59,7 @@ ecs_view_define(SubjectView) {
   ecs_access_read(SceneRenderableComp);
   ecs_access_write(SceneTransformComp);
   ecs_access_maybe_write(SceneScaleComp);
+  ecs_access_maybe_write(SceneTagComp);
   ecs_access_maybe_read(SceneNameComp);
   ecs_access_maybe_read(SceneCollisionComp);
   ecs_access_maybe_read(SceneBoundsComp);
@@ -214,6 +217,28 @@ static void inspector_panel_draw_transform(
   }
 }
 
+static void inspector_panel_draw_tags(
+    UiCanvasComp*            canvas,
+    DebugInspectorPanelComp* panelComp,
+    UiTable*                 table,
+    EcsIterator*             subject) {
+  SceneTagComp* tagComp = subject ? ecs_view_write_t(subject, SceneTagComp) : null;
+  if (!tagComp) {
+    return;
+  }
+  const u32 tagCount = bits_popcnt(tagComp->tags);
+  inspector_panel_next(canvas, panelComp, table);
+  if (inspector_panel_section(canvas, fmt_write_scratch("Tags ({})", fmt_int(tagCount)))) {
+    for (u32 i = 0; i != SceneTags_Count; ++i) {
+      const SceneTags tag = 1 << i;
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, scene_tag_name(tag));
+      ui_table_next_column(canvas, table);
+      ui_toggle_flag(canvas, &tagComp->tags, tag);
+    }
+  }
+}
+
 static void inspector_panel_draw_components(
     EcsWorld*                world,
     UiCanvasComp*            canvas,
@@ -305,6 +330,9 @@ static void inspector_panel_draw(
   ui_canvas_id_block_next(canvas); // Draws a variable amount of elements; Skip over the id space.
 
   inspector_panel_draw_transform(canvas, panelComp, &table, subject);
+  ui_canvas_id_block_next(canvas); // Draws a variable amount of elements; Skip over the id space.
+
+  inspector_panel_draw_tags(canvas, panelComp, &table, subject);
   ui_canvas_id_block_next(canvas); // Draws a variable amount of elements; Skip over the id space.
 
   inspector_panel_draw_components(world, canvas, panelComp, &table, subject);
