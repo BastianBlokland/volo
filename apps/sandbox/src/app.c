@@ -67,7 +67,7 @@ ecs_system_define(AppUpdateSys) {
 
   const EcsEntityId activeWindow = input_active_window(input);
   EcsIterator*      camItr = ecs_view_maybe_at(ecs_world_view_t(world, CameraView), activeWindow);
-  if (camItr && input_triggered_lit(input, "PedestalSelect")) {
+  if (camItr && input_triggered_lit(input, "SandboxSelect")) {
     const SceneCameraComp*    cam     = ecs_view_read_t(camItr, SceneCameraComp);
     const SceneTransformComp* trans   = ecs_view_read_t(camItr, SceneTransformComp);
     const GeoVector           normPos = geo_vector(input_cursor_x(input), input_cursor_y(input));
