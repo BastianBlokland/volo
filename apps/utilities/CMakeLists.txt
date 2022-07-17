@@ -1,8 +1,8 @@
 # --------------------------------------------------------------------------------------------------
-# Tools cmake file.
+# Utility applications cmake file.
 # --------------------------------------------------------------------------------------------------
 
-message(STATUS "> tool: dbgsetup")
+message(STATUS "> application: dbgsetup")
 
 add_executable(tool_dbgsetup dbgsetup.c)
 target_link_libraries(tool_dbgsetup PRIVATE lib_cli)

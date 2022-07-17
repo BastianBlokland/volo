@@ -1,7 +1,7 @@
 {
   "actions": [
     {
-      "name": "PedestalSelect",
+      "name": "SandboxSelect",
       "blockers": [
         "TextInput",
         "HoveringUi",
@@ -11,102 +11,6 @@
         {
           "type": "Pressed",
           "key": "MouseLeft"
-        }
-      ]
-    },
-    {
-      "name": "PedestalPrev",
-      "blockers": [
-        "TextInput"
-      ],
-      "bindings": [
-        {
-          "type": "Pressed",
-          "key": "ArrowLeft"
-        }
-      ]
-    },
-    {
-      "name": "PedestalNext",
-      "blockers": [
-        "TextInput"
-      ],
-      "bindings": [
-        {
-          "type": "Pressed",
-          "key": "ArrowRight"
-        }
-      ]
-    },
-    {
-      "name": "PedestalSetInstCount0",
-      "blockers": [
-        "TextInput"
-      ],
-      "bindings": [
-        {
-          "type": "Pressed",
-          "key": "Alpha0"
-        }
-      ]
-    },
-    {
-      "name": "PedestalSetInstCount1",
-      "blockers": [
-        "TextInput"
-      ],
-      "bindings": [
-        {
-          "type": "Pressed",
-          "key": "Alpha1"
-        }
-      ]
-    },
-    {
-      "name": "PedestalSetInstCount64",
-      "blockers": [
-        "TextInput"
-      ],
-      "bindings": [
-        {
-          "type": "Pressed",
-          "key": "Alpha2"
-        }
-      ]
-    },
-    {
-      "name": "PedestalSetInstCount512",
-      "blockers": [
-        "TextInput"
-      ],
-      "bindings": [
-        {
-          "type": "Pressed",
-          "key": "Alpha3"
-        }
-      ]
-    },
-    {
-      "name": "PedestalSetInstCount1024",
-      "blockers": [
-        "TextInput"
-      ],
-      "bindings": [
-        {
-          "type": "Pressed",
-          "key": "Alpha4"
-        }
-      ]
-    },
-    {
-      "name": "PedestalSetInstCount4096",
-      "blockers": [
-        "TextInput"
-      ],
-      "bindings": [
-        {
-          "type": "Pressed",
-          "key": "Alpha5"
         }
       ]
     },

@@ -16,8 +16,6 @@ configure_shaders(volo_shaders
     shaders/debug/shape.frag
     shaders/debug/texture_viewer.frag
     shaders/debug/texture_viewer.vert
-    shaders/demo/terrain.frag
-    shaders/demo/terrain.vert
     shaders/scene/sky_cubemap.frag
     shaders/scene/sky_procedural.frag
     shaders/scene/sky.vert
@@ -36,49 +34,12 @@ if(${EXTERNAL_ASSETS})
     PATH ${CMAKE_CURRENT_SOURCE_DIR}/external
     REMOTE_URL "https://www.bastian.tech/assets"
     FILES
-      boombox/boombox_diff.tga
-      boombox/boombox_nrm.tga
-      boombox/boombox.bin
-      boombox/boombox.gltf
-      bunny.obj
-      cayo/cayo_diff.tga
-      cayo/cayo_nrm.tga
-      cayo/cayo.obj
-      corset/corset_diff.tga
-      corset/corset_gltf.bin
-      corset/corset_gltf.gltf
-      corset/corset_nrm.tga
-      dragon.obj
-      fox/fox_diff.tga
-      fox/fox.bin
-      fox/fox.gltf
-      head/head.obj
-      head/lambertian.tga
-      normal_tangent_mirror_test/normal_tangent_mirror_test_diff.tga
-      normal_tangent_mirror_test/normal_tangent_mirror_test_nrm.tga
-      normal_tangent_mirror_test/normal_tangent_mirror_test.bin
-      normal_tangent_mirror_test/normal_tangent_mirror_test.gltf
-      normal_tangent_test/normal_tangent_test_diff.tga
-      normal_tangent_test/normal_tangent_test_nrm.tga
-      normal_tangent_test/normal_tangent_test.bin
-      normal_tangent_test/normal_tangent_test.gltf
-      pedestal/pedestal_diff.tga
-      pedestal/pedestal_nrm.tga
-      pedestal/pedestal.obj
-      rigged-simple/rigged-simple.bin
-      rigged-simple/rigged-simple.gltf
       skybox/sorsele_back.tga
       skybox/sorsele_down.tga
       skybox/sorsele_front.tga
       skybox/sorsele_left.tga
       skybox/sorsele_right.tga
       skybox/sorsele_up.tga
-      suzanne/suzanne_diff.tga
-      suzanne/suzanne.bin
-      suzanne/suzanne.gltf
-      terrain/terrain_color.tga
-      terrain/terrain_height.r32
-      testimages/ducks.tga
       vanguard/vanguard_diff.tga
       vanguard/vanguard_nrm.tga
       vanguard/vanguard.bin
