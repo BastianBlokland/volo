@@ -250,7 +250,7 @@ static void inspector_panel_draw_tags(
     EcsIterator*             subject) {
   SceneTagComp* tagComp = subject ? ecs_view_write_t(subject, SceneTagComp) : null;
   if (tagComp) {
-    const u32 tagCount = bits_popcnt(tagComp->tags);
+    const u32 tagCount = bits_popcnt((u32)tagComp->tags);
     inspector_panel_next(canvas, panelComp, table);
     if (inspector_panel_section(canvas, fmt_write_scratch("Tags ({})", fmt_int(tagCount)))) {
       for (u32 i = 0; i != SceneTags_Count; ++i) {
@@ -258,7 +258,7 @@ static void inspector_panel_draw_tags(
         inspector_panel_next(canvas, panelComp, table);
         ui_label(canvas, scene_tag_name(tag));
         ui_table_next_column(canvas, table);
-        ui_toggle_flag(canvas, &tagComp->tags, tag);
+        ui_toggle_flag(canvas, (u32*)&tagComp->tags, tag);
       }
     }
   }

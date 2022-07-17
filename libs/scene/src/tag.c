@@ -17,7 +17,7 @@ ecs_module_init(scene_tag_module) {
 }
 
 String scene_tag_name(const SceneTags tags) {
-  diag_assert_msg(bits_popcnt(tags) == 1, "Exactly one tag should be set");
+  diag_assert_msg(bits_popcnt((u32)tags) == 1, "Exactly one tag should be set");
   const u32           index     = bits_ctz_32(tags);
   static const String g_names[] = {
       string_static("Background"),
