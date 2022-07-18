@@ -15,9 +15,9 @@ typedef enum {
 /**
  * Write a help page showing the available flags and arguments.
  */
-void cli_help_write(DynString*, CliApp*, CliHelpFlags);
+void cli_help_write(DynString*, const CliApp*, CliHelpFlags);
 
 /**
  * Write a help page showing the available flags and arguments to the given file.
  */
-void cli_help_write_file(CliApp*, File* out);
+void cli_help_write_file(const CliApp*, File* out);

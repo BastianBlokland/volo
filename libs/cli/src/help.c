@@ -17,7 +17,7 @@ static FormatArg arg_style_reset(const CliHelpFlags flags) {
   return flags & CliHelpFlags_Style ? fmt_ttystyle() : fmt_nop();
 }
 
-static bool cli_help_has_options_of_type(CliApp* app, const CliOptionType type) {
+static bool cli_help_has_options_of_type(const CliApp* app, const CliOptionType type) {
   dynarray_for_t(&app->options, CliOption, opt) {
     if (opt->type == type) {
       return true;
@@ -65,7 +65,7 @@ static String cli_help_option_usage(CliOption* opt) {
   return res;
 }
 
-static void cli_help_write_usage(DynString* dynStr, CliApp* app, const CliHelpFlags flags) {
+static void cli_help_write_usage(DynString* dynStr, const CliApp* app, const CliHelpFlags flags) {
   fmt_write(
       dynStr, "usage: {}{}{}", arg_style_bold(flags), fmt_text(app->name), arg_style_reset(flags));
 
@@ -85,7 +85,7 @@ static void cli_help_write_usage(DynString* dynStr, CliApp* app, const CliHelpFl
   fmt_write(dynStr, "\n");
 }
 
-static void cli_help_write_args(DynString* dynStr, CliApp* app, const CliHelpFlags flags) {
+static void cli_help_write_args(DynString* dynStr, const CliApp* app, const CliHelpFlags flags) {
   fmt_write(dynStr, "{}Arguments:{}\n", arg_style_bold(flags), arg_style_reset(flags));
 
   dynarray_for_t(&app->options, CliOption, opt) {
@@ -109,7 +109,7 @@ static void cli_help_write_args(DynString* dynStr, CliApp* app, const CliHelpFla
   }
 }
 
-static void cli_help_write_flags(DynString* dynStr, CliApp* app, const CliHelpFlags flags) {
+static void cli_help_write_flags(DynString* dynStr, const CliApp* app, const CliHelpFlags flags) {
   fmt_write(dynStr, "{}Flags:{}\n", arg_style_bold(flags), arg_style_reset(flags));
 
   dynarray_for_t(&app->options, CliOption, opt) {
@@ -122,7 +122,7 @@ static void cli_help_write_flags(DynString* dynStr, CliApp* app, const CliHelpFl
     const String shortName = opt->dataFlag.character
                                  ? fmt_write_scratch("-{},", fmt_char(opt->dataFlag.character))
                                  : string_empty;
-    const String longName = fmt_write_scratch("--{}", fmt_text(opt->dataFlag.name));
+    const String longName  = fmt_write_scratch("--{}", fmt_text(opt->dataFlag.name));
 
     const String line = fmt_write_scratch(
         " {<4}{<21}{<10}",
@@ -139,7 +139,7 @@ static void cli_help_write_flags(DynString* dynStr, CliApp* app, const CliHelpFl
   }
 }
 
-void cli_help_write(DynString* dynStr, CliApp* app, const CliHelpFlags flags) {
+void cli_help_write(DynString* dynStr, const CliApp* app, const CliHelpFlags flags) {
 
   cli_help_write_usage(dynStr, app, flags);
 
@@ -160,7 +160,7 @@ void cli_help_write(DynString* dynStr, CliApp* app, const CliHelpFlags flags) {
   }
 }
 
-void cli_help_write_file(CliApp* app, File* out) {
+void cli_help_write_file(const CliApp* app, File* out) {
   DynString str = dynstring_create(g_alloc_heap, 1024);
 
   const CliHelpFlags flags = tty_isatty(out) ? CliHelpFlags_Style : CliHelpFlags_None;
