@@ -1,4 +1,5 @@
 #include "app_cli.h"
+#include "core_alloc.h"
 #include "core_file.h"
 #include "core_path.h"
 #include "core_sort.h"
