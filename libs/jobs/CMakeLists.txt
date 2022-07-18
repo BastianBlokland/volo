@@ -18,15 +18,14 @@ target_include_directories(lib_jobs PUBLIC include)
 target_link_libraries(lib_jobs PUBLIC lib_core)
 
 add_executable(lib_jobs_test
-  test/main.c
+  test/app.c
   test/test_dot.c
   test/test_executor.c
   test/test_graph.c
   test/test_scheduler.c
   )
-target_link_libraries(lib_jobs_test PRIVATE lib_check)
+target_link_libraries(lib_jobs_test PRIVATE lib_app_check)
 target_link_libraries(lib_jobs_test PRIVATE lib_jobs)
-target_link_libraries(lib_jobs_test PRIVATE lib_log)
 
 configure_test(lib_jobs_test SHORT_NAME jobs)
 configure_debuggable(lib_jobs_test)
