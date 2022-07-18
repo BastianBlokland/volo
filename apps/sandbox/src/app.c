@@ -1,8 +1,12 @@
+#include "app_cli.h"
 #include "asset.h"
+#include "core_alloc.h"
+#include "core_thread.h"
 #include "debug.h"
 #include "ecs.h"
 #include "gap.h"
 #include "input.h"
+#include "log.h"
 #include "rend_register.h"
 #include "scene_camera.h"
 #include "scene_collision.h"
@@ -92,7 +96,7 @@ ecs_module_init(app_module) {
   ecs_register_system(AppUpdateSys, ecs_view_id(GlobalUpdateView), ecs_view_id(CameraView));
 }
 
-void app_register(EcsDef* def) {
+static void app_register(EcsDef* def) {
   asset_register(def);
   debug_register(def);
   gap_register(def);
@@ -104,7 +108,7 @@ void app_register(EcsDef* def) {
   ecs_register_module(def, app_module);
 }
 
-void app_init(EcsWorld* world, const String assetPath) {
+static void app_init(EcsWorld* world, const String assetPath) {
   asset_manager_create_fs(
       world, AssetManagerFlags_TrackChanges | AssetManagerFlags_DelayUnload, assetPath);
 
@@ -114,4 +118,38 @@ void app_init(EcsWorld* world, const String assetPath) {
   ecs_world_add_t(world, ecs_world_global(world), AppComp);
 }
 
-bool app_should_close(EcsWorld* world) { return !ecs_utils_any(world, WindowExistenceView); }
+static CliId g_assetFlag;
+
+String app_cli_desc() { return string_lit("Volo Sandbox Application"); }
+
+void app_cli_configure(CliApp* app) {
+  g_assetFlag = cli_register_flag(app, 'a', string_lit("assets"), CliOptionFlags_Required);
+  cli_register_desc(app, g_assetFlag, string_lit("Path to asset directory."));
+}
+
+i32 app_cli_run(MAYBE_UNUSED const CliApp* app, const CliInvocation* invoc) {
+  const String assetPath = cli_read_string(invoc, g_assetFlag, string_empty);
+
+  log_i(
+      "Application startup",
+      log_param("asset-path", fmt_text(assetPath)),
+      log_param("pid", fmt_int(g_thread_pid)));
+
+  EcsDef* def = def = ecs_def_create(g_alloc_heap);
+  app_register(def);
+
+  EcsWorld*  world  = ecs_world_create(g_alloc_heap, def);
+  EcsRunner* runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_DumpGraphDot);
+  app_init(world, assetPath);
+
+  do {
+    ecs_run_sync(runner);
+  } while (ecs_utils_any(world, WindowExistenceView));
+
+  ecs_runner_destroy(runner);
+  ecs_world_destroy(world);
+  ecs_def_destroy(def);
+
+  log_i("Application shutdown");
+  return 0;
+};
