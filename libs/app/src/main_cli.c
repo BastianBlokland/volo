@@ -4,6 +4,9 @@
 #include "jobs.h"
 #include "log.h"
 
+/**
+ * Entrypoint for cli applications.
+ */
 int main(const int argc, const char** argv) {
   core_init();
   jobs_init();

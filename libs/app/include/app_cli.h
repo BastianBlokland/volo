@@ -8,5 +8,5 @@
  */
 
 String app_cli_desc();
-void   app_cli_configure(CliApp* app);
+void   app_cli_configure(CliApp*);
 i32    app_cli_run(const CliApp*, const CliInvocation*);
