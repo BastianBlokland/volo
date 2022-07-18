@@ -5,7 +5,6 @@
 message(STATUS "> library: check")
 
 add_library(lib_check STATIC
-  src/app.c
   src/def.c
   src/output_log.c
   src/output_mocha.c
@@ -16,7 +15,6 @@ add_library(lib_check STATIC
   src/spec.c
   )
 target_include_directories(lib_check PUBLIC include)
-target_link_libraries(lib_check PRIVATE lib_cli)
 target_link_libraries(lib_check PRIVATE lib_jobs)
 target_link_libraries(lib_check PRIVATE lib_json)
 target_link_libraries(lib_check PRIVATE lib_log)
