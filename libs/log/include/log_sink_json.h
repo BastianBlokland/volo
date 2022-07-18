@@ -28,7 +28,7 @@ typedef enum {
  *   "message": "Example",
  *   "level": "info",
  *   "timestamp": "2020-06-29T05:49:07.401231Z",
- *   "file": "/path/main.cpp",
+ *   "file": "/path/main.c",
  *   "line": 16,
  *   "extra": { "val": 42 }
  * }
