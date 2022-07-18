@@ -41,7 +41,7 @@ target_link_libraries(lib_asset PUBLIC lib_ecs)
 target_link_libraries(lib_asset PUBLIC lib_geo)
 
 add_executable(lib_asset_test
-  test/main.c
+  test/app.c
   test/test_loader_font_ttf.c
   test/test_loader_ftx.c
   test/test_loader_graphic.c
@@ -55,10 +55,8 @@ add_executable(lib_asset_test
   test/test_manager.c
   test/utils.c
   )
+target_link_libraries(lib_asset_test PRIVATE lib_app_check)
 target_link_libraries(lib_asset_test PRIVATE lib_asset)
-target_link_libraries(lib_asset_test PRIVATE lib_check)
-target_link_libraries(lib_asset_test PRIVATE lib_jobs)
-target_link_libraries(lib_asset_test PRIVATE lib_log)
 
 configure_test(lib_asset_test SHORT_NAME asset)
 configure_debuggable(lib_asset_test)

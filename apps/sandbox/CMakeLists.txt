@@ -6,11 +6,10 @@ message(STATUS "> application: sandbox")
 
 add_executable(app_sandbox
   src/app.c
-  src/main.c
   )
 
+target_link_libraries(app_sandbox PRIVATE lib_app_cli)
 target_link_libraries(app_sandbox PRIVATE lib_asset)
-target_link_libraries(app_sandbox PRIVATE lib_cli)
 target_link_libraries(app_sandbox PRIVATE lib_debug)
 target_link_libraries(app_sandbox PRIVATE lib_gap)
 target_link_libraries(app_sandbox PRIVATE lib_input)

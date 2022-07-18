@@ -65,7 +65,7 @@ elseif(${VOLO_PLATFORM} STREQUAL "win32")
 endif()
 
 add_executable(lib_core_test
-  test/main.c
+  test/app.c
   test/test_alloc_block.c
   test/test_alloc_bump.c
   test/test_alloc_chunked.c
@@ -101,10 +101,8 @@ add_executable(lib_core_test
   test/test_utf8.c
   test/test_winutils.c
   )
-target_link_libraries(lib_core_test PRIVATE lib_check)
+target_link_libraries(lib_core_test PRIVATE lib_app_check)
 target_link_libraries(lib_core_test PRIVATE lib_core)
-target_link_libraries(lib_core_test PRIVATE lib_jobs)
-target_link_libraries(lib_core_test PRIVATE lib_log)
 
 configure_test(lib_core_test SHORT_NAME core)
 configure_debuggable(lib_core_test)
