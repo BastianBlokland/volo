@@ -5,7 +5,7 @@
 
 message(STATUS "> library: app")
 
-add_library(lib_app_cli STATIC src/cli_main.c)
+add_library(lib_app_cli STATIC src/main_cli.c)
 target_include_directories(lib_app_cli PUBLIC include)
 target_link_libraries(lib_app_cli PUBLIC lib_cli)
 target_link_libraries(lib_app_cli PUBLIC lib_core)
