@@ -21,8 +21,7 @@ add_executable(lib_json_test
   test/test_read.c
   test/test_write.c
   )
-target_link_libraries(lib_json_test PRIVATE lib_app_check)
-target_link_libraries(lib_json_test PRIVATE lib_json)
+target_link_libraries(lib_json_test PRIVATE lib_app_check lib_json)
 
 configure_test(lib_json_test SHORT_NAME json)
 configure_debuggable(lib_json_test)

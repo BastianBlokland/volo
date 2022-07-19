@@ -21,10 +21,5 @@ add_library(lib_scene STATIC
   src/velocity.c
   )
 target_include_directories(lib_scene PUBLIC include)
-target_link_libraries(lib_scene PRIVATE lib_gap)
-target_link_libraries(lib_scene PRIVATE lib_log)
-target_link_libraries(lib_scene PRIVATE lib_input)
-target_link_libraries(lib_scene PUBLIC lib_asset)
-target_link_libraries(lib_scene PUBLIC lib_core)
-target_link_libraries(lib_scene PUBLIC lib_ecs)
-target_link_libraries(lib_scene PUBLIC lib_geo)
+target_link_libraries(lib_scene PUBLIC lib_asset lib_core lib_ecs lib_geo)
+target_link_libraries(lib_scene PRIVATE lib_gap lib_log lib_input)

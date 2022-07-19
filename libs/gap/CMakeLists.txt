@@ -12,9 +12,8 @@ add_library(lib_gap STATIC
   src/window.c
   )
 target_include_directories(lib_gap PUBLIC include)
+target_link_libraries(lib_gap PUBLIC lib_core lib_ecs)
 target_link_libraries(lib_gap PRIVATE lib_log)
-target_link_libraries(lib_gap PUBLIC lib_core)
-target_link_libraries(lib_gap PUBLIC lib_ecs)
 
 #
 # On linux use the xcb (https://xcb.freedesktop.org/) bindings for the x window server.
@@ -32,14 +31,16 @@ if(${VOLO_PLATFORM} STREQUAL "linux")
   find_package(xcb-xkb REQUIRED)
   find_package(xkbcommon REQUIRED)
   find_package(xkbcommon-x11 REQUIRED)
-  target_link_libraries(lib_gap PRIVATE xcb-cursor)
-  target_link_libraries(lib_gap PRIVATE xcb-icccm)
-  target_link_libraries(lib_gap PRIVATE xcb-randr)
-  target_link_libraries(lib_gap PRIVATE xcb-xfixes)
-  target_link_libraries(lib_gap PRIVATE xcb-xkb)
-  target_link_libraries(lib_gap PRIVATE xcb)
-  target_link_libraries(lib_gap PRIVATE xkbcommon-x11)
-  target_link_libraries(lib_gap PRIVATE xkbcommon)
+  target_link_libraries(lib_gap PRIVATE
+    xcb-cursor
+    xcb-icccm
+    xcb-randr
+    xcb-xfixes
+    xcb-xkb
+    xcb
+    xkbcommon-x11
+    xkbcommon
+    )
 
 elseif(${VOLO_PLATFORM} STREQUAL "win32")
 

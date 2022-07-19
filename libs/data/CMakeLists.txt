@@ -23,8 +23,7 @@ add_executable(lib_data_test
   test/test_utils_destroy.c
   test/test_write_json.c
   )
-target_link_libraries(lib_data_test PRIVATE lib_app_check)
-target_link_libraries(lib_data_test PRIVATE lib_data)
+target_link_libraries(lib_data_test PRIVATE lib_app_check lib_data)
 
 configure_test(lib_data_test SHORT_NAME data)
 configure_debuggable(lib_data_test)

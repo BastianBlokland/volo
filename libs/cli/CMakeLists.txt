@@ -24,8 +24,7 @@ add_executable(lib_cli_test
   test/test_read.c
   test/test_validate.c
   )
-target_link_libraries(lib_cli_test PRIVATE lib_app_check)
-target_link_libraries(lib_cli_test PRIVATE lib_cli)
+target_link_libraries(lib_cli_test PRIVATE lib_app_check lib_cli)
 
 configure_test(lib_cli_test SHORT_NAME cli)
 configure_debuggable(lib_cli_test)

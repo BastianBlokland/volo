@@ -101,8 +101,7 @@ add_executable(lib_core_test
   test/test_utf8.c
   test/test_winutils.c
   )
-target_link_libraries(lib_core_test PRIVATE lib_app_check)
-target_link_libraries(lib_core_test PRIVATE lib_core)
+target_link_libraries(lib_core_test PRIVATE lib_app_check lib_core)
 
 configure_test(lib_core_test SHORT_NAME core)
 configure_debuggable(lib_core_test)

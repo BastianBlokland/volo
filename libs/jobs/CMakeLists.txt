@@ -24,8 +24,7 @@ add_executable(lib_jobs_test
   test/test_graph.c
   test/test_scheduler.c
   )
-target_link_libraries(lib_jobs_test PRIVATE lib_app_check)
-target_link_libraries(lib_jobs_test PRIVATE lib_jobs)
+target_link_libraries(lib_jobs_test PRIVATE lib_app_check lib_jobs)
 
 configure_test(lib_jobs_test SHORT_NAME jobs)
 configure_debuggable(lib_jobs_test)
