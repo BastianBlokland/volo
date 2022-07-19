@@ -7,14 +7,13 @@
 
 #define cli_app_option_name_max_len 64
 
-CliApp* cli_app_create(Allocator* alloc, const String desc) {
+CliApp* cli_app_create(Allocator* alloc) {
   CliApp* app = alloc_alloc_t(alloc, CliApp);
   *app        = (CliApp){
-      .name       = path_stem(g_path_executable),
-      .desc       = string_is_empty(desc) ? string_empty : string_dup(alloc, desc),
-      .options    = dynarray_create_t(alloc, CliOption, 16),
-      .exclusions = dynarray_create_t(alloc, CliExclusion, 8),
-      .alloc      = alloc,
+             .name       = path_stem(g_path_executable),
+             .options    = dynarray_create_t(alloc, CliOption, 16),
+             .exclusions = dynarray_create_t(alloc, CliExclusion, 8),
+             .alloc      = alloc,
   };
   return app;
 }
@@ -38,6 +37,11 @@ void cli_app_destroy(CliApp* app) {
   dynarray_destroy(&app->exclusions);
 
   alloc_free_t(app->alloc, app);
+}
+
+void cli_app_register_desc(CliApp* app, const String desc) {
+  diag_assert_msg(string_is_empty(app->desc), "Application already has a description registered");
+  app->desc = string_is_empty(desc) ? string_empty : string_dup(app->alloc, desc);
 }
 
 CliId cli_register_flag(

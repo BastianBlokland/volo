@@ -132,9 +132,9 @@ static bool dbgsetup_vscode_generate_launch_file(DbgSetupCtx* ctx) {
 
 static CliId g_dbgFlag, g_workspaceFlag, g_targetsFlag, g_helpFlag;
 
-String app_cli_desc() { return string_lit("Utility to generate debugger configuration files."); }
-
 void app_cli_configure(CliApp* app) {
+  cli_app_register_desc(app, string_lit("Utility to generate debugger configuration files."));
+
   g_dbgFlag = cli_register_flag(app, 'd', string_lit("debugger"), CliOptionFlags_Value);
   cli_register_desc_choice_array(
       app, g_dbgFlag, string_lit("What debugger to use."), g_dbgStrs, DbgSetupDbg_Lldb);

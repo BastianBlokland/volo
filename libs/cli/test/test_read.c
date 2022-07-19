@@ -8,7 +8,7 @@ spec(read) {
 
   CliApp* app = null;
 
-  setup() { app = cli_app_create(g_alloc_heap, string_lit("My test app")); }
+  setup() { app = cli_app_create(g_alloc_heap); }
 
   it("returns the provided string") {
     const CliId flag = cli_register_flag(app, 's', string_lit("string"), CliOptionFlags_Value);

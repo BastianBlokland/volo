@@ -40,16 +40,19 @@ typedef struct sCliApp CliApp;
 
 /**
  * Create a new CliApp.
- * NOTE: 'string_empty' can be passed as the desc if no description is available.
- *
  * Destroy using 'cli_app_destroy()'.
  */
-CliApp* cli_app_create(Allocator*, String desc);
+CliApp* cli_app_create(Allocator*);
 
 /**
  * Destroy a CliApp definition.
  */
 void cli_app_destroy(CliApp*);
+
+/**
+ * Register a description for the given application.
+ */
+void cli_app_register_desc(CliApp*, String desc);
 
 /**
  * Register a new flag to the given application.

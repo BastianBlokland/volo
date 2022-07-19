@@ -7,6 +7,5 @@
  * Apis to be implemented by cli applications.
  */
 
-String app_cli_desc();
-void   app_cli_configure(CliApp*);
-i32    app_cli_run(const CliApp*, const CliInvocation*);
+void app_cli_configure(CliApp*);
+i32  app_cli_run(const CliApp*, const CliInvocation*);
