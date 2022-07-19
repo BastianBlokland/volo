@@ -4,7 +4,5 @@
 
 message(STATUS "> application: dbgsetup")
 
-add_executable(tool_dbgsetup dbgsetup.c)
-target_link_libraries(tool_dbgsetup PRIVATE lib_app_cli)
-target_link_libraries(tool_dbgsetup PRIVATE lib_json)
-target_link_libraries(tool_dbgsetup PRIVATE lib_log)
+add_executable(app_dbgsetup dbgsetup.c)
+target_link_libraries(app_dbgsetup PRIVATE lib_app_cli lib_json lib_log)

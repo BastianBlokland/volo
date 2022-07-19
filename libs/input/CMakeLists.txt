@@ -10,8 +10,5 @@ add_library(lib_input STATIC
   src/resource.c
   )
 target_include_directories(lib_input PUBLIC include)
-target_link_libraries(lib_input PRIVATE lib_asset)
-target_link_libraries(lib_input PRIVATE lib_log)
-target_link_libraries(lib_input PRIVATE lib_gap)
-target_link_libraries(lib_input PUBLIC lib_core)
-target_link_libraries(lib_input PUBLIC lib_ecs)
+target_link_libraries(lib_input PUBLIC lib_core lib_ecs)
+target_link_libraries(lib_input PRIVATE lib_asset lib_log lib_gap)

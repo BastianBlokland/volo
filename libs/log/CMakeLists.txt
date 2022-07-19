@@ -14,15 +14,13 @@ target_include_directories(lib_log PUBLIC include)
 target_link_libraries(lib_log PRIVATE lib_json)
 target_link_libraries(lib_log PUBLIC lib_core)
 
-add_executable(lib_log_test
-  test/app.c
+add_executable(test_lib_log
+  test/config.c
   test/test_logger.c
   test/test_sink_json.c
   test/test_sink_pretty.c
   )
-target_link_libraries(lib_log_test PRIVATE lib_app_check)
-target_link_libraries(lib_log_test PRIVATE lib_json)
-target_link_libraries(lib_log_test PRIVATE lib_log)
+target_link_libraries(test_lib_log PRIVATE lib_app_check lib_json lib_log)
 
-configure_test(lib_log_test SHORT_NAME log)
-configure_debuggable(lib_log_test)
+configure_test(test_lib_log SHORT_NAME log)
+configure_debuggable(test_lib_log)

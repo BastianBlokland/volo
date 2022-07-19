@@ -8,16 +8,17 @@ add_executable(app_sandbox
   src/app.c
   )
 
-target_link_libraries(app_sandbox PRIVATE lib_app_cli)
-target_link_libraries(app_sandbox PRIVATE lib_asset)
-target_link_libraries(app_sandbox PRIVATE lib_debug)
-target_link_libraries(app_sandbox PRIVATE lib_gap)
-target_link_libraries(app_sandbox PRIVATE lib_input)
-target_link_libraries(app_sandbox PRIVATE lib_jobs)
-target_link_libraries(app_sandbox PRIVATE lib_log)
-target_link_libraries(app_sandbox PRIVATE lib_rend)
-target_link_libraries(app_sandbox PRIVATE lib_scene)
-target_link_libraries(app_sandbox PRIVATE lib_ui)
+target_link_libraries(app_sandbox PRIVATE
+  lib_app_ecs
+  lib_asset
+  lib_debug
+  lib_gap
+  lib_input
+  lib_jobs
+  lib_rend
+  lib_scene
+  lib_ui
+  )
 add_dependencies(app_sandbox volo_assets)
 configure_debuggable(app_sandbox)
 

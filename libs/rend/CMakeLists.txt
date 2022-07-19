@@ -41,12 +41,8 @@ add_library(lib_rend STATIC
   src/view.c
   )
 target_include_directories(lib_rend PUBLIC include)
-target_link_libraries(lib_rend PRIVATE lib_asset)
-target_link_libraries(lib_rend PRIVATE lib_gap)
-target_link_libraries(lib_rend PRIVATE lib_log)
-target_link_libraries(lib_rend PUBLIC lib_core)
-target_link_libraries(lib_rend PUBLIC lib_ecs)
-target_link_libraries(lib_rend PUBLIC lib_scene)
+target_link_libraries(lib_rend PUBLIC lib_core lib_ecs lib_scene)
+target_link_libraries(lib_rend PRIVATE lib_asset lib_gap lib_log)
 
 find_package(Vulkan REQUIRED)
 message(STATUS ">> Vulkan lib: ${Vulkan_LIBRARIES}")

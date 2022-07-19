@@ -24,10 +24,5 @@ add_library(lib_ui STATIC
   src/widget.c
   )
 target_include_directories(lib_ui PUBLIC include)
-target_link_libraries(lib_ui PRIVATE lib_gap)
-target_link_libraries(lib_ui PRIVATE lib_log)
-target_link_libraries(lib_ui PRIVATE lib_rend)
-target_link_libraries(lib_ui PRIVATE lib_input)
-target_link_libraries(lib_ui PUBLIC lib_asset)
-target_link_libraries(lib_ui PUBLIC lib_core)
-target_link_libraries(lib_ui PUBLIC lib_ecs)
+target_link_libraries(lib_ui PUBLIC lib_asset lib_core lib_ecs)
+target_link_libraries(lib_ui PRIVATE lib_gap lib_log lib_rend lib_input)

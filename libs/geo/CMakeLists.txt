@@ -20,8 +20,8 @@ add_library(lib_geo STATIC
 target_include_directories(lib_geo PUBLIC include)
 target_link_libraries(lib_geo PUBLIC lib_core)
 
-add_executable(lib_geo_test
-  test/app.c
+add_executable(test_lib_geo
+  test/config.c
   test/test_box.c
   test/test_line.c
   test/test_matrix.c
@@ -31,8 +31,7 @@ add_executable(lib_geo_test
   test/test_vector.c
   test/utils.c
   )
-target_link_libraries(lib_geo_test PRIVATE lib_app_check)
-target_link_libraries(lib_geo_test PRIVATE lib_geo)
+target_link_libraries(test_lib_geo PRIVATE lib_app_check lib_geo)
 
-configure_test(lib_geo_test SHORT_NAME geo)
-configure_debuggable(lib_geo_test)
+configure_test(test_lib_geo SHORT_NAME geo)
+configure_debuggable(test_lib_geo)

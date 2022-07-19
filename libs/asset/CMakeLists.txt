@@ -33,15 +33,11 @@ add_library(lib_asset STATIC
   src/repo.c
   )
 target_include_directories(lib_asset PUBLIC include)
-target_link_libraries(lib_asset PRIVATE lib_data)
-target_link_libraries(lib_asset PRIVATE lib_json)
-target_link_libraries(lib_asset PRIVATE lib_log)
-target_link_libraries(lib_asset PUBLIC lib_core)
-target_link_libraries(lib_asset PUBLIC lib_ecs)
-target_link_libraries(lib_asset PUBLIC lib_geo)
+target_link_libraries(lib_asset PUBLIC lib_core lib_ecs lib_geo)
+target_link_libraries(lib_asset PRIVATE lib_data lib_json lib_log)
 
-add_executable(lib_asset_test
-  test/app.c
+add_executable(test_lib_asset
+  test/config.c
   test/test_loader_font_ttf.c
   test/test_loader_ftx.c
   test/test_loader_graphic.c
@@ -55,8 +51,7 @@ add_executable(lib_asset_test
   test/test_manager.c
   test/utils.c
   )
-target_link_libraries(lib_asset_test PRIVATE lib_app_check)
-target_link_libraries(lib_asset_test PRIVATE lib_asset)
+target_link_libraries(test_lib_asset PRIVATE lib_app_check lib_asset)
 
-configure_test(lib_asset_test SHORT_NAME asset)
-configure_debuggable(lib_asset_test)
+configure_test(test_lib_asset SHORT_NAME asset)
+configure_debuggable(test_lib_asset)
