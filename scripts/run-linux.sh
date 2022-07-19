@@ -5,29 +5,24 @@ set -e -o pipefail
 # Utility script to configure and invoke a CMake target.
 # --------------------------------------------------------------------------------------------------
 
-info()
-{
+info() {
   echo "${1}"
 }
 
-error()
-{
+error() {
   echo "ERROR: ${1}" >&2
 }
 
-fail()
-{
+fail() {
   error "${1}"
   exit 1
 }
 
-hasCommand()
-{
+hasCommand() {
   [ -x "$(command -v "${1}")" ]
 }
 
-verifyBuildSystemOption()
-{
+verifyBuildSystemOption() {
   case "${1}" in
     make|ninja)
       ;;
@@ -37,8 +32,7 @@ verifyBuildSystemOption()
   esac
 }
 
-verifyBoolOption()
-{
+verifyBoolOption() {
   case "${1}" in
     On|Off)
       ;;
@@ -48,8 +42,7 @@ verifyBoolOption()
   esac
 }
 
-getGeneratorName()
-{
+getGeneratorName() {
   case "${1}" in
     make)
       echo "Unix Makefiles"
@@ -60,8 +53,7 @@ getGeneratorName()
   esac
 }
 
-build()
-{
+build() {
   local buildDir="${1}"
   local buildTarget="${2}"
   local buildSystem="${3}"
@@ -95,8 +87,7 @@ buildTarget="run.sandbox"
 buildSystem="ninja"
 sanitizeMode="Off"
 
-printUsage()
-{
+printUsage() {
   echo "Options:"
   echo "-h,--help     Print this usage information"
   echo "-d,--dir      Build directory, default: '${buildDir}'"
