@@ -1,8 +1,9 @@
 #include "app_cli.h"
-#include "core.h"
+#include "core_alloc.h"
 #include "core_file.h"
-#include "jobs.h"
-#include "log.h"
+#include "core_init.h"
+#include "jobs_init.h"
+#include "log_init.h"
 
 /**
  * Entrypoint for cli applications.
@@ -11,9 +12,6 @@ int main(const int argc, const char** argv) {
   core_init();
   jobs_init();
   log_init();
-
-  log_add_sink(g_logger, log_sink_pretty_default(g_alloc_heap, LogMask_All));
-  log_add_sink(g_logger, log_sink_json_default(g_alloc_heap, LogMask_All));
 
   int exitCode = 0;
 
@@ -27,7 +25,7 @@ int main(const int argc, const char** argv) {
     goto exit;
   }
 
-  exitCode = (int)app_cli_run(app, invoc);
+  exitCode = app_cli_run(app, invoc);
 
 exit:
   cli_parse_destroy(invoc);

@@ -158,6 +158,9 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     return 0;
   }
 
+  log_add_sink(g_logger, log_sink_pretty_default(g_alloc_heap, ~LogMask_Debug));
+  log_add_sink(g_logger, log_sink_json_default(g_alloc_heap, LogMask_All));
+
   DbgSetupCtx ctx = {
       .dbg = (DbgSetupDbg)cli_read_choice_array(invoc, g_dbgFlag, g_dbgStrs, DbgSetupDbg_Lldb),
       .workspace   = cli_read_string(invoc, g_workspaceFlag, string_empty),
