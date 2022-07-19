@@ -15,7 +15,7 @@ target_include_directories(lib_json PUBLIC include)
 target_link_libraries(lib_json PUBLIC lib_core)
 
 add_executable(test_lib_json
-  test/app.c
+  test/config.c
   test/test_doc.c
   test/test_eq.c
   test/test_read.c

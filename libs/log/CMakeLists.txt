@@ -15,7 +15,7 @@ target_link_libraries(lib_log PRIVATE lib_json)
 target_link_libraries(lib_log PUBLIC lib_core)
 
 add_executable(test_lib_log
-  test/app.c
+  test/config.c
   test/test_logger.c
   test/test_sink_json.c
   test/test_sink_pretty.c

@@ -16,7 +16,7 @@ target_link_libraries(lib_data PRIVATE lib_json)
 target_link_libraries(lib_data PUBLIC lib_core)
 
 add_executable(test_lib_data
-  test/app.c
+  test/config.c
   test/test_read_json.c
   test/test_registry.c
   test/test_utils_clone.c

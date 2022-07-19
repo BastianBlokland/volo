@@ -18,7 +18,7 @@ target_include_directories(lib_jobs PUBLIC include)
 target_link_libraries(lib_jobs PUBLIC lib_core)
 
 add_executable(test_lib_jobs
-  test/app.c
+  test/config.c
   test/test_dot.c
   test/test_executor.c
   test/test_graph.c

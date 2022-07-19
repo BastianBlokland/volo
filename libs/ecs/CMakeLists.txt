@@ -25,7 +25,7 @@ target_link_libraries(lib_ecs PUBLIC lib_core)
 target_link_libraries(lib_ecs PRIVATE lib_jobs lib_log)
 
 add_executable(test_lib_ecs
-  test/app.c
+  test/config.c
   test/test_affinity.c
   test/test_combinator.c
   test/test_def.c

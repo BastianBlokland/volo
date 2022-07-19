@@ -16,7 +16,7 @@ target_include_directories(lib_cli PUBLIC include)
 target_link_libraries(lib_cli PUBLIC lib_core)
 
 add_executable(test_lib_cli
-  test/app.c
+  test/config.c
   test/test_app.c
   test/test_failure.c
   test/test_help.c

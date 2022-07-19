@@ -19,7 +19,7 @@ target_link_libraries(lib_check PUBLIC lib_core)
 target_link_libraries(lib_check PRIVATE lib_jobs lib_json lib_log)
 
 add_executable(test_lib_check
-  test/app.c
+  test/config.c
   test/test_dynarray.c
   test/test_fizzbuzz.c
   )

@@ -37,7 +37,7 @@ target_link_libraries(lib_asset PUBLIC lib_core lib_ecs lib_geo)
 target_link_libraries(lib_asset PRIVATE lib_data lib_json lib_log)
 
 add_executable(test_lib_asset
-  test/app.c
+  test/config.c
   test/test_loader_font_ttf.c
   test/test_loader_ftx.c
   test/test_loader_graphic.c

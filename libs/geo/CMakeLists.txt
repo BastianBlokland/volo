@@ -21,7 +21,7 @@ target_include_directories(lib_geo PUBLIC include)
 target_link_libraries(lib_geo PUBLIC lib_core)
 
 add_executable(test_lib_geo
-  test/app.c
+  test/config.c
   test/test_box.c
   test/test_line.c
   test/test_matrix.c

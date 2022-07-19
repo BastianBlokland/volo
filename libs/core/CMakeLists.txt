@@ -65,7 +65,7 @@ elseif(${VOLO_PLATFORM} STREQUAL "win32")
 endif()
 
 add_executable(test_lib_core
-  test/app.c
+  test/config.c
   test/test_alloc_block.c
   test/test_alloc_bump.c
   test/test_alloc_chunked.c
