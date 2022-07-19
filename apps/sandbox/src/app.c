@@ -1,12 +1,9 @@
-#include "app_cli.h"
+#include "app_ecs.h"
 #include "asset.h"
-#include "core_alloc.h"
-#include "core_thread.h"
 #include "debug.h"
 #include "ecs.h"
 #include "gap.h"
 #include "input.h"
-#include "log.h"
 #include "rend_register.h"
 #include "scene_camera.h"
 #include "scene_collision.h"
@@ -96,7 +93,16 @@ ecs_module_init(app_module) {
   ecs_register_system(AppUpdateSys, ecs_view_id(GlobalUpdateView), ecs_view_id(CameraView));
 }
 
-static void app_register(EcsDef* def) {
+static CliId g_assetFlag;
+
+void app_ecs_configure(CliApp* app) {
+  cli_app_register_desc(app, string_lit("Volo Sandbox Application"));
+
+  g_assetFlag = cli_register_flag(app, 'a', string_lit("assets"), CliOptionFlags_Required);
+  cli_register_desc(app, g_assetFlag, string_lit("Path to asset directory."));
+}
+
+void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
   asset_register(def);
   debug_register(def);
   gap_register(def);
@@ -108,7 +114,9 @@ static void app_register(EcsDef* def) {
   ecs_register_module(def, app_module);
 }
 
-static void app_init(EcsWorld* world, const String assetPath) {
+void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
+  const String assetPath = cli_read_string(invoc, g_assetFlag, string_empty);
+
   asset_manager_create_fs(
       world, AssetManagerFlags_TrackChanges | AssetManagerFlags_DelayUnload, assetPath);
 
@@ -118,41 +126,4 @@ static void app_init(EcsWorld* world, const String assetPath) {
   ecs_world_add_t(world, ecs_world_global(world), AppComp);
 }
 
-static CliId g_assetFlag;
-
-void app_cli_configure(CliApp* app) {
-  cli_app_register_desc(app, string_lit("Volo Sandbox Application"));
-
-  g_assetFlag = cli_register_flag(app, 'a', string_lit("assets"), CliOptionFlags_Required);
-  cli_register_desc(app, g_assetFlag, string_lit("Path to asset directory."));
-}
-
-i32 app_cli_run(MAYBE_UNUSED const CliApp* app, const CliInvocation* invoc) {
-  const String assetPath = cli_read_string(invoc, g_assetFlag, string_empty);
-
-  log_add_sink(g_logger, log_sink_pretty_default(g_alloc_heap, LogMask_All));
-  log_add_sink(g_logger, log_sink_json_default(g_alloc_heap, LogMask_All));
-
-  log_i(
-      "Application startup",
-      log_param("asset-path", fmt_text(assetPath)),
-      log_param("pid", fmt_int(g_thread_pid)));
-
-  EcsDef* def = def = ecs_def_create(g_alloc_heap);
-  app_register(def);
-
-  EcsWorld*  world  = ecs_world_create(g_alloc_heap, def);
-  EcsRunner* runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_DumpGraphDot);
-  app_init(world, assetPath);
-
-  do {
-    ecs_run_sync(runner);
-  } while (ecs_utils_any(world, WindowExistenceView));
-
-  ecs_runner_destroy(runner);
-  ecs_world_destroy(world);
-  ecs_def_destroy(def);
-
-  log_i("Application shutdown");
-  return 0;
-};
+bool app_ecs_should_quit(EcsWorld* world) { return !ecs_utils_any(world, WindowExistenceView); }

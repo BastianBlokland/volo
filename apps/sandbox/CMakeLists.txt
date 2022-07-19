@@ -9,13 +9,12 @@ add_executable(app_sandbox
   )
 
 target_link_libraries(app_sandbox PRIVATE
-  lib_app_cli
+  lib_app_ecs
   lib_asset
   lib_debug
   lib_gap
   lib_input
   lib_jobs
-  lib_log
   lib_rend
   lib_scene
   lib_ui
