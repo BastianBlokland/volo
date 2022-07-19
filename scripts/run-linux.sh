@@ -22,6 +22,10 @@ hasCommand() {
   [ -x "$(command -v "${1}")" ]
 }
 
+getScriptDirectory() {
+  realpath "$(dirname -- "${0}")"
+}
+
 verifyBuildSystemOption() {
   case "${1}" in
     make|ninja)
@@ -62,6 +66,9 @@ build() {
   verifyBuildSystemOption "${buildSystem}"
   verifyBoolOption "${sanitizeMode}"
 
+  local sourceDir
+  sourceDir="$(getScriptDirectory)/.."
+
   # Create target directory if it doesn't exist yet.
   test -d "${buildDir}" || mkdir -p "${buildDir}"
 
@@ -71,14 +78,14 @@ build() {
   info "Configuring build directory '${buildDir}'"
 
   # Configure.
-  cmake -B "${buildDir}" \
+  ( cd "$sourceDir"; cmake -B "${buildDir}" \
     -G "$(getGeneratorName "${buildSystem}")" \
-    -DSANITIZE="${sanitizeMode}"
+    -DSANITIZE="${sanitizeMode}" )
 
   info "Building target '${buildTarget}' using '${buildSystem}'"
 
   # Build.
-  cmake --build "${buildDir}" --target "${buildTarget}"
+  ( cd "$sourceDir"; cmake --build "${buildDir}" --target "${buildTarget}" )
 }
 
 # Defaults.
