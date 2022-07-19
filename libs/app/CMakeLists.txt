@@ -14,7 +14,7 @@ target_link_libraries(lib_app_cli PUBLIC lib_cli lib_core)
 target_link_libraries(lib_app_cli PRIVATE lib_jobs lib_log)
 
 #
-# Check (unit test library) applications entry point.
+# Check applications entry point.
 #
 add_library(lib_app_check STATIC src/app_cli.c src/app_check.c)
 target_include_directories(lib_app_check PUBLIC include)
