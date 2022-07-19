@@ -120,9 +120,9 @@ static void app_init(EcsWorld* world, const String assetPath) {
 
 static CliId g_assetFlag;
 
-String app_cli_desc() { return string_lit("Volo Sandbox Application"); }
-
 void app_cli_configure(CliApp* app) {
+  cli_app_register_desc(app, string_lit("Volo Sandbox Application"));
+
   g_assetFlag = cli_register_flag(app, 'a', string_lit("assets"), CliOptionFlags_Required);
   cli_register_desc(app, g_assetFlag, string_lit("Path to asset directory."));
 }

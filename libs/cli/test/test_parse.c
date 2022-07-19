@@ -43,7 +43,7 @@ spec(parse) {
   CliId   flagA, flagB, flagC, flagD, flagE, flagF, flagG, argA, argB;
 
   setup() {
-    app   = cli_app_create(g_alloc_heap, string_lit("My test app"));
+    app   = cli_app_create(g_alloc_heap);
     flagA = cli_register_flag(app, 'a', string_lit("flag-a-req"), CliOptionFlags_Required);
     flagB = cli_register_flag(app, 'b', string_lit("flag-b-opt"), CliOptionFlags_None);
     flagC = cli_register_flag(app, 'c', string_lit("flag-c-opt"), CliOptionFlags_None);
