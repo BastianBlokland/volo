@@ -11,7 +11,7 @@ spec(help) {
     DynString string = dynstring_create_over(mem_stack(1024));
     cli_help_write(&string, app, CliHelpFlags_None);
 
-    check_eq_string(dynstring_view(&string), string_lit("usage: lib_cli_test\n"));
+    check_eq_string(dynstring_view(&string), string_lit("usage: test_lib_cli\n"));
 
     dynstring_destroy(&string);
     cli_app_destroy(app);
@@ -26,7 +26,7 @@ spec(help) {
 
     check_eq_string(
         dynstring_view(&string),
-        string_lit("usage: lib_cli_test\n"
+        string_lit("usage: test_lib_cli\n"
                    "\n"
                    "Hello world\n"
                    "My test app\n"));
@@ -48,7 +48,7 @@ spec(help) {
 
     check_eq_string(
         dynstring_view(&string),
-        string_lit("usage: lib_cli_test <src-path> [<dst-path>]\n"
+        string_lit("usage: test_lib_cli <src-path> [<dst-path>]\n"
                    "\n"
                    "Arguments:\n"
                    " src-path                 REQUIRED  Path to copy from\n"
@@ -71,7 +71,7 @@ spec(help) {
 
     check_eq_string(
         dynstring_view(&string),
-        string_lit("usage: lib_cli_test [-v] [-c <value>]\n"
+        string_lit("usage: test_lib_cli [-v] [-c <value>]\n"
                    "\n"
                    "Flags:\n"
                    " -v, --verbose            OPTIONAL  Enable verbose logging\n"
@@ -99,7 +99,7 @@ spec(help) {
 
     check_eq_string(
         dynstring_view(&string),
-        string_lit("usage: lib_cli_test [-v] [-c <value>] <src-path> [<dst-path>]\n"
+        string_lit("usage: test_lib_cli [-v] [-c <value>] <src-path> [<dst-path>]\n"
                    "\n"
                    "My app\n"
                    "\n"

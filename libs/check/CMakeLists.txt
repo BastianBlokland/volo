@@ -18,12 +18,12 @@ target_include_directories(lib_check PUBLIC include)
 target_link_libraries(lib_check PUBLIC lib_core)
 target_link_libraries(lib_check PRIVATE lib_jobs lib_json lib_log)
 
-add_executable(lib_check_test
+add_executable(test_lib_check
   test/app.c
   test/test_dynarray.c
   test/test_fizzbuzz.c
   )
-target_link_libraries(lib_check_test PRIVATE lib_app_check lib_check)
+target_link_libraries(test_lib_check PRIVATE lib_app_check lib_check)
 
-configure_test(lib_check_test SHORT_NAME check)
-configure_debuggable(lib_check_test)
+configure_test(test_lib_check SHORT_NAME check)
+configure_debuggable(test_lib_check)

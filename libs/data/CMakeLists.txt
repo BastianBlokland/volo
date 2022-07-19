@@ -15,7 +15,7 @@ target_include_directories(lib_data PUBLIC include)
 target_link_libraries(lib_data PRIVATE lib_json)
 target_link_libraries(lib_data PUBLIC lib_core)
 
-add_executable(lib_data_test
+add_executable(test_lib_data
   test/app.c
   test/test_read_json.c
   test/test_registry.c
@@ -23,7 +23,7 @@ add_executable(lib_data_test
   test/test_utils_destroy.c
   test/test_write_json.c
   )
-target_link_libraries(lib_data_test PRIVATE lib_app_check lib_data)
+target_link_libraries(test_lib_data PRIVATE lib_app_check lib_data)
 
-configure_test(lib_data_test SHORT_NAME data)
-configure_debuggable(lib_data_test)
+configure_test(test_lib_data SHORT_NAME data)
+configure_debuggable(test_lib_data)
