@@ -185,6 +185,7 @@ macro(set_compile_options)
   set(CMAKE_C_FLAGS_RELEASE "")
   set(CMAKE_C_FLAGS_RELWITHDEBINFO "")
   set(CMAKE_C_FLAGS_MINSIZEREL "")
+  set(CMAKE_STATIC_LIBRARY_PREFIX_C "") # Manually prefix libraries for clarity.
 
   # Set our custom compiler options.
   if(${VOLO_COMPILER} STREQUAL "gcc")
