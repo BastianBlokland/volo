@@ -60,7 +60,10 @@ function SetVsDevEnvVars() {
   if (!(Get-Command "cmd.exe" -ErrorAction SilentlyContinue)) {
     Fail "'cmd.exe' not found on path"
   }
-  $argString = "/s /c `"`"$(GetVSDevEnvBatPath)`"`" -arch=$Arch -host_arch=$HostArch -no_logo && set"
+  $argString = "/s /c " + `
+    "set VSCMD_SKIP_SENDTELEMETRY=1 &&" + `
+    "`"$(GetVSDevEnvBatPath)`" -arch=$Arch -host_arch=$HostArch -no_logo &&" + `
+    "set"
   $outputFile = "$env:windir\temp\env-vars"
   Start-Process `
     -UseNewEnvironment `
