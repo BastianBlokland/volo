@@ -91,7 +91,7 @@ build() {
 # Defaults.
 buildDir="build"
 buildTarget="run.sandbox"
-buildSystem="ninja"
+buildSystem="make"
 sanitizeMode="Off"
 
 printUsage() {
