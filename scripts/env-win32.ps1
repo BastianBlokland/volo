@@ -67,7 +67,10 @@ function GetVCToolsInstallPath() {
 }
 
 function GetVSDevEnvBatPath() {
-  join-path $(GetVCToolsInstallPath) 'Common7\Tools\vsdevcmd.bat'
+  $vctoolsInstallPath = "$(GetVCToolsInstallPath)"
+  Verbose "vctools path: $vctoolsInstallPath"
+
+  join-path "$vctoolsInstallPath" 'Common7\Tools\vsdevcmd.bat'
 }
 
 function SetVsDevEnvVars() {
