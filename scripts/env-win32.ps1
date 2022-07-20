@@ -41,11 +41,22 @@ function Fail([string] $message) {
   exit 1
 }
 
-function GetVCToolsInstallPath() {
-  if (!(Get-Command "vswhere.exe" -ErrorAction SilentlyContinue)) {
-    Fail "'vswhere.exe' not found on path, please install it and add its bin dir to path"
+function GetVsWherePath() {
+  # Attempt to find it on the path.
+  $vsWhere = Get-Command "vswhere.exe" -ErrorAction SilentlyContinue
+  if ($vsWhere) {
+    return $vsWhere.Source
   }
-  & vswhere `
+  # Attempt the location where Visual Studio installs it by default.
+  $defaultPath = "${Env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+  if (!(Test-Path $defaultPath)) {
+    Fail "'vswhere.exe' not found, please install the 'VisualStudio BuildTools'"
+  }
+  return $defaultPath
+}
+
+function GetVCToolsInstallPath() {
+  & "$(GetVsWherePath)" `
     -latest `
     -products * `
     -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
