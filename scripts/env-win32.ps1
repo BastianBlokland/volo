@@ -5,13 +5,10 @@
   Sets up the current shell to be able to invoke the MSVC 'cl' compiler.
   Call this once per powershell session before configuring or invoking the build system.
   Dependencies:
-  - MSVC (Microsoft Visual C) toolchain, which is included in the 'Windows SDK' which can either be
-    installed as part of the VisualStudio IDE or installed seperatly
-    (https://developer.microsoft.com/en-US/windows/downloads/windows-10-sdk/).
-  - VsWhere (https://github.com/Microsoft/vswhere)
-    Install it using chocolatey (choco install vswhere) or alternativly you can manually download it
-    (https://github.com/Microsoft/vswhere/releases).
-    Note: vswhere.exe needs to be visible on PATH.
+  - MSVC (Microsoft Visual C) toolchain. Can be installed through the 'Visual Studio Installer' by
+    choosing the 'Desktop development with C++' workload.
+    Or alternativly using winget:
+      winget install Microsoft.VisualStudio.2022.BuildTools --override "--add Microsoft.VisualStudio.Workload.VCTools"
 .PARAMETER Arch
   Default: x64
   Target machine architecture.
@@ -69,7 +66,7 @@ function GetVCToolsInstallPath() {
 function GetVSDevEnvBatPath() {
   $vctoolsInstallPath = "$(GetVCToolsInstallPath)"
   if ([string]::IsNullOrEmpty($vctoolsInstallPath)) {
-    Fail "MSVC (Microsoft Visual C) toolchain not found, please install the 'Windows SDK'"
+    Fail "MSVC (Microsoft Visual C) toolchain not found, please install the 'VCTools' workload"
   }
   Verbose "vctools path: $vctoolsInstallPath"
 
