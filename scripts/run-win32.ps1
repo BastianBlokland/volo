@@ -18,7 +18,7 @@
 param(
   [string]$BuildDirectory = "build",
   [string]$BuildTarget = "run.sandbox",
-  [ValidateSet("nmake", "ninja", "vs2019")] [string]$BuildSystem = "nmake",
+  [ValidateSet("nmake", "ninja", "mingw", "vs2019", "vs2022")] [string]$BuildSystem = "nmake",
   [switch]$Sanitize
 )
 
@@ -46,7 +46,9 @@ function GetGeneratorName([string] $buildSystem) {
   switch -Exact ($buildSystem) {
     "nmake" { "NMake Makefiles" }
     "ninja" { "Ninja" }
+    "mingw" { "MinGW Makefiles" }
     "vs2019" { "Visual Studio 16 2019" }
+    "vs2022" { "Visual Studio 17 2022" }
     default { Fail "Unsupported build-system: '$BuildSystem'" }
   }
 }
