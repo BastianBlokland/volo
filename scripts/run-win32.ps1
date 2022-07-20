@@ -18,7 +18,7 @@
 param(
   [string]$BuildDirectory = "build",
   [string]$BuildTarget = "run.sandbox",
-  [ValidateSet("ninja", "nmake", "mingw", "vs2019", "vs2022")] [string]$BuildSystem = "ninja",
+  [ValidateSet("ninja", "nmake", "mingw", "vs2019", "vs2022")] [string]$BuildSystem = "nmake",
   [switch]$Sanitize
 )
 
