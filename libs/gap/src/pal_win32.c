@@ -391,7 +391,7 @@ static void pal_event_resize(GapPalWindow* window, const GapVector newSize) {
   }
 }
 
-static void pal_event_dpi_changed(GapPalWindow* window, const u16 newDpi) {
+MAYBE_UNUSED static void pal_event_dpi_changed(GapPalWindow* window, const u16 newDpi) {
   if (window->dpi == newDpi) {
     return;
   }
@@ -521,6 +521,7 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
     minMaxInfo->ptMinTrackSize.y = pal_window_min_height;
     return true;
   }
+#if defined(VOLO_WIN32_SHELL_SCALING_API)
   case WM_DPICHANGED: {
     /**
      * NOTE: We're querying the actual raw display dpi instead of window's logical dpi. Reason is
@@ -530,6 +531,7 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
     pal_event_dpi_changed(window, newDpi);
     return true;
   }
+#endif
   case WM_PAINT:
     ValidateRect(wnd, null);
     return true;
@@ -639,10 +641,10 @@ GapPal* gap_pal_create(Allocator* alloc) {
 
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){
-      .alloc          = alloc,
-      .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
-      .moduleInstance = instance,
-      .owningThreadId = g_thread_tid,
+             .alloc          = alloc,
+             .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
+             .moduleInstance = instance,
+             .owningThreadId = g_thread_tid,
   };
   pal_cursors_init(pal);
 
