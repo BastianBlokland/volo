@@ -78,7 +78,7 @@ function ExecuteGenerator([string] $buildDirectory, [string] $buildSystem, [bool
 
   & cmake.exe -B $buildDirectory `
     -G "$(GetGeneratorName $buildSystem)" `
-    -DSANITIZE="$($sanitize ? "On" : "Off")"
+    -DSANITIZE="$(if($sanitize) { "On" } else { "Off" })"
 
   $result = $LASTEXITCODE
   Pop-Location
