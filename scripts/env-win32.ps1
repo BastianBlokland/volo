@@ -25,6 +25,9 @@ param(
   [ValidateSet("x64")] [string]$HostArch = "x64"
 )
 
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
+
 function Info([string] $message) {
   Write-Output $message
 }
