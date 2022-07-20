@@ -50,7 +50,7 @@ function GetVsWherePath() {
   # Attempt the location where Visual Studio installs it by default.
   $defaultPath = "${Env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
   if (!(Test-Path $defaultPath)) {
-    Fail "'vswhere.exe' not found, please install the 'VisualStudio BuildTools'"
+    Fail "'vswhere.exe' not found, please install the 'Build Tools for Visual Studio'"
   }
   return $defaultPath
 }
@@ -68,6 +68,9 @@ function GetVCToolsInstallPath() {
 
 function GetVSDevEnvBatPath() {
   $vctoolsInstallPath = "$(GetVCToolsInstallPath)"
+  if ([string]::IsNullOrEmpty($vctoolsInstallPath)) {
+    Fail "MSVC (Microsoft Visual C) toolchain not found, please install the 'Windows SDK'"
+  }
   Verbose "vctools path: $vctoolsInstallPath"
 
   join-path "$vctoolsInstallPath" 'Common7\Tools\vsdevcmd.bat'
