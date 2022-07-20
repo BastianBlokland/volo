@@ -21,9 +21,8 @@
 #>
 [cmdletbinding()]
 param(
-  [ValidateSet("x64")]
-  [string]$Arch = "x64",
-  [string]$HostArch = "x64"
+  [ValidateSet("x64")] [string]$Arch = "x64",
+  [ValidateSet("x64")] [string]$HostArch = "x64"
 )
 
 function Info([string] $message) {
@@ -63,4 +62,4 @@ function SetVsDevEnvVars() {
 }
 
 SetVsDevEnvVars
-Info "msvc environment setup (arch: $Arch, host_arg: $HostArch)"
+Info "win32 environment setup (arch: $Arch, host_arg: $HostArch)"
