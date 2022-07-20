@@ -32,6 +32,10 @@ function Info([string] $message) {
   Write-Output $message
 }
 
+function Verbose([string] $message) {
+  Write-Verbose $message
+}
+
 function Fail([string] $message) {
   Write-Error $message
   exit 1
@@ -56,10 +60,19 @@ function SetVsDevEnvVars() {
   if (!(Get-Command "cmd.exe" -ErrorAction SilentlyContinue)) {
     Fail "'cmd.exe' not found on path"
   }
-  & cmd.exe /s /c `
-    "`"$(GetVSDevEnvBatPath)`" -arch=$Arch -host_arch=$HostArch -no_logo && set" |
-  foreach-object {
+  $argString = "/s /c `"`"$(GetVSDevEnvBatPath)`"`" -arch=$Arch -host_arch=$HostArch -no_logo && set"
+  $outputFile = "$env:windir\temp\env-vars"
+  Start-Process `
+    -UseNewEnvironment `
+    -NoNewWindow `
+    -Wait `
+    -RedirectStandardOutput "$outputFile" `
+    -FilePath "cmd.exe" `
+    -ArgumentList $argString
+
+  Get-Content -Path $outputFile | Foreach-Object {
     $name, $value = $_ -split '=', 2
+    Verbose "$name = $value"
     set-content env:\$name $value
   }
 }
