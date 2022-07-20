@@ -18,7 +18,7 @@
 param(
   [string]$BuildDirectory = "build",
   [string]$BuildTarget = "run.sandbox",
-  [ValidateSet("nmake", "ninja", "mingw", "vs2019", "vs2022")] [string]$BuildSystem = "nmake",
+  [ValidateSet("ninja", "nmake", "mingw", "vs2019", "vs2022")] [string]$BuildSystem = "ninja",
   [switch]$Sanitize
 )
 
@@ -70,8 +70,8 @@ function ExecuteGenerator([string] $buildDirectory, [string] $buildSystem, [bool
   $sourceDir = "$(GetScriptDirectory)\..\"
 
   # Create target directory if it doesn't exist yet.
-  if (!(Test-Path $buildDirectory)) {
-    New-Item -ItemType Directory -Path $buildDirectory | Out-Null
+  if (!(Test-Path "$sourceDir\$buildDirectory")) {
+    New-Item -ItemType Directory -Path "$sourceDir\$buildDirectory" | Out-Null
   }
 
   Push-Location $sourceDir
