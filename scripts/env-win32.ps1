@@ -66,7 +66,6 @@ function SetVsDevEnvVars() {
     "set"
   $outputFile = "$env:windir\temp\env-vars"
   Start-Process `
-    -UseNewEnvironment `
     -NoNewWindow `
     -Wait `
     -RedirectStandardOutput "$outputFile" `
@@ -76,7 +75,7 @@ function SetVsDevEnvVars() {
   Get-Content -Path $outputFile | Foreach-Object {
     $name, $value = $_ -split '=', 2
     Verbose "$name = $value"
-    set-content env:\$name $value
+    [Environment]::SetEnvironmentVariable($name, $value)
   }
 }
 
