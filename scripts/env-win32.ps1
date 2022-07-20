@@ -6,9 +6,9 @@
   Call this once per powershell session before configuring or invoking the build system.
   Dependencies:
   - MSVC (Microsoft Visual C) toolchain. Can be installed through the 'Visual Studio Installer' by
-    choosing the 'Desktop development with C++' workload.
+    choosing the 'Desktop development with C++' workload and including the recommended components.
     Or alternativly using winget:
-      winget install Microsoft.VisualStudio.2022.BuildTools --override "--add Microsoft.VisualStudio.Workload.VCTools"
+      winget install Microsoft.VisualStudio.2022.BuildTools --override "--add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.Windows10SDK.19041 --focusedUi"
 .PARAMETER Arch
   Default: x64
   Target machine architecture.
