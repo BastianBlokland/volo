@@ -65,7 +65,7 @@ function SetupEnvironment() {
 
 function ExecuteGenerator([string] $buildDirectory, [string] $buildSystem, [bool] $santize) {
   if (!(Get-Command "cmake.exe" -ErrorAction SilentlyContinue)) {
-    Fail "'cmake.exe' not found on path"
+    Fail "'cmake.exe' not found on path, please install the CMake build-system generator"
   }
   $sourceDir = "$(GetScriptDirectory)\..\"
 
