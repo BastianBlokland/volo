@@ -6,7 +6,7 @@
 
 typedef struct {
   ThreadSpinLock lock;
-  u32            serialCounter;
+  u64            serialCounter;
   DynBitSet      freeIndices;
   usize          totalIndices;
 } EntityAllocator;

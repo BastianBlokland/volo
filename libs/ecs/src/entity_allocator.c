@@ -23,7 +23,7 @@ void entity_allocator_destroy(EntityAllocator* entityAllocator) {
 }
 
 EcsEntityId entity_allocator_alloc(EntityAllocator* entityAllocator) {
-  u32 serial, index;
+  u64 serial, index;
   thread_spinlock_lock(&entityAllocator->lock);
   {
     // Note: 'thread_spinlock_lock()' includes a general memory barrier, so any writes done by other
@@ -32,17 +32,20 @@ EcsEntityId entity_allocator_alloc(EntityAllocator* entityAllocator) {
     serial = ++entityAllocator->serialCounter;
 
     // Try to find a free index.
-    index = (u32)dynbitset_next(&entityAllocator->freeIndices, 0);
+    index = dynbitset_next(&entityAllocator->freeIndices, 0);
     if (sentinel_check(index)) {
       // No existing free index found, add one at the end.
-      index = (u32)entityAllocator->totalIndices++;
+      index = entityAllocator->totalIndices++;
     } else {
       // Existing index found: Mark it as taken.
       dynbitset_clear(&entityAllocator->freeIndices, index);
     }
   }
   thread_spinlock_unlock(&entityAllocator->lock);
-  return (EcsEntityId)((u64)index | ((u64)serial << 32u));
+
+  diag_assert_msg(index < u32_max, "Entity indices exhausted");
+  diag_assert_msg(serial < u32_max, "Entity serials exhausted");
+  return (EcsEntityId)(index | (serial << 32u));
 }
 
 void entity_allocator_free(EntityAllocator* entityAllocator, const EcsEntityId id) {
