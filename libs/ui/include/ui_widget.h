@@ -1,4 +1,5 @@
 #pragma once
+#include "ecs_entity.h"
 #include "ecs_module.h"
 #include "ui_color.h"
 #include "ui_rect.h"
@@ -202,6 +203,7 @@ typedef struct {
 // clang-format on
 
 void ui_label_with_opts(UiCanvasComp*, String text, const UiLabelOpts*);
+void ui_label_entity(UiCanvasComp*, EcsEntityId);
 bool ui_button_with_opts(UiCanvasComp*, const UiButtonOpts*);
 bool ui_slider_with_opts(UiCanvasComp*, f32* value, const UiSliderOpts*);
 bool ui_toggle_with_opts(UiCanvasComp*, bool* value, const UiToggleOpts*);

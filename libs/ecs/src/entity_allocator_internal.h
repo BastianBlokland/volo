@@ -1,12 +1,11 @@
 #pragma once
 #include "core_dynbitset.h"
 #include "core_thread.h"
-
-#include "entity_internal.h"
+#include "ecs_entity.h"
 
 typedef struct {
   ThreadSpinLock lock;
-  u32            serialCounter;
+  u64            serialCounter;
   DynBitSet      freeIndices;
   usize          totalIndices;
 } EntityAllocator;
