@@ -24,14 +24,14 @@
 * Install the `Vulkan` sdk (source: https://vulkan.lunarg.com/sdk/home#linux).
 * Install `XCB` + `xkb`, `xkbcommon`, `xkbcommon-x11`, `xfixes`, `icccm`, `randr` and `cursor-util` extensions
   (debian: `apt install libxcb1-dev libxcb-xkb-dev libxkbcommon-dev libxkbcommon-x11-dev libxcb-xfixes0-dev libxcb-icccm4-dev libxcb-randr0-dev libxcb-cursor-dev`).
-* Build and run: `scripts/run-linux.sh` (or invoke `cmake` and your buildsystem manually).
+* Build and run: `scripts/run-linux.sh` (or invoke `cmake` and your build-system manually).
 
 ### Windows
 * (*Optional*) Install the `winget` package manager (info: https://docs.microsoft.com/en-us/windows/package-manager/winget/).
 * Install `Visual Studio Build Tools` (winget: `winget install Microsoft.VisualStudio.2022.BuildTools --override "--add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.Windows10SDK.19041 --focusedUi"`)
 * Install `CMake` (winget: `winget install Kitware.CMake`).
 * Install the `Vulkan` sdk (winget: `winget install KhronosGroup.VulkanSDK`).
-* Build and run: `scripts/run-win32.bat` (or invoke `cmake` and your buildsystem manually)..
+* Build and run: `scripts/run-win32.bat` (or invoke `cmake` and your build-system manually)..
 
 ### Tests
 
