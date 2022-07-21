@@ -128,6 +128,13 @@ static void inspector_panel_draw_value_string(UiCanvasComp* canvas, const String
   ui_style_pop(canvas);
 }
 
+static void inspector_panel_draw_value_entity(UiCanvasComp* canvas, const EcsEntityId value) {
+  ui_style_push(canvas);
+  ui_style_variation(canvas, UiVariation_Monospace);
+  ui_label_entity(canvas, value);
+  ui_style_pop(canvas);
+}
+
 static void inspector_panel_draw_value_none(UiCanvasComp* canvas) {
   ui_style_push(canvas);
   ui_style_color_mult(canvas, 0.75f);
@@ -174,7 +181,7 @@ static void inspector_panel_draw_entity_info(
   ui_table_next_column(canvas, table);
   if (subject) {
     const EcsEntityId entity = ecs_view_entity(subject);
-    inspector_panel_draw_value_string(canvas, fmt_write_scratch("{}", fmt_int(entity, .base = 16)));
+    inspector_panel_draw_value_entity(canvas, entity);
   } else {
     inspector_panel_draw_value_none(canvas);
   }
@@ -255,8 +262,7 @@ static void inspector_panel_draw_renderable(
       inspector_panel_next(canvas, panelComp, table);
       ui_label(canvas, string_lit("Graphic"));
       ui_table_next_column(canvas, table);
-      inspector_panel_draw_value_string(
-          canvas, fmt_write_scratch("{}", fmt_int(renderable->graphic, .base = 16)));
+      inspector_panel_draw_value_entity(canvas, renderable->graphic);
     }
   }
 }

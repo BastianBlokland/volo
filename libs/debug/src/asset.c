@@ -238,8 +238,7 @@ static void asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelCom
 
     ui_label(canvas, asset->id, .selectable = true);
     ui_table_next_column(canvas, &table);
-    ui_label(
-        canvas, fmt_write_scratch("{}", fmt_int(asset->entity, .base = 16)), .selectable = true);
+    ui_label_entity(canvas, asset->entity);
     ui_table_next_column(canvas, &table);
     ui_label(canvas, g_statusNames[asset->status]);
     ui_table_next_column(canvas, &table);

@@ -79,6 +79,16 @@ void ui_label_with_opts(UiCanvasComp* canvas, const String text, const UiLabelOp
   }
 }
 
+void ui_label_entity(UiCanvasComp* canvas, const EcsEntityId entity) {
+  const u32 index  = ecs_entity_id_index(entity);
+  const u32 serial = ecs_entity_id_serial(entity);
+  ui_label(
+      canvas,
+      fmt_write_scratch("{}", fmt_int(entity, .base = 16)),
+      .selectable = true,
+      .tooltip    = fmt_write_scratch("Index: {}\nSerial: {}", fmt_int(index), fmt_int(serial)));
+}
+
 bool ui_button_with_opts(UiCanvasComp* canvas, const UiButtonOpts* opts) {
   const UiId     id       = ui_canvas_id_peek(canvas);
   const bool     disabled = (opts->flags & UiWidget_Disabled) != 0;
