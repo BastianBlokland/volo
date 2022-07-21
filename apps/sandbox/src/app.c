@@ -83,7 +83,7 @@ ecs_system_define(AppUpdateSys) {
   }
 }
 
-ecs_module_init(app_module) {
+ecs_module_init(sandbox_app_module) {
   ecs_register_comp(AppComp);
 
   ecs_register_view(GlobalUpdateView);
@@ -111,7 +111,7 @@ void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
   scene_register(def);
   ui_register(def);
 
-  ecs_register_module(def, app_module);
+  ecs_register_module(def, sandbox_app_module);
 }
 
 void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
