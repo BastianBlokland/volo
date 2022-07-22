@@ -8,20 +8,19 @@
 #include "scene_camera.h"
 #include "scene_collision.h"
 #include "scene_register.h"
-#include "scene_renderable.h"
 #include "scene_selection.h"
-#include "scene_transform.h"
 #include "ui_register.h"
 
-static const GapVector g_windowSize  = {1920, 1080};
-static const String    g_unitGraphic = string_static("graphics/sandbox/vanguard.gra");
+#include "unit_internal.h"
+
+static const GapVector g_windowSize = {1920, 1080};
 
 ecs_comp_define(AppComp) { bool unitSpawned; };
 
 ecs_view_define(GlobalUpdateView) {
   ecs_access_read(InputManagerComp);
   ecs_access_read(SceneCollisionEnvComp);
-  ecs_access_write(AssetManagerComp);
+  ecs_access_read(UnitDatabaseComp);
   ecs_access_write(AppComp);
   ecs_access_write(SceneSelectionComp);
 }
@@ -33,36 +32,20 @@ ecs_view_define(CameraView) {
 
 ecs_view_define(WindowExistenceView) { ecs_access_with(GapWindowComp); }
 
-static void spawn_unit(EcsWorld* world, AssetManagerComp* assets, const GeoVector position) {
-  const EcsEntityId e       = ecs_world_entity_create(world);
-  const EcsEntityId graphic = asset_lookup(world, assets, g_unitGraphic);
-
-  ecs_world_add_t(world, e, SceneRenderableComp, .graphic = graphic);
-  ecs_world_add_t(world, e, SceneTransformComp, .position = position, .rotation = geo_quat_ident);
-  scene_collision_add_capsule(
-      world,
-      e,
-      (SceneCollisionCapsule){
-          .offset = {0, 0.3f, 0},
-          .radius = 0.3f,
-          .height = 1.2f,
-      });
-}
-
 ecs_system_define(AppUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalUpdateView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
   }
-  AssetManagerComp*            assets       = ecs_view_write_t(globalItr, AssetManagerComp);
+  const UnitDatabaseComp*      unitDb       = ecs_view_read_t(globalItr, UnitDatabaseComp);
   AppComp*                     app          = ecs_view_write_t(globalItr, AppComp);
   const InputManagerComp*      input        = ecs_view_read_t(globalItr, InputManagerComp);
   const SceneCollisionEnvComp* collisionEnv = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
   SceneSelectionComp*          selection    = ecs_view_write_t(globalItr, SceneSelectionComp);
 
   if (!app->unitSpawned) {
-    spawn_unit(world, assets, geo_vector(0));
+    unit_spawn(world, unitDb, geo_vector(0));
     app->unitSpawned = true;
   }
 
@@ -112,6 +95,7 @@ void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
   ui_register(def);
 
   ecs_register_module(def, sandbox_app_module);
+  ecs_register_module(def, sandbox_unit_module);
 }
 
 void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {

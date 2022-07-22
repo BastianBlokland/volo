@@ -6,6 +6,7 @@ message(STATUS "> application: sandbox")
 
 add_executable(app_sandbox
   src/app.c
+  src/unit.c
   )
 
 target_link_libraries(app_sandbox PRIVATE
