@@ -11,4 +11,5 @@ ecs_comp_extern(CmdControllerComp);
 
 void cmd_push_select(CmdControllerComp*, EcsEntityId object);
 void cmd_push_deselect(CmdControllerComp*);
+void cmd_push_destroy(CmdControllerComp*, EcsEntityId object);
 void cmd_push_spawn_unit(CmdControllerComp*, GeoVector position);

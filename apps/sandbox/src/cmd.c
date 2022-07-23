@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_diag.h"
 #include "core_dynarray.h"
 #include "ecs_world.h"
 #include "scene_selection.h"
@@ -9,12 +10,17 @@
 typedef enum {
   Cmd_Select,
   Cmd_Deselect,
+  Cmd_Destroy,
   Cmd_SpawnUnit,
 } CmdType;
 
 typedef struct {
   EcsEntityId object;
 } CmdSelect;
+
+typedef struct {
+  EcsEntityId object;
+} CmdDestroy;
 
 typedef struct {
   GeoVector position;
@@ -24,6 +30,7 @@ typedef struct {
   CmdType type;
   union {
     CmdSelect    select;
+    CmdDestroy   destroy;
     CmdSpawnUnit spawnUnit;
   };
 } Cmd;
@@ -57,10 +64,15 @@ static void cmd_execute(
     const Cmd*              cmd) {
   switch (cmd->type) {
   case Cmd_Select:
+    diag_assert_msg(ecs_world_exists(world, cmd->select.object), "Selecting non-existing obj");
     scene_select(selection, cmd->select.object);
     break;
   case Cmd_Deselect:
     scene_deselect(selection);
+    break;
+  case Cmd_Destroy:
+    diag_assert_msg(ecs_world_exists(world, cmd->destroy.object), "Destroying non-existing obj");
+    ecs_world_entity_destroy(world, cmd->destroy.object);
     break;
   case Cmd_SpawnUnit:
     unit_spawn(world, unitDb, cmd->spawnUnit.position);
@@ -111,6 +123,13 @@ void cmd_push_select(CmdControllerComp* controller, const EcsEntityId object) {
 void cmd_push_deselect(CmdControllerComp* controller) {
   *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
       .type = Cmd_Deselect,
+  };
+}
+
+void cmd_push_destroy(CmdControllerComp* controller, const EcsEntityId object) {
+  *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
+      .type    = Cmd_Destroy,
+      .destroy = {.object = object},
   };
 }
 

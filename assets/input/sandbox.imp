@@ -35,6 +35,22 @@
       ]
     },
     {
+      "name": "Destroy",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "Backspace"
+        },
+        {
+          "type": "Pressed",
+          "key": "Delete"
+        }
+      ]
+    },
+    {
       "name": "CameraMoveForward",
       "blockers": [
         "TextInput"
