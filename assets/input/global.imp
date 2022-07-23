@@ -15,6 +15,20 @@
       ]
     },
     {
+      "name": "SandboxSpawn",
+      "blockers": [
+        "TextInput",
+        "HoveringUi",
+        "CursorLocked"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "MouseRight"
+        }
+      ]
+    },
+    {
       "name": "CameraMoveForward",
       "blockers": [
         "TextInput"

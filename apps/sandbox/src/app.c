@@ -12,38 +12,8 @@
 
 static const GapVector g_windowSize = {1920, 1080};
 
-ecs_comp_define(AppComp) { bool unitSpawned; };
-
-ecs_view_define(GlobalUpdateView) {
-  ecs_access_write(AppComp);
-  ecs_access_write(CmdControllerComp);
-}
-
 ecs_view_define(WindowExistenceView) { ecs_access_with(GapWindowComp); }
-
-ecs_system_define(AppUpdateSys) {
-  EcsView*     globalView = ecs_world_view_t(world, GlobalUpdateView);
-  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  if (!globalItr) {
-    return;
-  }
-  AppComp*           app           = ecs_view_write_t(globalItr, AppComp);
-  CmdControllerComp* cmdController = ecs_view_write_t(globalItr, CmdControllerComp);
-
-  if (!app->unitSpawned) {
-    cmd_push_spawn_unit(cmdController, geo_vector(0));
-    app->unitSpawned = true;
-  }
-}
-
-ecs_module_init(sandbox_app_module) {
-  ecs_register_comp(AppComp);
-
-  ecs_register_view(GlobalUpdateView);
-  ecs_register_view(WindowExistenceView);
-
-  ecs_register_system(AppUpdateSys, ecs_view_id(GlobalUpdateView));
-}
+ecs_module_init(sandbox_app_module) { ecs_register_view(WindowExistenceView); }
 
 static CliId g_assetFlag;
 
@@ -77,8 +47,6 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
 
   const EcsEntityId window = gap_window_create(world, GapWindowFlags_Default, g_windowSize);
   debug_menu_create(world, window);
-
-  ecs_world_add_t(world, ecs_world_global(world), AppComp);
 }
 
 bool app_ecs_should_quit(EcsWorld* world) { return !ecs_utils_any(world, WindowExistenceView); }
