@@ -31,7 +31,6 @@ static const String g_tooltipPanelRend       = string_static("Open the \a.bRende
 static const String g_tooltipPanelInterface  = string_static("Open the \a.bInterface\ar panel.");
 static const String g_tooltipFullscreenEnter = string_static("Enter fullscreen.");
 static const String g_tooltipFullscreenExit  = string_static("Exit fullscreen.");
-static const String g_tooltipWindowOpen      = string_static("Open a new window.");
 static const String g_tooltipWindowClose     = string_static("Close the current window.");
 
 // clang-format on
@@ -200,17 +199,6 @@ static void debug_action_bar_draw(
       menu->lastWindowedSize = gap_window_param(win, GapParam_WindowSize);
       gap_window_resize(win, gap_vector(0, 0), GapWindowMode_Fullscreen);
     }
-  }
-
-  ui_table_next_row(canvas, &table);
-  if (ui_button(
-          canvas,
-          .label    = ui_shape_scratch(UiShape_OpenInNew),
-          .fontSize = 30,
-          .tooltip  = g_tooltipWindowOpen)) {
-    static const GapVector g_newWindowSize = {1024, 768};
-    const EcsEntityId newWindow = gap_window_create(world, GapWindowFlags_Default, g_newWindowSize);
-    debug_menu_create(world, newWindow);
   }
 
   ui_table_next_row(canvas, &table);
