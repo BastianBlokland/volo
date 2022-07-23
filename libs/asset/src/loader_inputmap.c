@@ -15,12 +15,15 @@ static DataReg* g_dataReg;
 static DataMeta g_dataInputMapDefMeta;
 
 typedef struct {
-  AssetInputType type;
-  u32            key;
-  struct {
-    u32*  values;
-    usize count;
-  } requiredModifiers;
+  u32*  values;
+  usize count;
+} AssetInputModifierArray;
+
+typedef struct {
+  AssetInputType          type;
+  u32                     key;
+  AssetInputModifierArray requiredModifiers;
+  AssetInputModifierArray illegalModifiers;
 } AssetInputBindingDef;
 
 typedef struct {
@@ -156,6 +159,7 @@ static void inputmap_datareg_init() {
     data_reg_field_t(g_dataReg, AssetInputBindingDef, type, t_AssetInputType);
     data_reg_field_t(g_dataReg, AssetInputBindingDef, key, t_AssetInputKey);
     data_reg_field_t(g_dataReg, AssetInputBindingDef, requiredModifiers, t_AssetInputModifier, .container = DataContainer_Array, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetInputBindingDef, illegalModifiers, t_AssetInputModifier, .container = DataContainer_Array, .flags = DataFlags_Opt);
 
     data_reg_struct_t(g_dataReg, AssetInputActionDef);
     data_reg_field_t(g_dataReg, AssetInputActionDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -198,9 +202,9 @@ static u32 asset_inputmap_blocker_bits(const AssetInputActionDef* def) {
   return bits;
 }
 
-static u32 asset_inputmap_required_modifier_bits(const AssetInputBindingDef* def) {
+static u32 asset_inputmap_modifier_bits(const AssetInputModifierArray* array) {
   u32 bits = 0;
-  array_ptr_for_t(def->requiredModifiers, u32, modifierIndex) { bits |= 1 << *modifierIndex; }
+  array_ptr_for_t(*array, u32, modifierIndex) { bits |= 1 << *modifierIndex; }
   return bits;
 }
 
@@ -229,7 +233,8 @@ static void asset_inputmap_build(
       *dynarray_push_t(outBindings, AssetInputBinding) = (AssetInputBinding){
           .type                 = bindingDef->type,
           .key                  = bindingDef->key,
-          .requiredModifierBits = asset_inputmap_required_modifier_bits(bindingDef),
+          .requiredModifierBits = asset_inputmap_modifier_bits(&bindingDef->requiredModifiers),
+          .illegalModifierBits  = asset_inputmap_modifier_bits(&bindingDef->illegalModifiers),
       };
     }
   }

@@ -149,6 +149,31 @@ static const struct {
             },
         .actionCount = 1,
     },
+    {
+        .id   = string_static("illegal-modifiers.imp"),
+        .text = string_static("{ \"actions\": [ {"
+                              "    \"name\": \"Jump\","
+                              "    \"bindings\": [ {"
+                              "       \"type\": \"Pressed\","
+                              "       \"key\":  \"Space\","
+                              "       \"illegalModifiers\": [ \"Shift\", \"Control\" ],"
+                              "        } ]"
+                              "     }"
+                              "]}"),
+        .actions =
+            {
+                {
+                    .name         = string_static("Jump"),
+                    .bindings     = {{
+                            .type                = AssetInputType_Pressed,
+                            .key                 = 11,
+                            .illegalModifierBits = 0b11,
+                    }},
+                    .bindingCount = 1,
+                },
+            },
+        .actionCount = 1,
+    },
 };
 
 static const struct {

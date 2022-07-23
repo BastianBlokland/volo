@@ -56,6 +56,11 @@ static bool input_binding_satisfied(
     return false;
   }
 
+  // Check that none of the illegal modifiers are active.
+  if (binding->illegalModifierBits & manager->modifiers) {
+    return false;
+  }
+
   // Check that the key is active.
   switch (binding->type) {
   case AssetInputType_Pressed:
