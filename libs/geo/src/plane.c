@@ -16,3 +16,13 @@ GeoVector geo_plane_closest_point(const GeoPlane* plane, const GeoVector point) 
   const f32 dist = geo_vector_dot(plane->normal, point) + plane->distance;
   return geo_vector_sub(point, geo_vector_mul(plane->normal, dist));
 }
+
+f32 geo_plane_intersect_ray(const GeoPlane* plane, const GeoRay* ray) {
+  const f32 dirDot = geo_vector_dot(ray->dir, plane->normal);
+  if (dirDot >= 0) {
+    return -1.0;
+  }
+  const f32 pointDot = geo_vector_dot(ray->point, plane->normal);
+  const f32 t        = (plane->distance - pointDot) / dirDot;
+  return t >= 0 ? t : -1.0f;
+}
