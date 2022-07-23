@@ -135,11 +135,11 @@ typedef struct {
 static UiDrawMetaData ui_draw_metadata(const UiRenderState* state, const AssetFtxComp* font) {
   const UiVector canvasRes = state->canvas->resolution;
   UiDrawMetaData meta      = {
-      .canvasRes = geo_vector(
+           .canvasRes = geo_vector(
           canvasRes.width, canvasRes.height, 1.0f / canvasRes.width, 1.0f / canvasRes.height),
-      .invCanvasScale  = 1.0f / state->canvas->scale,
-      .glyphsPerDim    = font->glyphsPerDim,
-      .invGlyphsPerDim = 1.0f / (f32)font->glyphsPerDim,
+           .invCanvasScale  = 1.0f / state->canvas->scale,
+           .glyphsPerDim    = font->glyphsPerDim,
+           .invGlyphsPerDim = 1.0f / (f32)font->glyphsPerDim,
   };
   mem_cpy(mem_var(meta.clipRects), mem_var(state->clipRects));
   return meta;
@@ -274,7 +274,7 @@ static UiBuildResult ui_canvas_build(UiRenderState* state, const UiId debugElem)
 
 ecs_view_define(GlobalView) {
   ecs_access_read(UiGlobalResourcesComp);
-  ecs_access_write(InputManagerComp);
+  ecs_access_maybe_write(InputManagerComp);
 }
 ecs_view_define(FtxView) { ecs_access_read(AssetFtxComp); }
 ecs_view_define(WindowView) {
@@ -406,7 +406,8 @@ ecs_system_define(UiRenderSys) {
       ui_renderer_create(world, entity);
       continue;
     }
-    if (input_active_window(input) == entity && input_triggered_lit(input, "DisableUiToggle")) {
+    const bool activeWindow = !input || input_active_window(input) == entity;
+    if (input && activeWindow && input_triggered_lit(input, "DisableUiToggle")) {
       renderer->flags ^= UiRendererFlags_Disabled;
     }
 
@@ -429,12 +430,12 @@ ecs_system_define(UiRenderSys) {
     const f32       scale       = ui_window_scale(window, settings);
     const UiVector  canvasSize  = ui_vector(winSize.x / scale, winSize.y / scale);
     UiRenderState   renderState = {
-        .settings      = settings,
-        .font          = font,
-        .renderer      = renderer,
-        .draw          = draw,
-        .clipRects[0]  = {.size = canvasSize},
-        .clipRectCount = 1,
+          .settings      = settings,
+          .font          = font,
+          .renderer      = renderer,
+          .draw          = draw,
+          .clipRects[0]  = {.size = canvasSize},
+          .clipRectCount = 1,
     };
 
     UiCanvasPtr canvasses[ui_canvas_canvasses_max];
@@ -461,7 +462,7 @@ ecs_system_define(UiRenderSys) {
 
       stats->commandCount += result.commandCount;
     }
-    if (input_cursor_mode(input) == InputCursorMode_Locked) {
+    if (input && input_cursor_mode(input) == InputCursorMode_Locked) {
       // When the cursor is locked its be considered to not be 'hovering' over ui.
       hoveredCanvasIndex = sentinel_u32;
     }
@@ -486,7 +487,7 @@ ecs_system_define(UiRenderSys) {
       stats->trackedElemCount += (u32)canvas->trackedElems.size;
       stats->persistElemCount += (u32)canvas->persistentElems.size;
     }
-    if (entity == input_active_window(input)) {
+    if (input && activeWindow) {
       input_blocker_update(input, InputBlocker_TextInput, textEditActive);
       input_blocker_update(input, InputBlocker_HoveringUi, !sentinel_check(hoveredCanvasIndex));
     }
@@ -608,7 +609,7 @@ UiRect ui_canvas_elem_rect(const UiCanvasComp* comp, const UiId id) {
 UiStatus ui_canvas_status(const UiCanvasComp* comp) { return comp->activeStatus; }
 UiVector ui_canvas_resolution(const UiCanvasComp* comp) { return comp->resolution; }
 bool     ui_canvas_input_any(const UiCanvasComp* comp) {
-  return (comp->flags & UiCanvasFlags_InputAny) != 0;
+      return (comp->flags & UiCanvasFlags_InputAny) != 0;
 }
 UiVector ui_canvas_input_delta(const UiCanvasComp* comp) { return comp->inputDelta; }
 UiVector ui_canvas_input_pos(const UiCanvasComp* comp) { return comp->inputPos; }
