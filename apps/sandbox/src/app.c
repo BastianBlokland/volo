@@ -5,10 +5,7 @@
 #include "gap.h"
 #include "input.h"
 #include "rend_register.h"
-#include "scene_camera.h"
-#include "scene_collision.h"
 #include "scene_register.h"
-#include "scene_selection.h"
 #include "ui_register.h"
 
 #include "cmd_internal.h"
@@ -18,16 +15,8 @@ static const GapVector g_windowSize = {1920, 1080};
 ecs_comp_define(AppComp) { bool unitSpawned; };
 
 ecs_view_define(GlobalUpdateView) {
-  ecs_access_read(InputManagerComp);
-  ecs_access_read(SceneCollisionEnvComp);
-  ecs_access_read(SceneSelectionComp);
   ecs_access_write(AppComp);
   ecs_access_write(CmdControllerComp);
-}
-
-ecs_view_define(CameraView) {
-  ecs_access_write(SceneCameraComp);
-  ecs_access_write(SceneTransformComp);
 }
 
 ecs_view_define(WindowExistenceView) { ecs_access_with(GapWindowComp); }
@@ -38,31 +27,12 @@ ecs_system_define(AppUpdateSys) {
   if (!globalItr) {
     return;
   }
-  AppComp*                     app           = ecs_view_write_t(globalItr, AppComp);
-  CmdControllerComp*           cmdController = ecs_view_write_t(globalItr, CmdControllerComp);
-  const InputManagerComp*      input         = ecs_view_read_t(globalItr, InputManagerComp);
-  const SceneCollisionEnvComp* collisionEnv  = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
-  const SceneSelectionComp*    selection     = ecs_view_read_t(globalItr, SceneSelectionComp);
+  AppComp*           app           = ecs_view_write_t(globalItr, AppComp);
+  CmdControllerComp* cmdController = ecs_view_write_t(globalItr, CmdControllerComp);
 
   if (!app->unitSpawned) {
     cmd_push_spawn_unit(cmdController, geo_vector(0));
     app->unitSpawned = true;
-  }
-
-  const EcsEntityId activeWindow = input_active_window(input);
-  EcsIterator*      camItr = ecs_view_maybe_at(ecs_world_view_t(world, CameraView), activeWindow);
-  if (camItr && input_triggered_lit(input, "SandboxSelect")) {
-    const SceneCameraComp*    cam     = ecs_view_read_t(camItr, SceneCameraComp);
-    const SceneTransformComp* trans   = ecs_view_read_t(camItr, SceneTransformComp);
-    const GeoVector           normPos = geo_vector(input_cursor_x(input), input_cursor_y(input));
-    const GeoRay ray = scene_camera_ray(cam, trans, input_cursor_aspect(input), normPos);
-
-    SceneRayHit hit;
-    if (scene_query_ray(collisionEnv, &ray, &hit) && hit.entity != scene_selected(selection)) {
-      cmd_push_select(cmdController, hit.entity);
-    } else {
-      cmd_push_deselect(cmdController);
-    }
   }
 }
 
@@ -70,10 +40,9 @@ ecs_module_init(sandbox_app_module) {
   ecs_register_comp(AppComp);
 
   ecs_register_view(GlobalUpdateView);
-  ecs_register_view(CameraView);
   ecs_register_view(WindowExistenceView);
 
-  ecs_register_system(AppUpdateSys, ecs_view_id(GlobalUpdateView), ecs_view_id(CameraView));
+  ecs_register_system(AppUpdateSys, ecs_view_id(GlobalUpdateView));
 }
 
 static CliId g_assetFlag;
@@ -96,6 +65,7 @@ void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
 
   ecs_register_module(def, sandbox_app_module);
   ecs_register_module(def, sandbox_cmd_module);
+  ecs_register_module(def, sandbox_input_module);
   ecs_register_module(def, sandbox_unit_module);
 }
 
