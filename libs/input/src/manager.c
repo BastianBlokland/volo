@@ -114,6 +114,9 @@ static void input_update_modifiers(InputManagerComp* manager, GapWindowComp* win
   if (gap_window_key_down(win, GapKey_Control)) {
     manager->modifiers |= InputModifier_Control;
   }
+  if (gap_window_key_down(win, GapKey_Alt)) {
+    manager->modifiers |= InputModifier_Alt;
+  }
 }
 
 static void input_update_cursor(InputManagerComp* manager, GapWindowComp* win) {

@@ -34,6 +34,7 @@ void input_blocker_update(InputManagerComp*, InputBlocker, bool value);
 typedef enum {
   InputModifier_Shift   = 1 << 0,
   InputModifier_Control = 1 << 1,
+  InputModifier_Alt     = 1 << 2,
 } InputModifier;
 
 InputModifier input_modifiers(const InputManagerComp*);

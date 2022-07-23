@@ -150,6 +150,7 @@ static void inputmap_datareg_init() {
     data_reg_enum_t(g_dataReg, AssetInputModifier);
     data_reg_const_custom(g_dataReg, AssetInputModifier, Shift, 0);
     data_reg_const_custom(g_dataReg, AssetInputModifier, Control, 1);
+    data_reg_const_custom(g_dataReg, AssetInputModifier, Alt, 2);
 
     data_reg_enum_t(g_dataReg, AssetInputType);
     data_reg_const_t(g_dataReg, AssetInputType, Pressed);
