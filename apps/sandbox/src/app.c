@@ -24,7 +24,7 @@ static void app_window_create(EcsWorld* world) {
       world,
       window,
       SceneCameraComp,
-      .persFov   = 60 * math_deg_to_rad,
+      .persFov   = 50 * math_deg_to_rad,
       .persNear  = 1,
       .orthoSize = 5);
 
@@ -32,8 +32,8 @@ static void app_window_create(EcsWorld* world) {
       world,
       window,
       SceneTransformComp,
-      .position = {0, 1.2f, -3.5f},
-      .rotation = geo_quat_angle_axis(geo_right, 5 * math_deg_to_rad));
+      .position = {0, 20.0f, 0},
+      .rotation = geo_quat_angle_axis(geo_right, 45 * math_deg_to_rad));
 }
 
 ecs_view_define(GlobalUpdateView) { ecs_access_read(InputManagerComp); }
