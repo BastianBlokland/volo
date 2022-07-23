@@ -48,7 +48,15 @@ static const AssetInputMapComp* input_global_map(EcsWorld* world, const EcsEntit
   return itr ? ecs_view_read_t(itr, AssetInputMapComp) : null;
 }
 
-static bool input_binding_satisfied(const AssetInputBinding* binding, const GapWindowComp* win) {
+static bool input_binding_satisfied(
+    const InputManagerComp* manager, const AssetInputBinding* binding, const GapWindowComp* win) {
+
+  // Check that all required modifiers are active.
+  if ((binding->requiredModifierBits & manager->modifiers) != binding->requiredModifierBits) {
+    return false;
+  }
+
+  // Check that the key is active.
   switch (binding->type) {
   case AssetInputType_Pressed:
     return gap_window_key_pressed(win, binding->key);
@@ -61,10 +69,14 @@ static bool input_binding_satisfied(const AssetInputBinding* binding, const GapW
 }
 
 static bool input_action_satisfied(
-    const AssetInputMapComp* map, const AssetInputAction* action, const GapWindowComp* win) {
+    const InputManagerComp*  manager,
+    const AssetInputMapComp* map,
+    const AssetInputAction*  action,
+    const GapWindowComp*     win) {
+
   for (usize i = 0; i != action->bindingCount; ++i) {
     const AssetInputBinding* binding = &map->bindings[action->bindingIndex + i];
-    if (input_binding_satisfied(binding, win)) {
+    if (input_binding_satisfied(manager, binding, win)) {
       return true;
     }
   }
@@ -128,7 +140,7 @@ static void input_update_triggered(
     if (manager->blockers & action->blockerBits) {
       continue;
     }
-    if (input_action_satisfied(map, action, win)) {
+    if (input_action_satisfied(manager, map, action, win)) {
       *dynarray_push_t(&manager->triggeredActions, u32) = action->nameHash;
     }
   }
