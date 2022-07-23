@@ -110,7 +110,7 @@
         },
         {
           "type": "Down",
-          "key": "Control"
+          "key": "Alt"
         }
       ]
     },

@@ -171,6 +171,9 @@ static GapKey pal_xcb_translate_key(const xcb_keycode_t key) {
   case 0x25: // Left-control.
   case 0x69: // Right-control.
     return GapKey_Control;
+  case 0x40:
+  case 0x6C:
+    return GapKey_Alt;
   case 0x16:
     return GapKey_Backspace;
   case 0x77:

@@ -13,6 +13,7 @@ typedef enum {
 
   GapKey_Shift,
   GapKey_Control,
+  GapKey_Alt,
   GapKey_Backspace,
   GapKey_Delete,
   GapKey_Tab,
