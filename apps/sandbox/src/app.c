@@ -5,6 +5,7 @@
 #include "ecs.h"
 #include "gap.h"
 #include "input.h"
+#include "input_resource.h"
 #include "rend_register.h"
 #include "scene_camera.h"
 #include "scene_register.h"
@@ -92,6 +93,8 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
 
   asset_manager_create_fs(
       world, AssetManagerFlags_TrackChanges | AssetManagerFlags_DelayUnload, assetPath);
+
+  input_resource_create(world, string_lit("input/global.imp"));
 
   app_window_create(world);
 }
