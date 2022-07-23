@@ -121,6 +121,18 @@
       ]
     },
     {
+      "name": "SandboxNewWindow",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "F1"
+        }
+      ]
+    },
+    {
       "name": "DisableUiToggle",
       "bindings": [
         {
