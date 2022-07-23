@@ -116,8 +116,9 @@ ecs_system_define(InputUpdateSys) {
   const SceneTimeComp*         time          = ecs_view_read_t(globalItr, SceneTimeComp);
   InputManagerComp*            input         = ecs_view_write_t(globalItr, InputManagerComp);
 
-  if (input_triggered_lit(input, "Destroy") && scene_selected(selection)) {
-    cmd_push_destroy(cmdController, scene_selected(selection));
+  const EcsEntityId selected = scene_selected(selection);
+  if (input_triggered_lit(input, "Destroy") && selected && ecs_world_exists(world, selected)) {
+    cmd_push_destroy(cmdController, selected);
   }
 
   EcsView* cameraView = ecs_world_view_t(world, CameraView);
