@@ -24,8 +24,6 @@ ecs_comp_extern_public(SceneCameraComp) {
   SceneTagFilter   filter;
 };
 
-ecs_comp_extern_public(SceneCameraMovementComp) { f32 moveSpeed; };
-
 /**
  * Compute the projection matrix at the given aspect.
  */
@@ -44,4 +42,3 @@ GeoRay scene_camera_ray(
     const SceneCameraComp*, const SceneTransformComp*, f32 aspect, GeoVector normScreenPos);
 
 void scene_camera_to_default(SceneCameraComp*);
-void scene_camera_movement_to_default(SceneCameraMovementComp*);

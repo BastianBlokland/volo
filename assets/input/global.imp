@@ -15,7 +15,21 @@
       ]
     },
     {
-      "name": "CameraMoveForward",
+      "name": "SandboxSpawn",
+      "blockers": [
+        "TextInput",
+        "HoveringUi",
+        "CursorLocked"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "MouseRight"
+        }
+      ]
+    },
+    {
+      "name": "SandboxCameraMoveForward",
       "blockers": [
         "TextInput"
       ],
@@ -23,11 +37,15 @@
         {
           "type": "Down",
           "key": "W"
+        },
+        {
+          "type": "Down",
+          "key": "ArrowUp"
         }
       ]
     },
     {
-      "name": "CameraMoveBackward",
+      "name": "SandboxCameraMoveBackward",
       "blockers": [
         "TextInput"
       ],
@@ -35,11 +53,15 @@
         {
           "type": "Down",
           "key": "S"
+        },
+        {
+          "type": "Down",
+          "key": "ArrowDown"
         }
       ]
     },
     {
-      "name": "CameraMoveRight",
+      "name": "SandboxCameraMoveRight",
       "blockers": [
         "TextInput"
       ],
@@ -47,11 +69,15 @@
         {
           "type": "Down",
           "key": "D"
+        },
+        {
+          "type": "Down",
+          "key": "ArrowRight"
         }
       ]
     },
     {
-      "name": "CameraMoveLeft",
+      "name": "SandboxCameraMoveLeft",
       "blockers": [
         "TextInput"
       ],
@@ -59,11 +85,15 @@
         {
           "type": "Down",
           "key": "A"
+        },
+        {
+          "type": "Down",
+          "key": "ArrowLeft"
         }
       ]
     },
     {
-      "name": "CameraLookEnable",
+      "name": "SandboxCameraLookEnable",
       "blockers": [
         "TextInput"
       ],
@@ -79,7 +109,7 @@
       ]
     },
     {
-      "name": "CameraMoveBoost",
+      "name": "SandboxCameraMoveBoost",
       "blockers": [
         "TextInput"
       ],
@@ -91,16 +121,19 @@
       ]
     },
     {
-      "name": "DisableUiToggle",
+      "name": "SandboxWindowNew",
+      "blockers": [
+        "TextInput"
+      ],
       "bindings": [
         {
           "type": "Pressed",
-          "key": "F12"
+          "key": "F1"
         }
       ]
     },
     {
-      "name": "WindowClose",
+      "name": "SandboxWindowClose",
       "blockers": [
         "TextInput"
       ],
@@ -112,7 +145,7 @@
       ]
     },
     {
-      "name": "InputCursorLock",
+      "name": "SandboxCursorLock",
       "blockers": [
         "TextInput"
       ],
@@ -120,6 +153,15 @@
         {
           "type": "Pressed",
           "key": "Tab"
+        }
+      ]
+    },
+    {
+      "name": "DisableUiToggle",
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "F12"
         }
       ]
     },

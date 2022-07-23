@@ -23,7 +23,6 @@ static const String g_tooltipDebugFrustum   = string_static("Visualize the camer
 static const String g_tooltipDebugInput     = string_static("Visualize the input ray.");
 static const String g_tooltipNearDistance   = string_static("Distance (in meters) to the near clipping plane.");
 static const String g_tooltipExclude        = string_static("Exclude {} from being rendered.");
-static const String g_tooltipMoveSpeed      = string_static("Camera movement speed in meters per second.");
 static const String g_tooltipDefaults       = string_static("Reset all settings to their defaults.");
 
 // clang-format on
@@ -45,7 +44,6 @@ ecs_view_define(PanelUpdateView) {
 
 ecs_view_define(WindowView) {
   ecs_access_write(SceneCameraComp);
-  ecs_access_maybe_write(SceneCameraMovementComp);
   ecs_access_maybe_write(SceneTransformComp);
 }
 
@@ -119,11 +117,10 @@ camera_panel_draw_filters(UiCanvasComp* canvas, UiTable* table, SceneCameraComp*
 }
 
 static void camera_panel_draw(
-    UiCanvasComp*            canvas,
-    DebugCameraPanelComp*    panelComp,
-    SceneCameraComp*         camera,
-    SceneCameraMovementComp* cameraMovement,
-    SceneTransformComp*      transform) {
+    UiCanvasComp*         canvas,
+    DebugCameraPanelComp* panelComp,
+    SceneCameraComp*      camera,
+    SceneTransformComp*   transform) {
   const String title = fmt_write_scratch("{} Camera Panel", fmt_ui_shape(PhotoCamera));
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
 
@@ -173,22 +170,9 @@ static void camera_panel_draw(
 
   camera_panel_draw_filters(canvas, &table, camera);
 
-  if (cameraMovement) {
-    ui_table_next_row(canvas, &table);
-    ui_label(canvas, string_lit("Move speed"));
-    ui_table_next_column(canvas, &table);
-    f64 moveSpeed = cameraMovement->moveSpeed;
-    if (ui_numbox(canvas, &moveSpeed, .tooltip = g_tooltipMoveSpeed)) {
-      cameraMovement->moveSpeed = (f32)moveSpeed;
-    }
-  }
-
   ui_table_next_row(canvas, &table);
   if (ui_button(canvas, .label = string_lit("Defaults"), .tooltip = g_tooltipDefaults)) {
     scene_camera_to_default(camera);
-    if (cameraMovement) {
-      scene_camera_movement_to_default(cameraMovement);
-    }
     if (transform) {
       camera_default_transform(camera, transform);
     }
@@ -208,12 +192,11 @@ ecs_system_define(DebugCameraUpdatePanelSys) {
     if (!ecs_view_maybe_jump(windowItr, panelComp->window)) {
       continue; // Window has been destroyed, or has no camera.
     }
-    SceneCameraComp*         camera         = ecs_view_write_t(windowItr, SceneCameraComp);
-    SceneCameraMovementComp* cameraMovement = ecs_view_write_t(windowItr, SceneCameraMovementComp);
-    SceneTransformComp*      transform      = ecs_view_write_t(windowItr, SceneTransformComp);
+    SceneCameraComp*    camera    = ecs_view_write_t(windowItr, SceneCameraComp);
+    SceneTransformComp* transform = ecs_view_write_t(windowItr, SceneTransformComp);
 
     ui_canvas_reset(canvas);
-    camera_panel_draw(canvas, panelComp, camera, cameraMovement, transform);
+    camera_panel_draw(canvas, panelComp, camera, transform);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
@@ -352,7 +335,7 @@ EcsEntityId debug_camera_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugCameraPanelComp,
-      .panel  = ui_panel(ui_vector(340, 340)),
+      .panel  = ui_panel(ui_vector(340, 310)),
       .window = window);
   return panelEntity;
 }

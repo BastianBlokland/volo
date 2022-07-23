@@ -171,8 +171,9 @@ static bool painter_draw(
   const RvkSize   resolution = rvk_size((u32)winSize.width, (u32)winSize.height);
   const bool      draw       = rvk_canvas_begin(painter->canvas, settings, resolution);
   if (draw) {
-    const GeoMatrix viewProj = painter_view_proj_matrix(win, cam, trans);
-    const RendView  view     = rend_view_create(camEntity, &viewProj, cam->filter);
+    const GeoMatrix      viewProj = painter_view_proj_matrix(win, cam, trans);
+    const SceneTagFilter filter   = cam ? cam->filter : (SceneTagFilter){0};
+    const RendView       view     = rend_view_create(camEntity, &viewProj, filter);
 
     const RendPainterGlobalData globalData = {
         .viewProj    = viewProj,

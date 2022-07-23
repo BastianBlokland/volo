@@ -13,7 +13,6 @@
 #include "debug_time.h"
 #include "ecs_world.h"
 #include "gap_window.h"
-#include "input.h"
 #include "ui.h"
 
 // clang-format off
@@ -31,7 +30,6 @@ static const String g_tooltipPanelRend       = string_static("Open the \a.bRende
 static const String g_tooltipPanelInterface  = string_static("Open the \a.bInterface\ar panel.");
 static const String g_tooltipFullscreenEnter = string_static("Enter fullscreen.");
 static const String g_tooltipFullscreenExit  = string_static("Exit fullscreen.");
-static const String g_tooltipWindowOpen      = string_static("Open a new window.");
 static const String g_tooltipWindowClose     = string_static("Close the current window.");
 
 // clang-format on
@@ -49,8 +47,6 @@ ecs_comp_define(DebugMenuComp) {
   EcsEntityId panelRend;
   EcsEntityId panelInterface;
 };
-
-ecs_view_define(GlobalView) { ecs_access_write(InputManagerComp); }
 
 ecs_view_define(MenuUpdateView) {
   ecs_access_write(DebugMenuComp);
@@ -205,17 +201,6 @@ static void debug_action_bar_draw(
   ui_table_next_row(canvas, &table);
   if (ui_button(
           canvas,
-          .label    = ui_shape_scratch(UiShape_OpenInNew),
-          .fontSize = 30,
-          .tooltip  = g_tooltipWindowOpen)) {
-    static const GapVector g_newWindowSize = {1024, 768};
-    const EcsEntityId newWindow = gap_window_create(world, GapWindowFlags_Default, g_newWindowSize);
-    debug_menu_create(world, newWindow);
-  }
-
-  ui_table_next_row(canvas, &table);
-  if (ui_button(
-          canvas,
           .label    = ui_shape_scratch(UiShape_Logout),
           .fontSize = 30,
           .tooltip  = g_tooltipWindowClose)) {
@@ -224,18 +209,6 @@ static void debug_action_bar_draw(
 }
 
 ecs_system_define(DebugMenuUpdateSys) {
-  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
-  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  if (!globalItr) {
-    return; // Global dependencies not initialized yet.
-  }
-  InputManagerComp* input = ecs_view_write_t(globalItr, InputManagerComp);
-
-  // TODO: This does not belong here.
-  if (input_triggered_lit(input, "InputCursorLock")) {
-    input_cursor_mode_set(input, input_cursor_mode(input) ^ 1);
-  }
-
   EcsView*     windowView = ecs_world_view_t(world, WindowUpdateView);
   EcsIterator* windowItr  = ecs_view_itr(windowView);
 
@@ -252,26 +225,17 @@ ecs_system_define(DebugMenuUpdateSys) {
 
     ui_canvas_reset(canvas);
     debug_action_bar_draw(world, canvas, menu, stats, win, menu->window);
-
-    // TODO: This does not belong here.
-    if (input_active_window(input) == menu->window && input_triggered_lit(input, "WindowClose")) {
-      gap_window_close(win);
-    }
   }
 }
 
 ecs_module_init(debug_menu_module) {
   ecs_register_comp(DebugMenuComp);
 
-  ecs_register_view(GlobalView);
   ecs_register_view(MenuUpdateView);
   ecs_register_view(WindowUpdateView);
 
   ecs_register_system(
-      DebugMenuUpdateSys,
-      ecs_view_id(GlobalView),
-      ecs_view_id(MenuUpdateView),
-      ecs_view_id(WindowUpdateView));
+      DebugMenuUpdateSys, ecs_view_id(MenuUpdateView), ecs_view_id(WindowUpdateView));
 }
 
 EcsEntityId debug_menu_create(EcsWorld* world, const EcsEntityId window) {
