@@ -106,7 +106,7 @@ static void window_update(
     const bool locked = (window->flags & GapWindowFlags_CursorLock) != 0;
     /**
      * Capturing the cursor allows receiving mouse inputs even if the cursor is no longer over the
-     * window. This is usefull as you can then do bigger sweeps without losing the lock.
+     * window. This is useful as you can then do bigger sweeps without losing the lock.
      */
     gap_pal_window_cursor_capture(pal, window->id, locked);
   }

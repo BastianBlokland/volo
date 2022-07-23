@@ -40,7 +40,7 @@ static const struct {
             {
                 {
                     .name         = string_static("Jump"),
-                    .bindings     = {{.type = AssetInputType_Pressed, .key = 11}},
+                    .bindings     = {{.type = AssetInputType_Pressed, .key = 12}},
                     .bindingCount = 1,
                 },
             },
@@ -64,8 +64,8 @@ static const struct {
                 {
                     .name = string_static("Jump"),
                     .bindings =
-                        {{.type = AssetInputType_Pressed, .key = 11},
-                         {.type = AssetInputType_Released, .key = 18}},
+                        {{.type = AssetInputType_Pressed, .key = 12},
+                         {.type = AssetInputType_Released, .key = 19}},
                     .bindingCount = 2,
                 },
             },
@@ -91,12 +91,12 @@ static const struct {
             {
                 {
                     .name         = string_static("Forward"),
-                    .bindings     = {{.type = AssetInputType_Down, .key = 44}},
+                    .bindings     = {{.type = AssetInputType_Down, .key = 45}},
                     .bindingCount = 1,
                 },
                 {
                     .name         = string_static("Backward"),
-                    .bindings     = {{.type = AssetInputType_Down, .key = 40}},
+                    .bindings     = {{.type = AssetInputType_Down, .key = 41}},
                     .bindingCount = 1,
                 },
             },
@@ -118,7 +118,57 @@ static const struct {
                 {
                     .name         = string_static("Jump"),
                     .blockerBits  = 0b11,
-                    .bindings     = {{.type = AssetInputType_Pressed, .key = 11}},
+                    .bindings     = {{.type = AssetInputType_Pressed, .key = 12}},
+                    .bindingCount = 1,
+                },
+            },
+        .actionCount = 1,
+    },
+    {
+        .id   = string_static("required-modifiers.imp"),
+        .text = string_static("{ \"actions\": [ {"
+                              "    \"name\": \"Jump\","
+                              "    \"bindings\": [ {"
+                              "       \"type\": \"Pressed\","
+                              "       \"key\":  \"Space\","
+                              "       \"requiredModifiers\": [ \"Shift\", \"Control\" ],"
+                              "        } ]"
+                              "     }"
+                              "]}"),
+        .actions =
+            {
+                {
+                    .name         = string_static("Jump"),
+                    .bindings     = {{
+                            .type                 = AssetInputType_Pressed,
+                            .key                  = 12,
+                            .requiredModifierBits = 0b11,
+                    }},
+                    .bindingCount = 1,
+                },
+            },
+        .actionCount = 1,
+    },
+    {
+        .id   = string_static("illegal-modifiers.imp"),
+        .text = string_static("{ \"actions\": [ {"
+                              "    \"name\": \"Jump\","
+                              "    \"bindings\": [ {"
+                              "       \"type\": \"Pressed\","
+                              "       \"key\":  \"Space\","
+                              "       \"illegalModifiers\": [ \"Shift\", \"Control\" ],"
+                              "        } ]"
+                              "     }"
+                              "]}"),
+        .actions =
+            {
+                {
+                    .name         = string_static("Jump"),
+                    .bindings     = {{
+                            .type                = AssetInputType_Pressed,
+                            .key                 = 12,
+                            .illegalModifierBits = 0b11,
+                    }},
                     .bindingCount = 1,
                 },
             },
@@ -216,6 +266,7 @@ spec(loader_inputmap) {
 
           check_eq_int(actualBinding->type, expectedBinding->type);
           check_eq_int(actualBinding->key, expectedBinding->key);
+          check_eq_int(actualBinding->requiredModifierBits, expectedBinding->requiredModifierBits);
         }
       }
     };

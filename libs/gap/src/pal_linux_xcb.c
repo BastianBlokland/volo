@@ -171,6 +171,9 @@ static GapKey pal_xcb_translate_key(const xcb_keycode_t key) {
   case 0x25: // Left-control.
   case 0x69: // Right-control.
     return GapKey_Control;
+  case 0x40:
+  case 0x6C:
+    return GapKey_Alt;
   case 0x16:
     return GapKey_Backspace;
   case 0x77:
@@ -300,11 +303,11 @@ static GapKey pal_xcb_translate_key(const xcb_keycode_t key) {
     return GapKey_F8;
   case 0x4B:
     return GapKey_F9;
-  case 0x60:
+  case 0x4C:
     return GapKey_F10;
   case 0x5F:
     return GapKey_F11;
-  case 0x4C:
+  case 0x60:
     return GapKey_F12;
   }
   // log_d("Unrecognised xcb key", log_param("keycode", fmt_int(key, .base = 16)));

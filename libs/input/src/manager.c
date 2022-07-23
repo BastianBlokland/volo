@@ -13,6 +13,7 @@
 ecs_comp_define(InputManagerComp) {
   EcsEntityId     activeWindow;
   InputBlocker    blockers;
+  InputModifier   modifiers;
   InputCursorMode cursorMode;
   f32             cursorPosNorm[2];
   f32             cursorDeltaNorm[2];
@@ -47,7 +48,20 @@ static const AssetInputMapComp* input_global_map(EcsWorld* world, const EcsEntit
   return itr ? ecs_view_read_t(itr, AssetInputMapComp) : null;
 }
 
-static bool input_binding_satisfied(const AssetInputBinding* binding, const GapWindowComp* win) {
+static bool input_binding_satisfied(
+    const InputManagerComp* manager, const AssetInputBinding* binding, const GapWindowComp* win) {
+
+  // Check that all required modifiers are active.
+  if ((binding->requiredModifierBits & manager->modifiers) != binding->requiredModifierBits) {
+    return false;
+  }
+
+  // Check that none of the illegal modifiers are active.
+  if (binding->illegalModifierBits & manager->modifiers) {
+    return false;
+  }
+
+  // Check that the key is active.
   switch (binding->type) {
   case AssetInputType_Pressed:
     return gap_window_key_pressed(win, binding->key);
@@ -60,10 +74,14 @@ static bool input_binding_satisfied(const AssetInputBinding* binding, const GapW
 }
 
 static bool input_action_satisfied(
-    const AssetInputMapComp* map, const AssetInputAction* action, const GapWindowComp* win) {
+    const InputManagerComp*  manager,
+    const AssetInputMapComp* map,
+    const AssetInputAction*  action,
+    const GapWindowComp*     win) {
+
   for (usize i = 0; i != action->bindingCount; ++i) {
     const AssetInputBinding* binding = &map->bindings[action->bindingIndex + i];
-    if (input_binding_satisfied(binding, win)) {
+    if (input_binding_satisfied(manager, binding, win)) {
       return true;
     }
   }
@@ -85,6 +103,19 @@ static void input_refresh_active_window(EcsWorld* world, InputManagerComp* manag
       manager->activeWindow = 0;
       gap_window_flags_unset(win, GapWindowFlags_CursorLock | GapWindowFlags_CursorHide);
     }
+  }
+}
+
+static void input_update_modifiers(InputManagerComp* manager, GapWindowComp* win) {
+  manager->modifiers = 0;
+  if (gap_window_key_down(win, GapKey_Shift)) {
+    manager->modifiers |= InputModifier_Shift;
+  }
+  if (gap_window_key_down(win, GapKey_Control)) {
+    manager->modifiers |= InputModifier_Control;
+  }
+  if (gap_window_key_down(win, GapKey_Alt)) {
+    manager->modifiers |= InputModifier_Alt;
   }
 }
 
@@ -117,7 +148,7 @@ static void input_update_triggered(
     if (manager->blockers & action->blockerBits) {
       continue;
     }
-    if (input_action_satisfied(map, action, win)) {
+    if (input_action_satisfied(manager, map, action, win)) {
       *dynarray_push_t(&manager->triggeredActions, u32) = action->nameHash;
     }
   }
@@ -150,6 +181,7 @@ ecs_system_define(InputUpdateSys) {
   }
   GapWindowComp* win = ecs_utils_write_t(world, WindowView, manager->activeWindow, GapWindowComp);
 
+  input_update_modifiers(manager, win);
   input_update_cursor(manager, win);
   input_update_triggered(manager, map, win);
 }
@@ -176,6 +208,8 @@ void input_blocker_update(InputManagerComp* manager, const InputBlocker blocker,
     manager->blockers &= ~blocker;
   }
 }
+
+InputModifier input_modifiers(const InputManagerComp* manager) { return manager->modifiers; }
 
 InputCursorMode input_cursor_mode(const InputManagerComp* manager) { return manager->cursorMode; }
 

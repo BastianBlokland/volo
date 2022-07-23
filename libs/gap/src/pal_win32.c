@@ -196,6 +196,8 @@ static GapKey pal_win32_translate_key(const u8 scanCode) {
     return GapKey_Shift;
   case 0x1D:
     return GapKey_Control;
+  case 0x38:
+    return GapKey_Alt;
   case 0x0E:
     return GapKey_Backspace;
   case 0x53:
@@ -564,12 +566,14 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
     pal_event_release(window, GapKey_MouseMiddle);
     pal_cursor_interaction_end(window);
     return true;
-  case WM_KEYDOWN: {
+  case WM_KEYDOWN:
+  case WM_SYSKEYDOWN: {
     const u8 scanCode = LOBYTE(HIWORD(lParam));
     pal_event_press(window, pal_win32_translate_key(scanCode));
     return true;
   }
-  case WM_KEYUP: {
+  case WM_KEYUP:
+  case WM_SYSKEYUP: {
     const u8 scanCode = LOBYTE(HIWORD(lParam));
     pal_event_release(window, pal_win32_translate_key(scanCode));
     return true;
