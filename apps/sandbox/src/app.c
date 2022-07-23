@@ -94,7 +94,7 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   asset_manager_create_fs(
       world, AssetManagerFlags_TrackChanges | AssetManagerFlags_DelayUnload, assetPath);
 
-  input_resource_create(world, string_lit("input/generic.imp"));
+  input_resource_create(world, string_lit("input/sandbox.imp"));
 
   app_window_create(world);
 }
