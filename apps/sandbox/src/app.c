@@ -11,7 +11,7 @@
 #include "scene_selection.h"
 #include "ui_register.h"
 
-#include "unit_internal.h"
+#include "cmd_internal.h"
 
 static const GapVector g_windowSize = {1920, 1080};
 
@@ -20,9 +20,9 @@ ecs_comp_define(AppComp) { bool unitSpawned; };
 ecs_view_define(GlobalUpdateView) {
   ecs_access_read(InputManagerComp);
   ecs_access_read(SceneCollisionEnvComp);
-  ecs_access_read(UnitDatabaseComp);
+  ecs_access_read(SceneSelectionComp);
   ecs_access_write(AppComp);
-  ecs_access_write(SceneSelectionComp);
+  ecs_access_write(CmdControllerComp);
 }
 
 ecs_view_define(CameraView) {
@@ -38,14 +38,14 @@ ecs_system_define(AppUpdateSys) {
   if (!globalItr) {
     return;
   }
-  const UnitDatabaseComp*      unitDb       = ecs_view_read_t(globalItr, UnitDatabaseComp);
-  AppComp*                     app          = ecs_view_write_t(globalItr, AppComp);
-  const InputManagerComp*      input        = ecs_view_read_t(globalItr, InputManagerComp);
-  const SceneCollisionEnvComp* collisionEnv = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
-  SceneSelectionComp*          selection    = ecs_view_write_t(globalItr, SceneSelectionComp);
+  AppComp*                     app           = ecs_view_write_t(globalItr, AppComp);
+  CmdControllerComp*           cmdController = ecs_view_write_t(globalItr, CmdControllerComp);
+  const InputManagerComp*      input         = ecs_view_read_t(globalItr, InputManagerComp);
+  const SceneCollisionEnvComp* collisionEnv  = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
+  const SceneSelectionComp*    selection     = ecs_view_read_t(globalItr, SceneSelectionComp);
 
   if (!app->unitSpawned) {
-    unit_spawn(world, unitDb, geo_vector(0));
+    cmd_push_spawn_unit(cmdController, geo_vector(0));
     app->unitSpawned = true;
   }
 
@@ -59,9 +59,9 @@ ecs_system_define(AppUpdateSys) {
 
     SceneRayHit hit;
     if (scene_query_ray(collisionEnv, &ray, &hit) && hit.entity != scene_selected(selection)) {
-      scene_select(selection, hit.entity);
+      cmd_push_select(cmdController, hit.entity);
     } else {
-      scene_deselect(selection);
+      cmd_push_deselect(cmdController);
     }
   }
 }
@@ -95,6 +95,7 @@ void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
   ui_register(def);
 
   ecs_register_module(def, sandbox_app_module);
+  ecs_register_module(def, sandbox_cmd_module);
   ecs_register_module(def, sandbox_unit_module);
 }
 
