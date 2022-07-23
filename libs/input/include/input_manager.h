@@ -31,6 +31,13 @@ typedef enum {
 
 void input_blocker_update(InputManagerComp*, InputBlocker, bool value);
 
+typedef enum {
+  InputModifier_Shift   = 1 << 0,
+  InputModifier_Control = 1 << 1,
+} InputModifier;
+
+InputModifier input_modifiers(const InputManagerComp*);
+
 InputCursorMode input_cursor_mode(const InputManagerComp*);
 void            input_cursor_mode_set(InputManagerComp*, InputCursorMode);
 f32             input_cursor_x(const InputManagerComp*);       // Normalized.

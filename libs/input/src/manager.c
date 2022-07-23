@@ -13,6 +13,7 @@
 ecs_comp_define(InputManagerComp) {
   EcsEntityId     activeWindow;
   InputBlocker    blockers;
+  InputModifier   modifiers;
   InputCursorMode cursorMode;
   f32             cursorPosNorm[2];
   f32             cursorDeltaNorm[2];
@@ -88,6 +89,16 @@ static void input_refresh_active_window(EcsWorld* world, InputManagerComp* manag
   }
 }
 
+static void input_update_modifiers(InputManagerComp* manager, GapWindowComp* win) {
+  manager->modifiers = 0;
+  if (gap_window_key_down(win, GapKey_Shift)) {
+    manager->modifiers |= InputModifier_Shift;
+  }
+  if (gap_window_key_down(win, GapKey_Control)) {
+    manager->modifiers |= InputModifier_Control;
+  }
+}
+
 static void input_update_cursor(InputManagerComp* manager, GapWindowComp* win) {
   const GapVector pos     = gap_window_param(win, GapParam_CursorPos);
   const GapVector delta   = gap_window_param(win, GapParam_CursorDelta);
@@ -150,6 +161,7 @@ ecs_system_define(InputUpdateSys) {
   }
   GapWindowComp* win = ecs_utils_write_t(world, WindowView, manager->activeWindow, GapWindowComp);
 
+  input_update_modifiers(manager, win);
   input_update_cursor(manager, win);
   input_update_triggered(manager, map, win);
 }
@@ -176,6 +188,8 @@ void input_blocker_update(InputManagerComp* manager, const InputBlocker blocker,
     manager->blockers &= ~blocker;
   }
 }
+
+InputModifier input_modifiers(const InputManagerComp* manager) { return manager->modifiers; }
 
 InputCursorMode input_cursor_mode(const InputManagerComp* manager) { return manager->cursorMode; }
 
