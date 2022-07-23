@@ -5,6 +5,7 @@
 #include "ecs.h"
 #include "gap.h"
 #include "input.h"
+#include "input_resource.h"
 #include "rend_register.h"
 #include "scene_camera.h"
 #include "scene_register.h"
@@ -46,10 +47,10 @@ ecs_system_define(AppUpdateSys) {
   }
   const InputManagerComp* input = ecs_view_read_t(globalItr, InputManagerComp);
 
-  if (input_triggered_lit(input, "SandboxWindowNew")) {
+  if (input_triggered_lit(input, "WindowNew")) {
     app_window_create(world);
   }
-  if (input_triggered_lit(input, "SandboxWindowClose")) {
+  if (input_triggered_lit(input, "WindowClose")) {
     const EcsEntityId winEntity = input_active_window(input);
     GapWindowComp*    win       = ecs_utils_write_t(world, WindowView, winEntity, GapWindowComp);
     gap_window_close(win);
@@ -92,6 +93,8 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
 
   asset_manager_create_fs(
       world, AssetManagerFlags_TrackChanges | AssetManagerFlags_DelayUnload, assetPath);
+
+  input_resource_create(world, string_lit("input/generic.imp"));
 
   app_window_create(world);
 }

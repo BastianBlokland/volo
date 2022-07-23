@@ -1,7 +1,7 @@
 {
   "actions": [
     {
-      "name": "SandboxSelect",
+      "name": "Select",
       "blockers": [
         "TextInput",
         "HoveringUi",
@@ -15,7 +15,7 @@
       ]
     },
     {
-      "name": "SandboxSpawn",
+      "name": "Spawn",
       "blockers": [
         "TextInput",
         "HoveringUi",
@@ -29,7 +29,7 @@
       ]
     },
     {
-      "name": "SandboxCameraMoveForward",
+      "name": "CameraMoveForward",
       "blockers": [
         "TextInput"
       ],
@@ -45,7 +45,7 @@
       ]
     },
     {
-      "name": "SandboxCameraMoveBackward",
+      "name": "CameraMoveBackward",
       "blockers": [
         "TextInput"
       ],
@@ -61,7 +61,7 @@
       ]
     },
     {
-      "name": "SandboxCameraMoveRight",
+      "name": "CameraMoveRight",
       "blockers": [
         "TextInput"
       ],
@@ -77,7 +77,7 @@
       ]
     },
     {
-      "name": "SandboxCameraMoveLeft",
+      "name": "CameraMoveLeft",
       "blockers": [
         "TextInput"
       ],
@@ -93,7 +93,7 @@
       ]
     },
     {
-      "name": "SandboxCameraLookEnable",
+      "name": "CameraLookEnable",
       "blockers": [
         "TextInput"
       ],
@@ -109,7 +109,7 @@
       ]
     },
     {
-      "name": "SandboxCameraMoveBoost",
+      "name": "CameraMoveBoost",
       "blockers": [
         "TextInput"
       ],
@@ -121,7 +121,7 @@
       ]
     },
     {
-      "name": "SandboxWindowNew",
+      "name": "WindowNew",
       "blockers": [
         "TextInput"
       ],
@@ -133,7 +133,7 @@
       ]
     },
     {
-      "name": "SandboxWindowClose",
+      "name": "WindowClose",
       "blockers": [
         "TextInput"
       ],
@@ -145,7 +145,7 @@
       ]
     },
     {
-      "name": "SandboxCursorLock",
+      "name": "CursorLock",
       "blockers": [
         "TextInput"
       ],

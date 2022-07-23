@@ -35,30 +35,30 @@ static void update_camera_movement(
     SceneTransformComp*     camTrans) {
 
   f32 moveDelta = scene_delta_seconds(time) * g_inputCamMoveSpeed;
-  if (input_triggered_lit(input, "SandboxCameraMoveBoost")) {
+  if (input_triggered_lit(input, "CameraMoveBoost")) {
     moveDelta *= g_inputCamMoveSpeedBoostMult;
   }
   const GeoVector right   = geo_quat_rotate(camTrans->rotation, geo_right);
   const GeoVector up      = geo_quat_rotate(camTrans->rotation, geo_up);
   const GeoVector forward = geo_quat_rotate(camTrans->rotation, geo_forward);
 
-  if (input_triggered_lit(input, "SandboxCameraMoveForward")) {
+  if (input_triggered_lit(input, "CameraMoveForward")) {
     const GeoVector dir = camera->flags & SceneCameraFlags_Orthographic ? up : forward;
     camTrans->position  = geo_vector_add(camTrans->position, geo_vector_mul(dir, moveDelta));
   }
-  if (input_triggered_lit(input, "SandboxCameraMoveBackward")) {
+  if (input_triggered_lit(input, "CameraMoveBackward")) {
     const GeoVector dir = camera->flags & SceneCameraFlags_Orthographic ? up : forward;
     camTrans->position  = geo_vector_sub(camTrans->position, geo_vector_mul(dir, moveDelta));
   }
-  if (input_triggered_lit(input, "SandboxCameraMoveRight")) {
+  if (input_triggered_lit(input, "CameraMoveRight")) {
     camTrans->position = geo_vector_add(camTrans->position, geo_vector_mul(right, moveDelta));
   }
-  if (input_triggered_lit(input, "SandboxCameraMoveLeft")) {
+  if (input_triggered_lit(input, "CameraMoveLeft")) {
     camTrans->position = geo_vector_sub(camTrans->position, geo_vector_mul(right, moveDelta));
   }
 
   const bool cursorLocked = input_cursor_mode(input) == InputCursorMode_Locked;
-  if (input_triggered_lit(input, "SandboxCameraLookEnable") || cursorLocked) {
+  if (input_triggered_lit(input, "CameraLookEnable") || cursorLocked) {
     const f32 deltaX = input_cursor_delta_x(input) * g_inputCamRotateSensitivity;
     const f32 deltaY = input_cursor_delta_y(input) * -g_inputCamRotateSensitivity;
 
@@ -81,7 +81,7 @@ static void update_camera_interact(
   const GeoRay    inputRay     = scene_camera_ray(camera, cameraTrans, inputAspect, inputNormPos);
   const GeoPlane  groundPlane  = {.normal = geo_up};
 
-  if (input_triggered_lit(input, "SandboxSelect")) {
+  if (input_triggered_lit(input, "Select")) {
     SceneRayHit hit;
     const bool  hasHit = scene_query_ray(collisionEnv, &inputRay, &hit);
 
@@ -92,11 +92,11 @@ static void update_camera_interact(
     }
   }
 
-  if (input_triggered_lit(input, "SandboxCursorLock")) {
+  if (input_triggered_lit(input, "CursorLock")) {
     input_cursor_mode_set(input, input_cursor_mode(input) ^ 1);
   }
 
-  if (input_triggered_lit(input, "SandboxSpawn")) {
+  if (input_triggered_lit(input, "Spawn")) {
     const f32 rayT = geo_plane_intersect_ray(&groundPlane, &inputRay);
     if (rayT > g_inputMinSpawnDist && rayT < g_inputMaxSpawnDist) {
       cmd_push_spawn_unit(cmdController, geo_ray_position(&inputRay, rayT));

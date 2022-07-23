@@ -26,7 +26,7 @@ static void ecs_destruct_input_manager(void* data) {
 }
 
 ecs_view_define(GlobalView) {
-  ecs_access_read(InputResourcesComp);
+  ecs_access_read(InputResourceComp);
   ecs_access_maybe_write(InputManagerComp);
 }
 
@@ -138,8 +138,8 @@ ecs_system_define(InputUpdateSys) {
   manager->cursorDeltaNorm[1] = 0;
   dynarray_clear(&manager->triggeredActions);
 
-  const InputResourcesComp* resources = ecs_view_read_t(globalItr, InputResourcesComp);
-  const AssetInputMapComp*  map       = input_global_map(world, input_resource_map(resources));
+  const InputResourceComp* resource = ecs_view_read_t(globalItr, InputResourceComp);
+  const AssetInputMapComp* map      = input_global_map(world, input_resource_map(resource));
   if (!map) {
     return; // Inputmap not loaded yet.
   }
