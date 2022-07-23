@@ -15,14 +15,23 @@ static DataReg* g_dataReg;
 static DataMeta g_dataInputMapDefMeta;
 
 typedef struct {
+  AssetInputType type;
+  u32            key;
+  struct {
+    u32*  values;
+    usize count;
+  } requiredModifiers;
+} AssetInputBindingDef;
+
+typedef struct {
   String name;
   struct {
     u32*  values;
     usize count;
   } blockers;
   struct {
-    AssetInputBinding* values;
-    usize              count;
+    AssetInputBindingDef* values;
+    usize                 count;
   } bindings;
 } AssetInputActionDef;
 
@@ -130,19 +139,28 @@ static void inputmap_datareg_init() {
     data_reg_const_custom(g_dataReg, AssetInputBlocker, HoveringUi, 1);
     data_reg_const_custom(g_dataReg, AssetInputBlocker, CursorLocked, 2);
 
+    /**
+     * Modifiers correspond to the 'InputModifier' values as defined in 'input_manager.h'.
+     * NOTE: This is a virtual data type, meaning there is no matching AssetInputModifier C type.
+     */
+    data_reg_enum_t(g_dataReg, AssetInputModifier);
+    data_reg_const_custom(g_dataReg, AssetInputModifier, Shift, 0);
+    data_reg_const_custom(g_dataReg, AssetInputModifier, Control, 1);
+
     data_reg_enum_t(g_dataReg, AssetInputType);
     data_reg_const_t(g_dataReg, AssetInputType, Pressed);
     data_reg_const_t(g_dataReg, AssetInputType, Released);
     data_reg_const_t(g_dataReg, AssetInputType, Down);
 
-    data_reg_struct_t(g_dataReg, AssetInputBinding);
-    data_reg_field_t(g_dataReg, AssetInputBinding, type, t_AssetInputType);
-    data_reg_field_t(g_dataReg, AssetInputBinding, key, t_AssetInputKey);
+    data_reg_struct_t(g_dataReg, AssetInputBindingDef);
+    data_reg_field_t(g_dataReg, AssetInputBindingDef, type, t_AssetInputType);
+    data_reg_field_t(g_dataReg, AssetInputBindingDef, key, t_AssetInputKey);
+    data_reg_field_t(g_dataReg, AssetInputBindingDef, requiredModifiers, t_AssetInputModifier, .container = DataContainer_Array, .flags = DataFlags_Opt);
 
     data_reg_struct_t(g_dataReg, AssetInputActionDef);
     data_reg_field_t(g_dataReg, AssetInputActionDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AssetInputActionDef, blockers, t_AssetInputBlocker, .container = DataContainer_Array, .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, AssetInputActionDef, bindings, t_AssetInputBinding, .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetInputActionDef, bindings, t_AssetInputBindingDef, .container = DataContainer_Array, .flags = DataFlags_NotEmpty);
 
     data_reg_struct_t(g_dataReg, AssetInputMapDef);
     data_reg_field_t(g_dataReg, AssetInputMapDef, actions, t_AssetInputActionDef, .container = DataContainer_Array);
@@ -175,9 +193,15 @@ static String inputmap_error_str(const InputMapError err) {
 }
 
 static u32 asset_inputmap_blocker_bits(const AssetInputActionDef* def) {
-  u32 blockerBits = 0;
-  array_ptr_for_t(def->blockers, u32, blockerIndex) { blockerBits |= 1 << *blockerIndex; }
-  return blockerBits;
+  u32 bits = 0;
+  array_ptr_for_t(def->blockers, u32, blockerIndex) { bits |= 1 << *blockerIndex; }
+  return bits;
+}
+
+static u32 asset_inputmap_required_modifier_bits(const AssetInputBindingDef* def) {
+  u32 bits = 0;
+  array_ptr_for_t(def->requiredModifiers, u32, modifierIndex) { bits |= 1 << *modifierIndex; }
+  return bits;
 }
 
 static void asset_inputmap_build(
@@ -201,9 +225,13 @@ static void asset_inputmap_build(
     *dynarray_insert_sorted_t(
         outActions, AssetInputAction, asset_inputmap_compare_action, &action) = action;
 
-    mem_cpy(
-        dynarray_push(outBindings, bindingCount),
-        mem_create(actionDef->bindings.values, sizeof(AssetInputBinding) * bindingCount));
+    array_ptr_for_t(actionDef->bindings, AssetInputBindingDef, bindingDef) {
+      *dynarray_push_t(outBindings, AssetInputBinding) = (AssetInputBinding){
+          .type                 = bindingDef->type,
+          .key                  = bindingDef->key,
+          .requiredModifierBits = asset_inputmap_required_modifier_bits(bindingDef),
+      };
+    }
   }
   *err = InputMapError_None;
 }

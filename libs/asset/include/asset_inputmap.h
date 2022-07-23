@@ -15,6 +15,7 @@ typedef enum {
 typedef struct {
   AssetInputType type;
   u32            key; // Key identifier, matches the 'GapKey' values in 'gap_input.h'.
+  u32            requiredModifierBits; // Matches the 'InputModifier' enum in 'input_manager.h'.
 } AssetInputBinding;
 
 typedef struct {

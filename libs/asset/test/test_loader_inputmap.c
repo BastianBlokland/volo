@@ -124,6 +124,31 @@ static const struct {
             },
         .actionCount = 1,
     },
+    {
+        .id   = string_static("required-modifiers.imp"),
+        .text = string_static("{ \"actions\": [ {"
+                              "    \"name\": \"Jump\","
+                              "    \"bindings\": [ {"
+                              "       \"type\": \"Pressed\","
+                              "       \"key\":  \"Space\","
+                              "       \"requiredModifiers\": [ \"Shift\", \"Control\" ],"
+                              "        } ]"
+                              "     }"
+                              "]}"),
+        .actions =
+            {
+                {
+                    .name         = string_static("Jump"),
+                    .bindings     = {{
+                            .type                 = AssetInputType_Pressed,
+                            .key                  = 11,
+                            .requiredModifierBits = 0b11,
+                    }},
+                    .bindingCount = 1,
+                },
+            },
+        .actionCount = 1,
+    },
 };
 
 static const struct {
@@ -216,6 +241,7 @@ spec(loader_inputmap) {
 
           check_eq_int(actualBinding->type, expectedBinding->type);
           check_eq_int(actualBinding->key, expectedBinding->key);
+          check_eq_int(actualBinding->requiredModifierBits, expectedBinding->requiredModifierBits);
         }
       }
     };
