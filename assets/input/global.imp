@@ -121,7 +121,7 @@
       ]
     },
     {
-      "name": "SandboxNewWindow",
+      "name": "SandboxWindowNew",
       "blockers": [
         "TextInput"
       ],
@@ -133,11 +133,14 @@
       ]
     },
     {
-      "name": "DisableUiToggle",
+      "name": "SandboxWindowClose",
+      "blockers": [
+        "TextInput"
+      ],
       "bindings": [
         {
           "type": "Pressed",
-          "key": "F12"
+          "key": "Escape"
         }
       ]
     },
@@ -154,14 +157,11 @@
       ]
     },
     {
-      "name": "WindowClose",
-      "blockers": [
-        "TextInput"
-      ],
+      "name": "DisableUiToggle",
       "bindings": [
         {
           "type": "Pressed",
-          "key": "Escape"
+          "key": "F12"
         }
       ]
     },

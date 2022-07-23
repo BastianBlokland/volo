@@ -36,7 +36,7 @@ static void app_window_create(EcsWorld* world) {
 }
 
 ecs_view_define(GlobalUpdateView) { ecs_access_read(InputManagerComp); }
-ecs_view_define(WindowExistenceView) { ecs_access_with(GapWindowComp); }
+ecs_view_define(WindowView) { ecs_access_write(GapWindowComp); }
 
 ecs_system_define(AppUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalUpdateView);
@@ -46,16 +46,21 @@ ecs_system_define(AppUpdateSys) {
   }
   const InputManagerComp* input = ecs_view_read_t(globalItr, InputManagerComp);
 
-  if (input_triggered_lit(input, "SandboxNewWindow")) {
+  if (input_triggered_lit(input, "SandboxWindowNew")) {
     app_window_create(world);
+  }
+  if (input_triggered_lit(input, "SandboxWindowClose")) {
+    const EcsEntityId winEntity = input_active_window(input);
+    GapWindowComp*    win       = ecs_utils_write_t(world, WindowView, winEntity, GapWindowComp);
+    gap_window_close(win);
   }
 }
 
 ecs_module_init(sandbox_app_module) {
   ecs_register_view(GlobalUpdateView);
-  ecs_register_view(WindowExistenceView);
+  ecs_register_view(WindowView);
 
-  ecs_register_system(AppUpdateSys, ecs_view_id(GlobalUpdateView));
+  ecs_register_system(AppUpdateSys, ecs_view_id(GlobalUpdateView), ecs_view_id(WindowView));
 }
 
 static CliId g_assetFlag;
@@ -91,4 +96,4 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   app_window_create(world);
 }
 
-bool app_ecs_should_quit(EcsWorld* world) { return !ecs_utils_any(world, WindowExistenceView); }
+bool app_ecs_should_quit(EcsWorld* world) { return !ecs_utils_any(world, WindowView); }

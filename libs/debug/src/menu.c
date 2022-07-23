@@ -13,7 +13,6 @@
 #include "debug_time.h"
 #include "ecs_world.h"
 #include "gap_window.h"
-#include "input.h"
 #include "ui.h"
 
 // clang-format off
@@ -48,8 +47,6 @@ ecs_comp_define(DebugMenuComp) {
   EcsEntityId panelRend;
   EcsEntityId panelInterface;
 };
-
-ecs_view_define(GlobalView) { ecs_access_write(InputManagerComp); }
 
 ecs_view_define(MenuUpdateView) {
   ecs_access_write(DebugMenuComp);
@@ -212,13 +209,6 @@ static void debug_action_bar_draw(
 }
 
 ecs_system_define(DebugMenuUpdateSys) {
-  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
-  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  if (!globalItr) {
-    return; // Global dependencies not initialized yet.
-  }
-  InputManagerComp* input = ecs_view_write_t(globalItr, InputManagerComp);
-
   EcsView*     windowView = ecs_world_view_t(world, WindowUpdateView);
   EcsIterator* windowItr  = ecs_view_itr(windowView);
 
@@ -235,26 +225,17 @@ ecs_system_define(DebugMenuUpdateSys) {
 
     ui_canvas_reset(canvas);
     debug_action_bar_draw(world, canvas, menu, stats, win, menu->window);
-
-    // TODO: This does not belong here.
-    if (input_active_window(input) == menu->window && input_triggered_lit(input, "WindowClose")) {
-      gap_window_close(win);
-    }
   }
 }
 
 ecs_module_init(debug_menu_module) {
   ecs_register_comp(DebugMenuComp);
 
-  ecs_register_view(GlobalView);
   ecs_register_view(MenuUpdateView);
   ecs_register_view(WindowUpdateView);
 
   ecs_register_system(
-      DebugMenuUpdateSys,
-      ecs_view_id(GlobalView),
-      ecs_view_id(MenuUpdateView),
-      ecs_view_id(WindowUpdateView));
+      DebugMenuUpdateSys, ecs_view_id(MenuUpdateView), ecs_view_id(WindowUpdateView));
 }
 
 EcsEntityId debug_menu_create(EcsWorld* world, const EcsEntityId window) {
