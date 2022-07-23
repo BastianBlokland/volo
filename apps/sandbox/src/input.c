@@ -16,11 +16,11 @@ static const f32 g_inputCamMoveSpeedBoostMult = 4.0f;
 static const f32 g_inputCamRotateSensitivity  = 2.0f;
 
 ecs_view_define(GlobalUpdateView) {
-  ecs_access_read(InputManagerComp);
   ecs_access_read(SceneCollisionEnvComp);
   ecs_access_read(SceneSelectionComp);
   ecs_access_read(SceneTimeComp);
   ecs_access_write(CmdControllerComp);
+  ecs_access_write(InputManagerComp);
 }
 
 ecs_view_define(CameraView) {
@@ -70,7 +70,7 @@ static void update_camera_movement(
 
 static void update_camera_interact(
     CmdControllerComp*           cmdController,
-    const InputManagerComp*      input,
+    InputManagerComp*            input,
     const SceneCollisionEnvComp* collisionEnv,
     const SceneSelectionComp*    selection,
     const SceneCameraComp*       camera,
@@ -92,6 +92,10 @@ static void update_camera_interact(
     }
   }
 
+  if (input_triggered_lit(input, "SandboxCursorLock")) {
+    input_cursor_mode_set(input, input_cursor_mode(input) ^ 1);
+  }
+
   if (input_triggered_lit(input, "SandboxSpawn")) {
     const f32 rayT = geo_plane_intersect_ray(&groundPlane, &inputRay);
     if (rayT > g_inputMinSpawnDist && rayT < g_inputMaxSpawnDist) {
@@ -107,10 +111,10 @@ ecs_system_define(InputUpdateSys) {
     return;
   }
   CmdControllerComp*           cmdController = ecs_view_write_t(globalItr, CmdControllerComp);
-  const SceneTimeComp*         time          = ecs_view_read_t(globalItr, SceneTimeComp);
-  const InputManagerComp*      input         = ecs_view_read_t(globalItr, InputManagerComp);
   const SceneCollisionEnvComp* collisionEnv  = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
   const SceneSelectionComp*    selection     = ecs_view_read_t(globalItr, SceneSelectionComp);
+  const SceneTimeComp*         time          = ecs_view_read_t(globalItr, SceneTimeComp);
+  InputManagerComp*            input         = ecs_view_write_t(globalItr, InputManagerComp);
 
   EcsView* cameraView = ecs_world_view_t(world, CameraView);
   if (ecs_view_contains(cameraView, input_active_window(input))) {

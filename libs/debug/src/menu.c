@@ -219,11 +219,6 @@ ecs_system_define(DebugMenuUpdateSys) {
   }
   InputManagerComp* input = ecs_view_write_t(globalItr, InputManagerComp);
 
-  // TODO: This does not belong here.
-  if (input_triggered_lit(input, "InputCursorLock")) {
-    input_cursor_mode_set(input, input_cursor_mode(input) ^ 1);
-  }
-
   EcsView*     windowView = ecs_world_view_t(world, WindowUpdateView);
   EcsIterator* windowItr  = ecs_view_itr(windowView);
 
