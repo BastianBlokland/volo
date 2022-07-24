@@ -40,7 +40,7 @@ static void app_window_fullscreen_toggle(GapWindowComp* win) {
   const bool isFullscreen = gap_window_mode(win) == GapWindowMode_Fullscreen;
   gap_window_resize(
       win,
-      isFullscreen ? g_windowSize : gap_vector(0, 0),
+      isFullscreen ? gap_window_param(win, GapParam_WindowSizePreFullscreen) : gap_vector(0, 0),
       isFullscreen ? GapWindowMode_Windowed : GapWindowMode_Fullscreen);
 }
 
