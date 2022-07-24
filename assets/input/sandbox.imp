@@ -150,7 +150,14 @@
       "bindings": [
         {
           "type": "Pressed",
-          "key": "F1"
+          "key": "F10"
+        },
+        {
+          "type": "Pressed",
+          "key": "N",
+          "requiredModifiers": [
+            "Alt"
+          ]
         }
       ]
     },
