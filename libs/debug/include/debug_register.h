@@ -2,6 +2,7 @@
 #include "ecs_def.h"
 
 enum {
+  DebugOrder_GizmoUpdate        = -500,
   DebugOrder_AnimationDebugDraw = 700,
   DebugOrder_InspectorDebugDraw = 700,
   DebugOrder_CameraDebugDraw    = 700,
