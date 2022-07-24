@@ -109,6 +109,10 @@ String ecs_def_system_name(const EcsDef* def, const EcsSystemId id) {
   return ecs_def_system(def, id)->name;
 }
 
+i32 ecs_def_system_order(const EcsDef* def, const EcsSystemId id) {
+  return ecs_def_system(def, id)->order;
+}
+
 EcsDefSystemViews ecs_def_system_views(const EcsDef* def, const EcsSystemId id) {
   const EcsSystemDef* sysDef = ecs_def_system(def, id);
   return (EcsDefSystemViews){
