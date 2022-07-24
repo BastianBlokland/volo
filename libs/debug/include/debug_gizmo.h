@@ -7,15 +7,9 @@
  * Gizmo identifier.
  * Used to track gizmo identity across frames.
  */
-typedef u32 DebugGizmoId;
+typedef u64 DebugGizmoId;
 
 ecs_comp_extern(DebugGizmoComp);
-
-/**
- * Create a gizmo-id for the given entity.
- * NOTE: Only unique between existing entities.
- */
-DebugGizmoId debug_gizmo_id_entity(EcsEntityId);
 
 // clang-format off
 

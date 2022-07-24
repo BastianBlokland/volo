@@ -603,7 +603,7 @@ static void inspector_shape_draw_subject(
     }
   }
   if (set->flags & DebugInspectorFlags_GizmoTranslation) {
-    const DebugGizmoId id = debug_gizmo_id_entity(ecs_view_entity(subject));
+    const DebugGizmoId id = (DebugGizmoId)ecs_view_entity(subject);
     debug_gizmo_translation(gizmo, id, &transformComp->position, transformComp->rotation);
   }
 }

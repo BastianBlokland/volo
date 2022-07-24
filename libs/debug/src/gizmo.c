@@ -103,17 +103,12 @@ ecs_view_define(CameraView) {
   ecs_access_read(SceneTransformComp);
 }
 
-static u64 debug_gizmo_to_shape_id(const DebugGizmoId gizmoId, const DebugGizmoAxis axis) {
-  return (u64)gizmoId | ((u64)axis << 32u);
-}
+static u64 debug_gizmo_shape_id(const u32 i, const DebugGizmoAxis a) { return i | ((u64)a << 32u); }
+static u32 debug_gizmo_shape_index(const u64 id) { return (u32)id; }
+static DebugGizmoAxis debug_gizmo_shape_axis(const u64 id) { return (DebugGizmoAxis)(id >> 32u); }
 
-static DebugGizmoId debug_gizmo_id_from_shape_id(const u64 shapeId) { return (u32)shapeId; }
-
-static DebugGizmoAxis debug_gizmo_axis_from_shape_id(const u64 shapeId) {
-  return (u32)(shapeId >> 32u);
-}
-
-static void debug_gizmo_register_translation(DebugGizmoComp* comp, const DebugGizmo* gizmo) {
+static void
+debug_gizmo_register_translation(DebugGizmoComp* comp, const u32 index, const DebugGizmo* gizmo) {
   diag_assert(gizmo->type == DebugGizmoType_Translation);
 
   // Register collision shapes for the translation arrows.
@@ -130,14 +125,14 @@ static void debug_gizmo_register_translation(DebugGizmoComp* comp, const DebugGi
             .line   = {.a = lineStart, .b = lineEnd},
             .radius = g_gizmoTranslationArrows[a].radius,
         },
-        debug_gizmo_to_shape_id(gizmo->id, a));
+        debug_gizmo_shape_id(index, a));
   }
 }
 
-static void debug_gizmo_register(DebugGizmoComp* comp, const DebugGizmo* gizmo) {
+static void debug_gizmo_register(DebugGizmoComp* comp, const u32 index, const DebugGizmo* gizmo) {
   switch (gizmo->type) {
   case DebugGizmoType_Translation:
-    return debug_gizmo_register_translation(comp, gizmo);
+    return debug_gizmo_register_translation(comp, index, gizmo);
   case DebugGizmoType_Count:
     break;
   }
@@ -166,8 +161,9 @@ ecs_system_define(DebugGizmoUpdateSys) {
 
   // Register all gizmos that where active in the last frame.
   geo_query_env_clear(gizmoComp->queryEnv);
-  dynarray_for_t(&gizmoComp->entries, DebugGizmo, entry) { debug_gizmo_register(gizmoComp, entry); }
-  dynarray_clear(&gizmoComp->entries);
+  for (u32 i = 0; i != gizmoComp->entries.size; ++i) {
+    debug_gizmo_register(gizmoComp, i, dynarray_at_t(&gizmoComp->entries, i, DebugGizmo));
+  }
 
   // Test which gizmo is being hovered.
   EcsView* cameraView = ecs_world_view_t(world, CameraView);
@@ -183,9 +179,13 @@ ecs_system_define(DebugGizmoUpdateSys) {
 
     GeoQueryRayHit hit;
     if (!hoveringUi && geo_query_ray(gizmoComp->queryEnv, &inputRay, &hit)) {
-      gizmoComp->interaction = DebugGizmoInteraction_Hovering;
-      gizmoComp->activeId    = debug_gizmo_id_from_shape_id(hit.shapeId);
-      gizmoComp->activeAxis  = debug_gizmo_axis_from_shape_id(hit.shapeId);
+      gizmoComp->interaction         = DebugGizmoInteraction_Hovering;
+      const u32         hoveredIndex = debug_gizmo_shape_index(hit.shapeId);
+      const DebugGizmo* hoveredGizmo = dynarray_at_t(&gizmoComp->entries, hoveredIndex, DebugGizmo);
+      const DebugGizmoAxis hoveredAxis = debug_gizmo_shape_axis(hit.shapeId);
+
+      gizmoComp->activeId   = hoveredGizmo->id;
+      gizmoComp->activeAxis = hoveredAxis;
     } else {
       gizmoComp->interaction = DebugGizmoInteraction_None;
     }
@@ -193,6 +193,9 @@ ecs_system_define(DebugGizmoUpdateSys) {
 
   // Update input blockers.
   input_blocker_update(input, InputBlocker_HoveringGizmo, gizmoComp->interaction > 0);
+
+  // Clear last frame's entries.
+  dynarray_clear(&gizmoComp->entries);
 }
 
 void debug_gizmo_draw_translation(
@@ -245,15 +248,10 @@ ecs_module_init(debug_gizmo_module) {
   ecs_register_view(CameraView);
 
   ecs_register_system(DebugGizmoUpdateSys, ecs_view_id(GlobalUpdateView), ecs_view_id(CameraView));
+  ecs_order(DebugGizmoUpdateSys, DebugOrder_GizmoUpdate);
 
   ecs_register_system(DebugGizmoRenderSys, ecs_view_id(GlobalRenderView));
-
-  ecs_order(DebugGizmoUpdateSys, DebugOrder_GizmoUpdate);
   ecs_order(DebugGizmoRenderSys, DebugOrder_GizmoRender);
-}
-
-DebugGizmoId debug_gizmo_id_entity(const EcsEntityId entity) {
-  return (DebugGizmoId)ecs_entity_id_index(entity);
 }
 
 bool debug_gizmo_translation(
