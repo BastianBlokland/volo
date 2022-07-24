@@ -23,6 +23,7 @@ typedef struct {
 typedef struct {
   EcsSystemId  id;
   String       name;
+  i32          definedOrder; // Configured ordering constraint.
   JobTaskId    taskId;
   JobWorkerId  workerId;
   EcsViewId*   views;
@@ -285,13 +286,14 @@ static void sys_info_query(DebugEcsPanelComp* panelComp, EcsWorld* world) {
         continue;
       }
       *dynarray_push_t(&panelComp->systems, DebugEcsSysInfo) = (DebugEcsSysInfo){
-          .id        = id,
-          .name      = ecs_def_system_name(def, id),
-          .taskId    = ecs_runner_graph_task(g_ecsRunningRunner, id),
-          .workerId  = stats.sysStats[id].workerId,
-          .views     = ecs_def_system_views(def, id).values,
-          .viewCount = (u32)ecs_def_system_views(def, id).count,
-          .duration  = stats.sysStats[id].avgDur,
+          .id           = id,
+          .name         = ecs_def_system_name(def, id),
+          .taskId       = ecs_runner_graph_task(g_ecsRunningRunner, id),
+          .definedOrder = ecs_def_system_order(def, id),
+          .workerId     = stats.sysStats[id].workerId,
+          .views        = ecs_def_system_views(def, id).values,
+          .viewCount    = (u32)ecs_def_system_views(def, id).count,
+          .duration     = stats.sysStats[id].avgDur,
       };
     }
   }
@@ -374,6 +376,7 @@ sys_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, const Ecs
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
   ui_table_add_column(&table, UiTableColumn_Fixed, 325);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 60);
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
   ui_table_add_column(&table, UiTableColumn_Fixed, 75);
   ui_table_add_column(&table, UiTableColumn_Fixed, 75);
@@ -385,6 +388,7 @@ sys_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, const Ecs
       (const UiTableColumnName[]){
           {string_lit("Id"), string_lit("System identifier.")},
           {string_lit("Name"), string_lit("System name.")},
+          {string_lit("Order"), string_lit("Defined system order.")},
           {string_lit("Task"), string_lit("Identifier of the job-graph task of this system.")},
           {string_lit("Worker"), string_lit("Identifier job-worker that ran this system last.")},
           {string_lit("Views"), string_lit("Amount of views the system accesses.")},
@@ -404,6 +408,8 @@ sys_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, const Ecs
     ui_label(canvas, fmt_write_scratch("{}", fmt_int(sysInfo->id)));
     ui_table_next_column(canvas, &table);
     ui_label(canvas, sysInfo->name, .selectable = true);
+    ui_table_next_column(canvas, &table);
+    ui_label(canvas, fmt_write_scratch("{}", fmt_int(sysInfo->definedOrder)));
     ui_table_next_column(canvas, &table);
     ui_label(canvas, fmt_write_scratch("{}", fmt_int(sysInfo->taskId)));
     ui_table_next_column(canvas, &table);
