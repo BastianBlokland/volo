@@ -22,8 +22,8 @@ static const String  g_tooltipStatsEnable     = string_static("Enable the \a.bSt
 static const String  g_tooltipStatsDisable    = string_static("Disable the \a.bStatistics\ar interface.");
 static const String  g_tooltipPanelOpen       = string_static("Open the \a.b{}\ar panel.");
 static const String  g_tooltipPanelClose      = string_static("Close the \a.b{}\ar panel.");
-static const UiColor g_panelFrameColorNormal  = ui_color(32, 32, 32, 192);
-static const UiColor g_panelFrameColorOpen    = ui_color(96, 96, 96, 255);
+static const UiColor g_panelFrameColorNormal  = {32, 32, 32, 192};
+static const UiColor g_panelFrameColorOpen    = {96, 96, 96, 255};
 
 // clang-format on
 
