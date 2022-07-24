@@ -12,14 +12,6 @@
 #include "scene_camera.h"
 #include "scene_transform.h"
 
-typedef enum {
-  DebugGizmoSection_X,
-  DebugGizmoSection_Y,
-  DebugGizmoSection_Z,
-
-  DebugGizmoSection_Count,
-} DebugGizmoSection;
-
 static const struct {
   GeoVector dir;
   f32       length, radius;
@@ -66,6 +58,14 @@ typedef enum {
   DebugGizmoStatus_Hovering,
   DebugGizmoStatus_Interacting,
 } DebugGizmoStatus;
+
+typedef enum {
+  DebugGizmoSection_X,
+  DebugGizmoSection_Y,
+  DebugGizmoSection_Z,
+
+  DebugGizmoSection_Count,
+} DebugGizmoSection;
 
 typedef struct {
   GeoVector basePosition;
@@ -117,6 +117,10 @@ ecs_view_define(CameraView) {
   ecs_access_read(SceneTransformComp);
 }
 
+/**
+ * The shape-id encodes both the index of the gizmo as well as the section of the gizmo.
+ * For example the x-arrow of a specific translation gizmo.
+ */
 static u64 gizmo_shape_id(const u32 i, const DebugGizmoSection s) { return i | ((u64)s << 32u); }
 static u32 gizmo_shape_index(const u64 id) { return (u32)id; }
 static DebugGizmoSection gizmo_shape_section(const u64 id) {
@@ -127,21 +131,23 @@ static const DebugGizmoEntry* gizmo_entry(const DebugGizmoComp* comp, const u32 
   return dynarray_at_t(&comp->entries, index, DebugGizmoEntry);
 }
 
-static u32 gizmo_index(const DebugGizmoComp* comp, const DebugGizmoEntry* entry) {
+static u32 gizmo_entry_index(const DebugGizmoComp* comp, const DebugGizmoEntry* entry) {
   return (u32)(entry - dynarray_begin_t(&comp->entries, DebugGizmoEntry));
 }
 
 static void gizmo_register_translation(DebugGizmoComp* comp, const DebugGizmoEntry* entry) {
   diag_assert(entry->type == DebugGizmoType_Translation);
 
-  // Register collision shapes for the translation arrows.
+  /**
+   * Register collision shapes for the translation arrows.
+   */
   for (u32 i = 0; i != array_elems(g_gizmoTranslationArrows); ++i) {
     const GeoVector dir       = geo_quat_rotate(entry->rot, g_gizmoTranslationArrows[i].dir);
     const f32       length    = g_gizmoTranslationArrows[i].length;
     const GeoVector lineStart = entry->pos;
     const GeoVector lineEnd   = geo_vector_add(lineStart, geo_vector_mul(dir, length));
 
-    const u64 shapeId = gizmo_shape_id(gizmo_index(comp, entry), (DebugGizmoSection)i);
+    const u64 shapeId = gizmo_shape_id(gizmo_entry_index(comp, entry), (DebugGizmoSection)i);
     geo_query_insert_capsule(
         comp->queryEnv,
         (GeoCapsule){
@@ -157,9 +163,44 @@ static void gizmo_register(DebugGizmoComp* comp, const DebugGizmoEntry* entry) {
   case DebugGizmoType_Translation:
     return gizmo_register_translation(comp, entry);
   case DebugGizmoType_Count:
-    break;
+    UNREACHABLE
   }
-  diag_crash();
+}
+
+static void gizmo_interaction_hover(
+    DebugGizmoComp* comp, const DebugGizmoEntry* entry, const DebugGizmoSection section) {
+  comp->status        = DebugGizmoStatus_Hovering;
+  comp->activeType    = entry->type;
+  comp->activeId      = entry->id;
+  comp->activeSection = section;
+}
+
+static void gizmo_interaction_start(
+    DebugGizmoComp* comp, const DebugGizmoEntry* entry, const DebugGizmoSection section) {
+  comp->status        = DebugGizmoStatus_Interacting;
+  comp->activeType    = entry->type;
+  comp->activeId      = entry->type;
+  comp->activeSection = section;
+
+  switch (entry->type) {
+  case DebugGizmoType_Translation:
+    comp->editor.translation = (DebugGizmoEditorTranslation){
+        .basePosition = entry->pos,
+        .baseRotation = entry->rot,
+    };
+    break;
+  case DebugGizmoType_Count:
+    UNREACHABLE;
+  }
+}
+
+static void gizmo_interaction_cancel(DebugGizmoComp* comp) { comp->status = DebugGizmoStatus_None; }
+
+static bool gizmo_interaction_is_blocked(const InputManagerComp* input) {
+  /**
+   * Disallow gizmo interation while Ui is being hovered.
+   */
+  return (input_blockers(input) & InputBlocker_HoveringUi) != 0;
 }
 
 static void gizmo_update_interaction(
@@ -173,39 +214,35 @@ static void gizmo_update_interaction(
   const GeoVector inputNormPos = geo_vector(input_cursor_x(input), input_cursor_y(input));
   const f32       inputAspect  = input_cursor_aspect(input);
   const GeoRay    inputRay     = scene_camera_ray(camera, cameraTrans, inputAspect, inputNormPos);
-  const bool      hoveringUi   = (input_blockers(input) & InputBlocker_HoveringUi) != 0;
 
-  const DebugGizmoEntry* hoveredGizmo   = null;
-  DebugGizmoSection      hoveredSection = 0;
+  const DebugGizmoEntry* hoverEntry   = null;
+  DebugGizmoSection      hoverSection = 0;
   GeoQueryRayHit         hit;
-  if (!hoveringUi && geo_query_ray(comp->queryEnv, &inputRay, &hit)) {
-    hoveredGizmo   = gizmo_entry(comp, gizmo_shape_index(hit.shapeId));
-    hoveredSection = gizmo_shape_section(hit.shapeId);
+  if (!gizmo_interaction_is_blocked(input) && geo_query_ray(comp->queryEnv, &inputRay, &hit)) {
+    hoverEntry   = gizmo_entry(comp, gizmo_shape_index(hit.shapeId));
+    hoverSection = gizmo_shape_section(hit.shapeId);
   }
 
-  if (comp->status == DebugGizmoStatus_None && hoveredGizmo) {
-    comp->status        = DebugGizmoStatus_Hovering;
-    comp->activeId      = hoveredGizmo->id;
-    comp->activeSection = hoveredSection;
+  if (comp->status == DebugGizmoStatus_None && hoverEntry) {
+    gizmo_interaction_hover(comp, hoverEntry, hoverSection);
     return;
   }
 
   const bool isHovering    = comp->status == DebugGizmoStatus_Hovering;
   const bool isInteracting = comp->status == DebugGizmoStatus_Interacting;
 
-  if ((isHovering && !hoveredGizmo) || (isInteracting && !inputDown)) {
-    comp->status = DebugGizmoStatus_None;
+  if ((isHovering && !hoverEntry) || (isInteracting && !inputDown)) {
+    gizmo_interaction_cancel(comp);
     return;
   }
 
-  if (isHovering && (comp->activeId != hoveredGizmo->id || comp->activeSection != hoveredSection)) {
-    comp->activeId      = hoveredGizmo->id;
-    comp->activeSection = hoveredSection;
+  if (isHovering && (comp->activeId != hoverEntry->id || comp->activeSection != hoverSection)) {
+    gizmo_interaction_hover(comp, hoverEntry, hoverSection);
     return;
   }
 
   if (isHovering && inputDown) {
-    comp->status = DebugGizmoStatus_Interacting;
+    gizmo_interaction_start(comp, hoverEntry, hoverSection);
     return;
   }
 
@@ -236,13 +273,13 @@ ecs_system_define(DebugGizmoUpdateSys) {
   if (!globalItr) {
     return;
   }
-  DebugGizmoComp*   gizmoComp = ecs_view_write_t(globalItr, DebugGizmoComp);
-  InputManagerComp* input     = ecs_view_write_t(globalItr, InputManagerComp);
+  DebugGizmoComp*   gizmo = ecs_view_write_t(globalItr, DebugGizmoComp);
+  InputManagerComp* input = ecs_view_write_t(globalItr, InputManagerComp);
 
   // Register all gizmos that where active in the last frame.
-  geo_query_env_clear(gizmoComp->queryEnv);
-  for (u32 i = 0; i != gizmoComp->entries.size; ++i) {
-    gizmo_register(gizmoComp, gizmo_entry(gizmoComp, i));
+  geo_query_env_clear(gizmo->queryEnv);
+  for (u32 i = 0; i != gizmo->entries.size; ++i) {
+    gizmo_register(gizmo, gizmo_entry(gizmo, i));
   }
 
   // Update the editor.
@@ -253,14 +290,14 @@ ecs_system_define(DebugGizmoUpdateSys) {
     const SceneCameraComp*    camera      = ecs_view_read_t(camItr, SceneCameraComp);
     const SceneTransformComp* cameraTrans = ecs_view_read_t(camItr, SceneTransformComp);
 
-    gizmo_update_interaction(gizmoComp, input, window, camera, cameraTrans);
+    gizmo_update_interaction(gizmo, input, window, camera, cameraTrans);
   }
 
   // Update input blockers.
-  input_blocker_update(input, InputBlocker_HoveringGizmo, gizmoComp->status > 0);
+  input_blocker_update(input, InputBlocker_HoveringGizmo, gizmo->status > DebugGizmoStatus_None);
 
   // Clear last frame's entries.
-  dynarray_clear(&gizmoComp->entries);
+  dynarray_clear(&gizmo->entries);
 }
 
 static void gizmo_draw_translation(
@@ -288,13 +325,13 @@ ecs_system_define(DebugGizmoRenderSys) {
   if (!globalItr) {
     return;
   }
-  const DebugGizmoComp* gizmoComp = ecs_view_read_t(globalItr, DebugGizmoComp);
-  DebugShapeComp*       shape     = ecs_view_write_t(globalItr, DebugShapeComp);
+  const DebugGizmoComp* gizmo = ecs_view_read_t(globalItr, DebugGizmoComp);
+  DebugShapeComp*       shape = ecs_view_write_t(globalItr, DebugShapeComp);
 
-  dynarray_for_t(&gizmoComp->entries, DebugGizmoEntry, entry) {
+  dynarray_for_t(&gizmo->entries, DebugGizmoEntry, entry) {
     switch (entry->type) {
     case DebugGizmoType_Translation:
-      gizmo_draw_translation(gizmoComp, shape, entry);
+      gizmo_draw_translation(gizmo, shape, entry);
       break;
     case DebugGizmoType_Count:
       break;
