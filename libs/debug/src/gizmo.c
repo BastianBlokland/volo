@@ -59,7 +59,7 @@ typedef struct {
   DebugGizmoId   id;
   GeoVector      pos;
   GeoQuat        rot;
-} DebugGizmo;
+} DebugGizmoEntry;
 
 typedef enum {
   DebugGizmoStatus_None,
@@ -125,15 +125,19 @@ static DebugGizmoSection debug_gizmo_shape_section(const u64 id) {
   return (DebugGizmoSection)(id >> 32u);
 }
 
-static void
-debug_gizmo_register_translation(DebugGizmoComp* comp, const u32 index, const DebugGizmo* gizmo) {
-  diag_assert(gizmo->type == DebugGizmoType_Translation);
+static const DebugGizmoEntry* debug_gizmo_entry(const DebugGizmoComp* comp, const u32 index) {
+  return dynarray_at_t(&comp->entries, index, DebugGizmoEntry);
+}
+
+static void debug_gizmo_register_translation(
+    DebugGizmoComp* comp, const u32 index, const DebugGizmoEntry* entry) {
+  diag_assert(entry->type == DebugGizmoType_Translation);
 
   // Register collision shapes for the translation arrows.
   for (u32 i = 0; i != array_elems(g_gizmoTranslationArrows); ++i) {
-    const GeoVector dir       = geo_quat_rotate(gizmo->rot, g_gizmoTranslationArrows[i].dir);
+    const GeoVector dir       = geo_quat_rotate(entry->rot, g_gizmoTranslationArrows[i].dir);
     const f32       length    = g_gizmoTranslationArrows[i].length;
-    const GeoVector lineStart = gizmo->pos;
+    const GeoVector lineStart = entry->pos;
     const GeoVector lineEnd   = geo_vector_add(lineStart, geo_vector_mul(dir, length));
 
     geo_query_insert_capsule(
@@ -146,10 +150,11 @@ debug_gizmo_register_translation(DebugGizmoComp* comp, const u32 index, const De
   }
 }
 
-static void debug_gizmo_register(DebugGizmoComp* comp, const u32 index, const DebugGizmo* gizmo) {
-  switch (gizmo->type) {
+static void debug_gizmo_register(DebugGizmoComp* comp, const DebugGizmoEntry* entry) {
+  const u32 index = (u32)(entry - dynarray_begin_t(&comp->entries, DebugGizmoEntry));
+  switch (entry->type) {
   case DebugGizmoType_Translation:
-    return debug_gizmo_register_translation(comp, index, gizmo);
+    return debug_gizmo_register_translation(comp, index, entry);
   case DebugGizmoType_Count:
     break;
   }
@@ -177,13 +182,12 @@ static void debug_gizmo_update_editor(
   const GeoRay    inputRay     = scene_camera_ray(camera, cameraTrans, inputAspect, inputNormPos);
   const bool      hoveringUi   = (input_blockers(input) & InputBlocker_HoveringUi) != 0;
 
-  const DebugGizmo* hoveredGizmo   = null;
-  DebugGizmoSection hoveredSection = 0;
-  GeoQueryRayHit    hit;
+  const DebugGizmoEntry* hoveredGizmo   = null;
+  DebugGizmoSection      hoveredSection = 0;
+  GeoQueryRayHit         hit;
   if (!hoveringUi && geo_query_ray(comp->queryEnv, &inputRay, &hit)) {
-    const u32 hoveredIndex = debug_gizmo_shape_index(hit.shapeId);
-    hoveredGizmo           = dynarray_at_t(&comp->entries, hoveredIndex, DebugGizmo);
-    hoveredSection         = debug_gizmo_shape_section(hit.shapeId);
+    hoveredGizmo   = debug_gizmo_entry(comp, debug_gizmo_shape_index(hit.shapeId));
+    hoveredSection = debug_gizmo_shape_section(hit.shapeId);
   }
 
   if (editor->status == DebugGizmoStatus_None && hoveredGizmo) {
@@ -223,7 +227,7 @@ static void debug_gizmo_create(EcsWorld* world, const EcsEntityId entity) {
       world,
       entity,
       DebugGizmoComp,
-      .entries  = dynarray_create_t(g_alloc_heap, DebugGizmo, 8),
+      .entries  = dynarray_create_t(g_alloc_heap, DebugGizmoEntry, 16),
       .queryEnv = geo_query_env_create(g_alloc_heap));
 }
 
@@ -246,7 +250,7 @@ ecs_system_define(DebugGizmoUpdateSys) {
   // Register all gizmos that where active in the last frame.
   geo_query_env_clear(gizmoComp->queryEnv);
   for (u32 i = 0; i != gizmoComp->entries.size; ++i) {
-    debug_gizmo_register(gizmoComp, i, dynarray_at_t(&gizmoComp->entries, i, DebugGizmo));
+    debug_gizmo_register(gizmoComp, debug_gizmo_entry(gizmoComp, i));
   }
 
   // Update the editor.
@@ -268,17 +272,17 @@ ecs_system_define(DebugGizmoUpdateSys) {
 }
 
 void debug_gizmo_draw_translation(
-    const DebugGizmoComp* comp, DebugShapeComp* shape, const DebugGizmo* gizmo) {
-  diag_assert(gizmo->type == DebugGizmoType_Translation);
+    const DebugGizmoComp* comp, DebugShapeComp* shape, const DebugGizmoEntry* entry) {
+  diag_assert(entry->type == DebugGizmoType_Translation);
 
   // Draw all translation arrows.
   for (u32 i = 0; i != array_elems(g_gizmoTranslationArrows); ++i) {
-    const bool isHovered   = debug_gizmo_is_hovered_section(comp, gizmo->id, (DebugGizmoSection)i);
-    const GeoVector dir    = geo_quat_rotate(gizmo->rot, g_gizmoTranslationArrows[i].dir);
+    const bool isHovered   = debug_gizmo_is_hovered_section(comp, entry->id, (DebugGizmoSection)i);
+    const GeoVector dir    = geo_quat_rotate(entry->rot, g_gizmoTranslationArrows[i].dir);
     const f32       length = g_gizmoTranslationArrows[i].length;
     const f32       radius = g_gizmoTranslationArrows[i].radius;
-    const GeoVector lineStart = geo_vector_add(gizmo->pos, geo_vector_mul(dir, 0.02f));
-    const GeoVector lineEnd   = geo_vector_add(gizmo->pos, geo_vector_mul(dir, length));
+    const GeoVector lineStart = geo_vector_add(entry->pos, geo_vector_mul(dir, 0.02f));
+    const GeoVector lineEnd   = geo_vector_add(entry->pos, geo_vector_mul(dir, length));
     const GeoColor  color     = isHovered ? g_gizmoTranslationArrows[i].colorHovered
                                           : g_gizmoTranslationArrows[i].colorNormal;
 
@@ -295,7 +299,7 @@ ecs_system_define(DebugGizmoRenderSys) {
   const DebugGizmoComp* gizmoComp = ecs_view_read_t(globalItr, DebugGizmoComp);
   DebugShapeComp*       shape     = ecs_view_write_t(globalItr, DebugShapeComp);
 
-  dynarray_for_t(&gizmoComp->entries, DebugGizmo, entry) {
+  dynarray_for_t(&gizmoComp->entries, DebugGizmoEntry, entry) {
     switch (entry->type) {
     case DebugGizmoType_Translation:
       debug_gizmo_draw_translation(gizmoComp, shape, entry);
@@ -323,7 +327,7 @@ ecs_module_init(debug_gizmo_module) {
 bool debug_gizmo_translation(
     DebugGizmoComp* comp, const DebugGizmoId id, GeoVector* translation, const GeoQuat rotation) {
 
-  *dynarray_push_t(&comp->entries, DebugGizmo) = (DebugGizmo){
+  *dynarray_push_t(&comp->entries, DebugGizmoEntry) = (DebugGizmoEntry){
       .type = DebugGizmoType_Translation,
       .id   = id,
       .pos  = *translation,
