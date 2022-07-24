@@ -101,6 +101,15 @@ static bool gizmo_is_hovered_section(
   return gizmo_is_hovered(comp, id) && comp->activeSection == section;
 }
 
+static bool gizmo_is_interacting(const DebugGizmoComp* comp, const DebugGizmoId id) {
+  return comp->status >= DebugGizmoStatus_Interacting && comp->activeId == id;
+}
+
+static bool gizmo_is_interacting_type(
+    const DebugGizmoComp* comp, const DebugGizmoId id, const DebugGizmoType type) {
+  return gizmo_is_interacting(comp, id) && comp->activeType == type;
+}
+
 ecs_view_define(GlobalUpdateView) {
   ecs_access_write(DebugGizmoComp);
   ecs_access_write(InputManagerComp);
@@ -179,7 +188,7 @@ static void gizmo_interaction_start(
     DebugGizmoComp* comp, const DebugGizmoEntry* entry, const DebugGizmoSection section) {
   comp->status        = DebugGizmoStatus_Interacting;
   comp->activeType    = entry->type;
-  comp->activeId      = entry->type;
+  comp->activeId      = entry->id;
   comp->activeSection = section;
 
   switch (entry->type) {
@@ -187,6 +196,7 @@ static void gizmo_interaction_start(
     comp->editor.translation = (DebugGizmoEditorTranslation){
         .basePosition = entry->pos,
         .baseRotation = entry->rot,
+        .result       = entry->pos,
     };
     break;
   case DebugGizmoType_Count:
@@ -362,5 +372,10 @@ bool debug_gizmo_translation(
       .pos  = *translation,
       .rot  = rotation,
   };
-  return false;
+
+  const bool isInteracting = gizmo_is_interacting_type(comp, id, DebugGizmoType_Translation);
+  if (isInteracting) {
+    *translation = comp->editor.translation.result;
+  }
+  return isInteracting;
 }
