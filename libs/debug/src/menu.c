@@ -13,6 +13,7 @@
 #include "debug_stats.h"
 #include "debug_time.h"
 #include "ecs_world.h"
+#include "input.h"
 #include "ui.h"
 
 // clang-format off
@@ -32,51 +33,61 @@ static const struct {
   String        name;
   u32           iconShape;
   PanelOpenFunc openFunc;
+  String        hotkeyName;
 } g_debugPanelConfig[] = {
     {
-        .name      = string_static("Inspector"),
-        .iconShape = UiShape_ViewInAr,
-        .openFunc  = debug_inspector_panel_open,
+        .name       = string_static("Inspector"),
+        .iconShape  = UiShape_ViewInAr,
+        .openFunc   = debug_inspector_panel_open,
+        .hotkeyName = string_static("DebugPanelInspector"),
     },
     {
-        .name      = string_static("Time"),
-        .iconShape = UiShape_Timer,
-        .openFunc  = debug_time_panel_open,
+        .name       = string_static("Time"),
+        .iconShape  = UiShape_Timer,
+        .openFunc   = debug_time_panel_open,
+        .hotkeyName = string_static("DebugPanelTime"),
     },
     {
-        .name      = string_static("Animation"),
-        .iconShape = UiShape_Animation,
-        .openFunc  = debug_animation_panel_open,
+        .name       = string_static("Animation"),
+        .iconShape  = UiShape_Animation,
+        .openFunc   = debug_animation_panel_open,
+        .hotkeyName = string_static("DebugPanelAnimation"),
     },
     {
-        .name      = string_static("Asset"),
-        .iconShape = UiShape_Storage,
-        .openFunc  = debug_asset_panel_open,
+        .name       = string_static("Asset"),
+        .iconShape  = UiShape_Storage,
+        .openFunc   = debug_asset_panel_open,
+        .hotkeyName = string_static("DebugPanelAsset"),
     },
     {
-        .name      = string_static("Ecs"),
-        .iconShape = UiShape_Extension,
-        .openFunc  = debug_ecs_panel_open,
+        .name       = string_static("Ecs"),
+        .iconShape  = UiShape_Extension,
+        .openFunc   = debug_ecs_panel_open,
+        .hotkeyName = string_static("DebugPanelEcs"),
     },
     {
-        .name      = string_static("Camera"),
-        .iconShape = UiShape_PhotoCamera,
-        .openFunc  = debug_camera_panel_open,
+        .name       = string_static("Camera"),
+        .iconShape  = UiShape_PhotoCamera,
+        .openFunc   = debug_camera_panel_open,
+        .hotkeyName = string_static("DebugPanelCamera"),
     },
     {
-        .name      = string_static("Grid"),
-        .iconShape = UiShape_Grid4x4,
-        .openFunc  = debug_grid_panel_open,
+        .name       = string_static("Grid"),
+        .iconShape  = UiShape_Grid4x4,
+        .openFunc   = debug_grid_panel_open,
+        .hotkeyName = string_static("DebugPanelGrid"),
     },
     {
-        .name      = string_static("Renderer"),
-        .iconShape = UiShape_Brush,
-        .openFunc  = debug_rend_panel_open,
+        .name       = string_static("Renderer"),
+        .iconShape  = UiShape_Brush,
+        .openFunc   = debug_rend_panel_open,
+        .hotkeyName = string_static("DebugPanelRenderer"),
     },
     {
-        .name      = string_static("Interface"),
-        .iconShape = UiShape_FormatShapes,
-        .openFunc  = debug_interface_panel_open,
+        .name       = string_static("Interface"),
+        .iconShape  = UiShape_FormatShapes,
+        .openFunc   = debug_interface_panel_open,
+        .hotkeyName = string_static("DebugPanelInterface"),
     },
 };
 
@@ -90,6 +101,8 @@ ecs_comp_define(DebugMenuComp) {
   EcsEntityId panelEntities[array_elems(g_debugPanelConfig)];
 };
 
+ecs_view_define(GlobalView) { ecs_access_read(InputManagerComp); }
+
 ecs_view_define(MenuUpdateView) {
   ecs_access_write(DebugMenuComp);
   ecs_access_write(UiCanvasComp);
@@ -102,11 +115,12 @@ static bool debug_panel_is_open(EcsWorld* world, EcsEntityId panel) {
 }
 
 static void debug_action_bar_draw(
-    EcsWorld*         world,
-    UiCanvasComp*     canvas,
-    DebugMenuComp*    menu,
-    DebugStatsComp*   stats,
-    const EcsEntityId winEntity) {
+    EcsWorld*               world,
+    UiCanvasComp*           canvas,
+    const InputManagerComp* input,
+    DebugMenuComp*          menu,
+    DebugStatsComp*         stats,
+    const EcsEntityId       winEntity) {
 
   UiTable table = ui_table(.align = UiAlign_TopRight, .rowHeight = 40);
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
@@ -129,13 +143,19 @@ static void debug_action_bar_draw(
   for (u32 i = 0; i != array_elems(g_debugPanelConfig); ++i) {
     ui_table_next_row(canvas, &table);
     const bool isOpen = debug_panel_is_open(world, menu->panelEntities[i]);
-    if (ui_button(
-            canvas,
-            .label      = ui_shape_scratch(g_debugPanelConfig[i].iconShape),
-            .fontSize   = 30,
-            .tooltip    = debug_panel_tooltip_scratch(g_debugPanelConfig[i].name, isOpen),
-            .frameColor = isOpen ? g_panelFrameColorOpen : g_panelFrameColorNormal)) {
 
+    const bool buttonPressed = ui_button(
+        canvas,
+        .label      = ui_shape_scratch(g_debugPanelConfig[i].iconShape),
+        .fontSize   = 30,
+        .tooltip    = debug_panel_tooltip_scratch(g_debugPanelConfig[i].name, isOpen),
+        .frameColor = isOpen ? g_panelFrameColorOpen : g_panelFrameColorNormal);
+
+    const bool hotkeyPressed =
+        !string_is_empty(g_debugPanelConfig[i].hotkeyName) &&
+        input_triggered_hash(input, string_hash(g_debugPanelConfig[i].hotkeyName));
+
+    if (buttonPressed || hotkeyPressed) {
       if (isOpen) {
         ecs_world_entity_destroy(world, menu->panelEntities[i]);
       } else {
@@ -146,6 +166,13 @@ static void debug_action_bar_draw(
 }
 
 ecs_system_define(DebugMenuUpdateSys) {
+  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return; // Global dependencies not initialized yet.
+  }
+  const InputManagerComp* input = ecs_view_read_t(globalItr, InputManagerComp);
+
   EcsView*     windowView = ecs_world_view_t(world, WindowUpdateView);
   EcsIterator* windowItr  = ecs_view_itr(windowView);
 
@@ -160,18 +187,22 @@ ecs_system_define(DebugMenuUpdateSys) {
     DebugStatsComp* stats = ecs_view_write_t(windowItr, DebugStatsComp);
 
     ui_canvas_reset(canvas);
-    debug_action_bar_draw(world, canvas, menu, stats, menu->window);
+    debug_action_bar_draw(world, canvas, input, menu, stats, menu->window);
   }
 }
 
 ecs_module_init(debug_menu_module) {
   ecs_register_comp(DebugMenuComp);
 
+  ecs_register_view(GlobalView);
   ecs_register_view(MenuUpdateView);
   ecs_register_view(WindowUpdateView);
 
   ecs_register_system(
-      DebugMenuUpdateSys, ecs_view_id(MenuUpdateView), ecs_view_id(WindowUpdateView));
+      DebugMenuUpdateSys,
+      ecs_view_id(GlobalView),
+      ecs_view_id(MenuUpdateView),
+      ecs_view_id(WindowUpdateView));
 }
 
 EcsEntityId debug_menu_create(EcsWorld* world, const EcsEntityId window) {
