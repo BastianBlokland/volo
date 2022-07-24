@@ -44,7 +44,7 @@ static InputManagerComp* input_manager_create(EcsWorld* world) {
       .triggeredActions = dynarray_create_t(g_alloc_heap, u32, 8));
 }
 
-static const AssetInputMapComp* input_global_map(EcsWorld* world, const EcsEntityId entity) {
+static const AssetInputMapComp* input_map_asset(EcsWorld* world, const EcsEntityId entity) {
   EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(world, InputMapView), entity);
   return itr ? ecs_view_read_t(itr, AssetInputMapComp) : null;
 }
@@ -177,7 +177,7 @@ ecs_system_define(InputUpdateSys) {
   dynarray_clear(&manager->triggeredActions);
 
   const InputResourceComp* resource = ecs_view_read_t(globalItr, InputResourceComp);
-  const AssetInputMapComp* map      = input_global_map(world, input_resource_map(resource));
+  const AssetInputMapComp* map      = input_map_asset(world, input_resource_map(resource));
   if (!map) {
     return; // Inputmap not loaded yet.
   }
