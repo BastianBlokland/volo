@@ -26,29 +26,29 @@ static const struct {
   GeoColor  colorNormal, colorHovered;
 } g_gizmoTranslationArrows[] = {
     [DebugGizmoAxis_X] =
-    {
-        .dir          = {1, 0, 0},
-        .length       = 0.5f,
-        .radius       = 0.05f,
-        .colorNormal  = {0.4f, 0, 0, 0.75f},
-        .colorHovered = {1, 0.05f, 0.05f, 1},
-    },
+        {
+            .dir          = {1, 0, 0},
+            .length       = 0.5f,
+            .radius       = 0.05f,
+            .colorNormal  = {0.4f, 0, 0, 0.75f},
+            .colorHovered = {1, 0.05f, 0.05f, 1},
+        },
     [DebugGizmoAxis_Y] =
-    {
-        .dir          = {0, 1, 0},
-        .length       = 0.5f,
-        .radius       = 0.05f,
-        .colorNormal  = {0, 0.4f, 0, 0.75f},
-        .colorHovered = {0.05f, 1, 0.05f, 1},
-    },
+        {
+            .dir          = {0, 1, 0},
+            .length       = 0.5f,
+            .radius       = 0.05f,
+            .colorNormal  = {0, 0.4f, 0, 0.75f},
+            .colorHovered = {0.05f, 1, 0.05f, 1},
+        },
     [DebugGizmoAxis_Z] =
-    {
-        .dir          = {0, 0, 1},
-        .length       = 0.5f,
-        .radius       = 0.05f,
-        .colorNormal  = {0, 0, 0.4f, 0.75f},
-        .colorHovered = {0.05f, 0.05f, 1, 1},
-    },
+        {
+            .dir          = {0, 0, 1},
+            .length       = 0.5f,
+            .radius       = 0.05f,
+            .colorNormal  = {0, 0, 0.4f, 0.75f},
+            .colorHovered = {0.05f, 0.05f, 1, 1},
+        },
 };
 
 typedef enum {
@@ -71,10 +71,11 @@ typedef struct {
 } DebugGizmo;
 
 ecs_comp_define(DebugGizmoComp) {
-  bool         isHovering;
-  DebugGizmoId activeId;
-  DynArray     entries; // DebugGizmo[]
-  GeoQueryEnv* queryEnv;
+  bool           isHovering;
+  DebugGizmoId   activeId;
+  DebugGizmoAxis activeAxis;
+  DynArray       entries; // DebugGizmo[]
+  GeoQueryEnv*   queryEnv;
 };
 
 static void ecs_destruct_gizmo(void* data) {
@@ -98,6 +99,16 @@ ecs_view_define(CameraView) {
   ecs_access_read(SceneTransformComp);
 }
 
+static u64 debug_gizmo_to_shape_id(const DebugGizmoId gizmoId, const DebugGizmoAxis axis) {
+  return (u64)gizmoId | ((u64)axis << 32u);
+}
+
+static DebugGizmoId debug_gizmo_id_from_shape_id(const u64 shapeId) { return (u32)shapeId; }
+
+static DebugGizmoAxis debug_gizmo_axis_from_shape_id(const u64 shapeId) {
+  return (u32)(shapeId >> 32u);
+}
+
 static void debug_gizmo_register_translation(DebugGizmoComp* comp, const DebugGizmo* gizmo) {
   diag_assert(gizmo->type == DebugGizmoType_Translation);
 
@@ -115,7 +126,7 @@ static void debug_gizmo_register_translation(DebugGizmoComp* comp, const DebugGi
             .line   = {.a = lineStart, .b = lineEnd},
             .radius = g_gizmoTranslationArrows[a].radius,
         },
-        gizmo->id);
+        debug_gizmo_to_shape_id(gizmo->id, a));
   }
 }
 
@@ -167,26 +178,30 @@ ecs_system_define(DebugGizmoUpdateSys) {
 
     GeoQueryRayHit hit;
     gizmoComp->isHovering = geo_query_ray(gizmoComp->queryEnv, &inputRay, &hit);
-    gizmoComp->activeId   = gizmoComp->isHovering ? (DebugGizmoId)hit.shapeId : 0;
+    if (gizmoComp->isHovering) {
+      gizmoComp->activeId   = debug_gizmo_id_from_shape_id(hit.shapeId);
+      gizmoComp->activeAxis = debug_gizmo_axis_from_shape_id(hit.shapeId);
+    }
   }
 }
 
 void debug_gizmo_draw_translation(
     const DebugGizmoComp* comp, DebugShapeComp* shape, const DebugGizmo* gizmo) {
   diag_assert(gizmo->type == DebugGizmoType_Translation);
-  const bool isHovered = comp->isHovering && comp->activeId == gizmo->id;
+  const bool isGizmoHovered = comp->isHovering && comp->activeId == gizmo->id;
 
   // Draw all translation arrows.
   const GeoVector pos = gizmo->data_translation.pos;
   const GeoQuat   rot = gizmo->data_translation.rot;
   for (DebugGizmoAxis a = 0; a != DebugGizmoAxis_Count; ++a) {
-    const GeoVector dir       = geo_quat_rotate(rot, g_gizmoTranslationArrows[a].dir);
-    const f32       length    = g_gizmoTranslationArrows[a].length;
-    const f32       radius    = g_gizmoTranslationArrows[a].radius;
-    const GeoVector lineStart = geo_vector_add(pos, geo_vector_mul(dir, 0.02f));
-    const GeoVector lineEnd   = geo_vector_add(pos, geo_vector_mul(dir, length));
-    const GeoColor  color     = isHovered ? g_gizmoTranslationArrows[a].colorHovered
-                                          : g_gizmoTranslationArrows[a].colorNormal;
+    const bool      isAxisHovered = isGizmoHovered && comp->activeAxis == a;
+    const GeoVector dir           = geo_quat_rotate(rot, g_gizmoTranslationArrows[a].dir);
+    const f32       length        = g_gizmoTranslationArrows[a].length;
+    const f32       radius        = g_gizmoTranslationArrows[a].radius;
+    const GeoVector lineStart     = geo_vector_add(pos, geo_vector_mul(dir, 0.02f));
+    const GeoVector lineEnd       = geo_vector_add(pos, geo_vector_mul(dir, length));
+    const GeoColor  color         = isAxisHovered ? g_gizmoTranslationArrows[a].colorHovered
+                                                  : g_gizmoTranslationArrows[a].colorNormal;
 
     debug_arrow(shape, lineStart, lineEnd, radius, color);
   }
