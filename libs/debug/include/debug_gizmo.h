@@ -14,7 +14,7 @@ ecs_comp_extern(DebugGizmoComp);
 /**
  * Add a new debug-gizmo component to the given entity.
  */
-DebugGizmoComp* debug_shape_create(EcsWorld*, EcsEntityId entity);
+DebugGizmoComp* debug_gizmo_create(EcsWorld*, EcsEntityId entity);
 
 // clang-format off
 
