@@ -216,6 +216,10 @@ ecs_module_init(debug_gizmo_module) {
   ecs_order(DebugGizmoRenderSys, DebugOrder_GizmoRender);
 }
 
+DebugGizmoId debug_gizmo_id_entity(const EcsEntityId entity) {
+  return (DebugGizmoId)ecs_entity_id_index(entity);
+}
+
 bool debug_gizmo_translation(
     DebugGizmoComp* comp, const DebugGizmoId id, GeoVector* translation, const GeoQuat rotation) {
 
