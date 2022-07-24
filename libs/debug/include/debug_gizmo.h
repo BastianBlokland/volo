@@ -7,7 +7,7 @@
  * Gizmo identifier.
  * Used to track gizmo identity across frames.
  */
-typedef u64 GizmoId;
+typedef u64 DebugGizmoId;
 
 ecs_comp_extern(DebugGizmoComp);
 
@@ -16,10 +16,14 @@ ecs_comp_extern(DebugGizmoComp);
  */
 DebugGizmoComp* debug_shape_create(EcsWorld*, EcsEntityId entity);
 
+// clang-format off
+
 /**
  * Draw a translation gizmo.
  * Updated translation value is written to the given GeoVector pointer.
  * Return true if the gizmo is currently being used.
  * NOTE: Pass a stable GizmoId to track edits across frames.
  */
-bool debug_gizmo_translate(DebugGizmoComp*, GizmoId, GeoVector* translation, GeoQuat rotation);
+bool debug_gizmo_translation(DebugGizmoComp*, DebugGizmoId, GeoVector* translation, GeoQuat rotation);
+
+// clang-format on
