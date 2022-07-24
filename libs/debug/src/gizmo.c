@@ -37,6 +37,37 @@ static void ecs_destruct_gizmo(void* data) {
 ecs_view_define(GlobalView) { ecs_access_write(DebugShapeComp); }
 ecs_view_define(GizmoView) { ecs_access_write(DebugGizmoComp); }
 
+void debug_gizmo_translation_draw(DebugShapeComp* shape, const DebugGizmoTranslation* gizmoT) {
+  const f32       length  = 0.5f;
+  const f32       radius  = 0.05f;
+  const GeoVector right   = geo_quat_rotate(gizmoT->rot, geo_right);
+  const GeoVector up      = geo_quat_rotate(gizmoT->rot, geo_up);
+  const GeoVector forward = geo_quat_rotate(gizmoT->rot, geo_forward);
+
+  debug_arrow(
+      shape,
+      gizmoT->pos,
+      geo_vector_add(gizmoT->pos, geo_vector_mul(right, length)),
+      radius,
+      geo_color_red);
+
+  debug_arrow(
+      shape,
+      gizmoT->pos,
+      geo_vector_add(gizmoT->pos, geo_vector_mul(up, length)),
+      radius,
+      geo_color_green);
+
+  debug_arrow(
+      shape,
+      gizmoT->pos,
+      geo_vector_add(gizmoT->pos, geo_vector_mul(forward, length)),
+      radius,
+      geo_color_blue);
+
+  debug_sphere(shape, gizmoT->pos, 0.025f, geo_color_black, DebugShape_Overlay);
+}
+
 ecs_system_define(DebugGizmoRenderSys) {
   // Create a global text component for convenience.
   if (!ecs_world_has_t(world, ecs_world_global(world), DebugGizmoComp)) {
@@ -57,7 +88,7 @@ ecs_system_define(DebugGizmoRenderSys) {
     dynarray_for_t(&gizmoComp->entries, DebugGizmo, entry) {
       switch (entry->type) {
       case DebugGizmoType_Translation:
-        debug_orientation(shape, entry->data_translation.pos, entry->data_translation.rot, 1);
+        debug_gizmo_translation_draw(shape, &entry->data_translation);
         break;
       case DebugGizmoType_Count:
         diag_crash();
