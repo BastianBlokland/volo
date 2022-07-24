@@ -74,6 +74,14 @@ String ecs_def_view_name(const EcsDef*, EcsViewId);
  */
 String ecs_def_system_name(const EcsDef*, EcsSystemId);
 
+/**
+ * Retrieve the configured execution order of a system.
+ * NOTE: When multiple systems have the same order the runner is free to reorder them.
+ *
+ * Pre-condition: EcsSystemId is a valid system-id registered to the given EcsDef.
+ */
+i32 ecs_def_system_order(const EcsDef*, EcsSystemId);
+
 typedef struct {
   EcsViewId* values;
   usize      count;
