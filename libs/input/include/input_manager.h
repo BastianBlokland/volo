@@ -24,12 +24,14 @@ ecs_comp_extern(InputManagerComp);
 EcsEntityId input_active_window(const InputManagerComp*);
 
 typedef enum {
-  InputBlocker_TextInput    = 1 << 0,
-  InputBlocker_HoveringUi   = 1 << 1,
-  InputBlocker_CursorLocked = 1 << 2, // Managed by the input library.
+  InputBlocker_TextInput     = 1 << 0,
+  InputBlocker_HoveringUi    = 1 << 1,
+  InputBlocker_HoveringGizmo = 1 << 2,
+  InputBlocker_CursorLocked  = 1 << 3, // Managed by the input library.
 } InputBlocker;
 
-void input_blocker_update(InputManagerComp*, InputBlocker, bool value);
+InputBlocker input_blockers(const InputManagerComp*);
+void         input_blocker_update(InputManagerComp*, InputBlocker, bool value);
 
 typedef enum {
   InputModifier_Shift   = 1 << 0,

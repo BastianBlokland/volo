@@ -89,8 +89,8 @@ static void ecs_destruct_gizmo(void* data) {
 }
 
 ecs_view_define(GlobalUpdateView) {
-  ecs_access_read(InputManagerComp);
   ecs_access_write(DebugGizmoComp);
+  ecs_access_write(InputManagerComp);
 }
 
 ecs_view_define(GlobalRenderView) {
@@ -161,8 +161,8 @@ ecs_system_define(DebugGizmoUpdateSys) {
   if (!globalItr) {
     return;
   }
-  DebugGizmoComp*         gizmoComp = ecs_view_write_t(globalItr, DebugGizmoComp);
-  const InputManagerComp* input     = ecs_view_read_t(globalItr, InputManagerComp);
+  DebugGizmoComp*   gizmoComp = ecs_view_write_t(globalItr, DebugGizmoComp);
+  InputManagerComp* input     = ecs_view_write_t(globalItr, InputManagerComp);
 
   // Register all gizmos that where active in the last frame.
   geo_query_env_clear(gizmoComp->queryEnv);
@@ -179,9 +179,10 @@ ecs_system_define(DebugGizmoUpdateSys) {
     const GeoVector inputNormPos = geo_vector(input_cursor_x(input), input_cursor_y(input));
     const f32       inputAspect  = input_cursor_aspect(input);
     const GeoRay    inputRay     = scene_camera_ray(camera, cameraTrans, inputAspect, inputNormPos);
+    const bool      hoveringUi   = (input_blockers(input) & InputBlocker_HoveringUi) != 0;
 
     GeoQueryRayHit hit;
-    if (geo_query_ray(gizmoComp->queryEnv, &inputRay, &hit)) {
+    if (!hoveringUi && geo_query_ray(gizmoComp->queryEnv, &inputRay, &hit)) {
       gizmoComp->interaction = DebugGizmoInteraction_Hovering;
       gizmoComp->activeId    = debug_gizmo_id_from_shape_id(hit.shapeId);
       gizmoComp->activeAxis  = debug_gizmo_axis_from_shape_id(hit.shapeId);
@@ -189,6 +190,9 @@ ecs_system_define(DebugGizmoUpdateSys) {
       gizmoComp->interaction = DebugGizmoInteraction_None;
     }
   }
+
+  // Update input blockers.
+  input_blocker_update(input, InputBlocker_HoveringGizmo, gizmoComp->interaction > 0);
 }
 
 void debug_gizmo_draw_translation(

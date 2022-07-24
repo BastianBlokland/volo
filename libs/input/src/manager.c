@@ -208,6 +208,8 @@ ecs_module_init(input_manager_module) {
 
 EcsEntityId input_active_window(const InputManagerComp* manager) { return manager->activeWindow; }
 
+InputBlocker input_blockers(const InputManagerComp* manager) { return manager->blockers; }
+
 void input_blocker_update(InputManagerComp* manager, const InputBlocker blocker, const bool value) {
   if (value) {
     manager->blockers |= blocker;
