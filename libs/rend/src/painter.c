@@ -146,7 +146,7 @@ static void painter_draw_forward(
   dynarray_sort(&painter->drawBuffer, painter_compare_pass_draw);
 
   // Execute draws.
-  rvk_pass_begin(forwardPass, geo_color_white);
+  rvk_pass_begin(forwardPass, geo_color_black);
   rvk_pass_draw(
       forwardPass,
       mem_var(*globalData),

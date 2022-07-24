@@ -14,7 +14,6 @@ add_library(lib_scene STATIC
   src/renderable.c
   src/selection.c
   src/skeleton.c
-  src/sky.c
   src/tag.c
   src/time.c
   src/transform.c
