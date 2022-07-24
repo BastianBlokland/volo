@@ -9,6 +9,7 @@
 #include "rend_register.h"
 #include "scene_camera.h"
 #include "scene_register.h"
+#include "scene_renderable.h"
 #include "scene_transform.h"
 #include "ui_register.h"
 
@@ -44,16 +45,40 @@ static void app_window_fullscreen_toggle(GapWindowComp* win) {
       isFullscreen ? GapWindowMode_Windowed : GapWindowMode_Fullscreen);
 }
 
-ecs_view_define(GlobalUpdateView) { ecs_access_read(InputManagerComp); }
+static void app_scene_create_sky(EcsWorld* world, AssetManagerComp* assets) {
+  const EcsEntityId entity = ecs_world_entity_create(world);
+  ecs_world_add_t(
+      world,
+      entity,
+      SceneRenderableComp,
+      .graphic = asset_lookup(world, assets, string_lit("graphics/scene/sky.gra")));
+  ecs_world_add_t(world, entity, SceneTagComp, .tags = SceneTags_Background);
+}
+
+ecs_comp_define(AppComp) { bool sceneCreated; };
+
+ecs_view_define(AppUpdateGlobalView) {
+  ecs_access_write(AppComp);
+  ecs_access_write(AssetManagerComp);
+  ecs_access_read(InputManagerComp);
+}
+
 ecs_view_define(WindowView) { ecs_access_write(GapWindowComp); }
 
 ecs_system_define(AppUpdateSys) {
-  EcsView*     globalView = ecs_world_view_t(world, GlobalUpdateView);
+  EcsView*     globalView = ecs_world_view_t(world, AppUpdateGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
   }
-  const InputManagerComp* input = ecs_view_read_t(globalItr, InputManagerComp);
+  AppComp*                app    = ecs_view_write_t(globalItr, AppComp);
+  AssetManagerComp*       assets = ecs_view_write_t(globalItr, AssetManagerComp);
+  const InputManagerComp* input  = ecs_view_read_t(globalItr, InputManagerComp);
+
+  if (!app->sceneCreated) {
+    app_scene_create_sky(world, assets);
+    app->sceneCreated = true;
+  }
 
   if (input_triggered_lit(input, "WindowNew")) {
     app_window_create(world);
@@ -73,10 +98,12 @@ ecs_system_define(AppUpdateSys) {
 }
 
 ecs_module_init(sandbox_app_module) {
-  ecs_register_view(GlobalUpdateView);
+  ecs_register_comp(AppComp);
+
+  ecs_register_view(AppUpdateGlobalView);
   ecs_register_view(WindowView);
 
-  ecs_register_system(AppUpdateSys, ecs_view_id(GlobalUpdateView), ecs_view_id(WindowView));
+  ecs_register_system(AppUpdateSys, ecs_view_id(AppUpdateGlobalView), ecs_view_id(WindowView));
 }
 
 static CliId g_assetFlag;
@@ -104,8 +131,9 @@ void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
 }
 
 void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
-  const String assetPath = cli_read_string(invoc, g_assetFlag, string_empty);
+  ecs_world_add_t(world, ecs_world_global(world), AppComp);
 
+  const String assetPath = cli_read_string(invoc, g_assetFlag, string_empty);
   asset_manager_create_fs(
       world, AssetManagerFlags_TrackChanges | AssetManagerFlags_DelayUnload, assetPath);
 
