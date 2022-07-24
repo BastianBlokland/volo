@@ -12,7 +12,6 @@
 #include "debug_stats.h"
 #include "debug_time.h"
 #include "ecs_world.h"
-#include "gap_window.h"
 #include "ui.h"
 
 // clang-format off
@@ -28,15 +27,11 @@ static const String g_tooltipPanelCamera     = string_static("Open the \a.bCamer
 static const String g_tooltipPanelGrid       = string_static("Open the \a.bGrid\ar panel.");
 static const String g_tooltipPanelRend       = string_static("Open the \a.bRenderer\ar panel.");
 static const String g_tooltipPanelInterface  = string_static("Open the \a.bInterface\ar panel.");
-static const String g_tooltipFullscreenEnter = string_static("Enter fullscreen.");
-static const String g_tooltipFullscreenExit  = string_static("Exit fullscreen.");
-static const String g_tooltipWindowClose     = string_static("Close the current window.");
 
 // clang-format on
 
 ecs_comp_define(DebugMenuComp) {
   EcsEntityId window;
-  GapVector   lastWindowedSize;
   EcsEntityId panelInspector;
   EcsEntityId panelTime;
   EcsEntityId panelAnimation;
@@ -53,10 +48,7 @@ ecs_view_define(MenuUpdateView) {
   ecs_access_write(UiCanvasComp);
 }
 
-ecs_view_define(WindowUpdateView) {
-  ecs_access_write(GapWindowComp);
-  ecs_access_write(DebugStatsComp);
-}
+ecs_view_define(WindowUpdateView) { ecs_access_write(DebugStatsComp); }
 
 static bool debug_panel_is_open(EcsWorld* world, EcsEntityId panel) {
   return panel && ecs_world_exists(world, panel);
@@ -77,7 +69,6 @@ static void debug_action_bar_draw(
     UiCanvasComp*     canvas,
     DebugMenuComp*    menu,
     DebugStatsComp*   stats,
-    GapWindowComp*    win,
     const EcsEntityId winEntity) {
 
   UiTable table = ui_table(.align = UiAlign_TopRight, .rowHeight = 40);
@@ -182,30 +173,6 @@ static void debug_action_bar_draw(
           .tooltip  = g_tooltipPanelInterface)) {
     debug_panel_open(world, &menu->panelInterface, winEntity, debug_interface_panel_open);
   }
-
-  ui_table_next_row(canvas, &table);
-  const bool fullscreen = gap_window_mode(win) == GapWindowMode_Fullscreen;
-  if (ui_button(
-          canvas,
-          .label    = ui_shape_scratch(fullscreen ? UiShape_FullscreenExit : UiShape_Fullscreen),
-          .fontSize = 30,
-          .tooltip  = fullscreen ? g_tooltipFullscreenExit : g_tooltipFullscreenEnter)) {
-    if (fullscreen) {
-      gap_window_resize(win, menu->lastWindowedSize, GapWindowMode_Windowed);
-    } else {
-      menu->lastWindowedSize = gap_window_param(win, GapParam_WindowSize);
-      gap_window_resize(win, gap_vector(0, 0), GapWindowMode_Fullscreen);
-    }
-  }
-
-  ui_table_next_row(canvas, &table);
-  if (ui_button(
-          canvas,
-          .label    = ui_shape_scratch(UiShape_Logout),
-          .fontSize = 30,
-          .tooltip  = g_tooltipWindowClose)) {
-    gap_window_close(win);
-  }
 }
 
 ecs_system_define(DebugMenuUpdateSys) {
@@ -220,11 +187,10 @@ ecs_system_define(DebugMenuUpdateSys) {
     if (!ecs_view_maybe_jump(windowItr, menu->window)) {
       continue;
     }
-    GapWindowComp*  win   = ecs_view_write_t(windowItr, GapWindowComp);
     DebugStatsComp* stats = ecs_view_write_t(windowItr, DebugStatsComp);
 
     ui_canvas_reset(canvas);
-    debug_action_bar_draw(world, canvas, menu, stats, win, menu->window);
+    debug_action_bar_draw(world, canvas, menu, stats, menu->window);
   }
 }
 
