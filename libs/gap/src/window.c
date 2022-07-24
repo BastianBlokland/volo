@@ -285,6 +285,9 @@ GapWindowEvents gap_window_events(const GapWindowComp* window) { return window->
 GapWindowMode gap_window_mode(const GapWindowComp* window) { return window->mode; }
 
 void gap_window_resize(GapWindowComp* comp, const GapVector size, const GapWindowMode mode) {
+  if (comp->mode != GapWindowMode_Fullscreen && mode == GapWindowMode_Fullscreen) {
+    comp->params[GapParam_WindowSizePreFullscreen] = comp->params[GapParam_WindowSize];
+  }
   comp->params[GapParam_WindowSize] = size;
   comp->mode                        = mode;
   comp->requests |= GapWindowRequests_Resize;

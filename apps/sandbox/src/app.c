@@ -36,6 +36,14 @@ static void app_window_create(EcsWorld* world) {
       .rotation = geo_quat_angle_axis(geo_right, 45 * math_deg_to_rad));
 }
 
+static void app_window_fullscreen_toggle(GapWindowComp* win) {
+  const bool isFullscreen = gap_window_mode(win) == GapWindowMode_Fullscreen;
+  gap_window_resize(
+      win,
+      isFullscreen ? gap_window_param(win, GapParam_WindowSizePreFullscreen) : gap_vector(0, 0),
+      isFullscreen ? GapWindowMode_Windowed : GapWindowMode_Fullscreen);
+}
+
 ecs_view_define(GlobalUpdateView) { ecs_access_read(InputManagerComp); }
 ecs_view_define(WindowView) { ecs_access_write(GapWindowComp); }
 
@@ -50,10 +58,17 @@ ecs_system_define(AppUpdateSys) {
   if (input_triggered_lit(input, "WindowNew")) {
     app_window_create(world);
   }
-  if (input_triggered_lit(input, "WindowClose")) {
-    const EcsEntityId winEntity = input_active_window(input);
-    GapWindowComp*    win       = ecs_utils_write_t(world, WindowView, winEntity, GapWindowComp);
-    gap_window_close(win);
+
+  EcsView*     windowView      = ecs_world_view_t(world, WindowView);
+  EcsIterator* activeWindowItr = ecs_view_maybe_at(windowView, input_active_window(input));
+  if (activeWindowItr) {
+    GapWindowComp* win = ecs_view_write_t(activeWindowItr, GapWindowComp);
+    if (input_triggered_lit(input, "WindowClose")) {
+      gap_window_close(win);
+    }
+    if (input_triggered_lit(input, "WindowFullscreen")) {
+      app_window_fullscreen_toggle(win);
+    }
   }
 }
 

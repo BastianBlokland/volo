@@ -150,7 +150,14 @@
       "bindings": [
         {
           "type": "Pressed",
-          "key": "F1"
+          "key": "F10"
+        },
+        {
+          "type": "Pressed",
+          "key": "N",
+          "requiredModifiers": [
+            "Alt"
+          ]
         }
       ]
     },
@@ -163,6 +170,32 @@
         {
           "type": "Pressed",
           "key": "Escape"
+        },
+        {
+          "type": "Pressed",
+          "key": "F4",
+          "requiredModifiers": [
+            "Alt"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "WindowFullscreen",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "Return",
+          "requiredModifiers": [
+            "Alt"
+          ]
+        },
+        {
+          "type": "Pressed",
+          "key": "F11"
         }
       ]
     },
@@ -232,6 +265,114 @@
         {
           "type": "Pressed",
           "key": "O"
+        }
+      ]
+    },
+    {
+      "name": "DebugPanelInspector",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "F1"
+        }
+      ]
+    },
+    {
+      "name": "DebugPanelTime",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "F2"
+        }
+      ]
+    },
+    {
+      "name": "DebugPanelAnimation",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "F3"
+        }
+      ]
+    },
+    {
+      "name": "DebugPanelAsset",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "F4"
+        }
+      ]
+    },
+    {
+      "name": "DebugPanelEcs",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "F5"
+        }
+      ]
+    },
+    {
+      "name": "DebugPanelCamera",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "F6"
+        }
+      ]
+    },
+    {
+      "name": "DebugPanelGrid",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "F7"
+        }
+      ]
+    },
+    {
+      "name": "DebugPanelRenderer",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "F8"
+        }
+      ]
+    },
+    {
+      "name": "DebugPanelInterface",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "F9"
         }
       ]
     }

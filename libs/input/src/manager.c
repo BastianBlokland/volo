@@ -1,5 +1,6 @@
 #include "asset_inputmap.h"
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "ecs_utils.h"
@@ -43,7 +44,7 @@ static InputManagerComp* input_manager_create(EcsWorld* world) {
       .triggeredActions = dynarray_create_t(g_alloc_heap, u32, 8));
 }
 
-static const AssetInputMapComp* input_global_map(EcsWorld* world, const EcsEntityId entity) {
+static const AssetInputMapComp* input_map_asset(EcsWorld* world, const EcsEntityId entity) {
   EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(world, InputMapView), entity);
   return itr ? ecs_view_read_t(itr, AssetInputMapComp) : null;
 }
@@ -124,11 +125,17 @@ static void input_update_cursor(InputManagerComp* manager, GapWindowComp* win) {
   const GapVector delta   = gap_window_param(win, GapParam_CursorDelta);
   const GapVector winSize = gap_window_param(win, GapParam_WindowSize);
 
-  manager->cursorPosNorm[0]   = pos.x / (f32)winSize.x;
-  manager->cursorPosNorm[1]   = pos.y / (f32)winSize.y;
-  manager->cursorDeltaNorm[0] = delta.x / (f32)winSize.x;
-  manager->cursorDeltaNorm[1] = delta.y / (f32)winSize.y;
-  manager->cursorAspect       = (f32)winSize.width / (f32)winSize.height;
+  if (winSize.x > 0 && winSize.y > 0) {
+    manager->cursorPosNorm[0]   = pos.x / (f32)winSize.x;
+    manager->cursorPosNorm[1]   = pos.y / (f32)winSize.y;
+    manager->cursorDeltaNorm[0] = delta.x / (f32)winSize.x;
+    manager->cursorDeltaNorm[1] = delta.y / (f32)winSize.y;
+    manager->cursorAspect       = (f32)winSize.width / (f32)winSize.height;
+  } else {
+    mem_set(array_mem(manager->cursorPosNorm), 0);
+    mem_set(array_mem(manager->cursorDeltaNorm), 0);
+    manager->cursorAspect = 1.0f;
+  }
 
   switch (manager->cursorMode) {
   case InputCursorMode_Normal:
@@ -170,7 +177,7 @@ ecs_system_define(InputUpdateSys) {
   dynarray_clear(&manager->triggeredActions);
 
   const InputResourceComp* resource = ecs_view_read_t(globalItr, InputResourceComp);
-  const AssetInputMapComp* map      = input_global_map(world, input_resource_map(resource));
+  const AssetInputMapComp* map      = input_map_asset(world, input_resource_map(resource));
   if (!map) {
     return; // Inputmap not loaded yet.
   }
