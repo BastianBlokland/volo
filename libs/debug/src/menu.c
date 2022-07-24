@@ -17,9 +17,12 @@
 
 // clang-format off
 
-static const String g_tooltipStatsEnable  = string_static("Enable the \a.bStatistics\ar interface.");
-static const String g_tooltipStatsDisable = string_static("Disable the \a.bStatistics\ar interface.");
-static const String g_tooltipPanelOpen    = string_static("Open the \a.b{}\ar panel.");
+static const String  g_tooltipStatsEnable     = string_static("Enable the \a.bStatistics\ar interface.");
+static const String  g_tooltipStatsDisable    = string_static("Disable the \a.bStatistics\ar interface.");
+static const String  g_tooltipPanelOpen       = string_static("Open the \a.b{}\ar panel.");
+static const String  g_tooltipPanelClose      = string_static("Close the \a.b{}\ar panel.");
+static const UiColor g_panelFrameColorNormal  = ui_color(32, 32, 32, 192);
+static const UiColor g_panelFrameColorOpen    = ui_color(96, 96, 96, 255);
 
 // clang-format on
 
@@ -77,8 +80,9 @@ static const struct {
     },
 };
 
-static String debug_panel_tooltip_scratch(const String panelName) {
-  return format_write_formatted_scratch(g_tooltipPanelOpen, fmt_args(fmt_text(panelName)));
+static String debug_panel_tooltip_scratch(const String panelName, const bool open) {
+  return format_write_formatted_scratch(
+      open ? g_tooltipPanelClose : g_tooltipPanelOpen, fmt_args(fmt_text(panelName)));
 }
 
 ecs_comp_define(DebugMenuComp) {
@@ -107,25 +111,34 @@ static void debug_action_bar_draw(
   UiTable table = ui_table(.align = UiAlign_TopRight, .rowHeight = 40);
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
 
-  ui_table_next_row(canvas, &table);
-  const bool statsEnabled = debug_stats_show(stats);
-  if (ui_button(
-          canvas,
-          .label    = ui_shape_scratch(statsEnabled ? UiShape_LayersClear : UiShape_Layers),
-          .fontSize = 30,
-          .tooltip  = statsEnabled ? g_tooltipStatsDisable : g_tooltipStatsEnable)) {
-    debug_stats_show_set(stats, !statsEnabled);
-  }
-
-  for (u32 i = 0; i != array_elems(g_debugPanelConfig); ++i) {
+  // Stats toggle.
+  {
     ui_table_next_row(canvas, &table);
+    const bool isEnabled = debug_stats_show(stats);
     if (ui_button(
             canvas,
-            .flags    = debug_panel_is_open(world, menu->panelEntities[i]) ? UiWidget_Disabled : 0,
-            .label    = ui_shape_scratch(g_debugPanelConfig[i].iconShape),
-            .fontSize = 30,
-            .tooltip  = debug_panel_tooltip_scratch(g_debugPanelConfig[i].name))) {
-      if (!debug_panel_is_open(world, menu->panelEntities[i])) {
+            .label      = ui_shape_scratch(isEnabled ? UiShape_LayersClear : UiShape_Layers),
+            .fontSize   = 30,
+            .tooltip    = isEnabled ? g_tooltipStatsDisable : g_tooltipStatsEnable,
+            .frameColor = isEnabled ? g_panelFrameColorOpen : g_panelFrameColorNormal)) {
+      debug_stats_show_set(stats, !isEnabled);
+    }
+  }
+
+  // Panel open / close.
+  for (u32 i = 0; i != array_elems(g_debugPanelConfig); ++i) {
+    ui_table_next_row(canvas, &table);
+    const bool isOpen = debug_panel_is_open(world, menu->panelEntities[i]);
+    if (ui_button(
+            canvas,
+            .label      = ui_shape_scratch(g_debugPanelConfig[i].iconShape),
+            .fontSize   = 30,
+            .tooltip    = debug_panel_tooltip_scratch(g_debugPanelConfig[i].name, isOpen),
+            .frameColor = isOpen ? g_panelFrameColorOpen : g_panelFrameColorNormal)) {
+
+      if (isOpen) {
+        ecs_world_entity_destroy(world, menu->panelEntities[i]);
+      } else {
         menu->panelEntities[i] = g_debugPanelConfig[i].openFunc(world, winEntity);
       }
     }
