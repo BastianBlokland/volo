@@ -12,11 +12,20 @@
 #include "scene_camera.h"
 #include "scene_transform.h"
 
+typedef enum {
+  DebugGizmoAxis_X,
+  DebugGizmoAxis_Y,
+  DebugGizmoAxis_Z,
+
+  DebugGizmoAxis_Count,
+} DebugGizmoAxis;
+
 static const struct {
   GeoVector dir;
   f32       length, radius;
   GeoColor  colorNormal, colorHovered;
 } g_gizmoTranslationArrows[] = {
+    [DebugGizmoAxis_X] =
     {
         .dir          = {1, 0, 0},
         .length       = 0.5f,
@@ -24,6 +33,7 @@ static const struct {
         .colorNormal  = {0.4f, 0, 0, 0.75f},
         .colorHovered = {1, 0.05f, 0.05f, 1},
     },
+    [DebugGizmoAxis_Y] =
     {
         .dir          = {0, 1, 0},
         .length       = 0.5f,
@@ -31,6 +41,7 @@ static const struct {
         .colorNormal  = {0, 0.4f, 0, 0.75f},
         .colorHovered = {0.05f, 1, 0.05f, 1},
     },
+    [DebugGizmoAxis_Z] =
     {
         .dir          = {0, 0, 1},
         .length       = 0.5f,
@@ -92,9 +103,9 @@ static void debug_gizmo_register_translation(DebugGizmoComp* comp, const DebugGi
 
   // Register collision shapes for the translation arrows.
   const GeoQuat rot = gizmo->data_translation.rot;
-  for (u32 i = 0; i != array_elems(g_gizmoTranslationArrows); ++i) {
-    const GeoVector dir       = geo_quat_rotate(rot, g_gizmoTranslationArrows[i].dir);
-    const f32       length    = g_gizmoTranslationArrows[i].length;
+  for (DebugGizmoAxis a = 0; a != DebugGizmoAxis_Count; ++a) {
+    const GeoVector dir       = geo_quat_rotate(rot, g_gizmoTranslationArrows[a].dir);
+    const f32       length    = g_gizmoTranslationArrows[a].length;
     const GeoVector lineStart = gizmo->data_translation.pos;
     const GeoVector lineEnd   = geo_vector_add(lineStart, geo_vector_mul(dir, length));
 
@@ -102,7 +113,7 @@ static void debug_gizmo_register_translation(DebugGizmoComp* comp, const DebugGi
         comp->queryEnv,
         (GeoCapsule){
             .line   = {.a = lineStart, .b = lineEnd},
-            .radius = g_gizmoTranslationArrows[i].radius,
+            .radius = g_gizmoTranslationArrows[a].radius,
         },
         gizmo->id);
   }
@@ -168,14 +179,14 @@ void debug_gizmo_draw_translation(
   // Draw all translation arrows.
   const GeoVector pos = gizmo->data_translation.pos;
   const GeoQuat   rot = gizmo->data_translation.rot;
-  for (u32 i = 0; i != array_elems(g_gizmoTranslationArrows); ++i) {
-    const GeoVector dir       = geo_quat_rotate(rot, g_gizmoTranslationArrows[i].dir);
-    const f32       length    = g_gizmoTranslationArrows[i].length;
-    const f32       radius    = g_gizmoTranslationArrows[i].radius;
+  for (DebugGizmoAxis a = 0; a != DebugGizmoAxis_Count; ++a) {
+    const GeoVector dir       = geo_quat_rotate(rot, g_gizmoTranslationArrows[a].dir);
+    const f32       length    = g_gizmoTranslationArrows[a].length;
+    const f32       radius    = g_gizmoTranslationArrows[a].radius;
     const GeoVector lineStart = geo_vector_add(pos, geo_vector_mul(dir, 0.02f));
     const GeoVector lineEnd   = geo_vector_add(pos, geo_vector_mul(dir, length));
-    const GeoColor  color     = isHovered ? g_gizmoTranslationArrows[i].colorHovered
-                                          : g_gizmoTranslationArrows[i].colorNormal;
+    const GeoColor  color     = isHovered ? g_gizmoTranslationArrows[a].colorHovered
+                                          : g_gizmoTranslationArrows[a].colorNormal;
 
     debug_arrow(shape, lineStart, lineEnd, radius, color);
   }
