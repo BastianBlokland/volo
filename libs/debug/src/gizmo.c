@@ -166,13 +166,14 @@ void debug_gizmo_draw_translation(
   const bool isHovered = comp->isHovering && comp->activeId == gizmo->id;
 
   // Draw all translation arrows.
-  const GeoQuat rot = gizmo->data_translation.rot;
+  const GeoVector pos = gizmo->data_translation.pos;
+  const GeoQuat   rot = gizmo->data_translation.rot;
   for (u32 i = 0; i != array_elems(g_gizmoTranslationArrows); ++i) {
     const GeoVector dir       = geo_quat_rotate(rot, g_gizmoTranslationArrows[i].dir);
     const f32       length    = g_gizmoTranslationArrows[i].length;
     const f32       radius    = g_gizmoTranslationArrows[i].radius;
-    const GeoVector lineStart = gizmo->data_translation.pos;
-    const GeoVector lineEnd   = geo_vector_add(lineStart, geo_vector_mul(dir, length));
+    const GeoVector lineStart = geo_vector_add(pos, geo_vector_mul(dir, 0.02f));
+    const GeoVector lineEnd   = geo_vector_add(pos, geo_vector_mul(dir, length));
     const GeoColor  color     = isHovered ? g_gizmoTranslationArrows[i].colorHovered
                                           : g_gizmoTranslationArrows[i].colorNormal;
 
