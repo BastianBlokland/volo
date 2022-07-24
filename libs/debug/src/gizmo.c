@@ -7,6 +7,7 @@
 #include "debug_register.h"
 #include "debug_shape.h"
 #include "ecs_world.h"
+#include "gap_window.h"
 #include "geo_query.h"
 #include "input.h"
 #include "scene_camera.h"
@@ -71,7 +72,7 @@ typedef struct {
 typedef enum {
   DebugGizmoStatus_None,
   DebugGizmoStatus_Hovering,
-  DebugGizmoStatus_Dragging,
+  DebugGizmoStatus_Interacting,
 } DebugGizmoStatus;
 
 typedef struct {
@@ -79,6 +80,12 @@ typedef struct {
   DebugGizmoStatus status;
   DebugGizmoId     activeId;
   DebugGizmoAxis   activeAxis;
+  union {
+    struct {
+      GeoVector startPos;
+      GeoQuat   startRot;
+    } data_translation;
+  };
 } DebugGizmoEditor;
 
 ecs_comp_define(DebugGizmoComp) {
@@ -113,6 +120,7 @@ ecs_view_define(GlobalRenderView) {
 }
 
 ecs_view_define(CameraView) {
+  ecs_access_read(GapWindowComp);
   ecs_access_read(SceneCameraComp);
   ecs_access_read(SceneTransformComp);
 }
@@ -153,6 +161,67 @@ static void debug_gizmo_register(DebugGizmoComp* comp, const u32 index, const De
   diag_crash();
 }
 
+static void debug_gizmo_update_interaction(
+    DebugGizmoComp* comp, DebugGizmoEditor* editor, const GeoRay* inputRay) {
+  (void)comp;
+  (void)editor;
+  (void)inputRay;
+}
+
+static void debug_gizmo_update_editor(
+    DebugGizmoComp*           comp,
+    DebugGizmoEditor*         editor,
+    const InputManagerComp*   input,
+    const GapWindowComp*      window,
+    const SceneCameraComp*    camera,
+    const SceneTransformComp* cameraTrans) {
+
+  const bool      inputDown    = gap_window_key_down(window, GapKey_MouseLeft);
+  const GeoVector inputNormPos = geo_vector(input_cursor_x(input), input_cursor_y(input));
+  const f32       inputAspect  = input_cursor_aspect(input);
+  const GeoRay    inputRay     = scene_camera_ray(camera, cameraTrans, inputAspect, inputNormPos);
+  const bool      hoveringUi   = (input_blockers(input) & InputBlocker_HoveringUi) != 0;
+
+  const DebugGizmo* hoveredGizmo = null;
+  DebugGizmoAxis    hoveredAxis  = 0;
+  GeoQueryRayHit    hit;
+  if (!hoveringUi && geo_query_ray(comp->queryEnv, &inputRay, &hit)) {
+    const u32 hoveredIndex = debug_gizmo_shape_index(hit.shapeId);
+    hoveredGizmo           = dynarray_at_t(&comp->entries, hoveredIndex, DebugGizmo);
+    hoveredAxis            = debug_gizmo_shape_axis(hit.shapeId);
+  }
+
+  if (editor->status == DebugGizmoStatus_None && hoveredGizmo) {
+    editor->status     = DebugGizmoStatus_Hovering;
+    editor->activeId   = hoveredGizmo->id;
+    editor->activeAxis = hoveredAxis;
+    return;
+  }
+
+  const bool isHovering    = editor->status == DebugGizmoStatus_Hovering;
+  const bool isInteracting = editor->status == DebugGizmoStatus_Interacting;
+
+  if ((isHovering && !hoveredGizmo) || (isInteracting && !inputDown)) {
+    editor->status = DebugGizmoStatus_None;
+    return;
+  }
+
+  if (isHovering && (editor->activeId != hoveredGizmo->id || editor->activeAxis != hoveredAxis)) {
+    editor->activeId   = hoveredGizmo->id;
+    editor->activeAxis = hoveredAxis;
+    return;
+  }
+
+  if (isHovering && inputDown) {
+    editor->status = DebugGizmoStatus_Interacting;
+    return;
+  }
+
+  if (isInteracting) {
+    debug_gizmo_update_interaction(comp, editor, &inputRay);
+  }
+}
+
 ecs_system_define(DebugGizmoUpdateSys) {
   // Initialize the global gizmo component.
   if (!ecs_world_has_t(world, ecs_world_global(world), DebugGizmoComp)) {
@@ -179,30 +248,15 @@ ecs_system_define(DebugGizmoUpdateSys) {
     debug_gizmo_register(gizmoComp, i, dynarray_at_t(&gizmoComp->entries, i, DebugGizmo));
   }
 
-  // Test which gizmo is being hovered.
+  // Update the editor.
   EcsView* cameraView = ecs_world_view_t(world, CameraView);
   if (ecs_view_contains(cameraView, input_active_window(input))) {
     EcsIterator*              camItr      = ecs_view_at(cameraView, input_active_window(input));
+    const GapWindowComp*      window      = ecs_view_read_t(camItr, GapWindowComp);
     const SceneCameraComp*    camera      = ecs_view_read_t(camItr, SceneCameraComp);
     const SceneTransformComp* cameraTrans = ecs_view_read_t(camItr, SceneTransformComp);
 
-    const GeoVector inputNormPos = geo_vector(input_cursor_x(input), input_cursor_y(input));
-    const f32       inputAspect  = input_cursor_aspect(input);
-    const GeoRay    inputRay     = scene_camera_ray(camera, cameraTrans, inputAspect, inputNormPos);
-    const bool      hoveringUi   = (input_blockers(input) & InputBlocker_HoveringUi) != 0;
-
-    GeoQueryRayHit hit;
-    if (!hoveringUi && geo_query_ray(gizmoComp->queryEnv, &inputRay, &hit)) {
-      gizmoComp->editor.status       = DebugGizmoStatus_Hovering;
-      const u32         hoveredIndex = debug_gizmo_shape_index(hit.shapeId);
-      const DebugGizmo* hoveredGizmo = dynarray_at_t(&gizmoComp->entries, hoveredIndex, DebugGizmo);
-      const DebugGizmoAxis hoveredAxis = debug_gizmo_shape_axis(hit.shapeId);
-
-      gizmoComp->editor.activeId   = hoveredGizmo->id;
-      gizmoComp->editor.activeAxis = hoveredAxis;
-    } else {
-      gizmoComp->editor.status = DebugGizmoStatus_None;
-    }
+    debug_gizmo_update_editor(gizmoComp, &gizmoComp->editor, input, window, camera, cameraTrans);
   }
 
   // Update input blockers.
