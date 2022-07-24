@@ -129,12 +129,16 @@ static void debug_action_bar_draw(
   {
     ui_table_next_row(canvas, &table);
     const bool isEnabled = debug_stats_show(stats);
-    if (ui_button(
-            canvas,
-            .label      = ui_shape_scratch(isEnabled ? UiShape_LayersClear : UiShape_Layers),
-            .fontSize   = 30,
-            .tooltip    = isEnabled ? g_tooltipStatsDisable : g_tooltipStatsEnable,
-            .frameColor = isEnabled ? g_panelFrameColorOpen : g_panelFrameColorNormal)) {
+
+    const bool buttonPressed = ui_button(
+        canvas,
+        .label      = ui_shape_scratch(isEnabled ? UiShape_LayersClear : UiShape_Layers),
+        .fontSize   = 30,
+        .tooltip    = isEnabled ? g_tooltipStatsDisable : g_tooltipStatsEnable,
+        .frameColor = isEnabled ? g_panelFrameColorOpen : g_panelFrameColorNormal);
+
+    const bool hotkeyPressed = input_triggered_lit(input, "DebugPanelStats");
+    if (buttonPressed || hotkeyPressed) {
       debug_stats_show_set(stats, !isEnabled);
     }
   }

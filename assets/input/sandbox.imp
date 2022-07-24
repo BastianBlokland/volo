@@ -269,6 +269,18 @@
       ]
     },
     {
+      "name": "DebugPanelStats",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "Tilde"
+        }
+      ]
+    },
+    {
       "name": "DebugPanelInspector",
       "blockers": [
         "TextInput"
