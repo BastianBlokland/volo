@@ -1,5 +1,6 @@
 #include "asset_inputmap.h"
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "ecs_utils.h"
@@ -124,11 +125,17 @@ static void input_update_cursor(InputManagerComp* manager, GapWindowComp* win) {
   const GapVector delta   = gap_window_param(win, GapParam_CursorDelta);
   const GapVector winSize = gap_window_param(win, GapParam_WindowSize);
 
-  manager->cursorPosNorm[0]   = pos.x / (f32)winSize.x;
-  manager->cursorPosNorm[1]   = pos.y / (f32)winSize.y;
-  manager->cursorDeltaNorm[0] = delta.x / (f32)winSize.x;
-  manager->cursorDeltaNorm[1] = delta.y / (f32)winSize.y;
-  manager->cursorAspect       = (f32)winSize.width / (f32)winSize.height;
+  if (winSize.x > 0 && winSize.y > 0) {
+    manager->cursorPosNorm[0]   = pos.x / (f32)winSize.x;
+    manager->cursorPosNorm[1]   = pos.y / (f32)winSize.y;
+    manager->cursorDeltaNorm[0] = delta.x / (f32)winSize.x;
+    manager->cursorDeltaNorm[1] = delta.y / (f32)winSize.y;
+    manager->cursorAspect       = (f32)winSize.width / (f32)winSize.height;
+  } else {
+    mem_set(array_mem(manager->cursorPosNorm), 0);
+    mem_set(array_mem(manager->cursorDeltaNorm), 0);
+    manager->cursorAspect = 1.0f;
+  }
 
   switch (manager->cursorMode) {
   case InputCursorMode_Normal:
