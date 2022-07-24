@@ -58,24 +58,28 @@ typedef enum {
 } DebugGizmoType;
 
 typedef struct {
-  GeoVector pos;
-  GeoQuat   rot;
-} DebugGizmoTranslation;
-
-typedef struct {
   DebugGizmoType type;
   DebugGizmoId   id;
   union {
-    DebugGizmoTranslation data_translation;
+    struct {
+      GeoVector pos;
+      GeoQuat   rot;
+    } data_translation;
   };
 } DebugGizmo;
 
+typedef enum {
+  DebugGizmoInteraction_None,
+  DebugGizmoInteraction_Hovering,
+  DebugGizmoInteraction_Dragging,
+} DebugGizmoInteraction;
+
 ecs_comp_define(DebugGizmoComp) {
-  bool           isHovering;
-  DebugGizmoId   activeId;
-  DebugGizmoAxis activeAxis;
-  DynArray       entries; // DebugGizmo[]
-  GeoQueryEnv*   queryEnv;
+  DebugGizmoInteraction interaction;
+  DebugGizmoId          activeId;
+  DebugGizmoAxis        activeAxis;
+  DynArray              entries; // DebugGizmo[]
+  GeoQueryEnv*          queryEnv;
 };
 
 static void ecs_destruct_gizmo(void* data) {
@@ -177,10 +181,12 @@ ecs_system_define(DebugGizmoUpdateSys) {
     const GeoRay    inputRay     = scene_camera_ray(camera, cameraTrans, inputAspect, inputNormPos);
 
     GeoQueryRayHit hit;
-    gizmoComp->isHovering = geo_query_ray(gizmoComp->queryEnv, &inputRay, &hit);
-    if (gizmoComp->isHovering) {
-      gizmoComp->activeId   = debug_gizmo_id_from_shape_id(hit.shapeId);
-      gizmoComp->activeAxis = debug_gizmo_axis_from_shape_id(hit.shapeId);
+    if (geo_query_ray(gizmoComp->queryEnv, &inputRay, &hit)) {
+      gizmoComp->interaction = DebugGizmoInteraction_Hovering;
+      gizmoComp->activeId    = debug_gizmo_id_from_shape_id(hit.shapeId);
+      gizmoComp->activeAxis  = debug_gizmo_axis_from_shape_id(hit.shapeId);
+    } else {
+      gizmoComp->interaction = DebugGizmoInteraction_None;
     }
   }
 }
@@ -188,7 +194,7 @@ ecs_system_define(DebugGizmoUpdateSys) {
 void debug_gizmo_draw_translation(
     const DebugGizmoComp* comp, DebugShapeComp* shape, const DebugGizmo* gizmo) {
   diag_assert(gizmo->type == DebugGizmoType_Translation);
-  const bool isGizmoHovered = comp->isHovering && comp->activeId == gizmo->id;
+  const bool isGizmoHovered = comp->interaction > 0 && comp->activeId == gizmo->id;
 
   // Draw all translation arrows.
   const GeoVector pos = gizmo->data_translation.pos;
