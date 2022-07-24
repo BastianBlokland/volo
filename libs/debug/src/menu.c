@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "debug_animation.h"
 #include "debug_asset.h"
 #include "debug_camera.h"
@@ -16,31 +17,73 @@
 
 // clang-format off
 
-static const String g_tooltipStatsEnable     = string_static("Enable the \a.bStatistics\ar interface.");
-static const String g_tooltipStatsDisable    = string_static("Disable the \a.bStatistics\ar interface.");
-static const String g_tooltipPanelInspector  = string_static("Open the \a.bInspector\ar panel.");
-static const String g_tooltipPanelTime       = string_static("Open the \a.bTime\ar panel.");
-static const String g_tooltipPanelAnimation  = string_static("Open the \a.bAnimation\ar panel.");
-static const String g_tooltipPanelAsset      = string_static("Open the \a.bAsset\ar panel.");
-static const String g_tooltipPanelEcs        = string_static("Open the \a.bEcs\ar panel.");
-static const String g_tooltipPanelCamera     = string_static("Open the \a.bCamera\ar panel.");
-static const String g_tooltipPanelGrid       = string_static("Open the \a.bGrid\ar panel.");
-static const String g_tooltipPanelRend       = string_static("Open the \a.bRenderer\ar panel.");
-static const String g_tooltipPanelInterface  = string_static("Open the \a.bInterface\ar panel.");
+static const String g_tooltipStatsEnable  = string_static("Enable the \a.bStatistics\ar interface.");
+static const String g_tooltipStatsDisable = string_static("Disable the \a.bStatistics\ar interface.");
+static const String g_tooltipPanelOpen    = string_static("Open the \a.b{}\ar panel.");
 
 // clang-format on
 
+typedef EcsEntityId (*PanelOpenFunc)(EcsWorld*, EcsEntityId);
+
+static const struct {
+  String        name;
+  u32           iconShape;
+  PanelOpenFunc openFunc;
+} g_debugPanelConfig[] = {
+    {
+        .name      = string_static("Inspector"),
+        .iconShape = UiShape_ViewInAr,
+        .openFunc  = debug_inspector_panel_open,
+    },
+    {
+        .name      = string_static("Time"),
+        .iconShape = UiShape_Timer,
+        .openFunc  = debug_time_panel_open,
+    },
+    {
+        .name      = string_static("Animation"),
+        .iconShape = UiShape_Animation,
+        .openFunc  = debug_animation_panel_open,
+    },
+    {
+        .name      = string_static("Asset"),
+        .iconShape = UiShape_Storage,
+        .openFunc  = debug_asset_panel_open,
+    },
+    {
+        .name      = string_static("Ecs"),
+        .iconShape = UiShape_Extension,
+        .openFunc  = debug_ecs_panel_open,
+    },
+    {
+        .name      = string_static("Camera"),
+        .iconShape = UiShape_PhotoCamera,
+        .openFunc  = debug_camera_panel_open,
+    },
+    {
+        .name      = string_static("Grid"),
+        .iconShape = UiShape_Grid4x4,
+        .openFunc  = debug_grid_panel_open,
+    },
+    {
+        .name      = string_static("Renderer"),
+        .iconShape = UiShape_Brush,
+        .openFunc  = debug_rend_panel_open,
+    },
+    {
+        .name      = string_static("Interface"),
+        .iconShape = UiShape_FormatShapes,
+        .openFunc  = debug_interface_panel_open,
+    },
+};
+
+static String debug_panel_tooltip_scratch(const String panelName) {
+  return format_write_formatted_scratch(g_tooltipPanelOpen, fmt_args(fmt_text(panelName)));
+}
+
 ecs_comp_define(DebugMenuComp) {
   EcsEntityId window;
-  EcsEntityId panelInspector;
-  EcsEntityId panelTime;
-  EcsEntityId panelAnimation;
-  EcsEntityId panelAsset;
-  EcsEntityId panelEcs;
-  EcsEntityId panelCamera;
-  EcsEntityId panelGrid;
-  EcsEntityId panelRend;
-  EcsEntityId panelInterface;
+  EcsEntityId panelEntities[array_elems(g_debugPanelConfig)];
 };
 
 ecs_view_define(MenuUpdateView) {
@@ -52,16 +95,6 @@ ecs_view_define(WindowUpdateView) { ecs_access_write(DebugStatsComp); }
 
 static bool debug_panel_is_open(EcsWorld* world, EcsEntityId panel) {
   return panel && ecs_world_exists(world, panel);
-}
-
-static void debug_panel_open(
-    EcsWorld*    world,
-    EcsEntityId* reference,
-    EcsEntityId  winEntity,
-    EcsEntityId (*openFunc)(EcsWorld*, EcsEntityId)) {
-  if (!debug_panel_is_open(world, *reference)) {
-    *reference = openFunc(world, winEntity);
-  }
 }
 
 static void debug_action_bar_draw(
@@ -84,94 +117,18 @@ static void debug_action_bar_draw(
     debug_stats_show_set(stats, !statsEnabled);
   }
 
-  ui_table_next_row(canvas, &table);
-  if (ui_button(
-          canvas,
-          .flags    = debug_panel_is_open(world, menu->panelInspector) ? UiWidget_Disabled : 0,
-          .label    = ui_shape_scratch(UiShape_ViewInAr),
-          .fontSize = 30,
-          .tooltip  = g_tooltipPanelInspector)) {
-    debug_panel_open(world, &menu->panelInspector, winEntity, debug_inspector_panel_open);
-  }
-
-  ui_table_next_row(canvas, &table);
-  if (ui_button(
-          canvas,
-          .flags    = debug_panel_is_open(world, menu->panelTime) ? UiWidget_Disabled : 0,
-          .label    = ui_shape_scratch(UiShape_Timer),
-          .fontSize = 30,
-          .tooltip  = g_tooltipPanelTime)) {
-    debug_panel_open(world, &menu->panelTime, winEntity, debug_time_panel_open);
-  }
-
-  ui_table_next_row(canvas, &table);
-  if (ui_button(
-          canvas,
-          .flags    = debug_panel_is_open(world, menu->panelAnimation) ? UiWidget_Disabled : 0,
-          .label    = ui_shape_scratch(UiShape_Animation),
-          .fontSize = 30,
-          .tooltip  = g_tooltipPanelAnimation)) {
-    debug_panel_open(world, &menu->panelAnimation, winEntity, debug_animation_panel_open);
-  }
-
-  ui_table_next_row(canvas, &table);
-  if (ui_button(
-          canvas,
-          .flags    = debug_panel_is_open(world, menu->panelAsset) ? UiWidget_Disabled : 0,
-          .label    = ui_shape_scratch(UiShape_Storage),
-          .fontSize = 30,
-          .tooltip  = g_tooltipPanelAsset)) {
-    debug_panel_open(world, &menu->panelAsset, winEntity, debug_asset_panel_open);
-  }
-
-  ui_table_next_row(canvas, &table);
-  if (ui_button(
-          canvas,
-          .flags    = debug_panel_is_open(world, menu->panelEcs) ? UiWidget_Disabled : 0,
-          .label    = ui_shape_scratch(UiShape_Extension),
-          .fontSize = 30,
-          .tooltip  = g_tooltipPanelEcs)) {
-    debug_panel_open(world, &menu->panelEcs, winEntity, debug_ecs_panel_open);
-  }
-
-  ui_table_next_row(canvas, &table);
-  if (ui_button(
-          canvas,
-          .flags    = debug_panel_is_open(world, menu->panelCamera) ? UiWidget_Disabled : 0,
-          .label    = ui_shape_scratch(UiShape_PhotoCamera),
-          .fontSize = 30,
-          .tooltip  = g_tooltipPanelCamera)) {
-    debug_panel_open(world, &menu->panelCamera, winEntity, debug_camera_panel_open);
-  }
-
-  ui_table_next_row(canvas, &table);
-  if (ui_button(
-          canvas,
-          .flags    = debug_panel_is_open(world, menu->panelGrid) ? UiWidget_Disabled : 0,
-          .label    = ui_shape_scratch(UiShape_Grid4x4),
-          .fontSize = 30,
-          .tooltip  = g_tooltipPanelGrid)) {
-    debug_panel_open(world, &menu->panelGrid, winEntity, debug_grid_panel_open);
-  }
-
-  ui_table_next_row(canvas, &table);
-  if (ui_button(
-          canvas,
-          .flags    = debug_panel_is_open(world, menu->panelRend) ? UiWidget_Disabled : 0,
-          .label    = ui_shape_scratch(UiShape_Brush),
-          .fontSize = 30,
-          .tooltip  = g_tooltipPanelRend)) {
-    debug_panel_open(world, &menu->panelRend, winEntity, debug_rend_panel_open);
-  }
-
-  ui_table_next_row(canvas, &table);
-  if (ui_button(
-          canvas,
-          .flags    = debug_panel_is_open(world, menu->panelInterface) ? UiWidget_Disabled : 0,
-          .label    = ui_shape_scratch(UiShape_FormatShapes),
-          .fontSize = 30,
-          .tooltip  = g_tooltipPanelInterface)) {
-    debug_panel_open(world, &menu->panelInterface, winEntity, debug_interface_panel_open);
+  for (u32 i = 0; i != array_elems(g_debugPanelConfig); ++i) {
+    ui_table_next_row(canvas, &table);
+    if (ui_button(
+            canvas,
+            .flags    = debug_panel_is_open(world, menu->panelEntities[i]) ? UiWidget_Disabled : 0,
+            .label    = ui_shape_scratch(g_debugPanelConfig[i].iconShape),
+            .fontSize = 30,
+            .tooltip  = debug_panel_tooltip_scratch(g_debugPanelConfig[i].name))) {
+      if (!debug_panel_is_open(world, menu->panelEntities[i])) {
+        menu->panelEntities[i] = g_debugPanelConfig[i].openFunc(world, winEntity);
+      }
+    }
   }
 }
 
