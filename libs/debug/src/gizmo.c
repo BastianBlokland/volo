@@ -69,23 +69,37 @@ typedef struct {
 } DebugGizmo;
 
 typedef enum {
-  DebugGizmoInteraction_None,
-  DebugGizmoInteraction_Hovering,
-  DebugGizmoInteraction_Dragging,
-} DebugGizmoInteraction;
+  DebugGizmoStatus_None,
+  DebugGizmoStatus_Hovering,
+  DebugGizmoStatus_Dragging,
+} DebugGizmoStatus;
+
+typedef struct {
+  DebugGizmoType   type;
+  DebugGizmoStatus status;
+  DebugGizmoId     activeId;
+  DebugGizmoAxis   activeAxis;
+} DebugGizmoEditor;
 
 ecs_comp_define(DebugGizmoComp) {
-  DebugGizmoInteraction interaction;
-  DebugGizmoId          activeId;
-  DebugGizmoAxis        activeAxis;
-  DynArray              entries; // DebugGizmo[]
-  GeoQueryEnv*          queryEnv;
+  DebugGizmoEditor editor;
+  DynArray         entries; // DebugGizmo[]
+  GeoQueryEnv*     queryEnv;
 };
 
 static void ecs_destruct_gizmo(void* data) {
   DebugGizmoComp* comp = data;
   dynarray_destroy(&comp->entries);
   geo_query_env_destroy(comp->queryEnv);
+}
+
+static bool debug_gizmo_is_hovered(const DebugGizmoComp* comp, const DebugGizmoId id) {
+  return comp->editor.status >= DebugGizmoStatus_Hovering && comp->editor.activeId == id;
+}
+
+static bool debug_gizmo_is_hovered_axis(
+    const DebugGizmoComp* comp, const DebugGizmoId id, const DebugGizmoAxis axis) {
+  return debug_gizmo_is_hovered(comp, id) && comp->editor.activeAxis == axis;
 }
 
 ecs_view_define(GlobalUpdateView) {
@@ -179,20 +193,20 @@ ecs_system_define(DebugGizmoUpdateSys) {
 
     GeoQueryRayHit hit;
     if (!hoveringUi && geo_query_ray(gizmoComp->queryEnv, &inputRay, &hit)) {
-      gizmoComp->interaction         = DebugGizmoInteraction_Hovering;
+      gizmoComp->editor.status       = DebugGizmoStatus_Hovering;
       const u32         hoveredIndex = debug_gizmo_shape_index(hit.shapeId);
       const DebugGizmo* hoveredGizmo = dynarray_at_t(&gizmoComp->entries, hoveredIndex, DebugGizmo);
       const DebugGizmoAxis hoveredAxis = debug_gizmo_shape_axis(hit.shapeId);
 
-      gizmoComp->activeId   = hoveredGizmo->id;
-      gizmoComp->activeAxis = hoveredAxis;
+      gizmoComp->editor.activeId   = hoveredGizmo->id;
+      gizmoComp->editor.activeAxis = hoveredAxis;
     } else {
-      gizmoComp->interaction = DebugGizmoInteraction_None;
+      gizmoComp->editor.status = DebugGizmoStatus_None;
     }
   }
 
   // Update input blockers.
-  input_blocker_update(input, InputBlocker_HoveringGizmo, gizmoComp->interaction > 0);
+  input_blocker_update(input, InputBlocker_HoveringGizmo, gizmoComp->editor.status > 0);
 
   // Clear last frame's entries.
   dynarray_clear(&gizmoComp->entries);
@@ -201,20 +215,19 @@ ecs_system_define(DebugGizmoUpdateSys) {
 void debug_gizmo_draw_translation(
     const DebugGizmoComp* comp, DebugShapeComp* shape, const DebugGizmo* gizmo) {
   diag_assert(gizmo->type == DebugGizmoType_Translation);
-  const bool isGizmoHovered = comp->interaction > 0 && comp->activeId == gizmo->id;
 
   // Draw all translation arrows.
   const GeoVector pos = gizmo->data_translation.pos;
   const GeoQuat   rot = gizmo->data_translation.rot;
   for (DebugGizmoAxis a = 0; a != DebugGizmoAxis_Count; ++a) {
-    const bool      isAxisHovered = isGizmoHovered && comp->activeAxis == a;
-    const GeoVector dir           = geo_quat_rotate(rot, g_gizmoTranslationArrows[a].dir);
-    const f32       length        = g_gizmoTranslationArrows[a].length;
-    const f32       radius        = g_gizmoTranslationArrows[a].radius;
-    const GeoVector lineStart     = geo_vector_add(pos, geo_vector_mul(dir, 0.02f));
-    const GeoVector lineEnd       = geo_vector_add(pos, geo_vector_mul(dir, length));
-    const GeoColor  color         = isAxisHovered ? g_gizmoTranslationArrows[a].colorHovered
-                                                  : g_gizmoTranslationArrows[a].colorNormal;
+    const bool      isHovered = debug_gizmo_is_hovered_axis(comp, gizmo->id, a);
+    const GeoVector dir       = geo_quat_rotate(rot, g_gizmoTranslationArrows[a].dir);
+    const f32       length    = g_gizmoTranslationArrows[a].length;
+    const f32       radius    = g_gizmoTranslationArrows[a].radius;
+    const GeoVector lineStart = geo_vector_add(pos, geo_vector_mul(dir, 0.02f));
+    const GeoVector lineEnd   = geo_vector_add(pos, geo_vector_mul(dir, length));
+    const GeoColor  color     = isHovered ? g_gizmoTranslationArrows[a].colorHovered
+                                          : g_gizmoTranslationArrows[a].colorNormal;
 
     debug_arrow(shape, lineStart, lineEnd, radius, color);
   }
