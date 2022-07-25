@@ -388,16 +388,18 @@ static void gizmo_draw_translation(
   const bool      isInteracting = gizmo_is_interacting_type(comp, entry->id, entry->type);
   const GeoVector pos           = isInteracting ? comp->editor.translation.result : entry->pos;
 
+  // Draw center point.
+  debug_sphere(shape, pos, 0.025f, geo_color_white, DebugShape_Overlay);
+
   // Draw all translation arrows.
   for (u32 i = 0; i != array_elems(g_gizmoTranslationArrows); ++i) {
-    const GeoVector dir       = geo_quat_rotate(entry->rot, g_gizmoTranslationArrows[i].dir);
-    const f32       length    = g_gizmoTranslationArrows[i].length;
-    const f32       radius    = g_gizmoTranslationArrows[i].radius;
-    const GeoVector lineStart = geo_vector_add(pos, geo_vector_mul(dir, 0.02f));
-    const GeoVector lineEnd   = geo_vector_add(pos, geo_vector_mul(dir, length));
-    const GeoColor  color     = gizmo_translation_arrow_color(comp, entry->id, i);
+    const GeoVector dir     = geo_quat_rotate(entry->rot, g_gizmoTranslationArrows[i].dir);
+    const f32       length  = g_gizmoTranslationArrows[i].length;
+    const f32       radius  = g_gizmoTranslationArrows[i].radius;
+    const GeoVector lineEnd = geo_vector_add(pos, geo_vector_mul(dir, length));
+    const GeoColor  color   = gizmo_translation_arrow_color(comp, entry->id, i);
 
-    debug_arrow(shape, lineStart, lineEnd, radius, color);
+    debug_arrow(shape, pos, lineEnd, radius, color);
   }
 }
 
