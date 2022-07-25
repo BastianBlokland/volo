@@ -97,11 +97,12 @@ INLINE_HINT static usize rend_draw_align(const usize val, const usize align) {
 /**
  * Pre-condition: bits_is_aligned(size, 16)
  */
-INLINE_HINT static void rend_draw_memcpy(u8* dst, const u8* src, const usize size) {
+INLINE_HINT static void
+rend_draw_memcpy(u8* restrict dst, const u8* restrict src, const usize size) {
 #if rend_draw_simd_enable
   const void* end = bits_ptr_offset(src, size);
   for (; src != end; src += 16, dst += 16) {
-    _mm_stream_si128((__m128i*)dst, _mm_stream_load_si128((__m128i*)src));
+    _mm_stream_si128((__m128i* restrict)dst, _mm_stream_load_si128((__m128i* restrict)src));
   }
 #else
   intrinsic_memcpy(dst, src, size);
