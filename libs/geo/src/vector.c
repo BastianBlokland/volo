@@ -4,6 +4,8 @@
 #include "core_math.h"
 #include "geo_vector.h"
 
+#include "intrinsic_internal.h"
+
 #define geo_vec_simd_enable 1
 
 #if geo_vec_simd_enable
@@ -107,7 +109,7 @@ f32 geo_vector_mag(const GeoVector v) {
   return simd_vec_x(dot) != 0 ? simd_vec_x(simd_vec_sqrt(dot)) : 0;
 #else
   const f32 sqrMag = geo_vector_mag_sqr(v);
-  return sqrMag != 0 ? math_sqrt_f32(sqrMag) : 0;
+  return sqrMag != 0 ? intrinsic_sqrt_f32(sqrMag) : 0;
 #endif
 }
 
@@ -144,12 +146,12 @@ GeoVector geo_vector_cross3(const GeoVector a, const GeoVector b) {
 }
 
 f32 geo_vector_angle(const GeoVector from, const GeoVector to) {
-  const f32 denom = math_sqrt_f32(geo_vector_mag_sqr(from) * geo_vector_mag_sqr(to));
+  const f32 denom = intrinsic_sqrt_f32(geo_vector_mag_sqr(from) * geo_vector_mag_sqr(to));
   if (denom <= f32_epsilon) {
     return 0;
   }
   const f32 dot = geo_vector_dot(from, to);
-  return math_acos_f32(math_clamp_f32(dot / denom, -1, 1));
+  return intrinsic_acos_f32(math_clamp_f32(dot / denom, -1, 1));
 }
 
 GeoVector geo_vector_project(const GeoVector v, const GeoVector nrm) {
@@ -219,8 +221,23 @@ GeoVector geo_vector_sqrt(const GeoVector v) {
   simd_vec_store(simd_vec_sqrt(simd_vec_load(v.comps)), res.comps);
   return res;
 #else
-  return geo_vector(math_sqrt_f32(v.x), math_sqrt_f32(v.y), math_sqrt_f32(v.z), math_sqrt_f32(v.w));
+  return geo_vector(
+      intrinsic_sqrt_f32(v.x),
+      intrinsic_sqrt_f32(v.y),
+      intrinsic_sqrt_f32(v.z),
+      intrinsic_sqrt_f32(v.w));
 #endif
+}
+
+GeoVector geo_vector_clamp(const GeoVector v, const f32 maxMagnitude) {
+  diag_assert_msg(maxMagnitude >= 0.0f, "maximum magnitude cannot be negative");
+
+  const f32 sqrMag = geo_vector_mag_sqr(v);
+  if (sqrMag > (maxMagnitude * maxMagnitude)) {
+    const GeoVector norm = geo_vector_div(v, intrinsic_sqrt_f32(sqrMag));
+    return geo_vector_mul(norm, maxMagnitude);
+  }
+  return v;
 }
 
 GeoVector geo_vector_perspective_div(const GeoVector v) {

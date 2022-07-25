@@ -254,7 +254,7 @@ static void gizmo_update_interaction_translation(DebugGizmoComp* comp, const Geo
 
   const GeoPlane plane   = gizmo_translation_plane(data->basePos, data->baseRot, section, ray);
   const f32      hitDist = geo_plane_intersect_ray(&plane, ray);
-  if (hitDist < 0) {
+  if (hitDist < 0 || hitDist > 1e3f) {
     return; // No intersection with the interaction plane.
   }
   const GeoVector inputPos = geo_ray_position(ray, hitDist);
@@ -277,11 +277,12 @@ static void gizmo_update_interaction(
   const GeoVector inputNormPos = geo_vector(input_cursor_x(input), input_cursor_y(input));
   const f32       inputAspect  = input_cursor_aspect(input);
   const GeoRay    inputRay     = scene_camera_ray(camera, cameraTrans, inputAspect, inputNormPos);
+  const bool      isBlocked    = gizmo_interaction_is_blocked(input);
 
   const DebugGizmoEntry* hoverEntry   = null;
   DebugGizmoSection      hoverSection = 0;
   GeoQueryRayHit         hit;
-  if (!gizmo_interaction_is_blocked(input) && geo_query_ray(comp->queryEnv, &inputRay, &hit)) {
+  if (!isBlocked && geo_query_ray(comp->queryEnv, &inputRay, &hit) && hit.time < 1e3f) {
     hoverEntry   = gizmo_entry(comp, gizmo_shape_index(hit.shapeId));
     hoverSection = gizmo_shape_section(hit.shapeId);
   }

@@ -205,6 +205,13 @@ spec(vector) {
     check_eq_vector(geo_vector_sqrt(v), geo_vector(4, 8, 16));
   }
 
+  it("can clamp its magnitude") {
+    check_eq_vector(geo_vector_clamp(geo_vector(1, 2, 3), 10), geo_vector(1, 2, 3));
+    check_eq_vector(geo_vector_clamp(geo_vector(34, 0, 0), 2), geo_vector(2, 0, 0));
+    check_eq_vector(geo_vector_clamp(geo_vector(1, 2, 3), 0), geo_vector(0, 0, 0));
+    check_eq_vector(geo_vector_clamp(geo_vector(0, 0, 0), 0), geo_vector(0, 0, 0));
+  }
+
   it("divides each component by w when performing a perspective divide") {
     const GeoVector v1 = {.x = 1, .y = 2, .z = 4, .w = 4};
     const GeoVector v2 = {.x = .25, .y = .5, .z = 1};
