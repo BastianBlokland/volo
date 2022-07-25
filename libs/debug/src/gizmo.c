@@ -366,6 +366,19 @@ ecs_system_define(DebugGizmoUpdateSys) {
   dynarray_clear(&gizmo->entries);
 }
 
+static GeoColor gizmo_translation_arrow_color(
+    const DebugGizmoComp* comp, const DebugGizmoId id, const u32 arrowIndex) {
+  diag_assert(arrowIndex < 3);
+
+  if (gizmo_is_hovered_section(comp, id, (DebugGizmoSection)arrowIndex)) {
+    return g_gizmoTranslationArrows[arrowIndex].colorHovered;
+  }
+  if (comp->status >= DebugGizmoStatus_Interacting) {
+    return geo_color(1, 1, 1, 0.25f); // Another gizmo (or section) is being interacted with.
+  }
+  return g_gizmoTranslationArrows[arrowIndex].colorNormal;
+}
+
 static void gizmo_draw_translation(
     const DebugGizmoComp* comp, DebugShapeComp* shape, const DebugGizmoEntry* entry) {
   diag_assert(entry->type == DebugGizmoType_Translation);
@@ -375,14 +388,12 @@ static void gizmo_draw_translation(
 
   // Draw all translation arrows.
   for (u32 i = 0; i != array_elems(g_gizmoTranslationArrows); ++i) {
-    const bool      isHovered = gizmo_is_hovered_section(comp, entry->id, (DebugGizmoSection)i);
     const GeoVector dir       = geo_quat_rotate(entry->rot, g_gizmoTranslationArrows[i].dir);
     const f32       length    = g_gizmoTranslationArrows[i].length;
     const f32       radius    = g_gizmoTranslationArrows[i].radius;
     const GeoVector lineStart = geo_vector_add(pos, geo_vector_mul(dir, 0.02f));
     const GeoVector lineEnd   = geo_vector_add(pos, geo_vector_mul(dir, length));
-    const GeoColor  color     = isHovered ? g_gizmoTranslationArrows[i].colorHovered
-                                          : g_gizmoTranslationArrows[i].colorNormal;
+    const GeoColor  color     = gizmo_translation_arrow_color(comp, entry->id, i);
 
     debug_arrow(shape, lineStart, lineEnd, radius, color);
   }
