@@ -214,13 +214,19 @@ static bool gizmo_interaction_is_blocked(const InputManagerComp* input) {
   return (input_blockers(input) & InputBlocker_HoveringUi) != 0;
 }
 
-static GeoPlane gizmo_translation_pick_plane(
+/**
+ * Pick an interaction plane based on the desired editing section (axis) and input ray.
+ */
+static GeoPlane gizmo_translation_plane(
     const GeoVector         basePos,
     const GeoQuat           baseRot,
     const DebugGizmoSection section,
     const GeoRay*           ray) {
+  diag_assert(section >= DebugGizmoSection_X && section <= DebugGizmoSection_Z);
+
   GeoVector nrm;
   if (section == DebugGizmoSection_Y) {
+    // Pick either the X or Z axis based on the camera direction.
     const GeoVector fwd = geo_quat_rotate(baseRot, geo_forward);
     if (math_abs(geo_vector_dot(ray->dir, fwd)) > 0.5f) {
       nrm = fwd;
@@ -230,6 +236,7 @@ static GeoPlane gizmo_translation_pick_plane(
   } else {
     nrm = geo_quat_rotate(baseRot, geo_up);
   }
+  // Flip the axis if its pointing away from the camera.
   if (geo_vector_dot(ray->dir, nrm) > 0) {
     nrm = geo_vector_mul(nrm, -1.0f);
   }
@@ -237,13 +244,13 @@ static GeoPlane gizmo_translation_pick_plane(
 }
 
 static void gizmo_update_interaction_translation(DebugGizmoComp* comp, const GeoRay* ray) {
-  diag_assert(comp->activeType == DebugGizmoType_Translation);
-  DebugGizmoEditorTranslation* data = &comp->editor.translation;
+  DebugGizmoEditorTranslation* data    = &comp->editor.translation;
+  const DebugGizmoSection      section = comp->activeSection;
 
-  const DebugGizmoSection section = comp->activeSection;
+  diag_assert(comp->activeType == DebugGizmoType_Translation);
   diag_assert(section >= DebugGizmoSection_X && section <= DebugGizmoSection_Z);
 
-  const GeoPlane plane   = gizmo_translation_pick_plane(data->basePos, data->baseRot, section, ray);
+  const GeoPlane plane   = gizmo_translation_plane(data->basePos, data->baseRot, section, ray);
   const f32      hitDist = geo_plane_intersect_ray(&plane, ray);
   if (hitDist >= 0) {
     const GeoVector axis  = geo_quat_rotate(data->baseRot, g_gizmoTranslationArrows[section].dir);
