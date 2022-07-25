@@ -370,14 +370,17 @@ static void gizmo_draw_translation(
     const DebugGizmoComp* comp, DebugShapeComp* shape, const DebugGizmoEntry* entry) {
   diag_assert(entry->type == DebugGizmoType_Translation);
 
+  const bool      isInteracting = gizmo_is_interacting_type(comp, entry->id, entry->type);
+  const GeoVector pos           = isInteracting ? comp->editor.translation.result : entry->pos;
+
   // Draw all translation arrows.
   for (u32 i = 0; i != array_elems(g_gizmoTranslationArrows); ++i) {
     const bool      isHovered = gizmo_is_hovered_section(comp, entry->id, (DebugGizmoSection)i);
     const GeoVector dir       = geo_quat_rotate(entry->rot, g_gizmoTranslationArrows[i].dir);
     const f32       length    = g_gizmoTranslationArrows[i].length;
     const f32       radius    = g_gizmoTranslationArrows[i].radius;
-    const GeoVector lineStart = geo_vector_add(entry->pos, geo_vector_mul(dir, 0.02f));
-    const GeoVector lineEnd   = geo_vector_add(entry->pos, geo_vector_mul(dir, length));
+    const GeoVector lineStart = geo_vector_add(pos, geo_vector_mul(dir, 0.02f));
+    const GeoVector lineEnd   = geo_vector_add(pos, geo_vector_mul(dir, length));
     const GeoColor  color     = isHovered ? g_gizmoTranslationArrows[i].colorHovered
                                           : g_gizmoTranslationArrows[i].colorNormal;
 
