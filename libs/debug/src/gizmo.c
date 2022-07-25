@@ -226,15 +226,17 @@ static GeoPlane gizmo_translation_plane(
     const GeoRay*           ray) {
   diag_assert(section >= DebugGizmoSection_X && section <= DebugGizmoSection_Z);
 
-  GeoVector nrm;
-  if (section == DebugGizmoSection_Y) {
-    // Pick either the X or Z axis based on the camera direction.
-    const GeoVector fwd   = geo_quat_rotate(baseRot, geo_forward);
-    const GeoVector right = geo_quat_rotate(baseRot, geo_right);
-    nrm                   = math_abs(geo_vector_dot(ray->dir, fwd)) > 0.5f ? fwd : right;
-  } else {
-    nrm = geo_quat_rotate(baseRot, geo_up);
-  }
+  // Pick the best normal based on the camera direction.
+  static const GeoVector g_normals[][2] = {
+      [DebugGizmoSection_X] = {{0, 1, 0}, {0, 0, 1}},
+      [DebugGizmoSection_Y] = {{0, 0, 1}, {1, 0, 0}},
+      [DebugGizmoSection_Z] = {{0, 1, 0}, {1, 0, 0}},
+  };
+  const GeoVector nrmA = geo_quat_rotate(baseRot, g_normals[section][0]);
+  const GeoVector nrmB = geo_quat_rotate(baseRot, g_normals[section][1]);
+  const f32       dotA = geo_vector_dot(ray->dir, nrmA);
+  GeoVector       nrm  = math_abs(dotA) > 0.5f ? nrmA : nrmB;
+
   // Flip the axis if its pointing away from the camera.
   if (geo_vector_dot(ray->dir, nrm) > 0) {
     nrm = geo_vector_mul(nrm, -1.0f);
