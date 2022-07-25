@@ -29,8 +29,7 @@ typedef enum {
   DebugInspectorFlags_DrawBoundsGlobal = 1 << 5,
   DebugInspectorFlags_GizmoTranslation = 1 << 6,
 
-  DebugInspectorFlags_Default =
-      DebugInspectorFlags_DrawCollision | DebugInspectorFlags_GizmoTranslation,
+  DebugInspectorFlags_Default = DebugInspectorFlags_GizmoTranslation,
 
   DebugInspectorFlags_DrawAny = DebugInspectorFlags_DrawName | DebugInspectorFlags_DrawCollision |
                                 DebugInspectorFlags_DrawBoundsLocal |
