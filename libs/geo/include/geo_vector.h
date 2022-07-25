@@ -121,6 +121,13 @@ GeoVector geo_vector_max(GeoVector x, GeoVector y);
 GeoVector geo_vector_sqrt(GeoVector);
 
 /**
+ * Clamp a vector so its magnitude does not exceed the given value.
+ *
+ * Pre-condition: maxMagnitude >= 0
+ */
+GeoVector geo_vector_clamp(GeoVector, f32 maxMagnitude);
+
+/**
  * Perspective divide: divide the vector by its w component.
  */
 GeoVector geo_vector_perspective_div(GeoVector);
