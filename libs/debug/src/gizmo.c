@@ -20,22 +20,22 @@ static const struct {
 } g_gizmoTranslationArrows[] = {
     {
         .dir          = {1, 0, 0},
-        .length       = 0.5f,
-        .radius       = 0.05f,
+        .length       = 0.75f,
+        .radius       = 0.075f,
         .colorNormal  = {0.4f, 0, 0, 0.75f},
         .colorHovered = {1, 0.05f, 0.05f, 1},
     },
     {
         .dir          = {0, 1, 0},
-        .length       = 0.5f,
-        .radius       = 0.05f,
+        .length       = 0.75f,
+        .radius       = 0.075f,
         .colorNormal  = {0, 0.4f, 0, 0.75f},
         .colorHovered = {0.05f, 1, 0.05f, 1},
     },
     {
         .dir          = {0, 0, 1},
-        .length       = 0.5f,
-        .radius       = 0.05f,
+        .length       = 0.75f,
+        .radius       = 0.075f,
         .colorNormal  = {0, 0, 0.4f, 0.75f},
         .colorHovered = {0.05f, 0.05f, 1, 1},
     },
