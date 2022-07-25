@@ -15,14 +15,14 @@ struct sGeoQueryEnv {
 static void geo_query_validate_pos(const GeoVector vec) {
   // Constrain the positions 1000 meters from the origin to avoid precision issues.
   diag_assert_msg(
-      geo_vector_mag_sqr(vec) < (1e4f * 1e4f),
+      geo_vector_mag_sqr(vec) <= (1e4f * 1e4f),
       "Position ({}) is out of bounds",
       geo_vector_fmt(vec));
 }
 
 static void geo_query_validate_dir(const GeoVector vec) {
   diag_assert_msg(
-      math_abs(geo_vector_mag_sqr(vec) - 1.0f) < 1e-6f,
+      math_abs(geo_vector_mag_sqr(vec) - 1.0f) <= 1e-6f,
       "Direction ({}) is not normalized",
       geo_vector_fmt(vec));
   return;
@@ -57,11 +57,16 @@ void geo_query_env_clear(GeoQueryEnv* env) {
 }
 
 void geo_query_insert_sphere(GeoQueryEnv* env, const GeoSphere sphere, const u64 id) {
+  geo_query_validate_pos(sphere.point);
+
   *dynarray_push_t(&env->spheres, GeoSphere) = sphere;
   *dynarray_push_t(&env->sphereIds, u64)     = id;
 }
 
 void geo_query_insert_capsule(GeoQueryEnv* env, const GeoCapsule capsule, const u64 id) {
+  geo_query_validate_pos(capsule.line.a);
+  geo_query_validate_pos(capsule.line.b);
+
   *dynarray_push_t(&env->capsules, GeoCapsule) = capsule;
   *dynarray_push_t(&env->capsuleIds, u64)      = id;
 }
