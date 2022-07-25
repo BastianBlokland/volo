@@ -5,6 +5,7 @@
       "blockers": [
         "TextInput",
         "HoveringUi",
+        "HoveringGizmo",
         "CursorLocked"
       ],
       "bindings": [
@@ -22,6 +23,7 @@
       "blockers": [
         "TextInput",
         "HoveringUi",
+        "HoveringGizmo",
         "CursorLocked"
       ],
       "bindings": [

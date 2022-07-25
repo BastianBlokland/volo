@@ -9,6 +9,7 @@ add_library(lib_debug STATIC
   src/asset.c
   src/camera.c
   src/ecs.c
+  src/gizmo.c
   src/grid.c
   src/inspector.c
   src/interface.c

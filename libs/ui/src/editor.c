@@ -559,6 +559,7 @@ void ui_editor_update(
   }
 
   const bool       readonly   = (editor->filter & UiTextFilter_Readonly) != 0;
+  const bool       digitsOnly = (editor->filter & UiTextFilter_DigitsOnly) != 0;
   const bool       isHovering = hover.id == editor->textElement;
   const bool       dragging   = gap_window_key_down(win, GapKey_MouseLeft) && !editor->click.repeat;
   const bool       firstUpdate = (editor->flags & UiEditorFlags_FirstUpdate) != 0;
@@ -625,7 +626,7 @@ void ui_editor_update(
     editor_insert_text(editor, gap_window_clip_paste_result(win), UiEditorSource_Clipboard);
   }
 
-  if (gap_window_key_pressed(win, GapKey_Tab) && !readonly) {
+  if (gap_window_key_pressed(win, GapKey_Tab) && !readonly && !digitsOnly) {
     editor_insert_cp(editor, Unicode_HorizontalTab);
   }
   if (gap_window_key_pressed_with_repeat(win, GapKey_Backspace) && !readonly) {

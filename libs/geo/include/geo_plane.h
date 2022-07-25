@@ -17,6 +17,11 @@ typedef struct {
 GeoPlane geo_plane_at(GeoVector normal, GeoVector position);
 
 /**
+ * Get a position on the plane's surface.
+ */
+GeoVector geo_plane_position(const GeoPlane*);
+
+/**
  * Get the closest point on the given plane.
  */
 GeoVector geo_plane_closest_point(const GeoPlane*, GeoVector point);

@@ -4,6 +4,7 @@
 #include "core_diag.h"
 #include "core_math.h"
 #include "core_stringtable.h"
+#include "debug_gizmo.h"
 #include "debug_inspector.h"
 #include "debug_register.h"
 #include "debug_shape.h"
@@ -22,21 +23,18 @@
 typedef enum {
   DebugInspectorFlags_Open             = 1 << 0,
   DebugInspectorFlags_DrawWhenClosed   = 1 << 1,
-  DebugInspectorFlags_DrawPivot        = 1 << 2,
-  DebugInspectorFlags_DrawOrientation  = 1 << 3,
-  DebugInspectorFlags_DrawName         = 1 << 4,
-  DebugInspectorFlags_DrawCollision    = 1 << 5,
-  DebugInspectorFlags_DrawBoundsLocal  = 1 << 6,
-  DebugInspectorFlags_DrawBoundsGlobal = 1 << 7,
+  DebugInspectorFlags_DrawName         = 1 << 2,
+  DebugInspectorFlags_DrawCollision    = 1 << 3,
+  DebugInspectorFlags_DrawBoundsLocal  = 1 << 4,
+  DebugInspectorFlags_DrawBoundsGlobal = 1 << 5,
+  DebugInspectorFlags_GizmoTranslation = 1 << 6,
 
-  DebugInspectorFlags_Default = DebugInspectorFlags_DrawPivot |
-                                DebugInspectorFlags_DrawOrientation |
-                                DebugInspectorFlags_DrawCollision,
+  DebugInspectorFlags_Default = DebugInspectorFlags_GizmoTranslation,
 
-  DebugInspectorFlags_DrawAny =
-      DebugInspectorFlags_DrawPivot | DebugInspectorFlags_DrawOrientation |
-      DebugInspectorFlags_DrawName | DebugInspectorFlags_DrawCollision |
-      DebugInspectorFlags_DrawBoundsLocal | DebugInspectorFlags_DrawBoundsGlobal,
+  DebugInspectorFlags_DrawAny = DebugInspectorFlags_DrawName | DebugInspectorFlags_DrawCollision |
+                                DebugInspectorFlags_DrawBoundsLocal |
+                                DebugInspectorFlags_DrawBoundsGlobal |
+                                DebugInspectorFlags_GizmoTranslation,
 
 } DebugInspectorFlags;
 
@@ -65,6 +63,7 @@ ecs_view_define(GlobalPanelUpdateView) { ecs_access_read(SceneSelectionComp); }
 ecs_view_define(GlobalShapeDrawView) {
   ecs_access_read(DebugInspectorSettingsComp);
   ecs_access_read(SceneSelectionComp);
+  ecs_access_write(DebugGizmoComp);
   ecs_access_write(DebugShapeComp);
   ecs_access_write(DebugTextComp);
 }
@@ -74,7 +73,7 @@ ecs_view_define(PanelUpdateView) {
   ecs_access_write(UiCanvasComp);
 }
 
-ecs_view_define(SubjectWriteView) {
+ecs_view_define(SubjectView) {
   ecs_access_maybe_read(SceneNameComp);
   ecs_access_maybe_write(SceneBoundsComp);
   ecs_access_maybe_write(SceneCollisionComp);
@@ -82,16 +81,6 @@ ecs_view_define(SubjectWriteView) {
   ecs_access_maybe_write(SceneTagComp);
   ecs_access_write(SceneRenderableComp);
   ecs_access_write(SceneTransformComp);
-}
-
-ecs_view_define(SubjectReadView) {
-  ecs_access_maybe_read(SceneBoundsComp);
-  ecs_access_maybe_read(SceneCollisionComp);
-  ecs_access_maybe_read(SceneNameComp);
-  ecs_access_maybe_read(SceneScaleComp);
-  ecs_access_maybe_read(SceneTagComp);
-  ecs_access_read(SceneRenderableComp);
-  ecs_access_read(SceneTransformComp);
 }
 
 static bool inspector_panel_section(UiCanvasComp* canvas, const String label) {
@@ -423,16 +412,6 @@ static void inspector_panel_draw_settings(
     ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawWhenClosed);
 
     inspector_panel_next(canvas, panelComp, table);
-    ui_label(canvas, string_lit("Draw pivot"));
-    ui_table_next_column(canvas, table);
-    ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawPivot);
-
-    inspector_panel_next(canvas, panelComp, table);
-    ui_label(canvas, string_lit("Draw orientation"));
-    ui_table_next_column(canvas, table);
-    ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawOrientation);
-
-    inspector_panel_next(canvas, panelComp, table);
     ui_label(canvas, string_lit("Draw name"));
     ui_table_next_column(canvas, table);
     ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawName);
@@ -451,6 +430,11 @@ static void inspector_panel_draw_settings(
     ui_label(canvas, string_lit("Draw bounds global"));
     ui_table_next_column(canvas, table);
     ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawBoundsGlobal);
+
+    inspector_panel_next(canvas, panelComp, table);
+    ui_label(canvas, string_lit("Translation gizmo"));
+    ui_table_next_column(canvas, table);
+    ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_GizmoTranslation);
   }
 }
 
@@ -520,7 +504,7 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
   DebugInspectorSettingsComp* settings  = inspector_settings_get_or_create(world);
   settings->flags &= ~DebugInspectorFlags_Open;
 
-  EcsView*     subjectView = ecs_world_view_t(world, SubjectWriteView);
+  EcsView*     subjectView = ecs_world_view_t(world, SubjectView);
   EcsIterator* subjectItr  = ecs_view_maybe_at(subjectView, scene_selected(selection));
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
@@ -592,21 +576,15 @@ static void inspector_shape_draw_bounds_global(
 static void inspector_shape_draw_subject(
     DebugShapeComp*                   shape,
     DebugTextComp*                    text,
+    DebugGizmoComp*                   gizmo,
     const DebugInspectorSettingsComp* set,
     EcsIterator*                      subject) {
-  const SceneTransformComp* transformComp = ecs_view_read_t(subject, SceneTransformComp);
+  SceneTransformComp*       transformComp = ecs_view_write_t(subject, SceneTransformComp);
   const SceneNameComp*      nameComp      = ecs_view_read_t(subject, SceneNameComp);
   const SceneBoundsComp*    boundsComp    = ecs_view_read_t(subject, SceneBoundsComp);
   const SceneCollisionComp* collisionComp = ecs_view_read_t(subject, SceneCollisionComp);
   const SceneScaleComp*     scaleComp     = ecs_view_read_t(subject, SceneScaleComp);
 
-  if (set->flags & DebugInspectorFlags_DrawPivot) {
-    const GeoColor color = geo_color(1.0f, 1.0f, 0.0f, 1.0f);
-    debug_sphere(shape, transformComp->position, 0.025f, color, DebugShape_Overlay);
-  }
-  if (set->flags & DebugInspectorFlags_DrawOrientation) {
-    debug_orientation(shape, transformComp->position, transformComp->rotation, 0.25f);
-  }
   if (nameComp && set->flags & DebugInspectorFlags_DrawName) {
     const String    name = stringtable_lookup(g_stringtable, nameComp->name);
     const GeoVector pos  = geo_vector_add(transformComp->position, geo_vector_mul(geo_up, 0.1f));
@@ -622,6 +600,10 @@ static void inspector_shape_draw_subject(
     if (set->flags & DebugInspectorFlags_DrawBoundsGlobal) {
       inspector_shape_draw_bounds_global(shape, boundsComp, transformComp, scaleComp);
     }
+  }
+  if (set->flags & DebugInspectorFlags_GizmoTranslation) {
+    const DebugGizmoId id = (DebugGizmoId)ecs_view_entity(subject);
+    debug_gizmo_translation(gizmo, id, &transformComp->position, transformComp->rotation);
   }
 }
 
@@ -643,18 +625,19 @@ ecs_system_define(DebugInspectorShapeDrawSys) {
   const SceneSelectionComp* selection = ecs_view_read_t(globalItr, SceneSelectionComp);
   DebugShapeComp*           shape     = ecs_view_write_t(globalItr, DebugShapeComp);
   DebugTextComp*            text      = ecs_view_write_t(globalItr, DebugTextComp);
+  DebugGizmoComp*           gizmo     = ecs_view_write_t(globalItr, DebugGizmoComp);
 
-  EcsView* subjectView = ecs_world_view_t(world, SubjectReadView);
+  EcsView* subjectView = ecs_world_view_t(world, SubjectView);
   switch (set->mode) {
   case DebugInspectorDraw_SelectedOnly: {
     EcsIterator* subjectItr = ecs_view_maybe_at(subjectView, scene_selected(selection));
     if (subjectItr) {
-      inspector_shape_draw_subject(shape, text, set, subjectItr);
+      inspector_shape_draw_subject(shape, text, gizmo, set, subjectItr);
     }
   } break;
   case DebugInspectorDraw_All: {
     for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
-      inspector_shape_draw_subject(shape, text, set, itr);
+      inspector_shape_draw_subject(shape, text, gizmo, set, itr);
     }
   } break;
   }
@@ -668,18 +651,17 @@ ecs_module_init(debug_inspector_module) {
   ecs_register_view(GlobalPanelUpdateView);
   ecs_register_view(GlobalShapeDrawView);
   ecs_register_view(PanelUpdateView);
-  ecs_register_view(SubjectWriteView);
-  ecs_register_view(SubjectReadView);
+  ecs_register_view(SubjectView);
 
   ecs_register_system(
       DebugInspectorUpdatePanelSys,
       ecs_view_id(GlobalPanelUpdateView),
       ecs_view_id(SettingsWriteView),
       ecs_view_id(PanelUpdateView),
-      ecs_view_id(SubjectWriteView));
+      ecs_view_id(SubjectView));
 
   ecs_register_system(
-      DebugInspectorShapeDrawSys, ecs_view_id(GlobalShapeDrawView), ecs_view_id(SubjectReadView));
+      DebugInspectorShapeDrawSys, ecs_view_id(GlobalShapeDrawView), ecs_view_id(SubjectView));
 
   ecs_order(DebugInspectorShapeDrawSys, DebugOrder_InspectorDebugDraw);
 }
