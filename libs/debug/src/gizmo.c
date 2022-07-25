@@ -173,7 +173,8 @@ static void gizmo_register_translation(DebugGizmoComp* comp, const DebugGizmoEnt
 static void gizmo_register(DebugGizmoComp* comp, const DebugGizmoEntry* entry) {
   switch (entry->type) {
   case DebugGizmoType_Translation:
-    return gizmo_register_translation(comp, entry);
+    gizmo_register_translation(comp, entry);
+    break;
   case DebugGizmoType_Count:
     UNREACHABLE
   }
