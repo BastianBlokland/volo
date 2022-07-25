@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
+#include "core_math.h"
 #include "debug_gizmo.h"
 #include "debug_register.h"
 #include "debug_shape.h"
@@ -68,8 +69,8 @@ typedef enum {
 } DebugGizmoSection;
 
 typedef struct {
-  GeoVector basePosition;
-  GeoQuat   baseRotation;
+  GeoVector basePos;
+  GeoQuat   baseRot;
   GeoVector result;
 } DebugGizmoEditorTranslation;
 
@@ -194,9 +195,9 @@ static void gizmo_interaction_start(
   switch (entry->type) {
   case DebugGizmoType_Translation:
     comp->editor.translation = (DebugGizmoEditorTranslation){
-        .basePosition = entry->pos,
-        .baseRotation = entry->rot,
-        .result       = entry->pos,
+        .basePos = entry->pos,
+        .baseRot = entry->rot,
+        .result  = entry->pos,
     };
     break;
   case DebugGizmoType_Count:
@@ -211,6 +212,44 @@ static bool gizmo_interaction_is_blocked(const InputManagerComp* input) {
    * Disallow gizmo interation while Ui is being hovered.
    */
   return (input_blockers(input) & InputBlocker_HoveringUi) != 0;
+}
+
+static GeoPlane gizmo_translation_pick_plane(
+    const GeoVector         basePos,
+    const GeoQuat           baseRot,
+    const DebugGizmoSection section,
+    const GeoRay*           ray) {
+  GeoVector nrm;
+  if (section == DebugGizmoSection_Y) {
+    const GeoVector fwd = geo_quat_rotate(baseRot, geo_forward);
+    if (math_abs(geo_vector_dot(ray->dir, fwd)) > 0.5f) {
+      nrm = fwd;
+    } else {
+      nrm = geo_quat_rotate(baseRot, geo_right);
+    }
+  } else {
+    nrm = geo_quat_rotate(baseRot, geo_up);
+  }
+  if (geo_vector_dot(ray->dir, nrm) > 0) {
+    nrm = geo_vector_mul(nrm, -1.0f);
+  }
+  return geo_plane_at(nrm, basePos);
+}
+
+static void gizmo_update_interaction_translation(DebugGizmoComp* comp, const GeoRay* ray) {
+  diag_assert(comp->activeType == DebugGizmoType_Translation);
+  DebugGizmoEditorTranslation* data = &comp->editor.translation;
+
+  const DebugGizmoSection section = comp->activeSection;
+  diag_assert(section >= DebugGizmoSection_X && section <= DebugGizmoSection_Z);
+
+  const GeoPlane plane   = gizmo_translation_pick_plane(data->basePos, data->baseRot, section, ray);
+  const f32      hitDist = geo_plane_intersect_ray(&plane, ray);
+  if (hitDist >= 0) {
+    const GeoVector axis  = geo_quat_rotate(data->baseRot, g_gizmoTranslationArrows[section].dir);
+    const GeoVector delta = geo_vector_sub(geo_ray_position(ray, hitDist), data->basePos);
+    data->result          = geo_vector_add(data->basePos, geo_vector_project(delta, axis));
+  }
 }
 
 static void gizmo_update_interaction(
@@ -257,7 +296,13 @@ static void gizmo_update_interaction(
   }
 
   if (isInteracting) {
-    // Update editor.
+    switch (comp->activeType) {
+    case DebugGizmoType_Translation:
+      gizmo_update_interaction_translation(comp, &inputRay);
+      break;
+    case DebugGizmoType_Count:
+      UNREACHABLE
+    }
   }
 }
 
@@ -344,7 +389,7 @@ ecs_system_define(DebugGizmoRenderSys) {
       gizmo_draw_translation(gizmo, shape, entry);
       break;
     case DebugGizmoType_Count:
-      break;
+      UNREACHABLE
     }
   }
 }
