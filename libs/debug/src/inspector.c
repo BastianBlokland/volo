@@ -218,7 +218,10 @@ static void inspector_panel_draw_transform(
     inspector_panel_next(canvas, panelComp, table);
     ui_label(canvas, string_lit("Position"));
     ui_table_next_column(canvas, table);
-    inspector_panel_draw_editor_vec(canvas, &transform->position, 3);
+    if (inspector_panel_draw_editor_vec(canvas, &transform->position, 3)) {
+      // Clamp the position to a sane value.
+      transform->position = geo_vector_clamp(transform->position, 1e3f);
+    }
 
     inspector_panel_next(canvas, panelComp, table);
     ui_label(canvas, string_lit("Rotation"));
