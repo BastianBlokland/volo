@@ -69,8 +69,10 @@ typedef enum {
 } DebugGizmoSection;
 
 typedef struct {
+  u32       interactingTicks;
   GeoVector basePos;
   GeoQuat   baseRot;
+  GeoVector startPos; // Position where the interaction started.
   GeoVector result;
 } DebugGizmoEditorTranslation;
 
@@ -227,12 +229,9 @@ static GeoPlane gizmo_translation_plane(
   GeoVector nrm;
   if (section == DebugGizmoSection_Y) {
     // Pick either the X or Z axis based on the camera direction.
-    const GeoVector fwd = geo_quat_rotate(baseRot, geo_forward);
-    if (math_abs(geo_vector_dot(ray->dir, fwd)) > 0.5f) {
-      nrm = fwd;
-    } else {
-      nrm = geo_quat_rotate(baseRot, geo_right);
-    }
+    const GeoVector fwd   = geo_quat_rotate(baseRot, geo_forward);
+    const GeoVector right = geo_quat_rotate(baseRot, geo_right);
+    nrm                   = math_abs(geo_vector_dot(ray->dir, fwd)) > 0.5f ? fwd : right;
   } else {
     nrm = geo_quat_rotate(baseRot, geo_up);
   }
@@ -252,11 +251,16 @@ static void gizmo_update_interaction_translation(DebugGizmoComp* comp, const Geo
 
   const GeoPlane plane   = gizmo_translation_plane(data->basePos, data->baseRot, section, ray);
   const f32      hitDist = geo_plane_intersect_ray(&plane, ray);
-  if (hitDist >= 0) {
-    const GeoVector axis  = geo_quat_rotate(data->baseRot, g_gizmoTranslationArrows[section].dir);
-    const GeoVector delta = geo_vector_sub(geo_ray_position(ray, hitDist), data->basePos);
-    data->result          = geo_vector_add(data->basePos, geo_vector_project(delta, axis));
+  if (hitDist < 0) {
+    return; // No intersection with the interaction plane.
   }
+  const GeoVector inputPos = geo_ray_position(ray, hitDist);
+  if (!data->interactingTicks++) {
+    data->startPos = inputPos;
+  }
+  const GeoVector axis  = geo_quat_rotate(data->baseRot, g_gizmoTranslationArrows[section].dir);
+  const GeoVector delta = geo_vector_sub(inputPos, data->startPos);
+  data->result          = geo_vector_add(data->basePos, geo_vector_project(delta, axis));
 }
 
 static void gizmo_update_interaction(
