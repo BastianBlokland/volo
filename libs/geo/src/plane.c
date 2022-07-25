@@ -12,7 +12,7 @@ GeoPlane geo_plane_at(const GeoVector normal, const GeoVector position) {
   return (GeoPlane){.normal = normal, .distance = geo_vector_dot(normal, position)};
 }
 
-GeoVector geo_plane_pos(const GeoPlane* plane) {
+GeoVector geo_plane_position(const GeoPlane* plane) {
   return geo_vector_mul(plane->normal, plane->distance);
 }
 

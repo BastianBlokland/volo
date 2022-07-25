@@ -27,7 +27,7 @@ spec(plane) {
     const GeoVector position = {1, 2, 3};
     const GeoVector normal   = geo_vector_norm(geo_vector(1, 2, 3));
     const GeoPlane  plane    = geo_plane_at(normal, position);
-    check_eq_vector(geo_plane_pos(&plane), geo_vector(1, 2, 3));
+    check_eq_vector(geo_plane_position(&plane), geo_vector(1, 2, 3));
   }
 
   it("can find the closest point") {
