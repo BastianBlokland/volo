@@ -1,4 +1,7 @@
 #include "asset_manager.h"
+#include "core_diag.h"
+#include "core_math.h"
+#include "debug_grid.h"
 #include "ecs_world.h"
 #include "gap_window.h"
 #include "rend_draw.h"
@@ -77,7 +80,7 @@ static void debug_grid_create(EcsWorld* world, const EcsEntityId entity, AssetMa
       .show              = true,
       .drawEntity        = drawEntity,
       .segmentCount      = 400,
-      .cellSize          = 1,
+      .cellSize          = 0.2f,
       .highlightInterval = 5,
       .fadeFraction      = 0.5);
 }
@@ -213,6 +216,17 @@ ecs_module_init(debug_grid_module) {
 
   ecs_register_system(
       DebugGridUpdatePanelSys, ecs_view_id(PanelUpdateView), ecs_view_id(GridWriteView));
+}
+
+void debug_grid_snap(const DebugGridComp* comp, GeoVector* position) {
+  for (u8 axis = 0; axis != 3; ++axis) {
+    debug_grid_snap_axis(comp, position, axis);
+  }
+}
+
+void debug_grid_snap_axis(const DebugGridComp* comp, GeoVector* position, const u8 axis) {
+  diag_assert(axis < 3);
+  position->comps[axis] = math_round_f32(position->comps[axis] / comp->cellSize) * comp->cellSize;
 }
 
 EcsEntityId debug_grid_panel_open(EcsWorld* world, const EcsEntityId window) {
