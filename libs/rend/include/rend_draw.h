@@ -7,9 +7,13 @@
 typedef enum {
   RendDrawFlags_None                = 0,
   RendDrawFlags_StandardGeometry    = 1 << 0, // Uses the standard instance data format.
-  RendDrawFlags_NoAutoClear         = 1 << 1,
-  RendDrawFlags_NoInstanceFiltering = 1 << 2,
-  RendDrawFlags_Skinned             = 1 << 3,
+  RendDrawFlags_Skinned             = 1 << 1,
+  RendDrawFlags_NoAutoClear         = 1 << 2,
+  RendDrawFlags_NoInstanceFiltering = 1 << 3, // NOTE: Does not support sorting.
+  RendDrawFlags_SortBackToFront     = 1 << 4,
+  RendDrawFlags_SortFrontToBack     = 1 << 5,
+
+  RendDrawFlags_Sorted = RendDrawFlags_SortBackToFront | RendDrawFlags_SortFrontToBack,
 } RendDrawFlags;
 
 /**

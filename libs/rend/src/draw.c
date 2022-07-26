@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_sort.h"
 #include "ecs_world.h"
 #include "rend_register.h"
 
@@ -25,6 +26,11 @@
 #define rend_min_align 16
 #define rend_max_res_requests 16
 
+typedef struct {
+  u32 instIndex;
+  f32 distSqr;
+} RendDrawSortKey;
+
 ecs_comp_define(RendDrawComp) {
   EcsEntityId   graphic;
   EcsEntityId   cameraFilter;
@@ -38,6 +44,7 @@ ecs_comp_define(RendDrawComp) {
 
   Mem dataMem;
   Mem instDataMem, instTagsMem, instAabbMem;
+  Mem sortKeyMem; // RendDrawSortKey[].
   Mem instDataOutput;
 };
 
@@ -54,6 +61,9 @@ static void ecs_destruct_draw(void* data) {
   }
   if (mem_valid(comp->instAabbMem)) {
     alloc_free(g_alloc_heap, comp->instAabbMem);
+  }
+  if (mem_valid(comp->sortKeyMem)) {
+    alloc_free(g_alloc_heap, comp->sortKeyMem);
   }
   if (mem_valid(comp->instDataOutput)) {
     alloc_free(g_alloc_heap, comp->instDataOutput);
@@ -97,11 +107,12 @@ INLINE_HINT static usize rend_draw_align(const usize val, const usize align) {
 /**
  * Pre-condition: bits_is_aligned(size, 16)
  */
-INLINE_HINT static void rend_draw_memcpy(u8* dst, const u8* src, const usize size) {
+INLINE_HINT static void
+rend_draw_memcpy(u8* restrict dst, const u8* restrict src, const usize size) {
 #if rend_draw_simd_enable
   const void* end = bits_ptr_offset(src, size);
   for (; src != end; src += 16, dst += 16) {
-    _mm_stream_si128((__m128i*)dst, _mm_stream_load_si128((__m128i*)src));
+    _mm_stream_si128((__m128i* restrict)dst, _mm_stream_load_si128((__m128i* restrict)src));
   }
 #else
   intrinsic_memcpy(dst, src, size);
@@ -116,6 +127,13 @@ static Mem rend_draw_inst_data(const RendDrawComp* draw, const u32 instance) {
 static Mem rend_draw_inst_output_data(const RendDrawComp* draw, const u32 instance) {
   const usize offset = instance * draw->instDataSize;
   return mem_create(bits_ptr_offset(draw->instDataOutput.ptr, offset), draw->instDataSize);
+}
+
+static void
+rend_draw_copy_to_output(const RendDrawComp* draw, const u32 instIndex, const u32 outputIndex) {
+  const Mem outputMem   = rend_draw_inst_output_data(draw, outputIndex);
+  const Mem instDataMem = rend_draw_inst_data(draw, instIndex);
+  rend_draw_memcpy(outputMem.ptr, instDataMem.ptr, instDataMem.size);
 }
 
 /**
@@ -186,6 +204,10 @@ ecs_module_init(rend_draw_module) {
 
 RendDrawComp*
 rend_draw_create(EcsWorld* world, const EcsEntityId entity, const RendDrawFlags flags) {
+  MAYBE_UNUSED const bool noFiltering = (flags & RendDrawFlags_NoInstanceFiltering) != 0;
+  MAYBE_UNUSED const bool isSorted    = (flags & RendDrawFlags_Sorted) != 0;
+  diag_assert_msg(noFiltering ? !isSorted : true, "NoInstanceFiltering incompatible with sorting");
+
   return ecs_world_add_t(world, entity, RendDrawComp, .flags = flags);
 }
 
@@ -198,6 +220,37 @@ u32 rend_draw_instance_count(const RendDrawComp* draw) { return draw->instCount;
 u32 rend_draw_data_size(const RendDrawComp* draw) { return draw->dataSize; }
 
 u32 rend_draw_data_inst_size(const RendDrawComp* draw) { return draw->instDataSize; }
+
+static RendDrawSortKey* rend_draw_sort_key(const RendDrawComp* draw, const u32 outputIndex) {
+  return bits_ptr_offset(draw->sortKeyMem.ptr, outputIndex * sizeof(RendDrawSortKey));
+}
+
+static i8 rend_draw_compare_back_to_front(const void* a, const void* b) {
+  const f32 distA = *field_ptr(a, RendDrawSortKey, distSqr);
+  const f32 distB = *field_ptr(b, RendDrawSortKey, distSqr);
+  return distA > distB ? -1 : distA < distB ? 1 : 0;
+}
+
+static i8 rend_draw_compare_front_to_back(const void* a, const void* b) {
+  const f32 distA = *field_ptr(a, RendDrawSortKey, distSqr);
+  const f32 distB = *field_ptr(b, RendDrawSortKey, distSqr);
+  return distA < distB ? -1 : distA > distB ? 1 : 0;
+}
+
+static void rend_draw_sort(RendDrawComp* draw) {
+  CompareFunc compareFunc;
+  if (draw->flags & RendDrawFlags_SortBackToFront) {
+    compareFunc = rend_draw_compare_back_to_front;
+  } else if (draw->flags & RendDrawFlags_SortFrontToBack) {
+    compareFunc = rend_draw_compare_front_to_back;
+  } else {
+    diag_crash_msg("Unsupported sort mode");
+  }
+
+  void* keysBegin = mem_begin(draw->sortKeyMem);
+  void* keysEnd   = bits_ptr_offset(keysBegin, sizeof(RendDrawSortKey) * draw->outputInstCount);
+  sort_quicksort(keysBegin, keysEnd, sizeof(RendDrawSortKey), compareFunc);
+}
 
 bool rend_draw_gather(RendDrawComp* draw, const RendView* view, const RendSettingsComp* settings) {
   if (draw->cameraFilter && view->camera != draw->cameraFilter) {
@@ -220,6 +273,11 @@ bool rend_draw_gather(RendDrawComp* draw, const RendView* view, const RendSettin
   rend_draw_ensure_storage(
       &draw->instDataOutput, draw->instCount * draw->instDataSize, rend_min_align);
 
+  if (draw->flags & RendDrawFlags_Sorted) {
+    rend_draw_ensure_storage(
+        &draw->sortKeyMem, draw->instCount * sizeof(RendDrawSortKey), alignof(RendDrawSortKey));
+  }
+
   draw->outputInstCount = 0;
   for (u32 i = 0; i != draw->instCount; ++i) {
     const SceneTags instTags = ((SceneTags*)draw->instTagsMem.ptr)[i];
@@ -227,9 +285,27 @@ bool rend_draw_gather(RendDrawComp* draw, const RendView* view, const RendSettin
     if (!rend_view_visible(view, instTags, instAabb, settings)) {
       continue;
     }
-    const Mem outputMem   = rend_draw_inst_output_data(draw, draw->outputInstCount++);
-    const Mem instDataMem = rend_draw_inst_data(draw, i);
-    rend_draw_memcpy(outputMem.ptr, instDataMem.ptr, instDataMem.size);
+    const u32 outputIndex = draw->outputInstCount++;
+    if (draw->flags & RendDrawFlags_Sorted) {
+      /**
+       * Instead of outputting the instance directly, first create a sort key for it. Then in a
+       * separate pass sort the instances and copy them to the output.
+       */
+      *rend_draw_sort_key(draw, outputIndex) = (RendDrawSortKey){
+          .instIndex = i,
+          .distSqr   = rend_view_dist_sqr(view, instAabb),
+      };
+    } else {
+      rend_draw_copy_to_output(draw, i, outputIndex);
+    }
+  }
+
+  if (draw->flags & RendDrawFlags_Sorted) {
+    rend_draw_sort(draw);
+    for (u32 i = 0; i != draw->outputInstCount; ++i) {
+      const RendDrawSortKey* sortKey = rend_draw_sort_key(draw, i);
+      rend_draw_copy_to_output(draw, sortKey->instIndex, i);
+    }
   }
   return draw->outputInstCount != 0;
 }

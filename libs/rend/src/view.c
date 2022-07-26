@@ -3,14 +3,24 @@
 
 #include "view_internal.h"
 
-RendView
-rend_view_create(const EcsEntityId camera, const GeoMatrix* viewProj, const SceneTagFilter filter) {
+RendView rend_view_create(
+    const EcsEntityId    camera,
+    const GeoVector      origin,
+    const GeoMatrix*     viewProj,
+    const SceneTagFilter filter) {
   RendView result = {
       .camera = camera,
       .filter = filter,
+      .origin = origin,
   };
   geo_matrix_frustum4(viewProj, result.frustum);
   return result;
+}
+
+f32 rend_view_dist_sqr(const RendView* view, const GeoBox* objAabb) {
+  const GeoVector objCenter = geo_box_center(objAabb);
+  const GeoVector toObj     = geo_vector_sub(objCenter, view->origin);
+  return geo_vector_mag_sqr(toObj);
 }
 
 bool rend_view_visible(

@@ -164,9 +164,16 @@ debug_shape_draw_create(EcsWorld* world, AssetManagerComp* assets, const DebugSh
   if (string_is_empty(g_debugGraphics[shape])) {
     return 0;
   }
-  const EcsEntityId entity        = ecs_world_entity_create(world);
-  RendDrawComp*     draw          = rend_draw_create(world, entity, RendDrawFlags_None);
-  const EcsEntityId graphicEntity = asset_lookup(world, assets, g_debugGraphics[shape]);
+  const EcsEntityId entity = ecs_world_entity_create(world);
+  /**
+   * TODO: At the moment all shapes are drawn back-to-front, but this is only needed for overlay
+   * types. For the depth testing types (fill and wire) this causes unnecessary overdraw and should
+   * either be sorted front-to-back or not at all.
+   * NOTE: Only instances of the same shape are stored, order between different shapes is undefined.
+   */
+  const RendDrawFlags drawFlags     = RendDrawFlags_SortBackToFront;
+  RendDrawComp*       draw          = rend_draw_create(world, entity, drawFlags);
+  const EcsEntityId   graphicEntity = asset_lookup(world, assets, g_debugGraphics[shape]);
   rend_draw_set_graphic(draw, graphicEntity);
   return entity;
 }

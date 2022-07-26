@@ -6,11 +6,18 @@
 
 typedef struct {
   EcsEntityId    camera;
+  GeoVector      origin;
   SceneTagFilter filter;
   GeoPlane       frustum[4]; // Left, Right, Top, Bottom.
 } RendView;
 
-RendView rend_view_create(EcsEntityId camera, const GeoMatrix* viewProj, SceneTagFilter);
+RendView
+rend_view_create(EcsEntityId camera, GeoVector origin, const GeoMatrix* viewProj, SceneTagFilter);
+
+/**
+ * Get the square distance from view origin to the objects center.
+ */
+f32 rend_view_dist_sqr(const RendView*, const GeoBox* objAabb);
 
 /**
  * Check if an object is visible in the view.
