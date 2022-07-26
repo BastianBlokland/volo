@@ -4,6 +4,7 @@
 #include "core_dynarray.h"
 #include "core_math.h"
 #include "debug_gizmo.h"
+#include "debug_grid.h"
 #include "debug_register.h"
 #include "debug_shape.h"
 #include "ecs_world.h"
@@ -124,6 +125,7 @@ ecs_view_define(GlobalRenderView) {
 }
 
 ecs_view_define(CameraView) {
+  ecs_access_maybe_read(DebugGridComp);
   ecs_access_read(GapWindowComp);
   ecs_access_read(SceneCameraComp);
   ecs_access_read(SceneTransformComp);
@@ -245,7 +247,11 @@ static GeoPlane gizmo_translation_plane(
   return geo_plane_at(nrm, basePos);
 }
 
-static void gizmo_update_interaction_translation(DebugGizmoComp* comp, const GeoRay* ray) {
+static void gizmo_update_interaction_translation(
+    DebugGizmoComp*      comp,
+    const GapWindowComp* window,
+    const DebugGridComp* grid,
+    const GeoRay*        ray) {
   DebugGizmoEditorTranslation* data    = &comp->editor.translation;
   const DebugGizmoSection      section = comp->activeSection;
 
@@ -264,12 +270,17 @@ static void gizmo_update_interaction_translation(DebugGizmoComp* comp, const Geo
   const GeoVector axis  = geo_quat_rotate(data->baseRot, g_gizmoTranslationArrows[section].dir);
   const GeoVector delta = geo_vector_sub(inputPos, data->startPos);
   data->result          = geo_vector_add(data->basePos, geo_vector_project(delta, axis));
+
+  if (grid && gap_window_key_down(window, GapKey_Shift)) {
+    debug_grid_snap_axis(grid, &data->result, (u8)section);
+  }
 }
 
 static void gizmo_update_interaction(
     DebugGizmoComp*           comp,
     const InputManagerComp*   input,
     const GapWindowComp*      window,
+    const DebugGridComp*      grid,
     const SceneCameraComp*    camera,
     const SceneTransformComp* cameraTrans) {
 
@@ -313,7 +324,7 @@ static void gizmo_update_interaction(
   if (isInteracting) {
     switch (comp->activeType) {
     case DebugGizmoType_Translation:
-      gizmo_update_interaction_translation(comp, &inputRay);
+      gizmo_update_interaction_translation(comp, window, grid, &inputRay);
       break;
     case DebugGizmoType_Count:
       UNREACHABLE
@@ -357,10 +368,11 @@ ecs_system_define(DebugGizmoUpdateSys) {
   if (ecs_view_contains(cameraView, input_active_window(input))) {
     EcsIterator*              camItr      = ecs_view_at(cameraView, input_active_window(input));
     const GapWindowComp*      window      = ecs_view_read_t(camItr, GapWindowComp);
+    const DebugGridComp*      grid        = ecs_view_read_t(camItr, DebugGridComp);
     const SceneCameraComp*    camera      = ecs_view_read_t(camItr, SceneCameraComp);
     const SceneTransformComp* cameraTrans = ecs_view_read_t(camItr, SceneTransformComp);
 
-    gizmo_update_interaction(gizmo, input, window, camera, cameraTrans);
+    gizmo_update_interaction(gizmo, input, window, grid, camera, cameraTrans);
   }
 
   // Update input blockers.
