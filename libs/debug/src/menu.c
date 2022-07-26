@@ -125,6 +125,8 @@ static void debug_action_bar_draw(
   UiTable table = ui_table(.align = UiAlign_TopRight, .rowHeight = 40);
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
 
+  const bool windowActive = input_active_window(input) == winEntity;
+
   // Stats toggle.
   {
     ui_table_next_row(canvas, &table);
@@ -137,7 +139,7 @@ static void debug_action_bar_draw(
         .tooltip    = isEnabled ? g_tooltipStatsDisable : g_tooltipStatsEnable,
         .frameColor = isEnabled ? g_panelFrameColorOpen : g_panelFrameColorNormal);
 
-    const bool hotkeyPressed = input_triggered_lit(input, "DebugPanelStats");
+    const bool hotkeyPressed = windowActive && input_triggered_lit(input, "DebugPanelStats");
     if (buttonPressed || hotkeyPressed) {
       debug_stats_show_set(stats, !isEnabled);
     }
@@ -156,7 +158,7 @@ static void debug_action_bar_draw(
         .frameColor = isOpen ? g_panelFrameColorOpen : g_panelFrameColorNormal);
 
     const bool hotkeyPressed =
-        !string_is_empty(g_debugPanelConfig[i].hotkeyName) &&
+        windowActive && !string_is_empty(g_debugPanelConfig[i].hotkeyName) &&
         input_triggered_hash(input, string_hash(g_debugPanelConfig[i].hotkeyName));
 
     if (buttonPressed || hotkeyPressed) {
