@@ -5,6 +5,7 @@
 #include "debug_stats.h"
 #include "ecs_world.h"
 #include "gap_window.h"
+#include "input_manager.h"
 #include "rend_draw.h"
 #include "scene_lifetime.h"
 #include "ui.h"
@@ -16,6 +17,8 @@ static const String g_tooltipCellSize   = string_static("Size of the grid cells.
 static const String g_tooltipHighlight  = string_static("Every how manyth segment to be highlighted.");
 static const String g_tooltipSegments   = string_static("How many segments the grid should consist of.");
 static const String g_tooltipFade       = string_static("Fraction of the grid that should be faded out.");
+static const f32    g_gridCellSizeMin   = 0.1f;
+static const f32    g_gridCellSizeMax   = 4.0f;
 
 // clang-format on
 
@@ -55,7 +58,10 @@ ecs_view_define(GridWriteView) { ecs_access_write(DebugGridComp); }
 
 ecs_view_define(DrawWriteView) { ecs_access_write(RendDrawComp); }
 
-ecs_view_define(UpdateGlobalView) { ecs_access_write(DebugStatsGlobalComp); }
+ecs_view_define(UpdateGlobalView) {
+  ecs_access_read(InputManagerComp);
+  ecs_access_write(DebugStatsGlobalComp);
+}
 
 ecs_view_define(UpdateView) {
   ecs_access_write(DebugGridPanelComp);
@@ -82,7 +88,7 @@ static void debug_grid_create(EcsWorld* world, const EcsEntityId entity, AssetMa
       DebugGridComp,
       .show              = true,
       .drawEntity        = drawEntity,
-      .segmentCount      = 400,
+      .segmentCount      = 750,
       .cellSize          = 0.2f,
       .highlightInterval = 5,
       .fadeFraction      = 0.5);
@@ -128,7 +134,7 @@ static void grid_notify_cell_size(DebugStatsGlobalComp* stats, const f32 cellSiz
   debug_stats_notify(
       stats,
       string_lit("Grid size"),
-      fmt_write_scratch("{}", fmt_float(cellSize, .maxDecDigits = 2, .expThresholdNeg = 0)));
+      fmt_write_scratch("{}", fmt_float(cellSize, .maxDecDigits = 4, .expThresholdNeg = 0)));
 }
 
 static void grid_panel_draw(
@@ -154,8 +160,8 @@ static void grid_panel_draw(
   if (ui_slider(
           canvas,
           &grid->cellSize,
-          .min     = 0.1f,
-          .max     = 4,
+          .min     = g_gridCellSizeMin,
+          .max     = g_gridCellSizeMax,
           .step    = 0.1f,
           .tooltip = g_tooltipCellSize)) {
     grid_notify_cell_size(stats, grid->cellSize);
@@ -191,15 +197,27 @@ static void grid_panel_draw(
   ui_panel_end(canvas, &panelComp->panel);
 }
 
-ecs_system_define(DebugGridUpdatePanelSys) {
+ecs_system_define(DebugGridUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, UpdateGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
   }
-  DebugStatsGlobalComp* stats = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
+  DebugStatsGlobalComp*   stats = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
+  const InputManagerComp* input = ecs_view_read_t(globalItr, InputManagerComp);
 
   EcsIterator* gridItr = ecs_view_itr(ecs_world_view_t(world, GridWriteView));
+  if (ecs_view_maybe_jump(gridItr, input_active_window(input))) {
+    DebugGridComp* grid = ecs_view_write_t(gridItr, DebugGridComp);
+    if (input_triggered_lit(input, "GridScaleUp")) {
+      grid->cellSize = math_min(grid->cellSize * 2.0f, g_gridCellSizeMax);
+      grid_notify_cell_size(stats, grid->cellSize);
+    }
+    if (input_triggered_lit(input, "GridScaleDown")) {
+      grid->cellSize = math_max(grid->cellSize * 0.5f, g_gridCellSizeMin);
+      grid_notify_cell_size(stats, grid->cellSize);
+    }
+  }
 
   EcsView* panelView = ecs_world_view_t(world, UpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
@@ -243,7 +261,7 @@ ecs_module_init(debug_grid_module) {
   ecs_register_system(DebugGridDrawSys, ecs_view_id(GridReadView), ecs_view_id(DrawWriteView));
 
   ecs_register_system(
-      DebugGridUpdatePanelSys,
+      DebugGridUpdateSys,
       ecs_view_id(UpdateGlobalView),
       ecs_view_id(UpdateView),
       ecs_view_id(GridWriteView));

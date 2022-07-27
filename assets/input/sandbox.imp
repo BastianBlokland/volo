@@ -271,6 +271,30 @@
       ]
     },
     {
+      "name": "GridScaleUp",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "BracketRight"
+        }
+      ]
+    },
+    {
+      "name": "GridScaleDown",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "BracketLeft"
+        }
+      ]
+    },
+    {
       "name": "DebugPanelStats",
       "blockers": [
         "TextInput"
