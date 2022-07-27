@@ -17,6 +17,9 @@ static const u8  g_statsSectionBgAlpha   = 200;
 static const f32 g_statsInvAverageWindow = 1.0f / 10.0f;
 
 #define stats_plot_size 32
+#define stats_notify_max_key_size 16
+#define stats_notify_max_value_size 16
+#define stats_notify_max_age time_seconds(3)
 
 typedef enum {
   DebugBgFlags_None    = 0,
@@ -31,6 +34,13 @@ typedef struct {
   f32 values[stats_plot_size];
   u32 cur;
 } DebugStatPlot;
+
+typedef struct {
+  TimeReal timestamp;
+  u8       keyLength, valueLength;
+  u8       key[stats_notify_max_key_size];
+  u8       value[stats_notify_max_value_size];
+} DebugStatsNotification;
 
 ecs_comp_define(DebugStatsComp) {
   DebugStatsFlags flags;
@@ -54,6 +64,39 @@ ecs_comp_define(DebugStatsComp) {
 
   DebugStatPlot ecsFlushDurUs; // In microseconds.
 };
+
+ecs_comp_define(DebugStatsGlobalComp) {
+  DynArray notifications; // DebugStatsNotification[].
+};
+
+static void ecs_destruct_stats_global(void* data) {
+  DebugStatsGlobalComp* comp = data;
+  dynarray_destroy(&comp->notifications);
+}
+
+static DebugStatsNotification* debug_notify_get(DebugStatsGlobalComp* comp, const String key) {
+  // Find an existing notification with the same key.
+  dynarray_for_t(&comp->notifications, DebugStatsNotification, notif) {
+    if (string_eq(mem_create(notif->key, notif->keyLength), key)) {
+      return notif;
+    }
+  }
+
+  // If none was found; create a new notification for this key.
+  DebugStatsNotification* notif = dynarray_push_t(&comp->notifications, DebugStatsNotification);
+  notif->keyLength              = math_min((u8)key.size, stats_notify_max_key_size);
+  mem_cpy(mem_create(notif->key, notif->keyLength), string_slice(key, 0, notif->keyLength));
+  return notif;
+}
+
+static void debug_notify_prune_older(DebugStatsGlobalComp* comp, const TimeReal timestamp) {
+  for (usize i = comp->notifications.size; i-- > 0;) {
+    DebugStatsNotification* notif = dynarray_at_t(&comp->notifications, i, DebugStatsNotification);
+    if (notif->timestamp < timestamp) {
+      dynarray_remove(&comp->notifications, i, 1);
+    }
+  }
+}
 
 static void debug_plot_add(DebugStatPlot* plot, const f32 value) {
   plot->values[plot->cur] = value;
@@ -182,7 +225,7 @@ static void stats_draw_graph(
     t += frac;
   }
 
-  ui_canvas_id_block_next(canvas); // Component for the potentially fluctuating amount of sections.
+  ui_canvas_id_block_next(canvas); // Compensate for the potentially fluctuating amount of sections.
 
   if (!string_is_empty(tooltip)) {
     const UiId id = ui_canvas_id_peek(canvas);
@@ -260,14 +303,24 @@ static void stats_draw_gpu_graph(UiCanvasComp* canvas, const DebugStatsComp* sta
   ui_layout_next(canvas, Ui_Down, 0);
 }
 
+static void
+stats_draw_notifications(UiCanvasComp* canvas, const DebugStatsGlobalComp* statsGlobal) {
+  dynarray_for_t(&statsGlobal->notifications, DebugStatsNotification, notif) {
+    const String key   = mem_create(notif->key, notif->keyLength);
+    const String value = mem_create(notif->value, notif->valueLength);
+    stats_draw_val_entry(canvas, key, value);
+  }
+}
+
 static void debug_stats_draw_interface(
-    UiCanvasComp*         canvas,
-    const DebugStatsComp* stats,
-    const RendStatsComp*  rendStats,
-    const AllocStats*     allocStats,
-    const EcsDef*         ecsDef,
-    const EcsWorldStats*  ecsStats,
-    const UiStatsComp*    uiStats) {
+    UiCanvasComp*               canvas,
+    const DebugStatsGlobalComp* statsGlobal,
+    const DebugStatsComp*       stats,
+    const RendStatsComp*        rendStats,
+    const AllocStats*           allocStats,
+    const EcsDef*               ecsDef,
+    const EcsWorldStats*        ecsStats,
+    const UiStatsComp*          uiStats) {
 
   ui_layout_move_to(canvas, UiBase_Container, UiAlign_TopLeft, Ui_XY);
   ui_layout_resize(canvas, UiAlign_TopLeft, ui_vector(450, 25), UiBase_Absolute, Ui_XY);
@@ -276,6 +329,7 @@ static void debug_stats_draw_interface(
   stats_draw_frametime(canvas, stats);
   stats_draw_cpu_graph(canvas, stats);
   stats_draw_gpu_graph(canvas, stats);
+  stats_draw_notifications(canvas, statsGlobal);
 
   if(stats_draw_section(canvas, string_lit("Renderer"))) {
     stats_draw_val_entry(canvas, string_lit("Device"), fmt_write_scratch("{}", fmt_text(rendStats->gpuName)));
@@ -374,8 +428,9 @@ static void debug_stats_update(
 }
 
 ecs_view_define(GlobalView) {
-  ecs_access_read(SceneTimeComp);
+  ecs_access_write(DebugStatsGlobalComp);
   ecs_access_read(RendGlobalSettingsComp);
+  ecs_access_read(SceneTimeComp);
 }
 
 ecs_view_define(StatsCreateView) {
@@ -392,6 +447,16 @@ ecs_view_define(StatsUpdateView) {
 ecs_view_define(CanvasWrite) { ecs_access_write(UiCanvasComp); }
 
 ecs_system_define(DebugStatsCreateSys) {
+  // Create a single global stats component.
+  if (!ecs_world_has_t(world, ecs_world_global(world), DebugStatsGlobalComp)) {
+    ecs_world_add_t(
+        world,
+        ecs_world_global(world),
+        DebugStatsGlobalComp,
+        .notifications = dynarray_create_t(g_alloc_heap, DebugStatsNotification, 8));
+  }
+
+  // Create a stats component for each window.
   EcsView* createView = ecs_world_view_t(world, StatsCreateView);
   for (EcsIterator* itr = ecs_view_itr(createView); ecs_view_walk(itr);) {
     ecs_world_add_t(world, ecs_view_entity(itr), DebugStatsComp, .flags = DebugStatsFlags_Show);
@@ -404,9 +469,14 @@ ecs_system_define(DebugStatsUpdateSys) {
   if (!globalItr) {
     return;
   }
-  const SceneTimeComp*          time = ecs_view_read_t(globalItr, SceneTimeComp);
+  DebugStatsGlobalComp*         globalComp = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
+  const SceneTimeComp*          time       = ecs_view_read_t(globalItr, SceneTimeComp);
   const RendGlobalSettingsComp* rendGlobalSettings =
       ecs_view_read_t(globalItr, RendGlobalSettingsComp);
+
+  // Clear old notifications.
+  const TimeReal oldestNotifToKeep = time_real_offset(time_real_clock(), -stats_notify_max_age);
+  debug_notify_prune_older(globalComp, oldestNotifToKeep);
 
   EcsIterator* canvasItr = ecs_view_itr(ecs_world_view_t(world, CanvasWrite));
 
@@ -434,7 +504,8 @@ ecs_system_define(DebugStatsUpdateSys) {
     if (stats->canvas && ecs_view_maybe_jump(canvasItr, stats->canvas)) {
       UiCanvasComp* canvas = ecs_view_write_t(canvasItr, UiCanvasComp);
       ui_canvas_reset(canvas);
-      debug_stats_draw_interface(canvas, stats, rendStats, &allocStats, ecsDef, &ecsStats, uiStats);
+      debug_stats_draw_interface(
+          canvas, globalComp, stats, rendStats, &allocStats, ecsDef, &ecsStats, uiStats);
     }
 
     stats->allocPrevPageCounter    = allocStats.pageCounter;
@@ -445,6 +516,7 @@ ecs_system_define(DebugStatsUpdateSys) {
 
 ecs_module_init(debug_stats_module) {
   ecs_register_comp(DebugStatsComp);
+  ecs_register_comp(DebugStatsGlobalComp, .destructor = ecs_destruct_stats_global);
 
   ecs_register_view(GlobalView);
   ecs_register_view(StatsCreateView);
@@ -457,6 +529,13 @@ ecs_module_init(debug_stats_module) {
       ecs_view_id(GlobalView),
       ecs_view_id(StatsUpdateView),
       ecs_view_id(CanvasWrite));
+}
+
+void debug_stats_notify(DebugStatsGlobalComp* comp, const String key, const String value) {
+  DebugStatsNotification* notif = debug_notify_get(comp, key);
+  notif->timestamp              = time_real_clock();
+  notif->valueLength            = math_min((u8)value.size, stats_notify_max_value_size);
+  mem_cpy(mem_create(notif->value, notif->valueLength), string_slice(value, 0, notif->valueLength));
 }
 
 bool debug_stats_show(const DebugStatsComp* comp) {
