@@ -1,22 +1,34 @@
 #include "core_math.h"
+#include "debug_stats.h"
 #include "ecs_world.h"
 #include "gap_window.h"
 #include "input_manager.h"
-#include "log.h"
 #include "scene_time.h"
 #include "ui.h"
 
 ecs_comp_define(DebugTimePanelComp) { UiPanel panel; };
 
 ecs_view_define(GlobalView) {
-  ecs_access_read(SceneTimeComp);
-  ecs_access_write(SceneTimeSettingsComp);
   ecs_access_read(InputManagerComp);
+  ecs_access_read(SceneTimeComp);
+  ecs_access_write(DebugStatsGlobalComp);
+  ecs_access_write(SceneTimeSettingsComp);
 }
 
 ecs_view_define(PanelUpdateView) {
   ecs_access_write(DebugTimePanelComp);
   ecs_access_write(UiCanvasComp);
+}
+
+static void debug_time_notify_scale(DebugStatsGlobalComp* stats, const f32 timeScale) {
+  debug_stats_notify(
+      stats,
+      string_lit("Time scale"),
+      fmt_write_scratch("{}", fmt_float(timeScale, .maxDecDigits = 2, .expThresholdNeg = 0)));
+}
+
+static void debug_time_notify_pause(DebugStatsGlobalComp* stats, const bool pause) {
+  debug_stats_notify(stats, string_lit("Time pause"), fmt_write_scratch("{}", fmt_bool(pause)));
 }
 
 static void
@@ -44,6 +56,7 @@ static void time_panel_stat_dur(
 
 static void time_panel_draw(
     UiCanvasComp*          canvas,
+    DebugStatsGlobalComp*  stats,
     DebugTimePanelComp*    panelComp,
     const SceneTimeComp*   time,
     SceneTimeSettingsComp* timeSettings) {
@@ -59,7 +72,9 @@ static void time_panel_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Paused"));
   ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, (u32*)&timeSettings->flags, SceneTimeFlags_Paused);
+  if (ui_toggle_flag(canvas, (u32*)&timeSettings->flags, SceneTimeFlags_Paused)) {
+    debug_time_notify_pause(stats, (timeSettings->flags & SceneTimeFlags_Paused) != 0);
+  }
   if (isPaused) {
     ui_layout_push(canvas);
     ui_layout_inner(
@@ -73,7 +88,10 @@ static void time_panel_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Scale"));
   ui_table_next_column(canvas, &table);
-  ui_slider(canvas, &timeSettings->scale, .max = 4, .flags = isPaused ? UiWidget_Disabled : 0);
+  if (ui_slider(
+          canvas, &timeSettings->scale, .max = 4, .flags = isPaused ? UiWidget_Disabled : 0)) {
+    debug_time_notify_scale(stats, timeSettings->scale);
+  }
 
   ui_table_next_row(canvas, &table);
   time_panel_stat_dur(canvas, &table, string_lit("Time"), time->time);
@@ -95,6 +113,8 @@ static void time_panel_draw(
   if (ui_button(canvas, .label = string_lit("Defaults"))) {
     timeSettings->flags = SceneTimeFlags_None;
     timeSettings->scale = 1.0f;
+    debug_time_notify_scale(stats, 1.0f);
+    debug_time_notify_pause(stats, false);
   }
 
   ui_panel_end(canvas, &panelComp->panel);
@@ -106,6 +126,7 @@ ecs_system_define(DebugTimeUpdateSys) {
   if (!globalItr) {
     return;
   }
+  DebugStatsGlobalComp*   stats        = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
   const InputManagerComp* input        = ecs_view_read_t(globalItr, InputManagerComp);
   const SceneTimeComp*    time         = ecs_view_read_t(globalItr, SceneTimeComp);
   SceneTimeSettingsComp*  timeSettings = ecs_view_write_t(globalItr, SceneTimeSettingsComp);
@@ -113,18 +134,18 @@ ecs_system_define(DebugTimeUpdateSys) {
   if (input_triggered_lit(input, "TimePauseToggle")) {
     timeSettings->flags ^= SceneTimeFlags_Paused;
     if (timeSettings->flags & SceneTimeFlags_Paused) {
-      log_i("Time paused");
+      debug_time_notify_pause(stats, true);
     } else {
-      log_i("Time resumed");
+      debug_time_notify_pause(stats, false);
     }
   }
   if (input_triggered_lit(input, "TimeScaleUp")) {
     timeSettings->scale += 0.1f;
-    log_i("Time scale up", log_param("scale", fmt_float(timeSettings->scale)));
+    debug_time_notify_scale(stats, timeSettings->scale);
   }
   if (input_triggered_lit(input, "TimeScaleDown")) {
     timeSettings->scale = math_max(0.0f, timeSettings->scale - 0.1f);
-    log_i("Time scale down", log_param("scale", fmt_float(timeSettings->scale)));
+    debug_time_notify_scale(stats, timeSettings->scale);
   }
   if (input_triggered_lit(input, "TimeStep")) {
     timeSettings->flags |= SceneTimeFlags_Step;
@@ -136,7 +157,7 @@ ecs_system_define(DebugTimeUpdateSys) {
     UiCanvasComp*       canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
-    time_panel_draw(canvas, panelComp, time, timeSettings);
+    time_panel_draw(canvas, stats, panelComp, time, timeSettings);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
