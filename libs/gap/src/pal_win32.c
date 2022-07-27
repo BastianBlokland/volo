@@ -234,6 +234,10 @@ static GapKey pal_win32_translate_key(const u8 scanCode) {
     return GapKey_ArrowRight;
   case 0x4B:
     return GapKey_ArrowLeft;
+  case 0x1A:
+    return GapKey_BracketLeft;
+  case 0x1B:
+    return GapKey_BracketRight;
 
   case 0x1E:
     return GapKey_A;
