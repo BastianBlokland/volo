@@ -58,15 +58,15 @@ ecs_comp_define(DebugStatsComp) {
   TimeDuration gpuRenderDur;
 
   f64 rendWaitFrac, presAcqFrac, presEnqFrac, presWaitFrac, limiterFrac, gpuRenderFrac;
+};
+
+ecs_comp_define(DebugStatsGlobalComp) {
+  DynArray notifications; // DebugStatsNotification[].
 
   u64 allocPrevPageCounter, allocPrevHeapCounter, allocPrevPersistCounter;
   u32 globalStringCount;
 
   DebugStatPlot ecsFlushDurUs; // In microseconds.
-};
-
-ecs_comp_define(DebugStatsGlobalComp) {
-  DynArray notifications; // DebugStatsNotification[].
 };
 
 static void ecs_destruct_stats_global(void* data) {
@@ -348,11 +348,11 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Texture resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Texture])));
   }
   if(stats_draw_section(canvas, string_lit("Memory"))) {
-    const i64       pageDelta         = allocStats->pageCounter - stats->allocPrevPageCounter;
+    const i64       pageDelta         = allocStats->pageCounter - statsGlobal->allocPrevPageCounter;
     const FormatArg pageDeltaColor    = pageDelta > 0 ? fmt_ui_color(ui_color_red) : fmt_nop();
-    const i64       heapDelta         = allocStats->heapCounter - stats->allocPrevHeapCounter;
+    const i64       heapDelta         = allocStats->heapCounter - statsGlobal->allocPrevHeapCounter;
     const FormatArg heapDeltaColor    = heapDelta > 0 ? fmt_ui_color(ui_color_yellow) : fmt_nop();
-    const i64       persistDelta      = allocStats->persistCounter - stats->allocPrevPersistCounter;
+    const i64       persistDelta      = allocStats->persistCounter - statsGlobal->allocPrevPersistCounter;
     const FormatArg persistDeltaColor = persistDelta > 0 ? fmt_ui_color(ui_color_red) : fmt_nop();
 
     stats_draw_val_entry(canvas, string_lit("Main"), fmt_write_scratch("{<11} pages: {}", fmt_size(allocStats->pageTotal), fmt_int(allocStats->pageCount)));
@@ -362,10 +362,10 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Persist counter"), fmt_write_scratch("count:  {<6} {}delta: {}\ar", fmt_int(allocStats->persistCounter), persistDeltaColor, fmt_int(persistDelta)));
     stats_draw_val_entry(canvas, string_lit("Renderer"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->ramOccupied), fmt_size(rendStats->ramReserved)));
     stats_draw_val_entry(canvas, string_lit("GPU (on device)"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->vramOccupied), fmt_size(rendStats->vramReserved)));
-    stats_draw_val_entry(canvas, string_lit("StringTable"), fmt_write_scratch("global: {}", fmt_int(stats->globalStringCount)));
+    stats_draw_val_entry(canvas, string_lit("StringTable"), fmt_write_scratch("global: {}", fmt_int(statsGlobal->globalStringCount)));
   }
   if(stats_draw_section(canvas, string_lit("ECS"))) {
-    const TimeDuration maxFlushTime = (TimeDuration)(debug_plot_max(&stats->ecsFlushDurUs) * (f64)time_microsecond);
+    const TimeDuration maxFlushTime = (TimeDuration)(debug_plot_max(&statsGlobal->ecsFlushDurUs) * (f64)time_microsecond);
 
     stats_draw_val_entry(canvas, string_lit("Components"), fmt_write_scratch("{}", fmt_int(ecs_def_comp_count(ecsDef))));
     stats_draw_val_entry(canvas, string_lit("Views"), fmt_write_scratch("{}", fmt_int(ecs_def_view_count(ecsDef))));
@@ -393,8 +393,7 @@ static void debug_stats_update(
     DebugStatsComp*               stats,
     const RendStatsComp*          rendStats,
     const RendGlobalSettingsComp* rendGlobalSettings,
-    const SceneTimeComp*          time,
-    const EcsWorldStats*          ecsStats) {
+    const SceneTimeComp*          time) {
 
   const TimeDuration prevFrameDur = stats->frameDur;
   stats->frameDur                 = time->realDelta;
@@ -421,10 +420,18 @@ static void debug_stats_update(
   debug_avg(&stats->presWaitFrac, math_clamp_f64(stats->presentWaitDur / timeRef, 0, 1));
   debug_avg(&stats->limiterFrac, math_clamp_f64(stats->limiterDur / timeRef, 0, 1));
   debug_avg(&stats->gpuRenderFrac, math_clamp_f64(stats->gpuRenderDur / timeRef, 0, 1));
+}
 
-  stats->globalStringCount = stringtable_count(g_stringtable);
+static void
+debug_stats_global_update(DebugStatsGlobalComp* statsGlobal, const EcsWorldStats* ecsStats) {
 
-  debug_plot_add(&stats->ecsFlushDurUs, (f32)(ecsStats->lastFlushDur / (f64)time_microsecond));
+  const TimeReal oldestNotifToKeep = time_real_offset(time_real_clock(), -stats_notify_max_age);
+  debug_notify_prune_older(statsGlobal, oldestNotifToKeep);
+
+  statsGlobal->globalStringCount = stringtable_count(g_stringtable);
+
+  debug_plot_add(
+      &statsGlobal->ecsFlushDurUs, (f32)(ecsStats->lastFlushDur / (f64)time_microsecond));
 }
 
 ecs_view_define(GlobalView) {
@@ -469,28 +476,26 @@ ecs_system_define(DebugStatsUpdateSys) {
   if (!globalItr) {
     return;
   }
-  DebugStatsGlobalComp*         globalComp = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
-  const SceneTimeComp*          time       = ecs_view_read_t(globalItr, SceneTimeComp);
+  DebugStatsGlobalComp*         statsGlobal = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
+  const SceneTimeComp*          time        = ecs_view_read_t(globalItr, SceneTimeComp);
   const RendGlobalSettingsComp* rendGlobalSettings =
       ecs_view_read_t(globalItr, RendGlobalSettingsComp);
 
-  // Clear old notifications.
-  const TimeReal oldestNotifToKeep = time_real_offset(time_real_clock(), -stats_notify_max_age);
-  debug_notify_prune_older(globalComp, oldestNotifToKeep);
+  const AllocStats    allocStats = alloc_stats_query();
+  const EcsWorldStats ecsStats   = ecs_world_stats_query(world);
+  debug_stats_global_update(statsGlobal, &ecsStats);
 
   EcsIterator* canvasItr = ecs_view_itr(ecs_world_view_t(world, CanvasWrite));
 
   EcsView* statsView = ecs_world_view_t(world, StatsUpdateView);
   for (EcsIterator* itr = ecs_view_itr(statsView); ecs_view_walk(itr);) {
-    DebugStatsComp*      stats      = ecs_view_write_t(itr, DebugStatsComp);
-    const RendStatsComp* rendStats  = ecs_view_read_t(itr, RendStatsComp);
-    const UiStatsComp*   uiStats    = ecs_view_read_t(itr, UiStatsComp);
-    const AllocStats     allocStats = alloc_stats_query();
-    const EcsDef*        ecsDef     = ecs_world_def(world);
-    const EcsWorldStats  ecsStats   = ecs_world_stats_query(world);
+    DebugStatsComp*      stats     = ecs_view_write_t(itr, DebugStatsComp);
+    const RendStatsComp* rendStats = ecs_view_read_t(itr, RendStatsComp);
+    const UiStatsComp*   uiStats   = ecs_view_read_t(itr, UiStatsComp);
+    const EcsDef*        ecsDef    = ecs_world_def(world);
 
     // Update statistics.
-    debug_stats_update(stats, rendStats, rendGlobalSettings, time, &ecsStats);
+    debug_stats_update(stats, rendStats, rendGlobalSettings, time);
 
     // Create or destroy the interface canvas as needed.
     if (stats->flags & DebugStatsFlags_Show && !stats->canvas) {
@@ -505,13 +510,13 @@ ecs_system_define(DebugStatsUpdateSys) {
       UiCanvasComp* canvas = ecs_view_write_t(canvasItr, UiCanvasComp);
       ui_canvas_reset(canvas);
       debug_stats_draw_interface(
-          canvas, globalComp, stats, rendStats, &allocStats, ecsDef, &ecsStats, uiStats);
+          canvas, statsGlobal, stats, rendStats, &allocStats, ecsDef, &ecsStats, uiStats);
     }
-
-    stats->allocPrevPageCounter    = allocStats.pageCounter;
-    stats->allocPrevHeapCounter    = allocStats.heapCounter;
-    stats->allocPrevPersistCounter = allocStats.persistCounter;
   }
+
+  statsGlobal->allocPrevPageCounter    = allocStats.pageCounter;
+  statsGlobal->allocPrevHeapCounter    = allocStats.heapCounter;
+  statsGlobal->allocPrevPersistCounter = allocStats.persistCounter;
 }
 
 ecs_module_init(debug_stats_module) {
