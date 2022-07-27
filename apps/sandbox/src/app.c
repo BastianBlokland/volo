@@ -26,7 +26,7 @@ static void app_window_create(EcsWorld* world) {
       window,
       SceneCameraComp,
       .persFov   = 50 * math_deg_to_rad,
-      .persNear  = 1,
+      .persNear  = 0.1f,
       .orthoSize = 5);
 
   ecs_world_add_t(
