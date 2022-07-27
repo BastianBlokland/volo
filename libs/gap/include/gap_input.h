@@ -31,6 +31,8 @@ typedef enum {
   GapKey_ArrowDown,
   GapKey_ArrowRight,
   GapKey_ArrowLeft,
+  GapKey_BracketLeft,
+  GapKey_BracketRight,
 
   GapKey_A,
   GapKey_B,
