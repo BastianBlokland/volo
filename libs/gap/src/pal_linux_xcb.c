@@ -210,6 +210,10 @@ static GapKey pal_xcb_translate_key(const xcb_keycode_t key) {
     return GapKey_ArrowRight;
   case 0x71:
     return GapKey_ArrowLeft;
+  case 0x22:
+    return GapKey_BracketLeft;
+  case 0x23:
+    return GapKey_BracketRight;
 
   case 0x26:
     return GapKey_A;
@@ -961,9 +965,9 @@ static void pal_event_clip_paste_notify(GapPal* pal, const GapWindowId windowId)
 GapPal* gap_pal_create(Allocator* alloc) {
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){
-             .alloc    = alloc,
-             .windows  = dynarray_create_t(alloc, GapPalWindow, 4),
-             .displays = dynarray_create_t(alloc, GapPalDisplay, 4),
+      .alloc    = alloc,
+      .windows  = dynarray_create_t(alloc, GapPalWindow, 4),
+      .displays = dynarray_create_t(alloc, GapPalDisplay, 4),
   };
 
   pal_xcb_connect(pal);
@@ -1172,8 +1176,8 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 
   const xcb_cw_t valuesMask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
   const u32      values[2]  = {
-            pal->xcbScreen->black_pixel,
-            g_xcbWindowEventMask,
+      pal->xcbScreen->black_pixel,
+      g_xcbWindowEventMask,
   };
 
   xcb_create_window(

@@ -91,12 +91,12 @@ static const struct {
             {
                 {
                     .name         = string_static("Forward"),
-                    .bindings     = {{.type = AssetInputType_Down, .key = 45}},
+                    .bindings     = {{.type = AssetInputType_Down, .key = 47}},
                     .bindingCount = 1,
                 },
                 {
                     .name         = string_static("Backward"),
-                    .bindings     = {{.type = AssetInputType_Down, .key = 41}},
+                    .bindings     = {{.type = AssetInputType_Down, .key = 43}},
                     .bindingCount = 1,
                 },
             },
@@ -140,9 +140,9 @@ static const struct {
                 {
                     .name         = string_static("Jump"),
                     .bindings     = {{
-                            .type                 = AssetInputType_Pressed,
-                            .key                  = 12,
-                            .requiredModifierBits = 0b11,
+                        .type                 = AssetInputType_Pressed,
+                        .key                  = 12,
+                        .requiredModifierBits = 0b11,
                     }},
                     .bindingCount = 1,
                 },
@@ -165,9 +165,9 @@ static const struct {
                 {
                     .name         = string_static("Jump"),
                     .bindings     = {{
-                            .type                = AssetInputType_Pressed,
-                            .key                 = 12,
-                            .illegalModifierBits = 0b11,
+                        .type                = AssetInputType_Pressed,
+                        .key                 = 12,
+                        .illegalModifierBits = 0b11,
                     }},
                     .bindingCount = 1,
                 },
