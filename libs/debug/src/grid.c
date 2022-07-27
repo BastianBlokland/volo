@@ -2,6 +2,7 @@
 #include "core_diag.h"
 #include "core_math.h"
 #include "debug_grid.h"
+#include "debug_stats.h"
 #include "ecs_world.h"
 #include "gap_window.h"
 #include "rend_draw.h"
@@ -54,7 +55,9 @@ ecs_view_define(GridWriteView) { ecs_access_write(DebugGridComp); }
 
 ecs_view_define(DrawWriteView) { ecs_access_write(RendDrawComp); }
 
-ecs_view_define(PanelUpdateView) {
+ecs_view_define(UpdateGlobalView) { ecs_access_write(DebugStatsGlobalComp); }
+
+ecs_view_define(UpdateView) {
   ecs_access_write(DebugGridPanelComp);
   ecs_access_write(UiCanvasComp);
 }
@@ -121,8 +124,18 @@ ecs_system_define(DebugGridDrawSys) {
   }
 }
 
-static void
-grid_panel_draw(UiCanvasComp* canvas, DebugGridPanelComp* panelComp, DebugGridComp* grid) {
+static void grid_notify_cell_size(DebugStatsGlobalComp* stats, const f32 cellSize) {
+  debug_stats_notify(
+      stats,
+      string_lit("Grid size"),
+      fmt_write_scratch("{}", fmt_float(cellSize, .maxDecDigits = 2, .expThresholdNeg = 0)));
+}
+
+static void grid_panel_draw(
+    UiCanvasComp*         canvas,
+    DebugStatsGlobalComp* stats,
+    DebugGridPanelComp*   panelComp,
+    DebugGridComp*        grid) {
   const String title = fmt_write_scratch("{} Grid Panel", fmt_ui_shape(Grid4x4));
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
 
@@ -138,8 +151,15 @@ grid_panel_draw(UiCanvasComp* canvas, DebugGridPanelComp* panelComp, DebugGridCo
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Cell size"));
   ui_table_next_column(canvas, &table);
-  ui_slider(
-      canvas, &grid->cellSize, .min = 0.1f, .max = 4, .step = 0.1f, .tooltip = g_tooltipCellSize);
+  if (ui_slider(
+          canvas,
+          &grid->cellSize,
+          .min     = 0.1f,
+          .max     = 4,
+          .step    = 0.1f,
+          .tooltip = g_tooltipCellSize)) {
+    grid_notify_cell_size(stats, grid->cellSize);
+  }
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Highlight"));
@@ -172,9 +192,16 @@ grid_panel_draw(UiCanvasComp* canvas, DebugGridPanelComp* panelComp, DebugGridCo
 }
 
 ecs_system_define(DebugGridUpdatePanelSys) {
+  EcsView*     globalView = ecs_world_view_t(world, UpdateGlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return;
+  }
+  DebugStatsGlobalComp* stats = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
+
   EcsIterator* gridItr = ecs_view_itr(ecs_world_view_t(world, GridWriteView));
 
-  EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
+  EcsView* panelView = ecs_world_view_t(world, UpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
     DebugGridPanelComp* panelComp = ecs_view_write_t(itr, DebugGridPanelComp);
     UiCanvasComp*       canvas    = ecs_view_write_t(itr, UiCanvasComp);
@@ -187,7 +214,7 @@ ecs_system_define(DebugGridUpdatePanelSys) {
 
     ui_canvas_reset(canvas);
 
-    grid_panel_draw(canvas, panelComp, grid);
+    grid_panel_draw(canvas, stats, panelComp, grid);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
@@ -207,7 +234,8 @@ ecs_module_init(debug_grid_module) {
   ecs_register_view(GridReadView);
   ecs_register_view(GridWriteView);
   ecs_register_view(DrawWriteView);
-  ecs_register_view(PanelUpdateView);
+  ecs_register_view(UpdateGlobalView);
+  ecs_register_view(UpdateView);
 
   ecs_register_system(
       DebugGridCreateSys, ecs_view_id(GlobalAssetsView), ecs_view_id(GridCreateView));
@@ -215,7 +243,10 @@ ecs_module_init(debug_grid_module) {
   ecs_register_system(DebugGridDrawSys, ecs_view_id(GridReadView), ecs_view_id(DrawWriteView));
 
   ecs_register_system(
-      DebugGridUpdatePanelSys, ecs_view_id(PanelUpdateView), ecs_view_id(GridWriteView));
+      DebugGridUpdatePanelSys,
+      ecs_view_id(UpdateGlobalView),
+      ecs_view_id(UpdateView),
+      ecs_view_id(GridWriteView));
 }
 
 void debug_grid_snap(const DebugGridComp* comp, GeoVector* position) {
