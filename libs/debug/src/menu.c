@@ -101,7 +101,10 @@ ecs_comp_define(DebugMenuComp) {
   EcsEntityId panelEntities[array_elems(g_debugPanelConfig)];
 };
 
-ecs_view_define(GlobalView) { ecs_access_read(InputManagerComp); }
+ecs_view_define(GlobalView) {
+  ecs_access_read(InputManagerComp);
+  ecs_access_write(DebugStatsGlobalComp);
+}
 
 ecs_view_define(MenuUpdateView) {
   ecs_access_write(DebugMenuComp);
@@ -114,12 +117,21 @@ static bool debug_panel_is_open(EcsWorld* world, EcsEntityId panel) {
   return panel && ecs_world_exists(world, panel);
 }
 
+static void debug_notify_panel_state(
+    DebugStatsGlobalComp* statsGlobal, const u32 panelIndex, const String state) {
+  debug_stats_notify(
+      statsGlobal,
+      fmt_write_scratch("Panel {}", fmt_text(g_debugPanelConfig[panelIndex].name)),
+      state);
+}
+
 static void debug_action_bar_draw(
     EcsWorld*               world,
     UiCanvasComp*           canvas,
     const InputManagerComp* input,
     DebugMenuComp*          menu,
     DebugStatsComp*         stats,
+    DebugStatsGlobalComp*   statsGlobal,
     const EcsEntityId       winEntity) {
 
   UiTable table = ui_table(.align = UiAlign_TopRight, .rowHeight = 40);
@@ -164,8 +176,10 @@ static void debug_action_bar_draw(
     if (buttonPressed || hotkeyPressed) {
       if (isOpen) {
         ecs_world_entity_destroy(world, menu->panelEntities[i]);
+        debug_notify_panel_state(statsGlobal, i, string_lit("closed"));
       } else {
         menu->panelEntities[i] = g_debugPanelConfig[i].openFunc(world, winEntity);
+        debug_notify_panel_state(statsGlobal, i, string_lit("open"));
       }
     }
   }
@@ -177,7 +191,8 @@ ecs_system_define(DebugMenuUpdateSys) {
   if (!globalItr) {
     return; // Global dependencies not initialized yet.
   }
-  const InputManagerComp* input = ecs_view_read_t(globalItr, InputManagerComp);
+  const InputManagerComp* input       = ecs_view_read_t(globalItr, InputManagerComp);
+  DebugStatsGlobalComp*   statsGlobal = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
 
   EcsView*     windowView = ecs_world_view_t(world, WindowUpdateView);
   EcsIterator* windowItr  = ecs_view_itr(windowView);
@@ -193,7 +208,7 @@ ecs_system_define(DebugMenuUpdateSys) {
     DebugStatsComp* stats = ecs_view_write_t(windowItr, DebugStatsComp);
 
     ui_canvas_reset(canvas);
-    debug_action_bar_draw(world, canvas, input, menu, stats, menu->window);
+    debug_action_bar_draw(world, canvas, input, menu, stats, statsGlobal, menu->window);
   }
 }
 
