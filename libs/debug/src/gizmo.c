@@ -536,9 +536,23 @@ gizmo_translation_arrow_color(const DebugGizmoComp* comp, const DebugGizmoId id,
     return g_gizmoTranslationArrows[index].colorHovered;
   }
   if (comp->status >= DebugGizmoStatus_Interacting) {
-    return geo_color(1, 1, 1, 0.25f); // Another gizmo (or section) is being interacted with.
+    return geo_color_gray; // Another gizmo (or section) is being interacted with.
   }
   return g_gizmoTranslationArrows[index].colorNormal;
+}
+
+static f32
+gizmo_translation_arrow_radius(const DebugGizmoComp* comp, const DebugGizmoId id, const u32 index) {
+  diag_assert(index < 3);
+
+  const f32 base = g_gizmoTranslationArrows[index].radius;
+  if (gizmo_is_hovered_section(comp, id, (DebugGizmoSection)index)) {
+    return base * 1.1f;
+  }
+  if (comp->status >= DebugGizmoStatus_Interacting) {
+    return base * 0.75f; // Another gizmo (or section) is being interacted with.
+  }
+  return base;
 }
 
 static void gizmo_draw_translation(
@@ -555,7 +569,7 @@ static void gizmo_draw_translation(
   for (u32 i = 0; i != array_elems(g_gizmoTranslationArrows); ++i) {
     const GeoVector dir     = geo_quat_rotate(entry->rot, g_gizmoTranslationArrows[i].normal);
     const f32       length  = g_gizmoTranslationArrows[i].length;
-    const f32       radius  = g_gizmoTranslationArrows[i].radius;
+    const f32       radius  = gizmo_translation_arrow_radius(comp, entry->id, i);
     const GeoVector lineEnd = geo_vector_add(pos, geo_vector_mul(dir, length));
     const GeoColor  color   = gizmo_translation_arrow_color(comp, entry->id, i);
 
