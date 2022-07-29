@@ -391,7 +391,7 @@ static void debug_draw_skeleton(
     const u32       parentIndex = scene_skeleton_joint_parent(skeletonTemplate, i);
     const GeoVector jointPos    = geo_matrix_to_translation(&jointMatrices[i]);
     const GeoVector parentPos   = geo_matrix_to_translation(&jointMatrices[parentIndex]);
-    debug_line(shapes, jointPos, parentPos, geo_color(1, 1, 1, 0.5f));
+    debug_line(shapes, jointPos, parentPos, geo_color_purple);
   }
 }
 
