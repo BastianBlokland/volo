@@ -545,7 +545,7 @@ bool ui_tooltip_with_opts(
    * then we skip the background and draw the text invisible.
    */
 
-  ui_style_layer(canvas, firstFrame ? UiLayer_Invisible : UiLayer_Overlay);
+  ui_style_layer(canvas, firstFrame ? UiLayer_OverlayInvisible : UiLayer_Overlay);
   if (firstFrame) {
     ui_canvas_id_skip(canvas, 1);
   } else {
