@@ -39,6 +39,18 @@ typedef struct {
   UiBuildHover        hover;
 } UiBuildState;
 
+static bool ui_is_overlay(const UiLayer layer) {
+  switch (layer) {
+  case UiLayer_Normal:
+  case UiLayer_Invisible:
+    return false;
+  case UiLayer_Overlay:
+  case UiLayer_OverlayInvisible:
+    return true;
+  }
+  UNREACHABLE
+}
+
 static UiRect* ui_build_rect_current(UiBuildState* state) {
   diag_assert(state->rectStackCount);
   return &state->rectStack[state->rectStackCount - 1];
@@ -56,8 +68,7 @@ static UiBuildContainer* ui_build_container_current(UiBuildState* state) {
 
 static UiBuildContainer* ui_build_container_active(UiBuildState* state) {
   const UiBuildStyle style = *ui_build_style_current(state);
-  return style.layer == UiLayer_Overlay ? &state->containerStack[0]
-                                        : ui_build_container_current(state);
+  return ui_is_overlay(style.layer) ? &state->containerStack[0] : ui_build_container_current(state);
 }
 
 INLINE_HINT static UiVector
@@ -79,7 +90,7 @@ ui_resolve_vec(UiBuildState* state, const UiVector vec, const UiBase units) {
   case UiBase_Input:
     return ui_vector(0, 0);
   }
-  diag_crash();
+  UNREACHABLE
 }
 
 static UiVector ui_resolve_origin(UiBuildState* state, const UiBase origin) {
@@ -100,7 +111,7 @@ static UiVector ui_resolve_origin(UiBuildState* state, const UiBase origin) {
     return state->ctx->inputPos;
   }
   }
-  diag_crash();
+  UNREACHABLE
 }
 
 INLINE_HINT static UiVector ui_resolve_pos(
@@ -176,9 +187,9 @@ static void ui_build_glyph(
 static void ui_build_text_char(void* userCtx, const UiTextCharInfo* info) {
   UiBuildState* state = userCtx;
 
-  const u8  clipId = info->layer == UiLayer_Overlay ? 0 : ui_build_container_current(state)->clipId;
-  const f32 border = info->ch->border * info->size;
-  const f32 size   = (info->ch->size + info->ch->border * 2.0f) * info->size;
+  const u8  clipId   = ui_is_overlay(info->layer) ? 0 : ui_build_container_current(state)->clipId;
+  const f32 border   = info->ch->border * info->size;
+  const f32 size     = (info->ch->size + info->ch->border * 2.0f) * info->size;
   const UiVector pos = {
       info->pos.x + info->ch->offsetX * info->size - border,
       info->pos.y + info->ch->offsetY * info->size - border,
@@ -201,7 +212,7 @@ static void ui_build_text_char(void* userCtx, const UiTextCharInfo* info) {
 static void ui_build_text_background(void* userCtx, const UiTextBackgroundInfo* info) {
   UiBuildState* state = userCtx;
 
-  const u8 clipId = info->layer == UiLayer_Overlay ? 0 : ui_build_container_current(state)->clipId;
+  const u8 clipId = ui_is_overlay(info->layer) ? 0 : ui_build_container_current(state)->clipId;
   const UiBuildStyle style = {
       .color  = info->color,
       .weight = UiWeight_Normal,
