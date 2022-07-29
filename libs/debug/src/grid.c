@@ -152,7 +152,10 @@ static void grid_panel_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Show"));
   ui_table_next_column(canvas, &table);
-  ui_toggle(canvas, &grid->show, .tooltip = g_tooltipShow);
+  if (ui_toggle(canvas, &grid->show, .tooltip = g_tooltipShow)) {
+    debug_stats_notify(
+        stats, string_lit("Grid show"), grid->show ? string_lit("true") : string_lit("false"));
+  }
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Cell size"));
