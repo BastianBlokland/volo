@@ -35,6 +35,7 @@
   X(0xF000, Square)                                                                                \
   X(0xF001, Circle)                                                                                \
   X(0xF002, CursorVertialBar)                                                                      \
+  X(0xF230, Default)                                                                               \
   X(0xF016, Grid4x4)
 
 enum {

@@ -20,6 +20,8 @@
 #include "scene_transform.h"
 #include "ui.h"
 
+static const String g_tooltipReset = string_static("Reset the value to default.");
+
 typedef enum {
   DebugInspectorFlags_Open             = 1 << 0,
   DebugInspectorFlags_DrawWhenClosed   = 1 << 1,
@@ -28,13 +30,14 @@ typedef enum {
   DebugInspectorFlags_DrawBoundsLocal  = 1 << 4,
   DebugInspectorFlags_DrawBoundsGlobal = 1 << 5,
   DebugInspectorFlags_GizmoTranslation = 1 << 6,
+  DebugInspectorFlags_GizmoRotation    = 1 << 7,
 
   DebugInspectorFlags_Default = DebugInspectorFlags_GizmoTranslation,
 
-  DebugInspectorFlags_DrawAny = DebugInspectorFlags_DrawName | DebugInspectorFlags_DrawCollision |
-                                DebugInspectorFlags_DrawBoundsLocal |
-                                DebugInspectorFlags_DrawBoundsGlobal |
-                                DebugInspectorFlags_GizmoTranslation,
+  DebugInspectorFlags_DrawAny =
+      DebugInspectorFlags_DrawName | DebugInspectorFlags_DrawCollision |
+      DebugInspectorFlags_DrawBoundsLocal | DebugInspectorFlags_DrawBoundsGlobal |
+      DebugInspectorFlags_GizmoTranslation | DebugInspectorFlags_GizmoRotation,
 
 } DebugInspectorFlags;
 
@@ -159,6 +162,23 @@ inspector_panel_draw_editor_vec(UiCanvasComp* canvas, GeoVector* val, const u8 n
   return isDirty;
 }
 
+static bool inspector_panel_draw_editor_vec_resettable(
+    UiCanvasComp* canvas, GeoVector* val, const u8 numComps) {
+  ui_layout_push(canvas);
+  ui_layout_grow(canvas, UiAlign_MiddleLeft, ui_vector(-30, 0), UiBase_Absolute, Ui_X);
+  bool isDirty = inspector_panel_draw_editor_vec(canvas, val, numComps);
+  ui_layout_next(canvas, Ui_Right, 8);
+  ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(22, 0), UiBase_Absolute, Ui_X);
+  if (ui_button(canvas, .label = ui_shape_scratch(UiShape_Default), .tooltip = g_tooltipReset)) {
+    for (u8 comp = 0; comp != numComps; ++comp) {
+      val->comps[comp] = 0;
+    }
+    isDirty = true;
+  }
+  ui_layout_pop(canvas);
+  return isDirty;
+}
+
 static void inspector_panel_draw_entity_info(
     EcsWorld*                world,
     UiCanvasComp*            canvas,
@@ -218,7 +238,7 @@ static void inspector_panel_draw_transform(
     inspector_panel_next(canvas, panelComp, table);
     ui_label(canvas, string_lit("Position"));
     ui_table_next_column(canvas, table);
-    if (inspector_panel_draw_editor_vec(canvas, &transform->position, 3)) {
+    if (inspector_panel_draw_editor_vec_resettable(canvas, &transform->position, 3)) {
       // Clamp the position to a sane value.
       transform->position = geo_vector_clamp(transform->position, 1e3f);
     }
@@ -226,7 +246,7 @@ static void inspector_panel_draw_transform(
     inspector_panel_next(canvas, panelComp, table);
     ui_label(canvas, string_lit("Rotation"));
     ui_table_next_column(canvas, table);
-    if (inspector_panel_draw_editor_vec(canvas, &panelComp->transformRotEulerDeg, 3)) {
+    if (inspector_panel_draw_editor_vec_resettable(canvas, &panelComp->transformRotEulerDeg, 3)) {
       const GeoVector eulerRad = geo_vector_mul(panelComp->transformRotEulerDeg, math_deg_to_rad);
       transform->rotation      = geo_quat_from_euler(eulerRad);
     } else {
@@ -438,6 +458,11 @@ static void inspector_panel_draw_settings(
     ui_label(canvas, string_lit("Translation gizmo"));
     ui_table_next_column(canvas, table);
     ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_GizmoTranslation);
+
+    inspector_panel_next(canvas, panelComp, table);
+    ui_label(canvas, string_lit("Rotation gizmo"));
+    ui_table_next_column(canvas, table);
+    ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_GizmoRotation);
   }
 }
 
@@ -607,6 +632,10 @@ static void inspector_shape_draw_subject(
   if (set->flags & DebugInspectorFlags_GizmoTranslation) {
     const DebugGizmoId id = (DebugGizmoId)ecs_view_entity(subject);
     debug_gizmo_translation(gizmo, id, &transformComp->position, transformComp->rotation);
+  }
+  if (set->flags & DebugInspectorFlags_GizmoRotation) {
+    const DebugGizmoId id = (DebugGizmoId)ecs_view_entity(subject);
+    debug_gizmo_rotation(gizmo, id, transformComp->position, &transformComp->rotation);
   }
 }
 

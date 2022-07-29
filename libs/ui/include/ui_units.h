@@ -53,6 +53,7 @@ typedef enum {
   UiLayer_Normal,
   UiLayer_Invisible,
   UiLayer_Overlay,
+  UiLayer_OverlayInvisible,
 } UiLayer;
 
 /**
