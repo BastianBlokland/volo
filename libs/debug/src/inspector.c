@@ -28,13 +28,14 @@ typedef enum {
   DebugInspectorFlags_DrawBoundsLocal  = 1 << 4,
   DebugInspectorFlags_DrawBoundsGlobal = 1 << 5,
   DebugInspectorFlags_GizmoTranslation = 1 << 6,
+  DebugInspectorFlags_GizmoRotation    = 1 << 7,
 
   DebugInspectorFlags_Default = DebugInspectorFlags_GizmoTranslation,
 
-  DebugInspectorFlags_DrawAny = DebugInspectorFlags_DrawName | DebugInspectorFlags_DrawCollision |
-                                DebugInspectorFlags_DrawBoundsLocal |
-                                DebugInspectorFlags_DrawBoundsGlobal |
-                                DebugInspectorFlags_GizmoTranslation,
+  DebugInspectorFlags_DrawAny =
+      DebugInspectorFlags_DrawName | DebugInspectorFlags_DrawCollision |
+      DebugInspectorFlags_DrawBoundsLocal | DebugInspectorFlags_DrawBoundsGlobal |
+      DebugInspectorFlags_GizmoTranslation | DebugInspectorFlags_GizmoRotation,
 
 } DebugInspectorFlags;
 
@@ -438,6 +439,11 @@ static void inspector_panel_draw_settings(
     ui_label(canvas, string_lit("Translation gizmo"));
     ui_table_next_column(canvas, table);
     ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_GizmoTranslation);
+
+    inspector_panel_next(canvas, panelComp, table);
+    ui_label(canvas, string_lit("Rotation gizmo"));
+    ui_table_next_column(canvas, table);
+    ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_GizmoRotation);
   }
 }
 
@@ -607,6 +613,10 @@ static void inspector_shape_draw_subject(
   if (set->flags & DebugInspectorFlags_GizmoTranslation) {
     const DebugGizmoId id = (DebugGizmoId)ecs_view_entity(subject);
     debug_gizmo_translation(gizmo, id, &transformComp->position, transformComp->rotation);
+  }
+  if (set->flags & DebugInspectorFlags_GizmoRotation) {
+    const DebugGizmoId id = (DebugGizmoId)ecs_view_entity(subject);
+    debug_gizmo_rotation(gizmo, id, transformComp->position, &transformComp->rotation);
   }
 }
 
