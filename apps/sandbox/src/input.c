@@ -9,8 +9,8 @@
 
 #include "cmd_internal.h"
 
-static const f32 g_inputMinSpawnDist          = 1.0f;
-static const f32 g_inputMaxSpawnDist          = 100.0f;
+static const f32 g_inputMinInteractDist       = 1.0f;
+static const f32 g_inputMaxInteractDist       = 100.0f;
 static const f32 g_inputCamMoveSpeed          = 10.0f;
 static const f32 g_inputCamMoveSpeedBoostMult = 4.0f;
 static const f32 g_inputCamRotateSensitivity  = 2.0f;
@@ -92,15 +92,22 @@ static void update_camera_interact(
     }
   }
 
-  if (input_triggered_lit(input, "CursorLock")) {
-    input_cursor_mode_set(input, input_cursor_mode(input) ^ 1);
+  if (scene_selected(selection) && input_triggered_lit(input, "Order")) {
+    const f32 rayT = geo_plane_intersect_ray(&groundPlane, &inputRay);
+    if (rayT > g_inputMinInteractDist && rayT < g_inputMaxInteractDist) {
+      cmd_push_move(cmdController, scene_selected(selection), geo_ray_position(&inputRay, rayT));
+    }
   }
 
   if (input_triggered_lit(input, "Spawn")) {
     const f32 rayT = geo_plane_intersect_ray(&groundPlane, &inputRay);
-    if (rayT > g_inputMinSpawnDist && rayT < g_inputMaxSpawnDist) {
+    if (rayT > g_inputMinInteractDist && rayT < g_inputMaxInteractDist) {
       cmd_push_spawn_unit(cmdController, geo_ray_position(&inputRay, rayT));
     }
+  }
+
+  if (input_triggered_lit(input, "CursorLock")) {
+    input_cursor_mode_set(input, input_cursor_mode(input) ^ 1);
   }
 }
 
