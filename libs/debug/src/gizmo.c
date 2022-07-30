@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_annotation.h"
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
@@ -7,6 +8,7 @@
 #include "debug_grid.h"
 #include "debug_register.h"
 #include "debug_shape.h"
+#include "debug_stats.h"
 #include "ecs_world.h"
 #include "gap_window.h"
 #include "geo_query.h"
@@ -141,6 +143,13 @@ static void ecs_destruct_gizmo(void* data) {
   geo_query_env_destroy(comp->queryEnv);
 }
 
+static const String g_gizmoSectionNames[] = {
+    [DebugGizmoSection_X] = string_static("x"),
+    [DebugGizmoSection_Y] = string_static("y"),
+    [DebugGizmoSection_Z] = string_static("z"),
+};
+ASSERT(array_elems(g_gizmoSectionNames) == DebugGizmoSection_Count, "Missing section name");
+
 static bool gizmo_is_hovered(const DebugGizmoComp* comp, const DebugGizmoId id) {
   return comp->status >= DebugGizmoStatus_Hovering && comp->activeId == id;
 }
@@ -160,6 +169,7 @@ static bool gizmo_is_interacting_type(
 }
 
 ecs_view_define(GlobalUpdateView) {
+  ecs_access_write(DebugStatsGlobalComp);
   ecs_access_write(DebugGizmoComp);
   ecs_access_write(InputManagerComp);
 }
@@ -352,10 +362,11 @@ static GeoPlane gizmo_translation_plane(
 }
 
 static void gizmo_update_interaction_translation(
-    DebugGizmoComp*      comp,
-    const GapWindowComp* window,
-    const DebugGridComp* grid,
-    const GeoRay*        ray) {
+    DebugGizmoComp*       comp,
+    DebugStatsGlobalComp* stats,
+    const GapWindowComp*  window,
+    const DebugGridComp*  grid,
+    const GeoRay*         ray) {
   DebugGizmoEditorTranslation* data    = &comp->editor.translation;
   const DebugGizmoSection      section = comp->activeSection;
 
@@ -372,12 +383,18 @@ static void gizmo_update_interaction_translation(
     data->startPos = inputPos;
   }
   const GeoVector axis  = geo_quat_rotate(data->baseRot, g_gizmoTranslationArrows[section].normal);
-  const GeoVector delta = geo_vector_sub(inputPos, data->startPos);
-  data->result          = geo_vector_add(data->basePos, geo_vector_project(delta, axis));
+  const GeoVector delta = geo_vector_project(geo_vector_sub(inputPos, data->startPos), axis);
+  data->result          = geo_vector_add(data->basePos, delta);
 
   if (grid && gap_window_key_down(window, GapKey_Shift)) {
     debug_grid_snap_axis(grid, &data->result, (u8)section);
   }
+
+  const f32 statDeltaMag = geo_vector_mag(geo_vector_sub(data->result, data->basePos));
+  debug_stats_notify(
+      stats,
+      string_lit("Gizmo delta"),
+      fmt_write_scratch("{}", fmt_float(statDeltaMag, .minDecDigits = 4, .maxDecDigits = 4)));
 }
 
 static f32 gizmo_vector_angle(const GeoVector from, const GeoVector to, const GeoVector axis) {
@@ -390,7 +407,10 @@ static f32 gizmo_vector_angle(const GeoVector from, const GeoVector to, const Ge
 }
 
 static void gizmo_update_interaction_rotation(
-    DebugGizmoComp* comp, const GapWindowComp* window, const GeoRay* ray) {
+    DebugGizmoComp*       comp,
+    DebugStatsGlobalComp* stats,
+    const GapWindowComp*  window,
+    const GeoRay*         ray) {
   DebugGizmoEditorRotation* data    = &comp->editor.rotation;
   const DebugGizmoSection   section = comp->activeSection;
 
@@ -416,10 +436,17 @@ static void gizmo_update_interaction_rotation(
     angle                  = math_round_f32(angle / snapAngleRad) * snapAngleRad;
   }
   data->result = geo_quat_mul(geo_quat_angle_axis(axis, angle), data->baseRot);
+
+  debug_stats_notify(
+      stats,
+      string_lit("Gizmo delta"),
+      fmt_write_scratch(
+          "{} degrees", fmt_float(angle * math_rad_to_deg, .minDecDigits = 1, .maxDecDigits = 1)));
 }
 
 static void gizmo_update_interaction(
     DebugGizmoComp*           comp,
+    DebugStatsGlobalComp*     stats,
     const InputManagerComp*   input,
     const GapWindowComp*      window,
     const DebugGridComp*      grid,
@@ -464,12 +491,15 @@ static void gizmo_update_interaction(
   }
 
   if (isInteracting) {
+    debug_stats_notify(
+        stats, string_lit("Gizmo section"), g_gizmoSectionNames[comp->activeSection]);
+
     switch (comp->activeType) {
     case DebugGizmoType_Translation:
-      gizmo_update_interaction_translation(comp, window, grid, &inputRay);
+      gizmo_update_interaction_translation(comp, stats, window, grid, &inputRay);
       break;
     case DebugGizmoType_Rotation:
-      gizmo_update_interaction_rotation(comp, window, &inputRay);
+      gizmo_update_interaction_rotation(comp, stats, window, &inputRay);
       break;
     case DebugGizmoType_Count:
       UNREACHABLE
@@ -500,8 +530,9 @@ ecs_system_define(DebugGizmoUpdateSys) {
   if (!globalItr) {
     return;
   }
-  DebugGizmoComp*   gizmo = ecs_view_write_t(globalItr, DebugGizmoComp);
-  InputManagerComp* input = ecs_view_write_t(globalItr, InputManagerComp);
+  DebugStatsGlobalComp* stats = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
+  DebugGizmoComp*       gizmo = ecs_view_write_t(globalItr, DebugGizmoComp);
+  InputManagerComp*     input = ecs_view_write_t(globalItr, InputManagerComp);
 
   // Register all gizmos that where active in the last frame.
   geo_query_env_clear(gizmo->queryEnv);
@@ -518,7 +549,7 @@ ecs_system_define(DebugGizmoUpdateSys) {
     const SceneCameraComp*    camera      = ecs_view_read_t(camItr, SceneCameraComp);
     const SceneTransformComp* cameraTrans = ecs_view_read_t(camItr, SceneTransformComp);
 
-    gizmo_update_interaction(gizmo, input, window, grid, camera, cameraTrans);
+    gizmo_update_interaction(gizmo, stats, input, window, grid, camera, cameraTrans);
   }
 
   // Update input blockers.
