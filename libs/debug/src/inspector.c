@@ -70,7 +70,11 @@ ecs_comp_define(DebugInspectorPanelComp) {
 };
 
 ecs_view_define(SettingsWriteView) { ecs_access_write(DebugInspectorSettingsComp); }
-ecs_view_define(GlobalPanelUpdateView) { ecs_access_read(SceneSelectionComp); }
+
+ecs_view_define(GlobalPanelUpdateView) {
+  ecs_access_read(SceneSelectionComp);
+  ecs_access_write(DebugStatsGlobalComp);
+}
 
 ecs_view_define(GlobalShapeDrawView) {
   ecs_access_read(DebugInspectorSettingsComp);
@@ -435,6 +439,7 @@ static void inspector_panel_draw_components(
 
 static void inspector_panel_draw_settings(
     UiCanvasComp*               canvas,
+    DebugStatsGlobalComp*       stats,
     DebugInspectorPanelComp*    panelComp,
     UiTable*                    table,
     DebugInspectorSettingsComp* settings) {
@@ -443,7 +448,9 @@ static void inspector_panel_draw_settings(
     inspector_panel_next(canvas, panelComp, table);
     ui_label(canvas, string_lit("Tool"));
     ui_table_next_column(canvas, table);
-    ui_select(canvas, (i32*)&settings->tool, g_toolNames, array_elems(g_toolNames));
+    if (ui_select(canvas, (i32*)&settings->tool, g_toolNames, array_elems(g_toolNames))) {
+      debug_stats_notify(stats, string_lit("Tool"), g_toolNames[settings->tool]);
+    }
 
     inspector_panel_next(canvas, panelComp, table);
     ui_label(canvas, string_lit("Draw mode"));
@@ -474,6 +481,7 @@ static void inspector_panel_draw_settings(
 
 static void inspector_panel_draw(
     EcsWorld*                   world,
+    DebugStatsGlobalComp*       stats,
     UiCanvasComp*               canvas,
     DebugInspectorPanelComp*    panelComp,
     DebugInspectorSettingsComp* settings,
@@ -510,7 +518,7 @@ static void inspector_panel_draw(
   inspector_panel_draw_components(world, canvas, panelComp, &table, subject);
   ui_canvas_id_block_next(canvas); // Draws a variable amount of elements; Skip over the id space.
 
-  inspector_panel_draw_settings(canvas, panelComp, &table, settings);
+  inspector_panel_draw_settings(canvas, stats, panelComp, &table, settings);
   ui_canvas_id_block_next(canvas); // Draws a variable amount of elements; Skip over the id space.
 
   ui_scrollview_end(canvas, &panelComp->scrollview);
@@ -530,6 +538,7 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
   if (!globalItr) {
     return;
   }
+  DebugStatsGlobalComp*       stats     = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
   const SceneSelectionComp*   selection = ecs_view_read_t(globalItr, SceneSelectionComp);
   DebugInspectorSettingsComp* settings  = inspector_settings_get_or_create(world);
 
@@ -543,7 +552,7 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
     UiCanvasComp*            canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
-    inspector_panel_draw(world, canvas, panelComp, settings, subjectItr);
+    inspector_panel_draw(world, stats, canvas, panelComp, settings, subjectItr);
 
     if (panelComp->panel.flags & UiPanelFlags_Close) {
       ecs_world_entity_destroy(world, entity);
