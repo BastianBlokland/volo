@@ -680,7 +680,7 @@ EcsEntityId debug_rend_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugRendPanelComp,
-      .panel          = ui_panel(ui_vector(700, 400)),
+      .panel          = ui_panel(.size = ui_vector(700, 400)),
       .window         = window,
       .scrollview     = ui_scrollview(),
       .nameFilter     = dynstring_create(g_alloc_heap, 32),

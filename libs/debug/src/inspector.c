@@ -750,6 +750,9 @@ ecs_module_init(debug_inspector_module) {
 EcsEntityId debug_inspector_panel_open(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
   ecs_world_add_t(
-      world, panelEntity, DebugInspectorPanelComp, .panel = ui_panel(ui_vector(500, 550)));
+      world,
+      panelEntity,
+      DebugInspectorPanelComp,
+      .panel = ui_panel(.position = ui_vector(0.2f, 0.5f), .size = ui_vector(500, 550)));
   return panelEntity;
 }

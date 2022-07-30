@@ -179,6 +179,10 @@ ecs_module_init(debug_time_module) {
 
 EcsEntityId debug_time_panel_open(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
-  ecs_world_add_t(world, panelEntity, DebugTimePanelComp, .panel = ui_panel(ui_vector(375, 250)));
+  ecs_world_add_t(
+      world,
+      panelEntity,
+      DebugTimePanelComp,
+      .panel = ui_panel(.position = ui_vector(0.75f, 0.5f), .size = ui_vector(375, 250)));
   return panelEntity;
 }

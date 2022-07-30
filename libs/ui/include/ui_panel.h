@@ -28,9 +28,9 @@ typedef struct {
 /**
  * Create a layout panel.
  */
-#define ui_panel(_SIZE_, ...) ((UiPanel){                                                          \
+#define ui_panel(...) ((UiPanel){                                                                  \
   .position = ui_vector(0.5f, 0.5f),                                                               \
-  .size     = (_SIZE_),                                                                            \
+  .size     = ui_vector(300, 300),                                                                 \
   .minSize  = ui_vector(100, 100),                                                                 \
   __VA_ARGS__                                                                                      \
   })
