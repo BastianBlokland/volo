@@ -2,6 +2,7 @@
 #include "core_math.h"
 #include "core_stringtable.h"
 #include "debug_camera.h"
+#include "debug_gizmo.h"
 #include "debug_register.h"
 #include "debug_shape.h"
 #include "debug_text.h"
@@ -154,9 +155,14 @@ static void camera_panel_draw(
   }
 
   ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Debug orientation"));
+  ui_label(canvas, string_lit("Gizmo Translation"));
   ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, flags, SceneCameraFlags_DebugOrientation);
+  ui_toggle_flag(canvas, flags, SceneCameraFlags_DebugGizmoTranslation);
+
+  ui_table_next_row(canvas, &table);
+  ui_label(canvas, string_lit("Gizmo Rotation"));
+  ui_table_next_column(canvas, &table);
+  ui_toggle_flag(canvas, flags, SceneCameraFlags_DebugGizmoRotation);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug frustum"));
@@ -209,6 +215,7 @@ ecs_system_define(DebugCameraUpdatePanelSys) {
 
 ecs_view_define(GlobalDrawView) {
   ecs_access_read(SceneCollisionEnvComp);
+  ecs_access_write(DebugGizmoComp);
   ecs_access_write(DebugShapeComp);
   ecs_access_write(DebugTextComp);
 }
@@ -216,7 +223,7 @@ ecs_view_define(GlobalDrawView) {
 ecs_view_define(DrawView) {
   ecs_access_read(GapWindowComp);
   ecs_access_read(SceneCameraComp);
-  ecs_access_maybe_read(SceneTransformComp);
+  ecs_access_maybe_write(SceneTransformComp);
 }
 
 ecs_view_define(NameView) { ecs_access_read(SceneNameComp); }
@@ -281,22 +288,28 @@ ecs_system_define(DebugCameraDrawSys) {
   const SceneCollisionEnvComp* collisionEnv = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
   DebugShapeComp*              shape        = ecs_view_write_t(globalItr, DebugShapeComp);
   DebugTextComp*               text         = ecs_view_write_t(globalItr, DebugTextComp);
+  DebugGizmoComp*              gizmo        = ecs_view_write_t(globalItr, DebugGizmoComp);
 
   EcsView* nameView = ecs_world_view_t(world, NameView);
   EcsView* drawView = ecs_world_view_t(world, DrawView);
 
   for (EcsIterator* itr = ecs_view_itr(drawView); ecs_view_walk(itr);) {
-    const SceneCameraComp*    cam   = ecs_view_read_t(itr, SceneCameraComp);
-    const GapWindowComp*      win   = ecs_view_read_t(itr, GapWindowComp);
-    const SceneTransformComp* trans = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneCameraComp* cam   = ecs_view_read_t(itr, SceneCameraComp);
+    const GapWindowComp*   win   = ecs_view_read_t(itr, GapWindowComp);
+    SceneTransformComp*    trans = ecs_view_write_t(itr, SceneTransformComp);
 
     const GapVector winSize   = gap_window_param(win, GapParam_WindowSize);
     const GapVector cursorPos = gap_window_param(win, GapParam_CursorPos);
     const f32       aspect    = (f32)winSize.width / (f32)winSize.height;
     const GeoVector inputPos  = {cursorPos.x / (f32)winSize.x, cursorPos.y / (f32)winSize.y};
 
-    if (trans && cam->flags & SceneCameraFlags_DebugOrientation) {
-      debug_orientation(shape, trans->position, trans->rotation, 0.25f);
+    if (trans && cam->flags & SceneCameraFlags_DebugGizmoTranslation) {
+      const DebugGizmoId gizmoId = (DebugGizmoId)ecs_view_entity(itr);
+      debug_gizmo_translation(gizmo, gizmoId, &trans->position, trans->rotation);
+    }
+    if (trans && cam->flags & SceneCameraFlags_DebugGizmoRotation) {
+      const DebugGizmoId gizmoId = (DebugGizmoId)ecs_view_entity(itr);
+      debug_gizmo_rotation(gizmo, gizmoId, trans->position, &trans->rotation);
     }
     if (cam->flags & SceneCameraFlags_DebugFrustum) {
       debug_camera_draw_frustum(shape, cam, trans, aspect);
@@ -335,7 +348,7 @@ EcsEntityId debug_camera_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugCameraPanelComp,
-      .panel  = ui_panel(.position = ui_vector(0.75f, 0.5f), .size = ui_vector(340, 310)),
+      .panel  = ui_panel(.position = ui_vector(0.75f, 0.5f), .size = ui_vector(340, 340)),
       .window = window);
   return panelEntity;
 }
