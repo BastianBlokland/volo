@@ -5,6 +5,7 @@
 #include "scene_transform.h"
 
 #define locomotion_arrive_threshold 1e-2f
+#define locomotion_rotation_speed 270.0f
 
 ecs_comp_define_public(SceneLocomotionComp);
 
@@ -13,6 +14,25 @@ ecs_view_define(GlobalView) { ecs_access_read(SceneTimeComp); }
 ecs_view_define(MoveView) {
   ecs_access_read(SceneLocomotionComp);
   ecs_access_write(SceneTransformComp);
+}
+
+static f32 scene_locomotion_y_angle_diff(const GeoVector fromDir, const GeoVector toDir) {
+  const GeoVector tangent      = geo_vector_cross3(geo_up, fromDir);
+  const f32       dotTangentTo = geo_vector_dot(tangent, toDir);
+  const f32       dotFromTo    = geo_vector_dot(fromDir, toDir);
+  return math_acos_f32(math_clamp_f32(dotFromTo, -1.0f, 1.0f)) * math_sign(dotTangentTo);
+}
+
+static void
+scene_locomotion_face(SceneTransformComp* trans, const GeoVector dir, const f32 deltaSeconds) {
+  const GeoVector forward    = geo_quat_rotate(trans->rotation, geo_forward);
+  const f32       yAngleDiff = scene_locomotion_y_angle_diff(forward, dir);
+
+  const f32 maxAngleDelta = locomotion_rotation_speed * math_deg_to_rad * deltaSeconds;
+  const f32 yAngleDelta   = math_clamp_f32(yAngleDiff, -maxAngleDelta, maxAngleDelta);
+
+  trans->rotation = geo_quat_mul(geo_quat_angle_axis(geo_up, yAngleDelta), trans->rotation);
+  trans->rotation = geo_quat_norm(trans->rotation);
 }
 
 static void scene_locomotion_move(
@@ -26,6 +46,8 @@ static void scene_locomotion_move(
   const f32       delta = math_min(dist, loco->speed * deltaSeconds);
 
   trans->position = geo_vector_add(trans->position, geo_vector_mul(dir, delta));
+
+  scene_locomotion_face(trans, dir, deltaSeconds);
 }
 
 ecs_system_define(SceneLocomotionMoveSys) {
