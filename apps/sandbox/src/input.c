@@ -34,7 +34,7 @@ static void update_camera_movement(
     const SceneCameraComp*  camera,
     SceneTransformComp*     camTrans) {
 
-  f32 moveDelta = scene_delta_seconds(time) * g_inputCamMoveSpeed;
+  f32 moveDelta = scene_real_delta_seconds(time) * g_inputCamMoveSpeed;
   if (input_triggered_lit(input, "CameraMoveBoost")) {
     moveDelta *= g_inputCamMoveSpeedBoostMult;
   }
