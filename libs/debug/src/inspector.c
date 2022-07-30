@@ -12,6 +12,7 @@
 #include "input_manager.h"
 #include "scene_bounds.h"
 #include "scene_collision.h"
+#include "scene_locomotion.h"
 #include "scene_name.h"
 #include "scene_renderable.h"
 #include "scene_selection.h"
@@ -31,9 +32,10 @@ typedef enum {
 
 typedef enum {
   DebugInspectorDraw_Name         = 1 << 0,
-  DebugInspectorDraw_Collision    = 1 << 1,
-  DebugInspectorDraw_BoundsLocal  = 1 << 2,
-  DebugInspectorDraw_BoundsGlobal = 1 << 3,
+  DebugInspectorDraw_Locomotion   = 1 << 1,
+  DebugInspectorDraw_Collision    = 1 << 2,
+  DebugInspectorDraw_BoundsLocal  = 1 << 3,
+  DebugInspectorDraw_BoundsGlobal = 1 << 4,
 } DebugInspectorDrawFlags;
 
 typedef enum {
@@ -97,6 +99,7 @@ ecs_view_define(PanelUpdateView) {
 }
 
 ecs_view_define(SubjectView) {
+  ecs_access_maybe_read(SceneLocomotionComp);
   ecs_access_maybe_read(SceneNameComp);
   ecs_access_maybe_write(SceneBoundsComp);
   ecs_access_maybe_write(SceneCollisionComp);
@@ -463,6 +466,11 @@ static void inspector_panel_draw_settings(
     ui_toggle_flag(canvas, (u32*)&settings->drawFlags, DebugInspectorDraw_Name);
 
     inspector_panel_next(canvas, panelComp, table);
+    ui_label(canvas, string_lit("Draw locomotion"));
+    ui_table_next_column(canvas, table);
+    ui_toggle_flag(canvas, (u32*)&settings->drawFlags, DebugInspectorDraw_Locomotion);
+
+    inspector_panel_next(canvas, panelComp, table);
     ui_label(canvas, string_lit("Draw collision"));
     ui_table_next_column(canvas, table);
     ui_toggle_flag(canvas, (u32*)&settings->drawFlags, DebugInspectorDraw_Collision);
@@ -612,6 +620,13 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
   }
 }
 
+static void inspector_shape_draw_locomotion(
+    DebugShapeComp* shape, const SceneLocomotionComp* loco, const SceneTransformComp* transform) {
+  const GeoVector pos = transform ? transform->position : geo_vector(0);
+  debug_line(shape, pos, loco->target, geo_color_yellow);
+  debug_sphere(shape, loco->target, 0.1f, geo_color_green, DebugShape_Overlay);
+}
+
 static void inspector_shape_draw_collision(
     DebugShapeComp*           shape,
     const SceneCollisionComp* collision,
@@ -664,16 +679,20 @@ static void inspector_shape_draw_subject(
     DebugTextComp*                    text,
     const DebugInspectorSettingsComp* set,
     EcsIterator*                      subject) {
-  SceneTransformComp*       transformComp = ecs_view_write_t(subject, SceneTransformComp);
-  const SceneNameComp*      nameComp      = ecs_view_read_t(subject, SceneNameComp);
-  const SceneBoundsComp*    boundsComp    = ecs_view_read_t(subject, SceneBoundsComp);
-  const SceneCollisionComp* collisionComp = ecs_view_read_t(subject, SceneCollisionComp);
-  const SceneScaleComp*     scaleComp     = ecs_view_read_t(subject, SceneScaleComp);
+  const SceneBoundsComp*     boundsComp    = ecs_view_read_t(subject, SceneBoundsComp);
+  const SceneCollisionComp*  collisionComp = ecs_view_read_t(subject, SceneCollisionComp);
+  const SceneLocomotionComp* locoComp      = ecs_view_read_t(subject, SceneLocomotionComp);
+  const SceneNameComp*       nameComp      = ecs_view_read_t(subject, SceneNameComp);
+  const SceneScaleComp*      scaleComp     = ecs_view_read_t(subject, SceneScaleComp);
+  SceneTransformComp*        transformComp = ecs_view_write_t(subject, SceneTransformComp);
 
   if (nameComp && set->drawFlags & DebugInspectorDraw_Name) {
     const String    name = stringtable_lookup(g_stringtable, nameComp->name);
     const GeoVector pos  = geo_vector_add(transformComp->position, geo_vector_mul(geo_up, 0.1f));
     debug_text(text, pos, name, geo_color_white);
+  }
+  if (locoComp && set->drawFlags & DebugInspectorDraw_Locomotion) {
+    inspector_shape_draw_locomotion(shape, locoComp, transformComp);
   }
   if (collisionComp && set->drawFlags & DebugInspectorDraw_Collision) {
     inspector_shape_draw_collision(shape, collisionComp, transformComp, scaleComp);
