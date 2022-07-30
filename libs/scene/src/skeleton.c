@@ -511,6 +511,17 @@ ecs_module_init(scene_skeleton_module) {
   ecs_register_system(SceneSkeletonClearDirtyTemplateSys, ecs_view_id(DirtyTemplateView));
 }
 
+bool scene_animation_set_weight(
+    SceneAnimationComp* anim, const StringHash layer, const f32 weight) {
+  for (u32 i = 0; i != anim->layerCount; ++i) {
+    if (anim->layers[i].nameHash == layer) {
+      anim->layers[i].weight = weight;
+      return true;
+    }
+  }
+  return false;
+}
+
 u32 scene_skeleton_joint_count(const SceneSkeletonTemplComp* tl) { return tl->jointCount; }
 
 StringHash scene_skeleton_joint_name(const SceneSkeletonTemplComp* tl, const u32 jointIndex) {
