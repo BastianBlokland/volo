@@ -46,10 +46,12 @@ ecs_module_init(sandbox_unit_module) {
 }
 
 EcsEntityId unit_spawn(EcsWorld* world, const UnitDatabaseComp* db, const GeoVector position) {
-  const EcsEntityId e = ecs_world_entity_create(world);
+  const EcsEntityId e        = ecs_world_entity_create(world);
+  const GeoQuat     rotation = geo_quat_look(geo_backward, geo_up);
+
   ecs_world_add_empty_t(world, e, UnitComp);
   ecs_world_add_t(world, e, SceneRenderableComp, .graphic = db->unitGraphic);
-  ecs_world_add_t(world, e, SceneTransformComp, .position = position, .rotation = geo_quat_ident);
+  ecs_world_add_t(world, e, SceneTransformComp, .position = position, .rotation = rotation);
   scene_collision_add_capsule(world, e, g_unitCapsule);
   return e;
 }
