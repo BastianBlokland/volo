@@ -413,6 +413,30 @@
           "key": "F9"
         }
       ]
+    },
+    {
+      "name": "DebugInspectorToolTranslation",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "Alpha1"
+        }
+      ]
+    },
+    {
+      "name": "DebugInspectorToolRotation",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "Alpha2"
+        }
+      ]
     }
   ]
 }

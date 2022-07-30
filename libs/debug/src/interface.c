@@ -226,7 +226,7 @@ EcsEntityId debug_interface_panel_open(EcsWorld* world, const EcsEntityId window
       world,
       panelEntity,
       DebugInterfacePanelComp,
-      .panel  = ui_panel(ui_vector(330, 220)),
+      .panel  = ui_panel(.position = ui_vector(0.75f, 0.5f), .size = ui_vector(330, 220)),
       .window = window);
   return panelEntity;
 }

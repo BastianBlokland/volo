@@ -489,7 +489,7 @@ EcsEntityId debug_ecs_panel_open(EcsWorld* world, const EcsEntityId window) {
       world,
       panelEntity,
       DebugEcsPanelComp,
-      .panel        = ui_panel(ui_vector(800, 500)),
+      .panel        = ui_panel(.size = ui_vector(800, 500)),
       .scrollview   = ui_scrollview(),
       .nameFilter   = dynstring_create(g_alloc_heap, 32),
       .compSortMode = DebugCompSortMode_Entities,
