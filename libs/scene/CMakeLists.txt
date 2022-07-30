@@ -9,6 +9,7 @@ add_library(lib_scene STATIC
   src/camera.c
   src/collision.c
   src/lifetime.c
+  src/locomotion.c
   src/name.c
   src/register.c
   src/renderable.c
