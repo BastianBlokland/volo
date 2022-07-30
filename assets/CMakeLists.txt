@@ -43,7 +43,7 @@ if(${EXTERNAL_ASSETS})
       vanguard/vanguard_diff.tga
       vanguard/vanguard_nrm.tga
       vanguard/vanguard.bin
-      vanguard/vanguard.gltf
+      vanguard/vanguard-zflip.gltf
     )
 endif()
 
