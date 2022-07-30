@@ -30,16 +30,11 @@ typedef enum {
 } DebugInspectorTool;
 
 typedef enum {
-  DebugInspectorFlags_DrawName         = 1 << 0,
-  DebugInspectorFlags_DrawCollision    = 1 << 1,
-  DebugInspectorFlags_DrawBoundsLocal  = 1 << 2,
-  DebugInspectorFlags_DrawBoundsGlobal = 1 << 3,
-
-  DebugInspectorFlags_DrawAny = DebugInspectorFlags_DrawName | DebugInspectorFlags_DrawCollision |
-                                DebugInspectorFlags_DrawBoundsLocal |
-                                DebugInspectorFlags_DrawBoundsGlobal
-
-} DebugInspectorFlags;
+  DebugInspectorDraw_Name         = 1 << 0,
+  DebugInspectorDraw_Collision    = 1 << 1,
+  DebugInspectorDraw_BoundsLocal  = 1 << 2,
+  DebugInspectorDraw_BoundsGlobal = 1 << 3,
+} DebugInspectorDrawFlags;
 
 typedef enum {
   DebugInspectorDraw_SelectedOnly,
@@ -62,9 +57,9 @@ static const String g_drawModeNames[] = {
 ASSERT(array_elems(g_drawModeNames) == DebugInspectorDrawMode_Count, "Missing draw-mode name");
 
 ecs_comp_define(DebugInspectorSettingsComp) {
-  DebugInspectorTool     tool;
-  DebugInspectorDrawMode mode;
-  DebugInspectorFlags    flags;
+  DebugInspectorTool      tool;
+  DebugInspectorDrawMode  drawMode;
+  DebugInspectorDrawFlags drawFlags;
 };
 
 ecs_comp_define(DebugInspectorPanelComp) {
@@ -453,27 +448,27 @@ static void inspector_panel_draw_settings(
     inspector_panel_next(canvas, panelComp, table);
     ui_label(canvas, string_lit("Draw mode"));
     ui_table_next_column(canvas, table);
-    ui_select(canvas, (i32*)&settings->mode, g_drawModeNames, array_elems(g_drawModeNames));
+    ui_select(canvas, (i32*)&settings->drawMode, g_drawModeNames, array_elems(g_drawModeNames));
 
     inspector_panel_next(canvas, panelComp, table);
     ui_label(canvas, string_lit("Draw name"));
     ui_table_next_column(canvas, table);
-    ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawName);
+    ui_toggle_flag(canvas, (u32*)&settings->drawFlags, DebugInspectorDraw_Name);
 
     inspector_panel_next(canvas, panelComp, table);
     ui_label(canvas, string_lit("Draw collision"));
     ui_table_next_column(canvas, table);
-    ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawCollision);
+    ui_toggle_flag(canvas, (u32*)&settings->drawFlags, DebugInspectorDraw_Collision);
 
     inspector_panel_next(canvas, panelComp, table);
     ui_label(canvas, string_lit("Draw bounds local"));
     ui_table_next_column(canvas, table);
-    ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawBoundsLocal);
+    ui_toggle_flag(canvas, (u32*)&settings->drawFlags, DebugInspectorDraw_BoundsLocal);
 
     inspector_panel_next(canvas, panelComp, table);
     ui_label(canvas, string_lit("Draw bounds global"));
     ui_table_next_column(canvas, table);
-    ui_toggle_flag(canvas, (u32*)&settings->flags, DebugInspectorFlags_DrawBoundsGlobal);
+    ui_toggle_flag(canvas, (u32*)&settings->drawFlags, DebugInspectorDraw_BoundsGlobal);
   }
 }
 
@@ -666,19 +661,19 @@ static void inspector_shape_draw_subject(
   const SceneCollisionComp* collisionComp = ecs_view_read_t(subject, SceneCollisionComp);
   const SceneScaleComp*     scaleComp     = ecs_view_read_t(subject, SceneScaleComp);
 
-  if (nameComp && set->flags & DebugInspectorFlags_DrawName) {
+  if (nameComp && set->drawFlags & DebugInspectorDraw_Name) {
     const String    name = stringtable_lookup(g_stringtable, nameComp->name);
     const GeoVector pos  = geo_vector_add(transformComp->position, geo_vector_mul(geo_up, 0.1f));
     debug_text(text, pos, name, geo_color_white);
   }
-  if (collisionComp && set->flags & DebugInspectorFlags_DrawCollision) {
+  if (collisionComp && set->drawFlags & DebugInspectorDraw_Collision) {
     inspector_shape_draw_collision(shape, collisionComp, transformComp, scaleComp);
   }
   if (boundsComp && !geo_box_is_inverted3(&boundsComp->local)) {
-    if (set->flags & DebugInspectorFlags_DrawBoundsLocal) {
+    if (set->drawFlags & DebugInspectorDraw_BoundsLocal) {
       inspector_shape_draw_bounds_local(shape, boundsComp, transformComp, scaleComp);
     }
-    if (set->flags & DebugInspectorFlags_DrawBoundsGlobal) {
+    if (set->drawFlags & DebugInspectorDraw_BoundsGlobal) {
       inspector_shape_draw_bounds_global(shape, boundsComp, transformComp, scaleComp);
     }
   }
@@ -691,7 +686,7 @@ ecs_system_define(DebugInspectorShapeDrawSys) {
     return;
   }
   const DebugInspectorSettingsComp* set = ecs_view_read_t(globalItr, DebugInspectorSettingsComp);
-  if (!(set->flags & DebugInspectorFlags_DrawAny)) {
+  if (!set->drawFlags) {
     return;
   }
   const SceneSelectionComp* selection = ecs_view_read_t(globalItr, SceneSelectionComp);
@@ -699,7 +694,7 @@ ecs_system_define(DebugInspectorShapeDrawSys) {
   DebugTextComp*            text      = ecs_view_write_t(globalItr, DebugTextComp);
 
   EcsView* subjectView = ecs_world_view_t(world, SubjectView);
-  switch (set->mode) {
+  switch (set->drawMode) {
   case DebugInspectorDraw_SelectedOnly: {
     EcsIterator* subjectItr = ecs_view_maybe_at(subjectView, scene_selected(selection));
     if (subjectItr) {
@@ -746,6 +741,6 @@ ecs_module_init(debug_inspector_module) {
 EcsEntityId debug_inspector_panel_open(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
   ecs_world_add_t(
-      world, panelEntity, DebugInspectorPanelComp, .panel = ui_panel(ui_vector(500, 400)));
+      world, panelEntity, DebugInspectorPanelComp, .panel = ui_panel(ui_vector(500, 550)));
   return panelEntity;
 }
