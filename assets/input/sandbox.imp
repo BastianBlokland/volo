@@ -19,6 +19,21 @@
       ]
     },
     {
+      "name": "Order",
+      "blockers": [
+        "TextInput",
+        "HoveringUi",
+        "HoveringGizmo",
+        "CursorLocked"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "MouseRight"
+        }
+      ]
+    },
+    {
       "name": "Spawn",
       "blockers": [
         "TextInput",
@@ -435,6 +450,30 @@
         {
           "type": "Pressed",
           "key": "Alpha2"
+        }
+      ]
+    },
+    {
+      "name": "DebugInspectorVisCollision",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "Alpha3"
+        }
+      ]
+    },
+    {
+      "name": "DebugInspectorVisLocomotion",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "Alpha4"
         }
       ]
     }

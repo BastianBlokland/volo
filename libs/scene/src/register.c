@@ -6,6 +6,7 @@ void scene_register(EcsDef* def) {
   ecs_register_module(def, scene_camera_module);
   ecs_register_module(def, scene_collision_module);
   ecs_register_module(def, scene_lifetime_module);
+  ecs_register_module(def, scene_locomotion_module);
   ecs_register_module(def, scene_name_module);
   ecs_register_module(def, scene_renderable_module);
   ecs_register_module(def, scene_selection_module);
@@ -13,5 +14,4 @@ void scene_register(EcsDef* def) {
   ecs_register_module(def, scene_tag_module);
   ecs_register_module(def, scene_time_module);
   ecs_register_module(def, scene_transform_module);
-  ecs_register_module(def, scene_velocity_module);
 }
