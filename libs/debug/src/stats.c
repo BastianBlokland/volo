@@ -11,7 +11,7 @@
 #include "ui.h"
 #include "ui_stats.h"
 
-static const f32 g_statsLabelWidth       = 170;
+static const f32 g_statsLabelWidth       = 200;
 static const u8  g_statsBgAlpha          = 150;
 static const u8  g_statsSectionBgAlpha   = 200;
 static const f32 g_statsInvAverageWindow = 1.0f / 10.0f;
