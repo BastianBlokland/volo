@@ -44,7 +44,7 @@
       "anisotropy": "None"
     }
   ],
-  "meshId": "external/vanguard/vanguard.gltf",
+  "meshId": "external/vanguard/vanguard-zflip.gltf",
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "None",
