@@ -31,19 +31,21 @@ typedef enum {
 } DebugInspectorTool;
 
 typedef enum {
-  DebugInspectorDraw_Name         = 1 << 0,
-  DebugInspectorDraw_Locomotion   = 1 << 1,
-  DebugInspectorDraw_Collision    = 1 << 2,
-  DebugInspectorDraw_BoundsLocal  = 1 << 3,
-  DebugInspectorDraw_BoundsGlobal = 1 << 4,
-} DebugInspectorDrawFlags;
+  DebugInspectorVis_Name,
+  DebugInspectorVis_Locomotion,
+  DebugInspectorVis_Collision,
+  DebugInspectorVis_BoundsLocal,
+  DebugInspectorVis_BoundsGlobal,
+
+  DebugInspectorVis_Count,
+} DebugInspectorVis;
 
 typedef enum {
-  DebugInspectorDraw_SelectedOnly,
-  DebugInspectorDraw_All,
+  DebugInspectorVisMode_SelectedOnly,
+  DebugInspectorVisMode_All,
 
-  DebugInspectorDrawMode_Count,
-} DebugInspectorDrawMode;
+  DebugInspectorVisMode_Count,
+} DebugInspectorVisMode;
 
 static const String g_toolNames[] = {
     [DebugInspectorTool_None]        = string_static("None"),
@@ -52,16 +54,25 @@ static const String g_toolNames[] = {
 };
 ASSERT(array_elems(g_toolNames) == DebugInspectorTool_Count, "Missing tool name");
 
-static const String g_drawModeNames[] = {
-    [DebugInspectorDraw_SelectedOnly] = string_static("SelectedOnly"),
-    [DebugInspectorDraw_All]          = string_static("All"),
+static const String g_visNames[] = {
+    [DebugInspectorVis_Name]         = string_static("Name"),
+    [DebugInspectorVis_Locomotion]   = string_static("Locomotion"),
+    [DebugInspectorVis_Collision]    = string_static("Collision"),
+    [DebugInspectorVis_BoundsLocal]  = string_static("BoundsLocal"),
+    [DebugInspectorVis_BoundsGlobal] = string_static("BoundsGlobal"),
 };
-ASSERT(array_elems(g_drawModeNames) == DebugInspectorDrawMode_Count, "Missing draw-mode name");
+ASSERT(array_elems(g_visNames) == DebugInspectorVis_Count, "Missing vis name");
+
+static const String g_visModeNames[] = {
+    [DebugInspectorVisMode_SelectedOnly] = string_static("SelectedOnly"),
+    [DebugInspectorVisMode_All]          = string_static("All"),
+};
+ASSERT(array_elems(g_visModeNames) == DebugInspectorVisMode_Count, "Missing vis mode name");
 
 ecs_comp_define(DebugInspectorSettingsComp) {
-  DebugInspectorTool      tool;
-  DebugInspectorDrawMode  drawMode;
-  DebugInspectorDrawFlags drawFlags;
+  DebugInspectorTool    tool;
+  DebugInspectorVisMode visMode;
+  u32                   visFlags;
 };
 
 ecs_comp_define(DebugInspectorPanelComp) {
@@ -78,11 +89,9 @@ ecs_view_define(GlobalPanelUpdateView) {
   ecs_access_write(DebugStatsGlobalComp);
 }
 
-ecs_view_define(GlobalShapeDrawView) {
-  ecs_access_read(DebugInspectorSettingsComp);
-  ecs_access_read(SceneSelectionComp);
-  ecs_access_write(DebugShapeComp);
-  ecs_access_write(DebugTextComp);
+ecs_view_define(PanelUpdateView) {
+  ecs_access_write(DebugInspectorPanelComp);
+  ecs_access_write(UiCanvasComp);
 }
 
 ecs_view_define(GlobalToolUpdateView) {
@@ -93,9 +102,13 @@ ecs_view_define(GlobalToolUpdateView) {
   ecs_access_write(DebugStatsGlobalComp);
 }
 
-ecs_view_define(PanelUpdateView) {
-  ecs_access_write(DebugInspectorPanelComp);
-  ecs_access_write(UiCanvasComp);
+ecs_view_define(GlobalVisDrawView) {
+  ecs_access_read(InputManagerComp);
+  ecs_access_read(SceneSelectionComp);
+  ecs_access_write(DebugInspectorSettingsComp);
+  ecs_access_write(DebugShapeComp);
+  ecs_access_write(DebugStatsGlobalComp);
+  ecs_access_write(DebugTextComp);
 }
 
 ecs_view_define(SubjectView) {
@@ -107,6 +120,18 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_write(SceneTagComp);
   ecs_access_write(SceneRenderableComp);
   ecs_access_write(SceneTransformComp);
+}
+
+static void inspector_notify_tool(DebugInspectorSettingsComp* set, DebugStatsGlobalComp* stats) {
+  debug_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
+}
+
+static void inspector_notify_vis(
+    DebugInspectorSettingsComp* set, DebugStatsGlobalComp* stats, const DebugInspectorVis vis) {
+  debug_stats_notify(
+      stats,
+      fmt_write_scratch("Visualize {}", fmt_text(g_visNames[vis])),
+      (set->visFlags & (1 << vis)) ? string_lit("enabled") : string_lit("disabled"));
 }
 
 static bool inspector_panel_section(UiCanvasComp* canvas, const String label) {
@@ -452,38 +477,22 @@ static void inspector_panel_draw_settings(
     ui_label(canvas, string_lit("Tool"));
     ui_table_next_column(canvas, table);
     if (ui_select(canvas, (i32*)&settings->tool, g_toolNames, array_elems(g_toolNames))) {
-      debug_stats_notify(stats, string_lit("Tool"), g_toolNames[settings->tool]);
+      inspector_notify_tool(settings, stats);
     }
 
     inspector_panel_next(canvas, panelComp, table);
-    ui_label(canvas, string_lit("Draw mode"));
+    ui_label(canvas, string_lit("Visualize Mode"));
     ui_table_next_column(canvas, table);
-    ui_select(canvas, (i32*)&settings->drawMode, g_drawModeNames, array_elems(g_drawModeNames));
+    ui_select(canvas, (i32*)&settings->visMode, g_visModeNames, array_elems(g_visModeNames));
 
-    inspector_panel_next(canvas, panelComp, table);
-    ui_label(canvas, string_lit("Draw name"));
-    ui_table_next_column(canvas, table);
-    ui_toggle_flag(canvas, (u32*)&settings->drawFlags, DebugInspectorDraw_Name);
-
-    inspector_panel_next(canvas, panelComp, table);
-    ui_label(canvas, string_lit("Draw locomotion"));
-    ui_table_next_column(canvas, table);
-    ui_toggle_flag(canvas, (u32*)&settings->drawFlags, DebugInspectorDraw_Locomotion);
-
-    inspector_panel_next(canvas, panelComp, table);
-    ui_label(canvas, string_lit("Draw collision"));
-    ui_table_next_column(canvas, table);
-    ui_toggle_flag(canvas, (u32*)&settings->drawFlags, DebugInspectorDraw_Collision);
-
-    inspector_panel_next(canvas, panelComp, table);
-    ui_label(canvas, string_lit("Draw bounds local"));
-    ui_table_next_column(canvas, table);
-    ui_toggle_flag(canvas, (u32*)&settings->drawFlags, DebugInspectorDraw_BoundsLocal);
-
-    inspector_panel_next(canvas, panelComp, table);
-    ui_label(canvas, string_lit("Draw bounds global"));
-    ui_table_next_column(canvas, table);
-    ui_toggle_flag(canvas, (u32*)&settings->drawFlags, DebugInspectorDraw_BoundsGlobal);
+    for (DebugInspectorVis vis = 0; vis != DebugInspectorVis_Count; ++vis) {
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, fmt_write_scratch("Visualize {}", fmt_text(g_visNames[vis])));
+      ui_table_next_column(canvas, table);
+      if (ui_toggle_flag(canvas, (u32*)&settings->visFlags, 1 << vis)) {
+        inspector_notify_vis(settings, stats, vis);
+      }
+    }
   }
 }
 
@@ -594,11 +603,11 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
 
   if (input_triggered_lit(input, "DebugInspectorToolTranslation")) {
     debug_inspector_toggle_tool(set, DebugInspectorTool_Translation);
-    debug_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
+    inspector_notify_tool(set, stats);
   }
   if (input_triggered_lit(input, "DebugInspectorToolRotation")) {
     debug_inspector_toggle_tool(set, DebugInspectorTool_Rotation);
-    debug_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
+    inspector_notify_tool(set, stats);
   }
 
   EcsView*     subjectView = ecs_world_view_t(world, SubjectView);
@@ -620,14 +629,14 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
   }
 }
 
-static void inspector_shape_draw_locomotion(
+static void inspector_vis_draw_locomotion(
     DebugShapeComp* shape, const SceneLocomotionComp* loco, const SceneTransformComp* transform) {
   const GeoVector pos = transform ? transform->position : geo_vector(0);
   debug_line(shape, pos, loco->target, geo_color_yellow);
   debug_sphere(shape, loco->target, 0.1f, geo_color_green, DebugShape_Overlay);
 }
 
-static void inspector_shape_draw_collision(
+static void inspector_vis_draw_collision(
     DebugShapeComp*           shape,
     const SceneCollisionComp* collision,
     const SceneTransformComp* transform,
@@ -650,7 +659,7 @@ static void inspector_shape_draw_collision(
   }
 }
 
-static void inspector_shape_draw_bounds_local(
+static void inspector_vis_draw_bounds_local(
     DebugShapeComp*           shape,
     const SceneBoundsComp*    bounds,
     const SceneTransformComp* transform,
@@ -662,7 +671,7 @@ static void inspector_shape_draw_bounds_local(
   debug_box(shape, center, b.rotation, size, geo_color(0, 1, 0, 0.5f), DebugShape_Wire);
 }
 
-static void inspector_shape_draw_bounds_global(
+static void inspector_vis_draw_bounds_global(
     DebugShapeComp*           shape,
     const SceneBoundsComp*    bounds,
     const SceneTransformComp* transform,
@@ -674,7 +683,7 @@ static void inspector_shape_draw_bounds_global(
   debug_box(shape, center, geo_quat_ident, size, geo_color(0, 0, 1, 0.5f), DebugShape_Wire);
 }
 
-static void inspector_shape_draw_subject(
+static void inspector_vis_draw_subject(
     DebugShapeComp*                   shape,
     DebugTextComp*                    text,
     const DebugInspectorSettingsComp* set,
@@ -686,35 +695,50 @@ static void inspector_shape_draw_subject(
   const SceneScaleComp*      scaleComp     = ecs_view_read_t(subject, SceneScaleComp);
   SceneTransformComp*        transformComp = ecs_view_write_t(subject, SceneTransformComp);
 
-  if (nameComp && set->drawFlags & DebugInspectorDraw_Name) {
+  if (nameComp && set->visFlags & (1 << DebugInspectorVis_Name)) {
     const String    name = stringtable_lookup(g_stringtable, nameComp->name);
     const GeoVector pos  = geo_vector_add(transformComp->position, geo_vector_mul(geo_up, 0.1f));
     debug_text(text, pos, name, geo_color_white);
   }
-  if (locoComp && set->drawFlags & DebugInspectorDraw_Locomotion) {
-    inspector_shape_draw_locomotion(shape, locoComp, transformComp);
+  if (locoComp && set->visFlags & (1 << DebugInspectorVis_Locomotion)) {
+    inspector_vis_draw_locomotion(shape, locoComp, transformComp);
   }
-  if (collisionComp && set->drawFlags & DebugInspectorDraw_Collision) {
-    inspector_shape_draw_collision(shape, collisionComp, transformComp, scaleComp);
+  if (collisionComp && set->visFlags & (1 << DebugInspectorVis_Collision)) {
+    inspector_vis_draw_collision(shape, collisionComp, transformComp, scaleComp);
   }
   if (boundsComp && !geo_box_is_inverted3(&boundsComp->local)) {
-    if (set->drawFlags & DebugInspectorDraw_BoundsLocal) {
-      inspector_shape_draw_bounds_local(shape, boundsComp, transformComp, scaleComp);
+    if (set->visFlags & (1 << DebugInspectorVis_BoundsLocal)) {
+      inspector_vis_draw_bounds_local(shape, boundsComp, transformComp, scaleComp);
     }
-    if (set->drawFlags & DebugInspectorDraw_BoundsGlobal) {
-      inspector_shape_draw_bounds_global(shape, boundsComp, transformComp, scaleComp);
+    if (set->visFlags & (1 << DebugInspectorVis_BoundsGlobal)) {
+      inspector_vis_draw_bounds_global(shape, boundsComp, transformComp, scaleComp);
     }
   }
 }
 
-ecs_system_define(DebugInspectorShapeDrawSys) {
-  EcsView*     globalView = ecs_world_view_t(world, GlobalShapeDrawView);
+ecs_system_define(DebugInspectorVisDrawSys) {
+  EcsView*     globalView = ecs_world_view_t(world, GlobalVisDrawView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
   }
-  const DebugInspectorSettingsComp* set = ecs_view_read_t(globalItr, DebugInspectorSettingsComp);
-  if (!set->drawFlags) {
+  const InputManagerComp*     input = ecs_view_read_t(globalItr, InputManagerComp);
+  DebugInspectorSettingsComp* set   = ecs_view_write_t(globalItr, DebugInspectorSettingsComp);
+  DebugStatsGlobalComp*       stats = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
+
+  static const String g_drawHotkeys[DebugInspectorVis_Count] = {
+      [DebugInspectorVis_Collision]  = string_static("DebugInspectorVisCollision"),
+      [DebugInspectorVis_Locomotion] = string_static("DebugInspectorVisLocomotion"),
+  };
+  for (DebugInspectorVis vis = 0; vis != DebugInspectorVis_Count; ++vis) {
+    const u32 hotKeyHash = string_hash(g_drawHotkeys[vis]);
+    if (hotKeyHash && input_triggered_hash(input, hotKeyHash)) {
+      set->visFlags ^= (1 << vis);
+      inspector_notify_vis(set, stats, vis);
+    }
+  }
+
+  if (!set->visFlags) {
     return;
   }
   const SceneSelectionComp* selection = ecs_view_read_t(globalItr, SceneSelectionComp);
@@ -722,19 +746,19 @@ ecs_system_define(DebugInspectorShapeDrawSys) {
   DebugTextComp*            text      = ecs_view_write_t(globalItr, DebugTextComp);
 
   EcsView* subjectView = ecs_world_view_t(world, SubjectView);
-  switch (set->drawMode) {
-  case DebugInspectorDraw_SelectedOnly: {
+  switch (set->visMode) {
+  case DebugInspectorVisMode_SelectedOnly: {
     EcsIterator* subjectItr = ecs_view_maybe_at(subjectView, scene_selected(selection));
     if (subjectItr) {
-      inspector_shape_draw_subject(shape, text, set, subjectItr);
+      inspector_vis_draw_subject(shape, text, set, subjectItr);
     }
   } break;
-  case DebugInspectorDraw_All: {
+  case DebugInspectorVisMode_All: {
     for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
-      inspector_shape_draw_subject(shape, text, set, itr);
+      inspector_vis_draw_subject(shape, text, set, itr);
     }
   } break;
-  case DebugInspectorDrawMode_Count:
+  case DebugInspectorVisMode_Count:
     UNREACHABLE
   }
 }
@@ -745,9 +769,9 @@ ecs_module_init(debug_inspector_module) {
 
   ecs_register_view(SettingsWriteView);
   ecs_register_view(GlobalPanelUpdateView);
-  ecs_register_view(GlobalShapeDrawView);
-  ecs_register_view(GlobalToolUpdateView);
   ecs_register_view(PanelUpdateView);
+  ecs_register_view(GlobalToolUpdateView);
+  ecs_register_view(GlobalVisDrawView);
   ecs_register_view(SubjectView);
 
   ecs_register_system(
@@ -761,9 +785,9 @@ ecs_module_init(debug_inspector_module) {
       DebugInspectorToolUpdateSys, ecs_view_id(GlobalToolUpdateView), ecs_view_id(SubjectView));
 
   ecs_register_system(
-      DebugInspectorShapeDrawSys, ecs_view_id(GlobalShapeDrawView), ecs_view_id(SubjectView));
+      DebugInspectorVisDrawSys, ecs_view_id(GlobalVisDrawView), ecs_view_id(SubjectView));
 
-  ecs_order(DebugInspectorShapeDrawSys, DebugOrder_InspectorDebugDraw);
+  ecs_order(DebugInspectorVisDrawSys, DebugOrder_InspectorDebugDraw);
 }
 
 EcsEntityId debug_inspector_panel_open(EcsWorld* world, const EcsEntityId window) {
