@@ -13,7 +13,7 @@ static const SceneCollisionCapsule g_unitCapsule = {
     .radius = 0.3f,
     .height = 1.2f,
 };
-static const f32 g_unitSpeed = 1.0f;
+static const f32 g_unitSpeed = 2.0f;
 
 ecs_comp_define(UnitDatabaseComp) { EcsEntityId unitGraphic; };
 ecs_comp_define(UnitComp);
