@@ -1,18 +1,20 @@
 #include "core_math.h"
 #include "ecs_world.h"
 #include "scene_locomotion.h"
+#include "scene_skeleton.h"
 #include "scene_time.h"
 #include "scene_transform.h"
 
 #define locomotion_arrive_threshold 1e-2f
-#define locomotion_rotation_speed 270.0f
+#define locomotion_rotation_speed 360.0f
 
 ecs_comp_define_public(SceneLocomotionComp);
 
 ecs_view_define(GlobalView) { ecs_access_read(SceneTimeComp); }
 
 ecs_view_define(MoveView) {
-  ecs_access_read(SceneLocomotionComp);
+  ecs_access_maybe_write(SceneAnimationComp);
+  ecs_access_write(SceneLocomotionComp);
   ecs_access_write(SceneTransformComp);
 }
 
@@ -35,19 +37,19 @@ scene_locomotion_face(SceneTransformComp* trans, const GeoVector dir, const f32 
   trans->rotation = geo_quat_norm(trans->rotation);
 }
 
-static void scene_locomotion_move(
+static bool scene_locomotion_move(
     const SceneLocomotionComp* loco, SceneTransformComp* trans, const f32 deltaSeconds) {
   const GeoVector toTarget = geo_vector_sub(loco->target, trans->position);
   const f32       dist     = geo_vector_mag(toTarget);
   if (dist < locomotion_arrive_threshold) {
-    return;
+    return true;
   }
   const GeoVector dir   = geo_vector_div(toTarget, dist);
   const f32       delta = math_min(dist, loco->speed * deltaSeconds);
 
   trans->position = geo_vector_add(trans->position, geo_vector_mul(dir, delta));
-
   scene_locomotion_face(trans, dir, deltaSeconds);
+  return false;
 }
 
 ecs_system_define(SceneLocomotionMoveSys) {
@@ -59,12 +61,20 @@ ecs_system_define(SceneLocomotionMoveSys) {
   const SceneTimeComp* time         = ecs_view_read_t(globalItr, SceneTimeComp);
   const f32            deltaSeconds = scene_delta_seconds(time);
 
+  const StringHash walkAnimHash = string_hash_lit("walking");
+
   EcsView* moveView = ecs_world_view_t(world, MoveView);
   for (EcsIterator* itr = ecs_view_itr(moveView); ecs_view_walk(itr);) {
-    const SceneLocomotionComp* loco  = ecs_view_read_t(itr, SceneLocomotionComp);
-    SceneTransformComp*        trans = ecs_view_write_t(itr, SceneTransformComp);
+    SceneAnimationComp*  anim  = ecs_view_write_t(itr, SceneAnimationComp);
+    SceneLocomotionComp* loco  = ecs_view_write_t(itr, SceneLocomotionComp);
+    SceneTransformComp*  trans = ecs_view_write_t(itr, SceneTransformComp);
 
-    scene_locomotion_move(loco, trans, deltaSeconds);
+    const bool arrived = scene_locomotion_move(loco, trans, deltaSeconds);
+    if (anim) {
+      const f32 targetWalkWeight = arrived ? 0.0f : 1.0f;
+      loco->walkWeight = math_lerp(loco->walkWeight, targetWalkWeight, 10.0f * deltaSeconds);
+      scene_animation_set_weight(anim, walkAnimHash, loco->walkWeight);
+    }
   }
 }
 
