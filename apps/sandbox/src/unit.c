@@ -1,6 +1,7 @@
 #include "asset_manager.h"
 #include "ecs_world.h"
 #include "scene_collision.h"
+#include "scene_locomotion.h"
 #include "scene_renderable.h"
 #include "scene_transform.h"
 
@@ -52,6 +53,7 @@ EcsEntityId unit_spawn(EcsWorld* world, const UnitDatabaseComp* db, const GeoVec
   ecs_world_add_empty_t(world, e, UnitComp);
   ecs_world_add_t(world, e, SceneRenderableComp, .graphic = db->unitGraphic);
   ecs_world_add_t(world, e, SceneTransformComp, .position = position, .rotation = rotation);
+  ecs_world_add_t(world, e, SceneLocomotionComp, .target = position);
   scene_collision_add_capsule(world, e, g_unitCapsule);
   return e;
 }
