@@ -476,7 +476,7 @@
       ]
     },
     {
-      "name": "DebugInspectorVisCollision",
+      "name": "DebugInspectorToolScale",
       "blockers": [
         "TextInput"
       ],
@@ -488,7 +488,7 @@
       ]
     },
     {
-      "name": "DebugInspectorVisLocomotion",
+      "name": "DebugInspectorVisCollision",
       "blockers": [
         "TextInput"
       ],
@@ -496,6 +496,18 @@
         {
           "type": "Pressed",
           "key": "Alpha4"
+        }
+      ]
+    },
+    {
+      "name": "DebugInspectorVisLocomotion",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "Alpha5"
         }
       ]
     }

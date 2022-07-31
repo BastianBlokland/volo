@@ -26,6 +26,7 @@ typedef enum {
   DebugInspectorTool_None,
   DebugInspectorTool_Translation,
   DebugInspectorTool_Rotation,
+  DebugInspectorTool_Scale,
 
   DebugInspectorTool_Count,
 } DebugInspectorTool;
@@ -51,6 +52,7 @@ static const String g_toolNames[] = {
     [DebugInspectorTool_None]        = string_static("None"),
     [DebugInspectorTool_Translation] = string_static("Translation"),
     [DebugInspectorTool_Rotation]    = string_static("Rotation"),
+    [DebugInspectorTool_Scale]       = string_static("Scale"),
 };
 ASSERT(array_elems(g_toolNames) == DebugInspectorTool_Count, "Missing tool name");
 
@@ -625,18 +627,33 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
     debug_inspector_toggle_tool(set, DebugInspectorTool_Rotation);
     inspector_notify_tool(set, stats);
   }
+  if (input_triggered_lit(input, "DebugInspectorToolScale")) {
+    debug_inspector_toggle_tool(set, DebugInspectorTool_Scale);
+    inspector_notify_tool(set, stats);
+  }
 
   EcsView*     subjectView = ecs_world_view_t(world, SubjectView);
   EcsIterator* subjectItr  = ecs_view_maybe_at(subjectView, scene_selected(selection));
   if (subjectItr) {
     const DebugGizmoId  gizmoId       = (DebugGizmoId)ecs_view_entity(subjectItr);
     SceneTransformComp* transformComp = ecs_view_write_t(subjectItr, SceneTransformComp);
+    SceneScaleComp*     scaleComp     = ecs_view_write_t(subjectItr, SceneScaleComp);
     switch (set->tool) {
     case DebugInspectorTool_Translation:
-      debug_gizmo_translation(gizmo, gizmoId, &transformComp->position, transformComp->rotation);
+      if (transformComp) {
+        debug_gizmo_translation(gizmo, gizmoId, &transformComp->position, transformComp->rotation);
+      }
       break;
     case DebugInspectorTool_Rotation:
-      debug_gizmo_rotation(gizmo, gizmoId, transformComp->position, &transformComp->rotation);
+      if (transformComp) {
+        debug_gizmo_rotation(gizmo, gizmoId, transformComp->position, &transformComp->rotation);
+      }
+      break;
+    case DebugInspectorTool_Scale:
+      if (scaleComp) {
+        const GeoVector position = transformComp ? transformComp->position : geo_vector(0);
+        debug_gizmo_scale_uniform(gizmo, gizmoId, position, &scaleComp->scale);
+      }
       break;
     case DebugInspectorTool_None:
     case DebugInspectorTool_Count:
