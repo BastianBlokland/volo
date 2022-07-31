@@ -13,6 +13,7 @@ ecs_comp_define_public(SceneLocomotionComp);
 ecs_view_define(GlobalView) { ecs_access_read(SceneTimeComp); }
 
 ecs_view_define(MoveView) {
+  ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_write(SceneAnimationComp);
   ecs_access_write(SceneLocomotionComp);
   ecs_access_write(SceneTransformComp);
@@ -38,14 +39,17 @@ scene_locomotion_face(SceneTransformComp* trans, const GeoVector dir, const f32 
 }
 
 static bool scene_locomotion_move(
-    const SceneLocomotionComp* loco, SceneTransformComp* trans, const f32 deltaSeconds) {
+    const SceneLocomotionComp* loco,
+    SceneTransformComp*        trans,
+    const f32                  scale,
+    const f32                  deltaSeconds) {
   const GeoVector toTarget = geo_vector_sub(loco->target, trans->position);
   const f32       dist     = geo_vector_mag(toTarget);
   if (dist < locomotion_arrive_threshold) {
     return true;
   }
   const GeoVector dir   = geo_vector_div(toTarget, dist);
-  const f32       delta = math_min(dist, loco->speed * deltaSeconds);
+  const f32       delta = math_min(dist, loco->speed * scale * deltaSeconds);
 
   trans->position = geo_vector_add(trans->position, geo_vector_mul(dir, delta));
   scene_locomotion_face(trans, dir, deltaSeconds);
@@ -69,7 +73,10 @@ ecs_system_define(SceneLocomotionMoveSys) {
     SceneLocomotionComp* loco  = ecs_view_write_t(itr, SceneLocomotionComp);
     SceneTransformComp*  trans = ecs_view_write_t(itr, SceneTransformComp);
 
-    const bool arrived = scene_locomotion_move(loco, trans, deltaSeconds);
+    const SceneScaleComp* scaleComp = ecs_view_read_t(itr, SceneScaleComp);
+    const f32             scale     = scaleComp ? scaleComp->scale : 1.0f;
+
+    const bool arrived = scene_locomotion_move(loco, trans, scale, deltaSeconds);
     if (anim) {
       const f32 targetWalkWeight = arrived ? 0.0f : 1.0f;
       loco->walkWeight = math_lerp(loco->walkWeight, targetWalkWeight, 10.0f * deltaSeconds);
