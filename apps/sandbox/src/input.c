@@ -29,10 +29,11 @@ ecs_view_define(CameraView) {
 }
 
 static void update_camera_movement(
-    const SceneTimeComp*    time,
-    const InputManagerComp* input,
-    const SceneCameraComp*  camera,
-    SceneTransformComp*     camTrans) {
+    const SceneTimeComp*      time,
+    const InputManagerComp*   input,
+    const SceneSelectionComp* selection,
+    const SceneCameraComp*    camera,
+    SceneTransformComp*       camTrans) {
 
   f32 moveDelta = scene_real_delta_seconds(time) * g_inputCamMoveSpeed;
   if (input_triggered_lit(input, "CameraMoveBoost")) {
@@ -57,8 +58,9 @@ static void update_camera_movement(
     camTrans->position = geo_vector_sub(camTrans->position, geo_vector_mul(right, moveDelta));
   }
 
+  const bool hasSelection = ecs_entity_valid(scene_selected(selection));
   const bool cursorLocked = input_cursor_mode(input) == InputCursorMode_Locked;
-  if (input_triggered_lit(input, "CameraLookEnable") || cursorLocked) {
+  if ((input_triggered_lit(input, "CameraLookEnable") && !hasSelection) || cursorLocked) {
     const f32 deltaX = input_cursor_delta_x(input) * g_inputCamRotateSensitivity;
     const f32 deltaY = input_cursor_delta_y(input) * -g_inputCamRotateSensitivity;
 
@@ -133,7 +135,7 @@ ecs_system_define(InputUpdateSys) {
     EcsIterator*           camItr      = ecs_view_at(cameraView, input_active_window(input));
     const SceneCameraComp* camera      = ecs_view_read_t(camItr, SceneCameraComp);
     SceneTransformComp*    cameraTrans = ecs_view_write_t(camItr, SceneTransformComp);
-    update_camera_movement(time, input, camera, cameraTrans);
+    update_camera_movement(time, input, selection, camera, cameraTrans);
     update_camera_interact(cmdController, input, collisionEnv, selection, camera, cameraTrans);
   }
 }
