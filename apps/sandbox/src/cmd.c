@@ -13,6 +13,7 @@ typedef enum {
   Cmd_Deselect,
   Cmd_Move,
   Cmd_SpawnUnit,
+  Cmd_SpawnWall,
   Cmd_Destroy,
 } CmdType;
 
@@ -30,6 +31,10 @@ typedef struct {
 } CmdSpawnUnit;
 
 typedef struct {
+  GeoVector position;
+} CmdSpawnWall;
+
+typedef struct {
   EcsEntityId object;
 } CmdDestroy;
 
@@ -39,6 +44,7 @@ typedef struct {
     CmdSelect    select;
     CmdMove      move;
     CmdSpawnUnit spawnUnit;
+    CmdSpawnWall spawnWall;
     CmdDestroy   destroy;
   };
 } Cmd;
@@ -92,6 +98,9 @@ static void cmd_execute(
     break;
   case Cmd_SpawnUnit:
     object_spawn_unit(world, objectDb, cmd->spawnUnit.position);
+    break;
+  case Cmd_SpawnWall:
+    object_spawn_wall(world, objectDb, cmd->spawnWall.position);
     break;
   case Cmd_Destroy:
     diag_assert_msg(ecs_world_exists(world, cmd->destroy.object), "Destroying non-existing obj");
@@ -162,6 +171,13 @@ void cmd_push_spawn_unit(CmdControllerComp* controller, const GeoVector position
   *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
       .type      = Cmd_SpawnUnit,
       .spawnUnit = {.position = position},
+  };
+}
+
+void cmd_push_spawn_wall(CmdControllerComp* controller, const GeoVector position) {
+  *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
+      .type      = Cmd_SpawnWall,
+      .spawnWall = {.position = position},
   };
 }
 
