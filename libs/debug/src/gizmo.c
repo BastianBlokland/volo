@@ -16,7 +16,7 @@
 #include "scene_camera.h"
 #include "scene_transform.h"
 
-#define gizmo_ring_segments 16
+#define gizmo_ring_segments 32
 
 static const f32 g_gizmoCollisionScale = 1.5f;
 static const f32 g_gizmoSnapAngleDeg   = 45.0f;
@@ -621,16 +621,6 @@ gizmo_rotation_ring_color(const DebugGizmoComp* comp, const DebugGizmoId id, con
   return g_gizmoRotationRings[index].colorNormal;
 }
 
-static DebugShapeMode
-gizmo_rotation_ring_mode(const DebugGizmoComp* comp, const DebugGizmoId id, const u32 index) {
-  diag_assert(index < 3);
-
-  if (gizmo_is_hovered_section(comp, id, (DebugGizmoSection)index)) {
-    return DebugShape_Overlay;
-  }
-  return DebugShape_Fill;
-}
-
 static f32
 gizmo_rotation_ring_thickness(const DebugGizmoComp* comp, const DebugGizmoId id, const u32 index) {
   diag_assert(index < 3);
@@ -668,8 +658,8 @@ static void gizmo_draw_rotation(
     for (u32 segment = 0; segment != gizmo_ring_segments; ++segment) {
       const GeoCapsule*    capsule = &capsules[segment];
       const GeoColor       color   = gizmo_rotation_ring_color(comp, entry->id, i);
-      const DebugShapeMode mode    = gizmo_rotation_ring_mode(comp, entry->id, i);
-      debug_capsule(shape, capsule->line.a, capsule->line.b, capsule->radius, color, mode);
+      const DebugShapeMode mode    = DebugShape_Overlay;
+      debug_cylinder(shape, capsule->line.a, capsule->line.b, capsule->radius, color, mode);
     }
   }
 }
