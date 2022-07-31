@@ -65,6 +65,10 @@ ecs_system_define(SceneCollisionUpdateSys) {
         geo_query_insert_capsule(env->queryEnv, capsule, id);
       }
     } break;
+    case SceneCollisionType_Box: {
+      const GeoBoxRotated boxRotated = scene_collision_world_box(&collision->box, trans, scale);
+      geo_query_insert_box_rotated(env->queryEnv, boxRotated, id);
+    } break;
     default:
       diag_crash();
     }
@@ -94,6 +98,11 @@ void scene_collision_add_capsule(
     EcsWorld* world, const EcsEntityId entity, const SceneCollisionCapsule capsule) {
   ecs_world_add_t(
       world, entity, SceneCollisionComp, .type = SceneCollisionType_Capsule, .capsule = capsule);
+}
+
+void scene_collision_add_box(
+    EcsWorld* world, const EcsEntityId entity, const SceneCollisionBox box) {
+  ecs_world_add_t(world, entity, SceneCollisionComp, .type = SceneCollisionType_Box, .box = box);
 }
 
 bool scene_query_ray(const SceneCollisionEnvComp* env, const GeoRay* ray, SceneRayHit* out) {
@@ -143,4 +152,21 @@ GeoCapsule scene_collision_world_capsule(
   const GeoVector top    = geo_vector_add(bottom, geo_vector_mul(dir, capsule->height * baseScale));
 
   return (GeoCapsule){.line = {bottom, top}, .radius = capsule->radius * baseScale};
+}
+
+GeoBoxRotated scene_collision_world_box(
+    const SceneCollisionBox* box, const SceneTransformComp* trans, const SceneScaleComp* scale) {
+
+  const GeoVector basePos   = LIKELY(trans) ? trans->position : geo_vector(0);
+  const GeoQuat   baseRot   = LIKELY(trans) ? trans->rotation : geo_quat_ident;
+  const f32       baseScale = scale ? scale->scale : 1.0f;
+
+  const GeoVector localCenter = geo_vector_mul(geo_vector_add(box->min, box->max), baseScale * .5f);
+  const GeoVector worldCenter = geo_vector_add(basePos, geo_quat_rotate(baseRot, localCenter));
+
+  const GeoVector size = geo_vector_mul(geo_vector_sub(box->max, box->min), baseScale);
+  return (GeoBoxRotated){
+      .box      = geo_box_from_center(worldCenter, size),
+      .rotation = baseRot,
+  };
 }

@@ -402,6 +402,22 @@ static void inspector_panel_draw_collision(
         ui_table_next_column(canvas, table);
         inspector_panel_draw_editor_float(canvas, &collision->capsule.height);
       } break;
+      case SceneCollisionType_Box: {
+        inspector_panel_next(canvas, panelComp, table);
+        ui_label(canvas, string_lit("Type"));
+        ui_table_next_column(canvas, table);
+        inspector_panel_draw_value_string(canvas, string_lit("Box"));
+
+        inspector_panel_next(canvas, panelComp, table);
+        ui_label(canvas, string_lit("Min"));
+        ui_table_next_column(canvas, table);
+        inspector_panel_draw_editor_vec(canvas, &collision->box.min, 3);
+
+        inspector_panel_next(canvas, panelComp, table);
+        ui_label(canvas, string_lit("Max"));
+        ui_table_next_column(canvas, table);
+        inspector_panel_draw_editor_vec(canvas, &collision->box.max, 3);
+      } break;
       }
     }
   }
@@ -641,20 +657,26 @@ static void inspector_vis_draw_collision(
     const SceneCollisionComp* collision,
     const SceneTransformComp* transform,
     const SceneScaleComp*     scale) {
+  static const GeoColor g_colorFill = {1, 0, 0, 0.2f};
+  static const GeoColor g_colorWire = {1, 0, 0, 1};
+
   switch (collision->type) {
   case SceneCollisionType_Sphere: {
-    const GeoSphere c         = scene_collision_world_sphere(&collision->sphere, transform, scale);
-    const GeoColor  colorFill = geo_color(1, 0, 0, 0.2f);
-    const GeoColor  colorWire = geo_color(1, 0, 0, 1);
-    debug_sphere(shape, c.point, c.radius, colorFill, DebugShape_Fill);
-    debug_sphere(shape, c.point, c.radius, colorWire, DebugShape_Wire);
+    const GeoSphere c = scene_collision_world_sphere(&collision->sphere, transform, scale);
+    debug_sphere(shape, c.point, c.radius, g_colorFill, DebugShape_Fill);
+    debug_sphere(shape, c.point, c.radius, g_colorWire, DebugShape_Wire);
   } break;
   case SceneCollisionType_Capsule: {
     const GeoCapsule c = scene_collision_world_capsule(&collision->capsule, transform, scale);
-    const GeoColor   colorFill = geo_color(1, 0, 0, 0.2f);
-    const GeoColor   colorWire = geo_color(1, 0, 0, 1);
-    debug_capsule(shape, c.line.a, c.line.b, c.radius, colorFill, DebugShape_Fill);
-    debug_capsule(shape, c.line.a, c.line.b, c.radius, colorWire, DebugShape_Wire);
+    debug_capsule(shape, c.line.a, c.line.b, c.radius, g_colorFill, DebugShape_Fill);
+    debug_capsule(shape, c.line.a, c.line.b, c.radius, g_colorWire, DebugShape_Wire);
+  } break;
+  case SceneCollisionType_Box: {
+    const GeoBoxRotated b      = scene_collision_world_box(&collision->box, transform, scale);
+    const GeoVector     center = geo_box_center(&b.box);
+    const GeoVector     size   = geo_box_size(&b.box);
+    debug_box(shape, center, b.rotation, size, g_colorFill, DebugShape_Fill);
+    debug_box(shape, center, b.rotation, size, g_colorWire, DebugShape_Wire);
   } break;
   }
 }

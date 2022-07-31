@@ -1,4 +1,5 @@
 #include "core_array.h"
+#include "core_math.h"
 #include "geo_box.h"
 
 #define geo_box_simd_enable 1
@@ -265,4 +266,51 @@ bool geo_box_intersect_frustum4(const GeoBox* box, const GeoPlane frustum[4]) {
   }
   return true;
 #endif
+}
+
+f32 geo_box_intersect_ray(const GeoBox* box, const GeoRay* ray, GeoVector* outNormal) {
+  /**
+   * Find the intersection of the axis-aligned box the given ray using Cyrus-Beck clipping.
+   * More information: https://izzofinal.wordpress.com/2012/11/09/ray-vs-box-round-1/
+   */
+
+  const f32 t1 = (box->min.x - ray->point.x) / ray->dir.x;
+  const f32 t2 = (box->max.x - ray->point.x) / ray->dir.x;
+  const f32 t3 = (box->min.y - ray->point.y) / ray->dir.y;
+  const f32 t4 = (box->max.y - ray->point.y) / ray->dir.y;
+  const f32 t5 = (box->min.z - ray->point.z) / ray->dir.z;
+  const f32 t6 = (box->max.z - ray->point.z) / ray->dir.z;
+
+  const f32 minA = math_min(t1, t2);
+  const f32 minB = math_min(t3, t4);
+  const f32 minC = math_min(t5, t6);
+  const f32 tMin = math_max(math_max(minA, minB), minC);
+
+  const f32 maxA = math_max(t1, t2);
+  const f32 maxB = math_max(t3, t4);
+  const f32 maxC = math_max(t5, t6);
+  const f32 tMax = math_min(math_min(maxA, maxB), maxC);
+
+  // if tMax < 0: ray intersects the box, but whole box is behind us.
+  if (tMax < 0) {
+    return -1.0f;
+  }
+
+  // if tMin > tMax: ray misses the box.
+  if (tMin > tMax) {
+    return -1.0f;
+  }
+
+  const f32 result = tMin >= 0 ? tMin : tMax;
+
+  // Calculate the surface normal.
+  if (minA >= minB && minA >= minC) { // A is the biggest meaning we're on the X plane
+    *outNormal = t1 <= t2 ? geo_left : geo_right;
+  } else if (minB >= minA && minB >= minC) { // B is the biggest meaning we're on the Y plane
+    *outNormal = t3 <= t4 ? geo_down : geo_up;
+  } else { // C is the biggest meaning we're on the Z plane
+    *outNormal = t5 <= t6 ? geo_backward : geo_forward;
+  }
+
+  return result;
 }

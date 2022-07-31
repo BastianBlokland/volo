@@ -6,13 +6,14 @@
 #include "scene_selection.h"
 
 #include "cmd_internal.h"
-#include "unit_internal.h"
+#include "object_internal.h"
 
 typedef enum {
   Cmd_Select,
   Cmd_Deselect,
   Cmd_Move,
   Cmd_SpawnUnit,
+  Cmd_SpawnWall,
   Cmd_Destroy,
 } CmdType;
 
@@ -30,6 +31,10 @@ typedef struct {
 } CmdSpawnUnit;
 
 typedef struct {
+  GeoVector position;
+} CmdSpawnWall;
+
+typedef struct {
   EcsEntityId object;
 } CmdDestroy;
 
@@ -39,6 +44,7 @@ typedef struct {
     CmdSelect    select;
     CmdMove      move;
     CmdSpawnUnit spawnUnit;
+    CmdSpawnWall spawnWall;
     CmdDestroy   destroy;
   };
 } Cmd;
@@ -55,7 +61,7 @@ static void ecs_destruct_controller(void* data) {
 ecs_view_define(ControllerWriteView) { ecs_access_write(CmdControllerComp); }
 
 ecs_view_define(GlobalUpdateView) {
-  ecs_access_read(UnitDatabaseComp);
+  ecs_access_read(ObjectDatabaseComp);
   ecs_access_write(SceneSelectionComp);
 }
 
@@ -75,10 +81,10 @@ static void cmd_execute_move(EcsWorld* world, const CmdMove* cmdMove) {
 }
 
 static void cmd_execute(
-    EcsWorld*               world,
-    const UnitDatabaseComp* unitDb,
-    SceneSelectionComp*     selection,
-    const Cmd*              cmd) {
+    EcsWorld*                 world,
+    const ObjectDatabaseComp* objectDb,
+    SceneSelectionComp*       selection,
+    const Cmd*                cmd) {
   switch (cmd->type) {
   case Cmd_Select:
     diag_assert_msg(ecs_world_exists(world, cmd->select.object), "Selecting non-existing obj");
@@ -91,7 +97,10 @@ static void cmd_execute(
     cmd_execute_move(world, &cmd->move);
     break;
   case Cmd_SpawnUnit:
-    unit_spawn(world, unitDb, cmd->spawnUnit.position);
+    object_spawn_unit(world, objectDb, cmd->spawnUnit.position);
+    break;
+  case Cmd_SpawnWall:
+    object_spawn_wall(world, objectDb, cmd->spawnWall.position);
     break;
   case Cmd_Destroy:
     diag_assert_msg(ecs_world_exists(world, cmd->destroy.object), "Destroying non-existing obj");
@@ -106,9 +115,9 @@ ecs_system_define(CmdControllerUpdateSys) {
   if (!globalItr) {
     return;
   }
-  const UnitDatabaseComp* unitDb     = ecs_view_read_t(globalItr, UnitDatabaseComp);
-  SceneSelectionComp*     selection  = ecs_view_write_t(globalItr, SceneSelectionComp);
-  CmdControllerComp*      controller = cmd_controller_get(world);
+  const ObjectDatabaseComp* objectDb   = ecs_view_read_t(globalItr, ObjectDatabaseComp);
+  SceneSelectionComp*       selection  = ecs_view_write_t(globalItr, SceneSelectionComp);
+  CmdControllerComp*        controller = cmd_controller_get(world);
   if (!controller) {
     controller = ecs_world_add_t(
         world,
@@ -117,7 +126,7 @@ ecs_system_define(CmdControllerUpdateSys) {
         .commands = dynarray_create_t(g_alloc_heap, Cmd, 2));
   }
 
-  dynarray_for_t(&controller->commands, Cmd, cmd) { cmd_execute(world, unitDb, selection, cmd); }
+  dynarray_for_t(&controller->commands, Cmd, cmd) { cmd_execute(world, objectDb, selection, cmd); }
   dynarray_clear(&controller->commands);
 }
 
@@ -162,6 +171,13 @@ void cmd_push_spawn_unit(CmdControllerComp* controller, const GeoVector position
   *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
       .type      = Cmd_SpawnUnit,
       .spawnUnit = {.position = position},
+  };
+}
+
+void cmd_push_spawn_wall(CmdControllerComp* controller, const GeoVector position) {
+  *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
+      .type      = Cmd_SpawnWall,
+      .spawnWall = {.position = position},
   };
 }
 

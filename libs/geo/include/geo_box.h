@@ -81,3 +81,11 @@ GeoBox geo_box_from_line(GeoVector from, GeoVector to);
  * NOTE: If the given box is inverted its considered to always be intersecting.
  */
 bool geo_box_intersect_frustum4(const GeoBox*, const GeoPlane frustum[4]);
+
+/**
+ * Compute the intersection of the box with the given ray.
+ * Returns the time along the ray at which the intersection occurred or negative if no intersection
+ * occurred.
+ * NOTE: Writes the surface-normal at the point of intersection to 'outNormal'.
+ */
+f32 geo_box_intersect_ray(const GeoBox*, const GeoRay*, GeoVector* outNormal);

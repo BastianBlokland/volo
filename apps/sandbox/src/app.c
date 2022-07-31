@@ -127,7 +127,7 @@ void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
   ecs_register_module(def, sandbox_app_module);
   ecs_register_module(def, sandbox_cmd_module);
   ecs_register_module(def, sandbox_input_module);
-  ecs_register_module(def, sandbox_unit_module);
+  ecs_register_module(def, sandbox_object_module);
 }
 
 void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
