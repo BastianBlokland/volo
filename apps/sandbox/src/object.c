@@ -76,6 +76,7 @@ object_spawn_wall(EcsWorld* world, const ObjectDatabaseComp* db, const GeoVector
   ecs_world_add_empty_t(world, e, ObjectComp);
   ecs_world_add_t(world, e, SceneRenderableComp, .graphic = db->wallGraphic);
   ecs_world_add_t(world, e, SceneTransformComp, .position = position, .rotation = rotation);
+  ecs_world_add_t(world, e, SceneScaleComp, .scale = 1.0f);
   scene_collision_add_box(world, e, g_box);
   return e;
 }
