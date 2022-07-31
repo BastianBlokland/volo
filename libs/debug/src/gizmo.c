@@ -734,3 +734,12 @@ bool debug_gizmo_rotation(
   }
   return isInteracting;
 }
+
+bool debug_gizmo_scale_uniform(
+    DebugGizmoComp* comp, const DebugGizmoId id, const GeoVector translation, f32* scale) {
+  (void)comp;
+  (void)id;
+  (void)translation;
+  (void)scale;
+  return false;
+}

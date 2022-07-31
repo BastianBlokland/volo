@@ -29,4 +29,12 @@ bool debug_gizmo_translation(DebugGizmoComp*, DebugGizmoId, GeoVector* translati
  */
 bool debug_gizmo_rotation(DebugGizmoComp*, DebugGizmoId, GeoVector translation, GeoQuat* rotation);
 
+/**
+ * Draw a uniform scale gizmo.
+ * Updated scale value is written to the given f32 pointer.
+ * Returns true if the gizmo is currently being used.
+ * NOTE: Pass a stable GizmoId to track edits across frames.
+ */
+bool debug_gizmo_scale_uniform(DebugGizmoComp*, DebugGizmoId, GeoVector translation, f32* scale);
+
 // clang-format on
