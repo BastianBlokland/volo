@@ -161,9 +161,12 @@ GeoBoxRotated scene_collision_world_box(
   const GeoQuat   baseRot   = LIKELY(trans) ? trans->rotation : geo_quat_ident;
   const f32       baseScale = scale ? scale->scale : 1.0f;
 
+  const GeoVector localCenter = geo_vector_mul(geo_vector_add(box->min, box->max), baseScale * .5f);
+  const GeoVector worldCenter = geo_vector_add(basePos, geo_quat_rotate(baseRot, localCenter));
+
+  const GeoVector size = geo_vector_mul(geo_vector_sub(box->max, box->min), baseScale);
   return (GeoBoxRotated){
-      .box.min  = geo_vector_add(basePos, geo_vector_mul(box->min, baseScale)),
-      .box.max  = geo_vector_add(basePos, geo_vector_mul(box->max, baseScale)),
+      .box      = geo_box_from_center(worldCenter, size),
       .rotation = baseRot,
   };
 }
