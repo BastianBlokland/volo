@@ -267,8 +267,8 @@ static void debug_camera_draw_input_ray(
   SceneRayHit hit;
   if (scene_query_ray(collisionEnv, &ray, &hit)) {
     debug_sphere(shape, hit.position, 0.04f, geo_color_lime, DebugShape_Overlay);
-    const GeoVector lineEnd = geo_vector_add(hit.position, geo_vector_mul(hit.normal, 0.25f));
-    debug_arrow(shape, hit.position, lineEnd, 0.02f, geo_color_green);
+    const GeoVector lineEnd = geo_vector_add(hit.position, geo_vector_mul(hit.normal, 0.5f));
+    debug_arrow(shape, hit.position, lineEnd, 0.04f, geo_color_green);
 
     EcsIterator* nameItr = ecs_view_itr(nameView);
     if (ecs_view_maybe_jump(nameItr, hit.entity)) {
