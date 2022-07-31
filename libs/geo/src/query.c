@@ -6,10 +6,12 @@
 
 struct sGeoQueryEnv {
   Allocator* alloc;
-  DynArray   spheres;    // GeoSphere[].
-  DynArray   sphereIds;  // u64[].
-  DynArray   capsules;   // GeoCapsule[].
-  DynArray   capsuleIds; // u64[].
+  DynArray   spheres;      // GeoSphere[].
+  DynArray   sphereIds;    // u64[].
+  DynArray   capsules;     // GeoCapsule[].
+  DynArray   capsuleIds;   // u64[].
+  DynArray   rotatedBoxes; // GeoBoxRotated[].
+  DynArray   rotateBoxIds; // u64[].
 };
 
 static void geo_query_validate_pos(const GeoVector vec) {
@@ -32,11 +34,13 @@ GeoQueryEnv* geo_query_env_create(Allocator* alloc) {
   GeoQueryEnv* env = alloc_alloc_t(alloc, GeoQueryEnv);
 
   *env = (GeoQueryEnv){
-      .alloc      = alloc,
-      .spheres    = dynarray_create_t(alloc, GeoSphere, 512),
-      .sphereIds  = dynarray_create_t(alloc, u64, 512),
-      .capsules   = dynarray_create_t(alloc, GeoCapsule, 512),
-      .capsuleIds = dynarray_create_t(alloc, u64, 512),
+      .alloc        = alloc,
+      .spheres      = dynarray_create_t(alloc, GeoSphere, 512),
+      .sphereIds    = dynarray_create_t(alloc, u64, 512),
+      .capsules     = dynarray_create_t(alloc, GeoCapsule, 512),
+      .capsuleIds   = dynarray_create_t(alloc, u64, 512),
+      .rotatedBoxes = dynarray_create_t(alloc, GeoBoxRotated, 512),
+      .rotateBoxIds = dynarray_create_t(alloc, u64, 512),
   };
   return env;
 }
@@ -46,6 +50,8 @@ void geo_query_env_destroy(GeoQueryEnv* env) {
   dynarray_destroy(&env->sphereIds);
   dynarray_destroy(&env->capsules);
   dynarray_destroy(&env->capsuleIds);
+  dynarray_destroy(&env->rotatedBoxes);
+  dynarray_destroy(&env->rotateBoxIds);
   alloc_free_t(env->alloc, env);
 }
 
@@ -54,6 +60,8 @@ void geo_query_env_clear(GeoQueryEnv* env) {
   dynarray_clear(&env->sphereIds);
   dynarray_clear(&env->capsules);
   dynarray_clear(&env->capsuleIds);
+  dynarray_clear(&env->rotatedBoxes);
+  dynarray_clear(&env->rotateBoxIds);
 }
 
 void geo_query_insert_sphere(GeoQueryEnv* env, const GeoSphere sphere, const u64 id) {
@@ -69,6 +77,14 @@ void geo_query_insert_capsule(GeoQueryEnv* env, const GeoCapsule capsule, const 
 
   *dynarray_push_t(&env->capsules, GeoCapsule) = capsule;
   *dynarray_push_t(&env->capsuleIds, u64)      = id;
+}
+
+void geo_query_insert_box_rotated(GeoQueryEnv* env, const GeoBoxRotated box, const u64 id) {
+  geo_query_validate_pos(box.box.min);
+  geo_query_validate_pos(box.box.max);
+
+  *dynarray_push_t(&env->rotatedBoxes, GeoBoxRotated) = box;
+  *dynarray_push_t(&env->rotateBoxIds, u64)           = id;
 }
 
 bool geo_query_ray(const GeoQueryEnv* env, const GeoRay* ray, GeoQueryRayHit* outHit) {
@@ -111,6 +127,25 @@ bool geo_query_ray(const GeoQueryEnv* env, const GeoRay* ray, GeoQueryRayHit* ou
     if (hitT < bestHit.time) {
       bestHit.time    = hitT;
       bestHit.shapeId = *dynarray_at_t(&env->capsuleIds, itr - capsulesBegin, u64);
+      bestHit.normal  = normal;
+      foundHit        = true;
+    }
+  }
+
+  /**
+   * Rotated boxes.
+   */
+  const GeoBoxRotated* rotatedBoxesBegin = dynarray_begin_t(&env->rotatedBoxes, GeoBoxRotated);
+  const GeoBoxRotated* rotatedBoxesEnd   = dynarray_end_t(&env->rotatedBoxes, GeoBoxRotated);
+  for (const GeoBoxRotated* itr = rotatedBoxesBegin; itr != rotatedBoxesEnd; ++itr) {
+    GeoVector normal;
+    const f32 hitT = geo_box_rotated_intersect_ray(itr, ray, &normal);
+    if (hitT < 0.0) {
+      continue; // Miss.
+    }
+    if (hitT < bestHit.time) {
+      bestHit.time    = hitT;
+      bestHit.shapeId = *dynarray_at_t(&env->rotateBoxIds, itr - rotatedBoxesBegin, u64);
       bestHit.normal  = normal;
       foundHit        = true;
     }

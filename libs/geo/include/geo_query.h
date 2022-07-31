@@ -1,4 +1,5 @@
 #pragma once
+#include "geo_box_rotated.h"
 #include "geo_capsule.h"
 #include "geo_ray.h"
 #include "geo_sphere.h"
@@ -32,6 +33,7 @@ void geo_query_env_clear(GeoQueryEnv*);
  */
 void geo_query_insert_sphere(GeoQueryEnv*, GeoSphere, u64 id);
 void geo_query_insert_capsule(GeoQueryEnv*, GeoCapsule, u64 id);
+void geo_query_insert_box_rotated(GeoQueryEnv*, GeoBoxRotated, u64 id);
 
 typedef struct {
   f32       time;
