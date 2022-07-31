@@ -308,7 +308,10 @@ static void inspector_panel_draw_transform(
     inspector_panel_next(canvas, panelComp, table);
     ui_label(canvas, string_lit("Scale"));
     ui_table_next_column(canvas, table);
-    inspector_panel_draw_editor_float(canvas, &scale->scale);
+    if (inspector_panel_draw_editor_float(canvas, &scale->scale)) {
+      // Clamp the scale to a sane value.
+      scale->scale = math_clamp_f32(scale->scale, 1e-2f, 1e2f);
+    }
   }
 }
 
