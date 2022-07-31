@@ -8,7 +8,7 @@ add_executable(app_sandbox
   src/app.c
   src/cmd.c
   src/input.c
-  src/unit.c
+  src/object.c
   )
 
 target_link_libraries(app_sandbox PRIVATE
