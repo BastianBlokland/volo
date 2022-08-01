@@ -170,31 +170,54 @@ GeoBox geo_box_from_sphere(const GeoVector pos, const f32 radius) {
 #endif
 }
 
-GeoBox geo_box_from_cylinder(const GeoVector bottom, const GeoVector top, const f32 radius) {
+GeoBox geo_box_from_capsule(const GeoVector a, const GeoVector b, const f32 radius) {
 #if geo_box_simd_enable
-  const SimdVec vBottom   = simd_vec_load(bottom.comps);
-  const SimdVec vTop      = simd_vec_load(top.comps);
-  const SimdVec toTop     = simd_vec_sub(vTop, vBottom);
-  const SimdVec lengthSqr = simd_vec_dot3(toTop, toTop);
-  const SimdVec dirSqr    = simd_vec_div(simd_vec_mul(toTop, toTop), lengthSqr);
+  const SimdVec vRadius = simd_vec_clear_w(simd_vec_broadcast(radius));
+  const SimdVec vA      = simd_vec_load(a.comps);
+  const SimdVec vAMin   = simd_vec_sub(vA, vRadius);
+  const SimdVec vAMax   = simd_vec_add(vA, vRadius);
+  const SimdVec vB      = simd_vec_load(b.comps);
+  const SimdVec vBMin   = simd_vec_sub(vB, vRadius);
+  const SimdVec vBMax   = simd_vec_add(vB, vRadius);
+  GeoBox        newBox;
+  simd_vec_store(simd_vec_min(vAMin, vBMin), newBox.min.comps);
+  simd_vec_store(simd_vec_max(vAMax, vBMax), newBox.max.comps);
+  return newBox;
+#else
+  GeoBox box = geo_box_inverted3();
+  box        = geo_box_encapsulate(&box, geo_vector(a.x - radius, a.y - radius, a.z - radius));
+  box        = geo_box_encapsulate(&box, geo_vector(a.x + radius, a.y + radius, a.z + radius));
+  box        = geo_box_encapsulate(&box, geo_vector(b.x - radius, b.y - radius, b.z - radius));
+  box        = geo_box_encapsulate(&box, geo_vector(b.x + radius, b.y + radius, b.z + radius));
+  return box;
+#endif
+}
+
+GeoBox geo_box_from_cylinder(const GeoVector a, const GeoVector b, const f32 radius) {
+#if geo_box_simd_enable
+  const SimdVec vA        = simd_vec_load(a.comps);
+  const SimdVec vB        = simd_vec_load(b.comps);
+  const SimdVec toB       = simd_vec_sub(vB, vA);
+  const SimdVec lengthSqr = simd_vec_dot3(toB, toB);
+  const SimdVec dirSqr    = simd_vec_div(simd_vec_mul(toB, toB), lengthSqr);
   const SimdVec axisDir   = simd_vec_sqrt(simd_vec_sub(simd_vec_broadcast(1.0f), dirSqr));
   const SimdVec axisDelta = simd_vec_clear_w(simd_vec_mul(axisDir, simd_vec_broadcast(radius)));
   GeoBox        res;
   simd_vec_store(
-      simd_vec_min(simd_vec_sub(vBottom, axisDelta), simd_vec_sub(vTop, axisDelta)), res.min.comps);
+      simd_vec_min(simd_vec_sub(vA, axisDelta), simd_vec_sub(vB, axisDelta)), res.min.comps);
   simd_vec_store(
-      simd_vec_max(simd_vec_add(vBottom, axisDelta), simd_vec_add(vTop, axisDelta)), res.max.comps);
+      simd_vec_max(simd_vec_add(vA, axisDelta), simd_vec_add(vB, axisDelta)), res.max.comps);
   return res;
 #else
-  const GeoVector toTop     = geo_vector_sub(top, bottom);
-  const f32       lengthSqr = geo_vector_mag_sqr(toTop);
-  const GeoVector dirSqr    = geo_vector_div(geo_vector_mul_comps(toTop, toTop), lengthSqr);
+  const GeoVector toB       = geo_vector_sub(b, a);
+  const f32       lengthSqr = geo_vector_mag_sqr(toB);
+  const GeoVector dirSqr    = geo_vector_div(geo_vector_mul_comps(toB, toB), lengthSqr);
   const GeoVector axisDir   = geo_vector_sqrt(geo_vector_sub(geo_vector(1, 1, 1), dirSqr));
   const GeoVector axisDelta = geo_vector_mul(axisDir, radius);
 
   return (GeoBox){
-      .min = geo_vector_min(geo_vector_sub(bottom, axisDelta), geo_vector_sub(top, axisDelta)),
-      .max = geo_vector_max(geo_vector_add(bottom, axisDelta), geo_vector_add(top, axisDelta)),
+      .min = geo_vector_min(geo_vector_sub(a, axisDelta), geo_vector_sub(b, axisDelta)),
+      .max = geo_vector_max(geo_vector_add(a, axisDelta), geo_vector_add(b, axisDelta)),
   };
 #endif
 }

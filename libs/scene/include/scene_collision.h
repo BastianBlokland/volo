@@ -85,3 +85,9 @@ GeoCapsule scene_collision_world_capsule(
     const SceneCollisionCapsule*, const SceneTransformComp*, const SceneScaleComp*);
 GeoBoxRotated scene_collision_world_box(
     const SceneCollisionBox*, const SceneTransformComp*, const SceneScaleComp*);
+
+/**
+ * Compute the world axis-aligned bounds for the given collision component.
+ */
+GeoBox scene_collision_world_bounds(
+    const SceneCollisionComp*, const SceneTransformComp*, const SceneScaleComp*);

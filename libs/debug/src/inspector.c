@@ -35,6 +35,7 @@ typedef enum {
   DebugInspectorVis_Name,
   DebugInspectorVis_Locomotion,
   DebugInspectorVis_Collision,
+  DebugInspectorVis_CollisionBounds,
   DebugInspectorVis_BoundsLocal,
   DebugInspectorVis_BoundsGlobal,
 
@@ -57,11 +58,12 @@ static const String g_toolNames[] = {
 ASSERT(array_elems(g_toolNames) == DebugInspectorTool_Count, "Missing tool name");
 
 static const String g_visNames[] = {
-    [DebugInspectorVis_Name]         = string_static("Name"),
-    [DebugInspectorVis_Locomotion]   = string_static("Locomotion"),
-    [DebugInspectorVis_Collision]    = string_static("Collision"),
-    [DebugInspectorVis_BoundsLocal]  = string_static("BoundsLocal"),
-    [DebugInspectorVis_BoundsGlobal] = string_static("BoundsGlobal"),
+    [DebugInspectorVis_Name]            = string_static("Name"),
+    [DebugInspectorVis_Locomotion]      = string_static("Locomotion"),
+    [DebugInspectorVis_Collision]       = string_static("Collision"),
+    [DebugInspectorVis_CollisionBounds] = string_static("CollisionBounds"),
+    [DebugInspectorVis_BoundsLocal]     = string_static("BoundsLocal"),
+    [DebugInspectorVis_BoundsGlobal]    = string_static("BoundsGlobal"),
 };
 ASSERT(array_elems(g_visNames) == DebugInspectorVis_Count, "Missing vis name");
 
@@ -528,7 +530,7 @@ static void inspector_panel_draw(
   ui_panel_begin(canvas, &panelComp->panel, .title = title);
 
   UiTable table = ui_table();
-  ui_table_add_column(&table, UiTableColumn_Fixed, 200);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 215);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   const f32 totalHeight = ui_table_height(&table, panelComp->totalRows);
@@ -701,6 +703,18 @@ static void inspector_vis_draw_collision(
   }
 }
 
+static void inspector_vis_draw_collision_bounds(
+    DebugShapeComp*           shape,
+    const SceneCollisionComp* collision,
+    const SceneTransformComp* transform,
+    const SceneScaleComp*     scale) {
+  const GeoBox    b      = scene_collision_world_bounds(collision, transform, scale);
+  const GeoVector center = geo_box_center(&b);
+  const GeoVector size   = geo_box_size(&b);
+  debug_box(shape, center, geo_quat_ident, size, geo_color(1, 0, 1, 0.2f), DebugShape_Fill);
+  debug_box(shape, center, geo_quat_ident, size, geo_color(1, 0, 1, 0.5f), DebugShape_Wire);
+}
+
 static void inspector_vis_draw_bounds_local(
     DebugShapeComp*           shape,
     const SceneBoundsComp*    bounds,
@@ -747,6 +761,9 @@ static void inspector_vis_draw_subject(
   }
   if (collisionComp && set->visFlags & (1 << DebugInspectorVis_Collision)) {
     inspector_vis_draw_collision(shape, collisionComp, transformComp, scaleComp);
+  }
+  if (collisionComp && set->visFlags & (1 << DebugInspectorVis_CollisionBounds)) {
+    inspector_vis_draw_collision_bounds(shape, collisionComp, transformComp, scaleComp);
   }
   if (boundsComp && !geo_box_is_inverted3(&boundsComp->local)) {
     if (set->visFlags & (1 << DebugInspectorVis_BoundsLocal)) {

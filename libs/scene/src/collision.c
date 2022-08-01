@@ -170,3 +170,25 @@ GeoBoxRotated scene_collision_world_box(
       .rotation = baseRot,
   };
 }
+
+GeoBox scene_collision_world_bounds(
+    const SceneCollisionComp* comp, const SceneTransformComp* trans, const SceneScaleComp* scale) {
+  switch (comp->type) {
+  case SceneCollisionType_Sphere: {
+    const GeoSphere worldSphere = scene_collision_world_sphere(&comp->sphere, trans, scale);
+    return geo_box_from_sphere(worldSphere.point, worldSphere.radius);
+  }
+  case SceneCollisionType_Capsule: {
+    const GeoCapsule worldCapsule = scene_collision_world_capsule(&comp->capsule, trans, scale);
+    return geo_box_from_capsule(worldCapsule.line.a, worldCapsule.line.b, worldCapsule.radius);
+  }
+  case SceneCollisionType_Box: {
+    const GeoBox    localBox  = {.min = comp->box.min, .max = comp->box.max};
+    const GeoVector basePos   = LIKELY(trans) ? trans->position : geo_vector(0);
+    const GeoQuat   baseRot   = LIKELY(trans) ? trans->rotation : geo_quat_ident;
+    const f32       baseScale = scale ? scale->scale : 1.0f;
+    return geo_box_transform3(&localBox, basePos, baseRot, baseScale);
+  }
+  }
+  UNREACHABLE
+}
