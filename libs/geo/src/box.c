@@ -34,6 +34,13 @@ GeoVector geo_box_size(const GeoBox* b) {
 #endif
 }
 
+GeoVector geo_box_closest_point(const GeoBox* b, const GeoVector point) {
+  return geo_vector(
+      math_clamp_f32(point.x, b->min.x, b->max.x),
+      math_clamp_f32(point.y, b->min.y, b->max.y),
+      math_clamp_f32(point.z, b->min.z, b->max.z));
+}
+
 GeoBox geo_box_from_center(const GeoVector center, const GeoVector size) {
   const GeoVector halfSize = geo_vector_mul(size, 0.5f);
   return (GeoBox){

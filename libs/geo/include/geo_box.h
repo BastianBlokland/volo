@@ -22,6 +22,11 @@ GeoVector geo_box_center(const GeoBox*);
 GeoVector geo_box_size(const GeoBox*);
 
 /**
+ * Get the closest point within the box to the given point.
+ */
+GeoVector geo_box_closest_point(const GeoBox*, GeoVector point);
+
+/**
  * Construct a box from a center and a size.
  */
 GeoBox geo_box_from_center(GeoVector center, GeoVector size);
