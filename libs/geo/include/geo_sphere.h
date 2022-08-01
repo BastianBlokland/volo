@@ -1,4 +1,5 @@
 #pragma once
+#include "geo_box.h"
 #include "geo_ray.h"
 #include "geo_vector.h"
 
@@ -17,3 +18,8 @@ typedef struct {
  * occurred.
  */
 f32 geo_sphere_intersect_ray(const GeoSphere*, const GeoRay*);
+
+/**
+ * Test if the sphere overlap the given box.
+ */
+bool geo_sphere_overlap_box(const GeoSphere*, const GeoBox*);
