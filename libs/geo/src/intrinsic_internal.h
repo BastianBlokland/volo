@@ -11,6 +11,8 @@
 #pragma intrinsic(sqrtf)
 #pragma intrinsic(tanf)
 #pragma intrinsic(atan2f)
+#pragma intrinsic(round)
+#pragma intrinsic(roundf)
 
 #define intrinsic_atan_f32 atanf
 #define intrinsic_cos_f32 cosf
@@ -20,6 +22,8 @@
 #define intrinsic_sqrt_f32 sqrtf
 #define intrinsic_tan_f32 tanf
 #define intrinsic_atan2_f32 atan2f
+#define intrinsic_round_f64 round
+#define intrinsic_round_f32 roundf
 
 #else
 
@@ -31,5 +35,7 @@
 #define intrinsic_sqrt_f32 __builtin_sqrtf
 #define intrinsic_tan_f32 __builtin_tanf
 #define intrinsic_atan2_f32 __builtin_atan2f
+#define intrinsic_round_f64 __builtin_round
+#define intrinsic_round_f32 __builtin_roundf
 
 #endif
