@@ -18,3 +18,8 @@ typedef struct {
  * NOTE: Writes the surface-normal at the point of intersection to 'outNormal'.
  */
 f32 geo_box_rotated_intersect_ray(const GeoBoxRotated*, const GeoRay*, GeoVector* outNormal);
+
+/**
+ * Test if the rotated box overlaps the given axis-aligned box.
+ */
+bool geo_box_rotated_overlap_box(const GeoBoxRotated*, const GeoBox*);

@@ -2,6 +2,41 @@
 #include "geo_box.h"
 #include "geo_box_rotated.h"
 
+/**
+ * Separating Axis Theorem helpers to check if two sets of points overlap on a given axis.
+ */
+
+static bool geo_sat_in_range(const f32 val, const f32 min, const f32 max) {
+  return val >= min && val <= max;
+}
+
+static bool geo_sat_overlapping1(const f32 min1, const f32 max1, const f32 min2, const f32 max2) {
+  return geo_sat_in_range(min2, min1, max1) || geo_sat_in_range(min1, min2, max2);
+}
+
+static void
+geo_sat_proj3(const GeoVector axis, const GeoVector points[8], f32* outMin, f32* outMax) {
+  *outMin = f32_max;
+  *outMax = f32_min;
+
+  for (usize i = 0; i != 8; ++i) {
+    const f32 dist = geo_vector_dot(points[i], axis);
+    if (dist < *outMin) {
+      *outMin = dist;
+    }
+    if (dist > *outMax) {
+      *outMax = dist;
+    }
+  }
+}
+
+static bool geo_sat_overlapping3(const GeoVector axis, const GeoVector a[8], const GeoVector b[8]) {
+  f32 minDistA, maxDistA, minDistB, maxDistB;
+  geo_sat_proj3(axis, a, &minDistA, &maxDistA);
+  geo_sat_proj3(axis, b, &minDistB, &maxDistB);
+  return geo_sat_overlapping1(minDistA, maxDistA, minDistB, maxDistB);
+}
+
 static GeoVector geo_rotate_around(const GeoVector point, const GeoQuat rot, const GeoVector v) {
   return geo_vector_add(point, geo_quat_rotate(rot, geo_vector_sub(v, point)));
 }
@@ -32,4 +67,71 @@ f32 geo_box_rotated_intersect_ray(
   }
 
   return rayHitT;
+}
+
+bool geo_box_rotated_overlap_box(const GeoBoxRotated* a, const GeoBox* b) {
+  /**
+   * Check if two boxes are overlapping using the Separating Axis Theorem:
+   * If there is any axis where they are not overlapping (in 1 dimension) then they are not
+   * overlapping at all.
+   * We need to check all the local axis but also all the derived axis (crosses of all the axis).
+   */
+
+  const GeoVector aCenter    = geo_box_center(&a->box);
+  const GeoVector pointsA[8] = {
+      geo_rotate_around(aCenter, a->rotation, geo_vector(a->box.min.x, a->box.min.y, a->box.min.z)),
+      geo_rotate_around(aCenter, a->rotation, geo_vector(a->box.min.x, a->box.min.y, a->box.max.z)),
+      geo_rotate_around(aCenter, a->rotation, geo_vector(a->box.max.x, a->box.min.y, a->box.min.z)),
+      geo_rotate_around(aCenter, a->rotation, geo_vector(a->box.max.x, a->box.min.y, a->box.max.z)),
+      geo_rotate_around(aCenter, a->rotation, geo_vector(a->box.min.x, a->box.max.y, a->box.min.z)),
+      geo_rotate_around(aCenter, a->rotation, geo_vector(a->box.min.x, a->box.max.y, a->box.max.z)),
+      geo_rotate_around(aCenter, a->rotation, geo_vector(a->box.max.x, a->box.max.y, a->box.min.z)),
+      geo_rotate_around(aCenter, a->rotation, geo_vector(a->box.max.x, a->box.max.y, a->box.max.z)),
+  };
+
+  const GeoVector pointsB[8] = {
+      geo_vector(b->min.x, b->min.y, b->min.z),
+      geo_vector(b->min.x, b->min.y, b->max.z),
+      geo_vector(b->max.x, b->min.y, b->min.z),
+      geo_vector(b->max.x, b->min.y, b->max.z),
+      geo_vector(b->min.x, b->max.y, b->min.z),
+      geo_vector(b->min.x, b->max.y, b->max.z),
+      geo_vector(b->max.x, b->max.y, b->min.z),
+      geo_vector(b->max.x, b->max.y, b->max.z),
+  };
+
+  f32 minDist, maxDist;
+  geo_sat_proj3(geo_up, pointsA, &minDist, &maxDist);
+  if (!geo_sat_overlapping1(minDist, maxDist, b->min.y, b->max.y)) {
+    return false;
+  }
+  geo_sat_proj3(geo_forward, pointsA, &minDist, &maxDist);
+  if (!geo_sat_overlapping1(minDist, maxDist, b->min.z, b->max.z)) {
+    return false;
+  }
+  geo_sat_proj3(geo_right, pointsA, &minDist, &maxDist);
+  if (!geo_sat_overlapping1(minDist, maxDist, b->min.x, b->max.x)) {
+    return false;
+  }
+
+  const GeoVector aRight   = geo_quat_rotate(a->rotation, geo_right);
+  const GeoVector aUp      = geo_quat_rotate(a->rotation, geo_up);
+  const GeoVector aForward = geo_quat_rotate(a->rotation, geo_forward);
+
+  return
+      // Local axis of our box
+      geo_sat_overlapping3(aRight, pointsA, pointsB) &&
+      geo_sat_overlapping3(aUp, pointsA, pointsB) &&
+      geo_sat_overlapping3(aForward, pointsA, pointsB) &&
+
+      // Derived axis
+      geo_sat_overlapping3(geo_vector_cross3(aForward, geo_forward), pointsA, pointsB) &&
+      geo_sat_overlapping3(geo_vector_cross3(aForward, geo_right), pointsA, pointsB) &&
+      geo_sat_overlapping3(geo_vector_cross3(aForward, geo_up), pointsA, pointsB) &&
+      geo_sat_overlapping3(geo_vector_cross3(aRight, geo_forward), pointsA, pointsB) &&
+      geo_sat_overlapping3(geo_vector_cross3(aRight, geo_right), pointsA, pointsB) &&
+      geo_sat_overlapping3(geo_vector_cross3(aRight, geo_up), pointsA, pointsB) &&
+      geo_sat_overlapping3(geo_vector_cross3(aUp, geo_forward), pointsA, pointsB) &&
+      geo_sat_overlapping3(geo_vector_cross3(aUp, geo_right), pointsA, pointsB) &&
+      geo_sat_overlapping3(geo_vector_cross3(aUp, geo_up), pointsA, pointsB);
 }
