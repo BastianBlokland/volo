@@ -22,6 +22,11 @@ GeoVector geo_box_center(const GeoBox*);
 GeoVector geo_box_size(const GeoBox*);
 
 /**
+ * Get the closest point within the box to the given point.
+ */
+GeoVector geo_box_closest_point(const GeoBox*, GeoVector point);
+
+/**
  * Construct a box from a center and a size.
  */
 GeoBox geo_box_from_center(GeoVector center, GeoVector size);
@@ -60,6 +65,12 @@ GeoBox geo_box_transform3(const GeoBox*, GeoVector offset, GeoQuat rotation, f32
  * Calculate the bounding box of a sphere.
  */
 GeoBox geo_box_from_sphere(GeoVector, f32 radius);
+
+/**
+ * Calculate the bounding box of a rotated box.
+ * NOTE: Rotation is applied around the box's center.
+ */
+GeoBox geo_box_from_rotated(const GeoBox*, GeoQuat rotation);
 
 /**
  * Calculate the bounding box of a Capsule.
