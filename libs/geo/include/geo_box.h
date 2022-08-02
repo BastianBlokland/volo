@@ -67,6 +67,12 @@ GeoBox geo_box_transform3(const GeoBox*, GeoVector offset, GeoQuat rotation, f32
 GeoBox geo_box_from_sphere(GeoVector, f32 radius);
 
 /**
+ * Calculate the bounding box of a rotated box.
+ * NOTE: Rotation is applied around the box's center.
+ */
+GeoBox geo_box_from_rotated(const GeoBox*, GeoQuat rotation);
+
+/**
  * Calculate the bounding box of a Capsule.
  */
 GeoBox geo_box_from_capsule(GeoVector bottom, GeoVector top, f32 radius);
