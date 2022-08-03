@@ -1,4 +1,5 @@
 #pragma once
+#include "geo_box.h"
 #include "geo_vector.h"
 
 // Forward declare from 'core_alloc.h'.
@@ -30,7 +31,7 @@ typedef struct {
  * Create a new GeoNavGrid instance.
  * Destroy using 'geo_nav_destroy()'.
  */
-GeoNavGrid* geo_nav_grid_create(Allocator*, GeoVector center, f32 size, f32 density);
+GeoNavGrid* geo_nav_grid_create(Allocator*, GeoVector center, f32 size, f32 density, f32 height);
 
 /**
  * Destroy a GeoNavGrid instance.
@@ -46,6 +47,7 @@ GeoNavRegion geo_nav_bounds(const GeoNavGrid*);
  * Retrieve the world position of the given cell.
  */
 GeoVector geo_nav_position(const GeoNavGrid*, GeoNavCell);
+GeoBox    geo_nav_box(const GeoNavGrid*, GeoNavCell);
 
 /**
  * Lookup the cell at the given position.

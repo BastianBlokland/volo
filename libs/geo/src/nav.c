@@ -13,8 +13,9 @@ typedef struct {
 struct sGeoNavGrid {
   u32             cellCountAxis;
   u32             cellCountTotal;
-  f32             cellDensity;
-  f32             cellSize; // 1.0 / cellDensity
+  f32             cellDensity; // 1.0 / cellSize
+  f32             cellSize;    // 1.0 / cellDensity
+  f32             cellHeight;
   GeoVector       cellOffset;
   GeoNavCellData* cells;
   Allocator*      alloc;
@@ -41,6 +42,11 @@ static GeoVector nav_cell_pos(const GeoNavGrid* grid, const GeoNavCell cell) {
       cell.y * grid->cellSize + grid->cellOffset.z);
 }
 
+static GeoBox nav_cell_box(const GeoNavGrid* grid, const GeoNavCell cell) {
+  const GeoVector center = nav_cell_pos(grid, cell);
+  return geo_box_from_center(center, geo_vector(grid->cellSize, grid->cellHeight, grid->cellSize));
+}
+
 static GeoNavCell nav_cell_from_pos(const GeoNavGrid* grid, const GeoVector pos) {
   return (GeoNavCell){
       .x = (u16)intrinsic_round_f32((pos.x - grid->cellOffset.x) * grid->cellDensity),
@@ -57,8 +63,8 @@ static void nav_clear_cells(GeoNavGrid* grid) {
   mem_set(cellsMem, 0);
 }
 
-GeoNavGrid*
-geo_nav_grid_create(Allocator* alloc, const GeoVector center, const f32 size, const f32 density) {
+GeoNavGrid* geo_nav_grid_create(
+    Allocator* alloc, const GeoVector center, const f32 size, const f32 density, const f32 height) {
   diag_assert(geo_vector_mag_sqr(center) <= (1e4f * 1e4f));
   diag_assert(size > 1e-4f && size < 1e4f);
   diag_assert(density > 1e-4f && density < 1e4f);
@@ -72,6 +78,7 @@ geo_nav_grid_create(Allocator* alloc, const GeoVector center, const f32 size, co
       .cellCountTotal = cellCountTotal,
       .cellDensity    = density,
       .cellSize       = 1.0f / density,
+      .cellHeight     = height,
       .cellOffset     = geo_vector(size * -0.5f - center.x, center.y, size * -0.5f - center.z),
       .cells          = alloc_array_t(alloc, GeoNavCellData, cellCountTotal),
       .alloc          = alloc,
@@ -92,6 +99,10 @@ GeoNavRegion geo_nav_bounds(const GeoNavGrid* grid) {
 
 GeoVector geo_nav_position(const GeoNavGrid* grid, const GeoNavCell cell) {
   return nav_cell_pos(grid, cell);
+}
+
+GeoBox geo_nav_box(const GeoNavGrid* grid, const GeoNavCell cell) {
+  return nav_cell_box(grid, cell);
 }
 
 GeoNavCell geo_nav_cell_from_position(const GeoNavGrid* grid, const GeoVector pos) {

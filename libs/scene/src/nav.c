@@ -6,6 +6,7 @@
 static const GeoVector g_sceneNavCenter  = {0, 0, 0};
 static const f32       g_sceneNavSize    = 100.0f;
 static const f32       g_sceneNavDensity = 1.0f;
+static const f32       g_sceneNavHeight  = 2.0f;
 
 ecs_comp_define(SceneNavEnvComp) { GeoNavGrid* navGrid; };
 
@@ -17,8 +18,8 @@ static void ecs_destruct_nav_env_comp(void* data) {
 ecs_view_define(UpdateGlobalView) { ecs_access_write(SceneNavEnvComp); }
 
 static SceneNavEnvComp* nav_env_create(EcsWorld* world) {
-  GeoNavGrid* grid =
-      geo_nav_grid_create(g_alloc_heap, g_sceneNavCenter, g_sceneNavSize, g_sceneNavDensity);
+  GeoNavGrid* grid = geo_nav_grid_create(
+      g_alloc_heap, g_sceneNavCenter, g_sceneNavSize, g_sceneNavDensity, g_sceneNavHeight);
 
   return ecs_world_add_t(world, ecs_world_global(world), SceneNavEnvComp, .navGrid = grid);
 }
@@ -42,4 +43,8 @@ GeoNavRegion scene_nav_bounds(const SceneNavEnvComp* env) { return geo_nav_bound
 
 GeoVector scene_nav_position(const SceneNavEnvComp* env, const GeoNavCell cell) {
   return geo_nav_position(env->navGrid, cell);
+}
+
+GeoBox scene_nav_box(const SceneNavEnvComp* env, const GeoNavCell cell) {
+  return geo_nav_box(env->navGrid, cell);
 }
