@@ -63,10 +63,9 @@ geo_nav_env_create(Allocator* alloc, const GeoVector center, const f32 size, con
   diag_assert(size > 1e-4f && size < 1e4f);
   diag_assert(density > 1e-4f && density < 1e4f);
 
-  GeoNavEnv*  env            = alloc_alloc_t(alloc, GeoNavEnv);
-  const u32   cellCountAxis  = (u32)math_round_f32(size * density);
-  const u32   cellCountTotal = cellCountAxis * cellCountAxis;
-  const usize cellMemSize    = cellCountTotal * sizeof(GeoNavCellData);
+  GeoNavEnv* env            = alloc_alloc_t(alloc, GeoNavEnv);
+  const u32  cellCountAxis  = (u32)math_round_f32(size * density);
+  const u32  cellCountTotal = cellCountAxis * cellCountAxis;
 
   *env = (GeoNavEnv){
       .cellCountAxis  = cellCountAxis,
@@ -74,7 +73,7 @@ geo_nav_env_create(Allocator* alloc, const GeoVector center, const f32 size, con
       .cellDensity    = density,
       .cellSize       = 1.0f / density,
       .cellOffset     = geo_vector(size * -0.5f - center.x, center.y, size * -0.5f - center.z),
-      .cells          = alloc_array_t(alloc, GeoNavCellData, cellMemSize),
+      .cells          = alloc_array_t(alloc, GeoNavCellData, cellCountTotal),
       .alloc          = alloc,
   };
 
