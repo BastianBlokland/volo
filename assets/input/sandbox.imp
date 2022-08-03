@@ -510,6 +510,18 @@
           "key": "Alpha5"
         }
       ]
+    },
+    {
+      "name": "DebugInspectorVisNavigationGrid",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "Alpha6"
+        }
+      ]
     }
   ]
 }

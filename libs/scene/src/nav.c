@@ -4,7 +4,7 @@
 #include "scene_register.h"
 
 static const GeoVector g_sceneNavCenter  = {0, 0, 0};
-static const f32       g_sceneNavSize    = 1000.0f;
+static const f32       g_sceneNavSize    = 100.0f;
 static const f32       g_sceneNavDensity = 1.0f;
 
 ecs_comp_define(SceneNavEnvComp) { GeoNavEnv* navEnv; };
@@ -38,4 +38,10 @@ ecs_module_init(scene_nav_module) {
   ecs_register_view(UpdateGlobalView);
 
   ecs_register_system(SceneNavUpdateSys, ecs_view_id(UpdateGlobalView));
+}
+
+GeoNavRegion scene_nav_bounds(const SceneNavEnvComp* env) { return geo_nav_bounds(env->navEnv); }
+
+GeoVector scene_nav_position(const SceneNavEnvComp* env, const GeoNavCell cell) {
+  return geo_nav_position(env->navEnv, cell);
 }

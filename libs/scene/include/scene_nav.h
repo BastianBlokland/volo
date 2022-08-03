@@ -6,3 +6,6 @@
  * Global navigation environment.
  */
 ecs_comp_extern(SceneNavEnvComp);
+
+GeoNavRegion scene_nav_bounds(const SceneNavEnvComp*);
+GeoVector    scene_nav_position(const SceneNavEnvComp*, GeoNavCell);
