@@ -1,5 +1,5 @@
 #pragma once
-#include "geo_box.h"
+#include "geo_box_rotated.h"
 #include "geo_vector.h"
 
 // Forward declare from 'core_alloc.h'.
@@ -44,12 +44,24 @@ void geo_nav_grid_destroy(GeoNavGrid*);
 GeoNavRegion geo_nav_bounds(const GeoNavGrid*);
 
 /**
- * Retrieve the world position of the given cell.
+ * Retrieve information about the given cell.
  */
 GeoVector geo_nav_position(const GeoNavGrid*, GeoNavCell);
 GeoBox    geo_nav_box(const GeoNavGrid*, GeoNavCell);
+bool      geo_nav_blocked(const GeoNavGrid*, GeoNavCell);
 
 /**
- * Lookup the cell at the given position.
+ * Lookup cells.
  */
 GeoNavCell geo_nav_cell_from_position(const GeoNavGrid*, GeoVector);
+
+/**
+ * Remove all blockers from the grid.
+ */
+void geo_nav_blocker_clear_all(GeoNavGrid*);
+
+/**
+ * Mark the given region on the grid as blocked.
+ */
+void geo_nav_blocker_add_box(GeoNavGrid*, const GeoBox*);
+void geo_nav_blocker_add_box_rotated(GeoNavGrid*, const GeoBoxRotated*);

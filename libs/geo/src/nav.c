@@ -7,7 +7,7 @@
 #include "intrinsic_internal.h"
 
 typedef struct {
-  u32 dummy;
+  u8 blockers;
 } GeoNavCellData;
 
 struct sGeoNavGrid {
@@ -21,9 +21,13 @@ struct sGeoNavGrid {
   Allocator*      alloc;
 };
 
-// static GeoNavCellData* nav_cell_data(GeoNavGrid* grid, const GeoNavCell cell) {
-//   return &grid->cells[cell.y * grid->cellCountAxis + cell.x];
-// }
+static GeoNavCellData* nav_cell_data(GeoNavGrid* grid, const GeoNavCell cell) {
+  return &grid->cells[cell.y * grid->cellCountAxis + cell.x];
+}
+
+static const GeoNavCellData* nav_cell_data_readonly(const GeoNavGrid* grid, const GeoNavCell cell) {
+  return nav_cell_data((GeoNavGrid*)grid, cell);
+}
 
 static GeoNavCell nav_cell_clamp(const GeoNavGrid* grid, GeoNavCell cell) {
   if (cell.x >= grid->cellCountAxis) {
@@ -56,6 +60,17 @@ static GeoNavCell nav_cell_from_pos(const GeoNavGrid* grid, const GeoVector pos)
 
 static GeoNavCell nav_cell_from_pos_clamped(const GeoNavGrid* grid, const GeoVector pos) {
   return nav_cell_clamp(grid, nav_cell_from_pos(grid, pos));
+}
+
+static GeoNavRegion nav_region_from_box_clamped(const GeoNavGrid* grid, const GeoBox* box) {
+  return (GeoNavRegion){
+      .min = nav_cell_clamp(grid, nav_cell_from_pos(grid, box->min)),
+      .max = nav_cell_clamp(grid, nav_cell_from_pos(grid, box->max)),
+  };
+}
+
+static void nav_cell_block(GeoNavGrid* grid, const GeoNavCell cell) {
+  ++nav_cell_data(grid, cell)->blockers;
 }
 
 static void nav_clear_cells(GeoNavGrid* grid) {
@@ -105,6 +120,40 @@ GeoBox geo_nav_box(const GeoNavGrid* grid, const GeoNavCell cell) {
   return nav_cell_box(grid, cell);
 }
 
+bool geo_nav_blocked(const GeoNavGrid* grid, const GeoNavCell cell) {
+  return nav_cell_data_readonly(grid, cell)->blockers > 0;
+}
+
 GeoNavCell geo_nav_cell_from_position(const GeoNavGrid* grid, const GeoVector pos) {
   return nav_cell_from_pos_clamped(grid, pos);
+}
+
+void geo_nav_blocker_clear_all(GeoNavGrid* grid) { nav_clear_cells(grid); }
+
+void geo_nav_blocker_add_box(GeoNavGrid* grid, const GeoBox* box) {
+  if (box->max.y < 0 || box->min.y > grid->cellHeight) {
+    return; // Outside of the y band of the grid.
+  }
+  const GeoNavRegion region = nav_region_from_box_clamped(grid, box);
+  for (u32 y = region.min.y; y != region.max.y; ++y) {
+    for (u32 x = region.min.x; x != region.max.x; ++x) {
+      const GeoNavCell cell = {.x = x, .y = y};
+      nav_cell_block(grid, cell);
+    }
+  }
+}
+
+void geo_nav_blocker_add_box_rotated(GeoNavGrid* grid, const GeoBoxRotated* boxRotated) {
+  const GeoBox bounds = geo_box_from_rotated(&boxRotated->box, boxRotated->rotation);
+
+  const GeoNavRegion region = nav_region_from_box_clamped(grid, &bounds);
+  for (u32 y = region.min.y; y != region.max.y; ++y) {
+    for (u32 x = region.min.x; x != region.max.x; ++x) {
+      const GeoNavCell cell    = {.x = x, .y = y};
+      const GeoBox     cellBox = nav_cell_box(grid, cell);
+      if (geo_box_rotated_overlap_box(boxRotated, &cellBox)) {
+        nav_cell_block(grid, cell);
+      }
+    }
+  }
 }
