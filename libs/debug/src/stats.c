@@ -11,13 +11,13 @@
 #include "ui.h"
 #include "ui_stats.h"
 
-static const f32 g_statsLabelWidth       = 200;
+static const f32 g_statsLabelWidth       = 220;
 static const u8  g_statsBgAlpha          = 150;
 static const u8  g_statsSectionBgAlpha   = 200;
 static const f32 g_statsInvAverageWindow = 1.0f / 10.0f;
 
 #define stats_plot_size 32
-#define stats_notify_max_key_size 24
+#define stats_notify_max_key_size 32
 #define stats_notify_max_value_size 16
 #define stats_notify_max_age time_seconds(3)
 
