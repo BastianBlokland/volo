@@ -5,9 +5,9 @@
 typedef struct sAllocator Allocator;
 
 /**
- * Navigation environment.
+ * Navigation grid.
  */
-typedef struct sGeoNavEnv GeoNavEnv;
+typedef struct sGeoNavGrid GeoNavGrid;
 
 /**
  * Identifier for a navigation cell.
@@ -27,27 +27,27 @@ typedef struct {
 } GeoNavRegion;
 
 /**
- * Create a new GeoNavEnv instance.
+ * Create a new GeoNavGrid instance.
  * Destroy using 'geo_nav_destroy()'.
  */
-GeoNavEnv* geo_nav_env_create(Allocator*, GeoVector center, f32 size, f32 density);
+GeoNavGrid* geo_nav_grid_create(Allocator*, GeoVector center, f32 size, f32 density);
 
 /**
- * Destroy a GeoNavEnv instance.
+ * Destroy a GeoNavGrid instance.
  */
-void geo_nav_env_destroy(GeoNavEnv*);
+void geo_nav_grid_destroy(GeoNavGrid*);
 
 /**
  * Get the region covering the entire navigation grid.
  */
-GeoNavRegion geo_nav_bounds(const GeoNavEnv*);
+GeoNavRegion geo_nav_bounds(const GeoNavGrid*);
 
 /**
  * Retrieve the world position of the given cell.
  */
-GeoVector geo_nav_position(const GeoNavEnv*, GeoNavCell);
+GeoVector geo_nav_position(const GeoNavGrid*, GeoNavCell);
 
 /**
  * Lookup the cell at the given position.
  */
-GeoNavCell geo_nav_cell_from_position(const GeoNavEnv*, GeoVector);
+GeoNavCell geo_nav_cell_from_position(const GeoNavGrid*, GeoVector);
