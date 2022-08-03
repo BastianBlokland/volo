@@ -87,6 +87,10 @@ void geo_nav_env_destroy(GeoNavEnv* env) {
   alloc_free_t(env->alloc, env);
 }
 
+GeoNavRegion geo_nav_bounds(const GeoNavEnv* env) {
+  return (GeoNavRegion){.max = {.x = env->cellCountAxis, .y = env->cellCountAxis}};
+}
+
 GeoVector geo_nav_position(const GeoNavEnv* env, const GeoNavCell cell) {
   return nav_cell_pos(env, cell);
 }

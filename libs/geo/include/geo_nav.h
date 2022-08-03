@@ -20,6 +20,13 @@ typedef union {
 } GeoNavCell;
 
 /**
+ * Rectangular region on the navigation grid.
+ */
+typedef struct {
+  GeoNavCell min, max;
+} GeoNavRegion;
+
+/**
  * Create a new GeoNavEnv instance.
  * Destroy using 'geo_nav_destroy()'.
  */
@@ -29,6 +36,11 @@ GeoNavEnv* geo_nav_env_create(Allocator*, GeoVector center, f32 size, f32 densit
  * Destroy a GeoNavEnv instance.
  */
 void geo_nav_env_destroy(GeoNavEnv*);
+
+/**
+ * Get the region covering the entire navigation grid.
+ */
+GeoNavRegion geo_nav_bounds(const GeoNavEnv*);
 
 /**
  * Retrieve the world position of the given cell.
