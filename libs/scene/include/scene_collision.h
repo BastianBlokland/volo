@@ -11,7 +11,7 @@ ecs_comp_extern(SceneTransformComp);
 ecs_comp_extern(SceneScaleComp);
 
 /**
- * Global collision registry.
+ * Global collision environment.
  */
 ecs_comp_extern(SceneCollisionEnvComp);
 

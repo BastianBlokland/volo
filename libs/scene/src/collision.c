@@ -17,7 +17,7 @@ static void ecs_destruct_collision_env_comp(void* data) {
   geo_query_env_destroy(env->queryEnv);
 }
 
-ecs_view_define(UpdateView) { ecs_access_write(SceneCollisionEnvComp); }
+ecs_view_define(UpdateGlobalView) { ecs_access_write(SceneCollisionEnvComp); }
 
 ecs_view_define(CollisionEntityView) {
   ecs_access_read(SceneCollisionComp);
@@ -25,12 +25,7 @@ ecs_view_define(CollisionEntityView) {
   ecs_access_maybe_read(SceneScaleComp);
 }
 
-static SceneCollisionEnvComp* collision_env_get_or_create(EcsWorld* world) {
-  EcsView*     view = ecs_world_view_t(world, UpdateView);
-  EcsIterator* itr  = ecs_view_maybe_at(view, ecs_world_global(world));
-  if (LIKELY(itr)) {
-    return ecs_view_write_t(itr, SceneCollisionEnvComp);
-  }
+static SceneCollisionEnvComp* collision_env_create(EcsWorld* world) {
   return ecs_world_add_t(
       world,
       ecs_world_global(world),
@@ -39,8 +34,18 @@ static SceneCollisionEnvComp* collision_env_get_or_create(EcsWorld* world) {
 }
 
 ecs_system_define(SceneCollisionUpdateSys) {
-  SceneCollisionEnvComp* env = collision_env_get_or_create(world);
+  if (!ecs_world_has_t(world, ecs_world_global(world), SceneCollisionEnvComp)) {
+    collision_env_create(world);
+    return;
+  }
 
+  EcsView*     globalView = ecs_world_view_t(world, UpdateGlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return;
+  }
+
+  SceneCollisionEnvComp* env = ecs_view_write_t(globalItr, SceneCollisionEnvComp);
   geo_query_env_clear(env->queryEnv);
 
   EcsView* collisionEntities = ecs_world_view_t(world, CollisionEntityView);
@@ -80,10 +85,10 @@ ecs_module_init(scene_collision_module) {
   ecs_register_comp(SceneCollisionComp);
 
   ecs_register_view(CollisionEntityView);
-  ecs_register_view(UpdateView);
+  ecs_register_view(UpdateGlobalView);
 
   ecs_register_system(
-      SceneCollisionUpdateSys, ecs_view_id(UpdateView), ecs_view_id(CollisionEntityView));
+      SceneCollisionUpdateSys, ecs_view_id(UpdateGlobalView), ecs_view_id(CollisionEntityView));
 
   ecs_order(SceneCollisionUpdateSys, SceneOrder_CollisionUpdate);
 }
