@@ -11,6 +11,7 @@ add_library(lib_scene STATIC
   src/lifetime.c
   src/locomotion.c
   src/name.c
+  src/nav.c
   src/register.c
   src/renderable.c
   src/selection.c
