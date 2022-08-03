@@ -22,6 +22,7 @@ typedef union {
 
 /**
  * Rectangular region on the navigation grid.
+ * NOTE: Max is exclusive.
  */
 typedef struct {
   GeoNavCell min, max;
@@ -42,18 +43,15 @@ void geo_nav_grid_destroy(GeoNavGrid*);
  * Get the region covering the entire navigation grid.
  */
 GeoNavRegion geo_nav_bounds(const GeoNavGrid*);
+GeoVector    geo_nav_cell_size(const GeoNavGrid*);
 
 /**
- * Retrieve information about the given cell.
+ * Lookup cell information.
  */
-GeoVector geo_nav_position(const GeoNavGrid*, GeoNavCell);
-GeoBox    geo_nav_box(const GeoNavGrid*, GeoNavCell);
-bool      geo_nav_blocked(const GeoNavGrid*, GeoNavCell);
-
-/**
- * Lookup cells.
- */
-GeoNavCell geo_nav_cell_from_position(const GeoNavGrid*, GeoVector);
+GeoVector  geo_nav_position(const GeoNavGrid*, GeoNavCell);
+GeoBox     geo_nav_box(const GeoNavGrid*, GeoNavCell);
+bool       geo_nav_blocked(const GeoNavGrid*, GeoNavCell);
+GeoNavCell geo_nav_at_position(const GeoNavGrid*, GeoVector);
 
 /**
  * Remove all blockers from the grid.
