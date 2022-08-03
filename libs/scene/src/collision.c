@@ -84,8 +84,8 @@ ecs_module_init(scene_collision_module) {
   ecs_register_comp(SceneCollisionEnvComp, .destructor = ecs_destruct_collision_env_comp);
   ecs_register_comp(SceneCollisionComp);
 
-  ecs_register_view(CollisionEntityView);
   ecs_register_view(UpdateGlobalView);
+  ecs_register_view(CollisionEntityView);
 
   ecs_register_system(
       SceneCollisionUpdateSys, ecs_view_id(UpdateGlobalView), ecs_view_id(CollisionEntityView));
