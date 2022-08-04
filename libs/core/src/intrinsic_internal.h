@@ -21,8 +21,6 @@
 #pragma intrinsic(logf)
 #pragma intrinsic(powf)
 #pragma intrinsic(expf)
-#pragma intrinsic(round)
-#pragma intrinsic(roundf
 #pragma intrinsic(sinf)
 #pragma intrinsic(sqrt)
 #pragma intrinsic(sqrtf)
