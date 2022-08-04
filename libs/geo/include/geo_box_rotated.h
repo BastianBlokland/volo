@@ -12,6 +12,11 @@ typedef struct {
 } GeoBoxRotated;
 
 /**
+ * Calculate the rotated bounding box of a Capsule.
+ */
+GeoBoxRotated geo_box_rotated_from_capsule(GeoVector bottom, GeoVector top, f32 radius);
+
+/**
  * Compute the intersection of the rotated box with the given ray.
  * Returns the time along the ray at which the intersection occurred or negative if no intersection
  * occurred.
