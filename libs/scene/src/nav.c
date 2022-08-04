@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_math.h"
 #include "ecs_world.h"
 #include "scene_collision.h"
 #include "scene_nav.h"
@@ -34,6 +35,22 @@ static SceneNavEnvComp* scene_nav_env_create(EcsWorld* world) {
   return ecs_world_add_t(world, ecs_world_global(world), SceneNavEnvComp, .navGrid = grid);
 }
 
+static void scene_nav_add_blocker_box(SceneNavEnvComp* env, const GeoBox* box) {
+  geo_nav_blocker_add_box(env->navGrid, box);
+}
+
+static void scene_nav_add_blocker_box_rotated(SceneNavEnvComp* env, const GeoBoxRotated* boxRot) {
+  if (math_abs(geo_quat_dot(boxRot->rotation, geo_quat_ident)) > 1.0f - 1e-4f) {
+    /**
+     * Substitute rotated-boxes with a (near) identity rotation with axis-aligned boxes which are
+     * much faster to insert.
+     */
+    geo_nav_blocker_add_box(env->navGrid, &boxRot->box);
+  } else {
+    geo_nav_blocker_add_box_rotated(env->navGrid, boxRot);
+  }
+}
+
 static void scene_nav_add_blockers(SceneNavEnvComp* env, EcsView* blockerEntities) {
   for (EcsIterator* itr = ecs_view_itr(blockerEntities); ecs_view_walk(itr);) {
     const SceneCollisionComp* collision = ecs_view_read_t(itr, SceneCollisionComp);
@@ -46,16 +63,16 @@ static void scene_nav_add_blockers(SceneNavEnvComp* env, EcsView* blockerEntitie
       // then sphere support should be added to GeoNavGrid.
       const GeoSphere s       = scene_collision_world_sphere(&collision->sphere, trans, scale);
       const GeoBox    sBounds = geo_box_from_sphere(s.point, s.radius);
-      geo_nav_blocker_add_box(env->navGrid, &sBounds);
+      scene_nav_add_blocker_box(env, &sBounds);
     } break;
     case SceneCollisionType_Capsule: {
       const GeoCapsule    c = scene_collision_world_capsule(&collision->capsule, trans, scale);
       const GeoBoxRotated cBounds = geo_box_rotated_from_capsule(c.line.a, c.line.b, c.radius);
-      geo_nav_blocker_add_box_rotated(env->navGrid, &cBounds);
+      scene_nav_add_blocker_box_rotated(env, &cBounds);
     } break;
     case SceneCollisionType_Box: {
       const GeoBoxRotated b = scene_collision_world_box(&collision->box, trans, scale);
-      geo_nav_blocker_add_box_rotated(env->navGrid, &b);
+      scene_nav_add_blocker_box_rotated(env, &b);
     } break;
     }
   }
