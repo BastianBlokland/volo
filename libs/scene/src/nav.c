@@ -44,15 +44,18 @@ static void scene_nav_add_blockers(SceneNavEnvComp* env, EcsView* blockerEntitie
     case SceneCollisionType_Sphere: {
       // NOTE: Uses the sphere bounds at the moment, if more accurate sphere blockers are needed
       // then sphere support should be added to GeoNavGrid.
-      const GeoSphere sphere       = scene_collision_world_sphere(&collision->sphere, trans, scale);
-      const GeoBox    sphereBounds = geo_box_from_sphere(sphere.point, sphere.radius);
-      geo_nav_blocker_add_box(env->navGrid, &sphereBounds);
+      const GeoSphere s       = scene_collision_world_sphere(&collision->sphere, trans, scale);
+      const GeoBox    sBounds = geo_box_from_sphere(s.point, s.radius);
+      geo_nav_blocker_add_box(env->navGrid, &sBounds);
     } break;
     case SceneCollisionType_Capsule: {
+      const GeoCapsule    c = scene_collision_world_capsule(&collision->capsule, trans, scale);
+      const GeoBoxRotated cBounds = geo_box_rotated_from_capsule(c.line.a, c.line.b, c.radius);
+      geo_nav_blocker_add_box_rotated(env->navGrid, &cBounds);
     } break;
     case SceneCollisionType_Box: {
-      const GeoBoxRotated boxRotated = scene_collision_world_box(&collision->box, trans, scale);
-      geo_nav_blocker_add_box_rotated(env->navGrid, &boxRotated);
+      const GeoBoxRotated b = scene_collision_world_box(&collision->box, trans, scale);
+      geo_nav_blocker_add_box_rotated(env->navGrid, &b);
     } break;
     }
   }
