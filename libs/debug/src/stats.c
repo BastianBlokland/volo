@@ -549,7 +549,7 @@ bool debug_stats_show(const DebugStatsComp* comp) {
 
 void debug_stats_show_set(DebugStatsComp* comp, const bool show) {
   if (show) {
-    comp->flags ^= DebugStatsFlags_Show;
+    comp->flags |= DebugStatsFlags_Show;
   } else {
     comp->flags &= ~DebugStatsFlags_Show;
   }
