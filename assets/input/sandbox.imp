@@ -512,7 +512,7 @@
       ]
     },
     {
-      "name": "DebugInspectorVisNavigationGrid",
+      "name": "DebugInspectorVisNavigationPath",
       "blockers": [
         "TextInput"
       ],
@@ -520,6 +520,18 @@
         {
           "type": "Pressed",
           "key": "Alpha6"
+        }
+      ]
+    },
+    {
+      "name": "DebugInspectorVisNavigationGrid",
+      "blockers": [
+        "TextInput"
+      ],
+      "bindings": [
+        {
+          "type": "Pressed",
+          "key": "Alpha7"
         }
       ]
     }

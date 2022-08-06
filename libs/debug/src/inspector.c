@@ -39,6 +39,7 @@ typedef enum {
   DebugInspectorVis_CollisionBounds,
   DebugInspectorVis_BoundsLocal,
   DebugInspectorVis_BoundsGlobal,
+  DebugInspectorVis_NavigationPath,
   DebugInspectorVis_NavigationGrid,
 
   DebugInspectorVis_Count,
@@ -66,6 +67,7 @@ static const String g_visNames[] = {
     [DebugInspectorVis_CollisionBounds] = string_static("CollisionBounds"),
     [DebugInspectorVis_BoundsLocal]     = string_static("BoundsLocal"),
     [DebugInspectorVis_BoundsGlobal]    = string_static("BoundsGlobal"),
+    [DebugInspectorVis_NavigationPath]  = string_static("NavigationPath"),
     [DebugInspectorVis_NavigationGrid]  = string_static("NavigationGrid"),
 };
 ASSERT(array_elems(g_visNames) == DebugInspectorVis_Count, "Missing vis name");
@@ -126,6 +128,7 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_write(SceneCollisionComp);
   ecs_access_maybe_write(SceneScaleComp);
   ecs_access_maybe_write(SceneTagComp);
+  ecs_access_maybe_read(SceneNavPathComp);
   ecs_access_write(SceneRenderableComp);
   ecs_access_write(SceneTransformComp);
 }
@@ -743,15 +746,26 @@ static void inspector_vis_draw_bounds_global(
   debug_box(shape, center, geo_quat_ident, size, geo_color(0, 0, 1, 0.5f), DebugShape_Wire);
 }
 
+static void inspector_vis_draw_navigation_path(
+    DebugShapeComp* shape, const SceneNavEnvComp* nav, const SceneNavPathComp* path) {
+  for (u32 i = 1; i < path->cellCount; ++i) {
+    const GeoVector posA = scene_nav_position(nav, path->cells[i - 1]);
+    const GeoVector posB = scene_nav_position(nav, path->cells[i]);
+    debug_line(shape, posA, posB, geo_color_white);
+  }
+}
+
 static void inspector_vis_draw_subject(
     DebugShapeComp*                   shape,
     DebugTextComp*                    text,
     const DebugInspectorSettingsComp* set,
+    const SceneNavEnvComp*            nav,
     EcsIterator*                      subject) {
   const SceneBoundsComp*     boundsComp    = ecs_view_read_t(subject, SceneBoundsComp);
   const SceneCollisionComp*  collisionComp = ecs_view_read_t(subject, SceneCollisionComp);
   const SceneLocomotionComp* locoComp      = ecs_view_read_t(subject, SceneLocomotionComp);
   const SceneNameComp*       nameComp      = ecs_view_read_t(subject, SceneNameComp);
+  const SceneNavPathComp*    navPathComp   = ecs_view_read_t(subject, SceneNavPathComp);
   const SceneScaleComp*      scaleComp     = ecs_view_read_t(subject, SceneScaleComp);
   SceneTransformComp*        transformComp = ecs_view_write_t(subject, SceneTransformComp);
 
@@ -776,6 +790,9 @@ static void inspector_vis_draw_subject(
     if (set->visFlags & (1 << DebugInspectorVis_BoundsGlobal)) {
       inspector_vis_draw_bounds_global(shape, boundsComp, transformComp, scaleComp);
     }
+  }
+  if (navPathComp && set->visFlags & (1 << DebugInspectorVis_NavigationPath)) {
+    inspector_vis_draw_navigation_path(shape, nav, navPathComp);
   }
 }
 
@@ -809,6 +826,7 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   static const String g_drawHotkeys[DebugInspectorVis_Count] = {
       [DebugInspectorVis_Collision]      = string_static("DebugInspectorVisCollision"),
       [DebugInspectorVis_Locomotion]     = string_static("DebugInspectorVisLocomotion"),
+      [DebugInspectorVis_NavigationPath] = string_static("DebugInspectorVisNavigationPath"),
       [DebugInspectorVis_NavigationGrid] = string_static("DebugInspectorVisNavigationGrid"),
   };
   for (DebugInspectorVis vis = 0; vis != DebugInspectorVis_Count; ++vis) {
@@ -832,12 +850,12 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   case DebugInspectorVisMode_SelectedOnly: {
     EcsIterator* subjectItr = ecs_view_maybe_at(subjectView, scene_selected(selection));
     if (subjectItr) {
-      inspector_vis_draw_subject(shape, text, set, subjectItr);
+      inspector_vis_draw_subject(shape, text, set, nav, subjectItr);
     }
   } break;
   case DebugInspectorVisMode_All: {
     for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
-      inspector_vis_draw_subject(shape, text, set, itr);
+      inspector_vis_draw_subject(shape, text, set, nav, itr);
     }
   } break;
   case DebugInspectorVisMode_Count:
