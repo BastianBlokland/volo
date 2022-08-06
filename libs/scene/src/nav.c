@@ -15,6 +15,7 @@ static const f32       g_sceneNavHeight  = 2.0f;
 #define scene_nav_path_max_cells 64
 
 ecs_comp_define(SceneNavEnvComp) { GeoNavGrid* navGrid; };
+ecs_comp_define_public(SceneNavStatsComp);
 
 ecs_comp_define_public(SceneNavBlockerComp);
 ecs_comp_define_public(SceneNavAgentComp);
@@ -30,11 +31,12 @@ static void ecs_destruct_nav_path_comp(void* data) {
   alloc_free_array_t(g_alloc_heap, comp->cells, scene_nav_path_max_cells);
 }
 
-static SceneNavEnvComp* scene_nav_env_create(EcsWorld* world) {
+static void scene_nav_env_create(EcsWorld* world) {
   GeoNavGrid* grid = geo_nav_grid_create(
       g_alloc_heap, g_sceneNavCenter, g_sceneNavSize, g_sceneNavDensity, g_sceneNavHeight);
 
-  return ecs_world_add_t(world, ecs_world_global(world), SceneNavEnvComp, .navGrid = grid);
+  ecs_world_add_t(world, ecs_world_global(world), SceneNavEnvComp, .navGrid = grid);
+  ecs_world_add_t(world, ecs_world_global(world), SceneNavStatsComp);
 }
 
 static void scene_nav_add_blocker_box(SceneNavEnvComp* env, const GeoBox* box) {
@@ -80,7 +82,22 @@ static void scene_nav_add_blockers(SceneNavEnvComp* env, EcsView* blockerEntitie
   }
 }
 
-ecs_view_define(UpdateBlockerGlobalView) { ecs_access_write(SceneNavEnvComp); }
+static void scene_nav_stats_update(SceneNavStatsComp* stats, GeoNavGrid* grid) {
+  const GeoNavStats gridStats = geo_nav_stats(grid);
+  stats->blockerCount         = gridStats.blockerCount;
+  stats->pathCount            = gridStats.pathCount;
+  stats->pathOutputCells      = gridStats.pathOutputCells;
+  stats->pathItrCells         = gridStats.pathItrCells;
+  stats->pathItrEnqueues      = gridStats.pathItrEnqueues;
+  stats->gridDataSize         = gridStats.gridDataSize;
+  stats->workerDataSize       = gridStats.workerDataSize;
+  geo_nav_stats_reset(grid);
+}
+
+ecs_view_define(UpdateGlobalView) {
+  ecs_access_write(SceneNavEnvComp);
+  ecs_access_write(SceneNavStatsComp);
+}
 
 ecs_view_define(BlockerEntityView) {
   ecs_access_maybe_read(SceneScaleComp);
@@ -89,22 +106,24 @@ ecs_view_define(BlockerEntityView) {
   ecs_access_with(SceneNavBlockerComp);
 }
 
-ecs_system_define(SceneNavUpdateBlockersSys) {
+ecs_system_define(SceneNavUpdateSys) {
   if (!ecs_world_has_t(world, ecs_world_global(world), SceneNavEnvComp)) {
     scene_nav_env_create(world);
     return;
   }
 
-  EcsView*     globalView = ecs_world_view_t(world, UpdateBlockerGlobalView);
+  EcsView*     globalView = ecs_world_view_t(world, UpdateGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
   }
+  SceneNavEnvComp*   env   = ecs_view_write_t(globalItr, SceneNavEnvComp);
+  SceneNavStatsComp* stats = ecs_view_write_t(globalItr, SceneNavStatsComp);
 
-  SceneNavEnvComp* env = ecs_view_write_t(globalItr, SceneNavEnvComp);
-  geo_nav_blocker_clear_all(env->navGrid);
+  scene_nav_stats_update(stats, env->navGrid);
 
   EcsView* blockerEntities = ecs_world_view_t(world, BlockerEntityView);
+  geo_nav_blocker_clear_all(env->navGrid);
   scene_nav_add_blockers(env, blockerEntities);
 }
 
@@ -148,14 +167,13 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
 
 ecs_module_init(scene_nav_module) {
   ecs_register_comp(SceneNavEnvComp, .destructor = ecs_destruct_nav_env_comp);
+  ecs_register_comp(SceneNavStatsComp);
   ecs_register_comp_empty(SceneNavBlockerComp);
   ecs_register_comp(SceneNavAgentComp);
   ecs_register_comp(SceneNavPathComp, .destructor = ecs_destruct_nav_path_comp);
 
   ecs_register_system(
-      SceneNavUpdateBlockersSys,
-      ecs_register_view(UpdateBlockerGlobalView),
-      ecs_register_view(BlockerEntityView));
+      SceneNavUpdateSys, ecs_register_view(UpdateGlobalView), ecs_register_view(BlockerEntityView));
 
   ecs_register_system(
       SceneNavUpdateAgentsSys,

@@ -78,3 +78,16 @@ void geo_nav_blocker_clear_all(GeoNavGrid*);
  */
 void geo_nav_blocker_add_box(GeoNavGrid*, const GeoBox*);
 void geo_nav_blocker_add_box_rotated(GeoNavGrid*, const GeoBoxRotated*);
+
+/**
+ * Navigation statistics.
+ */
+
+typedef struct {
+  u32 blockerCount;
+  u32 pathCount, pathOutputCells, pathItrCells, pathItrEnqueues;
+  u32 gridDataSize, workerDataSize;
+} GeoNavStats;
+
+void        geo_nav_stats_reset(GeoNavGrid*);
+GeoNavStats geo_nav_stats(const GeoNavGrid*);

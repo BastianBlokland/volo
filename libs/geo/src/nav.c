@@ -20,6 +20,8 @@ typedef struct {
   u16*        gScores;
   u16*        fScores;
   GeoNavCell* cameFrom;
+
+  u32 statPathCount, statPathOutputCells, statPathItrCells, statPathItrEnqueues;
 } GeoNavWorkerState;
 
 struct sGeoNavGrid {
@@ -30,6 +32,8 @@ struct sGeoNavGrid {
   GeoNavCellData*    cells;
   GeoNavWorkerState* workerStates[geo_nav_workers_max];
   Allocator*         alloc;
+
+  u32 statBlockers;
 };
 
 static GeoNavWorkerState* nav_worker_state(const GeoNavGrid* grid) {
@@ -163,6 +167,8 @@ static u16 nav_path_heuristic(const GeoNavCell from, const GeoNavCell to) {
 }
 
 static void nav_path_enqueue(const GeoNavGrid* grid, GeoNavWorkerState* s, const GeoNavCell c) {
+  ++s->statPathItrEnqueues; // Track total amount of path cell enqueues.
+
   /**
    * ~Binary search to find the first openCell with a lower fScore and insert before it.
    * NOTE: This can probably be implemented more efficiently using some from of a priority queue.
@@ -198,6 +204,8 @@ nav_path(const GeoNavGrid* grid, GeoNavWorkerState* s, const GeoNavCell from, co
   mem_set(mem_create(s->fScores, grid->cellCountTotal * sizeof(u16)), 255);
   mem_set(mem_create(s->gScores, grid->cellCountTotal * sizeof(u16)), 255);
 
+  ++s->statPathCount; // Track amount of path queries.
+
   s->gScores[nav_cell_index(grid, from)] = 0;
   s->fScores[nav_cell_index(grid, from)] = nav_path_heuristic(from, to);
   s->queueCount                          = 1;
@@ -210,6 +218,8 @@ nav_path(const GeoNavGrid* grid, GeoNavWorkerState* s, const GeoNavCell from, co
       return true; // Destination reached.
     }
     bitset_clear(s->openCells, cellIndex);
+
+    ++s->statPathItrCells; // Track total amount of path iterations.
 
     GeoNavCell neighbors[4];
     const u32  neighborCount = nav_cell_neighbors(grid, cell, neighbors);
@@ -275,6 +285,8 @@ static u32 nav_path_output(
     out.cells[count - i] = to;
   }
   for (GeoNavCell itr = to; itr.data != from.data; ++i) {
+    ++s->statPathOutputCells; // Track the total amount of output cells.
+
     itr = s->cameFrom[nav_cell_index(grid, itr)];
     if (out.capacity > (count - 1 - i)) {
       out.cells[count - 1 - i] = itr;
@@ -374,6 +386,9 @@ void geo_nav_blocker_add_box(GeoNavGrid* grid, const GeoBox* box) {
   if (box->max.y < 0 || box->min.y > grid->cellHeight) {
     return; // Outside of the y band of the grid.
   }
+
+  ++grid->statBlockers; // Track the total amount of blockers.
+
   const GeoNavRegion region = nav_cell_map_box(grid, box);
   for (u32 y = region.min.y; y != region.max.y; ++y) {
     for (u32 x = region.min.x; x != region.max.x; ++x) {
@@ -386,6 +401,8 @@ void geo_nav_blocker_add_box(GeoNavGrid* grid, const GeoBox* box) {
 void geo_nav_blocker_add_box_rotated(GeoNavGrid* grid, const GeoBoxRotated* boxRotated) {
   const GeoBox bounds = geo_box_from_rotated(&boxRotated->box, boxRotated->rotation);
 
+  ++grid->statBlockers; // Track the total amount of blockers.
+
   const GeoNavRegion region = nav_cell_map_box(grid, &bounds);
   for (u32 y = region.min.y; y != region.max.y; ++y) {
     for (u32 x = region.min.x; x != region.max.x; ++x) {
@@ -396,4 +413,42 @@ void geo_nav_blocker_add_box_rotated(GeoNavGrid* grid, const GeoBoxRotated* boxR
       }
     }
   }
+}
+
+void geo_nav_stats_reset(GeoNavGrid* grid) {
+  grid->statBlockers = 0;
+  for (u32 i = 0; i != geo_nav_workers_max; ++i) {
+    GeoNavWorkerState* state = grid->workerStates[i];
+    if (state) {
+      state->statPathCount       = 0;
+      state->statPathOutputCells = 0;
+      state->statPathItrCells    = 0;
+      state->statPathItrEnqueues = 0;
+    }
+  }
+}
+
+GeoNavStats geo_nav_stats(const GeoNavGrid* grid) {
+  const u32 dataSizeGrid      = sizeof(GeoNavCellData) * grid->cellCountTotal; // grid.cells
+  const u32 dataSizePerWorker = sizeof(GeoNavCell) * grid->cellCountTotal +    // state.queue
+                                (bits_to_bytes(grid->cellCountTotal) + 1) +    // state.openCells
+                                sizeof(u16) * grid->cellCountTotal +           // state.gScores
+                                sizeof(u16) * grid->cellCountTotal +           // state.fScores
+                                sizeof(GeoNavCell) * grid->cellCountTotal;     // state.cameFrom
+
+  GeoNavStats result = {
+      .blockerCount = grid->statBlockers,
+      .gridDataSize = dataSizeGrid,
+  };
+  for (u32 i = 0; i != geo_nav_workers_max; ++i) {
+    GeoNavWorkerState* state = grid->workerStates[i];
+    if (state) {
+      result.pathCount += state->statPathCount;
+      result.pathOutputCells += state->statPathOutputCells;
+      result.pathItrCells += state->statPathItrCells;
+      result.pathItrEnqueues += state->statPathItrEnqueues;
+      result.workerDataSize += dataSizePerWorker;
+    }
+  }
+  return result;
 }
