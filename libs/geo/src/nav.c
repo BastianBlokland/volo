@@ -212,14 +212,14 @@ nav_path(const GeoNavGrid* grid, GeoNavWorkerState* s, const GeoNavCell from, co
   s->queue[0]                            = from;
 
   while (s->queueCount) {
+    ++s->statPathItrCells; // Track total amount of path iterations.
+
     const GeoNavCell cell      = s->queue[--s->queueCount];
     const u32        cellIndex = nav_cell_index(grid, cell);
     if (cell.data == to.data) {
       return true; // Destination reached.
     }
     bitset_clear(s->openCells, cellIndex);
-
-    ++s->statPathItrCells; // Track total amount of path iterations.
 
     GeoNavCell neighbors[4];
     const u32  neighborCount = nav_cell_neighbors(grid, cell, neighbors);
