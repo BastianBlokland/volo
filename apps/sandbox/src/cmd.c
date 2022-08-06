@@ -2,7 +2,7 @@
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "ecs_world.h"
-#include "scene_locomotion.h"
+#include "scene_nav.h"
 #include "scene_selection.h"
 
 #include "cmd_internal.h"
@@ -65,7 +65,7 @@ ecs_view_define(GlobalUpdateView) {
   ecs_access_write(SceneSelectionComp);
 }
 
-ecs_view_define(MoveView) { ecs_access_write(SceneLocomotionComp); }
+ecs_view_define(MoveView) { ecs_access_write(SceneNavAgentComp); }
 
 static CmdControllerComp* cmd_controller_get(EcsWorld* world) {
   EcsView*     view = ecs_world_view_t(world, ControllerWriteView);
@@ -76,7 +76,7 @@ static CmdControllerComp* cmd_controller_get(EcsWorld* world) {
 static void cmd_execute_move(EcsWorld* world, const CmdMove* cmdMove) {
   EcsIterator* moveItr = ecs_view_maybe_at(ecs_world_view_t(world, MoveView), cmdMove->object);
   if (moveItr) {
-    ecs_view_write_t(moveItr, SceneLocomotionComp)->target = cmdMove->position;
+    ecs_view_write_t(moveItr, SceneNavAgentComp)->target = cmdMove->position;
   }
 }
 
