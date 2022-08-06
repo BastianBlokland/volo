@@ -19,7 +19,7 @@ typedef struct {
   BitSet      openCells;
   u16*        gScores;
   u16*        fScores;
-  GeoNavCell* cameFrame;
+  GeoNavCell* cameFrom;
 } GeoNavWorkerState;
 
 struct sGeoNavGrid {
@@ -42,11 +42,16 @@ static GeoNavWorkerState* nav_worker_state(const GeoNavGrid* grid) {
         .openCells = alloc_alloc(grid->alloc, bits_to_bytes(grid->cellCountTotal) + 1, 1),
         .gScores   = alloc_array_t(grid->alloc, u16, grid->cellCountTotal),
         .fScores   = alloc_array_t(grid->alloc, u16, grid->cellCountTotal),
-        .cameFrame = alloc_array_t(grid->alloc, GeoNavCell, grid->cellCountTotal),
+        .cameFrom  = alloc_array_t(grid->alloc, GeoNavCell, grid->cellCountTotal),
     };
     ((GeoNavGrid*)grid)->workerStates[g_jobsWorkerId] = state;
   }
   return grid->workerStates[g_jobsWorkerId];
+}
+
+INLINE_HINT static u16 nav_abs_i16(const i16 v) {
+  const i16 mask = v >> 15;
+  return (v + mask) ^ mask;
 }
 
 INLINE_HINT static u16 nav_cell_index(const GeoNavGrid* grid, const GeoNavCell cell) {
@@ -147,20 +152,20 @@ static void nav_clear_cells(GeoNavGrid* grid) {
 
 static u16 nav_path_heuristic(const GeoNavCell from, const GeoNavCell to) {
   /**
-   * Accuracy controls how optimal the resulting path with be. A higher number means that the
-   * previous part of the path maters more and how much we're getting closer to our target matters
-   * less, this will result in more nodes being checked but also a more optimal path.
+   * Basic manhattan distance to estimate the cost between the two cells.
+   * Additionally we a multiplier to make the A* search more greedy to reduce the amount of visited
+   * cells with the trade-off of less optimal paths.
    */
-  enum { Accuracy = 2 };
-  const i16 diffX = (i16)from.x - (i16)to.x;
-  const i16 diffY = (i16)from.y - (i16)to.y;
-  return (u16)(diffX * diffX + diffY * diffY) >> Accuracy;
+  enum { ExpectedCostPerCell = 1, Multiplier = 2 };
+  const i16 diffX = to.x - (i16)from.x;
+  const i16 diffY = to.y - (i16)from.y;
+  return (nav_abs_i16(diffX) + nav_abs_i16(diffY)) * ExpectedCostPerCell * Multiplier;
 }
 
 static void nav_path_enqueue(const GeoNavGrid* grid, GeoNavWorkerState* s, const GeoNavCell c) {
   /**
-   * Does a binary search to find the first openCell with a better fScore and inserts it before it.
-   * NOTE: This can probably be implemented more efficiently using a from of a priority queue.
+   * ~Binary search to find the first openCell with a lower fScore and insert before it.
+   * NOTE: This can probably be implemented more efficiently using some from of a priority queue.
    */
   const u16   fScore = s->fScores[nav_cell_index(grid, c)];
   GeoNavCell* itr    = s->queue;
@@ -169,7 +174,7 @@ static void nav_path_enqueue(const GeoNavGrid* grid, GeoNavWorkerState* s, const
   while (count) {
     const u32   step   = count / 2;
     GeoNavCell* middle = itr + step;
-    if (s->fScores[nav_cell_index(grid, *middle)] <= fScore) {
+    if (fScore <= s->fScores[nav_cell_index(grid, *middle)]) {
       itr = middle + 1;
       count -= step + 1;
     } else {
@@ -177,12 +182,13 @@ static void nav_path_enqueue(const GeoNavGrid* grid, GeoNavWorkerState* s, const
     }
   }
   if (itr == end) {
-    // No better FScore found; insert it at the end.
+    // No lower FScore found; insert it at the end.
     s->queue[s->queueCount++] = c;
   } else {
     // FScore at itr was better; shift the collection 1 towards the end.
-    mem_move(mem_from_to(itr, end + 1), mem_from_to(itr + 1, end));
+    mem_move(mem_from_to(itr + 1, end + 1), mem_from_to(itr, end));
     *itr = c;
+    ++s->queueCount;
   }
 }
 
@@ -194,7 +200,8 @@ nav_path(const GeoNavGrid* grid, GeoNavWorkerState* s, const GeoNavCell from, co
 
   s->gScores[nav_cell_index(grid, from)] = 0;
   s->fScores[nav_cell_index(grid, from)] = nav_path_heuristic(from, to);
-  nav_path_enqueue(grid, s, from);
+  s->queueCount                          = 1;
+  s->queue[0]                            = from;
 
   while (s->queueCount) {
     const GeoNavCell cell      = s->queue[--s->queueCount];
@@ -218,9 +225,9 @@ nav_path(const GeoNavGrid* grid, GeoNavWorkerState* s, const GeoNavCell from, co
          * This path to the neighbor is better then the previous, record it and enqueue the neighbor
          * for rechecking.
          */
-        s->cameFrame[neighborIndex] = cell;
-        s->gScores[neighborIndex]   = tentativeGScore;
-        s->fScores[neighborIndex]   = tentativeGScore + nav_path_heuristic(neighbor, to);
+        s->cameFrom[neighborIndex] = cell;
+        s->gScores[neighborIndex]  = tentativeGScore;
+        s->fScores[neighborIndex]  = tentativeGScore + nav_path_heuristic(neighbor, to);
         if (!bitset_test(s->openCells, neighborIndex)) {
           nav_path_enqueue(grid, s, neighbor);
           bitset_set(s->openCells, neighborIndex);
@@ -238,12 +245,12 @@ nav_path(const GeoNavGrid* grid, GeoNavWorkerState* s, const GeoNavCell from, co
 static u32 nav_path_output_count(
     const GeoNavGrid* grid, GeoNavWorkerState* s, const GeoNavCell from, const GeoNavCell to) {
   /**
-   * Walk the cameFrame chain backwards starting from 'from' until we reach 'to' and count the
+   * Walk the cameFrom chain backwards starting from 'from' until we reach 'to' and count the
    * number of cells in the path.
    */
   u32 count = 1;
-  for (GeoNavCell itr = to; itr.data != from.data; count++) {
-    itr = s->cameFrame[nav_cell_index(grid, itr)];
+  for (GeoNavCell itr = to; itr.data != from.data; ++count) {
+    itr = s->cameFrom[nav_cell_index(grid, itr)];
   }
   return count;
 }
@@ -268,12 +275,12 @@ static u32 nav_path_output(
     out.cells[count - i] = to;
   }
   for (GeoNavCell itr = to; itr.data != from.data; ++i) {
-    itr = s->cameFrame[nav_cell_index(grid, itr)];
-    if (out.capacity > (count - i)) {
-      out.cells[count - i] = to;
+    itr = s->cameFrom[nav_cell_index(grid, itr)];
+    if (out.capacity > (count - 1 - i)) {
+      out.cells[count - 1 - i] = itr;
     }
   }
-  return count;
+  return math_min(count, out.capacity);
 }
 
 GeoNavGrid* geo_nav_grid_create(
@@ -311,7 +318,7 @@ void geo_nav_grid_destroy(GeoNavGrid* grid) {
       alloc_free(grid->alloc, state->openCells);
       alloc_free_array_t(grid->alloc, state->gScores, grid->cellCountTotal);
       alloc_free_array_t(grid->alloc, state->fScores, grid->cellCountTotal);
-      alloc_free_array_t(grid->alloc, state->cameFrame, grid->cellCountTotal);
+      alloc_free_array_t(grid->alloc, state->cameFrom, grid->cellCountTotal);
       alloc_free_t(grid->alloc, state);
     }
   }
