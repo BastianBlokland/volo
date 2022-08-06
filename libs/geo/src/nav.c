@@ -373,6 +373,13 @@ u32 geo_nav_path(
   diag_assert(from.x < grid->cellCountAxis && from.y < grid->cellCountAxis);
   diag_assert(to.x < grid->cellCountAxis && to.y < grid->cellCountAxis);
 
+  if (nav_cell_data_readonly(grid, from)->blockers) {
+    return 0; // From cell is blocked, no path possible.
+  }
+  if (nav_cell_data_readonly(grid, to)->blockers) {
+    return 0; // To cell is blocked, no path possible.
+  }
+
   GeoNavWorkerState* s = nav_worker_state(grid);
   if (nav_path(grid, s, from, to)) {
     return nav_path_output(grid, s, from, to, out);
