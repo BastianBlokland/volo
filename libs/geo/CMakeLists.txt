@@ -28,6 +28,7 @@ add_executable(test_lib_geo
   test/test_box.c
   test/test_line.c
   test/test_matrix.c
+  test/test_nav.c
   test/test_plane.c
   test/test_quat.c
   test/test_sphere.c
