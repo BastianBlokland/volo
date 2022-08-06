@@ -94,10 +94,7 @@ static void scene_nav_stats_update(SceneNavStatsComp* stats, GeoNavGrid* grid) {
   geo_nav_stats_reset(grid);
 }
 
-ecs_view_define(UpdateGlobalView) {
-  ecs_access_write(SceneNavEnvComp);
-  ecs_access_write(SceneNavStatsComp);
-}
+ecs_view_define(InitGlobalView) { ecs_access_write(SceneNavEnvComp); }
 
 ecs_view_define(BlockerEntityView) {
   ecs_access_maybe_read(SceneScaleComp);
@@ -106,21 +103,18 @@ ecs_view_define(BlockerEntityView) {
   ecs_access_with(SceneNavBlockerComp);
 }
 
-ecs_system_define(SceneNavUpdateSys) {
+ecs_system_define(SceneNavInitSys) {
   if (!ecs_world_has_t(world, ecs_world_global(world), SceneNavEnvComp)) {
     scene_nav_env_create(world);
     return;
   }
 
-  EcsView*     globalView = ecs_world_view_t(world, UpdateGlobalView);
+  EcsView*     globalView = ecs_world_view_t(world, InitGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
   }
-  SceneNavEnvComp*   env   = ecs_view_write_t(globalItr, SceneNavEnvComp);
-  SceneNavStatsComp* stats = ecs_view_write_t(globalItr, SceneNavStatsComp);
-
-  scene_nav_stats_update(stats, env->navGrid);
+  SceneNavEnvComp* env = ecs_view_write_t(globalItr, SceneNavEnvComp);
 
   EcsView* blockerEntities = ecs_world_view_t(world, BlockerEntityView);
   geo_nav_blocker_clear_all(env->navGrid);
@@ -167,6 +161,23 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
   }
 }
 
+ecs_view_define(UpdateStatsGlobalView) {
+  ecs_access_write(SceneNavEnvComp);
+  ecs_access_write(SceneNavStatsComp);
+}
+
+ecs_system_define(SceneNavUpdateStatsSys) {
+  EcsView*     globalView = ecs_world_view_t(world, UpdateStatsGlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return;
+  }
+  SceneNavEnvComp*   env   = ecs_view_write_t(globalItr, SceneNavEnvComp);
+  SceneNavStatsComp* stats = ecs_view_write_t(globalItr, SceneNavStatsComp);
+
+  scene_nav_stats_update(stats, env->navGrid);
+}
+
 ecs_module_init(scene_nav_module) {
   ecs_register_comp(SceneNavEnvComp, .destructor = ecs_destruct_nav_env_comp);
   ecs_register_comp(SceneNavStatsComp);
@@ -175,12 +186,20 @@ ecs_module_init(scene_nav_module) {
   ecs_register_comp(SceneNavPathComp, .destructor = ecs_destruct_nav_path_comp);
 
   ecs_register_system(
-      SceneNavUpdateSys, ecs_register_view(UpdateGlobalView), ecs_register_view(BlockerEntityView));
+      SceneNavInitSys, ecs_register_view(InitGlobalView), ecs_register_view(BlockerEntityView));
 
   ecs_register_system(
       SceneNavUpdateAgentsSys,
       ecs_register_view(UpdateAgentGlobalView),
       ecs_register_view(AgentEntityView));
+
+  ecs_register_system(SceneNavUpdateStatsSys, ecs_register_view(UpdateStatsGlobalView));
+
+  enum {
+    SceneOrder_Normal         = 0,
+    SceneOrder_NavStatsUpdate = 1,
+  };
+  ecs_order(SceneNavUpdateStatsSys, SceneOrder_NavStatsUpdate);
 }
 
 void scene_nav_add_blocker(EcsWorld* world, const EcsEntityId entity) {
