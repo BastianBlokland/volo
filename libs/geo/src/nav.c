@@ -72,13 +72,13 @@ static const GeoNavCellData* nav_cell_data_readonly(const GeoNavGrid* grid, cons
 
 static u32 nav_cell_neighbors(const GeoNavGrid* grid, const GeoNavCell cell, GeoNavCell out[4]) {
   u32 count = 0;
-  if (cell.x + 1 < grid->cellCountAxis) {
+  if ((u16)(cell.x + 1) < grid->cellCountAxis) {
     out[count++] = (GeoNavCell){.x = cell.x + 1, .y = cell.y};
   }
   if (cell.x >= 1) {
     out[count++] = (GeoNavCell){.x = cell.x - 1, .y = cell.y};
   }
-  if (cell.y + 1 < grid->cellCountAxis) {
+  if ((u16)(cell.y + 1) < grid->cellCountAxis) {
     out[count++] = (GeoNavCell){.x = cell.x, .y = cell.y + 1};
   }
   if (cell.y >= 1) {
