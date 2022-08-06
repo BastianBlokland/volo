@@ -13,7 +13,17 @@ ecs_comp_extern(SceneNavEnvComp);
  */
 ecs_comp_extern(SceneNavBlockerComp);
 
+/**
+ * Navigation agent.
+ */
+ecs_comp_extern_public(SceneNavAgentComp) { GeoVector target; };
+ecs_comp_extern_public(SceneNavPathComp) {
+  GeoNavCell* cells;
+  u32         cellCount;
+};
+
 void scene_nav_add_blocker(EcsWorld*, EcsEntityId);
+void scene_nav_add_agent(EcsWorld*, EcsEntityId, GeoVector target);
 
 GeoNavRegion scene_nav_bounds(const SceneNavEnvComp*);
 GeoVector    scene_nav_cell_size(const SceneNavEnvComp*);

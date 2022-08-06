@@ -2,30 +2,32 @@
 #include "core_math.h"
 #include "ecs_world.h"
 #include "scene_collision.h"
+#include "scene_locomotion.h"
 #include "scene_nav.h"
 #include "scene_register.h"
+#include "scene_transform.h"
 
 static const GeoVector g_sceneNavCenter  = {0, 0, 0};
 static const f32       g_sceneNavSize    = 100.0f;
 static const f32       g_sceneNavDensity = 1.0f;
 static const f32       g_sceneNavHeight  = 2.0f;
 
+#define scene_nav_path_max_cells 64
+
 ecs_comp_define(SceneNavEnvComp) { GeoNavGrid* navGrid; };
 
-ecs_comp_define(SceneNavBlockerComp);
+ecs_comp_define_public(SceneNavBlockerComp);
+ecs_comp_define_public(SceneNavAgentComp);
+ecs_comp_define_public(SceneNavPathComp);
 
 static void ecs_destruct_nav_env_comp(void* data) {
-  SceneNavEnvComp* env = data;
-  geo_nav_grid_destroy(env->navGrid);
+  SceneNavEnvComp* comp = data;
+  geo_nav_grid_destroy(comp->navGrid);
 }
 
-ecs_view_define(UpdateGlobalView) { ecs_access_write(SceneNavEnvComp); }
-
-ecs_view_define(BlockerEntityView) {
-  ecs_access_maybe_read(SceneScaleComp);
-  ecs_access_maybe_read(SceneTransformComp);
-  ecs_access_read(SceneCollisionComp);
-  ecs_access_with(SceneNavBlockerComp);
+static void ecs_destruct_nav_path_comp(void* data) {
+  SceneNavPathComp* comp = data;
+  alloc_free_array_t(g_alloc_heap, comp->cells, scene_nav_path_max_cells);
 }
 
 static SceneNavEnvComp* scene_nav_env_create(EcsWorld* world) {
@@ -78,13 +80,22 @@ static void scene_nav_add_blockers(SceneNavEnvComp* env, EcsView* blockerEntitie
   }
 }
 
-ecs_system_define(SceneNavUpdateSys) {
+ecs_view_define(UpdateBlockerGlobalView) { ecs_access_write(SceneNavEnvComp); }
+
+ecs_view_define(BlockerEntityView) {
+  ecs_access_maybe_read(SceneScaleComp);
+  ecs_access_maybe_read(SceneTransformComp);
+  ecs_access_read(SceneCollisionComp);
+  ecs_access_with(SceneNavBlockerComp);
+}
+
+ecs_system_define(SceneNavUpdateBlockersSys) {
   if (!ecs_world_has_t(world, ecs_world_global(world), SceneNavEnvComp)) {
     scene_nav_env_create(world);
     return;
   }
 
-  EcsView*     globalView = ecs_world_view_t(world, UpdateGlobalView);
+  EcsView*     globalView = ecs_world_view_t(world, UpdateBlockerGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
@@ -97,19 +108,72 @@ ecs_system_define(SceneNavUpdateSys) {
   scene_nav_add_blockers(env, blockerEntities);
 }
 
+ecs_view_define(UpdateAgentGlobalView) { ecs_access_read(SceneNavEnvComp); }
+
+ecs_view_define(AgentEntityView) {
+  ecs_access_read(SceneNavAgentComp);
+  ecs_access_read(SceneTransformComp);
+  ecs_access_write(SceneLocomotionComp);
+  ecs_access_write(SceneNavPathComp);
+}
+
+ecs_system_define(SceneNavUpdateAgentsSys) {
+  EcsView*     globalView = ecs_world_view_t(world, UpdateAgentGlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return;
+  }
+  const SceneNavEnvComp* env = ecs_view_read_t(globalItr, SceneNavEnvComp);
+
+  EcsView* agentEntities = ecs_world_view_t(world, AgentEntityView);
+  for (EcsIterator* itr = ecs_view_itr(agentEntities); ecs_view_walk(itr);) {
+    const SceneNavAgentComp*  agent      = ecs_view_read_t(itr, SceneNavAgentComp);
+    const SceneTransformComp* trans      = ecs_view_read_t(itr, SceneTransformComp);
+    SceneLocomotionComp*      locomotion = ecs_view_write_t(itr, SceneLocomotionComp);
+    SceneNavPathComp*         path       = ecs_view_write_t(itr, SceneNavPathComp);
+
+    const GeoNavCell from = geo_nav_at_position(env->navGrid, trans->position);
+    const GeoNavCell to   = geo_nav_at_position(env->navGrid, agent->target);
+
+    const GeoNavPathStorage storage = {.cells = path->cells, .capacity = scene_nav_path_max_cells};
+    path->cellCount                 = geo_nav_path(env->navGrid, from, to, storage);
+
+    if (path->cellCount > 1) {
+      locomotion->target = geo_nav_position(env->navGrid, path->cells[1]);
+    } else {
+      locomotion->target = trans->position;
+    }
+  }
+}
+
 ecs_module_init(scene_nav_module) {
   ecs_register_comp(SceneNavEnvComp, .destructor = ecs_destruct_nav_env_comp);
   ecs_register_comp_empty(SceneNavBlockerComp);
-
-  ecs_register_view(UpdateGlobalView);
-  ecs_register_view(BlockerEntityView);
+  ecs_register_comp(SceneNavAgentComp);
+  ecs_register_comp(SceneNavPathComp, .destructor = ecs_destruct_nav_path_comp);
 
   ecs_register_system(
-      SceneNavUpdateSys, ecs_view_id(UpdateGlobalView), ecs_view_id(BlockerEntityView));
+      SceneNavUpdateBlockersSys,
+      ecs_register_view(UpdateBlockerGlobalView),
+      ecs_register_view(BlockerEntityView));
+
+  ecs_register_system(
+      SceneNavUpdateAgentsSys,
+      ecs_register_view(UpdateAgentGlobalView),
+      ecs_register_view(AgentEntityView));
 }
 
 void scene_nav_add_blocker(EcsWorld* world, const EcsEntityId entity) {
   ecs_world_add_empty_t(world, entity, SceneNavBlockerComp);
+}
+
+void scene_nav_add_agent(EcsWorld* world, const EcsEntityId entity, const GeoVector target) {
+  ecs_world_add_t(world, entity, SceneNavAgentComp, .target = target);
+  ecs_world_add_t(
+      world,
+      entity,
+      SceneNavPathComp,
+      .cells = alloc_array_t(g_alloc_heap, GeoNavCell, scene_nav_path_max_cells));
 }
 
 GeoNavRegion scene_nav_bounds(const SceneNavEnvComp* env) { return geo_nav_bounds(env->navGrid); }
