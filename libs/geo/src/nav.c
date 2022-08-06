@@ -204,7 +204,8 @@ nav_path(const GeoNavGrid* grid, GeoNavWorkerState* s, const GeoNavCell from, co
   mem_set(mem_create(s->fScores, grid->cellCountTotal * sizeof(u16)), 255);
   mem_set(mem_create(s->gScores, grid->cellCountTotal * sizeof(u16)), 255);
 
-  ++s->statPathCount; // Track amount of path queries.
+  ++s->statPathCount;       // Track amount of path queries.
+  ++s->statPathItrEnqueues; // Include the initial enqueue in the tracking.
 
   s->gScores[nav_cell_index(grid, from)] = 0;
   s->fScores[nav_cell_index(grid, from)] = nav_path_heuristic(from, to);
