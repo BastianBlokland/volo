@@ -2,6 +2,7 @@
 #include "ecs_world.h"
 #include "scene_collision.h"
 #include "scene_locomotion.h"
+#include "scene_nav.h"
 #include "scene_renderable.h"
 #include "scene_transform.h"
 
@@ -58,6 +59,7 @@ object_spawn_unit(EcsWorld* world, const ObjectDatabaseComp* db, const GeoVector
   ecs_world_add_empty_t(world, e, ObjectComp);
   ecs_world_add_t(world, e, SceneRenderableComp, .graphic = db->unitGraphic);
   ecs_world_add_t(world, e, SceneTransformComp, .position = position, .rotation = rotation);
+  scene_nav_add_agent(world, e, position);
   ecs_world_add_t(world, e, SceneLocomotionComp, .target = position, .speed = g_speed);
   scene_collision_add_capsule(world, e, g_capsule);
   return e;
@@ -78,5 +80,6 @@ object_spawn_wall(EcsWorld* world, const ObjectDatabaseComp* db, const GeoVector
   ecs_world_add_t(world, e, SceneTransformComp, .position = position, .rotation = rotation);
   ecs_world_add_t(world, e, SceneScaleComp, .scale = 1.0f);
   scene_collision_add_box(world, e, g_box);
+  scene_nav_add_blocker(world, e);
   return e;
 }

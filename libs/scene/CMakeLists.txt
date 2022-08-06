@@ -11,6 +11,7 @@ add_library(lib_scene STATIC
   src/lifetime.c
   src/locomotion.c
   src/name.c
+  src/nav.c
   src/register.c
   src/renderable.c
   src/selection.c
@@ -22,3 +23,12 @@ add_library(lib_scene STATIC
 target_include_directories(lib_scene PUBLIC include)
 target_link_libraries(lib_scene PUBLIC lib_asset lib_core lib_ecs lib_geo)
 target_link_libraries(lib_scene PRIVATE lib_log)
+
+add_executable(test_lib_scene
+  test/config.c
+  test/test_nav.c
+  )
+target_link_libraries(test_lib_scene PRIVATE lib_app_check lib_scene)
+
+configure_test(test_lib_scene SHORT_NAME scene)
+configure_debuggable(test_lib_scene)

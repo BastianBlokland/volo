@@ -93,6 +93,11 @@ GeoBox geo_box_from_cone(GeoVector bottom, GeoVector top, f32 radius);
 GeoBox geo_box_from_line(GeoVector from, GeoVector to);
 
 /**
+ * Calculate the bounding box of quad.
+ */
+GeoBox geo_box_from_quad(GeoVector center, f32 sizeX, f32 sizeY, GeoQuat rotation);
+
+/**
  * Test if the box intersects the given four frustum planes.
  * NOTE: If the given box is inverted its considered to always be intersecting.
  */

@@ -14,6 +14,7 @@
 #include "scene_collision.h"
 #include "scene_locomotion.h"
 #include "scene_name.h"
+#include "scene_nav.h"
 #include "scene_renderable.h"
 #include "scene_selection.h"
 #include "scene_tag.h"
@@ -38,6 +39,8 @@ typedef enum {
   DebugInspectorVis_CollisionBounds,
   DebugInspectorVis_BoundsLocal,
   DebugInspectorVis_BoundsGlobal,
+  DebugInspectorVis_NavigationPath,
+  DebugInspectorVis_NavigationGrid,
 
   DebugInspectorVis_Count,
 } DebugInspectorVis;
@@ -64,6 +67,8 @@ static const String g_visNames[] = {
     [DebugInspectorVis_CollisionBounds] = string_static("CollisionBounds"),
     [DebugInspectorVis_BoundsLocal]     = string_static("BoundsLocal"),
     [DebugInspectorVis_BoundsGlobal]    = string_static("BoundsGlobal"),
+    [DebugInspectorVis_NavigationPath]  = string_static("NavigationPath"),
+    [DebugInspectorVis_NavigationGrid]  = string_static("NavigationGrid"),
 };
 ASSERT(array_elems(g_visNames) == DebugInspectorVis_Count, "Missing vis name");
 
@@ -109,6 +114,7 @@ ecs_view_define(GlobalToolUpdateView) {
 ecs_view_define(GlobalVisDrawView) {
   ecs_access_read(InputManagerComp);
   ecs_access_read(SceneSelectionComp);
+  ecs_access_read(SceneNavEnvComp);
   ecs_access_write(DebugInspectorSettingsComp);
   ecs_access_write(DebugShapeComp);
   ecs_access_write(DebugStatsGlobalComp);
@@ -122,6 +128,7 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_write(SceneCollisionComp);
   ecs_access_maybe_write(SceneScaleComp);
   ecs_access_maybe_write(SceneTagComp);
+  ecs_access_maybe_read(SceneNavPathComp);
   ecs_access_write(SceneRenderableComp);
   ecs_access_write(SceneTransformComp);
 }
@@ -739,15 +746,26 @@ static void inspector_vis_draw_bounds_global(
   debug_box(shape, center, geo_quat_ident, size, geo_color(0, 0, 1, 0.5f), DebugShape_Wire);
 }
 
+static void inspector_vis_draw_navigation_path(
+    DebugShapeComp* shape, const SceneNavEnvComp* nav, const SceneNavPathComp* path) {
+  for (u32 i = 1; i < path->cellCount; ++i) {
+    const GeoVector posA = scene_nav_position(nav, path->cells[i - 1]);
+    const GeoVector posB = scene_nav_position(nav, path->cells[i]);
+    debug_line(shape, posA, posB, geo_color_white);
+  }
+}
+
 static void inspector_vis_draw_subject(
     DebugShapeComp*                   shape,
     DebugTextComp*                    text,
     const DebugInspectorSettingsComp* set,
+    const SceneNavEnvComp*            nav,
     EcsIterator*                      subject) {
   const SceneBoundsComp*     boundsComp    = ecs_view_read_t(subject, SceneBoundsComp);
   const SceneCollisionComp*  collisionComp = ecs_view_read_t(subject, SceneCollisionComp);
   const SceneLocomotionComp* locoComp      = ecs_view_read_t(subject, SceneLocomotionComp);
   const SceneNameComp*       nameComp      = ecs_view_read_t(subject, SceneNameComp);
+  const SceneNavPathComp*    navPathComp   = ecs_view_read_t(subject, SceneNavPathComp);
   const SceneScaleComp*      scaleComp     = ecs_view_read_t(subject, SceneScaleComp);
   SceneTransformComp*        transformComp = ecs_view_write_t(subject, SceneTransformComp);
 
@@ -773,6 +791,26 @@ static void inspector_vis_draw_subject(
       inspector_vis_draw_bounds_global(shape, boundsComp, transformComp, scaleComp);
     }
   }
+  if (navPathComp && set->visFlags & (1 << DebugInspectorVis_NavigationPath)) {
+    inspector_vis_draw_navigation_path(shape, nav, navPathComp);
+  }
+}
+
+static void inspector_vis_draw_navigation_grid(DebugShapeComp* shape, const SceneNavEnvComp* nav) {
+  const GeoNavRegion bounds       = scene_nav_bounds(nav);
+  const GeoVector    cellSize     = scene_nav_cell_size(nav);
+  const GeoQuat      cellRotation = geo_quat_angle_axis(geo_right, math_pi_f32 * 0.5f);
+  for (u32 y = bounds.min.y; y != bounds.max.y; ++y) {
+    for (u32 x = bounds.min.x; x != bounds.max.x; ++x) {
+      const GeoNavCell cell      = {.x = x, .y = y};
+      const GeoVector  pos       = scene_nav_position(nav, (GeoNavCell){.x = x, .y = y});
+      const bool       blocked   = scene_nav_blocked(nav, cell);
+      const bool       highlight = (x & 1) == (y & 1);
+      const GeoColor   color     = blocked ? geo_color(1, 0, 0, highlight ? 0.5f : 0.3f)
+                                           : geo_color(0, 1, 0, highlight ? 0.2f : 0.1f);
+      debug_quad(shape, pos, cellRotation, cellSize.x, cellSize.z, color, DebugShape_Overlay);
+    }
+  }
 }
 
 ecs_system_define(DebugInspectorVisDrawSys) {
@@ -786,8 +824,10 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   DebugStatsGlobalComp*       stats = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
 
   static const String g_drawHotkeys[DebugInspectorVis_Count] = {
-      [DebugInspectorVis_Collision]  = string_static("DebugInspectorVisCollision"),
-      [DebugInspectorVis_Locomotion] = string_static("DebugInspectorVisLocomotion"),
+      [DebugInspectorVis_Collision]      = string_static("DebugInspectorVisCollision"),
+      [DebugInspectorVis_Locomotion]     = string_static("DebugInspectorVisLocomotion"),
+      [DebugInspectorVis_NavigationPath] = string_static("DebugInspectorVisNavigationPath"),
+      [DebugInspectorVis_NavigationGrid] = string_static("DebugInspectorVisNavigationGrid"),
   };
   for (DebugInspectorVis vis = 0; vis != DebugInspectorVis_Count; ++vis) {
     const u32 hotKeyHash = string_hash(g_drawHotkeys[vis]);
@@ -800,6 +840,7 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   if (!set->visFlags) {
     return;
   }
+  const SceneNavEnvComp*    nav       = ecs_view_read_t(globalItr, SceneNavEnvComp);
   const SceneSelectionComp* selection = ecs_view_read_t(globalItr, SceneSelectionComp);
   DebugShapeComp*           shape     = ecs_view_write_t(globalItr, DebugShapeComp);
   DebugTextComp*            text      = ecs_view_write_t(globalItr, DebugTextComp);
@@ -809,16 +850,20 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   case DebugInspectorVisMode_SelectedOnly: {
     EcsIterator* subjectItr = ecs_view_maybe_at(subjectView, scene_selected(selection));
     if (subjectItr) {
-      inspector_vis_draw_subject(shape, text, set, subjectItr);
+      inspector_vis_draw_subject(shape, text, set, nav, subjectItr);
     }
   } break;
   case DebugInspectorVisMode_All: {
     for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
-      inspector_vis_draw_subject(shape, text, set, itr);
+      inspector_vis_draw_subject(shape, text, set, nav, itr);
     }
   } break;
   case DebugInspectorVisMode_Count:
     UNREACHABLE
+  }
+
+  if (set->visFlags & (1 << DebugInspectorVis_NavigationGrid)) {
+    inspector_vis_draw_navigation_grid(shape, nav);
   }
 }
 

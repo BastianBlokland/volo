@@ -7,17 +7,18 @@
 #include "gap_window.h"
 #include "rend_settings.h"
 #include "rend_stats.h"
+#include "scene_nav.h"
 #include "scene_time.h"
 #include "ui.h"
 #include "ui_stats.h"
 
-static const f32 g_statsLabelWidth       = 200;
+static const f32 g_statsLabelWidth       = 220;
 static const u8  g_statsBgAlpha          = 150;
 static const u8  g_statsSectionBgAlpha   = 200;
 static const f32 g_statsInvAverageWindow = 1.0f / 10.0f;
 
 #define stats_plot_size 32
-#define stats_notify_max_key_size 24
+#define stats_notify_max_key_size 32
 #define stats_notify_max_value_size 16
 #define stats_notify_max_age time_seconds(3)
 
@@ -320,10 +321,11 @@ static void debug_stats_draw_interface(
     const AllocStats*           allocStats,
     const EcsDef*               ecsDef,
     const EcsWorldStats*        ecsStats,
+    const SceneNavStatsComp*    navStats,
     const UiStatsComp*          uiStats) {
 
   ui_layout_move_to(canvas, UiBase_Container, UiAlign_TopLeft, Ui_XY);
-  ui_layout_resize(canvas, UiAlign_TopLeft, ui_vector(450, 25), UiBase_Absolute, Ui_XY);
+  ui_layout_resize(canvas, UiAlign_TopLeft, ui_vector(510, 25), UiBase_Absolute, Ui_XY);
 
   // clang-format off
   stats_draw_frametime(canvas, stats);
@@ -376,6 +378,14 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Archetype data"), fmt_write_scratch("{<8} chunks: {}", fmt_size(ecsStats->archetypeTotalSize), fmt_int(ecsStats->archetypeTotalChunks)));
     stats_draw_val_entry(canvas, string_lit("Flush duration"), fmt_write_scratch("{<8} max:    {}", fmt_duration(ecsStats->lastFlushDur), fmt_duration(maxFlushTime)));
     stats_draw_val_entry(canvas, string_lit("Flush entities"), fmt_write_scratch("{}", fmt_int(ecsStats->lastFlushEntities)));
+  }
+  if(stats_draw_section(canvas, string_lit("Navigation"))) {
+    stats_draw_val_entry(canvas, string_lit("Grid data"), fmt_write_scratch("{}", fmt_size(navStats->gridDataSize)));
+    stats_draw_val_entry(canvas, string_lit("Worker data"), fmt_write_scratch("{}", fmt_size(navStats->workerDataSize)));
+    stats_draw_val_entry(canvas, string_lit("Blocker count"), fmt_write_scratch("{}", fmt_int(navStats->blockerCount)));
+    stats_draw_val_entry(canvas, string_lit("Path count"), fmt_write_scratch("{}", fmt_int(navStats->pathCount)));
+    stats_draw_val_entry(canvas, string_lit("Path output"), fmt_write_scratch("cells: {}", fmt_int(navStats->pathOutputCells)));
+    stats_draw_val_entry(canvas, string_lit("Path iterations"), fmt_write_scratch("cells: {<4} enqueues: {}", fmt_int(navStats->pathItrCells), fmt_int(navStats->pathItrEnqueues)));
   }
   if(stats_draw_section(canvas, string_lit("Interface"))) {
     stats_draw_val_entry(canvas, string_lit("Canvas size"), fmt_write_scratch("{}x{}", fmt_float(uiStats->canvasSize.x, .maxDecDigits = 0), fmt_float(uiStats->canvasSize.y, .maxDecDigits = 0)));
@@ -435,9 +445,10 @@ debug_stats_global_update(DebugStatsGlobalComp* statsGlobal, const EcsWorldStats
 }
 
 ecs_view_define(GlobalView) {
-  ecs_access_write(DebugStatsGlobalComp);
   ecs_access_read(RendGlobalSettingsComp);
+  ecs_access_read(SceneNavStatsComp);
   ecs_access_read(SceneTimeComp);
+  ecs_access_write(DebugStatsGlobalComp);
 }
 
 ecs_view_define(StatsCreateView) {
@@ -478,6 +489,7 @@ ecs_system_define(DebugStatsUpdateSys) {
   }
   DebugStatsGlobalComp*         statsGlobal = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
   const SceneTimeComp*          time        = ecs_view_read_t(globalItr, SceneTimeComp);
+  const SceneNavStatsComp*      navStats    = ecs_view_read_t(globalItr, SceneNavStatsComp);
   const RendGlobalSettingsComp* rendGlobalSettings =
       ecs_view_read_t(globalItr, RendGlobalSettingsComp);
 
@@ -510,7 +522,7 @@ ecs_system_define(DebugStatsUpdateSys) {
       UiCanvasComp* canvas = ecs_view_write_t(canvasItr, UiCanvasComp);
       ui_canvas_reset(canvas);
       debug_stats_draw_interface(
-          canvas, statsGlobal, stats, rendStats, &allocStats, ecsDef, &ecsStats, uiStats);
+          canvas, statsGlobal, stats, rendStats, &allocStats, ecsDef, &ecsStats, navStats, uiStats);
     }
   }
 
@@ -549,7 +561,7 @@ bool debug_stats_show(const DebugStatsComp* comp) {
 
 void debug_stats_show_set(DebugStatsComp* comp, const bool show) {
   if (show) {
-    comp->flags ^= DebugStatsFlags_Show;
+    comp->flags |= DebugStatsFlags_Show;
   } else {
     comp->flags &= ~DebugStatsFlags_Show;
   }

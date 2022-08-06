@@ -10,7 +10,7 @@
 #include "cmd_internal.h"
 
 static const f32 g_inputMinInteractDist       = 1.0f;
-static const f32 g_inputMaxInteractDist       = 100.0f;
+static const f32 g_inputMaxInteractDist       = 250.0f;
 static const f32 g_inputCamMoveSpeed          = 10.0f;
 static const f32 g_inputCamMoveSpeedBoostMult = 4.0f;
 static const f32 g_inputCamRotateSensitivity  = 2.0f;

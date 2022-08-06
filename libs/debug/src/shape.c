@@ -187,11 +187,6 @@ static void debug_shape_renderer_create(EcsWorld* world, AssetManagerComp* asset
   }
 }
 
-static GeoBox debug_box_bounds(const GeoVector pos, const GeoQuat rot, const GeoVector size) {
-  const GeoBox b = (GeoBox){.min = geo_vector_mul(size, -0.5f), .max = geo_vector_mul(size, 0.5f)};
-  return geo_box_transform3(&b, pos, rot, 1);
-}
-
 INLINE_HINT static void debug_shape_add(DebugShapeComp* comp, const DebugShape shape) {
   *((DebugShape*)dynarray_push(&comp->entries, 1).ptr) = shape;
 }
@@ -244,8 +239,12 @@ ecs_system_define(DebugShapeRenderSys) {
             .scale = entry->data_box.size,
             .color = entry->data_box.color,
         };
+        const GeoBox boundsLocal = (GeoBox){
+            .min = geo_vector_mul(entry->data_box.size, -0.5f),
+            .max = geo_vector_mul(entry->data_box.size, 0.5f),
+        };
         const GeoBox bounds =
-            debug_box_bounds(entry->data_box.pos, entry->data_box.rot, entry->data_box.size);
+            geo_box_transform3(&boundsLocal, entry->data_box.pos, entry->data_box.rot, 1);
         rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, bounds);
         continue;
       }
@@ -258,10 +257,11 @@ ecs_system_define(DebugShapeRenderSys) {
             .scale = geo_vector(entry->data_quad.sizeX, entry->data_quad.sizeY, 1),
             .color = entry->data_quad.color,
         };
-        const GeoBox bounds = debug_box_bounds(
+        const GeoBox bounds = geo_box_from_quad(
             entry->data_quad.pos,
-            entry->data_quad.rot,
-            geo_vector(entry->data_quad.sizeX, entry->data_quad.sizeY));
+            entry->data_quad.sizeX,
+            entry->data_quad.sizeY,
+            entry->data_quad.rot);
         rend_draw_add_instance(draw, mem_var(data), SceneTags_Debug, bounds);
         continue;
       }

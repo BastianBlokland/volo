@@ -312,6 +312,48 @@ GeoBox geo_box_from_line(const GeoVector from, const GeoVector to) {
   };
 }
 
+GeoBox
+geo_box_from_quad(const GeoVector center, const f32 sizeX, const f32 sizeY, const GeoQuat rot) {
+#if geo_box_simd_enable
+  SimdVec       min       = simd_vec_broadcast(f32_max);
+  SimdVec       max       = simd_vec_broadcast(f32_min);
+  const SimdVec centerVec = simd_vec_load(center.comps);
+  const SimdVec quatVec   = simd_vec_load(rot.comps);
+
+  SimdVec points[4];
+  points[0] = simd_vec_set(sizeX * -0.5f, sizeY * -0.5f, 0, 0);
+  points[1] = simd_vec_set(sizeX * -0.5f, sizeY * 0.5f, 0, 0);
+  points[2] = simd_vec_set(sizeX * 0.5f, sizeY * 0.5f, 0, 0);
+  points[3] = simd_vec_set(sizeX * 0.5f, sizeY * -0.5f, 0, 0);
+
+  for (usize i = 0; i != array_elems(points); ++i) {
+    points[i] = simd_quat_rotate(quatVec, points[i]);
+    points[i] = simd_vec_add(points[i], centerVec);
+
+    min = simd_vec_min(min, points[i]);
+    max = simd_vec_max(max, points[i]);
+  }
+
+  GeoBox newBox;
+  simd_vec_store(min, newBox.min.comps);
+  simd_vec_store(max, newBox.max.comps);
+  return newBox;
+#else
+  GeoVector points[4];
+  points[0] = geo_vector(sizeX * -0.5f, sizeY * -0.5f);
+  points[1] = geo_vector(sizeX * -0.5f, sizeY * 0.5f);
+  points[2] = geo_vector(sizeX * 0.5f, sizeY * 0.5f);
+  points[3] = geo_vector(sizeX * 0.5f, sizeY * -0.5f);
+
+  GeoBox newBox = geo_box_inverted3();
+  for (usize i = 0; i != array_elems(points); ++i) {
+    const GeoVector p = geo_vector_add(geo_quat_rotate(rot, points[i]), center);
+    newBox            = geo_box_encapsulate(&newBox, p);
+  }
+  return newBox;
+#endif
+}
+
 bool geo_box_intersect_frustum4(const GeoBox* box, const GeoPlane frustum[4]) {
 #if geo_box_simd_enable
   const SimdVec boxMin = simd_vec_load(box->min.comps);

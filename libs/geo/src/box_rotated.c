@@ -41,6 +41,24 @@ static GeoVector geo_rotate_around(const GeoVector point, const GeoQuat rot, con
   return geo_vector_add(point, geo_quat_rotate(rot, geo_vector_sub(v, point)));
 }
 
+GeoBoxRotated
+geo_box_rotated_from_capsule(const GeoVector bottom, const GeoVector top, const f32 radius) {
+  const GeoVector toTop  = geo_vector_sub(top, bottom);
+  const f32       height = geo_vector_mag(toTop);
+  if (height <= f32_epsilon) {
+    return (GeoBoxRotated){.box = geo_box_from_sphere(bottom, radius), .rotation = geo_quat_ident};
+  }
+  const GeoVector center      = geo_vector_add(bottom, geo_vector_mul(toTop, 0.5f));
+  const GeoVector localExtent = geo_vector_mul(geo_forward, height * 0.5f);
+  const GeoVector localBottom = geo_vector_sub(center, localExtent);
+  const GeoVector localTop    = geo_vector_add(center, localExtent);
+  const GeoVector dir         = geo_vector_div(toTop, height);
+  return (GeoBoxRotated){
+      .box      = geo_box_from_capsule(localBottom, localTop, radius),
+      .rotation = geo_quat_look(dir, geo_up),
+  };
+}
+
 static GeoRay geo_box_rotated_local_ray(const GeoBoxRotated* box, const GeoRay* worldRay) {
   const GeoVector boxCenter      = geo_box_center(&box->box);
   const GeoQuat   boxInvRotation = geo_quat_inverse(box->rotation);
