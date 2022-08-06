@@ -132,7 +132,7 @@ ecs_view_define(UpdateAgentGlobalView) { ecs_access_read(SceneNavEnvComp); }
 ecs_view_define(AgentEntityView) {
   ecs_access_read(SceneNavAgentComp);
   ecs_access_read(SceneTransformComp);
-  ecs_access_write(SceneLocomotionComp);
+  ecs_access_maybe_write(SceneLocomotionComp);
   ecs_access_write(SceneNavPathComp);
 }
 
@@ -157,10 +157,12 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
     const GeoNavPathStorage storage = {.cells = path->cells, .capacity = scene_nav_path_max_cells};
     path->cellCount                 = geo_nav_path(env->navGrid, from, to, storage);
 
-    if (path->cellCount > 1) {
-      locomotion->target = geo_nav_position(env->navGrid, path->cells[1]);
-    } else {
-      locomotion->target = trans->position;
+    if (LIKELY(locomotion)) {
+      if (path->cellCount > 1) {
+        locomotion->target = geo_nav_position(env->navGrid, path->cells[1]);
+      } else {
+        locomotion->target = trans->position;
+      }
     }
   }
 }
