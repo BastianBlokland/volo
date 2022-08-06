@@ -315,7 +315,7 @@ GeoNavGrid* geo_nav_grid_create(
       .cellDensity    = density,
       .cellSize       = 1.0f / density,
       .cellHeight     = height,
-      .cellOffset     = geo_vector(size * -0.5f - center.x, center.y, size * -0.5f - center.z),
+      .cellOffset     = geo_vector(center.x + size * -0.5f, center.y, center.z + size * -0.5f),
       .cells          = alloc_array_t(alloc, GeoNavCellData, cellCountTotal),
       .alloc          = alloc,
   };
