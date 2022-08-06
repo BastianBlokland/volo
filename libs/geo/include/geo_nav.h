@@ -29,6 +29,14 @@ typedef struct {
 } GeoNavRegion;
 
 /**
+ * Path storage container.
+ */
+typedef struct {
+  GeoNavCell* cells;
+  u32         capacity;
+} GeoNavPathStorage;
+
+/**
  * Create a new GeoNavGrid instance.
  * Destroy using 'geo_nav_destroy()'.
  */
@@ -52,6 +60,13 @@ GeoVector  geo_nav_position(const GeoNavGrid*, GeoNavCell);
 GeoBox     geo_nav_box(const GeoNavGrid*, GeoNavCell);
 bool       geo_nav_blocked(const GeoNavGrid*, GeoNavCell);
 GeoNavCell geo_nav_at_position(const GeoNavGrid*, GeoVector);
+
+/**
+ * Compute a path between the given two cells.
+ * Returns the amount of cells in the path and writes the output cells to the given storage.
+ * NOTE: Returns 0 when no path is possible.
+ */
+u32 geo_nav_path(const GeoNavGrid*, GeoNavCell from, GeoNavCell to, GeoNavPathStorage);
 
 /**
  * Remove all blockers from the grid.
