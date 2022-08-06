@@ -282,9 +282,12 @@ static u32 nav_path_output(
    */
   const u32 count = nav_path_output_count(grid, s, from, to);
   u32       i     = 1;
+
+  ++s->statPathOutputCells; // Track the total amount of output cells
   if (out.capacity > (count - i)) {
     out.cells[count - i] = to;
   }
+
   for (GeoNavCell itr = to; itr.data != from.data; ++i) {
     ++s->statPathOutputCells; // Track the total amount of output cells.
 
