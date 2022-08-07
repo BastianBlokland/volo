@@ -381,9 +381,6 @@ static bool nav_any_in_line(
 
   /**
    * Modified verion of Xiaolin Wu's line algorithm.
-   * NOTE: At the moment the inputs are always in the middle of cells but the algorithm also
-   * supports starting and ending at fractions of a cell. We can consider exposing that for greater
-   * precision when using free-form navigation over the cells.
    */
   u16        x0 = from.x, x1 = to.x;
   u16        y0 = from.y, y1 = to.y;
@@ -409,12 +406,12 @@ static bool nav_any_in_line(
   // From point.
   if (steep) {
     check_cell(y0, x0);
-    if (LIKELY((u16)(y0 + 1) < grid->cellCountAxis)) {
+    if (y0 != y1 && LIKELY((u16)(y0 + 1) < grid->cellCountAxis)) {
       check_cell(y0 + 1, x0);
     }
   } else {
     check_cell(x0, y0);
-    if (LIKELY((u16)(y0 + 1) < grid->cellCountAxis)) {
+    if (y0 != y1 && LIKELY((u16)(y0 + 1) < grid->cellCountAxis)) {
       check_cell(x0, y0 + 1);
     }
   }
@@ -424,7 +421,7 @@ static bool nav_any_in_line(
   if (steep) {
     for (u16 i = x0 + 1; i < x1; ++i) {
       check_cell((u16)intersectY, i);
-      if (LIKELY((u16)(intersectY + 1) < grid->cellCountAxis)) {
+      if (y0 != y1 && LIKELY((u16)(intersectY + 1) < grid->cellCountAxis)) {
         check_cell((u16)intersectY + 1, i);
       }
       intersectY += gradient;
@@ -432,7 +429,7 @@ static bool nav_any_in_line(
   } else {
     for (u16 i = x0 + 1; i < x1; ++i) {
       check_cell(i, (u16)intersectY);
-      if (LIKELY((u16)(intersectY + 1) < grid->cellCountAxis)) {
+      if (y0 != y1 && LIKELY((u16)(intersectY + 1) < grid->cellCountAxis)) {
         check_cell(i, (u16)intersectY + 1);
       }
       intersectY += gradient;
@@ -442,12 +439,12 @@ static bool nav_any_in_line(
   // To point.
   if (steep) {
     check_cell(y1, x1);
-    if (LIKELY((u16)(y1 + 1) < grid->cellCountAxis)) {
+    if (y0 != y1 && LIKELY((u16)(y1 + 1) < grid->cellCountAxis)) {
       check_cell(y1 + 1, x1);
     }
   } else {
     check_cell(x1, y1);
-    if (LIKELY((u16)(y1 + 1) < grid->cellCountAxis)) {
+    if (y0 != y1 && LIKELY((u16)(y1 + 1) < grid->cellCountAxis)) {
       check_cell(x1, y1 + 1);
     }
   }
@@ -535,8 +532,6 @@ bool geo_nav_line_blocked(const GeoNavGrid* grid, const GeoNavCell from, const G
   diag_assert(to.x < grid->cellCountAxis && to.y < grid->cellCountAxis);
   /**
    * Check if any cell in a rasterized line between the two points is blocked.
-   * TODO: Having the api only work on whole cells leads to very rough results, consider exposing an
-   * api in world coordinates or fractions of cells.
    */
   GeoNavWorkerState* s = nav_worker_state(grid);
   return nav_any_in_line(grid, s, from, to, nav_cell_predicate_blocked);
