@@ -469,7 +469,7 @@ u32 geo_nav_path(
 void geo_nav_blocker_clear_all(GeoNavGrid* grid) { nav_clear_cells(grid); }
 
 void geo_nav_blocker_add_box(GeoNavGrid* grid, const GeoBox* box) {
-  if (box->max.y < 0 || box->min.y > grid->cellHeight) {
+  if (box->max.y < grid->cellOffset.y || box->min.y > (grid->cellOffset.y + grid->cellHeight)) {
     return; // Outside of the y band of the grid.
   }
 
