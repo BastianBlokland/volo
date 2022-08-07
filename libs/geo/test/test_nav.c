@@ -99,5 +99,24 @@ spec(nav) {
     check(!geo_nav_blocked(grid, cell));
   }
 
+  it("can find the closest unblocked cell") {
+    const GeoNavCell cell = {.x = 2, .y = 2};
+
+    const GeoBox box = geo_box_from_sphere(geo_nav_position(grid, cell), 2.0f);
+    geo_nav_blocker_add_box(grid, &box);
+
+    check(geo_nav_blocked(grid, cell));
+    check(geo_nav_blocked(grid, (GeoNavCell){.x = 3, .y = 2}));
+    check(geo_nav_blocked(grid, (GeoNavCell){.x = 1, .y = 2}));
+    check(geo_nav_blocked(grid, (GeoNavCell){.x = 2, .y = 3}));
+    check(geo_nav_blocked(grid, (GeoNavCell){.x = 2, .y = 1}));
+
+    const GeoNavCell closestUnblocked = geo_nav_closest_unblocked(grid, cell);
+
+    check_eq_int(closestUnblocked.x, 4);
+    check_eq_int(closestUnblocked.y, 2);
+    check(!geo_nav_blocked(grid, closestUnblocked));
+  }
+
   teardown() { geo_nav_grid_destroy(grid); }
 }
