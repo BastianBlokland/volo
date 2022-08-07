@@ -409,12 +409,12 @@ static bool nav_any_in_line(
   // From point.
   if (steep) {
     check_cell(y0, x0);
-    if (LIKELY(y0 + 1 < grid->cellCountAxis)) {
+    if (LIKELY((u16)(y0 + 1) < grid->cellCountAxis)) {
       check_cell(y0 + 1, x0);
     }
   } else {
     check_cell(x0, y0);
-    if (LIKELY(y0 + 1 < grid->cellCountAxis)) {
+    if (LIKELY((u16)(y0 + 1) < grid->cellCountAxis)) {
       check_cell(x0, y0 + 1);
     }
   }
@@ -424,7 +424,7 @@ static bool nav_any_in_line(
   if (steep) {
     for (u16 i = x0 + 1; i < x1; ++i) {
       check_cell((u16)intersectY, i);
-      if (LIKELY((u16)intersectY + 1 < grid->cellCountAxis)) {
+      if (LIKELY((u16)(intersectY + 1) < grid->cellCountAxis)) {
         check_cell((u16)intersectY + 1, i);
       }
       intersectY += gradient;
@@ -432,7 +432,7 @@ static bool nav_any_in_line(
   } else {
     for (u16 i = x0 + 1; i < x1; ++i) {
       check_cell(i, (u16)intersectY);
-      if (LIKELY((u16)intersectY + 1 < grid->cellCountAxis)) {
+      if (LIKELY((u16)(intersectY + 1) < grid->cellCountAxis)) {
         check_cell(i, (u16)intersectY + 1);
       }
       intersectY += gradient;
@@ -442,12 +442,12 @@ static bool nav_any_in_line(
   // To point.
   if (steep) {
     check_cell(y1, x1);
-    if (LIKELY(y1 + 1 < grid->cellCountAxis)) {
+    if (LIKELY((u16)(y1 + 1) < grid->cellCountAxis)) {
       check_cell(y1 + 1, x1);
     }
   } else {
     check_cell(x1, y1);
-    if (LIKELY(y1 + 1 < grid->cellCountAxis)) {
+    if (LIKELY((u16)(y1 + 1) < grid->cellCountAxis)) {
       check_cell(x1, y1 + 1);
     }
   }
