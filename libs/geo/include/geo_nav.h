@@ -87,6 +87,7 @@ void geo_nav_blocker_add_box_rotated(GeoNavGrid*, const GeoBoxRotated*);
 typedef struct {
   u32 blockerCount;
   u32 pathCount, pathOutputCells, pathItrCells, pathItrEnqueues;
+  u32 findCount, findItrCells, findItrEnqueues;
   u32 gridDataSize, workerDataSize;
 } GeoNavStats;
 

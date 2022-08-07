@@ -25,6 +25,7 @@ typedef struct {
   GeoNavCell* cameFrom;
 
   u32 statPathCount, statPathOutputCells, statPathItrCells, statPathItrEnqueues;
+  u32 statFindCount, statFindItrCells, statFindItrEnqueues;
 } GeoNavWorkerState;
 
 struct sGeoNavGrid {
@@ -322,6 +323,9 @@ static bool nav_find(
     NavCellPredicate   predicate,
     GeoNavCell*        outResult) {
 
+  ++s->statFindCount;       // Track amount of find queries.
+  ++s->statFindItrEnqueues; // Include the initial enqueue in the tracking.
+
   GeoNavCell queue[512] = {from};
   u32        queueStart = 0;
   u32        queueEnd   = 1;
@@ -330,6 +334,8 @@ static bool nav_find(
   bitset_set(s->markedCells, nav_cell_index(grid, from));
 
   while (queueStart != queueEnd) {
+    ++s->statFindItrCells; // Track total amount of find iterations.
+
     const GeoNavCell cell = queue[queueStart++];
     if (predicate(grid, cell)) {
       *outResult = cell;
@@ -347,7 +353,7 @@ static bool nav_find(
       if (queueEnd == array_elems(queue)) {
         return NavFindResult_SearchIncomplete;
       }
-
+      ++s->statFindItrEnqueues; // Track total amount of find cell enqueues.
       queue[queueEnd++] = neighbor;
       bitset_set(s->markedCells, neighborIndex);
     }
@@ -510,6 +516,9 @@ void geo_nav_stats_reset(GeoNavGrid* grid) {
       state->statPathOutputCells = 0;
       state->statPathItrCells    = 0;
       state->statPathItrEnqueues = 0;
+      state->statFindCount       = 0;
+      state->statFindItrCells    = 0;
+      state->statFindItrEnqueues = 0;
     }
   }
 }
@@ -533,6 +542,9 @@ GeoNavStats geo_nav_stats(const GeoNavGrid* grid) {
       result.pathOutputCells += state->statPathOutputCells;
       result.pathItrCells += state->statPathItrCells;
       result.pathItrEnqueues += state->statPathItrEnqueues;
+      result.findCount += state->statFindCount;
+      result.findItrCells += state->statFindItrCells;
+      result.findItrEnqueues += state->statFindItrEnqueues;
       result.workerDataSize += dataSizePerWorker;
     }
   }
