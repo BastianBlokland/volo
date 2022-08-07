@@ -63,8 +63,8 @@ INLINE_HINT static u16 nav_abs_i16(const i16 v) {
   return (v + mask) ^ mask;
 }
 
-INLINE_HINT static void nav_swap_i16(i16* a, i16* b) {
-  const i16 temp = *a;
+INLINE_HINT static void nav_swap_u16(u16* a, u16* b) {
+  const u16 temp = *a;
   *a             = *b;
   *b             = temp;
 }
@@ -83,16 +83,16 @@ static const GeoNavCellData* nav_cell_data_readonly(const GeoNavGrid* grid, cons
 
 static u32 nav_cell_neighbors(const GeoNavGrid* grid, const GeoNavCell cell, GeoNavCell out[4]) {
   u32 count = 0;
-  if ((u16)(cell.x + 1) < grid->cellCountAxis) {
+  if (LIKELY((u16)(cell.x + 1) < grid->cellCountAxis)) {
     out[count++] = (GeoNavCell){.x = cell.x + 1, .y = cell.y};
   }
-  if (cell.x >= 1) {
+  if (LIKELY(cell.x >= 1)) {
     out[count++] = (GeoNavCell){.x = cell.x - 1, .y = cell.y};
   }
-  if ((u16)(cell.y + 1) < grid->cellCountAxis) {
+  if (LIKELY((u16)(cell.y + 1) < grid->cellCountAxis)) {
     out[count++] = (GeoNavCell){.x = cell.x, .y = cell.y + 1};
   }
-  if (cell.y >= 1) {
+  if (LIKELY(cell.y >= 1)) {
     out[count++] = (GeoNavCell){.x = cell.x, .y = cell.y - 1};
   }
   return count;
@@ -385,17 +385,17 @@ static bool nav_any_in_line(
    * supports starting and ending at fractions of a cell. We can consider exposing that for greater
    * precision when using free-form navigation over the cells.
    */
-  i16        x0 = from.x, x1 = to.x;
-  i16        y0 = from.y, y1 = to.y;
-  const bool steep = nav_abs_i16(y1 - y0) > nav_abs_i16(x1 - x0);
+  u16        x0 = from.x, x1 = to.x;
+  u16        y0 = from.y, y1 = to.y;
+  const bool steep = nav_abs_i16(y1 - (i16)y0) > nav_abs_i16(x1 - (i16)x0);
 
   if (steep) {
-    nav_swap_i16(&x0, &y0);
-    nav_swap_i16(&x1, &y1);
+    nav_swap_u16(&x0, &y0);
+    nav_swap_u16(&x1, &y1);
   }
   if (x0 > x1) {
-    nav_swap_i16(&x0, &x1);
-    nav_swap_i16(&y0, &y1);
+    nav_swap_u16(&x0, &x1);
+    nav_swap_u16(&y0, &y1);
   }
   const f32 gradient = (x1 - x0) ? ((y1 - (f32)y0) / (x1 - (f32)x0)) : 1.0f;
 
@@ -409,24 +409,32 @@ static bool nav_any_in_line(
   // From point.
   if (steep) {
     check_cell(y0, x0);
-    check_cell(y0 + 1, x0);
+    if (LIKELY(y0 + 1 < grid->cellCountAxis)) {
+      check_cell(y0 + 1, x0);
+    }
   } else {
     check_cell(x0, y0);
-    check_cell(x0, y0 + 1);
+    if (LIKELY(y0 + 1 < grid->cellCountAxis)) {
+      check_cell(x0, y0 + 1);
+    }
   }
 
   // Middle points.
   f32 intersectY = y0 + gradient;
   if (steep) {
-    for (i16 i = x0 + 1; i < x1; ++i) {
+    for (u16 i = x0 + 1; i < x1; ++i) {
       check_cell((u16)intersectY, i);
-      check_cell((u16)intersectY + 1, i);
+      if (LIKELY((u16)intersectY + 1 < grid->cellCountAxis)) {
+        check_cell((u16)intersectY + 1, i);
+      }
       intersectY += gradient;
     }
   } else {
-    for (i16 i = x0 + 1; i < x1; ++i) {
+    for (u16 i = x0 + 1; i < x1; ++i) {
       check_cell(i, (u16)intersectY);
-      check_cell(i, (u16)intersectY + 1);
+      if (LIKELY((u16)intersectY + 1 < grid->cellCountAxis)) {
+        check_cell(i, (u16)intersectY + 1);
+      }
       intersectY += gradient;
     }
   }
@@ -434,10 +442,14 @@ static bool nav_any_in_line(
   // To point.
   if (steep) {
     check_cell(y1, x1);
-    check_cell(y1 + 1, x1);
+    if (LIKELY(y1 + 1 < grid->cellCountAxis)) {
+      check_cell(y1 + 1, x1);
+    }
   } else {
     check_cell(x1, y1);
-    check_cell(x1, y1 + 1);
+    if (LIKELY(y1 + 1 < grid->cellCountAxis)) {
+      check_cell(x1, y1 + 1);
+    }
   }
 
 #undef check_cell
