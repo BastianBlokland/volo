@@ -124,11 +124,12 @@ ecs_view_define(GlobalVisDrawView) {
 ecs_view_define(SubjectView) {
   ecs_access_maybe_read(SceneLocomotionComp);
   ecs_access_maybe_read(SceneNameComp);
+  ecs_access_maybe_read(SceneNavAgentComp);
+  ecs_access_maybe_read(SceneNavPathComp);
   ecs_access_maybe_write(SceneBoundsComp);
   ecs_access_maybe_write(SceneCollisionComp);
   ecs_access_maybe_write(SceneScaleComp);
   ecs_access_maybe_write(SceneTagComp);
-  ecs_access_maybe_read(SceneNavPathComp);
   ecs_access_write(SceneRenderableComp);
   ecs_access_write(SceneTransformComp);
 }
@@ -747,12 +748,16 @@ static void inspector_vis_draw_bounds_global(
 }
 
 static void inspector_vis_draw_navigation_path(
-    DebugShapeComp* shape, const SceneNavEnvComp* nav, const SceneNavPathComp* path) {
+    DebugShapeComp*          shape,
+    const SceneNavEnvComp*   nav,
+    const SceneNavAgentComp* agent,
+    const SceneNavPathComp*  path) {
   for (u32 i = 1; i < path->cellCount; ++i) {
     const GeoVector posA = scene_nav_position(nav, path->cells[i - 1]);
     const GeoVector posB = scene_nav_position(nav, path->cells[i]);
     debug_line(shape, posA, posB, geo_color_white);
   }
+  debug_sphere(shape, agent->target, 0.1f, geo_color_blue, DebugShape_Overlay);
 }
 
 static void inspector_vis_draw_subject(
@@ -765,6 +770,7 @@ static void inspector_vis_draw_subject(
   const SceneCollisionComp*  collisionComp = ecs_view_read_t(subject, SceneCollisionComp);
   const SceneLocomotionComp* locoComp      = ecs_view_read_t(subject, SceneLocomotionComp);
   const SceneNameComp*       nameComp      = ecs_view_read_t(subject, SceneNameComp);
+  const SceneNavAgentComp*   navAgentComp  = ecs_view_read_t(subject, SceneNavAgentComp);
   const SceneNavPathComp*    navPathComp   = ecs_view_read_t(subject, SceneNavPathComp);
   const SceneScaleComp*      scaleComp     = ecs_view_read_t(subject, SceneScaleComp);
   SceneTransformComp*        transformComp = ecs_view_write_t(subject, SceneTransformComp);
@@ -791,8 +797,8 @@ static void inspector_vis_draw_subject(
       inspector_vis_draw_bounds_global(shape, boundsComp, transformComp, scaleComp);
     }
   }
-  if (navPathComp && set->visFlags & (1 << DebugInspectorVis_NavigationPath)) {
-    inspector_vis_draw_navigation_path(shape, nav, navPathComp);
+  if (navAgentComp && navPathComp && set->visFlags & (1 << DebugInspectorVis_NavigationPath)) {
+    inspector_vis_draw_navigation_path(shape, nav, navAgentComp, navPathComp);
   }
 }
 

@@ -75,6 +75,7 @@ static EcsBufferEntity* ecs_buffer_entity_get(EcsBuffer* buffer, const EcsEntity
     result->id         = id;
     result->addMask    = ecs_buffer_mask_add(buffer);
     result->removeMask = ecs_buffer_mask_add(buffer);
+    result->compHead   = null;
   }
   return result;
 }
