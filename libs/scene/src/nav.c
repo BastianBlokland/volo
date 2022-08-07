@@ -146,7 +146,14 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
     SceneNavPathComp*         path       = ecs_view_write_t(itr, SceneNavPathComp);
 
     const GeoNavCell from = geo_nav_at_position(env->navGrid, trans->position);
-    const GeoNavCell to   = geo_nav_at_position(env->navGrid, agent->target);
+    if (geo_nav_blocked(env->navGrid, from)) {
+      if (LIKELY(locomotion)) {
+        const GeoNavCell closestUnblocked = geo_nav_closest_unblocked(env->navGrid, from);
+        locomotion->target                = geo_nav_position(env->navGrid, closestUnblocked);
+      }
+      continue;
+    }
+    const GeoNavCell to = geo_nav_at_position(env->navGrid, agent->target);
 
     const GeoNavPathStorage storage = {.cells = path->cells, .capacity = scene_nav_path_max_cells};
     path->cellCount                 = geo_nav_path(env->navGrid, from, to, storage);
