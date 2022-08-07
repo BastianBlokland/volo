@@ -162,6 +162,13 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
       to = geo_nav_closest_unblocked(env->navGrid, to);
     }
 
+    if (from.data == to.data) {
+      if (LIKELY(locomotion)) {
+        locomotion->target = agent->target;
+      }
+      continue;
+    }
+
     const GeoNavPathStorage storage = {.cells = path->cells, .capacity = scene_nav_path_max_cells};
     path->cellCount                 = geo_nav_path(env->navGrid, from, to, storage);
 
