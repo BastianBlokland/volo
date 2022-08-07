@@ -34,7 +34,8 @@ void scene_nav_add_agent(EcsWorld*, EcsEntityId, GeoVector target);
 GeoNavRegion scene_nav_bounds(const SceneNavEnvComp*);
 GeoVector    scene_nav_cell_size(const SceneNavEnvComp*);
 
-GeoVector scene_nav_position(const SceneNavEnvComp*, GeoNavCell);
-GeoVector scene_nav_size(const SceneNavEnvComp*, GeoNavCell);
-GeoBox    scene_nav_box(const SceneNavEnvComp*, GeoNavCell);
-bool      scene_nav_blocked(const SceneNavEnvComp*, GeoNavCell);
+GeoVector  scene_nav_position(const SceneNavEnvComp*, GeoNavCell);
+GeoVector  scene_nav_size(const SceneNavEnvComp*, GeoNavCell);
+GeoBox     scene_nav_box(const SceneNavEnvComp*, GeoNavCell);
+bool       scene_nav_blocked(const SceneNavEnvComp*, GeoNavCell);
+GeoNavCell scene_nav_at_position(const SceneNavEnvComp*, GeoVector);

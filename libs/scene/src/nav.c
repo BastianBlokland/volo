@@ -252,3 +252,7 @@ GeoBox scene_nav_box(const SceneNavEnvComp* env, const GeoNavCell cell) {
 bool scene_nav_blocked(const SceneNavEnvComp* env, const GeoNavCell cell) {
   return geo_nav_blocked(env->navGrid, cell);
 }
+
+GeoNavCell scene_nav_at_position(const SceneNavEnvComp* env, const GeoVector pos) {
+  return geo_nav_at_position(env->navGrid, pos);
+}
