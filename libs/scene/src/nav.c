@@ -153,7 +153,10 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
       }
       continue;
     }
-    const GeoNavCell to = geo_nav_at_position(env->navGrid, agent->target);
+    GeoNavCell to = geo_nav_at_position(env->navGrid, agent->target);
+    if (geo_nav_blocked(env->navGrid, to)) {
+      to = geo_nav_closest_unblocked(env->navGrid, to);
+    }
 
     const GeoNavPathStorage storage = {.cells = path->cells, .capacity = scene_nav_path_max_cells};
     path->cellCount                 = geo_nav_path(env->navGrid, from, to, storage);
