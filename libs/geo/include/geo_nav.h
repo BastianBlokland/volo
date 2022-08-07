@@ -89,6 +89,7 @@ typedef struct {
   u32 blockerBoxCount, blockerBoxRotatedCount;
   u32 pathCount, pathOutputCells, pathItrCells, pathItrEnqueues;
   u32 findCount, findItrCells, findItrEnqueues;
+  u32 lineQueryCount;
   u32 gridDataSize, workerDataSize;
 } GeoNavStats;
 

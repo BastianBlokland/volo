@@ -26,6 +26,7 @@ typedef struct {
 
   u32 statPathCount, statPathOutputCells, statPathItrCells, statPathItrEnqueues;
   u32 statFindCount, statFindItrCells, statFindItrEnqueues;
+  u32 statLineQueryCount;
 } GeoNavWorkerState;
 
 struct sGeoNavGrid {
@@ -371,10 +372,13 @@ static bool nav_find(
  * Check if any cell in a rasterized line 'from' 'to' matches the given predicate.
  */
 static bool nav_any_in_line(
-    const GeoNavGrid* grid,
-    const GeoNavCell  from,
-    const GeoNavCell  to,
-    NavCellPredicate  predicate) {
+    const GeoNavGrid*  grid,
+    GeoNavWorkerState* s,
+    const GeoNavCell   from,
+    const GeoNavCell   to,
+    NavCellPredicate   predicate) {
+  ++s->statLineQueryCount; // Track the amount of line queries.
+
   /**
    * Modified verion of Xiaolin Wu's line algorithm.
    * NOTE: At the moment the inputs are always in the middle of cells but the algorithm also
@@ -522,7 +526,8 @@ bool geo_nav_line_blocked(const GeoNavGrid* grid, const GeoNavCell from, const G
    * TODO: Having the api only work on whole cells leads to very rough results, consider exposing an
    * api in world coordinates or fractions of cells.
    */
-  return nav_any_in_line(grid, from, to, nav_cell_predicate_blocked);
+  GeoNavWorkerState* s = nav_worker_state(grid);
+  return nav_any_in_line(grid, s, from, to, nav_cell_predicate_blocked);
 }
 
 GeoNavCell geo_nav_closest_unblocked(const GeoNavGrid* grid, const GeoNavCell cell) {
@@ -610,17 +615,21 @@ void geo_nav_stats_reset(GeoNavGrid* grid) {
       state->statFindCount       = 0;
       state->statFindItrCells    = 0;
       state->statFindItrEnqueues = 0;
+      state->statLineQueryCount  = 0;
     }
   }
 }
 
 GeoNavStats geo_nav_stats(const GeoNavGrid* grid) {
-  const u32 dataSizeGrid      = sizeof(GeoNavCellData) * grid->cellCountTotal; // grid.cells
-  const u32 dataSizePerWorker = sizeof(GeoNavCell) * grid->cellCountTotal +    // state.queue
-                                (bits_to_bytes(grid->cellCountTotal) + 1) +    // state.openCells
-                                sizeof(u16) * grid->cellCountTotal +           // state.gScores
-                                sizeof(u16) * grid->cellCountTotal +           // state.fScores
-                                sizeof(GeoNavCell) * grid->cellCountTotal;     // state.cameFrom
+  const u32 dataSizeGrid = sizeof(GeoNavGrid) +                           // Structure
+                           sizeof(GeoNavCellData) * grid->cellCountTotal; // grid.cells
+
+  const u32 dataSizePerWorker = sizeof(GeoNavWorkerState) +                 // Structure
+                                sizeof(GeoNavCell) * grid->cellCountTotal + // state.queue
+                                (bits_to_bytes(grid->cellCountTotal) + 1) + // state.openCells
+                                sizeof(u16) * grid->cellCountTotal +        // state.gScores
+                                sizeof(u16) * grid->cellCountTotal +        // state.fScores
+                                sizeof(GeoNavCell) * grid->cellCountTotal;  // state.cameFrom
 
   GeoNavStats result = {
       .blockerBoxCount        = grid->statBlockerBox,
@@ -637,6 +646,7 @@ GeoNavStats geo_nav_stats(const GeoNavGrid* grid) {
       result.findCount += state->statFindCount;
       result.findItrCells += state->statFindItrCells;
       result.findItrEnqueues += state->statFindItrEnqueues;
+      result.lineQueryCount += state->statLineQueryCount;
       result.workerDataSize += dataSizePerWorker;
     }
   }

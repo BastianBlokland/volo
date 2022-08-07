@@ -95,6 +95,7 @@ static void scene_nav_stats_update(SceneNavStatsComp* stats, GeoNavGrid* grid) {
   stats->findItrEnqueues        = gridStats.findItrEnqueues;
   stats->gridDataSize           = gridStats.gridDataSize;
   stats->workerDataSize         = gridStats.workerDataSize;
+  stats->lineQueryCount         = gridStats.lineQueryCount;
   geo_nav_stats_reset(grid);
 }
 
