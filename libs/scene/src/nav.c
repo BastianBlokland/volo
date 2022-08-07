@@ -83,14 +83,18 @@ static void scene_nav_add_blockers(SceneNavEnvComp* env, EcsView* blockerEntitie
 }
 
 static void scene_nav_stats_update(SceneNavStatsComp* stats, GeoNavGrid* grid) {
-  const GeoNavStats gridStats = geo_nav_stats(grid);
-  stats->blockerCount         = gridStats.blockerCount;
-  stats->pathCount            = gridStats.pathCount;
-  stats->pathOutputCells      = gridStats.pathOutputCells;
-  stats->pathItrCells         = gridStats.pathItrCells;
-  stats->pathItrEnqueues      = gridStats.pathItrEnqueues;
-  stats->gridDataSize         = gridStats.gridDataSize;
-  stats->workerDataSize       = gridStats.workerDataSize;
+  const GeoNavStats gridStats   = geo_nav_stats(grid);
+  stats->blockerBoxCount        = gridStats.blockerBoxCount;
+  stats->blockerBoxRotatedCount = gridStats.blockerBoxRotatedCount;
+  stats->pathCount              = gridStats.pathCount;
+  stats->pathOutputCells        = gridStats.pathOutputCells;
+  stats->pathItrCells           = gridStats.pathItrCells;
+  stats->pathItrEnqueues        = gridStats.pathItrEnqueues;
+  stats->findCount              = gridStats.findCount;
+  stats->findItrCells           = gridStats.findItrCells;
+  stats->findItrEnqueues        = gridStats.findItrEnqueues;
+  stats->gridDataSize           = gridStats.gridDataSize;
+  stats->workerDataSize         = gridStats.workerDataSize;
   geo_nav_stats_reset(grid);
 }
 
@@ -146,10 +150,26 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
     SceneNavPathComp*         path       = ecs_view_write_t(itr, SceneNavPathComp);
 
     const GeoNavCell from = geo_nav_at_position(env->navGrid, trans->position);
-    const GeoNavCell to   = geo_nav_at_position(env->navGrid, agent->target);
+    if (geo_nav_blocked(env->navGrid, from)) {
+      if (LIKELY(locomotion)) {
+        const GeoNavCell closestUnblocked = geo_nav_closest_unblocked(env->navGrid, from);
+        locomotion->target                = geo_nav_position(env->navGrid, closestUnblocked);
+      }
+      continue;
+    }
+    const GeoNavCell to = geo_nav_at_position(env->navGrid, agent->target);
+    if (from.data == to.data) {
+      path->cellCount = 0;
+      if (LIKELY(locomotion)) {
+        locomotion->target = agent->target;
+      }
+      continue;
+    }
+    const GeoNavCell unblockedTo =
+        geo_nav_blocked(env->navGrid, to) ? geo_nav_closest_unblocked(env->navGrid, to) : to;
 
     const GeoNavPathStorage storage = {.cells = path->cells, .capacity = scene_nav_path_max_cells};
-    path->cellCount                 = geo_nav_path(env->navGrid, from, to, storage);
+    path->cellCount                 = geo_nav_path(env->navGrid, from, unblockedTo, storage);
 
     if (LIKELY(locomotion)) {
       if (path->cellCount > 1) {

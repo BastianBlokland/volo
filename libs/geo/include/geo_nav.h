@@ -59,6 +59,7 @@ GeoVector    geo_nav_cell_size(const GeoNavGrid*);
 GeoVector  geo_nav_position(const GeoNavGrid*, GeoNavCell);
 GeoBox     geo_nav_box(const GeoNavGrid*, GeoNavCell);
 bool       geo_nav_blocked(const GeoNavGrid*, GeoNavCell);
+GeoNavCell geo_nav_closest_unblocked(const GeoNavGrid*, GeoNavCell);
 GeoNavCell geo_nav_at_position(const GeoNavGrid*, GeoVector);
 
 /**
@@ -84,8 +85,9 @@ void geo_nav_blocker_add_box_rotated(GeoNavGrid*, const GeoBoxRotated*);
  */
 
 typedef struct {
-  u32 blockerCount;
+  u32 blockerBoxCount, blockerBoxRotatedCount;
   u32 pathCount, pathOutputCells, pathItrCells, pathItrEnqueues;
+  u32 findCount, findItrCells, findItrEnqueues;
   u32 gridDataSize, workerDataSize;
 } GeoNavStats;
 

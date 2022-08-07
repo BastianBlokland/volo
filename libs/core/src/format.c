@@ -55,7 +55,7 @@ INLINE_HINT static u8 format_ascii_to_integer(const u8 c) {
 
 /**
  * Parse option for a format replacement.
- * At the moment a single option is supported. But can be expanded to a comma seperated list of
+ * At the moment a single option is supported. But can be expanded to a comma separated list of
  * options when the need arises.
  */
 static FormatReplOpt format_replacement_parse_opt(String str) {
