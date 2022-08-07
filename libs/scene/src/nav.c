@@ -157,20 +157,19 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
       }
       continue;
     }
-    GeoNavCell to = geo_nav_at_position(env->navGrid, agent->target);
-    if (geo_nav_blocked(env->navGrid, to)) {
-      to = geo_nav_closest_unblocked(env->navGrid, to);
-    }
-
+    const GeoNavCell to = geo_nav_at_position(env->navGrid, agent->target);
     if (from.data == to.data) {
+      path->cellCount = 0;
       if (LIKELY(locomotion)) {
         locomotion->target = agent->target;
       }
       continue;
     }
+    const GeoNavCell unblockedTo =
+        geo_nav_blocked(env->navGrid, to) ? geo_nav_closest_unblocked(env->navGrid, to) : to;
 
     const GeoNavPathStorage storage = {.cells = path->cells, .capacity = scene_nav_path_max_cells};
-    path->cellCount                 = geo_nav_path(env->navGrid, from, to, storage);
+    path->cellCount                 = geo_nav_path(env->navGrid, from, unblockedTo, storage);
 
     if (LIKELY(locomotion)) {
       if (path->cellCount > 1) {
