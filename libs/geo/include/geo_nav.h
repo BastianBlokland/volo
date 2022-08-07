@@ -59,6 +59,7 @@ GeoVector    geo_nav_cell_size(const GeoNavGrid*);
 GeoVector  geo_nav_position(const GeoNavGrid*, GeoNavCell);
 GeoBox     geo_nav_box(const GeoNavGrid*, GeoNavCell);
 bool       geo_nav_blocked(const GeoNavGrid*, GeoNavCell);
+bool       geo_nav_line_blocked(const GeoNavGrid*, GeoNavCell from, GeoNavCell to);
 GeoNavCell geo_nav_closest_unblocked(const GeoNavGrid*, GeoNavCell);
 GeoNavCell geo_nav_at_position(const GeoNavGrid*, GeoVector);
 

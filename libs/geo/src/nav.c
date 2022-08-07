@@ -62,6 +62,12 @@ INLINE_HINT static u16 nav_abs_i16(const i16 v) {
   return (v + mask) ^ mask;
 }
 
+INLINE_HINT static void nav_swap_i16(i16* a, i16* b) {
+  const i16 temp = *a;
+  *a             = *b;
+  *b             = temp;
+}
+
 INLINE_HINT static u16 nav_cell_index(const GeoNavGrid* grid, const GeoNavCell cell) {
   return cell.y * grid->cellCountAxis + cell.x;
 }
@@ -361,6 +367,79 @@ static bool nav_find(
   return NavFindResult_NotFound;
 }
 
+/**
+ * Check if any cell in a rasterized line 'from' 'to' matches the given predicate.
+ */
+static bool nav_any_in_line(
+    const GeoNavGrid* grid,
+    const GeoNavCell  from,
+    const GeoNavCell  to,
+    NavCellPredicate  predicate) {
+  /**
+   * Modified verion of Xiaolin Wu's line algorithm.
+   * NOTE: At the moment the inputs are always in the middle of cells but the algorithm also
+   * supports starting and ending at fractions of a cell. We can consider exposing that for greater
+   * precision when using free-form navigation over the cells.
+   */
+  i16        x0 = from.x, x1 = to.x;
+  i16        y0 = from.y, y1 = to.y;
+  const bool steep = nav_abs_i16(y1 - y0) > nav_abs_i16(x1 - x0);
+
+  if (steep) {
+    nav_swap_i16(&x0, &y0);
+    nav_swap_i16(&x1, &y1);
+  }
+  if (x0 > x1) {
+    nav_swap_i16(&x0, &x1);
+    nav_swap_i16(&y0, &y1);
+  }
+  const f32 gradient = (x1 - x0) ? ((y1 - (f32)y0) / (x1 - (f32)x0)) : 1.0f;
+
+#define check_cell(_X_, _Y_)                                                                       \
+  do {                                                                                             \
+    if (predicate(grid, (GeoNavCell){.x = (_X_), .y = (_Y_)})) {                                   \
+      return true;                                                                                 \
+    }                                                                                              \
+  } while (false)
+
+  // From point.
+  if (steep) {
+    check_cell(y0, x0);
+    check_cell(y0 + 1, x0);
+  } else {
+    check_cell(x0, y0);
+    check_cell(x0, y0 + 1);
+  }
+
+  // Middle points.
+  f32 intersectY = y0 + gradient;
+  if (steep) {
+    for (i16 i = x0 + 1; i < x1; ++i) {
+      check_cell((u16)intersectY, i);
+      check_cell((u16)intersectY + 1, i);
+      intersectY += gradient;
+    }
+  } else {
+    for (i16 i = x0 + 1; i < x1; ++i) {
+      check_cell(i, (u16)intersectY);
+      check_cell(i, (u16)intersectY + 1);
+      intersectY += gradient;
+    }
+  }
+
+  // To point.
+  if (steep) {
+    check_cell(y1, x1);
+    check_cell(y1 + 1, x1);
+  } else {
+    check_cell(x1, y1);
+    check_cell(x1, y1 + 1);
+  }
+
+#undef check_cell
+  return false; // No cell in the line matched the predicate.
+}
+
 static bool nav_cell_predicate_blocked(const GeoNavGrid* grid, const GeoNavCell cell) {
   return nav_cell_data_readonly(grid, cell)->blockers > 0;
 }
@@ -433,6 +512,17 @@ GeoBox geo_nav_box(const GeoNavGrid* grid, const GeoNavCell cell) {
 bool geo_nav_blocked(const GeoNavGrid* grid, const GeoNavCell cell) {
   diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
   return nav_cell_predicate_blocked(grid, cell);
+}
+
+bool geo_nav_line_blocked(const GeoNavGrid* grid, const GeoNavCell from, const GeoNavCell to) {
+  diag_assert(from.x < grid->cellCountAxis && from.y < grid->cellCountAxis);
+  diag_assert(to.x < grid->cellCountAxis && to.y < grid->cellCountAxis);
+  /**
+   * Check if any cell in a rasterized line between the two points is blocked.
+   * TODO: Having the api only work on whole cells leads to very rough results, consider exposing an
+   * api in world coordinates or fractions of cells.
+   */
+  return nav_any_in_line(grid, from, to, nav_cell_predicate_blocked);
 }
 
 GeoNavCell geo_nav_closest_unblocked(const GeoNavGrid* grid, const GeoNavCell cell) {
