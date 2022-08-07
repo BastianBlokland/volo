@@ -380,15 +380,15 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Flush entities"), fmt_write_scratch("{}", fmt_int(ecsStats->lastFlushEntities)));
   }
   if(stats_draw_section(canvas, string_lit("Navigation"))) {
-    stats_draw_val_entry(canvas, string_lit("Grid data"), fmt_write_scratch("{}", fmt_size(navStats->gridDataSize)));
-    stats_draw_val_entry(canvas, string_lit("Worker data"), fmt_write_scratch("{}", fmt_size(navStats->workerDataSize)));
-    stats_draw_val_entry(canvas, string_lit("Blocker boxes"), fmt_write_scratch("normal: {<4} rotated: {}", fmt_int(navStats->blockerBoxCount), fmt_int(navStats->blockerBoxRotatedCount)));
-    stats_draw_val_entry(canvas, string_lit("Path count"), fmt_write_scratch("{}", fmt_int(navStats->pathCount)));
-    stats_draw_val_entry(canvas, string_lit("Path output"), fmt_write_scratch("cells: {}", fmt_int(navStats->pathOutputCells)));
-    stats_draw_val_entry(canvas, string_lit("Path iterations"), fmt_write_scratch("cells: {<4} enqueues: {}", fmt_int(navStats->pathItrCells), fmt_int(navStats->pathItrEnqueues)));
-    stats_draw_val_entry(canvas, string_lit("Find count"), fmt_write_scratch("{}", fmt_int(navStats->findCount)));
-    stats_draw_val_entry(canvas, string_lit("Find iterations"), fmt_write_scratch("cells: {<4} enqueues: {}", fmt_int(navStats->findItrCells), fmt_int(navStats->findItrEnqueues)));
-    stats_draw_val_entry(canvas, string_lit("Line query count"), fmt_write_scratch("{}", fmt_int(navStats->lineQueryCount)));
+    stats_draw_val_entry(canvas, string_lit("Grid data"), fmt_write_scratch("{}", fmt_size(navStats->gridStats[GeoNavStat_GridDataSize])));
+    stats_draw_val_entry(canvas, string_lit("Worker data"), fmt_write_scratch("{}", fmt_size(navStats->gridStats[GeoNavStat_WorkerDataSize])));
+    stats_draw_val_entry(canvas, string_lit("Blocker boxes"), fmt_write_scratch("normal: {<4} rotated: {}", fmt_int(navStats->gridStats[GeoNavStat_BlockerBoxCount]), fmt_int(navStats->gridStats[GeoNavStat_BlockerBoxRotatedCount])));
+    stats_draw_val_entry(canvas, string_lit("Path count"), fmt_write_scratch("{}", fmt_int(navStats->gridStats[GeoNavStat_PathCount])));
+    stats_draw_val_entry(canvas, string_lit("Path output"), fmt_write_scratch("cells: {}", fmt_int(navStats->gridStats[GeoNavStat_PathOutputCells])));
+    stats_draw_val_entry(canvas, string_lit("Path iterations"), fmt_write_scratch("cells: {<4} enqueues: {}", fmt_int(navStats->gridStats[GeoNavStat_PathItrCells]), fmt_int(navStats->gridStats[GeoNavStat_PathItrEnqueues])));
+    stats_draw_val_entry(canvas, string_lit("Find count"), fmt_write_scratch("{}", fmt_int(navStats->gridStats[GeoNavStat_FindCount])));
+    stats_draw_val_entry(canvas, string_lit("Find iterations"), fmt_write_scratch("cells: {<4} enqueues: {}", fmt_int(navStats->gridStats[GeoNavStat_FindItrCells]), fmt_int(navStats->gridStats[GeoNavStat_FindItrEnqueues])));
+    stats_draw_val_entry(canvas, string_lit("Line query count"), fmt_write_scratch("{}", fmt_int(navStats->gridStats[GeoNavStat_LineQueryCount])));
   }
   if(stats_draw_section(canvas, string_lit("Interface"))) {
     stats_draw_val_entry(canvas, string_lit("Canvas size"), fmt_write_scratch("{}x{}", fmt_float(uiStats->canvasSize.x, .maxDecDigits = 0), fmt_float(uiStats->canvasSize.y, .maxDecDigits = 0)));

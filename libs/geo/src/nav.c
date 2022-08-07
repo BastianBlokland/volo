@@ -24,9 +24,7 @@ typedef struct {
   u16*        fScores;
   GeoNavCell* cameFrom;
 
-  u32 statPathCount, statPathOutputCells, statPathItrCells, statPathItrEnqueues;
-  u32 statFindCount, statFindItrCells, statFindItrEnqueues;
-  u32 statLineQueryCount;
+  u32 stats[GeoNavStat_Count];
 } GeoNavWorkerState;
 
 struct sGeoNavGrid {
@@ -38,7 +36,7 @@ struct sGeoNavGrid {
   GeoNavWorkerState* workerStates[geo_nav_workers_max];
   Allocator*         alloc;
 
-  u32 statBlockerBox, statBlockerBoxRotated;
+  u32 stats[GeoNavStat_Count];
 };
 
 static GeoNavWorkerState* nav_worker_state(const GeoNavGrid* grid) {
@@ -182,7 +180,7 @@ static u16 nav_path_heuristic(const GeoNavCell from, const GeoNavCell to) {
  * Pre-condition: Cell does not exist in the queue yet.
  */
 static void nav_path_enqueue(const GeoNavGrid* grid, GeoNavWorkerState* s, const GeoNavCell c) {
-  ++s->statPathItrEnqueues; // Track total amount of path cell enqueues.
+  ++s->stats[GeoNavStat_PathItrEnqueues]; // Track total amount of path cell enqueues.
 
   /**
    * Binary search to find the first openCell with a lower fScore and insert before it.
@@ -219,8 +217,8 @@ nav_path(const GeoNavGrid* grid, GeoNavWorkerState* s, const GeoNavCell from, co
   mem_set(mem_create(s->fScores, grid->cellCountTotal * sizeof(u16)), 255);
   mem_set(mem_create(s->gScores, grid->cellCountTotal * sizeof(u16)), 255);
 
-  ++s->statPathCount;       // Track amount of path queries.
-  ++s->statPathItrEnqueues; // Include the initial enqueue in the tracking.
+  ++s->stats[GeoNavStat_PathCount];       // Track amount of path queries.
+  ++s->stats[GeoNavStat_PathItrEnqueues]; // Include the initial enqueue in the tracking.
 
   s->gScores[nav_cell_index(grid, from)] = 0;
   s->fScores[nav_cell_index(grid, from)] = nav_path_heuristic(from, to);
@@ -228,7 +226,7 @@ nav_path(const GeoNavGrid* grid, GeoNavWorkerState* s, const GeoNavCell from, co
   s->fScoreQueue[0]                      = from;
 
   while (s->fScoreQueueCount) {
-    ++s->statPathItrCells; // Track total amount of path iterations.
+    ++s->stats[GeoNavStat_PathItrCells]; // Track total amount of path iterations.
 
     const GeoNavCell cell      = s->fScoreQueue[--s->fScoreQueueCount];
     const u32        cellIndex = nav_cell_index(grid, cell);
@@ -298,13 +296,13 @@ static u32 nav_path_output(
   const u32 count = nav_path_output_count(grid, s, from, to);
   u32       i     = 1;
 
-  ++s->statPathOutputCells; // Track the total amount of output cells
+  ++s->stats[GeoNavStat_PathOutputCells]; // Track the total amount of output cells
   if (out.capacity > (count - i)) {
     out.cells[count - i] = to;
   }
 
   for (GeoNavCell itr = to; itr.data != from.data; ++i) {
-    ++s->statPathOutputCells; // Track the total amount of output cells.
+    ++s->stats[GeoNavStat_PathOutputCells]; // Track the total amount of output cells.
 
     itr = s->cameFrom[nav_cell_index(grid, itr)];
     if (out.capacity > (count - 1 - i)) {
@@ -330,8 +328,8 @@ static bool nav_find(
     NavCellPredicate   predicate,
     GeoNavCell*        outResult) {
 
-  ++s->statFindCount;       // Track amount of find queries.
-  ++s->statFindItrEnqueues; // Include the initial enqueue in the tracking.
+  ++s->stats[GeoNavStat_FindCount];       // Track amount of find queries.
+  ++s->stats[GeoNavStat_FindItrEnqueues]; // Include the initial enqueue in the tracking.
 
   GeoNavCell queue[512] = {from};
   u32        queueStart = 0;
@@ -341,7 +339,7 @@ static bool nav_find(
   bitset_set(s->markedCells, nav_cell_index(grid, from));
 
   while (queueStart != queueEnd) {
-    ++s->statFindItrCells; // Track total amount of find iterations.
+    ++s->stats[GeoNavStat_FindItrCells]; // Track total amount of find iterations.
 
     const GeoNavCell cell = queue[queueStart++];
     if (predicate(grid, cell)) {
@@ -360,7 +358,7 @@ static bool nav_find(
       if (queueEnd == array_elems(queue)) {
         return NavFindResult_SearchIncomplete;
       }
-      ++s->statFindItrEnqueues; // Track total amount of find cell enqueues.
+      ++s->stats[GeoNavStat_FindItrEnqueues]; // Track total amount of find cell enqueues.
       queue[queueEnd++] = neighbor;
       bitset_set(s->markedCells, neighborIndex);
     }
@@ -377,13 +375,10 @@ static bool nav_any_in_line(
     const GeoNavCell   from,
     const GeoNavCell   to,
     NavCellPredicate   predicate) {
-  ++s->statLineQueryCount; // Track the amount of line queries.
+  ++s->stats[GeoNavStat_LineQueryCount]; // Track the amount of line queries.
 
   /**
    * Modified verion of Xiaolin Wu's line algorithm.
-   * NOTE: At the moment the inputs are always in the middle of cells but the algorithm also
-   * supports starting and ending at fractions of a cell. We can consider exposing that for greater
-   * precision when using free-form navigation over the cells.
    */
   u16        x0 = from.x, x1 = to.x;
   u16        y0 = from.y, y1 = to.y;
@@ -409,12 +404,12 @@ static bool nav_any_in_line(
   // From point.
   if (steep) {
     check_cell(y0, x0);
-    if (LIKELY((u16)(y0 + 1) < grid->cellCountAxis)) {
+    if (y0 != y1 && LIKELY((u16)(y0 + 1) < grid->cellCountAxis)) {
       check_cell(y0 + 1, x0);
     }
   } else {
     check_cell(x0, y0);
-    if (LIKELY((u16)(y0 + 1) < grid->cellCountAxis)) {
+    if (y0 != y1 && LIKELY((u16)(y0 + 1) < grid->cellCountAxis)) {
       check_cell(x0, y0 + 1);
     }
   }
@@ -424,7 +419,7 @@ static bool nav_any_in_line(
   if (steep) {
     for (u16 i = x0 + 1; i < x1; ++i) {
       check_cell((u16)intersectY, i);
-      if (LIKELY((u16)(intersectY + 1) < grid->cellCountAxis)) {
+      if (y0 != y1 && LIKELY((u16)(intersectY + 1) < grid->cellCountAxis)) {
         check_cell((u16)intersectY + 1, i);
       }
       intersectY += gradient;
@@ -432,7 +427,7 @@ static bool nav_any_in_line(
   } else {
     for (u16 i = x0 + 1; i < x1; ++i) {
       check_cell(i, (u16)intersectY);
-      if (LIKELY((u16)(intersectY + 1) < grid->cellCountAxis)) {
+      if (y0 != y1 && LIKELY((u16)(intersectY + 1) < grid->cellCountAxis)) {
         check_cell(i, (u16)intersectY + 1);
       }
       intersectY += gradient;
@@ -442,12 +437,12 @@ static bool nav_any_in_line(
   // To point.
   if (steep) {
     check_cell(y1, x1);
-    if (LIKELY((u16)(y1 + 1) < grid->cellCountAxis)) {
+    if (y0 != y1 && LIKELY((u16)(y1 + 1) < grid->cellCountAxis)) {
       check_cell(y1 + 1, x1);
     }
   } else {
     check_cell(x1, y1);
-    if (LIKELY((u16)(y1 + 1) < grid->cellCountAxis)) {
+    if (y0 != y1 && LIKELY((u16)(y1 + 1) < grid->cellCountAxis)) {
       check_cell(x1, y1 + 1);
     }
   }
@@ -535,8 +530,6 @@ bool geo_nav_line_blocked(const GeoNavGrid* grid, const GeoNavCell from, const G
   diag_assert(to.x < grid->cellCountAxis && to.y < grid->cellCountAxis);
   /**
    * Check if any cell in a rasterized line between the two points is blocked.
-   * TODO: Having the api only work on whole cells leads to very rough results, consider exposing an
-   * api in world coordinates or fractions of cells.
    */
   GeoNavWorkerState* s = nav_worker_state(grid);
   return nav_any_in_line(grid, s, from, to, nav_cell_predicate_blocked);
@@ -586,7 +579,7 @@ void geo_nav_blocker_add_box(GeoNavGrid* grid, const GeoBox* box) {
     return; // Outside of the y band of the grid.
   }
 
-  ++grid->statBlockerBox; // Track the total amount of box blockers.
+  ++grid->stats[GeoNavStat_BlockerBoxCount]; // Track the amount of box blockers.
 
   const GeoNavRegion region = nav_cell_map_box(grid, box);
   for (u32 y = region.min.y; y != region.max.y; ++y) {
@@ -600,7 +593,7 @@ void geo_nav_blocker_add_box(GeoNavGrid* grid, const GeoBox* box) {
 void geo_nav_blocker_add_box_rotated(GeoNavGrid* grid, const GeoBoxRotated* boxRotated) {
   const GeoBox bounds = geo_box_from_rotated(&boxRotated->box, boxRotated->rotation);
 
-  ++grid->statBlockerBoxRotated; // Track the total amount of rotated box blockers.
+  ++grid->stats[GeoNavStat_BlockerBoxRotatedCount]; // Track the amount of rotated box blockers.
 
   const GeoNavRegion region = nav_cell_map_box(grid, &bounds);
   for (u32 y = region.min.y; y != region.max.y; ++y) {
@@ -615,24 +608,16 @@ void geo_nav_blocker_add_box_rotated(GeoNavGrid* grid, const GeoBoxRotated* boxR
 }
 
 void geo_nav_stats_reset(GeoNavGrid* grid) {
-  grid->statBlockerBox        = 0;
-  grid->statBlockerBoxRotated = 0;
+  mem_set(array_mem(grid->stats), 0);
   for (u32 i = 0; i != geo_nav_workers_max; ++i) {
     GeoNavWorkerState* state = grid->workerStates[i];
     if (state) {
-      state->statPathCount       = 0;
-      state->statPathOutputCells = 0;
-      state->statPathItrCells    = 0;
-      state->statPathItrEnqueues = 0;
-      state->statFindCount       = 0;
-      state->statFindItrCells    = 0;
-      state->statFindItrEnqueues = 0;
-      state->statLineQueryCount  = 0;
+      mem_set(array_mem(state->stats), 0);
     }
   }
 }
 
-GeoNavStats geo_nav_stats(const GeoNavGrid* grid) {
+u32* geo_nav_stats(GeoNavGrid* grid) {
   const u32 dataSizeGrid = sizeof(GeoNavGrid) +                           // Structure
                            sizeof(GeoNavCellData) * grid->cellCountTotal; // grid.cells
 
@@ -643,24 +628,20 @@ GeoNavStats geo_nav_stats(const GeoNavGrid* grid) {
                                 sizeof(u16) * grid->cellCountTotal +        // state.fScores
                                 sizeof(GeoNavCell) * grid->cellCountTotal;  // state.cameFrom
 
-  GeoNavStats result = {
-      .blockerBoxCount        = grid->statBlockerBox,
-      .blockerBoxRotatedCount = grid->statBlockerBoxRotated,
-      .gridDataSize           = dataSizeGrid,
-  };
+  grid->stats[GeoNavStat_GridDataSize]   = dataSizeGrid;
+  grid->stats[GeoNavStat_WorkerDataSize] = 0;
+
+  // Gather the stats from the workers.
   for (u32 i = 0; i != geo_nav_workers_max; ++i) {
     GeoNavWorkerState* state = grid->workerStates[i];
     if (state) {
-      result.pathCount += state->statPathCount;
-      result.pathOutputCells += state->statPathOutputCells;
-      result.pathItrCells += state->statPathItrCells;
-      result.pathItrEnqueues += state->statPathItrEnqueues;
-      result.findCount += state->statFindCount;
-      result.findItrCells += state->statFindItrCells;
-      result.findItrEnqueues += state->statFindItrEnqueues;
-      result.lineQueryCount += state->statLineQueryCount;
-      result.workerDataSize += dataSizePerWorker;
+      for (u32 stat = 0; stat != array_elems(grid->stats); ++stat) {
+        grid->stats[stat] += state->stats[stat];
+        state->stats[stat] = 0;
+      }
+      grid->stats[GeoNavStat_WorkerDataSize] += dataSizePerWorker;
     }
   }
-  return result;
+
+  return grid->stats;
 }
