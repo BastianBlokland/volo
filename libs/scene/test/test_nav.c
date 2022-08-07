@@ -91,10 +91,10 @@ spec(nav) {
         5);
 
     const SceneNavStatsComp* stats = ecs_utils_read_t(world, StatsView, global, SceneNavStatsComp);
-    check_eq_int(stats->pathCount, 1);
-    check_eq_int(stats->pathItrCells, 5);
-    check_eq_int(stats->pathOutputCells, 5);
-    check_eq_int(stats->pathItrEnqueues, 14);
+    check_eq_int(stats->gridStats[GeoNavStat_PathCount], 1);
+    check_eq_int(stats->gridStats[GeoNavStat_PathItrCells], 5);
+    check_eq_int(stats->gridStats[GeoNavStat_PathOutputCells], 5);
+    check_eq_int(stats->gridStats[GeoNavStat_PathItrEnqueues], 14);
   }
 
   it("can compute a path around an obstacle") {
@@ -131,10 +131,10 @@ spec(nav) {
         7);
 
     const SceneNavStatsComp* stats = ecs_utils_read_t(world, StatsView, global, SceneNavStatsComp);
-    check_eq_int(stats->pathCount, 1);
-    check_eq_int(stats->pathItrCells, 7);
-    check_eq_int(stats->pathOutputCells, 7);
-    check_eq_int(stats->pathItrEnqueues, 16);
+    check_eq_int(stats->gridStats[GeoNavStat_PathCount], 1);
+    check_eq_int(stats->gridStats[GeoNavStat_PathItrCells], 7);
+    check_eq_int(stats->gridStats[GeoNavStat_PathOutputCells], 7);
+    check_eq_int(stats->gridStats[GeoNavStat_PathItrEnqueues], 16);
   }
 
   teardown() {

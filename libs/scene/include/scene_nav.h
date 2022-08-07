@@ -7,13 +7,7 @@
  * Global navigation environment.
  */
 ecs_comp_extern(SceneNavEnvComp);
-ecs_comp_extern_public(SceneNavStatsComp) {
-  u32 blockerBoxCount, blockerBoxRotatedCount;
-  u32 pathCount, pathOutputCells, pathItrCells, pathItrEnqueues;
-  u32 findCount, findItrCells, findItrEnqueues;
-  u32 lineQueryCount;
-  u32 gridDataSize, workerDataSize;
-};
+ecs_comp_extern_public(SceneNavStatsComp) { u32 gridStats[GeoNavStat_Count]; };
 
 /**
  * Mark the entity as blocking navigation.

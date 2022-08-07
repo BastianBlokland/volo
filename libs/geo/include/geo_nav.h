@@ -85,13 +85,22 @@ void geo_nav_blocker_add_box_rotated(GeoNavGrid*, const GeoBoxRotated*);
  * Navigation statistics.
  */
 
-typedef struct {
-  u32 blockerBoxCount, blockerBoxRotatedCount;
-  u32 pathCount, pathOutputCells, pathItrCells, pathItrEnqueues;
-  u32 findCount, findItrCells, findItrEnqueues;
-  u32 lineQueryCount;
-  u32 gridDataSize, workerDataSize;
-} GeoNavStats;
+typedef enum {
+  GeoNavStat_BlockerBoxCount,
+  GeoNavStat_BlockerBoxRotatedCount,
+  GeoNavStat_PathCount,
+  GeoNavStat_PathOutputCells,
+  GeoNavStat_PathItrCells,
+  GeoNavStat_PathItrEnqueues,
+  GeoNavStat_FindCount,
+  GeoNavStat_FindItrCells,
+  GeoNavStat_FindItrEnqueues,
+  GeoNavStat_LineQueryCount,
+  GeoNavStat_GridDataSize,
+  GeoNavStat_WorkerDataSize,
 
-void        geo_nav_stats_reset(GeoNavGrid*);
-GeoNavStats geo_nav_stats(const GeoNavGrid*);
+  GeoNavStat_Count,
+} GeoNavStat;
+
+void geo_nav_stats_reset(GeoNavGrid*);
+u32* geo_nav_stats(GeoNavGrid*);
