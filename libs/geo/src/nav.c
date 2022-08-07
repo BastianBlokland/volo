@@ -37,7 +37,7 @@ struct sGeoNavGrid {
   GeoNavWorkerState* workerStates[geo_nav_workers_max];
   Allocator*         alloc;
 
-  u32 statBlockers;
+  u32 statBlockerBox, statBlockerBoxRotated;
 };
 
 static GeoNavWorkerState* nav_worker_state(const GeoNavGrid* grid) {
@@ -479,7 +479,7 @@ void geo_nav_blocker_add_box(GeoNavGrid* grid, const GeoBox* box) {
     return; // Outside of the y band of the grid.
   }
 
-  ++grid->statBlockers; // Track the total amount of blockers.
+  ++grid->statBlockerBox; // Track the total amount of box blockers.
 
   const GeoNavRegion region = nav_cell_map_box(grid, box);
   for (u32 y = region.min.y; y != region.max.y; ++y) {
@@ -493,7 +493,7 @@ void geo_nav_blocker_add_box(GeoNavGrid* grid, const GeoBox* box) {
 void geo_nav_blocker_add_box_rotated(GeoNavGrid* grid, const GeoBoxRotated* boxRotated) {
   const GeoBox bounds = geo_box_from_rotated(&boxRotated->box, boxRotated->rotation);
 
-  ++grid->statBlockers; // Track the total amount of blockers.
+  ++grid->statBlockerBoxRotated; // Track the total amount of rotated box blockers.
 
   const GeoNavRegion region = nav_cell_map_box(grid, &bounds);
   for (u32 y = region.min.y; y != region.max.y; ++y) {
@@ -508,7 +508,8 @@ void geo_nav_blocker_add_box_rotated(GeoNavGrid* grid, const GeoBoxRotated* boxR
 }
 
 void geo_nav_stats_reset(GeoNavGrid* grid) {
-  grid->statBlockers = 0;
+  grid->statBlockerBox        = 0;
+  grid->statBlockerBoxRotated = 0;
   for (u32 i = 0; i != geo_nav_workers_max; ++i) {
     GeoNavWorkerState* state = grid->workerStates[i];
     if (state) {
@@ -532,8 +533,9 @@ GeoNavStats geo_nav_stats(const GeoNavGrid* grid) {
                                 sizeof(GeoNavCell) * grid->cellCountTotal;     // state.cameFrom
 
   GeoNavStats result = {
-      .blockerCount = grid->statBlockers,
-      .gridDataSize = dataSizeGrid,
+      .blockerBoxCount        = grid->statBlockerBox,
+      .blockerBoxRotatedCount = grid->statBlockerBoxRotated,
+      .gridDataSize           = dataSizeGrid,
   };
   for (u32 i = 0; i != geo_nav_workers_max; ++i) {
     GeoNavWorkerState* state = grid->workerStates[i];

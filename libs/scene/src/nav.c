@@ -83,17 +83,18 @@ static void scene_nav_add_blockers(SceneNavEnvComp* env, EcsView* blockerEntitie
 }
 
 static void scene_nav_stats_update(SceneNavStatsComp* stats, GeoNavGrid* grid) {
-  const GeoNavStats gridStats = geo_nav_stats(grid);
-  stats->blockerCount         = gridStats.blockerCount;
-  stats->pathCount            = gridStats.pathCount;
-  stats->pathOutputCells      = gridStats.pathOutputCells;
-  stats->pathItrCells         = gridStats.pathItrCells;
-  stats->pathItrEnqueues      = gridStats.pathItrEnqueues;
-  stats->findCount            = gridStats.findCount;
-  stats->findItrCells         = gridStats.findItrCells;
-  stats->findItrEnqueues      = gridStats.findItrEnqueues;
-  stats->gridDataSize         = gridStats.gridDataSize;
-  stats->workerDataSize       = gridStats.workerDataSize;
+  const GeoNavStats gridStats   = geo_nav_stats(grid);
+  stats->blockerBoxCount        = gridStats.blockerBoxCount;
+  stats->blockerBoxRotatedCount = gridStats.blockerBoxRotatedCount;
+  stats->pathCount              = gridStats.pathCount;
+  stats->pathOutputCells        = gridStats.pathOutputCells;
+  stats->pathItrCells           = gridStats.pathItrCells;
+  stats->pathItrEnqueues        = gridStats.pathItrEnqueues;
+  stats->findCount              = gridStats.findCount;
+  stats->findItrCells           = gridStats.findItrCells;
+  stats->findItrEnqueues        = gridStats.findItrEnqueues;
+  stats->gridDataSize           = gridStats.gridDataSize;
+  stats->workerDataSize         = gridStats.workerDataSize;
   geo_nav_stats_reset(grid);
 }
 
