@@ -13,10 +13,6 @@
 typedef bool (*NavCellPredicate)(const GeoNavGrid*, GeoNavCell);
 
 typedef struct {
-  u8 blockers;
-} GeoNavCellData;
-
-typedef struct {
   BitSet      markedCells;
   GeoNavCell* fScoreQueue; // Cell queue sorted on the fScore, highest first.
   u32         fScoreQueueCount;
@@ -32,7 +28,7 @@ struct sGeoNavGrid {
   f32                cellDensity, cellSize;
   f32                cellHeight;
   GeoVector          cellOffset;
-  GeoNavCellData*    cells;
+  BitSet             blockedCells;
   GeoNavWorkerState* workerStates[geo_nav_workers_max];
   Allocator*         alloc;
 
@@ -69,14 +65,6 @@ INLINE_HINT static void nav_swap_u16(u16* a, u16* b) {
 
 INLINE_HINT static u16 nav_cell_index(const GeoNavGrid* grid, const GeoNavCell cell) {
   return cell.y * grid->cellCountAxis + cell.x;
-}
-
-static GeoNavCellData* nav_cell_data(GeoNavGrid* grid, const GeoNavCell cell) {
-  return &grid->cells[nav_cell_index(grid, cell)];
-}
-
-static const GeoNavCellData* nav_cell_data_readonly(const GeoNavGrid* grid, const GeoNavCell cell) {
-  return nav_cell_data((GeoNavGrid*)grid, cell);
 }
 
 static u32 nav_cell_neighbors(const GeoNavGrid* grid, const GeoNavCell cell, GeoNavCell out[4]) {
@@ -153,14 +141,6 @@ static GeoNavRegion nav_cell_map_box(const GeoNavGrid* grid, const GeoBox* box) 
     ++resMax.cell.y; // +1 because max is exclusive.
   }
   return (GeoNavRegion){.min = resMin.cell, .max = resMax.cell};
-}
-
-static void nav_cell_block(GeoNavGrid* grid, const GeoNavCell cell) {
-  ++nav_cell_data(grid, cell)->blockers;
-}
-
-static void nav_clear_cells(GeoNavGrid* grid) {
-  mem_set(mem_create(grid->cells, grid->cellCountTotal * sizeof(GeoNavCellData)), 0);
 }
 
 static u16 nav_path_heuristic(const GeoNavCell from, const GeoNavCell to) {
@@ -240,8 +220,8 @@ nav_path(const GeoNavGrid* grid, GeoNavWorkerState* s, const GeoNavCell from, co
     for (u32 i = 0; i != neighborCount; ++i) {
       const GeoNavCell neighbor      = neighbors[i];
       const u32        neighborIndex = nav_cell_index(grid, neighbor);
-      if (grid->cells[neighborIndex].blockers) {
-        continue;
+      if (bitset_test(grid->blockedCells, neighborIndex)) {
+        continue; // Ignore blocked cells;
       }
       const u16 tentativeGScore = s->gScores[cellIndex] + 1;
       if (tentativeGScore < s->gScores[neighborIndex]) {
@@ -452,11 +432,11 @@ static bool nav_any_in_line(
 }
 
 static bool nav_cell_predicate_blocked(const GeoNavGrid* grid, const GeoNavCell cell) {
-  return nav_cell_data_readonly(grid, cell)->blockers > 0;
+  return bitset_test(grid->blockedCells, nav_cell_index(grid, cell));
 }
 
 static bool nav_cell_predicate_unblocked(const GeoNavGrid* grid, const GeoNavCell cell) {
-  return nav_cell_data_readonly(grid, cell)->blockers == 0;
+  return !bitset_test(grid->blockedCells, nav_cell_index(grid, cell));
 }
 
 GeoNavGrid* geo_nav_grid_create(
@@ -476,16 +456,16 @@ GeoNavGrid* geo_nav_grid_create(
       .cellSize       = 1.0f / density,
       .cellHeight     = height,
       .cellOffset     = geo_vector(center.x + size * -0.5f, center.y, center.z + size * -0.5f),
-      .cells          = alloc_array_t(alloc, GeoNavCellData, cellCountTotal),
+      .blockedCells   = alloc_alloc(alloc, bits_to_bytes(grid->cellCountTotal) + 1, 1),
       .alloc          = alloc,
   };
 
-  nav_clear_cells(grid);
+  bitset_clear_all(grid->blockedCells);
   return grid;
 }
 
 void geo_nav_grid_destroy(GeoNavGrid* grid) {
-  alloc_free_array_t(grid->alloc, grid->cells, grid->cellCountTotal);
+  alloc_free(grid->alloc, grid->blockedCells);
 
   for (u32 i = 0; i != geo_nav_workers_max; ++i) {
     GeoNavWorkerState* state = grid->workerStates[i];
@@ -572,7 +552,7 @@ u32 geo_nav_path(
   return 0;
 }
 
-void geo_nav_blocker_clear_all(GeoNavGrid* grid) { nav_clear_cells(grid); }
+void geo_nav_blocker_clear_all(GeoNavGrid* grid) { bitset_clear_all(grid->blockedCells); }
 
 void geo_nav_blocker_add_box(GeoNavGrid* grid, const GeoBox* box) {
   if (box->max.y < grid->cellOffset.y || box->min.y > (grid->cellOffset.y + grid->cellHeight)) {
@@ -585,7 +565,8 @@ void geo_nav_blocker_add_box(GeoNavGrid* grid, const GeoBox* box) {
   for (u32 y = region.min.y; y != region.max.y; ++y) {
     for (u32 x = region.min.x; x != region.max.x; ++x) {
       const GeoNavCell cell = {.x = x, .y = y};
-      nav_cell_block(grid, cell);
+      // TODO: Optimizable as horizontal neighbors are consecutive in memory.
+      bitset_set(grid->blockedCells, nav_cell_index(grid, cell));
     }
   }
 }
@@ -601,7 +582,7 @@ void geo_nav_blocker_add_box_rotated(GeoNavGrid* grid, const GeoBoxRotated* boxR
       const GeoNavCell cell    = {.x = x, .y = y};
       const GeoBox     cellBox = nav_cell_box(grid, cell);
       if (geo_box_rotated_overlap_box(boxRotated, &cellBox)) {
-        nav_cell_block(grid, cell);
+        bitset_set(grid->blockedCells, nav_cell_index(grid, cell));
       }
     }
   }
@@ -618,12 +599,12 @@ void geo_nav_stats_reset(GeoNavGrid* grid) {
 }
 
 u32* geo_nav_stats(GeoNavGrid* grid) {
-  const u32 dataSizeGrid = sizeof(GeoNavGrid) +                           // Structure
-                           sizeof(GeoNavCellData) * grid->cellCountTotal; // grid.cells
+  const u32 dataSizeGrid = sizeof(GeoNavGrid) +                       // Structure
+                           (bits_to_bytes(grid->cellCountTotal) + 1); // grid.blockedCells
 
   const u32 dataSizePerWorker = sizeof(GeoNavWorkerState) +                 // Structure
-                                sizeof(GeoNavCell) * grid->cellCountTotal + // state.queue
-                                (bits_to_bytes(grid->cellCountTotal) + 1) + // state.openCells
+                                (bits_to_bytes(grid->cellCountTotal) + 1) + // state.markedCells
+                                sizeof(GeoNavCell) * grid->cellCountTotal + // state.fScoreQueue
                                 sizeof(u16) * grid->cellCountTotal +        // state.gScores
                                 sizeof(u16) * grid->cellCountTotal +        // state.fScores
                                 sizeof(GeoNavCell) * grid->cellCountTotal;  // state.cameFrom
