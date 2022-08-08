@@ -810,10 +810,15 @@ static void inspector_vis_draw_navigation_grid(DebugShapeComp* shape, const Scen
     for (u32 x = bounds.min.x; x != bounds.max.x; ++x) {
       const GeoNavCell cell      = {.x = x, .y = y};
       const GeoVector  pos       = scene_nav_position(nav, (GeoNavCell){.x = x, .y = y});
-      const bool       blocked   = scene_nav_blocked(nav, cell);
       const bool       highlight = (x & 1) == (y & 1);
-      const GeoColor   color     = blocked ? geo_color(1, 0, 0, highlight ? 0.5f : 0.3f)
-                                           : geo_color(0, 1, 0, highlight ? 0.2f : 0.1f);
+      GeoColor         color;
+      if (scene_nav_blocked(nav, cell)) {
+        color = geo_color(1, 0, 0, highlight ? 0.5f : 0.3f);
+      } else if (scene_nav_occupied(nav, cell)) {
+        color = geo_color(0, 0, 1, highlight ? 0.2f : 0.1f);
+      } else {
+        color = geo_color(0, 1, 0, highlight ? 0.2f : 0.1f);
+      }
       debug_quad(shape, pos, cellRotation, cellSize.x, cellSize.z, color, DebugShape_Overlay);
     }
   }

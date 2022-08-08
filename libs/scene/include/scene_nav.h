@@ -33,4 +33,5 @@ GeoVector  scene_nav_position(const SceneNavEnvComp*, GeoNavCell);
 GeoVector  scene_nav_size(const SceneNavEnvComp*, GeoNavCell);
 GeoBox     scene_nav_box(const SceneNavEnvComp*, GeoNavCell);
 bool       scene_nav_blocked(const SceneNavEnvComp*, GeoNavCell);
+bool       scene_nav_occupied(const SceneNavEnvComp*, GeoNavCell);
 GeoNavCell scene_nav_at_position(const SceneNavEnvComp*, GeoVector);
