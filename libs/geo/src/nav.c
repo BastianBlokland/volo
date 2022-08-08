@@ -697,7 +697,8 @@ u32* geo_nav_stats(GeoNavGrid* grid) {
                                 (sizeof(u16) * grid->cellCountTotal) +        // state.fScores
                                 (sizeof(GeoNavCell) * grid->cellCountTotal);  // state.cameFrom
 
-  grid->stats[GeoNavStat_CellCount]      = grid->cellCountTotal;
+  grid->stats[GeoNavStat_CellCountTotal] = grid->cellCountTotal;
+  grid->stats[GeoNavStat_CellCountAxis]  = grid->cellCountAxis;
   grid->stats[GeoNavStat_OccupantCount]  = grid->occupantCount;
   grid->stats[GeoNavStat_GridDataSize]   = dataSizeGrid;
   grid->stats[GeoNavStat_WorkerDataSize] = 0;
