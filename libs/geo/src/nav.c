@@ -71,6 +71,8 @@ INLINE_HINT static u16 nav_abs_i16(const i16 v) {
   return (v + mask) ^ mask;
 }
 
+INLINE_HINT static u16 nav_min_u16(const u16 a, const u16 b) { return a < b ? a : b; }
+
 INLINE_HINT static void nav_swap_u16(u16* a, u16* b) {
   const u16 temp = *a;
   *a             = *b;
@@ -160,6 +162,14 @@ static GeoNavRegion nav_cell_map_box(const GeoNavGrid* grid, const GeoBox* box) 
     ++resMax.cell.y; // +1 because max is exclusive.
   }
   return (GeoNavRegion){.min = resMin.cell, .max = resMax.cell};
+}
+
+static GeoNavRegion nav_cell_grow(const GeoNavGrid* grid, const GeoNavCell cell, const u16 radius) {
+  const u16 minX = cell.x - nav_min_u16(cell.x, radius);
+  const u16 minY = cell.y - nav_min_u16(cell.y, radius);
+  const u16 maxX = nav_min_u16(cell.x + radius, grid->cellCountAxis - 1) + 1;
+  const u16 maxY = nav_min_u16(cell.y + radius, grid->cellCountAxis - 1) + 1;
+  return (GeoNavRegion){.min = {.x = minX, .y = minY}, .max = {.x = maxX, .y = maxY}};
 }
 
 static u16 nav_path_heuristic(const GeoNavCell from, const GeoNavCell to) {
@@ -542,6 +552,11 @@ GeoVector geo_nav_position(const GeoNavGrid* grid, const GeoNavCell cell) {
 GeoBox geo_nav_box(const GeoNavGrid* grid, const GeoNavCell cell) {
   diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
   return nav_cell_box(grid, cell);
+}
+
+GeoNavRegion geo_nav_region(const GeoNavGrid* grid, const GeoNavCell cell, const u16 radius) {
+  diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
+  return nav_cell_grow(grid, cell, radius);
 }
 
 bool geo_nav_blocked(const GeoNavGrid* grid, const GeoNavCell cell) {

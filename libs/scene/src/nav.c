@@ -291,6 +291,10 @@ GeoBox scene_nav_box(const SceneNavEnvComp* env, const GeoNavCell cell) {
   return geo_nav_box(env->navGrid, cell);
 }
 
+GeoNavRegion scene_nav_region(const SceneNavEnvComp* env, const GeoNavCell cell, const u16 radius) {
+  return geo_nav_region(env->navGrid, cell, radius);
+}
+
 bool scene_nav_blocked(const SceneNavEnvComp* env, const GeoNavCell cell) {
   return geo_nav_blocked(env->navGrid, cell);
 }
