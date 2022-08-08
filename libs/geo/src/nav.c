@@ -79,8 +79,8 @@ INLINE_HINT static void nav_swap_u16(u16* a, u16* b) {
   *b             = temp;
 }
 
-INLINE_HINT static u16 nav_cell_index(const GeoNavGrid* grid, const GeoNavCell cell) {
-  return cell.y * grid->cellCountAxis + cell.x;
+INLINE_HINT static u32 nav_cell_index(const GeoNavGrid* grid, const GeoNavCell cell) {
+  return (u32)cell.y * grid->cellCountAxis + cell.x;
 }
 
 static Mem nav_occupancy_mem(GeoNavGrid* grid) {
@@ -469,8 +469,8 @@ static bool nav_cell_predicate_unblocked(const GeoNavGrid* grid, const GeoNavCel
 }
 
 static bool nav_cell_predicate_occupied(const GeoNavGrid* grid, const GeoNavCell cell) {
-  const u16 index = nav_cell_index(grid, cell) * geo_nav_occupants_per_cell;
-  for (u16 i = index; i != index + geo_nav_occupants_per_cell; ++i) {
+  const u32 index = nav_cell_index(grid, cell) * geo_nav_occupants_per_cell;
+  for (u32 i = index; i != index + geo_nav_occupants_per_cell; ++i) {
     if (!sentinel_check(grid->cellOccupancy[i])) {
       return true;
     }
@@ -479,8 +479,8 @@ static bool nav_cell_predicate_occupied(const GeoNavGrid* grid, const GeoNavCell
 }
 
 static bool nav_cell_reg_occupant(GeoNavGrid* grid, const GeoNavCell cell, const u16 occupantIdx) {
-  const u16 index = nav_cell_index(grid, cell) * geo_nav_occupants_per_cell;
-  for (u16 i = index; i != index + geo_nav_occupants_per_cell; ++i) {
+  const u32 index = nav_cell_index(grid, cell) * geo_nav_occupants_per_cell;
+  for (u32 i = index; i != index + geo_nav_occupants_per_cell; ++i) {
     if (sentinel_check(grid->cellOccupancy[i])) {
       grid->cellOccupancy[i] = occupantIdx;
       return true;
