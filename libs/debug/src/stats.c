@@ -380,6 +380,7 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Flush entities"), fmt_write_scratch("{}", fmt_int(ecsStats->lastFlushEntities)));
   }
   if(stats_draw_section(canvas, string_lit("Navigation"))) {
+    stats_draw_val_entry(canvas, string_lit("Cells"), fmt_write_scratch("{}", fmt_int(navStats->gridStats[GeoNavStat_CellCount])));
     stats_draw_val_entry(canvas, string_lit("Grid data"), fmt_write_scratch("{}", fmt_size(navStats->gridStats[GeoNavStat_GridDataSize])));
     stats_draw_val_entry(canvas, string_lit("Worker data"), fmt_write_scratch("{}", fmt_size(navStats->gridStats[GeoNavStat_WorkerDataSize])));
     stats_draw_val_entry(canvas, string_lit("Blocker boxes"), fmt_write_scratch("normal: {<4} rotated: {}", fmt_int(navStats->gridStats[GeoNavStat_BlockerBoxCount]), fmt_int(navStats->gridStats[GeoNavStat_BlockerBoxRotatedCount])));

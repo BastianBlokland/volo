@@ -90,6 +90,7 @@ void geo_nav_occupant_add(GeoNavGrid*, GeoVector pos, u64 id);
  */
 
 typedef enum {
+  GeoNavStat_CellCount,
   GeoNavStat_BlockerBoxCount,
   GeoNavStat_BlockerBoxRotatedCount,
   GeoNavStat_OccupantCount,
