@@ -83,6 +83,13 @@ static void scene_nav_add_blockers(SceneNavEnvComp* env, EcsView* blockerEntitie
   }
 }
 
+static void scene_nav_add_occupants(SceneNavEnvComp* env, EcsView* occupantEntities) {
+  for (EcsIterator* itr = ecs_view_itr(occupantEntities); ecs_view_walk(itr);) {
+    const u64 id = (u64)ecs_view_entity(itr);
+    geo_nav_occupant_add(env->navGrid, id);
+  }
+}
+
 static void scene_nav_stats_update(SceneNavStatsComp* stats, GeoNavGrid* grid) {
   const u32* gridStatsPtr = geo_nav_stats(grid);
 
@@ -101,6 +108,8 @@ ecs_view_define(BlockerEntityView) {
   ecs_access_with(SceneNavBlockerComp);
 }
 
+ecs_view_define(OccupantEntityView) { ecs_access_with(SceneNavAgentComp); }
+
 ecs_system_define(SceneNavInitSys) {
   if (!ecs_world_has_t(world, ecs_world_global(world), SceneNavEnvComp)) {
     scene_nav_env_create(world);
@@ -114,9 +123,13 @@ ecs_system_define(SceneNavInitSys) {
   }
   SceneNavEnvComp* env = ecs_view_write_t(globalItr, SceneNavEnvComp);
 
-  EcsView* blockerEntities = ecs_world_view_t(world, BlockerEntityView);
   geo_nav_blocker_clear_all(env->navGrid);
+  EcsView* blockerEntities = ecs_world_view_t(world, BlockerEntityView);
   scene_nav_add_blockers(env, blockerEntities);
+
+  geo_nav_occupant_clear_all(env->navGrid);
+  EcsView* occupantEntities = ecs_world_view_t(world, OccupantEntityView);
+  scene_nav_add_occupants(env, occupantEntities);
 }
 
 static void scene_nav_update_agent(
@@ -228,7 +241,10 @@ ecs_module_init(scene_nav_module) {
   ecs_register_comp(SceneNavPathComp, .destructor = ecs_destruct_nav_path_comp);
 
   ecs_register_system(
-      SceneNavInitSys, ecs_register_view(InitGlobalView), ecs_register_view(BlockerEntityView));
+      SceneNavInitSys,
+      ecs_register_view(InitGlobalView),
+      ecs_register_view(BlockerEntityView),
+      ecs_register_view(OccupantEntityView));
 
   ecs_register_system(
       SceneNavUpdateAgentsSys,

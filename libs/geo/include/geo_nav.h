@@ -71,15 +71,17 @@ GeoNavCell geo_nav_at_position(const GeoNavGrid*, GeoVector);
 u32 geo_nav_path(const GeoNavGrid*, GeoNavCell from, GeoNavCell to, GeoNavPathStorage);
 
 /**
- * Remove all blockers from the grid.
+ * Register grid blockers.
  */
 void geo_nav_blocker_clear_all(GeoNavGrid*);
-
-/**
- * Mark the given region on the grid as blocked.
- */
 void geo_nav_blocker_add_box(GeoNavGrid*, const GeoBox*);
 void geo_nav_blocker_add_box_rotated(GeoNavGrid*, const GeoBoxRotated*);
+
+/**
+ * Register occupants.
+ */
+void geo_nav_occupant_clear_all(GeoNavGrid*);
+void geo_nav_occupant_add(GeoNavGrid*, u64 id);
 
 /**
  * Navigation statistics.
@@ -88,6 +90,7 @@ void geo_nav_blocker_add_box_rotated(GeoNavGrid*, const GeoBoxRotated*);
 typedef enum {
   GeoNavStat_BlockerBoxCount,
   GeoNavStat_BlockerBoxRotatedCount,
+  GeoNavStat_OccupantCount,
   GeoNavStat_PathCount,
   GeoNavStat_PathOutputCells,
   GeoNavStat_PathItrCells,

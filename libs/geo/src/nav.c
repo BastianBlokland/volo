@@ -5,12 +5,18 @@
 #include "core_math.h"
 #include "geo_nav.h"
 #include "jobs_executor.h"
+#include "log_logger.h"
 
 #include "intrinsic_internal.h"
 
 #define geo_nav_workers_max 64
+#define geo_nav_occupants_max 1024
 
 typedef bool (*NavCellPredicate)(const GeoNavGrid*, GeoNavCell);
+
+typedef struct {
+  u64 id;
+} GeoNavOccupant;
 
 typedef struct {
   BitSet      markedCells;
@@ -24,11 +30,14 @@ typedef struct {
 } GeoNavWorkerState;
 
 struct sGeoNavGrid {
-  u32                cellCountAxis, cellCountTotal;
-  f32                cellDensity, cellSize;
-  f32                cellHeight;
-  GeoVector          cellOffset;
-  BitSet             blockedCells;
+  u32             cellCountAxis, cellCountTotal;
+  f32             cellDensity, cellSize;
+  f32             cellHeight;
+  GeoVector       cellOffset;
+  BitSet          blockedCells; // bit[cellCountTotal]
+  GeoNavOccupant* occupants;    // GeoNavOccupant[geo_nav_occupants_max]
+  u32             occupantCount;
+
   GeoNavWorkerState* workerStates[geo_nav_workers_max];
   Allocator*         alloc;
 
@@ -457,6 +466,7 @@ GeoNavGrid* geo_nav_grid_create(
       .cellHeight     = height,
       .cellOffset     = geo_vector(center.x + size * -0.5f, center.y, center.z + size * -0.5f),
       .blockedCells   = alloc_alloc(alloc, bits_to_bytes(grid->cellCountTotal) + 1, 1),
+      .occupants      = alloc_array_t(alloc, GeoNavOccupant, geo_nav_occupants_max),
       .alloc          = alloc,
   };
 
@@ -466,6 +476,7 @@ GeoNavGrid* geo_nav_grid_create(
 
 void geo_nav_grid_destroy(GeoNavGrid* grid) {
   alloc_free(grid->alloc, grid->blockedCells);
+  alloc_free_array_t(grid->alloc, grid->occupants, geo_nav_occupants_max);
 
   for (u32 i = 0; i != geo_nav_workers_max; ++i) {
     GeoNavWorkerState* state = grid->workerStates[i];
@@ -588,6 +599,18 @@ void geo_nav_blocker_add_box_rotated(GeoNavGrid* grid, const GeoBoxRotated* boxR
   }
 }
 
+void geo_nav_occupant_clear_all(GeoNavGrid* grid) { grid->occupantCount = 0; }
+
+void geo_nav_occupant_add(GeoNavGrid* grid, const u64 id) {
+  if (UNLIKELY(grid->occupantCount == geo_nav_occupants_max)) {
+    log_w("Navigation occupant limit reached", log_param("limit", fmt_int(geo_nav_occupants_max)));
+    return;
+  }
+  grid->occupants[grid->occupantCount++] = (GeoNavOccupant){
+      .id = id,
+  };
+}
+
 void geo_nav_stats_reset(GeoNavGrid* grid) {
   mem_set(array_mem(grid->stats), 0);
   for (u32 i = 0; i != geo_nav_workers_max; ++i) {
@@ -599,8 +622,9 @@ void geo_nav_stats_reset(GeoNavGrid* grid) {
 }
 
 u32* geo_nav_stats(GeoNavGrid* grid) {
-  const u32 dataSizeGrid = sizeof(GeoNavGrid) +                       // Structure
-                           (bits_to_bytes(grid->cellCountTotal) + 1); // grid.blockedCells
+  const u32 dataSizeGrid = sizeof(GeoNavGrid) +                            // Structure
+                           (bits_to_bytes(grid->cellCountTotal) + 1) +     // grid.blockedCells
+                           sizeof(GeoNavOccupant) * geo_nav_occupants_max; // grid.occupants
 
   const u32 dataSizePerWorker = sizeof(GeoNavWorkerState) +                 // Structure
                                 (bits_to_bytes(grid->cellCountTotal) + 1) + // state.markedCells
@@ -609,6 +633,7 @@ u32* geo_nav_stats(GeoNavGrid* grid) {
                                 sizeof(u16) * grid->cellCountTotal +        // state.fScores
                                 sizeof(GeoNavCell) * grid->cellCountTotal;  // state.cameFrom
 
+  grid->stats[GeoNavStat_OccupantCount]  = grid->occupantCount;
   grid->stats[GeoNavStat_GridDataSize]   = dataSizeGrid;
   grid->stats[GeoNavStat_WorkerDataSize] = 0;
 
