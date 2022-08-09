@@ -82,8 +82,9 @@ void geo_nav_blocker_add_box_rotated(GeoNavGrid*, const GeoBoxRotated*);
 /**
  * Register occupants.
  */
-void geo_nav_occupant_clear_all(GeoNavGrid*);
-void geo_nav_occupant_add(GeoNavGrid*, GeoVector pos, u64 id);
+void      geo_nav_occupant_clear_all(GeoNavGrid*);
+void      geo_nav_occupant_add(GeoNavGrid*, GeoVector pos, u64 id);
+GeoVector geo_nav_occupant_separation_force(const GeoNavGrid*, u64 id, GeoVector pos);
 
 /**
  * Navigation statistics.

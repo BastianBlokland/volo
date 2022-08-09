@@ -3,6 +3,7 @@
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_math.h"
+#include "core_rng.h"
 #include "geo_nav.h"
 #include "jobs_executor.h"
 #include "log_logger.h"
@@ -77,6 +78,10 @@ INLINE_HINT static void nav_swap_u16(u16* a, u16* b) {
   const u16 temp = *a;
   *a             = *b;
   *b             = temp;
+}
+
+INLINE_HINT static u32 nav_cells_in_region(GeoNavRegion region) {
+  return (region.max.y - region.min.y) * (region.max.x - region.min.x);
 }
 
 INLINE_HINT static u32 nav_cell_index(const GeoNavGrid* grid, const GeoNavCell cell) {
@@ -489,6 +494,28 @@ static bool nav_cell_reg_occupant(GeoNavGrid* grid, const GeoNavCell cell, const
   return false; // Maximum occupants per cell reached.
 }
 
+/**
+ * Get the indices of all occupants in the given region.
+ * Returns the amount of occupants indices written to the out array.
+ * NOTE: Array size should be at least 'nav_cells_in_region(region) * geo_nav_occupants_per_cell'.
+ */
+static u32 nav_occupants_in_region(const GeoNavGrid* grid, const GeoNavRegion region, u16* out) {
+  u32 resultCount = 0;
+  for (u32 y = region.min.y; y != region.max.y; ++y) {
+    for (u32 x = region.min.x; x != region.max.x; ++x) {
+      const GeoNavCell cell = {.x = x, .y = y};
+      // TODO: Optimizable as horizontal neighbors are consecutive in memory.
+      const u32 index = nav_cell_index(grid, cell) * geo_nav_occupants_per_cell;
+      for (u32 i = index; i != index + geo_nav_occupants_per_cell; ++i) {
+        if (!sentinel_check(grid->cellOccupancy[i])) {
+          out[resultCount++] = grid->cellOccupancy[i];
+        }
+      }
+    }
+  }
+  return resultCount;
+}
+
 GeoNavGrid* geo_nav_grid_create(
     Allocator* alloc, const GeoVector center, const f32 size, const f32 density, const f32 height) {
   diag_assert(geo_vector_mag_sqr(center) <= (1e4f * 1e4f));
@@ -672,6 +699,46 @@ void geo_nav_occupant_add(GeoNavGrid* grid, const GeoVector pos, const u64 id) {
       .pos = pos,
   };
   nav_cell_reg_occupant(grid, mapRes.cell, occupantIndex);
+}
+
+GeoVector
+geo_nav_occupant_separation_force(const GeoNavGrid* grid, const u64 id, const GeoVector pos) {
+  const GeoNavMapResult mapRes = nav_cell_map(grid, pos);
+  if (mapRes.flags & (GeoNavMap_ClampedX | GeoNavMap_ClampedY)) {
+    return geo_vector(0); // Position outside of the grid.
+  }
+  const GeoNavRegion region = nav_cell_grow(grid, mapRes.cell, 1);
+
+  u16 occupantIndices[(3 * 3) * geo_nav_occupants_per_cell];
+  diag_assert(
+      (nav_cells_in_region(region) * geo_nav_occupants_per_cell) <= array_elems(occupantIndices));
+
+  const u32 occupantCount = nav_occupants_in_region(grid, region, occupantIndices);
+  const f32 sepDist       = grid->cellSize; // NOTE: Likely needs to be configurable per occupant.
+
+  GeoVector force = {0};
+  for (u32 i = 0; i != occupantCount; ++i) {
+    const GeoNavOccupant* occupant = &grid->occupants[occupantIndices[i]];
+    if (occupant->id == id) {
+      continue; // Ignore occupants with the same id.
+    }
+    const GeoVector toOccupant = geo_vector_sub(occupant->pos, pos);
+    const f32       distSqr    = geo_vector_mag_sqr(toOccupant);
+    if (distSqr >= (sepDist * sepDist)) {
+      continue; // Far enough away.
+    }
+    const f32 dist = intrinsic_sqrt_f32(distSqr);
+    GeoVector sepDir;
+    if (UNLIKELY(dist < f32_epsilon)) {
+      const GeoQuat rot = geo_quat_angle_axis(geo_up, rng_sample_f32(g_rng) * math_pi_f32 * 2);
+      sepDir            = geo_quat_rotate(rot, geo_forward);
+    } else {
+      sepDir = geo_vector_div(toOccupant, dist);
+    }
+    // NOTE: Times 0.5 because both occupants are expected to move.
+    force = geo_vector_add(force, geo_vector_mul(sepDir, (dist - sepDist) * 0.5f));
+  }
+  return force;
 }
 
 void geo_nav_stats_reset(GeoNavGrid* grid) {
