@@ -85,9 +85,9 @@ static void scene_nav_add_blockers(SceneNavEnvComp* env, EcsView* blockerEntitie
 
 static void scene_nav_add_occupants(SceneNavEnvComp* env, EcsView* occupantEntities) {
   for (EcsIterator* itr = ecs_view_itr(occupantEntities); ecs_view_walk(itr);) {
-    const SceneTransformComp* trans = ecs_view_read_t(itr, SceneTransformComp);
-    const u64                 id    = (u64)ecs_view_entity(itr);
-    geo_nav_occupant_add(env->navGrid, trans->position, id);
+    const SceneTransformComp* trans      = ecs_view_read_t(itr, SceneTransformComp);
+    const u64                 occupantId = (u64)ecs_view_entity(itr);
+    geo_nav_occupant_add(env->navGrid, trans->position, occupantId);
   }
 }
 
@@ -305,4 +305,10 @@ bool scene_nav_occupied(const SceneNavEnvComp* env, const GeoNavCell cell) {
 
 GeoNavCell scene_nav_at_position(const SceneNavEnvComp* env, const GeoVector pos) {
   return geo_nav_at_position(env->navGrid, pos);
+}
+
+GeoVector scene_nav_separation_force(
+    const SceneNavEnvComp* env, const EcsEntityId entity, const GeoVector position) {
+  const u64 occupantId = (u64)entity;
+  return geo_nav_occupant_separation_force(env->navGrid, occupantId, position);
 }

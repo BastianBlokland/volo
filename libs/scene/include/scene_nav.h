@@ -36,3 +36,9 @@ GeoNavRegion scene_nav_region(const SceneNavEnvComp*, GeoNavCell, u16 radius);
 bool         scene_nav_blocked(const SceneNavEnvComp*, GeoNavCell);
 bool         scene_nav_occupied(const SceneNavEnvComp*, GeoNavCell);
 GeoNavCell   scene_nav_at_position(const SceneNavEnvComp*, GeoVector);
+
+/**
+ * Query the separation force at the given position.
+ * NOTE: EntityId is used to avoid trying to separate from itself.
+ */
+GeoVector scene_nav_separation_force(const SceneNavEnvComp*, EcsEntityId, GeoVector position);
