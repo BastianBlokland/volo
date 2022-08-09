@@ -14,6 +14,7 @@ static const f32       g_sceneNavDensity = 1.0f;
 static const f32       g_sceneNavHeight  = 2.0f;
 
 #define scene_nav_path_max_cells 64
+#define scene_nav_arrive_threshold 0.25f
 
 ecs_comp_define(SceneNavEnvComp) { GeoNavGrid* navGrid; };
 ecs_comp_define_public(SceneNavStatsComp);
@@ -138,14 +139,24 @@ ecs_system_define(SceneNavInitSys) {
 
 static void scene_nav_update_agent(
     const SceneNavEnvComp*    env,
-    const SceneNavAgentComp*  agent,
     const SceneTransformComp* trans,
+    SceneNavAgentComp*        agent,
     SceneLocomotionComp*      loco,
     SceneNavPathComp*         path) {
   GeoNavCell from       = geo_nav_at_position(env->navGrid, trans->position);
   const bool fromOnGrid = !geo_nav_blocked(env->navGrid, from);
   if (!fromOnGrid) {
     from = geo_nav_closest_unblocked(env->navGrid, from);
+  }
+
+  if (fromOnGrid && !(agent->flags & SceneNavAgent_Moving)) {
+    return; // NOTE: When off-grid we always want to move back to an on-grid position.
+  }
+
+  const f32 dist = geo_vector_mag(geo_vector_sub(agent->target, trans->position));
+  if (fromOnGrid && dist < scene_nav_arrive_threshold) {
+    agent->flags &= ~SceneNavAgent_Moving;
+    return; // Arrived at destination.
   }
 
   GeoNavCell to       = geo_nav_at_position(env->navGrid, agent->target);
@@ -157,16 +168,17 @@ static void scene_nav_update_agent(
   if (from.data == to.data) {
     path->cellCount = 0;
     if (LIKELY(loco)) {
+      // On the correct cell; move to the final position on the cell.
       scene_locomotion_move_to(loco, toOnGrid ? agent->target : geo_nav_position(env->navGrid, to));
     }
-    return; // Agent has arrived at its destination cell.
+    return;
   }
 
   const GeoNavPathStorage storage = {.cells = path->cells, .capacity = scene_nav_path_max_cells};
   path->cellCount                 = geo_nav_path(env->navGrid, from, to, storage);
 
   if (UNLIKELY(!loco)) {
-    return; // Agent has no locomotion so no need to pick a move target.
+    return; // Agent has no locomotion so unable to move.
   }
 
   // Attempt to take a shortcut to further into the path.
@@ -189,6 +201,7 @@ static void scene_nav_update_agent(
 
   // No path available.
   if (!fromOnGrid) {
+    // Move to the closest position on the grid.
     scene_locomotion_move_to(loco, geo_nav_position(env->navGrid, from));
   }
   path->cellCount = 0;
@@ -197,9 +210,9 @@ static void scene_nav_update_agent(
 ecs_view_define(UpdateAgentGlobalView) { ecs_access_read(SceneNavEnvComp); }
 
 ecs_view_define(AgentEntityView) {
-  ecs_access_read(SceneNavAgentComp);
-  ecs_access_read(SceneTransformComp);
   ecs_access_maybe_write(SceneLocomotionComp);
+  ecs_access_read(SceneTransformComp);
+  ecs_access_write(SceneNavAgentComp);
   ecs_access_write(SceneNavPathComp);
 }
 
@@ -213,12 +226,12 @@ ecs_system_define(SceneNavUpdateAgentsSys) {
 
   EcsView* agentEntities = ecs_world_view_t(world, AgentEntityView);
   for (EcsIterator* itr = ecs_view_itr(agentEntities); ecs_view_walk(itr);) {
-    const SceneNavAgentComp*  agent      = ecs_view_read_t(itr, SceneNavAgentComp);
     const SceneTransformComp* trans      = ecs_view_read_t(itr, SceneTransformComp);
     SceneLocomotionComp*      locomotion = ecs_view_write_t(itr, SceneLocomotionComp);
+    SceneNavAgentComp*        agent      = ecs_view_write_t(itr, SceneNavAgentComp);
     SceneNavPathComp*         path       = ecs_view_write_t(itr, SceneNavPathComp);
 
-    scene_nav_update_agent(env, agent, trans, locomotion, path);
+    scene_nav_update_agent(env, trans, agent, locomotion, path);
   }
 }
 
@@ -266,17 +279,22 @@ ecs_module_init(scene_nav_module) {
   ecs_order(SceneNavUpdateStatsSys, SceneOrder_NavStatsUpdate);
 }
 
+void scene_nav_move_to(SceneNavAgentComp* agent, const GeoVector target) {
+  agent->flags |= SceneNavAgent_Moving;
+  agent->target = target;
+}
+
 void scene_nav_add_blocker(EcsWorld* world, const EcsEntityId entity) {
   ecs_world_add_empty_t(world, entity, SceneNavBlockerComp);
 }
 
-void scene_nav_add_agent(EcsWorld* world, const EcsEntityId entity, const GeoVector target) {
-  ecs_world_add_t(world, entity, SceneNavAgentComp, .target = target);
+SceneNavAgentComp* scene_nav_add_agent(EcsWorld* world, const EcsEntityId entity) {
   ecs_world_add_t(
       world,
       entity,
       SceneNavPathComp,
       .cells = alloc_array_t(g_alloc_heap, GeoNavCell, scene_nav_path_max_cells));
+  return ecs_world_add_t(world, entity, SceneNavAgentComp);
 }
 
 GeoNavRegion scene_nav_bounds(const SceneNavEnvComp* env) { return geo_nav_bounds(env->navGrid); }

@@ -3,7 +3,7 @@
 #include "geo_vector.h"
 
 typedef enum {
-  SceneLocomotion_Arrived = 1 << 0,
+  SceneLocomotion_Moving = 1 << 0,
 } SceneLocomotionFlags;
 
 ecs_comp_extern_public(SceneLocomotionComp) {

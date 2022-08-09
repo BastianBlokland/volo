@@ -76,7 +76,8 @@ static CmdControllerComp* cmd_controller_get(EcsWorld* world) {
 static void cmd_execute_move(EcsWorld* world, const CmdMove* cmdMove) {
   EcsIterator* moveItr = ecs_view_maybe_at(ecs_world_view_t(world, MoveView), cmdMove->object);
   if (moveItr) {
-    ecs_view_write_t(moveItr, SceneNavAgentComp)->target = cmdMove->position;
+    SceneNavAgentComp* agent = ecs_view_write_t(moveItr, SceneNavAgentComp);
+    scene_nav_move_to(agent, cmdMove->position);
   }
 }
 

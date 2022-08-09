@@ -677,7 +677,7 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
 
 static void inspector_vis_draw_locomotion(
     DebugShapeComp* shape, const SceneLocomotionComp* loco, const SceneTransformComp* transform) {
-  if (!(loco->flags & SceneLocomotion_Arrived)) {
+  if (loco->flags & SceneLocomotion_Moving) {
     const GeoVector pos = transform ? transform->position : geo_vector(0);
     debug_line(shape, pos, loco->target, geo_color_yellow);
     debug_sphere(shape, loco->target, 0.1f, geo_color_green, DebugShape_Overlay);
@@ -759,7 +759,9 @@ static void inspector_vis_draw_navigation_path(
     const GeoVector posB = scene_nav_position(nav, path->cells[i]);
     debug_line(shape, posA, posB, geo_color_white);
   }
-  debug_sphere(shape, agent->target, 0.1f, geo_color_blue, DebugShape_Overlay);
+  if (agent->flags & SceneNavAgent_Moving) {
+    debug_sphere(shape, agent->target, 0.1f, geo_color_blue, DebugShape_Overlay);
+  }
 }
 
 static void inspector_vis_draw_subject(

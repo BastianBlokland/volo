@@ -7,7 +7,7 @@
 #include "scene_time.h"
 #include "scene_transform.h"
 
-#define locomotion_arrive_threshold 0.25f
+#define locomotion_arrive_threshold 0.1f
 #define locomotion_rotation_speed 360.0f
 
 ecs_comp_define_public(SceneLocomotionComp);
@@ -44,10 +44,13 @@ static void scene_loco_face(SceneTransformComp* trans, const GeoVector dir, cons
 
 static void scene_loco_move(
     SceneLocomotionComp* loco, SceneTransformComp* trans, const f32 scale, const f32 delta) {
+  if (!(loco->flags & SceneLocomotion_Moving)) {
+    return;
+  }
   const GeoVector toTarget = geo_vector_sub(loco->target, trans->position);
   const f32       dist     = geo_vector_mag(toTarget);
   if (dist < locomotion_arrive_threshold) {
-    loco->flags |= SceneLocomotion_Arrived;
+    loco->flags &= ~SceneLocomotion_Moving;
     return;
   }
   const GeoVector dir       = geo_vector_div(toTarget, dist);
@@ -88,13 +91,11 @@ ecs_system_define(SceneLocomotionMoveSys) {
     const SceneScaleComp* scaleComp = ecs_view_read_t(itr, SceneScaleComp);
     const f32             scale     = scaleComp ? scaleComp->scale : 1.0f;
 
-    if (!(loco->flags & SceneLocomotion_Arrived)) {
-      scene_loco_move(loco, trans, scale, deltaSeconds);
-    }
+    scene_loco_move(loco, trans, scale, deltaSeconds);
     scene_loco_apply_separation(navEnv, entity, trans);
 
     if (anim) {
-      const f32 targetWalkWeight = (loco->flags & SceneLocomotion_Arrived) ? 0.0f : 1.0f;
+      const f32 targetWalkWeight = (loco->flags & SceneLocomotion_Moving) ? 1.0f : 0.0f;
       loco->walkWeight = math_lerp(loco->walkWeight, targetWalkWeight, 10.0f * deltaSeconds);
       scene_animation_set_weight(anim, walkAnimHash, loco->walkWeight);
     }
@@ -113,6 +114,6 @@ ecs_module_init(scene_locomotion_module) {
 }
 
 void scene_locomotion_move_to(SceneLocomotionComp* comp, const GeoVector target) {
-  comp->flags &= ~SceneLocomotion_Arrived;
+  comp->flags |= SceneLocomotion_Moving;
   comp->target = target;
 }

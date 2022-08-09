@@ -10,7 +10,8 @@
 static EcsEntityId test_create_agent(EcsWorld* world, const GeoVector pos, const GeoVector target) {
   const EcsEntityId e = ecs_world_entity_create(world);
   ecs_world_add_t(world, e, SceneTransformComp, .position = pos, .rotation = geo_quat_ident);
-  scene_nav_add_agent(world, e, target);
+  SceneNavAgentComp* agent = scene_nav_add_agent(world, e);
+  scene_nav_move_to(agent, target);
   return e;
 }
 
