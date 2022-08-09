@@ -140,7 +140,7 @@ static void scene_nav_update_agent(
     const SceneNavEnvComp*    env,
     const SceneNavAgentComp*  agent,
     const SceneTransformComp* trans,
-    SceneLocomotionComp*      locomotion,
+    SceneLocomotionComp*      loco,
     SceneNavPathComp*         path) {
   GeoNavCell from       = geo_nav_at_position(env->navGrid, trans->position);
   const bool fromOnGrid = !geo_nav_blocked(env->navGrid, from);
@@ -156,8 +156,8 @@ static void scene_nav_update_agent(
 
   if (from.data == to.data) {
     path->cellCount = 0;
-    if (LIKELY(locomotion)) {
-      locomotion->target = toOnGrid ? agent->target : geo_nav_position(env->navGrid, to);
+    if (LIKELY(loco)) {
+      scene_locomotion_move_to(loco, toOnGrid ? agent->target : geo_nav_position(env->navGrid, to));
     }
     return; // Agent has arrived at its destination cell.
   }
@@ -165,7 +165,7 @@ static void scene_nav_update_agent(
   const GeoNavPathStorage storage = {.cells = path->cells, .capacity = scene_nav_path_max_cells};
   path->cellCount                 = geo_nav_path(env->navGrid, from, to, storage);
 
-  if (UNLIKELY(!locomotion)) {
+  if (UNLIKELY(!loco)) {
     return; // Agent has no locomotion so no need to pick a move target.
   }
 
@@ -173,9 +173,9 @@ static void scene_nav_update_agent(
   for (u32 i = path->cellCount; i-- > 1;) {
     if (!geo_nav_line_blocked(env->navGrid, from, path->cells[i])) {
       if (path->cells[i].data == to.data && toOnGrid) {
-        locomotion->target = agent->target;
+        scene_locomotion_move_to(loco, agent->target);
       } else {
-        locomotion->target = geo_nav_position(env->navGrid, path->cells[i]);
+        scene_locomotion_move_to(loco, geo_nav_position(env->navGrid, path->cells[i]));
       }
       return; // Agent is walking towards shortcut.
     }
@@ -183,13 +183,15 @@ static void scene_nav_update_agent(
 
   // No shortcut available; Move to the next cell in the path.
   if (path->cellCount > 1) {
-    locomotion->target = geo_nav_position(env->navGrid, path->cells[1]);
+    scene_locomotion_move_to(loco, geo_nav_position(env->navGrid, path->cells[1]));
     return;
   }
 
-  // No path available; Stand still.
-  locomotion->target = fromOnGrid ? trans->position : geo_nav_position(env->navGrid, from);
-  path->cellCount    = 0;
+  // No path available.
+  if (!fromOnGrid) {
+    scene_locomotion_move_to(loco, geo_nav_position(env->navGrid, from));
+  }
+  path->cellCount = 0;
 }
 
 ecs_view_define(UpdateAgentGlobalView) { ecs_access_read(SceneNavEnvComp); }

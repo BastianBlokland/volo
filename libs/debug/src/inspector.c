@@ -677,9 +677,11 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
 
 static void inspector_vis_draw_locomotion(
     DebugShapeComp* shape, const SceneLocomotionComp* loco, const SceneTransformComp* transform) {
-  const GeoVector pos = transform ? transform->position : geo_vector(0);
-  debug_line(shape, pos, loco->target, geo_color_yellow);
-  debug_sphere(shape, loco->target, 0.1f, geo_color_green, DebugShape_Overlay);
+  if (!(loco->flags & SceneLocomotion_Arrived)) {
+    const GeoVector pos = transform ? transform->position : geo_vector(0);
+    debug_line(shape, pos, loco->target, geo_color_yellow);
+    debug_sphere(shape, loco->target, 0.1f, geo_color_green, DebugShape_Overlay);
+  }
 }
 
 static void inspector_vis_draw_collision(

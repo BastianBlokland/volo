@@ -24,47 +24,43 @@ ecs_view_define(MoveView) {
   ecs_access_write(SceneTransformComp);
 }
 
-static f32 scene_locomotion_y_angle_diff(const GeoVector fromDir, const GeoVector toDir) {
+static f32 scene_loco_y_angle_diff(const GeoVector fromDir, const GeoVector toDir) {
   const GeoVector tangent      = geo_vector_cross3(geo_up, fromDir);
   const f32       dotTangentTo = geo_vector_dot(tangent, toDir);
   const f32       dotFromTo    = geo_vector_dot(fromDir, toDir);
   return math_acos_f32(math_clamp_f32(dotFromTo, -1.0f, 1.0f)) * math_sign(dotTangentTo);
 }
 
-static void
-scene_locomotion_face(SceneTransformComp* trans, const GeoVector dir, const f32 deltaSeconds) {
+static void scene_loco_face(SceneTransformComp* trans, const GeoVector dir, const f32 delta) {
   const GeoVector forward    = geo_quat_rotate(trans->rotation, geo_forward);
-  const f32       yAngleDiff = scene_locomotion_y_angle_diff(forward, dir);
+  const f32       yAngleDiff = scene_loco_y_angle_diff(forward, dir);
 
-  const f32 maxAngleDelta = locomotion_rotation_speed * math_deg_to_rad * deltaSeconds;
+  const f32 maxAngleDelta = locomotion_rotation_speed * math_deg_to_rad * delta;
   const f32 yAngleDelta   = math_clamp_f32(yAngleDiff, -maxAngleDelta, maxAngleDelta);
 
   trans->rotation = geo_quat_mul(geo_quat_angle_axis(geo_up, yAngleDelta), trans->rotation);
   trans->rotation = geo_quat_norm(trans->rotation);
 }
 
-static bool scene_locomotion_move(
-    const SceneLocomotionComp* loco,
-    SceneTransformComp*        trans,
-    const f32                  scale,
-    const f32                  deltaSeconds) {
+static void scene_loco_move(
+    SceneLocomotionComp* loco, SceneTransformComp* trans, const f32 scale, const f32 delta) {
   const GeoVector toTarget = geo_vector_sub(loco->target, trans->position);
   const f32       dist     = geo_vector_mag(toTarget);
   if (dist < locomotion_arrive_threshold) {
-    return true;
+    loco->flags |= SceneLocomotion_Arrived;
+    return;
   }
-  const GeoVector dir   = geo_vector_div(toTarget, dist);
-  const f32       delta = math_min(dist, loco->speed * scale * deltaSeconds);
+  const GeoVector dir       = geo_vector_div(toTarget, dist);
+  const f32       distDelta = math_min(dist, loco->speed * scale * delta);
 
-  trans->position = geo_vector_add(trans->position, geo_vector_mul(dir, delta));
-  scene_locomotion_face(trans, dir, deltaSeconds);
-  return false;
+  trans->position = geo_vector_add(trans->position, geo_vector_mul(dir, distDelta));
+  scene_loco_face(trans, dir, delta);
 }
 
 /**
  * Apply a force to separate this entity from (other) navigation agents.
  */
-static void scene_locomotion_apply_separation(
+static void scene_loco_apply_separation(
     const SceneNavEnvComp* navEnv, const EcsEntityId entity, SceneTransformComp* trans) {
   const GeoVector separationForce = scene_nav_separation_force(navEnv, entity, trans->position);
   trans->position                 = geo_vector_add(trans->position, separationForce);
@@ -92,14 +88,16 @@ ecs_system_define(SceneLocomotionMoveSys) {
     const SceneScaleComp* scaleComp = ecs_view_read_t(itr, SceneScaleComp);
     const f32             scale     = scaleComp ? scaleComp->scale : 1.0f;
 
-    const bool arrived = scene_locomotion_move(loco, trans, scale, deltaSeconds);
+    if (!(loco->flags & SceneLocomotion_Arrived)) {
+      scene_loco_move(loco, trans, scale, deltaSeconds);
+    }
+    scene_loco_apply_separation(navEnv, entity, trans);
+
     if (anim) {
-      const f32 targetWalkWeight = arrived ? 0.0f : 1.0f;
+      const f32 targetWalkWeight = (loco->flags & SceneLocomotion_Arrived) ? 0.0f : 1.0f;
       loco->walkWeight = math_lerp(loco->walkWeight, targetWalkWeight, 10.0f * deltaSeconds);
       scene_animation_set_weight(anim, walkAnimHash, loco->walkWeight);
     }
-
-    scene_locomotion_apply_separation(navEnv, entity, trans);
   }
 }
 
@@ -112,4 +110,9 @@ ecs_module_init(scene_locomotion_module) {
   ecs_register_system(SceneLocomotionMoveSys, ecs_view_id(GlobalView), ecs_view_id(MoveView));
 
   ecs_order(SceneLocomotionMoveSys, SceneOrder_LocomotionUpdate);
+}
+
+void scene_locomotion_move_to(SceneLocomotionComp* comp, const GeoVector target) {
+  comp->flags &= ~SceneLocomotion_Arrived;
+  comp->target = target;
 }
