@@ -149,8 +149,12 @@ static void scene_nav_update_agent(
     from = geo_nav_closest_unblocked(env->navGrid, from);
   }
 
-  if (fromOnGrid && !(agent->flags & SceneNavAgent_Moving)) {
-    return; // NOTE: When off-grid we always want to move back to an on-grid position.
+  if (!(agent->flags & SceneNavAgent_Moving)) {
+    if (fromOnGrid) {
+      return; // Not moving and still on the grid; Nothing to do.
+    }
+    agent->flags |= SceneNavAgent_Moving;
+    agent->target = geo_nav_position(env->navGrid, from);
   }
 
   const f32 dist = geo_vector_mag(geo_vector_sub(agent->target, trans->position));
