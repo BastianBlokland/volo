@@ -818,6 +818,8 @@ static void inspector_vis_draw_navigation_grid(DebugShapeComp* shape, const Scen
       GeoColor         color;
       if (scene_nav_blocked(nav, cell)) {
         color = geo_color(1, 0, 0, highlight ? 0.5f : 0.3f);
+      } else if (scene_nav_occupied_moving(nav, cell)) {
+        color = geo_color(1, 0, 1, highlight ? 0.3f : 0.2f);
       } else if (scene_nav_occupied(nav, cell)) {
         color = geo_color(0, 0, 1, highlight ? 0.2f : 0.1f);
       } else {

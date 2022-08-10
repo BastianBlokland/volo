@@ -19,8 +19,9 @@ ASSERT(geo_nav_occupants_max < u16_max, "Nav occupant has to be indexable by a u
 typedef bool (*NavCellPredicate)(const GeoNavGrid*, GeoNavCell);
 
 typedef struct {
-  u64       id;
-  GeoVector pos;
+  u64                 id;
+  GeoNavOccupantFlags flags;
+  GeoVector           pos;
 } GeoNavOccupant;
 
 typedef struct {
@@ -510,6 +511,17 @@ static bool nav_cell_predicate_occupied(const GeoNavGrid* grid, const GeoNavCell
   return occupantCount != 0;
 }
 
+static bool nav_cell_predicate_occupied_moving(const GeoNavGrid* grid, const GeoNavCell cell) {
+  const GeoNavOccupant* occupants[geo_nav_occupants_per_cell];
+  const u32             occupantCount = nav_cell_occupants(grid, cell, occupants);
+  for (u32 i = 0; i != occupantCount; ++i) {
+    if (occupants[i]->flags & GeoNavOccupantFlags_Moving) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /**
  * Get all the occupants in the given region.
  * Returns the amount of occupants written to the out array.
@@ -619,6 +631,11 @@ bool geo_nav_occupied(const GeoNavGrid* grid, const GeoNavCell cell) {
   return nav_cell_predicate_occupied(grid, cell);
 }
 
+bool geo_nav_occupied_moving(const GeoNavGrid* grid, const GeoNavCell cell) {
+  diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
+  return nav_cell_predicate_occupied_moving(grid, cell);
+}
+
 GeoNavCell geo_nav_closest_unblocked(const GeoNavGrid* grid, const GeoNavCell cell) {
   diag_assert(cell.x < grid->cellCountAxis && cell.y < grid->cellCountAxis);
 
@@ -697,7 +714,8 @@ void geo_nav_occupant_clear_all(GeoNavGrid* grid) {
   grid->occupantCount = 0;
 }
 
-void geo_nav_occupant_add(GeoNavGrid* grid, const GeoVector pos, const u64 id) {
+void geo_nav_occupant_add(
+    GeoNavGrid* grid, const GeoVector pos, const u64 id, const GeoNavOccupantFlags flags) {
   if (UNLIKELY(grid->occupantCount == geo_nav_occupants_max)) {
     log_w("Navigation occupant limit reached", log_param("limit", fmt_int(geo_nav_occupants_max)));
     return;
@@ -708,8 +726,9 @@ void geo_nav_occupant_add(GeoNavGrid* grid, const GeoVector pos, const u64 id) {
   }
   const u16 occupantIndex        = grid->occupantCount++;
   grid->occupants[occupantIndex] = (GeoNavOccupant){
-      .id  = id,
-      .pos = pos,
+      .id    = id,
+      .flags = flags,
+      .pos   = pos,
   };
   nav_cell_add_occupant(grid, mapRes.cell, occupantIndex);
 }
