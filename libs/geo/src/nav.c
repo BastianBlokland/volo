@@ -88,6 +88,18 @@ INLINE_HINT static u32 nav_cell_index(const GeoNavGrid* grid, const GeoNavCell c
   return (u32)cell.y * grid->cellCountAxis + cell.x;
 }
 
+INLINE_HINT static bool nav_cell_clamp_axis(const GeoNavGrid* grid, f32* value) {
+  if (UNLIKELY(*value < 0)) {
+    *value = 0;
+    return true;
+  }
+  if (UNLIKELY(*value >= grid->cellCountAxis)) {
+    *value = grid->cellCountAxis - 1;
+    return true;
+  }
+  return false;
+}
+
 static Mem nav_occupancy_mem(GeoNavGrid* grid) {
   const usize size = sizeof(u16) * grid->cellCountTotal * geo_nav_occupants_per_cell;
   return mem_create(grid->cellOccupancy, size);
@@ -111,10 +123,8 @@ static u32 nav_cell_neighbors(const GeoNavGrid* grid, const GeoNavCell cell, Geo
 }
 
 static GeoVector nav_cell_pos(const GeoNavGrid* grid, const GeoNavCell cell) {
-  return geo_vector(
-      cell.x * grid->cellSize + grid->cellOffset.x,
-      grid->cellOffset.y,
-      cell.y * grid->cellSize + grid->cellOffset.z);
+  const GeoVector localPos = {cell.x, 0, cell.y};
+  return geo_vector_add(geo_vector_mul(localPos, grid->cellSize), grid->cellOffset);
 }
 
 static GeoBox nav_cell_box(const GeoNavGrid* grid, const GeoNavCell cell) {
@@ -133,28 +143,20 @@ typedef struct {
 } GeoNavMapResult;
 
 static GeoNavMapResult nav_cell_map(const GeoNavGrid* grid, const GeoVector pos) {
-  GeoNavMapResult result = {0};
-  const f32 localX = intrinsic_round_nearest_f32((pos.x - grid->cellOffset.x) * grid->cellDensity);
-  const f32 localY = intrinsic_round_nearest_f32((pos.z - grid->cellOffset.z) * grid->cellDensity);
-  if (UNLIKELY(localX < 0)) {
-    result.flags |= GeoNavMap_ClampedX;
-  } else {
-    result.cell.x = (u16)localX;
-    if (UNLIKELY(result.cell.x >= grid->cellCountAxis)) {
-      result.flags |= GeoNavMap_ClampedX;
-      result.cell.x = grid->cellCountAxis - 1;
-    }
+  GeoVector localPos = geo_vector_round_nearest(
+      geo_vector_mul(geo_vector_sub(pos, grid->cellOffset), grid->cellDensity));
+
+  GeoNavMapFlags flags = 0;
+  if (UNLIKELY(nav_cell_clamp_axis(grid, &localPos.x))) {
+    flags |= GeoNavMap_ClampedX;
   }
-  if (UNLIKELY(localY < 0)) {
-    result.flags |= GeoNavMap_ClampedY;
-  } else {
-    result.cell.y = (u16)localY;
-    if (UNLIKELY(result.cell.y >= grid->cellCountAxis)) {
-      result.flags |= GeoNavMap_ClampedY;
-      result.cell.y = grid->cellCountAxis - 1;
-    }
+  if (UNLIKELY(nav_cell_clamp_axis(grid, &localPos.z))) {
+    flags |= GeoNavMap_ClampedY;
   }
-  return result;
+  return (GeoNavMapResult){
+      .cell  = {.x = (u16)localPos.x, .y = (u16)localPos.z},
+      .flags = flags,
+  };
 }
 
 static GeoNavRegion nav_cell_map_box(const GeoNavGrid* grid, const GeoBox* box) {
