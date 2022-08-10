@@ -134,8 +134,8 @@ typedef struct {
 
 static GeoNavMapResult nav_cell_map(const GeoNavGrid* grid, const GeoVector pos) {
   GeoNavMapResult result = {0};
-  const f32       localX = intrinsic_round_f32((pos.x - grid->cellOffset.x) * grid->cellDensity);
-  const f32       localY = intrinsic_round_f32((pos.z - grid->cellOffset.z) * grid->cellDensity);
+  const f32 localX = intrinsic_round_nearest_f32((pos.x - grid->cellOffset.x) * grid->cellDensity);
+  const f32 localY = intrinsic_round_nearest_f32((pos.z - grid->cellOffset.z) * grid->cellDensity);
   if (UNLIKELY(localX < 0)) {
     result.flags |= GeoNavMap_ClampedX;
   } else {

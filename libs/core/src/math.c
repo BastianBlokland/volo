@@ -59,14 +59,14 @@ f32 math_exp_f32(const f32 exp) { return intrinsic_exp_f32(exp); }
 f32 math_trunc_f32(const f32 val) { return (i32)val; }
 f64 math_trunc_f64(const f64 val) { return (i64)val; }
 
-f32 math_round_nearest_f32(const f32 val) { return intrinsic_round_f32(val); }
-f64 math_round_nearest_f64(const f64 val) { return intrinsic_round_f64(val); }
+f32 math_round_nearest_f32(const f32 val) { return intrinsic_round_nearest_f32(val); }
+f64 math_round_nearest_f64(const f64 val) { return intrinsic_round_nearest_f64(val); }
 
-f32 math_round_down_f32(const f32 val) { return intrinsic_floor_f32(val); }
-f64 math_round_down_f64(const f64 val) { return intrinsic_floor_f64(val); }
+f32 math_round_down_f32(const f32 val) { return intrinsic_round_down_f32(val); }
+f64 math_round_down_f64(const f64 val) { return intrinsic_round_down_f64(val); }
 
-f32 math_round_up_f32(const f32 val) { return intrinsic_ceil_f32(val); }
-f64 math_round_up_f64(const f64 val) { return intrinsic_ceil_f64(val); }
+f32 math_round_up_f32(const f32 val) { return intrinsic_round_up_f32(val); }
+f64 math_round_up_f64(const f64 val) { return intrinsic_round_up_f64(val); }
 
 f32 math_clamp_f32(const f32 val, const f32 min, const f32 max) {
   if (val <= min) {
