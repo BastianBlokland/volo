@@ -53,4 +53,5 @@ GeoNavCell   scene_nav_at_position(const SceneNavEnvComp*, GeoVector);
  * Query the separation force at the given position.
  * NOTE: EntityId is used to avoid trying to separate from itself.
  */
-GeoVector scene_nav_separation_force(const SceneNavEnvComp*, EcsEntityId, GeoVector position);
+GeoVector
+scene_nav_separation_force(const SceneNavEnvComp*, EcsEntityId, GeoVector position, bool moving);

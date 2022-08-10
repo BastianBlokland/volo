@@ -733,8 +733,12 @@ void geo_nav_occupant_add(
   nav_cell_add_occupant(grid, mapRes.cell, occupantIndex);
 }
 
-GeoVector
-geo_nav_occupant_separation_force(const GeoNavGrid* grid, const u64 id, const GeoVector pos) {
+INLINE_HINT static f32 geo_nav_separation_weight(const GeoNavOccupantFlags flags) {
+  return (flags & GeoNavOccupantFlags_Moving) ? 4.0f : 1.0f;
+}
+
+GeoVector geo_nav_separation_force(
+    const GeoNavGrid* grid, const u64 id, const GeoVector pos, const GeoNavOccupantFlags flags) {
   const GeoNavMapResult mapRes = nav_cell_map(grid, pos);
   if (mapRes.flags & (GeoNavMap_ClampedX | GeoNavMap_ClampedY)) {
     return geo_vector(0); // Position outside of the grid.
@@ -746,6 +750,7 @@ geo_nav_occupant_separation_force(const GeoNavGrid* grid, const u64 id, const Ge
 
   const u32 occupantCount = nav_region_occupants(grid, region, occupants);
   const f32 sepDist       = grid->cellSize; // NOTE: Likely needs to be configurable per occupant.
+  const f32 sepWeight     = geo_nav_separation_weight(flags);
 
   GeoVector force = {0};
   for (u32 i = 0; i != occupantCount; ++i) {
@@ -765,8 +770,11 @@ geo_nav_occupant_separation_force(const GeoNavGrid* grid, const u64 id, const Ge
     } else {
       sepDir = geo_vector_div(toOccupant, dist);
     }
+    const f32 otherWeight = geo_nav_separation_weight(occupants[i]->flags);
+    const f32 relWeight   = otherWeight / (sepWeight + otherWeight);
+
     // NOTE: Times 0.5 because both occupants are expected to move.
-    force = geo_vector_add(force, geo_vector_mul(sepDir, (dist - sepDist) * 0.5f));
+    force = geo_vector_add(force, geo_vector_mul(sepDir, (dist - sepDist) * 0.5f * relWeight));
   }
   return force;
 }

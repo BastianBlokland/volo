@@ -89,7 +89,7 @@ typedef enum {
 
 void      geo_nav_occupant_clear_all(GeoNavGrid*);
 void      geo_nav_occupant_add(GeoNavGrid*, GeoVector pos, u64 id, GeoNavOccupantFlags);
-GeoVector geo_nav_occupant_separation_force(const GeoNavGrid*, u64 id, GeoVector pos);
+GeoVector geo_nav_separation_force(const GeoNavGrid*, u64 id, GeoVector pos, GeoNavOccupantFlags);
 
 /**
  * Navigation statistics.
