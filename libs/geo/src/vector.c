@@ -240,6 +240,51 @@ GeoVector geo_vector_clamp(const GeoVector v, const f32 maxMagnitude) {
   return v;
 }
 
+GeoVector geo_vector_round_nearest(const GeoVector v) {
+#if geo_vec_simd_enable
+  GeoVector res;
+  simd_vec_store(simd_vec_round_nearest(simd_vec_load(v.comps)), res.comps);
+  return res;
+#else
+  return (GeoVector){
+      .x = intrinsic_round_f32(v.x),
+      .y = intrinsic_round_f32(v.y),
+      .z = intrinsic_round_f32(v.z),
+      .w = intrinsic_round_f32(v.w),
+  };
+#endif
+}
+
+GeoVector geo_vector_round_down(const GeoVector v) {
+#if geo_vec_simd_enable
+  GeoVector res;
+  simd_vec_store(simd_vec_round_down(simd_vec_load(v.comps)), res.comps);
+  return res;
+#else
+  return (GeoVector){
+      .x = intrinsic_floor_f32(v.x),
+      .y = intrinsic_floor_f32(v.y),
+      .z = intrinsic_floor_f32(v.z),
+      .w = intrinsic_floor_f32(v.w),
+  };
+#endif
+}
+
+GeoVector geo_vector_round_up(const GeoVector v) {
+#if geo_vec_simd_enable
+  GeoVector res;
+  simd_vec_store(simd_vec_round_up(simd_vec_load(v.comps)), res.comps);
+  return res;
+#else
+  return (GeoVector){
+      .x = intrinsic_ceil_f32(v.x),
+      .y = intrinsic_ceil_f32(v.y),
+      .z = intrinsic_ceil_f32(v.z),
+      .w = intrinsic_ceil_f32(v.w),
+  };
+#endif
+}
+
 GeoVector geo_vector_perspective_div(const GeoVector v) {
   return geo_vector_div(geo_vector(v.x, v.y, v.z), v.w);
 }

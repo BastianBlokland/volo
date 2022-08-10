@@ -212,6 +212,28 @@ spec(vector) {
     check_eq_vector(geo_vector_clamp(geo_vector(0, 0, 0), 0), geo_vector(0, 0, 0));
   }
 
+  it("can round to nearest") {
+    check_eq_vector(
+        geo_vector_round_nearest(geo_vector(0.1f, 0.51f, 42.1f, 42)), geo_vector(0, 1, 42, 42));
+    check_eq_vector(
+        geo_vector_round_nearest(geo_vector(-0.1f, -0.51f, -42.1f, -42)),
+        geo_vector(0, -1, -42, -42));
+  }
+
+  it("can round down") {
+    check_eq_vector(
+        geo_vector_round_down(geo_vector(0.1f, 0.9f, 42.1f, 42)), geo_vector(0, 0, 42, 42));
+    check_eq_vector(
+        geo_vector_round_down(geo_vector(-0.1f, -0.9f, -42.1f, -42)), geo_vector(-1, -1, -43, -42));
+  }
+
+  it("can round up") {
+    check_eq_vector(
+        geo_vector_round_up(geo_vector(0.1f, 0.9f, 42.1f, 42)), geo_vector(1, 1, 43, 42));
+    check_eq_vector(
+        geo_vector_round_up(geo_vector(-0.1f, -0.9f, -42.1f, -42)), geo_vector(0, 0, -42, -42));
+  }
+
   it("divides each component by w when performing a perspective divide") {
     const GeoVector v1 = {.x = 1, .y = 2, .z = 4, .w = 4};
     const GeoVector v2 = {.x = .25, .y = .5, .z = 1};
