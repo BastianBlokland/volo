@@ -477,7 +477,7 @@ static void gizmo_update_interaction_rotation(
   f32 angle = gizmo_vector_angle(data->startDelta, delta, axis);
   if (gap_window_key_down(window, GapKey_Shift)) {
     const f32 snapAngleRad = g_gizmoSnapAngleDeg * math_deg_to_rad;
-    angle                  = math_round_f32(angle / snapAngleRad) * snapAngleRad;
+    angle                  = math_round_nearest_f32(angle / snapAngleRad) * snapAngleRad;
   }
   data->result = geo_quat_mul(geo_quat_angle_axis(axis, angle), data->baseRot);
 

@@ -57,7 +57,7 @@ static JsonVal mocha_add_test_obj(JsonDoc* doc, const CheckSpec* spec, const Che
 
 static f64 mocha_to_ms(const TimeDuration dur) {
   // Surprisingly most Mocha json consumers expect whole numbers here.
-  return math_round_f64(dur / (f64)time_millisecond);
+  return math_round_nearest_f64(dur / (f64)time_millisecond);
 }
 
 static void output_run_started(CheckOutput* out) {
@@ -217,24 +217,24 @@ CheckOutput* check_output_mocha(Allocator* alloc, File* file) {
 
   CheckOutputMocha* mochaOut = alloc_alloc_t(alloc, CheckOutputMocha);
   *mochaOut                  = (CheckOutputMocha){
-      .api =
-          {
-              .runStarted      = output_run_started,
-              .testsDiscovered = output_tests_discovered,
-              .testSkipped     = output_test_skipped,
-              .testFinished    = output_test_finished,
-              .runFinished     = output_run_finished,
-              .destroy         = output_destroy,
+                       .api =
+                           {
+                               .runStarted      = output_run_started,
+                               .testsDiscovered = output_tests_discovered,
+                               .testSkipped     = output_test_skipped,
+                               .testFinished    = output_test_finished,
+                               .runFinished     = output_run_finished,
+                               .destroy         = output_destroy,
           },
-      .alloc       = alloc,
-      .mutex       = thread_mutex_create(alloc),
-      .doc         = doc,
-      .rootObj     = rootObj,
-      .statsObj    = statsObj,
-      .passesArr   = passesArr,
-      .failuresArr = failuresArr,
-      .pendingArr  = pendingArr,
-      .file        = file,
+                       .alloc       = alloc,
+                       .mutex       = thread_mutex_create(alloc),
+                       .doc         = doc,
+                       .rootObj     = rootObj,
+                       .statsObj    = statsObj,
+                       .passesArr   = passesArr,
+                       .failuresArr = failuresArr,
+                       .pendingArr  = pendingArr,
+                       .file        = file,
   };
   return (CheckOutput*)mochaOut;
 }

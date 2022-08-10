@@ -56,12 +56,14 @@ GeoVector    geo_nav_cell_size(const GeoNavGrid*);
 /**
  * Lookup cell information.
  */
-GeoVector  geo_nav_position(const GeoNavGrid*, GeoNavCell);
-GeoBox     geo_nav_box(const GeoNavGrid*, GeoNavCell);
-bool       geo_nav_blocked(const GeoNavGrid*, GeoNavCell);
-bool       geo_nav_line_blocked(const GeoNavGrid*, GeoNavCell from, GeoNavCell to);
-GeoNavCell geo_nav_closest_unblocked(const GeoNavGrid*, GeoNavCell);
-GeoNavCell geo_nav_at_position(const GeoNavGrid*, GeoVector);
+GeoVector    geo_nav_position(const GeoNavGrid*, GeoNavCell);
+GeoBox       geo_nav_box(const GeoNavGrid*, GeoNavCell);
+GeoNavRegion geo_nav_region(const GeoNavGrid*, GeoNavCell, u16 radius);
+bool         geo_nav_blocked(const GeoNavGrid*, GeoNavCell);
+bool         geo_nav_line_blocked(const GeoNavGrid*, GeoNavCell from, GeoNavCell to);
+bool         geo_nav_occupied(const GeoNavGrid*, GeoNavCell);
+GeoNavCell   geo_nav_closest_unblocked(const GeoNavGrid*, GeoNavCell);
+GeoNavCell   geo_nav_at_position(const GeoNavGrid*, GeoVector);
 
 /**
  * Compute a path between the given two cells.
@@ -71,23 +73,29 @@ GeoNavCell geo_nav_at_position(const GeoNavGrid*, GeoVector);
 u32 geo_nav_path(const GeoNavGrid*, GeoNavCell from, GeoNavCell to, GeoNavPathStorage);
 
 /**
- * Remove all blockers from the grid.
+ * Register grid blockers.
  */
 void geo_nav_blocker_clear_all(GeoNavGrid*);
-
-/**
- * Mark the given region on the grid as blocked.
- */
 void geo_nav_blocker_add_box(GeoNavGrid*, const GeoBox*);
 void geo_nav_blocker_add_box_rotated(GeoNavGrid*, const GeoBoxRotated*);
+
+/**
+ * Register occupants.
+ */
+void      geo_nav_occupant_clear_all(GeoNavGrid*);
+void      geo_nav_occupant_add(GeoNavGrid*, GeoVector pos, u64 id);
+GeoVector geo_nav_occupant_separation_force(const GeoNavGrid*, u64 id, GeoVector pos);
 
 /**
  * Navigation statistics.
  */
 
 typedef enum {
+  GeoNavStat_CellCountTotal,
+  GeoNavStat_CellCountAxis,
   GeoNavStat_BlockerBoxCount,
   GeoNavStat_BlockerBoxRotatedCount,
+  GeoNavStat_OccupantCount,
   GeoNavStat_PathCount,
   GeoNavStat_PathOutputCells,
   GeoNavStat_PathItrCells,

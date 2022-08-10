@@ -128,6 +128,13 @@ GeoVector geo_vector_sqrt(GeoVector);
 GeoVector geo_vector_clamp(GeoVector, f32 maxMagnitude);
 
 /**
+ * Round all components to integers.
+ */
+GeoVector geo_vector_round_nearest(GeoVector);
+GeoVector geo_vector_round_down(GeoVector);
+GeoVector geo_vector_round_up(GeoVector);
+
+/**
  * Perspective divide: divide the vector by its w component.
  */
 GeoVector geo_vector_perspective_div(GeoVector);

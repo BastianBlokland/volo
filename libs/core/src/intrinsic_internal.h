@@ -2,8 +2,10 @@
 #include <immintrin.h>
 
 #if defined(VOLO_MSVC)
-#include <intrin.h>
-#include <math.h>
+
+float  roundf(float);
+double round(double);
+
 #pragma intrinsic(_BitScanForward)
 #pragma intrinsic(_BitScanForward64)
 #pragma intrinsic(_BitScanReverse)
@@ -15,12 +17,12 @@
 #pragma intrinsic(ceil)
 #pragma intrinsic(ceilf)
 #pragma intrinsic(cosf)
+#pragma intrinsic(expf)
 #pragma intrinsic(floor)
 #pragma intrinsic(floorf)
 #pragma intrinsic(fmodf)
 #pragma intrinsic(logf)
 #pragma intrinsic(powf)
-#pragma intrinsic(expf)
 #pragma intrinsic(sinf)
 #pragma intrinsic(sqrt)
 #pragma intrinsic(sqrtf)
@@ -28,44 +30,44 @@
 
 #define intrinsic_acos_f32 acosf
 #define intrinsic_asin_f32 asinf
-#define intrinsic_atan2_f32 atan2f
 #define intrinsic_atan_f32 atanf
-#define intrinsic_ceil_f64 ceil
-#define intrinsic_ceil_f32 ceilf
+#define intrinsic_atan2_f32 atan2f
 #define intrinsic_cos_f32 cosf
-#define intrinsic_floor_f64 floor
-#define intrinsic_floor_f32 floorf
+#define intrinsic_exp_f32 expf
 #define intrinsic_fmod_f32 fmodf
 #define intrinsic_log_f32 logf
 #define intrinsic_pow_f32 powf
-#define intrinsic_exp_f32 expf
-#define intrinsic_round_f64 round
-#define intrinsic_round_f32 roundf
+#define intrinsic_round_down_f32 floorf
+#define intrinsic_round_down_f64 floor
+#define intrinsic_round_nearest_f32 roundf
+#define intrinsic_round_nearest_f64 round
+#define intrinsic_round_up_f32 ceilf
+#define intrinsic_round_up_f64 ceil
 #define intrinsic_sin_f32 sinf
-#define intrinsic_sqrt_f64 sqrt
 #define intrinsic_sqrt_f32 sqrtf
+#define intrinsic_sqrt_f64 sqrt
 #define intrinsic_tan_f32 tanf
 
 #else
 
 #define intrinsic_acos_f32 __builtin_acosf
 #define intrinsic_asin_f32 __builtin_asinf
-#define intrinsic_atan2_f32 __builtin_atan2f
 #define intrinsic_atan_f32 __builtin_atanf
-#define intrinsic_ceil_f64 __builtin_ceil
-#define intrinsic_ceil_f32 __builtin_ceilf
+#define intrinsic_atan2_f32 __builtin_atan2f
 #define intrinsic_cos_f32 __builtin_cosf
-#define intrinsic_floor_f64 __builtin_floor
-#define intrinsic_floor_f32 __builtin_floorf
+#define intrinsic_exp_f32 __builtin_expf
 #define intrinsic_fmod_f32 __builtin_fmodf
 #define intrinsic_log_f32 __builtin_logf
 #define intrinsic_pow_f32 __builtin_powf
-#define intrinsic_exp_f32 __builtin_expf
-#define intrinsic_round_f64 __builtin_round
-#define intrinsic_round_f32 __builtin_roundf
+#define intrinsic_round_down_f32 __builtin_floorf
+#define intrinsic_round_down_f64 __builtin_floor
+#define intrinsic_round_nearest_f32 __builtin_roundf
+#define intrinsic_round_nearest_f64 __builtin_round
+#define intrinsic_round_up_f32 __builtin_ceilf
+#define intrinsic_round_up_f64 __builtin_ceil
 #define intrinsic_sin_f32 __builtin_sinf
-#define intrinsic_sqrt_f64 __builtin_sqrt
 #define intrinsic_sqrt_f32 __builtin_sqrtf
+#define intrinsic_sqrt_f64 __builtin_sqrt
 #define intrinsic_tan_f32 __builtin_tanf
 
 #endif

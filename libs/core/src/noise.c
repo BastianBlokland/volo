@@ -23,14 +23,14 @@ f32 noise_perlin3(f32 x, f32 y, f32 z) {
   // clang-format off
 
   // Find the unit cube that contains the point.
-  const i32 iX = (i32)math_floor_f32(x) & 255;
-  const i32 iY = (i32)math_floor_f32(y) & 255;
-  const i32 iZ = (i32)math_floor_f32(z) & 255;
+  const i32 iX = (i32)math_round_down_f32(x) & 255;
+  const i32 iY = (i32)math_round_down_f32(y) & 255;
+  const i32 iZ = (i32)math_round_down_f32(z) & 255;
 
   // Find relative x,y,z of point in cube.
-  x -= math_floor_f32(x);
-  y -= math_floor_f32(y);
-  z -= math_floor_f32(z);
+  x -= math_round_down_f32(x);
+  y -= math_round_down_f32(y);
+  z -= math_round_down_f32(z);
 
   // Compute fade curves for each of x,y,z.
   const f32 u = perlin_fade(x);

@@ -99,6 +99,18 @@ INLINE_HINT static SimdVec simd_vec_abs(const SimdVec a) {
   return _mm_andnot_ps(signBit, a);
 }
 
+INLINE_HINT static SimdVec simd_vec_round_nearest(const SimdVec a) {
+  return _mm_round_ps(a, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC);
+}
+
+INLINE_HINT static SimdVec simd_vec_round_down(const SimdVec a) {
+  return _mm_round_ps(a, _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC);
+}
+
+INLINE_HINT static SimdVec simd_vec_round_up(const SimdVec a) {
+  return _mm_round_ps(a, _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC);
+}
+
 INLINE_HINT static SimdVec simd_vec_dot4(const SimdVec a, const SimdVec b) {
   const SimdVec mul = _mm_mul_ps(a, b);
   const SimdVec t1  = _mm_hadd_ps(mul, mul);

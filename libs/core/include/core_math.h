@@ -122,23 +122,14 @@ f32 math_trunc_f32(f32);
 f64 math_trunc_f64(f64);
 
 /**
- * Compute the floor (round-down) of the given value.
+ * Round the given value to an integer value.
  */
-f32 math_floor_f32(f32);
-f64 math_floor_f64(f64);
-
-/**
- * Compute the ceiling (round-up) of the given value.
- */
-f32 math_ceil_f32(f32);
-f64 math_ceil_f64(f64);
-
-/**
- * Compute the rounded version of the given value.
- * NOTE: Rounds half-way cases away from zero.
- */
-f32 math_round_f32(f32);
-f64 math_round_f64(f64);
+f32 math_round_nearest_f32(f32);
+f64 math_round_nearest_f64(f64);
+f32 math_round_down_f32(f32);
+f64 math_round_down_f64(f64);
+f32 math_round_up_f32(f32);
+f64 math_round_up_f64(f64);
 
 /**
  * Clamp the given value between min (inclusive) and max (inclusive).

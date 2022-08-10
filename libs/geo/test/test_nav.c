@@ -19,8 +19,8 @@ spec(nav) {
     const GeoNavRegion region = geo_nav_bounds(grid);
     check_eq_int(region.min.x, 0);
     check_eq_int(region.min.y, 0);
-    check_eq_int(region.max.x, (u16)math_round_f32(size * density));
-    check_eq_int(region.max.y, (u16)math_round_f32(size * density));
+    check_eq_int(region.max.x, (u16)math_round_nearest_f32(size * density));
+    check_eq_int(region.max.y, (u16)math_round_nearest_f32(size * density));
   }
 
   it("can retrieve the cell size") {
@@ -116,6 +116,29 @@ spec(nav) {
     check_eq_int(closestUnblocked.x, 4);
     check_eq_int(closestUnblocked.y, 2);
     check(!geo_nav_blocked(grid, closestUnblocked));
+  }
+
+  it("can create a region around a cell") {
+    const GeoNavCell cell = {.x = 2, .y = 2};
+
+    const GeoNavRegion regA = geo_nav_region(grid, cell, 1);
+    check(regA.min.x == 1);
+    check(regA.min.y == 1);
+    check(regA.max.x == 4); // +1 as max is exclusive.
+    check(regA.max.y == 4); // +1 as max is exclusive.
+
+    const GeoNavRegion regB = geo_nav_region(grid, cell, 2);
+    check(regB.min.x == 0);
+    check(regB.min.y == 0);
+    check(regB.max.x == 5); // +1 as max is exclusive.
+    check(regB.max.y == 5); // +1 as max is exclusive.
+
+    // NOTE: Clamped to the grid boundaries.
+    const GeoNavRegion regC = geo_nav_region(grid, cell, 3);
+    check(regC.min.x == 0);
+    check(regC.min.y == 0);
+    check(regC.max.x == 5); // +1 as max is exclusive.
+    check(regC.max.y == 5); // +1 as max is exclusive.
   }
 
   teardown() { geo_nav_grid_destroy(grid); }

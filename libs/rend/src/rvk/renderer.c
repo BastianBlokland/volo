@@ -127,8 +127,8 @@ static void rvk_renderer_blit_to_output(RvkRenderer* rend, RvkPass* pass) {
 
 static RvkSize rvk_renderer_resolution(RvkImage* target, const RendSettingsComp* settings) {
   return rvk_size(
-      (u32)math_round_f32(target->size.width * settings->resolutionScale),
-      (u32)math_round_f32(target->size.height * settings->resolutionScale));
+      (u32)math_round_nearest_f32(target->size.width * settings->resolutionScale),
+      (u32)math_round_nearest_f32(target->size.height * settings->resolutionScale));
 }
 
 RvkRenderer* rvk_renderer_create(RvkDevice* dev, const u32 rendererId) {
