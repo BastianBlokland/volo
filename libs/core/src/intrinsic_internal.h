@@ -2,7 +2,6 @@
 #include <immintrin.h>
 
 #if defined(VOLO_MSVC)
-#include <intrin.h>
 
 float  roundf(float);
 double round(double);
