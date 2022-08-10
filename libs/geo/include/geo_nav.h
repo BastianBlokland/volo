@@ -62,6 +62,7 @@ GeoNavRegion geo_nav_region(const GeoNavGrid*, GeoNavCell, u16 radius);
 bool         geo_nav_blocked(const GeoNavGrid*, GeoNavCell);
 bool         geo_nav_line_blocked(const GeoNavGrid*, GeoNavCell from, GeoNavCell to);
 bool         geo_nav_occupied(const GeoNavGrid*, GeoNavCell);
+bool         geo_nav_occupied_moving(const GeoNavGrid*, GeoNavCell);
 GeoNavCell   geo_nav_closest_unblocked(const GeoNavGrid*, GeoNavCell);
 GeoNavCell   geo_nav_at_position(const GeoNavGrid*, GeoVector);
 
@@ -82,9 +83,13 @@ void geo_nav_blocker_add_box_rotated(GeoNavGrid*, const GeoBoxRotated*);
 /**
  * Register occupants.
  */
+typedef enum {
+  GeoNavOccupantFlags_Moving = 1 << 0,
+} GeoNavOccupantFlags;
+
 void      geo_nav_occupant_clear_all(GeoNavGrid*);
-void      geo_nav_occupant_add(GeoNavGrid*, GeoVector pos, u64 id);
-GeoVector geo_nav_occupant_separation_force(const GeoNavGrid*, u64 id, GeoVector pos);
+void      geo_nav_occupant_add(GeoNavGrid*, GeoVector pos, u64 id, GeoNavOccupantFlags);
+GeoVector geo_nav_separation_force(const GeoNavGrid*, u64 id, GeoVector pos, GeoNavOccupantFlags);
 
 /**
  * Navigation statistics.

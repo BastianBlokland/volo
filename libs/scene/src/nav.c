@@ -86,9 +86,16 @@ static void scene_nav_add_blockers(SceneNavEnvComp* env, EcsView* blockerEntitie
 
 static void scene_nav_add_occupants(SceneNavEnvComp* env, EcsView* occupantEntities) {
   for (EcsIterator* itr = ecs_view_itr(occupantEntities); ecs_view_walk(itr);) {
-    const SceneTransformComp* trans      = ecs_view_read_t(itr, SceneTransformComp);
-    const u64                 occupantId = (u64)ecs_view_entity(itr);
-    geo_nav_occupant_add(env->navGrid, trans->position, occupantId);
+    const SceneTransformComp*  trans = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneLocomotionComp* loco  = ecs_view_read_t(itr, SceneLocomotionComp);
+
+    GeoNavOccupantFlags flags = 0;
+    if (loco && loco->flags & SceneLocomotion_Moving) {
+      flags |= GeoNavOccupantFlags_Moving;
+    }
+
+    const u64 occupantId = (u64)ecs_view_entity(itr);
+    geo_nav_occupant_add(env->navGrid, trans->position, occupantId, flags);
   }
 }
 
@@ -111,6 +118,7 @@ ecs_view_define(BlockerEntityView) {
 }
 
 ecs_view_define(OccupantEntityView) {
+  ecs_access_maybe_read(SceneLocomotionComp);
   ecs_access_read(SceneTransformComp);
   ecs_access_with(SceneNavAgentComp);
 }
@@ -327,12 +335,23 @@ bool scene_nav_occupied(const SceneNavEnvComp* env, const GeoNavCell cell) {
   return geo_nav_occupied(env->navGrid, cell);
 }
 
+bool scene_nav_occupied_moving(const SceneNavEnvComp* env, const GeoNavCell cell) {
+  return geo_nav_occupied_moving(env->navGrid, cell);
+}
+
 GeoNavCell scene_nav_at_position(const SceneNavEnvComp* env, const GeoVector pos) {
   return geo_nav_at_position(env->navGrid, pos);
 }
 
 GeoVector scene_nav_separation_force(
-    const SceneNavEnvComp* env, const EcsEntityId entity, const GeoVector position) {
+    const SceneNavEnvComp* env,
+    const EcsEntityId      entity,
+    const GeoVector        position,
+    const bool             moving) {
+  GeoNavOccupantFlags flags = 0;
+  if (moving) {
+    flags |= GeoNavOccupantFlags_Moving;
+  }
   const u64 occupantId = (u64)entity;
-  return geo_nav_occupant_separation_force(env->navGrid, occupantId, position);
+  return geo_nav_separation_force(env->navGrid, occupantId, position, flags);
 }
