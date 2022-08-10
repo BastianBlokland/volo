@@ -3,7 +3,10 @@
 
 #if defined(VOLO_MSVC)
 #include <intrin.h>
-#include <math.h>
+
+float  roundf(float);
+double round(double);
+
 #pragma intrinsic(_BitScanForward)
 #pragma intrinsic(_BitScanForward64)
 #pragma intrinsic(_BitScanReverse)

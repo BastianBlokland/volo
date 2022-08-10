@@ -2,7 +2,9 @@
 
 #if defined(VOLO_MSVC)
 
-#include <math.h>
+float  roundf(float);
+double round(double);
+
 #pragma intrinsic(acosf)
 #pragma intrinsic(asinf)
 #pragma intrinsic(atan2f)
