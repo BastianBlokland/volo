@@ -388,27 +388,24 @@ static bool nav_find(
 static bool nav_any_in_line(
     const GeoNavGrid*  grid,
     GeoNavWorkerState* s,
-    const GeoNavCell   from,
-    const GeoNavCell   to,
+    GeoNavCell         a,
+    GeoNavCell         b,
     NavCellPredicate   predicate) {
   ++s->stats[GeoNavStat_LineQueryCount]; // Track the amount of line queries.
 
   /**
    * Modified verion of Xiaolin Wu's line algorithm.
    */
-  u16        x0 = from.x, x1 = to.x;
-  u16        y0 = from.y, y1 = to.y;
-  const bool steep = nav_abs_i16(y1 - (i16)y0) > nav_abs_i16(x1 - (i16)x0);
-
+  const bool steep = nav_abs_i16(b.y - (i16)a.y) > nav_abs_i16(b.x - (i16)a.x);
   if (steep) {
-    nav_swap_u16(&x0, &y0);
-    nav_swap_u16(&x1, &y1);
+    nav_swap_u16(&a.x, &a.y);
+    nav_swap_u16(&b.x, &b.y);
   }
-  if (x0 > x1) {
-    nav_swap_u16(&x0, &x1);
-    nav_swap_u16(&y0, &y1);
+  if (a.x > b.x) {
+    nav_swap_u16(&a.x, &b.x);
+    nav_swap_u16(&a.y, &b.y);
   }
-  const f32 gradient = (x1 - x0) ? ((y1 - (f32)y0) / (x1 - (f32)x0)) : 1.0f;
+  const f32 gradient = (b.x - a.x) ? ((b.y - (f32)a.y) / (b.x - (f32)a.x)) : 1.0f;
 
 #define check_cell(_X_, _Y_)                                                                       \
   do {                                                                                             \
@@ -417,49 +414,49 @@ static bool nav_any_in_line(
     }                                                                                              \
   } while (false)
 
-  // From point.
+  // A point.
   if (steep) {
-    check_cell(y0, x0);
-    if (y0 != y1 && LIKELY((u16)(y0 + 1) < grid->cellCountAxis)) {
-      check_cell(y0 + 1, x0);
+    check_cell(a.y, a.x);
+    if (a.y != b.y && LIKELY((u16)(a.y + 1) < grid->cellCountAxis)) {
+      check_cell(a.y + 1, a.x);
     }
   } else {
-    check_cell(x0, y0);
-    if (y0 != y1 && LIKELY((u16)(y0 + 1) < grid->cellCountAxis)) {
-      check_cell(x0, y0 + 1);
+    check_cell(a.x, a.y);
+    if (a.y != b.y && LIKELY((u16)(a.y + 1) < grid->cellCountAxis)) {
+      check_cell(a.x, a.y + 1);
     }
   }
 
   // Middle points.
-  f32 intersectY = y0 + gradient;
+  f32 intersectY = a.y + gradient;
   if (steep) {
-    for (u16 i = x0 + 1; i < x1; ++i) {
+    for (u16 i = a.x + 1; i < b.x; ++i) {
       check_cell((u16)intersectY, i);
-      if (y0 != y1 && LIKELY((u16)(intersectY + 1) < grid->cellCountAxis)) {
+      if (a.y != b.y && LIKELY((u16)(intersectY + 1) < grid->cellCountAxis)) {
         check_cell((u16)intersectY + 1, i);
       }
       intersectY += gradient;
     }
   } else {
-    for (u16 i = x0 + 1; i < x1; ++i) {
+    for (u16 i = a.x + 1; i < b.x; ++i) {
       check_cell(i, (u16)intersectY);
-      if (y0 != y1 && LIKELY((u16)(intersectY + 1) < grid->cellCountAxis)) {
+      if (a.y != b.y && LIKELY((u16)(intersectY + 1) < grid->cellCountAxis)) {
         check_cell(i, (u16)intersectY + 1);
       }
       intersectY += gradient;
     }
   }
 
-  // To point.
+  // B point.
   if (steep) {
-    check_cell(y1, x1);
-    if (y0 != y1 && LIKELY((u16)(y1 + 1) < grid->cellCountAxis)) {
-      check_cell(y1 + 1, x1);
+    check_cell(b.y, b.x);
+    if (a.y != b.y && LIKELY((u16)(b.y + 1) < grid->cellCountAxis)) {
+      check_cell(b.y + 1, b.x);
     }
   } else {
-    check_cell(x1, y1);
-    if (y0 != y1 && LIKELY((u16)(y1 + 1) < grid->cellCountAxis)) {
-      check_cell(x1, y1 + 1);
+    check_cell(b.x, b.y);
+    if (a.y != b.y && LIKELY((u16)(b.y + 1) < grid->cellCountAxis)) {
+      check_cell(b.x, b.y + 1);
     }
   }
 
