@@ -19,8 +19,8 @@ spec(nav) {
     const GeoNavRegion region = geo_nav_bounds(grid);
     check_eq_int(region.min.x, 0);
     check_eq_int(region.min.y, 0);
-    check_eq_int(region.max.x, (u16)math_round_f32(size * density));
-    check_eq_int(region.max.y, (u16)math_round_f32(size * density));
+    check_eq_int(region.max.x, (u16)math_round_nearest_f32(size * density));
+    check_eq_int(region.max.y, (u16)math_round_nearest_f32(size * density));
   }
 
   it("can retrieve the cell size") {

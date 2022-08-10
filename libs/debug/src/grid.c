@@ -278,7 +278,8 @@ void debug_grid_snap(const DebugGridComp* comp, GeoVector* position) {
 
 void debug_grid_snap_axis(const DebugGridComp* comp, GeoVector* position, const u8 axis) {
   diag_assert(axis < 3);
-  position->comps[axis] = math_round_f32(position->comps[axis] / comp->cellSize) * comp->cellSize;
+  const f32 round = math_round_nearest_f32(position->comps[axis] / comp->cellSize) * comp->cellSize;
+  position->comps[axis] = round;
 }
 
 EcsEntityId debug_grid_panel_open(EcsWorld* world, const EcsEntityId window) {

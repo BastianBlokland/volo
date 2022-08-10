@@ -523,7 +523,7 @@ GeoNavGrid* geo_nav_grid_create(
   diag_assert(density > 1e-4f && density < 1e4f);
 
   GeoNavGrid* grid           = alloc_alloc_t(alloc, GeoNavGrid);
-  const u32   cellCountAxis  = (u32)math_round_f32(size * density);
+  const u32   cellCountAxis  = (u32)math_round_nearest_f32(size * density);
   const u32   cellCountTotal = cellCountAxis * cellCountAxis;
 
   *grid = (GeoNavGrid){

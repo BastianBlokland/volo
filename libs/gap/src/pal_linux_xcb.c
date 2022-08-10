@@ -652,7 +652,7 @@ static void pal_randr_query_displays(GapPal* pal) {
       const GapVector size           = gap_vector(crtc->width, crtc->height);
       const GapVector physicalSizeMm = gap_vector(output->mm_width, output->mm_height);
       const u16       dpi            = output->mm_width
-                                           ? (u16)math_round_f32(crtc->width * 25.4f / physicalSizeMm.width)
+                                           ? (u16)math_round_nearest_f32(crtc->width * 25.4f / physicalSizeMm.width)
                                            : pal_window_default_dpi;
 
       log_i(
@@ -965,9 +965,9 @@ static void pal_event_clip_paste_notify(GapPal* pal, const GapWindowId windowId)
 GapPal* gap_pal_create(Allocator* alloc) {
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){
-      .alloc    = alloc,
-      .windows  = dynarray_create_t(alloc, GapPalWindow, 4),
-      .displays = dynarray_create_t(alloc, GapPalDisplay, 4),
+             .alloc    = alloc,
+             .windows  = dynarray_create_t(alloc, GapPalWindow, 4),
+             .displays = dynarray_create_t(alloc, GapPalDisplay, 4),
   };
 
   pal_xcb_connect(pal);
@@ -1176,8 +1176,8 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 
   const xcb_cw_t valuesMask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
   const u32      values[2]  = {
-      pal->xcbScreen->black_pixel,
-      g_xcbWindowEventMask,
+            pal->xcbScreen->black_pixel,
+            g_xcbWindowEventMask,
   };
 
   xcb_create_window(

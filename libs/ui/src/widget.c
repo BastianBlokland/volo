@@ -210,7 +210,7 @@ bool ui_slider_with_opts(UiCanvasComp* canvas, f32* input, const UiSliderOpts* o
   }
   if (opts->step > f32_epsilon) {
     const f32 normStep = opts->step / math_abs(opts->max - opts->min);
-    normValue          = math_round_f32(normValue / normStep) * normStep;
+    normValue          = math_round_nearest_f32(normValue / normStep) * normStep;
   }
   normValue = math_clamp_f32(normValue, 0, 1);
 
@@ -673,7 +673,7 @@ bool ui_numbox_with_opts(UiCanvasComp* canvas, f64* input, const UiNumboxOpts* o
           .tooltip       = opts->tooltip)) {
     format_read_f64(dynstring_view(&text), input);
     if (opts->step > f64_epsilon) {
-      *input = math_round_f64(*input / opts->step) * opts->step;
+      *input = math_round_nearest_f64(*input / opts->step) * opts->step;
     }
     *input = math_clamp_f64(*input, opts->min, opts->max);
     return true;
