@@ -3,6 +3,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
+#include "core_math.h"
 #include "debug_register.h"
 #include "debug_shape.h"
 #include "ecs_world.h"
@@ -499,6 +500,25 @@ void debug_line(
           .type      = DebugShapeType_Line + DebugShape_Overlay,
           .data_line = {.start = start, .end = end, .color = color},
       });
+}
+
+void debug_circle(
+    DebugShapeComp* comp,
+    const GeoVector pos,
+    const GeoQuat   rot,
+    const f32       radius,
+    const GeoColor  color) {
+  enum { Segments = 16 };
+  const f32 step = math_pi_f32 * 2.0f / Segments;
+  GeoVector points[Segments];
+  for (u32 i = 0; i != Segments; ++i) {
+    const f32       angle = i * step;
+    const GeoVector point = geo_vector(math_sin_f32(angle) * radius, math_cos_f32(angle) * radius);
+    points[i]             = geo_vector_add(pos, geo_quat_rotate(rot, point));
+  }
+  for (u32 i = 0; i != Segments; ++i) {
+    debug_line(comp, points[i], points[(i + 1) % Segments], color);
+  }
 }
 
 void debug_arrow(
