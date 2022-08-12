@@ -69,7 +69,8 @@ static void scene_loco_separate(
     SceneLocomotionComp*   loco,
     SceneTransformComp*    trans) {
   const bool      moving = (loco->flags & SceneLocomotion_Moving) != 0;
-  const GeoVector delta  = scene_nav_separate(navEnv, entity, trans->position, moving);
+  const GeoVector pos    = trans->position;
+  const GeoVector delta  = scene_nav_separate(navEnv, entity, pos, loco->radius, moving);
   trans->position        = geo_vector_add(trans->position, delta);
 }
 

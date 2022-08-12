@@ -823,6 +823,7 @@ void geo_nav_occupant_add(
     const GeoVector           pos,
     const f32                 radius,
     const GeoNavOccupantFlags flags) {
+  diag_assert(radius > f32_epsilon); // TODO: Decide if 0 radius is valid.
   if (UNLIKELY(grid->occupantCount == geo_nav_occupants_max)) {
     log_w("Navigation occupant limit reached", log_param("limit", fmt_int(geo_nav_occupants_max)));
     return;
@@ -847,6 +848,7 @@ GeoVector geo_nav_separate(
     const GeoVector           pos,
     const f32                 radius,
     const GeoNavOccupantFlags flags) {
+  diag_assert(radius > f32_epsilon); // TODO: Decide if 0 radius is valid.
   const GeoNavMapResult mapRes = nav_cell_map(grid, pos);
   if (mapRes.flags & (GeoNavMap_ClampedX | GeoNavMap_ClampedY)) {
     return geo_vector(0); // Position outside of the grid.

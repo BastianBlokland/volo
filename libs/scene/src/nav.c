@@ -89,14 +89,16 @@ static void scene_nav_add_occupants(SceneNavEnvComp* env, EcsView* occupantEntit
     const SceneTransformComp*  trans = ecs_view_read_t(itr, SceneTransformComp);
     const SceneLocomotionComp* loco  = ecs_view_read_t(itr, SceneLocomotionComp);
 
-    GeoNavOccupantFlags flags = 0;
-    if (loco && loco->flags & SceneLocomotion_Moving) {
-      flags |= GeoNavOccupantFlags_Moving;
+    const u64           occupantId     = (u64)ecs_view_entity(itr);
+    f32                 occupantRadius = 0.5f;
+    GeoNavOccupantFlags occupantFlags  = 0;
+    if (loco) {
+      occupantRadius = loco->radius;
+      if (loco->flags & SceneLocomotion_Moving) {
+        occupantFlags |= GeoNavOccupantFlags_Moving;
+      }
     }
-
-    const u64 occupantId     = (u64)ecs_view_entity(itr);
-    const f32 occupantRadius = geo_nav_cell_size(env->navGrid).x * 0.5f;
-    geo_nav_occupant_add(env->navGrid, occupantId, trans->position, occupantRadius, flags);
+    geo_nav_occupant_add(env->navGrid, occupantId, trans->position, occupantRadius, occupantFlags);
   }
 }
 
@@ -348,12 +350,12 @@ GeoVector scene_nav_separate(
     const SceneNavEnvComp* env,
     const EcsEntityId      entity,
     const GeoVector        position,
+    const f32              radius,
     const bool             moving) {
   GeoNavOccupantFlags flags = 0;
   if (moving) {
     flags |= GeoNavOccupantFlags_Moving;
   }
-  const u64 occupantId     = (u64)entity;
-  const f32 occupantRadius = geo_nav_cell_size(env->navGrid).x * 0.5f;
-  return geo_nav_separate(env->navGrid, occupantId, position, occupantRadius, flags);
+  const u64 occupantId = (u64)entity;
+  return geo_nav_separate(env->navGrid, occupantId, position, radius, flags);
 }
