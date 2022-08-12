@@ -94,8 +94,9 @@ static void scene_nav_add_occupants(SceneNavEnvComp* env, EcsView* occupantEntit
       flags |= GeoNavOccupantFlags_Moving;
     }
 
-    const u64 occupantId = (u64)ecs_view_entity(itr);
-    geo_nav_occupant_add(env->navGrid, trans->position, occupantId, flags);
+    const u64 occupantId     = (u64)ecs_view_entity(itr);
+    const f32 occupantRadius = geo_nav_cell_size(env->navGrid).x * 0.5f;
+    geo_nav_occupant_add(env->navGrid, occupantId, trans->position, occupantRadius, flags);
   }
 }
 
@@ -352,6 +353,7 @@ GeoVector scene_nav_separate(
   if (moving) {
     flags |= GeoNavOccupantFlags_Moving;
   }
-  const u64 occupantId = (u64)entity;
-  return geo_nav_separate(env->navGrid, occupantId, position, flags);
+  const u64 occupantId     = (u64)entity;
+  const f32 occupantRadius = geo_nav_cell_size(env->navGrid).x * 0.5f;
+  return geo_nav_separate(env->navGrid, occupantId, position, occupantRadius, flags);
 }
