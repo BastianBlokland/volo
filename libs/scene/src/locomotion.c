@@ -70,8 +70,8 @@ static void scene_loco_separate(
     SceneTransformComp*    trans) {
   const bool      moving = (loco->flags & SceneLocomotion_Moving) != 0;
   const GeoVector pos    = trans->position;
-  const GeoVector delta  = scene_nav_separate(navEnv, entity, pos, loco->radius, moving);
-  trans->position        = geo_vector_add(trans->position, delta);
+  loco->lastSeparation   = scene_nav_separate(navEnv, entity, pos, loco->radius, moving);
+  trans->position        = geo_vector_add(trans->position, loco->lastSeparation);
 }
 
 ecs_system_define(SceneLocomotionMoveSys) {
