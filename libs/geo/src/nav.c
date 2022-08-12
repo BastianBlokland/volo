@@ -12,7 +12,7 @@
 
 #define geo_nav_workers_max 64
 #define geo_nav_occupants_max 1024
-#define geo_nav_occupants_per_cell 2
+#define geo_nav_occupants_per_cell 4
 
 ASSERT(geo_nav_occupants_max < u16_max, "Nav occupant has to be indexable by a u16");
 
