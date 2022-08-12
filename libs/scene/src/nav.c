@@ -343,7 +343,7 @@ GeoNavCell scene_nav_at_position(const SceneNavEnvComp* env, const GeoVector pos
   return geo_nav_at_position(env->navGrid, pos);
 }
 
-GeoVector scene_nav_separation_force(
+GeoVector scene_nav_separate(
     const SceneNavEnvComp* env,
     const EcsEntityId      entity,
     const GeoVector        position,
@@ -353,5 +353,5 @@ GeoVector scene_nav_separation_force(
     flags |= GeoNavOccupantFlags_Moving;
   }
   const u64 occupantId = (u64)entity;
-  return geo_nav_separation_force(env->navGrid, occupantId, position, flags);
+  return geo_nav_separate(env->navGrid, occupantId, position, flags);
 }
