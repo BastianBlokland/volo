@@ -235,6 +235,21 @@ static u16 nav_path_heuristic(const GeoNavCell from, const GeoNavCell to) {
   return (nav_abs_i16(diffX) + nav_abs_i16(diffY)) * ExpectedCostPerCell * Multiplier;
 }
 
+static u16 nav_path_cost(const GeoNavGrid* grid, const u32 cellIndex) {
+  enum { NormalCost = 1, OccupiedCost = 5 };
+  const u32 index = cellIndex * geo_nav_occupants_per_cell;
+  for (u32 i = index; i != index + geo_nav_occupants_per_cell; ++i) {
+    if (sentinel_check(grid->cellOccupancy[i])) {
+      continue; // Not occupied.
+    }
+    if (grid->occupants[grid->cellOccupancy[i]].flags & GeoNavOccupantFlags_Moving) {
+      continue; // Occupant is moving.
+    }
+    return OccupiedCost; // Cell contains a non-moving occupant.
+  }
+  return NormalCost;
+}
+
 /**
  * Insert the given cell into the fScoreQueue, sorted on fScore (highest first).
  * Pre-condition: Cell does not exist in the queue yet.
@@ -303,7 +318,7 @@ nav_path(const GeoNavGrid* grid, GeoNavWorkerState* s, const GeoNavCell from, co
       if (bitset_test(grid->blockedCells, neighborIndex)) {
         continue; // Ignore blocked cells;
       }
-      const u16 tentativeGScore = s->gScores[cellIndex] + 1;
+      const u16 tentativeGScore = s->gScores[cellIndex] + nav_path_cost(grid, neighborIndex);
       if (tentativeGScore < s->gScores[neighborIndex]) {
         /**
          * This path to the neighbor is better then the previous, record it and enqueue the neighbor
