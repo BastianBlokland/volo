@@ -168,8 +168,9 @@ static void scene_nav_update_agent(
     agent->target = geo_nav_position(env->navGrid, from);
   }
 
-  const f32 dist = geo_vector_mag(geo_vector_sub(agent->target, trans->position));
-  if (fromOnGrid && dist < scene_nav_arrive_threshold) {
+  const f32 radius = LIKELY(loco) ? loco->radius : 0.5f;
+  const f32 dist   = geo_vector_mag(geo_vector_sub(agent->target, trans->position));
+  if (fromOnGrid && dist < (radius + scene_nav_arrive_threshold)) {
     agent->flags &= ~SceneNavAgent_Moving;
     return; // Arrived at destination.
   }

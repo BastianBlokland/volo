@@ -49,7 +49,7 @@ static void scene_loco_move(
   }
   const GeoVector toTarget = geo_vector_sub(loco->target, trans->position);
   const f32       dist     = geo_vector_mag(toTarget);
-  if (dist < locomotion_arrive_threshold) {
+  if (dist < (loco->radius + locomotion_arrive_threshold)) {
     loco->flags &= ~SceneLocomotion_Moving;
     return;
   }
