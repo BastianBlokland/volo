@@ -24,6 +24,11 @@ ASSERT(alignof(GeoQuat) == 16, "GeoQuat has to be aligned to 128 bits");
 #define geo_quat_ident ((GeoQuat){0, 0, 0, 1})
 
 /**
+ * 90 degree rotation over the positive x axis.
+ */
+#define geo_quat_up_to_forward ((GeoQuat){0.7071068f, 0, 0, 0.7071068f})
+
+/**
  * Compute a quaternion that rotates around an axis.
  * NOTE: Angle is in radians.
  */

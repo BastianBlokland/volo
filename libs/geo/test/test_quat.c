@@ -19,6 +19,11 @@ spec(quat) {
     check_eq_vector(geo_quat_rotate(geo_quat_ident, v1), v1);
   }
 
+  it("has preset quaternions for common rotations") {
+    check_eq_vector(geo_quat_rotate(geo_quat_up_to_forward, geo_up), geo_forward);
+    check_eq_quat(geo_quat_up_to_forward, geo_quat_angle_axis(geo_right, math_pi_f32 * 0.5f));
+  }
+
   it("returns the difference quaternion when computing a from-to rotation") {
     const GeoQuat q1 = geo_quat_angle_axis(geo_right, 42);
     const GeoQuat q2 = geo_quat_angle_axis(geo_up, -42);
