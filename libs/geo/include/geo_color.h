@@ -45,9 +45,15 @@ ASSERT(sizeof(GeoColor) == 16, "GeoColor has to be 128 bits");
 
 /**
  * Get a color from an index.
- * Usefull for generating debug colors.
+ * Useful for generating debug colors.
  */
 GeoColor geo_color_get(u64 idx);
+
+/**
+ * Calculate the linearly interpolated color from x to y at time t.
+ * NOTE: Does not clamp t (so can extrapolate too).
+ */
+GeoColor geo_color_lerp(GeoColor x, GeoColor y, f32 t);
 
 /**
  * Create a formatting argument for a color.
