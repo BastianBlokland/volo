@@ -677,8 +677,12 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
 
 static void inspector_vis_draw_locomotion(
     DebugShapeComp* shape, const SceneLocomotionComp* loco, const SceneTransformComp* transform) {
+  const GeoVector pos          = transform ? transform->position : geo_vector(0);
+  const f32 separationStrength = math_clamp_f32(geo_vector_mag(loco->lastSeparation) * 100, 0, 1);
+  const GeoColor circleColor   = geo_color_lerp(geo_color_white, geo_color_red, separationStrength);
+  debug_circle(shape, pos, geo_quat_up_to_forward, loco->radius, circleColor);
+
   if (loco->flags & SceneLocomotion_Moving) {
-    const GeoVector pos = transform ? transform->position : geo_vector(0);
     debug_line(shape, pos, loco->target, geo_color_yellow);
     debug_sphere(shape, loco->target, 0.1f, geo_color_green, DebugShape_Overlay);
   }
@@ -807,9 +811,9 @@ static void inspector_vis_draw_subject(
 }
 
 static void inspector_vis_draw_navigation_grid(DebugShapeComp* shape, const SceneNavEnvComp* nav) {
-  const GeoNavRegion bounds       = scene_nav_bounds(nav);
-  const GeoVector    cellSize     = scene_nav_cell_size(nav);
-  const GeoQuat      cellRotation = geo_quat_angle_axis(geo_right, math_pi_f32 * 0.5f);
+  const GeoNavRegion   bounds    = scene_nav_bounds(nav);
+  const GeoVector      cellSize  = scene_nav_cell_size(nav);
+  const DebugShapeMode shapeMode = DebugShape_Overlay;
   for (u32 y = bounds.min.y; y != bounds.max.y; ++y) {
     for (u32 x = bounds.min.x; x != bounds.max.x; ++x) {
       const GeoNavCell cell      = {.x = x, .y = y};
@@ -825,7 +829,7 @@ static void inspector_vis_draw_navigation_grid(DebugShapeComp* shape, const Scen
       } else {
         color = geo_color(0, 1, 0, highlight ? 0.2f : 0.1f);
       }
-      debug_quad(shape, pos, cellRotation, cellSize.x, cellSize.z, color, DebugShape_Overlay);
+      debug_quad(shape, pos, geo_quat_up_to_forward, cellSize.x, cellSize.z, color, shapeMode);
     }
   }
 }

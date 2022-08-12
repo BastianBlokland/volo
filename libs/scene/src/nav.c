@@ -89,13 +89,16 @@ static void scene_nav_add_occupants(SceneNavEnvComp* env, EcsView* occupantEntit
     const SceneTransformComp*  trans = ecs_view_read_t(itr, SceneTransformComp);
     const SceneLocomotionComp* loco  = ecs_view_read_t(itr, SceneLocomotionComp);
 
-    GeoNavOccupantFlags flags = 0;
-    if (loco && loco->flags & SceneLocomotion_Moving) {
-      flags |= GeoNavOccupantFlags_Moving;
+    const u64           occupantId     = (u64)ecs_view_entity(itr);
+    f32                 occupantRadius = 0.5f;
+    GeoNavOccupantFlags occupantFlags  = 0;
+    if (loco) {
+      occupantRadius = loco->radius;
+      if (loco->flags & SceneLocomotion_Moving) {
+        occupantFlags |= GeoNavOccupantFlags_Moving;
+      }
     }
-
-    const u64 occupantId = (u64)ecs_view_entity(itr);
-    geo_nav_occupant_add(env->navGrid, trans->position, occupantId, flags);
+    geo_nav_occupant_add(env->navGrid, occupantId, trans->position, occupantRadius, occupantFlags);
   }
 }
 
@@ -165,8 +168,9 @@ static void scene_nav_update_agent(
     agent->target = geo_nav_position(env->navGrid, from);
   }
 
-  const f32 dist = geo_vector_mag(geo_vector_sub(agent->target, trans->position));
-  if (fromOnGrid && dist < scene_nav_arrive_threshold) {
+  const f32 radius = LIKELY(loco) ? loco->radius : 0.5f;
+  const f32 dist   = geo_vector_mag(geo_vector_sub(agent->target, trans->position));
+  if (fromOnGrid && dist < (radius + scene_nav_arrive_threshold)) {
     agent->flags &= ~SceneNavAgent_Moving;
     return; // Arrived at destination.
   }
@@ -343,15 +347,16 @@ GeoNavCell scene_nav_at_position(const SceneNavEnvComp* env, const GeoVector pos
   return geo_nav_at_position(env->navGrid, pos);
 }
 
-GeoVector scene_nav_separation_force(
+GeoVector scene_nav_separate(
     const SceneNavEnvComp* env,
     const EcsEntityId      entity,
     const GeoVector        position,
+    const f32              radius,
     const bool             moving) {
   GeoNavOccupantFlags flags = 0;
   if (moving) {
     flags |= GeoNavOccupantFlags_Moving;
   }
   const u64 occupantId = (u64)entity;
-  return geo_nav_separation_force(env->navGrid, occupantId, position, flags);
+  return geo_nav_separate(env->navGrid, occupantId, position, radius, flags);
 }

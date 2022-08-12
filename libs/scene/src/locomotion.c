@@ -49,7 +49,7 @@ static void scene_loco_move(
   }
   const GeoVector toTarget = geo_vector_sub(loco->target, trans->position);
   const f32       dist     = geo_vector_mag(toTarget);
-  if (dist < locomotion_arrive_threshold) {
+  if (dist < (loco->radius + locomotion_arrive_threshold)) {
     loco->flags &= ~SceneLocomotion_Moving;
     return;
   }
@@ -61,16 +61,17 @@ static void scene_loco_move(
 }
 
 /**
- * Apply a force to separate this entity from (other) navigation agents.
+ * Separate this entity from blockers and (other) navigation agents.
  */
-static void scene_loco_apply_separation(
+static void scene_loco_separate(
     const SceneNavEnvComp* navEnv,
     const EcsEntityId      entity,
     SceneLocomotionComp*   loco,
     SceneTransformComp*    trans) {
   const bool      moving = (loco->flags & SceneLocomotion_Moving) != 0;
-  const GeoVector force  = scene_nav_separation_force(navEnv, entity, trans->position, moving);
-  trans->position        = geo_vector_add(trans->position, force);
+  const GeoVector pos    = trans->position;
+  loco->lastSeparation   = scene_nav_separate(navEnv, entity, pos, loco->radius, moving);
+  trans->position        = geo_vector_add(trans->position, loco->lastSeparation);
 }
 
 ecs_system_define(SceneLocomotionMoveSys) {
@@ -96,7 +97,7 @@ ecs_system_define(SceneLocomotionMoveSys) {
     const f32             scale     = scaleComp ? scaleComp->scale : 1.0f;
 
     scene_loco_move(loco, trans, scale, deltaSeconds);
-    scene_loco_apply_separation(navEnv, entity, loco, trans);
+    scene_loco_separate(navEnv, entity, loco, trans);
 
     if (anim) {
       const f32 targetWalkWeight = (loco->flags & SceneLocomotion_Moving) ? 1.0f : 0.0f;

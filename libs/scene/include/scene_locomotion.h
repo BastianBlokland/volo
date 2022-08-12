@@ -9,7 +9,9 @@ typedef enum {
 ecs_comp_extern_public(SceneLocomotionComp) {
   SceneLocomotionFlags flags;
   f32                  speed;
+  f32                  radius;
   f32                  walkWeight;
+  GeoVector            lastSeparation;
   GeoVector            target;
 };
 
