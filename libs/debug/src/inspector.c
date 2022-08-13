@@ -861,17 +861,19 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   if (!set->visFlags) {
     return;
   }
-  const SceneNavEnvComp*    nav       = ecs_view_read_t(globalItr, SceneNavEnvComp);
-  const SceneSelectionComp* selection = ecs_view_read_t(globalItr, SceneSelectionComp);
-  DebugShapeComp*           shape     = ecs_view_write_t(globalItr, DebugShapeComp);
-  DebugTextComp*            text      = ecs_view_write_t(globalItr, DebugTextComp);
+  const SceneNavEnvComp*    nav   = ecs_view_read_t(globalItr, SceneNavEnvComp);
+  const SceneSelectionComp* sel   = ecs_view_read_t(globalItr, SceneSelectionComp);
+  DebugShapeComp*           shape = ecs_view_write_t(globalItr, DebugShapeComp);
+  DebugTextComp*            text  = ecs_view_write_t(globalItr, DebugTextComp);
 
   EcsView* subjectView = ecs_world_view_t(world, SubjectView);
   switch (set->visMode) {
   case DebugInspectorVisMode_SelectedOnly: {
-    EcsIterator* subjectItr = ecs_view_maybe_at(subjectView, scene_selection_main(selection));
-    if (subjectItr) {
-      inspector_vis_draw_subject(shape, text, set, nav, subjectItr);
+    EcsIterator* subjectItr = ecs_view_itr(subjectView);
+    for (const EcsEntityId* i = scene_selection_begin(sel); i != scene_selection_end(sel); ++i) {
+      if (ecs_view_maybe_jump(subjectItr, *i)) {
+        inspector_vis_draw_subject(shape, text, set, nav, subjectItr);
+      }
     }
   } break;
   case DebugInspectorVisMode_All: {
