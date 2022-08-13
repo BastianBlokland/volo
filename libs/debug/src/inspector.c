@@ -870,8 +870,8 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   switch (set->visMode) {
   case DebugInspectorVisMode_SelectedOnly: {
     EcsIterator* subjectItr = ecs_view_itr(subjectView);
-    for (const EcsEntityId* i = scene_selection_begin(sel); i != scene_selection_end(sel); ++i) {
-      if (ecs_view_maybe_jump(subjectItr, *i)) {
+    for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
+      if (ecs_view_maybe_jump(subjectItr, *e)) {
         inspector_vis_draw_subject(shape, text, set, nav, subjectItr);
       }
     }

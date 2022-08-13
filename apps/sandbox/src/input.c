@@ -98,8 +98,8 @@ static void update_camera_interact(
     const f32 rayT = geo_plane_intersect_ray(&groundPlane, &inputRay);
     if (rayT > g_inputMinInteractDist && rayT < g_inputMaxInteractDist) {
       const GeoVector targetPos = geo_ray_position(&inputRay, rayT);
-      for (const EcsEntityId* i = scene_selection_begin(sel); i != scene_selection_end(sel); ++i) {
-        cmd_push_move(cmdController, *i, targetPos);
+      for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
+        cmd_push_move(cmdController, *e, targetPos);
       }
     }
   }
@@ -135,8 +135,8 @@ ecs_system_define(InputUpdateSys) {
   InputManagerComp*            input         = ecs_view_write_t(globalItr, InputManagerComp);
 
   if (input_triggered_lit(input, "Destroy")) {
-    for (const EcsEntityId* i = scene_selection_begin(sel); i != scene_selection_end(sel); ++i) {
-      cmd_push_destroy(cmdController, *i);
+    for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
+      cmd_push_destroy(cmdController, *e);
     }
   }
 
