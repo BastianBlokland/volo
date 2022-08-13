@@ -128,13 +128,14 @@ ecs_system_define(InputUpdateSys) {
   }
   CmdControllerComp*           cmdController = ecs_view_write_t(globalItr, CmdControllerComp);
   const SceneCollisionEnvComp* collisionEnv  = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
-  const SceneSelectionComp*    selection     = ecs_view_read_t(globalItr, SceneSelectionComp);
+  const SceneSelectionComp*    sel           = ecs_view_read_t(globalItr, SceneSelectionComp);
   const SceneTimeComp*         time          = ecs_view_read_t(globalItr, SceneTimeComp);
   InputManagerComp*            input         = ecs_view_write_t(globalItr, InputManagerComp);
 
-  const EcsEntityId selected = scene_selection_main(selection);
-  if (input_triggered_lit(input, "Destroy") && selected && ecs_world_exists(world, selected)) {
-    cmd_push_destroy(cmdController, selected);
+  if (input_triggered_lit(input, "Destroy")) {
+    for (const EcsEntityId* i = scene_selection_begin(sel); i != scene_selection_end(sel); ++i) {
+      cmd_push_destroy(cmdController, *i);
+    }
   }
 
   EcsView* cameraView = ecs_world_view_t(world, CameraView);
@@ -142,8 +143,8 @@ ecs_system_define(InputUpdateSys) {
     EcsIterator*           camItr      = ecs_view_at(cameraView, input_active_window(input));
     const SceneCameraComp* camera      = ecs_view_read_t(camItr, SceneCameraComp);
     SceneTransformComp*    cameraTrans = ecs_view_write_t(camItr, SceneTransformComp);
-    update_camera_movement(time, input, selection, camera, cameraTrans);
-    update_camera_interact(cmdController, input, collisionEnv, selection, camera, cameraTrans);
+    update_camera_movement(time, input, sel, camera, cameraTrans);
+    update_camera_interact(cmdController, input, collisionEnv, sel, camera, cameraTrans);
   }
 }
 
