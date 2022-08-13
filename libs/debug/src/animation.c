@@ -362,7 +362,7 @@ ecs_system_define(DebugAnimationUpdatePanelSys) {
   DebugAnimationSettingsComp* settings = anim_settings_get_or_create(world);
 
   const SceneSelectionComp* selection = ecs_view_read_t(globalItr, SceneSelectionComp);
-  const DebugAnimSubject    subject   = debug_anim_subject(world, scene_selected(selection));
+  const DebugAnimSubject    subject   = debug_anim_subject(world, scene_selection_main(selection));
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
@@ -463,7 +463,7 @@ ecs_system_define(DebugAnimationDrawSys) {
   DebugShapeComp*                   shape = ecs_view_write_t(globalItr, DebugShapeComp);
   DebugTextComp*                    text  = ecs_view_write_t(globalItr, DebugTextComp);
 
-  const DebugAnimSubject subject = debug_anim_subject(world, scene_selected(selection));
+  const DebugAnimSubject subject = debug_anim_subject(world, scene_selection_main(selection));
   if (!subject.valid) {
     return;
   }

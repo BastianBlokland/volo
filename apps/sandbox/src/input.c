@@ -58,7 +58,7 @@ static void update_camera_movement(
     camTrans->position = geo_vector_sub(camTrans->position, geo_vector_mul(right, moveDelta));
   }
 
-  const bool hasSelection = ecs_entity_valid(scene_selected(selection));
+  const bool hasSelection = !scene_selection_empty(selection);
   const bool cursorLocked = input_cursor_mode(input) == InputCursorMode_Locked;
   if ((input_triggered_lit(input, "CameraLookEnable") && !hasSelection) || cursorLocked) {
     const f32 deltaX = input_cursor_delta_x(input) * g_inputCamRotateSensitivity;
@@ -87,17 +87,18 @@ static void update_camera_interact(
     SceneRayHit hit;
     const bool  hasHit = scene_query_ray(collisionEnv, &inputRay, &hit);
 
-    if (hasHit && hit.entity != scene_selected(selection)) {
+    if (hasHit && !scene_selection_contains(selection, hit.entity)) {
       cmd_push_select(cmdController, hit.entity);
     } else {
       cmd_push_deselect(cmdController);
     }
   }
 
-  if (scene_selected(selection) && input_triggered_lit(input, "Order")) {
+  if (!scene_selection_empty(selection) && input_triggered_lit(input, "Order")) {
     const f32 rayT = geo_plane_intersect_ray(&groundPlane, &inputRay);
     if (rayT > g_inputMinInteractDist && rayT < g_inputMaxInteractDist) {
-      cmd_push_move(cmdController, scene_selected(selection), geo_ray_position(&inputRay, rayT));
+      cmd_push_move(
+          cmdController, scene_selection_main(selection), geo_ray_position(&inputRay, rayT));
     }
   }
 
@@ -131,7 +132,7 @@ ecs_system_define(InputUpdateSys) {
   const SceneTimeComp*         time          = ecs_view_read_t(globalItr, SceneTimeComp);
   InputManagerComp*            input         = ecs_view_write_t(globalItr, InputManagerComp);
 
-  const EcsEntityId selected = scene_selected(selection);
+  const EcsEntityId selected = scene_selection_main(selection);
   if (input_triggered_lit(input, "Destroy") && selected && ecs_world_exists(world, selected)) {
     cmd_push_destroy(cmdController, selected);
   }

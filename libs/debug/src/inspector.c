@@ -591,7 +591,7 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
   DebugInspectorSettingsComp* settings  = inspector_settings_get_or_create(world);
 
   EcsView*     subjectView = ecs_world_view_t(world, SubjectView);
-  EcsIterator* subjectItr  = ecs_view_maybe_at(subjectView, scene_selected(selection));
+  EcsIterator* subjectItr  = ecs_view_maybe_at(subjectView, scene_selection_main(selection));
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
@@ -646,7 +646,7 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
   }
 
   EcsView*     subjectView = ecs_world_view_t(world, SubjectView);
-  EcsIterator* subjectItr  = ecs_view_maybe_at(subjectView, scene_selected(selection));
+  EcsIterator* subjectItr  = ecs_view_maybe_at(subjectView, scene_selection_main(selection));
   if (subjectItr) {
     const DebugGizmoId  gizmoId       = (DebugGizmoId)ecs_view_entity(subjectItr);
     SceneTransformComp* transformComp = ecs_view_write_t(subjectItr, SceneTransformComp);
@@ -869,7 +869,7 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   EcsView* subjectView = ecs_world_view_t(world, SubjectView);
   switch (set->visMode) {
   case DebugInspectorVisMode_SelectedOnly: {
-    EcsIterator* subjectItr = ecs_view_maybe_at(subjectView, scene_selected(selection));
+    EcsIterator* subjectItr = ecs_view_maybe_at(subjectView, scene_selection_main(selection));
     if (subjectItr) {
       inspector_vis_draw_subject(shape, text, set, nav, subjectItr);
     }
