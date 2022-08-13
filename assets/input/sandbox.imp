@@ -10,7 +10,7 @@
       ],
       "bindings": [
         {
-          "type": "Pressed",
+          "type": "Down",
           "key": "MouseLeft",
           "illegalModifiers": [
             "Control",
