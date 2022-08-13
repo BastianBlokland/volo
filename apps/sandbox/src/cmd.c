@@ -106,6 +106,7 @@ static void cmd_execute(
     break;
   case Cmd_Destroy:
     diag_assert_msg(ecs_world_exists(world, cmd->destroy.object), "Destroying non-existing obj");
+    scene_selection_remove(selection, cmd->destroy.object);
     ecs_world_entity_destroy(world, cmd->destroy.object);
     break;
   }

@@ -29,6 +29,12 @@ bool scene_selection_empty(const SceneSelectionComp*);
 void scene_selection_add(SceneSelectionComp*, EcsEntityId);
 
 /**
+ * Request the given entity to be deselected.
+ * NOTE: Is deferred until the next 'SceneOrder_SelectionUpdate'.
+ */
+void scene_selection_remove(SceneSelectionComp*, EcsEntityId);
+
+/**
  * Request to clear the selection (if any).
  * NOTE: Is deferred until the next 'SceneOrder_SelectionUpdate'.
  */
