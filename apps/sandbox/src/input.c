@@ -74,7 +74,7 @@ static void update_camera_interact(
     CmdControllerComp*           cmdController,
     InputManagerComp*            input,
     const SceneCollisionEnvComp* collisionEnv,
-    const SceneSelectionComp*    selection,
+    const SceneSelectionComp*    sel,
     const SceneCameraComp*       camera,
     const SceneTransformComp*    cameraTrans) {
 
@@ -87,18 +87,20 @@ static void update_camera_interact(
     SceneRayHit hit;
     const bool  hasHit = scene_query_ray(collisionEnv, &inputRay, &hit);
 
-    if (hasHit && !scene_selection_contains(selection, hit.entity)) {
+    if (hasHit && !scene_selection_contains(sel, hit.entity)) {
       cmd_push_select(cmdController, hit.entity);
     } else {
       cmd_push_deselect(cmdController);
     }
   }
 
-  if (!scene_selection_empty(selection) && input_triggered_lit(input, "Order")) {
+  if (input_triggered_lit(input, "Order")) {
     const f32 rayT = geo_plane_intersect_ray(&groundPlane, &inputRay);
     if (rayT > g_inputMinInteractDist && rayT < g_inputMaxInteractDist) {
-      cmd_push_move(
-          cmdController, scene_selection_main(selection), geo_ray_position(&inputRay, rayT));
+      const GeoVector targetPos = geo_ray_position(&inputRay, rayT);
+      for (const EcsEntityId* i = scene_selection_begin(sel); i != scene_selection_end(sel); ++i) {
+        cmd_push_move(cmdController, *i, targetPos);
+      }
     }
   }
 
