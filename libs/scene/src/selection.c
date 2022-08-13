@@ -129,6 +129,18 @@ EcsEntityId scene_selection_main(const SceneSelectionComp* comp) {
   return comp->mainSelectedEntity;
 }
 
+const EcsEntityId* scene_selection_begin(const SceneSelectionComp* comp) {
+  return dynarray_begin_t(&comp->selectedEntities, EcsEntityId);
+}
+
+const EcsEntityId* scene_selection_end(const SceneSelectionComp* comp) {
+  return dynarray_end_t(&comp->selectedEntities, EcsEntityId);
+}
+
+u32 scene_selection_count(const SceneSelectionComp* comp) {
+  return (u32)comp->selectedEntities.size;
+}
+
 bool scene_selection_contains(const SceneSelectionComp* comp, const EcsEntityId entity) {
   if (dynarray_search_binary((DynArray*)&comp->selectedEntities, ecs_compare_entity, &entity)) {
     return true;
