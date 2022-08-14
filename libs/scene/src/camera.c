@@ -32,6 +32,15 @@ GeoMatrix scene_camera_view_proj(
   return geo_matrix_mul(&p, &v);
 }
 
+void scene_camera_frustum4(
+    const SceneCameraComp*    cam,
+    const SceneTransformComp* trans,
+    const f32                 aspect,
+    GeoPlane                  out[4]) {
+  const GeoMatrix viewProj = scene_camera_view_proj(cam, trans, aspect);
+  geo_matrix_frustum4(&viewProj, out);
+}
+
 GeoRay scene_camera_ray(
     const SceneCameraComp*    cam,
     const SceneTransformComp* trans,
