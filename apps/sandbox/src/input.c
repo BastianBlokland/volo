@@ -20,6 +20,7 @@ static const f32 g_inputDragThreshold         = 0.005f; // In normalized screen-
 
 typedef enum {
   InputSelectState_None,
+  InputSelectState_Blocked,
   InputSelectState_Down,
   InputSelectState_Dragging,
 } InputSelectState;
@@ -118,8 +119,15 @@ static void update_camera_interact(
   const bool selectActive = input_triggered_lit(input, "Select");
   switch (state->selectState) {
   case InputSelectState_None:
-    if (selectActive) {
+    if (input_blockers(input) & (InputBlocker_HoveringUi | InputBlocker_HoveringGizmo)) {
+      state->selectState = InputSelectState_Blocked;
+    } else if (selectActive) {
       select_start(state, input);
+    }
+    break;
+  case InputSelectState_Blocked:
+    if (!selectActive) {
+      state->selectState = InputSelectState_None;
     }
     break;
   case InputSelectState_Down:
@@ -240,6 +248,7 @@ ecs_system_define(InputDrawUiSys) {
     }
     UiCanvasComp* canvas = ecs_view_write_t(canvasItr, UiCanvasComp);
     ui_canvas_reset(canvas);
+    ui_canvas_to_back(canvas);
 
     if (state->selectState == InputSelectState_Dragging) {
       const UiVector start = {.x = state->selectStart[0], .y = state->selectStart[1]};

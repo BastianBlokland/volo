@@ -4,8 +4,6 @@
       "name": "Select",
       "blockers": [
         "TextInput",
-        "HoveringUi",
-        "HoveringGizmo",
         "CursorLocked"
       ],
       "bindings": [
