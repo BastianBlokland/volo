@@ -245,6 +245,8 @@ ecs_system_define(InputDrawUiSys) {
       const UiVector start = {.x = state->selectStart[0], .y = state->selectStart[1]};
       ui_layout_move(canvas, start, UiBase_Canvas, Ui_XY);
       ui_layout_resize_to(canvas, UiBase_Input, UiAlign_BottomLeft, Ui_XY);
+      ui_style_color(canvas, ui_color(255, 255, 255, 16));
+      ui_style_outline(canvas, 3);
       ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_None);
     }
   }
