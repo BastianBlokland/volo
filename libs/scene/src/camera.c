@@ -6,6 +6,25 @@
 static const f32 g_camOrthoNear = -100.0f;
 static const f32 g_camOrthoFar  = +100.0f;
 
+static GeoVector cam_world_from_ndc(const GeoMatrix* invViewProj, const GeoVector pos) {
+  const GeoVector ndc = geo_vector(pos.x, pos.y, pos.z, 1);
+  return geo_vector_perspective_div(geo_matrix_transform(invViewProj, ndc));
+}
+
+static GeoVector cam_world_from_screen_near(const GeoMatrix* invViewProj, const GeoVector normPos) {
+  const f32 ndcX    = normPos.x * 2 - 1;
+  const f32 ndcY    = -normPos.y * 2 + 1;
+  const f32 ndcNear = 1.0f;
+  return cam_world_from_ndc(invViewProj, geo_vector(ndcX, ndcY, ndcNear));
+}
+
+static GeoVector cam_world_from_screen_far(const GeoMatrix* invViewProj, const GeoVector normPos) {
+  const f32 ndcX   = normPos.x * 2 - 1;
+  const f32 ndcY   = -normPos.y * 2 + 1;
+  const f32 ndcFar = 1e-8f; // NOTE: Using an infinitely far depth plane so avoid 0.
+  return cam_world_from_ndc(invViewProj, geo_vector(ndcX, ndcY, ndcFar));
+}
+
 ecs_comp_define_public(SceneCameraComp);
 
 ecs_module_init(scene_camera_module) { ecs_register_comp(SceneCameraComp); }
@@ -48,18 +67,10 @@ GeoRay scene_camera_ray(
     const GeoVector           normScreenPos) {
   const GeoMatrix viewProj    = scene_camera_view_proj(cam, trans, aspect);
   const GeoMatrix invViewProj = geo_matrix_inverse(&viewProj);
-  const f32       ndcX        = normScreenPos.x * 2 - 1;
-  const f32       ndcY        = -normScreenPos.y * 2 + 1;
-  const f32       ndcNear     = 1.0f;
-  const f32       ndcFar      = 1e-8f; // NOTE: Using an infinitely far depth plane so avoid 0.
 
-  const GeoVector origNdc = geo_vector(ndcX, ndcY, ndcNear, 1);
-  const GeoVector orig    = geo_vector_perspective_div(geo_matrix_transform(&invViewProj, origNdc));
-
-  const GeoVector destNdc = geo_vector(ndcX, ndcY, ndcFar, 1);
-  const GeoVector dest    = geo_vector_perspective_div(geo_matrix_transform(&invViewProj, destNdc));
-
-  return (GeoRay){.point = orig, .dir = geo_vector_norm(geo_vector_sub(dest, orig))};
+  const GeoVector posNear = cam_world_from_screen_near(&invViewProj, normScreenPos);
+  const GeoVector posFar  = cam_world_from_screen_far(&invViewProj, normScreenPos);
+  return (GeoRay){.point = posNear, .dir = geo_vector_norm(geo_vector_sub(posFar, posNear))};
 }
 
 void scene_camera_to_default(SceneCameraComp* cam) {
