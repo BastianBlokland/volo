@@ -13,7 +13,7 @@ GeoPlane geo_plane_at(const GeoVector normal, const GeoVector position) {
 }
 
 GeoVector geo_plane_position(const GeoPlane* plane) {
-  return geo_vector_mul(plane->normal, plane->distance);
+  return geo_vector_mul(plane->normal, -plane->distance);
 }
 
 GeoVector geo_plane_closest_point(const GeoPlane* plane, const GeoVector point) {
