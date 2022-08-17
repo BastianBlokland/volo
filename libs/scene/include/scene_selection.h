@@ -18,7 +18,7 @@ bool               scene_selection_contains(const SceneSelectionComp*, EcsEntity
 bool               scene_selection_empty(const SceneSelectionComp*);
 
 /**
- * Modify the current selection..
+ * Modify the current selection.
  * NOTE: Deferred until the next 'SceneOrder_SelectionUpdate'.
  */
 void scene_selection_add(SceneSelectionComp*, EcsEntityId);
