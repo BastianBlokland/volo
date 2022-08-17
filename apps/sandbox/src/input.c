@@ -28,7 +28,7 @@ typedef enum {
 ecs_comp_define(InputStateComp) {
   EcsEntityId      uiCanvas;
   InputSelectState selectState;
-  f32              selectStart[2]; // NOTE: Normalized screen-space coordinates.
+  GeoVector        selectStart; // NOTE: Normalized screen-space x,y coordinates.
 };
 
 static void update_camera_movement(
@@ -74,9 +74,8 @@ static void update_camera_movement(
 }
 
 static void select_start(InputStateComp* state, InputManagerComp* input) {
-  state->selectState    = InputSelectState_Down;
-  state->selectStart[0] = input_cursor_x(input);
-  state->selectStart[1] = input_cursor_y(input);
+  state->selectState = InputSelectState_Down;
+  state->selectStart = (GeoVector){.x = input_cursor_x(input), .y = input_cursor_y(input)};
 }
 
 static void select_start_drag(InputStateComp* state) {
@@ -99,6 +98,12 @@ static void select_end_click(
   } else {
     cmd_push_deselect(cmdController);
   }
+}
+
+static void select_update_drag(InputStateComp* state, InputManagerComp* input) {
+  const GeoVector cur = {.x = input_cursor_x(input), .y = input_cursor_y(input)};
+  (void)state;
+  (void)cur;
 }
 
 static void select_end_drag(InputStateComp* state) { state->selectState = InputSelectState_None; }
@@ -132,9 +137,8 @@ static void update_camera_interact(
     break;
   case InputSelectState_Down:
     if (selectActive) {
-      const f32 x = input_cursor_x(input), y = input_cursor_y(input);
-      const f32 deltaX = x - state->selectStart[0], deltaY = y - state->selectStart[1];
-      if (math_abs(deltaX) > g_inputDragThreshold || math_abs(deltaY) > g_inputDragThreshold) {
+      const GeoVector cur = {.x = input_cursor_x(input), .y = input_cursor_y(input)};
+      if (geo_vector_mag(geo_vector_sub(cur, state->selectStart)) > g_inputDragThreshold) {
         select_start_drag(state);
       }
     } else {
@@ -142,7 +146,9 @@ static void update_camera_interact(
     }
     break;
   case InputSelectState_Dragging:
-    if (!selectActive) {
+    if (selectActive) {
+      select_update_drag(state, input);
+    } else {
       select_end_drag(state);
     }
     break;
@@ -251,8 +257,8 @@ ecs_system_define(InputDrawUiSys) {
     ui_canvas_to_back(canvas);
 
     if (state->selectState == InputSelectState_Dragging) {
-      const UiVector start = {.x = state->selectStart[0], .y = state->selectStart[1]};
-      ui_layout_move(canvas, start, UiBase_Canvas, Ui_XY);
+      const UiVector startPos = ui_vector(state->selectStart.x, state->selectStart.y);
+      ui_layout_move(canvas, startPos, UiBase_Canvas, Ui_XY);
       ui_layout_resize_to(canvas, UiBase_Input, UiAlign_BottomLeft, Ui_XY);
       ui_style_color(canvas, ui_color(255, 255, 255, 16));
       ui_style_outline(canvas, 3);
