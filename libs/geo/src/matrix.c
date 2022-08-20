@@ -615,7 +615,7 @@ void geo_matrix_frustum4(const GeoMatrix* viewProj, GeoPlane out[4]) {
       .normal.x = viewProj->columns[0].w + viewProj->columns[0].x,
       .normal.y = viewProj->columns[1].w + viewProj->columns[1].x,
       .normal.z = viewProj->columns[2].w + viewProj->columns[2].x,
-      .distance = viewProj->columns[3].w + viewProj->columns[3].x,
+      .distance = -(viewProj->columns[3].w + viewProj->columns[3].x),
   };
 
   // Right clipping plane.
@@ -623,7 +623,7 @@ void geo_matrix_frustum4(const GeoMatrix* viewProj, GeoPlane out[4]) {
       .normal.x = viewProj->columns[0].w - viewProj->columns[0].x,
       .normal.y = viewProj->columns[1].w - viewProj->columns[1].x,
       .normal.z = viewProj->columns[2].w - viewProj->columns[2].x,
-      .distance = viewProj->columns[3].w - viewProj->columns[3].x,
+      .distance = -(viewProj->columns[3].w - viewProj->columns[3].x),
   };
 
   // Top clipping plane.
@@ -631,7 +631,7 @@ void geo_matrix_frustum4(const GeoMatrix* viewProj, GeoPlane out[4]) {
       .normal.x = viewProj->columns[0].w - viewProj->columns[0].y,
       .normal.y = viewProj->columns[1].w - viewProj->columns[1].y,
       .normal.z = viewProj->columns[2].w - viewProj->columns[2].y,
-      .distance = viewProj->columns[3].w - viewProj->columns[3].y,
+      .distance = -(viewProj->columns[3].w - viewProj->columns[3].y),
   };
 
   // Bottom clipping plane.
@@ -639,7 +639,7 @@ void geo_matrix_frustum4(const GeoMatrix* viewProj, GeoPlane out[4]) {
       .normal.x = viewProj->columns[0].w + viewProj->columns[0].y,
       .normal.y = viewProj->columns[1].w + viewProj->columns[1].y,
       .normal.z = viewProj->columns[2].w + viewProj->columns[2].y,
-      .distance = viewProj->columns[3].w + viewProj->columns[3].y,
+      .distance = -(viewProj->columns[3].w + viewProj->columns[3].y),
   };
 
   // Normalize the planes.
