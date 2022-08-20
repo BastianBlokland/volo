@@ -15,6 +15,7 @@ typedef struct {
  * Construct a plane at the given position.
  */
 GeoPlane geo_plane_at(GeoVector normal, GeoVector position);
+GeoPlane geo_plane_at_triangle(GeoVector a, GeoVector b, GeoVector c);
 
 /**
  * Get a position on the plane's surface.
