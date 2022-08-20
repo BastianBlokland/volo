@@ -100,10 +100,21 @@ static void select_end_click(
   }
 }
 
-static void select_update_drag(InputStateComp* state, InputManagerComp* input) {
+static void select_update_drag(
+    InputStateComp*           state,
+    InputManagerComp*         input,
+    const SceneCameraComp*    camera,
+    const SceneTransformComp* cameraTrans,
+    const f32                 inputAspect) {
   const GeoVector cur = {.x = input_cursor_x(input), .y = input_cursor_y(input)};
-  (void)state;
-  (void)cur;
+  const GeoVector min = geo_vector_min(state->selectStart, cur);
+  const GeoVector max = geo_vector_max(state->selectStart, cur);
+  if (min.x == max.x || min.y == max.y) {
+    return;
+  }
+
+  GeoPlane frustumPlanes[4];
+  scene_camera_frustum4_rect(camera, cameraTrans, inputAspect, min, max, frustumPlanes);
 }
 
 static void select_end_drag(InputStateComp* state) { state->selectState = InputSelectState_None; }
@@ -147,7 +158,7 @@ static void update_camera_interact(
     break;
   case InputSelectState_Dragging:
     if (selectActive) {
-      select_update_drag(state, input);
+      select_update_drag(state, input, camera, cameraTrans, inputAspect);
     } else {
       select_end_drag(state);
     }
