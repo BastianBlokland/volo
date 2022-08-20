@@ -44,10 +44,31 @@ GeoMatrix scene_camera_view_proj(const SceneCameraComp*, const SceneTransformCom
  * [0] = Left plane.
  * [1] = Right plane.
  * [2] = Top plane.
- * [3] = Bottom plane
+ * [3] = Bottom plane.
  */
 void scene_camera_frustum4(
     const SceneCameraComp*, const SceneTransformComp*, f32 aspect, GeoPlane out[4]);
+
+/**
+ * Compute 4 frustum planes for a rectangle inside the camera view.
+ * NOTE: Plane normals point towards the inside of the frustum.
+ * NOTE: SceneTransformComp is optional
+ * NOTE: Rect coordinates are in normalized screen positions (x: 0 - 1, y: 0 - 1).
+ *
+ * [0] = Left plane.
+ * [1] = Right plane.
+ * [2] = Top plane.
+ * [3] = Bottom plane.
+ *
+ * Pre-condition: Given rectangle is not inverted.
+ */
+void scene_camera_frustum4_rect(
+    const SceneCameraComp*,
+    const SceneTransformComp*,
+    f32       aspect,
+    GeoVector rectMin,
+    GeoVector rectMax,
+    GeoPlane  out[4]);
 
 /**
  * Compute a world-space ray through the given normalized screen position (x: 0 - 1, y: 0 - 1).

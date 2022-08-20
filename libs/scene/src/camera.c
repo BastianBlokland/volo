@@ -1,3 +1,4 @@
+#include "core_diag.h"
 #include "core_math.h"
 #include "ecs_world.h"
 #include "scene_camera.h"
@@ -58,6 +59,34 @@ void scene_camera_frustum4(
     GeoPlane                  out[4]) {
   const GeoMatrix viewProj = scene_camera_view_proj(cam, trans, aspect);
   geo_matrix_frustum4(&viewProj, out);
+}
+
+void scene_camera_frustum4_rect(
+    const SceneCameraComp*    cam,
+    const SceneTransformComp* trans,
+    const f32                 aspect,
+    const GeoVector           rectMin,
+    const GeoVector           rectMax,
+    GeoPlane                  out[4]) {
+  diag_assert(rectMin.x < rectMax.x && rectMin.y < rectMax.y);
+
+  const GeoMatrix viewProj    = scene_camera_view_proj(cam, trans, aspect);
+  const GeoMatrix invViewProj = geo_matrix_inverse(&viewProj);
+
+  const GeoVector points[] = {
+      cam_world_from_screen_near(&invViewProj, geo_vector(rectMin.x, rectMin.y)),
+      cam_world_from_screen_near(&invViewProj, geo_vector(rectMin.x, rectMax.y)),
+      cam_world_from_screen_near(&invViewProj, geo_vector(rectMax.x, rectMax.y)),
+      cam_world_from_screen_far(&invViewProj, geo_vector(rectMin.x, rectMin.y)),
+      cam_world_from_screen_far(&invViewProj, geo_vector(rectMin.x, rectMax.y)),
+      cam_world_from_screen_far(&invViewProj, geo_vector(rectMax.x, rectMax.y)),
+      cam_world_from_screen_far(&invViewProj, geo_vector(rectMax.x, rectMin.y)),
+  };
+
+  out[0] = geo_plane_at_triangle(points[0], points[4], points[3]);
+  out[1] = geo_plane_at_triangle(points[2], points[6], points[5]);
+  out[2] = geo_plane_at_triangle(points[1], points[5], points[4]);
+  out[3] = geo_plane_at_triangle(points[0], points[3], points[6]);
 }
 
 GeoRay scene_camera_ray(
