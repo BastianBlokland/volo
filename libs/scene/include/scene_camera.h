@@ -61,6 +61,7 @@ void scene_camera_frustum4(
  * [3] = Bottom plane.
  *
  * Pre-condition: Given rectangle is not inverted.
+ * Pre-condition: Given rectangle is not infinitely small.
  */
 void scene_camera_frustum4_rect(
     const SceneCameraComp*,
