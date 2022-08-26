@@ -41,6 +41,18 @@ static GeoVector geo_rotate_around(const GeoVector point, const GeoQuat rot, con
   return geo_vector_add(point, geo_quat_rotate(rot, geo_vector_sub(v, point)));
 }
 
+static void geo_box_rotated_corners(const GeoBoxRotated* b, GeoVector out[8]) {
+  const GeoVector c = geo_box_center(&b->box);
+  out[0] = geo_rotate_around(c, b->rotation, geo_vector(b->box.min.x, b->box.min.y, b->box.min.z));
+  out[1] = geo_rotate_around(c, b->rotation, geo_vector(b->box.min.x, b->box.min.y, b->box.max.z));
+  out[2] = geo_rotate_around(c, b->rotation, geo_vector(b->box.max.x, b->box.min.y, b->box.min.z));
+  out[3] = geo_rotate_around(c, b->rotation, geo_vector(b->box.max.x, b->box.min.y, b->box.max.z));
+  out[4] = geo_rotate_around(c, b->rotation, geo_vector(b->box.min.x, b->box.max.y, b->box.min.z));
+  out[5] = geo_rotate_around(c, b->rotation, geo_vector(b->box.min.x, b->box.max.y, b->box.max.z));
+  out[6] = geo_rotate_around(c, b->rotation, geo_vector(b->box.max.x, b->box.max.y, b->box.min.z));
+  out[7] = geo_rotate_around(c, b->rotation, geo_vector(b->box.max.x, b->box.max.y, b->box.max.z));
+}
+
 GeoBoxRotated
 geo_box_rotated_from_capsule(const GeoVector bottom, const GeoVector top, const f32 radius) {
   const GeoVector toTop  = geo_vector_sub(top, bottom);
@@ -95,17 +107,8 @@ bool geo_box_rotated_overlap_box(const GeoBoxRotated* a, const GeoBox* b) {
    * We need to check all the local axis but also all the derived axis (crosses of all the axis).
    */
 
-  const GeoVector aCenter    = geo_box_center(&a->box);
-  const GeoVector pointsA[8] = {
-      geo_rotate_around(aCenter, a->rotation, geo_vector(a->box.min.x, a->box.min.y, a->box.min.z)),
-      geo_rotate_around(aCenter, a->rotation, geo_vector(a->box.min.x, a->box.min.y, a->box.max.z)),
-      geo_rotate_around(aCenter, a->rotation, geo_vector(a->box.max.x, a->box.min.y, a->box.min.z)),
-      geo_rotate_around(aCenter, a->rotation, geo_vector(a->box.max.x, a->box.min.y, a->box.max.z)),
-      geo_rotate_around(aCenter, a->rotation, geo_vector(a->box.min.x, a->box.max.y, a->box.min.z)),
-      geo_rotate_around(aCenter, a->rotation, geo_vector(a->box.min.x, a->box.max.y, a->box.max.z)),
-      geo_rotate_around(aCenter, a->rotation, geo_vector(a->box.max.x, a->box.max.y, a->box.min.z)),
-      geo_rotate_around(aCenter, a->rotation, geo_vector(a->box.max.x, a->box.max.y, a->box.max.z)),
-  };
+  GeoVector pointsA[8];
+  geo_box_rotated_corners(a, pointsA);
 
   const GeoVector pointsB[8] = {
       geo_vector(b->min.x, b->min.y, b->min.z),
