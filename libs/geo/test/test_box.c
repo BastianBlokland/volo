@@ -172,7 +172,7 @@ spec(box) {
     check_eq_vector(box.max, geo_vector(6, 1, 0));
   }
 
-  it("can test intersection with 4 frustum planes") {
+  it("can test for approximate intersection with 4 frustum planes") {
     const GeoPlane frustum[4] = {
         {.normal = geo_right, .distance = 1},
         {.normal = geo_left, .distance = 2},
@@ -181,38 +181,38 @@ spec(box) {
     };
     const GeoBox inside1 = geo_box_from_sphere(geo_vector(0, 0, 0), 0.5f);
     const GeoBox inside2 = geo_box_from_sphere(geo_vector(0, 2, 0), 0.5f);
-    check(geo_box_intersect_frustum4(&inside1, frustum));
-    check(geo_box_intersect_frustum4(&inside2, frustum));
+    check(geo_box_intersect_frustum4_approx(&inside1, frustum));
+    check(geo_box_intersect_frustum4_approx(&inside2, frustum));
 
     const GeoBox onLeftEdge   = geo_box_from_sphere(geo_vector(-1, 0, 0), 0.5f);
     const GeoBox onRightEdge  = geo_box_from_sphere(geo_vector(2, 0, 0), 0.5f);
     const GeoBox onBottomEdge = geo_box_from_sphere(geo_vector(0, -1, 0), 0.5f);
     const GeoBox onTopEdge    = geo_box_from_sphere(geo_vector(0, 2, 0), 0.5f);
-    check(geo_box_intersect_frustum4(&onLeftEdge, frustum));
-    check(geo_box_intersect_frustum4(&onRightEdge, frustum));
-    check(geo_box_intersect_frustum4(&onBottomEdge, frustum));
-    check(geo_box_intersect_frustum4(&onTopEdge, frustum));
+    check(geo_box_intersect_frustum4_approx(&onLeftEdge, frustum));
+    check(geo_box_intersect_frustum4_approx(&onRightEdge, frustum));
+    check(geo_box_intersect_frustum4_approx(&onBottomEdge, frustum));
+    check(geo_box_intersect_frustum4_approx(&onTopEdge, frustum));
 
     const GeoBox outsideLeft   = geo_box_from_sphere(geo_vector(-2, 0, 0), 0.5f);
     const GeoBox outsideRight  = geo_box_from_sphere(geo_vector(3, 0, 0), 0.5f);
     const GeoBox outsideBottom = geo_box_from_sphere(geo_vector(0, -2, 0), 0.5f);
     const GeoBox outsideTop    = geo_box_from_sphere(geo_vector(0, 3, 0), 0.5f);
 
-    check(!geo_box_intersect_frustum4(&outsideLeft, frustum));
-    check(!geo_box_intersect_frustum4(&outsideRight, frustum));
-    check(!geo_box_intersect_frustum4(&outsideBottom, frustum));
-    check(!geo_box_intersect_frustum4(&outsideTop, frustum));
+    check(!geo_box_intersect_frustum4_approx(&outsideLeft, frustum));
+    check(!geo_box_intersect_frustum4_approx(&outsideRight, frustum));
+    check(!geo_box_intersect_frustum4_approx(&outsideBottom, frustum));
+    check(!geo_box_intersect_frustum4_approx(&outsideTop, frustum));
 
     const GeoBox behind = geo_box_from_sphere(geo_vector(0, 0, -2), 0.5f);
     // NOTE: Because we only using 4 planes there is no such thing as 'behind' the frustum.
-    check(geo_box_intersect_frustum4(&behind, frustum));
+    check(geo_box_intersect_frustum4_approx(&behind, frustum));
 
     const GeoBox inFront = geo_box_from_sphere(geo_vector(0, 0, -2), 0.5f);
     // NOTE: Because we only using 4 planes there is no such thing as 'inFront' the frustum.
-    check(geo_box_intersect_frustum4(&inFront, frustum));
+    check(geo_box_intersect_frustum4_approx(&inFront, frustum));
 
     const GeoBox inverted = geo_box_inverted3();
     // NOTE: Inverted boxes are considered to always be intersecting.
-    check(geo_box_intersect_frustum4(&inverted, frustum));
+    check(geo_box_intersect_frustum4_approx(&inverted, frustum));
   }
 }

@@ -35,5 +35,5 @@ bool rend_view_visible(
   if (UNLIKELY(!(settings->flags & RendFlags_FrustumCulling))) {
     return true;
   }
-  return geo_box_intersect_frustum4(objAabb, view->frustum);
+  return geo_box_intersect_frustum4_approx(objAabb, view->frustum);
 }

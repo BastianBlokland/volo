@@ -354,7 +354,7 @@ geo_box_from_quad(const GeoVector center, const f32 sizeX, const f32 sizeY, cons
 #endif
 }
 
-bool geo_box_intersect_frustum4(const GeoBox* box, const GeoPlane frustum[4]) {
+bool geo_box_intersect_frustum4_approx(const GeoBox* box, const GeoPlane frustum[4]) {
 #if geo_box_simd_enable
   const SimdVec boxMin = simd_vec_load(box->min.comps);
   const SimdVec boxMax = simd_vec_load(box->max.comps);
