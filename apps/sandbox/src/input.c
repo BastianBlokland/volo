@@ -113,8 +113,8 @@ static void select_update_drag(
     return;
   }
 
-  GeoPlane frustumPlanes[4];
-  scene_camera_frustum4_rect(camera, cameraTrans, inputAspect, min, max, frustumPlanes);
+  GeoVector frustumCorners[8];
+  scene_camera_frustum_corners(camera, cameraTrans, inputAspect, min, max, frustumCorners);
 }
 
 static void select_end_drag(InputStateComp* state) { state->selectState = InputSelectState_None; }

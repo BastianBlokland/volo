@@ -50,26 +50,20 @@ void scene_camera_frustum4(
     const SceneCameraComp*, const SceneTransformComp*, f32 aspect, GeoPlane out[4]);
 
 /**
- * Compute 4 frustum planes for a rectangle inside the camera view.
- * NOTE: Plane normals point towards the inside of the frustum.
+ * Compute the world-space corner points of a rectangle inside the camera view.
  * NOTE: SceneTransformComp is optional
  * NOTE: Rect coordinates are in normalized screen positions (x: 0 - 1, y: 0 - 1).
- *
- * [0] = Left plane.
- * [1] = Right plane.
- * [2] = Top plane.
- * [3] = Bottom plane.
  *
  * Pre-condition: Given rectangle is not inverted.
  * Pre-condition: Given rectangle is not infinitely small.
  */
-void scene_camera_frustum4_rect(
+void scene_camera_frustum_corners(
     const SceneCameraComp*,
     const SceneTransformComp*,
     f32       aspect,
     GeoVector rectMin,
     GeoVector rectMax,
-    GeoPlane  out[4]);
+    GeoVector out[8]);
 
 /**
  * Compute a world-space ray through the given normalized screen position (x: 0 - 1, y: 0 - 1).
