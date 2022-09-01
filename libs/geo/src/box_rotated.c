@@ -1,3 +1,4 @@
+#include "core_array.h"
 #include "core_math.h"
 #include "geo_box.h"
 #include "geo_box_rotated.h"
@@ -41,16 +42,23 @@ static GeoVector geo_rotate_around(const GeoVector point, const GeoQuat rot, con
   return geo_vector_add(point, geo_quat_rotate(rot, geo_vector_sub(v, point)));
 }
 
+static void geo_box_corners(const GeoBox* b, GeoVector out[8]) {
+  out[0] = geo_vector(b->min.x, b->min.y, b->min.z);
+  out[1] = geo_vector(b->min.x, b->min.y, b->max.z);
+  out[2] = geo_vector(b->max.x, b->min.y, b->min.z);
+  out[3] = geo_vector(b->max.x, b->min.y, b->max.z);
+  out[4] = geo_vector(b->min.x, b->max.y, b->min.z);
+  out[5] = geo_vector(b->min.x, b->max.y, b->max.z);
+  out[6] = geo_vector(b->max.x, b->max.y, b->min.z);
+  out[7] = geo_vector(b->max.x, b->max.y, b->max.z);
+}
+
 static void geo_box_rotated_corners(const GeoBoxRotated* b, GeoVector out[8]) {
   const GeoVector c = geo_box_center(&b->box);
-  out[0] = geo_rotate_around(c, b->rotation, geo_vector(b->box.min.x, b->box.min.y, b->box.min.z));
-  out[1] = geo_rotate_around(c, b->rotation, geo_vector(b->box.min.x, b->box.min.y, b->box.max.z));
-  out[2] = geo_rotate_around(c, b->rotation, geo_vector(b->box.max.x, b->box.min.y, b->box.min.z));
-  out[3] = geo_rotate_around(c, b->rotation, geo_vector(b->box.max.x, b->box.min.y, b->box.max.z));
-  out[4] = geo_rotate_around(c, b->rotation, geo_vector(b->box.min.x, b->box.max.y, b->box.min.z));
-  out[5] = geo_rotate_around(c, b->rotation, geo_vector(b->box.min.x, b->box.max.y, b->box.max.z));
-  out[6] = geo_rotate_around(c, b->rotation, geo_vector(b->box.max.x, b->box.max.y, b->box.min.z));
-  out[7] = geo_rotate_around(c, b->rotation, geo_vector(b->box.max.x, b->box.max.y, b->box.max.z));
+  geo_box_corners(&b->box, out);
+  for (u32 i = 0; i != 8; ++i) {
+    out[i] = geo_rotate_around(c, b->rotation, out[i]);
+  }
 }
 
 GeoBoxRotated
@@ -104,23 +112,20 @@ bool geo_box_rotated_overlap_box(const GeoBoxRotated* a, const GeoBox* b) {
    * Check if two boxes are overlapping using the Separating Axis Theorem:
    * If there is any axis where they are not overlapping (in 1 dimension) then they are not
    * overlapping at all.
-   * We need to check all the local axis but also all the derived axis (crosses of all the axis).
    */
 
-  GeoVector pointsA[8];
+  GeoVector pointsA[8], pointsB[8];
   geo_box_rotated_corners(a, pointsA);
+  geo_box_corners(b, pointsB);
 
-  const GeoVector pointsB[8] = {
-      geo_vector(b->min.x, b->min.y, b->min.z),
-      geo_vector(b->min.x, b->min.y, b->max.z),
-      geo_vector(b->max.x, b->min.y, b->min.z),
-      geo_vector(b->max.x, b->min.y, b->max.z),
-      geo_vector(b->min.x, b->max.y, b->min.z),
-      geo_vector(b->min.x, b->max.y, b->max.z),
-      geo_vector(b->max.x, b->max.y, b->min.z),
-      geo_vector(b->max.x, b->max.y, b->max.z),
+  const GeoVector axesA[] = {
+      geo_quat_rotate(a->rotation, geo_right),
+      geo_quat_rotate(a->rotation, geo_up),
+      geo_quat_rotate(a->rotation, geo_forward),
   };
+  const GeoVector axesB[] = {geo_right, geo_up, geo_forward};
 
+  // Check the world axes of b.
   f32 minDist, maxDist;
   geo_sat_proj3(geo_up, pointsA, &minDist, &maxDist);
   if (!geo_sat_overlapping1(minDist, maxDist, b->min.y, b->max.y)) {
@@ -135,24 +140,21 @@ bool geo_box_rotated_overlap_box(const GeoBoxRotated* a, const GeoBox* b) {
     return false;
   }
 
-  const GeoVector aRight   = geo_quat_rotate(a->rotation, geo_right);
-  const GeoVector aUp      = geo_quat_rotate(a->rotation, geo_up);
-  const GeoVector aForward = geo_quat_rotate(a->rotation, geo_forward);
+  // Check the local axes of a.
+  array_for_t(axesA, GeoVector, axisA) {
+    if (!geo_sat_overlapping3(*axisA, pointsA, pointsB)) {
+      return false;
+    }
+  }
 
-  return
-      // Local axis of our box
-      geo_sat_overlapping3(aRight, pointsA, pointsB) &&
-      geo_sat_overlapping3(aUp, pointsA, pointsB) &&
-      geo_sat_overlapping3(aForward, pointsA, pointsB) &&
+  // Check the derived axes.
+  array_for_t(axesA, GeoVector, axisA) {
+    array_for_t(axesB, GeoVector, axisB) {
+      if (!geo_sat_overlapping3(geo_vector_cross3(*axisA, *axisB), pointsA, pointsB)) {
+        return false;
+      }
+    }
+  }
 
-      // Derived axis
-      geo_sat_overlapping3(geo_vector_cross3(aForward, geo_forward), pointsA, pointsB) &&
-      geo_sat_overlapping3(geo_vector_cross3(aForward, geo_right), pointsA, pointsB) &&
-      geo_sat_overlapping3(geo_vector_cross3(aForward, geo_up), pointsA, pointsB) &&
-      geo_sat_overlapping3(geo_vector_cross3(aRight, geo_forward), pointsA, pointsB) &&
-      geo_sat_overlapping3(geo_vector_cross3(aRight, geo_right), pointsA, pointsB) &&
-      geo_sat_overlapping3(geo_vector_cross3(aRight, geo_up), pointsA, pointsB) &&
-      geo_sat_overlapping3(geo_vector_cross3(aUp, geo_forward), pointsA, pointsB) &&
-      geo_sat_overlapping3(geo_vector_cross3(aUp, geo_right), pointsA, pointsB) &&
-      geo_sat_overlapping3(geo_vector_cross3(aUp, geo_up), pointsA, pointsB);
+  return true; // No separating axis found; boxes are overlapping.
 }
