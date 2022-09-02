@@ -532,6 +532,7 @@ static void gizmo_update_interaction(
     const SceneTransformComp* cameraTrans) {
 
   const bool      inputDown    = gap_window_key_down(window, GapKey_MouseLeft);
+  const bool      inputPressed = gap_window_key_pressed(window, GapKey_MouseLeft);
   const GeoVector inputNormPos = geo_vector(input_cursor_x(input), input_cursor_y(input));
   const f32       inputAspect  = input_cursor_aspect(input);
   const GeoRay    inputRay     = scene_camera_ray(camera, cameraTrans, inputAspect, inputNormPos);
@@ -563,7 +564,7 @@ static void gizmo_update_interaction(
     return;
   }
 
-  if (isHovering && inputDown) {
+  if (isHovering && inputPressed) {
     gizmo_interaction_start(comp, hoverEntry, hoverSection);
     return;
   }
