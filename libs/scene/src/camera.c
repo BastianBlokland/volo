@@ -22,7 +22,7 @@ static GeoVector cam_world_from_screen_near(const GeoMatrix* invViewProj, const 
 static GeoVector cam_world_from_screen_far(const GeoMatrix* invViewProj, const GeoVector normPos) {
   const f32 ndcX   = normPos.x * 2 - 1;
   const f32 ndcY   = -normPos.y * 2 + 1;
-  const f32 ndcFar = 1e-8f; // NOTE: Using an infinitely far depth plane so avoid 0.
+  const f32 ndcFar = 1e-4f; // NOTE: Using an infinitely far depth plane so avoid 0.
   return cam_world_from_ndc(invViewProj, geo_vector(ndcX, ndcY, ndcFar));
 }
 
