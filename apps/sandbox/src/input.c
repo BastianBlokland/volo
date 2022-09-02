@@ -94,6 +94,7 @@ static void select_end_click(
   const bool  hasHit = scene_query_ray(collisionEnv, inputRay, &hit);
 
   if (hasHit && !scene_selection_contains(sel, hit.entity)) {
+    cmd_push_deselect(cmdController);
     cmd_push_select(cmdController, hit.entity);
   } else {
     cmd_push_deselect(cmdController);
@@ -101,20 +102,29 @@ static void select_end_click(
 }
 
 static void select_update_drag(
-    InputStateComp*           state,
-    InputManagerComp*         input,
-    const SceneCameraComp*    camera,
-    const SceneTransformComp* cameraTrans,
-    const f32                 inputAspect) {
+    InputStateComp*              state,
+    InputManagerComp*            input,
+    CmdControllerComp*           cmdController,
+    const SceneCollisionEnvComp* collisionEnv,
+    const SceneCameraComp*       camera,
+    const SceneTransformComp*    cameraTrans,
+    const f32                    inputAspect) {
+  cmd_push_deselect(cmdController);
+
   const GeoVector cur = {.x = input_cursor_x(input), .y = input_cursor_y(input)};
   const GeoVector min = geo_vector_min(state->selectStart, cur);
   const GeoVector max = geo_vector_max(state->selectStart, cur);
   if (min.x == max.x || min.y == max.y) {
     return;
   }
-
   GeoVector frustumCorners[8];
   scene_camera_frustum_corners(camera, cameraTrans, inputAspect, min, max, frustumCorners);
+
+  EcsEntityId results[scene_query_max_hits];
+  const u32   resultCount = scene_query_frustum_all(collisionEnv, frustumCorners, results);
+  for (u32 i = 0; i != resultCount; ++i) {
+    cmd_push_select(cmdController, results[i]);
+  }
 }
 
 static void select_end_drag(InputStateComp* state) { state->selectState = InputSelectState_None; }
@@ -158,7 +168,8 @@ static void update_camera_interact(
     break;
   case InputSelectState_Dragging:
     if (selectActive) {
-      select_update_drag(state, input, camera, cameraTrans, inputAspect);
+      select_update_drag(
+          state, input, cmdController, collisionEnv, camera, cameraTrans, inputAspect);
     } else {
       select_end_drag(state);
     }
