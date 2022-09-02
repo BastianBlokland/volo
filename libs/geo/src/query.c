@@ -156,3 +156,21 @@ bool geo_query_ray(const GeoQueryEnv* env, const GeoRay* ray, GeoQueryRayHit* ou
   }
   return foundHit;
 }
+
+u32 geo_query_frustum_all(
+    const GeoQueryEnv* env, const GeoVector frustum[8], u64 out[geo_query_max_hits]) {
+  u32 count = 0;
+
+  /**
+   * Rotated boxes.
+   */
+  const GeoBoxRotated* rotatedBoxesBegin = dynarray_begin_t(&env->rotatedBoxes, GeoBoxRotated);
+  const GeoBoxRotated* rotatedBoxesEnd   = dynarray_end_t(&env->rotatedBoxes, GeoBoxRotated);
+  for (const GeoBoxRotated* itr = rotatedBoxesBegin; itr != rotatedBoxesEnd; ++itr) {
+    if (LIKELY(count < geo_query_max_hits) && geo_box_rotated_intersect_frustum(itr, frustum)) {
+      out[count++] = *dynarray_at_t(&env->rotateBoxIds, itr - rotatedBoxesBegin, u64);
+    }
+  }
+
+  return count;
+}
