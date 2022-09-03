@@ -2,6 +2,7 @@
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_math.h"
+#include "geo_box_rotated.h"
 #include "geo_query.h"
 
 struct sGeoQueryEnv {
@@ -160,6 +161,35 @@ bool geo_query_ray(const GeoQueryEnv* env, const GeoRay* ray, GeoQueryRayHit* ou
 u32 geo_query_frustum_all(
     const GeoQueryEnv* env, const GeoVector frustum[8], u64 out[geo_query_max_hits]) {
   u32 count = 0;
+
+  /**
+   * Spheres.
+   * TODO: Implement sphere <-> frustum intersection instead of converting spheres to boxes.
+   */
+  const GeoSphere* spheresBegin = dynarray_begin_t(&env->spheres, GeoSphere);
+  const GeoSphere* spheresEnd   = dynarray_end_t(&env->spheres, GeoSphere);
+  for (const GeoSphere* itr = spheresBegin; itr != spheresEnd; ++itr) {
+    const GeoBoxRotated box = {
+        .box      = geo_box_from_sphere(itr->point, itr->radius),
+        .rotation = geo_quat_ident,
+    };
+    if (LIKELY(count < geo_query_max_hits) && geo_box_rotated_intersect_frustum(&box, frustum)) {
+      out[count++] = *dynarray_at_t(&env->sphereIds, itr - spheresBegin, u64);
+    }
+  }
+
+  /**
+   * Capsules.
+   * TODO: Implement capsule <-> frustum intersection instead of converting capsules to boxes.
+   */
+  const GeoCapsule* capsulesBegin = dynarray_begin_t(&env->capsules, GeoCapsule);
+  const GeoCapsule* capsulesEnd   = dynarray_end_t(&env->capsules, GeoCapsule);
+  for (const GeoCapsule* itr = capsulesBegin; itr != capsulesEnd; ++itr) {
+    const GeoBoxRotated box = geo_box_rotated_from_capsule(itr->line.a, itr->line.b, itr->radius);
+    if (LIKELY(count < geo_query_max_hits) && geo_box_rotated_intersect_frustum(&box, frustum)) {
+      out[count++] = *dynarray_at_t(&env->capsuleIds, itr - capsulesBegin, u64);
+    }
+  }
 
   /**
    * Rotated boxes.
