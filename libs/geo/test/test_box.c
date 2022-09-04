@@ -174,10 +174,10 @@ spec(box) {
 
   it("can test for approximate intersection with 4 frustum planes") {
     const GeoPlane frustum[4] = {
-        {.normal = geo_right, .distance = 1},
-        {.normal = geo_left, .distance = 2},
-        {.normal = geo_down, .distance = 2},
-        {.normal = geo_up, .distance = 1},
+        {.normal = geo_right, .distance = -1.0f},
+        {.normal = geo_left, .distance = -2.0f},
+        {.normal = geo_down, .distance = -2.0f},
+        {.normal = geo_up, .distance = -1.0f},
     };
     const GeoBox inside1 = geo_box_from_sphere(geo_vector(0, 0, 0), 0.5f);
     const GeoBox inside2 = geo_box_from_sphere(geo_vector(0, 2, 0), 0.5f);
