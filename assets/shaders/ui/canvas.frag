@@ -9,8 +9,8 @@ bind_spec(0) const bool s_debug = false;
 
 const f32   c_smoothingPixels = 2;
 const f32v4 c_outlineColor    = f32v4(0.025, 0.025, 0.025, 0.95);
-const f32   c_outlineNormMax  = 0.9;  // Avoid the extremities of the sdf border to avoid artifacts.
-const f32   c_outlineMin      = 0.01; // Outlines smaller then this will not be drawn.
+const f32   c_outlineNormMax  = 0.9; // Avoid the extremities of the sdf border to avoid artifacts.
+const f32   c_outlineMin      = 0.001; // Outlines smaller then this will not be drawn.
 
 bind_graphic(1) uniform sampler2D u_fontTexture;
 
