@@ -37,6 +37,35 @@ GeoMatrix scene_camera_proj(const SceneCameraComp*, f32 aspect);
 GeoMatrix scene_camera_view_proj(const SceneCameraComp*, const SceneTransformComp*, f32 aspect);
 
 /**
+ * Compute 4 frustum planes.
+ * NOTE: Plane normals point towards the inside of the frustum.
+ * NOTE: SceneTransformComp is optional
+ *
+ * [0] = Left plane.
+ * [1] = Right plane.
+ * [2] = Top plane.
+ * [3] = Bottom plane.
+ */
+void scene_camera_frustum4(
+    const SceneCameraComp*, const SceneTransformComp*, f32 aspect, GeoPlane out[4]);
+
+/**
+ * Compute the world-space corner points of a rectangle inside the camera view.
+ * NOTE: SceneTransformComp is optional
+ * NOTE: Rect coordinates are in normalized screen positions (x: 0 - 1, y: 0 - 1).
+ *
+ * Pre-condition: Given rectangle is not inverted.
+ * Pre-condition: Given rectangle is not infinitely small.
+ */
+void scene_camera_frustum_corners(
+    const SceneCameraComp*,
+    const SceneTransformComp*,
+    f32       aspect,
+    GeoVector rectMin,
+    GeoVector rectMax,
+    GeoVector out[8]);
+
+/**
  * Compute a world-space ray through the given normalized screen position (x: 0 - 1, y: 0 - 1).
  */
 GeoRay scene_camera_ray(

@@ -354,7 +354,7 @@ geo_box_from_quad(const GeoVector center, const f32 sizeX, const f32 sizeY, cons
 #endif
 }
 
-bool geo_box_intersect_frustum4(const GeoBox* box, const GeoPlane frustum[4]) {
+bool geo_box_intersect_frustum4_approx(const GeoBox* box, const GeoPlane frustum[4]) {
 #if geo_box_simd_enable
   const SimdVec boxMin = simd_vec_load(box->min.comps);
   const SimdVec boxMax = simd_vec_load(box->max.comps);
@@ -366,7 +366,7 @@ bool geo_box_intersect_frustum4(const GeoBox* box, const GeoPlane frustum[4]) {
     const SimdVec greaterThenZeroMask = simd_vec_greater(planeNorm, simd_vec_zero());
     const SimdVec max                 = simd_vec_select(boxMin, boxMax, greaterThenZeroMask);
     const SimdVec dot                 = simd_vec_dot4(planeNorm, max);
-    if (-simd_vec_x(dot) > frustum[i].distance) {
+    if (simd_vec_x(dot) < frustum[i].distance) {
       return false;
     }
   }
@@ -381,7 +381,7 @@ bool geo_box_intersect_frustum4(const GeoBox* box, const GeoPlane frustum[4]) {
         .y = frustum[i].normal.y > 0 ? box->max.y : box->min.y,
         .z = frustum[i].normal.z > 0 ? box->max.z : box->min.z,
     };
-    if (-geo_vector_dot(frustum[i].normal, max) > frustum[i].distance) {
+    if (geo_vector_dot(frustum[i].normal, max) < frustum[i].distance) {
       return false;
     }
   }

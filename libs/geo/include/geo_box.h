@@ -99,9 +99,10 @@ GeoBox geo_box_from_quad(GeoVector center, f32 sizeX, f32 sizeY, GeoQuat rotatio
 
 /**
  * Test if the box intersects the given four frustum planes.
+ * Conservative approximation, false positives are possible but false negatives are not.
  * NOTE: If the given box is inverted its considered to always be intersecting.
  */
-bool geo_box_intersect_frustum4(const GeoBox*, const GeoPlane frustum[4]);
+bool geo_box_intersect_frustum4_approx(const GeoBox*, const GeoPlane frustum[4]);
 
 /**
  * Compute the intersection of the box with the given ray.

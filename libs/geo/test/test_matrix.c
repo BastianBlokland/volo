@@ -280,15 +280,15 @@ spec(matrix) {
     geo_matrix_frustum4(&m, frustum);
 
     check_eq_vector(frustum[0].normal, geo_right);
-    check_eq_float(frustum[0].distance, 5.0f, 1e-6);
+    check_eq_float(frustum[0].distance, -5.0f, 1e-6);
 
     check_eq_vector(frustum[1].normal, geo_left);
-    check_eq_float(frustum[1].distance, 5.0f, 1e-6);
+    check_eq_float(frustum[1].distance, -5.0f, 1e-6);
 
     check_eq_vector(frustum[2].normal, geo_up);
-    check_eq_float(frustum[2].distance, 2.5f, 1e-6);
+    check_eq_float(frustum[2].distance, -2.5f, 1e-6);
 
     check_eq_vector(frustum[3].normal, geo_down);
-    check_eq_float(frustum[3].distance, 2.5f, 1e-6);
+    check_eq_float(frustum[3].distance, -2.5f, 1e-6);
   }
 }

@@ -25,6 +25,11 @@ GeoBoxRotated geo_box_rotated_from_capsule(GeoVector bottom, GeoVector top, f32 
 f32 geo_box_rotated_intersect_ray(const GeoBoxRotated*, const GeoRay*, GeoVector* outNormal);
 
 /**
+ * Test if the rotated box intersects the frustum formed by the given 8 corners.
+ */
+bool geo_box_rotated_intersect_frustum(const GeoBoxRotated*, const GeoVector frustum[8]);
+
+/**
  * Test if the rotated box overlaps the given axis-aligned box.
  */
 bool geo_box_rotated_overlap_box(const GeoBoxRotated*, const GeoBox*);

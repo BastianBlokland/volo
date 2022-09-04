@@ -591,7 +591,7 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
   DebugInspectorSettingsComp* settings  = inspector_settings_get_or_create(world);
 
   EcsView*     subjectView = ecs_world_view_t(world, SubjectView);
-  EcsIterator* subjectItr  = ecs_view_maybe_at(subjectView, scene_selected(selection));
+  EcsIterator* subjectItr  = ecs_view_maybe_at(subjectView, scene_selection_main(selection));
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
@@ -626,11 +626,11 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
   if (!globalItr) {
     return;
   }
-  const InputManagerComp*     input     = ecs_view_read_t(globalItr, InputManagerComp);
-  const SceneSelectionComp*   selection = ecs_view_read_t(globalItr, SceneSelectionComp);
-  DebugGizmoComp*             gizmo     = ecs_view_write_t(globalItr, DebugGizmoComp);
-  DebugInspectorSettingsComp* set       = ecs_view_write_t(globalItr, DebugInspectorSettingsComp);
-  DebugStatsGlobalComp*       stats     = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
+  const InputManagerComp*     input = ecs_view_read_t(globalItr, InputManagerComp);
+  const SceneSelectionComp*   sel   = ecs_view_read_t(globalItr, SceneSelectionComp);
+  DebugGizmoComp*             gizmo = ecs_view_write_t(globalItr, DebugGizmoComp);
+  DebugInspectorSettingsComp* set   = ecs_view_write_t(globalItr, DebugInspectorSettingsComp);
+  DebugStatsGlobalComp*       stats = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
 
   if (input_triggered_lit(input, "DebugInspectorToolTranslation")) {
     debug_inspector_toggle_tool(set, DebugInspectorTool_Translation);
@@ -645,32 +645,33 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
     inspector_notify_tool(set, stats);
   }
 
-  EcsView*     subjectView = ecs_world_view_t(world, SubjectView);
-  EcsIterator* subjectItr  = ecs_view_maybe_at(subjectView, scene_selected(selection));
-  if (subjectItr) {
-    const DebugGizmoId  gizmoId       = (DebugGizmoId)ecs_view_entity(subjectItr);
-    SceneTransformComp* transformComp = ecs_view_write_t(subjectItr, SceneTransformComp);
-    SceneScaleComp*     scaleComp     = ecs_view_write_t(subjectItr, SceneScaleComp);
-    switch (set->tool) {
-    case DebugInspectorTool_Translation:
-      if (transformComp) {
-        debug_gizmo_translation(gizmo, gizmoId, &transformComp->position, transformComp->rotation);
+  EcsIterator* subjectItr = ecs_view_itr(ecs_world_view_t(world, SubjectView));
+  for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
+    if (ecs_view_maybe_jump(subjectItr, *e)) {
+      const DebugGizmoId  gizmoId   = (DebugGizmoId)ecs_view_entity(subjectItr);
+      SceneTransformComp* transform = ecs_view_write_t(subjectItr, SceneTransformComp);
+      SceneScaleComp*     scaleComp = ecs_view_write_t(subjectItr, SceneScaleComp);
+      switch (set->tool) {
+      case DebugInspectorTool_Translation:
+        if (transform) {
+          debug_gizmo_translation(gizmo, gizmoId, &transform->position, transform->rotation);
+        }
+        break;
+      case DebugInspectorTool_Rotation:
+        if (transform) {
+          debug_gizmo_rotation(gizmo, gizmoId, transform->position, &transform->rotation);
+        }
+        break;
+      case DebugInspectorTool_Scale:
+        if (scaleComp) {
+          const GeoVector position = transform ? transform->position : geo_vector(0);
+          debug_gizmo_scale_uniform(gizmo, gizmoId, position, &scaleComp->scale);
+        }
+        break;
+      case DebugInspectorTool_None:
+      case DebugInspectorTool_Count:
+        break;
       }
-      break;
-    case DebugInspectorTool_Rotation:
-      if (transformComp) {
-        debug_gizmo_rotation(gizmo, gizmoId, transformComp->position, &transformComp->rotation);
-      }
-      break;
-    case DebugInspectorTool_Scale:
-      if (scaleComp) {
-        const GeoVector position = transformComp ? transformComp->position : geo_vector(0);
-        debug_gizmo_scale_uniform(gizmo, gizmoId, position, &scaleComp->scale);
-      }
-      break;
-    case DebugInspectorTool_None:
-    case DebugInspectorTool_Count:
-      break;
     }
   }
 }
@@ -861,17 +862,19 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   if (!set->visFlags) {
     return;
   }
-  const SceneNavEnvComp*    nav       = ecs_view_read_t(globalItr, SceneNavEnvComp);
-  const SceneSelectionComp* selection = ecs_view_read_t(globalItr, SceneSelectionComp);
-  DebugShapeComp*           shape     = ecs_view_write_t(globalItr, DebugShapeComp);
-  DebugTextComp*            text      = ecs_view_write_t(globalItr, DebugTextComp);
+  const SceneNavEnvComp*    nav   = ecs_view_read_t(globalItr, SceneNavEnvComp);
+  const SceneSelectionComp* sel   = ecs_view_read_t(globalItr, SceneSelectionComp);
+  DebugShapeComp*           shape = ecs_view_write_t(globalItr, DebugShapeComp);
+  DebugTextComp*            text  = ecs_view_write_t(globalItr, DebugTextComp);
 
   EcsView* subjectView = ecs_world_view_t(world, SubjectView);
   switch (set->visMode) {
   case DebugInspectorVisMode_SelectedOnly: {
-    EcsIterator* subjectItr = ecs_view_maybe_at(subjectView, scene_selected(selection));
-    if (subjectItr) {
-      inspector_vis_draw_subject(shape, text, set, nav, subjectItr);
+    EcsIterator* subjectItr = ecs_view_itr(subjectView);
+    for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
+      if (ecs_view_maybe_jump(subjectItr, *e)) {
+        inspector_vis_draw_subject(shape, text, set, nav, subjectItr);
+      }
     }
   } break;
   case DebugInspectorVisMode_All: {

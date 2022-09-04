@@ -362,7 +362,7 @@ ecs_system_define(DebugAnimationUpdatePanelSys) {
   DebugAnimationSettingsComp* settings = anim_settings_get_or_create(world);
 
   const SceneSelectionComp* selection = ecs_view_read_t(globalItr, SceneSelectionComp);
-  const DebugAnimSubject    subject   = debug_anim_subject(world, scene_selected(selection));
+  const DebugAnimSubject    subject   = debug_anim_subject(world, scene_selection_main(selection));
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
@@ -458,35 +458,37 @@ ecs_system_define(DebugAnimationDrawSys) {
   if (!globalItr) {
     return;
   }
-  const SceneSelectionComp*         selection = ecs_view_read_t(globalItr, SceneSelectionComp);
+  const SceneSelectionComp*         sel   = ecs_view_read_t(globalItr, SceneSelectionComp);
   const DebugAnimationSettingsComp* set   = ecs_view_read_t(globalItr, DebugAnimationSettingsComp);
   DebugShapeComp*                   shape = ecs_view_write_t(globalItr, DebugShapeComp);
   DebugTextComp*                    text  = ecs_view_write_t(globalItr, DebugTextComp);
 
-  const DebugAnimSubject subject = debug_anim_subject(world, scene_selected(selection));
-  if (!subject.valid) {
-    return;
-  }
+  for (const EcsEntityId* e = scene_selection_begin(sel); e != scene_selection_end(sel); ++e) {
+    const DebugAnimSubject subject = debug_anim_subject(world, *e);
+    if (!subject.valid) {
+      return;
+    }
 
-  GeoMatrix* jointMatrices = mem_stack(sizeof(GeoMatrix) * subject.skeleton->jointCount).ptr;
-  for (u32 i = 0; i != subject.skeleton->jointCount; ++i) {
-    jointMatrices[i] = geo_matrix_mul(&subject.transform, &subject.skeleton->jointTransforms[i]);
-  }
+    GeoMatrix* jointMatrices = mem_stack(sizeof(GeoMatrix) * subject.skeleton->jointCount).ptr;
+    for (u32 i = 0; i != subject.skeleton->jointCount; ++i) {
+      jointMatrices[i] = geo_matrix_mul(&subject.transform, &subject.skeleton->jointTransforms[i]);
+    }
 
-  if (set->flags & DebugAnimationFlags_DrawSkeleton) {
-    debug_draw_skeleton(
-        shape, subject.skeletonTemplate, subject.skeleton->jointCount, jointMatrices);
-  }
-  if (set->flags & DebugAnimationFlags_DrawJointTransforms) {
-    debug_draw_joint_transforms(shape, subject.skeleton->jointCount, jointMatrices);
-  }
-  if (set->flags & DebugAnimationFlags_DrawJointNames) {
-    debug_draw_joint_names(
-        text, subject.skeletonTemplate, subject.skeleton->jointCount, jointMatrices);
-  }
-  if (set->flags & DebugAnimationFlags_DrawSkinCounts) {
-    debug_draw_skin_counts(
-        text, subject.skeletonTemplate, subject.skeleton->jointCount, jointMatrices);
+    if (set->flags & DebugAnimationFlags_DrawSkeleton) {
+      debug_draw_skeleton(
+          shape, subject.skeletonTemplate, subject.skeleton->jointCount, jointMatrices);
+    }
+    if (set->flags & DebugAnimationFlags_DrawJointTransforms) {
+      debug_draw_joint_transforms(shape, subject.skeleton->jointCount, jointMatrices);
+    }
+    if (set->flags & DebugAnimationFlags_DrawJointNames) {
+      debug_draw_joint_names(
+          text, subject.skeletonTemplate, subject.skeleton->jointCount, jointMatrices);
+    }
+    if (set->flags & DebugAnimationFlags_DrawSkinCounts) {
+      debug_draw_skin_counts(
+          text, subject.skeletonTemplate, subject.skeleton->jointCount, jointMatrices);
+    }
   }
 }
 

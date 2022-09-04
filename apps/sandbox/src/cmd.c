@@ -89,10 +89,10 @@ static void cmd_execute(
   switch (cmd->type) {
   case Cmd_Select:
     diag_assert_msg(ecs_world_exists(world, cmd->select.object), "Selecting non-existing obj");
-    scene_select(selection, cmd->select.object);
+    scene_selection_add(selection, cmd->select.object);
     break;
   case Cmd_Deselect:
-    scene_deselect(selection);
+    scene_selection_clear(selection);
     break;
   case Cmd_Move:
     cmd_execute_move(world, &cmd->move);
@@ -105,6 +105,7 @@ static void cmd_execute(
     break;
   case Cmd_Destroy:
     diag_assert_msg(ecs_world_exists(world, cmd->destroy.object), "Destroying non-existing obj");
+    scene_selection_remove(selection, cmd->destroy.object);
     ecs_world_entity_destroy(world, cmd->destroy.object);
     break;
   }

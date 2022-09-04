@@ -143,7 +143,7 @@ GeoMatrix geo_matrix_proj_pers_hor(f32 horAngle, f32 aspect, f32 zNear);
 
 /**
  * Extract frustum planes from a projection matrix.
- * NOTE: The near and the far planes are not extracted. Reasoning is that near is not often usefull
+ * NOTE: The near and the far planes are not extracted. Reasoning is that near is not often useful
  * for clipping against and we're using an infinite far plane for perspective projections.
  * NOTE: Plane normals point towards the inside of the frustum.
  *

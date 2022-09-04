@@ -8,6 +8,11 @@
 typedef struct sAllocator Allocator;
 
 /**
+ * Maximum number of objects that can be hit using a single query, additional objects are ignored.
+ */
+#define geo_query_max_hits 128
+
+/**
  * Environment for querying against.
  */
 typedef struct sGeoQueryEnv GeoQueryEnv;
@@ -47,3 +52,10 @@ typedef struct {
  * NOTE: Hit information is written to the out pointer if true was returned.
  */
 bool geo_query_ray(const GeoQueryEnv*, const GeoRay*, GeoQueryRayHit* outHit);
+
+/**
+ * Query for all objects that are contained in the frustum formed by the given 8 corner points.
+ * NOTE: Returns the number of hit objects.
+ */
+u32 geo_query_frustum_all(
+    const GeoQueryEnv*, const GeoVector frustum[8], u64 out[geo_query_max_hits]);

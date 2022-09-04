@@ -6,7 +6,8 @@
 #include "scene_register.h"
 #include "scene_transform.h"
 
-ASSERT(sizeof(EcsEntityId) <= sizeof(u64), "EntityId's have to be storable with 64 bit integers");
+ASSERT(sizeof(EcsEntityId) == sizeof(u64), "EntityId's have to be interpretable as 64bit integers");
+ASSERT(geo_query_max_hits == scene_query_max_hits, "Mismatching maximum query hits");
 
 ecs_comp_define(SceneCollisionEnvComp) { GeoQueryEnv* queryEnv; };
 
@@ -122,6 +123,13 @@ bool scene_query_ray(const SceneCollisionEnvComp* env, const GeoRay* ray, SceneR
     return true;
   }
   return false;
+}
+
+u32 scene_query_frustum_all(
+    const SceneCollisionEnvComp* env,
+    const GeoVector              frustum[8],
+    EcsEntityId                  out[geo_query_max_hits]) {
+  return geo_query_frustum_all(env->queryEnv, frustum, (u64*)out);
 }
 
 GeoSphere scene_collision_world_sphere(

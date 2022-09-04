@@ -12,12 +12,19 @@ GeoPlane geo_plane_at(const GeoVector normal, const GeoVector position) {
   return (GeoPlane){.normal = normal, .distance = geo_vector_dot(normal, position)};
 }
 
+GeoPlane geo_plane_at_triangle(const GeoVector a, const GeoVector b, const GeoVector c) {
+  const GeoVector toB    = geo_vector_sub(b, a);
+  const GeoVector toC    = geo_vector_sub(c, a);
+  const GeoVector normal = geo_vector_norm(geo_vector_cross3(toB, toC));
+  return (GeoPlane){.normal = normal, .distance = geo_vector_dot(normal, a)};
+}
+
 GeoVector geo_plane_position(const GeoPlane* plane) {
   return geo_vector_mul(plane->normal, plane->distance);
 }
 
 GeoVector geo_plane_closest_point(const GeoPlane* plane, const GeoVector point) {
-  const f32 dist = geo_vector_dot(plane->normal, point) + plane->distance;
+  const f32 dist = geo_vector_dot(plane->normal, point) - plane->distance;
   return geo_vector_sub(point, geo_vector_mul(plane->normal, dist));
 }
 
