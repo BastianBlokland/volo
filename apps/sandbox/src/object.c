@@ -1,6 +1,7 @@
 #include "asset_manager.h"
 #include "ecs_world.h"
 #include "scene_collision.h"
+#include "scene_health.h"
 #include "scene_locomotion.h"
 #include "scene_nav.h"
 #include "scene_renderable.h"
@@ -61,6 +62,7 @@ object_spawn_unit(EcsWorld* world, const ObjectDatabaseComp* db, const GeoVector
   ecs_world_add_t(world, e, SceneTransformComp, .position = position, .rotation = rotation);
   scene_nav_add_agent(world, e);
   ecs_world_add_t(world, e, SceneLocomotionComp, .speed = g_speed, .radius = 0.4f);
+  ecs_world_add_t(world, e, SceneHealthComp, .norm = 1.0f, .max = 100.0f);
   scene_collision_add_capsule(world, e, g_capsule);
   return e;
 }
