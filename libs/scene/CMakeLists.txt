@@ -8,6 +8,7 @@ add_library(lib_scene STATIC
   src/bounds.c
   src/camera.c
   src/collision.c
+  src/faction.c
   src/health.c
   src/lifetime.c
   src/locomotion.c

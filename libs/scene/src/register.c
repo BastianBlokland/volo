@@ -5,6 +5,7 @@ void scene_register(EcsDef* def) {
   ecs_register_module(def, scene_bounds_module);
   ecs_register_module(def, scene_camera_module);
   ecs_register_module(def, scene_collision_module);
+  ecs_register_module(def, scene_faction_module);
   ecs_register_module(def, scene_health_module);
   ecs_register_module(def, scene_lifetime_module);
   ecs_register_module(def, scene_locomotion_module);

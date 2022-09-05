@@ -12,6 +12,7 @@
 #include "input_manager.h"
 #include "scene_bounds.h"
 #include "scene_collision.h"
+#include "scene_faction.h"
 #include "scene_health.h"
 #include "scene_locomotion.h"
 #include "scene_name.h"
@@ -129,6 +130,7 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_read(SceneNavPathComp);
   ecs_access_maybe_write(SceneBoundsComp);
   ecs_access_maybe_write(SceneCollisionComp);
+  ecs_access_maybe_write(SceneFactionComp);
   ecs_access_maybe_write(SceneHealthComp);
   ecs_access_maybe_write(SceneScaleComp);
   ecs_access_maybe_write(SceneTagComp);
@@ -196,10 +198,19 @@ static void inspector_panel_draw_value_none(UiCanvasComp* canvas) {
   ui_style_pop(canvas);
 }
 
-static bool inspector_panel_draw_editor_float(UiCanvasComp* canvas, f32* val) {
+static bool inspector_panel_draw_editor_f32(UiCanvasComp* canvas, f32* val) {
   f64 v = *val;
   if (ui_numbox(canvas, &v, .min = f32_min, .max = f32_max, .flags = UiWidget_DirtyWhileEditing)) {
     *val = (f32)v;
+    return true;
+  }
+  return false;
+}
+
+static bool inspector_panel_draw_editor_u32(UiCanvasComp* canvas, u32* val) {
+  f64 v = *val;
+  if (ui_numbox(canvas, &v, .max = u32_max, .step = 1, .flags = UiWidget_DirtyWhileEditing)) {
+    *val = (u32)v;
     return true;
   }
   return false;
@@ -217,7 +228,7 @@ inspector_panel_draw_editor_vec(UiCanvasComp* canvas, GeoVector* val, const u8 n
 
   bool isDirty = false;
   for (u8 comp = 0; comp != numComps; ++comp) {
-    isDirty |= inspector_panel_draw_editor_float(canvas, &val->comps[comp]);
+    isDirty |= inspector_panel_draw_editor_f32(canvas, &val->comps[comp]);
     ui_layout_next(canvas, Ui_Right, g_spacing);
   }
   ui_layout_pop(canvas);
@@ -320,7 +331,7 @@ static void inspector_panel_draw_transform(
     inspector_panel_next(canvas, panelComp, table);
     ui_label(canvas, string_lit("Scale"));
     ui_table_next_column(canvas, table);
-    if (inspector_panel_draw_editor_float(canvas, &scale->scale)) {
+    if (inspector_panel_draw_editor_f32(canvas, &scale->scale)) {
       // Clamp the scale to a sane value.
       scale->scale = math_clamp_f32(scale->scale, 1e-2f, 1e2f);
     }
@@ -344,7 +355,24 @@ static void inspector_panel_draw_health(
       inspector_panel_next(canvas, panelComp, table);
       ui_label(canvas, string_lit("Max"));
       ui_table_next_column(canvas, table);
-      inspector_panel_draw_editor_float(canvas, &health->max);
+      inspector_panel_draw_editor_f32(canvas, &health->max);
+    }
+  }
+}
+
+static void inspector_panel_draw_faction(
+    UiCanvasComp*            canvas,
+    DebugInspectorPanelComp* panelComp,
+    UiTable*                 table,
+    EcsIterator*             subject) {
+  SceneFactionComp* faction = subject ? ecs_view_write_t(subject, SceneFactionComp) : null;
+  if (faction) {
+    inspector_panel_next(canvas, panelComp, table);
+    if (inspector_panel_section(canvas, string_lit("Faction"))) {
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Id"));
+      ui_table_next_column(canvas, table);
+      inspector_panel_draw_editor_u32(canvas, &faction->id);
     }
   }
 }
@@ -411,7 +439,7 @@ static void inspector_panel_draw_collision(
         inspector_panel_next(canvas, panelComp, table);
         ui_label(canvas, string_lit("Radius"));
         ui_table_next_column(canvas, table);
-        inspector_panel_draw_editor_float(canvas, &collision->sphere.radius);
+        inspector_panel_draw_editor_f32(canvas, &collision->sphere.radius);
       } break;
       case SceneCollisionType_Capsule: {
         inspector_panel_next(canvas, panelComp, table);
@@ -434,12 +462,12 @@ static void inspector_panel_draw_collision(
         inspector_panel_next(canvas, panelComp, table);
         ui_label(canvas, string_lit("Radius"));
         ui_table_next_column(canvas, table);
-        inspector_panel_draw_editor_float(canvas, &collision->capsule.radius);
+        inspector_panel_draw_editor_f32(canvas, &collision->capsule.radius);
 
         inspector_panel_next(canvas, panelComp, table);
         ui_label(canvas, string_lit("Height"));
         ui_table_next_column(canvas, table);
-        inspector_panel_draw_editor_float(canvas, &collision->capsule.height);
+        inspector_panel_draw_editor_f32(canvas, &collision->capsule.height);
       } break;
       case SceneCollisionType_Box: {
         inspector_panel_next(canvas, panelComp, table);
@@ -581,6 +609,9 @@ static void inspector_panel_draw(
   ui_canvas_id_block_next(canvas);
 
   inspector_panel_draw_health(canvas, panelComp, &table, subject);
+  ui_canvas_id_block_next(canvas);
+
+  inspector_panel_draw_faction(canvas, panelComp, &table, subject);
   ui_canvas_id_block_next(canvas);
 
   inspector_panel_draw_renderable(canvas, panelComp, &table, subject);
