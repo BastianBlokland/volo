@@ -12,6 +12,7 @@
 #include "input_manager.h"
 #include "scene_bounds.h"
 #include "scene_collision.h"
+#include "scene_health.h"
 #include "scene_locomotion.h"
 #include "scene_name.h"
 #include "scene_nav.h"
@@ -128,6 +129,7 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_read(SceneNavPathComp);
   ecs_access_maybe_write(SceneBoundsComp);
   ecs_access_maybe_write(SceneCollisionComp);
+  ecs_access_maybe_write(SceneHealthComp);
   ecs_access_maybe_write(SceneScaleComp);
   ecs_access_maybe_write(SceneTagComp);
   ecs_access_write(SceneRenderableComp);
@@ -321,6 +323,28 @@ static void inspector_panel_draw_transform(
     if (inspector_panel_draw_editor_float(canvas, &scale->scale)) {
       // Clamp the scale to a sane value.
       scale->scale = math_clamp_f32(scale->scale, 1e-2f, 1e2f);
+    }
+  }
+}
+
+static void inspector_panel_draw_health(
+    UiCanvasComp*            canvas,
+    DebugInspectorPanelComp* panelComp,
+    UiTable*                 table,
+    EcsIterator*             subject) {
+  SceneHealthComp* health = subject ? ecs_view_write_t(subject, SceneHealthComp) : null;
+  if (health) {
+    inspector_panel_next(canvas, panelComp, table);
+    if (inspector_panel_section(canvas, string_lit("Health"))) {
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Amount"));
+      ui_table_next_column(canvas, table);
+      ui_slider(canvas, &health->norm);
+
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Max"));
+      ui_table_next_column(canvas, table);
+      inspector_panel_draw_editor_float(canvas, &health->max);
     }
   }
 }
@@ -545,29 +569,37 @@ static void inspector_panel_draw(
   ui_scrollview_begin(canvas, &panelComp->scrollview, totalHeight);
   panelComp->totalRows = 0;
 
+  /**
+   * NOTE: The sections draw a variable amount of elements, thus we jump to the next id block
+   * afterwards to keep consistent ids.
+   */
+
   inspector_panel_draw_entity_info(world, canvas, panelComp, &table, subject);
-  ui_canvas_id_block_next(canvas); // Draws a variable amount of elements; Skip over the id space.
+  ui_canvas_id_block_next(canvas);
 
   inspector_panel_draw_transform(canvas, panelComp, &table, subject);
-  ui_canvas_id_block_next(canvas); // Draws a variable amount of elements; Skip over the id space.
+  ui_canvas_id_block_next(canvas);
+
+  inspector_panel_draw_health(canvas, panelComp, &table, subject);
+  ui_canvas_id_block_next(canvas);
 
   inspector_panel_draw_renderable(canvas, panelComp, &table, subject);
-  ui_canvas_id_block_next(canvas); // Draws a variable amount of elements; Skip over the id space.
+  ui_canvas_id_block_next(canvas);
 
   inspector_panel_draw_tags(canvas, panelComp, &table, subject);
-  ui_canvas_id_block_next(canvas); // Draws a variable amount of elements; Skip over the id space.
+  ui_canvas_id_block_next(canvas);
 
   inspector_panel_draw_collision(canvas, panelComp, &table, subject);
-  ui_canvas_id_block_next(canvas); // Draws a variable amount of elements; Skip over the id space.
+  ui_canvas_id_block_next(canvas);
 
   inspector_panel_draw_bounds(canvas, panelComp, &table, subject);
-  ui_canvas_id_block_next(canvas); // Draws a variable amount of elements; Skip over the id space.
+  ui_canvas_id_block_next(canvas);
 
   inspector_panel_draw_components(world, canvas, panelComp, &table, subject);
-  ui_canvas_id_block_next(canvas); // Draws a variable amount of elements; Skip over the id space.
+  ui_canvas_id_block_next(canvas);
 
   inspector_panel_draw_settings(canvas, stats, panelComp, &table, settings);
-  ui_canvas_id_block_next(canvas); // Draws a variable amount of elements; Skip over the id space.
+  ui_canvas_id_block_next(canvas);
 
   ui_scrollview_end(canvas, &panelComp->scrollview);
   ui_panel_end(canvas, &panelComp->panel);
