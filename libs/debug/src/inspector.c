@@ -20,6 +20,7 @@
 #include "scene_renderable.h"
 #include "scene_selection.h"
 #include "scene_tag.h"
+#include "scene_target.h"
 #include "scene_transform.h"
 #include "ui.h"
 
@@ -128,6 +129,7 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_read(SceneNameComp);
   ecs_access_maybe_read(SceneNavAgentComp);
   ecs_access_maybe_read(SceneNavPathComp);
+  ecs_access_maybe_read(SceneTargetFinderComp);
   ecs_access_maybe_write(SceneBoundsComp);
   ecs_access_maybe_write(SceneCollisionComp);
   ecs_access_maybe_write(SceneFactionComp);
@@ -377,6 +379,30 @@ static void inspector_panel_draw_faction(
   }
 }
 
+static void inspector_panel_draw_target(
+    UiCanvasComp*            canvas,
+    DebugInspectorPanelComp* panelComp,
+    UiTable*                 table,
+    EcsIterator*             subject) {
+  const SceneTargetFinderComp* finder =
+      subject ? ecs_view_read_t(subject, SceneTargetFinderComp) : null;
+  if (finder) {
+    inspector_panel_next(canvas, panelComp, table);
+    if (inspector_panel_section(canvas, string_lit("Target"))) {
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Entity"));
+      ui_table_next_column(canvas, table);
+      inspector_panel_draw_value_entity(canvas, finder->target);
+
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Distance"));
+      ui_table_next_column(canvas, table);
+      const f32 dist = math_sqrt_f32(finder->targetDistSqr);
+      inspector_panel_draw_value_string(canvas, fmt_write_scratch("{}", fmt_float(dist)));
+    }
+  }
+}
+
 static void inspector_panel_draw_renderable(
     UiCanvasComp*            canvas,
     DebugInspectorPanelComp* panelComp,
@@ -612,6 +638,9 @@ static void inspector_panel_draw(
   ui_canvas_id_block_next(canvas);
 
   inspector_panel_draw_faction(canvas, panelComp, &table, subject);
+  ui_canvas_id_block_next(canvas);
+
+  inspector_panel_draw_target(canvas, panelComp, &table, subject);
   ui_canvas_id_block_next(canvas);
 
   inspector_panel_draw_renderable(canvas, panelComp, &table, subject);

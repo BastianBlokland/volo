@@ -19,6 +19,7 @@ add_library(lib_scene STATIC
   src/selection.c
   src/skeleton.c
   src/tag.c
+  src/target.c
   src/time.c
   src/transform.c
   )

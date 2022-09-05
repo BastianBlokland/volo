@@ -15,6 +15,7 @@ void scene_register(EcsDef* def) {
   ecs_register_module(def, scene_selection_module);
   ecs_register_module(def, scene_skeleton_module);
   ecs_register_module(def, scene_tag_module);
+  ecs_register_module(def, scene_target_module);
   ecs_register_module(def, scene_time_module);
   ecs_register_module(def, scene_transform_module);
 }
