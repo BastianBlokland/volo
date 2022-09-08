@@ -67,6 +67,12 @@ void data_reg_destroy(DataReg* reg) {
       }
       dynarray_destroy(&decl->val_struct.fields);
     } break;
+    case DataKind_Union: {
+      dynarray_for_t(&decl->val_union.choices, DataDeclChoice, choiceDecl) {
+        data_id_destroy(reg->alloc, choiceDecl->id);
+      }
+      dynarray_destroy(&decl->val_union.choices);
+    } break;
     case DataKind_Enum: {
       dynarray_for_t(&decl->val_enum.consts, DataDeclConst, constDecl) {
         data_id_destroy(reg->alloc, constDecl->id);
@@ -141,6 +147,59 @@ void data_reg_field(
 
   *dynarray_push_t(&parentDecl->val_struct.fields, DataDeclField) = (DataDeclField){
       .id     = id,
+      .offset = offset,
+      .meta   = meta,
+  };
+}
+
+DataType data_reg_union(
+    DataReg* reg, const String name, const usize size, const usize align, const usize tagOffset) {
+  const DataId id = data_id_create(reg->alloc, name);
+
+  diag_assert_msg(bits_ispow2(align), "Alignment '{}' is not a power-of-two", fmt_int(align));
+  diag_assert_msg(
+      bits_aligned(size, align),
+      "Size '{}' is not a multiple of alignment '{}'",
+      fmt_size(size),
+      fmt_int(align));
+  diag_assert_msg(
+      sentinel_check(data_type_by_id(reg, id)), "Duplicate type with name '{}'", fmt_text(name));
+
+  const DataType type           = data_alloc_type(reg);
+  *data_decl_mutable(reg, type) = (DataDecl){
+      .kind  = DataKind_Union,
+      .size  = size,
+      .align = align,
+      .id    = id,
+      .val_union =
+          {
+              .tagOffset = tagOffset,
+              .choices   = dynarray_create_t(reg->alloc, DataDeclChoice, 8),
+          },
+  };
+  return type;
+}
+
+void data_reg_choice(
+    DataReg*       reg,
+    const DataType parent,
+    const String   name,
+    const i32      tag,
+    const usize    offset,
+    const DataMeta meta) {
+
+  const DataId id         = data_id_create(reg->alloc, name);
+  DataDecl*    parentDecl = data_decl_mutable(reg, parent);
+
+  diag_assert_msg(parentDecl->kind == DataKind_Union, "Choice parent has to be a Union");
+  diag_assert_msg(
+      offset + data_meta_size(reg, meta) <= data_decl(reg, parent)->size,
+      "Offset '{}' is out of bounds for the Union type",
+      fmt_int(offset));
+
+  *dynarray_push_t(&parentDecl->val_union.choices, DataDeclChoice) = (DataDeclChoice){
+      .id     = id,
+      .tag    = tag,
       .offset = offset,
       .meta   = meta,
   };

@@ -18,6 +18,18 @@ typedef struct {
 } DataDeclStruct;
 
 typedef struct {
+  DataId   id;
+  i32      tag;
+  usize    offset;
+  DataMeta meta;
+} DataDeclChoice;
+
+typedef struct {
+  usize    tagOffset;
+  DynArray choices; // DataDeclChoice[]
+} DataDeclUnion;
+
+typedef struct {
   DataId id;
   i32    value;
 } DataDeclConst;
@@ -32,6 +44,7 @@ typedef struct {
   DataId   id;
   union {
     DataDeclStruct val_struct;
+    DataDeclUnion  val_union;
     DataDeclEnum   val_enum;
   };
 } DataDecl;

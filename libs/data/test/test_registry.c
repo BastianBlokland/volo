@@ -95,6 +95,38 @@ spec(registry) {
     check_eq_int(data_align(reg, t_RegStructB), alignof(RegStructB));
   }
 
+  it("can register custom unions") {
+    typedef enum {
+      RegUnionTag_Int,
+      RegUnionTag_Float,
+      RegUnionTag_FloatPtr,
+    } RegUnionTag;
+
+    typedef struct {
+      RegUnionTag tag;
+      union {
+        i32  data_int;
+        f32  data_float;
+        f32* data_floatPtr;
+      };
+    } RegUnionA;
+
+    data_reg_union_t(reg, RegUnionA, tag);
+    data_reg_choice_t(reg, RegUnionA, RegUnionTag_Int, data_int, data_prim_t(i32));
+    data_reg_choice_t(reg, RegUnionA, RegUnionTag_Float, data_float, data_prim_t(f32));
+    data_reg_choice_t(
+        reg,
+        RegUnionA,
+        RegUnionTag_FloatPtr,
+        data_floatPtr,
+        data_prim_t(f32),
+        .container = DataContainer_Pointer);
+
+    check_eq_string(data_name(reg, t_RegUnionA), string_lit("RegUnionA"));
+    check_eq_int(data_size(reg, t_RegUnionA), sizeof(RegUnionA));
+    check_eq_int(data_align(reg, t_RegUnionA), alignof(RegUnionA));
+  }
+
   it("can register custom enums") {
     typedef enum {
       MyCustomEnum_A = -42,

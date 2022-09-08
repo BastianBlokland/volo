@@ -31,6 +31,7 @@ typedef enum {
 #undef X
 
   DataKind_Struct,
+  DataKind_Union,
   DataKind_Enum,
 
   DataKind_Count,
