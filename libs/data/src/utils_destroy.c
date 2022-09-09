@@ -39,17 +39,17 @@ static void data_destroy_union(const DestroyCtx* ctx) {
   const i32       tag  = *data_union_tag(&decl->val_union, ctx->data);
 
   const DataDeclChoice* choice = data_choice_from_tag(&decl->val_union, tag);
-  if (choice) {
-    const Mem choiceMem = data_choice_mem(ctx->reg, choice, ctx->data);
+  diag_assert(choice);
 
-    const DestroyCtx fieldCtx = {
-        .reg   = ctx->reg,
-        .alloc = ctx->alloc,
-        .meta  = choice->meta,
-        .data  = choiceMem,
-    };
-    data_destroy_internal(&fieldCtx);
-  }
+  const Mem choiceMem = data_choice_mem(ctx->reg, choice, ctx->data);
+
+  const DestroyCtx fieldCtx = {
+      .reg   = ctx->reg,
+      .alloc = ctx->alloc,
+      .meta  = choice->meta,
+      .data  = choiceMem,
+  };
+  data_destroy_internal(&fieldCtx);
 }
 
 static void data_destroy_single(const DestroyCtx* ctx) {

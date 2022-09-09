@@ -52,19 +52,19 @@ static void data_clone_union(const CloneCtx* ctx) {
   *data_union_tag(&decl->val_union, ctx->clone) = tag;
 
   const DataDeclChoice* choice = data_choice_from_tag(&decl->val_union, tag);
-  if (choice) {
-    const Mem originalChoiceMem = data_choice_mem(ctx->reg, choice, ctx->original);
-    const Mem choiceMem         = data_choice_mem(ctx->reg, choice, ctx->clone);
+  diag_assert(choice);
 
-    const CloneCtx choiceCtx = {
-        .reg      = ctx->reg,
-        .alloc    = ctx->alloc,
-        .meta     = choice->meta,
-        .original = originalChoiceMem,
-        .clone    = choiceMem,
-    };
-    data_clone_internal(&choiceCtx);
-  }
+  const Mem originalChoiceMem = data_choice_mem(ctx->reg, choice, ctx->original);
+  const Mem choiceMem         = data_choice_mem(ctx->reg, choice, ctx->clone);
+
+  const CloneCtx choiceCtx = {
+      .reg      = ctx->reg,
+      .alloc    = ctx->alloc,
+      .meta     = choice->meta,
+      .original = originalChoiceMem,
+      .clone    = choiceMem,
+  };
+  data_clone_internal(&choiceCtx);
 }
 
 static void data_clone_single(const CloneCtx* ctx) {
