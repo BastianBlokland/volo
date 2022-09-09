@@ -196,6 +196,7 @@ void data_reg_choice(
       offset + data_meta_size(reg, meta) <= data_decl(reg, parent)->size,
       "Offset '{}' is out of bounds for the Union type",
       fmt_int(offset));
+  diag_assert_msg(!data_choice_from_tag(&parentDecl->val_union, tag), "Duplicate choice");
 
   *dynarray_push_t(&parentDecl->val_union.choices, DataDeclChoice) = (DataDeclChoice){
       .id     = id,
