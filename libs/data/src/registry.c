@@ -39,8 +39,8 @@ MAYBE_UNUSED static DataType data_type_by_id(const DataReg* reg, const DataId id
 DataReg* data_reg_create(Allocator* alloc) {
   DataReg* reg = alloc_alloc_t(alloc, DataReg);
   *reg         = (DataReg){
-              .types = dynarray_create_t(alloc, DataDecl, 64),
-              .alloc = alloc,
+      .types = dynarray_create_t(alloc, DataDecl, 64),
+      .alloc = alloc,
   };
 
 #define X(_T_)                                                                                     \
@@ -241,6 +241,15 @@ const DataDecl* data_decl(const DataReg* reg, const DataType type) {
 Mem data_field_mem(const DataReg* reg, const DataDeclField* field, Mem structMem) {
   return mem_create(
       bits_ptr_offset(structMem.ptr, field->offset), data_meta_size(reg, field->meta));
+}
+
+i32* data_union_tag(const DataDeclUnion* decl, const Mem unionMem) {
+  return (i32*)bits_ptr_offset(unionMem.ptr, decl->tagOffset);
+}
+
+Mem data_choice_mem(const DataReg* reg, const DataDeclChoice* choice, const Mem unionMem) {
+  return mem_create(
+      bits_ptr_offset(unionMem.ptr, choice->offset), data_meta_size(reg, choice->meta));
 }
 
 Mem data_elem_mem(const DataDecl* decl, const DataArray* array, const usize index) {

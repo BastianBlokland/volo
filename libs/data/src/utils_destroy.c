@@ -20,7 +20,6 @@ static void data_destroy_string(const DestroyCtx* ctx) {
 }
 
 static void data_destroy_struct(const DestroyCtx* ctx) {
-
   const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
   dynarray_for_t(&decl->val_struct.fields, DataDeclField, fieldDecl) {
     const Mem fieldMem = data_field_mem(ctx->reg, fieldDecl, ctx->data);
@@ -30,6 +29,27 @@ static void data_destroy_struct(const DestroyCtx* ctx) {
         .alloc = ctx->alloc,
         .meta  = fieldDecl->meta,
         .data  = fieldMem,
+    };
+    data_destroy_internal(&fieldCtx);
+  }
+}
+
+static void data_destroy_union(const DestroyCtx* ctx) {
+  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
+  const i32       tag  = *data_union_tag(&decl->val_union, ctx->data);
+
+  dynarray_for_t(&decl->val_union.choices, DataDeclChoice, choice) {
+    if (choice->tag != tag) {
+      continue;
+    }
+
+    const Mem choiceMem = data_choice_mem(ctx->reg, choice, ctx->data);
+
+    const DestroyCtx fieldCtx = {
+        .reg   = ctx->reg,
+        .alloc = ctx->alloc,
+        .meta  = choice->meta,
+        .data  = choiceMem,
     };
     data_destroy_internal(&fieldCtx);
   }
@@ -55,6 +75,9 @@ static void data_destroy_single(const DestroyCtx* ctx) {
     return;
   case DataKind_Struct:
     data_destroy_struct(ctx);
+    return;
+  case DataKind_Union:
+    data_destroy_union(ctx);
     return;
   case DataKind_Invalid:
   case DataKind_Count:

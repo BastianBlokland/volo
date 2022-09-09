@@ -65,6 +65,16 @@ const DataDecl* data_decl(const DataReg*, DataType);
 Mem data_field_mem(const DataReg*, const DataDeclField*, Mem structMem);
 
 /**
+ * Create a pointer to the tag value of the given union.
+ */
+i32* data_union_tag(const DataDeclUnion*, Mem unionMem);
+
+/**
+ * Create a memory view over a choice in a union.
+ */
+Mem data_choice_mem(const DataReg*, const DataDeclChoice*, Mem unionMem);
+
+/**
  * Create a memory view over an element in the given array.
  */
 Mem data_elem_mem(const DataDecl*, const DataArray*, usize index);
