@@ -137,7 +137,7 @@ spec(utils_clone) {
 
     CloneStructB originalArrayValues[] = {
         {.a = string_lit("Hello")},
-        {.a = string_lit("Beautifull")},
+        {.a = string_lit("Beautiful")},
         {.a = string_lit("World")},
     };
 
@@ -160,6 +160,60 @@ spec(utils_clone) {
     }
 
     data_destroy(reg, g_alloc_heap, data_meta_t(t_CloneStructC), mem_var(clone));
+  }
+
+  it("can clone a union") {
+    typedef enum {
+      CloneUnionTag_Int,
+      CloneUnionTag_Float,
+      CloneUnionTag_String,
+    } CloneUnionTag;
+
+    typedef struct {
+      CloneUnionTag tag;
+      union {
+        i32    data_int;
+        f32    data_float;
+        String data_string;
+      };
+    } CloneUnionA;
+
+    data_reg_union_t(reg, CloneUnionA, tag);
+    data_reg_choice_t(reg, CloneUnionA, CloneUnionTag_Int, data_int, data_prim_t(i32));
+    data_reg_choice_t(reg, CloneUnionA, CloneUnionTag_Float, data_float, data_prim_t(f32));
+    data_reg_choice_t(reg, CloneUnionA, CloneUnionTag_String, data_string, data_prim_t(String));
+
+    {
+      const CloneUnionA original = {
+          .tag      = CloneUnionTag_Int,
+          .data_int = 42,
+      };
+      CloneUnionA clone = {0};
+
+      data_clone(reg, g_alloc_heap, data_meta_t(t_CloneUnionA), mem_var(original), mem_var(clone));
+
+      check_eq_int(clone.tag, original.tag);
+      check_eq_int(clone.data_int, 42);
+
+      data_destroy(reg, g_alloc_heap, data_meta_t(t_CloneUnionA), mem_var(original));
+      data_destroy(reg, g_alloc_heap, data_meta_t(t_CloneUnionA), mem_var(clone));
+    }
+
+    {
+      const CloneUnionA original = {
+          .tag         = CloneUnionTag_String,
+          .data_string = string_dup(g_alloc_heap, string_lit("Hello World")),
+      };
+      CloneUnionA clone = {0};
+
+      data_clone(reg, g_alloc_heap, data_meta_t(t_CloneUnionA), mem_var(original), mem_var(clone));
+
+      check_eq_int(clone.tag, original.tag);
+      check_eq_string(clone.data_string, string_lit("Hello World"));
+
+      data_destroy(reg, g_alloc_heap, data_meta_t(t_CloneUnionA), mem_var(original));
+      data_destroy(reg, g_alloc_heap, data_meta_t(t_CloneUnionA), mem_var(clone));
+    }
   }
 
   teardown() { data_reg_destroy(reg); }
