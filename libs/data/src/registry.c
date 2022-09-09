@@ -247,6 +247,15 @@ i32* data_union_tag(const DataDeclUnion* decl, const Mem unionMem) {
   return (i32*)bits_ptr_offset(unionMem.ptr, decl->tagOffset);
 }
 
+const DataDeclChoice* data_choice_from_tag(const DataDeclUnion* unionDecl, const i32 tag) {
+  dynarray_for_t(&unionDecl->choices, DataDeclChoice, choice) {
+    if (choice->tag == tag) {
+      return choice;
+    }
+  }
+  return null;
+}
+
 Mem data_choice_mem(const DataReg* reg, const DataDeclChoice* choice, const Mem unionMem) {
   return mem_create(
       bits_ptr_offset(unionMem.ptr, choice->offset), data_meta_size(reg, choice->meta));

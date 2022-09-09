@@ -26,10 +26,8 @@ static void data_clone_string(const CloneCtx* ctx) {
 static void data_clone_struct(const CloneCtx* ctx) {
   const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
 
-  // Initialize non-specified memory to zero.
-  mem_set(ctx->clone, 0);
+  mem_set(ctx->clone, 0); // Initialize non-specified memory to zero.
 
-  // Clone all the fields.
   dynarray_for_t(&decl->val_struct.fields, DataDeclField, fieldDecl) {
     const Mem originalFieldMem = data_field_mem(ctx->reg, fieldDecl, ctx->original);
     const Mem dataFieldMem     = data_field_mem(ctx->reg, fieldDecl, ctx->clone);
@@ -49,18 +47,12 @@ static void data_clone_union(const CloneCtx* ctx) {
   const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
   const i32       tag  = *data_union_tag(&decl->val_union, ctx->original);
 
-  // Initialize non-specified memory to zero.
-  mem_set(ctx->clone, 0);
+  mem_set(ctx->clone, 0); // Initialize non-specified memory to zero.
 
-  // Clone the tag.
   *data_union_tag(&decl->val_union, ctx->clone) = tag;
 
-  // Clone the choice.
-  dynarray_for_t(&decl->val_union.choices, DataDeclChoice, choice) {
-    if (choice->tag != tag) {
-      continue;
-    }
-
+  const DataDeclChoice* choice = data_choice_from_tag(&decl->val_union, tag);
+  if (choice) {
     const Mem originalChoiceMem = data_choice_mem(ctx->reg, choice, ctx->original);
     const Mem choiceMem         = data_choice_mem(ctx->reg, choice, ctx->clone);
 

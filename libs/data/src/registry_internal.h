@@ -70,6 +70,11 @@ Mem data_field_mem(const DataReg*, const DataDeclField*, Mem structMem);
 i32* data_union_tag(const DataDeclUnion*, Mem unionMem);
 
 /**
+ * Find a choice with the given tag.
+ */
+const DataDeclChoice* data_choice_from_tag(const DataDeclUnion*, i32 tag);
+
+/**
  * Create a memory view over a choice in a union.
  */
 Mem data_choice_mem(const DataReg*, const DataDeclChoice*, Mem unionMem);

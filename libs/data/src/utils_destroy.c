@@ -38,11 +38,8 @@ static void data_destroy_union(const DestroyCtx* ctx) {
   const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
   const i32       tag  = *data_union_tag(&decl->val_union, ctx->data);
 
-  dynarray_for_t(&decl->val_union.choices, DataDeclChoice, choice) {
-    if (choice->tag != tag) {
-      continue;
-    }
-
+  const DataDeclChoice* choice = data_choice_from_tag(&decl->val_union, tag);
+  if (choice) {
     const Mem choiceMem = data_choice_mem(ctx->reg, choice, ctx->data);
 
     const DestroyCtx fieldCtx = {
