@@ -288,5 +288,108 @@ spec(read_json) {
     test_read_fail(_testCtx, reg, string_lit("null"), meta, DataReadError_MismatchedType);
   }
 
+  it("can read a union of primitive types") {
+    typedef enum {
+      ReadJsonUnionTag_Int,
+      ReadJsonUnionTag_Float,
+      ReadJsonUnionTag_String,
+    } ReadJsonUnionTag;
+
+    typedef struct {
+      ReadJsonUnionTag tag;
+      union {
+        i32    data_int;
+        f32    data_float;
+        String data_string;
+      };
+    } ReadJsonUnion;
+
+    data_reg_union_t(reg, ReadJsonUnion, tag);
+    data_reg_choice_t(reg, ReadJsonUnion, ReadJsonUnionTag_Int, data_int, data_prim_t(i32));
+    data_reg_choice_t(reg, ReadJsonUnion, ReadJsonUnionTag_Float, data_float, data_prim_t(f32));
+    data_reg_choice_t(
+        reg, ReadJsonUnion, ReadJsonUnionTag_String, data_string, data_prim_t(String));
+
+    const DataMeta meta = data_meta_t(t_ReadJsonUnion);
+
+    {
+      ReadJsonUnion val;
+      test_read_success(
+          _testCtx,
+          reg,
+          string_lit("{\n"
+                     "  \"$type\": \"ReadJsonUnionTag_Int\",\n"
+                     "  \"$data\": 42\n"
+                     "}"),
+          meta,
+          mem_var(val));
+
+      check_eq_int(val.tag, ReadJsonUnionTag_Int);
+      check_eq_int(val.data_int, 42);
+    }
+    {
+      ReadJsonUnion val;
+      test_read_success(
+          _testCtx,
+          reg,
+          string_lit("{\n"
+                     "  \"$type\": \"ReadJsonUnionTag_String\",\n"
+                     "  \"$data\": \"Hello World\"\n"
+                     "}"),
+          meta,
+          mem_var(val));
+
+      check_eq_int(val.tag, ReadJsonUnionTag_String);
+      check_eq_string(val.data_string, string_lit("Hello World"));
+      string_free(g_alloc_heap, val.data_string);
+    }
+
+    test_read_fail(_testCtx, reg, string_lit("{}"), meta, DataReadError_UnionTypeMissing);
+    test_read_fail(
+        _testCtx,
+        reg,
+        string_lit("{\n"
+                   "  \"$type\": 42\n"
+                   "}"),
+        meta,
+        DataReadError_UnionTypeInvalid);
+    test_read_fail(
+        _testCtx,
+        reg,
+        string_lit("{\n"
+                   "  \"$type\": \"Hello\"\n"
+                   "}"),
+        meta,
+        DataReadError_UnionTypeUnsupported);
+    test_read_fail(
+        _testCtx,
+        reg,
+        string_lit("{\n"
+                   "  \"$type\": \"ReadJsonUnionTag_String\"\n"
+                   "}"),
+        meta,
+        DataReadError_UnionDataMissing);
+    test_read_fail(
+        _testCtx,
+        reg,
+        string_lit("{\n"
+                   "  \"$type\": \"ReadJsonUnionTag_String\",\n"
+                   "  \"$data\": 42\n"
+                   "}"),
+        meta,
+        DataReadError_UnionDataInvalid);
+    test_read_fail(
+        _testCtx,
+        reg,
+        string_lit("{\n"
+                   "  \"$type\": \"ReadJsonUnionTag_Int\",\n"
+                   "  \"$data\": 42,\n"
+                   "  \"more\": 1337\n"
+                   "}"),
+        meta,
+        DataReadError_UnionUnknownField);
+    test_read_fail(_testCtx, reg, string_lit("null"), meta, DataReadError_MismatchedType);
+  }
+
   teardown() { data_reg_destroy(reg); }
 }

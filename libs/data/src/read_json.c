@@ -225,6 +225,80 @@ static void data_read_json_struct(const ReadCtx* ctx, DataReadResult* res) {
   *res = result_success();
 }
 
+static i32 data_read_json_union_tag(const ReadCtx* ctx, DataReadResult* res) {
+  const DataDecl* decl    = data_decl(ctx->reg, ctx->meta.type);
+  const JsonVal   typeVal = json_field(ctx->doc, ctx->val, string_lit("$type"));
+
+  if (UNLIKELY(sentinel_check(typeVal))) {
+    *res = result_fail(DataReadError_UnionTypeMissing, "Union is missing a '$type' field");
+    return sentinel_i32;
+  }
+  if (UNLIKELY(json_type(ctx->doc, typeVal) != JsonType_String)) {
+    *res = result_fail(DataReadError_UnionTypeInvalid, "Union '$type' field is invalid");
+    return sentinel_i32;
+  }
+
+  const StringHash valueHash = string_hash(json_string(ctx->doc, typeVal));
+  dynarray_for_t(&decl->val_union.choices, DataDeclChoice, choice) {
+    if (choice->id.hash == valueHash) {
+      *res = result_success();
+      return choice->tag;
+    }
+  }
+
+  *res = result_fail(
+      DataReadError_UnionTypeUnsupported,
+      "Invalid union type '{}' for union {}",
+      fmt_text(json_string(ctx->doc, typeVal)),
+      fmt_text(decl->id.name));
+  return sentinel_i32;
+}
+
+static void data_read_json_union(const ReadCtx* ctx, DataReadResult* res) {
+  if (UNLIKELY(!data_check_type(ctx, JsonType_Object, res))) {
+    return;
+  }
+  const i32 tag = data_read_json_union_tag(ctx, res);
+  if (UNLIKELY(res->error)) {
+    return;
+  }
+  const DataDecl*       decl   = data_decl(ctx->reg, ctx->meta.type);
+  const DataDeclChoice* choice = data_choice_from_tag(&decl->val_union, tag);
+
+  mem_set(ctx->data, 0); // Initialize non-specified memory to zero.
+
+  *data_union_tag(&decl->val_union, ctx->data) = tag;
+
+  const JsonVal dataVal = json_field(ctx->doc, ctx->val, string_lit("$data"));
+  if (UNLIKELY(sentinel_check(dataVal))) {
+    *res = result_fail(DataReadError_UnionDataMissing, "Union is missing a '$data' field");
+    return;
+  }
+  const ReadCtx fieldCtx = {
+      .reg         = ctx->reg,
+      .alloc       = ctx->alloc,
+      .allocations = ctx->allocations,
+      .doc         = ctx->doc,
+      .val         = dataVal,
+      .meta        = choice->meta,
+      .data        = data_choice_mem(ctx->reg, choice, ctx->data),
+  };
+  data_read_json_val(&fieldCtx, res);
+  if (UNLIKELY(res->error)) {
+    *res = result_fail(
+        DataReadError_UnionDataInvalid,
+        "Invalid union data '{}': {}",
+        fmt_text(choice->id.name),
+        fmt_text(res->errorMsg));
+    return;
+  }
+
+  if (UNLIKELY(json_field_count(ctx->doc, ctx->val) != 2)) {
+    *res = result_fail(DataReadError_UnionUnknownField, "Unknown field in union");
+    return;
+  }
+}
+
 static void data_read_json_enum_string(const ReadCtx* ctx, DataReadResult* res) {
   const DataDecl*  decl      = data_decl(ctx->reg, ctx->meta.type);
   const StringHash valueHash = string_hash(json_string(ctx->doc, ctx->val));
@@ -302,6 +376,9 @@ static void data_read_json_val_single(const ReadCtx* ctx, DataReadResult* res) {
     return;
   case DataKind_Struct:
     data_read_json_struct(ctx, res);
+    return;
+  case DataKind_Union:
+    data_read_json_union(ctx, res);
     return;
   case DataKind_Enum:
     data_read_json_enum(ctx, res);
