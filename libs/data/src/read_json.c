@@ -225,24 +225,24 @@ static void data_read_json_struct(const ReadCtx* ctx, DataReadResult* res) {
   *res = result_success();
 }
 
-static i32 data_read_json_union_tag(const ReadCtx* ctx, DataReadResult* res) {
+static const DataDeclChoice* data_read_json_union_choice(const ReadCtx* ctx, DataReadResult* res) {
   const DataDecl* decl    = data_decl(ctx->reg, ctx->meta.type);
   const JsonVal   typeVal = json_field(ctx->doc, ctx->val, string_lit("$type"));
 
   if (UNLIKELY(sentinel_check(typeVal))) {
     *res = result_fail(DataReadError_UnionTypeMissing, "Union is missing a '$type' field");
-    return sentinel_i32;
+    return null;
   }
   if (UNLIKELY(json_type(ctx->doc, typeVal) != JsonType_String)) {
     *res = result_fail(DataReadError_UnionTypeInvalid, "Union '$type' field is invalid");
-    return sentinel_i32;
+    return null;
   }
 
   const StringHash valueHash = string_hash(json_string(ctx->doc, typeVal));
   dynarray_for_t(&decl->val_union.choices, DataDeclChoice, choice) {
     if (choice->id.hash == valueHash) {
       *res = result_success();
-      return choice->tag;
+      return choice;
     }
   }
 
@@ -251,23 +251,22 @@ static i32 data_read_json_union_tag(const ReadCtx* ctx, DataReadResult* res) {
       "Invalid union type '{}' for union {}",
       fmt_text(json_string(ctx->doc, typeVal)),
       fmt_text(decl->id.name));
-  return sentinel_i32;
+  return null;
 }
 
 static void data_read_json_union(const ReadCtx* ctx, DataReadResult* res) {
   if (UNLIKELY(!data_check_type(ctx, JsonType_Object, res))) {
     return;
   }
-  const i32 tag = data_read_json_union_tag(ctx, res);
+  const DataDecl*       decl   = data_decl(ctx->reg, ctx->meta.type);
+  const DataDeclChoice* choice = data_read_json_union_choice(ctx, res);
   if (UNLIKELY(res->error)) {
     return;
   }
-  const DataDecl*       decl   = data_decl(ctx->reg, ctx->meta.type);
-  const DataDeclChoice* choice = data_choice_from_tag(&decl->val_union, tag);
 
   mem_set(ctx->data, 0); // Initialize non-specified memory to zero.
 
-  *data_union_tag(&decl->val_union, ctx->data) = tag;
+  *data_union_tag(&decl->val_union, ctx->data) = choice->tag;
 
   const JsonVal dataVal = json_field(ctx->doc, ctx->val, string_lit("$data"));
   if (UNLIKELY(sentinel_check(dataVal))) {
