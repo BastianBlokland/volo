@@ -77,8 +77,7 @@ static void treescheme_add_enum(const TreeSchemeCtx* ctx, const DataType type) {
   const JsonVal enumObj = json_add_object(ctx->doc);
   json_add_elem(ctx->doc, ctx->schemeEnumsArr, enumObj);
 
-  const JsonVal enumId = json_add_string(ctx->doc, decl->id.name);
-  json_add_field_lit(ctx->doc, enumObj, "identifier", enumId);
+  json_add_field_lit(ctx->doc, enumObj, "identifier", json_add_string(ctx->doc, decl->id.name));
 
   const JsonVal enumValues = json_add_array(ctx->doc);
   json_add_elem(ctx->doc, enumObj, enumValues);
@@ -104,8 +103,7 @@ static void treescheme_add_node(const TreeSchemeCtx* ctx, const DataType type) {
   const JsonVal nodeObj = json_add_object(ctx->doc);
   json_add_elem(ctx->doc, ctx->schemeNodesArr, nodeObj);
 
-  const JsonVal nodeId = json_add_string(ctx->doc, decl->id.name);
-  json_add_field_lit(ctx->doc, nodeObj, "nodeType", nodeId);
+  json_add_field_lit(ctx->doc, nodeObj, "nodeType", json_add_string(ctx->doc, decl->id.name));
 
   const JsonVal nodeFields = json_add_array(ctx->doc);
   json_add_field_lit(ctx->doc, nodeObj, "fields", nodeFields);
@@ -114,8 +112,7 @@ static void treescheme_add_node(const TreeSchemeCtx* ctx, const DataType type) {
     const JsonVal fieldObj = json_add_object(ctx->doc);
     json_add_elem(ctx->doc, nodeFields, fieldObj);
 
-    const JsonVal fieldName = json_add_string(ctx->doc, fieldDecl->id.name);
-    json_add_field_lit(ctx->doc, fieldObj, "name", fieldName);
+    json_add_field_lit(ctx->doc, fieldObj, "name", json_add_string(ctx->doc, fieldDecl->id.name));
 
     const bool isArray = fieldDecl->meta.container == DataContainer_Array;
     json_add_field_lit(ctx->doc, fieldObj, "isArray", json_add_bool(ctx->doc, isArray));
