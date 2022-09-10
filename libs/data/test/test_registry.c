@@ -100,6 +100,7 @@ spec(registry) {
       RegUnionTag_Int,
       RegUnionTag_Float,
       RegUnionTag_FloatPtr,
+      RegUnionTag_Other,
     } RegUnionTag;
 
     typedef struct {
@@ -121,6 +122,7 @@ spec(registry) {
         data_floatPtr,
         data_prim_t(f32),
         .container = DataContainer_Pointer);
+    data_reg_choice_empty(reg, RegUnionA, RegUnionTag_Other);
 
     check_eq_string(data_name(reg, t_RegUnionA), string_lit("RegUnionA"));
     check_eq_int(data_size(reg, t_RegUnionA), sizeof(RegUnionA));

@@ -192,11 +192,13 @@ void data_reg_choice(
   DataDecl*    parentDecl = data_decl_mutable(reg, parent);
 
   diag_assert_msg(parentDecl->kind == DataKind_Union, "Choice parent has to be a Union");
+  diag_assert_msg(!data_choice_from_tag(&parentDecl->val_union, tag), "Duplicate choice");
+
+  MAYBE_UNUSED const bool emptyChoice = meta.type == 0;
   diag_assert_msg(
-      offset + data_meta_size(reg, meta) <= data_decl(reg, parent)->size,
+      emptyChoice || (offset + data_meta_size(reg, meta) <= data_decl(reg, parent)->size),
       "Offset '{}' is out of bounds for the Union type",
       fmt_int(offset));
-  diag_assert_msg(!data_choice_from_tag(&parentDecl->val_union, tag), "Duplicate choice");
 
   *dynarray_push_t(&parentDecl->val_union.choices, DataDeclChoice) = (DataDeclChoice){
       .id     = id,

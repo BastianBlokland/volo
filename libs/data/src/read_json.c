@@ -267,52 +267,55 @@ static void data_read_json_union(const ReadCtx* ctx, DataReadResult* res) {
 
   *data_union_tag(&decl->val_union, ctx->data) = choice->tag;
 
-  switch (data_decl(ctx->reg, choice->meta.type)->kind) {
-  case DataKind_Struct: {
-    /**
-     * Struct fields are inlined into the current json object.
-     */
-    const ReadCtx choiceCtx = {
-        .reg         = ctx->reg,
-        .alloc       = ctx->alloc,
-        .allocations = ctx->allocations,
-        .doc         = ctx->doc,
-        .val         = ctx->val,
-        .meta        = choice->meta,
-        .data        = data_choice_mem(ctx->reg, choice, ctx->data),
-    };
-    const u32 fieldsRead = 1;
-    data_read_json_struct(&choiceCtx, res, fieldsRead);
-  } break;
-  default: {
-    const JsonVal dataVal = json_field(ctx->doc, ctx->val, string_lit("$data"));
-    if (UNLIKELY(sentinel_check(dataVal))) {
-      *res = result_fail(DataReadError_UnionDataMissing, "Union is missing a '$data' field");
-      return;
+  const bool emptyChoice = choice->meta.type == 0;
+  if (!emptyChoice) {
+    switch (data_decl(ctx->reg, choice->meta.type)->kind) {
+    case DataKind_Struct: {
+      /**
+       * Struct fields are inlined into the current json object.
+       */
+      const ReadCtx choiceCtx = {
+          .reg         = ctx->reg,
+          .alloc       = ctx->alloc,
+          .allocations = ctx->allocations,
+          .doc         = ctx->doc,
+          .val         = ctx->val,
+          .meta        = choice->meta,
+          .data        = data_choice_mem(ctx->reg, choice, ctx->data),
+      };
+      const u32 fieldsRead = 1;
+      data_read_json_struct(&choiceCtx, res, fieldsRead);
+    } break;
+    default: {
+      const JsonVal dataVal = json_field(ctx->doc, ctx->val, string_lit("$data"));
+      if (UNLIKELY(sentinel_check(dataVal))) {
+        *res = result_fail(DataReadError_UnionDataMissing, "Union is missing a '$data' field");
+        return;
+      }
+      const ReadCtx choiceCtx = {
+          .reg         = ctx->reg,
+          .alloc       = ctx->alloc,
+          .allocations = ctx->allocations,
+          .doc         = ctx->doc,
+          .val         = dataVal,
+          .meta        = choice->meta,
+          .data        = data_choice_mem(ctx->reg, choice, ctx->data),
+      };
+      data_read_json_val(&choiceCtx, res);
+      if (UNLIKELY(res->error)) {
+        *res = result_fail(
+            DataReadError_UnionDataInvalid,
+            "Invalid union data '{}': {}",
+            fmt_text(choice->id.name),
+            fmt_text(res->errorMsg));
+        return;
+      }
+      if (UNLIKELY(json_field_count(ctx->doc, ctx->val) != 2)) {
+        *res = result_fail(DataReadError_UnionUnknownField, "Unknown field in union");
+        return;
+      }
+    } break;
     }
-    const ReadCtx choiceCtx = {
-        .reg         = ctx->reg,
-        .alloc       = ctx->alloc,
-        .allocations = ctx->allocations,
-        .doc         = ctx->doc,
-        .val         = dataVal,
-        .meta        = choice->meta,
-        .data        = data_choice_mem(ctx->reg, choice, ctx->data),
-    };
-    data_read_json_val(&choiceCtx, res);
-    if (UNLIKELY(res->error)) {
-      *res = result_fail(
-          DataReadError_UnionDataInvalid,
-          "Invalid union data '{}': {}",
-          fmt_text(choice->id.name),
-          fmt_text(res->errorMsg));
-      return;
-    }
-    if (UNLIKELY(json_field_count(ctx->doc, ctx->val) != 2)) {
-      *res = result_fail(DataReadError_UnionUnknownField, "Unknown field in union");
-      return;
-    }
-  } break;
   }
 }
 

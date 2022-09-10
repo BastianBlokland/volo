@@ -293,6 +293,7 @@ spec(read_json) {
       ReadJsonUnionTag_Int,
       ReadJsonUnionTag_Float,
       ReadJsonUnionTag_String,
+      ReadJsonUnionTag_Other,
     } ReadJsonUnionTag;
 
     typedef struct {
@@ -309,6 +310,7 @@ spec(read_json) {
     data_reg_choice_t(reg, ReadJsonUnion, ReadJsonUnionTag_Float, data_float, data_prim_t(f32));
     data_reg_choice_t(
         reg, ReadJsonUnion, ReadJsonUnionTag_String, data_string, data_prim_t(String));
+    data_reg_choice_empty(reg, ReadJsonUnion, ReadJsonUnionTag_Other);
 
     const DataMeta meta = data_meta_t(t_ReadJsonUnion);
 
@@ -342,6 +344,19 @@ spec(read_json) {
       check_eq_int(val.tag, ReadJsonUnionTag_String);
       check_eq_string(val.data_string, string_lit("Hello World"));
       string_free(g_alloc_heap, val.data_string);
+    }
+    {
+      ReadJsonUnion val;
+      test_read_success(
+          _testCtx,
+          reg,
+          string_lit("{\n"
+                     "  \"$type\": \"ReadJsonUnionTag_Other\"\n"
+                     "}"),
+          meta,
+          mem_var(val));
+
+      check_eq_int(val.tag, ReadJsonUnionTag_Other);
     }
 
     test_read_fail(_testCtx, reg, string_lit("{}"), meta, DataReadError_UnionTypeMissing);
@@ -405,6 +420,7 @@ spec(read_json) {
 
     typedef enum {
       ReadJsonUnionTag_A,
+      ReadJsonUnionTag_B,
     } ReadJsonUnionTag;
 
     typedef struct {
@@ -416,27 +432,43 @@ spec(read_json) {
 
     data_reg_union_t(reg, ReadJsonUnion, tag);
     data_reg_choice_t(reg, ReadJsonUnion, ReadJsonUnionTag_A, data_a, t_ReadJsonStruct);
+    data_reg_choice_empty(reg, ReadJsonUnion, ReadJsonUnionTag_B);
 
     const DataMeta meta = data_meta_t(t_ReadJsonUnion);
 
-    ReadJsonUnion val;
-    test_read_success(
-        _testCtx,
-        reg,
-        string_lit("{\n"
-                   "  \"$type\": \"ReadJsonUnionTag_A\",\n"
-                   "  \"valA\": -42,\n"
-                   "  \"valB\": \"Hello World\",\n"
-                   "  \"valC\": 42.42\n"
-                   "}"),
-        meta,
-        mem_var(val));
+    {
+      ReadJsonUnion val;
+      test_read_success(
+          _testCtx,
+          reg,
+          string_lit("{\n"
+                     "  \"$type\": \"ReadJsonUnionTag_A\",\n"
+                     "  \"valA\": -42,\n"
+                     "  \"valB\": \"Hello World\",\n"
+                     "  \"valC\": 42.42\n"
+                     "}"),
+          meta,
+          mem_var(val));
 
-    check_eq_int(val.tag, ReadJsonUnionTag_A);
-    check_eq_int(val.data_a.valA, -42);
-    check_eq_string(val.data_a.valB, string_lit("Hello World"));
-    check_eq_float(val.data_a.valC, 42.42, 1e-6f);
-    string_free(g_alloc_heap, val.data_a.valB);
+      check_eq_int(val.tag, ReadJsonUnionTag_A);
+      check_eq_int(val.data_a.valA, -42);
+      check_eq_string(val.data_a.valB, string_lit("Hello World"));
+      check_eq_float(val.data_a.valC, 42.42, 1e-6f);
+      string_free(g_alloc_heap, val.data_a.valB);
+    }
+    {
+      ReadJsonUnion val;
+      test_read_success(
+          _testCtx,
+          reg,
+          string_lit("{\n"
+                     "  \"$type\": \"ReadJsonUnionTag_B\"\n"
+                     "}"),
+          meta,
+          mem_var(val));
+
+      check_eq_int(val.tag, ReadJsonUnionTag_B);
+    }
 
     test_read_fail(_testCtx, reg, string_lit("{}"), meta, DataReadError_UnionTypeMissing);
     test_read_fail(

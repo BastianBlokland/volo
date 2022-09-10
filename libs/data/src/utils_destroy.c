@@ -41,15 +41,18 @@ static void data_destroy_union(const DestroyCtx* ctx) {
   const DataDeclChoice* choice = data_choice_from_tag(&decl->val_union, tag);
   diag_assert(choice);
 
-  const Mem choiceMem = data_choice_mem(ctx->reg, choice, ctx->data);
+  const bool emptyChoice = choice->meta.type == 0;
+  if (!emptyChoice) {
+    const Mem choiceMem = data_choice_mem(ctx->reg, choice, ctx->data);
 
-  const DestroyCtx fieldCtx = {
-      .reg   = ctx->reg,
-      .alloc = ctx->alloc,
-      .meta  = choice->meta,
-      .data  = choiceMem,
-  };
-  data_destroy_internal(&fieldCtx);
+    const DestroyCtx fieldCtx = {
+        .reg   = ctx->reg,
+        .alloc = ctx->alloc,
+        .meta  = choice->meta,
+        .data  = choiceMem,
+    };
+    data_destroy_internal(&fieldCtx);
+  }
 }
 
 static void data_destroy_single(const DestroyCtx* ctx) {

@@ -167,6 +167,7 @@ spec(utils_clone) {
       CloneUnionTag_Int,
       CloneUnionTag_Float,
       CloneUnionTag_String,
+      CloneUnionTag_Other,
     } CloneUnionTag;
 
     typedef struct {
@@ -182,6 +183,7 @@ spec(utils_clone) {
     data_reg_choice_t(reg, CloneUnionA, CloneUnionTag_Int, data_int, data_prim_t(i32));
     data_reg_choice_t(reg, CloneUnionA, CloneUnionTag_Float, data_float, data_prim_t(f32));
     data_reg_choice_t(reg, CloneUnionA, CloneUnionTag_String, data_string, data_prim_t(String));
+    data_reg_choice_empty(reg, CloneUnionA, CloneUnionTag_Other);
 
     {
       const CloneUnionA original = {
@@ -198,7 +200,6 @@ spec(utils_clone) {
       data_destroy(reg, g_alloc_heap, data_meta_t(t_CloneUnionA), mem_var(original));
       data_destroy(reg, g_alloc_heap, data_meta_t(t_CloneUnionA), mem_var(clone));
     }
-
     {
       const CloneUnionA original = {
           .tag         = CloneUnionTag_String,
@@ -210,6 +211,17 @@ spec(utils_clone) {
 
       check_eq_int(clone.tag, original.tag);
       check_eq_string(clone.data_string, string_lit("Hello World"));
+
+      data_destroy(reg, g_alloc_heap, data_meta_t(t_CloneUnionA), mem_var(original));
+      data_destroy(reg, g_alloc_heap, data_meta_t(t_CloneUnionA), mem_var(clone));
+    }
+    {
+      const CloneUnionA original = {.tag = CloneUnionTag_Other};
+      CloneUnionA       clone    = {0};
+
+      data_clone(reg, g_alloc_heap, data_meta_t(t_CloneUnionA), mem_var(original), mem_var(clone));
+
+      check_eq_int(clone.tag, original.tag);
 
       data_destroy(reg, g_alloc_heap, data_meta_t(t_CloneUnionA), mem_var(original));
       data_destroy(reg, g_alloc_heap, data_meta_t(t_CloneUnionA), mem_var(clone));
