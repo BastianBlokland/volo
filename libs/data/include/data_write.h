@@ -2,8 +2,6 @@
 #include "core_dynstring.h"
 #include "data_registry.h"
 
-typedef String (*DataWriter)(const DataReg*, DynString*, DataMeta, Mem data);
-
 /**
  * Write a data value as a json string.
  *
