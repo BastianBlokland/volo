@@ -10,30 +10,31 @@ struct sDataReg {
   Allocator* alloc;
 };
 
-static DataType data_alloc_type(DataReg* reg) {
-  dynarray_push(&reg->types, 1);
-  return (DataType)reg->types.size;
-}
-
 static DataId data_id_create(Allocator* alloc, const String name) {
   return (DataId){.name = string_dup(alloc, name), .hash = string_hash(name)};
 }
 
-static void data_id_destroy(Allocator* alloc, DataId id) { string_free(alloc, id.name); }
+static void data_id_destroy(Allocator* alloc, const DataId id) { string_free(alloc, id.name); }
+
+static DataType data_type_alloc(DataReg* reg) {
+  dynarray_push(&reg->types, 1);
+  return (DataType)reg->types.size;
+}
+
+static DataType data_type_declare(DataReg* reg, const DataId id) {
+  for (DataType declId = 0; declId != reg->types.size; ++declId) {
+    DataDecl* decl = dynarray_at_t(&reg->types, declId, DataDecl);
+    if (decl->id.hash == id.hash) {
+      diag_assert_msg(!decl->kind, "Type '{}' already defined", fmt_text(id.name));
+      return declId;
+    }
+  }
+  return data_type_alloc(reg);
+}
 
 static DataDecl* data_decl_mutable(DataReg* reg, const DataType type) {
   diag_assert_msg(type, "Uninitialized data-type");
   return dynarray_at_t(&reg->types, type - 1, DataDecl);
-}
-
-MAYBE_UNUSED static DataType data_type_by_id(const DataReg* reg, const DataId id) {
-  for (DataType declId = 0; declId != reg->types.size; ++declId) {
-    DataDecl* decl = dynarray_at_t(&reg->types, declId, DataDecl);
-    if (decl->id.hash == id.hash) {
-      return declId;
-    }
-  }
-  return sentinel_u32;
 }
 
 DataReg* data_reg_create(Allocator* alloc) {
@@ -44,7 +45,7 @@ DataReg* data_reg_create(Allocator* alloc) {
   };
 
 #define X(_T_)                                                                                     \
-  *data_decl_mutable(reg, data_alloc_type(reg)) = (DataDecl){                                      \
+  *data_decl_mutable(reg, data_type_alloc(reg)) = (DataDecl){                                      \
       .kind  = DataKind_##_T_,                                                                     \
       .size  = sizeof(_T_),                                                                        \
       .align = alignof(_T_),                                                                       \
@@ -107,18 +108,15 @@ usize data_meta_size(const DataReg* reg, const DataMeta meta) {
 }
 
 DataType data_reg_struct(DataReg* reg, const String name, const usize size, const usize align) {
-  const DataId id = data_id_create(reg->alloc, name);
-
   diag_assert_msg(bits_ispow2(align), "Alignment '{}' is not a power-of-two", fmt_int(align));
   diag_assert_msg(
       bits_aligned(size, align),
       "Size '{}' is not a multiple of alignment '{}'",
       fmt_size(size),
       fmt_int(align));
-  diag_assert_msg(
-      sentinel_check(data_type_by_id(reg, id)), "Duplicate type with name '{}'", fmt_text(name));
 
-  const DataType type           = data_alloc_type(reg);
+  const DataId   id             = data_id_create(reg->alloc, name);
+  const DataType type           = data_type_declare(reg, id);
   *data_decl_mutable(reg, type) = (DataDecl){
       .kind       = DataKind_Struct,
       .size       = size,
@@ -135,9 +133,7 @@ void data_reg_field(
     const String   name,
     const usize    offset,
     const DataMeta meta) {
-
-  const DataId id         = data_id_create(reg->alloc, name);
-  DataDecl*    parentDecl = data_decl_mutable(reg, parent);
+  DataDecl* parentDecl = data_decl_mutable(reg, parent);
 
   diag_assert_msg(parentDecl->kind == DataKind_Struct, "Field parent has to be a Struct");
   diag_assert_msg(
@@ -145,6 +141,7 @@ void data_reg_field(
       "Offset '{}' is out of bounds for the Struct type",
       fmt_int(offset));
 
+  const DataId id = data_id_create(reg->alloc, name);
   *dynarray_push_t(&parentDecl->val_struct.fields, DataDeclField) = (DataDeclField){
       .id     = id,
       .offset = offset,
@@ -154,18 +151,15 @@ void data_reg_field(
 
 DataType data_reg_union(
     DataReg* reg, const String name, const usize size, const usize align, const usize tagOffset) {
-  const DataId id = data_id_create(reg->alloc, name);
-
   diag_assert_msg(bits_ispow2(align), "Alignment '{}' is not a power-of-two", fmt_int(align));
   diag_assert_msg(
       bits_aligned(size, align),
       "Size '{}' is not a multiple of alignment '{}'",
       fmt_size(size),
       fmt_int(align));
-  diag_assert_msg(
-      sentinel_check(data_type_by_id(reg, id)), "Duplicate type with name '{}'", fmt_text(name));
 
-  const DataType type           = data_alloc_type(reg);
+  const DataId   id             = data_id_create(reg->alloc, name);
+  const DataType type           = data_type_declare(reg, id);
   *data_decl_mutable(reg, type) = (DataDecl){
       .kind  = DataKind_Union,
       .size  = size,
@@ -187,9 +181,7 @@ void data_reg_choice(
     const i32      tag,
     const usize    offset,
     const DataMeta meta) {
-
-  const DataId id         = data_id_create(reg->alloc, name);
-  DataDecl*    parentDecl = data_decl_mutable(reg, parent);
+  DataDecl* parentDecl = data_decl_mutable(reg, parent);
 
   diag_assert_msg(parentDecl->kind == DataKind_Union, "Choice parent has to be a Union");
   diag_assert_msg(!data_choice_from_tag(&parentDecl->val_union, tag), "Duplicate choice");
@@ -200,6 +192,7 @@ void data_reg_choice(
       "Offset '{}' is out of bounds for the Union type",
       fmt_int(offset));
 
+  const DataId id = data_id_create(reg->alloc, name);
   *dynarray_push_t(&parentDecl->val_union.choices, DataDeclChoice) = (DataDeclChoice){
       .id     = id,
       .tag    = tag,
@@ -209,11 +202,8 @@ void data_reg_choice(
 }
 
 DataType data_reg_enum(DataReg* reg, const String name) {
-  const DataId id = data_id_create(reg->alloc, name);
-  diag_assert_msg(
-      sentinel_check(data_type_by_id(reg, id)), "Duplicate type with name '{}'", fmt_text(name));
-
-  const DataType type           = data_alloc_type(reg);
+  const DataId   id             = data_id_create(reg->alloc, name);
+  const DataType type           = data_type_declare(reg, id);
   *data_decl_mutable(reg, type) = (DataDecl){
       .kind     = DataKind_Enum,
       .size     = sizeof(i32),
