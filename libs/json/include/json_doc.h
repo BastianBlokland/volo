@@ -51,8 +51,8 @@ typedef struct {
  * Pre-condition: _ARRAY_ is a value of type JsonType_Array in the given document.
  */
 #define json_for_elems(_DOC_, _ARRAY_, _VAR_)                                                      \
-  for (JsonVal _VAR_ = json_elem_begin(_DOC_, _ARRAY_); !sentinel_check(_VAR_);                    \
-               _VAR_ = json_elem_next(_DOC_, _VAR_))
+  for (JsonVal _VAR_ = json_elem_begin((_DOC_), (_ARRAY_)); !sentinel_check(_VAR_);                \
+               _VAR_ = json_elem_next((_DOC_), _VAR_))
 
 /**
  * Iterate over all fields in an object value.
@@ -60,13 +60,27 @@ typedef struct {
  * Pre-condition: _OBJECT_ is a value of type JsonType_Object in the given document.
  */
 #define json_for_fields(_DOC_, _OBJECT_, _VAR_)                                                    \
-  for (JsonFieldItr _VAR_ = json_field_begin(_DOC_, _OBJECT_); !sentinel_check(_VAR_.value);       \
-                    _VAR_ = json_field_next(_DOC_, _VAR_.value))
+  for (JsonFieldItr _VAR_ = json_field_begin((_DOC_), (_OBJECT_)); !sentinel_check(_VAR_.value);   \
+                    _VAR_ = json_field_next((_DOC_), _VAR_.value))
+
+/**
+ * Add a new field to an object.
+ * Returns 'false' if the object already contains a field with the given name.
+ * NOTE: When 'false' is returned the state of the object is not modified.
+ *
+ * Pre-condition: object is a value of type JsonType_Object in the given document.
+ * Pre-condition: !string_is_empty(name).
+ * Pre-condition: val is valid in the given document.
+ * Pre-condition: val doesn't have a parent yet.
+ * Pre-condition: Adding val to object does not create cycles.
+ */
+#define json_add_field_lit(_DOC_, _OBJ_, _STRING_LIT_, _VAL_)                                      \
+  json_add_field_str((_DOC_), (_OBJ_), string_lit(_STRING_LIT_), (_VAL_))
 
 /**
  * Add a literal string to the json document.
  */
-#define json_add_string_lit(_DOC_, _STRING_LIT_) json_add_string(_DOC_, string_lit(_STRING_LIT_))
+#define json_add_string_lit(_DOC_, _STRING_LIT_) json_add_string((_DOC_), string_lit(_STRING_LIT_))
 
 // clang-format on
 

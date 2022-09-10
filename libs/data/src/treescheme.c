@@ -78,7 +78,7 @@ static void treescheme_add_enum(const TreeSchemeCtx* ctx, const DataType type) {
   json_add_elem(ctx->doc, ctx->schemeEnumsArr, enumObj);
 
   const JsonVal enumId = json_add_string(ctx->doc, decl->id.name);
-  json_add_field_str(ctx->doc, enumObj, string_lit("identifier"), enumId);
+  json_add_field_lit(ctx->doc, enumObj, "identifier", enumId);
 
   const JsonVal enumValues = json_add_array(ctx->doc);
   json_add_elem(ctx->doc, enumObj, enumValues);
@@ -87,10 +87,8 @@ static void treescheme_add_enum(const TreeSchemeCtx* ctx, const DataType type) {
     const JsonVal valueObj = json_add_object(ctx->doc);
     json_add_elem(ctx->doc, enumValues, valueObj);
 
-    json_add_field_str(
-        ctx->doc, valueObj, string_lit("value"), json_add_number(ctx->doc, constDecl->value));
-    json_add_field_str(
-        ctx->doc, valueObj, string_lit("name"), json_add_string(ctx->doc, constDecl->id.name));
+    json_add_field_lit(ctx->doc, valueObj, "value", json_add_number(ctx->doc, constDecl->value));
+    json_add_field_lit(ctx->doc, valueObj, "name", json_add_string(ctx->doc, constDecl->id.name));
   }
 }
 
@@ -107,20 +105,20 @@ static void treescheme_add_node(const TreeSchemeCtx* ctx, const DataType type) {
   json_add_elem(ctx->doc, ctx->schemeNodesArr, nodeObj);
 
   const JsonVal nodeId = json_add_string(ctx->doc, decl->id.name);
-  json_add_field_str(ctx->doc, nodeObj, string_lit("nodeType"), nodeId);
+  json_add_field_lit(ctx->doc, nodeObj, "nodeType", nodeId);
 
   const JsonVal nodeFields = json_add_array(ctx->doc);
-  json_add_field_str(ctx->doc, nodeObj, string_lit("fields"), nodeFields);
+  json_add_field_lit(ctx->doc, nodeObj, "fields", nodeFields);
 
   dynarray_for_t(&decl->val_struct.fields, DataDeclField, fieldDecl) {
     const JsonVal fieldObj = json_add_object(ctx->doc);
     json_add_elem(ctx->doc, nodeFields, fieldObj);
 
     const JsonVal fieldName = json_add_string(ctx->doc, fieldDecl->id.name);
-    json_add_field_str(ctx->doc, fieldObj, string_lit("name"), fieldName);
+    json_add_field_lit(ctx->doc, fieldObj, "name", fieldName);
 
     const bool isArray = fieldDecl->meta.container == DataContainer_Array;
-    json_add_field_str(ctx->doc, fieldObj, string_lit("isArray"), json_add_bool(ctx->doc, isArray));
+    json_add_field_lit(ctx->doc, fieldObj, "isArray", json_add_bool(ctx->doc, isArray));
 
     const DataDecl* fieldTypeDecl = data_decl(ctx->reg, fieldDecl->meta.type);
     JsonVal         valueType;
@@ -143,7 +141,7 @@ static void treescheme_add_node(const TreeSchemeCtx* ctx, const DataType type) {
       treescheme_add_enum(ctx, fieldDecl->meta.type);
       break;
     }
-    json_add_field_str(ctx->doc, fieldObj, string_lit("valueType"), valueType);
+    json_add_field_lit(ctx->doc, fieldObj, "valueType", valueType);
   }
 }
 
@@ -152,8 +150,8 @@ static void treescheme_add_node_empty(const TreeSchemeCtx* ctx, const DataId id)
   const JsonVal nodeObj = json_add_object(ctx->doc);
   json_add_elem(ctx->doc, ctx->schemeNodesArr, nodeObj);
 
-  json_add_field_str(ctx->doc, nodeObj, string_lit("nodeType"), json_add_string(ctx->doc, id.name));
-  json_add_field_str(ctx->doc, nodeObj, string_lit("fields"), json_add_array(ctx->doc));
+  json_add_field_lit(ctx->doc, nodeObj, "nodeType", json_add_string(ctx->doc, id.name));
+  json_add_field_lit(ctx->doc, nodeObj, "fields", json_add_array(ctx->doc));
 }
 
 static void treescheme_add_alias(
@@ -168,10 +166,10 @@ static void treescheme_add_alias(
   json_add_elem(ctx->doc, ctx->schemeAliasesArr, aliasObj);
 
   const JsonVal aliasId = json_add_string(ctx->doc, decl->id.name);
-  json_add_field_str(ctx->doc, aliasObj, string_lit("identifier"), aliasId);
+  json_add_field_lit(ctx->doc, aliasObj, "identifier", aliasId);
 
   if (aliasType == TreeSchemeAliasType_Root) {
-    json_add_field_str(ctx->doc, ctx->schemeObj, string_lit("rootAlias"), aliasId);
+    json_add_field_lit(ctx->doc, ctx->schemeObj, "rootAlias", aliasId);
   }
 
   const JsonVal aliasValues = json_add_array(ctx->doc);
@@ -208,9 +206,9 @@ void data_treescheme_write(const DataReg* reg, DynString* str, const DataType ro
   const JsonVal schemeNodesArr   = json_add_array(doc);
 
   const JsonVal schemeObj = json_add_object(doc);
-  json_add_field_str(doc, schemeObj, string_lit("aliases"), schemeAliasesArr);
-  json_add_field_str(doc, schemeObj, string_lit("enums"), schemeAliasesArr);
-  json_add_field_str(doc, schemeObj, string_lit("nodes"), schemeNodesArr);
+  json_add_field_lit(doc, schemeObj, "aliases", schemeAliasesArr);
+  json_add_field_lit(doc, schemeObj, "enums", schemeAliasesArr);
+  json_add_field_lit(doc, schemeObj, "nodes", schemeNodesArr);
 
   diag_assert(data_type_count(reg) <= treescheme_max_types);
   u8 addedTypesBits[bits_to_bytes(treescheme_max_types) + 1] = {0};

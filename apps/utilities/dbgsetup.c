@@ -73,42 +73,41 @@ static bool dbgsetup_write_json(String path, const JsonDoc* jsonDoc, const JsonV
 
 static JsonVal dbgsetup_vscode_gen_launch_entry(DbgSetupCtx* ctx, JsonDoc* doc, String target) {
   const JsonVal obj = json_add_object(doc);
-  json_add_field_str(
+  json_add_field_lit(
       doc,
       obj,
-      string_lit("name"),
+      "name",
       json_add_string(doc, fmt_write_scratch("{} (Launch)", fmt_text(path_stem(target)))));
-  json_add_field_str(doc, obj, string_lit("type"), json_add_string(doc, g_dbgStrs[ctx->dbg]));
-  json_add_field_str(doc, obj, string_lit("request"), json_add_string_lit(doc, "launch"));
-  json_add_field_str(doc, obj, string_lit("program"), json_add_string(doc, target));
-  json_add_field_str(doc, obj, string_lit("cwd"), json_add_string(doc, ctx->workspace));
-  json_add_field_str(doc, obj, string_lit("args"), json_add_array(doc));
-  json_add_field_str(doc, obj, string_lit("terminal"), json_add_string_lit(doc, "integrated"));
-  json_add_field_str(doc, obj, string_lit("stopOnEntry"), json_add_bool(doc, false));
+  json_add_field_lit(doc, obj, "type", json_add_string(doc, g_dbgStrs[ctx->dbg]));
+  json_add_field_lit(doc, obj, "request", json_add_string_lit(doc, "launch"));
+  json_add_field_lit(doc, obj, "program", json_add_string(doc, target));
+  json_add_field_lit(doc, obj, "cwd", json_add_string(doc, ctx->workspace));
+  json_add_field_lit(doc, obj, "args", json_add_array(doc));
+  json_add_field_lit(doc, obj, "terminal", json_add_string_lit(doc, "integrated"));
+  json_add_field_lit(doc, obj, "stopOnEntry", json_add_bool(doc, false));
   return obj;
 }
 
 static JsonVal dbgsetup_vscode_gen_attach_entry(DbgSetupCtx* ctx, JsonDoc* doc, String target) {
   const JsonVal obj = json_add_object(doc);
-  json_add_field_str(
+  json_add_field_lit(
       doc,
       obj,
-      string_lit("name"),
+      "name",
       json_add_string(doc, fmt_write_scratch("{} (Attach)", fmt_text(path_stem(target)))));
-  json_add_field_str(doc, obj, string_lit("type"), json_add_string(doc, g_dbgStrs[ctx->dbg]));
-  json_add_field_str(doc, obj, string_lit("request"), json_add_string_lit(doc, "attach"));
-  json_add_field_str(doc, obj, string_lit("program"), json_add_string(doc, target));
-  json_add_field_str(
-      doc, obj, string_lit("processId"), json_add_string_lit(doc, "${command:pickProcess}"));
+  json_add_field_lit(doc, obj, "type", json_add_string(doc, g_dbgStrs[ctx->dbg]));
+  json_add_field_lit(doc, obj, "request", json_add_string_lit(doc, "attach"));
+  json_add_field_lit(doc, obj, "program", json_add_string(doc, target));
+  json_add_field_lit(doc, obj, "processId", json_add_string_lit(doc, "${command:pickProcess}"));
   return obj;
 }
 
 static JsonVal dbgsetup_vscode_generate_json(DbgSetupCtx* ctx, JsonDoc* doc) {
   const JsonVal root = json_add_object(doc);
-  json_add_field_str(doc, root, string_lit("version"), json_add_string_lit(doc, "0.2.0"));
+  json_add_field_lit(doc, root, "version", json_add_string_lit(doc, "0.2.0"));
 
   const JsonVal configs = json_add_array(doc);
-  json_add_field_str(doc, root, string_lit("configurations"), configs);
+  json_add_field_lit(doc, root, "configurations", configs);
   for (usize i = 0; i != ctx->targetCount; ++i) {
     json_add_elem(doc, configs, dbgsetup_vscode_gen_launch_entry(ctx, doc, ctx->targets[i]));
     json_add_elem(doc, configs, dbgsetup_vscode_gen_attach_entry(ctx, doc, ctx->targets[i]));

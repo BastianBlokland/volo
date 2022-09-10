@@ -60,22 +60,16 @@ static void log_sink_json_write(
   JsonDoc*      doc  = json_create(g_alloc_scratch, 128);
   const JsonVal root = json_add_object(doc);
 
-  json_add_field_str(doc, root, string_lit("message"), json_add_string(doc, message));
-  json_add_field_str(doc, root, string_lit("level"), json_add_string(doc, log_level_str(lvl)));
-  json_add_field_str(
-      doc,
-      root,
-      string_lit("timestamp"),
-      json_add_string(doc, format_write_arg_scratch(&fmt_time(timestamp))));
-  json_add_field_str(
-      doc,
-      root,
-      string_lit("file"),
-      json_add_string(doc, format_write_arg_scratch(&fmt_path(srcLoc.file))));
-  json_add_field_str(doc, root, string_lit("line"), json_add_number(doc, srcLoc.line));
+  json_add_field_lit(doc, root, "message", json_add_string(doc, message));
+  json_add_field_lit(doc, root, "level", json_add_string(doc, log_level_str(lvl)));
+  json_add_field_lit(
+      doc, root, "timestamp", json_add_string(doc, format_write_arg_scratch(&fmt_time(timestamp))));
+  json_add_field_lit(
+      doc, root, "file", json_add_string(doc, format_write_arg_scratch(&fmt_path(srcLoc.file))));
+  json_add_field_lit(doc, root, "line", json_add_number(doc, srcLoc.line));
 
   const JsonVal extra = json_add_object(doc);
-  json_add_field_str(doc, root, string_lit("extra"), extra);
+  json_add_field_lit(doc, root, "extra", extra);
 
   for (const LogParam* itr = params; itr->arg.type; ++itr) {
     json_add_field_str(doc, extra, itr->name, log_to_json(doc, &itr->arg));
@@ -103,15 +97,15 @@ LogSink*
 log_sink_json(Allocator* alloc, File* file, const LogMask mask, const LogSinkJsonFlags flags) {
   LogSinkJson* sink = alloc_alloc_t(alloc, LogSinkJson);
   *sink             = (LogSinkJson){
-      .api =
-          {
-              .write   = log_sink_json_write,
-              .destroy = log_sink_json_destroy,
+                  .api =
+                      {
+                          .write   = log_sink_json_write,
+                          .destroy = log_sink_json_destroy,
           },
-      .alloc = alloc,
-      .file  = file,
-      .mask  = mask,
-      .flags = flags,
+                  .alloc = alloc,
+                  .file  = file,
+                  .mask  = mask,
+                  .flags = flags,
   };
   return (LogSink*)sink;
 }

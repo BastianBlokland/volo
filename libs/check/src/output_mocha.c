@@ -37,19 +37,19 @@ static void mocha_write_json(JsonDoc* doc, JsonVal rootObj, File* file) {
 
 static JsonVal mocha_add_test_obj(JsonDoc* doc, const CheckSpec* spec, const CheckTest* test) {
   const JsonVal testObj = json_add_object(doc);
-  json_add_field_str(doc, testObj, string_lit("title"), json_add_string(doc, test->description));
+  json_add_field_lit(doc, testObj, "title", json_add_string(doc, test->description));
 
-  json_add_field_str(
+  json_add_field_lit(
       doc,
       testObj,
-      string_lit("fullTitle"),
+      "fullTitle",
       json_add_string(
           doc, fmt_write_scratch("{} {}", fmt_text(spec->def->name), fmt_text(test->description))));
 
-  json_add_field_str(
+  json_add_field_lit(
       doc,
       testObj,
-      string_lit("file"),
+      "file",
       json_add_string(doc, format_write_arg_scratch(&fmt_path(test->source.file))));
 
   return testObj;
@@ -65,10 +65,10 @@ static void output_run_started(CheckOutput* out) {
   JsonDoc*          doc      = mochaOut->doc;
 
   const TimeReal startTime = time_real_clock();
-  json_add_field_str(
+  json_add_field_lit(
       doc,
       mochaOut->statsObj,
-      string_lit("start"),
+      "start",
       json_add_string(doc, format_write_arg_scratch(&fmt_time(startTime))));
 }
 
@@ -80,7 +80,7 @@ static void output_tests_discovered(
   (void)dur;
   (void)specCount;
 
-  json_add_field_str(doc, mochaOut->statsObj, string_lit("tests"), json_add_number(doc, testCount));
+  json_add_field_lit(doc, mochaOut->statsObj, "tests", json_add_number(doc, testCount));
 }
 
 static void output_test_skipped(CheckOutput* out, const CheckSpec* spec, const CheckTest* test) {
@@ -92,7 +92,7 @@ static void output_test_skipped(CheckOutput* out, const CheckSpec* spec, const C
 
   // Note: Add an empty 'err' object as some consumers depend on this existing.
   const JsonVal errObj = json_add_object(doc);
-  json_add_field_str(doc, testObj, string_lit("err"), errObj);
+  json_add_field_lit(doc, testObj, "err", errObj);
 }
 
 static void output_test_finished(
@@ -108,16 +108,15 @@ static void output_test_finished(
 
   const JsonVal testObj = mocha_add_test_obj(mochaOut->doc, spec, test);
 
-  json_add_field_str(
-      doc, testObj, string_lit("duration"), json_add_number(doc, mocha_to_ms(result->duration)));
+  json_add_field_lit(doc, testObj, "duration", json_add_number(doc, mocha_to_ms(result->duration)));
 
   const JsonVal errObj = json_add_object(doc);
-  json_add_field_str(doc, testObj, string_lit("err"), errObj);
+  json_add_field_lit(doc, testObj, "err", errObj);
 
   if (result->errors.size) {
     // Note: Unfortunately Mocha's format only supports one error per test, so we take the first.
     const CheckError* err = dynarray_at_t(&result->errors, 0, CheckError);
-    json_add_field_str(doc, errObj, string_lit("message"), json_add_string(doc, err->msg));
+    json_add_field_lit(doc, errObj, "message", json_add_string(doc, err->msg));
 
     /**
      * Emulate the nodejs stack-trace format that consumers of the Mocha json format expect.
@@ -132,10 +131,10 @@ static void output_test_finished(
      * We don't capture stack-traces for errors at the moment, but we do know the top-most
      * stack-frame which triggered the error.
      */
-    json_add_field_str(
+    json_add_field_lit(
         doc,
         errObj,
-        string_lit("stack"),
+        "stack",
         json_add_string(
             doc,
             fmt_write_scratch(
@@ -170,24 +169,18 @@ static void output_run_finished(
 
   (void)type;
 
-  json_add_field_str(
-      doc, mochaOut->statsObj, string_lit("passes"), json_add_number(doc, numPassed));
-
-  json_add_field_str(
-      doc, mochaOut->statsObj, string_lit("failures"), json_add_number(doc, numFailed));
-
-  json_add_field_str(
-      doc, mochaOut->statsObj, string_lit("pending"), json_add_number(doc, numSkipped));
+  json_add_field_lit(doc, mochaOut->statsObj, "passes", json_add_number(doc, numPassed));
+  json_add_field_lit(doc, mochaOut->statsObj, "failures", json_add_number(doc, numFailed));
+  json_add_field_lit(doc, mochaOut->statsObj, "pending", json_add_number(doc, numSkipped));
 
   const TimeReal endTime = time_real_clock();
-  json_add_field_str(
+  json_add_field_lit(
       doc,
       mochaOut->statsObj,
-      string_lit("end"),
+      "end",
       json_add_string(doc, format_write_arg_scratch(&fmt_time(endTime))));
 
-  json_add_field_str(
-      doc, mochaOut->statsObj, string_lit("duration"), json_add_number(doc, mocha_to_ms(dur)));
+  json_add_field_lit(doc, mochaOut->statsObj, "duration", json_add_number(doc, mocha_to_ms(dur)));
 }
 
 static void output_destroy(CheckOutput* out) {
@@ -210,10 +203,10 @@ CheckOutput* check_output_mocha(Allocator* alloc, File* file) {
   const JsonVal failuresArr = json_add_array(doc);
   const JsonVal pendingArr  = json_add_array(doc);
 
-  json_add_field_str(doc, rootObj, string_lit("stats"), statsObj);
-  json_add_field_str(doc, rootObj, string_lit("passes"), passesArr);
-  json_add_field_str(doc, rootObj, string_lit("failures"), failuresArr);
-  json_add_field_str(doc, rootObj, string_lit("pending"), pendingArr);
+  json_add_field_lit(doc, rootObj, "stats", statsObj);
+  json_add_field_lit(doc, rootObj, "passes", passesArr);
+  json_add_field_lit(doc, rootObj, "failures", failuresArr);
+  json_add_field_lit(doc, rootObj, "pending", pendingArr);
 
   CheckOutputMocha* mochaOut = alloc_alloc_t(alloc, CheckOutputMocha);
   *mochaOut                  = (CheckOutputMocha){
