@@ -39,9 +39,9 @@ typedef struct {
 } DataDeclEnum;
 
 typedef struct {
+  DataId   id;
   DataKind kind;
   usize    size, align;
-  DataId   id;
   union {
     DataDeclStruct val_struct;
     DataDeclUnion  val_union;

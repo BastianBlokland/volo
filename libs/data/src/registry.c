@@ -16,6 +16,11 @@ static DataId data_id_create(Allocator* alloc, const String name) {
 
 static void data_id_destroy(Allocator* alloc, const DataId id) { string_free(alloc, id.name); }
 
+static DataDecl* data_decl_mutable(DataReg* reg, const DataType type) {
+  diag_assert_msg(type, "Uninitialized data-type");
+  return dynarray_at_t(&reg->types, type - 1, DataDecl);
+}
+
 static DataType data_type_alloc(DataReg* reg, const String name) {
   *dynarray_push_t(&reg->types, DataDecl) = (DataDecl){
       .id = data_id_create(reg->alloc, name),
@@ -25,18 +30,12 @@ static DataType data_type_alloc(DataReg* reg, const String name) {
 
 static DataType data_type_declare(DataReg* reg, const String name) {
   const StringHash nameHash = string_hash(name);
-  for (DataType declId = 0; declId != reg->types.size; ++declId) {
-    DataDecl* decl = dynarray_at_t(&reg->types, declId, DataDecl);
-    if (decl->id.hash == nameHash) {
-      return declId;
+  for (DataType type = 1; type != (reg->types.size + 1); ++type) {
+    if (data_decl_mutable(reg, type)->id.hash == nameHash) {
+      return type;
     }
   }
   return data_type_alloc(reg, name);
-}
-
-static DataDecl* data_decl_mutable(DataReg* reg, const DataType type) {
-  diag_assert_msg(type, "Uninitialized data-type");
-  return dynarray_at_t(&reg->types, type - 1, DataDecl);
 }
 
 DataReg* data_reg_create(Allocator* alloc) {
@@ -108,7 +107,13 @@ usize data_meta_size(const DataReg* reg, const DataMeta meta) {
   diag_crash();
 }
 
+DataType data_declare(DataReg* reg, const String name) {
+  diag_assert_msg(name.size, "Type name cannot be empty");
+  return data_type_declare(reg, name);
+}
+
 DataType data_reg_struct(DataReg* reg, const String name, const usize size, const usize align) {
+  diag_assert_msg(name.size, "Type name cannot be empty");
   diag_assert_msg(bits_ispow2(align), "Alignment '{}' is not a power-of-two", fmt_int(align));
   diag_assert_msg(
       bits_aligned(size, align),
@@ -134,6 +139,7 @@ void data_reg_field(
     const DataMeta meta) {
   DataDecl* parentDecl = data_decl_mutable(reg, parent);
 
+  diag_assert_msg(name.size, "Field name cannot be empty");
   diag_assert_msg(parentDecl->kind == DataKind_Struct, "Field parent has to be a Struct");
   diag_assert_msg(
       offset + data_meta_size(reg, meta) <= data_decl(reg, parent)->size,
@@ -149,6 +155,8 @@ void data_reg_field(
 
 DataType data_reg_union(
     DataReg* reg, const String name, const usize size, const usize align, const usize tagOffset) {
+
+  diag_assert_msg(name.size, "Type name cannot be empty");
   diag_assert_msg(bits_ispow2(align), "Alignment '{}' is not a power-of-two", fmt_int(align));
   diag_assert_msg(
       bits_aligned(size, align),
@@ -178,6 +186,7 @@ void data_reg_choice(
     const DataMeta meta) {
   DataDecl* parentDecl = data_decl_mutable(reg, parent);
 
+  diag_assert_msg(name.size, "Choice name cannot be empty");
   diag_assert_msg(parentDecl->kind == DataKind_Union, "Choice parent has to be a Union");
   diag_assert_msg(!data_choice_from_tag(&parentDecl->val_union, tag), "Duplicate choice");
 
@@ -196,6 +205,8 @@ void data_reg_choice(
 }
 
 DataType data_reg_enum(DataReg* reg, const String name) {
+  diag_assert_msg(name.size, "Type name cannot be empty");
+
   const DataType type = data_type_declare(reg, name);
   DataDecl*      decl = data_decl_mutable(reg, type);
   diag_assert_msg(!decl->kind, "Type '{}' already defined", fmt_text(decl->id.name));
@@ -207,6 +218,8 @@ DataType data_reg_enum(DataReg* reg, const String name) {
 }
 
 void data_reg_const(DataReg* reg, const DataType parent, const String name, const i32 value) {
+  diag_assert_msg(name.size, "Constant name cannot be empty");
+
   DataDecl* parentDecl = data_decl_mutable(reg, parent);
   diag_assert_msg(parentDecl->kind == DataKind_Enum, "Constant parent has to be an Enum");
 
