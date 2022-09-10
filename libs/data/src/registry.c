@@ -16,8 +16,10 @@ static DataId data_id_create(Allocator* alloc, const String name) {
 
 static void data_id_destroy(Allocator* alloc, const DataId id) { string_free(alloc, id.name); }
 
-static DataType data_type_alloc(DataReg* reg) {
-  dynarray_push(&reg->types, 1);
+static DataType data_type_alloc(DataReg* reg, const DataId id) {
+  *dynarray_push_t(&reg->types, DataDecl) = (DataDecl){
+      .id = id,
+  };
   return (DataType)reg->types.size;
 }
 
@@ -25,11 +27,10 @@ static DataType data_type_declare(DataReg* reg, const DataId id) {
   for (DataType declId = 0; declId != reg->types.size; ++declId) {
     DataDecl* decl = dynarray_at_t(&reg->types, declId, DataDecl);
     if (decl->id.hash == id.hash) {
-      diag_assert_msg(!decl->kind, "Type '{}' already defined", fmt_text(id.name));
       return declId;
     }
   }
-  return data_type_alloc(reg);
+  return data_type_alloc(reg, id);
 }
 
 static DataDecl* data_decl_mutable(DataReg* reg, const DataType type) {
@@ -45,12 +46,11 @@ DataReg* data_reg_create(Allocator* alloc) {
   };
 
 #define X(_T_)                                                                                     \
-  *data_decl_mutable(reg, data_type_alloc(reg)) = (DataDecl){                                      \
-      .kind  = DataKind_##_T_,                                                                     \
-      .size  = sizeof(_T_),                                                                        \
-      .align = alignof(_T_),                                                                       \
-      .id    = data_id_create(alloc, string_lit(#_T_)),                                            \
-  };
+  const DataType type_##_T_ = data_type_alloc(reg, data_id_create(alloc, string_lit(#_T_)));       \
+  data_decl_mutable(reg, type_##_T_)->kind  = DataKind_##_T_;                                      \
+  data_decl_mutable(reg, type_##_T_)->size  = sizeof(_T_);                                         \
+  data_decl_mutable(reg, type_##_T_)->align = alignof(_T_);
+
   DATA_PRIMS
 #undef X
 
@@ -115,15 +115,16 @@ DataType data_reg_struct(DataReg* reg, const String name, const usize size, cons
       fmt_size(size),
       fmt_int(align));
 
-  const DataId   id             = data_id_create(reg->alloc, name);
-  const DataType type           = data_type_declare(reg, id);
-  *data_decl_mutable(reg, type) = (DataDecl){
-      .kind       = DataKind_Struct,
-      .size       = size,
-      .align      = align,
-      .id         = id,
-      .val_struct = {.fields = dynarray_create_t(reg->alloc, DataDeclField, 8)},
-  };
+  const DataId   id   = data_id_create(reg->alloc, name);
+  const DataType type = data_type_declare(reg, id);
+
+  DataDecl* decl = data_decl_mutable(reg, type);
+  diag_assert_msg(!decl->kind, "Type '{}' already defined", fmt_text(decl->id.name));
+  decl->kind       = DataKind_Struct;
+  decl->size       = size;
+  decl->align      = align;
+  decl->val_struct = (DataDeclStruct){.fields = dynarray_create_t(reg->alloc, DataDeclField, 8)};
+
   return type;
 }
 
@@ -158,19 +159,19 @@ DataType data_reg_union(
       fmt_size(size),
       fmt_int(align));
 
-  const DataId   id             = data_id_create(reg->alloc, name);
-  const DataType type           = data_type_declare(reg, id);
-  *data_decl_mutable(reg, type) = (DataDecl){
-      .kind  = DataKind_Union,
-      .size  = size,
-      .align = align,
-      .id    = id,
-      .val_union =
-          {
-              .tagOffset = tagOffset,
-              .choices   = dynarray_create_t(reg->alloc, DataDeclChoice, 8),
-          },
+  const DataId   id   = data_id_create(reg->alloc, name);
+  const DataType type = data_type_declare(reg, id);
+
+  DataDecl* decl = data_decl_mutable(reg, type);
+  diag_assert_msg(!decl->kind, "Type '{}' already defined", fmt_text(decl->id.name));
+  decl->kind      = DataKind_Union;
+  decl->size      = size;
+  decl->align     = align;
+  decl->val_union = (DataDeclUnion){
+      .tagOffset = tagOffset,
+      .choices   = dynarray_create_t(reg->alloc, DataDeclChoice, 8),
   };
+
   return type;
 }
 
@@ -202,15 +203,16 @@ void data_reg_choice(
 }
 
 DataType data_reg_enum(DataReg* reg, const String name) {
-  const DataId   id             = data_id_create(reg->alloc, name);
-  const DataType type           = data_type_declare(reg, id);
-  *data_decl_mutable(reg, type) = (DataDecl){
-      .kind     = DataKind_Enum,
-      .size     = sizeof(i32),
-      .align    = alignof(i32),
-      .id       = id,
-      .val_enum = {.consts = dynarray_create_t(reg->alloc, DataDeclConst, 8)},
-  };
+  const DataId   id   = data_id_create(reg->alloc, name);
+  const DataType type = data_type_declare(reg, id);
+
+  DataDecl* decl = data_decl_mutable(reg, type);
+  diag_assert_msg(!decl->kind, "Type '{}' already defined", fmt_text(decl->id.name));
+  decl->kind     = DataKind_Enum;
+  decl->size     = sizeof(i32);
+  decl->align    = alignof(i32);
+  decl->val_enum = (DataDeclEnum){.consts = dynarray_create_t(reg->alloc, DataDeclConst, 8)};
+
   return type;
 }
 
