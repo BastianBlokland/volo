@@ -128,8 +128,6 @@ spec(write_json) {
     data_reg_field_t(reg, WriteJsonTestStruct, valB, data_prim_t(String));
     data_reg_field_t(reg, WriteJsonTestStruct, valC, data_prim_t(f64));
 
-    const DataMeta meta = data_meta_t(t_WriteJsonTestStruct);
-
     const WriteJsonTestStruct val = {
         .valA = -42,
         .valB = string_lit("Hello World"),
@@ -138,13 +136,147 @@ spec(write_json) {
     test_write(
         _testCtx,
         reg,
-        meta,
+        data_meta_t(t_WriteJsonTestStruct),
         mem_var(val),
         string_lit("{\n"
                    "  \"valA\": -42,\n"
                    "  \"valB\": \"Hello World\",\n"
                    "  \"valC\": 42.42\n"
                    "}"));
+  }
+
+  it("can write a union of primitive types") {
+    typedef enum {
+      WriteJsonUnionTag_Int,
+      WriteJsonUnionTag_Float,
+      WriteJsonUnionTag_String,
+      WriteJsonUnionTag_Other,
+    } WriteJsonUnionTag;
+
+    typedef struct {
+      WriteJsonUnionTag tag;
+      union {
+        i32    data_int;
+        f32    data_float;
+        String data_string;
+      };
+    } WriteJsonUnion;
+
+    data_reg_union_t(reg, WriteJsonUnion, tag);
+    data_reg_choice_t(reg, WriteJsonUnion, WriteJsonUnionTag_Int, data_int, data_prim_t(i32));
+    data_reg_choice_t(reg, WriteJsonUnion, WriteJsonUnionTag_Float, data_float, data_prim_t(f32));
+    data_reg_choice_t(
+        reg, WriteJsonUnion, WriteJsonUnionTag_String, data_string, data_prim_t(String));
+    data_reg_choice_empty(reg, WriteJsonUnion, WriteJsonUnionTag_Other);
+
+    {
+      const WriteJsonUnion val = {
+          .tag      = WriteJsonUnionTag_Int,
+          .data_int = 42,
+      };
+      test_write(
+          _testCtx,
+          reg,
+          data_meta_t(t_WriteJsonUnion),
+          mem_var(val),
+          string_lit("{\n"
+                     "  \"$type\": \"WriteJsonUnionTag_Int\",\n"
+                     "  \"$data\": 42\n"
+                     "}"));
+    }
+    {
+      const WriteJsonUnion val = {
+          .tag         = WriteJsonUnionTag_String,
+          .data_string = string_lit("Hello World"),
+      };
+      test_write(
+          _testCtx,
+          reg,
+          data_meta_t(t_WriteJsonUnion),
+          mem_var(val),
+          string_lit("{\n"
+                     "  \"$type\": \"WriteJsonUnionTag_String\",\n"
+                     "  \"$data\": \"Hello World\"\n"
+                     "}"));
+    }
+    {
+      const WriteJsonUnion val = {
+          .tag = WriteJsonUnionTag_Other,
+      };
+      test_write(
+          _testCtx,
+          reg,
+          data_meta_t(t_WriteJsonUnion),
+          mem_var(val),
+          string_lit("{\n"
+                     "  \"$type\": \"WriteJsonUnionTag_Other\"\n"
+                     "}"));
+    }
+  }
+
+  it("can write a union of struct types") {
+    typedef struct {
+      i32    valA;
+      String valB;
+      f64    valC;
+    } WriteJsonStruct;
+
+    data_reg_struct_t(reg, WriteJsonStruct);
+    data_reg_field_t(reg, WriteJsonStruct, valA, data_prim_t(i32));
+    data_reg_field_t(reg, WriteJsonStruct, valB, data_prim_t(String));
+    data_reg_field_t(reg, WriteJsonStruct, valC, data_prim_t(f64));
+
+    typedef enum {
+      WriteJsonUnionTag_A,
+      WriteJsonUnionTag_B,
+    } WriteJsonUnionTag;
+
+    typedef struct {
+      WriteJsonUnionTag tag;
+      union {
+        WriteJsonStruct data_a;
+      };
+    } WriteJsonUnion;
+
+    data_reg_union_t(reg, WriteJsonUnion, tag);
+    data_reg_choice_t(reg, WriteJsonUnion, WriteJsonUnionTag_A, data_a, t_WriteJsonStruct);
+    data_reg_choice_empty(reg, WriteJsonUnion, WriteJsonUnionTag_B);
+
+    {
+      const WriteJsonUnion val = {
+          .tag = WriteJsonUnionTag_A,
+          .data_a =
+              {
+                  .valA = -42,
+                  .valB = string_lit("Hello World"),
+                  .valC = 42.42,
+              },
+      };
+      test_write(
+          _testCtx,
+          reg,
+          data_meta_t(t_WriteJsonUnion),
+          mem_var(val),
+          string_lit("{\n"
+                     "  \"$type\": \"WriteJsonUnionTag_A\",\n"
+                     "  \"valA\": -42,\n"
+                     "  \"valB\": \"Hello World\",\n"
+                     "  \"valC\": 42.42\n"
+                     "}"));
+    }
+    {
+      const WriteJsonUnion val = {
+          .tag = WriteJsonUnionTag_B,
+      };
+      test_write(
+          _testCtx,
+          reg,
+          data_meta_t(t_WriteJsonUnion),
+          mem_var(val),
+          string_lit("{\n"
+                     "  \"$type\": \"WriteJsonUnionTag_B\"\n"
+                     "}"));
+    }
   }
 
   teardown() { data_reg_destroy(reg); }

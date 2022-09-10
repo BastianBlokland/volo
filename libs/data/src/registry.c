@@ -39,8 +39,8 @@ MAYBE_UNUSED static DataType data_type_by_id(const DataReg* reg, const DataId id
 DataReg* data_reg_create(Allocator* alloc) {
   DataReg* reg = alloc_alloc_t(alloc, DataReg);
   *reg         = (DataReg){
-              .types = dynarray_create_t(alloc, DataDecl, 64),
-              .alloc = alloc,
+      .types = dynarray_create_t(alloc, DataDecl, 64),
+      .alloc = alloc,
   };
 
 #define X(_T_)                                                                                     \
@@ -66,6 +66,12 @@ void data_reg_destroy(DataReg* reg) {
         data_id_destroy(reg->alloc, fieldDecl->id);
       }
       dynarray_destroy(&decl->val_struct.fields);
+    } break;
+    case DataKind_Union: {
+      dynarray_for_t(&decl->val_union.choices, DataDeclChoice, choiceDecl) {
+        data_id_destroy(reg->alloc, choiceDecl->id);
+      }
+      dynarray_destroy(&decl->val_union.choices);
     } break;
     case DataKind_Enum: {
       dynarray_for_t(&decl->val_enum.consts, DataDeclConst, constDecl) {
@@ -146,6 +152,62 @@ void data_reg_field(
   };
 }
 
+DataType data_reg_union(
+    DataReg* reg, const String name, const usize size, const usize align, const usize tagOffset) {
+  const DataId id = data_id_create(reg->alloc, name);
+
+  diag_assert_msg(bits_ispow2(align), "Alignment '{}' is not a power-of-two", fmt_int(align));
+  diag_assert_msg(
+      bits_aligned(size, align),
+      "Size '{}' is not a multiple of alignment '{}'",
+      fmt_size(size),
+      fmt_int(align));
+  diag_assert_msg(
+      sentinel_check(data_type_by_id(reg, id)), "Duplicate type with name '{}'", fmt_text(name));
+
+  const DataType type           = data_alloc_type(reg);
+  *data_decl_mutable(reg, type) = (DataDecl){
+      .kind  = DataKind_Union,
+      .size  = size,
+      .align = align,
+      .id    = id,
+      .val_union =
+          {
+              .tagOffset = tagOffset,
+              .choices   = dynarray_create_t(reg->alloc, DataDeclChoice, 8),
+          },
+  };
+  return type;
+}
+
+void data_reg_choice(
+    DataReg*       reg,
+    const DataType parent,
+    const String   name,
+    const i32      tag,
+    const usize    offset,
+    const DataMeta meta) {
+
+  const DataId id         = data_id_create(reg->alloc, name);
+  DataDecl*    parentDecl = data_decl_mutable(reg, parent);
+
+  diag_assert_msg(parentDecl->kind == DataKind_Union, "Choice parent has to be a Union");
+  diag_assert_msg(!data_choice_from_tag(&parentDecl->val_union, tag), "Duplicate choice");
+
+  MAYBE_UNUSED const bool emptyChoice = meta.type == 0;
+  diag_assert_msg(
+      emptyChoice || (offset + data_meta_size(reg, meta) <= data_decl(reg, parent)->size),
+      "Offset '{}' is out of bounds for the Union type",
+      fmt_int(offset));
+
+  *dynarray_push_t(&parentDecl->val_union.choices, DataDeclChoice) = (DataDeclChoice){
+      .id     = id,
+      .tag    = tag,
+      .offset = offset,
+      .meta   = meta,
+  };
+}
+
 DataType data_reg_enum(DataReg* reg, const String name) {
   const DataId id = data_id_create(reg->alloc, name);
   diag_assert_msg(
@@ -182,6 +244,24 @@ const DataDecl* data_decl(const DataReg* reg, const DataType type) {
 Mem data_field_mem(const DataReg* reg, const DataDeclField* field, Mem structMem) {
   return mem_create(
       bits_ptr_offset(structMem.ptr, field->offset), data_meta_size(reg, field->meta));
+}
+
+i32* data_union_tag(const DataDeclUnion* decl, const Mem unionMem) {
+  return (i32*)bits_ptr_offset(unionMem.ptr, decl->tagOffset);
+}
+
+const DataDeclChoice* data_choice_from_tag(const DataDeclUnion* unionDecl, const i32 tag) {
+  dynarray_for_t(&unionDecl->choices, DataDeclChoice, choice) {
+    if (choice->tag == tag) {
+      return choice;
+    }
+  }
+  return null;
+}
+
+Mem data_choice_mem(const DataReg* reg, const DataDeclChoice* choice, const Mem unionMem) {
+  return mem_create(
+      bits_ptr_offset(unionMem.ptr, choice->offset), data_meta_size(reg, choice->meta));
 }
 
 Mem data_elem_mem(const DataDecl* decl, const DataArray* array, const usize index) {

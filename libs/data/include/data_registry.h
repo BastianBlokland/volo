@@ -85,6 +85,32 @@ DataType data_reg_struct(DataReg*, String name, usize size, usize align);
 void data_reg_field(DataReg*, DataType parent, String name, usize offset, DataMeta);
 
 /**
+ * Register a new Union type.
+ */
+#define data_reg_union_t(_REG_, _T_, _TAG_FIELD_)                                                  \
+  MAYBE_UNUSED const DataType t_##_T_ = data_reg_union(                                            \
+      (_REG_), string_lit(#_T_), sizeof(_T_), alignof(_T_), offsetof(_T_, _TAG_FIELD_))
+
+DataType data_reg_union(DataReg*, String name, usize size, usize align, usize tagOffset);
+
+/**
+ * Register a new choice for a Union,
+ */
+#define data_reg_choice_t(_REG_, _PARENT_, _TAG_, _FIELD_, _DATA_TYPE_, ...)                       \
+  data_reg_choice(                                                                                 \
+      (_REG_),                                                                                     \
+      t_##_PARENT_,                                                                                \
+      string_lit(#_TAG_),                                                                          \
+      (_TAG_),                                                                                     \
+      offsetof(_PARENT_, _FIELD_),                                                                 \
+      data_meta_t(_DATA_TYPE_, __VA_ARGS__));
+
+#define data_reg_choice_empty(_REG_, _PARENT_, _TAG_)                                              \
+  data_reg_choice((_REG_), t_##_PARENT_, string_lit(#_TAG_), (_TAG_), 0, (DataMeta){0});
+
+void data_reg_choice(DataReg*, DataType parent, String name, i32 tag, usize offset, DataMeta);
+
+/**
  * Register a new Enum type.
  */
 #define data_reg_enum_t(_REG_, _T_)                                                                \

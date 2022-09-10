@@ -288,5 +288,212 @@ spec(read_json) {
     test_read_fail(_testCtx, reg, string_lit("null"), meta, DataReadError_MismatchedType);
   }
 
+  it("can read a union of primitive types") {
+    typedef enum {
+      ReadJsonUnionTag_Int,
+      ReadJsonUnionTag_Float,
+      ReadJsonUnionTag_String,
+      ReadJsonUnionTag_Other,
+    } ReadJsonUnionTag;
+
+    typedef struct {
+      ReadJsonUnionTag tag;
+      union {
+        i32    data_int;
+        f32    data_float;
+        String data_string;
+      };
+    } ReadJsonUnion;
+
+    data_reg_union_t(reg, ReadJsonUnion, tag);
+    data_reg_choice_t(reg, ReadJsonUnion, ReadJsonUnionTag_Int, data_int, data_prim_t(i32));
+    data_reg_choice_t(reg, ReadJsonUnion, ReadJsonUnionTag_Float, data_float, data_prim_t(f32));
+    data_reg_choice_t(
+        reg, ReadJsonUnion, ReadJsonUnionTag_String, data_string, data_prim_t(String));
+    data_reg_choice_empty(reg, ReadJsonUnion, ReadJsonUnionTag_Other);
+
+    const DataMeta meta = data_meta_t(t_ReadJsonUnion);
+
+    {
+      ReadJsonUnion val;
+      test_read_success(
+          _testCtx,
+          reg,
+          string_lit("{\n"
+                     "  \"$type\": \"ReadJsonUnionTag_Int\",\n"
+                     "  \"$data\": 42\n"
+                     "}"),
+          meta,
+          mem_var(val));
+
+      check_eq_int(val.tag, ReadJsonUnionTag_Int);
+      check_eq_int(val.data_int, 42);
+    }
+    {
+      ReadJsonUnion val;
+      test_read_success(
+          _testCtx,
+          reg,
+          string_lit("{\n"
+                     "  \"$type\": \"ReadJsonUnionTag_String\",\n"
+                     "  \"$data\": \"Hello World\"\n"
+                     "}"),
+          meta,
+          mem_var(val));
+
+      check_eq_int(val.tag, ReadJsonUnionTag_String);
+      check_eq_string(val.data_string, string_lit("Hello World"));
+      string_free(g_alloc_heap, val.data_string);
+    }
+    {
+      ReadJsonUnion val;
+      test_read_success(
+          _testCtx,
+          reg,
+          string_lit("{\n"
+                     "  \"$type\": \"ReadJsonUnionTag_Other\"\n"
+                     "}"),
+          meta,
+          mem_var(val));
+
+      check_eq_int(val.tag, ReadJsonUnionTag_Other);
+    }
+
+    test_read_fail(_testCtx, reg, string_lit("{}"), meta, DataReadError_UnionTypeMissing);
+    test_read_fail(
+        _testCtx,
+        reg,
+        string_lit("{\n"
+                   "  \"$type\": 42\n"
+                   "}"),
+        meta,
+        DataReadError_UnionTypeInvalid);
+    test_read_fail(
+        _testCtx,
+        reg,
+        string_lit("{\n"
+                   "  \"$type\": \"Hello\"\n"
+                   "}"),
+        meta,
+        DataReadError_UnionTypeUnsupported);
+    test_read_fail(
+        _testCtx,
+        reg,
+        string_lit("{\n"
+                   "  \"$type\": \"ReadJsonUnionTag_String\"\n"
+                   "}"),
+        meta,
+        DataReadError_UnionDataMissing);
+    test_read_fail(
+        _testCtx,
+        reg,
+        string_lit("{\n"
+                   "  \"$type\": \"ReadJsonUnionTag_String\",\n"
+                   "  \"$data\": 42\n"
+                   "}"),
+        meta,
+        DataReadError_UnionDataInvalid);
+    test_read_fail(
+        _testCtx,
+        reg,
+        string_lit("{\n"
+                   "  \"$type\": \"ReadJsonUnionTag_Int\",\n"
+                   "  \"$data\": 42,\n"
+                   "  \"more\": 1337\n"
+                   "}"),
+        meta,
+        DataReadError_UnionUnknownField);
+    test_read_fail(_testCtx, reg, string_lit("null"), meta, DataReadError_MismatchedType);
+  }
+
+  it("can read a union of struct types") {
+    typedef struct {
+      i32    valA;
+      String valB;
+      f64    valC;
+    } ReadJsonStruct;
+
+    data_reg_struct_t(reg, ReadJsonStruct);
+    data_reg_field_t(reg, ReadJsonStruct, valA, data_prim_t(i32));
+    data_reg_field_t(reg, ReadJsonStruct, valB, data_prim_t(String));
+    data_reg_field_t(reg, ReadJsonStruct, valC, data_prim_t(f64));
+
+    typedef enum {
+      ReadJsonUnionTag_A,
+      ReadJsonUnionTag_B,
+    } ReadJsonUnionTag;
+
+    typedef struct {
+      ReadJsonUnionTag tag;
+      union {
+        ReadJsonStruct data_a;
+      };
+    } ReadJsonUnion;
+
+    data_reg_union_t(reg, ReadJsonUnion, tag);
+    data_reg_choice_t(reg, ReadJsonUnion, ReadJsonUnionTag_A, data_a, t_ReadJsonStruct);
+    data_reg_choice_empty(reg, ReadJsonUnion, ReadJsonUnionTag_B);
+
+    const DataMeta meta = data_meta_t(t_ReadJsonUnion);
+
+    {
+      ReadJsonUnion val;
+      test_read_success(
+          _testCtx,
+          reg,
+          string_lit("{\n"
+                     "  \"$type\": \"ReadJsonUnionTag_A\",\n"
+                     "  \"valA\": -42,\n"
+                     "  \"valB\": \"Hello World\",\n"
+                     "  \"valC\": 42.42\n"
+                     "}"),
+          meta,
+          mem_var(val));
+
+      check_eq_int(val.tag, ReadJsonUnionTag_A);
+      check_eq_int(val.data_a.valA, -42);
+      check_eq_string(val.data_a.valB, string_lit("Hello World"));
+      check_eq_float(val.data_a.valC, 42.42, 1e-6f);
+      string_free(g_alloc_heap, val.data_a.valB);
+    }
+    {
+      ReadJsonUnion val;
+      test_read_success(
+          _testCtx,
+          reg,
+          string_lit("{\n"
+                     "  \"$type\": \"ReadJsonUnionTag_B\"\n"
+                     "}"),
+          meta,
+          mem_var(val));
+
+      check_eq_int(val.tag, ReadJsonUnionTag_B);
+    }
+
+    test_read_fail(_testCtx, reg, string_lit("{}"), meta, DataReadError_UnionTypeMissing);
+    test_read_fail(
+        _testCtx,
+        reg,
+        string_lit("{\n"
+                   "  \"$type\": \"ReadJsonUnionTag_A\",\n"
+                   "  \"valA\": -42,\n"
+                   "  \"valC\": 42.42\n"
+                   "}"),
+        meta,
+        DataReadError_FieldNotFound);
+    test_read_fail(
+        _testCtx,
+        reg,
+        string_lit("{\n"
+                   "  \"$type\": \"ReadJsonUnionTag_A\",\n"
+                   "  \"valA\": -42,\n"
+                   "  \"valB\": \"Hello World\",\n"
+                   "  \"valC\": 42.42,\n"
+                   "  \"valD\": 1337,\n"
+                   "}"),
+        meta,
+        DataReadError_UnknownField);
+  }
+
   teardown() { data_reg_destroy(reg); }
 }

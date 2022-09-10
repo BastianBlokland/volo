@@ -46,9 +46,8 @@ static JsonVal data_write_json_string(const WriteCtx* ctx) {
   return json_add_string(ctx->doc, *mem_as_t(ctx->data, String));
 }
 
-static JsonVal data_write_json_struct(const WriteCtx* ctx) {
-  const JsonVal   jsonObj = json_add_object(ctx->doc);
-  const DataDecl* decl    = data_decl(ctx->reg, ctx->meta.type);
+static void data_write_json_struct_to_obj(const WriteCtx* ctx, const JsonVal jsonObj) {
+  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
 
   dynarray_for_t(&decl->val_struct.fields, DataDeclField, fieldDecl) {
     const WriteCtx fieldCtx = {
@@ -60,7 +59,45 @@ static JsonVal data_write_json_struct(const WriteCtx* ctx) {
     const JsonVal fieldVal = data_write_json_val(&fieldCtx);
     json_add_field_str(ctx->doc, jsonObj, fieldDecl->id.name, fieldVal);
   }
+}
 
+static JsonVal data_write_json_struct(const WriteCtx* ctx) {
+  const JsonVal jsonObj = json_add_object(ctx->doc);
+  data_write_json_struct_to_obj(ctx, jsonObj);
+  return jsonObj;
+}
+
+static JsonVal data_write_json_union(const WriteCtx* ctx) {
+  const JsonVal   jsonObj = json_add_object(ctx->doc);
+  const DataDecl* decl    = data_decl(ctx->reg, ctx->meta.type);
+  const i32       tag     = *data_union_tag(&decl->val_union, ctx->data);
+
+  const DataDeclChoice* choice = data_choice_from_tag(&decl->val_union, tag);
+  diag_assert(choice);
+
+  const JsonVal typeStr = json_add_string(ctx->doc, choice->id.name);
+  json_add_field_str(ctx->doc, jsonObj, string_lit("$type"), typeStr);
+
+  const bool emptyChoice = choice->meta.type == 0;
+  if (!emptyChoice) {
+    const WriteCtx choiceCtx = {
+        .reg  = ctx->reg,
+        .doc  = ctx->doc,
+        .meta = choice->meta,
+        .data = data_choice_mem(ctx->reg, choice, ctx->data),
+    };
+    switch (data_decl(ctx->reg, choice->meta.type)->kind) {
+    case DataKind_Struct:
+      /**
+       * Inline the struct fields into the current json object.
+       */
+      data_write_json_struct_to_obj(&choiceCtx, jsonObj);
+      break;
+    default:
+      json_add_field_str(ctx->doc, jsonObj, string_lit("$data"), data_write_json_val(&choiceCtx));
+      break;
+    }
+  }
   return jsonObj;
 }
 
@@ -95,6 +132,8 @@ static JsonVal data_write_json_val_single(const WriteCtx* ctx) {
     return data_write_json_string(ctx);
   case DataKind_Struct:
     return data_write_json_struct(ctx);
+  case DataKind_Union:
+    return data_write_json_union(ctx);
   case DataKind_Enum:
     return data_write_json_enum(ctx);
   case DataKind_Invalid:
