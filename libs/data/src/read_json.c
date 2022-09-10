@@ -273,7 +273,7 @@ static void data_read_json_union(const ReadCtx* ctx, DataReadResult* res) {
     *res = result_fail(DataReadError_UnionDataMissing, "Union is missing a '$data' field");
     return;
   }
-  const ReadCtx fieldCtx = {
+  const ReadCtx choiceCtx = {
       .reg         = ctx->reg,
       .alloc       = ctx->alloc,
       .allocations = ctx->allocations,
@@ -282,7 +282,7 @@ static void data_read_json_union(const ReadCtx* ctx, DataReadResult* res) {
       .meta        = choice->meta,
       .data        = data_choice_mem(ctx->reg, choice, ctx->data),
   };
-  data_read_json_val(&fieldCtx, res);
+  data_read_json_val(&choiceCtx, res);
   if (UNLIKELY(res->error)) {
     *res = result_fail(
         DataReadError_UnionDataInvalid,
