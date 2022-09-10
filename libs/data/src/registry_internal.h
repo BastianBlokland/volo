@@ -50,6 +50,11 @@ typedef struct {
 } DataDecl;
 
 /**
+ * Retrieve the total number of registered types.
+ */
+u32 data_type_count(const DataReg*);
+
+/**
  * Strip off any container or other special attributes from the meta.
  */
 DataMeta data_meta_base(DataMeta);

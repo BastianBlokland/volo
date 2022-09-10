@@ -39,8 +39,8 @@ MAYBE_UNUSED static DataType data_type_by_id(const DataReg* reg, const DataId id
 DataReg* data_reg_create(Allocator* alloc) {
   DataReg* reg = alloc_alloc_t(alloc, DataReg);
   *reg         = (DataReg){
-      .types = dynarray_create_t(alloc, DataDecl, 64),
-      .alloc = alloc,
+              .types = dynarray_create_t(alloc, DataDecl, 64),
+              .alloc = alloc,
   };
 
 #define X(_T_)                                                                                     \
@@ -233,6 +233,8 @@ void data_reg_const(DataReg* reg, const DataType parent, const String name, cons
   *dynarray_push_t(&parentDecl->val_enum.consts, DataDeclConst) =
       (DataDeclConst){.id = id, .value = value};
 }
+
+u32 data_type_count(const DataReg* reg) { return (u32)reg->types.size; }
 
 DataMeta data_meta_base(const DataMeta meta) { return (DataMeta){.type = meta.type}; }
 

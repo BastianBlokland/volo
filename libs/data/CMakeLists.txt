@@ -7,6 +7,7 @@ message(STATUS "> library: data")
 add_library(lib_data STATIC
   src/read_json.c
   src/registry.c
+  src/treescheme.c
   src/utils_clone.c
   src/utils_destroy.c
   src/write_json.c
