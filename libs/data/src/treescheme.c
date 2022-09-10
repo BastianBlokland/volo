@@ -17,11 +17,6 @@ typedef enum {
   TreeSchemeType_Enum,
 } TreeSchemeType;
 
-typedef enum {
-  TreeSchemeAliasType_Normal,
-  TreeSchemeAliasType_Root,
-} TreeSchemeAliasType;
-
 typedef struct {
   const DataReg* reg;
   JsonDoc*       doc;
@@ -91,7 +86,7 @@ static void treescheme_add_enum(const TreeSchemeCtx* ctx, const DataType type) {
   }
 }
 
-static void treescheme_add_alias(const TreeSchemeCtx* ctx, DataType, TreeSchemeAliasType);
+static void treescheme_add_alias(const TreeSchemeCtx* ctx, DataType);
 
 static void treescheme_add_node(const TreeSchemeCtx* ctx, const DataType type) {
   if (treescheme_check_added(ctx, type)) {
@@ -131,7 +126,7 @@ static void treescheme_add_node(const TreeSchemeCtx* ctx, const DataType type) {
       break;
     case TreeSchemeType_Alias:
       valueType = json_add_string(ctx->doc, fieldTypeDecl->id.name);
-      treescheme_add_alias(ctx, fieldDecl->meta.type, TreeSchemeAliasType_Normal);
+      treescheme_add_alias(ctx, fieldDecl->meta.type);
       break;
     case TreeSchemeType_Enum:
       valueType = json_add_string(ctx->doc, fieldTypeDecl->id.name);
@@ -151,10 +146,8 @@ static void treescheme_add_node_empty(const TreeSchemeCtx* ctx, const DataId id)
   json_add_field_lit(ctx->doc, nodeObj, "fields", json_add_array(ctx->doc));
 }
 
-static void treescheme_add_alias(
-    const TreeSchemeCtx* ctx, const DataType type, const TreeSchemeAliasType aliasType) {
+static void treescheme_add_alias(const TreeSchemeCtx* ctx, const DataType type) {
   if (treescheme_check_added(ctx, type)) {
-    diag_assert(aliasType != TreeSchemeAliasType_Root);
     return;
   }
   const DataDecl* decl = data_decl(ctx->reg, type);
@@ -162,21 +155,16 @@ static void treescheme_add_alias(
   const JsonVal aliasObj = json_add_object(ctx->doc);
   json_add_elem(ctx->doc, ctx->schemeAliasesArr, aliasObj);
 
-  const JsonVal aliasId = json_add_string(ctx->doc, decl->id.name);
-  json_add_field_lit(ctx->doc, aliasObj, "identifier", aliasId);
-
-  if (aliasType == TreeSchemeAliasType_Root) {
-    json_add_field_lit(ctx->doc, ctx->schemeObj, "rootAlias", aliasId);
-  }
+  json_add_field_lit(ctx->doc, aliasObj, "identifier", json_add_string(ctx->doc, decl->id.name));
 
   const JsonVal aliasValues = json_add_array(ctx->doc);
-  json_add_elem(ctx->doc, aliasObj, aliasValues);
+  json_add_field_lit(ctx->doc, aliasObj, "values", aliasValues);
 
   switch (decl->kind) {
   case DataKind_Struct: {
     // A struct only has a single implementation, so add it as the only value of the alias.
     treescheme_add_node(ctx, type);
-    json_add_elem(ctx->doc, aliasValues, aliasId);
+    json_add_elem(ctx->doc, aliasValues, json_add_string(ctx->doc, decl->id.name));
   } break;
   case DataKind_Union: {
     // Add all union choices as alias values.
@@ -204,7 +192,7 @@ void data_treescheme_write(const DataReg* reg, DynString* str, const DataType ro
 
   const JsonVal schemeObj = json_add_object(doc);
   json_add_field_lit(doc, schemeObj, "aliases", schemeAliasesArr);
-  json_add_field_lit(doc, schemeObj, "enums", schemeAliasesArr);
+  json_add_field_lit(doc, schemeObj, "enums", schemeEnumsArr);
   json_add_field_lit(doc, schemeObj, "nodes", schemeNodesArr);
 
   diag_assert(data_type_count(reg) <= treescheme_max_types);
@@ -219,7 +207,10 @@ void data_treescheme_write(const DataReg* reg, DynString* str, const DataType ro
       .schemeEnumsArr   = schemeEnumsArr,
       .schemeNodesArr   = schemeNodesArr,
   };
-  treescheme_add_alias(&ctx, rootType, TreeSchemeAliasType_Root);
+  treescheme_add_alias(&ctx, rootType);
+
+  json_add_field_lit(
+      doc, schemeObj, "rootAlias", json_add_string(doc, data_decl(reg, rootType)->id.name));
 
   json_write(str, doc, schemeObj, &json_write_opts());
   json_destroy(doc);
