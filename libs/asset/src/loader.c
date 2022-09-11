@@ -16,6 +16,9 @@ AssetLoader asset_loader(const AssetFormat format) {
   case AssetFormat_Bin: {
     RET_LOADER(raw);
   }
+  case AssetFormat_Bt: {
+    RET_LOADER(bt);
+  }
   case AssetFormat_Ftx: {
     RET_LOADER(ftx);
   }

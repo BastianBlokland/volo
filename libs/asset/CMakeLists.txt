@@ -6,6 +6,7 @@ message(STATUS "> library: asset")
 
 add_library(lib_asset STATIC
   src/format.c
+  src/loader_behavior.c
   src/loader_font_ttf.c
   src/loader_font.c
   src/loader_ftx.c
