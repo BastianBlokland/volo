@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "core_thread.h"
 #include "data.h"
+#include "data_treescheme.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 
@@ -105,4 +106,9 @@ Error:
 
 Cleanup:
   asset_repo_source_close(src);
+}
+
+void asset_behavior_scheme_write(DynString* str) {
+  behavior_datareg_init();
+  data_treescheme_write(g_dataReg, str, g_dataBehaviorMeta.type);
 }

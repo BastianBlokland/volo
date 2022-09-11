@@ -1,4 +1,5 @@
 #pragma once
+#include "core_dynstring.h"
 #include "ecs_module.h"
 
 /**
@@ -48,3 +49,10 @@ typedef struct sAssetBehavior {
 } AssetBehavior;
 
 ecs_comp_extern_public(AssetBehaviorComp) { AssetBehavior root; };
+
+/**
+ * Write a scheme file for the behavior file format.
+ * The treescheme format is used by the 'https://www.bastian.tech/tree/' tree editor.
+ * Format: https://github.com/BastianBlokland/typedtree-editor#example-of-the-scheme-format
+ */
+void asset_behavior_scheme_write(DynString*);
