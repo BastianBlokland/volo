@@ -1,0 +1,66 @@
+{
+  "aliases": [
+    {
+      "identifier": "AssetBehavior",
+      "values": [
+        "AssetBehaviorType_Success",
+        "AssetBehaviorType_Failure",
+        "AssetBehaviorType_Invert",
+        "AssetBehaviorType_Parallel",
+        "AssetBehaviorType_Selector",
+        "AssetBehaviorType_Sequence"
+      ]
+    }
+  ],
+  "enums": [],
+  "nodes": [
+    {
+      "nodeType": "AssetBehaviorType_Success",
+      "fields": []
+    },
+    {
+      "nodeType": "AssetBehaviorType_Failure",
+      "fields": []
+    },
+    {
+      "nodeType": "AssetBehaviorType_Invert",
+      "fields": [
+        {
+          "name": "child",
+          "valueType": "AssetBehavior"
+        }
+      ]
+    },
+    {
+      "nodeType": "AssetBehaviorType_Parallel",
+      "fields": [
+        {
+          "name": "children",
+          "isArray": true,
+          "valueType": "AssetBehavior"
+        }
+      ]
+    },
+    {
+      "nodeType": "AssetBehaviorType_Selector",
+      "fields": [
+        {
+          "name": "children",
+          "isArray": true,
+          "valueType": "AssetBehavior"
+        }
+      ]
+    },
+    {
+      "nodeType": "AssetBehaviorType_Sequence",
+      "fields": [
+        {
+          "name": "children",
+          "isArray": true,
+          "valueType": "AssetBehavior"
+        }
+      ]
+    }
+  ],
+  "rootAlias": "AssetBehavior"
+}
