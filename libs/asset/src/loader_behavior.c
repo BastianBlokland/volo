@@ -21,7 +21,7 @@ static void behavior_datareg_init() {
     g_dataReg = data_reg_create(g_alloc_persist);
 
     // clang-format off
-    const DataType behaviorType = data_declare_t(g_dataReg, TreeNode);
+    const DataType behaviorType = data_declare_t(g_dataReg, AssetBehavior);
 
     data_reg_struct_t(g_dataReg, AssetBehaviorInvert);
     data_reg_field_t(g_dataReg, AssetBehaviorInvert, child, behaviorType, .container = DataContainer_Pointer);
