@@ -109,8 +109,9 @@ static void treescheme_add_node(const TreeSchemeCtx* ctx, const DataType type) {
 
     json_add_field_lit(ctx->doc, fieldObj, "name", json_add_string(ctx->doc, fieldDecl->id.name));
 
-    const bool isArray = fieldDecl->meta.container == DataContainer_Array;
-    json_add_field_lit(ctx->doc, fieldObj, "isArray", json_add_bool(ctx->doc, isArray));
+    if (fieldDecl->meta.container == DataContainer_Array) {
+      json_add_field_lit(ctx->doc, fieldObj, "isArray", json_add_bool(ctx->doc, true));
+    }
 
     const DataDecl* fieldTypeDecl = data_decl(ctx->reg, fieldDecl->meta.type);
     JsonVal         valueType;
