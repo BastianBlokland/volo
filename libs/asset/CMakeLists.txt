@@ -39,6 +39,7 @@ target_link_libraries(lib_asset PRIVATE lib_data lib_json lib_log)
 
 add_executable(test_lib_asset
   test/config.c
+  test/test_loader_behavior.c
   test/test_loader_font_ttf.c
   test/test_loader_ftx.c
   test/test_loader_graphic.c
