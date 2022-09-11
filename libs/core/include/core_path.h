@@ -71,10 +71,10 @@ String path_parent(String);
 
 /**
  * Convert a path into a canonical form.
- * - Converts the segment seperators into '/'.
+ * - Converts the segment separators into '/'.
  * - Converts windows drive-letters into uppercase.
  * - Flattens any '.' and '..' segments.
- * - Removes trailing seperators.
+ * - Removes trailing separators.
  *
  * NOTE: Only performs basic lexical canonization, does NOT resolve symlinks, or validate that the
  * path is compatible with the underlying filesystem.
@@ -107,14 +107,14 @@ String path_build_scratch_raw(const String* segments);
 
 /**
  * Generate a random file name.
- * Usefull for avoiding name collisions, should not be used for anything security related.
+ * Useful for avoiding name collisions, should not be used for anything security related.
  * NOTE: Prefix and extension are optional.
  */
 void path_name_random(DynString*, Rng*, String prefix, String extension);
 
 /**
  * Generate a random file name into a scratch buffer.
- * Usefull for avoiding name collisions, should not be used for anything security related.
+ * Useful for avoiding name collisions, should not be used for anything security related.
  * NOTE: Prefix and extension are optional.
  */
 String path_name_random_scratch(Rng*, String prefix, String extension);
