@@ -11,7 +11,7 @@
  * Format: https://github.com/BastianBlokland/typedtree-editor#example-of-the-scheme-format
  */
 
-#define btscheme_default_path "bt.treescheme.json"
+#define btscheme_default_path "ai.btscheme"
 
 static bool btscheme_write(const String path) {
   DynString dynString = dynstring_create(g_alloc_heap, 64 * usize_kibibyte);

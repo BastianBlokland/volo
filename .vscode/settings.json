@@ -20,6 +20,8 @@
     "*.imp": "json",
     "*.pme": "json",
     "*.ptx": "json",
+    "*.bt": "json",
+    "*.btscheme": "json",
   },
   "files.exclude": {
     ".cache": true,
