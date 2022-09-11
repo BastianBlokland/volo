@@ -75,7 +75,7 @@ static void treescheme_add_enum(const TreeSchemeCtx* ctx, const DataType type) {
   json_add_field_lit(ctx->doc, enumObj, "identifier", json_add_string(ctx->doc, decl->id.name));
 
   const JsonVal enumValues = json_add_array(ctx->doc);
-  json_add_elem(ctx->doc, enumObj, enumValues);
+  json_add_field_lit(ctx->doc, enumObj, "values", enumValues);
 
   dynarray_for_t(&decl->val_enum.consts, DataDeclConst, constDecl) {
     const JsonVal valueObj = json_add_object(ctx->doc);
