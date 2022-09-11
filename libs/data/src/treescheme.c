@@ -88,7 +88,8 @@ static void treescheme_add_enum(const TreeSchemeCtx* ctx, const DataType type) {
 
 static void treescheme_add_alias(const TreeSchemeCtx* ctx, DataType);
 
-static void treescheme_add_node(const TreeSchemeCtx* ctx, const DataType type) {
+static void
+treescheme_add_node(const TreeSchemeCtx* ctx, const DataType type, const String typeName) {
   if (treescheme_check_added(ctx, type)) {
     return;
   }
@@ -98,7 +99,7 @@ static void treescheme_add_node(const TreeSchemeCtx* ctx, const DataType type) {
   const JsonVal nodeObj = json_add_object(ctx->doc);
   json_add_elem(ctx->doc, ctx->schemeNodesArr, nodeObj);
 
-  json_add_field_lit(ctx->doc, nodeObj, "nodeType", json_add_string(ctx->doc, decl->id.name));
+  json_add_field_lit(ctx->doc, nodeObj, "nodeType", json_add_string(ctx->doc, typeName));
 
   const JsonVal nodeFields = json_add_array(ctx->doc);
   json_add_field_lit(ctx->doc, nodeObj, "fields", nodeFields);
@@ -164,7 +165,7 @@ static void treescheme_add_alias(const TreeSchemeCtx* ctx, const DataType type) 
   switch (decl->kind) {
   case DataKind_Struct: {
     // A struct only has a single implementation, so add it as the only value of the alias.
-    treescheme_add_node(ctx, type);
+    treescheme_add_node(ctx, type, decl->id.name);
     json_add_elem(ctx->doc, aliasValues, json_add_string(ctx->doc, decl->id.name));
   } break;
   case DataKind_Union: {
@@ -175,7 +176,7 @@ static void treescheme_add_alias(const TreeSchemeCtx* ctx, const DataType type) 
       if (emptyChoice) {
         treescheme_add_node_empty(ctx, choice->id);
       } else {
-        treescheme_add_node(ctx, choice->meta.type);
+        treescheme_add_node(ctx, choice->meta.type, choice->id.name);
       }
       json_add_elem(ctx->doc, aliasValues, json_add_string(ctx->doc, choice->id.name));
     }
