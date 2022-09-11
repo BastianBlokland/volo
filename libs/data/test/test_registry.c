@@ -41,6 +41,24 @@ spec(registry) {
     check_eq_int(data_meta_size(reg, meta), sizeof(i32*) + sizeof(usize));
   }
 
+  it("can forward declare types") {
+    typedef struct {
+      i32    valA;
+      String valB;
+      f32    valC;
+    } RegStructA;
+
+    const DataType t = data_declare_t(reg, RegStructA);
+    check_eq_int(t, data_declare_t(reg, RegStructA));
+
+    data_reg_struct_t(reg, RegStructA);
+    data_reg_field_t(reg, RegStructA, valA, data_prim_t(i32));
+    data_reg_field_t(reg, RegStructA, valB, data_prim_t(String));
+    data_reg_field_t(reg, RegStructA, valC, data_prim_t(f32));
+
+    check_eq_int(t, t_RegStructA);
+  }
+
   it("can register custom structs") {
     typedef struct sRegStructA {
       i32                 valA;

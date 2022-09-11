@@ -76,7 +76,7 @@ static JsonVal data_write_json_union(const WriteCtx* ctx) {
   diag_assert(choice);
 
   const JsonVal typeStr = json_add_string(ctx->doc, choice->id.name);
-  json_add_field_str(ctx->doc, jsonObj, string_lit("$type"), typeStr);
+  json_add_field_lit(ctx->doc, jsonObj, "$type", typeStr);
 
   const bool emptyChoice = choice->meta.type == 0;
   if (!emptyChoice) {
@@ -94,7 +94,7 @@ static JsonVal data_write_json_union(const WriteCtx* ctx) {
       data_write_json_struct_to_obj(&choiceCtx, jsonObj);
       break;
     default:
-      json_add_field_str(ctx->doc, jsonObj, string_lit("$data"), data_write_json_val(&choiceCtx));
+      json_add_field_lit(ctx->doc, jsonObj, "$data", data_write_json_val(&choiceCtx));
       break;
     }
   }
@@ -150,10 +150,10 @@ static JsonVal data_write_json_val_pointer(const WriteCtx* ctx) {
   }
   const DataDecl* decl   = data_decl(ctx->reg, ctx->meta.type);
   const WriteCtx  subCtx = {
-      .reg  = ctx->reg,
-      .doc  = ctx->doc,
-      .meta = data_meta_base(ctx->meta),
-      .data = mem_create(ptr, decl->size),
+       .reg  = ctx->reg,
+       .doc  = ctx->doc,
+       .meta = data_meta_base(ctx->meta),
+       .data = mem_create(ptr, decl->size),
   };
   return data_write_json_val_single(&subCtx);
 }

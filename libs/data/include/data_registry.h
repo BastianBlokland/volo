@@ -63,6 +63,14 @@ usize data_align(const DataReg*, DataType);
 usize data_meta_size(const DataReg*, DataMeta);
 
 /**
+ * Declare a type without defining it yet.
+ * NOTE: The type needs to be defined (for example using 'data_reg_struct') before usage.
+ */
+#define data_declare_t(_REG_, _T_) data_declare((_REG_), string_lit(#_T_))
+
+DataType data_declare(DataReg*, String name);
+
+/**
  * Register a new Struct type.
  */
 #define data_reg_struct_t(_REG_, _T_)                                                              \

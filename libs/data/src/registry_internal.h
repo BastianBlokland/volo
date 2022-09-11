@@ -39,15 +39,20 @@ typedef struct {
 } DataDeclEnum;
 
 typedef struct {
+  DataId   id;
   DataKind kind;
   usize    size, align;
-  DataId   id;
   union {
     DataDeclStruct val_struct;
     DataDeclUnion  val_union;
     DataDeclEnum   val_enum;
   };
 } DataDecl;
+
+/**
+ * Retrieve the total number of registered types.
+ */
+u32 data_type_count(const DataReg*);
 
 /**
  * Strip off any container or other special attributes from the meta.

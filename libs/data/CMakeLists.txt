@@ -7,6 +7,7 @@ message(STATUS "> library: data")
 add_library(lib_data STATIC
   src/read_json.c
   src/registry.c
+  src/treescheme.c
   src/utils_clone.c
   src/utils_destroy.c
   src/write_json.c
@@ -19,6 +20,7 @@ add_executable(test_lib_data
   test/config.c
   test/test_read_json.c
   test/test_registry.c
+  test/test_treescheme.c
   test/test_utils_clone.c
   test/test_utils_destroy.c
   test/test_write_json.c
