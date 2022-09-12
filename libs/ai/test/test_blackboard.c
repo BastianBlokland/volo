@@ -3,7 +3,6 @@
 #include "core_alloc.h"
 
 spec(blackboard) {
-
   AiBlackboard* bb = null;
 
   setup() { bb = ai_blackboard_create(g_alloc_heap); }

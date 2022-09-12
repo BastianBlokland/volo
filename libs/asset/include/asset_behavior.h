@@ -20,6 +20,8 @@ typedef enum {
   AssetBehaviorType_Parallel,
   AssetBehaviorType_Selector,
   AssetBehaviorType_Sequence,
+
+  AssetBehaviorType_Count,
 } AssetBehaviorType;
 
 typedef struct {
