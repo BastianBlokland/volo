@@ -116,6 +116,8 @@ ai_blackboard_insert(AiBlackboard* bb, const StringHash key, const AiBlackboardT
     ++bb->slotCountUsed;
     if (UNLIKELY(blackboard_should_grow(bb))) {
       blackboard_grow(bb);
+      // Re-query the slot after growing the table as the previous pointer is no longer valid.
+      slot = blackboard_slot(bb->slots, bb->slotCount, key);
     }
   }
   return slot;
