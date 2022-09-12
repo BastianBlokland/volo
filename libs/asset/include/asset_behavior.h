@@ -9,8 +9,8 @@
 typedef struct sAssetBehavior AssetBehavior;
 
 typedef struct {
-  AssetBehavior* values;
-  usize          count;
+  const AssetBehavior* values;
+  usize                count;
 } AssetBehaviorList;
 
 typedef enum {
@@ -25,7 +25,7 @@ typedef enum {
 } AssetBehaviorType;
 
 typedef struct {
-  AssetBehavior* child;
+  const AssetBehavior* child;
 } AssetBehaviorInvert;
 
 typedef struct {
