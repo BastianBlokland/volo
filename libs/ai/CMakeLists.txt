@@ -6,6 +6,7 @@ message(STATUS "> library: ai")
 
 add_library(lib_ai STATIC
   src/blackboard.c
+  src/knowledge.c
   )
 target_include_directories(lib_ai PUBLIC include)
 target_link_libraries(lib_ai PUBLIC lib_core lib_geo)

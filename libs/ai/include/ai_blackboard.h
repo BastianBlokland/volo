@@ -1,5 +1,2 @@
 #pragma once
-
-/**
- * AI Blackboard.
- */
+#include "ai_knowledge.h"
