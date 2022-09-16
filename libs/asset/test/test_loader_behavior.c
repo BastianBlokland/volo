@@ -24,6 +24,17 @@ static const struct {
                               "}"),
         .type = AssetBehaviorType_Invert,
     },
+    {
+        .id   = string_static("knowledgeset.bt"),
+        .text = string_static("{\n"
+                              "\"$type\": \"AssetBehaviorType_KnowledgeSet\",\n"
+                              "\"key\": \"test\",\n"
+                              "\"value\": {\n"
+                              "  \"$type\": \"AssetKnowledgeType_Vector\",\n"
+                              "  \"x\": 1, \"y\": 2, \"z\": 3, \"w\": 4 }\n"
+                              "}"),
+        .type = AssetBehaviorType_KnowledgeSet,
+    },
 
 };
 

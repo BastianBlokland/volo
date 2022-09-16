@@ -23,6 +23,16 @@ static void behavior_datareg_init() {
     // clang-format off
     const DataType behaviorType = data_declare_t(g_dataReg, AssetBehavior);
 
+    data_reg_struct_t(g_dataReg, GeoVector);
+    data_reg_field_t(g_dataReg, GeoVector, x, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, GeoVector, y, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, GeoVector, z, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, GeoVector, w, data_prim_t(f32));
+
+    data_reg_union_t(g_dataReg, AssetKnowledgeLit, type);
+    data_reg_choice_t(g_dataReg, AssetKnowledgeLit, AssetKnowledgeType_f64, data_f64, data_prim_t(f64));
+    data_reg_choice_t(g_dataReg, AssetKnowledgeLit, AssetKnowledgeType_Vector, data_vector, t_GeoVector);
+
     data_reg_struct_t(g_dataReg, AssetBehaviorInvert);
     data_reg_field_t(g_dataReg, AssetBehaviorInvert, child, behaviorType, .container = DataContainer_Pointer);
 
@@ -35,6 +45,10 @@ static void behavior_datareg_init() {
     data_reg_struct_t(g_dataReg, AssetBehaviorSequence);
     data_reg_field_t(g_dataReg, AssetBehaviorSequence, children, behaviorType, .container = DataContainer_Array);
 
+    data_reg_struct_t(g_dataReg, AssetBehaviorKnowledgeSet);
+    data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeSet, key, data_prim_t(String));
+    data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeSet, value, t_AssetKnowledgeLit);
+
     data_reg_union_t(g_dataReg, AssetBehavior, type);
     data_reg_choice_empty(g_dataReg, AssetBehavior, AssetBehaviorType_Success);
     data_reg_choice_empty(g_dataReg, AssetBehavior, AssetBehaviorType_Failure);
@@ -42,6 +56,7 @@ static void behavior_datareg_init() {
     data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehaviorType_Parallel, data_parallel, t_AssetBehaviorParallel);
     data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehaviorType_Selector, data_selector, t_AssetBehaviorSelector);
     data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehaviorType_Sequence, data_sequence, t_AssetBehaviorSequence);
+    data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehaviorType_KnowledgeSet, data_knowledgeset, t_AssetBehaviorKnowledgeSet);
     // clang-format on
 
     g_dataBehaviorMeta = data_meta_t(behaviorType);

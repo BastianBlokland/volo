@@ -1,6 +1,7 @@
 #pragma once
 #include "core_dynstring.h"
 #include "ecs_module.h"
+#include "geo_vector.h"
 
 /**
  * Behavior tree definition.
@@ -21,9 +22,23 @@ typedef enum {
   AssetBehaviorType_Parallel,
   AssetBehaviorType_Selector,
   AssetBehaviorType_Sequence,
+  AssetBehaviorType_KnowledgeSet,
 
   AssetBehaviorType_Count,
 } AssetBehaviorType;
+
+typedef enum {
+  AssetKnowledgeType_f64,
+  AssetKnowledgeType_Vector,
+} AssetKnowledgeType;
+
+typedef struct {
+  AssetKnowledgeType type;
+  union {
+    f64       data_f64;
+    GeoVector data_vector;
+  };
+} AssetKnowledgeLit;
 
 typedef struct {
   AssetBehaviorPtr child;
@@ -41,13 +56,19 @@ typedef struct {
   AssetBehaviorList children;
 } AssetBehaviorSequence;
 
+typedef struct {
+  String            key;
+  AssetKnowledgeLit value;
+} AssetBehaviorKnowledgeSet;
+
 typedef struct sAssetBehavior {
   AssetBehaviorType type;
   union {
-    AssetBehaviorInvert   data_invert;
-    AssetBehaviorParallel data_parallel;
-    AssetBehaviorSelector data_selector;
-    AssetBehaviorSequence data_sequence;
+    AssetBehaviorInvert       data_invert;
+    AssetBehaviorParallel     data_parallel;
+    AssetBehaviorSelector     data_selector;
+    AssetBehaviorSequence     data_sequence;
+    AssetBehaviorKnowledgeSet data_knowledgeset;
   };
 } AssetBehavior;
 
