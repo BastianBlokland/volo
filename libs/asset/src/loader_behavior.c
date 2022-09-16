@@ -29,9 +29,9 @@ static void behavior_datareg_init() {
     data_reg_field_t(g_dataReg, GeoVector, z, data_prim_t(f32));
     data_reg_field_t(g_dataReg, GeoVector, w, data_prim_t(f32));
 
-    data_reg_union_t(g_dataReg, AssetKnowledgeLit, type);
-    data_reg_choice_t(g_dataReg, AssetKnowledgeLit, AssetKnowledgeType_f64, data_f64, data_prim_t(f64));
-    data_reg_choice_t(g_dataReg, AssetKnowledgeLit, AssetKnowledgeType_Vector, data_vector, t_GeoVector);
+    data_reg_union_t(g_dataReg, AssetKnowledgeSource, type);
+    data_reg_choice_t(g_dataReg, AssetKnowledgeSource, AssetKnowledgeSource_f64, data_f64, data_prim_t(f64));
+    data_reg_choice_t(g_dataReg, AssetKnowledgeSource, AssetKnowledgeSource_Vector, data_vector, t_GeoVector);
 
     data_reg_struct_t(g_dataReg, AssetBehaviorInvert);
     data_reg_field_t(g_dataReg, AssetBehaviorInvert, child, behaviorType, .container = DataContainer_Pointer);
@@ -47,7 +47,7 @@ static void behavior_datareg_init() {
 
     data_reg_struct_t(g_dataReg, AssetBehaviorKnowledgeSet);
     data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeSet, key, data_prim_t(String));
-    data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeSet, value, t_AssetKnowledgeLit);
+    data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeSet, value, t_AssetKnowledgeSource);
 
     data_reg_union_t(g_dataReg, AssetBehavior, type);
     data_reg_choice_empty(g_dataReg, AssetBehavior, AssetBehaviorType_Success);

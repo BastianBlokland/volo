@@ -30,7 +30,7 @@ static const struct {
                               "\"$type\": \"AssetBehaviorType_KnowledgeSet\",\n"
                               "\"key\": \"test\",\n"
                               "\"value\": {\n"
-                              "  \"$type\": \"AssetKnowledgeType_Vector\",\n"
+                              "  \"$type\": \"AssetKnowledgeSource_Vector\",\n"
                               "  \"x\": 1, \"y\": 2, \"z\": 3, \"w\": 4 }\n"
                               "}"),
         .type = AssetBehaviorType_KnowledgeSet,

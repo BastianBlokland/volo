@@ -28,17 +28,17 @@ typedef enum {
 } AssetBehaviorType;
 
 typedef enum {
-  AssetKnowledgeType_f64,
-  AssetKnowledgeType_Vector,
-} AssetKnowledgeType;
+  AssetKnowledgeSource_f64,
+  AssetKnowledgeSource_Vector,
+} AssetKnowledgeSourceType;
 
 typedef struct {
-  AssetKnowledgeType type;
+  AssetKnowledgeSourceType type;
   union {
     f64       data_f64;
     GeoVector data_vector;
   };
-} AssetKnowledgeLit;
+} AssetKnowledgeSource;
 
 typedef struct {
   AssetBehaviorPtr child;
@@ -57,8 +57,8 @@ typedef struct {
 } AssetBehaviorSequence;
 
 typedef struct {
-  String            key;
-  AssetKnowledgeLit value;
+  String               key;
+  AssetKnowledgeSource value;
 } AssetBehaviorKnowledgeSet;
 
 typedef struct sAssetBehavior {

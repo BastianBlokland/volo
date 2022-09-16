@@ -18,7 +18,7 @@ spec(node_knowledgeset) {
                 .key = string_lit("test"),
                 .value =
                     {
-                        .type     = AssetKnowledgeType_f64,
+                        .type     = AssetKnowledgeSource_f64,
                         .data_f64 = 42.42,
                     },
             },
@@ -40,7 +40,7 @@ spec(node_knowledgeset) {
                 .key = string_lit("test"),
                 .value =
                     {
-                        .type        = AssetKnowledgeType_Vector,
+                        .type        = AssetKnowledgeSource_Vector,
                         .data_vector = geo_vector(1, 2, 3, 4),
                     },
             },

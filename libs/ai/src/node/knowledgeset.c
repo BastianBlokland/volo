@@ -13,10 +13,10 @@ AiResult ai_node_knowledgeset_eval(const AssetBehavior* behavior, AiBlackboard* 
   const StringHash keyHash = string_hash(behavior->data_knowledgeset.key);
 
   switch (behavior->data_knowledgeset.value.type) {
-  case AssetKnowledgeType_f64:
+  case AssetKnowledgeSource_f64:
     ai_blackboard_set_f64(bb, keyHash, behavior->data_knowledgeset.value.data_f64);
     return AiResult_Success;
-  case AssetKnowledgeType_Vector:
+  case AssetKnowledgeSource_Vector:
     ai_blackboard_set_vector(bb, keyHash, behavior->data_knowledgeset.value.data_vector);
     return AiResult_Success;
   }
