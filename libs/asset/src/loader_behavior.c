@@ -32,6 +32,7 @@ static void behavior_datareg_init() {
     data_reg_union_t(g_dataReg, AssetKnowledgeSource, type);
     data_reg_choice_t(g_dataReg, AssetKnowledgeSource, AssetKnowledgeSource_f64, data_f64, data_prim_t(f64));
     data_reg_choice_t(g_dataReg, AssetKnowledgeSource, AssetKnowledgeSource_Vector, data_vector, t_GeoVector);
+    data_reg_choice_t(g_dataReg, AssetKnowledgeSource, AssetKnowledgeSource_Knowledge, data_knowledge, data_prim_t(String));
 
     data_reg_struct_t(g_dataReg, AssetBehaviorInvert);
     data_reg_field_t(g_dataReg, AssetBehaviorInvert, child, behaviorType, .container = DataContainer_Pointer);

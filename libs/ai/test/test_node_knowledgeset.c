@@ -52,5 +52,24 @@ spec(node_knowledgeset) {
     check_eq_float(ai_blackboard_get_vector(bb, string_hash_lit("test")).w, 4, 1e-6f);
   }
 
+  it("can set knowledge based on other knowledge when evaluated") {
+    ai_blackboard_set_f64(bb, string_hash_lit("test1"), 42);
+
+    const AssetBehavior behavior = {
+        .type = AssetBehaviorType_KnowledgeSet,
+        .data_knowledgeset =
+            {
+                .key = string_lit("test2"),
+                .value =
+                    {
+                        .type           = AssetKnowledgeSource_Knowledge,
+                        .data_knowledge = string_lit("test1"),
+                    },
+            },
+    };
+    check(ai_eval(&behavior, bb) == AiResult_Success);
+    check_eq_float(ai_blackboard_get_f64(bb, string_hash_lit("test2")), 42, 1e-6f);
+  }
+
   teardown() { ai_blackboard_destroy(bb); }
 }

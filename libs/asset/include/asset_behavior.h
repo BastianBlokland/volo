@@ -30,6 +30,7 @@ typedef enum {
 typedef enum {
   AssetKnowledgeSource_f64,
   AssetKnowledgeSource_Vector,
+  AssetKnowledgeSource_Knowledge,
 } AssetKnowledgeSourceType;
 
 typedef struct {
@@ -37,6 +38,7 @@ typedef struct {
   union {
     f64       data_f64;
     GeoVector data_vector;
+    String    data_knowledge; // Knowledge key to read.
   };
 } AssetKnowledgeSource;
 

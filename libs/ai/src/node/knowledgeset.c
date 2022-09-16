@@ -19,6 +19,12 @@ AiResult ai_node_knowledgeset_eval(const AssetBehavior* behavior, AiBlackboard* 
   case AssetKnowledgeSource_Vector:
     ai_blackboard_set_vector(bb, keyHash, behavior->data_knowledgeset.value.data_vector);
     return AiResult_Success;
+  case AssetKnowledgeSource_Knowledge: {
+    // TODO: Keys should be pre-hashed in the behavior asset.
+    const StringHash srcKeyHash = string_hash(behavior->data_knowledgeset.value.data_knowledge);
+    ai_blackboard_copy(bb, srcKeyHash, keyHash);
+    return AiResult_Success;
+  }
   }
   UNREACHABLE
 }
