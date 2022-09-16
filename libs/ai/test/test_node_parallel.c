@@ -12,7 +12,7 @@ spec(node_parallel) {
   it("evaluates to failure when it doesn't have any children") {
     const AssetBehavior behavior = {
         .type          = AssetBehaviorType_Parallel,
-        .data_selector = {.children = {0}},
+        .data_parallel = {.children = {0}},
     };
     check(ai_eval(&behavior, bb) == AiResult_Failure);
   }
@@ -25,7 +25,7 @@ spec(node_parallel) {
     };
     const AssetBehavior behavior = {
         .type          = AssetBehaviorType_Parallel,
-        .data_selector = {.children = {.values = children, array_elems(children)}},
+        .data_parallel = {.children = {.values = children, array_elems(children)}},
     };
     check(ai_eval(&behavior, bb) == AiResult_Success);
   }
@@ -38,7 +38,7 @@ spec(node_parallel) {
     };
     const AssetBehavior behavior = {
         .type          = AssetBehaviorType_Parallel,
-        .data_selector = {.children = {.values = children, array_elems(children)}},
+        .data_parallel = {.children = {.values = children, array_elems(children)}},
     };
     check(ai_eval(&behavior, bb) == AiResult_Failure);
   }
