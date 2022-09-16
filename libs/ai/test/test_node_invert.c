@@ -26,5 +26,22 @@ spec(node_invert) {
     check(ai_eval(&behavior, bb) == AiResult_Failure);
   }
 
+  it("always evaluates the child node") {
+    const AssetBehavior child = {
+        .type = AssetBehaviorType_KnowledgeSet,
+        .data_knowledgeset =
+            {
+                .key   = string_lit("test"),
+                .value = {.type = AssetKnowledgeType_f64, .data_f64 = 42.42},
+            },
+    };
+    const AssetBehavior behavior = {
+        .type        = AssetBehaviorType_Invert,
+        .data_invert = {.child = &child},
+    };
+    check(ai_eval(&behavior, bb) == AiResult_Failure);
+    check_eq_float(ai_blackboard_get_f64(bb, string_hash_lit("test")), 42.42, 1e-6f);
+  }
+
   teardown() { ai_blackboard_destroy(bb); }
 }
