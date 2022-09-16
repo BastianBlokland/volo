@@ -30,5 +30,5 @@ void ai_blackboard_set_vector(AiBlackboard*, StringHash key, GeoVector value);
 /**
  * Query knowledge.
  */
-f64       ai_blackboard_get_f64(const AiBlackboard*, StringHash key, f64 fallback);
-GeoVector ai_blackboard_get_vector(const AiBlackboard*, StringHash key, GeoVector fallback);
+f64       ai_blackboard_get_f64(const AiBlackboard*, StringHash key);
+GeoVector ai_blackboard_get_vector(const AiBlackboard*, StringHash key);

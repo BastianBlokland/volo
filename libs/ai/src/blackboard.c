@@ -149,21 +149,20 @@ void ai_blackboard_set_vector(AiBlackboard* bb, const StringHash key, const GeoV
   ai_blackboard_insert(bb, key, AiBlackboardType_Vector)->data_vector = value;
 }
 
-f64 ai_blackboard_get_f64(const AiBlackboard* bb, const StringHash key, const f64 fallback) {
+f64 ai_blackboard_get_f64(const AiBlackboard* bb, const StringHash key) {
   const AiBlackboardSlot* slot = blackboard_slot(bb->slots, bb->slotCount, key);
   if (slot->key) {
     blackboard_assert_type(slot, AiBlackboardType_f64);
     return slot->data_f64;
   }
-  return fallback;
+  return 0; // Default.
 }
 
-GeoVector
-ai_blackboard_get_vector(const AiBlackboard* bb, const StringHash key, const GeoVector fallback) {
+GeoVector ai_blackboard_get_vector(const AiBlackboard* bb, const StringHash key) {
   const AiBlackboardSlot* slot = blackboard_slot(bb->slots, bb->slotCount, key);
   if (slot->key) {
     blackboard_assert_type(slot, AiBlackboardType_Vector);
     return slot->data_vector;
   }
-  return fallback;
+  return geo_vector(0); // Default.
 }
