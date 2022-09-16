@@ -43,5 +43,42 @@ spec(node_parallel) {
     check(ai_eval(&behavior, bb) == AiResult_Failure);
   }
 
+  it("evaluates all the child nodes") {
+    const AssetBehavior children[] = {
+        {
+            .type = AssetBehaviorType_KnowledgeSet,
+            .data_knowledgeset =
+                {
+                    .key   = string_lit("test1"),
+                    .value = {.type = AssetKnowledgeType_f64, .data_f64 = 1},
+                },
+        },
+        {
+            .type = AssetBehaviorType_KnowledgeSet,
+            .data_knowledgeset =
+                {
+                    .key   = string_lit("test2"),
+                    .value = {.type = AssetKnowledgeType_f64, .data_f64 = 2},
+                },
+        },
+        {
+            .type = AssetBehaviorType_KnowledgeSet,
+            .data_knowledgeset =
+                {
+                    .key   = string_lit("test3"),
+                    .value = {.type = AssetKnowledgeType_f64, .data_f64 = 3},
+                },
+        },
+    };
+    const AssetBehavior behavior = {
+        .type          = AssetBehaviorType_Parallel,
+        .data_parallel = {.children = {.values = children, array_elems(children)}},
+    };
+    check(ai_eval(&behavior, bb) == AiResult_Success);
+    check_eq_float(ai_blackboard_get_f64(bb, string_hash_lit("test1")), 1, 1e-6f);
+    check_eq_float(ai_blackboard_get_f64(bb, string_hash_lit("test2")), 2, 1e-6f);
+    check_eq_float(ai_blackboard_get_f64(bb, string_hash_lit("test3")), 3, 1e-6f);
+  }
+
   teardown() { ai_blackboard_destroy(bb); }
 }
