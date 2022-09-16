@@ -7,14 +7,6 @@
 #define blackboard_slots_initial 32
 #define blackboard_slots_loadfactor 0.75f
 
-typedef enum {
-  AiBlackboardType_Invalid,
-  AiBlackboardType_f64,
-  AiBlackboardType_Vector,
-
-  AiBlackboardType_Count,
-} AiBlackboardType;
-
 typedef struct {
   StringHash       key;
   AiBlackboardType type;
@@ -139,6 +131,10 @@ AiBlackboard* ai_blackboard_create(Allocator* alloc) {
 void ai_blackboard_destroy(AiBlackboard* bb) {
   alloc_free_array_t(bb->alloc, bb->slots, bb->slotCount);
   alloc_free_t(bb->alloc, bb);
+}
+
+AiBlackboardType ai_blackboard_type(AiBlackboard* bb, const StringHash key) {
+  return blackboard_slot(bb->slots, bb->slotCount, key)->type;
 }
 
 void ai_blackboard_set_f64(AiBlackboard* bb, const StringHash key, const f64 value) {
