@@ -9,6 +9,7 @@ add_library(lib_ai STATIC
   src/eval.c
   src/node/failure.c
   src/node/invert.c
+  src/node/selector.c
   src/node/success.c
   )
 target_include_directories(lib_ai PUBLIC include)
@@ -20,6 +21,7 @@ add_executable(test_lib_ai
   test/test_blackboard.c
   test/test_node_failure.c
   test/test_node_invert.c
+  test/test_node_selector.c
   test/test_node_success.c
   )
 target_link_libraries(test_lib_ai PRIVATE lib_app_check lib_ai)
