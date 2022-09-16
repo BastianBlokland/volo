@@ -55,3 +55,11 @@ void ai_blackboard_set_time(AiBlackboard*, StringHash key, TimeDuration value);
 f64          ai_blackboard_get_f64(const AiBlackboard*, StringHash key);
 GeoVector    ai_blackboard_get_vector(const AiBlackboard*, StringHash key);
 TimeDuration ai_blackboard_get_time(const AiBlackboard*, StringHash key);
+
+/**
+ * Copy the blackboard value from the source entry to the destination entry.
+ * NOTE: Types have to match.
+ * Pre-condition: srcKey != 0.
+ * Pre-condition: dstKey != 0.
+ */
+void ai_blackboard_copy(AiBlackboard*, StringHash srcKey, StringHash dstKey);

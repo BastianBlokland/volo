@@ -38,5 +38,20 @@ spec(blackboard) {
     }
   }
 
+  it("can copy a knowledge value to a new key") {
+    ai_blackboard_set_f64(bb, string_hash_lit("test1"), 42);
+
+    ai_blackboard_copy(bb, string_hash_lit("test1"), string_hash_lit("test2"));
+    check_eq_float(ai_blackboard_get_f64(bb, string_hash_lit("test2")), 42, 1e-6f);
+  }
+
+  it("can copy a knowledge value to an existing key") {
+    ai_blackboard_set_f64(bb, string_hash_lit("test1"), 1);
+    ai_blackboard_set_f64(bb, string_hash_lit("test2"), 2);
+
+    ai_blackboard_copy(bb, string_hash_lit("test1"), string_hash_lit("test2"));
+    check_eq_float(ai_blackboard_get_f64(bb, string_hash_lit("test2")), 1, 1e-6f);
+  }
+
   teardown() { ai_blackboard_destroy(bb); }
 }

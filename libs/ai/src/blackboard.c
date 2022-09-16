@@ -177,3 +177,26 @@ GeoVector ai_blackboard_get_vector(const AiBlackboard* bb, const StringHash key)
   }
   return geo_vector(0); // Default.
 }
+
+void ai_blackboard_copy(AiBlackboard* bb, const StringHash srcKey, const StringHash dstKey) {
+  const AiBlackboardSlot* srcSlot = blackboard_slot(bb->slots, bb->slotCount, srcKey);
+  if (srcSlot->key) {
+    AiBlackboardSlot* dstSlot = ai_blackboard_insert(bb, dstKey, srcSlot->type);
+    switch (srcSlot->type) {
+    case AiBlackboardType_f64:
+      dstSlot->data_f64 = srcSlot->data_f64;
+      return;
+    case AiBlackboardType_Vector:
+      dstSlot->data_vector = srcSlot->data_vector;
+      return;
+    case AiBlackboardType_Time:
+      dstSlot->data_time = srcSlot->data_time;
+      return;
+    case AiBlackboardType_Invalid:
+      return;
+    case AiBlackboardType_Count:
+      break;
+    }
+    UNREACHABLE
+  }
+}
