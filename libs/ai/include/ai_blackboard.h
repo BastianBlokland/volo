@@ -5,10 +5,14 @@
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;
 
+// Forward declare from 'core_time.h'.
+typedef i64 TimeDuration;
+
 typedef enum {
   AiBlackboardType_Invalid,
   AiBlackboardType_f64,
   AiBlackboardType_Vector,
+  AiBlackboardType_Time,
 
   AiBlackboardType_Count,
 } AiBlackboardType;
@@ -42,10 +46,12 @@ AiBlackboardType ai_blackboard_type(AiBlackboard*, StringHash key);
  */
 void ai_blackboard_set_f64(AiBlackboard*, StringHash key, f64 value);
 void ai_blackboard_set_vector(AiBlackboard*, StringHash key, GeoVector value);
+void ai_blackboard_set_time(AiBlackboard*, StringHash key, TimeDuration value);
 
 /**
  * Query knowledge.
  * Pre-condition: key != 0.
  */
-f64       ai_blackboard_get_f64(const AiBlackboard*, StringHash key);
-GeoVector ai_blackboard_get_vector(const AiBlackboard*, StringHash key);
+f64          ai_blackboard_get_f64(const AiBlackboard*, StringHash key);
+GeoVector    ai_blackboard_get_vector(const AiBlackboard*, StringHash key);
+TimeDuration ai_blackboard_get_time(const AiBlackboard*, StringHash key);
