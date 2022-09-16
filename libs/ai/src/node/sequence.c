@@ -6,7 +6,7 @@
 AiResult ai_node_sequence_eval(const AssetBehavior* behavior, AiBlackboard* bb) {
   diag_assert(behavior->type == AssetBehaviorType_Sequence);
 
-  array_ptr_for_t(behavior->data_selector.children, AssetBehavior, child) {
+  array_ptr_for_t(behavior->data_sequence.children, AssetBehavior, child) {
     switch (ai_eval(child, bb)) {
     case AiResult_Success:
       continue;
