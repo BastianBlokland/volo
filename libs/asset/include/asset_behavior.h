@@ -8,12 +8,16 @@
  */
 
 typedef struct sAssetBehavior AssetBehavior;
-typedef const AssetBehavior*  AssetBehaviorPtr;
 
 typedef struct {
-  AssetBehaviorPtr values;
-  usize            count;
+  const AssetBehavior* values;
+  usize                count;
 } AssetBehaviorList;
+
+typedef struct {
+  const String* values;
+  usize         count;
+} AssetKnowledgeList;
 
 typedef enum {
   AssetBehavior_Success,
@@ -57,7 +61,7 @@ typedef struct {
 } AssetKnowledgeSource;
 
 typedef struct {
-  AssetBehaviorPtr child;
+  const AssetBehavior* child;
 } AssetBehaviorInvert;
 
 typedef struct {
@@ -78,7 +82,7 @@ typedef struct {
 } AssetBehaviorKnowledgeSet;
 
 typedef struct {
-  String key;
+  AssetKnowledgeList keys;
 } AssetBehaviorKnowledgeClear;
 
 typedef struct {

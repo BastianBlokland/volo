@@ -131,10 +131,11 @@
     },
     {
       "nodeType": "AssetBehavior_KnowledgeClear",
-      "comment": "Clear any knowledge with the given key.\nEvaluates to 'Success'.",
+      "comment": "Clear all the given knowledge keys.\nEvaluates to 'Success'.",
       "fields": [
         {
-          "name": "key",
+          "name": "keys",
+          "isArray": true,
           "valueType": "string"
         }
       ]

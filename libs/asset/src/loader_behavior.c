@@ -62,8 +62,8 @@ static void behavior_datareg_init() {
     data_reg_comment_t(g_dataReg, AssetBehaviorKnowledgeSet, "Assign knowledge to the given key.\nNote: Knowledge will be added if it does not exist.\nEvaluates to 'Success'.");
 
     data_reg_struct_t(g_dataReg, AssetBehaviorKnowledgeClear);
-    data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeClear, key, data_prim_t(String));
-    data_reg_comment_t(g_dataReg, AssetBehaviorKnowledgeClear, "Clear any knowledge with the given key.\nEvaluates to 'Success'.");
+    data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeClear, keys, data_prim_t(String), .container = DataContainer_Array);
+    data_reg_comment_t(g_dataReg, AssetBehaviorKnowledgeClear, "Clear all the given knowledge keys.\nEvaluates to 'Success'.");
 
     data_reg_struct_t(g_dataReg, AssetBehaviorKnowledgeCheck);
     data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeCheck, key, data_prim_t(String));
