@@ -56,6 +56,9 @@ static void behavior_datareg_init() {
     data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeSet, key, data_prim_t(String));
     data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeSet, value, t_AssetKnowledgeSource);
 
+    data_reg_struct_t(g_dataReg, AssetBehaviorKnowledgeClear);
+    data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeClear, key, data_prim_t(String));
+
     data_reg_union_t(g_dataReg, AssetBehavior, type);
     data_reg_choice_empty(g_dataReg, AssetBehavior, AssetBehavior_Success);
     data_reg_choice_empty(g_dataReg, AssetBehavior, AssetBehavior_Failure);
@@ -64,6 +67,7 @@ static void behavior_datareg_init() {
     data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehavior_Selector, data_selector, t_AssetBehaviorSelector);
     data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehavior_Sequence, data_sequence, t_AssetBehaviorSequence);
     data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehavior_KnowledgeSet, data_knowledgeset, t_AssetBehaviorKnowledgeSet);
+    data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehavior_KnowledgeClear, data_knowledgeclear, t_AssetBehaviorKnowledgeClear);
     // clang-format on
 
     g_dataBehaviorMeta = data_meta_t(behaviorType);

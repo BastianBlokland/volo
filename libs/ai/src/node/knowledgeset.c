@@ -2,7 +2,6 @@
 #include "ai_eval.h"
 #include "asset_behavior.h"
 #include "core_diag.h"
-#include "core_string.h"
 
 AiResult ai_node_knowledgeset_eval(const AssetBehavior* behavior, AiBlackboard* bb) {
   diag_assert(behavior->type == AssetBehavior_KnowledgeSet);

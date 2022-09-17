@@ -9,7 +9,8 @@
         "AssetBehavior_Parallel",
         "AssetBehavior_Selector",
         "AssetBehavior_Sequence",
-        "AssetBehavior_KnowledgeSet"
+        "AssetBehavior_KnowledgeSet",
+        "AssetBehavior_KnowledgeClear"
       ]
     },
     {
@@ -115,6 +116,15 @@
     },
     {
       "nodeType": "AssetKnowledgeSource_Knowledge",
+      "fields": [
+        {
+          "name": "key",
+          "valueType": "string"
+        }
+      ]
+    },
+    {
+      "nodeType": "AssetBehavior_KnowledgeClear",
       "fields": [
         {
           "name": "key",
