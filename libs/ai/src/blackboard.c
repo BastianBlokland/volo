@@ -11,10 +11,10 @@ typedef struct {
   StringHash       key;
   AiBlackboardType type;
   union {
-    f64          data_f64;
-    GeoVector    data_vector;
-    TimeDuration data_time;
-  };
+    f64          f64;
+    GeoVector    vector;
+    TimeDuration time;
+  } data;
 } AiBlackboardSlot;
 
 struct sAiBlackboard {
@@ -140,22 +140,22 @@ AiBlackboardType ai_blackboard_type(AiBlackboard* bb, const StringHash key) {
 }
 
 void ai_blackboard_set_f64(AiBlackboard* bb, const StringHash key, const f64 value) {
-  ai_blackboard_insert(bb, key, AiBlackboardType_f64)->data_f64 = value;
+  ai_blackboard_insert(bb, key, AiBlackboardType_f64)->data.f64 = value;
 }
 
 void ai_blackboard_set_vector(AiBlackboard* bb, const StringHash key, const GeoVector value) {
-  ai_blackboard_insert(bb, key, AiBlackboardType_Vector)->data_vector = value;
+  ai_blackboard_insert(bb, key, AiBlackboardType_Vector)->data.vector = value;
 }
 
 void ai_blackboard_set_time(AiBlackboard* bb, const StringHash key, const TimeDuration value) {
-  ai_blackboard_insert(bb, key, AiBlackboardType_Time)->data_time = value;
+  ai_blackboard_insert(bb, key, AiBlackboardType_Time)->data.time = value;
 }
 
 f64 ai_blackboard_get_f64(const AiBlackboard* bb, const StringHash key) {
   const AiBlackboardSlot* slot = blackboard_slot(bb->slots, bb->slotCount, key);
   if (slot->key) {
     blackboard_assert_type(slot, AiBlackboardType_f64);
-    return slot->data_f64;
+    return slot->data.f64;
   }
   return 0; // Default.
 }
@@ -164,7 +164,7 @@ TimeDuration ai_blackboard_get_time(const AiBlackboard* bb, const StringHash key
   const AiBlackboardSlot* slot = blackboard_slot(bb->slots, bb->slotCount, key);
   if (slot->key) {
     blackboard_assert_type(slot, AiBlackboardType_Time);
-    return slot->data_time;
+    return slot->data.time;
   }
   return (TimeDuration)0; // Default.
 }
@@ -173,7 +173,7 @@ GeoVector ai_blackboard_get_vector(const AiBlackboard* bb, const StringHash key)
   const AiBlackboardSlot* slot = blackboard_slot(bb->slots, bb->slotCount, key);
   if (slot->key) {
     blackboard_assert_type(slot, AiBlackboardType_Vector);
-    return slot->data_vector;
+    return slot->data.vector;
   }
   return geo_vector(0); // Default.
 }
@@ -182,21 +182,6 @@ void ai_blackboard_copy(AiBlackboard* bb, const StringHash srcKey, const StringH
   const AiBlackboardSlot* srcSlot = blackboard_slot(bb->slots, bb->slotCount, srcKey);
   if (srcSlot->key) {
     AiBlackboardSlot* dstSlot = ai_blackboard_insert(bb, dstKey, srcSlot->type);
-    switch (srcSlot->type) {
-    case AiBlackboardType_f64:
-      dstSlot->data_f64 = srcSlot->data_f64;
-      return;
-    case AiBlackboardType_Vector:
-      dstSlot->data_vector = srcSlot->data_vector;
-      return;
-    case AiBlackboardType_Time:
-      dstSlot->data_time = srcSlot->data_time;
-      return;
-    case AiBlackboardType_Invalid:
-      return;
-    case AiBlackboardType_Count:
-      break;
-    }
-    UNREACHABLE
+    mem_cpy(mem_var(dstSlot->data), mem_var(srcSlot->data));
   }
 }
