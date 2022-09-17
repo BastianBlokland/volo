@@ -41,14 +41,6 @@ void ai_blackboard_destroy(AiBlackboard*);
 AiBlackboardType ai_blackboard_type(AiBlackboard*, StringHash key);
 
 /**
- * Update knowledge.
- * Pre-condition: key != 0.
- */
-void ai_blackboard_set_f64(AiBlackboard*, StringHash key, f64 value);
-void ai_blackboard_set_vector(AiBlackboard*, StringHash key, GeoVector value);
-void ai_blackboard_set_time(AiBlackboard*, StringHash key, TimeDuration value);
-
-/**
  * Query knowledge.
  * Pre-condition: key != 0.
  */
@@ -57,9 +49,11 @@ GeoVector    ai_blackboard_get_vector(const AiBlackboard*, StringHash key);
 TimeDuration ai_blackboard_get_time(const AiBlackboard*, StringHash key);
 
 /**
- * Copy the blackboard value from the source entry to the destination entry.
- * NOTE: Types have to match.
- * Pre-condition: srcKey != 0.
- * Pre-condition: dstKey != 0.
+ * Update knowledge.
+ * Pre-condition: key != 0.
  */
+void ai_blackboard_set_f64(AiBlackboard*, StringHash key, f64 value);
+void ai_blackboard_set_vector(AiBlackboard*, StringHash key, GeoVector value);
+void ai_blackboard_set_time(AiBlackboard*, StringHash key, TimeDuration value);
+void ai_blackboard_unset(AiBlackboard*, StringHash key);
 void ai_blackboard_copy(AiBlackboard*, StringHash srcKey, StringHash dstKey);

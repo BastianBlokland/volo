@@ -7,9 +7,14 @@
 #define blackboard_slots_initial 32
 #define blackboard_slots_loadfactor 0.75f
 
+typedef enum {
+  AiBlackboard_Active = 1 << 0,
+} AiBlackboardFlags;
+
 typedef struct {
-  StringHash       key;
-  AiBlackboardType type;
+  StringHash        key;
+  AiBlackboardType  type;
+  AiBlackboardFlags flags;
   union {
     f64          f64;
     GeoVector    vector;
@@ -77,7 +82,7 @@ static void blackboard_grow(AiBlackboard* bb) {
 
   // Insert the existing data into the new slots.
   for (AiBlackboardSlot* slot = bb->slots; slot != (bb->slots + bb->slotCount); ++slot) {
-    if (slot->key) {
+    if (slot->flags & AiBlackboard_Active) {
       *blackboard_slot(newSlots, newSlotCount, slot->key) = *slot;
     }
   }
@@ -101,12 +106,14 @@ ai_blackboard_insert(AiBlackboard* bb, const StringHash key, const AiBlackboardT
         fmt_text(blackboard_type_str(slot->type)),
         fmt_text(blackboard_type_str(type)));
     slot->type = type; // Limp along when running without assertions.
+    slot->flags |= AiBlackboard_Active;
   } else {
     /**
      * New entry in the blackboard.
      */
     slot->key  = key;
     slot->type = type;
+    slot->flags |= AiBlackboard_Active;
     ++bb->slotCountUsed;
     if (UNLIKELY(blackboard_should_grow(bb))) {
       blackboard_grow(bb);
@@ -139,6 +146,33 @@ AiBlackboardType ai_blackboard_type(AiBlackboard* bb, const StringHash key) {
   return blackboard_slot(bb->slots, bb->slotCount, key)->type;
 }
 
+f64 ai_blackboard_get_f64(const AiBlackboard* bb, const StringHash key) {
+  const AiBlackboardSlot* slot = blackboard_slot(bb->slots, bb->slotCount, key);
+  if (slot->flags & AiBlackboard_Active) {
+    blackboard_assert_type(slot, AiBlackboardType_f64);
+    return slot->data.f64;
+  }
+  return 0; // Default.
+}
+
+TimeDuration ai_blackboard_get_time(const AiBlackboard* bb, const StringHash key) {
+  const AiBlackboardSlot* slot = blackboard_slot(bb->slots, bb->slotCount, key);
+  if (slot->flags & AiBlackboard_Active) {
+    blackboard_assert_type(slot, AiBlackboardType_Time);
+    return slot->data.time;
+  }
+  return (TimeDuration)0; // Default.
+}
+
+GeoVector ai_blackboard_get_vector(const AiBlackboard* bb, const StringHash key) {
+  const AiBlackboardSlot* slot = blackboard_slot(bb->slots, bb->slotCount, key);
+  if (slot->flags & AiBlackboard_Active) {
+    blackboard_assert_type(slot, AiBlackboardType_Vector);
+    return slot->data.vector;
+  }
+  return geo_vector(0); // Default.
+}
+
 void ai_blackboard_set_f64(AiBlackboard* bb, const StringHash key, const f64 value) {
   ai_blackboard_insert(bb, key, AiBlackboardType_f64)->data.f64 = value;
 }
@@ -151,36 +185,15 @@ void ai_blackboard_set_time(AiBlackboard* bb, const StringHash key, const TimeDu
   ai_blackboard_insert(bb, key, AiBlackboardType_Time)->data.time = value;
 }
 
-f64 ai_blackboard_get_f64(const AiBlackboard* bb, const StringHash key) {
-  const AiBlackboardSlot* slot = blackboard_slot(bb->slots, bb->slotCount, key);
-  if (slot->key) {
-    blackboard_assert_type(slot, AiBlackboardType_f64);
-    return slot->data.f64;
-  }
-  return 0; // Default.
-}
-
-TimeDuration ai_blackboard_get_time(const AiBlackboard* bb, const StringHash key) {
-  const AiBlackboardSlot* slot = blackboard_slot(bb->slots, bb->slotCount, key);
-  if (slot->key) {
-    blackboard_assert_type(slot, AiBlackboardType_Time);
-    return slot->data.time;
-  }
-  return (TimeDuration)0; // Default.
-}
-
-GeoVector ai_blackboard_get_vector(const AiBlackboard* bb, const StringHash key) {
-  const AiBlackboardSlot* slot = blackboard_slot(bb->slots, bb->slotCount, key);
-  if (slot->key) {
-    blackboard_assert_type(slot, AiBlackboardType_Vector);
-    return slot->data.vector;
-  }
-  return geo_vector(0); // Default.
+void ai_blackboard_unset(AiBlackboard* bb, const StringHash key) {
+  AiBlackboardSlot* slot = blackboard_slot(bb->slots, bb->slotCount, key);
+  slot->flags &= ~AiBlackboard_Active;
+  mem_set(mem_var(slot->data), 0);
 }
 
 void ai_blackboard_copy(AiBlackboard* bb, const StringHash srcKey, const StringHash dstKey) {
   const AiBlackboardSlot* srcSlot = blackboard_slot(bb->slots, bb->slotCount, srcKey);
-  if (srcSlot->key) {
+  if (srcSlot->flags & AiBlackboard_Active) {
     AiBlackboardSlot* dstSlot = ai_blackboard_insert(bb, dstKey, srcSlot->type);
     mem_cpy(mem_var(dstSlot->data), mem_var(srcSlot->data));
   }

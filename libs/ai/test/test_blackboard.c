@@ -45,6 +45,27 @@ spec(blackboard) {
     check_eq_float(ai_blackboard_get_f64(bb, string_hash_lit("test2")), 42, 1e-6f);
   }
 
+  it("can unset knowledge") {
+    check_eq_float(ai_blackboard_get_f64(bb, string_hash_lit("test")), 0, 1e-6f);
+
+    ai_blackboard_set_f64(bb, string_hash_lit("test"), 42);
+    check_eq_float(ai_blackboard_get_f64(bb, string_hash_lit("test")), 42, 1e-6f);
+
+    ai_blackboard_unset(bb, string_hash_lit("test"));
+    check_eq_float(ai_blackboard_get_f64(bb, string_hash_lit("test")), 0, 1e-6f);
+  }
+
+  it("can update previously unset knowledge") {
+    ai_blackboard_set_f64(bb, string_hash_lit("test"), 42);
+    ai_blackboard_unset(bb, string_hash_lit("test"));
+
+    check_eq_float(ai_blackboard_get_f64(bb, string_hash_lit("test")), 0, 1e-6f);
+
+    ai_blackboard_set_f64(bb, string_hash_lit("test"), 42);
+
+    check_eq_float(ai_blackboard_get_f64(bb, string_hash_lit("test")), 42, 1e-6f);
+  }
+
   it("can copy a knowledge value to an existing key") {
     ai_blackboard_set_f64(bb, string_hash_lit("test1"), 1);
     ai_blackboard_set_f64(bb, string_hash_lit("test2"), 2);
