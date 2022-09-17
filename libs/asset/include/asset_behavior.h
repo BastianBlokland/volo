@@ -28,14 +28,14 @@ typedef enum {
 } AssetBehaviorType;
 
 typedef enum {
-  AssetKnowledgeSource_f64,
+  AssetKnowledgeSource_Number,
   AssetKnowledgeSource_Vector,
   AssetKnowledgeSource_Knowledge,
 } AssetKnowledgeSourceType;
 
 typedef struct {
   f64 value;
-} AssetKnowledgeSourceF64;
+} AssetKnowledgeSourceNumber;
 
 typedef struct {
   f32 x, y, z, w;
@@ -48,7 +48,7 @@ typedef struct {
 typedef struct {
   AssetKnowledgeSourceType type;
   union {
-    AssetKnowledgeSourceF64       data_f64;
+    AssetKnowledgeSourceNumber    data_number;
     AssetKnowledgeSourceVector    data_vector;
     AssetKnowledgeSourceKnowledge data_knowledge;
   };

@@ -15,7 +15,7 @@
     {
       "identifier": "AssetKnowledgeSource",
       "values": [
-        "AssetKnowledgeSource_f64",
+        "AssetKnowledgeSource_Number",
         "AssetKnowledgeSource_Vector",
         "AssetKnowledgeSource_Knowledge"
       ]
@@ -84,7 +84,7 @@
       ]
     },
     {
-      "nodeType": "AssetKnowledgeSource_f64",
+      "nodeType": "AssetKnowledgeSource_Number",
       "fields": [
         {
           "name": "value",

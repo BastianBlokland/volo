@@ -14,8 +14,8 @@ AiResult ai_node_knowledgeset_eval(const AssetBehavior* behavior, AiBlackboard* 
   const AssetKnowledgeSource* valueSource = &behavior->data_knowledgeset.value;
 
   switch (valueSource->type) {
-  case AssetKnowledgeSource_f64: {
-    ai_blackboard_set_f64(bb, keyHash, valueSource->data_f64.value);
+  case AssetKnowledgeSource_Number: {
+    ai_blackboard_set_f64(bb, keyHash, valueSource->data_number.value);
     return AiResult_Success;
   }
   case AssetKnowledgeSource_Vector: {

@@ -18,8 +18,8 @@ spec(node_knowledgeset) {
                 .key = string_lit("test"),
                 .value =
                     {
-                        .type     = AssetKnowledgeSource_f64,
-                        .data_f64 = 42.42,
+                        .type              = AssetKnowledgeSource_Number,
+                        .data_number.value = 42.42,
                     },
             },
     };

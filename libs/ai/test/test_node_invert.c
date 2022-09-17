@@ -32,7 +32,7 @@ spec(node_invert) {
         .data_knowledgeset =
             {
                 .key   = string_lit("test"),
-                .value = {.type = AssetKnowledgeSource_f64, .data_f64 = 42.42},
+                .value = {.type = AssetKnowledgeSource_Number, .data_number.value = 42.42},
             },
     };
     const AssetBehavior behavior = {

@@ -23,8 +23,8 @@ static void behavior_datareg_init() {
     // clang-format off
     const DataType behaviorType = data_declare_t(g_dataReg, AssetBehavior);
 
-    data_reg_struct_t(g_dataReg, AssetKnowledgeSourceF64);
-    data_reg_field_t(g_dataReg, AssetKnowledgeSourceF64, value, data_prim_t(f64));
+    data_reg_struct_t(g_dataReg, AssetKnowledgeSourceNumber);
+    data_reg_field_t(g_dataReg, AssetKnowledgeSourceNumber, value, data_prim_t(f64));
 
     data_reg_struct_t(g_dataReg, AssetKnowledgeSourceVector);
     data_reg_field_t(g_dataReg, AssetKnowledgeSourceVector, x, data_prim_t(f32));
@@ -36,7 +36,7 @@ static void behavior_datareg_init() {
     data_reg_field_t(g_dataReg, AssetKnowledgeSourceKnowledge, key, data_prim_t(String));
 
     data_reg_union_t(g_dataReg, AssetKnowledgeSource, type);
-    data_reg_choice_t(g_dataReg, AssetKnowledgeSource, AssetKnowledgeSource_f64, data_f64, t_AssetKnowledgeSourceF64);
+    data_reg_choice_t(g_dataReg, AssetKnowledgeSource, AssetKnowledgeSource_Number, data_number, t_AssetKnowledgeSourceNumber);
     data_reg_choice_t(g_dataReg, AssetKnowledgeSource, AssetKnowledgeSource_Vector, data_vector, t_AssetKnowledgeSourceVector);
     data_reg_choice_t(g_dataReg, AssetKnowledgeSource, AssetKnowledgeSource_Knowledge, data_knowledge, t_AssetKnowledgeSourceKnowledge);
 
