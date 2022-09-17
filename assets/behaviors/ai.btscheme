@@ -8,7 +8,16 @@
         "AssetBehaviorType_Invert",
         "AssetBehaviorType_Parallel",
         "AssetBehaviorType_Selector",
-        "AssetBehaviorType_Sequence"
+        "AssetBehaviorType_Sequence",
+        "AssetBehaviorType_KnowledgeSet"
+      ]
+    },
+    {
+      "identifier": "AssetKnowledgeSource",
+      "values": [
+        "AssetKnowledgeSource_f64",
+        "AssetKnowledgeSource_Vector",
+        "AssetKnowledgeSource_Knowledge"
       ]
     }
   ],
@@ -58,6 +67,58 @@
           "name": "children",
           "isArray": true,
           "valueType": "AssetBehavior"
+        }
+      ]
+    },
+    {
+      "nodeType": "AssetBehaviorType_KnowledgeSet",
+      "fields": [
+        {
+          "name": "key",
+          "valueType": "string"
+        },
+        {
+          "name": "value",
+          "valueType": "AssetKnowledgeSource"
+        }
+      ]
+    },
+    {
+      "nodeType": "AssetKnowledgeSource_f64",
+      "fields": [
+        {
+          "name": "value",
+          "valueType": "number"
+        }
+      ]
+    },
+    {
+      "nodeType": "AssetKnowledgeSource_Vector",
+      "fields": [
+        {
+          "name": "x",
+          "valueType": "number"
+        },
+        {
+          "name": "y",
+          "valueType": "number"
+        },
+        {
+          "name": "z",
+          "valueType": "number"
+        },
+        {
+          "name": "w",
+          "valueType": "number"
+        }
+      ]
+    },
+    {
+      "nodeType": "AssetKnowledgeSource_Knowledge",
+      "fields": [
+        {
+          "name": "key",
+          "valueType": "string"
         }
       ]
     }
