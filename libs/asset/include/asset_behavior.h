@@ -24,6 +24,7 @@ typedef enum {
   AssetBehavior_Sequence,
   AssetBehavior_KnowledgeSet,
   AssetBehavior_KnowledgeClear,
+  AssetBehavior_KnowledgeCheck,
 
   AssetBehavior_Count,
 } AssetBehaviorType;
@@ -80,6 +81,10 @@ typedef struct {
   String key;
 } AssetBehaviorKnowledgeClear;
 
+typedef struct {
+  String key;
+} AssetBehaviorKnowledgeCheck;
+
 typedef struct sAssetBehavior {
   AssetBehaviorType type;
   union {
@@ -89,6 +94,7 @@ typedef struct sAssetBehavior {
     AssetBehaviorSequence       data_sequence;
     AssetBehaviorKnowledgeSet   data_knowledgeset;
     AssetBehaviorKnowledgeClear data_knowledgeclear;
+    AssetBehaviorKnowledgeCheck data_knowledgecheck;
   };
 } AssetBehavior;
 

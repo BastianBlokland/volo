@@ -10,7 +10,8 @@
         "AssetBehavior_Selector",
         "AssetBehavior_Sequence",
         "AssetBehavior_KnowledgeSet",
-        "AssetBehavior_KnowledgeClear"
+        "AssetBehavior_KnowledgeClear",
+        "AssetBehavior_KnowledgeCheck"
       ]
     },
     {
@@ -125,6 +126,15 @@
     },
     {
       "nodeType": "AssetBehavior_KnowledgeClear",
+      "fields": [
+        {
+          "name": "key",
+          "valueType": "string"
+        }
+      ]
+    },
+    {
+      "nodeType": "AssetBehavior_KnowledgeCheck",
       "fields": [
         {
           "name": "key",
