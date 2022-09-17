@@ -58,6 +58,12 @@ usize data_size(const DataReg*, DataType);
 usize data_align(const DataReg*, DataType);
 
 /**
+ * Retrieve the comment attached to a registered type,
+ * NOTE: Returns an empty string if no comment was registered for the type.
+ */
+String data_comment(const DataReg*, DataType);
+
+/**
  * Get the size (in bytes) that a value with the given DataMeta occupies.
  */
 usize data_meta_size(const DataReg*, DataMeta);
@@ -136,3 +142,9 @@ DataType data_reg_enum(DataReg*, String name);
   data_reg_const((_REG_), t_##_PARENT_, string_lit(#_NAME_), _VALUE_);
 
 void data_reg_const(DataReg*, DataType parent, String name, i32 value);
+
+/**
+ * Attach a comment to the given type.
+ * Pre-condition: Type is declared in the registry.
+ */
+void data_reg_comment(DataReg*, DataType, String comment);

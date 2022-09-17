@@ -61,6 +61,7 @@ void data_reg_destroy(DataReg* reg) {
 
   dynarray_for_t(&reg->types, DataDecl, decl) {
     data_id_destroy(reg->alloc, decl->id);
+    string_maybe_free(reg->alloc, decl->comment);
     switch (decl->kind) {
     case DataKind_Struct: {
       dynarray_for_t(&decl->val_struct.fields, DataDeclField, fieldDecl) {
@@ -94,6 +95,10 @@ String data_name(const DataReg* reg, const DataType type) { return data_decl(reg
 usize data_size(const DataReg* reg, const DataType type) { return data_decl(reg, type)->size; }
 
 usize data_align(const DataReg* reg, const DataType type) { return data_decl(reg, type)->align; }
+
+String data_comment(const DataReg* reg, const DataType type) {
+  return data_decl(reg, type)->comment;
+}
 
 usize data_meta_size(const DataReg* reg, const DataMeta meta) {
   switch (meta.container) {
@@ -263,4 +268,10 @@ Mem data_choice_mem(const DataReg* reg, const DataDeclChoice* choice, const Mem 
 
 Mem data_elem_mem(const DataDecl* decl, const DataArray* array, const usize index) {
   return mem_create(bits_ptr_offset(array->values, decl->size * index), decl->size);
+}
+
+void data_reg_comment(DataReg* reg, const DataType type, const String comment) {
+  DataDecl* decl = data_decl_mutable(reg, type);
+  string_maybe_free(reg->alloc, decl->comment);
+  decl->comment = string_is_empty(comment) ? string_empty : string_dup(reg->alloc, comment);
 }
