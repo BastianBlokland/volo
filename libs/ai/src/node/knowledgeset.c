@@ -5,7 +5,7 @@
 #include "core_string.h"
 
 AiResult ai_node_knowledgeset_eval(const AssetBehavior* behavior, AiBlackboard* bb) {
-  diag_assert(behavior->type == AssetBehaviorType_KnowledgeSet);
+  diag_assert(behavior->type == AssetBehavior_KnowledgeSet);
 
   diag_assert_msg(behavior->data_knowledgeset.key.size, "Knowledge key cannot be empty");
 

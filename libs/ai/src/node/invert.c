@@ -3,7 +3,7 @@
 #include "core_diag.h"
 
 AiResult ai_node_invert_eval(const AssetBehavior* behavior, AiBlackboard* bb) {
-  diag_assert(behavior->type == AssetBehaviorType_Invert);
+  diag_assert(behavior->type == AssetBehavior_Invert);
 
   switch (ai_eval(behavior->data_invert.child, bb)) {
   case AiResult_Success:

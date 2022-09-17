@@ -9,18 +9,18 @@ spec(node_invert) {
   setup() { bb = ai_blackboard_create(g_alloc_heap); }
 
   it("evaluates to success when child evaluates to failure") {
-    const AssetBehavior child    = {.type = AssetBehaviorType_Failure};
+    const AssetBehavior child    = {.type = AssetBehavior_Failure};
     const AssetBehavior behavior = {
-        .type        = AssetBehaviorType_Invert,
+        .type        = AssetBehavior_Invert,
         .data_invert = {.child = &child},
     };
     check(ai_eval(&behavior, bb) == AiResult_Success);
   }
 
   it("evaluates to failure when child evaluates to success") {
-    const AssetBehavior child    = {.type = AssetBehaviorType_Success};
+    const AssetBehavior child    = {.type = AssetBehavior_Success};
     const AssetBehavior behavior = {
-        .type        = AssetBehaviorType_Invert,
+        .type        = AssetBehavior_Invert,
         .data_invert = {.child = &child},
     };
     check(ai_eval(&behavior, bb) == AiResult_Failure);
@@ -28,7 +28,7 @@ spec(node_invert) {
 
   it("always evaluates the child node") {
     const AssetBehavior child = {
-        .type = AssetBehaviorType_KnowledgeSet,
+        .type = AssetBehavior_KnowledgeSet,
         .data_knowledgeset =
             {
                 .key   = string_lit("test"),
@@ -36,7 +36,7 @@ spec(node_invert) {
             },
     };
     const AssetBehavior behavior = {
-        .type        = AssetBehaviorType_Invert,
+        .type        = AssetBehavior_Invert,
         .data_invert = {.child = &child},
     };
     check(ai_eval(&behavior, bb) == AiResult_Failure);

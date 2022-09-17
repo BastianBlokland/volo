@@ -11,7 +11,7 @@ spec(node_parallel) {
 
   it("evaluates to failure when it doesn't have any children") {
     const AssetBehavior behavior = {
-        .type          = AssetBehaviorType_Parallel,
+        .type          = AssetBehavior_Parallel,
         .data_parallel = {.children = {0}},
     };
     check(ai_eval(&behavior, bb) == AiResult_Failure);
@@ -19,12 +19,12 @@ spec(node_parallel) {
 
   it("evaluates to success when any child evaluates to success") {
     const AssetBehavior children[] = {
-        {.type = AssetBehaviorType_Failure},
-        {.type = AssetBehaviorType_Success},
-        {.type = AssetBehaviorType_Failure},
+        {.type = AssetBehavior_Failure},
+        {.type = AssetBehavior_Success},
+        {.type = AssetBehavior_Failure},
     };
     const AssetBehavior behavior = {
-        .type          = AssetBehaviorType_Parallel,
+        .type          = AssetBehavior_Parallel,
         .data_parallel = {.children = {.values = children, array_elems(children)}},
     };
     check(ai_eval(&behavior, bb) == AiResult_Success);
@@ -32,12 +32,12 @@ spec(node_parallel) {
 
   it("evaluates to failure when all children evaluate to failure") {
     const AssetBehavior children[] = {
-        {.type = AssetBehaviorType_Failure},
-        {.type = AssetBehaviorType_Failure},
-        {.type = AssetBehaviorType_Failure},
+        {.type = AssetBehavior_Failure},
+        {.type = AssetBehavior_Failure},
+        {.type = AssetBehavior_Failure},
     };
     const AssetBehavior behavior = {
-        .type          = AssetBehaviorType_Parallel,
+        .type          = AssetBehavior_Parallel,
         .data_parallel = {.children = {.values = children, array_elems(children)}},
     };
     check(ai_eval(&behavior, bb) == AiResult_Failure);
@@ -46,7 +46,7 @@ spec(node_parallel) {
   it("evaluates all the child nodes") {
     const AssetBehavior children[] = {
         {
-            .type = AssetBehaviorType_KnowledgeSet,
+            .type = AssetBehavior_KnowledgeSet,
             .data_knowledgeset =
                 {
                     .key   = string_lit("test1"),
@@ -54,7 +54,7 @@ spec(node_parallel) {
                 },
         },
         {
-            .type = AssetBehaviorType_KnowledgeSet,
+            .type = AssetBehavior_KnowledgeSet,
             .data_knowledgeset =
                 {
                     .key   = string_lit("test2"),
@@ -62,7 +62,7 @@ spec(node_parallel) {
                 },
         },
         {
-            .type = AssetBehaviorType_KnowledgeSet,
+            .type = AssetBehavior_KnowledgeSet,
             .data_knowledgeset =
                 {
                     .key   = string_lit("test3"),
@@ -71,7 +71,7 @@ spec(node_parallel) {
         },
     };
     const AssetBehavior behavior = {
-        .type          = AssetBehaviorType_Parallel,
+        .type          = AssetBehavior_Parallel,
         .data_parallel = {.children = {.values = children, array_elems(children)}},
     };
     check(ai_eval(&behavior, bb) == AiResult_Success);

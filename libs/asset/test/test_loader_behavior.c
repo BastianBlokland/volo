@@ -13,27 +13,27 @@ static const struct {
 } g_testData[] = {
     {
         .id   = string_static("success.bt"),
-        .text = string_static("{ \"$type\": \"AssetBehaviorType_Success\" }"),
-        .type = AssetBehaviorType_Success,
+        .text = string_static("{ \"$type\": \"AssetBehavior_Success\" }"),
+        .type = AssetBehavior_Success,
     },
     {
         .id   = string_static("invert.bt"),
         .text = string_static("{\n"
-                              "\"$type\": \"AssetBehaviorType_Invert\",\n"
-                              "\"child\": { \"$type\": \"AssetBehaviorType_Failure\" }\n"
+                              "\"$type\": \"AssetBehavior_Invert\",\n"
+                              "\"child\": { \"$type\": \"AssetBehavior_Failure\" }\n"
                               "}"),
-        .type = AssetBehaviorType_Invert,
+        .type = AssetBehavior_Invert,
     },
     {
         .id   = string_static("knowledgeset.bt"),
         .text = string_static("{\n"
-                              "\"$type\": \"AssetBehaviorType_KnowledgeSet\",\n"
+                              "\"$type\": \"AssetBehavior_KnowledgeSet\",\n"
                               "\"key\": \"test\",\n"
                               "\"value\": {\n"
                               "  \"$type\": \"AssetKnowledgeSource_Vector\",\n"
                               "  \"x\": 1, \"y\": 2, \"z\": 3, \"w\": 4 }\n"
                               "}"),
-        .type = AssetBehaviorType_KnowledgeSet,
+        .type = AssetBehavior_KnowledgeSet,
     },
 
 };

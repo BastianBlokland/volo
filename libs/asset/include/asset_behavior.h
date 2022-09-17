@@ -16,15 +16,15 @@ typedef struct {
 } AssetBehaviorList;
 
 typedef enum {
-  AssetBehaviorType_Success,
-  AssetBehaviorType_Failure,
-  AssetBehaviorType_Invert,
-  AssetBehaviorType_Parallel,
-  AssetBehaviorType_Selector,
-  AssetBehaviorType_Sequence,
-  AssetBehaviorType_KnowledgeSet,
+  AssetBehavior_Success,
+  AssetBehavior_Failure,
+  AssetBehavior_Invert,
+  AssetBehavior_Parallel,
+  AssetBehavior_Selector,
+  AssetBehavior_Sequence,
+  AssetBehavior_KnowledgeSet,
 
-  AssetBehaviorType_Count,
+  AssetBehavior_Count,
 } AssetBehaviorType;
 
 typedef enum {

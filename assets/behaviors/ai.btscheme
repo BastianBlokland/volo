@@ -3,13 +3,13 @@
     {
       "identifier": "AssetBehavior",
       "values": [
-        "AssetBehaviorType_Success",
-        "AssetBehaviorType_Failure",
-        "AssetBehaviorType_Invert",
-        "AssetBehaviorType_Parallel",
-        "AssetBehaviorType_Selector",
-        "AssetBehaviorType_Sequence",
-        "AssetBehaviorType_KnowledgeSet"
+        "AssetBehavior_Success",
+        "AssetBehavior_Failure",
+        "AssetBehavior_Invert",
+        "AssetBehavior_Parallel",
+        "AssetBehavior_Selector",
+        "AssetBehavior_Sequence",
+        "AssetBehavior_KnowledgeSet"
       ]
     },
     {
@@ -24,15 +24,15 @@
   "enums": [],
   "nodes": [
     {
-      "nodeType": "AssetBehaviorType_Success",
+      "nodeType": "AssetBehavior_Success",
       "fields": []
     },
     {
-      "nodeType": "AssetBehaviorType_Failure",
+      "nodeType": "AssetBehavior_Failure",
       "fields": []
     },
     {
-      "nodeType": "AssetBehaviorType_Invert",
+      "nodeType": "AssetBehavior_Invert",
       "fields": [
         {
           "name": "child",
@@ -41,7 +41,7 @@
       ]
     },
     {
-      "nodeType": "AssetBehaviorType_Parallel",
+      "nodeType": "AssetBehavior_Parallel",
       "fields": [
         {
           "name": "children",
@@ -51,7 +51,7 @@
       ]
     },
     {
-      "nodeType": "AssetBehaviorType_Selector",
+      "nodeType": "AssetBehavior_Selector",
       "fields": [
         {
           "name": "children",
@@ -61,7 +61,7 @@
       ]
     },
     {
-      "nodeType": "AssetBehaviorType_Sequence",
+      "nodeType": "AssetBehavior_Sequence",
       "fields": [
         {
           "name": "children",
@@ -71,7 +71,7 @@
       ]
     },
     {
-      "nodeType": "AssetBehaviorType_KnowledgeSet",
+      "nodeType": "AssetBehavior_KnowledgeSet",
       "fields": [
         {
           "name": "key",

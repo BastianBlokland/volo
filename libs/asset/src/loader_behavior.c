@@ -57,13 +57,13 @@ static void behavior_datareg_init() {
     data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeSet, value, t_AssetKnowledgeSource);
 
     data_reg_union_t(g_dataReg, AssetBehavior, type);
-    data_reg_choice_empty(g_dataReg, AssetBehavior, AssetBehaviorType_Success);
-    data_reg_choice_empty(g_dataReg, AssetBehavior, AssetBehaviorType_Failure);
-    data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehaviorType_Invert, data_invert, t_AssetBehaviorInvert);
-    data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehaviorType_Parallel, data_parallel, t_AssetBehaviorParallel);
-    data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehaviorType_Selector, data_selector, t_AssetBehaviorSelector);
-    data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehaviorType_Sequence, data_sequence, t_AssetBehaviorSequence);
-    data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehaviorType_KnowledgeSet, data_knowledgeset, t_AssetBehaviorKnowledgeSet);
+    data_reg_choice_empty(g_dataReg, AssetBehavior, AssetBehavior_Success);
+    data_reg_choice_empty(g_dataReg, AssetBehavior, AssetBehavior_Failure);
+    data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehavior_Invert, data_invert, t_AssetBehaviorInvert);
+    data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehavior_Parallel, data_parallel, t_AssetBehaviorParallel);
+    data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehavior_Selector, data_selector, t_AssetBehaviorSelector);
+    data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehavior_Sequence, data_sequence, t_AssetBehaviorSequence);
+    data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehavior_KnowledgeSet, data_knowledgeset, t_AssetBehaviorKnowledgeSet);
     // clang-format on
 
     g_dataBehaviorMeta = data_meta_t(behaviorType);

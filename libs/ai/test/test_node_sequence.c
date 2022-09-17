@@ -11,7 +11,7 @@ spec(node_sequence) {
 
   it("evaluates to success when it doesn't have any children") {
     const AssetBehavior behavior = {
-        .type          = AssetBehaviorType_Sequence,
+        .type          = AssetBehavior_Sequence,
         .data_sequence = {.children = {0}},
     };
     check(ai_eval(&behavior, bb) == AiResult_Success);
@@ -19,12 +19,12 @@ spec(node_sequence) {
 
   it("evaluates to success when all children evaluate to success") {
     const AssetBehavior children[] = {
-        {.type = AssetBehaviorType_Success},
-        {.type = AssetBehaviorType_Success},
-        {.type = AssetBehaviorType_Success},
+        {.type = AssetBehavior_Success},
+        {.type = AssetBehavior_Success},
+        {.type = AssetBehavior_Success},
     };
     const AssetBehavior behavior = {
-        .type          = AssetBehaviorType_Sequence,
+        .type          = AssetBehavior_Sequence,
         .data_sequence = {.children = {.values = children, array_elems(children)}},
     };
     check(ai_eval(&behavior, bb) == AiResult_Success);
@@ -32,12 +32,12 @@ spec(node_sequence) {
 
   it("evaluates to failure when any child evaluates to failure") {
     const AssetBehavior children[] = {
-        {.type = AssetBehaviorType_Success},
-        {.type = AssetBehaviorType_Failure},
-        {.type = AssetBehaviorType_Success},
+        {.type = AssetBehavior_Success},
+        {.type = AssetBehavior_Failure},
+        {.type = AssetBehavior_Success},
     };
     const AssetBehavior behavior = {
-        .type          = AssetBehaviorType_Sequence,
+        .type          = AssetBehavior_Sequence,
         .data_sequence = {.children = {.values = children, array_elems(children)}},
     };
     check(ai_eval(&behavior, bb) == AiResult_Failure);

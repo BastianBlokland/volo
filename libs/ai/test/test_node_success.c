@@ -9,7 +9,7 @@ spec(node_success) {
   setup() { bb = ai_blackboard_create(g_alloc_heap); }
 
   it("evaluates to success") {
-    const AssetBehavior behavior = {.type = AssetBehaviorType_Success};
+    const AssetBehavior behavior = {.type = AssetBehavior_Success};
     check(ai_eval(&behavior, bb) == AiResult_Success);
   }
 

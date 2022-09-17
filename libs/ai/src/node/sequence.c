@@ -4,7 +4,7 @@
 #include "core_diag.h"
 
 AiResult ai_node_sequence_eval(const AssetBehavior* behavior, AiBlackboard* bb) {
-  diag_assert(behavior->type == AssetBehaviorType_Sequence);
+  diag_assert(behavior->type == AssetBehavior_Sequence);
 
   array_ptr_for_t(behavior->data_sequence.children, AssetBehavior, child) {
     switch (ai_eval(child, bb)) {

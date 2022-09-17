@@ -9,7 +9,7 @@ spec(node_failure) {
   setup() { bb = ai_blackboard_create(g_alloc_heap); }
 
   it("evaluates to failure") {
-    const AssetBehavior behavior = {.type = AssetBehaviorType_Failure};
+    const AssetBehavior behavior = {.type = AssetBehavior_Failure};
     check(ai_eval(&behavior, bb) == AiResult_Failure);
   }
 

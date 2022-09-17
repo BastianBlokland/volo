@@ -3,7 +3,7 @@
 #include "core_diag.h"
 
 AiResult ai_node_failure_eval(const AssetBehavior* behavior, AiBlackboard* bb) {
-  diag_assert(behavior->type == AssetBehaviorType_Failure);
+  diag_assert(behavior->type == AssetBehavior_Failure);
 
   (void)behavior;
   (void)bb;

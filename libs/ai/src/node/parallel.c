@@ -4,7 +4,7 @@
 #include "core_diag.h"
 
 AiResult ai_node_parallel_eval(const AssetBehavior* behavior, AiBlackboard* bb) {
-  diag_assert(behavior->type == AssetBehaviorType_Parallel);
+  diag_assert(behavior->type == AssetBehavior_Parallel);
 
   bool success = false;
   array_ptr_for_t(behavior->data_parallel.children, AssetBehavior, child) {

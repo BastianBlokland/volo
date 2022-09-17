@@ -12,7 +12,7 @@ spec(node_knowledgeset) {
     check_eq_float(ai_blackboard_get_f64(bb, string_hash_lit("test")), 0, 1e-6f);
 
     const AssetBehavior behavior = {
-        .type = AssetBehaviorType_KnowledgeSet,
+        .type = AssetBehavior_KnowledgeSet,
         .data_knowledgeset =
             {
                 .key = string_lit("test"),
@@ -34,7 +34,7 @@ spec(node_knowledgeset) {
     check_eq_float(ai_blackboard_get_vector(bb, string_hash_lit("test")).w, 0, 1e-6f);
 
     const AssetBehavior behavior = {
-        .type = AssetBehaviorType_KnowledgeSet,
+        .type = AssetBehavior_KnowledgeSet,
         .data_knowledgeset =
             {
                 .key = string_lit("test"),
@@ -56,7 +56,7 @@ spec(node_knowledgeset) {
     ai_blackboard_set_f64(bb, string_hash_lit("test1"), 42);
 
     const AssetBehavior behavior = {
-        .type = AssetBehaviorType_KnowledgeSet,
+        .type = AssetBehavior_KnowledgeSet,
         .data_knowledgeset =
             {
                 .key = string_lit("test2"),
