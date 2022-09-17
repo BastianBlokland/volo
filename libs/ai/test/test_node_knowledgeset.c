@@ -41,7 +41,7 @@ spec(node_knowledgeset) {
                 .value =
                     {
                         .type        = AssetKnowledgeSource_Vector,
-                        .data_vector = geo_vector(1, 2, 3, 4),
+                        .data_vector = {.x = 1, .y = 2, .z = 3, .w = 4},
                     },
             },
     };

@@ -10,18 +10,27 @@ AiResult ai_node_knowledgeset_eval(const AssetBehavior* behavior, AiBlackboard* 
   diag_assert_msg(behavior->data_knowledgeset.key.size, "Knowledge key cannot be empty");
 
   // TODO: Keys should be pre-hashed in the behavior asset.
-  const StringHash keyHash = string_hash(behavior->data_knowledgeset.key);
+  const StringHash            keyHash     = string_hash(behavior->data_knowledgeset.key);
+  const AssetKnowledgeSource* valueSource = &behavior->data_knowledgeset.value;
 
-  switch (behavior->data_knowledgeset.value.type) {
-  case AssetKnowledgeSource_f64:
-    ai_blackboard_set_f64(bb, keyHash, behavior->data_knowledgeset.value.data_f64);
+  switch (valueSource->type) {
+  case AssetKnowledgeSource_f64: {
+    ai_blackboard_set_f64(bb, keyHash, valueSource->data_f64.value);
     return AiResult_Success;
-  case AssetKnowledgeSource_Vector:
-    ai_blackboard_set_vector(bb, keyHash, behavior->data_knowledgeset.value.data_vector);
+  }
+  case AssetKnowledgeSource_Vector: {
+    const GeoVector vector = {
+        .x = valueSource->data_vector.x,
+        .y = valueSource->data_vector.y,
+        .z = valueSource->data_vector.z,
+        .w = valueSource->data_vector.w,
+    };
+    ai_blackboard_set_vector(bb, keyHash, vector);
     return AiResult_Success;
+  }
   case AssetKnowledgeSource_Knowledge: {
     // TODO: Keys should be pre-hashed in the behavior asset.
-    const StringHash srcKeyHash = string_hash(behavior->data_knowledgeset.value.data_knowledge);
+    const StringHash srcKeyHash = string_hash(valueSource->data_knowledge.key);
     ai_blackboard_copy(bb, srcKeyHash, keyHash);
     return AiResult_Success;
   }

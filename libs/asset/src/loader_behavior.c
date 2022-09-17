@@ -23,16 +23,22 @@ static void behavior_datareg_init() {
     // clang-format off
     const DataType behaviorType = data_declare_t(g_dataReg, AssetBehavior);
 
-    data_reg_struct_t(g_dataReg, GeoVector);
-    data_reg_field_t(g_dataReg, GeoVector, x, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, GeoVector, y, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, GeoVector, z, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, GeoVector, w, data_prim_t(f32));
+    data_reg_struct_t(g_dataReg, AssetKnowledgeSourceF64);
+    data_reg_field_t(g_dataReg, AssetKnowledgeSourceF64, value, data_prim_t(f64));
+
+    data_reg_struct_t(g_dataReg, AssetKnowledgeSourceVector);
+    data_reg_field_t(g_dataReg, AssetKnowledgeSourceVector, x, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, AssetKnowledgeSourceVector, y, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, AssetKnowledgeSourceVector, z, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, AssetKnowledgeSourceVector, w, data_prim_t(f32));
+
+    data_reg_struct_t(g_dataReg, AssetKnowledgeSourceKnowledge);
+    data_reg_field_t(g_dataReg, AssetKnowledgeSourceKnowledge, key, data_prim_t(String));
 
     data_reg_union_t(g_dataReg, AssetKnowledgeSource, type);
-    data_reg_choice_t(g_dataReg, AssetKnowledgeSource, AssetKnowledgeSource_f64, data_f64, data_prim_t(f64));
-    data_reg_choice_t(g_dataReg, AssetKnowledgeSource, AssetKnowledgeSource_Vector, data_vector, t_GeoVector);
-    data_reg_choice_t(g_dataReg, AssetKnowledgeSource, AssetKnowledgeSource_Knowledge, data_knowledge, data_prim_t(String));
+    data_reg_choice_t(g_dataReg, AssetKnowledgeSource, AssetKnowledgeSource_f64, data_f64, t_AssetKnowledgeSourceF64);
+    data_reg_choice_t(g_dataReg, AssetKnowledgeSource, AssetKnowledgeSource_Vector, data_vector, t_AssetKnowledgeSourceVector);
+    data_reg_choice_t(g_dataReg, AssetKnowledgeSource, AssetKnowledgeSource_Knowledge, data_knowledge, t_AssetKnowledgeSourceKnowledge);
 
     data_reg_struct_t(g_dataReg, AssetBehaviorInvert);
     data_reg_field_t(g_dataReg, AssetBehaviorInvert, child, behaviorType, .container = DataContainer_Pointer);
