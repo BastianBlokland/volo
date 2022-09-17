@@ -94,7 +94,7 @@ DataType data_reg_struct(DataReg*, String name, usize size, usize align);
       t_##_PARENT_,                                                                                \
       string_lit(#_FIELD_),                                                                        \
       offsetof(_PARENT_, _FIELD_),                                                                 \
-      data_meta_t(_DATA_TYPE_, __VA_ARGS__));
+      data_meta_t(_DATA_TYPE_, __VA_ARGS__))
 
 void data_reg_field(DataReg*, DataType parent, String name, usize offset, DataMeta);
 
@@ -117,10 +117,10 @@ DataType data_reg_union(DataReg*, String name, usize size, usize align, usize ta
       string_lit(#_TAG_),                                                                          \
       (_TAG_),                                                                                     \
       offsetof(_PARENT_, _FIELD_),                                                                 \
-      data_meta_t(_DATA_TYPE_, __VA_ARGS__));
+      data_meta_t(_DATA_TYPE_, __VA_ARGS__))
 
 #define data_reg_choice_empty(_REG_, _PARENT_, _TAG_)                                              \
-  data_reg_choice((_REG_), t_##_PARENT_, string_lit(#_TAG_), (_TAG_), 0, (DataMeta){0});
+  data_reg_choice((_REG_), t_##_PARENT_, string_lit(#_TAG_), (_TAG_), 0, (DataMeta){0})
 
 void data_reg_choice(DataReg*, DataType parent, String name, i32 tag, usize offset, DataMeta);
 
@@ -136,10 +136,10 @@ DataType data_reg_enum(DataReg*, String name);
  * Register a new constant for an Enum,
  */
 #define data_reg_const_t(_REG_, _PARENT_, _ENTRY_)                                                 \
-  data_reg_const((_REG_), t_##_PARENT_, string_lit(#_ENTRY_), _PARENT_##_##_ENTRY_);
+  data_reg_const((_REG_), t_##_PARENT_, string_lit(#_ENTRY_), _PARENT_##_##_ENTRY_)
 
 #define data_reg_const_custom(_REG_, _PARENT_, _NAME_, _VALUE_)                                    \
-  data_reg_const((_REG_), t_##_PARENT_, string_lit(#_NAME_), _VALUE_);
+  data_reg_const((_REG_), t_##_PARENT_, string_lit(#_NAME_), _VALUE_)
 
 void data_reg_const(DataReg*, DataType parent, String name, i32 value);
 
@@ -147,4 +147,7 @@ void data_reg_const(DataReg*, DataType parent, String name, i32 value);
  * Attach a comment to the given type.
  * Pre-condition: Type is declared in the registry.
  */
+#define data_reg_comment_t(_REG_, _DATA_TYPE_, _COMMENT_LIT_)                                      \
+  data_reg_comment((_REG_), t_##_DATA_TYPE_, string_lit(_COMMENT_LIT_))
+
 void data_reg_comment(DataReg*, DataType, String comment);
