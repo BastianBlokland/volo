@@ -142,10 +142,11 @@
     },
     {
       "nodeType": "AssetBehavior_KnowledgeCheck",
-      "comment": "Check if knowledge with the given key exists.\nEvaluates to 'Success'.",
+      "comment": "Check if knowledge exists for all the given keys.\nEvaluates to 'Success'.",
       "fields": [
         {
-          "name": "key",
+          "name": "keys",
+          "isArray": true,
           "valueType": "string"
         }
       ]

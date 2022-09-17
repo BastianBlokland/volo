@@ -86,7 +86,7 @@ typedef struct {
 } AssetBehaviorKnowledgeClear;
 
 typedef struct {
-  String key;
+  AssetKnowledgeList keys;
 } AssetBehaviorKnowledgeCheck;
 
 typedef struct sAssetBehavior {
