@@ -21,6 +21,21 @@ spec(blackboard) {
     check_eq_int(ai_blackboard_type(bb, string_hash_lit("test2")), AiBlackboardType_Vector);
   }
 
+  it("can test if knowledge exists") {
+    check(!ai_blackboard_exists(bb, string_hash_lit("test1")));
+    check(!ai_blackboard_exists(bb, string_hash_lit("test2")));
+
+    ai_blackboard_set_f64(bb, string_hash_lit("test1"), 42);
+
+    check(ai_blackboard_exists(bb, string_hash_lit("test1")));
+    check(!ai_blackboard_exists(bb, string_hash_lit("test2")));
+
+    ai_blackboard_unset(bb, string_hash_lit("test1"));
+
+    check(!ai_blackboard_exists(bb, string_hash_lit("test1")));
+    check(!ai_blackboard_exists(bb, string_hash_lit("test2")));
+  }
+
   it("returns the stored knowledge") {
     ai_blackboard_set_f64(bb, string_hash_lit("test"), 42);
     check_eq_float(ai_blackboard_get_f64(bb, string_hash_lit("test")), 42, 1e-6f);

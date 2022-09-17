@@ -142,8 +142,12 @@ void ai_blackboard_destroy(AiBlackboard* bb) {
   alloc_free_t(bb->alloc, bb);
 }
 
-AiBlackboardType ai_blackboard_type(AiBlackboard* bb, const StringHash key) {
+AiBlackboardType ai_blackboard_type(const AiBlackboard* bb, const StringHash key) {
   return blackboard_slot(bb->slots, bb->slotCount, key)->type;
+}
+
+bool ai_blackboard_exists(const AiBlackboard* bb, const StringHash key) {
+  return (blackboard_slot(bb->slots, bb->slotCount, key)->flags & AiBlackboard_Active) != 0;
 }
 
 f64 ai_blackboard_get_f64(const AiBlackboard* bb, const StringHash key) {

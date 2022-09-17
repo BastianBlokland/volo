@@ -38,7 +38,13 @@ void ai_blackboard_destroy(AiBlackboard*);
  * NOTE: Returns 'AiBlackboardType_Invalid' when the knowledge is unset.
  * Pre-condition: key != 0.
  */
-AiBlackboardType ai_blackboard_type(AiBlackboard*, StringHash key);
+AiBlackboardType ai_blackboard_type(const AiBlackboard*, StringHash key);
+
+/**
+ * Test if knowledge with the given key exists.
+ * Pre-condition: key != 0.
+ */
+bool ai_blackboard_exists(const AiBlackboard*, StringHash key);
 
 /**
  * Query knowledge.
