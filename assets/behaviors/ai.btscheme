@@ -35,6 +35,7 @@
     },
     {
       "nodeType": "AssetBehavior_Invert",
+      "comment": "Evaluates the child node and inverts its result.\nEvaluates to 'Success' if the child evaluated to 'Failure', otherwise to 'Failure'.",
       "fields": [
         {
           "name": "child",
@@ -44,6 +45,7 @@
     },
     {
       "nodeType": "AssetBehavior_Parallel",
+      "comment": "Evaluates all children.\nEvaluates to 'Success' if any child evaluated to 'Success', otherwise to 'Failure'.",
       "fields": [
         {
           "name": "children",
@@ -54,6 +56,7 @@
     },
     {
       "nodeType": "AssetBehavior_Selector",
+      "comment": "Evaluates children until a child evaluates to 'Success'.\nEvaluates to 'Success' if any child evaluated to 'Success', otherwise to 'Failure'.",
       "fields": [
         {
           "name": "children",
@@ -64,6 +67,7 @@
     },
     {
       "nodeType": "AssetBehavior_Sequence",
+      "comment": "Evaluates children until a child evaluates to 'Failure'.\nEvaluates to 'Success' if all children evaluated to 'Success' otherwise to 'Failure'.",
       "fields": [
         {
           "name": "children",
@@ -74,6 +78,7 @@
     },
     {
       "nodeType": "AssetBehavior_KnowledgeSet",
+      "comment": "Assign knowledge to the given key.\nNote: Knowledge will be added if it does not exist.\nEvaluates to 'Success'.",
       "fields": [
         {
           "name": "key",
@@ -126,6 +131,7 @@
     },
     {
       "nodeType": "AssetBehavior_KnowledgeClear",
+      "comment": "Clear any knowledge with the given key.\nEvaluates to 'Success'.",
       "fields": [
         {
           "name": "key",
@@ -135,6 +141,7 @@
     },
     {
       "nodeType": "AssetBehavior_KnowledgeCheck",
+      "comment": "Check if knowledge with the given key exists.\nEvaluates to 'Success'.",
       "fields": [
         {
           "name": "key",

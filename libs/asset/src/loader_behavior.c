@@ -42,25 +42,32 @@ static void behavior_datareg_init() {
 
     data_reg_struct_t(g_dataReg, AssetBehaviorInvert);
     data_reg_field_t(g_dataReg, AssetBehaviorInvert, child, behaviorType, .container = DataContainer_Pointer);
+    data_reg_comment_t(g_dataReg, AssetBehaviorInvert, "Evaluates the child node and inverts its result.\nEvaluates to 'Success' if the child evaluated to 'Failure', otherwise to 'Failure'.");
 
     data_reg_struct_t(g_dataReg, AssetBehaviorParallel);
     data_reg_field_t(g_dataReg, AssetBehaviorParallel, children, behaviorType, .container = DataContainer_Array);
+    data_reg_comment_t(g_dataReg, AssetBehaviorParallel, "Evaluates all children.\nEvaluates to 'Success' if any child evaluated to 'Success', otherwise to 'Failure'.");
 
     data_reg_struct_t(g_dataReg, AssetBehaviorSelector);
     data_reg_field_t(g_dataReg, AssetBehaviorSelector, children, behaviorType, .container = DataContainer_Array);
+    data_reg_comment_t(g_dataReg, AssetBehaviorSelector, "Evaluates children until a child evaluates to 'Success'.\nEvaluates to 'Success' if any child evaluated to 'Success', otherwise to 'Failure'.");
 
     data_reg_struct_t(g_dataReg, AssetBehaviorSequence);
     data_reg_field_t(g_dataReg, AssetBehaviorSequence, children, behaviorType, .container = DataContainer_Array);
+    data_reg_comment_t(g_dataReg, AssetBehaviorSequence, "Evaluates children until a child evaluates to 'Failure'.\nEvaluates to 'Success' if all children evaluated to 'Success' otherwise to 'Failure'.");
 
     data_reg_struct_t(g_dataReg, AssetBehaviorKnowledgeSet);
     data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeSet, key, data_prim_t(String));
     data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeSet, value, t_AssetKnowledgeSource);
+    data_reg_comment_t(g_dataReg, AssetBehaviorKnowledgeSet, "Assign knowledge to the given key.\nNote: Knowledge will be added if it does not exist.\nEvaluates to 'Success'.");
 
     data_reg_struct_t(g_dataReg, AssetBehaviorKnowledgeClear);
     data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeClear, key, data_prim_t(String));
+    data_reg_comment_t(g_dataReg, AssetBehaviorKnowledgeClear, "Clear any knowledge with the given key.\nEvaluates to 'Success'.");
 
     data_reg_struct_t(g_dataReg, AssetBehaviorKnowledgeCheck);
     data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeCheck, key, data_prim_t(String));
+    data_reg_comment_t(g_dataReg, AssetBehaviorKnowledgeCheck, "Check if knowledge with the given key exists.\nEvaluates to 'Success'.");
 
     data_reg_union_t(g_dataReg, AssetBehavior, type);
     data_reg_choice_empty(g_dataReg, AssetBehavior, AssetBehavior_Success);
