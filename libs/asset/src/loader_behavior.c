@@ -26,6 +26,9 @@ static void behavior_datareg_init() {
     data_reg_struct_t(g_dataReg, AssetKnowledgeSourceNumber);
     data_reg_field_t(g_dataReg, AssetKnowledgeSourceNumber, value, data_prim_t(f64));
 
+    data_reg_struct_t(g_dataReg, AssetKnowledgeSourceBool);
+    data_reg_field_t(g_dataReg, AssetKnowledgeSourceBool, value, data_prim_t(bool));
+
     data_reg_struct_t(g_dataReg, AssetKnowledgeSourceVector);
     data_reg_field_t(g_dataReg, AssetKnowledgeSourceVector, x, data_prim_t(f32));
     data_reg_field_t(g_dataReg, AssetKnowledgeSourceVector, y, data_prim_t(f32));
@@ -37,6 +40,7 @@ static void behavior_datareg_init() {
 
     data_reg_union_t(g_dataReg, AssetKnowledgeSource, type);
     data_reg_choice_t(g_dataReg, AssetKnowledgeSource, AssetKnowledgeSource_Number, data_number, t_AssetKnowledgeSourceNumber);
+    data_reg_choice_t(g_dataReg, AssetKnowledgeSource, AssetKnowledgeSource_Bool, data_bool, t_AssetKnowledgeSourceBool);
     data_reg_choice_t(g_dataReg, AssetKnowledgeSource, AssetKnowledgeSource_Vector, data_vector, t_AssetKnowledgeSourceVector);
     data_reg_choice_t(g_dataReg, AssetKnowledgeSource, AssetKnowledgeSource_Knowledge, data_knowledge, t_AssetKnowledgeSourceKnowledge);
 

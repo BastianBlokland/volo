@@ -18,6 +18,7 @@
       "identifier": "AssetKnowledgeSource",
       "values": [
         "AssetKnowledgeSource_Number",
+        "AssetKnowledgeSource_Bool",
         "AssetKnowledgeSource_Vector",
         "AssetKnowledgeSource_Knowledge"
       ]
@@ -96,6 +97,15 @@
         {
           "name": "value",
           "valueType": "number"
+        }
+      ]
+    },
+    {
+      "nodeType": "AssetKnowledgeSource_Bool",
+      "fields": [
+        {
+          "name": "value",
+          "valueType": "boolean"
         }
       ]
     },

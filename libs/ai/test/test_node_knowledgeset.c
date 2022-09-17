@@ -15,16 +15,27 @@ spec(node_knowledgeset) {
         .type = AssetBehavior_KnowledgeSet,
         .data_knowledgeset =
             {
-                .key = string_lit("test"),
-                .value =
-                    {
-                        .type              = AssetKnowledgeSource_Number,
-                        .data_number.value = 42.42,
-                    },
+                .key   = string_lit("test"),
+                .value = {.type = AssetKnowledgeSource_Number, .data_number.value = 42.42},
             },
     };
     check(ai_eval(&behavior, bb) == AiResult_Success);
     check_eq_float(ai_blackboard_get_f64(bb, string_hash_lit("test")), 42.42, 1e-6f);
+  }
+
+  it("can set boolean knowledge when evaluated") {
+    check(!ai_blackboard_get_bool(bb, string_hash_lit("test")));
+
+    const AssetBehavior behavior = {
+        .type = AssetBehavior_KnowledgeSet,
+        .data_knowledgeset =
+            {
+                .key   = string_lit("test"),
+                .value = {.type = AssetKnowledgeSource_Bool, .data_bool.value = true},
+            },
+    };
+    check(ai_eval(&behavior, bb) == AiResult_Success);
+    check(ai_blackboard_get_bool(bb, string_hash_lit("test")));
   }
 
   it("can set vector knowledge when evaluated") {

@@ -35,6 +35,7 @@ typedef enum {
 
 typedef enum {
   AssetKnowledgeSource_Number,
+  AssetKnowledgeSource_Bool,
   AssetKnowledgeSource_Vector,
   AssetKnowledgeSource_Knowledge,
 } AssetKnowledgeSourceType;
@@ -42,6 +43,10 @@ typedef enum {
 typedef struct {
   f64 value;
 } AssetKnowledgeSourceNumber;
+
+typedef struct {
+  bool value;
+} AssetKnowledgeSourceBool;
 
 typedef struct {
   f32 x, y, z, w;
@@ -55,6 +60,7 @@ typedef struct {
   AssetKnowledgeSourceType type;
   union {
     AssetKnowledgeSourceNumber    data_number;
+    AssetKnowledgeSourceBool      data_bool;
     AssetKnowledgeSourceVector    data_vector;
     AssetKnowledgeSourceKnowledge data_knowledge;
   };

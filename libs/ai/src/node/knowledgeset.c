@@ -17,6 +17,10 @@ AiResult ai_node_knowledgeset_eval(const AssetBehavior* behavior, AiBlackboard* 
     ai_blackboard_set_f64(bb, keyHash, valueSource->data_number.value);
     return AiResult_Success;
   }
+  case AssetKnowledgeSource_Bool: {
+    ai_blackboard_set_bool(bb, keyHash, valueSource->data_bool.value);
+    return AiResult_Success;
+  }
   case AssetKnowledgeSource_Vector: {
     const GeoVector vector = {
         .x = valueSource->data_vector.x,
