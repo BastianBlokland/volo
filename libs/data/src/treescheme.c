@@ -54,18 +54,20 @@ static TreeSchemeType treescheme_classify(const TreeSchemeCtx* ctx, const DataTy
   diag_crash_msg("Unsupported treescheme type");
 }
 
-static bool treescheme_check_added(const TreeSchemeCtx* ctx, const DataType type) {
-  if (bitset_test(ctx->addedTypes, type)) {
-    return true;
-  }
+static void treescheme_mark_added(const TreeSchemeCtx* ctx, const DataType type) {
   bitset_set(ctx->addedTypes, type);
-  return false;
+}
+
+static bool treescheme_check_added(const TreeSchemeCtx* ctx, const DataType type) {
+  return bitset_test(ctx->addedTypes, type);
 }
 
 static void treescheme_add_enum(const TreeSchemeCtx* ctx, const DataType type) {
   if (treescheme_check_added(ctx, type)) {
     return;
   }
+  treescheme_mark_added(ctx, type);
+
   const DataDecl* decl = data_decl(ctx->reg, type);
   diag_assert(decl->kind == DataKind_Enum);
 
@@ -93,6 +95,8 @@ treescheme_add_node(const TreeSchemeCtx* ctx, const DataType type, const String 
   if (treescheme_check_added(ctx, type)) {
     return;
   }
+  treescheme_mark_added(ctx, type);
+
   const DataDecl* decl = data_decl(ctx->reg, type);
   diag_assert(decl->kind == DataKind_Struct);
 
@@ -153,6 +157,13 @@ static void treescheme_add_alias(const TreeSchemeCtx* ctx, const DataType type) 
     return;
   }
   const DataDecl* decl = data_decl(ctx->reg, type);
+  if (decl->kind != DataKind_Struct) {
+    /**
+     * Structs are added as aliases which redirect to a single node implementation. Because we use
+     * the same data-type for both the alias and the node we only mark it after adding the node.
+     */
+    treescheme_mark_added(ctx, type);
+  }
 
   const JsonVal aliasObj = json_add_object(ctx->doc);
   json_add_elem(ctx->doc, ctx->schemeAliasesArr, aliasObj);
