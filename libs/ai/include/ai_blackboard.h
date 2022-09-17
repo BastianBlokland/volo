@@ -1,5 +1,6 @@
 #pragma once
 #include "core_string.h"
+#include "ecs_entity.h"
 #include "geo_vector.h"
 
 // Forward declare from 'core_alloc.h'.
@@ -14,6 +15,7 @@ typedef enum {
   AiBlackboardType_Bool,
   AiBlackboardType_Vector,
   AiBlackboardType_Time,
+  AiBlackboardType_Entity,
 
   AiBlackboardType_Count,
 } AiBlackboardType;
@@ -55,6 +57,7 @@ f64          ai_blackboard_get_f64(const AiBlackboard*, StringHash key);
 bool         ai_blackboard_get_bool(const AiBlackboard*, StringHash key);
 GeoVector    ai_blackboard_get_vector(const AiBlackboard*, StringHash key);
 TimeDuration ai_blackboard_get_time(const AiBlackboard*, StringHash key);
+EcsEntityId  ai_blackboard_get_entity(const AiBlackboard*, StringHash key);
 
 /**
  * Update knowledge.
@@ -64,5 +67,6 @@ void ai_blackboard_set_f64(AiBlackboard*, StringHash key, f64 value);
 void ai_blackboard_set_bool(AiBlackboard*, StringHash key, bool value);
 void ai_blackboard_set_vector(AiBlackboard*, StringHash key, GeoVector value);
 void ai_blackboard_set_time(AiBlackboard*, StringHash key, TimeDuration value);
+void ai_blackboard_set_entity(AiBlackboard*, StringHash key, EcsEntityId value);
 void ai_blackboard_unset(AiBlackboard*, StringHash key);
 void ai_blackboard_copy(AiBlackboard*, StringHash srcKey, StringHash dstKey);

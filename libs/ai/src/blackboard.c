@@ -20,6 +20,7 @@ typedef struct {
     bool         _bool;
     GeoVector    vector;
     TimeDuration time;
+    EcsEntityId  entity;
   } data;
 } AiBlackboardSlot;
 
@@ -36,6 +37,7 @@ MAYBE_UNUSED String blackboard_type_str(const AiBlackboardType type) {
       string_static("Bool"),
       string_static("Vector"),
       string_static("Time"),
+      string_static("Entity"),
   };
   ASSERT(array_elems(g_names) == AiBlackboardType_Count, "Incorrect number of names");
   return g_names[type];
@@ -167,7 +169,16 @@ bool ai_blackboard_get_bool(const AiBlackboard* bb, const StringHash key) {
     blackboard_assert_type(slot, AiBlackboardType_Bool);
     return slot->data._bool;
   }
-  return 0; // Default.
+  return false; // Default.
+}
+
+GeoVector ai_blackboard_get_vector(const AiBlackboard* bb, const StringHash key) {
+  const AiBlackboardSlot* slot = blackboard_slot(bb->slots, bb->slotCount, key);
+  if (slot->flags & AiBlackboard_Active) {
+    blackboard_assert_type(slot, AiBlackboardType_Vector);
+    return slot->data.vector;
+  }
+  return geo_vector(0); // Default.
 }
 
 TimeDuration ai_blackboard_get_time(const AiBlackboard* bb, const StringHash key) {
@@ -179,13 +190,13 @@ TimeDuration ai_blackboard_get_time(const AiBlackboard* bb, const StringHash key
   return (TimeDuration)0; // Default.
 }
 
-GeoVector ai_blackboard_get_vector(const AiBlackboard* bb, const StringHash key) {
+EcsEntityId ai_blackboard_get_entity(const AiBlackboard* bb, const StringHash key) {
   const AiBlackboardSlot* slot = blackboard_slot(bb->slots, bb->slotCount, key);
   if (slot->flags & AiBlackboard_Active) {
-    blackboard_assert_type(slot, AiBlackboardType_Vector);
-    return slot->data.vector;
+    blackboard_assert_type(slot, AiBlackboardType_Entity);
+    return slot->data.entity;
   }
-  return geo_vector(0); // Default.
+  return (EcsEntityId)0; // Default.
 }
 
 void ai_blackboard_set_f64(AiBlackboard* bb, const StringHash key, const f64 value) {
@@ -202,6 +213,10 @@ void ai_blackboard_set_vector(AiBlackboard* bb, const StringHash key, const GeoV
 
 void ai_blackboard_set_time(AiBlackboard* bb, const StringHash key, const TimeDuration value) {
   ai_blackboard_insert(bb, key, AiBlackboardType_Time)->data.time = value;
+}
+
+void ai_blackboard_set_entity(AiBlackboard* bb, const StringHash key, const EcsEntityId value) {
+  ai_blackboard_insert(bb, key, AiBlackboardType_Entity)->data.entity = value;
 }
 
 void ai_blackboard_unset(AiBlackboard* bb, const StringHash key) {
