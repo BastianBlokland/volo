@@ -105,6 +105,11 @@ treescheme_add_node(const TreeSchemeCtx* ctx, const DataType type, const String 
 
   json_add_field_lit(ctx->doc, nodeObj, "nodeType", json_add_string(ctx->doc, typeName));
 
+  const String comment = data_comment(ctx->reg, type);
+  if (!string_is_empty(comment)) {
+    json_add_field_lit(ctx->doc, nodeObj, "comment", json_add_string(ctx->doc, comment));
+  }
+
   const JsonVal nodeFields = json_add_array(ctx->doc);
   json_add_field_lit(ctx->doc, nodeObj, "fields", nodeFields);
 
