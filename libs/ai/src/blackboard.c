@@ -16,7 +16,8 @@ typedef struct {
   AiBlackboardType  type;
   AiBlackboardFlags flags;
   union {
-    f64          f64;
+    f64          _f64;
+    bool         _bool;
     GeoVector    vector;
     TimeDuration time;
   } data;
@@ -32,6 +33,7 @@ MAYBE_UNUSED String blackboard_type_str(const AiBlackboardType type) {
   static const String g_names[] = {
       string_static("Invalid"),
       string_static("f64"),
+      string_static("Bool"),
       string_static("Vector"),
       string_static("Time"),
   };
@@ -154,7 +156,16 @@ f64 ai_blackboard_get_f64(const AiBlackboard* bb, const StringHash key) {
   const AiBlackboardSlot* slot = blackboard_slot(bb->slots, bb->slotCount, key);
   if (slot->flags & AiBlackboard_Active) {
     blackboard_assert_type(slot, AiBlackboardType_f64);
-    return slot->data.f64;
+    return slot->data._f64;
+  }
+  return 0; // Default.
+}
+
+bool ai_blackboard_get_bool(const AiBlackboard* bb, const StringHash key) {
+  const AiBlackboardSlot* slot = blackboard_slot(bb->slots, bb->slotCount, key);
+  if (slot->flags & AiBlackboard_Active) {
+    blackboard_assert_type(slot, AiBlackboardType_Bool);
+    return slot->data._bool;
   }
   return 0; // Default.
 }
@@ -178,7 +189,11 @@ GeoVector ai_blackboard_get_vector(const AiBlackboard* bb, const StringHash key)
 }
 
 void ai_blackboard_set_f64(AiBlackboard* bb, const StringHash key, const f64 value) {
-  ai_blackboard_insert(bb, key, AiBlackboardType_f64)->data.f64 = value;
+  ai_blackboard_insert(bb, key, AiBlackboardType_f64)->data._f64 = value;
+}
+
+void ai_blackboard_set_bool(AiBlackboard* bb, const StringHash key, const bool value) {
+  ai_blackboard_insert(bb, key, AiBlackboardType_Bool)->data._bool = value;
 }
 
 void ai_blackboard_set_vector(AiBlackboard* bb, const StringHash key, const GeoVector value) {
