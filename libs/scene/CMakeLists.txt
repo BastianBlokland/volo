@@ -30,6 +30,7 @@ target_link_libraries(lib_scene PRIVATE lib_log)
 
 add_executable(test_lib_scene
   test/config.c
+  test/test_brain.c
   test/test_nav.c
   )
 target_link_libraries(test_lib_scene PRIVATE lib_app_check lib_scene)

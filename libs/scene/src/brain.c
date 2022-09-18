@@ -1,6 +1,7 @@
 #include "ai_blackboard.h"
 #include "ai_eval.h"
 #include "core_alloc.h"
+#include "core_diag.h"
 #include "ecs_world.h"
 #include "scene_brain.h"
 
@@ -24,8 +25,11 @@ const AiBlackboard* scene_brain_blackboard(const SceneBrainComp* brain) {
 
 AiBlackboard* scene_brain_blackboard_mutable(SceneBrainComp* brain) { return brain->blackboard; }
 
-void scene_brain_add(EcsWorld* world, const EcsEntityId entity, const EcsEntityId behaviorAsset) {
-  ecs_world_add_t(
+SceneBrainComp*
+scene_brain_add(EcsWorld* world, const EcsEntityId entity, const EcsEntityId behaviorAsset) {
+  diag_assert(ecs_world_exists(world, behaviorAsset));
+
+  return ecs_world_add_t(
       world,
       entity,
       SceneBrainComp,

@@ -16,4 +16,4 @@ AiBlackboard*       scene_brain_blackboard_mutable(SceneBrainComp*);
 /**
  * Add a new brain to the entity that executes the given behavior asset.
  */
-void scene_brain_add(EcsWorld*, EcsEntityId entity, EcsEntityId behaviorAsset);
+SceneBrainComp* scene_brain_add(EcsWorld*, EcsEntityId entity, EcsEntityId behaviorAsset);

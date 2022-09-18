@@ -56,9 +56,7 @@ spec(nav) {
     scene_register(def);
     ecs_register_module(def, nav_test_module);
 
-    world = ecs_world_create(g_alloc_heap, def);
-    ecs_world_flush(world);
-
+    world  = ecs_world_create(g_alloc_heap, def);
     runner = ecs_runner_create(g_alloc_heap, world, EcsRunnerFlags_None);
     ecs_run_sync(runner);
   }
