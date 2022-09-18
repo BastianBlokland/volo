@@ -11,14 +11,35 @@
 
 static const AssetMemRecord g_testBrainAssets[] = {
     {
-        .id   = string_lit("success.bt"),
+        .id   = string_static("success.bt"),
         .data = string_static("{ \"$type\": \"AssetBehavior_Success\" }"),
+    },
+    {
+        .id   = string_static("knowledgeset.bt"),
+        .data = string_static("{\n"
+                              "\"$type\": \"AssetBehavior_KnowledgeSet\",\n"
+                              "\"key\": \"test\",\n"
+                              "\"value\": {\n"
+                              "  \"$type\": \"AssetKnowledgeSource_Bool\",\n"
+                              "  \"value\": true }\n"
+                              "}"),
     },
 };
 
+static void scene_test_wait(EcsRunner* runner) {
+  static const u32 g_numTicks = 5;
+  for (u32 i = 0; i != g_numTicks; ++i) {
+    ecs_run_sync(runner);
+  }
+}
+
+ecs_view_define(BrainView) { ecs_access_write(SceneBrainComp); }
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
 
-ecs_module_init(brain_test_module) { ecs_register_view(ManagerView); }
+ecs_module_init(brain_test_module) {
+  ecs_register_view(BrainView);
+  ecs_register_view(ManagerView);
+}
 
 spec(brain) {
 
@@ -41,7 +62,7 @@ spec(brain) {
     ecs_run_sync(runner);
   }
 
-  it("allows updating its blackboard knowledge") {
+  it("exposes its blackboard knowledge") {
     AssetManagerComp* manager       = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
     const EcsEntityId behaviorAsset = asset_lookup(world, manager, string_lit("success.bt"));
 
@@ -53,6 +74,19 @@ spec(brain) {
     check(!ai_blackboard_get_bool(scene_brain_blackboard(brain), knowledgeKey));
     ai_blackboard_set_bool(scene_brain_blackboard_mutable(brain), knowledgeKey, true);
     check(ai_blackboard_get_bool(scene_brain_blackboard(brain), knowledgeKey));
+  }
+
+  it("updates its blackboard knowledge through its behavior") {
+    AssetManagerComp* manager       = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+    const EcsEntityId behaviorAsset = asset_lookup(world, manager, string_lit("knowledgeset.bt"));
+
+    const EcsEntityId agent = ecs_world_entity_create(world);
+    scene_brain_add(world, agent, behaviorAsset);
+
+    scene_test_wait(runner);
+
+    const SceneBrainComp* brain = ecs_utils_read_t(world, BrainView, agent, SceneBrainComp);
+    check(ai_blackboard_get_bool(scene_brain_blackboard(brain), string_hash_lit("test")));
   }
 
   teardown() {
