@@ -18,6 +18,7 @@ add_library(lib_scene STATIC
   src/register.c
   src/renderable.c
   src/selection.c
+  src/sensor.c
   src/skeleton.c
   src/tag.c
   src/target.c
