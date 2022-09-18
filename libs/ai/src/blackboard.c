@@ -30,26 +30,13 @@ struct sAiBlackboard {
   AiBlackboardSlot* slots;
 };
 
-MAYBE_UNUSED String blackboard_type_str(const AiBlackboardType type) {
-  static const String g_names[] = {
-      string_static("Invalid"),
-      string_static("f64"),
-      string_static("Bool"),
-      string_static("Vector"),
-      string_static("Time"),
-      string_static("Entity"),
-  };
-  ASSERT(array_elems(g_names) == AiBlackboardType_Count, "Incorrect number of names");
-  return g_names[type];
-}
-
 MAYBE_UNUSED void
 blackboard_assert_type(const AiBlackboardSlot* slot, const AiBlackboardType type) {
   diag_assert_msg(
       slot->type == type,
       "Mismatching knowledge type, expected: '{}', actual: '{}'.",
-      fmt_text(blackboard_type_str(type)),
-      fmt_text(blackboard_type_str(slot->type)));
+      fmt_text(ai_blackboard_type_str(type)),
+      fmt_text(ai_blackboard_type_str(slot->type)));
 }
 
 static u32 blackboard_should_grow(AiBlackboard* bb) {
@@ -107,8 +94,8 @@ ai_blackboard_insert(AiBlackboard* bb, const StringHash key, const AiBlackboardT
     diag_assert_msg(
         slot->type == type,
         "Knowledge type conflict while inserting, new: '{}', existing: '{}'.",
-        fmt_text(blackboard_type_str(slot->type)),
-        fmt_text(blackboard_type_str(type)));
+        fmt_text(ai_blackboard_type_str(slot->type)),
+        fmt_text(ai_blackboard_type_str(type)));
     slot->type = type; // Limp along when running without assertions.
     slot->flags |= AiBlackboard_Active;
   } else {
@@ -144,6 +131,19 @@ AiBlackboard* ai_blackboard_create(Allocator* alloc) {
 void ai_blackboard_destroy(AiBlackboard* bb) {
   alloc_free_array_t(bb->alloc, bb->slots, bb->slotCount);
   alloc_free_t(bb->alloc, bb);
+}
+
+String ai_blackboard_type_str(const AiBlackboardType type) {
+  static const String g_names[] = {
+      string_static("Invalid"),
+      string_static("f64"),
+      string_static("Bool"),
+      string_static("Vector"),
+      string_static("Time"),
+      string_static("Entity"),
+  };
+  ASSERT(array_elems(g_names) == AiBlackboardType_Count, "Incorrect number of names");
+  return g_names[type];
 }
 
 AiBlackboardType ai_blackboard_type(const AiBlackboard* bb, const StringHash key) {

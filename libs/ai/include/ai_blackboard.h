@@ -37,6 +37,11 @@ AiBlackboard* ai_blackboard_create(Allocator*);
 void ai_blackboard_destroy(AiBlackboard*);
 
 /**
+ * Return a textual representation of the given AiBlackboardType.
+ */
+String ai_blackboard_type_str(AiBlackboardType);
+
+/**
  * Query the type of a knowledge key.
  * NOTE: Returns 'AiBlackboardType_Invalid' when the knowledge is unset.
  * Pre-condition: key != 0.
