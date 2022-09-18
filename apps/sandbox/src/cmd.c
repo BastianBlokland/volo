@@ -1,8 +1,10 @@
+#include "ai_blackboard.h"
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
+#include "core_stringtable.h"
 #include "ecs_world.h"
-#include "scene_nav.h"
+#include "scene_brain.h"
 #include "scene_selection.h"
 
 #include "cmd_internal.h"
@@ -65,7 +67,7 @@ ecs_view_define(GlobalUpdateView) {
   ecs_access_write(SceneSelectionComp);
 }
 
-ecs_view_define(MoveView) { ecs_access_write(SceneNavAgentComp); }
+ecs_view_define(BrainView) { ecs_access_write(SceneBrainComp); }
 
 static CmdControllerComp* cmd_controller_get(EcsWorld* world) {
   EcsView*     view = ecs_world_view_t(world, ControllerWriteView);
@@ -74,10 +76,15 @@ static CmdControllerComp* cmd_controller_get(EcsWorld* world) {
 }
 
 static void cmd_execute_move(EcsWorld* world, const CmdMove* cmdMove) {
-  EcsIterator* moveItr = ecs_view_maybe_at(ecs_world_view_t(world, MoveView), cmdMove->object);
-  if (moveItr) {
-    SceneNavAgentComp* agent = ecs_view_write_t(moveItr, SceneNavAgentComp);
-    scene_nav_move_to(agent, cmdMove->position);
+  EcsIterator* brainItr = ecs_view_maybe_at(ecs_world_view_t(world, BrainView), cmdMove->object);
+  if (brainItr) {
+    SceneBrainComp* brain = ecs_view_write_t(brainItr, SceneBrainComp);
+
+    // TODO: Cache key hash.
+    const StringHash key = stringtable_add(g_stringtable, string_lit("cmd-move-target"));
+
+    AiBlackboard* bb = scene_brain_blackboard_mutable(brain);
+    ai_blackboard_set_vector(bb, key, cmdMove->position);
   }
 }
 
@@ -137,13 +144,13 @@ ecs_module_init(sandbox_cmd_module) {
 
   ecs_register_view(ControllerWriteView);
   ecs_register_view(GlobalUpdateView);
-  ecs_register_view(MoveView);
+  ecs_register_view(BrainView);
 
   ecs_register_system(
       CmdControllerUpdateSys,
       ecs_view_id(GlobalUpdateView),
       ecs_view_id(ControllerWriteView),
-      ecs_view_id(MoveView));
+      ecs_view_id(BrainView));
 
   ecs_order(CmdControllerUpdateSys, AppOrder_CommandUpdate);
 }
