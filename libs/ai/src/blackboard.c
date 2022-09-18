@@ -232,3 +232,17 @@ void ai_blackboard_copy(AiBlackboard* bb, const StringHash srcKey, const StringH
     mem_cpy(mem_var(dstSlot->data), mem_var(srcSlot->data));
   }
 }
+
+AiBlackboardItr ai_blackboard_begin(const AiBlackboard* bb) {
+  return ai_blackboard_next(bb, (AiBlackboardItr){0});
+}
+
+AiBlackboardItr ai_blackboard_next(const AiBlackboard* bb, const AiBlackboardItr itr) {
+  for (u32 i = itr.next; i < bb->slotCount; ++i) {
+    const AiBlackboardSlot* slot = &bb->slots[i];
+    if (slot->flags & AiBlackboard_Active) {
+      return (AiBlackboardItr){.key = slot->key, .next = i + 1};
+    }
+  }
+  return (AiBlackboardItr){.key = 0, .next = sentinel_u32};
+}

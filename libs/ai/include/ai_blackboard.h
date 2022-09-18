@@ -70,3 +70,15 @@ void ai_blackboard_set_time(AiBlackboard*, StringHash key, TimeDuration value);
 void ai_blackboard_set_entity(AiBlackboard*, StringHash key, EcsEntityId value);
 void ai_blackboard_unset(AiBlackboard*, StringHash key);
 void ai_blackboard_copy(AiBlackboard*, StringHash srcKey, StringHash dstKey);
+
+/**
+ * Iterator for iterating blackboard keys.
+ * NOTE: Iterator is invalidated when new entries are inserted.
+ */
+typedef struct {
+  StringHash key; // '0' indicates that no more keys are found.
+  u32        next;
+} AiBlackboardItr;
+
+AiBlackboardItr ai_blackboard_begin(const AiBlackboard*);
+AiBlackboardItr ai_blackboard_next(const AiBlackboard*, AiBlackboardItr);

@@ -1,6 +1,7 @@
 #include "ai_blackboard.h"
 #include "check_spec.h"
 #include "core_alloc.h"
+#include "core_bits.h"
 
 spec(blackboard) {
   AiBlackboard* bb = null;
@@ -42,12 +43,12 @@ spec(blackboard) {
   }
 
   it("can store many knowledge keys") {
-    const u32 keyCount = 1337;
-    for (u32 i = 0; i != keyCount; ++i) {
+    enum { KeyCount = 1337 };
+    for (u32 i = 0; i != KeyCount; ++i) {
       const String key = fmt_write_scratch("test_{}", fmt_int(i));
       ai_blackboard_set_f64(bb, string_hash(key), i);
     }
-    for (u32 i = 0; i != keyCount; ++i) {
+    for (u32 i = 0; i != KeyCount; ++i) {
       const String key = fmt_write_scratch("test_{}", fmt_int(i));
       check_eq_float(ai_blackboard_get_f64(bb, string_hash(key)), i, 1e-6f);
     }
@@ -87,6 +88,30 @@ spec(blackboard) {
 
     ai_blackboard_copy(bb, string_hash_lit("test1"), string_hash_lit("test2"));
     check_eq_float(ai_blackboard_get_f64(bb, string_hash_lit("test2")), 1, 1e-6f);
+  }
+
+  it("can iterate an empty blackboard") {
+    const AiBlackboardItr itr = ai_blackboard_begin(bb);
+    check_eq_int(itr.key, 0);
+    check_eq_int(itr.next, sentinel_u32);
+  }
+
+  it("can iterate blackboard keys") {
+    enum { KeyCount = 1337 };
+    for (u32 i = 0; i != KeyCount; ++i) {
+      const String key = fmt_write_scratch("test_{}", fmt_int(i));
+      ai_blackboard_set_f64(bb, string_hash(key), i);
+    }
+
+    const u8     seenValsBits[bits_to_bytes(KeyCount) + 1] = {0};
+    const BitSet seenVals                                  = bitset_from_array(seenValsBits);
+
+    for (AiBlackboardItr it = ai_blackboard_begin(bb); it.key; it = ai_blackboard_next(bb, it)) {
+      const f64 val = ai_blackboard_get_f64(bb, it.key);
+      bitset_set(seenVals, (usize)val);
+    }
+
+    check_eq_int(bitset_count(seenVals), KeyCount);
   }
 
   teardown() { ai_blackboard_destroy(bb); }
