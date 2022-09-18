@@ -11,7 +11,8 @@
 #define scene_brain_max_behavior_loads 8
 
 typedef enum {
-  SceneBehavior_ResourceAcquired = 1 << 0,
+  SceneBehavior_ResourceAcquired  = 1 << 0,
+  SceneBehavior_ResourceUnloading = 1 << 1,
 } SceneBehaviorFlags;
 
 ecs_comp_define(SceneBrainComp) {
@@ -41,9 +42,32 @@ ecs_system_define(SceneBehaviorLoadSys) {
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
     SceneBehaviorResourceComp* res = ecs_view_write_t(itr, SceneBehaviorResourceComp);
 
-    if (!(res->flags & SceneBehavior_ResourceAcquired)) {
+    if (!(res->flags & (SceneBehavior_ResourceAcquired | SceneBehavior_ResourceUnloading))) {
       asset_acquire(world, ecs_view_entity(itr));
       res->flags |= SceneBehavior_ResourceAcquired;
+    }
+  }
+}
+
+ecs_system_define(SceneBehaviorUnloadChangedSys) {
+  EcsView* loadView = ecs_world_view_t(world, BehaviorLoadView);
+  for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
+    EcsEntityId                entity = ecs_view_entity(itr);
+    SceneBehaviorResourceComp* res    = ecs_view_write_t(itr, SceneBehaviorResourceComp);
+
+    const bool isLoaded   = ecs_world_has_t(world, entity, AssetLoadedComp);
+    const bool isFailed   = ecs_world_has_t(world, entity, AssetFailedComp);
+    const bool hasChanged = ecs_world_has_t(world, entity, AssetChangedComp);
+
+    if (res->flags & SceneBehavior_ResourceAcquired && (isLoaded || isFailed) && hasChanged) {
+      log_i("Unloading behavior asset", log_param("reason", fmt_text_lit("Asset changed")));
+
+      asset_release(world, entity);
+      res->flags &= ~SceneBehavior_ResourceAcquired;
+      res->flags |= SceneBehavior_ResourceUnloading;
+    }
+    if (res->flags & SceneBehavior_ResourceUnloading && !isLoaded) {
+      res->flags &= ~SceneBehavior_ResourceUnloading;
     }
   }
 }
@@ -94,6 +118,8 @@ ecs_module_init(scene_brain_module) {
   ecs_register_view(BehaviorLoadView);
 
   ecs_register_system(SceneBehaviorLoadSys, ecs_view_id(BehaviorLoadView));
+  ecs_register_system(SceneBehaviorUnloadChangedSys, ecs_view_id(BehaviorLoadView));
+
   ecs_register_system(SceneBrainUpdateSys, ecs_view_id(BrainEntityView), ecs_view_id(BehaviorView));
 }
 
