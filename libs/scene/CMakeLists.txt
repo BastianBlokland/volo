@@ -6,6 +6,7 @@ message(STATUS "> library: scene")
 
 add_library(lib_scene STATIC
   src/bounds.c
+  src/brain.c
   src/camera.c
   src/collision.c
   src/faction.c
@@ -24,7 +25,7 @@ add_library(lib_scene STATIC
   src/transform.c
   )
 target_include_directories(lib_scene PUBLIC include)
-target_link_libraries(lib_scene PUBLIC lib_asset lib_core lib_ecs lib_geo)
+target_link_libraries(lib_scene PUBLIC lib_asset lib_core lib_ecs lib_geo lib_ai)
 target_link_libraries(lib_scene PRIVATE lib_log)
 
 add_executable(test_lib_scene
