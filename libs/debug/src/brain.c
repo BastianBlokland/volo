@@ -1,3 +1,4 @@
+#include "core_array.h"
 #include "debug_brain.h"
 #include "debug_register.h"
 #include "ecs_view.h"
@@ -6,6 +7,17 @@
 #include "scene_selection.h"
 #include "ui.h"
 
+typedef enum {
+  DebugBrainTab_Blackboard,
+
+  DebugBrainTab_Count,
+} DebugBrainTab;
+
+static const String g_brainTabNames[] = {
+    string_static("Blackboard"),
+};
+ASSERT(array_elems(g_brainTabNames) == DebugBrainTab_Count, "Incorrect number of names");
+
 ecs_comp_define(DebugBrainPanelComp) { UiPanel panel; };
 
 ecs_view_define(SubjectView) { ecs_access_read(SceneBrainComp); }
@@ -13,7 +25,12 @@ ecs_view_define(SubjectView) { ecs_access_read(SceneBrainComp); }
 static void
 brain_panel_draw(UiCanvasComp* canvas, DebugBrainPanelComp* panelComp, EcsIterator* subject) {
   const String title = fmt_write_scratch("{} Brain Panel", fmt_ui_shape(Psychology));
-  ui_panel_begin(canvas, &panelComp->panel, .title = title);
+  ui_panel_begin(
+      canvas,
+      &panelComp->panel,
+      .title    = title,
+      .tabNames = g_brainTabNames,
+      .tabCount = DebugBrainTab_Count);
 
   (void)subject;
 
