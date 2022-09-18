@@ -1,4 +1,7 @@
+#include "ai_blackboard.h"
 #include "core_array.h"
+#include "core_diag.h"
+#include "core_stringtable.h"
 #include "debug_brain.h"
 #include "debug_register.h"
 #include "ecs_view.h"
@@ -18,9 +21,129 @@ static const String g_brainTabNames[] = {
 };
 ASSERT(array_elems(g_brainTabNames) == DebugBrainTab_Count, "Incorrect number of names");
 
-ecs_comp_define(DebugBrainPanelComp) { UiPanel panel; };
+ecs_comp_define(DebugBrainPanelComp) {
+  UiPanel      panel;
+  UiScrollview scrollview;
+  u32          totalRows;
+};
 
-ecs_view_define(SubjectView) { ecs_access_read(SceneBrainComp); }
+ecs_view_define(SubjectView) { ecs_access_write(SceneBrainComp); }
+
+static void blackboard_draw_bool(UiCanvasComp* canvas, AiBlackboard* bb, const StringHash key) {
+  bool val = ai_blackboard_get_bool(bb, key);
+  if (ui_toggle(canvas, &val)) {
+    ai_blackboard_set_bool(bb, key, val);
+  }
+}
+
+static void blackboard_draw_f64(UiCanvasComp* canvas, AiBlackboard* bb, const StringHash key) {
+  f64 val = ai_blackboard_get_f64(bb, key);
+  if (ui_numbox(canvas, &val, .min = f64_min, .max = f64_max)) {
+    ai_blackboard_set_f64(bb, key, val);
+  }
+}
+
+static void blackboard_draw_vector(UiCanvasComp* canvas, AiBlackboard* bb, const StringHash key) {
+  static const f32 g_spacing = 10.0f;
+  const UiAlign    align     = UiAlign_MiddleLeft;
+  ui_layout_push(canvas);
+  ui_layout_resize(canvas, align, ui_vector(1.0f / 4, 0), UiBase_Current, Ui_X);
+  ui_layout_grow(canvas, align, ui_vector(3 * -g_spacing / 4, 0), UiBase_Absolute, Ui_X);
+
+  GeoVector val = ai_blackboard_get_vector(bb, key);
+  for (u8 comp = 0; comp != 4; ++comp) {
+    f64 compVal = val.comps[comp];
+    if (ui_numbox(canvas, &compVal, .min = f32_min, .max = f32_max)) {
+      val.comps[comp] = (f32)compVal;
+      ai_blackboard_set_vector(bb, key, val);
+    }
+    ui_layout_next(canvas, Ui_Right, g_spacing);
+  }
+  ui_layout_pop(canvas);
+}
+
+static void blackboard_draw_time(UiCanvasComp* canvas, AiBlackboard* bb, const StringHash key) {
+  const TimeDuration val = ai_blackboard_get_time(bb, key);
+  ui_label(canvas, fmt_write_scratch("{}", fmt_duration(val)));
+}
+
+static void blackboard_draw_entity(UiCanvasComp* canvas, AiBlackboard* bb, const StringHash key) {
+  const EcsEntityId val = ai_blackboard_get_entity(bb, key);
+  ui_label_entity(canvas, val);
+}
+
+static void blackboard_panel_tab_draw(
+    UiCanvasComp* canvas, DebugBrainPanelComp* panelComp, EcsIterator* subject) {
+  diag_assert(subject);
+
+  SceneBrainComp* brain = ecs_view_write_t(subject, SceneBrainComp);
+  AiBlackboard*   bb    = scene_brain_blackboard_mutable(brain);
+
+  ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -15), UiBase_Absolute, Ui_Y);
+  ui_layout_container_push(canvas, UiClip_None);
+
+  UiTable table = ui_table(.spacing = ui_vector(10, 5));
+  ui_table_add_column(&table, UiTableColumn_Fixed, 200);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
+
+  ui_table_draw_header(
+      canvas,
+      &table,
+      (const UiTableColumnName[]){
+          {string_lit("Key"), string_lit("Knowledge key.")},
+          {string_lit("Type"), string_lit("Knowledge type.")},
+          {string_lit("Value"), string_lit("Knowledge value.")},
+      });
+
+  const f32 totalHeight = ui_table_height(&table, panelComp->totalRows);
+  ui_scrollview_begin(canvas, &panelComp->scrollview, totalHeight);
+  panelComp->totalRows = 0;
+
+  for (AiBlackboardItr itr = ai_blackboard_begin(bb); itr.key; itr = ai_blackboard_next(bb, itr)) {
+    const String           keyName = stringtable_lookup(g_stringtable, itr.key);
+    const AiBlackboardType type    = ai_blackboard_type(bb, itr.key);
+
+    ui_table_next_row(canvas, &table);
+    ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
+
+    ui_label(canvas, string_is_empty(keyName) ? string_lit("<unnamed>") : keyName);
+    ui_table_next_column(canvas, &table);
+
+    ui_label(canvas, ai_blackboard_type_str(type));
+    ui_table_next_column(canvas, &table);
+
+    switch (type) {
+    case AiBlackboardType_f64:
+      blackboard_draw_f64(canvas, bb, itr.key);
+      break;
+    case AiBlackboardType_Bool:
+      blackboard_draw_bool(canvas, bb, itr.key);
+      break;
+    case AiBlackboardType_Vector:
+      blackboard_draw_vector(canvas, bb, itr.key);
+      break;
+    case AiBlackboardType_Time:
+      blackboard_draw_time(canvas, bb, itr.key);
+      break;
+    case AiBlackboardType_Entity:
+      blackboard_draw_entity(canvas, bb, itr.key);
+      break;
+    case AiBlackboardType_Invalid:
+    case AiBlackboardType_Count:
+      diag_crash();
+    }
+    ++panelComp->totalRows;
+  }
+
+  if (!panelComp->totalRows) {
+    ui_label(
+        canvas, string_lit("Blackboard has no knowledge entries."), .align = UiAlign_MiddleCenter);
+  }
+
+  ui_scrollview_end(canvas, &panelComp->scrollview);
+  ui_layout_container_pop(canvas);
+}
 
 static void
 brain_panel_draw(UiCanvasComp* canvas, DebugBrainPanelComp* panelComp, EcsIterator* subject) {
@@ -32,7 +155,15 @@ brain_panel_draw(UiCanvasComp* canvas, DebugBrainPanelComp* panelComp, EcsIterat
       .tabNames = g_brainTabNames,
       .tabCount = DebugBrainTab_Count);
 
-  (void)subject;
+  if (subject) {
+    switch (panelComp->panel.activeTab) {
+    case DebugBrainTab_Blackboard:
+      blackboard_panel_tab_draw(canvas, panelComp, subject);
+      break;
+    }
+  } else {
+    ui_label(canvas, string_lit("Select an entity with a brain."), .align = UiAlign_MiddleCenter);
+  }
 
   ui_panel_end(canvas, &panelComp->panel);
 }
@@ -89,6 +220,6 @@ ecs_module_init(debug_brain_module) {
 EcsEntityId debug_brain_panel_open(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
   ecs_world_add_t(
-      world, panelEntity, DebugBrainPanelComp, .panel = ui_panel(.size = ui_vector(600, 350)));
+      world, panelEntity, DebugBrainPanelComp, .panel = ui_panel(.size = ui_vector(600, 500)));
   return panelEntity;
 }
