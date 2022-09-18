@@ -22,14 +22,14 @@ ecs_system_define(SceneSensorTimeSys) {
   const SceneTimeComp* timeComp = ecs_view_read_t(globalItr, SceneTimeComp);
 
   // TODO: Compute the key hashes once.
-  const StringHash timeKnowledgeKey = stringtable_add(g_stringtable, string_lit("scene_time"));
+  const StringHash timeKey = stringtable_add(g_stringtable, string_lit("time"));
 
   EcsView* view = ecs_world_view_t(world, SensorTimeView);
   for (EcsIterator* itr = ecs_view_itr(view); ecs_view_walk(itr);) {
     SceneBrainComp* brain = ecs_view_write_t(itr, SceneBrainComp);
     AiBlackboard*   bb    = scene_brain_blackboard_mutable(brain);
 
-    ai_blackboard_set_time(bb, timeKnowledgeKey, timeComp->time);
+    ai_blackboard_set_time(bb, timeKey, timeComp->time);
   }
 }
 
