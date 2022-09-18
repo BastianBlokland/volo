@@ -1,3 +1,4 @@
+#include "asset_register.h"
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "ecs.h"
@@ -53,6 +54,7 @@ spec(nav) {
 
   setup() {
     def = ecs_def_create(g_alloc_heap);
+    asset_register(def);
     scene_register(def);
     ecs_register_module(def, nav_test_module);
 
