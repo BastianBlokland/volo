@@ -7,7 +7,6 @@
 #include "scene_locomotion.h"
 #include "scene_nav.h"
 #include "scene_renderable.h"
-#include "scene_sensor.h"
 #include "scene_target.h"
 #include "scene_transform.h"
 
@@ -71,7 +70,6 @@ object_spawn_unit(EcsWorld* world, const ObjectDatabaseComp* db, const GeoVector
   ecs_world_add_t(world, e, SceneHealthComp, .norm = 1.0f, .max = 100.0f);
   ecs_world_add_t(world, e, SceneFactionComp, .id = 1);
   ecs_world_add_t(world, e, SceneTargetFinderComp);
-  ecs_world_add_empty_t(world, e, SceneSensorTimeComp);
   scene_collision_add_capsule(world, e, g_capsule);
   scene_brain_add(world, e, db->unitBehavior);
   return e;
