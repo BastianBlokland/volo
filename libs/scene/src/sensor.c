@@ -7,9 +7,19 @@
 #include "scene_health.h"
 #include "scene_target.h"
 #include "scene_time.h"
+#include "scene_transform.h"
 
-static StringHash g_blackboardKeyTime, g_blackboardKeyHealth, g_blackboardKeyTarget,
-    g_blackboardKeyTargetDist, g_blackboardKeyFaction;
+// clang-format off
+
+static StringHash g_blackboardKeyTime,
+                  g_blackboardKeyEntity,
+                  g_blackboardKeyPosition,
+                  g_blackboardKeyHealth,
+                  g_blackboardKeyFaction,
+                  g_blackboardKeyTargetEntity,
+                  g_blackboardKeyTargetDist;
+
+// clang-format on
 
 ecs_view_define(SensorGlobalView) { ecs_access_read(SceneTimeComp); }
 
@@ -17,6 +27,7 @@ ecs_view_define(BrainView) {
   ecs_access_maybe_read(SceneFactionComp);
   ecs_access_maybe_read(SceneHealthComp);
   ecs_access_maybe_read(SceneTargetFinderComp);
+  ecs_access_maybe_read(SceneTransformComp);
   ecs_access_write(SceneBrainComp);
 }
 
@@ -30,36 +41,45 @@ ecs_system_define(SceneSensorUpdateSys) {
 
   EcsView* view = ecs_world_view_t(world, BrainView);
   for (EcsIterator* itr = ecs_view_itr(view); ecs_view_walk(itr);) {
-    SceneBrainComp* brain = ecs_view_write_t(itr, SceneBrainComp);
-    AiBlackboard*   bb    = scene_brain_blackboard_mutable(brain);
+    const EcsEntityId entity = ecs_view_entity(itr);
+    SceneBrainComp*   brain  = ecs_view_write_t(itr, SceneBrainComp);
+    AiBlackboard*     bb     = scene_brain_blackboard_mutable(brain);
 
     ai_blackboard_set_time(bb, g_blackboardKeyTime, timeComp->time);
+    ai_blackboard_set_entity(bb, g_blackboardKeyEntity, entity);
+
+    const SceneTransformComp* transform = ecs_view_read_t(itr, SceneTransformComp);
+    if (transform) {
+      ai_blackboard_set_vector(bb, g_blackboardKeyPosition, transform->position);
+    }
 
     const SceneHealthComp* health = ecs_view_read_t(itr, SceneHealthComp);
     if (health) {
       ai_blackboard_set_f64(bb, g_blackboardKeyHealth, health->norm);
     }
 
-    const SceneTargetFinderComp* targetFinder = ecs_view_read_t(itr, SceneTargetFinderComp);
-    if (targetFinder) {
-      ai_blackboard_set_entity(bb, g_blackboardKeyTarget, targetFinder->target);
-      const f64 distToTarget = math_sqrt_f64(targetFinder->targetDistSqr);
-      ai_blackboard_set_f64(bb, g_blackboardKeyTargetDist, distToTarget);
-    }
-
     const SceneFactionComp* faction = ecs_view_read_t(itr, SceneFactionComp);
     if (faction) {
       ai_blackboard_set_f64(bb, g_blackboardKeyFaction, faction->id);
+    }
+
+    const SceneTargetFinderComp* targetFinder = ecs_view_read_t(itr, SceneTargetFinderComp);
+    if (targetFinder) {
+      ai_blackboard_set_entity(bb, g_blackboardKeyTargetEntity, targetFinder->target);
+      const f64 distToTarget = math_sqrt_f64(targetFinder->targetDistSqr);
+      ai_blackboard_set_f64(bb, g_blackboardKeyTargetDist, distToTarget);
     }
   }
 }
 
 ecs_module_init(scene_sensor_module) {
-  g_blackboardKeyTime       = stringtable_add(g_stringtable, string_lit("time"));
-  g_blackboardKeyHealth     = stringtable_add(g_stringtable, string_lit("health"));
-  g_blackboardKeyTarget     = stringtable_add(g_stringtable, string_lit("target"));
-  g_blackboardKeyTargetDist = stringtable_add(g_stringtable, string_lit("target-dist"));
-  g_blackboardKeyFaction    = stringtable_add(g_stringtable, string_lit("faction"));
+  g_blackboardKeyTime         = stringtable_add(g_stringtable, string_lit("global-time"));
+  g_blackboardKeyEntity       = stringtable_add(g_stringtable, string_lit("self-entity"));
+  g_blackboardKeyPosition     = stringtable_add(g_stringtable, string_lit("self-position"));
+  g_blackboardKeyHealth       = stringtable_add(g_stringtable, string_lit("self-health"));
+  g_blackboardKeyFaction      = stringtable_add(g_stringtable, string_lit("self-faction"));
+  g_blackboardKeyTargetEntity = stringtable_add(g_stringtable, string_lit("target-entity"));
+  g_blackboardKeyTargetDist   = stringtable_add(g_stringtable, string_lit("target-dist"));
 
   ecs_register_view(SensorGlobalView);
   ecs_register_view(BrainView);
