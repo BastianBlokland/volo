@@ -5,6 +5,7 @@
 #include "scene_brain.h"
 #include "scene_faction.h"
 #include "scene_health.h"
+#include "scene_nav.h"
 #include "scene_target.h"
 #include "scene_time.h"
 #include "scene_transform.h"
@@ -16,6 +17,7 @@ static StringHash g_blackboardKeyTime,
                   g_blackboardKeyPosition,
                   g_blackboardKeyHealth,
                   g_blackboardKeyFaction,
+                  g_blackboardKeyNavMoving,
                   g_blackboardKeyTargetEntity,
                   g_blackboardKeyTargetDist;
 
@@ -26,6 +28,7 @@ ecs_view_define(SensorGlobalView) { ecs_access_read(SceneTimeComp); }
 ecs_view_define(BrainView) {
   ecs_access_maybe_read(SceneFactionComp);
   ecs_access_maybe_read(SceneHealthComp);
+  ecs_access_maybe_read(SceneNavAgentComp);
   ecs_access_maybe_read(SceneTargetFinderComp);
   ecs_access_maybe_read(SceneTransformComp);
   ecs_access_write(SceneBrainComp);
@@ -63,6 +66,12 @@ ecs_system_define(SceneSensorUpdateSys) {
       ai_blackboard_set_f64(bb, g_blackboardKeyFaction, faction->id);
     }
 
+    const SceneNavAgentComp* navAgent = ecs_view_read_t(itr, SceneNavAgentComp);
+    if (navAgent) {
+      const bool moving = (navAgent->flags & SceneNavAgent_Moving) != 0;
+      ai_blackboard_set_bool(bb, g_blackboardKeyNavMoving, moving);
+    }
+
     const SceneTargetFinderComp* targetFinder = ecs_view_read_t(itr, SceneTargetFinderComp);
     if (targetFinder) {
       ai_blackboard_set_entity(bb, g_blackboardKeyTargetEntity, targetFinder->target);
@@ -78,6 +87,7 @@ ecs_module_init(scene_sensor_module) {
   g_blackboardKeyPosition     = stringtable_add(g_stringtable, string_lit("self-position"));
   g_blackboardKeyHealth       = stringtable_add(g_stringtable, string_lit("self-health"));
   g_blackboardKeyFaction      = stringtable_add(g_stringtable, string_lit("self-faction"));
+  g_blackboardKeyNavMoving    = stringtable_add(g_stringtable, string_lit("self-nav-moving"));
   g_blackboardKeyTargetEntity = stringtable_add(g_stringtable, string_lit("target-entity"));
   g_blackboardKeyTargetDist   = stringtable_add(g_stringtable, string_lit("target-dist"));
 
