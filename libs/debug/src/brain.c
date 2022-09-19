@@ -1,4 +1,5 @@
 #include "ai_blackboard.h"
+#include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_stringtable.h"
@@ -21,11 +22,20 @@ static const String g_brainTabNames[] = {
 };
 ASSERT(array_elems(g_brainTabNames) == DebugBrainTab_Count, "Incorrect number of names");
 
+typedef struct {
+  StringHash key;
+  String     name;
+} DebugBlackboardEntry;
+
 ecs_comp_define(DebugBrainPanelComp) {
   UiPanel      panel;
   UiScrollview scrollview;
-  u32          totalRows;
 };
+
+static i8 blackboard_compare_entry_name(const void* a, const void* b) {
+  return compare_string(
+      field_ptr(a, DebugBlackboardEntry, name), field_ptr(b, DebugBlackboardEntry, name));
+}
 
 ecs_view_define(SubjectView) { ecs_access_write(SceneBrainComp); }
 
@@ -96,50 +106,63 @@ static void blackboard_panel_tab_draw(
           {string_lit("Value"), string_lit("Knowledge value.")},
       });
 
-  const f32 totalHeight = ui_table_height(&table, panelComp->totalRows);
-  ui_scrollview_begin(canvas, &panelComp->scrollview, totalHeight);
-  panelComp->totalRows = 0;
-
+  // Collect the blackboard entries.
+  DynArray entries = dynarray_create_t(g_alloc_scratch, DebugBlackboardEntry, 256);
   for (AiBlackboardItr itr = ai_blackboard_begin(bb); itr.key; itr = ai_blackboard_next(bb, itr)) {
-    const String           keyName = stringtable_lookup(g_stringtable, itr.key);
-    const AiBlackboardType type    = ai_blackboard_type(bb, itr.key);
-
-    ui_table_next_row(canvas, &table);
-    ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
-
-    ui_label(canvas, string_is_empty(keyName) ? string_lit("<unnamed>") : keyName);
-    ui_table_next_column(canvas, &table);
-
-    ui_label(canvas, ai_blackboard_type_str(type));
-    ui_table_next_column(canvas, &table);
-
-    switch (type) {
-    case AiBlackboardType_f64:
-      blackboard_draw_f64(canvas, bb, itr.key);
-      break;
-    case AiBlackboardType_Bool:
-      blackboard_draw_bool(canvas, bb, itr.key);
-      break;
-    case AiBlackboardType_Vector:
-      blackboard_draw_vector(canvas, bb, itr.key);
-      break;
-    case AiBlackboardType_Time:
-      blackboard_draw_time(canvas, bb, itr.key);
-      break;
-    case AiBlackboardType_Entity:
-      blackboard_draw_entity(canvas, bb, itr.key);
-      break;
-    case AiBlackboardType_Invalid:
-    case AiBlackboardType_Count:
-      diag_crash();
-    }
-    ++panelComp->totalRows;
+    const String name                                = stringtable_lookup(g_stringtable, itr.key);
+    *dynarray_push_t(&entries, DebugBlackboardEntry) = (DebugBlackboardEntry){
+        .key  = itr.key,
+        .name = string_is_empty(name) ? string_lit("<unnamed>") : name,
+    };
   }
 
-  if (!panelComp->totalRows) {
+  // Sort the blackboard entries.
+  dynarray_sort(&entries, blackboard_compare_entry_name);
+
+  // Draw the blackboard entries.
+  const f32 totalHeight = ui_table_height(&table, (u32)entries.size);
+  ui_scrollview_begin(canvas, &panelComp->scrollview, totalHeight);
+
+  if (entries.size) {
+    dynarray_for_t(&entries, DebugBlackboardEntry, entry) {
+      const AiBlackboardType type = ai_blackboard_type(bb, entry->key);
+
+      ui_table_next_row(canvas, &table);
+      ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
+
+      ui_label(canvas, entry->name);
+      ui_table_next_column(canvas, &table);
+
+      ui_label(canvas, ai_blackboard_type_str(type));
+      ui_table_next_column(canvas, &table);
+
+      switch (type) {
+      case AiBlackboardType_f64:
+        blackboard_draw_f64(canvas, bb, entry->key);
+        break;
+      case AiBlackboardType_Bool:
+        blackboard_draw_bool(canvas, bb, entry->key);
+        break;
+      case AiBlackboardType_Vector:
+        blackboard_draw_vector(canvas, bb, entry->key);
+        break;
+      case AiBlackboardType_Time:
+        blackboard_draw_time(canvas, bb, entry->key);
+        break;
+      case AiBlackboardType_Entity:
+        blackboard_draw_entity(canvas, bb, entry->key);
+        break;
+      case AiBlackboardType_Invalid:
+      case AiBlackboardType_Count:
+        diag_crash();
+      }
+    }
+  } else {
     ui_label(
         canvas, string_lit("Blackboard has no knowledge entries."), .align = UiAlign_MiddleCenter);
   }
+
+  dynarray_destroy(&entries);
 
   ui_scrollview_end(canvas, &panelComp->scrollview);
   ui_layout_container_pop(canvas);
