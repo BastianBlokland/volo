@@ -37,7 +37,7 @@ ecs_system_define(ObjectDatabaseInitSys) {
       ecs_world_global(world),
       ObjectDatabaseComp,
       .unitGraphic  = asset_lookup(world, assets, string_lit("graphics/sandbox/vanguard.gra")),
-      .unitBehavior = asset_lookup(world, assets, string_lit("behaviors/ai.bt")),
+      .unitBehavior = asset_lookup(world, assets, string_lit("behaviors/unit.bt")),
       .wallGraphic  = asset_lookup(world, assets, string_lit("graphics/sandbox/wall.gra")));
 }
 
