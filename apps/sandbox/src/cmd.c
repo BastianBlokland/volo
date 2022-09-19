@@ -10,6 +10,8 @@
 #include "cmd_internal.h"
 #include "object_internal.h"
 
+static StringHash g_blackboardKeyMoveTarget;
+
 typedef enum {
   Cmd_Select,
   Cmd_Deselect,
@@ -80,11 +82,8 @@ static void cmd_execute_move(EcsWorld* world, const CmdMove* cmdMove) {
   if (brainItr) {
     SceneBrainComp* brain = ecs_view_write_t(brainItr, SceneBrainComp);
 
-    // TODO: Cache key hash.
-    const StringHash key = stringtable_add(g_stringtable, string_lit("cmd-move-target"));
-
     AiBlackboard* bb = scene_brain_blackboard_mutable(brain);
-    ai_blackboard_set_vector(bb, key, cmdMove->position);
+    ai_blackboard_set_vector(bb, g_blackboardKeyMoveTarget, cmdMove->position);
   }
 }
 
@@ -140,6 +139,8 @@ ecs_system_define(CmdControllerUpdateSys) {
 }
 
 ecs_module_init(sandbox_cmd_module) {
+  g_blackboardKeyMoveTarget = stringtable_add(g_stringtable, string_lit("cmd-move-target"));
+
   ecs_register_comp(CmdControllerComp, .destructor = ecs_destruct_controller);
 
   ecs_register_view(ControllerWriteView);
