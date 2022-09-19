@@ -3,16 +3,18 @@
 #include "core_stringtable.h"
 #include "ecs_world.h"
 #include "scene_brain.h"
+#include "scene_faction.h"
 #include "scene_health.h"
 #include "scene_target.h"
 #include "scene_time.h"
 
 static StringHash g_blackboardKeyTime, g_blackboardKeyHealth, g_blackboardKeyTarget,
-    g_blackboardKeyTargetDist;
+    g_blackboardKeyTargetDist, g_blackboardKeyFaction;
 
 ecs_view_define(SensorGlobalView) { ecs_access_read(SceneTimeComp); }
 
 ecs_view_define(BrainView) {
+  ecs_access_maybe_read(SceneFactionComp);
   ecs_access_maybe_read(SceneHealthComp);
   ecs_access_maybe_read(SceneTargetFinderComp);
   ecs_access_write(SceneBrainComp);
@@ -44,6 +46,11 @@ ecs_system_define(SceneSensorUpdateSys) {
       const f64 distToTarget = math_sqrt_f64(targetFinder->targetDistSqr);
       ai_blackboard_set_f64(bb, g_blackboardKeyTargetDist, distToTarget);
     }
+
+    const SceneFactionComp* faction = ecs_view_read_t(itr, SceneFactionComp);
+    if (faction) {
+      ai_blackboard_set_f64(bb, g_blackboardKeyFaction, faction->id);
+    }
   }
 }
 
@@ -52,6 +59,7 @@ ecs_module_init(scene_sensor_module) {
   g_blackboardKeyHealth     = stringtable_add(g_stringtable, string_lit("health"));
   g_blackboardKeyTarget     = stringtable_add(g_stringtable, string_lit("target"));
   g_blackboardKeyTargetDist = stringtable_add(g_stringtable, string_lit("target-dist"));
+  g_blackboardKeyFaction    = stringtable_add(g_stringtable, string_lit("faction"));
 
   ecs_register_view(SensorGlobalView);
   ecs_register_view(BrainView);
