@@ -27,8 +27,11 @@ ecs_system_define(SceneControllerUpdateSys) {
     SceneNavAgentComp* navAgent = ecs_view_write_t(itr, SceneNavAgentComp);
     if (navAgent && ai_blackboard_exists(bb, g_blackboardKeyNavTarget)) {
       const GeoVector target = ai_blackboard_get_vector(bb, g_blackboardKeyNavTarget);
-      scene_nav_move_to(navAgent, target);
-      ai_blackboard_unset(bb, g_blackboardKeyNavTarget);
+      if (!geo_vector_equal3(navAgent->target, target, 1e-4f)) {
+        scene_nav_move_to(navAgent, target);
+      } else if (!(navAgent->flags & SceneNavAgent_Moving)) {
+        ai_blackboard_unset(bb, g_blackboardKeyNavTarget);
+      }
     }
   }
 }
