@@ -92,3 +92,6 @@ AiBlackboardItr ai_blackboard_next(const AiBlackboard*, AiBlackboardItr);
  * Compare knowledge values.
  */
 bool ai_blackboard_equals(const AiBlackboard*, StringHash keyA, StringHash keyB);
+bool ai_blackboard_equals_f64(const AiBlackboard*, StringHash key, f64 value);
+bool ai_blackboard_equals_bool(const AiBlackboard*, StringHash key, bool value);
+bool ai_blackboard_equals_vector(const AiBlackboard*, StringHash key, GeoVector value);

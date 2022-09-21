@@ -133,5 +133,17 @@ spec(blackboard) {
     check(!ai_blackboard_equals(bb, a, b));
   }
 
+  it("can check a knowledge value and a literal for equality") {
+    const StringHash a = string_hash_lit("testA");
+    const StringHash b = string_hash_lit("testB");
+    check(!ai_blackboard_equals_f64(bb, a, 42));
+
+    ai_blackboard_set_f64(bb, a, 42);
+    check(ai_blackboard_equals_f64(bb, a, 42));
+
+    ai_blackboard_set_f64(bb, b, false);
+    check(!ai_blackboard_equals_f64(bb, b, 42));
+  }
+
   teardown() { ai_blackboard_destroy(bb); }
 }

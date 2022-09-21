@@ -258,3 +258,30 @@ bool ai_blackboard_equals(const AiBlackboard* bb, const StringHash keyA, const S
   }
   return mem_eq(mem_var(slotA->data), mem_var(slotB->data));
 }
+
+bool ai_blackboard_equals_f64(const AiBlackboard* bb, const StringHash key, const f64 value) {
+  const AiBlackboardSlot* slot = blackboard_slot(bb->slots, bb->slotCount, key);
+  if (!(slot->flags & AiBlackboard_Active) || slot->type != AiBlackboardType_f64) {
+    return false; // Slot not active or type mismatch.
+  }
+  return slot->data._f64 == value;
+}
+
+bool ai_blackboard_equals_bool(const AiBlackboard* bb, const StringHash key, const bool value) {
+  const AiBlackboardSlot* slot = blackboard_slot(bb->slots, bb->slotCount, key);
+  if (!(slot->flags & AiBlackboard_Active) || slot->type != AiBlackboardType_Bool) {
+    return false; // Slot not active or type mismatch.
+  }
+  return slot->data._bool == value;
+}
+
+bool ai_blackboard_equals_vector(
+    const AiBlackboard* bb, const StringHash key, const GeoVector value) {
+  const AiBlackboardSlot* slot = blackboard_slot(bb->slots, bb->slotCount, key);
+  if (!(slot->flags & AiBlackboard_Active) || slot->type != AiBlackboardType_Vector) {
+    return false; // Slot not active or type mismatch.
+  }
+  // NOTE: Should we add a threshold to this check? If so then also 'ai_blackboard_equals' would
+  // need adjusting.
+  return mem_eq(mem_var(slot->data.vector), mem_var(value));
+}
