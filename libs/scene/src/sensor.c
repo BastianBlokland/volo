@@ -17,7 +17,7 @@ static StringHash g_blackboardKeyTime,
                   g_blackboardKeyPosition,
                   g_blackboardKeyHealth,
                   g_blackboardKeyFaction,
-                  g_blackboardKeyNavMoving,
+                  g_blackboardKeyNavArrived,
                   g_blackboardKeyTargetEntity,
                   g_blackboardKeyTargetDist;
 
@@ -71,8 +71,11 @@ ecs_system_define(SceneSensorUpdateSys) {
 
     const SceneNavAgentComp* navAgent = ecs_view_read_t(itr, SceneNavAgentComp);
     if (navAgent) {
-      const bool moving = (navAgent->flags & SceneNavAgent_Moving) != 0;
-      ai_blackboard_set_bool(bb, g_blackboardKeyNavMoving, moving);
+      if (navAgent->flags & SceneNavAgent_Moving) {
+        ai_blackboard_unset(bb, g_blackboardKeyNavArrived);
+      } else {
+        ai_blackboard_set_vector(bb, g_blackboardKeyNavArrived, navAgent->target);
+      }
     }
 
     const SceneTargetFinderComp* targetFinder = ecs_view_read_t(itr, SceneTargetFinderComp);
@@ -90,7 +93,7 @@ ecs_module_init(scene_sensor_module) {
   g_blackboardKeyPosition     = stringtable_add(g_stringtable, string_lit("self-position"));
   g_blackboardKeyHealth       = stringtable_add(g_stringtable, string_lit("self-health"));
   g_blackboardKeyFaction      = stringtable_add(g_stringtable, string_lit("self-faction"));
-  g_blackboardKeyNavMoving    = stringtable_add(g_stringtable, string_lit("self-nav-moving"));
+  g_blackboardKeyNavArrived   = stringtable_add(g_stringtable, string_lit("self-nav-arrived"));
   g_blackboardKeyTargetEntity = stringtable_add(g_stringtable, string_lit("target-entity"));
   g_blackboardKeyTargetDist   = stringtable_add(g_stringtable, string_lit("target-dist"));
 
