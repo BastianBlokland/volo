@@ -2,6 +2,7 @@
 #include "ai_eval.h"
 #include "asset_behavior.h"
 #include "core_diag.h"
+#include "core_stringtable.h"
 
 AiResult ai_node_knowledgeset_eval(const AssetBehavior* behavior, AiBlackboard* bb) {
   diag_assert(behavior->type == AssetBehavior_KnowledgeSet);
@@ -9,7 +10,7 @@ AiResult ai_node_knowledgeset_eval(const AssetBehavior* behavior, AiBlackboard* 
   diag_assert_msg(behavior->data_knowledgeset.key.size, "Knowledge key cannot be empty");
 
   // TODO: Keys should be pre-hashed in the behavior asset.
-  const StringHash            keyHash     = string_hash(behavior->data_knowledgeset.key);
+  const StringHash keyHash = stringtable_add(g_stringtable, behavior->data_knowledgeset.key);
   const AssetKnowledgeSource* valueSource = &behavior->data_knowledgeset.value;
 
   switch (valueSource->type) {
