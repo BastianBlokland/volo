@@ -16,8 +16,9 @@ typedef enum {
 } SceneBehaviorFlags;
 
 ecs_comp_define(SceneBrainComp) {
-  AiBlackboard* blackboard;
-  EcsEntityId   behaviorAsset;
+  SceneBrainFlags flags;
+  AiBlackboard*   blackboard;
+  EcsEntityId     behaviorAsset;
 };
 
 ecs_comp_define(SceneBehaviorResourceComp) { SceneBehaviorFlags flags; };
@@ -128,6 +129,20 @@ const AiBlackboard* scene_brain_blackboard(const SceneBrainComp* brain) {
 }
 
 AiBlackboard* scene_brain_blackboard_mutable(SceneBrainComp* brain) { return brain->blackboard; }
+
+SceneBrainFlags scene_brain_flags(const SceneBrainComp* brain) { return brain->flags; }
+
+void scene_brain_flags_set(SceneBrainComp* brain, const SceneBrainFlags flags) {
+  brain->flags |= flags;
+}
+
+void scene_brain_flags_unset(SceneBrainComp* brain, const SceneBrainFlags flags) {
+  brain->flags &= ~flags;
+}
+
+void scene_brain_flags_toggle(SceneBrainComp* brain, const SceneBrainFlags flags) {
+  brain->flags ^= flags;
+}
 
 SceneBrainComp*
 scene_brain_add(EcsWorld* world, const EcsEntityId entity, const EcsEntityId behaviorAsset) {

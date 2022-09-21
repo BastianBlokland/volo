@@ -46,7 +46,10 @@ ecs_system_define(SceneSensorUpdateSys) {
   for (EcsIterator* itr = ecs_view_itr(view); ecs_view_walk(itr);) {
     const EcsEntityId entity = ecs_view_entity(itr);
     SceneBrainComp*   brain  = ecs_view_write_t(itr, SceneBrainComp);
-    AiBlackboard*     bb     = scene_brain_blackboard_mutable(brain);
+    if (scene_brain_flags(brain) & SceneBrainFlags_PauseSensors) {
+      continue;
+    }
+    AiBlackboard* bb = scene_brain_blackboard_mutable(brain);
 
     ai_blackboard_set_time(bb, g_blackboardKeyTime, timeComp->time);
     ai_blackboard_set_entity(bb, g_blackboardKeyEntity, entity);

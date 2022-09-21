@@ -82,6 +82,24 @@ static void blackboard_draw_entity(UiCanvasComp* canvas, AiBlackboard* bb, const
   ui_label_entity(canvas, val);
 }
 
+static void blackboard_options_draw(UiCanvasComp* canvas, SceneBrainComp* brain) {
+  ui_layout_push(canvas);
+
+  UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 135);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+
+  ui_table_next_row(canvas, &table);
+  bool pauseSensors = (scene_brain_flags(brain) & SceneBrainFlags_PauseSensors) != 0;
+  ui_label(canvas, string_lit("Pause sensors:"));
+  ui_table_next_column(canvas, &table);
+  if (ui_toggle(canvas, &pauseSensors)) {
+    scene_brain_flags_toggle(brain, SceneBrainFlags_PauseSensors);
+  }
+
+  ui_layout_pop(canvas);
+}
+
 static void blackboard_panel_tab_draw(
     UiCanvasComp* canvas, DebugBrainPanelComp* panelComp, EcsIterator* subject) {
   diag_assert(subject);
@@ -89,7 +107,8 @@ static void blackboard_panel_tab_draw(
   SceneBrainComp* brain = ecs_view_write_t(subject, SceneBrainComp);
   AiBlackboard*   bb    = scene_brain_blackboard_mutable(brain);
 
-  ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -15), UiBase_Absolute, Ui_Y);
+  blackboard_options_draw(canvas, brain);
+  ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
   ui_layout_container_push(canvas, UiClip_None);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
