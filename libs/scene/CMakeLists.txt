@@ -9,6 +9,7 @@ add_library(lib_scene STATIC
   src/brain.c
   src/camera.c
   src/collision.c
+  src/controller.c
   src/faction.c
   src/health.c
   src/lifetime.c

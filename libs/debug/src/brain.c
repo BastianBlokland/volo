@@ -88,6 +88,8 @@ static void blackboard_options_draw(UiCanvasComp* canvas, SceneBrainComp* brain)
   UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
   ui_table_add_column(&table, UiTableColumn_Fixed, 135);
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 155);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
 
   ui_table_next_row(canvas, &table);
   bool pauseSensors = (scene_brain_flags(brain) & SceneBrainFlags_PauseSensors) != 0;
@@ -95,6 +97,14 @@ static void blackboard_options_draw(UiCanvasComp* canvas, SceneBrainComp* brain)
   ui_table_next_column(canvas, &table);
   if (ui_toggle(canvas, &pauseSensors)) {
     scene_brain_flags_toggle(brain, SceneBrainFlags_PauseSensors);
+  }
+
+  ui_table_next_column(canvas, &table);
+  bool pauseControllers = (scene_brain_flags(brain) & SceneBrainFlags_PauseControllers) != 0;
+  ui_label(canvas, string_lit("Pause controllers:"));
+  ui_table_next_column(canvas, &table);
+  if (ui_toggle(canvas, &pauseControllers)) {
+    scene_brain_flags_toggle(brain, SceneBrainFlags_PauseControllers);
   }
 
   ui_layout_pop(canvas);

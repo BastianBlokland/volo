@@ -6,8 +6,9 @@
 typedef struct sAiBlackboard AiBlackboard;
 
 typedef enum {
-  SceneBrainFlags_None         = 0,
-  SceneBrainFlags_PauseSensors = 1 << 1,
+  SceneBrainFlags_None             = 0,
+  SceneBrainFlags_PauseSensors     = 1 << 1,
+  SceneBrainFlags_PauseControllers = 1 << 2,
 } SceneBrainFlags;
 
 ecs_comp_extern(SceneBrainComp);
