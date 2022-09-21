@@ -87,3 +87,8 @@ typedef struct {
 
 AiBlackboardItr ai_blackboard_begin(const AiBlackboard*);
 AiBlackboardItr ai_blackboard_next(const AiBlackboard*, AiBlackboardItr);
+
+/**
+ * Compare knowledge values.
+ */
+bool ai_blackboard_equals(const AiBlackboard*, StringHash keyA, StringHash keyB);

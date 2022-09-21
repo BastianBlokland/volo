@@ -114,5 +114,24 @@ spec(blackboard) {
     check_eq_int(bitset_count(seenVals), KeyCount);
   }
 
+  it("can check two knowledge values for equality") {
+    const StringHash a = string_hash_lit("testA");
+    const StringHash b = string_hash_lit("testB");
+    const StringHash c = string_hash_lit("testC");
+    check(!ai_blackboard_equals(bb, a, b));
+
+    ai_blackboard_set_f64(bb, b, 42);
+    check(!ai_blackboard_equals(bb, a, b));
+
+    ai_blackboard_set_bool(bb, c, false);
+    check(!ai_blackboard_equals(bb, a, c));
+
+    ai_blackboard_set_f64(bb, a, 42);
+    check(ai_blackboard_equals(bb, a, b));
+
+    ai_blackboard_unset(bb, a);
+    check(!ai_blackboard_equals(bb, a, b));
+  }
+
   teardown() { ai_blackboard_destroy(bb); }
 }

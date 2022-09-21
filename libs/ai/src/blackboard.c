@@ -246,3 +246,15 @@ AiBlackboardItr ai_blackboard_next(const AiBlackboard* bb, const AiBlackboardItr
   }
   return (AiBlackboardItr){.key = 0, .next = sentinel_u32};
 }
+
+bool ai_blackboard_equals(const AiBlackboard* bb, const StringHash keyA, const StringHash keyB) {
+  const AiBlackboardSlot* slotA = blackboard_slot(bb->slots, bb->slotCount, keyA);
+  const AiBlackboardSlot* slotB = blackboard_slot(bb->slots, bb->slotCount, keyB);
+  if (!(slotA->flags & slotB->flags & AiBlackboard_Active)) {
+    return false; // Either (or both) of the keys are not active.
+  }
+  if (slotA->type != slotB->type) {
+    return false; // Type mismatch.
+  }
+  return mem_eq(mem_var(slotA->data), mem_var(slotB->data));
+}
