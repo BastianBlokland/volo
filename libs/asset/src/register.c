@@ -4,6 +4,7 @@
 
 void asset_register(EcsDef* def) {
   ecs_register_module(def, asset_atx_module);
+  ecs_register_module(def, asset_behavior_module);
   ecs_register_module(def, asset_font_module);
   ecs_register_module(def, asset_ftx_module);
   ecs_register_module(def, asset_gltf_module);

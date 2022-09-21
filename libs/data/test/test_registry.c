@@ -164,5 +164,19 @@ spec(registry) {
     check_eq_int(data_align(reg, t_MyCustomEnum), alignof(MyCustomEnum));
   }
 
+  it("can register comments to types") {
+    check_eq_string(data_comment(reg, data_prim_t(f32)), string_empty);
+
+    data_reg_comment(reg, data_prim_t(f32), string_lit("A 32 bit floating-point number"));
+    check_eq_string(
+        data_comment(reg, data_prim_t(f32)), string_lit("A 32 bit floating-point number"));
+
+    data_reg_comment(reg, data_prim_t(f32), string_lit("Hello"));
+    check_eq_string(data_comment(reg, data_prim_t(f32)), string_lit("Hello"));
+
+    data_reg_comment(reg, data_prim_t(f32), string_empty);
+    check_eq_string(data_comment(reg, data_prim_t(f32)), string_empty);
+  }
+
   teardown() { data_reg_destroy(reg); }
 }

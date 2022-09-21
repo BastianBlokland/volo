@@ -42,6 +42,7 @@ typedef struct {
   DataId   id;
   DataKind kind;
   usize    size, align;
+  String   comment;
   union {
     DataDeclStruct val_struct;
     DataDeclUnion  val_union;

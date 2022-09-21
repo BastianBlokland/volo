@@ -1,0 +1,195 @@
+{
+  "aliases": [
+    {
+      "identifier": "AssetBehavior",
+      "values": [
+        "AssetBehavior_Success",
+        "AssetBehavior_Failure",
+        "AssetBehavior_Invert",
+        "AssetBehavior_Parallel",
+        "AssetBehavior_Selector",
+        "AssetBehavior_Sequence",
+        "AssetBehavior_KnowledgeSet",
+        "AssetBehavior_KnowledgeClear",
+        "AssetBehavior_KnowledgeCheck",
+        "AssetBehavior_KnowledgeCompare"
+      ]
+    },
+    {
+      "identifier": "AssetKnowledgeSource",
+      "values": [
+        "AssetKnowledgeSource_Number",
+        "AssetKnowledgeSource_Bool",
+        "AssetKnowledgeSource_Vector",
+        "AssetKnowledgeSource_Knowledge"
+      ]
+    }
+  ],
+  "enums": [
+    {
+      "identifier": "AssetKnowledgeComparison",
+      "values": [
+        {
+          "value": 0,
+          "name": "Equal"
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "nodeType": "AssetBehavior_Success",
+      "fields": []
+    },
+    {
+      "nodeType": "AssetBehavior_Failure",
+      "fields": []
+    },
+    {
+      "nodeType": "AssetBehavior_Invert",
+      "comment": "Evaluates the child node and inverts its result.\nEvaluates to 'Success' if the child evaluated to 'Failure', otherwise to 'Failure'.",
+      "fields": [
+        {
+          "name": "child",
+          "valueType": "AssetBehavior"
+        }
+      ]
+    },
+    {
+      "nodeType": "AssetBehavior_Parallel",
+      "comment": "Evaluates all children.\nEvaluates to 'Success' if any child evaluated to 'Success', otherwise to 'Failure'.",
+      "fields": [
+        {
+          "name": "children",
+          "isArray": true,
+          "valueType": "AssetBehavior"
+        }
+      ]
+    },
+    {
+      "nodeType": "AssetBehavior_Selector",
+      "comment": "Evaluates children until a child evaluates to 'Success'.\nEvaluates to 'Success' if any child evaluated to 'Success', otherwise to 'Failure'.",
+      "fields": [
+        {
+          "name": "children",
+          "isArray": true,
+          "valueType": "AssetBehavior"
+        }
+      ]
+    },
+    {
+      "nodeType": "AssetBehavior_Sequence",
+      "comment": "Evaluates children until a child evaluates to 'Failure'.\nEvaluates to 'Success' if all children evaluated to 'Success' otherwise to 'Failure'.",
+      "fields": [
+        {
+          "name": "children",
+          "isArray": true,
+          "valueType": "AssetBehavior"
+        }
+      ]
+    },
+    {
+      "nodeType": "AssetBehavior_KnowledgeSet",
+      "comment": "Assign knowledge to the given key.\nNote: Knowledge will be added if it does not exist.\nEvaluates to 'Success'.",
+      "fields": [
+        {
+          "name": "key",
+          "valueType": "string"
+        },
+        {
+          "name": "value",
+          "valueType": "AssetKnowledgeSource"
+        }
+      ]
+    },
+    {
+      "nodeType": "AssetKnowledgeSource_Number",
+      "fields": [
+        {
+          "name": "value",
+          "valueType": "number"
+        }
+      ]
+    },
+    {
+      "nodeType": "AssetKnowledgeSource_Bool",
+      "fields": [
+        {
+          "name": "value",
+          "valueType": "boolean"
+        }
+      ]
+    },
+    {
+      "nodeType": "AssetKnowledgeSource_Vector",
+      "fields": [
+        {
+          "name": "x",
+          "valueType": "number"
+        },
+        {
+          "name": "y",
+          "valueType": "number"
+        },
+        {
+          "name": "z",
+          "valueType": "number"
+        },
+        {
+          "name": "w",
+          "valueType": "number"
+        }
+      ]
+    },
+    {
+      "nodeType": "AssetKnowledgeSource_Knowledge",
+      "fields": [
+        {
+          "name": "key",
+          "valueType": "string"
+        }
+      ]
+    },
+    {
+      "nodeType": "AssetBehavior_KnowledgeClear",
+      "comment": "Clear all the given knowledge keys.\nEvaluates to 'Success'.",
+      "fields": [
+        {
+          "name": "keys",
+          "isArray": true,
+          "valueType": "string"
+        }
+      ]
+    },
+    {
+      "nodeType": "AssetBehavior_KnowledgeCheck",
+      "comment": "Check if knowledge exists for all the given keys.\nEvaluates to 'Success'.",
+      "fields": [
+        {
+          "name": "keys",
+          "isArray": true,
+          "valueType": "string"
+        }
+      ]
+    },
+    {
+      "nodeType": "AssetBehavior_KnowledgeCompare",
+      "comment": "Compare the knowledge value at the given key to a value source.\nEvaluates to 'Success' or 'Failure'.",
+      "fields": [
+        {
+          "name": "comparison",
+          "valueType": "AssetKnowledgeComparison"
+        },
+        {
+          "name": "key",
+          "valueType": "string"
+        },
+        {
+          "name": "value",
+          "valueType": "AssetKnowledgeSource"
+        }
+      ]
+    }
+  ],
+  "rootAlias": "AssetBehavior"
+}

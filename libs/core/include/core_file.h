@@ -109,6 +109,12 @@ FileResult file_temp(Allocator*, File** file);
 void file_destroy(File*);
 
 /**
+ * Test if a file exists at the given path.
+ * NOTE: Instead of this api consider opening a handle and testing if that succeeds.
+ */
+bool file_exists(String path);
+
+/**
  * Synchronously write a string to a file.
  */
 FileResult file_write_sync(File*, String);

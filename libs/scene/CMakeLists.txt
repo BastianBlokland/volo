@@ -6,8 +6,10 @@ message(STATUS "> library: scene")
 
 add_library(lib_scene STATIC
   src/bounds.c
+  src/brain.c
   src/camera.c
   src/collision.c
+  src/controller.c
   src/faction.c
   src/health.c
   src/lifetime.c
@@ -17,6 +19,7 @@ add_library(lib_scene STATIC
   src/register.c
   src/renderable.c
   src/selection.c
+  src/sensor.c
   src/skeleton.c
   src/tag.c
   src/target.c
@@ -24,11 +27,12 @@ add_library(lib_scene STATIC
   src/transform.c
   )
 target_include_directories(lib_scene PUBLIC include)
-target_link_libraries(lib_scene PUBLIC lib_asset lib_core lib_ecs lib_geo)
+target_link_libraries(lib_scene PUBLIC lib_asset lib_core lib_ecs lib_geo lib_ai)
 target_link_libraries(lib_scene PRIVATE lib_log)
 
 add_executable(test_lib_scene
   test/config.c
+  test/test_brain.c
   test/test_nav.c
   )
 target_link_libraries(test_lib_scene PRIVATE lib_app_check lib_scene)

@@ -1,4 +1,5 @@
 #pragma once
+#include "asset_behavior.h"
 #include "asset_font.h"
 #include "asset_ftx.h"
 #include "asset_graphic.h"

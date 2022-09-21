@@ -30,13 +30,14 @@
   X(0xE9BA, Logout)                                                                                \
   X(0xE9E4, Speed)                                                                                 \
   X(0xE9FE, ViewInAr)                                                                              \
+  X(0xEA4A, Psychology)                                                                            \
   X(0xEA5F, Calculate)                                                                             \
   X(0xEF5B, Monitor)                                                                               \
   X(0xF000, Square)                                                                                \
   X(0xF001, Circle)                                                                                \
   X(0xF002, CursorVerticalBar)                                                                     \
-  X(0xF230, Default)                                                                               \
-  X(0xF016, Grid4x4)
+  X(0xF016, Grid4x4)                                                                               \
+  X(0xF230, Default)
 
 enum {
 #define X(_UNICODE_, _NAME_) UiShape_##_NAME_ = _UNICODE_,

@@ -1,0 +1,42 @@
+{
+  "$type": "AssetBehavior_Selector",
+  "children": [
+    {
+      "$type": "AssetBehavior_Sequence",
+      "children": [
+        {
+          "$type": "AssetBehavior_KnowledgeCheck",
+          "keys": [
+            "self-move-target"
+          ]
+        },
+        {
+          "$type": "AssetBehavior_KnowledgeSet",
+          "key": "cmd-nav-target",
+          "value": {
+            "$type": "AssetKnowledgeSource_Knowledge",
+            "key": "self-move-target"
+          }
+        },
+        {
+          "$type": "AssetBehavior_KnowledgeCompare",
+          "comparison": 0,
+          "key": "self-nav-arrived",
+          "value": {
+            "$type": "AssetKnowledgeSource_Knowledge",
+            "key": "self-move-target"
+          }
+        },
+        {
+          "$type": "AssetBehavior_KnowledgeClear",
+          "keys": [
+            "self-move-target"
+          ]
+        }
+      ]
+    },
+    {
+      "$type": "AssetBehavior_Success"
+    }
+  ]
+}

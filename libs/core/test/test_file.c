@@ -100,16 +100,26 @@ spec(file) {
   }
 
   it("can check if a file exists") {
-    File* nonExistingFile = null;
+    const String existingPath    = g_path_executable;
+    const String nonExistingPath = string_lit("path_to_non_existent_file_42");
+    File*        file            = null;
+
+    // Check through the 'file_exists' api.
+    check(file_exists(existingPath));
+    check(!file_exists(nonExistingPath));
+
+    // Check through making a file handle.
     check_eq_int(
-        file_create(
-            g_alloc_heap,
-            string_lit("path_to_non_existent_file_42"),
-            FileMode_Open,
-            FileAccess_Read,
-            &nonExistingFile),
+        file_create(g_alloc_heap, existingPath, FileMode_Open, FileAccess_None, &file),
+        FileResult_Success);
+    check(file != null);
+    file_destroy(file);
+    file = null;
+
+    check_eq_int(
+        file_create(g_alloc_heap, nonExistingPath, FileMode_Open, FileAccess_None, &file),
         FileResult_NotFound);
-    check(nonExistingFile == null);
+    check(file == null);
   }
 
   it("can read its own executable") {

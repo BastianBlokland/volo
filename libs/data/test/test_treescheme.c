@@ -79,6 +79,7 @@ spec(treescheme) {
     data_reg_field_t(reg, TreeNodeC, valString, data_prim_t(String));
     data_reg_field_t(reg, TreeNodeC, valEnum, t_TestEnum);
     data_reg_field_t(reg, TreeNodeC, valFloats, data_prim_t(f32), .container = DataContainer_Array);
+    data_reg_comment_t(reg, TreeNodeC, "Hello Node C");
 
     data_reg_union_t(reg, TreeNode, type);
     data_reg_choice_t(reg, TreeNode, TreeNodeType_A, data_a, t_TreeNodeA);
@@ -163,6 +164,7 @@ spec(treescheme) {
                    "    },\n"
                    "    {\n"
                    "      \"nodeType\": \"TreeNodeType_C\",\n"
+                   "      \"comment\": \"Hello Node C\",\n"
                    "      \"fields\": [\n"
                    "        {\n"
                    "          \"name\": \"valString\",\n"

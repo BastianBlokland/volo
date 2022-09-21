@@ -1,7 +1,6 @@
 #include "asset.h"
 #include "check_spec.h"
 #include "core_alloc.h"
-#include "core_annotation.h"
 #include "core_array.h"
 #include "ecs.h"
 
@@ -140,9 +139,9 @@ static const struct {
                 {
                     .name         = string_static("Jump"),
                     .bindings     = {{
-                        .type                 = AssetInputType_Pressed,
-                        .key                  = 12,
-                        .requiredModifierBits = 0b11,
+                            .type                 = AssetInputType_Pressed,
+                            .key                  = 12,
+                            .requiredModifierBits = 0b11,
                     }},
                     .bindingCount = 1,
                 },
@@ -165,9 +164,9 @@ static const struct {
                 {
                     .name         = string_static("Jump"),
                     .bindings     = {{
-                        .type                = AssetInputType_Pressed,
-                        .key                 = 12,
-                        .illegalModifierBits = 0b11,
+                            .type                = AssetInputType_Pressed,
+                            .key                 = 12,
+                            .illegalModifierBits = 0b11,
                     }},
                     .bindingCount = 1,
                 },
@@ -209,7 +208,6 @@ static const struct {
                               "    }"
                               "]}"),
     },
-
 };
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
@@ -269,7 +267,7 @@ spec(loader_inputmap) {
           check_eq_int(actualBinding->requiredModifierBits, expectedBinding->requiredModifierBits);
         }
       }
-    };
+    }
   }
 
   it("can unload inputmap assets") {
