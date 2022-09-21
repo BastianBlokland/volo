@@ -23,6 +23,9 @@ static void behavior_datareg_init() {
     // clang-format off
     const DataType behaviorType = data_declare_t(g_dataReg, AssetBehavior);
 
+    data_reg_enum_t(g_dataReg, AssetKnowledgeComparison);
+    data_reg_const_t(g_dataReg, AssetKnowledgeComparison, Equal);
+
     data_reg_struct_t(g_dataReg, AssetKnowledgeSourceNumber);
     data_reg_field_t(g_dataReg, AssetKnowledgeSourceNumber, value, data_prim_t(f64));
 
@@ -73,6 +76,12 @@ static void behavior_datareg_init() {
     data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeCheck, keys, data_prim_t(String), .container = DataContainer_Array);
     data_reg_comment_t(g_dataReg, AssetBehaviorKnowledgeCheck, "Check if knowledge exists for all the given keys.\nEvaluates to 'Success'.");
 
+    data_reg_struct_t(g_dataReg, AssetBehaviorKnowledgeCompare);
+    data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeCompare, comparison, t_AssetKnowledgeComparison);
+    data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeCompare, key, data_prim_t(String));
+    data_reg_field_t(g_dataReg, AssetBehaviorKnowledgeCompare, value, t_AssetKnowledgeSource);
+    data_reg_comment_t(g_dataReg, AssetBehaviorKnowledgeCompare, "Compare the knowledge value at the given key to a value source.\nEvaluates to 'Success' or 'Failure'.");
+
     data_reg_union_t(g_dataReg, AssetBehavior, type);
     data_reg_choice_empty(g_dataReg, AssetBehavior, AssetBehavior_Success);
     data_reg_choice_empty(g_dataReg, AssetBehavior, AssetBehavior_Failure);
@@ -83,6 +92,7 @@ static void behavior_datareg_init() {
     data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehavior_KnowledgeSet, data_knowledgeset, t_AssetBehaviorKnowledgeSet);
     data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehavior_KnowledgeClear, data_knowledgeclear, t_AssetBehaviorKnowledgeClear);
     data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehavior_KnowledgeCheck, data_knowledgecheck, t_AssetBehaviorKnowledgeCheck);
+    data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehavior_KnowledgeCompare, data_knowledgecompare, t_AssetBehaviorKnowledgeCompare);
     // clang-format on
 
     g_dataBehaviorMeta = data_meta_t(behaviorType);

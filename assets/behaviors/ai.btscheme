@@ -11,7 +11,8 @@
         "AssetBehavior_Sequence",
         "AssetBehavior_KnowledgeSet",
         "AssetBehavior_KnowledgeClear",
-        "AssetBehavior_KnowledgeCheck"
+        "AssetBehavior_KnowledgeCheck",
+        "AssetBehavior_KnowledgeCompare"
       ]
     },
     {
@@ -24,7 +25,17 @@
       ]
     }
   ],
-  "enums": [],
+  "enums": [
+    {
+      "identifier": "AssetKnowledgeComparison",
+      "values": [
+        {
+          "value": 0,
+          "name": "Equal"
+        }
+      ]
+    }
+  ],
   "nodes": [
     {
       "nodeType": "AssetBehavior_Success",
@@ -158,6 +169,24 @@
           "name": "keys",
           "isArray": true,
           "valueType": "string"
+        }
+      ]
+    },
+    {
+      "nodeType": "AssetBehavior_KnowledgeCompare",
+      "comment": "Compare the knowledge value at the given key to a value source.\nEvaluates to 'Success' or 'Failure'.",
+      "fields": [
+        {
+          "name": "comparison",
+          "valueType": "AssetKnowledgeComparison"
+        },
+        {
+          "name": "key",
+          "valueType": "string"
+        },
+        {
+          "name": "value",
+          "valueType": "AssetKnowledgeSource"
         }
       ]
     }

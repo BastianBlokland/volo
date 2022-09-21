@@ -29,9 +29,14 @@ typedef enum {
   AssetBehavior_KnowledgeSet,
   AssetBehavior_KnowledgeClear,
   AssetBehavior_KnowledgeCheck,
+  AssetBehavior_KnowledgeCompare,
 
   AssetBehavior_Count,
 } AssetBehaviorType;
+
+typedef enum {
+  AssetKnowledgeComparison_Equal,
+} AssetKnowledgeComparison;
 
 typedef enum {
   AssetKnowledgeSource_Number,
@@ -95,16 +100,23 @@ typedef struct {
   AssetKnowledgeList keys;
 } AssetBehaviorKnowledgeCheck;
 
+typedef struct {
+  AssetKnowledgeComparison comparison;
+  String                   key;
+  AssetKnowledgeSource     value;
+} AssetBehaviorKnowledgeCompare;
+
 typedef struct sAssetBehavior {
   AssetBehaviorType type;
   union {
-    AssetBehaviorInvert         data_invert;
-    AssetBehaviorParallel       data_parallel;
-    AssetBehaviorSelector       data_selector;
-    AssetBehaviorSequence       data_sequence;
-    AssetBehaviorKnowledgeSet   data_knowledgeset;
-    AssetBehaviorKnowledgeClear data_knowledgeclear;
-    AssetBehaviorKnowledgeCheck data_knowledgecheck;
+    AssetBehaviorInvert           data_invert;
+    AssetBehaviorParallel         data_parallel;
+    AssetBehaviorSelector         data_selector;
+    AssetBehaviorSequence         data_sequence;
+    AssetBehaviorKnowledgeSet     data_knowledgeset;
+    AssetBehaviorKnowledgeClear   data_knowledgeclear;
+    AssetBehaviorKnowledgeCheck   data_knowledgecheck;
+    AssetBehaviorKnowledgeCompare data_knowledgecompare;
   };
 } AssetBehavior;
 

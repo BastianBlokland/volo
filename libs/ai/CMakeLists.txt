@@ -11,6 +11,7 @@ add_library(lib_ai STATIC
   src/node/invert.c
   src/node/knowledgecheck.c
   src/node/knowledgeclear.c
+  src/node/knowledgecompare.c
   src/node/knowledgeset.c
   src/node/parallel.c
   src/node/selector.c
@@ -28,6 +29,7 @@ add_executable(test_lib_ai
   test/test_node_invert.c
   test/test_node_knowledgecheck.c
   test/test_node_knowledgeclear.c
+  test/test_node_knowledgecompare.c
   test/test_node_knowledgeset.c
   test/test_node_parallel.c
   test/test_node_selector.c
