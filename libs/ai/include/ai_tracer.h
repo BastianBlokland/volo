@@ -29,4 +29,4 @@ typedef struct {
   u32      count;
 } AiTracerCount;
 
-AiTracerCount ai_tracer_count_create();
+AiTracerCount ai_tracer_count();

@@ -19,7 +19,7 @@ ai_tracer_count_end(AiTracer* tracer, const AssetBehavior* behavior, const AiRes
   ++((AiTracerCount*)tracer)->count;
 }
 
-AiTracerCount ai_tracer_count_create() {
+AiTracerCount ai_tracer_count() {
   return (AiTracerCount){
       .api =
           {
