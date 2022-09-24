@@ -1,5 +1,6 @@
 #pragma once
 #include "ai_result.h"
+#include "core_types.h"
 
 // Forward declare from 'asset_behavior.h'.
 typedef struct sAssetBehavior AssetBehavior;
@@ -17,3 +18,15 @@ typedef struct sAiTracer {
  * Destroy a tracer instance.
  */
 void ai_tracer_destroy(AiTracer*);
+
+/**
+ * Simple tracer that counts the amount of node evaluations.
+ * NOTE: Returned by value, doesn't need to be destroyed.
+ */
+
+typedef struct {
+  AiTracer api;
+  u32      count;
+} AiTracerCount;
+
+AiTracerCount ai_tracer_count_create();
