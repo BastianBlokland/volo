@@ -30,9 +30,12 @@ static const AiNodeEval g_node_eval_funcs[] = {
 ASSERT(array_elems(g_node_eval_funcs) == AssetBehavior_Count, "Missing node eval function");
 
 AiResult ai_eval(const AssetBehavior* behavior, AiBlackboard* bb, AiTracer* tracer) {
+  if (tracer) {
+    tracer->begin(tracer, behavior);
+  }
   const AiResult result = g_node_eval_funcs[behavior->type](behavior, bb, tracer);
   if (tracer) {
-    tracer->traceEval(tracer, behavior, result);
+    tracer->end(tracer, behavior, result);
   }
   return result;
 }
