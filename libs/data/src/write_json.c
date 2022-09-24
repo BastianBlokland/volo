@@ -78,6 +78,11 @@ static JsonVal data_write_json_union(const WriteCtx* ctx) {
   const JsonVal typeStr = json_add_string(ctx->doc, choice->id.name);
   json_add_field_lit(ctx->doc, jsonObj, "$type", typeStr);
 
+  const String* name = data_union_name(&decl->val_union, ctx->data);
+  if (name) {
+    json_add_field_lit(ctx->doc, jsonObj, "$name", json_add_string(ctx->doc, *name));
+  }
+
   const bool emptyChoice = choice->meta.type == 0;
   if (!emptyChoice) {
     const WriteCtx choiceCtx = {

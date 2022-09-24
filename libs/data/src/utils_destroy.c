@@ -38,6 +38,11 @@ static void data_destroy_union(const DestroyCtx* ctx) {
   const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
   const i32       tag  = *data_union_tag(&decl->val_union, ctx->data);
 
+  const String* name = data_union_name(&decl->val_union, ctx->data);
+  if (name) {
+    string_maybe_free(ctx->alloc, *name);
+  }
+
   const DataDeclChoice* choice = data_choice_from_tag(&decl->val_union, tag);
   diag_assert(choice);
 

@@ -3,6 +3,7 @@
   "children": [
     {
       "$type": "AssetBehavior_Sequence",
+      "$name": "Move to user target",
       "children": [
         {
           "$type": "AssetBehavior_KnowledgeCheck",
@@ -12,6 +13,7 @@
         },
         {
           "$type": "AssetBehavior_KnowledgeSet",
+          "$name": "Start navigating to user target",
           "key": "cmd-nav-target",
           "value": {
             "$type": "AssetKnowledgeSource_Knowledge",
@@ -20,6 +22,7 @@
         },
         {
           "$type": "AssetBehavior_KnowledgeCompare",
+          "$name": "Check if we arrived at the user target",
           "comparison": 0,
           "key": "self-nav-arrived",
           "value": {
@@ -36,7 +39,8 @@
       ]
     },
     {
-      "$type": "AssetBehavior_Success"
+      "$type": "AssetBehavior_Success",
+      "$name": "Idle"
     }
   ]
 }

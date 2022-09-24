@@ -17,9 +17,23 @@ static const struct {
         .type = AssetBehavior_Success,
     },
     {
+        .id   = string_static("success-with-name.bt"),
+        .text = string_static("{ \"$type\": \"AssetBehavior_Success\", \"$name\": \"Hello\" }"),
+        .type = AssetBehavior_Success,
+    },
+    {
         .id   = string_static("invert.bt"),
         .text = string_static("{\n"
                               "\"$type\": \"AssetBehavior_Invert\",\n"
+                              "\"child\": { \"$type\": \"AssetBehavior_Failure\" }\n"
+                              "}"),
+        .type = AssetBehavior_Invert,
+    },
+    {
+        .id   = string_static("invert-with-name.bt"),
+        .text = string_static("{\n"
+                              "\"$type\": \"AssetBehavior_Invert\",\n"
+                              "\"$name\": \"Hello\",\n"
                               "\"child\": { \"$type\": \"AssetBehavior_Failure\" }\n"
                               "}"),
         .type = AssetBehavior_Invert,

@@ -108,6 +108,14 @@ void data_reg_field(DataReg*, DataType parent, String name, usize offset, DataMe
 DataType data_reg_union(DataReg*, String name, usize size, usize align, usize tagOffset);
 
 /**
+ * Register a name field for the given union type.
+ */
+#define data_reg_union_name_t(_REG_, _PARENT_, _NAME_FIELD_)                                       \
+  data_reg_union_name((_REG_), t_##_PARENT_, offsetof(_PARENT_, _NAME_FIELD_))
+
+void data_reg_union_name(DataReg*, DataType, usize nameOffset);
+
+/**
  * Register a new choice for a Union,
  */
 #define data_reg_choice_t(_REG_, _PARENT_, _TAG_, _FIELD_, _DATA_TYPE_, ...)                       \

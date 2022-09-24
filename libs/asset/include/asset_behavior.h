@@ -108,6 +108,7 @@ typedef struct {
 
 typedef struct sAssetBehavior {
   AssetBehaviorType type;
+  String            name;
   union {
     AssetBehaviorInvert           data_invert;
     AssetBehaviorParallel         data_parallel;

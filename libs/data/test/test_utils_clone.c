@@ -228,5 +228,42 @@ spec(utils_clone) {
     }
   }
 
+  it("can clone a union with a name") {
+    typedef enum {
+      CloneUnionTag_Int,
+      CloneUnionTag_Float,
+    } CloneUnionTag;
+
+    typedef struct {
+      CloneUnionTag tag;
+      String        name;
+      union {
+        i32 data_int;
+        f32 data_float;
+      };
+    } CloneUnionA;
+
+    data_reg_union_t(reg, CloneUnionA, tag);
+    data_reg_union_name_t(reg, CloneUnionA, name);
+    data_reg_choice_t(reg, CloneUnionA, CloneUnionTag_Int, data_int, data_prim_t(i32));
+    data_reg_choice_t(reg, CloneUnionA, CloneUnionTag_Float, data_float, data_prim_t(f32));
+
+    const CloneUnionA original = {
+        .tag      = CloneUnionTag_Int,
+        .name     = string_dup(g_alloc_heap, string_lit("Hello")),
+        .data_int = 42,
+    };
+    CloneUnionA clone = {0};
+
+    data_clone(reg, g_alloc_heap, data_meta_t(t_CloneUnionA), mem_var(original), mem_var(clone));
+
+    check_eq_string(clone.name, original.name);
+    check_eq_int(clone.tag, original.tag);
+    check_eq_int(clone.data_int, 42);
+
+    data_destroy(reg, g_alloc_heap, data_meta_t(t_CloneUnionA), mem_var(original));
+    data_destroy(reg, g_alloc_heap, data_meta_t(t_CloneUnionA), mem_var(clone));
+  }
+
   teardown() { data_reg_destroy(reg); }
 }
