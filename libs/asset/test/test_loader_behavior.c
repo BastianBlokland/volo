@@ -25,7 +25,6 @@ static const struct {
         .id   = string_static("invert.bt"),
         .text = string_static("{\n"
                               "\"$type\": \"AssetBehavior_Invert\",\n"
-                              "\"$name\": \"Hello\","
                               "\"child\": { \"$type\": \"AssetBehavior_Failure\" }\n"
                               "}"),
         .type = AssetBehavior_Invert,
@@ -34,6 +33,7 @@ static const struct {
         .id   = string_static("invert-with-name.bt"),
         .text = string_static("{\n"
                               "\"$type\": \"AssetBehavior_Invert\",\n"
+                              "\"$name\": \"Hello\",\n"
                               "\"child\": { \"$type\": \"AssetBehavior_Failure\" }\n"
                               "}"),
         .type = AssetBehavior_Invert,

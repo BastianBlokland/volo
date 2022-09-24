@@ -83,6 +83,7 @@ static void behavior_datareg_init() {
     data_reg_comment_t(g_dataReg, AssetBehaviorKnowledgeCompare, "Compare the knowledge value at the given key to a value source.\nEvaluates to 'Success' or 'Failure'.");
 
     data_reg_union_t(g_dataReg, AssetBehavior, type);
+    data_reg_union_name_t(g_dataReg, AssetBehavior, name);
     data_reg_choice_empty(g_dataReg, AssetBehavior, AssetBehavior_Success);
     data_reg_choice_empty(g_dataReg, AssetBehavior, AssetBehavior_Failure);
     data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehavior_Invert, data_invert, t_AssetBehaviorInvert);
