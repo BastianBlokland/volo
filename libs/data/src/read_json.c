@@ -306,7 +306,7 @@ static void data_read_json_union(const ReadCtx* ctx, DataReadResult* res) {
           .meta        = choice->meta,
           .data        = data_choice_mem(ctx->reg, choice, ctx->data),
       };
-      const u32 fieldsRead = 1;
+      const u32 fieldsRead = sentinel_check(nameVal) ? 1 : 2;
       data_read_json_struct(&choiceCtx, res, fieldsRead);
     } break;
     default: {
