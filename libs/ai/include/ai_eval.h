@@ -1,4 +1,5 @@
 #pragma once
+#include "ai_result.h"
 
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;
@@ -8,11 +9,6 @@ typedef struct sAiBlackboard AiBlackboard;
 
 // Forward declare from 'asset_behavior.h'.
 typedef struct sAssetBehavior AssetBehavior;
-
-typedef enum {
-  AiResult_Success,
-  AiResult_Failure,
-} AiResult;
 
 /**
  * Evaluate the behavior against the given blackboard.
