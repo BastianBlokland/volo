@@ -230,6 +230,8 @@ void data_treescheme_write(const DataReg* reg, DynString* str, const DataType ro
   json_add_field_lit(
       doc, schemeObj, "rootAlias", json_add_string(doc, data_decl(reg, rootType)->id.name));
 
+  json_add_field_lit(doc, schemeObj, "featureNodeNames", json_add_bool(doc, true));
+
   json_write(str, doc, schemeObj, &json_write_opts());
   json_destroy(doc);
 }

@@ -186,7 +186,8 @@ spec(treescheme) {
                    "      \"fields\": []\n"
                    "    }\n"
                    "  ],\n"
-                   "  \"rootAlias\": \"TreeNode\"\n"
+                   "  \"rootAlias\": \"TreeNode\",\n"
+                   "  \"featureNodeNames\": true\n"
                    "}"));
   }
 
