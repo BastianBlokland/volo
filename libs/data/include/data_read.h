@@ -15,6 +15,8 @@ typedef enum {
   DataReadError_UnionDataMissing,
   DataReadError_UnionDataInvalid,
   DataReadError_UnionUnknownField,
+  DataReadError_UnionInvalidName,
+  DataReadError_UnionNameNotSupported,
   DataReadError_NumberOutOfBounds,
   DataReadError_ZeroIsInvalid,
   DataReadError_EmptyStringIsInvalid,

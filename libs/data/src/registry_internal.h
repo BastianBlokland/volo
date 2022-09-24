@@ -26,7 +26,8 @@ typedef struct {
 
 typedef struct {
   usize    tagOffset;
-  DynArray choices; // DataDeclChoice[]
+  usize    nameOffset; // (Optional) Set if the union has a name field, otherwise sentinel_usize.
+  DynArray choices;    // DataDeclChoice[]
 } DataDeclUnion;
 
 typedef struct {
@@ -74,6 +75,12 @@ Mem data_field_mem(const DataReg*, const DataDeclField*, Mem structMem);
  * Create a pointer to the tag value of the given union.
  */
 i32* data_union_tag(const DataDeclUnion*, Mem unionMem);
+
+/**
+ * Create a pointer to the union name.
+ * NOTE: Returns null if the union has no name.
+ */
+String* data_union_name(const DataDeclUnion*, Mem unionMem);
 
 /**
  * Find a choice with the given tag.

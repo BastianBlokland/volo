@@ -493,6 +493,104 @@ spec(read_json) {
                    "}"),
         meta,
         DataReadError_UnknownField);
+    test_read_fail(
+        _testCtx,
+        reg,
+        string_lit("{\n"
+                   "  \"$type\": \"ReadJsonUnionTag_A\",\n"
+                   "  \"$name\": \"Hello World\",\n"
+                   "  \"valA\": -42,\n"
+                   "  \"valB\": \"Hello World\",\n"
+                   "  \"valC\": 42.42\n"
+                   "}"),
+        meta,
+        DataReadError_UnionNameNotSupported);
+  }
+
+  it("can read a union with a name") {
+    typedef enum {
+      ReadJsonUnionTag_Int,
+      ReadJsonUnionTag_Float,
+    } ReadJsonUnionTag;
+
+    typedef struct {
+      ReadJsonUnionTag tag;
+      String           name;
+      union {
+        i32 data_int;
+        f32 data_float;
+      };
+    } ReadJsonUnion;
+
+    data_reg_union_t(reg, ReadJsonUnion, tag);
+    data_reg_union_name_t(reg, ReadJsonUnion, name);
+    data_reg_choice_t(reg, ReadJsonUnion, ReadJsonUnionTag_Int, data_int, data_prim_t(i32));
+    data_reg_choice_t(reg, ReadJsonUnion, ReadJsonUnionTag_Float, data_float, data_prim_t(f32));
+
+    const DataMeta meta = data_meta_t(t_ReadJsonUnion);
+
+    {
+      ReadJsonUnion val;
+      test_read_success(
+          _testCtx,
+          reg,
+          string_lit("{\n"
+                     "  \"$type\": \"ReadJsonUnionTag_Int\",\n"
+                     "  \"$data\": 42\n"
+                     "}"),
+          meta,
+          mem_var(val));
+
+      check_eq_int(val.tag, ReadJsonUnionTag_Int);
+      check_eq_string(val.name, string_empty);
+      check_eq_int(val.data_int, 42);
+    }
+    {
+      ReadJsonUnion val;
+      test_read_success(
+          _testCtx,
+          reg,
+          string_lit("{\n"
+                     "  \"$type\": \"ReadJsonUnionTag_Int\",\n"
+                     "  \"$name\": \"\",\n"
+                     "  \"$data\": 42\n"
+                     "}"),
+          meta,
+          mem_var(val));
+
+      check_eq_int(val.tag, ReadJsonUnionTag_Int);
+      check_eq_string(val.name, string_empty);
+      check_eq_int(val.data_int, 42);
+    }
+    {
+      ReadJsonUnion val;
+      test_read_success(
+          _testCtx,
+          reg,
+          string_lit("{\n"
+                     "  \"$type\": \"ReadJsonUnionTag_Int\",\n"
+                     "  \"$name\": \"Hello World\",\n"
+                     "  \"$data\": 42\n"
+                     "}"),
+          meta,
+          mem_var(val));
+
+      check_eq_int(val.tag, ReadJsonUnionTag_Int);
+      check_eq_string(val.name, string_lit("Hello World"));
+      check_eq_int(val.data_int, 42);
+      string_free(g_alloc_heap, val.name);
+    }
+
+    test_read_fail(
+        _testCtx,
+        reg,
+        string_lit("{\n"
+                   "  \"$type\": \"ReadJsonUnionTag_Int\",\n"
+                   "  \"$name\": 42,\n"
+                   "  \"$data\": 42\n"
+                   "}"),
+        meta,
+        DataReadError_UnionInvalidName);
   }
 
   teardown() { data_reg_destroy(reg); }

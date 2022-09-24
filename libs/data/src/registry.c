@@ -176,10 +176,20 @@ DataType data_reg_union(
   decl->size      = size;
   decl->align     = align;
   decl->val_union = (DataDeclUnion){
-      .tagOffset = tagOffset,
-      .choices   = dynarray_create_t(reg->alloc, DataDeclChoice, 8),
+      .tagOffset  = tagOffset,
+      .nameOffset = sentinel_usize,
+      .choices    = dynarray_create_t(reg->alloc, DataDeclChoice, 8),
   };
   return type;
+}
+
+void data_reg_union_name(DataReg* reg, const DataType parent, usize nameOffset) {
+  diag_assert(!sentinel_check(nameOffset));
+
+  DataDecl* parentDecl = data_decl_mutable(reg, parent);
+  diag_assert_msg(parentDecl->kind == DataKind_Union, "Union name parent has to be a Union");
+
+  parentDecl->val_union.nameOffset = nameOffset;
 }
 
 void data_reg_choice(
@@ -250,6 +260,12 @@ Mem data_field_mem(const DataReg* reg, const DataDeclField* field, Mem structMem
 
 i32* data_union_tag(const DataDeclUnion* decl, const Mem unionMem) {
   return (i32*)bits_ptr_offset(unionMem.ptr, decl->tagOffset);
+}
+
+String* data_union_name(const DataDeclUnion* decl, const Mem unionMem) {
+  return sentinel_check(decl->nameOffset)
+             ? null
+             : (String*)bits_ptr_offset(unionMem.ptr, decl->nameOffset);
 }
 
 const DataDeclChoice* data_choice_from_tag(const DataDeclUnion* unionDecl, const i32 tag) {

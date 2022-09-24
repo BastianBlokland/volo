@@ -92,9 +92,9 @@ spec(utils_destroy) {
 
     DestroyStructB* ptr = alloc_alloc_t(g_alloc_heap, DestroyStructB);
     *ptr                = (DestroyStructB){
-        .a = string_dup(g_alloc_heap, string_lit("Some")),
-        .b = string_dup(g_alloc_heap, string_lit("New")),
-        .c = string_dup(g_alloc_heap, string_lit("Values")),
+                       .a = string_dup(g_alloc_heap, string_lit("Some")),
+                       .b = string_dup(g_alloc_heap, string_lit("New")),
+                       .c = string_dup(g_alloc_heap, string_lit("Values")),
     };
 
     const usize     arrayCount  = 4;
@@ -161,6 +161,35 @@ spec(utils_destroy) {
       };
       data_destroy(reg, g_alloc_heap, data_meta_t(t_CloneUnionA), mem_var(val));
     }
+  }
+
+  it("can destroy a union with a name") {
+    typedef enum {
+      CloneUnionTag_Int,
+      CloneUnionTag_Float,
+    } CloneUnionTag;
+
+    typedef struct {
+      CloneUnionTag tag;
+      String        name;
+      union {
+        i32    data_int;
+        f32    data_float;
+        String data_string;
+      };
+    } CloneUnionA;
+
+    data_reg_union_t(reg, CloneUnionA, tag);
+    data_reg_union_name_t(reg, CloneUnionA, name);
+    data_reg_choice_t(reg, CloneUnionA, CloneUnionTag_Int, data_int, data_prim_t(i32));
+    data_reg_choice_t(reg, CloneUnionA, CloneUnionTag_Float, data_float, data_prim_t(f32));
+
+    const CloneUnionA val = {
+        .tag      = CloneUnionTag_Int,
+        .name     = string_dup(g_alloc_heap, string_lit("Hello World")),
+        .data_int = 42,
+    };
+    data_destroy(reg, g_alloc_heap, data_meta_t(t_CloneUnionA), mem_var(val));
   }
 
   teardown() { data_reg_destroy(reg); }

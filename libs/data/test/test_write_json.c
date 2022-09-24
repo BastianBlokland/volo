@@ -279,5 +279,42 @@ spec(write_json) {
     }
   }
 
+  it("can write a union with a name") {
+    typedef enum {
+      WriteJsonUnionTag_Int,
+      WriteJsonUnionTag_Float,
+    } WriteJsonUnionTag;
+
+    typedef struct {
+      WriteJsonUnionTag tag;
+      String            name;
+      union {
+        i32 data_int;
+        f32 data_float;
+      };
+    } WriteJsonUnion;
+
+    data_reg_union_t(reg, WriteJsonUnion, tag);
+    data_reg_union_name_t(reg, WriteJsonUnion, name);
+    data_reg_choice_t(reg, WriteJsonUnion, WriteJsonUnionTag_Int, data_int, data_prim_t(i32));
+    data_reg_choice_t(reg, WriteJsonUnion, WriteJsonUnionTag_Float, data_float, data_prim_t(f32));
+
+    const WriteJsonUnion val = {
+        .tag      = WriteJsonUnionTag_Int,
+        .name     = string_lit("Hello World"),
+        .data_int = 42,
+    };
+    test_write(
+        _testCtx,
+        reg,
+        data_meta_t(t_WriteJsonUnion),
+        mem_var(val),
+        string_lit("{\n"
+                   "  \"$type\": \"WriteJsonUnionTag_Int\",\n"
+                   "  \"$name\": \"Hello World\",\n"
+                   "  \"$data\": 42\n"
+                   "}"));
+  }
+
   teardown() { data_reg_destroy(reg); }
 }

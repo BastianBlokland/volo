@@ -51,6 +51,15 @@ static void data_clone_union(const CloneCtx* ctx) {
 
   *data_union_tag(&decl->val_union, ctx->clone) = tag;
 
+  const String* name = data_union_name(&decl->val_union, ctx->original);
+  if (name) {
+    if (string_is_empty(*name)) {
+      *data_union_name(&decl->val_union, ctx->clone) = string_empty;
+    } else {
+      *data_union_name(&decl->val_union, ctx->clone) = string_dup(ctx->alloc, *name);
+    }
+  }
+
   const DataDeclChoice* choice = data_choice_from_tag(&decl->val_union, tag);
   diag_assert(choice);
 

@@ -271,6 +271,25 @@ static void data_read_json_union(const ReadCtx* ctx, DataReadResult* res) {
 
   *data_union_tag(&decl->val_union, ctx->data) = choice->tag;
 
+  const JsonVal nameVal = json_field(ctx->doc, ctx->val, string_lit("$name"));
+  if (!sentinel_check(nameVal)) {
+    if (UNLIKELY(json_type(ctx->doc, nameVal) != JsonType_String)) {
+      *res = result_fail(DataReadError_UnionInvalidName, "'$name' field has to be a string");
+      return;
+    }
+    String* unionNamePtr = data_union_name(&decl->val_union, ctx->data);
+    if (UNLIKELY(!unionNamePtr)) {
+      *res = result_fail(DataReadError_UnionNameNotSupported, "'$name' field unsupported");
+      return;
+    }
+    const String jsonName = json_string(ctx->doc, nameVal);
+    if (!string_is_empty(jsonName)) {
+      const String name = string_dup(ctx->alloc, jsonName);
+      data_register_alloc(ctx, name);
+      *unionNamePtr = name;
+    }
+  }
+
   const bool emptyChoice = choice->meta.type == 0;
   if (!emptyChoice) {
     switch (data_decl(ctx->reg, choice->meta.type)->kind) {
@@ -314,7 +333,8 @@ static void data_read_json_union(const ReadCtx* ctx, DataReadResult* res) {
             fmt_text(res->errorMsg));
         return;
       }
-      if (UNLIKELY(json_field_count(ctx->doc, ctx->val) != 2)) {
+      const u32 expectedFieldCount = sentinel_check(nameVal) ? 2 : 3;
+      if (UNLIKELY(json_field_count(ctx->doc, ctx->val) != expectedFieldCount)) {
         *res = result_fail(DataReadError_UnionUnknownField, "Unknown field in union");
         return;
       }
