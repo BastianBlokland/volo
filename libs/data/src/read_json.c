@@ -164,10 +164,14 @@ static void data_read_json_string(const ReadCtx* ctx, DataReadResult* res) {
     return;
   }
 
-  const String str = string_is_empty(jsonStr) ? string_empty : string_dup(ctx->alloc, jsonStr);
-  data_register_alloc(ctx, str);
-  *mem_as_t(ctx->data, String) = str;
-  *res                         = result_success();
+  if (string_is_empty(jsonStr)) {
+    *mem_as_t(ctx->data, String) = string_empty;
+  } else {
+    const String str = string_dup(ctx->alloc, jsonStr);
+    data_register_alloc(ctx, str);
+    *mem_as_t(ctx->data, String) = str;
+  }
+  *res = result_success();
 }
 
 static void data_read_json_struct(const ReadCtx* ctx, DataReadResult* res, u32 fieldsRead) {
