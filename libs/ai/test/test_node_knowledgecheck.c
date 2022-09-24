@@ -14,7 +14,7 @@ spec(node_knowledgecheck) {
         .type                = AssetBehavior_KnowledgeCheck,
         .data_knowledgecheck = {.keys = {0}},
     };
-    check(ai_eval(&behavior, bb) == AiResult_Success);
+    check(ai_eval(&behavior, bb, null) == AiResult_Success);
   }
 
   it("evaluates to failure when knowledge for any key does not exist") {
@@ -28,7 +28,7 @@ spec(node_knowledgecheck) {
         .type                = AssetBehavior_KnowledgeCheck,
         .data_knowledgecheck = {.keys = {.values = keysToCheck, array_elems(keysToCheck)}},
     };
-    check(ai_eval(&behavior, bb) == AiResult_Failure);
+    check(ai_eval(&behavior, bb, null) == AiResult_Failure);
   }
 
   it("evaluates to success when knowledge for all the keys exists") {
@@ -43,7 +43,7 @@ spec(node_knowledgecheck) {
         .type                = AssetBehavior_KnowledgeCheck,
         .data_knowledgecheck = {.keys = {.values = keysToCheck, array_elems(keysToCheck)}},
     };
-    check(ai_eval(&behavior, bb) == AiResult_Success);
+    check(ai_eval(&behavior, bb, null) == AiResult_Success);
   }
 
   teardown() { ai_blackboard_destroy(bb); }

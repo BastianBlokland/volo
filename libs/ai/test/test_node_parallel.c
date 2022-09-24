@@ -14,7 +14,7 @@ spec(node_parallel) {
         .type          = AssetBehavior_Parallel,
         .data_parallel = {.children = {0}},
     };
-    check(ai_eval(&behavior, bb) == AiResult_Failure);
+    check(ai_eval(&behavior, bb, null) == AiResult_Failure);
   }
 
   it("evaluates to success when any child evaluates to success") {
@@ -27,7 +27,7 @@ spec(node_parallel) {
         .type          = AssetBehavior_Parallel,
         .data_parallel = {.children = {.values = children, array_elems(children)}},
     };
-    check(ai_eval(&behavior, bb) == AiResult_Success);
+    check(ai_eval(&behavior, bb, null) == AiResult_Success);
   }
 
   it("evaluates to failure when all children evaluate to failure") {
@@ -40,7 +40,7 @@ spec(node_parallel) {
         .type          = AssetBehavior_Parallel,
         .data_parallel = {.children = {.values = children, array_elems(children)}},
     };
-    check(ai_eval(&behavior, bb) == AiResult_Failure);
+    check(ai_eval(&behavior, bb, null) == AiResult_Failure);
   }
 
   it("evaluates all the child nodes") {
@@ -74,7 +74,7 @@ spec(node_parallel) {
         .type          = AssetBehavior_Parallel,
         .data_parallel = {.children = {.values = children, array_elems(children)}},
     };
-    check(ai_eval(&behavior, bb) == AiResult_Success);
+    check(ai_eval(&behavior, bb, null) == AiResult_Success);
     check_eq_float(ai_blackboard_get_f64(bb, string_hash_lit("test1")), 1, 1e-6f);
     check_eq_float(ai_blackboard_get_f64(bb, string_hash_lit("test2")), 2, 1e-6f);
     check_eq_float(ai_blackboard_get_f64(bb, string_hash_lit("test3")), 3, 1e-6f);

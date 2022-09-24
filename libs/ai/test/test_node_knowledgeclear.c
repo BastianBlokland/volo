@@ -14,7 +14,7 @@ spec(node_knowledgeclear) {
         .type                = AssetBehavior_KnowledgeClear,
         .data_knowledgeclear = {.keys = {0}},
     };
-    check(ai_eval(&behavior, bb) == AiResult_Success);
+    check(ai_eval(&behavior, bb, null) == AiResult_Success);
   }
 
   it("unset's knowledge when evaluated") {
@@ -30,7 +30,7 @@ spec(node_knowledgeclear) {
         .type                = AssetBehavior_KnowledgeClear,
         .data_knowledgeclear = {.keys = {.values = keysToClear, array_elems(keysToClear)}},
     };
-    check(ai_eval(&behavior, bb) == AiResult_Success);
+    check(ai_eval(&behavior, bb, null) == AiResult_Success);
     check_eq_float(ai_blackboard_get_f64(bb, string_hash_lit("test")), 0, 1e-6f);
   }
 

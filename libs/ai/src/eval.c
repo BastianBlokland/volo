@@ -1,4 +1,5 @@
 #include "ai_eval.h"
+#include "ai_tracer.h"
 #include "asset_behavior.h"
 #include "core_array.h"
 
@@ -14,9 +15,10 @@
   X(AssetBehavior_Sequence, ai_node_sequence_eval)                                                 \
   X(AssetBehavior_Success, ai_node_success_eval)
 
-typedef AiResult (*AiNodeEval)(const AssetBehavior*, AiBlackboard*);
+typedef AiResult (*AiNodeEval)(const AssetBehavior*, AiBlackboard*, AiTracer*);
 
-#define X(_ASSET_, _FUNC_EVAL_) AiResult _FUNC_EVAL_(const AssetBehavior*, AiBlackboard*);
+#define X(_ASSET_, _FUNC_EVAL_)                                                                    \
+  AiResult _FUNC_EVAL_(const AssetBehavior*, AiBlackboard*, AiTracer*);
 AI_NODES
 #undef X
 
@@ -27,6 +29,10 @@ static const AiNodeEval g_node_eval_funcs[] = {
 };
 ASSERT(array_elems(g_node_eval_funcs) == AssetBehavior_Count, "Missing node eval function");
 
-AiResult ai_eval(const AssetBehavior* behavior, AiBlackboard* bb) {
-  return g_node_eval_funcs[behavior->type](behavior, bb);
+AiResult ai_eval(const AssetBehavior* behavior, AiBlackboard* bb, AiTracer* tracer) {
+  const AiResult result = g_node_eval_funcs[behavior->type](behavior, bb, tracer);
+  if (tracer) {
+    tracer->traceEval(tracer, behavior, result);
+  }
+  return result;
 }

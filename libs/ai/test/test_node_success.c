@@ -10,7 +10,7 @@ spec(node_success) {
 
   it("evaluates to success") {
     const AssetBehavior behavior = {.type = AssetBehavior_Success};
-    check(ai_eval(&behavior, bb) == AiResult_Success);
+    check(ai_eval(&behavior, bb, null) == AiResult_Success);
   }
 
   teardown() { ai_blackboard_destroy(bb); }

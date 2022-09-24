@@ -76,7 +76,7 @@ ecs_system_define(SceneBehaviorUnloadChangedSys) {
 static void scene_brain_eval(
     const EcsEntityId entity, const SceneBrainComp* brain, const AssetBehaviorComp* behavior) {
 
-  const AiResult res = ai_eval(&behavior->root, brain->blackboard);
+  const AiResult res = ai_eval(&behavior->root, brain->blackboard, null);
   if (res != AiResult_Success) {
     log_w(
         "Brain behavior evaluated to 'failure'", log_param("entity", fmt_int(entity, .base = 16)));

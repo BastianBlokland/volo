@@ -4,8 +4,10 @@
 #include "core_array.h"
 #include "core_diag.h"
 
-AiResult ai_node_knowledgecheck_eval(const AssetBehavior* behavior, AiBlackboard* bb) {
+AiResult
+ai_node_knowledgecheck_eval(const AssetBehavior* behavior, AiBlackboard* bb, AiTracer* tracer) {
   diag_assert(behavior->type == AssetBehavior_KnowledgeCheck);
+  (void)tracer;
 
   bool allExist = true;
   array_ptr_for_t(behavior->data_knowledgecheck.keys, String, key) {

@@ -14,7 +14,7 @@ spec(node_sequence) {
         .type          = AssetBehavior_Sequence,
         .data_sequence = {.children = {0}},
     };
-    check(ai_eval(&behavior, bb) == AiResult_Success);
+    check(ai_eval(&behavior, bb, null) == AiResult_Success);
   }
 
   it("evaluates to success when all children evaluate to success") {
@@ -27,7 +27,7 @@ spec(node_sequence) {
         .type          = AssetBehavior_Sequence,
         .data_sequence = {.children = {.values = children, array_elems(children)}},
     };
-    check(ai_eval(&behavior, bb) == AiResult_Success);
+    check(ai_eval(&behavior, bb, null) == AiResult_Success);
   }
 
   it("evaluates to failure when any child evaluates to failure") {
@@ -40,7 +40,7 @@ spec(node_sequence) {
         .type          = AssetBehavior_Sequence,
         .data_sequence = {.children = {.values = children, array_elems(children)}},
     };
-    check(ai_eval(&behavior, bb) == AiResult_Failure);
+    check(ai_eval(&behavior, bb, null) == AiResult_Failure);
   }
 
   teardown() { ai_blackboard_destroy(bb); }

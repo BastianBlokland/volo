@@ -20,7 +20,7 @@ spec(node_knowledgecompare) {
                 .value      = {.type = AssetKnowledgeSource_Bool, .data_bool.value = true},
             },
     };
-    check(ai_eval(&behavior, bb) == AiResult_Success);
+    check(ai_eval(&behavior, bb, null) == AiResult_Success);
   }
 
   it("evaluates to failure when the key does not exist") {
@@ -33,7 +33,7 @@ spec(node_knowledgecompare) {
                 .value      = {.type = AssetKnowledgeSource_Bool, .data_bool.value = true},
             },
     };
-    check(ai_eval(&behavior, bb) == AiResult_Failure);
+    check(ai_eval(&behavior, bb, null) == AiResult_Failure);
   }
 
   it("evaluates to failure when equals comparison fails") {
@@ -48,7 +48,7 @@ spec(node_knowledgecompare) {
                 .value      = {.type = AssetKnowledgeSource_Bool, .data_bool.value = true},
             },
     };
-    check(ai_eval(&behavior, bb) == AiResult_Failure);
+    check(ai_eval(&behavior, bb, null) == AiResult_Failure);
   }
 
   teardown() { ai_blackboard_destroy(bb); }
