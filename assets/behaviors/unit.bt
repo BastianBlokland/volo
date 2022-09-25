@@ -10,7 +10,7 @@
           "$type": "AssetBehavior_KnowledgeCheck",
           "$name": "Test if user has requested a move",
           "keys": [
-            "self-move-target"
+            "user-move-target"
           ]
         },
         {
@@ -18,7 +18,7 @@
           "key": "cmd-nav-target",
           "value": {
             "$type": "AssetKnowledgeSource_Knowledge",
-            "key": "self-move-target"
+            "key": "user-move-target"
           }
         },
         {
@@ -28,13 +28,13 @@
           "key": "self-nav-arrived",
           "value": {
             "$type": "AssetKnowledgeSource_Knowledge",
-            "key": "self-move-target"
+            "key": "user-move-target"
           }
         },
         {
           "$type": "AssetBehavior_KnowledgeClear",
           "keys": [
-            "self-move-target"
+            "user-move-target"
           ]
         }
       ]
