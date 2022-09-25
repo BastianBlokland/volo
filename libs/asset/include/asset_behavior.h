@@ -25,6 +25,7 @@ typedef enum eAssetBehaviorType {
   AssetBehavior_Failure,
   AssetBehavior_Invert,
   AssetBehavior_Try,
+  AssetBehavior_Repeat,
   AssetBehavior_Parallel,
   AssetBehavior_Selector,
   AssetBehavior_Sequence,
@@ -38,6 +39,7 @@ typedef enum eAssetBehaviorType {
 
 typedef enum {
   AssetKnowledgeComparison_Equal,
+  AssetKnowledgeComparison_Less,
 } AssetKnowledgeComparison;
 
 typedef enum {
@@ -82,6 +84,10 @@ typedef struct {
 } AssetBehaviorTry;
 
 typedef struct {
+  const AssetBehavior* child;
+} AssetBehaviorRepeat;
+
+typedef struct {
   AssetBehaviorList children;
 } AssetBehaviorParallel;
 
@@ -118,6 +124,7 @@ typedef struct sAssetBehavior {
   union {
     AssetBehaviorInvert           data_invert;
     AssetBehaviorTry              data_try;
+    AssetBehaviorRepeat           data_repeat;
     AssetBehaviorParallel         data_parallel;
     AssetBehaviorSelector         data_selector;
     AssetBehaviorSequence         data_sequence;

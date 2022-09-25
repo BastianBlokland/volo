@@ -19,6 +19,7 @@ static StringHash g_blackboardKeyTime,
                   g_blackboardKeyFaction,
                   g_blackboardKeyNavArrived,
                   g_blackboardKeyTargetEntity,
+                  g_blackboardKeyTargetPosition,
                   g_blackboardKeyTargetDist;
 
 // clang-format on
@@ -79,23 +80,29 @@ ecs_system_define(SceneSensorUpdateSys) {
     }
 
     const SceneTargetFinderComp* targetFinder = ecs_view_read_t(itr, SceneTargetFinderComp);
-    if (targetFinder) {
+    if (targetFinder && targetFinder->target) {
       ai_blackboard_set_entity(bb, g_blackboardKeyTargetEntity, targetFinder->target);
+      ai_blackboard_set_vector(bb, g_blackboardKeyTargetPosition, targetFinder->targetPosition);
       const f64 distToTarget = math_sqrt_f64(targetFinder->targetDistSqr);
       ai_blackboard_set_f64(bb, g_blackboardKeyTargetDist, distToTarget);
+    } else {
+      ai_blackboard_unset(bb, g_blackboardKeyTargetEntity);
+      ai_blackboard_unset(bb, g_blackboardKeyTargetPosition);
+      ai_blackboard_unset(bb, g_blackboardKeyTargetDist);
     }
   }
 }
 
 ecs_module_init(scene_sensor_module) {
-  g_blackboardKeyTime         = stringtable_add(g_stringtable, string_lit("global-time"));
-  g_blackboardKeyEntity       = stringtable_add(g_stringtable, string_lit("self-entity"));
-  g_blackboardKeyPosition     = stringtable_add(g_stringtable, string_lit("self-position"));
-  g_blackboardKeyHealth       = stringtable_add(g_stringtable, string_lit("self-health"));
-  g_blackboardKeyFaction      = stringtable_add(g_stringtable, string_lit("self-faction"));
-  g_blackboardKeyNavArrived   = stringtable_add(g_stringtable, string_lit("self-nav-arrived"));
-  g_blackboardKeyTargetEntity = stringtable_add(g_stringtable, string_lit("target-entity"));
-  g_blackboardKeyTargetDist   = stringtable_add(g_stringtable, string_lit("target-dist"));
+  g_blackboardKeyTime           = stringtable_add(g_stringtable, string_lit("global-time"));
+  g_blackboardKeyEntity         = stringtable_add(g_stringtable, string_lit("self-entity"));
+  g_blackboardKeyPosition       = stringtable_add(g_stringtable, string_lit("self-position"));
+  g_blackboardKeyHealth         = stringtable_add(g_stringtable, string_lit("self-health"));
+  g_blackboardKeyFaction        = stringtable_add(g_stringtable, string_lit("self-faction"));
+  g_blackboardKeyNavArrived     = stringtable_add(g_stringtable, string_lit("self-nav-arrived"));
+  g_blackboardKeyTargetEntity   = stringtable_add(g_stringtable, string_lit("target-entity"));
+  g_blackboardKeyTargetPosition = stringtable_add(g_stringtable, string_lit("target-position"));
+  g_blackboardKeyTargetDist     = stringtable_add(g_stringtable, string_lit("target-dist"));
 
   ecs_register_view(SensorGlobalView);
   ecs_register_view(BrainView);

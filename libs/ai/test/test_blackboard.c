@@ -141,8 +141,34 @@ spec(blackboard) {
     ai_blackboard_set_f64(bb, a, 42);
     check(ai_blackboard_equals_f64(bb, a, 42));
 
-    ai_blackboard_set_f64(bb, b, false);
+    ai_blackboard_set_bool(bb, b, false);
     check(!ai_blackboard_equals_f64(bb, b, 42));
+  }
+
+  it("can check if a knowledge number is less then a literal") {
+    const StringHash a = string_hash_lit("testA");
+    const StringHash b = string_hash_lit("testB");
+    check(!ai_blackboard_less_f64(bb, a, 42));
+
+    ai_blackboard_set_f64(bb, a, 42);
+    check(ai_blackboard_less_f64(bb, a, 1337));
+    check(!ai_blackboard_less_f64(bb, a, 42));
+
+    ai_blackboard_set_bool(bb, b, false);
+    check(!ai_blackboard_less_f64(bb, b, 42));
+  }
+
+  it("can check if a knowledge number is greater then a literal") {
+    const StringHash a = string_hash_lit("testA");
+    const StringHash b = string_hash_lit("testB");
+    check(!ai_blackboard_greater_f64(bb, a, 42));
+
+    ai_blackboard_set_f64(bb, a, 42);
+    check(ai_blackboard_greater_f64(bb, a, 5));
+    check(!ai_blackboard_greater_f64(bb, a, 1337));
+
+    ai_blackboard_set_bool(bb, b, false);
+    check(!ai_blackboard_greater_f64(bb, b, 42));
   }
 
   teardown() { ai_blackboard_destroy(bb); }

@@ -11,6 +11,7 @@
   X(AssetBehavior_KnowledgeCompare, ai_node_knowledgecompare_eval)                                 \
   X(AssetBehavior_KnowledgeSet, ai_node_knowledgeset_eval)                                         \
   X(AssetBehavior_Parallel, ai_node_parallel_eval)                                                 \
+  X(AssetBehavior_Repeat, ai_node_repeat_eval)                                                     \
   X(AssetBehavior_Running, ai_node_running_eval)                                                   \
   X(AssetBehavior_Selector, ai_node_selector_eval)                                                 \
   X(AssetBehavior_Sequence, ai_node_sequence_eval)                                                 \

@@ -4,11 +4,11 @@
   "children": [
     {
       "$type": "AssetBehavior_Sequence",
-      "$name": "Move to user target",
+      "$name": "Move to user input",
       "children": [
         {
           "$type": "AssetBehavior_KnowledgeCheck",
-          "$name": "Test if user has requested a move",
+          "$name": "Wait for user input",
           "keys": [
             "user-move-target"
           ]
@@ -23,7 +23,7 @@
         },
         {
           "$type": "AssetBehavior_Try",
-          "$name": "Check if we arrived at the user target",
+          "$name": "Check if we arrived at the user input",
           "child": {
             "$type": "AssetBehavior_KnowledgeCompare",
             "comparison": 0,
@@ -39,6 +39,54 @@
           "keys": [
             "user-move-target"
           ]
+        }
+      ]
+    },
+    {
+      "$type": "AssetBehavior_Sequence",
+      "$name": "Attack target",
+      "children": [
+        {
+          "$type": "AssetBehavior_KnowledgeCheck",
+          "$name": "Find target",
+          "keys": [
+            "target-entity"
+          ]
+        },
+        {
+          "$type": "AssetBehavior_Selector",
+          "$name": "Move into range",
+          "children": [
+            {
+              "$type": "AssetBehavior_KnowledgeCompare",
+              "comparison": 1,
+              "key": "target-dist",
+              "value": {
+                "$type": "AssetKnowledgeSource_Number",
+                "value": 10
+              }
+            },
+            {
+              "$type": "AssetBehavior_Repeat",
+              "child": {
+                "$type": "AssetBehavior_KnowledgeSet",
+                "key": "cmd-nav-target",
+                "value": {
+                  "$type": "AssetKnowledgeSource_Knowledge",
+                  "key": "target-position"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "$type": "AssetBehavior_KnowledgeSet",
+          "$name": "Stop moving",
+          "key": "cmd-nav-stop",
+          "value": {
+            "$type": "AssetKnowledgeSource_Bool",
+            "value": true
+          }
         }
       ]
     },
