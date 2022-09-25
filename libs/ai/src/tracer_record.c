@@ -58,7 +58,7 @@ static void tracer_end(AiTracer* tracer, const AssetBehavior* behavior, const Ai
 
   const u32     activeNodeIdx = tracerRecord->stack[--tracerRecord->depth];
   AiTracerNode* activeNode    = dynarray_at_t(&tracerRecord->nodes, activeNodeIdx, AiTracerNode);
-  diag_assert(activeNode->type = behavior->type);
+  diag_assert(activeNode->type == behavior->type);
   diag_assert(activeNode->flags & AiTracerNode_Running);
 
   activeNode->result = result;
