@@ -29,6 +29,7 @@ typedef struct sAiTracerRecord {
 } AiTracerRecord;
 
 static AiTracerNode* tracer_observe(AiTracerRecord* tracer, const u32 nodeIndex) {
+  diag_assert_msg(nodeIndex < tracer->nodes.size, "Out of bounds index {}", fmt_int(nodeIndex));
   AiTracerNode* node = dynarray_at_t(&tracer->nodes, nodeIndex, AiTracerNode);
   diag_assert(!(node->flags & AiTracerNode_Running));
   return node;
