@@ -1,4 +1,6 @@
 #include "ai_blackboard.h"
+#include "ai_tracer_record.h"
+#include "asset_behavior.h"
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
@@ -13,12 +15,14 @@
 
 typedef enum {
   DebugBrainTab_Blackboard,
+  DebugBrainTab_Evaluation,
 
   DebugBrainTab_Count,
 } DebugBrainTab;
 
 static const String g_brainTabNames[] = {
     string_static("Blackboard"),
+    string_static("Evaluation"),
 };
 ASSERT(array_elems(g_brainTabNames) == DebugBrainTab_Count, "Incorrect number of names");
 
@@ -197,6 +201,89 @@ static void blackboard_panel_tab_draw(
   ui_layout_container_pop(canvas);
 }
 
+static void evaluation_options_draw(UiCanvasComp* canvas, SceneBrainComp* brain) {
+  ui_layout_push(canvas);
+
+  UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+
+  ui_table_next_row(canvas, &table);
+  bool pauseEval = (scene_brain_flags(brain) & SceneBrainFlags_PauseEvaluation) != 0;
+  ui_label(canvas, string_lit("Pause:"));
+  ui_table_next_column(canvas, &table);
+  if (ui_toggle(canvas, &pauseEval)) {
+    scene_brain_flags_toggle(brain, SceneBrainFlags_PauseEvaluation);
+  }
+
+  ui_layout_pop(canvas);
+}
+
+static UiColor evaluation_node_bg_color(const AiResult result) {
+  switch (result) {
+  case AiResult_Success:
+    return ui_color(16, 64, 16, 192);
+  case AiResult_Failure:
+    return ui_color(64, 16, 16, 192);
+  }
+  diag_crash();
+}
+
+static void evaluation_panel_tab_draw(
+    UiCanvasComp* canvas, DebugBrainPanelComp* panelComp, EcsIterator* subject) {
+  diag_assert(subject);
+
+  SceneBrainComp*       brain  = ecs_view_write_t(subject, SceneBrainComp);
+  const AiTracerRecord* tracer = scene_brain_tracer(brain);
+
+  evaluation_options_draw(canvas, brain);
+  ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
+  ui_layout_container_push(canvas, UiClip_None);
+
+  UiTable table = ui_table(.spacing = ui_vector(10, 5));
+  ui_table_add_column(&table, UiTableColumn_Fixed, 350);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 175);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
+
+  ui_table_draw_header(
+      canvas,
+      &table,
+      (const UiTableColumnName[]){
+          {string_lit("Name"), string_lit("Behavior node name.")},
+          {string_lit("Type"), string_lit("Behavior node type.")},
+          {string_lit("Result"), string_lit("Evaluation result.")},
+      });
+
+  const u32 nodeCount   = ai_tracer_record_count(tracer);
+  const f32 totalHeight = ui_table_height(&table, nodeCount);
+  ui_scrollview_begin(canvas, &panelComp->scrollview, totalHeight);
+
+  for (u32 nodeIndex = 0; nodeIndex != nodeCount; ++nodeIndex) {
+    const AssetBehaviorType type   = ai_tracer_record_type(tracer, nodeIndex);
+    const AiResult          result = ai_tracer_record_result(tracer, nodeIndex);
+    const u32               depth  = ai_tracer_record_depth(tracer, nodeIndex);
+    String                  name   = ai_tracer_record_name(tracer, nodeIndex);
+    if (string_is_empty(name)) {
+      name = fmt_write_scratch("[{}]", fmt_text(asset_behavior_type_str(type)));
+    }
+
+    ui_table_next_row(canvas, &table);
+    ui_table_draw_row_bg(canvas, &table, evaluation_node_bg_color(result));
+
+    ui_label(canvas, fmt_write_scratch("{}{}", fmt_padding(depth * 2), fmt_text(name)));
+    ui_table_next_column(canvas, &table);
+
+    ui_label(canvas, asset_behavior_type_str(type));
+    ui_table_next_column(canvas, &table);
+
+    ui_label(canvas, ai_result_str(result));
+    ui_table_next_column(canvas, &table);
+  }
+
+  ui_scrollview_end(canvas, &panelComp->scrollview);
+  ui_layout_container_pop(canvas);
+}
+
 static void
 brain_panel_draw(UiCanvasComp* canvas, DebugBrainPanelComp* panelComp, EcsIterator* subject) {
   const String title = fmt_write_scratch("{} Brain Panel", fmt_ui_shape(Psychology));
@@ -211,6 +298,9 @@ brain_panel_draw(UiCanvasComp* canvas, DebugBrainPanelComp* panelComp, EcsIterat
     switch (panelComp->panel.activeTab) {
     case DebugBrainTab_Blackboard:
       blackboard_panel_tab_draw(canvas, panelComp, subject);
+      break;
+    case DebugBrainTab_Evaluation:
+      evaluation_panel_tab_draw(canvas, panelComp, subject);
       break;
     }
   } else {
@@ -272,6 +362,6 @@ ecs_module_init(debug_brain_module) {
 EcsEntityId debug_brain_panel_open(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
   ecs_world_add_t(
-      world, panelEntity, DebugBrainPanelComp, .panel = ui_panel(.size = ui_vector(600, 500)));
+      world, panelEntity, DebugBrainPanelComp, .panel = ui_panel(.size = ui_vector(700, 500)));
   return panelEntity;
 }
