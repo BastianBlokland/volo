@@ -63,7 +63,7 @@ static void evaluation_options_draw(UiCanvasComp* canvas, SceneBrainComp* brain)
 static UiColor evaluation_node_bg_color(const AiResult result) {
   switch (result) {
   case AiResult_Running:
-    return ui_color(16, 64, 64, 192);
+    return ui_color(64, 64, 16, 192);
   case AiResult_Success:
     return ui_color(16, 64, 16, 192);
   case AiResult_Failure:
