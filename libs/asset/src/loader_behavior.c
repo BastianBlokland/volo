@@ -52,6 +52,10 @@ static void behavior_datareg_init() {
     data_reg_field_t(g_dataReg, AssetBehaviorInvert, child, behaviorType, .container = DataContainer_Pointer);
     data_reg_comment_t(g_dataReg, AssetBehaviorInvert, "Evaluates the child node and inverts its result.\nEvaluates to 'Running' if the child evaluates to 'Running', 'Success' if the child evaluated to 'Failure', otherwise to 'Failure'.");
 
+    data_reg_struct_t(g_dataReg, AssetBehaviorTry);
+    data_reg_field_t(g_dataReg, AssetBehaviorTry, child, behaviorType, .container = DataContainer_Pointer);
+    data_reg_comment_t(g_dataReg, AssetBehaviorTry, "Evaluates the child node.\nEvaluates to 'Running' if the child evaluates to 'Failure' or 'Running', otherwise to 'Success'.");
+
     data_reg_struct_t(g_dataReg, AssetBehaviorParallel);
     data_reg_field_t(g_dataReg, AssetBehaviorParallel, children, behaviorType, .container = DataContainer_Array);
     data_reg_comment_t(g_dataReg, AssetBehaviorParallel, "Evaluates all children.\nEvaluates to 'Success' if any child evaluated to 'Success', 'Running' if any child evaluates to 'Running', otherwise to 'Failure'.");
@@ -89,6 +93,7 @@ static void behavior_datareg_init() {
     data_reg_choice_empty(g_dataReg, AssetBehavior, AssetBehavior_Success);
     data_reg_choice_empty(g_dataReg, AssetBehavior, AssetBehavior_Failure);
     data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehavior_Invert, data_invert, t_AssetBehaviorInvert);
+    data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehavior_Try, data_try, t_AssetBehaviorTry);
     data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehavior_Parallel, data_parallel, t_AssetBehaviorParallel);
     data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehavior_Selector, data_selector, t_AssetBehaviorSelector);
     data_reg_choice_t(g_dataReg, AssetBehavior, AssetBehavior_Sequence, data_sequence, t_AssetBehaviorSequence);
@@ -168,6 +173,7 @@ String asset_behavior_type_str(const AssetBehaviorType type) {
       string_static("Success"),
       string_static("Failure"),
       string_static("Invert"),
+      string_static("Try"),
       string_static("Parallel"),
       string_static("Selector"),
       string_static("Sequence"),

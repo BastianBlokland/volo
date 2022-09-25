@@ -7,6 +7,7 @@
         "AssetBehavior_Success",
         "AssetBehavior_Failure",
         "AssetBehavior_Invert",
+        "AssetBehavior_Try",
         "AssetBehavior_Parallel",
         "AssetBehavior_Selector",
         "AssetBehavior_Sequence",
@@ -53,6 +54,16 @@
     {
       "nodeType": "AssetBehavior_Invert",
       "comment": "Evaluates the child node and inverts its result.\nEvaluates to 'Running' if the child evaluates to 'Running', 'Success' if the child evaluated to 'Failure', otherwise to 'Failure'.",
+      "fields": [
+        {
+          "name": "child",
+          "valueType": "AssetBehavior"
+        }
+      ]
+    },
+    {
+      "nodeType": "AssetBehavior_Try",
+      "comment": "Evaluates the child node.\nEvaluates to 'Running' if the child evaluates to 'Failure' or 'Running', otherwise to 'Success'.",
       "fields": [
         {
           "name": "child",

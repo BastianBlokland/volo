@@ -14,7 +14,8 @@
   X(AssetBehavior_Running, ai_node_running_eval)                                                   \
   X(AssetBehavior_Selector, ai_node_selector_eval)                                                 \
   X(AssetBehavior_Sequence, ai_node_sequence_eval)                                                 \
-  X(AssetBehavior_Success, ai_node_success_eval)
+  X(AssetBehavior_Success, ai_node_success_eval)                                                   \
+  X(AssetBehavior_Try, ai_node_try_eval)
 
 typedef AiResult (*AiNodeEval)(const AssetBehavior*, AiBlackboard*, AiTracer*);
 
