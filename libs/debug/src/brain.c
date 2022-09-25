@@ -84,7 +84,7 @@ static void evaluation_panel_tab_draw(
   ui_layout_container_push(canvas, UiClip_None);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
-  ui_table_add_column(&table, UiTableColumn_Fixed, 350);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 400);
   ui_table_add_column(&table, UiTableColumn_Fixed, 175);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
@@ -113,7 +113,7 @@ static void evaluation_panel_tab_draw(
     ui_table_next_row(canvas, &table);
     ui_table_draw_row_bg(canvas, &table, evaluation_node_bg_color(result));
 
-    ui_label(canvas, fmt_write_scratch("{}{}", fmt_padding(depth * 2), fmt_text(name)));
+    ui_label(canvas, fmt_write_scratch("{}{}", fmt_padding(depth * 4), fmt_text(name)));
     ui_table_next_column(canvas, &table);
 
     ui_label(canvas, asset_behavior_type_str(type));
@@ -363,6 +363,6 @@ ecs_module_init(debug_brain_module) {
 EcsEntityId debug_brain_panel_open(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId panelEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
   ecs_world_add_t(
-      world, panelEntity, DebugBrainPanelComp, .panel = ui_panel(.size = ui_vector(700, 500)));
+      world, panelEntity, DebugBrainPanelComp, .panel = ui_panel(.size = ui_vector(750, 500)));
   return panelEntity;
 }
