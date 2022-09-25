@@ -1,5 +1,6 @@
 #include "asset_behavior.h"
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_thread.h"
 #include "data.h"
 #include "data_treescheme.h"
@@ -158,6 +159,23 @@ Error:
 
 Cleanup:
   asset_repo_source_close(src);
+}
+
+String asset_behavior_type_str(const AssetBehaviorType type) {
+  static const String g_names[] = {
+      string_static("Success"),
+      string_static("Failure"),
+      string_static("Invert"),
+      string_static("Parallel"),
+      string_static("Selector"),
+      string_static("Sequence"),
+      string_static("KnowledgeSet"),
+      string_static("KnowledgeClear"),
+      string_static("KnowledgeCheck"),
+      string_static("KnowledgeCompare"),
+  };
+  ASSERT(array_elems(g_names) == AssetBehavior_Count, "Incorrect number of names");
+  return g_names[type];
 }
 
 void asset_behavior_scheme_write(DynString* str) {
