@@ -10,10 +10,10 @@
 CliApp* cli_app_create(Allocator* alloc) {
   CliApp* app = alloc_alloc_t(alloc, CliApp);
   *app        = (CliApp){
-             .name       = path_stem(g_path_executable),
-             .options    = dynarray_create_t(alloc, CliOption, 16),
-             .exclusions = dynarray_create_t(alloc, CliExclusion, 8),
-             .alloc      = alloc,
+      .name       = path_stem(g_path_executable),
+      .options    = dynarray_create_t(alloc, CliOption, 16),
+      .exclusions = dynarray_create_t(alloc, CliExclusion, 8),
+      .alloc      = alloc,
   };
   return app;
 }
@@ -41,7 +41,7 @@ void cli_app_destroy(CliApp* app) {
 
 void cli_app_register_desc(CliApp* app, const String desc) {
   diag_assert_msg(string_is_empty(app->desc), "Application already has a description registered");
-  app->desc = string_is_empty(desc) ? string_empty : string_dup(app->alloc, desc);
+  app->desc = string_maybe_dup(app->alloc, desc);
 }
 
 CliId cli_register_flag(

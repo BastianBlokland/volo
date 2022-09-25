@@ -4,8 +4,10 @@
 #include "core_array.h"
 #include "core_diag.h"
 
-AiResult ai_node_knowledgeclear_eval(const AssetBehavior* behavior, AiBlackboard* bb) {
+AiResult
+ai_node_knowledgeclear_eval(const AssetBehavior* behavior, AiBlackboard* bb, AiTracer* tracer) {
   diag_assert(behavior->type == AssetBehavior_KnowledgeClear);
+  (void)tracer;
 
   array_ptr_for_t(behavior->data_knowledgeclear.keys, String, key) {
     diag_assert_msg(!string_is_empty(*key), "Knowledge key cannot be empty");

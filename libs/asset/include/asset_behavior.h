@@ -19,7 +19,7 @@ typedef struct {
   usize         count;
 } AssetKnowledgeList;
 
-typedef enum {
+typedef enum eAssetBehaviorType {
   AssetBehavior_Success,
   AssetBehavior_Failure,
   AssetBehavior_Invert,
@@ -122,6 +122,12 @@ typedef struct sAssetBehavior {
 } AssetBehavior;
 
 ecs_comp_extern_public(AssetBehaviorComp) { AssetBehavior root; };
+
+/**
+ * Get a textual representation of the given type enumeration.
+ * Pre-condition: type >= 0 && type < AssetBehavior_Count.
+ */
+String asset_behavior_type_str(AssetBehaviorType);
 
 /**
  * Write a scheme file for the behavior file format.

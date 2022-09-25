@@ -1,12 +1,17 @@
 #include "ai.h"
+#include "ai_tracer_count.h"
 #include "asset_behavior.h"
 #include "check_spec.h"
 #include "core_alloc.h"
 
 spec(node_knowledgeset) {
   AiBlackboard* bb = null;
+  AiTracerCount tracer;
 
-  setup() { bb = ai_blackboard_create(g_alloc_heap); }
+  setup() {
+    bb     = ai_blackboard_create(g_alloc_heap);
+    tracer = ai_tracer_count();
+  }
 
   it("can set f64 knowledge when evaluated") {
     check_eq_float(ai_blackboard_get_f64(bb, string_hash_lit("test")), 0, 1e-6f);
@@ -19,7 +24,8 @@ spec(node_knowledgeset) {
                 .value = {.type = AssetKnowledgeSource_Number, .data_number.value = 42.42},
             },
     };
-    check(ai_eval(&behavior, bb) == AiResult_Success);
+    check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Success);
+    check_eq_int(tracer.count, 1);
     check_eq_float(ai_blackboard_get_f64(bb, string_hash_lit("test")), 42.42, 1e-6f);
   }
 
@@ -34,7 +40,8 @@ spec(node_knowledgeset) {
                 .value = {.type = AssetKnowledgeSource_Bool, .data_bool.value = true},
             },
     };
-    check(ai_eval(&behavior, bb) == AiResult_Success);
+    check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Success);
+    check_eq_int(tracer.count, 1);
     check(ai_blackboard_get_bool(bb, string_hash_lit("test")));
   }
 
@@ -56,7 +63,8 @@ spec(node_knowledgeset) {
                     },
             },
     };
-    check(ai_eval(&behavior, bb) == AiResult_Success);
+    check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Success);
+    check_eq_int(tracer.count, 1);
     check_eq_float(ai_blackboard_get_vector(bb, string_hash_lit("test")).x, 1, 1e-6f);
     check_eq_float(ai_blackboard_get_vector(bb, string_hash_lit("test")).y, 2, 1e-6f);
     check_eq_float(ai_blackboard_get_vector(bb, string_hash_lit("test")).z, 3, 1e-6f);
@@ -78,7 +86,8 @@ spec(node_knowledgeset) {
                     },
             },
     };
-    check(ai_eval(&behavior, bb) == AiResult_Success);
+    check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Success);
+    check_eq_int(tracer.count, 1);
     check_eq_float(ai_blackboard_get_f64(bb, string_hash_lit("test2")), 42, 1e-6f);
   }
 

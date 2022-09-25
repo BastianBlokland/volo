@@ -5,10 +5,14 @@
 // Forward declare from 'ai_blackboard.h'.
 typedef struct sAiBlackboard AiBlackboard;
 
+// Forward declare from 'ai_tracer_record.h'.
+typedef struct sAiTracerRecord AiTracerRecord;
+
 typedef enum {
   SceneBrainFlags_None             = 0,
-  SceneBrainFlags_PauseSensors     = 1 << 1,
-  SceneBrainFlags_PauseControllers = 1 << 2,
+  SceneBrainFlags_PauseEvaluation  = 1 << 1,
+  SceneBrainFlags_PauseSensors     = 1 << 2,
+  SceneBrainFlags_PauseControllers = 1 << 3,
 } SceneBrainFlags;
 
 ecs_comp_extern(SceneBrainComp);
@@ -18,6 +22,11 @@ ecs_comp_extern(SceneBrainComp);
  */
 const AiBlackboard* scene_brain_blackboard(const SceneBrainComp*);
 AiBlackboard*       scene_brain_blackboard_mutable(SceneBrainComp*);
+
+/**
+ * Get access to the brain's tracer for debug visualization purposes.
+ */
+const AiTracerRecord* scene_brain_tracer(const SceneBrainComp*);
 
 /**
  * Query and update the brain's configuration flags.

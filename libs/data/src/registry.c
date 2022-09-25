@@ -41,8 +41,8 @@ static DataType data_type_declare(DataReg* reg, const String name) {
 DataReg* data_reg_create(Allocator* alloc) {
   DataReg* reg = alloc_alloc_t(alloc, DataReg);
   *reg         = (DataReg){
-              .types = dynarray_create_t(alloc, DataDecl, 64),
-              .alloc = alloc,
+      .types = dynarray_create_t(alloc, DataDecl, 64),
+      .alloc = alloc,
   };
 
 #define X(_T_)                                                                                     \
@@ -289,5 +289,5 @@ Mem data_elem_mem(const DataDecl* decl, const DataArray* array, const usize inde
 void data_reg_comment(DataReg* reg, const DataType type, const String comment) {
   DataDecl* decl = data_decl_mutable(reg, type);
   string_maybe_free(reg->alloc, decl->comment);
-  decl->comment = string_is_empty(comment) ? string_empty : string_dup(reg->alloc, comment);
+  decl->comment = string_maybe_dup(reg->alloc, comment);
 }

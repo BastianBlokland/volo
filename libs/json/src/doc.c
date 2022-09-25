@@ -93,7 +93,7 @@ JsonVal json_add_string(JsonDoc* doc, const String string) {
       (JsonValData){
           .typeAndParent = JsonType_String,
           .next          = sentinel_u32,
-          .val_string    = string_is_empty(string) ? string_empty : string_dup(doc->alloc, string),
+          .val_string    = string_maybe_dup(doc->alloc, string),
       });
 }
 

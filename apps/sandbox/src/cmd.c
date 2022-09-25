@@ -139,7 +139,7 @@ ecs_system_define(CmdControllerUpdateSys) {
 }
 
 ecs_module_init(sandbox_cmd_module) {
-  g_blackboardKeyMoveTarget = stringtable_add(g_stringtable, string_lit("self-move-target"));
+  g_blackboardKeyMoveTarget = stringtable_add(g_stringtable, string_lit("user-move-target"));
 
   ecs_register_comp(CmdControllerComp, .destructor = ecs_destruct_controller);
 

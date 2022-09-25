@@ -26,8 +26,10 @@ static bool ai_node_knowledge_equal(const AssetBehaviorKnowledgeCompare* comp, A
   UNREACHABLE
 }
 
-AiResult ai_node_knowledgecompare_eval(const AssetBehavior* behavior, AiBlackboard* bb) {
+AiResult
+ai_node_knowledgecompare_eval(const AssetBehavior* behavior, AiBlackboard* bb, AiTracer* tracer) {
   diag_assert(behavior->type == AssetBehavior_KnowledgeCompare);
+  (void)tracer;
 
   switch (behavior->data_knowledgecompare.comparison) {
   case AssetKnowledgeComparison_Equal:

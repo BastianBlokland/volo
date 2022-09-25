@@ -4,8 +4,10 @@
 #include "core_diag.h"
 #include "core_stringtable.h"
 
-AiResult ai_node_knowledgeset_eval(const AssetBehavior* behavior, AiBlackboard* bb) {
+AiResult
+ai_node_knowledgeset_eval(const AssetBehavior* behavior, AiBlackboard* bb, AiTracer* tracer) {
   diag_assert(behavior->type == AssetBehavior_KnowledgeSet);
+  (void)tracer;
 
   diag_assert_msg(behavior->data_knowledgeset.key.size, "Knowledge key cannot be empty");
 

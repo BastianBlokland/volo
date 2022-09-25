@@ -1,4 +1,5 @@
 #include "ai.h"
+#include "ai_tracer_count.h"
 #include "asset_behavior.h"
 #include "check_spec.h"
 #include "core_alloc.h"
@@ -6,15 +7,20 @@
 
 spec(node_sequence) {
   AiBlackboard* bb = null;
+  AiTracerCount tracer;
 
-  setup() { bb = ai_blackboard_create(g_alloc_heap); }
+  setup() {
+    bb     = ai_blackboard_create(g_alloc_heap);
+    tracer = ai_tracer_count();
+  }
 
   it("evaluates to success when it doesn't have any children") {
     const AssetBehavior behavior = {
         .type          = AssetBehavior_Sequence,
         .data_sequence = {.children = {0}},
     };
-    check(ai_eval(&behavior, bb) == AiResult_Success);
+    check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Success);
+    check_eq_int(tracer.count, 1);
   }
 
   it("evaluates to success when all children evaluate to success") {
@@ -27,7 +33,8 @@ spec(node_sequence) {
         .type          = AssetBehavior_Sequence,
         .data_sequence = {.children = {.values = children, array_elems(children)}},
     };
-    check(ai_eval(&behavior, bb) == AiResult_Success);
+    check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Success);
+    check_eq_int(tracer.count, 4);
   }
 
   it("evaluates to failure when any child evaluates to failure") {
@@ -40,7 +47,8 @@ spec(node_sequence) {
         .type          = AssetBehavior_Sequence,
         .data_sequence = {.children = {.values = children, array_elems(children)}},
     };
-    check(ai_eval(&behavior, bb) == AiResult_Failure);
+    check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Failure);
+    check_eq_int(tracer.count, 3);
   }
 
   teardown() { ai_blackboard_destroy(bb); }

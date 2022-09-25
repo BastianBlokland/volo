@@ -1,6 +1,6 @@
 #include "ai_blackboard.h"
 #include "ai_eval.h"
-#include "asset_behavior.h"
+#include "ai_tracer_record.h"
 #include "asset_manager.h"
 #include "core_alloc.h"
 #include "core_diag.h"
@@ -18,6 +18,7 @@ typedef enum {
 ecs_comp_define(SceneBrainComp) {
   SceneBrainFlags flags;
   AiBlackboard*   blackboard;
+  AiTracerRecord* tracer;
   EcsEntityId     behaviorAsset;
 };
 
@@ -26,6 +27,7 @@ ecs_comp_define(SceneBehaviorResourceComp) { SceneBehaviorFlags flags; };
 static void ecs_destruct_brain_comp(void* data) {
   SceneBrainComp* brain = data;
   ai_blackboard_destroy(brain->blackboard);
+  ai_tracer_record_destroy(brain->tracer);
 }
 
 static void ecs_combine_behavior_resource(void* dataA, void* dataB) {
@@ -76,7 +78,14 @@ ecs_system_define(SceneBehaviorUnloadChangedSys) {
 static void scene_brain_eval(
     const EcsEntityId entity, const SceneBrainComp* brain, const AssetBehaviorComp* behavior) {
 
-  const AiResult res = ai_eval(&behavior->root, brain->blackboard);
+  if (UNLIKELY(brain->flags & SceneBrainFlags_PauseEvaluation)) {
+    return;
+  }
+
+  ai_tracer_record_reset(brain->tracer);
+  AiTracer* tracerApi = ai_tracer_record_api(brain->tracer);
+
+  const AiResult res = ai_eval(&behavior->root, brain->blackboard, tracerApi);
   if (res != AiResult_Success) {
     log_w(
         "Brain behavior evaluated to 'failure'", log_param("entity", fmt_int(entity, .base = 16)));
@@ -130,6 +139,8 @@ const AiBlackboard* scene_brain_blackboard(const SceneBrainComp* brain) {
 
 AiBlackboard* scene_brain_blackboard_mutable(SceneBrainComp* brain) { return brain->blackboard; }
 
+const AiTracerRecord* scene_brain_tracer(const SceneBrainComp* brain) { return brain->tracer; }
+
 SceneBrainFlags scene_brain_flags(const SceneBrainComp* brain) { return brain->flags; }
 
 void scene_brain_flags_set(SceneBrainComp* brain, const SceneBrainFlags flags) {
@@ -153,5 +164,6 @@ scene_brain_add(EcsWorld* world, const EcsEntityId entity, const EcsEntityId beh
       entity,
       SceneBrainComp,
       .blackboard    = ai_blackboard_create(g_alloc_heap),
+      .tracer        = ai_tracer_record_create(g_alloc_heap),
       .behaviorAsset = behaviorAsset);
 }

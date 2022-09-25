@@ -297,7 +297,7 @@ String gap_window_title_get(const GapWindowComp* window) { return window->title;
 
 void gap_window_title_set(GapWindowComp* window, const String newTitle) {
   string_maybe_free(g_alloc_heap, window->title);
-  window->title = string_is_empty(newTitle) ? string_empty : string_dup(g_alloc_heap, newTitle);
+  window->title = string_maybe_dup(g_alloc_heap, newTitle);
   window->requests |= GapWindowRequests_UpdateTitle;
 }
 
@@ -332,7 +332,7 @@ String gap_window_input_text(const GapWindowComp* comp) { return dynstring_view(
 
 void gap_window_clip_copy(GapWindowComp* comp, const String value) {
   string_maybe_free(g_alloc_heap, comp->clipCopy);
-  comp->clipCopy = string_is_empty(value) ? string_empty : string_dup(g_alloc_heap, value);
+  comp->clipCopy = string_maybe_dup(g_alloc_heap, value);
 }
 
 void gap_window_clip_paste(GapWindowComp* comp) { comp->requests |= GapWindowRequests_ClipPaste; }
