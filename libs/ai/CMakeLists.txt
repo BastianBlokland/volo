@@ -7,6 +7,7 @@ message(STATUS "> library: ai")
 add_library(lib_ai STATIC
   src/blackboard.c
   src/eval.c
+  src/result.c
   src/tracer_record.c
   src/tracer_count.c
   src/node/failure.c
