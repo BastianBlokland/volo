@@ -1,5 +1,6 @@
 {
   "$type": "AssetBehavior_Selector",
+  "$name": "Root",
   "children": [
     {
       "$type": "AssetBehavior_Sequence",
@@ -7,13 +8,13 @@
       "children": [
         {
           "$type": "AssetBehavior_KnowledgeCheck",
+          "$name": "Test if user has requested a move",
           "keys": [
             "self-move-target"
           ]
         },
         {
           "$type": "AssetBehavior_KnowledgeSet",
-          "$name": "Start navigating to user target",
           "key": "cmd-nav-target",
           "value": {
             "$type": "AssetKnowledgeSource_Knowledge",
