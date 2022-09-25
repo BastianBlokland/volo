@@ -77,7 +77,7 @@ AiTracerRecord* ai_tracer_record_create(Allocator* alloc) {
       .nodes = dynarray_create_t(alloc, AiTracerNode, 32),
       .alloc = alloc,
       .allocTransient =
-          alloc_chunked_create(g_alloc_heap, alloc_bump_create, ai_tracer_transient_chunk_size),
+          alloc_chunked_create(alloc, alloc_bump_create, ai_tracer_transient_chunk_size),
   };
   return tracer;
 }
