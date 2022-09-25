@@ -160,8 +160,16 @@ static void scene_nav_update_agent(
     from = geo_nav_closest_unblocked(env->navGrid, from);
   }
 
+  if (agent->flags & SceneNavAgent_Stop) {
+    agent->target = trans->position;
+    agent->flags &= ~(SceneNavAgent_Stop | SceneLocomotion_Moving);
+  }
+
   if (!(agent->flags & SceneNavAgent_Moving)) {
     if (fromOnGrid) {
+      if (LIKELY(loco)) {
+        scene_locomotion_move_to(loco, trans->position);
+      }
       return; // Not moving and still on the grid; Nothing to do.
     }
     agent->flags |= SceneNavAgent_Moving;
@@ -172,6 +180,9 @@ static void scene_nav_update_agent(
   const f32 dist   = geo_vector_mag(geo_vector_sub(agent->target, trans->position));
   if (fromOnGrid && dist < (radius + scene_nav_arrive_threshold)) {
     agent->flags &= ~SceneNavAgent_Moving;
+    if (LIKELY(loco)) {
+      scene_locomotion_move_to(loco, trans->position);
+    }
     return; // Arrived at destination.
   }
 
@@ -297,8 +308,11 @@ ecs_module_init(scene_nav_module) {
 
 void scene_nav_move_to(SceneNavAgentComp* agent, const GeoVector target) {
   agent->flags |= SceneNavAgent_Moving;
+  agent->flags &= ~SceneNavAgent_Stop;
   agent->target = target;
 }
+
+void scene_nav_stop(SceneNavAgentComp* agent) { agent->flags |= SceneNavAgent_Stop; }
 
 void scene_nav_add_blocker(EcsWorld* world, const EcsEntityId entity) {
   ecs_world_add_empty_t(world, entity, SceneNavBlockerComp);

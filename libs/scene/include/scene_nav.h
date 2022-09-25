@@ -21,6 +21,7 @@ ecs_comp_extern(SceneNavBlockerComp);
 
 typedef enum {
   SceneNavAgent_Moving = 1 << 0,
+  SceneNavAgent_Stop   = 1 << 1,
 } SceneNavAgentFlags;
 
 ecs_comp_extern_public(SceneNavAgentComp) {
@@ -33,6 +34,7 @@ ecs_comp_extern_public(SceneNavPathComp) {
 };
 
 void scene_nav_move_to(SceneNavAgentComp*, GeoVector target);
+void scene_nav_stop(SceneNavAgentComp*);
 
 void               scene_nav_add_blocker(EcsWorld*, EcsEntityId);
 SceneNavAgentComp* scene_nav_add_agent(EcsWorld*, EcsEntityId);
