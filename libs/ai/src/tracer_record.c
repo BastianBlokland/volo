@@ -28,7 +28,7 @@ typedef struct sAiTracerRecord {
   u32        stack[ai_tracer_max_depth];
 } AiTracerRecord;
 
-static AiTracerNode* tracer_observe(AiTracerRecord* tracer, const u32 nodeIndex) {
+static AiTracerNode* tracer_observe(const AiTracerRecord* tracer, const u32 nodeIndex) {
   diag_assert_msg(nodeIndex < tracer->nodes.size, "Out of bounds index {}", fmt_int(nodeIndex));
   AiTracerNode* node = dynarray_at_t(&tracer->nodes, nodeIndex, AiTracerNode);
   diag_assert(!(node->flags & AiTracerNode_Running));
@@ -98,23 +98,23 @@ void ai_tracer_record_reset(AiTracerRecord* tracer) {
 
 AiTracer* ai_tracer_record_api(AiTracerRecord* tracer) { return (AiTracer*)tracer; }
 
-u32 ai_tracer_record_count(AiTracerRecord* tracer) {
+u32 ai_tracer_record_count(const AiTracerRecord* tracer) {
   diag_assert_msg(!tracer->depth, "Unable to observe the tracer: nodes still running");
   return (u32)tracer->nodes.size;
 }
 
-AssetBehaviorType ai_tracer_record_type(AiTracerRecord* tracer, const u32 nodeIndex) {
+AssetBehaviorType ai_tracer_record_type(const AiTracerRecord* tracer, const u32 nodeIndex) {
   return tracer_observe(tracer, nodeIndex)->type;
 }
 
-String ai_tracer_record_name(AiTracerRecord* tracer, const u32 nodeIndex) {
+String ai_tracer_record_name(const AiTracerRecord* tracer, const u32 nodeIndex) {
   return tracer_observe(tracer, nodeIndex)->name;
 }
 
-AiResult ai_tracer_record_result(AiTracerRecord* tracer, const u32 nodeIndex) {
+AiResult ai_tracer_record_result(const AiTracerRecord* tracer, const u32 nodeIndex) {
   return tracer_observe(tracer, nodeIndex)->result;
 }
 
-u8 ai_tracer_record_depth(AiTracerRecord* tracer, const u32 nodeIndex) {
+u8 ai_tracer_record_depth(const AiTracerRecord* tracer, const u32 nodeIndex) {
   return tracer_observe(tracer, nodeIndex)->depth;
 }
