@@ -34,6 +34,10 @@
         {
           "value": 0,
           "name": "Equal"
+        },
+        {
+          "value": 1,
+          "name": "Less"
         }
       ]
     }
