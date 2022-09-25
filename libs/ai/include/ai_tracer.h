@@ -10,10 +10,4 @@ typedef struct sAssetBehavior AssetBehavior;
 typedef struct sAiTracer {
   void (*begin)(struct sAiTracer*, const AssetBehavior*);
   void (*end)(struct sAiTracer*, const AssetBehavior*, AiResult);
-  void (*destruct)(struct sAiTracer*); // Optional.
 } AiTracer;
-
-/**
- * Destroy a tracer instance.
- */
-void ai_tracer_destroy(AiTracer*);

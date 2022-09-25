@@ -19,7 +19,7 @@ typedef struct {
   usize         count;
 } AssetKnowledgeList;
 
-typedef enum {
+typedef enum eAssetBehaviorType {
   AssetBehavior_Success,
   AssetBehavior_Failure,
   AssetBehavior_Invert,
