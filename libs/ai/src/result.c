@@ -4,9 +4,10 @@
 
 String ai_result_str(const AiResult res) {
   static const String g_names[] = {
+      string_static("Running"),
       string_static("Success"),
       string_static("Failure"),
   };
-  ASSERT(array_elems(g_names) == 2, "Incorrect number of names");
+  ASSERT(array_elems(g_names) == 3, "Incorrect number of names");
   return g_names[res];
 }

@@ -2,6 +2,7 @@
 #include "core_string.h"
 
 typedef enum {
+  AiResult_Running,
   AiResult_Success,
   AiResult_Failure,
 } AiResult;

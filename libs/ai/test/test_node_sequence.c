@@ -37,10 +37,25 @@ spec(node_sequence) {
     check_eq_int(tracer.count, 4);
   }
 
+  it("evaluates to running when any child evaluates to running") {
+    const AssetBehavior children[] = {
+        {.type = AssetBehavior_Success},
+        {.type = AssetBehavior_Running},
+        {.type = AssetBehavior_Success},
+    };
+    const AssetBehavior behavior = {
+        .type          = AssetBehavior_Sequence,
+        .data_sequence = {.children = {.values = children, array_elems(children)}},
+    };
+    check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Running);
+    check_eq_int(tracer.count, 3);
+  }
+
   it("evaluates to failure when any child evaluates to failure") {
     const AssetBehavior children[] = {
         {.type = AssetBehavior_Success},
         {.type = AssetBehavior_Failure},
+        {.type = AssetBehavior_Running},
         {.type = AssetBehavior_Success},
     };
     const AssetBehavior behavior = {

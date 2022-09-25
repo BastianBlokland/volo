@@ -9,6 +9,7 @@ void app_check_configure(CheckDef* check) {
   register_spec(check, node_knowledgecompare);
   register_spec(check, node_knowledgeset);
   register_spec(check, node_parallel);
+  register_spec(check, node_running);
   register_spec(check, node_selector);
   register_spec(check, node_sequence);
   register_spec(check, node_success);

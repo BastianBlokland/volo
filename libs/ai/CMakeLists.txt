@@ -17,6 +17,7 @@ add_library(lib_ai STATIC
   src/node/knowledgecompare.c
   src/node/knowledgeset.c
   src/node/parallel.c
+  src/node/running.c
   src/node/selector.c
   src/node/sequence.c
   src/node/success.c
@@ -35,6 +36,7 @@ add_executable(test_lib_ai
   test/test_node_knowledgecompare.c
   test/test_node_knowledgeset.c
   test/test_node_parallel.c
+  test/test_node_running.c
   test/test_node_selector.c
   test/test_node_sequence.c
   test/test_node_success.c

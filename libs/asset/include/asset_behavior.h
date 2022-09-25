@@ -20,6 +20,7 @@ typedef struct {
 } AssetKnowledgeList;
 
 typedef enum eAssetBehaviorType {
+  AssetBehavior_Running,
   AssetBehavior_Success,
   AssetBehavior_Failure,
   AssetBehavior_Invert,

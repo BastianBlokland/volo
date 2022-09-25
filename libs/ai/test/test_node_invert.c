@@ -13,6 +13,16 @@ spec(node_invert) {
     tracer = ai_tracer_count();
   }
 
+  it("evaluates to running when child evaluates to running") {
+    const AssetBehavior child    = {.type = AssetBehavior_Running};
+    const AssetBehavior behavior = {
+        .type        = AssetBehavior_Invert,
+        .data_invert = {.child = &child},
+    };
+    check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Running);
+    check_eq_int(tracer.count, 2);
+  }
+
   it("evaluates to success when child evaluates to failure") {
     const AssetBehavior child    = {.type = AssetBehavior_Failure};
     const AssetBehavior behavior = {
