@@ -79,6 +79,10 @@ ecs_system_define(SceneBehaviorUnloadChangedSys) {
 static void scene_brain_eval(
     const EcsEntityId entity, const SceneBrainComp* brain, const AssetBehaviorComp* behavior) {
 
+  if (UNLIKELY(brain->flags & SceneBrainFlags_PauseEvaluation)) {
+    return;
+  }
+
   ai_tracer_record_reset(brain->tracer);
   AiTracer* tracerApi = ai_tracer_record_api(brain->tracer);
 

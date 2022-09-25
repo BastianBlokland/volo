@@ -10,8 +10,9 @@ typedef struct sAiTracerRecord AiTracerRecord;
 
 typedef enum {
   SceneBrainFlags_None             = 0,
-  SceneBrainFlags_PauseSensors     = 1 << 1,
-  SceneBrainFlags_PauseControllers = 1 << 2,
+  SceneBrainFlags_PauseEvaluation  = 1 << 1,
+  SceneBrainFlags_PauseSensors     = 1 << 2,
+  SceneBrainFlags_PauseControllers = 1 << 3,
 } SceneBrainFlags;
 
 ecs_comp_extern(SceneBrainComp);
