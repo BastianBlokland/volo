@@ -15,12 +15,8 @@ typedef struct {
 static void data_clone_internal(const CloneCtx*);
 
 static void data_clone_string(const CloneCtx* ctx) {
-  const String originalVal = *mem_as_t(ctx->original, String);
-  if (string_is_empty(originalVal)) {
-    *mem_as_t(ctx->clone, String) = string_empty;
-  } else {
-    *mem_as_t(ctx->clone, String) = string_dup(ctx->alloc, originalVal);
-  }
+  const String originalVal      = *mem_as_t(ctx->original, String);
+  *mem_as_t(ctx->clone, String) = string_maybe_dup(ctx->alloc, originalVal);
 }
 
 static void data_clone_struct(const CloneCtx* ctx) {
@@ -53,11 +49,7 @@ static void data_clone_union(const CloneCtx* ctx) {
 
   const String* name = data_union_name(&decl->val_union, ctx->original);
   if (name) {
-    if (string_is_empty(*name)) {
-      *data_union_name(&decl->val_union, ctx->clone) = string_empty;
-    } else {
-      *data_union_name(&decl->val_union, ctx->clone) = string_dup(ctx->alloc, *name);
-    }
+    *data_union_name(&decl->val_union, ctx->clone) = string_maybe_dup(ctx->alloc, *name);
   }
 
   const DataDeclChoice* choice = data_choice_from_tag(&decl->val_union, tag);

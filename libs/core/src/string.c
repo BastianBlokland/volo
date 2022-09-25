@@ -26,7 +26,11 @@ String string_from_null_term(const char* ptr) {
   };
 }
 
-String string_dup(Allocator* alloc, String str) { return alloc_dup(alloc, str, 1); }
+String string_dup(Allocator* alloc, const String str) { return alloc_dup(alloc, str, 1); }
+
+String string_maybe_dup(Allocator* alloc, const String str) {
+  return string_is_empty(str) ? string_empty : alloc_dup(alloc, str, 1);
+}
 
 String string_combine_raw(Allocator* alloc, const String* parts) {
   usize size = 0;

@@ -103,6 +103,7 @@ String string_from_null_term(const char*);
  * NOTE: Has to be explicitly freed using 'string_free'.
  */
 String string_dup(Allocator*, String);
+String string_maybe_dup(Allocator*, String);
 
 /**
  * Allocate a new string that contains the contents of all the given strings.
