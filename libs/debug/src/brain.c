@@ -247,7 +247,7 @@ static void blackboard_panel_tab_draw(
       ui_table_next_row(canvas, &table);
       ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
 
-      ui_label(canvas, entry->name);
+      ui_label(canvas, entry->name, .selectable = true);
       ui_table_next_column(canvas, &table);
 
       ui_label(canvas, ai_blackboard_type_str(type));
