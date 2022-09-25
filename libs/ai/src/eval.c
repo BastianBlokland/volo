@@ -11,9 +11,11 @@
   X(AssetBehavior_KnowledgeCompare, ai_node_knowledgecompare_eval)                                 \
   X(AssetBehavior_KnowledgeSet, ai_node_knowledgeset_eval)                                         \
   X(AssetBehavior_Parallel, ai_node_parallel_eval)                                                 \
+  X(AssetBehavior_Running, ai_node_running_eval)                                                   \
   X(AssetBehavior_Selector, ai_node_selector_eval)                                                 \
   X(AssetBehavior_Sequence, ai_node_sequence_eval)                                                 \
-  X(AssetBehavior_Success, ai_node_success_eval)
+  X(AssetBehavior_Success, ai_node_success_eval)                                                   \
+  X(AssetBehavior_Try, ai_node_try_eval)
 
 typedef AiResult (*AiNodeEval)(const AssetBehavior*, AiBlackboard*, AiTracer*);
 

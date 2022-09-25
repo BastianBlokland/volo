@@ -27,6 +27,7 @@ spec(node_selector) {
     const AssetBehavior children[] = {
         {.type = AssetBehavior_Failure},
         {.type = AssetBehavior_Success},
+        {.type = AssetBehavior_Running},
         {.type = AssetBehavior_Failure},
     };
     const AssetBehavior behavior = {
@@ -35,6 +36,21 @@ spec(node_selector) {
     };
     check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Success);
     check_eq_int(tracer.count, 3);
+  }
+
+  it("evaluates to running when any child evaluates to running") {
+    const AssetBehavior children[] = {
+        {.type = AssetBehavior_Failure},
+        {.type = AssetBehavior_Failure},
+        {.type = AssetBehavior_Running},
+        {.type = AssetBehavior_Failure},
+    };
+    const AssetBehavior behavior = {
+        .type          = AssetBehavior_Selector,
+        .data_selector = {.children = {.values = children, array_elems(children)}},
+    };
+    check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Running);
+    check_eq_int(tracer.count, 4);
   }
 
   it("evaluates to failure when all children evaluate to failure") {

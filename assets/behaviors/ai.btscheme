@@ -3,9 +3,11 @@
     {
       "identifier": "AssetBehavior",
       "values": [
+        "AssetBehavior_Running",
         "AssetBehavior_Success",
         "AssetBehavior_Failure",
         "AssetBehavior_Invert",
+        "AssetBehavior_Try",
         "AssetBehavior_Parallel",
         "AssetBehavior_Selector",
         "AssetBehavior_Sequence",
@@ -38,6 +40,10 @@
   ],
   "nodes": [
     {
+      "nodeType": "AssetBehavior_Running",
+      "fields": []
+    },
+    {
       "nodeType": "AssetBehavior_Success",
       "fields": []
     },
@@ -47,7 +53,17 @@
     },
     {
       "nodeType": "AssetBehavior_Invert",
-      "comment": "Evaluates the child node and inverts its result.\nEvaluates to 'Success' if the child evaluated to 'Failure', otherwise to 'Failure'.",
+      "comment": "Evaluates the child node and inverts its result.\nEvaluates to 'Running' if the child evaluates to 'Running', 'Success' if the child evaluated to 'Failure', otherwise to 'Failure'.",
+      "fields": [
+        {
+          "name": "child",
+          "valueType": "AssetBehavior"
+        }
+      ]
+    },
+    {
+      "nodeType": "AssetBehavior_Try",
+      "comment": "Evaluates the child node.\nEvaluates to 'Running' if the child evaluates to 'Failure' or 'Running', otherwise to 'Success'.",
       "fields": [
         {
           "name": "child",
@@ -57,7 +73,7 @@
     },
     {
       "nodeType": "AssetBehavior_Parallel",
-      "comment": "Evaluates all children.\nEvaluates to 'Success' if any child evaluated to 'Success', otherwise to 'Failure'.",
+      "comment": "Evaluates all children.\nEvaluates to 'Success' if any child evaluated to 'Success', 'Running' if any child evaluates to 'Running', otherwise to 'Failure'.",
       "fields": [
         {
           "name": "children",
@@ -68,7 +84,7 @@
     },
     {
       "nodeType": "AssetBehavior_Selector",
-      "comment": "Evaluates children until a child evaluates to 'Success'.\nEvaluates to 'Success' if any child evaluated to 'Success', otherwise to 'Failure'.",
+      "comment": "Evaluates children until a child evaluates to 'Running' or 'Success'.\nEvaluates to 'Success' if any child evaluated to 'Success', 'Running' if any child evaluated to 'Running', otherwise to 'Failure'.",
       "fields": [
         {
           "name": "children",
@@ -79,7 +95,7 @@
     },
     {
       "nodeType": "AssetBehavior_Sequence",
-      "comment": "Evaluates children until a child evaluates to 'Failure'.\nEvaluates to 'Success' if all children evaluated to 'Success' otherwise to 'Failure'.",
+      "comment": "Evaluates children until a child evaluates to 'Failure'.\nEvaluates to 'Success' if all children evaluated to 'Success', 'Running' if any child evaluated to 'Running', otherwise to 'Failure'.",
       "fields": [
         {
           "name": "children",

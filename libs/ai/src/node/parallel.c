@@ -6,15 +6,21 @@
 AiResult ai_node_parallel_eval(const AssetBehavior* behavior, AiBlackboard* bb, AiTracer* tracer) {
   diag_assert(behavior->type == AssetBehavior_Parallel);
 
-  bool success = false;
+  AiResult result = AiResult_Failure;
   array_ptr_for_t(behavior->data_parallel.children, AssetBehavior, child) {
     switch (ai_eval(child, bb, tracer)) {
+    case AiResult_Running:
+      if (result == AiResult_Failure) {
+        result = AiResult_Running;
+      }
+      continue;
     case AiResult_Success:
-      success = true;
+      result = AiResult_Success;
+      continue;
     case AiResult_Failure:
       continue;
     }
     UNREACHABLE
   }
-  return success ? AiResult_Success : AiResult_Failure;
+  return result;
 }

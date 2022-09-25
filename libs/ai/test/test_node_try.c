@@ -4,7 +4,7 @@
 #include "check_spec.h"
 #include "core_alloc.h"
 
-spec(node_invert) {
+spec(node_try) {
   AiBlackboard* bb = null;
   AiTracerCount tracer;
 
@@ -16,30 +16,30 @@ spec(node_invert) {
   it("evaluates to running when child evaluates to running") {
     const AssetBehavior child    = {.type = AssetBehavior_Running};
     const AssetBehavior behavior = {
-        .type        = AssetBehavior_Invert,
-        .data_invert = {.child = &child},
+        .type     = AssetBehavior_Try,
+        .data_try = {.child = &child},
     };
     check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Running);
     check_eq_int(tracer.count, 2);
   }
 
-  it("evaluates to success when child evaluates to failure") {
+  it("evaluates to running when child evaluates to failure") {
     const AssetBehavior child    = {.type = AssetBehavior_Failure};
     const AssetBehavior behavior = {
-        .type        = AssetBehavior_Invert,
-        .data_invert = {.child = &child},
+        .type     = AssetBehavior_Try,
+        .data_try = {.child = &child},
     };
-    check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Success);
+    check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Running);
     check_eq_int(tracer.count, 2);
   }
 
-  it("evaluates to failure when child evaluates to success") {
+  it("evaluates to success when child evaluates to success") {
     const AssetBehavior child    = {.type = AssetBehavior_Success};
     const AssetBehavior behavior = {
-        .type        = AssetBehavior_Invert,
-        .data_invert = {.child = &child},
+        .type     = AssetBehavior_Try,
+        .data_try = {.child = &child},
     };
-    check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Failure);
+    check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Success);
     check_eq_int(tracer.count, 2);
   }
 
@@ -53,10 +53,10 @@ spec(node_invert) {
             },
     };
     const AssetBehavior behavior = {
-        .type        = AssetBehavior_Invert,
-        .data_invert = {.child = &child},
+        .type     = AssetBehavior_Try,
+        .data_try = {.child = &child},
     };
-    check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Failure);
+    check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Success);
     check_eq_int(tracer.count, 2);
     check_eq_float(ai_blackboard_get_f64(bb, string_hash_lit("test")), 42.42, 1e-6f);
   }

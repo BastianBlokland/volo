@@ -20,9 +20,11 @@ typedef struct {
 } AssetKnowledgeList;
 
 typedef enum eAssetBehaviorType {
+  AssetBehavior_Running,
   AssetBehavior_Success,
   AssetBehavior_Failure,
   AssetBehavior_Invert,
+  AssetBehavior_Try,
   AssetBehavior_Parallel,
   AssetBehavior_Selector,
   AssetBehavior_Sequence,
@@ -76,6 +78,10 @@ typedef struct {
 } AssetBehaviorInvert;
 
 typedef struct {
+  const AssetBehavior* child;
+} AssetBehaviorTry;
+
+typedef struct {
   AssetBehaviorList children;
 } AssetBehaviorParallel;
 
@@ -111,6 +117,7 @@ typedef struct sAssetBehavior {
   String            name;
   union {
     AssetBehaviorInvert           data_invert;
+    AssetBehaviorTry              data_try;
     AssetBehaviorParallel         data_parallel;
     AssetBehaviorSelector         data_selector;
     AssetBehaviorSequence         data_sequence;

@@ -8,6 +8,8 @@ AiResult ai_node_sequence_eval(const AssetBehavior* behavior, AiBlackboard* bb, 
 
   array_ptr_for_t(behavior->data_sequence.children, AssetBehavior, child) {
     switch (ai_eval(child, bb, tracer)) {
+    case AiResult_Running:
+      return AiResult_Running;
     case AiResult_Success:
       continue;
     case AiResult_Failure:

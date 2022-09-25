@@ -86,7 +86,7 @@ static void scene_brain_eval(
   AiTracer* tracerApi = ai_tracer_record_api(brain->tracer);
 
   const AiResult res = ai_eval(&behavior->root, brain->blackboard, tracerApi);
-  if (res != AiResult_Success) {
+  if (res == AiResult_Failure) {
     log_w(
         "Brain behavior evaluated to 'failure'", log_param("entity", fmt_int(entity, .base = 16)));
   }
