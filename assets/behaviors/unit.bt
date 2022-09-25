@@ -22,13 +22,16 @@
           }
         },
         {
-          "$type": "AssetBehavior_KnowledgeCompare",
+          "$type": "AssetBehavior_Try",
           "$name": "Check if we arrived at the user target",
-          "comparison": 0,
-          "key": "self-nav-arrived",
-          "value": {
-            "$type": "AssetKnowledgeSource_Knowledge",
-            "key": "user-move-target"
+          "child": {
+            "$type": "AssetBehavior_KnowledgeCompare",
+            "comparison": 0,
+            "key": "self-nav-arrived",
+            "value": {
+              "$type": "AssetKnowledgeSource_Knowledge",
+              "key": "user-move-target"
+            }
           }
         },
         {
