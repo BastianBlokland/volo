@@ -40,8 +40,9 @@ ecs_system_define(SceneTargetUpdateSys) {
       const GeoVector           posDelta = geo_vector_sub(targetTrans->position, trans->position);
       const f32                 distSqr  = geo_vector_mag_sqr(posDelta);
       if (distSqr < finder->targetDistSqr) {
-        finder->target        = targetEntity;
-        finder->targetDistSqr = distSqr;
+        finder->target         = targetEntity;
+        finder->targetPosition = targetTrans->position;
+        finder->targetDistSqr  = distSqr;
       }
     }
   }
