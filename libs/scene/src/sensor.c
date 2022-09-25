@@ -80,11 +80,15 @@ ecs_system_define(SceneSensorUpdateSys) {
     }
 
     const SceneTargetFinderComp* targetFinder = ecs_view_read_t(itr, SceneTargetFinderComp);
-    if (targetFinder) {
+    if (targetFinder && targetFinder->target) {
       ai_blackboard_set_entity(bb, g_blackboardKeyTargetEntity, targetFinder->target);
       ai_blackboard_set_vector(bb, g_blackboardKeyTargetPosition, targetFinder->targetPosition);
       const f64 distToTarget = math_sqrt_f64(targetFinder->targetDistSqr);
       ai_blackboard_set_f64(bb, g_blackboardKeyTargetDist, distToTarget);
+    } else {
+      ai_blackboard_unset(bb, g_blackboardKeyTargetEntity);
+      ai_blackboard_unset(bb, g_blackboardKeyTargetPosition);
+      ai_blackboard_unset(bb, g_blackboardKeyTargetDist);
     }
   }
 }
