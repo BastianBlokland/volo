@@ -1,12 +1,10 @@
 #pragma once
 #include "ai_tracer.h"
+#include "asset_behavior.h"
 #include "core_string.h"
 
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;
-
-// Forward declare from 'asset_behavior.h'.
-typedef enum eAssetBehaviorType AssetBehaviorType;
 
 /**
  * Tracer that records node execution information.
