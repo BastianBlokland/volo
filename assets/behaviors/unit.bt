@@ -87,6 +87,14 @@
             "$type": "AssetKnowledgeSource_Bool",
             "value": true
           }
+        },
+        {
+          "$type": "AssetBehavior_KnowledgeSet",
+          "key": "cmd-attack-target",
+          "value": {
+            "$type": "AssetKnowledgeSource_Knowledge",
+            "key": "target-entity"
+          }
         }
       ]
     },
