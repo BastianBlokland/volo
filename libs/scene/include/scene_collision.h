@@ -102,6 +102,7 @@ GeoBoxRotated scene_collision_world_box(
 
 /**
  * Compute the world axis-aligned bounds for the given collision component.
+ * NOTE: SceneTransformComp and SceneScaleComp are optional.
  */
 GeoBox scene_collision_world_bounds(
     const SceneCollisionComp*, const SceneTransformComp*, const SceneScaleComp*);
