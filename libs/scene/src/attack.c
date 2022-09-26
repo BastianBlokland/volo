@@ -3,6 +3,7 @@
 #include "scene_attack.h"
 #include "scene_collision.h"
 #include "scene_lifetime.h"
+#include "scene_projectile.h"
 #include "scene_renderable.h"
 #include "scene_time.h"
 #include "scene_transform.h"
@@ -44,15 +45,14 @@ static void attack_projectile_spawn(
   ecs_world_add_t(world, e, SceneRenderableComp, .graphic = graphic);
   ecs_world_add_t(world, e, SceneTransformComp, .position = sourcePos, .rotation = rotation);
   ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_seconds(5));
+  ecs_world_add_t(world, e, SceneProjectileComp, .speed = 15);
 }
 
-static void attack_execute(
-    EcsWorld* world, EcsIterator* itr, EcsIterator* targetItr, const SceneTimeComp* time) {
+static void attack_execute(EcsWorld* world, EcsIterator* itr, EcsIterator* targetItr) {
   SceneAttackComp* attack = ecs_view_write_t(itr, SceneAttackComp);
-  attack->lastAttackTime  = time->time;
 
   const SceneTransformComp* trans     = ecs_view_read_t(itr, SceneTransformComp);
-  const GeoVector           sourcePos = geo_vector_add(trans->position, geo_vector(0, 1.5f, 0));
+  const GeoVector           sourcePos = geo_vector_add(trans->position, geo_vector(0, 1.25f, 0));
   const GeoVector           targetPos = attack_target_position(targetItr);
 
   attack_projectile_spawn(world, attack->projectileGraphic, sourcePos, targetPos);
@@ -75,7 +75,8 @@ ecs_system_define(SceneAttackSys) {
     }
     const TimeDuration timeSinceAttack = time->time - attack->lastAttackTime;
     if (timeSinceAttack > attack->attackInterval) {
-      attack_execute(world, itr, targetItr, time);
+      attack_execute(world, itr, targetItr);
+      attack->lastAttackTime = time->time;
     }
   }
 }

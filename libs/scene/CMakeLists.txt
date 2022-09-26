@@ -17,6 +17,7 @@ add_library(lib_scene STATIC
   src/locomotion.c
   src/name.c
   src/nav.c
+  src/projectile.c
   src/register.c
   src/renderable.c
   src/selection.c
