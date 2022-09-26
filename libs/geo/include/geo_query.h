@@ -13,6 +13,15 @@ typedef struct sAllocator Allocator;
 #define geo_query_max_hits 128
 
 /**
+ * Callback for filtering query hits.
+ * Return 'true' to keep the hit or 'false' to discard the hit.
+ */
+typedef struct {
+  const void* context;                                // Optional.
+  bool (*callback)(const void* context, u64 shapeId); // Optional.
+} GeoQueryFilter;
+
+/**
  * Environment for querying against.
  */
 typedef struct sGeoQueryEnv GeoQueryEnv;
@@ -51,7 +60,8 @@ typedef struct {
  * Returns true if a shape was hit otherwise false.
  * NOTE: Hit information is written to the out pointer if true was returned.
  */
-bool geo_query_ray(const GeoQueryEnv*, const GeoRay*, GeoQueryRayHit* outHit);
+bool geo_query_ray(
+    const GeoQueryEnv*, const GeoRay*, const GeoQueryFilter*, GeoQueryRayHit* outHit);
 
 /**
  * Query for all objects that are contained in the frustum formed by the given 8 corner points.

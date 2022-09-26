@@ -16,6 +16,15 @@ ecs_comp_extern(SceneScaleComp);
 #define scene_query_max_hits 128
 
 /**
+ * Callback for filtering query hits.
+ * Return 'true' to keep the hit or 'false' to discard the hit.
+ */
+typedef struct {
+  const void* context;                                       // Optional.
+  bool (*callback)(const void* context, EcsEntityId entity); // Optional.
+} SceneQueryFilter;
+
+/**
  * Global collision environment.
  */
 ecs_comp_extern(SceneCollisionEnvComp);
@@ -77,7 +86,8 @@ typedef struct {
   f32         time;
 } SceneRayHit;
 
-bool scene_query_ray(const SceneCollisionEnvComp*, const GeoRay* ray, SceneRayHit* out);
+bool scene_query_ray(
+    const SceneCollisionEnvComp*, const GeoRay* ray, const SceneQueryFilter*, SceneRayHit* out);
 
 /**
  * Query for all entities that are contained in the frustum formed by the given 8 corner points.
