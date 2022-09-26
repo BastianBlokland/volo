@@ -90,6 +90,7 @@
         },
         {
           "$type": "AssetBehavior_KnowledgeSet",
+          "$name": "Attack",
           "key": "cmd-attack-target",
           "value": {
             "$type": "AssetKnowledgeSource_Knowledge",
