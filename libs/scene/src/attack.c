@@ -33,6 +33,7 @@ static GeoVector attack_target_position(EcsIterator* targetItr) {
 
 static void attack_projectile_spawn(
     EcsWorld*         world,
+    const EcsEntityId instigator,
     const EcsEntityId graphic,
     const GeoVector   sourcePos,
     const GeoVector   targetPos) {
@@ -45,17 +46,18 @@ static void attack_projectile_spawn(
   ecs_world_add_t(world, e, SceneRenderableComp, .graphic = graphic);
   ecs_world_add_t(world, e, SceneTransformComp, .position = sourcePos, .rotation = rotation);
   ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_seconds(5));
-  ecs_world_add_t(world, e, SceneProjectileComp, .speed = 15);
+  ecs_world_add_t(world, e, SceneProjectileComp, .instigator = instigator, .speed = 15);
 }
 
 static void attack_execute(EcsWorld* world, EcsIterator* itr, EcsIterator* targetItr) {
   SceneAttackComp* attack = ecs_view_write_t(itr, SceneAttackComp);
 
+  const EcsEntityId         entity    = ecs_view_entity(itr);
   const SceneTransformComp* trans     = ecs_view_read_t(itr, SceneTransformComp);
   const GeoVector           sourcePos = geo_vector_add(trans->position, geo_vector(0, 1.25f, 0));
   const GeoVector           targetPos = attack_target_position(targetItr);
 
-  attack_projectile_spawn(world, attack->projectileGraphic, sourcePos, targetPos);
+  attack_projectile_spawn(world, entity, attack->projectileGraphic, sourcePos, targetPos);
 }
 
 ecs_system_define(SceneAttackSys) {
