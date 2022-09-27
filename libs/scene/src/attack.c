@@ -23,7 +23,12 @@ ecs_view_define(TargetEntityView) {
   ecs_access_maybe_read(SceneScaleComp);
 }
 
-static GeoVector attack_target_position(EcsIterator* targetItr) {
+static GeoVector aim_source_position(EcsIterator* entityItr) {
+  const SceneTransformComp* trans = ecs_view_read_t(entityItr, SceneTransformComp);
+  return geo_vector_add(trans->position, geo_vector(0, 1.25f, 0));
+}
+
+static GeoVector aim_target_position(EcsIterator* targetItr) {
   const SceneCollisionComp* collision    = ecs_view_read_t(targetItr, SceneCollisionComp);
   const SceneTransformComp* trans        = ecs_view_read_t(targetItr, SceneTransformComp);
   const SceneScaleComp*     scale        = ecs_view_read_t(targetItr, SceneScaleComp);
@@ -53,10 +58,9 @@ static void attack_projectile_spawn(
 static void attack_execute(EcsWorld* world, EcsIterator* itr, EcsIterator* targetItr) {
   SceneAttackComp* attack = ecs_view_write_t(itr, SceneAttackComp);
 
-  const EcsEntityId         entity    = ecs_view_entity(itr);
-  const SceneTransformComp* trans     = ecs_view_read_t(itr, SceneTransformComp);
-  const GeoVector           sourcePos = geo_vector_add(trans->position, geo_vector(0, 1.25f, 0));
-  const GeoVector           targetPos = attack_target_position(targetItr);
+  const EcsEntityId entity    = ecs_view_entity(itr);
+  const GeoVector   sourcePos = aim_source_position(itr);
+  const GeoVector   targetPos = aim_target_position(targetItr);
 
   attack_projectile_spawn(world, entity, attack->projectileGraphic, sourcePos, targetPos);
 }
