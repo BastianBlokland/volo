@@ -46,7 +46,8 @@ static void attack_projectile_spawn(
   ecs_world_add_t(world, e, SceneRenderableComp, .graphic = graphic);
   ecs_world_add_t(world, e, SceneTransformComp, .position = sourcePos, .rotation = rotation);
   ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_seconds(5));
-  ecs_world_add_t(world, e, SceneProjectileComp, .instigator = instigator, .speed = 15);
+  ecs_world_add_t(
+      world, e, SceneProjectileComp, .speed = 15, .damage = 10, .instigator = instigator);
 }
 
 static void attack_execute(EcsWorld* world, EcsIterator* itr, EcsIterator* targetItr) {

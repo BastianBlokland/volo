@@ -1,5 +1,6 @@
 #include "ecs_world.h"
 #include "scene_collision.h"
+#include "scene_health.h"
 #include "scene_projectile.h"
 #include "scene_time.h"
 #include "scene_transform.h"
@@ -16,9 +17,16 @@ ecs_view_define(ProjectileView) {
   ecs_access_write(SceneTransformComp);
 }
 
-bool scene_projectile_query_filter(const void* context, const EcsEntityId entity) {
+ecs_view_define(TargetView) { ecs_access_write(SceneHealthComp); }
+
+static bool projectile_query_filter(const void* context, const EcsEntityId entity) {
   const SceneProjectileComp* projectile = context;
   return entity != projectile->instigator;
+}
+
+static void projectile_damage(const SceneProjectileComp* projectile, const EcsIterator* targetItr) {
+  SceneHealthComp* health = ecs_view_write_t(targetItr, SceneHealthComp);
+  scene_health_damage(health, projectile->damage);
 }
 
 ecs_system_define(SceneProjectileSys) {
@@ -31,6 +39,8 @@ ecs_system_define(SceneProjectileSys) {
   const SceneTimeComp*         time         = ecs_view_read_t(globalItr, SceneTimeComp);
   const f32                    deltaSeconds = scene_delta_seconds(time);
 
+  EcsIterator* targetItr = ecs_view_itr(ecs_world_view_t(world, TargetView));
+
   EcsView* projectileView = ecs_world_view_t(world, ProjectileView);
   for (EcsIterator* itr = ecs_view_itr(projectileView); ecs_view_walk(itr);) {
     const SceneProjectileComp* projectile = ecs_view_read_t(itr, SceneProjectileComp);
@@ -42,12 +52,16 @@ ecs_system_define(SceneProjectileSys) {
 
     const SceneQueryFilter filter = {
         .context  = projectile,
-        .callback = scene_projectile_query_filter,
+        .callback = projectile_query_filter,
     };
 
     SceneRayHit hit;
     if (scene_query_ray(collisionEnv, &ray, &filter, &hit) && hit.time <= deltaDist) {
       ecs_world_entity_destroy(world, ecs_view_entity(itr));
+
+      if (ecs_view_maybe_jump(targetItr, hit.entity)) {
+        projectile_damage(projectile, targetItr);
+      }
       continue;
     }
 
@@ -61,6 +75,11 @@ ecs_module_init(scene_projectile_module) {
 
   ecs_register_view(GlobalView);
   ecs_register_view(ProjectileView);
+  ecs_register_view(TargetView);
 
-  ecs_register_system(SceneProjectileSys, ecs_view_id(GlobalView), ecs_view_id(ProjectileView));
+  ecs_register_system(
+      SceneProjectileSys,
+      ecs_view_id(GlobalView),
+      ecs_view_id(ProjectileView),
+      ecs_view_id(TargetView));
 }
