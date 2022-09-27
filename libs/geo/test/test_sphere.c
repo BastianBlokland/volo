@@ -19,6 +19,9 @@ spec(sphere) {
         {.ray = {2, 1, 0, .dir = {2, 0, 0}}, .sphere = {2, 0, 0, .radius = 2}, .hit = true},
         {.ray = {-2, 1, 0, .dir = {-1, 0, 0}}, .sphere = {2, 0, 0, .radius = 2}, .hit = false},
         {.ray = {-5, 1, 0, .dir = {2, 0.4f, 0}}, .sphere = {2, 0, 0, .radius = 2}, .hit = false},
+        {.ray    = {-1.7176136f, 1.25f, 23.4851f, .dir = {-0.855202f, -0.08211f, -0.511746f}},
+         .sphere = {-5.3625f, 0.8999f, 21.3040f, .radius = 0.3f},
+         .hit    = true},
     };
 
     for (u32 i = 0; i != array_elems(g_data); ++i) {
