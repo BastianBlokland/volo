@@ -52,7 +52,7 @@ ecs_system_define(SceneProjectileSys) {
 
     const SceneQueryFilter filter = {
         .context  = projectile,
-        .callback = projectile_query_filter,
+        .callback = &projectile_query_filter,
     };
 
     SceneRayHit hit;
