@@ -111,9 +111,16 @@ void scene_collision_add_box(
   ecs_world_add_t(world, entity, SceneCollisionComp, .type = SceneCollisionType_Box, .box = box);
 }
 
-bool scene_query_ray(const SceneCollisionEnvComp* env, const GeoRay* ray, SceneRayHit* out) {
-  GeoQueryRayHit hit;
-  if (geo_query_ray(env->queryEnv, ray, &hit)) {
+bool scene_query_ray(
+    const SceneCollisionEnvComp* env,
+    const GeoRay*                ray,
+    const SceneQueryFilter*      filter,
+    SceneRayHit*                 out) {
+  diag_assert(filter);
+
+  GeoQueryRayHit       hit;
+  const GeoQueryFilter geoFilter = {.context = filter->context, .callback = filter->callback};
+  if (geo_query_ray(env->queryEnv, ray, &geoFilter, &hit)) {
     *out = (SceneRayHit){
         .entity   = (EcsEntityId)hit.shapeId,
         .position = geo_ray_position(ray, hit.time),

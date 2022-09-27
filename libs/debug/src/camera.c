@@ -264,8 +264,9 @@ static void debug_camera_draw_input_ray(
   const GeoVector end   = geo_vector_add(start, geo_vector_mul(ray.dir, 1e10f));
   debug_line(shape, start, end, geo_color_fuchsia);
 
-  SceneRayHit hit;
-  if (scene_query_ray(collisionEnv, &ray, &hit)) {
+  SceneRayHit            hit;
+  const SceneQueryFilter filter = {0};
+  if (scene_query_ray(collisionEnv, &ray, &filter, &hit)) {
     debug_sphere(shape, hit.position, 0.04f, geo_color_lime, DebugShape_Overlay);
     const GeoVector lineEnd = geo_vector_add(hit.position, geo_vector_mul(hit.normal, 0.5f));
     debug_arrow(shape, hit.position, lineEnd, 0.04f, geo_color_green);

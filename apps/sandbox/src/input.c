@@ -90,8 +90,9 @@ static void select_end_click(
     const GeoRay*                inputRay) {
   state->selectState = InputSelectState_None;
 
-  SceneRayHit hit;
-  const bool  hasHit = scene_query_ray(collisionEnv, inputRay, &hit);
+  SceneRayHit            hit;
+  const SceneQueryFilter filter = {0};
+  const bool             hasHit = scene_query_ray(collisionEnv, inputRay, &filter, &hit);
 
   if (hasHit && !scene_selection_contains(sel, hit.entity)) {
     cmd_push_deselect(cmdController);

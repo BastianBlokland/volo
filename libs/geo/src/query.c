@@ -31,6 +31,13 @@ static void geo_query_validate_dir(const GeoVector vec) {
   return;
 }
 
+static bool geo_query_filter(const GeoQueryFilter* filter, const u64 shapeId) {
+  if (filter->callback) {
+    return filter->callback(filter->context, shapeId);
+  }
+  return true;
+}
+
 GeoQueryEnv* geo_query_env_create(Allocator* alloc) {
   GeoQueryEnv* env = alloc_alloc_t(alloc, GeoQueryEnv);
 
@@ -88,7 +95,12 @@ void geo_query_insert_box_rotated(GeoQueryEnv* env, const GeoBoxRotated box, con
   *dynarray_push_t(&env->rotateBoxIds, u64)           = id;
 }
 
-bool geo_query_ray(const GeoQueryEnv* env, const GeoRay* ray, GeoQueryRayHit* outHit) {
+bool geo_query_ray(
+    const GeoQueryEnv*    env,
+    const GeoRay*         ray,
+    const GeoQueryFilter* filter,
+    GeoQueryRayHit*       outHit) {
+  diag_assert(filter);
   geo_query_validate_pos(ray->point);
   geo_query_validate_dir(ray->dir);
 
@@ -105,10 +117,11 @@ bool geo_query_ray(const GeoQueryEnv* env, const GeoRay* ray, GeoQueryRayHit* ou
     if (hitT < 0.0) {
       continue; // Miss.
     }
-    if (hitT < bestHit.time) {
+    const u64 shapeId = *dynarray_at_t(&env->sphereIds, itr - spheresBegin, u64);
+    if (hitT < bestHit.time && geo_query_filter(filter, shapeId)) {
       const GeoVector hitPos = geo_ray_position(ray, hitT);
       bestHit.time           = hitT;
-      bestHit.shapeId        = *dynarray_at_t(&env->sphereIds, itr - spheresBegin, u64);
+      bestHit.shapeId        = shapeId;
       bestHit.normal         = geo_vector_norm(geo_vector_sub(hitPos, itr->point));
       foundHit               = true;
     }
@@ -125,9 +138,10 @@ bool geo_query_ray(const GeoQueryEnv* env, const GeoRay* ray, GeoQueryRayHit* ou
     if (hitT < 0.0) {
       continue; // Miss.
     }
-    if (hitT < bestHit.time) {
+    const u64 shapeId = *dynarray_at_t(&env->capsuleIds, itr - capsulesBegin, u64);
+    if (hitT < bestHit.time && geo_query_filter(filter, shapeId)) {
       bestHit.time    = hitT;
-      bestHit.shapeId = *dynarray_at_t(&env->capsuleIds, itr - capsulesBegin, u64);
+      bestHit.shapeId = shapeId;
       bestHit.normal  = normal;
       foundHit        = true;
     }
@@ -144,9 +158,10 @@ bool geo_query_ray(const GeoQueryEnv* env, const GeoRay* ray, GeoQueryRayHit* ou
     if (hitT < 0.0) {
       continue; // Miss.
     }
-    if (hitT < bestHit.time) {
+    const u64 shapeId = *dynarray_at_t(&env->rotateBoxIds, itr - rotatedBoxesBegin, u64);
+    if (hitT < bestHit.time && geo_query_filter(filter, shapeId)) {
       bestHit.time    = hitT;
-      bestHit.shapeId = *dynarray_at_t(&env->rotateBoxIds, itr - rotatedBoxesBegin, u64);
+      bestHit.shapeId = shapeId;
       bestHit.normal  = normal;
       foundHit        = true;
     }

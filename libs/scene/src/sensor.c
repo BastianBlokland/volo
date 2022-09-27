@@ -20,7 +20,8 @@ static StringHash g_blackboardKeyTime,
                   g_blackboardKeyNavArrived,
                   g_blackboardKeyTargetEntity,
                   g_blackboardKeyTargetPosition,
-                  g_blackboardKeyTargetDist;
+                  g_blackboardKeyTargetDist,
+                  g_blackboardKeyTargetLos;
 
 // clang-format on
 
@@ -81,14 +82,18 @@ ecs_system_define(SceneSensorUpdateSys) {
 
     const SceneTargetFinderComp* targetFinder = ecs_view_read_t(itr, SceneTargetFinderComp);
     if (targetFinder && targetFinder->target) {
+      const f64  distToTarget = math_sqrt_f64(targetFinder->targetDistSqr);
+      const bool los          = (targetFinder->targetFlags & SceneTarget_LineOfSight) != 0;
+
       ai_blackboard_set_entity(bb, g_blackboardKeyTargetEntity, targetFinder->target);
       ai_blackboard_set_vector(bb, g_blackboardKeyTargetPosition, targetFinder->targetPosition);
-      const f64 distToTarget = math_sqrt_f64(targetFinder->targetDistSqr);
       ai_blackboard_set_f64(bb, g_blackboardKeyTargetDist, distToTarget);
+      ai_blackboard_set_bool(bb, g_blackboardKeyTargetLos, los);
     } else {
       ai_blackboard_unset(bb, g_blackboardKeyTargetEntity);
       ai_blackboard_unset(bb, g_blackboardKeyTargetPosition);
       ai_blackboard_unset(bb, g_blackboardKeyTargetDist);
+      ai_blackboard_unset(bb, g_blackboardKeyTargetLos);
     }
   }
 }
@@ -103,6 +108,7 @@ ecs_module_init(scene_sensor_module) {
   g_blackboardKeyTargetEntity   = stringtable_add(g_stringtable, string_lit("target-entity"));
   g_blackboardKeyTargetPosition = stringtable_add(g_stringtable, string_lit("target-position"));
   g_blackboardKeyTargetDist     = stringtable_add(g_stringtable, string_lit("target-dist"));
+  g_blackboardKeyTargetLos      = stringtable_add(g_stringtable, string_lit("target-los"));
 
   ecs_register_view(SensorGlobalView);
   ecs_register_view(BrainView);

@@ -1,5 +1,6 @@
 #include "asset_manager.h"
 #include "ecs_world.h"
+#include "scene_attack.h"
 #include "scene_brain.h"
 #include "scene_collision.h"
 #include "scene_faction.h"
@@ -14,6 +15,7 @@
 
 ecs_comp_define(ObjectDatabaseComp) {
   EcsEntityId unitGraphic;
+  EcsEntityId projGraphic;
   EcsEntityId unitBehavior;
   EcsEntityId wallGraphic;
 };
@@ -37,6 +39,7 @@ ecs_system_define(ObjectDatabaseInitSys) {
       ecs_world_global(world),
       ObjectDatabaseComp,
       .unitGraphic  = asset_lookup(world, assets, string_lit("graphics/sandbox/vanguard.gra")),
+      .projGraphic  = asset_lookup(world, assets, string_lit("graphics/sandbox/projectile.gra")),
       .unitBehavior = asset_lookup(world, assets, string_lit("behaviors/unit.bt")),
       .wallGraphic  = asset_lookup(world, assets, string_lit("graphics/sandbox/wall.gra")));
 }
@@ -70,6 +73,12 @@ object_spawn_unit(EcsWorld* world, const ObjectDatabaseComp* db, const GeoVector
   ecs_world_add_t(world, e, SceneHealthComp, .norm = 1.0f, .max = 100.0f);
   ecs_world_add_t(world, e, SceneFactionComp, .id = 1);
   ecs_world_add_t(world, e, SceneTargetFinderComp);
+  ecs_world_add_t(
+      world,
+      e,
+      SceneAttackComp,
+      .attackInterval    = time_milliseconds(250),
+      .projectileGraphic = db->projGraphic);
   scene_collision_add_capsule(world, e, g_capsule);
   scene_brain_add(world, e, db->unitBehavior);
   return e;

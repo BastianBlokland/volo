@@ -58,16 +58,33 @@
           "$name": "Move into range",
           "children": [
             {
-              "$type": "AssetBehavior_KnowledgeCompare",
-              "comparison": 1,
-              "key": "target-dist",
-              "value": {
-                "$type": "AssetKnowledgeSource_Number",
-                "value": 10
-              }
+              "$type": "AssetBehavior_Sequence",
+              "children": [
+                {
+                  "$type": "AssetBehavior_KnowledgeCompare",
+                  "$name": "Test if in range",
+                  "comparison": 1,
+                  "key": "target-dist",
+                  "value": {
+                    "$type": "AssetKnowledgeSource_Number",
+                    "value": 10
+                  }
+                },
+                {
+                  "$type": "AssetBehavior_KnowledgeCompare",
+                  "$name": "Test Line-of-Sight",
+                  "comparison": 0,
+                  "key": "target-los",
+                  "value": {
+                    "$type": "AssetKnowledgeSource_Bool",
+                    "value": true
+                  }
+                }
+              ]
             },
             {
               "$type": "AssetBehavior_Repeat",
+              "$name": "Move",
               "child": {
                 "$type": "AssetBehavior_KnowledgeSet",
                 "key": "cmd-nav-target",
@@ -87,12 +104,26 @@
             "$type": "AssetKnowledgeSource_Bool",
             "value": true
           }
+        },
+        {
+          "$type": "AssetBehavior_KnowledgeSet",
+          "$name": "Attack",
+          "key": "cmd-attack-target",
+          "value": {
+            "$type": "AssetKnowledgeSource_Knowledge",
+            "key": "target-entity"
+          }
         }
       ]
     },
     {
-      "$type": "AssetBehavior_Success",
-      "$name": "Idle"
+      "$type": "AssetBehavior_KnowledgeSet",
+      "$name": "Idle",
+      "key": "cmd-nav-stop",
+      "value": {
+        "$type": "AssetKnowledgeSource_Bool",
+        "value": true
+      }
     }
   ]
 }
