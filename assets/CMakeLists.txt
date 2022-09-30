@@ -40,10 +40,10 @@ if(${EXTERNAL_ASSETS})
       skybox/sorsele_left.tga
       skybox/sorsele_right.tga
       skybox/sorsele_up.tga
-      vanguard/vanguard_diff.tga
-      vanguard/vanguard_nrm.tga
-      vanguard/vanguard.bin
-      vanguard/vanguard-zflip.gltf
+      swat/swat_diff.tga
+      swat/swat_nrm.tga
+      swat/swat.bin
+      swat/swat.gltf
     )
 endif()
 

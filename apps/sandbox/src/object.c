@@ -38,7 +38,7 @@ ecs_system_define(ObjectDatabaseInitSys) {
       world,
       ecs_world_global(world),
       ObjectDatabaseComp,
-      .unitGraphic  = asset_lookup(world, assets, string_lit("graphics/sandbox/vanguard.gra")),
+      .unitGraphic  = asset_lookup(world, assets, string_lit("graphics/sandbox/swat.gra")),
       .projGraphic  = asset_lookup(world, assets, string_lit("graphics/sandbox/projectile.gra")),
       .unitBehavior = asset_lookup(world, assets, string_lit("behaviors/unit.bt")),
       .wallGraphic  = asset_lookup(world, assets, string_lit("graphics/sandbox/wall.gra")));
@@ -55,7 +55,7 @@ ecs_module_init(sandbox_object_module) {
 
 EcsEntityId
 object_spawn_unit(EcsWorld* world, const ObjectDatabaseComp* db, const GeoVector position) {
-  static const f32                   g_speed   = 2.0f;
+  static const f32                   g_speed   = 4.0f;
   static const SceneCollisionCapsule g_capsule = {
       .offset = {0, 0.3f, 0},
       .radius = 0.3f,
