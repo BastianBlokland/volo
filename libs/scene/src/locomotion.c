@@ -8,7 +8,7 @@
 #include "scene_transform.h"
 
 #define locomotion_arrive_threshold 0.1f
-#define locomotion_rotation_speed 360.0f
+#define locomotion_rotation_speed 480.0f
 
 ecs_comp_define_public(SceneLocomotionComp);
 
