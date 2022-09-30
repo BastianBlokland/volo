@@ -94,8 +94,10 @@ static void cmd_execute(
     const Cmd*                cmd) {
   switch (cmd->type) {
   case Cmd_Select:
-    diag_assert_msg(ecs_world_exists(world, cmd->select.object), "Selecting non-existing obj");
-    scene_selection_add(selection, cmd->select.object);
+    diag_assert_msg(ecs_entity_valid(cmd->select.object), "Selecting invalid entity");
+    if (ecs_world_exists(world, cmd->select.object)) {
+      scene_selection_add(selection, cmd->select.object);
+    }
     break;
   case Cmd_Deselect:
     scene_selection_clear(selection);
@@ -110,9 +112,11 @@ static void cmd_execute(
     object_spawn_wall(world, objectDb, cmd->spawnWall.position);
     break;
   case Cmd_Destroy:
-    diag_assert_msg(ecs_world_exists(world, cmd->destroy.object), "Destroying non-existing obj");
-    scene_selection_remove(selection, cmd->destroy.object);
-    ecs_world_entity_destroy(world, cmd->destroy.object);
+    diag_assert_msg(ecs_entity_valid(cmd->destroy.object), "Destroying invalid entity");
+    if (ecs_world_exists(world, cmd->select.object)) {
+      scene_selection_remove(selection, cmd->destroy.object);
+      ecs_world_entity_destroy(world, cmd->destroy.object);
+    }
     break;
   }
 }

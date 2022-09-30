@@ -8,7 +8,7 @@
 #include "scene_transform.h"
 
 #define locomotion_arrive_threshold 0.1f
-#define locomotion_rotation_speed 360.0f
+#define locomotion_rotation_speed 480.0f
 
 ecs_comp_define_public(SceneLocomotionComp);
 
@@ -84,7 +84,7 @@ ecs_system_define(SceneLocomotionMoveSys) {
   const SceneTimeComp*   time         = ecs_view_read_t(globalItr, SceneTimeComp);
   const f32              deltaSeconds = scene_delta_seconds(time);
 
-  const StringHash walkAnimHash = string_hash_lit("walking");
+  const StringHash runAnimHash = string_hash_lit("run");
 
   EcsView* moveView = ecs_world_view_t(world, MoveView);
   for (EcsIterator* itr = ecs_view_itr(moveView); ecs_view_walk(itr);) {
@@ -100,9 +100,9 @@ ecs_system_define(SceneLocomotionMoveSys) {
     scene_loco_separate(navEnv, entity, loco, trans);
 
     if (anim) {
-      const f32 targetWalkWeight = (loco->flags & SceneLocomotion_Moving) ? 1.0f : 0.0f;
-      loco->walkWeight = math_lerp(loco->walkWeight, targetWalkWeight, 10.0f * deltaSeconds);
-      scene_animation_set_weight(anim, walkAnimHash, loco->walkWeight);
+      const f32 targetRunWeight = (loco->flags & SceneLocomotion_Moving) ? 1.0f : 0.0f;
+      loco->runWeight           = math_lerp(loco->runWeight, targetRunWeight, 10.0f * deltaSeconds);
+      scene_animation_set_weight(anim, runAnimHash, loco->runWeight);
     }
   }
 }
