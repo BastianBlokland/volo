@@ -73,7 +73,7 @@ static void attack_projectile_spawn(
   ecs_world_add_t(world, e, SceneTransformComp, .position = sourcePos, .rotation = rotation);
   ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_seconds(5));
   ecs_world_add_t(
-      world, e, SceneProjectileComp, .speed = 15, .damage = 10, .instigator = instigator);
+      world, e, SceneProjectileComp, .speed = 25, .damage = 10, .instigator = instigator);
 }
 
 static bool attack_in_sight(const SceneTransformComp* trans, const GeoVector targetPos) {
