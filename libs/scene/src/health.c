@@ -1,13 +1,15 @@
 #include "core_diag.h"
 #include "core_math.h"
+#include "ecs_utils.h"
 #include "ecs_world.h"
 #include "scene_health.h"
+#include "scene_lifetime.h"
 #include "scene_renderable.h"
 #include "scene_skeleton.h"
 #include "scene_tag.h"
 #include "scene_time.h"
 
-static StringHash g_healthHitAnimHash;
+static StringHash g_healthHitAnimHash, g_healthDeathAnimHash;
 
 ecs_comp_define_public(SceneHealthComp);
 ecs_comp_define(SceneHealthAnimComp) { SceneSkeletonMask hitAnimMask; };
@@ -82,6 +84,32 @@ static void health_anim_play_hit(SceneAnimationComp* anim, const SceneHealthAnim
   }
 }
 
+static void health_anim_play_death(SceneAnimationComp* anim) {
+  SceneAnimLayer* deathAnimLayer;
+  if ((deathAnimLayer = scene_animation_layer(anim, g_healthDeathAnimHash))) {
+    deathAnimLayer->time  = 0;
+    deathAnimLayer->speed = 1.5f; // TODO: Speed should be defined in content.
+    deathAnimLayer->flags &= ~SceneAnimFlags_Loop;
+    deathAnimLayer->flags |= SceneAnimFlags_AutoFadeIn;
+  }
+}
+
+/**
+ * Remove various components on death.
+ * TODO: Find another way to handle this, health should't know about all these components.
+ */
+ecs_comp_extern(SceneAttackComp);
+ecs_comp_extern(SceneBrainComp);
+ecs_comp_extern(SceneCollisionComp);
+ecs_comp_extern(SceneLocomotionComp);
+
+static void health_death_disable(EcsWorld* world, const EcsEntityId entity) {
+  ecs_utils_maybe_remove_t(world, entity, SceneAttackComp);
+  ecs_utils_maybe_remove_t(world, entity, SceneBrainComp);
+  ecs_utils_maybe_remove_t(world, entity, SceneCollisionComp);
+  ecs_utils_maybe_remove_t(world, entity, SceneLocomotionComp);
+}
+
 ecs_view_define(GlobalView) { ecs_access_read(SceneTimeComp); }
 
 ecs_view_define(HealthView) {
@@ -120,16 +148,29 @@ ecs_system_define(SceneHealthUpdateSys) {
       health_clear_damaged(world, entity, tag);
     }
 
+    const bool isDead = (health->flags & SceneHealthFlags_Dead) != 0;
+    if (isDead) {
+      continue;
+    }
+
     health->norm -= damageNorm;
     if (health->norm <= 0.0f) {
+      health->flags |= SceneHealthFlags_Dead;
       health->norm = 0.0f;
-      ecs_world_entity_destroy(world, ecs_view_entity(itr));
+
+      health_death_disable(world, entity);
+      if (anim && healthAnim) {
+        health_anim_play_death(anim);
+      }
+
+      ecs_world_add_t(world, entity, SceneLifetimeDurationComp, .duration = time_seconds(5));
     }
   }
 }
 
 ecs_module_init(scene_health_module) {
-  g_healthHitAnimHash = string_hash_lit("hit");
+  g_healthHitAnimHash   = string_hash_lit("hit");
+  g_healthDeathAnimHash = string_hash_lit("death");
 
   ecs_register_comp(SceneHealthComp);
   ecs_register_comp(SceneHealthAnimComp);
