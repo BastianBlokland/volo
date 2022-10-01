@@ -12,6 +12,7 @@
 #include "scene_transform.h"
 
 #define attack_aim_speed 3.5f
+#define attack_in_sight_threshold 0.95f
 
 static StringHash g_attackAimAnimHash, g_attackFireAnimHash;
 
@@ -72,6 +73,12 @@ static void attack_projectile_spawn(
   ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_seconds(5));
   ecs_world_add_t(
       world, e, SceneProjectileComp, .speed = 15, .damage = 10, .instigator = instigator);
+}
+
+static bool attack_in_sight(const SceneTransformComp* trans, const GeoVector targetPos) {
+  const GeoVector delta   = geo_vector_xz(geo_vector_sub(targetPos, trans->position));
+  const GeoVector forward = geo_vector_xz(geo_quat_rotate(trans->rotation, geo_forward));
+  return geo_vector_dot(forward, delta) > attack_in_sight_threshold;
 }
 
 ecs_view_define(AttackView) {
@@ -139,9 +146,11 @@ ecs_system_define(SceneAttackSys) {
     fireAnimLayer->flags &= ~SceneAnimFlags_Loop;
     fireAnimLayer->flags |= SceneAnimFlags_AutoWeightFade;
 
-    const bool isFiring = (attack->flags & SceneAttackFlags_Firing) != 0;
-    if (!isFiring && isAiming && (time->time - attack->lastFireTime) > attack->interval) {
-      // Start firing he shot.
+    const bool isFiring      = (attack->flags & SceneAttackFlags_Firing) != 0;
+    const bool isCoolingDown = (time->time - attack->lastFireTime) <= attack->interval;
+
+    if (isAiming && !isFiring && !isCoolingDown && attack_in_sight(trans, targetPos)) {
+      // Start firing the shot.
       fireAnimLayer->time = 0.0f;
       attack->flags |= SceneAttackFlags_Firing;
       attack_projectile_spawn(world, entity, attack->projectileGraphic, sourcePos, targetPos);
