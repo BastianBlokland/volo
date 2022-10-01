@@ -40,6 +40,7 @@ typedef enum eAssetBehaviorType {
 typedef enum {
   AssetKnowledgeComparison_Equal,
   AssetKnowledgeComparison_Less,
+  AssetKnowledgeComparison_Greater,
 } AssetKnowledgeComparison;
 
 typedef enum {
