@@ -10,6 +10,7 @@
 #include "scene_renderable.h"
 #include "scene_skeleton.h"
 #include "scene_time.h"
+#include "scene_transform.h"
 
 #define scene_skeleton_max_loads 16
 #define scene_anim_duration_min 0.001f
@@ -194,11 +195,11 @@ static void scene_asset_templ_init(SceneSkeletonTemplComp* tl, const AssetMeshSk
     tl->anims[animIndex].nameHash  = assetAnim->nameHash;
     tl->anims[animIndex].duration  = assetAnim->duration;
 
-    for (u32 jointIndex = 0; jointIndex != asset->jointCount; ++jointIndex) {
+    for (u32 joint = 0; joint != asset->jointCount; ++joint) {
       for (AssetMeshAnimTarget target = 0; target != AssetMeshAnimTarget_Count; ++target) {
-        const AssetMeshAnimChannel* assetChannel = &assetAnim->joints[jointIndex][target];
+        const AssetMeshAnimChannel* assetChannel = &assetAnim->joints[joint][target];
 
-        tl->anims[animIndex].joints[jointIndex][target] = (SceneSkeletonChannel){
+        tl->anims[animIndex].joints[joint][target] = (SceneSkeletonChannel){
             .frameCount = assetChannel->frameCount,
             .times      = (const f32*)mem_at_u8(tl->animData, assetChannel->timeData),
             .values_raw = mem_at_u8(tl->animData, assetChannel->valueData),
@@ -558,19 +559,29 @@ bool scene_animation_set_weight(
 
 u32 scene_skeleton_joint_count(const SceneSkeletonTemplComp* tl) { return tl->jointCount; }
 
-StringHash scene_skeleton_joint_name(const SceneSkeletonTemplComp* tl, const u32 jointIndex) {
-  diag_assert(jointIndex < tl->jointCount);
-  return tl->jointNames[jointIndex];
+StringHash scene_skeleton_joint_name(const SceneSkeletonTemplComp* tl, const u32 joint) {
+  diag_assert(joint < tl->jointCount);
+  return tl->jointNames[joint];
 }
 
-u32 scene_skeleton_joint_parent(const SceneSkeletonTemplComp* tl, const u32 jointIndex) {
-  diag_assert(jointIndex < tl->jointCount);
-  return tl->parentIndices[jointIndex];
+u32 scene_skeleton_joint_parent(const SceneSkeletonTemplComp* tl, const u32 joint) {
+  diag_assert(joint < tl->jointCount);
+  return tl->parentIndices[joint];
 }
 
-u32 scene_skeleton_joint_skin_count(const SceneSkeletonTemplComp* tl, const u32 jointIndex) {
-  diag_assert(jointIndex < tl->jointCount);
-  return tl->skinCounts[jointIndex];
+u32 scene_skeleton_joint_skin_count(const SceneSkeletonTemplComp* tl, const u32 joint) {
+  diag_assert(joint < tl->jointCount);
+  return tl->skinCounts[joint];
+}
+
+GeoMatrix scene_skeleton_joint_world(
+    const SceneTransformComp* trans,
+    const SceneScaleComp*     scale,
+    const SceneSkeletonComp*  skel,
+    const u32                 joint) {
+  diag_assert(joint < skel->jointCount);
+  const GeoMatrix world = scene_matrix_world(trans, scale);
+  return geo_matrix_mul(&world, &skel->jointTransforms[joint]);
 }
 
 u32 scene_skeleton_joint_by_name(const SceneSkeletonTemplComp* tl, const StringHash name) {
