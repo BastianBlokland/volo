@@ -113,6 +113,10 @@ ecs_system_define(SceneLocomotionMoveSys) {
     }
     scene_loco_separate(navEnv, entity, loco, trans);
 
+    if (anim && loco->speedNorm < f32_epsilon) {
+      scene_animation_set_time(anim, g_locoRunAnimHash, 0);
+    }
+
     const f32 targetSpeedNorm = (loco->flags & SceneLocomotion_Moving) ? 1.0f : 0.0f;
     math_towards_f32(&loco->speedNorm, targetSpeedNorm, locomotion_accelerate_time * deltaSeconds);
 
