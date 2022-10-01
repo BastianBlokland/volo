@@ -96,5 +96,9 @@ bool ai_blackboard_equals_f64(const AiBlackboard*, StringHash key, f64 value);
 bool ai_blackboard_equals_bool(const AiBlackboard*, StringHash key, bool value);
 bool ai_blackboard_equals_vector(const AiBlackboard*, StringHash key, GeoVector value);
 bool ai_blackboard_equals_time(const AiBlackboard*, StringHash key, TimeDuration value);
+
 bool ai_blackboard_less_f64(const AiBlackboard*, StringHash key, f64 value);
+bool ai_blackboard_less_time(const AiBlackboard*, StringHash key, TimeDuration value);
+
 bool ai_blackboard_greater_f64(const AiBlackboard*, StringHash key, f64 value);
+bool ai_blackboard_greater_time(const AiBlackboard*, StringHash key, TimeDuration value);
