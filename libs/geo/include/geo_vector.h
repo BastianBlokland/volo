@@ -115,6 +115,12 @@ GeoVector geo_vector_min(GeoVector x, GeoVector y);
 GeoVector geo_vector_max(GeoVector x, GeoVector y);
 
 /**
+ * Clear out the non-specified components.
+ */
+GeoVector geo_vector_xyz(GeoVector);
+GeoVector geo_vector_xz(GeoVector);
+
+/**
  * Calculate the square root of elements x, y, z and w.
  * Pre-condition: vec.x >= 0 && vec.y >= 0 && vec.z >= 0 && vec.w >= 0
  */

@@ -200,6 +200,11 @@ spec(vector) {
     check_eq_vector(geo_vector_max(v1, v2), geo_vector(4, 6, 6, 5));
   }
 
+  it("can clear components") {
+    check_eq_vector(geo_vector_xyz(geo_vector(1, 2, 3, 4)), geo_vector(1, 2, 3, 0));
+    check_eq_vector(geo_vector_xz(geo_vector(1, 2, 3, 4)), geo_vector(1, 0, 3, 0));
+  }
+
   it("can compute the square root of components") {
     const GeoVector v = {.x = 16, .y = 64, .z = 256};
     check_eq_vector(geo_vector_sqrt(v), geo_vector(4, 8, 16));

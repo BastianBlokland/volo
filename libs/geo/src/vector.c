@@ -215,6 +215,9 @@ GeoVector geo_vector_max(const GeoVector x, const GeoVector y) {
 #endif
 }
 
+GeoVector geo_vector_xyz(const GeoVector v) { return geo_vector(v.x, v.y, v.z, 0); }
+GeoVector geo_vector_xz(const GeoVector v) { return geo_vector(v.x, 0, v.z, 0); }
+
 GeoVector geo_vector_sqrt(const GeoVector v) {
 #if geo_vec_simd_enable
   GeoVector res;
