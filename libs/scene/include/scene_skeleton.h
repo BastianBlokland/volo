@@ -39,8 +39,9 @@ ecs_comp_extern_public(SceneAnimationComp) {
   u32             layerCount;
 };
 
-bool scene_animation_set_time(SceneAnimationComp*, StringHash layer, f32 time);
-bool scene_animation_set_weight(SceneAnimationComp*, StringHash layer, f32 weight);
+SceneAnimLayer* scene_animation_layer(SceneAnimationComp*, StringHash layer);
+bool            scene_animation_set_time(SceneAnimationComp*, StringHash layer, f32 time);
+bool            scene_animation_set_weight(SceneAnimationComp*, StringHash layer, f32 weight);
 
 u32        scene_skeleton_joint_count(const SceneSkeletonTemplComp*);
 StringHash scene_skeleton_joint_name(const SceneSkeletonTemplComp*, u32 jointIndex);
