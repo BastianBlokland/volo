@@ -11,18 +11,18 @@
 #include "scene_time.h"
 #include "scene_transform.h"
 
-#define attack_charge_speed 5.0f
+#define attack_aim_speed 3.5f
 
-static StringHash g_attackAnimHash;
+static StringHash g_attackAimAnimHash, g_attackFireAnimHash;
 
 ecs_comp_define_public(SceneAttackComp);
 
 ecs_view_define(GlobalView) { ecs_access_read(SceneTimeComp); }
 
 ecs_view_define(AttackEntityView) {
-  ecs_access_maybe_write(SceneAnimationComp);
   ecs_access_maybe_write(SceneLocomotionComp);
   ecs_access_read(SceneTransformComp);
+  ecs_access_write(SceneAnimationComp);
   ecs_access_write(SceneAttackComp);
 }
 
@@ -82,14 +82,13 @@ ecs_system_define(SceneAttackSys) {
     SceneAttackComp*     attack = ecs_view_write_t(itr, SceneAttackComp);
     SceneLocomotionComp* loco   = ecs_view_write_t(itr, SceneLocomotionComp);
 
-    const bool hasTarget = ecs_view_maybe_jump(targetItr, attack->attackTarget) != null;
-    const bool charged   = math_towards_f32(
-        &attack->chargeNorm, hasTarget ? 1.0f : 0.0f, attack_charge_speed * deltaSeconds);
+    const bool hasTarget = ecs_view_maybe_jump(targetItr, attack->targetEntity) != null;
+    const bool isAiming  = math_towards_f32(
+        &attack->aimNorm, hasTarget ? 1.0f : 0.0f, attack_aim_speed * deltaSeconds);
 
-    if (anim) {
-      scene_animation_set_weight(anim, g_attackAnimHash, attack->chargeNorm);
-    }
+    scene_animation_set_weight(anim, g_attackAimAnimHash, attack->aimNorm);
     if (!hasTarget) {
+      attack->flags &= ~SceneAttackFlags_Firing;
       continue;
     }
 
@@ -102,16 +101,30 @@ ecs_system_define(SceneAttackSys) {
       scene_locomotion_face(loco, faceDir);
     }
 
-    const TimeDuration timeSinceAttack = time->time - attack->lastAttackTime;
-    if (charged && timeSinceAttack > attack->attackInterval) {
+    SceneAnimLayer* fireAnimLayer = scene_animation_layer(anim, g_attackFireAnimHash);
+    diag_assert_msg(fireAnimLayer, "Attacking entity is missing a 'fire' animation");
+    fireAnimLayer->flags &= ~SceneAnimFlags_Loop;
+    fireAnimLayer->flags |= SceneAnimFlags_AutoWeightFade;
+
+    const bool isFiring = (attack->flags & SceneAttackFlags_Firing) != 0;
+    if (!isFiring && isAiming && (time->time - attack->lastFireTime) > attack->interval) {
+      // Start firing he shot.
+      fireAnimLayer->time = 0.0f;
+      attack->flags |= SceneAttackFlags_Firing;
       attack_projectile_spawn(world, entity, attack->projectileGraphic, sourcePos, targetPos);
-      attack->lastAttackTime = time->time;
+    }
+
+    if (isFiring && fireAnimLayer->time == fireAnimLayer->duration) {
+      // Finished firing the shot.
+      attack->flags &= ~SceneAttackFlags_Firing;
+      attack->lastFireTime = time->time;
     }
   }
 }
 
 ecs_module_init(scene_attack_module) {
-  g_attackAnimHash = string_hash_lit("fire");
+  g_attackAimAnimHash  = string_hash_lit("aim");
+  g_attackFireAnimHash = string_hash_lit("fire");
 
   ecs_register_comp(SceneAttackComp);
 

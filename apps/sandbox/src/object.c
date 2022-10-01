@@ -77,7 +77,7 @@ object_spawn_unit(EcsWorld* world, const ObjectDatabaseComp* db, const GeoVector
       world,
       e,
       SceneAttackComp,
-      .attackInterval    = time_milliseconds(250),
+      .interval          = time_milliseconds(500),
       .projectileGraphic = db->projGraphic);
   scene_collision_add_capsule(world, e, g_capsule);
   scene_brain_add(world, e, db->unitBehavior);
