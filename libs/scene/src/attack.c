@@ -1,4 +1,5 @@
 #include "core_diag.h"
+#include "core_math.h"
 #include "ecs_world.h"
 #include "scene_attack.h"
 #include "scene_collision.h"
@@ -6,14 +7,20 @@
 #include "scene_locomotion.h"
 #include "scene_projectile.h"
 #include "scene_renderable.h"
+#include "scene_skeleton.h"
 #include "scene_time.h"
 #include "scene_transform.h"
+
+#define attack_charge_speed 5.0f
+
+static StringHash g_attackAnimHash;
 
 ecs_comp_define_public(SceneAttackComp);
 
 ecs_view_define(GlobalView) { ecs_access_read(SceneTimeComp); }
 
 ecs_view_define(AttackEntityView) {
+  ecs_access_maybe_write(SceneAnimationComp);
   ecs_access_maybe_write(SceneLocomotionComp);
   ecs_access_read(SceneTransformComp);
   ecs_access_write(SceneAttackComp);
@@ -57,48 +64,55 @@ static void attack_projectile_spawn(
       world, e, SceneProjectileComp, .speed = 15, .damage = 10, .instigator = instigator);
 }
 
-static void attack_execute(
-    EcsWorld* world, EcsIterator* itr, EcsIterator* targetItr, const SceneTimeComp* time) {
-  SceneAttackComp*     attack = ecs_view_write_t(itr, SceneAttackComp);
-  SceneLocomotionComp* loco   = ecs_view_write_t(itr, SceneLocomotionComp);
-
-  const EcsEntityId entity    = ecs_view_entity(itr);
-  const GeoVector   sourcePos = aim_source_position(itr);
-  const GeoVector   targetPos = aim_target_position(targetItr);
-
-  if (loco) {
-    const GeoVector faceDelta = geo_vector_xz(geo_vector_sub(targetPos, sourcePos));
-    const GeoVector faceDir   = geo_vector_norm(faceDelta);
-    scene_locomotion_face(loco, faceDir);
-  }
-
-  const TimeDuration timeSinceAttack = time->time - attack->lastAttackTime;
-  if (timeSinceAttack > attack->attackInterval) {
-    attack_projectile_spawn(world, entity, attack->projectileGraphic, sourcePos, targetPos);
-    attack->lastAttackTime = time->time;
-  }
-}
-
 ecs_system_define(SceneAttackSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
   }
-  const SceneTimeComp* time      = ecs_view_read_t(globalItr, SceneTimeComp);
-  EcsIterator*         targetItr = ecs_view_itr(ecs_world_view_t(world, TargetEntityView));
+  const SceneTimeComp* time         = ecs_view_read_t(globalItr, SceneTimeComp);
+  const f32            deltaSeconds = scene_delta_seconds(time);
+
+  EcsIterator* targetItr = ecs_view_itr(ecs_world_view_t(world, TargetEntityView));
 
   EcsView* attackView = ecs_world_view_t(world, AttackEntityView);
   for (EcsIterator* itr = ecs_view_itr(attackView); ecs_view_walk(itr);) {
-    SceneAttackComp* attack = ecs_view_write_t(itr, SceneAttackComp);
-    if (!ecs_view_maybe_jump(targetItr, attack->attackTarget)) {
+    const EcsEntityId    entity = ecs_view_entity(itr);
+    SceneAnimationComp*  anim   = ecs_view_write_t(itr, SceneAnimationComp);
+    SceneAttackComp*     attack = ecs_view_write_t(itr, SceneAttackComp);
+    SceneLocomotionComp* loco   = ecs_view_write_t(itr, SceneLocomotionComp);
+
+    const bool hasTarget = ecs_view_maybe_jump(targetItr, attack->attackTarget) != null;
+    const bool charged   = math_towards_f32(
+        &attack->chargeNorm, hasTarget ? 1.0f : 0.0f, attack_charge_speed * deltaSeconds);
+
+    if (anim) {
+      scene_animation_set_weight(anim, g_attackAnimHash, attack->chargeNorm);
+    }
+    if (!hasTarget) {
       continue;
     }
-    attack_execute(world, itr, targetItr, time);
+
+    const GeoVector sourcePos = aim_source_position(itr);
+    const GeoVector targetPos = aim_target_position(targetItr);
+
+    if (loco) {
+      const GeoVector faceDelta = geo_vector_xz(geo_vector_sub(targetPos, sourcePos));
+      const GeoVector faceDir   = geo_vector_norm(faceDelta);
+      scene_locomotion_face(loco, faceDir);
+    }
+
+    const TimeDuration timeSinceAttack = time->time - attack->lastAttackTime;
+    if (charged && timeSinceAttack > attack->attackInterval) {
+      attack_projectile_spawn(world, entity, attack->projectileGraphic, sourcePos, targetPos);
+      attack->lastAttackTime = time->time;
+    }
   }
 }
 
 ecs_module_init(scene_attack_module) {
+  g_attackAnimHash = string_hash_lit("fire");
+
   ecs_register_comp(SceneAttackComp);
 
   ecs_register_view(GlobalView);

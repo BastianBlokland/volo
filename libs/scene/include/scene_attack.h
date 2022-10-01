@@ -6,6 +6,7 @@
 ecs_comp_extern_public(SceneAttackComp) {
   TimeDuration lastAttackTime;
   TimeDuration attackInterval;
+  f32          chargeNorm;
   EcsEntityId  attackTarget;
   EcsEntityId  projectileGraphic;
 };
