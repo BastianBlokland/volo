@@ -40,6 +40,9 @@ static void behavior_datareg_init() {
     data_reg_field_t(g_dataReg, AssetKnowledgeSourceVector, z, data_prim_t(f32));
     data_reg_field_t(g_dataReg, AssetKnowledgeSourceVector, w, data_prim_t(f32));
 
+    data_reg_struct_t(g_dataReg, AssetKnowledgeSourceTime);
+    data_reg_field_t(g_dataReg, AssetKnowledgeSourceTime, secondsFromNow, data_prim_t(f32));
+
     data_reg_struct_t(g_dataReg, AssetKnowledgeSourceKnowledge);
     data_reg_field_t(g_dataReg, AssetKnowledgeSourceKnowledge, key, data_prim_t(String));
 
@@ -47,6 +50,7 @@ static void behavior_datareg_init() {
     data_reg_choice_t(g_dataReg, AssetKnowledgeSource, AssetKnowledgeSource_Number, data_number, t_AssetKnowledgeSourceNumber);
     data_reg_choice_t(g_dataReg, AssetKnowledgeSource, AssetKnowledgeSource_Bool, data_bool, t_AssetKnowledgeSourceBool);
     data_reg_choice_t(g_dataReg, AssetKnowledgeSource, AssetKnowledgeSource_Vector, data_vector, t_AssetKnowledgeSourceVector);
+    data_reg_choice_t(g_dataReg, AssetKnowledgeSource, AssetKnowledgeSource_Time, data_time, t_AssetKnowledgeSourceTime);
     data_reg_choice_t(g_dataReg, AssetKnowledgeSource, AssetKnowledgeSource_Knowledge, data_knowledge, t_AssetKnowledgeSourceKnowledge);
 
     data_reg_struct_t(g_dataReg, AssetBehaviorInvert);

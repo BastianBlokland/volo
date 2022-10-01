@@ -46,6 +46,7 @@ typedef enum {
   AssetKnowledgeSource_Number,
   AssetKnowledgeSource_Bool,
   AssetKnowledgeSource_Vector,
+  AssetKnowledgeSource_Time,
   AssetKnowledgeSource_Knowledge,
 } AssetKnowledgeSourceType;
 
@@ -62,6 +63,10 @@ typedef struct {
 } AssetKnowledgeSourceVector;
 
 typedef struct {
+  f32 secondsFromNow;
+} AssetKnowledgeSourceTime;
+
+typedef struct {
   String key;
 } AssetKnowledgeSourceKnowledge;
 
@@ -71,6 +76,7 @@ typedef struct {
     AssetKnowledgeSourceNumber    data_number;
     AssetKnowledgeSourceBool      data_bool;
     AssetKnowledgeSourceVector    data_vector;
+    AssetKnowledgeSourceTime      data_time;
     AssetKnowledgeSourceKnowledge data_knowledge;
   };
 } AssetKnowledgeSource;

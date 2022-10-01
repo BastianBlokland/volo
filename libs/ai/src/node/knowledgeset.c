@@ -3,6 +3,19 @@
 #include "asset_behavior.h"
 #include "core_diag.h"
 #include "core_stringtable.h"
+#include "core_time.h"
+
+static GeoVector node_src_vec(const AssetKnowledgeSourceVector* src) {
+  return geo_vector(src->x, src->y, src->z, src->w);
+}
+
+static TimeDuration node_src_time(const AssetKnowledgeSourceTime* src, AiBlackboard* bb) {
+  // TODO: Keys should be pre-hashed.
+  const StringHash   timeNowHash = string_hash_lit("global-time");
+  const TimeDuration now         = ai_blackboard_get_time(bb, timeNowHash);
+  const TimeDuration offset      = (TimeDuration)time_seconds(src->secondsFromNow);
+  return now + offset;
+}
 
 AiResult
 ai_node_knowledgeset_eval(const AssetBehavior* behavior, AiBlackboard* bb, AiTracer* tracer) {
@@ -25,13 +38,11 @@ ai_node_knowledgeset_eval(const AssetBehavior* behavior, AiBlackboard* bb, AiTra
     return AiResult_Success;
   }
   case AssetKnowledgeSource_Vector: {
-    const GeoVector vector = {
-        .x = valueSource->data_vector.x,
-        .y = valueSource->data_vector.y,
-        .z = valueSource->data_vector.z,
-        .w = valueSource->data_vector.w,
-    };
-    ai_blackboard_set_vector(bb, keyHash, vector);
+    ai_blackboard_set_vector(bb, keyHash, node_src_vec(&valueSource->data_vector));
+    return AiResult_Success;
+  }
+  case AssetKnowledgeSource_Time: {
+    ai_blackboard_set_time(bb, keyHash, node_src_time(&valueSource->data_time, bb));
     return AiResult_Success;
   }
   case AssetKnowledgeSource_Knowledge: {

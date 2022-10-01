@@ -3,6 +3,7 @@
 #include "asset_behavior.h"
 #include "check_spec.h"
 #include "core_alloc.h"
+#include "core_time.h"
 
 spec(node_knowledgeset) {
   AiBlackboard* bb = null;
@@ -69,6 +70,23 @@ spec(node_knowledgeset) {
     check_eq_float(ai_blackboard_get_vector(bb, string_hash_lit("test")).y, 2, 1e-6f);
     check_eq_float(ai_blackboard_get_vector(bb, string_hash_lit("test")).z, 3, 1e-6f);
     check_eq_float(ai_blackboard_get_vector(bb, string_hash_lit("test")).w, 4, 1e-6f);
+  }
+
+  it("can set time knowledge when evaluated") {
+    check_eq_int(ai_blackboard_get_time(bb, string_hash_lit("test")), 0);
+
+    const AssetBehavior behavior = {
+        .type = AssetBehavior_KnowledgeSet,
+        .data_knowledgeset =
+            {
+                .key   = string_lit("test"),
+                .value = {.type = AssetKnowledgeSource_Time, .data_time.secondsFromNow = 1.75f},
+            },
+    };
+    check(ai_eval(&behavior, bb, &tracer.api) == AiResult_Success);
+    check_eq_int(tracer.count, 1);
+    check_eq_int(
+        ai_blackboard_get_time(bb, string_hash_lit("test")), time_second + time_milliseconds(750));
   }
 
   it("can set knowledge based on other knowledge when evaluated") {
