@@ -77,7 +77,7 @@ static void health_anim_play_hit(SceneAnimationComp* anim, const SceneHealthAnim
   if ((hitAnimLayer = scene_animation_layer(anim, g_healthHitAnimHash))) {
     hitAnimLayer->time = 0;
     hitAnimLayer->flags &= ~SceneAnimFlags_Loop;
-    hitAnimLayer->flags |= SceneAnimFlags_AutoWeightFade;
+    hitAnimLayer->flags |= SceneAnimFlags_AutoFade;
     hitAnimLayer->mask = healthAnim->hitAnimMask;
   }
 }

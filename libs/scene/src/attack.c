@@ -148,7 +148,7 @@ ecs_system_define(SceneAttackSys) {
     SceneAnimLayer* fireAnimLayer = scene_animation_layer(anim, g_attackFireAnimHash);
     diag_assert_msg(fireAnimLayer, "Attacking entity is missing a 'fire' animation");
     fireAnimLayer->flags &= ~SceneAnimFlags_Loop;
-    fireAnimLayer->flags |= SceneAnimFlags_AutoWeightFade;
+    fireAnimLayer->flags |= SceneAnimFlags_AutoFade;
 
     const bool isFiring      = (attack->flags & SceneAttackFlags_Firing) != 0;
     const bool isCoolingDown = (time->time - attack->lastFireTime) <= attack->interval;
