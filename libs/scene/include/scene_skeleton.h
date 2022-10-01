@@ -55,6 +55,7 @@ StringHash scene_skeleton_joint_name(const SceneSkeletonTemplComp*, u32 jointInd
 u32        scene_skeleton_joint_parent(const SceneSkeletonTemplComp*, u32 jointIndex);
 u32        scene_skeleton_joint_skin_count(const SceneSkeletonTemplComp*, u32 jointIndex);
 
+u32            scene_skeleton_joint_by_name(const SceneSkeletonTemplComp*, StringHash name);
 SceneJointInfo scene_skeleton_info(const SceneSkeletonTemplComp*, u32 layer, u32 joint);
 SceneJointPose scene_skeleton_sample(const SceneSkeletonTemplComp*, u32 layer, u32 joint, f32 time);
 SceneJointPose scene_skeleton_sample_def(const SceneSkeletonTemplComp*, u32 joint);

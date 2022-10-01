@@ -573,6 +573,15 @@ u32 scene_skeleton_joint_skin_count(const SceneSkeletonTemplComp* tl, const u32 
   return tl->skinCounts[jointIndex];
 }
 
+u32 scene_skeleton_joint_by_name(const SceneSkeletonTemplComp* tl, const StringHash name) {
+  for (u32 joint = 0; joint != tl->jointCount; ++joint) {
+    if (tl->jointNames[joint] == name) {
+      return joint;
+    }
+  }
+  return sentinel_u32;
+}
+
 SceneJointInfo
 scene_skeleton_info(const SceneSkeletonTemplComp* tl, const u32 layer, const u32 joint) {
   diag_assert(layer < tl->animCount);
