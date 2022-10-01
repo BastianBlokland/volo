@@ -135,10 +135,11 @@ static void scene_skeleton_init_from_templ(
   SceneAnimLayer* layers = alloc_array_t(g_alloc_heap, SceneAnimLayer, tl->animCount);
   for (u32 i = 0; i != tl->animCount; ++i) {
     layers[i] = (SceneAnimLayer){
-        .nameHash = tl->anims[i].nameHash,
         .duration = tl->anims[i].duration,
         .speed    = 1.0f,
         .weight   = (i == tl->animCount - 1) ? 1.0f : 0.0f,
+        .nameHash = tl->anims[i].nameHash,
+        .flags    = SceneAnimFlags_Loop,
     };
     scene_skeleton_mask_set_all(&layers[i].mask);
   }
@@ -452,7 +453,11 @@ ecs_system_define(SceneSkeletonUpdateSys) {
       SceneAnimLayer* layer = &anim->layers[i];
       if (LIKELY(tl->anims[i].duration > scene_anim_duration_min)) {
         layer->time += deltaSeconds * layer->speed;
-        layer->time = math_mod_f32(layer->time, tl->anims[i].duration);
+        if (layer->flags & SceneAnimFlags_Loop) {
+          layer->time = math_mod_f32(layer->time, tl->anims[i].duration);
+        } else if (layer->time > tl->anims[i].duration) {
+          layer->time = tl->anims[i].duration;
+        }
       }
       if (layer->weight > scene_weight_min) {
         anim_sample_layer(tl, layer, i, weights, poses);

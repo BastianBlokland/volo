@@ -15,13 +15,19 @@ ecs_comp_extern_public(SceneSkeletonComp) {
   GeoMatrix* jointTransforms;
 };
 
+typedef enum {
+  SceneAnimFlags_None = 0,
+  SceneAnimFlags_Loop = 1 << 0,
+} SceneAnimFlags;
+
 typedef struct {
   f32               time;
   f32               duration;
   f32               speed;
   f32               weight;
-  SceneSkeletonMask mask;
   StringHash        nameHash;
+  SceneAnimFlags    flags : 8;
+  SceneSkeletonMask mask;
 } SceneAnimLayer;
 
 typedef struct {
