@@ -42,8 +42,8 @@ if(${EXTERNAL_ASSETS})
       skybox/sorsele_up.tga
       swat/swat_diff.tga
       swat/swat_nrm.tga
-      swat/swat_2.bin
-      swat/swat_2.gltf
+      swat/swat_3.bin
+      swat/swat_3.gltf
     )
 endif()
 

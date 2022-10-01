@@ -20,9 +20,11 @@ ecs_comp_extern_public(SceneSkeletonComp) {
 };
 
 typedef enum {
-  SceneAnimFlags_None           = 0,
-  SceneAnimFlags_Loop           = 1 << 0,
-  SceneAnimFlags_AutoWeightFade = 1 << 1, // Automatically set the weight to fade the animation.
+  SceneAnimFlags_None        = 0,
+  SceneAnimFlags_Loop        = 1 << 0,
+  SceneAnimFlags_AutoFadeIn  = 1 << 1, // Automatically set the weight to fade the anim in.
+  SceneAnimFlags_AutoFadeOut = 1 << 2, // Automatically set the weight to fade the anim out.
+  SceneAnimFlags_AutoFade    = SceneAnimFlags_AutoFadeOut | SceneAnimFlags_AutoFadeIn,
 } SceneAnimFlags;
 
 typedef struct {

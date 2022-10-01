@@ -2,11 +2,17 @@
 #include "core_time.h"
 #include "ecs_module.h"
 
+typedef enum {
+  SceneHealthFlags_None = 0,
+  SceneHealthFlags_Dead = 1 << 0,
+} SceneHealthFlags;
+
 ecs_comp_extern_public(SceneHealthComp) {
-  f32          norm;
-  f32          max;
-  f32          damage;
-  TimeDuration lastDamagedTime;
+  SceneHealthFlags flags;
+  f32              norm;
+  f32              max;
+  f32              damage;
+  TimeDuration     lastDamagedTime;
 };
 
 void scene_health_damage(SceneHealthComp*, f32 amount);

@@ -44,7 +44,7 @@
       "anisotropy": "None"
     }
   ],
-  "meshId": "external/swat/swat_2.gltf",
+  "meshId": "external/swat/swat_3.gltf",
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "None",
