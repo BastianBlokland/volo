@@ -13,6 +13,7 @@
 
 #define attack_aim_speed 3.5f
 #define attack_in_sight_threshold 0.95f
+#define attack_in_sight_min_dist 2.0f
 
 static StringHash g_attackAimAnimHash, g_attackFireAnimHash;
 
@@ -76,7 +77,10 @@ static void attack_projectile_spawn(
 }
 
 static bool attack_in_sight(const SceneTransformComp* trans, const GeoVector targetPos) {
-  const GeoVector delta   = geo_vector_xz(geo_vector_sub(targetPos, trans->position));
+  const GeoVector delta = geo_vector_xz(geo_vector_sub(targetPos, trans->position));
+  if (geo_vector_mag_sqr(delta) < (attack_in_sight_min_dist * attack_in_sight_min_dist)) {
+    return true; // Target is very close, consider it always in-sight.
+  }
   const GeoVector forward = geo_vector_xz(geo_quat_rotate(trans->rotation, geo_forward));
   return geo_vector_dot(forward, delta) > attack_in_sight_threshold;
 }
