@@ -12,7 +12,9 @@ ecs_comp_extern_public(SceneLocomotionComp) {
   f32                  radius;
   f32                  runWeight;
   GeoVector            lastSeparation;
-  GeoVector            target;
+  GeoVector            targetPos;
+  GeoVector            targetDir;
 };
 
-void scene_locomotion_move_to(SceneLocomotionComp*, GeoVector target);
+void scene_locomotion_move(SceneLocomotionComp*, GeoVector position);
+void scene_locomotion_face(SceneLocomotionComp*, GeoVector direction);

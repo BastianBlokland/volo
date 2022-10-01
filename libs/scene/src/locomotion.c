@@ -1,3 +1,4 @@
+#include "core_diag.h"
 #include "core_math.h"
 #include "ecs_world.h"
 #include "scene_locomotion.h"
@@ -31,15 +32,23 @@ static f32 scene_loco_y_angle_diff(const GeoVector fromDir, const GeoVector toDi
   return math_acos_f32(math_clamp_f32(dotFromTo, -1.0f, 1.0f)) * math_sign(dotTangentTo);
 }
 
-static void scene_loco_face(SceneTransformComp* trans, const GeoVector dir, const f32 delta) {
-  const GeoVector forward    = geo_quat_rotate(trans->rotation, geo_forward);
-  const f32       yAngleDiff = scene_loco_y_angle_diff(forward, dir);
+static bool scene_loco_face(SceneTransformComp* trans, const GeoVector dir, const f32 delta) {
+  const GeoVector forward     = geo_quat_rotate(trans->rotation, geo_forward);
+  f32             yAngleDelta = scene_loco_y_angle_diff(forward, dir);
 
+  bool      clamped       = false;
   const f32 maxAngleDelta = locomotion_rotation_speed * math_deg_to_rad * delta;
-  const f32 yAngleDelta   = math_clamp_f32(yAngleDiff, -maxAngleDelta, maxAngleDelta);
+  if (yAngleDelta < -maxAngleDelta) {
+    yAngleDelta = -maxAngleDelta;
+    clamped     = true;
+  } else if (yAngleDelta > maxAngleDelta) {
+    yAngleDelta = maxAngleDelta;
+    clamped     = true;
+  }
 
   trans->rotation = geo_quat_mul(geo_quat_angle_axis(geo_up, yAngleDelta), trans->rotation);
   trans->rotation = geo_quat_norm(trans->rotation);
+  return !clamped;
 }
 
 static void scene_loco_move(
@@ -47,17 +56,16 @@ static void scene_loco_move(
   if (!(loco->flags & SceneLocomotion_Moving)) {
     return;
   }
-  const GeoVector toTarget = geo_vector_sub(loco->target, trans->position);
+  const GeoVector toTarget = geo_vector_sub(loco->targetPos, trans->position);
   const f32       dist     = geo_vector_mag(toTarget);
   if (dist < (loco->radius + locomotion_arrive_threshold)) {
     loco->flags &= ~SceneLocomotion_Moving;
     return;
   }
-  const GeoVector dir       = geo_vector_div(toTarget, dist);
-  const f32       distDelta = math_min(dist, loco->speed * scale * delta);
+  const f32 distDelta = math_min(dist, loco->speed * scale * delta);
 
-  trans->position = geo_vector_add(trans->position, geo_vector_mul(dir, distDelta));
-  scene_loco_face(trans, dir, delta);
+  loco->targetDir = geo_vector_div(toTarget, dist);
+  trans->position = geo_vector_add(trans->position, geo_vector_mul(loco->targetDir, distDelta));
 }
 
 /**
@@ -97,6 +105,11 @@ ecs_system_define(SceneLocomotionMoveSys) {
     const f32             scale     = scaleComp ? scaleComp->scale : 1.0f;
 
     scene_loco_move(loco, trans, scale, deltaSeconds);
+    if (geo_vector_mag_sqr(loco->targetDir) > f32_epsilon) {
+      if (scene_loco_face(trans, loco->targetDir, deltaSeconds)) {
+        loco->targetDir = geo_vector(0);
+      }
+    }
     scene_loco_separate(navEnv, entity, loco, trans);
 
     if (anim) {
@@ -118,7 +131,16 @@ ecs_module_init(scene_locomotion_module) {
   ecs_order(SceneLocomotionMoveSys, SceneOrder_LocomotionUpdate);
 }
 
-void scene_locomotion_move_to(SceneLocomotionComp* comp, const GeoVector target) {
+void scene_locomotion_move(SceneLocomotionComp* comp, const GeoVector target) {
   comp->flags |= SceneLocomotion_Moving;
-  comp->target = target;
+  comp->targetPos = target;
+}
+
+void scene_locomotion_face(SceneLocomotionComp* comp, const GeoVector direction) {
+  diag_assert_msg(
+      math_abs(geo_vector_mag_sqr(direction) - 1.0f) <= 1e-6f,
+      "Direction ({}) is not normalized",
+      geo_vector_fmt(direction));
+
+  comp->targetDir = direction;
 }

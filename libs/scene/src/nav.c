@@ -168,7 +168,7 @@ static void scene_nav_update_agent(
   if (!(agent->flags & SceneNavAgent_Moving)) {
     if (fromOnGrid) {
       if (LIKELY(loco)) {
-        scene_locomotion_move_to(loco, trans->position);
+        scene_locomotion_move(loco, trans->position);
       }
       return; // Not moving and still on the grid; Nothing to do.
     }
@@ -181,7 +181,7 @@ static void scene_nav_update_agent(
   if (fromOnGrid && dist < (radius + scene_nav_arrive_threshold)) {
     agent->flags &= ~SceneNavAgent_Moving;
     if (LIKELY(loco)) {
-      scene_locomotion_move_to(loco, trans->position);
+      scene_locomotion_move(loco, trans->position);
     }
     return; // Arrived at destination.
   }
@@ -196,7 +196,7 @@ static void scene_nav_update_agent(
     path->cellCount = 0;
     if (LIKELY(loco)) {
       // On the correct cell; move to the final position on the cell.
-      scene_locomotion_move_to(loco, toOnGrid ? agent->target : geo_nav_position(env->navGrid, to));
+      scene_locomotion_move(loco, toOnGrid ? agent->target : geo_nav_position(env->navGrid, to));
     }
     return;
   }
@@ -212,9 +212,9 @@ static void scene_nav_update_agent(
   for (u32 i = path->cellCount; i-- > 1;) {
     if (!geo_nav_line_blocked(env->navGrid, from, path->cells[i])) {
       if (path->cells[i].data == to.data && toOnGrid) {
-        scene_locomotion_move_to(loco, agent->target);
+        scene_locomotion_move(loco, agent->target);
       } else {
-        scene_locomotion_move_to(loco, geo_nav_position(env->navGrid, path->cells[i]));
+        scene_locomotion_move(loco, geo_nav_position(env->navGrid, path->cells[i]));
       }
       return; // Agent is walking towards shortcut.
     }
@@ -222,14 +222,14 @@ static void scene_nav_update_agent(
 
   // No shortcut available; Move to the next cell in the path.
   if (path->cellCount > 1) {
-    scene_locomotion_move_to(loco, geo_nav_position(env->navGrid, path->cells[1]));
+    scene_locomotion_move(loco, geo_nav_position(env->navGrid, path->cells[1]));
     return;
   }
 
   // No path available.
   if (!fromOnGrid) {
     // Move to the closest position on the grid.
-    scene_locomotion_move_to(loco, geo_nav_position(env->navGrid, from));
+    scene_locomotion_move(loco, geo_nav_position(env->navGrid, from));
   }
   path->cellCount = 0;
 }
