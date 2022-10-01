@@ -41,7 +41,7 @@ ecs_view_define(SkeletonTemplView) { ecs_access_read(SceneSkeletonTemplComp); }
 
 typedef struct {
   bool                          valid;
-  GeoMatrix                     transform;
+  GeoMatrix                     worldMat;
   SceneAnimationComp*           animation;
   const SceneSkeletonComp*      skeleton;
   const SceneSkeletonTemplComp* skeletonTemplate;
@@ -60,14 +60,11 @@ static DebugAnimSubject debug_anim_subject(EcsWorld* world, const EcsEntityId en
   if (!skelTemplItr) {
     return (DebugAnimSubject){0};
   }
-
-  const GeoVector       pos       = ecs_view_read_t(subjectItr, SceneTransformComp)->position;
-  const GeoQuat         rot       = ecs_view_read_t(subjectItr, SceneTransformComp)->rotation;
-  const SceneScaleComp* scaleComp = ecs_view_read_t(subjectItr, SceneScaleComp);
-  const f32             scale     = scaleComp ? scaleComp->scale : 1.0f;
+  const SceneTransformComp* trans = ecs_view_read_t(subjectItr, SceneTransformComp);
+  const SceneScaleComp*     scale = ecs_view_read_t(subjectItr, SceneScaleComp);
   return (DebugAnimSubject){
       .valid            = true,
-      .transform        = geo_matrix_trs(pos, rot, geo_vector(scale, scale, scale)),
+      .worldMat         = scene_matrix_world(trans, scale),
       .animation        = ecs_view_write_t(subjectItr, SceneAnimationComp),
       .skeleton         = ecs_view_read_t(subjectItr, SceneSkeletonComp),
       .skeletonTemplate = ecs_view_read_t(skelTemplItr, SceneSkeletonTemplComp),
@@ -471,7 +468,7 @@ ecs_system_define(DebugAnimationDrawSys) {
 
     GeoMatrix* jointMatrices = mem_stack(sizeof(GeoMatrix) * subject.skeleton->jointCount).ptr;
     for (u32 i = 0; i != subject.skeleton->jointCount; ++i) {
-      jointMatrices[i] = geo_matrix_mul(&subject.transform, &subject.skeleton->jointTransforms[i]);
+      jointMatrices[i] = geo_matrix_mul(&subject.worldMat, &subject.skeleton->jointTransforms[i]);
     }
 
     if (set->flags & DebugAnimationFlags_DrawSkeleton) {

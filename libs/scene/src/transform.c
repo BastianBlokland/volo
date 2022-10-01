@@ -20,3 +20,10 @@ GeoMatrix scene_transform_matrix_inv(const SceneTransformComp* trans) {
   const GeoMatrix pos = geo_matrix_translate(geo_vector_mul(trans->position, -1));
   return geo_matrix_mul(&rot, &pos);
 }
+
+GeoMatrix scene_matrix_world(const SceneTransformComp* trans, const SceneScaleComp* scale) {
+  const GeoVector pos      = LIKELY(trans) ? trans->position : geo_vector(0);
+  const GeoQuat   rot      = LIKELY(trans) ? trans->rotation : geo_quat_ident;
+  const f32       scaleMag = scale ? scale->scale : 1.0f;
+  return geo_matrix_trs(pos, rot, geo_vector(scaleMag, scaleMag, scaleMag));
+}
