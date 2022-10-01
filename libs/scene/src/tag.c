@@ -24,6 +24,7 @@ String scene_tag_name(const SceneTags tags) {
       string_static("Geometry"),
       string_static("Debug"),
       string_static("Selected"),
+      string_static("Damaged"),
   };
   ASSERT(array_elems(g_names) == SceneTags_Count, "Incorrect number of tag names");
   return g_names[index];

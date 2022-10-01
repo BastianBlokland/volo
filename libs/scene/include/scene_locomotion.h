@@ -8,11 +8,12 @@ typedef enum {
 
 ecs_comp_extern_public(SceneLocomotionComp) {
   SceneLocomotionFlags flags;
-  f32                  speed;
+  f32                  maxSpeed, speedNorm;
   f32                  radius;
-  f32                  runWeight;
   GeoVector            lastSeparation;
-  GeoVector            target;
+  GeoVector            targetPos;
+  GeoVector            targetDir;
 };
 
-void scene_locomotion_move_to(SceneLocomotionComp*, GeoVector target);
+void scene_locomotion_move(SceneLocomotionComp*, GeoVector position);
+void scene_locomotion_face(SceneLocomotionComp*, GeoVector direction);

@@ -776,8 +776,11 @@ static void inspector_vis_draw_locomotion(
   debug_circle(shape, pos, geo_quat_up_to_forward, loco->radius, circleColor);
 
   if (loco->flags & SceneLocomotion_Moving) {
-    debug_line(shape, pos, loco->target, geo_color_yellow);
-    debug_sphere(shape, loco->target, 0.1f, geo_color_green, DebugShape_Overlay);
+    debug_line(shape, pos, loco->targetPos, geo_color_yellow);
+    debug_sphere(shape, loco->targetPos, 0.1f, geo_color_green, DebugShape_Overlay);
+  }
+  if (geo_vector_mag_sqr(loco->targetDir) > f32_epsilon) {
+    debug_arrow(shape, pos, geo_vector_add(pos, loco->targetDir), 0.1f, geo_color_teal);
   }
 }
 

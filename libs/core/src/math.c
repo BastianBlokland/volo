@@ -87,3 +87,12 @@ f64 math_clamp_f64(const f64 val, const f64 min, const f64 max) {
   }
   return val;
 }
+
+bool math_towards_f32(f32* val, const f32 target, const f32 maxDelta) {
+  if (math_abs(target - *val) <= maxDelta) {
+    *val = target;
+    return true;
+  }
+  *val += math_sign(target - *val) * maxDelta;
+  return false;
+}

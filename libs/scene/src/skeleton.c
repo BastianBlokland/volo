@@ -10,6 +10,7 @@
 #include "scene_renderable.h"
 #include "scene_skeleton.h"
 #include "scene_time.h"
+#include "scene_transform.h"
 
 #define scene_skeleton_max_loads 16
 #define scene_anim_duration_min 0.001f
@@ -135,10 +136,11 @@ static void scene_skeleton_init_from_templ(
   SceneAnimLayer* layers = alloc_array_t(g_alloc_heap, SceneAnimLayer, tl->animCount);
   for (u32 i = 0; i != tl->animCount; ++i) {
     layers[i] = (SceneAnimLayer){
-        .nameHash = tl->anims[i].nameHash,
         .duration = tl->anims[i].duration,
         .speed    = 1.0f,
         .weight   = (i == tl->animCount - 1) ? 1.0f : 0.0f,
+        .nameHash = tl->anims[i].nameHash,
+        .flags    = SceneAnimFlags_Loop,
     };
     scene_skeleton_mask_set_all(&layers[i].mask);
   }
@@ -193,11 +195,11 @@ static void scene_asset_templ_init(SceneSkeletonTemplComp* tl, const AssetMeshSk
     tl->anims[animIndex].nameHash  = assetAnim->nameHash;
     tl->anims[animIndex].duration  = assetAnim->duration;
 
-    for (u32 jointIndex = 0; jointIndex != asset->jointCount; ++jointIndex) {
+    for (u32 joint = 0; joint != asset->jointCount; ++joint) {
       for (AssetMeshAnimTarget target = 0; target != AssetMeshAnimTarget_Count; ++target) {
-        const AssetMeshAnimChannel* assetChannel = &assetAnim->joints[jointIndex][target];
+        const AssetMeshAnimChannel* assetChannel = &assetAnim->joints[joint][target];
 
-        tl->anims[animIndex].joints[jointIndex][target] = (SceneSkeletonChannel){
+        tl->anims[animIndex].joints[joint][target] = (SceneSkeletonChannel){
             .frameCount = assetChannel->frameCount,
             .times      = (const f32*)mem_at_u8(tl->animData, assetChannel->timeData),
             .values_raw = mem_at_u8(tl->animData, assetChannel->valueData),
@@ -411,6 +413,15 @@ static void anim_apply(const SceneSkeletonTemplComp* tl, SceneJointPose* poses, 
   }
 }
 
+/**
+ * Assign the weight based on the animation progress.
+ * Fade-in over the first 25% and fade-out over the last 25%.
+ */
+static void anim_layer_auto_weight_fade(SceneAnimLayer* layer) {
+  const f32 tQuad = (layer->time / layer->duration) * 4.0f;
+  layer->weight   = math_min(1.0f, tQuad) - math_max(0.0f, tQuad - 3.0f);
+}
+
 ecs_view_define(UpdateView) {
   ecs_access_read(SceneRenderableComp);
   ecs_access_write(SceneSkeletonComp);
@@ -452,7 +463,14 @@ ecs_system_define(SceneSkeletonUpdateSys) {
       SceneAnimLayer* layer = &anim->layers[i];
       if (LIKELY(tl->anims[i].duration > scene_anim_duration_min)) {
         layer->time += deltaSeconds * layer->speed;
-        layer->time = math_mod_f32(layer->time, tl->anims[i].duration);
+        if (layer->flags & SceneAnimFlags_Loop) {
+          layer->time = math_mod_f32(layer->time, tl->anims[i].duration);
+        } else if (layer->time > tl->anims[i].duration) {
+          layer->time = tl->anims[i].duration;
+        }
+      }
+      if (layer->flags & SceneAnimFlags_AutoWeightFade) {
+        anim_layer_auto_weight_fade(layer);
       }
       if (layer->weight > scene_weight_min) {
         anim_sample_layer(tl, layer, i, weights, poses);
@@ -511,32 +529,68 @@ ecs_module_init(scene_skeleton_module) {
   ecs_register_system(SceneSkeletonClearDirtyTemplateSys, ecs_view_id(DirtyTemplateView));
 }
 
-bool scene_animation_set_weight(
-    SceneAnimationComp* anim, const StringHash layer, const f32 weight) {
+SceneAnimLayer* scene_animation_layer(SceneAnimationComp* anim, const StringHash layer) {
   for (u32 i = 0; i != anim->layerCount; ++i) {
     if (anim->layers[i].nameHash == layer) {
-      anim->layers[i].weight = weight;
-      return true;
+      return &anim->layers[i];
     }
+  }
+  return null;
+}
+
+bool scene_animation_set_time(SceneAnimationComp* anim, const StringHash layer, const f32 time) {
+  SceneAnimLayer* state = scene_animation_layer(anim, layer);
+  if (state) {
+    state->time = time;
+    return true;
+  }
+  return false;
+}
+
+bool scene_animation_set_weight(
+    SceneAnimationComp* anim, const StringHash layer, const f32 weight) {
+  SceneAnimLayer* state = scene_animation_layer(anim, layer);
+  if (state) {
+    state->weight = weight;
+    return true;
   }
   return false;
 }
 
 u32 scene_skeleton_joint_count(const SceneSkeletonTemplComp* tl) { return tl->jointCount; }
 
-StringHash scene_skeleton_joint_name(const SceneSkeletonTemplComp* tl, const u32 jointIndex) {
-  diag_assert(jointIndex < tl->jointCount);
-  return tl->jointNames[jointIndex];
+StringHash scene_skeleton_joint_name(const SceneSkeletonTemplComp* tl, const u32 joint) {
+  diag_assert(joint < tl->jointCount);
+  return tl->jointNames[joint];
 }
 
-u32 scene_skeleton_joint_parent(const SceneSkeletonTemplComp* tl, const u32 jointIndex) {
-  diag_assert(jointIndex < tl->jointCount);
-  return tl->parentIndices[jointIndex];
+u32 scene_skeleton_joint_parent(const SceneSkeletonTemplComp* tl, const u32 joint) {
+  diag_assert(joint < tl->jointCount);
+  return tl->parentIndices[joint];
 }
 
-u32 scene_skeleton_joint_skin_count(const SceneSkeletonTemplComp* tl, const u32 jointIndex) {
-  diag_assert(jointIndex < tl->jointCount);
-  return tl->skinCounts[jointIndex];
+u32 scene_skeleton_joint_skin_count(const SceneSkeletonTemplComp* tl, const u32 joint) {
+  diag_assert(joint < tl->jointCount);
+  return tl->skinCounts[joint];
+}
+
+GeoMatrix scene_skeleton_joint_world(
+    const SceneTransformComp* trans,
+    const SceneScaleComp*     scale,
+    const SceneSkeletonComp*  skel,
+    const u32                 joint) {
+  diag_assert(joint < skel->jointCount);
+  const GeoMatrix world = scene_matrix_world(trans, scale);
+  return geo_matrix_mul(&world, &skel->jointTransforms[joint]);
+}
+
+u32 scene_skeleton_joint_by_name(const SceneSkeletonTemplComp* tl, const StringHash name) {
+  for (u32 joint = 0; joint != tl->jointCount; ++joint) {
+    if (tl->jointNames[joint] == name) {
+      return joint;
+    }
+  }
+  return sentinel_u32;
 }
 
 SceneJointInfo

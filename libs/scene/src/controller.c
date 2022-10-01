@@ -51,7 +51,7 @@ ecs_system_define(SceneControllerUpdateSys) {
     // Set attack target.
     SceneAttackComp* attack = ecs_view_write_t(itr, SceneAttackComp);
     if (attack) {
-      attack->attackTarget = ai_blackboard_get_entity(bb, g_blackboardKeyAttackTarget);
+      attack->targetEntity = ai_blackboard_get_entity(bb, g_blackboardKeyAttackTarget);
       ai_blackboard_unset(bb, g_blackboardKeyAttackTarget);
     }
   }

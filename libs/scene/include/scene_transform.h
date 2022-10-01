@@ -13,3 +13,9 @@ ecs_comp_extern_public(SceneScaleComp) { f32 scale; };
 
 GeoMatrix scene_transform_matrix(const SceneTransformComp*);
 GeoMatrix scene_transform_matrix_inv(const SceneTransformComp*);
+
+/**
+ * Compute the world-space matrix for the given transform and scale.
+ * NOTE: Both transform and scale are optional.
+ */
+GeoMatrix scene_matrix_world(const SceneTransformComp*, const SceneScaleComp*);

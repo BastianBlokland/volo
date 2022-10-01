@@ -7,6 +7,7 @@
 #define tag_geometry_bit 1
 #define tag_debug_bit 2
 #define tag_selected_bit 3
+#define tag_damaged_bit 4
 
 /**
  * Query if the given tag bit is set.

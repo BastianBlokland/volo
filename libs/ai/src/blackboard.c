@@ -286,6 +286,15 @@ bool ai_blackboard_equals_vector(
   return mem_eq(mem_var(slot->data.vector), mem_var(value));
 }
 
+bool ai_blackboard_equals_time(
+    const AiBlackboard* bb, const StringHash key, const TimeDuration value) {
+  const AiBlackboardSlot* slot = blackboard_slot(bb->slots, bb->slotCount, key);
+  if (!(slot->flags & AiBlackboard_Active) || slot->type != AiBlackboardType_Time) {
+    return false; // Slot not active or type mismatch.
+  }
+  return slot->data.time == value;
+}
+
 bool ai_blackboard_less_f64(const AiBlackboard* bb, const StringHash key, const f64 value) {
   const AiBlackboardSlot* slot = blackboard_slot(bb->slots, bb->slotCount, key);
   if (!(slot->flags & AiBlackboard_Active) || slot->type != AiBlackboardType_f64) {
@@ -294,10 +303,28 @@ bool ai_blackboard_less_f64(const AiBlackboard* bb, const StringHash key, const 
   return slot->data._f64 < value;
 }
 
+bool ai_blackboard_less_time(
+    const AiBlackboard* bb, const StringHash key, const TimeDuration value) {
+  const AiBlackboardSlot* slot = blackboard_slot(bb->slots, bb->slotCount, key);
+  if (!(slot->flags & AiBlackboard_Active) || slot->type != AiBlackboardType_Time) {
+    return false; // Slot not active or type mismatch.
+  }
+  return slot->data.time < value;
+}
+
 bool ai_blackboard_greater_f64(const AiBlackboard* bb, const StringHash key, const f64 value) {
   const AiBlackboardSlot* slot = blackboard_slot(bb->slots, bb->slotCount, key);
   if (!(slot->flags & AiBlackboard_Active) || slot->type != AiBlackboardType_f64) {
     return false; // Slot not active or type mismatch.
   }
   return slot->data._f64 > value;
+}
+
+bool ai_blackboard_greater_time(
+    const AiBlackboard* bb, const StringHash key, const TimeDuration value) {
+  const AiBlackboardSlot* slot = blackboard_slot(bb->slots, bb->slotCount, key);
+  if (!(slot->flags & AiBlackboard_Active) || slot->type != AiBlackboardType_Time) {
+    return false; // Slot not active or type mismatch.
+  }
+  return slot->data.time > value;
 }

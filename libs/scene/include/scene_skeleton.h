@@ -2,6 +2,10 @@
 #include "ecs_module.h"
 #include "geo_matrix.h"
 
+// Forward declare from 'scene_transform.h'
+ecs_comp_extern_public(SceneTransformComp);
+ecs_comp_extern_public(SceneScaleComp);
+
 #define scene_skeleton_joints_max 75
 
 typedef struct {
@@ -15,13 +19,20 @@ ecs_comp_extern_public(SceneSkeletonComp) {
   GeoMatrix* jointTransforms;
 };
 
+typedef enum {
+  SceneAnimFlags_None           = 0,
+  SceneAnimFlags_Loop           = 1 << 0,
+  SceneAnimFlags_AutoWeightFade = 1 << 1, // Automatically set the weight to fade the animation.
+} SceneAnimFlags;
+
 typedef struct {
   f32               time;
   f32               duration;
   f32               speed;
   f32               weight;
-  SceneSkeletonMask mask;
   StringHash        nameHash;
+  SceneAnimFlags    flags : 8;
+  SceneSkeletonMask mask;
 } SceneAnimLayer;
 
 typedef struct {
@@ -39,13 +50,19 @@ ecs_comp_extern_public(SceneAnimationComp) {
   u32             layerCount;
 };
 
-bool scene_animation_set_weight(SceneAnimationComp*, StringHash layer, f32 weight);
+SceneAnimLayer* scene_animation_layer(SceneAnimationComp*, StringHash layer);
+bool            scene_animation_set_time(SceneAnimationComp*, StringHash layer, f32 time);
+bool            scene_animation_set_weight(SceneAnimationComp*, StringHash layer, f32 weight);
 
 u32        scene_skeleton_joint_count(const SceneSkeletonTemplComp*);
-StringHash scene_skeleton_joint_name(const SceneSkeletonTemplComp*, u32 jointIndex);
-u32        scene_skeleton_joint_parent(const SceneSkeletonTemplComp*, u32 jointIndex);
-u32        scene_skeleton_joint_skin_count(const SceneSkeletonTemplComp*, u32 jointIndex);
+StringHash scene_skeleton_joint_name(const SceneSkeletonTemplComp*, u32 joint);
+u32        scene_skeleton_joint_parent(const SceneSkeletonTemplComp*, u32 joint);
+u32        scene_skeleton_joint_skin_count(const SceneSkeletonTemplComp*, u32 joint);
 
+GeoMatrix scene_skeleton_joint_world(
+    const SceneTransformComp*, const SceneScaleComp*, const SceneSkeletonComp*, u32 joint);
+
+u32            scene_skeleton_joint_by_name(const SceneSkeletonTemplComp*, StringHash name);
 SceneJointInfo scene_skeleton_info(const SceneSkeletonTemplComp*, u32 layer, u32 joint);
 SceneJointPose scene_skeleton_sample(const SceneSkeletonTemplComp*, u32 layer, u32 joint, f32 time);
 SceneJointPose scene_skeleton_sample_def(const SceneSkeletonTemplComp*, u32 joint);

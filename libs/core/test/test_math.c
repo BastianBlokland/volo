@@ -129,4 +129,17 @@ spec(math) {
     check_eq_float(math_clamp_f32(-6, -5, -3), -5, 1e-12);
     check_eq_float(math_clamp_f32(-2, -5, -3), -3, 1e-12);
   }
+
+  it("can move towards a value") {
+    {
+      f32 val = 1;
+      check(!math_towards_f32(&val, 10, 2));
+      check_eq_float(val, 3, 1e-12);
+    }
+    {
+      f32 val = 1;
+      check(math_towards_f32(&val, 10, 20));
+      check_eq_float(val, 10, 1e-12);
+    }
+  }
 }
