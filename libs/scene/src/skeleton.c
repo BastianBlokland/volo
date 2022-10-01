@@ -412,6 +412,15 @@ static void anim_apply(const SceneSkeletonTemplComp* tl, SceneJointPose* poses, 
   }
 }
 
+/**
+ * Assign the weight based on the animation progress.
+ * Fade-in over the first 25% and fade-out over the last 25%.
+ */
+static void anim_layer_auto_weight_fade(SceneAnimLayer* layer) {
+  const f32 tQuad = (layer->time / layer->duration) * 4.0f;
+  layer->weight   = math_min(1.0f, tQuad) - math_max(0.0f, tQuad - 3.0f);
+}
+
 ecs_view_define(UpdateView) {
   ecs_access_read(SceneRenderableComp);
   ecs_access_write(SceneSkeletonComp);
@@ -458,6 +467,9 @@ ecs_system_define(SceneSkeletonUpdateSys) {
         } else if (layer->time > tl->anims[i].duration) {
           layer->time = tl->anims[i].duration;
         }
+      }
+      if (layer->flags & SceneAnimFlags_AutoWeightFade) {
+        anim_layer_auto_weight_fade(layer);
       }
       if (layer->weight > scene_weight_min) {
         anim_sample_layer(tl, layer, i, weights, poses);
