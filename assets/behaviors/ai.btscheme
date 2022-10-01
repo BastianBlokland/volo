@@ -24,6 +24,7 @@
         "AssetKnowledgeSource_Number",
         "AssetKnowledgeSource_Bool",
         "AssetKnowledgeSource_Vector",
+        "AssetKnowledgeSource_Time",
         "AssetKnowledgeSource_Knowledge"
       ]
     }
@@ -168,6 +169,15 @@
         },
         {
           "name": "w",
+          "valueType": "number"
+        }
+      ]
+    },
+    {
+      "nodeType": "AssetKnowledgeSource_Time",
+      "fields": [
+        {
+          "name": "secondsFromNow",
           "valueType": "number"
         }
       ]
