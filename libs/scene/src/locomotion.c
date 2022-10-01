@@ -10,6 +10,7 @@
 
 #define locomotion_arrive_threshold 0.1f
 #define locomotion_rotation_speed 480.0f
+#define locomotion_accelerate_time 4.0f
 
 static StringHash g_locoRunAnimHash;
 
@@ -64,7 +65,7 @@ static void scene_loco_move(
     loco->flags &= ~SceneLocomotion_Moving;
     return;
   }
-  const f32 distDelta = math_min(dist, loco->speed * scale * delta);
+  const f32 distDelta = math_min(dist, loco->maxSpeed * loco->speedNorm * scale * delta);
 
   loco->targetDir = geo_vector_div(toTarget, dist);
   trans->position = geo_vector_add(trans->position, geo_vector_mul(loco->targetDir, distDelta));
@@ -112,10 +113,11 @@ ecs_system_define(SceneLocomotionMoveSys) {
     }
     scene_loco_separate(navEnv, entity, loco, trans);
 
+    const f32 targetSpeedNorm = (loco->flags & SceneLocomotion_Moving) ? 1.0f : 0.0f;
+    math_towards_f32(&loco->speedNorm, targetSpeedNorm, locomotion_accelerate_time * deltaSeconds);
+
     if (anim) {
-      const f32 targetRunWeight = (loco->flags & SceneLocomotion_Moving) ? 1.0f : 0.0f;
-      loco->runWeight           = math_lerp(loco->runWeight, targetRunWeight, 10.0f * deltaSeconds);
-      scene_animation_set_weight(anim, g_locoRunAnimHash, loco->runWeight);
+      scene_animation_set_weight(anim, g_locoRunAnimHash, loco->speedNorm);
     }
   }
 }
