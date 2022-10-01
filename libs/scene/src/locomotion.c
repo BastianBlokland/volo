@@ -11,6 +11,8 @@
 #define locomotion_arrive_threshold 0.1f
 #define locomotion_rotation_speed 480.0f
 
+static StringHash g_locoRunAnimHash;
+
 ecs_comp_define_public(SceneLocomotionComp);
 
 ecs_view_define(GlobalView) {
@@ -92,8 +94,6 @@ ecs_system_define(SceneLocomotionMoveSys) {
   const SceneTimeComp*   time         = ecs_view_read_t(globalItr, SceneTimeComp);
   const f32              deltaSeconds = scene_delta_seconds(time);
 
-  const StringHash runAnimHash = string_hash_lit("run");
-
   EcsView* moveView = ecs_world_view_t(world, MoveView);
   for (EcsIterator* itr = ecs_view_itr(moveView); ecs_view_walk(itr);) {
     const EcsEntityId    entity = ecs_view_entity(itr);
@@ -115,12 +115,14 @@ ecs_system_define(SceneLocomotionMoveSys) {
     if (anim) {
       const f32 targetRunWeight = (loco->flags & SceneLocomotion_Moving) ? 1.0f : 0.0f;
       loco->runWeight           = math_lerp(loco->runWeight, targetRunWeight, 10.0f * deltaSeconds);
-      scene_animation_set_weight(anim, runAnimHash, loco->runWeight);
+      scene_animation_set_weight(anim, g_locoRunAnimHash, loco->runWeight);
     }
   }
 }
 
 ecs_module_init(scene_locomotion_module) {
+  g_locoRunAnimHash = string_hash_lit("run");
+
   ecs_register_comp(SceneLocomotionComp);
 
   ecs_register_view(GlobalView);
