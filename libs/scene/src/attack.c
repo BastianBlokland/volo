@@ -3,6 +3,7 @@
 #include "scene_attack.h"
 #include "scene_collision.h"
 #include "scene_lifetime.h"
+#include "scene_locomotion.h"
 #include "scene_projectile.h"
 #include "scene_renderable.h"
 #include "scene_time.h"
@@ -13,6 +14,7 @@ ecs_comp_define_public(SceneAttackComp);
 ecs_view_define(GlobalView) { ecs_access_read(SceneTimeComp); }
 
 ecs_view_define(AttackEntityView) {
+  ecs_access_maybe_write(SceneLocomotionComp);
   ecs_access_read(SceneTransformComp);
   ecs_access_write(SceneAttackComp);
 }
@@ -55,14 +57,26 @@ static void attack_projectile_spawn(
       world, e, SceneProjectileComp, .speed = 15, .damage = 10, .instigator = instigator);
 }
 
-static void attack_execute(EcsWorld* world, EcsIterator* itr, EcsIterator* targetItr) {
-  SceneAttackComp* attack = ecs_view_write_t(itr, SceneAttackComp);
+static void attack_execute(
+    EcsWorld* world, EcsIterator* itr, EcsIterator* targetItr, const SceneTimeComp* time) {
+  SceneAttackComp*     attack = ecs_view_write_t(itr, SceneAttackComp);
+  SceneLocomotionComp* loco   = ecs_view_write_t(itr, SceneLocomotionComp);
 
   const EcsEntityId entity    = ecs_view_entity(itr);
   const GeoVector   sourcePos = aim_source_position(itr);
   const GeoVector   targetPos = aim_target_position(targetItr);
 
-  attack_projectile_spawn(world, entity, attack->projectileGraphic, sourcePos, targetPos);
+  if (loco) {
+    const GeoVector faceDelta = geo_vector_xz(geo_vector_sub(targetPos, sourcePos));
+    const GeoVector faceDir   = geo_vector_norm(faceDelta);
+    scene_locomotion_face(loco, faceDir);
+  }
+
+  const TimeDuration timeSinceAttack = time->time - attack->lastAttackTime;
+  if (timeSinceAttack > attack->attackInterval) {
+    attack_projectile_spawn(world, entity, attack->projectileGraphic, sourcePos, targetPos);
+    attack->lastAttackTime = time->time;
+  }
 }
 
 ecs_system_define(SceneAttackSys) {
@@ -80,11 +94,7 @@ ecs_system_define(SceneAttackSys) {
     if (!ecs_view_maybe_jump(targetItr, attack->attackTarget)) {
       continue;
     }
-    const TimeDuration timeSinceAttack = time->time - attack->lastAttackTime;
-    if (timeSinceAttack > attack->attackInterval) {
-      attack_execute(world, itr, targetItr);
-      attack->lastAttackTime = time->time;
-    }
+    attack_execute(world, itr, targetItr, time);
   }
 }
 
