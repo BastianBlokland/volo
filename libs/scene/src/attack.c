@@ -16,25 +16,35 @@
 static StringHash g_attackAimAnimHash, g_attackFireAnimHash;
 
 ecs_comp_define_public(SceneAttackComp);
+ecs_comp_define(SceneAttackAnimComp) { u32 muzzleJoint; };
 
 ecs_view_define(GlobalView) { ecs_access_read(SceneTimeComp); }
 
-ecs_view_define(AttackEntityView) {
-  ecs_access_maybe_write(SceneLocomotionComp);
-  ecs_access_read(SceneTransformComp);
-  ecs_access_write(SceneAnimationComp);
-  ecs_access_write(SceneAttackComp);
+ecs_view_define(AttackInitView) {
+  ecs_access_read(SceneRenderableComp);
+  ecs_access_with(SceneAnimationComp);
+  ecs_access_with(SceneAttackComp);
+  ecs_access_without(SceneAttackAnimComp);
 }
 
-ecs_view_define(TargetEntityView) {
-  ecs_access_read(SceneCollisionComp);
-  ecs_access_maybe_read(SceneTransformComp);
-  ecs_access_maybe_read(SceneScaleComp);
-}
+ecs_view_define(AttackGraphicView) { ecs_access_read(SceneSkeletonTemplComp); }
 
-static GeoVector aim_source_position(EcsIterator* entityItr) {
-  const SceneTransformComp* trans = ecs_view_read_t(entityItr, SceneTransformComp);
-  return geo_vector_add(trans->position, geo_vector(0, 1.25f, 0));
+ecs_system_define(SceneAttackInitSys) {
+  EcsIterator* graphicItr = ecs_view_itr(ecs_world_view_t(world, AttackGraphicView));
+
+  EcsView* initView = ecs_world_view_t(world, AttackInitView);
+  for (EcsIterator* itr = ecs_view_itr(initView); ecs_view_walk(itr);) {
+    const EcsEntityId          entity     = ecs_view_entity(itr);
+    const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
+
+    if (ecs_view_maybe_jump(graphicItr, renderable->graphic)) {
+      const SceneSkeletonTemplComp* skelTempl = ecs_view_read_t(graphicItr, SceneSkeletonTemplComp);
+
+      const u32 muzzleJoint = scene_skeleton_joint_by_name(skelTempl, string_hash_lit("muzzle"));
+      diag_assert_msg(!sentinel_check(muzzleJoint), "No 'muzzle' joint found ");
+      ecs_world_add_t(world, entity, SceneAttackAnimComp, .muzzleJoint = muzzleJoint);
+    }
+  }
 }
 
 static GeoVector aim_target_position(EcsIterator* targetItr) {
@@ -64,6 +74,22 @@ static void attack_projectile_spawn(
       world, e, SceneProjectileComp, .speed = 15, .damage = 10, .instigator = instigator);
 }
 
+ecs_view_define(AttackView) {
+  ecs_access_maybe_read(SceneScaleComp);
+  ecs_access_maybe_write(SceneLocomotionComp);
+  ecs_access_read(SceneAttackAnimComp);
+  ecs_access_read(SceneSkeletonComp);
+  ecs_access_read(SceneTransformComp);
+  ecs_access_write(SceneAnimationComp);
+  ecs_access_write(SceneAttackComp);
+}
+
+ecs_view_define(TargetView) {
+  ecs_access_read(SceneCollisionComp);
+  ecs_access_maybe_read(SceneTransformComp);
+  ecs_access_maybe_read(SceneScaleComp);
+}
+
 ecs_system_define(SceneAttackSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -73,14 +99,18 @@ ecs_system_define(SceneAttackSys) {
   const SceneTimeComp* time         = ecs_view_read_t(globalItr, SceneTimeComp);
   const f32            deltaSeconds = scene_delta_seconds(time);
 
-  EcsIterator* targetItr = ecs_view_itr(ecs_world_view_t(world, TargetEntityView));
+  EcsIterator* targetItr = ecs_view_itr(ecs_world_view_t(world, TargetView));
 
-  EcsView* attackView = ecs_world_view_t(world, AttackEntityView);
+  EcsView* attackView = ecs_world_view_t(world, AttackView);
   for (EcsIterator* itr = ecs_view_itr(attackView); ecs_view_walk(itr);) {
-    const EcsEntityId    entity = ecs_view_entity(itr);
-    SceneAnimationComp*  anim   = ecs_view_write_t(itr, SceneAnimationComp);
-    SceneAttackComp*     attack = ecs_view_write_t(itr, SceneAttackComp);
-    SceneLocomotionComp* loco   = ecs_view_write_t(itr, SceneLocomotionComp);
+    const EcsEntityId          entity     = ecs_view_entity(itr);
+    const SceneAttackAnimComp* attackAnim = ecs_view_read_t(itr, SceneAttackAnimComp);
+    const SceneScaleComp*      scale      = ecs_view_read_t(itr, SceneScaleComp);
+    const SceneSkeletonComp*   skel       = ecs_view_read_t(itr, SceneSkeletonComp);
+    const SceneTransformComp*  trans      = ecs_view_read_t(itr, SceneTransformComp);
+    SceneAnimationComp*        anim       = ecs_view_write_t(itr, SceneAnimationComp);
+    SceneAttackComp*           attack     = ecs_view_write_t(itr, SceneAttackComp);
+    SceneLocomotionComp*       loco       = ecs_view_write_t(itr, SceneLocomotionComp);
 
     const bool hasTarget = ecs_view_maybe_jump(targetItr, attack->targetEntity) != null;
     const bool isAiming  = math_towards_f32(
@@ -92,7 +122,10 @@ ecs_system_define(SceneAttackSys) {
       continue;
     }
 
-    const GeoVector sourcePos = aim_source_position(itr);
+    const GeoMatrix muzzleWorld =
+        scene_skeleton_joint_world(trans, scale, skel, attackAnim->muzzleJoint);
+
+    const GeoVector sourcePos = geo_matrix_to_translation(&muzzleWorld);
     const GeoVector targetPos = aim_target_position(targetItr);
 
     if (loco) {
@@ -127,14 +160,16 @@ ecs_module_init(scene_attack_module) {
   g_attackFireAnimHash = string_hash_lit("fire");
 
   ecs_register_comp(SceneAttackComp);
+  ecs_register_comp(SceneAttackAnimComp);
 
   ecs_register_view(GlobalView);
-  ecs_register_view(AttackEntityView);
-  ecs_register_view(TargetEntityView);
+
+  ecs_register_system(
+      SceneAttackInitSys, ecs_register_view(AttackInitView), ecs_register_view(AttackGraphicView));
 
   ecs_register_system(
       SceneAttackSys,
       ecs_view_id(GlobalView),
-      ecs_view_id(AttackEntityView),
-      ecs_view_id(TargetEntityView));
+      ecs_register_view(AttackView),
+      ecs_register_view(TargetView));
 }
