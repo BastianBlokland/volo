@@ -98,17 +98,40 @@ static String atlas_error_str(const AtlasError err) {
   return g_msgs[err];
 }
 
+static AssetTextureFlags atlas_texture_flags(const AtlasDef* def, const bool srgb) {
+  AssetTextureFlags flags = 0;
+  if (def->mipmaps) {
+    flags |= AssetTextureFlags_MipMaps;
+  }
+  if (srgb) {
+    flags |= AssetTextureFlags_Srgb;
+  }
+  return flags;
+}
+
 static void atlas_generate(
     const AtlasDef*          def,
     const AssetTextureComp** textures,
     AssetTextureComp*        outTexture,
     AtlasError*              err) {
+  const bool srgb = true;
 
-  (void)def;
+  Mem pixelMem = alloc_alloc(g_alloc_heap, sizeof(AssetTexturePixelB4) * def->size * def->size, 4);
+  mem_set(pixelMem, 0); // Initialize to black.
+
+  AssetTexturePixelB4* pixels = pixelMem.ptr;
+
   (void)textures;
 
-  *outTexture = (AssetTextureComp){0};
-  *err        = AtlasError_None;
+  *outTexture = (AssetTextureComp){
+      .type     = AssetTextureType_Byte,
+      .channels = AssetTextureChannels_Four,
+      .flags    = atlas_texture_flags(def, srgb),
+      .pixelsB4 = pixels,
+      .width    = def->size,
+      .height   = def->size,
+  };
+  *err = AtlasError_None;
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
