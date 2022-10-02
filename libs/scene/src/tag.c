@@ -22,6 +22,7 @@ String scene_tag_name(const SceneTags tags) {
   static const String g_names[] = {
       string_static("Background"),
       string_static("Geometry"),
+      string_static("Vfx"),
       string_static("Debug"),
       string_static("Selected"),
       string_static("Damaged"),
