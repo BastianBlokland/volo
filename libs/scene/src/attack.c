@@ -10,6 +10,7 @@
 #include "scene_skeleton.h"
 #include "scene_time.h"
 #include "scene_transform.h"
+#include "scene_vfx.h"
 
 #define attack_aim_speed 3.5f
 #define attack_in_sight_threshold 0.95f
@@ -57,6 +58,18 @@ static GeoVector aim_target_position(EcsIterator* targetItr) {
   return geo_box_center(&targetBounds);
 }
 
+static void attack_muzzleflash_spawn(EcsWorld* world, const GeoMatrix* muzzleMatrix) {
+  const EcsEntityId e   = ecs_world_entity_create(world);
+  const GeoVector   pos = geo_matrix_to_translation(muzzleMatrix);
+  // TODO: Orient the muzzle-joint to have the z-axis pointing along the barrel instead of the y.
+  const GeoVector fwd = geo_matrix_transform3(muzzleMatrix, geo_up);
+  const GeoQuat   rot = geo_quat_look(fwd, geo_up);
+
+  ecs_world_add_t(world, e, SceneTransformComp, .position = pos, .rotation = rot);
+  ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_seconds(1));
+  ecs_world_add_empty_t(world, e, SceneVfxComp);
+}
+
 static void attack_projectile_spawn(
     EcsWorld*         world,
     const EcsEntityId instigator,
@@ -75,6 +88,7 @@ static void attack_projectile_spawn(
   ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_seconds(5));
   ecs_world_add_t(
       world, e, SceneProjectileComp, .speed = 25, .damage = 10, .instigator = instigator);
+  ecs_world_add_empty_t(world, e, SceneVfxComp);
 }
 
 static bool attack_in_sight(const SceneTransformComp* trans, const GeoVector targetPos) {
@@ -158,6 +172,7 @@ ecs_system_define(SceneAttackSys) {
       fireAnimLayer->time = 0.0f;
       attack->flags |= SceneAttackFlags_Firing;
       attack_projectile_spawn(world, entity, attack->projectileGraphic, &muzzleMatrix, targetPos);
+      attack_muzzleflash_spawn(world, &muzzleMatrix);
     }
 
     if (isFiring && fireAnimLayer->time == fireAnimLayer->duration) {
