@@ -181,7 +181,7 @@ ecs_system_define(RendDrawRequestGraphicSys) {
   EcsView* drawView = ecs_world_view_t(world, DrawReadView);
   for (EcsIterator* itr = ecs_view_itr(drawView); ecs_view_walk(itr);) {
     const RendDrawComp* comp = ecs_view_read_t(itr, RendDrawComp);
-    if (comp->instCount && comp->graphic) {
+    if ((comp->instCount || (comp->flags & RendDrawFlags_Preload)) && comp->graphic) {
       rend_draw_request_graphic(world, comp->graphic, graphicResItr, &numRequests);
     }
   }
