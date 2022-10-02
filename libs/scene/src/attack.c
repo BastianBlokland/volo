@@ -61,13 +61,14 @@ static void attack_projectile_spawn(
     EcsWorld*         world,
     const EcsEntityId instigator,
     const EcsEntityId graphic,
-    const GeoVector   sourcePos,
+    const GeoMatrix*  muzzleMatrix,
     const GeoVector   targetPos) {
   diag_assert_msg(graphic, "Projectile graphic missing");
 
-  const EcsEntityId e        = ecs_world_entity_create(world);
-  const GeoVector   dir      = geo_vector_norm(geo_vector_sub(targetPos, sourcePos));
-  const GeoQuat     rotation = geo_quat_look(dir, geo_up);
+  const EcsEntityId e         = ecs_world_entity_create(world);
+  const GeoVector   sourcePos = geo_matrix_to_translation(muzzleMatrix);
+  const GeoVector   dir       = geo_vector_norm(geo_vector_sub(targetPos, sourcePos));
+  const GeoQuat     rotation  = geo_quat_look(dir, geo_up);
 
   ecs_world_add_t(world, e, SceneRenderableComp, .graphic = graphic);
   ecs_world_add_t(world, e, SceneTransformComp, .position = sourcePos, .rotation = rotation);
@@ -133,14 +134,13 @@ ecs_system_define(SceneAttackSys) {
       continue;
     }
 
-    const GeoMatrix muzzleWorld =
+    const GeoMatrix muzzleMatrix =
         scene_skeleton_joint_world(trans, scale, skel, attackAnim->muzzleJoint);
 
-    const GeoVector sourcePos = geo_matrix_to_translation(&muzzleWorld);
     const GeoVector targetPos = aim_target_position(targetItr);
 
     if (loco) {
-      const GeoVector faceDelta = geo_vector_xz(geo_vector_sub(targetPos, sourcePos));
+      const GeoVector faceDelta = geo_vector_xz(geo_vector_sub(targetPos, trans->position));
       const GeoVector faceDir   = geo_vector_norm(faceDelta);
       scene_locomotion_face(loco, faceDir);
     }
@@ -157,7 +157,7 @@ ecs_system_define(SceneAttackSys) {
       // Start firing the shot.
       fireAnimLayer->time = 0.0f;
       attack->flags |= SceneAttackFlags_Firing;
-      attack_projectile_spawn(world, entity, attack->projectileGraphic, sourcePos, targetPos);
+      attack_projectile_spawn(world, entity, attack->projectileGraphic, &muzzleMatrix, targetPos);
     }
 
     if (isFiring && fireAnimLayer->time == fireAnimLayer->duration) {
