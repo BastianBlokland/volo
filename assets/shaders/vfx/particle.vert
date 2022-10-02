@@ -15,6 +15,12 @@ const f32v2 c_unitPositions[c_verticesPerParticle] = {
     f32v2(+0.5, -0.5),
     f32v2(-0.5, -0.5),
 };
+const f32v2 c_unitTexCoords[] = {
+    f32v2(0, 0),
+    f32v2(1, 0),
+    f32v2(1, 1),
+    f32v2(0, 1),
+};
 
 struct VfxInstanceData {
   f32v4 data1; // x, y, z: position
@@ -27,6 +33,7 @@ bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_instance_data(0) readonly uniform Instance { VfxInstanceData[c_maxInstances] u_instances; };
 
 bind_internal(0) out f32v4 out_color;
+bind_internal(1) out f32v2 out_texcoord;
 
 void main() {
   const f32v2 unitPos = c_unitPositions[in_vertexIndex];
@@ -40,4 +47,5 @@ void main() {
 
   out_vertexPosition = u_global.viewProj * f32v4(worldPos, 1);
   out_color          = instanceColor;
+  out_texcoord       = c_unitTexCoords[in_vertexIndex];
 }

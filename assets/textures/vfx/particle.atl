@@ -1,0 +1,10 @@
+{
+  "size": 512,
+  "mipmaps": true,
+  "entries": [
+    {
+      "name": "A",
+      "texture": "textures/checker_white_8.ptx"
+    }
+  ]
+}
