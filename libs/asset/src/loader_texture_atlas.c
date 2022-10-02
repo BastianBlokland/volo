@@ -30,7 +30,7 @@ typedef struct {
 } AtlasEntryDef;
 
 typedef struct {
-  u32  size;
+  u32  size, entrySize;
   bool mipmaps;
   struct {
     AtlasEntryDef* values;
@@ -54,6 +54,7 @@ static void atlas_datareg_init() {
 
     data_reg_struct_t(g_dataReg, AtlasDef);
     data_reg_field_t(g_dataReg, AtlasDef, size, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AtlasDef, entrySize, data_prim_t(u32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AtlasDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, AtlasDef, entries, t_AtlasEntryDef, .flags = DataFlags_NotEmpty, .container = DataContainer_Array);
     // clang-format on
@@ -81,6 +82,7 @@ typedef enum {
   AtlasError_InvalidTexture,
   AtlasError_SizeNonPow2,
   AtlasError_SizeTooBig,
+  AtlasError_EntrySizeNonPow2,
 
   AtlasError_Count,
 } AtlasError;
@@ -93,6 +95,7 @@ static String atlas_error_str(const AtlasError err) {
       string_static("Atlas specifies an invalid texture"),
       string_static("Atlas specifies a non power-of-two texture size"),
       string_static("Atlas specifies a texture size larger then is supported"),
+      string_static("Atlas specifies a non power-of-two entry size"),
   };
   ASSERT(array_elems(g_msgs) == AtlasError_Count, "Incorrect number of atlas-error messages");
   return g_msgs[err];
@@ -117,7 +120,7 @@ static void atlas_generate(
   const bool srgb = true;
 
   Mem pixelMem = alloc_alloc(g_alloc_heap, sizeof(AssetTexturePixelB4) * def->size * def->size, 4);
-  mem_set(pixelMem, 0); // Initialize to black.
+  mem_set(pixelMem, 0); // Initialize to transparent.
 
   AssetTexturePixelB4* pixels = pixelMem.ptr;
 
@@ -240,6 +243,10 @@ void asset_load_atl(EcsWorld* world, const String id, const EcsEntityId entity, 
   }
   if (UNLIKELY(def.size > atlas_max_size)) {
     errMsg = atlas_error_str(AtlasError_SizeTooBig);
+    goto Error;
+  }
+  if (UNLIKELY(!bits_ispow2(def.entrySize))) {
+    errMsg = atlas_error_str(AtlasError_EntrySizeNonPow2);
     goto Error;
   }
   if (UNLIKELY(!def.entries.count)) {

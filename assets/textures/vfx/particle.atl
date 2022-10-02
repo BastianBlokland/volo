@@ -1,5 +1,6 @@
 {
   "size": 512,
+  "entrySize": 32,
   "mipmaps": true,
   "entries": [
     {
