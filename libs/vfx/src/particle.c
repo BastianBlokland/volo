@@ -21,7 +21,7 @@ ecs_comp_define(VfxParticleRendererComp) { EcsEntityId drawEntity; };
 
 static EcsEntityId vfx_particle_draw_create(EcsWorld* world, AssetManagerComp* assets) {
   const EcsEntityId   entity = asset_lookup(world, assets, g_vfxParticleGraphic);
-  const RendDrawFlags flags  = RendDrawFlags_SortBackToFront;
+  const RendDrawFlags flags  = RendDrawFlags_Preload | RendDrawFlags_SortBackToFront;
   RendDrawComp*       draw   = rend_draw_create(world, entity, flags);
   rend_draw_set_graphic(draw, entity); // Graphic is on the same entity as the draw.
   return entity;
