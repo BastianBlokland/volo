@@ -19,7 +19,6 @@
  */
 
 #define atlas_max_size (1024 * 16)
-#define atlas_max_entries 256
 
 static DataReg* g_dataReg;
 static DataMeta g_dataAtlasDefMeta;
@@ -66,6 +65,7 @@ static void atlas_datareg_init() {
 
 ecs_comp_define(AssetAtlasLoadComp) {
   AtlasDef def;
+  u32      maxEntries;
   DynArray textures; // EcsEntityId[].
 };
 
@@ -91,7 +91,7 @@ static String atlas_error_str(const AtlasError err) {
   static const String g_msgs[] = {
       string_static("None"),
       string_static("Atlas does not specify any entries"),
-      string_static("Atlas specifies more entries then are supported"),
+      string_static("Atlas specifies more entries then fit in the texture"),
       string_static("Atlas specifies an invalid texture"),
       string_static("Atlas specifies a non power-of-two texture size"),
       string_static("Atlas specifies a texture size larger then is supported"),
@@ -253,7 +253,9 @@ void asset_load_atl(EcsWorld* world, const String id, const EcsEntityId entity, 
     errMsg = atlas_error_str(AtlasError_NoEntries);
     goto Error;
   }
-  if (UNLIKELY(def.entries.count > atlas_max_entries)) {
+  const u32 entriesPerDim = def.size / def.entrySize;
+  const u32 maxEntries    = entriesPerDim * entriesPerDim;
+  if (UNLIKELY(def.entries.count > maxEntries)) {
     errMsg = atlas_error_str(AtlasError_TooManyEntries);
     goto Error;
   }
@@ -268,8 +270,9 @@ void asset_load_atl(EcsWorld* world, const String id, const EcsEntityId entity, 
       world,
       entity,
       AssetAtlasLoadComp,
-      .def      = def,
-      .textures = dynarray_create_t(g_alloc_heap, EcsEntityId, def.entries.count));
+      .def        = def,
+      .maxEntries = maxEntries,
+      .textures   = dynarray_create_t(g_alloc_heap, EcsEntityId, def.entries.count));
   asset_repo_source_close(src);
   return;
 
