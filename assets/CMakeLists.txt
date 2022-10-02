@@ -24,6 +24,8 @@ configure_shaders(volo_shaders
     shaders/standard.vert
     shaders/ui/canvas.frag
     shaders/ui/canvas.vert
+    shaders/vfx/particle.frag
+    shaders/vfx/particle.vert
     shaders/wireframe_skinned.vert
     shaders/wireframe.frag
     shaders/wireframe.vert

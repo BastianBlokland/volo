@@ -1,0 +1,18 @@
+{
+  "shaders": [
+    {
+      "shaderId": "shaders/vfx/particle.vert.spv"
+    },
+    {
+      "shaderId": "shaders/vfx/particle.frag.spv"
+    }
+  ],
+  "samplers": [],
+  "vertexCount": 6,
+  "renderOrder": 40,
+  "topology": "Triangles",
+  "rasterizer": "Fill",
+  "blend": "Alpha",
+  "depth": "Less",
+  "cull": "None"
+}
