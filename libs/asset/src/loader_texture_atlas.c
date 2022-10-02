@@ -83,6 +83,10 @@ typedef enum {
   AtlasError_SizeNonPow2,
   AtlasError_SizeTooBig,
   AtlasError_EntrySizeNonPow2,
+  AtlasError_EntryTextureTypeUnsupported,
+  AtlasError_EntryTextureChannelCountUnsupported,
+  AtlasError_EntryTextureMismatchedEncoding,
+  AtlasError_EntryTextureLayerCountUnsupported,
 
   AtlasError_Count,
 } AtlasError;
@@ -96,6 +100,10 @@ static String atlas_error_str(const AtlasError err) {
       string_static("Atlas specifies a non power-of-two texture size"),
       string_static("Atlas specifies a texture size larger then is supported"),
       string_static("Atlas specifies a non power-of-two entry size"),
+      string_static("Atlas entry specifies texture with a non-supported type"),
+      string_static("Atlas entry specifies texture with a non-supported channel count"),
+      string_static("Atlas entry textures have mismatching encodings"),
+      string_static("Atlas entry specifies texture with a non-supported layer count"),
   };
   ASSERT(array_elems(g_msgs) == AtlasError_Count, "Incorrect number of atlas-error messages");
   return g_msgs[err];
@@ -112,19 +120,67 @@ static AssetTextureFlags atlas_texture_flags(const AtlasDef* def, const bool srg
   return flags;
 }
 
+static void atlas_generate_entry(
+    const AtlasDef*         def,
+    const AssetTextureComp* texture,
+    const u32               index,
+    AssetTexturePixelB4*    out) {
+
+  const u32 texY = index * def->entrySize / def->size * def->entrySize;
+  const u32 texX = index * def->entrySize % def->size;
+
+  diag_assert(texY + def->entrySize <= def->size);
+  diag_assert(texX + def->entrySize <= def->size);
+
+  for (usize entryPixelY = 0; entryPixelY != def->entrySize; ++entryPixelY) {
+    for (usize entryPixelX = 0; entryPixelX != def->entrySize; ++entryPixelX) {
+      const AssetTexturePixelB4 sample = {.r = 255, .g = 255, .b = 255, .a = 255};
+
+      const usize texPixelY                  = texY + entryPixelY;
+      const usize texPixelX                  = texX + entryPixelX;
+      out[texPixelY * def->size + texPixelX] = sample;
+    }
+  }
+
+  (void)texture;
+}
+
 static void atlas_generate(
     const AtlasDef*          def,
     const AssetTextureComp** textures,
     AssetTextureComp*        outTexture,
     AtlasError*              err) {
-  const bool srgb = true;
 
+  // Validate textures.
+  const bool srgb = (textures[0]->flags & AssetTextureFlags_Srgb) != 0;
+  for (u32 i = 0; i != def->entries.count; ++i) {
+    if (UNLIKELY(textures[i]->type != AssetTextureType_Byte)) {
+      *err = AtlasError_EntryTextureTypeUnsupported;
+      return;
+    }
+    if (UNLIKELY(textures[i]->channels != AssetTextureChannels_Four)) {
+      *err = AtlasError_EntryTextureChannelCountUnsupported;
+      return;
+    }
+    if (UNLIKELY(srgb != ((textures[i]->flags & AssetTextureFlags_Srgb) != 0))) {
+      *err = AtlasError_EntryTextureMismatchedEncoding;
+      return;
+    }
+    if (UNLIKELY(textures[i]->layers > 1)) {
+      *err = AtlasError_EntryTextureLayerCountUnsupported;
+      return;
+    }
+  }
+
+  // Allocate output texture.
   Mem pixelMem = alloc_alloc(g_alloc_heap, sizeof(AssetTexturePixelB4) * def->size * def->size, 4);
   mem_set(pixelMem, 0); // Initialize to transparent.
 
+  // Render entries into output texture.
   AssetTexturePixelB4* pixels = pixelMem.ptr;
-
-  (void)textures;
+  for (u32 i = 0; i != def->entries.count; ++i) {
+    atlas_generate_entry(def, textures[i], i, pixels);
+  }
 
   *outTexture = (AssetTextureComp){
       .type     = AssetTextureType_Byte,
