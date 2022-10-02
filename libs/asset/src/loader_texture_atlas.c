@@ -1,6 +1,7 @@
 #include "asset_texture.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_thread.h"
 #include "data.h"
@@ -17,6 +18,7 @@
  * ATLas - Creates atlas textures by combining other textures.
  */
 
+#define atlas_max_size (1024 * 16)
 #define atlas_max_entries 256
 
 static DataReg* g_dataReg;
@@ -28,6 +30,7 @@ typedef struct {
 } AtlasEntryDef;
 
 typedef struct {
+  u32  size;
   bool mipmaps;
   struct {
     AtlasEntryDef* values;
@@ -50,6 +53,7 @@ static void atlas_datareg_init() {
     data_reg_field_t(g_dataReg, AtlasEntryDef, texture, data_prim_t(String));
 
     data_reg_struct_t(g_dataReg, AtlasDef);
+    data_reg_field_t(g_dataReg, AtlasDef, size, data_prim_t(u32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AtlasDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, AtlasDef, entries, t_AtlasEntryDef, .flags = DataFlags_NotEmpty, .container = DataContainer_Array);
     // clang-format on
@@ -75,6 +79,8 @@ typedef enum {
   AtlasError_NoEntries,
   AtlasError_TooManyEntries,
   AtlasError_InvalidTexture,
+  AtlasError_SizeNonPow2,
+  AtlasError_SizeTooBig,
 
   AtlasError_Count,
 } AtlasError;
@@ -85,6 +91,8 @@ static String atlas_error_str(const AtlasError err) {
       string_static("Atlas does not specify any entries"),
       string_static("Atlas specifies more entries then are supported"),
       string_static("Atlas specifies an invalid texture"),
+      string_static("Atlas specifies a non power-of-two texture size"),
+      string_static("Atlas specifies a texture size larger then is supported"),
   };
   ASSERT(array_elems(g_msgs) == AtlasError_Count, "Incorrect number of atlas-error messages");
   return g_msgs[err];
@@ -201,6 +209,14 @@ void asset_load_atl(EcsWorld* world, const String id, const EcsEntityId entity, 
 
   if (UNLIKELY(result.error)) {
     errMsg = result.errorMsg;
+    goto Error;
+  }
+  if (UNLIKELY(!bits_ispow2(def.size))) {
+    errMsg = atlas_error_str(AtlasError_SizeNonPow2);
+    goto Error;
+  }
+  if (UNLIKELY(def.size > atlas_max_size)) {
+    errMsg = atlas_error_str(AtlasError_SizeTooBig);
     goto Error;
   }
   if (UNLIKELY(!def.entries.count)) {
