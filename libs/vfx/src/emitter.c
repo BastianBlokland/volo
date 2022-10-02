@@ -73,7 +73,7 @@ ecs_system_define(VfxEmitterRenderSys) {
             .rotation = baseRot,
             .sizeX    = baseScale,
             .sizeY    = baseScale,
-            .color    = geo_color_red,
+            .color    = geo_color(1, 0, 0, 0.5f),
         });
   }
 }
