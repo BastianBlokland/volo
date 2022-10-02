@@ -104,6 +104,11 @@ GeoQuat geo_quat_from_euler(GeoVector);
 GeoVector geo_quat_to_euler(GeoQuat q);
 
 /**
+ * Pack a quaternion to 16 bit floats.
+ */
+void geo_quat_pack_f16(GeoQuat, f16 out[4]);
+
+/**
  * Create a formatting argument for a quaternion.
  * NOTE: _QUAT_ is expanded multiple times, so care must be taken when providing complex
  * expressions.
