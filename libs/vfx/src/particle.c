@@ -9,13 +9,13 @@ static const String g_vfxParticleGraphic = string_static("graphics/vfx/particle.
 
 typedef struct {
   ALIGNAS(16)
-  GeoVector position;
-  GeoQuat   rotation;
-  GeoVector scale;
-  GeoColor  color;
+  GeoVector data1;    // xyz: position.
+  f16       data2[4]; // xyzw: rotation quaternion.
+  f16       data3[4]; // xy: scale.
+  f16       data4[4]; // xyzw: color.
 } VfxParticleData;
 
-ASSERT(sizeof(VfxParticleData) == 64, "Size needs to match the size defined in glsl");
+ASSERT(sizeof(VfxParticleData) == 48, "Size needs to match the size defined in glsl");
 
 ecs_comp_define(VfxParticleRendererComp) { EcsEntityId drawEntity; };
 
@@ -58,14 +58,15 @@ EcsEntityId vfx_particle_draw(const VfxParticleRendererComp* renderer) {
 }
 
 void vfx_particle_output(RendDrawComp* draw, const VfxParticle* particle) {
-  const VfxParticleData data = {
-      .position = particle->position,
-      .rotation = particle->rotation,
-      .scale    = geo_vector(particle->sizeX, particle->sizeY),
-      .color    = particle->color,
-  };
+  VfxParticleData instData;
+  instData.data1 = particle->position;
+  geo_quat_pack_f16(particle->rotation, instData.data2);
+  instData.data3[0] = float_f32_to_f16(particle->sizeX);
+  instData.data3[1] = float_f32_to_f16(particle->sizeY);
+  geo_color_pack_f16(particle->color, instData.data4);
+
   const GeoBox bounds =
       geo_box_from_quad(particle->position, particle->sizeX, particle->sizeY, particle->rotation);
 
-  rend_draw_add_instance(draw, mem_var(data), SceneTags_Vfx, bounds);
+  rend_draw_add_instance(draw, mem_var(instData), SceneTags_Vfx, bounds);
 }
