@@ -56,6 +56,11 @@ GeoColor geo_color_get(u64 idx);
 GeoColor geo_color_lerp(GeoColor x, GeoColor y, f32 t);
 
 /**
+ * Pack a color to 16 bit floats.
+ */
+void geo_color_pack_f16(GeoColor, f16 out[4]);
+
+/**
  * Create a formatting argument for a color.
  * NOTE: _COL_ is expanded multiple times, so care must be taken when providing complex expressions.
  */
