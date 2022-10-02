@@ -27,6 +27,7 @@ add_library(lib_scene STATIC
   src/target.c
   src/time.c
   src/transform.c
+  src/vfx.c
   )
 target_include_directories(lib_scene PUBLIC include)
 target_link_libraries(lib_scene PUBLIC lib_asset lib_core lib_ecs lib_geo lib_ai)
