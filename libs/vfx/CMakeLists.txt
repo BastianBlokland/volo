@@ -5,6 +5,7 @@
 message(STATUS "> library: vfx")
 
 add_library(lib_vfx STATIC
+  src/emitter.c
   src/register.c
   )
 target_include_directories(lib_vfx PUBLIC include)
