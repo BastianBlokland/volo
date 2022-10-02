@@ -60,16 +60,17 @@ ecs_system_define(VfxEmitterRenderSys) {
     const SceneScaleComp*     scaleComp   = ecs_view_read_t(itr, SceneScaleComp);
     const VfxEmitterComp*     emitterComp = ecs_view_read_t(itr, VfxEmitterComp);
 
-    const GeoVector basePosition = LIKELY(transComp) ? transComp->position : geo_vector(0);
-    const f32       baseScale    = scaleComp ? scaleComp->scale : 1.0f;
+    const GeoVector basePos   = LIKELY(transComp) ? transComp->position : geo_vector(0);
+    const GeoQuat   baseRot   = LIKELY(transComp) ? transComp->rotation : geo_quat_ident;
+    const f32       baseScale = scaleComp ? scaleComp->scale : 1.0f;
 
     (void)emitterComp;
 
     vfx_particle_output(
         draw,
         &(VfxParticle){
-            .position = basePosition,
-            .rotation = geo_quat_ident,
+            .position = basePos,
+            .rotation = baseRot,
             .sizeX    = baseScale,
             .sizeY    = baseScale,
             .color    = geo_color_red,
