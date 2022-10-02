@@ -12,6 +12,7 @@
 #include "scene_renderable.h"
 #include "scene_transform.h"
 #include "ui_register.h"
+#include "vfx_register.h"
 
 #include "cmd_internal.h"
 
@@ -123,6 +124,7 @@ void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
   rend_register(def);
   scene_register(def);
   ui_register(def);
+  vfx_register(def);
 
   ecs_register_module(def, sandbox_app_module);
   ecs_register_module(def, sandbox_cmd_module);
