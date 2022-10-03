@@ -105,6 +105,9 @@ static String rvk_graphic_depth_str(const AssetGraphicDepth depth) {
       string_static("Less"),
       string_static("LessOrEqual"),
       string_static("Always"),
+      string_static("LessNoWrite"),
+      string_static("LessOrEqualNoWrite"),
+      string_static("AlwaysNoWrite"),
   };
   ASSERT(array_elems(g_names) == AssetGraphicDepth_Count, "Incorrect number of names");
   return g_names[depth];
@@ -289,14 +292,34 @@ static VkCullModeFlags rvk_pipeline_cullmode(RvkGraphic* graphic) {
 static VkCompareOp rvk_pipeline_depth_compare(RvkGraphic* graphic) {
   switch (graphic->depth) {
   case AssetGraphicDepth_Less:
+  case AssetGraphicDepth_LessNoWrite:
     // Use the 'greater' compare op, because we are using a reversed-z depthbuffer.
     return VK_COMPARE_OP_GREATER;
   case AssetGraphicDepth_LessOrEqual:
+  case AssetGraphicDepth_LessOrEqualNoWrite:
     return VK_COMPARE_OP_GREATER_OR_EQUAL;
   case AssetGraphicDepth_Always:
+  case AssetGraphicDepth_AlwaysNoWrite:
     return VK_COMPARE_OP_ALWAYS;
   case AssetGraphicDepth_None:
     return VK_COMPARE_OP_NEVER;
+  case AssetGraphicDepth_Count:
+    break;
+  }
+  diag_crash();
+}
+
+static bool rvk_pipeline_depth_write(RvkGraphic* graphic) {
+  switch (graphic->depth) {
+  case AssetGraphicDepth_None:
+  case AssetGraphicDepth_Less:
+  case AssetGraphicDepth_LessOrEqual:
+  case AssetGraphicDepth_Always:
+    return true;
+  case AssetGraphicDepth_LessNoWrite:
+  case AssetGraphicDepth_LessOrEqualNoWrite:
+  case AssetGraphicDepth_AlwaysNoWrite:
+    return false;
   case AssetGraphicDepth_Count:
     break;
   }
@@ -390,7 +413,7 @@ rvk_pipeline_create(RvkGraphic* graphic, VkPipelineLayout layout, VkRenderPass v
   };
   const VkPipelineDepthStencilStateCreateInfo depthStencil = {
       .sType            = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-      .depthWriteEnable = true,
+      .depthWriteEnable = rvk_pipeline_depth_write(graphic),
       .depthTestEnable  = graphic->depth != AssetGraphicDepth_None,
       .depthCompareOp   = rvk_pipeline_depth_compare(graphic),
   };
@@ -521,16 +544,16 @@ RvkGraphic*
 rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset, const String dbgName) {
   RvkGraphic* graphic = alloc_alloc_t(g_alloc_heap, RvkGraphic);
   *graphic            = (RvkGraphic){
-                 .device      = dev,
-                 .dbgName     = string_dup(g_alloc_heap, dbgName),
-                 .topology    = asset->topology,
-                 .rasterizer  = asset->rasterizer,
-                 .lineWidth   = asset->lineWidth,
-                 .renderOrder = asset->renderOrder,
-                 .blend       = asset->blend,
-                 .depth       = asset->depth,
-                 .cull        = asset->cull,
-                 .vertexCount = asset->vertexCount,
+      .device      = dev,
+      .dbgName     = string_dup(g_alloc_heap, dbgName),
+      .topology    = asset->topology,
+      .rasterizer  = asset->rasterizer,
+      .lineWidth   = asset->lineWidth,
+      .renderOrder = asset->renderOrder,
+      .blend       = asset->blend,
+      .depth       = asset->depth,
+      .cull        = asset->cull,
+      .vertexCount = asset->vertexCount,
   };
 
   log_d(
