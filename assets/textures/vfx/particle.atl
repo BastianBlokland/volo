@@ -2,7 +2,7 @@
   "size": 512,
   "entrySize": 32,
   "mipmaps": true,
-  "srgb": true,
+  "srgb": false,
   "entries": [
     {
       "name": "A",
