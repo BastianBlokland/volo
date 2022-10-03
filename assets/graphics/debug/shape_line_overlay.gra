@@ -13,6 +13,6 @@
   "topology": "Lines",
   "rasterizer": "Lines",
   "blend": "Alpha",
-  "depth": "None",
+  "depth": "AlwaysNoWrite",
   "cull": "Back"
 }
