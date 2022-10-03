@@ -49,6 +49,7 @@ add_executable(test_lib_asset
   test/test_loader_mesh_obj.c
   test/test_loader_raw.c
   test/test_loader_shader_spv.c
+  test/test_loader_texture_atlas.c
   test/test_loader_texture_ppm.c
   test/test_loader_texture_tga.c
   test/test_manager.c
