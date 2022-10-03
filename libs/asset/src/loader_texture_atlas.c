@@ -134,11 +134,19 @@ static void atlas_generate_entry(
 
   for (usize entryPixelY = 0; entryPixelY != def->entrySize; ++entryPixelY) {
     for (usize entryPixelX = 0; entryPixelX != def->entrySize; ++entryPixelX) {
-      const u32                 layer  = 0;
-      const f32                 xNorm  = (f32)entryPixelX / (def->entrySize - 1.0f);
-      const f32                 yNorm  = (f32)entryPixelY / (def->entrySize - 1.0f);
-      const AssetTexturePixelB4 sample = asset_texture_sample_b4(texture, xNorm, yNorm, layer);
-
+      const u32           layer = 0;
+      const f32           xNorm = (f32)entryPixelX / (def->entrySize - 1.0f);
+      const f32           yNorm = (f32)entryPixelY / (def->entrySize - 1.0f);
+      AssetTexturePixelB4 sample;
+      switch (texture->channels) {
+      case AssetTextureChannels_One: {
+        const u8 single = asset_texture_sample_b1(texture, xNorm, yNorm, layer).r;
+        sample          = (AssetTexturePixelB4){.r = single, .g = single, .b = single, .a = single};
+      } break;
+      case AssetTextureChannels_Four:
+        sample = asset_texture_sample_b4(texture, xNorm, yNorm, layer);
+        break;
+      }
       const usize texPixelY                  = texY + entryPixelY;
       const usize texPixelX                  = texX + entryPixelX;
       out[texPixelY * def->size + texPixelX] = sample;
@@ -159,7 +167,9 @@ static void atlas_generate(
       *err = AtlasError_EntryTextureTypeUnsupported;
       return;
     }
-    if (UNLIKELY(textures[i]->channels != AssetTextureChannels_Four)) {
+    if (UNLIKELY(
+            textures[i]->channels != AssetTextureChannels_One &&
+            textures[i]->channels != AssetTextureChannels_Four)) {
       *err = AtlasError_EntryTextureChannelCountUnsupported;
       return;
     }
