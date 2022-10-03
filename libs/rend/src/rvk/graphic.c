@@ -101,7 +101,6 @@ static String rvk_graphic_blend_str(const AssetGraphicBlend blend) {
 
 static String rvk_graphic_depth_str(const AssetGraphicDepth depth) {
   static const String g_names[] = {
-      string_static("None"),
       string_static("Less"),
       string_static("LessOrEqual"),
       string_static("Always"),
@@ -301,8 +300,6 @@ static VkCompareOp rvk_pipeline_depth_compare(RvkGraphic* graphic) {
   case AssetGraphicDepth_Always:
   case AssetGraphicDepth_AlwaysNoWrite:
     return VK_COMPARE_OP_ALWAYS;
-  case AssetGraphicDepth_None:
-    return VK_COMPARE_OP_NEVER;
   case AssetGraphicDepth_Count:
     break;
   }
@@ -311,7 +308,6 @@ static VkCompareOp rvk_pipeline_depth_compare(RvkGraphic* graphic) {
 
 static bool rvk_pipeline_depth_write(RvkGraphic* graphic) {
   switch (graphic->depth) {
-  case AssetGraphicDepth_None:
   case AssetGraphicDepth_Less:
   case AssetGraphicDepth_LessOrEqual:
   case AssetGraphicDepth_Always:
@@ -414,8 +410,9 @@ rvk_pipeline_create(RvkGraphic* graphic, VkPipelineLayout layout, VkRenderPass v
   const VkPipelineDepthStencilStateCreateInfo depthStencil = {
       .sType            = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
       .depthWriteEnable = rvk_pipeline_depth_write(graphic),
-      .depthTestEnable  = graphic->depth != AssetGraphicDepth_None,
-      .depthCompareOp   = rvk_pipeline_depth_compare(graphic),
+      .depthTestEnable  = graphic->depth != AssetGraphicDepth_Always &&
+                         graphic->depth != AssetGraphicDepth_AlwaysNoWrite,
+      .depthCompareOp = rvk_pipeline_depth_compare(graphic),
   };
   const VkPipelineColorBlendAttachmentState colorBlendAttach =
       rvk_pipeline_colorblend_attach(graphic);

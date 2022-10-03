@@ -49,7 +49,6 @@ typedef enum {
 } AssetGraphicAniso;
 
 typedef enum {
-  AssetGraphicDepth_None,               // No depth-testing.
   AssetGraphicDepth_Less,               // Pass the depth-test if the fragment is closer.
   AssetGraphicDepth_LessOrEqual,        // Pass the depth-test if the fragment is closer or equal.
   AssetGraphicDepth_Always,             // Always pass the depth-test.
