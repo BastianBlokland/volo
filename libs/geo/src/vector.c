@@ -185,6 +185,30 @@ GeoVector geo_vector_lerp(const GeoVector x, const GeoVector y, const f32 t) {
 #endif
 }
 
+GeoVector geo_vector_bilerp(
+    const GeoVector v1,
+    const GeoVector v2,
+    const GeoVector v3,
+    const GeoVector v4,
+    const f32       tX,
+    const f32       tY) {
+#if geo_vec_simd_enable
+  const SimdVec vec1  = simd_vec_load(v1.comps);
+  const SimdVec vec2  = simd_vec_load(v2.comps);
+  const SimdVec vec3  = simd_vec_load(v3.comps);
+  const SimdVec vec4  = simd_vec_load(v4.comps);
+  const SimdVec vecTX = simd_vec_broadcast(tX);
+  const SimdVec vecTY = simd_vec_broadcast(tY);
+  const SimdVec tmp1  = simd_vec_add(vec1, simd_vec_mul(simd_vec_sub(vec2, vec1), vecTX));
+  const SimdVec tmp2  = simd_vec_add(vec3, simd_vec_mul(simd_vec_sub(vec4, vec3), vecTX));
+  GeoVector     res;
+  simd_vec_store(simd_vec_add(tmp1, simd_vec_mul(simd_vec_sub(tmp2, tmp1), vecTY)), res.comps);
+  return res;
+#else
+  return geo_vector_lerp(geo_vector_lerp(v1, v2, tX), geo_vector_lerp(v3, v4, tX), tY);
+#endif
+}
+
 GeoVector geo_vector_min(const GeoVector x, const GeoVector y) {
 #if geo_vec_simd_enable
   GeoVector res;
@@ -250,10 +274,10 @@ GeoVector geo_vector_round_nearest(const GeoVector v) {
   return res;
 #else
   return (GeoVector){
-      .x = intrinsic_round_f32(v.x),
-      .y = intrinsic_round_f32(v.y),
-      .z = intrinsic_round_f32(v.z),
-      .w = intrinsic_round_f32(v.w),
+      .x = intrinsic_round_nearest_f32(v.x),
+      .y = intrinsic_round_nearest_f32(v.y),
+      .z = intrinsic_round_nearest_f32(v.z),
+      .w = intrinsic_round_nearest_f32(v.w),
   };
 #endif
 }
@@ -265,10 +289,10 @@ GeoVector geo_vector_round_down(const GeoVector v) {
   return res;
 #else
   return (GeoVector){
-      .x = intrinsic_floor_f32(v.x),
-      .y = intrinsic_floor_f32(v.y),
-      .z = intrinsic_floor_f32(v.z),
-      .w = intrinsic_floor_f32(v.w),
+      .x = intrinsic_round_down_f32(v.x),
+      .y = intrinsic_round_down_f32(v.y),
+      .z = intrinsic_round_down_f32(v.z),
+      .w = intrinsic_round_down_f32(v.w),
   };
 #endif
 }
@@ -280,10 +304,10 @@ GeoVector geo_vector_round_up(const GeoVector v) {
   return res;
 #else
   return (GeoVector){
-      .x = intrinsic_ceil_f32(v.x),
-      .y = intrinsic_ceil_f32(v.y),
-      .z = intrinsic_ceil_f32(v.z),
-      .w = intrinsic_ceil_f32(v.w),
+      .x = intrinsic_round_up_f32(v.x),
+      .y = intrinsic_round_up_f32(v.y),
+      .z = intrinsic_round_up_f32(v.z),
+      .w = intrinsic_round_up_f32(v.w),
   };
 #endif
 }

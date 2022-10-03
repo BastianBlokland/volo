@@ -109,6 +109,13 @@ GeoVector geo_vector_reflect(GeoVector, GeoVector nrm);
 GeoVector geo_vector_lerp(GeoVector x, GeoVector y, f32 t);
 
 /**
+ * Calculate the bilinearly interpolated vector in the rectangle formed by v1, v2, v3 and v4.
+ * More info: https://en.wikipedia.org/wiki/Bilinear_interpolation
+ * NOTE: Does not clamp t (so can extrapolate too).
+ */
+GeoVector geo_vector_bilerp(GeoVector v1, GeoVector v2, GeoVector v3, GeoVector v4, f32 tX, f32 tY);
+
+/**
  * Calculate the minimum / maximum value per component.
  */
 GeoVector geo_vector_min(GeoVector x, GeoVector y);
