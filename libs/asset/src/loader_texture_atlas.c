@@ -3,6 +3,7 @@
 #include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_math.h"
 #include "core_thread.h"
 #include "data.h"
 #include "data_registry.h"
@@ -30,7 +31,7 @@ typedef struct {
 
 typedef struct {
   u32  size, entrySize;
-  bool mipmaps;
+  bool mipmaps, srgb;
   struct {
     AtlasEntryDef* values;
     usize          count;
@@ -55,6 +56,7 @@ static void atlas_datareg_init() {
     data_reg_field_t(g_dataReg, AtlasDef, size, data_prim_t(u32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AtlasDef, entrySize, data_prim_t(u32), .flags = DataFlags_NotEmpty);
     data_reg_field_t(g_dataReg, AtlasDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AtlasDef, srgb, data_prim_t(bool), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, AtlasDef, entries, t_AtlasEntryDef, .flags = DataFlags_NotEmpty, .container = DataContainer_Array);
     // clang-format on
 
@@ -85,7 +87,6 @@ typedef enum {
   AtlasError_EntrySizeNonPow2,
   AtlasError_EntryTextureTypeUnsupported,
   AtlasError_EntryTextureChannelCountUnsupported,
-  AtlasError_EntryTextureMismatchedEncoding,
   AtlasError_EntryTextureLayerCountUnsupported,
 
   AtlasError_Count,
@@ -102,19 +103,38 @@ static String atlas_error_str(const AtlasError err) {
       string_static("Atlas specifies a non power-of-two entry size"),
       string_static("Atlas entry specifies texture with a non-supported type"),
       string_static("Atlas entry specifies texture with a non-supported channel count"),
-      string_static("Atlas entry textures have mismatching encodings"),
       string_static("Atlas entry specifies texture with a non-supported layer count"),
   };
   ASSERT(array_elems(g_msgs) == AtlasError_Count, "Incorrect number of atlas-error messages");
   return g_msgs[err];
 }
 
-static AssetTextureFlags atlas_texture_flags(const AtlasDef* def, const bool srgb) {
+AssetTexturePixelB4 srgb_approx_decode(const AssetTexturePixelB4 pixel) {
+  // Simple approximation of the srgb curve: https://en.wikipedia.org/wiki/SRGB.
+  return (AssetTexturePixelB4){
+      .r = (u8)(math_pow_f32(pixel.r / 255.0f, 2.2f) * 255.999f),
+      .g = (u8)(math_pow_f32(pixel.g / 255.0f, 2.2f) * 255.999f),
+      .b = (u8)(math_pow_f32(pixel.b / 255.0f, 2.2f) * 255.999f),
+      .a = (u8)(math_pow_f32(pixel.a / 255.0f, 2.2f) * 255.999f),
+  };
+}
+
+AssetTexturePixelB4 srgb_approx_encode(const AssetTexturePixelB4 pixel) {
+  // Simple approximation of the srgb curve: https://en.wikipedia.org/wiki/SRGB.
+  return (AssetTexturePixelB4){
+      .r = (u8)(math_pow_f32(pixel.r / 255.0f, 1.0f / 2.2f) * 255.999f),
+      .g = (u8)(math_pow_f32(pixel.g / 255.0f, 1.0f / 2.2f) * 255.999f),
+      .b = (u8)(math_pow_f32(pixel.b / 255.0f, 1.0f / 2.2f) * 255.999f),
+      .a = (u8)(math_pow_f32(pixel.a / 255.0f, 1.0f / 2.2f) * 255.999f),
+  };
+}
+
+static AssetTextureFlags atlas_texture_flags(const AtlasDef* def) {
   AssetTextureFlags flags = 0;
   if (def->mipmaps) {
     flags |= AssetTextureFlags_MipMaps;
   }
-  if (srgb) {
+  if (def->srgb) {
     flags |= AssetTextureFlags_Srgb;
   }
   return flags;
@@ -147,6 +167,12 @@ static void atlas_generate_entry(
         sample = asset_texture_sample_b4(texture, xNorm, yNorm, layer);
         break;
       }
+      if (def->srgb && !(texture->flags & AssetTextureFlags_Srgb)) {
+        sample = srgb_approx_encode(sample);
+      } else if (!def->srgb && (texture->flags & AssetTextureFlags_Srgb)) {
+        sample = srgb_approx_decode(sample);
+      }
+
       const usize texPixelY                  = texY + entryPixelY;
       const usize texPixelX                  = texX + entryPixelX;
       out[texPixelY * def->size + texPixelX] = sample;
@@ -161,7 +187,6 @@ static void atlas_generate(
     AtlasError*              err) {
 
   // Validate textures.
-  const bool srgb = (textures[0]->flags & AssetTextureFlags_Srgb) != 0;
   for (u32 i = 0; i != def->entries.count; ++i) {
     if (UNLIKELY(textures[i]->type != AssetTextureType_Byte)) {
       *err = AtlasError_EntryTextureTypeUnsupported;
@@ -171,10 +196,6 @@ static void atlas_generate(
             textures[i]->channels != AssetTextureChannels_One &&
             textures[i]->channels != AssetTextureChannels_Four)) {
       *err = AtlasError_EntryTextureChannelCountUnsupported;
-      return;
-    }
-    if (UNLIKELY(srgb != ((textures[i]->flags & AssetTextureFlags_Srgb) != 0))) {
-      *err = AtlasError_EntryTextureMismatchedEncoding;
       return;
     }
     if (UNLIKELY(textures[i]->layers > 1)) {
@@ -196,7 +217,7 @@ static void atlas_generate(
   *outTexture = (AssetTextureComp){
       .type     = AssetTextureType_Byte,
       .channels = AssetTextureChannels_Four,
-      .flags    = atlas_texture_flags(def, srgb),
+      .flags    = atlas_texture_flags(def),
       .pixelsB4 = pixels,
       .width    = def->size,
       .height   = def->size,
