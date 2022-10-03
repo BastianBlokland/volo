@@ -3,6 +3,6 @@
   "channels": 1,
   "size": 64,
   "frequency": 1,
-  "power": 0.03,
+  "power": 3,
   "seed": 1
 }
