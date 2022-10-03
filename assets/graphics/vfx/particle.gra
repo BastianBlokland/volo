@@ -19,6 +19,6 @@
   "topology": "Triangles",
   "rasterizer": "Fill",
   "blend": "Alpha",
-  "depth": "Less",
+  "depth": "LessNoWrite",
   "cull": "None"
 }
