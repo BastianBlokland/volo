@@ -2,10 +2,11 @@
   "size": 512,
   "entrySize": 32,
   "mipmaps": true,
+  "srgb": true,
   "entries": [
     {
       "name": "A",
-      "texture": "textures/checker_white_8.ptx"
+      "texture": "textures/glow.ptx"
     }
   ]
 }
