@@ -173,10 +173,13 @@ static void atlas_generate_entry(
       const f32           yNorm = (f32)entryPixelY / (def->entrySize - 1.0f);
       AssetTexturePixelB4 sample;
       switch (texture->channels) {
-      case AssetTextureChannels_One: {
-        const u8 single = asset_texture_sample_b1(texture, xNorm, yNorm, layer).r;
-        sample          = (AssetTexturePixelB4){.r = single, .g = single, .b = single, .a = single};
-      } break;
+      case AssetTextureChannels_One:
+        sample = (AssetTexturePixelB4){
+            .r = 255,
+            .g = 255,
+            .b = 255,
+            .a = asset_texture_sample_b1(texture, xNorm, yNorm, layer).r};
+        break;
       case AssetTextureChannels_Four:
         sample = asset_texture_sample_b4(texture, xNorm, yNorm, layer);
         break;
