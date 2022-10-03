@@ -134,15 +134,16 @@ static void atlas_generate_entry(
 
   for (usize entryPixelY = 0; entryPixelY != def->entrySize; ++entryPixelY) {
     for (usize entryPixelX = 0; entryPixelX != def->entrySize; ++entryPixelX) {
-      const AssetTexturePixelB4 sample = {.r = 255, .g = 255, .b = 255, .a = 255};
+      const u32                 layer  = 0;
+      const f32                 xNorm  = (f32)entryPixelX / (def->entrySize - 1.0f);
+      const f32                 yNorm  = (f32)entryPixelY / (def->entrySize - 1.0f);
+      const AssetTexturePixelB4 sample = asset_texture_sample_b4(texture, xNorm, yNorm, layer);
 
       const usize texPixelY                  = texY + entryPixelY;
       const usize texPixelX                  = texX + entryPixelX;
       out[texPixelY * def->size + texPixelX] = sample;
     }
   }
-
-  (void)texture;
 }
 
 static void atlas_generate(
