@@ -1,13 +1,15 @@
+#include "asset_atlas.h"
 #include "asset_texture.h"
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_math.h"
+#include "core_search.h"
+#include "core_sort.h"
 #include "core_thread.h"
 #include "data.h"
 #include "data_registry.h"
-#include "ecs_entity.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -65,11 +67,18 @@ static void atlas_datareg_init() {
   thread_spinlock_unlock(&g_initLock);
 }
 
+ecs_comp_define_public(AssetAtlasComp);
+
 ecs_comp_define(AssetAtlasLoadComp) {
   AtlasDef def;
   u32      maxEntries;
   DynArray textures; // EcsEntityId[].
 };
+
+static void ecs_destruct_atlas_comp(void* data) {
+  AssetAtlasComp* comp = data;
+  alloc_free_array_t(g_alloc_heap, comp->entries, comp->entryCount);
+}
 
 static void ecs_destruct_atlas_load_comp(void* data) {
   AssetAtlasLoadComp* comp = data;
@@ -107,6 +116,11 @@ static String atlas_error_str(const AtlasError err) {
   };
   ASSERT(array_elems(g_msgs) == AtlasError_Count, "Incorrect number of atlas-error messages");
   return g_msgs[err];
+}
+
+static i8 atlas_compare_entry(const void* a, const void* b) {
+  return compare_stringhash(
+      field_ptr(a, AssetAtlasEntry, name), field_ptr(b, AssetAtlasEntry, name));
 }
 
 AssetTexturePixelB4 srgb_approx_decode(const AssetTexturePixelB4 pixel) {
@@ -183,6 +197,7 @@ static void atlas_generate_entry(
 static void atlas_generate(
     const AtlasDef*          def,
     const AssetTextureComp** textures,
+    AssetAtlasComp*          outAtlas,
     AssetTextureComp*        outTexture,
     AtlasError*              err) {
 
@@ -208,12 +223,27 @@ static void atlas_generate(
   Mem pixelMem = alloc_alloc(g_alloc_heap, sizeof(AssetTexturePixelB4) * def->size * def->size, 4);
   mem_set(pixelMem, 0); // Initialize to transparent.
 
+  const u32        entryCount = (u32)def->entries.count;
+  AssetAtlasEntry* entries    = alloc_array_t(g_alloc_heap, AssetAtlasEntry, entryCount);
+
   // Render entries into output texture.
   AssetTexturePixelB4* pixels = pixelMem.ptr;
   for (u32 i = 0; i != def->entries.count; ++i) {
     atlas_generate_entry(def, textures[i], i, pixels);
+    entries[i] = (AssetAtlasEntry){
+        .name       = string_hash(def->entries.values[i].name),
+        .atlasIndex = i,
+    };
   }
 
+  // Sort the entries on their name hash.
+  sort_quicksort_t(entries, entries + entryCount, AssetAtlasEntry, atlas_compare_entry);
+
+  *outAtlas = (AssetAtlasComp){
+      .entriesPerDim = def->size / def->entrySize,
+      .entries       = entries,
+      .entryCount    = entryCount,
+  };
   *outTexture = (AssetTextureComp){
       .type     = AssetTextureType_Byte,
       .channels = AssetTextureChannels_Four,
@@ -277,12 +307,14 @@ ecs_system_define(AtlasLoadAssetSys) {
       textures[i] = ecs_view_read_t(textureItr, AssetTextureComp);
     }
 
+    AssetAtlasComp   atlas;
     AssetTextureComp texture;
-    atlas_generate(&load->def, textures, &texture, &err);
+    atlas_generate(&load->def, textures, &atlas, &texture, &err);
     if (UNLIKELY(err)) {
       goto Error;
     }
 
+    *ecs_world_add_t(world, entity, AssetAtlasComp)   = atlas;
     *ecs_world_add_t(world, entity, AssetTextureComp) = texture;
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
     goto Cleanup;
@@ -300,17 +332,37 @@ ecs_system_define(AtlasLoadAssetSys) {
   }
 }
 
+ecs_view_define(AtlasUnloadView) {
+  ecs_access_with(AssetAtlasComp);
+  ecs_access_without(AssetLoadedComp);
+}
+
+/**
+ * Remove any atlas-asset component for unloaded assets.
+ */
+ecs_system_define(AtlasUnloadAssetSys) {
+  EcsView* unloadView = ecs_world_view_t(world, AtlasUnloadView);
+  for (EcsIterator* itr = ecs_view_itr(unloadView); ecs_view_walk(itr);) {
+    const EcsEntityId entity = ecs_view_entity(itr);
+    ecs_world_remove_t(world, entity, AssetAtlasComp);
+  }
+}
+
 ecs_module_init(asset_atlas_module) {
   atlas_datareg_init();
 
+  ecs_register_comp(AssetAtlasComp, .destructor = ecs_destruct_atlas_comp);
   ecs_register_comp(AssetAtlasLoadComp, .destructor = ecs_destruct_atlas_load_comp);
 
   ecs_register_view(ManagerView);
   ecs_register_view(LoadView);
   ecs_register_view(TextureView);
+  ecs_register_view(AtlasUnloadView);
 
   ecs_register_system(
       AtlasLoadAssetSys, ecs_view_id(ManagerView), ecs_view_id(LoadView), ecs_view_id(TextureView));
+
+  ecs_register_system(AtlasUnloadAssetSys, ecs_view_id(AtlasUnloadView));
 }
 
 void asset_load_atl(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
@@ -369,4 +421,14 @@ Error:
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
   data_destroy(g_dataReg, g_alloc_heap, g_dataAtlasDefMeta, mem_var(def));
   asset_repo_source_close(src);
+}
+
+const AssetAtlasEntry* asset_atlas_lookup(const AssetAtlasComp* atlas, const StringHash name) {
+  const AssetAtlasEntry target = {.name = name};
+  return search_binary_t(
+      atlas->entries,
+      atlas->entries + atlas->entryCount,
+      AssetAtlasEntry,
+      atlas_compare_entry,
+      &target);
 }
