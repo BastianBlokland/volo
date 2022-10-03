@@ -55,6 +55,6 @@ Mem   asset_texture_data(const AssetTextureComp*);
  * Sample the texture at the given normalized x and y coordinates.
  *
  * Pre-condition: texture.type == AssetTextureType_Byte.
- * Pre-condition: texture.channels == AssetTextureChannels_Four.
  */
+AssetTexturePixelB1 asset_texture_sample_b1(const AssetTextureComp*, f32 x, f32 y, u32 layer);
 AssetTexturePixelB4 asset_texture_sample_b4(const AssetTextureComp*, f32 x, f32 y, u32 layer);
