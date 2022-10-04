@@ -1,3 +1,4 @@
+#include "asset_atlas.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "scene_transform.h"
@@ -7,6 +8,14 @@
 #include "particle_internal.h"
 
 ecs_comp_define(VfxEmitterComp) { u32 dummy; };
+
+ecs_view_define(AtlasView) { ecs_access_read(AssetAtlasComp); }
+ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
+
+static const AssetAtlasComp* vfx_atlas(EcsWorld* world, const EcsEntityId entity) {
+  EcsIterator* itr = ecs_view_maybe_at(ecs_world_view_t(world, AtlasView), entity);
+  return itr ? ecs_view_read_t(itr, AssetAtlasComp) : null;
+}
 
 ecs_view_define(InitView) {
   ecs_access_read(SceneVfxComp);
@@ -35,7 +44,6 @@ ecs_system_define(VfxEmitterDeinitSys) {
 }
 
 ecs_view_define(RenderGlobalView) { ecs_access_read(VfxParticleRendererComp); }
-ecs_view_define(RenderDrawView) { ecs_access_write(RendDrawComp); }
 
 ecs_view_define(RenderView) {
   ecs_access_maybe_read(SceneScaleComp);
@@ -50,9 +58,15 @@ ecs_system_define(VfxEmitterRenderSys) {
     return;
   }
 
-  const VfxParticleRendererComp* renderer   = ecs_view_read_t(globalItr, VfxParticleRendererComp);
-  const EcsEntityId              drawEntity = vfx_particle_draw(renderer);
-  RendDrawComp* draw = ecs_utils_write_t(world, RenderDrawView, drawEntity, RendDrawComp);
+  const VfxParticleRendererComp* rend = ecs_view_read_t(globalItr, VfxParticleRendererComp);
+  RendDrawComp* draw = ecs_utils_write_t(world, DrawView, vfx_particle_draw(rend), RendDrawComp);
+
+  const AssetAtlasComp* atlas = vfx_atlas(world, vfx_particle_atlas(rend));
+  if (!atlas) {
+    return; // Atlas hasn't loaded yet.
+  }
+
+  vfx_particle_init(draw, atlas);
 
   EcsView* renderView = ecs_world_view_t(world, RenderView);
   for (EcsIterator* itr = ecs_view_itr(renderView); ecs_view_walk(itr);) {
@@ -69,11 +83,12 @@ ecs_system_define(VfxEmitterRenderSys) {
     vfx_particle_output(
         draw,
         &(VfxParticle){
-            .position = basePos,
-            .rotation = baseRot,
-            .sizeX    = baseScale,
-            .sizeY    = baseScale,
-            .color    = geo_color(1, 0, 0, 0.5f),
+            .position   = basePos,
+            .rotation   = baseRot,
+            .atlasIndex = 0,
+            .sizeX      = baseScale,
+            .sizeY      = baseScale,
+            .color      = geo_color(1, 0, 0, 0.5f),
         });
   }
 }
@@ -81,14 +96,18 @@ ecs_system_define(VfxEmitterRenderSys) {
 ecs_module_init(vfx_emitter_module) {
   ecs_register_comp(VfxEmitterComp);
 
+  ecs_register_view(DrawView);
+  ecs_register_view(AtlasView);
+
   ecs_register_system(VfxEmitterInitSys, ecs_register_view(InitView));
   ecs_register_system(VfxEmitterDeinitSys, ecs_register_view(DeinitView));
 
   ecs_register_system(
       VfxEmitterRenderSys,
       ecs_register_view(RenderGlobalView),
-      ecs_register_view(RenderDrawView),
-      ecs_register_view(RenderView));
+      ecs_register_view(RenderView),
+      ecs_view_id(DrawView),
+      ecs_view_id(AtlasView));
 
   ecs_order(VfxEmitterRenderSys, VfxOrder_Render);
 }

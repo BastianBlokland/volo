@@ -1,3 +1,4 @@
+#include "asset_atlas.h"
 #include "asset_manager.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -11,7 +12,15 @@ static const String g_vfxParticleAtlas   = string_static("textures/vfx/particle.
 
 typedef struct {
   ALIGNAS(16)
-  GeoVector data1;    // xyz: position.
+  f32 atlasEntriesPerDim;
+  f32 invAtlasEntriesPerDim;
+} VfxParticleMetaData;
+
+ASSERT(sizeof(VfxParticleMetaData) == 16, "Size needs to match the size defined in glsl");
+
+typedef struct {
+  ALIGNAS(16)
+  GeoVector data1;    // xyz: position, w: atlasIndex.
   f16       data2[4]; // xyzw: rotation quaternion.
   f16       data3[4]; // xy: scale.
   f16       data4[4]; // xyzw: color.
@@ -113,9 +122,18 @@ EcsEntityId vfx_particle_draw(const VfxParticleRendererComp* renderer) {
   return renderer->drawEntity;
 }
 
+void vfx_particle_init(RendDrawComp* draw, const AssetAtlasComp* atlas) {
+  const VfxParticleMetaData metaData = {
+      .atlasEntriesPerDim    = atlas->entriesPerDim,
+      .invAtlasEntriesPerDim = 1.0f / atlas->entriesPerDim,
+  };
+  rend_draw_set_data(draw, mem_var(metaData));
+}
+
 void vfx_particle_output(RendDrawComp* draw, const VfxParticle* particle) {
   VfxParticleData instData;
-  instData.data1 = particle->position;
+  instData.data1   = particle->position;
+  instData.data1.w = (f32)particle->atlasIndex;
   geo_quat_pack_f16(particle->rotation, instData.data2);
   instData.data3[0] = float_f32_to_f16(particle->sizeX);
   instData.data3[1] = float_f32_to_f16(particle->sizeY);

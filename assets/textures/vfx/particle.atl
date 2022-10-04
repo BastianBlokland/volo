@@ -5,7 +5,7 @@
   "srgb": false,
   "entries": [
     {
-      "name": "A",
+      "name": "glow",
       "texture": "textures/glow.ptx"
     }
   ]
