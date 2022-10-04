@@ -20,9 +20,7 @@ typedef struct {
  */
 ecs_comp_extern(VfxParticleRendererComp);
 
-/**
- * Retrieve the draw entity.
- */
+EcsEntityId vfx_particle_atlas(const VfxParticleRendererComp*);
 EcsEntityId vfx_particle_draw(const VfxParticleRendererComp*);
 
 /**
