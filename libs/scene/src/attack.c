@@ -58,7 +58,8 @@ static GeoVector aim_target_position(EcsIterator* targetItr) {
   return geo_box_center(&targetBounds);
 }
 
-static void attack_muzzleflash_spawn(EcsWorld* world, const GeoMatrix* muzzleMatrix) {
+static void attack_muzzleflash_spawn(
+    EcsWorld* world, const EcsEntityId vfxAsset, const GeoMatrix* muzzleMatrix) {
   const EcsEntityId e   = ecs_world_entity_create(world);
   const GeoVector   pos = geo_matrix_to_translation(muzzleMatrix);
   // TODO: Orient the muzzle-joint to have the z-axis pointing along the barrel instead of the y.
@@ -67,28 +68,27 @@ static void attack_muzzleflash_spawn(EcsWorld* world, const GeoMatrix* muzzleMat
 
   ecs_world_add_t(world, e, SceneTransformComp, .position = pos, .rotation = rot);
   ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_seconds(1));
-  ecs_world_add_empty_t(world, e, SceneVfxComp);
+  ecs_world_add_t(world, e, SceneVfxComp, .asset = vfxAsset);
 }
 
 static void attack_projectile_spawn(
     EcsWorld*         world,
     const EcsEntityId instigator,
-    const EcsEntityId graphic,
+    const EcsEntityId graphicAsset,
     const GeoMatrix*  muzzleMatrix,
     const GeoVector   targetPos) {
-  diag_assert_msg(graphic, "Projectile graphic missing");
+  diag_assert_msg(graphicAsset, "Projectile graphic missing");
 
   const EcsEntityId e         = ecs_world_entity_create(world);
   const GeoVector   sourcePos = geo_matrix_to_translation(muzzleMatrix);
   const GeoVector   dir       = geo_vector_norm(geo_vector_sub(targetPos, sourcePos));
   const GeoQuat     rotation  = geo_quat_look(dir, geo_up);
 
-  ecs_world_add_t(world, e, SceneRenderableComp, .graphic = graphic);
+  ecs_world_add_t(world, e, SceneRenderableComp, .graphic = graphicAsset);
   ecs_world_add_t(world, e, SceneTransformComp, .position = sourcePos, .rotation = rotation);
   ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_seconds(5));
   ecs_world_add_t(
       world, e, SceneProjectileComp, .speed = 25, .damage = 10, .instigator = instigator);
-  ecs_world_add_empty_t(world, e, SceneVfxComp);
 }
 
 static bool attack_in_sight(const SceneTransformComp* trans, const GeoVector targetPos) {
@@ -172,7 +172,9 @@ ecs_system_define(SceneAttackSys) {
       fireAnimLayer->time = 0.0f;
       attack->flags |= SceneAttackFlags_Firing;
       attack_projectile_spawn(world, entity, attack->projectileGraphic, &muzzleMatrix, targetPos);
-      attack_muzzleflash_spawn(world, &muzzleMatrix);
+      if (attack->muzzleFlashVfx) {
+        attack_muzzleflash_spawn(world, attack->muzzleFlashVfx, &muzzleMatrix);
+      }
     }
 
     if (isFiring && fireAnimLayer->time == fireAnimLayer->duration) {
