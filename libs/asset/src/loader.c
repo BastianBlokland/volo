@@ -61,6 +61,9 @@ AssetLoader asset_loader(const AssetFormat format) {
   case AssetFormat_Ttf: {
     RET_LOADER(ttf);
   }
+  case AssetFormat_Vfx: {
+    RET_LOADER(vfx);
+  }
   case AssetFormat_Count:
     break;
   }

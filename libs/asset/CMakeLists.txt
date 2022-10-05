@@ -26,6 +26,7 @@ add_library(lib_asset STATIC
   src/loader_texture_r32.c
   src/loader_texture_tga.c
   src/loader_texture.c
+  src/loader_vfx.c
   src/loader.c
   src/manager.c
   src/mesh_utils.c

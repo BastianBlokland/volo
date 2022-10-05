@@ -19,6 +19,7 @@ typedef enum {
   AssetFormat_Spv,
   AssetFormat_Tga,
   AssetFormat_Ttf,
+  AssetFormat_Vfx,
 
   AssetFormat_Count,
 } AssetFormat;

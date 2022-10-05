@@ -11,3 +11,4 @@
 #include "asset_register.h"
 #include "asset_shader.h"
 #include "asset_texture.h"
+#include "asset_vfx.h"

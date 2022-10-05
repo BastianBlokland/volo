@@ -21,3 +21,4 @@
 *.imp linguist-language=JSON
 *.pme linguist-language=JSON
 *.ptx linguist-language=JSON
+*.vfx linguist-language=JSON
