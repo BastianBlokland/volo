@@ -7,7 +7,7 @@
 
 #include "particle_internal.h"
 
-ecs_comp_define(VfxEmitterComp) { u32 dummy; };
+ecs_comp_define(VfxSystemComp) { u32 dummy; };
 
 ecs_view_define(AtlasView) { ecs_access_read(AssetAtlasComp); }
 ecs_view_define(DrawView) { ecs_access_write(RendDrawComp); }
@@ -19,27 +19,27 @@ static const AssetAtlasComp* vfx_atlas(EcsWorld* world, const EcsEntityId entity
 
 ecs_view_define(InitView) {
   ecs_access_read(SceneVfxComp);
-  ecs_access_without(VfxEmitterComp);
+  ecs_access_without(VfxSystemComp);
 }
 
-ecs_system_define(VfxEmitterInitSys) {
+ecs_system_define(VfxSystemInitSys) {
   EcsView* initView = ecs_world_view_t(world, InitView);
   for (EcsIterator* itr = ecs_view_itr(initView); ecs_view_walk(itr);) {
     const EcsEntityId entity = ecs_view_entity(itr);
-    ecs_world_add_t(world, entity, VfxEmitterComp);
+    ecs_world_add_t(world, entity, VfxSystemComp);
   }
 }
 
 ecs_view_define(DeinitView) {
-  ecs_access_with(VfxEmitterComp);
+  ecs_access_with(VfxSystemComp);
   ecs_access_without(SceneVfxComp);
 }
 
-ecs_system_define(VfxEmitterDeinitSys) {
+ecs_system_define(VfxSystemDeinitSys) {
   EcsView* deinitView = ecs_world_view_t(world, DeinitView);
   for (EcsIterator* itr = ecs_view_itr(deinitView); ecs_view_walk(itr);) {
     const EcsEntityId entity = ecs_view_entity(itr);
-    ecs_world_remove_t(world, entity, VfxEmitterComp);
+    ecs_world_remove_t(world, entity, VfxSystemComp);
   }
 }
 
@@ -48,10 +48,10 @@ ecs_view_define(RenderGlobalView) { ecs_access_read(VfxParticleRendererComp); }
 ecs_view_define(RenderView) {
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneTransformComp);
-  ecs_access_read(VfxEmitterComp);
+  ecs_access_read(VfxSystemComp);
 }
 
-ecs_system_define(VfxEmitterRenderSys) {
+ecs_system_define(VfxSystemRenderSys) {
   EcsView*     globalView = ecs_world_view_t(world, RenderGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
@@ -70,15 +70,15 @@ ecs_system_define(VfxEmitterRenderSys) {
 
   EcsView* renderView = ecs_world_view_t(world, RenderView);
   for (EcsIterator* itr = ecs_view_itr(renderView); ecs_view_walk(itr);) {
-    const SceneTransformComp* transComp   = ecs_view_read_t(itr, SceneTransformComp);
-    const SceneScaleComp*     scaleComp   = ecs_view_read_t(itr, SceneScaleComp);
-    const VfxEmitterComp*     emitterComp = ecs_view_read_t(itr, VfxEmitterComp);
+    const SceneTransformComp* transComp = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneScaleComp*     scaleComp = ecs_view_read_t(itr, SceneScaleComp);
+    const VfxSystemComp*      sysComp   = ecs_view_read_t(itr, VfxSystemComp);
 
     const GeoVector basePos   = LIKELY(transComp) ? transComp->position : geo_vector(0);
     const GeoQuat   baseRot   = LIKELY(transComp) ? transComp->rotation : geo_quat_ident;
     const f32       baseScale = scaleComp ? scaleComp->scale : 1.0f;
 
-    (void)emitterComp;
+    (void)sysComp;
 
     vfx_particle_output(
         draw,
@@ -93,21 +93,21 @@ ecs_system_define(VfxEmitterRenderSys) {
   }
 }
 
-ecs_module_init(vfx_emitter_module) {
-  ecs_register_comp(VfxEmitterComp);
+ecs_module_init(vfx_system_module) {
+  ecs_register_comp(VfxSystemComp);
 
   ecs_register_view(DrawView);
   ecs_register_view(AtlasView);
 
-  ecs_register_system(VfxEmitterInitSys, ecs_register_view(InitView));
-  ecs_register_system(VfxEmitterDeinitSys, ecs_register_view(DeinitView));
+  ecs_register_system(VfxSystemInitSys, ecs_register_view(InitView));
+  ecs_register_system(VfxSystemDeinitSys, ecs_register_view(DeinitView));
 
   ecs_register_system(
-      VfxEmitterRenderSys,
+      VfxSystemRenderSys,
       ecs_register_view(RenderGlobalView),
       ecs_register_view(RenderView),
       ecs_view_id(DrawView),
       ecs_view_id(AtlasView));
 
-  ecs_order(VfxEmitterRenderSys, VfxOrder_Render);
+  ecs_order(VfxSystemRenderSys, VfxOrder_Render);
 }
