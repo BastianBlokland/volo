@@ -63,5 +63,5 @@ void main() {
 
   out_vertexPosition = u_global.viewProj * f32v4(worldPos, 1);
   out_color          = instanceColor;
-  out_texcoord       = texOrigin + c_unitTexCoords[in_vertexIndex] * u_meta.invEntriesPerDim;
+  out_texcoord       = (texOrigin + c_unitTexCoords[in_vertexIndex]) * u_meta.invEntriesPerDim;
 }
