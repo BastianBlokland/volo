@@ -151,11 +151,13 @@ ecs_system_define(VfxSystemRenderSys) {
       log_w("Vfx asset entry missing", log_param("atlas-entry-hash", fmt_int(asset->atlasEntry)));
       continue;
     }
+    const GeoVector pos = geo_vector_add(
+        basePos, geo_quat_rotate(baseRot, geo_vector_mul(asset->position, baseScale)));
 
     vfx_particle_output(
         draw,
         &(VfxParticle){
-            .position   = basePos,
+            .position   = pos,
             .rotation   = baseRot,
             .atlasIndex = atlasEntry->atlasIndex,
             .sizeX      = baseScale * asset->sizeX,
