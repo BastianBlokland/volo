@@ -120,11 +120,11 @@ static void asset_info_query(DebugAssetPanelComp* panelComp, EcsWorld* world) {
       status = DebugAssetStatus_Failed;
     } else if (asset_is_loading(assetComp)) {
       status = DebugAssetStatus_Loading;
+    } else if (ecs_world_has_t(world, entity, AssetChangedComp)) {
+      status = DebugAssetStatus_Changed;
     } else if (ecs_world_has_t(world, entity, AssetLoadedComp)) {
       status = asset_ref_count(assetComp) ? DebugAssetStatus_LoadedReferenced
                                           : DebugAssetStatus_LoadedUnreferenced;
-    } else if (ecs_world_has_t(world, entity, AssetChangedComp)) {
-      status = DebugAssetStatus_Changed;
     } else {
       status = DebugAssetStatus_Idle;
     }
