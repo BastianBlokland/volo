@@ -153,7 +153,7 @@ ecs_system_define(VfxSystemRenderSys) {
     }
     const GeoVector pos = geo_vector_add(
         basePos, geo_quat_rotate(baseRot, geo_vector_mul(asset->position, baseScale)));
-    const GeoQuat rot = geo_quat_mul(asset->rotation, baseRot);
+    const GeoQuat rot = geo_quat_mul(baseRot, asset->rotation);
 
     vfx_particle_output(
         draw,
