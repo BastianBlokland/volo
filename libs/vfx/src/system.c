@@ -158,8 +158,8 @@ ecs_system_define(VfxSystemRenderSys) {
             .position   = basePos,
             .rotation   = baseRot,
             .atlasIndex = atlasEntry->atlasIndex,
-            .sizeX      = baseScale,
-            .sizeY      = baseScale,
+            .sizeX      = baseScale * asset->sizeX,
+            .sizeY      = baseScale * asset->sizeY,
             .color      = asset->color,
         });
   }

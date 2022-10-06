@@ -12,11 +12,16 @@ static DataReg* g_dataReg;
 static DataMeta g_dataVfxDefMeta;
 
 typedef struct {
+  f32 x, y;
+} AssetVfxVec2Def;
+
+typedef struct {
   f32 r, g, b, a;
 } AssetVfxColorDef;
 
 typedef struct {
   String           atlasEntry;
+  AssetVfxVec2Def  size;
   AssetVfxColorDef color;
 } AssetVfxDef;
 
@@ -30,6 +35,10 @@ static void vfx_datareg_init() {
     g_dataReg = data_reg_create(g_alloc_persist);
 
     // clang-format off
+    data_reg_struct_t(g_dataReg, AssetVfxVec2Def);
+    data_reg_field_t(g_dataReg, AssetVfxVec2Def, x, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, AssetVfxVec2Def, y, data_prim_t(f32));
+
     data_reg_struct_t(g_dataReg, AssetVfxColorDef);
     data_reg_field_t(g_dataReg, AssetVfxColorDef, r, data_prim_t(f32));
     data_reg_field_t(g_dataReg, AssetVfxColorDef, g, data_prim_t(f32));
@@ -38,6 +47,7 @@ static void vfx_datareg_init() {
 
     data_reg_struct_t(g_dataReg, AssetVfxDef);
     data_reg_field_t(g_dataReg, AssetVfxDef, atlasEntry, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, AssetVfxDef, size, t_AssetVfxVec2Def);
     data_reg_field_t(g_dataReg, AssetVfxDef, color, t_AssetVfxColorDef);
     // clang-format on
 
@@ -70,6 +80,8 @@ static GeoColor asset_vfx_build_color(const AssetVfxColorDef* def) {
 
 static void asset_vfx_build(const AssetVfxDef* def, AssetVfxComp* out) {
   out->atlasEntry = string_hash(def->atlasEntry);
+  out->sizeX      = def->size.x;
+  out->sizeY      = def->size.y;
   out->color      = asset_vfx_build_color(&def->color);
 }
 
