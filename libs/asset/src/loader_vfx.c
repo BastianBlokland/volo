@@ -1,5 +1,6 @@
 #include "asset_vfx.h"
 #include "core_alloc.h"
+#include "core_math.h"
 #include "core_thread.h"
 #include "data.h"
 #include "ecs_world.h"
@@ -20,12 +21,17 @@ typedef struct {
 } AssetVfxVec3Def;
 
 typedef struct {
+  f32 x, y, z;
+} AssetVfxRotDef;
+
+typedef struct {
   f32 r, g, b, a;
 } AssetVfxColorDef;
 
 typedef struct {
   String           atlasEntry;
   AssetVfxVec3Def  position;
+  AssetVfxRotDef   rotation;
   AssetVfxVec2Def  size;
   AssetVfxColorDef color;
 } AssetVfxDef;
@@ -49,6 +55,11 @@ static void vfx_datareg_init() {
     data_reg_field_t(g_dataReg, AssetVfxVec3Def, y, data_prim_t(f32));
     data_reg_field_t(g_dataReg, AssetVfxVec3Def, z, data_prim_t(f32));
 
+    data_reg_struct_t(g_dataReg, AssetVfxRotDef);
+    data_reg_field_t(g_dataReg, AssetVfxRotDef, x, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, AssetVfxRotDef, y, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, AssetVfxRotDef, z, data_prim_t(f32));
+
     data_reg_struct_t(g_dataReg, AssetVfxColorDef);
     data_reg_field_t(g_dataReg, AssetVfxColorDef, r, data_prim_t(f32));
     data_reg_field_t(g_dataReg, AssetVfxColorDef, g, data_prim_t(f32));
@@ -57,7 +68,8 @@ static void vfx_datareg_init() {
 
     data_reg_struct_t(g_dataReg, AssetVfxDef);
     data_reg_field_t(g_dataReg, AssetVfxDef, atlasEntry, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, AssetVfxDef, position, t_AssetVfxVec3Def);
+    data_reg_field_t(g_dataReg, AssetVfxDef, position, t_AssetVfxVec3Def, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, AssetVfxDef, rotation, t_AssetVfxRotDef, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, AssetVfxDef, size, t_AssetVfxVec2Def);
     data_reg_field_t(g_dataReg, AssetVfxDef, color, t_AssetVfxColorDef);
     // clang-format on
@@ -85,17 +97,23 @@ ecs_system_define(VfxUnloadAssetSys) {
   }
 }
 
-static GeoColor asset_vfx_build_color(const AssetVfxColorDef* def) {
-  return geo_color(def->r, def->g, def->b, def->a);
-}
-
 static GeoVector asset_vfx_build_vec3(const AssetVfxVec3Def* def) {
   return geo_vector(def->x, def->y, def->z);
+}
+
+static GeoQuat asset_vfx_build_rot(const AssetVfxRotDef* def) {
+  const GeoVector eulerAnglesDeg = geo_vector(def->x, def->y, def->z);
+  return geo_quat_from_euler(geo_vector_mul(eulerAnglesDeg, math_deg_to_rad));
+}
+
+static GeoColor asset_vfx_build_color(const AssetVfxColorDef* def) {
+  return geo_color(def->r, def->g, def->b, def->a);
 }
 
 static void asset_vfx_build(const AssetVfxDef* def, AssetVfxComp* out) {
   out->atlasEntry = string_hash(def->atlasEntry);
   out->position   = asset_vfx_build_vec3(&def->position);
+  out->rotation   = asset_vfx_build_rot(&def->rotation);
   out->sizeX      = def->size.x;
   out->sizeY      = def->size.y;
   out->color      = asset_vfx_build_color(&def->color);
