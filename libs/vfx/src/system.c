@@ -3,6 +3,7 @@
 #include "asset_vfx.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
+#include "log_logger.h"
 #include "scene_transform.h"
 #include "scene_vfx.h"
 #include "vfx_register.h"
@@ -144,16 +145,22 @@ ecs_system_define(VfxSystemRenderSys) {
       }
       continue;
     }
+    const AssetVfxComp*    asset      = ecs_view_read_t(assetItr, AssetVfxComp);
+    const AssetAtlasEntry* atlasEntry = asset_atlas_lookup(atlas, asset->atlasEntry);
+    if (UNLIKELY(!atlasEntry)) {
+      log_w("Vfx asset entry missing", log_param("atlas-entry-hash", fmt_int(asset->atlasEntry)));
+      continue;
+    }
 
     vfx_particle_output(
         draw,
         &(VfxParticle){
             .position   = basePos,
             .rotation   = baseRot,
-            .atlasIndex = 0,
+            .atlasIndex = atlasEntry->atlasIndex,
             .sizeX      = baseScale,
             .sizeY      = baseScale,
-            .color      = geo_color(1, 0, 0, 0.5f),
+            .color      = asset->color,
         });
   }
 }
