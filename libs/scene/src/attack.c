@@ -1,6 +1,7 @@
 #include "core_diag.h"
 #include "core_math.h"
 #include "ecs_world.h"
+#include "scene_attachment.h"
 #include "scene_attack.h"
 #include "scene_collision.h"
 #include "scene_lifetime.h"
@@ -59,16 +60,15 @@ static GeoVector aim_target_position(EcsIterator* targetItr) {
 }
 
 static void attack_muzzleflash_spawn(
-    EcsWorld* world, const EcsEntityId vfxAsset, const GeoMatrix* muzzleMatrix) {
-  const EcsEntityId e   = ecs_world_entity_create(world);
-  const GeoVector   pos = geo_matrix_to_translation(muzzleMatrix);
-  // TODO: Orient the muzzle-joint to have the z-axis pointing along the barrel instead of the y.
-  const GeoVector fwd = geo_matrix_transform3(muzzleMatrix, geo_up);
-  const GeoQuat   rot = geo_quat_look(fwd, geo_up);
-
-  ecs_world_add_t(world, e, SceneTransformComp, .position = pos, .rotation = rot);
-  ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_seconds(1));
+    EcsWorld*         world,
+    const EcsEntityId instigator,
+    const u32         muzzleJoint,
+    const EcsEntityId vfxAsset) {
+  const EcsEntityId e = ecs_world_entity_create(world);
+  ecs_world_add_t(world, e, SceneTransformComp, .position = {0}, .rotation = geo_quat_ident);
+  ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_milliseconds(100));
   ecs_world_add_t(world, e, SceneVfxComp, .asset = vfxAsset);
+  ecs_world_add_t(world, e, SceneAttachmentComp, .target = instigator, .jointIndex = muzzleJoint);
 }
 
 static void attack_projectile_spawn(
@@ -148,9 +148,6 @@ ecs_system_define(SceneAttackSys) {
       continue;
     }
 
-    const GeoMatrix muzzleMatrix =
-        scene_skeleton_joint_world(trans, scale, skel, attackAnim->muzzleJoint);
-
     const GeoVector targetPos = aim_target_position(targetItr);
 
     if (loco) {
@@ -171,9 +168,12 @@ ecs_system_define(SceneAttackSys) {
       // Start firing the shot.
       fireAnimLayer->time = 0.0f;
       attack->flags |= SceneAttackFlags_Firing;
-      attack_projectile_spawn(world, entity, attack->projectileGraphic, &muzzleMatrix, targetPos);
+
+      const GeoMatrix muz = scene_skeleton_joint_world(trans, scale, skel, attackAnim->muzzleJoint);
+      attack_projectile_spawn(world, entity, attack->projectileGraphic, &muz, targetPos);
+
       if (attack->muzzleFlashVfx) {
-        attack_muzzleflash_spawn(world, attack->muzzleFlashVfx, &muzzleMatrix);
+        attack_muzzleflash_spawn(world, entity, attackAnim->muzzleJoint, attack->muzzleFlashVfx);
       }
     }
 
