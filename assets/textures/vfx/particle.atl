@@ -1,12 +1,16 @@
 {
   "size": 512,
-  "entrySize": 32,
+  "entrySize": 64,
   "mipmaps": true,
   "srgb": false,
   "entries": [
     {
       "name": "glow",
       "texture": "textures/glow.ptx"
+    },
+    {
+      "name": "flash",
+      "texture": "external/vfx/flash.tga"
     }
   ]
 }

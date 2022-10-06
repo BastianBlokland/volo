@@ -1,23 +1,23 @@
 {
-  "atlasEntry": "glow",
+  "atlasEntry": "flash",
   "position": {
     "x": 0,
     "y": 0,
-    "z": 0
+    "z": 0.4
   },
   "rotation": {
     "x": 0,
-    "y": 0,
+    "y": -90,
     "z": 0
   },
   "size": {
-    "x": 1,
-    "y": 1
+    "x": 1.0,
+    "y": 0.4
   },
   "color": {
-    "r": 0,
+    "r": 1,
     "g": 1,
-    "b": 0,
+    "b": 1,
     "a": 1
   }
 }
