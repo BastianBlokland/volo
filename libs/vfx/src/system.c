@@ -1,6 +1,7 @@
 #include "asset_atlas.h"
 #include "asset_manager.h"
 #include "asset_vfx.h"
+#include "core_alloc.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -12,7 +13,9 @@
 
 #define vfx_max_asset_requests 16
 
-ecs_comp_define(VfxSystemComp) { u32 dummy; };
+ecs_comp_define(VfxSystemComp) {
+  DynArray particles; // VfxParticle[].
+};
 
 typedef enum {
   VfxAsset_Acquired  = 1 << 0,
@@ -20,6 +23,11 @@ typedef enum {
 } VfxAssetRequestFlags;
 
 ecs_comp_define(VfxAssetRequestComp) { VfxAssetRequestFlags flags; };
+
+static void ecs_destruct_system_comp(void* data) {
+  VfxSystemComp* comp = data;
+  dynarray_destroy(&comp->particles);
+}
 
 static void ecs_combine_asset_request(void* dataA, void* dataB) {
   VfxAssetRequestComp* compA = dataA;
@@ -53,7 +61,8 @@ ecs_system_define(VfxSystemInitSys) {
   EcsView* initView = ecs_world_view_t(world, InitView);
   for (EcsIterator* itr = ecs_view_itr(initView); ecs_view_walk(itr);) {
     const EcsEntityId entity = ecs_view_entity(itr);
-    ecs_world_add_t(world, entity, VfxSystemComp);
+    ecs_world_add_t(
+        world, entity, VfxSystemComp, .particles = dynarray_create_t(g_alloc_heap, VfxParticle, 4));
   }
 }
 
@@ -200,7 +209,7 @@ ecs_system_define(VfxSystemUpdateSys) {
 }
 
 ecs_module_init(vfx_system_module) {
-  ecs_register_comp(VfxSystemComp);
+  ecs_register_comp(VfxSystemComp, .destructor = ecs_destruct_system_comp);
   ecs_register_comp(VfxAssetRequestComp, .combinator = ecs_combine_asset_request);
 
   ecs_register_view(DrawView);
