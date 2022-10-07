@@ -4,7 +4,7 @@
       "atlasEntry": "flash",
       "position": {
         "x": 0,
-        "y": 0.4,
+        "y": 0.35,
         "z": 0
       },
       "rotation": {
@@ -13,8 +13,8 @@
         "z": 90
       },
       "size": {
-        "x": 1.0,
-        "y": 0.4
+        "x": 0.8,
+        "y": 0.3
       },
       "color": {
         "r": 1,
@@ -28,7 +28,7 @@
       "atlasEntry": "flash",
       "position": {
         "x": 0,
-        "y": 0.4,
+        "y": 0.35,
         "z": 0
       },
       "rotation": {
@@ -37,8 +37,32 @@
         "z": 90
       },
       "size": {
-        "x": 1.0,
-        "y": 0.4
+        "x": 0.8,
+        "y": 0.3
+      },
+      "color": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "blend": "Additive"
+    },
+    {
+      "atlasEntry": "flash-star",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotation": {
+        "x": 90,
+        "y": 0,
+        "z": 0
+      },
+      "size": {
+        "x": 0.6,
+        "y": 0.6
       },
       "color": {
         "r": 1,

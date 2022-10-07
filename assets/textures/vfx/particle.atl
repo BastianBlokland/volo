@@ -11,6 +11,10 @@
     {
       "name": "flash",
       "texture": "external/vfx/flash.tga"
+    },
+    {
+      "name": "flash-star",
+      "texture": "external/vfx/flash_star.tga"
     }
   ]
 }
