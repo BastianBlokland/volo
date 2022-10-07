@@ -4,10 +4,17 @@
 #include "geo_quat.h"
 #include "geo_vector.h"
 
-ecs_comp_extern_public(AssetVfxComp) {
+#define asset_vfx_max_emitters 8
+
+typedef struct {
   StringHash atlasEntry;
   GeoVector  position;
   GeoQuat    rotation;
   f32        sizeX, sizeY;
   GeoColor   color;
+} AssetVfxEmitter;
+
+ecs_comp_extern_public(AssetVfxComp) {
+  u32             emitterCount;
+  AssetVfxEmitter emitters[asset_vfx_max_emitters];
 };

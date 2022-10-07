@@ -1,5 +1,7 @@
 #include "asset_vfx.h"
 #include "core_alloc.h"
+#include "core_array.h"
+#include "core_diag.h"
 #include "core_math.h"
 #include "core_thread.h"
 #include "data.h"
@@ -34,6 +36,13 @@ typedef struct {
   VfxRotDef   rotation;
   VfxVec2Def  size;
   VfxColorDef color;
+} VfxEmitterDef;
+
+typedef struct {
+  struct {
+    VfxEmitterDef* values;
+    usize          count;
+  } emitters;
 } VfxDef;
 
 static void vfx_datareg_init() {
@@ -66,17 +75,36 @@ static void vfx_datareg_init() {
     data_reg_field_t(g_dataReg, VfxColorDef, b, data_prim_t(f32));
     data_reg_field_t(g_dataReg, VfxColorDef, a, data_prim_t(f32));
 
+    data_reg_struct_t(g_dataReg, VfxEmitterDef);
+    data_reg_field_t(g_dataReg, VfxEmitterDef, atlasEntry, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, VfxEmitterDef, position, t_VfxVec3Def, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxEmitterDef, rotation, t_VfxRotDef, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxEmitterDef, size, t_VfxVec2Def);
+    data_reg_field_t(g_dataReg, VfxEmitterDef, color, t_VfxColorDef);
+
     data_reg_struct_t(g_dataReg, VfxDef);
-    data_reg_field_t(g_dataReg, VfxDef, atlasEntry, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, VfxDef, position, t_VfxVec3Def, .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, VfxDef, rotation, t_VfxRotDef, .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, VfxDef, size, t_VfxVec2Def);
-    data_reg_field_t(g_dataReg, VfxDef, color, t_VfxColorDef);
+    data_reg_field_t(g_dataReg, VfxDef, emitters, t_VfxEmitterDef, .container = DataContainer_Array);
     // clang-format on
 
     g_dataVfxDefMeta = data_meta_t(t_VfxDef);
   }
   thread_spinlock_unlock(&g_initLock);
+}
+
+typedef enum {
+  VfxError_None            = 0,
+  VfxError_TooManyEmitters = 1,
+
+  VfxError_Count,
+} VfxError;
+
+static String vfx_error_str(const VfxError err) {
+  static const String g_msgs[] = {
+      string_static("None"),
+      string_static("Vfx specifies more emitters then supported"),
+  };
+  ASSERT(array_elems(g_msgs) == VfxError_Count, "Incorrect number of vfx-error messages");
+  return g_msgs[err];
 }
 
 ecs_comp_define_public(AssetVfxComp);
@@ -110,13 +138,22 @@ static GeoColor vfx_build_color(const VfxColorDef* def) {
   return geo_color(def->r, def->g, def->b, def->a);
 }
 
-static void vfx_build_def(const VfxDef* def, AssetVfxComp* out) {
+static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
   out->atlasEntry = string_hash(def->atlasEntry);
   out->position   = vfx_build_vec3(&def->position);
   out->rotation   = vfx_build_rot(&def->rotation);
   out->sizeX      = def->size.x;
   out->sizeY      = def->size.y;
   out->color      = vfx_build_color(&def->color);
+}
+
+static void vfx_build_def(const VfxDef* def, AssetVfxComp* out) {
+  diag_assert(def->emitters.count < asset_vfx_max_emitters);
+
+  out->emitterCount = (u32)def->emitters.count;
+  for (u32 i = 0; i != out->emitterCount; ++i) {
+    vfx_build_emitter(&def->emitters.values[i], &out->emitters[i]);
+  }
 }
 
 ecs_module_init(asset_vfx_module) {
@@ -138,6 +175,10 @@ void asset_load_vfx(EcsWorld* world, const String id, const EcsEntityId entity, 
   data_read_json(g_dataReg, src->data, g_alloc_heap, g_dataVfxDefMeta, mem_var(vfxDef), &readRes);
   if (UNLIKELY(readRes.error)) {
     errMsg = readRes.errorMsg;
+    goto Error;
+  }
+  if (UNLIKELY(vfxDef.emitters.count > asset_vfx_max_emitters)) {
+    errMsg = vfx_error_str(VfxError_TooManyEmitters);
     goto Error;
   }
 

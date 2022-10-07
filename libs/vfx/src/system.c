@@ -145,26 +145,30 @@ ecs_system_define(VfxSystemRenderSys) {
       }
       continue;
     }
-    const AssetVfxComp*    asset      = ecs_view_read_t(assetItr, AssetVfxComp);
-    const AssetAtlasEntry* atlasEntry = asset_atlas_lookup(atlas, asset->atlasEntry);
-    if (UNLIKELY(!atlasEntry)) {
-      log_w("Vfx asset entry missing", log_param("atlas-entry-hash", fmt_int(asset->atlasEntry)));
-      continue;
-    }
-    const GeoVector pos = geo_vector_add(
-        basePos, geo_quat_rotate(baseRot, geo_vector_mul(asset->position, baseScale)));
-    const GeoQuat rot = geo_quat_mul(baseRot, asset->rotation);
+    const AssetVfxComp* asset = ecs_view_read_t(assetItr, AssetVfxComp);
+    for (u32 i = 0; i != asset->emitterCount; ++i) {
+      const AssetVfxEmitter* emitter    = &asset->emitters[i];
+      const AssetAtlasEntry* atlasEntry = asset_atlas_lookup(atlas, emitter->atlasEntry);
+      if (UNLIKELY(!atlasEntry)) {
+        log_w(
+            "Vfx asset entry missing", log_param("atlas-entry-hash", fmt_int(emitter->atlasEntry)));
+        continue;
+      }
+      const GeoVector pos = geo_vector_add(
+          basePos, geo_quat_rotate(baseRot, geo_vector_mul(emitter->position, baseScale)));
+      const GeoQuat rot = geo_quat_mul(baseRot, emitter->rotation);
 
-    vfx_particle_output(
-        draw,
-        &(VfxParticle){
-            .position   = pos,
-            .rotation   = rot,
-            .atlasIndex = atlasEntry->atlasIndex,
-            .sizeX      = baseScale * asset->sizeX,
-            .sizeY      = baseScale * asset->sizeY,
-            .color      = asset->color,
-        });
+      vfx_particle_output(
+          draw,
+          &(VfxParticle){
+              .position   = pos,
+              .rotation   = rot,
+              .atlasIndex = atlasEntry->atlasIndex,
+              .sizeX      = baseScale * emitter->sizeX,
+              .sizeY      = baseScale * emitter->sizeY,
+              .color      = emitter->color,
+          });
+    }
   }
 }
 

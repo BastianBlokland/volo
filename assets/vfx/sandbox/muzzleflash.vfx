@@ -1,23 +1,50 @@
 {
-  "atlasEntry": "flash",
-  "position": {
-    "x": 0,
-    "y": 0.4,
-    "z": 0
-  },
-  "rotation": {
-    "x": 0,
-    "y": 0,
-    "z": 90
-  },
-  "size": {
-    "x": 1.0,
-    "y": 0.4
-  },
-  "color": {
-    "r": 1,
-    "g": 1,
-    "b": 1,
-    "a": 1
-  }
+  "emitters": [
+    {
+      "atlasEntry": "flash",
+      "position": {
+        "x": 0,
+        "y": 0.4,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 90
+      },
+      "size": {
+        "x": 1.0,
+        "y": 0.4
+      },
+      "color": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "atlasEntry": "flash",
+      "position": {
+        "x": 0,
+        "y": 0.4,
+        "z": 0
+      },
+      "rotation": {
+        "x": 90,
+        "y": 0,
+        "z": 90
+      },
+      "size": {
+        "x": 1.0,
+        "y": 0.4
+      },
+      "color": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    }
+  ]
 }
