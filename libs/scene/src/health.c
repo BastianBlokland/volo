@@ -42,8 +42,6 @@ ecs_system_define(SceneHealthInitSys) {
        * TODO: Define this skeleton mask in content instead of hard-coding it here.
        */
       scene_skeleton_mask_clear_all(&animComp->hitAnimMask);
-      ENABLE_JOINT(&animComp->hitAnimMask, "Spine");
-      ENABLE_JOINT(&animComp->hitAnimMask, "Spine1");
       ENABLE_JOINT(&animComp->hitAnimMask, "Spine2");
       ENABLE_JOINT(&animComp->hitAnimMask, "Neck");
       ENABLE_JOINT(&animComp->hitAnimMask, "Neck1");
