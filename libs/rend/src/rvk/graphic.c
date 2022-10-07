@@ -94,6 +94,7 @@ static String rvk_graphic_blend_str(const AssetGraphicBlend blend) {
       string_static("Alpha"),
       string_static("Additive"),
       string_static("AlphaAdditive"),
+      string_static("PreMultiplied"),
   };
   ASSERT(array_elems(g_names) == AssetGraphicBlend_Count, "Incorrect number of names");
   return g_names[blend];
@@ -353,6 +354,17 @@ static VkPipelineColorBlendAttachmentState rvk_pipeline_colorblend_attach(RvkGra
         .blendEnable         = true,
         .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
         .dstColorBlendFactor = VK_BLEND_FACTOR_ONE,
+        .colorBlendOp        = VK_BLEND_OP_ADD,
+        .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
+        .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
+        .alphaBlendOp        = VK_BLEND_OP_ADD,
+        .colorWriteMask      = colorMask,
+    };
+  case AssetGraphicBlend_PreMultiplied:
+    return (VkPipelineColorBlendAttachmentState){
+        .blendEnable         = true,
+        .srcColorBlendFactor = VK_BLEND_FACTOR_ONE,
+        .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
         .colorBlendOp        = VK_BLEND_OP_ADD,
         .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
         .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
