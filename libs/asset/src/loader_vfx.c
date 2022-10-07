@@ -35,7 +35,7 @@ typedef struct {
   VfxVec3Def    position;
   VfxRotDef     rotation;
   VfxVec2Def    size;
-  VfxColorDef   color;
+  VfxColorDef*  color;
   AssetVfxBlend blend;
 } VfxEmitterDef;
 
@@ -57,18 +57,18 @@ static void vfx_datareg_init() {
 
     // clang-format off
     data_reg_struct_t(g_dataReg, VfxVec2Def);
-    data_reg_field_t(g_dataReg, VfxVec2Def, x, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, VfxVec2Def, y, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, VfxVec2Def, x, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxVec2Def, y, data_prim_t(f32), .flags = DataFlags_Opt);
 
     data_reg_struct_t(g_dataReg, VfxVec3Def);
-    data_reg_field_t(g_dataReg, VfxVec3Def, x, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, VfxVec3Def, y, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, VfxVec3Def, z, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, VfxVec3Def, x, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxVec3Def, y, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxVec3Def, z, data_prim_t(f32), .flags = DataFlags_Opt);
 
     data_reg_struct_t(g_dataReg, VfxRotDef);
-    data_reg_field_t(g_dataReg, VfxRotDef, x, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, VfxRotDef, y, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, VfxRotDef, z, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, VfxRotDef, x, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxRotDef, y, data_prim_t(f32), .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxRotDef, z, data_prim_t(f32), .flags = DataFlags_Opt);
 
     data_reg_struct_t(g_dataReg, VfxColorDef);
     data_reg_field_t(g_dataReg, VfxColorDef, r, data_prim_t(f32));
@@ -87,7 +87,7 @@ static void vfx_datareg_init() {
     data_reg_field_t(g_dataReg, VfxEmitterDef, position, t_VfxVec3Def, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, rotation, t_VfxRotDef, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, size, t_VfxVec2Def);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, color, t_VfxColorDef);
+    data_reg_field_t(g_dataReg, VfxEmitterDef, color, t_VfxColorDef, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, blend, t_AssetVfxBlend, .flags = DataFlags_Opt);
 
     data_reg_struct_t(g_dataReg, VfxDef);
@@ -152,7 +152,7 @@ static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
   out->rotation   = vfx_build_rot(&def->rotation);
   out->sizeX      = def->size.x;
   out->sizeY      = def->size.y;
-  out->color      = vfx_build_color(&def->color);
+  out->color      = def->color ? vfx_build_color(def->color) : geo_color_white;
   out->blend      = def->blend;
 }
 
