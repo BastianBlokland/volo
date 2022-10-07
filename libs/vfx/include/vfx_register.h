@@ -2,7 +2,7 @@
 #include "ecs_def.h"
 
 enum {
-  VfxOrder_Render = 800,
+  VfxOrder_Update = 800,
 };
 
 /**

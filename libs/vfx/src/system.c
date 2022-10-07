@@ -96,9 +96,9 @@ ecs_system_define(VfxAssetLoadSys) {
   }
 }
 
-ecs_view_define(RenderGlobalView) { ecs_access_read(VfxParticleRendererComp); }
+ecs_view_define(UpdateGlobalView) { ecs_access_read(VfxParticleRendererComp); }
 
-ecs_view_define(RenderView) {
+ecs_view_define(UpdateView) {
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneTransformComp);
   ecs_access_read(SceneVfxComp);
@@ -127,8 +127,8 @@ static void vfx_color_and_opacity(const AssetVfxEmitter* e, GeoColor* outColor, 
   UNREACHABLE
 }
 
-ecs_system_define(VfxSystemRenderSys) {
-  EcsView*     globalView = ecs_world_view_t(world, RenderGlobalView);
+ecs_system_define(VfxSystemUpdateSys) {
+  EcsView*     globalView = ecs_world_view_t(world, UpdateGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
@@ -148,8 +148,8 @@ ecs_system_define(VfxSystemRenderSys) {
 
   u32 numAssetRequests = 0;
 
-  EcsView* renderView = ecs_world_view_t(world, RenderView);
-  for (EcsIterator* itr = ecs_view_itr(renderView); ecs_view_walk(itr);) {
+  EcsView* updateView = ecs_world_view_t(world, UpdateView);
+  for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
     const SceneTransformComp* transComp = ecs_view_read_t(itr, SceneTransformComp);
     const SceneScaleComp*     scaleComp = ecs_view_read_t(itr, SceneScaleComp);
     const SceneVfxComp*       vfxComp   = ecs_view_read_t(itr, SceneVfxComp);
@@ -213,12 +213,12 @@ ecs_module_init(vfx_system_module) {
   ecs_register_system(VfxAssetLoadSys, ecs_register_view(LoadView));
 
   ecs_register_system(
-      VfxSystemRenderSys,
-      ecs_register_view(RenderGlobalView),
-      ecs_register_view(RenderView),
+      VfxSystemUpdateSys,
+      ecs_register_view(UpdateGlobalView),
+      ecs_register_view(UpdateView),
       ecs_view_id(DrawView),
       ecs_view_id(AssetView),
       ecs_view_id(AtlasView));
 
-  ecs_order(VfxSystemRenderSys, VfxOrder_Render);
+  ecs_order(VfxSystemUpdateSys, VfxOrder_Update);
 }
