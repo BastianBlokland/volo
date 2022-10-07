@@ -14,27 +14,27 @@ static DataMeta g_dataVfxDefMeta;
 
 typedef struct {
   f32 x, y;
-} AssetVfxVec2Def;
+} VfxVec2Def;
 
 typedef struct {
   f32 x, y, z;
-} AssetVfxVec3Def;
+} VfxVec3Def;
 
 typedef struct {
   f32 x, y, z;
-} AssetVfxRotDef;
+} VfxRotDef;
 
 typedef struct {
   f32 r, g, b, a;
-} AssetVfxColorDef;
+} VfxColorDef;
 
 typedef struct {
-  String           atlasEntry;
-  AssetVfxVec3Def  position;
-  AssetVfxRotDef   rotation;
-  AssetVfxVec2Def  size;
-  AssetVfxColorDef color;
-} AssetVfxDef;
+  String      atlasEntry;
+  VfxVec3Def  position;
+  VfxRotDef   rotation;
+  VfxVec2Def  size;
+  VfxColorDef color;
+} VfxDef;
 
 static void vfx_datareg_init() {
   static ThreadSpinLock g_initLock;
@@ -46,35 +46,35 @@ static void vfx_datareg_init() {
     g_dataReg = data_reg_create(g_alloc_persist);
 
     // clang-format off
-    data_reg_struct_t(g_dataReg, AssetVfxVec2Def);
-    data_reg_field_t(g_dataReg, AssetVfxVec2Def, x, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, AssetVfxVec2Def, y, data_prim_t(f32));
+    data_reg_struct_t(g_dataReg, VfxVec2Def);
+    data_reg_field_t(g_dataReg, VfxVec2Def, x, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, VfxVec2Def, y, data_prim_t(f32));
 
-    data_reg_struct_t(g_dataReg, AssetVfxVec3Def);
-    data_reg_field_t(g_dataReg, AssetVfxVec3Def, x, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, AssetVfxVec3Def, y, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, AssetVfxVec3Def, z, data_prim_t(f32));
+    data_reg_struct_t(g_dataReg, VfxVec3Def);
+    data_reg_field_t(g_dataReg, VfxVec3Def, x, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, VfxVec3Def, y, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, VfxVec3Def, z, data_prim_t(f32));
 
-    data_reg_struct_t(g_dataReg, AssetVfxRotDef);
-    data_reg_field_t(g_dataReg, AssetVfxRotDef, x, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, AssetVfxRotDef, y, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, AssetVfxRotDef, z, data_prim_t(f32));
+    data_reg_struct_t(g_dataReg, VfxRotDef);
+    data_reg_field_t(g_dataReg, VfxRotDef, x, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, VfxRotDef, y, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, VfxRotDef, z, data_prim_t(f32));
 
-    data_reg_struct_t(g_dataReg, AssetVfxColorDef);
-    data_reg_field_t(g_dataReg, AssetVfxColorDef, r, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, AssetVfxColorDef, g, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, AssetVfxColorDef, b, data_prim_t(f32));
-    data_reg_field_t(g_dataReg, AssetVfxColorDef, a, data_prim_t(f32));
+    data_reg_struct_t(g_dataReg, VfxColorDef);
+    data_reg_field_t(g_dataReg, VfxColorDef, r, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, VfxColorDef, g, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, VfxColorDef, b, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, VfxColorDef, a, data_prim_t(f32));
 
-    data_reg_struct_t(g_dataReg, AssetVfxDef);
-    data_reg_field_t(g_dataReg, AssetVfxDef, atlasEntry, data_prim_t(String), .flags = DataFlags_NotEmpty);
-    data_reg_field_t(g_dataReg, AssetVfxDef, position, t_AssetVfxVec3Def, .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, AssetVfxDef, rotation, t_AssetVfxRotDef, .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, AssetVfxDef, size, t_AssetVfxVec2Def);
-    data_reg_field_t(g_dataReg, AssetVfxDef, color, t_AssetVfxColorDef);
+    data_reg_struct_t(g_dataReg, VfxDef);
+    data_reg_field_t(g_dataReg, VfxDef, atlasEntry, data_prim_t(String), .flags = DataFlags_NotEmpty);
+    data_reg_field_t(g_dataReg, VfxDef, position, t_VfxVec3Def, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxDef, rotation, t_VfxRotDef, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxDef, size, t_VfxVec2Def);
+    data_reg_field_t(g_dataReg, VfxDef, color, t_VfxColorDef);
     // clang-format on
 
-    g_dataVfxDefMeta = data_meta_t(t_AssetVfxDef);
+    g_dataVfxDefMeta = data_meta_t(t_VfxDef);
   }
   thread_spinlock_unlock(&g_initLock);
 }
@@ -97,26 +97,26 @@ ecs_system_define(VfxUnloadAssetSys) {
   }
 }
 
-static GeoVector asset_vfx_build_vec3(const AssetVfxVec3Def* def) {
+static GeoVector vfx_build_vec3(const VfxVec3Def* def) {
   return geo_vector(def->x, def->y, def->z);
 }
 
-static GeoQuat asset_vfx_build_rot(const AssetVfxRotDef* def) {
+static GeoQuat vfx_build_rot(const VfxRotDef* def) {
   const GeoVector eulerAnglesDeg = geo_vector(def->x, def->y, def->z);
   return geo_quat_from_euler(geo_vector_mul(eulerAnglesDeg, math_deg_to_rad));
 }
 
-static GeoColor asset_vfx_build_color(const AssetVfxColorDef* def) {
+static GeoColor vfx_build_color(const VfxColorDef* def) {
   return geo_color(def->r, def->g, def->b, def->a);
 }
 
-static void asset_vfx_build(const AssetVfxDef* def, AssetVfxComp* out) {
+static void vfx_build_def(const VfxDef* def, AssetVfxComp* out) {
   out->atlasEntry = string_hash(def->atlasEntry);
-  out->position   = asset_vfx_build_vec3(&def->position);
-  out->rotation   = asset_vfx_build_rot(&def->rotation);
+  out->position   = vfx_build_vec3(&def->position);
+  out->rotation   = vfx_build_rot(&def->rotation);
   out->sizeX      = def->size.x;
   out->sizeY      = def->size.y;
-  out->color      = asset_vfx_build_color(&def->color);
+  out->color      = vfx_build_color(&def->color);
 }
 
 ecs_module_init(asset_vfx_module) {
@@ -132,7 +132,7 @@ ecs_module_init(asset_vfx_module) {
 void asset_load_vfx(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   (void)id;
 
-  AssetVfxDef    vfxDef;
+  VfxDef         vfxDef;
   String         errMsg;
   DataReadResult readRes;
   data_read_json(g_dataReg, src->data, g_alloc_heap, g_dataVfxDefMeta, mem_var(vfxDef), &readRes);
@@ -142,7 +142,7 @@ void asset_load_vfx(EcsWorld* world, const String id, const EcsEntityId entity, 
   }
 
   AssetVfxComp* result = ecs_world_add_t(world, entity, AssetVfxComp);
-  asset_vfx_build(&vfxDef, result);
+  vfx_build_def(&vfxDef, result);
 
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   goto Cleanup;
