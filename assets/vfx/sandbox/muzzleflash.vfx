@@ -21,7 +21,8 @@
         "g": 1,
         "b": 1,
         "a": 1
-      }
+      },
+      "blend": "Additive"
     },
     {
       "atlasEntry": "flash",
@@ -44,7 +45,8 @@
         "g": 1,
         "b": 1,
         "a": 1
-      }
+      },
+      "blend": "Additive"
     }
   ]
 }
