@@ -6,12 +6,20 @@
 
 #define asset_vfx_max_emitters 8
 
+typedef enum {
+  AssetVfxBlend_None,
+  AssetVfxBlend_Alpha,
+  AssetVfxBlend_Additive,
+  AssetVfxBlend_AdditiveDouble,
+} AssetVfxBlend;
+
 typedef struct {
-  StringHash atlasEntry;
-  GeoVector  position;
-  GeoQuat    rotation;
-  f32        sizeX, sizeY;
-  GeoColor   color;
+  StringHash    atlasEntry;
+  GeoVector     position;
+  GeoQuat       rotation;
+  f32           sizeX, sizeY;
+  GeoColor      color;
+  AssetVfxBlend blend;
 } AssetVfxEmitter;
 
 ecs_comp_extern_public(AssetVfxComp) {

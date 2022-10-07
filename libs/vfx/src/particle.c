@@ -22,7 +22,7 @@ typedef struct {
   ALIGNAS(16)
   GeoVector data1;    // xyz: position, w: atlasIndex.
   f16       data2[4]; // xyzw: rotation quaternion.
-  f16       data3[4]; // xy: scale.
+  f16       data3[4]; // xy: scale, z: opacity.
   f16       data4[4]; // xyzw: color.
 } VfxParticleData;
 
@@ -137,6 +137,7 @@ void vfx_particle_output(RendDrawComp* draw, const VfxParticle* particle) {
   geo_quat_pack_f16(particle->rotation, instData.data2);
   instData.data3[0] = float_f32_to_f16(particle->sizeX);
   instData.data3[1] = float_f32_to_f16(particle->sizeY);
+  instData.data3[2] = float_f32_to_f16(particle->opacity);
   geo_color_pack_f16(particle->color, instData.data4);
 
   const GeoBox bounds =

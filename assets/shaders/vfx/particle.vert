@@ -40,8 +40,9 @@ bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_draw_data(0) readonly uniform Draw { MetaData u_meta; };
 bind_instance_data(0) readonly uniform Instance { ParticleData[c_maxInstances] u_instances; };
 
-bind_internal(0) out f32v4 out_color;
-bind_internal(1) out f32v2 out_texcoord;
+bind_internal(0) out flat f32v4 out_color;
+bind_internal(1) out flat f32 out_opacity;
+bind_internal(2) out f32v2 out_texcoord;
 
 void main() {
   const f32v2 unitPos = c_unitPositions[in_vertexIndex];
@@ -51,6 +52,7 @@ void main() {
   const f32v4 instanceQuat       = f32v4(u_instances[in_instanceIndex].data2);
   const f32v2 instanceScale      = f32v4(u_instances[in_instanceIndex].data3).xy;
   const f32v4 instanceColor      = f32v4(u_instances[in_instanceIndex].data4);
+  const f32   instanceOpacity    = f32(u_instances[in_instanceIndex].data3.z);
 
   const f32v3 worldPos = quat_rotate(instanceQuat, f32v3(unitPos * instanceScale, 0)) + instancePos;
 
@@ -63,5 +65,6 @@ void main() {
 
   out_vertexPosition = u_global.viewProj * f32v4(worldPos, 1);
   out_color          = instanceColor;
+  out_opacity        = instanceOpacity;
   out_texcoord       = (texOrigin + c_unitTexCoords[in_vertexIndex]) * u_meta.invEntriesPerDim;
 }

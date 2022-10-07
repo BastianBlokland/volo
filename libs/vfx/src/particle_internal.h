@@ -17,6 +17,7 @@ typedef struct {
   u32       atlasIndex;
   f32       sizeX, sizeY;
   GeoColor  color;
+  f32       opacity;
 } VfxParticle;
 
 /**

@@ -18,7 +18,7 @@
   "renderOrder": 40,
   "topology": "Triangles",
   "rasterizer": "Fill",
-  "blend": "Alpha",
+  "blend": "PreMultiplied",
   "depth": "LessNoWrite",
   "cull": "None"
 }

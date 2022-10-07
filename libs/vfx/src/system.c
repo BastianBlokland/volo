@@ -105,6 +105,28 @@ ecs_view_define(RenderView) {
   ecs_access_read(VfxSystemComp);
 }
 
+static void vfx_color_and_opacity(const AssetVfxEmitter* e, GeoColor* outColor, f32* outOpacity) {
+  switch (e->blend) {
+  case AssetVfxBlend_None:
+    *outColor   = geo_color(e->color.r, e->color.g, e->color.b, 1.0f);
+    *outOpacity = 1.0f;
+    return;
+  case AssetVfxBlend_Alpha:
+    *outColor   = e->color;
+    *outOpacity = e->color.a;
+    return;
+  case AssetVfxBlend_Additive:
+    *outColor   = e->color;
+    *outOpacity = 0.0f;
+    return;
+  case AssetVfxBlend_AdditiveDouble:
+    *outColor   = geo_color(e->color.r * 2, e->color.g * 2, e->color.b * 2, e->color.a * 2),
+    *outOpacity = 0.0f;
+    return;
+  }
+  UNREACHABLE
+}
+
 ecs_system_define(VfxSystemRenderSys) {
   EcsView*     globalView = ecs_world_view_t(world, RenderGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -158,6 +180,10 @@ ecs_system_define(VfxSystemRenderSys) {
           basePos, geo_quat_rotate(baseRot, geo_vector_mul(emitter->position, baseScale)));
       const GeoQuat rot = geo_quat_mul(baseRot, emitter->rotation);
 
+      GeoColor color;
+      f32      opacity;
+      vfx_color_and_opacity(emitter, &color, &opacity);
+
       vfx_particle_output(
           draw,
           &(VfxParticle){
@@ -166,7 +192,8 @@ ecs_system_define(VfxSystemRenderSys) {
               .atlasIndex = atlasEntry->atlasIndex,
               .sizeX      = baseScale * emitter->sizeX,
               .sizeY      = baseScale * emitter->sizeY,
-              .color      = emitter->color,
+              .color      = color,
+              .opacity    = opacity,
           });
     }
   }
