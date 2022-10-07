@@ -5,6 +5,7 @@
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
+#include "scene_time.h"
 #include "scene_transform.h"
 #include "scene_vfx.h"
 #include "vfx_register.h"
@@ -14,7 +15,8 @@
 #define vfx_max_asset_requests 16
 
 ecs_comp_define(VfxSystemComp) {
-  DynArray particles; // VfxParticle[].
+  TimeDuration age;
+  DynArray     particles; // VfxParticle[].
 };
 
 typedef enum {
@@ -60,9 +62,9 @@ ecs_view_define(InitView) {
 ecs_system_define(VfxSystemInitSys) {
   EcsView* initView = ecs_world_view_t(world, InitView);
   for (EcsIterator* itr = ecs_view_itr(initView); ecs_view_walk(itr);) {
-    const EcsEntityId entity = ecs_view_entity(itr);
+    const EcsEntityId e = ecs_view_entity(itr);
     ecs_world_add_t(
-        world, entity, VfxSystemComp, .particles = dynarray_create_t(g_alloc_heap, VfxParticle, 4));
+        world, e, VfxSystemComp, .particles = dynarray_create_t(g_alloc_heap, VfxParticle, 4));
   }
 }
 
@@ -105,13 +107,16 @@ ecs_system_define(VfxAssetLoadSys) {
   }
 }
 
-ecs_view_define(UpdateGlobalView) { ecs_access_read(VfxParticleRendererComp); }
+ecs_view_define(UpdateGlobalView) {
+  ecs_access_read(SceneTimeComp);
+  ecs_access_read(VfxParticleRendererComp);
+}
 
 ecs_view_define(UpdateView) {
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneTransformComp);
   ecs_access_read(SceneVfxComp);
-  ecs_access_read(VfxSystemComp);
+  ecs_access_write(VfxSystemComp);
 }
 
 static void vfx_color_and_opacity(const AssetVfxEmitter* e, GeoColor* outColor, f32* outOpacity) {
@@ -136,39 +141,44 @@ static void vfx_color_and_opacity(const AssetVfxEmitter* e, GeoColor* outColor, 
   UNREACHABLE
 }
 
+static void
+vfx_system_simulate(VfxSystemComp* sys, const AssetVfxComp* asset, const SceneTimeComp* time) {
+  sys->age += time->delta;
+
+  (void)asset;
+}
+
 ecs_system_define(VfxSystemUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, UpdateGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
   }
-
   const VfxParticleRendererComp* rend = ecs_view_read_t(globalItr, VfxParticleRendererComp);
-  RendDrawComp* draw = ecs_utils_write_t(world, DrawView, vfx_particle_draw(rend), RendDrawComp);
+  const SceneTimeComp*           time = ecs_view_read_t(globalItr, SceneTimeComp);
 
+  RendDrawComp* draw = ecs_utils_write_t(world, DrawView, vfx_particle_draw(rend), RendDrawComp);
   const AssetAtlasComp* atlas = vfx_atlas(world, vfx_particle_atlas(rend));
   if (!atlas) {
     return; // Atlas hasn't loaded yet.
   }
 
+  EcsIterator* assetItr         = ecs_view_itr(ecs_world_view_t(world, AssetView));
+  u32          numAssetRequests = 0;
+
+  // Prepare the particle draw.
   vfx_particle_init(draw, atlas);
-
-  EcsIterator* assetItr = ecs_view_itr(ecs_world_view_t(world, AssetView));
-
-  u32 numAssetRequests = 0;
 
   EcsView* updateView = ecs_world_view_t(world, UpdateView);
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
-    const SceneTransformComp* transComp = ecs_view_read_t(itr, SceneTransformComp);
     const SceneScaleComp*     scaleComp = ecs_view_read_t(itr, SceneScaleComp);
+    const SceneTransformComp* transComp = ecs_view_read_t(itr, SceneTransformComp);
     const SceneVfxComp*       vfxComp   = ecs_view_read_t(itr, SceneVfxComp);
-    const VfxSystemComp*      sysComp   = ecs_view_read_t(itr, VfxSystemComp);
+    VfxSystemComp*            sysComp   = ecs_view_write_t(itr, VfxSystemComp);
 
     const GeoVector basePos   = LIKELY(transComp) ? transComp->position : geo_vector(0);
     const GeoQuat   baseRot   = LIKELY(transComp) ? transComp->rotation : geo_quat_ident;
     const f32       baseScale = scaleComp ? scaleComp->scale : 1.0f;
-
-    (void)sysComp;
 
     if (!ecs_view_maybe_jump(assetItr, vfxComp->asset)) {
       if (++numAssetRequests < vfx_max_asset_requests) {
@@ -176,7 +186,10 @@ ecs_system_define(VfxSystemUpdateSys) {
       }
       continue;
     }
+
     const AssetVfxComp* asset = ecs_view_read_t(assetItr, AssetVfxComp);
+    vfx_system_simulate(sysComp, asset, time);
+
     for (u32 i = 0; i != asset->emitterCount; ++i) {
       const AssetVfxEmitter* emitter    = &asset->emitters[i];
       const AssetAtlasEntry* atlasEntry = asset_atlas_lookup(atlas, emitter->atlasEntry);
