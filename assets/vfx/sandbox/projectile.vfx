@@ -1,0 +1,39 @@
+{
+  "emitters": [
+    {
+      "atlasEntry": "trail",
+      "position": {
+        "x": -1.5
+      },
+      "rotation": {
+        "y": -90
+      },
+      "size": {
+        "x": 3,
+        "y": 0.1
+      },
+      "scaleInTime": 0.15,
+      "scaleOutTime": 0.15,
+      "fadeOutTime": 0.15,
+      "blend": "Additive"
+    },
+    {
+      "atlasEntry": "trail",
+      "position": {
+        "x": -1.5
+      },
+      "rotation": {
+        "x": 90,
+        "y": -90
+      },
+      "size": {
+        "x": 3,
+        "y": 0.1
+      },
+      "scaleInTime": 0.15,
+      "scaleOutTime": 0.15,
+      "fadeOutTime": 0.15,
+      "blend": "Additive"
+    }
+  ]
+}

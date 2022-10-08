@@ -36,6 +36,7 @@ typedef enum {
 } DebugInspectorTool;
 
 typedef enum {
+  DebugInspectorVis_Origin,
   DebugInspectorVis_Name,
   DebugInspectorVis_Locomotion,
   DebugInspectorVis_Collision,
@@ -64,6 +65,7 @@ static const String g_toolNames[] = {
 ASSERT(array_elems(g_toolNames) == DebugInspectorTool_Count, "Missing tool name");
 
 static const String g_visNames[] = {
+    [DebugInspectorVis_Origin]          = string_static("Origin"),
     [DebugInspectorVis_Name]            = string_static("Name"),
     [DebugInspectorVis_Locomotion]      = string_static("Locomotion"),
     [DebugInspectorVis_Collision]       = string_static("Collision"),
@@ -134,9 +136,9 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_write(SceneCollisionComp);
   ecs_access_maybe_write(SceneFactionComp);
   ecs_access_maybe_write(SceneHealthComp);
+  ecs_access_maybe_write(SceneRenderableComp);
   ecs_access_maybe_write(SceneScaleComp);
   ecs_access_maybe_write(SceneTagComp);
-  ecs_access_write(SceneRenderableComp);
   ecs_access_write(SceneTransformComp);
 }
 
@@ -879,6 +881,9 @@ static void inspector_vis_draw_subject(
   const SceneScaleComp*      scaleComp     = ecs_view_read_t(subject, SceneScaleComp);
   SceneTransformComp*        transformComp = ecs_view_write_t(subject, SceneTransformComp);
 
+  if (transformComp && set->visFlags & (1 << DebugInspectorVis_Origin)) {
+    debug_sphere(shape, transformComp->position, 0.05f, geo_color_fuchsia, DebugShape_Overlay);
+  }
   if (nameComp && set->visFlags & (1 << DebugInspectorVis_Name)) {
     const String    name = stringtable_lookup(g_stringtable, nameComp->name);
     const GeoVector pos  = geo_vector_add(transformComp->position, geo_vector_mul(geo_up, 0.1f));

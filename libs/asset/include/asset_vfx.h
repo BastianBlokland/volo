@@ -4,7 +4,7 @@
 #include "geo_quat.h"
 #include "geo_vector.h"
 
-#define asset_vfx_max_emitters 8
+#define asset_vfx_max_emitters 6
 
 typedef enum {
   AssetVfxBlend_None,
@@ -20,7 +20,7 @@ typedef struct {
   TimeDuration  fadeInTime, fadeOutTime;
   StringHash    atlasEntry;
   f32           sizeX, sizeY;
-  TimeDuration  scaleInTime;
+  TimeDuration  scaleInTime, scaleOutTime;
   AssetVfxBlend blend;
   u32           count;
   TimeDuration  interval, lifetime;

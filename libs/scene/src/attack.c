@@ -56,7 +56,8 @@ static GeoVector aim_target_position(EcsIterator* targetItr) {
   const SceneTransformComp* trans        = ecs_view_read_t(targetItr, SceneTransformComp);
   const SceneScaleComp*     scale        = ecs_view_read_t(targetItr, SceneScaleComp);
   const GeoBox              targetBounds = scene_collision_world_bounds(collision, trans, scale);
-  return geo_box_center(&targetBounds);
+  // TODO: Instead of hardcoding an offset we should add a preferred height and clamp to bounds.
+  return geo_vector_add(geo_box_center(&targetBounds), geo_vector(0, 0.3f, 0));
 }
 
 static void attack_muzzleflash_spawn(
@@ -66,7 +67,7 @@ static void attack_muzzleflash_spawn(
     const EcsEntityId vfxAsset) {
   const EcsEntityId e = ecs_world_entity_create(world);
   ecs_world_add_t(world, e, SceneTransformComp, .position = {0}, .rotation = geo_quat_ident);
-  ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_milliseconds(150));
+  ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_milliseconds(125));
   ecs_world_add_t(world, e, SceneVfxComp, .asset = vfxAsset);
   ecs_world_add_t(world, e, SceneAttachmentComp, .target = instigator, .jointIndex = muzzleJoint);
 }
@@ -74,21 +75,27 @@ static void attack_muzzleflash_spawn(
 static void attack_projectile_spawn(
     EcsWorld*         world,
     const EcsEntityId instigator,
-    const EcsEntityId graphicAsset,
+    const EcsEntityId vfxAsset,
     const GeoMatrix*  muzzleMatrix,
     const GeoVector   targetPos) {
-  diag_assert_msg(graphicAsset, "Projectile graphic missing");
+  diag_assert_msg(vfxAsset, "Projectile vfx missing");
 
   const EcsEntityId e         = ecs_world_entity_create(world);
   const GeoVector   sourcePos = geo_matrix_to_translation(muzzleMatrix);
   const GeoVector   dir       = geo_vector_norm(geo_vector_sub(targetPos, sourcePos));
   const GeoQuat     rotation  = geo_quat_look(dir, geo_up);
 
-  ecs_world_add_t(world, e, SceneRenderableComp, .graphic = graphicAsset);
+  ecs_world_add_t(world, e, SceneVfxComp, .asset = vfxAsset);
   ecs_world_add_t(world, e, SceneTransformComp, .position = sourcePos, .rotation = rotation);
   ecs_world_add_t(world, e, SceneLifetimeDurationComp, .duration = time_seconds(5));
   ecs_world_add_t(
-      world, e, SceneProjectileComp, .speed = 25, .damage = 10, .instigator = instigator);
+      world,
+      e,
+      SceneProjectileComp,
+      .delay      = time_milliseconds(25),
+      .speed      = 40,
+      .damage     = 10,
+      .instigator = instigator);
 }
 
 static bool attack_in_sight(const SceneTransformComp* trans, const GeoVector targetPos) {
@@ -170,7 +177,7 @@ ecs_system_define(SceneAttackSys) {
       attack->flags |= SceneAttackFlags_Firing;
 
       const GeoMatrix muz = scene_skeleton_joint_world(trans, scale, skel, attackAnim->muzzleJoint);
-      attack_projectile_spawn(world, entity, attack->projectileGraphic, &muz, targetPos);
+      attack_projectile_spawn(world, entity, attack->projectileVfx, &muz, targetPos);
 
       if (attack->muzzleFlashVfx) {
         attack_muzzleflash_spawn(world, entity, attackAnim->muzzleJoint, attack->muzzleFlashVfx);
