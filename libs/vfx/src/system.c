@@ -238,7 +238,9 @@ static void vfx_system_output(
     const AssetVfxEmitter* emitterAsset = &asset->emitters[instance->emitter];
     const TimeDuration     timeRem = math_min(emitterAsset->lifetime - instance->age, sysTimeRem);
 
-    const f32 scale = sysScale * math_min(instance->age / (f32)emitterAsset->scaleInTime, 1.0f);
+    f32 scale = sysScale;
+    scale *= math_min(instance->age / (f32)emitterAsset->scaleInTime, 1.0f);
+    scale *= math_min(timeRem / (f32)emitterAsset->scaleOutTime, 1.0f);
 
     const GeoQuat   rot    = geo_quat_mul(sysRot, emitterAsset->rotation);
     const GeoVector tmpPos = geo_quat_rotate(rot, geo_vector_mul(emitterAsset->position, scale));
