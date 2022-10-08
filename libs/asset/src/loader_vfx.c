@@ -99,7 +99,7 @@ static void vfx_datareg_init() {
     data_reg_field_t(g_dataReg, VfxEmitterDef, blend, t_AssetVfxBlend, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, count, data_prim_t(u32), .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, interval, data_prim_t(f32), .flags = DataFlags_Opt);
-    data_reg_field_t(g_dataReg, VfxEmitterDef, lifetime, data_prim_t(f32));
+    data_reg_field_t(g_dataReg, VfxEmitterDef, lifetime, data_prim_t(f32), .flags = DataFlags_Opt);
 
     data_reg_struct_t(g_dataReg, VfxDef);
     data_reg_field_t(g_dataReg, VfxDef, emitters, t_VfxEmitterDef, .container = DataContainer_Array);
@@ -170,7 +170,7 @@ static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
   out->blend       = def->blend;
   out->count       = math_max(1, def->count);
   out->interval    = (TimeDuration)time_seconds(def->interval);
-  out->lifetime    = (TimeDuration)time_seconds(def->lifetime);
+  out->lifetime    = def->lifetime > 0 ? (TimeDuration)time_seconds(def->lifetime) : i64_max;
 }
 
 static void vfx_build_def(const VfxDef* def, AssetVfxComp* out) {
