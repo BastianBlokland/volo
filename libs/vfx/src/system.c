@@ -28,6 +28,7 @@ typedef struct {
 
 ecs_comp_define(VfxStateComp) {
   TimeDuration    age;
+  GeoVector       prevPos;
   VfxEmitterState emitters[asset_vfx_max_emitters];
   DynArray        instances; // VfxInstance[].
 };
@@ -68,16 +69,24 @@ static bool vfx_asset_request(EcsWorld* world, const EcsEntityId assetEntity) {
 }
 
 ecs_view_define(InitView) {
-  ecs_access_read(SceneVfxComp);
+  ecs_access_maybe_read(SceneTransformComp);
+  ecs_access_with(SceneVfxComp);
   ecs_access_without(VfxStateComp);
 }
 
 ecs_system_define(VfxStateInitSys) {
   EcsView* initView = ecs_world_view_t(world, InitView);
   for (EcsIterator* itr = ecs_view_itr(initView); ecs_view_walk(itr);) {
-    const EcsEntityId e = ecs_view_entity(itr);
+    const EcsEntityId         e     = ecs_view_entity(itr);
+    const SceneTransformComp* trans = ecs_view_read_t(itr, SceneTransformComp);
+    const GeoVector           pos   = LIKELY(trans) ? trans->position : geo_vector(0);
+
     ecs_world_add_t(
-        world, e, VfxStateComp, .instances = dynarray_create_t(g_alloc_heap, VfxInstance, 4));
+        world,
+        e,
+        VfxStateComp,
+        .prevPos   = pos,
+        .instances = dynarray_create_t(g_alloc_heap, VfxInstance, 4));
   }
 }
 
@@ -218,19 +227,19 @@ static void vfx_system_output(
     VfxStateComp*       state,
     RendDrawComp*       draw,
     const AssetVfxComp* asset,
-    const GeoVector     basePos,
-    const GeoQuat       baseRot,
-    const f32           baseScale) {
+    const GeoVector     sysPos,
+    const GeoQuat       sysRot,
+    const f32           sysScale) {
 
   dynarray_for_t(&state->instances, VfxInstance, instance) {
     const AssetVfxEmitter* emitterAsset = &asset->emitters[instance->emitter];
     const TimeDuration     lifetimeRem  = emitterAsset->lifetime - instance->age;
 
-    const f32 scale = baseScale * math_min(instance->age / (f32)emitterAsset->scaleInTime, 1.0f);
+    const f32 scale = sysScale * math_min(instance->age / (f32)emitterAsset->scaleInTime, 1.0f);
     const GeoVector emitterPos = emitterAsset->position;
-    const GeoVector tmpPos     = geo_quat_rotate(baseRot, geo_vector_mul(emitterPos, scale));
-    const GeoVector pos        = geo_vector_add(basePos, tmpPos);
-    const GeoQuat   rot        = geo_quat_mul(baseRot, emitterAsset->rotation);
+    const GeoVector tmpPos     = geo_quat_rotate(sysRot, geo_vector_mul(emitterPos, scale));
+    const GeoVector pos        = geo_vector_add(sysPos, tmpPos);
+    const GeoQuat   rot        = geo_quat_mul(sysRot, emitterAsset->rotation);
 
     GeoColor color = emitterAsset->color;
     color.a *= math_min(instance->age / (f32)emitterAsset->fadeInTime, 1.0f);
@@ -279,9 +288,13 @@ ecs_system_define(VfxSystemUpdateSys) {
     const SceneVfxComp*       vfx       = ecs_view_read_t(itr, SceneVfxComp);
     VfxStateComp*             state     = ecs_view_write_t(itr, VfxStateComp);
 
-    const GeoVector basePos   = LIKELY(trans) ? trans->position : geo_vector(0);
-    const GeoQuat   baseRot   = LIKELY(trans) ? trans->rotation : geo_quat_ident;
-    const f32       baseScale = scaleComp ? scaleComp->scale : 1.0f;
+    const GeoVector pos      = LIKELY(trans) ? trans->position : geo_vector(0);
+    const GeoVector posDelta = geo_vector_sub(pos, state->prevPos);
+    const GeoQuat   rot      = LIKELY(trans) ? trans->rotation : geo_quat_ident;
+    const f32       scale    = scaleComp ? scaleComp->scale : 1.0f;
+
+    const f32 speed = geo_vector_mag(posDelta);
+    (void)speed;
 
     if (!ecs_view_maybe_jump(assetItr, vfx->asset)) {
       if (++numAssetRequests < vfx_max_asset_requests) {
@@ -292,7 +305,9 @@ ecs_system_define(VfxSystemUpdateSys) {
     const AssetVfxComp* asset = ecs_view_read_t(assetItr, AssetVfxComp);
 
     vfx_system_simulate(state, asset, atlas, time);
-    vfx_system_output(state, draw, asset, basePos, baseRot, baseScale);
+    vfx_system_output(state, draw, asset, pos, rot, scale);
+
+    state->prevPos = pos;
   }
 }
 
