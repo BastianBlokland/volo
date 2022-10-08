@@ -1,10 +1,17 @@
 #include "core_annotation.h"
+#include "core_math.h"
 #include "ecs_world.h"
 #include "scene_lifetime.h"
 #include "scene_time.h"
 
 ecs_comp_define_public(SceneLifetimeOwnerComp);
 ecs_comp_define_public(SceneLifetimeDurationComp);
+
+static void ecs_combine_lifetime(void* dataA, void* dataB) {
+  SceneLifetimeDurationComp* compA = dataA;
+  SceneLifetimeDurationComp* compB = dataB;
+  compA->duration                  = math_min(compA->duration, compB->duration);
+}
 
 ecs_view_define(GlobalView) { ecs_access_read(SceneTimeComp); }
 ecs_view_define(LifetimeOwnerView) { ecs_access_read(SceneLifetimeOwnerComp); }
@@ -39,7 +46,7 @@ ecs_system_define(SceneLifetimeDurationSys) {
 
 ecs_module_init(scene_lifetime_module) {
   ecs_register_comp(SceneLifetimeOwnerComp);
-  ecs_register_comp(SceneLifetimeDurationComp);
+  ecs_register_comp(SceneLifetimeDurationComp, .combinator = ecs_combine_lifetime);
 
   ecs_register_view(GlobalView);
   ecs_register_view(LifetimeOwnerView);
