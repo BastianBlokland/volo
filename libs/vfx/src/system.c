@@ -2,6 +2,7 @@
 #include "asset_manager.h"
 #include "asset_vfx.h"
 #include "core_alloc.h"
+#include "core_diag.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -14,9 +15,19 @@
 
 #define vfx_max_asset_requests 16
 
+typedef struct {
+  u8  emitter;
+  u32 atlasIndex;
+} VfxParticleState;
+
+typedef enum {
+  VfxSystem_Started = 1 << 0,
+} VfxSystemFlags;
+
 ecs_comp_define(VfxSystemComp) {
-  TimeDuration age;
-  DynArray     particles; // VfxParticle[].
+  TimeDuration   age;
+  VfxSystemFlags flags;
+  DynArray       particles; // VfxParticleState[].
 };
 
 typedef enum {
@@ -64,7 +75,7 @@ ecs_system_define(VfxSystemInitSys) {
   for (EcsIterator* itr = ecs_view_itr(initView); ecs_view_walk(itr);) {
     const EcsEntityId e = ecs_view_entity(itr);
     ecs_world_add_t(
-        world, e, VfxSystemComp, .particles = dynarray_create_t(g_alloc_heap, VfxParticle, 4));
+        world, e, VfxSystemComp, .particles = dynarray_create_t(g_alloc_heap, VfxParticleState, 4));
   }
 }
 
@@ -141,11 +152,70 @@ static void vfx_color_and_opacity(const AssetVfxEmitter* e, GeoColor* outColor, 
   UNREACHABLE
 }
 
-static void
-vfx_system_simulate(VfxSystemComp* sys, const AssetVfxComp* asset, const SceneTimeComp* time) {
-  sys->age += time->delta;
+static void vfx_system_spawn(
+    VfxSystemComp* sys, const u8 emitter, const AssetVfxComp* asset, const AssetAtlasComp* atlas) {
+  diag_assert(emitter < asset->emitterCount);
+  const AssetVfxEmitter* emitterAsset = &asset->emitters[emitter];
 
-  (void)asset;
+  const AssetAtlasEntry* atlasEntry = asset_atlas_lookup(atlas, emitterAsset->atlasEntry);
+  if (UNLIKELY(!atlasEntry)) {
+    log_w("Vfx atlas entry missing", log_param("entry-hash", fmt_int(emitterAsset->atlasEntry)));
+    return;
+  }
+
+  *dynarray_push_t(&sys->particles, VfxParticleState) = (VfxParticleState){
+      .emitter    = emitter,
+      .atlasIndex = atlasEntry->atlasIndex,
+  };
+}
+
+static void vfx_system_simulate(
+    VfxSystemComp*        sys,
+    const AssetVfxComp*   asset,
+    const AssetAtlasComp* atlas,
+    const SceneTimeComp*  time) {
+
+  if (!(sys->flags & VfxSystem_Started)) {
+    for (u8 emitter = 0; emitter != asset->emitterCount; ++emitter) {
+      vfx_system_spawn(sys, emitter, asset, atlas);
+    }
+    sys->flags |= VfxSystem_Started;
+  }
+  sys->age += time->delta;
+}
+
+static void vfx_system_output(
+    VfxSystemComp*      sys,
+    RendDrawComp*       draw,
+    const AssetVfxComp* asset,
+    const GeoVector     basePos,
+    const GeoQuat       baseRot,
+    const f32           baseScale) {
+
+  dynarray_for_t(&sys->particles, VfxParticleState, state) {
+    const AssetVfxEmitter* emitterAsset = &asset->emitters[state->emitter];
+
+    const GeoVector emitterPos = emitterAsset->position;
+    const GeoVector tmpPos     = geo_quat_rotate(baseRot, geo_vector_mul(emitterPos, baseScale));
+    const GeoVector pos        = geo_vector_add(basePos, tmpPos);
+    const GeoQuat   rot        = geo_quat_mul(baseRot, emitterAsset->rotation);
+
+    GeoColor color;
+    f32      opacity;
+    vfx_color_and_opacity(emitterAsset, &color, &opacity);
+
+    vfx_particle_output(
+        draw,
+        &(VfxParticle){
+            .position   = pos,
+            .rotation   = rot,
+            .atlasIndex = state->atlasIndex,
+            .sizeX      = baseScale * emitterAsset->sizeX,
+            .sizeY      = baseScale * emitterAsset->sizeY,
+            .color      = color,
+            .opacity    = opacity,
+        });
+  }
 }
 
 ecs_system_define(VfxSystemUpdateSys) {
@@ -166,18 +236,17 @@ ecs_system_define(VfxSystemUpdateSys) {
   EcsIterator* assetItr         = ecs_view_itr(ecs_world_view_t(world, AssetView));
   u32          numAssetRequests = 0;
 
-  // Prepare the particle draw.
   vfx_particle_init(draw, atlas);
 
   EcsView* updateView = ecs_world_view_t(world, UpdateView);
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
     const SceneScaleComp*     scaleComp = ecs_view_read_t(itr, SceneScaleComp);
-    const SceneTransformComp* transComp = ecs_view_read_t(itr, SceneTransformComp);
+    const SceneTransformComp* trans     = ecs_view_read_t(itr, SceneTransformComp);
     const SceneVfxComp*       vfxComp   = ecs_view_read_t(itr, SceneVfxComp);
-    VfxSystemComp*            sysComp   = ecs_view_write_t(itr, VfxSystemComp);
+    VfxSystemComp*            sys       = ecs_view_write_t(itr, VfxSystemComp);
 
-    const GeoVector basePos   = LIKELY(transComp) ? transComp->position : geo_vector(0);
-    const GeoQuat   baseRot   = LIKELY(transComp) ? transComp->rotation : geo_quat_ident;
+    const GeoVector basePos   = LIKELY(trans) ? trans->position : geo_vector(0);
+    const GeoQuat   baseRot   = LIKELY(trans) ? trans->rotation : geo_quat_ident;
     const f32       baseScale = scaleComp ? scaleComp->scale : 1.0f;
 
     if (!ecs_view_maybe_jump(assetItr, vfxComp->asset)) {
@@ -186,38 +255,10 @@ ecs_system_define(VfxSystemUpdateSys) {
       }
       continue;
     }
-
     const AssetVfxComp* asset = ecs_view_read_t(assetItr, AssetVfxComp);
-    vfx_system_simulate(sysComp, asset, time);
 
-    for (u32 i = 0; i != asset->emitterCount; ++i) {
-      const AssetVfxEmitter* emitter    = &asset->emitters[i];
-      const AssetAtlasEntry* atlasEntry = asset_atlas_lookup(atlas, emitter->atlasEntry);
-      if (UNLIKELY(!atlasEntry)) {
-        log_w(
-            "Vfx asset entry missing", log_param("atlas-entry-hash", fmt_int(emitter->atlasEntry)));
-        continue;
-      }
-      const GeoVector pos = geo_vector_add(
-          basePos, geo_quat_rotate(baseRot, geo_vector_mul(emitter->position, baseScale)));
-      const GeoQuat rot = geo_quat_mul(baseRot, emitter->rotation);
-
-      GeoColor color;
-      f32      opacity;
-      vfx_color_and_opacity(emitter, &color, &opacity);
-
-      vfx_particle_output(
-          draw,
-          &(VfxParticle){
-              .position   = pos,
-              .rotation   = rot,
-              .atlasIndex = atlasEntry->atlasIndex,
-              .sizeX      = baseScale * emitter->sizeX,
-              .sizeY      = baseScale * emitter->sizeY,
-              .color      = color,
-              .opacity    = opacity,
-          });
-    }
+    vfx_system_simulate(sys, asset, atlas, time);
+    vfx_system_output(sys, draw, asset, basePos, baseRot, baseScale);
   }
 }
 
