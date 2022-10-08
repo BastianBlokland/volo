@@ -14,12 +14,13 @@ typedef enum {
 } AssetVfxBlend;
 
 typedef struct {
-  StringHash    atlasEntry;
   GeoVector     position;
   GeoQuat       rotation;
-  f32           sizeX, sizeY;
   GeoColor      color;
+  StringHash    atlasEntry;
+  f32           sizeX, sizeY;
   AssetVfxBlend blend;
+  TimeDuration  lifetime;
 } AssetVfxEmitter;
 
 ecs_comp_extern_public(AssetVfxComp) {

@@ -16,8 +16,9 @@
 #define vfx_max_asset_requests 16
 
 typedef struct {
-  u8  emitter;
-  u32 atlasIndex;
+  u8           emitter;
+  u32          atlasIndex;
+  TimeDuration age;
 } VfxParticleState;
 
 typedef enum {
@@ -25,7 +26,6 @@ typedef enum {
 } VfxSystemFlags;
 
 ecs_comp_define(VfxSystemComp) {
-  TimeDuration   age;
   VfxSystemFlags flags;
   DynArray       particles; // VfxParticleState[].
 };
@@ -181,7 +181,21 @@ static void vfx_system_simulate(
     }
     sys->flags |= VfxSystem_Started;
   }
-  sys->age += time->delta;
+
+  VfxParticleState* statesBegin = dynarray_begin_t(&sys->particles, VfxParticleState);
+  for (u32 i = (u32)sys->particles.size; i-- != 0;) {
+    VfxParticleState*      state        = statesBegin + i;
+    const AssetVfxEmitter* emitterAsset = &asset->emitters[state->emitter];
+
+    // Update age and destruct if too old.
+    if ((state->age += time->delta) > emitterAsset->lifetime) {
+      goto Destruct;
+    }
+    continue;
+
+  Destruct:
+    dynarray_remove_unordered(&sys->particles, i, 1);
+  }
 }
 
 static void vfx_system_output(

@@ -4,6 +4,7 @@
 #include "core_diag.h"
 #include "core_math.h"
 #include "core_thread.h"
+#include "core_time.h"
 #include "data.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -37,6 +38,7 @@ typedef struct {
   VfxVec2Def    size;
   VfxColorDef*  color;
   AssetVfxBlend blend;
+  f32           lifetime;
 } VfxEmitterDef;
 
 typedef struct {
@@ -89,6 +91,7 @@ static void vfx_datareg_init() {
     data_reg_field_t(g_dataReg, VfxEmitterDef, size, t_VfxVec2Def);
     data_reg_field_t(g_dataReg, VfxEmitterDef, color, t_VfxColorDef, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
     data_reg_field_t(g_dataReg, VfxEmitterDef, blend, t_AssetVfxBlend, .flags = DataFlags_Opt);
+    data_reg_field_t(g_dataReg, VfxEmitterDef, lifetime, data_prim_t(f32));
 
     data_reg_struct_t(g_dataReg, VfxDef);
     data_reg_field_t(g_dataReg, VfxDef, emitters, t_VfxEmitterDef, .container = DataContainer_Array);
@@ -154,6 +157,7 @@ static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
   out->sizeY      = def->size.y;
   out->color      = def->color ? vfx_build_color(def->color) : geo_color_white;
   out->blend      = def->blend;
+  out->lifetime   = (TimeDuration)time_seconds(def->lifetime);
 }
 
 static void vfx_build_def(const VfxDef* def, AssetVfxComp* out) {
