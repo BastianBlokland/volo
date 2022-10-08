@@ -21,13 +21,14 @@ typedef struct {
   TimeDuration age;
 } VfxParticleState;
 
-typedef enum {
-  VfxSystem_Started = 1 << 0,
-} VfxSystemFlags;
+typedef struct {
+  u32 spawnCount;
+} VfxEmitterState;
 
 ecs_comp_define(VfxSystemComp) {
-  VfxSystemFlags flags;
-  DynArray       particles; // VfxParticleState[].
+  TimeDuration    age;
+  VfxEmitterState emitters[asset_vfx_max_emitters];
+  DynArray        particles; // VfxParticleState[].
 };
 
 typedef enum {
@@ -175,13 +176,20 @@ static void vfx_system_simulate(
     const AssetAtlasComp* atlas,
     const SceneTimeComp*  time) {
 
-  if (!(sys->flags & VfxSystem_Started)) {
-    for (u8 emitter = 0; emitter != asset->emitterCount; ++emitter) {
+  sys->age += time->delta;
+
+  // Update emitters.
+  for (u32 emitter = 0; emitter != asset->emitterCount; ++emitter) {
+    VfxEmitterState*       emitterState  = &sys->emitters[emitter];
+    const AssetVfxEmitter* emitterAsset  = &asset->emitters[emitter];
+    const TimeDuration     interval      = emitterAsset->interval;
+    const u32              newSpawnCount = 1 + (interval ? (u32)(sys->age / interval) : 0);
+    for (; emitterState->spawnCount != newSpawnCount; ++emitterState->spawnCount) {
       vfx_system_spawn(sys, emitter, asset, atlas);
     }
-    sys->flags |= VfxSystem_Started;
   }
 
+  // Update particles.
   VfxParticleState* statesBegin = dynarray_begin_t(&sys->particles, VfxParticleState);
   for (u32 i = (u32)sys->particles.size; i-- != 0;) {
     VfxParticleState*      state        = statesBegin + i;

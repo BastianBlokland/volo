@@ -20,7 +20,7 @@ typedef struct {
   StringHash    atlasEntry;
   f32           sizeX, sizeY;
   AssetVfxBlend blend;
-  TimeDuration  lifetime;
+  TimeDuration  interval, lifetime;
 } AssetVfxEmitter;
 
 ecs_comp_extern_public(AssetVfxComp) {
